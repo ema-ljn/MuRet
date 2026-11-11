@@ -113,8 +113,8 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     ASSERT_NE(selectionTerrain, nullptr);
     ASSERT_NE(selectionTerrain->heights, nullptr);
     ASSERT_NE(selectionTerrain->attributes, nullptr);
-    ASSERT_EQ(world.Map().terrain.heights, nullptr);
-    ASSERT_EQ(world.Map().terrain.attributes, nullptr);
+    // 0x633f4e carga el 54 en los globales del mundo (0x61a560): la selección presta ese terreno.
+    ASSERT_EQ(selectionTerrain, &world.Map().terrain);
     ASSERT_EQ(world.Runtime().map, 54);
     ASSERT_TRUE(world.Runtime().drawingEnabled);
     auto& hero = world.Actors()[world.Runtime().hero];
@@ -231,7 +231,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     EXPECT_EQ(selection.Terrain(), selectionTerrain);
     EXPECT_EQ(selectionTerrain->heights->cells[0], heightBefore);
     EXPECT_EQ(selectionTerrain->attributes->cells[0], cellBefore | Client::World::CharacterWallBit);
-    EXPECT_EQ(world.Map().terrain.attributes, nullptr);
+    EXPECT_EQ(selection.Terrain(), &world.Map().terrain);
     EXPECT_EQ(world.Runtime().map, 54);
     EXPECT_EQ(world.Runtime().terrainPolygon.x, polygon.x);
     EXPECT_EQ(world.Runtime().terrainPolygon.y, polygon.y);

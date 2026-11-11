@@ -7,10 +7,12 @@
 #include "World/Particles.h"
 #include "World/KalimaWorld.h"
 #include "World/Ftol.h"
+#include "World/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -20,6 +22,10 @@ namespace Client::World
 {
 namespace
 {
+float F32(double value)
+{
+    return static_cast<float>(value);
+}
 Core::Expected<void, std::string> StepKalimaEffect(ModelEffect& effect, KalimaWorld* kalima,
                                                    Render::Models::CrtRandom& random)
 {
@@ -87,10 +93,70 @@ Core::Expected<void, std::string> EmitTeleportSparks(const ModelEffect& effect, 
     }
     return {};
 }
+// 0x520d11..0x520fd1, con la luz local en (1, 1, 1) desde 0x520921.
+Core::Expected<void, std::string> StepButterfly(ModelEffect& effect, Particles& particles, float worldClock,
+                                                Render::Models::CrtRandom& random,
+                                                const ModelEffectStepServices& services)
+{
+    constexpr int TurnSpan = 10, DriftSpan = 15, DriftCenter = 7;
+    glm::vec3& position = effect.transform.position;
+    glm::vec3& angles = effect.transform.angles;
+    const int turn = random.Next() % TurnSpan;
+    angles.z = effect.state > 0 ? F32(static_cast<double>(turn) + angles.z) : F32(static_cast<double>(angles.z) - turn);
+    if ((random.Next() & 31) == 0)
+        effect.velocity.z = static_cast<float>(random.Next() % DriftSpan - DriftCenter);
+    constexpr double Flap = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));    // 0x6b8854.
+    constexpr double Damping = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38.
+    constexpr double Hop = static_cast<double>(std::bit_cast<float>(0x3e99999au));     // 0x6b89dc.
+    effect.velocity.z = F32(static_cast<double>(random.Next() % DriftSpan - DriftCenter) * Flap + effect.velocity.z);
+    if (!services.terrainHeight)
+        return Core::Unexpected(std::string("0x520dad: la mariposa pide la altura del terreno (0x5f93c0)"));
+    // 520db2..520e01: la altura queda en la pila para las dos comparaciones.
+    const double height = services.terrainHeight(position.x, position.y);
+    constexpr double Floor = 50.0, Ceiling = 150.0;
+    if (height + Floor > static_cast<double>(position.z))
+        effect.velocity.z = F32(static_cast<double>(effect.velocity.z) * Damping + 1.0);
+    if (!(height + Ceiling >= static_cast<double>(position.z)))
+        effect.velocity.z = F32(static_cast<double>(effect.velocity.z) * Damping - 1.0);
+    position.z = F32(static_cast<double>(random.Next() % DriftSpan - DriftCenter) * Hop + position.z);
+    const double level = static_cast<double>((random.Next() & 31) + 64) * static_cast<double>(0.01f);
+    // 0x6b87b4, 0x6b8a38, 0x6b8a20 y, en el /3, 0x6b8a5c, 0x6b8a1c y 0x6b882c.
+    constexpr std::array<std::array<float, 3>, 4> Tints{
+        {{0.4f, 0.8f, 0.6f}, {0.4f, 0.6f, 0.8f}, {0.6f, 0.8f, 0.4f}, {0.7f, 0.9f, 0.5f}}};
+    glm::vec3 light(1.0f);
+    if (effect.subtype >= 0 && effect.subtype < static_cast<std::int32_t>(Tints.size()))
+    {
+        const auto& tint = Tints[static_cast<std::size_t>(effect.subtype)];
+        for (int axis = 0; axis < 3; ++axis)
+            light[axis] = F32(level * static_cast<double>(tint[static_cast<std::size_t>(axis)]));
+    }
+    constexpr std::int32_t SparkingSubtype = 3;
+    if (effect.subtype == SparkingSubtype && (random.Next() & 1) == 0)
+    {
+        // 520f05..520fb1: los tres desplazamientos se sortean antes de sumarse.
+        constexpr int SparkSpan = 15, SparkCenter = 8, SparkSubtype = 7;
+        glm::vec3 offset{};
+        for (int axis = 0; axis < 3; ++axis)
+            offset[axis] = static_cast<float>(static_cast<int>(random.Next() & SparkSpan) - SparkCenter);
+        glm::vec3 point{};
+        for (int axis = 0; axis < 3; ++axis)
+            point[axis] = F32(static_cast<double>(offset[axis]) + position[axis]);
+        const auto created = particles.CreateChecked(FairySparkParticle, point, angles, effect.light, SparkSubtype,
+                                                     1.0f, worldClock, random);
+        if (!created.HasValue())
+            return Core::Unexpected(std::string("0x520fb1: no se pudo crear la chispa 5c5/7 de la mariposa"));
+    }
+    if (services.sprites == nullptr)
+        return Core::Unexpected(std::string("0x520fd1: la mariposa pide la tabla de sprites (0x5491e0)"));
+    constexpr std::uint16_t Glow = 0x5ac;
+    static_cast<void>(services.sprites->Create(Glow, position, 1.0f, light, 0.0f, 0));
+    return {};
+}
 } // namespace
 Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
                                                       Particles& particles, float worldClock,
-                                                      Render::Models::CrtRandom& random, KalimaWorld* kalima)
+                                                      Render::Models::CrtRandom& random, KalimaWorld* kalima,
+                                                      const ModelEffectStepServices& services)
 {
     if (!effect.alive)
         return {};
@@ -113,6 +179,11 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     {
         if (auto emitted = EmitTeleportSparks(effect, particles, worldClock, random); !emitted.HasValue())
             return emitted;
+    }
+    else if (effect.type == ButterflyEffect)
+    {
+        if (auto stepped = StepButterfly(effect, particles, worldClock, random, services); !stepped.HasValue())
+            return stepped;
     }
     else if (effect.type != DragonEffect && effect.type != ArrivalEffect)
         return Core::Unexpected(std::string("0x5208a0: el paso del tipo de efecto con modelo no está portado"));

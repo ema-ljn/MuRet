@@ -60,8 +60,13 @@ public:
     // 0x80, y fuera del mapa 30, que MuRet no carga, ningún .att los tiene (05): con el terreno del juego
     // o con el del 54, da lo mismo (Q-C213).
     void RefreshCameraAttribute(World::GameCameraInput& input) const;
+    // 0x633f20 con la lista: el mundo cargado, el 54 como mundo en curso (0x633f44) y 0x61a560(54), la carga
+    // de LoadMap en la escena 4 (los objetos del .obj con sus casos de la selección, 0x606660, y el pasto
+    // con sus 65.536 rand()). El terreno queda en WorldState::Map y este estado lo presta. `random` es el
+    // rand() de la CRT; sin él, el local de las pruebas.
     [[nodiscard]] Core::Expected<void, std::string> InitializeSelection(const std::filesystem::path& dataRoot,
-                                                                        World::GameCameraInput& input);
+                                                                        World::GameCameraInput& input,
+                                                                        Render::Models::CrtRandom* random = nullptr);
     [[nodiscard]] Core::Expected<void, std::string> Apply(std::span<const App::CharacterEvent> events,
                                                           World::GameCamera& camera, World::GameCameraInput& input,
                                                           Render::Models::ClothWorld* cloth = nullptr,

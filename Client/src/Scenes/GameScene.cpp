@@ -98,6 +98,8 @@ constexpr std::int32_t LastChaosCastleMap = 23;
 constexpr std::int32_t CastleMap = 30;
 // 0x633f20: mapa conservado durante la espera de entrada.
 constexpr std::int32_t SelectionMap = 54;
+// 0x425070: el 33 comparte con el 54 los casos de los objetos de 0x4250f0.
+constexpr std::int32_t AidaMap = 33;
 // Los mapas de referencia, los únicos con los casos de los objetos en el juego (0x6046a0 y 0x604ab0).
 constexpr std::int32_t LorenciaMap = 0;
 constexpr std::int32_t DeviasMap = 2;
@@ -309,7 +311,10 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     {
         return {};
     }
-    if (map != LorenciaMap && map != DeviasMap && map != NoriaMap && !World::IsKalimaMap(map))
+    // 0x4250f0 lleva los del 33 y los del 54 (los de la selección, vistos en su dibujo, que siguen durante la
+    // espera de la entrada al juego).
+    const bool aida = map == AidaMap || map == SelectionMap;
+    if (map != LorenciaMap && map != DeviasMap && map != NoriaMap && !World::IsKalimaMap(map) && !aida)
     {
         return Core::Unexpected("0x606560: los objetos vistos del " + MapText(map) + " (0x604ab0) no están portados");
     }

@@ -35,6 +35,7 @@
 
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"
+#include "support/EffectTextures.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/PlayerActors.h"
@@ -134,7 +135,8 @@ protected:
                                                    .world = &m_world};
         if (id == SceneId::CharacterSelect)
         {
-            return std::make_unique<Client::Scenes::CharacterSelectScene>(context, m_data, m_models, &m_online.session);
+            return std::make_unique<Client::Scenes::CharacterSelectScene>(context, m_data, m_library,
+                                                                          &m_online.session);
         }
         if (id == SceneId::Login)
         {
@@ -166,6 +168,8 @@ protected:
     Client::Tests::RecordingFrameTarget m_target;
     Client::Scenes::GameData m_data;
     Client::Scenes::SingleModelLibrary m_models;
+    // Con las texturas de efectos de GameModels, que piden las partículas del mundo 54.
+    Client::Tests::WithEffectTextures m_library{m_models};
     Client::World::GameCamera m_camera;
     Client::World::GameCameraInput m_cameraInput;
     Client::Render::Models::ClothWorld m_cloth;
@@ -348,13 +352,14 @@ TEST_F(SelectionPipelineTest, AListPetReachesTheHelperBoundaryBeforeActorsPartic
     EXPECT_FLOAT_EQ(helpers[0].horse.alpha, 0.1f);
     EXPECT_FLOAT_EQ(helpers[1].horse.alpha, 0.0f);
     EXPECT_EQ(m_world.Actors()[0].animation.frame, animation.frame);
-    EXPECT_EQ(m_cloth.random.State(), Client::Tests::AfterDraws(Seed, 3904).State());
+    // Con los 65.536 rand() del pasto (0x5f8300) de la carga del 54 (0x61a560) en este paso.
+    EXPECT_EQ(m_cloth.random.State(), Client::Tests::AfterDraws(Seed, 3904 + 65536).State());
     EXPECT_EQ(m_cloth.logicSteps, Counter);
     EXPECT_EQ(m_cloth.wind, wind);
 
     m_manager->Step(Client::Input::InputState{});
     EXPECT_FLOAT_EQ(helpers[0].horse.alpha, 0.1f);
-    EXPECT_EQ(m_cloth.random.State(), Client::Tests::AfterDraws(Seed, 3904).State());
+    EXPECT_EQ(m_cloth.random.State(), Client::Tests::AfterDraws(Seed, 3904 + 65536).State());
 }
 
 TEST_F(SelectionPipelineTest, ANewLoginPreservesAlreadyAppliedEventsAndTheConstructedPool)
@@ -528,6 +533,7 @@ TEST_F(SelectionPipelineTest, TheSelectionDrawingLeavesTheScanOfTheLastCharacter
     m_online.clock.Advance(Client::Render::Models::OriginalFrameTime);
     m_manager->Render(0.0f);
 
+    ASSERT_FALSE(m_manager->Failure().has_value()) << *m_manager->Failure();
     ASSERT_TRUE(m_world.Runtime().fullSetScan.has_value());
     EXPECT_EQ(m_world.Runtime().fullSetScan->dword743a178, 0);
     EXPECT_EQ(m_world.Runtime().fullSetScan->byte743a17c, 1);

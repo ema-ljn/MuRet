@@ -23,6 +23,7 @@
 #include <format>
 #include <functional>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -150,17 +151,31 @@ Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& ob
 Core::Expected<void, std::string> StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random,
                                                     const std::int32_t& map,
                                                     const std::function<double(float, float)>& terrainHeight,
-                                                    const float& worldClock)
+                                                    const float& worldClock,
+                                                    const std::function<World::WorldObject*(std::uint64_t)>& owners)
 {
     World::PortableParticleTrigonometry trigonometry;
-    const auto stepped =
-        World::StepParticlesChecked(particles, random, std::cref(worldClock), &map, trigonometry, terrainHeight);
+    const auto stepped = World::StepParticlesChecked(particles, random, std::cref(worldClock), &map, trigonometry,
+                                                     terrainHeight, owners);
     if (!stepped.HasValue())
     {
         return Core::Unexpected(std::format("0x637128 → 0x5446e0: el paso de las partículas falla con error {}",
                                             static_cast<unsigned>(stepped.Error())));
     }
     return {};
+}
+
+std::function<World::WorldObject*(std::uint64_t)> ParticleOwnersAmong(std::span<World::WorldObject> objects)
+{
+    return [objects](std::uint64_t identity) -> World::WorldObject*
+    {
+        for (World::WorldObject& object : objects)
+        {
+            if (object.identity == identity)
+                return &object;
+        }
+        return nullptr;
+    };
 }
 
 Core::Expected<void, std::string> DrawGameParticles(Render::ModelBatch& batch, World::Particles& particles,

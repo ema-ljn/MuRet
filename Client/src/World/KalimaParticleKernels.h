@@ -18,6 +18,8 @@ inline constexpr std::int32_t KalimaFlare = 0x5ac;
 inline constexpr std::int32_t KalimaFanta = 0x6ed;
 inline constexpr std::int32_t KalimaWaterfallFirst = 0x6f0;
 inline constexpr std::int32_t KalimaWaterfallMist = 0x6f1;
+// 0x6f2 y 0x6f3: las salpicaduras de las cascadas (el 0x39 del 54 crea 6f2/4).
+inline constexpr std::int32_t WaterfallSplashFirst = 0x6f2;
 inline constexpr std::int32_t KalimaWaterfallLast = 0x6f4;
 [[nodiscard]] bool IsKalimaParticle(std::int32_t type, std::int32_t subtype);
 // Después del prefijo53fe70.6f1/0 consultaScene tras3CRT y antes de almacenar vz;

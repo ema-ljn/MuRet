@@ -129,6 +129,12 @@ struct GameObjectPass
     const ActorState* hero = nullptr;
     const World::KalimaWorld* kalima = nullptr;
     std::function<void(std::int32_t)> requestSound{};
+    // 0x518cf0: los efectos de modelo, para la mariposa 0xae del 0x3c del 54 (0x4257d5).
+    World::ModelEffects* effects = nullptr;
+    // 0x6b8544 (timeGetTime), que el 0x3c del 54 y el 0x46 del 33 leen en el dibujo (Q-C304).
+    std::function<std::uint32_t()> systemTime{};
+    // DAT_006d5dc8: con 4 (la selección), la mariposa sale oculta y el 6f1/2 con luz 0,25.
+    std::int32_t scene = 0;
 };
 
 // 0x6046a0 en el juego (0x6374ce), en los mapas 0 y 2 (06 § Los objetos del juego): sector por sector, en

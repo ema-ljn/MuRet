@@ -1,6 +1,7 @@
 #include "Scenes/SceneTextures.h"
 
 #include "Data/Textures/Sampling.h"
+#include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
 #include "Render/TextureSlot.h"
 #include "support/FakeTextureStore.h"
@@ -78,6 +79,32 @@ TEST(SceneTexturesTest, KnowsTheBufferSizeOfEachSlot)
     EXPECT_EQ(tested.textures.BufferSize(TextureSlot{0x301}).width, SceneOztSide);
     EXPECT_EQ(tested.textures.BufferSize(TextureSlot{0x302}).width, 1);
     EXPECT_EQ(tested.textures.BufferSize(TextureSlot{0x302}).height, 1);
+}
+
+// La metadata raw32 de cada slot subido (+0x20, +0x24 y +0x28 de su lugar), la que piden las partículas que
+// se dibujan con una textura de la escena (la 0x729 y la 0x719 de la selección); ausente fuera del juego y
+// después de soltarlo.
+TEST(SceneTexturesTest, KnowsTheMetadataOfEachUploadedSlotUntilItsRelease)
+{
+    Harness tested;
+    EXPECT_FALSE(tested.textures.MetadataOf(0x300).has_value());
+    ASSERT_TRUE(tested.textures.Load(tested.folder.Path()).HasValue());
+
+    for (const TextureSetEntry& entry : Set)
+    {
+        const auto stored = tested.store.Find(TextureSlot{entry.slot});
+        ASSERT_TRUE(stored.has_value());
+        const auto metadata = tested.textures.MetadataOf(entry.slot);
+        ASSERT_TRUE(metadata.has_value()) << entry.slot;
+        EXPECT_EQ(metadata->size.x, static_cast<float>(stored->texture.textureWidth)) << entry.slot;
+        EXPECT_EQ(metadata->size.y, static_cast<float>(stored->texture.textureHeight)) << entry.slot;
+        EXPECT_EQ(metadata->components,
+                  static_cast<std::uint8_t>(Client::Data::Textures::BytesPerPixel(stored->texture.format)));
+    }
+    EXPECT_FALSE(tested.textures.MetadataOf(0x302).has_value());
+    EXPECT_FALSE(tested.textures.MetadataOf(0x10300).has_value());
+    tested.textures.Release();
+    EXPECT_FALSE(tested.textures.MetadataOf(0x300).has_value());
 }
 
 TEST(SceneTexturesTest, AMissingFileFailsWithItsNameAndUploadsNothing)

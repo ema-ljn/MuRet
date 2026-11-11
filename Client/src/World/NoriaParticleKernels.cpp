@@ -19,13 +19,18 @@ constexpr float SparkScaleStep = std::bit_cast<float>(0x3dcccccdu);
 constexpr float ShinySineStep = std::bit_cast<float>(0x3e32b8c2u); // 6ba370.
 constexpr float ShinyOneScale = 0.75f;
 constexpr float SparkCollision = std::bit_cast<float>(0xbf19999au);
+// 0x544f7b: el 5c5/7 (las chispas de la mariposa de la selección) cae con 0x6b8a20; el /0, con 0x6b8818.
+constexpr double SparkFall = 2.0;
+constexpr double FlutterFall = static_cast<double>(std::bit_cast<float>(0x3f19999au));
+constexpr std::int32_t FlutterSparkSubtype = 7;
 constexpr float SparkLifeLight = 0.0625f;
 constexpr float ShinyTurn = 12.0f;
 } // namespace
 
 bool IsNoriaParticle(std::int32_t type, std::int32_t subtype)
 {
-    return (type == ShinyParticle && (subtype == 0 || subtype == 1)) || (type == FairySparkParticle && subtype == 0);
+    return (type == ShinyParticle && (subtype == 0 || subtype == 1)) ||
+           (type == FairySparkParticle && (subtype == 0 || subtype == FlutterSparkSubtype));
 }
 
 void CreateNoriaParticle(Particle& particle, Render::Models::CrtRandom& random)
@@ -39,6 +44,13 @@ void CreateNoriaParticle(Particle& particle, Render::Models::CrtRandom& random)
     }
     // 540333..54055a, subtipo0: matriz DESPUÉS de escribir el yaw, sin cambiar pitch/roll.
     particle.scale = static_cast<float>(static_cast<double>((random.Next() & 3) + 4) * SparkScaleStep);
+    if (particle.subtype == FlutterSparkSubtype)
+    {
+        // 54038c..5403a7: sólo la vida; sin giro ni velocidad, y sin sumar la escala del argumento.
+        constexpr int FlutterLifeSpan = 12;
+        particle.life = random.Next() % FlutterLifeSpan + FlutterLifeSpan;
+        return;
+    }
     particle.life = (random.Next() & 15) + 24;
     particle.angles.z = static_cast<float>(random.Next() % 360);
     const auto matrix = Render::Models::OriginalAngleMatrix(particle.angles);
@@ -71,7 +83,8 @@ Core::Expected<void, ParticleError> StepNoriaParticle(Particle& particle, const 
     const float light = static_cast<float>(static_cast<double>(particle.life) * SparkLifeLight);
     particle.light = glm::vec3(light);
     particle.position.z = static_cast<float>(static_cast<double>(particle.position.z) + particle.verticalSpeed);
-    particle.verticalSpeed = static_cast<float>(static_cast<double>(particle.verticalSpeed) - 2.0);
+    particle.verticalSpeed = static_cast<float>(static_cast<double>(particle.verticalSpeed) -
+                                                (particle.subtype == FlutterSparkSubtype ? FlutterFall : SparkFall));
     if (!terrainHeight)
         return Core::Unexpected(ParticleError::MissingTerrainHeight);
     const double height = terrainHeight(particle.position.x, particle.position.y);

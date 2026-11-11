@@ -1,6 +1,8 @@
 #include "World/ModelEffects.h"
 
+#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
+#include "World/WorldObjects.h"
 
 #include "support/DragonVectors.h"
 #include "support/WorldObjectVectors.h"
@@ -240,5 +242,45 @@ TEST(ModelEffectsTest, ANotANumberFrameIsNotReset)
     dragon.animation.frame = std::numeric_limits<float>::quiet_NaN();
     Client::World::StepModelEffect(dragon, nullptr);
     EXPECT_TRUE(std::isnan(dragon.animation.frame));
+}
+// 0x518cf0(0xae, …, subtipo, dueño, −1, 0, 0, 0, 0) → 0x51913a: oculta en la escena 4, vida 250, animación
+// a 0,3, sin luz por vértice, el estado con rand() & 1, la velocidad (0, escala del dueño · −5, 0) y la
+// escala 0,9 con el /3 (0,25 con los demás). Con el pool lleno no saca rand().
+TEST(ModelEffectsTest, TheButterflyIsCreatedHiddenInTheSelectionWithOneDraw)
+{
+    for (const bool selection : {true, false})
+    {
+        for (const std::int32_t subtype : {3, 1})
+        {
+            ModelEffects effects;
+            Client::Render::Models::CrtRandom random(9);
+            Client::Render::Models::CrtRandom draws(9);
+            const auto slot = effects.CreateButterflyEffect({10.0f, 20.0f, 30.0f}, {0.0f, 0.0f, 45.0f}, glm::vec3(1.0f),
+                                                            subtype, 1.25f, selection, random);
+            ASSERT_EQ(slot, std::optional<std::size_t>(0));
+            const ModelEffect& effect = effects.Effects()[0];
+            EXPECT_TRUE(effect.alive);
+            EXPECT_EQ(effect.type, Client::World::ButterflyEffect);
+            EXPECT_EQ(effect.subtype, subtype);
+            EXPECT_EQ(effect.transform.position, glm::vec3(10.0f, 20.0f, 30.0f));
+            EXPECT_EQ(effect.transform.angles, glm::vec3(0.0f, 0.0f, 45.0f));
+            EXPECT_EQ(effect.objectState.hiddenMesh,
+                      selection ? Client::World::HiddenObject : ModelEffect{}.objectState.hiddenMesh);
+            EXPECT_EQ(effect.life, 250);
+            EXPECT_EQ(effect.speed, std::bit_cast<float>(0x3e99999au));
+            EXPECT_FALSE(effect.vertexLight);
+            EXPECT_EQ(effect.disturbanceState, 0xffffu);
+            EXPECT_EQ(effect.state, static_cast<std::uint8_t>(draws.Next() & 1));
+            EXPECT_EQ(effect.velocity, glm::vec3(0.0f, static_cast<float>(1.25 * -5.0), 0.0f));
+            EXPECT_EQ(effect.transform.scale, subtype == 3 ? std::bit_cast<float>(0x3f666666u) : 0.25f);
+            EXPECT_EQ(random.State(), draws.State());
+        }
+    }
+    ModelEffects full;
+    for (auto& effect : full.Effects())
+        effect.alive = true;
+    Client::Render::Models::CrtRandom random(9);
+    EXPECT_FALSE(full.CreateButterflyEffect({}, {}, glm::vec3(1.0f), 3, 1.0f, true, random).has_value());
+    EXPECT_EQ(random.State(), 9u);
 }
 } // namespace

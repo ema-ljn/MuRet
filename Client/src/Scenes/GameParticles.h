@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <span>
 #include <string>
 
 namespace Client::Render
@@ -51,10 +52,17 @@ StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles,
                         const FaunaDrawCarry* retainedPose = nullptr);
 
 // 0x637128 → 0x5446e0: también con el pool vacío consume los dos rand() del viento.
-// worldClock presta el lvalue del caller durante la pasada; no retiene ni copia ese owner.
+// worldClock presta el lvalue del caller durante la pasada; no retiene ni copia ese owner. `owners`
+// resuelve el dueño de 622/1 entre los objetos del mapa (World::ParticleObjectOwners).
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map,
-                  const std::function<double(float, float)>& terrainHeight = {}, const float& worldClock = 0.0f);
+                  const std::function<double(float, float)>& terrainHeight = {}, const float& worldClock = 0.0f,
+                  const std::function<World::WorldObject*(std::uint64_t)>& owners = {});
+
+// El dueño de una partícula por la identidad de su objeto (WorldObject::identity) entre `objects`, que
+// tienen que vivir más que el resolvedor: lo que el original lee por el puntero +0x40.
+[[nodiscard]] std::function<World::WorldObject*(std::uint64_t)>
+ParticleOwnersAmong(std::span<World::WorldObject> objects);
 
 // 0x637558 → 0x548550(0), en el pase de ojo después de los sprites. Conserva la geometría y
 // las operaciones anteriores a un fallo y devuelve la dirección y el lugar que falló.

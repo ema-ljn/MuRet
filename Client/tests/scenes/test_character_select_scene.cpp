@@ -26,6 +26,9 @@
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/HelperTable.h"
 #include "World/Particles.h"
+#include "Data/Terrain/TerrainGrid.h"
+#include "World/ParticleOwner.h"
+#include "World/SelectionParticleKernels.h"
 #include "Scenes/GameData.h"
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SceneContext.h"
@@ -33,6 +36,7 @@
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/TextureMetadata.h"
 #include "Scenes/TextureSets.h"
 #include "UI/CreateCharacterWindow.h"
 #include "World/GameCamera.h"
@@ -41,6 +45,7 @@
 
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"
+#include "support/EffectTextures.h"
 #include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
 #include "support/GateFiles.h"
@@ -68,6 +73,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
@@ -176,6 +182,20 @@ public:
     [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
     {
         return {};
+    }
+    // Las texturas de efectos de GameModels: las piden las partículas y los sprites del mundo 54.
+    [[nodiscard]] std::optional<Client::Scenes::TextureMetadata>
+    TextureMetadataOf(std::uint32_t selector) const override
+    {
+        return Client::Tests::EffectTextureMetadata(selector);
+    }
+    [[nodiscard]] std::optional<TextureSlot> TextureSlotOf(std::uint32_t selector) const override
+    {
+        return Client::Tests::EffectTextureSlot(selector);
+    }
+    [[nodiscard]] std::optional<glm::vec2> TextureSize(TextureSlot slot) const override
+    {
+        return Client::Tests::IsEffectTexture(slot.value) ? std::optional(glm::vec2(32.0f, 32.0f)) : std::nullopt;
     }
 
 public:
@@ -1180,8 +1200,9 @@ TEST(CharacterSelectSceneTest, TheFirstNativeStepConstructsBothPreviewsAndResets
         EXPECT_EQ(own.equipment[slot].scalar1Low, slot < 8 ? 0u : 31u);
         EXPECT_EQ(own.equipment[slot].flags1b, 17u);
     }
-    // Constructores56, propio3848, preview19, partículas2 y finalmente tela9.
-    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(1, 3934).State());
+    // Constructores56, propio3848, preview19, partículas2 y finalmente tela9; antes, los 65.536 del pasto
+    // (0x5f8300) de la carga del 54 (0x61a560), que no crea objetos con rand().
+    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(1, 3934 + 65536).State());
 }
 
 TEST(CharacterSelectSceneTest, TheFirstSelectionHeroNeedsItemBmdBeforeAnyWorldEntry)
@@ -2213,5 +2234,62 @@ TEST(CharacterSelectSceneTest, SelectionPosesUseTheSharedWorldCarryOnlyOnNativeF
     static_cast<void>(tested.Frame());
     EXPECT_EQ(world.PoseCarry().bones[0][3], glm::vec3(7, 8, 9));
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
+}
+// 0x6347e9..0x6348dc: con el mundo 54, el elegido vivo lleva su luz a 1 y la suma al buffer dinámico en su
+// lugar (0x5f9780, radio 1) antes del terreno; después de los personajes, su luz queda en 0,15 y presta las
+// dos 0x729 (/0 y /1) de escala 1 y sin dueño. Un dibujo intermedio de MuRet (sin frame del original) no
+// cambia el pool del paso.
+TEST(CharacterSelectSceneTest, TheChosenOneGlowsAndRaisesItsTwoChaseLightsOnNativeFrames)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+    auto characters = TwoCharacters();
+    for (auto& character : characters)
+        character.equipment[4] = 3; // Sin mascota: sin el cuerpo del ayudante (0x444059).
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith(characters));
+    tested.online.session.ChooseCharacter(std::uint8_t{3});
+    ASSERT_NE(tested.online.session.ChosenCharacter(), nullptr);
+    tested.Step();
+    ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
+    ASSERT_EQ(world.Runtime().map, 54);
+
+    static_cast<void>(tested.Frame());
+
+    ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
+    const auto& chosen = world.Actors()[3];
+    EXPECT_EQ(chosen.light, glm::vec3(std::bit_cast<float>(0x3e19999au)));
+    EXPECT_EQ(world.Actors()[0].light, glm::vec3(0.0f));
+    const auto chaseLights = [&world]
+    {
+        std::vector<const Client::World::Particle*> found;
+        for (const auto& particle : world.Particles().All())
+        {
+            if (particle.alive && particle.type == Client::World::ChaseLightParticle)
+                found.push_back(&particle);
+        }
+        return found;
+    };
+    const auto lights = chaseLights();
+    ASSERT_EQ(lights.size(), 2u);
+    EXPECT_EQ(lights[0]->subtype, 0);
+    EXPECT_EQ(lights[1]->subtype, 1);
+    EXPECT_EQ(lights[1]->texture, Client::World::ChaseLightImpactTexture);
+    for (const auto* light : lights)
+    {
+        EXPECT_EQ(light->light, glm::vec3(std::bit_cast<float>(0x3e19999au)));
+        EXPECT_EQ(light->typedOwner, Client::World::ParticleOwner{});
+    }
+    const auto cellX = static_cast<std::uint8_t>(chosen.position.x / 100.0f);
+    const auto cellY = static_cast<std::uint8_t>(chosen.position.y / 100.0f);
+    const auto& lit = world.DynamicLighting().Lighting().cells[Client::Data::Terrain::CellIndex(cellX, cellY)];
+    EXPECT_GT(lit[0], 0.0f);
+
+    // El mismo reloj: un dibujo intermedio sobre las copias.
+    static_cast<void>(tested.Frame());
+    ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
+    EXPECT_EQ(chaseLights().size(), 2u);
 }
 } // namespace

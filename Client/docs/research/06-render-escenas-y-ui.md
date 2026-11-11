@@ -2403,6 +2403,77 @@ original detrás de la cámara (`CharacterSelectScene::StepTheCameraAndTheTrapez
 ([ADR0009](../../../docs/adr/0009-errores-del-trapecio.md)). Tests:
 `CharacterSelectSceneTest.EachFrameLeavesTheTrapezoidOfItsFixedPoint` y `ATrapezoidErrorCutsTheFrame`.
 
+### El mundo de la selección
+
+Leído en la CL7 en el ASM y el pseudocódigo de `c32bbd5f` (*estático*; los tests son simulación del port, sin
+emulación nueva).
+
+**La carga.** `0x633f20` escribe `0x36` en `0x6c9dd0` (`0x633f44`) y llama a `0x61a560(0x36)`: el terreno de
+`World55`, los 65.536 `rand()` del pasto (`0x5f8300`, Q-C146), los 192 objetos de `EncTerrain55.obj` (sin
+`rand()`) y los modelos de `Object55` (`0x616ec0`, sin especiales para el 54: Q-C305). MuRet lo hace con
+`LoadMap(54)` sobre el `WorldState` de la sesión (`SelectionState::InitializeSelection`), y la selección presta
+ese terreno; el mapa queda en 54 aunque la carga falle, como en `0x633f44`. `Scenes::SelectionWorld` sube los
+tiles con el pasto (`0x61a560`) y los modelos de `Object55` (`0x616ec0`) en el primer paso o dibujo que los pide.
+Las texturas de efectos son las de la carga del juego (`0x61ccb0`, `GameModels`), incluida `Flame01` en `0x5de`
+(`0x61d67f`), y `0x719`/`0x729` las de la escena (`0x61ca30`, `SceneTextures::MetadataOf`).
+
+**El paso** (`0x6342c0`). Las olas (`0x5fbf60`) después de la copia de la luz; `0x606560` sobre los objetos
+vistos en el último dibujo, que en el 33 y el 54 llega a `0x4250f0` por la cadena de `0x605a62` (`0x425070`):
+la V del `0x19` y del `0x1c` baja 0,015 (`0x6b8a24`); el `0x1e` y el `0x47` sacan un `rand() % 5` (por 0,01,
+que queda en la x87) y suman a `0x7b4ccc4`, con radio 2, la luz (b + 0,4; b + 0,6; b + 0,4) o (b + 0,9;
+b + 0,2; b + 0,2); el `0x29` a medio alpha; el `0x38` a `0x3b`, el `0x3e`, el `0x3f`, el `0x43` y el `0x46` con
+`+0x58` en −2; el `0x40` a 0,05 keys por paso; y, con cualquier tipo, el sonido `0x246` (`0x41ed10`). Después de
+la vista previa, `0x52d220` (la mariposa) y `0x53c670`, y `0x5446e0` con los dueños de las neblinas
+(`0x634315`).
+
+**El dibujo** (`0x634680`, después de [El dibujo](#el-dibujo)): con el elegido vivo, su luz en 1 y
+`0x5f9780(x, y, (1, 1, 1), 1)` entre `0x620a90` y `0x620980`; `0x5fc260(0)` (terreno, pasto y marcas);
+`0x6046a0` con los casos de `0x602ed0` → `0x425260` (por `0x6044ed`, después del `rand()` común de
+`0x602ef4`); `0x510d00`; `0x59ec80` con `+0x8de8` en 0; `0x4453b0`, `0x52e590` (cintas), `0x53c6a0(0)`
+(juntas), `0x52d620(0)` (efectos con modelo) y `0x549510` (los sprites, vistos); con el elegido, la luz 0,15 y
+las dos `0x729`; y el pase de ojo con la modelview en la identidad (`0x6213e0`): `0x549440(0)` (sprites),
+`0x548550(0)` (partículas) y `0x548eb0(0)` (números), y `0x6213f0`. Los casos de `0x425260`:
+
+- `0x1e` y `0x47`: dos `0x5c6` por hueso, del buffer global de la pose (`0x68b181c` + hueso · `0x30`, con
+  `0x4ec110` sin trasladar), en los huesos 6, 7, 8, 12, 13 y 17 con sus desplazamientos; el primero con la
+  escala del hueso (5,5 a 4 el azul, 6 a 5 el rojo) y luz (0,1; 0,1; 0,3) o (0,5; 0; 0) en el 6 y (0,25; 0; 0)
+  en los demás; el segundo de escala 3 con 0,15 (el rojo, solo en R). Un hueso que nadie publicó lee la `.bss`
+  en cero. El dueño del sprite no se guarda (Q-C303).
+- `0x38`: con `rand() & 1` en 0, la cascada `6f0/2`; `0x39`: siempre, `6f2/4`; `0x3a`: con `rand() % 3` en 0,
+  `6f1/2`; con luz blanca, la escala del objeto y sin dueño.
+- `0x3b`, `0x3e` y `0x3f`: con `+0x58` distinto de −2, veinte `622/1` con el objeto de dueño y la luz del tipo
+  (Q-C306).
+- `0x3c`: con `timeGetTime() & 0x3ff` debajo de 10 (Q-C304), la mariposa `0xae` /3 con el objeto de dueño
+  (`0x518cf0`; en la escena 4 sale oculta, `0x51913a`); siempre deja el objeto en −2.
+- `0x43`: la luz del objeto (`+0xf4`) en 0,3 y la llama `5de/7` con esa luz.
+- `0x46`: con `rand() % 5` en 1 y el reloj debajo de 30, el efecto `0xb3`; `0x29`, `0x41` y `0x42` vuelven a
+  dibujar una malla con `0x4ecc30` y la V del reloj. Son de Aida (ninguno en el 54): MuRet corta en `0x4259ae`,
+  `0x4255f3` y `0x42588d`.
+
+Las partículas (`World/SelectionParticleKernels.h`): la `622/1` (`0x5435cf`, siete `rand()`; paso `0x5476f0`:
+el dueño visto le renueva la vida a 50 y, si muere sin verse, le vuelve `+0x58` a 0; la altura es el seno del
+reloj del mundo por 20 y el giro sigue al reloj), la `5de/7` (`0x54150e`, cinco o seis `rand()`; paso
+`0x545e3f`: gira ±2 según el lado de su partida, sube y se achica hasta apagarse) y las `729/0` y `/1`
+(`0x543840`, la `/1` con `Impack03` en `0x719`; paso `0x547880`: la luz sube 1,16 hasta que le quedan 10 pasos y
+después baja 0,862). Las de Kalima con el subtipo de los objetos (`6f0/2`, `6f1/2` con 40 de vida y `6f2/4`)
+suman la escala del argumento (`0x543f04`, `0x543f49`, `0x54417f`). En el pase de ojo, la `622/1` va al
+billboard común (`0x548bf0`), y la `5de/7` y la `729` también (`caseD_5c5`). La mariposa (`0x520d11`): el giro
+según `+0x88`, la deriva y el aleteo de la velocidad z, el freno contra la altura del terreno (debajo de +50
+sube, encima de +150 baja), el salto de z, la luz del subtipo y el sprite `0x5ac` de escala 1; la `/3` suelta,
+con `rand() & 1` en 0, chispas `5c5/7` que caen 0,6 por paso (`0x544f7b`). Con `+0x58` en −2, el dibujo del
+efecto publica la pose y sale (`0x600328`).
+
+**Los dibujos intermedios de MuRet** (sin frame del original): `SelectionWorld::BeginFrame` copia la luz
+dinámica, el `rand()`, las partículas, los efectos, los objetos y la cola, y dibuja sobre las copias; con un
+frame del original presta los del mundo. La entrada al juego desde la selección sigue con el 54 cargado
+durante la espera del `F3 03`: el juego avanza esos objetos y la mariposa (`GameScene::StepTheObjects` y
+`StepTheModelEffects`). MuRet: `Scenes::SelectionWorld`, `Scenes::StepAidaObjectFrame`,
+`World::StepAidaObject`, `World::ModelEffects::CreateButterflyEffect` y el caso `0xae` de
+`World::StepGameModelEffect`. Tests: `AidaObjectsTest`, `AidaObjectServicesTest`, `SelectionParticlesTest`,
+`GameModelEffectsTest.TheButterfly*`, `ModelEffectsTest.TheButterflyIsCreatedHiddenInTheSelectionWithOneDraw`,
+`GameDrawTailTest.AHiddenModelEffectPublishesItsPoseWithoutGeometry` y
+`CharacterSelectSceneTest.TheChosenOneGlowsAndRaisesItsTwoChaseLightsOnNativeFrames`.
+
 ### La barra de la selección y el borrado
 
 Leída en la CL6.5 (*estático*, y *emulado* el lugar de las ventanas y el armado de los avisos).

@@ -9,6 +9,7 @@
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterSlots.h"
+#include "Scenes/MapLoad.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneWorlds.h"
 #include "Scenes/SelectionActor.h"
@@ -129,28 +130,34 @@ void SelectionState::RefreshCameraAttribute(World::GameCameraInput& input) const
 }
 
 Core::Expected<void, std::string> SelectionState::InitializeSelection(const std::filesystem::path& dataRoot,
-                                                                      World::GameCameraInput& input)
+                                                                      World::GameCameraInput& input,
+                                                                      Render::Models::CrtRandom* random)
 {
     if (m_initialized || !m_receivedList)
     {
         return {};
     }
     // 0x633f20: cambia a 54 después de los constructores de F300; no reconstruye esos actores.
-    // RetainTerrain deja el 54 como mundo en curso, también para la carga del mundo que sigue.
     // Antes de cargarlo marca el mundo cargado (0x633f30): con eso corre y dibuja el juego que sigue
     // (06, "La entrada al mundo", paso 1). Es esta carga y no la entrada a la escena 4, que la
     // selección hace antes de tener la lista (0x6342cb).
     m_world.Runtime().drawingEnabled = true;
     constexpr std::uint8_t SelectionMap = WorldOf(SceneId::CharacterSelect)->map;
-    // 0x61a560 → 0x6070a0: mata los efectos antes de abrir los archivos; conserva +0x16c.
-    m_world.Map().effects.Clear();
-    m_world.Particles().Clear();
-    auto terrain = World::LoadWorldTerrain(dataRoot, SelectionMap);
-    if (!terrain.HasValue())
+    // 0x633f44: el 54 es el mundo en curso antes de 0x61a560, aunque la carga falle. El préstamo anterior
+    // deja de valer antes de que la carga pise el terreno del mundo.
+    BorrowTerrain(SelectionMap, nullptr);
+    // 0x61a560(54) → 0x6070a0: mata los efectos, las partículas y los demás pools antes de abrir los
+    // archivos (conserva +0x16c y el viento); sin 0x510f70 en la escena 4.
+    const MapLoadContext context{.dataRoot = dataRoot,
+                                 .world = m_world,
+                                 .scene = SceneId::CharacterSelect,
+                                 .playerKey = 0,
+                                 .random = random != nullptr ? *random : m_localCloth.random};
+    if (auto loaded = LoadMap(SelectionMap, context); !loaded.HasValue())
     {
-        return Fail(terrain.Error());
+        return Fail(loaded.Error());
     }
-    RetainTerrain(SelectionMap, std::move(terrain).Value());
+    BorrowTerrain(SelectionMap, &m_world.Map().terrain);
     input.map = SelectionMap;
     RefreshCameraAttribute(input);
     m_initialized = true;

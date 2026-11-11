@@ -228,4 +228,70 @@ Core::Expected<void, std::string> StepDeviasObjectDoor(WorldObject& object, cons
     }
     return {};
 }
+
+Core::Expected<void, std::string> StepAidaObject(WorldObject& object, Render::Models::CrtRandom& random,
+                                                 const ObjectStepGlobals& globals)
+{
+    // 0x6b8a24 (0,015f), 0x6b88d4 (0,01f), 0x6b87b4/0x6b8a20 (0,4f y 0,6f), 0x6b8a1c/0x6b8854 (0,9f y 0,2f).
+    constexpr double Scroll = static_cast<double>(std::bit_cast<float>(0x3c75c28fu));
+    constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
+    constexpr double GreenLow = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));
+    constexpr double GreenHigh = static_cast<double>(std::bit_cast<float>(0x3f19999au));
+    constexpr double RedHigh = static_cast<double>(std::bit_cast<float>(0x3f666666u));
+    constexpr double RedLow = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));
+    constexpr float HalfAlpha = std::bit_cast<float>(0x3f000000u);
+    constexpr float SlowSpeed = std::bit_cast<float>(0x3d4ccccdu);
+    constexpr std::int32_t AidaRadius = 2;
+    constexpr std::int32_t LightSpan = 5;
+    constexpr std::int32_t AmbientSound = 0x246;
+    switch (object.type)
+    {
+    case 0x19:
+    case 0x1c:
+        object.state.uv.y = static_cast<float>(static_cast<double>(object.state.uv.y) - Scroll);
+        break;
+    case 0x1e:
+    case 0x47:
+    {
+        // 0x425137/0x425186: el sorteo por 0,01 queda en la x87; cada canal se guarda de su suma.
+        const double base = static_cast<double>(random.Next() % LightSpan) * Hundredth;
+        const bool green = object.type == 0x1e;
+        const float first = static_cast<float>(base + (green ? GreenLow : RedHigh));
+        const float second = static_cast<float>(base + (green ? GreenHigh : RedLow));
+        const glm::vec3 light = green ? glm::vec3(first, second, first) : glm::vec3(first, second, second);
+        auto added =
+            AddObjectLight(globals, object.transform.position, light, AidaRadius, green ? "0x42517c" : "0x4251c9");
+        if (!added.HasValue())
+        {
+            return added;
+        }
+        break;
+    }
+    case 0x29:
+        object.alpha = HalfAlpha;
+        break;
+    case 0x38:
+    case 0x39:
+    case 0x3a:
+    case 0x3b:
+    case 0x3e:
+    case 0x3f:
+    case 0x43:
+    case 0x46:
+        object.state.hiddenMesh = HiddenObject;
+        break;
+    case 0x40:
+        object.speed = SlowSpeed;
+        break;
+    default:
+        break;
+    }
+    // 0x4251fb: 0x41ed10(0x246, 0, 0) con cada objeto que llega, de cualquier tipo.
+    if (!globals.sound)
+    {
+        return Core::Unexpected(std::string("0x4251fb: falta el emisor sonoro 0x41ed10 del 0x246"));
+    }
+    globals.sound(AmbientSound);
+    return {};
+}
 } // namespace Client::World

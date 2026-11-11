@@ -23,9 +23,10 @@ namespace Client::Render
 {
 namespace
 {
-constexpr std::int32_t AlphaMode = 2;       // 620a00: modo raw32, distinto de ModelBlend.
-constexpr std::int32_t AdditiveMode = 3;    // 620a90.
-constexpr std::int32_t SubtractiveMode = 4; // 620b10: ZERO / ONE_MINUS_SRC_COLOR.
+constexpr std::int32_t AlphaMode = 2;                // 620a00: modo raw32, distinto de ModelBlend.
+constexpr std::int32_t AdditiveMode = 3;             // 620a90.
+constexpr std::int32_t SubtractiveMode = 4;          // 620b10: ZERO / ONE_MINUS_SRC_COLOR.
+constexpr std::int32_t InverseColorAdditiveMode = 5; // 620b90.
 // 621320 no recibe UV: el paquete L5 siempre contiene estos cuatro literales.
 constexpr std::array<glm::vec2, 4> WorldQuadUv{glm::vec2{0, 1}, glm::vec2{1, 1}, glm::vec2{1, 0}, glm::vec2{0, 0}};
 IParticleDrawBackend::Result Unsupported()
@@ -63,6 +64,8 @@ Core::Expected<RasterState, std::error_code> RasterOf(ModelBlend blend)
         return RasterState{AlphaMode, 0, 0, 0};
     case ModelBlend::Subtractive:
         return RasterState{SubtractiveMode, 0, 0, 0};
+    case ModelBlend::InverseColorAdditive:
+        return RasterState{InverseColorAdditiveMode, 0, 0, 0};
     }
     return Core::Unexpected(std::make_error_code(std::errc::function_not_supported));
 }
@@ -79,6 +82,8 @@ Core::Expected<ModelBlend, std::error_code> BlendOf(const ModelBatchParticleStat
         return ModelBlend::Additive;
     case SubtractiveMode:
         return ModelBlend::Subtractive;
+    case InverseColorAdditiveMode:
+        return ModelBlend::InverseColorAdditive;
     }
     return Core::Unexpected(std::make_error_code(std::errc::function_not_supported));
 }

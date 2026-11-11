@@ -2,12 +2,15 @@
 
 #include "GameLogic/MovementSpeed.h"
 #include "Scenes/FullSetScan.h"
+#include "Scenes/GameMovementState.h"
 #include "Scenes/SceneId.h"
 #include "World/GroundMarks.h"
 #include "World/LeafWeather.h"
+#include "World/ObjectModelStepState.h"
 #include "World/TerrainCulling.h"
 
 #include <cstddef>
+#include <array>
 #include <cstdint>
 #include <optional>
 
@@ -23,6 +26,16 @@ inline constexpr std::int32_t InitialLeafCount = 30;
 
 struct WorldRuntime
 {
+    GameMovementState movement{};
+    // Los cinco selectores del mouse arrancan en -1 en la .data.
+    std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};
+    std::int32_t cursorItemCount = 0;
+    std::int32_t storm = 0;
+    std::int32_t field78abb0c = 0;
+    std::int32_t field78abb10 = 0;
+    std::uint8_t byte6c8e4d = 0xff;
+    std::optional<std::int32_t> lastSoundId{};
+    World::ObjectModelStepState objectModelState{};
     // DAT_006c9dd0, el mundo en curso. Quien llama a 0x61a560 lo escribe justo antes (05, "La carpeta
     // de cada mapa"): el login con 55 (06, "El login, al entrar") y la selección con 54 en 0x633f20
     // (06, "Al entrar"). Ese 54 sigue en la carga del mundo y en la espera de la escena 5, que corre
@@ -100,7 +113,7 @@ struct WorldRuntime
     // (08 P-C49).
     World::GroundMarkTable groundMarks{};
     // 0x77f36d0, la capa 1 de la celda del héroe, en la .bss: 0 al arrancar. La escribe MoveHero (0x59e2ba),
-    // después del contador, y MuRet no corre esa parte (08 P-C41): queda en 0. La leen el paso de los objetos
+    // después del contador. La leen el paso de los objetos
     // (los techos de 0x604ab0, 0x604bc4 y 0x604c06) y el de las hojas (0x637082..0x6370e5), entre otros.
     std::int32_t heroCellLayer = 0;
     // 0x75fdc38: meta del 0F. 0x75fdc3c es la cuenta actual, que ese paquete no cambia.

@@ -1386,6 +1386,24 @@ TEST(CharacterDrawingTest, AnObjectWithVertexLightLightsEachCornerByItsNormal)
     ExpectColor(flat.Vertices()[0], 0.5f, 0.5f, 0.5f);
 }
 
+TEST(CharacterDrawingTest, TheSelectedUnlitModelMeshScrollsWithoutChangingOtherMeshes)
+{
+    OneModel models(0x2a, "noria.jpg", 2);
+    models.FirstMesh().normals = {{0, {0, 0, -1}, 0}};
+    DrawnObject object = LitObject();
+    object.model = 0x2a;
+    object.transform.scale = 1.0f;
+    object.state.uv = {0.25f, -0.5f};
+    const ModelBatch plain = DrawnObjectOf(models, object);
+    object.unlitMesh = std::int16_t{0};
+    const ModelBatch selected = DrawnObjectOf(models, object);
+    ASSERT_EQ(selected.Vertices().size(), 6u);
+    ExpectColor(selected.Vertices()[0], 0.5f, 0.5f, 0.5f);
+    EXPECT_EQ(selected.Vertices()[0].uv, plain.Vertices()[0].uv + object.state.uv);
+    EXPECT_EQ(selected.Vertices()[3].uv, plain.Vertices()[3].uv);
+    EXPECT_EQ(selected.Vertices()[3].color.red, plain.Vertices()[3].color.red);
+}
+
 // Un objeto de 0x5ffdf0 lleva la escala en la raíz (0x4eb860 con Translate), y 0x4ebc80 gira cada
 // normal con esa matriz sin normalizarla: con la escala 2, la normal en z mide 2 y da 0,8 · 2 · 2 + 0,4.
 TEST(CharacterDrawingTest, TheNormalsOfAnObjectCarryItsScale)
@@ -1803,5 +1821,33 @@ TEST(CharacterDrawingTest, TheLastPosedWithTheBoneWins)
     first.ItemSkeleton().bones[0].dummy = true;
     EXPECT_FALSE(Client::Scenes::LastPosedBonePoint(posed, 0, glm::vec3(0.0f)).has_value());
     EXPECT_FALSE(Client::Scenes::LastPosedBonePoint({}, 0, glm::vec3(0.0f)).has_value());
+}
+} // namespace
+
+namespace
+{
+TEST(CharacterDrawingTest, PublishesTheCalculatedBodyAndAttachedMatricesInDrawOrder)
+{
+    const TwoPets models;
+    DrawnCharacter character;
+    character.appearance.pet = std::uint16_t{0x1c13};
+    character.object.position = {100, 200, 300};
+    character.object.scale = 2;
+    std::vector<std::uint16_t> published;
+    character.onPose = [&](std::uint16_t model, std::span<const Client::Render::Models::BoneTransform> bones,
+                           const Client::Render::Models::ObjectTransform& transform, bool translated)
+    {
+        published.push_back(model);
+        EXPECT_FALSE(bones.empty());
+        EXPECT_EQ(transform.position, character.object.position);
+        EXPECT_FLOAT_EQ(transform.scale, 2);
+        EXPECT_FALSE(translated);
+    };
+    ModelBatch batch;
+    DrawCharacter(batch, models, character, {});
+    ASSERT_EQ(published.size(), 3U);
+    EXPECT_EQ(published[0], 0x20a);
+    EXPECT_EQ(published[1], 0x1c13);
+    EXPECT_EQ(published[2], 0x1c13);
 }
 } // namespace

@@ -229,7 +229,8 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
             {
             case GameTailStage::WorldLeaves:
             case GameTailStage::EyeLeaves:
-                return DrawGameLeaves(canvas.models, world.Leaves(), runtime.map, view);
+                // 0x5307b2: el 0x66 del 34 solo se dibuja con el clima de Crywolf en 1.
+                return DrawGameLeaves(canvas.models, world.Leaves(), runtime.map, view, runtime.crywolf.weather);
             case GameTailStage::Joints:
                 return DrawJoints(canvas.models, tail.joints, mode, jointResources);
             case GameTailStage::ModelEffects:

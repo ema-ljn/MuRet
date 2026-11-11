@@ -9,8 +9,10 @@
 #include "Render/Gl/Shaders.h"
 #include "Render/Gl/TextureTable.h"
 #include "Render/ModelBatch.h"
+#include "Render/ModelFog.h"
 #include "Render/ModelVertex.h"
 #include "Render/Pass3D.h"
+#include "Render/TextureEnvMode.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -65,12 +67,21 @@ Core::Expected<GlModelRenderer, std::string> GlModelRenderer::Create(const Platf
     {
         return Core::Unexpected(shader.Error());
     }
-    const Uniforms uniforms{.viewProjection = shader.Value().UniformLocation(ModelViewProjectionUniform),
-                            .textured = shader.Value().UniformLocation(ModelTexturedUniform),
-                            .alphaTest = shader.Value().UniformLocation(ModelAlphaTestUniform)};
+    const GlShader& program = shader.Value();
+    const Uniforms uniforms{.viewProjection = program.UniformLocation(ModelViewProjectionUniform),
+                            .textured = program.UniformLocation(ModelTexturedUniform),
+                            .alphaTest = program.UniformLocation(ModelAlphaTestUniform),
+                            .textureAdd = program.UniformLocation(ModelTextureAddUniform),
+                            .fog = program.UniformLocation(ModelFogUniform),
+                            .fogColor = program.UniformLocation(ModelFogColorUniform),
+                            .fogStart = program.UniformLocation(ModelFogStartUniform),
+                            .fogEnd = program.UniformLocation(ModelFogEndUniform)};
     for (const auto& [location, name] :
          {std::pair{uniforms.viewProjection, ModelViewProjectionUniform},
-          std::pair{uniforms.textured, ModelTexturedUniform}, std::pair{uniforms.alphaTest, ModelAlphaTestUniform}})
+          std::pair{uniforms.textured, ModelTexturedUniform}, std::pair{uniforms.alphaTest, ModelAlphaTestUniform},
+          std::pair{uniforms.textureAdd, ModelTextureAddUniform}, std::pair{uniforms.fog, ModelFogUniform},
+          std::pair{uniforms.fogColor, ModelFogColorUniform}, std::pair{uniforms.fogStart, ModelFogStartUniform},
+          std::pair{uniforms.fogEnd, ModelFogEndUniform}})
     {
         if (location < 0)
         {
@@ -130,6 +141,7 @@ void GlModelRenderer::Draw(const ModelBatch& batch, const TextureTable& textures
             continue;
         m_gl->uniform1i(m_uniforms.alphaTest,
                         command.state.alphaTest.value_or(command.state.blend == ModelBlend::Alpha) ? 1 : 0);
+        SetTextureEnvAndFog(command);
         SetViewProjection(batch, command.state.space);
         m_gl->drawArrays(GL_TRIANGLES, static_cast<GLint>(command.firstVertex),
                          static_cast<GLsizei>(command.vertexCount));
@@ -166,6 +178,23 @@ void GlModelRenderer::SetViewProjection(const ModelBatch& batch, ModelCoordinate
     const glm::mat4 matrix = space == ModelCoordinateSpace::Eye ? pass.projection : pass.projection * pass.view;
     // GL_FALSE: GLM es column-major. El espacio pertenece al comando, incluso en World/Eye/World.
     m_gl->uniformMatrix4fv(m_uniforms.viewProjection, 1, GL_FALSE, glm::value_ptr(matrix));
+}
+
+// glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE) y glFog (0x42b0a0) o glDisable(GL_FOG): el comando trae los dos,
+// y sin niebla el color, el inicio y el fin no se usan.
+void GlModelRenderer::SetTextureEnvAndFog(const ModelDrawCommand& command) const
+{
+    m_gl->uniform1i(m_uniforms.textureAdd, command.textureEnv == TextureEnvMode::Add ? 1 : 0);
+    if (!command.fog.has_value())
+    {
+        m_gl->uniform1i(m_uniforms.fog, 0);
+        return;
+    }
+    const ModelFog& fog = *command.fog;
+    m_gl->uniform1i(m_uniforms.fog, 1);
+    m_gl->uniform3f(m_uniforms.fogColor, fog.color.x, fog.color.y, fog.color.z);
+    m_gl->uniform1f(m_uniforms.fogStart, fog.start);
+    m_gl->uniform1f(m_uniforms.fogEnd, fog.end);
 }
 
 // 0x620980, 0x620a00(1), 0x620a90, las dos sombras de 0x4eff40, 0x620b10 y 0x620870 con la bandera

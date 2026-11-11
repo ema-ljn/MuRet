@@ -127,7 +127,9 @@ struct DrawnCharacter
     // Cómo cuentan los frames del original la tela y el cetro (Render::Models::OriginalFrameCarry): por el
     // reloj del frame, o uno por dibujo en el modo fiel (SceneContext::pacing).
     Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock;
-    // Publica matrices ya calculadas: cuerpo con cabeza, partes y attachments con su raíz real.
+    // Publica matrices ya calculadas: el cuerpo con la cabeza (también el de Chaos Castle) y lo que cuelga, con su
+    // raíz real. El cuerpo va al buffer propio del personaje (+0x120, 0x511bf7), no al global: quien lo recibe
+    // decide dónde lo guarda.
     std::function<void(std::uint16_t, std::span<const Render::Models::BoneTransform>,
                        const Render::Models::ObjectTransform&, bool)>
         onPose{};
@@ -187,6 +189,7 @@ void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const
 // partes la pone en las suyas, y 0x60dbe0 la deja en 0), así que su malla skin_ va con la piel 0. Sin el modelo
 // no dibuja nada, como una parte.
 // `models` posa el cuerpo (0x20a) y `angelModels` tiene el 0x1f7, con las texturas de su carga.
+inline constexpr std::uint16_t ChaosCastleBodyModel = 0x1f7;
 [[nodiscard]] Core::Expected<void, std::string>
 DrawChaosCastleBody(Render::ModelBatch& batch, const IModelLibrary& models, const IModelLibrary& angelModels,
                     const DrawnCharacter& character, Core::Duration frameClock, std::uint32_t flags);

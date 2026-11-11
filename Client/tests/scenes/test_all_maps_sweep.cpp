@@ -93,8 +93,6 @@ std::string_view ExpectedError(MapSweepCut cut)
         return {};
     case MapSweepCut::MissingHeight:
         return "Data\\World6\\TerrainHeight.OZB no está";
-    case MapSweepCut::CrywolfState:
-        return "0x61a560: el .att del mapa 34 depende del estado de Crywolf (0x42fe50)";
     case MapSweepCut::MissingWorld:
         return "Data\\World36\\EncTerrain36.att no está";
     case MapSweepCut::LoginSpecials:

@@ -10,9 +10,16 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FullSetScan.h"
+#include "Scenes/GameDrawTail.h"
+#include "Scenes/SceneId.h"
 #include "World/ChaosCastle.h"
 #include "World/Ftol.h"
+#include "World/ModelEffects.h"
+#include "World/ParticleOwner.h"
+#include "World/Particles.h"
+#include "World/PortableParticleTrigonometry.h"
 #include "World/Sprites.h"
 #include "World/TerrainHeight.h"
 #include "World/TerrainLighting.h"
@@ -25,7 +32,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -68,9 +77,12 @@ constexpr float SecondWindowEnd = 8.0f;                               // 0x6b86c
 constexpr std::uint32_t FirstGlowFlag = 0x4;
 constexpr std::uint32_t SecondGlowFlag = 0x2000000;
 
-// 0x50fd74: +0x358, cada 100 dibujos con la acción por debajo de 0xd.
+// 0x50fd74: +0x358, cada 100 dibujos con la acción por debajo de 0xd, el efecto 0x5ac/3 con la luz (0,2f; 0,7f;
+// 0,9f).
 constexpr std::uint8_t LastCounterAction = 0xc;
 constexpr std::int32_t CounterPeriod = 100;
+constexpr glm::vec3 CounterFlareLight{std::bit_cast<float>(0x3e4ccccdu), std::bit_cast<float>(0x3f333333u),
+                                      std::bit_cast<float>(0x3f666666u)};
 
 // 0x50fddb: el conjunto completo.
 constexpr float HandFlareScale = std::bit_cast<float>(0x3fa66666u); // 1,3
@@ -80,6 +92,28 @@ constexpr std::int16_t FirstGlowingBoots = 0x182f;
 constexpr std::int16_t LastGlowingBoots = 0x1833;
 constexpr std::int32_t LastQuietLevel = 9;
 constexpr int GlowChance = 20;
+
+// 0x50ff37..0x5102a4: la partícula 0x6f1/3 de las botas, en el hueso 0, a (0, ∓18, 50), (0, 0, 70) y (0, ±18, 50); con
+// +13, ±20.
+constexpr std::int32_t BootsParticle = 0x6f1;
+constexpr std::int32_t BootsSubtype = 3;
+constexpr std::int32_t BootsBone = 0;
+constexpr float BootsSide = 18.0f, WideBootsSide = 20.0f, BootsLow = 50.0f, BootsHigh = 70.0f;
+
+// 0x5102c3..0x5104cb: la órbita 0x60f/0 de escala 0,19f y los joints del conjunto, con el personaje de dueño.
+constexpr std::int32_t SparkleType = 0x60f;
+constexpr std::int32_t SparkleSubtype = 0, WideSparkleSubtype = 0x12;
+constexpr float SparkleOrbitScale = std::bit_cast<float>(0x3e428f5cu); // 0,19f
+constexpr float SparkleWidth = 10.0f, WideSparkleWidth = 20.0f;
+constexpr std::int32_t TrailType = 0x610, TrailSubtype = 7, TrailKey = 0x28;
+constexpr std::int32_t NoKey = -1, NoTarget = -1;
+constexpr std::int32_t FirstSkill = 0, SecondSkill = 1;
+
+// 0x52a9ad: el 5ac/3 cada 15 pasos, a 50 del dueño y 20 más arriba, con el joint 619/9 de ancho 10.
+constexpr std::int32_t FlarePeriod = 15;
+constexpr float FlareRadius = 50.0f;
+constexpr std::int32_t EnergyType = 0x619, EnergySubtype = 9;
+constexpr float EnergyWidth = 10.0f;
 
 // 0x50ff5e..0x510002: la luz de cada bota de 0x182f a 0x1833.
 constexpr std::array<glm::vec3, 5> BootsLights{{
@@ -139,6 +173,22 @@ struct Tail
         if (pass.sprites == nullptr)
             return Core::Unexpected(std::format("{}: falta la tabla de sprites del frame", call));
         static_cast<void>(pass.sprites->Create(texture, point, scale, light, rotation, 0));
+        return {};
+    }
+
+    // 0x530860(tipo, posición, posición, ángulos, subtipo, personaje, ancho, key, skill, 0, −1) en el personaje. Con
+    // los joints llenos no crea ni saca rand().
+    [[nodiscard]] Result Joint(std::string_view call, std::int32_t type, std::int32_t subtype, float width,
+                               std::int32_t key, std::int32_t skill) const
+    {
+        if (pass.joints.empty())
+            return Core::Unexpected(std::format("{}: faltan los joints del frame (0x530860)", call));
+        const auto created = CreateFaunaJoint(
+            pass.joints,
+            {type, actor.position, actor.position, actor.angles, subtype, &actor, width, key, skill, 0, NoTarget},
+            pass.random);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("{}: {}", call, created.Error()));
         return {};
     }
 };
@@ -227,7 +277,7 @@ Result Flags(const Tail& tail)
 }
 
 // 0x50fd74..0x50fdd5: con +0x358, el contador de +0x35c y, con la acción por debajo de 0xd y 100 o más, el
-// efecto 0x5ac/3 en el personaje.
+// efecto 0x5ac/3 en el personaje, con él de dueño, y el contador en 0. Con la tabla llena no crea.
 Result Counter(const Tail& tail)
 {
     ActorState& actor = tail.actor;
@@ -236,8 +286,12 @@ Result Counter(const Tail& tail)
     if (actor.animation.action <= LastCounterAction && actor.counter35c >= CounterPeriod)
     {
         if (tail.pass.originalFrame)
-            return Core::Unexpected<std::string>(
-                "0x50fdc3: el efecto 0x5ac/3 del conjunto completo (+0x358) no está portado");
+        {
+            if (tail.pass.effects == nullptr)
+                return Core::Unexpected<std::string>("0x50fdc3: falta la tabla de efectos con modelo del frame");
+            static_cast<void>(
+                tail.pass.effects->CreateFullSetFlare(actor.position, actor.angles, CounterFlareLight, &actor));
+        }
         actor.counter35c = 0;
     }
     ++actor.counter35c;
@@ -274,38 +328,99 @@ private:
     glm::vec3 m_saved;
 };
 
-// 0x50ff37..0x5102bd: las partículas 0x6f1/3 de las botas de 0x182f a 0x1833, en el hueso 0, con su luz.
-Result GlowingBoots(const Tail& tail, std::int16_t boots, std::int32_t level)
+// 0x53fe70(0x6f1, punto, ángulos, luz propia, 3, 1, 0) en el hueso 0 con el corrimiento `offset`, que queda en
+// [ebp−0x50] (Q-C350). Con las partículas llenas no crea ni saca rand().
+Result BootsMist(Tail& tail, const glm::vec3& offset, std::string_view call)
+{
+    tail.offset = offset;
+    const auto point = tail.BodyPoint(BootsBone, call);
+    if (!point.HasValue())
+        return Core::Unexpected(point.Error());
+    if (tail.pass.particles == nullptr)
+        return Core::Unexpected(std::format("{}: falta el pool de partículas del frame", call));
+    ActorState& actor = tail.actor;
+    const auto created = tail.pass.particles->CreateKalimaChecked(
+        BootsParticle, point.Value(), actor.angles, actor.light, BootsSubtype, 1.0f, tail.pass.worldClock,
+        tail.pass.random, static_cast<std::int32_t>(SceneId::Game));
+    if (!created.HasValue())
+        return Core::Unexpected(std::format("{}: la partícula {:#x}/{} falla con el error {}", call, BootsParticle,
+                                            BootsSubtype, static_cast<unsigned>(created.Error())));
+    return {};
+}
+
+// 0x50ff37..0x5102bd: las botas de 0x182f a 0x1833 con su luz en +0xf4 (guardada y devuelta). Con +10, rand() & 3 en 0;
+// con +11, rand() % 3 en 0; con +12, rand() & 1 en 0; con +13, siempre: tres partículas 0x6f1/3 en el hueso 0. Entre
+// frames, sólo el rand() que elige.
+Result GlowingBoots(Tail& tail, std::int16_t boots, std::int32_t level)
 {
     ActorState& actor = tail.actor;
     const SavedLight light(actor, BootsLights[static_cast<std::size_t>(boots - FirstGlowingBoots)]);
     Render::Models::CrtRandom& random = tail.pass.random;
-    std::string_view call;
+    bool emits = false;
+    float side = BootsSide;
+    std::array<std::string_view, 3> calls{"0x510158", "0x5101a4", "0x5102a4"};
     switch (level)
     {
     case 10:
-        call = (random.Next() & 3) == 0 ? "0x510158" : "";
+        emits = (random.Next() & 3) == 0;
         break;
     case 11:
-        call = random.Next() % 3 == 0 ? "0x51008d" : "";
+        emits = random.Next() % 3 == 0;
+        calls = {"0x51008d", "0x5100d9", "0x5102a4"};
         break;
     case 12:
-        call = (random.Next() & 1) == 0 ? "0x510158" : "";
+        emits = (random.Next() & 1) == 0;
         break;
     case 13:
-        call = "0x51020c";
+        emits = true;
+        side = WideBootsSide;
+        calls = {"0x51020c", "0x510258", "0x5102a4"};
         break;
     default:
         break;
     }
-    if (call.empty() || !tail.pass.originalFrame)
+    if (!emits || !tail.pass.originalFrame)
         return {};
-    return Core::Unexpected(std::format("{}: la partícula 0x6f1/3 de las botas {:#x} con +{} no está portada", call,
-                                        static_cast<std::uint16_t>(boots), level));
+    const std::array<glm::vec3, 3> offsets{{{0.0f, -side, BootsLow}, {0.0f, 0.0f, BootsHigh}, {0.0f, side, BootsLow}}};
+    for (std::size_t i = 0; i < offsets.size(); ++i)
+    {
+        if (auto made = BootsMist(tail, offsets[i], calls[i]); !made.HasValue())
+            return made;
+    }
+    return {};
 }
 
-// 0x5102c3..0x5104cb: con el nivel por encima de 9 y rand() % 20 en 0, la luz en 1 y por el nivel la
-// partícula 0x60f/0 y los joints 0x60f y 0x610 en el personaje.
+// 0x53fe70(0x60f, posición, ángulos, luz propia, 0, 0,19f, personaje): la órbita del conjunto.
+Result SparkleOrbit(const Tail& tail, std::string_view call)
+{
+    if (tail.pass.particles == nullptr)
+        return Core::Unexpected(std::format("{}: falta el pool de partículas del frame", call));
+    ActorState& actor = tail.actor;
+    World::PortableParticleTrigonometry trigonometry;
+    const auto created = tail.pass.particles->CreateChecked(
+        SparkleType, actor.position, actor.angles, actor.light, SparkleSubtype, SparkleOrbitScale,
+        std::cref(tail.pass.worldClock), tail.pass.random, 0, trigonometry,
+        World::ParticleOwner{World::ParticleOwnerKind::Actor, tail.pass.slot});
+    if (!created.HasValue())
+        return Core::Unexpected(std::format("{}: la partícula {:#x}/{} falla con el error {}", call, SparkleType,
+                                            SparkleSubtype, static_cast<unsigned>(created.Error())));
+    return {};
+}
+
+// Los dos 60f/0x12 de ancho 20, con el skill 0 y el 1 (0x5103be y 0x5103db, 0x510435 y 0x510452).
+Result WideSparkles(const Tail& tail, std::string_view first, std::string_view second)
+{
+    if (auto made = tail.Joint(first, SparkleType, WideSparkleSubtype, WideSparkleWidth, NoKey, FirstSkill);
+        !made.HasValue())
+        return made;
+    return tail.Joint(second, SparkleType, WideSparkleSubtype, WideSparkleWidth, NoKey, SecondSkill);
+}
+
+// 0x5102c3..0x5104cb: con el nivel por encima de 9 y rand() % 20 en 0, la luz propia en 1 (guardada y devuelta). Con
+// +10, la órbita; con +11, rand() & 7 elige la órbita o el 60f/0 de ancho 10; con +12, cada 6 pasos de lógica
+// los dos 60f/0x12 y si no cada 3 la órbita; con +13, cada 6 los dos 60f/0x12 y, aparte, cada 4 la órbita y el
+// 610/7 (Q-C381). Entre frames, sólo los rand() que eligen. El original lee 0x7d3a0f0 sin abrir el acceso, con
+// la basura cifrada del último cierre (Q-C125); como el grito del cuervo, MuRet usa los pasos (P-C22 a).
 Result Sparkles(const Tail& tail, std::int32_t level)
 {
     if (tail.pass.random.Next() % GlowChance != 0)
@@ -313,32 +428,46 @@ Result Sparkles(const Tail& tail, std::int32_t level)
     ActorState& actor = tail.actor;
     const SavedLight light(actor, glm::vec3(1.0f));
     const std::int32_t steps = tail.pass.logicSteps;
-    std::string_view call;
+    const bool original = tail.pass.originalFrame;
     switch (level)
     {
     case 10:
-        call = "0x510339";
-        break;
+        return original ? SparkleOrbit(tail, "0x510339") : Result{};
     case 11:
-        call = (tail.pass.random.Next() & 7) != 0 ? "0x510339" : "0x51037c";
-        break;
+        if ((tail.pass.random.Next() & 7) != 0)
+            return original ? SparkleOrbit(tail, "0x510339") : Result{};
+        return original ? tail.Joint("0x51037c", SparkleType, SparkleSubtype, SparkleWidth, NoKey, FirstSkill)
+                        : Result{};
     case 12:
-        call = steps % 6 == 0 ? "0x5103be" : (steps % 3 == 0 ? "0x510339" : "");
-        break;
-    case 13:
-        call = steps % 6 == 0 ? "0x510435" : (steps % 4 == 0 ? "0x51048b" : "");
-        break;
-    default:
-        break;
-    }
-    if (call.empty() || !tail.pass.originalFrame)
+        if (!original)
+            return {};
+        if (steps % 6 == 0)
+            return WideSparkles(tail, "0x5103be", "0x5103db");
+        if (steps % 3 == 0)
+            return SparkleOrbit(tail, "0x510339");
         return {};
-    return Core::Unexpected(std::format(
-        "{}: la partícula 0x60f/0 y los joints 0x60f y 0x610 del conjunto con +{} no están portados", call, level));
+    case 13:
+        if (!original)
+            return {};
+        if (steps % 6 == 0)
+        {
+            if (auto made = WideSparkles(tail, "0x510435", "0x510452"); !made.HasValue())
+                return made;
+        }
+        if (steps % 4 == 0)
+        {
+            if (auto made = SparkleOrbit(tail, "0x51048b"); !made.HasValue())
+                return made;
+            return tail.Joint("0x5104a8", TrailType, TrailSubtype, WideSparkleWidth, TrailKey, SecondSkill);
+        }
+        return {};
+    default:
+        return {};
+    }
 }
 
 // 0x50fddb..0x5104cb: el conjunto completo de 0x505820.
-Result FullSet(const Tail& tail)
+Result FullSet(Tail& tail)
 {
     const ActorState& actor = tail.actor;
     const std::uint16_t bootsModel = actor.body.back().model;
@@ -407,6 +536,49 @@ Core::Expected<void, std::string> DrawGameCharacterEffects(ActorState& actor, co
         }
     }
     return GuildMark(tail);
+}
+
+Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect, std::span<JointState> joints,
+                                                   Render::Models::CrtRandom& random)
+{
+    if (!effect.alive)
+        return {};
+    if (effect.type != World::IcarusFlareEffect || effect.subtype != World::FullSetFlareSubtype)
+        return Core::Unexpected(
+            std::format("0x52a9ad: el efecto {:#x}/{} no es el 0x5ac/3", effect.type, effect.subtype));
+    // 0x5208c5: el primer rand() corre para todo efecto vivo, aunque el 5ac/3 no use la luz.
+    static_cast<void>(random.Next());
+    constexpr double Step = 1.0;       // 0x6b87d4
+    constexpr double HalfTurn = 180.0; // 0x6b86bc
+    constexpr double Rise = 20.0;      // 0x6b86d0
+    effect.speed = F32(D(effect.speed) + Step);
+    if (effect.life % FlarePeriod == 0 && effect.ownerContext != nullptr)
+    {
+        const auto& owner = *static_cast<const ActorState*>(effect.ownerContext);
+        glm::vec3& angles = effect.transform.angles;
+        glm::vec3& position = effect.transform.position;
+        // 0x52a9fe: fst; el seno sale de la suma sin redondear y el coseno vuelve a cargar el float (Q-C380).
+        const double turned = D(angles.z) + HalfTurn;
+        angles.z = F32(turned);
+        const auto sine = Render::Models::Detail::SineProductPC53(turned * D(Tenth), FlareRadius);
+        const auto cosine = Render::Models::Detail::CosineProductPC53(D(angles.z) * D(Tenth), FlareRadius);
+        if (!sine || !cosine)
+            return Core::Unexpected<std::string>("0x52aa0d: el giro del 0x5ac/3 excede el perfil matemático");
+        position.x = F32(*sine + D(owner.position.x));
+        position.y = F32(*cosine + D(owner.position.y));
+        position.z = F32(D(owner.position.z) + Rise);
+        if (joints.empty())
+            return Core::Unexpected<std::string>("0x52aa5d: faltan los joints del paso (0x530860)");
+        const auto created = CreateFaunaJoint(joints,
+                                              {EnergyType, position, position, angles, EnergySubtype,
+                                               effect.ownerContext, EnergyWidth, NoKey, 0, 0, NoTarget},
+                                              random);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("0x52aa5d: {}", created.Error()));
+    }
+    // 0x52cb98: el 0x5ac no avanza animación; la velocidad (0) girada y una vida menos.
+    World::StepModelEffect(effect, nullptr);
+    return {};
 }
 
 Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRavenPass& pass)

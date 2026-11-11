@@ -104,7 +104,7 @@ constexpr std::array<MapCase, 37> MovementMaps{{
     {31, "LorenDeep"},
     {32, "BeforeAliasToNine"},
     {33, "Aida"},
-    {34, "CrywolfLoadBoundary"},
+    {34, "Crywolf"},
     {35, "MissingWorld36"},
     {36, "KalimaLoadBoundary"},
 }};
@@ -416,10 +416,9 @@ TEST_F(GameMovementMapEvidenceTest, EntryFrontiersStaySeparateFromTheSyntheticWa
         std::uint8_t map;
         std::string_view message;
     };
-    constexpr std::array<Boundary, 4> Boundaries{{
+    constexpr std::array<Boundary, 3> Boundaries{{
         {5, "World6"},
         {35, "World36"},
-        {34, "0x42fe50"},
         {55, "0x6188ae"},
     }};
     for (const auto boundary : Boundaries)

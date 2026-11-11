@@ -114,10 +114,12 @@ glm::vec3 FlattenOnTheGround(const glm::vec3& world, const glm::vec3& objectPosi
 {
     constexpr float Horizon = 4000.0f; // 0x6b8c14
     constexpr float Lift = 5.0f;       // 0x6b87f8
-    const float x = world.x - objectPosition.x;
-    const float z = world.z - objectPosition.z;
-    return {((x + spread) * z) / (z - Horizon) + x + objectPosition.x, (world.y - objectPosition.y) + objectPosition.y,
-            objectPosition.z + Lift};
+    // 0x4f0040..0x4f0074: x' y z' quedan en la pila sin guardar y la X sale en double con un solo FSTP; la y
+    // pasa por float (0x4f0052) antes de sumarle py.
+    const double x = static_cast<double>(world.x) - objectPosition.x;
+    const double z = static_cast<double>(world.z) - objectPosition.z;
+    const double flatX = (x + spread) * z / (z - Horizon) + x + objectPosition.x;
+    return {static_cast<float>(flatX), (world.y - objectPosition.y) + objectPosition.y, objectPosition.z + Lift};
 }
 
 float ShadowSpreadOf(std::int32_t map)

@@ -70,23 +70,27 @@ CreateHelper(WorldState& world, std::uint16_t type, const glm::vec3& position, s
 // 0x443d40(jinete): apaga el byte vivo de los lugares vivos de ese jinete. Lo demás queda.
 void TurnOffHelpersOf(HelperTable& helpers, std::size_t rider);
 
-// Lo que el paso de los ayudantes lee fuera del mundo.
+// Lo que el paso de los ayudantes lee fuera del mundo. Del mundo usa además las partículas (0x743a198), los
+// efectos (0x7491fd8) y el buffer global de la pose del dibujo anterior (0x68b181c, WorldState::PoseCarry).
 struct HelperStepContext
 {
     WorldState& world;
     // El de Skill\DarkHorse.bmd (0x615700). nullptr sin los modelos: corta con error con un caballo vivo.
     const Render::Models::Skeleton* horseSkeleton = nullptr;
     Render::Models::CrtRandom& random;
+    // El reloj del mundo (0x5767b88, en ms), con que 0x53fe70 gira las 5f2 al crearlas.
+    float worldClock = 0.0f;
 };
 
 // 0x445230 en la escena 5 (0x6370f4): 0x444010(lugar, 0) en los 10. Con el jinete muerto o con su +0x88
 // distinto de 1, apaga el lugar (0x44402a..0x444047, Q-C225). Si no, con el 0xbf: el alpha sube
 // (0x4e9980) y, en la celda de zona segura de la posición del jinete (0x4440b8..0x4440f8, Q-C222), va a 0
 // y avanza; si no, copia la posición y los ángulos del jinete, toma su acción y su velocidad, saca el
-// polvo y el aliento con sus rand() (0x44418e..0x44457a), y avanza. Corta con error, después de los
-// rand() que el original saca antes, donde crea efectos o partículas que MuRet no tiene en el juego: el
-// polvo (en el mapa 10 antes de su primer rand()), el aliento, la acción 3 (0x52e470) y el +8 del jinete
-// (0x530860); también sin el mapa cargado o sin el esqueleto. Lo que hizo antes del corte queda.
+// polvo del galope (0x44418e..0x4444ef: la 5f2 en el 2, la 5f3 en los demás y, en el 10, la onda 0x6eb/1 y las
+// 5f2 desde un hueso del buffer global) y el aliento (0x44453f..0x4445de, del hueso 27 del buffer global) con sus
+// rand(), y avanza. Corta con error, después de los rand() que el original saca antes: con un hueso del buffer
+// global que MuRet no conserva, con una partícula que no se puede crear, con la acción 3 (0x52e470) y con el +8
+// del jinete (0x530860); también sin el mapa cargado o sin el esqueleto. Lo que hizo antes del corte queda.
 [[nodiscard]] Core::Expected<void, std::string> StepHelpers(const HelperStepContext& context);
 
 // Lo que el dibujo de los ayudantes lee y escribe fuera del mundo.

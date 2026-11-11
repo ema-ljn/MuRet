@@ -30,11 +30,13 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
+#include <tuple>
 #include <utility>
 #include <vector>
 
 // Los objetos del mapa 30 (06 § Los objetos de Castle Siege): el caso del dibujo 0x42c9f0, con sus rand() y sus
-// cortes, y el del cuerpo 0x42cc10 (DrawCastleSiegeBody), con la bandera, los corrimientos, el pulso, los pases de
+// partículas, y el del cuerpo 0x42cc10 (DrawCastleSiegeBody), con la bandera, los corrimientos, el pulso, los pases de
 // Chrome01, las puertas y la sombra con el spread 2500.
 namespace
 {
@@ -170,30 +172,43 @@ TEST(CastleSiegeObjectServicesTest, TheFountainSplashesOneOfTheTwoSplashesWithou
     EXPECT_EQ(siege.random.State(), Seed);
 }
 
-// Sin el pool, el 0x36 corta en el alta, después de su rand().
-TEST(CastleSiegeObjectServicesTest, TheFountainWithoutThePoolCutsAfterItsDraw)
+// Sin el pool, cada alta corta en su llamada a 0x53fe70, después de sus rand(): el 0x36 y el 0 sacan uno y el 0x34,
+// ninguno.
+TEST(CastleSiegeObjectServicesTest, EachReleaseWithoutThePoolCutsAfterItsDraws)
 {
-    Fixture fixture;
-    GameObjectPass pass = fixture.Pass();
-    pass.particles = nullptr;
-    WorldObject object = ObjectOf(0x36);
-    const auto cut = StepCastleSiegeObjectFrame(object, pass);
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x42cbab"), std::string::npos);
-    CrtRandom draws(Seed);
-    static_cast<void>(draws.Next());
-    EXPECT_EQ(fixture.random.State(), draws.State());
+    for (const auto& [type, address, draws] :
+         {std::tuple<std::int16_t, std::string_view, int>{std::int16_t{0x36}, "0x42cbab", 1},
+          std::tuple<std::int16_t, std::string_view, int>{std::int16_t{0}, "0x42cb52", 1},
+          std::tuple<std::int16_t, std::string_view, int>{std::int16_t{0x34}, "0x42caf4", 0}})
+    {
+        SCOPED_TRACE(type);
+        Fixture fixture;
+        const std::uint32_t seed = SeedWhere(true);
+        fixture.random = CrtRandom(seed);
+        GameObjectPass pass = fixture.Pass();
+        pass.particles = nullptr;
+        WorldObject object = ObjectOf(type);
+        const auto cut = StepCastleSiegeObjectFrame(object, pass);
+        ASSERT_FALSE(cut.HasValue());
+        EXPECT_NE(cut.Error().find(address), std::string::npos) << cut.Error();
+        CrtRandom expected(seed);
+        for (int draw = 0; draw < draws; ++draw)
+            static_cast<void>(expected.Next());
+        EXPECT_EQ(fixture.random.State(), expected.State());
+    }
 }
 
-// 0x42cb10..0x42cb52: el 0 sin el asedio y el 0x35 con el asedio sacan un rand(); con el resto por 3 distinto de
-// 0 no crean nada, y con 0 cortan en la chispa 6ec/0, que MuRet no crea. En el otro estado no sacan nada.
-TEST(CastleSiegeObjectServicesTest, TheTorchesDrawOnceAndCutOnlyWhenTheSparkFlies)
+// 0x42cb10..0x42cb52: el 0 sin el asedio y el 0x35 con el asedio sacan un rand() y, con el resto por 3 en 0, la chispa
+// 0x53fe70(0x6ec, posición, ángulos, (1, 1, 1), 0, escala, 0): la de la 6ed/0, con vida 24 y dos rand() más
+// (0x543b82). En el otro estado no sacan nada.
+TEST(CastleSiegeObjectServicesTest, TheTorchesSparkOnceInThreeOnTheirSideOfTheSiege)
 {
     for (const auto& [type, siege] : {std::pair<std::int16_t, bool>{std::int16_t{0}, false},
                                       std::pair<std::int16_t, bool>{std::int16_t{0x35}, true}})
     {
         for (const bool zero : {false, true})
         {
+            SCOPED_TRACE(std::to_string(type) + (zero ? "/0" : "/1"));
             Fixture fixture;
             fixture.siege = siege;
             const std::uint32_t seed = SeedWhere(zero);
@@ -201,16 +216,31 @@ TEST(CastleSiegeObjectServicesTest, TheTorchesDrawOnceAndCutOnlyWhenTheSparkFlie
             CrtRandom draws(seed);
             static_cast<void>(draws.Next());
             WorldObject object = ObjectOf(type);
-            const auto stepped = StepCastleSiegeObjectFrame(object, fixture.Pass());
-            EXPECT_EQ(fixture.random.State(), draws.State());
-            EXPECT_TRUE(fixture.Alive().empty());
+            object.transform.angles = {0.0f, 0.0f, 30.0f};
+            ASSERT_TRUE(StepCastleSiegeObjectFrame(object, fixture.Pass()).HasValue());
+            const auto alive = fixture.Alive();
             if (!zero)
             {
-                EXPECT_TRUE(stepped.HasValue()) << type;
+                EXPECT_TRUE(alive.empty());
+                EXPECT_EQ(fixture.random.State(), draws.State());
                 continue;
             }
-            ASSERT_FALSE(stepped.HasValue()) << type;
-            EXPECT_NE(stepped.Error().find("0x42cb52"), std::string::npos);
+            ASSERT_EQ(alive.size(), 1u);
+            const Particle& spark = *alive[0];
+            EXPECT_EQ(spark.type, Client::World::CrywolfFanta);
+            EXPECT_EQ(spark.texture, Client::World::CrywolfFanta);
+            EXPECT_EQ(spark.subtype, 0);
+            EXPECT_EQ(spark.life, 24);
+            EXPECT_EQ(spark.scale, 1.5f);
+            EXPECT_EQ(spark.light, glm::vec3(1.0f));
+            EXPECT_EQ(spark.angles, object.transform.angles);
+            EXPECT_EQ(spark.start, object.transform.position);
+            EXPECT_EQ(spark.velocity.x,
+                      static_cast<float>(static_cast<double>(draws.Next() % 10 - 5) * static_cast<double>(0.4f)));
+            EXPECT_EQ(spark.velocity.z,
+                      static_cast<float>(static_cast<double>(draws.Next() % 10 + 5) * static_cast<double>(0.2f)));
+            EXPECT_EQ(spark.typedOwner, Client::World::ParticleOwner{});
+            EXPECT_EQ(fixture.random.State(), draws.State());
         }
 
         Fixture other;
@@ -220,26 +250,42 @@ TEST(CastleSiegeObjectServicesTest, TheTorchesDrawOnceAndCutOnlyWhenTheSparkFlie
         WorldObject object = ObjectOf(type);
         EXPECT_TRUE(StepCastleSiegeObjectFrame(object, other.Pass()).HasValue());
         EXPECT_EQ(other.random.State(), before);
+        EXPECT_TRUE(other.Alive().empty());
     }
 }
 
-// 0x42cab9..0x42caf4: el 0x34 sin el asedio va al 6f4/6 sin rand(); con el asedio, nada.
-TEST(CastleSiegeObjectServicesTest, TheBrazierCutsWithoutTheSiegeAndWithoutDrawing)
+// 0x42cab9..0x42caf4: el 0x34 sin el asedio, en cada frame y sin rand() propio, la caída
+// 0x53fe70(0x6f4, posición, ángulos, (1, 1, 1), 6, escala, 0), que saca los dos de 0x543f04; con el asedio, nada.
+TEST(CastleSiegeObjectServicesTest, TheBrazierDropsItsFallOnEveryFrameWithoutTheSiege)
 {
     Fixture fixture;
+    CrtRandom draws(Seed);
     WorldObject object = ObjectOf(0x34);
-    const auto cut = StepCastleSiegeObjectFrame(object, fixture.Pass());
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x42caf4"), std::string::npos);
-    EXPECT_EQ(fixture.random.State(), Seed);
+    ASSERT_TRUE(StepCastleSiegeObjectFrame(object, fixture.Pass()).HasValue());
+    const auto alive = fixture.Alive();
+    ASSERT_EQ(alive.size(), 1u);
+    const Particle& fall = *alive[0];
+    EXPECT_EQ(fall.type, Client::World::KalimaWaterfallLast);
+    EXPECT_EQ(fall.subtype, Client::World::BrazierFallSubtype);
+    EXPECT_EQ(fall.life, 30);
+    EXPECT_EQ(fall.rotation, static_cast<float>(draws.Next() % 360));
+    EXPECT_EQ(fall.scale, static_cast<float>(1.5 + static_cast<double>(std::bit_cast<float>(0x3f19999au))));
+    EXPECT_EQ(fall.velocity, glm::vec3(0.0f, 0.0f, static_cast<float>(-12 - draws.Next() % 5)));
+    EXPECT_EQ(fall.light, glm::vec3(std::bit_cast<float>(0x3e4ccccdu)));
+    EXPECT_EQ(fall.position, object.transform.position);
+    EXPECT_EQ(fixture.random.State(), draws.State());
+    ASSERT_TRUE(StepCastleSiegeObjectFrame(object, fixture.Pass()).HasValue());
+    EXPECT_EQ(fixture.Alive().size(), 2u);
 
     Fixture siege;
     siege.siege = true;
     EXPECT_TRUE(StepCastleSiegeObjectFrame(object, siege.Pass()).HasValue());
     EXPECT_EQ(siege.random.State(), Seed);
+    EXPECT_TRUE(siege.Alive().empty());
 }
 
-// 0x42ca5b..0x42caaa: el 0x2a solo humea con el asedio, con un rand() y el resto por 3 en 0.
+// 0x42ca5b..0x42caaa: el 0x2a solo humea con el asedio: un rand() y, con el resto por 3 en 0, el humo
+// 0x53fe70(0x5f2, posición, ángulos, (1, 1, 1), 0x15, escala, 0), el de Crywolf (0x542370), con sus tres rand().
 TEST(CastleSiegeObjectServicesTest, TheChimneySmokesOnlyDuringTheSiege)
 {
     Fixture quiet;
@@ -248,21 +294,38 @@ TEST(CastleSiegeObjectServicesTest, TheChimneySmokesOnlyDuringTheSiege)
     WorldObject object = ObjectOf(0x2a);
     EXPECT_TRUE(StepCastleSiegeObjectFrame(object, quiet.Pass()).HasValue());
     EXPECT_EQ(quiet.random.State(), before);
+    EXPECT_TRUE(quiet.Alive().empty());
 
     for (const bool zero : {false, true})
     {
+        SCOPED_TRACE(zero);
         Fixture fixture;
         fixture.siege = true;
         const std::uint32_t seed = SeedWhere(zero);
         fixture.random = CrtRandom(seed);
         CrtRandom draws(seed);
         static_cast<void>(draws.Next());
-        const auto stepped = StepCastleSiegeObjectFrame(object, fixture.Pass());
-        EXPECT_EQ(fixture.random.State(), draws.State());
-        EXPECT_EQ(stepped.HasValue(), !zero);
+        ASSERT_TRUE(StepCastleSiegeObjectFrame(object, fixture.Pass()).HasValue());
+        const auto alive = fixture.Alive();
         if (!zero)
+        {
+            EXPECT_TRUE(alive.empty());
+            EXPECT_EQ(fixture.random.State(), draws.State());
             continue;
-        EXPECT_NE(stepped.Error().find("0x42caaa"), std::string::npos);
+        }
+        ASSERT_EQ(alive.size(), 1u);
+        const Particle& smoke = *alive[0];
+        EXPECT_EQ(smoke.type, Client::World::BreathParticle);
+        EXPECT_EQ(smoke.subtype, Client::World::CrywolfSmokeSubtype);
+        EXPECT_EQ(smoke.life, 80);
+        const int size = (draws.Next() & 63) + 64;
+        EXPECT_EQ(smoke.scale, static_cast<float>(static_cast<double>(size) * 1.5 *
+                                                  static_cast<double>(std::bit_cast<float>(0x3ba3d70au))));
+        EXPECT_EQ(smoke.rotation, static_cast<float>(draws.Next() % 360));
+        static_cast<void>(draws.Next());
+        EXPECT_EQ(smoke.light, glm::vec3(1.0f));
+        EXPECT_EQ(smoke.position, object.transform.position);
+        EXPECT_EQ(fixture.random.State(), draws.State());
     }
 }
 

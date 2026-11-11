@@ -55,4 +55,11 @@ StepObjectLamp(const WorldObject& object, Render::Models::CrtRandom& random, con
 // desde el anterior (0x723c4c). Un binding ausente corta donde lo pide el ASM, después de lo ya hecho.
 [[nodiscard]] Core::Expected<void, std::string>
 StepLandOfTrialsObject(WorldObject& object, Render::Models::CrtRandom& random, const ObjectStepGlobals& globals);
+
+// 0x4303e0 (0x605a62), con el mapa 34 (0x4303c0): después de 0x438a90, 0x42c850, 0x43ffc0, 0x42ee40 y 0x4250f0, que
+// en el 34 no hacen nada. El 0x29 suma a la luz dinámica (0,2; 0,7; 0,5) con radio 2; el 0x39 y el 0x47,
+// ((rand() & 3) + 3) · 0,1f por (1; 0,6; 0,2) con radio 3; el 0x51 queda con alpha 0,2 y el 0x52, el 0x53 y el 0x54
+// con +0x58 en −2. Sin sonido. Sin el buffer dinámico, la luz corta después de su rand().
+[[nodiscard]] Core::Expected<void, std::string>
+StepCrywolfObject(WorldObject& object, Render::Models::CrtRandom& random, const ObjectStepGlobals& globals);
 } // namespace Client::World

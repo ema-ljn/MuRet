@@ -770,10 +770,12 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     constexpr std::uint8_t LastBloodCastleMap = 17;
     const bool bloodCastle = map >= FirstBloodCastleMap && map <= LastBloodCastleMap;
     const bool chaosCastle = IsChaosCastleMap(map);
+    // 0x4303c0: el 34 (Crywolf) llega a 0x4303e0, el último eslabón de la cadena de 0x605a62.
+    constexpr std::uint8_t CrywolfMap = 34;
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
         map != ArenaMap && map != AtlansMap && map != TarkanMap && map != DevilSquareMap && map != IcarusMap &&
-        map != LoginMap && map != LandOfTrialsMap && map != CastleSiegeMap && !IsKalimaMap(map) && !aida &&
-        !bloodCastle && !chaosCastle)
+        map != LoginMap && map != LandOfTrialsMap && map != CastleSiegeMap && map != CrywolfMap && !IsKalimaMap(map) &&
+        !aida && !bloodCastle && !chaosCastle)
     {
         return Core::Unexpected(
             std::format("0x604ab0: el paso de los objetos del mapa {} no está leído", static_cast<int>(map)));
@@ -814,6 +816,10 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     if (map == CastleSiegeMap)
     {
         return StepCastleSiegeObject(object, random, globals);
+    }
+    if (map == CrywolfMap)
+    {
+        return StepCrywolfObject(object, random, globals);
     }
     if (bloodCastle)
     {

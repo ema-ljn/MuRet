@@ -1,7 +1,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRetainedMath.h"
+#include "Render/TextureEnvMode.h"
 #include "World/BloodCastleParticleKernels.h"
-#include "World/ParticleDrawing.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "support/ParticleDrawRecorder.h"
@@ -20,6 +20,7 @@
 // órbita 60f/4 (06 § Los objetos de Devil Square y de Blood Castle).
 namespace
 {
+using Client::Render::TextureEnvMode;
 using Client::Render::Models::CrtRandom;
 using Client::Tests::RecordedParticleDraw;
 using Client::World::Particle;
@@ -53,16 +54,18 @@ Particle Created(std::int32_t type, std::int32_t subtype, CrtRandom& random)
 }
 } // namespace
 
-// Las cuatro de la antorcha son de la familia; los otros subtipos de esos tipos, no.
+// Las cuatro de la antorcha y la llama 6ac/2 (la del joint 0x632/6) son de la familia; los otros subtipos de esos
+// tipos, no.
 TEST(BloodCastleParticlesTest, OnlyTheTorchSubtypesBelongToTheFamily)
 {
     EXPECT_TRUE(Client::World::IsBloodCastleParticle(Spark, 0));
     EXPECT_TRUE(Client::World::IsBloodCastleParticle(Spark, 1));
     EXPECT_TRUE(Client::World::IsBloodCastleParticle(Flame, 0));
+    EXPECT_TRUE(Client::World::IsBloodCastleParticle(Flame, 2));
     EXPECT_TRUE(Client::World::IsBloodCastleParticle(Cloud, 6));
     EXPECT_FALSE(Client::World::IsBloodCastleParticle(Spark, 2));
     EXPECT_FALSE(Client::World::IsBloodCastleParticle(Flame, 1));
-    EXPECT_FALSE(Client::World::IsBloodCastleParticle(Flame, 2));
+    EXPECT_FALSE(Client::World::IsBloodCastleParticle(Flame, 3));
     EXPECT_FALSE(Client::World::IsBloodCastleParticle(Cloud, 8));
     EXPECT_FALSE(Client::World::IsBloodCastleParticle(Orbit, 4));
 }
@@ -117,6 +120,63 @@ TEST(BloodCastleParticlesTest, TheFlameDrawsItsSpeedTwiceAndLivesTwentyFourSteps
     EXPECT_EQ(p.velocity, glm::vec3(F32(side * Bits(0x3ecccccdu)), 0.0f, F32(rise * Bits(0x3e4ccccdu))));
     EXPECT_EQ(p.start, Where);
     EXPECT_EQ(random.State(), draws.State());
+}
+
+// 0x53c042 crea la 6ac/2 con la escala 3 (0x40400000), pero 0x543a7b la pisa con 0,5: solo la /1 la usa
+// (0x543a84). Lo demás es lo de la /0, con los mismos seis rand() (Q-C393).
+TEST(BloodCastleParticlesTest, TheBrightFlameIsCreatedLikeTheFlameAndIgnoresItsScale)
+{
+    Particles particles;
+    CrtRandom random(11);
+    const glm::vec3 light{1.0f, 0.5f, 0.25f};
+    const float scale = std::bit_cast<float>(0x40400000u);
+    const auto made = particles.CreateChecked(Flame, Where, Turned, light, 2, scale, 0.0f, random);
+    ASSERT_TRUE(made.HasValue());
+    ASSERT_EQ(made.Value(), std::optional<std::size_t>(0));
+    const Particle& p = particles.All()[0];
+    CrtRandom flameRandom(11);
+    const Particle flame = Created(Flame, 0, flameRandom);
+    EXPECT_EQ(p.subtype, 2);
+    EXPECT_EQ(p.life, 24);
+    EXPECT_EQ(p.scale, 0.5f);
+    EXPECT_EQ(p.rotation, flame.rotation);
+    EXPECT_EQ(p.velocity, flame.velocity);
+    EXPECT_EQ(p.start, Where);
+    EXPECT_EQ(p.light, light);
+    EXPECT_EQ(p.texture, Flame);
+    EXPECT_EQ(random.State(), flameRandom.State());
+}
+
+// 0x5479d5..0x547a0f: la /2 lee el subtipo antes del producto y deja la luz en vida · 0,08f − 1, que con la vida en
+// 12 o menos es negativa (la función fija la recorta a 0 en el glColor). El resto del paso es el de la /0.
+TEST(BloodCastleParticlesTest, TheBrightFlameLightIsLifeTimesEightHundredthsMinusOne)
+{
+    for (const int life : {23, 13, 12, 1})
+    {
+        SCOPED_TRACE(life);
+        Particle p;
+        p.alive = true;
+        p.type = p.texture = Flame;
+        p.subtype = 2;
+        p.life = life;
+        p.scale = 0.5f;
+        p.rotation = 123.0f;
+        p.position = {10.5f, 20.25f, 30.125f};
+        p.velocity = {1.5f, 0.0f, 0.7f};
+        Particle plain = p;
+        plain.subtype = 0;
+        CrtRandom random(23);
+        CrtRandom plainRandom(23);
+        Client::World::StepBloodCastleParticle(p, random);
+        Client::World::StepBloodCastleParticle(plain, plainRandom);
+        EXPECT_EQ(p.light, glm::vec3(F32(static_cast<double>(life) * Bits(0x3da3d70au) - 1.0)));
+        EXPECT_EQ(p.light.x < 0.0f, life <= 12);
+        EXPECT_EQ(p.position, plain.position);
+        EXPECT_EQ(p.velocity, plain.velocity);
+        EXPECT_EQ(p.scale, plain.scale);
+        EXPECT_EQ(p.rotation, plain.rotation);
+        EXPECT_EQ(random.State(), plainRandom.State());
+    }
 }
 
 // 0x54327b..0x543300: vida rand() % 5 + 25, escala 0,2f, el giro y la velocidad de la llama antes del 6ec.
@@ -269,7 +329,8 @@ TEST(BloodCastleParticlesTest, TheTorchOrbitShrinksFasterAndFadesFromThirty)
 }
 
 // 0x5488f6: la 6ab va al billboard común con la mezcla del material (fi01.jpg, 3 componentes: aditiva).
-// 0x5489eb..0x548a51: la 6ac/0 pide 0x620c10 antes del billboard; la /2 cambia el modo de la textura y corta.
+// 0x5489eb..0x548a51: la 6ac/0 pide 0x620c10 antes del billboard; la /2 pone GL_ADD antes, dibuja el billboard
+// común con él y vuelve a GL_MODULATE.
 TEST(BloodCastleParticlesTest, TheFlameDrawsBlendedAndTheSparkAdditive)
 {
     Particle spark;
@@ -290,10 +351,50 @@ TEST(BloodCastleParticlesTest, TheFlameDrawsBlendedAndTheSparkAdditive)
     ASSERT_TRUE(flameDrawn.Value().has_value());
     EXPECT_EQ(flameDrawn.Value()->blend, RecordedParticleDraw::Blend::Blended);
 
+    EXPECT_EQ(flameDrawn.Value()->textureEnv, TextureEnvMode::Modulate);
+
     Particle bright = flame;
     bright.subtype = 2;
-    const auto cut = Client::Tests::DrawOneParticle(bright, glm::vec2(64.0f), std::uint8_t{4});
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_EQ(cut.Error().phase, Client::World::ParticleDrawingPhase::Branch);
-    EXPECT_EQ(cut.Error().reason, Client::World::ParticleError::UnsupportedSubtype);
+    auto after = TextureEnvMode::Add;
+    const auto added =
+        Client::Tests::DrawOneParticle(bright, glm::vec2(64.0f), std::uint8_t{4}, 0.0f, 0, std::uint8_t{0}, &after);
+    ASSERT_TRUE(added.HasValue());
+    ASSERT_TRUE(added.Value().has_value());
+    EXPECT_EQ(added.Value()->blend, RecordedParticleDraw::Blend::Blended);
+    EXPECT_EQ(added.Value()->textureEnv, TextureEnvMode::Add);
+    EXPECT_EQ(added.Value()->width, flameDrawn.Value()->width);
+    EXPECT_EQ(added.Value()->height, flameDrawn.Value()->height);
+    EXPECT_EQ(added.Value()->rotation, flameDrawn.Value()->rotation);
+    EXPECT_EQ(added.Value()->uv, glm::vec2(0.0f));
+    EXPECT_EQ(added.Value()->uvSize, glm::vec2(1.0f));
+    EXPECT_EQ(after, TextureEnvMode::Modulate);
+}
+
+// La 6ac/2 creada, en el paso y en el dibujo: con la vida en 24 y el paso que la deja en 23, el billboard lleva la
+// luz 23 · 0,08f − 1 y GL_ADD, y el modo vuelve a GL_MODULATE.
+TEST(BloodCastleParticlesTest, TheBrightFlameIsCreatedSteppedAndDrawnWithAdd)
+{
+    Particles particles;
+    CrtRandom random(31);
+    const float clock = 0.0f;
+    const auto made = particles.CreateChecked(Flame, Where, Turned, glm::vec3(1.0f), 2,
+                                              std::bit_cast<float>(0x40400000u), clock, random);
+    ASSERT_TRUE(made.HasValue());
+    ASSERT_EQ(made.Value(), std::optional<std::size_t>(0));
+    Client::World::PortableParticleTrigonometry trigonometry;
+    ASSERT_TRUE(
+        Client::World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trigonometry).HasValue());
+    Particle p = particles.All()[0];
+    ASSERT_TRUE(p.alive);
+    EXPECT_EQ(p.life, 23);
+    EXPECT_EQ(p.light, glm::vec3(F32(23.0 * Bits(0x3da3d70au) - 1.0)));
+    auto after = TextureEnvMode::Add;
+    const auto drawn =
+        Client::Tests::DrawOneParticle(p, glm::vec2(64.0f), std::uint8_t{4}, 0.0f, 0, std::uint8_t{0}, &after);
+    ASSERT_TRUE(drawn.HasValue());
+    ASSERT_TRUE(drawn.Value().has_value());
+    EXPECT_EQ(drawn.Value()->textureEnv, TextureEnvMode::Add);
+    EXPECT_EQ(drawn.Value()->blend, RecordedParticleDraw::Blend::Blended);
+    EXPECT_EQ(drawn.Value()->light, p.light);
+    EXPECT_EQ(after, TextureEnvMode::Modulate);
 }

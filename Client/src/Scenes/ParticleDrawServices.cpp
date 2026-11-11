@@ -6,6 +6,7 @@
 #include "Render/IParticleDrawBackend.h"
 #include "Render/ParticleBillboardRequest.h"
 #include "Render/SpriteVertex.h"
+#include "Render/TextureEnvMode.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/IParticleDrawingServices.h"
 #include "World/ParticleDrawing.h"
@@ -87,6 +88,10 @@ World::IParticleDrawingServices::Result ParticleDrawServices::Type620850()
 World::IParticleDrawingServices::Result ParticleDrawServices::Type620870()
 {
     return Checked(m_backend.get().Type620870(), Phase::Type620870);
+}
+World::IParticleDrawingServices::Result ParticleDrawServices::TextureEnv(Render::TextureEnvMode mode)
+{
+    return Checked(m_backend.get().TextureEnv(mode), Phase::TextureEnv);
 }
 World::IParticleDrawingServices::Result ParticleDrawServices::Billboard(Render::ParticleBillboardRequest request)
 {

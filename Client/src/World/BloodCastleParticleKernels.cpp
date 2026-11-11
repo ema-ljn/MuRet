@@ -43,6 +43,8 @@ constexpr double FlameJitter = static_cast<double>(std::bit_cast<float>(0x3f4ccc
 constexpr double FlameGrowth = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
 constexpr double FlameLight = static_cast<double>(std::bit_cast<float>(0x3d23d70au));
 constexpr double SmokeLight = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));
+// 0x6ba348 (0,08f): la luz de la 6ac/2, a la que 0x547a01 le resta el 1 de 0x6b87d4.
+constexpr double BrightFlameLight = static_cast<double>(std::bit_cast<float>(0x3da3d70au));
 
 // 0x543a7b, 0x5432a1: las escalas fijas de la 6ac y del 622/6.
 constexpr float FlameScale = 0.5f;
@@ -140,6 +142,18 @@ void StepSpark(Particle& p)
     p.scale = F32(D(p.scale) + (p.subtype == 0 ? SparkGrowth : WideSparkGrowth));
 }
 
+// 0x5479f6..0x547a0f: fild de la vida y fmul; la 6ac/2 (0x5479db, el subtipo leído antes del producto) resta 1 y
+// puede quedar negativa, que la función fija recorta a 0 en el glColor. 0x54748a..0x54756d: el 622/6.
+float FlameOrSmokeLight(const Particle& p)
+{
+    const double life = static_cast<double>(p.life);
+    if (p.type == CloudParticle)
+        return F32(life * SmokeLight);
+    if (p.subtype == BrightFlameSubtype)
+        return F32(life * BrightFlameLight - One);
+    return F32(life * FlameLight);
+}
+
 // 0x54793f..0x547a38 y 0x54748a..0x54756d: lo mismo salvo la luz.
 void StepFlameOrSmoke(Particle& p, Render::Models::CrtRandom& random)
 {
@@ -149,15 +163,18 @@ void StepFlameOrSmoke(Particle& p, Render::Models::CrtRandom& random)
     p.position.y = F32(static_cast<double>(Jitter(random)) + D(p.position.y));
     p.position.z = F32(static_cast<double>(Jitter(random)) * FlameJitter + D(p.position.z));
     p.scale = F32(D(p.scale) + FlameGrowth);
-    SetLight(p, F32(static_cast<double>(p.life) * (p.type == CloudParticle ? SmokeLight : FlameLight)));
+    SetLight(p, FlameOrSmokeLight(p));
     p.rotation = F32((static_cast<double>(random.Next() & 1) + D(p.rotation)) + One);
 }
 } // namespace
 
 bool IsBloodCastleParticle(std::int32_t type, std::int32_t subtype)
 {
+    // 0x543a5d: la 6ac/2 se crea como la /0; de los subtipos de la llama, solo el 1 (la escala, 0x543a84), el 5 y
+    // el 6 (la vida, 0x543bc1) y el 7 (0x543ae3) cambian algo.
     return (type == TorchSparkParticle && (subtype == 0 || subtype == 1)) ||
-           (type == TorchFlameParticle && subtype == 0) || (type == CloudParticle && subtype == TorchSmokeSubtype);
+           (type == TorchFlameParticle && (subtype == 0 || subtype == BrightFlameSubtype)) ||
+           (type == CloudParticle && subtype == TorchSmokeSubtype);
 }
 
 void CreateBloodCastleParticle(Particle& particle, Render::Models::CrtRandom& random)

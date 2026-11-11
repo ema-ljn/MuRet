@@ -1,6 +1,7 @@
 #include "Scenes/MapLoad.h"
 
 #include "Core/Expected.h"
+#include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/DarkHorse.h"
@@ -14,6 +15,7 @@
 #include "World/WorldObjectRegistrations.h"
 #include "World/WorldTerrain.h"
 
+#include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/PlayerActors.h"
 #include "support/TemporaryFolder.h"
@@ -27,6 +29,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -395,6 +398,33 @@ TEST_F(MapLoadTest, CastleSiegeWithTheSiegeOnStopsAtItsAttributes)
     EXPECT_NE(loaded.Error().find("0x61a6ea"), std::string::npos) << loaded.Error();
 }
 
+// 0x61a6d0 → 0x42fe50: con el estado de Crywolf de la .bss (0) el 34 toma EncTerrain35.att, el mismo que lee el
+// cargador del repo, y no EncTerrain351.att. Con 1, 2 o 3, que solo pone un paquete, corta en 0x61a6f4 (Q-C340).
+TEST_F(MapLoadTest, CrywolfTakesItsPlainAttributesOnlyWithTheStartingState)
+{
+    ASSERT_EQ(world.Runtime().crywolf.state, 0);
+    ASSERT_TRUE(Load(34).HasValue());
+    const auto plain = Client::Tests::ReadFileBytes(m_dataRoot / "world35" / "EncTerrain35.att");
+    const auto first = Client::Tests::ReadFileBytes(m_dataRoot / "world35" / "EncTerrain351.att");
+    ASSERT_TRUE(plain.has_value() && first.has_value());
+    const auto expected = Client::Data::Terrain::LoadTerrainAttributes(std::as_bytes(std::span(*plain)), 35);
+    const auto other = Client::Data::Terrain::LoadTerrainAttributes(std::as_bytes(std::span(*first)), 35);
+    ASSERT_TRUE(expected.HasValue() && other.HasValue());
+    ASSERT_NE(expected.Value()->cells, other.Value()->cells);
+    ASSERT_TRUE(world.Map().terrain.attributes);
+    EXPECT_EQ(world.Map().terrain.attributes->cells, expected.Value()->cells);
+    for (const std::uint8_t state : {std::uint8_t{1}, std::uint8_t{2}, std::uint8_t{3}})
+    {
+        SCOPED_TRACE(static_cast<int>(state));
+        world.Runtime().crywolf.state = state;
+        const auto loaded = Load(34);
+        ASSERT_FALSE(loaded.HasValue());
+        EXPECT_NE(loaded.Error().find("0x61a6f4"), std::string::npos) << loaded.Error();
+        EXPECT_NE(loaded.Error().find("estado de Crywolf " + std::to_string(state)), std::string::npos)
+            << loaded.Error();
+    }
+}
+
 // Los mapas con datos en la Data del repo: los que carga y, en los demás, dónde corta.
 TEST_F(MapLoadTest, ConstructsRealMapsAndNamesTheirFrontiers)
 {
@@ -404,9 +434,8 @@ TEST_F(MapLoadTest, ConstructsRealMapsAndNamesTheirFrontiers)
         std::string_view frontier; // vacío: carga
     };
     constexpr Case Cases[] = {
-        {0, ""},  {1, ""},  {2, ""},  {3, ""},          {4, ""},  {5, "World6"},    {6, ""},
-        {7, ""},  {8, ""},  {9, ""},  {10, ""},         {11, ""}, {18, ""},         {24, ""},
-        {30, ""}, {31, ""}, {33, ""}, {34, "0x42fe50"}, {54, ""}, {55, "0x6188ae"},
+        {0, ""},  {1, ""},  {2, ""},  {3, ""},  {4, ""},  {5, "World6"}, {6, ""},  {7, ""},  {8, ""},  {9, ""},
+        {10, ""}, {11, ""}, {18, ""}, {24, ""}, {30, ""}, {31, ""},      {33, ""}, {34, ""}, {54, ""}, {55, "0x6188ae"},
     };
     for (const Case& tested : Cases)
     {

@@ -496,3 +496,34 @@ TEST(ModelEffectsTest, TheAidaWispIsCreatedWithSixDrawsAroundItsObject)
     EXPECT_FALSE(effects.CreateAidaWisp(at, angles, glm::vec3(0.1f), full).has_value());
     EXPECT_EQ(full.State(), 11u);
 }
+
+// 0x518cf0(0x6eb, …) → 0x51f4ad con el subtipo 1, la onda del galope en Icarus: sin dueño, vida 20 y la escala
+// ((rand() % 10) + 10) · 0,1f en la x87. Con la semilla 1, 41: 1,1f. Lleno, ninguna y sin rand().
+TEST(ModelEffectsTest, TheGallopShockWaveIsBornWithOneRandom)
+{
+    ModelEffects effects;
+    Client::Render::Models::CrtRandom random(1);
+    const auto slot =
+        effects.CreateGallopShockWave({100.5f, 200.25f, 300.0f}, {0.0f, 0.0f, 45.0f}, glm::vec3(1.0f), random);
+    ASSERT_EQ(slot, std::optional<std::size_t>(0));
+    const ModelEffect& wave = effects.Effects()[0];
+    EXPECT_TRUE(wave.alive);
+    EXPECT_EQ(wave.type, Client::World::ShockWaveEffect);
+    EXPECT_EQ(wave.subtype, Client::World::GallopShockWaveSubtype);
+    EXPECT_EQ(wave.life, 20);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(wave.transform.scale), 0x3f8ccccdu);
+    EXPECT_EQ(wave.transform.position, glm::vec3(100.5f, 200.25f, 300.0f));
+    EXPECT_EQ(wave.transform.angles, glm::vec3(0.0f, 0.0f, 45.0f));
+    EXPECT_EQ(wave.light, glm::vec3(1.0f));
+    EXPECT_EQ(wave.itemType, nullptr);
+    Client::Render::Models::CrtRandom expected(1);
+    static_cast<void>(expected.Next());
+    EXPECT_EQ(random.State(), expected.State());
+
+    ModelEffects full;
+    for (auto& effect : full.Effects())
+        effect.alive = true;
+    Client::Render::Models::CrtRandom untouched(1);
+    EXPECT_FALSE(full.CreateGallopShockWave({}, {}, glm::vec3(1.0f), untouched).has_value());
+    EXPECT_EQ(untouched.State(), 1u);
+}

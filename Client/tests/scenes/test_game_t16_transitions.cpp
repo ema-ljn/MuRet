@@ -101,12 +101,19 @@ TEST_P(GameT16Transitions, EncryptedTeleportEntersAndReturnsOrNamesItsExactBound
         return;
     }
     ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
-    // 0x42a981: al cargar el 30 sale el B9 02 (el estado del asedio), antes de la confirmación del teleport.
-    const std::size_t siegeRequests = map == 30 ? 1u : 0u;
-    ASSERT_EQ(sent.packets.size(), 1u + siegeRequests);
-    if (siegeRequests != 0)
+    // 0x42a981: al cargar el 30 sale el B9 02 (el estado del asedio), antes de la confirmación del teleport. 0x4c785d:
+    // al entrar al 34 por el 1C, el BD 00 (el pedido del estado de Crywolf) sale antes del F3 12.
+    const std::size_t requests = map == 30 || map == 34 ? 1u : 0u;
+    ASSERT_EQ(sent.packets.size(), 1u + requests);
+    if (map == 30)
     {
         EXPECT_EQ(sent.packets[0].Opcode(), 0xb9);
+    }
+    if (map == 34)
+    {
+        ASSERT_EQ(sent.packets[0].Bytes().size(), 4u);
+        EXPECT_EQ(sent.packets[0].Opcode(), 0xbd);
+        EXPECT_EQ(sent.packets[0].Bytes()[3], std::byte{0});
     }
     EXPECT_EQ(sent.packets.back().Bytes().size(), 4u);
     EXPECT_EQ(sent.packets.back().Opcode(), 0xf3);
@@ -141,14 +148,15 @@ TEST_P(GameT16Transitions, RegenUsesRealMapDataWithoutSendingTeleportDone)
     EXPECT_EQ(m_world->Runtime().map, map == 32 ? 9 : map);
     EXPECT_EQ(m_world->Runtime().hero, slot);
     EXPECT_EQ(m_world->Runtime().warpCounter, 42);
-    // El regen no confirma nada; en el 30, la carga pide el estado del asedio (B9 02, 0x42a981).
+    // El regen no confirma nada; en el 30, la carga pide el estado del asedio (B9 02, 0x42a981). El BD 00 del 34 es
+    // del 1C (0x4c785d), no de la carga.
     const auto regenSent = Sent();
     ASSERT_EQ(regenSent.packets.size(), map == 30 ? 1u : 0u);
     if (map == 30)
     {
         EXPECT_EQ(regenSent.packets[0].Opcode(), 0xb9);
     }
-    const bool loadBoundary = map == 5 || map == 34 || map == 35;
+    const bool loadBoundary = map == 5 || map == 35;
     ASSERT_NO_FATAL_FAILURE(ExpectDataMessage(map));
     ASSERT_NO_FATAL_FAILURE(ExpectKalimaResources(map == 32 ? 9 : map));
     if (map == 32)

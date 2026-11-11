@@ -52,9 +52,24 @@ inline constexpr std::int32_t LoginCloudSubtype = 10;
 inline constexpr std::int32_t Particle67 = 0x67;
 inline constexpr std::int32_t Particle68 = 0x68;
 // La órbita (0x60f/3): nace con 60 de vida, y 548550 no la dibuja mientras la conserve, salvo la /4 (la de la
-// antorcha de Blood Castle, que nace con 40).
+// antorcha de Blood Castle, que nace con 40). La /0 (la del conjunto completo, 0x510339) nace y gira igual que la
+// /3; con su personaje en ciertas acciones pasa a ser la /1, que sólo se apaga (0x54735c).
 inline constexpr std::int32_t OrbitParticle = 0x60f;
 inline constexpr std::int32_t OrbitLife = 60;
+// Las de los objetos y el agua de Crywolf (el mapa 34): el humo 5f2/21 (0x542370, que pasa por el paso de la 5f2/2,
+// 0x5466c3), la nube 622/9 (0x54330a, con el paso de la 622/8, 0x5476a8), la órbita 60f/10 del efecto 0x61d/3
+// (0x542ed0, que se queda en su partida, 0x547297) y la burbuja 698/0 (Effect\coll.jpg) del agua (0x543152 y
+// 0x54719f).
+inline constexpr std::int32_t CrywolfSmokeSubtype = 21;
+// El humo 5f2/33 del 0x48 de Crywolf (0x430932): nace en 0x541a8d con la vida y los ángulos de cuatro rand() y su paso
+// (0x545ffc) frena la velocidad y lo sube con la escala, que crece.
+inline constexpr std::int32_t CrywolfRisingSmokeSubtype = 33;
+inline constexpr std::int32_t CrywolfCloudSubtype = 9;
+inline constexpr std::int32_t AnchoredOrbitSubtype = 10;
+inline constexpr std::int32_t BubbleParticle = 0x698;
+// El polvo 5f3/0 (Effect\smoke02.tga) del galope del caballo oscuro fuera de los mapas 2 y 10 (0x4444dd): nace en
+// 0x54271f y su paso (0x546b66) lo deja sobre el terreno con el alto de su textura.
+inline constexpr std::int32_t DustParticle = 0x5f3;
 
 // Offsets nativos de procedencia; este DTO no promete layout binario de 0x78 bytes.
 struct Particle
@@ -103,23 +118,30 @@ enum class ParticleError : std::uint8_t
     MissingTerrainHeight,
     MissingClock,
     MissingScene,
-    // 0x5476f0: el dueño (+0x40) de una 622/1 no está entre los objetos del mapa.
+    // 0x5476f0: el dueño (+0x40) de una 622/1 no está entre los objetos del mapa; 0x54735c: el de una 60f/0 no
+    // es un personaje del pool.
     MissingOwner,
 };
 
 // 5f93c0: retorno retenido, consultado después del prefijo del slot5c5.
 using ParticleTerrainHeight = std::function<double(float, float)>;
+// El alto de la textura de un lugar de 0x7d3a198 (+0x24, el lado del buffer), o nullopt si no se cargó: lo lee el
+// paso de la 5f3 (0x546be9).
+using ParticleTextureHeight = std::function<std::optional<float>(std::int32_t)>;
 // El objeto del mundo de una identidad (ParticleOwner::identity): lo que el original lee por el puntero
 // +0x40. nullptr si no está.
 using ParticleObjectOwners = std::function<WorldObject*(std::uint64_t)>;
+// La acción (+0x111) del personaje de una identidad (ParticleOwnerKind::Actor, el lugar del pool): lo que el paso de
+// la órbita 60f/0 lee por el puntero +0x40 (0x54735f). nullopt si no está.
+using ParticleActorActions = std::function<std::optional<std::uint8_t>(std::uint64_t)>;
 
 class Particles
 {
 public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
-    // rand(). Se aceptan5ca/0, 5f2/0,2, 5c6/1,5,9,11, 622/6,8,10, 5d9/0..3, 607/0, 67/0, 68/0, 6ab/0,1 y 6ac/0; la
-    // órbita 60f/3,4 pide el overload con la trigonometría.
+    // rand(). Se aceptan5ca/0, 5f2/0,2,21,33, 5f3/0, 5c6/1,5,9,11, 622/6,8,9,10, 5d9/0..3, 607/0, 67/0, 68/0, 698/0,
+    // 6ab/0,1 y 6ac/0; la órbita 60f/0,3,4,10 pide el overload con la trigonometría.
     // Create es la compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina
     // consume cinco rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().
     std::optional<std::size_t> Create(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
@@ -130,17 +152,19 @@ public:
     CreateChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                   std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,
                   std::uint32_t owner = 0);
-    // Reloj prestado: 5f2/4 lo carga después de R2; 6/7/8 no lo leen al crear.
+    // Reloj prestado: 5f2/4 lo carga después de R2; 6/7/8 no lo leen al crear. `typedOwner` es el dueño (+0x40) de
+    // la órbita 60f/0, que su paso lee (0x54735c); las demás lo ignoran.
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                   std::int32_t subtype, float scale, std::reference_wrapper<const float> worldClock,
-                  Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry& trigonometry);
+                  Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry& trigonometry,
+                  ParticleOwner typedOwner = {});
     // Sólo las familias Kalima acreditadas. Conserva identidad por valor, nunca una dirección host.
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateKalimaChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                         std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,
                         std::int32_t scene, ParticleOwner owner = {});
-    // CreateKalimaChecked agrega5ac/6,7,6ed/0,6f0..4/0 y6f4/1; escena prestada para6f1.
+    // CreateKalimaChecked agrega5ac/6,7,6ed/0,6f0..4/0, 6f1/3 y6f4/1; escena prestada para6f1.
     // Las familias con dueño tipado: las de Kalima y las de la selección (SelectionParticleKernels.h:
     // 622/1, 5de/7 y 729/0,1), más 6f0/2, 6f1/2 y 6f2,6f3/4 de los objetos del 54 y del 33.
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
@@ -185,10 +209,14 @@ std::optional<ParticleError> StepParticles(Particles& particles, Render::Models:
                                                                        const std::int32_t* map = nullptr,
                                                                        const ParticleTerrainHeight& terrainHeight = {});
 // Carga el reloj por slot6 después del movimiento común, sin snapshot de la pasada. `owners` resuelve el
-// dueño de 622/1 (0x5476f0), que se lee y se escribe en el paso.
+// dueño de 622/1 (0x5476f0), que se lee y se escribe en el paso, y `actorActions` la acción del personaje dueño de
+// la órbita 60f/0 (0x54735c); sin él, una 60f/0 viva falla con MissingOwner. La 5f3 pide la altura del terreno y el
+// alto de su textura
+// (`textureHeight`): sin ellos corta después de mover, frenar y agrandar.
 [[nodiscard]] Core::Expected<void, ParticleError>
 StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
                      std::reference_wrapper<const float> worldClock, const std::int32_t* map,
                      IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight = {},
-                     const ParticleObjectOwners& owners = {});
+                     const ParticleObjectOwners& owners = {}, const ParticleActorActions& actorActions = {},
+                     const ParticleTextureHeight& textureHeight = {});
 } // namespace Client::World

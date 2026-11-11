@@ -246,15 +246,16 @@ Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& orig
     }
     case 0x226:
     {
+        // 0x509f17..0x509ff8: EDI de 0x68b184c a 0x68b18ac, los huesos 1 y 2; en cada uno, los dos flare01 en el
+        // mismo punto, el del latido y el gris (0,3).
         for (std::size_t bone = 1; bone <= 2; ++bone)
         {
             const double x = SineTimes(clock * D(0.002f), 0.35f) + D(0.65f);
             const glm::vec3 light{F32(x * D(0.43f)), F32(x * D(0.14f)), F32(x * D(0.6f))};
             const glm::vec3 point = at(bone, glm::vec3{});
             frame.Sprite(Flare, point, F32(x * D(0.9f)), light);
+            frame.Sprite(Flare, point, F32(SineTimes(clock * D(0.002f), 0.5f) + D(0.4f)), glm::vec3(0.3f));
         }
-        const glm::vec3 second = at(2, glm::vec3{});
-        frame.Sprite(Flare, second, F32(SineTimes(clock * D(0.002f), 0.5f) + D(0.4f)), glm::vec3(0.3f));
         return {};
     }
     case 0x227:
@@ -292,12 +293,14 @@ Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& orig
     }
     case 0x61b:
     {
-        for (std::size_t bone = 1; bone <= 4; ++bone)
+        // 0x50a683..0x50a75f: ESI de 1 a 4 sobre 0x68b184c + ESI · 0x30, los huesos 2 a 5; con ESI en 3 (el
+        // hueso 4), el Shiny02.
+        for (std::size_t bone = 2; bone <= 5; ++bone)
         {
             const double x = SineTimes(clock * D(0.002f), 0.35f) + D(0.65f);
             const glm::vec3 point = at(bone, glm::vec3(-10.0f, 0.0f, 0.0f));
             frame.Sprite(Flare, point, 1.0f, {F32(x * D(0.6f)), F32(x * D(0.8f)), F32(x)});
-            if (bone == 3)
+            if (bone == 4)
                 frame.Sprite(Shiny, point, 0.6f, glm::vec3(0.5f), static_cast<float>(Mod(random, 360)));
         }
         return {};

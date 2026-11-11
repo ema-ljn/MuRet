@@ -40,6 +40,8 @@ constexpr std::uint16_t Sword = 0x212;
 constexpr std::uint16_t BladeSword = 0x21d; // el destello a −150 de 0x50e921
 constexpr std::uint16_t Sword224 = 0x224;
 constexpr std::uint16_t Sword223 = 0x223;
+constexpr std::uint16_t Sword21 = 0x226;
+constexpr std::uint16_t Mace10 = 0x61b;
 constexpr std::uint16_t Bolts = 0xa19;
 constexpr std::uint16_t Staff08 = 0xc19;
 constexpr std::uint16_t Helper02 = 0x1c13;
@@ -288,6 +290,68 @@ TEST_F(GameHangingTest, TheStaffSpritesComeFromItsPoseInTheGlobalBuffer)
         EXPECT_EQ(sprites[index].position, glm::vec3(150.0f, 150.0f, static_cast<float>(10 + 33 + 27 + index)));
         EXPECT_EQ(sprites[index].light, light);
     }
+    EXPECT_EQ(m_random.State(), AfterRandoms(6));
+}
+
+// 0x509f17..0x509ff8: Sword21 recorre los huesos 1 y 2 de su pose (EDI de 0x68b184c a 0x68b18ac) y en cada
+// uno pone los dos flare01, el del latido y el gris, en el mismo punto. Con el reloj en 0, el latido es 0,65f.
+TEST_F(GameHangingTest, Sword21PutsBothFlaresOnEachOfItsTwoBones)
+{
+    const HangingModels models({Sword21});
+    m_actor.hands[0].model = Sword21;
+
+    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    const auto sprites = LiveSprites();
+    ASSERT_EQ(sprites.size(), 4u);
+    const auto x = static_cast<double>(0.65f);
+    const auto f32 = [](double value) { return static_cast<float>(value); };
+    const glm::vec3 beat{f32(x * static_cast<double>(0.43f)), f32(x * static_cast<double>(0.14f)),
+                         f32(x * static_cast<double>(0.6f))};
+    for (std::size_t index = 0; index < sprites.size(); ++index)
+    {
+        SCOPED_TRACE(index);
+        const bool grey = index % 2 == 1;
+        EXPECT_EQ(sprites[index].texture, Flare);
+        EXPECT_EQ(sprites[index].position, glm::vec3(150.0f, 150.0f, static_cast<float>(10 + 33 + 1 + index / 2)));
+        EXPECT_EQ(sprites[index].scale, grey ? 0.4f : f32(x * static_cast<double>(0.9f)));
+        EXPECT_EQ(sprites[index].light, grey ? glm::vec3(0.3f) : beat);
+    }
+    // 0x50db57, +0x38e de la mano y de 0x509340, la luz de 0x509a92 y +0x38e de la izquierda.
+    EXPECT_EQ(m_random.State(), AfterRandoms(5));
+}
+
+// 0x50a683..0x50a75f: Mace10 pone un flare01 a (−10, 0, 0) de los huesos 2 a 5 de su pose (0x68b184c + ESI ·
+// 0x30, con ESI de 1 a 4) y, con ESI en 3, el Shiny02 en el hueso 4 con el giro de rand() % 360.
+TEST_F(GameHangingTest, Mace10FlaresBones2To5WithTheShinyOnBone4)
+{
+    const HangingModels models({Mace10});
+    m_actor.hands[0].model = Mace10;
+
+    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    const auto sprites = LiveSprites();
+    ASSERT_EQ(sprites.size(), 5u);
+    const auto x = static_cast<double>(0.65f);
+    const glm::vec3 flareLight{static_cast<float>(x * static_cast<double>(0.6f)),
+                               static_cast<float>(x * static_cast<double>(0.8f)), static_cast<float>(x)};
+    constexpr std::array<int, 5> Bones{2, 3, 4, 4, 5};
+    for (std::size_t index = 0; index < sprites.size(); ++index)
+    {
+        SCOPED_TRACE(index);
+        const bool shiny = index == 3;
+        EXPECT_EQ(sprites[index].texture, shiny ? Shiny : Flare);
+        EXPECT_EQ(sprites[index].position, glm::vec3(140.0f, 150.0f, static_cast<float>(10 + 33 + Bones[index])));
+        EXPECT_EQ(sprites[index].scale, shiny ? 0.6f : 1.0f);
+        EXPECT_EQ(sprites[index].light, shiny ? glm::vec3(0.5f) : flareLight);
+    }
+    // El giro es el quinto rand(): después del de 0x50db57, los dos +0x38e y la luz de 0x509a92.
+    Client::Render::Models::CrtRandom replay{1};
+    for (int call = 0; call < 4; ++call)
+        static_cast<void>(replay.Next());
+    EXPECT_EQ(sprites[3].rotation, static_cast<float>(replay.Next() % 360));
     EXPECT_EQ(m_random.State(), AfterRandoms(6));
 }
 

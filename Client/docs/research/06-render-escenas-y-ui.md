@@ -2974,8 +2974,8 @@ un error que nombra la dirección, nunca en silencio:
   `main` detiene el bucle y pide `Window::ShowErrorMessage` con la ventana viva, usando SDL3;
   al volver sale con fallo. Tests de datos/sesión observan ese pedido durable y su orden,
   no un modal visible. La confirmación del modal y el cierre en Windows/VM siguen pendientes.
-- **Los mapas de evento** (`0x447d70`: 9, 11 a 23) cortan después de la carga: el objeto de evento
-  (`0x447eb0`, `new 0x134`) no está portado.
+- **Los mapas de evento** (`0x447d70`: 9, 11 a 23) arman su objeto de evento después de la carga
+  ([Los objetos de Devil Square y de Blood Castle](#los-objetos-de-devil-square-y-de-blood-castle)).
 - **La respuesta**, sin las tablas de los conjuntos, corta dentro de `0x512a30`: en `0x550d10`, en su
   primera llamada, `0x40e1b0` ([Los stats del registro propio](#los-stats-del-registro-propio)). Con
   ellas (`main.cpp` las carga), `0x512a30` vuelve entero: `0x505820` corre si el lugar sorteado es el
@@ -3831,7 +3831,8 @@ Corta con error, en el orden del original:
   Player.bmd, en `0x4f9580`);
 - con otro modelo que el `0x20a` (`0x505e0b`);
 - con la luz de una mano (`0x5f9780`);
-- en el mapa 9 (`0x506d8b`) y, en el 7, sin el pool de partículas para la burbuja (`0x506d77`);
+- sin el pool de partículas: en el 7 para la burbuja (`0x506d77`) y en el 9 para la gota que salió (`0x506dff` y
+  `0x506e4f`);
 - en las acciones `0x44` y `0x45` (`0x506e5d`) y `0x96` (`0x506f62`) y, con el héroe, en las de los pasos
   (`0x508668`);
 - con otro que el héroe, en Kalima y en las acciones del `0x6f4`, después de sus dos `rand()` (`0x5087fc`).
@@ -5504,6 +5505,82 @@ cero. Con la Data del repo, el 7 llega a un cuadro completo y camina (`GameT16Sc
 (226, 103): suelo libre con cinco `0x16`, siete `0x20` y cuatro `0x22` a menos de 1.500 y agua en la capa 2 cerca;
 `GameT16SafeZoneWalk`, en (13, 17)). Tests: `AtlansObjectsTest`, `TerrainCellsTest.AtlansDrawsItsCausticWaterInsteadOfTheAlphaLayer`,
 `GameSceneDrawTest.AtlansDrawsItsCausticWaterAndNoGrass` y `CharacterStepTest.AtlansBlowsABubbleFromTheHeadOneSecondInTen`.
+
+### Los objetos de Devil Square y de Blood Castle
+
+Leído en la CL7 en el ASM y el pseudocódigo de `c32bbd5f` (*estático*; las cuentas de MuRet, *simulado*: con el
+port y la Data del repo). Lo común es lo de [Los objetos del juego](#los-objetos-del-juego). Devil Square es el
+mapa 9 (`World10`, 564 objetos: 200 del 2, 191 del 3; el 32 carga el 9, `0x61a560`) y los Blood Castle son los
+mapas 11 a 17, todos con `World12` (210 objetos: once `0xb`, cuatro `0xd`, nueve `0x25`, dos del 9 y dos del 10,
+tres `0x1c` y uno `0x1d`).
+
+**El objeto de evento** (`0x447d70(mapa)`, después de `0x61a560`, desde `0x4c3940` y `0x4c6e10`). Con el
+argumento entre 11 y 17, suelta el anterior (`0x447eb0`, el destructor virtual con 1) y pide `operator
+new(0x134)`: `+0x0c` en 0, el byte `+0x10` en 0, `+0x14..+0x20` en −1, `+0x24` y `+0x28` en 0, los 0x42 dwords de
+`+0x2c` en 0 y la vtable `0x6b8c30`. Si no, mira **el mundo en curso** (`0x6c9dd0`, no el argumento) entre 18 y 23:
+lo mismo por `0x404d60`, con la vtable `0x6b8794` y `0x6c634c` (el área de Chaos Castle, `.data` `0xff`) otra vez
+en `0xff`. Si no, con el argumento en 9, lo mismo con la vtable `0x6b8c1c`. En los demás mapas no hace nada: el
+objeto del evento anterior sigue vivo en `0x723c60` (Q-C320). `+0x04` y `+0x08` no los escribe nadie. Sus métodos
+los llaman el HUD (`0x5a7320` y `0x5ab6d0`, con `0x40bab0`) y los paquetes (`0x4e2b10` con `0x92` y `0x9b`,
+`0x4da730`, `0x4da750`, `0x4dac70`, `0x4e7360`, `0x4c2480`, `0x4d07c0`); ninguno corre en el paso ni en el dibujo
+del mundo.
+
+**El preludio de Devil Square** (`0x604ab0`, `0x604ac0..0x604b9b`), una vez por pase y antes de los objetos:
+con `ftol(T) % 4.000` (con signo) debajo de 1.000 saca `rand() % 100`; con 0, la luz dinámica de radio 12
+(`0x5f9780`) con L = (`rand() % 12` + 4) · 0,1f y el color (L · 0,2f; L · 0,3f; L · 0,5) en el héroe corrido
+`rand() % 1.200` − 600, **la y antes que la x**, con z 0. Fuera de la ventana no saca `rand()`. Después, con cada
+objeto del pase, `0x41ed10(1, 0, 1)`: el ambiente 1 en bucle. El caso 9 del `switch` (`0x6054f6`) no tiene tipos.
+
+**El frame de Devil Square** (`0x602ed0`, `0x603df9..0x603ee0`): el 2 saca dos `rand() % 4`; con 0, una gota
+`0x68/0` (`World10\rain03.tga`) en el hueso 23 y después en el 31 con (−15, 0, 0), sus ángulos, luz 1 y escala 1;
+y siempre una más en el 23. **El dibujo** (`0x6002e0`) no tiene casos del 9.
+
+**Los personajes de Devil Square** (`0x505de0`, `0x506d7f..0x506e54`): en cualquier escena, el `0x20a` saca dos
+`rand() & 3`; con 0, una `0x68/0` de `0x4ec110` con el hueso 26 (`+0x4e0` de los huesos propios) y después con el
+35 (`+0x690`), (−15, 0, 0), la escala y la posición que `0x505ec6` copió, sus ángulos y luz 1. Los huesos propios
+son los del último dibujo, como la burbuja de Atlans (Q-C318).
+
+**El paso de los Blood Castle** (`0x605991`, sin tabla): el 9 y el 10 con `+0x8a` distinto de 4 ponen `+0x58` en
+−2 (la puerta y su marco cerrados no se dibujan); el 4 lo pone el paquete que abre el castillo (CL9.5). **El
+preludio** (`0x6061c0`, `0x6062e6..0x6063c3`), una vez por pase, antes del early-return de los objetos vistos: un
+punto en (`rand() % 900` − 300; `rand() % 900` − 300; `rand() % 50` + 250) desde el héroe, la x primero, y con
+`rand() & 3` en 0 una órbita `0x60f/3` ahí (`0x53fe70`, ángulos en 0, luz 1, escala 0,19f, `Effect\Flare.jpg`).
+
+**El frame de los Blood Castle** (`0x602ed0`, `0x604171..0x6043e9`), con el reloj del mundo T y la x87 en 53 bits:
+
+| Tipo | Qué hace |
+|---|---|
+| `0xb` | la luz L = sin((`+0x24` · 20 + T) · 0,001f) · 0,5 en (L; L · 0,5; 0) y siete sprites `0x5ac` de escala 0,5 en los huesos 1, 2, 4, 6, 9, 10 y 11 con (0, 0, 2) |
+| `0xd` | un sprite `0x60f` en el hueso 3 con L = sin(T · 0,001f) · 0,3f + 0,7f, escala L + 0,5 y luz (L; L; L) |
+| `0x25` | la antorcha: `rand() % 2`; con 0, `ftol(+0x84 + 2) % 4` y `+0x84` más 1: con 0, la llama `6ac/0` y la chispa `6ab/0`. Después otro `rand() % 2`; con 0, `ftol(+0x84) % 4` y `+0x84` más 1: con 0, el humo `622/6`, la chispa `6ab/1` y la órbita `60f/4` con luz (1; 0,8f; 0,8f) y escala 0,19f |
+
+Las partículas de la antorcha (`0x53fe70`, `0x5446e0`, `0x548550`):
+
+| Partícula | Alta | Paso | Dibujo |
+|---|---|---|---|
+| `6ab/0`, `6ab/1` (`Effect\fi01.jpg`, `0x61d55e`) | `0x5436fe`: vida `rand() % 5` + 20, giro 0; escala (`rand() % 10`) · 0,02f + 0,5 (`/0`) o · 0,1f + 1 (`/1`); velocidad (`rand() % 10` + 5; `rand() % 10` − 5; `rand() % 10` + 5) por (0,4f; 0,4f; 0,2f) (`/0`) o (0,2f; 0,2f; 0,1f) (`/1`) | `0x5477e4`: la posición más la velocidad, la x y la y por 0,95f; la luz en vida · 0,1f, la z +0,3f y la escala +0,07f (`/0`) o +0,09f | aditiva, el default `0x54889a` |
+| `6ac/0` (`Effect\fi02.tga`, `0x61d57a`) | `0x543a5d`: vida `rand() % 5` + 25, escala 0,5, giro `rand() % 360` y la velocidad de adelante; después el caso del `6ec` (`0x543ae3`): vida 24, otra velocidad x (`rand() % 10` − 5) · 0,4f y z, y el inicio en la posición (`0x543e7d`) | `0x54793f`: lo mismo con la z +0,6f, la posición corrida (`rand() & 3`) − 2 en x e y y por 0,8f en z, la escala +0,05f, la luz en vida · 0,04f y el giro + (`rand() & 1`) + 1 | `0x620c10` (el modo 6: `SRC_ALPHA`, `ONE_MINUS_SRC_ALPHA`), `0x5489eb`; el `/2` no está leído |
+| `622/6` (`Effect\clouds.jpg`) | `0x54327b`: vida `rand() % 5` + 25, escala 0,2f, giro `rand() % 360` y la velocidad de la `6ac` | `0x54748a`: el de la `6ac` con la luz en vida · 0,02f | el `/6` de la tabla `0x548df8` va a `0x548c32` y, sin ser el 8 ni el 9, al default `0x54889a` |
+| `60f/4` | la órbita de `60f/3` con vida 40 | la de `60f/3` con la subida en 5, la escala −0,004f y el apagado desde vida 30 | `0x548bcf` |
+
+**El dibujo de los Blood Castle** (`0x6002e0`, `0x600cf2..0x600db0`): el `0x1c` y el `0x1d`, después de su
+`RenderBody`, la sombra (`0x4eff40(blendMesh, 2, −1, −1)`) de las mallas con triángulos salvo la 2 y las de la
+textura del blendMesh, con `0x620a00(1)` y `glColor4f(0, 0, 0, 1)`, aplastada sobre la altura del terreno bajo el
+objeto (`0x5f93c0`, `0x600d80`); después `+0x58` vuelve a −1.
+
+**En MuRet.** El objeto de evento: `Scenes::ArmEventMapObject` sobre `WorldRuntime::eventObject` y
+`WorldRuntime::chaosCastleArea`, desde `WorldEntry` y `WorldTransitions`; los métodos son de la CL8 y la CL9.5.
+Devil Square: `World::StepDevilSquarePrelude` (`EventMapObjectStep`), `Scenes::StepDevilSquareObjectFrame`
+(`EventMapObjectFrame`) y la lluvia de los personajes en `CharacterStep`. Los Blood Castle:
+`World::StepBloodCastleObject` desde `StepWorldObjectChecked`, `World::StepBloodCastlePrelude` desde
+`GameScene::StepTheObjects`, `Scenes::StepBloodCastleObjectFrame`, `Scenes::DrawBloodCastleShadow`
+(`CharacterDrawing`) con `GameObjectPass::terrainHeight`, las familias de `World::BloodCastleParticleKernels` y el
+modo 6 en `IParticleDrawingServices::Blended` y `ModelBatchParticleBackend`. Las texturas, `EffectTextureSet`. Con
+la Data del repo, el 9 (y el 32) y los siete Blood Castle llegan a un cuadro completo y caminan (`GameT16SceneMatrix`;
+`GameT16MapWalk`, en (122, 174) con 38 del 2 cerca y en (12, 90) con cuatro `0xd` y cuatro `0x25`;
+`GameT16SafeZoneWalk`, en (12, 3) de los Blood Castle; Devil Square no tiene zona segura). Tests:
+`MapLoadEventTest`, `EventMapObjectsTest`, `EventMapObjectFrameTest`, `BloodCastleParticlesTest` y
+`CharacterStepTest.DevilSquareRainsFromTwoBonesOfEachCharacter`.
 
 ### Las marcas del suelo
 

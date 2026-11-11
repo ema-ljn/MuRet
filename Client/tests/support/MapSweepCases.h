@@ -72,7 +72,8 @@ struct MapSweepCase
     std::uint32_t randomState;
     // Cantidades de Gate.bmd para el mapa NOMINAL: flag 0 (/move), 1 (entrada), 2 (llegada).
     std::array<std::size_t, 3> gates;
-    bool eventCut;
+    // 0x447d70 arma el objeto de evento (9, 11 a 23 y el 32, que la carga lleva al 9).
+    bool eventObject;
 };
 
 // Los alias conservan su mapa efectivo salvo la guarda explícita 32 -> 9 de 0x61a560.

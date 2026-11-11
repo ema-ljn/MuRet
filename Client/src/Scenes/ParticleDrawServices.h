@@ -25,6 +25,7 @@ public:
     [[nodiscard]] Core::Expected<std::uint8_t, World::ParticleError> MaterialFlag(std::int32_t type) override;
     [[nodiscard]] Result Material(std::uint8_t rawFlag) override;
     [[nodiscard]] Result Subtractive() override;
+    [[nodiscard]] Result Blended() override;
     [[nodiscard]] Result Type620850() override;
     [[nodiscard]] Result Type620870() override;
     [[nodiscard]] Result Billboard(Render::ParticleBillboardRequest request) override;

@@ -1025,7 +1025,7 @@ TEST_F(GameSceneDrawTest, TheStepAfterADrawStepsTheSeenObjects)
 // antes, en 0x6374ce; acá se lo marca a mano), el paso corta antes de tocarlo y sin rand().
 TEST_F(GameSceneDrawTest, TheStepStopsAtTheSeenObjectsOfTheOtherMaps)
 {
-    ASSERT_NO_FATAL_FAILURE(Prepare(9, 128, 128));
+    ASSERT_NO_FATAL_FAILURE(Prepare(18, 128, 128));
     ASSERT_FALSE(world.Map().objects.empty());
     world.Map().objects.front().seen = true;
     const Client::World::WorldObject before = world.Map().objects.front();

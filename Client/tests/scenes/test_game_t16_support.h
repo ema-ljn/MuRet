@@ -70,8 +70,6 @@ inline std::string_view TeleportBoundary(int map)
         return "0x61a560: el .att del mapa 34 depende del estado de Crywolf (0x42fe50)";
     if (map >= 18 && map <= 23)
         return "0x4906a0";
-    if (map == 9 || map == 32 || (map >= 11 && map <= 17))
-        return "0x447d70";
     return {};
 }
 

@@ -48,6 +48,7 @@ struct WorldObject
     std::uint8_t field08 = 0;                      // +0x8, byte escrito por creación del mapa 30
     float field84 = 0.0f;                          // +0x84, store FP del mapa 30/tipo 41
     std::uint8_t field91 = 0;                      // +0x91, byte escrito por creación del mapa 30
+    std::int16_t field8a = 0;                      // +0x8a, 4 cuando 0x5ff960 abre el 9 o el 10 de 11..17
     glm::vec3 light{};                             // +0xf4..+0xfc, la que se suma a la del terreno
     float speed = 0.0f;                            // +0xd8, keys por paso
     float cullingMargin = -30.0f;                  // +0xdc, margen inicial de 0x6067ae
@@ -193,6 +194,8 @@ struct ObjectStepGlobals
     bool editorMode = false;
     // 0x41ed10(id, 0, 0): el caller conserva o emite la petición, aun en pasos consecutivos.
     std::function<void(std::int32_t)> sound{};
+    // 0x41ed10(id, 0, 1): la misma petición, en bucle (el ambiente del 9, 0x604b9b).
+    std::function<void(std::int32_t)> loopedSound{};
     ObjectModelStepState* modelState = nullptr;
     // 0x518cf0: la tabla de los efectos con modelo, donde el 0x34 del 1 suelta la piedra 0xda y el 0x18 del 4
     // el chorro 0x5de; el chorro abre y cierra el registro propio (0x7681eb4) con su cuenta de accesos.
@@ -206,8 +209,9 @@ struct ObjectStepGlobals
     std::uint32_t* trialsAmbientTime = nullptr;
 };
 
-// 0x604ab0 con un objeto visto en el juego, en los mapas 0 a 4, 6 a 8, 10, 31 y 33 (*estático*, 06 § Los objetos
-// del juego; los del 1, del 4 y del 6, World/DungeonObjectStep.h; los del 7, World/AtlansObjectStep.h; los del 8, con
+// 0x604ab0 con un objeto visto en el juego, en los mapas 0 a 4, 6 a 17, 31 y 33 (*estático*, 06 § Los objetos
+// del juego; los del 1, del 4 y del 6, World/DungeonObjectStep.h; los del 7, World/AtlansObjectStep.h; los del 9 y
+// de 11 a 17, World/EventMapObjectStep.h; los del 8, con
 // el tipo 8 animado al cuádruple, World/TarkanObjectStep.h; los del 31, 0x43ffc0, StepLandOfTrialsObject en
 // World/WorldObjectStepServices.h). Antes del alpha, los techos: el 0x7d y el 0x7e del 0 llevan la meta del alpha
 // (+0x170) a 0 con la capa del héroe en 4 (0x604bc4), y el 0x51, el 0x52, el 0x60, el 0x62 y el 0x63 del 2 con la capa

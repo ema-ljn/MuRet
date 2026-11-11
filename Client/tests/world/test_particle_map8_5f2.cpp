@@ -296,6 +296,11 @@ struct DrawingSpy final : Client::World::IParticleDrawingServices
         }
         return {};
     }
+    Result Blended() override
+    {
+        ADD_FAILURE() << "unexpected620c10";
+        return Failure(Client::World::ParticleDrawingPhase::BlendedPrefix);
+    }
     Result Type620850() override
     {
         ADD_FAILURE() << "unexpected620850";

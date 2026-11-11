@@ -139,6 +139,9 @@ struct GameObjectPass
     std::function<std::uint32_t()> systemTime{};
     // DAT_006d5dc8: con 4 (la selección), la mariposa sale oculta y el 6f1/2 con luz 0,25.
     std::int32_t scene = 0;
+    // 0x5f93c0(x, y): la altura del terreno, de la que el 0x1c y el 0x1d de 11 a 17 aplastan su sombra
+    // (0x600d80).
+    std::function<float(float, float)> terrainHeight{};
 };
 
 // 0x6046a0 en el juego (0x6374ce), en los mapas 0 a 4, 6 a 8, 10, 31, 33 y Kalima (06 § Los objetos del juego):

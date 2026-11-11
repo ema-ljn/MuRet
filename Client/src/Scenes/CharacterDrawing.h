@@ -339,6 +339,13 @@ void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const
 void DrawDarkSpirit(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& spirit,
                     float groundHeight, Core::Duration frameClock);
 
+// 0x600cf2..0x600daa, el 0x1c y el 0x1d de los mapas 11 a 17 después de su RenderBody: la sombra
+// (0x4eff40(blendMesh, 2, −1, −1)) de las mallas con triángulos, salvo la 2 y las de la textura del blendMesh,
+// en (0, 0, 0, 1) (0x620a00(1) y glColor4f), mezclada y aplastada sobre `groundHeight`, la altura del terreno
+// bajo el objeto (0x600d80).
+void DrawBloodCastleShadow(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                           float groundHeight, Core::Duration frameClock);
+
 // Los huesos de `object` posados como los posa DrawObject, en el mundo (la rotación por la escala; la
 // traslación por la escala más la posición, en float, como PosedBonePoint): lo que deja 0x4eb860 con su
 // octavo argumento en 1 en un buffer propio. Sin el modelo, vacío.

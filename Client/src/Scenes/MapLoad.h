@@ -19,6 +19,7 @@ class CrtRandom;
 namespace Client::Scenes
 {
 struct WorldMap;
+struct WorldRuntime;
 
 // Lo que la carga lee y escribe fuera del mapa. Quien llama lo presta durante la llamada.
 struct MapLoadContext
@@ -61,8 +62,8 @@ void ReleaseTheMapObjects(WorldMap& loaded);
 // Los otros pools de 0x6070a0: sólo apaga los vivos, sin reconstruir los registros.
 void ClearWorldTransientPools(WorldState& world);
 
-// 0x447d70(mundo en curso): arma el objeto de evento de Devil Square (9), Blood Castle (11 a 17) y
-// Chaos Castle (18 a 23); en los demás no hace nada. MuRet no tiene esos objetos: en esos mapas corta
-// con error.
-[[nodiscard]] Core::Expected<void, std::string> CheckEventMap(std::int32_t map);
+// 0x447d70(mapa): arma el objeto de evento (WorldRuntime::eventObject) de Blood Castle (11 a 17 por el
+// argumento), Chaos Castle (18 a 23 por el mundo en curso, 0x6c9dd0) o Devil Square (9 por el argumento),
+// soltando antes el anterior; en los demás no hace nada y el anterior queda (Q-C320).
+void ArmEventMapObject(std::int32_t map, WorldRuntime& runtime);
 } // namespace Client::Scenes

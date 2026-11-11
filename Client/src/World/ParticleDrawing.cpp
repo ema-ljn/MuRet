@@ -2,6 +2,7 @@
 #include "World/KalimaParticleKernels.h"
 #include "World/SelectionParticleKernels.h"
 #include "World/TrialsParticleKernels.h"
+#include "World/BloodCastleParticleKernels.h"
 #include "World/ParticleDrawParameters.h"
 #include "World/IParticleDrawingServices.h"
 #include "World/Particles.h"
@@ -137,6 +138,19 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
         return DrawSelection{ParticleDrawKind::Common, false};
     case DropParticle:
         return DrawSelection{ParticleDrawKind::Drop, false};
+    case TorchSparkParticle: // 0x5488f6: la 6ab va al default, 0x54889a.
+        return DrawSelection{ParticleDrawKind::Common, false};
+    case TorchFlameParticle:
+    {
+        // 0x5489eb: la /2 cambia el modo de la textura (glTexEnvi GL_ADD), no portado; las demás, 0x620c10 y el
+        // billboard común (0x548a51).
+        if (p.subtype == 2)
+            return Core::Unexpected(BranchError(ParticleError::UnsupportedSubtype));
+        const auto blended = services.Blended();
+        if (!blended.HasValue())
+            return Core::Unexpected(blended.Error());
+        return DrawSelection{ParticleDrawKind::Common, false};
+    }
     case ThunderParticle: // 548ca1→54889a: billboard común sin lectura del subtipo.
     case SparkParticle:
     case Particle67:

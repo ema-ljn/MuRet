@@ -51,7 +51,8 @@ inline constexpr std::int32_t LoginCloudSubtype = 10;
 // Los dos tipos que comparten creación y paso; la 68 además corre la posición al nacer.
 inline constexpr std::int32_t Particle67 = 0x67;
 inline constexpr std::int32_t Particle68 = 0x68;
-// La órbita (0x60f/3): nace con 60 de vida, y 548550 no la dibuja mientras la conserve, salvo la /4.
+// La órbita (0x60f/3): nace con 60 de vida, y 548550 no la dibuja mientras la conserve, salvo la /4 (la de la
+// antorcha de Blood Castle, que nace con 40).
 inline constexpr std::int32_t OrbitParticle = 0x60f;
 inline constexpr std::int32_t OrbitLife = 60;
 
@@ -117,7 +118,8 @@ class Particles
 public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
-    // rand(). Se aceptan5ca/0, 5f2/0,2, 5c6/1,5,9, 622/8,10, 5d9/0..3, 607/0, 67/0 y 68/0.
+    // rand(). Se aceptan5ca/0, 5f2/0,2, 5c6/1,5,9, 622/6,8,10, 5d9/0..3, 607/0, 67/0, 68/0, 6ab/0,1 y 6ac/0; la
+    // órbita 60f/3,4 pide el overload con la trigonometría.
     // Create es la compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina
     // consume cinco rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().
     std::optional<std::size_t> Create(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,

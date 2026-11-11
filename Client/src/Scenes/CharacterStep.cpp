@@ -633,6 +633,16 @@ void SetTheNewFaceHeadTarget(ActorState& actor, Render::Models::CrtRandom& rando
     }
 }
 
+// 0x4ec110(modelo, huesos propios + hueso · 0x30, offset, punto, 1) con la escala y la posición que 0x505ec6
+// copió del personaje al modelo. Sin huesos propios (antes del primer dibujo), la matriz en cero (Q-C318).
+glm::vec3 OwnBonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset)
+{
+    const Render::Models::BoneTransform matrix =
+        bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
+    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, actor.scale,
+                                                     actor.position);
+}
+
 // 0x506d0a..0x506d7c: en la escena 5 y el mapa 7, el segundo de cada diez del reloj del mundo (ftol % 10000
 // debajo de 1000) saca una burbuja 0x607 de la cabeza: 0x4ec110 con el hueso +0x54 del modelo (20 en Player.bmd)
 // de los huesos propios (+0x120), (0, 20, −10), la escala (+0x68) y la posición (+0x6c) que 0x505ec6 copió
@@ -652,12 +662,8 @@ Core::Expected<void, std::string> BlowTheAtlansBubble(const ActorState& actor, s
     {
         return {};
     }
-    const auto bone = static_cast<std::size_t>(Data::Models::PlayerHeadBone);
-    const Render::Models::BoneTransform matrix =
-        bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
     constexpr glm::vec3 HeadOffset{0.0f, 20.0f, -10.0f};
-    const glm::vec3 point = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix),
-                                                                      HeadOffset, actor.scale, actor.position);
+    const glm::vec3 point = OwnBonePoint(actor, static_cast<std::size_t>(Data::Models::PlayerHeadBone), HeadOffset);
     if (context.particles == nullptr)
     {
         return Core::Unexpected(
@@ -669,6 +675,38 @@ Core::Expected<void, std::string> BlowTheAtlansBubble(const ActorState& actor, s
     {
         return Core::Unexpected(std::format("0x506d77: la burbuja 0x607/0 del lugar {} falla con error {}", slot,
                                             static_cast<unsigned>(created.Error())));
+    }
+    return {};
+}
+
+// 0x506d7f..0x506e54: en el mapa 9, en cualquier escena, dos rand() % 4 (rand() & 3): con 0, una gota 0x68/0 de
+// 0x4ec110 con el hueso 26 (0x4e0) y después con el 35 (0x690) de los huesos propios, (−15, 0, 0), y
+// 0x53fe70(0x68, punto, +0x1c, (1, 1, 1), 0, 1, 0). El segundo rand() sale aunque el primero no dé 0.
+Core::Expected<void, std::string> DropTheDevilSquareRain(const ActorState& actor, std::size_t slot,
+                                                         const CharacterStepContext& context)
+{
+    constexpr std::int32_t RainParticle = 0x68;
+    constexpr int RainOdds = 4;
+    constexpr std::array<std::size_t, 2> RainBones{26, 35};
+    constexpr std::array<const char*, 2> RainAddresses{"0x506dff", "0x506e4f"};
+    constexpr glm::vec3 RainOffset{-15.0f, 0.0f, 0.0f};
+    for (std::size_t drop = 0; drop < RainBones.size(); ++drop)
+    {
+        if (context.random.Next() % RainOdds != 0)
+            continue;
+        const glm::vec3 point = OwnBonePoint(actor, RainBones[drop], RainOffset);
+        if (context.particles == nullptr)
+        {
+            return Core::Unexpected(std::format(
+                "{}: falta el pool de partículas de la lluvia de Devil Square, lugar {}", RainAddresses[drop], slot));
+        }
+        const auto created = context.particles->CreateChecked(RainParticle, point, actor.angles, glm::vec3(1.0f), 0,
+                                                              1.0f, context.worldClock, context.random, 0);
+        if (!created.HasValue())
+        {
+            return Core::Unexpected(std::format("{}: la gota 0x68/0 del lugar {} falla con error {}",
+                                                RainAddresses[drop], slot, static_cast<unsigned>(created.Error())));
+        }
     }
     return {};
 }
@@ -775,9 +813,10 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     }
     if (map == RandomEffectMap)
     {
-        return Core::Unexpected(std::format("0x506d8b: en el mapa 9 el personaje del lugar {} sortea dos efectos 0x68 "
-                                            "con rand() & 3, que no están portados",
-                                            slot));
+        if (auto rained = DropTheDevilSquareRain(actor, slot, context); !rained.HasValue())
+        {
+            return rained;
+        }
     }
     const std::uint8_t action = actor.animation.action;
     if (action == FirstEffectAction || action == SecondEffectAction)

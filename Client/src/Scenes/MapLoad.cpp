@@ -6,6 +6,7 @@
 #include "Data/WorldLoadIdentity.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/EventMapObject.h"
 #include "Scenes/FaunaState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperTable.h"
@@ -47,6 +48,7 @@ constexpr std::int32_t FirstBloodCastleMap = 11;
 constexpr std::int32_t LastBloodCastleMap = 17;
 constexpr std::int32_t FirstChaosCastleMap = 18;
 constexpr std::int32_t LastChaosCastleMap = 23;
+constexpr std::uint8_t ChaosCastleAreaReset = 0xff;
 // 0x5f831e..0x5f8342: (rand() % 4) · 0,25 en cada una de las 65.536 celdas.
 constexpr int GrassSteps = 4;
 constexpr float GrassStep = 0.25f;
@@ -264,15 +266,23 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
     return {};
 }
 
-Core::Expected<void, std::string> CheckEventMap(std::int32_t map)
+void ArmEventMapObject(std::int32_t map, WorldRuntime& runtime)
 {
-    const bool bloodCastle = map >= FirstBloodCastleMap && map <= LastBloodCastleMap;
-    const bool chaosCastle = map >= FirstChaosCastleMap && map <= LastChaosCastleMap;
-    if (map == DevilSquareMap || bloodCastle || chaosCastle)
+    // 0x447d84..0x447de2: el argumento entre 11 y 17, la vtable 0x6b8c30.
+    if (map >= FirstBloodCastleMap && map <= LastBloodCastleMap)
     {
-        return Core::Unexpected("0x447d70: el objeto de evento del mapa " + std::to_string(map) +
-                                " (0x447eb0 y operator new(0x134)) no está portado");
+        runtime.eventObject = EventMapObject{.kind = EventMapKind::BloodCastle};
+        return;
     }
-    return {};
+    // 0x447de7..0x447e1b: el mundo en curso (no el argumento) entre 18 y 23; 0x404d60 pone 0x6c634c en 0xff.
+    if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap)
+    {
+        runtime.eventObject = EventMapObject{.kind = EventMapKind::ChaosCastle};
+        runtime.chaosCastleArea = ChaosCastleAreaReset;
+        return;
+    }
+    // 0x447e47..0x447e8d: el argumento en 9, la vtable 0x6b8c1c.
+    if (map == DevilSquareMap)
+        runtime.eventObject = EventMapObject{.kind = EventMapKind::DevilSquare};
 }
 } // namespace Client::Scenes

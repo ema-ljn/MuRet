@@ -304,6 +304,11 @@ public:
         ADD_FAILURE();
         return {};
     }
+    Result Blended() override
+    {
+        ADD_FAILURE();
+        return {};
+    }
     Result Type620850() override
     {
         ADD_FAILURE();

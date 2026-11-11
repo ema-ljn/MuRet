@@ -1657,6 +1657,27 @@ void DrawDarkSpirit(Render::ModelBatch& batch, const IModelLibrary& models, cons
     }
 }
 
+void DrawBloodCastleShadow(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                           float groundHeight, Core::Duration frameClock)
+{
+    // 0x4eff40(+0x64, 2, −1, −1): sin la malla 2 ni las que tienen la textura del blendMesh (+2 de la malla).
+    constexpr std::size_t SkippedMesh = 2;
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    const std::vector<MeshDraw> draws = ObjectMeshDraws(models, object, frameClock, skinned);
+    const glm::vec3 ground(object.transform.position.x, object.transform.position.y, groundHeight);
+    for (const MeshDraw& draw : draws)
+    {
+        if (draw.index == SkippedMesh || draw.mesh->texture == object.state.blendMesh || draw.mesh->triangles.empty())
+            continue;
+        Render::Models::SkinnedMesh flat = *draw.skinned;
+        for (glm::vec3& position : flat.positions)
+            position = Render::Models::FlattenOnTheGround(position, ground);
+        MeshDraw shadow = draw;
+        shadow.skinned = &flat;
+        Triangles(batch, shadow, BlendedShadowState, DarkSpiritShadowColor, PassUv{});
+    }
+}
+
 std::vector<Render::Models::OriginalMatrix> PosedWorldBones(const IModelLibrary& models, const DrawnObject& object)
 {
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);

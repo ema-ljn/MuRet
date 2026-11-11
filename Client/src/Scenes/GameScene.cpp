@@ -57,6 +57,7 @@
 #include "World/SphereFrustum.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
+#include "World/EventMapObjectStep.h"
 #include "World/TerrainHeight.h"
 #include "World/TarkanObjectStep.h"
 #include "World/TerrainPickingSegment.h"
@@ -120,6 +121,9 @@ constexpr std::int32_t ArenaMap = 6;
 constexpr std::int32_t AtlansMap = 7;
 constexpr std::int32_t TarkanMap = 8;
 constexpr std::int32_t IcarusMap = 10;
+constexpr std::int32_t DevilSquareMap = 9;
+constexpr std::int32_t FirstBloodCastleMap = 11;
+constexpr std::int32_t LastBloodCastleMap = 17;
 // 0x5bb8d0: el ancho del mundo, 640 sin ventanas abiertas (MuRet no tiene las ventanas del juego).
 constexpr std::int32_t WorldWidth = 640;
 // 0x620486..0x6204b0: el mouse de 640 × 480 vuelve a la pantalla con · W / 640 y · H / 480, en enteros.
@@ -347,6 +351,20 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         icarusSelector = selector.Value();
         world.Runtime().objectSelectionCount = 0;
     }
+    // 0x6062e6: los Blood Castle, también antes del early-return, con el reloj del paso.
+    const float worldClock =
+        m_context.clock != nullptr
+            ? static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
+            : 0.0f;
+    const bool bloodCastle = map >= FirstBloodCastleMap && map <= LastBloodCastleMap;
+    if (bloodCastle)
+    {
+        const ActorState& hero = world.Actors()[world.Runtime().hero];
+        if (auto orb =
+                World::StepBloodCastlePrelude(m_context.cloth->random, hero.position, &world.Particles(), worldClock);
+            !orb.HasValue())
+            return orb;
+    }
     // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no toca ninguno.
     if (std::ranges::none_of(objects, [](const World::WorldObject& object) { return object.alive && object.seen; }))
     {
@@ -356,8 +374,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     // espera de la entrada al juego).
     const bool aida = map == AidaMap || map == SelectionMap;
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
-        map != ArenaMap && map != AtlansMap && map != TarkanMap && map != IcarusMap && map != LandOfTrialsMap &&
-        !World::IsKalimaMap(map) && !aida)
+        map != ArenaMap && map != AtlansMap && map != TarkanMap && map != DevilSquareMap && map != IcarusMap &&
+        map != LandOfTrialsMap && !World::IsKalimaMap(map) && !aida && !bloodCastle)
     {
         return Core::Unexpected("0x606560: los objetos vistos del " + MapText(map) + " (0x604ab0) no están portados");
     }
@@ -370,14 +388,13 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     const ActorState& hero = world.Actors()[world.Runtime().hero];
     const World::ObjectStepGlobals globals{
         .heroCellLayer = world.Runtime().heroCellLayer,
-        .worldClock = m_context.clock != nullptr
-                          ? static_cast<float>(
-                                std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
-                          : 0.0f,
+        .worldClock = worldClock,
         .dynamicLighting = &world.DynamicLighting().Lighting(),
         .particles = &world.Particles(),
         .heroPosition = &hero.position,
         .sound = [&](std::int32_t id) { world.Runtime().lastSoundId = id; },
+        // El ambiente del 9 suena en bucle (0x41ed10(1, 0, 1)); MuRet todavía no tiene audio (CL10).
+        .loopedSound = [&](std::int32_t id) { world.Runtime().lastSoundId = id; },
         .modelState = &world.Runtime().objectModelState,
         .effects = &world.Map().effects,
         .ownRecordDepth = &world.Runtime().ownRecordDepth,
@@ -654,7 +671,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     {
         // 0x5fa83f: 0x5fa830 llama a 0x405e00(x, y) con cada celda que dibuja, en los dos pases, y en los
         // mapas 18 a 23 saca rand() (y, con rand() % 8 en 0 y la celda en uno de sus rectángulos, más rand()
-        // y un efecto de 0x53fe70, Q-C229). MuRet no lo tiene: LoadMap ya corta esos mapas en 0x447d70.
+        // y un efecto de 0x53fe70, Q-C229). MuRet no lo tiene.
         if (map >= FirstChaosCastleMap && map <= LastChaosCastleMap)
         {
             return Core::Unexpected("0x5fa83f: en el " + MapText(map) +
@@ -707,19 +724,17 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         afterMarks.depthTest = true;
         canvas.models.SetState(afterMarks);
     }
-    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4, 6 a 8, 10,
-    // 31, 33 y Kalima.
-    const bool knownObjects = (map >= LorenciaMap && map <= LostTowerMap) || map == ArenaMap || map == AtlansMap ||
-                              map == TarkanMap || map == IcarusMap || map == LandOfTrialsMap || map == AidaMap ||
-                              World::IsKalimaMap(map);
+    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4, 6 a 17, 31,
+    // 33 y Kalima.
+    const bool knownObjects = (map >= LorenciaMap && map <= LostTowerMap) ||
+                              (map >= ArenaMap && map <= LastBloodCastleMap) || map == LandOfTrialsMap ||
+                              map == AidaMap || World::IsKalimaMap(map);
     if (!knownObjects &&
         std::ranges::any_of(FrameObjects(), [](const World::WorldObject& object) { return object.alive; }))
     {
-        return Core::Unexpected(
-            "0x6374ce: los objetos del " + MapText(map) +
-            " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0 al 4, los del 6 al 8, "
-            "los del 10, "
-            "los del 31, los del 33 y los de Kalima");
+        return Core::Unexpected("0x6374ce: los objetos del " + MapText(map) +
+                                " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0 al 4, "
+                                "los del 6 al 17, los del 31, los del 33 y los de Kalima");
     }
     if (auto loaded = LoadTheObjectModels(map); !loaded.HasValue())
     {
@@ -768,7 +783,13 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
                         [systemTime = static_cast<std::uint32_t>(
                              std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
                     { return systemTime; },
-                    .scene = static_cast<std::int32_t>(SceneId::Game)});
+                    .scene = static_cast<std::int32_t>(SceneId::Game),
+                    .terrainHeight = [&](float x, float y)
+                    {
+                        const World::WorldTerrain& terrain = world.Map().terrain;
+                        return static_cast<float>(World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y,
+                                                                         CameraState().fixedHeight));
+                    }});
             !objects.HasValue())
         {
             return Core::Unexpected(objects.Error() + ", en el " + MapText(map));

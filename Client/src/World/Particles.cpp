@@ -8,6 +8,7 @@
 #include "World/NoriaParticleKernels.h"
 #include "World/SelectionParticleKernels.h"
 #include "World/TrialsParticleKernels.h"
+#include "World/BloodCastleParticleKernels.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ParticleOwner.h"
 
@@ -801,6 +802,18 @@ constexpr std::int32_t OrbitPhaseBias = 150;
 constexpr std::int32_t OrbitScaleSpan = 6;
 constexpr float OrbitUnit = 0.01f; // 006b86c0/006b88d4 bits3c23d70a.
 constexpr float OrbitRiseRange = 4.0f;
+// La 60f/4 de la antorcha de Blood Castle: 0x542f2e deja la vida en 40 y sube con 5 (0x6b87f8); 0x5472e2 achica
+// 0,004f (0x6b89e8) y apaga con la vida en 30 o menos.
+constexpr std::int32_t TorchOrbitSubtype = 4;
+constexpr std::int32_t TorchOrbitLife = 40;
+constexpr float TorchOrbitRiseRange = 5.0f;
+constexpr float TorchOrbitShrink = 0.004f; // 006b89e8 bits3b83126f.
+constexpr std::int32_t TorchOrbitFadeLife = 30;
+
+bool IsOrbitSubtype(std::int32_t subtype)
+{
+    return subtype == OrbitSubtype || subtype == TorchOrbitSubtype;
+}
 
 double OrbitArgument(const Particle& particle)
 {
@@ -832,10 +845,11 @@ Core::Expected<void, ParticleError> CreateTheOrbit(Particle& particle, float inp
                                                    Render::Models::CrtRandom& random,
                                                    IParticleTrigonometry& trigonometry)
 {
-    particle.life = OrbitLife;
+    const bool torch = particle.subtype == TorchOrbitSubtype;
+    particle.life = torch ? TorchOrbitLife : OrbitLife;
     const int rise = random.Next() % OrbitSpeedSpan;
     const double riseUnit = static_cast<double>(rise) * static_cast<double>(OrbitUnit);
-    const double riseRange = riseUnit * static_cast<double>(OrbitRiseRange);
+    const double riseRange = riseUnit * static_cast<double>(torch ? TorchOrbitRiseRange : OrbitRiseRange);
     particle.verticalSpeed = F32(riseRange + 1.0);
     particle.velocity.x = static_cast<float>((random.Next() % OrbitPhaseSpan) - OrbitPhaseBias);
     const int scaleStep = random.Next() % OrbitScaleSpan;
@@ -878,8 +892,10 @@ Core::Expected<void, ParticleError> StepTheOrbit(Particle& particle, IParticleTr
     particle.position.y = F32(static_cast<double>(particle.start.y) - cosine.Value());
     const double rise = particle.verticalSpeed;
     particle.position.z = F32(rise + static_cast<double>(particle.position.z));
-    particle.scale = F32(static_cast<double>(particle.scale) - static_cast<double>(OrbitShrink));
-    if (particle.life <= OrbitFadeLife)
+    const bool torch = particle.subtype == TorchOrbitSubtype;
+    particle.scale =
+        F32(static_cast<double>(particle.scale) - static_cast<double>(torch ? TorchOrbitShrink : OrbitShrink));
+    if (particle.life <= (torch ? TorchOrbitFadeLife : OrbitFadeLife))
     {
         particle.light.x = F32(static_cast<double>(particle.light.x) * static_cast<double>(OrbitFade));
         particle.light.y = F32(static_cast<double>(particle.light.y) * static_cast<double>(OrbitFade));
@@ -952,12 +968,14 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         const bool kalima = IsKalimaParticle(type, subtype);
         const bool selection = IsSelectionParticle(type, subtype);
         const bool trials = IsTrialsParticle(type, subtype);
+        const bool bloodCastle = IsBloodCastleParticle(type, subtype);
         const bool orbit = trigonometry != nullptr && type == OrbitParticle;
-        if (orbit && subtype != OrbitSubtype)
+        if (orbit && !IsOrbitSubtype(subtype))
         {
             return Core::Unexpected(ParticleError::UnsupportedSubtype);
         }
-        if (!kalima && !selection && !trials && !orbit && !(worldClock != nullptr && IsMap8Smoke(type, subtype)))
+        if (!kalima && !selection && !trials && !bloodCastle && !orbit &&
+            !(worldClock != nullptr && IsMap8Smoke(type, subtype)))
         {
             if (const auto error = BindingError(type, subtype))
             {
@@ -983,6 +1001,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         {
             particle.typedOwner = typedOwner;
             CreateTrialsParticle(particle, random);
+            return std::optional(index);
+        }
+        if (bloodCastle)
+        {
+            CreateBloodCastleParticle(particle, random);
             return std::optional(index);
         }
         if (type == ThunderParticle)
@@ -1172,9 +1195,14 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
                 return stepped;
             continue;
         }
+        if (IsBloodCastleParticle(particle.type, particle.subtype))
+        {
+            StepBloodCastleParticle(particle, random);
+            continue;
+        }
         if (trigonometry != nullptr && particle.type == OrbitParticle)
         {
-            if (particle.subtype != OrbitSubtype)
+            if (!IsOrbitSubtype(particle.subtype))
             {
                 return Core::Unexpected(ParticleError::UnsupportedSubtype);
             }

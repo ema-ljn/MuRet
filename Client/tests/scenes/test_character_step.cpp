@@ -1025,9 +1025,9 @@ TEST(CharacterStepTest, TheHandLightsStopBelowPkSix)
     }
 }
 
-// El caso del 0x20a en 0x506cf8 y los pasos del héroe (0x50862f), después del rand() & 7: los mapas 7 y 9, las
-// acciones 0x44, 0x45 y 0x96 cortan (el 7 sin el pool de la burbuja). Los pasos ya producen solicitudes CL10 sin cortar
-// ni agregar RNG.
+// El caso del 0x20a en 0x506cf8 y los pasos del héroe (0x50862f), después del rand() & 7: el mapa 7 y las
+// acciones 0x44, 0x45 y 0x96 cortan (el 7 sin el pool de la burbuja); el 9 tiene su test. Los pasos ya producen
+// solicitudes CL10 sin cortar ni agregar RNG.
 TEST(CharacterStepTest, ThePlayerEffectsAndStepsStopAfterTheRandom)
 {
     struct Case
@@ -1036,10 +1036,9 @@ TEST(CharacterStepTest, ThePlayerEffectsAndStepsStopAfterTheRandom)
         std::uint8_t action;
         std::string_view cut;
     };
-    for (const Case& probe :
-         {Case{7, 1, "0x506d77"}, Case{9, 1, "0x506d8b"}, Case{0, 0x44, "0x506e5d"}, Case{0, 0x45, "0x506e5d"},
-          Case{0, 0x96, "0x506f62"}, Case{0, 0x0d, ""}, Case{0, 0x21, ""}, Case{2, 0x8b, ""}, Case{2, 0x8c, ""},
-          Case{2, 0x4b, ""}, Case{2, 0x0c, ""}, Case{0, 0x22, ""}})
+    for (const Case& probe : {Case{7, 1, "0x506d77"}, Case{0, 0x44, "0x506e5d"}, Case{0, 0x45, "0x506e5d"},
+                              Case{0, 0x96, "0x506f62"}, Case{0, 0x0d, ""}, Case{0, 0x21, ""}, Case{2, 0x8b, ""},
+                              Case{2, 0x8c, ""}, Case{2, 0x4b, ""}, Case{2, 0x0c, ""}, Case{0, 0x22, ""}})
     {
         SCOPED_TRACE(::testing::Message() << "mapa " << probe.map << ", acción " << static_cast<int>(probe.action));
         GameWorld tested(probe.map);
@@ -1248,7 +1247,7 @@ TEST(CharacterStepTest, KalimaParticleCutsAfterItsTwoRandoms)
 }
 
 // Después de la cabeza, otro que el héroe sigue el camino del 0x20a del héroe: la luz de una mano corta antes del
-// rand() & 7; los mapas 7 (solo en el juego) y 9 y las acciones 0x44, 0x45 y 0x96 cortan después.
+// rand() & 7; el mapa 7 (solo en el juego) y las acciones 0x44, 0x45 y 0x96 cortan después.
 TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
 {
     struct Case
@@ -1263,8 +1262,8 @@ TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
     constexpr std::uint16_t NoItem = Client::Scenes::NoItemModel;
     for (const Case& probe :
          {Case{"la luz", 0, 1, 0x21e, "0x5f9780", false}, Case{"el mapa 7", 7, 1, NoItem, "0x506d77", true},
-          Case{"el mapa 9", 9, 1, NoItem, "0x506d8b", true}, Case{"la 0x44", 2, 0x44, NoItem, "0x506e5d", true},
-          Case{"la 0x45", 0, 0x45, NoItem, "0x506e5d", true}, Case{"la 0x96", 2, 0x96, NoItem, "0x506f62", true}})
+          Case{"la 0x44", 2, 0x44, NoItem, "0x506e5d", true}, Case{"la 0x45", 0, 0x45, NoItem, "0x506e5d", true},
+          Case{"la 0x96", 2, 0x96, NoItem, "0x506f62", true}})
     {
         SCOPED_TRACE(probe.name);
         GameWorld tested(probe.map);
@@ -1630,6 +1629,94 @@ TEST(CharacterStepTest, AtlansBlowsABubbleFromTheHeadOneSecondInTen)
         EXPECT_EQ(bubble.angles, hero.angles);
         EXPECT_EQ(bubble.light, glm::vec3(1.0f));
     }
+}
+
+// 0x506d7f..0x506e54: en el mapa 9, en cualquier escena, dos rand() & 3; con 0, una gota 0x68/0 del hueso 26 (el
+// primero) y del 35 (el segundo) del último dibujo: (−15, 0, 0) más la traslación del hueso, por la escala, más la
+// posición, con los ángulos del personaje y la luz en 1. Sin el pool corta sólo si tenía que crearla.
+TEST(CharacterStepTest, DevilSquareRainsFromTwoBonesOfEachCharacter)
+{
+    struct Drop
+    {
+        std::size_t bone;
+        glm::vec3 local;
+        std::string_view address;
+    };
+    constexpr std::array<Drop, 2> Drops{Drop{26, {-20.0f, 12.0f, 14.0f}, "0x506dff"},
+                                        Drop{35, {-28.0f, 4.0f, 6.0f}, "0x506e4f"}};
+    std::array<int, 3> rained{};
+    for (std::uint32_t seed = 1; seed <= 24; ++seed)
+    {
+        for (const bool pooled : {true, false})
+        {
+            SCOPED_TRACE(::testing::Message() << "semilla " << seed << (pooled ? ", con pool" : ", sin pool"));
+            GameWorld tested(9);
+            tested.random = CrtRandom(seed);
+            ActorState& hero = tested.Hero();
+            hero.scale = 2.0f;
+            hero.angles = {0.0f, 0.0f, 45.0f};
+            hero.bodyPose.assign(36, Client::Render::Models::BoneTransform(0.0f));
+            hero.bodyPose[26] = Client::Render::Models::BoneTransform(1.0f);
+            hero.bodyPose[26][3] = glm::vec3(5.0f, 6.0f, 7.0f);
+            hero.bodyPose[35] = Client::Render::Models::BoneTransform(1.0f);
+            hero.bodyPose[35][3] = glm::vec3(1.0f, 2.0f, 3.0f);
+            tested.world.Runtime().terrainPolygon = Everything;
+            Client::World::Particles particles;
+
+            const auto stepped = StepCharacters(CharacterStepContext{.world = tested.world,
+                                                                     .random = tested.random,
+                                                                     .scene = SceneId::Game,
+                                                                     .playerSkeleton = tested.player,
+                                                                     .particles = pooled ? &particles : nullptr});
+
+            CrtRandom oracle(seed);
+            Skip(oracle, SeenHeroDraws);
+            Client::World::Particles expected;
+            std::string_view cut;
+            int drops = 0;
+            for (const Drop& drop : Drops)
+            {
+                if (oracle.Next() % 4 != 0)
+                    continue;
+                ++drops;
+                if (!pooled)
+                {
+                    cut = drop.address;
+                    break;
+                }
+                ASSERT_TRUE(expected
+                                .CreateChecked(0x68, hero.position + drop.local, hero.angles, glm::vec3(1.0f), 0, 1.0f,
+                                               0.0f, oracle, 0)
+                                .HasValue());
+            }
+            EXPECT_EQ(tested.random.State(), oracle.State());
+            if (!cut.empty())
+            {
+                EXPECT_TRUE(HasError(stepped, cut)) << ErrorOf(stepped);
+                continue;
+            }
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            if (pooled)
+                ++rained[static_cast<std::size_t>(drops)];
+            for (std::size_t index = 0; index < 2; ++index)
+            {
+                const Client::World::Particle& made = particles.All()[index];
+                const Client::World::Particle& wanted = expected.All()[index];
+                EXPECT_EQ(made.alive, wanted.alive);
+                if (!wanted.alive)
+                    continue;
+                EXPECT_EQ(made.type, 0x68);
+                EXPECT_EQ(made.subtype, 0);
+                EXPECT_EQ(made.position, wanted.position);
+                EXPECT_EQ(made.angles, hero.angles);
+                EXPECT_EQ(made.light, glm::vec3(1.0f));
+                EXPECT_EQ(made.life, wanted.life);
+                EXPECT_EQ(made.velocity, wanted.velocity);
+            }
+        }
+    }
+    EXPECT_GT(rained[0], 0);
+    EXPECT_GT(rained[1], 0);
 }
 
 // En la selección (la escena 4) 0x4ec200 decide el final con el frame + 2 (Q-C21): la acción de 6 keys a 1 por

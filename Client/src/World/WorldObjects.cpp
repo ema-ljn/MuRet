@@ -8,6 +8,7 @@
 #include "Render/Models/Skeleton.h"
 #include "World/AtlansObjectStep.h"
 #include "World/DungeonObjectStep.h"
+#include "World/EventMapObjectStep.h"
 #include "World/IWorldObjectCreationServices.h"
 #include "World/KalimaWorld.h"
 #include "World/ObjectAlpha.h"
@@ -760,13 +761,22 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     constexpr std::uint8_t IcarusMap = 10;
     // 0x43ff10: el 31 (Land of Trials) llega a 0x43ffc0 por la misma cadena.
     constexpr std::uint8_t LandOfTrialsMap = 31;
+    constexpr std::uint8_t DevilSquareMap = 9;
+    constexpr std::uint8_t FirstBloodCastleMap = 11;
+    constexpr std::uint8_t LastBloodCastleMap = 17;
+    const bool bloodCastle = map >= FirstBloodCastleMap && map <= LastBloodCastleMap;
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
-        map != ArenaMap && map != AtlansMap && map != TarkanMap && map != IcarusMap && map != LoginMap &&
-        map != LandOfTrialsMap && !IsKalimaMap(map) && !aida)
+        map != ArenaMap && map != AtlansMap && map != TarkanMap && map != DevilSquareMap && map != IcarusMap &&
+        map != LoginMap && map != LandOfTrialsMap && !IsKalimaMap(map) && !aida && !bloodCastle)
     {
-        // 0x604ac0..0x604ba0: el 9 saca rand() antes de todo, y cada mapa tiene sus casos.
         return Core::Unexpected(
             std::format("0x604ab0: el paso de los objetos del mapa {} no está leído", static_cast<int>(map)));
+    }
+    // 0x604ac0..0x604ba0: el 9 saca sus rand() y pide su sonido antes de todo.
+    if (map == DevilSquareMap)
+    {
+        if (auto prelude = StepDevilSquarePrelude(random, globals); !prelude.HasValue())
+            return prelude;
     }
     if (const std::optional<float> target = RoofTargetAlpha(object.type, map, globals.heroCellLayer))
     {
@@ -795,6 +805,11 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     {
         return StepLandOfTrialsObject(object, random, globals);
     }
+    if (bloodCastle)
+    {
+        StepBloodCastleObject(object);
+        return {};
+    }
     switch (map)
     {
     case LorenciaMap:
@@ -815,6 +830,9 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
         return StepTarkanObject(object, globals);
     case IcarusMap:
         // 0x605ab4 por 0x605ae8: el 10 no tiene casos; 0x6063d0 va aparte (Scenes/IcarusObjectStep.h).
+        return {};
+    case DevilSquareMap:
+        // 0x605ae8 lo manda a la cadena de 0x605a62, que en el 9 no hace nada.
         return {};
     default:
         ApplyLoginStepCases(object);

@@ -23,13 +23,15 @@ namespace Client::Tests
 {
 struct RecordedParticleDraw
 {
-    // La mezcla que dejó el material: 0x620a90 con el byte en 3, 0x620a00(0) con otro, y 0x620b10 si el
-    // dibujo la pidió después.
+    // La mezcla que dejó el material: 0x620a90 con el byte en 3, 0x620a00(0) con otro, y 0x620b10 o 0x620c10 si
+    // el dibujo la pidió después.
     enum class Blend : std::uint8_t
     {
         Alpha,
         Additive,
         Subtractive,
+        // 0x620c10, el modo 6 (SRC_ALPHA / ONE_MINUS_SRC_ALPHA).
+        Blended,
     };
 
     // Lo que llegó al billboard de 0x621400.
@@ -57,6 +59,7 @@ public:
     [[nodiscard]] Core::Expected<std::uint8_t, World::ParticleError> MaterialFlag(std::int32_t type) override;
     [[nodiscard]] Result Material(std::uint8_t rawFlag) override;
     [[nodiscard]] Result Subtractive() override;
+    [[nodiscard]] Result Blended() override;
     [[nodiscard]] Result Type620850() override;
     [[nodiscard]] Result Type620870() override;
     [[nodiscard]] Result Billboard(Render::ParticleBillboardRequest request) override;

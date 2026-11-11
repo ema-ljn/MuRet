@@ -1,6 +1,7 @@
 #include "Scenes/WorldObjectsDrawing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/AidaObjectServices.h"
+#include "Scenes/EventMapObjectFrame.h"
 #include "Scenes/NoriaObjectServices.h"
 #include "Scenes/ObjectFrameSprites.h"
 #include "Scenes/IcarusObjectFrame.h"
@@ -349,13 +350,19 @@ constexpr std::uint8_t LostTowerMap = 4;
 constexpr std::uint8_t ArenaMap = 6;
 constexpr std::uint8_t AtlansMap = 7;
 constexpr std::uint8_t TarkanMap = 8;
+constexpr std::uint8_t DevilSquareMap = 9;
 constexpr std::uint8_t IcarusMap = 10;
+constexpr std::uint8_t FirstBloodCastleMap = 11;
+constexpr std::uint8_t LastBloodCastleMap = 17;
 constexpr std::uint8_t LandOfTrialsMap = 31;
 constexpr std::uint8_t AidaMap = 33;
 constexpr std::uint8_t SelectionWorldMap = 54;
 // 0x60479c: el 0x64 de Devias se dibuja según el nivel del registro propio (0x604944..0x604957, jl con
 // signo): desde 0x35 con la clase del héroe (+0x1d4 & 7) en 3 o 4, y desde 0x50 con las demás.
 constexpr std::int16_t DeviasLeveledObject = 0x64;
+// 0x600d04..0x600d0e: los dos que llevan sombra en 11 a 17.
+constexpr std::int16_t BloodCastleShadowedFirst = 0x1c;
+constexpr std::int16_t BloodCastleShadowedSecond = 0x1d;
 constexpr std::uint8_t ClassMask = 7;
 constexpr std::uint8_t FirstLowLevelClass = 3;
 constexpr std::uint8_t SecondLowLevelClass = 4;
@@ -406,7 +413,8 @@ void DrawLostTowerChrome(Render::ModelBatch& batch, const IModelLibrary& models,
 }
 
 // 0x602ed0 después del rand() común (0x602ef4): los casos por tipo de los mapas 0 (0x602ffb), 2
-// (0x6031e5), 4 (0x603799) y 8 (0x603a3e); el 1 va a la cadena de 0x6044ed, que no tiene nada para él. El 0x69 crea las
+// (0x6031e5), 4 (0x603799), 8 (0x603a3e), 9 (0x603dd7) y 11 a 17 (0x604152); el 1 va a la cadena de 0x6044ed,
+// que no tiene nada para él. El 0x69 crea las
 // gotas con el pool compartido. `posed`: si 0x602e90 llamó a 0x6002e0, cuyo marco queda en la pila que leen
 // los sprites del 0x38 del 0 y del 9 del 4, y si 0x5ffdf0 dejó el +0xa8 del modelo del 0x67 del 2.
 Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const GameObjectPass& pass,
@@ -430,6 +438,10 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
         return StepTarkanObjectFrame(object, pass);
     if (map == IcarusMap)
         return StepIcarusObjectFrame(object, pass);
+    if (map == DevilSquareMap)
+        return StepDevilSquareObjectFrame(object, pass);
+    if (map >= FirstBloodCastleMap && map <= LastBloodCastleMap)
+        return StepBloodCastleObjectFrame(object, pass);
     if (map == LorenciaMap && object.type == 0x38)
         return StepMerchantAnimalFrame(object, commonRandom, pass, posed);
     if (map == LorenciaMap && object.type == World::Waterspout)
@@ -456,9 +468,10 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
                                                        const World::TerrainLighting* lighting,
                                                        Core::Duration frameClock, const GameObjectPass& pass)
 {
+    const bool bloodCastle = pass.map >= FirstBloodCastleMap && pass.map <= LastBloodCastleMap;
     if (pass.map > LostTowerMap && pass.map != ArenaMap && pass.map != AtlansMap && pass.map != TarkanMap &&
-        pass.map != IcarusMap && pass.map != LandOfTrialsMap && pass.map != AidaMap && pass.map != SelectionWorldMap &&
-        !World::IsKalimaMap(pass.map))
+        pass.map != DevilSquareMap && pass.map != IcarusMap && pass.map != LandOfTrialsMap && pass.map != AidaMap &&
+        pass.map != SelectionWorldMap && !World::IsKalimaMap(pass.map) && !bloodCastle)
     {
         return Core::Unexpected(std::format("0x6046a0: los casos por tipo del mapa {} (0x6002e0 y 0x602ed0) no están "
                                             "leídos",
@@ -527,6 +540,19 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
         }
         const DrawnObject drawn =
             DrawTheObject(batch, models, object, draw, frameClock, 0.0f, pass.modelState, retained);
+        // 0x600cf2..0x600db0: el 0x1c y el 0x1d de 11 a 17, después de su RenderBody, la sombra con la altura
+        // del terreno; +0x58 queda en −1.
+        if (bloodCastle && (object.type == BloodCastleShadowedFirst || object.type == BloodCastleShadowedSecond) &&
+            draw.kind == World::ObjectDrawKind::Body)
+        {
+            if (!pass.terrainHeight)
+                return Core::Unexpected(std::string("0x600d80: falta la altura del terreno (0x5f93c0) para la sombra "
+                                                    "del objeto"));
+            DrawBloodCastleShadow(batch, models, drawn,
+                                  pass.terrainHeight(object.transform.position.x, object.transform.position.y),
+                                  frameClock);
+            object.state.hiddenMesh = Render::Models::NoHiddenMesh;
+        }
         if (World::IsKalimaMap(pass.map) && draw.kind != World::ObjectDrawKind::Hidden)
         {
             if (auto tail = DrawKalimaObjectTail(batch, models, object, drawn, frameClock, pass); !tail.HasValue())

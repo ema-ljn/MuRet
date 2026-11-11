@@ -4,9 +4,11 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/EventMapObject.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldMap.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GroundMarks.h"
 #include "World/WorldObjectRegistrations.h"
@@ -31,10 +33,13 @@
 namespace
 {
 using Client::Render::Models::CrtRandom;
-using Client::Scenes::CheckEventMap;
+using Client::Scenes::ArmEventMapObject;
+using Client::Scenes::EventMapKind;
+using Client::Scenes::EventMapObject;
 using Client::Scenes::LoadMap;
 using Client::Scenes::MapLoadContext;
 using Client::Scenes::SceneId;
+using Client::Scenes::WorldRuntime;
 using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 0x5eed;
@@ -124,21 +129,64 @@ TEST_F(MapLoadTest, MapThirtyTwoLoadsWorldTenAsNine)
     EXPECT_EQ(world.Map().terrain.heights->cells, worldTen.Value().heights->cells);
 }
 
-// 0x447d70: Devil Square (9), Blood Castle (11 a 17) y Chaos Castle (18 a 23) arman su objeto de
-// evento; los demás, nada.
-TEST(MapLoadEventTest, AnEventMapStopsAt447d70)
+// 0x447d70: Devil Square (9), Blood Castle (11 a 17) y Chaos Castle (18 a 23) arman su objeto de evento, con
+// los campos de 0x447db5..0x447ddc (y de 0x404d60); los demás no tocan el que había (Q-C320).
+TEST(MapLoadEventTest, AnEventMapArmsItsObjectAndTheOthersKeepThePreviousOne)
 {
     for (std::int32_t map = 0; map <= 55; ++map)
     {
         SCOPED_TRACE(map);
-        const bool event = map == 9 || (map >= 11 && map <= 23);
-        const auto checked = CheckEventMap(map);
-        ASSERT_EQ(checked.HasValue(), !event);
-        if (event)
-        {
-            EXPECT_NE(checked.Error().find("0x447d70"), std::string::npos);
-        }
+        WorldRuntime runtime;
+        runtime.map = map;
+        runtime.chaosCastleArea = 3;
+        ArmEventMapObject(map, runtime);
+        const bool devilSquare = map == 9;
+        const bool bloodCastle = map >= 11 && map <= 17;
+        const bool chaosCastle = map >= 18 && map <= 23;
+        ASSERT_EQ(runtime.eventObject.has_value(), devilSquare || bloodCastle || chaosCastle);
+        EXPECT_EQ(runtime.chaosCastleArea, chaosCastle ? 0xff : 3);
+        if (!runtime.eventObject)
+            continue;
+        const EventMapObject& armed = *runtime.eventObject;
+        EXPECT_EQ(armed.kind, devilSquare   ? EventMapKind::DevilSquare
+                              : bloodCastle ? EventMapKind::BloodCastle
+                                            : EventMapKind::ChaosCastle);
+        EXPECT_EQ(armed.field0c, 0);
+        EXPECT_EQ(armed.field10, 0);
+        EXPECT_EQ(armed.field14, (std::array<std::int32_t, 4>{-1, -1, -1, -1}));
+        EXPECT_EQ(armed.field24, 0);
+        EXPECT_EQ(armed.field28, 0);
+        EXPECT_EQ(armed.field2c, (std::array<std::int32_t, 0x42>{}));
     }
+
+    WorldRuntime leaving;
+    leaving.map = 11;
+    ArmEventMapObject(11, leaving);
+    leaving.eventObject->field0c = 7;
+    leaving.map = 0;
+    ArmEventMapObject(0, leaving);
+    ASSERT_TRUE(leaving.eventObject.has_value());
+    EXPECT_EQ(leaving.eventObject->kind, EventMapKind::BloodCastle);
+    EXPECT_EQ(leaving.eventObject->field0c, 7);
+}
+
+// 0x447de7: Chaos Castle mira el mundo en curso (0x6c9dd0), no el argumento; Blood Castle y Devil Square, el
+// argumento. Blood Castle va primero.
+TEST(MapLoadEventTest, ChaosCastleReadsTheCurrentWorldInsteadOfTheArgument)
+{
+    WorldRuntime runtime;
+    runtime.map = 20;
+    ArmEventMapObject(9, runtime);
+    ASSERT_TRUE(runtime.eventObject.has_value());
+    EXPECT_EQ(runtime.eventObject->kind, EventMapKind::ChaosCastle);
+    ArmEventMapObject(12, runtime);
+    EXPECT_EQ(runtime.eventObject->kind, EventMapKind::BloodCastle);
+
+    WorldRuntime elsewhere;
+    elsewhere.map = 0;
+    ArmEventMapObject(20, elsewhere);
+    EXPECT_FALSE(elsewhere.eventObject.has_value());
+    EXPECT_EQ(elsewhere.chaosCastleArea, 0xff);
 }
 
 // Q-C228: la carga del mapa no vacía las marcas del suelo (0x6070a0 apaga las tablas de al lado y no esta): la

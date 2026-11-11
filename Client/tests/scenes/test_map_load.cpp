@@ -9,6 +9,7 @@
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldState.h"
 #include "World/GroundMarks.h"
+#include "World/WorldObjectRegistrations.h"
 #include "World/WorldTerrain.h"
 
 #include "support/GoldenDir.h"
@@ -39,6 +40,43 @@ using Client::Scenes::WorldState;
 constexpr std::uint32_t Seed = 0x5eed;
 constexpr std::uint16_t PlayerKey = 5;
 constexpr int GrassRandoms = 65536;
+
+// 06 § La carga del mapa, paso 2: 0x60719c..0x6071ac solo apaga el primer byte de los 200
+// registros de 0x7d34818. La próxima creación debe poder reutilizarlos sin borrar sus demás campos.
+TEST(MapObjectsReleaseTest, ReopensEveryRegistrationWithoutErasingItsPayload)
+{
+    Client::Scenes::WorldMap loaded;
+    auto& registrations = loaded.registrations;
+    for (std::size_t slot = 0; slot < registrations.entries.size(); ++slot)
+    {
+        registrations.entries[slot] =
+            Client::World::WorldObjectRegistration{.active = 0x80,
+                                                   .metadata = {1, 2, 3, 4, 5, 6, 7},
+                                                   .object = static_cast<Client::World::WorldObjectIdentity>(slot + 1)};
+    }
+    constexpr Client::World::WorldObjectIdentity NewObject = 999;
+    registrations.nextIdentity = NewObject;
+    const auto before = registrations.entries;
+
+    Client::Scenes::ReleaseTheMapObjects(loaded);
+
+    for (std::size_t slot = 0; slot < registrations.entries.size(); ++slot)
+    {
+        SCOPED_TRACE(slot);
+        EXPECT_EQ(registrations.entries[slot].active, 0);
+        EXPECT_EQ(registrations.entries[slot].metadata, before[slot].metadata);
+        EXPECT_EQ(registrations.entries[slot].object, before[slot].object);
+    }
+    EXPECT_EQ(registrations.nextIdentity, NewObject);
+
+    Client::World::RegisterWorldObject(registrations, NewObject);
+
+    EXPECT_EQ(registrations.entries.front().active, 1);
+    EXPECT_EQ(registrations.entries.front().object, NewObject);
+    EXPECT_EQ(registrations.entries.front().metadata, before.front().metadata);
+    EXPECT_EQ(registrations.entries.back().active, 0);
+    EXPECT_EQ(registrations.entries.back().object, before.back().object);
+}
 
 class MapLoadTest : public Client::Tests::GoldenDataTest
 {
@@ -237,6 +275,24 @@ TEST_F(MapLoadTest, DeviasCreatesItsTwoSpecialsBeforeTheObjFile)
     }
     EXPECT_EQ(objects[0].sectorY, 0);
     EXPECT_EQ(objects[1].sectorY, 1);
+}
+
+// 0x6175ea..0x617626: el especial de Noria nace en z=0 y con yaw=10, antes de pedir sus cinco
+// efectos. Sin ese servicio, la carga conserva el prefijo creado y corta, sin consumir el pasto.
+TEST_F(MapLoadTest, NoriaCreatesItsSpecialWithTheHeightAndYawInTheNativeArguments)
+{
+    const auto loaded = Load(3);
+
+    ASSERT_FALSE(loaded.HasValue());
+    EXPECT_NE(loaded.Error().find("0x606660"), std::string::npos) << loaded.Error();
+    ASSERT_EQ(world.Map().objects.size(), 1u);
+    const auto& special = world.Map().objects.front();
+    EXPECT_EQ(special.type, 0x142);
+    EXPECT_EQ(special.transform.position, glm::vec3(22300.0f, 3000.0f, 0.0f));
+    EXPECT_EQ(special.transform.angles, glm::vec3(0.0f, 0.0f, 10.0f));
+    EXPECT_EQ(special.transform.scale, 1.0f);
+    EXPECT_EQ(random.State(), CrtRandom(Seed).State());
+    EXPECT_TRUE(world.Map().grassOffsets.empty());
 }
 
 // Los mapas con datos en la Data del repo: los que carga y, en los demás, dónde corta.

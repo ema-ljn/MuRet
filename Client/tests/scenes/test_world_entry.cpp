@@ -51,6 +51,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -131,13 +132,23 @@ public:
 };
 
 // Lo que dura la sesión, con Player.bmd, un Item.bmd sin armas marcadas y el registro propio sin equipo.
-struct Entry
+class Entry
 {
+private:
+    // Los escenarios simultáneos conservan mundos durables sin agotar la pila de Windows.
+    std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
+
+public:
     Entry(std::filesystem::path root, std::uint32_t seed) : dataRoot(std::move(root)), cloth{.random = CrtRandom(seed)}
     {
         models.Set(Player, {}, Client::Tests::PlayerActionsSkeleton(), {});
         world.OwnCharacter().ClearEquipmentForEntry();
     }
+
+    Entry(const Entry&) = delete;
+    Entry& operator=(const Entry&) = delete;
+    Entry(Entry&&) = delete;
+    Entry& operator=(Entry&&) = delete;
 
     [[nodiscard]] WorldEntryResources Resources()
     {
@@ -178,7 +189,7 @@ struct Entry
     }
 
     std::filesystem::path dataRoot;
-    Client::Scenes::WorldState world;
+    Client::Scenes::WorldState& world = *m_world;
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;

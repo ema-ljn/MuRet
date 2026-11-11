@@ -33,10 +33,10 @@ namespace Client::Scenes
 class GameModels final : public IModelLibrary
 {
 public:
-    // Lee las 213 filas de PlayerModelFiles, las 243 de ItemModelFiles y las 4 de SkillModelFiles, y
+    // Lee las 213 filas de PlayerModelFiles, las 243 de ItemModelFiles y las 7 de SkillModelFiles, y
     // les da a sus mallas las texturas que piden 0x60f7d0, 0x611850 y 0x615700 (PlayerTextureCalls,
     // ItemTextureCalls y SkillTextureCalls: cada llamada con su carpeta, desde 0x138, 0x25a y 0x3b8,
-    // con ModelTextureSlots), y las sube con las fijas de
+    // con ModelTextureSlots), Gate02 desde Monster en 0x69 antes del bloque 0x3b8, y las sube con las fijas de
     // PlayerFixedTextures, las de los pases de brillo (GlowTextureSet, del avance 0 de 0x61ccb0) y las de
     // los sprites (EffectTextureSet). Un
     // modelo que el original exige (Player, PlayerTest) y falta corta, con un
@@ -49,10 +49,10 @@ public:
     [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
     [[nodiscard]] std::optional<TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
-    // El slot de las de EffectTextureSet que subió: cada una va al de su entrada, que es su selector
-    // (0x61ccb0 las sube en esos índices de la tabla). Es lo que 0x620780 liga para las partículas.
+    // El slot de cada textura que subió, solo si quedó publicada: cada una va al de su entrada,
+    // que es su selector. Es lo que 0x620780 liga para las partículas.
     [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
-    // El de las de EffectTextureSet que subió.
+    // El tamaño de una textura que subió.
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
 
     // Cuántos modelos se leyeron.
@@ -66,7 +66,7 @@ private:
     std::map<std::uint16_t, Data::Models::Model> m_models;
     std::map<std::uint16_t, Render::Models::Skeleton> m_skeletons;
     std::map<std::uint16_t, std::vector<Render::TextureSlot>> m_meshTextures;
-    // El tamaño de las de los sprites (EffectTextureSet) que subió.
+    // La metadata de las texturas que efectivamente subió.
     std::map<std::uint32_t, TextureMetadata> m_textureMetadata;
     // Desde 0x138 (0x60f7d0); Load le corre el próximo a cada cargador.
     Render::Models::ModelTextureSlots m_slots{Render::TextureSlot{0x138}};

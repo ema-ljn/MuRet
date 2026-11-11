@@ -149,6 +149,37 @@ TEST(ModelEffectsTest, OnlyTheDragonIsCreated)
     EXPECT_FALSE(effects.Create(0xb5, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), 1.0f).has_value());
 }
 
+// Q-C278: 0x518cf0 no escribe +0x16c. El efecto nuevo hereda la visibilidad del lugar, aun después de
+// 0x6070a0 (Clear), y no la de otro lugar de la tabla.
+TEST(ModelEffectsTest, ReusingASlotRetainsItsLastDrawVisibility)
+{
+    ModelEffects effects;
+    const auto first = effects.Create(DragonEffect, {}, {}, {}, 1.0f);
+    ASSERT_EQ(first, 0u);
+    effects.Effects()[0].seen = true;
+    const auto second = effects.Create(Client::World::ArrivalEffect, {}, {}, {}, 1.0f);
+    ASSERT_EQ(second, 1u);
+    EXPECT_FALSE(effects.Effects()[1].seen);
+    effects.Clear();
+    EXPECT_TRUE(effects.Effects()[0].seen);
+    ASSERT_EQ(effects.Create(Client::World::ArrivalEffect, {}, {}, {}, 1.0f), 0u);
+    EXPECT_TRUE(effects.Effects()[0].seen);
+    EXPECT_FALSE(effects.Effects()[1].seen);
+    effects.Effects()[0].alive = false;
+    ASSERT_EQ(effects.Create(DragonEffect, {}, {}, {}, 1.0f), 0u);
+    EXPECT_TRUE(effects.Effects()[0].seen);
+}
+
+TEST(ModelEffectsTest, AnUnseenSlotDoesNotBecomeSeenWhenReused)
+{
+    ModelEffects effects;
+    ASSERT_EQ(effects.Create(DragonEffect, {}, {}, {}, 1.0f), 0u);
+    EXPECT_FALSE(effects.Effects()[0].seen);
+    effects.Effects()[0].alive = false;
+    ASSERT_EQ(effects.Create(Client::World::ArrivalEffect, {}, {}, {}, 1.0f), 0u);
+    EXPECT_FALSE(effects.Effects()[0].seen);
+}
+
 // La vida baja uno por paso y se vuelve a llenar en 10 (0x520b3b): el dragón no muere nunca.
 TEST_F(DragonTest, TheDragonNeverDies)
 {

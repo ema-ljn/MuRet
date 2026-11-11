@@ -13,6 +13,9 @@
 #include "support/SceneDataFiles.h"
 #include "support/GateFiles.h"
 #include "support/TemporaryFolder.h"
+#include "support/SkillFiles.h"
+#include "support/GoldenDir.h"
+#include "Data/Tables/SkillTable.h"
 
 #include <gtest/gtest.h>
 
@@ -22,6 +25,7 @@
 #include <span>
 #include <string>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 // Client::Scenes::LoadGameData: lo que main.cpp lee antes de la primera escena, como WinMain lee
@@ -43,6 +47,7 @@ TEST(GameDataTest, ReadsTheTextTable)
     WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
     WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
     Client::Tests::WriteEmptyItemSetFiles(folder.Path());
+    Client::Tests::WriteEmptySkillFile(folder.Path());
 
     const auto data = LoadGameData(folder.Path());
 
@@ -60,6 +65,7 @@ TEST(GameDataTest, FindsTheFileInAnyCase)
     WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
     WriteSceneFile(folder.Path(), "local/Item.bmd", Client::Tests::EmptyItemTableBytes());
     Client::Tests::WriteEmptyItemSetFiles(folder.Path(), "local");
+    Client::Tests::WriteEmptySkillFile(folder.Path(), "local");
 
     const auto data = LoadGameData(folder.Path());
 
@@ -111,6 +117,7 @@ TEST(GameDataTest, ReadsTheTwoFilters)
     WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
     WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
     Client::Tests::WriteEmptyItemSetFiles(folder.Path());
+    Client::Tests::WriteEmptySkillFile(folder.Path());
     WriteFilterFile(folder.Path(), {"Synth", "Other"}, Client::Data::Text::FilterNameChecksumKey,
                     "Local/FilterName.bmd");
     WriteFilterFile(folder.Path(), {"word"}, Client::Data::Text::FilterChecksumKey, "Local/filter.BMD");
@@ -130,6 +137,7 @@ TEST(GameDataTest, WithoutTheFiltersNothingIsFiltered)
     WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
     WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
     Client::Tests::WriteEmptyItemSetFiles(folder.Path());
+    Client::Tests::WriteEmptySkillFile(folder.Path());
 
     const auto data = LoadGameData(folder.Path());
 
@@ -160,6 +168,7 @@ TEST(GameDataTest, ReadsTheGateTableFromTheDataRootIgnoringCase)
     WriteSceneFile(folder.Path(), "gATE.BMD", GateTableBytes({{1, gate}}));
     WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
     Client::Tests::WriteEmptyItemSetFiles(folder.Path());
+    Client::Tests::WriteEmptySkillFile(folder.Path());
 
     const auto data = LoadGameData(folder.Path());
 
@@ -229,6 +238,7 @@ TEST(GameDataTest, GateTableIgnoresATailLargerThanSixtyFourKiB)
     WriteSceneFile(folder.Path(), "Gate.bmd", file);
     WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
     Client::Tests::WriteEmptyItemSetFiles(folder.Path());
+    Client::Tests::WriteEmptySkillFile(folder.Path());
 
     const auto data = LoadGameData(folder.Path());
 
@@ -247,6 +257,7 @@ TEST(GameDataTest, LoadsItemsIgnoringCaseAndAnArbitrarilyLargeTail)
     bytes.resize(bytes.size() + 2 * 1024 * 1024, std::byte{0xff});
     WriteSceneFile(folder.Path(), "local/ITEM.BMD", bytes);
     Client::Tests::WriteEmptyItemSetFiles(folder.Path(), "local");
+    Client::Tests::WriteEmptySkillFile(folder.Path(), "local");
     const auto loaded = LoadGameData(folder.Path());
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     ASSERT_TRUE(loaded.Value().items.has_value());
@@ -263,6 +274,7 @@ TEST(GameDataTest, KeepsItemsWithAMissingChecksumAndReportsIt)
     bytes.resize(Client::Data::Tables::ItemTableSize);
     WriteSceneFile(folder.Path(), "Local/Item.bmd", bytes);
     Client::Tests::WriteEmptyItemSetFiles(folder.Path());
+    Client::Tests::WriteEmptySkillFile(folder.Path());
     const auto loaded = LoadGameData(folder.Path());
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     ASSERT_TRUE(loaded.Value().items.has_value());
@@ -298,6 +310,7 @@ TEST(GameDataTest, LoadsTheItemSetTables)
     options[3 * Client::Data::Tables::ItemSetOptionRecordSize] = std::byte{'H'};
     WriteSceneFile(folder.Path(), "Local/itemsettype.bmd", Client::Tests::ItemSetTypeFileBytes(types));
     WriteSceneFile(folder.Path(), "Local/ITEMSETOPTION.BMD", Client::Tests::ItemSetOptionFileBytes(options));
+    Client::Tests::WriteEmptySkillFile(folder.Path());
 
     const auto loaded = LoadGameData(folder.Path());
 
@@ -321,6 +334,7 @@ TEST(GameDataTest, NamesMissingShortAndCorruptItemSetTables)
     EXPECT_NE(loaded.Error().find("no está Local\\ItemSetType.bmd"), std::string::npos) << loaded.Error();
 
     Client::Tests::WriteEmptyItemSetFiles(folder.Path());
+    Client::Tests::WriteEmptySkillFile(folder.Path());
     std::vector<std::byte> corrupt =
         Client::Tests::ItemSetOptionFileBytes(std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize));
     corrupt[Client::Data::Tables::ItemSetOptionTableSize - 1] ^= std::byte{0x01};
@@ -340,4 +354,97 @@ TEST(GameDataTest, NamesMissingShortAndCorruptItemSetTables)
               std::string::npos)
         << loaded.Error();
 }
+// Un Data completo salvo Skill.bmd: permite probar su obligación sin adelantar otro error de carga.
+void WriteGameDataWithoutSkills(const std::filesystem::path& root)
+{
+    WriteTextTable(root, {});
+    WriteSceneFile(root, "Gate.bmd", GateTableBytes({}));
+    WriteSceneFile(root, "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
+    Client::Tests::WriteEmptyItemSetFiles(root);
+}
+
+TEST(GameDataTest, AMissingSkillTableIsNamed)
+{
+    const TemporaryFolder folder("game-data-skills");
+    WriteGameDataWithoutSkills(folder.Path());
+    const auto loaded = LoadGameData(folder.Path());
+    ASSERT_FALSE(loaded.HasValue());
+    EXPECT_NE(loaded.Error().find("Local\\Skill.bmd"), std::string::npos) << loaded.Error();
+}
+
+TEST(GameDataTest, LoadsSkillRecordsIgnoringCaseAndAnArbitrarilyLargeTail)
+{
+    const TemporaryFolder folder("game-data-skills");
+    WriteGameDataWithoutSkills(folder.Path());
+    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
+    constexpr std::size_t Record = 42;
+    constexpr std::size_t Offset = 0x26;
+    plain[Record * Client::Data::Tables::SkillRecordSize + Offset] = std::byte{0xa5};
+    auto file = Client::Tests::SkillFileBytes(std::move(plain));
+    file.resize(file.size() + 2 * 1024 * 1024, std::byte{0xff});
+    WriteSceneFile(folder.Path(), "Local/sKILL.BMD", file);
+    const auto loaded = LoadGameData(folder.Path());
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    ASSERT_TRUE(loaded.Value().skills.has_value());
+    EXPECT_EQ(loaded.Value().skills->Count(), Client::Data::Tables::SkillCount);
+    ASSERT_TRUE(loaded.Value().skills->Record(Record).has_value());
+    EXPECT_EQ((*loaded.Value().skills->Record(Record))[Offset], std::byte{0xa5});
+}
+
+TEST(GameDataTest, NamesASkillFileWithAnIncompleteChecksum)
+{
+    const TemporaryFolder folder("game-data-skills");
+    WriteGameDataWithoutSkills(folder.Path());
+    auto file = Client::Tests::SkillFileBytes(std::vector<std::byte>(Client::Data::Tables::SkillTableSize));
+    file.pop_back();
+    WriteSceneFile(folder.Path(), "Local/Skill.bmd", file);
+    const auto loaded = LoadGameData(folder.Path());
+    ASSERT_FALSE(loaded.HasValue());
+    EXPECT_NE(loaded.Error().find("Local\\Skill.bmd"), std::string::npos) << loaded.Error();
+    EXPECT_NE(loaded.Error().find(Client::Data::DescribeDataError(Client::Data::DataError::FileTooShort)),
+              std::string::npos)
+        << loaded.Error();
+}
+
+TEST(GameDataTest, NamesACorruptSkillTable)
+{
+    const TemporaryFolder folder("game-data-skills");
+    WriteGameDataWithoutSkills(folder.Path());
+    auto file = Client::Tests::SkillFileBytes(std::vector<std::byte>(Client::Data::Tables::SkillTableSize));
+    file[Client::Data::Tables::SkillTableSize - 1] ^= std::byte{1};
+    WriteSceneFile(folder.Path(), "Local/Skill.bmd", file);
+    const auto loaded = LoadGameData(folder.Path());
+    ASSERT_FALSE(loaded.HasValue());
+    EXPECT_NE(loaded.Error().find("Local\\Skill.bmd"), std::string::npos) << loaded.Error();
+    EXPECT_NE(loaded.Error().find(Client::Data::DescribeDataError(Client::Data::DataError::ChecksumMismatch)),
+              std::string::npos)
+        << loaded.Error();
+}
+
+TEST(GameDataTest, NamesAnUnreadableSkillTable)
+{
+    const TemporaryFolder folder("game-data-skills");
+    WriteGameDataWithoutSkills(folder.Path());
+    std::filesystem::create_directory(folder.Path() / "Local/Skill.bmd");
+    const auto loaded = LoadGameData(folder.Path());
+    ASSERT_FALSE(loaded.HasValue());
+    EXPECT_NE(loaded.Error().find("Local\\Skill.bmd"), std::string::npos) << loaded.Error();
+    EXPECT_NE(loaded.Error().find("no se pudo leer"), std::string::npos) << loaded.Error();
+}
+
+using GoldenGameData = Client::Tests::GoldenDataTest;
+
+// Datos del archivo real leídos con XOR3 por separado: el byte usado por MoveHero vive en +0x26.
+TEST_F(GoldenGameData, LoadsTheRealSkillTableWithItsMovementBytes)
+{
+    const auto loaded = LoadGameData(m_dataRoot);
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    ASSERT_TRUE(loaded.Value().skills.has_value());
+    EXPECT_EQ(loaded.Value().skills->Count(), 256u);
+    EXPECT_EQ((*loaded.Value().skills->Record(1))[0x26], std::byte{6});
+    EXPECT_EQ((*loaded.Value().skills->Record(42))[0x26], std::byte{3});
+    EXPECT_EQ((*loaded.Value().skills->Record(60))[0x26], std::byte{4});
+    EXPECT_EQ((*loaded.Value().skills->Record(255))[0x26], std::byte{0});
+}
+
 } // namespace

@@ -2,16 +2,19 @@
 
 #include "Protocol/Character/CharacterList.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/DynamicWorldLight.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
+#include "World/Particles.h"
 
 #include <array>
 #include <cstddef>
 #include <span>
+#include <memory>
 
 namespace Client::Render::Models
 {
@@ -59,6 +62,12 @@ public:
     // Los ayudantes del juego (0x7d335d0): el caballo oscuro de cada jinete.
     [[nodiscard]] HelperTable& Helpers();
     [[nodiscard]] const HelperTable& Helpers() const;
+    // 0x743a198 y su viento: un pool para login, selección y juego, en el heap por su tamaño.
+    [[nodiscard]] World::Particles& Particles();
+    [[nodiscard]] const World::Particles& Particles() const;
+    // 0x7b4ccc4 y los límites del último 0x5fbb00: una historia para las tres escenas.
+    [[nodiscard]] DynamicWorldLight& DynamicLighting();
+    [[nodiscard]] const DynamicWorldLight& DynamicLighting() const;
 
     // Lo que hace la selección al pasar a la escena 3 con `chosen`, el elegido (06, "La lógica" y "La
     // entrada al mundo", paso 1; los tres caminos: Enter 0x6343e2..0x634470, doble clic
@@ -76,5 +85,7 @@ private:
     WorldMap m_map;
     ItemSetState m_itemSets;
     HelperTable m_helpers{};
+    std::unique_ptr<World::Particles> m_particles = std::make_unique<World::Particles>();
+    DynamicWorldLight m_dynamicLighting;
 };
 } // namespace Client::Scenes

@@ -37,8 +37,8 @@ double HeightOffset(CharacterPositionState state)
 }
 } // namespace
 
-void UpdateCharacterPosition(CharacterPositionState state, const std::function<double()>& speed,
-                             const std::function<double(float, float)>& height)
+bool TryUpdateCharacterPosition(CharacterPositionState state, const std::function<double()>& speed,
+                                const std::function<double(float, float)>& height)
 {
     const auto matrix = Render::Models::OriginalAngleMatrix(state.angles);
     assert(speed);
@@ -50,7 +50,10 @@ void UpdateCharacterPosition(CharacterPositionState state, const std::function<d
     state.position.y = y;
     state.position.z = static_cast<float>(static_cast<double>(delta.z) + static_cast<double>(state.position.z));
     const double offset = HeightOffset(state);
-    assert(height);
+    if (!height)
+    {
+        return false;
+    }
     const double terrainHeight = height(x, y);
     // CMP del tipo precede al store de altura: la consulta puede modificarlo por alias.
     const bool bobbing = state.type.get() == BobbingType;
@@ -62,5 +65,13 @@ void UpdateCharacterPosition(CharacterPositionState state, const std::function<d
         state.position.z = static_cast<float>((static_cast<double>(state.position.z) - product) + BobbingAmplitude);
     }
     state.phase = static_cast<float>(static_cast<double>(state.phase) + static_cast<double>(PhaseIncrement));
+    return true;
+}
+
+void UpdateCharacterPosition(CharacterPositionState state, const std::function<double()>& speed,
+                             const std::function<double(float, float)>& height)
+{
+    assert(height);
+    static_cast<void>(TryUpdateCharacterPosition(state, speed, height));
 }
 } // namespace Client::GameLogic

@@ -5,6 +5,7 @@
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Pass3D.h"
 #include "World/TerrainCells.h"
+#include "World/SphereFrustum.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -26,12 +27,7 @@ float F32(double value)
     return static_cast<float>(value);
 }
 
-// 0x5fbb00: el far por 0,9 (0x6b8a1c), el medio fov (0x6ba70c, casi π/360), el 100 (0x6b86b4), el
-// alto por 0,75 (0x6ba36c) y el −0,01 de los ftol (0x6ba110).
-constexpr float FarFactor = std::bit_cast<float>(0x3F666666u);
-constexpr float HalfFieldOfView = std::bit_cast<float>(0x3C0EFA33u);
-constexpr float WidthMargin = 100.0f;
-constexpr float HeightFactor = 0.75f;
+// 0x5fbb00: el −0,01 de los ftol (0x6ba110).
 constexpr float ToCells = std::bit_cast<float>(0xBC23D70Au);
 constexpr int LastBlock = 0xfb;
 
@@ -219,30 +215,14 @@ int ClampBlock(int value)
 
 TerrainRange TerrainRangeOf(const glm::mat4& view, const Render::Camera3D& camera, float widthFactor)
 {
-    const float depth = F32(static_cast<double>(camera.farPlane) * static_cast<double>(FarFactor));
-    const double halfWidth = (std::tan(static_cast<double>(camera.fieldOfView) * static_cast<double>(HalfFieldOfView)) *
-                              static_cast<double>(depth) * static_cast<double>(widthFactor)) +
-                             static_cast<double>(WidthMargin);
-    const float w = F32(halfWidth);
-    const float h = F32(halfWidth * static_cast<double>(HeightFactor));
-    const std::array<glm::vec3, 5> local{glm::vec3(0.0f), glm::vec3(-w, h, -depth), glm::vec3(w, h, -depth),
-                                         glm::vec3(w, -h, -depth), glm::vec3(-w, -h, -depth)};
-    // 0x620370 da la modelview por filas (m[i · 4 + j] = M[i][j]; glm la guarda por columnas) y 0x5fcc30
-    // la aplica transpuesta: el punto de la vista en el mundo, sin la traslación, más la cámara.
-    const auto m = [&view](int row, int column) { return static_cast<double>(view[column][row]); };
     float minX = 25600.0f;
     float minY = 25600.0f;
     float maxX = 0.0f;
     float maxY = 0.0f;
-    for (const glm::vec3& p : local)
+    for (const glm::vec3& point : FrustumPointsOf(view, camera, widthFactor))
     {
-        const double vx = p.x;
-        const double vy = p.y;
-        const double vz = p.z;
-        const float ox = F32(((m(2, 0) * vz) + (m(1, 0) * vy)) + (vx * m(0, 0)));
-        const float oy = F32(((m(0, 1) * vx) + (m(2, 1) * vz)) + (m(1, 1) * vy));
-        const float x = F32(static_cast<double>(camera.position.x) + static_cast<double>(ox));
-        const float y = F32(static_cast<double>(camera.position.y) + static_cast<double>(oy));
+        const float x = point.x;
+        const float y = point.y;
         minX = minX > x ? x : minX;
         minY = minY > y ? y : minY;
         maxX = maxX < x ? x : maxX;

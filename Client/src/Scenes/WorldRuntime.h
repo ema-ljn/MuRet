@@ -4,6 +4,7 @@
 #include "Scenes/FullSetScan.h"
 #include "Scenes/SceneId.h"
 #include "World/GroundMarks.h"
+#include "World/LeafWeather.h"
 #include "World/TerrainCulling.h"
 
 #include <cstddef>
@@ -17,6 +18,9 @@
 // (CL7.P, P-C22 c).
 namespace Client::Scenes
 {
+// .data[0x6c8c5c] = 1e 00 00 00; los otros cuatro campos del clima están en .bss.
+inline constexpr std::int32_t InitialLeafCount = 30;
+
 struct WorldRuntime
 {
     // DAT_006c9dd0, el mundo en curso. Quien llama a 0x61a560 lo escribe justo antes (05, "La carpeta
@@ -99,6 +103,9 @@ struct WorldRuntime
     // después del contador, y MuRet no corre esa parte (08 P-C41): queda en 0. La leen el paso de los objetos
     // (los techos de 0x604ab0, 0x604bc4 y 0x604c06) y el de las hojas (0x637082..0x6370e5), entre otros.
     std::int32_t heroCellLayer = 0;
+    // 0x75fdc38: meta del 0F. 0x75fdc3c es la cuenta actual, que ese paquete no cambia.
+    // Estado durable de 0x530490 para el futuro binder de hojas; recibir 0F no crea lluvia.
+    World::LeafWeather leafWeather{.firstWave = InitialLeafCount};
 };
 
 // 0x63722e y 0x59afd6: con el contador en más de esto, el juego no dibuja ni mueve al héroe.

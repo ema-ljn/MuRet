@@ -47,6 +47,7 @@
 #include "support/RecordingSink.h"
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
+#include "support/SkillFiles.h"
 #include "support/ScenePrinters.h"
 #include "support/SessionPackets.h"
 #include "support/TemporaryFolder.h"
@@ -214,6 +215,7 @@ struct Harness
         Client::Tests::WriteSceneFile(folder.Path(), "Gate.bmd", Client::Tests::GateTableBytes({}));
         Client::Tests::WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
         Client::Tests::WriteEmptyItemSetFiles(folder.Path());
+        Client::Tests::WriteEmptySkillFile(folder.Path());
         auto loaded = LoadGameData(folder.Path());
         EXPECT_TRUE(loaded.HasValue()) << loaded.Error();
         if (loaded.HasValue())

@@ -99,6 +99,8 @@ struct GameObjectPass
     std::uint8_t* ownRecordDepth = nullptr;
     // 0x5767b88: el reloj del mundo en ms, del que el 0x69 de Lorencia saca su V (0x603018).
     float worldClock = 0.0f;
+    // La tabla global compartida de 0x743a198. Sin ella queda el corte histórico de la primera gota.
+    World::Particles* particles = nullptr;
 };
 
 // 0x6046a0 en el juego (0x6374ce), en los mapas 0 y 2 (06 § Los objetos del juego): sector por sector, en
@@ -106,10 +108,11 @@ struct GameObjectPass
 // Devias sigue solo con el nivel del registro propio desde 0x50 (0x35 con la clase 3 o 4), con su acceso.
 // Después, 0x602e90: el dibujo de World::DrawOf, sin interpolar la animación (el 0x69 de Lorencia, con
 // DrawWaterspout); y, con un frame del original, 0x602ed0: un rand() y el caso de su tipo. El del 0x69 es
-// World::StepTheWaterspoutFrame, con `pass.worldClock`. Corta con la dirección en lo primero que MuRet no
-// tiene, después del rand() común: las gotas del 0x69 (0x6030c7, con sus rand()) y los otros casos de
-// 0x602ed0 (el 0x38 del 0; el 0x64 y el 0x67 del 2). Los objetos de antes quedan dibujados. Los demás
-// mapas cortan antes de mirar un objeto.
+// StepGameWaterspoutFrame, con el pool compartido de `pass.particles`: los dos 5f2/0 sobre los huesos
+// recién posados, con sus rand() intercalados. Un hueso no escrito necesita la pose global anterior y
+// corta después de sus sorteos; sin pool conserva el corte histórico en 0x6030c7. Los otros casos de
+// 0x602ed0 (el 0x38 del 0; el 0x64 y el 0x67 del 2) cortan con su dirección. Los objetos de antes quedan
+// dibujados. Los demás mapas cortan antes de mirar un objeto.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::WorldObject> objects,
                      const World::TerrainPolygon& polygon, const World::TerrainLighting* lighting,

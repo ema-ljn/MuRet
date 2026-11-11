@@ -59,6 +59,17 @@ Core::Expected<Regen, ProtocolError> ReadRegen(const Network::Packet& packet)
     return Regen{*x, *y, *map, *direction, *life, *mana, *bp, *experience, *zen};
 }
 
+Core::Expected<Weather, ProtocolError> ReadWeather(const Network::Packet& packet)
+{
+    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != WeatherOpcode)
+        return Core::Unexpected(ProtocolError::WrongPacket);
+    Core::ByteReader reader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
+    const auto code = reader.ReadU8();
+    if (!code)
+        return Core::Unexpected(ProtocolError::TooShort);
+    return Weather{*code};
+}
+
 Outgoing WriteGateRequest(std::uint8_t gate)
 {
     return EncryptedC1(Network::PacketWriter::C1(TeleportOpcode).PutU8(gate).PutU8(0).PutU8(0));

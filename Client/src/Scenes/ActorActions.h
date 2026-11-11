@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Terrain/TerrainGrid.h"
 #include "Scenes/SceneId.h"
 
 #include <cstdint>
@@ -35,6 +36,8 @@ struct ActorStopContext
     const Data::Tables::ItemTable* items = nullptr;
     // El rand() de la CRT: el sufijo saca uno siempre, y Fenrir hasta dos más (0x4f36be..0x4f3731).
     Render::Models::CrtRandom& random;
+    // 0x4f23c1: lee la celda visible en los mapas de vuelo de la escena 5.
+    const Data::Terrain::TerrainLayer<std::uint16_t>* terrainWalls = nullptr;
 };
 
 // Lo que 0x4f2250 pide afuera: el sonido de Fenrir del sufijo, 0x41ed10(id, personaje, 0) en 0x4f37a0.
@@ -47,7 +50,7 @@ struct ActorStopResult
 // 0x4f2250: Run en 0 y la acción de parado con 0x4ea030, según la mascota, la zona segura, las armas,
 // las alas y el mapa; después el sufijo de rand(). Lo que no está leído o MuRet no tiene corta con
 // error, después de lo que el original hace antes: un personaje que no es jugador, la celda de los
-// mapas de vuelo en la escena 5, sentarse (el C1 .. 18) y la tabla de sonidos de los subtipos 209 a
+// mapas de vuelo en la escena 5 sin terrainWalls, sentarse (el C1 .. 18) y la tabla de sonidos de los subtipos 209 a
 // 211.
 [[nodiscard]] Core::Expected<ActorStopResult, std::string> SetActorStop(ActorState& actor,
                                                                         const ActorStopContext& context);

@@ -100,8 +100,8 @@ TEST(ModelTextureCallsTest, TheHelpersTakeTheirTexturesFromItem)
     }
 }
 
-// Cada modelo de las dos tablas tiene sus texturas en alguno de los dos, salvo el esqueleto, que no
-// tiene mallas.
+// Las tres tablas de llamadas, salvo el esqueleto sin mallas y los Gate01/02: sus texturas se
+// asignan en 0x616370 (el segundo, desde 0x69) y 0x6179f0 (ambos, con Blood Castle).
 TEST(ModelTextureCallsTest, EveryModelButTheSkeletonGetsItsTextures)
 {
     std::set<std::uint16_t> called;
@@ -118,7 +118,9 @@ TEST(ModelTextureCallsTest, EveryModelButTheSkeletonGetsItsTextures)
     {
         for (const ModelFile& file : table)
         {
-            EXPECT_EQ(called.contains(file.model), file.model != PlayerSkeletonModel) << std::hex << file.model;
+            const bool worldGate = file.model == 0x10c || file.model == 0x10d;
+            EXPECT_EQ(called.contains(file.model), file.model != PlayerSkeletonModel && !worldGate)
+                << std::hex << file.model;
         }
     }
 }

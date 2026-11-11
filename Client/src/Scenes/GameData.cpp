@@ -7,6 +7,7 @@
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Tables/SkillTable.h"
 #include "Data/Text/FilterWords.h"
 #include "Data/Text/TextTable.h"
 
@@ -84,9 +85,9 @@ Core::Expected<Data::Tables::LoadedItemTable, std::string> LoadItems(const std::
     return std::move(table).Value();
 }
 
-// Una tabla de los conjuntos: 0x40c660 y 0x40c850 leen un prefijo fijo, los registros y el checksum.
+// Skill y conjuntos: 0x54acf0, 0x40c660 y 0x40c850 leen registros y checksum de un prefijo fijo.
 template <typename Table, typename Loader>
-Core::Expected<Table, std::string> LoadItemSetTable(const std::filesystem::path& dataRoot, std::string_view name,
+Core::Expected<Table, std::string> LoadCheckedTable(const std::filesystem::path& dataRoot, std::string_view name,
                                                     std::size_t recordsSize, Loader load)
 {
     std::error_code error;
@@ -117,13 +118,13 @@ Core::Expected<Table, std::string> LoadItemSetTable(const std::filesystem::path&
 // después los conjuntos.
 Core::Expected<Data::Tables::ItemSetTables, std::string> LoadItemSets(const std::filesystem::path& dataRoot)
 {
-    auto types = LoadItemSetTable<Data::Tables::ItemSetTypeTable>(
+    auto types = LoadCheckedTable<Data::Tables::ItemSetTypeTable>(
         dataRoot, ItemSetTypeFile, Data::Tables::ItemSetTypeTableSize, Data::Tables::LoadItemSetTypeTable);
     if (!types.HasValue())
     {
         return Core::Unexpected(std::move(types).Error());
     }
-    auto options = LoadItemSetTable<Data::Tables::ItemSetOptionTable>(
+    auto options = LoadCheckedTable<Data::Tables::ItemSetOptionTable>(
         dataRoot, ItemSetOptionFile, Data::Tables::ItemSetOptionTableSize, Data::Tables::LoadItemSetOptionTable);
     if (!options.HasValue())
     {
@@ -216,6 +217,13 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(itemSets).Error());
     }
     data.itemSets.emplace(std::move(itemSets).Value());
+    auto skills = LoadCheckedTable<Data::Tables::SkillTable>(dataRoot, SkillTableFile, Data::Tables::SkillTableSize,
+                                                             Data::Tables::LoadSkillTable);
+    if (!skills.HasValue())
+    {
+        return Core::Unexpected(std::move(skills).Error());
+    }
+    data.skills.emplace(std::move(skills).Value());
     return data;
 }
 } // namespace Client::Scenes

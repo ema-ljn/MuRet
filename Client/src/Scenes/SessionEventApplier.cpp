@@ -6,12 +6,17 @@
 #include "Core/Expected.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/World.h"
 #include "Scenes/InventoryReply.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/ReturnToSelection.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
+#include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
+#include "World/LeafWeather.h"
 
+#include <cstdint>
 #include <span>
 #include <string>
 #include <variant>
@@ -20,6 +25,19 @@ namespace Client::Scenes
 {
 namespace
 {
+void ApplyWeather(const Protocol::World::Weather& received, World::LeafWeather& weather)
+{
+    // 0x4e36c4/0x4e36ed: sólo target; el default de 0x4e5b4a no escribe nada ni pide rand().
+    constexpr std::uint8_t NibbleShift = 4;
+    constexpr std::uint8_t IntensityMask = 0x0f;
+    constexpr std::int32_t TargetPerIntensity = 6;
+    const auto mode = received.code >> NibbleShift;
+    if (mode == 0)
+        weather.target = 0;
+    else if (mode == 1)
+        weather.target = static_cast<std::int32_t>(received.code & IntensityMask) * TargetPerIntensity;
+}
+
 // El 0x3d de la respuesta va a la sesión que la está aplicando.
 class SessionPublisher final : public IWorldEntryPublisher
 {
@@ -47,6 +65,11 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyCharacter(const App:
 Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::WorldEvent& event,
                                                                   App::ServerSession& session)
 {
+    if (const auto* weather = std::get_if<Protocol::World::Weather>(&event))
+    {
+        ApplyWeather(*weather, m_resources.world.Runtime().leafWeather);
+        return {};
+    }
     if (std::holds_alternative<App::ClearInventoryReceived>(event))
     {
         ClearForInventoryReply(m_resources);

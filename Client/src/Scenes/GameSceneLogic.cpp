@@ -6,8 +6,10 @@
 #include "Scenes/GameRibbonCreation.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaEffects.h"
+#include "Scenes/GameCharacterEffects.h"
 #include "Scenes/GameFloorItems.h"
 #include "World/GameModelEffects.h"
+#include "World/ModelEffects.h"
 
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
@@ -97,6 +99,14 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
     {
         auto& effect = effects[slot];
         const auto* skeleton = m_worldModels.SkeletonOf(static_cast<std::uint16_t>(effect.type));
+        // 0x52a9ad: el 5ac/3 del conjunto completo lee al personaje dueño y crea joints, fuera de World.
+        if (effect.type == World::IcarusFlareEffect && effect.subtype == World::FullSetFlareSubtype)
+        {
+            if (auto stepped = StepFullSetFlare(effect, m_context.world->DrawTail().joints, m_context.cloth->random);
+                !stepped.HasValue())
+                return stepped;
+            continue;
+        }
         if (effect.type == 0xc2 && effect.subtype == 3)
         {
             if (auto stepped = StepFaunaLightning(effect, slot, skeleton, m_context.world->Particles(), m_sprites,
@@ -131,9 +141,9 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
         return stepped;
     // 0x63712d: 0x549090, las marcas del suelo, sin rand(). En la espera también corre, y acá no: la tabla
     // sigue vacía mientras MuRet no tenga quién la llene (08 P-C49).
-    if (auto particles =
-            StepGameParticles(m_context.world->Particles(), m_context.cloth->random, runtime.map, terrainHeight,
-                              worldClock, ParticleOwnersAmong(m_context.world->Map().objects));
+    if (auto particles = StepGameParticles(
+            m_context.world->Particles(), m_context.cloth->random, runtime.map, terrainHeight, worldClock,
+            ParticleOwnersAmong(m_context.world->Map().objects), ParticleActorActionsAmong(m_context.world->Actors()));
         !particles.HasValue())
     {
         return particles;

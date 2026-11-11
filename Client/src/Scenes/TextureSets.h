@@ -53,7 +53,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
 // Lo que cuelga de un jugador (0x509340 y 0x50ba30) pide además Shiny03 en 0x5fe (61d937) e Impack03 de
 // Object9 en 0x5ad (61e799), del mismo lazo sin ramas de 0x61ccb0 y con el mismo sampling.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 27> EffectTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 28> EffectTextureSet{{
     {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
     // 0x61d67f: Flame01 en 0x5de, de la llama 5de/7 del 0x43 del 54.
     {"Effect\\Flame01.jpg", 0x5de, TextureSetsDetail::LinearClamp},
@@ -86,17 +86,22 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 27> EffectTextureSe
     // 0x61d5a0 y 0x61d893, LINEAR/CLAMP: la 6ec/5 del 0x39 y el 0x47 de Crywolf y la burbuja 698/0 de su agua.
     {"Effect\\fantaF.jpg", 0x6ec, TextureSetsDetail::LinearClamp},
     {"Effect\\coll.jpg", 0x698, TextureSetsDetail::LinearClamp},
+    // 0x61e7bd (0x63b870, GL_LINEAR y GL_CLAMP): cra_04 en 0x5ae, la textura (+0x8) de la 6f1/3 de las botas del
+    // conjunto completo (0x544095).
+    {"Effect\\cra_04.jpg", 0x5ae, TextureSetsDetail::LinearClamp},
 }};
 
 // Recursos de los joints que ya crean los peces y pájaros: 61d858/61dab9/61dad8/61dce2. 61d5db sube
 // JointSpirit02 a 0x6ee (LINEAR/CLAMP): el meteoro 6ee/9 de Chaos Castle (0x4054ad).
 // Spark01 (0x617) ya está en EffectTextureSet. Las cintas sin creador portado no se cargan acá.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 5> FaunaJointTextureSet{{
+// 0x61daef sube JointEnergy01 a 0x619 (LINEAR/CLAMP): el 619/9 que suelta el 5ac/3 del conjunto completo.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 6> FaunaJointTextureSet{{
     {"Effect\\JointSpirit02.jpg", 0x6ee, TextureSetsDetail::LinearClamp},
     {"Effect\\ScolTail.jpg", 0x697, TextureSetsDetail::LinearClamp},
     {"Effect\\JointSpirit01.jpg", 0x613, TextureSetsDetail::LinearClamp},
     {"Effect\\JointLaser01.jpg", 0x618, TextureSetsDetail::LinearClamp},
     {"Effect\\Flare02.jpg", 0x610, TextureSetsDetail::LinearRepeat},
+    {"Effect\\JointEnergy01.jpg", 0x619, TextureSetsDetail::LinearClamp},
 }};
 
 // Cola P-C55:61d511/61d9b4/61d9ef/61da0b/61da2a/61da9d/61dba2/61dcc3.

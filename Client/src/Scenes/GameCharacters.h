@@ -28,6 +28,7 @@ struct ClothWorld;
 namespace Client::World
 {
 class FrameSprites;
+class ModelEffects;
 class Particles;
 struct TerrainLighting;
 struct TerrainPolygon;
@@ -59,9 +60,11 @@ struct GameCharacterPass
     World::FrameSprites* sprites = nullptr;
     // El buffer global de la pose (0x68b181c) y los globales de 0x60b3d0 que presta el dueño del frame.
     FaunaDrawCarry* poseCarry = nullptr;
-    // Los joints (0x530860) y las partículas (0x53fe70) del frame, para lo que cuelga.
+    // Los joints (0x530860) y las partículas (0x53fe70) del frame, para lo que cuelga y el conjunto completo, y los
+    // efectos con modelo (0x518cf0), para el 5ac/3 del contador de +0x35c.
     std::span<JointState> joints{};
     World::Particles* particles = nullptr;
+    World::ModelEffects* effects = nullptr;
     const ItemDrawContext* itemContext = nullptr;
     Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock;
     std::function<void(std::uint16_t, std::span<const Render::Models::BoneTransform>,

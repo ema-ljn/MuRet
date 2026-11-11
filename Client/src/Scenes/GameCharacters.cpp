@@ -237,7 +237,7 @@ Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const I
 // original, sobre una copia del personaje y del rand(): lo que cuelga y los contadores quedan como los dejó
 // el último frame.
 Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,
-                                              ActorState& actor, const DrawnCharacter& character,
+                                              ActorState& actor, std::size_t slot, const DrawnCharacter& character,
                                               const GameCharacterPass& pass, const FullSetScan& scan,
                                               bool originalFrame)
 {
@@ -274,6 +274,10 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
     const GameCharacterEffectsPass effectsPass{.body = body,
                                                .random = random,
                                                .sprites = pass.sprites,
+                                               .particles = pass.particles,
+                                               .joints = pass.joints,
+                                               .effects = pass.effects,
+                                               .slot = slot,
                                                .scan = scan,
                                                .worldClock = worldClock,
                                                .map = map,
@@ -328,7 +332,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
         return supported;
     // 0x50db94: la luz de lo que cuelga (+0x3b4), la del terreno o el rojo de los PK.
     actor.drawnLight = actor.pk >= RedPk ? glm::vec3{1.0f, 0.1f, 0.1f} : terrainLight.Value() + actor.light;
-    return DrawTheTail(batch, models, world, actor, character, pass, scan, originalFrame);
+    return DrawTheTail(batch, models, world, actor, slot, character, pass, scan, originalFrame);
 }
 
 Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,

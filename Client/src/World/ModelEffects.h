@@ -41,6 +41,9 @@ inline constexpr std::int16_t SecondStoneChipEffect = 0xc9;
 // que sube soltando partículas 5ac/1.
 inline constexpr std::int16_t IcarusCloudEffect = 0xbb;
 inline constexpr std::int16_t IcarusFlareEffect = 0x5ac;
+// El 0x5ac/3 del conjunto completo (0x50fdc3): cada 100 dibujos del personaje con +0x358, con él de dueño. No se
+// mueve solo: cada 15 pasos se corre alrededor del dueño y suelta un joint 619/9 (0x52a9ad).
+inline constexpr std::int32_t FullSetFlareSubtype = 3;
 // El de Aida (0x42593f): el 0x46 crea el 0xb3, un modelo que Aida no carga (en Atlans, Object8\Fish02), que
 // vaga cerca de donde nació y suelta partículas 5ac/9.
 inline constexpr std::int16_t AidaWispEffect = 0xb3;
@@ -84,6 +87,8 @@ struct ModelEffect
     const std::uint8_t* itemLevel = nullptr; // +108→+8e; no inferir desde ActorState.
     // +0x108 distinto de 0: el efecto tiene dueño. El plano 0x135 sólo se mueve con dueño (0x529745).
     bool hasOwner = false;
+    // +0x108 como dueño opaco, para los pasos que lo leen fuera de World: el ActorState del personaje del 5ac/3.
+    void* ownerContext = nullptr;
 };
 
 class ModelEffects
@@ -156,6 +161,10 @@ public:
     std::optional<std::size_t> CreateFadingDecal(const glm::vec3& position, const glm::vec3& angles,
                                                  const glm::vec3& light, std::int32_t subtype,
                                                  std::uint16_t disturbance);
+    // 0x518cf0(0x5ac, posición, ángulos, luz, 3, personaje, −1, 0, 0, 0, 0) → 0x51e489: el prefijo común (+0x8a en
+    // −1, escala 0,9) con el personaje de dueño (+0x108), vida 30 y +0xd8 en 0. Sin rand(); lleno, ninguno.
+    std::optional<std::size_t> CreateFullSetFlare(const glm::vec3& position, const glm::vec3& angles,
+                                                  const glm::vec3& light, void* owner);
     // 0x6070a0: sólo apaga el byte vivo de cada lugar (Q-C138).
     void Clear();
 

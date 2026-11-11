@@ -22,7 +22,8 @@ class Particles;
 } // namespace Client::World
 
 // 530860: ownerContext es FaunaObject durable salvo613/4, 614/10 y614/14, donde permanece opaco, y el 618/0x11 y el
-// 610/4 de lo que cuelga de un jugador, donde es el ActorState del personaje.
+// 610/4 de lo que cuelga de un jugador, el 60f/0, el 60f/0x12 y el 610/7 del conjunto completo y el 619/9 de su 5ac/3,
+// donde es el ActorState del personaje.
 // Se escribe sobre el primer muerto sin reconstruirlo; pool lleno no lee los argumentos ni RNG.
 namespace Client::Scenes
 {
@@ -31,7 +32,9 @@ CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& r
                  Render::Models::CrtRandom& random);
 // 535840: 697/0 y618/4 siguen el+40 del dueño;610/8 sigue position con z300;
 // 10f/3 usa vida/RNG, seno y color del dueño.614/10 y 614/14 giran e iteran su cola sin leer al dueño;
-// el 618/0x11 sigue el +0x40 del personaje y el 610/4 va de su +0x17c a su posición;
+// el 618/0x11 sigue el +0x40 del personaje y el 610/4 va de su +0x17c a su posición; el 60f/0 y el 60f/0x12 giran
+// alrededor de su destino y, según la acción del personaje, pasan al 60f/1, que sólo se apaga; el 610/7 se mece desde
+// su partida y el 619/9 gira alrededor de la posición del personaje, leída en vivo;
 // sólo la llegada con width50 necesita particles, y el humo usa worldClock.
 // El overload sin RNG conserva la frontera535f18 tras movimiento y comprobación del dueño. El 615/2 de Chaos
 // Castle pide los sprites del frame (0x5491e0) y las partículas.

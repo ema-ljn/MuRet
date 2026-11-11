@@ -915,9 +915,43 @@ constexpr float TorchOrbitRiseRange = 5.0f;
 constexpr float TorchOrbitShrink = 0.004f; // 006b89e8 bits3b83126f.
 constexpr std::int32_t TorchOrbitFadeLife = 30;
 
+// 0x542f74 y 0x5471bd: la /0 nace y gira con las mismas instrucciones que la /3 (y que la /6, sin portar).
+constexpr std::int32_t SetOrbitSubtype = 0;
+// 0x547380: la /1 en que se convierte la /0. 0x53fe70 no la crea; su paso sólo apaga (0x5472da).
+constexpr std::int32_t FallenOrbitSubtype = 1;
+constexpr std::int32_t FallenOrbitLife = 20;
+
 bool IsOrbitSubtype(std::int32_t subtype)
 {
-    return subtype == OrbitSubtype || subtype == TorchOrbitSubtype || subtype == AnchoredOrbitSubtype;
+    return subtype == SetOrbitSubtype || subtype == OrbitSubtype || subtype == TorchOrbitSubtype ||
+           subtype == AnchoredOrbitSubtype;
+}
+
+bool IsSteppedOrbitSubtype(std::int32_t subtype)
+{
+    return IsOrbitSubtype(subtype) || subtype == FallenOrbitSubtype;
+}
+
+// 0x547354..0x5473a9: la /0 lee la acción (+0x111) del personaje dueño (+0x40). En [0xd, 0x21] o [0x38, 0x3c] pasa a
+// la /1, con la vida en 20 si tenía más, la velocidad (+0x54, donde estaba la fase) en 0 y la partida en la posición.
+Core::Expected<void, ParticleError> FallTheSetOrbit(Particle& particle, const ParticleActorActions& actorActions)
+{
+    if (particle.typedOwner.kind != ParticleOwnerKind::Actor || !actorActions)
+        return Core::Unexpected(ParticleError::MissingOwner);
+    const std::optional<std::uint8_t> action = actorActions(particle.typedOwner.identity);
+    if (!action)
+        return Core::Unexpected(ParticleError::MissingOwner);
+    constexpr std::uint8_t FirstFall = 0xd, LastFall = 0x21, SecondFirstFall = 0x38, SecondLastFall = 0x3c;
+    const bool falls =
+        (*action >= FirstFall && *action <= LastFall) || (*action >= SecondFirstFall && *action <= SecondLastFall);
+    if (!falls)
+        return {};
+    particle.subtype = FallenOrbitSubtype;
+    if (particle.life > FallenOrbitLife)
+        particle.life = FallenOrbitLife;
+    particle.velocity = glm::vec3(0.0f);
+    particle.start = particle.position;
+    return {};
 }
 
 double OrbitArgument(const Particle& particle)
@@ -980,8 +1014,17 @@ Core::Expected<void, ParticleError> CreateTheOrbit(Particle& particle, float inp
 }
 
 // Step5446e0 §60f/3: leídos los selectores tras el helper; sin cargas de reloj nuevas.
-Core::Expected<void, ParticleError> StepTheOrbit(Particle& particle, IParticleTrigonometry& trigonometry)
+Core::Expected<void, ParticleError> StepTheOrbit(Particle& particle, IParticleTrigonometry& trigonometry,
+                                                 const ParticleActorActions& actorActions)
 {
+    if (particle.subtype == FallenOrbitSubtype)
+    {
+        // 0x5472da..0x547351: sin moverse, la luz por 0,9090909f con la vida en 20 o menos.
+        if (particle.life <= OrbitFadeLife)
+            for (int axis = 0; axis < 3; ++axis)
+                particle.light[axis] = F32(static_cast<double>(particle.light[axis]) * static_cast<double>(OrbitFade));
+        return {};
+    }
     if (particle.subtype == AnchoredOrbitSubtype)
     {
         // 0x547286..0x5472a5: la /10 calcula el argumento y lo tira (fstp st(0)); la x y la y vuelven a la partida.
@@ -1021,6 +1064,8 @@ Core::Expected<void, ParticleError> StepTheOrbit(Particle& particle, IParticleTr
         particle.light.y = F32(static_cast<double>(particle.light.y) * static_cast<double>(OrbitFade));
         particle.light.z = F32(static_cast<double>(particle.light.z) * static_cast<double>(OrbitFade));
     }
+    if (particle.subtype == SetOrbitSubtype)
+        return FallTheSetOrbit(particle, actorActions);
     return {};
 }
 } // namespace
@@ -1044,10 +1089,11 @@ Particles::CreateChecked(std::int32_t type, const glm::vec3& position, const glm
 Core::Expected<std::optional<std::size_t>, ParticleError>
 Particles::CreateChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                          std::int32_t subtype, float scale, std::reference_wrapper<const float> worldClock,
-                         Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry& trigonometry)
+                         Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry& trigonometry,
+                         ParticleOwner typedOwner)
 {
     return CreateImpl(type, position, angles, light, subtype, scale, 0.0f, &worldClock.get(), random, owner,
-                      &trigonometry);
+                      &trigonometry, std::nullopt, typedOwner);
 }
 
 Core::Expected<std::optional<std::size_t>, ParticleError>
@@ -1143,6 +1189,7 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (orbit)
         {
+            particle.typedOwner = typedOwner;
             const auto created = CreateTheOrbit(particle, scale, random, *trigonometry);
             if (!created.HasValue())
             {
@@ -1299,7 +1346,8 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
                                                       const float* worldClock, const std::int32_t* map,
                                                       IParticleTrigonometry* trigonometry,
                                                       const ParticleTerrainHeight& terrainHeight,
-                                                      const ParticleObjectOwners& owners)
+                                                      const ParticleObjectOwners& owners,
+                                                      const ParticleActorActions& actorActions)
 {
     // Los punteros privados distinguen exclusivamente legacy de la API pública requerida.
     // El overload vivo siempre proporciona reloj y evaluador; no hay servicio opcional público.
@@ -1347,11 +1395,11 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
         }
         if (trigonometry != nullptr && particle.type == OrbitParticle)
         {
-            if (!IsOrbitSubtype(particle.subtype))
+            if (!IsSteppedOrbitSubtype(particle.subtype))
             {
                 return Core::Unexpected(ParticleError::UnsupportedSubtype);
             }
-            const auto stepped = StepTheOrbit(particle, *trigonometry);
+            const auto stepped = StepTheOrbit(particle, *trigonometry, actorActions);
             if (!stepped.HasValue())
             {
                 return stepped;
@@ -1466,16 +1514,18 @@ Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, R
                                                          const std::int32_t* map,
                                                          const ParticleTerrainHeight& terrainHeight)
 {
-    return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight, {});
+    return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight, {}, {});
 }
 
 Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
                                                          std::reference_wrapper<const float> worldClock,
                                                          const std::int32_t* map, IParticleTrigonometry& trigonometry,
                                                          const ParticleTerrainHeight& terrainHeight,
-                                                         const ParticleObjectOwners& owners)
+                                                         const ParticleObjectOwners& owners,
+                                                         const ParticleActorActions& actorActions)
 {
-    return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners);
+    return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners,
+                             actorActions);
 }
 
 std::optional<ParticleError> StepParticles(Particles& particles, Render::Models::CrtRandom& random)

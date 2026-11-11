@@ -185,6 +185,7 @@ void InitializeCommonEffect(ModelEffect& effect, std::int16_t type, const glm::v
     effect.velocity = glm::vec3(0.0f);
     effect.previousPosition = position;
     effect.hasOwner = false;
+    effect.ownerContext = nullptr;
 }
 
 // Lo común de 0x518d0a..0x518e3c (la escala, la posición, los ángulos, la luz y +0xd8 en 0,3) y el caso
@@ -488,6 +489,26 @@ std::optional<std::size_t> ModelEffects::CreateGatePlane(const glm::vec3& positi
         effect.life = GatePlaneLife;
         effect.objectState.light = GatePlaneMeshLight;
         effect.start = effect.transform.position;
+        return slot;
+    }
+    return std::nullopt;
+}
+
+std::optional<std::size_t> ModelEffects::CreateFullSetFlare(const glm::vec3& position, const glm::vec3& angles,
+                                                            const glm::vec3& light, void* owner)
+{
+    constexpr std::int32_t FullSetFlareLife = 30; // 0x51e492.
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, IcarusFlareEffect, position, angles, light);
+        effect.subtype = FullSetFlareSubtype;
+        effect.hasOwner = owner != nullptr;
+        effect.ownerContext = owner;
+        effect.life = FullSetFlareLife;
+        effect.speed = 0.0f; // 0x51e499.
         return slot;
     }
     return std::nullopt;

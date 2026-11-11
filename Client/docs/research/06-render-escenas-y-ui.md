@@ -4962,17 +4962,43 @@ frame del original:
 - **Chaos Castle** (`0x50fd61`): en los mapas 18 a 23 salta al final, sin el contador ni el conjunto.
 - **El contador** (`0x50fd74`): con `+0x358` (el conjunto antiguo de `0x40d010`), `+0x35c` cuenta cada
   dibujo; con la acción por debajo de `0xd` y 100 o más, el efecto `5ac/3` en el personaje con
-  (0,2; 0,7; 0,9) y el contador en 0 (Q-C353). El efecto no está portado: corta en `0x50fdc3`.
+  (0,2; 0,7; 0,9) y el contador en 0 (Q-C353). `ModelEffects::CreateFullSetFlare` lo crea como `0x518cf0` →
+  `0x51e489` (vida 30, `+0xd8` en 0, el personaje de dueño en `ModelEffect::ownerContext`), sólo en un frame
+  del original; sin la tabla de efectos corta en `0x50fdc3`. Su paso (`0x52a9ad`, `Scenes::StepFullSetFlare`,
+  desde `GameScene::StepTheModelEffects`): el `rand()` de la luz de todo efecto vivo (`0x5208c5`), `+0xd8` uno
+  más y, con la vida múltiplo de 15 y dueño, el giro z 180 más, la posición a 50 del personaje (leído en
+  vivo) con el seno de la suma sin redondear y el coseno del float guardado (Q-C380), 20 más arriba, y ahí
+  el joint `619/9`. Después la cola común, sin animación ni velocidad. Vive 30 pasos y suelta dos `619/9`
+  (Q-C387); `0x52da84` no lo dibuja.
 - **El conjunto completo** (`0x50fddb`, lo que devolvió `0x505820`): el color de `0x608e00` con las botas
   (`+0x298`) y el alpha por 0,5, con un `fstp` por componente; sin `0x4000`, flare01 (`0x5ac`) de 1,3 en
   los huesos b, b − 6 y b − 7 de cada mano. Con el nivel de `[0x743a178]` por encima de 9: las botas de
   `0x182f` a `0x1833` cambian la luz propia por la suya y sacan, por nivel, `rand() & 3`, `rand() % 3`,
-  `rand() & 1` o nada (13) para tres partículas `6f1/3` en (0, ∓18 o ∓20, 50) y (0, 0, 70) del hueso 0
-  (cortan en `0x510158`, `0x51008d` y `0x51020c`). Después, con `rand() % 20` en 0 y la luz en 1: el 10, la
-  partícula `60f/0` de 0,19f; el 11, con `rand() & 7` la partícula y si no el joint `60f/0`; el 12, con los
-  pasos múltiplos de 6 dos joints `60f/0x12` y si no, de 3, la partícula; el 13, los joints con 6 y con 4
-  la partícula y el joint `610/7`. El 14 y el 15, nada (Q-C351). Cada creación corta con su dirección
-  (`0x510339`, `0x51037c`, `0x5103be`, `0x510435` y `0x51048b`), después de sus `rand()`.
+  `rand() & 1` o nada (13) para tres partículas `6f1/3` en (0, ∓18 o ∓20, 50) y (0, 0, 70) del hueso 0,
+  con la luz de la bota (`0x510158`, `0x51008d` y `0x51020c`). Después, con `rand() % 20` en 0 y la luz en
+  1: el 10, la órbita `60f/0` de 0,19f; el 11, con `rand() & 7` la órbita y si no el joint `60f/0` de ancho
+  10; el 12, con los pasos múltiplos de 6 dos joints `60f/0x12` de ancho 20 (skill 0 y 1) y si no, de 3, la
+  órbita; el 13, los dos `60f/0x12` con 6 y, aparte, con 4 la órbita y el joint `610/7` (Q-C381). El 14 y
+  el 15, nada (Q-C351). Entre frames sólo corren los `rand()` que eligen; lo que nace en las partículas y
+  los joints, sólo en un frame del original. Sin el pool de partículas o sin los joints, corta con la
+  dirección de la llamada (`0x510339`, `0x51037c`, `0x5103be`, `0x510435`, `0x51048b` y `0x5104a8`).
+- **Las partículas del conjunto.** La `6f1/3` (`0x543f49..0x544153`) nace como la neblina `6f1/0` (giro,
+  escala, caída, la luz de la escena y un corrimiento) y encima la textura cra_04 (`0x5ae`), la luz del
+  argumento, vida 12, otro giro, vz 2, la escala `(rand() % 3 + 3) · 0,18f` y otro corrimiento: once
+  `rand()` (Q-C385). Su paso (`0x547fe8..0x5480ed`) es el de la neblina más la escala −0,038f, vz la suma
+  sin redondear menos 0,02f y la luz por 0,98039216f. La órbita `60f/0` (`0x542f74`, `0x5471bd`) nace y
+  gira como la `60f/3`, con el lugar del personaje en el pool de dueño (`ParticleOwner`); después de girar,
+  con la acción del dueño (`+0x111`) en [`0xd`, `0x21`] o [`0x38`, `0x3c`] pasa a la `60f/1`, que se queda
+  donde cayó y se apaga (`0x54735c`, Q-C382). `GameScene` le pasa la acción con
+  `ParticleActorActionsAmong`; sin ella, `MissingOwner`.
+- **Los joints del conjunto** (`0x530860` y `0x535840`, con el personaje de dueño): el `60f/0` y el
+  `60f/0x12` (`0x5341fc`) giran a la velocidad alrededor del destino con `(vida + vy) · 0,1f` (la `0x12`,
+  con la vida doble, al revés con el skill 1, y crece) y, con el ancho debajo de 40 y la acción del dueño
+  en los mismos rangos, pasan al `60f/1`, sin cola, que no se mueve y se apaga (Q-C383); el `610/7`
+  (`0x531e2c`) nace a 40 del segundo punto con `fcos` y `fsin` de `rand() % 360` en radianes (Q-C384) y se
+  mece desde ahí con `sen(vida · 0,4f) · vx` mientras sube; el `619/9` (`0x53254f`, `0x5387a9`) gira a vx
+  del personaje, leído en vivo, corre la cola lo que el personaje se movió y muere cuando vx baja de 0
+  (Q-C386). El `60f/1` con cola corta en `0x53c393`.
 - **El efecto de `+0x369`** (`0x510a7a`, `0x510ef0`): en la escena 5, con `+0x88` en 1 y fuera de los
   mapas 11 a 23 y 30, con `+0x369` en 1 el efecto `0x140` cada 5000 ms de `+0x36c` (Q-C352). `+0x369` es de
   los paquetes (`0x4d9260`): corta en `0x510f4d`.
@@ -4985,8 +5011,9 @@ frame del original:
   del original guarda la pose para la chispa.
 
 `GameCharacterEffectsTest` y `GameRavenTest` cubren cada rama con sus sprites, sus `rand()` (CRT con la
-semilla 1) y sus cortes; `GameCharacterRenderTest` y `UnarmedGameCharacterTest`, que la cola no corta sin
-las ramas.
+semilla 1), las partículas y los joints de cada nivel del 10 al 13, el `5ac/3` y sus cortes;
+`FullSetParticlesTest` y `FullSetJointsTest`, el nacimiento y el paso de cada partícula y cada joint del
+conjunto; `GameCharacterRenderTest` y `UnarmedGameCharacterTest`, que la cola no corta sin las ramas.
 
 ### Los objetos del juego
 

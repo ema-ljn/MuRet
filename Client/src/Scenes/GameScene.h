@@ -8,6 +8,7 @@
 #include "World/SphereFrustum.h"
 #include "World/TerrainPickingState.h"
 #include "Core/Expected.h"
+#include "Core/IClock.h"
 #include "Data/Tables/ItemTable.h"
 #include "Input/InputState.h"
 #include "Render/Models/Animation.h"

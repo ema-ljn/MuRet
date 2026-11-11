@@ -304,16 +304,21 @@ protected:
 // con caso a menos de 1.500, y la cámara ve el 3 y el 0x35 que emiten y el 0x34 que se dibuja dos veces. Devil Square
 // (World10, también por el 32) no tiene zona segura; 122..125 × 174..177 es suelo libre con 38 del 2, que llueve. Los
 // Blood Castle (World12): 12..15 × 90..93 es suelo libre con cuatro 0xd (el sprite que pulsa) y cuatro 0x25 (las
-// antorchas) a menos de 1.500.
+// antorchas) a menos de 1.500. En Castle Siege (World31), 92..95 × 98..101 es suelo libre (sin 0x04 ni 0x08 en el
+// .att) fuera de la niebla del 30 y sin el 0 ni el 0x34, que sueltan partículas que MuRet no crea, a menos de 2.200;
+// la cámara ve el 0xc (la bandera de 0x42cc10), dos 0x29, las puertas 0x3e y 0x3f y un lancero 0x19f.
 TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenCompleteFrames)
 {
     const auto map = static_cast<std::uint8_t>(GetParam());
     const bool devilSquare = map == 9 || map == 32;
     const bool bloodCastle = map >= 11 && map <= 17;
     const auto start = [map, devilSquare, bloodCastle](std::uint8_t lostTower, std::uint8_t arena, std::uint8_t atlans,
-                                                       std::uint8_t icarus, std::uint8_t trials, std::uint8_t aida,
-                                                       std::uint8_t devil, std::uint8_t blood) -> std::uint8_t
+                                                       std::uint8_t icarus, std::uint8_t siege, std::uint8_t trials,
+                                                       std::uint8_t aida, std::uint8_t devil,
+                                                       std::uint8_t blood) -> std::uint8_t
     {
+        if (map == 30)
+            return siege;
         if (map == 4)
             return lostTower;
         if (map == 6)
@@ -330,8 +335,8 @@ TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenC
             return trials;
         return map == 33 ? aida : 70;
     };
-    const std::uint8_t x = start(205, 62, 226, 20, 149, 104, 122, 12);
-    const std::uint8_t y = start(87, 47, 103, 29, 104, 165, 174, 90);
+    const std::uint8_t x = start(205, 62, 226, 20, 92, 149, 104, 122, 12);
+    const std::uint8_t y = start(87, 47, 103, 29, 98, 104, 165, 174, 90);
     const auto far = [](std::uint8_t cell) { return static_cast<std::uint8_t>(cell + 3); };
     Teleport(map, x, y);
     ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
@@ -343,9 +348,10 @@ TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenC
     ASSERT_NO_FATAL_FAILURE(ClickCell(far(x), far(y)));
     ASSERT_NO_FATAL_FAILURE(ExpectWalkPacket());
     ASSERT_NO_FATAL_FAILURE(FinishWalk(far(x), far(y)));
-    if (map == 6 || map == 7 || devilSquare || bloodCastle || map == 31 || map == 33)
+    if (map == 6 || map == 7 || devilSquare || bloodCastle || map == 30 || map == 31 || map == 33)
     {
         const auto types = map == 6      ? std::array<std::int16_t, 2>{9, 0x15}
+                           : map == 30   ? std::array<std::int16_t, 2>{0xc, 0x19f}
                            : map == 7    ? std::array<std::int16_t, 2>{0x16, 0x20}
                            : devilSquare ? std::array<std::int16_t, 2>{2, 2}
                            : bloodCastle ? std::array<std::int16_t, 2>{0xd, 0x25}
@@ -356,6 +362,20 @@ TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenC
                                             { return object.alive && object.seen && object.type == type; }))
                 << type;
     }
+}
+
+// 0x42a760: la carga del 30 por el 1C manda el C1 04 B9 02 (XOR32) antes del F3 12 de 0x4c6e10.
+TEST_F(GameT16Journey, CastleSiegeAsksForItsStateBeforeConfirmingTheTeleport)
+{
+    static_cast<void>(Sent());
+    Teleport(30, 92, 98);
+    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_world->Runtime().map, 30);
+    const auto sent = Sent();
+    ASSERT_EQ(sent.packets.size(), 2u);
+    EXPECT_EQ(std::vector<std::byte>(sent.packets[0].Bytes().begin(), sent.packets[0].Bytes().end()),
+              Client::Tests::Bytes({0xc1, 4, 0xb9, 2}));
+    EXPECT_EQ(sent.packets[1].Opcode(), 0xf3);
 }
 
 // 0x635b3d, 0x5fb570 y 0x6371a0 (Q-C152): en la Arena, con "webzen" en el nombre del héroe, la cámara de
@@ -546,7 +566,7 @@ INSTANTIATE_TEST_SUITE_P(AllSevenKalimaAliases, GameT16KalimaWalk, ::testing::Va
                          { return "Map" + std::to_string(parameter.param); });
 
 INSTANTIATE_TEST_SUITE_P(CompleteSceneMaps, GameT16MapWalk,
-                         ::testing::Values(0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 31, 32, 33),
+                         ::testing::Values(0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 30, 31, 32, 33),
                          [](const ::testing::TestParamInfo<int>& mapParameter)
                          { return "Map" + std::to_string(mapParameter.param); });
 INSTANTIATE_TEST_SUITE_P(CompleteSceneMapsWithSafeZone, GameT16SafeZoneWalk,

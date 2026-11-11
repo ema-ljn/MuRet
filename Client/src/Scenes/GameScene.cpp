@@ -57,6 +57,7 @@
 #include "World/SphereFrustum.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
+#include "World/CastleSiegeObjectStep.h"
 #include "World/ChaosCastle.h"
 #include "World/EventMapObjectStep.h"
 #include "World/TerrainHeight.h"
@@ -99,7 +100,7 @@ constexpr std::int32_t WithoutTerrainMap = 10;
 // 0x5f8928..0x5f8947: 0x6c9d58, el pase del pasto, queda en 0 en los mapas 18 a 23 y en el 30.
 constexpr std::int32_t FirstWithoutGrassMap = 18;
 constexpr std::int32_t LastWithoutGrassMap = 23;
-// 0x63741d: en el mapa 30 el dibujo pone su luz (0x42b0a0).
+// 0x63741d: en el mapa 30 el dibujo pone o saca la niebla (0x42b0a0).
 constexpr std::int32_t CastleMap = 30;
 // 0x633f20: mapa conservado durante la espera de entrada.
 constexpr std::int32_t SelectionMap = 54;
@@ -388,6 +389,23 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
             !orb.HasValue())
             return orb;
     }
+    // 0x42b540, el tercer eslabón de 0x6061c0: el 30, también antes del early-return y del 0x60657a.
+    if (map == CastleMap)
+    {
+        // timeGetTime (0x6b8544) es el reloj de la escena en ms; sin reloj, el preludio corta en 0x42b557.
+        World::CastleSiegePrelude prelude{.siegeActive = world.Runtime().siegeActive,
+                                          .musicTime = &world.Runtime().siegeMusicTime,
+                                          // MuRet todavía no tiene audio (CL10): queda el último pedido.
+                                          .sound = [&world](std::int32_t id) { world.Runtime().lastSoundId = id; }};
+        if (m_context.clock != nullptr)
+            prelude.systemTime = [clock = m_context.clock]() {
+                return static_cast<std::uint32_t>(
+                    std::chrono::duration_cast<std::chrono::milliseconds>(clock->Now()).count());
+            };
+        if (auto stepped = World::StepCastleSiegePrelude(prelude); !stepped.HasValue())
+            return stepped;
+        world.Runtime().objectSelectionCount = 0;
+    }
     // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no toca ninguno.
     if (std::ranges::none_of(objects, [](const World::WorldObject& object) { return object.alive && object.seen; }))
     {
@@ -398,7 +416,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     const bool aida = map == AidaMap || map == SelectionMap;
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
         map != ArenaMap && map != AtlansMap && map != TarkanMap && map != DevilSquareMap && map != IcarusMap &&
-        map != LandOfTrialsMap && !World::IsKalimaMap(map) && !aida && !bloodCastle && !chaosCastle)
+        map != LandOfTrialsMap && map != CastleMap && !World::IsKalimaMap(map) && !aida && !bloodCastle && !chaosCastle)
     {
         return Core::Unexpected("0x606560: los objetos vistos del " + MapText(map) + " (0x604ab0) no están portados");
     }
@@ -431,7 +449,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                              std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
                        : 0U;
         },
-        .trialsAmbientTime = &world.Runtime().trialsAmbientTime};
+        .trialsAmbientTime = &world.Runtime().trialsAmbientTime,
+        .siegeActive = &world.Runtime().siegeActive};
     AfterObjectStep after;
     if (icarus)
         after = [&](World::WorldObject& object)
@@ -443,6 +462,10 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                                              world.Runtime().chaosCastleTrapArmed);
             return {};
         };
+    // 0x6063d0 → 0x42c500 en el 30, con el reloj del paso.
+    if (map == CastleMap)
+        after = [&](World::WorldObject& object)
+        { return World::StepCastleSiegeSeenObject(object, world.Runtime().siegeActive, worldClock); };
     if (auto stepped = StepGameWorldObjects(objects, static_cast<std::uint8_t>(map), m_worldModels,
                                             m_context.cloth->random, globals, after);
         !stepped.HasValue())
@@ -682,10 +705,13 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
                                                               const World::TerrainPolygon& polygon, int frames)
 {
     const std::int32_t map = m_context.world->Runtime().map;
-    // 0x63741d: la luz y la niebla del mapa 30 (0x42b0a0), que no carga (MapLoad) ni dibuja.
-    if (map == CastleMap)
+    // 0x63741d..0x637490: en el 30, con el héroe en el rectángulo de World::InTheCastleSiegeFog, 0x42b0a0 prende la
+    // niebla negra (GL_LINEAR de 2.000 a 2.700) hasta 0x42b0f0, después de los efectos; afuera, glDisable(GL_FOG),
+    // que es como MuRet dibuja siempre. El renderer no tiene niebla (08 P-C41).
+    if (map == CastleMap &&
+        World::InTheCastleSiegeFog(m_context.world->Actors()[m_context.world->Runtime().hero].position))
     {
-        return Core::Unexpected(std::string("0x63741d: la luz del mapa 30 (0x42b0a0) no está portada"));
+        return Core::Unexpected(std::string("0x637481: la niebla negra del 30 (0x42b0a0) no está portada"));
     }
     // 0x6374aa: 0x620480(x, y, &0x7d366c0, 1) con el mouse en 640 × 480 (0x7d3682c y 0x7d36828), que
     // vuelve a los píxeles de la pantalla en enteros (0x620486..0x6204b0).
@@ -771,17 +797,17 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         afterMarks.depthTest = true;
         canvas.models.SetState(afterMarks);
     }
-    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4, 6 a 23, 31,
-    // 33 y Kalima.
+    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4, 6 a 23, 30,
+    // 31, 33 y Kalima.
     const bool knownObjects = (map >= LorenciaMap && map <= LostTowerMap) ||
-                              (map >= ArenaMap && map <= World::LastChaosCastleMap) || map == LandOfTrialsMap ||
-                              map == AidaMap || World::IsKalimaMap(map);
+                              (map >= ArenaMap && map <= World::LastChaosCastleMap) || map == CastleMap ||
+                              map == LandOfTrialsMap || map == AidaMap || World::IsKalimaMap(map);
     if (!knownObjects &&
         std::ranges::any_of(FrameObjects(), [](const World::WorldObject& object) { return object.alive; }))
     {
         return Core::Unexpected("0x6374ce: los objetos del " + MapText(map) +
                                 " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0 al 4, "
-                                "los del 6 al 23, los del 31, los del 33 y los de Kalima");
+                                "los del 6 al 23, los del 30, los del 31, los del 33 y los de Kalima");
     }
     if (auto loaded = LoadTheObjectModels(map); !loaded.HasValue())
     {
@@ -838,7 +864,8 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
                         return static_cast<float>(World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y,
                                                                          CameraState().fixedHeight));
                     },
-                    .chaosCastleArea = world.Runtime().chaosCastleArea});
+                    .chaosCastleArea = world.Runtime().chaosCastleArea,
+                    .siegeActive = world.Runtime().siegeActive});
             !objects.HasValue())
         {
             return Core::Unexpected(objects.Error() + ", en el " + MapText(map));

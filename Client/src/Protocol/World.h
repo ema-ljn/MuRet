@@ -16,6 +16,8 @@ inline constexpr std::uint8_t WorldOpcode = 0xf3;
 inline constexpr std::uint8_t RegenSubcode = 0x04;
 inline constexpr std::uint8_t TeleportDoneSubcode = 0x12;
 inline constexpr std::uint8_t CrywolfOpcode = 0xbd;
+inline constexpr std::uint8_t CastleSiegeOpcode = 0xb9;
+inline constexpr std::uint8_t CastleSiegeStateSubcode = 0x02;
 inline constexpr std::uint8_t WeatherOpcode = 0x0f;
 
 // 0x4e36b5: pkt[3] entero. El nibble alto selecciona la rama; >1 no cambia la meta.
@@ -66,4 +68,8 @@ struct Regen
 
 // 04 § El clima y Crywolf, 0x4c421a/0x4c785d: C1 04 BD 00, XOR32 y Delivery::Clear.
 [[nodiscard]] Outgoing WriteCrywolfState();
+
+// 06 § Los objetos de Castle Siege, 0x42a7d3..0x42a99e (0x42a760, al cargar el 30): C1 04 B9 02, con XOR32 y
+// Delivery::Clear (send directo, con el socket del GS abierto).
+[[nodiscard]] Outgoing WriteCastleSiegeState();
 } // namespace Client::Protocol::World

@@ -822,6 +822,29 @@ TEST_F(GameHangingTest, AGameMasterReplacesALayerOfAnotherKind)
     EXPECT_EQ(m_actor.layer->animation.frame, 0.0f);
 }
 
+// 0x414310..0x414330: con +0x360 del 6 al 13, 0x4294b0 (el byte del asedio, 0x7239ec) decide; con el 0 del
+// arranque no dibuja la capa, y con el asedio llama al método de +0x364, que no está portado. El 5 y el 14 no lo
+// miran.
+TEST_F(GameHangingTest, TheSiegeLayersAreLeftAloneWithoutTheSiege)
+{
+    const HangingModels models({MuSign});
+    for (const std::uint8_t kind : {std::uint8_t{6}, std::uint8_t{13}})
+    {
+        SCOPED_TRACE(static_cast<int>(kind));
+        m_actor.byte360 = kind;
+        m_actor.layer = Client::Scenes::GameMasterLayer{};
+        GameHangingPass pass = Pass(models);
+        ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+        EXPECT_TRUE(m_batch.Vertices().empty());
+
+        pass.siegeActive = true;
+        const auto cut = Client::Scenes::DrawGameHanging(m_actor, pass);
+        ASSERT_FALSE(cut.HasValue());
+        EXPECT_NE(cut.Error().find("0x414330"), std::string::npos) << cut.Error();
+        EXPECT_TRUE(m_batch.Vertices().empty());
+    }
+}
+
 // 0x414470 y 0x5ffdf0 en Chaos Castle: sin +0x1a1 del héroe la capa se dibuja como en otro mapa; con él, cada frame
 // del original le baja 0,15f al alpha guardado (un dibujo intermedio no), lo dibuja con ese alpha y, cuando queda
 // por debajo de 0,01, ni la posa ni la dibuja.

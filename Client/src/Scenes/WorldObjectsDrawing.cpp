@@ -9,6 +9,7 @@
 #include "Scenes/IcarusObjectFrame.h"
 #include "Scenes/TarkanObjectFrame.h"
 #include "Scenes/KalimaObjectServices.h"
+#include "Scenes/CastleSiegeObjectServices.h"
 #include "Scenes/LandOfTrialsObjectServices.h"
 #include "World/ObjectModelStepState.h"
 #include "Scenes/GameParticles.h"
@@ -358,6 +359,7 @@ constexpr std::uint8_t DevilSquareMap = 9;
 constexpr std::uint8_t IcarusMap = 10;
 constexpr std::uint8_t FirstBloodCastleMap = 11;
 constexpr std::uint8_t LastBloodCastleMap = 17;
+constexpr std::uint8_t CastleSiegeMap = 30;
 constexpr std::uint8_t LandOfTrialsMap = 31;
 constexpr std::uint8_t AidaMap = 33;
 constexpr std::uint8_t SelectionWorldMap = 54;
@@ -434,6 +436,8 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
         return StepAidaObjectFrame(object, pass);
     if (map == LandOfTrialsMap)
         return StepLandOfTrialsObjectFrame(object, pass);
+    if (map == CastleSiegeMap)
+        return StepCastleSiegeObjectFrame(object, pass);
     if (map == LostTowerMap)
         return StepLostTowerObjectFrame(object, commonRandom, pass, posed);
     if (map == ArenaMap)
@@ -476,9 +480,9 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
 {
     const bool bloodCastle = pass.map >= FirstBloodCastleMap && pass.map <= LastBloodCastleMap;
     if (pass.map > LostTowerMap && pass.map != ArenaMap && pass.map != AtlansMap && pass.map != TarkanMap &&
-        pass.map != DevilSquareMap && pass.map != IcarusMap && pass.map != LandOfTrialsMap && pass.map != AidaMap &&
-        pass.map != SelectionWorldMap && !World::IsKalimaMap(pass.map) && !bloodCastle &&
-        !World::IsChaosCastleMap(pass.map))
+        pass.map != DevilSquareMap && pass.map != IcarusMap && pass.map != CastleSiegeMap &&
+        pass.map != LandOfTrialsMap && pass.map != AidaMap && pass.map != SelectionWorldMap &&
+        !World::IsKalimaMap(pass.map) && !bloodCastle && !World::IsChaosCastleMap(pass.map))
     {
         return Core::Unexpected(std::format("0x6046a0: los casos por tipo del mapa {} (0x6002e0 y 0x602ed0) no están "
                                             "leídos",
@@ -548,6 +552,25 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
                     static_cast<void>(
                         DrawTheObject(batch, models, object, draw, frameClock, 0.0f, pass.modelState, retained));
             }
+        }
+        // 0x42cc10, la cadena de 0x6002e0 en el 30, sin rand() ni estado: en cada dibujo de MuRet. Con un caso,
+        // 0x6002e0 no hace su RenderBody.
+        if (pass.map == CastleSiegeMap && draw.kind == World::ObjectDrawKind::Body)
+        {
+            World::ObjectDraw posed = draw;
+            posed.kind = World::ObjectDrawKind::Hidden;
+            const DrawnObject body =
+                DrawTheObject(batch, models, object, posed, frameClock, 0.0f, pass.modelState, retained);
+            const auto drew = DrawCastleSiegeBody(batch, models, body,
+                                                  CastleSiegeBodyPass{.type = object.type,
+                                                                      .field04 = object.field04,
+                                                                      .siegeActive = pass.siegeActive,
+                                                                      .worldClock = pass.worldClock},
+                                                  frameClock);
+            if (!drew.HasValue())
+                return Core::Unexpected(drew.Error());
+            if (drew.Value())
+                draw.kind = World::ObjectDrawKind::Hidden;
         }
         const DrawnObject drawn =
             DrawTheObject(batch, models, object, draw, frameClock, 0.0f, pass.modelState, retained);

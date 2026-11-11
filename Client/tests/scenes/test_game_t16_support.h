@@ -64,8 +64,6 @@ inline std::string_view TeleportBoundary(int map)
         return "Data\\World6\\TerrainHeight.OZB no está";
     if (map == 35)
         return "Data\\World36\\EncTerrain36.att no está";
-    if (map == 30)
-        return "0x61a560: el mapa 30 pasa por 0x42a760 y elige el .att con 0x4294b0";
     if (map == 34)
         return "0x61a560: el .att del mapa 34 depende del estado de Crywolf (0x42fe50)";
     if (map >= 18 && map <= 23)

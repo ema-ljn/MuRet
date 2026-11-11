@@ -38,6 +38,7 @@ namespace
 constexpr Data::Textures::Sampling WorldModelSampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Repeat};
 
 constexpr std::uint8_t LorenciaMap = 0;
+constexpr std::uint8_t CastleSiegeMap = 30;
 constexpr Render::TextureSlot SpecialModelsFirstSlot{0x69};
 
 // "Object56" para el mapa 55: la carpeta Object<N> de su número (Data::WorldFolderNumber).
@@ -80,6 +81,11 @@ Core::Expected<void, std::string> WorldModels::Load(const std::filesystem::path&
     LoadObjects(dataRoot, map, log, missing);
     if (auto configured = ConfigureActions(map, specials); !configured.HasValue())
         return configured;
+    if (map == CastleSiegeMap)
+    {
+        if (auto spearman = LoadTheSpearman(dataRoot, log, missing); !spearman.HasValue())
+            return spearman;
+    }
     log.Debug("los objetos de {}: {} modelos y {} que no están", m_folder, m_models.size(), missing);
     if (m_models.empty())
         log.Warning("no hay ningún modelo de los objetos del mundo en Data\\{}: el mundo va sin ellos", m_folder);
@@ -238,6 +244,32 @@ Core::Expected<void, std::string> WorldModels::ConfigureActions(std::uint8_t map
         if (setting.speed)
             action.speed = *setting.speed;
     }
+    return {};
+}
+
+// 0x42aa6b: la carga del 30 (0x42a760) llama a 0x612d90(0x4d) después de 0x616ec0. 0x60da30 lee
+// Data\Monster\Monster78.bmd en el modelo 0x19f; sin mallas, 0x612dee sale sin texturas ni acciones. Con ellas,
+// 0x60d5f0(0x19f, "Monster\\", 0x2901, 0x2600, 1) sigue el cursor global después de los objetos, las siete
+// velocidades de 0x612e5a (0,25; 0,2; 0,34; 0,33; 0,33; 0,5 y 0,55) y la acción 6 que no se repite (+0x60 en 1).
+// Los dos .wav del caso 0x4d (0x1bd y 0x1be) y su tabla de sonidos (0x612c80) son audio, que MuRet todavía no
+// tiene (CL10).
+Core::Expected<void, std::string> WorldModels::LoadTheSpearman(const std::filesystem::path& dataRoot, Core::Log& log,
+                                                               std::size_t& missing)
+{
+    constexpr int SpearmanFile = 78;
+    constexpr std::array<float, 7> Speeds{0.25f, 0.2f, 0.34f, 0.33f, 0.33f, 0.5f, 0.55f};
+    constexpr std::size_t NotRepeated = 6;
+    LoadFile(dataRoot, {SpearmanModel, "Monster\\", "Monster", SpearmanFile}, log, missing);
+    const auto model = m_models.find(SpearmanModel);
+    if (model == m_models.end() || model->second.meshes.empty())
+        return {};
+    m_meshTextures[SpearmanModel] = TextureSlots()->Assign(model->second, "Monster\\", WorldModelSampling);
+    Render::Models::Skeleton& skeleton = m_skeletons.at(SpearmanModel);
+    if (skeleton.actions.size() < Speeds.size())
+        return Core::Unexpected(std::string("0x612e5a: Monster78 no tiene las siete acciones de los monstruos"));
+    for (std::size_t action = 0; action < Speeds.size(); ++action)
+        skeleton.actions[action].speed = Speeds[action];
+    skeleton.actions[NotRepeated].repeats = false;
     return {};
 }
 

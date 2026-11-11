@@ -93,7 +93,8 @@ Core::Expected<void, std::string> LoadTheWorld(std::uint8_t map, std::uint16_t p
                                                     .world = world,
                                                     .scene = SceneId::Game,
                                                     .playerKey = playerKey,
-                                                    .random = resources.cloth.random});
+                                                    .random = resources.cloth.random,
+                                                    .requestCastleSiegeState = resources.requestCastleSiegeState});
     if (!loaded.HasValue())
     {
         return loaded;

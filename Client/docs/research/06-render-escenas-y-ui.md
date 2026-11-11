@@ -2960,11 +2960,12 @@ paquetes, el `F3 03`, el `1C` y el `F3 04` ([Los cambios de mapa](#los-cambios-d
 `Scenes::ApplyWorldEntry` la tabla de la respuesta; lo que no está leído o no está portado corta con
 un error que nombra la dirección, nunca en silencio:
 
-- **Los mapas.** Con la `Data` del repo cargan el 0, 1, 2, 3, 4, 6 a 11, 18, 24 a 29, 31, 33,
+- **Los mapas.** Con la `Data` del repo cargan el 0, 1, 2, 3, 4, 6 a 11, 18, 24 a 29, 30, 31, 33,
   36 y 54. Cargar los aliases de Kalima no completa sus ramas de paso/dibujo.
   El 3 incorpora en hito 2 el binder síncrono de la torre `0x142` y sus cinco efectos, antes del
   pasto ([Creación de objetos](#los-objetos-del-juego)). Cortan: el 5 por el archivo que falta
-  en `World6`, el 35 por el ATT ausente de `World36`, el 30 en `0x42a760`, el 34 en `0x42fe50` (el
+  en `World6`, el 35 por el ATT ausente de `World36`, el 30 con el asedio prendido en `0x61a6ea` (sin él,
+  `0x42a760` carga los lanceros, [Los objetos de Castle Siege](#los-objetos-de-castle-siege)), el 34 en `0x42fe50` (el
   `.att` según Crywolf, antes del `BD`, que por eso no sale) y el 55 en `0x6188ae`. Sin
   `TerrainHeight.OZB`, el error nombra el archivo, con el pasto ya sacado (Q-C180).
 - **Aviso y cierre por datos fatales (CL7b, Q-C180).** MAP/ATT y OBJ se procesan antes de
@@ -3828,7 +3829,8 @@ héroe, Q-C246, el `rand() % 6` y el de `0x432bf1`) y `0x505de0` hasta su final 
 que sortea con los que no son el héroe, y el `rand() & 7` (CL7, hito 1).
 Corta con error, en el orden del original:
 
-- en el mapa 30 (`0x412140`) y sin el mapa cargado (`0x508f14`);
+- en el mapa 30 con el héroe en un gremio (`0x412193`, [Los objetos de Castle
+  Siege](#los-objetos-de-castle-siege)) y sin el mapa cargado (`0x508f14`);
 - en el `0x508ba0` de otro personaje vivo: el `0x154` que se muere (`0x508e89`) y el que camina (`0x508e27`);
 - en lo que el cuerpo no tiene ([§ El cuerpo de los personajes](#el-cuerpo-de-los-personajes-0x4fd5f0); sin
   Player.bmd, en `0x4f9580`);
@@ -4444,7 +4446,7 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 | `0x637366` | **`0x5fbb00(w / 640, &p)`** | el rango de bloques y el trapecio | sí (`TerrainRangeOf`, `TerrainPolygonOf(Game)`; en el juego, `StepTheTerrainPolygon` con el trapecio y el nivel efectivo globales de `WorldRuntime`, T11b) |
 | `0x637391..0x637404` | `glClearColor` por mapa: en el 0, (0,0390625; 0,078125; 0,0546875) | no se usa (Q-C143) | ver abajo |
 | `0x637410` | `0x620db0(0, 0, w, 432)` (480 con `0x7d36899`) | el pase del mundo | sí (`GameWorldViewport`) |
-| `0x63741d` | en el mapa 30, su luz | | corta (el 30 no carga) |
+| `0x63741d` | en el mapa 30, con el héroe en el rectángulo de `0x42b0a0`, la niebla; si no, `glDisable(GL_FOG)` | | afuera, como siempre; adentro corta en `0x637481` ([Los objetos de Castle Siege](#los-objetos-de-castle-siege)) |
 | `0x6374aa` | `0x620480(mouse x, mouse y, &0x7d366c0, 1)` | el rayo del mouse, con el mouse de 640 × 480 vuelto a la pantalla en enteros (`0x620486..0x6204b0`) | `GameScene::MouseRay`, para [Caminar](#caminar) |
 | `0x6374c6` | **`0x5fc260(0)`**, si `0x437850()` es falso y el mapa no es 10 | el terreno: el pase opaco, el de alfa, **el del pasto** y `0x549130` | `LoadedWorld::DrawTerrain`, **sin el pasto ni las marcas** (P-C48 b, P-C49); el juego dibuja el primer pase, el del pasto y las marcas del suelo (`0x5fc365`); en el mapa 7, el agua de `0x5fa4b0` y sin el pasto ([Los objetos de Atlans](#los-objetos-de-atlans)), y en los 18 a 23 corta antes de la primera celda (`0x5fa83f`, Q-C229). Abajo, por dentro |
 | `0x6374ce` | **`0x6046a0` → `0x602e90` y `0x602ed0`** | objetos por sector | `DrawGameWorldObjects` en0/2/3, con la fuente69 que lee matrices retenidas y los servicios de Noria; otros mapas/casos conservan fronteras |
@@ -5726,6 +5728,93 @@ Al caminar, `0x4fbe10` guarda la celda del héroe y, si se queda 10 s en una cel
 se dispara en el primer 3 visto (`GameT16ChaosCastleWalk`). Tests: `ChaosCastleTest` y, del cuerpo,
 `GameCharacterRenderTest.InChaosCastleAPlayerWearsTheAngelAndOnlyTheHeroAddsItsChrome` y
 `TheChaosCastleOutlineScalesWithTheObjectAndHasItsOwnColors`.
+
+### Los objetos de Castle Siege
+
+Leído en la CL7 en el ASM de `c32bbd5f` (*estático*; las cuentas de MuRet, *simulado*: con el port y la Data del
+repo). Lo común es lo de [Los objetos del juego](#los-objetos-del-juego). Castle Siege es el mapa 30, con `World31`
+(`EncTerrain31.obj`: 3.724 objetos, entre ellos 39 del 0, 37 del `0x34`, 52 del `0x35`, 10 del `0x36`, 42 del
+`0x2a`, 24 del `0x29`, 13 del `0xc`, 26 del `0x11`, cuatro `0x13`, cuatro `0x33`, uno `0x42`, del `0x3d` al `0x40`
+21 puertas y uno 79). Todo depende de **un byte**, `0x7239ec`, que lee `0x4294b0` y que solo escribe `0x4294c0`
+desde los paquetes del asedio (CL9.5): arranca en 0 y, sin esos paquetes, queda en 0 (Q-C330). MuRet porta el mapa
+con el asedio apagado y corta, con la dirección, cada rama del asedio prendido.
+
+**La carga** (`0x42a760`, desde `0x61a560` antes del pasto): `0x7239f0`, la hora de la música, en 0
+(`0x42a795`); el `B9 02` (C1 con Xor32, sin C3) con el socket del GS abierto (`0x42a981`); `Monster78` en el modelo
+`0x19f` (`0x612d90(0x4d)`, `0x42aa6b`: siete velocidades y la acción 6 sin repetir); y cinco lanceros `0x19f` con
+`0x606660` en (6.500; 7.100; 9.100; 11.800; 12.300) × 11.300, z 270, ángulos 0 y escala 1, **antes** de los objetos
+del `.obj`. Con `0x7239ec` en 0, `0x61a6e1` y `0x61a8a8` eligen el `.att` y la luz de siempre (`EncTerrain31.att` y
+`TerrainLight.jpg`); prendido, el `.att` 312 y `TerrainLight2`. Las texturas: `Object31\Flag.tga` en `0x69c`
+(`0x61e4b3`, `GL_LINEAR` y `GL_CLAMP`) y `Skill\TowerGatePlane.bmd` (`0x616880`), que `0x616d8e` y `0x616e20` piden
+dos veces (Q-C333).
+
+**La creación** (`0x42c6b0`): lo de [Creación común de los objetos](#creación-común-de-los-objetos), y el 79 pide
+el efecto `0x135` con el objeto de dueño (`0x518cf0`, `0x51d73b`: escala 0,9, vida 100, la luz de las mallas en 0,3f,
+sin `rand()`). Al final, `0x42b480` con el byte del asedio: el 4, el `0xb`, el `0x25`, el `0x29`, del `0x2b` al
+`0x30`, del `0x43` al `0x45`, del `0x47` al `0x4c` y el `0x58` quedan con `+0x58` en −1 si el asedio está prendido
+y en −2 si no; el `0x10`, del `0x26` al `0x28`, el `0x32`, el `0x3a`, el `0x3b`, el `0x4e` y del `0x50` al `0x57`, al
+revés. `+0x4` queda en el 0 de `0x606660`.
+
+**El preludio** (`0x42b540`, el tercer eslabón de `0x6061c0`, una vez por paso y antes de mirar si hay objetos
+vistos): con `timeGetTime()` en T, si (T − `0x7239f0`) · 0,001 pasa de 1.800 o `0x7239f0` es 0, guarda T en float y
+elige la música (sin asedio, `castle.mp3`, `0x42b5c3`); después, siempre, el sonido `0x1e2`. Sin asedio termina ahí,
+sin `rand()`; con él siguen los sonidos `0x1e3` a `0x1e7` y las piedras sobre el héroe (`0x42b5f8`).
+
+**El paso** (`0x42c850`, el segundo eslabón de `0x605a62`), con cada objeto visto. Sin asedio: el 0, una luz
+dinámica de radio 3 con L = ((`rand()` & 3) + 3) · 0,1f y el color (L; L · 0,6f; L · 0,2f), y `+0x58` en −2; el 4,
+`+0x58` en −1 y la U en T · 0,0001f; el `0x2a`, el `0x34`, el `0x35`, el `0x36` y el `0x42`, `+0x58` en −2; el
+`0x19f`, en −1. Con el asedio, el 0 queda en −2 sin luz, el `0x35` hace la luz del 0, el `0x19f` queda en −2 y el
+`0x42` lee `0x7239e4` (`0x42c977`). Como `0x606560` solo mira lo que vio el último dibujo, los que quedan en −2 se
+dibujan **una vez**, la primera que se ven con el −1 de la creación (Q-C335). **El paso de los vistos** (`0x42c500`,
+desde `0x6063d0`): el `0x51` y el `0x53` con el blendMesh 1, su luz en 1 y la V en T · 0,0002f o T · −0,0004f; las
+puertas (`0x3d` a `0x40`) con el asedio, `0x42c596`; después, siempre, `0x42b480`.
+
+**El frame** (`0x42c9f0`, desde `0x602ed0` después del `rand()` común, con cada objeto visto, también los que
+están en −2). Sin asedio: el 0, con `rand() % 3` en 0, la chispa `6ec/0`; el `0x29`, la luz del blendMesh (`+0x68`)
+en sin(T · 0,002f) · 0,3f + 0,7f; el `0x34`, el `6f4/6` sin `rand()`; el `0x36`, la salpicadura `0x6f2` +
+`rand() % 2` con el subtipo 0, escala 1 y luz 1. Con el asedio: el `0x2a`, con `rand() % 3` en 0, el humo `5f2/0x15`;
+el `0x35`, lo del 0 sin asedio; el 0, el `0x34` y el `0x36`, nada.
+
+**El dibujo** (`0x42cc10`, la cadena de `0x6002e0`): con un caso, `0x6002e0` no hace su `RenderBody`.
+
+| Tipo | Qué dibuja |
+|---|---|
+| `0xc`, la bandera | el color del modelo en 1 y dos `0x4ecc30` con las banderas 2: la malla 0 con su textura y la 1 con `Flag.tga` (`0x69c`) |
+| `0x11` | el color en 0,45 (`0x3ee66666`), model+`0x88` en 0 y `RenderBody(2)` con la V en (`ftol(T)` % 10.000) · 0,0002f |
+| `0x33` | model+`0x88` en 0 y `RenderBody(0x42)` con la U en (−`ftol(T)` % 10.000) · 0,0002f (el resto con el signo del dividendo) |
+| `0x42` | el color en (0,1; 0,4; 0,6) y `RenderBody(0x44)` con la luz en sin(T · 0,001f) · 0,2f + 0,3f |
+| `0x13` | sin asedio, `RenderBody(2)` y dos pases con `Chrome01` y el blendMesh en 0: `0x44` en 0,3 y `0x48` en (0,2; 0,2; 0,5); con el asedio, `0x4ecc30` sobre la malla 3 (`0x42ce09`) |
+| `0x3d` a `0x40` | con `+0x4` en 0, `RenderBody(2)`; si no, `0x4ee770(0, 0x12f, 0, 0, 0)` (`0x42cfcb`) |
+| `0x32`, `0x53` a `0x55` | `RenderBody(2)` y, sin asedio, la sombra negra de `0x4eff40(+0x64, +0x58, −1, −1)` |
+
+Los demás tipos van a `0x42e3d0`, que solo tiene casos de monstruos. **La sombra del 30** (`0x4eff40`,
+`0x4eff8d..0x4eff9f`) se abre con 2.500 en lugar de 2.000, también la de los personajes y la del caballo
+(Q-C337). El efecto `0x135` (`0x52973e`) vuelve a vida 100 en cada paso y, con dueño, su z es (sen(T · 0,001f) + 1)
+· 200 sobre la de la partida; se dibuja dos veces, la segunda con la z en la partida + 400 menos esa altura,
+y la deja así (`0x52d86a..0x52d89f`).
+
+**Lo demás del 30.** La niebla: con el héroe en x de 16.100 a 19.000 y en y de 18.900 a 21.700 (inclusivos),
+`0x63741d` llama a `0x42b0a0`, que prende la niebla lineal negra de 2.000 a 2.700; afuera, `glDisable(GL_FOG)`
+(Q-C334). Los personajes: `0x412140` arma, con `0x6c649a` en `0xff` (sin gremio, Q-C331), el panel de la clase 0 en
+`0x5763530`, que dibuja la interfaz (CL8); con otro puesto, los paneles 1 y 2 (`0x412193`). Después de cada `0x20a`,
+`0x42afe0` llama a `0x42ddb0(personaje, 380)` solo con el asedio (`0x42b00b`). Las capas del 6 al 13 de lo que cuelga
+(`0x4142f0`) solo se dibujan con el asedio (`0x414330`).
+
+**En MuRet.** La carga: `Scenes::LoadMap` (`PrepareTheCastleSiege`) con `MapLoadContext::requestCastleSiegeState`,
+que `WorldEntry`, `WorldTransitionSupport` y `SessionEventApplier` atan a `App::ServerSession::RequestCastleSiegeState`
+(`Protocol::WriteCastleSiegeState`); `WorldModels::LoadTheSpearman`; `GameTailTextureSet` y `GameModels`
+(`TowerGatePlane`). El paso: `World::StepCastleSiegePrelude`, `World::StepCastleSiegeObject` y
+`World::StepCastleSiegeSeenObject` (`CastleSiegeObjectStep`), con `World::ApplyCastleSiegeObjectState`. El frame:
+`Scenes::StepCastleSiegeObjectFrame` (`CastleSiegeObjectServices`). El dibujo: `Scenes::DrawCastleSiegeBody`
+(`CharacterDrawing`) desde `DrawGameWorldObjects`, y `Render::Models::ShadowSpreadOf`. El efecto: `StepGatePlane` y
+`ModelEffects::CreateGatePlane`. La niebla: `World::InTheCastleSiegeFog`, que adentro corta en `0x637481` (el
+renderer no tiene niebla). El panel: `WorldRuntime::siegePanelKind` y `heroGuildPost`. Cortan, además de las ramas
+del asedio prendido, las partículas que MuRet no crea: la chispa `6ec/0` (`0x42cb52`), el `6f4/6` del `0x34`
+(`0x42caf4`) y el humo `5f2/0x15` (`0x42caaa`) ([08](08-pendientes.md) P-C53). Con la Data del repo, el 30 llega a
+un cuadro completo y camina (`GameT16SceneMatrix`; `GameT16MapWalk`, de (92, 98) a (95, 101), con banderas `0xc` y
+lanceros a la vista, lejos de las antorchas, de los braseros y de la niebla). Tests: `CastleSiegeObjectsTest`, `CastleSiegeObjectServicesTest`,
+`CastleSiegeDrawingTest`, `MapLoadTest.CastleSiege*`, `WorldProtocolTest.CastleSiegeStateWritesTwoWithXor32AndWithoutC3`
+y `GameT16Journey.CastleSiegeAsksForItsStateBeforeConfirmingTheTeleport`.
 
 ### Las marcas del suelo
 

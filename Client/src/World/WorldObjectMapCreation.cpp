@@ -66,6 +66,13 @@ CastleStateGroup CastleStateGroupOf(std::int16_t type)
     return CastleStateGroup::None;
 }
 
+void ApplyCastlePredicate(WorldObject& object, std::uint8_t state, bool hideWhenNonzero)
+{
+    const bool hidden = hideWhenNonzero ? state != 0 : state == 0;
+    constexpr std::int16_t NoHiddenMesh = -1;
+    object.state.hiddenMesh = hidden ? HiddenObject : NoHiddenMesh;
+}
+
 std::optional<WorldObjectCreationError>
 ApplyCastlePredicateState(WorldObject& object, const WorldObjectCreationContext& context, bool hideWhenNonzero)
 {
@@ -74,23 +81,23 @@ ApplyCastlePredicateState(WorldObject& object, const WorldObjectCreationContext&
         return WorldObjectCreationError::UnsupportedMapHandler;
     }
     // 0x4294b0: un BYTE vivo por invocación, sin normalización ni valor inicial inventado.
-    const std::uint8_t state = *context.state7239Ec;
-    const bool hidden = hideWhenNonzero ? state != 0 : state == 0;
-    constexpr std::int16_t NoHiddenMesh = -1;
-    object.state.hiddenMesh = hidden ? HiddenObject : NoHiddenMesh;
+    ApplyCastlePredicate(object, *context.state7239Ec, hideWhenNonzero);
     return std::nullopt;
 }
 
 std::optional<WorldObjectCreationError> ApplyCastleObjectState(WorldObject& object,
                                                                const WorldObjectCreationContext& context)
 {
-    const CastleStateGroup group = CastleStateGroupOf(object.type);
-    if (group == CastleStateGroup::None)
+    if (CastleStateGroupOf(object.type) == CastleStateGroup::None)
     {
         return std::nullopt;
     }
-    // El store nativo DWORD de 0x42b480 ocurre DESPUÉS del getter y pisa el valor anterior.
-    return ApplyCastlePredicateState(object, context, group == CastleStateGroup::HiddenWhenNonzero);
+    if (context.state7239Ec == nullptr)
+    {
+        return WorldObjectCreationError::UnsupportedMapHandler;
+    }
+    ApplyCastleSiegeObjectState(object, *context.state7239Ec);
+    return std::nullopt;
 }
 
 bool ApplyCreationRandomPhase(WorldObject& object, Render::Models::CrtRandom* random, const float& factor)
@@ -206,6 +213,17 @@ std::uint8_t CreateMapObject4303D0(const WorldObjectCreationContext& context)
     return static_cast<std::uint8_t>(context.map == Map34);
 }
 } // namespace
+
+void ApplyCastleSiegeObjectState(WorldObject& object, std::uint8_t siegeState)
+{
+    const CastleStateGroup group = CastleStateGroupOf(object.type);
+    if (group == CastleStateGroup::None)
+    {
+        return;
+    }
+    // El store nativo DWORD de 0x42b480 ocurre DESPUÉS del getter y pisa el valor anterior.
+    ApplyCastlePredicate(object, siegeState, group == CastleStateGroup::HiddenWhenNonzero);
+}
 
 std::optional<WorldObjectCreationError> ApplyDefaultWorldObjectCreation(WorldObject& object,
                                                                         WorldObjectCreationContext& context)

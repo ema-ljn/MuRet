@@ -100,7 +100,7 @@ constexpr std::array<MapCase, 37> MovementMaps{{
     {27, "KalimaLoadBoundary"},
     {28, "KalimaLoadBoundary"},
     {29, "KalimaLoadBoundary"},
-    {30, "SiegeLoadBoundary"},
+    {30, "CastleSiege"},
     {31, "LorenDeep"},
     {32, "BeforeAliasToNine"},
     {33, "Aida"},
@@ -126,15 +126,6 @@ constexpr float CellCentre = 50.0f;
 bool IsChaosCastle(std::uint8_t map)
 {
     return map >= 18 && map <= 23;
-}
-
-std::string_view CharacterFrontier(std::uint8_t map)
-{
-    if (map == 30)
-    {
-        return "0x412140";
-    }
-    return "";
 }
 
 class GameMovementMapMatrix : public Client::Tests::GoldenDataTest, public ::testing::WithParamInterface<MapCase>
@@ -407,18 +398,9 @@ TEST_P(GameMovementMapMatrix, TheLogicalSafeCellIsPublishedUnlessTheBodyStopsEar
     auto particles = std::make_unique<Client::World::Particles>();
     const auto stepped = Client::Scenes::StepCharacters(
         {.world = m_world, .random = m_random, .playerSkeleton = &m_skeleton, .particles = particles.get()});
-    const auto frontier = CharacterFrontier(GetParam().map);
-    if (frontier.empty())
-    {
-        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    }
-    else
-    {
-        ASSERT_FALSE(stepped.HasValue());
-        EXPECT_NE(stepped.Error().find(frontier), std::string::npos) << stepped.Error();
-    }
-    const bool beforeSafeZone = GetParam().map == 30;
-    EXPECT_EQ(Hero().safeZone, beforeSafeZone ? 0 : 1);
+    // En el 30, 0x412140 arma el panel del asedio con el puesto del arranque (0xff) y el paso sigue.
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(Hero().safeZone, 1);
 }
 
 INSTANTIATE_TEST_SUITE_P(KernelOnly, GameMovementMapMatrix, ::testing::ValuesIn(MovementMaps),
@@ -434,10 +416,9 @@ TEST_F(GameMovementMapEvidenceTest, EntryFrontiersStaySeparateFromTheSyntheticWa
         std::uint8_t map;
         std::string_view message;
     };
-    constexpr std::array<Boundary, 5> Boundaries{{
+    constexpr std::array<Boundary, 4> Boundaries{{
         {5, "World6"},
         {35, "World36"},
-        {30, "0x42a760"},
         {34, "0x42fe50"},
         {55, "0x6188ae"},
     }};

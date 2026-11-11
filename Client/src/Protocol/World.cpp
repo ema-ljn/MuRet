@@ -93,4 +93,9 @@ Outgoing WriteCrywolfState()
 {
     return Xor32C1(Network::PacketWriter::C1(CrywolfOpcode).PutU8(0));
 }
+
+Outgoing WriteCastleSiegeState()
+{
+    return Xor32C1(Network::PacketWriter::C1(CastleSiegeOpcode).PutU8(CastleSiegeStateSubcode));
+}
 } // namespace Client::Protocol::World

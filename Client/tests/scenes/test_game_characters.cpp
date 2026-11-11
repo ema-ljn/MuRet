@@ -214,6 +214,23 @@ TEST_F(UnarmedGameCharacterTest, WalkingUnarmedClosesBothHandBytesAfterTheBodyRa
     EXPECT_EQ(m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)], 1);
 }
 
+// 0x510ea9..0x510eb3 y 0x42afe0: después de dibujar el 0x20a, en el 30, con el asedio y con +0x16c, 0x42ddb0
+// (que no está portado); sin el asedio, el personaje se dibuja como en otro mapa.
+TEST_F(UnarmedGameCharacterTest, InTheCastleSiegeOnlyTheSiegeStopsAfterTheCharacter)
+{
+    m_world->Runtime().map = 30;
+    const auto quiet = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    ASSERT_TRUE(quiet.HasValue()) << quiet.Error();
+    EXPECT_EQ(m_batch.Vertices().size(), 6u);
+
+    m_world->Runtime().siegeActive = true;
+    m_batch.Begin({});
+    const auto siege = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    ASSERT_FALSE(siege.HasValue());
+    EXPECT_NE(siege.Error().find("0x42b00b"), std::string::npos) << siege.Error();
+    EXPECT_EQ(m_batch.Vertices().size(), 6u);
+}
+
 TEST_F(UnarmedGameCharacterTest, HeldOrWrappedHandByteDepthDoesNotConsumeClosingRandoms)
 {
     for (const std::uint8_t depth : std::array<std::uint8_t, 5>{0, 1, 2, 254, 255})

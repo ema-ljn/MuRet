@@ -6,6 +6,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <cstdint>
 #include <span>
 #include <vector>
 
@@ -42,7 +43,11 @@ struct SkinnedMesh
 [[nodiscard]] float NormalLight(const glm::vec3& worldNormal);
 
 // 0x4eff40: un vértice de la sombra, aplastado sobre el piso desde la posición del objeto. Con x' y
-// z' desde ella, X = (x' + 2000) · z' / (z' − 4000) + x' + px, la y queda y Z = pz + 5 (2500 en vez de
-// 2000 en el mundo 30, que MuRet todavía no tiene).
-[[nodiscard]] glm::vec3 FlattenOnTheGround(const glm::vec3& world, const glm::vec3& objectPosition);
+// z' desde ella, X = (x' + s) · z' / (z' − 4000) + x' + px, la y queda y Z = pz + 5, con el `spread` s
+// de ShadowSpreadOf.
+[[nodiscard]] glm::vec3 FlattenOnTheGround(const glm::vec3& world, const glm::vec3& objectPosition,
+                                           float spread = 2000.0f);
+
+// 0x4eff8d..0x4eff9f: el s de 0x4eff40, 2000 salvo en el mundo 30 (DAT_006c9dd0 = 0x1e), donde es 2500.
+[[nodiscard]] float ShadowSpreadOf(std::int32_t map);
 } // namespace Client::Render::Models

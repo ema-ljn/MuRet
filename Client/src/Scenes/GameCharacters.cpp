@@ -266,6 +266,7 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                       .worldClock = worldClock,
                                       .map = map,
                                       .heroByte1a1 = heroByte1a1,
+                                      .siegeActive = world.Runtime().siegeActive,
                                       .logicSteps = pass.clothWorld->logicSteps,
                                       .originalFrame = originalFrame};
     if (auto hung = DrawGameHanging(drawn, hangingPass); !hung.HasValue())
@@ -341,8 +342,12 @@ Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const I
             continue;
         if (auto drawn = DrawOne(batch, models, world, slot, pass, originalFrame); !drawn.HasValue())
             return Core::Unexpected(std::format("{}, en el personaje {}", drawn.Error(), slot));
-        if (world.Runtime().map == 30 && actor.type == Data::Models::PlayerSkeletonModel)
-            return Core::Unexpected<std::string>("0x510eb3: el dibujo del asedio 0x42afe0 no está portado");
+        // 0x510ea9..0x510eb3: con el 0x20a, 0x42afe0, que solo en el 30, con el asedio y con +0x16c llama a
+        // 0x42ddb0(personaje, 380); sin el asedio no hace nada.
+        if (world.Runtime().map == 30 && actor.type == Data::Models::PlayerSkeletonModel &&
+            world.Runtime().siegeActive && actor.seen)
+            return Core::Unexpected<std::string>("0x42b00b: 0x42ddb0 (el dibujo del asedio sobre el personaje) no "
+                                                 "está portado");
     }
     if (!world.Map().terrain.attributes)
         return Core::Unexpected<std::string>("0x42da60: falta el TerrainWall que abre las puertas");

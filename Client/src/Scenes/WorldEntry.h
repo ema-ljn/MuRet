@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -69,6 +70,9 @@ struct WorldEntryResources
     // Q-C144 avisa acá.
     Core::Log& log;
     Core::IClock* clock = nullptr;
+    // El B9 02 que 0x42a760 manda al cargar el 30 con el socket del GS abierto: SessionEventApplier lo ata a la
+    // sesión que aplica la respuesta. Vacío, como el socket en −1, no sale nada.
+    std::function<void()> requestCastleSiegeState{};
 };
 
 // Lo que la entrada pide afuera y MuRet todavía no hace (sin audio hasta la CL10): los sonidos de

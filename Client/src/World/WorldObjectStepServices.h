@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 namespace Client::Render::Models
 {
@@ -15,7 +16,14 @@ class CrtRandom;
 namespace Client::World
 {
 struct ObjectStepGlobals;
+struct TerrainLighting;
 struct WorldObject;
+
+// 0x5f9780(x, y, color, radio, 0x7b4ccc4) sobre la luz dinámica durable. Sin destino, o con un centro que no
+// cabe en int32 (NaN incluido), corta con `address` sin tocar nada.
+[[nodiscard]] Core::Expected<void, std::string> AddDynamicLight(TerrainLighting* destination, const glm::vec3& position,
+                                                                const glm::vec3& color, std::int32_t radius,
+                                                                std::string_view address);
 
 // 0x52f360: clase 0 llama/luz, 1 humo/0 y 2 humo/2. El offset gira sin aplicar escala.
 // Conserva el prefijo RNG y las emisiones anteriores si falta un destino prestado.

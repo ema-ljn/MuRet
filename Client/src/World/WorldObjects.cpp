@@ -6,6 +6,7 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
+#include "World/DungeonObjectStep.h"
 #include "World/IWorldObjectCreationServices.h"
 #include "World/KalimaWorld.h"
 #include "World/ObjectAlpha.h"
@@ -749,7 +750,10 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     constexpr std::uint8_t AidaMap = 33;
     constexpr std::uint8_t SelectionWorldMap = 54;
     const bool aida = map == AidaMap || map == SelectionWorldMap;
-    if (map != LorenciaMap && map != DeviasMap && map != NoriaMap && map != LoginMap && !IsKalimaMap(map) && !aida)
+    constexpr std::uint8_t DungeonMap = 1;
+    constexpr std::uint8_t LostTowerMap = 4;
+    if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
+        map != LoginMap && !IsKalimaMap(map) && !aida)
     {
         // 0x604ac0..0x604ba0: el 9 saca rand() antes de todo, y cada mapa tiene sus casos.
         return Core::Unexpected(
@@ -784,6 +788,10 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
         return StepDeviasCases(object, random, globals);
     case NoriaMap:
         return StepNoriaObject(object, random, globals);
+    case DungeonMap:
+        return StepDungeonObject(object, random, globals);
+    case LostTowerMap:
+        return StepLostTowerObject(object, random, globals);
     default:
         ApplyLoginStepCases(object);
         return {};

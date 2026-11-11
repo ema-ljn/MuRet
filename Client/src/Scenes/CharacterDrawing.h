@@ -215,6 +215,12 @@ struct DrawnObject
 void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
                 Core::Duration frameClock);
 
+// RenderBody(2, …, `texture`) (0x4ef0c0) con un objeto del mundo: el pase base de DrawObject con `texture`
+// forzada en cada malla, que es de tres componentes (como Chrome01): opaca, o con la mezcla normal y el
+// alpha por debajo de 0,99, o aditiva y por la luz en la rama del blendMesh.
+void DrawObjectWithTexture(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                           Core::Duration frameClock, Render::TextureSlot texture);
+
 // RenderBody sobre el scratch ya transformado de 4ebc80: conserva los dummy y los vértices
 // retenidos cuando otra familia no vuelve a posar. shine elige un pase adicional de 60b130.
 void DrawObjectFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,

@@ -35,6 +35,8 @@ constexpr double ChaseBrighten = static_cast<double>(std::bit_cast<float>(0x3f94
 constexpr double ChaseFade = static_cast<double>(std::bit_cast<float>(0x3f5cb08eu));
 constexpr double ChaseLift = 250.0;
 constexpr int MistLife = 30, MistSeenLife = 50, FlameLife = 33, ChaseFadeLife = 10;
+// 0x6b8ae8 (0,15f): la subida de la llama 5de/0.
+constexpr double FloorFlameRise = static_cast<double>(std::bit_cast<float>(0x3e19999au));
 constexpr int FullTurn = 360;
 
 float F32(double value)
@@ -86,6 +88,19 @@ void CreateRisingFlame(Particle& p, Render::Models::CrtRandom& random)
         drift = F32((static_cast<double>(random.Next() % DriftSpan) * Tenth - 1.0) * p.scale);
     p.velocity = glm::vec3(0.0f, drift, 0.0f);
     p.position.y = F32((static_cast<double>(p.position.x) - p.start.x) + p.position.y);
+}
+
+// 0x54143c..0x54149d: la llama del chorro 0x5de del 4 sube recta: vida 20, la velocidad (0; 0; ((& 127) + 128)
+// · 0,15f) y la escala ((& 63) + 64) por el argumento por 0,01f, redondeada una vez.
+void CreateFloorFlame(Particle& p, float scaleArgument, Render::Models::CrtRandom& random)
+{
+    constexpr int FloorFlameLife = 20, RiseMask = 127, RiseBase = 128, SizeMask = 63, SizeBase = 64;
+    p.life = FloorFlameLife;
+    p.velocity.x = 0.0f;
+    p.velocity.y = 0.0f;
+    p.velocity.z = F32(static_cast<double>((random.Next() & RiseMask) + RiseBase) * FloorFlameRise);
+    p.scale = F32((static_cast<double>((random.Next() & SizeMask) + SizeBase) * static_cast<double>(scaleArgument)) *
+                  Hundredth);
 }
 
 // 0x543840..0x543931: el /1 se dibuja con Impack03 y sube; los dos sortean vida y lugar igual.
@@ -164,7 +179,7 @@ void StepChaseLight(Particle& p)
 bool IsSelectionParticle(std::int32_t type, std::int32_t subtype)
 {
     return (type == CloudParticle && subtype == OwnedMistSubtype) ||
-           (type == FlameParticle && subtype == RisingFlameSubtype) ||
+           (type == FlameParticle && (subtype == RisingFlameSubtype || subtype == FloorFlameSubtype)) ||
            (type == ChaseLightParticle && (subtype == 0 || subtype == 1));
 }
 
@@ -172,6 +187,8 @@ void CreateSelectionParticle(Particle& particle, float scaleArgument, Render::Mo
 {
     if (particle.type == CloudParticle)
         CreateOwnedMist(particle, scaleArgument, random);
+    else if (particle.type == FlameParticle && particle.subtype == FloorFlameSubtype)
+        CreateFloorFlame(particle, scaleArgument, random);
     else if (particle.type == FlameParticle)
         CreateRisingFlame(particle, random);
     else
@@ -184,9 +201,10 @@ Core::Expected<void, ParticleError> StepSelectionParticle(Particle& particle, co
 {
     if (particle.type == CloudParticle)
         return StepOwnedMist(particle, worldClock, trigonometry, owners);
-    if (particle.type == FlameParticle)
+    // 0x545d03: el 5de/0 no tiene más paso que la vida y el movimiento comunes.
+    if (particle.type == FlameParticle && particle.subtype == RisingFlameSubtype)
         StepRisingFlame(particle);
-    else
+    else if (particle.type == ChaseLightParticle)
         StepChaseLight(particle);
     return {};
 }

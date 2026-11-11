@@ -2,8 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
-#include "Render/Models/OriginalRotation.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Scenes/ObjectFrameSprites.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ModelEffects.h"
@@ -73,29 +72,12 @@ constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu);
 constexpr float Fifteenth = std::bit_cast<float>(0x3e19999au);
 constexpr float BlueGlow = std::bit_cast<float>(0x3e99999au);
 
-Core::Expected<glm::vec3, std::string> BonePoint(const GameObjectPass& pass, std::size_t bone, const glm::vec3& offset)
-{
-    if (pass.retainedPose == nullptr)
-    {
-        return Core::Unexpected(std::format("0x4ec110: falta la pose global del hueso {} de los objetos del {}", bone,
-                                            static_cast<int>(pass.map)));
-    }
-    // La .bss nativa empieza en cero; un hueso aún no publicado conserva esa matriz.
-    if (bone >= pass.retainedPose->bones.size())
-    {
-        return Render::Models::OriginalVectorTransform(offset, Render::Models::OriginalMatrix{});
-    }
-    // Translate=0: el hueso del buffer ya está escalado y trasladado al mundo.
-    return Render::Models::OriginalVectorTransform(offset,
-                                                   Render::Models::OriginalMatrixOf(pass.retainedPose->bones[bone]));
-}
-
 Core::Expected<void, std::string> Flares(const GameObjectPass& pass, std::span<const FlarePair> flares, bool blue)
 {
     const glm::vec3 secondLight = blue ? glm::vec3(Fifteenth) : glm::vec3(Fifteenth, 0.0f, 0.0f);
     for (const FlarePair& flare : flares)
     {
-        const auto position = BonePoint(pass, flare.bone, flare.offset);
+        const auto position = ObjectBonePoint(pass, flare.bone, flare.offset);
         if (!position.HasValue())
         {
             return Core::Unexpected(position.Error());

@@ -88,7 +88,10 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
 {
     // La mariposa 0xae del 0x3c del 54 sigue viva en la espera de la entrada al juego: su altura y el
     // sprite 0x5ac de la tabla del frame.
-    const World::ModelEffectStepServices services{.terrainHeight = terrainHeight, .sprites = &m_sprites};
+    const World::ModelEffectStepServices services{.terrainHeight = terrainHeight,
+                                                  .sprites = &m_sprites,
+                                                  .effects = &m_context.world->Map().effects,
+                                                  .lighting = &m_context.world->DynamicLighting().Lighting()};
     auto effects = m_context.world->Map().effects.Effects();
     for (std::size_t slot = 0; slot < effects.size(); ++slot)
     {

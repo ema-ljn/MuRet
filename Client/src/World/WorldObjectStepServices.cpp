@@ -49,7 +49,14 @@ glm::vec3 WarmLight(std::int32_t intensity, float green, float blue)
 Core::Expected<void, std::string> AddObjectLight(const ObjectStepGlobals& globals, const glm::vec3& position,
                                                  const glm::vec3& color, std::int32_t radius, std::string_view address)
 {
-    if (globals.dynamicLighting == nullptr)
+    return AddDynamicLight(globals.dynamicLighting, position, color, radius, address);
+}
+} // namespace
+
+Core::Expected<void, std::string> AddDynamicLight(TerrainLighting* destination, const glm::vec3& position,
+                                                  const glm::vec3& color, std::int32_t radius, std::string_view address)
+{
+    if (destination == nullptr)
     {
         return Core::Unexpected(std::format("{}: falta el buffer dinámico 0x7b4ccc4 para 0x5f9780", address));
     }
@@ -66,10 +73,12 @@ Core::Expected<void, std::string> AddObjectLight(const ObjectStepGlobals& global
         }
     }
     const Data::Terrain::TerrainLightColor channels{color.x, color.y, color.z};
-    AddTerrainLight(*globals.dynamicLighting, position.x, position.y, channels, radius);
+    AddTerrainLight(*destination, position.x, position.y, channels, radius);
     return {};
 }
 
+namespace
+{
 Core::Expected<void, std::string> EmitParticle(const ObjectStepGlobals& globals, const WorldObject& object,
                                                const glm::vec3& position, const glm::vec3& light, std::int32_t type,
                                                std::int32_t subtype, Render::Models::CrtRandom& random)

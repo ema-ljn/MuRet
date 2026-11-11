@@ -31,6 +31,12 @@ inline constexpr std::int16_t ArrivalEffect = 0x61f;
 inline constexpr std::int16_t TeleportEffect = 0x5c6;
 // La mariposa (0x51913a): la emite el 0x3c del mapa 54 y del 33 (0x425790), con el objeto de dueño.
 inline constexpr std::int16_t ButterflyEffect = 0xae;
+// Los del Dungeon y de Lost Tower: la piedra que cae del 0x34 del mapa 1 (DungeonStone), el chorro de fuego
+// del 0x18 del 4 (sin modelo: sólo el pase del suelo) y las dos piedritas que salta el chorro (Stone01/02).
+inline constexpr std::int16_t FallingStoneEffect = 0xda;
+inline constexpr std::int16_t FlameJetEffect = 0x5de;
+inline constexpr std::int16_t FirstStoneChipEffect = 0xc8;
+inline constexpr std::int16_t SecondStoneChipEffect = 0xc9;
 
 // Proyección de los campos compartidos por los efectos de 0x1d4 bytes.
 struct ModelEffect
@@ -90,6 +96,24 @@ public:
     std::optional<std::size_t> CreateButterflyEffect(const glm::vec3& position, const glm::vec3& angles,
                                                      const glm::vec3& light, std::int32_t subtype, float ownerScale,
                                                      bool selectionScene, Render::Models::CrtRandom& random);
+    // 0x518cf0(0xda, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51b80a: el prefijo común (+0x8a en −1)
+    // y seis rand(): la vida (& 15) + 24, la escala ((& 7) + 6) · 0,1f, la caída −(& 3) en +0xe4 y el
+    // corrimiento ((& 63) − 32; −((& 31) + 50); (& 127) + 200), girado por los ángulos y sumado a la posición
+    // en float. Lleno, ninguno y sin rand().
+    std::optional<std::size_t> CreateFallingStone(const glm::vec3& position, const glm::vec3& angles,
+                                                  const glm::vec3& light, Render::Models::CrtRandom& random);
+    // 0x518cf0(0x5de, …, 0, 0, −1, 0, 0, 0, 0) → 0x51e7d8 con el subtipo 0: el prefijo común, vida 40 y el
+    // registro propio abierto y cerrado (copia su +0xf04 a +0x8c, que sólo lee la rama del dueño héroe, y el
+    // cierre que deja la cuenta en 0 gasta sus 3.848 rand()). Lleno, ninguno.
+    std::optional<std::size_t> CreateFlameJet(const glm::vec3& position, const glm::vec3& angles,
+                                              const glm::vec3& light, std::uint8_t& ownRecordDepth,
+                                              Render::Models::CrtRandom& random);
+    // 0x518cf0(0xc8 o 0xc9, …, 0, 0, −1, 0, 0, 0, 0) → 0x51b72b con el subtipo 0: el prefijo común y cinco
+    // rand(): el empuje ((& 255) + 64) · 0,1f en y, la vida (& 15) + 32, la escala ((& 3) + 8) · 0,1f, el
+    // yaw rand() % 360 y la caída (& 15) + 8 en +0xe4; la velocidad es el empuje girado por los ángulos con
+    // ese yaw. Otro tipo o la tabla llena, ninguno.
+    std::optional<std::size_t> CreateStoneChip(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
+                                               const glm::vec3& light, Render::Models::CrtRandom& random);
     // 0x6070a0: sólo apaga el byte vivo de cada lugar (Q-C138).
     void Clear();
 

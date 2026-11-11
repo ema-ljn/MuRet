@@ -195,6 +195,39 @@ TEST(SelectionParticlesTest, TheRisingFlameDrawsItsDriftOnlyWhenTheSeventhOfTenC
     EXPECT_NE(std::find(drifted.begin(), drifted.end(), false), drifted.end());
 }
 
+// 0x54143c..0x54149d: la llama 5de/0 del chorro de Lost Tower vive 20, sube recta ((& 127) + 128) · 0,15f y su
+// escala es ((& 63) + 64) por el argumento por 0,01f: dos rand(). 0x545d03: su paso es sólo el común, que
+// no le toca la escala, la subida ni el giro.
+TEST(SelectionParticlesTest, TheLostTowerFloorFlameRisesStraightWithTwoDraws)
+{
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(5);
+    CrtRandom draws(5);
+    const auto created = particles->CreateChecked(Client::World::FlameParticle, {1000.0f, 2000.0f, 300.0f},
+                                                  {0.0f, 0.0f, 45.0f}, glm::vec3(1.0f), 0, 1.5f, 0.0f, random);
+    ASSERT_TRUE(created.HasValue());
+    ASSERT_TRUE(created.Value().has_value());
+    const Particle& p = particles->All()[*created.Value()];
+    const float rise = F32(((draws.Next() & 127) + 128) * static_cast<double>(std::bit_cast<float>(0x3e19999au)));
+    const float scale = F32(((draws.Next() & 63) + 64) * 1.5 * Hundredth);
+    EXPECT_EQ(p.subtype, 0);
+    EXPECT_EQ(p.life, 20);
+    EXPECT_EQ(p.velocity, glm::vec3(0.0f, 0.0f, rise));
+    EXPECT_EQ(p.scale, scale);
+    EXPECT_EQ(p.position, glm::vec3(1000.0f, 2000.0f, 300.0f));
+    EXPECT_EQ(random.State(), draws.State());
+
+    const float rotation = p.rotation;
+    CrtRandom stepRandom(3);
+    RecordingSine sine;
+    ASSERT_TRUE(Step(*particles, stepRandom, 0.0f, sine).HasValue());
+    EXPECT_EQ(p.scale, scale);
+    EXPECT_EQ(p.velocity, glm::vec3(0.0f, 0.0f, rise));
+    EXPECT_EQ(p.rotation, rotation);
+    EXPECT_EQ(p.life, 19);
+    EXPECT_TRUE(sine.arguments.empty());
+}
+
 // 0x545e3f..0x545ea9: con la partida a la izquierda de x (C0 del fcomp) gira +2 y si no −2; sube, se achica con la
 // subida y se apaga con la escala del x87 en 0 o menos; la luz cae 0,993.
 TEST(SelectionParticlesTest, TheRisingFlameTurnsBySideOfItsStartAndDiesWhenItsScaleIsGone)

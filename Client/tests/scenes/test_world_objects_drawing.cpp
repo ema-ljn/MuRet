@@ -37,6 +37,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cmath>
 #include <optional>
 #include <array>
 #include <string>
@@ -394,23 +395,151 @@ TEST(WorldObjectsDrawingTest, TheGamePassDrawsTheLiveObjectsWithARandEach)
     }
 }
 
-// El 0x38 de Lorencia se dibuja y corta después de su rand(), en su caso de 0x602ed0 (0x603149), con los
-// de antes dibujados y los de después sin mirar.
-TEST(WorldObjectsDrawingTest, TheGamePassStopsAtTheCasesOfLorencia)
+// El 0x38 de Lorencia (0x603149): después de su rand(), dos sprites 0x5ac en los huesos 48 y 57 con el
+// desplazamiento de la pila que dejó 0x6002e0 (la y es su nivel del try, −1): en NaN, de escala L · 5 y luz
+// (L · 0,6; L · 0,3; L · 0,1). Los de después siguen. Sin posar (el alpha por debajo de 0,01), la pila es
+// la de 0x5ffdf0, que no está leída, y corta con los de antes dibujados y los de después sin mirar.
+TEST(WorldObjectsDrawingTest, TheLorenciaMerchantAnimalLeavesTwoGlowsAtNaN)
 {
     const TwoMeshModels models;
     std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
                                      ObjectAt(0x38, 200.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
                                      ObjectAt(Rock, 300.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
     Client::Render::Models::CrtRandom random(7);
+    Client::World::FrameSprites sprites;
     ModelBatch batch;
-    const auto drawn = DrawGame(batch, models, objects, {.map = Lorencia, .random = &random});
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x603149"), std::string::npos) << drawn.Error();
-    EXPECT_TRUE(objects[1].seen);
+    const auto drawn = DrawGame(batch, models, objects, {.map = Lorencia, .random = &random, .sprites = &sprites});
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_TRUE(objects[2].seen);
+    EXPECT_EQ(batch.Vertices().size(), 18u);
+    EXPECT_EQ(random.State(), SevenAfter(3).State());
+    auto expected = SevenAfter(1);
+    const auto light = static_cast<float>(static_cast<double>(expected.Next() % 30 + 70) * static_cast<double>(0.01f));
+    int glows = 0;
+    for (const auto& sprite : sprites.Sprites())
+    {
+        if (!sprite.alive)
+            continue;
+        ++glows;
+        EXPECT_EQ(sprite.texture, 0x5ac);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(sprite.position.x), 0xffffffffu);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(sprite.position.y), 0xffffffffu);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(sprite.position.z), 0xffffffffu);
+        EXPECT_EQ(sprite.scale, static_cast<float>(static_cast<double>(light) * 5.0));
+        EXPECT_EQ(sprite.light.x, static_cast<float>(static_cast<double>(light) * static_cast<double>(0.6f)));
+        EXPECT_EQ(sprite.light.y, static_cast<float>(static_cast<double>(light) * static_cast<double>(0.3f)));
+        EXPECT_EQ(sprite.light.z, static_cast<float>(static_cast<double>(light) * static_cast<double>(0.1f)));
+        EXPECT_EQ(sprite.rotation, 0.0f);
+    }
+    EXPECT_EQ(glows, 2);
+
+    for (auto& object : objects)
+        object.seen = false;
+    objects[1].alpha = 0.005f;
+    Client::Render::Models::CrtRandom unposed(7);
+    ModelBatch second;
+    const auto cut = DrawGame(second, models, objects, {.map = Lorencia, .random = &unposed, .sprites = &sprites});
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x60318a"), std::string::npos) << cut.Error();
     EXPECT_FALSE(objects[2].seen) << "el de después no se mira";
-    EXPECT_EQ(batch.Vertices().size(), 12u);
+    EXPECT_EQ(second.Vertices().size(), 6u);
+    EXPECT_EQ(unposed.State(), SevenAfter(2).State());
+}
+
+// 0x6002e0 con el mapa 4: el 3 saca un rand() (en el frame del original) y, antes de su cuerpo, un
+// RenderBody con Chrome01 (0x5c0) forzado, opaco, con la luz (1; 0,2; 0,1) y la malla 1 (su model+0x88) sin
+// luz y con la U y la V del objeto; el 0x17 sólo saca el rand(). El cuerpo después, como siempre. En un
+// dibujo intermedio de MuRet no hay rand().
+TEST(WorldObjectsDrawingTest, TheLostTowerChromeGoesBeforeTheBody)
+{
+    constexpr std::uint8_t LostTower = 4;
+    const TwoMeshModels models;
+    std::vector<WorldObject> objects{ObjectAt(3, 100.0f, 100.0f, LostTower, Client::World::ObjectScene::Other),
+                                     ObjectAt(0x17, 300.0f, 100.0f, LostTower, Client::World::ObjectScene::Other)};
+    for (auto& object : objects)
+    {
+        object.vertexLight = false;
+        object.light = glm::vec3(0.5f);
+        object.state.uv = glm::vec2(0.25f, 0.5f);
+    }
+    Client::Render::Models::CrtRandom random(7);
+    ModelBatch batch;
+    ASSERT_TRUE(DrawGame(batch, models, objects, {.map = LostTower, .random = &random}).HasValue());
+    EXPECT_EQ(random.State(), SevenAfter(4).State()) << "dos del 6002e0 del 4 y dos de 0x602ed0";
+    // Las dos mallas cromadas comparten el estado y quedan en un solo comando.
+    ASSERT_EQ(batch.Commands().size(), 5u);
+    const auto& chrome = batch.Commands()[0];
+    EXPECT_EQ(chrome.state.texture, TextureSlot{0x5c0});
+    EXPECT_EQ(chrome.state.blend, ModelBlend::Opaque);
+    ASSERT_EQ(chrome.vertexCount, 6u);
+    for (std::size_t mesh = 0; mesh < 2; ++mesh)
+    {
+        SCOPED_TRACE(mesh);
+        const auto& vertex = batch.Vertices()[chrome.firstVertex + mesh * 3];
+        EXPECT_EQ(vertex.color.red, 1.0f);
+        EXPECT_EQ(vertex.color.green, std::bit_cast<float>(0x3e4ccccdu));
+        EXPECT_EQ(vertex.color.blue, std::bit_cast<float>(0x3dcccccdu));
+        EXPECT_EQ(vertex.uv, mesh == 1 ? glm::vec2(0.25f, 0.5f) : glm::vec2(0.0f));
+    }
+    for (std::size_t body = 1; body < 5; ++body)
+    {
+        SCOPED_TRACE(body);
+        const auto& command = batch.Commands()[body];
+        EXPECT_EQ(command.state.texture, TextureSlot{static_cast<std::uint16_t>(0x41c + (body + 1) % 2)});
+        EXPECT_EQ(batch.Vertices()[command.firstVertex].uv, glm::vec2(0.0f));
+    }
+
+    Client::Render::Models::CrtRandom intermediate(7);
+    ModelBatch between;
+    ASSERT_TRUE(DrawGame(between, models, objects, {.map = LostTower, .originalFrame = false, .random = &intermediate})
+                    .HasValue());
+    EXPECT_EQ(intermediate.State(), 7u);
+    EXPECT_EQ(between.Commands().size(), 5u);
+}
+
+// 0x602ed0 con el mapa 4: el 0x28 deja dos 0x5d5 de 2,5 sobre el objeto, 260 más arriba, con (L; L; L) y el
+// giro r y −r (r = ftol(reloj · 0,1f) % 360); el 9 cae al caso del 6 y deja un 0x5ac en NaN. El 0x13 lee
+// los huesos de la pose global: sin ella corta.
+TEST(WorldObjectsDrawingTest, TheLostTowerFrameLeavesItsSprites)
+{
+    constexpr std::uint8_t LostTower = 4;
+    const TwoMeshModels models;
+    std::vector<WorldObject> objects{ObjectAt(0x28, 100.0f, 100.0f, LostTower, Client::World::ObjectScene::Other),
+                                     ObjectAt(9, 300.0f, 100.0f, LostTower, Client::World::ObjectScene::Other)};
+    objects[0].transform.position.z = 40.0f;
+    Client::Render::Models::CrtRandom random(7);
+    Client::World::FrameSprites sprites;
+    ModelBatch batch;
+    const auto drawn = DrawGame(batch, models, objects,
+                                {.map = LostTower, .random = &random, .worldClock = 12345.0f, .sprites = &sprites});
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(random.State(), SevenAfter(2).State());
+    auto expected = SevenAfter(0);
+    const auto first = static_cast<float>(static_cast<double>(expected.Next() % 30 + 70) * static_cast<double>(0.01f));
+    const auto second = static_cast<float>(static_cast<double>(expected.Next() % 30 + 70) * static_cast<double>(0.01f));
+    const auto turn = static_cast<float>(static_cast<std::int64_t>(12345.0 * static_cast<double>(0.1f)) % 360);
+    const auto live = sprites.Sprites();
+    ASSERT_TRUE(live[0].alive && live[1].alive && live[2].alive);
+    EXPECT_FALSE(live[3].alive);
+    for (std::size_t k = 0; k < 2; ++k)
+    {
+        SCOPED_TRACE(k);
+        EXPECT_EQ(live[k].texture, 0x5d5);
+        EXPECT_EQ(live[k].position, glm::vec3(100.0f, 100.0f, 300.0f));
+        EXPECT_EQ(live[k].scale, 2.5f);
+        EXPECT_EQ(live[k].light, glm::vec3(first));
+        EXPECT_EQ(live[k].rotation, k == 0 ? turn : -turn);
+    }
+    EXPECT_EQ(live[2].texture, 0x5ac);
+    EXPECT_TRUE(std::isnan(live[2].position.x));
+    EXPECT_EQ(live[2].scale, static_cast<float>(static_cast<double>(second) * 5.0));
+
+    std::vector<WorldObject> boned{ObjectAt(0x13, 100.0f, 100.0f, LostTower, Client::World::ObjectScene::Other)};
+    Client::Render::Models::CrtRandom other(7);
+    ModelBatch third;
+    const auto cut = DrawGame(third, models, boned, {.map = LostTower, .random = &other, .sprites = &sprites});
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x4ec110"), std::string::npos) << cut.Error();
 }
 
 // 0x600a4a..0x600ae6: el 0x69 de Lorencia va con cuatro 0x4ecc30 sueltos, sin RenderBody. Las mallas 0 a 2,
@@ -864,7 +993,7 @@ TEST(WorldObjectsDrawingTest, TheGamePassRejectsUnreadMaps)
     std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, 3, Client::World::ObjectScene::Other)};
     Client::Render::Models::CrtRandom random(7);
     ModelBatch batch;
-    const auto drawn = DrawGame(batch, models, objects, {.map = 4, .random = &random});
+    const auto drawn = DrawGame(batch, models, objects, {.map = 6, .random = &random});
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x6046a0"), std::string::npos) << drawn.Error();
     EXPECT_FALSE(objects[0].seen);

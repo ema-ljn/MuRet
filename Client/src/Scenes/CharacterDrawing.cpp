@@ -285,10 +285,10 @@ bool HasFourComponents(const Data::Models::Mesh& mesh)
 constexpr float OpaqueAlpha = 0.99f;
 
 // El pase base (0x609640 → RenderBody(2) con el objeto), sin la malla que el objeto oculta: la del
-// blendMesh aditiva y por la luz, una de cuatro componentes o con el alpha por debajo de 0,99 con la
-// mezcla normal (y ese alpha), y si no opaca; con la luz por vértice, por la de cada normal, salvo la
-// del blendMesh.
-void DrawBase(Render::ModelBatch& batch, const MeshDraw& draw)
+// blendMesh aditiva y por la luz, una cuya textura es de cuatro componentes (`fourComponents`) o con el
+// alpha por debajo de 0,99 con la mezcla normal (y ese alpha), y si no opaca; con la luz por vértice, por
+// la de cada normal, salvo la del blendMesh.
+void DrawBaseWith(Render::ModelBatch& batch, const MeshDraw& draw, bool fourComponents)
 {
     if (static_cast<std::int16_t>(draw.index) == draw.object->hiddenMesh)
     {
@@ -301,12 +301,16 @@ void DrawBase(Render::ModelBatch& batch, const MeshDraw& draw)
         return;
     }
     const bool fading = draw.alpha < OpaqueAlpha;
-    const Render::ModelBlend blend =
-        fading || HasFourComponents(*draw.mesh) ? Render::ModelBlend::Alpha : Render::ModelBlend::Opaque;
+    const Render::ModelBlend blend = fading || fourComponents ? Render::ModelBlend::Alpha : Render::ModelBlend::Opaque;
     Render::Color color = draw.shade;
     color.alpha = fading ? draw.alpha : 1.0f;
     Triangles(batch, draw, {draw.texture, blend, true}, color, PassUv{std::nullopt, TexturedShift(draw)},
               draw.vertexLight);
+}
+
+void DrawBase(Render::ModelBatch& batch, const MeshDraw& draw)
+{
+    DrawBaseWith(batch, draw, HasFourComponents(*draw.mesh));
 }
 
 // El alpha del pase de set y lo que ya multiplicó: 0x4ecc30 multiplica el color del modelo en el lugar,
@@ -1127,6 +1131,17 @@ void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const Dr
     for (const MeshDraw& draw : ObjectMeshDraws(models, object, frameClock, skinned))
     {
         DrawBase(batch, draw);
+    }
+}
+
+void DrawObjectWithTexture(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                           Core::Duration frameClock, Render::TextureSlot texture)
+{
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    for (MeshDraw draw : ObjectMeshDraws(models, object, frameClock, skinned))
+    {
+        draw.texture = texture;
+        DrawBaseWith(batch, draw, false);
     }
 }
 

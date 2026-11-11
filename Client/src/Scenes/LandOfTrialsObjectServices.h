@@ -4,7 +4,6 @@
 
 #include <glm/ext/vector_float3.hpp>
 
-#include <cstdint>
 #include <optional>
 #include <string>
 

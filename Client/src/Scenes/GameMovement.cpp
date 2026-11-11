@@ -63,9 +63,17 @@ Core::Expected<void, std::string> CloseTheClickRecord(const HeroMovementContext&
         right = std::bit_cast<std::int16_t>(context.world.OwnCharacter().equipment[0].id);
         left = std::bit_cast<std::int16_t>(context.world.OwnCharacter().equipment[1].id);
     }
-    const bool interactiveWeapon = (right >= 0 && right < 0x600) || (right >= 0xa00 && right < 0xc00);
-    if (context.world.Runtime().cursorItemCount <= 0 && left == -1 && interactiveWeapon)
-        return Core::Unexpected(std::string("0x59bd3e: la interacción del arma en el clic requiere CL9"));
+    // 0x59bd01..0x59bd38: con el cursor vacío, la mano derecha (+0xb6c) vacía y un arma de los grupos 0 a 2 o
+    // del 5 en la izquierda (+0xbb4), el original pasa esa arma al cursor (0x59bdf6), viste al héroe
+    // (0x512a30) y manda el C1 .. 24 que la lleva a la derecha (0x59bf1c). Con un arma en la derecha no
+    // hace nada de eso y sigue con lo que hay bajo el mouse (0x59cd23).
+    const bool weaponOnTheLeft = (left >= 0 && left < 0x600) || (left >= 0xa00 && left < 0xc00);
+    if (context.world.Runtime().cursorItemCount <= 0 && right == -1 && weaponOnTheLeft)
+    {
+        return Core::Unexpected(std::string("0x59bd3e: con la mano derecha vacía y un arma en la izquierda, el "
+                                            "original la pasa a la derecha con el C1 .. 24 del inventario (CL8), "
+                                            "que MuRet no tiene"));
+    }
     return {};
 }
 

@@ -409,8 +409,10 @@ TEST(GameModelEffectsTest, TheFlameJetSpitsSixFlamesASometimesChipAndItsLight)
     for (const bool chipped : {true, false})
     {
         SCOPED_TRACE(chipped);
-        const std::uint32_t seed = SeedWhereDraw(
-            25, chipped ? +[](int value) { return (value & 7) == 0; } : +[](int value) { return (value & 7) != 0; });
+        // Sin el + de los lambdas: en MSVC, con varias convenciones de llamada, es ambiguo.
+        const auto chips = [](int value) { return (value & 7) == 0; };
+        const auto stays = [](int value) { return (value & 7) != 0; };
+        const std::uint32_t seed = chipped ? SeedWhereDraw(25, chips) : SeedWhereDraw(25, stays);
         Client::World::ModelEffect jet = DungeonEffect(Client::World::FlameJetEffect, 30);
         Client::World::Particles particles;
         Client::World::ModelEffects effects;

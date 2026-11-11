@@ -88,7 +88,7 @@ struct WorldRuntime
     // paquete de 0x404e20 la vuelve a armar (CL9.5).
     std::uint8_t chaosCastleTrapArmed = 1;
     // Lo de Crywolf que leen y escriben la carga, sus objetos y sus hojas.
-    CrywolfGlobals crywolf;
+    CrywolfGlobals crywolf{};
     // 0x5763538 (.bss 0): el contador de 0x6046a0, que da la vuelta de 1 a 41 al empezar cada dibujo de los
     // objetos, en el login, la selección y el juego (0x6046be..0x6046ce). Solo lo lee el 0x29 de Crywolf.
     std::int32_t objectDrawCounter = 0;

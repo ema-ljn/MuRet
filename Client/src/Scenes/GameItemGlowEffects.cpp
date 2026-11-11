@@ -209,11 +209,24 @@ Result StateLight(DrawnObject& object, float time, const ItemDrawContext& contex
     return {};
 }
 } // namespace
-glm::vec2 ItemShineTexCoords(Render::Models::ShinePass pass, const glm::vec3& normal, Core::Duration clock)
+ItemShineClock ItemShineClockOf(Render::Models::ShinePass pass, Core::Duration clock)
 {
     const float time = static_cast<float>(std::chrono::duration<double, std::milli>(clock).count());
-    const auto word = ItemClockWord(time);
-    const float t = F32(static_cast<double>(word % 10000) * 0.0001f);
+    ItemShineClock shine;
+    shine.word = ItemClockWord(time);
+    shine.t = F32(static_cast<double>(shine.word % 10000) * 0.0001f);
+    if (pass != Render::Models::ShinePass::Chrome4)
+        return shine;
+    // CoreDuration es finito y acotado: ambos argumentos están dentro de |a|<2^63.
+    shine.chrome4Cosine = F32(*Render::Models::Detail::CosineProductPC53(static_cast<double>(time) * 0.001f, 1));
+    shine.chrome4Sine = F32(*Render::Models::Detail::SineProductPC53(static_cast<double>(time) * 0.002f, 1));
+    return shine;
+}
+
+glm::vec2 ItemShineTexCoords(Render::Models::ShinePass pass, const glm::vec3& normal, const ItemShineClock& clock)
+{
+    const std::int32_t word = clock.word;
+    const float t = clock.t;
     const double nx = normal.x, ny = normal.y, nz = normal.z;
     using Render::Models::ShinePass;
     switch (pass)
@@ -234,9 +247,8 @@ glm::vec2 ItemShineTexCoords(Render::Models::ShinePass pass, const glm::vec3& no
     }
     case ShinePass::Chrome4:
     {
-        // CoreDuration es finito y acotado: ambos argumentos están dentro de |a|<2^63.
-        const float c = F32(*Render::Models::Detail::CosineProductPC53(static_cast<double>(time) * 0.001f, 1));
-        const float sine = F32(*Render::Models::Detail::SineProductPC53(static_cast<double>(time) * 0.002f, 1));
+        const float c = clock.chrome4Cosine;
+        const float sine = clock.chrome4Sine;
         const double sum = static_cast<double>(c) * nx + static_cast<double>(sine) * ny + nz;
         const float u = F32(sum); // 4ed1fb: spill que el último FADD vuelve a leer.
         return {F32(static_cast<double>(sine) * 3 + ny * 0.5f + u),

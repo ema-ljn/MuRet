@@ -48,6 +48,8 @@ std::vector<World::WorldTileTexture> WantedTextures(std::uint8_t map, GrassTextu
     wanted.insert(wanted.end(), caustics.begin(), caustics.end());
     const auto tarkan = World::TarkanObjectTextures(map);
     wanted.insert(wanted.end(), tarkan.begin(), tarkan.end());
+    const auto icarus = World::IcarusObjectTextures(map);
+    wanted.insert(wanted.end(), icarus.begin(), icarus.end());
     if (grass == GrassTextures::Upload)
     {
         const std::vector<World::WorldTileTexture> grassTextures = World::WorldGrassTextures(map);

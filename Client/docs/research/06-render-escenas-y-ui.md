@@ -5162,6 +5162,109 @@ camina, también en la zona segura (`GameT16SceneMatrix`, `GameT16MapWalk` y `Ga
 (206, 56)). Tests: `TarkanObjectsTest`, `TarkanObjectFrameTest` y
 `WorldObjectsDrawingTest.TheTarkanChromeGoesAfterItsFirstMesh`.
 
+### Los objetos de Icarus
+
+Leído en la CL7 en el ASM y el pseudocódigo de `c32bbd5f` (*estático*; las cuentas de MuRet, *simulado*: con el
+port y la Data del repo). Lo común es lo de [Los objetos del juego](#los-objetos-del-juego). En Icarus (el mapa 10)
+los objetos casi no hacen nada en su paso: lo que se ve sale de un preludio antes de los objetos, de un paso
+aparte por cada objeto visto y de su caso en `0x602ed0`.
+
+**La carga** (`0x616ec0`, el caso del mapa 10 en `0x61788c`): `0x63b870` sube `Effect\clouds.jpg` otra vez a
+`0x622` (`GL_LINEAR`, `GL_CLAMP`, lo mismo que la carga global del login); `0x60da30` carga el modelo `0xbb`
+(`Object11\cloud`, sin número) y `0x60d5f0` sus texturas con `GL_REPEAT` y `GL_NEAREST`, como los demás
+especiales; y `0x6178da..0x6178f2` sube `Effect\cloudLight.jpg` a `0x623` (`GL_LINEAR`, `GL_CLAMP`, sexto 1), el
+sprite de `0x6063d0`.
+
+**El trapecio** (`0x6046b2..0x6046c3`): en el 10, `0x6046a0` le suma −10 al margen de cada objeto (`+0xdc`) en la
+x87 y lo guarda en float antes de `0x5fbaa0`; en los demás mapas suma 0.
+
+**El paso** (`0x604ab0`): la tabla `0x605ab4` por `0x605ae8` no tiene casos para el 10. Lo demás va en
+`0x606560`, en este orden:
+
+1. `0x6061c0(&selector)`, con el selector en 0. En el 10, `0x605d70`:
+   - `rand()` % 50; si no da 0, nada más.
+   - La luz dinámica (`0x5f9780`, radio 2, `0x605e0a`) en (x del héroe + `rand()` % 300 − 150, sumados en la
+     x87 y guardados; y del héroe). Un `rand()` que no se usa (`0x605dbb`, Q-C309). L = ((`rand()` & 3) + 4) ·
+     0,05f y el color (L · 0,3f; L · 0,3f; L · 0,081f), cada canal guardado.
+   - `0x518cf0(0xbb, héroe, 0, color, 0, 0, −1, 0, 0, 0, 0)`: la nube sobre el héroe (abajo).
+   - Con `0x7d365a0` (la cuenta del pase anterior) distinta de 0, el selector es `rand()` % cuenta.
+   - `rand()` % 5; si da 0, `AngleMatrix(0, 0, −45)` y un lado de cuatro (`rand()` & 3). El corrimiento del lado
+     gira con `0x5fcbd0` en el lugar (la entrada y la salida son el mismo vector: la y gira con la x nueva y la z
+     con las dos, Q-C310) y se suma al héroe (el lado 1 lo resta); el alcance gira con el yaw del lado, también
+     en el lugar. Los lados, (corrimiento; yaw; alcance): 0, ((−400; −1.000); 240; (−200; −1.000)); 1,
+     ((−300; −400), restado; 210; (−500; −1.000)); 2, ((−200; −400); 235; (−1.000; −1.500)); 3, ((−200; 400);
+     200; (−600; −1.200)). Las dos puntas son centro + alcance y centro − alcance, las dos 300 más abajo, y
+     salen dos `0x530860(0x615, centro + alcance, centro − alcance, 0, 0, 0, ancho, −1, 0, 0, −1)`, cada una con
+     su ancho `rand()` % 10 + 40.
+   - Después, en `0x6061c0`, con `rand()` % 10 en 0, `0x518cf0(0x5ac, …)` en (x del héroe + `rand()` % 5.000 −
+     2.500; lo mismo con la y; z del héroe − 1.000), sin giro y con luz 1.
+2. `0x7d365a0` en 0.
+3. Sector por sector, cada objeto visto: `0x604ab0`, `0x6063d0(objeto, &selector, &0x7d365a0)` y `0x5ff960`.
+
+`0x6063d0`, en el 10: la cuenta sube 1; con el selector en 0, nada más. Si no, con `rand()` % 10 en 0 y el tipo del
+0 al 5, un sprite `0x5491e0(0x623, objeto, 0,5, luz, héroe, 0, 0)` con la luz (`rand()` % 10) · 0,02f por canal y
+dos `0x530860(0x614, objeto, objeto, ángulos, 6, objeto, ancho, −1, 0, 0, −1)` de ancho `rand()` % 20 + 10; sin
+eso, la cuenta vuelve a bajar. La cuenta del pase siguiente queda en la cantidad de objetos vistos (con el
+selector en 0) o en la de los que chisporrotearon (Q-C311).
+
+**El dibujo** (`0x602ed0`, el 10 en `0x603eef`, la tabla `0x60466c`):
+
+- Del 0 al 5 (`0x603f03..0x6040db`): con `+0x58` distinto de −2, veinte (del 0 al 2) o diez (del 3 al 5)
+  `0x53fe70(0x622, posición, ángulos, (0,1f; 0,1f; 0,1f), tipo, escala +0xc, objeto)`; después `+0x58` en −2.
+- El 10 (`0x6040e9..0x604143`): `0x4ec110` con el hueso 3 del buffer global de la pose (`0x68b18ac`) y el
+  desplazamiento en cero, y `0x53fe70(0x5ac, punto, ángulos, 1, 0, 1, 0)`.
+- Del 6 al 9, nada.
+
+**Las partículas.** Las nubes `622` del 0 al 5 comparten el alta del `622/1` de la selección (`0x5435cf`, siete
+`rand()`, Q-C306) y su paso (`0x5476f0`): mientras el objeto se ve viven; en el giro, la tabla `0x54848c` hace
+girar a favor el 1 y el 4 (0,02f, `0x6b8b90`), en contra el 2 y el 5 (−0,02f, `0x6ba354`) y no toca el 0 ni el 3.
+El `5ac/0` nace como el `5ac/6` (`0x540151..0x54018f`); en el paso (`0x544c19..0x544dd6`, k = 0,5f) camina
+(`rand()` % 2.001 − 1.000) · 0,0001f en x y en y, más el viento, por k (la x se guarda en float en cada paso, la y
+no), sube k · 5 más `0x7609bc0` · k (que nadie escribe: 0, Q-C312), la escala baja 0,05f, la luz la copia y con la
+escala en 0,1f o menos se apaga. El `5ac/1` (`0x54007f`) sólo vive 50, sin `rand()`, y en el paso
+(`0x5449e1..0x544a11`) la luz va por 0,9f y la escala por 0,95f.
+
+**Los efectos con modelo.** La nube `0xbb` (`0x51b968`): vida 2, el blendMesh en 0, escala 10, 200 más en y y 190
+menos en z, sin luz por vértice; en el paso sólo tiene la cola común. Sin luz por vértice, `0x5ffce0` le da el
+color terreno · 0,1f + luz (la x sin redondear antes de la suma; la y y la z redondeadas, `0x5ffda5..0x5ffde7`).
+El `0x5ac` (`0x51e3ec`): la luz en 0,3f, s = `rand()` % 5 + 9 y la velocidad sin girar (sen 30° · cos 70°;
+cos 30° · cos 70°; sen 70°) · s · 0,5 en la x87, con los double `0x6ba1c8` y `0x6ba1d0`; escala 3 y vida 400. Su
+paso (`0x52a737..0x52a7af`) suma la velocidad, le baja 0,01f a la z, suelta un `5ac/1` con su luz y su escala y,
+con la z de la velocidad bajo −2 (o NaN), lo mata; la cola común (`0x51fc80`) vuelve a sumar la velocidad (los
+ángulos son 0), y con la vida que queda impar (`0x52cdb3..0x52cdfb`) da otro paso entero, con su `rand()` común
+(Q-C313). No se dibuja (`0x52daa1`): se ve por sus estelas.
+
+**Las uniones.** El `615/0` (`0x5319ea..0x531a30`) toma la textura `0x614`, el ancho, 50 puntos, vida 20, la
+velocidad `rand()` % 20 + 80 y la z de la luz en 50, y guarda la partida en `+0x24`. En el paso
+(`0x53727d..0x537408`), con vida de más de 15, rehace el rayo: un destino por paso (`rand()` % 200 + x − 100;
+`rand()` % 100 + y − 50; z, del `+0x58`), vuelve a `+0x24` y, en cada uno de los 50 tramos, gira hacia el destino
+con `0x4e9810` de a `rand()` % 80 + 60, sacude (`rand()` % 1.400 − 700) / ancho la x y la z de los ángulos (la z
+sin redondear), suma la cola con esos ángulos y avanza con el giro en el lugar de `0x5fcbd0`. Con 15 o menos, la
+z de la luz baja 10,12f. La cola común, con la matriz del principio del paso, sólo con vida de más de 10. El
+`614/6` (`0x531563..0x53168c`): velocidad `rand()` % 10 + 15, vida `rand()` % 20 + 6, el gris (`rand()` % 10) ·
+0,06666667f + 0,1f, el ancho y 50 puntos, sin cola común; el objeto queda como dueño. En el paso
+(`0x53683e..0x536e8a`) sólo avanza hasta que la vida llega a 4; desde ahí rehace el rayo desde `+0x24` hacia el
+objeto (leído en vivo): en cada tramo, el destino es su posición más `rand()` % 200 + 2.050 en x y en y y 10.000
+más abajo, gira de a `rand()` % 100 + 50 y sacude `rand()` % 100 + 20 la x y la z, sin dividir. En el dibujo
+(`0x53d01d..0x53d043`), la segunda cara del `614` y del `615` corre sus dos u en dos veces el corrimiento del
+reloj.
+
+**En MuRet.** La carga: `World::IcarusObjectTextures` (en la lista de `Scenes::TerrainTiles`) y el `0xbb` de
+`WorldSpecialModels`. El margen: `ExtraObjectMargin` en `WorldObjectsDrawing`. El preludio y el paso por objeto:
+`Scenes::StepIcarusObjectPrelude` y `Scenes::StepIcarusSeenObject` (`Scenes/IcarusObjectStep.h`), desde
+`GameScene::StepTheObjects` con el `AfterObjectStep` de `StepGameWorldObjects`. El dibujo:
+`Scenes::StepIcarusObjectFrame`. Las partículas, en `World::SelectionParticleKernels` y
+`World::KalimaParticleKernels`; los efectos, en `ModelEffects::CreateIcarusEffect` y `StepGameModelEffect`; las
+uniones, en `CreateFaunaJoint` y `StepJoints` (`Scenes/FaunaJointCreation`). Un destino prestado que falta corta
+con su dirección después de lo que ya escribió. Con la Data del repo, el 10 llega a un cuadro completo y camina
+(`GameT16SceneMatrix` y `GameT16MapWalk`, en (20, 29): el bloque libre con más objetos cerca, 76 a menos de
+1.500); Icarus no tiene zona segura. Tests: `IcarusObjectsTest`, `KalimaParticlesTest.TheIcarusFlare*`,
+`SelectionParticlesTest.TheIcarusCloudsShareTheMistAndTurnBySubtype`,
+`ModelEffectsTest.TheIcarusCloudAndFlareAreCreatedWithTheirOwnFields`,
+`GameModelEffectsTest.TheIcarusFlareStepsTwiceAndLeavesTwoTrails`,
+`GameJointDrawingTest.BoltsShiftTheirSecondFaceByTwiceTheScroll` y
+`OriginalRotationTest.TheInPlaceRotateReadsEachStoredRow`.
+
 ### Las marcas del suelo
 
 `0x549130`, desde `0x5fc365` (*estático*, salvo donde se dice). Son 100 lugares de `0x78` bytes en

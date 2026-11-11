@@ -1026,7 +1026,7 @@ TEST_F(GameSceneDrawTest, TheStepAfterADrawStepsTheSeenObjects)
 // antes, en 0x6374ce; acá se lo marca a mano), el paso corta antes de tocarlo y sin rand().
 TEST_F(GameSceneDrawTest, TheStepStopsAtTheSeenObjectsOfTheOtherMaps)
 {
-    ASSERT_NO_FATAL_FAILURE(Prepare(10, 128, 128));
+    ASSERT_NO_FATAL_FAILURE(Prepare(7, 128, 128));
     ASSERT_FALSE(world.Map().objects.empty());
     world.Map().objects.front().seen = true;
     const Client::World::WorldObject before = world.Map().objects.front();
@@ -1043,8 +1043,7 @@ TEST_F(GameSceneDrawTest, TheStepStopsAtTheSeenObjectsOfTheOtherMaps)
 }
 
 // Los otros mapas que carga el juego cortan antes del pasto: el 6 en la cámara (0x576960 con el nombre
-// del héroe), antes de los accesos; el 7 en su agua (0x5fa4b0) y el 10, que no tiene terreno, en los
-// objetos (0x6046a0), los dos ya en el pase del mundo y sin una celda.
+// del héroe), antes de los accesos, y el 7 en su agua (0x5fa4b0), ya en el pase del mundo y sin una celda.
 TEST_F(GameSceneDrawTest, TheOtherMapsStopWhereTheyDiffer)
 {
     struct Case
@@ -1054,8 +1053,7 @@ TEST_F(GameSceneDrawTest, TheOtherMapsStopWhereTheyDiffer)
         int draws;
         bool worldPass;
     };
-    for (const Case& probe :
-         {Case{6, "0x635b5c", 4, false}, Case{7, "0x5fa985", 4 + 8, true}, Case{10, "0x6374ce", 4 + 8, true}})
+    for (const Case& probe : {Case{6, "0x635b5c", 4, false}, Case{7, "0x5fa985", 4 + 8, true}})
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, 128, 128));

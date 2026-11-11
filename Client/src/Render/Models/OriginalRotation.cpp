@@ -111,6 +111,15 @@ glm::vec3 OriginalVectorRotate(const glm::vec3& v, const OriginalMatrix& m)
             F32(((at(8) * x) + (at(9) * y)) + (at(10) * z))};
 }
 
+void OriginalVectorRotateInPlace(glm::vec3& v, const OriginalMatrix& m)
+{
+    const auto at = [&m](std::size_t k) { return static_cast<double>(m[k]); };
+    // 0x5fcbf0/0x5fcc07: cada fila se guarda antes de que la siguiente relea [eax].
+    v.x = F32(((at(1) * v.y) + (at(2) * v.z)) + (static_cast<double>(v.x) * at(0)));
+    v.y = F32(((at(4) * v.x) + (at(5) * v.y)) + (at(6) * v.z));
+    v.z = F32(((at(8) * v.x) + (at(9) * v.y)) + (at(10) * v.z));
+}
+
 // 0x5fcc30: las columnas del giro; el orden de las sumas también fija los bits de la cámara.
 glm::vec3 OriginalVectorIRotate(const glm::vec3& v, const OriginalMatrix& m)
 {

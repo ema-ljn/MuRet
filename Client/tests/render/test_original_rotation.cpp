@@ -222,3 +222,18 @@ TEST(OriginalRotationTest, ARowMatrixGoesBackToTheBoneTransform)
     EXPECT_EQ(bone[3], glm::vec3(3.5f, 7.5f, 11.5f));
 }
 } // namespace
+
+// 0x5fcbd0 con la entrada y la salida en el mismo vector (0x605edc de Icarus): cada fila se guarda antes de
+// que la siguiente relea, así que la y gira con la x nueva y la z con las dos.
+TEST(OriginalRotationTest, TheInPlaceRotateReadsEachStoredRow)
+{
+    const auto matrix = Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, -45.0f});
+    const glm::vec3 start{-400.0f, -1000.0f, 0.0f};
+    glm::vec3 aliased = start;
+    Client::Render::Models::OriginalVectorRotateInPlace(aliased, matrix);
+    const float x = Client::Render::Models::OriginalVectorRotate(start, matrix).x;
+    const float y = Client::Render::Models::OriginalVectorRotate({x, start.y, start.z}, matrix).y;
+    const float z = Client::Render::Models::OriginalVectorRotate({x, y, start.z}, matrix).z;
+    EXPECT_EQ(aliased, glm::vec3(x, y, z));
+    EXPECT_NE(aliased, Client::Render::Models::OriginalVectorRotate(start, matrix));
+}

@@ -278,6 +278,31 @@ Core::Expected<void, std::string> StepFlameJet(ModelEffect& effect, float lumino
     const glm::vec3 light{luminosity, F32(static_cast<double>(luminosity) * Orange), 0.0f};
     return AddDynamicLight(services.lighting, position, light, LightRadius, "0x52ae25");
 }
+// 0x52a737..0x52a7af con el subtipo 0: la velocidad sin girar sumada, la z de la velocidad 0,01f menos, una
+// partícula 5ac/1 en el lugar con la luz y la escala del efecto y, con la z de la velocidad bajo −2 (o NaN),
+// vida 0. La cola común suma la velocidad otra vez (los ángulos son 0).
+Core::Expected<void, std::string> StepIcarusFlare(ModelEffect& effect, Particles& particles, float worldClock,
+                                                  Render::Models::CrtRandom& random)
+{
+    if (effect.subtype != 0)
+        return Core::Unexpected(
+            std::format("0x52a7b7: el paso del 0x5ac con el subtipo {} no está portado", effect.subtype));
+    constexpr double Sink = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
+    constexpr float Floor = -2.0f;
+    constexpr std::int32_t TrailSubtype = 1;
+    glm::vec3& position = effect.transform.position;
+    for (int axis = 0; axis < 3; ++axis)
+        position[axis] = F32(static_cast<double>(effect.velocity[axis]) + static_cast<double>(position[axis]));
+    effect.velocity.z = F32(static_cast<double>(effect.velocity.z) - Sink);
+    const auto created = particles.CreateChecked(IcarusFlareEffect, position, effect.transform.angles, effect.light,
+                                                 TrailSubtype, effect.transform.scale, worldClock, random);
+    if (!created.HasValue())
+        return Core::Unexpected(
+            std::format("0x52a790: falló la partícula 5ac/1 del 0x5ac ({})", static_cast<int>(created.Error())));
+    if (!(effect.velocity.z >= Floor))
+        effect.life = 0;
+    return {};
+}
 } // namespace
 Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
                                                       Particles& particles, float worldClock,
@@ -333,7 +358,12 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
             !stepped.HasValue())
             return stepped;
     }
-    else if (effect.type != DragonEffect && effect.type != ArrivalEffect)
+    else if (effect.type == IcarusFlareEffect)
+    {
+        if (auto stepped = StepIcarusFlare(effect, particles, worldClock, random); !stepped.HasValue())
+            return stepped;
+    }
+    else if (effect.type != DragonEffect && effect.type != ArrivalEffect && effect.type != IcarusCloudEffect)
         return Core::Unexpected(std::string("0x5208a0: el paso del tipo de efecto con modelo no está portado"));
     // 52cbf4..52cc04: sólo los BMD de [ad,151) avanzan la animación común.
     constexpr std::int16_t FirstAnimatedModel = 0xad;
@@ -342,6 +372,14 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     StepModelEffect(effect, animated ? skeleton : nullptr);
     if (wholeStep)
         effect.previousPosition = before;
+    // 0x52cdb3..0x52cdfb: el 0x5ac/0 vivo con la vida impar da otro paso entero, con su propio rand().
+    if (effect.alive && effect.type == IcarusFlareEffect && effect.subtype == 0 && (effect.life & 1) != 0)
+    {
+        auto again = StepGameModelEffect(effect, skeleton, particles, worldClock, random, kalima, services);
+        // D-C4: el dibujo interpola desde antes de los dos pasos.
+        effect.previousPosition = before;
+        return again;
+    }
     return {};
 }
 } // namespace Client::World

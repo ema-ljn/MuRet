@@ -398,3 +398,47 @@ TEST(ModelEffectsTest, TheStoneChipsArePushedAlongTheirDrawnYaw)
     EXPECT_EQ(random.State(), 4u);
 }
 } // namespace
+
+// 0x518cf0(0xbb, …) → 0x51b968: la nube de Icarus vive 2, sin blendMesh, escala 10, 200 más en y y 190 menos
+// en z, sin luz por vértice y sin rand(). 0x518cf0(0x5ac, …) → 0x51e3ec: luz 0,3f, s = rand() % 5 + 9 y la
+// velocidad sin girar (sen 30° · cos 70°; cos 30° · cos 70°; sen 70°) · s · 0,5 en la x87, escala 3 y vida
+// 400. Otro tipo, ninguno.
+TEST(ModelEffectsTest, TheIcarusCloudAndFlareAreCreatedWithTheirOwnFields)
+{
+    ModelEffects effects;
+    Client::Render::Models::CrtRandom random(1);
+    const auto cloud = effects.CreateIcarusEffect(Client::World::IcarusCloudEffect, {100.0f, 200.0f, 300.0f},
+                                                  glm::vec3(0.0f), {0.1f, 0.2f, 0.3f}, random);
+    ASSERT_EQ(cloud, std::optional<std::size_t>(0));
+    const ModelEffect& sky = effects.Effects()[0];
+    EXPECT_EQ(sky.type, Client::World::IcarusCloudEffect);
+    EXPECT_EQ(sky.transform.position, glm::vec3(100.0f, 400.0f, 110.0f));
+    EXPECT_EQ(sky.previousPosition, sky.transform.position);
+    EXPECT_EQ(sky.light, glm::vec3(0.1f, 0.2f, 0.3f));
+    EXPECT_EQ(sky.transform.scale, 10.0f);
+    EXPECT_EQ(sky.life, 2);
+    EXPECT_EQ(sky.objectState.blendMesh, 0);
+    EXPECT_FALSE(sky.vertexLight);
+    EXPECT_EQ(random.State(), 1u);
+
+    std::uint32_t seed = 1;
+    while (Client::Render::Models::CrtRandom(seed).Next() % 5 != 0)
+        ++seed;
+    Client::Render::Models::CrtRandom draws(seed);
+    const auto flare = effects.CreateIcarusEffect(Client::World::IcarusFlareEffect, {1.0f, 2.0f, 3.0f}, glm::vec3(0.0f),
+                                                  glm::vec3(1.0f), draws);
+    ASSERT_EQ(flare, std::optional<std::size_t>(1));
+    const ModelEffect& falling = effects.Effects()[1];
+    EXPECT_EQ(falling.type, Client::World::IcarusFlareEffect);
+    EXPECT_EQ(falling.light, glm::vec3(std::bit_cast<float>(0x3e99999au)));
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(falling.velocity.x), 0x3f4500edu);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(falling.velocity.y), 0x3faa9c31u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(falling.velocity.z), 0x408750d4u);
+    EXPECT_EQ(falling.transform.scale, 3.0f);
+    EXPECT_EQ(falling.life, 400);
+    Client::Render::Models::CrtRandom expected(seed);
+    static_cast<void>(expected.Next());
+    EXPECT_EQ(draws.State(), expected.State());
+
+    EXPECT_FALSE(effects.CreateIcarusEffect(0xb4, {}, {}, glm::vec3(1.0f), draws).has_value());
+}

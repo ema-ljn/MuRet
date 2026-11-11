@@ -83,6 +83,10 @@ struct WorldTileTexture
 // Impack03 en 0x716, sin repetir (los sprites de los 0x3f y 0x40 de 0x602ed0). Los demás, ninguna.
 [[nodiscard]] std::vector<WorldTileTexture> TarkanObjectTextures(std::uint8_t map);
 
+// 0x6178da..0x6178f2, el mapa 10 del segundo switch de 0x616ec0 (el que corre siempre): 0x63b870 con
+// GL_LINEAR, GL_CLAMP y sexto 1. Effect\cloudLight.jpg en 0x623 (el sprite de 0x6063d0). Los demás, ninguna.
+[[nodiscard]] std::vector<WorldTileTexture> IcarusObjectTextures(std::uint8_t map);
+
 // El slot 0x122 que pide una capa 2 de 255 (Q-C19): Interface\accept_box01.jpg, que el original sube
 // en la carga (0x61ae60) y queda para siempre; MuRet lo sube con el mundo.
 [[nodiscard]] WorldTileTexture AcceptBoxTexture();

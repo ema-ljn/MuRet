@@ -3,6 +3,7 @@
 #include "Scenes/AidaObjectServices.h"
 #include "Scenes/NoriaObjectServices.h"
 #include "Scenes/ObjectFrameSprites.h"
+#include "Scenes/IcarusObjectFrame.h"
 #include "Scenes/TarkanObjectFrame.h"
 #include "Scenes/KalimaObjectServices.h"
 #include "World/ObjectModelStepState.h"
@@ -72,13 +73,14 @@ bool SectorPasses(const World::TerrainPolygon& polygon, int sectorX, int sectorY
                                   (sectorY * CellsPerSector) + SectorCenter, SectorMargin);
 }
 
-// 0x6046a0 pasa la posición por 0,01f (0x6b88d4) guardada en float y el margen individual (+0xdc).
-bool ObjectPasses(const World::TerrainPolygon& polygon, const World::WorldObject& object)
+// 0x6046a0 pasa la posición por 0,01f (0x6b88d4) guardada en float y el margen individual (+0xdc), con
+// `extra` sumado en la x87 y guardado en float (0x604744..0x60474e).
+bool ObjectPasses(const World::TerrainPolygon& polygon, const World::WorldObject& object, float extra)
 {
     const auto cells = [](float coordinate)
     { return static_cast<double>(static_cast<float>(static_cast<double>(coordinate) * CellsPerUnit)); };
     return World::PolygonContains(polygon, cells(object.transform.position.x), cells(object.transform.position.y),
-                                  object.cullingMargin);
+                                  static_cast<double>(extra + object.cullingMargin));
 }
 
 DrawnObject Drawn(const World::WorldObject& object, const World::ObjectDraw& draw,
@@ -101,9 +103,18 @@ DrawnObject Drawn(const World::WorldObject& object, const World::ObjectDraw& dra
 }
 // 0x6046a0 con un objeto: su sector pasa el trapecio y él también (+0x16c, que guarda el resultado; los de
 // un sector que no pasa quedan sin ver, como los apaga 0x606560).
-bool SeenInTheDraw(const World::TerrainPolygon& polygon, const World::WorldObject& object)
+// 0x6046b2..0x6046c3: el margen de más de cada objeto, −10 en Icarus (el mapa 10) y 0 en los demás.
+float ExtraObjectMargin(std::uint8_t map)
 {
-    return SectorPasses(polygon, World::SectorX(object), World::SectorY(object)) && ObjectPasses(polygon, object);
+    constexpr std::uint8_t IcarusMap = 10;
+    constexpr float IcarusMargin = -10.0f;
+    return map == IcarusMap ? IcarusMargin : 0.0f;
+}
+
+bool SeenInTheDraw(const World::TerrainPolygon& polygon, const World::WorldObject& object, float extraMargin = 0.0f)
+{
+    return SectorPasses(polygon, World::SectorX(object), World::SectorY(object)) &&
+           ObjectPasses(polygon, object, extraMargin);
 }
 
 // 0x5ffce0 con la luz del terreno en su lugar (0x5f99e0), o 0 sin ella, y lo que decide World::DrawOf.
@@ -222,7 +233,8 @@ void DrawObjectGlows(std::span<const SeenObjectEffects> seen, const ObjectFrameE
 
 Core::Expected<void, std::string> StepGameWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map,
                                                        const IModelLibrary& models, Render::Models::CrtRandom& random,
-                                                       const World::ObjectStepGlobals& globals)
+                                                       const World::ObjectStepGlobals& globals,
+                                                       const AfterObjectStep& after)
 {
     for (const std::size_t index : World::DrawOrder(objects))
     {
@@ -236,6 +248,12 @@ Core::Expected<void, std::string> StepGameWorldObjects(std::span<World::WorldObj
             !stepped.HasValue())
         {
             return stepped;
+        }
+        // 0x6065b7: 0x6063d0(objeto, &selector, &0x7d365a0) después de 0x604ab0.
+        if (after)
+        {
+            if (auto stepped = after(object); !stepped.HasValue())
+                return stepped;
         }
     }
     return {};
@@ -272,7 +290,7 @@ void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, st
     for (const std::size_t index : World::DrawOrder(objects))
     {
         World::WorldObject& object = objects[index];
-        object.seen = SeenInTheDraw(polygon, object);
+        object.seen = SeenInTheDraw(polygon, object, ExtraObjectMargin(map));
         if (!object.seen)
         {
             continue;
@@ -328,6 +346,7 @@ constexpr std::uint8_t DeviasMap = 2;
 constexpr std::uint8_t NoriaMap = 3;
 constexpr std::uint8_t LostTowerMap = 4;
 constexpr std::uint8_t TarkanMap = 8;
+constexpr std::uint8_t IcarusMap = 10;
 constexpr std::uint8_t AidaMap = 33;
 constexpr std::uint8_t SelectionWorldMap = 54;
 // 0x60479c: el 0x64 de Devias se dibuja según el nivel del registro propio (0x604944..0x604957, jl con
@@ -401,6 +420,8 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
         return StepLostTowerObjectFrame(object, commonRandom, pass, posed);
     if (map == TarkanMap)
         return StepTarkanObjectFrame(object, pass);
+    if (map == IcarusMap)
+        return StepIcarusObjectFrame(object, pass);
     if (map == LorenciaMap && object.type == 0x38)
         return StepMerchantAnimalFrame(object, commonRandom, pass, posed);
     if (map == LorenciaMap && object.type == World::Waterspout)
@@ -432,8 +453,8 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
                                                        const World::TerrainLighting* lighting,
                                                        Core::Duration frameClock, const GameObjectPass& pass)
 {
-    if (pass.map > LostTowerMap && pass.map != TarkanMap && pass.map != AidaMap && pass.map != SelectionWorldMap &&
-        !World::IsKalimaMap(pass.map))
+    if (pass.map > LostTowerMap && pass.map != TarkanMap && pass.map != IcarusMap && pass.map != AidaMap &&
+        pass.map != SelectionWorldMap && !World::IsKalimaMap(pass.map))
     {
         return Core::Unexpected(std::format("0x6046a0: los casos por tipo del mapa {} (0x6002e0 y 0x602ed0) no están "
                                             "leídos",
@@ -451,7 +472,7 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
         {
             continue;
         }
-        object.seen = SeenInTheDraw(polygon, object);
+        object.seen = SeenInTheDraw(polygon, object, ExtraObjectMargin(pass.map));
         if (!object.seen)
         {
             continue;
@@ -565,8 +586,10 @@ DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::sp
         {
             continue;
         }
-        // 0x52da84: estos tipos sólo tienen el pase del suelo; aun sin modelo publican seen.
-        if (effect.type == 0x61d || effect.type == 0x61e || effect.type == 0x61f)
+        // 0x52da84: estos tipos sólo tienen el pase del suelo; aun sin modelo publican seen. El 0x5ac de Icarus
+        // (0x52daa1) no se dibuja: se ve por sus partículas 5ac/1.
+        if (effect.type == 0x61d || effect.type == 0x61e || effect.type == 0x61f ||
+            effect.type == World::IcarusFlareEffect)
         {
             continue;
         }
@@ -579,7 +602,19 @@ DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::sp
         drawn.transform = effect.transform;
         drawn.transform.position += (effect.transform.position - effect.previousPosition) * alpha;
         drawn.state = effect.objectState;
-        drawn.color = terrain + effect.light;
+        // 0x5ffce0: con luz por vértice, el terreno más la luz; sin ella (la nube 0xbb), el terreno por 0,1f más
+        // la luz, con la x sin redondear antes de la suma y la y y la z redondeadas (0x5ffda5..0x5ffde7).
+        if (effect.vertexLight)
+            drawn.color = terrain + effect.light;
+        else
+        {
+            constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+            drawn.color.x = static_cast<float>(static_cast<double>(terrain.x) * Tenth + effect.light.x);
+            for (int axis = 1; axis < 3; ++axis)
+                drawn.color[axis] = static_cast<float>(
+                    static_cast<double>(static_cast<float>(static_cast<double>(terrain[axis]) * Tenth)) +
+                    effect.light[axis]);
+        }
         drawn.alpha = effect.alpha;
         drawn.vertexLight = effect.vertexLight;
         if (onPose && !(drawn.alpha < 0.01f) && models.Find(drawn.model) != nullptr &&

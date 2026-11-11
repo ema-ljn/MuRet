@@ -754,8 +754,9 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     constexpr std::uint8_t DungeonMap = 1;
     constexpr std::uint8_t LostTowerMap = 4;
     constexpr std::uint8_t TarkanMap = 8;
+    constexpr std::uint8_t IcarusMap = 10;
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
-        map != TarkanMap && map != LoginMap && !IsKalimaMap(map) && !aida)
+        map != TarkanMap && map != IcarusMap && map != LoginMap && !IsKalimaMap(map) && !aida)
     {
         // 0x604ac0..0x604ba0: el 9 saca rand() antes de todo, y cada mapa tiene sus casos.
         return Core::Unexpected(
@@ -798,6 +799,9 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
         return StepLostTowerObject(object, random, globals);
     case TarkanMap:
         return StepTarkanObject(object, globals);
+    case IcarusMap:
+        // 0x605ab4 por 0x605ae8: el 10 no tiene casos; 0x6063d0 va aparte (Scenes/IcarusObjectStep.h).
+        return {};
     default:
         ApplyLoginStepCases(object);
         return {};

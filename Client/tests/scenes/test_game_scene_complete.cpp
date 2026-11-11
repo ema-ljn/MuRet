@@ -110,7 +110,8 @@ TEST_F(CompleteGameFrameTest, EmptyTailPoolsAllowTheWholeWorldPassInBothReferenc
                                                    .camera = &camera,
                                                    .cameraInput = &cameraInput,
                                                    .world = &world};
-        Client::Scenes::GameScene scene(context, nullptr, &models, &data.Value().items->table, &models.TextureSlots());
+        Client::Scenes::GameScene scene(context, nullptr, &models, &data.Value().items->table, &models.TextureSlots(),
+                                        &*data.Value().gates, &*data.Value().skills);
         ASSERT_TRUE(scene.Enter().HasValue());
         Client::Tests::RecordingFrameTarget target;
         for (int frame = 0; frame < 2; ++frame)
@@ -152,6 +153,13 @@ TEST_F(CompleteGameFrameTest, EmptyTailPoolsAllowTheWholeWorldPassInBothReferenc
                 }
             }
             clock.Advance(std::chrono::milliseconds(47));
+            // Los dos pasos de 40 ms que el bucle corre antes del dibujo siguiente, que así es un frame del
+            // original (OriginalFramesOfTheSteps). La mariposa del arreglo no la creó 0x446120 y no tiene el
+            // modelo preparado, así que se apaga antes de que el paso la mueva.
+            butterfly.active = 0;
+            scene.Step(Client::Input::InputState{});
+            scene.Step(Client::Input::InputState{});
+            ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
         }
         ASSERT_EQ(target.frames.size(), 3u);
         EXPECT_TRUE(target.frames[0].presented);

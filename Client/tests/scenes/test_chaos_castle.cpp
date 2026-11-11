@@ -180,7 +180,8 @@ TEST(ChaosCastleTest, EachCellDrawsOnceWithoutItsArea)
     const float clock = 0.0f;
     CrtRandom random(7);
     CrtRandom draws(7);
-    const Client::World::ChaosCastleCellContext context{.area = 0xff, .random = &random, .worldClock = std::cref(clock)};
+    const Client::World::ChaosCastleCellContext context{
+        .area = 0xff, .random = &random, .worldClock = std::cref(clock)};
     for (std::uint8_t x = 20; x < 50; ++x)
     {
         ASSERT_TRUE(Client::World::StepChaosCastleCell(x, 80, context).HasValue());

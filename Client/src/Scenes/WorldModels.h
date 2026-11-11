@@ -36,6 +36,8 @@ class ModelTextureTable;
 inline constexpr std::size_t WorldModelCount = 160;
 // El dragón que vuela en el login (06 § El dragón de fondo): solo en el mapa 55.
 inline constexpr std::uint16_t DragonModel = 0xb4;
+// El lancero del asedio: 0x612d90(0x4d) lo carga en el modelo 0x152 + 0x4d (Monster78) con el mapa 30 (0x42aa6b).
+inline constexpr std::uint16_t SpearmanModel = 0x19f;
 inline constexpr Render::TextureSlot WorldModelsFirstSlot{0x41c};
 
 class WorldModels final : public IModelLibrary
@@ -84,6 +86,8 @@ private:
     void LoadObjects(const std::filesystem::path& dataRoot, std::uint8_t map, Core::Log& log, std::size_t& missing);
     [[nodiscard]] Core::Expected<void, std::string> ConfigureActions(std::uint8_t map,
                                                                      const WorldSpecialModelSet& specials);
+    [[nodiscard]] Core::Expected<void, std::string> LoadTheSpearman(const std::filesystem::path& dataRoot,
+                                                                    Core::Log& log, std::size_t& missing);
     void UploadTextures(const std::filesystem::path& dataRoot, Render::ITextureStore& textures, Core::Log& log);
 
     std::string m_folder;

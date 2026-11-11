@@ -101,10 +101,16 @@ TEST_P(GameT16Transitions, EncryptedTeleportEntersAndReturnsOrNamesItsExactBound
         return;
     }
     ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
-    ASSERT_EQ(sent.packets.size(), 1u);
-    EXPECT_EQ(sent.packets[0].Bytes().size(), 4u);
-    EXPECT_EQ(sent.packets[0].Opcode(), 0xf3);
-    EXPECT_EQ(sent.packets[0].Bytes()[3], std::byte{0x12});
+    // 0x42a981: al cargar el 30 sale el B9 02 (el estado del asedio), antes de la confirmación del teleport.
+    const std::size_t siegeRequests = map == 30 ? 1u : 0u;
+    ASSERT_EQ(sent.packets.size(), 1u + siegeRequests);
+    if (siegeRequests != 0)
+    {
+        EXPECT_EQ(sent.packets[0].Opcode(), 0xb9);
+    }
+    EXPECT_EQ(sent.packets.back().Bytes().size(), 4u);
+    EXPECT_EQ(sent.packets.back().Opcode(), 0xf3);
+    EXPECT_EQ(sent.packets.back().Bytes()[3], std::byte{0x12});
     EXPECT_EQ(m_world->Runtime().warpCounter, 30);
     EXPECT_EQ(Hero().cellX, Client::Tests::T16::HomeX);
     EXPECT_EQ(Hero().cellY, Client::Tests::T16::HomeY);
@@ -135,8 +141,14 @@ TEST_P(GameT16Transitions, RegenUsesRealMapDataWithoutSendingTeleportDone)
     EXPECT_EQ(m_world->Runtime().map, map == 32 ? 9 : map);
     EXPECT_EQ(m_world->Runtime().hero, slot);
     EXPECT_EQ(m_world->Runtime().warpCounter, 42);
-    EXPECT_TRUE(Sent().packets.empty());
-    const bool loadBoundary = map == 5 || map == 30 || map == 34 || map == 35;
+    // El regen no confirma nada; en el 30, la carga pide el estado del asedio (B9 02, 0x42a981).
+    const auto regenSent = Sent();
+    ASSERT_EQ(regenSent.packets.size(), map == 30 ? 1u : 0u);
+    if (map == 30)
+    {
+        EXPECT_EQ(regenSent.packets[0].Opcode(), 0xb9);
+    }
+    const bool loadBoundary = map == 5 || map == 34 || map == 35;
     ASSERT_NO_FATAL_FAILURE(ExpectDataMessage(map));
     ASSERT_NO_FATAL_FAILURE(ExpectKalimaResources(map == 32 ? 9 : map));
     if (map == 32)

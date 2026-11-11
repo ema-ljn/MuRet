@@ -7,6 +7,7 @@
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
 #include "World/AtlansObjectStep.h"
+#include "World/CastleSiegeObjectStep.h"
 #include "World/ChaosCastle.h"
 #include "World/DungeonObjectStep.h"
 #include "World/EventMapObjectStep.h"
@@ -762,6 +763,8 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     constexpr std::uint8_t IcarusMap = 10;
     // 0x43ff10: el 31 (Land of Trials) llega a 0x43ffc0 por la misma cadena.
     constexpr std::uint8_t LandOfTrialsMap = 31;
+    // El 30 (Castle Siege) llega antes a 0x42c850, el segundo eslabón.
+    constexpr std::uint8_t CastleSiegeMap = 30;
     constexpr std::uint8_t DevilSquareMap = 9;
     constexpr std::uint8_t FirstBloodCastleMap = 11;
     constexpr std::uint8_t LastBloodCastleMap = 17;
@@ -769,7 +772,8 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     const bool chaosCastle = IsChaosCastleMap(map);
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
         map != ArenaMap && map != AtlansMap && map != TarkanMap && map != DevilSquareMap && map != IcarusMap &&
-        map != LoginMap && map != LandOfTrialsMap && !IsKalimaMap(map) && !aida && !bloodCastle && !chaosCastle)
+        map != LoginMap && map != LandOfTrialsMap && map != CastleSiegeMap && !IsKalimaMap(map) && !aida &&
+        !bloodCastle && !chaosCastle)
     {
         return Core::Unexpected(
             std::format("0x604ab0: el paso de los objetos del mapa {} no está leído", static_cast<int>(map)));
@@ -806,6 +810,10 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     if (map == LandOfTrialsMap)
     {
         return StepLandOfTrialsObject(object, random, globals);
+    }
+    if (map == CastleSiegeMap)
+    {
+        return StepCastleSiegeObject(object, random, globals);
     }
     if (bloodCastle)
     {

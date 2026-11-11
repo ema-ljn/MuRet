@@ -78,6 +78,24 @@ Core::Expected<void, std::string> StepTower(ModelEffect& effect, float worldCloc
                                                    static_cast<double>(effect.transform.angles.y) + PitchStep);
     return {};
 }
+// 0x52973e: el plano 0x135 vuelve a vida 100 en cada paso y, con dueño (+0x108) y el byte vivo en 1 (siempre,
+// porque el paso sólo corre con él), su z es (sen(T · 0,001f) + 1) · 200 más la z de la partida: fld T, fmul
+// 0x6b89c8, fsin, fadd 0x6b87d4, fmul 0x6b8928, fadd +0x184 y un solo fstp.
+Core::Expected<void, std::string> StepGatePlane(ModelEffect& effect, float worldClock)
+{
+    constexpr std::int32_t GatePlaneLife = 100;
+    constexpr double ClockFactor = static_cast<double>(std::bit_cast<float>(0x3a83126fu)); // 0x6b89c8.
+    constexpr double Lift = 200.0;                                                         // 0x6b8928.
+    constexpr double One = 1.0;                                                            // 0x6b87d4.
+    effect.life = GatePlaneLife;
+    if (!effect.hasOwner)
+        return {};
+    const auto lifted = Render::Models::Detail::SineSumPC53(static_cast<double>(worldClock) * ClockFactor, One);
+    if (!lifted)
+        return Core::Unexpected(std::string("0x529768: el seno del plano 0x135 no cabe en el perfil PC53"));
+    effect.transform.position.z = F32(*lifted * Lift + static_cast<double>(effect.start.z));
+    return {};
+}
 Core::Expected<void, std::string> EmitTeleportSparks(const ModelEffect& effect, Particles& particles, float worldClock,
                                                      Render::Models::CrtRandom& random)
 {
@@ -440,6 +458,11 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     else if (effect.type == AidaWispEffect)
     {
         if (auto stepped = StepAidaWisp(effect, particles, worldClock, random); !stepped.HasValue())
+            return stepped;
+    }
+    else if (effect.type == GatePlaneEffect)
+    {
+        if (auto stepped = StepGatePlane(effect, worldClock); !stepped.HasValue())
             return stepped;
     }
     else if (effect.type != DragonEffect && effect.type != ArrivalEffect && effect.type != IcarusCloudEffect)

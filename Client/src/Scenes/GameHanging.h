@@ -61,6 +61,8 @@ struct GameHangingPass
     std::int32_t map = 0; // 0x6c9dd0
     // +0x1a1 del héroe (0x743a170), que 0x5ffdf0 lee en los mapas 18 a 23.
     std::uint8_t heroByte1a1 = 0;
+    // 0x4294b0, el byte del asedio (0x7239ec), que 0x4142f0 mira con las capas 6 a 13.
+    bool siegeActive = false;
     std::int32_t logicSteps = 0; // 0x7d3a0f0
     // En un frame del original avanza la animación de lo que cuelga; entre frames, la dibuja como quedó.
     bool originalFrame = true;

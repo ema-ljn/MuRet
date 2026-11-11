@@ -76,8 +76,8 @@ Core::Expected<void, std::string> LoadTransitionMap(std::uint8_t map, std::uint1
                                                     const WorldEntryResources& resources)
 {
     resources.world.Runtime().map = map;
-    const auto loaded =
-        LoadMap(map, {resources.dataRoot, resources.world, SceneId::Game, playerKey, resources.cloth.random});
+    const auto loaded = LoadMap(map, {resources.dataRoot, resources.world, SceneId::Game, playerKey,
+                                      resources.cloth.random, resources.requestCastleSiegeState});
     if (!loaded.HasValue())
         return loaded;
     resources.selection.BorrowTerrain(resources.world.Runtime().map, &resources.world.Map().terrain);

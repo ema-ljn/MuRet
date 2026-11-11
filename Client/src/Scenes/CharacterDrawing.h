@@ -359,6 +359,42 @@ void DrawDarkSpirit(Render::ModelBatch& batch, const IModelLibrary& models, cons
 void DrawBloodCastleShadow(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
                            float groundHeight, Core::Duration frameClock);
 
+// Lo que 0x42cc10 (la cadena de 0x6002e0 en el mapa 30, después de 0x438fe0) lee del objeto y de afuera.
+struct CastleSiegeBodyPass
+{
+    // +0x2: el tipo del objeto.
+    std::int16_t type = 0;
+    // +0x4: 0x606660 lo deja en 0; solo las puertas lo miran.
+    std::int32_t field04 = 0;
+    // 0x4294b0: el byte del asedio (0x7239ec).
+    bool siegeActive = false;
+    // 0x5767b88, el reloj del mundo en ms.
+    float worldClock = 0.0f;
+};
+
+// 0x42cc10 con un objeto del mapa 30 que 0x6002e0 dibuja (+0x58 distinto de −2), con `object` como lo dejó
+// 0x5ffce0 (su color es el del modelo). Devuelve true con los tipos que tienen su caso, que dibujan lo suyo y
+// cortan la cadena (0x6002e0 no hace su RenderBody); false con los demás, que van por 0x42e3d0 (solo tipos de
+// monstruo) y siguen. Los casos:
+// - el 0xc: el color del modelo en 1 y dos 0x4ecc30 sueltos con las banderas 2, la malla 0 con su textura y
+//   la 1 con Object31\Flag.tga (0x69c);
+// - el 0x11: el color en 0,45 (0x3ee66666), el model+0x88 en 0 y RenderBody(2) con la V en
+//   (ftol(T) % 10.000) · 0,0002f;
+// - el 0x33: el model+0x88 en 0 y RenderBody(0x42) con la U en (−ftol(T) % 10.000) · 0,0002f;
+// - el 0x42: el color en (0,1; 0,4; 0,6) y RenderBody(0x44), el cromo, con la luz en sin(T · 0,001f) · 0,2f +
+//   0,3f;
+// - el 0x32, el 0x53, el 0x54 y el 0x55: RenderBody(2) y, sin el asedio, la sombra negra y opaca de 0x4eff40
+//   (0x620980 y glColor3f(0, 0, 0)), sin la malla oculta ni las de la textura del blendMesh, aplastada desde
+//   su lugar con el spread 2500 del 30;
+// - el 0x13, sin el asedio: RenderBody(2); con el color en 0,3, RenderBody(0x44) con Chrome01 (0x5c0) y el
+//   blendMesh en 0; con (0,2; 0,2; 0,5), RenderBody(0x48) igual. Con el asedio corta en 0x42ce09;
+// - del 0x3d al 0x40: con +0x4 en 0, RenderBody(2); si no, corta en 0x42cfcb (0x4ee770).
+// Después de cada caso, el model+0x88 vuelve a 0xff, que en el 30 es lo que esos tipos ya tienen, y el color del
+// modelo lo vuelve a poner 0x5ffce0. Un modelo que la biblioteca no tiene no dibuja nada.
+[[nodiscard]] Core::Expected<bool, std::string>
+DrawCastleSiegeBody(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                    const CastleSiegeBodyPass& pass, Core::Duration frameClock);
+
 // Los huesos de `object` posados como los posa DrawObject, en el mundo (la rotación por la escala; la
 // traslación por la escala más la posición, en float, como PosedBonePoint): lo que deja 0x4eb860 con su
 // octavo argumento en 1 en un buffer propio. Sin el modelo, vacío.

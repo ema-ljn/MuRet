@@ -184,6 +184,7 @@ void InitializeCommonEffect(ModelEffect& effect, std::int16_t type, const glm::v
     effect.light = light;
     effect.velocity = glm::vec3(0.0f);
     effect.previousPosition = position;
+    effect.hasOwner = false;
 }
 
 // Lo común de 0x518d0a..0x518e3c (la escala, la posición, los ángulos, la luz y +0xd8 en 0,3) y el caso
@@ -442,6 +443,26 @@ std::optional<std::size_t> ModelEffects::CreateAidaWisp(const glm::vec3& positio
         effect.start = at;
         effect.light = {Dim, Dim, Blue};
         effect.previousPosition = at;
+        return slot;
+    }
+    return std::nullopt;
+}
+
+std::optional<std::size_t> ModelEffects::CreateGatePlane(const glm::vec3& position, const glm::vec3& angles,
+                                                         const glm::vec3& light, bool hasOwner)
+{
+    constexpr std::int32_t GatePlaneLife = 100;
+    constexpr float GatePlaneMeshLight = std::bit_cast<float>(0x3e99999au); // 0x51d742.
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, GatePlaneEffect, position, angles, light);
+        effect.hasOwner = hasOwner;
+        effect.life = GatePlaneLife;
+        effect.objectState.light = GatePlaneMeshLight;
+        effect.start = effect.transform.position;
         return slot;
     }
     return std::nullopt;

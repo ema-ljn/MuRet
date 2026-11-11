@@ -110,14 +110,21 @@ float NormalLight(const glm::vec3& worldNormal)
     return lit < Darkest ? Darkest : lit;
 }
 
-glm::vec3 FlattenOnTheGround(const glm::vec3& world, const glm::vec3& objectPosition)
+glm::vec3 FlattenOnTheGround(const glm::vec3& world, const glm::vec3& objectPosition, float spread)
 {
-    constexpr float Spread = 2000.0f;  // 2500 en el mundo 30
     constexpr float Horizon = 4000.0f; // 0x6b8c14
     constexpr float Lift = 5.0f;       // 0x6b87f8
     const float x = world.x - objectPosition.x;
     const float z = world.z - objectPosition.z;
-    return {((x + Spread) * z) / (z - Horizon) + x + objectPosition.x, (world.y - objectPosition.y) + objectPosition.y,
+    return {((x + spread) * z) / (z - Horizon) + x + objectPosition.x, (world.y - objectPosition.y) + objectPosition.y,
             objectPosition.z + Lift};
+}
+
+float ShadowSpreadOf(std::int32_t map)
+{
+    constexpr std::int32_t CastleSiegeMap = 0x1e;
+    constexpr float Spread = 2000.0f;
+    constexpr float CastleSiegeSpread = 2500.0f;
+    return map == CastleSiegeMap ? CastleSiegeSpread : Spread;
 }
 } // namespace Client::Render::Models

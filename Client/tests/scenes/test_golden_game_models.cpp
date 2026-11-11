@@ -52,9 +52,9 @@ using Client::Tests::RecordingSink;
 
 // Los tres giftbox de 0x60ff50, que el laboratorio no tiene (06).
 constexpr std::size_t MissingInTheLab = 3;
-// 6161b5 carga RidingSpear01/10f, 0x6166fe MuSign/12a y 0x615d6a Stone01/c8 y Stone02/c9 aparte de las tablas
-// de jugador, ítems y skills.
-constexpr std::size_t AdditionalTailModels = 4;
+// 6161b5 carga RidingSpear01/10f, 0x6166fe MuSign/12a, 0x615d6a Stone01/c8 y Stone02/c9 y 0x616880
+// TowerGatePlane/135 aparte de las tablas de jugador, ítems y skills.
+constexpr std::size_t AdditionalTailModels = 5;
 
 class GoldenGameModels : public Client::Tests::GoldenDataTest
 {

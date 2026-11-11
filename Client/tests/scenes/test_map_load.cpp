@@ -352,6 +352,49 @@ TEST_F(MapLoadTest, NoriaCreatesItsSpecialWithTheHeightAndYawInTheNativeArgument
     }
 }
 
+// 0x42a760 con el byte del asedio en 0, como arranca el original: la hora de la música (0x7239f0) en 0, un B9 02 y
+// los cinco lanceros 0x19f en (x; 11.300; 270), antes de los del .obj (06 § Los objetos de Castle Siege).
+TEST_F(MapLoadTest, CastleSiegeAsksForItsStateAndPlacesTheFiveSpearmen)
+{
+    world.Runtime().map = 30;
+    world.Runtime().siegeMusicTime = 1234.0f;
+    int requests = 0;
+    const auto loaded = LoadMap(30, MapLoadContext{.dataRoot = m_dataRoot,
+                                                   .world = world,
+                                                   .scene = SceneId::Game,
+                                                   .playerKey = PlayerKey,
+                                                   .random = random,
+                                                   .requestCastleSiegeState = [&requests] { ++requests; }});
+
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    EXPECT_EQ(requests, 1);
+    EXPECT_EQ(world.Runtime().siegeMusicTime, 0.0f);
+    constexpr std::size_t Spearmen = 5;
+    ASSERT_EQ(world.Map().objects.size(), world.Map().objectRecords.size() + Spearmen);
+    constexpr std::array<float, Spearmen> X{6500.0f, 7100.0f, 9100.0f, 11800.0f, 12300.0f};
+    for (std::size_t index = 0; index < Spearmen; ++index)
+    {
+        SCOPED_TRACE(index);
+        const auto& spearman = world.Map().objects[index];
+        EXPECT_EQ(spearman.type, 0x19f);
+        EXPECT_EQ(spearman.transform.position, glm::vec3(X[index], 11300.0f, 270.0f));
+        EXPECT_EQ(spearman.transform.angles, glm::vec3(0.0f));
+        EXPECT_EQ(spearman.transform.scale, 1.0f);
+    }
+    EXPECT_TRUE(world.Map().terrain.attributes && world.Map().terrain.heights);
+}
+
+// 0x61a6e1: con el byte prendido (solo lo dejan los paquetes de 0x4294c0, CL9.5), el .att y la luz del asedio no
+// están portados; los lanceros ya están.
+TEST_F(MapLoadTest, CastleSiegeWithTheSiegeOnStopsAtItsAttributes)
+{
+    world.Runtime().siegeActive = true;
+    const auto loaded = Load(30);
+
+    ASSERT_FALSE(loaded.HasValue());
+    EXPECT_NE(loaded.Error().find("0x61a6ea"), std::string::npos) << loaded.Error();
+}
+
 // Los mapas con datos en la Data del repo: los que carga y, en los demás, dónde corta.
 TEST_F(MapLoadTest, ConstructsRealMapsAndNamesTheirFrontiers)
 {
@@ -361,9 +404,9 @@ TEST_F(MapLoadTest, ConstructsRealMapsAndNamesTheirFrontiers)
         std::string_view frontier; // vacío: carga
     };
     constexpr Case Cases[] = {
-        {0, ""},          {1, ""},  {2, ""},  {3, ""},          {4, ""},  {5, "World6"},    {6, ""},
-        {7, ""},          {8, ""},  {9, ""},  {10, ""},         {11, ""}, {18, ""},         {24, ""},
-        {30, "0x42a760"}, {31, ""}, {33, ""}, {34, "0x42fe50"}, {54, ""}, {55, "0x6188ae"},
+        {0, ""},  {1, ""},  {2, ""},  {3, ""},          {4, ""},  {5, "World6"},    {6, ""},
+        {7, ""},  {8, ""},  {9, ""},  {10, ""},         {11, ""}, {18, ""},         {24, ""},
+        {30, ""}, {31, ""}, {33, ""}, {34, "0x42fe50"}, {54, ""}, {55, "0x6188ae"},
     };
     for (const Case& tested : Cases)
     {

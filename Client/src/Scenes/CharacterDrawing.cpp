@@ -14,6 +14,7 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/ItemGlow.h"
 #include "Render/Models/ObjectState.h"
+#include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/PassColors.h"
 #include "Render/Models/Pose.h"
@@ -41,6 +42,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <optional>
 #include <random>
 #include <span>
@@ -650,7 +652,8 @@ void DrawShadow(const CharacterFrame& frame, std::span<const BoneTransform> body
         }
         for (glm::vec3& position : skinned.positions)
         {
-            position = Render::Models::FlattenOnTheGround(position, character.object.position);
+            position = Render::Models::FlattenOnTheGround(position, character.object.position,
+                                                          Render::Models::ShadowSpreadOf(character.map));
         }
         MeshDraw draw;
         draw.mesh = &mesh;
@@ -1710,7 +1713,8 @@ void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const
         Render::Models::SkinnedMesh flat = *shadow->skinned;
         for (glm::vec3& position : flat.positions)
         {
-            position = Render::Models::FlattenOnTheGround(position, horse.transform.position);
+            position = Render::Models::FlattenOnTheGround(position, horse.transform.position,
+                                                          Render::Models::ShadowSpreadOf(map));
         }
         MeshDraw draw = *shadow;
         draw.skinned = &flat;
@@ -1772,6 +1776,190 @@ void DrawBloodCastleShadow(Render::ModelBatch& batch, const IModelLibrary& model
         shadow.skinned = &flat;
         Triangles(batch, shadow, BlendedShadowState, DarkSpiritShadowColor, PassUv{});
     }
+}
+
+namespace
+{
+constexpr std::int32_t CastleSiegeMap = 0x1e;
+
+// Las mallas que dejó 0x5ffdf0: el scratch que publicó la pose o, sin él, todas las del modelo posadas como
+// las posa DrawObject, también las que no tienen textura (0x4ecc30 suelto y 0x4eff40 no miran el script).
+// Sin el modelo, sin el esqueleto o sin la pose, ninguna.
+std::span<const Render::Models::SkinnedMesh> PosedMeshesOf(const IModelLibrary& models, const DrawnObject& object,
+                                                           std::vector<Render::Models::SkinnedMesh>& skinned)
+{
+    if (!object.retainedMeshes.empty())
+        return object.retainedMeshes;
+    const Data::Models::Model* model = models.Find(object.model);
+    const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
+    if (model == nullptr || skeleton == nullptr)
+        return {};
+    std::vector<BoneTransform> bones(skeleton->bones.size(), BoneTransform(1.0f));
+    if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
+        return {};
+    skinned.assign(model->meshes.size(), Render::Models::SkinnedMesh{});
+    for (std::size_t index = 0; index < model->meshes.size(); ++index)
+    {
+        if (IndicesInRange(model->meshes[index]))
+            static_cast<void>(Render::Models::SkinMesh(model->meshes[index], bones, object.transform, skinned[index]));
+    }
+    return skinned;
+}
+
+// 0x42d019..0x42d038: 0x620980, glColor3f(0, 0, 0) y 0x4eff40(+0x64, +0x58, −1, −1). La sombra salta la malla
+// de +0x58, las que no tienen triángulos y las que tienen la textura del blendMesh (+2 de la malla), y aplasta
+// cada vértice desde model+0x6c..+0x74, que 0x5ffdf0 dejó en la posición del objeto, con el spread del 30.
+void DrawCastleSiegeShadow(Render::ModelBatch& batch, const Data::Models::Model& model, const DrawnObject& object,
+                           std::span<const Render::Models::SkinnedMesh> meshes)
+{
+    const float spread = Render::Models::ShadowSpreadOf(CastleSiegeMap);
+    for (std::size_t index = 0; index < model.meshes.size() && index < meshes.size(); ++index)
+    {
+        const Data::Models::Mesh& mesh = model.meshes[index];
+        if (static_cast<std::int16_t>(index) == object.state.hiddenMesh || mesh.triangles.empty() ||
+            mesh.texture == object.state.blendMesh || !IndicesInRange(mesh) ||
+            meshes[index].positions.size() < mesh.vertices.size())
+        {
+            continue;
+        }
+        Render::Models::SkinnedMesh flat = meshes[index];
+        for (glm::vec3& position : flat.positions)
+            position = Render::Models::FlattenOnTheGround(position, object.transform.position, spread);
+        MeshDraw draw;
+        draw.mesh = &mesh;
+        draw.skinned = &flat;
+        Triangles(batch, draw, ShadowState, ShadowColor, PassUv{});
+    }
+}
+
+// (ftol(T) % 10.000) · 0,0002f (0x6b8a64): cdq e idiv dejan el resto con el signo del dividendo, fild lo
+// carga exacto, el producto redondea a double y el fstp a float.
+float CastleSiegeScroll(std::int32_t clock)
+{
+    constexpr std::int32_t Period = 10000;
+    constexpr double Step = static_cast<double>(std::bit_cast<float>(0x3951b717u));
+    return static_cast<float>(static_cast<double>(clock % Period) * Step);
+}
+} // namespace
+
+Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                      const DrawnObject& object, const CastleSiegeBodyPass& pass,
+                                                      Core::Duration frameClock)
+{
+    constexpr std::int16_t Banner = 0xc, Scrolled = 0x11, Glowing = 0x13, Flowing = 0x33, Chromed = 0x42;
+    constexpr std::int16_t FirstGate = 0x3d, LastGate = 0x40;
+    const std::int16_t type = pass.type;
+    const bool shadowed = type == 0x32 || type == 0x53 || type == 0x54 || type == 0x55;
+    const bool gate = type >= FirstGate && type <= LastGate;
+    if (type != Banner && type != Scrolled && type != Glowing && type != Flowing && type != Chromed && !shadowed &&
+        !gate)
+    {
+        // 0x42cfd6: 0x42e3d0 solo tiene casos para tipos de monstruo (0x19b, 0x19c, 0x1a8, 0x1f8 y 0x1ff).
+        return false;
+    }
+    if (type == Glowing && pass.siegeActive)
+        return Core::Unexpected(std::string("0x42ce09: el 0x13 del 30 con el asedio (0x4ecc30 sobre la malla 3, con "
+                                            "Chrome01) no está portado"));
+    if (gate && pass.field04 != 0)
+        return Core::Unexpected(std::format("0x42cfcb: la puerta {:#x} del 30 con +0x4 en {} (0x4ee770(0, 0x12f, 0, 0, "
+                                            "0)) no está portada",
+                                            static_cast<int>(type), pass.field04));
+    const Data::Models::Model* model = models.Find(object.model);
+    if (model == nullptr)
+        return true;
+    constexpr std::uint32_t BaseFlags = 0x2, AdditiveFlags = 0x42, ChromeFlags = 0x44, ShinyFlags = 0x48;
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    if (type == Banner)
+    {
+        // 0x42cc32..0x42cc89: sin RenderBody ni 0x4ecc10; el color del modelo en 1.
+        constexpr Render::TextureSlot FlagTexture{0x69c};
+        DrawnObject banner = object;
+        banner.color = glm::vec3(1.0f);
+        const auto meshes = PosedMeshesOf(models, banner, skinned);
+        if (meshes.empty())
+            return true;
+        if (auto first = DrawItemMeshPass(batch, models, banner, frameClock, meshes, 0, BaseFlags); !first.HasValue())
+            return Core::Unexpected(first.Error());
+        if (auto flag = DrawItemMeshPass(batch, models, banner, frameClock, meshes, 1, BaseFlags, FlagTexture);
+            !flag.HasValue())
+            return Core::Unexpected(flag.Error());
+        return true;
+    }
+    if (type == Scrolled)
+    {
+        // 0x42cc9a..0x42ccf7: la malla 0 sin luz y con la U y la V corridas, en 0,45 (0x3ee66666).
+        DrawnObject scrolled = object;
+        scrolled.color = glm::vec3(std::bit_cast<float>(0x3ee66666u));
+        scrolled.unlitMesh = std::int16_t{0};
+        scrolled.state.uv.y = CastleSiegeScroll(World::FtolLow(static_cast<double>(pass.worldClock)));
+        DrawObject(batch, models, scrolled, frameClock);
+        return true;
+    }
+    if (type == Flowing)
+    {
+        // 0x42cd0a..0x42cd5b: neg antes del cdq; el color, el que dejó 0x5ffce0.
+        DrawnObject flowing = object;
+        flowing.unlitMesh = std::int16_t{0};
+        const std::int32_t clock = World::FtolLow(static_cast<double>(pass.worldClock));
+        flowing.state.uv.x = CastleSiegeScroll(static_cast<std::int32_t>(0u - static_cast<std::uint32_t>(clock)));
+        const auto meshes = PosedMeshesOf(models, flowing, skinned);
+        if (meshes.empty())
+            return true;
+        if (auto drawn = DrawItemMeshPass(batch, models, flowing, frameClock, meshes, -1, AdditiveFlags);
+            !drawn.HasValue())
+            return Core::Unexpected(drawn.Error());
+        return true;
+    }
+    if (type == Chromed)
+    {
+        // 0x42cd6e..0x42cdbf: el reloj por 0,001f (0x6b89c8), FSIN, por 0,2f (0x6b8854) y más 0,3f (0x6b89dc) en
+        // la x87 hasta el fstp de la luz.
+        constexpr double Rate = static_cast<double>(std::bit_cast<float>(0x3a83126fu));
+        constexpr float Swing = std::bit_cast<float>(0x3e4ccccdu);
+        constexpr double Base = static_cast<double>(std::bit_cast<float>(0x3e99999au));
+        const auto pulse = Render::Models::Detail::SineProductPC53(static_cast<double>(pass.worldClock) * Rate, Swing);
+        if (!pulse)
+            return Core::Unexpected(std::string("0x42cd9f: la luz del 0x42 del 30 no cabe en el perfil PC53"));
+        DrawnObject chromed = object;
+        chromed.color = glm::vec3(std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3ecccccdu),
+                                  std::bit_cast<float>(0x3f19999au));
+        chromed.state.light = static_cast<float>(*pulse + Base);
+        const auto meshes = PosedMeshesOf(models, chromed, skinned);
+        if (meshes.empty())
+            return true;
+        if (auto drawn = DrawItemMeshPass(batch, models, chromed, frameClock, meshes, -1, ChromeFlags);
+            !drawn.HasValue())
+            return Core::Unexpected(drawn.Error());
+        return true;
+    }
+    // RenderBody(2, alpha, blendMesh, luz, U, V, +0x58, −1): el 0x13 (0x42ced0), las puertas (0x42cf8e) y los
+    // de la sombra (0x42cfe7).
+    DrawObject(batch, models, object, frameClock);
+    if (type == Glowing)
+    {
+        // 0x42cef9..0x42cf62: los dos pases con Chrome01 y el blendMesh en 0, en 0,3 y en (0,2; 0,2; 0,5).
+        DrawnObject glow = object;
+        glow.state.blendMesh = 0;
+        glow.color = glm::vec3(std::bit_cast<float>(0x3e99999au));
+        const auto meshes = PosedMeshesOf(models, glow, skinned);
+        if (meshes.empty())
+            return true;
+        if (auto chrome = DrawItemMeshPass(batch, models, glow, frameClock, meshes, -1, ChromeFlags, ChromeTextureSlot);
+            !chrome.HasValue())
+            return Core::Unexpected(chrome.Error());
+        constexpr float Dim = std::bit_cast<float>(0x3e4ccccdu);
+        glow.color = glm::vec3(Dim, Dim, 0.5f);
+        if (auto shiny = DrawItemMeshPass(batch, models, glow, frameClock, meshes, -1, ShinyFlags, ChromeTextureSlot);
+            !shiny.HasValue())
+            return Core::Unexpected(shiny.Error());
+        return true;
+    }
+    if (shadowed && !pass.siegeActive)
+    {
+        const auto meshes = PosedMeshesOf(models, object, skinned);
+        DrawCastleSiegeShadow(batch, *model, object, meshes);
+    }
+    return true;
 }
 
 std::vector<Render::Models::OriginalMatrix> PosedWorldBones(const IModelLibrary& models, const DrawnObject& object)

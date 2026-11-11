@@ -42,17 +42,20 @@ constexpr std::array<Data::Models::ModelTextureCall, 1> InitialGateTextures{{{0x
 // 0x6161b5: Data\Skill\RidingSpear01.bmd; el 0x10f del efecto necesita su modelo real. 0x6166fe:
 // Data\Skill\MuSign.bmd, el 0x12a de la capa de los GM (0x414370).
 // 0x615d6a: 0x60da30(0xc8 + k, "Data\\Skill\\", "Stone", k + 1), las piedritas que salta el chorro de Lost
-// Tower (Stone01 y Stone02).
-constexpr std::array<Data::Models::ModelFile, 4> TailModelFiles{{{0x10f, "Skill\\", "RidingSpear", 1},
+// Tower (Stone01 y Stone02). 0x616880: Data\Skill\TowerGatePlane.bmd, el plano 0x135 que crea el objeto 79 del
+// mapa 30 (0x42c6b0).
+constexpr std::array<Data::Models::ModelFile, 5> TailModelFiles{{{0x10f, "Skill\\", "RidingSpear", 1},
                                                                  {0x12a, "Skill\\", "MuSign", -1},
                                                                  {0xc8, "Skill\\", "Stone", 1},
-                                                                 {0xc9, "Skill\\", "Stone", 2}}};
+                                                                 {0xc9, "Skill\\", "Stone", 2},
+                                                                 {0x135, "Skill\\", "TowerGatePlane", -1}}};
 // 0x61619f: 0x60d5f0(0x10f, "Skill\\", GL_REPEAT, GL_NEAREST, 1); 0x616c5c, el mismo con el 0x12a; el lazo
-// 0x616e20 de 0xbe a 0x150 con "Skill\\", el 0xc8 y el 0xc9. Van después de las de 0x615700 que MuRet carga,
-// así que sus slots no son los del original (que pasa antes por los modelos de las habilidades que MuRet
-// todavía no lee); ningún slot fijo los pisa.
-constexpr std::array<Data::Models::ModelTextureCall, 4> TailTextureCalls{
-    {{0x10f, "Skill\\"}, {0x12a, "Skill\\"}, {0xc8, "Skill\\"}, {0xc9, "Skill\\"}}};
+// 0x616e20 de 0xbe a 0x150 con "Skill\\": el 0xc8, el 0xc9 y el 0x135 (que 0x616d8e ya había pedido y que se
+// queda con los de esta segunda vez). Van después de las de 0x615700 que MuRet carga, así que sus slots no son
+// los del original (que pasa antes por los modelos de las habilidades que MuRet todavía no lee); ningún slot
+// fijo los pisa.
+constexpr std::array<Data::Models::ModelTextureCall, 5> TailTextureCalls{
+    {{0x10f, "Skill\\"}, {0x12a, "Skill\\"}, {0xc8, "Skill\\"}, {0xc9, "Skill\\"}, {0x135, "Skill\\"}}};
 
 // Sube las de `entries` de a una: la que no carga deja su línea en el log, y las demás siguen.
 void UploadEach(const std::filesystem::path& dataRoot, std::span<const Data::Textures::TextureSetEntry> entries,

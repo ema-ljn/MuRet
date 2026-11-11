@@ -18,6 +18,7 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/TerrainCulling.h"
 #include "World/Particles.h"
@@ -666,16 +667,36 @@ TEST(CharacterStepTest, WithTheTrapezoidOfTheBssEveryoneIsSeen)
     EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws).State());
 }
 
-// 0x412140 arma los objetos del asedio en el mapa 30, y sin el mapa cargado no hay TerrainWall: corta antes de
-// tocar nada.
-TEST(CharacterStepTest, TheCastleMapAndAnUnloadedMapStopBeforeTheWalls)
+// 0x412140 en el mapa 30, antes del lazo: con el puesto del gremio del arranque (0x6c649a en 0xff) arma el panel
+// del asedio de la clase 0 y el paso sigue como en Lorencia, con los mismos rand() y las mismas paredes; con otro
+// puesto corta en 0x412193 antes de tocar nada. Fuera del 30, 0x412560 suelta el panel. Sin el mapa cargado no
+// hay TerrainWall: corta antes de tocar nada.
+TEST(CharacterStepTest, TheCastleSiegePanelAndAnUnloadedMapComeBeforeTheWalls)
 {
     GameWorld castle(30);
-    castle.Cell(5, 5) = Client::World::CharacterWallBit;
+    GameWorld lorencia(0);
+    for (GameWorld* tested : {&castle, &lorencia})
+        tested->Cell(5, 5) = Client::World::CharacterWallBit;
     const auto inCastle = castle.Step(Everything);
-    EXPECT_TRUE(HasError(inCastle, "0x412140")) << ErrorOf(inCastle);
-    EXPECT_EQ(castle.Cell(5, 5), Client::World::CharacterWallBit);
-    EXPECT_EQ(castle.random.State(), RandomAfter(0).State());
+    ASSERT_TRUE(inCastle.HasValue()) << ErrorOf(inCastle);
+    ASSERT_TRUE(lorencia.Step(Everything).HasValue());
+    EXPECT_EQ(castle.world.Runtime().siegePanelKind, std::optional<std::uint8_t>{0});
+    EXPECT_FALSE(lorencia.world.Runtime().siegePanelKind.has_value());
+    EXPECT_EQ(castle.Cell(5, 5), lorencia.Cell(5, 5));
+    EXPECT_EQ(castle.random.State(), lorencia.random.State());
+
+    castle.world.Runtime().map = 0;
+    ASSERT_TRUE(castle.Step(Everything).HasValue());
+    EXPECT_FALSE(castle.world.Runtime().siegePanelKind.has_value());
+
+    GameWorld guild(30);
+    guild.world.Runtime().heroGuildPost = 0x80;
+    guild.Cell(5, 5) = Client::World::CharacterWallBit;
+    const auto inGuild = guild.Step(Everything);
+    EXPECT_TRUE(HasError(inGuild, "0x412193")) << ErrorOf(inGuild);
+    EXPECT_FALSE(guild.world.Runtime().siegePanelKind.has_value());
+    EXPECT_EQ(guild.Cell(5, 5), Client::World::CharacterWallBit);
+    EXPECT_EQ(guild.random.State(), RandomAfter(0).State());
 
     GameWorld unloaded;
     unloaded.world.Map().terrain.attributes.reset();

@@ -34,6 +34,16 @@ struct WorldRuntime
     std::optional<std::string> fatalDataMessage{};
     GameItemRenderState itemRender{};
     bool siegeActive = false; // 07239ec, separado del número de mapa (4294b0).
+    // 0x7239f0 (.bss 0): cuándo 0x42b540 eligió la música del mapa 30, en ms de timeGetTime guardados en float. Lo
+    // ponen en 0 la carga del 30 (0x42a795) y 0x4294c0 (los paquetes del asedio, CL9.5).
+    float siegeMusicTime = 0.0f;
+    // 0x6c649a (.data 0xff): el puesto del héroe en su gremio, que solo copia 0x412120 desde 0x4d9260 (el
+    // paquete del gremio, CL9). Sin ese paquete queda en 0xff, sin gremio.
+    std::uint8_t heroGuildPost = 0xff;
+    // 0x5763530: el panel del asedio que 0x412140 arma en el mapa 30 y 0x412560 suelta en los demás, por su
+    // clase (+0x18, lo que devuelve su primer método): 0 sin gremio (0x20 bytes, vtable 0x6b88a8, en (489; 259)),
+    // 1 y 2 con él. Lo dibujan 0x59ff10 y 0x5a7320, la interfaz (CL8).
+    std::optional<std::uint8_t> siegePanelKind{};
     GameMovementState movement{};
     // Los cinco selectores del mouse arrancan en -1 en la .data.
     std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};

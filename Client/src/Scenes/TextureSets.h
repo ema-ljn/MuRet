@@ -98,7 +98,9 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 5> FaunaJointTextur
 
 // Cola P-C55:61d511/61d9b4/61d9ef/61da0b/61da2a/61da9d/61dba2/61dcc3.
 // 615 no tiene upload propio:5319ea remapea su textura a614.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 8> GameTailTextureSet{{
+// 0x61e4b3 (0x63bd00, GL_LINEAR y GL_CLAMP): Object31\Flag.tga en 0x69c, la de la malla 1 del 0xc del mapa
+// 30 (0x42cc89).
+inline constexpr std::array<Data::Textures::TextureSetEntry, 9> GameTailTextureSet{{
     {"Effect\\Fire02.jpg", 0x5da, TextureSetsDetail::LinearClamp},
     {"Effect\\blur01.jpg", 0x5bb, TextureSetsDetail::NearestClamp},
     {"Effect\\motion_blur.jpg", 0x5bc, TextureSetsDetail::NearestClamp},
@@ -107,6 +109,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 8> GameTailTextureS
     {"Effect\\JointThunder01.jpg", 0x614, TextureSetsDetail::LinearRepeat},
     {"Effect\\motion_blur_r2.jpg", 0x61c, TextureSetsDetail::LinearRepeat},
     {"Effect\\NSkill.jpg", 0x62c, TextureSetsDetail::LinearClamp},
+    {"Object31\\Flag.tga", 0x69c, TextureSetsDetail::LinearClamp},
 }};
 
 // Las dos capas de la tela que sube 0x61ccb0 (0x61d616 y 0x61d64e) y nadie suelta: Monster\iui06.jpg en

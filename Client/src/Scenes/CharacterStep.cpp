@@ -50,7 +50,7 @@ namespace
 {
 // 0x50919a y 0x5091c8: los dos lazos de 0x508f00 recorren 400 registros (0x69780 / 0x438); el 401 no.
 constexpr std::size_t SteppedCharacters = 400;
-// 0x412162: en el mapa 30 (0x1e), 0x412140 arma los objetos del asedio.
+// 0x412162: en el mapa 30 (0x1e), 0x412140 arma el panel del asedio.
 constexpr std::int32_t CastleMap = 30;
 
 // 0x4fd603: el tipo que pasa su nombre a 0x4381f0.
@@ -972,17 +972,41 @@ LogicalCell ReadLogicalCell(ActorState& actor, Render::Models::CrtRandom& random
     return cell;
 }
 
+namespace
+{
+// 0x412140. Fuera del mapa 30, 0x412560 suelta el panel de 0x5763530 si lo hay. En el 30, con 0x6c649a en
+// 0xff (0x412191 y 0x4123f9), arma el de la clase 0 si no hay panel (0x412195) o si el que hay es de otra clase
+// (0x412402..0x41240f), y deja el que ya es de la clase 0. Los otros puestos (0x80, 0x40, 0x20 y 0) arman los
+// paneles 1 y 2 según el gremio de 0x6c6498, y solo los trae el paquete del gremio (CL9).
+Core::Expected<void, std::string> StepTheSiegePanel(WorldRuntime& runtime)
+{
+    if (runtime.map != CastleMap)
+    {
+        runtime.siegePanelKind.reset();
+        return {};
+    }
+    constexpr std::uint8_t NoGuild = 0xff;
+    if (runtime.heroGuildPost != NoGuild)
+    {
+        return Core::Unexpected(std::format("0x412193: el panel del asedio con el puesto {:#x} en el gremio "
+                                            "(0x6c649a) no está portado",
+                                            runtime.heroGuildPost));
+    }
+    constexpr std::uint8_t NoGuildPanel = 0;
+    runtime.siegePanelKind = NoGuildPanel;
+    return {};
+}
+} // namespace
+
 Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context)
 {
     WorldState& world = context.world;
-    const WorldRuntime& runtime = world.Runtime();
-    // 0x508f06..0x508f0c: 0x412140 con el héroe. Fuera del mapa 30 llama a 0x412560, que solo suelta el
-    // objeto de 0x5763530 si lo hay, y ese objeto lo crea 0x412140 en el mapa 30 (*estático*).
-    if (runtime.map == CastleMap)
+    // 0x508f06..0x508f0c: 0x412140 con el héroe, antes del lazo.
+    if (auto panel = StepTheSiegePanel(world.Runtime()); !panel.HasValue())
     {
-        return Core::Unexpected(std::string("0x412140: en el mapa 30 el paso de los personajes arma los objetos del "
-                                            "asedio (0x5763530), que no están portados"));
+        return panel;
     }
+    const WorldRuntime& runtime = world.Runtime();
     const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : world.Map().terrain;
     if (!terrain.attributes)
     {

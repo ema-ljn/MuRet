@@ -44,6 +44,9 @@ inline constexpr std::int16_t IcarusFlareEffect = 0x5ac;
 // El de Aida (0x42593f): el 0x46 crea el 0xb3, un modelo que Aida no carga (en Atlans, Object8\Fish02), que
 // vaga cerca de donde nació y suelta partículas 5ac/9.
 inline constexpr std::int16_t AidaWispEffect = 0xb3;
+// El de Castle Siege (0x42c6b0): el objeto 79 del mapa 30 crea el 0x135 (Skill\TowerGatePlane), un plano
+// que sube y baja con el reloj y se dibuja dos veces, la segunda reflejada.
+inline constexpr std::int16_t GatePlaneEffect = 0x135;
 
 // Proyección de los campos compartidos por los efectos de 0x1d4 bytes.
 struct ModelEffect
@@ -75,6 +78,8 @@ struct ModelEffect
     std::int32_t textureFrame = 0;           // +0x1c4: selector firmado del calco 0x14e en52d8f2.
     const std::int16_t* itemType = nullptr;  // +108 del efecto→+8c del dueño durable, paraf4/fa.
     const std::uint8_t* itemLevel = nullptr; // +108→+8e; no inferir desde ActorState.
+    // +0x108 distinto de 0: el efecto tiene dueño. El plano 0x135 sólo se mueve con dueño (0x529745).
+    bool hasOwner = false;
 };
 
 class ModelEffects
@@ -136,6 +141,11 @@ public:
     // El dueño (+0x108) no lo lee nadie. Lleno, ninguno y sin rand().
     std::optional<std::size_t> CreateAidaWisp(const glm::vec3& position, const glm::vec3& angles,
                                               const glm::vec3& light, Render::Models::CrtRandom& random);
+    // 0x518cf0(0x135, posición, ángulos, luz, 0, objeto, −1, 0, 0, 0, 0) → 0x51d73b: el prefijo común (+0x8a
+    // en −1, escala 0,9), el dueño (+0x108), vida 100, la luz de las mallas (+0x68) en 0,3f y la partida en
+    // la posición. Sin rand(); lleno, ninguno.
+    std::optional<std::size_t> CreateGatePlane(const glm::vec3& position, const glm::vec3& angles,
+                                               const glm::vec3& light, bool hasOwner);
     // 0x6070a0: sólo apaga el byte vivo de cada lugar (Q-C138).
     void Clear();
 

@@ -1159,14 +1159,20 @@ Result DrawMuSign(const Frame& frame, GameMasterLayer& layer)
     return DrawItemMeshPass(pass.batch, pass.models, chrome, pass.frameClock, carry.meshes, -1, ChromePass);
 }
 
-// 0x4142f0: con capa y sin +0x78 & 0x4000, la dibuja; con +0x360 del 6 al 13, solo si 0x4294b0.
+// 0x4142f0: con capa y sin +0x78 & 0x4000, la dibuja; con +0x360 del 6 al 13, solo si 0x4294b0 (el byte del
+// asedio): sin él no dibuja nada.
 Result DrawTheLayer(const Frame& frame)
 {
     ActorState& actor = frame.actor;
     if (!actor.layer.has_value() || (actor.flags78 & HiddenAttachmentFlag) == HiddenAttachmentFlag)
         return {};
     if (actor.byte360 > GameMasterLayerKind && actor.byte360 <= LastLayerKind)
-        return Core::Unexpected(std::string("0x41431e: 0x4294b0 con las capas 6 a 13 no está portado"));
+    {
+        if (!frame.pass.siegeActive)
+            return {};
+        return Core::Unexpected(std::format("0x414330: la capa {} del asedio (el método de +0x364) no está portada",
+                                            static_cast<int>(actor.byte360)));
+    }
     return DrawMuSign(frame, *actor.layer);
 }
 } // namespace

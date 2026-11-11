@@ -85,12 +85,13 @@ Core::Expected<void, std::string> StepAtlansObject(WorldObject& object, Render::
     case 0x20:
     case 0x22:
     {
-        // 0x6055fe..0x605620: el seno más 1 (0x6b87d4) y por 0,5, en la x87.
+        // 0x6055fe..0x605620: fsin, fadd 1 (0x6b87d4) con un solo redondeo y fmul 0,5, en la x87.
         object.state.blendMesh = 1;
-        const std::optional<double> wave = Wave(globals.worldClock, FastRate, 1.0f);
+        const std::optional<double> wave =
+            Render::Models::Detail::SineSumPC53(static_cast<double>(globals.worldClock) * FastRate, 1.0);
         if (!wave)
             return Core::Unexpected(std::string("0x605612: el seno del reloj no cabe en el perfil PC53"));
-        object.state.light = F32((*wave + 1.0) * Half);
+        object.state.light = F32(*wave * Half);
         return {};
     }
     case 0x26:

@@ -10,6 +10,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ModelEffects.h"
+#include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/TerrainCulling.h"
@@ -431,22 +432,83 @@ TEST(CrywolfObjectServicesTest, TheSandAndTheQuietSmokeHideTheirBody)
     EXPECT_TRUE(fixture.Alive().empty());
 }
 
-// Lo que no está portado corta con su dirección: el humo 5f2/33 del 0x48 (con rand() % 10 en 0), el 0x51 con el
-// estado 2 y los casos de monstruos de 0x4339d0. Sin el estado, el dibujo no sigue.
+// 0x4308b5..0x430932: el 0x48 sale sin cuerpo y, con rand() % 10 en 0, saca otro rand() para la luz L = ((rand() & 3)
+// + 3) · 0,1f (fst del rojo; el verde por 0,6f y el azul por 0,2f desde L sin redondear) y suelta el humo
+// 0x53fe70(0x5f2, (x, y, z + 50), ángulos, luz, 33, escala, 0), con los cuatro rand() de 0x541a8d. Sin un frame del
+// original, no saca nada; sin el pool, corta en el alta después de sus dos rand().
+TEST(CrywolfObjectServicesTest, TheRisingSmokeLeavesOnceInTenFiftyAboveTheObject)
+{
+    for (const int remainder : {0, 1})
+    {
+        SCOPED_TRACE(remainder);
+        Fixture fixture;
+        fixture.random = CrtRandom(SeedWith(10, remainder));
+        CrtRandom draws = fixture.random;
+        ObjectDraw draw = BodyDraw();
+        const WorldObject object = ObjectOf(0x48);
+        ASSERT_TRUE(CrywolfObjectBody(object, draw, fixture.Pass()).HasValue());
+        EXPECT_EQ(draw.kind, ObjectDrawKind::Hidden);
+        static_cast<void>(draws.Next());
+        const auto alive = fixture.Alive();
+        if (remainder != 0)
+        {
+            EXPECT_TRUE(alive.empty());
+            EXPECT_EQ(fixture.random.State(), draws.State());
+            continue;
+        }
+        ASSERT_EQ(alive.size(), 1u);
+        const Particle& smoke = *alive[0];
+        const double level =
+            static_cast<double>((draws.Next() & 3) + 3) * static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+        EXPECT_EQ(smoke.type, 0x5f2);
+        EXPECT_EQ(smoke.subtype, 33);
+        EXPECT_EQ(smoke.light,
+                  glm::vec3(F32(level), F32(level * static_cast<double>(std::bit_cast<float>(0x3f19999au))),
+                            F32(level * static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)))));
+        EXPECT_EQ(smoke.life, draws.Next() % 150);
+        EXPECT_EQ(smoke.scale, F32(1.25 + static_cast<double>(std::bit_cast<float>(0x3dcccccdu))));
+        EXPECT_EQ(smoke.position, glm::vec3(12550.0f, 4250.0f, 220.0f));
+        const int tilt = draws.Next() % 90 - 45;
+        const int turn = draws.Next() % 360;
+        EXPECT_EQ(smoke.angles, glm::vec3(static_cast<float>(tilt), 0.0f, static_cast<float>(turn)));
+        EXPECT_EQ(smoke.velocity, glm::vec3(0.0f, -static_cast<float>(draws.Next() & 7), 0.0f));
+        EXPECT_EQ(smoke.typedOwner, Client::World::ParticleOwner{});
+        EXPECT_EQ(fixture.random.State(), draws.State());
+    }
+
+    Fixture between;
+    between.random = CrtRandom(SeedWith(10, 0));
+    const std::uint32_t before = between.random.State();
+    GameObjectPass pass = between.Pass();
+    pass.originalFrame = false;
+    ObjectDraw draw = BodyDraw();
+    ASSERT_TRUE(CrywolfObjectBody(ObjectOf(0x48), draw, pass).HasValue());
+    EXPECT_EQ(draw.kind, ObjectDrawKind::Hidden);
+    EXPECT_EQ(between.random.State(), before);
+
+    Fixture missing;
+    missing.random = CrtRandom(SeedWith(10, 0));
+    CrtRandom draws = missing.random;
+    pass = missing.Pass();
+    pass.particles = nullptr;
+    const auto cut = CrywolfObjectBody(ObjectOf(0x48), draw, pass);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x430932"), std::string::npos) << cut.Error();
+    static_cast<void>(draws.Next());
+    static_cast<void>(draws.Next());
+    EXPECT_EQ(missing.random.State(), draws.State());
+}
+
+// Lo que no está portado corta con su dirección: el 0x51 con el estado 2 y los casos de monstruos de 0x4339d0. Sin el
+// estado, el dibujo no sigue.
 TEST(CrywolfObjectServicesTest, TheUnportedCasesCutWhereTheBinaryReachesThem)
 {
     Fixture fixture;
-    fixture.random = CrtRandom(SeedWith(10, 0));
     ObjectDraw draw = BodyDraw();
-    auto cut = CrywolfObjectBody(ObjectOf(0x48), draw, fixture.Pass());
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x4308ca"), std::string::npos) << cut.Error();
-
-    draw = BodyDraw();
     ASSERT_TRUE(CrywolfObjectBody(ObjectOf(0x51), draw, fixture.Pass()).HasValue());
     EXPECT_EQ(draw.kind, ObjectDrawKind::Hidden);
     fixture.crywolf.state = 2;
-    cut = CrywolfObjectBody(ObjectOf(0x51), draw, fixture.Pass());
+    auto cut = CrywolfObjectBody(ObjectOf(0x51), draw, fixture.Pass());
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x430a40"), std::string::npos) << cut.Error();
 

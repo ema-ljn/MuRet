@@ -5775,7 +5775,18 @@ puertas (`0x3d` a `0x40`) con el asedio, `0x42c596`; después, siempre, `0x42b48
 están en −2). Sin asedio: el 0, con `rand() % 3` en 0, la chispa `6ec/0`; el `0x29`, la luz del blendMesh (`+0x68`)
 en sin(T · 0,002f) · 0,3f + 0,7f; el `0x34`, el `6f4/6` sin `rand()`; el `0x36`, la salpicadura `0x6f2` +
 `rand() % 2` con el subtipo 0, escala 1 y luz 1. Con el asedio: el `0x2a`, con `rand() % 3` en 0, el humo `5f2/0x15`;
-el `0x35`, lo del 0 sin asedio; el 0, el `0x34` y el `0x36`, nada.
+el `0x35`, lo del 0 sin asedio; el 0, el `0x34` y el `0x36`, nada. Todas van a `0x53fe70` con la posición y los
+ángulos del objeto (`+0x10` y `+0x1c`), la luz (1, 1, 1), su escala (`+0xc`) y sin dueño, menos la salpicadura, que
+va con escala 1.
+
+**Las partículas del 30.** Las texturas son de las que `0x61ccb0` sube en todos los mapas: `Effect\fantaF.jpg` en
+`0x6ec`, `Effect\WATERFALL5.jpg` en `0x6f4` y `Effect\smoke01.jpg` en `0x5f2`. Ninguna mira la escena ni el dueño.
+
+| Partícula | Nace | Paso | Dibujo |
+|---|---|---|---|
+| `6ec/0` | `0x543ae3` → `0x543b82`: la de la `6ed/0` de Kalima (vida 24 y los dos `rand()` de la velocidad) | `0x547a40`: el de la `6ed/0`; el subtipo 0 salta las ramas del dueño (de la 1 a la 4) | el default de `0x548550` (`0x54889a`): el billboard común con el giro de `+0x44` |
+| `6f4/6` | `0x543f04..0x543f47`: vida 30, el giro `rand()` % 360, la escala del argumento más 0,6f (`0x6b8a20`; la `6f4/0` tiene 1,6f), la caída −12 − `rand()` % 5 (la `6f4/0`, −7 − `rand()` % 5) y la luz en 0,2f | `0x547fa4`: no es la /0 ni la /5, que restan 0,005f a la escala y suman 0,1f a la caída: salta a `0x547fc1`, que solo cambia la luz, por 1,1f con la vida en más de 20 y por 0,8333f con menos de 8 (Q-C370) | el default, como la `6f4/0` |
+| `5f2/0x15` | la `5f2/21` de Crywolf (`0x542370`) | el de la `5f2/2` (`0x5466c3`) | resta, como la `5f2/2` |
 
 **El dibujo** (`0x42cc10`, la cadena de `0x6002e0`): con un caso, `0x6002e0` no hace su `RenderBody`.
 
@@ -5810,13 +5821,16 @@ que `WorldEntry`, `WorldTransitionSupport` y `SessionEventApplier` atan a `App::
 `Scenes::StepCastleSiegeObjectFrame` (`CastleSiegeObjectServices`). El dibujo: `Scenes::DrawCastleSiegeBody`
 (`CharacterDrawing`) desde `DrawGameWorldObjects`, y `Render::Models::ShadowSpreadOf`. El efecto: `StepGatePlane` y
 `ModelEffects::CreateGatePlane`. La niebla: `World::InTheCastleSiegeFog`, que adentro corta en `0x637481` (el
-renderer no tiene niebla). El panel: `WorldRuntime::siegePanelKind` y `heroGuildPost`. Cortan, además de las ramas
-del asedio prendido, las partículas que MuRet no crea: la chispa `6ec/0` (`0x42cb52`), el `6f4/6` del `0x34`
-(`0x42caf4`) y el humo `5f2/0x15` (`0x42caaa`) ([08](08-pendientes.md) P-C53). Con la Data del repo, el 30 llega a
-un cuadro completo y camina (`GameT16SceneMatrix`; `GameT16MapWalk`, de (92, 98) a (95, 101), con banderas `0xc` y
-lanceros a la vista, lejos de las antorchas, de los braseros y de la niebla). Tests: `CastleSiegeObjectsTest`, `CastleSiegeObjectServicesTest`,
-`CastleSiegeDrawingTest`, `MapLoadTest.CastleSiege*`, `WorldProtocolTest.CastleSiegeStateWritesTwoWithXor32AndWithoutC3`
-y `GameT16Journey.CastleSiegeAsksForItsStateBeforeConfirmingTheTeleport`.
+renderer no tiene niebla). El panel: `WorldRuntime::siegePanelKind` y `heroGuildPost`. Las partículas: la `6ec/0` y
+la `6f4/6` en `World::CreateKalimaParticle` y `World::StepKalimaParticle` (`KalimaParticleKernels`, con
+`World::BrazierFallSubtype`), y el humo `5f2/0x15` con el de Crywolf (`World::CrywolfSmokeSubtype`); el frame las
+suelta con `Particles::CreateChecked`. Corta lo del asedio prendido ([08](08-pendientes.md) P-C53); su `0x2a` ya
+suelta el humo. Con la Data del repo, el 30 llega a un cuadro completo y camina (`GameT16SceneMatrix`;
+`GameT16MapWalk`, de (65, 130) a (68, 133), fuera de la niebla, con dos antorchas 0 y trece braseros `0x34` a la
+vista y sus chispas y caídas en el último cuadro, *simulado*). Tests: `CastleSiegeObjectsTest`,
+`CastleSiegeObjectServicesTest`, `CastleSiegeParticlesTest`, `CastleSiegeDrawingTest`, `MapLoadTest.CastleSiege*`,
+`WorldProtocolTest.CastleSiegeStateWritesTwoWithXor32AndWithoutC3` y
+`GameT16Journey.CastleSiegeAsksForItsStateBeforeConfirmingTheTeleport`.
 
 ### Los objetos de Crywolf
 
@@ -5876,7 +5890,7 @@ color del `0x51` con el estado en 2. Con 0, ninguna de esas ramas cambia el mund
 | `0x38` | su `RenderBody(2, …)` | con el estado en 0, un `rand()` para la luz ((`rand()` % 10.000) · 0,0001f, `0x6b8a94`, en los tres canales) y, con otro en 0 módulo 3, `0x518cf0(0x61d, posición, ángulos, luz, 3, objeto, 4, 0, 0, 0, 0)` |
 | `0x39` | ninguno | con `rand()` % 3 en 0, `0x53fe70(0x6ec, …, (1, 1, 1), 5, escala, 0)` y el humo `5f2/21` igual |
 | `0x47` | ninguno | lo mismo, sin el humo |
-| `0x48` | ninguno | con `rand()` % 10 en 0, otro `rand()` para la luz ((`rand()` & 3) + 3) · 0,1f por (1; 0,6; 0,2) y el humo `5f2/33` 50 más arriba (`0x4308ca`) |
+| `0x48` | ninguno | con `rand()` % 10 en 0, otro `rand()` para la luz L = ((`rand()` & 3) + 3) · 0,1f en la x87 (`fst` del rojo; el verde por 0,6f y el azul por 0,2f desde L sin redondear) y `0x53fe70(0x5f2, (x, y, z + 50), ángulos, luz, 33, escala, 0)` (`0x4308ca..0x430932`) |
 | `0x49` | ninguno | con el clima en 0, la arena del HUD (`0x576353c`) en 1 (`0x430950`); la gasta el HUD (`0x5a7520` → `0x435930`, CL8) |
 | `0x4a` | ninguno | con `rand()` % 3 en 0 y el estado en 1, el humo `5f2/21` |
 | `0x4d`, `0x4e` | ninguno | con `rand()` % 6 en 0, `0x53fe70(0x622, …, luz, 9, escala, objeto)` con (0,02; 0,03; 0,02) o (0,03; 0,06; 0,05) (Q-C345) |
@@ -5894,6 +5908,7 @@ Los demás siguen a `0x4339d0`, que devuelve 0 fuera de `0x171..0x1b4`, y `0x600
 | `5f2/21` | `0x542370`: vida 80, escala ((`rand()` & 63) + 64) · escala · 0,005f (`0x6b89d8`), giro `rand()` % 360 y subida (`+0x50`) ((`rand()` & 31) + 60) · 0,1f | el de la `5f2/2` (`0x5466c3`, la tabla de `0x548310`) | resta, como la `5f2/2` |
 | `622/9` | `0x54330a`: los siete `rand()` de la `622/8` en su orden, pero la escala (`rand()` % 20 + 180) · 0,01f por la del argumento (`+0x10`) y `+0x60` en (`rand()` % 10) · 0,01f, sin sumarle la escala | el de la `622/8` (`0x54768f` → `0x5476a8`, con el default del giro) | la luz por `+0x38`, como la `622/8`, sin el giro del reloj |
 | `698/0` | `0x543152`: vida 32 y la escala (`rand()` % 170 + 1) · 0,01f, que pisa la del argumento | `0x54719f`: el cuadro (32 − vida) / 4 en `+0x48` (`cdq`, `and 3` y `sar`) | `0x54899a`: la columna de 8 cuadros de `coll.jpg`, la v en (`+0x48` % 8) · 0,125f, el alto por el double 0,125 y el giro de `+0x20` |
+| `5f2/33` | `0x541a8d..0x541b03`: la escala del argumento más 0,1f (`0x6b87b8`), la vida `rand()` % 150 (puede ser 0), la inclinación (`+0x20`) `rand()` % 90 − 45, el giro (`+0x28`) `rand()` % 360 y la velocidad (0; −(`rand()` & 7); 0), que mueve el prefijo (`+0x4c`) | `0x545ffc..0x54604c`: la luz (V · 0,4f; V · 0,4f; V) con V = vida · 0,125f en la x87; la velocidad por 0,001f (`0x6b89c8`); la escala más 0,02f (`fst`) y la z más esa suma sin redondear (Q-C371) | sin restar (no está en `0x548707..0x548742`): el billboard común con su giro (`0x548a64`) |
 | `6ec/5` | `0x543b82`: la de la `6ed` (vida 24 y los dos `rand()` de la velocidad) y, con la /5, vida 20 (`0x543bd5`) | el de la `6ed` (`0x547a40`) | el de la `6ed` |
 | `60f/10` | `0x542ed0`: la de la `60f/3` (vida 60 y cuatro `rand()`) y, sola entre las órbitas (`0x543000`), la partida corrida por sin y cos de (vida + Vx) · 0,1f por 40 | `0x547286`: calcula el argumento y lo tira (`fstp st(0)`); x e y vuelven a la partida, la z sube, la escala −0,002f y la luz por 0,909f con la vida en 20 o menos | el de la `60f/3` |
 
@@ -5919,11 +5934,13 @@ cuentan con cada frame del original. El paso: `World::StepCrywolfObject` (`World
 (`CrywolfObjectServices`), que `DrawGameWorldObjects` llama antes del cuerpo. El calco:
 `World::ModelEffects::CreateFadingDecal` y su paso en `StepGameModelEffect`. Las burbujas:
 `World::StepCrywolfWaterCell` (`CrywolfWater`), que `GameScene` le pasa a `World::DrawTerrain` como el gancho de la
-celda. Corta, con la dirección: la carga con el estado en 1 o más (`0x61a6f4`), el `0x48` con su `rand()` % 10 en 0
-(`0x4308ca`), el `0x51` con el estado en 2 (`0x430a40`) y los casos de monstruos de `0x4339d0`. Con la Data del
-repo, el 34 llega a un cuadro completo y camina (`GameT16SceneMatrix`; `GameT16MapWalk`, en (128, 30): suelo libre
-de `EncTerrain35.att` en la zona segura del fuerte, con tres `0x29`, cuatro `0x38`, el `0x49`, el `0x4a` y los
-`0x52` vistos). Tests: `CrywolfObjectsTest`, `CrywolfParticlesTest`, `CrywolfDecalTest`, `CrywolfWaterTest`,
+celda. El humo `5f2/33` del `0x48`: `World::CrywolfRisingSmokeSubtype` en `Particles`. Corta, con la dirección: la
+carga con el estado en 1 o más (`0x61a6f4`), el `0x51` con el estado en 2 (`0x430a40`) y los casos de monstruos de
+`0x4339d0`. Con la Data del repo, el 34 llega a un cuadro completo y camina (`GameT16SceneMatrix`; `GameT16MapWalk`,
+en (128, 30): suelo libre de `EncTerrain35.att` en la zona segura del fuerte, con tres `0x29`, cuatro `0x38`, el
+`0x49`, el `0x4a` y los `0x52` vistos). `EncTerrain35.obj` no trae ningún `0x48` (*simulado*): su humo no sale en la
+caminata y lo cubren `CrywolfObjectServicesTest` y `CrywolfParticlesTest`. Tests: `CrywolfObjectsTest`,
+`CrywolfParticlesTest`, `CrywolfDecalTest`, `CrywolfWaterTest`,
 `CrywolfObjectServicesTest`, `MapLoadTest.CrywolfTakesItsPlainAttributesOnlyWithTheStartingState` y
 `TextureSetsTest.TheCrywolfSparkAndBubbleTexturesUploadAtTheirOriginalSlots`.
 

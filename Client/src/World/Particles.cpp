@@ -316,6 +316,44 @@ void CreateTheCrywolfSmoke(Particle& particle, Render::Models::CrtRandom& random
     particle.verticalSpeed = F32(static_cast<double>((random.Next() & RiseMask) + RiseBase) * SmokeSlowdown);
 }
 
+bool IsRisingSmoke(const Particle& particle)
+{
+    return particle.type == BreathParticle && particle.subtype == CrywolfRisingSmokeSubtype;
+}
+
+// 0x541a8d..0x541b03, la 5f2/33 del 0x48 de Crywolf: la escala del argumento más 0,1f (0x6b87b8) y la vida rand() %
+// 150 (que puede ser 0), la inclinación rand() % 90 − 45, el giro rand() % 360 y la velocidad (0, −(rand() & 7), 0),
+// que mueve el prefijo; el and con la corrección del signo es el & simple.
+void CreateTheRisingSmoke(Particle& particle, Render::Models::CrtRandom& random)
+{
+    constexpr int LifeSpan = 150, TiltSpan = 90, TiltCenter = 45, DriftMask = 7;
+    constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+    const int life = random.Next() % LifeSpan;
+    particle.scale = F32(static_cast<double>(particle.scale) + Growth);
+    particle.life = life;
+    particle.angles.x = static_cast<float>(random.Next() % TiltSpan - TiltCenter);
+    particle.angles.z = static_cast<float>(random.Next() % FullTurn);
+    particle.velocity = glm::vec3(0.0f, -static_cast<float>(random.Next() & DriftMask), 0.0f);
+}
+
+// 0x545ffc..0x54604c: la luz es la vida por 0,125f (0x6ba170) en el azul y por 0,4f (0x6b87b4) en el rojo y el verde,
+// desde la x87; la velocidad, por 0,001f (0x6b89c8); la escala suma 0,02f (0x6b8b90) y fst la guarda, y la z suma la
+// suma sin redondear.
+void StepTheRisingSmoke(Particle& particle)
+{
+    constexpr double Dim = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));
+    constexpr double Drag = static_cast<double>(std::bit_cast<float>(0x3a83126fu));
+    constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));
+    const double glow = static_cast<double>(particle.life) * BreathLightPerLife;
+    const float dim = F32(glow * Dim);
+    particle.light = glm::vec3(dim, dim, F32(glow));
+    for (int axis = 0; axis < 3; ++axis)
+        particle.velocity[axis] = F32(static_cast<double>(particle.velocity[axis]) * Drag);
+    const double grown = static_cast<double>(particle.scale) + Growth;
+    particle.scale = F32(grown);
+    particle.position.z = F32(grown + static_cast<double>(particle.position.z));
+}
+
 // 0x543152..0x543178, la burbuja 698/0 del agua de Crywolf: vida 32 y la escala (rand() % 170 + 1) · 0,01f, que pisa
 // la del argumento.
 constexpr std::int32_t BubbleLife = 32;
@@ -364,7 +402,8 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     }
     if (type == BreathParticle)
     {
-        return subtype == BreathSubtype || subtype == WorldSmokeSubtype || subtype == CrywolfSmokeSubtype
+        return subtype == BreathSubtype || subtype == WorldSmokeSubtype || subtype == CrywolfSmokeSubtype ||
+                       subtype == CrywolfRisingSmokeSubtype
                    ? std::nullopt
                    : std::optional(ParticleError::UnsupportedSubtype);
     }
@@ -1146,6 +1185,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheCrywolfSmoke(particle, random);
             return std::optional(index);
         }
+        if (type == BreathParticle && subtype == CrywolfRisingSmokeSubtype)
+        {
+            CreateTheRisingSmoke(particle, random);
+            return std::optional(index);
+        }
         if (type == CloudParticle && subtype == CrywolfCloudSubtype)
         {
             CreateTheCloud9(particle, random);
@@ -1377,6 +1421,10 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
         else if (IsWorldSmoke(particle))
         {
             StepTheWorldSmoke(particle);
+        }
+        else if (IsRisingSmoke(particle))
+        {
+            StepTheRisingSmoke(particle);
         }
         else if (IsBreath(particle))
         {

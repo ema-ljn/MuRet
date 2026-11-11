@@ -16,11 +16,11 @@ struct GameObjectPass;
 // (que no usa). Sin el asedio:
 // - el 0: con rand() % 3 en 0, la chispa 6ec/0 sobre el objeto, con luz (1, 1, 1), su escala y sin dueño;
 // - el 0x29: la luz del blendMesh (+0x68) en sin(T · 0,002f) · 0,3f + 0,7f, que queda en el objeto;
-// - el 0x34: el 6f4/6 sobre el objeto, sin rand();
+// - el 0x34: la caída 6f4/6 sobre el objeto, con luz (1, 1, 1), su escala y sin dueño, sin rand();
 // - el 0x36: la salpicadura 0x6f2 + (rand() & 1) con el subtipo 0 y la escala 1.
-// Con el asedio, el 0 no hace nada, el 0x2a (con rand() % 3 en 0) suelta el humo 5f2/0x15, el 0x35 hace lo que el
-// 0 sin el asedio y el 0x34 y el 0x36 no hacen nada. Los demás tipos no hacen nada. Lo que MuRet no crea (el 6ec/0,
-// el 6f4/6 y el 5f2/0x15) corta después de sus rand(), con su dirección; un pool ausente también.
+// Con el asedio, el 0 no hace nada, el 0x2a (con rand() % 3 en 0) suelta el humo 5f2/0x15 con luz (1, 1, 1), su
+// escala y sin dueño, el 0x35 hace lo que el 0 sin el asedio y el 0x34 y el 0x36 no hacen nada. Los demás tipos no
+// hacen nada. Sin el pool, el alta corta después de sus rand(), con su dirección.
 [[nodiscard]] Core::Expected<void, std::string> StepCastleSiegeObjectFrame(World::WorldObject& object,
                                                                            const GameObjectPass& pass);
 } // namespace Client::Scenes

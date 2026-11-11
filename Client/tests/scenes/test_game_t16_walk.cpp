@@ -304,12 +304,14 @@ protected:
 // con caso a menos de 1.500, y la cámara ve el 3 y el 0x35 que emiten y el 0x34 que se dibuja dos veces. Devil Square
 // (World10, también por el 32) no tiene zona segura; 122..125 × 174..177 es suelo libre con 38 del 2, que llueve. Los
 // Blood Castle (World12): 12..15 × 90..93 es suelo libre con cuatro 0xd (el sprite que pulsa) y cuatro 0x25 (las
-// antorchas) a menos de 1.500. En Castle Siege (World31), 92..95 × 98..101 es suelo libre (sin 0x04 ni 0x08 en el
-// .att) fuera de la niebla del 30 y sin el 0 ni el 0x34, que sueltan partículas que MuRet no crea, a menos de 2.200;
-// la cámara ve el 0xc (la bandera de 0x42cc10), dos 0x29, las puertas 0x3e y 0x3f y un lancero 0x19f. En Crywolf
+// antorchas) a menos de 1.500. En Castle Siege (World31), 65..68 × 130..133 es suelo libre (sin 0x04 ni 0x08 en el
+// .att) fuera de la niebla del 30 y de la zona segura: al final la cámara ve las antorchas 0 de (77, 133) y (67, 148)
+// y trece braseros 0x34 (los nueve de (60..61, 136..138), los tres de (59, 149..151) y el de (67, 137)), y el último
+// cuadro dibuja sus chispas 6ec/0 y sus caídas 6f4/6 (0x42c9f0). En Crywolf
 // (World35), con el estado 0 de la .bss, 128..131 × 30..33 es suelo libre (EncTerrain35.att, por
 // Data::Terrain::LoadTerrainAttributes) en la zona segura del fuerte; al final la cámara ve tres 0x29 (los sprites que
-// suben y bajan), cuatro 0x38 (los calcos 0x61d/3), 0x4a, 0x49 y los 0x52 ocultos.
+// suben y bajan), cuatro 0x38 (los calcos 0x61d/3), 0x4a, 0x49 y los 0x52 ocultos. EncTerrain35.obj no trae ningún
+// 0x48: su humo 5f2/33 no sale con la Data del repo (CrywolfObjectServicesTest y CrywolfParticlesTest).
 TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenCompleteFrames)
 {
     const auto map = static_cast<std::uint8_t>(GetParam());
@@ -340,8 +342,8 @@ TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenC
             return crywolf;
         return map == 33 ? aida : 70;
     };
-    const std::uint8_t x = start(205, 62, 226, 20, 92, 149, 104, 122, 12, 128);
-    const std::uint8_t y = start(87, 47, 103, 29, 98, 104, 165, 174, 90, 30);
+    const std::uint8_t x = start(205, 62, 226, 20, 65, 149, 104, 122, 12, 128);
+    const std::uint8_t y = start(87, 47, 103, 29, 130, 104, 165, 174, 90, 30);
     const auto far = [](std::uint8_t cell) { return static_cast<std::uint8_t>(cell + 3); };
     Teleport(map, x, y);
     ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
@@ -356,7 +358,7 @@ TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenC
     if (map == 6 || map == 7 || devilSquare || bloodCastle || map == 30 || map == 31 || map == 33 || map == 34)
     {
         const auto types = map == 6      ? std::array<std::int16_t, 2>{9, 0x15}
-                           : map == 30   ? std::array<std::int16_t, 2>{0xc, 0x19f}
+                           : map == 30   ? std::array<std::int16_t, 2>{0, 0x34}
                            : map == 7    ? std::array<std::int16_t, 2>{0x16, 0x20}
                            : devilSquare ? std::array<std::int16_t, 2>{2, 2}
                            : bloodCastle ? std::array<std::int16_t, 2>{0xd, 0x25}
@@ -367,6 +369,21 @@ TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenC
             EXPECT_TRUE(std::ranges::any_of(m_world->Map().objects, [type](const auto& object)
                                             { return object.alive && object.seen && object.type == type; }))
                 << type;
+    }
+    if (map == 30)
+    {
+        // Las chispas de las antorchas (Effect\fantaF.jpg) y las caídas de los braseros (Effect\WATERFALL5.jpg).
+        bool spark = false;
+        bool fall = false;
+        for (const auto& event : m_target.frames.back().events)
+            for (const auto& command : event.modelCommands)
+                if (command.vertexCount != 0 && command.state.texture)
+                {
+                    spark |= command.state.texture->value == 0x6ec;
+                    fall |= command.state.texture->value == 0x6f4;
+                }
+        EXPECT_TRUE(spark);
+        EXPECT_TRUE(fall);
     }
 }
 

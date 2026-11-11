@@ -3,6 +3,7 @@
 #include "Data/Terrain/TerrainLight.h"
 #include "Data/Terrain/TerrainMapping.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalRotation.h"
 #include "World/CrywolfWater.h"
 #include "World/GameModelEffects.h"
 #include "World/IParticleTrigonometry.h"
@@ -15,6 +16,7 @@
 #include "World/TerrainLighting.h"
 #include "World/WorldObjects.h"
 
+#include "support/ParticleDrawRecorder.h"
 #include "support/PlayerActors.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -32,8 +34,8 @@
 #include <utility>
 #include <vector>
 
-// Lo que Crywolf (el mapa 34) agrega al mundo: el paso de sus objetos (0x4303e0), sus partículas (5f2/21, 622/9,
-// 698/0, 6ec/5 y 60f/10), el calco 0x61d/3 del estandarte y las burbujas de su agua (0x5fa695):
+// Lo que Crywolf (el mapa 34) agrega al mundo: el paso de sus objetos (0x4303e0), sus partículas (5f2/21, 5f2/33,
+// 622/9, 698/0, 6ec/5 y 60f/10), el calco 0x61d/3 del estandarte y las burbujas de su agua (0x5fa695):
 // 06 § Los objetos de Crywolf.
 namespace
 {
@@ -343,6 +345,85 @@ TEST(CrywolfParticlesTest, TheBubbleLivesThirtyTwoStepsAcrossEightFrames)
         EXPECT_EQ(shape.uv, glm::vec2(0.0f, static_cast<float>(frame % 8) * 0.125f));
         EXPECT_EQ(shape.uvSize, glm::vec2(1.0f, 0.125f));
     }
+}
+
+// 0x541a8d..0x541b03: la 5f2/33 del 0x48 nace con la escala del argumento más 0,1f, la vida rand() % 150, la
+// inclinación rand() % 90 − 45 en +0x20, el giro rand() % 360 en +0x28 y la velocidad (0, −(rand() & 7), 0).
+// 0x545ffc..0x54604c: después del movimiento común, la luz (V · 0,4f; V · 0,4f; V) con V = vida · 0,125f en la x87,
+// la velocidad por 0,001f, la escala más 0,02f (fst) y la z más esa suma sin redondear. 0x548550 la dibuja sin restar
+// (no es /2, /5, /12, /14, /15, /20, /21, /29, /37 ni /38) con el billboard común y su giro (0x548a64).
+TEST(CrywolfParticlesTest, TheRisingSmokeDriftsOnceAndClimbsWithItsGrowingScale)
+{
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(37);
+    CrtRandom draws(37);
+    const glm::vec3 position(12550.0f, 4250.0f, 220.0f);
+    const glm::vec3 light(0.5f, 0.3f, 0.1f);
+    const auto created = particles->CreateChecked(Client::World::BreathParticle, position, {0.0f, 0.0f, 90.0f}, light,
+                                                  Client::World::CrywolfRisingSmokeSubtype, 1.25f, 0.0f, random);
+    ASSERT_TRUE(created.HasValue());
+    ASSERT_TRUE(created.Value().has_value());
+    const Particle& smoke = particles->All()[*created.Value()];
+    const int life = draws.Next() % 150;
+    const int tilt = draws.Next() % 90 - 45;
+    const int turn = draws.Next() % 360;
+    const int drift = draws.Next() & 7;
+    EXPECT_EQ(smoke.life, life);
+    EXPECT_EQ(smoke.scale, F32(1.25 + D(std::bit_cast<float>(0x3dcccccdu))));
+    EXPECT_EQ(smoke.angles, glm::vec3(static_cast<float>(tilt), 0.0f, static_cast<float>(turn)));
+    EXPECT_EQ(smoke.velocity, glm::vec3(0.0f, -static_cast<float>(drift), 0.0f));
+    EXPECT_EQ(smoke.light, light);
+    EXPECT_EQ(smoke.position, position);
+    EXPECT_EQ(smoke.rotation, 0.0f);
+    EXPECT_TRUE(smoke.moves);
+    EXPECT_EQ(random.State(), draws.State());
+
+    Particle expected = smoke;
+    expected.life = 12;
+    particles->All()[*created.Value()].life = 12;
+    const std::uint32_t born = random.State();
+    for (int step = 1; step <= 12; ++step)
+    {
+        SCOPED_TRACE(step);
+        ASSERT_TRUE(Client::World::StepParticlesChecked(*particles, random).HasValue());
+        expected.life -= 1;
+        const glm::vec3 turned = Client::Render::Models::OriginalVectorRotate(
+            expected.velocity, Client::Render::Models::OriginalAngleMatrix(expected.angles));
+        for (int axis = 0; axis < 3; ++axis)
+            expected.position[axis] = F32(D(turned[axis]) + D(expected.position[axis]));
+        const double glow = static_cast<double>(expected.life) * 0.125;
+        const float dim = F32(glow * D(std::bit_cast<float>(0x3ecccccdu)));
+        expected.light = glm::vec3(dim, dim, F32(glow));
+        for (int axis = 0; axis < 3; ++axis)
+            expected.velocity[axis] = F32(D(expected.velocity[axis]) * D(std::bit_cast<float>(0x3a83126fu)));
+        const double grown = D(expected.scale) + D(std::bit_cast<float>(0x3ca3d70au));
+        expected.scale = F32(grown);
+        expected.position.z = F32(grown + D(expected.position.z));
+        EXPECT_EQ(smoke.alive, expected.life > 0);
+        EXPECT_EQ(smoke.life, expected.life);
+        EXPECT_EQ(smoke.position, expected.position);
+        EXPECT_EQ(smoke.light, expected.light);
+        EXPECT_EQ(smoke.velocity, expected.velocity);
+        EXPECT_EQ(smoke.scale, expected.scale);
+        EXPECT_EQ(smoke.angles, expected.angles);
+    }
+    CrtRandom wind(born);
+    for (int draw = 0; draw < 2 * 12; ++draw)
+        static_cast<void>(wind.Next());
+    EXPECT_EQ(random.State(), wind.State());
+
+    Particle drawn = smoke;
+    drawn.alive = true;
+    drawn.rotation = 33.0f;
+    const auto billboard = Client::Tests::DrawOneParticle(drawn, glm::vec2(64.0f, 32.0f), std::uint8_t{3});
+    ASSERT_TRUE(billboard.HasValue());
+    ASSERT_TRUE(billboard.Value().has_value());
+    EXPECT_EQ(billboard.Value()->texture, Client::World::BreathParticle);
+    EXPECT_EQ(billboard.Value()->blend, Client::Tests::RecordedParticleDraw::Blend::Additive);
+    EXPECT_EQ(billboard.Value()->width, F32(64.0 * D(drawn.scale)));
+    EXPECT_EQ(billboard.Value()->height, F32(32.0 * D(drawn.scale)));
+    EXPECT_EQ(billboard.Value()->rotation, 33.0f);
+    EXPECT_EQ(billboard.Value()->light, drawn.light);
 }
 
 // 0x543b82..0x543bd5: la 6ec del 0x39 y del 0x47 nace como la 6ed (vida 24 y los dos rand() de la velocidad) y,

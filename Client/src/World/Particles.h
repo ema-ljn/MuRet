@@ -60,6 +60,9 @@ inline constexpr std::int32_t OrbitLife = 60;
 // (0x542ed0, que se queda en su partida, 0x547297) y la burbuja 698/0 (Effect\coll.jpg) del agua (0x543152 y
 // 0x54719f).
 inline constexpr std::int32_t CrywolfSmokeSubtype = 21;
+// El humo 5f2/33 del 0x48 de Crywolf (0x430932): nace en 0x541a8d con la vida y los ángulos de cuatro rand() y su paso
+// (0x545ffc) frena la velocidad y lo sube con la escala, que crece.
+inline constexpr std::int32_t CrywolfRisingSmokeSubtype = 33;
 inline constexpr std::int32_t CrywolfCloudSubtype = 9;
 inline constexpr std::int32_t AnchoredOrbitSubtype = 10;
 inline constexpr std::int32_t BubbleParticle = 0x698;
@@ -126,8 +129,8 @@ class Particles
 public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
-    // rand(). Se aceptan5ca/0, 5f2/0,2,21, 5c6/1,5,9,11, 622/6,8,9,10, 5d9/0..3, 607/0, 67/0, 68/0, 698/0, 6ab/0,1 y
-    // 6ac/0; la órbita 60f/3,4,10 pide el overload con la trigonometría.
+    // rand(). Se aceptan5ca/0, 5f2/0,2,21,33, 5c6/1,5,9,11, 622/6,8,9,10, 5d9/0..3, 607/0, 67/0, 68/0, 698/0, 6ab/0,1
+    // y 6ac/0; la órbita 60f/3,4,10 pide el overload con la trigonometría.
     // Create es la compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina
     // consume cinco rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().
     std::optional<std::size_t> Create(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,

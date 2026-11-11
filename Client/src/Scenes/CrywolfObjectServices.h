@@ -30,9 +30,11 @@ struct GameObjectPass;
 // y 0x6002e0 dibuja su cuerpo. Con un frame del original, además, los sorteos de cada tipo, antes del rand() común
 // de 0x602ef4: el 0x38 con el estado en 0, un rand() para la luz (rand() % 10.000 · 0,0001f) y, con otro en 0 módulo
 // 3, el efecto 0x61d/3 (World::ModelEffects::CreateFadingDecal, con 4 en +0x8a); el 0x39 y el 0x47, con rand() % 3 en
-// 0, la chispa 6ec/5 (y el 0x39, el humo 5f2/21) con luz (1, 1, 1), su escala y sin dueño; el 0x4a, el humo con el
-// estado en 1; el 0x4d y el 0x4e, con rand() % 6 en 0, la nube 622/9 con su luz; y el 0x49, con el clima en 0, la
-// arena del HUD (0x576353c) en 1. El 0x48 con rand() % 10 en 0 (el 5f2/33) y el 0x51 con el estado en 2 cortan.
+// 0, la chispa 6ec/5 (y el 0x39, el humo 5f2/21) con luz (1, 1, 1), su escala y sin dueño; el 0x48, con rand() % 10
+// en 0, otro rand() para la luz L = ((rand() & 3) + 3) · 0,1f y el humo 5f2/33 50 más arriba, con luz (L; L · 0,6f;
+// L · 0,2f), su escala y sin dueño; el 0x4a, el humo con el estado en 1; el 0x4d y el 0x4e, con rand() % 6 en 0, la
+// nube 622/9 con su luz; y el 0x49, con el clima en 0, la arena del HUD (0x576353c) en 1. El 0x51 con el estado en 2
+// corta.
 [[nodiscard]] Core::Expected<void, std::string> CrywolfObjectBody(const World::WorldObject& object,
                                                                   World::ObjectDraw& draw, const GameObjectPass& pass);
 } // namespace Client::Scenes

@@ -42,8 +42,9 @@ float F32(double value)
     return static_cast<float>(value);
 }
 
-Core::Expected<void, std::string> Emit(const GameObjectPass& pass, const World::WorldObject& object, std::int32_t type,
-                                       std::int32_t subtype, const glm::vec3& light, std::string_view address)
+Core::Expected<void, std::string> EmitAt(const GameObjectPass& pass, const World::WorldObject& object,
+                                         const glm::vec3& position, std::int32_t type, std::int32_t subtype,
+                                         const glm::vec3& light, std::string_view address)
 {
     if (pass.particles == nullptr)
     {
@@ -52,14 +53,36 @@ Core::Expected<void, std::string> Emit(const GameObjectPass& pass, const World::
     }
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala del objeto, dueño): solo la 622/9 recibe el objeto,
     // y su paso no lo lee (0x5476a8).
-    const auto created = pass.particles->CreateChecked(type, object.transform.position, object.transform.angles, light,
-                                                       subtype, object.transform.scale, pass.worldClock, *pass.random);
+    const auto created = pass.particles->CreateChecked(type, position, object.transform.angles, light, subtype,
+                                                       object.transform.scale, pass.worldClock, *pass.random);
     if (!created.HasValue())
     {
         return Core::Unexpected(std::format("{}: el alta de {:#x}/{} falla con error {}", address, type, subtype,
                                             static_cast<unsigned>(created.Error())));
     }
     return {};
+}
+
+Core::Expected<void, std::string> Emit(const GameObjectPass& pass, const World::WorldObject& object, std::int32_t type,
+                                       std::int32_t subtype, const glm::vec3& light, std::string_view address)
+{
+    return EmitAt(pass, object, object.transform.position, type, subtype, light, address);
+}
+
+// 0x4308ca..0x430932: el humo 5f2/33 50 (0x6b86b0) más arriba, con la luz de otro rand(): L = ((rand() & 3) + 3) ·
+// 0,1f en la x87, fst del rojo, y el verde y el azul por 0,6f (0x6b8a20) y 0,2f (0x6b8854) desde L sin redondear.
+Core::Expected<void, std::string> RisingSmoke(const World::WorldObject& object, const GameObjectPass& pass)
+{
+    constexpr double Lift = 50.0;
+    constexpr int LevelMask = 3, LevelBase = 3;
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+    constexpr double Green = static_cast<double>(std::bit_cast<float>(0x3f19999au));
+    constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));
+    const glm::vec3& position = object.transform.position;
+    const glm::vec3 above(position.x, position.y, F32(static_cast<double>(position.z) + Lift));
+    const double level = static_cast<double>((pass.random->Next() & LevelMask) + LevelBase) * Tenth;
+    const glm::vec3 light(F32(level), F32(level * Green), F32(level * Blue));
+    return EmitAt(pass, object, above, World::BreathParticle, World::CrywolfRisingSmokeSubtype, light, "0x430932");
 }
 
 // 0x4305db..0x43068c.
@@ -172,7 +195,7 @@ Core::Expected<void, std::string> CrywolfObjectBody(const World::WorldObject& ob
         constexpr int SmokeChance = 10;
         if (!frame || pass.random->Next() % SmokeChance != 0)
             return {};
-        return Core::Unexpected(std::string("0x4308ca: el humo 5f2/33 del 0x48 del 34 (0x541a8d) no está portado"));
+        return RisingSmoke(object, pass);
     }
     case 0x49:
         draw.kind = World::ObjectDrawKind::Hidden;

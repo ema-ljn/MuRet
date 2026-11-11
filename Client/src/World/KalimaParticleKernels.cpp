@@ -96,8 +96,19 @@ Core::Expected<void, ParticleError> CreateWaterfall(Particle& p, Render::Models:
     }
     constexpr int FallSpan = 5, FallBase = 7;
     constexpr float FallScale = 1.6f;
-    p.scale = p.subtype == ObjectSubtype ? F32(static_cast<double>(scaleArgument) + FallScale) : FallScale;
-    p.velocity.z = static_cast<float>(-FallBase - random.Next() % FallSpan);
+    if (p.type == KalimaWaterfallLast && p.subtype == BrazierFallSubtype)
+    {
+        // 0x543f21..0x543f47: la escala del argumento más 0,6f (0x6b8a20) y la caída −12 − rand() % 5.
+        constexpr int BrazierFallBase = 12;
+        constexpr double BrazierGrowth = static_cast<double>(std::bit_cast<float>(0x3f19999au));
+        p.scale = F32(static_cast<double>(scaleArgument) + BrazierGrowth);
+        p.velocity.z = static_cast<float>(-BrazierFallBase - random.Next() % FallSpan);
+    }
+    else
+    {
+        p.scale = p.subtype == ObjectSubtype ? F32(static_cast<double>(scaleArgument) + FallScale) : FallScale;
+        p.velocity.z = static_cast<float>(-FallBase - random.Next() % FallSpan);
+    }
     p.light = glm::vec3(0.2f);
     return {};
 }
@@ -224,8 +235,12 @@ void StepWaterfall(Particle& p, Render::Models::CrtRandom& random)
             FadeLight(p, Brighten);
         return;
     }
-    p.scale = F32(static_cast<double>(p.scale) - SmallGrowth);
-    p.velocity.z = F32(static_cast<double>(p.velocity.z) + Tenth);
+    // 0x547fa4: la 6f4/6 salta a 0x547fc1, sin la escala ni la caída.
+    if (p.type != KalimaWaterfallLast || p.subtype != BrazierFallSubtype)
+    {
+        p.scale = F32(static_cast<double>(p.scale) - SmallGrowth);
+        p.velocity.z = F32(static_cast<double>(p.velocity.z) + Tenth);
+    }
     constexpr int FirstFade = 5, LastFade = 8;
     if (p.life < (p.type == KalimaWaterfallFirst ? FirstFade : LastFade))
         FadeLight(p, Fade);
@@ -239,7 +254,8 @@ bool IsKalimaParticle(std::int32_t type, std::int32_t subtype)
         ((type == KalimaWaterfallFirst || type == KalimaWaterfallMist) && subtype == ObjectSubtype) ||
         ((type == WaterfallSplash || type == WaterfallSplash + 1) && subtype == SplashObjectSubtype);
     const bool fanta = (type == KalimaFanta || type == CrywolfFanta) && (subtype == 0 || subtype == ShortFantaSubtype);
-    return objectWaterfall || fanta || (type == KalimaWaterfallLast && subtype == 1) ||
+    return objectWaterfall || fanta ||
+           (type == KalimaWaterfallLast && (subtype == 1 || subtype == BrazierFallSubtype)) ||
            (type == KalimaFlare && (subtype == FlareZero || subtype == FlareTrail || subtype == FlareSix ||
                                     subtype == FlareSeven || subtype == FlareNine)) ||
            (subtype == 0 && type >= KalimaWaterfallFirst && type <= KalimaWaterfallLast);

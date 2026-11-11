@@ -89,8 +89,8 @@ struct ChaosCastlePreludeContext
 // héroe fuera de la zona segura y otro rand() % 10 en 0, la articulación 0x6ee/9 en (x + rand() % 800 − 400;
 // y + rand() % 800 − 400; z − 150) del héroe, con sus ángulos, sin dueño y la escala rand() % 10 + 50. Devuelve el
 // selector, que sin el primer caso queda en 0. Corta sin el azar o sin quien cree la articulación.
-[[nodiscard]] Core::Expected<std::int32_t, std::string> StepChaosCastlePrelude(std::int32_t count,
-                                                                               const ChaosCastlePreludeContext& context);
+[[nodiscard]] Core::Expected<std::int32_t, std::string>
+StepChaosCastlePrelude(std::int32_t count, const ChaosCastlePreludeContext& context);
 
 // 0x4055b0 por cada objeto visto, después de 0x604ab0: solo el 3, que suma 1 a la cuenta. Con la trampa armada
 // (0x6c634d, 1 en la .data; solo el paquete de 0x404e20 la vuelve a armar) prende +0x8a, deja +0x60 en 10 y la

@@ -5582,6 +5582,67 @@ la Data del repo, el 9 (y el 32) y los siete Blood Castle llegan a un cuadro com
 `MapLoadEventTest`, `EventMapObjectsTest`, `EventMapObjectFrameTest`, `BloodCastleParticlesTest` y
 `CharacterStepTest.DevilSquareRainsFromTwoBonesOfEachCharacter`.
 
+### Los objetos de Chaos Castle
+
+Leído en la CL7 en el ASM y el pseudocódigo de `c32bbd5f` (*estático*; las cuentas de MuRet, *simulado*: con el
+port y la Data del repo). Lo común es lo de [Los objetos del juego](#los-objetos-del-juego). Los seis Chaos Castle
+son los mapas 18 a 23, todos con `World19` (194 objetos: 22 del 3, nueve del 6, 14 del 7, seis del 8, ocho del
+`0xc` y los demás repartidos del 0 al `0x23`). El castillo, de 23 a 44 en x y de 75 a 108 en y, es todo zona segura
+en el `.att`; afuera, la franja de x 1 a 12 con y 70 a 111 se camina y no es segura. La entrada por `1C` corta en
+la UI (`0x4906a0`, CL8); la de `F3 04` entra. El objeto de evento (`0x404d60`) y el área (`0x6c634c`, `0xff` en la
+`.data`) están en [Los objetos de Devil Square y de Blood Castle](#los-objetos-de-devil-square-y-de-blood-castle).
+
+**Las celdas** (`0x405e00(x, y)`, en el dibujo del terreno, por cada celda dibujada que no está escondida): `rand()
+% 8`; con 0 y el área en 0, 3 o 6, el primer rectángulo del área que tiene la celda (`0x6b86d4`, `0x6b8714` y
+`0x6b8754`, cuatro cada uno, con los bordes) suelta la piedra `0x5f6/0` en (x · 100 + `rand() % 30` − 15; y · 100 +
+`rand() % 30` − 15; z del héroe), sin dueño, escala 1,5, y con `rand() % 5` en 0 el temblor de la cámara
+(`0x7d325c8`) en (`rand() % 3` − 3) · 0,1f. Sin paquetes el área queda en `0xff`: sólo sale el `rand() % 8`.
+
+**El preludio** (`0x405490`, primero en `0x6061c0`), con la cuenta de los 3 vistos del pase anterior (`0x7d365a0`):
+con `rand() % 10` en 0 y la cuenta distinta de 0, el selector es `rand() % cuenta`. Si no, con el héroe fuera de la
+zona segura y otro `rand() % 10` en 0, **el meteoro** `0x6ee/9` (`0x530860`) en (x + `rand() % 800` − 400; y +
+`rand() % 800` − 400; z − 150) del héroe, con sus ángulos, sin dueño y escala `rand() % 10` + 50. **Cada visto**
+(`0x4055b0`, después de `0x604ab0`): el 3 suma 1 a la cuenta; con la trampa armada (`0x6c634d`, 1 en la `.data`,
+que sólo rearma el paquete de `0x404e20`) prende `+0x8a`, deja `+0x60` en 10 y la desarma; si no, con el selector
+distinto de 0 lo baja, y al llegar a 0 prende ese.
+
+**El frame** (`0x4059d0`, desde `0x602ed0`):
+
+| Tipo | Qué hace |
+|---|---|
+| 0 a 3 con `+0x8a` y sin esconder | **la trampa** (`0x405cc5..0x405d82`): el punto del hueso 1 de la pose global; con `+0x60` en 10, el joint `0x615/2` de ese punto a ese punto, con los ángulos del objeto y escala `rand() % 10` + 60, y el sonido `0x9c` + (`rand() & 1`). Después, `+0x60` por debajo de 5 apaga `+0x8a`; si no, baja uno. Sigue con el área |
+| 0 a 5 y `0xd` a `0x11` | con el área entre 2 y `0xfe`, se esconde (`+0x58` en −2) |
+| 6 a `0xc` | **las nubes**, una vez (después queda escondido): diez `622/(tipo − 6)` del 6 al 8, cinco del 9 al `0xb` y siete `622/7` el `0xc`, con el objeto de dueño, su escala y la luz (0,05f; 0,05f; 0,1f), o 0,3f el `0xc` |
+| `0x12` a `0x15` | se ve sólo con el área en 7 u 8 |
+| `0x18` a `0x1d` | se ve con el área en 4 o 5 y se esconde desde la 8 |
+| `0x1e` a `0x23` | se ve con el área en 1 o 2 y se esconde desde la 5 |
+
+**Los joints** (`0x535840`): el rayo de la trampa, `0x615/2`, se crea (`0x5319ea`, `0x531b0c..0x531bd2` y `0x534cb6`) con la textura `0x614`, el ancho
+en la escala, 50 puntos, vida 20, x e y más `rand() % 10` − 5 y z + 800, y el destino en el segundo punto. Su paso
+(`0x53770a`) baja en zigzag hasta el destino, con `rand() % 20` − 10 en x e y y z − 16 en cada punto; al final se
+apaga (vida por debajo de 4, la luz por 0,8333f), deja dos sprites `0x5fd` en el destino y la partícula `6ed/0`, y la cola corre con vida por encima de 10. El meteoro, `0x6ee/9` (`Effect\JointSpirit02.jpg`, cargado en `0x61d5db`), va con la mezcla que resta (3) y sólo la segunda cara,
+con velocidad 10 y ángulos (−90, 0, 0); su paso (`0x538ea4..0x538f37`) corre x e y con `rand() % 10` − 5, sube la velocidad y
+se apaga desde vida 10. La cola común (`0x53c393`) usa la matriz del principio del paso.
+
+**Los personajes.** En Chaos Castle un jugador (`+0x88` en 1) no lleva sus partes sino el Angel (`0x1f7`,
+`Player\Angel`, que carga `0x618970`): `0x60cf70` con su contorno de estos mapas y `0x60b3d0` con el nivel 0, que
+le pone la luz del personaje y llama a `0x609640` con 2, o 6 el héroe, que además lleva el cromo de la malla 0
+(`0x1040` a (0,75; 0,55; 0,5) y `0x46` a 1). Su malla de piel va con la piel 0 (Q-C322). El contorno de estos
+mapas (`0x60d09f` y `0x60d113`) vale para cualquier `+0x88`: (0,1; 0,01; 0) a 0,1 / escala + 1 y (0,7; 0,07; 0) a
+0,04 / escala + 1,02 − 0,02 (Q-C323). No hay marca del gremio (`0x50d4fb`), capa, alas, mascota ni armas en la
+espalda. El alpha de los objetos baja 0,15f con `+0x1a1` del héroe (`0x5ffdf0`), que sólo escriben los paquetes.
+Al caminar, `0x4fbe10` guarda la celda del héroe y, si se queda 10 s en una celda con el bit 8 del atributo, manda
+`C1 06 AF 01` (CL9.5, corta).
+
+**En MuRet.** `World::StepChaosCastleCell` desde el dibujo del terreno, `World::StepChaosCastlePrelude` y
+`World::StepChaosCastleSeenObject` (`World/ChaosCastle`) desde `GameScene::StepTheObjects`,
+`Scenes::StepChaosCastleObjectFrame` (`EventMapObjectFrame`), los joints `0x615/2` y `0x6ee/9` en
+`FaunaJointCreation`, `World::ChaosCastlePoseAlpha` y `Scenes::DrawChaosCastleBody` (`CharacterDrawing`, desde
+`GameCharacters`). Con la Data del repo, los seis entran por `F3 04` dentro del castillo y caminan; la trampa armada
+se dispara en el primer 3 visto (`GameT16ChaosCastleWalk`). Tests: `ChaosCastleTest` y, del cuerpo,
+`GameCharacterRenderTest.InChaosCastleAPlayerWearsTheAngelAndOnlyTheHeroAddsItsChrome` y
+`TheChaosCastleOutlineScalesWithTheObjectAndHasItsOwnColors`.
+
 ### Las marcas del suelo
 
 `0x549130`, desde `0x5fc365` (*estático*, salvo donde se dice). Son 100 lugares de `0x78` bytes en

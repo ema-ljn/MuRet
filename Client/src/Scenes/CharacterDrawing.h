@@ -106,6 +106,9 @@ struct DrawnCharacter
     Render::Models::CrtRandom* originalRandom = nullptr;
     // El que está bajo el mouse (DAT_006c8e30 en 0x510d00): sus partes llevan el contorno.
     bool outlined = false;
+    // +0x88 del objeto: con 4 (un NPC), el contorno de 0x60cf70 va con otros colores; con 1 (un jugador), en
+    // Chaos Castle lleva el Angel (DrawChaosCastleBody).
+    std::uint8_t kind = 0;
     // La tela de la clase 3 o 4 (0x50d58b..0x50db57): la de este personaje, que vive entre frames, lo
     // global que lee (el viento, el contador y el rand()) y el mapa de la escena. Sin las dos, va sin
     // tela.
@@ -176,6 +179,17 @@ inline constexpr Render::TextureSlot MetalTextureSlot{0x620};
 // Las saetas de la izquierda o las flechas de la derecha van a la espalda, del hueso de las alas.
 void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnCharacter& character,
                    Core::Duration frameClock, CharacterDrawPass pass = CharacterDrawPass::All);
+
+// 0x50d374..0x50d3d7: en Chaos Castle (18 a 23), un jugador (+0x88 en 1) no lleva sus seis partes sino el Angel
+// (0x1f7, Player\Angel), sobre el cuerpo posado, con 0x60cf70: el contorno de esos mapas si está marcado, y
+// 0x60b3d0 con el nivel 0, que le pone la luz (+0x3b4) y llama a 0x609640 (caso 0x1f7) con `flags`: 2, o 6 el
+// héroe, con el cromo de la malla 0. Al 0x1f7 nadie le escribe la piel (+0x98 del modelo: sólo el lazo de las
+// partes la pone en las suyas, y 0x60dbe0 la deja en 0), así que su malla skin_ va con la piel 0. Sin el modelo
+// no dibuja nada, como una parte.
+// `models` posa el cuerpo (0x20a) y `angelModels` tiene el 0x1f7, con las texturas de su carga.
+[[nodiscard]] Core::Expected<void, std::string>
+DrawChaosCastleBody(Render::ModelBatch& batch, const IModelLibrary& models, const IModelLibrary& angelModels,
+                    const DrawnCharacter& character, Core::Duration frameClock, std::uint32_t flags);
 
 // Los huesos del cuerpo de `character` como los posa DrawCharacter (0x4eb860 con la cabeza): el buffer
 // propio del personaje, +0x120. Sin el esqueleto del 0x20a o si la pose falla, vacío.

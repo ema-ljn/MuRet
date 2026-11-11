@@ -718,8 +718,8 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         // temblor, Q-C229). Las demás no lo llaman en MuRet: no saca nada.
         if (World::IsChaosCastleMap(map))
         {
-            const float frameClock = static_cast<float>(
-                std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count());
+            const float frameClock =
+                static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count());
             const World::ChaosCastleCellContext cellContext{
                 .area = m_context.world->Runtime().chaosCastleArea,
                 .heroZ = m_context.world->Actors()[m_context.world->Runtime().hero].position.z,
@@ -908,7 +908,8 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                           },
                           .publishProjectedPose = true,
                           .poseBones = [&](std::uint16_t)
-                          { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); }});
+                          { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); },
+                          .worldModels = m_worldModelsMap ? &m_worldModels : nullptr});
     if (poseFailure)
         return Core::Unexpected(*poseFailure);
     return drawn;

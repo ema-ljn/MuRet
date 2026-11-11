@@ -440,7 +440,8 @@ TEST_P(GameT16MapWalk, TheArchivedOuterWallCannotStartAnOutOfBoundsWalk)
 // Chaos Castle (World19 por el 18 al 23) entra por el F3 04: el 1C corta en 0x4906a0 (la UI del castillo, CL8).
 // El castillo, 23..44 × 75..108, es zona segura en el .att; 30..33 × 90..93 queda en el medio, con los veintidós 3
 // de las paredes a la vista. La trampa armada de la .data (0x6c634d) prende el primer 3 visto (0x4055b0), que en el
-// dibujo siguiente suelta su 615/2 desde el hueso 1 (0x405d49) y baja la cuenta hasta 4.
+// dibujo siguiente suelta su 615/2 desde el hueso 1 (0x405d49) y baja la cuenta hasta 4; después el preludio
+// (0x405490) elige otros. Las nubes del 7 al 0xc que se ven sueltan sus 622 y se esconden.
 class GameT16ChaosCastleWalk : public GameT16MapWalk
 {
 };
@@ -463,12 +464,24 @@ TEST_P(GameT16ChaosCastleWalk, RegenWalksInsideTheCastleAndTheArmedTrapFires)
     ASSERT_NO_FATAL_FAILURE(ExpectWalkPacket());
     ASSERT_NO_FATAL_FAILURE(FinishWalk(X + 3, Y + 3));
     EXPECT_EQ(m_world->Runtime().chaosCastleTrapArmed, 0);
-    const auto fired = std::ranges::count_if(m_world->Map().objects, [](const auto& object)
-                                             { return object.alive && object.type == 3 && object.field60 == 4; });
-    EXPECT_EQ(fired, 1);
-    EXPECT_TRUE(std::ranges::any_of(m_world->Map().objects, [](const auto& object)
-                                    { return object.alive && object.seen && object.type == 6; }));
-    RecordProperty("walk_scope", "F304 entry; real picking; D3 echo; armed trap 615/2; full frames");
+    // Un 3 que disparó baja +0x60 desde 10 en cada frame; el preludio vuelve a elegir alguno de los vistos.
+    EXPECT_TRUE(std::ranges::any_of(
+        m_world->Map().objects, [](const auto& object)
+        { return object.alive && object.type == 3 && object.field60 >= 4 && object.field60 < 10; }));
+    // Las nubes vistas (6 a 0xc) sueltan sus 622 una vez y quedan escondidas.
+    EXPECT_TRUE(std::ranges::any_of(m_world->Map().objects,
+                                    [](const auto& object) {
+                                        return object.alive && object.seen && object.type >= 6 && object.type <= 0xc &&
+                                               object.state.hiddenMesh == -2;
+                                    }));
+    // El héroe va con el Angel (0x1f7) y su cromo: 0x609640 con 6 pasa la malla 0 con 0x46 por Chrome01 (0x5c0).
+    ASSERT_FALSE(m_target.frames.empty());
+    bool chrome = false;
+    for (const auto& event : m_target.frames.back().events)
+        for (const auto& command : event.modelCommands)
+            chrome |= command.vertexCount != 0 && command.state.texture && command.state.texture->value == 0x5c0;
+    EXPECT_TRUE(chrome);
+    RecordProperty("walk_scope", "F304 entry; real picking; D3 echo; armed trap 615/2; Angel body; full frames");
 }
 INSTANTIATE_TEST_SUITE_P(AllSixChaosCastles, GameT16ChaosCastleWalk, ::testing::Values(18, 19, 20, 21, 22, 23),
                          [](const ::testing::TestParamInfo<int>& parameter)

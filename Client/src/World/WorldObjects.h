@@ -41,24 +41,24 @@ enum class ObjectScene : std::uint8_t
 // Proyección tipada de los campos usados de 0x1d4 bytes; no reproduce el layout i386.
 struct WorldObject
 {
-    WorldObjectIdentity identity = 0;              // ID del caller; 0 en la proyección sin registro
-    std::int16_t type = 0;                         // +0x2, el modelo
-    Render::Models::ObjectTransform transform;     // +0xc la escala, +0x10 la posición, +0x1c los ángulos
-    Render::Models::ObjectState state;             // +0x64, +0x68, +0x6c, +0x70 y +0x58
-    std::uint8_t field08 = 0;                      // +0x8, byte escrito por creación del mapa 30
-    float field84 = 0.0f;                          // +0x84, store FP del mapa 30/tipo 41
-    std::uint8_t field91 = 0;                      // +0x91, byte escrito por creación del mapa 30
+    WorldObjectIdentity identity = 0;          // ID del caller; 0 en la proyección sin registro
+    std::int16_t type = 0;                     // +0x2, el modelo
+    Render::Models::ObjectTransform transform; // +0xc la escala, +0x10 la posición, +0x1c los ángulos
+    Render::Models::ObjectState state;         // +0x64, +0x68, +0x6c, +0x70 y +0x58
+    std::uint8_t field08 = 0;                  // +0x8, byte escrito por creación del mapa 30
+    float field84 = 0.0f;                      // +0x84, store FP del mapa 30/tipo 41
+    std::uint8_t field91 = 0;                  // +0x91, byte escrito por creación del mapa 30
     // +0x8a: 4 cuando 0x5ff960 abre el 9 o el 10 de 11..17; 1 en el 3 de 18..23 que 0x4055b0 elige.
     std::int16_t field8a = 0;
-    std::int32_t field60 = 0; // +0x60, la cuenta del 3 de 18..23 (0x4055b0 la pone en 10, 0x4059d0 la baja)
-    glm::vec3 light{};                             // +0xf4..+0xfc, la que se suma a la del terreno
-    float speed = 0.0f;                            // +0xd8, keys por paso
-    float cullingMargin = -30.0f;                  // +0xdc, margen inicial de 0x6067ae
-    float fieldE0 = 50.0f;                         // +0xe0, significado/consumidor sin modelar
-    glm::vec3 velocity{};                          // +0xcc..d4, cero nativo606830..60683c
-    glm::vec3 copiedAngles{};                      // +0x28..+0x30, copia del caso del mapa 2
-    glm::vec3 copiedPosition{};                    // +0x34..+0x3c, copia del caso del mapa 2
-    glm::vec3 basePosition{};                      // +0x17c, segunda copia inicial de la posición
+    std::int32_t field60 = 0;     // +0x60, la cuenta del 3 de 18..23 (0x4055b0 la pone en 10, 0x4059d0 la baja)
+    glm::vec3 light{};            // +0xf4..+0xfc, la que se suma a la del terreno
+    float speed = 0.0f;           // +0xd8, keys por paso
+    float cullingMargin = -30.0f; // +0xdc, margen inicial de 0x6067ae
+    float fieldE0 = 50.0f;        // +0xe0, significado/consumidor sin modelar
+    glm::vec3 velocity{};         // +0xcc..d4, cero nativo606830..60683c
+    glm::vec3 copiedAngles{};     // +0x28..+0x30, copia del caso del mapa 2
+    glm::vec3 copiedPosition{};   // +0x34..+0x3c, copia del caso del mapa 2
+    glm::vec3 basePosition{};     // +0x17c, segunda copia inicial de la posición
     glm::vec3 boundsMinimum{-40.0f, -40.0f, 0.0f}; // +0x124..+0x12c
     glm::vec3 boundsMaximum{40.0f, 40.0f, 80.0f};  // +0x130..+0x138
     bool alive = true;                             // +0x0

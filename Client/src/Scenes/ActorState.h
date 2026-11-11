@@ -149,8 +149,9 @@ struct ActorState
     // +0x389: distinto de 0, se está muriendo y 0x508f00 no lo pone en el TerrainWall. 0x511290 lo pone
     // en 0 (0x511c05); quién más lo escribe, sin leer.
     std::uint8_t dying = 0;
-    // +0x88: 0x511290 y la respuesta del F3 03 lo ponen en 1; con 8, 0x508f00 no lo pone en el
-    // TerrainWall (0x508f60). Qué es, sin leer.
+    // +0x88, la clase del objeto: 0x511290 y la respuesta del F3 03 lo ponen en 1 (un jugador); con 8,
+    // 0x508f00 no lo pone en el TerrainWall (0x508f60). 0x60cf70 contornea el 4 con otros colores y 0x50d374
+    // viste al 1 con el Angel en Chaos Castle.
     std::uint8_t byte88 = 0;
     std::uint8_t controlCode = 0; // +0x1d8, el CtlCode de la respuesta del F3 03
     // +0x1d9: el nombre. La respuesta del F3 03 copia ahí los diez bytes del registro propio (0x4c47a2).

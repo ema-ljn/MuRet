@@ -97,9 +97,9 @@ Core::Expected<void, std::string> StepChaosCastleCell(std::uint8_t x, std::uint8
     if (context.particles == nullptr)
         return Core::Unexpected(std::string("0x405f24: falta el pool de partículas para la piedra 0x5f6 de Chaos "
                                             "Castle"));
-    const auto created =
-        context.particles->CreateChecked(ChaosCastleFallingStone, glm::vec3(stoneX, stoneY, context.heroZ),
-                                         glm::vec3(0.0f), glm::vec3(1.0f), 0, StoneScale, context.worldClock, random, 0);
+    const auto created = context.particles->CreateChecked(
+        ChaosCastleFallingStone, glm::vec3(stoneX, stoneY, context.heroZ), glm::vec3(0.0f), glm::vec3(1.0f), 0,
+        StoneScale, context.worldClock, random, 0);
     if (!created.HasValue())
         return Core::Unexpected(std::format("0x405f24: la piedra 0x5f6/0 de Chaos Castle falla con error {}",
                                             static_cast<unsigned>(created.Error())));

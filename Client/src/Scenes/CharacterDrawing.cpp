@@ -55,9 +55,9 @@ namespace
 using Render::Models::BoneTransform;
 using Render::Models::ObjectState;
 
-// El contorno de 0x60cf70 con su modo 1, para un jugador fuera de los mapas 18 a 23: dos pases de
-// 0x60cd60, a la escala de +0x94 (1,2, de 0x511290) y a ella menos 0,02, sin luz y con 0x40 (0x4ecc30:
-// aditivo, sin textura y sin escribir la profundidad).
+// El contorno de 0x60cf70 con su modo 1: dos pases de 0x60cd60, a la escala de +0x94 (1,2, de 0x511290) y a
+// ella menos 0,02, sin luz y con 0x40 (0x4ecc30: aditivo, sin textura y sin escribir la profundidad). El color
+// va por +0x88 (0x60d056..0x60d0fd: con 4, el de los NPC).
 struct OutlinePass
 {
     float boneScale = 1.0f;
@@ -65,10 +65,37 @@ struct OutlinePass
 };
 constexpr float OutlineScale = 1.2f;
 constexpr float OutlineStep = 0.02f;
+constexpr std::uint8_t NpcKind = 4;
 constexpr std::array<OutlinePass, 2> OutlinePasses{{
     {OutlineScale, Render::Color{0.1f, 0.03f, 0.0f, 1.0f}},
     {OutlineScale - OutlineStep, Render::Color{0.7f, 0.2f, 0.0f, 1.0f}},
 }};
+constexpr std::array<OutlinePass, 2> NpcOutlinePasses{{
+    {OutlineScale, Render::Color{0.02f, 0.1f, 0.0f, 1.0f}},
+    {OutlineScale - OutlineStep, Render::Color{0.16f, 0.7f, 0.0f, 1.0f}},
+}};
+// 0x60d09f y 0x60d113: en los mapas 18 a 23 (0x6c9dd0), para cualquier +0x88, otro color y la escala por la del
+// objeto (+0xc): 0,1 / escala + 1 y 0,04 / escala + 1,02 − 0,02, en el x87 (PC53) y guardadas en float.
+constexpr std::uint8_t FirstChaosCastleMap = 18;
+constexpr std::uint8_t LastChaosCastleMap = 23;
+constexpr float ChaosCastleOutlineSpan = 0.1f;
+constexpr float ChaosCastleOutlineBase = 1.0f;
+constexpr float ChaosCastleInnerSpan = 0.04f;
+constexpr float ChaosCastleInnerBase = 1.02f;
+constexpr Render::Color ChaosCastleOutlineColor{0.1f, 0.01f, 0.0f, 1.0f};
+constexpr Render::Color ChaosCastleInnerColor{0.7f, 0.07f, 0.0f, 1.0f};
+
+std::array<OutlinePass, 2> OutlinePassesOf(const DrawnCharacter& character)
+{
+    if (character.map < FirstChaosCastleMap || character.map > LastChaosCastleMap)
+        return character.kind == NpcKind ? NpcOutlinePasses : OutlinePasses;
+    const double scale = character.object.scale;
+    const double outer =
+        static_cast<double>(ChaosCastleOutlineSpan) / scale + static_cast<double>(ChaosCastleOutlineBase);
+    const double inner = static_cast<double>(ChaosCastleInnerSpan) / scale + static_cast<double>(ChaosCastleInnerBase);
+    return {{{static_cast<float>(outer), ChaosCastleOutlineColor},
+             {static_cast<float>(inner - static_cast<double>(OutlineStep)), ChaosCastleInnerColor}}};
+}
 constexpr Render::ModelDrawState OutlineState{std::nullopt, Render::ModelBlend::Additive, true};
 
 // La sombra: 0x60b3d0 con +0x98 en 1 pone la opaca y el negro, y 0x4eff40 apaga la textura y la
@@ -436,7 +463,7 @@ void OutlineMesh(const CharacterFrame& frame, const OutlinePass& pass, const Mes
 // objeto del personaje), sin la que el objeto oculta.
 void DrawOutline(const CharacterFrame& frame, std::span<const MeshDraw> draws, std::span<const BoneTransform> bones)
 {
-    for (const OutlinePass& pass : OutlinePasses)
+    for (const OutlinePass& pass : OutlinePassesOf(frame.character))
     {
         for (const MeshDraw& draw : draws)
         {
@@ -1017,6 +1044,67 @@ void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const
         DrawHanging(frame, *appearance.pet, AttachmentSlot::Pet, character.pet, body, noGlow);
     }
     DrawHands(frame, body);
+}
+
+namespace
+{
+constexpr std::uint16_t ChaosCastleBodyModel = 0x1f7;
+// La piel con que va la malla skin_ del Angel: la 0 (+0x98 del 0x1f7 en 0).
+constexpr std::uint8_t ChaosCastleBodySkinClass = 0;
+} // namespace
+
+Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                      const IModelLibrary& angelModels, const DrawnCharacter& character,
+                                                      Core::Duration frameClock, std::uint32_t flags)
+{
+    const std::vector<BoneTransform> body = PoseCharacterBody(models, character);
+    if (body.empty())
+        return {};
+    if (character.onPose)
+        character.onPose(Data::Models::PlayerSkeletonModel, body, character.object, false);
+    const Data::Models::Model* model = angelModels.Find(ChaosCastleBodyModel);
+    if (model == nullptr)
+        return {};
+    if (character.onPose)
+        character.onPose(ChaosCastleBodyModel, body, character.object, false);
+    // El objeto del personaje: sin blendMesh ni malla oculta y con la luz +0x68 en 1, como la deja 0x511290. En
+    // estos mapas el lazo de las partes, que la cambia en el casco de la clase 4, no corre para un jugador.
+    const ObjectState state{Render::Models::NoBlendMesh, 1.0f, {}, Render::Models::NoHiddenMesh};
+    if (character.outlined)
+    {
+        // 0x60d04d: el contorno, antes de 0x5ffce0 y de 0x60b3d0.
+        std::minstd_rand random(RandomSeedOf(frameClock));
+        const CharacterFrame frame{batch, angelModels, character, frameClock, random};
+        std::vector<Render::Models::SkinnedMesh> outlineMeshes;
+        std::vector<MeshDraw> draws =
+            MeshDrawsOf(angelModels, ChaosCastleBodyModel, *model, body, character.object, ChaosCastleBodySkinClass,
+                        Render::Color{character.light.x, character.light.y, character.light.z, 1.0f}, state, frameClock,
+                        outlineMeshes);
+        for (MeshDraw& draw : draws)
+            draw.alpha = character.alpha;
+        DrawOutline(frame, draws, body);
+    }
+    std::vector<Render::Models::SkinnedMesh> meshes(model->meshes.size());
+    for (std::size_t index = 0; index < model->meshes.size(); ++index)
+    {
+        if (!IndicesInRange(model->meshes[index]) ||
+            !Render::Models::SkinMesh(model->meshes[index], body, character.object, meshes[index]))
+        {
+            return Core::Unexpected(
+                std::string("0x60cf70: una malla del Angel (0x1f7) no se puede pasar a los huesos del cuerpo"));
+        }
+    }
+    // 0x60b3d0 con el nivel 0: el color del modelo es la luz (0x60cb0f), y 0x609640 hace el resto.
+    DrawnObject object;
+    object.model = ChaosCastleBodyModel;
+    object.animation = character.body;
+    object.transform = character.object;
+    object.state = state;
+    object.color = character.light;
+    object.alpha = character.alpha;
+    ItemSpecialDrawContext special;
+    special.flags = flags;
+    return DrawSpecialItemMeshes(batch, angelModels, object, frameClock, meshes, special);
 }
 
 namespace

@@ -22,6 +22,13 @@ using OriginalMatrix = std::array<float, 12>;
 // 0x5fc8f0: el giro de tres ángulos en grados (x, y, z; el π/180 en float de 0x6ba360).
 [[nodiscard]] OriginalMatrix OriginalAngleMatrix(const glm::vec3& degrees);
 
+// La inversa de OriginalMatrixOf: la 3 × 4 por filas como BoneTransform (la traslación en m[3]).
+[[nodiscard]] BoneTransform BoneTransformOf(const OriginalMatrix& rows);
+
+// 0x5fca90 (R_ConcatTransforms) como la x87: parent · child, cada producto exacto en 53 bits, las sumas
+// en el orden del binario (distinto por fila) y cada elemento guardado en float.
+[[nodiscard]] OriginalMatrix OriginalConcatTransforms(const OriginalMatrix& parent, const OriginalMatrix& child);
+
 // 0x5fcbd0: `v` por el giro de `m`, sin la traslación.
 [[nodiscard]] glm::vec3 OriginalVectorRotate(const glm::vec3& v, const OriginalMatrix& m);
 

@@ -27,7 +27,6 @@ struct ClothWorld;
 namespace Client::World
 {
 class FrameSprites;
-class ScepterGlowCarry;
 struct TerrainLighting;
 } // namespace Client::World
 
@@ -38,10 +37,13 @@ namespace Client::Scenes
 class CharacterCloth;
 class IModelLibrary;
 class WorldState;
+struct FaunaDrawCarry;
+struct ItemDrawContext;
 
 // Los recursos del pase 0x510d00 en el juego. La luz es el buffer dinámico, no su base sombreada.
 // Los dos lugares de picking arrancan en -1 en la .data (0x6c8e30 y 0x6c8e2c); el caller publica
-// sus cambios cuando porta 0x59ec80. Las telas y los cetros pertenecen a cada lugar entre frames.
+// sus cambios cuando porta 0x59ec80. Las telas pertenecen a cada lugar entre frames. Lo que cuelga
+// (GameHanging.h) se posa en el buffer global de la pose y se dibuja con los globales de 0x60b3d0.
 struct GameCharacterPass
 {
     const World::TerrainLighting* dynamicLighting = nullptr;
@@ -52,7 +54,9 @@ struct GameCharacterPass
     std::int32_t targeted = -1;
     std::span<CharacterCloth> cloths{};
     World::FrameSprites* sprites = nullptr;
-    std::span<World::ScepterGlowCarry> scepters{};
+    // El buffer global de la pose (0x68b181c) y los globales de 0x60b3d0 que presta el dueño del frame.
+    FaunaDrawCarry* poseCarry = nullptr;
+    const ItemDrawContext* itemContext = nullptr;
     Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock;
     std::function<void(std::uint16_t, std::span<const Render::Models::BoneTransform>,
                        const Render::Models::ObjectTransform&, bool)>
@@ -63,9 +67,10 @@ struct GameCharacterPass
 };
 
 // El cuerpo del jugador ordinario, su luz del terreno y el override del héroe, reutilizando
-// DrawCharacter; el rand de 0x50db57 separa cuerpo/tela y lo que cuelga. Lo aún no portado corta
-// con su dirección: monstruos, armas equipadas a espalda/en mano, alas/Helper02 y efectos especiales.
-// Sin arma, fuera de la espalda, cierra +0x38e antes de cada mano aun si ambas están vacías.
+// DrawCharacter, y después lo que cuelga con DrawGameHanging (0x50db57..0x50e9fa): el arma a la espalda,
+// las alas, Helper02 y las manos. Lo aún no portado corta con su dirección: monstruos, los casos de
+// 0x509340 con joints o partículas y los efectos especiales. Entre frames del original, lo que cuelga se
+// dibuja sobre una copia del personaje y del rand(): no avanza ni gasta nada.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch,
                                                                    const IModelLibrary& models, WorldState& world,
                                                                    const GameCharacterPass& pass);

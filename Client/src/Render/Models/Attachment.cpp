@@ -1,6 +1,7 @@
 #include "Render/Models/Attachment.h"
 
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/OriginalRotation.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -29,10 +30,14 @@ BoneTransform AttachmentRoot(const BoneTransform& parent, const glm::vec3& offse
     return root;
 }
 
+// 0x5fc8f0 en el buffer local de 0x509340 (ebp−0x64), la traslación en sus +0xc, +0x1c y +0x2c, y
+// 0x5fca90 con el hueso, todo con los bits de la x87.
 BoneTransform PlacedRoot(const BoneTransform& parent, const HangingPlacement& placement)
 {
-    BoneTransform local = AngleMatrix(placement.angles);
-    local[3] = placement.translation;
-    return ConcatTransforms(parent, local);
+    OriginalMatrix local = OriginalAngleMatrix(placement.angles);
+    local[3] = placement.translation.x;
+    local[7] = placement.translation.y;
+    local[11] = placement.translation.z;
+    return BoneTransformOf(OriginalConcatTransforms(OriginalMatrixOf(parent), local));
 }
 } // namespace Client::Render::Models

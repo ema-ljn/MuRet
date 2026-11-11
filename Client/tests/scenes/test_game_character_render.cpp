@@ -17,6 +17,7 @@
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkSpirit.h"
+#include "Scenes/FaunaDrawing.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
@@ -47,6 +48,18 @@ using Client::Scenes::ActorState;
 using Client::Scenes::GameCharacterPass;
 
 constexpr std::uint16_t BootsModel = 0x1800;
+
+// El estado del rand() de la CRT con la semilla 1 después de `count` llamadas.
+std::uint32_t AfterRandoms(std::size_t count)
+{
+    Client::Render::Models::CrtRandom random{1};
+    for (std::size_t call = 0; call < count; ++call)
+        static_cast<void>(random.Next());
+    return random.State();
+}
+
+// Cerrar el registro propio del héroe gasta 3848 rand() (0x50ccb5..0x50d219).
+constexpr std::size_t OwnRecordRandoms = 3848;
 
 void ExpectSameCloths(std::span<const Client::Render::Models::Cloth> actual,
                       std::span<const Client::Render::Models::Cloth> expected)
@@ -141,7 +154,11 @@ public:
         bone.parent = -1;
         bone.actions = {{BoneKey{}}};
         bone.actions[0][0].rotation = AngleQuaternion({0.0f, 0.0f, 0.0f});
+        // El hueso k en (0, 0, k): lo que cuelga deja ver de qué hueso del cuerpo sale. Las mallas solo
+        // usan el 0.
         m_skeleton.bones.assign(48, bone);
+        for (std::size_t index = 0; index < m_skeleton.bones.size(); ++index)
+            m_skeleton.bones[index].actions[0][0].position = {0.0f, 0.0f, static_cast<float>(index)};
         m_skeleton.actions = {ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
         Client::Data::Models::Mesh mesh;
         mesh.vertices = {{0, {0, 0, 0}}, {0, {1, 0, 0}}, {0, {0, 1, 0}}};
@@ -211,6 +228,9 @@ protected:
             part.model = 0xffff;
         for (auto& part : actor.hands)
             part.model = 0xffff;
+        // 0x5126b2..0x5126d5: las manos de un 0x20a cuelgan de los huesos 33 y 42.
+        actor.hands[0].bone = 0x21;
+        actor.hands[1].bone = 0x2a;
         actor.body.back().model = BootsModel;
         return actor;
     }
@@ -220,12 +240,16 @@ protected:
         return {.dynamicLighting = m_light.get(),
                 .clothWorld = &m_clothWorld,
                 .frameClock = Client::Core::Duration{},
-                .originalFrames = 1};
+                .originalFrames = 1,
+                .sprites = &m_sprites,
+                .poseCarry = &m_carry};
     }
 
     std::unique_ptr<Client::Scenes::WorldState> m_world;
     std::unique_ptr<Client::World::TerrainLighting> m_light;
     Client::Render::Models::ClothWorld m_clothWorld;
+    Client::World::FrameSprites m_sprites;
+    Client::Scenes::FaunaDrawCarry m_carry;
     CharacterModels m_models;
     Client::Render::ModelBatch m_batch;
 };
@@ -289,6 +313,7 @@ TEST_F(GameCharacterRenderTest, TheHeroClosesItsOwnRecordBeforeTheUnconditionalA
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_world->Runtime().ownRecordDepth, 0);
     EXPECT_EQ(m_clothWorld.random.State(), 0x46d18088u); // semilla 1, 3848 + 1 rand
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(OwnRecordRandoms + 1));
 }
 
 TEST_F(GameCharacterRenderTest, AnOuterOwnRecordAccessSuppressesOnlyThe3848CloseRandoms)
@@ -336,19 +361,27 @@ TEST_F(GameCharacterRenderTest, AGamePlayerWithLessThanHalfAlphaHasNoShadowAndFa
     EXPECT_FLOAT_EQ(m_batch.Vertices()[0].color.alpha, 0.25f);
 }
 
-TEST_F(GameCharacterRenderTest, ABackWeaponStopsAtItsUnportedPlacementAfterTheBodyAndTheRandom)
+// 0x50ddde..0x50de60 en la zona segura: la espada derecha cuelga del hueso de las alas (47) por el camino
+// de la bandera, con la raíz de 0x5fc8f0 y 0x5fca90 (70, 0, 90 y −20, 5, 40) y el origen en el personaje,
+// y del color de lo que cuelga (+0x3b4). Los rand(): el de 0x50db57, el cierre de +0x38e en 0x509340 y el
+// de la luz de 0x509a92. A la espalda no corre el lazo de las manos.
+TEST_F(GameCharacterRenderTest, ABackSwordHangsFromTheWingsBoneWithTheFlagPlacement)
 {
-    Player(0).hands[0].model = 0x212;
-    auto& walls = m_world->Map().terrain.attributes->cells;
-    walls[Client::Data::Terrain::CellIndex(118, 115)] = 5;
+    ActorState& actor = Player(0);
+    actor.hands[0].model = 0x212;
 
     const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x50de55"), std::string::npos) << result.Error();
-    EXPECT_EQ(m_batch.Vertices().size(), 6u);
-    EXPECT_EQ(m_clothWorld.random.State(), 0x46d18088u);
-    EXPECT_EQ(walls[Client::Data::Terrain::CellIndex(118, 115)], 5);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(m_batch.Vertices().size(), 9u);
+    // El vértice 0 de la espada está en su raíz: (−20, 5, 40) sobre el hueso 47, en (0, 0, 47).
+    EXPECT_EQ(m_batch.Vertices()[6].position, glm::vec3(130.0f, 155.0f, 97.0f));
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[6].color.red, 0.3f);
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[6].color.green, 0.6f);
+    EXPECT_FLOAT_EQ(m_batch.Vertices()[6].color.blue, 0.9f);
+    EXPECT_EQ(actor.wings.bone, 0x2f);
+    EXPECT_EQ(actor.byte38eAccesses, 0);
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(OwnRecordRandoms + 3));
 }
 
 TEST_F(GameCharacterRenderTest, HangingModelsUseTheirSecondColorAndTheSharedRandom)
@@ -409,17 +442,55 @@ TEST_F(GameCharacterRenderTest, The401stPoolRecordIsNotPartOfThe400CharacterDraw
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
 }
 
-TEST_F(GameCharacterRenderTest, OutsideTheSafeZoneTheUnportedWeaponStateDoesNotFallBackToTheHand)
+// Fuera de la zona segura corre el lazo de las manos (0x50e298): la espada derecha cuelga del hueso 33 con
+// el origen en el hueso (0x4ec190). Los rand(): 0x50db57, el +0x38e antes de cada mano (dos), el de
+// 0x509340 y el de la luz de 0x509a92.
+TEST_F(GameCharacterRenderTest, OutsideTheSafeZoneTheSwordHangsFromTheRightHandBone)
 {
-    Player(0).safeZone = 0;
-    m_world->Actors()[0].hands[0].model = 0x212;
+    ActorState& actor = Player(0);
+    actor.safeZone = 0;
+    actor.hands[0].model = 0x212;
 
     const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(m_batch.Vertices().size(), 9u);
+    EXPECT_EQ(m_batch.Vertices()[6].position, glm::vec3(150.0f, 150.0f, 43.0f));
+    EXPECT_EQ(actor.hands[0].animation.action, 0);
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(OwnRecordRandoms + 5));
+}
+
+// Entre frames del original, lo que cuelga se dibuja como quedó, sobre una copia del personaje y del
+// rand(): ni el hueso de las alas ni los accesos a +0x38e ni el rand() cambian.
+TEST_F(GameCharacterRenderTest, BetweenOriginalFramesTheHangingIsDrawnWithoutChangingTheActor)
+{
+    ActorState& actor = Player(0);
+    actor.hands[0].model = 0x212;
+    GameCharacterPass pass = Pass();
+    pass.originalFrames = 0;
+
+    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(m_batch.Vertices().size(), 9u);
+    EXPECT_EQ(m_batch.Vertices()[6].position, glm::vec3(130.0f, 155.0f, 97.0f));
+    EXPECT_EQ(actor.wings.bone, 0);
+    EXPECT_EQ(m_clothWorld.random.State(), 1u);
+}
+
+// Sin el buffer global de la pose, lo que cuelga corta en 0x509340 con el cuerpo ya dibujado.
+TEST_F(GameCharacterRenderTest, AHangingItemWithoutThePoseBufferStopsAfterTheBody)
+{
+    Player(0).hands[0].model = 0x212;
+    GameCharacterPass pass = Pass();
+    pass.poseCarry = nullptr;
+
+    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+
     ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x50e298"), std::string::npos) << result.Error();
+    EXPECT_NE(result.Error().find("0x509340"), std::string::npos) << result.Error();
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
-    EXPECT_EQ(m_clothWorld.random.State(), 0x46d18088u);
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(OwnRecordRandoms + 1));
 }
 
 TEST_F(GameCharacterRenderTest, AHiddenHeroReturnsBeforeTheRecordAndTheUnconditionalRandom)
@@ -677,6 +748,8 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsTheFirstFailedFramesShadowPartsCloth
     ActorState& actor = Player(0);
     actor.characterClass = 4;
     actor.hands[0].model = 0x212;
+    // 0x413fe0: el código de control 0x20 pide la capa de los GM, después del arma a la espalda.
+    actor.controlCode = 0x20;
     auto referenceWorld = std::make_unique<Client::Scenes::WorldState>();
     referenceWorld->Runtime().map = 0;
     referenceWorld->Actors()[0] = actor;
@@ -704,10 +777,12 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsTheFirstFailedFramesShadowPartsCloth
     referencePass.clothWorld = &referenceClothWorld;
     referencePass.cloths = referenceCloths;
     referencePass.sprites = &referenceSprites;
+    Client::Scenes::FaunaDrawCarry referenceCarry;
+    referencePass.poseCarry = &referenceCarry;
     const auto reference = Client::Scenes::DrawGameCharacters(referenceBatch, m_models, *referenceWorld, referencePass);
     ASSERT_FALSE(reference.HasValue());
-    ASSERT_NE(reference.Error().find("0x50de55"), std::string::npos) << reference.Error();
-    ASSERT_GT(referenceBatch.Vertices().size(), 6u); // sombra, partes y tela antes del arma a espalda
+    ASSERT_NE(reference.Error().find("0x413fe0"), std::string::npos) << reference.Error();
+    ASSERT_GT(referenceBatch.Vertices().size(), 6u); // sombra, partes, tela y el arma a la espalda
     ASSERT_EQ(LiveSprites(referenceSprites).size(), 31u);
 
     const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);

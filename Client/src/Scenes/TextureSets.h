@@ -51,13 +51,17 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // 0x61d4db sube Fire01 a 0x5d9, GL_LINEAR/GL_CLAMP, para las llamas de los objetos.
 // Noria agrega Spark02/5c5 (61d711), lightning2/5d5 (61da3c), Spark01/617 (61da77) y
 // flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 19> EffectTextureSet{{
+// Lo que cuelga de un jugador (0x509340 y 0x50ba30) pide además Shiny03 en 0x5fe (61d937) e Impack03 de
+// Object9 en 0x5ad (61e799), del mismo lazo sin ramas de 0x61ccb0 y con el mismo sampling.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 21> EffectTextureSet{{
     {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
     {"Effect\\flare01.jpg", 0x5ac, TextureSetsDetail::LinearClamp},
     {"Effect\\Magic_Ground2.jpg", 0x61e, TextureSetsDetail::LinearClamp},
     {"Effect\\Magic_Circle1.jpg", 0x61f, TextureSetsDetail::LinearClamp},
     {"Effect\\Spark02.jpg", 0x5c5, TextureSetsDetail::LinearClamp},
     {"Effect\\Shiny02.jpg", 0x5fd, TextureSetsDetail::LinearClamp},
+    {"Effect\\Shiny03.jpg", 0x5fe, TextureSetsDetail::LinearClamp},
+    {"Object9\\Impack03.jpg", 0x5ad, TextureSetsDetail::LinearClamp},
     {"Effect\\Spark03.jpg", 0x5c6, TextureSetsDetail::LinearClamp},
     {"Effect\\Thunder01.jpg", 0x5ca, TextureSetsDetail::LinearRepeat}, // 61da58/61da62.
     {"Effect\\smoke01.jpg", 0x5f2, TextureSetsDetail::LinearClamp},

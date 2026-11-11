@@ -31,6 +31,14 @@ struct ActorItemPart
     // +3 y +4: 0x512a30 copia tal cual el byte D+0x1b y el D+0x1c del ítem.
     std::uint8_t flags1b = 0;
     std::uint8_t flags1c = 0;
+    // +5: el hueso del cuerpo del que cuelga. 0x511290 pone 0x21 y 0x2a en las manos de un 0x20a
+    // (0x5126ce) y 0x50ba30 el de las alas (0x2f) y el de la mascota (0x22) antes de cada 0x509340.
+    std::uint8_t bone = 0;
+    // +6 la acción, +7 la anterior, +8 el frame y +0xc la key anterior de lo que cuelga, que 0x509340
+    // avanza con 0x4ec200 en cada frame. Nadie los pone a 0 al construir: quedan los del uso anterior.
+    Render::Models::AnimationState animation;
+    // +0x10: lo que avanza por frame, que 0x50ba30 escribe antes de cada 0x509340.
+    float speed = 0.0f;
 };
 
 struct ActorState
@@ -160,6 +168,10 @@ struct ActorState
     std::uint8_t cellYAccesses = 0;
     // Profundidad de la entrada de un byte +0x38e, que el dibujo consulta antes de cada mano.
     std::uint8_t byte38eAccesses = 0;
+    // +0x38e: el valor lógico. Con ')' (0x29) el lazo de las manos de 0x50ba30 saltea la derecha en la
+    // acción 0x3d, y con '4' (0x34) 0x509340 pone el frame de lo que cuelga en 3,2 en las acciones 0x22 a
+    // 0x97. Lo escriben 0x4cc530 y 0x4f5b70, sin portar: queda en 0.
+    std::uint8_t byte38e = 0;
     // +0x3e2, la zona segura: cualquier byte distinto de 0. 0x511290 y 0x505de0 copian el bit 0x01 del
     // .att de la celda.
     std::uint8_t safeZone = 0;

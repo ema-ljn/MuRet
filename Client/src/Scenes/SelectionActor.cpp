@@ -38,20 +38,22 @@ void PutAppearance(ActorState& actor, const GameLogic::CharacterAppearance& appe
     actor.skin = appearance.skin;
     actor.scale = appearance.scale;
     actor.head = appearance.head.value_or(NoItemModel);
-    const auto part = [](const GameLogic::WornItem& item)
+    // 0x512a30 escribe el modelo, el nivel y los bytes +3 y +4: el hueso y la animación de lo que cuelga
+    // quedan como estaban.
+    const auto put = [](ActorItemPart& part, const GameLogic::WornItem& item)
     {
-        return ActorItemPart{.model = item.model,
-                             .level = item.level,
-                             .flags1b = static_cast<std::uint8_t>(item.excellent),
-                             .flags1c = static_cast<std::uint8_t>(item.ancient)};
+        part.model = item.model;
+        part.level = item.level;
+        part.flags1b = static_cast<std::uint8_t>(item.excellent);
+        part.flags1c = static_cast<std::uint8_t>(item.ancient);
     };
     for (std::size_t index = 0; index < actor.body.size(); ++index)
     {
-        actor.body[index] = part(appearance.bodyParts[index]);
+        put(actor.body[index], appearance.bodyParts[index]);
     }
     if (appearance.rightHand)
     {
-        actor.hands[0] = part(*appearance.rightHand);
+        put(actor.hands[0], *appearance.rightHand);
     }
     else
     {
@@ -59,7 +61,7 @@ void PutAppearance(ActorState& actor, const GameLogic::CharacterAppearance& appe
     }
     if (appearance.leftHand)
     {
-        actor.hands[1] = part(*appearance.leftHand);
+        put(actor.hands[1], *appearance.leftHand);
     }
     else
     {

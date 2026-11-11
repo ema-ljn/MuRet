@@ -1272,4 +1272,38 @@ TEST(OriginalRetainedMathTest, ReducesHugeArgumentsExactly)
         EXPECT_EQ(leaf.value.negative, row.expected.negative);
     }
 }
+// SineSumPC53: el FSIN de 64 bits más un double (el FADD después del FSIN de 0x509340), un solo RN53.
+// Esperados con enteros de Python, independientes de la implementación: π por Machin y Taylor en punto
+// fijo de 3000 bits, RN64 del seno, suma exacta y RN53. En los cuatro, ni
+// sin(x) + a en double ni RN53(sin(x) + a) de una vez dan el mismo double.
+TEST(OriginalRetainedMathTest, TheRetainedSinePlusAnAddendRoundsOnce)
+{
+    struct SumCase
+    {
+        double argument;
+        double addend;
+        double sum;
+    };
+    constexpr std::array cases{
+        SumCase{0x1.0560be40ecee0p+12, 0.5, -0x1.b6b8ad48b4468p-5},
+        SumCase{0x1.1be381e85e280p+12, 0.5, -0x1.273f0858081dep-13},
+        SumCase{0x1.437c86207f8c0p+12, 1.0, 0x1.486f7d6a863d0p-15},
+        SumCase{0x1.beb263b1c9180p+11, 1.0, 0x1.63d90fe0dd1e4p-14},
+    };
+    for (const SumCase& row : cases)
+    {
+        SCOPED_TRACE(row.argument);
+        const std::optional<double> sum = Math::SineSumPC53(row.argument, row.addend);
+        ASSERT_TRUE(sum.has_value());
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(*sum), std::bit_cast<std::uint64_t>(row.sum));
+    }
+    // FSIN(±0) es ±0, y la suma de dos ceros sigue la regla del signo de la FPU.
+    EXPECT_EQ(Math::SineSumPC53(0.0, 0.5), 0.5);
+    ASSERT_TRUE(Math::SineSumPC53(-0.0, -0.0).has_value());
+    EXPECT_TRUE(std::signbit(*Math::SineSumPC53(-0.0, -0.0)));
+    ASSERT_TRUE(Math::SineSumPC53(0.0, -0.0).has_value());
+    EXPECT_FALSE(std::signbit(*Math::SineSumPC53(0.0, -0.0)));
+    EXPECT_FALSE(Math::SineSumPC53(std::numeric_limits<double>::quiet_NaN(), 0.5).has_value());
+    EXPECT_FALSE(Math::SineSumPC53(1.0, std::numeric_limits<double>::infinity()).has_value());
+}
 } // namespace

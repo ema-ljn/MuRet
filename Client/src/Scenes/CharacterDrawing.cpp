@@ -709,21 +709,6 @@ Render::Models::ObjectRandoms RandomsOf(std::minstd_rand& random)
     return {first, second};
 }
 
-// 0x607b60 no saca rand fuera de estos cuatro casos: uno para Sword15 y Staff08,
-// dos para Staff06 y Shield15. El sorteo local legacy no pertenece al flujo global.
-std::size_t HangingRandomCount(std::uint16_t model)
-{
-    constexpr std::uint16_t Sword15 = 0x220;
-    constexpr std::uint16_t Staff08 = 0xc19;
-    constexpr std::uint16_t Staff06 = 0xc17;
-    constexpr std::uint16_t Shield15 = 0xe20;
-    if (model == Sword15 || model == Staff08)
-        return 1;
-    if (model == Staff06 || model == Shield15)
-        return 2;
-    return 0;
-}
-
 Render::Models::ObjectRandoms RandomsOf(const CharacterFrame& frame, std::uint16_t model)
 {
     if (frame.character.originalRandom == nullptr)
@@ -962,13 +947,27 @@ std::optional<Render::TextureSlot> MeshSlotOf(Render::TextureSlot assigned, std:
     }
 }
 
-void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnCharacter& character,
-                   Core::Duration frameClock, CharacterDrawPass pass)
+// 0x607b60 no saca rand fuera de estos cuatro casos: uno para Sword15 y Staff08,
+// dos para Staff06 y Shield15. El sorteo local legacy no pertenece al flujo global.
+std::size_t HangingRandomCount(std::uint16_t model)
+{
+    constexpr std::uint16_t Sword15 = 0x220;
+    constexpr std::uint16_t Staff08 = 0xc19;
+    constexpr std::uint16_t Staff06 = 0xc17;
+    constexpr std::uint16_t Shield15 = 0xe20;
+    if (model == Sword15 || model == Staff08)
+        return 1;
+    if (model == Staff06 || model == Shield15)
+        return 2;
+    return 0;
+}
+
+std::vector<BoneTransform> PoseCharacterBody(const IModelLibrary& models, const DrawnCharacter& character)
 {
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     if (skeleton == nullptr)
     {
-        return;
+        return {};
     }
     std::vector<BoneTransform> body(skeleton->bones.size(), BoneTransform(character.poseBones ? 0.0f : 1.0f));
     if (character.poseBones)
@@ -977,6 +976,17 @@ void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const
         std::copy_n(retained.begin(), std::min(retained.size(), body.size()), body.begin());
     }
     if (!Render::Models::PoseSkeleton(*skeleton, character.body, character.object, character.headAngles, body))
+    {
+        return {};
+    }
+    return body;
+}
+
+void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnCharacter& character,
+                   Core::Duration frameClock, CharacterDrawPass pass)
+{
+    const std::vector<BoneTransform> body = PoseCharacterBody(models, character);
+    if (body.empty())
     {
         return;
     }

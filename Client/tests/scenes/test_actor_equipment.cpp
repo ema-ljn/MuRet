@@ -53,7 +53,13 @@ constexpr std::uint16_t UntouchedModel = 0x5a5a;
 
 ActorItemPart UntouchedPart()
 {
-    return {.model = UntouchedModel, .level = Untouched, .flags1b = Untouched, .flags1c = Untouched};
+    return {.model = UntouchedModel,
+            .level = Untouched,
+            .flags1b = Untouched,
+            .flags1c = Untouched,
+            .bone = Untouched,
+            .animation = {.action = Untouched, .frame = 7.0f, .previousAction = Untouched, .previousKey = Untouched},
+            .speed = 7.0f};
 }
 
 // Un jugador con todas sus partes, la cabeza y la escala en Untouched, quieto en la acción 0x22: así
@@ -144,6 +150,10 @@ TEST_F(ActorEquipmentTest, ProjectsTheNineSlotsItReads)
         EXPECT_EQ(actor.hands[side].level, expectedLevel(side));
         EXPECT_EQ(actor.hands[side].flags1b, static_cast<std::uint8_t>(0xb0 + side));
         EXPECT_EQ(actor.hands[side].flags1c, Untouched);
+        // +5..+0x10, el hueso y lo que cuelga, no son de 0x512a30.
+        EXPECT_EQ(actor.hands[side].bone, Untouched);
+        EXPECT_EQ(actor.hands[side].animation.frame, 7.0f);
+        EXPECT_EQ(actor.hands[side].speed, 7.0f);
     }
     for (std::size_t part = 0; part < actor.body.size(); ++part)
     {

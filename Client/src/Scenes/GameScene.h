@@ -16,7 +16,6 @@
 #include "Scenes/IScene.h"
 #include "Scenes/GroundEffectFrame.h"
 #include "Scenes/CharacterCloth.h"
-#include "World/ScepterGlow.h"
 #include "World/Sprites.h"
 #include "World/ModelEffects.h"
 #include "Scenes/SceneCanvas.h"
@@ -58,6 +57,8 @@ class IModelLibrary;
 struct GameSceneFrameProjection;
 struct GameDrawTailState;
 struct GameItemRenderState;
+struct ItemDrawContext;
+struct ItemSpecialDrawContext;
 
 // 0x620db0(0, 0, w, 432), el pase del mundo del juego (0x637410): 480 con la vista de arriba
 // (0x7d36899), que no se prende nunca.
@@ -145,6 +146,10 @@ private:
                                                                  const World::TerrainPolygon& polygon, int frames);
     [[nodiscard]] Core::Expected<void, std::string> DrawTheTail(SceneCanvas& canvas, const Render::Pass3D& pass,
                                                                 const World::TerrainPolygon& polygon, int frames);
+    // Los globales de 0x60b3d0 del frame, que comparten lo que cuelga de los personajes (0x509340) y los
+    // ítems del piso (0x608a00): `item` apunta a `special`.
+    void FillTheItemContexts(ItemSpecialDrawContext& special, ItemDrawContext& item, Core::Duration frameClock,
+                             int frames);
     [[nodiscard]] FaunaDrawCarry& FramePoseCarry();
     [[nodiscard]] World::FrameSprites& FrameSpritesForDraw();
     void PrepareDrawProjection(int frames);
@@ -180,7 +185,6 @@ private:
     Render::Models::OriginalFrameCarry m_cameraFrames;
     GroundEffectFrame m_groundEffects;
     std::vector<CharacterCloth> m_characterCloths;
-    std::vector<World::ScepterGlowCarry> m_scepters;
     World::FrameSprites m_sprites;
     World::FrameSprites m_spriteReplay;
     bool m_spriteReplayValid = false;

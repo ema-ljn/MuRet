@@ -143,7 +143,8 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     // sigue vacía mientras MuRet no tenga quién la llene (08 P-C49).
     if (auto particles = StepGameParticles(
             m_context.world->Particles(), m_context.cloth->random, runtime.map, terrainHeight, worldClock,
-            ParticleOwnersAmong(m_context.world->Map().objects), ParticleActorActionsAmong(m_context.world->Actors()));
+            ParticleOwnersAmong(m_context.world->Map().objects), ParticleActorActionsAmong(m_context.world->Actors()),
+            ParticleTextureHeightsOf(m_worldModels));
         !particles.HasValue())
     {
         return particles;

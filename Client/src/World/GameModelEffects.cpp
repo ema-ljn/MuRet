@@ -422,6 +422,38 @@ Core::Expected<void, std::string> StepFadingDecal(const ModelEffect& effect, Par
             std::format("0x52b954: el alta de 0x60f/10 falla con error {}", static_cast<unsigned>(created.Error())));
     return {};
 }
+
+// 0x52c5ca..0x52c7a6, la onda 0x6eb con el subtipo 1 (la del galope en Icarus): la escala crece (rand() % 5) ·
+// 0,1f, la posición tiembla (rand() & 7) − 4 en x y en y, cada una en la x87 hasta su fstp; una escala negativa
+// vuelve a 0 (0x52c74e) y, con el subtipo de 0 a 3, la luz es la vida, o 40 menos la vida pasados los 20, por 0,05f
+// (0x6b8ad0) en los tres canales. Tres rand(). Los demás subtipos cortan en su rama.
+Core::Expected<void, std::string> StepGallopShockWave(ModelEffect& effect, Render::Models::CrtRandom& random)
+{
+    constexpr int GrowthSpan = 5;
+    constexpr double GrowthStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b8a34: 0,1f.
+    constexpr int ShakeSpan = 8;
+    constexpr double ShakeCentre = static_cast<double>(std::bit_cast<float>(0x40800000u)); // 0x6b8a44: 4.
+    constexpr std::int32_t FadeTurn = 20, FadeEnd = 40;
+    constexpr double LightPerLife = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8ad0: 0,05f.
+    if (effect.subtype != GallopShockWaveSubtype)
+        return Core::Unexpected(
+            std::format("0x52c5ca: el paso del 0x6eb con el subtipo {} no está portado", effect.subtype));
+    const int growth = random.Next() % GrowthSpan;
+    effect.transform.scale =
+        F32((static_cast<double>(growth) * GrowthStep) + static_cast<double>(effect.transform.scale));
+    for (int axis = 0; axis < 2; ++axis)
+    {
+        const int shake = random.Next() % ShakeSpan;
+        effect.transform.position[axis] =
+            F32((static_cast<double>(shake) - ShakeCentre) + static_cast<double>(effect.transform.position[axis]));
+    }
+    // fcomp con 0 y C0: también sin orden.
+    if (!(effect.transform.scale >= 0.0f))
+        effect.transform.scale = 0.0f;
+    const std::int32_t fade = effect.life > FadeTurn ? FadeEnd - effect.life : effect.life;
+    effect.light = glm::vec3(F32(static_cast<double>(fade) * LightPerLife));
+    return {};
+}
 } // namespace
 Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
                                                       Particles& particles, float worldClock,
@@ -495,6 +527,11 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     else if (effect.type == FadingDecalEffect)
     {
         if (auto stepped = StepFadingDecal(effect, particles, worldClock, random); !stepped.HasValue())
+            return stepped;
+    }
+    else if (effect.type == ShockWaveEffect)
+    {
+        if (auto stepped = StepGallopShockWave(effect, random); !stepped.HasValue())
             return stepped;
     }
     else if (effect.type != DragonEffect && effect.type != ArrivalEffect && effect.type != IcarusCloudEffect)

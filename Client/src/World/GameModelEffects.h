@@ -36,7 +36,8 @@ struct ModelEffectStepServices
 // dejan en previousPosition la posición de antes del paso entero. El 0xb3 de Aida (0x520b77) vaga con sus
 // dos giros sorteados y el seno del reloj, y suelta una 5ac/9 por paso. El 0x135 del 30 (0x52973e) no
 // muere y, con dueño, sube y baja con el seno del reloj. El calco 0x61d/3 del 0x38 de Crywolf (0x52b933), con la
-// vida entre 6 y 9, suelta una órbita 60f/10; el /0, el /2 y el /7 cortan en 0x52b8a6.
+// vida entre 6 y 9, suelta una órbita 60f/10; el /0, el /2 y el /7 cortan en 0x52b8a6. La onda 0x6eb/1 del galope del
+// caballo en Icarus (0x52c5ca) crece y tiembla con tres rand(); los otros subtipos del 0x6eb cortan.
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton, Particles& particles,
                     float worldClock, Render::Models::CrtRandom& random, KalimaWorld* kalima = nullptr,

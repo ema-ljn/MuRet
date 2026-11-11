@@ -122,6 +122,20 @@ constexpr int FullTurn = 360;
 constexpr double BreathLightPerLife = 0.125;
 constexpr double BreathRise = static_cast<double>(0.2f);
 constexpr double BreathGrowth = static_cast<double>(0.05f);
+// 0x54271f..0x542838: la 5f3/0, vida 32, (rand() & 15) − 8 en x y en y, ((rand() & 31) + 32) · escala · 0,01f y
+// el empuje (0; 3; 0) girado por los ángulos del pedido.
+constexpr std::int32_t DustLife = 32;
+constexpr int DustOffsetSpan = 16;
+constexpr int DustOffsetCenter = 8;
+constexpr int DustScaleSpan = 32;
+constexpr int DustScaleBase = 32;
+constexpr glm::vec3 DustPush{0.0f, 3.0f, 0.0f};
+// 0x546b66..0x546bfb: la luz por 0,03125 (0x6b8880), la escala más 0,08f (0x6ba1ac), el freno 0,9f (0x6b8a1c) y
+// el medio alto de la textura (0x6b882c).
+constexpr double DustLightPerLife = static_cast<double>(std::bit_cast<float>(0x3d000000u));
+constexpr double DustGrowth = static_cast<double>(std::bit_cast<float>(0x3da3d70au));
+constexpr double DustBrake = static_cast<double>(std::bit_cast<float>(0x3f666666u));
+constexpr double DustHalfHeight = static_cast<double>(std::bit_cast<float>(0x3f000000u));
 // 0x5446e0: el cambio del viento, (rand() % 2001 − 1000) · 0,0006 (0x6b8a50), entre ±0,6 (0x6b8a20 y
 // 0x6b8b8c), y el viento, entre ±1,7 (0x6ba3f0 y 0x6ba3ec).
 constexpr int WindSpan = 2001;
@@ -189,6 +203,61 @@ void StepTheBreath(Particle& particle)
 bool IsBreath(const Particle& particle)
 {
     return particle.type == BreathParticle && particle.subtype == BreathSubtype;
+}
+
+bool IsDust(const Particle& particle)
+{
+    return particle.type == DustParticle && particle.subtype == 0;
+}
+
+// 0x54271f..0x542838 con el subtipo 0: la vida, la posición corrida en x y en y, la escala en la x87 (fild, por la
+// escala del pedido y por 0,01f), la velocidad girada por AngleMatrix de los ángulos del pedido (0x5fc8f0 y
+// 0x5fcbd0) y el giro x en rand() % 360. Cuatro rand().
+void CreateTheDust(Particle& particle, const glm::vec3& angles, float scale, Render::Models::CrtRandom& random)
+{
+    particle.life = DustLife;
+    const int x = (random.Next() % DustOffsetSpan) - DustOffsetCenter;
+    particle.position.x = F32(static_cast<double>(x) + static_cast<double>(particle.position.x));
+    const int y = (random.Next() % DustOffsetSpan) - DustOffsetCenter;
+    particle.position.y = F32(static_cast<double>(y) + static_cast<double>(particle.position.y));
+    const int size = (random.Next() % DustScaleSpan) + DustScaleBase;
+    particle.scale = F32((static_cast<double>(size) * static_cast<double>(scale)) * BreathScaleStep);
+    particle.velocity = Render::Models::OriginalVectorRotate(DustPush, Render::Models::OriginalAngleMatrix(angles));
+    particle.angles.x = static_cast<float>(random.Next() % FullTurn);
+}
+
+// 0x546b66..0x546bfb: después del movimiento común (0x4e98d0, con la velocidad girada), la luz por la vida, la
+// escala que crece, la posición más la velocidad otra vez, sin girar (Q-C402), y el freno. La z es la altura del
+// terreno (0x5f93c0) más el alto de la textura del tipo (+0x24 de su lugar) por la escala ya crecida y por 0,5. La
+// comparación de 0x546b69 deja flotar la /5, que MuRet no crea. Sin la altura o sin el alto, corta con lo demás
+// escrito.
+Core::Expected<void, ParticleError> StepTheDust(Particle& particle, const ParticleTerrainHeight& terrainHeight,
+                                                const ParticleTextureHeight& textureHeight)
+{
+    particle.light = glm::vec3(F32(static_cast<double>(particle.life) * DustLightPerLife));
+    particle.scale = F32(static_cast<double>(particle.scale) + DustGrowth);
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        particle.position[axis] =
+            F32(static_cast<double>(particle.velocity[axis]) + static_cast<double>(particle.position[axis]));
+    }
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        particle.velocity[axis] = F32(static_cast<double>(particle.velocity[axis]) * DustBrake);
+    }
+    if (!terrainHeight)
+    {
+        return Core::Unexpected(ParticleError::MissingTerrainHeight);
+    }
+    const double ground = terrainHeight(particle.position.x, particle.position.y);
+    const std::optional<float> height = textureHeight ? textureHeight(particle.type) : std::nullopt;
+    if (!height)
+    {
+        return Core::Unexpected(ParticleError::MissingTextureSize);
+    }
+    particle.position.z =
+        F32(((static_cast<double>(*height) * static_cast<double>(particle.scale)) * DustHalfHeight) + ground);
+    return {};
 }
 
 bool IsSpark(const Particle& particle)
@@ -407,7 +476,7 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
                    ? std::nullopt
                    : std::optional(ParticleError::UnsupportedSubtype);
     }
-    if (type == BubbleParticle)
+    if (type == BubbleParticle || type == DustParticle)
         return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == SparkParticle)
     {
@@ -1247,6 +1316,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheBubble(particle, random);
             return std::optional(index);
         }
+        if (type == DustParticle)
+        {
+            CreateTheDust(particle, angles, scale, random);
+            return std::optional(index);
+        }
         if (type == CloudParticle && subtype == 8)
         {
             CreateTheCloud8(particle, scale, random);
@@ -1342,12 +1416,11 @@ const ParticleWind& Particles::Wind() const
 
 namespace
 {
-Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random,
-                                                      const float* worldClock, const std::int32_t* map,
-                                                      IParticleTrigonometry* trigonometry,
-                                                      const ParticleTerrainHeight& terrainHeight,
-                                                      const ParticleObjectOwners& owners,
-                                                      const ParticleActorActions& actorActions)
+Core::Expected<void, ParticleError>
+StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const float* worldClock,
+                  const std::int32_t* map, IParticleTrigonometry* trigonometry,
+                  const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
+                  const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight)
 {
     // Los punteros privados distinguen exclusivamente legacy de la API pública requerida.
     // El overload vivo siempre proporciona reloj y evaluador; no hay servicio opcional público.
@@ -1478,6 +1551,12 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
         {
             StepTheBreath(particle);
         }
+        else if (IsDust(particle))
+        {
+            const auto stepped = StepTheDust(particle, terrainHeight, textureHeight);
+            if (!stepped.HasValue())
+                return stepped;
+        }
         else if (IsMapSpark(particle))
         {
             StepTheMapSpark(particle);
@@ -1514,7 +1593,7 @@ Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, R
                                                          const std::int32_t* map,
                                                          const ParticleTerrainHeight& terrainHeight)
 {
-    return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight, {}, {});
+    return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight, {}, {}, {});
 }
 
 Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
@@ -1522,10 +1601,11 @@ Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, R
                                                          const std::int32_t* map, IParticleTrigonometry& trigonometry,
                                                          const ParticleTerrainHeight& terrainHeight,
                                                          const ParticleObjectOwners& owners,
-                                                         const ParticleActorActions& actorActions)
+                                                         const ParticleActorActions& actorActions,
+                                                         const ParticleTextureHeight& textureHeight)
 {
     return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners,
-                             actorActions);
+                             actorActions, textureHeight);
 }
 
 std::optional<ParticleError> StepParticles(Particles& particles, Render::Models::CrtRandom& random)

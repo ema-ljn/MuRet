@@ -14,6 +14,7 @@
 #include <optional>
 #include <set>
 #include <span>
+#include <string_view>
 
 // Los juegos de texturas de la carga, del login y de sus ventanas como datos (06 § La carga y § El
 // login): cada entrada tiene un cargador, un slot de la tabla del original y uno solo. Lo que se
@@ -184,6 +185,42 @@ TEST(TextureSetsTest, TheCrywolfSparkAndBubbleTexturesUploadAtTheirOriginalSlots
         EXPECT_EQ(texture->sampling.wrap, Wrap::Clamp);
         EXPECT_GT(texture->texture.width, 0);
         EXPECT_GT(texture->texture.height, 0);
+    }
+}
+
+// 0x61d663 y 0x61d768: la onda 0x6eb del galope en Icarus (ShockWave, 128 × 128) y el polvo 5f3 del galope en los
+// demás mapas (smoke02, 64 × 64, el alto que lee su paso), de la Data del repo.
+TEST(TextureSetsTest, TheGallopTexturesUploadAtTheirOriginalSlots)
+{
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    const auto loaded = textures.Load(std::filesystem::path{MURET_CLIENT_REPO_DATA_DIR});
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    struct Case
+    {
+        std::uint16_t slot;
+        std::string_view path;
+        int side;
+    };
+    for (const Case& expected : {Case{0x6eb, "Effect\\ShockWave.jpg", 128}, Case{0x5f3, "Effect\\smoke02.tga", 64}})
+    {
+        SCOPED_TRACE(expected.slot);
+        int entries = 0;
+        for (const TextureSetEntry& entry : EffectTextureSet)
+        {
+            if (entry.slot == expected.slot)
+            {
+                ++entries;
+                EXPECT_EQ(entry.path, expected.path);
+            }
+        }
+        EXPECT_EQ(entries, 1);
+        const auto texture = store.Find(Client::Render::TextureSlot{expected.slot});
+        ASSERT_TRUE(texture.has_value());
+        EXPECT_EQ(texture->sampling.filter, Filter::Linear);
+        EXPECT_EQ(texture->sampling.wrap, Wrap::Clamp);
+        EXPECT_EQ(texture->texture.width, expected.side);
+        EXPECT_EQ(texture->texture.height, expected.side);
     }
 }
 

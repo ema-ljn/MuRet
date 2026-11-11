@@ -145,6 +145,14 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
         return DrawSelection{ParticleDrawKind::Bubble, false};
     case TorchSparkParticle: // 0x5488f6: la 6ab va al default, 0x54889a.
         return DrawSelection{ParticleDrawKind::Common, false};
+    case DustParticle:
+    {
+        // 0x548a51: la 5f3 va a 0x620c10 y al billboard común, sin leer el subtipo.
+        const auto blended = services.Blended();
+        if (!blended.HasValue())
+            return Core::Unexpected(blended.Error());
+        return DrawSelection{ParticleDrawKind::Common, false};
+    }
     case TorchFlameParticle:
     {
         // 0x5489eb: la /2 pone glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD) antes de 0x620c10 y dibuja

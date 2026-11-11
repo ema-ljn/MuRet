@@ -3,6 +3,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/ParticleDrawing.h"
+#include "World/PortableParticleTrigonometry.h"
 
 #include "support/ParticleDrawRecorder.h"
 #include "support/WorldObjectVectors.h"
@@ -20,6 +21,7 @@
 #include <functional>
 #include <ios>
 #include <limits>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <string>
@@ -271,7 +273,7 @@ TEST(ParticlesTest, UnsupportedTypesAndSubtypesAreNotCreated)
     Particles particles;
     CrtRandom random(5);
     EXPECT_FALSE(
-        particles.Create(0x5f3, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 0, 1.0f, 0.0f, random).has_value());
+        particles.Create(0x5f3, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 1, 1.0f, 0.0f, random).has_value());
     EXPECT_FALSE(particles
                      .Create(Client::World::BreathParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 1, 1.0f,
                              0.0f, random)
@@ -285,6 +287,151 @@ TEST(ParticlesTest, UnsupportedTypesAndSubtypesAreNotCreated)
                              0.0f, random)
                      .has_value());
     EXPECT_EQ(random.State(), CrtRandom(5).State());
+}
+
+// 0x54271f..0x542838, el polvo 5f3/0 del galope del caballo: vida 32, (rand() & 15) − 8 en x y en y,
+// ((rand() & 31) + 32) · escala · 0,01f en la x87, el empuje (0; 3; 0) girado por los ángulos del pedido y el giro x en
+// rand() % 360. Con la semilla 1: 41, 18.467, 6.334 y 26.500, cuatro rand().
+TEST(ParticlesTest, TheGallopDustIsBornAroundItsPlaceWithFourRandoms)
+{
+    Particles particles;
+    CrtRandom random(1);
+    const auto index = particles.CreateChecked(Client::World::DustParticle, {1000.5f, 2000.25f, 300.0f},
+                                               {0.0f, 0.0f, 0.0f}, glm::vec3(1.0f), 0, 1.5f, 0.0f, random);
+    ASSERT_TRUE(index.HasValue());
+    ASSERT_EQ(index.Value(), std::optional<std::size_t>{0});
+    const Particle& dust = particles.All()[0];
+    EXPECT_TRUE(dust.alive);
+    EXPECT_EQ(dust.type, Client::World::DustParticle);
+    EXPECT_EQ(dust.texture, Client::World::DustParticle);
+    EXPECT_EQ(dust.life, 32);
+    EXPECT_EQ(dust.position, (glm::vec3{1001.5f, 1995.25f, 300.0f}));
+    EXPECT_EQ(Bits(dust.scale), 0x3f6e147bu);
+    EXPECT_EQ(dust.velocity, (glm::vec3{0.0f, 3.0f, 0.0f}));
+    EXPECT_EQ(dust.angles, (glm::vec3{220.0f, 0.0f, 0.0f}));
+    EXPECT_EQ(dust.light, glm::vec3(1.0f));
+    EXPECT_EQ(dust.rotation, 0.0f);
+    CrtRandom expected(1);
+    for (int draw = 0; draw < 4; ++draw)
+        static_cast<void>(expected.Next());
+    EXPECT_EQ(random.State(), expected.State());
+
+    const glm::vec3 turn{0.0f, 0.0f, 45.0f};
+    const auto turned = particles.CreateChecked(Client::World::DustParticle, glm::vec3(0.0f), turn, glm::vec3(1.0f), 0,
+                                                1.0f, 0.0f, random);
+    ASSERT_TRUE(turned.HasValue());
+    ASSERT_EQ(turned.Value(), std::optional<std::size_t>{1});
+    EXPECT_EQ(particles.All()[1].velocity, Client::Render::Models::OriginalVectorRotate(
+                                               {0.0f, 3.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(turn)));
+}
+
+// 0x546b66..0x546bfb después del movimiento común: la luz por la vida y 0,03125, la escala más 0,08f, la posición más
+// la velocidad otra vez (Q-C402), el freno 0,9f y la z en el terreno (0x5f93c0) más el alto de la textura por la
+// escala por 0,5. Con los ángulos en 0 el giro común es la identidad: la y sube 3 dos veces. El viento saca sus dos
+// rand().
+TEST(ParticlesTest, TheGallopDustMovesTwiceBrakesAndSitsOnTheGround)
+{
+    Particles particles;
+    CrtRandom random(1);
+    ASSERT_TRUE(particles
+                    .CreateChecked(Client::World::DustParticle, {1000.5f, 2000.25f, 300.0f}, glm::vec3(0.0f),
+                                   glm::vec3(1.0f), 0, 1.5f, 0.0f, random)
+                    .HasValue());
+    Particle& dust = particles.All()[0];
+    dust.angles = glm::vec3(0.0f);
+    Client::World::PortableParticleTrigonometry trigonometry;
+    const float clock = 0.0f;
+    const std::int32_t map = 0;
+    glm::vec2 asked{};
+    std::int32_t textureAsked = 0;
+    const auto stepped = Client::World::StepParticlesChecked(
+        particles, random, std::cref(clock), &map, trigonometry,
+        [&asked](float x, float y)
+        {
+            asked = {x, y};
+            return 250.0;
+        },
+        {}, {},
+        [&textureAsked](std::int32_t type) -> std::optional<float>
+        {
+            textureAsked = type;
+            return 64.0f;
+        });
+
+    ASSERT_TRUE(stepped.HasValue());
+    EXPECT_TRUE(dust.alive);
+    EXPECT_EQ(dust.life, 31);
+    EXPECT_EQ(dust.light, glm::vec3(0.96875f));
+    EXPECT_EQ(Bits(dust.scale), 0x3f8147aeu);
+    EXPECT_EQ(dust.position.x, 1001.5f);
+    EXPECT_EQ(dust.position.y, 2001.25f);
+    EXPECT_EQ(Bits(dust.position.z), 0x438d28f6u);
+    EXPECT_EQ(dust.velocity, (glm::vec3{0.0f, std::bit_cast<float>(0x402cccccu), 0.0f}));
+    EXPECT_EQ(asked, (glm::vec2{1001.5f, 2001.25f}));
+    EXPECT_EQ(textureAsked, Client::World::DustParticle);
+    CrtRandom expected(1);
+    for (int draw = 0; draw < 6; ++draw)
+        static_cast<void>(expected.Next());
+    EXPECT_EQ(random.State(), expected.State());
+}
+
+// Sin la altura del terreno o sin el alto de la textura, el paso de la 5f3 corta con la luz, la escala, la posición
+// y el freno ya escritos.
+TEST(ParticlesTest, TheGallopDustNeedsTheGroundAndItsTexture)
+{
+    for (const bool withGround : {false, true})
+    {
+        SCOPED_TRACE(withGround);
+        Particles particles;
+        CrtRandom random(1);
+        ASSERT_TRUE(particles
+                        .CreateChecked(Client::World::DustParticle, {1000.5f, 2000.25f, 300.0f}, glm::vec3(0.0f),
+                                       glm::vec3(1.0f), 0, 1.5f, 0.0f, random)
+                        .HasValue());
+        Particle& dust = particles.All()[0];
+        dust.angles = glm::vec3(0.0f);
+        Client::World::PortableParticleTrigonometry trigonometry;
+        const float clock = 0.0f;
+        const std::int32_t map = 0;
+        const Client::World::ParticleTerrainHeight ground =
+            withGround ? Client::World::ParticleTerrainHeight([](float, float) { return 250.0; })
+                       : Client::World::ParticleTerrainHeight{};
+        const auto stepped =
+            Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry, ground, {}, {},
+                                                [](std::int32_t) { return std::optional<float>{}; });
+
+        ASSERT_FALSE(stepped.HasValue());
+        EXPECT_EQ(stepped.Error(), withGround ? Client::World::ParticleError::MissingTextureSize
+                                              : Client::World::ParticleError::MissingTerrainHeight);
+        EXPECT_EQ(Bits(dust.scale), 0x3f8147aeu);
+        EXPECT_EQ(dust.position, (glm::vec3{1001.5f, 2001.25f, 300.0f}));
+        EXPECT_EQ(dust.velocity.y, std::bit_cast<float>(0x402cccccu));
+    }
+}
+
+// 0x548a51: la 5f3 pide 0x620c10 (SRC_ALPHA / ONE_MINUS_SRC_ALPHA) y va al billboard común, con el giro de +0x44
+// (en 0: el giro x de la creación no cuenta) y el tamaño de su imagen por la escala.
+TEST(ParticlesTest, TheGallopDustDrawsBlendedOnTheCommonBillboard)
+{
+    Particle dust;
+    dust.alive = true;
+    dust.type = dust.texture = Client::World::DustParticle;
+    dust.scale = 0.5f;
+    dust.angles = {220.0f, 0.0f, 0.0f};
+    dust.light = glm::vec3(0.75f);
+    dust.position = {1.0f, 2.0f, 3.0f};
+
+    const auto drawn = Client::Tests::DrawOneParticle(dust, glm::vec2(64.0f), std::uint8_t{4});
+
+    ASSERT_TRUE(drawn.HasValue());
+    ASSERT_TRUE(drawn.Value().has_value());
+    EXPECT_EQ(drawn.Value()->blend, Client::Tests::RecordedParticleDraw::Blend::Blended);
+    EXPECT_EQ(drawn.Value()->texture, Client::World::DustParticle);
+    EXPECT_EQ(drawn.Value()->width, 32.0f);
+    EXPECT_EQ(drawn.Value()->height, 32.0f);
+    EXPECT_EQ(drawn.Value()->rotation, 0.0f);
+    EXPECT_EQ(drawn.Value()->position, (glm::vec3{1.0f, 2.0f, 3.0f}));
+    EXPECT_EQ(drawn.Value()->light, glm::vec3(0.75f));
 }
 
 // _ftol del reloj (0x69fd3c): con un NaN la x87 guarda 0x8000000000000000 y la rotación queda en 0.

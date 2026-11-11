@@ -55,18 +55,24 @@ StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles,
 
 // 0x637128 → 0x5446e0: también con el pool vacío consume los dos rand() del viento.
 // worldClock presta el lvalue del caller durante la pasada; no retiene ni copia ese owner. `owners`
-// resuelve el dueño de 622/1 entre los objetos del mapa (World::ParticleObjectOwners) y `actorActions` la acción
-// del personaje dueño de la órbita 60f/0 (World::ParticleActorActions).
+// resuelve el dueño de 622/1 entre los objetos del mapa (World::ParticleObjectOwners), `actorActions` da la acción
+// del personaje dueño de la órbita 60f/0 (World::ParticleActorActions) y `textureHeight`, el alto de la textura
+// que lee la 5f3 (World::ParticleTextureHeight).
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map,
                   const std::function<double(float, float)>& terrainHeight = {}, const float& worldClock = 0.0f,
                   const std::function<World::WorldObject*(std::uint64_t)>& owners = {},
-                  const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions = {});
+                  const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions = {},
+                  const std::function<std::optional<float>(std::int32_t)>& textureHeight = {});
 
 // La acción (+0x111) del personaje de un lugar del pool entre `actors`, que tienen que vivir más que el
 // resolvedor: lo que el paso de la órbita 60f/0 lee por el puntero +0x40 (0x54735f).
 [[nodiscard]] std::function<std::optional<std::uint8_t>(std::uint64_t)>
 ParticleActorActionsAmong(std::span<const ActorState> actors);
+
+// El alto de la textura de cada lugar (+0x24 de 0x7d3a198) entre las que subió `textures`, como lo lee el paso de
+// la 5f3; `textures` tiene que vivir más que el resolvedor.
+[[nodiscard]] std::function<std::optional<float>(std::int32_t)> ParticleTextureHeightsOf(const IModelLibrary& textures);
 
 // El dueño de una partícula por la identidad de su objeto (WorldObject::identity) entre `objects`, que
 // tienen que vivir más que el resolvedor: lo que el original lee por el puntero +0x40.

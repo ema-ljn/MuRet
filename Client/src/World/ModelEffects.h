@@ -54,6 +54,10 @@ inline constexpr std::int16_t GatePlaneEffect = 0x135;
 // suelta órbitas 60f/10 (0x52b933).
 inline constexpr std::int16_t FadingDecalEffect = 0x61d;
 inline constexpr std::int32_t CrywolfDecalSubtype = 3;
+// La onda (0x6eb, Effect\ShockWave.jpg, sin modelo: solo el pase del suelo la dibuja). El galope del caballo oscuro en
+// Icarus crea la /1 (0x44431b), que crece y tiembla.
+inline constexpr std::int16_t ShockWaveEffect = 0x6eb;
+inline constexpr std::int32_t GallopShockWaveSubtype = 1;
 
 // Proyección de los campos compartidos por los efectos de 0x1d4 bytes.
 struct ModelEffect
@@ -165,6 +169,11 @@ public:
     // −1, escala 0,9) con el personaje de dueño (+0x108), vida 30 y +0xd8 en 0. Sin rand(); lleno, ninguno.
     std::optional<std::size_t> CreateFullSetFlare(const glm::vec3& position, const glm::vec3& angles,
                                                   const glm::vec3& light, void* owner);
+    // 0x518cf0(0x6eb, posición, ángulos, luz, 1, 0, −1, 0, 0, 0, 0) → 0x51f4ad: el prefijo común (+0x8a en −1, sin
+    // dueño), la vida 30 y la escala 20 del tipo, y con el subtipo 1 la vida 20 y la escala ((rand() % 10) + 10) ·
+    // 0,1f en la x87 (0x51f4c3..0x51f4eb). Un rand(); lleno, ninguno y sin rand().
+    std::optional<std::size_t> CreateGallopShockWave(const glm::vec3& position, const glm::vec3& angles,
+                                                     const glm::vec3& light, Render::Models::CrtRandom& random);
     // 0x6070a0: sólo apaga el byte vivo de cada lugar (Q-C138).
     void Clear();
 

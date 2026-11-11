@@ -315,6 +315,28 @@ std::optional<std::size_t> ModelEffects::CreateFadingDecal(const glm::vec3& posi
     return std::nullopt;
 }
 
+std::optional<std::size_t> ModelEffects::CreateGallopShockWave(const glm::vec3& position, const glm::vec3& angles,
+                                                               const glm::vec3& light,
+                                                               Render::Models::CrtRandom& random)
+{
+    constexpr int ScaleSpan = 10;
+    constexpr double ScaleBase = static_cast<double>(std::bit_cast<float>(0x41200000u)); // 0x6b87a8: 10.
+    constexpr std::int32_t GallopLife = 20;
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, ShockWaveEffect, position, angles, light);
+        effect.subtype = GallopShockWaveSubtype;
+        effect.life = GallopLife;
+        // fild, más 10 (0x6b87a8) y por 0,1f (0x6b8a34), en la x87 hasta el fstp.
+        effect.transform.scale = F32((static_cast<double>(random.Next() % ScaleSpan) + ScaleBase) * StoneTenth);
+        return slot;
+    }
+    return std::nullopt;
+}
+
 std::optional<std::size_t> ModelEffects::CreateFallingStone(const glm::vec3& position, const glm::vec3& angles,
                                                             const glm::vec3& light, Render::Models::CrtRandom& random)
 {

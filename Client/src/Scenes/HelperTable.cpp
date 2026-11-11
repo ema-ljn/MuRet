@@ -4,24 +4,31 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/FaunaDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ChaosCastle.h"
+#include "World/ModelEffects.h"
 #include "World/OriginalFtol.h"
+#include "World/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <format>
 #include <optional>
 #include <string>
+#include <string_view>
 
 namespace Client::Scenes
 {
@@ -62,8 +69,11 @@ constexpr std::uint8_t RiderShown = 1;
 constexpr std::uint8_t GallopingRiderAction = 0x4b;
 constexpr std::uint8_t DustHorseAction = 1;
 constexpr std::uint8_t EffectHorseAction = 3;
-// 0x444196: en el mapa 10 el polvo es otro.
+// 0x444196: en el mapa 10 el polvo es otro; 0x444484: en el 2 es el aliento 5f2 y en los demás el 5f3; 0x4445a9: en
+// el 7 el aliento es la gota 607.
 constexpr std::int32_t IcarusMap = 10;
+constexpr std::int32_t DeviasMap = 2;
+constexpr std::int32_t AtlansMap = 7;
 // 0x4443f6..0x444408: los mapas de Kalima, del 24 al 29 y el 36, no tienen polvo.
 constexpr std::int32_t FirstKalimaMap = 24;
 constexpr std::int32_t LastKalimaMap = 29;
@@ -75,12 +85,29 @@ constexpr std::uint32_t RiderFrozen = 0x1000;
 // 0x4443e3 y 0x44456b: rand() % 2 y rand() % 3 en 0.
 constexpr int DustOneIn = 2;
 constexpr int BreathOneIn = 3;
-// 0x444425..0x444476: los tres rand() del lugar del polvo.
-constexpr int DustPlaceRandoms = 3;
+// 0x444425..0x444476: el lugar del polvo, (rand() & 63) − 32 en x y en y y (rand() & 31) − 16 en z.
+constexpr int DustSpread = 64;
+constexpr int DustSpreadCentre = 32;
+constexpr int DustHeight = 32;
+constexpr int DustHeightCentre = 16;
+// 0x444174..0x444182: la luz del polvo; 0x4445b5..0x4445c8: la del aliento, +0xf4, el 3 de 0x443d70 (nadie más
+// lo escribe). Las partículas nacen con la escala 1 (0x3f800000) y el subtipo 0.
+constexpr glm::vec3 DustLight{1.0f, 1.0f, 1.0f};
+constexpr glm::vec3 HorseLight{3.0f, 3.0f, 3.0f};
+constexpr float ParticleScale = 1.0f;
+constexpr std::int32_t ParticleSubtype = 0;
+// 0x444588..0x44459d: el aliento sale de (50; −4; 0) en el hueso 27 del buffer global (0x68b1d2c).
+constexpr std::size_t BreathBone = 27;
+constexpr glm::vec3 BreathOffset{50.0f, -4.0f, 0.0f};
 // 0x444693: con 1 en +8 del jinete, los doce 0x60f.
 constexpr std::uint8_t RiderWithOrbits = 1;
 // 0x5ffe30: el alpha con que 0x5ffdf0 todavía dibuja.
 constexpr float DrawnAlpha = 0.01f;
+
+float F32(double value)
+{
+    return static_cast<float>(value);
+}
 
 bool InChaosCastle(std::int32_t map)
 {
@@ -116,49 +143,170 @@ Core::Expected<bool, std::string> InTheRidersSafeCell(const WorldState& world, c
     return (attributes->cells[cell] & SafeCellBit) != 0;
 }
 
-// 0x44416b..0x4444ef con la acción 0x4b del jinete, después de 0x4ea030(1): el polvo.
-Core::Expected<void, std::string> RaiseTheDust(const ActorState& rider, std::int32_t map,
-                                               Render::Models::CrtRandom& random)
+// 0x4ec110(hueso, desplazamiento, salida, 0) sobre el buffer global de la pose (0x68b181c + hueso · 0x30): sin la
+// escala ni el origen del modelo, el punto que deja el último modelo posado del dibujo anterior, que MuRet lleva en
+// WorldState::PoseCarry (Q-C401). Un hueso que ningún dibujo conservado escribió corta.
+Core::Expected<glm::vec3, std::string> GlobalPosePoint(const WorldState& world, std::size_t bone,
+                                                       const glm::vec3& offset, std::string_view address)
 {
+    const auto& bones = world.PoseCarry().bones;
+    if (bone >= bones.size())
+    {
+        return Core::Unexpected(std::format("{}: el hueso {} del buffer global de la pose (0x68b181c) es de un dibujo "
+                                            "que MuRet no conserva",
+                                            address, bone));
+    }
+    return Render::Models::OriginalVectorTransform(offset, Render::Models::OriginalMatrixOf(bones[bone]));
+}
+
+// 0x53fe70(tipo, posición, ángulos del caballo, luz, 0, 1, 0) en las partículas del juego (0x743a198), con el reloj
+// del mundo. Lleno, ninguna y sin rand().
+Core::Expected<void, std::string> Emit(const HelperStepContext& context, std::int32_t type, const glm::vec3& position,
+                                       const glm::vec3& angles, const glm::vec3& light, std::string_view address)
+{
+    const auto created = context.world.Particles().CreateChecked(type, position, angles, light, ParticleSubtype,
+                                                                 ParticleScale, context.worldClock, context.random);
+    if (!created.HasValue())
+    {
+        return Core::Unexpected(std::format("{}: el alta de {:#x}/{} falla con error {}", address, type,
+                                            ParticleSubtype, static_cast<unsigned>(created.Error())));
+    }
+    return {};
+}
+
+// 0x4441cd..0x4442ad: el hueso del buffer global por el frame del caballo, ya en la acción 1. Las ventanas se pisan
+// y gana la primera; fuera de todas (o sin orden), ninguno.
+std::optional<std::size_t> IcarusDustBone(float frame)
+{
+    struct Window
+    {
+        float low;
+        float high;
+        bool closed; // 0x44429a mira C0 y C3: la última incluye su tope.
+        std::size_t bone;
+    };
+    constexpr std::array<Window, 4> Windows{{
+        {std::bit_cast<float>(0x3f800000u), std::bit_cast<float>(0x3f99999au), false, 19}, // 0x6b87d4, 0x6b8bb0
+        {std::bit_cast<float>(0x3f8ccccdu), std::bit_cast<float>(0x3fb33333u), false, 25}, // 0x6b8830, 0x6b8c00
+        {std::bit_cast<float>(0x3fa66666u), std::bit_cast<float>(0x3fcccccdu), false, 32}, // 0x6b8ac0, 0x6b8bfc
+        {std::bit_cast<float>(0x3fc00000u), std::bit_cast<float>(0x3fe66666u), true, 38},  // 0x6b8b94, 0x6b8bf8
+    }};
+    for (const Window& window : Windows)
+    {
+        const bool belowTop = window.closed ? frame <= window.high : frame < window.high;
+        if (frame > window.low && belowTop)
+        {
+            return window.bone;
+        }
+    }
+    return std::nullopt;
+}
+
+// 0x44419f..0x4443d1, el galope en el mapa 10, sin mirar Kalima ni +0x78 del jinete: (rand() & 63) − 32 para la z del
+// desplazamiento (120; 0; z) antes de mirar el frame, el punto del hueso, la onda 0x6eb/1 corrida (rand() & 15) − 8
+// en x y en y, y las 5f2 de a una mientras su cuenta no llega a un rand() % 5 + 5 nuevo en cada vuelta (Q-C400):
+// cada una corrida rand() % 50 − 25 en x y en y y (rand() & 15) − 8 − 10 en z. La guarda de entrada saca su propio
+// rand() % 5 + 5, siempre positivo.
+Core::Expected<void, std::string> RaiseTheIcarusDust(const HelperState& helper, const HelperStepContext& context)
+{
+    constexpr float Reach = 120.0f;                                                 // 0x44419f
+    constexpr double Drop = static_cast<double>(std::bit_cast<float>(0x42000000u)); // 0x6b883c: 32.
+    constexpr double Sink = static_cast<double>(std::bit_cast<float>(0x41200000u)); // 0x6b87a8: 10.
+    constexpr int WaveSpread = 16, WaveCentre = 8, PuffSpread = 50, PuffCentre = 25, PuffSpan = 5, PuffBase = 5;
+    Render::Models::CrtRandom& random = context.random;
+    const int lift = random.Next() % DustSpread;
+    const glm::vec3 offset(Reach, 0.0f, F32(static_cast<double>(lift) - Drop));
+    const std::optional<std::size_t> bone = IcarusDustBone(helper.horse.animation.frame);
+    if (!bone)
+    {
+        return {};
+    }
+    const auto point = GlobalPosePoint(context.world, *bone, offset, "0x4442b4");
+    if (!point.HasValue())
+    {
+        return Core::Unexpected(point.Error());
+    }
+    const glm::vec3 base = point.Value();
+    const int waveX = (random.Next() % WaveSpread) - WaveCentre;
+    const int waveY = (random.Next() % WaveSpread) - WaveCentre;
+    const glm::vec3 wave(F32(static_cast<double>(waveX) + static_cast<double>(base.x)),
+                         F32(static_cast<double>(waveY) + static_cast<double>(base.y)), base.z);
+    static_cast<void>(context.world.Map().effects.CreateGallopShockWave(wave, helper.angles, DustLight, random));
+    static_cast<void>(random.Next()); // 0x444325..0x444336
+    int puffs = 0;
+    do
+    {
+        const int x = (random.Next() % PuffSpread) - PuffCentre;
+        const int y = (random.Next() % PuffSpread) - PuffCentre;
+        const int z = (random.Next() % WaveSpread) - WaveCentre;
+        const glm::vec3 puff(F32(static_cast<double>(x) + static_cast<double>(base.x)),
+                             F32(static_cast<double>(y) + static_cast<double>(base.y)),
+                             F32((static_cast<double>(z) + static_cast<double>(base.z)) - Sink));
+        if (auto emitted = Emit(context, World::BreathParticle, puff, helper.angles, DustLight, "0x4443b1");
+            !emitted.HasValue())
+        {
+            return emitted;
+        }
+        ++puffs;
+    } while (puffs < (random.Next() % PuffSpan) + PuffBase);
+    return {};
+}
+
+// 0x44416b..0x4444ef con la acción 0x4b del jinete, después de 0x4ea030(1): el polvo. Fuera del 10, con rand() % 2 en
+// 0, fuera de Kalima y sin el 0x4000 del jinete (0x44440a..0x444412: sin jinete, nada; 0x443fa0 siempre le da uno),
+// el lugar alrededor del caballo, con cada eje en la x87 hasta su fstp, y la 5f2 en el 2 o la 5f3 en los demás (el
+// 10 de 0x4444c0 no llega).
+Core::Expected<void, std::string> RaiseTheDust(const HelperState& helper, const ActorState& rider,
+                                               const HelperStepContext& context)
+{
+    const std::int32_t map = context.world.Runtime().map;
     if (map == IcarusMap)
     {
-        return Core::Unexpected(std::string("0x444196: en el mapa 10 el galope del caballo saca su polvo con la pose "
-                                            "del dibujo anterior (0x4ec110) y 0x518cf0(0x6eb), que MuRet no tiene "
-                                            "en el juego"));
+        return RaiseTheIcarusDust(helper, context);
     }
+    Render::Models::CrtRandom& random = context.random;
     if (random.Next() % DustOneIn != 0)
     {
         return {};
     }
-    // 0x44440a..0x444412: sin jinete, nada; 0x443fa0 siempre le da uno.
     if (InKalima(map) || (rider.flags78 & RiderWithoutDust) != 0)
     {
         return {};
     }
-    for (int i = 0; i < DustPlaceRandoms; ++i)
+    const int x = (random.Next() % DustSpread) - DustSpreadCentre;
+    const int y = (random.Next() % DustSpread) - DustSpreadCentre;
+    const int z = (random.Next() % DustHeight) - DustHeightCentre;
+    const glm::vec3 place(F32(static_cast<double>(x) + static_cast<double>(helper.position.x)),
+                          F32(static_cast<double>(y) + static_cast<double>(helper.position.y)),
+                          F32(static_cast<double>(z) + static_cast<double>(helper.position.z)));
+    if (map == DeviasMap)
     {
-        static_cast<void>(random.Next());
+        return Emit(context, World::BreathParticle, place, helper.angles, DustLight, "0x4444a6");
     }
-    return Core::Unexpected(std::format("0x4444a6: el polvo del caballo, 0x53fe70 con el {} en el mapa {}, va a las "
-                                        "partículas del juego (0x743a198), que MuRet no tiene",
-                                        map == 2 ? "0x5f2" : "0x5f3", map));
+    return Emit(context, World::DustParticle, place, helper.angles, DustLight, "0x4444dd");
 }
 
-// 0x44453f..0x4445de: el aliento, con la acción del caballo distinta de 1 y sin el 0x4000 del jinete.
+// 0x44453f..0x4445de: el aliento, con la acción del caballo distinta de 1 y sin el 0x4000 del jinete: con rand() % 3
+// en 0, el punto del hueso 27 del buffer global y la 5f2, o la gota 607 en el 7, con la luz del caballo.
 Core::Expected<void, std::string> Breathe(const HelperState& helper, const ActorState& rider,
-                                          Render::Models::CrtRandom& random)
+                                          const HelperStepContext& context)
 {
     if (helper.horse.animation.action == DustHorseAction || (rider.flags78 & RiderWithoutDust) != 0)
     {
         return {};
     }
-    if (random.Next() % BreathOneIn != 0)
+    if (context.random.Next() % BreathOneIn != 0)
     {
         return {};
     }
-    return Core::Unexpected(std::string("0x44459d: el aliento del caballo sale del hueso 27 de la pose del dibujo "
-                                        "anterior (0x4ec110) a las partículas del juego (0x53fe70), y MuRet no "
-                                        "tiene ni las partículas del juego ni el dibujo del caballo (0x637508)"));
+    const auto point = GlobalPosePoint(context.world, BreathBone, BreathOffset, "0x44459d");
+    if (!point.HasValue())
+    {
+        return Core::Unexpected(point.Error());
+    }
+    const std::int32_t type =
+        context.world.Runtime().map == AtlansMap ? World::DropParticle : std::int32_t{World::BreathParticle};
+    return Emit(context, type, point.Value(), helper.angles, HorseLight, "0x4445d9");
 }
 
 // 0x444010(lugar, 0) en la escena 5 con un lugar vivo.
@@ -202,15 +350,14 @@ Core::Expected<void, std::string> StepHelper(HelperState& helper, const HelperSt
     // 0x444145..0x444535. Con otra acción, 0x444523 pone además +0x8e en 0, que solo lee el efecto de la
     // acción 3 (0x4453e0), que corta abajo.
     TakeTheRidersGait(helper.horse, skeleton, riderAction);
-    const std::int32_t map = world.Runtime().map;
     if (riderAction == GallopingRiderAction)
     {
-        if (auto dust = RaiseTheDust(rider, map, context.random); !dust.HasValue())
+        if (auto dust = RaiseTheDust(helper, rider, context); !dust.HasValue())
         {
             return dust;
         }
     }
-    if (auto breath = Breathe(helper, rider, context.random); !breath.HasValue())
+    if (auto breath = Breathe(helper, rider, context); !breath.HasValue())
     {
         return breath;
     }

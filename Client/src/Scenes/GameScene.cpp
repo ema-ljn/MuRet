@@ -312,7 +312,8 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     if (auto helpers = StepHelpers(
             HelperStepContext{.world = *m_context.world,
                               .horseSkeleton = m_models != nullptr ? m_models->SkeletonOf(DarkHorseModel) : nullptr,
-                              .random = m_context.cloth->random});
+                              .random = m_context.cloth->random,
+                              .worldClock = worldClock});
         !helpers.HasValue())
     {
         return helpers;

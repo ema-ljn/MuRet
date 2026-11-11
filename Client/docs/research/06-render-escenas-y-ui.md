@@ -1156,16 +1156,45 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   | La del jinete | La del caballo | `+0xd8` |
   | --- | --- | --- |
   | `0x53` | 3 | 0,34 |
-  | `0x4b` | 1 (y su polvo: en el mapa 10, siempre, con `rand() & 63` primero, la pose del dibujo anterior (`0x4ec110`), `0x518cf0(0x6eb)` y `0x53fe70(0x5f2)`; en los demás, con `rand() % 2` en 0, fuera de Kalima (24 a 29 y 36) y sin `+0x78 & 0x4000` del jinete, tres `rand()` para el lugar (de −32 a 31 en x y en y, y de −16 a 15 en z, alrededor del caballo) y el `0x5f2` en el 2 y el `0x5f3` en los otros, con la luz (1, 1, 1)) | 0,34 |
+  | `0x4b` | 1 (y su polvo, abajo) | 0,34 |
   | `0x4e` a `0x52` | 2 | 0,34 |
   | `0x54` | 5 | 1 |
   | `0x55` | 6 | 1 |
   | otra (la `0x4a` del login) | 0 (y `+0x8e` en 0) | 0,3 |
 
+  El polvo del galope (`0x44416b..0x4444ef`, *estático*, ASM c32bbd5f), con la luz (1, 1, 1), los ángulos
+  del caballo y el reloj del mundo:
+  - **En el mapa 10** (Icarus, `0x44419f..0x4443d1`), sin mirar Kalima ni `+0x78` del jinete:
+    `(rand() & 63) − 32` para la z del desplazamiento (120; 0; z), antes de mirar el frame (Q-C404); el
+    hueso del buffer global de la pose (`0x68b181c`) por el frame del caballo (`+0x114`), en ventanas que
+    se pisan y donde gana la primera: (1; 1,2) el 19, (1,1; 1,4) el 25, (1,3; 1,6) el 32 y (1,5; 1,8] el
+    38 (`0x44429a` mira C0 y C3: la última incluye su tope); fuera de todas, nada más. Con el hueso, el
+    punto de `0x4ec110(hueso, desplazamiento, salida, 0)` (sin la escala ni el origen del modelo, Q-C401);
+    la onda `0x518cf0(0x6eb, …, 1)` corrida `(rand() & 15) − 8` en x y en y, que `0x51f4ad` crea con vida
+    20 y escala `((rand() % 10) + 10) · 0,1f`, y que `0x52c5ca` hace crecer `(rand() % 5) · 0,1f` y temblar
+    `(rand() & 7) − 4` en x y en y, con la luz `vida · 0,05f` (`40 − vida` pasados los 20) y la escala
+    negativa en 0; lo dibuja solo el pase del suelo (`0x52dc20`, la fila `0x6eb` de abajo). Después,
+    un `rand()` de la guarda de entrada (`0x444325`, `rand() % 5 + 5`, siempre positivo) y las `0x5f2`/0
+    de a una, corridas `rand() % 50 − 25` en x y en y y `(rand() & 15) − 8 − 10` en z, mientras su cuenta
+    no llega a un `rand() % 5 + 5` que se vuelve a sacar en cada vuelta (Q-C400): de 5 a 9 o más.
+  - **En los demás**, `rand() % 2`; con 0, fuera de Kalima (24 a 29 y 36, `0x4443f6..0x444408`) y sin
+    `+0x78 & 0x4000` del jinete, tres `rand()` para el lugar (`(rand() & 63) − 32` en x y en y, y
+    `(rand() & 31) − 16` en z, alrededor del caballo), y en el 2 la `0x5f2`/0 (`0x4444a6`) y en los otros
+    la `0x5f3`/0 (`0x4444dd`; el 10 de `0x4444bd` no llega). La `0x5f3` (`Effect\smoke02.tga`, que
+    `0x61d768` sube con `0x63bd00` en `0x5f3`, LINEAR y CLAMP) nace en `0x54271f` con vida 32,
+    `(rand() & 15) − 8` en x y en y, la escala `((rand() & 31) + 32) · escala · 0,01f`, la velocidad (0; 3;
+    0) girada por los ángulos del pedido y el giro x en `rand() % 360`. Su paso (`0x546b66`), después del
+    movimiento común (que ya le sumó la velocidad girada por esos ángulos), le da la luz `vida · 0,03125`,
+    la escala más 0,08f, la posición más la velocidad otra vez, sin girar (Q-C402), el freno 0,9f y la z en
+    el terreno (`0x5f93c0`) más el alto de su textura (`+0x24` de su lugar en `0x7d3a198`) por la escala
+    por 0,5 (salvo la /5, que nadie crea acá). Su dibujo (`0x548a51`) pide `0x620c10` y va al billboard
+    común, con el giro de `+0x44` (en 0) y no el de la creación.
+
   Después, con la acción distinta de 1 y sin `+0x78 & 0x4000` del jinete, `rand() % 3`, y con 0 el
-  aliento (`0x5f2`, o `0x607` en el mapa 7; antes este documento lo daba como polvo, [Los efectos del login](#los-efectos-del-login)), que `0x53fe70` pone en el arreglo de `0x743a198` (de `0x78` bytes; lo mueve `0x5446e0` desde
-  `0x634c60` y lo dibuja `0x548550` desde `0x6350b0`), desde el hueso 27 (`0x4ec110` con
-  `0x68b1d2c`, *inferido*: en el paso, ese buffer tiene la pose del frame anterior); con la 3,
+  aliento (`0x5f2`, o `0x607` en el mapa 7, que nace con la luz en 1; antes este documento lo daba como polvo, [Los efectos del login](#los-efectos-del-login)), que `0x53fe70` pone en el arreglo de `0x743a198` (de `0x78` bytes; lo mueve `0x5446e0` desde
+  `0x634c60` y lo dibuja `0x548550` desde `0x6350b0`), desde (50; −4; 0) en el hueso 27 (`0x4ec110` con
+  `0x68b1d2c`, sin el origen), con la luz 3 de `+0xf4`. En el paso, ese buffer tiene la pose del
+  último modelo que posó el dibujo anterior, que no tiene por qué ser el caballo (Q-C401); con la 3,
   `0x52e470` con el héroe publicado y `0x4453e0` (que sube `+0x8e` y, con el contador de pasos
   `0x7d3a0f0` múltiplo de 10, crea un `0x6eb`); con `jinete + 8` en 1, doce `0x60f` (`0x530860`, de a
   tres en cuatro giros), y `+8` vuelve a 0; el byte vivo pasa a ser el del jinete
@@ -1219,9 +1248,16 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   `WorldState::Helpers`: `CreateHelper` (`0x443fa0` → `0x443d70`, solo el `0xbf`: los otros tipos
   cortan), `TurnOffHelpersOf` (`0x443d40`, desde el `F3 10`; `0x510f70` en `KillOtherActors`),
   `StepHelpers` (`0x445230` en la escena 5, en `GameScene::StepWorld`, en `0x6370f4`) y `DrawHelpers`
-  (`0x4453b0` en la escena 5). Cortan con error, después de los `rand()` que el original saca antes,
-  el polvo (en el mapa 10, antes de su primer `rand()`), el aliento, la acción 3, el `+8` del jinete,
-  el dibujo con `+0x78 & 0x4000` y los mapas `0x12` a `0x17` del dibujo. En el juego no se crea
+  (`0x4453b0` en la escena 5). El paso saca el polvo y el aliento (CL7.6) a las partículas del juego
+  (`WorldState::Particles`, con el reloj del mundo de `HelperStepContext::worldClock`) y la onda de Icarus
+  a los efectos con modelo (`ModelEffects::CreateGallopShockWave`, con su paso en `StepGameModelEffect`);
+  el buffer global de la pose es `WorldState::PoseCarry`, que publican los dibujos del frame anterior
+  (el del caballo, `DrawHelpers` por `onPose`, que `GameScene` manda a `PublishFaunaPose`). La `0x5f3`
+  es de `World::Particles` (el alta, el paso con el alto de su textura por `ParticleTextureHeightsOf` y
+  el dibujo), y `Effect\ShockWave.jpg` y `Effect\smoke02.tga` suben con `EffectTextureSet`. Cortan con
+  error, después de los `rand()` que el original saca antes, un hueso del buffer global que ningún dibujo
+  conservado escribió (`0x4442b4` y `0x44459d`), una partícula que no se puede crear, la acción 3, el
+  `+8` del jinete, el dibujo con `+0x78 & 0x4000` y los mapas `0x12` a `0x17` del dibujo. En el juego no se crea
   ninguno: `0x5bc740` corta antes con el `0x1a04` (`0x4225d0`, P-C36) y los demás que lo crean no están
   portados; la tabla vacía no hace nada. `DrawHelpers` no corre: el dibujo del juego corta antes, a más
   tardar en los ítems del piso (`0x6374fe`). La tabla no lleva los caballos del login ni de la selección (P-C47).

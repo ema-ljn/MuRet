@@ -389,6 +389,8 @@ Core::Expected<void, std::string> SelectionWorld::DrawAfterCharacters(WorldState
     }
     ModelEffectDrawResources resources{*terrain.heights, clock};
     resources.onPose = [&](const DrawnObject& object) { return PublishFaunaPose(poseCarry, m_models, object, true); };
+    resources.onUntranslatedPose = [&](const DrawnObject& object)
+    { return PublishFaunaPose(poseCarry, m_models, object, false); };
     resources.posedMeshes = [&]() { return std::span<const Render::Models::SkinnedMesh>(poseCarry.meshes); };
     resources.sprites = &FrameSprites();
     resources.dynamicLighting = &FrameLighting();

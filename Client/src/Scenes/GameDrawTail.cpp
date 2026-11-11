@@ -391,16 +391,23 @@ Core::Expected<bool, std::string> DrawMovingLightEffect(Render::ModelBatch& batc
     return false;
 }
 
+// 0x52d35b, 0x52d52b y 0x52d7f8: 0x4eb860 en el buffer global (0x68b181c) con Translate y padre en 0 (Q-C411):
+// la raíz gira con los ángulos del efecto, sin su escala ni su origen. Después, 0x60cf70 pasa la escala (+0xc) y
+// la posición (+0x10) al modelo (+0x68 y +0x6c) y llama a 0x4ebc80 con Translate en 1 (el undécimo argumento,
+// `push 1` en 0x52d3a1, 0x52d53a y 0x52d82f): cada vértice por el hueso, guardado en float, por la escala, en
+// float, y más el origen, en float (0x4ebdf8..0x4ebf02), como SkinMesh. Los sprites de 0x60b3d0 leen esos huesos
+// con 0x4ec110: con Translate en 0, más la posición del objeto (0x60be6e, 0x60c0e9); con 1, por la escala y más
+// el origen (0x60c44b).
 Core::Expected<void, std::string> PublishEffectItem(const IModelLibrary& models, const DrawnObject& object,
                                                     const ModelEffectDrawResources* resources)
 {
     if (models.Find(object.model) == nullptr || models.SkeletonOf(object.model) == nullptr)
         return Core::Unexpected(std::string("0x4eb860: faltan modelo o esqueleto del efecto con ítem"));
-    if (resources == nullptr || !resources->onPose)
-        return Core::Unexpected(std::string("0x4eb860: falta la pose compartida del efecto con ítem"));
+    if (resources == nullptr || !resources->onUntranslatedPose)
+        return Core::Unexpected(std::string("0x4eb860: falta la pose compartida sin trasladar del efecto con ítem"));
     auto posed = object;
     posed.alpha = 1; // 52d35b/52d52b/52d7f8 posan antes de cualquier guarda de alpha.
-    return resources->onPose(posed);
+    return resources->onUntranslatedPose(posed);
 }
 Core::Expected<std::span<const Render::Models::SkinnedMesh>, std::string>
 EffectItemMeshes(const IModelLibrary& models, const DrawnObject& object, const ModelEffectDrawResources* resources)

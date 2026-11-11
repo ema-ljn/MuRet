@@ -200,6 +200,10 @@ struct ModelEffectDrawResources
     const Data::Terrain::TerrainHeights& heights;
     float worldClock = 0;
     TailPoseObserver onPose{};
+    // 0x4eb860 con Translate y padre en 0 (0x52d33f, 0x52d4f1 y 0x52d7d2): los ítems de 0xf4, 0xfa y 0x10f dejan
+    // sus huesos en el buffer global sin la escala ni el origen del efecto (Q-C411). Comparte el scratch de
+    // posedMeshes, con los vértices ya en el mundo.
+    TailPoseObserver onUntranslatedPose{};
     TailMeshProvider posedMeshes{};
     World::FrameSprites* sprites = nullptr;
     World::TerrainLighting* dynamicLighting = nullptr;

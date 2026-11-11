@@ -4651,7 +4651,9 @@ temporal de un pase no se copia de vuelta al efecto. El reloj de los módulos us
 firmado del FTOL64; las fases de seno/coseno conservan el float completo y su fracción.
 
 Los efectos `0xf4/0xfa` reproducen el inicializador `0x607b60`. `0xfa` toma luz antes de publicar
-pose; `0xf4`, después. Las cintas permiten count negativo sin desplazar historia y luego
+pose; `0xf4`, después. Los dos, y el `0x10f`, publican su pose sin trasladar, con Translate y padre en 0
+(`0x52d33f`, `0x52d4f1` y `0x52d7d2`): los vértices los lleva al mundo `0x4ebc80` (Translate en 1, el
+undécimo argumento de `0x60cf70`) y los sprites de `0x60b3d0`, `0x4ec110` (Q-C411). Las cintas permiten count negativo sin desplazar historia y luego
 reemplazan ambas cabezas. Helper07 publica joints `0x614/14` y `0x613/4` sobre el owner durable
 del ítem; el siguiente tick de `0x614/14` y el creador/paso/dibujo de Thunder `0x5ca/0` ya están
 portados con su recurso físico. Las pruebas angulares usan un generador independiente con el

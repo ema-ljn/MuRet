@@ -5,6 +5,8 @@
 #include "World/ModelEffects.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/GameItemSpecialDrawing.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skinning.h"
 #include <vector>
@@ -20,7 +22,11 @@
 #include <memory>
 #include <gtest/gtest.h>
 #include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/geometric.hpp>
+#include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -93,6 +99,52 @@ public:
         std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     int reads = 0;
 };
+
+// Un triángulo del hueso 0 con vértices que redondean y `bones` huesos sin giro: la raíz en `root` y los demás,
+// hijos de la raíz, en su origen. Con los ángulos del efecto en 0, la pose de 0x4eb860 sin trasladar da la
+// identidad con esa traslación, sin la escala ni el origen del efecto.
+class PosedItemModels final : public Client::Scenes::IModelLibrary
+{
+public:
+    PosedItemModels(std::size_t bones, const glm::vec3& root)
+    {
+        Client::Data::Models::Mesh mesh;
+        mesh.vertices = {{0, {0.1f, 0.2f, 0.3f}}, {0, {1.7f, -3.3f, 2.9f}}, {0, {-0.45f, 5.55f, -1.15f}}};
+        mesh.normals = {{0, {0, 0, 1}, 0}};
+        mesh.texCoords = {{0, 0}};
+        mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
+        mesh.textureName = "plain.jpg";
+        model.meshes = {mesh};
+        for (std::size_t bone = 0; bone < bones; ++bone)
+        {
+            Client::Render::Models::SkeletonBone posed;
+            posed.parent = bone == 0 ? std::int16_t{-1} : std::int16_t{0};
+            posed.actions = {{Client::Render::Models::BoneKey{.position = bone == 0 ? root : glm::vec3(0)}}};
+            skeleton.bones.push_back(posed);
+        }
+        skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
+    }
+    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    {
+        return &model;
+    }
+    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    {
+        return &skeleton;
+    }
+    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return textures;
+    }
+    Client::Data::Models::Model model;
+    Client::Render::Models::Skeleton skeleton;
+    std::array<Client::Render::TextureSlot, 1> textures{Client::Render::TextureSlot{0x400}};
+};
+
+glm::vec3 Bits(std::uint32_t x, std::uint32_t y, std::uint32_t z)
+{
+    return {std::bit_cast<float>(x), std::bit_cast<float>(y), std::bit_cast<float>(z)};
+}
 
 Client::World::ModelEffect ItemEffect(std::int16_t type, const std::int16_t& itemType, const std::uint8_t& itemLevel)
 {
@@ -326,12 +378,12 @@ TEST(GameSpecialModelEffectsTest, SpinningItemPublishesItsTemporaryPoseAndRestor
     effect.itemLevel = &itemLevel;
     Client::Scenes::ModelEffectDrawResources resources{*heights};
     resources.random = &random;
-    resources.onPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
     {
         EXPECT_EQ(object.model, 0x212);
         EXPECT_EQ(object.transform.position, (glm::vec3{100, 200, 400}));
         EXPECT_EQ(object.transform.angles, (glm::vec3{10, 90, 60}));
-        return Client::Scenes::PublishFaunaPose(carry, models, object, true);
+        return Client::Scenes::PublishFaunaPose(carry, models, object, false);
     };
     resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
     ASSERT_TRUE(
@@ -360,10 +412,10 @@ TEST(GameSpecialModelEffectsTest, BloodCastleBodyUsesThePublishedPoseAndAdditive
     effect.alpha = 0;
     effect.objectState.light = 0.3f;
     Client::Scenes::ModelEffectDrawResources resources{*heights};
-    resources.onPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
     {
         EXPECT_FLOAT_EQ(effect.objectState.light, 0.3f);
-        return Client::Scenes::PublishFaunaPose(carry, models, object, true);
+        return Client::Scenes::PublishFaunaPose(carry, models, object, false);
     };
     resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
     const auto result =
@@ -392,10 +444,10 @@ TEST(GameSpecialModelEffectsTest, SpinningItemSamplesTerrainAfterPublishingItsPo
     effect.itemType = &itemType;
     effect.itemLevel = &itemLevel;
     Client::Scenes::ModelEffectDrawResources resources{*heights};
-    resources.onPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
     {
         light->cells.fill({1, 1, 1});
-        return Client::Scenes::PublishFaunaPose(carry, models, object, true);
+        return Client::Scenes::PublishFaunaPose(carry, models, object, false);
     };
     resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
     ASSERT_TRUE(
@@ -417,13 +469,13 @@ TEST(GameSpecialModelEffectsTest, FallenItemSamplesTerrainBeforePublishingItsIni
     std::uint8_t itemLevel = 0;
     auto effect = ItemEffect(0xfa, itemType, itemLevel);
     Client::Scenes::ModelEffectDrawResources resources{*heights};
-    resources.onPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
     {
         ExpectItemInitialization(effect, 0.8f, -1);
         ExpectItemPose(object, 0.8f);
         EXPECT_EQ(object.color, glm::vec3(0.3f));
         light->cells.fill({1, 1, 1});
-        return Client::Scenes::PublishFaunaPose(carry, models, object, true);
+        return Client::Scenes::PublishFaunaPose(carry, models, object, false);
     };
     resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
     const auto result =
@@ -458,13 +510,13 @@ TEST(GameSpecialModelEffectsTest, ItemInitializationIsDurableAndCapturedAlphaCon
             const float direction = type == 0xfa ? -1.0f : 0.0f;
             int poses = 0;
             Client::Scenes::ModelEffectDrawResources resources{*heights};
-            resources.onPose = [&](const Client::Scenes::DrawnObject& object)
+            resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
             {
                 ++poses;
                 ExpectItemInitialization(effect, 0.8f, direction);
                 ExpectItemPose(object, 0.8f);
                 EXPECT_EQ(object.state, Client::Render::Models::ObjectState{});
-                return Client::Scenes::PublishFaunaPose(carry, models, object, true);
+                return Client::Scenes::PublishFaunaPose(carry, models, object, false);
             };
             resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
             const auto result = Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr,
@@ -508,7 +560,7 @@ TEST(GameSpecialModelEffectsTest, PoseFailureRetainsInitializationAndCallerSpeci
             auto effect = ItemEffect(type, itemType, itemLevel);
             const float direction = type == 0xfa ? -1.0f : 0.0f;
             Client::Scenes::ModelEffectDrawResources resources{*heights};
-            resources.onPose =
+            resources.onUntranslatedPose =
                 [&](const Client::Scenes::DrawnObject& object) -> Client::Core::Expected<void, std::string>
             {
                 ExpectItemInitialization(effect, Scales[index], direction);
@@ -569,11 +621,11 @@ TEST(GameSpecialModelEffectsTest, FallenGlowStoresItsNativeAlphaWhileDrawingWith
     std::uint8_t itemLevel = 0;
     auto effect = ItemEffect(0xfa, itemType, itemLevel);
     Client::Scenes::ModelEffectDrawResources resources{*heights};
-    resources.onPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
     {
         ExpectItemInitialization(effect, 0.8f, -1);
         ExpectItemPose(object, 0.8f);
-        return Client::Scenes::PublishFaunaPose(carry, models, object, true);
+        return Client::Scenes::PublishFaunaPose(carry, models, object, false);
     };
     resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
     const auto result =
@@ -599,11 +651,11 @@ TEST(GameSpecialModelEffectsTest, FallenGlowRetainsItsNativeAlphaWhenTheSecondMe
     auto effect = ItemEffect(0xfa, itemType, itemLevel);
     effect.alpha = 0.3f;
     Client::Scenes::ModelEffectDrawResources resources{*heights};
-    resources.onPose = [&](const Client::Scenes::DrawnObject& object)
+    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
     {
         ExpectItemInitialization(effect, 0.8f, -1);
         ExpectItemPose(object, 0.8f);
-        return Client::Scenes::PublishFaunaPose(carry, models, object, true);
+        return Client::Scenes::PublishFaunaPose(carry, models, object, false);
     };
     resources.posedMeshes = [&]
     {
@@ -640,12 +692,151 @@ TEST(GameSpecialModelEffectsTest, FallenWingPublishesItsRenderItemLightBackToThe
     effect.itemType = &itemType;
     effect.itemLevel = &itemLevel;
     Client::Scenes::ModelEffectDrawResources resources{*heights};
-    resources.onPose = [&](const Client::Scenes::DrawnObject& object)
-    { return Client::Scenes::PublishFaunaPose(carry, models, object, true); };
+    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+    { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
     resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
     const auto result =
         Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr, {}, 0, resources);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_FLOAT_EQ(effect.objectState.light, 1.1f);
     EXPECT_EQ(effect.type, 0xfa);
+}
+
+// Q-C411: 0x52d52b posa el ítem del 0xfa en el buffer global con Translate en 0 (`push 0` en 0x52d4f1 y
+// 0x52d4ff): el hueso queda sin la escala (0,8, 0x607beb) ni el origen del efecto. 0x60cf70 los pone en el
+// modelo y 0x4ebc80 traslada cada vértice (Translate en 1, 0x52d53a): el hueso a float, por la escala a float y
+// más el origen a float (0x4ebdf8..0x4ebf02). El 0x2246 suelta su 0x5c6 de 0x4ec110 sin trasladar en (0, 0, 15)
+// del hueso 0 más la posición del efecto, a float (0x60be27..0x60be93). Los bits salen de un cálculo aparte en
+// Python con el redondeo PC53 del ASM; con los huesos trasladados de antes, el sprite caía en (2010,44; 3995,24;
+// 614,68).
+TEST(GameSpecialModelEffectsTest, FallenItemPublishesItsBonesUntranslatedAndItsReadersTranslateThem)
+{
+    const glm::vec3 root{12.3f, -7.7f, 3.1f};
+    PosedItemModels models(1, root);
+    Client::Scenes::FaunaDrawCarry carry;
+    Client::Render::ModelBatch batch;
+    auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    Client::World::FrameSprites sprites;
+    std::int16_t itemType = 0x2246 - 0x212;
+    std::uint8_t itemLevel = 0;
+    auto effect = ItemEffect(0xfa, itemType, itemLevel);
+    effect.transform.position = {1000.3f, 2000.7f, 300.1f};
+    Client::Scenes::ItemSpecialDrawContext special;
+    special.sprites = &sprites;
+    Client::Scenes::ItemDrawContext item;
+    item.special = &special;
+    item.poseBones = [&] { return std::span<const Client::Render::Models::BoneTransform>(carry.bones); };
+    Client::Scenes::ModelEffectDrawResources resources{*heights};
+    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+    { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
+    resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
+    resources.itemContext = &item;
+
+    const auto result =
+        Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr, {}, 0, resources);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(carry.bones.size(), 1u);
+    Client::Render::Models::BoneTransform untranslated(1.0f);
+    untranslated[3] = root;
+    EXPECT_EQ(carry.bones[0], untranslated);
+    ASSERT_GE(batch.Vertices().size(), 3u);
+    EXPECT_EQ(batch.Vertices()[0].position, Bits(0x447c8e14u, 0x44f95666u, 0x439768f6u));
+    EXPECT_EQ(batch.Vertices()[1].position, Bits(0x447ce000u, 0x44f8fcccu, 0x43987333u));
+    EXPECT_EQ(batch.Vertices()[2].position, Bits(0x447c71ebu, 0x44f9df5cu, 0x4396d47bu));
+    const auto glow = std::ranges::find_if(sprites.Sprites(), [](const Client::World::Sprite& sprite)
+                                           { return sprite.alive && sprite.texture == 0x5c6; });
+    ASSERT_NE(glow, sprites.Sprites().end());
+    EXPECT_EQ(glow->position, Bits(0x447d2666u, 0x44f92000u, 0x439f199au));
+}
+
+// Q-C411: 0x52d35b posa el ítem del 0xf4 sin trasladar (`push 0` en 0x52d33f y 0x52d341), con la raíz girada
+// por (0, 90, 30): ningún hueso lleva el origen (100; 200; 400) ni la escala 0,8. El 0x1e24 suelta los dos 0x5c6
+// de 0x4ec110 sin trasladar en el (0, 0, 0) de los huesos 1 y 2 (0x60c09e y 0x60c12c), que la pose deja en el
+// origen del modelo, más la posición del efecto con los 100 que 0x52d2cf le suma a la z: los dos en
+// (100; 200; 400).
+TEST(GameSpecialModelEffectsTest, SpinningItemPublishesItsBonesUntranslatedAndItsGlowAddsThePosition)
+{
+    PosedItemModels models(3, glm::vec3(0));
+    Client::Scenes::FaunaDrawCarry carry;
+    Client::Render::ModelBatch batch;
+    auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    Client::World::FrameSprites sprites;
+    std::int16_t itemType = 0x1e24 - 0x212;
+    std::uint8_t itemLevel = 0;
+    Client::World::ModelEffect effect;
+    effect.alive = true;
+    effect.type = 0xf4;
+    effect.transform.position = {100, 200, 300};
+    effect.velocity.z = 60;
+    effect.itemType = &itemType;
+    effect.itemLevel = &itemLevel;
+    Client::Scenes::ItemSpecialDrawContext special;
+    special.sprites = &sprites;
+    Client::Scenes::ItemDrawContext item;
+    item.special = &special;
+    item.poseBones = [&] { return std::span<const Client::Render::Models::BoneTransform>(carry.bones); };
+    Client::Scenes::ModelEffectDrawResources resources{*heights};
+    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+    {
+        EXPECT_EQ(object.transform.angles, (glm::vec3{0, 90, 30}));
+        return Client::Scenes::PublishFaunaPose(carry, models, object, false);
+    };
+    resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
+    resources.itemContext = &item;
+
+    const auto result =
+        Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr, {}, 0, resources);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(carry.bones.size(), 3u);
+    for (const auto& bone : carry.bones)
+    {
+        EXPECT_EQ(bone[3], glm::vec3(0));
+        for (int column = 0; column < 3; ++column)
+            EXPECT_NEAR(glm::length(bone[column]), 1.0f, 1e-6f);
+    }
+    std::vector<glm::vec3> glows;
+    for (const auto& sprite : sprites.Sprites())
+        if (sprite.alive && sprite.texture == 0x5c6)
+            glows.push_back(sprite.position);
+    EXPECT_EQ(glows, (std::vector<glm::vec3>{{100, 200, 400}, {100, 200, 400}}));
+    EXPECT_EQ(effect.transform.position, (glm::vec3{100, 200, 300}));
+}
+
+// Q-C411: 0x52d7f8 posa el 0x10f de Blood Castle sin trasladar (`push 0` en 0x52d7d2 y 0x52d7d7) y 0x60cf70 lo
+// dibuja con Translate en 1 (0x52d82f): los vértices, con la escala del efecto (1,3) y su origen, a float en
+// cada paso como en 0x4ebc80. 0x60b3d0 no tiene un caso del 0x10f: no suelta sprites. Los bits salen del mismo
+// cálculo aparte en Python.
+TEST(GameSpecialModelEffectsTest, BloodCastleItemPublishesItsBonesUntranslatedAndTranslatesItsVertices)
+{
+    const glm::vec3 root{12.3f, -7.7f, 3.1f};
+    PosedItemModels models(1, root);
+    Client::Scenes::FaunaDrawCarry carry;
+    Client::Render::ModelBatch batch;
+    auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    Client::World::ModelEffect effect;
+    effect.alive = true;
+    effect.type = 0x10f;
+    effect.life = 10;
+    effect.transform.position = {1000.3f, 2000.7f, 300.1f};
+    effect.transform.scale = 1.3f;
+    effect.light = {0.5f, 0.6f, 0.7f};
+    Client::Scenes::ModelEffectDrawResources resources{*heights};
+    resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+    { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
+    resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
+
+    const auto result =
+        Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr, {}, 0, resources);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(carry.bones.size(), 1u);
+    Client::Render::Models::BoneTransform untranslated(1.0f);
+    untranslated[3] = root;
+    EXPECT_EQ(carry.bones[0], untranslated);
+    ASSERT_EQ(batch.Vertices().size(), 3u);
+    EXPECT_EQ(batch.Vertices()[0].position, Bits(0x447e1ae1u, 0x44f8de66u, 0x43984290u));
+    EXPECT_EQ(batch.Vertices()[1].position, Bits(0x447ea000u, 0x44f84cccu, 0x4399f333u));
+    EXPECT_EQ(batch.Vertices()[2].position, Bits(0x447ded1fu, 0x44f9bcf5u, 0x43975148u));
 }

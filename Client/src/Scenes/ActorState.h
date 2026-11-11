@@ -107,6 +107,14 @@ struct ActorState
     std::uint8_t run = 0; // +0x38c, el Run de Caminar
     // +0x1c, +0x20 y +0x24: 0x511290 pone los dos primeros en 0 y el ángulo que recibe en el tercero.
     glm::vec3 angles{};
+    // +0x40, +0x44 y +0x48: el punto del bastón 0xc1e que 0x509340 deja en cada dibujo (0x50b4ca). El joint 0x618/0x11
+    // que suelta ahí toma de acá su posición al crearse (0x5321f7) y en cada paso (0x53822f). 0x511290 no lo escribe:
+    // queda el del uso anterior del registro (Q-C363).
+    glm::vec3 effectOrigin{};
+    // +0x17c, +0x180 y +0x184: la posición que 0x4fcee0 copia antes del frame 3 y fuera de la acción 0x8d
+    // (0x4fcf06..0x4fcf1b). La escribe también la habilidad (0x4f5b70), sin portar; 0x511290 no la toca: queda la
+    // del uso anterior del registro (Q-C363). El joint 0x610/4 de la espada 0x223 sigue de acá al personaje (0x537d55).
+    glm::vec3 trailOrigin{};
     // +0x28 y +0x2c, los ángulos de la cabeza, y +0x34 y +0x38, hacia dónde gira: los mueve 0x505de0
     // (0x5068eb..0x5069ab, Scenes::StepCharacterHead) y los lee la pose (0x4eb860). 0x511290 no los escribe:
     // quedan los de WinMain o los del uso anterior del registro. Del héroe, el blanco lo escribe MoveHero con
@@ -119,8 +127,9 @@ struct ActorState
     // +0x430: el cuervo que 0x420d60 crea y 0x420dd0 mueve dentro del cuerpo de este dueño.
     std::optional<DarkSpirit> darkSpirit;
     // +0x360: con 5, la capa de los GM, que 0x413fe0 pone en cada dibujo de un GM; del 1 al 3, el arma del
-    // evento de Blood Castle (0x50de84). El 4 y del 6 al 13 los escriben 0x513430, 0x5139f0, 0x5bc740 y
-    // 0x5be150, sin portar. 0x511290 no lo toca: queda el del uso anterior del registro.
+    // evento de Blood Castle (0x50de84). El 4 (y el 0) lo escriben 0x513430, 0x5139f0, 0x5bc740 y 0x5be150, y del
+    // 6 al 13 los paquetes (el 0x12 en 0x4c89e1, 0x40c140, y 0x42ab40, 0x42ad50 y 0x42ae60 con banderas de
+    // +0x78), sin portar. 0x511290 no lo toca: queda el del uso anterior del registro.
     std::uint8_t byte360 = 0;
     // +0x364: la capa que 0x413fe0 crea con +0x360 entre 5 y 13. 0x511290 la deja en 0 sin soltarla.
     std::optional<GameMasterLayer> layer;

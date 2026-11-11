@@ -4866,7 +4866,9 @@ entrar a Devias armado). `Scenes::DrawGameHanging` corre, sobre el cuerpo ya dib
   CtlCode en `0x20` u 8 (el personaje del laboratorio tiene `0x20`), suelta una capa que no sea la 5
   (`0x414340`) y pone `+0x360` en 5. Sin capa en `+0x364` y con `+0x360` del 5 al 13 la crea: la 5 es
   `0x414370(0x12a, 0x14, 1, 70, −5, 0, 0, 0, 45)`, Skill\MuSign.bmd (`0x6166fe`, texturas en `0x616c5c`);
-  las del 6 al 13 (`0x4147c0` con el `0x637`) cortan. Después, `0x4142f0` (`0x50df07`), sin
+  las del 6 al 13 (`0x4147c0` con el `0x637`) cortan: en ese rango `+0x360` lo escriben solo los paquetes (el
+  `0x12` en `0x4c89e1`, `0x40c140`, y `0x42ab40`, `0x42ad50` y `0x42ae60` con las banderas de `+0x78`), y su
+  dibujo (`0x414820`) lee `+0x360` y `+0x368` (CL9.5). Después, `0x4142f0` (`0x50df07`), sin
   `+0x78 & 0x4000`, la dibuja con `0x414470`: el punto (70, −5, 0) del hueso 20 del cuerpo (`0x4ec110`),
   los ángulos fijos (0, 0, 45), `0x4ec200` a 0,5 sobre la acción 0 y `0x602e90(objeto, 1, 0, 0)`, que en
   `0x6002e0` hace `RenderBody(2)` con la luz en 1 y `RenderBody(0x44)` con (1; 0,5; 0), con la luz por
@@ -4888,18 +4890,43 @@ entrar a Devias armado). `Scenes::DrawGameHanging` corre, sobre el cuerpo ya dib
   nivel, el excelente, sin set y 2 (`0x102` con `+0x376` en `0x43` o `0x89`), y los sprites por modelo
   (`0x509a92..0x50b801`), con su `rand() % 30 + 70` por 0,005 aun sin caso. Las texturas Shiny03
   (`0x5fe`, `0x61d937`) e Impack03 de Object9 (`0x5ad`, `0x61e799`) se suben con las demás de 0x61ccb0.
+- **Los joints y las partículas de las armas** (2026-11-11), sobre los joints (`FrameTail`) y las
+  partículas (`FrameParticles`) del frame, que `GameCharacterPass` le pasa a `GameHangingPass`:
+  - el `0x227` y el `0x231` en la acción `0x8c` (`0x50a005..0x50a138`), fuera del mapa 10 y con un `rand()`
+    par: el hueso 1 corrido (`rand() % 30 − 15` en x e y, +20 en z) suelta cuatro veces el joint `617/0`
+    (escala 10, sin dueño) y la partícula `5c5/0` blanca, cada par con los ángulos (`rand() % 60 + 150`; 0;
+    z del personaje);
+  - el arco `0xa27` (`0x50af03..0x50afa7`), con un `rand()` impar: la chispa `5c6/0xb` de 0,8 en los huesos
+    4 y 12 con (0,8; 0,8; 0,2) y los ángulos del personaje. La chispa (`0x540977`, `0x545368`) pisa la
+    escala con la suya y muere con la cuenta de `+0x38` (Q-C360);
+  - el bastón `0xc1e` (`0x50b411..0x50b763`): Spark03 en (0; p − 170; p) del hueso 0, que queda en `+0x40`
+    del personaje (`ActorState::effectOrigin`) y donde nace el joint `618/0x11` (ancho 30, el personaje
+    como dueño, vida 12, la luz (0,8; 0,2; 1), los puntos del uso anterior del lugar: Q-C361), que en cada
+    paso vuelve a `+0x40` o se apaga si el personaje murió (`0x53820e`). Otra p sin efecto (Q-C362), un
+    destello, dos Shiny02 y la chispa `5c6/0xb` con (1; 0,4; 1), y seis Shiny02 en los huesos 2 y 1 que
+    giran con el reloj;
+  - la espada `0x223` (`0x50eb43..0x50ecf0`): dos joints `610/4` de (0; −20; −40) a (0; −160; −10) y de
+    (0; −10; 28) a (0; −145; 18) de la mano, de ancho sin(reloj · 0,004f) · 10 + 20 y con el personaje como
+    dueño. Nacen con diez tramos hacia el segundo punto y vida 0; en su único paso el destino sale de
+    `+0x17c` del personaje (`ActorState::trailOrigin`, que `0x4fcee0` pone al día antes del frame 3 y fuera
+    de la `0x8d`) y se corre tres tercios hasta su posición (Q-C363 a Q-C365);
+  - la espada `0x224` (`0x50eda0..0x50ee6e`): después de su Shiny02, tres joints `614/10` sin dueño hasta
+    (0; −133; 7) de la mano, de ancho v · 20 + 20, que avanzan como el `614/14` (Q-C366);
+  - el bastón `0xc18` (`0x50f454..0x50f676`): después de Spark02 y Shiny03, cuatro chispas `5c5/1` corridas
+    con (l; l · 0,6; l · 0,4) (la `5c5/1` sortea la escala como la `/0` y la vida `(rand() & 7) + 8`,
+    `0x5403eb`) y, de 0 a −180, un destello en tres de cada cuatro `rand()`.
 
 Entre frames del original, lo que cuelga se dibuja con una copia del personaje y del `rand()`, sin
-avanzar. Cortan con su dirección: el joint de `0x223` (`0x50ec26`), el de `0x224` después de su Shiny02
-(`0x50ee26`), la partícula de `0xc18` después de sus dos sprites y tres `rand()` (`0x50f5a8`), la de
-`0xa27` con la mitad de los `rand()` (`0x50af72`), el joint de `0xc1e` (`0x50b4e7`), el de `0x227` y
-`0x231` en la acción `0x8c` (`0x50a110`), el origen del `0xef` (`0x5096ac`), el lugar de los monstruos
-`0x84` a `0x86` (`0x5093f3`), las capas del 6 al 13 (`0x4140d5`), la de los GM en Chaos Castle
-(`0x5ffe09`), el arma del evento de Blood Castle (`0x50de84`) y el efecto cada 30 pasos de `+0x78 & 0x800`
-(`0x50e0c0`). `GameHangingTest` y `GameCharacterRenderTest` cubren la espalda (hueso 47 y su lugar), la
-mano (hueso 33), las saetas, Helper02, los sprites de `0x21d` y `0xc19`, la luz por nivel, MuSign en el
-hueso 20 con sus dos pases, las cuentas de `rand()` y los cortes; `WorldEntryTest` ve la capa en el héroe
-del cable (CtlCode `0x20`) en Lorencia.
+avanzar; sus joints y partículas van a la copia de la cola, que no avanza. Cortan con su dirección: el
+origen del `0xef` (`0x5096ac`; solo lo cuelga el monstruo con `+0x376` en `0x2a`, `0x50c79a`, CL9.1), el
+lugar de los monstruos `0x84` a `0x86` (`0x5093f3`), las capas del 6 al 13 (`0x4140d5`), la de los GM en
+Chaos Castle (`0x5ffe09`), el arma del evento de Blood Castle (`0x50de84`) y el efecto cada 30 pasos de
+`+0x78 & 0x800` (`0x50e0c0`). `GameHangingTest` y `GameCharacterRenderTest` cubren la espalda (hueso 47 y
+su lugar), la mano (hueso 33), las saetas, Helper02, los sprites de `0x21d` y `0xc19`, los joints y las
+partículas de las armas, la luz por nivel, MuSign en el hueso 20 con sus dos pases, las cuentas de `rand()`
+y los cortes; `HangingJointsTest` y `WeaponSparkParticlesTest` cubren la creación y el paso de los joints
+`614/10`, `618/0x11` y `610/4` y de la chispa `5c6/0xb`; `WorldEntryTest` ve la capa en el héroe del cable
+(CtlCode `0x20`) en Lorencia.
 
 ### Los efectos del jugador
 

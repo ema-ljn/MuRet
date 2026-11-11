@@ -118,7 +118,7 @@ class Particles
 public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
-    // rand(). Se aceptan5ca/0, 5f2/0,2, 5c6/1,5,9, 622/6,8,10, 5d9/0..3, 607/0, 67/0, 68/0, 6ab/0,1 y 6ac/0; la
+    // rand(). Se aceptan5ca/0, 5f2/0,2, 5c6/1,5,9,11, 622/6,8,10, 5d9/0..3, 607/0, 67/0, 68/0, 6ab/0,1 y 6ac/0; la
     // órbita 60f/3,4 pide el overload con la trigonometría.
     // Create es la compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina
     // consume cinco rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().

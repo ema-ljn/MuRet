@@ -474,14 +474,14 @@ bool LeavesATrail(std::uint8_t action, int model)
 }
 
 // 0x4fcee0(c, c, b) desde 0x505410, con el 0x20a.
-Core::Expected<void, std::string> StepTheWeaponTrail(const ActorState& actor, std::size_t slot,
+Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::size_t slot,
                                                      Render::Models::CrtRandom& random)
 {
     const std::uint8_t action = actor.animation.action;
-    // 0x4fceea..0x4fcf25: antes del frame 3 (o con NaN) y fuera de la 0x8d copia la posición a +0x17c, que MuRet
-    // no tiene, y sale.
+    // 0x4fceea..0x4fcf25: antes del frame 3 (o con NaN) y fuera de la 0x8d copia la posición a +0x17c y sale.
     if (!(actor.animation.frame >= TrailFrame) && action != AlwaysTrailedAction)
     {
+        actor.trailOrigin = actor.position;
         return {};
     }
     const bool left = action == FirstLeftHandAction || action == SecondLeftHandAction;

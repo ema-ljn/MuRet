@@ -11,6 +11,7 @@
 #include "World/Sprites.h"
 #include <cmath>
 #include "Render/Models/OriginalRetainedMath.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/FaunaObject.h"
 #include "World/WorldObjects.h"
 #include <glm/ext/vector_float3.hpp>
@@ -114,6 +115,160 @@ Core::Expected<void, std::string> CreateHelperBeam(JointState& joint, const Worl
                 (static_cast<double>(joint.position[axis]) - joint.pathIncrement[axis]) + joint.pathIncrement[axis]);
     }
     joint.position = joint.targetPosition; // 5333a7 lee +58 retenido con dueño opaco no nulo.
+    return {};
+}
+
+// 0x5309d6 y 0x531691..0x53180e: el 614/10 de la espada 0x224 (0x50ee26). Velocidad 50, el ancho, la textura que se
+// repite (+0x9f0), vida 0, los ángulos en 0, la luz (0,3; 0,3; 1), 10 puntos y el décimo de lo que falta hasta el
+// segundo punto. Nueve tramos: cada uno corre el avance (rand() & 7) − 4 en x e y (con dueño, (rand() & 15) − 8),
+// agrega la cola con la matriz de los ángulos en 0 y deshace la corrida. Al final, la posición es el destino (+0x58).
+Core::Expected<void, std::string> CreateSwordBeam(JointState& joint, const World::FishEffectRequest& request,
+                                                  Render::Models::CrtRandom& random)
+{
+    constexpr float Speed = 50;
+    constexpr std::int32_t Points = 10;
+    joint.speed = Speed;
+    joint.width = request.scale;
+    joint.repeatedTexture = true;
+    joint.life = 0;
+    joint.angles = {};
+    joint.light = {0.3f, 0.3f, 1};
+    joint.maximumCount = Points;
+    for (int axis = 0; axis < 3; ++axis)
+        joint.pathIncrement[axis] = static_cast<float>(
+            (static_cast<double>(request.secondPosition[axis]) - static_cast<double>(joint.position[axis])) *
+            static_cast<double>(0.1f));
+    const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
+    const bool owned = joint.ownerContext != nullptr;
+    const int mask = owned ? 15 : 7;
+    const double center = owned ? 8.0 : 4.0; // 0x6b86c4 y 0x6b8a44.
+    for (std::int32_t sample = 0; sample < joint.maximumCount - 1; ++sample)
+    {
+        const auto dx = static_cast<float>(static_cast<double>(random.Next() & mask) +
+                                           static_cast<double>(joint.pathIncrement.x) - center);
+        const auto dy = static_cast<float>(static_cast<double>(random.Next() & mask) +
+                                           static_cast<double>(joint.pathIncrement.y) - center);
+        joint.position.x = static_cast<float>(static_cast<double>(dx) + static_cast<double>(joint.position.x));
+        joint.position.y = static_cast<float>(static_cast<double>(dy) + static_cast<double>(joint.position.y));
+        joint.position.z =
+            static_cast<float>(static_cast<double>(joint.pathIncrement.z) + static_cast<double>(joint.position.z));
+        if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
+            return appended;
+        joint.position.x = static_cast<float>(static_cast<double>(joint.position.x) - static_cast<double>(dx) +
+                                              static_cast<double>(joint.pathIncrement.x));
+        joint.position.y = static_cast<float>(static_cast<double>(joint.position.y) - static_cast<double>(dy) +
+                                              static_cast<double>(joint.pathIncrement.y));
+    }
+    joint.position = joint.targetPosition;
+    return {};
+}
+
+// 0x532125, 0x5321e0..0x53220b, 0x5323ba y 0x534cb6: el 618/0x11 del bastón 0xc1e (0x50b4e7), con el ActorState del
+// personaje como dueño (+0x54). El ancho, velocidad 0, vida 12, la posición en +0x40 del dueño y la luz (0,8; 0,2;
+// 1). No escribe +0x6c: los puntos quedan los del uso anterior del lugar, a lo sumo 50 (Q-C361).
+Core::Expected<void, std::string> CreateStaffBeam(JointState& joint, const World::FishEffectRequest& request)
+{
+    constexpr std::int32_t StaffBeamLife = 12;
+    constexpr std::int32_t MostPoints = 50;
+    const auto* owner = static_cast<const ActorState*>(joint.ownerContext);
+    if (owner == nullptr)
+        return Core::Unexpected(std::string("0x5321ea: falta el personaje dueño del joint 0x618/0x11"));
+    joint.width = request.scale;
+    joint.speed = 0;
+    joint.life = StaffBeamLife;
+    joint.position = owner->effectOrigin;
+    joint.light = {0.8f, 0.2f, 1};
+    if (joint.maximumCount > MostPoints)
+        joint.maximumCount = MostPoints;
+    return {};
+}
+
+// 0x531c43..0x531cc7, 0x531d24..0x531dcb y 0x532003: el 610/4 de la espada 0x223 (0x50ec26), con el ActorState del
+// personaje como dueño (+0x54). Lo común del 0x610 pone la vida en la key, 50 puntos y la key en 0, y el color del
+// skill (+0x9ea) elige el ancho y la luz; el caso 4 pisa todo salvo la key. Mezcla 3, los ángulos en 0, vida 0, el
+// ancho, la luz en 1, 10 puntos y el décimo de lo que falta hasta el segundo punto (+0x24). Diez tramos, cada uno con
+// el avance sumado y la cola con la matriz de los ángulos en 0, y el destino (+0x58) en el segundo punto. Sin rand().
+// Con vida 0, vive un paso (Q-C365).
+Core::Expected<void, std::string> CreateSwordTrail(JointState& joint, const World::FishEffectRequest& request)
+{
+    constexpr std::int32_t Points = 10;
+    constexpr std::uint8_t OwnerColor = 3;
+    // 0x531c71..0x531c8c: el color 3 lee la luz del dueño (+0xf4), que el caso 4 pisa; sin dueño, el original cae.
+    if (joint.skill == OwnerColor && joint.ownerContext == nullptr)
+        return Core::Unexpected(std::string("0x531c7b: falta el color del dueño del joint 0x610/4"));
+    joint.key = 0;
+    joint.blend = 3;
+    joint.angles = {};
+    joint.life = 0;
+    joint.width = request.scale;
+    joint.light = {1, 1, 1};
+    joint.maximumCount = Points;
+    for (int axis = 0; axis < 3; ++axis)
+        joint.pathIncrement[axis] = static_cast<float>(
+            (static_cast<double>(request.secondPosition[axis]) - static_cast<double>(joint.position[axis])) *
+            static_cast<double>(0.1f));
+    const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
+    for (std::int32_t sample = 0; sample < joint.maximumCount; ++sample)
+    {
+        for (int axis = 0; axis < 3; ++axis)
+            joint.position[axis] = static_cast<float>(static_cast<double>(joint.position[axis]) +
+                                                      static_cast<double>(joint.pathIncrement[axis]));
+        if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
+            return appended;
+    }
+    joint.targetPosition = request.secondPosition;
+    return {};
+}
+
+// 0x537d49..0x537ee1: el paso del 610/4. Con el personaje muerto, vida −1 y la posición 50 sobre el destino. Vivo, el
+// destino va a +0x17c del personaje y se corre tres veces un tercio de lo que le falta hasta su posición (+0x10); cada
+// vez la posición es el destino más la velocidad girada por los ángulos de la cabeza (+0x28..+0x30), y la cola se
+// agrega, con la matriz de los ángulos del joint, solo si todavía no está llena o hay skill. Con la vida debajo de 15
+// la luz baja a dos tercios. Las dos ramas siguen con la cola y la vida comunes.
+Core::Expected<void, std::string> StepSwordTrail(JointState& joint, std::size_t index)
+{
+    constexpr std::int32_t Steps = 3;
+    constexpr std::int32_t FadingLife = 15;
+    constexpr double Third = static_cast<double>(std::bit_cast<float>(0x3eaaaaabu)); // 0x6ba2a0.
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f2aaaabu));  // 0x6b8c64.
+    constexpr double Above = 50.0;                                                   // 0x6b86b0.
+    const auto* actor = static_cast<const ActorState*>(joint.ownerContext);
+    if (actor == nullptr)
+        return Core::Unexpected(std::format("0x537d49: falta el personaje dueño del joint {} (0x610/4)", index));
+    if (!actor->alive)
+    {
+        joint.life = -1;
+        joint.position = {joint.targetPosition.x, joint.targetPosition.y,
+                          static_cast<float>(static_cast<double>(joint.targetPosition.z) + Above)};
+        return {};
+    }
+    if (joint.velocity != glm::vec3(0.0f))
+        return Core::Unexpected(
+            std::format("0x537e3c: el joint {} (0x610/4) tiene velocidad y su giro pide +0x30 del personaje", index));
+    glm::vec3 delta{};
+    for (int axis = 0; axis < 3; ++axis)
+        delta[axis] = static_cast<float>(static_cast<double>(actor->position[axis]) -
+                                         static_cast<double>(actor->trailOrigin[axis]));
+    joint.targetPosition = actor->trailOrigin;
+    const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
+    for (int axis = 0; axis < 3; ++axis)
+        delta[axis] = static_cast<float>(static_cast<double>(delta[axis]) * Third);
+    for (std::int32_t step = 0; step < Steps; ++step)
+    {
+        for (int axis = 0; axis < 3; ++axis)
+            joint.targetPosition[axis] =
+                static_cast<float>(static_cast<double>(delta[axis]) + static_cast<double>(joint.targetPosition[axis]));
+        // 0x537e2b..0x537e65: la velocidad (+0x9dc) del 610/4 queda en el 0 del prefijo, así que el giro por los
+        // ángulos de la cabeza (+0x30 no está en MuRet) solo da ceros, y la posición es el destino (Q-C364).
+        joint.position = joint.targetPosition;
+        const auto last = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(joint.maximumCount) - 1u);
+        if (joint.count < last || joint.skill != 0)
+            if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
+                return appended;
+    }
+    if (joint.life < FadingLife)
+        for (int axis = 0; axis < 3; ++axis)
+            joint.light[axis] = static_cast<float>(static_cast<double>(joint.light[axis]) * Fade);
     return {};
 }
 
@@ -260,6 +415,8 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         return CreateHelperBeam(joint, request);
     if (request.type == 0x614 && request.subtype == 6)
         return CreateObjectBolt(joint, request, random);
+    if (request.type == 0x614 && request.subtype == 10)
+        return CreateSwordBeam(joint, request, random);
     if (request.type == 0x615 && request.subtype == 0)
         return CreateSkyBolt(joint, request, random);
     if (request.type == 0x615 && request.subtype == 2)
@@ -281,6 +438,10 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         joint.light = request.subtype == 2 ? glm::vec3(0.3f, 0.3f, 1) : glm::vec3(1);
         return {};
     }
+    if (request.type == 0x618 && request.subtype == 0x11)
+        return CreateStaffBeam(joint, request);
+    if (request.type == 0x610 && request.subtype == 4)
+        return CreateSwordTrail(joint, request);
     if (request.type == 0x618 && request.subtype == 4)
     {
         joint.width = request.scale;
@@ -708,15 +869,20 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         const bool bloodCastle = joint.type == 0x10f && joint.subtype == 3;
         const bool fairy = joint.type == 0x10f && joint.subtype == 1;
         const bool spiritBeam = joint.type == 0x613 && joint.subtype == 4;
-        const bool flareBeam = joint.type == 0x614 && joint.subtype == 14;
+        // 0x53c478: el 614/10 de la espada 0x224 comparte con el 614/14 la entrada 8 (0x536b24) y el resto del paso
+        // (Q-C366).
+        const bool flareBeam = joint.type == 0x614 && (joint.subtype == 14 || joint.subtype == 10);
         const bool icarus = joint.type == 0x610 && joint.subtype == 8;
         const bool noria = joint.type == 0x617 && joint.subtype >= 0 && joint.subtype <= 3;
         const bool skyBolt = joint.type == 0x615 && joint.subtype == 0;
         const bool objectBolt = joint.type == 0x614 && joint.subtype == 6;
         const bool trapBolt = joint.type == 0x615 && joint.subtype == 2;
         const bool meteor = joint.type == 0x6ee && joint.subtype == 9;
+        // Los de lo que cuelga de un jugador, con el ActorState del personaje como dueño.
+        const bool staffBeam = joint.type == 0x618 && joint.subtype == 0x11;
+        const bool swordTrail = joint.type == 0x610 && joint.subtype == 4;
         if (!crywolf && !tarkan && !bloodCastle && !fairy && !spiritBeam && !flareBeam && !icarus && !noria &&
-            !skyBolt && !objectBolt && !trapBolt && !meteor)
+            !skyBolt && !objectBolt && !trapBolt && !meteor && !staffBeam && !swordTrail)
             return Core::Unexpected(
                 std::format("0x535840: el paso del joint {} ({:#x}/{}) no está portado", i, joint.type, joint.subtype));
         // 53590e..53597a: el movimiento común precede la lectura del dueño, incluso si muere.
@@ -744,11 +910,12 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         if (meteor)
             if (auto result = StepMeteor(joint, random); !result.HasValue())
                 return result;
-        const auto* owner = (joint.type == 0x613 || joint.type == 0x614 || joint.type == 0x615 || meteor)
+        const bool actorOwned = staffBeam || swordTrail;
+        const auto* owner = (joint.type == 0x613 || joint.type == 0x614 || joint.type == 0x615 || meteor || actorOwned)
                                 ? nullptr
                                 : static_cast<const FaunaObject*>(joint.ownerContext);
         const bool ownerless =
-            spiritBeam || flareBeam || icarus || noria || skyBolt || objectBolt || trapBolt || meteor;
+            spiritBeam || flareBeam || icarus || noria || skyBolt || objectBolt || trapBolt || meteor || actorOwned;
         if (owner == nullptr && !ownerless)
             return Core::Unexpected(std::format("{}: falta el dueño durable del joint {:#x}/{}",
                                                 fairy         ? "0x536076"
@@ -766,6 +933,22 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         }
         if (tarkan)
             joint.position = owner->previousPosition;
+        if (staffBeam)
+        {
+            // 0x53820e: con el personaje muerto se apaga sin cola ni vida; vivo, sigue su +0x40 (0x53822f).
+            const auto* actor = static_cast<const ActorState*>(joint.ownerContext);
+            if (actor == nullptr)
+                return Core::Unexpected(std::format("0x53820e: falta el personaje dueño del joint {} (0x618/0x11)", i));
+            if (!actor->alive)
+            {
+                joint.alive = false;
+                continue;
+            }
+            joint.position = actor->effectOrigin;
+        }
+        if (swordTrail)
+            if (auto result = StepSwordTrail(joint, i); !result.HasValue())
+                return result;
         if (icarus)
         {
             // 53801e..538055: dueño nulo apaga; muerto también copia. Ambos continúan en cola/vida.

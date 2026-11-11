@@ -872,9 +872,9 @@ TEST(CharacterStepTest, AnEndedActionFortyFourRestartsItsFrame)
     EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws).State());
 }
 
-// 0x4fcee0: antes del frame 3, salvo en la 0x8d, sale; si no, con el 0x20a, la estela según la acción y el arma
-// de la mano (la izquierda con las 0x25 y 0x26) corta en 0x52e470, y sin estela 0x432bd0 saca su rand() sin
-// condición (0x432bf1).
+// 0x4fcee0: antes del frame 3, salvo en la 0x8d, copia la posición a +0x17c y sale; si no, con el 0x20a, la estela
+// según la acción y el arma de la mano (la izquierda con las 0x25 y 0x26) corta en 0x52e470, y sin estela 0x432bd0
+// saca su rand() sin condición (0x432bf1).
 TEST(CharacterStepTest, TheWeaponTrailDrawsFromFrameThree)
 {
     constexpr std::uint16_t NoItem = Client::Scenes::NoItemModel;
@@ -909,8 +909,13 @@ TEST(CharacterStepTest, TheWeaponTrailDrawsFromFrameThree)
         hero.animation.frame = probe.frame;
         hero.hands[0].model = probe.right;
         hero.hands[1].model = probe.left;
+        const glm::vec3 retained{1.0f, 2.0f, 3.0f};
+        hero.trailOrigin = retained;
 
         const auto stepped = tested.Step(Everything);
+
+        const bool copies = !(probe.frame >= 3.0f) && probe.action != 0x8d;
+        EXPECT_EQ(hero.trailOrigin, copies ? hero.position : retained);
 
         if (probe.trail)
         {

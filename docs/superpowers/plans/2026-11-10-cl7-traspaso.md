@@ -1,5 +1,8 @@
 # CL7: traspaso de las tareas que quedan (2026-11-10)
 
+> **Handoff vigente:** [cierre y continuidad del 2026-11-11](2026-11-11-cl7-handoff.md).
+> Este archivo conserva también estados históricos; usar el handoff nuevo para retomar.
+
 > La actualización CL7b de abajo fija el estado más reciente. La fotografía de la tanda
 > `codex/cl7-resto-traspaso`, desde `2110806`, se conserva como antecedente.
 > La [continuación previa](2026-11-10-cl7-continuacion-codex.md) documenta una tanda anterior.

@@ -4375,7 +4375,7 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 | `0x6374ce` | **`0x6046a0` → `0x602e90` y `0x602ed0`** | objetos por sector | `DrawGameWorldObjects` en0/2/3, con la fuente69 que lee matrices retenidas y los servicios de Noria; otros mapas/casos conservan fronteras |
 | `0x6374d3` | **`0x52dc20`** | los efectos del suelo (`0x61d`, `0x61e`, `0x61f`…), con `0x5fb2f0` ([Después de los objetos](#el-dibujo-del-juego)) | `Scenes::DrawGroundEffects`: filtra vivos y vistos, consume el rand común y dibuja los casos acreditados; `GroundEffectFrame` evita repetir sus mutaciones entre frames originales (Q-C278) |
 | `0x6374d8` | **`0x446b60`** | los pájaros, con su sombra | `Scenes::DrawGameBirds`, los 40 lugares durables, cuerpo/glows/sombra y [pose compartida](#la-pose-compartida-entre-escenas) |
-| `0x6374dd` | **`0x510d00` → `0x50ba30`** | los personajes vistos (`+0x16c`), por índice; `0x42afe0` para los jugadores, solo en el mapa 30; al final, las puertas (`0x42da60`, Q-C276) | `Scenes::DrawGameCharacters`: jugador, sombra, scan, luz dinámica, color del héroe y partes/tela reutilizando `DrawCharacter`; cortes explícitos en monstruos, armas, alas y efectos pendientes; abre puertas al completar el recorrido |
+| `0x6374dd` | **`0x510d00` → `0x50ba30`** | los personajes vistos (`+0x16c`), por índice; `0x42afe0` para los jugadores, solo en el mapa 30; al final, las puertas (`0x42da60`, Q-C276) | `Scenes::DrawGameCharacters`: jugador, sombra, scan, luz dinámica, color del héroe y partes/tela reutilizando `DrawCharacter`, y lo que cuelga con `Scenes::DrawGameHanging` (espalda, alas, Helper02 y manos); cortes explícitos en monstruos y efectos pendientes; abre puertas al completar el recorrido |
 | `0x6374ed` | `0x5fc260(1)` con `0x77f3b18` | el picking del terreno con esa bandera (*inferido*: el editor) | — |
 | `0x6374fe` | `0x608a00`, con `0x7d36899` en0 | ítems del piso | `DrawFloorItems`: ramaSword01..19 nivel0 y pose global; las opciones/familias CL9.3 restantes conservan error, ya no corta universalmente |
 | `0x637503` | **`0x446f00`** | los peces, con su sombra | `Scenes::DrawGameFish`, los 10 lugares durables y sus excepciones de sombra; [fauna](#la-fauna-y-sus-recursos) |
@@ -4466,10 +4466,10 @@ de MuRet, *simulado*):
   (`0x42da40` → `0x42a110(0, 0, 0, 1)`, Q-C276) y `0x7239d9` en 0. Las puertas no miran el mapa: en
   Lorencia y en Devias abren las paredes de (118..121, 115) y, en Devias, las de (92..95, 205), desde el
   primer frame que llega acá. MuRet (`Scenes::DrawGameCharacters`) conserva esas operaciones y porta
-  el jugador ordinario hasta la separación de las armas/efectos pendientes: sombra, scan, luz, rama
-  del héroe, partes y tela. Las puertas se abren solo si termina el recorrido. Las ramas pendientes
-  devuelven su dirección después del prefijo ya ejecutado; un jugador fuera de zona segura llega
-  a `0x50e298`. El overload histórico sin recursos conserva su corte en `0x510ea1`.
+  el jugador ordinario: sombra, scan, luz, rama del héroe, partes, tela y lo que cuelga (abajo, "Lo
+  que cuelga en el juego"). Las puertas se abren solo si termina el recorrido. Las ramas pendientes
+  devuelven su dirección después del prefijo ya ejecutado. El overload histórico sin recursos
+  conserva su corte en `0x510ea1`.
 - `0x6374e2..0x6374f5`: el picking del modo editor (`0x77f3b18`) y la vista de arriba (`0x7d36899`) no
   corren. Sigue `0x608a00`, los ítems del piso (`0x6374fe`), donde MuRet corta.
 
@@ -4763,14 +4763,69 @@ aun con sus bits de ajuste apagados. Cada máscara de color multiplica con store
 el literal0,9f del binario. Reutiliza `DrawCharacter` por fases Parts y Cloth, conserva el rand de
 `0x50db57` aun sin ítems y aplica después el color para los colgantes.
 
-Los índices de resaltado `0x6c8e30/0x6c8e2c` nacen en−1. Los monstruos, ropa especial, alas,
-Helper02, armas a espalda/mano y efectos pendientes cortan donde corresponde; fuera de zona
-segura el jugador ordinario llega a `0x50e298`. Una tela ausente conserva sombra/scan/luz/partes
+Los índices de resaltado `0x6c8e30/0x6c8e2c` nacen en−1. Los monstruos, la ropa especial y los
+efectos pendientes cortan donde corresponde; lo que cuelga sigue abajo. Una tela ausente conserva sombra/scan/luz/partes
 anteriores, sin gastar todavía `0x50db57`. Un dibujo entre frames usa `DrawCurrent` sin crear ni
 simular telas ni consumir RNG; al recuperar varios frames se conserva la simulación y se descartan
 los destellos de los frames intermedios. El mapa30 conserva su frontera `0x510eb3`.
 `GameCharacterRenderTest` y `CharacterDrawingTest` cubren estas ramas y los prefijos hallados en la
 revisión adversarial. Quedan abiertas la pose nativa, las ramas pendientes y las trazas GL originales.
+
+### Lo que cuelga en el juego
+
+**Estático**, `0x50db57..0x50e9fa` y `0x509340` (2026-11-11, el corte `0x50de55` que vio Emanuel al
+entrar a Devias armado). `Scenes::DrawGameHanging` corre, sobre el cuerpo ya dibujado:
+
+- **La luz.** `rand() % 30 + 70` por 0,01 (`0x50db57`, `[ebp+0xc]`), aun sin ítems, y `+0x3b4` con la luz
+  del terreno más la del personaje, o (1; 0,1; 0,1) con `+0x375` desde 6 (`0x50db94`). Lo que no es un
+  `0x20a` corta en `0x50e060`.
+- **La espalda** (`0x50dcda..0x50de60`). `local_20` como en la selección (zona segura, las acciones
+  `0x99` a `0xb8`, o `0x15` y `0x1d` en los mapas 7, 24 a 29 y 36; nunca en los 11 a 23). Con 1: el arco
+  izquierdo, la ballesta derecha o, si no, la mano de índice 0 (EAX en 0 desde `0x50dcd1`); con 0, las
+  saetas izquierdas o las flechas derechas. El guardia de Lorencia (`+0x88` en 4, subtipos `0xd1` a
+  `0xd3`) lleva `0xa1b` +8. Cuelga con la parte de las alas: hueso 47, la velocidad de la acción 1 de
+  `Player.bmd` con la bandera, y al volver solo repone el frame (Q-C296). La raíz con bandera es
+  `0x5fc8f0` en el buffer local más `0x5fca90` con el hueso, con los bits de la x87
+  (`Render::Models::OriginalConcatTransforms`: la primera fila suma en el orden natural y las otras
+  dos desde la columna 2); el origen es la posición del personaje.
+- **Los GM** (`0x50df01`, `0x413fe0`): con "webzen" en el nombre (`0x576960`), `+0x78 & 0x1000000` o el
+  CtlCode en `0x20` u 8 (el personaje del laboratorio tiene `0x20`), suelta una capa que no sea la 5
+  (`0x414340`) y pone `+0x360` en 5. Sin capa en `+0x364` y con `+0x360` del 5 al 13 la crea: la 5 es
+  `0x414370(0x12a, 0x14, 1, 70, −5, 0, 0, 0, 45)`, Skill\MuSign.bmd (`0x6166fe`, texturas en `0x616c5c`);
+  las del 6 al 13 (`0x4147c0` con el `0x637`) cortan. Después, `0x4142f0` (`0x50df07`), sin
+  `+0x78 & 0x4000`, la dibuja con `0x414470`: el punto (70, −5, 0) del hueso 20 del cuerpo (`0x4ec110`),
+  los ángulos fijos (0, 0, 45), `0x4ec200` a 0,5 sobre la acción 0 y `0x602e90(objeto, 1, 0, 0)`, que en
+  `0x6002e0` hace `RenderBody(2)` con la luz en 1 y `RenderBody(0x44)` con (1; 0,5; 0), con la luz por
+  vértice y la pose en el buffer global. Sin `rand()`. `+0x360` queda en 5 en el registro (Q-C301). En
+  Chaos Castle corta (`0x5ffe09` lee `+0x1a1` del héroe), y en Blood Castle (`0x50de63`, antes de la capa)
+  el 5 de un GM corta en `0x50de84`, el arma del evento.
+- **Las alas y Helper02**, fuera de los mapas 18 a 23: las alas en 47 a (0, 0, 15) y Helper02 en 34 a
+  (20, 0, 0) y 0,5 keys por frame, con el excelente del arma de la espalda (Q-C297), y su destello rojo
+  `0x5ac` de 1,5 en (20, 0, 15) del hueso 34.
+- **Las manos** (`0x50e298..0x50e9ea`), sin espalda: cada mano abre y cierra `+0x38e` antes de mirarla;
+  la derecha no cuelga en la acción `0x3e` hasta pasar el frame 4, ni con `')'` en la `0x3d`. Saltea
+  `0xa19`, `0xa21` y `0x1c17`; la acción y la velocidad salen de la del personaje (`0x50e76e`). Después
+  de `0x509340`, la luz por nivel (desde 7, 5 y 3, `0x50e896`) y los sprites de cada arma
+  (`0x50e921..0x50f828`), salvo con `+0x375` desde 6 o `+0x1d6` en 4 (Q-C300).
+- **`0x509340`.** Sale con el `0x1c30` o con `+0x78 & 0x4000`; 0x607b60 con sus `rand()` (uno para
+  `0x220` y `0xc19`, dos para `0xc17` y `0xe20`); un acceso a `+0x38e` (Q-C299); la acción `1` si la parte
+  es `0x1a18` en la zona segura (Q-C298); 0x4ec200 solo en un frame del original, salvo con bandera y
+  `0xa12..0xc11` o con `+0x78 & 0x1000`; la pose en el buffer global (`0x68b181c`), 0x60b3d0 con el
+  nivel, el excelente, sin set y 2 (`0x102` con `+0x376` en `0x43` o `0x89`), y los sprites por modelo
+  (`0x509a92..0x50b801`), con su `rand() % 30 + 70` por 0,005 aun sin caso. Las texturas Shiny03
+  (`0x5fe`, `0x61d937`) e Impack03 de Object9 (`0x5ad`, `0x61e799`) se suben con las demás de 0x61ccb0.
+
+Entre frames del original, lo que cuelga se dibuja con una copia del personaje y del `rand()`, sin
+avanzar. Cortan con su dirección: el joint de `0x223` (`0x50ec26`), el de `0x224` después de su Shiny02
+(`0x50ee26`), la partícula de `0xc18` después de sus dos sprites y tres `rand()` (`0x50f5a8`), la de
+`0xa27` con la mitad de los `rand()` (`0x50af72`), el joint de `0xc1e` (`0x50b4e7`), el de `0x227` y
+`0x231` en la acción `0x8c` (`0x50a110`), el origen del `0xef` (`0x5096ac`), el lugar de los monstruos
+`0x84` a `0x86` (`0x5093f3`), las capas del 6 al 13 (`0x4140d5`), la de los GM en Chaos Castle
+(`0x5ffe09`), el arma del evento de Blood Castle (`0x50de84`) y el efecto cada 30 pasos de `+0x78 & 0x800`
+(`0x50e0c0`). `GameHangingTest` y `GameCharacterRenderTest` cubren la espalda (hueso 47 y su lugar), la
+mano (hueso 33), las saetas, Helper02, los sprites de `0x21d` y `0xc19`, la luz por nivel, MuSign en el
+hueso 20 con sus dos pases, las cuentas de `rand()` y los cortes; `WorldEntryTest` ve la capa en el héroe
+del cable (CtlCode `0x20`) en Lorencia.
 
 ### Los objetos del juego
 

@@ -1170,6 +1170,9 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         const int characterDraws = seen ? OwnRecordClose + 1 : 0;
         EXPECT_EQ(tested.cloth.random.State(),
                   Advanced(reference.random, FrameRandoms + objects.randoms + characterDraws).State());
+        // El héroe del cable es GM (CtlCode 0x20): dibujado, 0x413fe0 le pone +0x360 en 5 y la capa de MuSign.
+        EXPECT_EQ(tested.Hero().byte360, seen ? 5 : 0);
+        EXPECT_EQ(tested.Hero().layer.has_value(), seen);
         game.Leave();
     }
 }

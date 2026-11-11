@@ -13,6 +13,7 @@
 #include "Scenes/FaunaEffects.h"
 #include "Scenes/GameFloorItems.h"
 #include "Scenes/GameItemRenderState.h"
+#include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/KalimaObjectStep.h"
 #include "World/GameModelEffects.h"
 
@@ -168,7 +169,6 @@ Core::Expected<void, std::string> GameScene::Enter()
     }
     m_tiles.BindTextureTable(textureTable);
     m_characterCloths.resize(ActorPoolSize);
-    m_scepters.resize(ActorPoolSize);
     return {};
 }
 
@@ -731,6 +731,9 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
         return DrawGameCharacters(world.Actors(), world.Runtime().hero, world.Map().terrain.attributes->cells);
     }
     std::optional<std::string> poseFailure;
+    ItemSpecialDrawContext special;
+    ItemDrawContext itemContext;
+    FillTheItemContexts(special, itemContext, canvas.frameClock, frames);
     const auto drawn = DrawGameCharacters(
         canvas.models, *m_models, world,
         GameCharacterPass{.dynamicLighting = &FrameLighting(),
@@ -739,7 +742,8 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                           .originalFrames = frames,
                           .cloths = m_characterCloths,
                           .sprites = &FrameSpritesForDraw(),
-                          .scepters = m_scepters,
+                          .poseCarry = &FramePoseCarry(),
+                          .itemContext = &itemContext,
                           .pace = OriginalFramePaceOf(m_context.pacing),
                           .onPose =
                               [&](std::uint16_t model, std::span<const Render::Models::BoneTransform> bones,

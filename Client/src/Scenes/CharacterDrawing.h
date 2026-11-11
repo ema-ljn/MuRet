@@ -177,6 +177,15 @@ inline constexpr Render::TextureSlot MetalTextureSlot{0x620};
 void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnCharacter& character,
                    Core::Duration frameClock, CharacterDrawPass pass = CharacterDrawPass::All);
 
+// Los huesos del cuerpo de `character` como los posa DrawCharacter (0x4eb860 con la cabeza): el buffer
+// propio del personaje, +0x120. Sin el esqueleto del 0x20a o si la pose falla, vacío.
+[[nodiscard]] std::vector<Render::Models::BoneTransform> PoseCharacterBody(const IModelLibrary& models,
+                                                                           const DrawnCharacter& character);
+
+// Cuántos rand() saca 0x607b60 al armar el objeto de lo que cuelga con el tipo `model`: uno con Sword15
+// (0x220) y Staff08 (0xc19), dos con Staff06 (0xc17) y Shield15 (0xe20), y ninguno con los demás.
+[[nodiscard]] std::size_t HangingRandomCount(std::uint16_t model);
+
 // Un objeto del mundo (0x606660): el modelo, su animación (+0x111 a +0x118), dónde va, lo que le pasa
 // a RenderBody y el color del modelo (+0x48..+0x50, el que le pone 0x5ffce0 antes de posar).
 struct DrawnObject

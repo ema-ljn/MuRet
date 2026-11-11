@@ -66,7 +66,8 @@ struct HangingPlacement
 // hueso de las alas: (70, 0, 90) y (−10, 5, 10) (0x509535..0x5095bf).
 inline constexpr HangingPlacement QuiverPlacement{{70.0f, 0.0f, 90.0f}, {-10.0f, 5.0f, 10.0f}};
 
-// La raíz de lo que cuelga por ese camino: el hueso por la matriz de su lugar. Como en el otro, la
-// escala del personaje va en cada vértice.
+// La raíz de lo que cuelga por ese camino: el hueso por la matriz de su lugar, con los bits de la x87
+// (OriginalAngleMatrix y OriginalConcatTransforms). Como en el otro, la escala del personaje va en cada
+// vértice.
 [[nodiscard]] BoneTransform PlacedRoot(const BoneTransform& parent, const HangingPlacement& placement);
 } // namespace Client::Render::Models

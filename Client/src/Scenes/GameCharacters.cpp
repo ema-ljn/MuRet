@@ -8,8 +8,8 @@
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Attachment.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
@@ -17,11 +17,11 @@
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FullSetScan.h"
+#include "Scenes/GameHanging.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "World/ScepterGlow.h"
 #include "World/Sprites.h"
 #include "World/TerrainLighting.h"
 #include "World/TerrainWalls.h"
@@ -30,13 +30,16 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <format>
 #include <optional>
+#include <ratio>
 #include <span>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace Client::Scenes
 {
@@ -47,8 +50,6 @@ constexpr float UndrawnHeroMark = 1000.0f;
 constexpr std::size_t DrawnActorCount = ActorPoolSize - 1;
 constexpr std::uint32_t HiddenCharacterFlag = 0x10000000;
 constexpr std::uint16_t NoMonster = 0xffff;
-constexpr std::uint16_t Bolts = 0xa19;
-constexpr std::uint16_t Arrows = 0xa21;
 constexpr std::uint8_t RedPk = 6;
 constexpr std::int32_t FirstEventMap = 18;
 constexpr std::int32_t LastEventMap = 23;
@@ -134,7 +135,6 @@ DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, const GameCh
     character.cloth = slot < pass.cloths.size() ? &pass.cloths[slot] : nullptr;
     character.clothWorld = pass.clothWorld;
     character.sprites = pass.sprites;
-    character.scepter = slot < pass.scepters.size() ? &pass.scepters[slot] : nullptr;
     character.originalRandom = pass.clothWorld != nullptr ? &pass.clothWorld->random : nullptr;
     character.pace = pass.pace;
     character.poseBones = pass.poseBones;
@@ -193,71 +193,6 @@ Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const I
     return {};
 }
 
-bool WeaponsOnTheBack(const ActorState& actor, std::int32_t map)
-{
-    constexpr std::uint8_t FirstBackAction = 0x99;
-    constexpr std::uint8_t LastBackAction = 0xb8;
-    const bool event = map >= 11 && map <= LastEventMap;
-    const bool restingInFlight = (map == 7 || (map >= 24 && map <= 29) || map == 36) &&
-                                 (actor.animation.action == 0x15 || actor.animation.action == 0x1d);
-    return !event && (actor.safeZone != 0 || restingInFlight ||
-                      (actor.animation.action >= FirstBackAction && actor.animation.action <= LastBackAction));
-}
-
-// 0x50dcda..0x50dd70: una sola mano a la espalda. Un arma izquierda que no es uno de
-// estos arcos no reemplaza la derecha vacía; y con local_20 en 1 no corre el lazo de las manos.
-const ActorItemPart& BackHandOf(const ActorState& actor)
-{
-    constexpr std::uint16_t FirstBow = 0xa12;
-    constexpr std::uint16_t ExtraBow23 = 0xa23;
-    constexpr std::uint16_t ExtraBow26 = 0xa26;
-    constexpr std::uint16_t ExtraBow27 = 0xa27;
-    constexpr std::uint16_t FirstCrossbow = 0xa1a;
-    constexpr std::uint16_t ExtraCrossbow22 = 0xa22;
-    constexpr std::uint16_t FirstExtendedCrossbow = 0xa24;
-    constexpr std::uint16_t FirstStaff = 0xc12;
-    const std::uint16_t left = actor.hands[1].model;
-    if ((left >= FirstBow && left < Bolts) || left == ExtraBow23 || left == ExtraBow26 || left == ExtraBow27)
-        return actor.hands[1];
-    const std::uint16_t right = actor.hands[0].model;
-    if ((right >= FirstCrossbow && right < Arrows) || right == ExtraCrossbow22 ||
-        (right >= FirstExtendedCrossbow && right < FirstStaff))
-        return actor.hands[0];
-    return left == Bolts ? actor.hands[1] : actor.hands[0];
-}
-
-Core::Expected<void, std::string> CheckTheHanging(const ActorState& actor, std::int32_t map, std::int32_t counter,
-                                                  bool originalFrame)
-{
-    const bool back = WeaponsOnTheBack(actor, map);
-    if (back && BackHandOf(actor).model != NoItemModel)
-        return Core::Unexpected<std::string>("0x50de55: la colocación del arma a la espalda no está portada");
-    if (actor.wings.model != NoItemModel)
-        return Core::Unexpected<std::string>(
-            "0x50df80: falta la animación persistente de las alas del personaje del juego");
-    if (actor.pet.model == Render::Models::DrawnPet)
-        return Core::Unexpected<std::string>(
-            "0x50dfcf: la animación y la chispa de Helper02 del juego no están portadas");
-    // 0x50e060..0x50e0c0: antes de las manos, salvo espalda y +0x4000, un efecto cada 30 pasos.
-    if (originalFrame && !back && (actor.flags78 & 0x4800u) == 0x800u && actor.byte88 == 1 && counter % 30 == 0)
-        return Core::Unexpected<std::string>(
-            "0x50e0c0: el efecto periódico de la bandera +0x78 & 0x800 no está portado");
-    if (!back && std::ranges::any_of(actor.hands, [](const ActorItemPart& hand) { return hand.model != NoItemModel; }))
-        return Core::Unexpected<std::string>(
-            "0x50e298: el byte lógico +0x38e y los casos de las armas en mano no están portados");
-    return {};
-}
-
-// 0x50e298..0x50e6af antes de cada NoItem (0x50e746): abre y cierra +0x38e, aun sin arma.
-// Su valor no afecta al caso vacío; la cuenta durable determina si el cierre gasta un rand.
-void ReadTheUnarmedHandBytes(ActorState& actor, Render::Models::CrtRandom& random)
-{
-    for (std::size_t hand = 0; hand < actor.hands.size(); ++hand)
-    {
-        const Render::Models::LogicalAccess access(actor.byte38eAccesses, random, 1);
-    }
-}
-
 Core::Expected<void, std::string> CheckTheEffects(const ActorState& actor, const FullSetScan& scan)
 {
     if ((actor.characterClass & 7u) == 0 && (actor.skin & 0xf8u) == 8u)
@@ -276,6 +211,34 @@ Core::Expected<void, std::string> CheckTheEffects(const ActorState& actor, const
     if (actor.darkSpirit.has_value())
         return Core::Unexpected<std::string>("0x420df0: el cuervo del personaje del juego no está portado");
     return {};
+}
+
+// 0x50db57..0x50e9fa sobre el cuerpo ya posado. Entre frames del original, sobre una copia del personaje
+// y del rand(): lo que cuelga queda como lo dejó el último frame.
+Core::Expected<void, std::string> HangTheItems(Render::ModelBatch& batch, const IModelLibrary& models,
+                                               ActorState& actor, const DrawnCharacter& character,
+                                               const GameCharacterPass& pass, std::int32_t map, bool originalFrame)
+{
+    const std::vector<Render::Models::BoneTransform> body = PoseCharacterBody(models, character);
+    std::optional<ActorState> projectedActor;
+    std::optional<Render::Models::CrtRandom> projectedRandom;
+    ActorState& hanging = originalFrame ? actor : projectedActor.emplace(actor);
+    Render::Models::CrtRandom& random =
+        originalFrame ? pass.clothWorld->random : projectedRandom.emplace(pass.clothWorld->random);
+    const GameHangingPass hangingPass{
+        .batch = batch,
+        .models = models,
+        .body = body,
+        .random = random,
+        .carry = pass.poseCarry,
+        .sprites = pass.sprites,
+        .itemContext = pass.itemContext,
+        .frameClock = pass.frameClock,
+        .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(pass.frameClock).count()),
+        .map = map,
+        .logicSteps = pass.clothWorld->logicSteps,
+        .originalFrame = originalFrame};
+    return DrawGameHanging(hanging, hangingPass);
 }
 
 Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,
@@ -304,18 +267,10 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
     character.light = actor.drawnLight;
     if (auto supported = DrawTheBody(batch, models, actor, character, pass.frameClock); !supported.HasValue())
         return supported;
-    if (originalFrame)
-        static_cast<void>(pass.clothWorld->random.Next()); // 0x50db57, aun sin ningún ítem
+    // 0x50db94: la luz de lo que cuelga (+0x3b4), la del terreno o el rojo de los PK.
     actor.drawnLight = actor.pk >= RedPk ? glm::vec3{1.0f, 0.1f, 0.1f} : terrainLight.Value() + actor.light;
-    character.hangingLight = actor.drawnLight;
-    if (auto supported = CheckTheHanging(actor, map, pass.clothWorld->logicSteps, originalFrame); !supported.HasValue())
-        return supported;
-    if (originalFrame && !WeaponsOnTheBack(actor, map))
-        ReadTheUnarmedHandBytes(actor, pass.clothWorld->random);
-    // A la espalda no corre el lazo; fuera de ella solo pasó el caso de las dos manos vacías.
-    character.appearance.rightHand.reset();
-    character.appearance.leftHand.reset();
-    DrawCharacter(batch, models, character, pass.frameClock, CharacterDrawPass::Hanging);
+    if (auto hung = HangTheItems(batch, models, actor, character, pass, map, originalFrame); !hung.HasValue())
+        return hung;
     return CheckTheEffects(actor, scan);
 }
 

@@ -183,4 +183,42 @@ TEST(OriginalRotationTest, ABoneTransformGoesByRows)
     EXPECT_EQ(Client::Render::Models::OriginalVectorTransform(point, rows),
               Client::Render::Models::VectorTransform(point, bone));
 }
+// 0x5fca90 por el ASM: la segunda y la tercera fila suman desde la columna 2, (a6·b8 + a5·b4) + a4·b0.
+// Con a4·b0 apenas sobre 1 y a6·b8 apenas bajo −1, el término chico se redondea en otra grilla según el
+// orden: el del binario da −0x1.48808ap−29 y el natural, (a4·b0 + a5·b4) + a6·b8, −0x1.48808cp−29
+// (búsqueda en Python con productos exactos en double y FSTP a float). La primera fila es 1 · b.
+TEST(OriginalRotationTest, TheConcatSumsTheLowerRowsFromTheThirdColumn)
+{
+    using Client::Render::Models::OriginalMatrix;
+    constexpr float A4 = 0x1.000006p+0f;
+    constexpr float A5 = -0x1.d37b24p-21f;
+    constexpr float A6 = -0x1.fffffep-1f;
+    constexpr float B0 = 0x1.000004p+0f;
+    constexpr float B4 = 0x1.c90596p-1f;
+    constexpr float B8 = 0x1.fffffcp-1f;
+    const OriginalMatrix parent{1.0f, 0.0f, 0.0f, 0.0f, A4, A5, A6, 0.0f, A4, A5, A6, 0.0f};
+    const OriginalMatrix child{B0, 0.0f, 0.0f, B0, B4, 0.0f, 0.0f, B4, B8, 0.0f, 0.0f, B8};
+
+    const OriginalMatrix out = Client::Render::Models::OriginalConcatTransforms(parent, child);
+
+    constexpr float Sum = -0x1.48808ap-29f;
+    const OriginalMatrix expected{B0, 0.0f, 0.0f, B0, Sum, 0.0f, 0.0f, Sum, Sum, 0.0f, 0.0f, Sum};
+    for (std::size_t k = 0; k < out.size(); ++k)
+    {
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(out[k]), std::bit_cast<std::uint32_t>(expected[k])) << k;
+    }
+}
+
+// BoneTransformOf deshace OriginalMatrixOf: la 3 × 4 vuelve por filas, cada valor a su lugar.
+TEST(OriginalRotationTest, ARowMatrixGoesBackToTheBoneTransform)
+{
+    Client::Render::Models::OriginalMatrix rows{};
+    for (std::size_t k = 0; k < rows.size(); ++k)
+    {
+        rows[k] = static_cast<float>(k) + 0.5f;
+    }
+    const Client::Render::Models::BoneTransform bone = Client::Render::Models::BoneTransformOf(rows);
+    EXPECT_EQ(Client::Render::Models::OriginalMatrixOf(bone), rows);
+    EXPECT_EQ(bone[3], glm::vec3(3.5f, 7.5f, 11.5f));
+}
 } // namespace

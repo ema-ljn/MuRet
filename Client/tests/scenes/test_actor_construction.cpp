@@ -165,7 +165,11 @@ TEST_F(ActorConstructionTest, TheOld1c15AddsThePetOffsetOutsideTheSafeZone)
 TEST_F(ActorConstructionTest, LeavesThePlayerReadyToDress)
 {
     ActorState actor = Client::Tests::UnarmedPlayer(3);
-    actor.hands[0] = {.model = 0x300, .level = 7, .flags1b = 1, .flags1c = 2};
+    actor.hands[0].model = 0x300;
+    actor.hands[0].level = 7;
+    actor.hands[0].flags1b = 1;
+    actor.hands[0].flags1c = 2;
+    actor.wings.animation.frame = 3.5f;
     actor.byte3e3 = 1;
     actor.byte358 = 1;
     actor.animation.action = 40;
@@ -177,6 +181,11 @@ TEST_F(ActorConstructionTest, LeavesThePlayerReadyToDress)
     EXPECT_EQ(actor.hands[0].level, 0);
     EXPECT_EQ(actor.hands[0].flags1b, 0);
     EXPECT_EQ(actor.hands[0].flags1c, 2);
+    // 0x5126b2..0x5126d5: las manos de un 0x20a cuelgan de los huesos 33 y 42; lo que cuelga sigue con la
+    // animación que tenía.
+    EXPECT_EQ(actor.hands[0].bone, 0x21);
+    EXPECT_EQ(actor.hands[1].bone, 0x2a);
+    EXPECT_EQ(actor.wings.animation.frame, 3.5f);
     EXPECT_EQ(actor.head, NoItemModel);
     for (const auto& part : actor.body)
     {
@@ -214,6 +223,20 @@ TEST_F(ActorConstructionTest, LeavesThePlayerUnseenAndNotDying)
     EXPECT_EQ(actor.dying, 0);
     EXPECT_EQ(actor.alphaMode, 1);
     EXPECT_EQ(actor.blendMeshLight, 1.0f);
+}
+
+// 0x511872: la capa de +0x364 queda en 0 sin 0x414340, así que +0x360 sigue en el 5 de un GM anterior y el
+// próximo dibujo vuelve a crearla (Q-C301).
+TEST_F(ActorConstructionTest, DropsTheLayerButKeepsItsKind)
+{
+    ActorState actor = Client::Tests::UnarmedPlayer(3);
+    actor.byte360 = 5;
+    actor.layer.emplace();
+
+    ASSERT_TRUE(ConstructActor(actor, Player, ActorPlacement{133, 127, 0.0f}, Context(), cloth).HasValue());
+
+    EXPECT_FALSE(actor.layer.has_value());
+    EXPECT_EQ(actor.byte360, 5);
 }
 
 // Fuera del jugador y los NewFace, corta sin tocar el personaje ni gastar rand().

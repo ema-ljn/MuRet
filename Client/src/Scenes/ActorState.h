@@ -22,6 +22,14 @@ namespace Client::Scenes
 // El modelo de una parte sin ítem.
 inline constexpr std::uint16_t NoItemModel = 0xffff;
 
+// La capa de los GM: el objeto de 0x1e8 bytes que 0x413fe0 crea con +0x360 en 5 (0x414370 con MuSign, el
+// 0x12a). Lo único que cambia entre dibujos es la animación (+0x115 la acción, +0x116 la anterior, +0x118
+// el frame y +0x11c la key anterior), que 0x414470 avanza con 0x4ec200; el lugar lo vuelve a calcular cada vez.
+struct GameMasterLayer
+{
+    Render::Models::AnimationState animation;
+};
+
 // Una parte puesta, de a 0x20 bytes: las cinco del cuerpo desde +0x218, las manos en +0x2b8 y
 // +0x2d8, las alas en +0x2f8 y la mascota en +0x318 (06, "El equipo propio en el personaje").
 struct ActorItemPart
@@ -31,6 +39,14 @@ struct ActorItemPart
     // +3 y +4: 0x512a30 copia tal cual el byte D+0x1b y el D+0x1c del ítem.
     std::uint8_t flags1b = 0;
     std::uint8_t flags1c = 0;
+    // +5: el hueso del cuerpo del que cuelga. 0x511290 pone 0x21 y 0x2a en las manos de un 0x20a
+    // (0x5126ce) y 0x50ba30 el de las alas (0x2f) y el de la mascota (0x22) antes de cada 0x509340.
+    std::uint8_t bone = 0;
+    // +6 la acción, +7 la anterior, +8 el frame y +0xc la key anterior de lo que cuelga, que 0x509340
+    // avanza con 0x4ec200 en cada frame. Nadie los pone a 0 al construir: quedan los del uso anterior.
+    Render::Models::AnimationState animation{};
+    // +0x10: lo que avanza por frame, que 0x50ba30 escribe antes de cada 0x509340.
+    float speed = 0.0f;
 };
 
 struct ActorState
@@ -63,7 +79,7 @@ struct ActorState
     std::uint8_t byte8 = 0;
     // La acción en +0x111, la anterior en +0x112, el frame en +0x114 y la key anterior en +0x118: lo que
     // pone 0x4ea030.
-    Render::Models::AnimationState animation;
+    Render::Models::AnimationState animation{};
     std::uint8_t characterClass = 0;                            // +0x1d4
     std::uint8_t skin = 0;                                      // +0x1d5
     std::uint16_t level = 0;                                    // +0x1d6, nivel de la lista o del F3 03
@@ -90,6 +106,12 @@ struct ActorState
     CharacterHead headTurn{};
     // +0x430: el cuervo que 0x420d60 crea y 0x420dd0 mueve dentro del cuerpo de este dueño.
     std::optional<DarkSpirit> darkSpirit;
+    // +0x360: con 5, la capa de los GM, que 0x413fe0 pone en cada dibujo de un GM; del 1 al 3, el arma del
+    // evento de Blood Castle (0x50de84). El 4 y del 6 al 13 los escriben 0x513430, 0x5139f0, 0x5bc740 y
+    // 0x5be150, sin portar. 0x511290 no lo toca: queda el del uso anterior del registro.
+    std::uint8_t byte360 = 0;
+    // +0x364: la capa que 0x413fe0 crea con +0x360 entre 5 y 13. 0x511290 la deja en 0 sin soltarla.
+    std::optional<GameMasterLayer> layer;
     // +0xf4, +0xf8 y +0xfc, la luz propia: 0x511290 la deja en 0. La lee el efecto de llegada (0x518cf0).
     glm::vec3 light{};
     // +0x3b4..+0x3bc: la luz del dibujo de 0x50ba30, distinta de la luz propia de +0xf4.
@@ -160,10 +182,24 @@ struct ActorState
     std::uint8_t cellYAccesses = 0;
     // Profundidad de la entrada de un byte +0x38e, que el dibujo consulta antes de cada mano.
     std::uint8_t byte38eAccesses = 0;
+    // +0x38e: el valor lógico. Con ')' (0x29) el lazo de las manos de 0x50ba30 saltea la derecha en la
+    // acción 0x3d, y con '4' (0x34) 0x509340 pone el frame de lo que cuelga en 3,2 en las acciones 0x22 a
+    // 0x97. Lo escriben 0x4cc530 y 0x4f5b70, sin portar: queda en 0.
+    std::uint8_t byte38e = 0;
     // +0x3e2, la zona segura: cualquier byte distinto de 0. 0x511290 y 0x505de0 copian el bit 0x01 del
     // .att de la celda.
     std::uint8_t safeZone = 0;
     // +0x3e3: distinto de 0, 0x512a30 y 0x512930 no tocan la ropa. 0x511290 lo pone en 0 (0x511d68).
     std::uint8_t byte3e3 = 0;
 };
+
+// 0x414340: con una capa en +0x364, la suelta y vuelve +0x360 a 0; sin ella, no toca nada.
+inline void ReleaseTheLayer(ActorState& actor)
+{
+    if (actor.layer.has_value())
+    {
+        actor.layer.reset();
+        actor.byte360 = 0;
+    }
+}
 } // namespace Client::Scenes

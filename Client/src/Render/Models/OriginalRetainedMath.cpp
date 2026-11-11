@@ -808,6 +808,22 @@ std::optional<double> CosineProductPC53(double argument, float multiplier)
 
 namespace
 {
+// El R53 de un Wide normalizado: los 53 bits altos, al más cercano con empate a par.
+std::optional<double> Nearest53(const Wide& value, bool negative)
+{
+    const std::uint64_t high =
+        (std::uint64_t{value.mantissa[LimbCount - 1]} << LimbBits) | value.mantissa[LimbCount - 2];
+    constexpr int Drop = RetainedDigits - DoubleDigits;
+    constexpr std::uint64_t Half = std::uint64_t{1} << (Drop - 1);
+    std::uint64_t mantissa = high >> Drop;
+    bool sticky = (high & (Half - 1)) != 0;
+    for (std::size_t i = 0; i + 2 < LimbCount; ++i)
+        sticky = sticky || value.mantissa[i] != 0;
+    if ((high & Half) != 0 && (sticky || (mantissa & 1) != 0))
+        ++mantissa;
+    return ExactDouble({mantissa, value.exponent - DoubleDigits, negative});
+}
+
 std::optional<double> PairProduct(double sineArgument, bool firstCosine, double cosineArgument, bool secondCosine)
 {
     if (!ValidParticleInputs(sineArgument, 1) || !ValidParticleInputs(cosineArgument, 1))
@@ -828,22 +844,27 @@ std::optional<double> PairProduct(double sineArgument, bool firstCosine, double 
     // 128 bits exactos caben en Wide; no hay R64 intermedio del producto.
     const Wide product = Multiply(FromInteger(SplitLimbs(sine.significand), sine.exponent, sine.negative),
                                   FromInteger(SplitLimbs(cosine.significand), cosine.exponent, cosine.negative));
-    const std::uint64_t high =
-        (std::uint64_t{product.mantissa[LimbCount - 1]} << LimbBits) | product.mantissa[LimbCount - 2];
-    constexpr int Drop = RetainedDigits - DoubleDigits;
-    constexpr std::uint64_t Half = std::uint64_t{1} << (Drop - 1);
-    std::uint64_t mantissa = high >> Drop;
-    bool sticky = (high & (Half - 1)) != 0;
-    for (std::size_t i = 0; i + 2 < LimbCount; ++i)
-        sticky = sticky || product.mantissa[i] != 0;
-    if ((high & Half) != 0 && (sticky || (mantissa & 1) != 0))
-        ++mantissa;
-    return ExactDouble({mantissa, product.exponent - DoubleDigits, negative});
+    return Nearest53(product, negative);
 }
 } // namespace
 std::optional<double> SineCosineProductPC53(double sineArgument, double cosineArgument)
 {
     return PairProduct(sineArgument, false, cosineArgument, true);
+}
+
+std::optional<double> SineSumPC53(double argument, double addend)
+{
+    if (!ValidParticleInputs(argument, 1) || !std::isfinite(addend))
+        return std::nullopt;
+    const Retained64 sine = argument == 0 ? Retained64{0, 0, RetainedClass::Finite, std::signbit(argument)}
+                                          : RetainedSineOrCosine(argument, false);
+    const BinaryParts parts = DecomposeDouble(addend);
+    // Con |seno| <= 1 y un sumando double, la suma exacta cabe en Wide: un solo R53, como el FADD.
+    const Wide sum = Add(FromInteger(SplitLimbs(sine.significand), sine.exponent, sine.negative),
+                         FromInteger(SplitLimbs(parts.significand), parts.exponent, parts.negative));
+    if (IsZero(sum))
+        return sine.significand == 0 && parts.significand == 0 ? addend + (sine.negative ? -0.0 : 0.0) : 0.0;
+    return Nearest53(sum, sum.negative);
 }
 namespace
 {

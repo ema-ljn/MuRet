@@ -39,10 +39,14 @@ constexpr Render::TextureSlot SkillTexturesStart{0x3b8};
 // 0x61634e..0x616370: Gate02 antes del bloque 0x3b8; Blood Castle reasigna ambos Gate en el mapa.
 constexpr Render::TextureSlot GateTexturesStart{0x69};
 constexpr std::array<Data::Models::ModelTextureCall, 1> InitialGateTextures{{{0x10d, "Monster\\"}}};
-// 0x6161b5: Data\Skill\RidingSpear01.bmd; el 0x10f del efecto necesita su modelo real.
-constexpr std::array<Data::Models::ModelFile, 1> TailModelFiles{{{0x10f, "Skill\\", "RidingSpear", 1}}};
-// 0x61619f: 0x60d5f0(0x10f, "Skill\\", GL_REPEAT, GL_NEAREST, 1).
-constexpr std::array<Data::Models::ModelTextureCall, 1> TailTextureCalls{{{0x10f, "Skill\\"}}};
+// 0x6161b5: Data\Skill\RidingSpear01.bmd; el 0x10f del efecto necesita su modelo real. 0x6166fe:
+// Data\Skill\MuSign.bmd, el 0x12a de la capa de los GM (0x414370).
+constexpr std::array<Data::Models::ModelFile, 2> TailModelFiles{
+    {{0x10f, "Skill\\", "RidingSpear", 1}, {0x12a, "Skill\\", "MuSign", -1}}};
+// 0x61619f: 0x60d5f0(0x10f, "Skill\\", GL_REPEAT, GL_NEAREST, 1); 0x616c5c, el mismo con el 0x12a. Van
+// después de las de 0x615700 que MuRet carga, así que sus slots no son los del original (que pasa antes
+// por los modelos de las habilidades que MuRet todavía no lee); ningún slot fijo los pisa.
+constexpr std::array<Data::Models::ModelTextureCall, 2> TailTextureCalls{{{0x10f, "Skill\\"}, {0x12a, "Skill\\"}}};
 
 // Sube las de `entries` de a una: la que no carga deja su línea en el log, y las demás siguen.
 void UploadEach(const std::filesystem::path& dataRoot, std::span<const Data::Textures::TextureSetEntry> entries,

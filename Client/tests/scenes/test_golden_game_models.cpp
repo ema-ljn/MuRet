@@ -19,6 +19,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -51,8 +52,8 @@ using Client::Tests::RecordingSink;
 
 // Los tres giftbox de 0x60ff50, que el laboratorio no tiene (06).
 constexpr std::size_t MissingInTheLab = 3;
-// 6161b5 carga RidingSpear01/10f aparte de las tablas de jugador, ítems y skills.
-constexpr std::size_t AdditionalTailModels = 1;
+// 6161b5 carga RidingSpear01/10f y 0x6166fe MuSign/12a aparte de las tablas de jugador, ítems y skills.
+constexpr std::size_t AdditionalTailModels = 2;
 
 class GoldenGameModels : public Client::Tests::GoldenDataTest
 {
@@ -148,6 +149,30 @@ TEST_F(GoldenGameModels, TheTexturesGoWhereTheLoadersPutThem)
     {
         EXPECT_EQ(entry.sampling.filter, ModelTextureSampling.filter) << entry.path;
         EXPECT_EQ(entry.sampling.wrap, ModelTextureSampling.wrap) << entry.path;
+    }
+}
+
+// 0x6166fe y 0x616c5c: Skill\MuSign.bmd, el 0x12a de la capa de los GM, con sus texturas de Skill\. Van
+// al final de la carga, en slots que ninguna textura fija vuelve a subir.
+TEST_F(GoldenGameModels, TheGameMasterSignIsLoadedWithItsOwnTextures)
+{
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+
+    const auto* sign = models.Find(0x12a);
+    ASSERT_NE(sign, nullptr);
+    ASSERT_NE(models.SkeletonOf(0x12a), nullptr);
+    EXPECT_FALSE(models.SkeletonOf(0x12a)->actions.empty());
+    const auto slots = models.MeshTextures(0x12a);
+    ASSERT_EQ(slots.size(), sign->meshes.size());
+    for (const TextureSlot slot : slots)
+    {
+        SCOPED_TRACE(slot.value);
+        EXPECT_EQ(std::ranges::count(textures.loaded, slot.value), 1);
+        EXPECT_TRUE(textures.Find(slot).has_value());
     }
 }
 

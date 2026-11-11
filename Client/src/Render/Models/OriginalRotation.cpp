@@ -34,6 +34,44 @@ OriginalMatrix OriginalMatrixOf(const BoneTransform& m)
     return rows;
 }
 
+BoneTransform BoneTransformOf(const OriginalMatrix& rows)
+{
+    BoneTransform m(1.0f);
+    for (int row = 0; row < 3; ++row)
+    {
+        for (int column = 0; column < 4; ++column)
+        {
+            m[column][row] = rows[static_cast<std::size_t>((row * 4) + column)];
+        }
+    }
+    return m;
+}
+
+// 0x5fca90: a es el padre y b el hijo, por filas. La primera fila suma a0·b, a1·b y a2·b en ese orden
+// en la columna 0 y a1·b, a0·b, a2·b en las otras; la segunda y la tercera, de la columna 2 a la 0.
+OriginalMatrix OriginalConcatTransforms(const OriginalMatrix& parent, const OriginalMatrix& child)
+{
+    const auto a = [&parent](std::size_t k) { return static_cast<double>(parent[k]); };
+    const auto b = [&child](std::size_t k) { return static_cast<double>(child[k]); };
+    OriginalMatrix out{};
+    out[0] = F32(((a(0) * b(0)) + (a(1) * b(4))) + (a(2) * b(8)));
+    for (std::size_t j = 1; j < 4; ++j)
+    {
+        const double sum = ((a(1) * b(4 + j)) + (a(0) * b(j))) + (a(2) * b(8 + j));
+        out[j] = F32(j == 3 ? sum + a(3) : sum);
+    }
+    for (std::size_t row = 1; row < 3; ++row)
+    {
+        const std::size_t r = row * 4;
+        for (std::size_t j = 0; j < 4; ++j)
+        {
+            const double sum = ((a(r + 2) * b(8 + j)) + (a(r + 1) * b(4 + j))) + (a(r) * b(j));
+            out[r + j] = F32(j == 3 ? sum + a(r + 3) : sum);
+        }
+    }
+    return out;
+}
+
 // 0x5fc8f0 como la x87: el seno y el coseno de y y de x guardados en float, el coseno de z en el
 // registro, cada producto en 53 bits y cada elemento guardado en float. Por filas: m[i · 4 + j].
 OriginalMatrix OriginalAngleMatrix(const glm::vec3& degrees)

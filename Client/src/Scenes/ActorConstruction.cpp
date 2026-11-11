@@ -32,6 +32,8 @@ constexpr std::uint8_t ConstructedPk = 3;
 constexpr std::uint16_t NoWord376 = 0xffff;
 constexpr std::uint8_t PlayerStartAction = 1;
 constexpr std::uint16_t ConstructedMovementSpeed = 10;
+constexpr std::uint8_t RightHandBone = 0x21;
+constexpr std::uint8_t LeftHandBone = 0x2a;
 
 // 0x4ec200 no corre acá: 0x511290 deja las dos acciones en 1 y el frame en 0.
 void ResetTheAnimation(ActorState& actor)
@@ -50,7 +52,10 @@ void ClearTheParts(ActorState& actor)
     actor.head = NoItemModel;
     for (ActorItemPart& part : actor.body)
     {
-        part = ActorItemPart{.model = NoItemModel};
+        part.model = NoItemModel;
+        part.level = 0;
+        part.flags1b = 0;
+        part.flags1c = 0;
     }
     for (ActorItemPart& hand : actor.hands)
     {
@@ -117,6 +122,13 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
         actor.characterClass = 0;
     }
     ResetTheAnimation(actor);
+    // 0x5126b2..0x5126d5: 0x43a250 (0x192..0x197) y 0x42d7f0 (0x19b y 0x1f8) no toman el 0x20a, y las
+    // manos cuelgan del 33 y del 42.
+    if (type == Data::Models::PlayerSkeletonModel)
+    {
+        actor.hands[0].bone = RightHandBone;
+        actor.hands[1].bone = LeftHandBone;
+    }
     actor.seen = false;
     actor.dying = 0;
     actor.byte88 = 1;
@@ -148,6 +160,8 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.drawnLight = {};
     // 0x511878: reconstruir el dueño borra el cuervo anterior.
     actor.darkSpirit.reset();
+    // 0x511872: +0x364 en 0 sin 0x414340, así que +0x360 queda como estaba.
+    actor.layer.reset();
 }
 } // namespace
 

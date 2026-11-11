@@ -531,14 +531,14 @@ TEST_F(GameCharacterRenderTest, ACalledHeroWithControlBitFourKeepsTheOriginalUnd
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
 }
 
-TEST_F(GameCharacterRenderTest, TheRavenOwnerPointerIsRejectedEvenAfterTheHandItemWasRemoved)
+TEST_F(GameCharacterRenderTest, TheRavenNeedsTheTrapeziumOfTheDrawAfterTheEffects)
 {
     Player(0).darkSpirit.emplace();
 
     const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x420df0"), std::string::npos) << result.Error();
+    EXPECT_NE(result.Error().find("0x418320"), std::string::npos) << result.Error();
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
     EXPECT_EQ(m_clothWorld.random.State(), 0x46d18088u);
 }
@@ -590,8 +590,8 @@ TEST_F(GameCharacterRenderTest, TheHiddenClothFlagDoesNotRunTheClothSimulationBe
 
     const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x50fba4"), std::string::npos) << result.Error();
+    // Con 0x4000 y sin 4 ni 0x2000000, 0x50fba4 no corre: el dibujo termina sin la tela.
+    ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_clothWorld.random.State(), 0x46d18088u);
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
 }

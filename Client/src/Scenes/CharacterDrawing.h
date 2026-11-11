@@ -348,10 +348,9 @@ void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const
 // (dkonebody.jpg, la del nivel por debajo de 20), con el color y la luz por vértice de 0x5ffce0; después
 // la sombra de las cinco mallas (0x4eff40(−1, −1, −1, −1), también las que no se dibujan, Q-C132) en
 // (0, 0, 0, 1), mezclada y aplastada sobre `groundHeight`, la altura del terreno bajo el cuervo
-// (0x600a0b). El original no la dibuja en los mapas 10, 24 a 29 y 36, y la pone en 0,2 en el 7, que
-// MuRet todavía no tiene.
+// (0x600a0b). En el mapa `map` 10, 24 a 29 y 36 no hay sombra, y en el 7 va con alpha 0,2 (0x6009a9..0x6009e5).
 void DrawDarkSpirit(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& spirit,
-                    float groundHeight, Core::Duration frameClock);
+                    float groundHeight, Core::Duration frameClock, std::int32_t map);
 
 // 0x600cf2..0x600daa, el 0x1c y el 0x1d de los mapas 11 a 17 después de su RenderBody: la sombra
 // (0x4eff40(blendMesh, 2, −1, −1)) de las mallas con triángulos, salvo la 2 y las de la textura del blendMesh,

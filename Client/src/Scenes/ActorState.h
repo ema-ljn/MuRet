@@ -99,6 +99,9 @@ struct ActorState
     // publicado todavía es el anterior (Q-C197). La lista de la selección le copia el bit 0 de b[10],
     // sin portar.
     std::uint8_t byte358 = 0;
+    // +0x35c: con +0x358, 0x50fd74 lo cuenta en cada dibujo y lo vuelve a 0 con el efecto 0x5ac/3 de cada
+    // 100. 0x511290 lo pone en 0 (0x511ca0); nadie más lo escribe.
+    std::int32_t counter35c = 0;
     // +0x376: con 0x101, 0x4f2250 elige la acción de volar. Quién lo escribe, sin leer.
     std::uint16_t word376 = 0;
     std::uint8_t run = 0; // +0x38c, el Run de Caminar

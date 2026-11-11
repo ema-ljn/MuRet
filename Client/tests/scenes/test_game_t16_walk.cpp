@@ -1,5 +1,6 @@
 #include "test_game_t16_support.h"
 #include "App/SessionState.h"
+#include "World/CastleSiegeObjectStep.h"
 #include "World/GameCamera.h"
 #include "Scenes/GameScene.h"
 #include "support/Bytes.h"
@@ -9,6 +10,7 @@
 #include "Input/Key.h"
 #include "support/CharacterPackets.h"
 #include "Network/Packet.h"
+#include "Render/ModelFog.h"
 #include "Render/Pass3D.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/SceneId.h"
@@ -305,7 +307,8 @@ protected:
 // (World10, también por el 32) no tiene zona segura; 122..125 × 174..177 es suelo libre con 38 del 2, que llueve. Los
 // Blood Castle (World12): 12..15 × 90..93 es suelo libre con cuatro 0xd (el sprite que pulsa) y cuatro 0x25 (las
 // antorchas) a menos de 1.500. En Castle Siege (World31), 65..68 × 130..133 es suelo libre (sin 0x04 ni 0x08 en el
-// .att) fuera de la niebla del 30 y de la zona segura: al final la cámara ve las antorchas 0 de (77, 133) y (67, 148)
+// .att) fuera de la niebla del 30, que queda apagada, y de la zona
+// segura: al final la cámara ve las antorchas 0 de (77, 133) y (67, 148)
 // y trece braseros 0x34 (los nueve de (60..61, 136..138), los tres de (59, 149..151) y el de (67, 137)), y el último
 // cuadro dibuja sus chispas 6ec/0 y sus caídas 6f4/6 (0x42c9f0). En Crywolf
 // (World35), con el estado 0 de la .bss, 128..131 × 30..33 es suelo libre (EncTerrain35.att, por
@@ -382,6 +385,10 @@ TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenC
                     spark |= command.state.texture->value == 0x6ec;
                     fall |= command.state.texture->value == 0x6f4;
                 }
+        // Fuera del rectángulo la niebla queda apagada en todos los tramos.
+        for (const auto& event : m_target.frames.back().events)
+            for (const auto& command : event.modelCommands)
+                EXPECT_FALSE(command.fog.has_value()) << command.firstVertex;
         EXPECT_TRUE(spark);
         EXPECT_TRUE(fall);
     }
@@ -399,6 +406,39 @@ TEST_F(GameT16Journey, CastleSiegeAsksForItsStateBeforeConfirmingTheTeleport)
     EXPECT_EQ(std::vector<std::byte>(sent.packets[0].Bytes().begin(), sent.packets[0].Bytes().end()),
               Client::Tests::Bytes({0xc1, 4, 0xb9, 2}));
     EXPECT_EQ(sent.packets[1].Opcode(), 0xf3);
+}
+
+// 0x63741d..0x637490 y 0x6375ea..0x63763c (Q-C334, Q-C390): en Castle Siege, con el héroe en el rectángulo de la
+// niebla, todo el pase del mundo, también el pase en el ojo (0x6213e0), lleva la niebla negra lineal de 2.000 a
+// 2.700 de 0x42b0a0. 165 × 191 es suelo libre adentro, en el sudoeste, con el 0 y el 0x34 a más de 2.200.
+TEST_F(GameT16Journey, CastleSiegeFogsTheWholeWorldPassInsideItsRectangle)
+{
+    Teleport(30, 165, 191);
+    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    OpenScene();
+    ASSERT_NO_FATAL_FAILURE(WaitForInput());
+    ASSERT_TRUE(Client::World::InTheCastleSiegeFog(Hero().position));
+    const auto before = m_target.frames.size();
+    ASSERT_NO_FATAL_FAILURE(DrawCompleteFrame());
+    constexpr Client::Render::ModelFog Fog{.color = glm::vec3(0.0f), .start = 2000.0f, .end = 2700.0f};
+    std::size_t fogged = 0;
+    std::size_t passes = 0;
+    for (const auto& event : m_target.frames[before].events)
+    {
+        if (event.kind != Client::Tests::FrameEvent::Kind::Models)
+            continue;
+        ++passes;
+        for (const auto& command : event.modelCommands)
+        {
+            if (command.vertexCount == 0)
+                continue;
+            EXPECT_EQ(command.fog, Fog) << "pase " << passes << " desde el vértice " << command.firstVertex;
+            ++fogged;
+        }
+    }
+    // El pase del mundo y el pase en el ojo.
+    EXPECT_EQ(passes, 2u);
+    EXPECT_GT(fogged, 0u);
 }
 
 // 0x635b3d, 0x5fb570 y 0x6371a0 (Q-C152): en la Arena, con "webzen" en el nombre del héroe, la cámara de

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Render/ParticleBillboardRequest.h"
+#include "Render/TextureEnvMode.h"
 #include "World/IParticleDrawingServices.h"
 #include "World/ParticleDrawing.h"
 #include "World/Particles.h"
@@ -37,6 +38,8 @@ struct RecordedParticleDraw
     // Lo que llegó al billboard de 0x621400.
     std::int32_t texture = 0;
     Blend blend = Blend::Additive;
+    // El modo de la textura con el que se dibujó (glTexEnvi, 0x5489eb).
+    Render::TextureEnvMode textureEnv = Render::TextureEnvMode::Modulate;
     glm::vec3 position{};
     float width = 0.0f;
     float height = 0.0f;
@@ -54,6 +57,10 @@ public:
     std::map<std::int32_t, std::uint8_t> materialFlags;
     // Un billboard por lugar dibujado, en el orden del pool.
     std::vector<RecordedParticleDraw> draws;
+    // El modo de la textura que dejó el último glTexEnvi; GL arranca en GL_MODULATE.
+    Render::TextureEnvMode textureEnv = Render::TextureEnvMode::Modulate;
+    // Cuántas veces se llamó a glTexEnvi.
+    std::size_t textureEnvCalls = 0;
 
     [[nodiscard]] Core::Expected<glm::vec2, World::ParticleError> Dimensions(std::int32_t image) override;
     [[nodiscard]] Core::Expected<std::uint8_t, World::ParticleError> MaterialFlag(std::int32_t type) override;
@@ -62,6 +69,7 @@ public:
     [[nodiscard]] Result Blended() override;
     [[nodiscard]] Result Type620850() override;
     [[nodiscard]] Result Type620870() override;
+    [[nodiscard]] Result TextureEnv(Render::TextureEnvMode mode) override;
     [[nodiscard]] Result Billboard(Render::ParticleBillboardRequest request) override;
 
 private:
@@ -70,9 +78,10 @@ private:
 
 // 0x548550(`mode`) sobre un pool que solo tiene `particle`, en el lugar `slot` (el índice real que lee la
 // neblina), con `textureSize` para su imagen y `materialFlag` para su tipo, si están. Devuelve el billboard
-// que pidió, nada si el lugar no se dibujó, o el error. `particle` vuelve con lo que el dibujo le escribió.
+// que pidió, nada si el lugar no se dibujó, o el error. `particle` vuelve con lo que el dibujo le escribió. Si
+// `textureEnv` está, recibe el modo de la textura que quedó después del dibujo.
 [[nodiscard]] Core::Expected<std::optional<RecordedParticleDraw>, World::ParticleDrawingError>
 DrawOneParticle(World::Particle& particle, std::optional<glm::vec2> textureSize,
                 std::optional<std::uint8_t> materialFlag, float clock = 0.0f, std::size_t slot = 0,
-                std::uint8_t mode = 0);
+                std::uint8_t mode = 0, Render::TextureEnvMode* textureEnv = nullptr);
 } // namespace Client::Tests

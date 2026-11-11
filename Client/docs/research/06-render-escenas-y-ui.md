@@ -97,7 +97,8 @@ culling y `glAlphaFunc(GL_GREATER, 0.25)`. Con `DAT_07d368a0` prendida pondría 
 (`0x620f60..0x620f8d`), pero esa bandera solo se escribe con 0 (`0x622f23`, `0x6346a7`,
 `0x6350cc`, `0x635a33` y `0x63723a`): **la niebla está muerta** (*estático*; la traza tiene un
 `glDisable(GL_FOG)` en cada pase, *verificado*). La única niebla del juego es la del mapa 30,
-lineal de 2.000 a 2.700, que arma aparte `0x42b0a0`. **El mouse no mueve la cámara**: ni el botón
+lineal de 2.000 a 2.700, que arma aparte `0x42b0a0` (MuRet la porta: [Los objetos de Castle
+Siege](#los-objetos-de-castle-siege)). **El mouse no mueve la cámara**: ni el botón
 derecho, ni el del medio, ni la rueda (*estático*, [La cámara del juego](#la-cámara-del-juego)).
 En el mapa 6, un héroe cuyo nombre **contiene** "webzen" tiene una cámara de espectador:
 `0x576960` busca un substring, así que la rama de "webzen2", que también lo contiene, está muerta
@@ -4448,7 +4449,7 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 | `0x637366` | **`0x5fbb00(w / 640, &p)`** | el rango de bloques y el trapecio | sí (`TerrainRangeOf`, `TerrainPolygonOf(Game)`; en el juego, `StepTheTerrainPolygon` con el trapecio y el nivel efectivo globales de `WorldRuntime`, T11b) |
 | `0x637391..0x637404` | `glClearColor` por mapa: en el 0, (0,0390625; 0,078125; 0,0546875) | no se usa (Q-C143) | ver abajo |
 | `0x637410` | `0x620db0(0, 0, w, 432)` (480 con `0x7d36899`) | el pase del mundo | sí (`GameWorldViewport`) |
-| `0x63741d` | en el mapa 30, con el héroe en el rectángulo de `0x42b0a0`, la niebla; si no, `glDisable(GL_FOG)` | | afuera, como siempre; adentro corta en `0x637481` ([Los objetos de Castle Siege](#los-objetos-de-castle-siege)) |
+| `0x63741d` | en el mapa 30, con el héroe en el rectángulo de `0x42b0a0`, la niebla; si no, `glDisable(GL_FOG)` | la niebla negra lineal de 2.000 a 2.700 para todo el pase, también el del ojo (`0x6213e0`) | `Render::ModelFog` en cada tramo del lote (`ModelBatch::SetFog`), que `GlModelRenderer` aplica ([Los objetos de Castle Siege](#los-objetos-de-castle-siege), Q-C334, Q-C391) |
 | `0x6374aa` | `0x620480(mouse x, mouse y, &0x7d366c0, 1)` | el rayo del mouse, con el mouse de 640 × 480 vuelto a la pantalla en enteros (`0x620486..0x6204b0`) | `GameScene::MouseRay`, para [Caminar](#caminar) |
 | `0x6374c6` | **`0x5fc260(0)`**, si `0x437850()` es falso y el mapa no es 10 | el terreno: el pase opaco, el de alfa, **el del pasto** y `0x549130` | `LoadedWorld::DrawTerrain`, **sin el pasto ni las marcas** (P-C48 b, P-C49); el juego dibuja el primer pase, el del pasto y las marcas del suelo (`0x5fc365`); en el mapa 7, el agua de `0x5fa4b0` y sin el pasto ([Los objetos de Atlans](#los-objetos-de-atlans)), y en los 18 a 23 corta antes de la primera celda (`0x5fa83f`, Q-C229). Abajo, por dentro |
 | `0x6374ce` | **`0x6046a0` → `0x602e90` y `0x602ed0`** | objetos por sector | `DrawGameWorldObjects` en0/2/3, con la fuente69 que lee matrices retenidas y los servicios de Noria; otros mapas/casos conservan fronteras |
@@ -4471,6 +4472,7 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 | `0x63756a` | `0x548eb0(local_8)`, sólo si437850 esfalse | números de daño | `DrawDamage`, atlas1FontTest real; paso548f40 sin apagar los slots en dibujo |
 | `0x637572` | `0x6213f0` | el `glPopMatrix` | sí |
 | `0x637577..0x6375e5` | segunda consulta437850;620db0,4378a0 y cola | segunda capa | orquestador y modos portados; backend/loader Kalima permanecen explícitos437850/4378a0/4377a0 |
+| `0x6375ea..0x63763c` | en el mapa 30, con el héroe **todavía** en el rectángulo, `0x42b0f0`: `glDisable(GL_FOG)` | apaga la niebla antes del 2D; si el héroe salió, queda prendida hasta el `0x620db0` siguiente (Q-C390) | `GameScene::DrawTheWorldPass`, con la segunda lectura |
 | `0x637641` | `0x59ec80` | qué personaje está bajo el mouse | [Caminar](#caminar) |
 | `0x637646..0x6376e6` | `0x6219b0`, `0x4383f0`, `0x5bbbc0`, `0x5a7320(1)`, `0x5a7eb0`, `0x490390`, `0x5f37f0`, `0x62db60`, `0x5f7bc0`, `0x554810`, `0x5554e0`, `0x5b0550`, `0x40eca0`, `0x65ee60`/`0x65fe00`, `0x5ac2d0` × 2, `0x633110`, `0x621a90`, `0x620fc0` y uno por vtable | el 2D: el HUD, las ventanas, el texto y el cursor | CL8 |
 
@@ -5647,7 +5649,8 @@ Las partículas de la antorcha (`0x53fe70`, `0x5446e0`, `0x548550`):
 | Partícula | Alta | Paso | Dibujo |
 |---|---|---|---|
 | `6ab/0`, `6ab/1` (`Effect\fi01.jpg`, `0x61d55e`) | `0x5436fe`: vida `rand() % 5` + 20, giro 0; escala (`rand() % 10`) · 0,02f + 0,5 (`/0`) o · 0,1f + 1 (`/1`); velocidad (`rand() % 10` + 5; `rand() % 10` − 5; `rand() % 10` + 5) por (0,4f; 0,4f; 0,2f) (`/0`) o (0,2f; 0,2f; 0,1f) (`/1`) | `0x5477e4`: la posición más la velocidad, la x y la y por 0,95f; la luz en vida · 0,1f, la z +0,3f y la escala +0,07f (`/0`) o +0,09f | aditiva, el default `0x54889a` |
-| `6ac/0` (`Effect\fi02.tga`, `0x61d57a`) | `0x543a5d`: vida `rand() % 5` + 25, escala 0,5, giro `rand() % 360` y la velocidad de adelante; después el caso del `6ec` (`0x543ae3`): vida 24, otra velocidad x (`rand() % 10` − 5) · 0,4f y z, y el inicio en la posición (`0x543e7d`) | `0x54793f`: lo mismo con la z +0,6f, la posición corrida (`rand() & 3`) − 2 en x e y y por 0,8f en z, la escala +0,05f, la luz en vida · 0,04f y el giro + (`rand() & 1`) + 1 | `0x620c10` (el modo 6: `SRC_ALPHA`, `ONE_MINUS_SRC_ALPHA`), `0x5489eb`; el `/2` no está leído |
+| `6ac/0` (`Effect\fi02.tga`, `0x61d57a`) | `0x543a5d`: vida `rand() % 5` + 25, escala 0,5, giro `rand() % 360` y la velocidad de adelante; después el caso del `6ec` (`0x543ae3`): vida 24, otra velocidad x (`rand() % 10` − 5) · 0,4f y z, y el inicio en la posición (`0x543e7d`) | `0x54793f`: lo mismo con la z +0,6f, la posición corrida (`rand() & 3`) − 2 en x e y y por 0,8f en z, la escala +0,05f, la luz en vida · 0,04f y el giro + (`rand() & 1`) + 1 | `0x5489eb` → `0x548a51`: `0x620c10` (el modo 6: `SRC_ALPHA`, `ONE_MINUS_SRC_ALPHA`) y el billboard común |
+| `6ac/2` (no es de la antorcha: la crea el paso del joint `0x632/6`, `0x53c042`, en `0x535840`) | `0x543a5d`, como la `/0`; la escala 3 (`0x40400000`) del pedido la pisa el 0,5 (Q-C393) | `0x54793f`, como la `/0`, salvo la luz: vida · 0,08f − 1 (`0x5479fb..0x547a0f`, Q-C392) | `0x5489f1..0x548a4c`: `glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD)`, `0x620c10`, el billboard común y `GL_MODULATE` de vuelta: el color es téxel + luz, recortado, y el alfa, el del téxel |
 | `622/6` (`Effect\clouds.jpg`) | `0x54327b`: vida `rand() % 5` + 25, escala 0,2f, giro `rand() % 360` y la velocidad de la `6ac` | `0x54748a`: el de la `6ac` con la luz en vida · 0,02f | el `/6` de la tabla `0x548df8` va a `0x548c32` y, sin ser el 8 ni el 9, al default `0x54889a` |
 | `60f/4` | la órbita de `60f/3` con vida 40 | la de `60f/3` con la subida en 5, la escala −0,004f y el apagado desde vida 30 | `0x548bcf` |
 
@@ -5663,11 +5666,17 @@ Devil Square: `World::StepDevilSquarePrelude` (`EventMapObjectStep`), `Scenes::S
 `World::StepBloodCastleObject` desde `StepWorldObjectChecked`, `World::StepBloodCastlePrelude` desde
 `GameScene::StepTheObjects`, `Scenes::StepBloodCastleObjectFrame`, `Scenes::DrawBloodCastleShadow`
 (`CharacterDrawing`) con `GameObjectPass::terrainHeight`, las familias de `World::BloodCastleParticleKernels` y el
-modo 6 en `IParticleDrawingServices::Blended` y `ModelBatchParticleBackend`. Las texturas, `EffectTextureSet`. Con
+modo 6 en `IParticleDrawingServices::Blended` y `ModelBatchParticleBackend`. La `6ac/2`: `GL_ADD` con
+`IParticleDrawingServices::TextureEnv` y `Render::TextureEnvMode`, que cada tramo del lote lleva aparte del material
+(`ModelBatch::SetTextureEnv`) y `GlModelRenderer` aplica en el fragment shader; nadie la crea todavía, porque el joint
+`0x632/6` no está portado ([08](08-pendientes.md) P-C53). Las texturas, `EffectTextureSet`. Con
 la Data del repo, el 9 (y el 32) y los siete Blood Castle llegan a un cuadro completo y caminan (`GameT16SceneMatrix`;
 `GameT16MapWalk`, en (122, 174) con 38 del 2 cerca y en (12, 90) con cuatro `0xd` y cuatro `0x25`;
 `GameT16SafeZoneWalk`, en (12, 3) de los Blood Castle; Devil Square no tiene zona segura). Tests:
-`MapLoadEventTest`, `EventMapObjectsTest`, `EventMapObjectFrameTest`, `BloodCastleParticlesTest` y
+`MapLoadEventTest`, `EventMapObjectsTest`, `EventMapObjectFrameTest`, `BloodCastleParticlesTest` (la `6ac/2` creada,
+con su paso y su dibujo, en `TheBrightFlameIsCreatedSteppedAndDrawnWithAdd`),
+`ParticleDrawingTest.TheBrightFlameDrawsItsBillboardBetweenAddAndModulate`,
+`GlModelRendererTest.TheAddTextureEnvSumsTheTexelAndTheColor` (solo en el CI) y
 `CharacterStepTest.DevilSquareRainsFromTwoBonesOfEachCharacter`.
 
 ### Los objetos de Chaos Castle
@@ -5808,10 +5817,22 @@ y la deja así (`0x52d86a..0x52d89f`).
 
 **Lo demás del 30.** La niebla: con el héroe en x de 16.100 a 19.000 y en y de 18.900 a 21.700 (inclusivos),
 `0x63741d` llama a `0x42b0a0`, que prende la niebla lineal negra de 2.000 a 2.700; afuera, `glDisable(GL_FOG)`
-(Q-C334). Los personajes: `0x412140` arma, con `0x6c649a` en `0xff` (sin gremio, Q-C331), el panel de la clase 0 en
-`0x5763530`, que dibuja la interfaz (CL8); con otro puesto, los paneles 1 y 2 (`0x412193`). Después de cada `0x20a`,
-`0x42afe0` llama a `0x42ddb0(personaje, 380)` solo con el asedio (`0x42b00b`). Las capas del 6 al 13 de lo que cuelga
-(`0x4142f0`) solo se dibujan con el asedio (`0x414330`).
+(Q-C334). `0x42b0a0` es `glEnable(GL_FOG)`, `glFogfv(GL_FOG_COLOR)` con los tres ceros de `0x63746b..0x63747a`,
+`glFogf(GL_FOG_MODE, GL_LINEAR)` (`0x46180400`, 9.729,0), `GL_FOG_START` en 2.000 (`0x44fa0000`) y `GL_FOG_END` en
+2.700 (`0x4528c000`). GL la aplica a cada fragmento después de la textura: f = (2.700 − d) / 700, recortado a
+[0, 1], y el color f · C (el negro pesa 1 − f); el alfa no cambia. **Qué recibe niebla:** todo lo que se dibuja
+entre `0x637481` y `0x63763c`: el terreno, las marcas del suelo, los objetos, los efectos del suelo, los pájaros, los
+personajes, los ítems del piso, los peces, los helpers, las hojas, los joints, los efectos, las cintas y, después
+del `0x6213e0` (que no toca la niebla), los sprites, las partículas y los números de daño en el ojo. La segunda capa
+de `0x637577..0x6375e5`, con su `0x620db0` que la apagaría (`0x620fa5`), es de Kalima (`0x437850`) y en el 30 no
+corre. Ninguna mezcla de `0x620980` a `0x620c90` la toca. **Qué no:** el 2D, que empieza en `0x6219b0` después de
+que `0x42b0f0` (`0x6375ea..0x63763c`) la apaga, con una segunda lectura del rectángulo (Q-C390). **La distancia:**
+con `GL_FOG_COORDINATE_SOURCE` en `GL_FRAGMENT_DEPTH` (nadie lo cambia), la del ojo, que la especificación deja
+aproximar con |z| del ojo; `0x42b0a0` no pide `GL_FOG_HINT` (Q-C391). Los personajes: `0x412140` arma, con
+`0x6c649a` en `0xff` (sin gremio, Q-C331), el panel de la clase 0 en `0x5763530`, que dibuja la interfaz (CL8); con
+otro puesto, los paneles 1 y 2 (`0x412193`). Después de cada `0x20a`, `0x42afe0` llama a `0x42ddb0(personaje, 380)`
+solo con el asedio (`0x42b00b`). Las capas del 6 al 13 de lo que cuelga (`0x4142f0`) solo se dibujan con el asedio
+(`0x414330`).
 
 **En MuRet.** La carga: `Scenes::LoadMap` (`PrepareTheCastleSiege`) con `MapLoadContext::requestCastleSiegeState`,
 que `WorldEntry`, `WorldTransitionSupport` y `SessionEventApplier` atan a `App::ServerSession::RequestCastleSiegeState`
@@ -5820,17 +5841,22 @@ que `WorldEntry`, `WorldTransitionSupport` y `SessionEventApplier` atan a `App::
 `World::StepCastleSiegeSeenObject` (`CastleSiegeObjectStep`), con `World::ApplyCastleSiegeObjectState`. El frame:
 `Scenes::StepCastleSiegeObjectFrame` (`CastleSiegeObjectServices`). El dibujo: `Scenes::DrawCastleSiegeBody`
 (`CharacterDrawing`) desde `DrawGameWorldObjects`, y `Render::Models::ShadowSpreadOf`. El efecto: `StepGatePlane` y
-`ModelEffects::CreateGatePlane`. La niebla: `World::InTheCastleSiegeFog`, que adentro corta en `0x637481` (el
-renderer no tiene niebla). El panel: `WorldRuntime::siegePanelKind` y `heroGuildPost`. Las partículas: la `6ec/0` y
-la `6f4/6` en `World::CreateKalimaParticle` y `World::StepKalimaParticle` (`KalimaParticleKernels`, con
-`World::BrazierFallSubtype`), y el humo `5f2/0x15` con el de Crywolf (`World::CrywolfSmokeSubtype`); el frame las
-suelta con `Particles::CreateChecked`. Corta lo del asedio prendido ([08](08-pendientes.md) P-C53); su `0x2a` ya
-suelta el humo. Con la Data del repo, el 30 llega a un cuadro completo y camina (`GameT16SceneMatrix`;
-`GameT16MapWalk`, de (65, 130) a (68, 133), fuera de la niebla, con dos antorchas 0 y trece braseros `0x34` a la
-vista y sus chispas y caídas en el último cuadro, *simulado*). Tests: `CastleSiegeObjectsTest`,
-`CastleSiegeObjectServicesTest`, `CastleSiegeParticlesTest`, `CastleSiegeDrawingTest`, `MapLoadTest.CastleSiege*`,
-`WorldProtocolTest.CastleSiegeStateWritesTwoWithXor32AndWithoutC3` y
-`GameT16Journey.CastleSiegeAsksForItsStateBeforeConfirmingTheTeleport`.
+`ModelEffects::CreateGatePlane`. La niebla: `World::InTheCastleSiegeFog` y `Render::ModelFog`, que
+`GameScene::DrawTheWorldPass` pone en el lote con `ModelBatch::SetFog` y saca después de la cola; cada
+`ModelDrawCommand` lleva la suya, `ModelBatch::Begin` con el material la apaga (`0x620db0`) y `GlModelRenderer` la
+aplica en el fragment shader con la w del clip como |z| del ojo (Q-C391). El panel: `WorldRuntime::siegePanelKind`
+y `heroGuildPost`. Las partículas: la `6ec/0` y la `6f4/6` en `World::CreateKalimaParticle` y
+`World::StepKalimaParticle` (`KalimaParticleKernels`, con `World::BrazierFallSubtype`), y el humo `5f2/0x15` con el
+de Crywolf (`World::CrywolfSmokeSubtype`); el frame las suelta con `Particles::CreateChecked`. Corta lo del asedio
+prendido ([08](08-pendientes.md) P-C53); su `0x2a` ya suelta el humo. Con la Data del repo, el 30 llega a un cuadro
+completo y camina (`GameT16SceneMatrix`; `GameT16MapWalk`, de (65, 130) a (68, 133), fuera de la niebla, que queda
+apagada, con dos antorchas 0 y trece braseros `0x34` a la vista y sus chispas y caídas en el último cuadro,
+*simulado*; y en (165, 191), adentro del rectángulo, un cuadro completo con la niebla en todos los tramos de los dos
+pases). Tests: `CastleSiegeObjectsTest`, `CastleSiegeObjectServicesTest`, `CastleSiegeParticlesTest`,
+`CastleSiegeDrawingTest`, `MapLoadTest.CastleSiege*`, `WorldProtocolTest.CastleSiegeStateWritesTwoWithXor32AndWithoutC3`,
+`GameT16Journey.CastleSiegeAsksForItsStateBeforeConfirmingTheTeleport` y
+`GameT16Journey.CastleSiegeFogsTheWholeWorldPassInsideItsRectangle`; la niebla en el lote, `ModelBatchTest`, y en GL,
+`GlModelRendererTest.TheLinearFogMixesByTheEyeDistance` y `TheFogHasItsColorAndTurnsOff` (solo en el CI).
 
 ### Los objetos de Crywolf
 

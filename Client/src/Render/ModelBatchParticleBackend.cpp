@@ -7,6 +7,7 @@
 #include "Render/ModelVertex.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/SpriteVertex.h"
+#include "Render/TextureEnvMode.h"
 #include "Scenes/CharacterDrawing.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -263,6 +264,16 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::Type620850()
 IParticleDrawBackend::Result ModelBatchParticleBackend::Type620870()
 {
     return Unsupported();
+}
+
+IParticleDrawBackend::Result ModelBatchParticleBackend::TextureEnv(TextureEnvMode mode)
+{
+    // glTexEnvi entre glBegin y glEnd es un error de GL; 0x5489eb lo llama fuera del quad. No es del material:
+    // no publica una operación ni cambia el serial del lote.
+    if (IsDrawing())
+        return Core::Unexpected(std::make_error_code(std::errc::operation_in_progress));
+    m_batch.get().SetTextureEnv(mode);
+    return {};
 }
 
 IParticleDrawBackend::Result ModelBatchParticleBackend::BindTexture(std::int32_t selector)

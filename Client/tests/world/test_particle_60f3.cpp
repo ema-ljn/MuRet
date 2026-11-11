@@ -13,6 +13,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Render/SpriteVertex.h"
+#include "Render/TextureEnvMode.h"
 #include "Data/Models/Model.h"
 #include "Data/Textures/Texture.h"
 #include <glm/ext/vector_float2.hpp>
@@ -144,6 +145,11 @@ public:
         return {};
     }
     Result Type620870() override
+    {
+        ADD_FAILURE();
+        return {};
+    }
+    Result TextureEnv(Render::TextureEnvMode) override
     {
         ADD_FAILURE();
         return {};
@@ -550,6 +556,11 @@ public:
         return {};
     }
     Result Type620870() override
+    {
+        ADD_FAILURE();
+        return {};
+    }
+    Result TextureEnv(Render::TextureEnvMode) override
     {
         ADD_FAILURE();
         return {};

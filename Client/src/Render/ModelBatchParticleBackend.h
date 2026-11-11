@@ -5,6 +5,7 @@
 #include "Render/ModelVertex.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/SpriteVertex.h"
+#include "Render/TextureEnvMode.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -52,6 +53,7 @@ public:
     [[nodiscard]] Result BlendedTail() override;
     [[nodiscard]] Result Type620850() override;
     [[nodiscard]] Result Type620870() override;
+    [[nodiscard]] Result TextureEnv(TextureEnvMode mode) override;
     [[nodiscard]] Result BindTexture(std::int32_t selector) override;
     [[nodiscard]] Result Begin() override;
     [[nodiscard]] Result Color3(const glm::vec3& light) override;

@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Expected.h"
 #include "Render/ParticleBillboardRequest.h"
+#include "Render/TextureEnvMode.h"
 #include "World/ParticleDrawing.h"
 #include "World/Particles.h"
 #include <glm/ext/vector_float2.hpp>
@@ -22,6 +23,8 @@ public:
     [[nodiscard]] virtual Result Blended() = 0;
     [[nodiscard]] virtual Result Type620850() = 0;
     [[nodiscard]] virtual Result Type620870() = 0;
+    // glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, modo), fuera de un billboard (0x5489eb, la 6ac/2).
+    [[nodiscard]] virtual Result TextureEnv(Render::TextureEnvMode mode) = 0;
     [[nodiscard]] virtual Result Billboard(Render::ParticleBillboardRequest request) = 0;
 };
 } // namespace Client::World

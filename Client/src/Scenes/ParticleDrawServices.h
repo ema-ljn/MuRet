@@ -5,6 +5,7 @@
 #include <glm/ext/vector_float2.hpp>
 #include <cstdint>
 #include "Render/Models/OriginalRotation.h"
+#include "Render/TextureEnvMode.h"
 #include <functional>
 namespace Client::Render
 {
@@ -28,6 +29,7 @@ public:
     [[nodiscard]] Result Blended() override;
     [[nodiscard]] Result Type620850() override;
     [[nodiscard]] Result Type620870() override;
+    [[nodiscard]] Result TextureEnv(Render::TextureEnvMode mode) override;
     [[nodiscard]] Result Billboard(Render::ParticleBillboardRequest request) override;
 
 private:

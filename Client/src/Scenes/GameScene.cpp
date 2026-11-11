@@ -30,6 +30,7 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/ModelBatch.h"
+#include "Render/ModelFog.h"
 #include "Render/Pass3D.h"
 #include "Scenes/ActorName.h"
 #include "Scenes/ActorState.h"
@@ -103,6 +104,9 @@ constexpr std::int32_t FirstWithoutGrassMap = 18;
 constexpr std::int32_t LastWithoutGrassMap = 23;
 // 0x63741d: en el mapa 30 el dibujo pone o saca la niebla (0x42b0a0).
 constexpr std::int32_t CastleMap = 30;
+// 0x42b0a0 con el color que arma 0x63746b..0x63747a en la pila, (0, 0, 0): glFogf(GL_FOG_MODE, GL_LINEAR), de
+// 2.000 (0x44fa0000) a 2.700 (0x4528c000).
+constexpr Render::ModelFog CastleSiegeFog{.color = glm::vec3(0.0f), .start = 2000.0f, .end = 2700.0f};
 // 0x633f20: mapa conservado durante la espera de entrada.
 constexpr std::int32_t SelectionMap = 54;
 // 0x425070: el 33 comparte con el 54 los casos de los objetos de 0x4250f0.
@@ -146,6 +150,14 @@ std::string MapText(std::int32_t map)
 std::optional<std::uint8_t> NoSlotComponents(std::int32_t /*slot*/)
 {
     return std::nullopt;
+}
+
+// 0x63741d..0x637466 y 0x6375ea..0x63763a: el mapa 30 (0x6c9dd0) y el héroe publicado (0x743a170) en el rectángulo de
+// World::InTheCastleSiegeFog. Cada lectura relee las dos cosas.
+bool HeroInTheCastleSiegeFog(const WorldState& world)
+{
+    return world.Runtime().map == CastleMap &&
+           World::InTheCastleSiegeFog(world.Actors()[world.Runtime().hero].position);
 }
 
 // 0x5f8928..0x5f8947: 0x6c9d58, que 0x5f87b0 prende fuera de los mapas 18 a 23 y 30.
@@ -556,7 +568,7 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     {
         return uploaded;
     }
-    // 0x63723a: la niebla en 0 (0x7d368a0); MuRet no la tiene.
+    // 0x63723a: 0x7d368a0, la niebla de 0x620db0, en 0: Begin la apaga en cada pase (ModelBatch::Begin).
     // 0x637241: 0x635ae0.
     const Render::Camera3D camera = CameraOfTheFrame(canvas, frames);
     m_drawnCamera = camera;
@@ -691,7 +703,7 @@ Core::Expected<World::TerrainPolygon, std::string> GameScene::PolygonOfTheFrame(
     input.scene = static_cast<std::int32_t>(World::CullingScene::Game);
     input.map = runtime.map;
     input.translation = target;
-    // El selector del mapa 30, como TerrainPolygonOf; ese mapa corta abajo (0x63741d).
+    // El selector del mapa 30, como TerrainPolygonOf.
     input.objectPosition = glm::vec2(target.x, target.y);
     input.cameraYaw = camera.angles.z;
     input.worldWidth = WorldWidth;
@@ -709,14 +721,10 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
                                                               const World::TerrainPolygon& polygon, int frames)
 {
     const std::int32_t map = m_context.world->Runtime().map;
-    // 0x63741d..0x637490: en el 30, con el héroe en el rectángulo de World::InTheCastleSiegeFog, 0x42b0a0 prende la
-    // niebla negra (GL_LINEAR de 2.000 a 2.700) hasta 0x42b0f0, después de los efectos; afuera, glDisable(GL_FOG),
-    // que es como MuRet dibuja siempre. El renderer no tiene niebla (08 P-C41).
-    if (map == CastleMap &&
-        World::InTheCastleSiegeFog(m_context.world->Actors()[m_context.world->Runtime().hero].position))
-    {
-        return Core::Unexpected(std::string("0x637481: la niebla negra del 30 (0x42b0a0) no está portada"));
-    }
+    // 0x63741d..0x637490: en el 30, con el héroe en el rectángulo de World::InTheCastleSiegeFog (Q-C334), 0x42b0a0
+    // prende la niebla negra (GL_LINEAR de 2.000 a 2.700) para todo lo que sigue del pase, también el pase en el
+    // ojo de los sprites y las partículas; afuera, glDisable(GL_FOG), que deja la de 0x620db0 (Begin).
+    canvas.models.SetFog(HeroInTheCastleSiegeFog(*m_context.world) ? std::optional(CastleSiegeFog) : std::nullopt);
     // 0x6374aa: 0x620480(x, y, &0x7d366c0, 1) con el mouse en 640 × 480 (0x7d3682c y 0x7d36828), que
     // vuelve a los píxeles de la pantalla en enteros (0x620486..0x6204b0).
     const Input::InputState noInput;
@@ -924,7 +932,13 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     }
     // 0x6374e2..0x6374ed: 0x5fc260(1) solo con 0x77f3b18, el modo editor, que nadie prende. 0x6374f5: con
     // 0x7d36899 en 0 (nadie lo escribe), 0x608a00, los ítems del piso.
-    return DrawTheTail(canvas, pass, polygon, frames);
+    if (auto tail = DrawTheTail(canvas, pass, polygon, frames); !tail.HasValue())
+        return tail;
+    // 0x6375ea..0x63763c: después de los efectos y antes del 2D (0x6219b0), con el héroe todavía en el rectángulo,
+    // 0x42b0f0 apaga la niebla. Si salió durante el dibujo, queda prendida hasta el 0x620db0 que sigue (Q-C390).
+    if (HeroInTheCastleSiegeFog(*m_context.world))
+        canvas.models.SetFog(std::nullopt);
+    return {};
 }
 
 Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canvas,

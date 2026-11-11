@@ -5014,7 +5014,9 @@ frame del original:
   con la luz de la bota (`0x510158`, `0x51008d` y `0x51020c`). Después, con `rand() % 20` en 0 y la luz en
   1: el 10, la órbita `60f/0` de 0,19f; el 11, con `rand() & 7` la órbita y si no el joint `60f/0` de ancho
   10; el 12, con los pasos múltiplos de 6 dos joints `60f/0x12` de ancho 20 (skill 0 y 1) y si no, de 3, la
-  órbita; el 13, los dos `60f/0x12` con 6 y, aparte, con 4 la órbita y el joint `610/7` (Q-C381). El 14 y
+  órbita; el 13, los dos `60f/0x12` con 6 y, aparte, con 4 la órbita y el joint `610/7` (Q-C381). Esos
+  pasos son `0x7d3a0f0`, que el original lee sin abrir el acceso, con la basura cifrada que dejó el último
+  cierre (Q-C125); MuRet usa los pasos de lógica, como en el grito del cuervo (P-C22 a). El 14 y
   el 15, nada (Q-C351). Entre frames sólo corren los `rand()` que eligen; lo que nace en las partículas y
   los joints, sólo en un frame del original. Sin el pool de partículas o sin los joints, corta con la
   dirección de la llamada (`0x510339`, `0x51037c`, `0x5103be`, `0x510435`, `0x51048b` y `0x5104a8`).

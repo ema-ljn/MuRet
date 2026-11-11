@@ -143,7 +143,15 @@ DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, const GameCh
     character.sprites = pass.sprites;
     character.originalRandom = pass.clothWorld != nullptr ? &pass.clothWorld->random : nullptr;
     character.pace = pass.pace;
-    character.poseBones = pass.poseBones;
+    // 0x511290 le da al personaje su buffer de huesos (+0x11c en 1 en 0x511bf7, +0x120): 0x5ffdf0 posa ahí el
+    // cuerpo, que arranca de lo que dejó el dibujo anterior (actor.bodyPose, Q-C318), y no del global.
+    if (pass.poseBones)
+        character.poseBones = [&actor, global = pass.poseBones](std::uint16_t model)
+        {
+            return model == Data::Models::PlayerSkeletonModel
+                       ? std::span<const Render::Models::BoneTransform>(actor.bodyPose)
+                       : global(model);
+        };
     return character;
 }
 
@@ -317,8 +325,15 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
     const std::int32_t map = world.Runtime().map;
     DrawnCharacter character = CharacterToDraw(actor, slot, pass, map);
     character.advanceCloth = originalFrame;
-    if (originalFrame || pass.publishProjectedPose)
-        character.onPose = pass.onPose;
+    // Al buffer global (0x68b181c) sólo va lo que cuelga (0x509340); el cuerpo queda en el propio (DrawTheTail).
+    if ((originalFrame || pass.publishProjectedPose) && pass.onPose)
+        character.onPose = [global = pass.onPose](std::uint16_t model,
+                                                  std::span<const Render::Models::BoneTransform> bones,
+                                                  const Render::Models::ObjectTransform& transform, bool translated)
+        {
+            if (model != Data::Models::PlayerSkeletonModel && model != ChaosCastleBodyModel)
+                global(model, bones, transform, translated);
+        };
     DrawCharacter(batch, models, character, pass.frameClock, CharacterDrawPass::Shadow);
     if (pass.clothWorld == nullptr)
         return Core::Unexpected<std::string>("0x50c91e: falta el flujo global de rand del scan de los personajes");

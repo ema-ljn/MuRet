@@ -9,6 +9,7 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/Models/Skinning.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
@@ -991,6 +992,31 @@ TEST_F(GameRavenTest, TheShadowFollowsTheMapRulesOf0x6002e0)
         if (probe.vertices > 6)
         {
             EXPECT_EQ(m_batch.Vertices().back().color.alpha, probe.shadowAlpha);
+        }
+    }
+}
+
+// 0x600a24..0x600a2c llama a 0x4eff40, que en el mapa 30 abre la sombra con 2500 y no 2000 (0x4eff8d..0x4eff9f).
+// Los vértices de la sombra son los del pase base aplastados desde el cuervo a la altura del terreno.
+TEST_F(GameRavenTest, InCastleSiegeTheShadowFansOutWith2500)
+{
+    for (const std::int32_t map : {0, 30})
+    {
+        SCOPED_TRACE(map);
+        m_batch.Begin(Client::Render::Pass3D{});
+
+        const auto result = Client::Scenes::DrawGameRaven(m_owner, Pass(map));
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        const auto& vertices = m_batch.Vertices();
+        ASSERT_EQ(vertices.size(), 21u);
+        const glm::vec3 ground(1050.0f, 1060.0f, 0.0f);
+        const float spread = map == 30 ? 2500.0f : 2000.0f;
+        for (std::size_t corner = 0; corner < 3; ++corner)
+        {
+            const glm::vec3 body = vertices[corner].position;
+            const glm::vec3 shadow = vertices[6 + corner].position;
+            EXPECT_EQ(shadow, Client::Render::Models::FlattenOnTheGround(body, ground, spread)) << corner;
         }
     }
 }

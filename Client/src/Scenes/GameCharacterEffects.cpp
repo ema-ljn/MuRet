@@ -418,8 +418,9 @@ Result WideSparkles(const Tail& tail, std::string_view first, std::string_view s
 
 // 0x5102c3..0x5104cb: con el nivel por encima de 9 y rand() % 20 en 0, la luz propia en 1 (guardada y devuelta). Con
 // +10, la órbita; con +11, rand() & 7 elige la órbita o el 60f/0 de ancho 10; con +12, cada 6 pasos de lógica
-// (0x7d3a0f0) los dos 60f/0x12 y si no cada 3 la órbita; con +13, cada 6 los dos 60f/0x12 y, aparte, cada 4 la
-// órbita y el 610/7 (Q-C381). Entre frames, sólo los rand() que eligen.
+// los dos 60f/0x12 y si no cada 3 la órbita; con +13, cada 6 los dos 60f/0x12 y, aparte, cada 4 la órbita y el
+// 610/7 (Q-C381). Entre frames, sólo los rand() que eligen. El original lee 0x7d3a0f0 sin abrir el acceso, con
+// la basura cifrada del último cierre (Q-C125); como el grito del cuervo, MuRet usa los pasos (P-C22 a).
 Result Sparkles(const Tail& tail, std::int32_t level)
 {
     if (tail.pass.random.Next() % GlowChance != 0)

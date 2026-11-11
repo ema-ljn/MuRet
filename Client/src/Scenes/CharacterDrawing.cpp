@@ -582,8 +582,8 @@ void DrawModel(const CharacterFrame& frame, std::uint16_t modelId, std::span<con
     {
         return;
     }
-    if (frame.character.onPose)
-        frame.character.onPose(modelId, bones, frame.character.object, false);
+    // Las partes usan los huesos del cuerpo y no se vuelven a posar: no publican nada. Lo que cuelga ya se publicó
+    // en DrawHangingFrom, con su raíz.
     const glm::vec3 light =
         use.hanging ? frame.character.hangingLight.value_or(frame.character.light) : frame.character.light;
     const glm::vec3 shade = light * use.glow.baseFactor;
@@ -1051,7 +1051,6 @@ void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const
 
 namespace
 {
-constexpr std::uint16_t ChaosCastleBodyModel = 0x1f7;
 // La piel con que va la malla skin_ del Angel: la 0 (+0x98 del 0x1f7 en 0).
 constexpr std::uint8_t ChaosCastleBodySkinClass = 0;
 } // namespace
@@ -1742,14 +1741,16 @@ void DrawDarkSpirit(Render::ModelBatch& batch, const IModelLibrary& models, cons
     Render::Color shadowColor = DarkSpiritShadowColor;
     if (map == DarkHorseFaintShadowMap)
         shadowColor.alpha = DarkHorseShadowAlphaOfMapSeven;
-    // 0x600a0b: 0x4eff40 aplasta desde (x, y, la altura del terreno ahí), que le escribe a +0x6c..+0x74.
+    // 0x600a0b: 0x4eff40 aplasta desde (x, y, la altura del terreno ahí), que le escribe a +0x6c..+0x74, con
+    // el abanico del mapa (0x4eff8d: 2500 en el 30).
     const glm::vec3 ground(spirit.transform.position.x, spirit.transform.position.y, groundHeight);
+    const float spread = Render::Models::ShadowSpreadOf(map);
     for (const MeshDraw& draw : draws)
     {
         Render::Models::SkinnedMesh flat = *draw.skinned;
         for (glm::vec3& position : flat.positions)
         {
-            position = Render::Models::FlattenOnTheGround(position, ground);
+            position = Render::Models::FlattenOnTheGround(position, ground, spread);
         }
         MeshDraw shadow = draw;
         shadow.skinned = &flat;

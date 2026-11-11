@@ -1845,9 +1845,9 @@ TEST(CharacterDrawingTest, PublishesTheCalculatedBodyAndAttachedMatricesInDrawOr
     };
     ModelBatch batch;
     DrawCharacter(batch, models, character, {});
-    ASSERT_EQ(published.size(), 3U);
+    // Lo que cuelga se publica una vez, con su raíz; las partes no se vuelven a posar.
+    ASSERT_EQ(published.size(), 2U);
     EXPECT_EQ(published[0], 0x20a);
     EXPECT_EQ(published[1], 0x1c13);
-    EXPECT_EQ(published[2], 0x1c13);
 }
 } // namespace

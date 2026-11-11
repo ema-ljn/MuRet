@@ -253,7 +253,7 @@ TEST(AidaObjectServicesTest, TheMistsEmitTwentyOwnedCloudsUntilTheirOwnerIsHidde
     const std::array<std::pair<std::int16_t, glm::vec3>, 3> mists{{
         {0x3b,
          {std::bit_cast<float>(0x3c23d70au), std::bit_cast<float>(0x3cf5c28fu), std::bit_cast<float>(0x3d4ccccdu)}},
-        {0x3e, glm::vec3(std::bit_cast<float>(0x3d4ccccdu))},
+        {std::int16_t{0x3e}, glm::vec3(std::bit_cast<float>(0x3d4ccccdu))},
         {0x3f,
          {std::bit_cast<float>(0x3d4ccccdu), std::bit_cast<float>(0x3ca3d70au), std::bit_cast<float>(0x3ca3d70au)}},
     }};
@@ -368,7 +368,7 @@ TEST(AidaObjectServicesTest, TheAidaEffectCutsOnlyWhenItWouldBeCreated)
 TEST(AidaObjectServicesTest, TheRedrawnBodiesCutAndTheOtherTypesDoNothing)
 {
     for (const auto& [type, address] : std::array<std::pair<std::int16_t, const char*>, 3>{
-             {{0x29, "0x4255f3"}, {0x41, "0x42588d"}, {0x42, "0x42588d"}}})
+             {{std::int16_t{0x29}, "0x4255f3"}, {std::int16_t{0x41}, "0x42588d"}, {std::int16_t{0x42}, "0x42588d"}}})
     {
         Fixture fixture;
         WorldObject object = ObjectOf(type);

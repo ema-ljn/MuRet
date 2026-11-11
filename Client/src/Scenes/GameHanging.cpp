@@ -2,9 +2,11 @@
 
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
+#include "Protocol/Character/Opcodes.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Attachment.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRetainedMath.h"

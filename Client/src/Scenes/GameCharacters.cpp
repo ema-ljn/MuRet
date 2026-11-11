@@ -9,6 +9,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
@@ -34,6 +35,7 @@
 #include <cstdint>
 #include <format>
 #include <optional>
+#include <ratio>
 #include <span>
 #include <string>
 #include <utility>

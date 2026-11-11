@@ -281,7 +281,7 @@ TEST(ParticlesTest, UnsupportedTypesAndSubtypesAreNotCreated)
                              0.0f, random)
                      .has_value());
     EXPECT_FALSE(particles
-                     .Create(Client::World::CloudParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 9, 1.0f,
+                     .Create(Client::World::CloudParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 11, 1.0f,
                              0.0f, random)
                      .has_value());
     EXPECT_EQ(random.State(), CrtRandom(5).State());

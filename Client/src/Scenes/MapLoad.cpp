@@ -25,6 +25,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <memory>
 #include <new>
 #include <span>
@@ -268,9 +269,14 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
             return prepared;
     }
     FillTheGrassOffsets(loaded.grassOffsets, context.random);
-    if (map == CrywolfMap)
+    // 0x61a6d0: 0x42fe50 lee el estado de Crywolf después del .map. Con 0 (el de la .bss, Q-C340) el 34 carga
+    // EncTerrain35.att y TerrainLight como los demás; con 1 y 2, EncTerrain351/352.att y TerrainLight1/2, y con 3
+    // o más el .att con la ruta del .map (Q-C181). Solo un paquete lo cambia (0x42fe80, CL9.5).
+    if (map == CrywolfMap && context.world.Runtime().crywolf.state != 0)
     {
-        return Core::Unexpected(std::string("0x61a560: el .att del mapa 34 depende del estado de Crywolf (0x42fe50)"));
+        return Core::Unexpected(std::format("0x61a6f4: el .att y la luz del mapa 34 con el estado de Crywolf {} no "
+                                            "están portados",
+                                            static_cast<int>(context.world.Runtime().crywolf.state)));
     }
     // 0x61a6e1 y 0x61a8a8: en el 30, 0x4294b0 elige el .att y la luz. Con 0x7239ec en 0, el de siempre
     // (EncTerrain31.att y TerrainLight.jpg); prendido, que solo lo dejan los paquetes de 0x4294c0 (CL9.5), no.

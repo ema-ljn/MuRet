@@ -47,6 +47,10 @@ inline constexpr std::int16_t AidaWispEffect = 0xb3;
 // El de Castle Siege (0x42c6b0): el objeto 79 del mapa 30 crea el 0x135 (Skill\TowerGatePlane), un plano
 // que sube y baja con el reloj y se dibuja dos veces, la segunda reflejada.
 inline constexpr std::int16_t GatePlaneEffect = 0x135;
+// El calco que se apaga (0x61d, sin modelo: solo el pase del suelo dibuja la /1). El 0x38 de Crywolf crea el /3, que
+// suelta órbitas 60f/10 (0x52b933).
+inline constexpr std::int16_t FadingDecalEffect = 0x61d;
+inline constexpr std::int32_t CrywolfDecalSubtype = 3;
 
 // Proyección de los campos compartidos por los efectos de 0x1d4 bytes.
 struct ModelEffect
@@ -146,6 +150,12 @@ public:
     // la posición. Sin rand(); lleno, ninguno.
     std::optional<std::size_t> CreateGatePlane(const glm::vec3& position, const glm::vec3& angles,
                                                const glm::vec3& light, bool hasOwner);
+    // 0x518cf0(0x61d, posición, ángulos, luz, subtipo, dueño, `disturbance`, 0, 0, 0, 0) → 0x51ee96: el prefijo
+    // común (escala 0,9 y +0x8a con `disturbance`), vida 20 y escala 0,5; con el subtipo 0, la vida en 15. Sin
+    // rand(). El dueño (+0x108) no lo lee el paso del 0x61d. Lleno, ninguno.
+    std::optional<std::size_t> CreateFadingDecal(const glm::vec3& position, const glm::vec3& angles,
+                                                 const glm::vec3& light, std::int32_t subtype,
+                                                 std::uint16_t disturbance);
     // 0x6070a0: sólo apaga el byte vivo de cada lugar (Q-C138).
     void Clear();
 

@@ -238,10 +238,11 @@ bool IsKalimaParticle(std::int32_t type, std::int32_t subtype)
     const bool objectWaterfall =
         ((type == KalimaWaterfallFirst || type == KalimaWaterfallMist) && subtype == ObjectSubtype) ||
         ((type == WaterfallSplash || type == WaterfallSplash + 1) && subtype == SplashObjectSubtype);
-    return objectWaterfall || (type == KalimaWaterfallLast && subtype == 1) ||
+    const bool fanta = (type == KalimaFanta || type == CrywolfFanta) && (subtype == 0 || subtype == ShortFantaSubtype);
+    return objectWaterfall || fanta || (type == KalimaWaterfallLast && subtype == 1) ||
            (type == KalimaFlare && (subtype == FlareZero || subtype == FlareTrail || subtype == FlareSix ||
                                     subtype == FlareSeven || subtype == FlareNine)) ||
-           (subtype == 0 && (type == KalimaFanta || (type >= KalimaWaterfallFirst && type <= KalimaWaterfallLast)));
+           (subtype == 0 && type >= KalimaWaterfallFirst && type <= KalimaWaterfallLast);
 }
 Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Models::CrtRandom& random,
                                                          std::optional<std::int32_t> scene)
@@ -260,13 +261,16 @@ Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Mo
             CreateFlare(p, random);
         return {};
     }
-    if (p.type == KalimaFanta)
+    if (p.type == KalimaFanta || p.type == CrywolfFanta)
     {
-        constexpr int FantaLife = 24, Center = 5;
+        // 0x543b82..0x543bd5: vida 24, los dos rand() de la velocidad y, con la /5, la vida en 20.
+        constexpr int FantaLife = 24, ShortFantaLife = 20, Center = 5;
         p.life = FantaLife;
         p.velocity.x = F32(static_cast<double>(random.Next() % LifeSpan - Center) * static_cast<double>(0.4f));
         p.velocity.y = 0;
         p.velocity.z = F32(static_cast<double>(random.Next() % LifeSpan + Center) * static_cast<double>(0.2f));
+        if (p.subtype == ShortFantaSubtype)
+            p.life = ShortFantaLife;
         p.start = p.position;
         return {};
     }
@@ -313,7 +317,7 @@ Core::Expected<void, ParticleError> StepKalimaParticle(Particle& p, Render::Mode
         else
             return StepFlareSeven(p, clock, trigonometry);
     }
-    else if (p.type == KalimaFanta)
+    else if (p.type == KalimaFanta || p.type == CrywolfFanta)
         StepFanta(p);
     else
         StepWaterfall(p, random);

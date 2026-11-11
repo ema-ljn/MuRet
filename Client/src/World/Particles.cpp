@@ -201,9 +201,11 @@ bool IsLoginCloud(const Particle& particle)
     return particle.type == CloudParticle && particle.subtype == LoginCloudSubtype;
 }
 
+// 0x54757a y 0x54768f: la 622/9 de Crywolf comparte con la 622/8 el paso desde 0x5476a8, y las dos caen al default
+// del giro (0x547738).
 bool IsCloud8(const Particle& particle)
 {
-    return particle.type == CloudParticle && particle.subtype == 8;
+    return particle.type == CloudParticle && (particle.subtype == 8 || particle.subtype == CrywolfCloudSubtype);
 }
 
 void CreateTheCloud8(Particle& particle, float inputScale, Render::Models::CrtRandom& random)
@@ -231,6 +233,32 @@ void CreateTheCloud8(Particle& particle, float inputScale, Render::Models::CrtRa
 
     // El cuerpo vuelve a poner los tres dwords a cero tras R7.
     particle.velocity = glm::vec3(0.0f);
+}
+
+// 0x54330a..0x5433f4, la 622/9 de los 0x4d y 0x4e de Crywolf: como la 622/8, siete rand() en el mismo orden, pero la
+// escala multiplica la del argumento (+0x10, la del prefijo) y +0x60 no le suma nada.
+void CreateTheCloud9(Particle& particle, Render::Models::CrtRandom& random)
+{
+    constexpr int SpinSpan = 10;
+    particle.life = 300;
+    const int r1 = random.Next();
+    particle.field38 = std::bit_cast<std::uint32_t>(Cloud8InitialQ);
+    particle.verticalSpeed = F32(static_cast<double>(r1 % 1000));
+    const int r2 = (random.Next() % 500) - 250;
+    particle.position.x = F32(static_cast<double>(r2) + static_cast<double>(particle.position.x));
+    const int r3 = (random.Next() % 500) - 250;
+    particle.position.y = F32(static_cast<double>(r3) + static_cast<double>(particle.position.y));
+    const int r4 = (random.Next() % 20) - 20;
+    particle.position.z = F32(static_cast<double>(r4) + static_cast<double>(particle.position.z));
+    const int r5 = random.Next() % 100;
+    particle.start.z = particle.position.z;
+    particle.start.y = F32(static_cast<double>(r5) * Cloud8RandomStep);
+    // 0x5433bd..0x5433c9: fild, por 0,01f y por la escala de +0x10, en la x87.
+    const int r6 = (random.Next() % 20) + 180;
+    particle.scale = F32(static_cast<double>(r6) * Cloud8RandomStep * static_cast<double>(particle.scale));
+    const int r7 = random.Next() % SpinSpan;
+    particle.velocity = glm::vec3(0.0f);
+    particle.rotationFactor = F32(static_cast<double>(r7) * Cloud8RandomStep);
 }
 
 void StepTheCloud8(Particle& particle)
@@ -267,9 +295,42 @@ bool IsFire(const Particle& particle)
     return particle.type == FireParticle && ((particle.subtype >= 0 && particle.subtype <= 3) || particle.subtype == 8);
 }
 
+// 0x5466c3: la tabla de 0x548310 manda al mismo paso la 5f2/2 y la 5f2/21 de Crywolf.
 bool IsWorldSmoke(const Particle& particle)
 {
-    return particle.type == BreathParticle && particle.subtype == WorldSmokeSubtype;
+    return particle.type == BreathParticle &&
+           (particle.subtype == WorldSmokeSubtype || particle.subtype == CrywolfSmokeSubtype);
+}
+
+// 0x542370..0x5423d8, la 5f2/21 de Crywolf: vida 80, escala ((rand() & 63) + 64) · escala · 0,005f, giro
+// rand() % 360 y velocidad vertical ((rand() & 31) + 60) · 0,1f; el and con la corrección del signo es el & simple.
+void CreateTheCrywolfSmoke(Particle& particle, Render::Models::CrtRandom& random)
+{
+    constexpr std::int32_t Life = 80;
+    constexpr double Step = static_cast<double>(std::bit_cast<float>(0x3ba3d70au)); // 0x6b89d8.
+    constexpr int ScaleMask = 63, ScaleBase = 64, RiseMask = 31, RiseBase = 60;
+    particle.life = Life;
+    const int size = (random.Next() & ScaleMask) + ScaleBase;
+    particle.scale = F32((static_cast<double>(size) * static_cast<double>(particle.scale)) * Step);
+    particle.rotation = static_cast<float>(random.Next() % FullTurn);
+    particle.verticalSpeed = F32(static_cast<double>((random.Next() & RiseMask) + RiseBase) * SmokeSlowdown);
+}
+
+// 0x543152..0x543178, la burbuja 698/0 del agua de Crywolf: vida 32 y la escala (rand() % 170 + 1) · 0,01f, que pisa
+// la del argumento.
+constexpr std::int32_t BubbleLife = 32;
+void CreateTheBubble(Particle& particle, Render::Models::CrtRandom& random)
+{
+    constexpr int ScaleSpan = 170;
+    particle.life = BubbleLife;
+    particle.scale = F32(static_cast<double>(random.Next() % ScaleSpan + 1) * BreathScaleStep);
+}
+
+// 0x54719f..0x5471b2: el cuadro (32 − vida) / 4, con la división con signo de cdq, and 3 y sar, en +0x48.
+void StepTheBubble(Particle& particle)
+{
+    constexpr std::int32_t BubbleFrameSteps = 4;
+    particle.field48 = std::bit_cast<float>(static_cast<std::int32_t>((BubbleLife - particle.life) / BubbleFrameSteps));
 }
 
 bool IsMapSpark(const Particle& particle)
@@ -303,10 +364,12 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     }
     if (type == BreathParticle)
     {
-        return subtype == BreathSubtype || subtype == WorldSmokeSubtype
+        return subtype == BreathSubtype || subtype == WorldSmokeSubtype || subtype == CrywolfSmokeSubtype
                    ? std::nullopt
                    : std::optional(ParticleError::UnsupportedSubtype);
     }
+    if (type == BubbleParticle)
+        return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == SparkParticle)
     {
         return subtype == TeleportSparkSubtype || subtype == RavenSparkSubtype || subtype == MapSparkSubtype ||
@@ -316,8 +379,9 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     }
     if (type == CloudParticle)
     {
-        return subtype == LoginCloudSubtype || subtype == 8 ? std::nullopt
-                                                            : std::optional(ParticleError::UnsupportedSubtype);
+        return subtype == LoginCloudSubtype || subtype == 8 || subtype == CrywolfCloudSubtype
+                   ? std::nullopt
+                   : std::optional(ParticleError::UnsupportedSubtype);
     }
     return ParticleError::UnsupportedType;
 }
@@ -814,7 +878,7 @@ constexpr std::int32_t TorchOrbitFadeLife = 30;
 
 bool IsOrbitSubtype(std::int32_t subtype)
 {
-    return subtype == OrbitSubtype || subtype == TorchOrbitSubtype;
+    return subtype == OrbitSubtype || subtype == TorchOrbitSubtype || subtype == AnchoredOrbitSubtype;
 }
 
 double OrbitArgument(const Particle& particle)
@@ -879,6 +943,21 @@ Core::Expected<void, ParticleError> CreateTheOrbit(Particle& particle, float inp
 // Step5446e0 §60f/3: leídos los selectores tras el helper; sin cargas de reloj nuevas.
 Core::Expected<void, ParticleError> StepTheOrbit(Particle& particle, IParticleTrigonometry& trigonometry)
 {
+    if (particle.subtype == AnchoredOrbitSubtype)
+    {
+        // 0x547286..0x5472a5: la /10 calcula el argumento y lo tira (fstp st(0)); la x y la y vuelven a la partida.
+        particle.position.x = particle.start.x;
+        particle.position.y = particle.start.y;
+        particle.position.z =
+            F32(static_cast<double>(particle.verticalSpeed) + static_cast<double>(particle.position.z));
+        particle.scale = F32(static_cast<double>(particle.scale) - static_cast<double>(OrbitShrink));
+        if (particle.life <= OrbitFadeLife)
+        {
+            for (int axis = 0; axis < 3; ++axis)
+                particle.light[axis] = F32(static_cast<double>(particle.light[axis]) * static_cast<double>(OrbitFade));
+        }
+        return {};
+    }
     const double argument = OrbitArgument(particle);
     const auto sine = trigonometry.SineProductPC53(argument, OrbitRadius);
     if (!sine.HasValue())
@@ -1060,6 +1139,21 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         if (type == BreathParticle && subtype == WorldSmokeSubtype)
         {
             CreateTheWorldSmoke(particle, random);
+            return std::optional(index);
+        }
+        if (type == BreathParticle && subtype == CrywolfSmokeSubtype)
+        {
+            CreateTheCrywolfSmoke(particle, random);
+            return std::optional(index);
+        }
+        if (type == CloudParticle && subtype == CrywolfCloudSubtype)
+        {
+            CreateTheCloud9(particle, random);
+            return std::optional(index);
+        }
+        if (type == BubbleParticle)
+        {
+            CreateTheBubble(particle, random);
             return std::optional(index);
         }
         if (type == CloudParticle && subtype == 8)
@@ -1267,6 +1361,10 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
         else if (IsCloud8(particle))
         {
             StepTheCloud8(particle);
+        }
+        else if (particle.type == BubbleParticle)
+        {
+            StepTheBubble(particle);
         }
         else if (IsDrop(particle))
         {

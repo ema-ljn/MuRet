@@ -231,7 +231,7 @@ TEST_F(MapDataFailureTest, MissingLightRequestsQuitAfterPublishingHeightsAndObje
 
 TEST_F(MapDataFailureTest, UnsupportedMapErrorsDoNotRequestQuit)
 {
-    for (const std::uint8_t map : {std::uint8_t{34}, std::uint8_t{55}})
+    for (const std::uint8_t map : {std::uint8_t{55}})
     {
         const auto loaded = Load(map, m_dataRoot);
         ASSERT_FALSE(loaded.HasValue());

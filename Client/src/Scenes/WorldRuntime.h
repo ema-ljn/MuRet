@@ -27,6 +27,25 @@ namespace Client::Scenes
 // .data[0x6c8c5c] = 1e 00 00 00; los otros cuatro campos del clima están en .bss.
 inline constexpr std::int32_t InitialLeafCount = 30;
 
+// Los globales de Crywolf (el mapa 34), todos en la .bss.
+struct CrywolfGlobals
+{
+    // 0x723c04: el estado del evento que lee 0x42fe50. Lo cambia solo el paquete de 0x42fe80 (CL9.5) y lo vuelve
+    // a 0 la vuelta a la selección (0x42fdc0). Con 0, la carga del 34 toma EncTerrain35.att y TerrainLight
+    // (0x61a560) y el dibujo de sus objetos, los casos del estado 0 (Q-C340).
+    std::uint8_t state = 0;
+    // 0x5763358: el clima, rand() % 3 cada 70.001 frames de sus objetos (0x430510). Lo leen las hojas (0x530490
+    // y 0x5306a0) y el 0x49 del dibujo (0x430942).
+    std::int32_t weather = 0;
+    // 0x723c0c: los frames de los objetos desde el último sorteo del clima (0x430523).
+    std::int32_t frameCount = 0;
+    // 0x723c10: el giro del segundo sprite 0x60f del 0x29, de 0 a 359 (0x4305db).
+    float glowRotation = 0.0f;
+    // 0x576353c: el 0x49 lo pone en 1 con el clima en 0 (0x430950); lo gasta el HUD (0x5a7520 → 0x435930, CL8),
+    // que MuRet no tiene.
+    std::uint8_t sandOverlay = 0;
+};
+
 struct WorldRuntime
 {
     // Q-C180/Q-C27: primer aviso de datos que pidió WM_DESTROY. Durable incluso si Poll falla;
@@ -68,6 +87,11 @@ struct WorldRuntime
     // 0x6c634d (.data 1): la trampa de Chaos Castle armada. 0x4055b0 la gasta con el primer 3 visto; solo el
     // paquete de 0x404e20 la vuelve a armar (CL9.5).
     std::uint8_t chaosCastleTrapArmed = 1;
+    // Lo de Crywolf que leen y escriben la carga, sus objetos y sus hojas.
+    CrywolfGlobals crywolf;
+    // 0x5763538 (.bss 0): el contador de 0x6046a0, que da la vuelta de 1 a 41 al empezar cada dibujo de los
+    // objetos, en el login, la selección y el juego (0x6046be..0x6046ce). Solo lo lee el 0x29 de Crywolf.
+    std::int32_t objectDrawCounter = 0;
     // 0x743a180, 0x743a184 y 0x743a188 (.bss 0): la celda del héroe y el reloj del mundo que 0x4fbe10 guarda en
     // los mapas 18 a 23. Nadie más los escribe: sobreviven a la carga de otro mapa.
     std::int32_t reportedCellX = 0;

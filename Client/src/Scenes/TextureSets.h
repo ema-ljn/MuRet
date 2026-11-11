@@ -53,7 +53,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
 // Lo que cuelga de un jugador (0x509340 y 0x50ba30) pide además Shiny03 en 0x5fe (61d937) e Impack03 de
 // Object9 en 0x5ad (61e799), del mismo lazo sin ramas de 0x61ccb0 y con el mismo sampling.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 25> EffectTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 27> EffectTextureSet{{
     {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
     // 0x61d67f: Flame01 en 0x5de, de la llama 5de/7 del 0x43 del 54.
     {"Effect\\Flame01.jpg", 0x5de, TextureSetsDetail::LinearClamp},
@@ -83,6 +83,9 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 25> EffectTextureSe
     {"Effect\\fi01.jpg", 0x6ab, TextureSetsDetail::LinearClamp},
     {"Effect\\fi02.tga", 0x6ac, TextureSetsDetail::LinearClamp},
     {"Effect\\Flare.jpg", 0x60f, TextureSetsDetail::LinearClamp},
+    // 0x61d5a0 y 0x61d893, LINEAR/CLAMP: la 6ec/5 del 0x39 y el 0x47 de Crywolf y la burbuja 698/0 de su agua.
+    {"Effect\\fantaF.jpg", 0x6ec, TextureSetsDetail::LinearClamp},
+    {"Effect\\coll.jpg", 0x698, TextureSetsDetail::LinearClamp},
 }};
 
 // Recursos de los joints que ya crean los peces y pájaros: 61d858/61dab9/61dad8/61dce2. 61d5db sube

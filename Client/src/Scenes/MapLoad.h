@@ -44,11 +44,11 @@ struct MapLoadContext
 // (los del 2); el corrimiento del pasto con 65.536 rand() (0x5f8300); el MAP/ATT, los objetos del .obj con 0x606660 y
 // después las alturas/luz. En el 30, antes del pasto, 0x42a760 (el B9 02 y los cinco lanceros 0x19f), y el .att y la
 // luz de siempre con 0x7239ec en 0. Corta con error, con lo que el original hizo antes, en lo que MuRet no tiene: los
-// especiales del 55, el .att y la luz del 30 con el asedio prendido (0x4294b0), el 34 (el .att según Crywolf,
-// 0x42fe50) y un objeto que pide un servicio de efectos. Cada error conserva el diagnóstico del archivo; sólo los casos
-// que piden aviso/cierre en ASM publican WorldRuntime::fatalDataMessage (Q-C27/Q-C180), sin UI aquí. El ATT de tamaño
-// inválido, los archivos cortos y unsupported-map no piden cierre nativo. 4377a0 reemplaza el dueño de Kalima recién
-// después de leer los archivos: un error anterior conserva el del mapa previo.
+// especiales del 55, el .att y la luz del 30 con el asedio prendido (0x4294b0), el 34 con un estado de Crywolf
+// distinto de 0 (0x42fe50) y un objeto que pide un servicio de efectos. Cada error conserva el diagnóstico del
+// archivo; sólo los casos que piden aviso/cierre en ASM publican WorldRuntime::fatalDataMessage (Q-C27/Q-C180), sin UI
+// aquí. El ATT de tamaño inválido, los archivos cortos y unsupported-map no piden cierre nativo. 4377a0 reemplaza el
+// dueño de Kalima recién después de leer los archivos: un error anterior conserva el del mapa previo.
 [[nodiscard]] Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoadContext& context);
 
 // 0x510f70(clave): mata al vivo del pool del mundo cuya clave, con signo (movsx en 0x510f8a), no es

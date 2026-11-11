@@ -1027,7 +1027,7 @@ TEST_F(GameSceneDrawTest, TheStepAfterADrawStepsTheSeenObjects)
 TEST_F(GameSceneDrawTest, TheStepStopsAtTheSeenObjectsOfTheOtherMaps)
 {
     ASSERT_NO_FATAL_FAILURE(Prepare(18, 128, 128));
-    world.Runtime().map = 34;
+    world.Runtime().map = 35;
     ASSERT_FALSE(world.Map().objects.empty());
     world.Map().objects.front().seen = true;
     const Client::World::WorldObject before = world.Map().objects.front();

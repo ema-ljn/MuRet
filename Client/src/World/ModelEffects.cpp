@@ -289,6 +289,31 @@ void AddRotated(glm::vec3& position, const glm::vec3& rotated)
 }
 } // namespace
 
+std::optional<std::size_t> ModelEffects::CreateFadingDecal(const glm::vec3& position, const glm::vec3& angles,
+                                                           const glm::vec3& light, std::int32_t subtype,
+                                                           std::uint16_t disturbance)
+{
+    constexpr std::int32_t DecalLife = 20, FirstDecalLife = 15;
+    constexpr float DecalScale = 0.5f; // 0x51ee9d: 0x3f000000.
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeCommonEffect(effect, FadingDecalEffect, position, angles, light, 0.0f);
+        effect.subtype = subtype;
+        effect.disturbanceState = disturbance;
+        effect.itemType = nullptr;
+        effect.itemLevel = nullptr;
+        effect.life = DecalLife;
+        effect.transform.scale = DecalScale;
+        if (subtype == 0)
+            effect.life = FirstDecalLife; // 0x51eeae
+        return slot;
+    }
+    return std::nullopt;
+}
+
 std::optional<std::size_t> ModelEffects::CreateFallingStone(const glm::vec3& position, const glm::vec3& angles,
                                                             const glm::vec3& light, Render::Models::CrtRandom& random)
 {

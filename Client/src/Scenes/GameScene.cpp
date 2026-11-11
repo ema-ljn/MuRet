@@ -59,6 +59,7 @@
 #include "World/TerrainCulling.h"
 #include "World/CastleSiegeObjectStep.h"
 #include "World/ChaosCastle.h"
+#include "World/CrywolfWater.h"
 #include "World/EventMapObjectStep.h"
 #include "World/TerrainHeight.h"
 #include "World/TarkanObjectStep.h"
@@ -108,6 +109,8 @@ constexpr std::int32_t SelectionMap = 54;
 constexpr std::int32_t AidaMap = 33;
 // 0x43ff10: Land of Trials, con sus casos en 0x43ffc0, 0x4401e0 y 0x4403b0.
 constexpr std::int32_t LandOfTrialsMap = 31;
+// 0x4303c0: Crywolf, con sus casos en 0x4303e0, 0x430510 y 0x4306a0 y las burbujas de su agua (0x5fa695).
+constexpr std::int32_t CrywolfMap = 34;
 // Los mapas de referencia, los únicos con los casos de los objetos en el juego (0x6046a0 y 0x604ab0).
 constexpr std::int32_t LorenciaMap = 0;
 constexpr std::int32_t DungeonMap = 1;
@@ -416,7 +419,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     const bool aida = map == AidaMap || map == SelectionMap;
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
         map != ArenaMap && map != AtlansMap && map != TarkanMap && map != DevilSquareMap && map != IcarusMap &&
-        map != LandOfTrialsMap && map != CastleMap && !World::IsKalimaMap(map) && !aida && !bloodCastle && !chaosCastle)
+        map != LandOfTrialsMap && map != CastleMap && map != CrywolfMap && !World::IsKalimaMap(map) && !aida &&
+        !bloodCastle && !chaosCastle)
     {
         return Core::Unexpected("0x606560: los objetos vistos del " + MapText(map) + " (0x604ab0) no están portados");
     }
@@ -761,6 +765,25 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
                 return Core::Unexpected(drawn.Error() + ", en el " + MapText(map));
             }
         }
+        else if (map == CrywolfMap)
+        {
+            // 0x5fa695: en el 34, las UV del agua sacan rand() y sueltan las burbujas 698/0 (World::CrywolfWater).
+            const float frameClock =
+                static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count());
+            const ActorState& hero = m_context.world->Actors()[m_context.world->Runtime().hero];
+            const World::CrywolfWaterContext waterContext{.heroZ = hero.position.z,
+                                                          .heroAngles = hero.angles,
+                                                          .random = &FrameCloth().random,
+                                                          .particles = &FrameParticles(),
+                                                          .worldClock = std::cref(frameClock)};
+            if (auto drawn = World::DrawTerrain(canvas.models, view, m_terrainRange, polygon, m_water,
+                                                [&view, &waterContext](std::uint8_t x, std::uint8_t y)
+                                                { return World::StepCrywolfWaterCell(view, x, y, waterContext); });
+                !drawn.HasValue())
+            {
+                return Core::Unexpected(drawn.Error() + ", en el " + MapText(map));
+            }
+        }
         else
         {
             World::DrawTerrain(canvas.models, view, m_terrainRange, polygon, m_water);
@@ -798,16 +821,16 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         canvas.models.SetState(afterMarks);
     }
     // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4, 6 a 23, 30,
-    // 31, 33 y Kalima.
+    // 31, 33, 34 y Kalima.
     const bool knownObjects = (map >= LorenciaMap && map <= LostTowerMap) ||
                               (map >= ArenaMap && map <= World::LastChaosCastleMap) || map == CastleMap ||
-                              map == LandOfTrialsMap || map == AidaMap || World::IsKalimaMap(map);
+                              map == LandOfTrialsMap || map == AidaMap || map == CrywolfMap || World::IsKalimaMap(map);
     if (!knownObjects &&
         std::ranges::any_of(FrameObjects(), [](const World::WorldObject& object) { return object.alive; }))
     {
         return Core::Unexpected("0x6374ce: los objetos del " + MapText(map) +
                                 " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0 al 4, "
-                                "los del 6 al 23, los del 30, los del 31, los del 33 y los de Kalima");
+                                "los del 6 al 23, los del 30, los del 31, los del 33, los del 34 y los de Kalima");
     }
     if (auto loaded = LoadTheObjectModels(map); !loaded.HasValue())
     {
@@ -865,7 +888,9 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
                                                                          CameraState().fixedHeight));
                     },
                     .chaosCastleArea = world.Runtime().chaosCastleArea,
-                    .siegeActive = world.Runtime().siegeActive});
+                    .siegeActive = world.Runtime().siegeActive,
+                    .objectDrawCounter = &world.Runtime().objectDrawCounter,
+                    .crywolf = &world.Runtime().crywolf});
             !objects.HasValue())
         {
             return Core::Unexpected(objects.Error() + ", en el " + MapText(map));

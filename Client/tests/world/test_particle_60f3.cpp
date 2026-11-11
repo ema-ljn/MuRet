@@ -432,8 +432,9 @@ TEST(Particle60f3Test, LegacyAndUnaccreditedCreationSubtypesRemainRejected)
     const auto legacy = particles.CreateChecked(Type, {}, {}, {}, 3, 1, clock, random, 0);
     ASSERT_FALSE(legacy.HasValue());
     EXPECT_EQ(legacy.Error(), World::ParticleError::UnsupportedType);
-    // La /4 de la antorcha de Blood Castle ya está acreditada; la /5 comparte su alta pero no su paso.
-    for (const int subtype : {0, 5, 10})
+    // La /4 de la antorcha de Blood Castle y la /10 del calco de Crywolf ya están acreditadas; la /5 comparte el alta
+    // de la /4 pero no su paso, y la /6, que nace como la /3 (0x542eeb), sigue sin acreditar.
+    for (const int subtype : {0, 5, 6})
     {
         const auto result = particles.CreateChecked(Type, {}, {}, {}, subtype, 1, std::cref(clock), random, 0, trig);
         ASSERT_FALSE(result.HasValue());

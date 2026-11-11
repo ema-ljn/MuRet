@@ -12,7 +12,6 @@ enum class MapSweepCut : std::uint8_t
 {
     None,
     MissingHeight,
-    CrywolfState,
     MissingWorld,
     LoginSpecials,
 };
@@ -118,7 +117,7 @@ inline constexpr std::array<MapSweepCase, 39> MapSweepCases{{
     {31, 31, 32, MapSweepCut::None, 5638, 0, MapSweepAfterTrials, {0, 1, 1}, false},
     {32, 9, 10, MapSweepCut::None, 564, 0, MapSweepAfterGrass, {2, 0, 0}, true},
     {33, 33, 34, MapSweepCut::None, 2979, 0, MapSweepAfterGrass, {1, 1, 2}, false},
-    {34, 34, 35, MapSweepCut::CrywolfState, 0, 0, MapSweepAfterGrass, {1, 2, 2}, false},
+    {34, 34, 35, MapSweepCut::None, 6644, 0, MapSweepAfterGrass, {1, 2, 2}, false},
     {35, 35, 36, MapSweepCut::MissingWorld, 0, 0, MapSweepAfterGrass, {0, 0, 0}, false},
     {36, 36, 25, MapSweepCut::None, 2266, 0, MapSweepAfterGrass, {1, 0, 0}, false},
     {54, 54, 55, MapSweepCut::None, 192, 0, MapSweepAfterGrass, {0, 0, 0}, false},

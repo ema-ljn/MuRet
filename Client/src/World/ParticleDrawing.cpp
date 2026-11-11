@@ -138,6 +138,8 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
         return DrawSelection{ParticleDrawKind::Common, false};
     case DropParticle:
         return DrawSelection{ParticleDrawKind::Drop, false};
+    case BubbleParticle: // 0x5488f6 → 0x54899a, sin leer el subtipo.
+        return DrawSelection{ParticleDrawKind::Bubble, false};
     case TorchSparkParticle: // 0x5488f6: la 6ab va al default, 0x54889a.
         return DrawSelection{ParticleDrawKind::Common, false};
     case TorchFlameParticle:

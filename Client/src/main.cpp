@@ -192,7 +192,8 @@ std::optional<ServerStartup> ReadServerStartup(const App::ClientConfig& config, 
     }
     return ServerStartup{.connectServer = config.server.value_or(App::ServerAddress{}),
                          .credentials = std::move(credentials),
-                         .keys = keys.Value()};
+                         .keys = keys.Value(),
+                         .mainCheckFile = {}};
 }
 
 // Fase 1. SDL_GetBasePath anda antes de SDL_Init: en la carpeta del ejecutable están la config y,

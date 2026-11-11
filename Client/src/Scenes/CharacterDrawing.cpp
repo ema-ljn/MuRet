@@ -258,13 +258,23 @@ struct PassUv
     glm::vec2 shift{};
 };
 
-glm::vec2 CornerUv(const MeshDraw& draw, const Data::Models::Triangle& triangle, std::size_t corner, const PassUv& uv)
+// El reloj del brillo de un ítem con el reloj del original: el mismo en todas las esquinas del pase, así
+// que Triangles lo saca una vez y no por esquina (#306). Sin brillo o con el reloj de MuRet, ninguno.
+std::optional<ItemShineClock> ItemShineClockOfPass(const MeshDraw& draw, const PassUv& uv)
+{
+    if (!uv.shine || !draw.originalClock)
+        return std::nullopt;
+    return ItemShineClockOf(*uv.shine, draw.frameClock);
+}
+
+glm::vec2 CornerUv(const MeshDraw& draw, const Data::Models::Triangle& triangle, std::size_t corner, const PassUv& uv,
+                   const std::optional<ItemShineClock>& itemClock)
 {
     if (uv.shine)
     {
         const auto normal = static_cast<std::size_t>(triangle.normals[corner]);
-        if (draw.originalClock)
-            return ItemShineTexCoords(*uv.shine, draw.skinned->normals[normal] * draw.normalScale, draw.frameClock) +
+        if (itemClock)
+            return ItemShineTexCoords(*uv.shine, draw.skinned->normals[normal] * draw.normalScale, *itemClock) +
                    uv.shift;
         return Render::Models::ShineTexCoords(*uv.shine, draw.skinned->normals[normal] * draw.normalScale,
                                               draw.frameClock) +
@@ -280,6 +290,7 @@ void Triangles(Render::ModelBatch& batch, const MeshDraw& draw, const Render::Mo
                Render::Color color, const PassUv& uv, bool normalLight = false)
 {
     batch.SetState(state);
+    const std::optional<ItemShineClock> itemClock = ItemShineClockOfPass(draw, uv);
     for (const Data::Models::Triangle& triangle : draw.mesh->triangles)
     {
         std::array<Render::ModelVertex, 3> corners{};
@@ -293,8 +304,8 @@ void Triangles(Render::ModelBatch& batch, const MeshDraw& draw, const Render::Mo
                 const float light = Render::Models::NormalLight(draw.skinned->normals[normal] * draw.normalScale);
                 shaded = Render::Color{color.red * light, color.green * light, color.blue * light, color.alpha};
             }
-            corners[corner] =
-                Render::ModelVertex{draw.skinned->positions[vertex], CornerUv(draw, triangle, corner, uv), shaded};
+            corners[corner] = Render::ModelVertex{draw.skinned->positions[vertex],
+                                                  CornerUv(draw, triangle, corner, uv, itemClock), shaded};
         }
         batch.Triangle(corners);
     }

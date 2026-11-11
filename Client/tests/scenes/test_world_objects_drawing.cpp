@@ -1730,4 +1730,58 @@ TEST(ParticlesDrawingTest, ABreathWithoutItsTextureCutsThePassWithItsError)
     EXPECT_EQ(drawn.Error().error.phase, Client::World::ParticleDrawingPhase::Dimensions);
     EXPECT_TRUE(batch.Commands().empty());
 }
+
+// 0x4255f3 y 0x42588d (0x425260 desde 0x602ed0): el 0x29 y el 0x41/0x42 de Aida repiten su malla 0 con un
+// 0x4ecc30 después del cuerpo, sin luz por vértice y con la U del reloj (−ftol(T) % 100.000 · paso) y la V del
+// objeto. El 0x29 suma (banderas 0x42) en 0,52 y paso 0,00001f; el 0x41/0x42 va con el pase base (2), el color
+// que le dejó el cuerpo y paso 0,00005f. Dibujan también en un dibujo intermedio de MuRet, sin rand().
+TEST(WorldObjectsDrawingTest, TheAidaBodiesRepeatTheirFirstMeshWithTheClockScroll)
+{
+    constexpr std::uint8_t Aida = 33;
+    const TwoMeshModels models;
+    struct Case
+    {
+        std::int16_t type;
+        ModelBlend blend;
+        float step;
+    };
+    for (const Case& probe : {Case{0x29, ModelBlend::Additive, std::bit_cast<float>(0x3727c5acu)},
+                              Case{0x41, ModelBlend::Opaque, std::bit_cast<float>(0x3851b717u)},
+                              Case{0x42, ModelBlend::Opaque, std::bit_cast<float>(0x3851b717u)}})
+    {
+        SCOPED_TRACE(probe.type);
+        std::vector<WorldObject> objects{ObjectAt(probe.type, 100.0f, 100.0f, Aida, Client::World::ObjectScene::Other)};
+        objects[0].light = glm::vec3(0.25f, 0.5f, 0.75f);
+        objects[0].vertexLight = false;
+        objects[0].state.uv = glm::vec2(0.5f, 0.125f);
+        for (const bool original : {false, true})
+        {
+            Client::Render::Models::CrtRandom random(7);
+            ModelBatch batch;
+            ASSERT_TRUE(DrawGame(batch, models, objects,
+                                 {.map = Aida, .originalFrame = original, .random = &random, .worldClock = 123456.5f})
+                            .HasValue());
+            EXPECT_EQ(random.State(), SevenAfter(original ? 1 : 0).State());
+            ASSERT_EQ(batch.Commands().size(), 3u);
+            const auto& pass = batch.Commands()[2];
+            EXPECT_EQ(pass.state.texture, TextureSlot{0x41c});
+            EXPECT_EQ(pass.state.blend, probe.blend);
+            ASSERT_EQ(pass.vertexCount, 3u);
+            const auto& vertex = batch.Vertices()[pass.firstVertex];
+            const auto u = static_cast<float>(-23456.0 * static_cast<double>(probe.step));
+            EXPECT_EQ(vertex.uv, glm::vec2(u, 0.125f));
+            const glm::vec3 color =
+                probe.type == 0x29 ? glm::vec3(std::bit_cast<float>(0x3f051eb8u)) : glm::vec3(0.25f, 0.5f, 0.75f);
+            EXPECT_EQ(vertex.color.red, color.x);
+            EXPECT_EQ(vertex.color.green, color.y);
+            EXPECT_EQ(vertex.color.blue, color.z);
+        }
+    }
+    // Otros tipos del 33 no repiten nada.
+    std::vector<WorldObject> objects{ObjectAt(0x10, 100.0f, 100.0f, Aida, Client::World::ObjectScene::Other)};
+    Client::Render::Models::CrtRandom random(7);
+    ModelBatch batch;
+    ASSERT_TRUE(DrawGame(batch, models, objects, {.map = Aida, .originalFrame = false, .random = &random}).HasValue());
+    EXPECT_EQ(batch.Commands().size(), 2u);
+}
 } // namespace

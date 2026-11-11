@@ -686,17 +686,17 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         afterMarks.depthTest = true;
         canvas.models.SetState(afterMarks);
     }
-    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4, 8, 10 y
-    // Kalima.
-    const bool knownObjects =
-        (map >= LorenciaMap && map <= LostTowerMap) || map == TarkanMap || map == IcarusMap || World::IsKalimaMap(map);
+    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4, 8, 10, 33
+    // y Kalima.
+    const bool knownObjects = (map >= LorenciaMap && map <= LostTowerMap) || map == TarkanMap || map == IcarusMap ||
+                              map == AidaMap || World::IsKalimaMap(map);
     if (!knownObjects &&
         std::ranges::any_of(FrameObjects(), [](const World::WorldObject& object) { return object.alive; }))
     {
         return Core::Unexpected(
             "0x6374ce: los objetos del " + MapText(map) +
-            " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0 al 4, los del 8, los del 10 "
-            "y los de Kalima");
+            " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0 al 4, los del 8, los del 10, "
+            "los del 33 y los de Kalima");
     }
     if (auto loaded = LoadTheObjectModels(map); !loaded.HasValue())
     {
@@ -739,7 +739,13 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
                     .hero = &hero,
                     .kalima = FrameKalima(),
                     .requestSound = [&](std::int32_t sound) { world.Fauna().Sound(sound, nullptr); },
-                    .effects = &FrameEffects()});
+                    .effects = &FrameEffects(),
+                    // Q-C304: el 0x46 de Aida lee timeGetTime (0x6b8544); MuRet le presta el reloj del dibujo.
+                    .systemTime =
+                        [systemTime = static_cast<std::uint32_t>(
+                             std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
+                    { return systemTime; },
+                    .scene = static_cast<std::int32_t>(SceneId::Game)});
             !objects.HasValue())
         {
             return Core::Unexpected(objects.Error() + ", en el " + MapText(map));

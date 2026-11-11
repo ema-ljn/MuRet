@@ -16,7 +16,8 @@ namespace Client::World
 struct Particle;
 class IParticleTrigonometry;
 enum class ParticleError : std::uint8_t;
-// El 0x5ac (Effect\flare01.jpg): 6 y 7 de Kalima, y 0 del 10 de Icarus (0x604143).
+// El 0x5ac (Effect\flare01.jpg): 6 y 7 de Kalima, 0 del 10 de Icarus (0x604143), 1 la estela del efecto
+// 0x5ac de Icarus y 9 la del efecto 0xb3 de Aida (0x520d04).
 inline constexpr std::int32_t KalimaFlare = 0x5ac;
 inline constexpr std::int32_t KalimaFanta = 0x6ed;
 inline constexpr std::int32_t KalimaWaterfallFirst = 0x6f0;

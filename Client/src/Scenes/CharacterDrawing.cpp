@@ -26,6 +26,7 @@
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameItemGlowEffects.h"
 #include "Scenes/GameItemGlowSpecialDrawing.h"
+#include "World/Ftol.h"
 #include "World/ObjectModelStepState.h"
 #include "World/ScepterGlow.h"
 #include "World/Sprites.h"
@@ -35,6 +36,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
@@ -1534,6 +1536,43 @@ void DrawTarkanChrome(Render::ModelBatch& batch, const IModelLibrary& models, co
                   chromeColor, PassUv{Render::Models::ShinePass::Chrome, glm::vec2{}});
         return;
     }
+}
+
+Core::Expected<void, std::string> DrawAidaMeshPass(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                   const DrawnObject& object, std::int16_t type, float worldClock,
+                                                   Core::Duration frameClock)
+{
+    constexpr std::int16_t GlowingType = 0x29;
+    const bool glowing = type == GlowingType;
+    if (!glowing && type != 0x41 && type != 0x42)
+        return {};
+    if (models.Find(object.model) == nullptr)
+        return {};
+    constexpr int Period = 100000;
+    constexpr std::uint32_t GlowFlags = 0x42, BaseFlags = 0x2;
+    constexpr double GlowStep = static_cast<double>(std::bit_cast<float>(0x3727c5acu));
+    constexpr double BaseStep = static_cast<double>(std::bit_cast<float>(0x3851b717u));
+    constexpr float GlowColor = std::bit_cast<float>(0x3f051eb8u);
+    // 0x425623..0x425645: ftol del reloj, neg, cdq e idiv por 100.000 (el resto lleva el signo del dividendo).
+    const std::int32_t clock = World::FtolLow(static_cast<double>(worldClock));
+    const auto negated = static_cast<std::int32_t>(0u - static_cast<std::uint32_t>(clock));
+    const auto remainder = static_cast<double>(negated % Period);
+    DrawnObject pass = object;
+    pass.unlitMesh = std::int16_t{0};
+    pass.state.uv.x = static_cast<float>(remainder * (glowing ? GlowStep : BaseStep));
+    if (glowing)
+        pass.color = glm::vec3(GlowColor);
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    std::span<const Render::Models::SkinnedMesh> meshes = object.retainedMeshes;
+    if (meshes.empty())
+    {
+        static_cast<void>(ObjectMeshDraws(models, pass, frameClock, skinned));
+        meshes = skinned;
+    }
+    // Sin la pose (el alpha por debajo de 0,01 o sin esqueleto), 0x5ffdf0 no dejó vértices que repetir.
+    if (meshes.empty())
+        return {};
+    return DrawItemMeshPass(batch, models, pass, frameClock, meshes, 0, glowing ? GlowFlags : BaseFlags);
 }
 
 void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& horse, std::int32_t map,

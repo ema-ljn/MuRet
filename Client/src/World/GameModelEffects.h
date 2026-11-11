@@ -33,7 +33,8 @@ struct ModelEffectStepServices
 // Dungeon y Lost Tower: la piedra 0xda que rebota (0x52444d), el chorro 0x5de/0 (0x52ad21: seis llamas
 // 5de/0, a veces una piedrita y su luz, con la luz local del primer rand()) y las piedritas 0xc8/0xc9 con el
 // subtipo 0 (0x5238be: rebotan, se inclinan y a veces sueltan un fuego 5d9 de subtipo 1 a 3). Esos cuatro
-// dejan en previousPosition la posición de antes del paso entero.
+// dejan en previousPosition la posición de antes del paso entero. El 0xb3 de Aida (0x520b77) vaga con sus
+// dos giros sorteados y el seno del reloj, y suelta una 5ac/9 por paso.
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton, Particles& particles,
                     float worldClock, Render::Models::CrtRandom& random, KalimaWorld* kalima = nullptr,

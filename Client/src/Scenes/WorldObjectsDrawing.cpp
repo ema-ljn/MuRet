@@ -513,6 +513,14 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
             if (auto tail = DrawKalimaObjectTail(batch, models, object, drawn, frameClock, pass); !tail.HasValue())
                 return tail;
         }
+        // 0x425260 (desde 0x602ed0): el 0x29 y el 0x41/0x42 de Aida repiten su malla 0 con 0x4ecc30. Sin rand()
+        // ni estado, van en cada dibujo de MuRet; el orden con el rand() común no cambia nada.
+        if (pass.map == AidaMap || pass.map == SelectionWorldMap)
+        {
+            if (auto meshPass = DrawAidaMeshPass(batch, models, drawn, object.type, pass.worldClock, frameClock);
+                !meshPass.HasValue())
+                return meshPass;
+        }
         // 0x604a4d: 0x602ed0, una vez por frame del original.
         if (!pass.originalFrame)
         {

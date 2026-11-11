@@ -2447,8 +2447,8 @@ las dos `0x729`; y el pase de ojo con la modelview en la identidad (`0x6213e0`):
   (`0x518cf0`; en la escena 4 sale oculta, `0x51913a`); siempre deja el objeto en −2.
 - `0x43`: la luz del objeto (`+0xf4`) en 0,3 y la llama `5de/7` con esa luz.
 - `0x46`: con `rand() % 5` en 1 y el reloj debajo de 30, el efecto `0xb3`; `0x29`, `0x41` y `0x42` vuelven a
-  dibujar una malla con `0x4ecc30` y la V del reloj. Son de Aida (ninguno en el 54): MuRet corta en `0x4259ae`,
-  `0x4255f3` y `0x42588d`.
+  dibujar su malla 0 con `0x4ecc30` y la U del reloj. Son de Aida (ninguno en el 54): ver
+  [Los objetos de Aida](#los-objetos-de-aida).
 
 Las partículas (`World/SelectionParticleKernels.h`): la `622/1` (`0x5435cf`, siete `rand()`; paso `0x5476f0`:
 el dueño visto le renueva la vida a 50 y, si muere sin verse, le vuelve `+0x58` a 0; la altura es el seno del
@@ -5264,6 +5264,80 @@ con su dirección después de lo que ya escribió. Con la Data del repo, el 10 l
 `GameModelEffectsTest.TheIcarusFlareStepsTwiceAndLeavesTwoTrails`,
 `GameJointDrawingTest.BoltsShiftTheirSecondFaceByTwiceTheScroll` y
 `OriginalRotationTest.TheInPlaceRotateReadsEachStoredRow`.
+
+### Los objetos de Aida
+
+Leído en la CL7 en el ASM y el pseudocódigo de `c32bbd5f` (*estático*; las cuentas de MuRet, *simulado*: con el
+port y la Data del repo). Lo común es lo de [Los objetos del juego](#los-objetos-del-juego). Aida (el mapa 33) usa
+los casos del 54 de la selección: el paso `0x4250f0` y el dibujo `0x425260` de
+[El mundo de la selección](#el-mundo-de-la-selección); lo que esa sección no cubre son los tres tipos que el 54 no
+tiene. `World34` trae doce `0x29`, tres `0x41`, ocho `0x42` y cinco `0x46`.
+
+**La carga** (`0x616ec0`, `0x618566..0x6185e6`): los especiales `0xae` (`Object1\Butterfly`), `0x141`
+(`Object34\tree_eff`) y `0xb2` (`Object9\Bug`); `Effect\clouds.jpg` a `0x622`; y los sonidos `0x246..0x248`, que
+son de la CL10. Ni `0x6061c0`, ni `0x6063d0`, ni `0x6002e0`, ni los `model+0x88` de después de la carga tienen
+algo para el 33.
+
+**El `0x29` y el `0x41`/`0x42`** (`0x4255f3` y `0x42588d`, en `0x425260` desde `0x602ed0`): entre `0x4ecc10` y
+`0x4ecc20` (`glPushMatrix` y `glPopMatrix`; el argumento 1,0 no se lee), el `model+0x88` en 0 (la malla 0 sin luz
+por vértice, con el color del modelo y la U y la V corridas) y `0x4ecc30(0, banderas, +0x174, +0x64, +0x68, U,
++0x70, −1)`, la malla 0 sola. La U es (−ftol(`0x5767b88`) % 100.000) · paso: `neg`, `cdq` e `idiv`, con el resto
+del signo del dividendo, por la constante en la x87 y guardada en float (el pseudocódigo la muestra como el
+ftol de `+0x70`, que es la V). Después `model+0x88` vuelve a `0xff`, que es lo que esos tipos tienen en Aida.
+
+| Tipo | Banderas | Color del modelo (`+0x48`) | Paso de la U |
+|---|---|---|---|
+| `0x29` | `0x42` (con textura y aditivo) | 0,52 (`0x3f051eb8`), que queda en el modelo | 0,00001f (`0x6b8a2c`) |
+| `0x41`, `0x42` | 2 (el pase base) | el que le dejó `0x5ffce0` en el cuerpo | 0,00005f (`0x6b8a28`) |
+
+El paso le deja al `0x29` medio alpha (`+0x174` en 0,5), que va al cuerpo y al `0x4ecc30`.
+
+**El `0x46` y el efecto `0xb3`** (`0x42593f..0x4259ae`): `timeGetTime()` & `0x3ff` (Q-C304) y `rand()` % 5; con
+1 y el reloj debajo de 30, `0x518cf0(0xb3, posición, ángulos, (0,1f; 0,1f; 0,1f), 0, objeto, −1, 0,
+ftol(+0xc), 0, 0)`. La creación (`0x51900b`) pisa con 0 el byte `+0x88` que traía la escala del objeto, pone
+`+0x68` y `+0xd8` en 1, vida 1.000 y `+0xe4` y `+0xec` en 1, y saca seis `rand()`: la z, la y y la x ± 100 (`rand()`
+% 200 − 100), el yaw más `rand()` % 360, la y de la velocidad (`rand()` & 7) · 0,1f − 5 (la x y la z con `esi`, que
+el prefijo dejó en 0) y la escala 0,9 más (`rand()` % 5) · 0,025f; la partida (`+0x17c`) en la posición ya
+corrida y la luz (0,01f; 0,01f; 0,03f). El modelo `0xb3` es el `Object8\Fish02` de Atlans, que Aida no carga
+(Q-C314).
+
+El paso (`0x520b77..0x520d0c`), después del `rand()` común de `0x5208c5`:
+
+1. Con `rand()` % 40 en 1, `+0xd8` por −1 y `+0xe4` = (`rand()` % 3 + 5) · `+0xd8`.
+2. Con otro `rand()` % 40 en 1, `+0xd8` por −1 otra vez y `+0xec` = (`rand()` % 3 + 1) · `+0xd8`. `+0xd8` es
+   la velocidad de la animación de la cola común (Q-C315).
+3. La distancia a la partida en la x87 (dz², más dy², más dx², y `fsqrt`, sin redondear); si no es menor que 500
+   (`test ah, 1`: un NaN cuenta como menor) y el estado `+0x88` es 0, vida 50 y estado 1.
+4. El yaw (`+0x24`) suma `fsin`(ftol(`0x5767b88`) % 10.000 · 0,0001f) · `+0xe4`, y el pitch (`+0x1c`) el mismo
+   seno · `+0xec` · 1/3f (`0x6ba2a0`): cada producto en la x87, sin guardar el seno.
+5. La luz, `+0x68` · (0,1f; 0,1f; 0,25f), y `0x53fe70(0x5ac, posición, ángulos, luz, 9, escala, 0)`.
+6. La cola común (`0x52cb98`): el `0xb3` está en `[0xad, 0x151)` y avanza la animación con `+0xd8`; como está
+   fuera de la tabla `0x52d1b8`, `0x51fc80` le suma la velocidad girada por los ángulos nuevos, y pierde una vida.
+
+El dibujo del efecto es el genérico de `0x52d620` (un `RenderBody` con el modelo `0xb3`).
+
+**La partícula `5ac/9`.** Nace (`0x53ffb9`) con vida ftol(escala · 40), sin `rand()`: con la escala de 0,9f a
+1,0f, de 35 a 40 (0,9f · 40 es 35,999999). En el paso (`0x544b8e..0x544c04`), después de la vida común, la escala
+baja 0,011f (`0x6ba3d8`) y se guarda con `fst`, pero la comparación con 0 lee la resta sin redondear. Con el byte
+vivo ya en 0, o con esa resta que no queda por encima de 0 (o NaN), la vida va a 0 sin apagar el byte: lo apaga
+la resta del paso siguiente. Desde 75 de vida (`cmp eax, 0x4b`, con signo) la luz va por 1,05f (`0x6ba3d4`);
+debajo, por 0,952381f (`0x6ba264`). Se dibuja como las demás `5ac` (el billboard común).
+
+**En MuRet.** El dibujo de la malla 0: `Scenes::DrawAidaMeshPass` (`CharacterDrawing`), desde
+`DrawGameWorldObjects` en el 33 y el 54 después del cuerpo de cada objeto, con `DrawItemMeshPass` (el
+`0x4ecc30` portado) y la pose del cuerpo. No saca `rand()` ni cambia estado, así que va en cada dibujo de MuRet y
+no sólo en los frames del original, como el cuerpo (D-C4); el `rand()` común de `0x602ef4` queda donde estaba. El
+`model+0x88` de MuRet (`ObjectModelStepState`) no lo toca: nada lo prende para esos tipos en Aida.
+`Scenes::StepAidaObjectFrame` crea el `0xb3` con `World::ModelEffects::CreateAidaWisp`; su paso es el caso del
+`0xb3` de `World::StepGameModelEffect`, con el seno PC53 de `OriginalRetainedMath` (con el signo del factor); la
+`5ac/9` está en `World::KalimaParticleKernels`. El juego le presta al 33 el reloj del dibujo en ms como
+`timeGetTime()` (Q-C304) y la escena 5. Con la Data del repo, el 33 llega a un cuadro completo y camina
+(`GameT16SceneMatrix` y `GameT16MapWalk`, en (104, 165): suelo libre fuera de la zona segura, con `0x29` y `0x46`
+vistos). Tests: `WorldObjectsDrawingTest.TheAidaBodiesRepeatTheirFirstMeshWithTheClockScroll`,
+`AidaObjectServicesTest.TheWispLeavesOnlyWhenTheDrawAndTheClockAllowIt`,
+`AidaObjectServicesTest.TheRedrawnBodiesAndTheOtherTypesDoNothingHere`,
+`ModelEffectsTest.TheAidaWispIsCreatedWithSixDrawsAroundItsObject`, `GameModelEffectsTest.TheAidaWisp*` y
+`KalimaParticlesTest.TheAidaWispTrail*`.
 
 ### Las marcas del suelo
 

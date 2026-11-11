@@ -409,6 +409,81 @@ TEST(GameMovementTest, AClickClosesBeforePickingAndReadsTwoWindowsAfterSending)
     EXPECT_EQ(tested.random.State(), expected.State());
 }
 
+// Lo que pasa con un clic según las manos del registro propio: walked dice si salió el D3.
+struct HandsClick
+{
+    Client::Core::Expected<void, std::string> result;
+    bool walked = false;
+};
+
+HandsClick ClickWithTheHands(std::uint16_t right, std::uint16_t left, std::int32_t cursorItemCount = 0)
+{
+    MovingHero tested;
+    tested.world.OwnCharacter().equipment[0].id = right;
+    tested.world.OwnCharacter().equipment[1].id = left;
+    tested.world.Runtime().cursorItemCount = cursorItemCount;
+    tested.world.Runtime().movement.mouseUpdateTime = 6;
+    auto context = tested.Context();
+    context.input.leftPressed = true;
+    context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+    { return std::optional{Client::GameLogic::PathCell{183, 115}}; };
+    HandsClick click;
+    context.sendWalk = [&](auto, auto, float) -> Client::Core::Expected<void, std::string>
+    {
+        click.walked = true;
+        return {};
+    };
+    click.result = StepHeroMovement(context);
+    return click;
+}
+
+constexpr std::uint16_t EmptyHand = 0xffff;
+
+// 0x59bbe9..0x59bd38: la derecha es +0xb6c y la izquierda +0xbb4. Con la espada en la derecha y la
+// izquierda vacía, el caso más común, el clic camina.
+TEST(GameMovementTest, AWeaponInTheRightHandWithTheLeftEmptyWalks)
+{
+    for (const std::uint16_t right : {std::uint16_t{0x0000}, std::uint16_t{0x0205}, std::uint16_t{0x0a00}})
+    {
+        const auto click = ClickWithTheHands(right, EmptyHand);
+        ASSERT_TRUE(click.result.HasValue()) << click.result.Error();
+        EXPECT_TRUE(click.walked) << right;
+    }
+}
+
+// 0x59bd3e: con la derecha vacía y un arma de los grupos 0 a 2 o del 5 en la izquierda, el original la
+// pasa a la derecha con el C1 .. 24 del inventario (CL8).
+TEST(GameMovementTest, AWeaponOnlyInTheLeftHandCutsAtTheMoveToTheRight)
+{
+    for (const std::uint16_t left :
+         {std::uint16_t{0x0000}, std::uint16_t{0x05ff}, std::uint16_t{0x0a00}, std::uint16_t{0x0bff}})
+    {
+        const auto click = ClickWithTheHands(EmptyHand, left);
+        ASSERT_FALSE(click.result.HasValue()) << left;
+        EXPECT_TRUE(click.result.Error().starts_with("0x59bd3e:")) << click.result.Error();
+        EXPECT_FALSE(click.walked);
+    }
+}
+
+// Fuera de esos grupos (las lanzas, los arcos, los escudos), con la derecha ocupada o con un ítem en el
+// cursor ([0x7879fbc] > 0), el original sigue a 0x59cd23.
+TEST(GameMovementTest, TheOtherHandsAndAnItemOnTheCursorWalk)
+{
+    for (const std::uint16_t left :
+         {std::uint16_t{0x0600}, std::uint16_t{0x0800}, std::uint16_t{0x0c00}, std::uint16_t{0x0c05}, EmptyHand})
+    {
+        const auto click = ClickWithTheHands(EmptyHand, left);
+        ASSERT_TRUE(click.result.HasValue()) << click.result.Error();
+        EXPECT_TRUE(click.walked) << left;
+    }
+    const auto twoWeapons = ClickWithTheHands(0x0000, 0x0001);
+    ASSERT_TRUE(twoWeapons.result.HasValue()) << twoWeapons.result.Error();
+    EXPECT_TRUE(twoWeapons.walked);
+    const auto onTheCursor = ClickWithTheHands(EmptyHand, 0x0000, 1);
+    ASSERT_TRUE(onTheCursor.result.HasValue()) << onTheCursor.result.Error();
+    EXPECT_TRUE(onTheCursor.walked);
+}
+
 TEST(GameMovementTest, AContinuouslyHeldClickExpiresAtOneHourUntilReleased)
 {
     MovingHero tested;

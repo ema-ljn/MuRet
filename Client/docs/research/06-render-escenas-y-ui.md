@@ -6568,8 +6568,13 @@ de Lorencia verifican el componente; `GameScene`, reglas del clic y caminar sigu
 - **La acción del héroe** (`0x59babe..0x59bb1f`): sigue si la acción (`+0x111`) no es `0xc2` (el
   golpe), `+0x80` no es 1 ni 2, el alpha es ≥ 0,7 y la acción es < `0x22` o > `0x97`; o si la acción
   está en `0x48..0x4b`, `0x6a..0x7d` o `0x8a..0x8c`. Si no, el clic espera: pegando no se camina. El
-  tramo del ítem en el cursor (`0x59bb25..0x59cd28`) puede mandar un `C1 .. 24` (CL8, sin leer a
-  fondo).
+  tramo del ítem en el cursor (`0x59bb25..0x59cd28`) lee las manos del registro propio
+  (`0x59bbe9..0x59bbf0`: la derecha en `+0xb6c`, la izquierda en `+0xbb4`). Solo con el cursor vacío
+  (`[0x7879fbc]` ≤ 0), la derecha vacía (−1) y en la izquierda un arma de los grupos 0 a 2 o del 5
+  (`0..0x5ff`, `0xa00..0xbff`) pasa esa arma al cursor (`0x59bdf6`), viste al héroe (`0x512a30`) y
+  manda el `C1 .. 24` que la lleva a la derecha (`0x59bf1c`, CL8; MuRet corta en `0x59bd3e`). Con
+  cualquier otra cosa en las manos, por ejemplo la espada en la derecha y la izquierda vacía, sigue en
+  `0x59cd23`.
 - **Qué hay bajo el mouse**, desde `0x59cd28` (con `MouseUpdateTime = 0`; `+0x379` es el
   `MovementType`):
 

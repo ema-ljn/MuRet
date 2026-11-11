@@ -1,5 +1,6 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/ObjectState.h"
+#include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Skeleton.h"
 #include "World/ObjectModelStepState.h"
 #include "World/TarkanObjectStep.h"
@@ -12,10 +13,10 @@
 #include <gtest/gtest.h>
 
 #include <bit>
-#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <string>
 
 // Los casos de 0x604ab0 de Tarkan (mapa 8, la tabla 0x605cc0 por el tipo − 2), la velocidad del 8 y el
@@ -50,11 +51,14 @@ float F32(double value)
     return static_cast<float>(value);
 }
 
-// sin(fase · 0,002f) · 0,35f + 0,65f, con las constantes de 0x6b89bc, 0x6b8bc4 y 0x6b8bc0.
+// sin(fase · 0,002f) · 0,35f + 0,65f, con las constantes de 0x6b89bc, 0x6b8bc4 y 0x6b8bc0: el seno de 64 bits
+// de FSIN por el float con un solo R53 (0x6056c8..0x6056d0).
 double Pulse(double phase)
 {
-    return (std::sin(phase * D(std::bit_cast<float>(0x3b03126fu))) * D(std::bit_cast<float>(0x3eb33333u))) +
-           D(std::bit_cast<float>(0x3f266666u));
+    const std::optional<double> wave = Client::Render::Models::Detail::SineProductPC53(
+        phase * D(std::bit_cast<float>(0x3b03126fu)), std::bit_cast<float>(0x3eb33333u));
+    EXPECT_TRUE(wave.has_value());
+    return wave.value_or(0.0) + D(std::bit_cast<float>(0x3f266666u));
 }
 
 // La luz cálida: (L; L · 0,6f; L · 0,2f), cada una guardada en float desde la x87.
@@ -201,7 +205,8 @@ TEST(TarkanObjectsTest, TheHiddenTheWhiteAndTheRest)
     EXPECT_EQ(plain.light, Object(0x51).light);
 }
 
-// Un reloj que ftol no tiene acreditado corta con la dirección de su ftol; NaN da 0.
+// Un reloj que ftol no tiene acreditado corta con la dirección de su ftol; NaN da 0. El 4 y el 7 hacen antes el
+// fsin (0x6056c8 y 0x605755), que con ese reloj sale del perfil PC53 y corta primero.
 TEST(TarkanObjectsTest, AnUnreadClockCutsAtItsFtol)
 {
     struct Case
@@ -209,9 +214,10 @@ TEST(TarkanObjectsTest, AnUnreadClockCutsAtItsFtol)
         std::int16_t type;
         const char* address;
     };
-    for (const Case& c : {Case{2, "0x605690"}, Case{4, "0x6056df"}, Case{0xb, "0x605792"}, Case{0xc, "0x6057bd"},
-                          Case{0xd, "0x60580c"}, Case{0x3d, "0x60583e"}, Case{0x41, "0x605862"}, Case{0x48, "0x6058ca"},
-                          Case{0x49, "0x6058f5"}, Case{0x4b, "0x605920"}, Case{0x4f, "0x60594b"}})
+    for (const Case& c :
+         {Case{2, "0x605690"}, Case{4, "0x6056c8"}, Case{7, "0x605755"}, Case{0xb, "0x605792"}, Case{0xc, "0x6057bd"},
+          Case{0xd, "0x60580c"}, Case{0x3d, "0x60583e"}, Case{0x41, "0x605862"}, Case{0x48, "0x6058ca"},
+          Case{0x49, "0x6058f5"}, Case{0x4b, "0x605920"}, Case{0x4f, "0x60594b"}})
     {
         SCOPED_TRACE(c.type);
         auto lighting = std::make_unique<TerrainLighting>();

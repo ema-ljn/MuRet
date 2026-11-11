@@ -2961,12 +2961,14 @@ paquetes, el `F3 03`, el `1C` y el `F3 04` ([Los cambios de mapa](#los-cambios-d
 un error que nombra la dirección, nunca en silencio:
 
 - **Los mapas.** Con la `Data` del repo cargan el 0, 1, 2, 3, 4, 6 a 11, 18, 24 a 29, 30, 31, 33,
-  36 y 54. Cargar los aliases de Kalima no completa sus ramas de paso/dibujo.
+  34 (con el estado de Crywolf en 0, [Los objetos de Crywolf](#los-objetos-de-crywolf)), 36 y 54. Cargar los aliases
+  de Kalima no completa sus ramas de paso/dibujo.
   El 3 incorpora en hito 2 el binder síncrono de la torre `0x142` y sus cinco efectos, antes del
   pasto ([Creación de objetos](#los-objetos-del-juego)). Cortan: el 5 por el archivo que falta
   en `World6`, el 35 por el ATT ausente de `World36`, el 30 con el asedio prendido en `0x61a6ea` (sin él,
-  `0x42a760` carga los lanceros, [Los objetos de Castle Siege](#los-objetos-de-castle-siege)), el 34 en `0x42fe50` (el
-  `.att` según Crywolf, antes del `BD`, que por eso no sale) y el 55 en `0x6188ae`. Sin
+  `0x42a760` carga los lanceros, [Los objetos de Castle Siege](#los-objetos-de-castle-siege)), el 34 con el estado de
+  Crywolf en 1 o más en `0x61a6f4` (el `.att` y la luz según `0x42fe50`, antes del `BD`, que por eso no
+  sale) y el 55 en `0x6188ae`. Sin
   `TerrainHeight.OZB`, el error nombra el archivo, con el pasto ya sacado (Q-C180).
 - **Aviso y cierre por datos fatales (CL7b, Q-C180).** MAP/ATT y OBJ se procesan antes de
   alturas/luz, conservando los owners publicados antes del fallo. Un MAP que no abre permite
@@ -2974,7 +2976,7 @@ un error que nombra la dirección, nunca en silencio:
   sin terreno sustituto. World6 pide `Data\World6\TerrainHeight.OZB file not found.`;
   World36 pide `Data\World36\EncTerrain36.att file not found.`. El primer mensaje queda en
   `WorldRuntime::fatalDataMessage`, separado del diagnóstico del parser o de Poll. Los archivos
-  cortos rechazados de forma segura y las fronteras30/34 no inventan un pedido de cierre nativo.
+  cortos rechazados de forma segura y las fronteras del 30 y del 34 (con otro estado de Crywolf) no inventan un pedido de cierre nativo.
   `main` detiene el bucle y pide `Window::ShowErrorMessage` con la ventana viva, usando SDL3;
   al volver sale con fallo. Tests de datos/sesión observan ese pedido durable y su orden,
   no un modal visible. La confirmación del modal y el cierre en Windows/VM siguen pendientes.
@@ -5816,6 +5818,115 @@ lanceros a la vista, lejos de las antorchas, de los braseros y de la niebla). Te
 `CastleSiegeDrawingTest`, `MapLoadTest.CastleSiege*`, `WorldProtocolTest.CastleSiegeStateWritesTwoWithXor32AndWithoutC3`
 y `GameT16Journey.CastleSiegeAsksForItsStateBeforeConfirmingTheTeleport`.
 
+### Los objetos de Crywolf
+
+Leído en la CL7 en el ASM y el pseudocódigo de `c32bbd5f` (*estático*; las cuentas de MuRet, *simulado*: con el
+port y la Data del repo). Lo común es lo de [Los objetos del juego](#los-objetos-del-juego). Crywolf es el mapa 34
+(`World35`, 6.644 objetos). Sus tres casos los abre `0x4303c0` (el mapa en `0x22`) en las tres cadenas: el paso
+`0x4303e0` (el último de `0x605a62`, después de `0x438a90`, `0x42c850`, `0x43ffc0`, `0x42ee40` y `0x4250f0`, que en
+el 34 no hacen nada), el frame `0x430510` (en `0x602ed0`, por `0x6044ed`) y el dibujo `0x4306a0` (el último de
+`0x6002e0`; su default sigue a `0x4339d0`, que solo despacha `0x171..0x1b4`, monstruos de la CL9.1).
+
+**El estado del evento.** `0x723c04` (un byte de la .bss, en 0 al arrancar) lo escribe solo el paquete de
+`0x42fe80` (CL9.5), que al cambiarlo vuelve a cargar la luz y el `.att`; lo vuelve a 0 `0x42fdc0` (`0x42fe32`),
+desde la vuelta a la selección y desde el paquete con el segundo byte en 6. El cliente lo pide con el `BD 00` al
+entrar al 34 ([04](04-protocolo.md#el-clima-y-crywolf-0f-y-bd)), después de la carga. Sin paquetes queda en 0, y
+MuRet porta ese estado (Q-C340). Lo leen la carga y el dibujo:
+
+- **La carga** (`0x61a6d0`, `0x42fe50` después del `.map`): con 0, `EncTerrain35.att` y `TerrainLight` como los
+  demás mapas; con 1 y 2, `EncTerrain351.att`/`EncTerrain352.att` y `TerrainLight1`/`TerrainLight2`; con 3 o más,
+  el `.att` con la ruta del `.map` y la luz de Q-C181. MuRet carga el 0 y corta los otros en `0x61a6f4`.
+- **El dibujo**: los sorteos del `0x38` solo con 0; el humo del `0x54` y del `0x4a`, con 1; el `0x51`, con 2.
+
+`0x723c05` y `0x723c08`, que también vuelven a 0 en `0x42fdc0`, solo los escriben paquetes: eligen la música
+(`0x430250`, CL10), lo que dibuja `0x430180` (CL8), ramas de los personajes (`0x431470`, desde `0x505de0`) y el
+color del `0x51` con el estado en 2. Con 0, ninguna de esas ramas cambia el mundo.
+
+**El paso** (`0x4303e0`), con un `switch` por tipo de `0x29` a `0x54` (la tabla `0x4304c8` con los índices de
+`0x4304dc`). Devuelve 1 siempre que el mapa sea el 34:
+
+| Tipo | Qué hace |
+|---|---|
+| `0x29` | (0,2f; 0,7f; 0,5f) a la luz dinámica `0x7b4ccc4` con radio 2 (`0x5f9780`, `0x43043e`) |
+| `0x39`, `0x47` | ((`rand()` & 3) + 3) · 0,1f en la x87 (`fst` del rojo), por 0,6f (`0x6b8a20`) y 0,2f (`0x6b8854`), con radio 3 (`0x430497`) |
+| `0x51` | el alpha (`+0x174`) en 0,2f (`0x4304a6`) |
+| `0x52`, `0x53`, `0x54` | `+0x58` en −2 (`0x4304b7`) |
+
+**El frame** (`0x430510`), después del `rand()` común de `0x602ef4`, que no usa. Cada objeto del 34 suma 1 a
+`0x723c0c` y, pasados 70.000 (`0x11170`), un `rand()` la vuelve a 0 y deja **el clima** (`0x5763358`) en
+`rand()` % 3. El clima lo leen las hojas (`0x5304f6` y el `0x66` del 34, que solo se dibuja con el clima en 1,
+`0x5307b2`) y el `0x49` del dibujo. Después:
+
+- El `0x29`: el giro del brillo (`0x723c10`) más 1 (`0x6b87d4`); `fst` lo guarda y `fcomp` compara con 360
+  (`0x6b869c`) la suma que quedó en la x87, y en 360 o más vuelve a 0 (un NaN no). Dos sprites `0x60f` de 1,3
+  (`0x3fa66666`) en blanco con el objeto de dueño (`0x5491e0`): el primero sin giro y el segundo con el del brillo,
+  en (x, y) del objeto y la z en `fild` de la cuenta de `0x6046a0` (`0x5763538`, o 40 menos ella pasados 20) más
+  350 (`0x6b89ac`) más la z del objeto, en la x87 hasta el `fstp`. La cuenta da la vuelta de 1 a 41 en cada
+  dibujo de los objetos (`0x6046be..0x6046ce`), en el login, la selección y el juego (Q-C341): los sprites suben y
+  bajan de 349 a 370 sobre el objeto. El giro y la cuenta del clima suben con cada objeto, no con cada frame (Q-C348).
+- El `0x54`: un `rand()` y, en 0 módulo 3 con el estado en 1, `0x53fe70(0x5f2, posición, ángulos, (1, 1, 1), 21,
+  escala, 0)`.
+
+**El dibujo** (`0x4306a0`), con un frame del original para los sorteos, que van antes del `rand()` común:
+
+| Tipo | Cuerpo | Además |
+|---|---|---|
+| `0x24` | el color del modelo en 0,4 (`0x3ecccccd`) y su `RenderBody(2, …)` | — |
+| `0x29` | su `RenderBody(2, …)` | la luz (0,2; 0,7; 0) va a un local que nadie lee (Q-C343) |
+| `0x38` | su `RenderBody(2, …)` | con el estado en 0, un `rand()` para la luz ((`rand()` % 10.000) · 0,0001f, `0x6b8a94`, en los tres canales) y, con otro en 0 módulo 3, `0x518cf0(0x61d, posición, ángulos, luz, 3, objeto, 4, 0, 0, 0, 0)` |
+| `0x39` | ninguno | con `rand()` % 3 en 0, `0x53fe70(0x6ec, …, (1, 1, 1), 5, escala, 0)` y el humo `5f2/21` igual |
+| `0x47` | ninguno | lo mismo, sin el humo |
+| `0x48` | ninguno | con `rand()` % 10 en 0, otro `rand()` para la luz ((`rand()` & 3) + 3) · 0,1f por (1; 0,6; 0,2) y el humo `5f2/33` 50 más arriba (`0x4308ca`) |
+| `0x49` | ninguno | con el clima en 0, la arena del HUD (`0x576353c`) en 1 (`0x430950`); la gasta el HUD (`0x5a7520` → `0x435930`, CL8) |
+| `0x4a` | ninguno | con `rand()` % 3 en 0 y el estado en 1, el humo `5f2/21` |
+| `0x4d`, `0x4e` | ninguno | con `rand()` % 6 en 0, `0x53fe70(0x622, …, luz, 9, escala, objeto)` con (0,02; 0,03; 0,02) o (0,03; 0,06; 0,05) (Q-C345) |
+| `0x51` | ninguno | con el estado en 2, dos `0x4ecc30` de la malla 0 con el color de `0x723c08` y el seno del reloj |
+| `0xfa` | el color del modelo en (0; 0; 0,9) y su `RenderBody(2, …)` | — |
+
+Los demás siguen a `0x4339d0`, que devuelve 0 fuera de `0x171..0x1b4`, y `0x6002e0` dibuja su cuerpo. La malla 1 de
+`Object36.bmd` (el `0x23`) nombra el hueso −8888 (Q-C347).
+
+**Las partículas.** Todas sin dueño salvo la `622/9`; las texturas las sube `0x61ccb0` en todos los mapas:
+`Effect\fantaF.jpg` a `0x6ec` (`0x61d5a0`) y `Effect\coll.jpg` a `0x698` (`0x61d893`), con `GL_LINEAR` y `GL_CLAMP`.
+
+| Partícula | Nace | Paso | Dibujo |
+|---|---|---|---|
+| `5f2/21` | `0x542370`: vida 80, escala ((`rand()` & 63) + 64) · escala · 0,005f (`0x6b89d8`), giro `rand()` % 360 y subida (`+0x50`) ((`rand()` & 31) + 60) · 0,1f | el de la `5f2/2` (`0x5466c3`, la tabla de `0x548310`) | resta, como la `5f2/2` |
+| `622/9` | `0x54330a`: los siete `rand()` de la `622/8` en su orden, pero la escala (`rand()` % 20 + 180) · 0,01f por la del argumento (`+0x10`) y `+0x60` en (`rand()` % 10) · 0,01f, sin sumarle la escala | el de la `622/8` (`0x54768f` → `0x5476a8`, con el default del giro) | la luz por `+0x38`, como la `622/8`, sin el giro del reloj |
+| `698/0` | `0x543152`: vida 32 y la escala (`rand()` % 170 + 1) · 0,01f, que pisa la del argumento | `0x54719f`: el cuadro (32 − vida) / 4 en `+0x48` (`cdq`, `and 3` y `sar`) | `0x54899a`: la columna de 8 cuadros de `coll.jpg`, la v en (`+0x48` % 8) · 0,125f, el alto por el double 0,125 y el giro de `+0x20` |
+| `6ec/5` | `0x543b82`: la de la `6ed` (vida 24 y los dos `rand()` de la velocidad) y, con la /5, vida 20 (`0x543bd5`) | el de la `6ed` (`0x547a40`) | el de la `6ed` |
+| `60f/10` | `0x542ed0`: la de la `60f/3` (vida 60 y cuatro `rand()`) y, sola entre las órbitas (`0x543000`), la partida corrida por sin y cos de (vida + Vx) · 0,1f por 40 | `0x547286`: calcula el argumento y lo tira (`fstp st(0)`); x e y vuelven a la partida, la z sube, la escala −0,002f y la luz por 0,909f con la vida en 20 o menos | el de la `60f/3` |
+
+**El calco `0x61d/3`** (sin modelo). Nace (`0x51ee96`) con el prefijo común de `0x518cf0`, vida 20 y escala 0,5
+(con el subtipo 0, vida 15), sin `rand()`. En el paso (`0x52b91f..0x52b954`), con la vida entre 6 y 9 antes del
+paso común (`edi` en 5), suelta `0x53fe70(0x60f, posición, ángulos, luz, 10, 0,19f, efecto)`: cuatro órbitas por
+calco. El /0 crea un `0x61d/1` en cada paso y, en la misma ventana, órbitas `60f/0`, y el /2 y el /7 órbitas
+`60f/0`: no salen de los objetos de los mapas portados. El pase del suelo (`0x52dc20`) dibuja solo el /1, y el
+dibujo de los efectos con modelo salta el `0x61d` (`0x52da84`): el /3 no se ve, solo sus órbitas.
+
+**Las burbujas del agua** (`0x5fa695..0x5fa731`). En el 34, cada vez que `0x5fa830` pide a `0x5fa5c0` las UV del
+agua (la capa de abajo, con la capa 1 en 5 y alguna esquina de alfa debajo de 1; y la de alfa cuando además la capa
+2 es 5 y alguna esquina pasa de 0), un `rand()` y, con 0 módulo 50, la burbuja `0x53fe70(0x698, (x · 100 + rand()
+% 100 + 1; y · 100 + rand() % 100 + 1; z del héroe + 10), ángulos del héroe, (0,3; 0,4; 0,2), 0, 1, 0)`, con el
+héroe de `0x743a170`. Va antes de dibujar la celda (después del bit `0x08`), y el dibujo no saca `rand()`; la x de
+la burbuja pisa el argumento de `0x5fa5c0` (`[ebp+0xc]`), pero el resto de la función lo vuelve a escribir antes de
+leerlo (`0x5fa7b7`).
+
+**En MuRet.** El estado y los globales: `WorldRuntime::crywolf` (`Scenes::CrywolfGlobals`) y la cuenta de
+`0x6046a0` en `WorldRuntime::objectDrawCounter`, que `DrawGameWorldObjects` (juego y selección) y el dibujo del login
+cuentan con cada frame del original. El paso: `World::StepCrywolfObject` (`WorldObjectStepServices`), desde
+`StepWorldObjectChecked`; el frame: `Scenes::StepCrywolfObjectFrame`; el dibujo: `Scenes::CrywolfObjectBody`
+(`CrywolfObjectServices`), que `DrawGameWorldObjects` llama antes del cuerpo. El calco:
+`World::ModelEffects::CreateFadingDecal` y su paso en `StepGameModelEffect`. Las burbujas:
+`World::StepCrywolfWaterCell` (`CrywolfWater`), que `GameScene` le pasa a `World::DrawTerrain` como el gancho de la
+celda. Corta, con la dirección: la carga con el estado en 1 o más (`0x61a6f4`), el `0x48` con su `rand()` % 10 en 0
+(`0x4308ca`), el `0x51` con el estado en 2 (`0x430a40`) y los casos de monstruos de `0x4339d0`. Con la Data del
+repo, el 34 llega a un cuadro completo y camina (`GameT16SceneMatrix`; `GameT16MapWalk`, en (128, 30): suelo libre
+de `EncTerrain35.att` en la zona segura del fuerte, con tres `0x29`, cuatro `0x38`, el `0x49`, el `0x4a` y los
+`0x52` vistos). Tests: `CrywolfObjectsTest`, `CrywolfParticlesTest`, `CrywolfDecalTest`, `CrywolfWaterTest`,
+`CrywolfObjectServicesTest`, `MapLoadTest.CrywolfTakesItsPlainAttributesOnlyWithTheStartingState` y
+`TextureSetsTest.TheCrywolfSparkAndBubbleTexturesUploadAtTheirOriginalSlots`.
+
 ### Las marcas del suelo
 
 `0x549130`, desde `0x5fc365` (*estático*, salvo donde se dice). Son 100 lugares de `0x78` bytes en
@@ -6512,7 +6623,7 @@ en el 0, hasta 3 `0xb2` (`Fish01`), a ±512 del héroe y solo en celdas con la c
 textura `0x64`, *verificado* en la traza). La cuenta de partida es `(-(mapa != 9) & −120) + 200`
 (`0x530497..0x5304a3`): 200 en el mapa 9 y 80 en los demás, y después cambia en algunos
 (*estático*): 40 en el 30 (`0x5304da`); en el 34, 60 o 50 con `0x5763358` en 1 o en 2 (`0x530500`,
-`0x53050c`; *inferido*, el estado de Crywolf); y en el 10 y del 18 al 23, 80, con la meta de la
+`0x53050c`; el clima de Crywolf, que sortea `0x430510`, [Los objetos de Crywolf](#los-objetos-de-crywolf)); y en el 10 y del 18 al 23, 80, con la meta de la
 lluvia (`0x75fdc38`) en 100 en cada paso. En el 0 nacen con `0x52fa60`, el tipo 100 (`leaf01`),
 alrededor del héroe (*estático*), y avanzan con `0x5301a0` y `0x5303a0`: caen y se posan en el
 terreno (`0x5f93c0`). **No corren con el héroe adentro de la taberna** (la capa 1 en 4,
@@ -7209,7 +7320,7 @@ propio del terreno de algunos mapas (*estático*; MuRet ya tiene lo marcado con 
 | 18 a 23 | sin pase del pasto (`0x6c9d58` en 0) ✓; `0x405e00` saca `rand()` con cada celda de los dos pases (Q-C229) | `0x5f893b`, `0x405e0c` |
 | 24 a 29 y 36 | sin tiles; un terreno de agua propio de `0x114ad8` bytes en `0x723c48` | `0x4377a0`, `0x41cc70` |
 | 30 | el agua al revés ✓ y la luz con otras constantes ✓; sin pasto; la niebla y el far de arriba | `0x5fa739`, `0x5f8d90`, `0x5f8942` |
-| 34 | el agua suelta partículas | `0x5fa695` |
+| 34 | cada pedida de las UV del agua saca `rand()` y suelta a veces la burbuja `698/0` ✓ ([Los objetos de Crywolf](#los-objetos-de-crywolf)) | `0x5fa695` |
 | 55 | las alturas por 3 ✓ | `0x5f924d` |
 
 Fuera de Lorencia pero en el mismo lugar del paso: con la capa 1 en 3 o en 10 o más, Devias oculta

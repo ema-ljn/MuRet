@@ -36,7 +36,7 @@ struct ActorItemPart
     std::uint8_t bone = 0;
     // +6 la acción, +7 la anterior, +8 el frame y +0xc la key anterior de lo que cuelga, que 0x509340
     // avanza con 0x4ec200 en cada frame. Nadie los pone a 0 al construir: quedan los del uso anterior.
-    Render::Models::AnimationState animation;
+    Render::Models::AnimationState animation{};
     // +0x10: lo que avanza por frame, que 0x50ba30 escribe antes de cada 0x509340.
     float speed = 0.0f;
 };
@@ -71,7 +71,7 @@ struct ActorState
     std::uint8_t byte8 = 0;
     // La acción en +0x111, la anterior en +0x112, el frame en +0x114 y la key anterior en +0x118: lo que
     // pone 0x4ea030.
-    Render::Models::AnimationState animation;
+    Render::Models::AnimationState animation{};
     std::uint8_t characterClass = 0;                            // +0x1d4
     std::uint8_t skin = 0;                                      // +0x1d5
     std::uint16_t level = 0;                                    // +0x1d6, nivel de la lista o del F3 03

@@ -49,11 +49,13 @@ TEST_F(ActorWalkTest, RunRequiresClassOrTheMapSpecificLevelFivePart)
             EXPECT_EQ(actor.run, (characterClass & 7) == 3 || (characterClass & 7) == 4 ? 1 : 0);
         }
         auto boots = Client::Tests::UnarmedPlayer();
-        boots.body[4] = {.model = 0x1412, .level = 5};
+        boots.body[4].model = 0x1412;
+        boots.body[4].level = 5;
         Walk(boots);
         EXPECT_EQ(boots.run, map == 0 || map == 3 ? 1 : 0);
         auto gloves = Client::Tests::UnarmedPlayer();
-        gloves.body[3] = {.model = 0x1212, .level = 5};
+        gloves.body[3].model = 0x1212;
+        gloves.body[3].level = 5;
         Walk(gloves);
         EXPECT_EQ(gloves.run, map == 0 || map == 3 ? 0 : 1);
     }

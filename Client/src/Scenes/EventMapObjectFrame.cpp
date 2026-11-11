@@ -1,6 +1,7 @@
 #include "Scenes/EventMapObjectFrame.h"
 
 #include "Core/Expected.h"
+#include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ObjectFrameSprites.h"
 #include "Scenes/WorldObjectsDrawing.h"

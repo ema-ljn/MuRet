@@ -1,6 +1,6 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRetainedMath.h"
-#include "Render/Models/Skinning.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Scenes/EventMapObjectFrame.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/WorldObjectsDrawing.h"

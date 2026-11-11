@@ -22,6 +22,7 @@
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/FaunaState.h"
 #include "Core/Log.h"
+#include "Data/Tables/SkillTable.h"
 #include "Core/ILogSink.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneContext.h"
@@ -44,6 +45,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 #include <optional>
 #include <ratio>
 
@@ -81,6 +83,8 @@ struct FrameFixture
     Client::Render::Models::OriginalFrameCarry itemFrames;
     Client::Scenes::WorldState world;
     Client::Scenes::GameModels models;
+    // El paso del héroe lee su habilidad de Skill.bmd (0x5526f0); estos tests no miran habilidades.
+    Client::Data::Tables::SkillTable skills{std::vector<std::byte>(Client::Data::Tables::SkillTableSize)};
     Client::Tests::RecordingFrameTarget target;
     std::unique_ptr<Client::Scenes::GameScene> scene;
 };
@@ -101,14 +105,14 @@ protected:
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         frame.world.Runtime().drawingEnabled = true;
         frame.world.Actors()[0].position = {13550, 12550, 0};
-        frame.scene =
-            std::make_unique<Client::Scenes::GameScene>(Client::Scenes::SceneContext{.dataRoot = m_dataRoot,
-                                                                                     .textures = frame.textures,
-                                                                                     .log = frame.log,
-                                                                                     .clock = &frame.clock,
-                                                                                     .cloth = &frame.cloth,
-                                                                                     .world = &frame.world},
-                                                        nullptr, &frame.models, nullptr, &frame.models.TextureSlots());
+        frame.scene = std::make_unique<Client::Scenes::GameScene>(
+            Client::Scenes::SceneContext{.dataRoot = m_dataRoot,
+                                         .textures = frame.textures,
+                                         .log = frame.log,
+                                         .clock = &frame.clock,
+                                         .cloth = &frame.cloth,
+                                         .world = &frame.world},
+            nullptr, &frame.models, nullptr, &frame.models.TextureSlots(), nullptr, &frame.skills);
         ASSERT_TRUE(frame.scene->Enter().HasValue());
     }
     void PublishFrame(Client::Core::Duration now)
@@ -165,6 +169,22 @@ protected:
         effect.transform.position = frame.world.Actors()[0].position;
         effect.transform.position.x += offset;
         effect.light = {MovingLightTint.red, MovingLightTint.green, MovingLightTint.blue};
+    }
+    // Lo que corre antes del frame del original siguiente: el reloj avanza uno y la escena corre los dos pasos
+    // de 40 ms que completan sus 46,875 ms antes de dibujar, como GameLoop (OriginalFramesOfTheSteps).
+    void StepToTheNextOriginalFrame()
+    {
+        auto& frame = *m_frame;
+        frame.clock.Advance(Client::Render::Models::OriginalFrameTime);
+        const Client::Input::InputState input;
+        frame.scene->Step(input);
+        frame.scene->Step(input);
+        ASSERT_FALSE(frame.scene->Failure().has_value()) << *frame.scene->Failure();
+    }
+    void NextOriginalRender()
+    {
+        ASSERT_NO_FATAL_FAILURE(StepToTheNextOriginalFrame());
+        Render();
     }
     void IntermediateRender()
     {
@@ -351,8 +371,7 @@ TEST_F(GameSceneTailIntegrationTest, ReloadInvalidatesDurableNoriaMaterialsBefor
                         .HasValue());
         ASSERT_NO_FATAL_FAILURE(IntermediateRender());
         EXPECT_TRUE(state.unlitMeshes.empty()) << "la recarga debe limpiar el owner durable, no sólo la proyección";
-        frame.clock.Advance(Client::Render::Models::OriginalFrameTime);
-        Render();
+        NextOriginalRender();
         ASSERT_FALSE(frame.scene->Failure().has_value()) << *frame.scene->Failure();
         EXPECT_TRUE(state.unlitMeshes.empty())
             << "el cache hit del siguiente original no debe recuperar el material viejo";
@@ -426,7 +445,11 @@ TEST_F(GameSceneTailIntegrationTest, ReloadedProjectedMovingLightKeepsItsSprites
     EXPECT_EQ(MovingLightVertices(frame.target.frames.back()), MovingLightVertexCount);
     ASSERT_NO_FATAL_FAILURE(IntermediateRender());
     EXPECT_EQ(MovingLightVertices(frame.target.frames.back()), MovingLightVertexCount);
-    frame.clock.Advance(Client::Render::Models::OriginalFrameTime);
+    // El 0x5e8 del arreglo no tiene paso portado (0x5208a0): se apaga durante los pasos y vuelve igual para el
+    // dibujo, que es el frame del original siguiente.
+    frame.world.Map().effects.Effects().back().alive = false;
+    ASSERT_NO_FATAL_FAILURE(StepToTheNextOriginalFrame());
+    MovingLight(100);
     Render();
     ASSERT_FALSE(frame.scene->Failure().has_value()) << *frame.scene->Failure();
     EXPECT_EQ(MovingLightVertices(frame.target.frames.back()), MovingLightVertexCount);

@@ -7,6 +7,7 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Pose.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/GameDrawTail.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -27,6 +28,7 @@ struct ClothWorld;
 namespace Client::World
 {
 class FrameSprites;
+class Particles;
 struct TerrainLighting;
 struct TerrainPolygon;
 } // namespace Client::World
@@ -57,6 +59,9 @@ struct GameCharacterPass
     World::FrameSprites* sprites = nullptr;
     // El buffer global de la pose (0x68b181c) y los globales de 0x60b3d0 que presta el dueño del frame.
     FaunaDrawCarry* poseCarry = nullptr;
+    // Los joints (0x530860) y las partículas (0x53fe70) del frame, para lo que cuelga.
+    std::span<JointState> joints{};
+    World::Particles* particles = nullptr;
     const ItemDrawContext* itemContext = nullptr;
     Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock;
     std::function<void(std::uint16_t, std::span<const Render::Models::BoneTransform>,

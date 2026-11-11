@@ -896,6 +896,8 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                           .cloths = m_characterCloths,
                           .sprites = &FrameSpritesForDraw(),
                           .poseCarry = &FramePoseCarry(),
+                          .joints = FrameTail().joints,
+                          .particles = &FrameParticles(),
                           .itemContext = &itemContext,
                           .pace = OriginalFramePaceOf(m_context.pacing),
                           .onPose =

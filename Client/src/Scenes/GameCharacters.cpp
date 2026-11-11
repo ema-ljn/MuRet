@@ -259,6 +259,8 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                       .random = random,
                                       .carry = pass.poseCarry,
                                       .sprites = pass.sprites,
+                                      .joints = pass.joints,
+                                      .particles = pass.particles,
                                       .itemContext = pass.itemContext,
                                       .frameClock = pass.frameClock,
                                       .worldClock = worldClock,

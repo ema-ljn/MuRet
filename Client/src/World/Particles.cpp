@@ -8,6 +8,7 @@
 #include "World/NoriaParticleKernels.h"
 #include "World/SelectionParticleKernels.h"
 #include "World/TrialsParticleKernels.h"
+#include "World/WeaponSparkKernels.h"
 #include "World/BloodCastleParticleKernels.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ParticleOwner.h"
@@ -308,7 +309,8 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     }
     if (type == SparkParticle)
     {
-        return subtype == TeleportSparkSubtype || subtype == RavenSparkSubtype || subtype == MapSparkSubtype
+        return subtype == TeleportSparkSubtype || subtype == RavenSparkSubtype || subtype == MapSparkSubtype ||
+                       IsWeaponSpark(type, subtype)
                    ? std::nullopt
                    : std::optional(ParticleError::UnsupportedSubtype);
     }
@@ -1085,6 +1087,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheMapSpark(particle, random);
             return std::optional(index);
         }
+        if (IsWeaponSpark(type, subtype))
+        {
+            CreateWeaponSpark(particle, random);
+            return std::optional(index);
+        }
         if (type == SparkParticle)
         {
             // 0x5406e5: vida 10, los ángulos (0, 0, yaw) y la velocidad, el empujón (−(rand() % 2 + 2), 0, 0)
@@ -1294,6 +1301,10 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
         else if (IsSpark(particle))
         {
             StepTheSpark(particle);
+        }
+        else if (IsWeaponSpark(particle.type, particle.subtype))
+        {
+            StepWeaponSpark(particle);
         }
         else if (IsLoginCloud(particle))
         {

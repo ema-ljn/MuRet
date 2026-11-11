@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Scenes/GameDrawTail.h"
 
 #include <cstdint>
 #include <span>
@@ -20,7 +21,8 @@ class CrtRandom;
 namespace Client::World
 {
 class FrameSprites;
-}
+class Particles;
+} // namespace Client::World
 
 // Lo que cuelga de un jugador en el dibujo del juego (0x50ba30, de 0x50db57 a 0x50e9fa): el arma a la
 // espalda, la capa de los GM, las alas, Helper02 y el lazo de las manos, cada cosa salvo la capa con 0x509340 (posada
@@ -46,6 +48,11 @@ struct GameHangingPass
     // solo si algo cuelga.
     FaunaDrawCarry* carry = nullptr;
     World::FrameSprites* sprites = nullptr;
+    // Los joints de 0x530860 y las partículas de 0x53fe70 del frame. Hacen falta solo si algo los crea: el
+    // 0x617 de la acción 0x8c (0x50a110), el 0x618/0x11 de 0xc1e, el 0x610/4 de 0x223 y el 0x614/10 de 0x224.
+    // Los 0x610/4 y 0x618/0x11 guardan el personaje que cuelga como dueño (+0x54): un ActorState.
+    std::span<JointState> joints{};
+    World::Particles* particles = nullptr;
     // Los globales de 0x60b3d0 que presta el dueño del frame (sin él, los de un ItemDrawContext vacío).
     const ItemDrawContext* itemContext = nullptr;
     Core::Duration frameClock{};

@@ -7,6 +7,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/ClothCarry.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -14,6 +15,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La tela de la clase 4" (§ Las telas en
@@ -208,7 +210,7 @@ void CharacterCloth::Advance(Render::ModelBatch& batch, const ClothWearer& weare
     const int frames = m_frames.FramesAt(clock, pace);
     if (frames == 0)
     {
-        DrawTheCloths(batch, wearer, worldTime, wears, color);
+        DrawTheCloths(batch, wearer, body, worldTime, wears, color);
         return;
     }
     for (int frame = 0; frame + 1 < frames; ++frame)
@@ -218,14 +220,16 @@ void CharacterCloth::Advance(Render::ModelBatch& batch, const ClothWearer& weare
     RunTheBlock(&batch, wearer, body, world, map, worldTime, wears, color);
 }
 
-void CharacterCloth::DrawCurrent(Render::ModelBatch& batch, const ClothWearer& wearer, Core::Duration clock, bool wears,
+void CharacterCloth::DrawCurrent(Render::ModelBatch& batch, const ClothWearer& wearer,
+                                 const Render::Models::ClothBody& body, Core::Duration clock, bool wears,
                                  const glm::vec3& color)
 {
     const auto worldTime = static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(clock).count());
-    DrawTheCloths(batch, wearer, worldTime, wears, color);
+    DrawTheCloths(batch, wearer, body, worldTime, wears, color);
 }
 
-void CharacterCloth::DrawTheCloths(Render::ModelBatch& batch, const ClothWearer& wearer, float worldTime, bool wears,
+void CharacterCloth::DrawTheCloths(Render::ModelBatch& batch, const ClothWearer& wearer,
+                                   const Render::Models::ClothBody& body, float worldTime, bool wears,
                                    const glm::vec3& color)
 {
     m_flares.clear();
@@ -240,7 +244,10 @@ void CharacterCloth::DrawTheCloths(Render::ModelBatch& batch, const ClothWearer&
         {
             continue;
         }
-        Draw(batch, m_cloths[index], color, worldTime);
+        const Cloth& cloth = m_cloths[index];
+        const std::optional<ClothCarry> carry =
+            m_simulatedBody ? ClothCarryOf(*m_simulatedBody, body, cloth.Bone()) : std::nullopt;
+        Draw(batch, cloth, color, worldTime, carry);
     }
 }
 
@@ -292,6 +299,8 @@ void CharacterCloth::RunTheBlock(Render::ModelBatch* batch, const ClothWearer& w
     {
         return;
     }
+    // El cuerpo de esta simulación, del que un dibujo intermedio lleva cada tela (#307).
+    m_simulatedBody = SimulatedBodyOf(body);
     // 0x50da67..0x50db57: cada tela, sus cinco pasos y su dibujo; la tercera del Dark Lord, solo con la
     // capa o con el color de un duelo.
     for (std::size_t index = 0; index < m_count; ++index)
@@ -322,17 +331,22 @@ void CharacterCloth::RunTheBlock(Render::ModelBatch* batch, const ClothWearer& w
 }
 
 // 0x455930: la mezcla, el color (el de 0x50ba30, o el del brillo) y las dos caras de cuadrados, cada
-// uno en dos triángulos.
-void CharacterCloth::Draw(Render::ModelBatch& batch, const Cloth& cloth, const glm::vec3& color, float worldTime)
+// uno en dos triángulos. Con `carry`, las partículas y los destellos van llevados (#307).
+void CharacterCloth::Draw(Render::ModelBatch& batch, const Cloth& cloth, const glm::vec3& color, float worldTime,
+                          const std::optional<ClothCarry>& carry)
 {
+    const auto placed = [&carry](const glm::vec3& position) { return carry ? carry->Carried(position) : position; };
     const Render::ModelBlend blend = BlendOf(Render::Models::FaceBlendOf(cloth.Flags()), m_lastBlend);
     m_lastBlend = blend;
     glm::vec3 faceColor = color;
     if ((cloth.Flags() & Render::Models::ClothGlows) != 0)
     {
         const float glow = Cloth::GlowAt(worldTime);
-        const std::vector<Render::Models::ClothFlare> flares = cloth.Flares(glow);
-        m_flares.insert(m_flares.end(), flares.begin(), flares.end());
+        for (Render::Models::ClothFlare flare : cloth.Flares(glow))
+        {
+            flare.position = placed(flare.position);
+            m_flares.push_back(flare);
+        }
         faceColor = glm::vec3(glow);
     }
     const Render::Color vertexColor{faceColor.r, faceColor.g, faceColor.b, 1.0f};
@@ -352,7 +366,7 @@ void CharacterCloth::Draw(Render::ModelBatch& batch, const Cloth& cloth, const g
             {
                 const Render::Models::ClothCorner& corner = corners[q + c];
                 square[c] = Render::ModelVertex{
-                    .position = particles[static_cast<std::size_t>(corner.particle)].position,
+                    .position = placed(particles[static_cast<std::size_t>(corner.particle)].position),
                     .uv = corner.uv,
                     .color = vertexColor,
                 };

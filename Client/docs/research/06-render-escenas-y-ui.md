@@ -1239,7 +1239,11 @@ la tabla de protección llena, la lista vacía del administrador).
 (`0x50d3dc`) y antes de lo que cuelga, en cada frame **dibujado** de un personaje vivo y visible
 (`0x510d00`): cada tela hace 5 pasos de dt = 0,005 (`0x3ba3d70a`, o 0 con `objeto + 0x78 & 0x1000`)
 y se dibuja antes de la siguiente. La tela avanza con los frames, no con el tiempo (Q-C124); MuRet
-corre un frame del bloque cada 46,875 ms de reloj, como la mascota (Q-C20).
+corre un frame del bloque cada 46,875 ms de reloj, como la mascota (Q-C20). Como el bloque corre
+después de los pasos del frame, en el original la tela siempre se simula con el cuerpo que se dibuja.
+En los dibujos de MuRet entre dos frames del original, cada tela va llevada con su hueso del cuerpo de
+su última simulación al de ahora (`Scenes::ClothCarry`, #307): si no, con el personaje que camina, la
+capa se queda atrás y salta en el frame siguiente. Los frames del original y el modo fiel no cambian.
 
 **Cuándo hay.** bVar23: la clase 3 o 4, el modelo `0x20a` y `+0x3e3` en 0, o el monstruo `0x37`;
 nunca en los mapas `0x12` a `0x17`, salvo con los nombres de un duelo o de una guerra de guild, que

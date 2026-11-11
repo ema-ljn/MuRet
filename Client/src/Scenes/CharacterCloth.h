@@ -4,6 +4,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Scenes/ClothCarry.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -62,16 +63,19 @@ public:
     // corre uno. Así la tela flamea como en el original a cualquier FPS. En el modo fiel (`pace`
     // OncePerDraw), uno por dibujo, como el original (Render::Models::OriginalFrameCarry). Un salto de más
     // de MaxClothFramesPerAdvance frames corre esos y descarta el resto. `clock` es también el WorldTime
-    // del brillo.
+    // del brillo. Sin ninguno, el dibujo es el de DrawCurrent con `body`.
     void Advance(Render::ModelBatch& batch, const ClothWearer& wearer, const Render::Models::ClothBody& body,
                  Render::Models::ClothWorld& world, std::uint8_t map, Core::Duration clock, bool wears,
                  const glm::vec3& color = PlainClothColor,
                  Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock);
 
     // Un dibujo entre frames del original: solo las telas que ya existen y sus destellos, sin
-    // armarlas, simularlas ni avanzar su reloj. También vale antes del primer Advance.
-    void DrawCurrent(Render::ModelBatch& batch, const ClothWearer& wearer, Core::Duration clock, bool wears,
-                     const glm::vec3& color = PlainClothColor);
+    // armarlas, simularlas ni avanzar su reloj. También vale antes del primer Advance. Cada tela va
+    // llevada con su hueso del cuerpo de su última simulación a `body`, el de ahora (ClothCarry, #307):
+    // con el personaje que camina, la capa va con él en vez de quedarse atrás hasta el frame siguiente.
+    // Con el cuerpo quieto, se dibuja como quedó.
+    void DrawCurrent(Render::ModelBatch& batch, const ClothWearer& wearer, const Render::Models::ClothBody& body,
+                     Core::Duration clock, bool wears, const glm::vec3& color = PlainClothColor);
 
     // Advance vuelve a contar desde cero, como en el primer frame: el próximo corre un frame del bloque y no
     // pone al día el tiempo que pasó sin dibujo. Las telas quedan como estaban. Es para un frame retenido
@@ -103,13 +107,17 @@ private:
     void RunTheBlock(Render::ModelBatch* batch, const ClothWearer& wearer, const Render::Models::ClothBody& body,
                      Render::Models::ClothWorld& world, std::uint8_t map, float worldTime, bool wears,
                      const glm::vec3& color);
-    // Las telas como quedaron, con las reglas del lazo, sin simularlas.
-    void DrawTheCloths(Render::ModelBatch& batch, const ClothWearer& wearer, float worldTime, bool wears,
-                       const glm::vec3& color);
+    // Las telas como quedaron, con las reglas del lazo, sin simularlas, llevadas a `body`.
+    void DrawTheCloths(Render::ModelBatch& batch, const ClothWearer& wearer, const Render::Models::ClothBody& body,
+                       float worldTime, bool wears, const glm::vec3& color);
     void Build(const ClothWearer& wearer, const Render::Models::ClothBody& body);
-    void Draw(Render::ModelBatch& batch, const Render::Models::Cloth& cloth, const glm::vec3& color, float worldTime);
+    // Una tela y sus destellos, con sus partículas llevadas por `carry` si hay uno.
+    void Draw(Render::ModelBatch& batch, const Render::Models::Cloth& cloth, const glm::vec3& color, float worldTime,
+              const std::optional<ClothCarry>& carry = std::nullopt);
 
     std::vector<Render::Models::Cloth> m_cloths;
+    // El cuerpo de la última simulación, del que DrawTheCloths lleva cada tela.
+    std::optional<SimulatedClothBody> m_simulatedBody;
     std::uint8_t m_count = 0;
     std::vector<Render::Models::ClothFlare> m_flares;
     Render::ModelBlend m_lastBlend = Render::ModelBlend::Opaque;

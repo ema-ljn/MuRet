@@ -881,7 +881,7 @@ void DrawTheCloth(const CharacterFrame& frame, std::span<const BoneTransform> bo
     }
     else
     {
-        character.cloth->DrawCurrent(frame.batch, wearer, frame.clock, wears);
+        character.cloth->DrawCurrent(frame.batch, wearer, clothBody, frame.clock, wears);
     }
     // Los destellos del casco blanco (0x455930), aditivos, en la tabla del frame.
     if (character.sprites != nullptr)

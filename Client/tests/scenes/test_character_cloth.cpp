@@ -5,10 +5,12 @@
 #include "Render/ModelVertex.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "support/ClothVectors.h"
 
+#include <glm/ext/matrix_float3x3.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
@@ -471,5 +473,131 @@ TEST(CharacterClothTest, AClassChangeBuildsTheClothsAgain)
     cloth.Frame(batch, lord4, lord.body, world, lord.map, 0.0f, true);
     EXPECT_EQ(cloth.Cloths().size(), 4u);
     EXPECT_EQ(cloth.Count(), 3u);
+}
+
+// #307: entre dos frames del original, la tela se dibuja llevada con el hueso del que cuelga. Un dibujo
+// intermedio cae a los 20 ms, antes del segundo frame del original.
+constexpr Client::Core::Duration BetweenFrames = std::chrono::milliseconds{20};
+// Lo que se aleja un punto llevado del que daría la cuenta exacta: la tela está a unas 10.000 unidades
+// del origen del mundo, donde un float tiene un ulp de 0,001.
+constexpr float CarryTolerance = 0.01f;
+
+std::vector<glm::vec3> PositionsOf(const ModelBatch& batch)
+{
+    std::vector<glm::vec3> positions;
+    for (const Client::Render::ModelVertex& vertex : batch.Vertices())
+    {
+        positions.push_back(vertex.position);
+    }
+    return positions;
+}
+
+// El primer frame del original, que arma la tela y la dibuja con el cuerpo de `lord`.
+std::vector<glm::vec3> TheFirstFrame(CharacterCloth& cloth, const LoginLord& lord)
+{
+    ClothWorld world{.random = CrtRandom(11)};
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    cloth.Advance(batch, lord.wearer, lord.body, world, lord.map, Client::Core::Duration{}, true);
+    return PositionsOf(batch);
+}
+
+// Un dibujo entre frames del original con el cuerpo `body`, por DrawCurrent (el juego) o por Advance sin
+// frames del original que correr (el login y la selección).
+std::vector<glm::vec3> ADrawBetweenFrames(CharacterCloth& cloth, const LoginLord& lord, const ClothBody& body,
+                                          bool byAdvance)
+{
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    if (byAdvance)
+    {
+        ClothWorld world{.random = CrtRandom(11)};
+        cloth.Advance(batch, lord.wearer, body, world, lord.map, BetweenFrames, true);
+        EXPECT_EQ(world.random.State(), CrtRandom(11).State()) << "entre frames del original no se simula";
+    }
+    else
+    {
+        cloth.DrawCurrent(batch, lord.wearer, body, BetweenFrames, true);
+    }
+    return PositionsOf(batch);
+}
+
+void ExpectNear(const glm::vec3& ours, const glm::vec3& expected, std::size_t vertex)
+{
+    for (int k = 0; k < 3; ++k)
+    {
+        EXPECT_NEAR(ours[k], expected[k], CarryTolerance) << "vértice " << vertex << " eje " << k;
+    }
+}
+
+// Con el cuerpo quieto (los mismos huesos), el dibujo intermedio es el del último frame del original, bit a
+// bit. Los frames del original, y todos los del modo fiel, simulan y no pasan por acá.
+TEST(CharacterClothTest, BetweenOriginalFramesAStillBodyDrawsTheClothAsItWas)
+{
+    for (const bool byAdvance : {false, true})
+    {
+        const LoginLord lord = ReadTheLoginLord();
+        CharacterCloth cloth;
+        const std::vector<glm::vec3> first = TheFirstFrame(cloth, lord);
+        const std::vector<glm::vec3> between = ADrawBetweenFrames(cloth, lord, lord.body, byAdvance);
+
+        ASSERT_FALSE(first.empty());
+        ASSERT_EQ(between.size(), first.size());
+        for (std::size_t vertex = 0; vertex < first.size(); ++vertex)
+        {
+            ExpectSameBits(between[vertex], first[vertex], "vértice " + std::to_string(vertex));
+        }
+    }
+}
+
+// El personaje que dio un paso entre dos frames del original: la tela va con él, corrida lo mismo que el
+// cuerpo, y no se queda donde estaba hasta el frame siguiente (el rebote de #307).
+TEST(CharacterClothTest, BetweenOriginalFramesTheClothWalksWithTheBody)
+{
+    for (const bool byAdvance : {false, true})
+    {
+        const LoginLord lord = ReadTheLoginLord();
+        CharacterCloth cloth;
+        const std::vector<glm::vec3> first = TheFirstFrame(cloth, lord);
+        constexpr glm::vec3 Step{60.0f, -25.0f, 3.0f};
+        ClothBody walked = lord.body;
+        walked.position += Step;
+        const std::vector<glm::vec3> between = ADrawBetweenFrames(cloth, lord, walked, byAdvance);
+
+        ASSERT_FALSE(first.empty());
+        ASSERT_EQ(between.size(), first.size());
+        for (std::size_t vertex = 0; vertex < first.size(); ++vertex)
+        {
+            ExpectNear(between[vertex], first[vertex] + Step, vertex);
+        }
+    }
+}
+
+// El personaje que giró 90° entre dos frames del original: los huesos traen el giro, y la tela gira con
+// ellos alrededor de la posición del personaje.
+TEST(CharacterClothTest, BetweenOriginalFramesTheClothTurnsWithTheBody)
+{
+    const LoginLord lord = ReadTheLoginLord();
+    CharacterCloth cloth;
+    const std::vector<glm::vec3> first = TheFirstFrame(cloth, lord);
+    const glm::mat3 quarterTurn{{0.0f, 1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}};
+    std::vector<Client::Render::Models::BoneTransform> turnedBones;
+    for (const Client::Render::Models::BoneTransform& bone : lord.body.bones)
+    {
+        turnedBones.emplace_back(quarterTurn * bone[0], quarterTurn * bone[1], quarterTurn * bone[2],
+                                 quarterTurn * bone[3]);
+    }
+    ClothBody turned = lord.body;
+    turned.bones = turnedBones;
+    turned.angles.z += 90.0f;
+    const std::vector<glm::vec3> between = ADrawBetweenFrames(cloth, lord, turned, false);
+
+    ASSERT_FALSE(first.empty());
+    ASSERT_EQ(between.size(), first.size());
+    for (std::size_t vertex = 0; vertex < first.size(); ++vertex)
+    {
+        const glm::vec3 expected = lord.body.position + quarterTurn * (first[vertex] - lord.body.position);
+        ExpectNear(between[vertex], expected, vertex);
+    }
 }
 } // namespace

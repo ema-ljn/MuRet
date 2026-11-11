@@ -220,6 +220,11 @@ public:
     {
         return m_columns;
     }
+    // El hueso de la fila anclada, el `bone` de su ClothShape.
+    [[nodiscard]] std::int32_t Bone() const
+    {
+        return m_bone;
+    }
     [[nodiscard]] std::int32_t Rows() const
     {
         return m_rows;

@@ -25,7 +25,6 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Input/InputState.h"
-#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ModelTextureSlots.h"
@@ -192,6 +191,7 @@ void GameScene::Step(const Input::InputState& input)
     {
         return;
     }
+    m_cameraFrames.Step();
     StepEntry();
     if (auto stepped = StepWorld(input); !stepped.HasValue())
     {
@@ -446,7 +446,7 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
 {
     WorldRuntime& runtime = m_context.world->Runtime();
     const World::WorldTerrain& terrain = m_context.world->Map().terrain;
-    const int frames = m_cameraFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
+    const int frames = m_cameraFrames.FramesAtDraw(OriginalFramePaceOf(m_context.pacing));
     m_framePoseCarry = &m_context.world->PoseCarry();
     m_frameSprites = &m_sprites;
     PrepareDrawProjection(frames);

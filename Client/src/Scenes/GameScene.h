@@ -11,10 +11,10 @@
 #include "Core/IClock.h"
 #include "Data/Tables/ItemTable.h"
 #include "Input/InputState.h"
-#include "Render/Models/Animation.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Pass3D.h"
 #include "Scenes/IScene.h"
+#include "Scenes/OriginalFramesOfTheSteps.h"
 #include "Scenes/GroundEffectFrame.h"
 #include "Scenes/CharacterCloth.h"
 #include "World/Sprites.h"
@@ -186,7 +186,8 @@ private:
     // La cámara y lo que lee, sin las de main (los tests que no las pasan).
     World::GameCamera m_localCamera;
     World::GameCameraInput m_localCameraInput;
-    Render::Models::OriginalFrameCarry m_cameraFrames;
+    // Los frames del original, por los pasos de la escena (#307).
+    OriginalFramesOfTheSteps m_cameraFrames;
     GroundEffectFrame m_groundEffects;
     std::vector<CharacterCloth> m_characterCloths;
     World::FrameSprites m_sprites;

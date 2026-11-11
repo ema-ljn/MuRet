@@ -1,0 +1,722 @@
+{
+  "schema_version": 1,
+  "handoff_prepared_utc": "2026-11-11T00:18:29.004581+00:00",
+  "repo": "ema-ljn/MuRet",
+  "main_sha": "7a76c9d25460a86f308391ab2e71c2475cfd43f1",
+  "source_checkpoint": {
+    "branch": "codex/cl7c-06-ciclo-escenas",
+    "commit": "e1007db1386741c70f71676153391179d3230860",
+    "tree": "2a2fc16f5105d4072f229fe3e6fb6a5650c90f2c",
+    "local_equivalent_commit": "bb56e77b78aa395735ac465a31a08e6b2ca70b1d"
+  },
+  "source_ci": {
+    "run": 42928561151,
+    "url": "https://github.com/ema-ljn/MuRet/actions/runs/42928561151",
+    "status_at_handoff": "in_progress",
+    "format_at_observation": "success",
+    "linux_at_observation": "tests",
+    "windows_at_observation": "compiling",
+    "note": "Observe current run before claiming success; this file records a timestamped pending snapshot.",
+    "observed_utc": "2026-11-11T00:19:50Z"
+  },
+  "previous_source_ci": {
+    "run": 42922102890,
+    "commit": "b93d0a68716b1da602bd6ca315441d229559b545",
+    "tree": "435cd49bf4cb28249cd041a842de1f26f2e505b6",
+    "conclusion": "success",
+    "scope": "Before live Kalima block; not Windows evidence for final source."
+  },
+  "local_integrated_results": {
+    "utc": "2026-11-11T00:01:54.280526+00:00",
+    "tree": "a07067523b8123816cb609eab1dc95ce834f9c3d",
+    "registered": 4914,
+    "pass": 4855,
+    "skip": 59,
+    "fail": 0,
+    "disabled": 0,
+    "gl_pass": 100,
+    "gl_skip": 0,
+    "smoke_modes": 3,
+    "includes": 40,
+    "all_gates": "pass"
+  },
+  "source_vs_local_test_proof": {
+    "utc": "2026-11-11T00:03:31.875521+00:00",
+    "tested_tree": "a07067523b8123816cb609eab1dc95ce834f9c3d",
+    "publication_tree": "2a2fc16f5105d4072f229fe3e6fb6a5650c90f2c",
+    "only_changed_paths": [
+      "docs/superpowers/plans/2026-11-10-cl7-traspaso.md",
+      "docs/superpowers/plans/2026-11-10-cl7b-t16-kalima-p55.md"
+    ],
+    "code_and_build_test_inputs_identical": true
+  },
+  "first_five_prs": [
+    {
+      "order": 1,
+      "pr_number": 288,
+      "head": "509cc4d3c3a177c65c1eae1865e2e245118680be",
+      "tree": "cc315a1b9bfe0e350413de50ac9ded5689504fab",
+      "ref_verified": true,
+      "runs": [
+        {
+          "id": 42908051611,
+          "url": "https://github.com/ema-ljn/MuRet/actions/runs/42908051611",
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "509cc4d3c3a177c65c1eae1865e2e245118680be"
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "pr_number": 289,
+      "head": "8dcc43ae16fb24ae51462c11b0cdc51fe733c74e",
+      "tree": "76a3fce8fc3fba57f70810d5ef3497f347a48f0c",
+      "ref_verified": true,
+      "runs": [
+        {
+          "id": 42908073630,
+          "url": "https://github.com/ema-ljn/MuRet/actions/runs/42908073630",
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "8dcc43ae16fb24ae51462c11b0cdc51fe733c74e"
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "pr_number": 290,
+      "head": "00dab9266cb1ba4e1da4a4618cdc02762371849c",
+      "tree": "e6af4eb159687975fc25503f4db9f66da6e74f8f",
+      "ref_verified": true,
+      "runs": [
+        {
+          "id": 42908093372,
+          "url": "https://github.com/ema-ljn/MuRet/actions/runs/42908093372",
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "00dab9266cb1ba4e1da4a4618cdc02762371849c"
+        }
+      ]
+    },
+    {
+      "order": 4,
+      "pr_number": 291,
+      "head": "8be108c7f193a5f47bf8c031b533d8b9ec7ff92c",
+      "tree": "ed48ef39cecb7a4dc4eb43ec8e3215fc540d7f30",
+      "ref_verified": true,
+      "runs": [
+        {
+          "id": 42914421333,
+          "url": "https://github.com/ema-ljn/MuRet/actions/runs/42914421333",
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "8be108c7f193a5f47bf8c031b533d8b9ec7ff92c"
+        }
+      ]
+    },
+    {
+      "order": 5,
+      "pr_number": 292,
+      "head": "65e90ee2a8c47a7753c490fa70671a4be72b9466",
+      "tree": "e4b0e55a1f357f3fa7f09bb0f191a34fc7a4a5a6",
+      "ref_verified": true,
+      "runs": [
+        {
+          "id": 42914869972,
+          "url": "https://github.com/ema-ljn/MuRet/actions/runs/42914869972",
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "success",
+          "head_sha": "65e90ee2a8c47a7753c490fa70671a4be72b9466"
+        }
+      ]
+    }
+  ],
+  "pr293": {
+    "head": "e1007db1386741c70f71676153391179d3230860",
+    "base_pr": 292,
+    "base_head": "65e90ee2a8c47a7753c490fa70671a4be72b9466",
+    "draft": true
+  },
+  "closures": {
+    "closed_replaced_prs": [
+      222,
+      223,
+      224,
+      225,
+      226,
+      227,
+      228,
+      229,
+      230,
+      231,
+      232,
+      233,
+      234,
+      235,
+      236,
+      237,
+      238,
+      239,
+      240,
+      241,
+      242,
+      243,
+      244,
+      245,
+      246,
+      247,
+      248,
+      249,
+      250,
+      251,
+      252,
+      253,
+      254,
+      255,
+      256,
+      257,
+      258,
+      259,
+      260,
+      261,
+      262,
+      263,
+      264,
+      265,
+      266,
+      267,
+      268,
+      269,
+      270,
+      271,
+      272,
+      273,
+      274,
+      275,
+      276,
+      277,
+      278,
+      279,
+      280,
+      281,
+      282,
+      283,
+      284,
+      285,
+      286,
+      287
+    ],
+    "open_prs": [
+      185,
+      288,
+      289,
+      290,
+      291,
+      292,
+      293
+    ],
+    "original_refs_observed_utc": "2026-11-11T00:08:14.790196+00:00",
+    "all_67_original_refs_intact": true,
+    "original_refs": [
+      {
+        "pr": 287,
+        "ref": "refs/heads/codex/cl7s-48-documentation-reconciliation",
+        "expected": "e57a11752e89fc21400893d92d2fa0be7070b206",
+        "actual": "e57a11752e89fc21400893d92d2fa0be7070b206",
+        "intact": true
+      },
+      {
+        "pr": 286,
+        "ref": "refs/heads/codex/cl7s-47-scene-integration",
+        "expected": "f177b8d06e780ca75a9156aa72bf452c9ef79108",
+        "actual": "f177b8d06e780ca75a9156aa72bf452c9ef79108",
+        "intact": true
+      },
+      {
+        "pr": 285,
+        "ref": "refs/heads/codex/cl7s-46-event-binding",
+        "expected": "528d1e63a4fa880593a9b013f335985fab02a9ce",
+        "actual": "528d1e63a4fa880593a9b013f335985fab02a9ce",
+        "intact": true
+      },
+      {
+        "pr": 284,
+        "ref": "refs/heads/codex/cl7s-45-selection-binding",
+        "expected": "44bf4bfcc5520d404040e96f7b76d6a5052f60f6",
+        "actual": "44bf4bfcc5520d404040e96f7b76d6a5052f60f6",
+        "intact": true
+      },
+      {
+        "pr": 283,
+        "ref": "refs/heads/codex/cl7s-44-login-binding",
+        "expected": "db43295e94f3440a7038032d2618ff3d3455629c",
+        "actual": "db43295e94f3440a7038032d2618ff3d3455629c",
+        "intact": true
+      },
+      {
+        "pr": 282,
+        "ref": "refs/heads/codex/cl7s-43-character-binding",
+        "expected": "ded6b097ac8c32088d954d9d401b43e27d1abe70",
+        "actual": "ded6b097ac8c32088d954d9d401b43e27d1abe70",
+        "intact": true
+      },
+      {
+        "pr": 281,
+        "ref": "refs/heads/codex/cl7s-42-object-binding",
+        "expected": "a683b47ffad56946e988b981986e291adb19b844",
+        "actual": "a683b47ffad56946e988b981986e291adb19b844",
+        "intact": true
+      },
+      {
+        "pr": 280,
+        "ref": "refs/heads/codex/cl7s-41-particle-binding",
+        "expected": "d3773e6644f0cb2c3c35a14729649bc3002c1089",
+        "actual": "d3773e6644f0cb2c3c35a14729649bc3002c1089",
+        "intact": true
+      },
+      {
+        "pr": 279,
+        "ref": "refs/heads/codex/cl7s-40-framebuffer",
+        "expected": "0d21877896177af364e674d96d5a093780e9b7ae",
+        "actual": "0d21877896177af364e674d96d5a093780e9b7ae",
+        "intact": true
+      },
+      {
+        "pr": 278,
+        "ref": "refs/heads/codex/cl7s-39-weather-resources",
+        "expected": "b55d253b518cf2caea5c5969253e6efa273cfbf6",
+        "actual": "b55d253b518cf2caea5c5969253e6efa273cfbf6",
+        "intact": true
+      },
+      {
+        "pr": 277,
+        "ref": "refs/heads/codex/cl7s-38-world-transitions",
+        "expected": "b62ebca237c66824fbc43f609799dd59df2d5727",
+        "actual": "b62ebca237c66824fbc43f609799dd59df2d5727",
+        "intact": true
+      },
+      {
+        "pr": 276,
+        "ref": "refs/heads/codex/cl7s-37-map-binding",
+        "expected": "6badfbf2f22c1ceaa7f1145dad0f882a7e635335",
+        "actual": "6badfbf2f22c1ceaa7f1145dad0f882a7e635335",
+        "intact": true
+      },
+      {
+        "pr": 275,
+        "ref": "refs/heads/codex/cl7s-36-movement-replies",
+        "expected": "34785f8da286755398b7e31921262673d7f1a1d7",
+        "actual": "34785f8da286755398b7e31921262673d7f1a1d7",
+        "intact": true
+      },
+      {
+        "pr": 274,
+        "ref": "refs/heads/codex/cl7s-35-hero-movement",
+        "expected": "11cef9bae4a493a492b238915cc21345757d8f3d",
+        "actual": "11cef9bae4a493a492b238915cc21345757d8f3d",
+        "intact": true
+      },
+      {
+        "pr": 273,
+        "ref": "refs/heads/codex/cl7s-34-hero-facing",
+        "expected": "9455c55138dcade744765b757353dae91c3119ee",
+        "actual": "9455c55138dcade744765b757353dae91c3119ee",
+        "intact": true
+      },
+      {
+        "pr": 272,
+        "ref": "refs/heads/codex/cl7s-33-gates",
+        "expected": "ec8f12d535ad040387636372d5f32f8de16be532",
+        "actual": "ec8f12d535ad040387636372d5f32f8de16be532",
+        "intact": true
+      },
+      {
+        "pr": 271,
+        "ref": "refs/heads/codex/cl7s-32-noria-objects",
+        "expected": "403ad1aa08c2745e8c01afc9a67d23b97d564ab0",
+        "actual": "403ad1aa08c2745e8c01afc9a67d23b97d564ab0",
+        "intact": true
+      },
+      {
+        "pr": 270,
+        "ref": "refs/heads/codex/cl7s-31-world-object-step",
+        "expected": "4c6aa0c3d967297532ddbef00901a45962b3f4a0",
+        "actual": "4c6aa0c3d967297532ddbef00901a45962b3f4a0",
+        "intact": true
+      },
+      {
+        "pr": 269,
+        "ref": "refs/heads/codex/cl7s-30-actor-shock",
+        "expected": "c9817aa523866615ce6ac916e38b53e3d563b907",
+        "actual": "c9817aa523866615ce6ac916e38b53e3d563b907",
+        "intact": true
+      },
+      {
+        "pr": 268,
+        "ref": "refs/heads/codex/cl7s-29-actor-motion",
+        "expected": "7f7c45179d7502334dc8c4fa29fb4d1580a1f0e6",
+        "actual": "7f7c45179d7502334dc8c4fa29fb4d1580a1f0e6",
+        "intact": true
+      },
+      {
+        "pr": 267,
+        "ref": "refs/heads/codex/cl7s-28-world-owner",
+        "expected": "1ed0ae5529a845b811b1d098d50b60541f03acef",
+        "actual": "1ed0ae5529a845b811b1d098d50b60541f03acef",
+        "intact": true
+      },
+      {
+        "pr": 266,
+        "ref": "refs/heads/codex/cl7s-27-leaves",
+        "expected": "5558311f588dca050eb7b8bc23ffb1d41ffff97b",
+        "actual": "5558311f588dca050eb7b8bc23ffb1d41ffff97b",
+        "intact": true
+      },
+      {
+        "pr": 265,
+        "ref": "refs/heads/codex/cl7s-26-fauna-effects",
+        "expected": "dedd20d7eda0651e13f5d6fc9c18d7d4df780e80",
+        "actual": "dedd20d7eda0651e13f5d6fc9c18d7d4df780e80",
+        "intact": true
+      },
+      {
+        "pr": 264,
+        "ref": "refs/heads/codex/cl7s-25-fauna-joints",
+        "expected": "536871887eecd11c8e909d37f645b148dbd6d2d0",
+        "actual": "536871887eecd11c8e909d37f645b148dbd6d2d0",
+        "intact": true
+      },
+      {
+        "pr": 263,
+        "ref": "refs/heads/codex/cl7s-24-fauna-drawing",
+        "expected": "7cb82787ca06f14fdf9b84e3da0ddfabaaa3915f",
+        "actual": "7cb82787ca06f14fdf9b84e3da0ddfabaaa3915f",
+        "intact": true
+      },
+      {
+        "pr": 262,
+        "ref": "refs/heads/codex/cl7s-23-fauna-step",
+        "expected": "a0b19e0a8fa2d260b440ebcca86ce1ced2712d59",
+        "actual": "a0b19e0a8fa2d260b440ebcca86ce1ced2712d59",
+        "intact": true
+      },
+      {
+        "pr": 261,
+        "ref": "refs/heads/codex/cl7s-22-fauna-state",
+        "expected": "31d18194f3a34e29d8481bab20d92d2eb7149457",
+        "actual": "31d18194f3a34e29d8481bab20d92d2eb7149457",
+        "intact": true
+      },
+      {
+        "pr": 260,
+        "ref": "refs/heads/codex/cl7s-21-tail-passes",
+        "expected": "ce4e2ce0a877bb704152df42c747dc86def557fa",
+        "actual": "ce4e2ce0a877bb704152df42c747dc86def557fa",
+        "intact": true
+      },
+      {
+        "pr": 259,
+        "ref": "refs/heads/codex/cl7s-20-projection",
+        "expected": "e3ebc5c4c8023c983b4670cd8dcb5d73658a1482",
+        "actual": "e3ebc5c4c8023c983b4670cd8dcb5d73658a1482",
+        "intact": true
+      },
+      {
+        "pr": 258,
+        "ref": "refs/heads/codex/cl7s-19-floor-step",
+        "expected": "17213f049828b33a8ed7aaed933e479e29913c0b",
+        "actual": "17213f049828b33a8ed7aaed933e479e29913c0b",
+        "intact": true
+      },
+      {
+        "pr": 257,
+        "ref": "refs/heads/codex/cl7s-18-tail-drawing",
+        "expected": "e47b3021a7bf18a7889c315148786838b4564ed2",
+        "actual": "e47b3021a7bf18a7889c315148786838b4564ed2",
+        "intact": true
+      },
+      {
+        "pr": 256,
+        "ref": "refs/heads/codex/cl7s-17-model-effects",
+        "expected": "efa9fb726eab81e0f1d619d6d591f23ad32a84d7",
+        "actual": "efa9fb726eab81e0f1d619d6d591f23ad32a84d7",
+        "intact": true
+      },
+      {
+        "pr": 255,
+        "ref": "refs/heads/codex/cl7s-16-particle-kernels",
+        "expected": "a6a85a46468f40aba6e2434264540caa8b3a833b",
+        "actual": "a6a85a46468f40aba6e2434264540caa8b3a833b",
+        "intact": true
+      },
+      {
+        "pr": 254,
+        "ref": "refs/heads/codex/cl7s-15-shared-pose",
+        "expected": "92d7691408f85d6a84e3789138207eb6c198d0d9",
+        "actual": "92d7691408f85d6a84e3789138207eb6c198d0d9",
+        "intact": true
+      },
+      {
+        "pr": 253,
+        "ref": "refs/heads/codex/cl7s-14-particle-material",
+        "expected": "a5a0f601c1196c24712823e8f31d1c3798ccb567",
+        "actual": "a5a0f601c1196c24712823e8f31d1c3798ccb567",
+        "intact": true
+      },
+      {
+        "pr": 252,
+        "ref": "refs/heads/codex/cl7s-13-runtime-layout",
+        "expected": "7276491dc8625a14518c30582118f6e3532575f1",
+        "actual": "7276491dc8625a14518c30582118f6e3532575f1",
+        "intact": true
+      },
+      {
+        "pr": 251,
+        "ref": "refs/heads/codex/cl7s-12-map-matrix",
+        "expected": "ee544b23b2f036fbf426ac4fa2783fba64dea1e0",
+        "actual": "ee544b23b2f036fbf426ac4fa2783fba64dea1e0",
+        "intact": true
+      },
+      {
+        "pr": 250,
+        "ref": "refs/heads/codex/cl7s-11-selection-preview",
+        "expected": "5dd0bbb0dd7e616359602dcbd9d989dcc8b405a6",
+        "actual": "5dd0bbb0dd7e616359602dcbd9d989dcc8b405a6",
+        "intact": true
+      },
+      {
+        "pr": 249,
+        "ref": "refs/heads/codex/cl7s-10-initial-game-pass",
+        "expected": "fa8d1226e8dfbd64704c06bcd28cd1ae0fd0a6cc",
+        "actual": "fa8d1226e8dfbd64704c06bcd28cd1ae0fd0a6cc",
+        "intact": true
+      },
+      {
+        "pr": 248,
+        "ref": "refs/heads/codex/cl7s-09-login-actor",
+        "expected": "4696d75d11a049e2c7297b065480a24428cdf89c",
+        "actual": "4696d75d11a049e2c7297b065480a24428cdf89c",
+        "intact": true
+      },
+      {
+        "pr": 247,
+        "ref": "refs/heads/codex/cl7s-08-selection-state",
+        "expected": "d32701d963e1d2f4022f345dc44286f7b6ba5240",
+        "actual": "d32701d963e1d2f4022f345dc44286f7b6ba5240",
+        "intact": true
+      },
+      {
+        "pr": 246,
+        "ref": "refs/heads/codex/cl7s-07-character-step",
+        "expected": "a221a803756d3057c1218e3fa09c57a21828104b",
+        "actual": "a221a803756d3057c1218e3fa09c57a21828104b",
+        "intact": true
+      },
+      {
+        "pr": 245,
+        "ref": "refs/heads/codex/cl7s-06-world-send-history",
+        "expected": "889759e0e624708f6075e5f8b78793b30e3ca024",
+        "actual": "889759e0e624708f6075e5f8b78793b30e3ca024",
+        "intact": true
+      },
+      {
+        "pr": 244,
+        "ref": "refs/heads/codex/cl7s-05-weather-0f",
+        "expected": "5accd1b15a2b8834d89473634fcdec174d667293",
+        "actual": "5accd1b15a2b8834d89473634fcdec174d667293",
+        "intact": true
+      },
+      {
+        "pr": 243,
+        "ref": "refs/heads/codex/cl7s-04-physical-model-resources",
+        "expected": "c607a8c6c36b5555343af4cf5e8f970f037a5dba",
+        "actual": "c607a8c6c36b5555343af4cf5e8f970f037a5dba",
+        "intact": true
+      },
+      {
+        "pr": 242,
+        "ref": "refs/heads/codex/cl7s-03-special-model-catalog",
+        "expected": "475287b3c6af85588b550342464a9c801770d64c",
+        "actual": "475287b3c6af85588b550342464a9c801770d64c",
+        "intact": true
+      },
+      {
+        "pr": 241,
+        "ref": "refs/heads/codex/cl7s-02-player-drawing",
+        "expected": "03fba22474fdf44c3d5f8b0466125d27541f041e",
+        "actual": "03fba22474fdf44c3d5f8b0466125d27541f041e",
+        "intact": true
+      },
+      {
+        "pr": 240,
+        "ref": "refs/heads/codex/cl7s-01-entry-fixture-heap",
+        "expected": "1783798f7e668a058ec5014ed64ac0939735967c",
+        "actual": "1783798f7e668a058ec5014ed64ac0939735967c",
+        "intact": true
+      },
+      {
+        "pr": 239,
+        "ref": "refs/heads/codex/pr-cl7b-actor-walk",
+        "expected": "8263827aa1f65e5f5ef674a720a998b5d5150606",
+        "actual": "8263827aa1f65e5f5ef674a720a998b5d5150606",
+        "intact": true
+      },
+      {
+        "pr": 238,
+        "ref": "refs/heads/codex/pr-cl7b-skill-loading",
+        "expected": "61b81f0a139719f306dea283a6fbe9ea9e44d5d2",
+        "actual": "61b81f0a139719f306dea283a6fbe9ea9e44d5d2",
+        "intact": true
+      },
+      {
+        "pr": 237,
+        "ref": "refs/heads/codex/pr-cl7-contratos-pendientes",
+        "expected": "9a11dfa0840a893ff8480d7e6b8ebc933d3befae",
+        "actual": "9a11dfa0840a893ff8480d7e6b8ebc933d3befae",
+        "intact": true
+      },
+      {
+        "pr": 236,
+        "ref": "refs/heads/codex/pr-cl7-matriz-mapas",
+        "expected": "2a208c97678d998b896187ba18da856032d34c6a",
+        "actual": "2a208c97678d998b896187ba18da856032d34c6a",
+        "intact": true
+      },
+      {
+        "pr": 235,
+        "ref": "refs/heads/codex/pr-cl7-seleccion-preview",
+        "expected": "b9cba74ceaa83632703b38775cebd03bd14b2e00",
+        "actual": "b9cba74ceaa83632703b38775cebd03bd14b2e00",
+        "intact": true
+      },
+      {
+        "pr": 234,
+        "ref": "refs/heads/codex/pr-cl7-dibujo-integracion",
+        "expected": "37f001a01414800e7411896c6dc9a7b1eedbfc1f",
+        "actual": "37f001a01414800e7411896c6dc9a7b1eedbfc1f",
+        "intact": true
+      },
+      {
+        "pr": 233,
+        "ref": "refs/heads/codex/pr-cl7-seleccion-estado",
+        "expected": "b78e5942a4d02248a0cfb89089191c759e72bd89",
+        "actual": "b78e5942a4d02248a0cfb89089191c759e72bd89",
+        "intact": true
+      },
+      {
+        "pr": 232,
+        "ref": "refs/heads/codex/pr-cl7-login",
+        "expected": "1aad84bd4b3efca1f3dfca5a347177ab5cfae60f",
+        "actual": "1aad84bd4b3efca1f3dfca5a347177ab5cfae60f",
+        "intact": true
+      },
+      {
+        "pr": 231,
+        "ref": "refs/heads/codex/pr-cl7-paso-comun",
+        "expected": "203bb975664fe92fc0ed4d7987edf73d68867aa3",
+        "actual": "203bb975664fe92fc0ed4d7987edf73d68867aa3",
+        "intact": true
+      },
+      {
+        "pr": 230,
+        "ref": "refs/heads/codex/pr-cl7-clima",
+        "expected": "97bed48e3f855f902efe309785ba094624aeb6e6",
+        "actual": "97bed48e3f855f902efe309785ba094624aeb6e6",
+        "intact": true
+      },
+      {
+        "pr": 229,
+        "ref": "refs/heads/codex/pr-cl7-modelos-especiales",
+        "expected": "81e98d5a88f1ea688aa9e0e1c4950ecfd5126348",
+        "actual": "81e98d5a88f1ea688aa9e0e1c4950ecfd5126348",
+        "intact": true
+      },
+      {
+        "pr": 228,
+        "ref": "refs/heads/codex/pr-cl7-registros-mapa",
+        "expected": "4cdc3157881edff1dd3dfed3acedb529fa253886",
+        "actual": "4cdc3157881edff1dd3dfed3acedb529fa253886",
+        "intact": true
+      },
+      {
+        "pr": 227,
+        "ref": "refs/heads/codex/pr-cl7-jugador-dibujo",
+        "expected": "db55f35d707c96ef518766396830242b7c3bff47",
+        "actual": "db55f35d707c96ef518766396830242b7c3bff47",
+        "intact": true
+      },
+      {
+        "pr": 226,
+        "ref": "refs/heads/codex/pr-cl7-suelo",
+        "expected": "c0724d887848b694cd4865bcf5615ce6ea8c9ff7",
+        "actual": "c0724d887848b694cd4865bcf5615ce6ea8c9ff7",
+        "intact": true
+      },
+      {
+        "pr": 225,
+        "ref": "refs/heads/codex/pr-cl7-gotas",
+        "expected": "b7ceba5a12c8c0d84d153d02e870e0b98f52f239",
+        "actual": "b7ceba5a12c8c0d84d153d02e870e0b98f52f239",
+        "intact": true
+      },
+      {
+        "pr": 224,
+        "ref": "refs/heads/codex/pr-cl7-estado-compartido",
+        "expected": "3bbcbee7acf1dcc525c5e707874930b637614d45",
+        "actual": "3bbcbee7acf1dcc525c5e707874930b637614d45",
+        "intact": true
+      },
+      {
+        "pr": 223,
+        "ref": "refs/heads/codex/pr-cl7-frustum",
+        "expected": "d8fab5ad3397f332da5c58164f8447160ac136e9",
+        "actual": "d8fab5ad3397f332da5c58164f8447160ac136e9",
+        "intact": true
+      },
+      {
+        "pr": 222,
+        "ref": "refs/heads/codex/pr-cl11-roadmap",
+        "expected": "44cccb567436ff19044601ab98dfab9a864d939c",
+        "actual": "44cccb567436ff19044601ab98dfab9a864d939c",
+        "intact": true
+      },
+      {
+        "pr": 185,
+        "ref": "refs/heads/claude/project-thread-02udvb-runtime",
+        "expected": "46053fb10ecc2357c57f5b67bca7343ebf4f419e",
+        "actual": "46053fb10ecc2357c57f5b67bca7343ebf4f419e",
+        "intact": true
+      }
+    ],
+    "185_open_draft": true,
+    "185_reopen_reason": "Outside audited66; unique coverage not proven.",
+    "deleted_versioned_paths": [],
+    "main_merged": false
+  },
+  "adversarial_reviews": {
+    "model": "GPT-6 Astra",
+    "effort": "high",
+    "objects_cycle": "APPROVE",
+    "particles_r1": "APPROVE;3P2 ADDRESSED",
+    "source_patch_sha256": "6a448e15f7e3f4af1e9e9019dc4d3cf330e62e44bc50dbeddc91a5f742425bc1",
+    "r1_delta_sha256": "8bcd467ee76b047634b34c9f331562faa7624ac35c0bed8a5401230b402249b3",
+    "closure_safety": "66originals/48patches/973hunks reviewed; keep185open"
+  },
+  "remaining": [
+    "CI final head293",
+    "T16 ordinary1/4 then8/10/33/31",
+    "T16 special6/7/events9,32,11..23/Siege30/Crywolf34",
+    "remainingP55 producers/equipment/weapons/wings;P50/P54/P56",
+    "CL.M roadmap mapping",
+    "nativeVM contrast last"
+  ],
+  "active_local_mutators": [],
+  "private_kalima_worktree_is_already_integrated": true,
+  "native_static_input_sha256": "c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a"
+}

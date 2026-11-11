@@ -5,6 +5,8 @@
 #include "Render/Models/OriginalRetainedMath.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/KalimaWorld.h"
+#include "World/Ftol.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -18,6 +20,32 @@ namespace Client::World
 {
 namespace
 {
+Core::Expected<void, std::string> StepKalimaEffect(ModelEffect& effect, KalimaWorld* kalima,
+                                                   Render::Models::CrtRandom& random)
+{
+    constexpr double Acceleration = 3, RotationFactor = 5;
+    constexpr float WaterPlane = 350;
+    constexpr double TileFactor = static_cast<double>(0.01f);
+    constexpr std::int32_t Radius = 2, Amplitude = -1000;
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        const float delta = static_cast<float>(static_cast<double>(effect.speed) * effect.velocity[axis]);
+        effect.transform.position[axis] =
+            static_cast<float>(static_cast<double>(delta) + effect.transform.position[axis]);
+    }
+    const double retainedSpeed = static_cast<double>(effect.speed) + Acceleration;
+    effect.speed = static_cast<float>(retainedSpeed);
+    effect.transform.angles.x = static_cast<float>(retainedSpeed * RotationFactor + effect.transform.angles.x);
+    if (!(effect.transform.position.z >= WaterPlane) && effect.disturbanceState == 0)
+    {
+        effect.disturbanceState = 1;
+        const auto tileY = FtolLow(static_cast<double>(effect.transform.position.y) * TileFactor);
+        const auto tileX = FtolLow(static_cast<double>(effect.transform.position.x) * TileFactor);
+        if (kalima != nullptr)
+            return kalima->Disturb(tileX, tileY, Radius, Amplitude, random);
+    }
+    return {};
+}
 Core::Expected<void, std::string> StepTower(ModelEffect& effect, float worldClock)
 {
     // 525e9d..525efd: B guarda el argumento antes del seno; R y G retienen el producto PC53.
@@ -62,7 +90,7 @@ Core::Expected<void, std::string> EmitTeleportSparks(const ModelEffect& effect, 
 } // namespace
 Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
                                                       Particles& particles, float worldClock,
-                                                      Render::Models::CrtRandom& random)
+                                                      Render::Models::CrtRandom& random, KalimaWorld* kalima)
 {
     if (!effect.alive)
         return {};
@@ -70,7 +98,13 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     static_cast<void>(random.Next());
     constexpr std::int16_t FirstTower = 322;
     constexpr std::int16_t LastTower = 324;
-    if (effect.type >= FirstTower && effect.type <= LastTower)
+    constexpr std::int16_t KalimaType = 9;
+    if (effect.type == KalimaType)
+    {
+        if (auto stepped = StepKalimaEffect(effect, kalima, random); !stepped.HasValue())
+            return stepped;
+    }
+    else if (effect.type >= FirstTower && effect.type <= LastTower)
     {
         if (auto stepped = StepTower(effect, worldClock); !stepped.HasValue())
             return stepped;

@@ -314,7 +314,7 @@ TEST_F(MapLoadTest, ConstructsRealMapsAndNamesTheirFrontiers)
     };
     constexpr Case Cases[] = {
         {0, ""},          {1, ""},  {2, ""},  {3, ""},          {4, ""},  {5, "World6"},    {6, ""},
-        {7, ""},          {8, ""},  {9, ""},  {10, ""},         {11, ""}, {18, ""},         {24, "0x4377a0"},
+        {7, ""},          {8, ""},  {9, ""},  {10, ""},         {11, ""}, {18, ""},         {24, ""},
         {30, "0x42a760"}, {31, ""}, {33, ""}, {34, "0x42fe50"}, {54, ""}, {55, "0x6188ae"},
     };
     for (const Case& tested : Cases)

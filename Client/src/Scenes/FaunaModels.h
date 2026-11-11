@@ -5,6 +5,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/ConstructedBmdPrefix.h"
 #include "Scenes/TextureMetadata.h"
 #include "Scenes/ModelTextureTable.h"
 
@@ -60,6 +61,10 @@ public:
     FaunaModels& operator=(FaunaModels&&) = delete;
     ~FaunaModels() override;
     void Bind(const IModelLibrary* base);
+    // 60dc4c: el caller entrega su elección CRT en la inicialización global de modelos.
+    [[nodiscard]] Core::Expected<void, std::string> InitializePrefix(std::uint16_t constructedBeforeBase);
+    [[nodiscard]] const Render::Models::Skeleton* PrefixModel() const;
+    [[nodiscard]] std::optional<std::uint16_t> PrefixOffset() const;
     [[nodiscard]] Core::Expected<void, std::string> Prepare(std::int32_t monster, FaunaModelLoadContext& context);
     void Release();
     [[nodiscard]] ModelTextureTable& TextureTable();
@@ -80,6 +85,8 @@ private:
         std::vector<Render::TextureSlot> textures;
         std::array<std::int16_t, 10> sounds{};
     };
+    // No se reinicia al salir de un mapa ni al soltar sus texturas.
+    ConstructedBmdPrefix m_prefix;
     ModelTextureTable m_textureTable;
     ModelTextureTable* m_sharedTextures = nullptr;
     const IModelLibrary* m_base = nullptr;

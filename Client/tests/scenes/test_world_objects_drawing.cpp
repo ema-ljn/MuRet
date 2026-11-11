@@ -12,6 +12,7 @@
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FaunaDrawing.h"
 #include "Scenes/TextureMetadata.h"
 #include "Data/Textures/Texture.h"
 #include "World/TerrainCulling.h"
@@ -24,6 +25,7 @@
 #include "World/TerrainLighting.h"
 #include "World/ModelEffects.h"
 #include "World/GroundEffectDrawing.h"
+#include "World/KalimaWorld.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "World/SphereFrustum.h"
 #include "World/WorldObjects.h"
@@ -40,6 +42,7 @@
 #include <string>
 #include <string_view>
 #include <memory>
+#include <limits>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -594,7 +597,7 @@ TEST(WorldObjectsDrawingTest, ANoopGroundCasePublishesItsStateWithoutBindingATex
     EXPECT_TRUE(batch.Vertices().empty());
 }
 
-TEST(WorldObjectsDrawingTest, AFailedGroundCaseKeepsTheCommonStateOperationsBeforeItsPrefix)
+TEST(WorldObjectsDrawingTest, AbsentKalimaWaterKeepsTheCommonStateAndRestoresDepthWrite)
 {
     std::array<Client::World::ModelEffect, 1> effects{};
     effects[0].alive = true;
@@ -606,17 +609,44 @@ TEST(WorldObjectsDrawingTest, AFailedGroundCaseKeepsTheCommonStateOperationsBefo
     batch.Begin(Client::Render::Pass3D{});
     const auto drawn = Client::Scenes::DrawGroundEffects(
         batch, effects, {.heights = *heights, .random = random, .worldClock = 0.0f, .map = 24});
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x52e12f"), std::string::npos);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     using Operation = Client::Render::ModelStateOperation;
-    const std::array wanted{Operation::Blend,     Operation::Cull,      Operation::DepthWrite,
-                            Operation::AlphaTest, Operation::Texture2d, Operation::DepthWrite};
+    const std::array wanted{Operation::Blend,     Operation::Cull,       Operation::DepthWrite, Operation::AlphaTest,
+                            Operation::Texture2d, Operation::DepthWrite, Operation::DepthWrite};
     ASSERT_EQ(batch.Commands().size(), wanted.size());
     for (std::size_t index = 0; index < wanted.size(); ++index)
     {
         EXPECT_EQ(batch.Commands()[index].operation, wanted[index]);
     }
     EXPECT_TRUE(batch.Vertices().empty());
+    EXPECT_EQ(batch.State().depthWrite, true);
+}
+
+TEST(WorldObjectsDrawingTest, RejectedKalimaDecalKeepsTheCommonPrefixAndDisabledDepthWrite)
+{
+    std::array<Client::World::ModelEffect, 1> effects{};
+    effects[0].alive = true;
+    effects[0].seen = true;
+    effects[0].type = 0x6eb;
+    effects[0].transform.scale = 1;
+    effects[0].transform.position.x = std::numeric_limits<float>::infinity();
+    auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    Client::World::KalimaWorld water(24);
+    Client::Render::Models::CrtRandom random;
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    const auto drawn = Client::Scenes::DrawGroundEffects(
+        batch, effects, {.heights = *heights, .random = random, .worldClock = 0.0f, .map = 24, .kalima = &water});
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_NE(drawn.Error().find("0x41dd90"), std::string::npos);
+    using Operation = Client::Render::ModelStateOperation;
+    const std::array wanted{Operation::Blend,     Operation::Cull,       Operation::DepthWrite, Operation::AlphaTest,
+                            Operation::Texture2d, Operation::DepthWrite, Operation::Binding};
+    ASSERT_EQ(batch.Commands().size(), wanted.size());
+    for (std::size_t index = 0; index < wanted.size(); ++index)
+        EXPECT_EQ(batch.Commands()[index].operation, wanted[index]);
+    EXPECT_TRUE(batch.Vertices().empty());
+    EXPECT_EQ(batch.State().depthWrite, false);
 }
 
 // 0x60479c..0x604a36: el 0x64 de Devias solo sigue con el nivel del registro propio desde 0x50, o desde 0x35
@@ -688,14 +718,153 @@ TEST(WorldObjectsDrawingTest, AnIntermediateGameDrawTakesNoRandomness)
     EXPECT_EQ(random.State(), 7u);
 }
 
+TEST(WorldObjectsDrawingTest, ProjectedPosePublicationDoesNotRunOriginalFrameProducers)
+{
+    const TwoMeshModels models;
+    std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
+    Client::Render::Models::CrtRandom random(7);
+    ModelBatch batch;
+    int publications = 0;
+    Client::Scenes::GameObjectPass pass;
+    pass.map = Lorencia;
+    pass.originalFrame = false;
+    pass.random = &random;
+    pass.onPose = [&](const Client::Scenes::DrawnObject&) -> Client::Core::Expected<void, std::string>
+    {
+        ++publications;
+        return {};
+    };
+    ASSERT_TRUE(DrawGame(batch, models, objects, pass).HasValue());
+    EXPECT_EQ(publications, 0);
+    pass.publishProjectedPose = true;
+    ASSERT_TRUE(DrawGame(batch, models, objects, pass).HasValue());
+    EXPECT_EQ(publications, 1);
+    EXPECT_EQ(random.State(), 7u);
+    EXPECT_FALSE(batch.Vertices().empty());
+}
+
+// 5ffdf0 posa antes de que600328 descarte hiddenMesh=-2: el scratch cambia sin geometría.
+TEST(WorldObjectsDrawingTest, HiddenGameObjectsPublishNativeOrProjectedPoseWithoutGeometry)
+{
+    const TwoMeshModels models;
+    for (const bool original : {false, true})
+    {
+        std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
+        objects.front().state.hiddenMesh = Client::World::HiddenObject;
+        Client::Scenes::FaunaDrawCarry native;
+        native.bones.resize(1, Client::Render::Models::BoneTransform(1.0f));
+        native.bones.front()[3].x = 900.0f;
+        auto projected = native;
+        auto& target = original ? native : projected;
+        Client::Render::Models::CrtRandom random(7);
+        ModelBatch batch;
+        Client::Scenes::GameObjectPass pass;
+        pass.map = Lorencia;
+        pass.originalFrame = original;
+        pass.publishProjectedPose = !original;
+        pass.random = &random;
+        pass.retainedPose = &target;
+        int publications = 0;
+        pass.onPose = [&](const Client::Scenes::DrawnObject& pose) -> Client::Core::Expected<void, std::string>
+        {
+            EXPECT_EQ(pose.state.hiddenMesh, Client::World::HiddenObject);
+            ++publications;
+            return Client::Scenes::PublishFaunaPose(target, models, pose, true);
+        };
+        ASSERT_TRUE(DrawGame(batch, models, objects, pass).HasValue());
+        EXPECT_EQ(publications, 1);
+        EXPECT_TRUE(objects.front().seen);
+        EXPECT_TRUE(batch.Vertices().empty());
+        EXPECT_TRUE(batch.Commands().empty());
+        ASSERT_FALSE(target.meshes.empty());
+        EXPECT_EQ(target.meshes.front().positions.front(), glm::vec3(100.0f, 100.0f, 0.0f));
+        EXPECT_EQ(target.bones.front()[3].x, 100.0f);
+        if (!original)
+        {
+            EXPECT_EQ(native.bones.front()[3].x, 900.0f);
+        }
+        EXPECT_EQ(random.State(), SevenAfter(original ? 1 : 0).State());
+    }
+}
+
+TEST(WorldObjectsDrawingTest, HiddenLoginObjectsPublishNativeOrProjectedPoseWithoutGeometry)
+{
+    const TwoMeshModels models;
+    for (const bool original : {false, true})
+    {
+        std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, Login, Client::World::ObjectScene::Login)};
+        objects.front().state.hiddenMesh = Client::World::HiddenObject;
+        Client::Scenes::FaunaDrawCarry native;
+        native.bones.resize(1, Client::Render::Models::BoneTransform(1.0f));
+        native.bones.front()[3].x = 900.0f;
+        auto projected = native;
+        auto& target = original ? native : projected;
+        Client::Render::Models::CrtRandom random(7);
+        ModelBatch batch;
+        Client::Scenes::ObjectFrameEffects effects;
+        effects.random = &random;
+        effects.frames = original ? 1 : 0;
+        effects.publishProjectedPose = !original;
+        effects.retainedPose = &target;
+        int publications = 0;
+        effects.onPose = [&](const Client::Scenes::DrawnObject& pose) -> Client::Core::Expected<void, std::string>
+        {
+            ++publications;
+            return Client::Scenes::PublishFaunaPose(target, models, pose, true);
+        };
+        DrawWorldObjects(batch, models, objects, Client::World::TerrainPolygon{.everything = true}, nullptr, Login, {},
+                         0.0f, effects);
+        EXPECT_EQ(publications, 1);
+        EXPECT_TRUE(batch.Vertices().empty());
+        EXPECT_TRUE(batch.Commands().empty());
+        ASSERT_FALSE(target.meshes.empty());
+        EXPECT_EQ(target.meshes.front().positions.front(), glm::vec3(100.0f, 100.0f, 0.0f));
+        EXPECT_EQ(target.bones.front()[3].x, 100.0f);
+        if (!original)
+        {
+            EXPECT_EQ(native.bones.front()[3].x, 900.0f);
+        }
+        EXPECT_EQ(random.State(), SevenAfter(original ? 1 : 0).State());
+    }
+}
+
+TEST(WorldObjectsDrawingTest, AlphaRejectedObjectsDoNotPublishPoseEvenWithProjectedPublication)
+{
+    const TwoMeshModels models;
+    std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
+    objects.front().alpha = 0.005f;
+    objects.front().state.hiddenMesh = Client::World::HiddenObject;
+    int publications = 0;
+    const auto observe = [&](const Client::Scenes::DrawnObject&) -> Client::Core::Expected<void, std::string>
+    {
+        ++publications;
+        return {};
+    };
+    ModelBatch batch;
+    Client::Scenes::GameObjectPass pass;
+    pass.map = Lorencia;
+    pass.originalFrame = false;
+    pass.publishProjectedPose = true;
+    pass.onPose = observe;
+    ASSERT_TRUE(DrawGame(batch, models, objects, pass).HasValue());
+    Client::Scenes::ObjectFrameEffects effects;
+    effects.frames = 0;
+    effects.publishProjectedPose = true;
+    effects.onPose = observe;
+    DrawWorldObjects(batch, models, objects, Client::World::TerrainPolygon{.everything = true}, nullptr, Login, {},
+                     0.0f, effects);
+    EXPECT_EQ(publications, 0);
+    EXPECT_TRUE(batch.Vertices().empty());
+}
+
 // Los demás mapas cortan antes de mirar un objeto: sus casos de 0x6002e0 y 0x602ed0 no están leídos.
-TEST(WorldObjectsDrawingTest, TheGamePassKnowsOnlyTheReferenceMaps)
+TEST(WorldObjectsDrawingTest, TheGamePassRejectsUnreadMaps)
 {
     const TwoMeshModels models;
     std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, 3, Client::World::ObjectScene::Other)};
     Client::Render::Models::CrtRandom random(7);
     ModelBatch batch;
-    const auto drawn = DrawGame(batch, models, objects, {.map = 3, .random = &random});
+    const auto drawn = DrawGame(batch, models, objects, {.map = 4, .random = &random});
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x6046a0"), std::string::npos) << drawn.Error();
     EXPECT_FALSE(objects[0].seen);

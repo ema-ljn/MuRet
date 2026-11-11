@@ -3,6 +3,7 @@
 #include "GameLogic/MovementSpeed.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/GameItemRenderState.h"
 #include "Scenes/SceneId.h"
 #include "World/GroundMarks.h"
 #include "World/LeafWeather.h"
@@ -13,6 +14,7 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <string>
 
 // Los globales en claro que sobreviven a los cambios de escena: el mundo en curso, el estado compartido
 // de la velocidad y lo que hace falta para la espera de la entrada al mundo (06, "La entrada al mundo",
@@ -26,6 +28,11 @@ inline constexpr std::int32_t InitialLeafCount = 30;
 
 struct WorldRuntime
 {
+    // Q-C180/Q-C27: primer aviso de datos que pidió WM_DESTROY. Durable incluso si Poll falla;
+    // main muestra el modal antes de cerrar. Unsupported-map y errores sin aviso no lo escriben.
+    std::optional<std::string> fatalDataMessage{};
+    GameItemRenderState itemRender{};
+    bool siegeActive = false; // 07239ec, separado del número de mapa (4294b0).
     GameMovementState movement{};
     // Los cinco selectores del mouse arrancan en -1 en la .data.
     std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};
@@ -36,6 +43,9 @@ struct WorldRuntime
     std::uint8_t byte6c8e4d = 0xff;
     std::optional<std::int32_t> lastSoundId{};
     World::ObjectModelStepState objectModelState{};
+    // 7d365a0, .bss0.6061c0 lee el count retenido antes de60657a;6063d0 lo produce
+    // sólo paraIcarus/Chaos/asedio. Kalima conserva0 después del reset del pase exitoso.
+    std::int32_t objectSelectionCount = 0;
     // DAT_006c9dd0, el mundo en curso. Quien llama a 0x61a560 lo escribe justo antes (05, "La carpeta
     // de cada mapa"): el login con 55 (06, "El login, al entrar") y la selección con 54 en 0x633f20
     // (06, "Al entrar"). Ese 54 sigue en la carga del mundo y en la espera de la escena 5, que corre

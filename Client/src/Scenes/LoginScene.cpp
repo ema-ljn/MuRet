@@ -1,4 +1,7 @@
 #include "Scenes/LoginScene.h"
+#include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/Skinning.h"
+#include "Scenes/FaunaDrawing.h"
 
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
@@ -1166,7 +1169,19 @@ DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
 // (0x6046a0 → 0x602e90, con el color de 0x5ffce0).
 void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
 {
-    const DrawnCharacter character = TheCharacterToDraw(alpha);
+    const int nativeFrames = m_objectEffectFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
+    FaunaDrawCarry projection;
+    if (nativeFrames == 0)
+        projection = CharacterWorld().PoseCarry();
+    auto& carry = nativeFrames > 0 ? CharacterWorld().PoseCarry() : projection;
+    DrawnCharacter character = TheCharacterToDraw(alpha);
+    character.poseBones = [&](std::uint16_t) { return std::span<const Render::Models::BoneTransform>(carry.bones); };
+    character.onPose = [&](std::uint16_t model, std::span<const Render::Models::BoneTransform> bones,
+                           const Render::Models::ObjectTransform& transform, bool translated)
+    {
+        if (auto result = PublishFaunaPoseRaw(carry, m_models, model, bones, transform, translated); !result.HasValue())
+            m_failure = result.Error();
+    };
     const ActorState& actor = CharacterWorld().Actors()[LoginActorSlot];
     if (actor.alive && actor.seen)
     {
@@ -1178,11 +1193,14 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     // para la chispa del próximo (Q-C133).
     if (actor.alive && actor.seen && actor.darkSpirit)
     {
-        DrawTheRaven(canvas, alpha);
+        DrawTheRaven(canvas, alpha, &carry);
     }
 
-    const DrawnObject horse =
+    DrawnObject horse =
         DrawnDarkHorse(m_horse, m_models.SkeletonOf(DarkHorseModel), character.object, DarkHorseLoginScale, alpha);
+    if (auto result = PublishFaunaPose(carry, m_models, horse, true); !result.HasValue())
+        m_failure = result.Error();
+    horse.retainedMeshes = carry.meshes;
     DrawDarkHorse(canvas.models, m_models, horse, m_world ? m_world->map : EmberMap, canvas.frameClock);
 
     // 0x6046a0: los objetos del mundo y el logo, sector por sector, con lo de 0x602ed0: un rand() por
@@ -1203,19 +1221,32 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
                                         .particles = &CharacterWorld().Particles(),
                                         .posedBefore = posed,
                                         .scene = World::ObjectScene::Login,
-                                        .frames = m_objectEffectFrames.FramesAt(canvas.frameClock,
-                                                                                OriginalFramePaceOf(m_context.pacing)),
-                                        .lastRandoms = m_objectEffectRandoms});
+                                        .frames = nativeFrames,
+                                        .lastRandoms = m_objectEffectRandoms,
+                                        .onPose =
+                                            [&](const DrawnObject& object)
+                                        {
+                                            auto result = PublishFaunaPose(carry, objects, object, true);
+                                            if (!result.HasValue())
+                                                m_failure = result.Error();
+                                            return result;
+                                        },
+                                        .retainedPose = &carry,
+                                        .publishProjectedPose = true});
     // 0x52d620(0): los efectos con modelo, después de los objetos.
-    DrawModelEffects(canvas.models, m_worldModels, CharacterWorld().Map().effects.Effects(),
-                     World::SphereFrustumOf(canvas.models.Pass().view, m_drawnCamera), lighting, canvas.frameClock,
-                     alpha);
+    const auto effects = DrawModelEffects(
+        canvas.models, m_worldModels, CharacterWorld().Map().effects.Effects(),
+        World::SphereFrustumOf(canvas.models.Pass().view, m_drawnCamera), lighting, canvas.frameClock, alpha,
+        [&](const DrawnObject& object) { return PublishFaunaPose(carry, m_worldModels, object, true); },
+        [&]() { return std::span<const Render::Models::SkinnedMesh>(carry.meshes); });
+    if (!effects.HasValue())
+        m_failure = effects.Error();
     // 0x5306a0, después de 0x549510: las brasas, en el mundo.
     DrawLeaves(canvas.models, m_leaves);
     m_drawnSinceEntering = true;
 }
 
-void LoginScene::DrawTheRaven(SceneCanvas& canvas, float alpha)
+void LoginScene::DrawTheRaven(SceneCanvas& canvas, float alpha, FaunaDrawCarry* carry)
 {
     DarkSpirit& spirit = *CharacterWorld().Actors()[LoginActorSlot].darkSpirit;
     if (!DarkSpiritSeen(spirit, SharedTerrainPolygon()))
@@ -1226,12 +1257,23 @@ void LoginScene::DrawTheRaven(SceneCanvas& canvas, float alpha)
     const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(DarkSpiritModel);
     const glm::vec3 light = TerrainLightAt(spirit.position);
     const World::WorldTerrain* terrain = m_terrain.Terrain();
-    const DrawnObject drawn = DrawnDarkSpirit(spirit, skeleton, light, alpha);
+    DrawnObject drawn = DrawnDarkSpirit(spirit, skeleton, light, alpha);
+    if (carry != nullptr)
+    {
+        if (auto result = PublishFaunaPose(*carry, m_models, drawn, true); !result.HasValue())
+        {
+            m_failure = result.Error();
+            return;
+        }
+        drawn.retainedMeshes = carry->meshes;
+    }
     const float ground = terrain != nullptr ? static_cast<float>(World::TerrainHeightAt(
                                                   *terrain->heights, *terrain->attributes, drawn.transform.position.x,
                                                   drawn.transform.position.y, CameraState().fixedHeight))
                                             : 0.0f;
     DrawDarkSpirit(canvas.models, m_models, drawn, ground, canvas.frameClock);
+    if (carry != nullptr)
+        carry->models[drawn.model].position = {drawn.transform.position.x, drawn.transform.position.y, ground};
     spirit.pose = PosedWorldBones(m_models, DrawnDarkSpirit(spirit, skeleton, light, 0.0f));
 }
 

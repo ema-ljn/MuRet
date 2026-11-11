@@ -446,18 +446,11 @@ TEST_F(GameMovementMapEvidenceTest, EntryFrontiersStaySeparateFromTheSyntheticWa
         std::uint8_t map;
         std::string_view message;
     };
-    constexpr std::array<Boundary, 12> Boundaries{{
+    constexpr std::array<Boundary, 5> Boundaries{{
         {5, "World6"},
         {35, "World36"},
         {30, "0x42a760"},
         {34, "0x42fe50"},
-        {24, "0x4377a0"},
-        {25, "0x4377a0"},
-        {26, "0x4377a0"},
-        {27, "0x4377a0"},
-        {28, "0x4377a0"},
-        {29, "0x4377a0"},
-        {36, "0x4377a0"},
         {55, "0x6188ae"},
     }};
     for (const auto boundary : Boundaries)

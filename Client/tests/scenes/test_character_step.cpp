@@ -1602,3 +1602,24 @@ TEST(CharacterStepTest, TheSelectionEndsTheActionTwoFramesEarlier)
     }
 }
 } // namespace
+
+TEST(CharacterStepTest, KalimaFootstepCallerCreatesSubtypeOneInTheSharedPool)
+{
+    GameWorld tested(24);
+    tested.Hero().animation.action = 0x15;
+    tested.world.Runtime().terrainPolygon = Everything;
+    Client::World::Particles particles;
+    const auto stepped = StepCharacters(
+        {.world = tested.world, .random = tested.random, .playerSkeleton = tested.player, .particles = &particles});
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    const auto& p = particles.All()[0];
+    ASSERT_TRUE(p.alive);
+    EXPECT_EQ(p.type, 0x6f4);
+    EXPECT_EQ(p.subtype, 1);
+    EXPECT_EQ(p.life, 20);
+    EXPECT_EQ(p.light, glm::vec3(0.3f));
+    EXPECT_EQ(p.position.z, tested.Hero().position.z + 100);
+    EXPECT_EQ(p.start.z, tested.Hero().position.z + 50);
+    EXPECT_EQ(p.scale, 1);
+    EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + 3).State());
+}

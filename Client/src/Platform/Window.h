@@ -53,6 +53,8 @@ public:
     Window& operator=(const Window&) = delete;
     ~Window() = default;
 
+    // Modal nativo; retorna al confirmar el aviso. El error conserva SDL_GetError().
+    [[nodiscard]] Core::Expected<void, std::string> ShowErrorMessage(const std::string& message);
     void Swap();
     [[nodiscard]] App::PixelSize PixelSize() const;
     // El SDL_WindowID, para que PumpEvents descarte los eventos de otras ventanas.

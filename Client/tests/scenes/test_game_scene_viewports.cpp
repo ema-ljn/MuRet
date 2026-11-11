@@ -5,7 +5,6 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
-#include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
@@ -14,7 +13,8 @@
 #include "Render/Pass3D.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/IWorldEntryPublisher.h"
-#include "Scenes/LoginModels.h"
+#include "Scenes/GameData.h"
+#include "Scenes/GameModels.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -30,7 +30,6 @@
 #include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
-#include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
@@ -50,11 +49,12 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 // T15, cobertura CPU acotada: F3 03 real, terreno de Data y 0/1/3 pasos lógicos antes del primer
-// dibujo. El primer dibujo cuenta un frame original y corta en 0x6374fe: no existe todavía un
-// segundo frame original completo de GameScene con el que probar frames intermedios o catch-up.
+// dibujo. Los recursos reales permiten presentar el frame completo y después un dibujo intermedio
+// sin volver a avanzar los productores por frame original.
 // RecordingFrameTarget observa BeginFrame/Present y los lotes, sin GL ni comparación visual/VM.
 namespace
 {
@@ -130,14 +130,15 @@ protected:
         static_cast<void>(steps);
         m_target.SetScreen(viewport.screen);
         m_input.Apply({.kind = Client::Input::InputEvent::Kind::Motion, .x = viewport.mouseX, .y = viewport.mouseY});
-        m_models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+        auto loadedData = Client::Scenes::LoadGameData(m_dataRoot);
+        ASSERT_TRUE(loadedData.HasValue()) << loadedData.Error();
+        m_data = std::move(loadedData).Value();
+        const auto loadedModels = m_models.Load(m_dataRoot, m_store, m_log);
+        ASSERT_TRUE(loadedModels.HasValue()) << loadedModels.Error();
         m_world.OwnCharacter().ClearEquipmentForEntry();
         m_world.Runtime().terrainPolygon = SelectedPolygon;
         m_camera.farPlane = SelectionFar;
         m_camera.lastFrameDistance = 1000.0f;
-        const Client::Data::Tables::ItemSetTables sets = Client::Tests::ItemSetTablesFrom(
-            std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff}),
-            std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff}));
         Client::Protocol::Character::CharacterSelectResult reply;
         reply.map = entry.map;
         reply.x = entry.x;
@@ -150,8 +151,8 @@ protected:
                                                             .camera = m_camera,
                                                             .cameraInput = m_cameraInput,
                                                             .models = m_models,
-                                                            .items = &m_items,
-                                                            .itemSetTables = &sets,
+                                                            .items = &m_data.items->table,
+                                                            .itemSetTables = &*m_data.itemSets,
                                                             .log = m_log};
         EntryPublisher publisher;
         const auto entered = Client::Scenes::ApplyWorldEntry(reply, 5, resources, publisher);
@@ -185,7 +186,9 @@ protected:
                                                            .cameraInput = &m_cameraInput,
                                                            .selection = &m_selection,
                                                            .world = &m_world};
-                auto game = std::make_unique<Client::Scenes::GameScene>(context, nullptr, &m_models, &m_items);
+                auto game = std::make_unique<Client::Scenes::GameScene>(context, nullptr, &m_models,
+                                                                        &m_data.items->table, &m_models.TextureSlots(),
+                                                                        &*m_data.gates, &*m_data.skills);
                 m_game = game.get();
                 return game;
             },
@@ -234,11 +237,11 @@ protected:
         EXPECT_EQ(m_world.Runtime().terrainPolygonState.effectiveLevel, 0);
     }
 
-    void ExpectFloorCut() const
+    void ExpectCompleteFrame() const
     {
-        ASSERT_TRUE(m_manager->Failure().has_value());
-        EXPECT_NE(m_manager->Failure()->find("0x6374fe"), std::string::npos) << *m_manager->Failure();
-        EXPECT_TRUE(m_manager->HoldsTheLastFrame());
+        ASSERT_FALSE(m_manager->Failure().has_value()) << *m_manager->Failure();
+        ASSERT_FALSE(m_game->Failure().has_value()) << *m_game->Failure();
+        EXPECT_FALSE(m_manager->HoldsTheLastFrame());
     }
 
     Client::Tests::RecordingSink m_sink;
@@ -251,8 +254,8 @@ protected:
     Client::Scenes::SelectionState m_selection{m_world};
     Client::World::GameCamera m_camera;
     Client::World::GameCameraInput m_cameraInput;
-    Client::Scenes::SingleModelLibrary m_models;
-    Client::Data::Tables::ItemTable m_items = Client::Tests::ItemsMarking({});
+    Client::Scenes::GameModels m_models;
+    Client::Scenes::GameData m_data;
     Client::Tests::RecordingFrameTarget m_target;
     Client::Scenes::GameScene* m_game = nullptr;
     std::unique_ptr<Client::Scenes::SceneManager> m_manager;
@@ -273,17 +276,20 @@ TEST_P(GameSceneViewportTest, TheFirstGameDrawKeepsTheNativeViewportCameraRayAnd
 
     m_manager->Render(0.5f);
 
-    ASSERT_NO_FATAL_FAILURE(ExpectFloorCut());
+    ASSERT_NO_FATAL_FAILURE(ExpectCompleteFrame());
     ASSERT_EQ(m_target.frames.size(), 1u);
     const Client::Tests::RecordedFrame& frame = m_target.frames.front();
-    EXPECT_FALSE(frame.presented);
+    EXPECT_TRUE(frame.presented);
     const Client::Tests::FrameEvent* models = nullptr;
     for (const Client::Tests::FrameEvent& event : frame.events)
     {
         if (event.kind == Client::Tests::FrameEvent::Kind::Models)
         {
-            ASSERT_EQ(models, nullptr);
-            models = &event;
+            // La cola nueva vacía varios lotes; el primero conserva el pase del terreno.
+            if (models == nullptr)
+            {
+                models = &event;
+            }
         }
     }
     ASSERT_NE(models, nullptr);
@@ -317,19 +323,13 @@ TEST_P(GameSceneViewportTest, TheFirstGameDrawKeepsTheNativeViewportCameraRayAnd
     EXPECT_NEAR(delta.z, viewport.rayDelta.z, 0.01f);
     ExpectGamePolygon();
 
-    // Un corte es terminal: ni tres pedidos posteriores presentan el lote parcial o avanzan el mundo.
+    // Un dibujo intermedio conserva los oráculos de cámara/rayo y sólo cierra la lectura de espera.
     const std::uint32_t random = m_cloth.random.State();
-    const std::size_t events = frame.events.size();
-    for (int later = 0; later < 3; ++later)
-    {
-        m_clock.Advance(std::chrono::seconds(1));
-        m_manager->Step(m_input);
-        m_manager->Render(0.0f);
-    }
-    ASSERT_EQ(m_target.frames.size(), 1u);
-    EXPECT_FALSE(m_target.frames.front().presented);
-    EXPECT_EQ(m_target.frames.front().events.size(), events);
-    EXPECT_EQ(m_cloth.random.State(), random);
+    m_manager->Render(0.5f);
+    ASSERT_NO_FATAL_FAILURE(ExpectCompleteFrame());
+    ASSERT_EQ(m_target.frames.size(), 2u);
+    EXPECT_TRUE(m_target.frames.back().presented);
+    EXPECT_EQ(m_cloth.random.State(), Client::Tests::AfterDraws(random, 4).State());
     EXPECT_EQ(m_cloth.logicSteps, steps);
     EXPECT_EQ(m_game->MouseRay()->origin, ray.origin);
     EXPECT_EQ(m_game->MouseRay()->end, ray.end);
@@ -366,10 +366,10 @@ TEST_P(GameSceneViewportTest, TheWaitRetainsThePresentedFrameUntilTheCounterReac
     ASSERT_FALSE(m_manager->HoldsTheLastFrame());
     m_manager->Render(0.0f);
 
-    ASSERT_NO_FATAL_FAILURE(ExpectFloorCut());
+    ASSERT_NO_FATAL_FAILURE(ExpectCompleteFrame());
     ASSERT_EQ(m_target.frames.size(), 2u);
     EXPECT_TRUE(m_target.frames.front().presented);
-    EXPECT_FALSE(m_target.frames.back().presented);
+    EXPECT_TRUE(m_target.frames.back().presented);
     EXPECT_TRUE(m_game->MouseRay().has_value());
     ExpectGamePolygon();
 }

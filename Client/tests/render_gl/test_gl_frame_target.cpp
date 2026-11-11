@@ -195,6 +195,67 @@ TEST_F(GlFrameTargetTest, TheEndOfTheModelsDrawsThePassAndTheTwoDGoesOver)
     EXPECT_EQ(Cells(2, 1), (std::vector<std::optional<Rgba8>>{White, Red}));
 }
 
+TEST_F(GlFrameTargetTest, StateOnlyModelCommandsReachGlWhenTheBatchHasNoVertices)
+{
+    SceneCanvas& canvas = m_target->BeginFrame(std::chrono::milliseconds{40});
+    canvas.models.Begin(Client::Tests::TestPass(m_screen));
+    Gl().disable(GL_BLEND);
+    Gl().blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    auto state = canvas.models.State();
+    state.blend = ModelBlend::InverseColorAdditive;
+    canvas.models.ApplyOperation(state, Client::Render::ModelStateOperation::Blend);
+    ASSERT_TRUE(canvas.models.Vertices().empty());
+    canvas.flushModels();
+
+    GLint value = 0;
+    Gl().getIntegerv(GL_BLEND, &value);
+    EXPECT_EQ(value, GL_TRUE);
+    Gl().getIntegerv(GL_BLEND_SRC_RGB, &value);
+    EXPECT_EQ(value, GL_ONE_MINUS_SRC_COLOR);
+    Gl().getIntegerv(GL_BLEND_DST_RGB, &value);
+    EXPECT_EQ(value, GL_ONE);
+    EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
+    m_target->Present();
+}
+
+TEST_F(GlFrameTargetTest, ContinuationKeepsPartialMaterialAndANewWorldPassRestoresItsNativeAxes)
+{
+    SceneCanvas& canvas = m_target->BeginFrame(std::chrono::milliseconds{40});
+    const auto pass = Client::Tests::TestPass(m_screen);
+    canvas.models.Begin(pass);
+    Gl().enable(GL_CULL_FACE);
+    auto state = canvas.models.State();
+    state.cullEnabled = false;
+    state.depthWrite = false;
+    canvas.models.ApplyOperation(state, Client::Render::ModelStateOperation::Cull);
+    canvas.models.ApplyOperation(state, Client::Render::ModelStateOperation::DepthWrite);
+    canvas.flushModels();
+    GLint value = 0;
+    Gl().getIntegerv(GL_CULL_FACE, &value);
+    EXPECT_EQ(value, GL_FALSE);
+    Gl().getIntegerv(GL_DEPTH_WRITEMASK, &value);
+    EXPECT_EQ(value, GL_FALSE);
+
+    state.blend = ModelBlend::Additive;
+    canvas.models.ApplyOperation(state, Client::Render::ModelStateOperation::Blend);
+    canvas.flushModels();
+    Gl().getIntegerv(GL_CULL_FACE, &value);
+    EXPECT_EQ(value, GL_FALSE);
+    Gl().getIntegerv(GL_DEPTH_WRITEMASK, &value);
+    EXPECT_EQ(value, GL_FALSE);
+
+    canvas.models.Begin(pass);
+    canvas.flushModels();
+    Gl().getIntegerv(GL_CULL_FACE, &value);
+    EXPECT_EQ(value, GL_TRUE);
+    Gl().getIntegerv(GL_DEPTH_WRITEMASK, &value);
+    EXPECT_EQ(value, GL_TRUE);
+    Gl().getIntegerv(GL_BLEND_SRC_RGB, &value);
+    EXPECT_EQ(value, GL_ONE);
+    EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
+    m_target->Present();
+}
+
 // La mezcla aditiva deja la máscara de la profundidad apagada, y el glClear de la profundidad la
 // respeta: el frame siguiente la limpia igual, y un modelo más lejos que el de antes se dibuja.
 TEST_F(GlFrameTargetTest, EachFrameClearsTheDepth)

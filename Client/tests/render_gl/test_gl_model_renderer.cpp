@@ -372,3 +372,33 @@ TEST_F(GlModelRendererTest, AMissingSlotDrawsUntexturedWithAWarning)
     EXPECT_EQ(warnings, 1u);
 }
 } // namespace
+
+TEST_F(GlModelRendererTest, ItemOverlayMultipliesTheDestinationColor)
+{
+    AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 20.0f, Color{0.8f, 0.6f, 0.4f, 1.0f});
+    AddSquare({WhiteSlot, ModelBlend::Multiplicative, true}, 5.0f, Color{0.5f, 0.25f, 0.75f, 1.0f});
+
+    DrawBatch();
+
+    ExpectNear(Cell(0), Rgba8{102, 38, 77, 255});
+}
+
+TEST_F(GlModelRendererTest, ItemOverlayDoesNotWriteTheDepth)
+{
+    AddSquare({WhiteSlot, ModelBlend::Multiplicative, true}, 5.0f, GreenColor, true);
+    AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 20.0f, GreenColor);
+
+    DrawBatch();
+
+    ExpectNear(Cell(0), Green);
+}
+
+TEST_F(GlModelRendererTest, ItemOverlayDoesNotCullTheBackFace)
+{
+    AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 20.0f, Color{1, 1, 1, 1});
+    AddSquare({WhiteSlot, ModelBlend::Multiplicative, true}, 5.0f, Color{0.5f, 0.5f, 0.5f, 1}, true);
+
+    DrawBatch();
+
+    ExpectNear(Cell(0), Rgba8{128, 128, 128, 255});
+}

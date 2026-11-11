@@ -3,6 +3,7 @@
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/World.h"
+#include "Protocol/Movement.h"
 
 #include <variant>
 
@@ -22,6 +23,8 @@ struct ReturnToSelectionReceived
 {
 };
 
-using WorldEvent = std::variant<Protocol::Character::CharacterSelectResult, Protocol::Character::InventoryList,
-                                ClearInventoryReceived, ReturnToSelectionReceived, Protocol::World::Weather>;
+using WorldEvent =
+    std::variant<Protocol::Character::CharacterSelectResult, Protocol::Character::InventoryList, ClearInventoryReceived,
+                 ReturnToSelectionReceived, Protocol::World::Weather, Protocol::Movement::Walk,
+                 Protocol::Movement::Damage, Protocol::World::Teleport, Protocol::World::Regen>;
 } // namespace Client::App

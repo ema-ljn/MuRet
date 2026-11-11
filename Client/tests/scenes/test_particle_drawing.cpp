@@ -594,8 +594,8 @@ TEST_F(ParticleDrawingTest, FrozenFiniteRotationAlsoPassesThroughTheNewSynchrono
 
 TEST_F(ParticleDrawingTest, DirectNativeDestinationsDoNotInventASubtypeGuard)
 {
-    // 548550_ext_67/68 y 5c6_607: estos destinos NO leen +0x0c.
-    for (const std::int32_t type : {0x67, 0x68, 0x5c6, 0x607})
+    // 548550_ext_67/68, 5c6/607 y548ca1→54889a(5ca): no leen +0x0c.
+    for (const std::int32_t type : {0x67, 0x68, 0x5c6, 0x607, 0x5ca})
     {
         SCOPED_TRACE(type);
         m_particles.Clear();

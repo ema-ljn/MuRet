@@ -1,4 +1,5 @@
 #include "World/ParticleDrawing.h"
+#include "World/KalimaParticleKernels.h"
 #include "World/ParticleDrawParameters.h"
 #include "World/IParticleDrawingServices.h"
 #include "World/Particles.h"
@@ -82,6 +83,8 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
                                                                  IParticleDrawingServices& services)
 {
     const std::int32_t type = p.type;
+    if (IsKalimaParticle(type, p.subtype))
+        return DrawSelection{ParticleDrawKind::Common, false};
     switch (type)
     {
     case FireParticle:
@@ -118,6 +121,7 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
         return DrawSelection{ParticleDrawKind::Common, false};
     case DropParticle:
         return DrawSelection{ParticleDrawKind::Drop, false};
+    case ThunderParticle: // 548ca1→54889a: billboard común sin lectura del subtipo.
     case SparkParticle:
     case Particle67:
     case Particle68:

@@ -357,3 +357,22 @@ TEST(ParticleMaterialBackendTest, SubtractiveFogMissAndHitKeepExactOperationTrac
     EXPECT_EQ(batch.Commands().size(), 5);
 }
 } // namespace
+
+TEST(ParticleMaterialBackendTest, KalimaSixEnablesDepthAfterMaterialWithoutChangingCullOrBlend)
+{
+    Client::Render::ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    auto state = batch.State();
+    state.depthTest = false;
+    state.cullEnabled = false;
+    batch.ApplyState(state);
+    MaterialModels models;
+    Client::Render::ModelBatchParticleBackend backend(std::ref(batch), std::cref(models),
+                                                      Client::Render::ModelBatchParticleState::ForModelPass());
+    ASSERT_TRUE(backend.Type620850().HasValue());
+    EXPECT_TRUE(batch.State().depthTest);
+    EXPECT_EQ(batch.State().cullEnabled, false);
+    const auto serial = batch.StateSerial();
+    ASSERT_TRUE(backend.Type620850().HasValue());
+    EXPECT_EQ(batch.StateSerial(), serial);
+}

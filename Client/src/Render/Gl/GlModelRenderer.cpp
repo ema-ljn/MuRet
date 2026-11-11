@@ -200,6 +200,10 @@ void GlModelRenderer::SetBlend(ModelBlend blend) const
         m_gl->enable(GL_BLEND);
         m_gl->blendFunc(GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
         break;
+    case ModelBlend::Multiplicative:
+        m_gl->enable(GL_BLEND);
+        m_gl->blendFunc(GL_ZERO, GL_SRC_COLOR);
+        break;
     case ModelBlend::Additive:
         m_gl->enable(GL_BLEND);
         m_gl->blendFunc(GL_ONE, GL_ONE);
@@ -226,6 +230,9 @@ void GlModelRenderer::SetOperation(const ModelDrawState& state, ModelStateOperat
     case ModelStateOperation::Cull:
         if (state.cullEnabled.has_value())
             (*state.cullEnabled ? m_gl->enable : m_gl->disable)(GL_CULL_FACE);
+        break;
+    case ModelStateOperation::DepthTest:
+        (state.depthTest ? m_gl->enable : m_gl->disable)(GL_DEPTH_TEST);
         break;
     case ModelStateOperation::DepthWrite:
         if (state.depthWrite.has_value())

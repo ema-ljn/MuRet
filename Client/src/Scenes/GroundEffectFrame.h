@@ -2,8 +2,10 @@
 
 #include "Core/Expected.h"
 #include "World/ModelEffects.h"
+#include "World/KalimaWorld.h"
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -35,6 +37,8 @@ public:
     void Reset();
 
 private:
+    void Capture(std::span<World::ModelEffect> effects, const World::GroundEffectResources& resources);
+    std::unique_ptr<World::KalimaWorld> m_kalimaSnapshot;
     std::vector<World::ModelEffect> m_originalEffects;
     std::vector<World::ModelEffect> m_replayEffects;
     std::uint32_t m_randomState = 1;

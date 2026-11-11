@@ -3,6 +3,7 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Pass3D.h"
+#include "Scenes/FaunaDrawing.h"
 #include "World/GameCamera.h"
 
 #include "App/ServerSession.h"
@@ -168,7 +169,7 @@ private:
                                             const DarkHorse& drawnHorse) const;
     void DrawTheModels(SceneCanvas& canvas, float alpha);
     // 0x4182f0: el cuervo, si pasa el trapecio (si no, MissTheView), y su pose para la chispa.
-    void DrawTheRaven(SceneCanvas& canvas, float alpha);
+    void DrawTheRaven(SceneCanvas& canvas, float alpha, FaunaDrawCarry* carry = nullptr);
     // El corte del pase de partículas, en el log: una vez por entrada.
     void ReportParticleFailure(const World::ParticleDrawingFailure& failure);
     // La luz del terreno en (x, y), o 0 sin la del mundo.

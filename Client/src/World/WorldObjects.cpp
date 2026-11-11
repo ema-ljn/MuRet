@@ -7,6 +7,7 @@
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
 #include "World/IWorldObjectCreationServices.h"
+#include "World/KalimaWorld.h"
 #include "World/ObjectAlpha.h"
 #include "World/NoriaObjectStep.h"
 #include "World/OriginalFtol.h"
@@ -744,7 +745,7 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
                                                          Render::Models::CrtRandom& random,
                                                          const ObjectStepGlobals& globals)
 {
-    if (map != LorenciaMap && map != DeviasMap && map != NoriaMap && map != LoginMap)
+    if (map != LorenciaMap && map != DeviasMap && map != NoriaMap && map != LoginMap && !IsKalimaMap(map))
     {
         // 0x604ac0..0x604ba0: el 9 saca rand() antes de todo, y cada mapa tiene sus casos.
         return Core::Unexpected(
@@ -756,6 +757,15 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     }
     if (!AdvanceTheObject(object, skeleton))
     {
+        return {};
+    }
+    if (IsKalimaMap(map))
+    {
+        // 605a62→438a90: AL1 corta los handlers posteriores, incluso sin un store por tipo.
+        constexpr std::int16_t FirstHiddenKalimaObject = 37;
+        constexpr std::int16_t LastHiddenKalimaObject = 40;
+        if (object.type >= FirstHiddenKalimaObject && object.type <= LastHiddenKalimaObject)
+            object.state.hiddenMesh = HiddenObject;
         return {};
     }
     switch (map)

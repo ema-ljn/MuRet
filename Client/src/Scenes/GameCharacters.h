@@ -4,10 +4,13 @@
 #include "Core/IClock.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Animation.h"
+#include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/Pose.h"
 #include "Scenes/ActorState.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <span>
 #include <string>
 
@@ -51,11 +54,18 @@ struct GameCharacterPass
     World::FrameSprites* sprites = nullptr;
     std::span<World::ScepterGlowCarry> scepters{};
     Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock;
+    std::function<void(std::uint16_t, std::span<const Render::Models::BoneTransform>,
+                       const Render::Models::ObjectTransform&, bool)>
+        onPose{};
+    // Publica las matrices del dibujo intermedio al buffer que presta el caller, sin avanzar el estado.
+    bool publishProjectedPose = false;
+    std::function<std::span<const Render::Models::BoneTransform>(std::uint16_t)> poseBones{};
 };
 
 // El cuerpo del jugador ordinario, su luz del terreno y el override del héroe, reutilizando
 // DrawCharacter; el rand de 0x50db57 separa cuerpo/tela y lo que cuelga. Lo aún no portado corta
-// con su dirección: monstruos, armas a espalda/en mano, alas/Helper02 y efectos especiales.
+// con su dirección: monstruos, armas equipadas a espalda/en mano, alas/Helper02 y efectos especiales.
+// Sin arma, fuera de la espalda, cierra +0x38e antes de cada mano aun si ambas están vacías.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch,
                                                                    const IModelLibrary& models, WorldState& world,
                                                                    const GameCharacterPass& pass);

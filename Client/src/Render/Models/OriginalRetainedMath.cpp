@@ -845,13 +845,15 @@ std::optional<double> SineCosineProductPC53(double sineArgument, double cosineAr
 {
     return PairProduct(sineArgument, false, cosineArgument, true);
 }
-std::optional<std::array<float, 3>> FaunaDirectionPC53(std::int32_t phase)
+namespace
+{
+std::optional<std::array<float, 4>> DirectionPC53(std::int32_t phase, float rate)
 {
     const auto wrapped = [](std::int32_t value, std::uint32_t add)
     { return std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(value) + add); };
-    const double x = static_cast<double>(.048f) * wrapped(phase, 55555U);
-    const double y = static_cast<double>(.0613f) * phase;
-    const double z = static_cast<double>(.1113f) * wrapped(phase, 11111U);
+    const double x = static_cast<double>(.048f * rate) * wrapped(phase, 55555U);
+    const double y = static_cast<double>(.0613f * rate) * phase;
+    const double z = static_cast<double>(.1113f * rate) * wrapped(phase, 11111U);
     const auto a = PairProduct(x, false, y, true);
     const auto b = PairProduct(x, false, y, false);
     const auto c = PairProduct(x, true, z, true);
@@ -871,8 +873,21 @@ std::optional<std::array<float, 3>> FaunaDirectionPC53(std::int32_t phase)
     const auto first = signedCos(z, spillB), second = signedCos(x, spillSine);
     if (!first || !second)
         return std::nullopt;
-    return std::array<float, 3>{static_cast<float>(*first - *second),
+    return std::array<float, 4>{static_cast<float>(*first - *second),
                                 static_cast<float>(*c + static_cast<double>(spillSine) * spillB),
-                                static_cast<float>(*a)};
+                                static_cast<float>(*a), spillSine};
 }
+} // namespace
+std::optional<std::array<float, 3>> FaunaDirectionPC53(std::int32_t phase)
+{
+    const auto direction = DirectionPC53(phase, 1);
+    if (!direction)
+        return std::nullopt;
+    return std::array<float, 3>{(*direction)[0], (*direction)[1], (*direction)[2]};
+}
+std::optional<std::array<float, 4>> JointDirectionPC53(std::int32_t phase)
+{
+    return DirectionPC53(phase, 0.5f);
+}
+
 } // namespace Client::Render::Models::Detail

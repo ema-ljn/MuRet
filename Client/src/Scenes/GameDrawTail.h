@@ -32,6 +32,7 @@ namespace Client::World
 {
 class Leaves;
 class FrameSprites;
+class ITerrainAttributeQuerySource;
 struct TerrainLighting;
 } // namespace Client::World
 namespace Client::Data::Terrain
@@ -44,6 +45,7 @@ struct TerrainHeights;
 namespace Client::Scenes
 {
 class IModelLibrary;
+struct ItemDrawContext;
 struct DrawnObject;
 struct FloorItemState
 {
@@ -79,6 +81,12 @@ struct FloorItemDrawContext
     std::function<Core::Expected<glm::ivec2, std::string>(const glm::vec3&)> project{};
     TailPoseObserver onPose{};
     TailMeshProvider posedMeshes{};
+    TailPoseObserver onSkin{};
+    std::span<const std::int32_t> randomTable{};
+    float worldClock = 0;
+    std::function<Core::Expected<float, std::string>(float, float)> waterHeight{};
+    std::uint8_t glowDetail = 4;
+    const ItemDrawContext* itemContext = nullptr;
 };
 
 struct JointState
@@ -112,6 +120,7 @@ struct JointState
     std::int32_t field9ec = 0;
     // D-C4: dos giros del último dibujo original; no forman parte del registro nativo.
     std::optional<std::array<float, 2>> icarusRotations{};
+    glm::vec3 pathIncrement{}; // +24;531851/5332fa guardan el delta de las cintas Helper07.
 };
 
 struct JointDrawResources
@@ -119,6 +128,7 @@ struct JointDrawResources
     Render::Models::CrtRandom& random;
     World::FrameSprites& sprites;
     bool originalFrame = true;
+    float worldClock = 0; // 53c8ee: ftol firmado, resto1000 y scroll de UV.
 };
 
 inline constexpr std::size_t RibbonPointCount = 30;
@@ -132,6 +142,9 @@ struct RibbonState
     glm::vec3 light{};
     std::array<glm::vec3, RibbonPointCount> first{};
     std::array<glm::vec3, RibbonPointCount> second{};
+    const void* ownerContext = nullptr; // 52e470 compara el dueño antes de buscar un lugar libre.
+    std::int32_t key = 0;               // +2f0; sólo discrimina cuando el pedido trae key>0.
+    std::int32_t life = 0;              // +8; 30 o15 al crear, no se renueva al reutilizar.
 };
 
 struct DamageNumberState
@@ -181,12 +194,20 @@ DrawDamage(Render::ModelBatch& batch, std::span<const DamageNumberState> damage,
 DrawGameModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::ModelEffect> effects,
                      const World::SphereFrustum& frustum, const World::TerrainLighting* lighting,
                      Core::Duration frameClock, float alpha, std::uint8_t mode = 0);
+struct GameObjectPass;
 struct ModelEffectDrawResources
 {
     const Data::Terrain::TerrainHeights& heights;
     float worldClock = 0;
     TailPoseObserver onPose{};
     TailMeshProvider posedMeshes{};
+    World::FrameSprites* sprites = nullptr;
+    World::TerrainLighting* dynamicLighting = nullptr;
+    World::ITerrainAttributeQuerySource* attributes = nullptr;
+    bool siegeActive = false;                    // 4294b0 lee7239ec; no es un test de mapa.
+    Render::Models::CrtRandom* random = nullptr; // 607b60 sólo sortea los casos que lo necesitan.
+    const ItemDrawContext* itemContext = nullptr;
+    const GameObjectPass* kalimaPass = nullptr;
 };
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::ModelEffect> effects,

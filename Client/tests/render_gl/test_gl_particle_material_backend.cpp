@@ -435,3 +435,26 @@ TEST_F(GlParticleMaterialBackendTest, SubtractiveFogErrorStillExecutesReachedSta
     EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
 }
 } // namespace
+
+TEST_F(GlParticleMaterialBackendTest, KalimaDepthTestOperationReachesRealGlWithoutGeometry)
+{
+    Client::Render::ModelBatch batch;
+    batch.Begin(Client::Tests::TestPass({64, 64}));
+    auto state = batch.State();
+    state.depthTest = false;
+    batch.ApplyState(state);
+    MaterialModels models;
+    Client::Render::ModelBatchParticleBackend backend(std::ref(batch), std::cref(models),
+                                                      Client::Render::ModelBatchParticleState::ForModelPass());
+    ASSERT_TRUE(backend.Type620850().HasValue());
+    auto renderer = Client::Render::Gl::GlModelRenderer::Create(Gl());
+    ASSERT_TRUE(renderer.HasValue());
+    Client::Render::Gl::TextureTable textures(Gl());
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
+    renderer.Value().Draw(batch, textures, log);
+    GLint enabled = 0;
+    Gl().getIntegerv(GL_DEPTH_TEST, &enabled);
+    EXPECT_EQ(enabled, GL_TRUE);
+    EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
+}

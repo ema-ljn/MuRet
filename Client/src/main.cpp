@@ -45,11 +45,13 @@
 #include "Render/Gl/GlFrameTarget.h"
 #include "Render/Gl/TextureTable.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/Animation.h"
 #include "Render/Text/FreeTypeRasterizer.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/CharacterSelectScene.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameModels.h"
+#include "Scenes/GameItemRenderState.h"
 #include "Scenes/GameScene.h"
 #include "Scenes/IScene.h"
 #include "Scenes/LoadingScene.h"
@@ -77,6 +79,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <ratio>
 #include <random>
 #include <string>
 #include <string_view>
@@ -502,7 +505,8 @@ Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const
             return std::make_unique<Scenes::WorldLoadingScene>(context);
         case Scenes::SceneId::Game:
             return std::make_unique<Scenes::GameScene>(
-                context, session, &models, data.items ? &data.items->table : nullptr, &models.TextureSlots());
+                context, session, &models, data.items ? &data.items->table : nullptr, &models.TextureSlots(),
+                data.gates ? &*data.gates : nullptr, data.skills ? &*data.skills : nullptr);
         }
         return nullptr;
     };
@@ -616,6 +620,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // duran hasta el cierre. La selección construye en los cinco primeros registros y escribe el mundo
     // en curso.
     Scenes::WorldState world;
+    // 4bada2..4bade0: la tabla global de ángulos se publica una vez con la CRT de WinMain.
+    Scenes::InitializeGameItemRenderState(world.Runtime().itemRender, clothWorld.random);
     // 0x4bafad..0x4bafdf: el pool empieza en cero y el héroe apunta al personaje 0.
     // La celda lógica y su lectura exacta se integran en CL7.P; no se sustituye por la celda visual.
     Client::World::GameCameraInput cameraInput;
@@ -633,7 +639,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
                                     .models = models,
                                     .items = scenes.data.items ? &scenes.data.items->table : nullptr,
                                     .itemSetTables = scenes.data.itemSets ? &*scenes.data.itemSets : nullptr,
-                                    .log = log});
+                                    .log = log,
+                                    .clock = &clock});
     std::optional<Online> online;
     if (startup.server)
     {
@@ -662,8 +669,16 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // La escena que dejó la red (el F1 02 con 1, 0x4c363f), una vez.
     const auto takeSceneOrder = [&world]() -> std::optional<Scenes::SceneId>
     { return std::exchange(world.Runtime().orderedScene, std::nullopt); };
+    Client::Render::Models::OriginalFrameCarry itemFrameCarry;
+    const auto beforeSceneFrame = [&world, &itemFrameCarry, &startup](Core::Duration now)
+    {
+        if (itemFrameCarry.FramesAt(now, Scenes::OriginalFramePaceOf(startup.config.pacing)) == 0)
+            return;
+        const float worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(now).count());
+        Scenes::UpdateGameItemGlowPulse(world.Runtime().itemRender, worldClock);
+    };
     Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, models, session), *frame.Value(), clock,
-                                 pollNetwork, log, takeSceneOrder);
+                                 pollNetwork, log, takeSceneOrder, beforeSceneFrame);
     if (!manager.Start(Scenes::FirstScene).HasValue())
     {
         return EXIT_FAILURE;
@@ -671,10 +686,10 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     App::GameLoop loop{clock, manager, startup.config.pacing, LoopMaxFps(startup.config, window, log)};
     TextInputFollower textInput(window, log);
     // Lo que corta el bucle además de la ventana y el --frames.
-    const auto stop = [&manager, &selection, session]
+    const auto stop = [&manager, &selection, &world, session]
     {
-        return manager.Failure().has_value() || selection.Failure().has_value() || manager.WantsToQuit() ||
-               GameServerOrderedTheQuit(session);
+        return world.Runtime().fatalDataMessage.has_value() || manager.Failure().has_value() ||
+               selection.Failure().has_value() || manager.WantsToQuit() || GameServerOrderedTheQuit(session);
     };
     const App::FrameStats stats = RunLoop(window, clock, loop, input, startup.commandLine, log, stop,
                                           [&textInput, &manager] { textInput.Follow(manager.WantsTextInput()); });
@@ -682,6 +697,15 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // orden del GameServer.
     textInput.Follow(false);
     PrintFrames(stats);
+    if (world.Runtime().fatalDataMessage)
+    {
+        // Q-C180: primero MessageBox, después WM_DESTROY. La ventana y las capas siguen vivas
+        // hasta que el modal vuelve; también se cierra si SDL no logró mostrarlo.
+        const auto shown = window.ShowErrorMessage(*world.Runtime().fatalDataMessage);
+        if (!shown.HasValue())
+            log.Error("{}", shown.Error());
+        return EXIT_FAILURE;
+    }
     if (manager.Failure())
     {
         // El manager ya registró el diagnóstico de Enter o de aplicación de la sesión.

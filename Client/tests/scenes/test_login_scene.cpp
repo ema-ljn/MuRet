@@ -413,7 +413,7 @@ TEST(LoginSceneTest, WithoutWorld56TheLoginStillDraws)
     for (const auto& line : tested.sink.lines)
     {
         warned =
-            warned || line.find("el login va sin el terreno: Data\\World56\\EncTerrain56.map") != std::string::npos;
+            warned || line.find("el login va sin el terreno: Data\\World56\\EncTerrain56.att") != std::string::npos;
     }
     EXPECT_TRUE(warned);
 }

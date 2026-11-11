@@ -680,7 +680,7 @@ TEST(CharacterStepTest, TheCastleSiegePanelAndAnUnloadedMapComeBeforeTheWalls)
     const auto inCastle = castle.Step(Everything);
     ASSERT_TRUE(inCastle.HasValue()) << ErrorOf(inCastle);
     ASSERT_TRUE(lorencia.Step(Everything).HasValue());
-    EXPECT_EQ(castle.world.Runtime().siegePanelKind, std::optional<std::uint8_t>{0});
+    EXPECT_EQ(castle.world.Runtime().siegePanelKind, std::optional<std::uint8_t>{std::uint8_t{0}});
     EXPECT_FALSE(lorencia.world.Runtime().siegePanelKind.has_value());
     EXPECT_EQ(castle.Cell(5, 5), lorencia.Cell(5, 5));
     EXPECT_EQ(castle.random.State(), lorencia.random.State());

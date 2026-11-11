@@ -211,7 +211,12 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
     (`0x4bafbc`..`0x4bafc2`, `0xF08` bytes en `[0x7681eb4]`) y deja `[0x7681eb0]` apuntando a él
     (`0x4bafc9`), y `0x4bee60` lee de ahí `+0x3c` (los bits del ajuste), `+0x4c` y `+0x58`. Hasta
     que llega el personaje, las dos velocidades salen en 0, sin ajuste. *Verificado*: el primer
-    keepalive de las 8 conexiones al GS lleva 0 y 0, y el byte 3 en 0.
+    keepalive de las 8 conexiones al GS lleva 0 y 0, y el byte 3 en 0. Con el personaje, `0x4bee60`
+    lee las tres del registro propio cada vez que arma uno, entre la apertura del registro
+    (`0x40b240`, `0x40b440`) y su cierre (`0x40b4d0`). MuRet las toma de
+    `WorldState::OwnCharacter()` antes de cada `Poll` de la sesión (`main.cpp`, desde 2026-11-11:
+    antes iban siempre en 0); el `rand()` del cierre del registro y el del relleno no los saca, como
+    los del `F3 03` y el `F3 10` (Q-C211).
 - **`F1 02`, la salida** (`0x4c2710`, desde `0x4e2d80`): el GS contesta `C1 05 F1 02
   <resultado>` como C3 (`GCCloseMsgSend`, `0x417280` en la reconstrucción del GS) cuando termina la
   cuenta de 5 s de `gObjCloseSet` (`CloseCount` en 6, solo con el jugador logueado). Con 0 cierra
@@ -236,6 +241,33 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   pone en 0 `0x724580` y `0x724584`. Qué hace el GS con él no está leído: MuRet lo llama
   `WindowClose` por eso, *inferido*. Los llaman también otros lugares de la interfaz (`0x44b5da`,
   `0x44b9ce`, `0x44c62e` y `0x658dfd` a `0x4499b0`), que MuRet no tiene.
+- **La suma del ejecutable (`03`)**, S->C y C->S (`0x4e2b10` → `0x4e16c0`; *estático*, ASM
+  c32bbd5f, y del lado del GS la reconstrucción del research del servidor). Al entrar al mundo
+  (`gObjSetCharacter`, con el `F3 03`) el GS manda `C1 06 03 00 <clave:2>` (`GCCheckMainExeKeySend`):
+  sortea una tabla de 0 a 1.023, la esconde en los bits 0..3 y 6..15 con seis bits de `rand()` en el
+  medio, la cifra con `0xB479` y anota la hora (`CheckSumTime`). **Si en tres segundos no llega la
+  respuesta, `gObjSecondProc` cierra la conexión** (`GetTickCount() − CheckSumTime > 3000`, mirado una
+  vez por segundo): el cliente entra al mundo y a los 3 o 4 s el GS lo corta. El cliente, sin guarda
+  de escena ni del cifrado:
+  1. lee la clave de `pkt[4..5]` sin mirar el tamaño (`0x4e1846`) y saca la tabla (`0x4ad3d0`:
+     `c = (k ^ 0xB479) & 0xFFFF`, tabla `= ((c >> 6) ^ c) & 0xF ^ (c >> 6)`);
+  2. pide la línea de comandos (`GetCommandLineA`, `0x4ad4d6`) y saca el nombre del ejecutable
+     (`0x4ad270`): lo que sigue a la última barra invertida de **toda** la línea, cortado en el primer
+     espacio, comilla, barra o barra invertida;
+  3. prueba abrir ese nombre, relativo a la carpeta actual, **para escribir** (`0x4ad51b`). Si puede,
+     arma otro paquete, con un `F1` (la protección, fuera de alcance); un ejecutable en uso no se
+     abre así en Windows. Si no, lo abre para leer (`0x4aec13`), lo lee entero y lo suma (`0x4ad400`):
+     sin abrirlo, la suma es 0 (`0x4aec28`);
+  4. `0x4ad400(imagen, tamaño, tabla)`: `s = tabla << 9` y, de a cuatro bytes mientras el offset no
+     pase de tamaño − 4 (sin signo), con `w` el u32 y `q` su índice: según `(tabla + q) % 3`,
+     `s ^= w`, `s += w` o `s = (s << (w % 11)) ^ w`; y siempre `s ^= (s + tabla) >> ((q & 15) + 3)`;
+  5. contesta `C1 08 03 00 <suma:4>` con el XOR32 y como C3 (en la PCAP, el `03` del cliente va en C3,
+     [Una sesión real de juego](#una-sesión-real-de-juego-2026-10-30)).
+
+  El GS (`CGCheckMainRecv`) sólo compara la suma con sus `CheckSum*.dat` si el cliente viene de
+  `218.234.76.33`; desde cualquier otra dirección acepta lo que llegue y pone `CheckSumTime` en 0. En
+  MuRet: `Protocol::Connection::MainCheck` y `ServerSession::OnMainCheck`, con el nombre que
+  `main.cpp` saca de `argv` unido con espacios (Q-C319).
 - **Selección de personaje (`F3`)**: `0x4e2f93` es un sub-dispatcher de hasta 0x40 casos. En el
   cable: `F3 00` (pedir lista, sin cuerpo), `F3 03` con el nombre de 10 bytes (elegir), `F3 06`,
   `F3 12`. Los subcódigos 0 a 3, campo por campo, están abajo, en

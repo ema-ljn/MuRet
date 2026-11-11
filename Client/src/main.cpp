@@ -42,6 +42,7 @@
 #include "Platform/SystemFonts.h"
 #include "Platform/Window.h"
 #include "Platform/WindowEvents.h"
+#include "Protocol/Connection/MainCheck.h"
 #include "Render/Gl/GlFrameTarget.h"
 #include "Render/Gl/TextureTable.h"
 #include "Render/Models/Cloth.h"
@@ -56,6 +57,7 @@
 #include "Scenes/IScene.h"
 #include "Scenes/LoadingScene.h"
 #include "Scenes/LoginScene.h"
+#include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneManager.h"
@@ -151,6 +153,8 @@ struct ServerStartup
     // Solo con --auto-login: sin él, las teclea el jugador en la ventana de la cuenta.
     std::optional<App::Credentials> credentials;
     Network::ConnectionKeys keys;
+    // El ejecutable que suma la respuesta al 03 del GS (ServerSession::OnMainCheck).
+    std::filesystem::path mainCheckFile;
 };
 
 // Lo que sale de la fase 1.
@@ -207,6 +211,18 @@ std::optional<Startup> ReadStartup(int argc, char* argv[], Core::Log& log)
     {
         arguments.emplace_back(argv[i]);
     }
+    // La línea de comandos que 0x4ad4a0 pide con GetCommandLineA para sumar su ejecutable: argv[0] y
+    // los argumentos separados por un espacio. 0x4ad270 corta el nombre en el primer espacio o
+    // comilla, así que las comillas que GetCommandLineA conserva no cambian el resultado.
+    std::string rawCommandLine;
+    for (int i = 0; i < argc; ++i)
+    {
+        if (i > 0)
+        {
+            rawCommandLine += ' ';
+        }
+        rawCommandLine += argv[i];
+    }
     auto commandLine = App::ParseCommandLine(arguments);
     if (!commandLine.HasValue())
     {
@@ -227,6 +243,7 @@ std::optional<Startup> ReadStartup(int argc, char* argv[], Core::Log& log)
         {
             return std::nullopt;
         }
+        server->mainCheckFile = Protocol::Connection::MainCheckFileName(rawCommandLine);
     }
     return Startup{.folder = folder,
                    .commandLine = std::move(commandLine).Value(),
@@ -331,7 +348,8 @@ struct Online
     Online(const ServerStartup& server, App::ObfuscationMode obfuscation, Core::IClock& clock, Core::Log& log,
            App::ISessionEventSink& eventSink)
         : connection(socket, ChooseObfuscation(obfuscation, foxAnti), clock, log, std::random_device{}()),
-          session(connection, clock, log, server.keys, App::SessionSettings{.connectServer = server.connectServer},
+          session(connection, clock, log, server.keys,
+                  App::SessionSettings{.connectServer = server.connectServer, .mainCheckFile = server.mainCheckFile},
                   eventSink)
     {
         if (server.credentials)
@@ -664,8 +682,19 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     {
         log.Warning("{}", hidden.Error());
     }
-    const auto pollNetwork = [&online]() -> Core::Expected<void, std::string>
-    { return online ? online->Poll() : Core::Expected<void, std::string>{}; };
+    // 0x4bee60 lee las velocidades del keepalive del personaje propio ([0x7681eb0]: +0x3c, +0x4c y
+    // +0x58) cada vez que lo arma: la sesión las toma del registro antes de cada Poll.
+    const auto pollNetwork = [&online, &world]() -> Core::Expected<void, std::string>
+    {
+        if (!online)
+        {
+            return {};
+        }
+        const Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+        online->session.SetKeepaliveSpeeds(App::KeepaliveSpeeds{
+            .attackSpeed = own.attackSpeed, .magicSpeed = own.magicSpeed, .characterFlags = own.speedAdjustBits});
+        return online->Poll();
+    };
     // La escena que dejó la red (el F1 02 con 1, 0x4c363f), una vez.
     const auto takeSceneOrder = [&world]() -> std::optional<Scenes::SceneId>
     { return std::exchange(world.Runtime().orderedScene, std::nullopt); };

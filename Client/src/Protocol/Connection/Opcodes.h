@@ -26,6 +26,9 @@ inline constexpr std::uint8_t LoginSubcode = 0x01;        // el login y su respu
 inline constexpr std::uint8_t LogoutSubcode = 0x02;       // la salida: el pedido del cliente y la respuesta
 inline constexpr std::uint8_t DecryptErrorSubcode = 0x03; // el aviso de un C3/C4 que no se descifró
 
+// 03: la suma del ejecutable, sin subcódigo. El GS manda la clave y el cliente la suma (MainCheck.h).
+inline constexpr std::uint8_t MainCheckOpcode = 0x03;
+
 // 0E: el keepalive, sin subcódigo.
 inline constexpr std::uint8_t KeepaliveOpcode = 0x0E;
 

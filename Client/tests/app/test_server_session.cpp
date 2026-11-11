@@ -56,6 +56,7 @@
 #include "support/RecordingSink.h"
 #include "support/SameBytes.h"
 #include "support/SessionPackets.h"
+#include "support/TemporaryFolder.h"
 #include "support/TestGameServer.h"
 
 #include <gtest/gtest.h>
@@ -65,8 +66,11 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <format>
+#include <fstream>
 #include <initializer_list>
+#include <ios>
 #include <memory>
 #include <optional>
 #include <span>
@@ -2392,6 +2396,88 @@ TEST(ServerSessionTest, AClearOneChangesNothing)
     EXPECT_EQ(tested.Warnings(),
               (Lines{"[warning] la orden de volver a la selección (F1 02 con 1) no llegó cifrada: se le avisa al "
                      "GameServer (F1 03) y se sigue igual"}));
+}
+
+// La clave del 03, como la manda el GS (GCCheckMainExeKeySend): C1 06 03, un relleno y la clave.
+std::vector<std::byte> MainCheckKey(std::uint16_t key)
+{
+    return Bytes({0xC1, 0x06, 0x03, 0x00, static_cast<int>(key & 0xFFU), static_cast<int>(key >> 8U)});
+}
+
+// La clave de la tabla 0 con el rand() en 0 (EncryptCheckSumKey del GS).
+constexpr std::uint16_t TableZeroKey = 0xB479;
+
+// 0x4e16c0: al 03 del GS contesta en el mismo Poll con la suma del archivo que nombra la línea de
+// comandos, como C3 (si no, el GS cierra a los 3 s). Con 23 bytes de 0x10 en adelante y la tabla 0, la
+// suma de MainCheckTest.
+TEST(ServerSessionTest, TheMainCheckIsAnsweredWithTheSumOfTheExecutable)
+{
+    Client::Tests::TemporaryFolder folder("main-check");
+    const std::filesystem::path executable = folder.Path() / "Main.exe";
+    {
+        std::ofstream file(executable, std::ios::binary);
+        for (int value = 0x10; value < 0x10 + 23; ++value)
+            file.put(static_cast<char>(value));
+    }
+    SessionSettings settings = Settings();
+    settings.mainCheckFile = executable;
+    Harness tested(IdentityObfuscation::Shared(), settings);
+    ASSERT_NO_FATAL_FAILURE(ReachInWorld(tested));
+    const std::size_t sentBefore = tested.GameServerReads().packets.size();
+    const std::size_t encryptedBefore = tested.GameServerReads().serials.size();
+
+    tested.socket.reads = {FromTheGameServer(MainCheckKey(TableZeroKey), tested.gameServerSends)};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+
+    EXPECT_EQ(tested.session.State(), SessionState::InWorld);
+    const GameServerReceived received = tested.GameServerReads();
+    ASSERT_EQ(received.packets.size(), sentBefore + 1);
+    EXPECT_TRUE(SameBytes(Xor32Decode(received.packets.back()).Bytes(),
+                          Bytes({0xC1, 0x08, 0x03, 0x00, 0x65, 0x74, 0x38, 0xA5})));
+    EXPECT_EQ(received.serials.size(), encryptedBefore + 1);
+    EXPECT_TRUE(tested.Warnings().empty());
+    EXPECT_TRUE(tested.Logged(LogLevel::Info, "se contestó la suma del ejecutable (03)"));
+}
+
+// Sin el archivo (0x4aec28, el CreateFileA que falla) la suma va en 0, y también en claro desde el GS:
+// el dispatcher no mira el cifrado. Una carpeta tampoco se abre.
+TEST(ServerSessionTest, WithoutTheExecutableTheMainCheckSumIsZero)
+{
+    Client::Tests::TemporaryFolder folder("main-check-missing");
+    for (const std::filesystem::path& missing : {folder.Path() / "Main.exe", folder.Path()})
+    {
+        SCOPED_TRACE(missing.string());
+        SessionSettings settings = Settings();
+        settings.mainCheckFile = missing;
+        Harness tested(IdentityObfuscation::Shared(), settings);
+        ASSERT_NO_FATAL_FAILURE(ReachInWorld(tested));
+        const std::size_t sentBefore = tested.GameServerReads().packets.size();
+
+        tested.socket.reads = {MainCheckKey(TableZeroKey)};
+        ASSERT_TRUE(tested.session.Poll().HasValue());
+
+        const GameServerReceived received = tested.GameServerReads();
+        ASSERT_EQ(received.packets.size(), sentBefore + 1);
+        EXPECT_TRUE(SameBytes(Xor32Decode(received.packets.back()).Bytes(),
+                              Bytes({0xC1, 0x08, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00})));
+        ASSERT_EQ(tested.Warnings().size(), 1U);
+        EXPECT_NE(tested.Warnings().front().find("la suma del ejecutable (03) va en 0"), std::string::npos);
+    }
+}
+
+// Un 03 sin la clave se ignora con un aviso y no contesta.
+TEST(ServerSessionTest, AMainCheckWithoutItsKeyIsIgnored)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(ReachInWorld(tested));
+    const std::size_t sentBefore = tested.GameServerReads().packets.size();
+
+    tested.socket.reads = {Bytes({0xC1, 0x05, 0x03, 0x00, 0x79})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+
+    EXPECT_EQ(tested.GameServerReads().packets.size(), sentBefore);
+    EXPECT_EQ(tested.Warnings(),
+              (Lines{"[warning] se ignora la clave de la suma del ejecutable (03): no se puede leer"}));
 }
 
 // El 1 no mira el estado: también con el login recién aceptado, como el original, que no mira la escena.

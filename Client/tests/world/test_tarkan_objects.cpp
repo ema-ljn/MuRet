@@ -205,7 +205,8 @@ TEST(TarkanObjectsTest, TheHiddenTheWhiteAndTheRest)
     EXPECT_EQ(plain.light, Object(0x51).light);
 }
 
-// Un reloj que ftol no tiene acreditado corta con la dirección de su ftol; NaN da 0.
+// Un reloj que ftol no tiene acreditado corta con la dirección de su ftol; NaN da 0. El 4 y el 7 hacen antes el
+// fsin (0x6056c8 y 0x605755), que con ese reloj sale del perfil PC53 y corta primero.
 TEST(TarkanObjectsTest, AnUnreadClockCutsAtItsFtol)
 {
     struct Case
@@ -213,9 +214,10 @@ TEST(TarkanObjectsTest, AnUnreadClockCutsAtItsFtol)
         std::int16_t type;
         const char* address;
     };
-    for (const Case& c : {Case{2, "0x605690"}, Case{4, "0x6056df"}, Case{0xb, "0x605792"}, Case{0xc, "0x6057bd"},
-                          Case{0xd, "0x60580c"}, Case{0x3d, "0x60583e"}, Case{0x41, "0x605862"}, Case{0x48, "0x6058ca"},
-                          Case{0x49, "0x6058f5"}, Case{0x4b, "0x605920"}, Case{0x4f, "0x60594b"}})
+    for (const Case& c :
+         {Case{2, "0x605690"}, Case{4, "0x6056c8"}, Case{7, "0x605755"}, Case{0xb, "0x605792"}, Case{0xc, "0x6057bd"},
+          Case{0xd, "0x60580c"}, Case{0x3d, "0x60583e"}, Case{0x41, "0x605862"}, Case{0x48, "0x6058ca"},
+          Case{0x49, "0x6058f5"}, Case{0x4b, "0x605920"}, Case{0x4f, "0x60594b"}})
     {
         SCOPED_TRACE(c.type);
         auto lighting = std::make_unique<TerrainLighting>();

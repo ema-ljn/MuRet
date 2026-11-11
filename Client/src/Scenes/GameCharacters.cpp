@@ -17,6 +17,7 @@
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FullSetScan.h"
+#include "Scenes/GameCharacterEffects.h"
 #include "Scenes/GameHanging.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
@@ -232,32 +233,13 @@ Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const I
     return {};
 }
 
-Core::Expected<void, std::string> CheckTheEffects(const ActorState& actor, const FullSetScan& scan)
-{
-    if ((actor.characterClass & 7u) == 0 && (actor.skin & 0xf8u) == 8u)
-        return Core::Unexpected<std::string>("0x50ea55: los sprites de la piel especial del mago no están portados");
-    if (actor.animation.action == 0x94 || actor.animation.action == 0x51 || actor.animation.action == 0x5b)
-        return Core::Unexpected<std::string>("0x50f83e: los efectos de la acción del personaje no están portados");
-    if (actor.flags78 != 0)
-        return Core::Unexpected<std::string>(
-            "0x50fba4: los efectos de las banderas +0x78 del personaje no están portados");
-    if (actor.byte358 != 0)
-        return Core::Unexpected<std::string>(
-            "0x50fd74: el contador y el efecto de +0x358 del personaje no están portados");
-    if (scan.complete)
-        return Core::Unexpected<std::string>(
-            "0x50fddb: los efectos del conjunto completo de 0x505820 no están portados");
-    if (actor.darkSpirit.has_value())
-        return Core::Unexpected<std::string>("0x420df0: el cuervo del personaje del juego no está portado");
-    return {};
-}
-
-// 0x50db57..0x50e9fa sobre el cuerpo ya posado. Entre frames del original, sobre una copia del personaje
-// y del rand(): lo que cuelga queda como lo dejó el último frame.
-Core::Expected<void, std::string> HangTheItems(Render::ModelBatch& batch, const IModelLibrary& models,
-                                               ActorState& actor, const DrawnCharacter& character,
-                                               const GameCharacterPass& pass, std::int32_t map,
-                                               std::uint8_t heroByte1a1, bool originalFrame)
+// 0x50db57..0x510ac2 sobre el cuerpo ya posado: lo que cuelga, los efectos y el cuervo. Entre frames del
+// original, sobre una copia del personaje y del rand(): lo que cuelga y los contadores quedan como los dejó
+// el último frame.
+Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,
+                                              ActorState& actor, const DrawnCharacter& character,
+                                              const GameCharacterPass& pass, const FullSetScan& scan,
+                                              bool originalFrame)
 {
     const std::vector<Render::Models::BoneTransform> body = PoseCharacterBody(models, character);
     // 0x509340 posa en los huesos propios (+0x120), que lee el paso siguiente (0x506d25, la burbuja de Atlans).
@@ -265,24 +247,53 @@ Core::Expected<void, std::string> HangTheItems(Render::ModelBatch& batch, const 
         actor.bodyPose = body;
     std::optional<ActorState> projectedActor;
     std::optional<Render::Models::CrtRandom> projectedRandom;
-    ActorState& hanging = originalFrame ? actor : projectedActor.emplace(actor);
+    ActorState& drawn = originalFrame ? actor : projectedActor.emplace(actor);
     Render::Models::CrtRandom& random =
         originalFrame ? pass.clothWorld->random : projectedRandom.emplace(pass.clothWorld->random);
-    const GameHangingPass hangingPass{
-        .batch = batch,
-        .models = models,
-        .body = body,
-        .random = random,
-        .carry = pass.poseCarry,
-        .sprites = pass.sprites,
-        .itemContext = pass.itemContext,
-        .frameClock = pass.frameClock,
-        .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(pass.frameClock).count()),
-        .map = map,
-        .heroByte1a1 = heroByte1a1,
-        .logicSteps = pass.clothWorld->logicSteps,
-        .originalFrame = originalFrame};
-    return DrawGameHanging(hanging, hangingPass);
+    const std::int32_t map = world.Runtime().map;
+    const std::uint8_t heroByte1a1 = world.Actors()[world.Runtime().hero].byte1a1;
+    const float worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(pass.frameClock).count());
+    const GameHangingPass hangingPass{.batch = batch,
+                                      .models = models,
+                                      .body = body,
+                                      .random = random,
+                                      .carry = pass.poseCarry,
+                                      .sprites = pass.sprites,
+                                      .itemContext = pass.itemContext,
+                                      .frameClock = pass.frameClock,
+                                      .worldClock = worldClock,
+                                      .map = map,
+                                      .heroByte1a1 = heroByte1a1,
+                                      .logicSteps = pass.clothWorld->logicSteps,
+                                      .originalFrame = originalFrame};
+    if (auto hung = DrawGameHanging(drawn, hangingPass); !hung.HasValue())
+        return hung;
+    const GameCharacterEffectsPass effectsPass{.body = body,
+                                               .random = random,
+                                               .sprites = pass.sprites,
+                                               .scan = scan,
+                                               .worldClock = worldClock,
+                                               .map = map,
+                                               .logicSteps = pass.clothWorld->logicSteps,
+                                               .originalFrame = originalFrame};
+    if (auto effects = DrawGameCharacterEffects(drawn, effectsPass); !effects.HasValue())
+        return effects;
+    // 0x510abd: 0x420df0, el cuervo.
+    if (!drawn.darkSpirit)
+        return {};
+    if (pass.polygon == nullptr)
+        return Core::Unexpected<std::string>("0x418320: falta el trapecio del dibujo para el cuervo");
+    return DrawGameRaven(drawn, GameRavenPass{.batch = batch,
+                                              .models = models,
+                                              .polygon = *pass.polygon,
+                                              .lighting = pass.dynamicLighting,
+                                              .terrain = world.Map().terrain,
+                                              .fixedHeight = pass.fixedHeight,
+                                              .carry = pass.poseCarry,
+                                              .frameClock = pass.frameClock,
+                                              .map = map,
+                                              .heroByte1a1 = heroByte1a1,
+                                              .originalFrame = originalFrame});
 }
 
 Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,
@@ -314,11 +325,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
         return supported;
     // 0x50db94: la luz de lo que cuelga (+0x3b4), la del terreno o el rojo de los PK.
     actor.drawnLight = actor.pk >= RedPk ? glm::vec3{1.0f, 0.1f, 0.1f} : terrainLight.Value() + actor.light;
-    if (auto hung = HangTheItems(batch, models, actor, character, pass, map,
-                                 world.Actors()[world.Runtime().hero].byte1a1, originalFrame);
-        !hung.HasValue())
-        return hung;
-    return CheckTheEffects(actor, scan);
+    return DrawTheTail(batch, models, world, actor, character, pass, scan, originalFrame);
 }
 
 Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,

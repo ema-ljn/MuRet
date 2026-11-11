@@ -1719,7 +1719,7 @@ void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const
 }
 
 void DrawDarkSpirit(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& spirit,
-                    float groundHeight, Core::Duration frameClock)
+                    float groundHeight, Core::Duration frameClock, std::int32_t map)
 {
     std::vector<Render::Models::SkinnedMesh> skinned;
     const std::vector<MeshDraw> draws = ObjectMeshDraws(models, spirit, frameClock, skinned);
@@ -1730,6 +1730,14 @@ void DrawDarkSpirit(Render::ModelBatch& batch, const IModelLibrary& models, cons
             DrawBase(batch, *draw);
         }
     }
+    // 0x6009a9..0x6009c3: en los mapas 10, 24 a 29 y 36 no hay sombra; 0x6009d8: en el 7, con alpha 0,2.
+    const bool kalima =
+        (map >= DarkHorseFirstKalimaMap && map <= DarkHorseLastKalimaMap) || map == DarkHorseSeventhKalimaMap;
+    if (map == DarkHorseNoShadowMap || kalima)
+        return;
+    Render::Color shadowColor = DarkSpiritShadowColor;
+    if (map == DarkHorseFaintShadowMap)
+        shadowColor.alpha = DarkHorseShadowAlphaOfMapSeven;
     // 0x600a0b: 0x4eff40 aplasta desde (x, y, la altura del terreno ahí), que le escribe a +0x6c..+0x74.
     const glm::vec3 ground(spirit.transform.position.x, spirit.transform.position.y, groundHeight);
     for (const MeshDraw& draw : draws)
@@ -1741,7 +1749,7 @@ void DrawDarkSpirit(Render::ModelBatch& batch, const IModelLibrary& models, cons
         }
         MeshDraw shadow = draw;
         shadow.skinned = &flat;
-        Triangles(batch, shadow, BlendedShadowState, DarkSpiritShadowColor, PassUv{});
+        Triangles(batch, shadow, BlendedShadowState, shadowColor, PassUv{});
     }
 }
 

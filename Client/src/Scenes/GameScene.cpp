@@ -866,7 +866,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     if (auto birds = DrawTheBirds(canvas, polygon, frames); !birds.HasValue())
         return birds;
     // 0x6374dd: 0x510d00, los personajes, y al final 0x42da60 con el TerrainWall.
-    if (auto characters = DrawTheCharacters(canvas, frames); !characters.HasValue())
+    if (auto characters = DrawTheCharacters(canvas, polygon, frames); !characters.HasValue())
     {
         return Core::Unexpected(characters.Error() + ", en el " + MapText(map));
     }
@@ -875,7 +875,8 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     return DrawTheTail(canvas, pass, polygon, frames);
 }
 
-Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canvas, int frames)
+Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canvas,
+                                                               const World::TerrainPolygon& polygon, int frames)
 {
     WorldState& world = *m_context.world;
     if (m_models == nullptr)
@@ -909,7 +910,9 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                           .publishProjectedPose = true,
                           .poseBones = [&](std::uint16_t)
                           { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); },
-                          .worldModels = m_worldModelsMap ? &m_worldModels : nullptr});
+                          .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
+                          .polygon = &polygon,
+                          .fixedHeight = CameraState().fixedHeight});
     if (poseFailure)
         return Core::Unexpected(*poseFailure);
     return drawn;

@@ -1674,6 +1674,9 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
   la velocidad en 3 y el estado en 0), las mallas 3 y 2 con la luz del terreno más 0,5 y la luz por
   vértice, y la sombra de las cinco sobre la altura del terreno bajo el cuervo. Entre dos pasos se dibuja
   con la posición de un paso más (D-C4), y la pose que le queda a la chispa es la del estado del paso.
+  En el juego, desde 2026-11-11, `Scenes::DrawGameRaven` al final de cada jugador (ver
+  [los efectos del jugador](#los-efectos-del-jugador)): con la luz del buffer dinámico, sin interpolar
+  entre pasos (como el personaje), con las reglas de la sombra por mapa y el alpha de Chaos Castle.
   Las 12 `rand()` del constructor salen de la CRT de la tela al entrar. Antes del primer dibujo la chispa
   sale de su posición (Q-C133). El grito lee `0x7d3a0f0` crudo, que sin un acceso abierto es la basura
   cifrada del contador (Q-C125): MuRet le pasa los pasos de la tela, y no suena (no hay sonido): el paso
@@ -4897,6 +4900,60 @@ avanzar. Cortan con su dirección: el joint de `0x223` (`0x50ec26`), el de `0x22
 mano (hueso 33), las saetas, Helper02, los sprites de `0x21d` y `0xc19`, la luz por nivel, MuSign en el
 hueso 20 con sus dos pases, las cuentas de `rand()` y los cortes; `WorldEntryTest` ve la capa en el héroe
 del cable (CtlCode `0x20`) en Lorencia.
+
+### Los efectos del jugador
+
+**Estático**, `0x50ea20..0x510ab6` y `0x420df0` (2026-11-11). Después de lo que cuelga,
+`Scenes::DrawGameCharacterEffects` corre el caso del `0x20a` del switch de `0x50e9fa` (el índice 10 de la
+tabla de `0x510b80`) en el orden del ASM, y `Scenes::DrawGameRaven` el cuervo. Sobre la misma copia del
+personaje y del `rand()` que lo que cuelga entre frames; lo que nace en las tablas durables, sólo en un
+frame del original:
+
+- **El corrimiento.** `[ebp−0x50]` arranca en 0 (`0x50ea23`) y es el corrimiento de cada `0x4ec110` de la
+  cola: la piel especial lo deja en (−4, 11, 0) para las manos de después (Q-C350), y las partículas de
+  las botas lo pisan.
+- **La piel especial del mago** (`0x50ea38`): con `+0x1d4 & 7` en 0, `+0x1d5 & 0xf8` en 8 y sin
+  `+0x78 & 0x4000`, Spark03 (`0x5c6`) de 0,6 y Shiny02 (`0x5fd`) de `sin(T · 0,001f) · 0,4f` en el
+  hueso 19, con luz 1 y sin `rand()`. La piel sólo la escribe la lista de la selección (`0x517270`); el
+  F3 03 la deja en 0.
+- **Las acciones** `0x94`, `0x51` y `0x5b` (`0x50f828`), que sólo escriben los paquetes (`0x4cc530`,
+  `0x4ce000`): fuera de la clase 4, la `0x94` sin `+0x78 & 0x4000` pone tres lightning2 (`0x5d5`) en el
+  hueso de la mano derecha (`+0x2bd`), con s = frame · 0,1f: s · 0,3f con (0,1; 0,1; 1), s con la luz
+  propia y −ftol(T) · 0,1f de giro, y s · 2,5 con ftol(T) · 0,1f. La clase 4, la `0x51` y la `0x5b` tienen
+  ventanas: en [1,2f; 1,6f) el efecto `621/2` y el sonido `0x1cc` (corta en `0x50f9b3`); por debajo de 2,
+  con el grupo (`0x78aba48`, CL9, 0 en MuRet), `0x59e680` y los joints `0x618`; en [7, 8), dos `117/2` en
+  la mano derecha (corta en `0x50fb64`).
+- **Las banderas** `+0x78 & 4` o `0x2000000`, sin `0x4000` (`0x50fba4`): un `rand() % 30` por mano, los
+  sprites con ese color y los cinco joints `10f/4` si no hay uno. `+0x78` sólo lo escriben los paquetes:
+  corta en `0x50fbd5` con esa condición.
+- **Chaos Castle** (`0x50fd61`): en los mapas 18 a 23 salta al final, sin el contador ni el conjunto.
+- **El contador** (`0x50fd74`): con `+0x358` (el conjunto antiguo de `0x40d010`), `+0x35c` cuenta cada
+  dibujo; con la acción por debajo de `0xd` y 100 o más, el efecto `5ac/3` en el personaje con
+  (0,2; 0,7; 0,9) y el contador en 0 (Q-C353). El efecto no está portado: corta en `0x50fdc3`.
+- **El conjunto completo** (`0x50fddb`, lo que devolvió `0x505820`): el color de `0x608e00` con las botas
+  (`+0x298`) y el alpha por 0,5, con un `fstp` por componente; sin `0x4000`, flare01 (`0x5ac`) de 1,3 en
+  los huesos b, b − 6 y b − 7 de cada mano. Con el nivel de `[0x743a178]` por encima de 9: las botas de
+  `0x182f` a `0x1833` cambian la luz propia por la suya y sacan, por nivel, `rand() & 3`, `rand() % 3`,
+  `rand() & 1` o nada (13) para tres partículas `6f1/3` en (0, ∓18 o ∓20, 50) y (0, 0, 70) del hueso 0
+  (cortan en `0x510158`, `0x51008d` y `0x51020c`). Después, con `rand() % 20` en 0 y la luz en 1: el 10, la
+  partícula `60f/0` de 0,19f; el 11, con `rand() & 7` la partícula y si no el joint `60f/0`; el 12, con los
+  pasos múltiplos de 6 dos joints `60f/0x12` y si no, de 3, la partícula; el 13, los joints con 6 y con 4
+  la partícula y el joint `610/7`. El 14 y el 15, nada (Q-C351). Cada creación corta con su dirección
+  (`0x510339`, `0x51037c`, `0x5103be`, `0x510435` y `0x51048b`), después de sus `rand()`.
+- **El efecto de `+0x369`** (`0x510a7a`, `0x510ef0`): en la escena 5, con `+0x88` en 1 y fuera de los
+  mapas 11 a 23 y 30, con `+0x369` en 1 el efecto `0x140` cada 5000 ms de `+0x36c` (Q-C352). `+0x369` es de
+  los paquetes (`0x4d9260`): corta en `0x510f4d`.
+- **El cuervo** (`0x510abd`, `0x420df0` → `0x4182f0`): sin pasar el trapecio, MissTheView. Si lo pasa,
+  `0x5ffdf0` (el alpha de Chaos Castle con `+0x1a1` del héroe y, por encima de 0,01, la pose con la luz
+  del buffer dinámico) y `0x6002e0`: las mallas 3 y 2 y la sombra sobre la altura de `0x5f93c0`, que no
+  va en los mapas 10, 24 a 29 y 36 y va con alpha 0,2 en el 7 (`0x6009a9..0x6009e5`). Con `+0x78 & 0x4000`
+  del dueño, `0x4182f0` recibe 10 y `0x6002e0` corta en `0x60033c`; `0x418920` corta en los estados 5 y 6
+  (`0x418957`, las órdenes del A7). Se dibuja como lo dejó el paso, igual que el personaje, y en un frame
+  del original guarda la pose para la chispa.
+
+`GameCharacterEffectsTest` y `GameRavenTest` cubren cada rama con sus sprites, sus `rand()` (CRT con la
+semilla 1) y sus cortes; `GameCharacterRenderTest` y `UnarmedGameCharacterTest`, que la cola no corta sin
+las ramas.
 
 ### Los objetos del juego
 

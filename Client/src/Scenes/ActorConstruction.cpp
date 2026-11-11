@@ -154,6 +154,8 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     // 0x511c99, en el mismo bloque que el PK y la escala: el +0x358 que después escribe 0x40d010 en el
     // héroe publicado.
     actor.byte358 = 0;
+    // 0x511ca0: +0x35c, con el ESI en 0 de 0x511c36.
+    actor.counter35c = 0;
     actor.level = 0;
     actor.guildStatus = 0xff;
     actor.light = {};

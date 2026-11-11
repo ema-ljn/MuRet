@@ -145,7 +145,8 @@ private:
     [[nodiscard]] Core::Expected<void, std::string> DrawTheWorldPass(SceneCanvas& canvas, const Render::Pass3D& pass,
                                                                      const World::TerrainPolygon& polygon, int frames);
 
-    [[nodiscard]] Core::Expected<void, std::string> DrawTheCharacters(SceneCanvas& canvas, int frames);
+    [[nodiscard]] Core::Expected<void, std::string> DrawTheCharacters(SceneCanvas& canvas,
+                                                                      const World::TerrainPolygon& polygon, int frames);
     [[nodiscard]] Core::Expected<void, std::string> DrawTheBirds(SceneCanvas& canvas,
                                                                  const World::TerrainPolygon& polygon, int frames);
     [[nodiscard]] Core::Expected<void, std::string> DrawTheTail(SceneCanvas& canvas, const Render::Pass3D& pass,

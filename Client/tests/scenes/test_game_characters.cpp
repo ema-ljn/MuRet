@@ -365,16 +365,17 @@ TEST_F(UnarmedGameCharacterTest, TheUnportedPeriodicStatusEffectStopsBeforeTheHa
         const char* cut;
         std::uint32_t random;
     };
-    // 50e060 omite la espalda; 50e06b..50e0ba elige el efecto antes del primer acceso a +38e.
+    // 50e060 omite la espalda; 50e06b..50e0ba elige el efecto antes del primer acceso a +38e. Sin el
+    // efecto, +0x78 en 0x800 o 0x4800 no tiene ni 4 ni 0x2000000: 0x50fba4 no corre y el dibujo termina.
     constexpr std::array cases{
         Case{30, 1, 0x800, "0x50e0c0", 0x0029e2c0},
-        Case{31, 1, 0x800, "0x50fba4", 0x18be873a},
-        Case{30, 0, 0x800, "0x50fba4", 0x18be873a},
-        Case{30, 1, 0x4800, "0x50fba4", 0x18be873a},
+        Case{31, 1, 0x800, nullptr, 0x18be873a},
+        Case{30, 0, 0x800, nullptr, 0x18be873a},
+        Case{30, 1, 0x4800, nullptr, 0x18be873a},
     };
     for (const Case& probe : cases)
     {
-        SCOPED_TRACE(probe.cut);
+        SCOPED_TRACE(testing::Message() << probe.counter << ' ' << int{probe.byte88} << ' ' << probe.flags);
         m_cloth.logicSteps = probe.counter;
         m_cloth.random = Client::Render::Models::CrtRandom(1);
         Actor().byte88 = probe.byte88;
@@ -383,11 +384,21 @@ TEST_F(UnarmedGameCharacterTest, TheUnportedPeriodicStatusEffectStopsBeforeTheHa
 
         const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_NE(result.Error().find(probe.cut), std::string::npos) << result.Error();
+        if (probe.cut == nullptr)
+        {
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+        }
+        else
+        {
+            ASSERT_FALSE(result.HasValue());
+            EXPECT_NE(result.Error().find(probe.cut), std::string::npos) << result.Error();
+        }
         EXPECT_EQ(m_cloth.random.State(), probe.random);
         EXPECT_EQ(Actor().byte38eAccesses, 0);
-        EXPECT_EQ(m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)], 5);
+        // Sin corte, 0x42da60 abre las puertas al final del pase: la celda pierde el 0x04.
+        EXPECT_EQ(m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)],
+                  probe.cut == nullptr ? 1 : 5);
+        m_world->Map().terrain.attributes->cells = *GateWalls();
     }
 }
 

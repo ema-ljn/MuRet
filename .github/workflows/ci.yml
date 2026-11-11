@@ -29,10 +29,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # El DNS de los runners a veces no resuelve el espejo de Ubuntu por unos minutos: apt reintenta cada
+      # descarga y el lazo repite todo hasta cinco veces, con 30 s, 60 s, ... de espera.
       - name: clang-format-18
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-format-18
+          for attempt in 1 2 3 4 5; do
+            sudo apt-get -o Acquire::Retries=5 update &&
+              sudo apt-get -o Acquire::Retries=5 install -y clang-format-18 && break
+            if [ "$attempt" = 5 ]; then exit 1; fi
+            sleep $((attempt * 30))
+          done
           clang-format-18 --version
 
       - name: Verificar el formato
@@ -79,15 +85,20 @@ jobs:
       # (en Windows sí lo baja). clang-tidy-18, para el paso de los includes.
       - name: Paquetes del sistema (Linux)
         if: runner.os == 'Linux'
+        # Con los mismos reintentos que el paso del formato.
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build pkg-config \
-            libx11-dev libxext-dev \
-            libwayland-dev libxkbcommon-dev \
-            libgl-dev libegl-dev \
-            nasm \
-            xvfb libgl1-mesa-dri \
-            clang-tidy-18
+          for attempt in 1 2 3 4 5; do
+            sudo apt-get -o Acquire::Retries=5 update &&
+              sudo apt-get -o Acquire::Retries=5 install -y ninja-build pkg-config \
+                libx11-dev libxext-dev \
+                libwayland-dev libxkbcommon-dev \
+                libgl-dev libegl-dev \
+                nasm \
+                xvfb libgl1-mesa-dri \
+                clang-tidy-18 && break
+            if [ "$attempt" = 5 ]; then exit 1; fi
+            sleep $((attempt * 30))
+          done
 
       # La DejaVu de MURET_CLIENT_FONT_FILE viene en la imagen de ubuntu-24.04; si una imagen nueva
       # no la trae, se instala.

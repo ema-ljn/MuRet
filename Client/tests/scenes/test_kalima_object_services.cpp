@@ -157,7 +157,7 @@ TEST(KalimaObjectServicesTest, AnExcludedTypeNeedsNoWaterAndIntermediateFramesCo
     ASSERT_TRUE(Draw(batch, models, objects, {.map = 29, .originalFrame = false, .random = &random}).HasValue());
     EXPECT_EQ(batch.Vertices().size(), 3u);
     EXPECT_EQ(random.State(), 7u);
-    const auto other = Draw(batch, models, objects, {.map = 30, .originalFrame = false});
+    const auto other = Draw(batch, models, objects, {.map = 35, .originalFrame = false});
     EXPECT_FALSE(other.HasValue());
 }
 

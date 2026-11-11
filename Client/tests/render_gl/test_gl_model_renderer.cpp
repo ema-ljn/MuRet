@@ -11,17 +11,21 @@
 #include "Render/Gl/GlSpriteRenderer.h"
 #include "Render/Gl/TextureTable.h"
 #include "Render/ModelBatch.h"
+#include "Render/ModelFog.h"
 #include "Render/ModelVertex.h"
 #include "Render/OriginalQuad.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
+#include "Render/TextureEnvMode.h"
 #include "Render/TextureSlot.h"
 
 #include "support/GlDrawTest.h"
 #include "support/RecordingSink.h"
 
 #include <gtest/gtest.h>
+
+#include <glm/ext/vector_float3.hpp>
 
 #include <array>
 #include <cstdint>
@@ -47,10 +51,12 @@ using Client::Render::MakePass3D;
 using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::ModelDrawState;
+using Client::Render::ModelFog;
 using Client::Render::ModelVertex;
 using Client::Render::OriginalQuad;
 using Client::Render::Pass3D;
 using Client::Render::SpriteBatch;
+using Client::Render::TextureEnvMode;
 using Client::Render::TextureSlot;
 using Client::Render::ViewportRect;
 using Client::Render::Gl::GlModelRenderer;
@@ -352,6 +358,59 @@ TEST_F(GlModelRendererTest, TheTwoDAfterTurnsTheDepthOff)
     {
         ExpectNear(Cell(cell), Green);
     }
+}
+
+// La niebla lineal de 0x42b0a0, acá negra de 10 a 30: con d la distancia al ojo (la profundidad del cuadrado), el
+// blanco queda en (30 − d) / 20, recortado a [0, 1]; el alfa no cambia. Van del más lejos al más cerca, para que el
+// depth test deje pasar cada uno.
+TEST_F(GlModelRendererTest, TheLinearFogMixesByTheEyeDistance)
+{
+    const ModelFog fog{.color = glm::vec3(0.0f), .start = 10.0f, .end = 30.0f};
+    const std::array<std::pair<float, Rgba8>, 4> cases{
+        std::pair{40.0f, Rgba8{0, 0, 0, 128}}, std::pair{25.0f, Rgba8{64, 64, 64, 128}},
+        std::pair{20.0f, Rgba8{128, 128, 128, 128}}, std::pair{5.0f, Rgba8{255, 255, 255, 128}}};
+    for (const auto& [depth, expected] : cases)
+    {
+        SCOPED_TRACE(depth);
+        m_batch.Begin(TestPass(Screen));
+        m_batch.SetFog(fog);
+        AddSquare({WhiteSlot, ModelBlend::Opaque, true}, depth, Color{1.0f, 1.0f, 1.0f, 0.5f});
+        DrawBatch();
+        ExpectNear(Cell(0), expected);
+    }
+}
+
+// El color de la niebla es el del comando, y glDisable(GL_FOG) la saca: el verde a 40, después del fin, sale rojo
+// con la niebla y verde sin ella.
+TEST_F(GlModelRendererTest, TheFogHasItsColorAndTurnsOff)
+{
+    m_batch.SetFog(ModelFog{.color = glm::vec3(1.0f, 0.0f, 0.0f), .start = 10.0f, .end = 30.0f});
+    AddSquare({WhiteSlot, ModelBlend::Opaque, false}, 40.0f, GreenColor);
+    DrawBatch();
+    ExpectNear(Cell(0), Red);
+
+    m_batch.Begin(TestPass(Screen));
+    m_batch.SetFog(std::nullopt);
+    AddSquare({WhiteSlot, ModelBlend::Opaque, false}, 40.0f, GreenColor);
+    DrawBatch();
+    ExpectNear(Cell(0), Green);
+}
+
+// GL_ADD (la 6ac/2, 0x5489eb): el gris al 50 % más (0,25; 0,5; 0,75) da (0,75; 1; 1), recortado, y el alfa es el del
+// téxel por el del color. Con GL_MODULATE, el mismo cuadrado da el producto.
+TEST_F(GlModelRendererTest, TheAddTextureEnvSumsTheTexelAndTheColor)
+{
+    const Color color{0.25f, 0.5f, 0.75f, 0.5f};
+    m_batch.SetTextureEnv(TextureEnvMode::Add);
+    AddSquare({GraySlot, ModelBlend::Opaque, false}, 10.0f, color);
+    DrawBatch();
+    ExpectNear(Cell(0), Rgba8{192, 255, 255, 128});
+
+    m_batch.Begin(TestPass(Screen));
+    m_batch.SetTextureEnv(TextureEnvMode::Modulate);
+    AddSquare({GraySlot, ModelBlend::Opaque, false}, 10.0f, color);
+    DrawBatch();
+    ExpectNear(Cell(0), Rgba8{32, 64, 96, 128});
 }
 
 // Q-C29: un slot que nunca tuvo textura ata la textura por defecto, y la malla sale sin textura,

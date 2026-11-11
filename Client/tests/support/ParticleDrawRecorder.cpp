@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Render/ParticleBillboardRequest.h"
+#include "Render/TextureEnvMode.h"
 #include "World/IParticleDrawingServices.h"
 #include "World/ParticleDrawing.h"
 #include "World/Particles.h"
@@ -47,6 +48,12 @@ ParticleDrawRecorder::Result ParticleDrawRecorder::Subtractive()
     return {};
 }
 
+ParticleDrawRecorder::Result ParticleDrawRecorder::Blended()
+{
+    m_blend = RecordedParticleDraw::Blend::Blended;
+    return {};
+}
+
 ParticleDrawRecorder::Result ParticleDrawRecorder::Type620850()
 {
     return Core::Unexpected(World::ParticleDrawingError{
@@ -59,10 +66,18 @@ ParticleDrawRecorder::Result ParticleDrawRecorder::Type620870()
         World::ParticleError::MissingDrawingService, World::ParticleDrawingPhase::Type620870, {}});
 }
 
+ParticleDrawRecorder::Result ParticleDrawRecorder::TextureEnv(Render::TextureEnvMode mode)
+{
+    textureEnv = mode;
+    ++textureEnvCalls;
+    return {};
+}
+
 ParticleDrawRecorder::Result ParticleDrawRecorder::Billboard(Render::ParticleBillboardRequest request)
 {
     draws.push_back(RecordedParticleDraw{.texture = request.selector,
                                          .blend = m_blend,
+                                         .textureEnv = textureEnv,
                                          .position = request.position.get(),
                                          .width = request.width,
                                          .height = request.height,
@@ -75,7 +90,8 @@ ParticleDrawRecorder::Result ParticleDrawRecorder::Billboard(Render::ParticleBil
 
 Core::Expected<std::optional<RecordedParticleDraw>, World::ParticleDrawingError>
 DrawOneParticle(World::Particle& particle, std::optional<glm::vec2> textureSize,
-                std::optional<std::uint8_t> materialFlag, float clock, std::size_t slot, std::uint8_t mode)
+                std::optional<std::uint8_t> materialFlag, float clock, std::size_t slot, std::uint8_t mode,
+                Render::TextureEnvMode* textureEnv)
 {
     World::Particles pool;
     pool.All()[slot] = particle;
@@ -90,6 +106,10 @@ DrawOneParticle(World::Particle& particle, std::optional<glm::vec2> textureSize,
     }
     const auto drawn = World::DrawParticlesChecked(pool, mode, std::cref(clock), recorder);
     particle = pool.All()[slot];
+    if (textureEnv != nullptr)
+    {
+        *textureEnv = recorder.textureEnv;
+    }
     if (!drawn.HasValue())
     {
         return Core::Unexpected(drawn.Error().error);

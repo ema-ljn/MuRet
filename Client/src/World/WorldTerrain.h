@@ -74,9 +74,14 @@ struct WorldTileTexture
 // GL_NEAREST/GL_CLAMP, todas opcionales; la JPG64 posterior reemplaza a la TGA64 si existe.
 [[nodiscard]] std::vector<WorldTileTexture> WorldWeatherTextures(std::uint8_t map);
 
-// 618dda..618e29: las 32 cáusticas Object8\\wt00..wt31.jpg, slots65..96,
-// LINEAR/REPEAT, sin aviso. Aquí se integra sólo la familia Kalima24..29/36.
-[[nodiscard]] std::vector<WorldTileTexture> KalimaObjectTextures(std::uint8_t map);
+// 0x616eeb..0x616f03: lo primero que sube 0x616ec0 en todos los mapas, Object8\\drop01.jpg en 0x607 con
+// GL_NEAREST y GL_CLAMP, requerida: la textura de las partículas 0x607 (las burbujas de Atlans).
+[[nodiscard]] WorldTileTexture DropTexture();
+
+// Las 32 cáusticas Object8\\wt00..wt31.jpg, slots 65..96 (0x41..0x60), LINEAR/REPEAT, sin aviso: el mapa 7 las
+// sube en su caso de 0x616ec0 (0x617753..0x617788) y los demás en 618dda..618e29, con los mismos argumentos.
+// Aquí se integran sólo el 7 (el agua de 0x5fa4b0) y la familia Kalima 24..29/36.
+[[nodiscard]] std::vector<WorldTileTexture> CausticTextures(std::uint8_t map);
 
 // 0x6177f9..0x61784b, el mapa 8 de 0x616ec0 antes de los Bug: 0x63b870 con GL_LINEAR, sexto 1 (avisa).
 // Object9\sand01 y sand02 en 0x5c2 y 0x5c3, repitiendo (las arenas del HUD de 0x5a7520, CL8), e

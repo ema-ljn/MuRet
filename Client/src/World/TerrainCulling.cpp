@@ -1,6 +1,7 @@
 #include "World/TerrainCulling.h"
 
 #include "Core/Expected.h"
+#include "Data/Terrain/TerrainGrid.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Pass3D.h"
@@ -379,6 +380,26 @@ void DrawTerrain(Render::ModelBatch& batch, const TerrainView& view, const Terra
                                         DrawTerrainCell(batch, view, water, x, y);
                                         return {};
                                     }));
+}
+
+Core::Expected<void, std::string> DrawTerrain(Render::ModelBatch& batch, const TerrainView& view,
+                                              const TerrainRange& range, const TerrainPolygon& polygon,
+                                              const TerrainWater& water, const TerrainCellHook& beforeCell)
+{
+    return VisitTheRange(range, polygon,
+                         [&](std::uint8_t x, std::uint8_t y) -> Core::Expected<void, std::string>
+                         {
+                             // 0x5facb6..0x5facce: la celda con el bit 0x08 sale sin llamar a 0x5fa830.
+                             if ((view.attributes->cells[Data::Terrain::CellIndex(x, y)] & HiddenCellBit) != 0)
+                                 return {};
+                             if (beforeCell)
+                             {
+                                 if (auto before = beforeCell(x, y); !before.HasValue())
+                                     return before;
+                             }
+                             DrawTerrainCell(batch, view, water, x, y);
+                             return {};
+                         });
 }
 
 Core::Expected<void, std::string> DrawGrass(Render::ModelBatch& batch, const TerrainView& view,

@@ -73,7 +73,6 @@
 #include <optional>
 #include <span>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -1022,11 +1021,13 @@ TEST_F(GameSceneDrawTest, TheStepAfterADrawStepsTheSeenObjects)
     }
 }
 
-// 0x606560 en un mapa sin los casos de 0x604ab0 portados: con un objeto visto (el dibujo de esos mapas corta
-// antes, en 0x6374ce; acá se lo marca a mano), el paso corta antes de tocarlo y sin rand().
+// 0x606560 en un mapa sin los casos de 0x604ab0 portados: con un objeto visto (esos mapas cortan antes, en la
+// carga o en 0x6374ce; acá se carga el 18 y se cambia el mapa a mano), el paso corta antes de tocarlo y sin
+// rand().
 TEST_F(GameSceneDrawTest, TheStepStopsAtTheSeenObjectsOfTheOtherMaps)
 {
-    ASSERT_NO_FATAL_FAILURE(Prepare(7, 128, 128));
+    ASSERT_NO_FATAL_FAILURE(Prepare(18, 128, 128));
+    world.Runtime().map = 35;
     ASSERT_FALSE(world.Map().objects.empty());
     world.Map().objects.front().seen = true;
     const Client::World::WorldObject before = world.Map().objects.front();
@@ -1042,40 +1043,38 @@ TEST_F(GameSceneDrawTest, TheStepStopsAtTheSeenObjectsOfTheOtherMaps)
     scene.Leave();
 }
 
-// Los otros mapas que carga el juego cortan antes del pasto: el 6 en la cámara (0x576960 con el nombre
-// del héroe), antes de los accesos, y el 7 en su agua (0x5fa4b0), ya en el pase del mundo y sin una celda.
-TEST_F(GameSceneDrawTest, TheOtherMapsStopWhereTheyDiffer)
+// 0x5fa973..0x5fa9b1 y 0x5fc33e: Atlans, en (226, 103), con agua en la capa 2 cerca, dibuja el cuadro entero: el
+// agua de 0x5fa4b0, aditiva y con la cáustica 0x41 + el cuadro de DAT_07d2d360, y ningún quad del pasto
+// (0x32..0x34), que el mapa 7 saltea aunque tenga 0x6c9d58.
+TEST_F(GameSceneDrawTest, AtlansDrawsItsCausticWaterAndNoGrass)
 {
-    struct Case
-    {
-        std::uint8_t map;
-        std::string_view frontier;
-        int draws;
-        bool worldPass;
-    };
-    for (const Case& probe : {Case{6, "0x635b5c", 4, false}, Case{7, "0x5fa985", 4 + 8, true}})
-    {
-        SCOPED_TRACE(static_cast<int>(probe.map));
-        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, 128, 128));
-        GameScene scene = Scene();
-        ASSERT_TRUE(scene.Enter().HasValue());
-        Client::Tests::RecordingFrameTarget target;
+    ASSERT_NO_FATAL_FAILURE(Prepare(7, 226, 103));
+    GameScene scene = Scene();
+    ASSERT_TRUE(scene.Enter().HasValue());
+    Client::Tests::RecordingFrameTarget target;
 
-        scene.PrepareFrame();
-        scene.Render(target.BeginFrame({}), 0.0f);
+    scene.PrepareFrame();
+    scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
 
-        ASSERT_TRUE(scene.Failure().has_value());
-        EXPECT_NE(scene.Failure()->find(probe.frontier), std::string::npos) << *scene.Failure();
-        const Client::Tests::FrameEvent* models = ModelsOf(target.frames[0]);
-        EXPECT_EQ(models != nullptr, probe.worldPass);
-        if (models != nullptr)
+    ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
+    const Client::Tests::FrameEvent* models = ModelsOf(target.frames.at(0));
+    ASSERT_NE(models, nullptr);
+    const auto caustic = Client::Render::TextureSlot{static_cast<std::uint16_t>(0x41 + cloth.waterTextureFrame)};
+    std::size_t water = 0;
+    for (const Client::Render::ModelDrawCommand& command : models->modelCommands)
+    {
+        ASSERT_TRUE(command.state.texture.has_value());
+        const std::uint16_t slot = command.state.texture->value;
+        EXPECT_FALSE(slot >= 0x32 && slot <= 0x34) << slot;
+        if (slot >= 0x41 && slot <= 0x60)
         {
-            EXPECT_TRUE(models->modelVertices.empty());
+            EXPECT_EQ(*command.state.texture, caustic);
+            EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Additive);
+            ++water;
         }
-        EXPECT_EQ(scene.MouseRay().has_value(), probe.worldPass);
-        EXPECT_EQ(cloth.random.State(), RandomAfter(probe.draws).State());
-        scene.Leave();
     }
+    EXPECT_GT(water, 0u);
+    scene.Leave();
 }
 
 // 0x5fc365 con una marca prendida (como la dejarían 0x505de0 o 0x52e810, que MuRet no corre): 0x549130 lee el
@@ -1124,16 +1123,21 @@ TEST_F(GameSceneDrawTest, ALiveGroundMarkStopsWhereMuRetDoesNotKnowItsTexture)
     world.Runtime().groundMarks = {};
 }
 
-// Los mapas 18 a 23 no tienen pase del pasto (0x6c9d58 en 0), pero no llegan a esa decisión: 0x5fa830
-// llama a 0x405e00 con cada celda del primer pase, y en esos mapas saca rand() (0x405e0c..0x405e18). Sin
-// LoadMap (que los corta en 0x447d70), con el terreno de World19 puesto a mano, el dibujo corta antes de
-// la primera celda (0x5fa83f), con los 4 + 8 rand() de siempre y sin un vértice.
-TEST_F(GameSceneDrawTest, AMapWithoutGrassStopsBeforeItsFirstCell)
+// Los mapas 18 a 23 no tienen pase del pasto (0x6c9d58 en 0), y 0x5fa830 llama a 0x405e00 con cada celda del
+// primer pase que no tiene el bit 0x08 (0x5facb6): un rand() por celda y, con el área en 0xff, nada más
+// (0x405e1e..0x405e2f). Con el terreno de World19 puesto a mano y todas las celdas ocultas salvo la del héroe, el
+// cuadro termina con los 4 + 8 rand() de siempre y uno de esa celda, que se dibuja.
+TEST_F(GameSceneDrawTest, ChaosCastleDrawsRandomForEachShownCellAndNoGrass)
 {
     constexpr std::uint8_t ChaosCastle = 18;
     auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, ChaosCastle);
     ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
     world.Map().terrain = std::move(terrain).Value();
+    for (std::uint16_t& cell : world.Map().terrain.attributes->cells)
+        cell = static_cast<std::uint16_t>(cell | Client::World::HiddenCellBit);
+    const auto heroCell = Client::Data::Terrain::CellIndex(128, 128);
+    world.Map().terrain.attributes->cells[heroCell] =
+        static_cast<std::uint16_t>(world.Map().terrain.attributes->cells[heroCell] & ~Client::World::HiddenCellBit);
     world.Runtime().map = ChaosCastle;
     Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
     hero.alive = true;
@@ -1151,13 +1155,11 @@ TEST_F(GameSceneDrawTest, AMapWithoutGrassStopsBeforeItsFirstCell)
     scene.PrepareFrame();
     scene.Render(target.BeginFrame({}), 0.0f);
 
-    ASSERT_TRUE(scene.Failure().has_value());
-    EXPECT_NE(scene.Failure()->find("0x5fa83f"), std::string::npos) << *scene.Failure();
+    ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
     const Client::Tests::FrameEvent* models = ModelsOf(target.frames[0]);
     ASSERT_NE(models, nullptr);
-    EXPECT_TRUE(models->modelVertices.empty());
-    EXPECT_TRUE(scene.MouseRay().has_value());
-    EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8).State());
+    EXPECT_FALSE(models->modelVertices.empty());
+    EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8 + 1).State());
     scene.Leave();
 }
 

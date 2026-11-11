@@ -81,8 +81,7 @@ Core::Expected<void, std::string> ChangeTeleportMap(std::uint8_t map, std::uint1
         return Core::Unexpected(std::string("0x4906a0: la transición de Chaos Castle requiere su UI y 0x4914e0"));
     }
     resources.world.Runtime().lastSoundId = 0x9e;
-    if (auto checked = CheckEventMap(loadedMap); !checked.HasValue())
-        return checked;
+    ArmEventMapObject(loadedMap, resources.world.Runtime());
     return RefreshTransitionHeight(PublishedHero(resources), resources);
 }
 Core::Expected<void, std::string> FinishTeleport(const WorldEntryResources& resources,

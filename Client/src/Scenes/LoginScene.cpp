@@ -1232,7 +1232,8 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
                                             return result;
                                         },
                                         .retainedPose = &carry,
-                                        .publishProjectedPose = true});
+                                        .publishProjectedPose = true,
+                                        .objectDrawCounter = &CharacterWorld().Runtime().objectDrawCounter});
     // 0x52d620(0): los efectos con modelo, después de los objetos.
     const auto effects = DrawModelEffects(
         canvas.models, m_worldModels, CharacterWorld().Map().effects.Effects(),
@@ -1271,7 +1272,7 @@ void LoginScene::DrawTheRaven(SceneCanvas& canvas, float alpha, FaunaDrawCarry* 
                                                   *terrain->heights, *terrain->attributes, drawn.transform.position.x,
                                                   drawn.transform.position.y, CameraState().fixedHeight))
                                             : 0.0f;
-    DrawDarkSpirit(canvas.models, m_models, drawn, ground, canvas.frameClock);
+    DrawDarkSpirit(canvas.models, m_models, drawn, ground, canvas.frameClock, m_world ? m_world->map : 0);
     if (carry != nullptr)
         carry->models[drawn.model].position = {drawn.transform.position.x, drawn.transform.position.y, ground};
     spirit.pose = PosedWorldBones(m_models, DrawnDarkSpirit(spirit, skeleton, light, 0.0f));

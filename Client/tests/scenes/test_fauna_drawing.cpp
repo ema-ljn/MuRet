@@ -28,6 +28,7 @@
 #include <cstddef>
 #include <array>
 #include <span>
+#include <vector>
 
 namespace
 {
@@ -343,6 +344,25 @@ TEST_F(FaunaDrawingTest, WorldBodiesDrawThePublishedDummyScratchInsteadOfReposin
 
 namespace
 {
+// Q-C347: una malla con un vértice en un hueso que no existe (la 1 de Object36.bmd de Crywolf nombra el −8888) no
+// queda posada y se vacía su scratch; las demás se posan y la publicación sigue.
+TEST_F(FaunaDrawingTest, AMeshOnAMissingBoneIsLeftUnposedAndTheOthersPose)
+{
+    auto broken = Client::Tests::SampleMesh();
+    ASSERT_FALSE(broken.vertices.empty());
+    broken.vertices[0].bone = -8888;
+    m_models.model.meshes.push_back(broken);
+    m_carry.meshes.resize(2);
+    m_carry.meshes[1].positions = {glm::vec3(1.0f)};
+    m_carry.meshes[1].normals = {glm::vec3(0.0f, 0.0f, 1.0f)};
+    const std::vector<Client::Render::Models::BoneTransform> bones(3, Client::Render::Models::BoneTransform(1.0f));
+    const Client::Render::Models::ObjectTransform transform{.position = {1000, 1000, 300}};
+    ASSERT_TRUE(PublishFaunaPoseRaw(m_carry, m_models, 0x24, bones, transform, false).HasValue());
+    EXPECT_EQ(m_carry.meshes[0].positions.size(), m_models.model.meshes[0].vertices.size());
+    EXPECT_TRUE(m_carry.meshes[1].positions.empty());
+    EXPECT_TRUE(m_carry.meshes[1].normals.empty());
+}
+
 TEST_F(FaunaDrawingTest, CharacterBodiesInitializeDummyMatricesFromTheSharedScratchBeforePosing)
 {
     m_carry.bones.resize(3, Client::Render::Models::BoneTransform(0));

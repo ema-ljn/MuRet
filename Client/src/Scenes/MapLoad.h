@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <string>
 
 namespace Client::Render::Models
@@ -19,6 +20,7 @@ class CrtRandom;
 namespace Client::Scenes
 {
 struct WorldMap;
+struct WorldRuntime;
 
 // Lo que la carga lee y escribe fuera del mapa. Quien llama lo presta durante la llamada.
 struct MapLoadContext
@@ -32,17 +34,21 @@ struct MapLoadContext
     std::uint16_t playerKey;
     // El rand() de la CRT: el pasto y los objetos que lo piden al crearse.
     Render::Models::CrtRandom& random;
+    // El B9 02 que 0x42a760 manda al cargar el 30 con el socket del GS abierto. Vacío, como el socket en −1:
+    // no sale nada.
+    std::function<void()> requestCastleSiegeState{};
 };
 
 // 0x61a560(argumento), con el mundo en curso ya escrito por quien llama: la guarda de 32 a 9 (Q-C58);
 // suelta lo del mapa anterior (0x6070a0); fuera de la selección, 0x510f70; los especiales de 0x616ec0
 // (los del 2); el corrimiento del pasto con 65.536 rand() (0x5f8300); el MAP/ATT, los objetos del .obj con 0x606660 y
-// después las alturas/luz. Corta con error, con lo que el original hizo antes, en lo que MuRet no tiene: los especiales
-// del 55, el mapa 30 (0x42a760 y el .att de 0x4294b0), el 34 (el .att según Crywolf, 0x42fe50) y un objeto que pide un
-// servicio de efectos o del asedio. Cada error conserva el diagnóstico del archivo; sólo los casos que
-// piden aviso/cierre en ASM publican WorldRuntime::fatalDataMessage (Q-C27/Q-C180), sin UI aquí.
-// El ATT de tamaño inválido, los archivos cortos y unsupported-map no piden cierre nativo. 4377a0 reemplaza el dueño
-// de Kalima recién después de leer los archivos: un error anterior conserva el del mapa previo.
+// después las alturas/luz. En el 30, antes del pasto, 0x42a760 (el B9 02 y los cinco lanceros 0x19f), y el .att y la
+// luz de siempre con 0x7239ec en 0. Corta con error, con lo que el original hizo antes, en lo que MuRet no tiene: los
+// especiales del 55, el .att y la luz del 30 con el asedio prendido (0x4294b0), el 34 con un estado de Crywolf
+// distinto de 0 (0x42fe50) y un objeto que pide un servicio de efectos. Cada error conserva el diagnóstico del
+// archivo; sólo los casos que piden aviso/cierre en ASM publican WorldRuntime::fatalDataMessage (Q-C27/Q-C180), sin UI
+// aquí. El ATT de tamaño inválido, los archivos cortos y unsupported-map no piden cierre nativo. 4377a0 reemplaza el
+// dueño de Kalima recién después de leer los archivos: un error anterior conserva el del mapa previo.
 [[nodiscard]] Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoadContext& context);
 
 // 0x510f70(clave): mata al vivo del pool del mundo cuya clave, con signo (movsx en 0x510f8a), no es
@@ -61,8 +67,8 @@ void ReleaseTheMapObjects(WorldMap& loaded);
 // Los otros pools de 0x6070a0: sólo apaga los vivos, sin reconstruir los registros.
 void ClearWorldTransientPools(WorldState& world);
 
-// 0x447d70(mundo en curso): arma el objeto de evento de Devil Square (9), Blood Castle (11 a 17) y
-// Chaos Castle (18 a 23); en los demás no hace nada. MuRet no tiene esos objetos: en esos mapas corta
-// con error.
-[[nodiscard]] Core::Expected<void, std::string> CheckEventMap(std::int32_t map);
+// 0x447d70(mapa): arma el objeto de evento (WorldRuntime::eventObject) de Blood Castle (11 a 17 por el
+// argumento), Chaos Castle (18 a 23 por el mundo en curso, 0x6c9dd0) o Devil Square (9 por el argumento),
+// soltando antes el anterior; en los demás no hace nada y el anterior queda (Q-C320).
+void ArmEventMapObject(std::int32_t map, WorldRuntime& runtime);
 } // namespace Client::Scenes

@@ -6,6 +6,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/WorldObjectsDrawing.h"
@@ -148,21 +149,31 @@ Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& ob
     return StepGameWaterspoutFrame(object, particles, random, worldClock, point);
 }
 
-Core::Expected<void, std::string> StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random,
-                                                    const std::int32_t& map,
-                                                    const std::function<double(float, float)>& terrainHeight,
-                                                    const float& worldClock,
-                                                    const std::function<World::WorldObject*(std::uint64_t)>& owners)
+Core::Expected<void, std::string>
+StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map,
+                  const std::function<double(float, float)>& terrainHeight, const float& worldClock,
+                  const std::function<World::WorldObject*(std::uint64_t)>& owners,
+                  const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions,
+                  const std::function<std::optional<float>(std::int32_t)>& textureHeight)
 {
     World::PortableParticleTrigonometry trigonometry;
     const auto stepped = World::StepParticlesChecked(particles, random, std::cref(worldClock), &map, trigonometry,
-                                                     terrainHeight, owners);
+                                                     terrainHeight, owners, actorActions, textureHeight);
     if (!stepped.HasValue())
     {
         return Core::Unexpected(std::format("0x637128 → 0x5446e0: el paso de las partículas falla con error {}",
                                             static_cast<unsigned>(stepped.Error())));
     }
     return {};
+}
+
+std::function<std::optional<float>(std::int32_t)> ParticleTextureHeightsOf(const IModelLibrary& textures)
+{
+    return [&textures](std::int32_t slot) -> std::optional<float>
+    {
+        const auto metadata = textures.TextureMetadataOf(static_cast<std::uint32_t>(slot));
+        return metadata ? std::optional(metadata->size.y) : std::nullopt;
+    };
 }
 
 std::function<World::WorldObject*(std::uint64_t)> ParticleOwnersAmong(std::span<World::WorldObject> objects)
@@ -175,6 +186,16 @@ std::function<World::WorldObject*(std::uint64_t)> ParticleOwnersAmong(std::span<
                 return &object;
         }
         return nullptr;
+    };
+}
+
+std::function<std::optional<std::uint8_t>(std::uint64_t)> ParticleActorActionsAmong(std::span<const ActorState> actors)
+{
+    return [actors](std::uint64_t slot) -> std::optional<std::uint8_t>
+    {
+        if (slot >= actors.size())
+            return std::nullopt;
+        return actors[static_cast<std::size_t>(slot)].animation.action;
     };
 }
 

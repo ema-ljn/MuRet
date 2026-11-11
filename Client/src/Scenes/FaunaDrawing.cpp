@@ -340,9 +340,16 @@ Core::Expected<void, std::string> PublishFaunaPoseRaw(FaunaDrawCarry& carry, con
         for (std::size_t i = 0; i < model->meshes.size(); ++i)
         {
             Render::Models::SkinnedMesh mesh;
-            if (!Render::Models::SkinMesh(model->meshes[i], bones, transform, mesh))
-                return Core::Unexpected(std::string("4ebc80: vértices de fauna inválidos"));
             auto& output = carry.meshes[i];
+            if (!Render::Models::SkinMesh(model->meshes[i], bones, transform, mesh))
+            {
+                // Q-C347: un vértice o una normal en un hueso que la malla no tiene (la 1 de Object36.bmd de
+                // Crywolf nombra el −8888) hace leer a 0x4ebc80 fuera de las matrices. Como MeshDrawsOf con las
+                // mallas rotas, esa no queda posada y no se dibuja.
+                output.positions.clear();
+                output.normals.clear();
+                continue;
+            }
             if (output.positions.size() < mesh.positions.size())
                 output.positions.resize(mesh.positions.size());
             std::copy(mesh.positions.begin(), mesh.positions.end(), output.positions.begin());

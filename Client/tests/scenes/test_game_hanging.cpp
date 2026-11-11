@@ -11,6 +11,10 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
+#include "World/IFishStepServices.h"
+#include "World/Particles.h"
 #include "World/Sprites.h"
 
 #include <gtest/gtest.h>
@@ -20,6 +24,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <set>
 #include <span>
 #include <string>
@@ -58,6 +63,92 @@ std::uint32_t AfterRandoms(std::size_t count)
     for (std::size_t call = 0; call < count; ++call)
         static_cast<void>(random.Next());
     return random.State();
+}
+
+double D(float value)
+{
+    return static_cast<double>(value);
+}
+
+float F32(double value)
+{
+    return static_cast<float>(value);
+}
+
+// La primera semilla con la que `condition` acepta los sorteos de un CrtRandom nuevo.
+std::uint32_t SeedWhere(const std::function<bool(Client::Render::Models::CrtRandom&)>& condition)
+{
+    for (std::uint32_t seed = 1; seed < 100000; ++seed)
+    {
+        Client::Render::Models::CrtRandom random(seed);
+        if (condition(random))
+            return seed;
+    }
+    ADD_FAILURE() << "ninguna semilla cumple la condición";
+    return 1;
+}
+
+// Un CrtRandom con la semilla `seed` después de `count` llamadas.
+Client::Render::Models::CrtRandom Skipped(std::uint32_t seed, std::size_t count)
+{
+    Client::Render::Models::CrtRandom random(seed);
+    for (std::size_t call = 0; call < count; ++call)
+        static_cast<void>(random.Next());
+    return random;
+}
+
+void ExpectSameJoints(std::span<const Client::Scenes::JointState> actual,
+                      std::span<const Client::Scenes::JointState> expected)
+{
+    ASSERT_EQ(actual.size(), expected.size());
+    for (std::size_t k = 0; k < actual.size(); ++k)
+    {
+        SCOPED_TRACE(k);
+        const auto& a = actual[k];
+        const auto& e = expected[k];
+        ASSERT_EQ(a.alive, e.alive);
+        if (!a.alive)
+            continue;
+        EXPECT_EQ(a.type, e.type);
+        EXPECT_EQ(a.subtype, e.subtype);
+        EXPECT_EQ(a.texture, e.texture);
+        EXPECT_EQ(a.blend, e.blend);
+        EXPECT_EQ(a.width, e.width);
+        EXPECT_EQ(a.speed, e.speed);
+        EXPECT_EQ(a.life, e.life);
+        EXPECT_EQ(a.light, e.light);
+        EXPECT_EQ(a.position, e.position);
+        EXPECT_EQ(a.angles, e.angles);
+        EXPECT_EQ(a.targetPosition, e.targetPosition);
+        EXPECT_EQ(a.ownerContext, e.ownerContext);
+        EXPECT_EQ(a.count, e.count);
+        EXPECT_EQ(a.maximumCount, e.maximumCount);
+        EXPECT_EQ(a.repeatedTexture, e.repeatedTexture);
+        EXPECT_EQ(a.points, e.points);
+    }
+}
+
+void ExpectSameParticles(const Client::World::Particles& actual, const Client::World::Particles& expected)
+{
+    for (std::size_t k = 0; k < Client::World::ParticleCount; ++k)
+    {
+        const auto& a = actual.All()[k];
+        const auto& e = expected.All()[k];
+        ASSERT_EQ(a.alive, e.alive) << k;
+        if (!a.alive)
+            continue;
+        SCOPED_TRACE(k);
+        EXPECT_EQ(a.type, e.type);
+        EXPECT_EQ(a.subtype, e.subtype);
+        EXPECT_EQ(a.position, e.position);
+        EXPECT_EQ(a.angles, e.angles);
+        EXPECT_EQ(a.light, e.light);
+        EXPECT_EQ(a.scale, e.scale);
+        EXPECT_EQ(a.life, e.life);
+        EXPECT_EQ(a.velocity, e.velocity);
+        EXPECT_EQ(a.verticalSpeed, e.verticalSpeed);
+        EXPECT_EQ(a.field38, e.field38);
+    }
 }
 
 // [ebp+0xc] de 0x50ba30 con el primer rand() de la semilla 1 (41): (41 % 30 + 70) · 0,01 en la x87.
@@ -151,6 +242,8 @@ protected:
                 .random = m_random,
                 .carry = &m_carry,
                 .sprites = &m_sprites,
+                .joints = m_joints,
+                .particles = &m_particles,
                 .logicSteps = 1};
     }
 
@@ -171,6 +264,8 @@ protected:
     Client::Render::Models::CrtRandom m_random{1};
     Client::Scenes::FaunaDrawCarry m_carry;
     Client::World::FrameSprites m_sprites;
+    std::vector<Client::Scenes::JointState> m_joints = std::vector<Client::Scenes::JointState>(8);
+    Client::World::Particles m_particles;
 };
 
 // Sin nada que cuelgue quedan el rand() de 0x50db57 y, fuera de la espalda, el cierre de +0x38e antes de
@@ -355,6 +450,323 @@ TEST_F(GameHangingTest, Mace10FlaresBones2To5WithTheShinyOnBone4)
     EXPECT_EQ(m_random.State(), AfterRandoms(6));
 }
 
+// 0x50a005..0x50a138: el 0x227 en la acción 0x8c, fuera del mapa 10 y con un rand() par, corre el hueso 1 de su pose
+// (rand() % 30 − 15 en x e y, +20 en z) y suelta cuatro veces el joint 0x617/0 (escala 10, sin dueño) y la partícula
+// 0x5c5/0 blanca, cada par con los ángulos (rand() % 60 + 150; 0; z del personaje). En el mapa 10 no saca el rand().
+TEST_F(GameHangingTest, TheAction8cSwordThrowsFourSparksFromItsFirstBone)
+{
+    constexpr std::uint16_t Sword227 = 0x227;
+    // 0x50db57, +0x38e de la mano y de 0x509340 y la luz de 0x509a92, antes del rand() & 1.
+    constexpr std::size_t Before = 4;
+    const std::uint32_t seed = SeedWhere(
+        [](Client::Render::Models::CrtRandom& random)
+        {
+            for (std::size_t call = 0; call < Before; ++call)
+                static_cast<void>(random.Next());
+            return (random.Next() & 1) == 0;
+        });
+    const HangingModels models({Sword227});
+    m_actor.hands[0].model = Sword227;
+    m_actor.animation.action = 0x8c;
+    m_actor.angles = {0.0f, 0.0f, 135.0f};
+    m_random = Client::Render::Models::CrtRandom{seed};
+
+    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    Client::Render::Models::CrtRandom draws = Skipped(seed, Before + 1);
+    // El hueso 1 de la espada, colgada del 0x21 de la mano: (150; 150; 10 + 33 + 1).
+    glm::vec3 point{150.0f, 150.0f, 44.0f};
+    point.x = F32(static_cast<double>(draws.Next() % 30) - 15.0 + D(point.x));
+    point.y = F32(static_cast<double>(draws.Next() % 30) - 15.0 + D(point.y));
+    point.z = 64.0f;
+    std::vector<Client::Scenes::JointState> joints(m_joints.size());
+    Client::World::Particles particles;
+    for (int spark = 0; spark < 4; ++spark)
+    {
+        glm::vec3 angles{static_cast<float>(draws.Next() % 60 + 150), 0.0f, 135.0f};
+        const Client::World::FishEffectRequest request{0x617, point, point, angles, 0, nullptr, 10.0f, -1, 0, 0, -1};
+        ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, draws).HasValue());
+        ASSERT_TRUE(particles.CreateChecked(0x5c5, point, angles, glm::vec3(1.0f), 0, 1.0f, 0.0f, draws).HasValue());
+    }
+    static_cast<void>(draws.Next()); // +0x38e de la izquierda.
+    EXPECT_EQ(m_random.State(), draws.State());
+    ExpectSameJoints(m_joints, joints);
+    ExpectSameParticles(m_particles, particles);
+    for (std::size_t k = 0; k < 4; ++k)
+    {
+        SCOPED_TRACE(k);
+        EXPECT_EQ(m_joints[k].type, 0x617);
+        EXPECT_EQ(m_joints[k].position, point);
+        EXPECT_EQ(m_joints[k].angles.z, 135.0f);
+        EXPECT_EQ(m_particles.All()[k].type, 0x5c5);
+        EXPECT_EQ(m_particles.All()[k].position, point);
+    }
+    EXPECT_FALSE(m_joints[4].alive);
+
+    m_random = Client::Render::Models::CrtRandom{seed};
+    GameHangingPass pass = Pass(models);
+    pass.map = 10;
+    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    EXPECT_EQ(m_random.State(), Skipped(seed, Before + 1).State());
+}
+
+// 0x50af03..0x50b0a0: el arco 0xa27, con un rand() impar, suelta la chispa 0x5c6/0xb de 0,8 en el hueso 4 y en el 12
+// de su pose, con la luz (0,8; 0,8; 0,2) y los ángulos del personaje; con uno par, no. Los cinco destellos van igual.
+TEST_F(GameHangingTest, TheBowSparksFromBones4And12WithHalfTheRandoms)
+{
+    constexpr std::uint16_t Bow = 0xa27;
+    constexpr std::size_t Before = 4;
+    for (const bool sparks : {true, false})
+    {
+        SCOPED_TRACE(sparks);
+        const std::uint32_t seed = SeedWhere(
+            [sparks](Client::Render::Models::CrtRandom& random)
+            {
+                for (std::size_t call = 0; call < Before; ++call)
+                    static_cast<void>(random.Next());
+                return ((random.Next() & 1) == 1) == sparks;
+            });
+        const HangingModels models({Bow});
+        m_actor.hands[0].model = Bow;
+        m_actor.angles = {0.0f, 0.0f, 60.0f};
+        m_random = Client::Render::Models::CrtRandom{seed};
+        m_particles = Client::World::Particles{};
+        m_sprites.Clear();
+
+        const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        Client::Render::Models::CrtRandom draws = Skipped(seed, Before + 1);
+        Client::World::Particles particles;
+        if (sparks)
+        {
+            for (const float z : {47.0f, 55.0f})
+                ASSERT_TRUE(particles
+                                .CreateChecked(0x5c6, {150.0f, 150.0f, z}, m_actor.angles, {0.8f, 0.8f, 0.2f}, 11, 0.8f,
+                                               0.0f, draws)
+                                .HasValue());
+        }
+        static_cast<void>(draws.Next()); // +0x38e de la izquierda.
+        EXPECT_EQ(m_random.State(), draws.State());
+        ExpectSameParticles(m_particles, particles);
+        EXPECT_EQ(LiveSprites().size(), 5u);
+    }
+}
+
+// 0x50f454..0x50f676: el bastón 0xc18 en la mano lleva Spark02 y Shiny03 a −145 y, después, cuatro chispas 0x5c5/1
+// corridas (rand() % 20 − 10; rand() % 20 − 100; rand() % 20 − 10) con la luz (l; l · 0,6; l · 0,4) y los ángulos del
+// personaje, y de 0 a −180 un destello de 1 en (0; y + 60; 0) con tres de cada cuatro rand(), con (l; l · 0,2; l ·
+// 0,1).
+TEST_F(GameHangingTest, TheStaffC18SparksFourTimesAndFlaresAlongTheHand)
+{
+    constexpr std::uint16_t Staff = 0xc18;
+    const HangingModels models({Staff});
+    m_actor.hands[0].model = Staff;
+    m_actor.angles = {0.0f, 0.0f, 30.0f};
+
+    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    const float lum = FirstLum();
+    const glm::vec3 light{lum, lum * 0.6f, lum * 0.4f};
+    // 0x50db57, +0x38e de la mano y de 0x509340 y la luz de 0x509a92.
+    Client::Render::Models::CrtRandom draws = Skipped(1, 4);
+    Client::World::Particles particles;
+    for (int spark = 0; spark < 4; ++spark)
+    {
+        const auto x = static_cast<float>(draws.Next() % 20 - 10);
+        const auto y = static_cast<float>(draws.Next() % 20 - 10 - 90);
+        const auto z = static_cast<float>(draws.Next() % 20 - 10);
+        const glm::vec3 point{150.0f + x, 150.0f + y, 43.0f + z};
+        ASSERT_TRUE(particles.CreateChecked(0x5c5, point, m_actor.angles, light, 1, 1.0f, 0.0f, draws).HasValue());
+    }
+    std::vector<float> flares;
+    for (int y = 0; y > -200; y -= 20)
+    {
+        if ((draws.Next() & 3) < 3)
+            flares.push_back(static_cast<float>(y + 60));
+    }
+    static_cast<void>(draws.Next()); // +0x38e de la izquierda.
+    EXPECT_EQ(m_random.State(), draws.State());
+    ExpectSameParticles(m_particles, particles);
+    for (std::size_t k = 0; k < 4; ++k)
+    {
+        EXPECT_EQ(m_particles.All()[k].subtype, 1);
+        EXPECT_GE(m_particles.All()[k].life, 8);
+        EXPECT_LE(m_particles.All()[k].life, 15);
+    }
+    const auto sprites = LiveSprites();
+    ASSERT_EQ(sprites.size(), 2 + flares.size());
+    EXPECT_EQ(sprites[0].texture, 0x5c5);
+    EXPECT_EQ(sprites[0].position, glm::vec3(150.0f, 5.0f, 43.0f));
+    EXPECT_EQ(sprites[0].scale, 3.0f);
+    EXPECT_EQ(sprites[0].light, light);
+    EXPECT_EQ(sprites[1].texture, 0x5fe);
+    for (std::size_t k = 0; k < flares.size(); ++k)
+    {
+        SCOPED_TRACE(k);
+        EXPECT_EQ(sprites[2 + k].texture, Flare);
+        EXPECT_EQ(sprites[2 + k].position, glm::vec3(150.0f, 150.0f + flares[k], 43.0f));
+        EXPECT_EQ(sprites[2 + k].scale, 1.0f);
+        EXPECT_EQ(sprites[2 + k].light, glm::vec3(lum, lum * 0.2f, lum * 0.1f));
+    }
+}
+
+// 0x50ed00..0x50ee71: la espada 0x224 en la mano lleva Shiny02 en (0; −20; 15) y suelta desde ahí tres joints 0x614/10
+// sin dueño hasta (0; −133; 7), con los ángulos del personaje y el ancho v · 20 + 20, con v = (sin(reloj · 0,004f) +
+// 1) · 0,3f.
+TEST_F(GameHangingTest, TheSword224ThrowsThreeBeamsAlongTheBlade)
+{
+    const HangingModels models({Sword224});
+    m_actor.hands[0].model = Sword224;
+    m_actor.angles = {0.0f, 0.0f, 90.0f};
+    GameHangingPass pass = Pass(models);
+    pass.worldClock = 0.0f;
+
+    const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    // Con el reloj en 0: v = 0,3f y el ancho 0,3f · 20 + 20.
+    const float v = F32(1.0 * D(0.3f));
+    const float width = F32(D(v) * 20.0 + 20.0);
+    glm::vec3 first{150.0f, 130.0f, 58.0f};
+    glm::vec3 second{150.0f, 17.0f, 50.0f};
+    glm::vec3 angles = m_actor.angles;
+    Client::Render::Models::CrtRandom draws = Skipped(1, 4);
+    std::vector<Client::Scenes::JointState> joints(m_joints.size());
+    for (int beam = 0; beam < 3; ++beam)
+    {
+        const Client::World::FishEffectRequest request{0x614, first, second, angles, 10, nullptr, width, -1, 0, 0, -1};
+        ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, draws).HasValue());
+    }
+    static_cast<void>(draws.Next()); // +0x38e de la izquierda.
+    EXPECT_EQ(m_random.State(), draws.State());
+    ExpectSameJoints(m_joints, joints);
+    for (std::size_t k = 0; k < 3; ++k)
+    {
+        SCOPED_TRACE(k);
+        EXPECT_EQ(m_joints[k].type, 0x614);
+        EXPECT_EQ(m_joints[k].subtype, 10);
+        EXPECT_EQ(m_joints[k].width, width);
+        EXPECT_EQ(m_joints[k].position, second);
+    }
+    EXPECT_FALSE(m_joints[3].alive);
+    ASSERT_EQ(LiveSprites().size(), 1u);
+    EXPECT_EQ(LiveSprites()[0].texture, Shiny);
+    EXPECT_EQ(LiveSprites()[0].position, first);
+}
+
+// 0x50eb43..0x50ecf0: la espada 0x223. Dos joints 0x610/4 de la mano, con el personaje como dueño y sus ángulos, sin
+// rand() ni sprites. Con el reloj en 0, el ancho es 20.
+TEST_F(GameHangingTest, TheSword223LeavesTwoTrailsOwnedByTheCharacter)
+{
+    const HangingModels models({Sword223});
+    m_actor.hands[0].model = Sword223;
+    m_actor.angles = {0.0f, 0.0f, 90.0f};
+    GameHangingPass pass = Pass(models);
+    pass.worldClock = 0.0f;
+
+    const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    // (0; −20; −40) a (0; −160; −10) y (0; −10; 28) a (0; −145; 18) del hueso 0x21: (150 + x; 150 + y; 43 + z).
+    const std::array<std::pair<glm::vec3, glm::vec3>, 2> edges{{
+        {{150.0f, 130.0f, 3.0f}, {150.0f, -10.0f, 33.0f}},
+        {{150.0f, 140.0f, 71.0f}, {150.0f, 5.0f, 61.0f}},
+    }};
+    glm::vec3 angles = m_actor.angles;
+    std::vector<Client::Scenes::JointState> joints(m_joints.size());
+    Client::Render::Models::CrtRandom unused(1);
+    for (auto [first, second] : edges)
+    {
+        const Client::World::FishEffectRequest request{0x610, first, second, angles, 4, &m_actor, 20.0f, -1, 0, 0, -1};
+        ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, unused).HasValue());
+    }
+    EXPECT_EQ(unused.State(), Client::Render::Models::CrtRandom(1).State());
+    EXPECT_EQ(m_random.State(), AfterRandoms(5));
+    ExpectSameJoints(m_joints, joints);
+    for (std::size_t k = 0; k < edges.size(); ++k)
+    {
+        SCOPED_TRACE(k);
+        EXPECT_EQ(m_joints[k].type, 0x610);
+        EXPECT_EQ(m_joints[k].subtype, 4);
+        EXPECT_EQ(m_joints[k].width, 20.0f);
+        EXPECT_EQ(m_joints[k].ownerContext, &m_actor);
+        EXPECT_EQ(m_joints[k].targetPosition, edges[k].second);
+    }
+    EXPECT_FALSE(m_joints[2].alive);
+    EXPECT_TRUE(LiveSprites().empty());
+}
+
+// 0x50b411..0x50b763: el bastón 0xc1e. Spark03 en (0; p − 170; p) del hueso 0 de su pose, que queda en +0x40 del
+// personaje y donde nace el joint 0x618/0x11 con el personaje como dueño; otra p sin efecto y la escala t; un destello,
+// dos Shiny02 y la chispa 0x5c6/0xb de 2 con la luz (1; 0,4; 1); y seis Shiny02 en los huesos 2 y 1 con (a; 0,1; a),
+// girados g y g + 90. Con el reloj en 0, a = 0,5 − 0,1f y g = 0.
+TEST_F(GameHangingTest, TheStaffC1eLeavesItsPointOnTheCharacterAndAJointThatFollowsIt)
+{
+    constexpr std::uint16_t Staff = 0xc1e;
+    const HangingModels models({Staff});
+    m_actor.hands[0].model = Staff;
+    m_actor.angles = {0.0f, 0.0f, 45.0f};
+
+    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    Client::Render::Models::CrtRandom draws = Skipped(1, 4);
+    const float p = F32(static_cast<double>(draws.Next() % 60) * D(0.05f) - D(1.5f));
+    const float s = F32(static_cast<double>(draws.Next() % 15) * D(0.05f) + D(1.8f));
+    // El hueso 0 del bastón, colgado del 0x21 de la mano: (150; 150; 43).
+    glm::vec3 point{150.0f, F32(D(F32(D(p) - 170.0)) + 150.0), F32(D(p) + 43.0)};
+    static_cast<void>(draws.Next() % 60);
+    const float t = F32(static_cast<double>(draws.Next() % 15) * D(0.05f) + 1.0);
+    glm::vec3 angles = m_actor.angles;
+    std::vector<Client::Scenes::JointState> joints(m_joints.size());
+    const Client::World::FishEffectRequest request{0x618, point, point, angles, 0x11, &m_actor, 30.0f, -1, 0, 0, -1};
+    Client::Render::Models::CrtRandom unused(1);
+    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, unused).HasValue());
+    const glm::vec3 violet{1.0f, 0.4f, 1.0f};
+    Client::World::Particles particles;
+    ASSERT_TRUE(particles.CreateChecked(0x5c6, point, angles, violet, 11, 2.0f, 0.0f, draws).HasValue());
+    static_cast<void>(draws.Next()); // +0x38e de la izquierda.
+    EXPECT_EQ(m_random.State(), draws.State());
+    EXPECT_EQ(m_actor.effectOrigin, point);
+    ExpectSameJoints(m_joints, joints);
+    EXPECT_EQ(m_joints[0].type, 0x618);
+    EXPECT_EQ(m_joints[0].subtype, 0x11);
+    EXPECT_EQ(m_joints[0].position, point);
+    EXPECT_EQ(m_joints[0].ownerContext, &m_actor);
+    EXPECT_EQ(m_joints[0].life, 12);
+    ExpectSameParticles(m_particles, particles);
+    const auto sprites = LiveSprites();
+    ASSERT_EQ(sprites.size(), 10u);
+    EXPECT_EQ(sprites[0].texture, 0x5c6);
+    EXPECT_EQ(sprites[0].position, point);
+    EXPECT_EQ(sprites[0].scale, s);
+    EXPECT_EQ(sprites[0].light, glm::vec3(0.4f));
+    EXPECT_EQ(sprites[1].texture, Flare);
+    EXPECT_EQ(sprites[1].scale, t);
+    EXPECT_EQ(sprites[1].light, violet);
+    EXPECT_EQ(sprites[2].texture, Shiny);
+    EXPECT_EQ(sprites[2].scale, t);
+    EXPECT_EQ(sprites[2].rotation, 0.0f);
+    EXPECT_EQ(sprites[3].scale, F32(D(t) - D(0.3f)));
+    EXPECT_EQ(sprites[3].rotation, 90.0f);
+    const float a = F32(0.5 - D(0.1f));
+    const std::array<glm::vec3, 3> shines{glm::vec3{150.0f, 160.0f, 45.0f}, glm::vec3{110.0f, 140.0f, 44.0f},
+                                          glm::vec3{-10.0f, 145.0f, 44.0f}};
+    const std::array<float, 6> scales{1.5f, 1.2f, 1.0f, 0.7f, 1.2f, 1.0f};
+    for (std::size_t k = 0; k < 6; ++k)
+    {
+        SCOPED_TRACE(k);
+        EXPECT_EQ(sprites[4 + k].texture, Shiny);
+        EXPECT_EQ(sprites[4 + k].position, shines[k / 2]);
+        EXPECT_EQ(sprites[4 + k].scale, scales[k]);
+        EXPECT_EQ(sprites[4 + k].light, glm::vec3(a, 0.1f, a));
+        EXPECT_EQ(sprites[4 + k].rotation, k % 2 == 0 ? 0.0f : 90.0f);
+    }
+}
+
 // 0x50df80..0x50e05d: Helper02 cuelga del hueso 34 a (20, 0, 0) a media key por frame, y después
 // 0x4ec110 con (20, 0, 15) en el mismo hueso lleva un destello rojo de 1,5.
 TEST_F(GameHangingTest, Helper02HangsFromBone34WithItsRedFlare)
@@ -474,30 +886,76 @@ TEST_F(GameHangingTest, AGameMasterReplacesALayerOfAnotherKind)
     EXPECT_EQ(m_actor.layer->animation.frame, 0.0f);
 }
 
-// Lo que todavía corta, con su dirección y después de lo ya dibujado: el joint de 0x223 (0x50ec26), el
-// de 0x224 después de su Shiny02 (0x50ee26), la capa de un GM por el nombre sin MuSign (0x414470), el arma
-// del evento de Blood Castle (0x50de84), la capa en Chaos Castle (0x5ffe09), las capas del 6 al 13
-// (0x4140d5) y lo que no es un jugador (0x50e060).
+// 0x414310..0x414330: con +0x360 del 6 al 13, 0x4294b0 (el byte del asedio, 0x7239ec) decide; con el 0 del
+// arranque no dibuja la capa, y con el asedio llama al método de +0x364, que no está portado. El 5 y el 14 no lo
+// miran.
+TEST_F(GameHangingTest, TheSiegeLayersAreLeftAloneWithoutTheSiege)
+{
+    const HangingModels models({MuSign});
+    for (const std::uint8_t kind : {std::uint8_t{6}, std::uint8_t{13}})
+    {
+        SCOPED_TRACE(static_cast<int>(kind));
+        m_actor.byte360 = kind;
+        m_actor.layer = Client::Scenes::GameMasterLayer{};
+        GameHangingPass pass = Pass(models);
+        ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+        EXPECT_TRUE(m_batch.Vertices().empty());
+
+        pass.siegeActive = true;
+        const auto cut = Client::Scenes::DrawGameHanging(m_actor, pass);
+        ASSERT_FALSE(cut.HasValue());
+        EXPECT_NE(cut.Error().find("0x414330"), std::string::npos) << cut.Error();
+        EXPECT_TRUE(m_batch.Vertices().empty());
+    }
+}
+
+// 0x414470 y 0x5ffdf0 en Chaos Castle: sin +0x1a1 del héroe la capa se dibuja como en otro mapa; con él, cada frame
+// del original le baja 0,15f al alpha guardado (un dibujo intermedio no), lo dibuja con ese alpha y, cuando queda
+// por debajo de 0,01, ni la posa ni la dibuja.
+TEST_F(GameHangingTest, TheSignFadesInChaosCastleWithTheHerosFlag)
+{
+    const HangingModels models({MuSign});
+    m_actor.byte360 = 5;
+    m_actor.layer = Client::Scenes::GameMasterLayer{};
+    GameHangingPass pass = Pass(models);
+    pass.map = 20;
+
+    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    ASSERT_TRUE(m_actor.layer.has_value());
+    EXPECT_EQ(m_actor.layer->alpha, 1.0f);
+    EXPECT_EQ(m_batch.Vertices().size(), 6u);
+
+    pass.heroByte1a1 = 1;
+    pass.originalFrame = false;
+    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    EXPECT_EQ(m_actor.layer->alpha, 1.0f);
+    pass.originalFrame = true;
+    float expected = 1.0f;
+    for (int frame = 0; frame < 6; ++frame)
+    {
+        SCOPED_TRACE(frame);
+        const std::size_t before = m_batch.Vertices().size();
+        ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+        expected = static_cast<float>(static_cast<double>(expected) - static_cast<double>(0.15f));
+        EXPECT_EQ(m_actor.layer->alpha, expected);
+        EXPECT_GT(m_batch.Vertices().size(), before);
+    }
+    const std::size_t drawn = m_batch.Vertices().size();
+    m_carry.models.clear();
+    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    EXPECT_LT(m_actor.layer->alpha, 0.01f);
+    EXPECT_EQ(m_batch.Vertices().size(), drawn);
+    EXPECT_FALSE(m_carry.models.contains(MuSign));
+    const float faded = m_actor.layer->alpha;
+    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    EXPECT_EQ(m_actor.layer->alpha, faded);
+}
+
+// Lo que todavía corta, con su dirección y después de lo ya dibujado: la capa de un GM por el nombre sin MuSign
+// (0x414470), el arma del evento de Blood Castle (0x50de84), las capas del 6 al 13 (0x4140d5) y lo que no es un
+// jugador (0x50e060).
 TEST_F(GameHangingTest, TheUnportedCasesStopWithTheirAddress)
 {
-    {
-        const HangingModels models({Sword223});
-        m_actor.hands[0].model = Sword223;
-        const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_NE(result.Error().find("0x50ec26"), std::string::npos) << result.Error();
-        EXPECT_EQ(m_batch.Vertices().size(), 3u);
-    }
-    {
-        const HangingModels models({Sword224});
-        m_actor.hands[0].model = Sword224;
-        m_sprites.Clear();
-        const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_NE(result.Error().find("0x50ee26"), std::string::npos) << result.Error();
-        ASSERT_EQ(LiveSprites().size(), 1u);
-        EXPECT_EQ(LiveSprites()[0].texture, Shiny);
-    }
     {
         const HangingModels models({});
         m_actor.hands[0].model = 0xffff;
@@ -517,10 +975,6 @@ TEST_F(GameHangingTest, TheUnportedCasesStopWithTheirAddress)
         const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
         ASSERT_FALSE(result.HasValue());
         EXPECT_NE(result.Error().find("0x50de84"), std::string::npos) << result.Error();
-        pass.map = 20;
-        const auto chaos = Client::Scenes::DrawGameHanging(m_actor, pass);
-        ASSERT_FALSE(chaos.HasValue());
-        EXPECT_NE(chaos.Error().find("0x5ffe09"), std::string::npos) << chaos.Error();
         m_actor.layer.reset();
         m_actor.byte360 = 6;
         const auto other = Client::Scenes::DrawGameHanging(m_actor, Pass(models));

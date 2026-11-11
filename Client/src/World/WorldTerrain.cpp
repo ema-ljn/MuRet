@@ -268,9 +268,19 @@ WorldTileTexture AcceptBoxTexture()
                             .required = true};
 }
 
-std::vector<WorldTileTexture> KalimaObjectTextures(std::uint8_t map)
+WorldTileTexture DropTexture()
 {
-    if (!IsKalimaMap(map))
+    // 0x63b870("Object8\\drop01.jpg", 0x607, 0x2600, 0x2900, 0, 1).
+    return WorldTileTexture{.path = "Object8\\drop01.jpg",
+                            .slot = 0x607,
+                            .sampling = {Data::Textures::Filter::Nearest, Data::Textures::Wrap::Clamp},
+                            .required = true};
+}
+
+std::vector<WorldTileTexture> CausticTextures(std::uint8_t map)
+{
+    constexpr std::uint8_t AtlansMap = 7;
+    if (map != AtlansMap && !IsKalimaMap(map))
         return {};
     constexpr std::uint16_t Count = 32;
     constexpr std::uint16_t FirstSlot = 65;

@@ -644,6 +644,8 @@ TEST(LoginSceneModelsTest, NativeLoginPosesUpdateTheDurableCarryAndIntermediateD
                                   Client::Tests::OzjOf(Client::Tests::ReadJpegVector("baseline-420.jpg")));
     Client::Tests::WriteSceneFile(tested.folder.Path(), "World56/TileGrass01.OZJ",
                                   Client::Tests::OzjOf(Client::Tests::ReadJpegVector("baseline-420.jpg")));
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "Object8/drop01.OZJ",
+                                  Client::Tests::OzjOf(Client::Tests::ReadJpegVector("baseline-420.jpg")));
     const auto entered = tested.Make(FixedSeed, nullptr, nullptr, &world).Enter();
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
     // La biblioteca sintética de este fixture sólo presta cuerpo/caballo; el cuervo se prueba aparte.

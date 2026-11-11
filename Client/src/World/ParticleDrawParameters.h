@@ -11,7 +11,9 @@ enum class ParticleDrawKind
     Fire,
     RotatedFire,
     Drop,
-    Unrotated
+    Unrotated,
+    // 0x54899a, la burbuja 698 de Crywolf: la columna de 8 cuadros de coll.jpg.
+    Bubble
 };
 struct ParticleDrawParameters
 {

@@ -7,7 +7,7 @@
 // línea acá, en el grupo de quien la usa.
 //
 // No es glad ni GLEW: el puerto glad de vcpkg trae el perfil de compatibilidad y pide Python, y un
-// glad.c generado son miles de líneas con su propia forma de actualizarse. Con 47 funciones, la
+// glad.c generado son miles de líneas con su propia forma de actualizarse. Con 51 funciones, la
 // tabla propia son pocas líneas, y el pedido (SDL_GL_GetProcAddress, el reintento en opengl32.dll)
 // ya estaba escrito desde la CL0.3 (CODING_RULES §10). Salió de la del lab de la CL5.0
 // (labs/cl5.0-pipeline/gl/LabGl.h), que tenía 41: el lab se queda solo con glDrawElements, que el
@@ -31,6 +31,7 @@
 //   glGenFramebuffers a glCheck...        el framebuffer de los tests (GlFramebuffer)
 //   glCreateShader a glUniform1i          los shaders, el programa, la matriz y las banderas del
 //                                         fragment shader (GlShader y GlRenderer)
+//   glUniform1f, glUniform3f              la niebla del 3D: el inicio, el fin y el color (GlModelRenderer)
 //   glGenVertexArrays a glDrawArrays      el VAO, el VBO y el dibujo (GlRenderer)
 #define MURET_GL_RENDER_FUNCTIONS(X)                                                                                   \
     X(PFNGLVIEWPORTPROC, viewport, "glViewport")                                                                       \
@@ -70,6 +71,8 @@
     X(PFNGLGETUNIFORMLOCATIONPROC, getUniformLocation, "glGetUniformLocation")                                         \
     X(PFNGLUNIFORMMATRIX4FVPROC, uniformMatrix4fv, "glUniformMatrix4fv")                                               \
     X(PFNGLUNIFORM1IPROC, uniform1i, "glUniform1i")                                                                    \
+    X(PFNGLUNIFORM1FPROC, uniform1f, "glUniform1f")                                                                    \
+    X(PFNGLUNIFORM3FPROC, uniform3f, "glUniform3f")                                                                    \
     X(PFNGLGENVERTEXARRAYSPROC, genVertexArrays, "glGenVertexArrays")                                                  \
     X(PFNGLDELETEVERTEXARRAYSPROC, deleteVertexArrays, "glDeleteVertexArrays")                                         \
     X(PFNGLBINDVERTEXARRAYPROC, bindVertexArray, "glBindVertexArray")                                                  \

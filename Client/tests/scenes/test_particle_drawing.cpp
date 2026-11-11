@@ -8,6 +8,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/TextureSlot.h"
+#include "Render/TextureEnvMode.h"
 #include "Render/Models/Skeleton.h"
 #include "Data/Models/Model.h"
 #include "Data/Textures/Texture.h"
@@ -22,6 +23,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <optional>
@@ -131,6 +133,14 @@ struct Backend final : Client::Render::IParticleDrawBackend
     {
         return Record("sub-tail");
     }
+    Result BlendedPrefix() override
+    {
+        return Record("blend-prefix");
+    }
+    Result BlendedTail() override
+    {
+        return Record("blend-tail");
+    }
     Result Type620850() override
     {
         return Record("type-850");
@@ -138,6 +148,10 @@ struct Backend final : Client::Render::IParticleDrawBackend
     Result Type620870() override
     {
         return Record("type-870");
+    }
+    Result TextureEnv(Client::Render::TextureEnvMode mode) override
+    {
+        return Record(mode == Client::Render::TextureEnvMode::Add ? "tex-add" : "tex-modulate");
     }
     Result BindTexture(std::int32_t value) override
     {
@@ -760,6 +774,48 @@ TEST_F(ParticleDrawingTest, SmokeReadsTheClosedMaterialGuardSetsAfterTheInitialS
             EXPECT_EQ(m_backend.corners[0].position, glm::vec3(-4, -2, 0));
         }
         EXPECT_EQ(p.rotation, 90);
+    }
+}
+
+// 0x5489eb..0x548a4c: la 6ac/2 pone GL_ADD antes de 0x620c10, dibuja el billboard común y vuelve a GL_MODULATE
+// antes del lugar siguiente, que es una 6ac/0 sin glTexEnvi.
+TEST_F(ParticleDrawingTest, TheBrightFlameDrawsItsBillboardBetweenAddAndModulate)
+{
+    Seed(0, 0x6ac, 2);
+    Seed(1, 0x6ac, 0);
+    ASSERT_TRUE(Draw().HasValue());
+    const std::vector<std::string> head{"metadata:17", "metadata:1708", "additive",   "tex-add", "blend-prefix",
+                                        "helper-f0",   "helper-b0",     "blend-tail", "bind",    "begin"};
+    ASSERT_GE(m_events.size(), head.size());
+    EXPECT_EQ(std::vector<std::string>(m_events.begin(), m_events.begin() + std::ssize(head)), head);
+    const auto end = std::ranges::find(m_events, "end");
+    ASSERT_NE(end, m_events.end());
+    ASSERT_NE(std::next(end), m_events.end());
+    EXPECT_EQ(*std::next(end), "tex-modulate");
+    EXPECT_EQ(std::count(m_events.begin(), m_events.end(), "tex-add"), 1);
+    EXPECT_EQ(std::count(m_events.begin(), m_events.end(), "tex-modulate"), 1);
+    EXPECT_EQ(m_backend.completed, 2u);
+}
+
+// Un glTexEnvi que falla corta con su fase: el de GL_ADD antes de la mezcla y el de GL_MODULATE después del quad.
+TEST_F(ParticleDrawingTest, ATextureEnvFailureStopsAtItsOwnPhase)
+{
+    for (const char* event : {"tex-add", "tex-modulate"})
+    {
+        SCOPED_TRACE(event);
+        m_particles.Clear();
+        m_events.clear();
+        m_backend.completed = 0;
+        Seed(0, 0x6ac, 2);
+        m_backend.fail = event;
+        const auto result = Draw();
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_EQ(result.Error().slot, 0u);
+        EXPECT_EQ(result.Error().error.phase, ParticleDrawingPhase::TextureEnv);
+        EXPECT_EQ(result.Error().error.reason, ParticleError::MissingDrawingService);
+        ASSERT_FALSE(m_events.empty());
+        EXPECT_EQ(m_events.back(), event);
+        EXPECT_EQ(m_backend.completed, std::string_view(event) == "tex-add" ? 0u : 1u);
     }
 }
 

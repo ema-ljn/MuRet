@@ -4,6 +4,7 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaEffects.h"
 #include "World/ITerrainAttributeQuerySource.h"
+#include "World/TerrainAttributeQuery.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/KalimaWorld.h"
@@ -49,7 +50,7 @@ public:
     explicit TailAttributeQuery(const Data::Terrain::TerrainAttributes& attributes) : m_attributes(attributes) {}
     float ReadScale() override
     {
-        return 0.01f;
+        return World::TerrainAttributeQueryScale;
     }
     const Data::Terrain::TerrainAttributes& Attributes() override
     {
@@ -228,7 +229,8 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
             {
             case GameTailStage::WorldLeaves:
             case GameTailStage::EyeLeaves:
-                return DrawGameLeaves(canvas.models, world.Leaves(), runtime.map, view);
+                // 0x5307b2: el 0x66 del 34 solo se dibuja con el clima de Crywolf en 1.
+                return DrawGameLeaves(canvas.models, world.Leaves(), runtime.map, view, runtime.crywolf.weather);
             case GameTailStage::Joints:
                 return DrawJoints(canvas.models, tail.joints, mode, jointResources);
             case GameTailStage::ModelEffects:

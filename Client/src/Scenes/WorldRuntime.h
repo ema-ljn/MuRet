@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GameLogic/MovementSpeed.h"
+#include "Scenes/EventMapObject.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameItemRenderState.h"
@@ -26,6 +27,25 @@ namespace Client::Scenes
 // .data[0x6c8c5c] = 1e 00 00 00; los otros cuatro campos del clima están en .bss.
 inline constexpr std::int32_t InitialLeafCount = 30;
 
+// Los globales de Crywolf (el mapa 34), todos en la .bss.
+struct CrywolfGlobals
+{
+    // 0x723c04: el estado del evento que lee 0x42fe50. Lo cambia solo el paquete de 0x42fe80 (CL9.5) y lo vuelve
+    // a 0 la vuelta a la selección (0x42fdc0). Con 0, la carga del 34 toma EncTerrain35.att y TerrainLight
+    // (0x61a560) y el dibujo de sus objetos, los casos del estado 0 (Q-C340).
+    std::uint8_t state = 0;
+    // 0x5763358: el clima, rand() % 3 cada 70.001 frames de sus objetos (0x430510). Lo leen las hojas (0x530490
+    // y 0x5306a0) y el 0x49 del dibujo (0x430942).
+    std::int32_t weather = 0;
+    // 0x723c0c: los frames de los objetos desde el último sorteo del clima (0x430523).
+    std::int32_t frameCount = 0;
+    // 0x723c10: el giro del segundo sprite 0x60f del 0x29, de 0 a 359 (0x4305db).
+    float glowRotation = 0.0f;
+    // 0x576353c: el 0x49 lo pone en 1 con el clima en 0 (0x430950); lo gasta el HUD (0x5a7520 → 0x435930, CL8),
+    // que MuRet no tiene.
+    std::uint8_t sandOverlay = 0;
+};
+
 struct WorldRuntime
 {
     // Q-C180/Q-C27: primer aviso de datos que pidió WM_DESTROY. Durable incluso si Poll falla;
@@ -33,6 +53,16 @@ struct WorldRuntime
     std::optional<std::string> fatalDataMessage{};
     GameItemRenderState itemRender{};
     bool siegeActive = false; // 07239ec, separado del número de mapa (4294b0).
+    // 0x7239f0 (.bss 0): cuándo 0x42b540 eligió la música del mapa 30, en ms de timeGetTime guardados en float. Lo
+    // ponen en 0 la carga del 30 (0x42a795) y 0x4294c0 (los paquetes del asedio, CL9.5).
+    float siegeMusicTime = 0.0f;
+    // 0x6c649a (.data 0xff): el puesto del héroe en su gremio, que solo copia 0x412120 desde 0x4d9260 (el
+    // paquete del gremio, CL9). Sin ese paquete queda en 0xff, sin gremio.
+    std::uint8_t heroGuildPost = 0xff;
+    // 0x5763530: el panel del asedio que 0x412140 arma en el mapa 30 y 0x412560 suelta en los demás, por su
+    // clase (+0x18, lo que devuelve su primer método): 0 sin gremio (0x20 bytes, vtable 0x6b88a8, en (489; 259)),
+    // 1 y 2 con él. Lo dibujan 0x59ff10 y 0x5a7320, la interfaz (CL8).
+    std::optional<std::uint8_t> siegePanelKind{};
     GameMovementState movement{};
     // Los cinco selectores del mouse arrancan en -1 en la .data.
     std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};
@@ -48,6 +78,25 @@ struct WorldRuntime
     std::int32_t objectSelectionCount = 0;
     // 0x723c4c, .bss 0: la hora del sistema (timeGetTime) del último ambiente 0x1ef de Land of Trials (0x44016b).
     std::uint32_t trialsAmbientTime = 0;
+    // DAT_00723c60, el objeto de evento que arma 0x447d70. Vacío como la .bss; sólo 0x447d70 lo suelta
+    // (0x447eb0), y sólo para armar otro: al salir del evento a un mapa común sigue vivo (Q-C320).
+    std::optional<EventMapObject> eventObject{};
+    // 0x6c634c (.data 0xff): el área de Chaos Castle que leen 0x404e20 y 0x405e00 (Q-C229); 0x404d60 la vuelve
+    // a poner en 0xff.
+    std::uint8_t chaosCastleArea = 0xff;
+    // 0x6c634d (.data 1): la trampa de Chaos Castle armada. 0x4055b0 la gasta con el primer 3 visto; solo el
+    // paquete de 0x404e20 la vuelve a armar (CL9.5).
+    std::uint8_t chaosCastleTrapArmed = 1;
+    // Lo de Crywolf que leen y escriben la carga, sus objetos y sus hojas.
+    CrywolfGlobals crywolf{};
+    // 0x5763538 (.bss 0): el contador de 0x6046a0, que da la vuelta de 1 a 41 al empezar cada dibujo de los
+    // objetos, en el login, la selección y el juego (0x6046be..0x6046ce). Solo lo lee el 0x29 de Crywolf.
+    std::int32_t objectDrawCounter = 0;
+    // 0x743a180, 0x743a184 y 0x743a188 (.bss 0): la celda del héroe y el reloj del mundo que 0x4fbe10 guarda en
+    // los mapas 18 a 23. Nadie más los escribe: sobreviven a la carga de otro mapa.
+    std::int32_t reportedCellX = 0;
+    std::int32_t reportedCellY = 0;
+    float reportedCellTime = 0.0f;
     // DAT_006c9dd0, el mundo en curso. Quien llama a 0x61a560 lo escribe justo antes (05, "La carpeta
     // de cada mapa"): el login con 55 (06, "El login, al entrar") y la selección con 54 en 0x633f20
     // (06, "Al entrar"). Ese 54 sigue en la carga del mundo y en la espera de la escena 5, que corre

@@ -41,9 +41,23 @@ inline constexpr std::int16_t SecondStoneChipEffect = 0xc9;
 // que sube soltando partículas 5ac/1.
 inline constexpr std::int16_t IcarusCloudEffect = 0xbb;
 inline constexpr std::int16_t IcarusFlareEffect = 0x5ac;
+// El 0x5ac/3 del conjunto completo (0x50fdc3): cada 100 dibujos del personaje con +0x358, con él de dueño. No se
+// mueve solo: cada 15 pasos se corre alrededor del dueño y suelta un joint 619/9 (0x52a9ad).
+inline constexpr std::int32_t FullSetFlareSubtype = 3;
 // El de Aida (0x42593f): el 0x46 crea el 0xb3, un modelo que Aida no carga (en Atlans, Object8\Fish02), que
 // vaga cerca de donde nació y suelta partículas 5ac/9.
 inline constexpr std::int16_t AidaWispEffect = 0xb3;
+// El de Castle Siege (0x42c6b0): el objeto 79 del mapa 30 crea el 0x135 (Skill\TowerGatePlane), un plano
+// que sube y baja con el reloj y se dibuja dos veces, la segunda reflejada.
+inline constexpr std::int16_t GatePlaneEffect = 0x135;
+// El calco que se apaga (0x61d, sin modelo: solo el pase del suelo dibuja la /1). El 0x38 de Crywolf crea el /3, que
+// suelta órbitas 60f/10 (0x52b933).
+inline constexpr std::int16_t FadingDecalEffect = 0x61d;
+inline constexpr std::int32_t CrywolfDecalSubtype = 3;
+// La onda (0x6eb, Effect\ShockWave.jpg, sin modelo: solo el pase del suelo la dibuja). El galope del caballo oscuro en
+// Icarus crea la /1 (0x44431b), que crece y tiembla.
+inline constexpr std::int16_t ShockWaveEffect = 0x6eb;
+inline constexpr std::int32_t GallopShockWaveSubtype = 1;
 
 // Proyección de los campos compartidos por los efectos de 0x1d4 bytes.
 struct ModelEffect
@@ -75,6 +89,10 @@ struct ModelEffect
     std::int32_t textureFrame = 0;           // +0x1c4: selector firmado del calco 0x14e en52d8f2.
     const std::int16_t* itemType = nullptr;  // +108 del efecto→+8c del dueño durable, paraf4/fa.
     const std::uint8_t* itemLevel = nullptr; // +108→+8e; no inferir desde ActorState.
+    // +0x108 distinto de 0: el efecto tiene dueño. El plano 0x135 sólo se mueve con dueño (0x529745).
+    bool hasOwner = false;
+    // +0x108 como dueño opaco, para los pasos que lo leen fuera de World: el ActorState del personaje del 5ac/3.
+    void* ownerContext = nullptr;
 };
 
 class ModelEffects
@@ -136,6 +154,26 @@ public:
     // El dueño (+0x108) no lo lee nadie. Lleno, ninguno y sin rand().
     std::optional<std::size_t> CreateAidaWisp(const glm::vec3& position, const glm::vec3& angles,
                                               const glm::vec3& light, Render::Models::CrtRandom& random);
+    // 0x518cf0(0x135, posición, ángulos, luz, 0, objeto, −1, 0, 0, 0, 0) → 0x51d73b: el prefijo común (+0x8a
+    // en −1, escala 0,9), el dueño (+0x108), vida 100, la luz de las mallas (+0x68) en 0,3f y la partida en
+    // la posición. Sin rand(); lleno, ninguno.
+    std::optional<std::size_t> CreateGatePlane(const glm::vec3& position, const glm::vec3& angles,
+                                               const glm::vec3& light, bool hasOwner);
+    // 0x518cf0(0x61d, posición, ángulos, luz, subtipo, dueño, `disturbance`, 0, 0, 0, 0) → 0x51ee96: el prefijo
+    // común (escala 0,9 y +0x8a con `disturbance`), vida 20 y escala 0,5; con el subtipo 0, la vida en 15. Sin
+    // rand(). El dueño (+0x108) no lo lee el paso del 0x61d. Lleno, ninguno.
+    std::optional<std::size_t> CreateFadingDecal(const glm::vec3& position, const glm::vec3& angles,
+                                                 const glm::vec3& light, std::int32_t subtype,
+                                                 std::uint16_t disturbance);
+    // 0x518cf0(0x5ac, posición, ángulos, luz, 3, personaje, −1, 0, 0, 0, 0) → 0x51e489: el prefijo común (+0x8a en
+    // −1, escala 0,9) con el personaje de dueño (+0x108), vida 30 y +0xd8 en 0. Sin rand(); lleno, ninguno.
+    std::optional<std::size_t> CreateFullSetFlare(const glm::vec3& position, const glm::vec3& angles,
+                                                  const glm::vec3& light, void* owner);
+    // 0x518cf0(0x6eb, posición, ángulos, luz, 1, 0, −1, 0, 0, 0, 0) → 0x51f4ad: el prefijo común (+0x8a en −1, sin
+    // dueño), la vida 30 y la escala 20 del tipo, y con el subtipo 1 la vida 20 y la escala ((rand() % 10) + 10) ·
+    // 0,1f en la x87 (0x51f4c3..0x51f4eb). Un rand(); lleno, ninguno y sin rand().
+    std::optional<std::size_t> CreateGallopShockWave(const glm::vec3& position, const glm::vec3& angles,
+                                                     const glm::vec3& light, Render::Models::CrtRandom& random);
     // 0x6070a0: sólo apaga el byte vivo de cada lugar (Q-C138).
     void Clear();
 

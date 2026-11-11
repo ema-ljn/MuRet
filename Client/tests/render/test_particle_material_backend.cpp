@@ -8,15 +8,19 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Data/Models/Model.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/TextureEnvMode.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/TextureMetadata.h"
 
 #include <gtest/gtest.h>
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <cstdint>
 #include <array>
 #include <cstddef>
 #include <functional>
+#include <initializer_list>
 #include <optional>
 #include <span>
 #include <system_error>
@@ -375,4 +379,47 @@ TEST(ParticleMaterialBackendTest, KalimaSixEnablesDepthAfterMaterialWithoutChang
     const auto serial = batch.StateSerial();
     ASSERT_TRUE(backend.Type620850().HasValue());
     EXPECT_EQ(batch.StateSerial(), serial);
+}
+
+// 0x5489eb: glTexEnvi va fuera del quad y no es del material: no publica una operación ni cambia el serial, y el quad
+// que sigue lleva GL_ADD hasta que vuelve GL_MODULATE. Adentro del quad es un error de GL y no cambia nada.
+TEST(ParticleMaterialBackendTest, TextureEnvIsOutsideTheQuadAndTravelsWithIt)
+{
+    using Client::Render::TextureEnvMode;
+    Client::Render::ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    SlotLookupModels models;
+    Client::Render::ModelBatchParticleBackend backend(std::ref(batch), std::cref(models),
+                                                      Client::Render::ModelBatchParticleState::ForModelPass());
+    const auto commands = batch.Commands().size();
+    const auto serial = batch.StateSerial();
+    ASSERT_TRUE(backend.TextureEnv(TextureEnvMode::Add).HasValue());
+    EXPECT_EQ(batch.TextureEnv(), TextureEnvMode::Add);
+    EXPECT_EQ(batch.Commands().size(), commands);
+    EXPECT_EQ(batch.StateSerial(), serial);
+    ASSERT_TRUE(backend.BlendedPrefix().HasValue());
+    ASSERT_TRUE(backend.Helper6208f0().HasValue());
+    ASSERT_TRUE(backend.Helper6208b0().HasValue());
+    ASSERT_TRUE(backend.BlendedTail().HasValue());
+    ASSERT_TRUE(backend.BindTexture(5).HasValue());
+    ASSERT_TRUE(backend.Begin().HasValue());
+    const auto inside = backend.TextureEnv(TextureEnvMode::Modulate);
+    ASSERT_FALSE(inside.HasValue());
+    EXPECT_EQ(inside.Error(), std::make_error_code(std::errc::operation_in_progress));
+    EXPECT_EQ(batch.TextureEnv(), TextureEnvMode::Add);
+    ASSERT_TRUE(backend.Color3({1.0f, 1.0f, 1.0f}).HasValue());
+    for (const glm::vec3& corner : {glm::vec3{0, 0, 0}, glm::vec3{1, 0, 0}, glm::vec3{1, 1, 0}, glm::vec3{0, 1, 0}})
+    {
+        ASSERT_TRUE(backend.TexCoord({0.0f, 0.0f}).HasValue());
+        ASSERT_TRUE(backend.Vertex(corner).HasValue());
+    }
+    ASSERT_TRUE(backend.End().HasValue());
+    ASSERT_TRUE(backend.TextureEnv(TextureEnvMode::Modulate).HasValue());
+    ASSERT_FALSE(batch.Commands().empty());
+    const auto& quad = batch.Commands().back();
+    EXPECT_EQ(quad.operation, Client::Render::ModelStateOperation::Draw);
+    EXPECT_EQ(quad.vertexCount, 6u);
+    EXPECT_EQ(quad.textureEnv, TextureEnvMode::Add);
+    EXPECT_EQ(quad.state.blend, Client::Render::ModelBlend::BlendedShadow);
+    EXPECT_EQ(batch.TextureEnv(), TextureEnvMode::Modulate);
 }

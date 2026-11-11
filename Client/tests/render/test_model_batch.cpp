@@ -1,12 +1,15 @@
 #include "Render/ModelBatch.h"
 
 #include "App/WindowState.h"
+#include "Render/ModelFog.h"
 #include "Render/ModelVertex.h"
 #include "Render/Pass3D.h"
+#include "Render/TextureEnvMode.h"
 #include "Render/TextureSlot.h"
 
 #include <gtest/gtest.h>
 
+#include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_int4.hpp>
 
 #include <array>
@@ -24,8 +27,11 @@ using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::ModelDrawCommand;
 using Client::Render::ModelDrawState;
+using Client::Render::ModelFog;
+using Client::Render::ModelStateOperation;
 using Client::Render::ModelVertex;
 using Client::Render::Pass3D;
+using Client::Render::TextureEnvMode;
 using Client::Render::TextureSlot;
 using Client::Render::ViewportRect;
 
@@ -122,5 +128,77 @@ TEST(ModelBatchTest, BeginEmptiesTheBatch)
     EXPECT_EQ(batch.Vertices().size(), 3u);
     // El estado vuelve al de un pase recién empezado: opaco, sin textura y con profundidad.
     EXPECT_EQ(batch.Commands()[0].state, ModelDrawState{});
+}
+
+// La niebla de 0x42b0a0 no es del material: cada tramo lleva la que había al dibujarlo, prenderla o apagarla abre
+// otro tramo con el mismo estado, y un estado nuevo, aunque sea ModelDrawState{}, no la saca.
+TEST(ModelBatchTest, EachCommandCarriesTheFogOfItsTriangles)
+{
+    const ModelFog fog{.color = glm::vec3(0.0f), .start = 2000.0f, .end = 2700.0f};
+    ModelBatch batch;
+    batch.Begin(SomePass());
+    batch.SetState(ModelDrawState{SomeSlot, ModelBlend::Opaque, true});
+    batch.Triangle(TriangleAt(0));
+    const auto serial = batch.StateSerial();
+    batch.SetFog(fog);
+    EXPECT_EQ(batch.StateSerial(), serial);
+    batch.Triangle(TriangleAt(1));
+    batch.SetState(ModelDrawState{});
+    batch.Triangle(TriangleAt(2));
+    batch.SetFog(std::nullopt);
+    batch.Triangle(TriangleAt(3));
+
+    ASSERT_EQ(batch.Commands().size(), 4u);
+    EXPECT_EQ(batch.Commands()[0].fog, std::nullopt);
+    EXPECT_EQ(batch.Commands()[1].fog, fog);
+    EXPECT_EQ(batch.Commands()[1].state, batch.Commands()[0].state);
+    EXPECT_EQ(batch.Commands()[2].fog, fog);
+    EXPECT_EQ(batch.Commands()[3].fog, std::nullopt);
+    EXPECT_EQ(batch.Commands()[3].firstVertex, 9u);
+}
+
+// 0x620db0 apaga la niebla (Begin con el material) y 0x6213e0 o un flush la conservan (Begin sin él). Las
+// operaciones y los tramos sin triángulos también la llevan.
+TEST(ModelBatchTest, OnlyAPassThatInitializesTheMaterialTurnsTheFogOff)
+{
+    const ModelFog fog{.color = glm::vec3(0.0f), .start = 2000.0f, .end = 2700.0f};
+    ModelBatch batch;
+    batch.Begin(SomePass());
+    batch.SetFog(fog);
+    batch.Begin(SomePass(), false);
+    EXPECT_EQ(batch.Fog(), fog);
+    batch.ApplyOperation(ModelDrawState{}, ModelStateOperation::Blend);
+    batch.ApplyState(ModelDrawState{SomeSlot, ModelBlend::Alpha, true});
+    ASSERT_EQ(batch.Commands().size(), 2u);
+    EXPECT_EQ(batch.Commands()[0].fog, fog);
+    EXPECT_EQ(batch.Commands()[1].fog, fog);
+
+    batch.Begin(SomePass());
+    EXPECT_EQ(batch.Fog(), std::nullopt);
+}
+
+// glTexEnvi tampoco es del material: el modo va en cada tramo, cambiarlo abre otro, y Begin no lo toca, con o sin
+// material.
+TEST(ModelBatchTest, EachCommandCarriesTheTextureEnvOfItsTriangles)
+{
+    ModelBatch batch;
+    batch.Begin(SomePass());
+    batch.SetState(ModelDrawState{SomeSlot, ModelBlend::BlendedShadow, true});
+    batch.Triangle(TriangleAt(0));
+    batch.SetTextureEnv(TextureEnvMode::Add);
+    batch.Triangle(TriangleAt(1));
+    batch.Triangle(TriangleAt(2));
+    batch.SetTextureEnv(TextureEnvMode::Modulate);
+    batch.Triangle(TriangleAt(3));
+
+    ASSERT_EQ(batch.Commands().size(), 3u);
+    EXPECT_EQ(batch.Commands()[0].textureEnv, TextureEnvMode::Modulate);
+    EXPECT_EQ(batch.Commands()[1].textureEnv, TextureEnvMode::Add);
+    EXPECT_EQ(batch.Commands()[1].vertexCount, 6u);
+    EXPECT_EQ(batch.Commands()[2].textureEnv, TextureEnvMode::Modulate);
+
+    batch.SetTextureEnv(TextureEnvMode::Add);
+    batch.Begin(SomePass());
+    EXPECT_EQ(batch.TextureEnv(), TextureEnvMode::Add);
 }
 } // namespace

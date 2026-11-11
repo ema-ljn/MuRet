@@ -25,6 +25,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
@@ -225,8 +226,10 @@ TEST(KalimaSceneTextureTest, TheNativeOptionalAlphaWaterMayBeSkippedWhileTheRequ
     Client::Tests::TemporaryFolder folder("kalima-optional-alpha");
     Client::Tests::WriteTextureSet(folder.Path(), Client::World::KalimaTextureSet(), std::uint16_t{0x23});
     const auto box = Client::World::AcceptBoxTexture();
-    const Client::Data::Textures::TextureSetEntry entry{box.path, box.slot, box.sampling};
-    Client::Tests::WriteTextureSet(folder.Path(), std::span(&entry, 1));
+    const auto drop = Client::World::DropTexture();
+    const std::array<Client::Data::Textures::TextureSetEntry, 2> entries{
+        {{box.path, box.slot, box.sampling}, {drop.path, drop.slot, drop.sampling}}};
+    Client::Tests::WriteTextureSet(folder.Path(), entries);
     SlotFailureStore store;
     TerrainTiles tiles(store);
     std::vector<std::string> skipped;

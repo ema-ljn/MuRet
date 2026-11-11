@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Expected.h"
 #include "Render/SpriteVertex.h"
+#include "Render/TextureEnvMode.h"
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <cstdint>
@@ -27,8 +28,15 @@ public:
     [[nodiscard]] virtual Result Helper6208f0() = 0;
     [[nodiscard]] virtual Result Helper6208b0() = 0;
     [[nodiscard]] virtual Result SubtractiveTail() = 0;
+    // 0x620c10: el mismo cuerpo con el modo 6 y los factores SRC_ALPHA / ONE_MINUS_SRC_ALPHA; la cola es la de
+    // 0x620b10.
+    [[nodiscard]] virtual Result BlendedPrefix() = 0;
+    [[nodiscard]] virtual Result BlendedTail() = 0;
     [[nodiscard]] virtual Result Type620850() = 0;
     [[nodiscard]] virtual Result Type620870() = 0;
+    // glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, modo), fuera de un quad: 0x5489eb lo pone en GL_ADD antes de
+    // 0x620c10 y lo devuelve a GL_MODULATE después del billboard.
+    [[nodiscard]] virtual Result TextureEnv(TextureEnvMode mode) = 0;
     // 620780: selector32 es la clave; hit/miss/nombre/NEG32 pertenecen al contexto durable D3.
     [[nodiscard]] virtual Result BindTexture(std::int32_t selector) = 0;
     [[nodiscard]] virtual Result Begin() = 0;

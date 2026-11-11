@@ -132,6 +132,41 @@ std::array<glm::vec2, 4> TileUvs(const TerrainView& view, std::uint8_t tile, std
     return {glm::vec2(u, left), glm::vec2(u1, right), glm::vec2(u1, right + dv), glm::vec2(u, left + dv)};
 }
 
+// 0x5fa830..0x5fa98e: en el mapa 7, la capa 2 en 5 con alguna esquina en alfa va con el agua de 0x5fa4b0 (el
+// tile 0x1e + DAT_07d2d360, el slot 0x41 + cuadro) en vez del pase de alfa de la capa 2. 0x5fa5c0 con el 5.º argumento
+// en 1 toma 16 (0x6b8f00) en vez de 64 y, con el 4.º en 0, no corre ni ondula.
+constexpr std::uint8_t AnimatedWaterMap = 7;
+constexpr std::uint8_t FirstAnimatedWaterTile = 0x1e;
+constexpr float AnimatedWaterSpan = 16.0f;
+static_assert(std::bit_cast<std::uint32_t>(AnimatedWaterSpan) == 0x41800000, "la constante de 0x6b8f00");
+
+// 0x5fa4b0: 0x620a90 (aditiva), el slot del tile + 0x23 y un GL_TRIANGLE_FAN con glColor3f del alfa de cada
+// esquina (0x7ccccc4), sin la luz. 0x7d2d35e, que lo saltearía, sólo se lee: queda en el 0 de la .bss.
+void DrawAnimatedWater(Render::ModelBatch& batch, const TerrainView& view, std::uint8_t x, std::uint8_t y,
+                       const std::array<glm::vec3, 4>& positions, const std::array<std::size_t, 4>& corners)
+{
+    const auto tile = static_cast<std::uint8_t>(FirstAnimatedWaterTile + view.waterFrame);
+    const TileSize& size = view.tiles[tile];
+    const float du = AnimatedWaterSpan / size.width;
+    const float dv = AnimatedWaterSpan / size.height;
+    const float u = du * static_cast<float>(x);
+    const float v = dv * static_cast<float>(y);
+    const std::array<glm::vec2, 4> uvs{glm::vec2(u, v), glm::vec2(u + du, v), glm::vec2(u + du, v + dv),
+                                       glm::vec2(u, v + dv)};
+    batch.SetState(
+        Render::ModelDrawState{.texture = Render::TextureSlot{static_cast<std::uint16_t>(FirstTileSlot + tile)},
+                               .blend = Render::ModelBlend::Additive});
+    std::array<Render::ModelVertex, 4> vertices{};
+    for (std::size_t k = 0; k < 4; ++k)
+    {
+        const float grey = view.mapping->alpha[corners[k]];
+        vertices[k] =
+            Render::ModelVertex{.position = positions[k], .uv = uvs[k], .color = Render::Color{grey, grey, grey, 1.0f}};
+    }
+    batch.Triangle({vertices[0], vertices[1], vertices[2]});
+    batch.Triangle({vertices[0], vertices[2], vertices[3]});
+}
+
 // Un pase de la celda: el fan de cuatro vértices en dos triángulos, con la textura del tile, la luz de
 // cada esquina y, en el de alfa, su alfa (0x5fa260 y 0x5fa350).
 void DrawPass(Render::ModelBatch& batch, const TerrainView& view, std::uint8_t tile, Render::ModelBlend blend,
@@ -291,6 +326,12 @@ void DrawTerrainCell(Render::ModelBatch& batch, const TerrainView& view, const T
     const bool baseIsWater = someBelowOne && base == WaterTile;
     DrawPass(batch, view, base, Render::ModelBlend::Opaque, positions, corners,
              TileUvs(view, base, x, y, corners, baseIsWater ? &water : nullptr));
+    // 0x5fa973..0x5fa9b1: el mapa 7 mira la capa 2 (0x7aacc8c) de la primera esquina, con la base ya dibujada.
+    if (someAboveZero && view.map == AnimatedWaterMap && view.mapping->layer2[corners[0]] == WaterTile)
+    {
+        DrawAnimatedWater(batch, view, x, y, positions, corners);
+        return;
+    }
     if (someBelowOne && someAboveZero)
     {
         const std::uint8_t upper = view.mapping->layer2[corners[0]];

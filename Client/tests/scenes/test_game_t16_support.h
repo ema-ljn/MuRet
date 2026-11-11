@@ -64,14 +64,8 @@ inline std::string_view TeleportBoundary(int map)
         return "Data\\World6\\TerrainHeight.OZB no está";
     if (map == 35)
         return "Data\\World36\\EncTerrain36.att no está";
-    if (map == 30)
-        return "0x61a560: el mapa 30 pasa por 0x42a760 y elige el .att con 0x4294b0";
-    if (map == 34)
-        return "0x61a560: el .att del mapa 34 depende del estado de Crywolf (0x42fe50)";
     if (map >= 18 && map <= 23)
         return "0x4906a0";
-    if (map == 9 || map == 32 || (map >= 11 && map <= 17))
-        return "0x447d70";
     return {};
 }
 
@@ -143,7 +137,7 @@ protected:
         Receive(Bytes({0xc1, 8, 0x1c, gate, map, x, y, 1}));
     }
 
-    void Regen(std::uint8_t map)
+    void Regen(std::uint8_t map, std::uint8_t x = HomeX, std::uint8_t y = HomeY)
     {
         constexpr std::size_t RegenSize = 24;
         std::vector<std::byte> reply(RegenSize);
@@ -151,8 +145,8 @@ protected:
         reply[1] = std::byte{RegenSize};
         reply[2] = std::byte{0xf3};
         reply[3] = std::byte{4};
-        reply[4] = std::byte{HomeX};
-        reply[5] = std::byte{HomeY};
+        reply[4] = std::byte{x};
+        reply[5] = std::byte{y};
         reply[6] = std::byte{map};
         reply[8] = std::byte{70};
         reply[10] = std::byte{80};

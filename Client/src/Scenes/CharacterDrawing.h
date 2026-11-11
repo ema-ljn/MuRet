@@ -106,6 +106,9 @@ struct DrawnCharacter
     Render::Models::CrtRandom* originalRandom = nullptr;
     // El que está bajo el mouse (DAT_006c8e30 en 0x510d00): sus partes llevan el contorno.
     bool outlined = false;
+    // +0x88 del objeto: con 4 (un NPC), el contorno de 0x60cf70 va con otros colores; con 1 (un jugador), en
+    // Chaos Castle lleva el Angel (DrawChaosCastleBody).
+    std::uint8_t kind = 0;
     // La tela de la clase 3 o 4 (0x50d58b..0x50db57): la de este personaje, que vive entre frames, lo
     // global que lee (el viento, el contador y el rand()) y el mapa de la escena. Sin las dos, va sin
     // tela.
@@ -124,7 +127,9 @@ struct DrawnCharacter
     // Cómo cuentan los frames del original la tela y el cetro (Render::Models::OriginalFrameCarry): por el
     // reloj del frame, o uno por dibujo en el modo fiel (SceneContext::pacing).
     Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock;
-    // Publica matrices ya calculadas: cuerpo con cabeza, partes y attachments con su raíz real.
+    // Publica matrices ya calculadas: el cuerpo con la cabeza (también el de Chaos Castle) y lo que cuelga, con su
+    // raíz real. El cuerpo va al buffer propio del personaje (+0x120, 0x511bf7), no al global: quien lo recibe
+    // decide dónde lo guarda.
     std::function<void(std::uint16_t, std::span<const Render::Models::BoneTransform>,
                        const Render::Models::ObjectTransform&, bool)>
         onPose{};
@@ -176,6 +181,18 @@ inline constexpr Render::TextureSlot MetalTextureSlot{0x620};
 // Las saetas de la izquierda o las flechas de la derecha van a la espalda, del hueso de las alas.
 void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnCharacter& character,
                    Core::Duration frameClock, CharacterDrawPass pass = CharacterDrawPass::All);
+
+// 0x50d374..0x50d3d7: en Chaos Castle (18 a 23), un jugador (+0x88 en 1) no lleva sus seis partes sino el Angel
+// (0x1f7, Player\Angel), sobre el cuerpo posado, con 0x60cf70: el contorno de esos mapas si está marcado, y
+// 0x60b3d0 con el nivel 0, que le pone la luz (+0x3b4) y llama a 0x609640 (caso 0x1f7) con `flags`: 2, o 6 el
+// héroe, con el cromo de la malla 0. Al 0x1f7 nadie le escribe la piel (+0x98 del modelo: sólo el lazo de las
+// partes la pone en las suyas, y 0x60dbe0 la deja en 0), así que su malla skin_ va con la piel 0. Sin el modelo
+// no dibuja nada, como una parte.
+// `models` posa el cuerpo (0x20a) y `angelModels` tiene el 0x1f7, con las texturas de su carga.
+inline constexpr std::uint16_t ChaosCastleBodyModel = 0x1f7;
+[[nodiscard]] Core::Expected<void, std::string>
+DrawChaosCastleBody(Render::ModelBatch& batch, const IModelLibrary& models, const IModelLibrary& angelModels,
+                    const DrawnCharacter& character, Core::Duration frameClock, std::uint32_t flags);
 
 // Los huesos del cuerpo de `character` como los posa DrawCharacter (0x4eb860 con la cabeza): el buffer
 // propio del personaje, +0x120. Sin el esqueleto del 0x20a o si la pose falla, vacío.
@@ -334,10 +351,52 @@ void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const
 // (dkonebody.jpg, la del nivel por debajo de 20), con el color y la luz por vértice de 0x5ffce0; después
 // la sombra de las cinco mallas (0x4eff40(−1, −1, −1, −1), también las que no se dibujan, Q-C132) en
 // (0, 0, 0, 1), mezclada y aplastada sobre `groundHeight`, la altura del terreno bajo el cuervo
-// (0x600a0b). El original no la dibuja en los mapas 10, 24 a 29 y 36, y la pone en 0,2 en el 7, que
-// MuRet todavía no tiene.
+// (0x600a0b). En el mapa `map` 10, 24 a 29 y 36 no hay sombra, y en el 7 va con alpha 0,2 (0x6009a9..0x6009e5).
 void DrawDarkSpirit(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& spirit,
-                    float groundHeight, Core::Duration frameClock);
+                    float groundHeight, Core::Duration frameClock, std::int32_t map);
+
+// 0x600cf2..0x600daa, el 0x1c y el 0x1d de los mapas 11 a 17 después de su RenderBody: la sombra
+// (0x4eff40(blendMesh, 2, −1, −1)) de las mallas con triángulos, salvo la 2 y las de la textura del blendMesh,
+// en (0, 0, 0, 1) (0x620a00(1) y glColor4f), mezclada y aplastada sobre `groundHeight`, la altura del terreno
+// bajo el objeto (0x600d80).
+void DrawBloodCastleShadow(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                           float groundHeight, Core::Duration frameClock);
+
+// Lo que 0x42cc10 (la cadena de 0x6002e0 en el mapa 30, después de 0x438fe0) lee del objeto y de afuera.
+struct CastleSiegeBodyPass
+{
+    // +0x2: el tipo del objeto.
+    std::int16_t type = 0;
+    // +0x4: 0x606660 lo deja en 0; solo las puertas lo miran.
+    std::int32_t field04 = 0;
+    // 0x4294b0: el byte del asedio (0x7239ec).
+    bool siegeActive = false;
+    // 0x5767b88, el reloj del mundo en ms.
+    float worldClock = 0.0f;
+};
+
+// 0x42cc10 con un objeto del mapa 30 que 0x6002e0 dibuja (+0x58 distinto de −2), con `object` como lo dejó
+// 0x5ffce0 (su color es el del modelo). Devuelve true con los tipos que tienen su caso, que dibujan lo suyo y
+// cortan la cadena (0x6002e0 no hace su RenderBody); false con los demás, que van por 0x42e3d0 (solo tipos de
+// monstruo) y siguen. Los casos:
+// - el 0xc: el color del modelo en 1 y dos 0x4ecc30 sueltos con las banderas 2, la malla 0 con su textura y
+//   la 1 con Object31\Flag.tga (0x69c);
+// - el 0x11: el color en 0,45 (0x3ee66666), el model+0x88 en 0 y RenderBody(2) con la V en
+//   (ftol(T) % 10.000) · 0,0002f;
+// - el 0x33: el model+0x88 en 0 y RenderBody(0x42) con la U en (−ftol(T) % 10.000) · 0,0002f;
+// - el 0x42: el color en (0,1; 0,4; 0,6) y RenderBody(0x44), el cromo, con la luz en sin(T · 0,001f) · 0,2f +
+//   0,3f;
+// - el 0x32, el 0x53, el 0x54 y el 0x55: RenderBody(2) y, sin el asedio, la sombra negra y opaca de 0x4eff40
+//   (0x620980 y glColor3f(0, 0, 0)), sin la malla oculta ni las de la textura del blendMesh, aplastada desde
+//   su lugar con el spread 2500 del 30;
+// - el 0x13, sin el asedio: RenderBody(2); con el color en 0,3, RenderBody(0x44) con Chrome01 (0x5c0) y el
+//   blendMesh en 0; con (0,2; 0,2; 0,5), RenderBody(0x48) igual. Con el asedio corta en 0x42ce09;
+// - del 0x3d al 0x40: con +0x4 en 0, RenderBody(2); si no, corta en 0x42cfcb (0x4ee770).
+// Después de cada caso, el model+0x88 vuelve a 0xff, que en el 30 es lo que esos tipos ya tienen, y el color del
+// modelo lo vuelve a poner 0x5ffce0. Un modelo que la biblioteca no tiene no dibuja nada.
+[[nodiscard]] Core::Expected<bool, std::string>
+DrawCastleSiegeBody(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                    const CastleSiegeBodyPass& pass, Core::Duration frameClock);
 
 // Los huesos de `object` posados como los posa DrawObject, en el mundo (la rotación por la escala; la
 // traslación por la escala más la posición, en float, como PosedBonePoint): lo que deja 0x4eb860 con su

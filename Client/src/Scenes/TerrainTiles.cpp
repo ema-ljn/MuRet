@@ -26,8 +26,8 @@ namespace Client::Scenes
 {
 namespace
 {
-// Lo que sube Load: tiles, las de los objetos de Kalima y Tarkan, pasto (61abb4..61ac36), meteorología
-// (61ac3e..61ad7a) y el 0x122.
+// Lo que sube Load: tiles, la gota de 0x616ec0, las cáusticas de Atlans y Kalima, las de los objetos de Tarkan e
+// Icarus, pasto (61abb4..61ac36), meteorología (61ac3e..61ad7a) y el 0x122.
 std::vector<World::WorldTileTexture> WantedTextures(std::uint8_t map, GrassTextures grass)
 {
     std::vector<World::WorldTileTexture> wanted;
@@ -44,7 +44,9 @@ std::vector<World::WorldTileTexture> WantedTextures(std::uint8_t map, GrassTextu
     }
     else
         wanted = World::WorldTileTextures(map);
-    const auto caustics = World::KalimaObjectTextures(map);
+    // 0x616eeb: 0x616ec0 empieza por la gota, en todos los mapas.
+    wanted.push_back(World::DropTexture());
+    const auto caustics = World::CausticTextures(map);
     wanted.insert(wanted.end(), caustics.begin(), caustics.end());
     const auto tarkan = World::TarkanObjectTextures(map);
     wanted.insert(wanted.end(), tarkan.begin(), tarkan.end());

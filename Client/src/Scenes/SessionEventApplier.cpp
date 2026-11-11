@@ -44,6 +44,14 @@ void ApplyWeather(const Protocol::World::Weather& received, World::LeafWeather& 
         weather.target = static_cast<std::int32_t>(received.code & IntensityMask) * TargetPerIntensity;
 }
 
+// 0x42a760 manda el B9 02 por el socket del GS al cargar el 30: el de la sesión que aplica la respuesta.
+WorldEntryResources WithTheSiegeRequest(const WorldEntryResources& resources, App::ServerSession& session)
+{
+    WorldEntryResources bound = resources;
+    bound.requestCastleSiegeState = [&session] { session.RequestCastleSiegeState(); };
+    return bound;
+}
+
 // El 0x3d de la respuesta va a la sesión que la está aplicando.
 class SessionPublisher final : public IWorldEntryPublisher, public IWorldTransitionPublisher
 {
@@ -89,10 +97,10 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
     if (const auto* teleport = std::get_if<Protocol::World::Teleport>(&event))
     {
         SessionPublisher publisher(session);
-        return ApplyTeleport(*teleport, session.PlayerIndex(), m_resources, publisher);
+        return ApplyTeleport(*teleport, session.PlayerIndex(), WithTheSiegeRequest(m_resources, session), publisher);
     }
     if (const auto* regen = std::get_if<Protocol::World::Regen>(&event))
-        return ApplyRegen(*regen, session.PlayerIndex(), m_resources);
+        return ApplyRegen(*regen, session.PlayerIndex(), WithTheSiegeRequest(m_resources, session));
     return ApplyWorldContent(event, session);
 }
 
@@ -126,7 +134,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
     }
     const auto& reply = std::get<Protocol::Character::CharacterSelectResult>(event);
     SessionPublisher publisher(session);
-    const auto entered = ApplyWorldEntry(reply, session.PlayerIndex(), m_resources, publisher);
+    const auto entered =
+        ApplyWorldEntry(reply, session.PlayerIndex(), WithTheSiegeRequest(m_resources, session), publisher);
     if (!entered.HasValue())
     {
         return Core::Unexpected(entered.Error());

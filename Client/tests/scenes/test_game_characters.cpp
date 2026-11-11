@@ -28,7 +28,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <span>
 #include <string>
 #include <vector>
@@ -214,6 +213,23 @@ TEST_F(UnarmedGameCharacterTest, WalkingUnarmedClosesBothHandBytesAfterTheBodyRa
     EXPECT_EQ(m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)], 1);
 }
 
+// 0x510ea9..0x510eb3 y 0x42afe0: después de dibujar el 0x20a, en el 30, con el asedio y con +0x16c, 0x42ddb0
+// (que no está portado); sin el asedio, el personaje se dibuja como en otro mapa.
+TEST_F(UnarmedGameCharacterTest, InTheCastleSiegeOnlyTheSiegeStopsAfterTheCharacter)
+{
+    m_world->Runtime().map = 30;
+    const auto quiet = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    ASSERT_TRUE(quiet.HasValue()) << quiet.Error();
+    EXPECT_EQ(m_batch.Vertices().size(), 6u);
+
+    m_world->Runtime().siegeActive = true;
+    m_batch.Begin({});
+    const auto siege = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    ASSERT_FALSE(siege.HasValue());
+    EXPECT_NE(siege.Error().find("0x42b00b"), std::string::npos) << siege.Error();
+    EXPECT_EQ(m_batch.Vertices().size(), 6u);
+}
+
 TEST_F(UnarmedGameCharacterTest, HeldOrWrappedHandByteDepthDoesNotConsumeClosingRandoms)
 {
     for (const std::uint8_t depth : std::array<std::uint8_t, 5>{0, 1, 2, 254, 255})
@@ -337,6 +353,7 @@ TEST_F(UnarmedGameCharacterTest, AnIntermediateDrawDoesNotOpenTheHandBytesOrAdva
     EXPECT_EQ(Actor().position, before.position);
     EXPECT_EQ(Actor().animation.frame, before.animation.frame);
     EXPECT_EQ(Actor().animation.action, before.animation.action);
+    EXPECT_TRUE(Actor().bodyPose.empty());
 }
 
 TEST_F(UnarmedGameCharacterTest, CatchUpSpendsTwoHandByteClosesPerOriginalFrame)
@@ -350,6 +367,8 @@ TEST_F(UnarmedGameCharacterTest, CatchUpSpendsTwoHandByteClosesPerOriginalFrame)
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
     EXPECT_EQ(m_cloth.random.State(), 0x3d6c1037u); // seis rand: (cuerpo + dos manos) por dos frames
     EXPECT_EQ(Actor().byte38eAccesses, 0);
+    // 0x509340 deja la pose del cuerpo en los huesos propios (+0x120) para el paso siguiente (0x506d25).
+    EXPECT_EQ(Actor().bodyPose.size(), m_models.SkeletonOf(Client::Data::Models::PlayerSkeletonModel)->bones.size());
 }
 
 TEST_F(UnarmedGameCharacterTest, TheUnportedPeriodicStatusEffectStopsBeforeTheHandByteReads)
@@ -362,16 +381,17 @@ TEST_F(UnarmedGameCharacterTest, TheUnportedPeriodicStatusEffectStopsBeforeTheHa
         const char* cut;
         std::uint32_t random;
     };
-    // 50e060 omite la espalda; 50e06b..50e0ba elige el efecto antes del primer acceso a +38e.
+    // 50e060 omite la espalda; 50e06b..50e0ba elige el efecto antes del primer acceso a +38e. Sin el
+    // efecto, +0x78 en 0x800 o 0x4800 no tiene ni 4 ni 0x2000000: 0x50fba4 no corre y el dibujo termina.
     constexpr std::array cases{
         Case{30, 1, 0x800, "0x50e0c0", 0x0029e2c0},
-        Case{31, 1, 0x800, "0x50fba4", 0x18be873a},
-        Case{30, 0, 0x800, "0x50fba4", 0x18be873a},
-        Case{30, 1, 0x4800, "0x50fba4", 0x18be873a},
+        Case{31, 1, 0x800, nullptr, 0x18be873a},
+        Case{30, 0, 0x800, nullptr, 0x18be873a},
+        Case{30, 1, 0x4800, nullptr, 0x18be873a},
     };
     for (const Case& probe : cases)
     {
-        SCOPED_TRACE(probe.cut);
+        SCOPED_TRACE(testing::Message() << probe.counter << ' ' << int{probe.byte88} << ' ' << probe.flags);
         m_cloth.logicSteps = probe.counter;
         m_cloth.random = Client::Render::Models::CrtRandom(1);
         Actor().byte88 = probe.byte88;
@@ -380,81 +400,85 @@ TEST_F(UnarmedGameCharacterTest, TheUnportedPeriodicStatusEffectStopsBeforeTheHa
 
         const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_NE(result.Error().find(probe.cut), std::string::npos) << result.Error();
+        if (probe.cut == nullptr)
+        {
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+        }
+        else
+        {
+            ASSERT_FALSE(result.HasValue());
+            EXPECT_NE(result.Error().find(probe.cut), std::string::npos) << result.Error();
+        }
         EXPECT_EQ(m_cloth.random.State(), probe.random);
         EXPECT_EQ(Actor().byte38eAccesses, 0);
-        EXPECT_EQ(m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)], 5);
+        // Sin corte, 0x42da60 abre las puertas al final del pase: la celda pierde el 0x04.
+        EXPECT_EQ(m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)],
+                  probe.cut == nullptr ? 1 : 5);
+        m_world->Map().terrain.attributes->cells = *GateWalls();
     }
 }
 
-TEST_F(UnarmedGameCharacterTest, TheProjectedPoseCanBePublishedWithoutConsumingAnOriginalFrame)
+// 0x511290 le da al personaje su buffer de huesos (+0x11c en 1 en 0x511bf7, +0x120): el cuerpo no pasa por el
+// buffer global (0x68b181c) ni en un frame del original ni en uno proyectado, y sólo el frame del original lo
+// guarda en el propio.
+TEST_F(UnarmedGameCharacterTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 {
-    auto pass = Pass();
-    pass.originalFrames = 0;
-    std::vector<Client::Render::Models::BoneTransform> projected;
-    std::optional<Client::Render::Models::ObjectTransform> object;
-    pass.onPose = [&](std::uint16_t model, std::span<const Client::Render::Models::BoneTransform> bones,
-                      const Client::Render::Models::ObjectTransform& transform, bool scaled)
-    {
-        if (model == Client::Data::Models::PlayerSkeletonModel)
-        {
-            projected.assign(bones.begin(), bones.end());
-            object = transform;
-            EXPECT_FALSE(scaled);
-        }
-    };
-    // La ruta por defecto no publica los frames intermedios a la historia durable.
-    ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
-    EXPECT_TRUE(projected.empty());
-    pass.publishProjectedPose = true;
-
-    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
-
-    ASSERT_TRUE(result.HasValue()) << result.Error();
-    ASSERT_EQ(projected.size(), 1u);
-    ASSERT_TRUE(object.has_value());
-    EXPECT_EQ(object->position, Actor().position);
-    EXPECT_FLOAT_EQ(projected[0][0][0], 1.0f);
-    EXPECT_EQ(m_cloth.random.State(), 1u);
-    EXPECT_EQ(Actor().byte38eAccesses, 0);
-}
-
-TEST_F(UnarmedGameCharacterTest, BodyGeometryAndPublishedPoseUseTheSameRetainedDummyMatrices)
-{
-    m_models.RetainTheDummyRoot();
-    std::array<Client::Render::Models::BoneTransform, 1> cached{Client::Render::Models::BoneTransform(1.0f)};
-    cached[0][3] = {7.0f, 11.0f, 13.0f};
     for (const int frames : {0, 1})
     {
         SCOPED_TRACE(frames);
-        m_cloth.random = Client::Render::Models::CrtRandom(1);
+        Actor().bodyPose.clear();
         m_batch.Begin({});
         auto pass = Pass();
         pass.originalFrames = frames;
         pass.publishProjectedPose = true;
-        pass.poseBones = [&](std::uint16_t model) -> std::span<const Client::Render::Models::BoneTransform>
-        {
-            return model == Client::Data::Models::PlayerSkeletonModel
-                       ? std::span<const Client::Render::Models::BoneTransform>(cached)
-                       : std::span<const Client::Render::Models::BoneTransform>{};
-        };
-        std::optional<Client::Render::Models::BoneTransform> published;
-        pass.onPose = [&](std::uint16_t model, std::span<const Client::Render::Models::BoneTransform> bones,
-                          const Client::Render::Models::ObjectTransform&, bool)
-        {
-            if (model == Client::Data::Models::PlayerSkeletonModel && !bones.empty())
-                published = bones[0];
-        };
+        std::vector<std::uint16_t> published;
+        pass.onPose = [&](std::uint16_t model, std::span<const Client::Render::Models::BoneTransform>,
+                          const Client::Render::Models::ObjectTransform&, bool) { published.push_back(model); };
 
         const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
-        ASSERT_TRUE(published.has_value());
-        EXPECT_EQ(*published, cached[0]);
+        EXPECT_TRUE(published.empty());
+        if (frames == 0)
+        {
+            EXPECT_TRUE(Actor().bodyPose.empty());
+        }
+        else
+        {
+            ASSERT_EQ(Actor().bodyPose.size(), 1u);
+            EXPECT_FLOAT_EQ(Actor().bodyPose[0][0][0], 1.0f);
+        }
+        EXPECT_EQ(Actor().byte38eAccesses, 0);
+    }
+}
+
+// El cuerpo arranca de su buffer propio: un hueso dummy (0x4eb973 no lo escribe) conserva lo que dejó el dibujo
+// anterior del personaje, no lo que haya en el global.
+TEST_F(UnarmedGameCharacterTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
+{
+    m_models.RetainTheDummyRoot();
+    Client::Render::Models::BoneTransform own(1.0f);
+    own[3] = {7.0f, 11.0f, 13.0f};
+    std::array<Client::Render::Models::BoneTransform, 1> global{Client::Render::Models::BoneTransform(1.0f)};
+    global[0][3] = {70.0f, 110.0f, 130.0f};
+    for (const int frames : {0, 1})
+    {
+        SCOPED_TRACE(frames);
+        Actor().bodyPose.assign(1, own);
+        m_cloth.random = Client::Render::Models::CrtRandom(1);
+        m_batch.Begin({});
+        auto pass = Pass();
+        pass.originalFrames = frames;
+        pass.poseBones = [&](std::uint16_t) { return std::span<const Client::Render::Models::BoneTransform>(global); };
+
+        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         ASSERT_EQ(m_batch.Vertices().size(), 6u);
-        // La bota empieza después del triángulo de la sombra: vértice0 + dummy + posición del actor.
+        // La bota empieza después del triángulo de la sombra: vértice0 + dummy propio + posición del actor.
         EXPECT_EQ(m_batch.Vertices()[3].position, (glm::vec3{157.0f, 161.0f, 23.0f}));
+        ASSERT_EQ(Actor().bodyPose.size(), 1u);
+        EXPECT_EQ(Actor().bodyPose[0], own);
         EXPECT_EQ(m_cloth.random.State(), frames == 0 ? 1u : 0x18be873au);
         EXPECT_EQ(Actor().byte38eAccesses, 0);
     }

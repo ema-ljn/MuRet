@@ -145,10 +145,35 @@ TEST(NoriaParticlesTest, TheButterflySparkDrawsOnlyItsScaleAndItsLife)
     EXPECT_EQ(random.State(), draws.State());
 }
 
-// 0x544f7b: la /7 cae 0,6 (0x6b8a20) por paso; la /0, 2 (0x6b8818).
+// 0x5403eb..0x540406: la 5c5/1 (las chispas del bastón 0xc18, 0x50f5a8) sortea su escala como la /0 y después sólo su
+// vida, (rand() & 7) + 8: sin giro, sin velocidad y sin la escala del argumento.
+TEST(NoriaParticlesTest, TheStaffSparkDrawsOnlyItsScaleAndItsLife)
+{
+    for (const std::uint32_t seed : {1u, 7u, 99u})
+    {
+        SCOPED_TRACE(seed);
+        auto particles = std::make_unique<Client::World::Particles>();
+        Client::Render::Models::CrtRandom random(seed);
+        Client::Render::Models::CrtRandom draws(seed);
+        const auto created =
+            particles->CreateChecked(0x5c5, {100, 200, 300}, {0, 0, 30}, {0.8f, 0.48f, 0.32f}, 1, 1.0f, 0.0f, random);
+        ASSERT_TRUE(created.HasValue());
+        ASSERT_TRUE(created.Value().has_value());
+        const auto& particle = particles->All()[*created.Value()];
+        EXPECT_EQ(particle.scale, static_cast<float>(((draws.Next() & 3) + 4) * static_cast<double>(0.1f)));
+        EXPECT_EQ(particle.life, (draws.Next() & 7) + 8);
+        EXPECT_EQ(particle.angles, glm::vec3(0, 0, 30));
+        EXPECT_EQ(particle.light, glm::vec3(0.8f, 0.48f, 0.32f));
+        EXPECT_EQ(particle.verticalSpeed, 0.0f);
+        EXPECT_EQ(particle.velocity, glm::vec3(0));
+        EXPECT_EQ(random.State(), draws.State());
+    }
+}
+
+// 0x544f7b: la /7 cae 0,6 (0x6b8a20) por paso; la /0 y la /1, 2 (0x6b8818).
 TEST(NoriaParticlesTest, TheButterflySparkFallsSlowerThanTheFairySpark)
 {
-    for (const int subtype : {0, 7})
+    for (const int subtype : {0, 1, 7})
     {
         auto particles = std::make_unique<Client::World::Particles>();
         auto& particle = particles->All().front();

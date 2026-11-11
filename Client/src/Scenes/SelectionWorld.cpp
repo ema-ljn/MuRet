@@ -225,7 +225,8 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(WorldState& world,
             return Core::Unexpected(stepped.Error() + ", en la selección (0x52d220)");
         }
     }
-    if (auto stepped = StepJoints(world.DrawTail().joints, cloth.random, &cloth, &world.Particles(), worldClock);
+    if (auto stepped =
+            StepJoints(world.DrawTail().joints, cloth.random, &cloth, &world.Particles(), worldClock, &m_sprites);
         !stepped.HasValue())
     {
         return Core::Unexpected(stepped.Error() + ", en la selección (0x53c670)");
@@ -354,7 +355,9 @@ Core::Expected<void, std::string> SelectionWorld::DrawObjects(WorldState& world,
                               .effects = &FrameEffects(),
                               // Q-C304: timeGetTime (0x6b8544) es el reloj del sistema; MuRet le presta el del dibujo.
                               .systemTime = [systemTime]() { return systemTime; },
-                              .scene = SelectionScene};
+                              .scene = SelectionScene,
+                              .objectDrawCounter = &world.Runtime().objectDrawCounter,
+                              .crywolf = &world.Runtime().crywolf};
     if (auto drawn = DrawGameWorldObjects(frame.batch, m_models, FrameObjects(), frame.polygon, &FrameLighting(),
                                           frame.frameClock, pass);
         !drawn.HasValue())

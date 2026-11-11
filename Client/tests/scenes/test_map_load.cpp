@@ -1,17 +1,21 @@
 #include "Scenes/MapLoad.h"
 
 #include "Core/Expected.h"
+#include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/EventMapObject.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldMap.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GroundMarks.h"
 #include "World/WorldObjectRegistrations.h"
 #include "World/WorldTerrain.h"
 
+#include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/PlayerActors.h"
 #include "support/TemporaryFolder.h"
@@ -25,16 +29,20 @@
 #include <cstdint>
 #include <filesystem>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 
 namespace
 {
 using Client::Render::Models::CrtRandom;
-using Client::Scenes::CheckEventMap;
+using Client::Scenes::ArmEventMapObject;
+using Client::Scenes::EventMapKind;
+using Client::Scenes::EventMapObject;
 using Client::Scenes::LoadMap;
 using Client::Scenes::MapLoadContext;
 using Client::Scenes::SceneId;
+using Client::Scenes::WorldRuntime;
 using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 0x5eed;
@@ -124,21 +132,64 @@ TEST_F(MapLoadTest, MapThirtyTwoLoadsWorldTenAsNine)
     EXPECT_EQ(world.Map().terrain.heights->cells, worldTen.Value().heights->cells);
 }
 
-// 0x447d70: Devil Square (9), Blood Castle (11 a 17) y Chaos Castle (18 a 23) arman su objeto de
-// evento; los demás, nada.
-TEST(MapLoadEventTest, AnEventMapStopsAt447d70)
+// 0x447d70: Devil Square (9), Blood Castle (11 a 17) y Chaos Castle (18 a 23) arman su objeto de evento, con
+// los campos de 0x447db5..0x447ddc (y de 0x404d60); los demás no tocan el que había (Q-C320).
+TEST(MapLoadEventTest, AnEventMapArmsItsObjectAndTheOthersKeepThePreviousOne)
 {
     for (std::int32_t map = 0; map <= 55; ++map)
     {
         SCOPED_TRACE(map);
-        const bool event = map == 9 || (map >= 11 && map <= 23);
-        const auto checked = CheckEventMap(map);
-        ASSERT_EQ(checked.HasValue(), !event);
-        if (event)
-        {
-            EXPECT_NE(checked.Error().find("0x447d70"), std::string::npos);
-        }
+        WorldRuntime runtime;
+        runtime.map = map;
+        runtime.chaosCastleArea = 3;
+        ArmEventMapObject(map, runtime);
+        const bool devilSquare = map == 9;
+        const bool bloodCastle = map >= 11 && map <= 17;
+        const bool chaosCastle = map >= 18 && map <= 23;
+        ASSERT_EQ(runtime.eventObject.has_value(), devilSquare || bloodCastle || chaosCastle);
+        EXPECT_EQ(runtime.chaosCastleArea, chaosCastle ? 0xff : 3);
+        if (!runtime.eventObject)
+            continue;
+        const EventMapObject& armed = *runtime.eventObject;
+        EXPECT_EQ(armed.kind, devilSquare   ? EventMapKind::DevilSquare
+                              : bloodCastle ? EventMapKind::BloodCastle
+                                            : EventMapKind::ChaosCastle);
+        EXPECT_EQ(armed.field0c, 0);
+        EXPECT_EQ(armed.field10, 0);
+        EXPECT_EQ(armed.field14, (std::array<std::int32_t, 4>{-1, -1, -1, -1}));
+        EXPECT_EQ(armed.field24, 0);
+        EXPECT_EQ(armed.field28, 0);
+        EXPECT_EQ(armed.field2c, (std::array<std::int32_t, 0x42>{}));
     }
+
+    WorldRuntime leaving;
+    leaving.map = 11;
+    ArmEventMapObject(11, leaving);
+    leaving.eventObject->field0c = 7;
+    leaving.map = 0;
+    ArmEventMapObject(0, leaving);
+    ASSERT_TRUE(leaving.eventObject.has_value());
+    EXPECT_EQ(leaving.eventObject->kind, EventMapKind::BloodCastle);
+    EXPECT_EQ(leaving.eventObject->field0c, 7);
+}
+
+// 0x447de7: Chaos Castle mira el mundo en curso (0x6c9dd0), no el argumento; Blood Castle y Devil Square, el
+// argumento. Blood Castle va primero.
+TEST(MapLoadEventTest, ChaosCastleReadsTheCurrentWorldInsteadOfTheArgument)
+{
+    WorldRuntime runtime;
+    runtime.map = 20;
+    ArmEventMapObject(9, runtime);
+    ASSERT_TRUE(runtime.eventObject.has_value());
+    EXPECT_EQ(runtime.eventObject->kind, EventMapKind::ChaosCastle);
+    ArmEventMapObject(12, runtime);
+    EXPECT_EQ(runtime.eventObject->kind, EventMapKind::BloodCastle);
+
+    WorldRuntime elsewhere;
+    elsewhere.map = 0;
+    ArmEventMapObject(20, elsewhere);
+    EXPECT_FALSE(elsewhere.eventObject.has_value());
+    EXPECT_EQ(elsewhere.chaosCastleArea, 0xff);
 }
 
 // Q-C228: la carga del mapa no vacía las marcas del suelo (0x6070a0 apaga las tablas de al lado y no esta): la
@@ -304,6 +355,76 @@ TEST_F(MapLoadTest, NoriaCreatesItsSpecialWithTheHeightAndYawInTheNativeArgument
     }
 }
 
+// 0x42a760 con el byte del asedio en 0, como arranca el original: la hora de la música (0x7239f0) en 0, un B9 02 y
+// los cinco lanceros 0x19f en (x; 11.300; 270), antes de los del .obj (06 § Los objetos de Castle Siege).
+TEST_F(MapLoadTest, CastleSiegeAsksForItsStateAndPlacesTheFiveSpearmen)
+{
+    world.Runtime().map = 30;
+    world.Runtime().siegeMusicTime = 1234.0f;
+    int requests = 0;
+    const auto loaded = LoadMap(30, MapLoadContext{.dataRoot = m_dataRoot,
+                                                   .world = world,
+                                                   .scene = SceneId::Game,
+                                                   .playerKey = PlayerKey,
+                                                   .random = random,
+                                                   .requestCastleSiegeState = [&requests] { ++requests; }});
+
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    EXPECT_EQ(requests, 1);
+    EXPECT_EQ(world.Runtime().siegeMusicTime, 0.0f);
+    constexpr std::size_t Spearmen = 5;
+    ASSERT_EQ(world.Map().objects.size(), world.Map().objectRecords.size() + Spearmen);
+    constexpr std::array<float, Spearmen> X{6500.0f, 7100.0f, 9100.0f, 11800.0f, 12300.0f};
+    for (std::size_t index = 0; index < Spearmen; ++index)
+    {
+        SCOPED_TRACE(index);
+        const auto& spearman = world.Map().objects[index];
+        EXPECT_EQ(spearman.type, 0x19f);
+        EXPECT_EQ(spearman.transform.position, glm::vec3(X[index], 11300.0f, 270.0f));
+        EXPECT_EQ(spearman.transform.angles, glm::vec3(0.0f));
+        EXPECT_EQ(spearman.transform.scale, 1.0f);
+    }
+    EXPECT_TRUE(world.Map().terrain.attributes && world.Map().terrain.heights);
+}
+
+// 0x61a6e1: con el byte prendido (solo lo dejan los paquetes de 0x4294c0, CL9.5), el .att y la luz del asedio no
+// están portados; los lanceros ya están.
+TEST_F(MapLoadTest, CastleSiegeWithTheSiegeOnStopsAtItsAttributes)
+{
+    world.Runtime().siegeActive = true;
+    const auto loaded = Load(30);
+
+    ASSERT_FALSE(loaded.HasValue());
+    EXPECT_NE(loaded.Error().find("0x61a6ea"), std::string::npos) << loaded.Error();
+}
+
+// 0x61a6d0 → 0x42fe50: con el estado de Crywolf de la .bss (0) el 34 toma EncTerrain35.att, el mismo que lee el
+// cargador del repo, y no EncTerrain351.att. Con 1, 2 o 3, que solo pone un paquete, corta en 0x61a6f4 (Q-C340).
+TEST_F(MapLoadTest, CrywolfTakesItsPlainAttributesOnlyWithTheStartingState)
+{
+    ASSERT_EQ(world.Runtime().crywolf.state, 0);
+    ASSERT_TRUE(Load(34).HasValue());
+    const auto plain = Client::Tests::ReadFileBytes(m_dataRoot / "world35" / "EncTerrain35.att");
+    const auto first = Client::Tests::ReadFileBytes(m_dataRoot / "world35" / "EncTerrain351.att");
+    ASSERT_TRUE(plain.has_value() && first.has_value());
+    const auto expected = Client::Data::Terrain::LoadTerrainAttributes(std::as_bytes(std::span(*plain)), 35);
+    const auto other = Client::Data::Terrain::LoadTerrainAttributes(std::as_bytes(std::span(*first)), 35);
+    ASSERT_TRUE(expected.HasValue() && other.HasValue());
+    ASSERT_NE(expected.Value()->cells, other.Value()->cells);
+    ASSERT_TRUE(world.Map().terrain.attributes);
+    EXPECT_EQ(world.Map().terrain.attributes->cells, expected.Value()->cells);
+    for (const std::uint8_t state : {std::uint8_t{1}, std::uint8_t{2}, std::uint8_t{3}})
+    {
+        SCOPED_TRACE(static_cast<int>(state));
+        world.Runtime().crywolf.state = state;
+        const auto loaded = Load(34);
+        ASSERT_FALSE(loaded.HasValue());
+        EXPECT_NE(loaded.Error().find("0x61a6f4"), std::string::npos) << loaded.Error();
+        EXPECT_NE(loaded.Error().find("estado de Crywolf " + std::to_string(state)), std::string::npos)
+            << loaded.Error();
+    }
+}
+
 // Los mapas con datos en la Data del repo: los que carga y, en los demás, dónde corta.
 TEST_F(MapLoadTest, ConstructsRealMapsAndNamesTheirFrontiers)
 {
@@ -313,9 +434,8 @@ TEST_F(MapLoadTest, ConstructsRealMapsAndNamesTheirFrontiers)
         std::string_view frontier; // vacío: carga
     };
     constexpr Case Cases[] = {
-        {0, ""},          {1, ""},  {2, ""},  {3, ""},          {4, ""},  {5, "World6"},    {6, ""},
-        {7, ""},          {8, ""},  {9, ""},  {10, ""},         {11, ""}, {18, ""},         {24, ""},
-        {30, "0x42a760"}, {31, ""}, {33, ""}, {34, "0x42fe50"}, {54, ""}, {55, "0x6188ae"},
+        {0, ""},  {1, ""},  {2, ""},  {3, ""},  {4, ""},  {5, "World6"}, {6, ""},  {7, ""},  {8, ""},  {9, ""},
+        {10, ""}, {11, ""}, {18, ""}, {24, ""}, {30, ""}, {31, ""},      {33, ""}, {34, ""}, {54, ""}, {55, "0x6188ae"},
     };
     for (const Case& tested : Cases)
     {

@@ -6,6 +6,7 @@
 #include "Data/WorldLoadIdentity.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/EventMapObject.h"
 #include "Scenes/FaunaState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperTable.h"
@@ -24,6 +25,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <memory>
 #include <new>
 #include <span>
@@ -47,6 +49,7 @@ constexpr std::int32_t FirstBloodCastleMap = 11;
 constexpr std::int32_t LastBloodCastleMap = 17;
 constexpr std::int32_t FirstChaosCastleMap = 18;
 constexpr std::int32_t LastChaosCastleMap = 23;
+constexpr std::uint8_t ChaosCastleAreaReset = 0xff;
 // 0x5f831e..0x5f8342: (rand() % 4) · 0,25 en cada una de las 65.536 celdas.
 constexpr int GrassSteps = 4;
 constexpr float GrassStep = 0.25f;
@@ -108,14 +111,18 @@ World::ObjectScene ObjectSceneOf(SceneId scene)
 
 Core::Expected<void, std::string> CreateTheObjects(std::span<const Data::Terrain::TerrainObject> records,
                                                    const char* source, WorldMap& loaded, std::int32_t map,
-                                                   Render::Models::CrtRandom& random, SceneId scene)
+                                                   const MapLoadContext& context)
 {
+    Render::Models::CrtRandom& random = context.random;
     MapModelEffectServices services(loaded.effects, random);
+    // 0x4294b0 lee el byte 0x7239ec en cada objeto del 30 (0x42b480); ningún paquete corre durante la carga.
+    const std::uint8_t siegeState = context.world.Runtime().siegeActive ? 1 : 0;
     World::WorldObjectCreationContext creation{.map = map,
-                                               .scene = ObjectSceneOf(scene),
+                                               .scene = ObjectSceneOf(context.scene),
                                                .registrations = loaded.registrations,
                                                .services = &services,
-                                               .random = &random};
+                                               .random = &random,
+                                               .state7239Ec = &siegeState};
     World::WorldObjectCreationResult created = World::CreateWorldObjects(records, creation);
     for (World::WorldObject& object : created.objects)
     {
@@ -140,6 +147,29 @@ void FillTheGrassOffsets(std::vector<float>& offsets, Render::Models::CrtRandom&
     }
 }
 
+// 0x42a760, con el mapa 30, después de los especiales de 0x616ec0 y antes de leer los archivos: 0x7239f0 en 0
+// (0x42a795), el pedido B9 02 (0x42a7d3..0x42aa52), el lancero 0x612d90(0x4d) en el modelo 0x19f y sus cinco
+// objetos con 0x606660 (0x42aa70..0x42ab27), en (x; 11.300; 270), ángulos en 0 y escala 1. El byte 0x7239d8,
+// que también pone en 0 (0x42a78e), lo leen solo 0x42d890 y 0x42da90 con los monstruos 0x11e y 0x11f (CL9.1).
+Core::Expected<void, std::string> PrepareTheCastleSiege(WorldMap& loaded, std::int32_t map,
+                                                        const MapLoadContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    runtime.siegeMusicTime = 0.0f;
+    // 0x42a981: el B9 02 sale solo con el socket del GS abierto (0x6c82a0 + 0xc distinto de −1).
+    if (context.requestCastleSiegeState)
+        context.requestCastleSiegeState();
+    // 0x42aa6b: Monster78 lo carga WorldModels del 30 (Scenes/WorldModels.cpp), con las texturas de los objetos.
+    constexpr std::int16_t SpearmanModel = 0x19f;
+    constexpr float SpearmanY = 11300.0f;
+    constexpr float SpearmanZ = 270.0f;
+    constexpr std::array<float, 5> SpearmanX{6500.0f, 7100.0f, 9100.0f, 11800.0f, 12300.0f};
+    std::vector<Data::Terrain::TerrainObject> spearmen;
+    for (const float x : SpearmanX)
+        spearmen.push_back(Data::Terrain::TerrainObject{SpearmanModel, {x, SpearmanY, SpearmanZ}, {}, 1.0f});
+    return CreateTheObjects(spearmen, "los lanceros de 0x42a760", loaded, map, context);
+}
+
 // Lo que no depende de un mapa de frontera: el terreno, el .obj y sus objetos.
 Core::Expected<void, std::string> LoadTheFiles(const MapLoadContext& context, WorldMap& loaded, std::int32_t map)
 {
@@ -156,8 +186,7 @@ Core::Expected<void, std::string> LoadTheFiles(const MapLoadContext& context, Wo
         return Core::Unexpected(records.Error());
     }
     loaded.objectRecords = std::move(records).Value();
-    if (auto created =
-            CreateTheObjects(loaded.objectRecords, "EncTerrain.obj", loaded, map, context.random, context.scene);
+    if (auto created = CreateTheObjects(loaded.objectRecords, "EncTerrain.obj", loaded, map, context);
         !created.HasValue())
         return created;
     return World::LoadWorldTerrainSurface(context.dataRoot, folderMap, loaded.terrain, fatalMessage);
@@ -229,20 +258,32 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
         return Core::Unexpected(std::string("0x616ec0: los especiales del mapa 55 (0x6188ae) no están leídos"));
     }
     const std::vector<Data::Terrain::TerrainObject> specials = SpecialObjectsOf(map);
-    if (auto created =
-            CreateTheObjects(specials, "los especiales de 0x616ec0", loaded, map, context.random, context.scene);
+    if (auto created = CreateTheObjects(specials, "los especiales de 0x616ec0", loaded, map, context);
         !created.HasValue())
     {
         return created;
     }
     if (map == CastleSiegeMap)
     {
-        return Core::Unexpected(std::string("0x61a560: el mapa 30 pasa por 0x42a760 y elige el .att con 0x4294b0"));
+        if (auto prepared = PrepareTheCastleSiege(loaded, map, context); !prepared.HasValue())
+            return prepared;
     }
     FillTheGrassOffsets(loaded.grassOffsets, context.random);
-    if (map == CrywolfMap)
+    // 0x61a6d0: 0x42fe50 lee el estado de Crywolf después del .map. Con 0 (el de la .bss, Q-C340) el 34 carga
+    // EncTerrain35.att y TerrainLight como los demás; con 1 y 2, EncTerrain351/352.att y TerrainLight1/2, y con 3
+    // o más el .att con la ruta del .map (Q-C181). Solo un paquete lo cambia (0x42fe80, CL9.5).
+    if (map == CrywolfMap && context.world.Runtime().crywolf.state != 0)
     {
-        return Core::Unexpected(std::string("0x61a560: el .att del mapa 34 depende del estado de Crywolf (0x42fe50)"));
+        return Core::Unexpected(std::format("0x61a6f4: el .att y la luz del mapa 34 con el estado de Crywolf {} no "
+                                            "están portados",
+                                            static_cast<int>(context.world.Runtime().crywolf.state)));
+    }
+    // 0x61a6e1 y 0x61a8a8: en el 30, 0x4294b0 elige el .att y la luz. Con 0x7239ec en 0, el de siempre
+    // (EncTerrain31.att y TerrainLight.jpg); prendido, que solo lo dejan los paquetes de 0x4294c0 (CL9.5), no.
+    if (map == CastleSiegeMap && context.world.Runtime().siegeActive)
+    {
+        return Core::Unexpected(std::string("0x61a6ea: el .att 312 y TerrainLight2 del asedio (0x7239ec) no están "
+                                            "portados"));
     }
     if (auto files = LoadTheFiles(context, loaded, map); !files.HasValue())
     {
@@ -264,15 +305,23 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
     return {};
 }
 
-Core::Expected<void, std::string> CheckEventMap(std::int32_t map)
+void ArmEventMapObject(std::int32_t map, WorldRuntime& runtime)
 {
-    const bool bloodCastle = map >= FirstBloodCastleMap && map <= LastBloodCastleMap;
-    const bool chaosCastle = map >= FirstChaosCastleMap && map <= LastChaosCastleMap;
-    if (map == DevilSquareMap || bloodCastle || chaosCastle)
+    // 0x447d84..0x447de2: el argumento entre 11 y 17, la vtable 0x6b8c30.
+    if (map >= FirstBloodCastleMap && map <= LastBloodCastleMap)
     {
-        return Core::Unexpected("0x447d70: el objeto de evento del mapa " + std::to_string(map) +
-                                " (0x447eb0 y operator new(0x134)) no está portado");
+        runtime.eventObject = EventMapObject{.kind = EventMapKind::BloodCastle};
+        return;
     }
-    return {};
+    // 0x447de7..0x447e1b: el mundo en curso (no el argumento) entre 18 y 23; 0x404d60 pone 0x6c634c en 0xff.
+    if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap)
+    {
+        runtime.eventObject = EventMapObject{.kind = EventMapKind::ChaosCastle};
+        runtime.chaosCastleArea = ChaosCastleAreaReset;
+        return;
+    }
+    // 0x447e47..0x447e8d: el argumento en 9, la vtable 0x6b8c1c.
+    if (map == DevilSquareMap)
+        runtime.eventObject = EventMapObject{.kind = EventMapKind::DevilSquare};
 }
 } // namespace Client::Scenes

@@ -21,6 +21,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -667,4 +668,59 @@ TEST(GameModelEffectsTest, TheAidaWispFlipsItsTurnsAndShortensItsLifeFarFromItsS
     ASSERT_TRUE(Client::World::StepGameModelEffect(near, nullptr, particles, 5000.0f, random).HasValue());
     EXPECT_EQ(near.life, 999);
     EXPECT_EQ(near.state, 0);
+}
+
+// 0x52c5ca..0x52c7a6, la onda 0x6eb/1: después del rand() común, la escala crece (rand() % 5) · 0,1f y la posición
+// tiembla (rand() & 7) − 4 en x y en y; con la vida hasta 20 la luz es la vida por 0,05f, y pasados los 20, 40 menos
+// la vida. La cola baja la vida. Con la semilla 1 (41 de la creación, 18.467 común, 6.334, 26.500 y 19.169): la
+// escala 1,5, x + 0 e y − 3.
+TEST(GameModelEffectsTest, TheGallopShockWaveGrowsShakesAndFadesWithThreeRandoms)
+{
+    Client::World::ModelEffects effects;
+    Client::Render::Models::CrtRandom random(1);
+    ASSERT_TRUE(effects.CreateGallopShockWave({100.5f, 200.25f, 300.0f}, {0.0f, 0.0f, 45.0f}, glm::vec3(1.0f), random)
+                    .has_value());
+    Client::World::ModelEffect& wave = effects.Effects()[0];
+    Client::World::Particles particles;
+
+    ASSERT_TRUE(Client::World::StepGameModelEffect(wave, nullptr, particles, 0.0f, random).HasValue());
+
+    EXPECT_EQ(wave.transform.scale, 1.5f);
+    EXPECT_EQ(wave.transform.position, glm::vec3(100.5f, 197.25f, 300.0f));
+    EXPECT_EQ(wave.light, glm::vec3(1.0f));
+    EXPECT_EQ(wave.life, 19);
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 5).State());
+
+    ASSERT_TRUE(Client::World::StepGameModelEffect(wave, nullptr, particles, 0.0f, random).HasValue());
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(wave.light.x), 0x3f733333u);
+    EXPECT_EQ(wave.life, 18);
+
+    // Pasados los 20, 40 − 25 = 15: 0,75. Una escala negativa vuelve a 0, también sin orden.
+    for (const float scale : {-5.0f, std::numeric_limits<float>::quiet_NaN()})
+    {
+        Client::World::ModelEffect young = wave;
+        young.life = 25;
+        young.transform.scale = scale;
+        ASSERT_TRUE(Client::World::StepGameModelEffect(young, nullptr, particles, 0.0f, random).HasValue());
+        EXPECT_EQ(young.light, glm::vec3(0.75f));
+        EXPECT_EQ(young.transform.scale, 0.0f);
+        EXPECT_EQ(young.life, 24);
+    }
+}
+
+// Los otros subtipos del 0x6eb cortan en su rama, después del rand() común.
+TEST(GameModelEffectsTest, OtherShockWavesStopAfterTheCommonRandom)
+{
+    Client::World::ModelEffects effects;
+    Client::Render::Models::CrtRandom random(1);
+    ASSERT_TRUE(effects.CreateGallopShockWave({}, {}, glm::vec3(1.0f), random).has_value());
+    Client::World::ModelEffect& wave = effects.Effects()[0];
+    wave.subtype = 2;
+    Client::World::Particles particles;
+
+    const auto stepped = Client::World::StepGameModelEffect(wave, nullptr, particles, 0.0f, random);
+
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x52c5ca"), std::string::npos) << stepped.Error();
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
 }

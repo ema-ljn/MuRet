@@ -110,7 +110,7 @@ public:
     explicit BorrowedAttributeQuery(const Data::Terrain::TerrainAttributes& attributes) : m_attributes(attributes) {}
     float ReadScale() override
     {
-        return 0.01f;
+        return World::TerrainAttributeQueryScale;
     }
     const Data::Terrain::TerrainAttributes& Attributes() override
     {

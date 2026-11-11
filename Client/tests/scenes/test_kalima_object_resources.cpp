@@ -31,7 +31,8 @@ TEST(KalimaObjectResourcesTest, AllThirtyTwoNativeCausticsAreLoadedFromRealDataI
         EXPECT_EQ(loaded->sampling.wrap, Client::Data::Textures::Wrap::Repeat);
         EXPECT_EQ(table.References(Client::Render::TextureSlot{slot}), 1);
     }
-    EXPECT_EQ(store.Size(), 35u);
+    // Los 2 de Kalima, las 32 cáusticas, la gota de 0x616ec0 (0x607) y el 0x122.
+    EXPECT_EQ(store.Size(), 36u);
     tiles.Release();
     EXPECT_EQ(store.Size(), 0u);
 }

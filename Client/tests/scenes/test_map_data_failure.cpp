@@ -231,7 +231,7 @@ TEST_F(MapDataFailureTest, MissingLightRequestsQuitAfterPublishingHeightsAndObje
 
 TEST_F(MapDataFailureTest, UnsupportedMapErrorsDoNotRequestQuit)
 {
-    for (const std::uint8_t map : {std::uint8_t{30}, std::uint8_t{34}, std::uint8_t{55}})
+    for (const std::uint8_t map : {std::uint8_t{55}})
     {
         const auto loaded = Load(map, m_dataRoot);
         ASSERT_FALSE(loaded.HasValue());
@@ -246,7 +246,7 @@ TEST_F(MapDataFailureTest, TheFirstFatalMessageSurvivesAnotherLoadAndAnotherFail
     ASSERT_TRUE(first);
     ASSERT_FALSE(Load(35, m_dataRoot).HasValue());
     EXPECT_EQ(m_world->Runtime().fatalDataMessage, first);
-    ASSERT_FALSE(Load(30, m_dataRoot).HasValue());
+    ASSERT_FALSE(Load(55, m_dataRoot).HasValue());
     EXPECT_EQ(m_world->Runtime().fatalDataMessage, first);
     ASSERT_TRUE(Load(0, m_dataRoot).HasValue());
     EXPECT_EQ(m_world->Runtime().fatalDataMessage, first);

@@ -976,6 +976,11 @@ void ServerSession::RequestCrywolfState()
     static_cast<void>(SendWorldPacket(Protocol::World::WriteCrywolfState()));
 }
 
+void ServerSession::RequestCastleSiegeState()
+{
+    static_cast<void>(SendWorldPacket(Protocol::World::WriteCastleSiegeState()));
+}
+
 std::span<const std::vector<std::byte>> ServerSession::Teleports() const
 {
     return m_teleports.Entries();

@@ -7,13 +7,17 @@
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/FaunaDrawing.h"
 #include "Scenes/WorldState.h"
+#include "World/ModelEffects.h"
+#include "World/Particles.h"
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
 
@@ -25,6 +29,7 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <bit>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -103,21 +108,26 @@ bool HasError(const Client::Core::Expected<void, std::string>& result, std::stri
     return !result.HasValue() && result.Error().find(address) != std::string::npos;
 }
 
-// Las siete acciones de DarkHorse.bmd, de 10 keys cada una, en un hueso.
-Skeleton HorseSkeleton()
+// Las siete acciones de DarkHorse.bmd, de 10 keys cada una, en `boneCount` huesos: el 0 en el origen y los demás
+// colgados de él, cada uno a su número de unidades en z.
+Skeleton HorseSkeleton(std::size_t boneCount = 1)
 {
     Skeleton skeleton;
-    SkeletonBone bone;
-    bone.parent = -1;
-    bone.actions.assign(7, std::vector<BoneKey>(10, BoneKey{}));
-    for (std::vector<BoneKey>& keys : bone.actions)
+    for (std::size_t index = 0; index < boneCount; ++index)
     {
-        for (BoneKey& key : keys)
+        SkeletonBone bone;
+        bone.parent = index == 0 ? std::int16_t{-1} : std::int16_t{0};
+        bone.actions.assign(7, std::vector<BoneKey>(10, BoneKey{}));
+        for (std::vector<BoneKey>& keys : bone.actions)
         {
-            key.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+            for (BoneKey& key : keys)
+            {
+                key.position = {0.0f, 0.0f, static_cast<float>(index)};
+                key.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+            }
         }
+        skeleton.bones.push_back(bone);
     }
-    skeleton.bones = {bone};
     skeleton.actions.assign(7, ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 10, .lockPositions = false});
     return skeleton;
 }
@@ -126,7 +136,7 @@ Skeleton HorseSkeleton()
 class HorseModels final : public IModelLibrary
 {
 public:
-    HorseModels() : m_skeleton(HorseSkeleton())
+    explicit HorseModels(std::size_t boneCount = 1) : m_skeleton(HorseSkeleton(boneCount))
     {
         Mesh mesh;
         mesh.vertices = {{0, {0, 0, 0}}, {0, {1, 0, 0}}, {0, {0, 1, 0}}};
@@ -208,7 +218,36 @@ public:
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return StepHelpers(HelperStepContext{.world = world, .horseSkeleton = &skeleton, .random = random});
+        return StepHelpers(
+            HelperStepContext{.world = world, .horseSkeleton = &skeleton, .random = random, .worldClock = clock});
+    }
+
+    // El buffer global de la pose (0x68b181c) como lo dejaría un dibujo de 39 huesos: cada uno sin giro, en
+    // PosedBone(hueso).
+    void PoseTheGlobalBones()
+    {
+        auto& bones = world.PoseCarry().bones;
+        bones.assign(PosedBones, Client::Render::Models::BoneTransform(1.0f));
+        for (std::size_t bone = 0; bone < PosedBones; ++bone)
+        {
+            bones[bone][3] = PosedBone(bone);
+        }
+    }
+
+    // El galope (0x4b) con el caballo ya en su acción 1 y en `frame`.
+    void Gallop(float frame = 0.0f)
+    {
+        Rider().animation.action = GallopingRider;
+        Horse().horse.animation.action = 1;
+        Horse().horse.animation.frame = frame;
+    }
+
+    static constexpr std::size_t PosedBones = 39;
+
+    static glm::vec3 PosedBone(std::size_t bone)
+    {
+        const auto at = static_cast<float>(bone);
+        return {10000.0f + at, 10100.0f + at, 170.0f + at};
     }
 
     Client::Core::Expected<void, std::string> Draw(ModelBatch& batch, const TerrainPolygon& polygon,
@@ -227,6 +266,8 @@ public:
 
     WorldState& world = *m_world;
     CrtRandom random;
+    // El reloj del mundo (0x5767b88) con que 0x53fe70 gira las 5f2: 12.345 ms, 105 grados.
+    float clock = 12345.0f;
     Skeleton skeleton = HorseSkeleton();
     HorseModels models;
 };
@@ -577,17 +618,56 @@ TEST_F(GoldenHelperTable, TheHorseLooksAtTheDrawnCellAndNotAtTheLogicalOne)
     }
 }
 
-// 0x44456b..0x4445d9: con rand() % 3 en 0, el aliento sale del hueso 27 de la pose del dibujo anterior a las
-// partículas del juego, que MuRet no tiene: corta después de ese rand(). Con la acción 1 del caballo, o con
-// +0x78 & 0x4000 del jinete, no lo saca.
-TEST(HelperTableTest, TheBreathStopsAfterItsRandom)
+// 0x44456b..0x4445d9: con rand() % 3 en 0, el aliento sale de (50; −4; 0) en el hueso 27 del buffer global de la
+// pose (0x4ec110 sin el origen) a las partículas del juego: la 5f2/0 con la luz 3 del caballo, sus dos rand() y el
+// reloj del mundo, o en Atlans (el 7) la gota 607/0, que nace con la luz en 1. Tres rand() en total.
+TEST(HelperTableTest, TheBreathLeavesFromBone27OfTheGlobalPose)
 {
     HelperWorld tested(0, BreathSeed);
     ASSERT_NO_FATAL_FAILURE(tested.Mount());
+    tested.PoseTheGlobalBones();
+
+    const auto stepped = tested.Step();
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    const Client::World::Particle& breath = tested.world.Particles().All()[0];
+    EXPECT_TRUE(breath.alive);
+    EXPECT_EQ(breath.type, Client::World::BreathParticle);
+    EXPECT_EQ(breath.subtype, 0);
+    EXPECT_EQ(breath.position, (glm::vec3{10077.0f, 10123.0f, 197.0f}));
+    EXPECT_EQ(breath.light, glm::vec3(3.0f));
+    EXPECT_EQ(breath.angles, (glm::vec3{78.0f, 0.0f, 45.0f}));
+    EXPECT_EQ(breath.scale, std::bit_cast<float>(0x3ef5c28fu));
+    EXPECT_EQ(breath.rotation, 105.0f);
+    EXPECT_EQ(breath.life, 16);
+    EXPECT_FALSE(tested.world.Particles().All()[1].alive);
+    EXPECT_EQ(tested.random.State(), RandomAfter(BreathSeed, 3).State());
+
+    HelperWorld atlans(7, BreathSeed);
+    ASSERT_NO_FATAL_FAILURE(atlans.Mount());
+    atlans.PoseTheGlobalBones();
+    ASSERT_TRUE(atlans.Step().HasValue());
+    const Client::World::Particle& drop = atlans.world.Particles().All()[0];
+    EXPECT_EQ(drop.type, Client::World::DropParticle);
+    EXPECT_EQ(drop.position, (glm::vec3{10077.0f, 10123.0f, 197.0f}));
+    EXPECT_EQ(drop.light, glm::vec3(1.0f));
+    EXPECT_EQ(drop.life, 36);
+    EXPECT_EQ(drop.scale, std::bit_cast<float>(0x3df5c28fu));
+    EXPECT_EQ(atlans.random.State(), RandomAfter(BreathSeed, 3).State());
+}
+
+// Sin el hueso 27 en el buffer global (ningún dibujo conservado lo escribió) corta después del rand() % 3. Con
+// la acción 1 del caballo, o con +0x78 & 0x4000 del jinete, no lo saca.
+TEST(HelperTableTest, TheBreathStopsWithoutItsBone)
+{
+    HelperWorld tested(0, BreathSeed);
+    ASSERT_NO_FATAL_FAILURE(tested.Mount());
+    tested.world.PoseCarry().bones.resize(27);
 
     const auto stepped = tested.Step();
 
     EXPECT_TRUE(HasError(stepped, "0x44459d")) << (stepped.HasValue() ? "" : stepped.Error());
+    EXPECT_FALSE(tested.world.Particles().All()[0].alive);
     EXPECT_EQ(tested.random.State(), RandomAfter(BreathSeed, 1).State());
 
     HelperWorld calm(0, BreathSeed);
@@ -597,19 +677,41 @@ TEST(HelperTableTest, TheBreathStopsAfterItsRandom)
     EXPECT_EQ(calm.random.State(), CrtRandom(BreathSeed).State());
 }
 
-// 0x44416b..0x4444ef, el galope (0x4b) del jinete: la acción 1, sin aliento. En el mapa 10 corta antes de
-// sacar rand(). Si no, rand() % 2: con 1, nada; con 0, en Kalima (24 a 29 y 36) o con +0x78 & 0x4000 del
-// jinete, nada; si no, los tres rand() del lugar y el polvo a las partículas del juego, que corta.
-TEST(HelperTableTest, TheGallopRaisesDustWithItsRandoms)
+// 0x445260 → 0x602e90 deja la pose del caballo en el buffer global (WorldState::PoseCarry) y el paso siguiente
+// saca el aliento del hueso 27 de esa pose.
+TEST(HelperTableTest, TheBreathReadsThePoseTheHorseDrawLeft)
 {
-    HelperWorld icarus(10, DustSeed);
-    ASSERT_NO_FATAL_FAILURE(icarus.Mount());
-    icarus.Rider().animation.action = GallopingRider;
-    const auto inIcarus = icarus.Step();
-    EXPECT_TRUE(HasError(inIcarus, "0x444196")) << (inIcarus.HasValue() ? "" : inIcarus.Error());
-    EXPECT_EQ(icarus.Horse().horse.animation.action, 1u);
-    EXPECT_EQ(icarus.random.State(), CrtRandom(DustSeed).State());
+    HelperWorld tested(0, BreathSeed);
+    tested.skeleton = HorseSkeleton(28);
+    const HorseModels models(28);
+    ASSERT_NO_FATAL_FAILURE(tested.Mount());
+    tested.Horse().horse.alpha = 1.0f;
+    tested.world.Runtime().terrainPolygon = Everything;
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    HelperDrawContext context{.batch = batch, .models = models, .world = tested.world, .random = tested.random};
+    context.onPose = [&](const Client::Scenes::DrawnObject& object)
+    { return Client::Scenes::PublishFaunaPose(tested.world.PoseCarry(), models, object, true); };
+    ASSERT_TRUE(DrawHelpers(context).HasValue());
+    ASSERT_EQ(tested.world.PoseCarry().bones.size(), 28u);
+    const glm::vec3 expected = Client::Render::Models::OriginalVectorTransform(
+        {50.0f, -4.0f, 0.0f}, Client::Render::Models::OriginalMatrixOf(tested.world.PoseCarry().bones[27]));
+    tested.random = CrtRandom(BreathSeed);
 
+    ASSERT_TRUE(tested.Step().HasValue());
+
+    const Client::World::Particle& breath = tested.world.Particles().All()[0];
+    EXPECT_TRUE(breath.alive);
+    EXPECT_EQ(breath.position, expected);
+    EXPECT_NE(breath.position, glm::vec3(0.0f));
+}
+
+// 0x44416b..0x4444ef, el galope (0x4b) del jinete fuera del 10: la acción 1, sin aliento. rand() % 2: con 1, nada;
+// con 0, en Kalima (24 a 29 y 36) o con +0x78 & 0x4000 del jinete, nada; si no, los tres rand() del lugar
+// alrededor del caballo, (rand() & 63) − 32 en x y en y y (rand() & 31) − 16 en z, y en Devias (el 2) la 5f2/0 con
+// sus dos rand(), y en los demás la 5f3/0 con sus cuatro, las dos con la luz 1.
+TEST(HelperTableTest, TheGallopRaisesTheDustOfItsMap)
+{
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
@@ -619,15 +721,44 @@ TEST(HelperTableTest, TheGallopRaisesDustWithItsRandoms)
         ASSERT_TRUE(quiet.Step().HasValue());
         EXPECT_EQ(quiet.Horse().horse.animation.action, 1u);
         EXPECT_FLOAT_EQ(quiet.Horse().horse.speed, 0.34f);
+        EXPECT_FALSE(quiet.world.Particles().All()[0].alive);
         EXPECT_EQ(quiet.random.State(), RandomAfter(QuietSeed, 1).State());
-
-        HelperWorld dusty(map, DustSeed);
-        ASSERT_NO_FATAL_FAILURE(dusty.Mount());
-        dusty.Rider().animation.action = GallopingRider;
-        const auto stepped = dusty.Step();
-        EXPECT_TRUE(HasError(stepped, "0x4444a6")) << (stepped.HasValue() ? "" : stepped.Error());
-        EXPECT_EQ(dusty.random.State(), RandomAfter(DustSeed, 4).State());
     }
+
+    HelperWorld lorencia(0, DustSeed);
+    ASSERT_NO_FATAL_FAILURE(lorencia.Mount());
+    lorencia.Rider().animation.action = GallopingRider;
+    const auto inLorencia = lorencia.Step();
+    ASSERT_TRUE(inLorencia.HasValue()) << inLorencia.Error();
+    const Client::World::Particle& dust = lorencia.world.Particles().All()[0];
+    EXPECT_TRUE(dust.alive);
+    EXPECT_EQ(dust.type, Client::World::DustParticle);
+    EXPECT_EQ(dust.subtype, 0);
+    EXPECT_EQ(dust.position, (glm::vec3{10045.0f, 10033.0f, 157.0f}));
+    EXPECT_EQ(dust.light, glm::vec3(1.0f));
+    EXPECT_EQ(dust.angles, (glm::vec3{103.0f, 0.0f, 45.0f}));
+    EXPECT_EQ(dust.scale, std::bit_cast<float>(0x3ec28f5cu));
+    EXPECT_EQ(dust.velocity, Client::Render::Models::OriginalVectorRotate(
+                                 {0.0f, 3.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, 45.0f})));
+    EXPECT_EQ(dust.life, 32);
+    EXPECT_FALSE(lorencia.world.Particles().All()[1].alive);
+    EXPECT_EQ(lorencia.random.State(), RandomAfter(DustSeed, 8).State());
+
+    HelperWorld devias(2, DustSeed);
+    ASSERT_NO_FATAL_FAILURE(devias.Mount());
+    devias.Rider().animation.action = GallopingRider;
+    const auto inDevias = devias.Step();
+    ASSERT_TRUE(inDevias.HasValue()) << inDevias.Error();
+    const Client::World::Particle& smoke = devias.world.Particles().All()[0];
+    EXPECT_EQ(smoke.type, Client::World::BreathParticle);
+    EXPECT_EQ(smoke.subtype, 0);
+    EXPECT_EQ(smoke.position, (glm::vec3{10046.0f, 10032.0f, 157.0f}));
+    EXPECT_EQ(smoke.light, glm::vec3(1.0f));
+    EXPECT_EQ(smoke.angles, (glm::vec3{177.0f, 0.0f, 45.0f}));
+    EXPECT_EQ(smoke.scale, std::bit_cast<float>(0x3f35c28fu));
+    EXPECT_EQ(smoke.rotation, 105.0f);
+    EXPECT_EQ(smoke.life, 16);
+    EXPECT_EQ(devias.random.State(), RandomAfter(DustSeed, 6).State());
 
     for (const std::int32_t map : {24, 29, 36})
     {
@@ -636,6 +767,7 @@ TEST(HelperTableTest, TheGallopRaisesDustWithItsRandoms)
         ASSERT_NO_FATAL_FAILURE(kalima.Mount());
         kalima.Rider().animation.action = GallopingRider;
         ASSERT_TRUE(kalima.Step().HasValue());
+        EXPECT_FALSE(kalima.world.Particles().All()[0].alive);
         EXPECT_EQ(kalima.random.State(), RandomAfter(DustSeed, 1).State());
     }
 
@@ -644,7 +776,123 @@ TEST(HelperTableTest, TheGallopRaisesDustWithItsRandoms)
     flagged.Rider().animation.action = GallopingRider;
     flagged.Rider().flags78 = 0x4000;
     ASSERT_TRUE(flagged.Step().HasValue());
+    EXPECT_FALSE(flagged.world.Particles().All()[0].alive);
     EXPECT_EQ(flagged.random.State(), RandomAfter(DustSeed, 1).State());
+}
+
+// 0x44419f..0x4443d1, el galope en Icarus (el 10), sin mirar Kalima ni +0x78 del jinete: (rand() & 63) − 32 en la z
+// de (120; 0; z), el punto del hueso del frame en el buffer global, la onda 0x6eb/1 corrida (rand() & 15) − 8 en x
+// y en y con su rand() de la escala, el rand() de la guarda y las 5f2/0 de a una, corridas rand() % 50 − 25 en x y en
+// y y (rand() & 15) − 18 en z, mientras su cuenta no llega a un rand() % 5 + 5 nuevo en cada vuelta (Q-C400). Con la
+// semilla 1 y el frame 1,25 (el hueso 25 en (10.025; 10.125; 195)): el lugar (10.145; 10.125; 204), siete
+// nubes y 47 rand().
+TEST(HelperTableTest, InIcarusTheGallopRaisesAWaveAndPuffsFromTheGlobalPose)
+{
+    struct Puff
+    {
+        glm::vec3 position;
+        std::uint32_t scale;
+        float turn;
+    };
+    constexpr std::array<Puff, 7> Puffs{{
+        {{10144.0f, 10128.0f, 200.0f}, 0x3f28f5c2u, 344.0f},
+        {{10165.0f, 10131.0f, 197.0f}, 0x3f11eb85u, 131.0f},
+        {{10162.0f, 10127.0f, 198.0f}, 0x3f0ccccdu, 204.0f},
+        {{10123.0f, 10142.0f, 200.0f}, 0x3f1c28f6u, 356.0f},
+        {{10165.0f, 10147.0f, 200.0f}, 0x3f2b851eu, 18.0f},
+        {{10132.0f, 10117.0f, 197.0f}, 0x3f170a3du, 174.0f},
+        {{10131.0f, 10122.0f, 199.0f}, 0x3f11eb85u, 344.0f},
+    }};
+    for (const std::uint32_t flags : {0u, 0x4000u})
+    {
+        SCOPED_TRACE(flags);
+        HelperWorld tested(10, QuietSeed);
+        ASSERT_NO_FATAL_FAILURE(tested.Mount());
+        tested.PoseTheGlobalBones();
+        tested.Gallop(1.25f);
+        tested.Rider().flags78 = flags;
+
+        const auto stepped = tested.Step();
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        const Client::World::ModelEffect& wave = tested.world.Map().effects.Effects()[0];
+        EXPECT_TRUE(wave.alive);
+        EXPECT_EQ(wave.type, Client::World::ShockWaveEffect);
+        EXPECT_EQ(wave.subtype, 1);
+        EXPECT_EQ(wave.life, 20);
+        EXPECT_EQ(wave.transform.position, (glm::vec3{10140.0f, 10131.0f, 204.0f}));
+        EXPECT_EQ(wave.transform.angles, (glm::vec3{0.0f, 0.0f, 45.0f}));
+        EXPECT_EQ(wave.transform.scale, 1.0f);
+        EXPECT_EQ(wave.light, glm::vec3(1.0f));
+        EXPECT_FALSE(tested.world.Map().effects.Effects()[1].alive);
+        for (std::size_t index = 0; index < Puffs.size(); ++index)
+        {
+            SCOPED_TRACE(index);
+            const Client::World::Particle& puff = tested.world.Particles().All()[index];
+            EXPECT_TRUE(puff.alive);
+            EXPECT_EQ(puff.type, Client::World::BreathParticle);
+            EXPECT_EQ(puff.subtype, 0);
+            EXPECT_EQ(puff.position, Puffs[index].position);
+            EXPECT_EQ(puff.light, glm::vec3(1.0f));
+            EXPECT_EQ(puff.scale, std::bit_cast<float>(Puffs[index].scale));
+            EXPECT_EQ(puff.angles, (glm::vec3{Puffs[index].turn, 0.0f, 45.0f}));
+            EXPECT_EQ(puff.rotation, 105.0f);
+        }
+        EXPECT_FALSE(tested.world.Particles().All()[Puffs.size()].alive);
+        EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 47).State());
+    }
+}
+
+// 0x4441cd..0x4442ad: el hueso por el frame del caballo, en ventanas que se pisan y donde gana la primera: (1; 1,2)
+// el 19, (1,1; 1,4) el 25, (1,3; 1,6) el 32 y (1,5; 1,8] el 38, cerrada arriba. Fuera de todas, solo el rand() de la
+// z (Q-C404), sin onda ni nubes. La onda queda corrida −5 en x del hueso más 120.
+TEST(HelperTableTest, TheIcarusDustPicksItsBoneByTheFrame)
+{
+    struct Case
+    {
+        float frame;
+        std::optional<std::size_t> bone;
+    };
+    for (const Case& probe : {Case{1.0f, std::nullopt}, Case{1.15f, std::size_t{19}}, Case{1.35f, std::size_t{25}},
+                              Case{1.55f, std::size_t{32}}, Case{1.65f, std::size_t{38}}, Case{1.8f, std::size_t{38}},
+                              Case{1.85f, std::nullopt}, Case{0.5f, std::nullopt}})
+    {
+        SCOPED_TRACE(probe.frame);
+        HelperWorld tested(10, QuietSeed);
+        ASSERT_NO_FATAL_FAILURE(tested.Mount());
+        tested.PoseTheGlobalBones();
+        tested.Gallop(probe.frame);
+
+        ASSERT_TRUE(tested.Step().HasValue());
+
+        const Client::World::ModelEffect& wave = tested.world.Map().effects.Effects()[0];
+        if (probe.bone)
+        {
+            ASSERT_TRUE(wave.alive);
+            EXPECT_EQ(wave.transform.position.x, HelperWorld::PosedBone(*probe.bone).x + 115.0f);
+            EXPECT_TRUE(tested.world.Particles().All()[0].alive);
+        }
+        else
+        {
+            EXPECT_FALSE(wave.alive);
+            EXPECT_FALSE(tested.world.Particles().All()[0].alive);
+            EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 1).State());
+        }
+    }
+}
+
+// Sin el hueso del frame en el buffer global, corta después del rand() de la z, sin la onda.
+TEST(HelperTableTest, TheIcarusDustStopsWithoutItsBone)
+{
+    HelperWorld tested(10, QuietSeed);
+    ASSERT_NO_FATAL_FAILURE(tested.Mount());
+    tested.Gallop(1.25f);
+
+    const auto stepped = tested.Step();
+
+    EXPECT_TRUE(HasError(stepped, "0x4442b4")) << (stepped.HasValue() ? "" : stepped.Error());
+    EXPECT_FALSE(tested.world.Map().effects.Effects()[0].alive);
+    EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 1).State());
 }
 
 // 0x4445e1: con la acción 3 del caballo (la del jinete 0x53), después del aliento, 0x52e470 y 0x4453e0;
@@ -808,16 +1056,35 @@ TEST(HelperTableTest, TheRidersFrozenFlagResetsTheFrameOfADrawnHorse)
     }
 }
 
-// Lo que el dibujo no tiene: +0x1a1 del héroe en los mapas 18 a 23 (0x5ffe09) y el dibujo con 10 de un
-// jinete con +0x78 & 0x4000 (0x60033c), que corta sin dibujar ni sacar el rand().
-TEST(HelperTableTest, TheDrawStopsInChaosCastleAndWithTheRidersFlag4000)
+// 0x5ffdf0 en los mapas 18 a 23: sin +0x1a1 del héroe, el caballo se dibuja como en otro mapa; con él, el alpha
+// guardado baja 0,15f en cada dibujo del original.
+TEST(HelperTableTest, InChaosCastleTheHerosFlagFadesTheHorse)
 {
+    HelperWorld plain;
+    ASSERT_NO_FATAL_FAILURE(plain.Mount());
+    plain.Horse().horse.alpha = 1.0f;
+    ModelBatch reference;
+    ASSERT_TRUE(plain.Draw(reference, Everything).HasValue());
+
     HelperWorld chaos;
     ASSERT_NO_FATAL_FAILURE(chaos.Mount());
     chaos.world.Runtime().map = 18;
+    chaos.Horse().horse.alpha = 1.0f;
     ModelBatch first;
-    EXPECT_TRUE(HasError(chaos.Draw(first, Everything), "0x5ffe09"));
+    ASSERT_TRUE(chaos.Draw(first, Everything).HasValue());
+    EXPECT_EQ(chaos.Horse().horse.alpha, 1.0f);
+    EXPECT_EQ(first.Commands().size(), reference.Commands().size());
 
+    chaos.world.Actors()[chaos.world.Runtime().hero].byte1a1 = 1;
+    ModelBatch second;
+    ASSERT_TRUE(chaos.Draw(second, Everything).HasValue());
+    EXPECT_EQ(chaos.Horse().horse.alpha, static_cast<float>(1.0 - static_cast<double>(0.15f)));
+}
+
+// Lo que el dibujo no tiene: el dibujo con 10 de un jinete con +0x78 & 0x4000 (0x60033c), que corta sin dibujar
+// ni sacar el rand().
+TEST(HelperTableTest, TheDrawStopsWithTheRidersFlag4000)
+{
     HelperWorld flagged;
     ASSERT_NO_FATAL_FAILURE(flagged.Mount());
     flagged.Horse().horse.alpha = 1.0f;

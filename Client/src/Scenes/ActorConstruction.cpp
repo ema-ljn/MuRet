@@ -160,6 +160,8 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.drawnLight = {};
     // 0x511878: reconstruir el dueño borra el cuervo anterior.
     actor.darkSpirit.reset();
+    // 0x511872: +0x364 en 0 sin 0x414340, así que +0x360 queda como estaba.
+    actor.layer.reset();
 }
 } // namespace
 

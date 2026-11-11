@@ -4788,9 +4788,17 @@ entrar a Devias armado). `Scenes::DrawGameHanging` corre, sobre el cuerpo ya dib
   `0x5fc8f0` en el buffer local más `0x5fca90` con el hueso, con los bits de la x87
   (`Render::Models::OriginalConcatTransforms`: la primera fila suma en el orden natural y las otras
   dos desde la columna 2); el origen es la posición del personaje.
-- **Los GM** (`0x413fe0`): con "webzen" en el nombre (`0x576960`), `+0x78 & 0x1000000` o el CtlCode en
-  `0x20` u 8, la capa (`0x414370` y `0x4147c0`) corta. Blood Castle con `+0x360` no corre: ese byte no
-  lo escribe nada portado (`0x40c140`, `0x42ab40`, `0x42ad50` y `0x42ae60`).
+- **Los GM** (`0x50df01`, `0x413fe0`): con "webzen" en el nombre (`0x576960`), `+0x78 & 0x1000000` o el
+  CtlCode en `0x20` u 8 (el personaje del laboratorio tiene `0x20`), suelta una capa que no sea la 5
+  (`0x414340`) y pone `+0x360` en 5. Sin capa en `+0x364` y con `+0x360` del 5 al 13 la crea: la 5 es
+  `0x414370(0x12a, 0x14, 1, 70, −5, 0, 0, 0, 45)`, Skill\MuSign.bmd (`0x6166fe`, texturas en `0x616c5c`);
+  las del 6 al 13 (`0x4147c0` con el `0x637`) cortan. Después, `0x4142f0` (`0x50df07`), sin
+  `+0x78 & 0x4000`, la dibuja con `0x414470`: el punto (70, −5, 0) del hueso 20 del cuerpo (`0x4ec110`),
+  los ángulos fijos (0, 0, 45), `0x4ec200` a 0,5 sobre la acción 0 y `0x602e90(objeto, 1, 0, 0)`, que en
+  `0x6002e0` hace `RenderBody(2)` con la luz en 1 y `RenderBody(0x44)` con (1; 0,5; 0), con la luz por
+  vértice y la pose en el buffer global. Sin `rand()`. `+0x360` queda en 5 en el registro (Q-C301). En
+  Chaos Castle corta (`0x5ffe09` lee `+0x1a1` del héroe), y en Blood Castle (`0x50de63`, antes de la capa)
+  el 5 de un GM corta en `0x50de84`, el arma del evento.
 - **Las alas y Helper02**, fuera de los mapas 18 a 23: las alas en 47 a (0, 0, 15) y Helper02 en 34 a
   (20, 0, 0) y 0,5 keys por frame, con el excelente del arma de la espalda (Q-C297), y su destello rojo
   `0x5ac` de 1,5 en (20, 0, 15) del hueso 34.
@@ -4812,10 +4820,12 @@ avanzar. Cortan con su dirección: el joint de `0x223` (`0x50ec26`), el de `0x22
 (`0x50ee26`), la partícula de `0xc18` después de sus dos sprites y tres `rand()` (`0x50f5a8`), la de
 `0xa27` con la mitad de los `rand()` (`0x50af72`), el joint de `0xc1e` (`0x50b4e7`), el de `0x227` y
 `0x231` en la acción `0x8c` (`0x50a110`), el origen del `0xef` (`0x5096ac`), el lugar de los monstruos
-`0x84` a `0x86` (`0x5093f3`), la capa de los GM (`0x413fe0`) y el efecto cada 30 pasos de `+0x78 & 0x800`
+`0x84` a `0x86` (`0x5093f3`), las capas del 6 al 13 (`0x4140d5`), la de los GM en Chaos Castle
+(`0x5ffe09`), el arma del evento de Blood Castle (`0x50de84`) y el efecto cada 30 pasos de `+0x78 & 0x800`
 (`0x50e0c0`). `GameHangingTest` y `GameCharacterRenderTest` cubren la espalda (hueso 47 y su lugar), la
-mano (hueso 33), las saetas, Helper02, los sprites de `0x21d` y `0xc19`, la luz por nivel, las cuentas de
-`rand()` y los cortes.
+mano (hueso 33), las saetas, Helper02, los sprites de `0x21d` y `0xc19`, la luz por nivel, MuSign en el
+hueso 20 con sus dos pases, las cuentas de `rand()` y los cortes; `WorldEntryTest` ve la capa en el héroe
+del cable (CtlCode `0x20`) en Lorencia.
 
 ### Los objetos del juego
 

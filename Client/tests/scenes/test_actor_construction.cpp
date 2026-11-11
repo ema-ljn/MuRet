@@ -225,6 +225,20 @@ TEST_F(ActorConstructionTest, LeavesThePlayerUnseenAndNotDying)
     EXPECT_EQ(actor.blendMeshLight, 1.0f);
 }
 
+// 0x511872: la capa de +0x364 queda en 0 sin 0x414340, así que +0x360 sigue en el 5 de un GM anterior y el
+// próximo dibujo vuelve a crearla (Q-C301).
+TEST_F(ActorConstructionTest, DropsTheLayerButKeepsItsKind)
+{
+    ActorState actor = Client::Tests::UnarmedPlayer(3);
+    actor.byte360 = 5;
+    actor.layer.emplace();
+
+    ASSERT_TRUE(ConstructActor(actor, Player, ActorPlacement{133, 127, 0.0f}, Context(), cloth).HasValue());
+
+    EXPECT_FALSE(actor.layer.has_value());
+    EXPECT_EQ(actor.byte360, 5);
+}
+
 // Fuera del jugador y los NewFace, corta sin tocar el personaje ni gastar rand().
 TEST_F(ActorConstructionTest, UnknownTypesFailBeforeChangingTheRecord)
 {

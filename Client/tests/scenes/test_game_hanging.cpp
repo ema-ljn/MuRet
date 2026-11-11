@@ -43,6 +43,7 @@ constexpr std::uint16_t Sword223 = 0x223;
 constexpr std::uint16_t Bolts = 0xa19;
 constexpr std::uint16_t Staff08 = 0xc19;
 constexpr std::uint16_t Helper02 = 0x1c13;
+constexpr std::uint16_t MuSign = 0x12a;
 constexpr std::uint16_t Flare = 0x5ac;
 constexpr std::uint16_t Shiny = 0x5fd;
 constexpr std::size_t BoneCount = 48;
@@ -329,9 +330,90 @@ TEST_F(GameHangingTest, TheEventMapsSkipTheWingsAndThePet)
     EXPECT_EQ(m_random.State(), AfterRandoms(3));
 }
 
+// 0x413fe0, 0x4142f0 y 0x414470: con el CtlCode en 0x20, +0x360 pasa a 5 y la capa nueva dibuja MuSign en el
+// hueso 20 del cuerpo, corrido (70, −5, 0) y girado 45° en z, sin rand(): el pase base (luz por vértice) y el
+// cromo aditivo en (1; 0,5; 0). Su pose queda en el buffer global, y las alas se posan después.
+TEST_F(GameHangingTest, AGameMasterCarriesTheSignOnBone20)
+{
+    const HangingModels models({MuSign});
+    m_actor.controlCode = 0x20;
+
+    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(m_actor.byte360, 5);
+    ASSERT_TRUE(m_actor.layer.has_value());
+    EXPECT_EQ(m_actor.layer->animation.action, 0);
+    EXPECT_EQ(m_random.State(), AfterRandoms(3));
+    // (70, −5, 0) desde el hueso 20 en (0, 0, 20), más el lugar (150, 150, 10).
+    const glm::vec3 origin{220.0f, 145.0f, 30.0f};
+    ASSERT_TRUE(m_carry.models.contains(MuSign));
+    EXPECT_EQ(m_carry.models.at(MuSign).position, origin);
+    EXPECT_EQ(m_carry.models.at(MuSign).angles, glm::vec3(0.0f, 0.0f, 45.0f));
+    const auto vertices = m_batch.Vertices();
+    ASSERT_EQ(vertices.size(), 6u);
+    for (const std::size_t first : {std::size_t{0}, std::size_t{3}})
+    {
+        EXPECT_NEAR(vertices[first].position.x, origin.x, 1e-3f);
+        EXPECT_NEAR(vertices[first].position.y, origin.y, 1e-3f);
+        EXPECT_NEAR(vertices[first].position.z, origin.z, 1e-3f);
+        // El (1, 0, 0) de la malla, girado 45° en z.
+        EXPECT_NEAR(vertices[first + 1].position.x, origin.x + 0.70710677f, 1e-3f);
+        EXPECT_NEAR(vertices[first + 1].position.y, origin.y + 0.70710677f, 1e-3f);
+    }
+    EXPECT_NEAR(vertices[3].color.red, 1.0f, 1e-6f);
+    EXPECT_NEAR(vertices[3].color.green, 0.5f, 1e-6f);
+    EXPECT_NEAR(vertices[3].color.blue, 0.0f, 1e-6f);
+}
+
+// La capa queda en el registro: con +0x360 en 5 y sin ser GM se sigue dibujando, y 0x4ec200 la avanza 0,5
+// por frame del original (entre frames, como quedó). Sin capa y con el 5 de un GM anterior, la vuelve a crear
+// (Q-C301).
+TEST_F(GameHangingTest, TheSignStaysInTheRecordAndAdvancesOnlyOnOriginalFrames)
+{
+    const HangingModels models({MuSign});
+    m_actor.byte360 = 5;
+    m_actor.layer = Client::Scenes::GameMasterLayer{.animation = {.action = 1}};
+    GameHangingPass pass = Pass(models);
+    pass.originalFrame = false;
+
+    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    ASSERT_TRUE(m_actor.layer.has_value());
+    EXPECT_EQ(m_actor.layer->animation.frame, 0.0f);
+
+    pass.originalFrame = true;
+    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    ASSERT_TRUE(m_actor.layer.has_value());
+    EXPECT_EQ(m_actor.layer->animation.action, 1);
+    EXPECT_EQ(m_actor.layer->animation.frame, 0.5f);
+
+    m_actor.layer.reset();
+    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    ASSERT_TRUE(m_actor.layer.has_value());
+    EXPECT_EQ(m_actor.layer->animation.action, 0);
+    EXPECT_EQ(m_actor.byte360, 5);
+}
+
+// Un GM con la capa de otro tipo la suelta (0x414340 vuelve +0x360 a 0) y crea la 5.
+TEST_F(GameHangingTest, AGameMasterReplacesALayerOfAnotherKind)
+{
+    const HangingModels models({MuSign});
+    m_actor.controlCode = 8;
+    m_actor.byte360 = 2;
+    m_actor.layer = Client::Scenes::GameMasterLayer{.animation = {.action = 1, .frame = 0.75f}};
+
+    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, Pass(models)).HasValue());
+
+    EXPECT_EQ(m_actor.byte360, 5);
+    ASSERT_TRUE(m_actor.layer.has_value());
+    EXPECT_EQ(m_actor.layer->animation.action, 0);
+    EXPECT_EQ(m_actor.layer->animation.frame, 0.0f);
+}
+
 // Lo que todavía corta, con su dirección y después de lo ya dibujado: el joint de 0x223 (0x50ec26), el
-// de 0x224 después de su Shiny02 (0x50ee26), la capa de los GM por el nombre (0x413fe0) y lo que no es un
-// jugador (0x50e060).
+// de 0x224 después de su Shiny02 (0x50ee26), la capa de un GM por el nombre sin MuSign (0x414470), el arma
+// del evento de Blood Castle (0x50de84), la capa en Chaos Castle (0x5ffe09), las capas del 6 al 13
+// (0x4140d5) y lo que no es un jugador (0x50e060).
 TEST_F(GameHangingTest, TheUnportedCasesStopWithTheirAddress)
 {
     {
@@ -360,8 +442,27 @@ TEST_F(GameHangingTest, TheUnportedCasesStopWithTheirAddress)
             m_actor.name[index] = static_cast<std::byte>(Name[index]);
         const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
         ASSERT_FALSE(result.HasValue());
-        EXPECT_NE(result.Error().find("0x413fe0"), std::string::npos) << result.Error();
+        EXPECT_NE(result.Error().find("0x414470"), std::string::npos) << result.Error();
+        EXPECT_EQ(m_actor.byte360, 5);
         m_actor.name = {};
+    }
+    {
+        const HangingModels models({MuSign});
+        GameHangingPass pass = Pass(models);
+        pass.map = 11;
+        const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_NE(result.Error().find("0x50de84"), std::string::npos) << result.Error();
+        pass.map = 20;
+        const auto chaos = Client::Scenes::DrawGameHanging(m_actor, pass);
+        ASSERT_FALSE(chaos.HasValue());
+        EXPECT_NE(chaos.Error().find("0x5ffe09"), std::string::npos) << chaos.Error();
+        m_actor.layer.reset();
+        m_actor.byte360 = 6;
+        const auto other = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+        ASSERT_FALSE(other.HasValue());
+        EXPECT_NE(other.Error().find("0x4140d5"), std::string::npos) << other.Error();
+        m_actor.byte360 = 0;
     }
     {
         const HangingModels models({});

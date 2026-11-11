@@ -40,6 +40,27 @@ TEST(LoginActorTest, MapCleanupDropsTheRavenEvenOfSurvivingActors)
     EXPECT_TRUE(world.Actors()[400].darkSpirit);
 }
 
+// 0x510fd2: 0x414340 en los 400, vivos o no: la capa de los GM se suelta y +0x360 vuelve a 0; sin capa,
+// +0x360 queda como estaba.
+TEST(LoginActorTest, MapCleanupReleasesTheGameMasterLayers)
+{
+    Client::Scenes::WorldState world;
+    auto& survivor = world.Actors()[0];
+    survivor.alive = true;
+    survivor.key = 7;
+    survivor.byte360 = 5;
+    survivor.layer.emplace();
+    world.Actors()[1].byte360 = 5;
+    world.Actors()[400].byte360 = 5;
+    world.Actors()[400].layer.emplace();
+    Client::Scenes::KillOtherActors(world, 7);
+    EXPECT_FALSE(survivor.layer);
+    EXPECT_EQ(survivor.byte360, 0);
+    EXPECT_EQ(world.Actors()[1].byte360, 5);
+    EXPECT_TRUE(world.Actors()[400].layer);
+    EXPECT_EQ(world.Actors()[400].byte360, 5);
+}
+
 TEST(LoginActorTest, MissingWorldDataCutsAfterThePreviousCellRandoms)
 {
     for (const bool missingAttributes : {true, false})

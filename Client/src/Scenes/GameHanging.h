@@ -23,8 +23,8 @@ class FrameSprites;
 }
 
 // Lo que cuelga de un jugador en el dibujo del juego (0x50ba30, de 0x50db57 a 0x50e9fa): el arma a la
-// espalda, las alas, Helper02 y el lazo de las manos, cada cosa con 0x509340 (posada sobre el buffer
-// global de la pose, dibujada con 0x60b3d0 y con los sprites de su modelo). Lo que pide un efecto o un
+// espalda, la capa de los GM, las alas, Helper02 y el lazo de las manos, cada cosa salvo la capa con 0x509340 (posada
+// sobre el buffer global de la pose, dibujada con 0x60b3d0 y con los sprites de su modelo). Lo que pide un efecto o un
 // joint que MuRet no tiene corta con su dirección. Contrato: 06 § El dibujo del juego, "Lo que cuelga en
 // el juego".
 namespace Client::Scenes
@@ -58,8 +58,9 @@ struct GameHangingPass
 };
 
 // 0x50db57..0x50e9fa sobre un 0x20a ya dibujado (cuerpo y tela): el rand() de la luz de lo que cuelga,
-// la espalda (un arma o el carcaj del hueso 47 con su ángulo), las alas y Helper02 (fuera de los mapas 18
-// a 23), y fuera de la espalda las dos manos, cada una con +0x38e abierto y cerrado antes. Escribe el
+// la espalda (un arma o el carcaj del hueso 47 con su ángulo), la capa de los GM (MuSign en el hueso 20,
+// que crea y avanza en +0x360 y +0x364), las alas y Helper02 (fuera de los mapas 18 a 23), y fuera de la
+// espalda las dos manos, cada una con +0x38e abierto y cerrado antes. Escribe el
 // hueso, la acción, la velocidad y la animación de cada parte que cuelga, como el original, y +0x3b4 ya
 // tiene que tener la luz de lo que cuelga (0x50db94).
 [[nodiscard]] Core::Expected<void, std::string> DrawGameHanging(ActorState& actor, const GameHangingPass& pass);

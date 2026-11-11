@@ -64,6 +64,30 @@ constexpr std::uint8_t WingsBone = 0x2f;
 constexpr std::uint8_t PetBone = 0x22;
 // 0x6b8a44: en la acción 0x3e la mano derecha no cuelga nada hasta pasar el frame 4.
 constexpr float LateSwingFrame = 4.0f;
+// 0x50de63: Blood Castle, donde +0x360 del 1 al 3 cuelga el arma del evento.
+constexpr std::int32_t FirstBloodCastle = 11;
+constexpr std::int32_t LastBloodCastle = 17;
+// 0x5ffdf0 (0x5ffe09): en Chaos Castle lee +0x1a1 del héroe para bajar el alpha del objeto.
+constexpr std::int32_t FirstChaosCastle = 18;
+constexpr std::int32_t LastChaosCastle = 23;
+// 0x413fe0: los GM llevan la capa 5; 0x41407c crea las del 5 al 13.
+constexpr std::uint8_t GameMasterLayerKind = 5;
+constexpr std::uint8_t LastLayerKind = 13;
+constexpr std::uint32_t GameMasterFlag = 0x1000000;
+constexpr std::uint8_t GameMasterControlCode = 0x20;
+constexpr std::uint8_t SecondGameMasterControlCode = 8;
+// 0x4140ab..0x4140c4: 0x414370(0x12a, 0x14, 1, 70, −5, 0, 0, 0, 45): Skill\MuSign.bmd en el hueso 20 del
+// dueño, corrido (70, −5, 0), con los ángulos fijos (0, 0, 45) (+0x93 en 1: no copia los del dueño).
+constexpr std::uint16_t MuSign = 0x12a;
+constexpr std::uint8_t MuSignBone = 0x14;
+constexpr glm::vec3 MuSignOffset{70.0f, -5.0f, 0.0f};
+constexpr glm::vec3 MuSignAngles{0.0f, 0.0f, 45.0f};
+// +0xdc: 0x414370 pone 0,5, lo que 0x414470 le pasa a 0x4ec200.
+constexpr float MuSignSpeed = 0.5f;
+// 0x6002e0 con el 0x12a: RenderBody(2) con la luz en 1 y RenderBody(0x44) con (1; 0,5; 0).
+constexpr std::uint32_t BasePass = 2;
+constexpr std::uint32_t ChromePass = 0x44;
+constexpr glm::vec3 MuSignChromeLight{1.0f, 0.5f, 0.0f};
 
 float F32(double value)
 {
@@ -914,6 +938,87 @@ bool NamedLikeAGameMaster(const ActorState& actor)
     return UI::ContainsLikeTheOriginal(std::string_view(name.data(), static_cast<std::size_t>(end - name.begin())),
                                        "webzen");
 }
+
+// 0x413fe0: un GM ("webzen" en el nombre, +0x78 & 0x1000000 o el CtlCode en 0x20 u 8) suelta una capa que
+// no sea la 5 y pone +0x360 en 5. Después, sin capa y con +0x360 del 5 al 13, la crea: con +0x360 en 5, la
+// de MuSign (0x414370); las del 6 al 13 (0x4147c0 con el 0x637) no están portadas. +0x360 lo escriben
+// también funciones sin portar, y no lo vuelve a 0 nadie más que 0x414340: el 5 queda en el registro.
+Result StepTheLayer(ActorState& actor)
+{
+    const bool gameMaster = NamedLikeAGameMaster(actor) || (actor.flags78 & GameMasterFlag) == GameMasterFlag ||
+                            actor.controlCode == GameMasterControlCode ||
+                            actor.controlCode == SecondGameMasterControlCode;
+    if (gameMaster)
+    {
+        if (actor.layer.has_value() && actor.byte360 != GameMasterLayerKind)
+            ReleaseTheLayer(actor);
+        actor.byte360 = GameMasterLayerKind;
+    }
+    if (actor.layer.has_value() || actor.byte360 < GameMasterLayerKind || actor.byte360 > LastLayerKind)
+        return {};
+    if (actor.byte360 != GameMasterLayerKind)
+        return Core::Unexpected(std::format("0x4140d5: la capa {} (0x4147c0 con el modelo 0x637) no está portada",
+                                            static_cast<int>(actor.byte360)));
+    // 0x414370: la acción, la anterior, el frame y la key anterior en 0.
+    actor.layer = GameMasterLayer{};
+    return {};
+}
+
+// 0x414470, el dibujo de la capa 5: MuSign en el hueso 20 del dueño, con 0x4ec200 a 0,5 y 0x602e90(objeto, 1,
+// 0, 0). El alpha del objeto (+0x178) es el 1 de 0x414370 y nada lo baja, así que no corta en 0x414496.
+Result DrawMuSign(const Frame& frame, GameMasterLayer& layer)
+{
+    const GameHangingPass& pass = frame.pass;
+    if (pass.map >= FirstChaosCastle && pass.map <= LastChaosCastle)
+        return Core::Unexpected(
+            std::string("0x5ffe09: el alpha de la capa de los GM en Chaos Castle (+0x1a1 del héroe) no está portado"));
+    if (pass.carry == nullptr)
+        return Core::Unexpected(std::string("0x5ffdf0: falta el buffer global de la pose (0x68b181c)"));
+    if (MuSignBone >= pass.body.size())
+        return Core::Unexpected(
+            std::format("0x4144d6: el hueso {:#x} del cuerpo no existe", static_cast<int>(MuSignBone)));
+    const Render::Models::Skeleton* skeleton = pass.models.SkeletonOf(MuSign);
+    if (pass.models.Find(MuSign) == nullptr || skeleton == nullptr)
+        return Core::Unexpected(std::string("0x414470: falta Skill\\MuSign.bmd (0x12a) de la capa de los GM"));
+    DrawnObject object;
+    object.model = MuSign;
+    // 0x4144d6: 0x4ec110 con el modelo del dueño sobre su hueso 20, trasladado; +0x93 en 1 deja los ángulos.
+    object.transform = {.position = frame.BodyPoint(MuSignBone, MuSignOffset), .angles = MuSignAngles, .scale = 1.0f};
+    // 0x414555: 0x4ec200 sobre la acción de +0x115 (0). Sin acciones o con una key no hace nada; entre frames
+    // del original, la dibuja como quedó.
+    if (pass.originalFrame && layer.animation.action < skeleton->actions.size())
+        static_cast<void>(Render::Models::AdvanceAnimation(layer.animation, skeleton->actions[layer.animation.action],
+                                                           MuSignSpeed, Render::Models::AnimationScene::Other));
+    object.animation = layer.animation;
+    // 0x414370: el blendMesh (+0x68) y la malla oculta (+0x5c) en −1, la luz del blendMesh en 1, la luz por
+    // vértice (+0xec) prendida y el alpha en 1. 0x5ffce0 suma la luz del terreno, que 0x6002e0 pisa. La U, la V
+    // y el +0x78 que 0x6002e0 compara con 0x80 quedan sin inicializar (Q-C302): acá, en 0 y distinto de 0x80.
+    object.state = {};
+    object.color = glm::vec3(1.0f);
+    object.alpha = 1.0f;
+    object.vertexLight = true;
+    // 0x5ffdf0 con el segundo argumento en 1: la pose en el buffer global, sin llevar los huesos al mundo.
+    FaunaDrawCarry& carry = *pass.carry;
+    if (auto posed = PublishFaunaPose(carry, pass.models, object, false); !posed.HasValue())
+        return posed;
+    if (auto drawn = DrawItemMeshPass(pass.batch, pass.models, object, pass.frameClock, carry.meshes, -1, BasePass);
+        !drawn.HasValue())
+        return drawn;
+    DrawnObject chrome = object;
+    chrome.color = MuSignChromeLight;
+    return DrawItemMeshPass(pass.batch, pass.models, chrome, pass.frameClock, carry.meshes, -1, ChromePass);
+}
+
+// 0x4142f0: con capa y sin +0x78 & 0x4000, la dibuja; con +0x360 del 6 al 13, solo si 0x4294b0.
+Result DrawTheLayer(const Frame& frame)
+{
+    ActorState& actor = frame.actor;
+    if (!actor.layer.has_value() || (actor.flags78 & HiddenAttachmentFlag) == HiddenAttachmentFlag)
+        return {};
+    if (actor.byte360 > GameMasterLayerKind && actor.byte360 <= LastLayerKind)
+        return Core::Unexpected(std::string("0x41431e: 0x4294b0 con las capas 6 a 13 no está portado"));
+    return DrawMuSign(frame, *actor.layer);
+}
 } // namespace
 
 Core::Expected<void, std::string> DrawGameHanging(ActorState& actor, const GameHangingPass& pass)
@@ -942,12 +1047,16 @@ Core::Expected<void, std::string> DrawGameHanging(ActorState& actor, const GameH
     std::uint8_t petExcellent = 0;
     if (auto hung = HangTheBack(frame, back, petExcellent); !hung.HasValue())
         return hung;
-    // 0x50de63: en Blood Castle (11 a 17) con +0x360, que MuRet nunca escribe (0x40c140, 0x42ab40, 0x42ad50 y
-    // 0x42ae60 sin portar), el arma del evento. 0x413fe0: la capa de los GM.
-    const bool gm = NamedLikeAGameMaster(actor) || (actor.flags78 & 0x1000000u) != 0 || actor.controlCode == 0x20 ||
-                    actor.controlCode == 8;
-    if (gm)
-        return Core::Unexpected<std::string>("0x413fe0: la capa de los GM (0x414370 y 0x4147c0) no está portada");
+    // 0x50de63: en Blood Castle (11 a 17) con +0x360, el arma del evento (del 1 al 3: 0xc1c, 0x225 y 0xa24;
+    // con otro valor, el modelo que quedó en [ebp-0x18]). MuRet solo escribe el 5 de los GM (0x413fe0), y lo
+    // deja en el registro desde su primer dibujo.
+    if (pass.map >= FirstBloodCastle && pass.map <= LastBloodCastle && actor.byte360 != 0)
+        return Core::Unexpected(std::string("0x50de84: el arma del evento de Blood Castle (+0x360) no está portada"));
+    // 0x50df01 y 0x50df07: la capa de los GM, antes de las alas.
+    if (auto layer = StepTheLayer(actor); !layer.HasValue())
+        return layer;
+    if (auto drawn = DrawTheLayer(frame); !drawn.HasValue())
+        return drawn;
     if (!(pass.map >= 18 && pass.map <= 23))
     {
         if (auto hung = HangWingsAndPet(frame, petExcellent); !hung.HasValue())

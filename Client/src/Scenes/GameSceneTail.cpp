@@ -212,6 +212,8 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
     ModelEffectDrawResources effectResources{*world.Map().terrain.heights, clock};
     effectResources.onPose = [&](const DrawnObject& object)
     { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); };
+    effectResources.onUntranslatedPose = [&](const DrawnObject& object)
+    { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, false); };
     effectResources.posedMeshes = [&]()
     { return std::span<const Render::Models::SkinnedMesh>(FramePoseCarry().meshes); };
     effectResources.sprites = &FrameSpritesForDraw();

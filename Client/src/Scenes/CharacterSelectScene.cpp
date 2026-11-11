@@ -981,7 +981,7 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     }
     // La UI del modo 4 (0x65fe00): la barra, la ventana de crear y el aviso arriba. Y el cursor (0x634980).
     m_bar.Draw(sprites, canvas.text, canvas.screen);
-    DrawTheCreateWindow(canvas, alpha, poseCarry);
+    DrawTheCreateWindow(canvas, alpha);
     m_notice.Draw(sprites, canvas.text, canvas.screen);
     DrawTheCursor(canvas);
 }
@@ -1169,18 +1169,32 @@ void CharacterSelectScene::DrawTheCharacters(SceneCanvas& canvas, float alpha, s
         drawn.clothWorld = m_context.cloth;
         drawn.map = map;
         drawn.pace = OriginalFramePaceOf(m_context.pacing);
+        // Q-C410: la lista (0x4c20a0) y la respuesta de crear (0x4c2290) arman cada personaje con 0x517270 →
+        // 0x511290, que le pone +0x11c en 1 (0x511bf7) y le da su buffer de huesos (+0x120, 0x5123c4..0x5123ff).
+        // 0x510d00 → 0x50ba30 → 0x6001b0 posa ahí el cuerpo (0x600259), que arranca de lo que dejó su dibujo
+        // anterior y no del global; al global (0x68b181c) sólo va lo que cuelga.
         if (poseCarry != nullptr)
-            drawn.poseBones = [poseCarry](std::uint16_t)
-            { return std::span<const Render::Models::BoneTransform>(poseCarry->bones); };
+            drawn.poseBones = [poseCarry, actor](std::uint16_t model)
+            {
+                if (model != Data::Models::PlayerSkeletonModel)
+                    return std::span<const Render::Models::BoneTransform>(poseCarry->bones);
+                return actor != nullptr ? std::span<const Render::Models::BoneTransform>(actor->bodyPose)
+                                        : std::span<const Render::Models::BoneTransform>();
+            };
         if (poseCarry != nullptr)
             drawn.onPose = [this, poseCarry](std::uint16_t model, std::span<const Render::Models::BoneTransform> bones,
                                              const Render::Models::ObjectTransform& transform, bool translated)
             {
+                if (model == Data::Models::PlayerSkeletonModel)
+                    return;
                 if (auto result = PublishFaunaPoseRaw(*poseCarry, m_models, model, bones, transform, translated);
                     !result.HasValue())
                     m_failure = result.Error();
             };
         DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock);
+        // Sólo un frame del original deja el cuerpo en sus huesos; un dibujo intermedio no los toca.
+        if (actor != nullptr && poseCarry != nullptr && scanFrames > 0)
+            actor->bodyPose = PoseCharacterBody(m_models, drawn);
     }
 }
 
@@ -1250,7 +1264,7 @@ void CharacterSelectScene::StepThePreview()
 // 0x66a050: la base de la ventana; 0x63e460: la vista previa en su propio pase, sin limpiar la
 // profundidad (se prueba contra la del pase de la selección, como en el original); y 0x63e0a0: lo
 // demás, encima.
-void CharacterSelectScene::DrawTheCreateWindow(SceneCanvas& canvas, float alpha, FaunaDrawCarry* poseCarry)
+void CharacterSelectScene::DrawTheCreateWindow(SceneCanvas& canvas, float alpha)
 {
     if (!m_create.IsOpen())
     {
@@ -1277,18 +1291,21 @@ void CharacterSelectScene::DrawTheCreateWindow(SceneCanvas& canvas, float alpha,
     canvas.models.Begin(pass);
     // Sin el avance de este paso (un aviso arriba), la vista previa va quieta: interpolar uno que no
     // va a dar la haría temblar.
-    FaunaDrawCarry projection;
     if (m_context.world != nullptr)
     {
-        if (poseCarry == nullptr && frames == 0)
-            projection = m_context.world->PoseCarry();
-        auto& carry = poseCarry != nullptr ? *poseCarry : frames > 0 ? m_context.world->PoseCarry() : projection;
-        if (auto result = PublishFaunaPose(carry, m_selectionModels, drawn, true); !result.HasValue())
+        // Q-C410: 0x63e3e0 la arma con 0x511290 (0x63e409), que le pone +0x11c en 1 y le da su buffer (+0x120);
+        // 0x63e637 → 0x50ba30 → 0x602e90 → 0x5ffdf0 la posa ahí (0x5fff13..0x5fff4c) y no en el global. Sólo un
+        // frame del original guarda la pose en el buffer propio.
+        FaunaDrawCarry own;
+        own.bones = Preview().bodyPose;
+        if (auto result = PublishFaunaPose(own, m_selectionModels, drawn, true); !result.HasValue())
         {
             m_failure = result.Error();
             return;
         }
-        DrawObjectFromMeshes(canvas.models, m_selectionModels, drawn, canvas.frameClock, carry.meshes);
+        DrawObjectFromMeshes(canvas.models, m_selectionModels, drawn, canvas.frameClock, own.meshes);
+        if (frames > 0)
+            Preview().bodyPose = std::move(own.bones);
     }
     else
         DrawObject(canvas.models, m_selectionModels, drawn, canvas.frameClock);

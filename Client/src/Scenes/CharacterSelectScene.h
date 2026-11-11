@@ -130,7 +130,7 @@ private:
     // 0x63e430 al final del paso de la ventana, que solo corre con ella arriba: la clase de la ventana
     // y el avance adicional: con un aviso arriba solo avanza desde 0x508ea0.
     void StepThePreview();
-    void DrawTheCreateWindow(SceneCanvas& canvas, float alpha, FaunaDrawCarry* poseCarry = nullptr);
+    void DrawTheCreateWindow(SceneCanvas& canvas, float alpha);
     // 0x505820 con un personaje que se dibuja, `frames` veces (Scenes/FullSetScan.h), sobre WorldState.
     void ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames);
     // 0x635ae0 (0x6346ca) y 0x5fbb00 (0x63475c) en cada frame del original que cuenta el reloj, uno detrás

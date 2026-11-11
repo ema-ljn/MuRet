@@ -1174,20 +1174,33 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     if (nativeFrames == 0)
         projection = CharacterWorld().PoseCarry();
     auto& carry = nativeFrames > 0 ? CharacterWorld().PoseCarry() : projection;
+    ActorState& actor = CharacterWorld().Actors()[LoginActorSlot];
     DrawnCharacter character = TheCharacterToDraw(alpha);
-    character.poseBones = [&](std::uint16_t) { return std::span<const Render::Models::BoneTransform>(carry.bones); };
+    // Q-C410: 0x6349a0 arma al del login con 0x517270 → 0x511290, que le pone +0x11c en 1 (0x511bf7) y le da su
+    // buffer de huesos (+0x120, 0x5123c4..0x5123ff). 0x510d00 → 0x50ba30 → 0x6001b0 posa ahí el cuerpo (0x600259),
+    // que arranca de lo que dejó su dibujo anterior y no del global; al global (0x68b181c) sólo va lo que cuelga.
+    character.poseBones = [&](std::uint16_t model)
+    {
+        return model == Data::Models::PlayerSkeletonModel
+                   ? std::span<const Render::Models::BoneTransform>(actor.bodyPose)
+                   : std::span<const Render::Models::BoneTransform>(carry.bones);
+    };
     character.onPose = [&](std::uint16_t model, std::span<const Render::Models::BoneTransform> bones,
                            const Render::Models::ObjectTransform& transform, bool translated)
     {
+        if (model == Data::Models::PlayerSkeletonModel)
+            return;
         if (auto result = PublishFaunaPoseRaw(carry, m_models, model, bones, transform, translated); !result.HasValue())
             m_failure = result.Error();
     };
-    const ActorState& actor = CharacterWorld().Actors()[LoginActorSlot];
     if (actor.alive && actor.seen)
     {
         ScanTheCharacter(character.appearance,
                          m_fullSetScanFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing)));
         DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
+        // Sólo un frame del original deja el cuerpo en sus huesos; un dibujo intermedio no los toca.
+        if (nativeFrames > 0)
+            actor.bodyPose = PoseCharacterBody(m_models, character);
     }
     // 0x4182f0 al final de 0x50ba30: el cuervo, si pasa el trapecio; sus huesos del estado del paso quedan
     // para la chispa del próximo (Q-C133).

@@ -3764,6 +3764,11 @@ buffer global `0x68b181c`, junto con las colas no escritas de vértices/normales
 presta el scratch antes de PoseSkeleton/PoseAttached; onPose publica las matrices ya calculadas,
 incluida la cabeza y la raíz attached. Los cuerpos especializados consumen los meshes publicados,
 sin volver a posar. Los objetos de malla oculta −2 también publican si pasaron el gate de pose.
+El cuerpo de los personajes no pasa por el global: `0x511290` le pone `+0x11c` en 1 (`0x511bf7`) a
+cada uno que arma, también al del login (`0x6349a0`), a los de la lista (`0x4c20a0`, `0x4c2290`) y
+a la vista previa de crear (`0x63e409`), y `0x5ffdf0`/`0x6001b0` lo posan en `+0x120`
+(`0x5fff13`, `0x600259`); al global sólo va lo que cuelga. En MuRet es `ActorState::bodyPose`
+(Q-C410).
 
 Las aves dibujan con el flag de pose 1 y los peces con 0 (`0x446b60/0x446f00`). El recorrido
 suma/resta yaw90 aritméticamente incluso en muertos (aves `0x10f`, excepción), publica seen por
@@ -4651,7 +4656,9 @@ temporal de un pase no se copia de vuelta al efecto. El reloj de los módulos us
 firmado del FTOL64; las fases de seno/coseno conservan el float completo y su fracción.
 
 Los efectos `0xf4/0xfa` reproducen el inicializador `0x607b60`. `0xfa` toma luz antes de publicar
-pose; `0xf4`, después. Las cintas permiten count negativo sin desplazar historia y luego
+pose; `0xf4`, después. Los dos, y el `0x10f`, publican su pose sin trasladar, con Translate y padre en 0
+(`0x52d33f`, `0x52d4f1` y `0x52d7d2`): los vértices los lleva al mundo `0x4ebc80` (Translate en 1, el
+undécimo argumento de `0x60cf70`) y los sprites de `0x60b3d0`, `0x4ec110` (Q-C411). Las cintas permiten count negativo sin desplazar historia y luego
 reemplazan ambas cabezas. Helper07 publica joints `0x614/14` y `0x613/4` sobre el owner durable
 del ítem; el siguiente tick de `0x614/14` y el creador/paso/dibujo de Thunder `0x5ca/0` ya están
 portados con su recurso físico. Las pruebas angulares usan un generador independiente con el

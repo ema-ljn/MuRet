@@ -33,6 +33,17 @@ constexpr std::int32_t LastChaosCastleMap = 23;
 constexpr std::uint16_t RiderlessHelper = 0x1c12;
 // 0x443e82: la escala del 0xbf al crearlo; 0x445309, la del dibujo en la escena 5.
 constexpr float HorseScale = 1.0f;
+constexpr float RidingHelperScale = 0.9f;
+constexpr float GuardianScale = 0.7f;
+
+bool IsRidingHelper(std::uint16_t type)
+{
+    constexpr std::uint16_t Unilia = 0xc6;
+    constexpr std::uint16_t Dinorant = 0x110;
+    constexpr std::uint16_t FirstFenrir = 0x14a;
+    constexpr std::uint16_t LastFenrir = 0x14c;
+    return type == Unilia || type == Dinorant || (type >= FirstFenrir && type <= LastFenrir);
+}
 // 0x443e4b y 0x443df7: la velocidad (+0xd8) y el alpha (+0x174) al crearlo.
 constexpr float CreatedSpeed = 0.5f;
 constexpr float CreatedAlpha = 0.0f;
@@ -271,7 +282,8 @@ Core::Expected<void, std::string> DrawHelper(HelperState& helper, const HelperDr
 } // namespace
 
 Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(WorldState& world, std::uint16_t type,
-                                                                     const glm::vec3& position, std::size_t rider)
+                                                                     const glm::vec3& position, std::size_t rider,
+                                                                     Render::Models::CrtRandom* random)
 {
     const std::int32_t map = world.Runtime().map;
     const ActorState& riding = world.Actors()[rider];
@@ -279,10 +291,9 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(WorldState&
     {
         return std::optional<std::size_t>{};
     }
-    if (type != DarkHorseModel)
+    if (type != DarkHorseModel && type != RiderlessHelper && !IsRidingHelper(type))
     {
-        return Core::Unexpected(
-            std::format("0x443d70: el ayudante {:#x} no está portado (MuRet crea solo el 0xbf)", type));
+        return Core::Unexpected(std::format("0x443d70: el constructor del ayudante {:#x} no está portado", type));
     }
     HelperTable& helpers = world.Helpers();
     for (std::size_t slot = 0; slot < helpers.size(); ++slot)
@@ -296,7 +307,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(WorldState&
         helper.type = type;
         helper.rider = rider;
         helper.seen = false;
-        helper.scale = HorseScale;
+        helper.scale = type == DarkHorseModel ? HorseScale : IsRidingHelper(type) ? RidingHelperScale : GuardianScale;
         helper.position = position;
         helper.angles = riding.angles;
         // 0x443e1d y 0x443e23: la key anterior y el frame; +0x111 y +0x112 quedan (Q-C221).
@@ -304,6 +315,23 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(WorldState&
         helper.horse.animation.frame = 0.0f;
         helper.horse.speed = CreatedSpeed;
         helper.horse.alpha = CreatedAlpha;
+        if (type == RiderlessHelper)
+        {
+            if (random == nullptr)
+            {
+                return Core::Unexpected(std::string("0x443f21: falta el rand() compartido del Guardian Angel"));
+            }
+            constexpr int HorizontalSpan = 512;
+            constexpr int HorizontalCentre = 256;
+            constexpr int VerticalSpan = 128;
+            constexpr int VerticalBase = 128;
+            helper.position.x = static_cast<float>(static_cast<double>(riding.position.x) +
+                                                   (random->Next() % HorizontalSpan) - HorizontalCentre);
+            helper.position.y = static_cast<float>(static_cast<double>(riding.position.y) +
+                                                   (random->Next() % HorizontalSpan) - HorizontalCentre);
+            helper.position.z = static_cast<float>(static_cast<double>(riding.position.z) +
+                                                   (random->Next() % VerticalSpan) + VerticalBase);
+        }
         return std::optional<std::size_t>{slot};
     }
     return std::optional<std::size_t>{};

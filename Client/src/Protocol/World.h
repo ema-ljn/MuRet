@@ -61,6 +61,9 @@ struct Regen
 // 0x4c6e10: C1 04 F3 12, con XOR32 y Delivery::Clear.
 [[nodiscard]] Outgoing WriteTeleportDone();
 
+// 0x4c6e32: sin cifrar, C1 06 F1 03 00 1C, con XOR32 y entrega C3.
+[[nodiscard]] Outgoing WriteRejectedTeleport();
+
 // 04 § El clima y Crywolf, 0x4c421a/0x4c785d: C1 04 BD 00, XOR32 y Delivery::Clear.
 [[nodiscard]] Outgoing WriteCrywolfState();
 } // namespace Client::Protocol::World

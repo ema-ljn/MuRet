@@ -30,6 +30,7 @@
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
+#include "World/Particles.h"
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
 
@@ -86,11 +87,11 @@ constexpr std::size_t PublishedSlot = 42;
 // Los rand() del pase de los objetos del primer frame del juego (0x602ef4), uno por objeto visto que llega a
 // 0x602ed0, con el héroe en la primera celda de cada mapa de referencia (*simulado*, con el port y la Data del
 // repo). En Lorencia, en (133, 127): 84 antes del 0x69 (1720) y el suyo; después, su rand() % 2 (0x60303c). Par,
-// los dos de la primera gota y el corte en 0x6030c7; impar, los 18 objetos que siguen y el corte en los efectos
-// del suelo (0x52dc3b), con los dos de llegada vivos. En Devias, en (220, 30), los 54 del pase entero y el mismo
-// corte de los efectos.
+// los ocho de las dos gotas; después siguen los 18 objetos restantes. Los efectos de llegada aún no tienen
+// su seen publicado por 0x52d620: el pase del suelo los omite y llega a los ítems del piso (0x6374fe).
+// En Devias, en (220, 30), los 54 del pase entero llegan al mismo corte.
 constexpr int LorenciaRandomsUpToTheFountain = 84 + 1;
-constexpr int DropRandoms = 2;
+constexpr int DropRandoms = 8;
 constexpr int LorenciaObjectsAfterTheFountain = 18;
 constexpr int DeviasObjectRandoms = 54;
 
@@ -99,6 +100,7 @@ struct FirstObjectPass
 {
     int randoms = 0;
     std::string_view cut;
+    int drops = 0;
 };
 
 // El de Lorencia en (133, 127), con `random` al llegar a los objetos.
@@ -110,9 +112,11 @@ FirstObjectPass LorenciaObjectPass(CrtRandom random)
     }
     if (random.Next() % 2 == 0)
     {
-        return {.randoms = LorenciaRandomsUpToTheFountain + 1 + DropRandoms, .cut = "0x6030c7"};
+        return {.randoms = LorenciaRandomsUpToTheFountain + 1 + DropRandoms + LorenciaObjectsAfterTheFountain,
+                .cut = "0x6374fe",
+                .drops = 2};
     }
-    return {.randoms = LorenciaRandomsUpToTheFountain + 1 + LorenciaObjectsAfterTheFountain, .cut = "0x52dc3b"};
+    return {.randoms = LorenciaRandomsUpToTheFountain + 1 + LorenciaObjectsAfterTheFountain, .cut = "0x6374fe"};
 }
 
 class RecordingPublisher final : public Client::Scenes::IWorldEntryPublisher
@@ -366,7 +370,7 @@ TEST_F(WorldEntryTest, WithTheSetTablesTheEntryRunsTheWholeRecalculation)
 // cámara mira al héroe publicado y lee su celda (8 rand() después de los 4 de 0x637229), el terreno de
 // Lorencia sale con sus tiles y su pasto (0x5fc353, sin rand()), las marcas del suelo no dibujan ninguna
 // (0x5fc365: la tabla de la .bss, vacía) y los objetos sacan su rand() hasta el 0x69; con la semilla, su rand() %
-// 2 es par y el dibujo corta en la primera gota (0x6030c7), sin presentar.
+// 2 es par y crea las dos gotas. Los efectos aún no vistos se omiten: corta en los ítems del piso, sin presentar.
 TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects)
 {
     Entry tested(m_dataRoot, Seed);
@@ -393,7 +397,7 @@ TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects)
         static_cast<void>(expected.Next());
     }
     const FirstObjectPass objects = LorenciaObjectPass(expected);
-    ASSERT_EQ(objects.cut, "0x6030c7");
+    ASSERT_EQ(objects.drops, 2);
     for (int draw = 0; draw < objects.randoms; ++draw)
     {
         static_cast<void>(expected.Next());
@@ -421,6 +425,9 @@ TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects)
     EXPECT_GT(vertices, 0u);
     EXPECT_GT(grass, 0u) << "el pasto de World1 (TileGrass01) en 0x32";
     EXPECT_TRUE(scene.MouseRay().has_value());
+    EXPECT_EQ(
+        std::ranges::count_if(tested.world.Particles().All(), [](const auto& particle) { return particle.alive; }),
+        objects.drops);
     EXPECT_EQ(tested.cameraInput.hero, tested.Hero().position);
     EXPECT_EQ(tested.cloth.random.State(), expected.State());
     scene.Leave();
@@ -658,7 +665,7 @@ FirstObjectPass FirstObjectPassOf(const ReferenceMap& map, const CrtRandom& rand
     {
         return LorenciaObjectPass(random);
     }
-    return {.randoms = DeviasObjectRandoms, .cut = "0x52dc3b"};
+    return {.randoms = DeviasObjectRandoms, .cut = "0x6374fe"};
 }
 
 // La respuesta del cable en la celda (x, y) de `map`, con `direction`.
@@ -712,7 +719,7 @@ std::size_t AliveActors(const Entry& tested)
 
 // Un frame del juego sin pasos, como AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects: en el
 // original llega a los personajes (0x6374dd → 0x510d00), y MuRet, que corta antes (en las gotas del 0x69 de
-// Lorencia, 0x6030c7, o en los efectos de llegada, 0x52dc3b), ya no sabe qué dejó 0x505820.
+// los ítems del piso, 0x6374fe), ya no sabe qué dejó 0x505820.
 void DrawAGameFrame(Entry& tested)
 {
     tested.world.Runtime().drawingEnabled = true;
@@ -979,9 +986,10 @@ TEST_F(WorldEntryTest, AnEntryInTheWorldIsAppliedAgainByTheSession)
 // (0x63710f). En Lorencia el héroe de (133, 127) cae adentro y se ve; en Devias el de (220, 30) cae afuera
 // (Q-C216). Los rand() del paso: los 8 de MoveHero, los 8 del TerrainWall, el cuerpo del héroe (0x4fd5f0: el
 // cierre del registro propio en 0x4fc450 y el rand() % 6 de 0x4fd7e4) y, con el héroe visto, los 8 de su celda
-// lógica y el rand() & 7; después, la tela. El frame que sigue pasa las marcas del suelo (0x5fc365), que no sacan
-// rand(), y los objetos, con sus 4 + 8 y uno por objeto visto; Lorencia, con el rand() % 2 del 0x69 impar,
-// sigue. Los dos cortan en los efectos del suelo (0x52dc3b), con los dos de llegada vivos.
+// lógica y el rand() & 7; después, los dos del viento de las partículas y la tela. El frame que sigue pasa las marcas
+// del suelo (0x5fc365), que no sacan rand(), y los objetos, con sus 4 + 8 y uno por objeto visto; Lorencia, con el
+// rand() % 2 del 0x69 impar, sigue. Los dos omiten los efectos de llegada aún no vistos y cortan en los ítems del piso
+// (0x6374fe).
 TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
 {
     const Client::World::TerrainPolygon selected = Client::World::TerrainPolygonOf(
@@ -1025,7 +1033,7 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         ASSERT_TRUE(game.Enter().HasValue());
         Client::Render::Models::ClothWorld reference = tested.cloth;
         const int body = OwnRecordClose + 1;
-        reference.random = Advanced(tested.cloth.random, seen ? 8 + 8 + body + 8 + 1 : 8 + 8 + body);
+        reference.random = Advanced(tested.cloth.random, (seen ? 8 + 8 + body + 8 + 1 : 8 + 8 + body) + 2);
         Client::Render::Models::StepTheClothWorld(reference);
 
         game.Step(Client::Input::InputState{});
@@ -1040,10 +1048,13 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         game.Render(target.BeginFrame({}), 0.0f);
 
         const FirstObjectPass objects = FirstObjectPassOf(probe, Advanced(reference.random, FrameRandoms));
-        EXPECT_EQ(objects.cut, "0x52dc3b");
+        EXPECT_EQ(objects.cut, "0x6374fe");
         ASSERT_TRUE(game.Failure().has_value());
         EXPECT_NE(game.Failure()->find(objects.cut), std::string::npos) << *game.Failure();
-        EXPECT_EQ(tested.cloth.random.State(), Advanced(reference.random, FrameRandoms + objects.randoms).State());
+        // El héroe visto llega a su color propio (cierre de 3.848) y al rand() común de 0x50db57.
+        const int characterDraws = seen ? OwnRecordClose + 1 : 0;
+        EXPECT_EQ(tested.cloth.random.State(),
+                  Advanced(reference.random, FrameRandoms + objects.randoms + characterDraws).State());
         game.Leave();
     }
 }

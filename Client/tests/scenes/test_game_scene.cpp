@@ -92,6 +92,8 @@ constexpr std::uint32_t Seed = 0x13572468u;
 // El cuerpo del héroe quieto en 0x508f00 (0x4fd5f0): el registro propio que abre y cierra 0x4fc450, con los
 // 3.848 rand() de 0x40b4d0, y el rand() % 6 de 0x4fd7e4.
 constexpr int HeroBodyDraws = Client::Render::Models::OwnRecordCloseRandoms + 1;
+// 0x637128: el viento de las partículas toma dos rand(), incluso con la tabla vacía.
+constexpr int ParticleWindDraws = 2;
 
 // El rand() de la CRT sembrado con Seed después de `draws` llamadas.
 CrtRandom RandomAfter(int draws)
@@ -604,6 +606,7 @@ protected:
         Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
         const glm::vec3 position = hero.position;
         hero = Client::Tests::UnarmedPlayer(1);
+        hero.word376 = 0xffff;
         hero.alive = true;
         hero.byte88 = 1;
         hero.pk = 3;
@@ -1084,11 +1087,11 @@ TEST_F(GameSceneDrawTest, AMapWithoutGrassStopsBeforeItsFirstCell)
 // a (95, 126), cae adentro: con la celda lógica queda fuera de la zona segura. En Devias el que sale por el norte,
 // de (220, 76) a (220, 77), cae afuera y +0x3e2 queda como estaba. Los rand(): los 8 de MoveHero, los 8 del
 // TerrainWall, los del cuerpo (0x4fd5f0: el registro propio y el rand() % 6) y, con el héroe visto, los 8 de la
-// celda y el rand() & 7; después, la tela. El dibujo que sigue pasa las marcas del suelo (0x5fc365) y los objetos
-// (0x6374ce) con sus 4 + 8 y uno por objeto visto (20 en Lorencia, 44 en Devias, ninguno con un caso), los
-// efectos del suelo sin ninguno vivo y deja su propio trapecio. En los personajes (0x510d00), Lorencia corta con
-// el héroe visto (0x510ea1, en 0x50ba30), y Devias, que no lo ve, abre las puertas y corta en los ítems del
-// piso (0x6374fe).
+// celda y el rand() & 7; después, el viento de las partículas y la tela. El dibujo que sigue pasa las marcas del suelo
+// (0x5fc365) y los objetos (0x6374ce) con sus 4 + 8 y uno por objeto visto (20 en Lorencia, 44 en Devias, ninguno con
+// un caso), los efectos del suelo sin ninguno vivo y deja su propio trapecio. En los personajes (0x510d00), Lorencia
+// corta con el héroe visto fuera de la zona segura (0x50e298), después de los 3.848 rand() del color propio y el rand()
+// de 0x50db57; Devias, que no lo ve, abre las puertas y corta en los ítems del piso (0x6374fe).
 TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelection)
 {
     struct Case
@@ -1104,7 +1107,7 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
         int objectDraws;
         std::string_view cut;
     };
-    for (const Case& probe : {Case{0, 96, 126, 95, 126, true, 0, 8 + 8 + HeroBodyDraws + 8 + 1, 20, "0x510ea1"},
+    for (const Case& probe : {Case{0, 96, 126, 95, 126, true, 0, 8 + 8 + HeroBodyDraws + 8 + 1, 20, "0x50e298"},
                               Case{2, 220, 76, 220, 77, false, 1, 8 + 8 + HeroBodyDraws, 44, "0x6374fe"}})
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
@@ -1133,7 +1136,7 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
         EXPECT_EQ(hero.seen, probe.seen);
         EXPECT_EQ(hero.safeZone, probe.safeZone);
         EXPECT_EQ(world.Runtime().terrainPolygon.x, selection.x) << "el paso no escribe el trapecio";
-        EXPECT_EQ(cloth.random.State(), StateAfterAStep(probe.draws));
+        EXPECT_EQ(cloth.random.State(), StateAfterAStep(probe.draws + ParticleWindDraws));
 
         Client::Tests::RecordingFrameTarget target;
         scene.PrepareFrame();
@@ -1143,8 +1146,9 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
         ASSERT_TRUE(scene.Failure().has_value());
         EXPECT_NE(scene.Failure()->find(probe.cut), std::string::npos) << *scene.Failure();
         EXPECT_EQ((Cell(119, 115) & 0x04) == 0, !probe.seen) << "las puertas se abren después de los personajes";
-        CrtRandom expected = RandomAfterAStep(probe.draws);
-        for (int i = 0; i < 4 + 8 + probe.objectDraws; ++i)
+        CrtRandom expected = RandomAfterAStep(probe.draws + ParticleWindDraws);
+        const int characterDraws = probe.seen ? Client::Render::Models::OwnRecordCloseRandoms + 1 : 0;
+        for (int i = 0; i < 4 + 8 + probe.objectDraws + characterDraws; ++i)
         {
             static_cast<void>(expected.Next());
         }
@@ -1201,7 +1205,7 @@ TEST_F(GameSceneDrawTest, TheStepAgesTheGroundMarksAfterTheCharacters)
         Client::World::GroundMark off = blood;
         off.live = false;
         EXPECT_EQ(marks[18], off);
-        EXPECT_EQ(cloth.random.State(), StateAfterAStep(probe.draws));
+        EXPECT_EQ(cloth.random.State(), StateAfterAStep(probe.draws + ParticleWindDraws));
         scene.Leave();
     }
     world.Runtime().groundMarks = {};
@@ -1225,7 +1229,7 @@ TEST_F(GameSceneDrawTest, WithoutAPreviousDrawTheFirstStepSeesWithTheTrapezoidOf
     const Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
     EXPECT_TRUE(hero.seen);
     EXPECT_EQ(hero.safeZone, 0);
-    EXPECT_EQ(cloth.random.State(), StateAfterAStep(8 + 8 + HeroBodyDraws + 8 + 1));
+    EXPECT_EQ(cloth.random.State(), StateAfterAStep(8 + 8 + HeroBodyDraws + 8 + 1 + ParticleWindDraws));
     scene.Leave();
 }
 

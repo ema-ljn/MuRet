@@ -5,6 +5,7 @@
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/Connection/Opcodes.h"
 #include "Protocol/PacketFields.h"
 #include "Protocol/ProtocolError.h"
 
@@ -78,6 +79,14 @@ Outgoing WriteGateRequest(std::uint8_t gate)
 Outgoing WriteTeleportDone()
 {
     return Xor32C1(Network::PacketWriter::C1(WorldOpcode).PutU8(TeleportDoneSubcode));
+}
+
+Outgoing WriteRejectedTeleport()
+{
+    return EncryptedC1(Network::PacketWriter::C1(Connection::JoinOpcode)
+                           .PutU8(Connection::DecryptErrorSubcode)
+                           .PutU8(0)
+                           .PutU8(TeleportOpcode));
 }
 
 Outgoing WriteCrywolfState()

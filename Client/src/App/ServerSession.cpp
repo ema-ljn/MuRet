@@ -33,6 +33,7 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/World.h"
+#include "Protocol/Movement.h"
 
 #include <algorithm>
 #include <array>
@@ -892,6 +893,53 @@ void ServerSession::OnWeather(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(weather.Value(), *this)));
+}
+
+Core::Expected<void, std::string> ServerSession::SendWorldPacket(Protocol::Outgoing outgoing)
+{
+    if (WithConnectServer() || m_connection.State() != Network::LinkState::Open)
+    {
+        m_log.Warning("no se manda el paquete de mundo: el GameServer no está abierto");
+        return Core::Unexpected(std::string("el GameServer no está abierto"));
+    }
+    m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
+    return {};
+}
+
+Core::Expected<void, std::string> ServerSession::SendWalk(std::span<const Protocol::Movement::Cell> path,
+                                                          Protocol::Movement::Cell target, float angle)
+{
+    auto walk = Protocol::Movement::WriteWalk(path, target, angle);
+    if (!walk.HasValue())
+    {
+        return Core::Unexpected(std::string("el camino o el ángulo del D3 no se puede escribir"));
+    }
+    return SendWorldPacket(std::move(walk).Value());
+}
+
+Core::Expected<void, std::string> ServerSession::SendFacing(std::uint8_t direction)
+{
+    return SendWorldPacket(Protocol::Movement::WriteFacing(direction));
+}
+
+void ServerSession::RequestGate(std::uint8_t gate)
+{
+    static_cast<void>(SendWorldPacket(Protocol::World::WriteGateRequest(gate)));
+}
+
+void ServerSession::ConfirmTeleport()
+{
+    static_cast<void>(SendWorldPacket(Protocol::World::WriteTeleportDone()));
+}
+
+void ServerSession::RequestCrywolfState()
+{
+    static_cast<void>(SendWorldPacket(Protocol::World::WriteCrywolfState()));
+}
+
+std::span<const std::vector<std::byte>> ServerSession::Teleports() const
+{
+    return m_teleports.Entries();
 }
 
 // 0x4c2710 no mira el estado ni la escena para el 0: SendMessageA(WM_DESTROY) en 0x4c391b, y el

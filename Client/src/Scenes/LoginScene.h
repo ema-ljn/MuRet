@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Render/Models/Animation.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Pass3D.h"
 #include "World/GameCamera.h"
 
@@ -14,11 +15,9 @@
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterCloth.h"
-#include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterHead.h"
 #include "Scenes/DarkHorse.h"
-#include "Scenes/DarkSpirit.h"
 #include "Scenes/GameData.h"
 #include "Scenes/IScene.h"
 #include "Scenes/LoadedWorld.h"
@@ -26,9 +25,7 @@
 #include "World/TerrainCulling.h"
 #include "World/TerrainLighting.h"
 #include "World/Leaves.h"
-#include "World/ModelEffects.h"
 #include "World/ParticleDrawing.h"
-#include "World/Particles.h"
 #include "World/ScepterGlow.h"
 #include "World/Sprites.h"
 #include "World/WorldObjects.h"
@@ -40,6 +37,7 @@
 #include "Scenes/SceneTextures.h"
 #include "Scenes/SceneWorlds.h"
 #include "Scenes/WorldModels.h"
+#include "Scenes/WorldState.h"
 #include "UI/LoginWindow.h"
 #include "UI/MenuBar.h"
 #include "UI/NoticeWindow.h"
@@ -137,6 +135,7 @@ public:
     void OnFrameHeld() override;
     // La cabeza del personaje como la dejó el último paso (0x505de0), la que dibuja.
     [[nodiscard]] const CharacterHead& Head() const;
+    [[nodiscard]] std::optional<std::string> Failure() const override;
     // El personaje que dibuja el frame con `alpha` (0x510d00 → 0x50ba30): el cuerpo entre pasos, la cabeza
     // del paso, la luz del terreno en su lugar más la suya, y su tela, su cetro y la tabla de los sprites de
     // la escena, con el ritmo del contexto.
@@ -154,7 +153,10 @@ private:
     // 0x604ab0 con el 0xa2: la luz de las rutas y el avance a +0xd8.
     void StepTheLogo(World::WorldObject& logo) const;
     [[nodiscard]] Core::Expected<void, std::string> PlaceTheModels();
+    [[nodiscard]] Core::Expected<void, std::string> PlaceTheCharacter();
+    [[nodiscard]] Core::Expected<void, std::string> StepTheCharacters();
     void StepTheWorld();
+    void StepTheScene(const Input::InputState& input, bool connecting);
     // 0x444010 (0x44453f..0x4445d9), después del paso del caballo: el aliento, con `drawn`, el caballo como
     // lo dejó el dibujo anterior (antes de este paso).
     void BreatheTheHorse(const DarkHorse& drawn);
@@ -190,8 +192,14 @@ private:
     [[nodiscard]] World::GameCameraInput& CameraInputState();
     // El trapecio global del último 0x5fb570 (WorldRuntime::terrainPolygon), el de cualquier escena.
     [[nodiscard]] World::TerrainPolygon& SharedTerrainPolygon();
+    [[nodiscard]] WorldState& CharacterWorld() const;
+    [[nodiscard]] Render::Models::ClothWorld& CharacterRandomWorld();
 
     SceneContext m_context;
+    // Los tests de vista sin los globales de main usan el mismo pool y paso, con un dueño local en el heap.
+    std::unique_ptr<WorldState> m_localWorld;
+    Render::Models::ClothWorld m_localCloth;
+    std::optional<std::string> m_failure;
     // Fallback explícito para tests sin contexto completo; main siempre aporta ambos globales.
     World::GameCamera m_localCamera;
     World::GameCameraInput m_localCameraInput;
@@ -213,8 +221,6 @@ private:
     // lo actualiza para el paso siguiente. El trapecio (0x5fb570) es el global de WorldRuntime.
     World::TerrainRange m_terrainRange;
     Render::Camera3D m_drawnCamera;
-    // El trapecio de los tests sin WorldState; main siempre aporta el global. Arranca como la .bss.
-    World::TerrainPolygon m_localTerrainPolygon;
     // La luz sola, si el terreno no se pudo leer y su luz sí (World::LoadTerrainLighting).
     std::unique_ptr<World::TerrainLighting> m_lighting;
     const Render::Models::ModelTextureSlots* m_gameSlots;
@@ -225,12 +231,8 @@ private:
     // carga del mundo).
     std::vector<World::WorldObject> m_objects;
     std::optional<std::size_t> m_logoIndex;
-    // La tabla de efectos con modelo (0x7491fd8): en el login, el dragón.
-    World::ModelEffects m_effects;
     // Los sprites de un frame (0x760f990): los destellos de la tela y el brillo del cetro.
     World::FrameSprites m_sprites;
-    // Las partículas (0x743a198): el aliento del caballo.
-    World::Particles m_particles;
     // Las hojas (0x75e34b8): en el mapa 55, las 80 brasas.
     World::Leaves m_leaves;
     // Si ya se dibujó un frame desde que se entró: antes, el buffer global de la pose no tiene nada del
@@ -247,18 +249,10 @@ private:
     std::optional<Render::Models::ModelTextureSlots> m_logoSlots;
     std::optional<SceneTextures> m_logoTextures;
     LoginRoutes m_routes;
-    // El personaje de 0x517270(2, 4, …).
-    GameLogic::CharacterAppearance m_character;
-    CharacterAnimation m_characterAnimation;
     // El caballo que monta (0x443fa0(0xbf, …) de 0x6349a0): sigue al personaje.
     DarkHorse m_horse;
-    // El cuervo del 0x1c17 del personaje (0x420d60 en 0x6349a0, CL7.6 C): con la tela y el terreno.
-    std::optional<DarkSpirit> m_spirit;
     // La tela del Dark Lord (0x50ba30), entre frames.
     CharacterCloth m_characterCloth;
-    // La cabeza del personaje (0x505de0): hacia dónde mira, por paso.
-    CharacterHead m_head;
-    std::mt19937 m_random;
     // Los tres textos, o vacíos sin Text.bmd. El de la versión, ya armado.
     std::optional<std::string_view> m_left;
     std::optional<std::string_view> m_right;

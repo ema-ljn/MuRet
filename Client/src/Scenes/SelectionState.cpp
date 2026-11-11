@@ -3,19 +3,22 @@
 #include "App/CharacterEvent.h"
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
-#include "GameLogic/CharacterAppearance.h"
 #include "Protocol/Character/CharacterList.h"
+#include "Render/Models/Cloth.h"
+#include "Render/Models/Skeleton.h"
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneWorlds.h"
+#include "Scenes/SelectionActor.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WorldMap.h"
+#include "World/ModelEffects.h"
+#include "World/Particles.h"
 #include "World/GameCamera.h"
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
-
-#include <glm/ext/vector_float3.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -30,9 +33,6 @@ namespace Client::Scenes
 {
 namespace
 {
-constexpr std::uint16_t HeightOffsetPet = 0x1c15;
-constexpr std::uint16_t SafeAttribute = 1;
-constexpr float ConstructorPosition = 50.0f;
 constexpr std::size_t LoginActorSlot = 2;
 } // namespace
 
@@ -41,6 +41,16 @@ SelectionState::SelectionState(WorldState& world) : m_world(world) {}
 std::span<const ActorState, SelectionActorCount> SelectionState::Slots() const
 {
     return m_world.Actors().first<SelectionActorCount>();
+}
+
+ActorState& SelectionState::PreviewActor()
+{
+    return m_preview;
+}
+
+const ActorState& SelectionState::PreviewActor() const
+{
+    return m_preview;
 }
 
 bool SelectionState::HasReceivedList() const
@@ -132,6 +142,9 @@ Core::Expected<void, std::string> SelectionState::InitializeSelection(const std:
     // selección hace antes de tener la lista (0x6342cb).
     m_world.Runtime().drawingEnabled = true;
     constexpr std::uint8_t SelectionMap = WorldOf(SceneId::CharacterSelect)->map;
+    // 0x61a560 → 0x6070a0: mata los efectos antes de abrir los archivos; conserva +0x16c.
+    m_world.Map().effects.Clear();
+    m_world.Particles().Clear();
     auto terrain = World::LoadWorldTerrain(dataRoot, SelectionMap);
     if (!terrain.HasValue())
     {
@@ -146,35 +159,27 @@ Core::Expected<void, std::string> SelectionState::InitializeSelection(const std:
 
 Core::Expected<void, std::string> SelectionState::Construct(const Protocol::Character::CharacterEntry& entry,
                                                             const World::GameCamera& camera,
-                                                            World::GameCameraInput& input)
+                                                            World::GameCameraInput& input,
+                                                            Render::Models::ClothWorld& cloth,
+                                                            const Render::Models::Skeleton& playerSkeleton)
 {
     if (entry.slot >= SelectionActorCount)
     {
         return Core::Unexpected(std::string("slot de selección fuera del pool"));
     }
+    const World::WorldTerrain emptyTerrain;
     const World::WorldTerrain* terrain = Terrain();
-    if (terrain == nullptr || !terrain->attributes || !terrain->heights)
-    {
-        return Core::Unexpected(std::string("faltan las tablas del terreno vigente para construir el personaje"));
-    }
     ActorState& slot = m_world.Actors()[entry.slot];
-    const bool safe = (terrain->attributes->cells[0] & SafeAttribute) != 0;
     // 0x511290: consulta Height con XY 50/50, antes del XY final y del reset de 318.
-    const ActorConstructionContext construction{
-        .terrain = *terrain, .map = m_world.Runtime().map, .scene = m_scene, .fixedHeight = camera.fixedHeight};
-    const double height =
-        ConstructionHeight(construction, ConstructorPosition, ConstructorPosition, slot.previousHad1c15, safe);
-    // El FSTP a float ocurre después de la suma; la rama sin offset no suma cero.
-    slot.position = glm::vec3(CharacterSlots[entry.slot].position, static_cast<float>(height));
-    // 0x511290 lo deja vivo y 0x517270 le pone el lugar como clave (0x5172a8).
-    slot.alive = true;
-    slot.key = entry.slot;
-    const auto characterClass = Protocol::Character::CharacterClassOf(entry.classByte);
-    const GameLogic::CharacterAppearance appearance = entry.withoutEquipment
-                                                          ? GameLogic::ClassAppearance(characterClass, 0)
-                                                          : GameLogic::AppearanceOf(characterClass, 0, entry.equipment);
-    slot.previousHad1c15 = appearance.pet == HeightOffsetPet;
-    ++slot.revision;
+    const ActorConstructionContext construction{.terrain = terrain != nullptr ? *terrain : emptyTerrain,
+                                                .map = m_world.Runtime().map,
+                                                .scene = m_scene,
+                                                .fixedHeight = camera.fixedHeight};
+    const auto built = ConstructSelectionActor(m_world, entry, construction, cloth, playerSkeleton);
+    if (!built.HasValue())
+    {
+        return built;
+    }
     // La cámara lee el héroe publicado (DAT_0743a170): el lugar 0 de WinMain hasta la primera entrada al
     // mundo, y después de un F1 02 con 1, el lugar del juego, que la lista solo construye si cae entre los
     // cinco (Q-C213).
@@ -186,15 +191,20 @@ Core::Expected<void, std::string> SelectionState::Construct(const Protocol::Char
 }
 
 Core::Expected<void, std::string> SelectionState::Apply(std::span<const App::CharacterEvent> events,
-                                                        World::GameCamera& camera, World::GameCameraInput& input)
+                                                        World::GameCamera& camera, World::GameCameraInput& input,
+                                                        Render::Models::ClothWorld* cloth,
+                                                        const Render::Models::Skeleton* playerSkeleton)
 {
+    const Render::Models::Skeleton emptySkeleton;
+    Render::Models::ClothWorld& sharedCloth = cloth != nullptr ? *cloth : m_localCloth;
+    const Render::Models::Skeleton& skeleton = playerSkeleton != nullptr ? *playerSkeleton : emptySkeleton;
     for (const App::CharacterEvent& event : events)
     {
         if (const auto* list = std::get_if<App::CharacterListReceived>(&event))
         {
             for (const Protocol::Character::CharacterEntry& entry : list->list.characters)
             {
-                const auto constructed = Construct(entry, camera, input);
+                const auto constructed = Construct(entry, camera, input, sharedCloth, skeleton);
                 if (!constructed.HasValue())
                 {
                     return Fail(constructed.Error());
@@ -204,7 +214,7 @@ Core::Expected<void, std::string> SelectionState::Apply(std::span<const App::Cha
         }
         else if (const auto* created = std::get_if<App::CharacterCreated>(&event))
         {
-            const auto constructed = Construct(created->entry, camera, input);
+            const auto constructed = Construct(created->entry, camera, input, sharedCloth, skeleton);
             if (!constructed.HasValue())
             {
                 return Fail(constructed.Error());
@@ -221,6 +231,7 @@ void SelectionState::DrawSelection(World::GameCameraInput& input)
     for (ActorState& slot : m_world.Actors().first<SelectionActorCount>())
     {
         slot.position.z = CharacterSlotHeight;
+        slot.light = {};
     }
     // Fuera de los cinco (un héroe del juego, Q-C213), su Z queda.
     if (m_world.Runtime().hero < SelectionActorCount)

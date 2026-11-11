@@ -9,8 +9,10 @@
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
+#include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterHead.h"
+#include "Scenes/DarkSpirit.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnStatHelpers.h"
@@ -20,6 +22,7 @@
 #include "World/ObjectAlpha.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainWalls.h"
+#include "World/WorldTerrain.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -287,16 +290,18 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
                                                  const CharacterStepContext& context)
 {
     // 0x4f958e..0x4f95a5: el modelo compartido del tipo. MuRet tiene solo Player.bmd.
-    if (actor.type != Data::Models::PlayerSkeletonModel)
+    const bool newFace = IsNewFace(actor.type);
+    if (actor.type != Data::Models::PlayerSkeletonModel && !newFace)
     {
         return Core::Unexpected(std::format("0x4f9580: el modelo {:#x} del lugar {} (0x5769ad8 + tipo · 0xe0) no está "
                                             "leído, solo Player.bmd (0x20a)",
                                             actor.type, slot));
     }
-    const Render::Models::Skeleton* skeleton = context.playerSkeleton;
+    const Render::Models::Skeleton* skeleton = newFace ? context.newFaceSkeleton : context.playerSkeleton;
     if (skeleton == nullptr)
     {
-        return Core::Unexpected(std::format("0x4f9580: Player.bmd, el modelo del lugar {}, no está cargado", slot));
+        return Core::Unexpected(
+            std::format("0x4f9580: el modelo {:#x} del lugar {} no está cargado", actor.type, slot));
     }
     const bool frozen = (actor.flags78 & FrozenFlag) == FrozenFlag;
     // 0x4f95a7: sin acciones (+0x26 en 0) la velocidad queda en 0 y 0x4ec200 sale sin avanzar (0x4ec214).
@@ -315,6 +320,16 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
     const Render::Models::ActionInfo& info = skeleton->actions[action];
     // 0x4f95c0..0x4f95d4: una velocidad negativa o NaN cuenta 0.
     float speed = info.speed >= 0.0f ? info.speed : 0.0f;
+    if (newFace)
+    {
+        constexpr float NewFaceSpeedFactor = 2.0f; // 0x4f971a
+        if (frozen)
+        {
+            return true;
+        }
+        return Render::Models::AdvanceAnimation(animation, info, speed * NewFaceSpeedFactor,
+                                                Render::Models::AnimationScene::CharacterSelect);
+    }
     if (actor.byte3e3 != 0 && action >= FirstFasterAction && action <= LastFasterAction)
     {
         speed *= FasterFactor;
@@ -431,6 +446,15 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
     // 0x4fce29..0x4fce39: +0x3c4 en −1 y +0x3e0 y +0x3e1 en 0, que MuRet no tiene: +0x3e0 y +0x3e1 los leen los
     // pasos del héroe (0x505770), que cortan.
     // 0x4fce3f..0x4fce57: el 0x20a sin el giro de +0x88 va a 0x4fcb10. 0x4fce68 y 0x4fce7a: el 0xc5 y el 0x1f5.
+    if (IsNewFace(actor.type))
+    {
+        // 0x4fce68 → 0x4fcbb0: fuera del mapa 30, el 0xa8..0xac vuelve sin SetAction ni rand().
+        if (context.world.Runtime().map == CastleMap)
+        {
+            return Core::Unexpected(std::string("0x42d890: la animación NewFace del mapa 30 no está portada"));
+        }
+        return {};
+    }
     return StopAtTheEnd(actor, slot, context);
 }
 
@@ -470,7 +494,7 @@ Core::Expected<void, std::string> StepTheWeaponTrail(const ActorState& actor, st
     const bool left = action == FirstLeftHandAction || action == SecondLeftHandAction;
     const ActorItemPart& hand = actor.hands[left ? std::size_t{1} : std::size_t{0}];
     const int model = static_cast<std::int16_t>(hand.model);
-    if (LeavesATrail(action, model))
+    if (actor.type == Data::Models::PlayerSkeletonModel && LeavesATrail(action, model))
     {
         return Core::Unexpected(std::format("0x4fd236: la estela de la acción {:#x} del lugar {} con el modelo {:#x} "
                                             "(0x52e470) no está portada",
@@ -556,8 +580,25 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     {
         return trailed;
     }
-    // 0x505418..0x505444: el 0xf1, que ya cortó. 0x50544b: 0x420dd0 con +0x430 en 0 (0x511290, 0x511878): el
-    // cuervo, que MuRet no crea. 0x50545e..0x5054aa: muriéndose, que ya cortó.
+    // 0x50544b: 0x420dd0, después de la estela y antes de 0x505de0, también fuera del trapecio.
+    if (!actor.darkSpirit || (actor.flags78 & FrozenFlag) != 0)
+    {
+        return {};
+    }
+    if (actor.safeZone == 1 || actor.darkSpirit->state > 1)
+    {
+        return Core::Unexpected(
+            std::format("0x4176f6: la zona segura o el estado del cuervo del lugar {} no están portados", slot));
+    }
+    if (context.darkSpiritSkeleton == nullptr || context.particles == nullptr)
+    {
+        return Core::Unexpected(
+            std::format("0x416a20: faltan el modelo o las partículas del cuervo del lugar {}", slot));
+    }
+    static_cast<void>(StepDarkSpirit(*actor.darkSpirit, *context.darkSpiritSkeleton,
+                                     {.position = actor.position, .flags = actor.flags78},
+                                     static_cast<std::uint8_t>(runtime.map), *context.particles, context.worldClock,
+                                     context.random, context.counter));
     return {};
 }
 
@@ -566,19 +607,58 @@ bool IsKalima(std::int32_t map)
     return (map >= FirstKalimaMap && map <= LastKalimaMap) || map == SeventhKalimaMap;
 }
 
+// 0x4ea190 antes del sorteo común de 0x5068fd: la acción 0 sortea además con % 48 para Y.
+void SetTheNewFaceHeadTarget(ActorState& actor, Render::Models::CrtRandom& random)
+{
+    constexpr std::uint8_t KeptHeadAction = 6;
+    if (actor.animation.action == KeptHeadAction)
+    {
+        return;
+    }
+    if (actor.animation.action != 0)
+    {
+        actor.headTurn.target = {};
+        return;
+    }
+    constexpr int OneIn = 32;
+    if (random.Next() % OneIn != 0)
+    {
+        return;
+    }
+    constexpr int TurnSpan = 128;
+    constexpr int TurnCentre = 64;
+    constexpr int NodSpan = 48;
+    constexpr int NodCentre = 16;
+    constexpr float FullTurn = 360.0f;
+    actor.headTurn.target.x = static_cast<float>((random.Next() % TurnSpan) - TurnCentre);
+    actor.headTurn.target.y = static_cast<float>((random.Next() % NodSpan) - NodCentre);
+    for (int axis = 0; axis < 2; ++axis)
+    {
+        if (actor.headTurn.target[axis] < 0.0f)
+        {
+            actor.headTurn.target[axis] += FullTurn;
+        }
+    }
+}
+
 // 0x505de0(c, c) desde 0x508ee6, con el 0x20a, hasta su final (06, "Los efectos de los personajes
 // (0x505de0)"). `hero` es c == [0x743a170].
 Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t slot, bool hero,
                                                  const CharacterStepContext& context,
-                                                 const Data::Terrain::TerrainLayer<std::uint16_t>& walls)
+                                                 const Data::Terrain::TerrainLayer<std::uint16_t>* walls)
 {
     // 0x505e0b: un modelo sin acciones (+0x26 de 0x5769ad8 + tipo · 0xe0) va a la caja de 0x505e15. El
     // 0x20a, Player.bmd, las tiene; los demás cortan antes, en 0x4f9580.
-    if (actor.type != Data::Models::PlayerSkeletonModel)
+    const bool newFace = IsNewFace(actor.type);
+    if (actor.type != Data::Models::PlayerSkeletonModel && !newFace)
     {
         return Core::Unexpected(std::format("0x505e0b: el modelo {:#x} del lugar {} no está leído en 0x505de0, solo el "
                                             "0x20a",
                                             actor.type, slot));
+    }
+    if (newFace && context.newFaceSkeleton != nullptr && context.newFaceSkeleton->actions.empty())
+    {
+        return Core::Unexpected(std::string("0x505e15: la caja del NewFace sin acciones no está portada"));
     }
     // 0x505ec6..0x505ee4: la posición, la escala y la acción van al modelo compartido (+0x6c, +0x68 y
     // +0xa0), que leen los 0x4ec110 de más abajo y que el dibujo vuelve a escribir antes de posar. MuRet
@@ -591,7 +671,11 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     // 0x505ef8..0x506866 y 0x50686e..0x5068b2: la zona segura es el bit 0x01 del byte bajo de la celda
     // lógica, la de +0x41c y +0x420 (06 § Caminar), no la de la posición dibujada.
     const LogicalCell cell = ReadLogicalCell(actor, context.random);
-    const std::uint16_t attribute = walls[Data::Terrain::CellIndex(cell.x, cell.y)];
+    if (walls == nullptr)
+    {
+        return Core::Unexpected(std::string("0x506362: faltan los atributos de la celda lógica del personaje"));
+    }
+    const std::uint16_t attribute = (*walls)[Data::Terrain::CellIndex(cell.x, cell.y)];
     actor.safeZone = static_cast<std::uint8_t>((attribute & World::SafeZoneWallBit) != 0 ? 1 : 0);
     // 0x5068b9..0x5069ab: la cabeza, sin +0x78 & 0x20 ni & 0x1000 (0x5068be..0x5068d4). 0x5068da: con otro
     // modelo, antes 0x4ea190, que ya cortó en 0x505e0b. 0x5068eb..0x5068fb: otro que el héroe, sin morirse
@@ -600,6 +684,15 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     // que MoveHero escribe con el mouse (0x59b1c2..0x59b287, CL7.4), que MuRet todavía no escribe.
     if ((actor.flags78 & StillHeadFlag) == 0 && (actor.flags78 & FrozenFlag) == 0)
     {
+        if (newFace)
+        {
+            constexpr std::uint8_t TrackingAction = 2;
+            if (actor.animation.action == TrackingAction)
+            {
+                return Core::Unexpected(std::string("0x4ea229: falta el blanco +0x3a4 del NewFace (0x4ea0e0)"));
+            }
+            SetTheNewFaceHeadTarget(actor, context.random);
+        }
         StepCharacterHead(actor.headTurn, !hero && actor.dying == 0, context.random);
     }
     // 0x5069ae: +0x3e5 en 0, sin los veinte efectos: solo lo sube 0x4c9790 (0x4c982b), un paquete que
@@ -627,6 +720,18 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     // 0x506ccc..0x506cf1: el caso del tipo − 0x152; el 0x20a cae en 0x506cf8, que mira el mapa 7 solo en la
     // escena 5.
     const std::int32_t map = context.world.Runtime().map;
+    if (newFace)
+    {
+        // 0x5085db: los seis helpers genéricos salen para estos tipos, salvo sus mapas 30 y 35.
+        constexpr std::int32_t GenericEffectMap = 35;
+        if (map == CastleMap || map == GenericEffectMap)
+        {
+            return Core::Unexpected(std::format("0x5085db: los efectos genéricos del NewFace en el mapa {} no "
+                                                "están portados",
+                                                map));
+        }
+        return {};
+    }
     if (context.scene == SceneId::Game && map == ClockEffectMap)
     {
         return Core::Unexpected(std::format("0x506d01: en el mapa 7 el personaje del lugar {} saca el efecto 0x607 "
@@ -674,6 +779,29 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     }
     return {};
 }
+
+Core::Expected<void, std::string> StepACharacter(ActorState& actor, std::size_t slot, bool hero,
+                                                 const CharacterStepContext& context)
+{
+    if (!actor.alive)
+    {
+        return {};
+    }
+    actor.seen = CharacterSeen(context.world.Runtime().terrainPolygon, actor.position);
+    if (!hero)
+    {
+        if (auto other = StepOtherCharacter(actor, slot, context.random); !other.HasValue())
+        {
+            return other;
+        }
+    }
+    if (auto body = StepTheBody(actor, slot, hero, context); !body.HasValue())
+    {
+        return body;
+    }
+    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    return StepTheEffects(actor, slot, hero, context, terrain.attributes ? &terrain.attributes->cells : nullptr);
+}
 } // namespace
 
 bool CharacterSeen(const World::TerrainPolygon& polygon, const glm::vec3& position)
@@ -712,12 +840,13 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
         return Core::Unexpected(std::string("0x412140: en el mapa 30 el paso de los personajes arma los objetos del "
                                             "asedio (0x5763530), que no están portados"));
     }
-    if (!world.Map().terrain.attributes)
+    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : world.Map().terrain;
+    if (!terrain.attributes)
     {
         return Core::Unexpected("0x508f14: el TerrainWall (0x7d0d348) del " + MapText(runtime.map) +
                                 " no está cargado (0x61a560)");
     }
-    Data::Terrain::TerrainLayer<std::uint16_t>& walls = world.Map().terrain.attributes->cells;
+    Data::Terrain::TerrainLayer<std::uint16_t>& walls = terrain.attributes->cells;
     World::ClearCharacterWalls(walls);
     // 0x5fba90 lee los globales de 0x78ecbf0 y 0x78ecc00: el trapecio del último dibujo de cualquier escena.
     const World::TerrainPolygon& polygon = runtime.terrainPolygon;
@@ -737,32 +866,10 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
     for (std::size_t slot = 0; slot < SteppedCharacters; ++slot)
     {
         ActorState& actor = actors[slot];
-        // 0x508ea7: sin vivir, nada.
-        if (!actor.alive)
-        {
-            continue;
-        }
-        // 0x508eac..0x508ed2: otra vez, con el mismo trapecio.
-        actor.seen = CharacterSeen(polygon, actor.position);
-        // 0x508ed8: 0x508ba0, que sale con el héroe (0x508bad).
         const bool hero = slot == runtime.hero;
-        if (!hero)
+        if (auto stepped = StepACharacter(actor, slot, hero, context); !stepped.HasValue())
         {
-            if (auto other = StepOtherCharacter(actor, slot, context.random); !other.HasValue())
-            {
-                return other;
-            }
-        }
-        // 0x508edf: 0x4fd5f0, el cuerpo, la animación y el alpha. Corre también en la espera, con el 54 de la
-        // selección (la frontera de T8, P-C41 a).
-        if (auto body = StepTheBody(actor, slot, hero, context); !body.HasValue())
-        {
-            return body;
-        }
-        // 0x508ee6: 0x505de0.
-        if (auto effects = StepTheEffects(actor, slot, hero, context, walls); !effects.HasValue())
-        {
-            return effects;
+            return stepped;
         }
         // 0x508eed: 0x42da90 fuera del mapa 30 devuelve 0 (0x42da9a).
     }
@@ -770,5 +877,10 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
     // crea 0x52e470 desde las habilidades, los efectos y la acción 3 del caballo (0x444671); MuRet no
     // tiene la tabla. Corre también en la espera.
     return {};
+}
+
+Core::Expected<void, std::string> StepCharacter(ActorState& actor, const CharacterStepContext& context)
+{
+    return StepACharacter(actor, ActorPoolSize, false, context);
 }
 } // namespace Client::Scenes

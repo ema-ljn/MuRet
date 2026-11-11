@@ -4929,7 +4929,11 @@ lo de cada tipo del 0, en [Lo propio de Lorencia](#lo-propio-de-lorencia). Leíd
    (`0x6031e5`), el `0x64` (`0x603251`): dos sprites `0x5d5` de 2,5 en (0, 0, 150) por el hueso de
    `0x68b181c`, que giran con el reloj, ±(`ftol(T · 0,1)` % 360); y el `0x67` (`0x6031f7`): con el cuadro
    del modelo (`+0xa8`) en el último de su acción, `rand()` & 31 elige la acción con `0x4ea030`: la 1 si da
-   0, la 0 si no.
+   0, la 0 si no. El `+0xa8` lo escribe `0x4eb860` cuando `0x5ffdf0` posa el objeto: `(short)ftol` del frame
+   (`+0x114`), en 0 si es negativo o no es una key de la acción del modelo (`+0xa0`, la del objeto que copió
+   `0x5ffdf0`, en 0 si el modelo no la tiene). La key que se compara (`0x603205`) es la de la acción del
+   objeto (`+0x111`) sin acotar. El `0x67` es `Object104.bmd`: dos acciones de seis keys, así que en la
+   key 5 de cualquiera de las dos sale un `rand()` y, una vez en 32, pasa a la 1 (o se queda en ella).
 
 **El paso** (`0x606560`, también en la espera): sector por sector, como el dibujo. Los objetos de un
 sector que no pasó quedan con `+0x16c` en 0 sin avanzar, como en el login ([El mundo del
@@ -4966,8 +4970,12 @@ registro propio con `LogicalAccess` en el `0x64`; en un dibujo intermedio, ningu
 `Scenes::StepGameWorldObjects` → `World::StepWorldObjectChecked`, desde `GameScene::StepTheObjects`, con
 la capa del héroe de `WorldRuntime::heroCellLayer` y el reloj del mundo. Los dos cortan con la dirección
 en lo primero que MuRet no tiene, con lo de antes ya hecho: en el dibujo, los casos de `0x602ed0` que no
-tiene, después de su `rand()` (el `0x64` y el `0x67` del 2; el `0x38` del 0 deja sus dos sprites en NaN con
-`Scenes::StepMerchantAnimalFrame`, Q-C256). El `0x69` se dibuja con
+tiene, después de su `rand()` (el `0x38` del 0 deja sus dos sprites en NaN con
+`Scenes::StepMerchantAnimalFrame`, Q-C256). Los del 2 están en `Scenes::StepDeviasObjectFrame`: los dos
+sprites del `0x64` con `ObjectBonePoint` sobre la pose global retenida, y el `0x67` con el `+0xa8` que
+calcula del frame y la acción del objeto, porque `0x5ffdf0` lo acaba de posar; sin posar (el alpha por
+debajo de 0,01, que el `0x67` no baja porque no es un techo), el `+0xa8` es de otro dibujo y corta en
+`0x60320a`. El `0x69` se dibuja con
 `Scenes::DrawWaterspout` y crea las dos gotas con `Scenes::StepGameWaterspoutFrame` sobre
 `WorldState::Particles`; si el modelo actual no escribió un hueso, conserva el corte de la lectura de
 pose anterior (`0x6030a5/0x603121`), con los sorteos y las gotas previos ya hechos
@@ -4992,6 +5000,7 @@ pájaros ([El dibujo del juego](#el-dibujo-del-juego)); MuRet todavía no los co
 `WorldObjectsDrawingTest` (`TheGamePassDrawsTheLiveObjectsWithARandEach`,
 `TheLorenciaMerchantAnimalLeavesTwoGlowsAtNaN`, `TheLorenciaWaterspoutDrawsFourLooseMeshes`,
 `TheLorenciaWaterspoutRunsItsFrameCase`, `TheLeveledObjectOfDeviasReadsTheOwnRecord`,
+`TheDeviasBeamObjectLeavesTwoSpritesOverItsFirstBone`, `TheDeviasSwitchingObjectChangesItsActionOnTheLastKey`,
 `AnIntermediateGameDrawTakesNoRandomness`, `TheGamePassKnowsOnlyTheReferenceMaps` y
 `TheGameStepStopsAtTheFirstCaseMuRetDoesNotHave`), `WorldObjectsTest`
 (`TheLorenciaWaterspoutDrawsItsOwnMeshes`, `TheWaterspoutFrameScrollsItsVAndDropsHalfTheTime`,

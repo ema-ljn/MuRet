@@ -407,8 +407,8 @@ void DrawLostTowerChrome(Render::ModelBatch& batch, const IModelLibrary& models,
 
 // 0x602ed0 después del rand() común (0x602ef4): los casos por tipo de los mapas 0 (0x602ffb), 2
 // (0x6031e5), 4 (0x603799) y 8 (0x603a3e); el 1 va a la cadena de 0x6044ed, que no tiene nada para él. El 0x69 crea las
-// gotas con el pool compartido; los demás cortan con su dirección. `posed`: si 0x602e90 llamó a 0x6002e0,
-// cuyo marco queda en la pila que leen los sprites del 0x38 del 0 y del 9 del 4.
+// gotas con el pool compartido. `posed`: si 0x602e90 llamó a 0x6002e0, cuyo marco queda en la pila que leen
+// los sprites del 0x38 del 0 y del 9 del 4, y si 0x5ffdf0 dejó el +0xa8 del modelo del 0x67 del 2.
 Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const GameObjectPass& pass,
                                               const IModelLibrary& models, const DrawnObject& drawn, int commonRandom,
                                               bool posed)
@@ -441,15 +441,10 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
         }
         return World::StepTheWaterspoutFrame(object, *pass.random, pass.worldClock);
     }
-    if (map == DeviasMap && object.type == DeviasLeveledObject)
+    if (map == DeviasMap)
     {
-        return Core::Unexpected(std::string("0x603251: los dos sprites 0x5d5 del 0x64 no están portados"));
-    }
-    if (map == DeviasMap && object.type == 0x67)
-    {
-        return Core::Unexpected(
-            std::string("0x6031f7: el 0x67 cambia de acción (0x4ea030) con rand() & 31 en el último "
-                        "cuadro, y no está portado"));
+        return StepDeviasObjectFrame(object, commonRandom, pass,
+                                     models.SkeletonOf(static_cast<std::uint16_t>(object.type)), posed);
     }
     return {};
 }

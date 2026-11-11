@@ -7,6 +7,10 @@
 #include <cstddef>
 #include <string>
 
+namespace Client::Render::Models
+{
+struct Skeleton;
+}
 namespace Client::World
 {
 struct WorldObject;
@@ -28,6 +32,20 @@ struct GameObjectPass;
 // posar, lo que dejó 0x5ffdf0 no está leído y corta.
 [[nodiscard]] Core::Expected<void, std::string>
 StepMerchantAnimalFrame(const World::WorldObject& object, int commonRandom, const GameObjectPass& pass, bool posed);
+
+// 0x602ed0 con el mapa 2 (0x6031e5):
+// - el 0x64 (0x603251): dos sprites 0x5d5 de 2,5 en (0; 0; 150) por el hueso 0 de la pose global, con luz
+//   (L; L; L) y giro r y −r (r = ftol(reloj · 0,1f) % 360);
+// - el 0x67 (0x6031f7): con el cuadro del modelo (+0xa8) en la última key de la acción del objeto (+0x111), un
+//   rand(): & 31 en 0 pone la acción 1 con 0x4ea030, y si no, la 0. El +0xa8 es el que dejó 0x4eb860 al posar
+//   este objeto en 0x5ffdf0: (short)ftol(frame), en 0 si es negativo o no es una key de la acción del modelo
+//   (+0xa0). Sin posar, es el de otro dibujo de ese modelo y corta; sin acciones, 0x4eb860 no lo escribió, y
+//   con la acción fuera de la tabla 0x603205 lee después de ella: cortan también.
+// El tipo que no es ninguno de los dos no hace nada.
+[[nodiscard]] Core::Expected<void, std::string> StepDeviasObjectFrame(World::WorldObject& object, int commonRandom,
+                                                                      const GameObjectPass& pass,
+                                                                      const Render::Models::Skeleton* skeleton,
+                                                                      bool posed);
 
 // 0x602ed0 con el mapa 4 (0x603799): el 0x13 y el 0x14 dejan dos sprites (giro r y −r, con r =
 // ftol(reloj · 0,1f) % 360) en los huesos 15 y 19 (0,3) y 21 (1,5): 0x61e con (L; L · 0,2; 0) el 0x13 y

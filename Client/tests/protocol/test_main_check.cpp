@@ -121,12 +121,13 @@ TEST(MainCheckTest, AnImageShorterThanAWordIsAnError)
 // comilla, barra o barra invertida.
 TEST(MainCheckTest, TakesTheFileNameFromTheCommandLine)
 {
-    EXPECT_EQ(MainCheckFileName(R"("C:\Juegos\MU\main.exe" connect /u127.0.0.1 /p55901)"), "main.exe");
-    EXPECT_EQ(MainCheckFileName(R"(C:\Program Files\MU\Main.exe connect)"), "Main.exe");
+    // Sin literales crudos: el preprocesador de MSVC los lee mal dentro de los argumentos de EXPECT_EQ (C4129).
+    EXPECT_EQ(MainCheckFileName("\"C:\\Juegos\\MU\\main.exe\" connect /u127.0.0.1 /p55901"), "main.exe");
+    EXPECT_EQ(MainCheckFileName("C:\\Program Files\\MU\\Main.exe connect"), "Main.exe");
     EXPECT_EQ(MainCheckFileName("main.exe connect /u127.0.0.1 /p55901"), "main.exe");
-    EXPECT_EQ(MainCheckFileName(R"(\main.exe)"), "main.exe");
+    EXPECT_EQ(MainCheckFileName("\\main.exe"), "main.exe");
     // Una barra invertida en un argumento gana: el nombre sale de ahí.
-    EXPECT_EQ(MainCheckFileName(R"(C:\MU\Main.exe --data D:\MU\Data)"), "Data");
+    EXPECT_EQ(MainCheckFileName("C:\\MU\\Main.exe --data D:\\MU\\Data"), "Data");
     // Sin barras invertidas, la línea entera hasta la primera barra.
     EXPECT_EQ(MainCheckFileName("./Main --frames 1"), ".");
     EXPECT_EQ(MainCheckFileName("/opt/mu/Main"), "");

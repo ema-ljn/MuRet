@@ -243,7 +243,7 @@ std::optional<Startup> ReadStartup(int argc, char* argv[], Core::Log& log)
         {
             return std::nullopt;
         }
-        server->mainCheckFile = Protocol::Connection::MainCheckFileName(rawCommandLine);
+        server->mainCheckFile = Client::Protocol::Connection::MainCheckFileName(rawCommandLine);
     }
     return Startup{.folder = folder,
                    .commandLine = std::move(commandLine).Value(),

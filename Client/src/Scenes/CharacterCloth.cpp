@@ -272,7 +272,8 @@ void CharacterCloth::RunTheBlock(Render::ModelBatch* batch, const ClothWearer& w
         m_cloths.clear();
         m_count = 0;
     }
-    if (m_cloths.empty())
+    const bool built = m_cloths.empty();
+    if (built)
     {
         Build(wearer, body);
     }
@@ -297,6 +298,10 @@ void CharacterCloth::RunTheBlock(Render::ModelBatch* batch, const ClothWearer& w
     }
     if ((wearer.objectFlags & Hidden) != 0)
     {
+        // Armadas sobre este cuerpo y sin simular: un dibujo intermedio las lleva desde él, no desde el de
+        // una simulación anterior.
+        if (built)
+            m_simulatedBody = SimulatedBodyOf(body);
         return;
     }
     // El cuerpo de esta simulación, del que un dibujo intermedio lleva cada tela (#307).

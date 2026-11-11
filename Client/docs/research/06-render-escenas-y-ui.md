@@ -1246,6 +1246,8 @@ su última simulación al de ahora (`Scenes::ClothCarry`, #307): si no, con el p
 capa se queda atrás y salta en el frame siguiente. Los frames del original y el modo fiel no cambian.
 En el juego, los frames del original se cuentan por los pasos de la escena
 (`Scenes::OriginalFramesOfTheSteps`), para que cada uno vea 1 o 2 pasos como en el original, también a 60 FPS.
+Un dibujo es como mucho un frame del original y sólo si trae pasos nuevos: el original nunca corre dos en un
+dibujo (`0x637791..0x6381a5`), y por debajo de 21,33 FPS cada dibujo es un frame con más pasos.
 
 **Cuándo hay.** bVar23: la clase 3 o 4, el modelo `0x20a` y `+0x3e3` en 0, o el monstruo `0x37`;
 nunca en los mapas `0x12` a `0x17`, salvo con los nombres de un duelo o de una guerra de guild, que

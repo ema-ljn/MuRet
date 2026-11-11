@@ -573,6 +573,34 @@ TEST(CharacterClothTest, BetweenOriginalFramesTheClothWalksWithTheBody)
     }
 }
 
+// La tela que se arma con el personaje oculto (0x4000: se arma y no se simula, 0x50da67) queda sobre ese cuerpo.
+// Si el dibujo siguiente ya lo ve y el personaje caminó, la lleva desde el cuerpo en que se armó.
+TEST(CharacterClothTest, AClothBuiltWhileHiddenWalksFromTheBodyItWasBuiltOn)
+{
+    const LoginLord lord = ReadTheLoginLord();
+    CharacterCloth cloth;
+    LoginLord hidden = lord;
+    hidden.wearer.objectFlags |= 0x4000;
+    ClothWorld world{.random = CrtRandom(11)};
+    ModelBatch first;
+    first.Begin(Client::Render::Pass3D{});
+    cloth.Advance(first, hidden.wearer, hidden.body, world, hidden.map, Client::Core::Duration{}, true);
+    ASSERT_TRUE(first.Vertices().empty());
+    const std::vector<glm::vec3> built = ADrawBetweenFrames(cloth, lord, lord.body, false);
+    constexpr glm::vec3 Step{60.0f, -25.0f, 3.0f};
+    ClothBody walked = lord.body;
+    walked.position += Step;
+
+    const std::vector<glm::vec3> between = ADrawBetweenFrames(cloth, lord, walked, false);
+
+    ASSERT_FALSE(built.empty());
+    ASSERT_EQ(between.size(), built.size());
+    for (std::size_t vertex = 0; vertex < built.size(); ++vertex)
+    {
+        ExpectNear(between[vertex], built[vertex] + Step, vertex);
+    }
+}
+
 // El personaje que giró 90° entre dos frames del original: los huesos traen el giro, y la tela gira con
 // ellos alrededor de la posición del personaje.
 TEST(CharacterClothTest, BetweenOriginalFramesTheClothTurnsWithTheBody)

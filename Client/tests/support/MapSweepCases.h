@@ -12,7 +12,6 @@ enum class MapSweepCut : std::uint8_t
 {
     None,
     MissingHeight,
-    CastleState,
     CrywolfState,
     MissingWorld,
     LoginSpecials,
@@ -60,6 +59,8 @@ inline constexpr std::uint32_t MapSweepSeed = 0x5eed;
 inline constexpr std::uint32_t MapSweepAfterGrass = 0xad6d5eed;  // 65.536 sorteos.
 inline constexpr std::uint32_t MapSweepAfterNoria = 0xb58b8a29;  // 12 de torre + 65.536 de pasto.
 inline constexpr std::uint32_t MapSweepAfterTrials = 0xe254a308; // 65.536 + 205 tipos 27/54 de World32.
+// 65.536 + 24: el rand() % 1000 de cada 0x29 de World31 en la creación (0x42c711).
+inline constexpr std::uint32_t MapSweepAfterCastle = 0x141dd1a5;
 
 struct MapSweepCase
 {
@@ -81,6 +82,7 @@ struct MapSweepCase
 // Los especiales preceden al archivo: dos en Devias y una torre en Noria.
 // Noria crea cinco efectos: cuatro 322/323 toman tres rand cada uno; 324 no toma ninguno.
 // World4 contiene 16 registros de tipo 8 y 53 de 38: 69 entradas auxiliares, contadas desde K16 aparte.
+// World31: cinco lanceros antes de los 3.724 registros; el 0x4d (uno) y el 0x54 (37) se anotan con 0x606630.
 inline constexpr std::array<MapSweepCase, 39> MapSweepCases{{
     {0, 0, 1, MapSweepCut::None, 2870, 110, MapSweepAfterGrass, {1, 4, 4}, false},
     {1, 1, 2, MapSweepCut::None, 4488, 39, MapSweepAfterGrass, {0, 7, 7}, false},
@@ -112,7 +114,7 @@ inline constexpr std::array<MapSweepCase, 39> MapSweepCases{{
     {27, 27, 25, MapSweepCut::None, 2266, 0, MapSweepAfterGrass, {1, 0, 0}, false},
     {28, 28, 25, MapSweepCut::None, 2266, 0, MapSweepAfterGrass, {1, 0, 0}, false},
     {29, 29, 25, MapSweepCut::None, 2266, 0, MapSweepAfterGrass, {1, 0, 0}, false},
-    {30, 30, 31, MapSweepCut::CastleState, 0, 0, MapSweepSeed, {6, 5, 5}, false},
+    {30, 30, 31, MapSweepCut::None, 3729, 38, MapSweepAfterCastle, {6, 5, 5}, false},
     {31, 31, 32, MapSweepCut::None, 5638, 0, MapSweepAfterTrials, {0, 1, 1}, false},
     {32, 9, 10, MapSweepCut::None, 564, 0, MapSweepAfterGrass, {2, 0, 0}, true},
     {33, 33, 34, MapSweepCut::None, 2979, 0, MapSweepAfterGrass, {1, 1, 2}, false},

@@ -23,6 +23,7 @@ class CrtRandom;
 namespace Client::World
 {
 struct ModelEffect;
+class KalimaWorld;
 
 struct GroundEffectResources
 {
@@ -30,6 +31,7 @@ struct GroundEffectResources
     Render::Models::CrtRandom& random;
     float worldClock = 0.0f;
     std::uint8_t map = 0;
+    const KalimaWorld* kalima = nullptr;
 };
 
 // 0x620a90 antes del caso: publica el perfil aditivo sin ligar una textura.

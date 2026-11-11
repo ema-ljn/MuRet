@@ -13,9 +13,9 @@ namespace Client::World
 {
 struct ModelEffect;
 class Particles;
-// 0x5208a0: el prefijo de CRT y los tipos de llegada/teleport y de la torre de Noria.
-[[nodiscard]] Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect,
-                                                                    const Render::Models::Skeleton* skeleton,
-                                                                    Particles& particles, float worldClock,
-                                                                    Render::Models::CrtRandom& random);
+class KalimaWorld;
+// 0x5208a0: CRT común, llegada/teleport, torre de Noria y9/0 de Kalima con el owner de ondas.
+[[nodiscard]] Core::Expected<void, std::string>
+StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton, Particles& particles,
+                    float worldClock, Render::Models::CrtRandom& random, KalimaWorld* kalima = nullptr);
 } // namespace Client::World

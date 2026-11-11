@@ -1,4 +1,5 @@
 #include "Scenes/LoginScene.h"
+#include "Scenes/WorldState.h"
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
@@ -29,6 +30,7 @@
 #include "support/RecordingSink.h"
 #include "support/SceneDataFiles.h"
 #include "support/TemporaryFolder.h"
+#include "support/TerrainFiles.h"
 
 #include <gtest/gtest.h>
 
@@ -46,6 +48,7 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 // Client::Scenes::LoginScene con su logo y su personaje (CL6.4): Logo03.bmd y la luz del mundo 56
@@ -169,10 +172,11 @@ struct Harness
 
     // Con `cloth`, lo global de la tela del bucle: el rand() de la CRT.
     LoginScene& Make(std::mt19937::result_type seed = FixedSeed, FakeClock* sceneClock = nullptr,
-                     Client::Render::Models::ClothWorld* cloth = nullptr)
+                     Client::Render::Models::ClothWorld* cloth = nullptr, Client::Scenes::WorldState* world = nullptr)
     {
-        return scene.emplace(SceneContext{folder.Path(), store, log, sceneClock, cloth}, data, models, nullptr, "0.0.0",
-                             seed);
+        SceneContext context{folder.Path(), store, log, sceneClock, cloth};
+        context.world = world;
+        return scene.emplace(context, data, models, nullptr, "0.0.0", seed);
     }
 
     // El evento de los modelos del frame, después de un frame.
@@ -621,5 +625,39 @@ TEST(LoginSceneModelsTest, TheHorseIsCreatedAgainOnEachEntry)
 
     const FrameEvent models = tested.ModelsOfAFrame();
     EXPECT_EQ(HorseCommand(models), models.modelCommands.size());
+}
+} // namespace
+
+namespace
+{
+TEST(LoginSceneModelsTest, NativeLoginPosesUpdateTheDurableCarryAndIntermediateDrawsKeepItsHistory)
+{
+    Client::Scenes::WorldState world;
+    Harness tested;
+    auto attributes = Client::Tests::PlainTerrainAttributes(56, Client::Tests::AttributeCells::Bytes);
+    std::fill(attributes.begin() + 4, attributes.end(), std::byte{0});
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "World56/EncTerrain56.att",
+                                  Client::Tests::EncryptTerrainAttributes(std::move(attributes)));
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "World56/EncTerrain56.map",
+                                  Client::Tests::EncryptK16(Client::Tests::PlainTerrainMapping(56)));
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "Interface/accept_box01.OZJ",
+                                  Client::Tests::OzjOf(Client::Tests::ReadJpegVector("baseline-420.jpg")));
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "World56/TileGrass01.OZJ",
+                                  Client::Tests::OzjOf(Client::Tests::ReadJpegVector("baseline-420.jpg")));
+    const auto entered = tested.Make(FixedSeed, nullptr, nullptr, &world).Enter();
+    ASSERT_TRUE(entered.HasValue()) << entered.Error();
+    // La biblioteca sintética de este fixture sólo presta cuerpo/caballo; el cuervo se prueba aparte.
+    for (auto& actor : world.Actors())
+        actor.darkSpirit.reset();
+    tested.Steps(1);
+    static_cast<void>(tested.ModelsOfAFrame());
+    ASSERT_FALSE(world.PoseCarry().bones.empty());
+    ASSERT_TRUE(world.PoseCarry().models.contains(Client::Scenes::LoginLogoModel));
+    world.PoseCarry().bones[0][3] = {7, 8, 9};
+    static_cast<void>(tested.ModelsOfAFrame());
+    EXPECT_EQ(world.PoseCarry().bones[0][3], glm::vec3(7, 8, 9));
+    tested.scene->Leave();
+    EXPECT_EQ(world.PoseCarry().bones[0][3], glm::vec3(7, 8, 9));
+    EXPECT_EQ(tested.scene->Failure(), std::nullopt);
 }
 } // namespace

@@ -52,16 +52,22 @@ struct ModelEffect
     glm::vec3 light{};                        // +0xf4
     float alpha = 1.0f;                       // +0x174
     Render::Models::ObjectState objectState;  // +0x58, +0x64 y +0x68
+    std::uint16_t disturbanceState = 0;       // +0x8a, guard de437860 del efecto9
     bool vertexLight = true;                  // +0xe8
     glm::vec3 start{};                        // +0x17c, la partida
     // De MuRet: la posición antes del último paso, para dibujar entre dos pasos (D-C4).
     glm::vec3 previousPosition{};
-    std::int32_t textureFrame = 0; // +0x1c4: selector firmado del calco 0x14e en52d8f2.
+    std::int32_t textureFrame = 0;           // +0x1c4: selector firmado del calco 0x14e en52d8f2.
+    const std::int16_t* itemType = nullptr;  // +108 del efecto→+8c del dueño durable, paraf4/fa.
+    const std::uint8_t* itemLevel = nullptr; // +108→+8e; no inferir desde ActorState.
 };
 
 class ModelEffects
 {
 public:
+    // 438a1a→5191be: tipo9/0, ownerNULL, escalaargumento0; primer libre, lleno sinCRT.
+    std::optional<std::size_t> CreateKalimaEffect(const glm::vec3& position, const glm::vec3& angles,
+                                                  const glm::vec3& light, Render::Models::CrtRandom& random);
     // 0x518cf0(type, position, angles, light, 0, dueño, −1, 0, 0, 0, scale) en el primer lugar sin el
     // byte vivo, o nada si están todos. Una escala de 0 o menos pasa a 0,9 (0x518d3c). Del 0xb4: la
     // posición del dueño con la z 3.400 más arriba (0x518fc9), los ángulos con el alabeo en 0 (0x518fb3),

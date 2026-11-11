@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/IClock.h"
+#include "Core/Expected.h"
 #include "Data/Models/Model.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
@@ -24,13 +25,17 @@
 #include <cstdint>
 #include <functional>
 #include <optional>
+#include <map>
 #include <span>
+#include <string>
 #include <vector>
 
 namespace Client::World
 {
 class FrameSprites;
 class ScepterGlowCarry;
+struct ObjectModelStepState;
+struct FishEffectRequest;
 } // namespace Client::World
 
 // El dibujo de un personaje en el ModelBatch, como 0x50ba30 en la selección: el cuerpo de
@@ -206,6 +211,41 @@ void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const Dr
 void DrawObjectFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
                           Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes,
                           std::optional<Render::Models::ShinePass> shine = std::nullopt);
+
+struct ItemSpecialDrawContext;
+// Globales de60b3d0 prestados por el dueño del frame y su scratch proyectado.
+struct ItemDrawContext
+{
+    const ItemSpecialDrawContext* special = nullptr;
+    float glowPulse = 0;
+    std::map<std::uint16_t, std::int32_t>* selections = nullptr;
+    bool originalFrame = true;
+    World::ObjectModelStepState* modelState = nullptr;
+    std::int32_t map = 0;
+    void* ownerContext = nullptr;
+    std::function<std::span<const Render::Models::BoneTransform>()> poseBones{};
+    std::function<Core::Expected<void, std::string>(const World::FishEffectRequest&)> createJoint{};
+    std::function<Core::Expected<void, std::string>(std::uint16_t, std::int32_t, const DrawnObject&)> createEffect{};
+    // Recibe sólo los stores nativos de alpha, separado del alpha temporal de dibujo.
+    float* storedAlpha = nullptr;
+};
+
+// 60b3d0: cuerpo y opciones sobre los huesos/mallas que publicó el caller, sin volver a posar.
+[[nodiscard]] Core::Expected<void, std::string>
+DrawItemFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                   Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes, std::uint8_t level,
+                   std::uint8_t excellent, std::uint8_t ancient, std::uint8_t detail = 4,
+                   const ItemDrawContext& context = {});
+
+// 4ecc30/4ef0c0: mesh<0 recorre RenderBody; mesh>=0 pide esa malla directamente.
+// Los pases especiales prestan las mismas mallas y no calculan otra pose.
+// storedColor recibe sólo los FSTP de RGB, también antes de un error posterior.
+// El bit0x20 proyecta al piso con spread2000 (4ed6f6, Kalima); no acredita el spread2500 del asedio.
+[[nodiscard]] Core::Expected<void, std::string>
+DrawItemMeshPass(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                 Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes, std::int16_t mesh,
+                 std::uint32_t flags, std::optional<Render::TextureSlot> texture = std::nullopt,
+                 glm::vec3* storedColor = nullptr);
 
 // El punto `offset` del hueso `bone` de `object` posado como lo posa DrawObject, en el mundo (por la escala
 // y más la posición del objeto, como los vértices). Es lo que lee del buffer global de la pose

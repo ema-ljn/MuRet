@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "World/ParticleOwner.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -33,6 +34,7 @@ class IParticleTrigonometry;
 
 inline constexpr std::size_t ParticleCount = 3000;
 inline constexpr std::int32_t ShinyParticle = 0x5fc;
+inline constexpr std::int32_t ThunderParticle = 0x5ca;
 inline constexpr std::int32_t FairySparkParticle = 0x5c5;
 inline constexpr std::int32_t FireParticle = 0x5d9;
 inline constexpr std::int32_t DropParticle = 0x607;
@@ -74,6 +76,8 @@ struct Particle
     float rotationFactor = 0.0f; // +0x60: 622/10 retiene al crear y escribe 1,5 al avanzar; 622/8 inicializa
     glm::vec2 field64{};         // +0x64..68: retenidos al crear
     glm::vec3 start{};           // +0x6c, donde nació
+    // En las familias Kalima esta identidad es el owner; el DWORD owner anterior sólo conserva la API legacy.
+    ParticleOwner typedOwner{};
 };
 
 // El viento de las partículas: 0x7609bb8 (x, y), entre −1,7 y 1,7, y lo que cambia en cada paso,
@@ -95,6 +99,8 @@ enum class ParticleError : std::uint8_t
     MissingDrawingService,
     UnrepresentableTrigonometry,
     MissingTerrainHeight,
+    MissingClock,
+    MissingScene,
 };
 
 // 5f93c0: retorno retenido, consultado después del prefijo del slot5c5.
@@ -105,7 +111,7 @@ class Particles
 public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
-    // rand(). Se aceptan 5f2/0,2, 5c6/1,5,9, 622/8,10, 5d9/0..3, 607/0, 67/0 y 68/0.
+    // rand(). Se aceptan5ca/0, 5f2/0,2, 5c6/1,5,9, 622/8,10, 5d9/0..3, 607/0, 67/0 y 68/0.
     // Create es la compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina
     // consume cinco rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().
     std::optional<std::size_t> Create(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
@@ -121,6 +127,12 @@ public:
     CreateChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                   std::int32_t subtype, float scale, std::reference_wrapper<const float> worldClock,
                   Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry& trigonometry);
+    // Sólo las familias Kalima acreditadas. Conserva identidad por valor, nunca una dirección host.
+    [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
+    CreateKalimaChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
+                        std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,
+                        std::int32_t scene, ParticleOwner owner = {});
+    // CreateKalimaChecked agrega5ac/6,7,6ed/0,6f0..4/0 y6f4/1; escena prestada para6f1.
     // 0x6070a0, al entrar a la escena: apaga el byte vivo de cada lugar. El viento sigue como estaba.
     void Clear();
 
@@ -134,7 +146,8 @@ private:
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateImpl(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                std::int32_t subtype, float scale, float legacyClock, const float* worldClock,
-               Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry* trigonometry);
+               Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry* trigonometry,
+               std::optional<std::int32_t> scene = std::nullopt, ParticleOwner typedOwner = {});
     // En el heap: la escena que la lleva tiene que caber en la pila.
     std::vector<Particle> m_particles = std::vector<Particle>(ParticleCount);
     ParticleWind m_wind;

@@ -39,6 +39,10 @@ constexpr Render::TextureSlot SkillTexturesStart{0x3b8};
 // 0x61634e..0x616370: Gate02 antes del bloque 0x3b8; Blood Castle reasigna ambos Gate en el mapa.
 constexpr Render::TextureSlot GateTexturesStart{0x69};
 constexpr std::array<Data::Models::ModelTextureCall, 1> InitialGateTextures{{{0x10d, "Monster\\"}}};
+// 0x6161b5: Data\Skill\RidingSpear01.bmd; el 0x10f del efecto necesita su modelo real.
+constexpr std::array<Data::Models::ModelFile, 1> TailModelFiles{{{0x10f, "Skill\\", "RidingSpear", 1}}};
+// 0x61619f: 0x60d5f0(0x10f, "Skill\\", GL_REPEAT, GL_NEAREST, 1).
+constexpr std::array<Data::Models::ModelTextureCall, 1> TailTextureCalls{{{0x10f, "Skill\\"}}};
 
 // Sube las de `entries` de a una: la que no carga deja su línea en el log, y las demás siguen.
 void UploadEach(const std::filesystem::path& dataRoot, std::span<const Data::Textures::TextureSetEntry> entries,
@@ -76,7 +80,8 @@ Core::Expected<void, std::string> GameModels::Load(const std::filesystem::path& 
                                                    Render::ITextureStore& textures, Core::Log& log)
 {
     for (const std::span<const Data::Models::ModelFile> table :
-         {Data::Models::PlayerModelFiles(), Data::Models::ItemModelFiles(), Data::Models::SkillModelFiles()})
+         {Data::Models::PlayerModelFiles(), Data::Models::ItemModelFiles(), Data::Models::SkillModelFiles(),
+          std::span<const Data::Models::ModelFile>(TailModelFiles)})
     {
         for (const Data::Models::ModelFile& file : table)
         {
@@ -108,9 +113,13 @@ Core::Expected<void, std::string> GameModels::Load(const std::filesystem::path& 
     AssignTextures(InitialGateTextures);
     m_slots.SetNext(SkillTexturesStart);
     AssignTextures(Data::Models::SkillTextureCalls());
-    UploadEach(dataRoot, GlowTextureSet, textures, log);
+    AssignTextures(TailTextureCalls);
+    UploadEach(dataRoot, DamageTextureSet, textures, log, &m_textureMetadata);
+    UploadEach(dataRoot, GlowTextureSet, textures, log, &m_textureMetadata);
     UploadEach(dataRoot, ClothTextureSet, textures, log);
     UploadEach(dataRoot, EffectTextureSet, textures, log, &m_textureMetadata);
+    UploadEach(dataRoot, FaunaJointTextureSet, textures, log, &m_textureMetadata);
+    UploadEach(dataRoot, GameTailTextureSet, textures, log, &m_textureMetadata);
     UploadEach(dataRoot, Data::Models::PlayerFixedTextures(), textures, log);
     UploadEach(dataRoot, m_slots.ToLoad(), textures, log, &m_textureMetadata);
     log.Info("se leyeron {} modelos del personaje, de los ítems y del caballo", m_models.size());

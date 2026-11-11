@@ -1,12 +1,24 @@
 #include "Scenes/GameScene.h"
+#include "Scenes/GameSceneFrameProjection.h"
+#include "Data/Tables/GateTable.h"
+#include "Data/Tables/SkillTable.h"
+#include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/Pose.h"
 #include "Scenes/DynamicWorldLight.h"
+#include "Scenes/FaunaDrawing.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
+#include "Scenes/GameDrawTail.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/FaunaEffects.h"
+#include "Scenes/GameFloorItems.h"
+#include "Scenes/GameItemRenderState.h"
+#include "Scenes/KalimaObjectStep.h"
+#include "World/GameModelEffects.h"
 
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
-#include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
@@ -16,14 +28,15 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/DarkSpirit.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/ModelTextureTable.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -37,8 +50,11 @@
 #include "UI/Widget.h"
 #include "World/GameCamera.h"
 #include "World/GroundMarks.h"
+#include "World/KalimaWorld.h"
+#include "World/SphereFrustum.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
+#include "World/TerrainHeight.h"
 #include "World/TerrainPickingSegment.h"
 #include "World/WorldObjects.h"
 #include "World/WorldTerrain.h"
@@ -49,8 +65,10 @@
 #include <algorithm>
 #include <bit>
 #include <chrono>
+#include <functional>
 #include <cstdint>
 #include <optional>
+#include <ratio>
 #include <span>
 #include <string>
 #include <vector>
@@ -82,6 +100,7 @@ constexpr std::int32_t SelectionMap = 54;
 // Los mapas de referencia, los únicos con los casos de los objetos en el juego (0x6046a0 y 0x604ab0).
 constexpr std::int32_t LorenciaMap = 0;
 constexpr std::int32_t DeviasMap = 2;
+constexpr std::int32_t NoriaMap = 3;
 // 0x5bb8d0: el ancho del mundo, 640 sin ventanas abiertas (MuRet no tiene las ventanas del juego).
 constexpr std::int32_t WorldWidth = 640;
 // 0x620486..0x6204b0: el mouse de 640 × 480 vuelve a la pantalla con · W / 640 y · H / 480, en enteros.
@@ -122,11 +141,14 @@ std::uint8_t HeroCellAttribute(ActorState& hero, const Data::Terrain::TerrainAtt
 } // namespace
 
 GameScene::GameScene(const SceneContext& context, App::ServerSession* session, const IModelLibrary* models,
-                     const Data::Tables::ItemTable* items, const Render::Models::ModelTextureSlots* gameSlots)
-    : m_context(context), m_session(session), m_models(models), m_items(items), m_gameSlots(gameSlots),
-      m_tiles(context.textures)
+                     const Data::Tables::ItemTable* items, const Render::Models::ModelTextureSlots* gameSlots,
+                     const Data::Tables::GateTable* gates, const Data::Tables::SkillTable* skills)
+    : m_context(context), m_session(session), m_models(models), m_items(items), m_gameSlots(gameSlots), m_gates(gates),
+      m_skills(skills), m_tiles(context.textures)
 {
 }
+
+GameScene::~GameScene() = default;
 
 Core::Expected<void, std::string> GameScene::Enter()
 {
@@ -138,6 +160,13 @@ Core::Expected<void, std::string> GameScene::Enter()
     m_firstStep = true;
     m_holdFrame = true;
     m_groundEffects.Reset();
+    auto& textureTable = m_context.world->FaunaResources().TextureTable();
+    textureTable.Bind(m_context.textures);
+    if (m_gameSlots != nullptr)
+    {
+        textureTable.Seed(*m_gameSlots, m_models);
+    }
+    m_tiles.BindTextureTable(textureTable);
     m_characterCloths.resize(ActorPoolSize);
     m_scepters.resize(ActorPoolSize);
     return {};
@@ -146,14 +175,15 @@ Core::Expected<void, std::string> GameScene::Enter()
 // 0x636290 y, después, lo de 0x637700 para la tela: el viento (0x637cec) y el contador de pasos
 // (0x637f8c) van detrás de la lógica de la escena (02, "Qué corre en cada paso"). Un corte del paso
 // deja la escena en Failure sin la tela; después de un corte, del paso o del dibujo, nada.
-void GameScene::Step(const Input::InputState& /*input*/)
+void GameScene::Step(const Input::InputState& input)
 {
+    m_projectingFrame = false;
     if (m_failure)
     {
         return;
     }
     StepEntry();
-    if (auto stepped = StepWorld(); !stepped.HasValue())
+    if (auto stepped = StepWorld(input); !stepped.HasValue())
     {
         m_failure = stepped.Error();
         return;
@@ -181,13 +211,14 @@ void GameScene::StepEntry()
     m_session->EnterWorld();
 }
 
-Core::Expected<void, std::string> GameScene::StepWorld()
+Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& input)
 {
     // Enter no deja entrar sin los dos.
     if (m_context.world == nullptr || m_context.cloth == nullptr)
     {
         return {};
     }
+    ObserveMapLoad();
     WorldRuntime& runtime = m_context.world->Runtime();
     // 0x636da3: el estado 0x3d marca el mundo cargado; sin él y con el mundo sin cargar, el paso
     // termina acá (0x636dbc).
@@ -208,7 +239,7 @@ Core::Expected<void, std::string> GameScene::StepWorld()
     // 0x4e2b10 que MuRet no aplica: sin asedio, no hace nada (*estático*, 08 P-C41).
     // 0x636de8: 0x5fbf60, la ola de las celdas de la ventana del rango del último dibujo, con el reloj
     // del paso (la rama de 0x723c50, P-C24 c, no se prende en MuRet). La copia de la luz sombreada al
-    // buffer dinámico deja lo mismo: MuRet no tiene luces dinámicas (06 § Terreno). El rango y las olas
+    // buffer dinámico precede las luces de objetos y fauna (06 § Terreno). El rango y las olas
     // son de la escena: el original los comparte con la selección (08 P-C41).
     const World::WorldTerrain* stepTerrain = &m_context.world->Map().terrain;
     if (runtime.map == SelectionMap && m_context.selection != nullptr && m_context.selection->Terrain() != nullptr)
@@ -231,7 +262,15 @@ Core::Expected<void, std::string> GameScene::StepWorld()
     {
         return objects;
     }
-    // Frontera (08 P-C41): 0x63706f..0x6370ef, los ítems del piso, las hojas, los pájaros y los peces.
+    const float worldClock =
+        m_context.clock ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
+                        : 0.0f;
+    if (auto stepped = StepTheFloorItems(worldClock); !stepped.HasValue())
+        return stepped;
+    if (auto leaves = StepTheLeaves(); !leaves.HasValue())
+        return leaves;
+    if (auto fauna = StepTheFauna(); !fauna.HasValue())
+        return fauna;
     // 0x6370f4: 0x445230, los ayudantes, también en la espera. MuRet no crea ninguno (P-C47): la tabla
     // vacía no hace nada.
     if (auto helpers = StepHelpers(
@@ -242,44 +281,13 @@ Core::Expected<void, std::string> GameScene::StepWorld()
     {
         return helpers;
     }
-    // Frontera (08 P-C41): 0x6370f9..0x637105, las listas.
-    // Frontera (P-C28 b): MoveHero (0x59adf0) sale sin tocar el contador con el recorrido de la cámara
-    // (0x4033d0, que además para al héroe con 0x4f2250), con un personaje bajo el mouse y +0x7c &
-    // 0x200000 del héroe, con +0x389 o con +0x78 & 0x1000 (0x59ae24..0x59ae87). MuRet no tiene todavía
-    // esos campos del héroe ni el recorrido, y baja el contador en cada paso.
-    // Frontera (08 P-C41 a): con más de 30, MoveHero sale en 0x59afd6 y el paso sigue en 0x63710f con los
-    // personajes de la selección en el 54; cortar ahí cortaría la espera.
-    if (StepWaitCounter() > WaitDrawThreshold)
-    {
-        return {};
-    }
-    // Frontera (T7, CL7.4 y 08 P-C41): el resto de MoveHero, desde 0x59afdf (el clic, caminar, los
-    // gates, 0x57cfc0 con el registro propio y la capa 1 de la celda en 0x77f36d0).
-    // 0x63710f: 0x508f00, los personajes, con el trapecio del último 0x5fb570 (WorldRuntime): en el primer
-    // paso después de la espera, el del último dibujo de la selección (Q-C216).
-    const Render::Models::Skeleton* player =
-        m_models != nullptr ? m_models->SkeletonOf(Data::Models::PlayerSkeletonModel) : nullptr;
-    if (auto stepped = StepCharacters(CharacterStepContext{.world = *m_context.world,
-                                                           .random = m_context.cloth->random,
-                                                           .scene = SceneId::Game,
-                                                           .playerSkeleton = player,
-                                                           .items = m_items});
-        !stepped.HasValue())
-    {
+    // 63710a: MoveHero sale con más de30, pero la lógica posterior sigue durante la espera.
+    if (auto moved = StepTheHero(input); !moved.HasValue())
+        return moved;
+    // 63710f: personajes sobre el trapecio retenido del último dibujo.
+    if (auto stepped = StepTheCharacters(worldClock); !stepped.HasValue())
         return stepped;
-    }
-    // Frontera (08 P-C41 a): 0x637114..0x637128 (los números de daño, la tabla 0x75fe028, los efectos con modelo,
-    // los joints, el viento y las partículas).
-    // 0x63712d: 0x549090, las marcas del suelo, sin rand(). En la espera también corre, y acá no: la tabla
-    // sigue vacía mientras MuRet no tenga quién la llene (08 P-C49).
-    if (auto particles = StepGameParticles(m_context.world->Particles(), m_context.cloth->random, runtime.map);
-        !particles.HasValue())
-    {
-        return particles;
-    }
-    World::StepGroundMarks(runtime.groundMarks);
-    // Frontera (08 P-C41 a): lo que sigue desde 0x637138.
-    return {};
+    return StepTheEffects(worldClock);
 }
 
 Core::Expected<void, std::string> GameScene::StepTheObjects()
@@ -287,12 +295,21 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     WorldState& world = *m_context.world;
     const std::int32_t map = world.Runtime().map;
     std::span<World::WorldObject> objects = world.Map().objects;
+    if (World::IsKalimaMap(map))
+    {
+        // 606572 antes del early-return y del reset60657a, incluso sin un objeto visto.
+        const auto selector = StepKalimaObjectPrelude(world, *m_context.cloth);
+        if (!selector.HasValue())
+            return Core::Unexpected(selector.Error());
+        world.Runtime().objectSelectionCount = 0;
+        // 6063d0: no esIcarus;4055b0 y42c500 retornanAL0 paraKalima, sin usar selector.
+    }
     // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no toca ninguno.
     if (std::ranges::none_of(objects, [](const World::WorldObject& object) { return object.alive && object.seen; }))
     {
         return {};
     }
-    if (map != LorenciaMap && map != DeviasMap)
+    if (map != LorenciaMap && map != DeviasMap && map != NoriaMap && !World::IsKalimaMap(map))
     {
         return Core::Unexpected("0x606560: los objetos vistos del " + MapText(map) + " (0x604ab0) no están portados");
     }
@@ -306,7 +323,12 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         .worldClock = m_context.clock != nullptr
                           ? static_cast<float>(
                                 std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
-                          : 0.0f};
+                          : 0.0f,
+        .dynamicLighting = &world.DynamicLighting().Lighting(),
+        .particles = &world.Particles(),
+        .heroPosition = &world.Actors()[world.Runtime().hero].position,
+        .sound = [&](std::int32_t id) { world.Runtime().lastSoundId = id; },
+        .modelState = &world.Runtime().objectModelState};
     if (auto stepped = StepGameWorldObjects(objects, static_cast<std::uint8_t>(map), m_worldModels,
                                             m_context.cloth->random, globals);
         !stepped.HasValue())
@@ -316,23 +338,6 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     return {};
 }
 
-std::int32_t GameScene::StepWaitCounter()
-{
-    WorldRuntime& runtime = m_context.world->Runtime();
-    Render::Models::CrtRandom& random = m_context.cloth->random;
-    {
-        // 0x59ae8d..0x59af5a: lo abre, le resta 1 si es positivo (0x59af01) y lo cierra (0x412890).
-        const Render::Models::LogicalAccess access(runtime.warpDepth, random, Render::Models::SmallLogicalCloseRandoms);
-        if (runtime.warpCounter > 0)
-        {
-            --runtime.warpCounter;
-        }
-    }
-    // 0x59af5f..0x59afd1: otro acceso para leerlo, con su propio cierre (0x40b800).
-    const Render::Models::LogicalAccess access(runtime.warpDepth, random, Render::Models::SmallLogicalCloseRandoms);
-    return runtime.warpCounter;
-}
-
 void GameScene::PrepareFrame()
 {
     m_holdFrame = true;
@@ -340,6 +345,7 @@ void GameScene::PrepareFrame()
     {
         return;
     }
+    ObserveMapLoad();
     WorldRuntime& runtime = m_context.world->Runtime();
     // 0x6371a6: sin el mundo cargado devuelve 0 sin leer el contador.
     if (!runtime.drawingEnabled)
@@ -382,6 +388,25 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
 {
     WorldRuntime& runtime = m_context.world->Runtime();
     const World::WorldTerrain& terrain = m_context.world->Map().terrain;
+    const int frames = m_cameraFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
+    m_framePoseCarry = &m_context.world->PoseCarry();
+    m_frameSprites = &m_sprites;
+    PrepareDrawProjection(frames);
+    if (frames == 0)
+    {
+        m_projectedPoseCarry = m_context.world->PoseCarry();
+        m_framePoseCarry = &m_projectedPoseCarry;
+        m_projectedSprites.Clear();
+        m_frameSprites = &m_projectedSprites;
+    }
+    if (frames == 0)
+    {
+        // El original publica 639482 en el orquestador, antes del despacho de escena.
+        // Un frame intermedio sólo consulta el valor de su reloj sobre la copia proyectada.
+        const float worldClock =
+            static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
+        UpdateGameItemGlowPulse(FrameItemRender(), worldClock);
+    }
     if (!terrain.mapping || !terrain.heights || !terrain.attributes || !terrain.lighting)
     {
         return Core::Unexpected("0x6371a0: el " + MapText(runtime.map) + " no está cargado (0x61a560)");
@@ -397,18 +422,21 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
         return Core::Unexpected(std::string("0x635b5c: en el mapa 6 la cámara (0x635ae0) compara el nombre del héroe "
                                             "con 0x576960, que MuRet no tiene"));
     }
-    const int frames = m_cameraFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
     // 0x637241: 0x635ae0.
     const Render::Camera3D camera = CameraOfTheFrame(canvas, frames);
+    m_drawnCamera = camera;
+    m_screen = canvas.screen;
     // 0x63726f..0x637337: fuera del mapa 6, el punto de 0x44dc60. El recorrido de 0x4033d0 (el BD 00, que
     // MuRet no aplica) no está prendido y no lo cambia.
     const glm::vec3 target = World::CameraTargetOf(CameraInputState());
     // 0x63734d: el pase de 0x620db0(0, 0, w, 48) no dibuja; su modelview es la del pase del mundo.
     const Render::Pass3D pass = Render::MakePass3D(canvas.screen, GameWorldViewport, camera);
+    m_frustum = World::SphereFrustumOf(pass.view, camera);
     // 0x637366: 0x5fbb00(w · 0,0015625, &p), el rango de bloques y el trapecio; con w en 640, 1. El trapecio y
     // su nivel quedan en los globales de WorldRuntime, que lee 0x5fba90 en el paso que sigue.
     m_terrainRange = World::TerrainRangeOf(pass.view, camera);
-    m_context.world->DynamicLighting().PublishRange(m_terrainRange);
+    if (frames > 0)
+        m_context.world->DynamicLighting().PublishRange(m_terrainRange);
     const auto polygon = PolygonOfTheFrame(camera, target, frames);
     if (!polygon.HasValue())
     {
@@ -420,6 +448,27 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     auto drawn = DrawTheWorldPass(canvas, pass, polygon.Value(), frames);
     canvas.flushModels();
     return drawn;
+}
+
+void GameScene::ObserveMapLoad()
+{
+    const auto revision = m_context.world->Map().loadRevision;
+    if (m_loadedRevision == revision)
+        return;
+    // Un mismo número de mapa también puede tener otra carga, incluso después de un fallo.
+    // Estos owners son cachés de MuRet: no son escrituras ni contadores del original.
+    m_groundEffects.Reset();
+    m_tiles.Release();
+    m_worldModels.Release();
+    m_worldModelsMap.reset();
+    m_context.world->Runtime().objectModelState.unlitMeshes.clear();
+    m_projection.reset();
+    m_projectingFrame = false;
+    m_framePoseCarry = nullptr;
+    m_frameSprites = nullptr;
+    m_spriteReplay.Clear();
+    m_spriteReplayValid = false;
+    m_loadedRevision = revision;
 }
 
 Core::Expected<void, std::string> GameScene::UploadTheTiles(std::uint8_t map)
@@ -448,13 +497,19 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
     }
     m_worldModels.Release();
     m_worldModelsMap.reset();
-    if (auto loaded = m_worldModels.Load(m_context.dataRoot, static_cast<std::uint8_t>(map), m_context.textures,
-                                         m_context.log, m_gameSlots, m_models);
+    // La carga recrea BMD durables, aun si la pidió un dibujo proyectado.
+    m_context.world->Runtime().objectModelState.unlitMeshes.clear();
+    if (m_projectingFrame)
+        FrameModelState().unlitMeshes.clear();
+    if (auto loaded =
+            m_worldModels.Load(m_context.dataRoot, static_cast<std::uint8_t>(map), m_context.textures, m_context.log,
+                               m_gameSlots, m_models, &m_context.world->FaunaResources().TextureTable());
         !loaded.HasValue())
     {
         return Core::Unexpected("0x616ec0: los modelos de los objetos del " + MapText(map) + ": " + loaded.Error());
     }
     m_worldModelsMap = map;
+    m_context.world->FaunaResources().Bind(&m_worldModels);
     return {};
 }
 
@@ -521,7 +576,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     m_mouseRay = World::TerrainPickingSegment{.origin = origin, .end = end};
     // 0x6374b2..0x6374c2: 0x437850() mira el mundo de Kalima (0x723c48), que MuRet no crea (MapLoad corta
     // en esos mapas): es falso. El mapa 10 no dibuja el terreno.
-    if (map != WithoutTerrainMap)
+    if (FrameKalima() == nullptr && map != WithoutTerrainMap)
     {
         // 0x5fc260(0) → 0x5fac90 → 0x5fa830: en el mapa 7 la capa 2 de agua va con 0x5fa4b0.
         if (map == AnimatedWaterMap)
@@ -542,7 +597,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         view.mapping = terrain.mapping.get();
         view.heights = terrain.heights.get();
         view.attributes = terrain.attributes.get();
-        view.lighting = &m_context.world->DynamicLighting().Lighting();
+        view.lighting = &FrameLighting();
         view.tiles = m_tiles.Sizes();
         view.map = static_cast<std::uint8_t>(map);
         view.fixedHeight = CameraState().fixedHeight;
@@ -582,11 +637,14 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         afterMarks.depthTest = true;
         canvas.models.SetState(afterMarks);
     }
-    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 y 2.
-    if (map != LorenciaMap && map != DeviasMap)
+    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0, 2 y 3.
+    const bool knownObjects = map == LorenciaMap || map == DeviasMap || map == NoriaMap || World::IsKalimaMap(map);
+    if (!knownObjects &&
+        std::ranges::any_of(FrameObjects(), [](const World::WorldObject& object) { return object.alive; }))
     {
-        return Core::Unexpected("0x6374ce: los objetos del " + MapText(map) +
-                                " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0 y el 2");
+        return Core::Unexpected(
+            "0x6374ce: los objetos del " + MapText(map) +
+            " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0, el 2 y el 3");
     }
     if (auto loaded = LoadTheObjectModels(map); !loaded.HasValue())
     {
@@ -594,34 +652,56 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     }
     WorldState& world = *m_context.world;
     const ActorState& hero = world.Actors()[world.Runtime().hero];
-    // La luz del terreno en un punto (0x5f99e0) lee el buffer dinámico 0x7b4ccc4: MuRet no tiene luces
-    // dinámicas (los fuegos y las lámparas del paso cortan antes de sumarlas) y lee la sombreada. El reloj
+    // La luz del terreno en un punto (0x5f99e0) lee el buffer dinámico 0x7b4ccc4: el paso suma las luces
+    // de los fuegos, las lámparas y la fauna al buffer dinámico. El reloj
     // del mundo (0x5767b88), el del frame, como el de la cámara.
-    if (auto objects = DrawGameWorldObjects(
-            canvas.models, m_worldModels, world.Map().objects, polygon, &world.DynamicLighting().Lighting(),
-            canvas.frameClock,
-            GameObjectPass{.map = static_cast<std::uint8_t>(map),
-                           .originalFrame = frames > 0,
-                           .random = &m_context.cloth->random,
-                           .heroClass = hero.characterClass,
-                           .ownLevel = world.OwnCharacter().level,
-                           .ownRecordDepth = &world.Runtime().ownRecordDepth,
-                           .worldClock = static_cast<float>(
-                               std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count()),
-                           .particles = &world.Particles()});
-        !objects.HasValue())
+    if (knownObjects)
     {
-        return Core::Unexpected(objects.Error() + ", en el " + MapText(map));
+        if (auto objects = DrawGameWorldObjects(
+                canvas.models, m_worldModels, FrameObjects(), polygon, &FrameLighting(), canvas.frameClock,
+                GameObjectPass{
+                    .map = static_cast<std::uint8_t>(map),
+                    .originalFrame = frames > 0,
+                    .random = &FrameCloth().random,
+                    .heroClass = hero.characterClass,
+                    .ownLevel = world.OwnCharacter().level,
+                    .ownRecordDepth =
+                        m_projectingFrame ? &m_projection->ownRecordDepth : &world.Runtime().ownRecordDepth,
+                    .worldClock = static_cast<float>(
+                        std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count()),
+                    .particles = &FrameParticles(),
+                    .onPose = [&](const DrawnObject& drawn)
+                    { return PublishFaunaPose(FramePoseCarry(), m_worldModels, drawn, true); },
+                    .sprites = &FrameSpritesForDraw(),
+                    .retainedPose = &FramePoseCarry(),
+                    .createJoint = [&](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
+                    {
+                        const auto created = CreateFaunaJoint(FrameTail().joints, request, FrameCloth().random);
+                        if (!created.HasValue())
+                            return Core::Unexpected(created.Error());
+                        return {};
+                    },
+                    .modelState = &FrameModelState(),
+                    .publishProjectedPose = true,
+                    .waterTextureFrame = FrameCloth().waterTextureFrame,
+                    .hero = &hero,
+                    .kalima = FrameKalima(),
+                    .requestSound = [&](std::int32_t sound) { world.Fauna().Sound(sound, nullptr); }});
+            !objects.HasValue())
+        {
+            return Core::Unexpected(objects.Error() + ", en el " + MapText(map));
+        }
     }
     // 0x6374d3: 0x52dc20, los efectos del suelo, sobre la tabla de 0x518cf0 (la de WorldMap).
     if (auto ground = m_groundEffects.Draw(
-            canvas.models, world.Map().effects.Effects(),
+            canvas.models, FrameEffects().Effects(),
             World::GroundEffectResources{
                 .heights = *world.Map().terrain.heights,
-                .random = m_context.cloth->random,
+                .random = FrameCloth().random,
                 .worldClock = static_cast<float>(
                     std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count()),
-                .map = static_cast<std::uint8_t>(map)},
+                .map = static_cast<std::uint8_t>(map),
+                .kalima = FrameKalima()},
             frames > 0);
         !ground.HasValue())
     {
@@ -631,6 +711,8 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     // (0x6370ea), que MuRet no corre (la frontera de StepWorld), y los apagan 0x6070a0 al cargar el mapa y
     // 0x4455c0. MuRet no tiene la tabla: sin pájaros vivos, 0x446b60 no dibuja ni saca rand(), y solo suma y
     // resta 90 al +0x24 de cada lugar que no es un 0x10f (Q-C277), que nadie ve (08 P-C55).
+    if (auto birds = DrawTheBirds(canvas, polygon, frames); !birds.HasValue())
+        return birds;
     // 0x6374dd: 0x510d00, los personajes, y al final 0x42da60 con el TerrainWall.
     if (auto characters = DrawTheCharacters(canvas, frames); !characters.HasValue())
     {
@@ -638,8 +720,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     }
     // 0x6374e2..0x6374ed: 0x5fc260(1) solo con 0x77f3b18, el modo editor, que nadie prende. 0x6374f5: con
     // 0x7d36899 en 0 (nadie lo escribe), 0x608a00, los ítems del piso.
-    return Core::Unexpected("0x6374fe: los ítems del piso del " + MapText(map) +
-                            " (0x608a00) no están portados (CL9.3)");
+    return DrawTheTail(canvas, pass, polygon, frames);
 }
 
 Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canvas, int frames)
@@ -649,19 +730,48 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
     {
         return DrawGameCharacters(world.Actors(), world.Runtime().hero, world.Map().terrain.attributes->cells);
     }
-    return DrawGameCharacters(canvas.models, *m_models, world,
-                              GameCharacterPass{.dynamicLighting = &world.DynamicLighting().Lighting(),
-                                                .clothWorld = m_context.cloth,
-                                                .frameClock = canvas.frameClock,
-                                                .originalFrames = frames,
-                                                .cloths = m_characterCloths,
-                                                .sprites = &m_sprites,
-                                                .scepters = m_scepters,
-                                                .pace = OriginalFramePaceOf(m_context.pacing)});
+    std::optional<std::string> poseFailure;
+    const auto drawn = DrawGameCharacters(
+        canvas.models, *m_models, world,
+        GameCharacterPass{.dynamicLighting = &FrameLighting(),
+                          .clothWorld = &FrameCloth(),
+                          .frameClock = canvas.frameClock,
+                          .originalFrames = frames,
+                          .cloths = m_characterCloths,
+                          .sprites = &FrameSpritesForDraw(),
+                          .scepters = m_scepters,
+                          .pace = OriginalFramePaceOf(m_context.pacing),
+                          .onPose =
+                              [&](std::uint16_t model, std::span<const Render::Models::BoneTransform> bones,
+                                  const Render::Models::ObjectTransform& transform, bool translated)
+                          {
+                              const auto published =
+                                  PublishFaunaPoseRaw(FramePoseCarry(), *m_models, model, bones, transform, translated);
+                              if (!published.HasValue() && !poseFailure)
+                                  poseFailure = published.Error();
+                          },
+                          .publishProjectedPose = true,
+                          .poseBones = [&](std::uint16_t)
+                          { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); }});
+    if (poseFailure)
+        return Core::Unexpected(*poseFailure);
+    return drawn;
+}
+
+FaunaDrawCarry& GameScene::FramePoseCarry()
+{
+    return m_framePoseCarry ? *m_framePoseCarry : m_context.world->PoseCarry();
+}
+
+World::FrameSprites& GameScene::FrameSpritesForDraw()
+{
+    return m_frameSprites ? *m_frameSprites : m_sprites;
 }
 
 void GameScene::Leave()
 {
+    if (m_context.world)
+        m_context.world->FaunaResources().Bind(nullptr);
     m_tiles.Release();
     m_worldModels.Release();
     m_worldModelsMap.reset();

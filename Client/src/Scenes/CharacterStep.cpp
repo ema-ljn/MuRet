@@ -1,8 +1,11 @@
 #include "Scenes/CharacterStep.h"
+#include "Render/Models/OriginalRotation.h"
+#include "World/Particles.h"
 
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Data/Terrain/TerrainAttributes.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
@@ -352,6 +355,8 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
     return Render::Models::AdvanceAnimation(animation, info, speed, scene);
 }
 
+bool IsKalima(std::int32_t map);
+
 // 0x4fcb10(c, c) desde 0x4fce57, con la acción que terminó.
 Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, std::size_t slot, const CharacterStepContext& context)
 {
@@ -372,11 +377,16 @@ Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, std::size_t sl
                        (action >= FirstCombatStop && action <= LastCombatStop) || !kept;
     if (stops)
     {
-        const auto stopped = SetActorStop(actor, ActorStopContext{.runtime = context.world.Runtime(),
-                                                                  .scene = context.scene,
-                                                                  .playerSkeleton = *context.playerSkeleton,
-                                                                  .items = context.items,
-                                                                  .random = context.random});
+        const auto& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+        const auto stopped = SetActorStop(
+            actor, ActorStopContext{.runtime = context.world.Runtime(),
+                                    .scene = context.scene,
+                                    .playerSkeleton = *context.playerSkeleton,
+                                    .items = context.items,
+                                    .random = context.random,
+                                    .terrainWalls = IsKalima(context.world.Runtime().map) && terrain.attributes
+                                                        ? &terrain.attributes->cells
+                                                        : nullptr});
         if (!stopped.HasValue())
         {
             return Core::Unexpected(stopped.Error());
@@ -754,15 +764,30 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
         }
     }
     // 0x5086cf..0x508801: en Kalima, el 0x20a en las acciones 0x15, 0x1d a 0x21 y 0x4b (con el héroe, todas de los
-    // pasos) saca el 0x6f4 en (0, −40, 0) girado por +0x1c (0x5fc8f0 y 0x5fcbd0), con rand() % 64
+    // pasos) saca el 0x6f4/1 en (0, −40, 0) girado por +0x1c (0x5fc8f0 y 0x5fcbd0), con rand() % 64
     // en la x (0x508793) y en la y (0x5087b6).
     if (IsKalima(map) && IsOneOf(KalimaParticleActions, action))
     {
-        static_cast<void>(context.random.Next());
-        static_cast<void>(context.random.Next());
-        return Core::Unexpected(std::format("0x5087fc: en el {} la acción {:#x} del lugar {} saca la partícula 0x6f4 "
-                                            "(0x53fe70), que no está portada",
-                                            MapText(map), action, slot));
+        constexpr int FootstepSpan = 64, FootstepCenter = 32;
+        constexpr double FootstepHeight = 50;
+        constexpr std::int32_t FootstepParticle = 0x6f4, FootstepSubtype = 1;
+        const auto matrix = Render::Models::OriginalAngleMatrix(actor.angles);
+        glm::vec3 position = Render::Models::OriginalVectorRotate({0, -40, 0}, matrix);
+        for (int axis = 0; axis < 3; ++axis)
+            position[axis] = static_cast<float>(static_cast<double>(position[axis]) + actor.position[axis]);
+        position.x =
+            static_cast<float>(static_cast<double>(context.random.Next() % FootstepSpan - FootstepCenter) + position.x);
+        position.y =
+            static_cast<float>(static_cast<double>(context.random.Next() % FootstepSpan - FootstepCenter) + position.y);
+        position.z = static_cast<float>(static_cast<double>(position.z) + FootstepHeight);
+        if (context.particles == nullptr)
+            return Core::Unexpected(
+                std::format("0x5087fc: falta el pool de partículas de los pasos de Kalima, lugar {} ", slot));
+        const auto made = context.particles->CreateKalimaChecked(
+            FootstepParticle, position, actor.angles, glm::vec3(0.3f), FootstepSubtype, 1.0f, context.worldClock,
+            context.random, static_cast<std::int32_t>(context.scene));
+        if (!made.HasValue())
+            return Core::Unexpected(std::string("0x5087fc: falló el alta6f4/1 de los pasos de Kalima"));
     }
     return {};
 }

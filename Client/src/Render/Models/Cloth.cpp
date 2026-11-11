@@ -208,6 +208,9 @@ void StepTheClothWorld(ClothWorld& world)
     {
         WalkTheWind(world);
     }
+    // 637d5a..637d7c, sin CRT, después de los cinco paseos y antes del contador.
+    constexpr std::uint32_t WaterTextureFrames = 32;
+    world.waterTextureFrame = (world.waterTextureFrame + 1u) % WaterTextureFrames;
     // El ADD de 0x637f91 guarda los 32 bits antes de volver a leer el contador con signo.
     const std::uint32_t nextLogicStepsBits = static_cast<std::uint32_t>(world.logicSteps) + 1u;
     world.logicSteps = std::bit_cast<std::int32_t>(nextLogicStepsBits);

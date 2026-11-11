@@ -149,7 +149,12 @@ TEST_F(GoldenLoginScene, EntersWithTheLabData)
     // Y las dos del logo (TheLogoLoads), las 15 del terreno (los 14 tiles de World56 y el 0x122,
     // TheTerrainGoesBeforeTheCharacter) y las 63 del mundo: las 3 del dragón y 62 de Object56\ que esta
     // tabla vacía no tiene, menos fire01 y fire02, que no están (GoldenWorldModels).
-    ASSERT_EQ(store.Size(), LoginTextureSet.size() + WindowTextureSet.size() + 2 + 15 + 63);
+    constexpr std::array weatherSlots{TextureSlot{0x64}, TextureSlot{0x65}, TextureSlot{0x66}, TextureSlot{0x67},
+                                      TextureSlot{0x68}};
+    // 61ac3e..61ad7a: dos hojas del mundo y tres imágenes globales de lluvia.
+    ASSERT_EQ(store.Size(), LoginTextureSet.size() + WindowTextureSet.size() + 2 + 15 + weatherSlots.size() + 63);
+    for (const auto slot : weatherSlots)
+        EXPECT_TRUE(store.Find(slot).has_value()) << slot.value;
     for (const auto& entry : LoginTextureSet)
     {
         EXPECT_TRUE(store.Find(TextureSlot{entry.slot}).has_value()) << entry.slot;

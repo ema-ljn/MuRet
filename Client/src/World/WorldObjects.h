@@ -52,6 +52,7 @@ struct WorldObject
     float speed = 0.0f;                            // +0xd8, keys por paso
     float cullingMargin = -30.0f;                  // +0xdc, margen inicial de 0x6067ae
     float fieldE0 = 50.0f;                         // +0xe0, significado/consumidor sin modelar
+    glm::vec3 velocity{};                          // +0xcc..d4, cero nativo606830..60683c
     glm::vec3 copiedAngles{};                      // +0x28..+0x30, copia del caso del mapa 2
     glm::vec3 copiedPosition{};                    // +0x34..+0x3c, copia del caso del mapa 2
     glm::vec3 basePosition{};                      // +0x17c, segunda copia inicial de la posición

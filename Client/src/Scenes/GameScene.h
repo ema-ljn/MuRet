@@ -1,6 +1,12 @@
 #pragma once
 
 #include "App/ServerSession.h"
+#include "App/WindowState.h"
+#include "Data/Tables/GateTable.h"
+#include "Data/Tables/SkillTable.h"
+#include "Scenes/FaunaDrawing.h"
+#include "World/SphereFrustum.h"
+#include "World/TerrainPickingState.h"
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "Input/InputState.h"
@@ -12,6 +18,7 @@
 #include "Scenes/CharacterCloth.h"
 #include "World/ScepterGlow.h"
 #include "World/Sprites.h"
+#include "World/ModelEffects.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -25,28 +32,32 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
+#include <span>
 #include <vector>
 
-// La escena 5: en su primer paso manda el F3 03 (0x636290, ServerSession::EnterWorld) y después espera
-// el mundo. Mientras el contador de la espera pasa de 30, el dibujo (0x6371a0) no dibuja ni presenta y
-// queda en pantalla el mosaico de la escena 3; el paso corre con lo que dejó la selección y MoveHero
-// baja el contador (0x59af01). La respuesta del F3 03 lo pone en 30 (T7). Con el contador en 30 o
-// menos, el dibujo del juego hace la cámara, el rango y el trapecio, el pase del mundo, el rayo del
-// mouse, el terreno y, en el 0 y el 2, los objetos (0x6374ce, CL7 hito 3), los efectos del suelo
-// (0x6374d3), los pájaros (0x6374d8, sin tabla) y los personajes (0x6374dd, con el TerrainWall de
-// 0x42da60), y corta con error en la primera etapa que MuRet no tiene (T8): a lo sumo, en los ítems del
-// piso (0x6374fe); el paso, los objetos que vio el dibujo (0x606560), el caballo oscuro (0x445230, también
-// en la espera) y los personajes con su cuerpo (0x4fd5f0) y la zona segura del héroe (0x508f00, T11), y
-// corta igual. El dibujo del caballo (0x637508) está portado (HelperTable.h, DrawHelpers) y queda detrás
-// del corte de los ítems del piso. El trapecio que leen los personajes es el global de WorldRuntime: en el
-// primer paso después de la espera, el que dejó el último dibujo de la selección (T11b).
-// Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La entrada al mundo", pasos 3, 4 y 6, "El
-// paso del juego", "El dibujo del juego" y "Los objetos del juego".
+// Escena5: entrada F303, espera de gates y ciclos de lógica/dibujo sobre WorldState.
+// La espera retiene la presentación, pero no interrumpe las fases posteriores a MoveHero.
+// Las poses son globales entre escenas; los cuadros intermedios usan scratch y sprites proyectados.
+// Los servicios o familias aún no portados devuelven su frontera después de conservar el prefijo.
+// Contrato: research06, «La entrada al mundo», «El paso del juego» y «El dibujo del juego».
+namespace Client::World
+{
+class KalimaWorld;
+class Particles;
+struct TerrainLighting;
+struct ObjectModelStepState;
+struct WorldObject;
+} // namespace Client::World
+
 namespace Client::Scenes
 {
 class IModelLibrary;
+struct GameSceneFrameProjection;
+struct GameDrawTailState;
+struct GameItemRenderState;
 
 // 0x620db0(0, 0, w, 432), el pase del mundo del juego (0x637410): 480 con la vista de arriba
 // (0x7d36899), que no se prende nunca.
@@ -62,7 +73,10 @@ public:
     // sin ella, desde 0x69.
     GameScene(const SceneContext& context, App::ServerSession* session, const IModelLibrary* models = nullptr,
               const Data::Tables::ItemTable* items = nullptr,
-              const Render::Models::ModelTextureSlots* gameSlots = nullptr);
+              const Render::Models::ModelTextureSlots* gameSlots = nullptr,
+              const Data::Tables::GateTable* gates = nullptr, const Data::Tables::SkillTable* skills = nullptr);
+
+    ~GameScene() override;
 
     // Sin `context.world` o `context.cloth`, el error: la espera vive en el primero y sus cierres
     // gastan el rand() del segundo.
@@ -96,13 +110,19 @@ private:
     // 0x6362b2..0x63693a: solo el primer paso de la escena.
     void StepEntry();
     // 0x636da3..0x63717f: el paso con el mundo cargado, hasta su primer corte.
-    [[nodiscard]] Core::Expected<void, std::string> StepWorld();
+    [[nodiscard]] Core::Expected<void, std::string> StepWorld(const Input::InputState& input);
+    [[nodiscard]] Core::Expected<void, std::string> StepTheFloorItems(float worldClock);
+    [[nodiscard]] Core::Expected<void, std::string> StepTheCharacters(float worldClock);
+    [[nodiscard]] Core::Expected<void, std::string> StepTheModelEffects(float worldClock);
+    [[nodiscard]] Core::Expected<void, std::string> StepTheEffects(float worldClock);
+    [[nodiscard]] Core::Expected<void, std::string> StepTheHero(const Input::InputState& input);
+    [[nodiscard]] Core::Expected<void, std::string> StepTheFauna();
+    [[nodiscard]] Core::Expected<void, std::string> StepTheLeaves();
+    [[nodiscard]] const World::WorldTerrain& StepTerrain() const;
     // 0x63706a: 0x606560 con los objetos vistos (StepGameWorldObjects); los demás mapas cortan si hay alguno.
     [[nodiscard]] Core::Expected<void, std::string> StepTheObjects();
-    // 0x59ae8d..0x59afd6, lo de MoveHero con el contador: lo baja y lo vuelve a leer.
-    [[nodiscard]] std::int32_t StepWaitCounter();
 
-    // 0x63723a..0x6374fe: el dibujo hasta el corte. Devuelve siempre el error del corte.
+    // 0x63723a: un frame completo del mundo, hasta una dependencia ausente si se alcanza.
     [[nodiscard]] Core::Expected<void, std::string> DrawTheFrame(SceneCanvas& canvas);
     // Los modelos de los objetos de `map` (0x616ec0, WorldModels) y sus texturas, que el original lee en
     // 0x61a560, al cargar; MuRet, la primera vez que el dibujo o el paso los piden.
@@ -115,13 +135,31 @@ private:
     // frame los dos quedan en WorldRuntime (TerrainPolygonFrame.h); en un dibujo intermedio, nada.
     [[nodiscard]] Core::Expected<World::TerrainPolygon, std::string>
     PolygonOfTheFrame(const Render::Camera3D& camera, const glm::vec3& target, int frames);
-    // 0x637410..0x6374fe, dentro del pase del mundo: el rayo del mouse, el terreno, los objetos, los efectos
-    // del suelo, los personajes y el corte.
+    // 0x637410: terreno, objetos, suelo, aves y personajes; después continúa la cola del frame.
     // `frames` son los frames del original del reloj: con 0, los objetos no sacan rand().
     [[nodiscard]] Core::Expected<void, std::string> DrawTheWorldPass(SceneCanvas& canvas, const Render::Pass3D& pass,
                                                                      const World::TerrainPolygon& polygon, int frames);
 
     [[nodiscard]] Core::Expected<void, std::string> DrawTheCharacters(SceneCanvas& canvas, int frames);
+    [[nodiscard]] Core::Expected<void, std::string> DrawTheBirds(SceneCanvas& canvas,
+                                                                 const World::TerrainPolygon& polygon, int frames);
+    [[nodiscard]] Core::Expected<void, std::string> DrawTheTail(SceneCanvas& canvas, const Render::Pass3D& pass,
+                                                                const World::TerrainPolygon& polygon, int frames);
+    [[nodiscard]] FaunaDrawCarry& FramePoseCarry();
+    [[nodiscard]] World::FrameSprites& FrameSpritesForDraw();
+    void PrepareDrawProjection(int frames);
+    void ObserveMapLoad();
+    [[nodiscard]] GameDrawTailState& FrameTail();
+    [[nodiscard]] World::TerrainLighting& FrameLighting();
+    [[nodiscard]] Render::Models::ClothWorld& FrameCloth();
+    [[nodiscard]] World::ObjectModelStepState& FrameModelState();
+    [[nodiscard]] GameItemRenderState& FrameItemRender();
+    [[nodiscard]] World::ModelEffects& FrameEffects();
+    [[nodiscard]] World::Particles& FrameParticles();
+    [[nodiscard]] std::span<World::WorldObject> FrameObjects();
+    [[nodiscard]] World::KalimaWorld* FrameKalima();
+    [[nodiscard]] std::uint8_t ReadFrameHeroCell(bool x);
+    [[nodiscard]] Core::Expected<void, std::string> DrawKalimaWater(SceneCanvas& canvas);
 
     World::GameCamera& CameraState();
     World::GameCameraInput& CameraInputState();
@@ -131,6 +169,8 @@ private:
     const IModelLibrary* m_models;
     const Data::Tables::ItemTable* m_items;
     const Render::Models::ModelTextureSlots* m_gameSlots;
+    const Data::Tables::GateTable* m_gates;
+    const Data::Tables::SkillTable* m_skills;
     bool m_sent = false;
     bool m_firstStep = true;
     bool m_holdFrame = true;
@@ -142,10 +182,23 @@ private:
     std::vector<CharacterCloth> m_characterCloths;
     std::vector<World::ScepterGlowCarry> m_scepters;
     World::FrameSprites m_sprites;
+    World::FrameSprites m_spriteReplay;
+    bool m_spriteReplayValid = false;
+    World::FrameSprites m_projectedSprites;
+    World::FrameSprites* m_frameSprites = nullptr;
+    std::unique_ptr<GameSceneFrameProjection> m_projection;
+    bool m_projectingFrame = false;
+    FaunaDrawCarry m_projectedPoseCarry;
+    FaunaDrawCarry* m_framePoseCarry = nullptr;
+    World::SphereFrustum m_frustum;
+    Render::Camera3D m_drawnCamera;
+    World::TerrainPickingState m_picking;
+    App::PixelSize m_screen{640, 480};
     TerrainTiles m_tiles;
     // Los modelos de los objetos del mapa que los cargó, si alguno.
     WorldModels m_worldModels;
     std::optional<std::int32_t> m_worldModelsMap;
+    std::optional<std::uint64_t> m_loadedRevision;
     // El rango de bloques del último 0x5fbb00 de la escena, el que lee 0x5fbf60 en el paso.
     World::TerrainRange m_terrainRange;
     // El corrimiento del agua (0x78ecbec) y las olas (0x78acbd8) del juego.

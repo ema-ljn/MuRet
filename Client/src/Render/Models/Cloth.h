@@ -46,6 +46,9 @@ struct ClothWorld
     // Cuántos accesos al contador están abiertos (la tabla de 0x57630c8): con 0, cada paso de una tela
     // lo vuelve a cifrar y saca 4 rand() que no usa. En el dibujo no hay otro abierto.
     std::int32_t openCounterAccesses = 0;
+    // DAT_07d2d360 está en .bss:0.637d63/637d7c avanza el ciclo32 después del viento,
+    // antes del contador lógico. El owner sólo publica valores0..31 y sobrevive a mapas/escenas.
+    std::uint32_t waterTextureFrame = 0;
 };
 
 // 0x456b10: el paseo del viento base, b = f(b + (rand() % 200 − 100) · 0,001), entre −0,2 y 1.

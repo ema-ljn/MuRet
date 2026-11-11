@@ -40,10 +40,12 @@ public:
     // `pollNetwork` corre en cada Poll: main.cpp propaga Online::Poll y, sin servidor, devuelve
     // éxito sin red. `takeSceneOrder` corre después de un pollNetwork que salió bien y devuelve la
     // escena que ordenó la red, una vez (main.cpp: WorldRuntime::orderedScene). Los dos pueden estar
-    // vacíos. La fábrica, el frame, el reloj y el log viven más que el SceneManager.
+    // vacíos. beforeSceneFrame publica el prefijo global aun si la escena retiene el dibujo;
+    // el caller decide qué frames son originales. La fábrica, el frame, el reloj y el log viven más.
     SceneManager(SceneFactory factory, IFrameTarget& frame, Core::IClock& clock,
                  std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log,
-                 std::function<std::optional<SceneId>()> takeSceneOrder = {});
+                 std::function<std::optional<SceneId>()> takeSceneOrder = {},
+                 std::function<void(Core::Duration)> beforeSceneFrame = {});
     ~SceneManager() override;
 
     SceneManager(const SceneManager&) = delete;
@@ -104,6 +106,8 @@ private:
     std::function<Core::Expected<void, std::string>()> m_pollNetwork;
     Core::Log& m_log;
     std::function<std::optional<SceneId>()> m_takeSceneOrder;
+    // Prefijo global del dibujo, una vez por frame, antes del despacho y de la guarda de la escena.
+    std::function<void(Core::Duration)> m_beforeSceneFrame;
     // La escena que ordenó la red y todavía no entró: la toma el próximo Step.
     std::optional<SceneId> m_networkOrder;
     std::unique_ptr<IScene> m_scene;

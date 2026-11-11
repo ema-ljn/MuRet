@@ -412,6 +412,7 @@ TEST_F(GameCharacterRenderTest, The401stPoolRecordIsNotPartOfThe400CharacterDraw
 TEST_F(GameCharacterRenderTest, OutsideTheSafeZoneTheUnportedWeaponStateDoesNotFallBackToTheHand)
 {
     Player(0).safeZone = 0;
+    m_world->Actors()[0].hands[0].model = 0x212;
 
     const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 

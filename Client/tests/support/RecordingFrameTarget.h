@@ -92,7 +92,7 @@ public:
         frame.clock = frameClock;
         frames.push_back(std::move(frame));
         m_sprites.Begin(m_screen);
-        m_models.Begin(Render::Pass3D{});
+        m_models.Begin(Render::Pass3D{}, false);
         m_synced = 0;
         m_canvas.emplace(Scenes::SceneCanvas{.sprites = m_sprites,
                                              .text = m_text,
@@ -222,7 +222,9 @@ private:
         event.modelCommands.assign(m_models.Commands().begin(), m_models.Commands().end());
         event.modelVertices.assign(m_models.Vertices().begin(), m_models.Vertices().end());
         frames.back().events.push_back(std::move(event));
-        m_models.Begin(m_models.Pass());
+        const auto state = m_models.State();
+        m_models.Begin(m_models.Pass(), false);
+        m_models.SetState(state);
     }
 
     void RecordWorld(Scenes::SceneWorld world, const Render::Pass3D& pass, float alpha)

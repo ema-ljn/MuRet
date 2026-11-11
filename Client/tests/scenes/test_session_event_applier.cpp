@@ -9,6 +9,8 @@
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Movement.h"
+#include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -117,8 +119,8 @@ TEST(SessionEventApplierTest, AClearInventoryRunsOnlyTheCommonInitialization)
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
 }
 
-// El F3 03 va a 0x4c3940: sin la carpeta de datos, la carga del mapa 0 corta nombrando el .map de
-// World1, después de los stats en el registro propio.
+// El F3 03 va a 0x4c3940: sin datos, el MAP no abre y la carga alcanza el ATT de World1
+// (Q-C180), después de los stats en el registro propio.
 TEST(SessionEventApplierTest, TheWorldEntryGoesToTheNativeApplier)
 {
     Applier tested;
@@ -130,7 +132,7 @@ TEST(SessionEventApplierTest, TheWorldEntryGoesToTheNativeApplier)
     const auto result = tested.applier.ApplyWorld(event, online.session);
 
     ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("EncTerrain1.map"), std::string::npos) << result.Error();
+    EXPECT_NE(result.Error().find("EncTerrain1.att"), std::string::npos) << result.Error();
     EXPECT_EQ(tested.world.OwnCharacter().zen, 1234u);
     EXPECT_EQ(tested.world.Runtime().map, 0);
     EXPECT_EQ(online.session.State(), Client::App::SessionState::Idle);
@@ -155,5 +157,24 @@ TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
     EXPECT_EQ(online.session.State(), Client::App::SessionState::Idle);
     EXPECT_FALSE(tested.selection.HasReceivedList());
+}
+TEST(SessionEventApplierTest, WalkAndDamageReachTheirAppliersWithoutFallingThroughToF303)
+{
+    Applier tested;
+    Client::Tests::LoggedInSession online;
+    const Client::App::WorldEvent walk = Client::Protocol::Movement::Walk{42, {30, 31}, 15};
+    const Client::App::WorldEvent damage = Client::Protocol::Movement::Damage{42, false, 50, 0, false};
+    EXPECT_TRUE(tested.applier.ApplyWorld(walk, online.session).HasValue());
+    EXPECT_TRUE(tested.applier.ApplyWorld(damage, online.session).HasValue());
+}
+TEST(SessionEventApplierTest, TeleportUsesTheCursorGuardBeforeTouchingTheHero)
+{
+    Applier tested;
+    Client::Tests::LoggedInSession online;
+    tested.world.Runtime().cursorItemCount = 1;
+    const Client::App::WorldEvent event = Client::Protocol::World::Teleport{23, 0, 30, 31, 0};
+    const auto result = tested.applier.ApplyWorld(event, online.session);
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("0x5be150"), std::string::npos);
 }
 } // namespace

@@ -15,6 +15,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/Leaves.h"
+#include "World/KalimaWorld.h"
 #include "World/Particles.h"
 #include "World/WorldObjectRegistrations.h"
 #include "World/WorldObjects.h"
@@ -23,6 +24,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <new>
 #include <span>
 #include <string>
 #include <utility>
@@ -44,9 +47,6 @@ constexpr std::int32_t FirstBloodCastleMap = 11;
 constexpr std::int32_t LastBloodCastleMap = 17;
 constexpr std::int32_t FirstChaosCastleMap = 18;
 constexpr std::int32_t LastChaosCastleMap = 23;
-constexpr std::int32_t FirstKalimaMap = 24;
-constexpr std::int32_t LastKalimaMap = 29;
-constexpr std::int32_t SeventhKalimaMap = 36;
 // 0x5f831e..0x5f8342: (rand() % 4) · 0,25 en cada una de las 65.536 celdas.
 constexpr int GrassSteps = 4;
 constexpr float GrassStep = 0.25f;
@@ -126,28 +126,26 @@ void FillTheGrassOffsets(std::vector<float>& offsets, Render::Models::CrtRandom&
     }
 }
 
-bool IsKalima(std::int32_t map)
-{
-    return (map >= FirstKalimaMap && map <= LastKalimaMap) || map == SeventhKalimaMap;
-}
-
 // Lo que no depende de un mapa de frontera: el terreno, el .obj y sus objetos.
 Core::Expected<void, std::string> LoadTheFiles(const MapLoadContext& context, WorldMap& loaded, std::int32_t map)
 {
     const auto folderMap = static_cast<std::uint8_t>(map);
-    auto terrain = World::LoadWorldTerrain(context.dataRoot, folderMap);
+    auto& fatalMessage = context.world.Runtime().fatalDataMessage;
+    auto terrain = World::LoadWorldTerrainLayout(context.dataRoot, folderMap, loaded.terrain, fatalMessage);
     if (!terrain.HasValue())
     {
         return Core::Unexpected(terrain.Error());
     }
-    loaded.terrain = std::move(terrain).Value();
-    auto records = World::LoadWorldObjects(context.dataRoot, folderMap);
+    auto records = World::LoadWorldObjects(context.dataRoot, folderMap, &fatalMessage);
     if (!records.HasValue())
     {
         return Core::Unexpected(records.Error());
     }
     loaded.objectRecords = std::move(records).Value();
-    return CreateTheObjects(loaded.objectRecords, "EncTerrain.obj", loaded, map, context.random);
+    if (auto created = CreateTheObjects(loaded.objectRecords, "EncTerrain.obj", loaded, map, context.random);
+        !created.HasValue())
+        return created;
+    return World::LoadWorldTerrainSurface(context.dataRoot, folderMap, loaded.terrain, fatalMessage);
 }
 } // namespace
 
@@ -199,6 +197,8 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
     runtime.map = Data::MapAtWorldLoadStart(argumentMap, runtime.map);
     const std::int32_t map = runtime.map;
     WorldMap& loaded = context.world.Map();
+    // Invalidación interna por intento, también si falla antes de alcanzar4377a0. No consume CRT.
+    ++loaded.loadRevision;
     ReleaseTheMapObjects(loaded);
     ClearWorldTransientPools(context.world);
     ForgetThePreviousTerrain(loaded);
@@ -230,9 +230,18 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
     {
         return files;
     }
-    if (IsKalima(map))
+    // 61a920→4377a0: los errores anteriores conservan723c48; recién aquí4378c0 lo suelta.
+    loaded.kalima.reset();
+    if (World::IsKalimaMap(map))
     {
-        return Core::Unexpected(std::string("0x4377a0: el mundo especial de Kalima (0x723c48) no está portado"));
+        try
+        {
+            loaded.kalima = std::make_unique<World::KalimaWorld>(map);
+        }
+        catch (const std::bad_alloc&)
+        {
+            return Core::Unexpected(std::string("0x4377a0: no se pudo reservar el mundo de Kalima"));
+        }
     }
     return {};
 }

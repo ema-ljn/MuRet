@@ -11,6 +11,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/ConstructedBmdPrefix.h"
 #include "Scenes/TextureMetadata.h"
 
 #include <algorithm>
@@ -59,6 +60,18 @@ FaunaModels::~FaunaModels()
 void FaunaModels::Bind(const IModelLibrary* base)
 {
     m_base = base;
+}
+Core::Expected<void, std::string> FaunaModels::InitializePrefix(std::uint16_t constructedBeforeBase)
+{
+    return m_prefix.Initialize(constructedBeforeBase);
+}
+const Render::Models::Skeleton* FaunaModels::PrefixModel() const
+{
+    return m_prefix.BorrowForSetAction();
+}
+std::optional<std::uint16_t> FaunaModels::PrefixOffset() const
+{
+    return m_prefix.Offset();
 }
 Core::Expected<void, std::string> FaunaModels::Prepare(std::int32_t monster, FaunaModelLoadContext& context)
 {

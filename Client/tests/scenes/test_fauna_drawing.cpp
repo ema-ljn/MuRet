@@ -12,6 +12,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaObject.h"
 #include "Scenes/FaunaState.h"
+#include "Scenes/WorldObjectsDrawing.h"
 #include "World/WorldObjects.h"
 #include "World/Sprites.h"
 #include "World/TerrainCulling.h"
@@ -25,6 +26,7 @@
 #include <memory>
 #include <cstdint>
 #include <cstddef>
+#include <array>
 #include <span>
 
 namespace
@@ -171,7 +173,47 @@ TEST_F(FaunaDrawingTest, AnIntermediateFrameDrawsWithoutRepeatingNativeMutations
     EXPECT_FALSE(m_sprites.Any());
     EXPECT_FALSE(m_batch.Vertices().empty());
 }
+TEST_F(FaunaDrawingTest, ThePrecedingWorldObjectsPublishOnlyActualPoses)
+{
+    std::array<Client::World::WorldObject, 1> objects{};
+    objects[0].type = 0;
+    objects[0].transform.position = {1000, 1000, 0};
+    Client::Scenes::GameObjectPass pass;
+    pass.map = 0;
+    pass.originalFrame = true;
+    pass.random = &m_cloth.random;
+    int publications = 0;
+    pass.onPose = [&](const Client::Scenes::DrawnObject& drawn)
+    {
+        ++publications;
+        return PublishFaunaPose(m_carry, m_models, drawn, true);
+    };
+    const auto result = DrawGameWorldObjects(m_batch, m_models, objects, m_polygon, &m_light, {}, pass);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(publications, 1);
+    EXPECT_TRUE(m_carry.models.contains(0));
+    objects[0].alpha = 0;
+    ASSERT_TRUE(DrawGameWorldObjects(m_batch, m_models, objects, m_polygon, &m_light, {}, pass).HasValue());
+    EXPECT_EQ(publications, 1);
+}
 
+TEST_F(FaunaDrawingTest, AnIntermediateWorldDrawDoesNotPublishTheNativeScratchAgain)
+{
+    std::array<Client::World::WorldObject, 1> objects{};
+    objects[0].transform.position = {1000, 1000, 0};
+    Client::Scenes::GameObjectPass pass;
+    pass.originalFrame = false;
+    int publications = 0;
+    pass.onPose = [&](const Client::Scenes::DrawnObject& drawn)
+    {
+        ++publications;
+        return PublishFaunaPose(m_carry, m_models, drawn, true);
+    };
+    const auto result = DrawGameWorldObjects(m_batch, m_models, objects, m_polygon, &m_light, {}, pass);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(publications, 0);
+    EXPECT_TRUE(m_carry.bones.empty());
+}
 } // namespace
 
 namespace
@@ -282,7 +324,21 @@ TEST_F(FaunaDrawingTest, AProjectedFrameKeepsItsPosesInTheBorrowedFrameScratch)
     EXPECT_EQ(m_fauna.Birds()[0].seen, 0);
     EXPECT_EQ(m_cloth.random.State(), 1U);
 }
-
+TEST_F(FaunaDrawingTest, WorldBodiesDrawThePublishedDummyScratchInsteadOfReposingFromIdentity)
+{
+    std::array<Client::World::WorldObject, 1> objects{};
+    objects[0].transform.position = {1000, 1000, 300};
+    m_carry.bones.resize(3, Client::Render::Models::BoneTransform(0));
+    m_carry.bones[2][3] = {7, 8, 9};
+    Client::Scenes::GameObjectPass pass;
+    pass.random = &m_cloth.random;
+    pass.retainedPose = &m_carry;
+    pass.onPose = [&](const Client::Scenes::DrawnObject& object)
+    { return PublishFaunaPose(m_carry, m_models, object, true); };
+    ASSERT_TRUE(DrawGameWorldObjects(m_batch, m_models, objects, m_polygon, &m_light, {}, pass).HasValue());
+    ASSERT_FALSE(m_batch.Vertices().empty());
+    EXPECT_EQ(m_batch.Vertices()[0].position, glm::vec3(1007, 1008, 309));
+}
 } // namespace
 
 namespace

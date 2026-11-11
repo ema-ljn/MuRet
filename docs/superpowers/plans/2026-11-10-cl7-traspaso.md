@@ -1,39 +1,130 @@
 # CL7: traspaso de las tareas que quedan (2026-11-10)
 
-El 2026-11-10 Emanuel pidió cerrar lo que estaba en curso y que **Codex siga las tareas que quedan de la CL7**. Este documento es la entrada: qué hay en `main`, con qué reglas se trabajó y qué falta, en orden. Los informes de cada hito están en [`2026-11-09-cl7/`](2026-11-09-cl7/).
+> La actualización CL7b de abajo fija el estado más reciente. La fotografía de la tanda
+> `codex/cl7-resto-traspaso`, desde `2110806`, se conserva como antecedente.
+> La [continuación previa](2026-11-10-cl7-continuacion-codex.md) documenta una tanda anterior.
+
+El 2026-11-10 Emanuel pidió cerrar lo que estaba en curso y que **Codex siga las tareas que quedan de la CL7**. Este documento distingue la base histórica recibida, el trabajo local en curso y lo que falta, en orden. Los informes de cada hito están en [`2026-11-09-cl7/`](2026-11-09-cl7/).
 
 > **El modo tutor está apagado por ahora** (Emanuel, 2026-11-10; ver [`AGENTS.md`](../../../AGENTS.md)): el agente escribe el código, sin pedir el consentimiento del tutor. Así se hizo la CL7 desde el 2026-11-02.
 
-## Qué hay en `main`
+## Continuación CL7b y publicación consolidada
 
-La CL7 (el mundo y todos los mapas) se partió en cinco hitos. Los dos primeros son 1, entrada, héroe y equipo, y 2, caminar, gates, warps y la vuelta. Los otros tres son 3, objetos, luz y pasto; 4, fauna, clima y partículas; y 5, todos los mapas, del 0 al 36 más el 54 y el 55. El hito 1 está casi cerrado y el 3 empezado. El roadmap del cliente está en [`2026-10-30-cliente-design.md`](../specs/2026-10-30-cliente-design.md), y los planes previos de la ola, en [`2026-11-05-ola-cl7-lorencia.md`](2026-11-05-ola-cl7-lorencia.md) y [`2026-11-05-ola-cl7-el-login-completo.md`](2026-11-05-ola-cl7-el-login-completo.md).
+El [plan CL7b](2026-11-10-cl7b-t16-kalima-p55.md) continúa Windows, T16, Kalima y P-C55.
+Por pedido de Emanuel se reemplaza la fragmentación de los PRs #222–#287 por seis bloques:
+[#288, bases y recursos](https://github.com/ema-ljn/MuRet/pull/288),
+[#289, actores y acceso](https://github.com/ema-ljn/MuRet/pull/289),
+[#290, pose y efectos](https://github.com/ema-ljn/MuRet/pull/290),
+[#291, fauna y objetos](https://github.com/ema-ljn/MuRet/pull/291),
+[#292, movimiento y transiciones](https://github.com/ema-ljn/MuRet/pull/292) y
+[#293, ciclo de escenas](https://github.com/ema-ljn/MuRet/pull/293).
+La pila parte de `main` y cada bloque usa como base su predecesor real, excepción autorizada.
+Los 66 anteriores #222–#287 se cerraron como reemplazados tras auditar su cobertura y publicar
+la pila. Los seis heads de la captura portátil pasaron su CI propio; se conservan las ramas y
+conversaciones. El checkpoint #185 se mantiene abierto como borrador hasta acreditar su
+cobertura. No se mergea automáticamente `main`.
+
+Esos seis PRs recomponen exactamente el tree portátil `a622e314`, que ya tenía Linux/Windows
+verdes, y conservan los cinco fixes de portabilidad. La revisión de Astra aprueba los seis
+cortes; cada head remoto tiene además su corrida propia en verde (el último, #293 en `8414d764`,
+[run42914882610](https://github.com/ema-ljn/MuRet/actions/runs/42914882610)). Las ampliaciones funcionales siguientes
+son otra captura y se incorporan al último bloque tras verificar Windows, sin sumar otro PR.
+Su validación no se atribuye al CI del tree anterior.
+
+La auditoría independiente de los cierres contrastó los 66 originales, los 48 parches corregidos
+y973 hunks. No identificó otro PR que deba reabrirse por contenido sin representar. Los nueve
+blobs documentales de #237 se conservan; las resoluciones de solapamientos están documentadas.
+La comprobación remota confirmó las 67 ramas originales con sus SHAs intactos y `main` sin cambios.
+No se eliminaron archivos en las comparaciones `main`→captura portátil→avance nuevo.
+
+La captura previa `435cd49` pasó su [CI completo de Linux, Windows y formato](https://github.com/ema-ljn/MuRet/actions/runs/42922102890),
+incluidos los literales tipados que corrigieron los errores reales de MSVC. Ese verde no se
+atribuye a las ampliaciones posteriores de Kalima.
+
+El conjunto con el ciclo vivo de Kalima pasó el gate local del tree `a0706752`: **4.914 casos
+registrados, 4.855 pasan, 59 omiten evidencia externa y cero fallos**, incluidos **100 GL**
+bajo Xvfb obligatorio. Pasan tres arranques, formato18 e includes40/40 del delta. Astra aprobó
+objetos/ciclo y las tres correcciones de partículas con RED→GREEN: literal binary32, préstamo
+del reloj y prefijo de MissingScene. La actualización posterior del estado cambia sólo
+documentación, sin alterar código ni entradas de build/test. Windows del ciclo nuevo y la observación nativa
+siguen pendientes; el avance se publica en el mismo #293.
+
+| Dominio | Avance comprobado en CL7b | Pendiente |
+| --- | --- | --- |
+| T16 | 205/205: matriz0..36, terreno/alias, D3 real del GS falso, gates, selección/reentrada y caminata Kalima en sus siete aliases. Las filas con fronteras comprueban el corte. | Escenas/caminata completas de todas las familias; las filas negativas no las sustituyen. |
+| Kalima | Loader, agua/dos planos/cáusticas32, prefijo BMD real y2.266 objetos; ciclo vivo438ad0/438f81/4389ca, partículas y modelo9 con recursos, hot1C, frame0,24→0→24 y clic/D3/eco/MoveHero en los siete aliases. Gate integrado sin fallos; Astra aprobó después de corregir tresP2. | Windows del bloque nuevo; otras configuraciones de equipo/acciones y contraste nativo. No acredita T16 universal. |
+| P-C55(f) | Familias/opciones/agua del piso,51IDs de609640, stores antes del error, efectosf4/fa, cintas y Helper07→joints614/14→Thunder5ca/0 con recursos físicos. | Productores y ramas restantes de equipo, armas, alas y CL9–CL11. |
+| Q-C180 | MAP/ATT→OBJ→alturas/luz; primer aviso fatal durable, propagación por sesión y modal SDL solicitado con la ventana viva. | Observación del modal y del cierre en Windows/VM. |
+
+**CL7, Kalima y T16 universal siguen abiertas.** También quedan CL.M y el contraste nativo.
+La VM permanece al final por pedido de Emanuel; los cuerpos públicos pendientes se pueden
+continuar mediante lectura estática sin esperar esa VM.
+
+## Base histórica recibida
+
+La CL7 (el mundo y todos los mapas) se partió en cinco hitos. Los dos primeros son 1, entrada, héroe y equipo, y 2, caminar, gates, warps y la vuelta. Los otros tres son 3, objetos, luz y pasto; 4, fauna, clima y partículas; y 5, todos los mapas, del 0 al 36 más el 54 y el 55. Al recibir este traspaso, el hito 1 estaba casi cerrado y el 3 empezado; la tabla siguiente conserva esa fotografía histórica, no el estado del WIP actual. El roadmap del cliente está en [`2026-10-30-cliente-design.md`](../specs/2026-10-30-cliente-design.md), y los planes previos de la ola, en [`2026-11-05-ola-cl7-lorencia.md`](2026-11-05-ola-cl7-lorencia.md) y [`2026-11-05-ola-cl7-el-login-completo.md`](2026-11-05-ola-cl7-el-login-completo.md).
 
 Del hito 1 ([informe](2026-11-09-cl7/hito1-entrada-y-heroe.md), tareas T1 a T15):
 
-| Tarea | Estado | PR |
+| Tarea | Estado del informe original | PR |
 | --- | --- | --- |
 | T1 `InWorld`, T2 `LogicalAccess`, T3 registro propio, T4 pool durable | hecha | #188, #187, #186, #191 |
 | T5 la espera, T6 `0x512a30` y `0x4f2250`, T7 la entrada (`0x4c3940`) | hecha | #197, #195, #200 |
-| T8 el dibujo y el paso del juego | hecha; el dibujo corta donde dice abajo | #206 y siguientes |
-| T9 el `F3 10` | **a medias**: falta el frame de cero pasos, que corta en los efectos del suelo (`0x52dc3b`, P-C55 b) | #207 |
+| T8 el dibujo y el paso del juego | hecha; dibujo parcial en esa fotografía | #206 y siguientes |
+| T9 el `F3 10` | **a medias** en el informe original; ver el alcance actual de T9 abajo | #207 |
 | T10 los stats propios (`0x550d10`) | hecha | #198, #202 a #205 |
 | T11 la zona segura en cada paso, T11b el trapecio global | hecha | #209, #210 |
-| T12 el caballo oscuro | **a medias**: el paso está cableado (`0x6370f4`); el dibujo (`DrawHelpers`, `0x637508`) está portado pero queda detrás del corte de los ítems del piso (`0x6374fe`) | #213 |
+| T12 el caballo oscuro | **a medias** en el informe original: paso cableado y dibujo portado; ver la cola actual abajo | #213 |
 | T13 el segundo `F3 03`, T14 el `F1 02` con 1 | hecha | #208, #211 |
 | T15 el barrido del hito | **abierta** | — |
 
 Además, después del informe:
+
 - el pasto (#212) y las marcas del suelo (#215);
 - el paso de los personajes `0x508f00`: `0x508ba0` (#214), el cuerpo `0x4fd5f0` (#217) y `0x505de0` con todos los personajes (#219);
 - los objetos del mapa en el dibujo y el paso del juego, en los mapas 0 y 2 (#218);
 - el dibujo del juego después de los objetos: el `0x69` de Lorencia, los efectos del suelo, los pájaros y los personajes `0x510d00` (#221);
 - el manejador de caídas `MuError.dmp`, de la CL3 (#216).
 
-**Hasta dónde llega hoy.** Un error en el dibujo o en el paso termina la app (`IScene::Failure`). Todo lo que MuRet no porta corta con `Core::Expected` y la dirección. Dónde corta cada mapa lo dicen el párrafo "Hasta dónde llega MuRet" de [06](../../../Client/docs/research/06-render-escenas-y-ui.md#el-dibujo-del-juego) y las filas P-C41, P-C53 y siguientes de [08](../../../Client/docs/research/08-pendientes.md). Al momento del traspaso:
-- **Lorencia y Devias:** el dibujo llega a los ítems del piso (`0x6374fe`). Corta antes con un efecto del suelo vivo (`0x52dc3b`; después de la entrada están los dos `0x61f` de llegada), con un personaje vivo y visto (`0x510ea1`; el héroe después de un paso) y, en Lorencia, cuando el `rand() % 2` del `0x69` sale par (`0x6030c7`, la primera gota).
-- **Los demás mapas:** cortan en los objetos (`0x6374ce`).
+## Estado de integración de la tanda anterior
 
-La selección y el login todavía no corren el paso de los personajes (P-C50, P-C54 a).
+El [plan de esta tanda](2026-11-10-cl7-resto-traspaso.md) avanza hito 2 y P-C55(c)/(f), con
+`WorldState` dueño de la historia durable y errores después del prefijo nativo. La base es
+`2110806`. El conjunto se conserva en commits por concepto; no está integrado en `main`.
+
+Ya están publicados [#238, Skill.bmd](https://github.com/ema-ljn/MuRet/pull/238) y
+[#239, caminar del actor](https://github.com/ema-ljn/MuRet/pull/239). Se actualizaron por
+fast-forward [#230, eventos y envíos](https://github.com/ema-ljn/MuRet/pull/230) y
+[#229, recursos durables](https://github.com/ema-ljn/MuRet/pull/229). Sus comprobaciones aisladas
+son 180, 61, 219 y 33 pasados respectivamente; #229 omite un golden externo. Los PR #222–#237
+anteriores siguen sin merge. La [rama del conjunto](https://github.com/ema-ljn/MuRet/tree/codex/cl7b-integracion-validada)
+y el [índice #237](https://github.com/ema-ljn/MuRet/pull/237) registran los bloques que
+aún necesitan publicación individual; no deben confundirse con cuatro PR que incluyan toda la tanda.
+
+| Dominio | Alcance implementado y comprobado | Lo que sigue abierto |
+| --- | --- | --- |
+| Wire/sesión | D3/D7/1C/F3 04 síncronos, historial 1C y envíos Walk/gate/F3 12/BD00/rumbo, con GS falso. [Tests](../../../Client/tests/app/test_server_session.cpp). | Contraste con servidor externo y casos UI de CL8. |
+| Actores | Walk/Run, velocidades compartidas sin mutar Skeleton, MovePath/celda adelantada, Stop/yaw, cooldown/reintentos y pasos lógicos. [Tests](../../../Client/tests/scenes/test_actor_motion.cpp). | Acciones que conservan una frontera y audio real de CL10. |
+| Héroe/gates | Cabeza→movimiento→gates→clic→cierre→capa, Skill real, paquete18, clic pendiente y espera. [Tests](../../../Client/tests/scenes/test_game_movement.cpp). | Macros30/31, UI y barrido integrado de todos los gates. |
+| Aplicadores/transiciones | D3/D7/shock, teleport mismo/distinto mapa y gate0, F3 04, campos retenidos, limpieza y retorno a selección. [Tests](../../../Client/tests/scenes/test_world_transitions.cpp). | LoadMap especiales/eventos y todas las familias en GameScene. |
+| GameScene | F303 y lógica entre cuadros completos de0/2/3, cuadros intermedios, espera con lógica activa, viewport/rayo y1C0→3→0. [Tests](../../../Client/tests/scenes/test_game_scene_complete.cpp). | Equipo completo/armas/alas y escenas de extremo a extremo en los otros mapas. |
+| Objetos y clima | Fuegos/lámparas/puertas0/2; objetos, UV, partículas y luz de Noria; hojas/lluvia/nieve y texturas físicas64..68. [Recursos meteorológicos](../../../Client/tests/scenes/test_weather_textures.cpp). | Otros productores/mapas, audio real y observación nativa. |
+| P-C55(c)/(f) | Aves/peces durables, pasos/dibujos, modelos y poses retenidas; piso, helpers, joints, efectos, cintas, sprites, partículas y daño conectados. Atlas1 y texturas de los joints emitidos tienen recursos reales. [Cola](../../../Client/tests/scenes/test_game_draw_tail.cpp), [recursos](../../../Client/tests/scenes/test_game_tail_textures.cpp). | Modelo firmado−1/backend Kalima, familias/opciones del piso y productores/ramas CL9–CL11. |
+| Matriz de movimiento | Kernels0..36: recta/codo/borde/zona segura, Skill real, estado durable y fronteras declaradas. | No acredita LoadMap/escena de esos mapas ni cierra H2 T16.54/55 sólo cubren terreno aplicable. |
+
+`0x6374fe` ya no es el corte universal. Las escenas de referencia presentan el camino completo
+portado; una rama ausente sigue devolviendo su dirección, por ejemplo `0x50e298` del jugador
+fuera de zona segura. Login y selección ejecutan el paso común de actores; sus límites restantes
+son P-C50/P-C54/P-C56.
+
+La revisión Astra6 high corrigió los Important de wire, movimiento, fauna, poses y cola.
+La última pasada añadió pruebas de GL real: los comandos sin vértices se ejecutan; un flush y
+`6213e0` conservan material; `620db0` reinicia sólo sus ejes acreditados. El backend/loader Kalima
+no se reemplazó por un éxito vacío. La verificación final registra 4.451 casos: 4.380 pasados, 71 omitidos por evidencia externa y
+cero fallos; 96/96 GL y cuatro arranques correctos. Formato 18 e include-cleaner 18 limpios
+en su alcance. Estas comprobaciones no sustituyen el contraste con el original.
+
+**CL7, hito2 y T16 de todos los mapas siguen abiertos.** La VM queda al final por pedido de Emanuel.
 
 ## Cómo se trabajó
 
@@ -45,11 +136,9 @@ La selección y el login todavía no corren el paso de los personajes (P-C50, P-
   - *simulado*: un cálculo con el port de MuRet.
 
   Una inferencia no se escribe como hecho. El binario es el `c32bbd5f…`; dónde está, y su decompilación, lo dice el README del research.
-- **Los números.** Las rarezas van en 07 como Q-C y lo pendiente en 08 como P-C, en orden numérico.
-  - Q-C usados hasta el 266 y del 276 al 278; P-C, hasta el 55.
-  - Libres: 198, 199, 218 a 220, 234, 235, 239, 240, 249 a 255, 258 a 265, 267 a 275 y 279 a 285.
-  - Q-C286 a 295 y P-C56: reservados para el paso del login.
-  - Lo nuevo, desde Q-C296 y P-C57.
+- **Los números.** Las rarezas van en 07 como Q-C y lo pendiente en 08 como P-C, en orden
+  numérico. Antes de reservar otro ID, consultar las filas actuales de ambos archivos: las
+  reservas del traspaso histórico ya no son un inventario vigente de números libres.
 - **Todos los mapas, siempre.** Nunca solo Lorencia. Los mapas de referencia son Lorencia (0) y Devias (2), y los tests van en los dos donde el mapa importa.
 - **Fuera de alcance.** No se portan protecciones ni anticheat: la tabla de protección del registro propio se modela solo como los `rand()` de `Render::Models::LogicalAccess`. No se hacen emulaciones nuevas. No van nombres de personajes ni de cuentas en tests ni logs. Nunca se versionan volcados de memoria, PCAPs, `muproxy.log` ni capturas.
 - **Un concepto por PR, chico.**
@@ -64,37 +153,49 @@ La selección y el login todavía no corren el paso de los personajes (P-C50, P-
 
 ## Qué falta, en orden
 
-1. **El dibujo del juego, desde P-C55.** Con #221 el dibujo de Lorencia y Devias llega a los ítems del piso (`0x6374fe`). Lo que falta está en P-C55; en este orden:
-   - (b) primero: el `+0x16c` de los efectos con modelo (`0x52d620`, su esfera `0x5fbf00`) y los casos de `0x52dc20`. Desbloquea T9;
-   - (d) `0x50ba30` en el juego, desde `0x50caaa`: la luz, la rama del héroe y el tercer argumento. Con eso el héroe se dibuja después de un paso;
-   - (a) las gotas del `0x69`, con las partículas del juego (`0x743a198`, su paso `0x637128` y su dibujo `0x637558`);
-   - (c) los pájaros y los peces (`0x446120` y `0x447030` en el paso, y su dibujo);
-   - (f) lo que sigue en la tabla de "El dibujo del juego" de 06: los ítems del piso (`0x608a00`, CL9.3), los peces, el caballo (`DrawHelpers`, ya portado), las hojas, los joints, los efectos con modelo, las cintas, los sprites, las partículas y los números de daño.
+1. **Completar la publicación individual del conjunto.** Los cuatro conceptos publicados arriba
+   tienen comprobaciones aisladas. El resto de commits de integración conserva sus dependencias;
+   extraer cada PR sobre main y repetir sus checks antes de declararlo listo.
+2. **Ampliar la integración real más allá de las referencias0/2/3.** Conservar sus frames completos,
+   probar clic→D3→gate de extremo a extremo y ampliar equipo/armas/alas. Piso, fauna, helpers y
+   partículas ya reciben terreno/modelos/reloj y pools durables reales en las referencias.
+3. **Completar hito 2 y su barrido T16.** Los módulos wire/aplicadores/actores/gates ya existen;
+   quedan la validación integrada de clic→D3→movimiento→gate/1C/regen→vuelta, familias, solapes,
+   campos retenidos y prefijos de error. La matriz del consumidor 0..36 usa fixtures declarados:
+   no acredita por sí sola LoadMap/escena de esos mapas. Mantener explícitos LoadMap 30/34/Kalima,
+   archivos ausentes 5/35, normalización 32→9 y eventos; 54/55 no son mapas de caminar del héroe.
+4. **Completar las ramas vivas restantes de P-C55(c)/(f).** No confundir pools con productores:
+   faltan familias/opciones/brillo/mapas acuáticos del piso, creadores de cintas y joints, ramas
+   especiales de joints/efectos, tipos/modelos y demás recursos. Ver los informes de fauna/cola
+   y P-C55 para separar lo implementado, lo conectado y lo todavía cortado.
+5. **Objetos, luz, clima y mapas restantes de hitos 3/4/5.** Los servicios de 0/2 y el binder de hojas
+   son avances de esta tanda; faltan otros casos/familias, entrada de eventos, ciclos de recursos,
+   GateSweep/SameMapSweep y frames completos según cada mapa. Los avisos de audio no equivalen
+   a reproducción de CL10. Referencias: [hitos 3/4](2026-11-09-cl7/hito3-4-mundo-vivo.md),
+   [hito5](2026-11-09-cl7/hito5-matriz-mapas.md), P-C12/P-C31/P-C53/P-C57.
+6. **T9/T15 del hito 1 y selección/login restantes.** Hay frames presentados y tests de viewport
+   actualizados con recursos reales; siguen abiertos equipo/helpers/archivos faltantes, cobertura
+   completa después de F3 03/F3 10 y las ramas de P-C50/P-C54/P-C56. Mantener separados el frame
+   frío, el primer paso, catch-up y dibujo intermedio.
+7. **Verificación global, GL, smoke y revisión final de la tanda integrada.** Con el entorno común,
+   source `/workspace/.tools/muret-env.sh`, ejecutar bajo `/workspace/.tools/muret-build.lock`:
 
-2. **El paso de los personajes en el login (`0x634d13`).** Está escrito en [`tarea-paso-personajes-login.md`](2026-11-09-cl7/tarea-paso-personajes-login.md). Un agente anterior se frenó porque un control de seguridad automático le bloqueó la respuesta mientras desensamblaba `0x6349a0`. Si te pasa algo así, frená y avisale a Emanuel.
-3. **El paso de los personajes en la selección (`0x6342f9`).** Depende del 2:
-   - los lugares de la lista armados como `0x20a`;
-   - la vista previa `0xa9` (`0x634303`);
-   - Item.bmd antes de la primera entrada.
+   ```bash
+   cmake --build --preset linux-x64-debug
+   ctest --preset linux-x64-debug --output-on-failure --no-tests=error -j4
+   MURET_CLIENT_REQUIRE_GL=1 ctest --preset linux-x64-debug -L '^gl$' --no-tests=error
+   ```
 
-   Ver P-C50 y P-C54 (a).
-4. **T9, el frame de cero pasos.** Ver el informe del hito 1, T9, P-C42 y P-C55 (b): después de la entrada corta en `0x52dc3b` por los dos `0x61f` de llegada.
-5. **T15, el barrido del hito 1.** Resoluciones 640 × 480, 1024 × 768 y ancha; archivos que faltan; frames 0, 1 y varios.
-6. **Hito 2, caminar, gates, warps y la vuelta.** Ver el [informe](2026-11-09-cl7/hito2-caminar-y-gates.md), P-C30 y P-C31.
-7. **Hitos 3 y 4, el mundo vivo:**
-   - los objetos de los demás mapas y los casos de `0x602ed0` y `0x604ab0` que faltan (P-C53);
-   - la luz dinámica;
-   - los pájaros y los peces;
-   - la lluvia y las hojas;
-   - los efectos.
-
-   Ver el [informe](2026-11-09-cl7/hito3-4-mundo-vivo.md); las filas H3.x y H4.x son un PR cada una.
-8. **Hito 5, la matriz de todos los mapas.** Ver el [informe](2026-11-09-cl7/hito5-matriz-mapas.md).
-9. **El roadmap tiene que cubrir todo el `main.exe` decompilado** (Emanuel, 2026-11-10). Hay unos 821 KB de código de juego, el 36 %, sin ola asignada. Falta un PR de docs que sume:
-   - una **ola de efectos** al roadmap del cliente;
-   - una **tarea de mapeo** que asigne cada función sin nombre a una ola.
-
-   QA se estima aparte.
-10. **Lo que solo cierra la VM.** Las observaciones nativas de cada P-C de 08: el estado de `rand()` en la entrada, el primer frame, la espera, los presupuestos de los pasos y un `MuError.dmp` real. Las corre Emanuel en la VM XP, con el runbook de #196 y sin versionar los volcados.
-
-El PR #185 es un borrador de referencia de la CL7 vieja: no se mergea. Cerrarlo es decisión de Emanuel.
+   Repetir los smoke normal/VSync off/faithful y carga→login con Data real según el procedimiento
+   de la continuación; registrar comandos, precondiciones, errores y omisiones reales. Revisar
+   formato/includes y documentación. No fijar totales finales hasta que Root verifique ese árbol.
+8. **Publicar por concepto después de la revisión y los checks correspondientes.** Todavía no hay
+   PR nuevos de este WIP. No mergear #222–#237 ni otros PR sin autorización; no modificar configuración
+   de GitHub. El PR #185 sigue siendo un borrador histórico cuyo cierre decide Emanuel.
+9. **Cobertura del roadmap.** Ejecutar la [tarea de mapeo](2026-11-10-cobertura-roadmap-cliente.md)
+   y su verificador. La definición de CL11 y esa tarea no equivalen a clasificar todas las funciones
+   sin nombre ni a haber portado los cuerpos pendientes.
+10. **VM al final.** Conservar las observaciones nativas de cada P-C de 08: CRT/espera/primeros
+    frames, x87, seen/pose, caminar/gates/warps, trazas GL y MuError.dmp original. Las corre Emanuel
+    en la VM XP con el [runbook](../../../Client/docs/research/scripts/game/capture/RUNBOOK-cl7-vm.md),
+    sin versionar volcados ni capturas. Los tests CPU/GL del port y el ASM estático no las sustituyen.

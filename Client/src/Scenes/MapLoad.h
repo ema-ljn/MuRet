@@ -36,12 +36,13 @@ struct MapLoadContext
 
 // 0x61a560(argumento), con el mundo en curso ya escrito por quien llama: la guarda de 32 a 9 (Q-C58);
 // suelta lo del mapa anterior (0x6070a0); fuera de la selección, 0x510f70; los especiales de 0x616ec0
-// (los del 2); el corrimiento del pasto con 65.536 rand() (0x5f8300); el terreno; y los objetos del
-// .obj con 0x606660. Corta con error, con lo que el original hizo antes, en lo que MuRet no tiene: los
-// especiales del 55, el mapa 30 (0x42a760 y el .att de 0x4294b0), el 34
-// (el .att según Crywolf, 0x42fe50), el mundo especial de Kalima (0x4377a0) y un objeto que pide un
-// servicio de efectos o del asedio. Un archivo que falta o con otro número de mundo corta con el
-// nombre del archivo: el original muestra el aviso y cierra (Q-C180).
+// (los del 2); el corrimiento del pasto con 65.536 rand() (0x5f8300); el MAP/ATT, los objetos del .obj con 0x606660 y
+// después las alturas/luz. Corta con error, con lo que el original hizo antes, en lo que MuRet no tiene: los especiales
+// del 55, el mapa 30 (0x42a760 y el .att de 0x4294b0), el 34 (el .att según Crywolf, 0x42fe50) y un objeto que pide un
+// servicio de efectos o del asedio. Cada error conserva el diagnóstico del archivo; sólo los casos que
+// piden aviso/cierre en ASM publican WorldRuntime::fatalDataMessage (Q-C27/Q-C180), sin UI aquí.
+// El ATT de tamaño inválido, los archivos cortos y unsupported-map no piden cierre nativo. 4377a0 reemplaza el dueño
+// de Kalima recién después de leer los archivos: un error anterior conserva el del mapa previo.
 [[nodiscard]] Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoadContext& context);
 
 // 0x510f70(clave): mata al vivo del pool del mundo cuya clave, con signo (movsx en 0x510f8a), no es

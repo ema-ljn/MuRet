@@ -709,6 +709,51 @@ Core::Expected<void, std::string> DrawTheBody(HelperState& helper, const HelperD
     return {};
 }
 
+// 0x600343..0x600399: el camino del 10 de 0x6002e0 busca al jinete (+0x108) en los 400 lugares del pool (0x743a16c,
+// de a 0x438). Si es otro que el héroe (0x743a170), con el asedio (0x4294b0 lee 0x7239ec) y su +0x78 & 0x4000, con
+// +0x370 distinto de 1 sale por 0x602e7d sin dibujar nada ni tocar el color del modelo.
+constexpr std::size_t CharacterTableSlots = 400; // 0x69780 / 0x438
+constexpr std::uint8_t ShownInTheSiege = 1;
+
+bool HiddenInTheSiege(const WorldState& world, std::size_t rider)
+{
+    const WorldRuntime& runtime = world.Runtime();
+    if (rider >= CharacterTableSlots || rider == runtime.hero || !runtime.siegeActive)
+    {
+        return false;
+    }
+    const ActorState& riding = world.Actors()[rider];
+    return (riding.flags78 & RiderWithoutDust) != 0 && riding.byte370 != ShownInTheSiege;
+}
+
+// 0x6002e0 con 10 (0x60033c..0x600435), con el ayudante ya posado por 0x5ffdf0 como lo posa el camino de su tipo: no
+// llega al caso del tipo, así que el Fenrir no pide sus efectos ni saca sus rand(), y ninguno lee la luz del terreno,
+// que 0x60039d pisa con el blanco. El 0x1c12 conserva su blendMesh, que el 0x4000 no mira.
+Core::Expected<void, std::string> DrawTheShell(HelperState& helper, const HelperDrawContext& context)
+{
+    DrawnObject drawn;
+    if (helper.type == DarkHorseModel)
+    {
+        const Render::Models::ObjectTransform place{.position = helper.position, .angles = helper.angles};
+        drawn = DrawnDarkHorse(helper.horse, context.models.SkeletonOf(DarkHorseModel), place, helper.scale,
+                               context.stepAlpha);
+    }
+    else
+    {
+        drawn = DrawnHelper(helper, context.models.SkeletonOf(helper.type), glm::vec3(0.0f), context.stepAlpha);
+    }
+    if (context.onPose)
+        if (const auto published = context.onPose(drawn); !published.HasValue())
+            return published;
+    if (context.posedMeshes)
+        drawn.retainedMeshes = context.posedMeshes();
+    if (HiddenInTheSiege(context.world, helper.rider))
+    {
+        return {};
+    }
+    return DrawChromeShell(context.batch, context.models, drawn, context.frameClock);
+}
+
 // 0x445260(lugar, 0) con un lugar vivo.
 Core::Expected<void, std::string> DrawHelper(HelperState& helper, const HelperDrawContext& context)
 {
@@ -741,13 +786,9 @@ Core::Expected<void, std::string> DrawHelper(HelperState& helper, const HelperDr
         {
             helper.horse.animation.frame = 0.0f; // 0x5fff0d
         }
-        if ((rider.flags78 & RiderWithoutDust) != 0)
-        {
-            return Core::Unexpected(
-                std::string("0x60033c: con +0x78 & 0x4000 del jinete, 0x445310 dibuja el ayudante con "
-                            "10, que 0x6002e0 lleva por otro camino que MuRet no tiene"));
-        }
-        if (auto body = DrawTheBody(helper, context); !body.HasValue())
+        // 0x445310..0x445323: con 0x4000 en +0x78 del jinete, 0x602e90(lugar, 0, 0, 10).
+        const bool shell = (rider.flags78 & RiderWithoutDust) != 0;
+        if (auto body = shell ? DrawTheShell(helper, context) : DrawTheBody(helper, context); !body.HasValue())
         {
             return body;
         }

@@ -79,6 +79,28 @@ TEST(GameItemGlowEffectsTest, TheShineClockOfAPassGivesTheSameUvAsEachCorner)
     }
 }
 
+// 0x4ed25e..0x4ed2b2, el 0x4000: la suma c·nx + s·ny + nz se guarda en la u; la v es 1 menos la suma, menos nz · 2,5f
+// y t; y la u suma después s · 5f y ny · 3f al float guardado. Los bits salen de esas cuentas en double (la x87 en
+// PC53) con c, s y t en float, como los guarda 0x4ed109..0x4ed11a.
+TEST(GameItemGlowEffectsTest, TheChrome5PassWeighsTheSineByFiveAndTheNormalByTwoAndAHalf)
+{
+    struct Case
+    {
+        glm::vec3 normal;
+        std::chrono::nanoseconds clock;
+        glm::vec2 uv;
+    };
+    for (const Case& shine :
+         {Case{Up, Start, {-0x1.999998p-2f, -0x1.0ccccep+1f}}, Case{Side, Start, {-0x1.999998p-3f, 0x1p+0f}},
+          Case{Up, Seconds, {0x1.19dd84p+1f, -0x1.b5ff1cp+0f}}, Case{Side, Seconds, {0x1.b912eap+1f, 0x1.618baap-2f}}})
+    {
+        const glm::vec2 uv =
+            ItemShineTexCoords(ShinePass::Chrome5, shine.normal, ItemShineClockOf(ShinePass::Chrome5, shine.clock));
+        EXPECT_EQ(uv.x, shine.uv.x) << shine.clock.count();
+        EXPECT_EQ(uv.y, shine.uv.y) << shine.clock.count();
+    }
+}
+
 // Un reloj sirve para todas las esquinas del pase: con otra normal y el mismo reloj, la UV de Chrome4 es
 // la que daba esa esquina sola.
 TEST(GameItemGlowEffectsTest, OneChrome4ClockServesEveryCornerOfThePass)

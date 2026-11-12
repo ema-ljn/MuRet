@@ -139,7 +139,7 @@ constexpr std::int32_t CastleMap = 30;
 
 // 0x5ffdf0: por debajo de 0,01f (0x6b88d4) no posa ni dibuja.
 constexpr float DrawnAlpha = std::bit_cast<float>(0x3c23d70au);
-// 0x420e11: con +0x78 & 0x4000 el dueño le pasa 10 a 0x4182f0.
+// 0x420e11: con +0x78 & 0x4000 el dueño le pasa 10 a 0x4182f0, que 0x6002e0 lleva por 0x60033c.
 constexpr std::uint32_t RiderFlag = 0x4000;
 // 0x418951: 0x418920 sólo hace algo en los estados 5 y 6.
 constexpr std::uint8_t FirstOrderState = 5;
@@ -643,7 +643,9 @@ Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRav
         if (pass.lighting == nullptr)
             return Core::Unexpected<std::string>(
                 "0x5ffce0: falta el buffer dinámico de luz del terreno para el cuervo");
-        if (!pass.terrain.heights || !pass.terrain.attributes)
+        // 0x420e00..0x420e11: con 0x4000 en +0x78 del dueño, 0x4182f0(10) y 0x602e90(cuervo, 0, 0, 10).
+        const bool shell = (owner.flags78 & RiderFlag) != 0;
+        if (!shell && (!pass.terrain.heights || !pass.terrain.attributes))
             return Core::Unexpected<std::string>("0x600a0b: faltan las alturas del terreno para la sombra del cuervo");
         const Render::Models::Skeleton* skeleton = pass.models.SkeletonOf(DarkSpiritModel);
         const glm::vec3 light = World::LightAt(*pass.lighting, spirit.position.x, spirit.position.y);
@@ -655,17 +657,28 @@ Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRav
                 return posed;
             drawn.retainedMeshes = pass.carry->meshes;
         }
-        if ((owner.flags78 & RiderFlag) != 0)
-            return Core::Unexpected<std::string>("0x60033c: con +0x78 & 0x4000 del dueño, 0x420df0 dibuja el cuervo "
-                                                 "con 10, que 0x6002e0 lleva por otro camino que MuRet no tiene");
-        const float ground =
-            F32(World::TerrainHeightAt(*pass.terrain.heights, *pass.terrain.attributes, drawn.transform.position.x,
-                                       drawn.transform.position.y, pass.fixedHeight));
-        DrawDarkSpirit(pass.batch, pass.models, drawn, ground, pass.frameClock, pass.map);
-        if (pass.carry != nullptr)
-            pass.carry->models[drawn.model].position = {drawn.transform.position.x, drawn.transform.position.y, ground};
+        // +0x120: la pose de 0x5ffdf0, antes del camino de 0x6002e0 que sea.
         if (pass.originalFrame)
             spirit.pose = PosedWorldBones(pass.models, drawn);
+        if (shell)
+        {
+            // 0x60033c: el +0x108 del cuervo lo deja en 0 el rep stos de 0x415c1e y nadie lo escribe, así que el lazo
+            // del asedio (0x600343..0x600399) no lo encuentra en el pool: siempre DrawChromeShell, sin la sombra ni la
+            // altura del terreno, y el modelo compartido queda en su lugar (0x5ffdf0), no en el piso.
+            if (auto drawnShell = DrawChromeShell(pass.batch, pass.models, drawn, pass.frameClock);
+                !drawnShell.HasValue())
+                return drawnShell;
+        }
+        else
+        {
+            const float ground =
+                F32(World::TerrainHeightAt(*pass.terrain.heights, *pass.terrain.attributes, drawn.transform.position.x,
+                                           drawn.transform.position.y, pass.fixedHeight));
+            DrawDarkSpirit(pass.batch, pass.models, drawn, ground, pass.frameClock, pass.map);
+            if (pass.carry != nullptr)
+                pass.carry->models[drawn.model].position = {drawn.transform.position.x, drawn.transform.position.y,
+                                                            ground};
+        }
     }
     // 0x41835a: 0x418920, con las órdenes del A7 (CL9).
     if (spirit.state == FirstOrderState || spirit.state == SecondOrderState)

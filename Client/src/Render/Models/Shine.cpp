@@ -32,6 +32,9 @@ constexpr float Three = 3.0f;
 constexpr float Half = 0.5f;
 constexpr float ShinyOffset = 0.2f;
 constexpr float One = 1.0f;
+// Los de 0x4000 (0x4ed25e..0x4ed2b2): 2,5 (0x6b89a8) a nz en la v y 5 (0x6b87f8) a s en la u.
+constexpr double Chrome5Normal = 2.5;
+constexpr double Chrome5Sine = 5.0;
 } // namespace
 
 glm::vec2 ShineTexCoords(ShinePass pass, const glm::vec3& worldNormal, Core::Duration frameClock)
@@ -72,6 +75,18 @@ glm::vec2 ShineTexCoords(ShinePass pass, const glm::vec3& worldNormal, Core::Dur
     {
         const float dot = Chrome3Light.x * nx + Chrome3Light.y * ny + Chrome3Light.z * nz;
         return {dot, One - dot};
+    }
+    case ShinePass::Chrome5:
+    {
+        const auto clock = static_cast<double>(ms);
+        const auto c = static_cast<double>(static_cast<float>(std::cos(clock * static_cast<double>(CosineScale))));
+        const auto s = static_cast<double>(static_cast<float>(std::sin(clock * static_cast<double>(SineScale))));
+        // 0x4ed25e..0x4ed2b2: la suma de las tres va a la u; la v es su complemento menos nz·2,5 y t; después la u
+        // suma s·5 y ny·3 al float que guardó.
+        const double sum = c * nx + s * ny + nz;
+        const auto u = static_cast<float>(sum);
+        const auto v = static_cast<float>((1.0 - sum) - (nz * Chrome5Normal + static_cast<double>(t)));
+        return {static_cast<float>(s * Chrome5Sine + ny * static_cast<double>(Three) + static_cast<double>(u)), v};
     }
     }
     return {};

@@ -355,6 +355,19 @@ void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const
 void DrawDarkSpirit(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& spirit,
                     float groundHeight, Core::Duration frameClock, std::int32_t map);
 
+// 0x602e90(objeto, 0, 0, 10) en 0x6002e0 (0x60033c..0x600435), con `object` como lo posó 0x5ffdf0 (que no mira el
+// 10): lo que reciben el ayudante (0x445310) y el cuervo (0x420e11) con el +0x78 & 0x4000 de su jinete o de su dueño.
+// El color del modelo en 1 (0x60039d) y, de la malla 0 a la última, 0x4ecc30(malla, 0x4040, 0,5, blendMesh, luz,
+// U · 8, V · 2, 0x620) suelto, sin RenderBody: el pase de brillo 0x4000 (Render::Models::ShinePass::Chrome5), que
+// 0x4ecc30 mira antes que el blendMesh y el 0x40, con Effect\Chrome02 (0x620) forzada, aditivo, sin la luz por
+// vértice y con el alpha 0,5 en vez del del objeto. Cada malla que lo dibuja multiplica antes en el lugar el color
+// del modelo por 0,5 (0x4ed3fd, Q-C95): la k-ésima que dibuja, desde 0, va en 0,5 a la k + 1. Como 0x4ecc30 suelto,
+// no saltea la malla oculta (+0x58) ni las del script H; sí, sin multiplicar, las mallas sin triángulos (0x4ecc5b),
+// las de la textura oculta 0x12d y las que tienen N o el +0 de 0x60ff50 (0x4ed07a). Ni sombra ni el pase de cada tipo
+// (DrawDarkHorse, DrawDarkSpirit, RenderBody(2), DrawFenrirBody). Un modelo que la biblioteca no tiene no dibuja nada.
+[[nodiscard]] Core::Expected<void, std::string> DrawChromeShell(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                                const DrawnObject& object, Core::Duration frameClock);
+
 // 0x602e90 con los Fenrir (0x14a a 0x14c) en 0x6002e0 (0x60277b..0x60292b), entre 0x4ecc10 y 0x4ecc20: el color del
 // modelo en 1 y +0x88 en 0 (sin la luz por vértice), 0x4ecc30(0, 2, …) y 0x4ecc30(1, 2, …) con el alpha, el blendMesh,
 // su luz y la U y la V del objeto y, con `charging` (la acción 4 del Fenrir, +0x111), la malla 1 otra vez con 0x46

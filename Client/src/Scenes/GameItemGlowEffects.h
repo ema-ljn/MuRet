@@ -20,8 +20,8 @@ struct ItemDrawContext;
 [[nodiscard]] std::int32_t ItemClockWord(float time);
 
 // Lo que 4ecc30 saca del reloj para las UV de un pase de brillo: la palabra baja firmada para los
-// períodos, su fase `t` y, solo en Chrome4, el coseno y el seno PC53. No depende de la normal, así que
-// es el mismo en todas las esquinas: se saca una vez por pase y no por esquina (#306).
+// períodos, su fase `t` y, solo en Chrome4 y Chrome5, el coseno y el seno PC53 (0x4ed0fb..0x4ed11a). No depende de la
+// normal, así que es el mismo en todas las esquinas: se saca una vez por pase y no por esquina (#306).
 struct ItemShineClock
 {
     std::int32_t word = 0;

@@ -5,6 +5,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/ModelBatch.h"
+#include "Render/ModelVertex.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalAngles.h"
@@ -1361,18 +1362,112 @@ TEST(HelperTableTest, InChaosCastleTheHerosFlagFadesTheHorse)
     EXPECT_EQ(chaos.Horse().horse.alpha, static_cast<float>(1.0 - static_cast<double>(0.15f)));
 }
 
-// Lo que el dibujo no tiene: el dibujo con 10 de un jinete con +0x78 & 0x4000 (0x60033c), que corta sin dibujar
-// ni sacar el rand().
-TEST(HelperTableTest, TheDrawStopsWithTheRidersFlag4000)
+// 0x445310: con +0x78 & 0x4000 del jinete, 0x602e90(lugar, 0, 0, 10). 0x5ffdf0 lo posa igual (publica la pose) y
+// 0x6002e0 no va por el caso de su tipo sino por 0x60033c: el color del modelo en 1 y 0x4ecc30(malla, 0x4040, 0,5, …,
+// 0x620) en cada malla, aditivo con Chrome02 y en 0,5 (Scenes::DrawChromeShell), sin el blanco ni el cromo ni la
+// sombra del caballo, sin el RenderBody(2) de las mascotas y sin los sprites, los rayos, la chispa ni los rand() del
+// Fenrir; ninguno lee la luz del terreno, que el blanco pisa. Después, el rand() % 30 + 70 de 0x445336 y, con el
+// 0x1c12, su brillo, como siempre.
+TEST(HelperTableTest, TheRidersFlag4000DrawsEveryHelperAsAChromeShell)
 {
-    HelperWorld flagged;
-    ASSERT_NO_FATAL_FAILURE(flagged.Mount());
-    flagged.Horse().horse.alpha = 1.0f;
-    flagged.Rider().flags78 = 0x4000;
-    ModelBatch second;
-    EXPECT_TRUE(HasError(flagged.Draw(second, Everything), "0x60033c"));
-    EXPECT_TRUE(second.Commands().empty());
-    EXPECT_EQ(flagged.random.State(), CrtRandom(QuietSeed).State());
+    std::vector<std::uint16_t> types{DarkHorseModel};
+    types.insert(types.end(), PetModels.begin(), PetModels.end());
+    for (const std::uint16_t type : types)
+    {
+        SCOPED_TRACE(type);
+        HelperWorld tested;
+        if (type == DarkHorseModel)
+        {
+            ASSERT_NO_FATAL_FAILURE(tested.Mount());
+        }
+        else
+        {
+            ASSERT_NO_FATAL_FAILURE(tested.Ride(type));
+        }
+        tested.Horse().horse.alpha = 1.0f;
+        tested.Rider().flags78 = 0x4000;
+        tested.world.Runtime().terrainPolygon = Everything;
+        const CrtRandom before = tested.random;
+        ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        HelperDrawContext context = tested.DrawContext(batch);
+        context.lighting = nullptr;
+        context.effects = nullptr;
+        context.particles = nullptr;
+        context.systemTime = {};
+        context.globalPose = {};
+        int publications = 0;
+        context.onPose = [&](const Client::Scenes::DrawnObject& object) -> Client::Core::Expected<void, std::string>
+        {
+            ++publications;
+            EXPECT_EQ(object.model, type);
+            return {};
+        };
+
+        const auto drawn = DrawHelpers(context);
+
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(publications, 1);
+        ASSERT_EQ(batch.Commands().size(), 1u);
+        EXPECT_EQ(batch.Commands()[0].state,
+                  (Client::Render::ModelDrawState{TextureSlot{0x620}, Client::Render::ModelBlend::Additive, true}));
+        ASSERT_EQ(batch.Commands()[0].vertexCount, 3u);
+        for (const Client::Render::ModelVertex& corner : batch.Vertices())
+        {
+            EXPECT_EQ(corner.color.red, 0.5f);
+            EXPECT_EQ(corner.color.green, 0.5f);
+            EXPECT_EQ(corner.color.blue, 0.5f);
+        }
+        CrtRandom after = before;
+        static_cast<void>(after.Next());
+        EXPECT_EQ(tested.random.State(), after.State());
+        EXPECT_EQ(tested.LiveSprites().size(), type == GuardianAngelModel ? 1u : 0u);
+    }
+}
+
+// 0x600343..0x600399: el camino del 10 busca al jinete en el pool; si no es el héroe, con el asedio (0x4294b0) y su
+// +0x370 distinto de 1, sale por 0x602e7d sin dibujar. Con el héroe de jinete, sin el asedio o con +0x370 en 1, lo
+// dibuja. La pose (0x5ffdf0) y el rand() de 0x445336 van igual.
+TEST(HelperTableTest, InTheSiegeTheFlag4000HidesTheHelperOfAnotherRiderUnlessItsByte370IsOne)
+{
+    struct Case
+    {
+        bool riderIsHero;
+        bool siege;
+        std::uint8_t byte370;
+        bool drawn;
+    };
+    for (const Case probe : {Case{false, true, 0, false}, Case{false, true, 2, false}, Case{false, true, 1, true},
+                             Case{false, false, 0, true}, Case{true, true, 0, true}})
+    {
+        SCOPED_TRACE(testing::Message() << probe.riderIsHero << " " << probe.siege << " " << int{probe.byte370});
+        HelperWorld tested;
+        ASSERT_NO_FATAL_FAILURE(tested.Mount());
+        tested.Horse().horse.alpha = 1.0f;
+        tested.Rider().flags78 = 0x4000;
+        tested.Rider().byte370 = probe.byte370;
+        tested.world.Runtime().siegeActive = probe.siege;
+        if (!probe.riderIsHero)
+        {
+            tested.world.Runtime().hero = OtherSlot;
+        }
+        tested.world.Runtime().terrainPolygon = Everything;
+        ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        HelperDrawContext context = tested.DrawContext(batch);
+        int publications = 0;
+        context.onPose = [&](const Client::Scenes::DrawnObject&) -> Client::Core::Expected<void, std::string>
+        {
+            ++publications;
+            return {};
+        };
+
+        ASSERT_TRUE(DrawHelpers(context).HasValue());
+
+        EXPECT_EQ(publications, 1);
+        EXPECT_EQ(batch.Commands().size(), probe.drawn ? 1u : 0u);
+        EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 1).State());
+    }
 }
 
 // Q-C293: en la escena 4 (0x6342f4) 0x444010 no apaga el ayudante de un jinete muerto: el alpha sube, el caballo lo

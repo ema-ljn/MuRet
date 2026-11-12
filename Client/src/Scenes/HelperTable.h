@@ -179,8 +179,11 @@ struct HelperDrawContext
 // 0x5c6/15 del hueso 14 con dos rand(); los seis sprites 0x5ac de los huesos 11 y 13; dos rayos 0x14d (0x518cf0, con
 // sus rand()) con la luz y el subtipo del color; y, con la acción 1 y el frame entre 0 y 1,5, cuatro calcos 0x14e en
 // los huesos 22, 28, 36 y 44, o con la 2, dos en el 22 y el 28 con el frame en (1; 1,4] o dos en el 36 y el 44 en
-// (4,8; 5,2]. Corta con error con el +0x78 & 0x4000 del jinete (0x602e90 con 10, 0x60033c), sin la luz del terreno
-// o sin la tabla de los sprites cuando los pide, y con un Fenrir sin los efectos, las partículas, timeGetTime() o el
-// buffer global de la pose.
+// (4,8; 5,2]. Con el +0x78 & 0x4000 del jinete, 0x445310 le pasa 10 a 0x602e90: posado igual por 0x5ffdf0, 0x6002e0
+// no toma el camino de su tipo sino el de 0x60033c (0x600343..0x600399): con el jinete otro que el héroe, el asedio
+// (WorldRuntime::siegeActive, 0x4294b0) y +0x370 del jinete distinto de 1, no lo dibuja; si no, DrawChromeShell (el
+// 0x4040 con Chrome02 y alpha 0,5 en cada malla, sin la luz del terreno, la sombra, los sprites, los rayos ni los
+// rand() del Fenrir). Corta con error sin la luz del terreno o sin la tabla de los sprites cuando los pide, y con un
+// Fenrir sin los efectos, las partículas, timeGetTime() o el buffer global de la pose.
 [[nodiscard]] Core::Expected<void, std::string> DrawHelpers(const HelperDrawContext& context);
 } // namespace Client::Scenes

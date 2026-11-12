@@ -5,6 +5,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Render/ModelBatch.h"
+#include "Render/ModelVertex.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -29,6 +30,7 @@
 
 #include <gtest/gtest.h>
 
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
@@ -1122,26 +1124,69 @@ TEST_F(GameRavenTest, InChaosCastleTheHeroByteFadesTheRavenUntilItIsNoLongerDraw
     EXPECT_TRUE(m_owner.darkSpirit->pose.empty());
 }
 
-TEST_F(GameRavenTest, TheRiderFlagAndTheOrderStatesCutAfterTheirChecks)
+// 0x420e00..0x420e11: con +0x78 & 0x4000 del dueño, 0x4182f0(10) y 0x602e90(cuervo, 0, 0, 10). 0x5ffdf0 lo posa igual
+// (la pose de +0x120 y el modelo compartido en su lugar, no en el piso) y 0x6002e0 va por 0x60033c: el +0x108 del
+// cuervo es 0, así que el lazo del asedio no lo encuentra, ni con el asedio; el color del modelo en 1 y las cinco
+// mallas con 0x4ecc30(malla, 0x4040, 0,5, …, 0x620), aditivas con Chrome02, cada una en la mitad del color de la
+// anterior (Q-C95), sin el glColor3f(1, 1, 1) ni las mallas 3 y 2 del caso 0xc0, y sin la sombra ni las alturas del
+// terreno (0x600a0b). Las UV, con la normal (0, 0, 1) por la escala 0,7 y el reloj en 0: u = 0,7f y
+// v = (1 − 0,7f) − 0,7f · 2,5.
+TEST_F(GameRavenTest, TheOwnersFlag4000DrawsTheRavenAsAChromeShellWithoutShadow)
 {
     m_owner.flags78 = 0x4000;
-    const auto rider = Client::Scenes::DrawGameRaven(m_owner, Pass());
-    ASSERT_FALSE(rider.HasValue());
-    EXPECT_NE(rider.Error().find("0x60033c"), std::string::npos) << rider.Error();
-    EXPECT_TRUE(m_batch.Vertices().empty());
+    m_terrain.heights.reset();
+    m_terrain.attributes.reset();
+    Client::Scenes::FaunaDrawCarry carry;
+    GameRavenPass pass = Pass(30);
+    pass.carry = &carry;
 
-    m_owner.flags78 = 0;
-    for (const std::uint8_t state : {std::uint8_t{5}, std::uint8_t{6}})
+    const auto result = Client::Scenes::DrawGameRaven(m_owner, pass);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(m_batch.Commands().size(), 1u);
+    EXPECT_EQ(m_batch.Commands()[0].state,
+              (Client::Render::ModelDrawState{Client::Render::TextureSlot{0x620}, Client::Render::ModelBlend::Additive,
+                                              true}));
+    const auto& vertices = m_batch.Vertices();
+    ASSERT_EQ(vertices.size(), 5u * 3u);
+    const float scaled = 0.7f;
+    const glm::vec2 uv(scaled,
+                       static_cast<float>((1.0 - static_cast<double>(scaled)) - static_cast<double>(scaled) * 2.5));
+    float factor = 1.0f;
+    for (std::size_t mesh = 0; mesh < 5; ++mesh)
     {
-        SCOPED_TRACE(int{state});
-        m_owner.darkSpirit->state = state;
-        m_batch.Begin(Client::Render::Pass3D{});
+        factor *= 0.5f;
+        for (std::size_t corner = 0; corner < 3; ++corner)
+        {
+            const auto& vertex = vertices[mesh * 3 + corner];
+            EXPECT_EQ(vertex.color.red, factor) << mesh;
+            EXPECT_EQ(vertex.color.green, factor) << mesh;
+            EXPECT_EQ(vertex.color.blue, factor) << mesh;
+            EXPECT_EQ(vertex.uv, uv) << mesh;
+        }
+    }
+    EXPECT_EQ(m_owner.darkSpirit->pose.size(), 1u);
+    EXPECT_EQ(carry.models.at(Client::Scenes::DarkSpiritModel).position, glm::vec3(1050.0f, 1060.0f, 300.0f));
+}
 
-        const auto order = Client::Scenes::DrawGameRaven(m_owner, Pass());
+// 0x41835a: 0x418920 corta en los estados 5 y 6 (las órdenes del A7) después del dibujo, con el 0x4000 o sin él.
+TEST_F(GameRavenTest, TheOrderStatesCutAfterTheDraw)
+{
+    for (const std::uint32_t flags : {0u, 0x4000u})
+    {
+        for (const std::uint8_t state : {std::uint8_t{5}, std::uint8_t{6}})
+        {
+            SCOPED_TRACE(testing::Message() << flags << " " << int{state});
+            m_owner.flags78 = flags;
+            m_owner.darkSpirit->state = state;
+            m_batch.Begin(Client::Render::Pass3D{});
 
-        ASSERT_FALSE(order.HasValue());
-        EXPECT_NE(order.Error().find("0x418957"), std::string::npos) << order.Error();
-        EXPECT_EQ(m_batch.Vertices().size(), 21u);
+            const auto order = Client::Scenes::DrawGameRaven(m_owner, Pass());
+
+            ASSERT_FALSE(order.HasValue());
+            EXPECT_NE(order.Error().find("0x418957"), std::string::npos) << order.Error();
+            EXPECT_EQ(m_batch.Vertices().size(), flags == 0 ? 21u : 15u);
+        }
     }
 }
 

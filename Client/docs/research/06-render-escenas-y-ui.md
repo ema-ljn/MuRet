@@ -1264,11 +1264,37 @@ dibuja las pociones `0x1c00` a `0x1c08` con durabilidad 2 o más (9 × 10, en `x
 de joyas `0x181e` y `0x181f` con ((`+4 >> 3 & 0xf`) · 5 + 5) · 2 (7 × 8, en `x + 14`). Después, las mismas consultas
 que `0x5f7610` para las otras grillas.
 
+**El paso** (`0x5ee1a3`: con el inventario abierto, `0x5e4ce0` y sus seis hermanas). `0x5e4ce0` pone `0x775857c` con
+el mouse sobre la ventana (190 × 433) o sobre la de las otras ventanas abiertas, que consulta en orden (`0x10000`,
+`0x40`, `0x100` o la lista del asedio en el modo 3 con `0x6689d0`, `0x20`, `0x1000` o `0x4000`, `0x800` o
+`0x20000`); abre y cierra el registro propio doce veces, una por lugar, y pone `+0x44` en 1 en los ocupados y en 0 en
+los vacíos, y lo mismo en las grillas (el comercio conserva el 99) y en la caja del entrenador (`0x449c60`); deja
+`0x78abaac` en 0 y, con el mouse arriba de `_ftol(y + 200f)`, corre el equipo (`0x5c3d20`), si no la grilla
+(`0x5c4110(x + 15, y + 200, 0x78a9bb0, 8, 8, 0)`). `0x5c3d20` llama a `0x5bec50(x, y, w, h, lugar)` con los
+rectángulos del dibujo: el 8 y el 7, el 2 (sin la clase 3) dentro de un acceso que lee la clase, y los otros nueve;
+cada `0x5bec50` sale con `0x5767954 > 0` o con la traba `0x78abb39` antes de abrir el registro, y si no lo abre y lo
+cierra (el del 2 queda adentro). Sin ítem en el cursor, con el lugar vacío o el mouse afuera no hace más (`0x5c2bf0`);
+con el mouse sobre un lugar ocupado, `0x78abaac` en 1 y, con el clic, levantarlo o repararlo; con un ítem en el cursor y
+el mouse adentro, soltarlo (`0x5bee04`). `0x5c4110` sale con la espera, la traba o un ítem en el cursor, y si no busca
+la casilla con un tipo bajo el mouse (`0x5c41f4`). Después: `0x78abb10` en 0, el nivel con el registro abierto, y sin
+la caja del entrenador, la ventana de un NPC de evento ni las otras (`0x20`, `0x10000`, `0x40`, `0x100`,
+`0x78abb00`), los botones del pie en y + `0x18b` a y + `0x1a3`: reparar (x + `0x30` a x + `0x48`, nivel 50 o más,
+que además deja `0x78abb10` en 1) invierte `0x78abb0c`; cerrar (x + `0x14` a x + `0x2c`) pone `0x77f3b10` en 0 y
+`0x6c8dcc` en 6 y cierra el inventario; la tienda personal (x + `0x4c` a x + 100, nivel 6 o más) y la S
+(`0x553520(0x53)`, sin el campo del chat) abren o cierran `0x800`. Por último, las grillas de las otras ventanas, la
+caja del entrenador (`0x44ad10`) y el cartel del set (`0x40e6c0`, Q-C472). Las hermanas empiezan con su `IsOpen`:
+`0x5e5920` (`0x1000` y `0x4000`), `0x5fe610` (`0x100`), `0x5ea060` (`0x40`), `0x5ecde0` (`0x20`), `0x5ea290`
+(`0x800` y `0x20000`) y `0x5ed960` (`0x10000`). **Los `rand()` del paso** sin nada bajo el mouse: 13 cierres del
+registro (los doce lugares y el nivel) y 8 consultas (2 de las marcas, 2 de los botones, 2 de las otras grillas y 2
+de las hermanas): **50.032**; con el mouse arriba de la grilla, 12 cierres más (46.176).
+
 **Lo que porta MuRet**: la ventana entera; los ítems 3D, el del cursor y los de las ranuras con sus `rand()`; las
-cifras; el mundo angosto en `GameScene` (`0x63733e` y `0x63738a`); y las texturas `0x104` a `0x120` (sin `0x106`),
-`0x652`, `0x657` y `0x658` en `HudTextureSet`. Las otras grillas cortan con su dirección (CL9.3, CL9.4 y CL9.5). El
-paso del inventario (`0x5e4ce0` y las seis hijas de `0x5ee1a3`), el del ítem del cursor (`0x5d8d50`) y lo que piden
-(`0x5be150`, `0x5bec50`, `0x5c4110`, `C3 24`, `0x550d10`, `0x54e540`) siguen cortados: P-C71.
+cifras; el mundo angosto en `GameScene` (`0x63733e` y `0x63738a`); las texturas `0x104` a `0x120` (sin `0x106`),
+`0x652`, `0x657` y `0x658` en `HudTextureSet`; y el paso en `Scenes/GameUi.cpp` (`test_game_inventory_step.cpp`)
+sin nada bajo el mouse, con los botones de reparar y cerrar. Las otras ventanas cortan con su dirección (CL9.3,
+CL9.4 y CL9.5). Lo que pasa con un ítem o un lugar bajo el mouse, el cartel del set, la tienda personal (Open de
+`0x800`, CL9.4), el ítem del cursor (`0x5d8d50`) y lo que piden (`0x5be150`, `C3 24`, `0x550d10`, `0x54e540`)
+siguen cortados: P-C71.
 
 ## La escena de carga y la de login
 

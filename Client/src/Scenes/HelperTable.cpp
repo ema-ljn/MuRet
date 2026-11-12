@@ -4,6 +4,8 @@
 #include "Data/Models/PlayerModels.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
@@ -21,6 +23,7 @@
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/TerrainLighting.h"
+#include "World/WeaponSparkKernels.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -31,6 +34,7 @@
 #include <cstdint>
 #include <format>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -370,6 +374,140 @@ DrawnObject DrawnHelper(const HelperState& helper, const Render::Models::Skeleto
     return drawn;
 }
 
+// 0x60277b..0x602e7d: el seno del reloj, los dos huesos de los sprites con sus corrimientos, sus luces y escalas,
+// la luz y el subtipo de los rayos por color, y las ventanas de los calcos.
+constexpr double FenrirPulseRate = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc: 0,002f.
+constexpr float FenrirPulseSwing = std::bit_cast<float>(0x3e4ccccdu);                      // 0x6b8854: 0,2f.
+constexpr std::uint8_t FenrirChargeAction = 4;
+constexpr std::uint8_t FenrirFirstStrikeAction = 1, FenrirSecondStrikeAction = 2;
+constexpr int FenrirSparkSpreadX = 10, FenrirSparkSpreadZ = 40, FenrirSparkCentreZ = 20;
+constexpr double Half = 0.5;                                                                    // 0x6b882c.
+constexpr double FenrirSparkScaleStep = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8a48.
+constexpr double FenrirSparkScaleBase = static_cast<double>(std::bit_cast<float>(0x3f333333u)); // 0x6b8a5c.
+constexpr std::size_t FenrirSparkBone = 14, FenrirEyeBone = 11, FenrirChestBone = 13;
+constexpr double FenrirEyeRed = static_cast<double>(std::bit_cast<float>(0x3f666666u));   // 0x6b8a1c: 0,9f.
+constexpr double FenrirEyeGreen = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854: 0,2f.
+constexpr double FenrirEyeBlue = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));  // 0x6b87b8: 0,1f.
+constexpr double FenrirEyeScaleStep = FenrirEyeBlue;                                      // 0x6b87b8.
+constexpr glm::vec3 FenrirLeftEye{50.0f, 2.0f, 11.0f}, FenrirRightEye{50.0f, 2.0f, -11.0f};
+constexpr glm::vec3 FenrirChest{40.0f, 15.0f, 0.0f};
+constexpr glm::vec3 FenrirChestLight{1.0f, std::bit_cast<float>(0x3e99999au), std::bit_cast<float>(0x3e4ccccdu)};
+constexpr float FenrirChestScale = 1.5f;
+constexpr std::uint16_t FenrirFlare = 0x5ac;
+constexpr std::uint16_t RedFenrir = 0x14b, BlueFenrir = 0x14c;
+constexpr std::array<std::size_t, 4> FenrirStrikeBones{22, 28, 36, 44};
+
+// Un punto del buffer global con un hueso de los de arriba, todos por debajo de los 200 del buffer.
+glm::vec3 FenrirBonePoint(std::span<const Render::Models::BoneTransform> bones, std::size_t bone,
+                          const glm::vec3& offset)
+{
+    return GlobalPosePoint(bones, bone, offset, "0x4ec110").Value();
+}
+
+// 0x60277b..0x602e7d, después de 0x5ffdf0: el cuerpo y su sombra, la chispa de la acción 4, los sprites, los rayos y
+// los calcos. Pide todo antes de sacar el primer rand().
+Core::Expected<void, std::string> DrawTheFenrir(HelperState& helper, const HelperDrawContext& context)
+{
+    if (context.effects == nullptr || context.particles == nullptr || context.sprites == nullptr ||
+        !context.systemTime || !context.globalPose)
+    {
+        return Core::Unexpected(std::format("0x60277b: el dibujo del Fenrir {:#x} pide los efectos (0x518cf0), las "
+                                            "partículas (0x53fe70), los sprites (0x5491e0), timeGetTime() y el buffer "
+                                            "global de la pose",
+                                            helper.type));
+    }
+    // 0x60277b..0x602792: fld del reloj, fmul 0,002f, fsin, fmul 0,2f y fstp.
+    const auto sine = Render::Models::Detail::SineProductPC53(static_cast<double>(context.worldClock) * FenrirPulseRate,
+                                                              FenrirPulseSwing);
+    if (!sine)
+        return Core::Unexpected(std::string("0x60278a: el seno del reloj del Fenrir no cabe en el perfil PC53"));
+    const double pulse = static_cast<double>(F32(*sine));
+    const std::int32_t map = context.world.Runtime().map;
+    auto drawn = DrawnHelper(helper, context.models.SkeletonOf(helper.type), glm::vec3(0.0f), context.stepAlpha);
+    if (context.onPose)
+        if (const auto published = context.onPose(drawn); !published.HasValue())
+            return published;
+    if (context.posedMeshes)
+        drawn.retainedMeshes = context.posedMeshes();
+    const bool charging = helper.horse.animation.action == FenrirChargeAction;
+    if (auto body = DrawFenrirBody(context.batch, context.models, drawn, map, charging, context.frameClock);
+        !body.HasValue())
+        return body;
+    const std::span<const Render::Models::BoneTransform> bones = context.globalPose();
+    Render::Models::CrtRandom& random = context.random;
+    if (charging)
+    {
+        // 0x60282f..0x6028c6: (rand() % 10 − 10; 0; rand() % 40 − 20) por 0,5 desde el hueso 14 y la 5c6/15 roja,
+        // con los ángulos del Fenrir y la escala del seno por 0,05f más 0,7f.
+        const int x = (random.Next() % FenrirSparkSpreadX) - FenrirSparkSpreadX;
+        const int z = (random.Next() % FenrirSparkSpreadZ) - FenrirSparkCentreZ;
+        const glm::vec3 offset(F32(static_cast<double>(x) * Half), 0.0f, F32(static_cast<double>(z) * Half));
+        const glm::vec3 point = FenrirBonePoint(bones, FenrirSparkBone, offset);
+        const float scale = F32(pulse * FenrirSparkScaleStep + FenrirSparkScaleBase);
+        const auto created =
+            context.particles->CreateChecked(World::SparkParticle, point, helper.angles, glm::vec3(1.0f, 0.0f, 0.0f),
+                                             World::FenrirSparkSubtype, scale, context.worldClock, random);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("0x6028c6: el alta de 0x5c6/15 falla con error {}",
+                                                static_cast<unsigned>(created.Error())));
+    }
+    // 0x602930..0x602aa2: los ojos (el hueso 11) con la luz del seno, dos sprites en cada uno de escala seno · 0,1f +
+    // 0,5, y el pecho (el 13) con uno de 1,5 y otro de 1 en (1; 0,3; 0,2).
+    const double halfPulse = pulse * Half;
+    const glm::vec3 eyeLight(F32(pulse + FenrirEyeRed), F32(halfPulse + FenrirEyeGreen),
+                             F32(halfPulse + FenrirEyeBlue));
+    const float eyeScale = F32(pulse * FenrirEyeScaleStep + Half);
+    for (const glm::vec3& eye : {FenrirLeftEye, FenrirRightEye})
+    {
+        const glm::vec3 point = FenrirBonePoint(bones, FenrirEyeBone, eye);
+        static_cast<void>(context.sprites->Create(FenrirFlare, point, eyeScale, eyeLight, 0.0f, 0));
+        static_cast<void>(context.sprites->Create(FenrirFlare, point, eyeScale, eyeLight, 0.0f, 0));
+    }
+    const glm::vec3 chest = FenrirBonePoint(bones, FenrirChestBone, FenrirChest);
+    static_cast<void>(context.sprites->Create(FenrirFlare, chest, FenrirChestScale, FenrirChestLight, 0.0f, 0));
+    static_cast<void>(context.sprites->Create(FenrirFlare, chest, 1.0f, FenrirChestLight, 0.0f, 0));
+    // 0x602aa7..0x602b50: la luz y el subtipo por color y dos 0x518cf0(0x14d, lugar, ángulos, luz, 0, Fenrir, −1).
+    glm::vec3 strikeLight(1.0f, 1.0f, std::bit_cast<float>(0x3e4ccccdu));
+    std::int32_t strike = 3;
+    if (helper.type == RedFenrir)
+    {
+        strikeLight = glm::vec3(std::bit_cast<float>(0x3f4ccccdu), 0.0f, 0.0f);
+        strike = 1;
+    }
+    else if (helper.type == BlueFenrir)
+    {
+        strikeLight = glm::vec3(std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu),
+                                std::bit_cast<float>(0x3f4ccccdu));
+        strike = 2;
+    }
+    const auto bonePoint = [bones](std::size_t bone) { return FenrirBonePoint(bones, bone, glm::vec3(0.0f)); };
+    for (int bolt = 0; bolt < 2; ++bolt)
+    {
+        const auto created = context.effects->CreateLightning(helper.position, helper.angles, strikeLight, &helper,
+                                                              random, bonePoint, *context.sprites);
+        if (!created.HasValue())
+            return Core::Unexpected("0x602b30 → " + created.Error());
+    }
+    // 0x602b55..0x602e75: los calcos 0x14e en blanco, con el subtipo del color, en los huesos de la ventana del frame.
+    const std::uint8_t action = helper.horse.animation.action;
+    const float frame = helper.horse.animation.frame;
+    std::span<const std::size_t> strikes{};
+    if (action == FenrirFirstStrikeAction && frame >= 0.0f && frame <= 1.5f)
+        strikes = FenrirStrikeBones;
+    else if (action == FenrirSecondStrikeAction && frame > 1.0f && frame <= std::bit_cast<float>(0x3fb33333u))
+        strikes = std::span(FenrirStrikeBones).first(2);
+    else if (action == FenrirSecondStrikeAction && frame > std::bit_cast<float>(0x4099999au) &&
+             frame <= std::bit_cast<float>(0x40a66666u))
+        strikes = std::span(FenrirStrikeBones).last(2);
+    for (const std::size_t bone : strikes)
+    {
+        const glm::vec3 point = FenrirBonePoint(bones, bone, glm::vec3(0.0f));
+        static_cast<void>(context.effects->CreateLightningDecal(point, helper.angles, glm::vec3(1.0f), strike, &helper,
+                                                                context.systemTime()));
+    }
+    return {};
+}
+
 // 0x6002e0 con el ayudante, ya posado por 0x5ffdf0.
 Core::Expected<void, std::string> DrawTheBody(HelperState& helper, const HelperDrawContext& context)
 {
@@ -388,12 +526,7 @@ Core::Expected<void, std::string> DrawTheBody(HelperState& helper, const HelperD
         return {};
     }
     if (IsFenrir(helper.type))
-    {
-        return Core::Unexpected(std::format("0x60277b: el dibujo del Fenrir {:#x} (sus pases, la partícula 0x5c6, la "
-                                            "sombra, los sprites de sus huesos y los dos efectos 0x14d de 0x602b30) "
-                                            "no está portado",
-                                            helper.type));
-    }
+        return DrawTheFenrir(helper, context);
     // 0x5ffce0: la luz del terreno en su lugar.
     if (context.lighting == nullptr)
     {
@@ -573,7 +706,12 @@ Core::Expected<void, std::string> DrawHelpers(const HelperDrawContext& context)
                                       context.posedMeshes,
                                       context.scene,
                                       context.lighting,
-                                      context.sprites};
+                                      context.sprites,
+                                      context.worldClock,
+                                      context.effects,
+                                      context.particles,
+                                      context.systemTime,
+                                      context.globalPose};
     for (HelperState& helper : context.world.Helpers())
     {
         if (!helper.alive)

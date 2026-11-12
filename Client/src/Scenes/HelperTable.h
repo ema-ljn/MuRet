@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Render/ModelBatch.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/SceneId.h"
 
@@ -25,6 +26,8 @@ struct SkinnedMesh;
 namespace Client::World
 {
 class FrameSprites;
+class ModelEffects;
+class Particles;
 struct TerrainLighting;
 struct WorldTerrain;
 } // namespace Client::World
@@ -140,8 +143,16 @@ struct HelperDrawContext
     SceneId scene = SceneId::Game;
     // El buffer dinámico de la luz del terreno (0x5ffce0): el color de los que no son el caballo.
     const World::TerrainLighting* lighting = nullptr;
-    // La tabla de los sprites del frame (0x5491e0): el brillo del 0x1c12 (0x445390).
+    // La tabla de los sprites del frame (0x5491e0): el brillo del 0x1c12 (0x445390) y los de los Fenrir.
     World::FrameSprites* sprites = nullptr;
+    // Lo que el dibujo de los Fenrir (0x60277b) lee y crea además: el reloj del mundo (0x5767b88), los efectos con
+    // modelo (0x518cf0), las partículas (0x53fe70), timeGetTime() (0x6b8544, del calco 0x14e) y el buffer global de la
+    // pose (0x68b181c) después de posarlo, el del frame o su copia proyectada.
+    float worldClock = 0.0f;
+    World::ModelEffects* effects = nullptr;
+    World::Particles* particles = nullptr;
+    std::function<std::uint32_t()> systemTime{};
+    std::function<std::span<const Render::Models::BoneTransform>()> globalPose{};
 };
 
 // 0x4453b0 en la escena 5 (0x637508) y en la 4 (0x63486a): 0x445260(lugar, 0) en los 10. Con el lugar vivo,
@@ -152,8 +163,13 @@ struct HelperDrawContext
 // RenderBody(2) y su blendMesh, con el color de la luz del terreno más 3 (0x5ffce0, con la luz por vértice).
 // Después, el rand() % 30 + 70 de 0x445336 aunque no lo haya dibujado (Q-C223), y con el 0x1c12 el sprite 0x5ac
 // en su lugar, de escala 1, con esa cuenta por 0,01f en (0,5; 0,8; 0,6). En los mapas 18 a 23, con +0x1a1 del
-// héroe, 0x5ffdf0 le baja 0,15f al alpha guardado en cada frame del original. Corta con error con el +0x78 &
-// 0x4000 del jinete (0x602e90 con 10, 0x60033c), con los Fenrir (0x60277b, que crea los efectos 0x14d) y sin la
-// luz del terreno o sin la tabla de los sprites cuando los pide.
+// héroe, 0x5ffdf0 le baja 0,15f al alpha guardado en cada frame del original. Los Fenrir (0x60277b) van en blanco y
+// sin la luz del terreno (DrawFenrirBody) con el seno del reloj sin(T · 0,002f) · 0,2f: con la acción 4, la chispa
+// 0x5c6/15 del hueso 14 con dos rand(); los seis sprites 0x5ac de los huesos 11 y 13; dos rayos 0x14d (0x518cf0, con
+// sus rand()) con la luz y el subtipo del color; y, con la acción 1 y el frame entre 0 y 1,5, cuatro calcos 0x14e en
+// los huesos 22, 28, 36 y 44, o con la 2, dos en el 22 y el 28 con el frame en (1; 1,4] o dos en el 36 y el 44 en
+// (4,8; 5,2]. Corta con error con el +0x78 & 0x4000 del jinete (0x602e90 con 10, 0x60033c), sin la luz del terreno
+// o sin la tabla de los sprites cuando los pide, y con un Fenrir sin los efectos, las partículas, timeGetTime() o el
+// buffer global de la pose.
 [[nodiscard]] Core::Expected<void, std::string> DrawHelpers(const HelperDrawContext& context);
 } // namespace Client::Scenes

@@ -2,10 +2,13 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRetainedMath.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
+#include "World/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -13,6 +16,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -545,4 +549,145 @@ TEST(FullSetJointsTest, TheSetEnergyCirclesItsMovingOwnerUntilItsRadiusRunsOut)
         }
     }
     EXPECT_EQ(random.State(), CrtRandom(1).State());
+}
+
+// El 619/1 del calco de la mascota (0x518900), con el héroe de dueño.
+namespace
+{
+// 4e9810 con el destino: el yaw y el pitch giran de a `turn` (lo que hace SteerJoint en el paso).
+void Steer(JointState& expected, const glm::vec3& target, float turn)
+{
+    using Client::Render::Models::CreateAngle;
+    using Client::Render::Models::TurnAngle;
+    const auto yaw = F32(CreateAngle(expected.position.x, expected.position.y, target.x, target.y));
+    expected.angles.z = F32(TurnAngle(expected.angles.z, yaw, turn));
+    const double x = D(expected.position.x) - target.x;
+    const double y = D(expected.position.y) - target.y;
+    const auto horizontal = F32(std::sqrt(D(F32(x * x)) + D(F32(y * y))));
+    const auto pitch = F32(360.0 - CreateAngle(expected.position.z, horizontal, target.z, 0));
+    expected.angles.x = F32(TurnAngle(expected.angles.x, pitch, turn));
+}
+} // namespace
+
+// 0x5323d3..0x5323f8 y 0x5325ca: el 619/1 sólo tiene lo común del 0x619: velocidad 0, vida 12, el ancho y 2 puntos. Sin
+// rand(); la posición es el primer punto y el destino no se escribe, porque tiene dueño.
+TEST(FullSetJointsTest, TheSummonEnergyIsBornWithTheCommonFieldsOfThe619)
+{
+    ActorState hero;
+    hero.position = {1300.0f, 1700.0f, 290.0f};
+    std::array<JointState, 1> joints{};
+    joints[0].targetPosition = {1.0f, 2.0f, 3.0f};
+    CrtRandom random(1);
+    Request request{0x619, 1, 5.0f, -1, 0};
+    request.angles = {40.0f, 0.0f, 213.0f};
+
+    const auto created = Create(joints, request, &hero, random);
+
+    ASSERT_TRUE(created.HasValue()) << created.Error();
+    EXPECT_EQ(random.State(), CrtRandom(1).State());
+    const JointState& joint = joints[0];
+    EXPECT_TRUE(joint.alive);
+    EXPECT_EQ(joint.life, 12);
+    EXPECT_EQ(joint.maximumCount, 2);
+    EXPECT_EQ(joint.count, 0);
+    EXPECT_EQ(joint.speed, 0.0f);
+    EXPECT_EQ(joint.width, 5.0f);
+    EXPECT_EQ(joint.texture, 0x619);
+    EXPECT_EQ(joint.light, glm::vec3(1.0f));
+    EXPECT_EQ(joint.position, request.first);
+    EXPECT_EQ(joint.angles, request.angles);
+    EXPECT_EQ(joint.targetPosition, glm::vec3(1.0f, 2.0f, 3.0f));
+    EXPECT_EQ(joint.ownerContext, &hero);
+}
+
+// 0x538a52..0x538d28: después del avance común con la velocidad de antes, sube 4; gira de a 10 hacia el héroe 120 más
+// arriba, leído en vivo; la luz es (12 − vida) · 0,1f por (0,4f; 0,6f; 1) y, con la vida en 1, el sprite 0x5fd en ese
+// destino con el giro rand() % 360 y la escala ((rand() & 7) + 8) · 0,2f. La cola común con la matriz del principio del
+// paso; muere en el paso 13.
+TEST(FullSetJointsTest, TheSummonEnergyClimbsTowardsItsOwnerAndShinesOnItsLastLife)
+{
+    ActorState hero;
+    hero.position = {1300.0f, 1700.0f, 290.0f};
+    std::array<JointState, 1> joints{};
+    CrtRandom random(1);
+    Request request{0x619, 1, 5.0f, -1, 0};
+    request.first = {1450.0f, 1600.0f, 380.0f};
+    request.angles = {40.0f, 0.0f, 213.0f};
+    ASSERT_TRUE(Create(joints, request, &hero, random).HasValue());
+    JointState expected = joints[0];
+    Client::World::FrameSprites sprites;
+    CrtRandom draws(1);
+    const double tenth = D(Float(0x3dcccccdu));
+
+    for (int step = 1; step <= 13; ++step)
+    {
+        SCOPED_TRACE(step);
+        if (step == 6)
+            hero.position = {1310.0f, 1690.0f, 300.0f};
+        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0, &sprites).HasValue());
+
+        const auto matrix = Client::Render::Models::OriginalAngleMatrix(expected.angles);
+        const glm::vec3 moved = Client::Render::Models::OriginalVectorRotate({0.0f, -expected.speed, 0.0f}, matrix);
+        if (expected.speed > 0)
+            for (int axis = 0; axis < 3; ++axis)
+                expected.position[axis] = F32(D(expected.position[axis]) + D(moved[axis]));
+        expected.speed = F32(4.0 + D(expected.speed));
+        const glm::vec3 target{hero.position.x, hero.position.y, F32(D(hero.position.z) + 120.0)};
+        Steer(expected, target, 10.0f);
+        const double brightness = static_cast<double>(12 - expected.life) * tenth;
+        expected.light = {F32(brightness * D(Float(0x3ecccccdu))), F32(brightness * D(Float(0x3f19999au))),
+                          F32(brightness)};
+        if (expected.life == 1)
+        {
+            const auto rotation = static_cast<float>(draws.Next() % 360);
+            const auto scale = F32(static_cast<double>((draws.Next() & 7) + 8) * D(Float(0x3e4ccccdu)));
+            const auto shown = std::ranges::find_if(sprites.Sprites(), [](const auto& sprite) { return sprite.alive; });
+            ASSERT_NE(shown, sprites.Sprites().end());
+            EXPECT_EQ(shown->texture, 0x5fd);
+            EXPECT_EQ(shown->position, target);
+            EXPECT_EQ(shown->scale, scale);
+            EXPECT_EQ(shown->light, expected.light);
+            EXPECT_EQ(shown->rotation, rotation);
+        }
+        // El sprite de la última vida queda en la tabla del frame: ninguno antes y ése solo después.
+        EXPECT_EQ(std::ranges::count_if(sprites.Sprites(), [](const auto& sprite) { return sprite.alive; }),
+                  step >= 12 ? 1 : 0);
+        expected.count = Appended(expected.count, expected.maximumCount);
+        --expected.life;
+
+        const JointState& joint = joints[0];
+        EXPECT_EQ(joint.speed, expected.speed);
+        EXPECT_EQ(joint.position, expected.position);
+        EXPECT_EQ(joint.angles, expected.angles);
+        EXPECT_EQ(joint.light, expected.light);
+        EXPECT_EQ(joint.count, expected.count);
+        EXPECT_EQ(joint.life, expected.life);
+        EXPECT_EQ(joint.alive, step < 13);
+        EXPECT_EQ(random.State(), draws.State());
+    }
+}
+
+// 0x538b17: sin el héroe no tiene a quién seguir; 0x538cce: en la última vida, sin el RNG o los sprites corta antes de
+// tocar nada.
+TEST(FullSetJointsTest, TheSummonEnergyNeedsItsOwnerAndItsLastSprite)
+{
+    std::array<JointState, 1> joints{};
+    CrtRandom random(1);
+    Request request{0x619, 1, 5.0f, -1, 0};
+    ASSERT_TRUE(Create(joints, request, nullptr, random).HasValue());
+    const auto ownerless = Client::Scenes::StepJoints(joints, random);
+    ASSERT_FALSE(ownerless.HasValue());
+    EXPECT_NE(ownerless.Error().find("0x538b17"), std::string::npos) << ownerless.Error();
+
+    ActorState hero;
+    std::array<JointState, 1> last{};
+    ASSERT_TRUE(Create(last, request, &hero, random).HasValue());
+    last[0].life = 1;
+    const JointState before = last[0];
+    const auto blind = Client::Scenes::StepJoints(last, random);
+    ASSERT_FALSE(blind.HasValue());
+    EXPECT_NE(blind.Error().find("0x538cce"), std::string::npos) << blind.Error();
+    EXPECT_EQ(last[0].speed, before.speed);
+    EXPECT_EQ(last[0].light, before.light);
+    EXPECT_EQ(last[0].life, 1);
 }

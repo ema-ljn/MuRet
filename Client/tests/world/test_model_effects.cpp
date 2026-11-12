@@ -4,6 +4,7 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
+#include "World/Sprites.h"
 #include "World/WorldObjects.h"
 
 #include "support/DragonVectors.h"
@@ -19,6 +20,7 @@
 #include <cstdint>
 #include <limits>
 #include <optional>
+#include <set>
 #include <string>
 
 // Client::World::ModelEffects con el dragón del login (06 § El dragón de fondo), contra lo que hizo el
@@ -527,3 +529,166 @@ TEST(ModelEffectsTest, TheGallopShockWaveIsBornWithOneRandom)
     EXPECT_FALSE(full.CreateGallopShockWave({}, {}, glm::vec3(1.0f), untouched).has_value());
     EXPECT_EQ(untouched.State(), 1u);
 }
+
+namespace
+{
+// 0x518cf0(0x14d, …) → 0x51db7a, el rayo de los Fenrir: vida 100, la escala (rand() % 100) · 0,002f + 0,3f, el alpha
+// 0,7f, tres ángulos rand() % 360 y el lugar por rand() % 30. Para cada semilla repite las cuentas con otra CRT, con
+// el punto de cada hueso en (hueso, 2 · hueso, 3 · hueso), y el sprite 0x5ac de 2 con la luz menos 0,3f.
+TEST(ModelEffectsTest, TheLightningPicksItsPlaceWithItsOwnRandoms)
+{
+    const auto bonePoint = [](std::size_t bone)
+    {
+        const auto b = static_cast<float>(bone);
+        return glm::vec3(b, 2.0f * b, 3.0f * b);
+    };
+    const glm::vec3 at(1000.5f, 2000.25f, 300.0f);
+    const glm::vec3 light(1.0f, 1.0f, 0.2f);
+    std::set<int> places;
+    for (std::uint32_t seed = 1; seed <= 400 && places.size() < 30; ++seed)
+    {
+        SCOPED_TRACE(seed);
+        ModelEffects effects;
+        Client::World::FrameSprites sprites;
+        int owner = 0;
+        Client::Render::Models::CrtRandom random(seed);
+        const auto slot = effects.CreateLightning(at, {0.0f, 0.0f, 45.0f}, light, &owner, random, bonePoint, sprites);
+        ASSERT_TRUE(slot.HasValue()) << slot.Error();
+        ASSERT_EQ(slot.Value(), std::optional<std::size_t>(0));
+        const ModelEffect& bolt = effects.Effects()[0];
+        Client::Render::Models::CrtRandom draws(seed);
+        float scale = static_cast<float>(static_cast<double>(draws.Next() % 100) * static_cast<double>(0.002f) +
+                                         static_cast<double>(0.3f));
+        glm::vec3 angles;
+        for (int axis = 0; axis < 3; ++axis)
+            angles[axis] = static_cast<float>(draws.Next() % 360);
+        const int where = draws.Next() % 30;
+        places.insert(where);
+        const auto shrunk = [&scale]
+        { scale = static_cast<float>(static_cast<double>(scale) - static_cast<double>(0.2f)); };
+        glm::vec3 place = at;
+        bool alive = true;
+        if (where == 1 || where == 2)
+            place = bonePoint(10);
+        else if (where == 3)
+        {
+            shrunk();
+            place = bonePoint(14);
+        }
+        else if (where == 4 || where == 5)
+            place = bonePoint(2);
+        else if (where == 6 || where == 7)
+        {
+            shrunk();
+            place = bonePoint((draws.Next() & 1) == 0 ? 50 : 51);
+        }
+        else if (where == 8)
+        {
+            shrunk();
+            place = bonePoint(53);
+        }
+        else if (where == 9 || where == 10)
+            alive = false;
+        else
+        {
+            scale = static_cast<float>(static_cast<double>(scale) + static_cast<double>(0.1f));
+            place.x = static_cast<float>(static_cast<double>((draws.Next() % 240) - 120) + static_cast<double>(at.x));
+            place.y = static_cast<float>(static_cast<double>((draws.Next() % 10) - 5) + static_cast<double>(at.y));
+            place.z = static_cast<float>(static_cast<double>(at.z) + 110.0);
+        }
+        EXPECT_EQ(random.State(), draws.State());
+        EXPECT_EQ(bolt.alive, alive);
+        EXPECT_EQ(bolt.type, Client::World::LightningEffect);
+        EXPECT_EQ(bolt.subtype, 0);
+        EXPECT_EQ(bolt.life, 100);
+        EXPECT_EQ(bolt.alpha, alive ? std::bit_cast<float>(0x3f333333u) : 0.0f);
+        EXPECT_EQ(bolt.transform.scale, scale);
+        EXPECT_EQ(bolt.transform.angles, angles);
+        EXPECT_EQ(bolt.transform.position, place);
+        EXPECT_EQ(bolt.light, light);
+        EXPECT_TRUE(bolt.hasOwner);
+        EXPECT_EQ(bolt.ownerContext, &owner);
+        EXPECT_EQ(bolt.disturbanceState, 0xffff);
+        const auto& flare = sprites.Sprites()[0];
+        ASSERT_TRUE(flare.alive);
+        EXPECT_EQ(flare.texture, 0x5ac);
+        EXPECT_EQ(flare.position, place);
+        EXPECT_EQ(flare.scale, 2.0f);
+        EXPECT_EQ(flare.light, glm::vec3(static_cast<float>(1.0 - static_cast<double>(0.3f)),
+                                         static_cast<float>(1.0 - static_cast<double>(0.3f)),
+                                         static_cast<float>(static_cast<double>(0.2f) - static_cast<double>(0.3f))));
+    }
+    EXPECT_EQ(places.size(), 30u);
+
+    ModelEffects full;
+    for (auto& effect : full.Effects())
+        effect.alive = true;
+    Client::World::FrameSprites sprites;
+    Client::Render::Models::CrtRandom untouched(1);
+    const auto none = full.CreateLightning(at, {}, light, nullptr, untouched, bonePoint, sprites);
+    ASSERT_TRUE(none.HasValue());
+    EXPECT_FALSE(none.Value().has_value());
+    EXPECT_EQ(untouched.State(), 1u);
+    EXPECT_FALSE(sprites.Sprites()[0].alive);
+    ModelEffects empty;
+    EXPECT_FALSE(empty.CreateLightning(at, {}, light, nullptr, untouched, {}, sprites).HasValue());
+    EXPECT_FALSE(empty.Effects()[0].alive);
+}
+
+// 0x518cf0(0x14e, …) → 0x51ddfc, el calco de los Fenrir: vida 200, el cuadro en 0, la luz, el alpha en 1, la hora de
+// timeGetTime() y la z en 0, con el subtipo del color. Sin rand(); lleno, ninguno.
+TEST(ModelEffectsTest, TheLightningDecalKeepsItsHourAndLiesOnZeroHeight)
+{
+    ModelEffects effects;
+    effects.Effects()[0].textureFrame = 3; // lo que dejó el anterior.
+    int owner = 0;
+    const auto slot =
+        effects.CreateLightningDecal({100.5f, 200.25f, 300.0f}, {0.0f, 0.0f, 45.0f}, glm::vec3(1.0f), 2, &owner, 4321u);
+    ASSERT_EQ(slot, std::optional<std::size_t>(0));
+    const ModelEffect& decal = effects.Effects()[0];
+    EXPECT_TRUE(decal.alive);
+    EXPECT_EQ(decal.type, Client::World::LightningDecalEffect);
+    EXPECT_EQ(decal.subtype, 2);
+    EXPECT_EQ(decal.life, 200);
+    EXPECT_EQ(decal.textureFrame, 0);
+    EXPECT_EQ(decal.textureTime, 4321u);
+    EXPECT_EQ(decal.alpha, 1.0f);
+    EXPECT_EQ(decal.light, glm::vec3(1.0f));
+    EXPECT_EQ(decal.transform.position, glm::vec3(100.5f, 200.25f, 0.0f));
+    EXPECT_EQ(decal.transform.angles, glm::vec3(0.0f, 0.0f, 45.0f));
+    EXPECT_EQ(decal.ownerContext, &owner);
+
+    ModelEffects full;
+    for (auto& effect : full.Effects())
+        effect.alive = true;
+    EXPECT_FALSE(full.CreateLightningDecal({}, {}, glm::vec3(1.0f), 1, nullptr, 0u).has_value());
+}
+// 0x518cf0(0x61e, …, 1, héroe, −1, 0, 0, 0, 0) → 0x51eebb, el calco de la mascota: el prefijo común (escala 0,9, +0x8a
+// en −1), el dueño y vida 20; el subtipo 1 sale sin caso. Sin rand(); lleno, ninguno.
+TEST(ModelEffectsTest, ThePetSummonIsTheColoredDecalWithItsOwnerAndTwentySteps)
+{
+    ModelEffects effects;
+    int owner = 0;
+    const auto slot = effects.CreatePetSummon({100.5f, 200.25f, 300.0f}, {0.0f, 0.0f, 45.0f}, glm::vec3(0.5f), &owner);
+    ASSERT_EQ(slot, std::optional<std::size_t>(0));
+    const ModelEffect& summon = effects.Effects()[0];
+    EXPECT_TRUE(summon.alive);
+    EXPECT_EQ(summon.type, Client::World::ColoredDecalEffect);
+    EXPECT_EQ(summon.subtype, Client::World::PetSummonSubtype);
+    EXPECT_EQ(summon.life, 20);
+    EXPECT_EQ(summon.transform.scale, 0.9f);
+    EXPECT_EQ(summon.transform.position, glm::vec3(100.5f, 200.25f, 300.0f));
+    EXPECT_EQ(summon.transform.angles, glm::vec3(0.0f, 0.0f, 45.0f));
+    EXPECT_EQ(summon.light, glm::vec3(0.5f));
+    EXPECT_EQ(summon.velocity, glm::vec3(0.0f));
+    EXPECT_EQ(summon.disturbanceState, 0xffffu);
+    EXPECT_TRUE(summon.hasOwner);
+    EXPECT_EQ(summon.ownerContext, &owner);
+    EXPECT_EQ(summon.itemType, nullptr);
+
+    ModelEffects full;
+    for (auto& effect : full.Effects())
+        effect.alive = true;
+    EXPECT_FALSE(full.CreatePetSummon({}, {}, glm::vec3(1.0f), &owner).has_value());
+}
+} // namespace

@@ -11,8 +11,8 @@
 #include <cstdint>
 #include <limits>
 
-// La chispa 0x5c6/0xb del arco 0xa27 y del bastón 0xc1e: 0x540977 al crearla y 0x545368 en cada paso. Los
-// esperados repiten las fórmulas del ASM con otro CrtRandom de la misma semilla.
+// La chispa 0x5c6/0xb del arco 0xa27 y del bastón 0xc1e: 0x540977 al crearla y 0x545368 en cada paso; y la 0x5c6/0xf
+// del Fenrir: 0x540b42 y 0x5453d3. Los esperados repiten las fórmulas del ASM con otro CrtRandom de la misma semilla.
 namespace
 {
 using Client::Render::Models::CrtRandom;
@@ -117,5 +117,78 @@ TEST(WeaponSparkParticlesTest, TheCountdownKillsAtZeroAndBelowButNotAbove)
         Client::World::StepWeaponSpark(particle);
         EXPECT_EQ(particle.alive, value.alive);
     }
+}
+
+// 0x540b42: la chispa 0x5c6/15 del Fenrir saca un rand() y, con el resto de 3 distinto de 0, se queda con la vida 2 del
+// prefijo, la velocidad en 0 y el +0x38 que tenía el lugar (Q-C422). Con 0, +0x38 en 1,0f, la vida 35 y la velocidad
+// en z ((rand() % 5) + 5) · −0,5f; la escala es la del argumento.
+TEST(WeaponSparkParticlesTest, TheFenrirSparkOnlyLivesWithOneDrawInThree)
+{
+    bool kept = false;
+    bool lit = false;
+    for (std::uint32_t seed = 1; seed <= 12; ++seed)
+    {
+        SCOPED_TRACE(seed);
+        Particles particles;
+        particles.All()[0].field38 = Bits(0.25f); // lo que dejó el anterior en el lugar.
+        CrtRandom random(seed);
+        const auto created =
+            particles.CreateChecked(Spark, {100.0f, 200.0f, 300.0f}, {0.0f, 0.0f, 45.0f}, {1.0f, 0.0f, 0.0f},
+                                    Client::World::FenrirSparkSubtype, 0.75f, 0.0f, random);
+        ASSERT_TRUE(created.HasValue());
+        ASSERT_EQ(created.Value(), 0u);
+        const Particle& particle = particles.All()[0];
+        CrtRandom draws(seed);
+        EXPECT_TRUE(particle.alive);
+        EXPECT_EQ(particle.scale, 0.75f);
+        EXPECT_EQ(particle.light, glm::vec3(1.0f, 0.0f, 0.0f));
+        if (draws.Next() % 3 != 0)
+        {
+            kept = true;
+            EXPECT_EQ(random.State(), draws.State());
+            EXPECT_EQ(particle.life, 2);
+            EXPECT_EQ(particle.field38, Bits(0.25f));
+            EXPECT_EQ(particle.velocity, glm::vec3(0.0f));
+            continue;
+        }
+        lit = true;
+        const float fall = F32((static_cast<double>(draws.Next() % 5) + 5.0) * -0.5);
+        EXPECT_EQ(random.State(), draws.State());
+        EXPECT_EQ(particle.life, 35);
+        EXPECT_EQ(particle.field38, Bits(1.0f));
+        EXPECT_EQ(particle.velocity, glm::vec3(0.0f, 0.0f, fall));
+    }
+    EXPECT_TRUE(kept);
+    EXPECT_TRUE(lit);
+}
+
+// 0x5453d3, después de la vida y del movimiento comunes: la luz por 0,952381f y +0x38 −0,001f, sin tocar la escala.
+TEST(WeaponSparkParticlesTest, TheFenrirSparkFadesAndCountsDownWithoutShrinking)
+{
+    Particles particles;
+    Particle& particle = particles.All()[0];
+    particle = Particle{.alive = true,
+                        .type = Spark,
+                        .subtype = Client::World::FenrirSparkSubtype,
+                        .scale = 0.75f,
+                        .position = {100.0f, 200.0f, 300.0f},
+                        .light = {1.0f, 0.0f, 0.0f},
+                        .field38 = Bits(1.0f),
+                        .life = 35,
+                        .moves = true,
+                        .velocity = {0.0f, 0.0f, -4.5f}};
+    CrtRandom random(7);
+    ASSERT_FALSE(Client::World::StepParticles(particles, random).has_value());
+    const double fade = D(std::bit_cast<float>(0x3f73cf3eu));
+    EXPECT_TRUE(particle.alive);
+    EXPECT_EQ(particle.life, 34);
+    EXPECT_EQ(particle.position, glm::vec3(100.0f, 200.0f, 295.5f));
+    EXPECT_EQ(particle.light, glm::vec3(F32(fade), 0.0f, 0.0f));
+    EXPECT_EQ(particle.scale, 0.75f);
+    EXPECT_EQ(particle.field38, Bits(F32(1.0 - D(0.001f))));
+
+    Particle spent{.alive = true, .type = Spark, .subtype = Client::World::FenrirSparkSubtype, .field38 = Bits(0.001f)};
+    Client::World::StepFenrirSpark(spent);
+    EXPECT_FALSE(spent.alive);
 }
 } // namespace

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 
+#include <cstdint>
 #include <functional>
 #include <string>
 
@@ -19,14 +20,16 @@ class KalimaWorld;
 class FrameSprites;
 struct TerrainLighting;
 // Lo que los casos piden afuera de su efecto: la altura del terreno (0x5f93c0) de la mariposa y de las
-// piedras, la tabla de sprites del frame (0x5491e0) de la mariposa, y la de los efectos (0x518cf0) y la luz
-// dinámica (0x7b4ccc4) del chorro 0x5de. Sin ellos, el caso corta en su dirección.
+// piedras, la tabla de sprites del frame (0x5491e0) de la mariposa, la de los efectos (0x518cf0) y la luz
+// dinámica (0x7b4ccc4) del chorro 0x5de, y timeGetTime() (0x6b8544) del calco 0x14e de los Fenrir. Sin ellos, el
+// caso corta en su dirección.
 struct ModelEffectStepServices
 {
     std::function<double(float, float)> terrainHeight{};
     FrameSprites* sprites = nullptr;
     ModelEffects* effects = nullptr;
     TerrainLighting* lighting = nullptr;
+    std::function<std::uint32_t()> systemTime{};
 };
 // 0x5208a0: CRT común, llegada/teleport, torre de Noria, 9/0 de Kalima con el owner de ondas, la mariposa
 // 0xae (sus rand() del vuelo, la luz del subtipo, las chispas 5c5/7 del /3 y el sprite 0x5ac) y los del
@@ -37,7 +40,10 @@ struct ModelEffectStepServices
 // dos giros sorteados y el seno del reloj, y suelta una 5ac/9 por paso. El 0x135 del 30 (0x52973e) no
 // muere y, con dueño, sube y baja con el seno del reloj. El calco 0x61d/3 del 0x38 de Crywolf (0x52b933), con la
 // vida entre 6 y 9, suelta una órbita 60f/10; el /0, el /2 y el /7 cortan en 0x52b8a6. La onda 0x6eb/1 del galope del
-// caballo en Icarus (0x52c5ca) crece y tiembla con tres rand(); los otros subtipos del 0x6eb cortan.
+// caballo en Icarus (0x52c5ca) crece y tiembla con tres rand(); los otros subtipos del 0x6eb cortan. El rayo 0x14d de
+// los Fenrir (0x5295a4) se prende de a 0,3f con el subtipo 0 y se apaga con el 1, y gira 0,15f por eje; el calco
+// 0x14e (0x52965a) gira 0,1f en x, se apaga de a 0,05f (la luz según el subtipo) y cambia de cuadro cada 200 ms de
+// timeGetTime(), hasta el quinto.
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton, Particles& particles,
                     float worldClock, Render::Models::CrtRandom& random, KalimaWorld* kalima = nullptr,

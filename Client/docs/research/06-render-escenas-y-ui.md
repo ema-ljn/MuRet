@@ -1275,7 +1275,7 @@ tipo.
   `0x110` y el Horn of Doom (`0x1a25`) con un Fenrir por el `+0x1b` del ítem, que copia antes a `+0x31b` del héroe:
   1 el `0x14a`, 2 el `0x14c` y otro el `0x14b`. Salvo con el `0x1c12`, con `+0x3e2` del héroe en 0 sigue
   `0x518cf0(0x61e, héroe + 0x10, héroe + 0x1c, héroe + 0xf4, 1, héroe, −1, 0, 0, 0, 0)`, aunque `0x443fa0` no haya
-  creado nada; el paso de ese efecto (`0x518900`) crea la junta `0x619/1`.
+  creado nada; el paso de ese efecto (`0x518900`) crea tres joints `0x619/1` (*El calco de la mascota*, abajo).
 - **`0x443d70`** con los Fenrir, el Uniria y el Dinorant: la escala en 0,9. Con el `0x1c12`: 0,7, el blendMesh
   (`+0x64`) en 1 (`0x443f1a`) y el lugar corrido desde el del jinete `rand() % 512 − 256` en x y en y y
   `rand() % 128 + 128` en z (`0x443f21..0x443f8c`, tres `rand()`). La velocidad del vuelo (`+0xcc..+0xd4`) no la
@@ -1319,6 +1319,35 @@ tipo.
   de `0x445336`, por 0,01f, y con el `0x1c12` el sprite `0x5ac` en su lugar (`0x445390`: escala 1, rotación 0,
   aditivo) con esa cuenta por (0,5; 0,8; 0,6), cada canal guardado en float: con 80, (`0x3ecccccc`; `0x3f23d70a`;
   `0x3ef5c290`).
+- **Los efectos de los Fenrir** (*estático*, ASM c32bbd5f; portados el 2026-11-12). El rayo `0x14d`
+  (`Effect\lightning_type01.bmd`, `0x615ff5`, la textura `0x68f` `eff_lighting`) nace en `0x51db7a`: el prefijo común con
+  el Fenrir de dueño, vida 100, la escala `(rand() % 100) · 0,002f + 0,3f`, el alpha 0,7f, los tres ángulos
+  `rand() % 360` y el lugar por `rand() % 30`: el punto de un hueso del buffer global (`0x4ec110(…, 0)`, que no mira
+  el modelo del dueño) con 1 y 2 el 10, 3 el 14, 4 y 5 el 2, 6 y 7 el 50 o el 51 por un `rand()` par o impar, 8 el
+  53; con 3, 6, 7 y 8, 0,2f menos de escala; con 9 y 10 se apaga (alpha 0); con los demás, 0,1f más y la posición
+  corrida `rand() % 240 − 120` en x, `rand() % 10 − 5` en y y 110 en z. Siempre, el sprite `0x5ac` de escala 2 en su
+  lugar con la luz menos 0,3f (`0x51ddab`). Su paso (`0x5295a4`) prende el alpha de a 0,3f con el subtipo 0 y lo
+  apaga con el 1, y gira 0,15f cada eje. El calco `0x14e` (`eff_lightinga01..05`, `0x690..0x694`, sin modelo) nace en
+  `0x51ddfc` con vida 200, el cuadro (`+0x1c4`) en 0, la hora de `timeGetTime()` (`+0x1c0`) y la z en 0; su paso
+  (`0x52965a`) gira 0,1f en x, baja el alpha 0,05f (la luz por el subtipo del color) y cambia de cuadro cada 200 ms
+  de `timeGetTime()`, hasta el quinto; lo dibuja `0x52d8f2` en el piso. La chispa `5c6/15` (Spark03, `0x540b42`) saca
+  un `rand()` y sólo con el resto de 3 en 0 toma vida 35, `+0x38` en 1 y la caída `((rand() % 5) + 5) · −0,5f`;
+  si no, queda con la vida 2 del prefijo y el `+0x38` que tenía el lugar (Q-C422). Su paso (`0x5453d3`) baja la luz
+  por 0,952381f y `+0x38` 0,001f, sin tocar la escala.
+- **El calco de la mascota** (`0x61e/1`, *estático*, ASM c32bbd5f; portado el 2026-11-12). `0x518cf0` con el `0x61e`
+  va a `0x51eebb`: vida 20 y, con el subtipo 1, la salida de `0x51db73`, sin `rand()`. Su paso (`0x5208a0`, el caso
+  del `0x61e` y el `0x61f` en `0x52b9a6`) llama a `0x518900` con los subtipos de 1 en adelante salvo el 4, el 6 y del
+  7 al 10: después del `rand()` de la luz (`0x5208c5`), tres `0x530860(0x619, inicio, posición, ángulos, subtipo,
+  dueño, 5, −1, 0, 0, −1)` (el 5 pasaría como `0xb`), cada uno con sus ángulos `(rand() % 90, 0, rand() % 360)` y el
+  inicio donde esos ángulos llevan `(0, −200, 0)` restado de la posición, con 120 más de z (`0x51897a..0x5189b4`,
+  cada resta guardada en float). El `0x61e` no es un BMD: la cola común (`0x52cb98`) no avanza animación y descuenta
+  la vida. El joint `619/1` tiene sólo lo común del `0x619` (`0x5323d3..0x5323f8`): velocidad 0, vida 12, el ancho y 2
+  puntos. Su paso (`0x538a52..0x538d28`), después del avance común con la velocidad de antes: la velocidad sube 4,
+  gira de a 10 (`0x4e9810`) hacia el dueño (`+0x54`, leído en vivo) 120 más arriba, la luz es `(12 − vida) · 0,1f`
+  por (0,4f; 0,6f; 1), con el producto sin redondear, y con la vida en 1 el sprite `0x5fd` en ese destino con el giro
+  `rand() % 360` y la escala `((rand() & 7) + 8) · 0,2f`; la cola común con la matriz del principio del paso. El
+  pase del suelo dibuja el calco (`Effect\Magic_Ground2`, `0x61e`) con el color del subtipo 1 y el lado de la
+  llegada, y `0x53c6a0` dibuja los joints con `JointEnergy01` (`0x619`) sin casos para el subtipo 1.
 - **La carga** (`0x615700`): `Skill\Rider01.bmd` (`0xc6`, `0x615eca`), `Rider02.bmd` (`0x110`, `0x615f30`; el
   `.smd` de `0x615f17` no corre con `[0x6c9e0c]` en 1), `fenril_black`, `fenril_red` y `fenril_blue` (`0x14a` a
   `0x14c`, `0x615f5c`, `0x615f90` y `0x615fc1`) y `HellGate.bmd` (`0xc5`, `0x61605c`). Las texturas de los Fenrir son
@@ -1335,16 +1364,24 @@ tipo.
   `HelperStepContext::models`; `DrawHelpers` dibuja el Uniria, el Dinorant y el Guardian Angel con `DrawObject` y el
   brillo en la tabla de sprites del frame (`HelperDrawContext::lighting` y `sprites`), en el juego (`GameSceneTail`)
   y en la selección (`0x63486a`). `GameModels` carga los cinco modelos de `Skill\` con sus texturas. El `F3 10` crea
-  el Guardian Angel con el `rand()` compartido. Cortan con error: el dibujo de los Fenrir (`0x60277b`, los efectos
-  `0x14d`), las demás mascotas del `F3 10` fuera de la zona segura (`0x5bca46`, el efecto `0x61e/1`) y lo del caballo
-  (una partícula que no se puede crear, un hueso más allá de los 200 del buffer global, `+0x78 & 0x4000` del jinete
-  en el dibujo). Pruebas: `HelperTableTest` (`TheUniriaFollowsItsRiderAndRaisesTheDustOfItsGallop`,
+  el Guardian Angel con el `rand()` compartido. Los Fenrir se dibujan con `DrawFenrirBody` y sus efectos van a
+  `World::ModelEffects::CreateLightning` y `CreateLightningDecal`, con `HelperDrawContext::effects`, `particles`,
+  `systemTime` y `globalPose` (la copia proyectada del buffer global en los dibujos intermedios); el calco de las
+  demás mascotas fuera de la zona segura va a `World::ModelEffects::CreatePetSummon`, su paso a
+  `Scenes::StepPetSummon` (desde `GameScene::StepTheModelEffects`, como el `5ac/3`) y sus joints a
+  `CreateFaunaJoint` y `StepJoints`. Cortan con error lo del caballo (una partícula que no se puede crear, un hueso
+  más allá de los 200 del buffer global, `+0x78 & 0x4000` del jinete en el dibujo). Pruebas: `HelperTableTest` (`TheUniriaFollowsItsRiderAndRaisesTheDustOfItsGallop`,
   `TheFenrirTakesItsGaitFromTheRider`, `InIcarusTheFenrirRaisesAWaveAndPuffsFromTwoBones`,
   `TheGuardianAngelSparklesAndFliesWithItsVelocity`, `TheUniriaAndTheDinorantDrawWithTheLightOfTheTerrain`,
   `TheDrawScaleDependsOnTheSceneAndOnTheFenrir`, `TheGuardianAngelDrawsItsBlendMeshAndLeavesItsGlow`,
-  `ThePetDrawStopsWhereMuRetHasNotArrived` y otras), `GoldenGameModels.ThePetMountsLoadWithTheirTextures`,
-  `CharacterSelectSceneTest.TheSelectionDrawsTheUniriaOfItsCharacter` e
-  `InventoryReplyTest.AGuardianAngelOfSlot8IsCreatedWithTheSharedRandom`.
+  `ThePetDrawStopsWhereMuRetHasNotArrived`, `TheFenrirDrawsItsSparkItsFlaresAndTwoBolts`,
+  `TheFenrirLeavesItsDecalsInTheWindowsOfItsStrikes` y otras), `GoldenGameModels.ThePetMountsLoadWithTheirTextures`,
+  `CharacterSelectSceneTest.TheSelectionDrawsTheUniriaOfItsCharacter`,
+  `CharacterDrawingTest.TheFenrirGoesWhiteChargesItsSecondMeshAndShadowsEveryMesh`, los del rayo, el calco y la chispa
+  en `ModelEffectsTest`, `GameModelEffectsTest` y `WeaponSparkParticlesTest`,
+  `GameCharacterEffectsTest.ThePetSummonDropsThreeEnergyJointsAroundItsOwnerEachStep`, los `TheSummonEnergy…` de
+  `FullSetJointsTest`, `InventoryReplyTest.AGuardianAngelOfSlot8IsCreatedWithTheSharedRandom` e
+  `InventoryReplyTest.HornOfDoomCopiesItsFlags1bAndSummonsOutsideTheSafeZone`.
 
 ### La tela de la clase 4
 
@@ -3711,10 +3748,11 @@ ayudantes del héroe publicado (`Scenes::TurnOffHelpersOf`). El cuervo del lugar
 `Scenes::ReplaceTheRaven` (`0x420cf0`): suelta `ActorState::darkSpirit` y, fuera de los mapas 18 a 23, lo
 crea de nuevo con `CreateDarkSpirit` en el centro de la celda del héroe, con los 12 `rand()` de sus cierres
 (`InventoryReplyTest.TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0`). Las mascotas del lugar 8 van a `Scenes::CreateHelper` con el
-`rand()` compartido ([Las mascotas](#las-mascotas)), y el `0xbf` también desde que `0x4225d0` no corta.
+`rand()` compartido ([Las mascotas](#las-mascotas)), y el `0xbf` también desde que `0x4225d0` no corta. Fuera
+de la zona segura, las que no son el `0x1c12` dejan el calco `0x61e/1` en el héroe (`0x5bca46`,
+`World::ModelEffects::CreatePetSummon`).
 Cortan con error, nombrando la dirección y después de lo que el original hace antes (el registro se
-cierra igual): las mascotas que no son el `0x1c12` fuera de la zona segura (`0x5bca46`, el `0x61e/1` de
-`0x518cf0`), el anillo de nivel 3 (`0x414340` y `+0x360`), la lectura del nivel con el registro cerrado (Q-C202), una casilla
+cierra igual): el anillo de nivel 3 (`0x414340` y `+0x360`), la lectura del nivel con el registro cerrado (Q-C202), una casilla
 fuera de su grilla (Q-C200) y `Item.bmd` sin cargar.
 
 **`0x4225d0`, la defensa del Dark Horse** (*estático*, ASM c32bbd5f; desde la auditoría del cierre de la CL7,

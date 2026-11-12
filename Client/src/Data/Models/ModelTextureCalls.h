@@ -40,8 +40,8 @@ inline constexpr Textures::Sampling ModelTextureSampling{Textures::Filter::Neare
 // Data::Models::SkillModelFiles). Las otras, que van antes y después, cuando entren las habilidades y los efectos.
 [[nodiscard]] std::span<const ModelTextureCall> SkillTextureCalls();
 
-// Las tres primeras de 0x615700, antes de su 0x60d530(0x3b8): los Fenrir (0x14a a 0x14c), con Skill\, desde el slot
-// donde las dejó 0x611850 (0x371).
+// Las cuatro primeras de 0x615700, antes de su 0x60d530(0x3b8): los Fenrir (0x14a a 0x14c), con Skill\, y su rayo
+// (0x14d), con Effect\, desde el slot donde las dejó 0x611850 (0x371).
 [[nodiscard]] std::span<const ModelTextureCall> FenrirTextureCalls();
 
 // Lo que 0x60f7d0 sube a mano con 0x63b870 y 0x63bd00, sin filtro y sin repetir, en slots fijos que

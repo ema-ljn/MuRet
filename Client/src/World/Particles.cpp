@@ -481,7 +481,7 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     if (type == SparkParticle)
     {
         return subtype == TeleportSparkSubtype || subtype == RavenSparkSubtype || subtype == MapSparkSubtype ||
-                       IsWeaponSpark(type, subtype)
+                       IsWeaponSpark(type, subtype) || IsFenrirSpark(type, subtype)
                    ? std::nullopt
                    : std::optional(ParticleError::UnsupportedSubtype);
     }
@@ -1351,6 +1351,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateWeaponSpark(particle, random);
             return std::optional(index);
         }
+        if (IsFenrirSpark(type, subtype))
+        {
+            CreateFenrirSpark(particle, random);
+            return std::optional(index);
+        }
         if (type == SparkParticle)
         {
             // 0x5406e5: vida 10, los ángulos (0, 0, yaw) y la velocidad, el empujón (−(rand() % 2 + 2), 0, 0)
@@ -1578,6 +1583,10 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         else if (IsWeaponSpark(particle.type, particle.subtype))
         {
             StepWeaponSpark(particle);
+        }
+        else if (IsFenrirSpark(particle.type, particle.subtype))
+        {
+            StepFenrirSpark(particle);
         }
         else if (IsLoginCloud(particle))
         {

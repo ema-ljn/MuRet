@@ -724,3 +724,147 @@ TEST(GameModelEffectsTest, OtherShockWavesStopAfterTheCommonRandom)
     EXPECT_NE(stepped.Error().find("0x52c5ca"), std::string::npos) << stepped.Error();
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
 }
+
+namespace
+{
+// 0x5295a4, el rayo 0x14d de los Fenrir, después del rand() común: con el subtipo 0 el alpha sube 0,3f hasta pasar a 1
+// con el subtipo 1; con el 1 baja 0,3f hasta apagarse en 0; los tres ángulos giran 0,15f; y la vida común.
+TEST(GameModelEffectsTest, TheLightningFlashesOnAndOffAndSpins)
+{
+    using Client::World::ModelEffect;
+    ModelEffect bolt;
+    bolt.alive = true;
+    bolt.type = Client::World::LightningEffect;
+    bolt.life = 100;
+    bolt.alpha = std::bit_cast<float>(0x3f333333u);
+    bolt.transform.angles = {10.0f, 20.0f, 30.0f};
+    Client::World::Particles particles;
+    Client::Render::Models::CrtRandom random(1);
+    const auto step = [&]
+    {
+        const auto stepped = Client::World::StepGameModelEffect(bolt, nullptr, particles, 0.0f, random);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    };
+    const auto spun = [](float angle)
+    { return static_cast<float>(static_cast<double>(angle) + static_cast<double>(0.15f)); };
+
+    // 0,7f + 0,3f da 1 justo en double: el subtipo 1 y el alpha en 1 en el primer paso.
+    ASSERT_EQ(static_cast<double>(std::bit_cast<float>(0x3f333333u)) + static_cast<double>(0.3f), 1.0);
+    step();
+    EXPECT_EQ(bolt.subtype, 1);
+    EXPECT_EQ(bolt.alpha, 1.0f);
+    EXPECT_EQ(bolt.transform.angles, glm::vec3(spun(10.0f), spun(20.0f), spun(30.0f)));
+    EXPECT_EQ(bolt.life, 99);
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 1).State());
+    for (int dim = 0; dim < 3; ++dim)
+        step();
+    EXPECT_TRUE(bolt.alive);
+    EXPECT_EQ(bolt.subtype, 1);
+    step(); // la cuarta resta no deja nada: se apaga con el alpha en 0.
+    EXPECT_FALSE(bolt.alive);
+    EXPECT_EQ(bolt.alpha, 0.0f);
+
+    ModelEffect dim = bolt; // por debajo de 1 sigue en el 0 con la suma guardada.
+    dim.alive = true;
+    dim.subtype = 0;
+    dim.life = 50;
+    dim.alpha = 0.5f;
+    ASSERT_TRUE(Client::World::StepGameModelEffect(dim, nullptr, particles, 0.0f, random).HasValue());
+    EXPECT_EQ(dim.subtype, 0);
+    EXPECT_EQ(dim.alpha, static_cast<float>(0.5 + static_cast<double>(0.3f)));
+
+    ModelEffect negative = bolt; // un alpha guardado negativo (o sin orden) con el subtipo 0 vuelve a 1.
+    negative.alive = true;
+    negative.subtype = 0;
+    negative.life = 50;
+    for (const float alpha : {-2.0f, std::numeric_limits<float>::quiet_NaN()})
+    {
+        negative.alpha = alpha;
+        ASSERT_TRUE(Client::World::StepGameModelEffect(negative, nullptr, particles, 0.0f, random).HasValue());
+        EXPECT_EQ(negative.alpha, 1.0f);
+        EXPECT_EQ(negative.subtype, 0);
+    }
+}
+
+// 0x52965a, el calco 0x14e: x gira 0,1f, la luz baja 0,05f en los canales del subtipo y el alpha 0,05f; con más de 200
+// ms desde su hora pasa al cuadro siguiente con una hora nueva, y pasado el cuarto se apaga. Sin timeGetTime(), corta
+// antes de tocarlo.
+TEST(GameModelEffectsTest, TheLightningDecalFadesItsColourAndTurnsItsFramesByTheClock)
+{
+    using Client::World::ModelEffect;
+    std::uint32_t now = 1000;
+    Client::World::ModelEffectStepServices services;
+    services.systemTime = [&now]() { return now; };
+    Client::World::Particles particles;
+    Client::Render::Models::CrtRandom random(1);
+    const auto fade = [](float value)
+    { return static_cast<float>(static_cast<double>(value) - static_cast<double>(0.05f)); };
+    struct Case
+    {
+        std::int32_t subtype;
+        glm::vec3 light;
+    };
+    for (const Case value : {Case{1, {1.0f, fade(1.0f), fade(1.0f)}}, Case{2, {fade(1.0f), fade(1.0f), 1.0f}},
+                             Case{3, {fade(1.0f), 1.0f, fade(1.0f)}}, Case{4, glm::vec3(1.0f)}})
+    {
+        SCOPED_TRACE(value.subtype);
+        ModelEffect decal;
+        decal.alive = true;
+        decal.type = Client::World::LightningDecalEffect;
+        decal.subtype = value.subtype;
+        decal.life = 200;
+        decal.alpha = 1.0f;
+        decal.light = glm::vec3(1.0f);
+        decal.textureTime = 800;
+        decal.transform.angles = {5.0f, 0.0f, 45.0f};
+        const auto stepped =
+            Client::World::StepGameModelEffect(decal, nullptr, particles, 0.0f, random, nullptr, services);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(decal.light, value.light);
+        EXPECT_EQ(decal.alpha, fade(1.0f));
+        EXPECT_EQ(decal.transform.angles, glm::vec3(static_cast<float>(5.0 + static_cast<double>(0.1f)), 0.0f, 45.0f));
+        EXPECT_EQ(decal.textureFrame, 0); // 1000 − 800 = 200, que no pasa de 200.
+        EXPECT_EQ(decal.textureTime, 800u);
+        EXPECT_EQ(decal.life, 199);
+    }
+
+    ModelEffect decal;
+    decal.alive = true;
+    decal.type = Client::World::LightningDecalEffect;
+    decal.subtype = 1;
+    decal.life = 200;
+    decal.alpha = 1.0f;
+    decal.textureTime = 799;
+    decal.textureFrame = 3;
+    ASSERT_TRUE(
+        Client::World::StepGameModelEffect(decal, nullptr, particles, 0.0f, random, nullptr, services).HasValue());
+    EXPECT_EQ(decal.textureFrame, 4);
+    EXPECT_EQ(decal.textureTime, 1000u);
+    EXPECT_TRUE(decal.alive);
+    now = 1201;
+    ASSERT_TRUE(
+        Client::World::StepGameModelEffect(decal, nullptr, particles, 0.0f, random, nullptr, services).HasValue());
+    EXPECT_EQ(decal.textureFrame, 5);
+    EXPECT_EQ(decal.textureTime, 1201u);
+    EXPECT_FALSE(decal.alive);
+
+    ModelEffect faded = decal; // la resta del alpha en 0 o menos lo apaga.
+    faded.alive = true;
+    faded.textureFrame = 0;
+    faded.textureTime = now;
+    faded.alpha = 0.05f;
+    ASSERT_TRUE(
+        Client::World::StepGameModelEffect(faded, nullptr, particles, 0.0f, random, nullptr, services).HasValue());
+    EXPECT_FALSE(faded.alive);
+
+    ModelEffect untouched = faded;
+    untouched.alive = true;
+    untouched.alpha = 1.0f;
+    const ModelEffect before = untouched;
+    const auto cut = Client::World::StepGameModelEffect(untouched, nullptr, particles, 0.0f, random);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x529701"), std::string::npos) << cut.Error();
+    EXPECT_EQ(untouched.alpha, before.alpha);
+    EXPECT_EQ(untouched.transform.angles, before.transform.angles);
+}
+} // namespace

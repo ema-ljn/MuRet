@@ -1854,6 +1854,57 @@ float CastleSiegeScroll(std::int32_t clock)
 }
 } // namespace
 
+Core::Expected<void, std::string> DrawFenrirBody(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                 const DrawnObject& fenrir, std::int32_t map, bool charging,
+                                                 Core::Duration frameClock)
+{
+    constexpr std::uint32_t BaseFlags = 0x2, ChargeFlags = 0x46;
+    constexpr Render::TextureSlot ChargeTexture{0x68f}; // Effect\eff_lighting.jpg.
+    const Data::Models::Model* model = models.Find(fenrir.model);
+    if (model == nullptr)
+        return {};
+    // 0x60279a..0x6027a3: el color del modelo en 1 y +0x88 en 0, sin la luz por vértice.
+    DrawnObject white = fenrir;
+    white.color = glm::vec3(1.0f);
+    white.vertexLight = false;
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    const auto meshes = PosedMeshesOf(models, white, skinned);
+    if (meshes.empty())
+        return {};
+    for (const std::int16_t mesh : {std::int16_t{0}, std::int16_t{1}})
+        if (auto drawn = DrawItemMeshPass(batch, models, white, frameClock, meshes, mesh, BaseFlags); !drawn.HasValue())
+            return drawn;
+    if (charging)
+        if (auto drawn = DrawItemMeshPass(batch, models, white, frameClock, meshes, 1, ChargeFlags, ChargeTexture);
+            !drawn.HasValue())
+            return drawn;
+    // 0x6028dc..0x6028f3: en los mapas 10, 24 a 29 y 36 no hay sombra; 0x602904: en el 7, con alpha 0,2.
+    const bool kalima =
+        (map >= DarkHorseFirstKalimaMap && map <= DarkHorseLastKalimaMap) || map == DarkHorseSeventhKalimaMap;
+    if (map == DarkHorseNoShadowMap || kalima)
+        return {};
+    Render::Color shadowColor = DarkHorseShadowColor;
+    if (map == DarkHorseFaintShadowMap)
+        shadowColor.alpha = DarkHorseShadowAlphaOfMapSeven;
+    // 0x60292b: 0x4eff40(−1, −1, −1, −1), sin blendMesh ni malla oculta: todas las mallas con triángulos, aplastadas
+    // desde model+0x6c..+0x74, que 0x5ffdf0 dejó en el lugar del Fenrir, con el abanico del mapa.
+    const float spread = Render::Models::ShadowSpreadOf(map);
+    for (std::size_t index = 0; index < model->meshes.size() && index < meshes.size(); ++index)
+    {
+        const Data::Models::Mesh& mesh = model->meshes[index];
+        if (mesh.triangles.empty() || !IndicesInRange(mesh) || meshes[index].positions.size() < mesh.vertices.size())
+            continue;
+        Render::Models::SkinnedMesh flat = meshes[index];
+        for (glm::vec3& position : flat.positions)
+            position = Render::Models::FlattenOnTheGround(position, fenrir.transform.position, spread);
+        MeshDraw draw;
+        draw.mesh = &mesh;
+        draw.skinned = &flat;
+        Triangles(batch, draw, BlendedShadowState, shadowColor, PassUv{});
+    }
+    return {};
+}
+
 Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch, const IModelLibrary& models,
                                                       const DrawnObject& object, const CastleSiegeBodyPass& pass,
                                                       Core::Duration frameClock)

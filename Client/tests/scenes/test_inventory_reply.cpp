@@ -23,10 +23,12 @@
 #include "Scenes/SelectionState.h"
 #include "Scenes/SessionEventApplier.h"
 #include "Scenes/WorldEntry.h"
+#include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "World/ItemState.h"
+#include "World/ModelEffects.h"
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
@@ -640,8 +642,9 @@ TEST_F(InventoryReplyTest, TheReplyTurnsOffTheHorseOfThePublishedHero)
 }
 
 // 0x5bc9d6..0x5bc9db: Horn of Doom copia +0x1b a +0x31b antes de crear el ayudante (el 0x14c con el 2). Fuera de
-// la zona segura (+0x3e2 del héroe en 0) corta en 0x5bca46, el efecto 0x61e/1; en ella, termina.
-TEST_F(InventoryReplyTest, HornOfDoomCopiesItsFlags1bToThePetBeforeStopping)
+// la zona segura (+0x3e2 del héroe en 0), 0x5bca46 crea el calco 0x61e/1 sobre el héroe, con él de dueño y sin rand();
+// en ella, no.
+TEST_F(InventoryReplyTest, HornOfDoomCopiesItsFlags1bAndSummonsOutsideTheSafeZone)
 {
     for (const std::uint8_t safeZone : {std::uint8_t{0}, std::uint8_t{1}})
     {
@@ -649,23 +652,30 @@ TEST_F(InventoryReplyTest, HornOfDoomCopiesItsFlags1bToThePetBeforeStopping)
         Stage tested = Fresh();
         ActorState& hero = tested.PublishedHero();
         hero.safeZone = safeZone;
+        hero.position = {1000.0f, 2000.0f, 300.0f};
+        hero.angles = {0.0f, 0.0f, 90.0f};
+        hero.light = {0.25f, 0.5f, 0.75f};
 
         const auto placed =
             Client::Scenes::PlaceInventoryItem(8, ItemBytes(HornOfDoom, 0, 20, 0x02), tested.Resources());
 
-        if (safeZone == 0)
-        {
-            ASSERT_FALSE(placed.HasValue());
-            EXPECT_NE(placed.Error().find("0x5bca46"), std::string::npos) << placed.Error();
-        }
-        else
-        {
-            ASSERT_TRUE(placed.HasValue()) << placed.Error();
-        }
+        ASSERT_TRUE(placed.HasValue()) << placed.Error();
         EXPECT_EQ(hero.pet.flags1b, 0x02);
         EXPECT_TRUE(tested.world.Helpers()[0].alive);
         EXPECT_EQ(tested.world.Helpers()[0].type, 0x14cu);
         EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, EquipmentEntry).State());
+        const auto& summon = tested.world.Map().effects.Effects()[0];
+        EXPECT_EQ(summon.alive, safeZone == 0);
+        if (safeZone == 0)
+        {
+            EXPECT_EQ(summon.type, Client::World::ColoredDecalEffect);
+            EXPECT_EQ(summon.subtype, Client::World::PetSummonSubtype);
+            EXPECT_EQ(summon.transform.position, hero.position);
+            EXPECT_EQ(summon.transform.angles, hero.angles);
+            EXPECT_EQ(summon.light, hero.light);
+            EXPECT_EQ(summon.ownerContext, &hero);
+            EXPECT_EQ(summon.life, 20);
+        }
     }
 }
 

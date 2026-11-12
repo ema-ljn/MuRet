@@ -355,6 +355,16 @@ void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const
 void DrawDarkSpirit(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& spirit,
                     float groundHeight, Core::Duration frameClock, std::int32_t map);
 
+// 0x602e90 con los Fenrir (0x14a a 0x14c) en 0x6002e0 (0x60277b..0x60292b), entre 0x4ecc10 y 0x4ecc20: el color del
+// modelo en 1 y +0x88 en 0 (sin la luz por vértice), 0x4ecc30(0, 2, …) y 0x4ecc30(1, 2, …) con el alpha, el blendMesh,
+// su luz y la U y la V del objeto y, con `charging` (la acción 4 del Fenrir, +0x111), la malla 1 otra vez con 0x46
+// (el cromo aditivo) y Effect\eff_lighting (0x68f). Después, salvo en los mapas 10, 24 a 29 y 36, la sombra de todas
+// las mallas con triángulos (0x4eff40(−1, −1, −1, −1)) en (0, 0, 0, 0,7), o 0,2 en el 7, mezclada y aplastada desde
+// su lugar con el abanico del mapa. Sin el modelo, nada; el error es el de 0x4ecc30.
+[[nodiscard]] Core::Expected<void, std::string> DrawFenrirBody(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                               const DrawnObject& fenrir, std::int32_t map,
+                                                               bool charging, Core::Duration frameClock);
+
 // 0x600cf2..0x600daa, el 0x1c y el 0x1d de los mapas 11 a 17 después de su RenderBody: la sombra
 // (0x4eff40(blendMesh, 2, −1, −1)) de las mallas con triángulos, salvo la 2 y las de la textura del blendMesh,
 // en (0, 0, 0, 1) (0x620a00(1) y glColor4f), mezclada y aplastada sobre `groundHeight`, la altura del terreno

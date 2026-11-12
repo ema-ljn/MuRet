@@ -454,6 +454,86 @@ Core::Expected<void, std::string> StepGallopShockWave(ModelEffect& effect, Rende
     effect.light = glm::vec3(F32(static_cast<double>(fade) * LightPerLife));
     return {};
 }
+
+// 0x5295a4..0x529655, el rayo 0x14d de los Fenrir: con el subtipo 0 el alpha sube 0,3f (0x6b89dc) y, con la suma sin
+// redondear (fst) en 1 o más, pasa al subtipo 1 con el alpha en 1; un alpha guardado negativo (o sin orden) vuelve a
+// 1. Con el 1 baja 0,3f y, con la resta sin redondear en 0 o menos (o sin orden), se apaga con el alpha en 0. Con
+// cualquier subtipo, los tres ángulos giran 0,15f (0x6b8ae8). Sin rand().
+void StepLightning(ModelEffect& effect)
+{
+    constexpr double Flash = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc: 0,3f.
+    constexpr double Spin = static_cast<double>(std::bit_cast<float>(0x3e19999au));  // 0x6b8ae8: 0,15f.
+    constexpr std::int32_t Lit = 1;
+    if (effect.subtype == 0)
+    {
+        const double brighter = static_cast<double>(effect.alpha) + Flash;
+        effect.alpha = F32(brighter);
+        if (brighter >= 1.0)
+        {
+            effect.subtype = Lit;
+            effect.alpha = 1.0f;
+        }
+        if (!(effect.alpha >= 0.0f))
+            effect.alpha = 1.0f;
+    }
+    else if (effect.subtype == Lit)
+    {
+        const double dimmer = static_cast<double>(effect.alpha) - Flash;
+        effect.alpha = F32(dimmer);
+        if (!(dimmer > 0.0))
+        {
+            effect.alpha = 0.0f;
+            effect.alive = false;
+        }
+    }
+    for (int axis = 0; axis < 3; ++axis)
+        effect.transform.angles[axis] = F32(static_cast<double>(effect.transform.angles[axis]) + Spin);
+}
+
+// 0x52965a..0x529739, el calco 0x14e de los Fenrir: x gira 0,1f (0x6b87b8); la luz baja 0,05f (0x6b8a48) en el verde
+// y el azul con el subtipo 1, en el rojo y el verde con el 2 y en el rojo y el azul con el 3; el alpha baja 0,05f y,
+// con la resta sin redondear en 0 o menos (o sin orden), se apaga. Después, con más de 200 ms de timeGetTime() desde
+// +0x1c0 (la resta y el jbe sin signo), el cuadro (+0x1c4) avanza, pasado el 4 se apaga, y +0x1c0 toma un
+// timeGetTime() nuevo. Sin rand(); sin timeGetTime(), corta antes de tocarlo.
+Core::Expected<void, std::string> StepLightningDecal(ModelEffect& effect, const ModelEffectStepServices& services)
+{
+    constexpr double Turn = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8: 0,1f.
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8a48: 0,05f.
+    constexpr std::uint32_t FramePeriod = 200;
+    constexpr std::int32_t LastFrame = 4;
+    if (!services.systemTime)
+        return Core::Unexpected(std::string("0x529701: falta timeGetTime() para el calco 0x14e de los Fenrir"));
+    effect.transform.angles.x = F32(static_cast<double>(effect.transform.angles.x) + Turn);
+    const auto fade = [&effect](int channel)
+    { effect.light[channel] = F32(static_cast<double>(effect.light[channel]) - Fade); };
+    if (effect.subtype == 1)
+    {
+        fade(1);
+        fade(2);
+    }
+    else if (effect.subtype == 2)
+    {
+        fade(0);
+        fade(1);
+    }
+    else if (effect.subtype == 3)
+    {
+        fade(0);
+        fade(2);
+    }
+    const double left = static_cast<double>(effect.alpha) - Fade;
+    effect.alpha = F32(left);
+    if (!(left > 0.0))
+        effect.alive = false;
+    if (services.systemTime() - effect.textureTime > FramePeriod)
+    {
+        ++effect.textureFrame;
+        if (effect.textureFrame > LastFrame)
+            effect.alive = false;
+        effect.textureTime = services.systemTime();
+    }
+    return {};
+}
 } // namespace
 Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
                                                       Particles& particles, float worldClock,
@@ -532,6 +612,15 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     else if (effect.type == ShockWaveEffect)
     {
         if (auto stepped = StepGallopShockWave(effect, random); !stepped.HasValue())
+            return stepped;
+    }
+    else if (effect.type == LightningEffect)
+    {
+        StepLightning(effect);
+    }
+    else if (effect.type == LightningDecalEffect)
+    {
+        if (auto stepped = StepLightningDecal(effect, services); !stepped.HasValue())
             return stepped;
     }
     else if (effect.type != DragonEffect && effect.type != ArrivalEffect && effect.type != IcarusCloudEffect)

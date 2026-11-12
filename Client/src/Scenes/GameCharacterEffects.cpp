@@ -115,6 +115,14 @@ constexpr float FlareRadius = 50.0f;
 constexpr std::int32_t EnergyType = 0x619, EnergySubtype = 9;
 constexpr float EnergyWidth = 10.0f;
 
+// 0x518900: los tres joints 619 de ancho 5 que suelta el calco 0x61e/1 de la mascota en cada paso, 200 más allá
+// ([ebp−0x20]) y 120 más arriba (0x6b86c8). El subtipo 5 pasaría como 0xb, pero sólo se crea el /1.
+constexpr int SummonJoints = 3;
+constexpr float SummonWidth = 5.0f;
+constexpr float SummonReach = 200.0f;
+constexpr double SummonLift = 120.0;
+constexpr int SummonPitchSpan = 90, SummonTurnSpan = 360;
+
 // 0x50ff5e..0x510002: la luz de cada bota de 0x182f a 0x1833.
 constexpr std::array<glm::vec3, 5> BootsLights{{
     {std::bit_cast<float>(0x3f266666u), std::bit_cast<float>(0x3e99999au), std::bit_cast<float>(0x3dcccccdu)},
@@ -578,6 +586,40 @@ Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect, s
             return Core::Unexpected(std::format("0x52aa5d: {}", created.Error()));
     }
     // 0x52cb98: el 0x5ac no avanza animación; la velocidad (0) girada y una vida menos.
+    World::StepModelEffect(effect, nullptr);
+    return {};
+}
+
+Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<JointState> joints,
+                                                Render::Models::CrtRandom& random)
+{
+    if (!effect.alive)
+        return {};
+    if (effect.type != World::ColoredDecalEffect || effect.subtype != World::PetSummonSubtype)
+        return Core::Unexpected(
+            std::format("0x52b9a6: el efecto {:#x}/{} no es el 0x61e/1", effect.type, effect.subtype));
+    if (joints.empty())
+        return Core::Unexpected<std::string>("0x5189cc: faltan los joints del paso (0x530860)");
+    // 0x5208c5: el primer rand() corre para todo efecto vivo, aunque el 0x61e no use la luz.
+    static_cast<void>(random.Next());
+    glm::vec3& position = effect.transform.position;
+    for (int made = 0; made < SummonJoints; ++made)
+    {
+        glm::vec3 angles{static_cast<float>(random.Next() % SummonPitchSpan), 0.0f,
+                         static_cast<float>(random.Next() % SummonTurnSpan)};
+        const glm::vec3 reach = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, -SummonReach, 0.0f),
+                                                                     Render::Models::OriginalAngleMatrix(angles));
+        // 0x51897a..0x5189b4: cada resta se guarda; la z suma 120 antes de guardarse.
+        glm::vec3 start{F32(D(position.x) - D(reach.x)), F32(D(position.y) - D(reach.y)),
+                        F32(D(position.z) - D(reach.z) + SummonLift)};
+        const auto created = CreateFaunaJoint(joints,
+                                              {EnergyType, start, position, angles, effect.subtype, effect.ownerContext,
+                                               SummonWidth, NoKey, 0, 0, NoTarget},
+                                              random);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("0x5189cc: {}", created.Error()));
+    }
+    // 0x52cb98: el 0x61e no es un BMD y no avanza animación; la velocidad (0) girada y una vida menos.
     World::StepModelEffect(effect, nullptr);
     return {};
 }

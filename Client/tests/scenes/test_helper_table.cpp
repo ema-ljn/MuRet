@@ -8,6 +8,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalAngles.h"
+#include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
@@ -38,6 +39,7 @@
 #include <array>
 #include <bit>
 #include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -294,17 +296,27 @@ public:
     // Lo que el dibujo de `scene` lee: la luz del terreno de este mundo y la tabla de los sprites.
     HelperDrawContext DrawContext(ModelBatch& batch, bool originalFrame = true, SceneId scene = SceneId::Game)
     {
-        return HelperDrawContext{.batch = batch,
-                                 .models = models,
-                                 .world = world,
-                                 .random = random,
-                                 .frameClock = std::chrono::milliseconds{0},
-                                 .stepAlpha = 0.0f,
-                                 .originalFrame = originalFrame,
-                                 .scene = scene,
-                                 .lighting = lighting.get(),
-                                 .sprites = &sprites};
+        return HelperDrawContext{
+            .batch = batch,
+            .models = models,
+            .world = world,
+            .random = random,
+            .frameClock = std::chrono::milliseconds{0},
+            .stepAlpha = 0.0f,
+            .originalFrame = originalFrame,
+            .scene = scene,
+            .lighting = lighting.get(),
+            .sprites = &sprites,
+            .worldClock = clock,
+            .effects = &world.Map().effects,
+            .particles = &world.Particles(),
+            .systemTime = []() { return FenrirHour; },
+            .globalPose = [this]()
+            { return std::span<const Client::Render::Models::BoneTransform>(world.PoseCarry().bones); }};
     }
+
+    // El timeGetTime() que ve el dibujo de los Fenrir.
+    static constexpr std::uint32_t FenrirHour = 4321;
 
     Client::Core::Expected<void, std::string> Draw(ModelBatch& batch, const TerrainPolygon& polygon,
                                                    bool originalFrame = true, SceneId scene = SceneId::Game)
@@ -1826,13 +1838,31 @@ TEST(HelperTableTest, TheGuardianAngelDrawsItsBlendMeshAndLeavesItsGlow)
 // para los demás; y la tabla de los sprites para el brillo del 0x1c12, que corta después de su rand().
 TEST(HelperTableTest, ThePetDrawStopsWhereMuRetHasNotArrived)
 {
-    for (const std::uint16_t fenrir : {std::uint16_t{0x14a}, std::uint16_t{0x14b}, std::uint16_t{0x14c}})
+    // El Fenrir pide sus tablas antes de dibujar y de sacar el primer rand().
+    for (int missing = 0; missing < 5; ++missing)
     {
+        SCOPED_TRACE(missing);
         HelperWorld tested;
-        ASSERT_NO_FATAL_FAILURE(tested.Ride(fenrir));
+        ASSERT_NO_FATAL_FAILURE(tested.Ride(0x14a));
         tested.Horse().horse.alpha = 1.0f;
+        tested.Horse().horse.animation.action = 4;
+        tested.PoseTheGlobalBones(60);
+        tested.world.Runtime().terrainPolygon = Everything;
         ModelBatch batch;
-        EXPECT_TRUE(HasError(tested.Draw(batch, Everything), "0x60277b")) << fenrir;
+        batch.Begin(Client::Render::Pass3D{});
+        HelperDrawContext context = tested.DrawContext(batch);
+        if (missing == 0)
+            context.effects = nullptr;
+        else if (missing == 1)
+            context.particles = nullptr;
+        else if (missing == 2)
+            context.sprites = nullptr;
+        else if (missing == 3)
+            context.systemTime = {};
+        else
+            context.globalPose = {};
+        EXPECT_TRUE(HasError(DrawHelpers(context), "0x60277b"));
+        EXPECT_TRUE(batch.Commands().empty());
         EXPECT_EQ(tested.random.State(), CrtRandom(QuietSeed).State());
     }
 
@@ -1854,5 +1884,170 @@ TEST(HelperTableTest, ThePetDrawStopsWhereMuRetHasNotArrived)
     context.sprites = nullptr;
     EXPECT_TRUE(HasError(DrawHelpers(context), "0x445390"));
     EXPECT_EQ(angel.random.State(), RandomAfter(QuietSeed, 4).State());
+}
+// 0x60277b..0x602b50 con el Fenrir rojo (0x14b) en la acción 4, el seno del reloj p = sin(T · 0,002f) · 0,2f: el cuerpo
+// en blanco y su sombra; la chispa 0x5c6/15 del hueso 14 con dos rand() y su escala p · 0,05f + 0,7f; dos sprites
+// 0x5ac en cada ojo (el hueso 11) y dos en el pecho (el 13); y dos rayos 0x14d con (0,8f; 0; 0) y sus rand(). Después,
+// el rand() de 0x445336. Los esperados repiten las altas con otra CRT y el buffer global posado del test.
+TEST(HelperTableTest, TheFenrirDrawsItsSparkItsFlaresAndTwoBolts)
+{
+    for (const std::uint32_t seed : {QuietSeed, 2u, 3u, 5u, 8u})
+    {
+        SCOPED_TRACE(seed);
+        HelperWorld tested(0, seed);
+        ASSERT_NO_FATAL_FAILURE(tested.Ride(0x14b));
+        HelperState& fenrir = tested.Horse();
+        fenrir.horse.alpha = 1.0f;
+        fenrir.horse.animation.action = 4;
+        tested.PoseTheGlobalBones(60);
+        const CrtRandom before = tested.random;
+        ModelBatch batch;
+
+        const auto drawn = tested.Draw(batch, Everything);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+
+        EXPECT_FALSE(batch.Commands().empty());
+        const auto sine = Client::Render::Models::Detail::SineProductPC53(
+            static_cast<double>(tested.clock) * static_cast<double>(0.002f), 0.2f);
+        ASSERT_TRUE(sine.has_value());
+        const double pulse = static_cast<double>(static_cast<float>(*sine));
+        CrtRandom draws = before;
+        const int x = (draws.Next() % 10) - 10;
+        const int z = (draws.Next() % 40) - 20;
+        const glm::vec3 sparkAt =
+            HelperWorld::PosedBone(14) + glm::vec3(static_cast<float>(x * 0.5), 0.0f, static_cast<float>(z * 0.5));
+        Client::World::Particles sparks;
+        const float sparkScale = static_cast<float>(pulse * static_cast<double>(0.05f) + static_cast<double>(0.7f));
+        ASSERT_TRUE(sparks
+                        .CreateChecked(0x5c6, sparkAt, fenrir.angles, glm::vec3(1.0f, 0.0f, 0.0f), 15, sparkScale,
+                                       tested.clock, draws)
+                        .HasValue());
+        const Client::World::Particle& spark = tested.world.Particles().All()[0];
+        ASSERT_TRUE(spark.alive);
+        EXPECT_EQ(spark.subtype, 15);
+        EXPECT_EQ(spark.position, sparkAt);
+        EXPECT_EQ(spark.scale, sparkScale);
+        EXPECT_EQ(spark.life, sparks.All()[0].life);
+        EXPECT_EQ(spark.velocity, sparks.All()[0].velocity);
+
+        Client::World::ModelEffects bolts;
+        Client::World::FrameSprites boltFlares;
+        const auto bonePoint = [](std::size_t bone) { return HelperWorld::PosedBone(bone); };
+        for (int bolt = 0; bolt < 2; ++bolt)
+            ASSERT_TRUE(bolts
+                            .CreateLightning(fenrir.position, fenrir.angles,
+                                             glm::vec3(std::bit_cast<float>(0x3f4ccccdu), 0.0f, 0.0f), &fenrir, draws,
+                                             bonePoint, boltFlares)
+                            .HasValue());
+        static_cast<void>(draws.Next()); // 0x445336.
+        EXPECT_EQ(tested.random.State(), draws.State());
+        for (std::size_t slot = 0; slot < 2; ++slot)
+        {
+            const Client::World::ModelEffect& made = tested.world.Map().effects.Effects()[slot];
+            const Client::World::ModelEffect& expected = bolts.Effects()[slot];
+            EXPECT_EQ(made.alive, expected.alive);
+            EXPECT_EQ(made.type, expected.type);
+            EXPECT_EQ(made.transform.position, expected.transform.position);
+            EXPECT_EQ(made.transform.scale, expected.transform.scale);
+            EXPECT_EQ(made.transform.angles, expected.transform.angles);
+            EXPECT_EQ(made.light, expected.light);
+            EXPECT_EQ(made.ownerContext, &fenrir);
+        }
+        EXPECT_FALSE(tested.world.Map().effects.Effects()[2].alive);
+
+        const auto live = tested.LiveSprites();
+        ASSERT_EQ(live.size(), 8u);
+        const glm::vec3 eyeLight(static_cast<float>(pulse + static_cast<double>(0.9f)),
+                                 static_cast<float>(pulse * 0.5 + static_cast<double>(0.2f)),
+                                 static_cast<float>(pulse * 0.5 + static_cast<double>(0.1f)));
+        const float eyeScale = static_cast<float>(pulse * static_cast<double>(0.1f) + 0.5);
+        const std::array<glm::vec3, 2> eyes{HelperWorld::PosedBone(11) + glm::vec3(50.0f, 2.0f, 11.0f),
+                                            HelperWorld::PosedBone(11) + glm::vec3(50.0f, 2.0f, -11.0f)};
+        for (std::size_t index = 0; index < 4; ++index)
+        {
+            EXPECT_EQ(live[index].texture, 0x5ac);
+            EXPECT_EQ(live[index].position, eyes[index / 2]);
+            EXPECT_EQ(live[index].scale, eyeScale);
+            EXPECT_EQ(live[index].light, eyeLight);
+        }
+        const glm::vec3 chest = HelperWorld::PosedBone(13) + glm::vec3(40.0f, 15.0f, 0.0f);
+        const glm::vec3 chestLight(1.0f, std::bit_cast<float>(0x3e99999au), std::bit_cast<float>(0x3e4ccccdu));
+        EXPECT_EQ(live[4].position, chest);
+        EXPECT_EQ(live[4].scale, 1.5f);
+        EXPECT_EQ(live[4].light, chestLight);
+        EXPECT_EQ(live[5].position, chest);
+        EXPECT_EQ(live[5].scale, 1.0f);
+        EXPECT_EQ(live[5].light, chestLight);
+        for (std::size_t index = 0; index < 2; ++index)
+        {
+            EXPECT_EQ(live[6 + index].position, boltFlares.Sprites()[index].position);
+            EXPECT_EQ(live[6 + index].light, boltFlares.Sprites()[index].light);
+        }
+    }
+}
+
+// Sin la acción 4 no hay chispa ni pase del cromo, y los rayos del Fenrir negro (0x14a) y del azul (0x14c) van con
+// (1; 1; 0,2f) y (0,1f; 0,1f; 0,8f). Los calcos 0x14e, en blanco, con el subtipo del color (3 y 2) y la hora de
+// timeGetTime(): con la acción 1 y el frame en [0; 1,5], en los huesos 22, 28, 36 y 44; con la 2, en el 22 y el 28
+// con el frame en (1; 1,4f] y en el 36 y el 44 en (4,8f; 5,2f]; si no, ninguno.
+TEST(HelperTableTest, TheFenrirLeavesItsDecalsInTheWindowsOfItsStrikes)
+{
+    struct Case
+    {
+        std::uint8_t action;
+        float frame;
+        std::vector<std::size_t> bones;
+    };
+    const std::vector<std::size_t> all{22, 28, 36, 44}, front{22, 28}, back{36, 44}, none{};
+    const float justBelow = std::nextafter(0.0f, -1.0f);
+    for (const Case& tested :
+         {Case{1, justBelow, none}, Case{1, 0.0f, all}, Case{1, 1.5f, all}, Case{1, std::nextafter(1.5f, 2.0f), none},
+          Case{2, 1.0f, none}, Case{2, std::nextafter(1.0f, 2.0f), front}, Case{2, 1.4f, front},
+          Case{2, std::nextafter(1.4f, 2.0f), none}, Case{2, 4.8f, none}, Case{2, 5.0f, back}, Case{2, 5.2f, back},
+          Case{2, std::nextafter(5.2f, 6.0f), none}, Case{0, 1.0f, none}, Case{3, 1.0f, none}})
+    {
+        for (const std::uint16_t type : {std::uint16_t{0x14a}, std::uint16_t{0x14c}})
+        {
+            SCOPED_TRACE(testing::Message() << static_cast<int>(tested.action) << " " << tested.frame << " " << type);
+            HelperWorld world;
+            ASSERT_NO_FATAL_FAILURE(world.Ride(type));
+            world.Horse().horse.alpha = 1.0f;
+            world.Horse().horse.animation.action = tested.action;
+            world.Horse().horse.animation.frame = tested.frame;
+            world.PoseTheGlobalBones(60);
+            ModelBatch batch;
+
+            const auto drawn = world.Draw(batch, Everything);
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+
+            EXPECT_FALSE(world.world.Particles().All()[0].alive);
+            const glm::vec3 boltLight =
+                type == 0x14a ? glm::vec3(1.0f, 1.0f, std::bit_cast<float>(0x3e4ccccdu))
+                              : glm::vec3(std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu),
+                                          std::bit_cast<float>(0x3f4ccccdu));
+            std::vector<glm::vec3> decals;
+            for (const Client::World::ModelEffect& effect : world.world.Map().effects.Effects())
+            {
+                if (!effect.alive)
+                    continue;
+                if (effect.type == Client::World::LightningEffect)
+                {
+                    EXPECT_EQ(effect.light, boltLight);
+                    continue;
+                }
+                ASSERT_EQ(effect.type, Client::World::LightningDecalEffect);
+                EXPECT_EQ(effect.subtype, type == 0x14a ? 3 : 2);
+                EXPECT_EQ(effect.light, glm::vec3(1.0f));
+                EXPECT_EQ(effect.textureTime, HelperWorld::FenrirHour);
+                EXPECT_EQ(effect.transform.angles, world.Horse().angles);
+                decals.push_back(effect.transform.position);
+            }
+            std::vector<glm::vec3> expected;
+            for (const std::size_t bone : tested.bones)
+                expected.push_back(HelperWorld::PosedBone(bone) * glm::vec3(1.0f, 1.0f, 0.0f));
+            EXPECT_EQ(decals, expected);
+            EXPECT_EQ(world.LiveSprites().size(), 8u);
+        }
+    }
 }
 } // namespace

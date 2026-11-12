@@ -32,6 +32,7 @@
 #include "World/WorldTerrain.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <functional>
 #include <cstdint>
@@ -90,10 +91,19 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
 {
     // La mariposa 0xae del 0x3c del 54 sigue viva en la espera de la entrada al juego: su altura y el
     // sprite 0x5ac de la tabla del frame.
-    const World::ModelEffectStepServices services{.terrainHeight = terrainHeight,
-                                                  .sprites = &m_sprites,
-                                                  .effects = &m_context.world->Map().effects,
-                                                  .lighting = &m_context.world->DynamicLighting().Lighting()};
+    // timeGetTime (0x6b8544), del calco 0x14e de los Fenrir: el reloj de la escena en ms.
+    const World::ModelEffectStepServices services{
+        .terrainHeight = terrainHeight,
+        .sprites = &m_sprites,
+        .effects = &m_context.world->Map().effects,
+        .lighting = &m_context.world->DynamicLighting().Lighting(),
+        .systemTime = [this]()
+        {
+            return m_context.clock != nullptr
+                       ? static_cast<std::uint32_t>(
+                             std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
+                       : 0U;
+        }};
     auto effects = m_context.world->Map().effects.Effects();
     for (std::size_t slot = 0; slot < effects.size(); ++slot)
     {
@@ -103,6 +113,14 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         if (effect.type == World::IcarusFlareEffect && effect.subtype == World::FullSetFlareSubtype)
         {
             if (auto stepped = StepFullSetFlare(effect, m_context.world->DrawTail().joints, m_context.cloth->random);
+                !stepped.HasValue())
+                return stepped;
+            continue;
+        }
+        // 0x52b9a6: el calco 0x61e/1 de la mascota suelta joints 619/1 con el héroe de dueño, fuera de World.
+        if (effect.type == World::ColoredDecalEffect && effect.subtype == World::PetSummonSubtype)
+        {
+            if (auto stepped = StepPetSummon(effect, m_context.world->DrawTail().joints, m_context.cloth->random);
                 !stepped.HasValue())
                 return stepped;
             continue;

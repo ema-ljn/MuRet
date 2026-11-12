@@ -33,7 +33,7 @@ namespace Client::Scenes
 class GameModels final : public IModelLibrary
 {
 public:
-    // Lee las 213 filas de PlayerModelFiles, las 243 de ItemModelFiles y las 7 de SkillModelFiles, y
+    // Lee las 213 filas de PlayerModelFiles, las 243 de ItemModelFiles y las 14 de SkillModelFiles, y
     // les da a sus mallas las texturas que piden 0x60f7d0, 0x611850 y 0x615700 (PlayerTextureCalls,
     // ItemTextureCalls y SkillTextureCalls: cada llamada con su carpeta, desde 0x138, 0x25a y 0x3b8,
     // con ModelTextureSlots), Gate02 desde Monster en 0x69 antes del bloque 0x3b8, y las sube con las fijas de

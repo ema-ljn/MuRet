@@ -8,6 +8,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Models/Skinning.h"
 #include "Render/Pass3D.h"
@@ -468,6 +469,77 @@ TEST_F(GameCharacterEffectsTest, TheFullSetFlareWithoutOwnerOnlyCountsAndOtherEf
     const auto refused = Client::Scenes::StepFullSetFlare(flare, m_joints, m_random);
     ASSERT_FALSE(refused.HasValue());
     EXPECT_NE(refused.Error().find("0x52a9ad"), std::string::npos) << refused.Error();
+}
+
+// 0x52b9a6 → 0x518900: el calco 0x61e/1 de la mascota saca el rand() de la luz y, por cada uno de sus tres 619/1, el
+// giro (rand() % 90, 0, rand() % 360); cada joint nace donde ese giro lleva (0, −200, 0) restado de la posición del
+// calco, 120 más arriba, con ancho 5, key −1 y el héroe de dueño. La cola común descuenta la vida: con 20, muere en el
+// paso 20.
+TEST_F(GameCharacterEffectsTest, ThePetSummonDropsThreeEnergyJointsAroundItsOwnerEachStep)
+{
+    m_actor.position = {1300.0f, 1700.0f, 290.0f};
+    m_actor.angles = {0.0f, 0.0f, 45.0f};
+    ASSERT_TRUE(m_effects.CreatePetSummon(m_actor.position, m_actor.angles, glm::vec3(0.5f), &m_actor).has_value());
+    Client::World::ModelEffect& summon = m_effects.Effects()[0];
+
+    const auto stepped = Client::Scenes::StepPetSummon(summon, m_joints, m_random);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(m_random.State(), AfterRandoms(7));
+    EXPECT_EQ(summon.life, 19);
+    EXPECT_TRUE(summon.alive);
+    EXPECT_EQ(summon.transform.position, m_actor.position);
+    const std::vector<int> draws = RandomsAfter(1, 6);
+    const auto joints = LiveJoints(m_joints);
+    ASSERT_EQ(joints.size(), 3u);
+    for (std::size_t index = 0; index < joints.size(); ++index)
+    {
+        SCOPED_TRACE(index);
+        const glm::vec3 angles{static_cast<float>(draws[index * 2] % 90), 0.0f,
+                               static_cast<float>(draws[(index * 2) + 1] % 360)};
+        const glm::vec3 reach = Client::Render::Models::OriginalVectorRotate(
+            {0.0f, -200.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(angles));
+        const glm::vec3 start{
+            static_cast<float>(static_cast<double>(m_actor.position.x) - static_cast<double>(reach.x)),
+            static_cast<float>(static_cast<double>(m_actor.position.y) - static_cast<double>(reach.y)),
+            static_cast<float>(static_cast<double>(m_actor.position.z) - static_cast<double>(reach.z) + 120.0)};
+        EXPECT_EQ(joints[index].type, 0x619);
+        EXPECT_EQ(joints[index].subtype, 1);
+        EXPECT_EQ(joints[index].angles, angles);
+        EXPECT_EQ(joints[index].position, start);
+        EXPECT_EQ(joints[index].ownerContext, &m_actor);
+        EXPECT_EQ(joints[index].width, 5.0f);
+        EXPECT_EQ(joints[index].key, -1);
+        EXPECT_EQ(joints[index].life, 12);
+        EXPECT_EQ(joints[index].maximumCount, 2);
+    }
+
+    for (int step = 2; step <= 20; ++step)
+    {
+        for (auto& joint : m_joints)
+            joint.alive = false;
+        ASSERT_TRUE(Client::Scenes::StepPetSummon(summon, m_joints, m_random).HasValue());
+    }
+    EXPECT_FALSE(summon.alive);
+    EXPECT_EQ(m_random.State(), AfterRandoms(7 * 20));
+}
+
+// Otro efecto no es el 0x61e/1, y sin la tabla de joints corta antes de sacar rand().
+TEST_F(GameCharacterEffectsTest, ThePetSummonRefusesOtherEffectsAndAMissingJointTable)
+{
+    ASSERT_TRUE(m_effects.CreatePetSummon(m_actor.position, {}, glm::vec3(0.5f), &m_actor).has_value());
+    Client::World::ModelEffect& summon = m_effects.Effects()[0];
+
+    const auto tableless = Client::Scenes::StepPetSummon(summon, {}, m_random);
+    ASSERT_FALSE(tableless.HasValue());
+    EXPECT_NE(tableless.Error().find("0x5189cc"), std::string::npos) << tableless.Error();
+    EXPECT_EQ(m_random.State(), 1u);
+    EXPECT_EQ(summon.life, 20);
+
+    summon.subtype = 0;
+    const auto refused = Client::Scenes::StepPetSummon(summon, m_joints, m_random);
+    ASSERT_FALSE(refused.HasValue());
+    EXPECT_NE(refused.Error().find("0x52b9a6"), std::string::npos) << refused.Error();
 }
 
 TEST_F(GameCharacterEffectsTest, ChaosCastleSkipsTheCounterAndTheFullSet)

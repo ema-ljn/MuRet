@@ -1554,6 +1554,57 @@ TEST(CharacterDrawingTest, TheHorseShadowGoesByTheMap)
     }
 }
 
+// Los Fenrir (0x60277b..0x60292b), con tres mallas de un triángulo: la 0 y la 1 con el pase base en blanco y sin la
+// luz por vértice, la 1 otra vez con el cromo aditivo de eff_lighting (0x68f) con la acción 4, y la sombra de las
+// tres en (0, 0, 0, 0,7) aplastada sobre el piso; en el 7 en 0,2 y sin ella en el 10, en Kalima y en el 36.
+TEST(CharacterDrawingTest, TheFenrirGoesWhiteChargesItsSecondMeshAndShadowsEveryMesh)
+{
+    const OneModel models(0x14a, "fenril.jpg", 3);
+    DrawnObject fenrir = HorseLike();
+    fenrir.model = 0x14a;
+    struct Case
+    {
+        std::int32_t map;
+        bool charging;
+        std::optional<float> shadowAlpha;
+    };
+    for (const Case& probe :
+         {Case{0, false, 0.7f}, Case{0, true, 0.7f}, Case{7, true, 0.2f}, Case{10, true, std::nullopt},
+          Case{24, false, std::nullopt}, Case{36, false, std::nullopt}})
+    {
+        SCOPED_TRACE(testing::Message() << probe.map << " " << probe.charging);
+        ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+
+        const auto drawn = Client::Scenes::DrawFenrirBody(batch, models, fenrir, probe.map, probe.charging,
+                                                          std::chrono::milliseconds{0});
+
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        const std::size_t base = 1, chrome = probe.charging ? 1 : 0, shadow = probe.shadowAlpha ? 1 : 0;
+        ASSERT_EQ(batch.Commands().size(), base + chrome + shadow);
+        EXPECT_EQ(batch.Commands()[0].state, (ModelDrawState{TextureSlot{0x300}, ModelBlend::Opaque, true}));
+        EXPECT_EQ(batch.Commands()[0].vertexCount, 2u * 3u);
+        ExpectColor(batch.Vertices()[0], 1.0f, 1.0f, 1.0f);
+        ExpectColor(batch.Vertices()[3], 1.0f, 1.0f, 1.0f);
+        if (probe.charging)
+        {
+            EXPECT_EQ(batch.Commands()[1].state.texture, std::optional(TextureSlot{0x68f}));
+            EXPECT_EQ(batch.Commands()[1].state.blend, ModelBlend::Additive);
+            EXPECT_EQ(batch.Commands()[1].vertexCount, 3u);
+        }
+        if (probe.shadowAlpha)
+        {
+            const auto& last = batch.Commands().back();
+            EXPECT_EQ(last.state, (ModelDrawState{std::nullopt, ModelBlend::BlendedShadow, true}));
+            EXPECT_EQ(last.vertexCount, 3u * 3u);
+            const Client::Render::ModelVertex& dark = batch.Vertices()[batch.Vertices().size() - 1];
+            ExpectColor(dark, 0.0f, 0.0f, 0.0f);
+            EXPECT_FLOAT_EQ(dark.color.alpha, *probe.shadowAlpha);
+            EXPECT_FLOAT_EQ(dark.position.z, 30.0f + 5.0f);
+        }
+    }
+}
+
 // El cromo de 0x4ecc30 con 0x4 (Chrome): u = 0,5 · nz + t y v = 0,5 · ny + 2t, con la normal con la
 // escala del caballo: con 1,6 y el reloj en 0, la normal en z da u = 0,8.
 TEST(CharacterDrawingTest, TheHorseChromeTakesTheScaledNormal)

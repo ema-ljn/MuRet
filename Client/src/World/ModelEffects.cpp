@@ -1,11 +1,13 @@
 #include "World/ModelEffects.h"
 
+#include "Core/Expected.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
+#include "World/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -14,8 +16,10 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <span>
+#include <string>
 
 namespace Client::World
 {
@@ -315,6 +319,24 @@ std::optional<std::size_t> ModelEffects::CreateFadingDecal(const glm::vec3& posi
     return std::nullopt;
 }
 
+std::optional<std::size_t> ModelEffects::CreatePetSummon(const glm::vec3& position, const glm::vec3& angles,
+                                                         const glm::vec3& light, void* owner)
+{
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, ColoredDecalEffect, position, angles, light);
+        effect.subtype = PetSummonSubtype;
+        effect.hasOwner = owner != nullptr;
+        effect.ownerContext = owner;
+        effect.life = ArrivalLife; // 0x51eec0: la del 0x61e y el 0x61f.
+        return slot;
+    }
+    return std::nullopt;
+}
+
 std::optional<std::size_t> ModelEffects::CreateGallopShockWave(const glm::vec3& position, const glm::vec3& angles,
                                                                const glm::vec3& light,
                                                                Render::Models::CrtRandom& random)
@@ -531,6 +553,125 @@ std::optional<std::size_t> ModelEffects::CreateFullSetFlare(const glm::vec3& pos
         effect.ownerContext = owner;
         effect.life = FullSetFlareLife;
         effect.speed = 0.0f; // 0x51e499.
+        return slot;
+    }
+    return std::nullopt;
+}
+
+namespace
+{
+// 0x51db7a..0x51ddab: los lugares del rayo por rand() % 30 y los huesos del buffer global (0x68b19fc, 0x68b1abc,
+// 0x68b187c, 0x68b217c, 0x68b21ac y 0x68b220c: 0x68b181c + hueso · 0x30).
+constexpr std::int32_t LightningLife = 100;
+constexpr std::int32_t LightningPlaces = 30;
+constexpr std::size_t NeckBone = 10, ShoulderBone = 14, BackBone = 2, LeftClawBone = 50, RightClawBone = 51,
+                      TailBone = 53;
+constexpr double LightningScaleStep = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc: 0,002f.
+constexpr double LightningScaleBase = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc: 0,3f.
+constexpr double LightningShrink = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));    // 0x6b8854: 0,2f.
+constexpr double LightningGrowth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));    // 0x6b87b8: 0,1f.
+constexpr double LightningLift = 110.0;                                                       // 0x6ba184.
+constexpr float LightningAlpha = std::bit_cast<float>(0x3f333333u);                           // 0,7f.
+constexpr int LightningAngleSpan = 360;
+constexpr int LightningSpreadX = 240, LightningCentreX = 120, LightningSpreadY = 10, LightningCentreY = 5;
+constexpr std::uint16_t LightningFlare = 0x5ac;
+constexpr float LightningFlareScale = 2.0f;
+constexpr std::int32_t LightningDecalLife = 200;
+
+float Shifted(int offset, float value)
+{
+    return F32(static_cast<double>(offset) + static_cast<double>(value));
+}
+} // namespace
+
+Core::Expected<std::optional<std::size_t>, std::string>
+ModelEffects::CreateLightning(const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, void* owner,
+                              Render::Models::CrtRandom& random, const std::function<glm::vec3(std::size_t)>& bonePoint,
+                              FrameSprites& sprites)
+{
+    if (!bonePoint)
+        return Core::Unexpected(
+            std::string("0x51dc42: falta el buffer global de la pose (0x68b181c) para el rayo 0x14d"));
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, LightningEffect, position, angles, light);
+        effect.hasOwner = owner != nullptr;
+        effect.ownerContext = owner;
+        effect.life = LightningLife;
+        effect.transform.scale =
+            F32(static_cast<double>(random.Next() % 100) * LightningScaleStep + LightningScaleBase);
+        effect.subtype = 0;
+        effect.alpha = LightningAlpha;
+        for (int axis = 0; axis < 3; ++axis)
+            effect.transform.angles[axis] = static_cast<float>(random.Next() % LightningAngleSpan);
+        effect.light = light;
+        float& scale = effect.transform.scale;
+        glm::vec3& place = effect.transform.position;
+        const std::int32_t where = random.Next() % LightningPlaces;
+        if (where == 1 || where == 2)
+            place = bonePoint(NeckBone);
+        else if (where == 3)
+        {
+            scale = F32(static_cast<double>(scale) - LightningShrink);
+            place = bonePoint(ShoulderBone);
+        }
+        else if (where == 4 || where == 5)
+            place = bonePoint(BackBone);
+        else if (where == 6 || where == 7)
+        {
+            scale = F32(static_cast<double>(scale) - LightningShrink);
+            place = bonePoint((random.Next() & 1) == 0 ? LeftClawBone : RightClawBone);
+        }
+        else if (where == 8)
+        {
+            scale = F32(static_cast<double>(scale) - LightningShrink);
+            place = bonePoint(TailBone);
+        }
+        else if (where == 9 || where == 10)
+        {
+            effect.alive = false;
+            effect.alpha = 0.0f;
+        }
+        else
+        {
+            scale = F32(static_cast<double>(scale) + LightningGrowth);
+            place.x = Shifted((random.Next() % LightningSpreadX) - LightningCentreX, place.x);
+            place.y = Shifted((random.Next() % LightningSpreadY) - LightningCentreY, place.y);
+            place.z = F32(static_cast<double>(place.z) + LightningLift);
+        }
+        effect.previousPosition = place;
+        // 0x51ddab..0x51dded: la luz guardada menos 0,3f, cada canal en la x87 hasta su fstp.
+        const glm::vec3 flare(F32(static_cast<double>(effect.light.x) - LightningScaleBase),
+                              F32(static_cast<double>(effect.light.y) - LightningScaleBase),
+                              F32(static_cast<double>(effect.light.z) - LightningScaleBase));
+        static_cast<void>(sprites.Create(LightningFlare, place, LightningFlareScale, flare, 0.0f, 0));
+        return std::optional(slot);
+    }
+    return std::optional<std::size_t>{};
+}
+
+std::optional<std::size_t> ModelEffects::CreateLightningDecal(const glm::vec3& position, const glm::vec3& angles,
+                                                              const glm::vec3& light, std::int32_t subtype, void* owner,
+                                                              std::uint32_t systemTime)
+{
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, LightningDecalEffect, position, angles, light);
+        effect.subtype = subtype;
+        effect.hasOwner = owner != nullptr;
+        effect.ownerContext = owner;
+        effect.life = LightningDecalLife;
+        effect.textureFrame = 0;
+        effect.alpha = 1.0f;
+        effect.textureTime = systemTime;
+        effect.transform.position.z = 0.0f; // 0x51de4d: la z en 0 (esi), después de la hora.
+        effect.previousPosition = effect.transform.position;
         return slot;
     }
     return std::nullopt;

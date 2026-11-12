@@ -89,6 +89,14 @@ struct GameCharacterEffectsPass
 [[nodiscard]] Core::Expected<void, std::string>
 StepFullSetFlare(World::ModelEffect& effect, std::span<JointState> joints, Render::Models::CrtRandom& random);
 
+// 0x5208a0 sobre el calco 0x61e/1 de la mascota (0x52b9a6 → 0x518900): el rand() de la luz de todo efecto vivo
+// (0x5208c5) y tres joints 619/1 de ancho 5, cada uno con su giro (rand() % 90, 0, rand() % 360), nacido donde ese giro
+// lleva (0, −200, 0) restado de la posición del efecto, con 120 más de z; la posición del efecto de segundo punto, el
+// dueño del efecto (el héroe), key −1 y sin skill ni objetivo. Después la cola común (0x52cb98): sin animación ni
+// velocidad, una vida menos.
+[[nodiscard]] Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<JointState> joints,
+                                                              Render::Models::CrtRandom& random);
+
 // Lo que lee el cuervo del juego (0x420df0 → 0x4182f0) fuera de su dueño.
 struct GameRavenPass
 {

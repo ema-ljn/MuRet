@@ -441,7 +441,13 @@ void CharacterSelectScene::StepCharacters()
         if (world)
         {
             // 0x52d220 y 0x53c670, después del preview: los efectos con modelo y las juntas.
-            if (auto effects = m_world.StepEffects(*m_context.world, *m_context.cloth, worldClock, height);
+            // timeGetTime (0x6b8544), del calco 0x14e de los Fenrir: el reloj de la escena en ms.
+            const auto systemTime =
+                m_context.clock != nullptr
+                    ? static_cast<std::uint32_t>(
+                          std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
+                    : 0U;
+            if (auto effects = m_world.StepEffects(*m_context.world, *m_context.cloth, worldClock, height, systemTime);
                 !effects.HasValue())
             {
                 m_failure = effects.Error();
@@ -1086,7 +1092,15 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(SceneCanvas& canvas, flo
             .posedMeshes = [&]() { return std::span<const Render::Models::SkinnedMesh>(poseCarry->meshes); },
             .scene = SceneId::CharacterSelect,
             .lighting = &m_world.FrameLighting(),
-            .sprites = &m_world.FrameSprites()});
+            .sprites = &m_world.FrameSprites(),
+            .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
+            .effects = &m_world.FrameEffects(),
+            .particles = &m_world.FrameParticles(),
+            // timeGetTime (0x6b8544), del calco 0x14e de los Fenrir: el reloj del dibujo en ms.
+            .systemTime = [systemTime = static_cast<std::uint32_t>(
+                               std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
+            { return systemTime; },
+            .globalPose = [&]() { return std::span<const Render::Models::BoneTransform>(poseCarry->bones); }});
         !drawn.HasValue())
     {
         m_failure = "0x63486a → " + drawn.Error();

@@ -3,7 +3,6 @@
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Render/Models/Cloth.h"
-#include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/WorldRuntime.h"

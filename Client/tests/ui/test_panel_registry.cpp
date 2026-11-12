@@ -5,6 +5,8 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <ios>
+#include <string>
 #include <vector>
 
 // Client::UI: el registro de paneles (CL8 hito 1; 06 § HUD y ventanas, "Los paneles"), contra el ASM de 0x659290,

@@ -9,6 +9,7 @@
 #include "Scenes/WorldState.h"
 #include "UI/GameCursor.h"
 #include "UI/GameUiState.h"
+#include "UI/Widget.h"
 
 #include <array>
 #include <cstdint>

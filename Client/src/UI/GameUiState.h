@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 
 // Los globales de la UI del juego que leen y escriben el paso de la UI (0x636ded..0x63705b), los diálogos

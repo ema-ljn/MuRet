@@ -1,6 +1,8 @@
 #include "UI/PanelRegistry.h"
 
+#include "Core/Expected.h"
 #include "Render/Models/LogicalAccess.h"
+#include "UI/Dialogs.h"
 
 #include <array>
 #include <cstdint>

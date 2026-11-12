@@ -3,6 +3,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/PanelRegistry.h"
 
 #include <cstdint>
 

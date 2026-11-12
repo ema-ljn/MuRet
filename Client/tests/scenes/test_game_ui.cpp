@@ -8,6 +8,7 @@
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatLog.h"
 #include "UI/Dialogs.h"
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
@@ -183,9 +184,44 @@ TEST(GameUiTest, TheLetterIOpensTheInventory)
     EXPECT_EQ(tested.random.State(), expected.State());
     EXPECT_EQ(tested.Panels().inventory, 1);
     // Con el inventario abierto, 0x5ee140 corre sus hijas, que son del hito 4.
-    const auto again = tested.Step();
+    const auto again = tested.Step(320, 240);
     ASSERT_FALSE(again.HasValue());
     EXPECT_NE(again.Error().find("0x5ee1ac"), std::string::npos) << again.Error();
+}
+
+// El registro del chat, fuera de su ventana en (−10, 0x65) con 0x10c × 0xfa desde su borde de abajo, queda bajo el
+// mouse arriba a la izquierda (0x45aa80): 0x5ee140 no corre los paneles (0x5ee174).
+TEST(GameUiTest, TheChatLogUnderTheMouseKeepsThePanelsStill)
+{
+    SteppingUi tested;
+    Press(tested.input, Key::I);
+    ASSERT_TRUE(tested.Step(320, 240).HasValue());
+    ASSERT_EQ(tested.Panels().inventory, 1);
+    ASSERT_TRUE(tested.Step(0, 0).HasValue());
+    EXPECT_EQ(tested.Ui().hovered, Client::UI::ChatLogId);
+    EXPECT_EQ(tested.world.Runtime().chat.logFrame.x, -10);
+    EXPECT_EQ(tested.world.Runtime().chat.logFrame.y, 0x65);
+}
+
+// En su ventana (0x6c7a88 en 1), la esquina va a (0xba, 0x1a4), y a x = 0 con el inventario y el personaje abiertos
+// (0x636f29).
+TEST(GameUiTest, InItsWindowTheChatLogMovesLeftOfTheInventoryAndTheCharacter)
+{
+    SteppingUi tested;
+    tested.Ui().chatModes.placement = 1;
+    ASSERT_TRUE(tested.Step(320, 100).HasValue());
+    EXPECT_EQ(tested.world.Runtime().chat.logFrame.x, 0xba);
+    EXPECT_EQ(tested.world.Runtime().chat.logFrame.y, 0x1a4);
+}
+
+// El clic sin dueño con el chat cerrado devuelve la lista de las flechas a 0 (0x636ead).
+TEST(GameUiTest, TheUnownedClickTakesTheArrowsFromTheChatLog)
+{
+    SteppingUi tested;
+    tested.Ui().focusedList = Client::UI::ChatLogId;
+    tested.Click();
+    ASSERT_TRUE(tested.Step(320, 240).HasValue());
+    EXPECT_EQ(tested.Ui().focusedList, 0);
 }
 
 TEST(GameUiTest, TheInventoryButtonOfTheHudTakesTheClick)

@@ -45,6 +45,9 @@ public:
     [[nodiscard]] bool WasReleased(MouseButton button) const;
     // Las muescas sumadas desde el último ConsumeEdges.
     [[nodiscard]] float Wheel() const;
+    // Las muescas del último evento de la rueda desde el último ConsumeEdges, o 0 sin ninguno: lo que deja el
+    // último WM_MOUSEWHEEL en el global del original, que no suma.
+    [[nodiscard]] float LastWheel() const;
     // La última posición, en píxeles del framebuffer (InputEvent.h); 0 hasta el primer Motion.
     [[nodiscard]] float MouseX() const;
     [[nodiscard]] float MouseY() const;
@@ -76,6 +79,7 @@ private:
     std::bitset<MouseButtonCount> m_buttonsPressed;
     std::bitset<MouseButtonCount> m_buttonsReleased;
     float m_wheel = 0.0f;
+    float m_lastWheel = 0.0f;
     float m_mouseX = 0.0f;
     float m_mouseY = 0.0f;
     std::string m_text;

@@ -24,12 +24,22 @@ namespace Client::Scenes
 {
 namespace
 {
-// El WndProc: WM_RBUTTONDOWN prende 0x7d36880 y WM_RBUTTONUP lo apaga. MuRet ve los dos mensajes del paso juntos:
-// apretado y soltado en el mismo paso, queda apagado, como después de los dos mensajes.
+// El WndProc: WM_RBUTTONDOWN prende 0x7d36880 (con 0x7d3685c en 0, que el apretón siempre ve así: lo apagó el
+// WM_RBUTTONUP de antes) y 0x7d3685c, y WM_RBUTTONUP apaga los dos. MuRet ve los mensajes del paso juntos: apretado y
+// soltado en el mismo paso, quedan apagados, como después de los dos.
 void LatchTheRightButton(UI::GameUiState& ui, const Input::InputState& input)
 {
-    ui.rightClick =
-        input.IsDown(Input::MouseButton::Right) && (ui.rightClick || input.WasPressed(Input::MouseButton::Right));
+    const bool down = input.IsDown(Input::MouseButton::Right);
+    const bool pressed = input.WasPressed(Input::MouseButton::Right);
+    ui.rightClick = down && (ui.rightClick || pressed);
+    ui.rightDown = down && (ui.rightDown || pressed);
+}
+
+// WM_MOUSEWHEEL (0x4b4c19) escribe la rueda del último mensaje; sin mensajes, queda la de antes.
+void LatchTheWheel(UI::GameUiState& ui, const Input::InputState& input)
+{
+    if (const float notches = input.LastWheel(); notches != 0.0f)
+        ui.wheel = static_cast<std::int32_t>(notches);
 }
 } // namespace
 
@@ -43,8 +53,11 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
     LatchTheLeftButton(runtime.movement, input.WasPressed(Input::MouseButton::Left),
                        input.IsDown(Input::MouseButton::Left));
     LatchTheRightButton(runtime.ui, input);
-    // 0x637c4a..0x637c5c: con 0x5762eb4 en 0 (la modal de las ventanas viejas, del hito 7) y la escena 5, 0x623e70
-    // antes de la lógica de la escena (0x636290), con el mundo cargado o no.
+    LatchTheWheel(runtime.ui, input);
+    // 0x637c4a..0x637c5c: con 0x5762eb4 en 0 (nadie agarró el mouse: el registro del chat o, en el hito 7, las
+    // ventanas viejas) y la escena 5, 0x623e70 antes de la lógica de la escena (0x636290), con el mundo cargado o no.
+    if (runtime.ui.capture != 0)
+        return {};
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
     return StepTheGameDialogs(GameUiContext{.world = *m_context.world,
                                             .random = m_context.cloth->random,
@@ -60,7 +73,8 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .random = m_context.cloth->random,
                                        .input = input,
                                        .mouseX = mouse.x,
-                                       .mouseY = mouse.y});
+                                       .mouseY = mouse.y,
+                                       .measure = m_context.textMeasure});
 }
 
 Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canvas)

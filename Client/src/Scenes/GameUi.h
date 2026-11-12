@@ -16,6 +16,11 @@ namespace Client::Render::Models
 class CrtRandom;
 }
 
+namespace Client::Render::Text
+{
+class ITextMeasure;
+}
+
 // La UI del juego en el paso y en el frame, lo del hito 1 de la CL8 (06 § HUD y ventanas, "El orden" y "El clic
 // es primero de la UI"): los diálogos antes del paso (0x623e70), el bloque de la UI del paso (0x636ded..0x63705b)
 // con 0x5ee140 y 0x59ff10, y el picking del frame (0x59ec80). Lo que es de otro hito o de otra ola corta con su
@@ -34,6 +39,9 @@ struct GameUiContext
     // 0x7d3682c y 0x7d36828: el mouse en 640 × 480.
     std::int32_t mouseX = 0;
     std::int32_t mouseY = 0;
+    // GetTextExtentPointA sobre el DC de los textos (0x57634f4): lo mide el mouse sobre los nombres del registro del
+    // chat (0x45dec0). nullptr sin texto (los tests que no lo miran): no elige ninguno.
+    const Render::Text::ITextMeasure* measure = nullptr;
 };
 
 // El WndProc: 0x7d366d4 (el flanco del clic, que apagan quien lo usa y el botón suelto) y 0x7d36874 (el botón

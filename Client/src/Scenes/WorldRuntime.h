@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GameLogic/MovementSpeed.h"
+#include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/FullSetScan.h"
@@ -8,8 +9,10 @@
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/SceneId.h"
+#include "UI/ChatLog.h"
 #include "UI/Dialogs.h"
 #include "UI/GameUiState.h"
+#include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
 #include "World/GroundMarks.h"
 #include "World/LeafWeather.h"
@@ -49,6 +52,24 @@ struct CrywolfGlobals
     // 0x576353c: el 0x49 lo pone en 1 con el clima en 0 (0x430950); lo gasta el HUD (0x5a7520 → 0x435930, CL8),
     // que MuRet no tiene.
     std::uint8_t sandOverlay = 0;
+};
+
+// El chat (CL8 hito 3; 06 § El chat), que vive del login al juego: el registro nuevo (el objeto de 0x576350c), el
+// área vieja y los avisos (0x77d9868 y 0x77f3b88 con sus relojes), lo que dejan sus dibujos y la fuente del DC de los
+// textos (0x57634f4).
+struct ChatRuntime
+{
+    UI::ChatLogState log{};
+    UI::ChatLogFrame logFrame{};
+    UI::MessageAreaState area{};
+    UI::MessageFrameState areaFrame{};
+    // La fuente del último SelectObject sobre el DC de los textos, que miden 0x45bb20, 0x555190 y 0x554610. 0x61bcd0
+    // crea el DC sin ninguna (la del sistema) y el login dibuja con una antes del primer mensaje: MuRet empieza con
+    // la normal.
+    Render::Text::FontKind dcFont = Render::Text::FontKind::Normal;
+    // 0x77f3b78 (.bss 0): el sonido de los avisos del filtro. Lo cambian el F3 30 (0x4dd570) y el menú de Esc
+    // (0x62567b).
+    bool noticeSound = false;
 };
 
 // Los globales del HUD del juego (0x5a7320 y sus hijos, CL8 hito 2), en la .bss salvo los que dicen otra cosa.
@@ -101,6 +122,7 @@ struct WorldRuntime
     UI::DialogState dialogs{};
     UI::GameUiState ui{};
     HudState hud{};
+    ChatRuntime chat{};
     GameMovementState movement{};
     // Los cinco selectores del mouse arrancan en -1 en la .data.
     std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};

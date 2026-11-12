@@ -53,6 +53,7 @@
 #include "Scenes/GameData.h"
 #include "Scenes/GameModels.h"
 #include "Scenes/GameItemRenderState.h"
+#include "Scenes/GameMessages.h"
 #include "Scenes/GameScene.h"
 #include "Scenes/IScene.h"
 #include "Scenes/LoadingScene.h"
@@ -678,7 +679,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
                                        .camera = &camera,
                                        .cameraInput = &cameraInput,
                                        .selection = &selection,
-                                       .world = &world};
+                                       .world = &world,
+                                       .textMeasure = &frame.Value()->TextMeasure()};
     // El cursor lo dibuja el juego: el del sistema no se ve sobre la ventana (0x4ba238). Si SDL no puede,
     // se ven los dos.
     if (const auto hidden = window.HideSystemCursor(); !hidden.HasValue())
@@ -722,8 +724,19 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
             Scenes::StepTheWinMainLoop(winMain, clothWorld.random);
         }
     };
+    // 0x637cf3 y 0x637cf8: los relojes de los mensajes, detrás del paso de cualquier escena. Mientras conecta, el
+    // original no corre ningún paso (el connect bloquea, Q-C85).
+    const auto afterSceneStep = [&world, &frame, &window, session]() -> Core::Expected<void, std::string>
+    {
+        if (session != nullptr && (session->State() == App::SessionState::ConnectingConnectServer ||
+                                   session->State() == App::SessionState::ConnectingGameServer))
+        {
+            return {};
+        }
+        return Scenes::StepTheMessageClocks(world.Runtime(), frame.Value()->TextMeasure(), window.PixelSize());
+    };
     Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, models, session), *frame.Value(), clock,
-                                 pollNetwork, log, takeSceneOrder, beforeSceneFrame, afterSceneFrame);
+                                 pollNetwork, log, takeSceneOrder, beforeSceneFrame, afterSceneFrame, afterSceneStep);
     // La primera vuelta de WinMain, antes del primer frame: la escena entra adentro de él (0x63945d).
     Scenes::StepTheWinMainLoop(winMain, clothWorld.random);
     if (!manager.Start(Scenes::FirstScene).HasValue())

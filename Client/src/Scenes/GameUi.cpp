@@ -12,6 +12,8 @@
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatLog.h"
+#include "UI/ChatLogWindow.h"
 #include "UI/Dialogs.h"
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
@@ -85,12 +87,94 @@ bool KeyEdge(UI::GameUiState& ui, const Input::InputState& input, GameKey key)
 }
 
 // 0x6578e0: hay un campo de texto con el foco (el chat 0x6c8e68, 0x77f3b68, el del diálogo de los paneles) o la
-// ventana del juego no lo tiene. MuRet no tiene ninguno de esos campos hasta los hitos 3 y 6, y su ventana es la
-// del juego: da falso.
+// ventana del juego no lo tiene. MuRet tiene el del chat (hito 3); los otros son del hito 6, y su ventana es la del
+// juego.
 bool TextInputBusy(const WorldRuntime& runtime)
 {
-    static_cast<void>(runtime);
-    return false;
+    return runtime.ui.chatOpen;
+}
+
+// El nombre del héroe (+0x1d9) hasta su '\0'. Con los diez bytes llenos sigue +0x1e3, que la respuesta del F3 03 pone
+// en 0.
+std::string_view HeroName(const ActorState& hero)
+{
+    std::size_t size = 0;
+    while (size < hero.name.size() && hero.name[size] != std::byte{0})
+        ++size;
+    return {reinterpret_cast<const char*>(hero.name.data()), size};
+}
+
+// 0x636e51..0x636e5a: el registro del chat, 0x45aa80(0) por la vtable + 0x18 de 0x576350c.
+Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::GameUiState& ui = runtime.ui;
+    ChatRuntime& chat = runtime.chat;
+    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const UI::ChatLogGlobals globals{.leftClick = runtime.movement.pendingClick,
+                                     .rightDown = ui.rightDown,
+                                     .wheel = ui.wheel,
+                                     .capture = ui.capture,
+                                     .hovered = ui.hovered,
+                                     .focusedList = ui.focusedList,
+                                     .mouseOnUi = ui.mouseOnUi,
+                                     .modes = ui.chatModes};
+    // El foco en uno de los EDIT del chat: mientras el campo está abierto lo tiene (0x636e80).
+    const UI::ChatLogStepView view{.mouseX = context.mouseX,
+                                   .mouseY = context.mouseY,
+                                   .leftDown = runtime.movement.leftHeld,
+                                   .chatOpen = ui.chatOpen,
+                                   .heroSafeZone = hero.safeZone != 0,
+                                   .heroName = HeroName(hero),
+                                   .chatEditFocused = ui.chatOpen,
+                                   .measure = context.measure,
+                                   .dcFont = chat.dcFont};
+    const UI::ChatLogStepResult result = UI::StepTheChatLog(chat.log, chat.logFrame, globals, view);
+    for (const std::int32_t sound : result.sounds)
+        runtime.lastSoundId = sound;
+    if (result.whisperTo)
+        return Core::Unexpected(std::string("0x4694c0: el nombre al campo del susurro es de la entrada del chat"));
+    return {};
+}
+
+// 0x636e5d..0x636ed1: con el izquierdo abajo y el mouse fuera de las ventanas (o sobre el registro del chat), el foco
+// del administrador de ventanas (+0x44 de 0x5763514, hito 7) en 0 y, con el chat y los otros campos cerrados
+// (0x77f3b69, 0x77f3b68 y 0x77f3b6a, del hito 6), la lista de las flechas en 0, 0x4a5e10 sobre la lista de ventanas
+// (vacía hasta el hito 7) y el foco y el IME a la ventana del juego, que en MuRet siempre los tiene.
+void StepTheUnownedClick(WorldRuntime& runtime)
+{
+    UI::GameUiState& ui = runtime.ui;
+    if (!runtime.movement.leftHeld || (ui.hovered != 0 && ui.hovered != UI::ChatLogId))
+        return;
+    if (!ui.chatOpen)
+        ui.focusedList = 0;
+}
+
+// 0x636f04..0x637056: la esquina del registro del chat (0x45a9d0). Fuera de su ventana, (−10, 0x65); en ella, 0x1a4 de
+// alto y la x en 0 debajo de una ventana de la izquierda, o 0xba. Las consultas van en el orden del original, que se
+// corta en la primera abierta: las del comercio y de la tienda de NPC sacan un rand().
+void PlaceTheChatLog(WorldRuntime& runtime, UI::PanelRegistry& panels)
+{
+    UI::ChatLogFrame& frame = runtime.chat.logFrame;
+    if (runtime.ui.chatModes.placement != 1)
+    {
+        frame.x = -10;
+        frame.y = 0x65;
+        return;
+    }
+    bool left = false;
+    if (panels.IsOpen(UI::InventoryPanel) &&
+        (panels.IsOpen(UI::CharacterPanel) || panels.IsOpen(UI::TradePanel) || panels.IsOpen(UI::WarehousePanel) ||
+         panels.IsOpen(UI::ChaosBoxPanel) || panels.IsOpen(UI::EventNpcPanel) ||
+         panels.IsOpen(UI::SecondEventNpcPanel) || panels.IsOpen(UI::NpcShopPanel) ||
+         panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel) ||
+         panels.IsOpen(UI::TrainerPanel)))
+        left = true;
+    // 0x636fff: sin el inventario, o con él y ninguna de esas, el personaje con la mascota o la misión.
+    else if (panels.IsOpen(UI::CharacterPanel) && (panels.IsOpen(UI::PetPanel) || panels.IsOpen(UI::QuestPanel)))
+        left = true;
+    frame.x = left ? 0 : 0xba;
+    frame.y = 0x1a4;
 }
 
 bool InRect(const GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right, std::int32_t bottom)
@@ -176,8 +260,8 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
     // 0x5e7bf0: con 0x78abb20 en 0 devuelve 0.
     if (ui.field78abb20 != 0)
         return Core::Unexpected(std::string("0x5e7bf0: 0x78abb20 es del hito 4"));
-    // 0x5ee15a..0x5ee188: 0x5762eb4 (la modal de las ventanas viejas) es 0 en MuRet.
-    if (runtime.dialogs.current != 0 || ui.field5762eb8 != 0 || ui.field78abad9 != 0)
+    // 0x5ee15a..0x5ee188.
+    if (runtime.dialogs.current != 0 || ui.capture != 0 || ui.hovered != 0 || ui.field78abad9 != 0)
         return {};
     // 0x5e3c80 y 0x5e4510: la party y el personaje, cada uno con su IsOpen.
     if (panels.IsOpen(UI::PartyPanel))
@@ -579,17 +663,17 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
         ui.mouseOnUi = 1;
     GamePanels gamePanels(context.world, context.random);
     UI::PanelRegistry& panels = gamePanels.Registry();
-    // 0x636e24: 0x5ecdc0, la ventana /move (0x5762eb4 es 0 en MuRet).
-    if (panels.IsOpen(UI::MovePanel))
+    // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).
+    if (panels.IsOpen(UI::MovePanel) && ui.capture == 0)
         return Core::Unexpected(std::string("0x5ecdc0: el paso de la ventana /move (0x449850) es del hito 6"));
-    ui.field5762eb8 = 0;
+    ui.hovered = 0;
     // 0x636e35: 0x46b7b0, las colas de los avisos y el cartel (hito 3), vacías.
     // 0x636e3c: la lista de ventanas ([0x5763524] vtbl + 0x18), vacía hasta el hito 7.
     if (auto old = StepTheOldWindows(context); !old.HasValue())
         return old;
-    // 0x636e4c: el registro del chat ([0x576350c] vtbl + 0x18), del hito 3.
-    // 0x636e5d..0x636ed1: el clic sin dueño devuelve el foco y el IME a la ventana del juego, que en MuRet siempre
-    // los tiene.
+    if (auto chat = StepTheChat(context); !chat.HasValue())
+        return chat;
+    StepTheUnownedClick(runtime);
     // 0x636ed6: 0x5ebca0, con 0x78abad9 en 0 no hace nada.
     // 0x636edb: 0x435bd0 → 0x4303c0, Crywolf, con sus estados (0x723bf9, 0x723a44) que solo escribe su paquete.
     if (auto stepped = StepThePanels(context, panels); !stepped.HasValue())
@@ -602,7 +686,7 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
         if (auto objects = panels.StepTheObjectPanels(); !objects.HasValue())
             return objects;
     }
-    // 0x637036..0x637054: el lugar del registro del chat, con 0x6c7a88 en 0: 0x45a9d0(−10, 0x65), del hito 3.
+    PlaceTheChatLog(runtime, panels);
     // 0x63705b.
     if (runtime.dialogs.current != 0)
         ui.mouseOnUi = 1;

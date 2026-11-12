@@ -7,6 +7,7 @@
 #include "Render/ITextureStore.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Text/IGlyphRasterizer.h"
 
 #include <filesystem>
 
@@ -60,6 +61,9 @@ struct SceneContext
     // nullptr en los tests que no lo miran: la selección entra sin preparar el registro propio, y la
     // carga del mundo y el juego no entran (su Enter da el error), porque la espera vive ahí.
     WorldState* world = nullptr;
+    // El GetTextExtentPointA del DC de los textos (0x57634f4) fuera del dibujo: el mouse sobre los nombres del
+    // registro del chat (0x45dec0) y los cortes de los mensajes. nullptr sin bucle: no mide.
+    const Render::Text::ITextMeasure* textMeasure = nullptr;
 };
 
 // Cómo cuentan los frames del original la tela y el cetro con el ritmo `pacing`.

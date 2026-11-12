@@ -10,6 +10,7 @@
 #include "Render/Gl/TextureTable.h"
 #include "Render/ModelBatch.h"
 #include "Render/SpriteBatch.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/IFrameTarget.h"
 #include "Scenes/IWorldView.h"
 #include "Scenes/SceneCanvas.h"
@@ -49,6 +50,10 @@ public:
 
     Scenes::SceneCanvas& BeginFrame(Core::Duration frameClock) override;
     void Present() override;
+
+    // El GetTextExtentPointA del DC de los textos fuera del dibujo (el paso y la red): el de SceneText, con las
+    // fuentes del ancho del último frame. Vive lo que el frame.
+    [[nodiscard]] const Render::Text::ITextMeasure& TextMeasure() const;
 
 private:
     GlFrameTarget(const Platform::GlFunctions& gl, TextureTable& textures, GlSpriteRenderer renderer,

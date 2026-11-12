@@ -115,6 +115,7 @@ void InputState::Apply(const InputEvent& event)
         if (std::isfinite(event.wheel))
         {
             m_wheel += event.wheel;
+            m_lastWheel = event.wheel;
         }
         return;
     case InputEvent::Kind::Motion:
@@ -171,6 +172,11 @@ float InputState::Wheel() const
     return m_wheel;
 }
 
+float InputState::LastWheel() const
+{
+    return m_lastWheel;
+}
+
 float InputState::MouseX() const
 {
     return m_mouseX;
@@ -193,6 +199,7 @@ void InputState::ConsumeEdges()
     m_buttonsPressed.reset();
     m_buttonsReleased.reset();
     m_wheel = 0.0f;
+    m_lastWheel = 0.0f;
     m_text.clear();
 }
 
@@ -259,6 +266,7 @@ void InputState::ReleaseEverything()
     m_buttonsDown.reset();
     m_buttonsPressed.reset();
     m_wheel = 0.0f;
+    m_lastWheel = 0.0f;
     m_text.clear();
 }
 

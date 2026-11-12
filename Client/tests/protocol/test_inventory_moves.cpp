@@ -38,6 +38,14 @@ TEST(InventoryProtocolTest, TheItemMoveIsAnEncryptedC1OfFourteenBytes)
                           Bytes({0xc1, 0x0e, 0x24, 0, 0x15, 0x21, 0x0b, 0x2c, 0, 0, 0x70, 0, 0, 3})));
 }
 
+// 0x4d166b..0x4d1690: el aviso del 24 sin cifrar, C1 06 F1 03 00 16, con el XOR32 y para cifrar como C3.
+TEST(InventoryProtocolTest, TheClearItemMoveReportIsF103WithTheByte16)
+{
+    const auto report = Inventory::WriteClearItemMoveReport();
+    EXPECT_EQ(report.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(report.packet).Bytes(), Bytes({0xc1, 0x06, 0xf1, 0x03, 0x00, 0x16})));
+}
+
 // 0x4d1400: el C3 0C 24 del servidor, ya descifrado.
 TEST(InventoryProtocolTest, ReadsTheItemMoveResult)
 {

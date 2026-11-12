@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
+#include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/PacketFields.h"
 #include "Protocol/ProtocolError.h"
@@ -51,6 +52,14 @@ Outgoing WriteItemMove(const ItemMove& move)
                            .PutBytes(move.item)
                            .PutU8(move.targetFlag)
                            .PutU8(move.targetSlot));
+}
+
+Outgoing WriteClearItemMoveReport()
+{
+    return EncryptedC1(Network::PacketWriter::C1(Connection::JoinOpcode)
+                           .PutU8(Connection::DecryptErrorSubcode)
+                           .PutU8(0)
+                           .PutU8(ClearItemMoveHead));
 }
 
 Core::Expected<ItemMoveResult, ProtocolError> ReadItemMoveResult(const Network::Packet& packet)

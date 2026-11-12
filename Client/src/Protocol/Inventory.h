@@ -21,6 +21,8 @@ inline constexpr std::uint8_t EquipmentChangeSubcode = 0x13;
 inline constexpr std::uint8_t ItemPutSubcode = 0x14;
 // Los siete bytes de un ítem, como en el F3 10 (Protocol::Character::InventoryItemDataSize).
 inline constexpr std::size_t ItemDataSize = 7;
+// 0x4d167f: el byte que cierra el aviso del 24 sin cifrar.
+inline constexpr std::uint8_t ClearItemMoveHead = 0x16;
 // 0x4d1400: pkt[3] en 0xff, el movimiento rechazado.
 inline constexpr std::uint8_t ItemMoveRejected = 0xff;
 // 0x4c5ec0: pkt[3] en 0xff no borra nada.
@@ -53,6 +55,10 @@ struct ItemMoveResult
 };
 
 [[nodiscard]] Core::Expected<ItemMoveResult, ProtocolError> ReadItemMoveResult(const Network::Packet& packet);
+
+// El aviso de un 24 que no llegó cifrado (0x4d1400, 0x4d166b..0x4d1690): C1 06 F1 03 00 16 con el XOR32 y en C3, sin
+// leer el paquete. No suelta la traba.
+[[nodiscard]] Outgoing WriteClearItemMoveReport();
 
 // El 28, C1 05 28 (0x4c5ec0): el lugar que se borra (0xff ninguno) y, distinto de 0, el fin de la espera de
 // 0x5767954.

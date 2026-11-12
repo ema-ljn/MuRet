@@ -1255,6 +1255,55 @@ registro del chat (`0x45d8c0`, `0x45a9d0`). **La captura** (PrintScreen, flanco 
 después del dibujo de la escena, `0x6202e0` hace `glReadPixels` en RGB y `0x63b150` escribe un JPEG de calidad 100;
 el mensaje va al área de mensajes. No saca `rand()`.
 
+### La captura de pantalla
+
+(CL8 hito 6, 2026-11-12; *estático*, ASM de `c32bbd5f`.) Todo pasa en `0x637700`, en cualquier escena, y en
+`0x6202e0`. Sus globales solo los leen esas dos: `0x7d368a8` (el pedido), `0x7d368ac` (el contador, de 0 a 9.999),
+`0x7d36724` (el nombre) y `0x7d368b0`, que `0x6202e0` pone en 1 (`0x6202ed`) y nadie lee. No saca `rand()`.
+
+- **El pedido.** Detrás del paso de cualquier escena, entre los relojes de los mensajes (`0x637cf3` y `0x637cf8`) y
+  los frenos (`0x637d2c` y `0x637d44`), `0x553520(0x2c)` (`0x637cff`) da el flanco de Impr Pant con su latch
+  (`0x77f36d4 + 4 · 0x2c`), y con él `0x637d10..0x637d25` *invierte* `0x7d368a8`: un segundo flanco antes del frame
+  deshace el pedido (Q-C634). En Windows Impr Pant llega solo con la soltada (Q-C630).
+- **Antes del dibujo** (`0x6381bb..0x63835a`, en cada frame, después de la salida por `WM_DESTROY` de `0x6381aa` y
+  antes del `glClearColor` de cada mapa). `0x41ef00` (el sonido 3D, CL10); `GetLocalTime` (`0x6381c7`); `sprintf`
+  (`0x69fd9b`) de `Screen(%02d_%02d-%02d_%02d)-%04d.jpg` (`0x6d64d0`) con el mes, el día, la hora, el minuto y el
+  contador, en `0x7d36724`; `sprintf` con el texto 459 (`0x76debc0`) como formato y ese nombre, en la pila
+  (`ebp − 0x14c`); el lugar del grupo elegido (`0x6d5ec4`) recortado entre 0 y 30, y `wsprintfA` de ` [%s / %s]`
+  (`0x6d64f8`) con el nombre que `0x4c1860` copió en ese lugar de la lista (`0x7d36bb0 + 0x21e · lugar`) y el del
+  héroe (`[0x743a170] + 0x1d9`), pegado detrás con `strcat`; y Shift, el byte alto de `GetAsyncKeyState(0x10)` (`0x638303..0x63832c`). Con el
+  pedido y sin Shift, `0x555190(0x7d3a190, mensaje, 1)` (`0x638347..0x63835a`): el mensaje entra al chat antes del dibujo y
+  sale en la captura. `0x7d3a190` y `0x7d3a194` son dos textos vacíos de la `.bss` que solo se leen acá.
+  `0x6d5ec4` lo escriben el `0x6349a0` del login al entrar, con −1 (`0x634aa7`), y el clic en un servidor, con el
+  lugar de su grupo (`0x646394`); nadie más (Q-C632).
+- **Después del dibujo** (`0x638586..0x6385da`, antes del `glFlush` y el `SwapBuffers` de `0x6385e1`, que corren
+  solo si la escena dibujó). Con el pedido: si `0x7d366bc`, un modo de editor que nadie prende, `0x517570` escribe
+  `Data2\MonsterSetBase2.txt` (`0x6d6504`); después `0x6202e0` (`0x6385aa`), también cuando la escena salió con 0 y
+  el frame no se presenta (P-C110). Con el pedido y Shift, `0x555190(0x7d3a194, mensaje, 1)` (`0x6385c4..0x6385d7`): el
+  mensaje va después de la lectura y no sale. `0x6385da` apaga el pedido.
+- **La lectura, `0x6202e0`.** `0x7d368b0 = 1`; `new(ancho · alto · 3)` con la pantalla de `0x6d5d60` y `0x6d5d64`;
+  `glReadPixels(0, 0, ancho, alto, GL_RGB, GL_UNSIGNED_BYTE)` (`0x62031f`), sin tocar `GL_PACK_ALIGNMENT` (Q-C631);
+  `0x63b150(nombre, ancho, alto, búfer, 100)`, sin mirar lo que devuelve; `free`; y el contador,
+  `(contador + 1) % 10000` (`0x620345..0x62035a`).
+- **El JPEG, `0x63b150`**, con la libjpeg 6b del binario: `jpeg_std_error` (`0x66c980`), `jpeg_CreateCompress(62,
+  0x178)` (`0x66b8f0`), `fopen(nombre, "wb")` (`0x6c8828`), que si falla devuelve 0 sin destruir el compresor
+  (Q-C633); `jpeg_stdio_dest` (`0x66c850`), el ancho, el alto, 3 componentes y `JCS_RGB`, `jpeg_set_defaults`
+  (`0x66c030`), `jpeg_set_quality(calidad, TRUE)` (`0x66c010`), `jpeg_start_compress(TRUE)` (`0x66bc90`), las filas
+  de arriba hacia abajo desde la última del búfer (`búfer + (alto − fila − 1) · ancho · 3`, `0x66bd10`),
+  `jpeg_finish_compress` (`0x66ba30`), `fclose` sin mirarlo y `jpeg_destroy_compress` (`0x66b9c0`). Un error de la
+  libjpeg va al `error_exit` de `jpeg_std_error`, que sale del juego (Q-C635).
+
+**En MuRet** (`Scenes::Screenshots`). El pedido corre en el gancho de detrás del paso del `SceneManager`, después de
+los relojes (con los frenos no comparte nada), y lo de antes y después del dibujo en dos ganchos alrededor del
+`Render` de la escena; el de después junta primero lo que tiene el lienzo (el 3D y el 2D, como el `Present`). El
+nombre y el mensaje se arman solo con el pedido: nadie más los lee. La lectura (`Render::Gl::GlScreenReader`) es de la
+ventana antes del swap; el JPEG (`Data::Textures::WriteJpegFile`) usa la libjpeg-turbo por la misma API y da los
+mismos bytes que la 6b (`tools/shot6b.c`, los vectores `screenshot-13x11` y `screenshot-40x24`). El archivo va a la
+carpeta de trabajo con el nombre solo, como el `fopen`, y la hora es la local de SDL (`Platform::ReadLocalTime`). Lo
+que no hace igual: la lectura con `GL_PACK_ALIGNMENT` en 1 (Q-C631), el lugar del grupo por el servidor elegido de
+la sesión (Q-C632) y el frame retenido con el pedido, que corta (P-C110). Los tests: `ScreenshotsTest`,
+`JpegWriterTest`, `GlScreenReaderTest` y los ganchos del dibujo en `SceneManagerTest`.
+
 ### El chat
 
 **Lo que llega** (CL8 hito 3, 2026-11-12; *estático*). Los paquetes están en
@@ -1408,8 +1457,8 @@ sin cursor en el medio ni IME. Los ids de los dos EDIT (1 y 2, los dos primeros 
   filtro y lo mismo que el chat de Enter; la que pasa los comandos deja `0x77f3b74` en `0x64` (`0x5a1ea1`).
   `0x637d2c` y `0x637d44` bajan los dos frenos de a uno por paso.
 - **Las teclas de `0x5ac8d0`**: F2, F3 y F4 cambian lo suyo y suenan (F4, con el registro en su ventana, va a x 0 con
-  el inventario y una de las seis ventanas anchas, si no a `0xba`); la barra (CL9.3) y F1 (P-C93) cortan, y después
-  Impr Pant (`0x637cff`, la captura, P-C94).
+  el inventario y una de las seis ventanas anchas, si no a `0xba`); F1 cicla las ayudas ("Las ayudas de F1"); la
+  barra (CL9.3) corta, y después Impr Pant (`0x637cff`, la captura, P-C94).
 - **El HUD**: el paso 10 dibuja "Macro Time" (`0x6c9310`) centrado en el ancho del mundo en y = `0x188` y su barra
   en y = 404 de 50 × 2; el 22 (`0x5aa9a0`), con el campo abierto o `0x77f3b69`, la caja sin mezcla (`0xf8` y `0xf9`,
   que `0x61ccb0` sube en `0x61cfe6` y `0x61d002`), el texto de los EDIT, los nombres del susurro de los otros lugares

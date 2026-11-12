@@ -51,11 +51,12 @@ if(NOT MSVC)
     target_compile_options(ClientLib PRIVATE -ffp-contract=off)
 endif()
 muret_precompile_headers(ClientLib)
-# libjpeg avisa de sus errores con longjmp, y JpegImage.cpp lo recibe con setjmp. MSVC avisa de
-# cualquier setjmp en C++ (C4611: longjmp no corre destructores); el archivo está armado para que
-# no haya ninguno en el medio (Decompress, en JpegImage.cpp).
+# libjpeg avisa de sus errores con longjmp, y JpegImage.cpp y JpegWriter.cpp lo reciben con setjmp.
+# MSVC avisa de cualquier setjmp en C++ (C4611: longjmp no corre destructores); los dos archivos
+# están armados para que no haya ninguno en el medio (Decompress y Compress).
 if(MSVC)
-    set_source_files_properties(src/Data/Textures/JpegImage.cpp PROPERTIES COMPILE_OPTIONS /wd4611)
+    set_source_files_properties(src/Data/Textures/JpegImage.cpp src/Data/Textures/JpegWriter.cpp
+        PROPERTIES COMPILE_OPTIONS /wd4611)
 endif()
 
 # Platform (CL3.1): lo único que ve SDL3. La ventana, el contexto GL, el loader, el intervalo de

@@ -1,6 +1,7 @@
 # Vectores JPEG
 
-JPEG sintéticos y chicos para los tests de `DecodeJpeg`, `LoadOzjTexture` y `LoadTerrainLight`.
+JPEG sintéticos y chicos para los tests de `DecodeJpeg`, `LoadOzjTexture` y `LoadTerrainLight`, y
+los de la captura de pantalla para `WriteJpegFile`.
 Están en el repo para que corran en CI, que no tiene la carpeta golden. No son archivos del juego:
 son imágenes armadas con una fórmula.
 
@@ -35,6 +36,7 @@ el tamaño y un hash de lo que da la 6b (más abajo).
 | `light-256` | 256 × 256 | baseline 4:4:4 en bloques de 8 × 8 | una luz del terreno |
 | `light-256x255`, `light-255x256`, `light-gray-256` | | la misma, de una fila o una columna menos, o en grises | las luces que no se aceptan |
 | `cmyk-4x2` | 4 × 2 | baseline CMYK, 4 componentes | una fila que no entra en la textura (Q-C31) |
+| `screenshot-13x11.6b.jpg`, `screenshot-40x24.6b.jpg` | 13 × 11, 40 × 24 | la captura de Impr Pant: lo que escribe el compresor de la 6b con las llamadas de `0x63b150` y calidad 100 | `WriteJpegFile` tiene que dar esos bytes |
 
 Los nueve primeros tienen su `.6b.raw`. Los cinco que siguen, la 6b los rechaza: hash6b da `ERR 1`
 (`JERR_ARITH_NOTIMPL`), `ERR 60` (`JERR_SOF_UNSUPPORTED`), `ERR 15` (`JERR_BAD_PRECISION`) y, los
@@ -94,10 +96,15 @@ lo que hace falta para armarla y volver a sacar todo.
   `-raw salida`, escribe los píxeles: así salen los `.6b.raw`. En `truncated`, la 6b avisa
   ("Premature end of JPEG file") y completa la imagen.
 - `tools/cmyk6b.c` escribe los dos CMYK.
+- `tools/shot6b.c` escribe una captura como `0x63b150` (`jpeg_stdio_dest`, RGB, `jpeg_set_defaults`,
+  `jpeg_set_quality` con el baseline forzado y las filas de un buffer de `glReadPixels`, de abajo
+  hacia arriba) con la imagen `detailed`: así salen los dos `screenshot-*.6b.jpg`. Compilado contra
+  libjpeg-turbo 3.2.0, da los mismos bytes, con su SIMD y sin él (`JSIMD_FORCENONE=1`), en esos dos
+  tamaños, en 16 × 16, 33 × 17, 1 × 1 y en 640 × 480.
 - `hashturbo` es `hash6b.c` compilado contra libjpeg-turbo 3.2.0 en vez de la 6b
   (`cc -O2 tools/hash6b.c -I<turbo>/include <turbo>/lib/libjpeg.a -o hashturbo`): da
   `mixed-sampling.turbo.raw`.
-- `tools/make_vectors.py <cjpeg> <hash6b> <cmyk6b> <hashturbo> <carpeta>` arma todos los vectores
+- `tools/make_vectors.py <cjpeg> <hash6b> <cmyk6b> <hashturbo> <shot6b> <carpeta>` arma todos los vectores
   de la tabla, y sus `.6b.raw`, en la carpeta.
 - `tools/lab6b.sh <hash6b> <carpeta golden> > lab-6b.txt` escribe `lab-6b.txt`: una línea por OZJ,
   con `-skip 24` (el `fseek` de `0x18`), ordenadas por ruta.

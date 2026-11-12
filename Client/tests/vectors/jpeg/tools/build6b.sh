@@ -1,7 +1,7 @@
 #!/bin/sh
 # Arma la IJG libjpeg 6b como la del main.exe, fuera de CI, para sacar lo que da la 6b de un JPEG:
-# baja el tarball, mira su SHA-256 y compila la biblioteca con INT32 de 32 bits, más hash6b y
-# cmyk6b (el README.md de los vectores). Uso: build6b.sh <carpeta de trabajo>
+# baja el tarball, mira su SHA-256 y compila la biblioteca con INT32 de 32 bits, más hash6b,
+# cmyk6b y shot6b (el README.md de los vectores). Uso: build6b.sh <carpeta de trabajo>
 set -eu
 
 work=$1
@@ -55,4 +55,5 @@ ar rcs lib/libjpeg6b.a lib/*.o
 
 cc $cflags "$tools/hash6b.c" lib/libjpeg6b.a -o hash6b
 cc $cflags "$tools/cmyk6b.c" lib/libjpeg6b.a -o cmyk6b
-echo "listo: $work/hash6b y $work/cmyk6b"
+cc $cflags "$tools/shot6b.c" lib/libjpeg6b.a -o shot6b
+echo "listo: $work/hash6b, $work/cmyk6b y $work/shot6b"

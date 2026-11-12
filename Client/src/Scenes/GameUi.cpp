@@ -65,7 +65,6 @@ constexpr GameKey F3Key{Key::F3, 0x72};
 constexpr GameKey F4Key{Key::F4, 0x73};
 constexpr GameKey F5Key{Key::F5, 0x74};
 constexpr GameKey F6Key{Key::F6, 0x75};
-constexpr GameKey PrintScreenKey{Key::PrintScreen, 0x2c};
 
 constexpr GameKey Letter(char letter)
 {
@@ -870,11 +869,6 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& conte
         }
         runtime.lastSoundId = ButtonSound;
     }
-    // 0x637cff: Impr Pant (0x553520(0x2c)), después del paso de la escena, pide la captura: el nombre con la hora
-    // (0x637700), glReadPixels y el JPEG (0x6202e0 → 0x63b150) y el texto 459 en el chat. Nadie más lee la tecla, así
-    // que su latch puede ir acá, lo último del paso que lee teclas (P-C94).
-    if (KeyEdge(ui, input, PrintScreenKey))
-        return Core::Unexpected(std::string("0x637cff: la captura de pantalla (0x6202e0) es del hito 6 (P-C94)"));
     return {};
 }
 

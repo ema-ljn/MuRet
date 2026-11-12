@@ -191,17 +191,21 @@ Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const Item
         {
             return {};
         }
-        // 0x443fa0(ayudante, héroe + 0x10, héroe, 0, 0).
-        if (auto created = CreateHelper(world, *helper, hero.position, runtime.hero); !created.HasValue())
+        // 0x443fa0(ayudante, héroe + 0x10, héroe, 0, 0), con el rand() compartido: el 0x1c12 saca tres para su lugar
+        // (0x443f21..0x443f8c), entre la cola de 0x512a30 y el cierre del registro de 0x5bcaae.
+        if (auto created = CreateHelper(world, *helper, hero.position, runtime.hero, &resources.cloth.random);
+            !created.HasValue())
         {
             return Core::Unexpected(std::format("0x5bc740 (0x5bc8cc), 0x443fa0: {}", created.Error()));
         }
-        // 0x5bc967..0x5bca46: fuera del 0x1c12, con +0x3e2 del héroe publicado en 0, 0x518cf0 crea el
-        // efecto 0x61e en el héroe, aunque 0x443fa0 no haya creado nada.
+        // 0x5bc967..0x5bca46: fuera del 0x1c12, con +0x3e2 del héroe publicado en 0, 0x518cf0(0x61e, héroe + 0x10,
+        // héroe + 0x1c, héroe + 0xf4, 1, héroe, −1, 0, 0, 0, 0) crea el efecto en el héroe, aunque 0x443fa0 no haya
+        // creado nada.
         if (type != GuardianAngel && hero.safeZone == 0)
         {
-            return Core::Unexpected(std::string("0x5bca46: fuera de la zona segura, 0x518cf0 crea el efecto 0x61e "
-                                                "sobre el héroe, que World::ModelEffects no tiene"));
+            return Core::Unexpected(std::string("0x5bca46: fuera de la zona segura, 0x518cf0 crea el efecto 0x61e/1 "
+                                                "sobre el héroe, que World::ModelEffects no tiene (su paso, 0x518900, "
+                                                "crea la junta 0x619/1)"));
         }
         return {};
     }

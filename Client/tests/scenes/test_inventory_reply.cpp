@@ -519,20 +519,27 @@ TEST_F(InventoryReplyTest, TheDarkHorseStopsAt4225d0)
     EXPECT_EQ(worn.cloth.random.State(), AfterDraws(Seed, OwnRecordClose).State());
 }
 
-// 0x5bc8cc: fuera de los mapas 18 a 23, las mascotas del lugar 8 se crean con 0x443fa0 en la tabla de
-// 0x7d335d0, que MuRet no tiene. El héroe ya está vestido, y el registro se cierra igual.
-TEST_F(InventoryReplyTest, APetOfSlot8StopsAt443fa0OutsideChaosCastle)
+// 0x5bc8cc: fuera de los mapas 18 a 23, el Guardian Angel del lugar 8 se crea con 0x443fa0(0x1c12, héroe + 0x10,
+// héroe, 0, 0) en la tabla de 0x7d335d0, con los tres rand() de su lugar (0x443f21..0x443f8c) entre la cola de
+// 0x512a30 y el cierre del registro: los rand() 5 a 7 de la semilla (4.116, 25.814 y 28.931) lo corren
+// (4.116 % 512 − 256; 25.814 % 512 − 256; 28.931 % 128 + 128). Sin el efecto 0x61e, que no es del 0x1c12.
+TEST_F(InventoryReplyTest, AGuardianAngelOfSlot8IsCreatedWithTheSharedRandom)
 {
     Stage tested = Fresh();
-    const ActorState& hero = tested.PublishedHero();
+    ActorState& hero = tested.PublishedHero();
+    hero.position = {1000.0f, 2000.0f, 300.0f};
 
     const auto placed = Client::Scenes::PlaceInventoryItem(8, ItemBytes(GuardianAngel), tested.Resources());
 
-    ASSERT_FALSE(placed.HasValue());
-    EXPECT_NE(placed.Error().find("0x443fa0"), std::string::npos) << placed.Error();
+    ASSERT_TRUE(placed.HasValue()) << placed.Error();
     EXPECT_EQ(hero.pet.model, ModelOf(GuardianAngel));
+    const HelperState& angel = tested.world.Helpers()[0];
+    EXPECT_TRUE(angel.alive);
+    EXPECT_EQ(angel.type, 0x1c12u);
+    EXPECT_EQ(angel.rider, PublishedSlot);
+    EXPECT_EQ(angel.position, glm::vec3(764.0f, 1958.0f, 431.0f));
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
-    EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, EquipmentEntry).State());
+    EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, EquipmentEntry + 3).State());
 }
 
 // En los mapas 18 a 23 no se crea ninguna mascota, ni el cuervo.
@@ -567,19 +574,34 @@ TEST_F(InventoryReplyTest, TheReplyTurnsOffTheHorseOfThePublishedHero)
     EXPECT_TRUE(helpers[1].alive);
 }
 
-// 0x5bc9d6..0x5bc9db: Horn of Doom copia +0x1b a +0x31b antes de crear el ayudante.
+// 0x5bc9d6..0x5bc9db: Horn of Doom copia +0x1b a +0x31b antes de crear el ayudante (el 0x14c con el 2). Fuera de
+// la zona segura (+0x3e2 del héroe en 0) corta en 0x5bca46, el efecto 0x61e/1; en ella, termina.
 TEST_F(InventoryReplyTest, HornOfDoomCopiesItsFlags1bToThePetBeforeStopping)
 {
-    Stage tested = Fresh();
-    const ActorState& hero = tested.PublishedHero();
+    for (const std::uint8_t safeZone : {std::uint8_t{0}, std::uint8_t{1}})
+    {
+        SCOPED_TRACE(static_cast<int>(safeZone));
+        Stage tested = Fresh();
+        ActorState& hero = tested.PublishedHero();
+        hero.safeZone = safeZone;
 
-    const auto placed = Client::Scenes::PlaceInventoryItem(8, ItemBytes(HornOfDoom, 0, 20, 0x02), tested.Resources());
+        const auto placed =
+            Client::Scenes::PlaceInventoryItem(8, ItemBytes(HornOfDoom, 0, 20, 0x02), tested.Resources());
 
-    ASSERT_FALSE(placed.HasValue());
-    EXPECT_NE(placed.Error().find("0x5bca46"), std::string::npos) << placed.Error();
-    EXPECT_EQ(hero.pet.flags1b, 0x02);
-    EXPECT_TRUE(tested.world.Helpers()[0].alive);
-    EXPECT_EQ(tested.world.Helpers()[0].type, 0x14cu);
+        if (safeZone == 0)
+        {
+            ASSERT_FALSE(placed.HasValue());
+            EXPECT_NE(placed.Error().find("0x5bca46"), std::string::npos) << placed.Error();
+        }
+        else
+        {
+            ASSERT_TRUE(placed.HasValue()) << placed.Error();
+        }
+        EXPECT_EQ(hero.pet.flags1b, 0x02);
+        EXPECT_TRUE(tested.world.Helpers()[0].alive);
+        EXPECT_EQ(tested.world.Helpers()[0].type, 0x14cu);
+        EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, EquipmentEntry).State());
+    }
 }
 
 // 0x5bca62: el Dark Raven del lugar 1 llama a 0x420cf0 con el héroe publicado. Suelta el cuervo que tenía y,

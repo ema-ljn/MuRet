@@ -3,7 +3,6 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Skeleton.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/SceneId.h"
 

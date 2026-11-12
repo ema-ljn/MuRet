@@ -17,6 +17,7 @@
 #include "UI/MessageArea.h"
 #include "UI/NameChecks.h"
 #include "UI/PanelRegistry.h"
+#include "UI/WhisperSenders.h"
 
 #include <algorithm>
 #include <array>
@@ -182,7 +183,7 @@ Core::Expected<void, std::string> SayInTheChat(const GameChatContext& context, s
                 return Core::Unexpected(off.Error());
             if (StartsWithTheCommand(said, off.Value()))
             {
-                input.whisperOff = true;
+                runtime.chat.whisperBlocked = true;
                 return AddNotice(context, WhisperOffNoticeText, UI::SystemMessage, "0x4b5aa1");
             }
             auto on = TextOf(context, WhisperOnCommandText, "0x4b5aae");
@@ -190,7 +191,7 @@ Core::Expected<void, std::string> SayInTheChat(const GameChatContext& context, s
                 return Core::Unexpected(on.Error());
             if (StartsWithTheCommand(said, on.Value()))
             {
-                input.whisperOff = false;
+                runtime.chat.whisperBlocked = false;
                 return AddNotice(context, WhisperOnNoticeText, UI::SystemMessage, "0x4b5b00");
             }
         }
@@ -208,8 +209,8 @@ Core::Expected<void, std::string> SayInTheChat(const GameChatContext& context, s
     return {};
 }
 
-// 0x554a40(6, 0x7798cf8): el nivel del registro propio (+0xe), con su acceso, o el nombre en la lista de 0x77997f8;
-// si no, el aviso 479.
+// 0x554a40(6, 0x7798cf8): el nivel del registro propio (+0xe), con su acceso, o el nombre en uno de los diez lugares
+// de 0x77997f8 (strcmp, que sigue en el lugar de al lado si el nombre llena el suyo); si no, el aviso 479.
 Core::Expected<bool, std::string> MayWhisper(const GameChatContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -220,15 +221,10 @@ Core::Expected<bool, std::string> MayWhisper(const GameChatContext& context)
         if (context.world.OwnCharacter().level >= WhisperLevel)
             return true;
     }
-    // strcmp con cada nombre de 10 bytes: uno sin '\0' sigue con el de después.
-    std::string list;
-    for (const auto& name : input.repliable)
-        list.append(name.data(), name.size());
     const std::string_view target = UI::CStringOf(input.whisperBuffer);
-    for (std::size_t at = 0; at < list.size(); at += UI::WhisperNameBytes)
+    for (std::size_t slot = 0; slot < UI::WhisperSenderSlots; ++slot)
     {
-        const std::string_view name = std::string_view(list).substr(at);
-        if (name.substr(0, name.find('\0')) == target)
+        if (UI::WhisperSenderAt(runtime.chat.whisperSenders, slot) == target)
             return true;
     }
     auto added = AddNotice(context, WhisperDeniedText, UI::SystemMessage, "0x554d0b");
@@ -256,8 +252,9 @@ Core::Expected<void, std::string> WhisperIt(const GameChatContext& context, std:
                        target.begin(), [](char letter) { return static_cast<std::byte>(letter); });
         if (context.send)
             context.send(Protocol::Chat::WriteWhisper(target, said));
-        std::copy_n(input.whisperBuffer.begin(), Protocol::Chat::ChatNameSize, input.lastWhisperTarget.begin());
-        input.lastWhisperTarget.back() = '\0';
+        // 0x4b87e9: los diez bytes y el '\0' de 0x57678ce, como los lee el 0C.
+        const std::string_view sent(input.whisperBuffer.data(), Protocol::Chat::ChatNameSize);
+        runtime.chat.lastWhisperTarget = std::string(sent.substr(0, sent.find('\0')));
     }
     return AddMessage(context, HeroNameOf(hero), said, UI::WhisperMessage, "0x4b8839");
 }

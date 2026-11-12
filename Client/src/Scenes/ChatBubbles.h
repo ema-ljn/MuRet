@@ -111,6 +111,6 @@ struct ChatBubbleStepInput
 // 0x557650, en cada paso del juego (0x6370f9, después de los ayudantes y antes de MoveHero, también en la espera):
 // baja los tres relojes de cada entrada y los pone en 0 si su personaje murió o no se ve; las tiendas (0x451720,
 // 0x4516d0) no tienen ninguna. El clic derecho sobre un globo ajeno con el campo del chat abierto en la zona segura
-// llena el destino del susurro (0x7798cf8), que es de escribir: corta.
+// pone su nombre en el EDIT y en el buffer del susurro (0x7798cf8) y suena el 0x19.
 [[nodiscard]] Core::Expected<void, std::string> StepTheChatBubbles(WorldState& world, const ChatBubbleStepInput& input);
 } // namespace Client::Scenes

@@ -1215,7 +1215,8 @@ sin cursor en el medio ni IME. Los ids de los dos EDIT (1 y 2, los dos primeros 
   vacía, los EDIT se ocultan, el registro corre 100, el buffer del mensaje queda en ceros y el campo se cierra. El
   chat no saca `rand()`.
 - **El paso** (`0x59ff10`): el clic derecho en un renglón del área vieja (`0x59ff45..0x5a009b`) pone el nombre en
-  el buffer del susurro (Q-C530); PgUp y PgDn corren el registro tantos renglones como muestra (la vtable `+0x38` y
+  el buffer del susurro (Q-C530), y el derecho sobre un globo (`0x5577a2`, en `0x557650`), en el EDIT y en el
+  buffer; PgUp y PgDn corren el registro tantos renglones como muestra (la vtable `+0x38` y
   `+0x34`); arriba y abajo recorren el historial con el foco en un EDIT y el campo par, y si no el nombre del susurro
   de `0x77f31cc` (cinco de `0x100`, desde el 2 de `0x6c8ea8`). Con un campo de texto, el mouse sobre un EDIT lo
   elige (`0x469500`) y es de la UI, el clic le da el foco (`0x468d50` → `0x4682a0(1)`; sus flechas y su barra no,

@@ -16,7 +16,8 @@
 // (0x4af4e0) y el paso (0x59ff10) comparten con él los globales del campo: los buffers 0x7798bf8 (el mensaje) y
 // 0x7798cf8 (el nombre del susurro) con sus largos (0x7758590 y 0x7758594), el campo elegido (0x77f3b70), los
 // nombres del susurro (0x77f31cc), los frenos del chat (0x5767940 y 0x57676e4), el modo de F3 (0x6c8dd0) y las
-// macros (0x77f1db0). *Estático*.
+// macros (0x77f1db0). /whisper off y on (0x77f3b98), el último destinatario (0x57678c4) y los que susurraron
+// (0x77997f8) los comparte con el chat que llega y están en ChatRuntime. *Estático*.
 //
 // Los EDIT se emulan como el login (TextField, Latin-1 como el EDIT de Occidente): lo tecleado entra al final, una
 // selección de todo se reemplaza con lo primero que entra, y no hay cursor en el medio ni IME (decisión 9 del plan
@@ -40,9 +41,6 @@ inline constexpr std::size_t WhisperNameCopy = 0xb;
 inline constexpr std::size_t MacroCount = 10;
 // 0x5a1ea1: lo que deja en 0x77f3b74 (HudState::macroTime) una macro que llegó al freno.
 inline constexpr std::int32_t MacroLockSteps = 0x64;
-// 0x554a40: la lista de 0x77997f8, de 0x77997f8 a 0x779985b.
-inline constexpr std::size_t RepliableNames = 10;
-inline constexpr std::size_t WhisperNameBytes = 10;
 // 0x77f3b70: el campo elegido. Tab lo corre entre 0 y 0x6c8e6c − 1; los impares son el del susurro.
 inline constexpr std::int32_t MessageField = 0;
 inline constexpr std::int32_t WhisperField = 1;
@@ -96,15 +94,8 @@ struct ChatInputState
     // más de 0x32 no sale nada, y con más de 0 no sale lo mismo que el anterior.
     std::int32_t brake = 0;
     std::string lastSaid;
-    // 0x57678c4: los diez bytes del último destinatario, con su '\0' en 0x57678ce.
-    std::array<char, 11> lastWhisperTarget{};
-    // 0x77f3b98: "/whisper off" lo pone en 1 y "/whisper on" en 0.
-    bool whisperOff = false;
     // 0x77f1db0: las macros, como las dejó Data\Macro.txt (0x61c1c0) y las cambia /1../0 (0x56f0b0).
     std::array<std::string, MacroCount> macros{};
-    // 0x77997f8: diez nombres de 10 bytes a los que 0x554a40 deja susurrar por debajo del nivel 6. Los escribe el
-    // susurro recibido (el 02), que no es de esta entrada: MuRet los deja vacíos.
-    std::array<std::array<char, WhisperNameBytes>, RepliableNames> repliable{};
 };
 
 // El texto de un buffer hasta su '\0'.

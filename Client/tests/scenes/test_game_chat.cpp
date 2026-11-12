@@ -14,6 +14,7 @@
 #include "UI/ChatLog.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
+#include "UI/WhisperSenders.h"
 
 #include "support/ChatTexts.h"
 #include "support/SceneDataFiles.h"
@@ -204,7 +205,7 @@ TEST_F(GameChat, TheWhisperGoesToTheNameOfTheSecondField)
     EXPECT_EQ(whisper.opcode, 0x02);
     EXPECT_EQ(whisper.name, "Alguien");
     EXPECT_EQ(whisper.text, "psst");
-    EXPECT_EQ(std::string(Input().lastWhisperTarget.data()), "Alguien");
+    EXPECT_EQ(world.Runtime().chat.lastWhisperTarget, "Alguien");
     const auto& entries = world.Runtime().chat.log.entries;
     ASSERT_FALSE(entries.empty());
     EXPECT_EQ(entries.front().name, "Heroe");
@@ -228,6 +229,16 @@ TEST_F(GameChat, ALowLevelCannotWhisper)
     EXPECT_EQ(world.Runtime().chat.log.entries.front().type, Client::UI::SystemMessage);
 }
 
+// Con el nombre entre los que susurraron (0x77997f8, que llena el 02 que llega), el nivel bajo no frena.
+TEST_F(GameChat, ALowLevelMayAnswerWhoWhispered)
+{
+    world.OwnCharacter().level = 5;
+    Client::UI::RememberTheWhisperSender(world.Runtime().chat.whisperSenders, 5, "Alguien");
+    ASSERT_TRUE(Type("\rpsst\tAlguien\r").HasValue());
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_EQ(Decode(sent[0]).opcode, 0x02);
+}
+
 // Sin el modo de F3, o con '/' adelante, va al chat aunque haya un nombre.
 TEST_F(GameChat, WithoutTheWhisperModeItGoesToTheChat)
 {
@@ -241,11 +252,11 @@ TEST_F(GameChat, WithoutTheWhisperModeItGoesToTheChat)
 TEST_F(GameChat, TheWhisperSwitchesWarnWithoutSending)
 {
     ASSERT_TRUE(Type("\r/callar\r").HasValue());
-    EXPECT_TRUE(Input().whisperOff);
+    EXPECT_TRUE(world.Runtime().chat.whisperBlocked);
     EXPECT_EQ(world.Runtime().chat.log.entries.front().text, "aviso callar");
     Input().brake = 0;
     ASSERT_TRUE(Type("\r/escuchar\r").HasValue());
-    EXPECT_FALSE(Input().whisperOff);
+    EXPECT_FALSE(world.Runtime().chat.whisperBlocked);
     EXPECT_EQ(world.Runtime().chat.log.entries.front().text, "aviso escuchar");
     EXPECT_TRUE(sent.empty());
 }

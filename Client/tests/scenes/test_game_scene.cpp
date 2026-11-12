@@ -25,6 +25,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/ChatBubbles.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/FaunaStep.h"
@@ -60,6 +61,7 @@
 #include "support/PlayerActors.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
+#include "support/RecordingTextDrawer.h"
 #include "support/ScenePrinters.h"
 #include "support/SessionHarness.h"
 #include "support/TestGameServer.h"
@@ -1165,6 +1167,37 @@ TEST_F(GameSceneDrawTest, AtlansDrawsItsCausticWaterAndNoGrass)
         }
     }
     EXPECT_GT(water, 0u);
+    scene.Leave();
+}
+
+// El 12 del HUD (0x5a9050) lee la proyección del pase del mundo del frame (0x6203c0): el globo del héroe queda medido
+// y en su lugar de 640 × 480, que en 640 × 480 es donde va su caja.
+TEST_F(GameSceneDrawTest, TheFrameDrawsTheChatBubblesWithTheWorldProjection)
+{
+    ASSERT_NO_FATAL_FAILURE(Prepare(7, 226, 103));
+    GameScene scene = Scene();
+    ASSERT_TRUE(scene.Enter().HasValue());
+    world.Actors()[HeroSlot].seen = true;
+    Client::Scenes::ChatBubble& bubble = world.Runtime().chat.bubbles[0];
+    bubble.name = "Tero";
+    bubble.nameTime = 100;
+    bubble.owner = HeroSlot;
+    Client::Tests::RecordingFrameTarget target;
+
+    scene.PrepareFrame();
+    scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
+
+    ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
+    EXPECT_EQ(bubble.width, 4 * 6 + 3);
+    // Sobre el héroe, que la cámara deja cerca del centro.
+    EXPECT_GT(bubble.x, 0);
+    EXPECT_GT(bubble.y, 0);
+    const std::vector<Client::Tests::RecordedText>& texts = target.Texts();
+    const auto named = std::ranges::find(texts, std::string("Tero"), &Client::Tests::RecordedText::text);
+    ASSERT_NE(named, texts.end());
+    ASSERT_TRUE(named->box.has_value());
+    EXPECT_EQ(named->x, bubble.x);
+    EXPECT_EQ(named->y, bubble.y);
     scene.Leave();
 }
 

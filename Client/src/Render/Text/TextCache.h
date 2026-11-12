@@ -5,6 +5,7 @@
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Render/Text/TextBox.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 
@@ -63,6 +64,12 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> DrawClippedAtLeft(SpriteBatch& batch, int x, int y,
                                                                       std::string_view text, const TextStyle& style);
 
+    // 0x553e50 y 0x554000 de un renglón de un globo (0x555b00): la caja de `box` con el texto en (0, 0), aunque esté
+    // vacío (el fondo solo), en (x, y) de la pantalla en píxeles, como la corre BoxedQuad. Cada caja es otra entrada
+    // de la caché, de un slot. Los errores, los de Draw.
+    [[nodiscard]] Core::Expected<void, std::string> DrawBoxed(SpriteBatch& batch, int x, int y, std::string_view text,
+                                                              const TextStyle& style, const BoxShape& box, bool clampY);
+
     // GetTextExtentPointA, para ubicar el texto antes de dibujarlo (RightAlignedAt).
     [[nodiscard]] TextExtent Measure(FontKind font, std::string_view text) const;
 
@@ -86,6 +93,8 @@ private:
         TextColors colors;
         std::string_view text;
         int skipped = 0;
+        // La caja de un globo; con ancho 0, la de 0x467060.
+        BoxShape box{};
     };
     struct KeyLess
     {
@@ -97,7 +106,8 @@ private:
         TextColors colors;
         std::string text;
         int skipped = 0;
-        // El ancho es el que se ve: el del texto menos `skipped`.
+        BoxShape box{};
+        // El ancho es el que se ve: el del texto menos `skipped`, o el de la caja del globo.
         TextExtent extent;
         // Una por cada 256 columnas del texto, en orden.
         std::vector<TextureSlot> boxes;

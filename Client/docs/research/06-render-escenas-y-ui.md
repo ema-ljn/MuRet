@@ -1171,8 +1171,32 @@ el mensaje va al área de mensajes. No saca `rand()`.
   comparando con `strcmp` el nombre de `+0x1d9` (que sigue en `+0x1e3` con los diez bytes llenos). `0x557650`, en el
   paso del juego (`0x6370f9`), baja los tres relojes y pone en 0 los de un dueño muerto o fuera de la vista; con el
   chat abierto, el héroe en zona segura y el derecho sobre un globo ajeno (`+0x278..+0x284`, que escribe el dibujo)
-  de un dueño con `+0x376 = 0xff`, llena el destino del susurro (`0x7798cf8`). Nada de esto saca `rand()`. El dibujo
-  (`0x5a9050`, el 12 del HUD, con `0x555840`, `0x555b00`, `0x513270` y `0x5132a0`) no está leído (08, P-C81).
+  de un dueño con `+0x376 = 0xff`, llena el destino del susurro (`0x7798cf8`). Nada de esto saca `rand()`.
+- **El dibujo de los globos** (`0x5a9050`, el 12 del HUD; leído en el ASM, *estático*). Pone la normal en el DC y
+  recorre tres veces las entradas vivas (con el nombre o el renglón de abajo con tiempo). La primera proyecta con
+  `0x6205b0` (la caché `0x6203c0` del pase del mundo) el punto (x, y, techo + z + 60) del dueño, con el techo en
+  `+0x138` (120 los jugadores, `0x5122d4`, y 150 los demás tipos, `0x5123a9`) y el 60 de `0x6b86cc`; lo mide con
+  `0x555840` y lo deja centrado en la x (la mitad del ancho pasado a 640 con `IDIV`) y 0x24 más arriba. `0x555840` mide
+  con la normal: el ancho es el mayor del nombre más 3, el gremio, el puesto y los renglones con tiempo (los dos si el
+  de arriba tiene; si no, el de abajo si tiene), y el alto, el paso de la letra por las cinco medidas (Q-C520); con el
+  título de una tienda personal mide también el título (CL9.4). La segunda pasada, para cada par que se pisa en
+  640 × 480, sube el primero arriba del otro si su y está antes de la mitad del otro, y si no lo baja debajo. La tercera
+  corre cada uno contra los bordes (Q-C522) y llama a `0x555b00`. `0x555b00`, con `TextOut` distinto de 1: no dibuja
+  si el dueño tiene el bit `0x10000000` de `+0x7c`, o si en el asedio (`0x7239ec`) un dueño ajeno con el bit `0x4000`
+  de `+0x78` es de otro bando que el héroe (`+0x360`: 9 y 6, 10 y 7, 11 y 8, 13 y 12). Pone la mezcla 1 y el blanco,
+  deja el tamaño en `0x77f31b8` y `0x77f31bc`, prende `0x77f3b66` (08, P-C83) y lleva el paso de la letra a 32 como
+  mucho (en `0x7758568`) y el ancho a 1.280. El nombre va con el color de `+0x64` (seis colores, y `0xff0000ff` para
+  los demás); el color de adelante (`0x6c8e60`) y el fondo son los del globo propio (`0xff00ffc8` y `0x9600643c`) o los
+  de `0x513270` y `0x5132a0` con 1 si el `+0x1f2` del dueño es el del héroe (también los dos sin gremio) y con su
+  `+0x370` si no (0: `0xffffe6e6` y `0x96321e0a`; 2 u 8: `0xff001eff` y `0x96000000`; otro: `0xff00ffc8` y
+  `0x96503214`). Con el mouse encima (el tamaño pasado a 640 sin signo), el campo del chat abierto, el héroe en zona
+  segura, otro nombre que el suyo y `0x77f3b94 % 6 < 3`, el texto y el fondo se cambian. Los renglones van de a un
+  paso: el gremio y el puesto (enteros con el color de adelante: `0x553e50` toma como columnas de adelante el cx del
+  texto de adelante), el nombre y, con el fondo de `+0x65` (0: `0x96321e0a`; 1: `0x9600321e`; otro: `0x96000032`), el
+  de arriba y el de abajo si el de arriba tiene tiempo, o solo el de abajo, en `0xffc8dce6` o, con menos de 10 pasos,
+  `0x80c8dce6`. Cada renglón es una caja de 256 × 32 (`0x553e50`) del ancho del globo y el alto del paso, que
+  `0x554000` corre contra los bordes en píxeles y, con `0x77f3b66`, con la y contra 0 y contra `H − H · 47 / 640`
+  (Q-C521). Nada de esto saca `rand()`.
 - **Los que susurraron** (`0x77997f8`, diez lugares de 10 bytes más uno; el próximo en `0x77f3b9c`). `0x554d20`
   anota con `strcpy` (Q-C512) un nombre que no esté, si el nivel propio es menor que 10 (Q-C453), y el próximo vuelve
   al 0 después del 9. `0x555030` pone los 110 bytes en 0 y deja el próximo; lo llama la vuelta a la selección
@@ -1183,7 +1207,8 @@ el mensaje va al área de mensajes. No saca `rand()`.
   1710. La barra se arma una vez, así que el texto queda para todas las selecciones siguientes.
 
 **MuRet:** `Scenes/ChatReceive`, `Scenes/ChatBubbles` (la tabla, `0x557170`, `0x557560` y `0x557650` en el paso del
-juego) y `UI/WhisperSenders`; la franja, en `WorldRuntime` (`chat.selectionNotice`), y el `F3 30` llena las teclas de
+juego), `Scenes/ChatBubbleDraw` (el dibujo, con la proyección del pase del mundo que le pasa `GameScene`; un dibujo
+intermedio escribe en una copia de la tabla, y el clic derecho lee la del último frame) y `UI/WhisperSenders`; la franja, en `WorldRuntime` (`chat.selectionNotice`), y el `F3 30` llena las teclas de
 las skills del registro propio (`+0x26c`), el ataque automático, el sonido, los carteles prendidos (`0x6c7a8c`), Q, W
 y E y los renglones y la transparencia del registro. El cartel de `Slide.bmd`, abajo.
 

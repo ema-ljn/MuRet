@@ -62,4 +62,10 @@ struct TextPiece
 //     negativa va a 0, y una caja que pasa del borde derecho va contra él.
 // Un texto de ancho 0 no da ninguna caja; el original no dibuja un texto vacío.
 [[nodiscard]] std::vector<TextPiece> TextPieces(int x, int y, TextExtent extent, App::PixelSize screen);
+
+// 0x554000(x, y, ancho, filas, …, 0, 0x280) de un renglón de un globo (0x555b00), en píxeles: una x negativa va a 0 y
+// una caja que pasa de W va contra el borde; con 0x77f3b66 prendido (`clampY`), una y negativa va a 0 y una caja que
+// pasa de H − H · 47 / 640 (con IDIV) sube hasta ahí. El quad muestra `width` columnas de la caja de 256 (con GL_CLAMP,
+// las que pasan repiten la última, Q-C521) y `rows` filas.
+[[nodiscard]] OriginalQuad BoxedQuad(int x, int y, int width, int rows, bool clampY, App::PixelSize screen);
 } // namespace Client::Render::Text

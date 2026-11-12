@@ -18,6 +18,7 @@
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/GameProjection.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/IcarusObjectStep.h"
 #include "Scenes/KalimaObjectStep.h"
@@ -685,7 +686,10 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     canvas.flushModels();
     if (!drawn.HasValue())
         return drawn;
-    return DrawTheInterface(canvas);
+    // 0x6203c0 del pase del mundo: la proyección que leen los globos del HUD (0x5a9050 → 0x6205b0). Sin ella, corta
+    // solo si hay un globo vivo.
+    const auto projection = MakeGameProjection(pass, camera.fieldOfView);
+    return DrawTheInterface(canvas, projection.HasValue() ? &projection.Value() : nullptr);
 }
 
 void GameScene::ObserveMapLoad()

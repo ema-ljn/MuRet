@@ -116,6 +116,21 @@ Core::Expected<void, std::string> TextCache::DrawClippedAtLeft(SpriteBatch& batc
     return {};
 }
 
+Core::Expected<void, std::string> TextCache::DrawBoxed(SpriteBatch& batch, int x, int y, std::string_view text,
+                                                       const TextStyle& style, const BoxShape& box, bool clampY)
+{
+    if (box.width <= 0 || box.rows <= 0)
+        return {};
+    const Core::Expected<Entries::iterator, std::string> found =
+        Find(Key{.font = style.font, .colors = style.colors, .text = text, .skipped = 0, .box = box}, batch);
+    if (!found.HasValue())
+        return Core::Unexpected(found.Error());
+    OriginalQuad quad = BoxedQuad(x, y, box.width, box.rows, clampY, batch.Screen());
+    quad.slot = found.Value()->boxes.front();
+    batch.Quad(quad);
+    return {};
+}
+
 void TextCache::DrawPieces(SpriteBatch& batch, const Entry& entry, int x, int y)
 {
     for (const TextPiece& piece : TextPieces(x, y, entry.extent, batch.Screen()))
@@ -162,8 +177,10 @@ std::size_t TextCache::UsedSlots() const
 
 bool TextCache::KeyLess::operator()(const Key& a, const Key& b) const
 {
-    return std::tie(a.font, a.colors.text, a.colors.background, a.text, a.skipped) <
-           std::tie(b.font, b.colors.text, b.colors.background, b.text, b.skipped);
+    return std::tie(a.font, a.colors.text, a.colors.background, a.text, a.skipped, a.box.width, a.box.rows,
+                    a.box.prefixColumns, a.box.prefixColor) < std::tie(b.font, b.colors.text, b.colors.background,
+                                                                       b.text, b.skipped, b.box.width, b.box.rows,
+                                                                       b.box.prefixColumns, b.box.prefixColor);
 }
 
 Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const Key& key, const SpriteBatch& batch)
@@ -175,9 +192,13 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
         return indexed->second;
     }
 
+    const bool boxed = key.box.width > 0;
     TextExtent extent = m_rasterizer->Measure(key.font, key.text);
     extent.width = std::max(extent.width - key.skipped, 0);
-    const std::size_t boxes = BoxesFor(extent.width);
+    if (boxed)
+        extent = TextExtent{.width = key.box.width, .height = key.box.rows};
+    // La caja de un globo es una sola: el quad muestra más de 256 columnas con la última repetida.
+    const std::size_t boxes = boxed ? 1 : BoxesFor(extent.width);
     if (boxes > m_slotCount)
     {
         return Core::Unexpected(std::format("el texto pide {} cajas y la caché tiene {} slots", boxes, m_slotCount));
@@ -194,7 +215,7 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
         EvictOldest();
     }
 
-    Entry entry{key.font, key.colors, std::string(key.text), key.skipped, extent, {}};
+    Entry entry{key.font, key.colors, std::string(key.text), key.skipped, key.box, extent, {}};
     entry.boxes.reserve(boxes);
     std::vector<Data::Textures::LoadedTexture> textures;
     textures.reserve(boxes);
@@ -214,8 +235,12 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
                                         .textureHeight = TextBoxHeight,
                                         .format = Data::Textures::PixelFormat::Rgba,
                                         .pixels = std::vector<std::uint8_t>(TextBoxBytes)};
-        PaintTextBox(*m_rasterizer, style, key.text, drawnColumn, std::min(TextBoxWidth, extent.width - firstColumn),
-                     rows, TextBoxPixels(texture.pixels.data(), TextBoxBytes));
+        if (boxed)
+            PaintBoxedText(*m_rasterizer, style, key.text, key.box, TextBoxPixels(texture.pixels.data(), TextBoxBytes));
+        else
+            PaintTextBox(*m_rasterizer, style, key.text, drawnColumn,
+                         std::min(TextBoxWidth, extent.width - firstColumn), rows,
+                         TextBoxPixels(texture.pixels.data(), TextBoxBytes));
         // Como 0x63bd00 sube la FontInput.tga del slot 0: GL_NEAREST y GL_CLAMP.
         textures.push_back(Data::Textures::LoadedTexture{
             slot.value, Data::Textures::Sampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Clamp},
@@ -235,7 +260,7 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
 
     m_entries.push_front(std::move(entry));
     const Entry& front = m_entries.front();
-    m_index.emplace(Key{front.font, front.colors, front.text, front.skipped}, m_entries.begin());
+    m_index.emplace(Key{front.font, front.colors, front.text, front.skipped, front.box}, m_entries.begin());
     return m_entries.begin();
 }
 
@@ -246,7 +271,7 @@ void TextCache::EvictOldest()
         return;
     }
     const Entry& oldest = m_entries.back();
-    m_index.erase(Key{oldest.font, oldest.colors, oldest.text, oldest.skipped});
+    m_index.erase(Key{oldest.font, oldest.colors, oldest.text, oldest.skipped, oldest.box});
     // Al revés, para que la pila los vuelva a dar en el orden en que estaban.
     for (auto slot = oldest.boxes.rbegin(); slot != oldest.boxes.rend(); ++slot)
     {

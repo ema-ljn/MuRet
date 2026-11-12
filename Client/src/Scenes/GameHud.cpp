@@ -16,6 +16,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ChatBubbleDraw.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/HudItems.h"
@@ -28,6 +29,7 @@
 #include "UI/ChatLogDraw.h"
 #include "UI/GameText.h"
 #include "UI/HudPrimitives.h"
+#include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
 #include "UI/TextField.h"
@@ -1383,9 +1385,22 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     context.sprites.SetColor(White);
     if (auto event = DrawTheEventObject(frame); !event.HasValue())
         return event;
-    // 12. 0x5a9050: los globos y los nombres sobre las cabezas (0x77e1be0, Scenes/ChatBubbles), sin dibujar (08,
-    // P-C81): no saca rand() y escribe en cada entrada dónde quedó (+0x278..+0x284), que lee el clic derecho de
-    // 0x557650.
+    // 12. 0x5a9050: los globos y los nombres sobre las cabezas (0x77e1be0, Scenes/ChatBubbleDraw). No saca rand() y
+    // escribe en cada entrada dónde quedó (+0x278..+0x284), que lee el clic derecho de 0x557650.
+    ChatBubbleDrawContext bubbles{.world = world,
+                                  .projection = context.projection,
+                                  .sprites = context.sprites,
+                                  .text = context.text,
+                                  .dcFont = hud.dcFont,
+                                  .textColors = hud.textColors,
+                                  .clampBoxes = hud.durabilityWarning,
+                                  .boxWidth = hud.arrowsTextWidth,
+                                  .boxHeight = hud.arrowsTextHeight,
+                                  .mouse = context.mouse,
+                                  .blink = hud.messageFrame.areaBlink,
+                                  .projecting = context.projecting};
+    if (auto drawn = DrawTheChatBubbles(bubbles); !drawn.HasValue())
+        return drawn;
     // 13. 0x451d10 y 0x451c20: los carteles del singleton de 0x7245c8 (CL9.5).
     // 14. 0x5a6cc0: el marcador del duelo, con 0x78abad8 (hito 4).
     // 15. 0x46b090: el cartel de Slide.bmd ([0x5763528]).

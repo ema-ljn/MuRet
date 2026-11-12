@@ -7,6 +7,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Render/Text/TextBox.h"
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
@@ -38,6 +39,8 @@ using Client::Render::DrawCommand;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
 using Client::Render::TextureSlot;
+using Client::Render::Text::BoxedQuad;
+using Client::Render::Text::BoxShape;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextCache;
 using Client::Render::Text::TextColors;
@@ -382,5 +385,45 @@ TEST_F(TextCacheTest, ItReleasesItsSlots)
 
     EXPECT_EQ(m_store.Size(), 0u);
     EXPECT_EQ(m_store.released.size(), 3u);
+}
+// Un renglón de un globo es una caja de un slot con su forma en la clave: la misma se reusa, otra columna de adelante
+// es otra entrada. El quad es el de BoxedQuad, aunque el texto esté vacío; sin ancho no dibuja.
+TEST_F(TextCacheTest, ABubbleLineIsOneBoxWithItsShape)
+{
+    TextCache cache(m_rasterizer, m_store, First, FourSlots);
+    const BoxShape shape{.width = 40, .rows = 12, .prefixColumns = 6, .prefixColor = 0xff00ffc8};
+
+    ASSERT_TRUE(cache.DrawBoxed(m_batch, 620, 470, "ab", Login, shape, true).HasValue());
+    ASSERT_TRUE(cache.DrawBoxed(m_batch, 620, 470, "ab", Login, shape, true).HasValue());
+    EXPECT_EQ(m_rasterizer.drawCalls, 1);
+    EXPECT_EQ(cache.Size(), 1u);
+    const auto box = m_store.Find(First);
+    ASSERT_TRUE(box.has_value());
+    const std::vector<std::uint8_t>& pixels = box->texture.pixels;
+    EXPECT_EQ((std::array{pixels[0], pixels[1], pixels[2], pixels[3]}),
+              (std::array<std::uint8_t, 4>{0xc8, 0xff, 0x00, 0xff}));
+    EXPECT_EQ((std::array{pixels[24], pixels[25], pixels[26], pixels[27]}),
+              (std::array<std::uint8_t, 4>{0xff, 0xff, 0xff, 0xff}));
+
+    SpriteBatch expected;
+    expected.Begin(Screen);
+    auto quad = BoxedQuad(620, 470, 40, 12, true, Screen);
+    quad.slot = First;
+    expected.Quad(quad);
+    ASSERT_EQ(m_batch.Vertices().size(), 2 * expected.Vertices().size());
+    for (std::size_t i = 0; i < expected.Vertices().size(); ++i)
+    {
+        EXPECT_TRUE(SameVertex(m_batch.Vertices()[i], expected.Vertices()[i])) << i;
+    }
+
+    ASSERT_TRUE(cache
+                    .DrawBoxed(m_batch, 0, 0, "ab", Login,
+                               BoxShape{.width = 40, .rows = 12, .prefixColumns = 0, .prefixColor = 0xff00ffc8}, true)
+                    .HasValue());
+    ASSERT_TRUE(cache.DrawBoxed(m_batch, 0, 0, "", Login, shape, true).HasValue());
+    EXPECT_EQ(cache.Size(), 3u);
+    ASSERT_TRUE(cache.DrawBoxed(m_batch, 0, 0, "ab", Login, BoxShape{}, true).HasValue());
+    EXPECT_EQ(cache.Size(), 3u);
+    EXPECT_EQ(SlotsOf(m_batch).size(), 4u);
 }
 } // namespace

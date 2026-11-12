@@ -9,6 +9,7 @@
 #include "Scenes/GameChat.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/SceneCanvas.h"
@@ -111,7 +112,7 @@ GameChatContext GameScene::ChatContext()
                                                       : ChatSender{}};
 }
 
-Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canvas)
+Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canvas, const GameProjection* projection)
 {
     WorldRuntime& runtime = m_context.world->Runtime();
     const Input::InputState noInput;
@@ -140,6 +141,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .crywolfSandOverlay = m_projectingFrame ? m_projection->crywolfSandOverlay : runtime.crywolf.sandOverlay,
         .sound = m_projectingFrame ? m_projection->sound : runtime.lastSoundId,
         .projecting = m_projectingFrame,
+        .projection = projection,
         .sprites = canvas.sprites,
         .text = canvas.text,
         .texts = m_texts,

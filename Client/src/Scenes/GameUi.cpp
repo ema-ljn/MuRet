@@ -516,7 +516,9 @@ void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down)
     else if (!state.previousLeftDown)
         state.leftHeld = true;
     state.previousLeftDown = down;
-    state.pendingClick = state.pendingClick || pressed;
+    // WM_LBUTTONDOWN prende el flanco con el botón arriba (0x4b395a) y WM_LBUTTONUP lo apaga (0x4b3ce3): un clic
+    // apretado y soltado en el mismo paso no queda, como después de los dos mensajes.
+    state.pendingClick = down && (state.pendingClick || pressed);
 }
 
 Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context)

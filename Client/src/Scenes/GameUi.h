@@ -36,8 +36,8 @@ struct GameUiContext
     std::int32_t mouseY = 0;
 };
 
-// El WndProc: 0x7d366d4 (el flanco del clic, que solo apaga quien lo usa) y 0x7d36874 (el botón abajo), antes de
-// cualquier lógica del paso. GameScene lo llama al empezar cada paso; MoveHero también, para sus pruebas.
+// El WndProc: 0x7d366d4 (el flanco del clic, que apagan quien lo usa y el botón suelto) y 0x7d36874 (el botón
+// abajo), antes de cualquier lógica del paso. GameScene lo llama al empezar cada paso; MoveHero también, para sus pruebas.
 void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down);
 
 // 0x637c4a..0x637c5c → 0x623e70: Esc y el diálogo abierto, en cada paso de la escena 5 antes de su lógica.

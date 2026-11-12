@@ -366,6 +366,19 @@ TEST(GameUiTest, TheClickLatchKeepsTheEdgeUntilSomeoneUsesIt)
     EXPECT_FALSE(state.leftHeld);
 }
 
+// WM_LBUTTONUP apaga el flanco (0x4b3ce3): sin usar, se pierde al soltar, y apretado y soltado en el mismo paso no
+// queda.
+TEST(GameUiTest, TheReleasedButtonDropsTheEdge)
+{
+    Client::Scenes::GameMovementState state;
+    Client::Scenes::LatchTheLeftButton(state, true, true);
+    Client::Scenes::LatchTheLeftButton(state, false, false);
+    EXPECT_FALSE(state.pendingClick);
+    Client::Scenes::LatchTheLeftButton(state, true, false);
+    EXPECT_FALSE(state.pendingClick);
+    EXPECT_FALSE(state.leftHeld);
+}
+
 class PickingFrame
 {
 public:

@@ -883,7 +883,7 @@ desconexión.
 | Global | Qué | Quién escribe | Quién lee |
 | --- | --- | --- | --- |
 | `0x775857c` (byte) | **el mouse es de la UI** | 0 en `0x636e04` en cada paso; 1 en `0x636e1d` (y ≥ 432), en `0x637063` (aviso abierto) y en los handlers de ventana cuando el mouse cae en su rectángulo (`0x5e3ce8` party, `0x5e457d` C, `0x40a48f` D, `0x424230`, `0x41a9e0`, `0x41b170`, `0x44b540`, `0x44b910`, `0x44dd50`, `0x44f810`, `0x5e6520`, `0x5e74f0`, `0x5ebca0`, las hijas del inventario y la UI vieja: 81 escrituras en 44 funciones) | `0x59adf0` en `0x59b37a` (el giro) y `0x59b853` (el clic); `0x59ec80` en `0x59ef16` (el picking, por frame, con el valor del último paso); `0x57cfc0`, `0x5ac8d0` (teclas F), `0x5ac2d0` (el cursor, por frame) y `0x492ac0` (UI vieja) |
-| `0x7d366d4` (byte) | flanco del clic izquierdo | 1 en el WndProc; 0 en cada consumidor (más de 100) | la UI en el paso; después `MoveHero` (`0x59b88b`), que lo consume aunque no camine |
+| `0x7d366d4` (byte) | flanco del clic izquierdo | 1 en el `WM_LBUTTONDOWN` con `0x7d36874` en 0 (`0x4b395a`); 0 en el `WM_LBUTTONUP` (`0x4b3ce3`) y en cada consumidor (más de 100) | la UI en el paso; después `MoveHero` (`0x59b88b`), que lo consume aunque no camine |
 | `0x7d36874` | botón izquierdo abajo | WndProc; algunos handlers lo bajan | `MoveHero` (apretado), `0x636e5d` |
 | `0x7d3682c`, `0x7d36828` | x, y del mouse en 640 × 480 | WndProc | todos |
 | `0x7d366d8` | rueda en muescas | WndProc; la consume quien la usa | volumen (`0x625782`) |
@@ -7500,8 +7500,9 @@ de Lorencia verifican el componente; `GameScene`, reglas del clic y caminar sigu
   (`0x77f3b10`) no sube (Q-C168). Solo con `MouseUpdateTime ≥ MouseUpdateTimeMax` (`0x6c8dcc`) y
   `0x77f3bac` en 0 mira el mouse: el flanco `0x7d366d4`, que consume; el botón abajo, `0x7d36874`; o
   el auto-ataque (`0x6c8e3c`, con `0x6c8e38 == 1` y un personaje bajo el mouse, fuera de los mapas 6
-  y 18 a 23). Un clic dentro de la ventana de `MouseUpdateTimeMax` queda pendiente, porque
-  `MoveHero` no lo borra (Q-C166). Con un botón abajo una hora (`(T − 0x77f3b44) · 0,001 ≥ 3.600`)
+  y 18 a 23). Un clic dentro de la ventana de `MouseUpdateTimeMax` queda pendiente mientras el
+  botón sigue abajo, porque `MoveHero` no lo borra (Q-C166); el `WM_LBUTTONUP` lo apaga
+  (`0x4b3ce3`). Con un botón abajo una hora (`(T − 0x77f3b44) · 0,001 ≥ 3.600`)
   suelta los dos (`0x59b8e7..0x59b921`, Q-C167).
 - **La acción del héroe** (`0x59babe..0x59bb1f`): sigue si la acción (`+0x111`) no es `0xc2` (el
   golpe), `+0x80` no es 1 ni 2, el alpha es ≥ 0,7 y la acción es < `0x22` o > `0x97`; o si la acción

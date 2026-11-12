@@ -144,7 +144,8 @@ Core::Expected<void, std::string> WorldModels::LoadSpecials(const std::filesyste
     if (specials.kind == WorldSpecialKind::Exile)
     {
         // 0x617633..0x6176a4: primero carga los siete; con todos ausentes, cada asignación lee cero
-        // mallas y no llega a GL. Una malla real alcanza el wrap inválido 0x2600 de 0x617699.
+        // mallas y no llega a GL. Una malla real alcanza el wrap inválido 0x2600 de 0x617699 (GL_NEAREST como
+        // wrap, un error de Webzen que GL ignora, Q-C441); el mapa 5 queda fuera del alcance (P-C12).
         for (const Data::Models::ModelFile& file : specials.files)
             LoadFile(dataRoot, file, log, missing);
         for (const Data::Models::ModelFile& file : specials.files)

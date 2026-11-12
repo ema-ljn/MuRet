@@ -19,6 +19,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -318,7 +319,7 @@ TEST_F(GoldenGameModels, ThePetMountsLoadWithTheirTextures)
     EXPECT_EQ(slotsOf(0x14c), (std::vector<std::uint16_t>{0x371, 0x374}));
     EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{0x371}), "fenril02.jpg");
     const std::set<std::uint16_t> loaded(textures.loaded.begin(), textures.loaded.end());
-    for (const std::uint16_t model : {0xc6, 0x110, 0x14a, 0x14b, 0x14c})
+    for (const std::uint16_t model : std::array<std::uint16_t, 5>{0xc6, 0x110, 0x14a, 0x14b, 0x14c})
     {
         const auto* skeleton = models.SkeletonOf(model);
         ASSERT_NE(skeleton, nullptr) << std::hex << model;

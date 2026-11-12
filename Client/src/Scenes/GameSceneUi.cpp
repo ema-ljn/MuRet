@@ -25,6 +25,7 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <optional>
 #include <ratio>
 #include <string>
 #include <utility>
@@ -170,7 +171,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .setOptions = m_chatTables.setOptions,
         .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
         .mouse = UI::MouseIn640x480(input, canvas.screen),
-        .leftDown = input.IsDown(Input::MouseButton::Left)};
+        .leftDown = input.IsDown(Input::MouseButton::Left),
+        .chosenServer = m_session != nullptr ? m_session->ChosenServer() : std::nullopt};
     // 0x637646: 0x6219b0 empieza el 2D (gluOrtho2D y MODELVIEW identidad, con push): el lote de SceneCanvas.
     // 0x63764b: 0x4383f0, los textos 3D (hito 3).
     // 0x637650: 0x5bbbc0, el hover y Alt (hito 4).

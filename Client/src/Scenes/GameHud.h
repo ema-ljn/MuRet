@@ -64,6 +64,9 @@ struct GameHudContext
     UI::Point mouse{};
     // 0x7d36874: el botón izquierdo abajo.
     bool leftDown = false;
+    // El código del servidor elegido (App::ServerSession::ChosenServer), de donde salen [0x6d5ec4] (el lugar del
+    // grupo) y [0x6d5ecc] (el número) que lee la ventana del personaje; sin él, corta.
+    std::optional<std::uint16_t> chosenServer{};
 };
 
 // 0x5a7320(1): los 31 hijos del HUD en su orden (06 § HUD y ventanas, "El HUD hijo por hijo"). En el estado base

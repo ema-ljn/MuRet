@@ -18,6 +18,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbleDraw.h"
 #include "Scenes/EventMapObject.h"
+#include "Scenes/GameCharacterHud.h"
 #include "Scenes/GameInventoryHud.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameTooltips.h"
@@ -830,8 +831,12 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     const auto cut = [](std::string_view what) { return Core::Unexpected(std::string(what)); };
     if (panels.IsOpen(UI::PartyPanel) || frame.context.hud.partyCount != 0)
         return cut("0x5f0be0: la ventana de la party es de la CL9.4");
+    // 0x5f7487: 0x5ee2e0 y el botón de cerrar, con la ventana del personaje abierta.
     if (panels.IsOpen(UI::CharacterPanel))
-        return cut("0x5ee2e0: la ventana del personaje es del hito 5");
+    {
+        if (auto character = DrawTheCharacterWindow(frame.context); !character.HasValue())
+            return character;
+    }
     // 0x5f2340, que empieza con su IsOpen.
     if (auto inventory = DrawTheInventory(frame.context, panels); !inventory.HasValue())
         return inventory;

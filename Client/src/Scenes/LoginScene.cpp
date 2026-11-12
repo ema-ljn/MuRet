@@ -79,6 +79,7 @@
 #include "UI/NewUi.h"
 #include "UI/Notices.h"
 #include "UI/OptionsWindow.h"
+#include "UI/PanelRegistry.h"
 #include "UI/ServerListModel.h"
 #include "UI/ServerListWindow.h"
 #include "World/TerrainCells.h"
@@ -410,6 +411,8 @@ Core::Expected<void, std::string> LoginScene::Enter()
             RetainTheTerrain();
             return emptied;
         }
+        // 0x634bf0..0x634c2e: la ventana de los comandos ([0x6e592c]) cerrada y sin comando.
+        UI::ResetTheCommands(m_context.world->Runtime().panels.delegated);
     }
     auto placed = PlaceTheModels();
     if (!placed.HasValue())

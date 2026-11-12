@@ -19,6 +19,7 @@
 #include "Scenes/ChatBubbleDraw.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GameHelps.h"
+#include "Scenes/GameMoveWindow.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -1480,7 +1481,7 @@ Core::Expected<void, std::string> DrawTheOverlays(GameHudContext& context)
     // 0x5b10cf..0x5b10e0: IsOpen(2), la ventana /move.
     GamePanels panels(world, context.random);
     if (panels.Registry().IsOpen(UI::MovePanel))
-        return Core::Unexpected(std::string("0x449860: la ventana /move es del hito 6 (P-C93)"));
+        return DrawTheMoveWindow(context);
     return {};
 }
 

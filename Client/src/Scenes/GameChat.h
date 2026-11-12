@@ -68,6 +68,11 @@ struct GameChatContext
 // cierra el campo.
 [[nodiscard]] Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& context);
 
+// 0x4b5734..0x4b6f54 (Enter), 0x5a1214..0x5a1e9e (las macros) y 0x4488d3..0x448ef8 (la ventana /move, en línea): el
+// freno (0x5767940 y lo último dicho, 0x57676e4), "webzen" en el nombre del héroe, /whisper off y on (vivo) o /move
+// (muriéndose), y el C1 00 con el nombre del héroe.
+[[nodiscard]] Core::Expected<void, std::string> SayInTheChat(const GameChatContext& context, std::string_view said);
+
 // 0x5a119f..0x5a2b47: con Alt (y el freno 0x77f3b74 en 0, fuera de Chaos Castle, que mira quien llama), cada macro
 // de la tecla apretada de 1 a 9 y 0, en ese orden: los comandos (0x56c440 desde una macro), los emotes, el filtro y
 // lo mismo que el chat de Enter, sin el historial y siempre con el C1 00. Cada una que pasa los comandos deja el

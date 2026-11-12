@@ -363,11 +363,12 @@ tooltip va a la VM (P-C60). **Desbloquea:** "inventario usable".
       `0x6605b0`, `0x660830`, `0x660410`, `0x660350`, `0x6576a0`).
 - [ ] **Las ventanas del paso que son marco:** la party (`0x5e3c80` sin el `43`), el botón del quest (`0x41b5a0`
       sin el contenido), la puerta de D (`0x40a450` sin `0x406050`) y los cortes sin `rand()` de las de la CL9.
-- [ ] **Las teclas y las superposiciones:** `0x5ac8d0` (F1..F4; SPACE como corte de la CL9.3), `0x5b0550` con las
+- [x] **Las teclas y las superposiciones:** `0x5ac8d0` (F1..F4; SPACE como corte de la CL9.3), `0x5b0550` con las
       ayudas F1 (`0x5af090`, `0x5afb00`) y **la ventana /move** (el paso `0x5ecdc0` → `0x449850` → `0x448580` y el dibujo `0x5b0550` → `0x449860` →
       `0x448fa0`, con
-      `Data\Local\movereq.bmd`).
-- [ ] **El hover y ALT** (`0x5bbbc0`: los nombres por los globos; los carteles del piso como corte de la CL9.3) y
+      `Data\Local\movereq.bmd`). El dibujo de la ayuda del ítem y del cartel del conjunto (`0x5afb00` es solo del
+      modo 3) corta para el hito 5 (08, P-C105).
+- [x] **El hover y ALT** (`0x5bbbc0`: los nombres por los globos; los carteles del piso como corte de la CL9.3) y
       **los textos 3D** (`0x4383f0`; el productor de Kalima es de la CL9.5).
 - [ ] **La captura:** el flanco de PrintScreen (`0x637cff`), el nombre y el contador (`0x637700`), `0x6202e0`,
       el JPEG y el mensaje Text 459 por el área de mensajes.

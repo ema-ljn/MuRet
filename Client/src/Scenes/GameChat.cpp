@@ -162,8 +162,8 @@ Core::Expected<std::string, std::string> FilteredOf(const GameChatContext& conte
     return std::string(filtered.Value());
 }
 
-// 0x4b5734..0x4b6f54 (Enter) y 0x5a1214..0x5a1e9e (las macros): el freno (0x5767940 y lo último dicho, 0x57676e4),
-// "webzen" en el nombre del héroe, /whisper off y on (vivo) o /move (muriéndose), y el C1 00 con el nombre del héroe.
+} // namespace
+
 Core::Expected<void, std::string> SayInTheChat(const GameChatContext& context, std::string_view said)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -213,6 +213,8 @@ Core::Expected<void, std::string> SayInTheChat(const GameChatContext& context, s
     return {};
 }
 
+namespace
+{
 // 0x554a40(6, 0x7798cf8): el nivel del registro propio (+0xe), con su acceso, o el nombre en uno de los diez lugares
 // de 0x77997f8 (strcmp, que sigue en el lugar de al lado si el nombre llena el suyo); si no, el aviso 479.
 Core::Expected<bool, std::string> MayWhisper(const GameChatContext& context)

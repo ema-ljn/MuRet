@@ -1141,6 +1141,39 @@ de `0xff`) pone `+0x9305` en 0 antes de comparar, y el suyo deja su lugar más 1
 igual como chat (Q-C614). El dibujo es del hito 5 (`0x40d530` y `0x5af090`): MuRet corta en `0x6376c6` (08,
 P-C105).
 
+**La ventana /move** (el modo 4 de `0x77f3b08`, `IsOpen(2)`; CL8 hito 6, *estático*). La abre M (`0x6599a0` con el 2,
+que solo pone el modo) o el chat; F1, Esc, un destino o el renglón de abajo la cierran. Recorre la lista de `0x723c68`, los destinos de
+`movereq.bmd` (05) que `0x448440` cargó una vez. Las dos funciones arman lo mismo con el ancho de la pantalla
+(`0x6d5d60`): el ancho `w` de la ventana (190 con 640, 170 con 800, 150 con 1.024, 130 con 1.280; con otro, 0), el
+renglón `r = (0x7758568 · 640) / W` (sin signo; 12 con 640) y la altura `n · (r + 2) + 0x3c`.
+
+El paso (`0x5ecdc0`, en `0x636e24` sin nadie que agarró el mouse, salta a `0x449850` → `0x448580`, 2.585 B): con el
+mouse en `0 < x ≤ w` y `0 < y ≤ alto`, `0x775857c = 1`. Después, cada destino en su orden, con el renglón de
+`(r + 2) + 0x1a` a `+ (r + 2)`: abre el registro propio (`0x40b240`, `+0xf08` más 1), lee su zen (`+0xecc`), su nivel
+(`+0xe`, sin signo) y su clase (`+0xb & 7`), el nivel (`+0x44`) y el zen (`+0x48`) del destino, y con la clase 3 o 4
+el nivel por `0x6b8c64` (2/3 en float, `FILD`, `FMUL` y `ftol`); lo cierra (`0x40b4d0`: 3.848 `rand()` si lo deja en
+0, Q-C183). Pasa con el nivel menor o igual (con signo), el zen menor o igual (sin signo) y el PK del héroe
+(`+0x375`) debajo de 6; si además el mouse está en `3 ≤ x < w − 2`, dentro del renglón, y el botón izquierdo abajo
+(`0x7d36874`, no el flanco: Q-C616), arma con `std::string` el texto 260, un espacio y el nombre de `+4`, y lo dice
+con lo mismo que el chat de Enter, en línea (`0x4488d3..0x448ef8`: el freno `0x5767940`, "webzen", /whisper off y on
+o /move muriéndose, y el C1 00); con o sin decirlo, `0x77f3b08`, `0x7d36874` y `0x7d366d4` en 0, y deja de recorrer.
+Al final, el renglón de abajo (`3 ≤ x < w − 2`, de `alto − (r + 2) − 6` a `alto − 6`) con el botón abajo hace lo
+mismo sin decir nada. Con la ventana abierta, el paso saca 3.848 `rand()` por destino (28 en el del laboratorio).
+
+El dibujo (`0x5b10e0`, al final de `0x5b0550`, → `0x449860` → `0x448fa0`, 1.911 B): `0x620a00(1)`; el fondo negro al
+80 % en `(1, 1, w, alto)` y el renglón rojo `(0,6, 0, 0)` en `(3, alto − (r + 2) − 6, w − 5, r + 2)`, con `0x621aa0`;
+el blanco y `0x620a00(1)`. El título (933) con la negrita, `0x6c8e64 = 0` y `0xff1accff`, centrado (`0x623690`) en
+`(w / 2, 5)`; las columnas (934, 935 y 936) con la normal y `0xffffb27f` en la y 25 y en las x de cada ancho (45, 105
+y 155 con 640; 40, 100 y 145 con 800; 35, 90 y 130 con 1.024; 30, 75 y 110 con 1.280). Cada destino, desde la y
+`(r + 2) + 0x1b`, abre y cierra el registro propio y compara como el paso; con el mouse en `3 ≤ x < w − 2` y en
+`y − 1 ≤ my < y − 1 + r + 2`, si pasa y `0x5762eb4` es 0, el resaltado `(0,8, 0,8, 0,1, 0,6)` en
+`(3, y − 1, w − 5, r + 2)` con el blanco y `0x620a00(1)` después. El nombre (`+4`) en blanco si pasa y si no en
+`0xff1127a4`; el nivel (con los 2/3) y el zen con `_itoa` de base 10 (con signo), en `0xff1a33ff` el que falta y si
+no como el nombre. Al final, el 1002 en blanco en `(w / 2, alto − (r + 2) − 5)` y `0x620980`. MuRet:
+`Scenes::StepTheMoveWindow` y `Scenes::DrawTheMoveWindow` (`GameMoveWindow.h`), con `Scenes::SayInTheChat`; el paso de
+la letra es `Render::Text::FontStepFor`, que con otro ancho da el de 1.280 y no 0 (Q-C59), así que con 1.600 la
+ventana tiene 0 de ancho pero sus renglones no son de 2.
+
 **El HUD `0x5a7320`, hijo por hijo.** Empieza con `0x6c8e5c = −1`. La columna "base" es el estado de la traza
 (sin ventanas, sin party, sin evento, sin arco); `r` son `rand()` por frame.
 

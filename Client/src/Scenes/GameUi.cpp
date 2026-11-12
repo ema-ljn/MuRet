@@ -9,6 +9,7 @@
 #include "Scenes/GameDialogSteps.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/GameMoveWindow.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/HudItems.h"
@@ -762,7 +763,10 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     UI::PanelRegistry& panels = gamePanels.Registry();
     // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).
     if (panels.IsOpen(UI::MovePanel) && ui.capture == 0)
-        return Core::Unexpected(std::string("0x5ecdc0: el paso de la ventana /move (0x449850) es del hito 6 (P-C93)"));
+    {
+        if (auto moved = StepTheMoveWindow(context); !moved.HasValue())
+            return moved;
+    }
     ui.hovered = 0;
     // 0x636e35: 0x46b7b0, las dos colas del cartel de Slide.bmd (0x46add0).
     if (auto slides = UI::StepTheSlides(runtime.hud.slides, UI::SlideStepContext{.measure = context.measure,

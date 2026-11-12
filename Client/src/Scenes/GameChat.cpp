@@ -14,6 +14,7 @@
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/GameText.h"
+#include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
 #include "UI/NameChecks.h"
 #include "UI/PanelRegistry.h"
@@ -326,10 +327,11 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
     UI::GameUiState& ui = runtime.ui;
     UI::ChatInputState& input = runtime.chat.input;
     const ActorState& hero = context.world.Actors()[runtime.hero];
-    // 0x4b5226..0x4b52f6. 0x5763588 = 1 (que solo lee la UI de los diálogos, hito 6) no lo escribe MuRet; la escena
-    // es la 5 y 0x77f3b68, el campo del diálogo, no se prende (hito 6).
+    // 0x4b50c0..0x4b5106: en Chaos Castle fuera de la zona segura, nada; si no, 0x5763588 en 1, el Enter que leen los
+    // diálogos (0x6263df y 0x62da58). La escena es la 5 y 0x77f3b68, el campo del diálogo, no se prende (hito 6).
     if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap && hero.safeZone == 0)
         return {};
+    ui.enterPressed = true;
     if (std::ranges::find(EnterBlockingDialogs, runtime.dialogs.current) != EnterBlockingDialogs.end())
         return {};
     if (runtime.panels.field78abb00 == EnterBlockingField)

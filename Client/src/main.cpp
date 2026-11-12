@@ -72,6 +72,7 @@
 #include "Scenes/WorldLoadingScene.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/GameUiState.h"
 #include "World/GameCamera.h"
 
 #include <chrono>
@@ -726,8 +727,10 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // corre en una vuelta sin minimizar cierra el contador de 0x63945d y empieza la vuelta siguiente.
     Scenes::WinMainCounters winMain;
     Client::Render::Models::OriginalFrameCarry winMainFrameCarry;
-    const auto afterSceneFrame = [&winMain, &winMainFrameCarry, &clothWorld, &startup](Core::Duration now)
+    const auto afterSceneFrame = [&winMain, &winMainFrameCarry, &clothWorld, &startup, &world](Core::Duration now)
     {
+        // 0x63b0b7: la cola de 0x63945d apaga el Enter de los diálogos (0x5763588).
+        world.Runtime().ui.enterPressed = false;
         const int frames = winMainFrameCarry.FramesAt(now, Scenes::OriginalFramePaceOf(startup.config.pacing));
         for (int i = 0; i < frames; ++i)
         {

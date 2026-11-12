@@ -9,7 +9,6 @@
 #include "Protocol/PacketFields.h"
 #include "Protocol/ProtocolError.h"
 
-#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>

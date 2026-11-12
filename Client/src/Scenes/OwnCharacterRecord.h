@@ -156,4 +156,9 @@ struct OwnCharacterRecord
     // acreditar.
     std::uint8_t bytef04 = 0;
 };
+
+// El byte `index` de las skills del registro propio (+0x6c + index), el que leen el F3 30 que llega (0x4dd632) y el
+// que sale (0x61c2e4). MuRet tiene los 64 de +0x6c a +0xab; los que siguen, hasta +0x16b, los escribe solo el F3 11
+// (0x4c5070, CL9.2) y quedan en el 0 con que WinMain deja el registro.
+[[nodiscard]] std::uint8_t OwnSkillByte(const OwnCharacterRecord& own, std::size_t index);
 } // namespace Client::Scenes

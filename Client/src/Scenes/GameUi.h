@@ -2,10 +2,13 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Protocol/OptionData.h"
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <string>
+#include <string_view>
 
 namespace Client::Input
 {
@@ -22,6 +25,11 @@ namespace Client::Render::Text
 class ITextMeasure;
 }
 
+namespace Client::Data::Text
+{
+class TextTable;
+}
+
 // La UI del juego en el paso y en el frame, lo del hito 1 de la CL8 (06 § HUD y ventanas, "El orden" y "El clic
 // es primero de la UI"): los diálogos antes del paso (0x623e70), el bloque de la UI del paso (0x636ded..0x63705b)
 // con 0x5ee140 y 0x59ff10, y el picking del frame (0x59ec80). Lo que es de otro hito o de otra ola corta con su
@@ -32,6 +40,21 @@ namespace Client::Scenes
 class WorldState;
 struct GameChatContext;
 struct GameMovementState;
+
+// Lo que los diálogos le piden al resto del cliente (el menú de Esc, 0x624036..0x62553f): el cable, el disco y el log.
+class IGameUiRequests
+{
+public:
+    virtual ~IGameUiRequests() = default;
+    // 0x61c210: el C1 1C F3 30 con `body`, en claro.
+    virtual void SendOptionData(const Protocol::OptionData::OptionBody& body) = 0;
+    // 0x62411c..: el C3 F1 02 con `kind`. Los dos rand() del C3 (el relleno y el serial) los saca el paso.
+    virtual void RequestLogout(std::uint8_t kind) = 0;
+    // 0x61c170("Data\\Macro.txt"): `content` (UI::WrittenMacros) en el archivo.
+    [[nodiscard]] virtual Core::Expected<void, std::string> SaveMacros(std::string_view content) = 0;
+    // 0x41fa40 sobre el log del original (0x57630f0).
+    virtual void Log(std::string_view line) = 0;
+};
 
 struct GameUiContext
 {
@@ -49,6 +72,13 @@ struct GameUiContext
     App::PixelSize screen{640, 480};
     // Lo que las macros (0x5a116f) mandan y avisan. nullptr (los tests que no las miran): una macro es el error.
     const GameChatContext* chat = nullptr;
+    // Text.bmd: los textos de los diálogos (el 592 del menú de Esc, las páginas del 0x8c). nullptr sin tabla: el que
+    // lee uno corta con error.
+    const Data::Text::TextTable* texts = nullptr;
+    // 0x6d5edc: el lugar del elegido, el de las teclas de las skills del F3 30 que sale (0x61c2c6).
+    std::optional<std::uint8_t> chosenSlot{};
+    // El cable, Macro.txt y el log. nullptr (los tests que no los miran): un botón que los usa corta con error.
+    IGameUiRequests* requests = nullptr;
 };
 
 // El WndProc: 0x7d366d4 (el flanco del clic, que apagan quien lo usa y el botón suelto) y 0x7d36874 (el botón

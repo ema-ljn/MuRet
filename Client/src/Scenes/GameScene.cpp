@@ -58,6 +58,7 @@
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/GameCursor.h"
+#include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
 #include "World/GameCamera.h"
@@ -1092,9 +1093,10 @@ std::optional<SceneId> GameScene::Next() const
     return std::nullopt;
 }
 
+// 0x62828e: el OK de los diálogos 0x70, 0x6f, 0x1a y 0x1c manda WM_DESTROY a la ventana.
 bool GameScene::WantsToQuit() const
 {
-    return false;
+    return m_context.world != nullptr && m_context.world->Runtime().ui.destroyRequested;
 }
 
 // Mientras el campo del chat está abierto, uno de sus EDIT tiene el foco y recibe los WM_CHAR.

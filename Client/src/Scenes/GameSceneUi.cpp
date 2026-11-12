@@ -2,11 +2,17 @@
 
 #include "App/ServerSession.h"
 #include "Core/Expected.h"
+#include "Core/Log.h"
+#include "Core/PathText.h"
+#include "Data/DataPath.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Protocol/Character/CharacterList.h"
+#include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameChat.h"
+#include "Scenes/GameData.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameSceneFrameProjection.h"
@@ -21,8 +27,15 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <filesystem>
+#include <format>
+#include <fstream>
+#include <ios>
+#include <optional>
 #include <ratio>
 #include <string>
+#include <string_view>
+#include <system_error>
 #include <utility>
 
 namespace Client::Scenes
@@ -39,6 +52,69 @@ void LatchTheRightButton(UI::GameUiState& ui, const Input::InputState& input)
     ui.rightClick = down && (ui.rightClick || pressed);
     ui.rightDown = down && (ui.rightDown || pressed);
 }
+
+// Lo que piden los diálogos del juego: el F3 30 y el F1 02 por la sesión (sin servidor, un aviso al log),
+// Data\Macro.txt y el log.
+class SceneUiRequests final : public IGameUiRequests
+{
+public:
+    SceneUiRequests(App::ServerSession* session, Core::Log& log, const std::filesystem::path& dataRoot)
+        : m_session(session), m_log(log), m_dataRoot(dataRoot)
+    {
+    }
+
+    void SendOptionData(const Protocol::OptionData::OptionBody& body) override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no se manda el F3 30: no hay servidor");
+            return;
+        }
+        if (auto sent = m_session->SendOptionData(body); !sent.HasValue())
+            m_log.Warning("no se manda el F3 30: {}", sent.Error());
+    }
+
+    void RequestLogout(std::uint8_t kind) override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no se pide la salida (F1 02 con {}): no hay servidor", kind);
+            return;
+        }
+        m_session->RequestLogout(kind);
+    }
+
+    // 0x61c170: fopen("wt") crea el archivo o lo vacía. Lo que guardan las macros no va al log.
+    Core::Expected<void, std::string> SaveMacros(std::string_view content) override
+    {
+        std::error_code error;
+        std::optional<std::filesystem::path> path = Data::ResolveDataPath(m_dataRoot, MacroFile, error);
+        if (error)
+            return Core::Unexpected(
+                std::format("no se pudo buscar {} en {}: {}", MacroFile, Core::PathText(m_dataRoot), error.message()));
+        if (!path)
+            path = m_dataRoot / MacroFile;
+        std::ofstream file(*path, std::ios::binary | std::ios::trunc);
+        if (!file)
+            return Core::Unexpected(std::format("0x61c17c: no se pudo abrir {} para escribir (el original sigue con "
+                                                "fprintf sobre NULL)",
+                                                Core::PathText(*path)));
+        file.write(content.data(), static_cast<std::streamsize>(content.size()));
+        if (!file)
+            return Core::Unexpected(std::format("no se pudo escribir {}", Core::PathText(*path)));
+        return {};
+    }
+
+    void Log(std::string_view line) override
+    {
+        m_log.Info("{}", line);
+    }
+
+private:
+    App::ServerSession* m_session;
+    Core::Log& m_log;
+    const std::filesystem::path& m_dataRoot;
+};
 
 // WM_MOUSEWHEEL (0x4b4c19) escribe la rueda del último mensaje; sin mensajes, queda la de antes.
 void LatchTheWheel(UI::GameUiState& ui, const Input::InputState& input)
@@ -67,11 +143,23 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
     if (runtime.ui.capture != 0)
         return {};
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
+    SceneUiRequests requests(m_session, m_context.log, m_context.dataRoot);
+    std::optional<std::uint8_t> chosenSlot;
+    if (m_session != nullptr)
+    {
+        if (const Protocol::Character::CharacterEntry* chosen = m_session->ChosenCharacter(); chosen != nullptr)
+            chosenSlot = chosen->slot;
+    }
     return StepTheGameDialogs(GameUiContext{.world = *m_context.world,
                                             .random = m_context.cloth->random,
                                             .input = input,
                                             .mouseX = mouse.x,
-                                            .mouseY = mouse.y});
+                                            .mouseY = mouse.y,
+                                            .measure = m_context.textMeasure,
+                                            .screen = m_screen,
+                                            .texts = m_texts,
+                                            .chosenSlot = chosenSlot,
+                                            .requests = &requests});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& input)

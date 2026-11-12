@@ -4382,7 +4382,8 @@ TEST(ServerSessionTest, OptionDataUsesTheWorldConnectionAndXorDelivery)
     ASSERT_TRUE(tested.session.SendOptionData(body).HasValue());
     const auto received = tested.GameServerReads();
     ASSERT_EQ(received.packets.size(), before + 1);
-    const auto bytes = Xor32Decode(received.packets.back()).Bytes();
+    const auto decoded = Xor32Decode(received.packets.back());
+    const auto bytes = decoded.Bytes();
     ASSERT_EQ(bytes.size(), 0x1cu);
     EXPECT_TRUE(SameBytes(bytes.first(4), Bytes({0xc1, 0x1c, 0xf3, 0x30})));
     EXPECT_EQ(bytes[4], std::byte{0x21});

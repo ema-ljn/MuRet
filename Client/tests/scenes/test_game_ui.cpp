@@ -174,16 +174,6 @@ TEST(GameUiTest, TheLastMenuButtonGoesBackToTheGame)
     EXPECT_EQ(runtime.lastSoundId, 0x19);
 }
 
-TEST(GameUiTest, TheOtherMenuButtonsAreOfMilestoneSix)
-{
-    SteppingUi tested;
-    tested.world.Runtime().dialogs.current = Client::UI::EscapeMenuDialog;
-    tested.Click();
-    const auto stepped = tested.Dialogs(0x110, 65);
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x62402f"), std::string::npos) << stepped.Error();
-}
-
 TEST(GameUiTest, TheLetterIOpensTheInventory)
 {
     SteppingUi tested;

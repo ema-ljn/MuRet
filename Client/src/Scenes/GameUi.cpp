@@ -6,6 +6,7 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameChat.h"
+#include "Scenes/GameDialogSteps.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMovementState.h"
@@ -219,44 +220,6 @@ Core::Expected<void, std::string> Toggle(UI::PanelRegistry& panels, UI::PanelId 
     auto opened = panels.Open(id);
     if (!opened.HasValue())
         return Core::Unexpected(std::move(opened).Error());
-    return {};
-}
-
-// 0x623f78..0x62410b: el menú de Esc (el diálogo 0x6e) en la escena 5, con cinco botones.
-Core::Expected<void, std::string> StepTheEscapeMenu(const GameUiContext& context)
-{
-    WorldRuntime& runtime = context.world.Runtime();
-    UI::DialogState& dialogs = runtime.dialogs;
-    if (runtime.cursorItemCount > 0)
-        return {};
-    // 0x623f9c..0x623fb3: 5 en la escena 5.
-    constexpr std::int32_t Buttons = 5;
-    constexpr std::int32_t Left = 0x104;
-    constexpr std::int32_t Right = 0x17c;
-    constexpr std::int32_t Height = 0x16;
-    constexpr std::int32_t LastJumpTableButton = 3;
-    for (std::int32_t button = 0; button < Buttons; ++button)
-    {
-        // 0x623fdf..0x623fe6: (6 + 3i) · 10.
-        const std::int32_t top = (6 + 3 * button) * 10;
-        if (!InRect(context, Left, top, Right, top + Height) || !runtime.movement.pendingClick)
-            continue;
-        runtime.movement.pendingClick = false;
-        if (button <= LastJumpTableButton)
-        {
-            // La tabla 0x62dac4: salir del juego (0x624036), elegir otro servidor, otro personaje y las opciones.
-            return Core::Unexpected(std::format("0x62402f: el botón {} del menú de Esc es del hito 6", button));
-        }
-        // 0x6240a1: volver al juego.
-        if (dialogs.current != UI::OptionsDialog)
-        {
-            dialogs.current = dialogs.pending;
-            dialogs.pending = 0;
-        }
-        runtime.movement.mouseUpdateTime = 0;
-        runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
-        runtime.lastSoundId = ButtonSound;
-    }
     return {};
 }
 
@@ -785,12 +748,8 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
             runtime.lastSoundId = ButtonSound;
         }
     }
-    // 0x623f78.
-    if (dialogs.current == 0)
-        return {};
-    if (dialogs.current != UI::EscapeMenuDialog)
-        return Core::Unexpected(std::format("0x625563: el diálogo {:#x} es del hito 6", dialogs.current));
-    return StepTheEscapeMenu(context);
+    // 0x623f78: el diálogo abierto, por su tramo.
+    return StepTheOpenDialog(context);
 }
 
 Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)

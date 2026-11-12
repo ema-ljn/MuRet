@@ -73,8 +73,12 @@ struct ChatCommandContext
     ChatLogState& log;
     // 0x77f1db0.
     std::array<std::string, MacroCount>& macros;
-    // 0x77f3b08: /move lo pone en 4.
+    // 0x77f3b08: /move lo pone en 4, la ayuda de un ítem en 3 y la de un conjunto en 0.
     std::int32_t& overlayMode;
+    // 0x77f3b0c: el ítem de la ayuda.
+    std::int32_t& helpItem;
+    // [0x6eed3c] + 0x9305: el cartel del conjunto.
+    std::uint8_t& setHelp;
 };
 
 struct ChatCommandOutcome
@@ -82,7 +86,7 @@ struct ChatCommandOutcome
     // Lo que devuelve: con true el WndProc no manda nada.
     bool handled = false;
     std::vector<ChatCommandNotice> notices;
-    // 0x57693f: el 0x19.
+    // 0x57693f: el 0x19 (una macro guardada o la ayuda de un ítem).
     bool sound = false;
 };
 

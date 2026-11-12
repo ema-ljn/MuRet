@@ -12,6 +12,7 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/HudItems.h"
+#include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
@@ -77,6 +78,8 @@ constexpr GameKey Digit(int digit)
 
 // 0x41ed10(0x19, 0, 0): el sonido de los botones y de Esc.
 constexpr std::int32_t ButtonSound = 0x19;
+// 0x5aca1b..0x5aca24: F1 da la vuelta por 0, 1 y 2 (idiv por 3).
+constexpr std::int32_t FunctionHelpModes = 3;
 // 0x636e11: desde esta y, el mouse está sobre la barra.
 constexpr std::int32_t HudTop = 0x1b0;
 // 0x5a1181..0x5a1189: Chaos Castle.
@@ -816,9 +819,15 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& conte
                                                     "de la CL9.3"));
         }
     }
-    // 0x5ac9ce..0x5aca42: F1, la ayuda de las superposiciones (0x77f3b08) y +0x9305 de [0x6eed3c].
+    // 0x5ac9ce..0x5aca42: F1 pasa por las ayudas (0x77f3b08): de 3 o 4 (la del ítem o la ventana /move) a 0 y si no
+    // al siguiente de 0, 1 y 2. Apaga el cartel del conjunto (+0x9305 de [0x6eed3c]) y pide el 0x19.
     if (KeyEdge(ui, input, F1Key))
-        return Core::Unexpected(std::string("0x5ac9ce: F1, la ayuda (0x77f3b08), es del hito 6 (P-C93)"));
+    {
+        std::int32_t& mode = runtime.panels.overlayMode;
+        mode = mode == UI::ItemHelpMode || mode == UI::MoveOverlayMode ? 0 : (mode + 1) % FunctionHelpModes;
+        context.world.ItemSets().setHelp = 0;
+        runtime.lastSoundId = ButtonSound;
+    }
     // 0x5aca42..0x5aca86: F2, el chat normal en el registro (0x6c8dd1), y el registro corre 0 (la vtable + 0x34).
     if (KeyEdge(ui, input, F2Key))
     {

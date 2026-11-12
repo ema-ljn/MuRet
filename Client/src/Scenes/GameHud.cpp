@@ -18,6 +18,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbleDraw.h"
 #include "Scenes/EventMapObject.h"
+#include "Scenes/GameHelps.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -1465,11 +1466,18 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
 Core::Expected<void, std::string> DrawTheOverlays(GameHudContext& context)
 {
     WorldState& world = context.world;
-    const std::int32_t mode = world.Runtime().panels.overlayMode;
-    if (mode == 1 || mode == 2)
-        return Core::Unexpected(std::format("0x5b0550: las ayudas de F1 (el modo {}) son del hito 6 (P-C93)", mode));
-    if (mode == 3)
-        return Core::Unexpected(std::string("0x5b0550: la ayuda del ítem de 0x77f3b0c es del hito 6 (P-C93)"));
+    const std::int32_t& mode = world.Runtime().panels.overlayMode;
+    // 0x5b0559..0x5b06ac: la primera ayuda de F1, y el modo otra vez.
+    if (mode == UI::FirstHelpMode)
+    {
+        if (auto drawn = DrawTheFunctionHelp(context, UI::FirstHelpMode); !drawn.HasValue())
+            return drawn;
+    }
+    if (mode == UI::SecondHelpMode)
+        return DrawTheFunctionHelp(context, UI::SecondHelpMode);
+    if (mode == UI::ItemHelpMode)
+        return DrawTheItemHelp(context);
+    // 0x5b10cf..0x5b10e0: IsOpen(2), la ventana /move.
     GamePanels panels(world, context.random);
     if (panels.Registry().IsOpen(UI::MovePanel))
         return Core::Unexpected(std::string("0x449860: la ventana /move es del hito 6 (P-C93)"));

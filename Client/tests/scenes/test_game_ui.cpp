@@ -9,6 +9,7 @@
 #include "Scenes/GameChat.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/ItemSetState.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -516,8 +517,8 @@ TEST(GameUiTest, TheDigitsWithTheChatOpenDoNotPickASkill)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
 }
 
-// 0x5ac8d0: F1 corta (P-C93); F2 cambia el chat normal del registro, F3 el modo del susurro y F4 el tamaño del
-// registro y su esquina, cada una con el 0x19.
+// 0x5ac8d0: F2 cambia el chat normal del registro, F3 el modo del susurro y F4 el tamaño del registro y su esquina,
+// cada una con el 0x19.
 TEST(GameUiTest, TheFunctionKeysChangeTheChatModes)
 {
     SteppingUi tested;
@@ -546,11 +547,46 @@ TEST(GameUiTest, TheFunctionKeysChangeTheChatModes)
     EXPECT_EQ(tested.world.Runtime().chat.log.rows, 3);
     EXPECT_EQ(tested.world.Runtime().hud.chatFrame.x, 0xba);
     EXPECT_EQ(tested.world.Runtime().hud.chatFrame.y, 0x1a4);
+}
+
+// 0x5ac9ce..0x5aca42: F1 pasa de 0 a 1, a 2 y otra vez a 0, y de 3 (la ayuda del ítem) o 4 (la ventana /move) a 0;
+// apaga el cartel del conjunto (+0x9305) y pide el 0x19. Abajo no vuelve a pasar.
+TEST(GameUiTest, TheF1KeyWalksTheHelps)
+{
+    SteppingUi tested;
+    std::int32_t& mode = tested.world.Runtime().panels.overlayMode;
+    const auto keys = [&tested]
+    {
+        return Client::Scenes::StepTheFunctionKeys(GameUiContext{
+            .world = tested.world, .random = tested.random, .input = tested.input, .mouseX = 320, .mouseY = 100});
+    };
+    const auto f1 = [&]
+    {
+        Press(tested.input, Key::F1);
+        const bool pressed = keys().HasValue();
+        Release(tested.input, Key::F1);
+        return pressed && keys().HasValue();
+    };
+    tested.world.ItemSets().setHelp = 5;
+    ASSERT_TRUE(f1());
+    EXPECT_EQ(mode, 1);
+    EXPECT_EQ(tested.world.ItemSets().setHelp, 0);
+    EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x19);
+    ASSERT_TRUE(f1());
+    EXPECT_EQ(mode, 2);
+    ASSERT_TRUE(f1());
+    EXPECT_EQ(mode, 0);
+    mode = 3;
+    ASSERT_TRUE(f1());
+    EXPECT_EQ(mode, 0);
+    mode = 4;
+    ASSERT_TRUE(f1());
+    EXPECT_EQ(mode, 0);
 
     Press(tested.input, Key::F1);
-    const auto help = keys();
-    ASSERT_FALSE(help.HasValue());
-    EXPECT_NE(help.Error().find("0x5ac9ce"), std::string::npos);
+    ASSERT_TRUE(keys().HasValue());
+    ASSERT_TRUE(keys().HasValue());
+    EXPECT_EQ(mode, 1);
 }
 
 // 0x637cff: Impr Pant pide la captura, que corta (P-C94); su latch la lee una vez.

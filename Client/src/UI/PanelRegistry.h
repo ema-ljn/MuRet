@@ -56,6 +56,10 @@ inline constexpr PanelId AllPanels = 0xffffffffu;
 
 // 0x659290 con 2: la ventana /move es el modo 4 de las superposiciones.
 inline constexpr std::int32_t MoveOverlayMode = 4;
+// 0x5b0550: las ayudas de F1 (1 y 2) y la del ítem del chat (3).
+inline constexpr std::int32_t FirstHelpMode = 1;
+inline constexpr std::int32_t SecondHelpMode = 2;
+inline constexpr std::int32_t ItemHelpMode = 3;
 
 // Los ids cuyo estado vive en otro objeto. MuRet no tiene a sus dueños: quedan en 0, cerrados, hasta su ola.
 struct DelegatedPanels
@@ -111,6 +115,9 @@ struct PanelState
     std::uint8_t panel2000 = 0;    // 0x7d53718
     // 0x77f3b08, el modo de las superposiciones de 0x5b0550.
     std::int32_t overlayMode = 0;
+    // 0x77f3b0c: el ítem de la ayuda del modo 3, como lugar de Item.bmd. Lo escribe la ayuda del ítem del chat
+    // (0x576939).
+    std::int32_t helpItem = 0;
     // 0x78abb00: CanOpen no abre nada con otro valor que 0, el ancho del mundo lo cuenta como panel y SendMove
     // manda C1 03 97 (CL9.5). Los demás los pone en 0 cerrar el inventario (0x659250..0x65926a).
     std::int32_t field78abb00 = 0;

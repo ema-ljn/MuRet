@@ -10,6 +10,7 @@
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/TipBox.h"
 #include "Scenes/WorldTexts.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
@@ -127,6 +128,9 @@ struct HudState
     // [0x5763528]: el cartel de Slide.bmd (0x46aea0), que dibuja el 15 (0x46b090) y escribe al dibujar (la opacidad,
     // el corrimiento, el texto que pasa y 0x5762ee4). Lo llenan el timer 0x3eb y el 0D, y lo pasa el paso de la UI.
     UI::SlideBanner slides{};
+    // 0x78793c8, 0x787a560, 0x78a9230 y 0x78abb30: la lista de la caja de ayuda (0x5af090). Los renglones que una
+    // ayuda no vuelve a escribir quedan como los dejó la anterior.
+    TipList tips{};
 };
 
 struct WorldRuntime

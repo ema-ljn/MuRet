@@ -72,8 +72,7 @@ Core::Expected<ChatCommandOutcome, std::string> SocialCommand(const ChatCommandC
     return Core::Unexpected(std::format("{}: {} es de la CL9.4", address, what));
 }
 
-// 0x576894..0x576922 y 0x40ebd0: "/" y el nombre de un ítem abre su ayuda; si no, el de un conjunto. Las dos ayudas
-// son del hito 6.
+// 0x576894..0x576922 y 0x40ebd0: "/" y el nombre de un ítem abre su ayuda; si no, el de un conjunto.
 Core::Expected<ChatCommandOutcome, std::string> TheNamesTail(const ChatCommandContext& context, std::string_view text,
                                                              ChatCommandOutcome outcome)
 {
@@ -84,11 +83,16 @@ Core::Expected<ChatCommandOutcome, std::string> TheNamesTail(const ChatCommandCo
             const auto record = context.items->Record(index);
             if (!record || (*record)[ItemNamedByte] == std::byte{0})
                 continue;
-            if (text == "/" + NameOf(*record))
-                return Core::Unexpected(std::format(
-                    "0x576923: la ayuda del ítem {} (0x5ae360, 0x77f3b08 en 3) es del hito 6 (P-C93)", index));
+            if (text != "/" + NameOf(*record))
+                continue;
+            // 0x576923..0x576952: sin el cartel del conjunto (0x5ae360), la ayuda del ítem (el modo 3), el 0x19 y 1.
+            context.setHelp = 0;
+            context.overlayMode = ItemHelpMode;
+            context.helpItem = static_cast<std::int32_t>(index);
+            return ChatCommandOutcome{.handled = true, .notices = {}, .sound = true};
         }
     }
+    // 0x576900..0x576912: 0x40ebd0 y 0, que manda el texto como chat.
     if (text.empty() || text.front() != '/' || context.setOptions == nullptr)
         return outcome;
     for (std::size_t index = 0; index < context.setOptions->Count(); ++index)
@@ -96,9 +100,15 @@ Core::Expected<ChatCommandOutcome, std::string> TheNamesTail(const ChatCommandCo
         const auto record = context.setOptions->Record(index);
         if (!record || (*record)[SetOptionUsedByte] == UnusedSetOption)
             continue;
+        // 0x40ec37: cada conjunto usado apaga el cartel antes de comparar (Q-C614).
+        context.setHelp = 0;
         if (text == "/" + NameOf(*record))
-            return Core::Unexpected(
-                std::format("0x40ec5c: la ayuda del conjunto {} ([0x6eed3c] + 0x9305) es del hito 6 (P-C93)", index));
+        {
+            // 0x40ec7e..0x40ec90: el suyo, más 1, y ninguna superposición.
+            context.overlayMode = 0;
+            context.setHelp = static_cast<std::uint8_t>(index + 1);
+            return outcome;
+        }
     }
     return outcome;
 }

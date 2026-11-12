@@ -1103,6 +1103,44 @@ saca `rand()` (`0x5bb8d0` sin el inventario abierto no consulta el comercio ni l
 `Scenes::DrawTheHover`, con el latch de Alt en `GameUiState::keyLatches[0x12]` y `0x78abb38` en
 `GameUiState::altNames`; un dibujo intermedio no escribe los globos y gira el latch sobre copias.
 
+**Las ayudas de F1** (`0x5b0550`, en `0x6376bb`; CL8 hito 6, *estático*). F1 (`0x5ac9ce..0x5aca42`, con el latch
+de `0x70` en línea) pasa `0x77f3b08` de 3 o 4 a 0 y si no a `(m + 1) % 3`, pone `+0x9305` de `[0x6eed3c]` en 0 y
+pide el `0x19`: también cierra la ayuda del ítem y la ventana /move. `0x5b0550` mira el modo tres veces: con 1, la
+primera ayuda; con 2 (otra lectura), la segunda, y vuelve; con 3, la del ítem; con otro, `IsOpen(2)` y
+`0x449860`. Las dos de F1 empiezan con `0x620980`, llenan la lista de la caja de ayuda (renglones de 100 bytes en
+`0x78793c8`, el color en `0x787a560` y la negrita en `0x78a9230`, la cuenta en `0x78abb30`) con `"\n"`, el título
+(el texto 120 o el 140, color 1 y negrita), `"\n"`, los textos 121 a 139 o 141 a 156 (color 0, sin negrita) y
+`"\n"` (los `'\n'` no tocan su color ni su negrita: quedan los de la ayuda anterior), copiados con `strcpy`
+(Q-C613); `0x77f3b66` en 1 y `0x5af090(1, 1, cuántos, 0, 2, 1)`. `0x5afb00` es solo del modo 3.
+
+`0x5af090(x, y, cuántos, ancho, modo, marco)` mide hasta el primer renglón vacío, con la fuente de cada uno en el
+DC (la negrita es `0x5763558`): el más ancho y el alto `cy` del último. El alto de la caja es
+`(n'\n' · cy · 0,5 + n · cy) / (ry · 0,9090909)`; el ancho, el más ancho / rx (o `2 · ancho / rx` con ancho) más 4;
+la x, `ftol(x − ancho / 2)`, con 0 de mínimo y `ftol(W / rx − ancho − 1)` si se pasa. Con la mezcla normal y el
+marco pedido, cuatro `0x621aa0` negros de 1 alrededor y el fondo negro al 80 % (`0x3f4ccccd`), y después la textura.
+Cada renglón va en `(x + 1, ftol(y))` con `0x465950(…, (ancho − 2) · rx, 0, modo, 0, 0x280)`, salvo los que empiezan
+con `'\n'` o son un espacio solo, que no se dibujan; la `y` suma 1,1 veces lo que devuelve `0x467060`
+(`cy / ry`, la mitad con `'\n'`). El color: `0x6c8e5c = −1`, un `glColor3f` por índice (0, 5, 7, 8 y 9 blanco; 1
+`(0,5, 0,7, 1)`; 2 `(1, 0,2, 0,1)`; 3 `(1, 0,8, 0,1)`; 4 `(0,1, 1, 0,5)`; 6 `(1, 0,1, 1)`; 10 gris 0,4; más de 10,
+ninguno) y el fondo `0x6c8e64` (5 `0xff0000a0`, 7 `0xffa00000`, 8 `0xff0066a0`, 9 `0xffc83c3c` con el texto
+`0xff00ff00`, los demás 0). Termina con `glColor4f(1, 1, 1, 1)` y `0x620980`. MuRet: `Scenes::DrawTheTipBox` y
+`Scenes::DrawTheFunctionHelp`; el modo 2 de `0x467060` centra el texto antes de pasar a 640 × 480, como los
+botones, y un renglón con fondo corta (`0x5af3e3`: el original pinta el fondo de todo el ancho de la caja).
+
+**La ayuda del ítem** (el modo 3, `0x5b0802`). La abre el chat con `"/"` y el nombre de un ítem
+(`0x576923`: `+0x9305` en 0 con `0x5ae360`, el modo 3, el ítem en `0x77f3b0c`, el `0x19` y 1, que no manda nada).
+`0x620980`; el divisor del ancho (`0x5a` en 640 y 800, `0x67` en 1.024, `0x7b` en 1.280, 0 con otro); las flechas
+(`0x807`), los virotes (`0x80f`) y los ítems fuera de las franjas `0..0x9ff`, `0xa00..0xbff`, `0xc00..0xdff`,
+`0xe00..0x17ff` y `0x1e00..0x1fff` ponen el modo en 0 y vuelven. Las franjas 1 a 4 dividen `0x870` o `0x708` por
+el divisor (Q-C615); la 5, `0x1734` (640 y 1.280) o `0x1450` (800 y 1.024), o nada con otro ancho. Lo que sigue
+(`0x5afc00`, `0x5af590`, `0x5af9b0` y `0x5afb00`, desde `0x5b09a8`) es del hito 5: corta (08, P-C105).
+
+**El cartel del conjunto** (`0x40eca0`, en `0x6376c6` con `+0x9305` distinto de 0). La abre el chat con `"/"` y el
+nombre de un conjunto de `ItemSetOption.bmd` (`0x40ebd0`, si no era un ítem): cada conjunto usado (`+0x3c` distinto
+de `0xff`) pone `+0x9305` en 0 antes de comparar, y el suyo deja su lugar más 1 y `0x77f3b08` en 0; el texto sale
+igual como chat (Q-C614). El dibujo es del hito 5 (`0x40d530` y `0x5af090`): MuRet corta en `0x6376c6` (08,
+P-C105).
+
 **El HUD `0x5a7320`, hijo por hijo.** Empieza con `0x6c8e5c = −1`. La columna "base" es el estado de la traza
 (sin ventanas, sin party, sin evento, sin arco); `r` son `rand()` por frame.
 
@@ -1177,9 +1215,9 @@ W/H, 20, 2000)`), la cámara `0x7d366f0`, profundidad; con `0x78abb00` en 0 o 3,
 mezcla, con su propia proyección: CL9.3.
 
 **Las teclas por paso** (`0x5ac8d0`, `0x63717f`, `GetAsyncKeyState` con un latch por tecla): SPACE levanta el ítem
-del piso más cercano (`0x5650c0`, CL9.3); F1 cicla las ayudas (`0x77f3b08`); F2 alterna `0x6c8dd1` (el chat normal
-entra en la lista); F3 alterna `0x6c8dd0` (el modo susurro); F4 mueve el registro del chat (`0x45d8c0`,
-`0x45a9d0`). **La captura** (PrintScreen, flanco de `0x2c` en `0x637cff`): `0x637700` arma
+del piso más cercano (`0x5650c0`, CL9.3); F1 cicla las ayudas (`0x77f3b08`, arriba en "Las ayudas de F1"); F2
+alterna `0x6c8dd1` (el chat normal entra en la lista); F3 alterna `0x6c8dd0` (el modo susurro); F4 mueve el
+registro del chat (`0x45d8c0`, `0x45a9d0`). **La captura** (PrintScreen, flanco de `0x2c` en `0x637cff`): `0x637700` arma
 `Screen(%02d_%02d-%02d_%02d)-%04d.jpg` (mes, día, hora, minuto; contador `0x7d368ac` módulo 10.000) y el Text 459;
 después del dibujo de la escena, `0x6202e0` hace `glReadPixels` en RGB y `0x63b150` escribe un JPEG de calidad 100;
 el mensaje va al área de mensajes. No saca `rand()`.

@@ -109,9 +109,9 @@ struct FramePickingContext
 };
 
 // 0x63717f → 0x5ac8d0: las teclas de función, al final de la lógica del paso con el mundo cargado. La barra (levantar
-// el ítem del piso, CL9.3) y F1 (la ayuda, P-C93) cortan; F2 (el chat normal en el registro), F3 (el modo del
-// susurro) y F4 (el tamaño y el lugar del registro) cambian lo suyo y suenan. Después, Impr Pant (0x637cff, la
-// captura) corta (P-C94).
+// el ítem del piso, CL9.3) corta; F1 (las ayudas de 0x77f3b08 y el cartel del conjunto), F2 (el chat normal en el
+// registro), F3 (el modo del susurro) y F4 (el tamaño y el lugar del registro) cambian lo suyo y suenan. Después,
+// Impr Pant (0x637cff, la captura) corta (P-C94).
 [[nodiscard]] Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& context);
 
 // 0x637641 → 0x59ec80: el picking del frame, primero del 2D. Las búsquedas del ítem del piso, del NPC, del

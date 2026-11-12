@@ -20,6 +20,7 @@
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/ItemSetState.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -281,7 +282,10 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     // 0x6376bb: 0x5b0550, las superposiciones.
     if (auto overlays = DrawTheOverlays(hud); !overlays.HasValue())
         return overlays;
-    // 0x6376c6: 0x40eca0, el cartel del set, con +0x9305 (hito 5).
+    // 0x6376c6: 0x40eca0, el cartel del conjunto, con +0x9305 de [0x6eed3c] (lo abre el chat con su nombre).
+    if (const std::uint8_t setHelp = m_context.world->ItemSets().setHelp; setHelp != 0)
+        return Core::Unexpected(std::format(
+            "0x6376c6: el cartel del conjunto {} (0x40eca0, con 0x40d530 y 0x5af090) es del hito 5", setHelp));
     // 0x6376cb: 0x65ee60 → 0x65fe00, la UI nueva (hito 6).
     // 0x6376d7: 0x5ac2d0, el cursor, 0x6376dc: 0x633110, el ítem 3D del diálogo (P-C90), y 0x6376e1: el cursor otra
     // vez, el mismo quad.

@@ -290,4 +290,18 @@ TEST(TextLayoutTest, AWiderTextGoesLeftOfItsBox)
     EXPECT_EQ(CenterInBox(0, 4), (CenteredInBox{.textColumn = -2, .width = 0}));
     EXPECT_EQ(CenterInBox(-10, 5), (CenteredInBox{.textColumn = -7, .width = -9}));
 }
+
+// Con el texto medido: uno vacío mide el "0" de 0x6c7ae4, y vacío y sin caja no da columnas (0x467077..0x467082),
+// aunque el "0" sea impar: con 7 columnas, CenterInBox(0, 7) daría una.
+TEST(TextLayoutTest, TheModeTwoMeasuresAnEmptyTextAsZero)
+{
+    const FakeGlyphRasterizer sixWide;
+    const FakeGlyphRasterizer sevenWide(7, 13);
+
+    EXPECT_EQ(CenterInBox(sixWide, FontKind::Bold, "ab", 40), (CenteredInBox{.textColumn = 14, .width = 40}));
+    EXPECT_EQ(CenterInBox(sixWide, FontKind::Bold, "", 20), (CenteredInBox{.textColumn = 7, .width = 20}));
+    EXPECT_EQ(CenterInBox(sevenWide, FontKind::Bold, "", 20), (CenteredInBox{.textColumn = 6, .width = 19}));
+    EXPECT_EQ(CenterInBox(sevenWide, FontKind::Bold, "", 0), (CenteredInBox{}));
+    EXPECT_EQ(CenterInBox(0, 7), (CenteredInBox{.textColumn = -3, .width = 1}));
+}
 } // namespace

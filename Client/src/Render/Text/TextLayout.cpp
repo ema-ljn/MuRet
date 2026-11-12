@@ -2,6 +2,7 @@
 
 #include "App/WindowState.h"
 #include "Render/ScreenScale.h"
+#include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextBox.h"
 
@@ -9,12 +10,16 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 #include <vector>
 
 namespace Client::Render::Text
 {
 namespace
 {
+// Lo que mide 0x467060 en vez de un texto vacío (0x6c7ae4, con largo 1).
+constexpr std::string_view EmptyTextMeasure = "0";
+
 // El 0,01 de 0x554000 (0x6b88d4) que se suma al ancho y al alto antes de pasarlos a UV.
 constexpr float TexelMargin = 0.01f;
 static_assert(std::bit_cast<std::uint32_t>(TexelMargin) == 0x3c23d70a, "el de 0x6b88d4");
@@ -162,6 +167,13 @@ CenteredInBox CenterInBox(int boxWidth, int textWidth)
     // 0x467120..0x46712f: mov, sub, cdq, sub, sar y lea. La división de C de C++ también trunca hacia el 0.
     const int textColumn = (boxWidth - textWidth) / 2;
     return CenteredInBox{.textColumn = textColumn, .width = textWidth + 2 * textColumn};
+}
+
+CenteredInBox CenterInBox(const ITextMeasure& measure, FontKind font, std::string_view text, int boxWidth)
+{
+    if (text.empty() && boxWidth == 0)
+        return {};
+    return CenterInBox(boxWidth, measure.Measure(font, text.empty() ? EmptyTextMeasure : text).width);
 }
 
 OriginalQuad BoxedQuad(int x, int y, int width, int rows, bool clampY, App::PixelSize screen)

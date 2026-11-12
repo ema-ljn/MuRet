@@ -1,6 +1,7 @@
 #include "Render/Text/TextCache.h"
 
 #include "App/WindowState.h"
+#include "Core/Expected.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
 #include "Render/SpriteBatch.h"
@@ -42,6 +43,8 @@ using Client::Render::SpriteVertex;
 using Client::Render::TextureSlot;
 using Client::Render::Text::BoxedQuad;
 using Client::Render::Text::BoxShape;
+using Client::Render::Text::CenteredInBox;
+using Client::Render::Text::CenterInBox;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextCache;
 using Client::Render::Text::TextColors;
@@ -89,6 +92,14 @@ protected:
     {
         const auto drawn = cache.Draw(m_batch, x, y, text, style);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    }
+
+    // El modo 2 como lo piden las escenas: CenterInBox con el rasterizador de la caché y DrawColumns.
+    Client::Core::Expected<void, std::string> DrawCentered(TextCache& cache, int x, int y, std::string_view text,
+                                                           int box)
+    {
+        const CenteredInBox placed = CenterInBox(m_rasterizer, Login.font, text, box);
+        return cache.DrawColumns(m_batch, x, y, text, Login, -placed.textColumn, placed.width);
     }
 
     FakeGlyphRasterizer m_rasterizer;
@@ -494,7 +505,7 @@ TEST_F(TextCacheTest, TheModeTwoBoxIsTheBackgroundWithTheTextInTheMiddle)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
 
-    const auto drawn = cache.DrawCenteredInBox(m_batch, 10, 20, "ab", Login, 40);
+    const auto drawn = DrawCentered(cache, 10, 20, "ab", 40);
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     const auto box = m_store.Find(First);
@@ -535,7 +546,7 @@ TEST_F(TextCacheTest, AModeTwoBoxPast256ColumnsGoesInBoxesOf256)
     m_batch.Begin(Screen1600);
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
 
-    const auto drawn = cache.DrawCenteredInBox(m_batch, 485, 12, "ab", Login, 300);
+    const auto drawn = DrawCentered(cache, 485, 12, "ab", 300);
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(cache.UsedSlots(), 2u);
@@ -577,7 +588,7 @@ TEST_F(TextCacheTest, AWideModeTwoBoxIsCutAtTheRightEdge)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
 
-    ASSERT_TRUE(cache.DrawCenteredInBox(m_batch, 400, 12, "ab", Login, 300).HasValue());
+    ASSERT_TRUE(DrawCentered(cache, 400, 12, "ab", 300).HasValue());
 
     ASSERT_EQ(m_batch.Vertices().size(), 6u);
     EXPECT_EQ(m_batch.Vertices()[0].x, 400.0f);
@@ -591,7 +602,7 @@ TEST_F(TextCacheTest, AModeTwoTextWiderThanItsBoxIsCutOnBothSides)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
 
-    ASSERT_TRUE(cache.DrawCenteredInBox(m_batch, 10, 20, "abcdefgh", Login, 30).HasValue());
+    ASSERT_TRUE(DrawCentered(cache, 10, 20, "abcdefgh", 30).HasValue());
 
     const auto box = m_store.Find(First);
     ASSERT_TRUE(box.has_value());
@@ -611,8 +622,8 @@ TEST_F(TextCacheTest, AnEmptyModeTwoTextIsItsBackground)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
 
-    ASSERT_TRUE(cache.DrawCenteredInBox(m_batch, 10, 20, "", Login, 20).HasValue());
-    ASSERT_TRUE(cache.DrawCenteredInBox(m_batch, 10, 40, "\nab", Login, 40).HasValue());
+    ASSERT_TRUE(DrawCentered(cache, 10, 20, "", 20).HasValue());
+    ASSERT_TRUE(DrawCentered(cache, 10, 40, "\nab", 40).HasValue());
 
     EXPECT_EQ(cache.Size(), 2u);
     for (const TextureSlot slot : {First, TextureSlot{static_cast<std::uint16_t>(First.value + 1)}})
@@ -627,7 +638,7 @@ TEST_F(TextCacheTest, AnEmptyModeTwoTextIsItsBackground)
     ASSERT_EQ(m_batch.Vertices().size(), 12u);
     EXPECT_EQ(m_batch.Vertices()[2].x - m_batch.Vertices()[0].x, 20.0f);
 
-    ASSERT_TRUE(cache.DrawCenteredInBox(m_batch, 10, 20, "", Login, 0).HasValue());
+    ASSERT_TRUE(DrawCentered(cache, 10, 20, "", 0).HasValue());
     EXPECT_EQ(cache.Size(), 2u);
     EXPECT_EQ(m_batch.Vertices().size(), 12u);
 }
@@ -639,10 +650,10 @@ TEST_F(TextCacheTest, TheModeTwoBoxIsInTheKey)
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
 
     Draw(cache, "ab");
-    ASSERT_TRUE(cache.DrawCenteredInBox(m_batch, 0, 0, "ab", Login, 40).HasValue());
-    ASSERT_TRUE(cache.DrawCenteredInBox(m_batch, 0, 0, "ab", Login, 41).HasValue());
+    ASSERT_TRUE(DrawCentered(cache, 0, 0, "ab", 40).HasValue());
+    ASSERT_TRUE(DrawCentered(cache, 0, 0, "ab", 41).HasValue());
     EXPECT_EQ(cache.Size(), 2u);
-    ASSERT_TRUE(cache.DrawCenteredInBox(m_batch, 0, 0, "ab", Login, 42).HasValue());
+    ASSERT_TRUE(DrawCentered(cache, 0, 0, "ab", 42).HasValue());
     EXPECT_EQ(cache.Size(), 3u);
     EXPECT_EQ(m_rasterizer.drawCalls, 3);
 }
@@ -653,11 +664,11 @@ TEST_F(TextCacheTest, ANegativeModeTwoBoxIsAnError)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
 
-    const auto negative = cache.DrawCenteredInBox(m_batch, 0, 0, "a", Login, -10);
+    const auto negative = DrawCentered(cache, 0, 0, "a", -10);
     ASSERT_FALSE(negative.HasValue());
     EXPECT_NE(negative.Error().find("0x4671cf"), std::string::npos) << negative.Error();
 
-    ASSERT_TRUE(cache.DrawCenteredInBox(m_batch, 0, 0, "ab", Login, 0).HasValue());
+    ASSERT_TRUE(DrawCentered(cache, 0, 0, "ab", 0).HasValue());
     EXPECT_EQ(cache.Size(), 0u);
     EXPECT_TRUE(m_batch.Vertices().empty());
 }

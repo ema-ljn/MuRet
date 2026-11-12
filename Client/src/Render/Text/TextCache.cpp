@@ -30,9 +30,6 @@ namespace Client::Render::Text
 {
 namespace
 {
-// Lo que mide 0x467060 en vez de un texto vacío (0x6c7ae4, con largo 1).
-constexpr std::string_view EmptyTextMeasure = "0";
-
 // Las cajas de un texto de `width` columnas: una por cada 256, la última con lo que sobra.
 std::size_t BoxesFor(int width)
 {
@@ -122,8 +119,13 @@ Core::Expected<void, std::string> TextCache::DrawClippedAtLeft(SpriteBatch& batc
 Core::Expected<void, std::string> TextCache::DrawColumns(SpriteBatch& batch, int x, int y, std::string_view text,
                                                          const TextStyle& style, int firstColumn, int columns)
 {
+    // 0x4671b4..0x4671cf: con menos de 0 columnas, el rep stos de la limpieza del DIB lleva 3 · columnas / 4 en ecx,
+    // que sin signo es enorme.
+    if (columns < 0)
+        return Core::Unexpected(
+            std::format("0x4671cf: la caja de {} columnas: el rep stos limpiaría fuera del DIB", columns));
     // 0x467289: sin columnas no hay tramos.
-    if (columns <= 0)
+    if (columns == 0)
         return {};
     const Core::Expected<Entries::iterator, std::string> found =
         Find(Key{.font = style.font, .colors = style.colors, .text = text, .skipped = firstColumn, .columns = columns},
@@ -146,35 +148,6 @@ Core::Expected<void, std::string> TextCache::DrawBoxed(SpriteBatch& batch, int x
     OriginalQuad quad = BoxedQuad(x, y, box.width, box.rows, clampY, batch.Screen());
     quad.slot = found.Value()->boxes.front();
     batch.Quad(quad);
-    return {};
-}
-
-Core::Expected<void, std::string> TextCache::DrawCenteredInBox(SpriteBatch& batch, int x, int y, std::string_view text,
-                                                               const TextStyle& style, int boxWidth)
-{
-    // 0x467077..0x467082: un texto vacío sin caja sale sin dibujar.
-    if (text.empty() && boxWidth == 0)
-        return {};
-    // 0x4670ba..0x4670d0: uno vacío mide el "0" de 0x6c7ae4 (el alto es el de la celda, como el de un texto vacío).
-    const std::string_view measured = text.empty() ? std::string_view{EmptyTextMeasure} : text;
-    const CenteredInBox placed = CenterInBox(boxWidth, m_rasterizer->Measure(style.font, measured).width);
-    if (placed.width < 0)
-        return Core::Unexpected(std::format(
-            "0x4671cf: la caja de {} da {} columnas: el rep stos limpiaría fuera del DIB", boxWidth, placed.width));
-    // 0x467289: sin columnas no hay cajas.
-    if (placed.width == 0)
-        return {};
-    // El texto va placed.textColumn columnas a la derecha del principio de la caja.
-    const Key key{.font = style.font,
-                  .colors = style.colors,
-                  .text = text,
-                  .skipped = -placed.textColumn,
-                  .box = {},
-                  .columns = placed.width};
-    const Core::Expected<Entries::iterator, std::string> found = Find(key, batch);
-    if (!found.HasValue())
-        return Core::Unexpected(found.Error());
-    DrawPieces(batch, *found.Value(), x, y);
     return {};
 }
 

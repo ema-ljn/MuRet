@@ -617,7 +617,7 @@ TEST_F(GameCharacterHudTest, TheCloseButtonShowsItsHelp)
 TEST_F(GameCharacterHudTest, TheClassAndTheServerFadeIntoEachOther)
 {
     worldClock = 1000.0f;
-    chosenServer = 0;
+    chosenServer = std::uint16_t{0};
 
     ASSERT_TRUE(Window().HasValue());
 

@@ -14,7 +14,8 @@ namespace Client::Render::Models
 {
 // Los pases de los niveles (ItemGlow), con su bandera del dibujo de 0x4ecc30: los tres que muestra
 // la traza, con su textura en ella, y los dos de los niveles 11 y 12 y de un ítem de set, *estáticos*.
-// Los otros tres modos de la tabla del 06 (0x4000, 0x8000 y 0x10000) entran cuando algo los pida.
+// El 0x4000 lo pide el camino del 10 de 0x6002e0 (Scenes::DrawChromeShell), *estático*; los otros dos modos de
+// la tabla del 06 (0x8000 y 0x10000) entran cuando algo los pida.
 enum class ShinePass : std::uint8_t
 {
     Shiny,   // 0x8, la textura GL 115 (slot 0x5fc): u = 0,5·nz + 0,2, v = 0,5·(ny + 1)
@@ -24,6 +25,8 @@ enum class ShinePass : std::uint8_t
     Chrome2, // 0x200 (slot 0x620): u = (nz + nx) · 0,8 + 2f, v = nx + ny + 3f,
              //                     f = (T mod 5000) · 0,00024 − 0,4
     Chrome3, // 0x800 (slot 0x620): u = L·n, v = 1 − L·n, con L = (0; −0,1; −0,8)
+    Chrome5, // 0x4000 (el slot de la malla, si no hay una textura forzada): u = c·nx + s·ny + nz + 5s + 3ny,
+             //                                                            v = 1 − (c·nx + s·ny + nz) − (2,5·nz + t)
 };
 
 // Las UV de un vértice con su normal en el mundo y el reloj del frame, con t = (T mod 10000) · 0,0001,

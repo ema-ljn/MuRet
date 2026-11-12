@@ -20,6 +20,7 @@ constexpr std::string_view SkillFolder = "Skill\\";
 constexpr std::string_view MonsterFolder = "Monster\\";
 constexpr std::string_view NpcFolder = "Npc\\";
 constexpr std::string_view BowFolder = "Item\\Bow\\";
+constexpr std::string_view EffectFolder = "Effect\\";
 
 // Las llamadas de un cargador, armadas en compilación con los lazos del decompilado: una de más no
 // compila, y una de menos la ve el static_assert de la cuenta.
@@ -146,11 +147,13 @@ constexpr std::array<ModelTextureCall, 7> SkillCalls{{
     {0x110, SkillFolder}, // 0x6169fb, el Dinorant
 }};
 
-// 0x615f77, 0x615fab y 0x615fdc: los tres Fenrir, las primeras de 0x615700, donde dejó 0x611850.
-constexpr std::array<ModelTextureCall, 3> FenrirCalls{{
+// 0x615f77, 0x615fab y 0x615fdc: los tres Fenrir, las primeras de 0x615700, donde dejó 0x611850; 0x616010: el rayo
+// 0x14d de su dibujo, con Effect\.
+constexpr std::array<ModelTextureCall, 4> FenrirCalls{{
     {0x14a, SkillFolder},
     {0x14b, SkillFolder},
     {0x14c, SkillFolder},
+    {0x14d, EffectFolder},
 }};
 
 // 0x2600 y 0x2900 en las trece.

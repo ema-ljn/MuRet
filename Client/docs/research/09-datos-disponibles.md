@@ -68,8 +68,9 @@ con `.jpg` → `.OZJ`, `.tga` → `.OZT`, `.bmp` → `.OZB` como hace el cliente
   andan modelos cuya textura está en otra carpeta. En la carga de arranque son 29 (**verificado**
   contra `lor_slots.bin`) y en el mundo del login 2 más (*inferido*, de la misma simulación), y
   `Helper04` dibuja la de `Skill\`, otro archivo con el mismo nombre.
-- **`Object6` y `World6`** son el mapa 5, que el cliente conoce pero no trae entero. Si se usa,
-  sin leer.
+- **`Object6` y `World6`** son el mapa 5 (*Exile*), que el cliente conoce pero no trae entero: sin
+  `TerrainHeight` el original se cierra (Q-C180). Igual que el 35 sin `World36`, queda fuera del alcance de MuRet
+  (Emanuel, 2026-11-12, P-C12): es una decisión de Webzen y MuRet hace lo del original.
 - `Data2\` es la carpeta de desarrollo (modelos `.smd` y dos `.txt` de depuración): los
   cargadores la usan según `DAT_006c9e0c`, y no hace falta para jugar.
 - El nombre `Monster\bossmap1_R.jpg.jpg` no es un hueco: el cargador corta el nombre en el primer

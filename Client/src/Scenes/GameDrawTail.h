@@ -89,6 +89,16 @@ struct FloorItemDrawContext
     const ItemDrawContext* itemContext = nullptr;
 };
 
+// Qué hay detrás de ownerContext. Casi siempre lo dice el tipo del joint (Scenes/FaunaJointCreation.h): un
+// FaunaObject, el ActorState del personaje o un dueño opaco. El 60f/0 que el caballo oscuro suelta a su alrededor
+// (0x444740) lleva en cambio el HelperState del caballo. En el original los dos son el objeto del dueño y el joint lee
+// los mismos offsets: la luz (+0xf4) al nacer y la acción (+0x111) en el paso.
+enum class JointOwnerKind : std::uint8_t
+{
+    ByType,
+    Helper,
+};
+
 struct JointState
 {
     bool alive = false;
@@ -109,6 +119,8 @@ struct JointState
     glm::vec3 angles{};
     glm::vec3 targetPosition{};
     void* ownerContext = nullptr;
+    // Propio de MuRet: cómo leer ownerContext. 0x530860 lo escribe en cada alta.
+    JointOwnerKind ownerKind = JointOwnerKind::ByType;
     std::int32_t life = 0;
     std::uint8_t field9d4 = 0;
     float speed = 0;

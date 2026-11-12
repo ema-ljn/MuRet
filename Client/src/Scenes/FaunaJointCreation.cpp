@@ -14,6 +14,7 @@
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/FaunaObject.h"
+#include "Scenes/HelperTable.h"
 #include "World/WorldObjects.h"
 #include <glm/ext/vector_float3.hpp>
 #include <array>
@@ -29,7 +30,7 @@ namespace Client::Scenes
 {
 namespace
 {
-void Prefix(JointState& joint, const World::FishEffectRequest& request)
+void Prefix(JointState& joint, const World::FishEffectRequest& request, JointOwnerKind ownerKind)
 {
     joint.alive = true;
     joint.type = request.type;
@@ -43,6 +44,7 @@ void Prefix(JointState& joint, const World::FishEffectRequest& request)
     joint.skillSerial = static_cast<std::uint8_t>(request.skillSerial);
     joint.speed = 0;
     joint.ownerContext = nullptr;
+    joint.ownerKind = ownerKind;
     joint.tailEnabled = true;
     joint.category = 0;
     joint.repeatedTexture = false;
@@ -371,6 +373,8 @@ constexpr std::int32_t SparkleJoint = 0x60f;
 constexpr std::int32_t SparkleSubtype = 0, FallenSparkleSubtype = 1, WideSparkleSubtype = 0x12;
 constexpr std::int32_t SetTrailJoint = 0x610, SetTrailSubtype = 7;
 constexpr std::int32_t EnergyJoint = 0x619, SetEnergySubtype = 9;
+// El 619/1 que suelta el calco 0x61e/1 de la mascota (0x518900), con el héroe de dueño (+0x54).
+constexpr std::int32_t SummonEnergySubtype = 1;
 
 double D(float value)
 {
@@ -380,6 +384,26 @@ double D(float value)
 float F32(double value)
 {
     return static_cast<float>(value);
+}
+
+// +0xf4 del dueño del 60f, la luz propia: la del personaje o la del caballo (0x443d70 la pone en 3).
+const glm::vec3* SparkleOwnerLight(const JointState& joint)
+{
+    if (joint.ownerContext == nullptr)
+        return nullptr;
+    if (joint.ownerKind == JointOwnerKind::Helper)
+        return &static_cast<const HelperState*>(joint.ownerContext)->light;
+    return &static_cast<const ActorState*>(joint.ownerContext)->light;
+}
+
+// +0x111 del dueño del 60f, la acción: la del personaje o la del caballo.
+std::optional<std::uint8_t> SparkleOwnerAction(const JointState& joint)
+{
+    if (joint.ownerContext == nullptr)
+        return std::nullopt;
+    if (joint.ownerKind == JointOwnerKind::Helper)
+        return static_cast<const HelperState*>(joint.ownerContext)->horse.animation.action;
+    return static_cast<const ActorState*>(joint.ownerContext)->animation.action;
 }
 
 void FadeJointLight(JointState& joint, std::uint32_t factorBits)
@@ -392,8 +416,8 @@ void FadeJointLight(JointState& joint, std::uint32_t factorBits)
 // 0x533677..0x53369e, 0x5341fc..0x5342d2 y 0x534cb6: el 60f/0 (0x51037c) y el 60f/0x12 (0x5103be, 0x5103db, 0x510435 y
 // 0x510452) del conjunto completo. Vida 100, 20 puntos y el ancho (el 10 de 0x53368e lo pisa); la /0x12 resta (mezcla
 // 4). La z de la velocidad (rand() % 150) · 0,01f, la y rand() % 500 − 250 y velocidad 40; con el ancho por encima de
-// 10, vida 50 y otra z, (rand() % 250 + 200) · 0,01f. La luz es la del dueño (+0xf4) y el destino el segundo punto. Dos
-// rand(), o tres con el ancho.
+// 10, vida 50 y otra z, (rand() % 250 + 200) · 0,01f. La luz es la del dueño (+0xf4: la del personaje o, con los
+// del caballo oscuro, la del caballo) y el destino el segundo punto. Dos rand(), o tres con el ancho.
 Core::Expected<void, std::string> CreateSparkle(JointState& joint, const World::FishEffectRequest& request,
                                                 Render::Models::CrtRandom& random)
 {
@@ -402,10 +426,9 @@ Core::Expected<void, std::string> CreateSparkle(JointState& joint, const World::
     constexpr std::uint8_t Subtractive = 4;
     constexpr int RiseSpan = 150, DriftSpan = 500, DriftCenter = 250, WideRiseSpan = 250, WideRiseBase = 200;
     constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au)); // 0x6b86c0, 0,01f
-    const auto* owner = static_cast<const ActorState*>(joint.ownerContext);
-    if (owner == nullptr)
-        return Core::Unexpected(
-            std::format("0x53429b: falta el personaje dueño del joint 0x60f/{:#x}", request.subtype));
+    const glm::vec3* ownerLight = SparkleOwnerLight(joint);
+    if (ownerLight == nullptr)
+        return Core::Unexpected(std::format("0x53429b: falta el dueño del joint 0x60f/{:#x}", request.subtype));
     joint.life = SparkleLife;
     joint.maximumCount = Points;
     joint.width = FirstWidth;
@@ -421,7 +444,7 @@ Core::Expected<void, std::string> CreateSparkle(JointState& joint, const World::
         joint.life = WideLife;
         joint.velocity.z = F32(static_cast<double>(random.Next() % WideRiseSpan + WideRiseBase) * Hundredth);
     }
-    joint.light = owner->light;
+    joint.light = *ownerLight;
     joint.targetPosition = request.secondPosition;
     return {};
 }
@@ -493,6 +516,17 @@ Core::Expected<void, std::string> CreateSetEnergy(JointState& joint, const World
     joint.targetPosition = owner->position;
     joint.position = owner->position;
     return {};
+}
+
+// 0x5323d3..0x5323f8, 0x532552..0x5325ca y 0x534cb6: el 619/1 del calco de la mascota (0x518900). Lo común del 0x619
+// (velocidad 0, vida 12, el ancho y 2 puntos); el subtipo 1 no tiene caso. Sin rand().
+void CreateSummonEnergy(JointState& joint, const World::FishEffectRequest& request)
+{
+    constexpr std::int32_t SharedLife = 12, SharedPoints = 2;
+    joint.speed = 0;
+    joint.life = SharedLife;
+    joint.width = request.scale;
+    joint.maximumCount = SharedPoints;
 }
 
 Core::Expected<void, std::string> CreateCase(JointState& joint, const World::FishEffectRequest& request,
@@ -579,6 +613,11 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         return CreateSetTrail(joint, request, random);
     if (request.type == EnergyJoint && request.subtype == SetEnergySubtype)
         return CreateSetEnergy(joint, request);
+    if (request.type == EnergyJoint && request.subtype == SummonEnergySubtype)
+    {
+        CreateSummonEnergy(joint, request);
+        return {};
+    }
     if (request.type == 0x618 && request.subtype == 4)
     {
         joint.width = request.scale;
@@ -617,13 +656,20 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
 
 Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::span<JointState> joints,
                                                                          const World::FishEffectRequest& request,
-                                                                         Render::Models::CrtRandom& random)
+                                                                         Render::Models::CrtRandom& random,
+                                                                         JointOwnerKind ownerKind)
 {
+    // Lo que lee MuRet de un ayudante de dueño: sólo la luz y la acción del 60f/0 y del 60f/0x12.
+    const bool helperSparkle =
+        request.type == SparkleJoint && (request.subtype == SparkleSubtype || request.subtype == WideSparkleSubtype);
     for (std::size_t i = 0; i < joints.size(); ++i)
     {
         if (joints[i].alive)
             continue;
-        Prefix(joints[i], request);
+        if (ownerKind == JointOwnerKind::Helper && !helperSparkle)
+            return Core::Unexpected(std::format("0x530860: el joint {:#x}/{} con un ayudante de dueño no está portado",
+                                                request.type, request.subtype));
+        Prefix(joints[i], request, ownerKind);
         if (auto created = CreateCase(joints[i], request, random); !created.HasValue())
             return Core::Unexpected(created.Error());
         return std::optional<std::size_t>(i);
@@ -948,8 +994,8 @@ std::optional<double> SignedTrigonometricProduct(double argument, float multipli
 // · 0,1f, con la vida doble en la /0x12 y negado con el skill 1 (0x6b8b9c); con otra key, (vida + vy) / key. La x es
 // el destino más cos · velocidad y la y el destino menos sen · velocidad. La /0 sube vz; la /0x12 sube vz · 1,1f, y la
 // velocidad 0,1f y el ancho 0,2f más. Con la vida debajo de 10 la luz por 0,7692308f (0x6ba240). Con el ancho debajo
-// de 40 y la acción del dueño (+0x111) en [0xd, 0x21] o [0x38, 0x3c], pasa a la /1: sin cola y la vida en 10 a lo
-// sumo (Q-C383).
+// de 40 y la acción del dueño (+0x111, la del personaje o la del caballo) en [0xd, 0x21] o [0x38, 0x3c], pasa a la /1:
+// sin cola y la vida en 10 a lo sumo (Q-C383). Con 40 o más no lee al dueño.
 Core::Expected<void, std::string> StepSparkle(JointState& joint, std::size_t index)
 {
     constexpr std::int16_t NoKey = -1;
@@ -993,11 +1039,11 @@ Core::Expected<void, std::string> StepSparkle(JointState& joint, std::size_t ind
     // 0x53b378: fcomp con 40 y test ah,1: debajo de 40 o NaN.
     if (joint.width >= FallWidth)
         return {};
-    const auto* owner = static_cast<const ActorState*>(joint.ownerContext);
-    if (owner == nullptr)
+    const std::optional<std::uint8_t> ownerAction = SparkleOwnerAction(joint);
+    if (!ownerAction)
         return Core::Unexpected(
-            std::format("0x53b38c: falta el personaje dueño del joint {} (0x60f/{:#x})", index, joint.subtype));
-    const std::uint8_t action = owner->animation.action;
+            std::format("0x53b38c: falta el dueño del joint {} (0x60f/{:#x})", index, joint.subtype));
+    const std::uint8_t action = *ownerAction;
     if (!((action >= FirstFall && action <= LastFall) || (action >= SecondFirstFall && action <= SecondLastFall)))
         return {};
     joint.subtype = FallenSparkleSubtype;
@@ -1078,6 +1124,42 @@ Core::Expected<void, std::string> StepSetEnergy(JointState& joint, std::size_t i
         FadeJointLight(joint, 0x3f68ba2eu);
     else if (joint.life > BrightLife)
         FadeJointLight(joint, 0x3fa00000u);
+    return {};
+}
+
+// 0x538a52..0x538a70, 0x538b17..0x538b4a, 0x538b5d..0x538b94 y 0x538cc9..0x538d28: el 619/1, después del avance
+// común. La velocidad sube 4 (0x6b8a44); gira de a 10 (0x4e9810) hacia el dueño (+0x54, leído en vivo), 120 más arriba
+// (0x6b86c8); la luz es (12 − vida) · 0,1f por (0,4f; 0,6f; 1), con el producto sin redondear; con la vida en 1, el
+// sprite 0x5fd en ese destino con la luz, el giro rand() % 360 y la escala ((rand() & 7) + 8) · 0,2f. Sigue la cola
+// común (0x53c393).
+Core::Expected<void, std::string> StepSummonEnergy(JointState& joint, std::size_t index,
+                                                   Render::Models::CrtRandom* random, World::FrameSprites* sprites)
+{
+    constexpr std::int32_t FullLife = 12, LastLife = 1;
+    if (joint.life == LastLife && (random == nullptr || sprites == nullptr))
+        return Core::Unexpected(
+            std::format("0x538cce: faltan el RNG o los sprites del joint {} (0x619/1) en su última vida", index));
+    const auto* owner = static_cast<const ActorState*>(joint.ownerContext);
+    if (owner == nullptr)
+        return Core::Unexpected(std::format("0x538b17: falta el personaje dueño del joint {} (0x619/1)", index));
+    constexpr double Climb = 4.0, Lift = 120.0;
+    constexpr float TurnStep = 10;
+    joint.speed = F32(Climb + D(joint.speed));
+    const glm::vec3 target{owner->position.x, owner->position.y, F32(D(owner->position.z) + Lift)};
+    static_cast<void>(SteerJoint(joint, target, TurnStep));
+    constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu), Blue = std::bit_cast<float>(0x3ecccccdu),
+                    Green = std::bit_cast<float>(0x3f19999au);
+    const double brightness = static_cast<double>(FullLife - joint.life) * D(Tenth);
+    joint.light = {F32(brightness * D(Blue)), F32(brightness * D(Green)), F32(brightness)};
+    if (joint.life != LastLife)
+        return {};
+    constexpr std::uint16_t ShinyTexture = 0x5fd;
+    constexpr int FullTurn = 360, ScaleSpread = 7, ScaleBase = 8;
+    constexpr float ScaleStep = std::bit_cast<float>(0x3e4ccccdu);
+    // 0x5491e0(0x5fd, destino, escala, luz, dueño, giro, 0): MuRet no guarda el dueño del sprite (Q-C303).
+    const auto rotation = static_cast<float>(random->Next() % FullTurn);
+    const auto scale = F32(static_cast<double>((random->Next() & ScaleSpread) + ScaleBase) * D(ScaleStep));
+    static_cast<void>(sprites->Create(ShinyTexture, target, scale, joint.light, rotation, 0));
     return {};
 }
 
@@ -1180,8 +1262,10 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         const bool setTrail = joint.type == SetTrailJoint && joint.subtype == SetTrailSubtype;
         const bool setEnergy = joint.type == EnergyJoint && joint.subtype == SetEnergySubtype;
         const bool fullSet = sparkle || fallenSparkle || setTrail || setEnergy;
+        // El del calco de la mascota (0x518900), con el héroe de dueño.
+        const bool summonEnergy = joint.type == EnergyJoint && joint.subtype == SummonEnergySubtype;
         if (!crywolf && !tarkan && !bloodCastle && !fairy && !spiritBeam && !flareBeam && !icarus && !noria &&
-            !skyBolt && !objectBolt && !trapBolt && !meteor && !staffBeam && !swordTrail && !fullSet)
+            !skyBolt && !objectBolt && !trapBolt && !meteor && !staffBeam && !swordTrail && !fullSet && !summonEnergy)
             return Core::Unexpected(
                 std::format("0x535840: el paso del joint {} ({:#x}/{}) no está portado", i, joint.type, joint.subtype));
         // 0x5358bc: el 60f/1 no se mueve ni calcula la matriz de 0x53590e; con la cola, 0x53c393 usaría la que dejó el
@@ -1225,7 +1309,10 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         if (setEnergy)
             if (auto result = StepSetEnergy(joint, i); !result.HasValue())
                 return result;
-        const bool actorOwned = staffBeam || swordTrail || fullSet;
+        if (summonEnergy)
+            if (auto result = StepSummonEnergy(joint, i, random, sprites); !result.HasValue())
+                return result;
+        const bool actorOwned = staffBeam || swordTrail || fullSet || summonEnergy;
         const auto* owner = (joint.type == 0x613 || joint.type == 0x614 || joint.type == 0x615 || meteor || actorOwned)
                                 ? nullptr
                                 : static_cast<const FaunaObject*>(joint.ownerContext);

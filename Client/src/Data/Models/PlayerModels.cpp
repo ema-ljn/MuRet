@@ -15,6 +15,7 @@ constexpr std::string_view PlayerFolder = "Player\\";
 constexpr std::string_view ItemFolder = "Item\\";
 constexpr std::string_view SkillFolder = "Skill\\";
 constexpr std::string_view BloodCastleFolder = "Object12\\";
+constexpr std::string_view EffectFolder = "Effect\\";
 
 // Cada llamada a 0x60da30 de 0x60dbe0 en el modo Data\, desde 0x60e8fc: el modelo, la carpeta, el
 // nombre y el número, con la dirección de la llamada (las de un bucle se repiten).
@@ -482,21 +483,23 @@ constexpr std::array<ModelFile, 243> ItemFiles = {{
 }};
 
 // Las llamadas a 0x60da30 de 0x615700 que MuRet ya hace, en su orden: las monturas de las mascotas (el Uniria, el
-// Dinorant y los tres Fenrir), el caballo, el cuervo y HellGate (0xc5), que pide texturas antes que el Dinorant.
-constexpr std::array<ModelFile, 13> SkillFiles = {{
-    {0xc6, SkillFolder, "Rider", 1},          // 0x615eca
-    {0x110, SkillFolder, "Rider", 2},         // 0x615f30, sin el .smd de 0x615f17 (0x6c9e0c en 1)
-    {0xbf, SkillFolder, "DarkHorse", -1},     // 0x615f46
-    {0x14a, SkillFolder, "fenril_black", -1}, // 0x615f5c
-    {0x14b, SkillFolder, "fenril_red", -1},   // 0x615f90
-    {0x14c, SkillFolder, "fenril_blue", -1},  // 0x615fc1
-    {0xc0, SkillFolder, "DarkSpirit", -1},    // 0x616026
-    {0xc5, SkillFolder, "HellGate", -1},      // 0x61605c
-    {0x10c, BloodCastleFolder, "Gate", 1},    // 0x616304
-    {0x10d, BloodCastleFolder, "Gate", 2},    // 0x61631a
-    {0x145, SkillFolder, "elf_skill", -1},    // 0x6168f4
-    {0x146, SkillFolder, "WaveForce", -1},    // 0x61690a
-    {0x147, SkillFolder, "deathsp_eff", -1},  // 0x616920
+// Dinorant y los tres Fenrir), el caballo, el rayo de los Fenrir (0x14d, de Data\Effect\), el cuervo y HellGate
+// (0xc5), que pide texturas antes que el Dinorant.
+constexpr std::array<ModelFile, 14> SkillFiles = {{
+    {0xc6, SkillFolder, "Rider", 1},               // 0x615eca
+    {0x110, SkillFolder, "Rider", 2},              // 0x615f30, sin el .smd de 0x615f17 (0x6c9e0c en 1)
+    {0xbf, SkillFolder, "DarkHorse", -1},          // 0x615f46
+    {0x14a, SkillFolder, "fenril_black", -1},      // 0x615f5c
+    {0x14b, SkillFolder, "fenril_red", -1},        // 0x615f90
+    {0x14c, SkillFolder, "fenril_blue", -1},       // 0x615fc1
+    {0x14d, EffectFolder, "lightning_type01", -1}, // 0x615ff5
+    {0xc0, SkillFolder, "DarkSpirit", -1},         // 0x616026
+    {0xc5, SkillFolder, "HellGate", -1},           // 0x61605c
+    {0x10c, BloodCastleFolder, "Gate", 1},         // 0x616304
+    {0x10d, BloodCastleFolder, "Gate", 2},         // 0x61631a
+    {0x145, SkillFolder, "elf_skill", -1},         // 0x6168f4
+    {0x146, SkillFolder, "WaveForce", -1},         // 0x61690a
+    {0x147, SkillFolder, "deathsp_eff", -1},       // 0x616920
 }};
 } // namespace
 

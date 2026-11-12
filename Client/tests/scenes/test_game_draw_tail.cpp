@@ -964,6 +964,55 @@ TEST(GameDrawTailTest, ModelEffectPublishesItsPoseBeforeGeometryAndNeverForGroun
     EXPECT_EQ(poses, 1);
 }
 
+// 0x52d620 → 0x52d400: el terremoto 0xfa del caballo (estado 2) no se dibuja ni busca modelos, en ninguna vida. Las
+// grietas 0xfb..0x102 van por 0x52da84 → 0x602e90 con su malla; con +0x74 en 0x80 (0xfc, 0xff y 0x102 de subtipo 1),
+// 0x6002e0 las dibujaría por 0x4ef0c0, que no está portado: corta en 0x6004aa.
+TEST(GameDrawTailTest, TheHorseEarthquakeIsInvisibleAndItsCracksDrawTheirMesh)
+{
+    Client::World::SphereFrustum frustum;
+    for (const std::int32_t life : {20, 11, 5})
+    {
+        SCOPED_TRACE(life);
+        LookupCounter models;
+        Client::Render::ModelBatch batch;
+        Client::World::ModelEffect quake;
+        quake.alive = true;
+        quake.type = Client::World::EarthquakeEffect;
+        quake.state = 2;
+        quake.life = life;
+        quake.transform.scale = 0.9f;
+        const auto drawn =
+            Client::Scenes::DrawGameModelEffects(batch, models, std::span(&quake, 1), frustum, nullptr, {}, 0, 0);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(models.lookups, 0);
+        EXPECT_TRUE(batch.Vertices().empty());
+    }
+    TriangleModels models;
+    for (std::int16_t type = Client::World::FirstEarthquakeCrack; type <= Client::World::LastEarthquakeCrack; ++type)
+    {
+        SCOPED_TRACE(type);
+        Client::Render::ModelBatch batch;
+        Client::World::ModelEffect crack;
+        crack.alive = true;
+        crack.type = type;
+        crack.subtype = 1;
+        crack.life = 35;
+        crack.transform.scale = 1.5f;
+        const auto drawn =
+            Client::Scenes::DrawGameModelEffects(batch, models, std::span(&crack, 1), frustum, nullptr, {}, 0, 0);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(batch.Vertices().size(), 3u);
+
+        crack.renderFlags = Client::World::CrackRenderFlags;
+        Client::Render::ModelBatch flagged;
+        const auto cut =
+            Client::Scenes::DrawGameModelEffects(flagged, models, std::span(&crack, 1), frustum, nullptr, {}, 0, 0);
+        ASSERT_FALSE(cut.HasValue());
+        EXPECT_NE(cut.Error().find("0x6004aa"), std::string::npos) << cut.Error();
+        EXPECT_TRUE(flagged.Vertices().empty());
+    }
+}
+
 // 0x600328: con +0x58 en −2 (la mariposa 0xae de la selección, 0x51913a) 0x6002e0 sale después de posar: la
 // pose se publica y la malla no se dibuja.
 TEST(GameDrawTailTest, AHiddenModelEffectPublishesItsPoseWithoutGeometry)

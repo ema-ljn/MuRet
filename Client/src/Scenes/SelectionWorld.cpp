@@ -216,9 +216,11 @@ Core::Expected<void, std::string> SelectionWorld::StepObjects(WorldState& world,
 
 Core::Expected<void, std::string> SelectionWorld::StepEffects(WorldState& world, Render::Models::ClothWorld& cloth,
                                                               float worldClock,
-                                                              const std::function<double(float, float)>& height)
+                                                              const std::function<double(float, float)>& height,
+                                                              std::uint32_t systemTime)
 {
-    const World::ModelEffectStepServices services{.terrainHeight = height, .sprites = &m_sprites};
+    const World::ModelEffectStepServices services{
+        .terrainHeight = height, .sprites = &m_sprites, .systemTime = [systemTime]() { return systemTime; }};
     for (World::ModelEffect& effect : world.Map().effects.Effects())
     {
         const auto* skeleton = m_models.SkeletonOf(static_cast<std::uint16_t>(effect.type));

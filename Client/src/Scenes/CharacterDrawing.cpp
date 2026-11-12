@@ -139,6 +139,7 @@ Render::TextureSlot PassSlot(Render::Models::ShinePass pass)
     case Render::Models::ShinePass::Chrome2:
     case Render::Models::ShinePass::Chrome3:
     case Render::Models::ShinePass::Chrome4:
+    case Render::Models::ShinePass::Chrome5:
         break;
     }
     return MetalTextureSlot;
@@ -156,6 +157,7 @@ Render::Color ShineColorOf(Render::Models::ShinePass pass, std::uint16_t model, 
         return Render::Models::ShineColorOf(model);
     case Render::Models::ShinePass::Chrome2:
     case Render::Models::ShinePass::Chrome4:
+    case Render::Models::ShinePass::Chrome5:
         break;
     case Render::Models::ShinePass::Chrome3:
         return Render::Models::SetColorOf(model);
@@ -1289,6 +1291,8 @@ std::optional<Render::Models::ShinePass> ItemShine(std::uint32_t flags)
         return ShinePass::Chrome3;
     if ((flags & 0x1000) != 0)
         return ShinePass::Chrome4;
+    if ((flags & 0x4000) != 0)
+        return ShinePass::Chrome5;
     return {};
 }
 
@@ -1312,7 +1316,7 @@ Render::ModelBlend ItemPassBlend(const MeshDraw& draw, std::uint32_t flags,
 {
     using Render::ModelBlend;
     if ((flags & 0x40) != 0 || (!shine && draw.blends) || shine == Render::Models::ShinePass::Chrome3 ||
-        shine == Render::Models::ShinePass::Chrome4)
+        shine == Render::Models::ShinePass::Chrome4 || shine == Render::Models::ShinePass::Chrome5)
         return ModelBlend::Additive;
     if ((flags & 0x80) != 0)
         return ModelBlend::Subtractive;
@@ -1331,7 +1335,9 @@ void DrawItemPassMesh(Render::ModelBatch& batch, const MeshDraw& draw, std::uint
         return;
     if (!shine && ((!draw.blends && (flags & 0x43) == 0) || ((flags & 0x3) == 0 && HasFourComponents(*draw.mesh))))
         return;
-    auto slot = texture ? texture : (shine ? std::optional(PassSlot(*shine)) : draw.texture);
+    // 4ed4bd: el 0x4000 sin una textura forzada va con el slot de la malla, no con uno del pase.
+    const bool ownSlot = !shine || *shine == Render::Models::ShinePass::Chrome5;
+    auto slot = texture ? texture : (ownSlot ? draw.texture : std::optional(PassSlot(*shine)));
     const auto blend = ItemPassBlend(draw, flags, shine);
     Render::Color color{currentColor.r, currentColor.g, currentColor.b, 1};
     if (blend == Render::ModelBlend::Alpha)
@@ -1384,7 +1390,8 @@ Core::Expected<void, std::string> DrawItemMeshPass(Render::ModelBatch& batch, co
         return Core::Unexpected(std::string("4ecc30: falta el modelo del pase de ítem"));
     if (mesh >= 0 && static_cast<std::size_t>(mesh) >= model->meshes.size())
         return {}; // 4ecc3d..4ecc4f: el nativo omite una malla fuera del contador.
-    constexpr std::uint32_t Supported = 0x1 | 0x2 | 0x4 | 0x8 | 0x10 | 0x20 | 0x40 | 0x80 | 0x200 | 0x800 | 0x1000;
+    constexpr std::uint32_t Supported =
+        0x1 | 0x2 | 0x4 | 0x8 | 0x10 | 0x20 | 0x40 | 0x80 | 0x200 | 0x800 | 0x1000 | 0x4000;
     if ((flags & ~Supported) != 0)
         return Core::Unexpected(std::string("4ecc30: banderas del pase de ítem fuera del contrato portable"));
     const auto slots = models.MeshTextures(object.model);
@@ -1397,6 +1404,9 @@ Core::Expected<void, std::string> DrawItemMeshPass(Render::ModelBatch& batch, co
         const auto& input = model->meshes[index];
         const auto role = RoleOf(object.model, input, index);
         if (mesh < 0 && (role.hidden || static_cast<std::int16_t>(index) == object.state.hiddenMesh))
+            continue;
+        // 4ecc5b: sin triángulos sale antes de todo, sin tocar el color del modelo.
+        if (input.triangles.empty())
             continue;
         if (auto valid = ValidateItemMesh(input, meshes, index, slots.size(), texture.has_value()); !valid.HasValue())
             return valid;
@@ -1853,6 +1863,91 @@ float CastleSiegeScroll(std::int32_t clock)
     return static_cast<float>(static_cast<double>(clock % Period) * Step);
 }
 } // namespace
+
+Core::Expected<void, std::string> DrawChromeShell(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                  const DrawnObject& object, Core::Duration frameClock)
+{
+    // 0x6003d1..0x600401: 0x4ecc30(malla, 0x4040, 0,5f (0x3f000000), +0x64, +0x68, +0x6c · 8f (0x6b86c4), +0x70 · 2,
+    // 0x620), con el fstp de la U y la V.
+    constexpr std::uint32_t ShellFlags = 0x4040;
+    constexpr float ShellAlpha = 0.5f;
+    constexpr double ShellUScale = 8.0;
+    const Data::Models::Model* model = models.Find(object.model);
+    if (model == nullptr)
+        return {};
+    // 0x60039d..0x6003a8: el color del modelo en 1. El alpha del pase es el 0,5, no el +0x174 del objeto, y el 0x4000
+    // no mira la luz por vértice.
+    DrawnObject shell = object;
+    shell.color = glm::vec3(1.0f);
+    shell.alpha = ShellAlpha;
+    shell.vertexLight = false;
+    shell.state.uv = {static_cast<float>(static_cast<double>(object.state.uv.x) * ShellUScale),
+                      static_cast<float>(static_cast<double>(object.state.uv.y) + object.state.uv.y)};
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    const auto meshes = PosedMeshesOf(models, shell, skinned);
+    if (meshes.empty())
+        return {};
+    // 0x600406..0x600423: de la 0 a la +0x24 del modelo; cada 0x4ecc30 multiplica el color en el lugar (Q-C95).
+    for (std::size_t mesh = 0; mesh < model->meshes.size(); ++mesh)
+    {
+        if (auto drawn = DrawItemMeshPass(batch, models, shell, frameClock, meshes, static_cast<std::int16_t>(mesh),
+                                          ShellFlags, MetalTextureSlot, &shell.color);
+            !drawn.HasValue())
+            return drawn;
+    }
+    return {};
+}
+
+Core::Expected<void, std::string> DrawFenrirBody(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                 const DrawnObject& fenrir, std::int32_t map, bool charging,
+                                                 Core::Duration frameClock)
+{
+    constexpr std::uint32_t BaseFlags = 0x2, ChargeFlags = 0x46;
+    constexpr Render::TextureSlot ChargeTexture{0x68f}; // Effect\eff_lighting.jpg.
+    const Data::Models::Model* model = models.Find(fenrir.model);
+    if (model == nullptr)
+        return {};
+    // 0x60279a..0x6027a3: el color del modelo en 1 y +0x88 en 0, sin la luz por vértice.
+    DrawnObject white = fenrir;
+    white.color = glm::vec3(1.0f);
+    white.vertexLight = false;
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    const auto meshes = PosedMeshesOf(models, white, skinned);
+    if (meshes.empty())
+        return {};
+    for (const std::int16_t mesh : {std::int16_t{0}, std::int16_t{1}})
+        if (auto drawn = DrawItemMeshPass(batch, models, white, frameClock, meshes, mesh, BaseFlags); !drawn.HasValue())
+            return drawn;
+    if (charging)
+        if (auto drawn = DrawItemMeshPass(batch, models, white, frameClock, meshes, 1, ChargeFlags, ChargeTexture);
+            !drawn.HasValue())
+            return drawn;
+    // 0x6028dc..0x6028f3: en los mapas 10, 24 a 29 y 36 no hay sombra; 0x602904: en el 7, con alpha 0,2.
+    const bool kalima =
+        (map >= DarkHorseFirstKalimaMap && map <= DarkHorseLastKalimaMap) || map == DarkHorseSeventhKalimaMap;
+    if (map == DarkHorseNoShadowMap || kalima)
+        return {};
+    Render::Color shadowColor = DarkHorseShadowColor;
+    if (map == DarkHorseFaintShadowMap)
+        shadowColor.alpha = DarkHorseShadowAlphaOfMapSeven;
+    // 0x60292b: 0x4eff40(−1, −1, −1, −1), sin blendMesh ni malla oculta: todas las mallas con triángulos, aplastadas
+    // desde model+0x6c..+0x74, que 0x5ffdf0 dejó en el lugar del Fenrir, con el abanico del mapa.
+    const float spread = Render::Models::ShadowSpreadOf(map);
+    for (std::size_t index = 0; index < model->meshes.size() && index < meshes.size(); ++index)
+    {
+        const Data::Models::Mesh& mesh = model->meshes[index];
+        if (mesh.triangles.empty() || !IndicesInRange(mesh) || meshes[index].positions.size() < mesh.vertices.size())
+            continue;
+        Render::Models::SkinnedMesh flat = meshes[index];
+        for (glm::vec3& position : flat.positions)
+            position = Render::Models::FlattenOnTheGround(position, fenrir.transform.position, spread);
+        MeshDraw draw;
+        draw.mesh = &mesh;
+        draw.skinned = &flat;
+        Triangles(batch, draw, BlendedShadowState, shadowColor, PassUv{});
+    }
+    return {};
+}
 
 Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch, const IModelLibrary& models,
                                                       const DrawnObject& object, const CastleSiegeBodyPass& pass,

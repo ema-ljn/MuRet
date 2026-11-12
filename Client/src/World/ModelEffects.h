@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Expected.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
@@ -9,8 +10,16 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <span>
+#include <string>
+#include <string_view>
+
+namespace Client::Data::Terrain
+{
+struct TerrainAttributes;
+}
 
 namespace Client::Render::Models
 {
@@ -22,6 +31,8 @@ class CrtRandom;
 // estáticamente con ASM. Para el paso del juego y su CRT, usar World/GameModelEffects.h.
 namespace Client::World
 {
+class FrameSprites;
+
 inline constexpr std::size_t ModelEffectCount = 200;
 // El dragón que vuela en el login, con su modelo (Scenes::DragonModel) y la escala que le pasa 0x606660.
 inline constexpr std::int16_t DragonEffect = 0xb4;
@@ -58,6 +69,46 @@ inline constexpr std::int32_t CrywolfDecalSubtype = 3;
 // Icarus crea la /1 (0x44431b), que crece y tiembla.
 inline constexpr std::int16_t ShockWaveEffect = 0x6eb;
 inline constexpr std::int32_t GallopShockWaveSubtype = 1;
+// El pisotón del caballo oscuro (0x4453e0, la acción 3 de 0x444010): cada 10 pasos lógicos la onda 0x6eb con el
+// subtipo 0, que se achica, y seis piedras 0x118 o 0x119 (Skill\groundStone y groundStone2, 0x615700) alrededor. Cada
+// piedra suelta en sus pasos 33 a 36 el polvo 5f2/11 y una piedrita 0xc8/0xc9 con el subtipo 10 (0x5275ca).
+inline constexpr std::int32_t StompShockWaveSubtype = 0;
+inline constexpr std::int16_t FirstGroundStoneEffect = 0x118;
+inline constexpr std::int16_t SecondGroundStoneEffect = 0x119;
+inline constexpr std::int32_t GroundStoneChipSubtype = 10;
+// Los del dibujo de los Fenrir (0x60277b): el rayo 0x14d (Effect\lightning_type01.bmd), que nace en un hueso del
+// Fenrir con su sprite 0x5ac y se prende y se apaga en pocos pasos, y el calco 0x14e (eff_lightinga01..05, sin
+// modelo: lo dibuja 0x52d8f2 en el piso), que cambia de textura cada 200 ms de timeGetTime().
+inline constexpr std::int16_t LightningEffect = 0x14d;
+inline constexpr std::int16_t LightningDecalEffect = 0x14e;
+// El calco de colores (0x61e, Effect\Magic_Ground2 en el pase del suelo). Al vestir una mascota fuera de la zona
+// segura, 0x5bca46 crea el /1 sobre el héroe, con él de dueño: cada paso suelta tres joints 619/1 que bajan hacia el
+// dueño (0x518900).
+inline constexpr std::int16_t ColoredDecalEffect = 0x61e;
+inline constexpr std::int32_t PetSummonSubtype = 1;
+// El terremoto (la familia EarthQuake): el 0xfa, que la acción 3 del caballo oscuro crea con el caballo de dueño y el
+// estado (+0x88) en 2 (0x4453e0) y que con un estado distinto de 0 no se dibuja (0x52d400). Su paso suelta en la vida
+// 11 la explosión 5ed/0 y las grietas 0xfb..0x100, y en la 10 las 0x101 y 0x102 (Data\Skill\EarthQuake01..08, que
+// dibuja 0x602e90). Los tres primeros (0xfd, 0xfb y 0xfc) llevan al 0xfa de dueño; los demás, al dueño del 0xfa.
+inline constexpr std::int16_t EarthquakeEffect = 0xfa;
+inline constexpr std::int16_t FirstEarthquakeCrack = 0xfb;
+inline constexpr std::int16_t LastEarthquakeCrack = 0x102;
+// +0x74 en 0x80: las grietas 0xfc, 0xff y 0x102 con el subtipo 1 (0x51a850); 0x6002e0 las dibuja por 0x4ef0c0 con
+// 0x82 (0x6004aa).
+inline constexpr std::uint32_t CrackRenderFlags = 0x80;
+
+struct ModelEffect;
+// +0x108, el dueño, con lo que leen de él en vivo los pasos del terremoto y sus grietas: el WORD +0x2 (su tipo) y +0x1c
+// (sus ángulos). El original guarda un puntero a un objeto de cualquier tabla; MuRet, punteros a esos campos, que
+// tienen que vivir más que el efecto (los lugares de las tablas no se mueven, y un lugar que se vuelve a usar se lee
+// como el original lo lee). Un ayudante (Scenes::HelperState) da `type` y `angles`; otro efecto, `effect` (su
+// ModelEffect::type) y sus ángulos. Sin ninguno de los tres, no hay dueño.
+struct ModelEffectOwner
+{
+    const std::uint16_t* type = nullptr;
+    const ModelEffect* effect = nullptr;
+    const glm::vec3* angles = nullptr;
+};
 
 // Proyección de los campos compartidos por los efectos de 0x1d4 bytes.
 struct ModelEffect
@@ -87,13 +138,24 @@ struct ModelEffect
     // De MuRet: la posición antes del último paso, para dibujar entre dos pasos (D-C4).
     glm::vec3 previousPosition{};
     std::int32_t textureFrame = 0;           // +0x1c4: selector firmado del calco 0x14e en52d8f2.
+    std::uint32_t textureTime = 0;           // +0x1c0: el timeGetTime() del último cambio del calco 0x14e.
     const std::int16_t* itemType = nullptr;  // +108 del efecto→+8c del dueño durable, paraf4/fa.
     const std::uint8_t* itemLevel = nullptr; // +108→+8e; no inferir desde ActorState.
     // +0x108 distinto de 0: el efecto tiene dueño. El plano 0x135 sólo se mueve con dueño (0x529745).
     bool hasOwner = false;
     // +0x108 como dueño opaco, para los pasos que lo leen fuera de World: el ActorState del personaje del 5ac/3.
     void* ownerContext = nullptr;
+    // +0x108 con lo que leen en vivo el terremoto 0xfa y sus grietas (OwnerTypeOf). El prefijo lo pisa.
+    ModelEffectOwner owner{};
+    // +0x28..+0x30: el 0xfa copia ahí sus ángulos al nacer (0x51a66d) y su paso gira la velocidad con ellos. El prefijo
+    // no los toca.
+    glm::vec3 copiedAngles{};
+    // +0x74: el prefijo lo deja en 0; CrackRenderFlags en las grietas de subtipo 1.
+    std::uint32_t renderFlags = 0;
 };
+
+// El WORD +0x2 del dueño, leído en vivo, o nada sin dueño.
+[[nodiscard]] std::optional<std::uint16_t> OwnerTypeOf(const ModelEffectOwner& owner);
 
 class ModelEffects
 {
@@ -174,6 +236,73 @@ public:
     // 0,1f en la x87 (0x51f4c3..0x51f4eb). Un rand(); lleno, ninguno y sin rand().
     std::optional<std::size_t> CreateGallopShockWave(const glm::vec3& position, const glm::vec3& angles,
                                                      const glm::vec3& light, Render::Models::CrtRandom& random);
+    // 0x518cf0(0x14d, posición, ángulos, luz, 0, dueño, −1, 0, 0, 0, 0) → 0x51db7a: el prefijo común (+0x8a en −1,
+    // escala 0,9) con el dueño, vida 100, la escala (rand() % 100) · 0,002f + 0,3f, el subtipo en 0, el alpha en 0,7f,
+    // los tres ángulos con rand() % 360 y, por rand() % 30, el lugar: el punto del hueso 10 (con 1 y 2), 14 (3), 2 (4
+    // y 5), 50 o 51 con un rand() par o impar (6 y 7) o 53 (8) del buffer global de la pose (0x4ec110(…, 0), que no
+    // mira el modelo del dueño), con 0,2f menos de escala en el 3, el 6, el 7 y el 8; con 9 y 10 lo apaga (y el
+    // alpha en 0); con los demás, 0,1f más de escala y la posición corrida rand() % 240 − 120 en x, rand() % 10 − 5
+    // en y y 110 en z. Siempre, también apagado, el sprite 0x5ac de escala 2 en su lugar con la luz menos 0,3f
+    // (0x51ddab). `bonePoint` da el punto de un hueso del buffer global; sin él, corta antes de tocar nada. Lleno,
+    // ninguno y sin rand().
+    [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
+    CreateLightning(const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, void* owner,
+                    Render::Models::CrtRandom& random, const std::function<glm::vec3(std::size_t)>& bonePoint,
+                    FrameSprites& sprites);
+    // 0x518cf0(0x14e, posición, ángulos, luz, subtipo, dueño, −1, 0, 0, 0, 0) → 0x51ddfc: el prefijo común (+0x8a en
+    // −1, escala 0,9) con el dueño, vida 200, el cuadro (+0x1c4) en 0, la luz, el alpha en 1, la hora (+0x1c0) de
+    // timeGetTime() y la z en 0. Sin rand(); lleno, ninguno.
+    std::optional<std::size_t> CreateLightningDecal(const glm::vec3& position, const glm::vec3& angles,
+                                                    const glm::vec3& light, std::int32_t subtype, void* owner,
+                                                    std::uint32_t systemTime);
+    // 0x518cf0(0x61e, posición, ángulos, luz, 1, dueño, −1, 0, 0, 0, 0) → 0x51eebb: el prefijo común (+0x8a en −1,
+    // escala 0,9) con el dueño (+0x108) y vida 20; el subtipo 1 no tiene caso y sale por 0x51db73. Sin rand(); lleno,
+    // ninguno.
+    std::optional<std::size_t> CreatePetSummon(const glm::vec3& position, const glm::vec3& angles,
+                                               const glm::vec3& light, void* owner);
+    // 0x518cf0(0x118 o 0x119, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51cc6b o 0x51cd1b: el prefijo común
+    // (+0x8a en −1, sin dueño, escala 0,9) y el atributo de la celda de la posición (UnmaskedCellAttribute, en
+    // 0x51cc8b o 0x51cd3b): con el bit 0x04, el 0x08 o el 0x10 el lugar queda escrito con el byte vivo en 0, y
+    // ninguno, sin rand(). Si no, vida 40, la escala rand() % 30 · 0,01f + 1,2f (0x118) o + 1 (0x119) en la x87, +0xd8
+    // en 0,3f y el yaw rand() % 360; 0x4ea030(efecto, 0) no hace nada, porque el prefijo ya dejó la acción en 0. Dos
+    // rand(). Sin la tabla de atributos, o con una celda fuera de ella, corta después del prefijo, con el lugar vivo
+    // como lo dejó el original en ese punto. Otro tipo o la tabla llena, ninguno y sin rand().
+    [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
+    CreateGroundStone(std::int16_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
+                      const Data::Terrain::TerrainAttributes* attributes, Render::Models::CrtRandom& random);
+    // 0x518cf0(0xc8 o 0xc9, …, 10, 0, −1, 0, 0, 0, 0) → 0x51b432, la piedrita que suelta la piedra 0x118/0x119: el
+    // prefijo común, el subtipo 10 y cinco rand(): el empuje ((& 255) + 64) · 0,2 (el double 0x6ba1e8) en y, la vida
+    // (& 15) + 32, la escala ((& 3) + 15) · 0,05f, el yaw rand() % 360 y la caída (& 15) + 28 en +0xe4; la velocidad es
+    // el empuje girado por los ángulos con ese yaw. Otro tipo o la tabla llena, ninguno y sin rand().
+    std::optional<std::size_t> CreateGroundStoneChip(std::int16_t type, const glm::vec3& position,
+                                                     const glm::vec3& angles, const glm::vec3& light,
+                                                     Render::Models::CrtRandom& random);
+    // 0x518cf0(0x6eb, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51f4ad con el subtipo 0, la onda del pisotón:
+    // el prefijo común (+0x8a en −1, sin dueño), vida 30 y escala 20, sin rand(). Lleno, ninguna.
+    std::optional<std::size_t> CreateStompShockWave(const glm::vec3& position, const glm::vec3& angles,
+                                                    const glm::vec3& light);
+    // 0x518cf0(0xfa, posición, ángulos, luz, 0, dueño, −1, 0, estado, 0, 0) → 0x51a66d, como la llama el caballo
+    // (0x4453e0, con el estado 2): el prefijo común (+0x8a en −1, escala 0,9, el estado en +0x88) con el dueño,
+    // +0x28..+0x30 con los ángulos, la partida con la posición, vida 20, el subtipo rand() % 100, la z de los ángulos
+    // 330 más (fld/fadd/fstp), +0x28 80 más, +0x30 180 más y +0xe4 en 50. Después, 0x51a8d8: abre el registro propio
+    // (0x4e79a0, no gasta), le sube 1 a su cuenta +0xf04 (`ownRecordCount`, que envuelve, Q-C426; la de antes va a
+    // +0x8c, que no lee nadie portado) y lo cierra (0x40f370: con `ownRecordDepth` en 0, sus 3.848 rand()). Lleno,
+    // ninguno, sin rand() y sin tocar el registro.
+    std::optional<std::size_t> CreateEarthquake(const glm::vec3& position, const glm::vec3& angles,
+                                                const glm::vec3& light, std::uint8_t state,
+                                                const ModelEffectOwner& owner, std::uint8_t& ownRecordDepth,
+                                                std::uint8_t& ownRecordCount, Render::Models::CrtRandom& random);
+    // 0x518cf0(0xfb..0x102, posición, ángulos, luz, subtipo, dueño, tamaño, 0, 0, 0, 0) → 0x51a6e4..0x51a85c: el
+    // prefijo común con el dueño y +0x8a en `size`, y la escala size · 0,01f (fild/fmul/fstp). Vida: 0xfb 35 con el
+    // subtipo 0 y 60 con el 1; 0xfc 20 con el 0 y el 1 y 50 con el 2; 0xfd, 0xfe y 0x100 35; 0xff, 0x101 y 0x102 40.
+    // +0x64 en 0 en todos salvo 0xfd y 0x100, que dejan el −1 del prefijo. Con el subtipo 1, 0xfc, 0xff y 0x102 ponen
+    // +0x74 en CrackRenderFlags. Un subtipo sin caso (0xfb con otro que 0 o 1, 0xfc con otro que 0..2) sale por
+    // 0x51db73 sin escala ni vida: la escala 0,9 del prefijo y la vida del uso anterior del lugar (Q-C423). Otro tipo
+    // o la tabla llena, ninguno. Sin rand().
+    std::optional<std::size_t> CreateEarthquakeCrack(std::int16_t type, const glm::vec3& position,
+                                                     const glm::vec3& angles, const glm::vec3& light,
+                                                     std::int32_t subtype, const ModelEffectOwner& owner,
+                                                     std::int16_t size);
     // 0x6070a0: sólo apaga el byte vivo de cada lugar (Q-C138).
     void Clear();
 
@@ -183,6 +312,14 @@ public:
 private:
     std::array<ModelEffect, ModelEffectCount> m_effects{};
 };
+
+// 0x5f8290(ftol(x · 0,01f), ftol(y · 0,01f)) y el WORD de 0x7d0d348 en ese índice, como lo leen las altas de las
+// piedras 0x118/0x119: y · 256 + x en 32 bits, sin la máscara de 0x5f82a0. Sin la tabla, con una coordenada que el
+// ftol de 0x69fd3c no representa o con un índice fuera de las 65.536 celdas (el original leería otra memoria), corta
+// con `address`.
+[[nodiscard]] Core::Expected<std::uint16_t, std::string>
+UnmaskedCellAttribute(const Data::Terrain::TerrainAttributes* attributes, const glm::vec3& position,
+                      std::string_view address);
 
 // 0x5208a0 sobre un efecto vivo, con el esqueleto de su modelo (para el avance, o nullptr): el caso del
 // tipo (el 0xb4: 0x52096c..0x520b72) y la cola común (0x52cb98): la animación a +0xd8 (0x4ec200; si la

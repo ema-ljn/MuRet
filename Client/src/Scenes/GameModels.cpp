@@ -44,24 +44,49 @@ constexpr std::array<Data::Models::ModelTextureCall, 1> InitialGateTextures{{{0x
 // 0x6161b5: Data\Skill\RidingSpear01.bmd; el 0x10f del efecto necesita su modelo real. 0x6166fe:
 // Data\Skill\MuSign.bmd, el 0x12a de la capa de los GM (0x414370).
 // 0x615d6a: 0x60da30(0xc8 + k, "Data\\Skill\\", "Stone", k + 1), las piedritas que salta el chorro de Lost
-// Tower (Stone01 y Stone02). 0x616880: Data\Skill\TowerGatePlane.bmd, el plano 0x135 que crea el objeto 79 del
-// mapa 30 (0x42c6b0).
-constexpr std::array<Data::Models::ModelFile, 5> TailModelFiles{{{0x10f, "Skill\\", "RidingSpear", 1},
-                                                                 {0x12a, "Skill\\", "MuSign", -1},
-                                                                 {0xc8, "Skill\\", "Stone", 1},
-                                                                 {0xc9, "Skill\\", "Stone", 2},
-                                                                 {0x135, "Skill\\", "TowerGatePlane", -1}}};
+// Tower (Stone01 y Stone02). 0x61641d y 0x616442: Data\Skill\groundStone.bmd y groundStone2.bmd, las piedras 0x118
+// y 0x119 del pisotón del caballo oscuro (0x4453e0); después de cada una, 0x615700 escribe `**(modelo + 0x30) = 0`,
+// el byte +0 de la acción 0 (el "no repite"), que el lector 0x4f13d0 ya dejó en 0 (ActionInfo::repeats), así que no
+// cambia nada. 0x6165bc..0x616688: 0x60da30(0xfb..0x102, "Data\\Skill\\", "EarthQuake", 1..8), las grietas del
+// terremoto 0xfa (0xfb..0xfd, 0xff, 0x101 y 0x102, y después de 0x103 y 0x104, 0xfe y 0x100). 0x616880:
+// Data\Skill\TowerGatePlane.bmd, el plano 0x135 que crea el objeto 79 del mapa 30 (0x42c6b0).
+constexpr std::array<Data::Models::ModelFile, 15> TailModelFiles{{{0x10f, "Skill\\", "RidingSpear", 1},
+                                                                  {0x12a, "Skill\\", "MuSign", -1},
+                                                                  {0xc8, "Skill\\", "Stone", 1},
+                                                                  {0xc9, "Skill\\", "Stone", 2},
+                                                                  {0x118, "Skill\\", "groundStone", -1},
+                                                                  {0x119, "Skill\\", "groundStone2", -1},
+                                                                  {0xfb, "Skill\\", "EarthQuake", 1},
+                                                                  {0xfc, "Skill\\", "EarthQuake", 2},
+                                                                  {0xfd, "Skill\\", "EarthQuake", 3},
+                                                                  {0xff, "Skill\\", "EarthQuake", 5},
+                                                                  {0x101, "Skill\\", "EarthQuake", 7},
+                                                                  {0x102, "Skill\\", "EarthQuake", 8},
+                                                                  {0xfe, "Skill\\", "EarthQuake", 4},
+                                                                  {0x100, "Skill\\", "EarthQuake", 6},
+                                                                  {0x135, "Skill\\", "TowerGatePlane", -1}}};
 // 0x61619f: 0x60d5f0(0x10f, "Skill\\", GL_REPEAT, GL_NEAREST, 1); 0x616c5c, el mismo con el 0x12a; el lazo
-// 0x616e20 de 0xbe a 0x150 con "Skill\\": el Uniria (0xc6, que no tiene otra), el 0xc8, el 0xc9 y el 0x135 (que
-// 0x616d8e ya había pedido y que se queda con los de esta segunda vez). Van después de las de 0x615700 que MuRet carga,
-// así que sus slots no son los del original (que pasa antes por los modelos de las habilidades que MuRet todavía no
-// lee); ningún slot fijo los pisa.
-constexpr std::array<Data::Models::ModelTextureCall, 6> TailTextureCalls{{{0x10f, "Skill\\"},
-                                                                          {0x12a, "Skill\\"},
-                                                                          {0xc6, "Skill\\"},
-                                                                          {0xc8, "Skill\\"},
-                                                                          {0xc9, "Skill\\"},
-                                                                          {0x135, "Skill\\"}}};
+// 0x616e20 de 0xbe a 0x150 con "Skill\\": el Uniria (0xc6, que no tiene otra), el 0xc8, el 0xc9, las grietas
+// 0xfb..0x102 (0x616a11..0x616a9b ya habían pedido seis de ellas), el 0x118 y el 0x119 (que 0x616bd2 y 0x616bed ya
+// habían pedido) y el 0x135 (que 0x616d8e ya había pedido); los pedidos dos veces se quedan con los de esta segunda
+// vez. Van después de las de 0x615700 que MuRet carga, así que sus slots no son los del original (que pasa antes por
+// los modelos de las habilidades que MuRet todavía no lee); ningún slot fijo los pisa.
+constexpr std::array<Data::Models::ModelTextureCall, 16> TailTextureCalls{{{0x10f, "Skill\\"},
+                                                                           {0x12a, "Skill\\"},
+                                                                           {0xc6, "Skill\\"},
+                                                                           {0xc8, "Skill\\"},
+                                                                           {0xc9, "Skill\\"},
+                                                                           {0xfb, "Skill\\"},
+                                                                           {0xfc, "Skill\\"},
+                                                                           {0xfd, "Skill\\"},
+                                                                           {0xfe, "Skill\\"},
+                                                                           {0xff, "Skill\\"},
+                                                                           {0x100, "Skill\\"},
+                                                                           {0x101, "Skill\\"},
+                                                                           {0x102, "Skill\\"},
+                                                                           {0x118, "Skill\\"},
+                                                                           {0x119, "Skill\\"},
+                                                                           {0x135, "Skill\\"}}};
 
 // Sube las de `entries` de a una: la que no carga deja su línea en el log, y las demás siguen.
 void UploadEach(const std::filesystem::path& dataRoot, std::span<const Data::Textures::TextureSetEntry> entries,

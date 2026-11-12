@@ -53,9 +53,10 @@ using Client::Tests::RecordingSink;
 
 // Los tres giftbox de 0x60ff50, que el laboratorio no tiene (06).
 constexpr std::size_t MissingInTheLab = 3;
-// 6161b5 carga RidingSpear01/10f, 0x6166fe MuSign/12a, 0x615d6a Stone01/c8 y Stone02/c9 y 0x616880
-// TowerGatePlane/135 aparte de las tablas de jugador, ítems y skills.
-constexpr std::size_t AdditionalTailModels = 5;
+// 6161b5 carga RidingSpear01/10f, 0x6166fe MuSign/12a, 0x615d6a Stone01/c8 y Stone02/c9, 0x61641d y 0x616442
+// groundStone/118 y groundStone2/119, 0x6165bc..0x616688 EarthQuake01..08/fb..102 y 0x616880 TowerGatePlane/135
+// aparte de las tablas de jugador, ítems y skills.
+constexpr std::size_t AdditionalTailModels = 15;
 
 class GoldenGameModels : public Client::Tests::GoldenDataTest
 {
@@ -175,6 +176,60 @@ TEST_F(GoldenGameModels, TheGameMasterSignIsLoadedWithItsOwnTextures)
         SCOPED_TRACE(slot.value);
         EXPECT_EQ(std::ranges::count(textures.loaded, slot.value), 1);
         EXPECT_TRUE(textures.Find(slot).has_value());
+    }
+}
+
+// 0x61641d y 0x616442: Skill\groundStone.bmd y groundStone2.bmd, las piedras 0x118 y 0x119 del pisotón del caballo,
+// con su esqueleto (la acción 0 que repite, como la deja 0x4f13d0 y la vuelve a escribir 0x615700) y las texturas de
+// Skill\ del lazo 0x616e20.
+TEST_F(GoldenGameModels, TheGroundStonesAreLoadedWithTheirSkillTextures)
+{
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+
+    for (const std::uint16_t stone : {std::uint16_t{0x118}, std::uint16_t{0x119}})
+    {
+        SCOPED_TRACE(stone);
+        const auto* model = models.Find(stone);
+        ASSERT_NE(model, nullptr);
+        EXPECT_FALSE(model->meshes.empty());
+        const auto* skeleton = models.SkeletonOf(stone);
+        ASSERT_NE(skeleton, nullptr);
+        ASSERT_FALSE(skeleton->actions.empty());
+        EXPECT_TRUE(skeleton->actions.front().repeats);
+        const auto slots = models.MeshTextures(stone);
+        ASSERT_EQ(slots.size(), model->meshes.size());
+        for (const TextureSlot slot : slots)
+        {
+            SCOPED_TRACE(slot.value);
+            EXPECT_TRUE(textures.Find(slot).has_value());
+        }
+    }
+}
+
+// 0x6165bc..0x616688 cargan Skill\EarthQuake01..08 en 0xfb..0x102 (el 04 en 0xfe y el 06 en 0x100, al final) y
+// 0x616a11..0x616a9b sus texturas de Skill\: las grietas del terremoto del caballo se dibujan con su malla.
+TEST_F(GoldenGameModels, TheEarthquakeCracksAreLoadedWithTheirOwnTextures)
+{
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+
+    for (std::uint16_t crack = 0xfb; crack <= 0x102; ++crack)
+    {
+        SCOPED_TRACE(crack);
+        const auto* model = models.Find(crack);
+        ASSERT_NE(model, nullptr);
+        ASSERT_FALSE(model->meshes.empty());
+        const auto slots = models.MeshTextures(crack);
+        ASSERT_EQ(slots.size(), model->meshes.size());
+        for (const TextureSlot slot : slots)
+            EXPECT_TRUE(textures.Find(slot).has_value()) << slot.value;
     }
 }
 

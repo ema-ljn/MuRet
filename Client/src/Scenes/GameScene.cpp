@@ -312,7 +312,9 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
                                                      .random = m_context.cloth->random,
                                                      .worldClock = worldClock,
                                                      .scene = SceneId::Game,
-                                                     .terrain = nullptr});
+                                                     .terrain = nullptr,
+                                                     .logicSteps = m_context.cloth->logicSteps,
+                                                     .cameraShake = &CameraInputState().shake});
         !helpers.HasValue())
     {
         return helpers;

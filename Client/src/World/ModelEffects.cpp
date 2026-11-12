@@ -1,11 +1,16 @@
 #include "World/ModelEffects.h"
 
+#include "Core/Expected.h"
+#include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
+#include "World/OriginalFtol.h"
+#include "World/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -14,8 +19,12 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <format>
+#include <functional>
 #include <optional>
 #include <span>
+#include <string>
+#include <string_view>
 
 namespace Client::World
 {
@@ -186,6 +195,8 @@ void InitializeCommonEffect(ModelEffect& effect, std::int16_t type, const glm::v
     effect.previousPosition = position;
     effect.hasOwner = false;
     effect.ownerContext = nullptr;
+    effect.owner = {};
+    effect.renderFlags = 0;
 }
 
 // Lo común de 0x518d0a..0x518e3c (la escala, la posición, los ángulos, la luz y +0xd8 en 0,3) y el caso
@@ -315,6 +326,140 @@ std::optional<std::size_t> ModelEffects::CreateFadingDecal(const glm::vec3& posi
     return std::nullopt;
 }
 
+std::optional<std::size_t> ModelEffects::CreatePetSummon(const glm::vec3& position, const glm::vec3& angles,
+                                                         const glm::vec3& light, void* owner)
+{
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, ColoredDecalEffect, position, angles, light);
+        effect.subtype = PetSummonSubtype;
+        effect.hasOwner = owner != nullptr;
+        effect.ownerContext = owner;
+        effect.life = ArrivalLife; // 0x51eec0: la del 0x61e y el 0x61f.
+        return slot;
+    }
+    return std::nullopt;
+}
+
+namespace
+{
+// +0x108: el dueño y lo que de él se lee en vivo.
+void SetOwner(ModelEffect& effect, const ModelEffectOwner& owner)
+{
+    effect.owner = owner;
+    effect.hasOwner = owner.type != nullptr || owner.effect != nullptr || owner.angles != nullptr;
+}
+
+// 0x51a6e4..0x51a85c: la vida de cada grieta, o nada con el subtipo que sale por 0x51db73 sin caso.
+std::optional<std::int32_t> CrackLife(std::int16_t type, std::int32_t subtype)
+{
+    constexpr std::int32_t Short = 35, Long = 40;
+    switch (type)
+    {
+    case FirstEarthquakeCrack: // 0x51a6e4: 0x23 o 0x3c.
+        if (subtype == 0)
+            return Short;
+        if (subtype == 1)
+            return 60;
+        return std::nullopt;
+    case 0xfc: // 0x51a73c: 0x14 o 0x32.
+        if (subtype == 0 || subtype == 1)
+            return 20;
+        if (subtype == 2)
+            return 50;
+        return std::nullopt;
+    case 0xfd:  // 0x51a78b
+    case 0xfe:  // 0x51a7ac
+    case 0x100: // 0x51a7e3
+        return Short;
+    default: // 0xff (0x51a7d0), 0x101 (0x51a804) y 0x102 (0x51a828).
+        return Long;
+    }
+}
+} // namespace
+
+std::optional<std::uint16_t> OwnerTypeOf(const ModelEffectOwner& owner)
+{
+    if (owner.effect != nullptr)
+        return static_cast<std::uint16_t>(owner.effect->type);
+    if (owner.type != nullptr)
+        return *owner.type;
+    return std::nullopt;
+}
+
+std::optional<std::size_t> ModelEffects::CreateEarthquake(const glm::vec3& position, const glm::vec3& angles,
+                                                          const glm::vec3& light, std::uint8_t state,
+                                                          const ModelEffectOwner& owner, std::uint8_t& ownRecordDepth,
+                                                          std::uint8_t& ownRecordCount,
+                                                          Render::Models::CrtRandom& random)
+{
+    constexpr std::int32_t EarthquakeLife = 20, Subtypes = 100;
+    constexpr double Yaw = 330.0;           // 0x6b8c8c
+    constexpr double CopiedPitch = 80.0;    // 0x6b9ffc
+    constexpr double CopiedYaw = 180.0;     // 0x6b86bc
+    constexpr float EarthquakeLift = 50.0f; // 0x51a6d5: 0x42480000.
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, EarthquakeEffect, position, angles, light);
+        effect.state = state;
+        SetOwner(effect, owner);
+        effect.copiedAngles = effect.transform.angles;
+        effect.start = effect.transform.position;
+        effect.life = EarthquakeLife;
+        effect.subtype = random.Next() % Subtypes;
+        glm::vec3& turned = effect.transform.angles;
+        turned.z = F32(static_cast<double>(turned.z) + Yaw);
+        effect.copiedAngles.x = F32(static_cast<double>(effect.copiedAngles.x) + CopiedPitch);
+        effect.copiedAngles.z = F32(static_cast<double>(effect.copiedAngles.z) + CopiedYaw);
+        effect.turnDirection = EarthquakeLift;
+        // 0x51a8d8..0x51a90f: la cuenta sube entre la apertura y el cierre.
+        const Render::Models::LogicalAccess access(ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+        ++ownRecordCount;
+        return slot;
+    }
+    return std::nullopt;
+}
+
+std::optional<std::size_t> ModelEffects::CreateEarthquakeCrack(std::int16_t type, const glm::vec3& position,
+                                                               const glm::vec3& angles, const glm::vec3& light,
+                                                               std::int32_t subtype, const ModelEffectOwner& owner,
+                                                               std::int16_t size)
+{
+    if (type < FirstEarthquakeCrack || type > LastEarthquakeCrack)
+        return std::nullopt;
+    constexpr double SizeStep = static_cast<double>(std::bit_cast<float>(0x3c23d70au)); // 0x6b86c0: 0,01f.
+    constexpr std::int16_t KeepsItsBlend = 0xfd, AlsoKeepsItsBlend = 0x100;
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeCommonEffect(effect, type, position, angles, light, 0.0f);
+        effect.subtype = subtype;
+        effect.disturbanceState = static_cast<std::uint16_t>(size);
+        effect.itemType = nullptr;
+        effect.itemLevel = nullptr;
+        SetOwner(effect, owner);
+        const std::optional<std::int32_t> life = CrackLife(type, subtype);
+        if (!life)
+            return slot;
+        effect.life = *life;
+        effect.transform.scale = F32(static_cast<double>(size) * SizeStep);
+        if (type != KeepsItsBlend && type != AlsoKeepsItsBlend)
+            effect.objectState.blendMesh = 0;
+        if (subtype == 1 && (type == 0xfc || type == 0xff || type == LastEarthquakeCrack))
+            effect.renderFlags = CrackRenderFlags; // 0x51a850
+        return slot;
+    }
+    return std::nullopt;
+}
+
 std::optional<std::size_t> ModelEffects::CreateGallopShockWave(const glm::vec3& position, const glm::vec3& angles,
                                                                const glm::vec3& light,
                                                                Render::Models::CrtRandom& random)
@@ -335,6 +480,89 @@ std::optional<std::size_t> ModelEffects::CreateGallopShockWave(const glm::vec3& 
         return slot;
     }
     return std::nullopt;
+}
+
+std::optional<std::size_t> ModelEffects::CreateStompShockWave(const glm::vec3& position, const glm::vec3& angles,
+                                                              const glm::vec3& light)
+{
+    constexpr std::int32_t StompLife = 30;
+    constexpr float StompScale = std::bit_cast<float>(0x41a00000u); // 0x51f4b4: 20.
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, ShockWaveEffect, position, angles, light);
+        effect.subtype = StompShockWaveSubtype;
+        effect.life = StompLife;
+        effect.transform.scale = StompScale;
+        return slot;
+    }
+    return std::nullopt;
+}
+
+Core::Expected<std::uint16_t, std::string> UnmaskedCellAttribute(const Data::Terrain::TerrainAttributes* attributes,
+                                                                 const glm::vec3& position, std::string_view address)
+{
+    // 0x6b86c0: el 0,01f de los dos fmul; el producto de dos floats entra entero en el double.
+    constexpr double CellsPerUnit = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
+    constexpr std::uint32_t RowShift = 8;
+    const std::optional<std::int32_t> x = OriginalFtolLow(static_cast<double>(position.x) * CellsPerUnit);
+    const std::optional<std::int32_t> y = OriginalFtolLow(static_cast<double>(position.y) * CellsPerUnit);
+    if (!x || !y)
+        return Core::Unexpected(std::format("{}: la posición por 0,01f no entra en el entero de 0x69fd3c, y su "
+                                            "continuación no está observada",
+                                            address));
+    if (attributes == nullptr)
+        return Core::Unexpected(std::format("{}: falta la tabla de atributos (0x7d0d348) para 0x5f8290", address));
+    // 0x5f8290: shl eax, 8 y add, en 32 bits; el índice firmado sólo cae en la tabla entre 0 y 0xffff.
+    const std::uint32_t index = (static_cast<std::uint32_t>(*y) << RowShift) + static_cast<std::uint32_t>(*x);
+    if (index >= Data::Terrain::TerrainCellCount)
+        return Core::Unexpected(
+            std::format("{}: la celda ({}, {}) de 0x5f8290 cae fuera de los atributos (0x7d0d348)", address, *x, *y));
+    return attributes->cells[index];
+}
+
+Core::Expected<std::optional<std::size_t>, std::string>
+ModelEffects::CreateGroundStone(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
+                                const glm::vec3& light, const Data::Terrain::TerrainAttributes* attributes,
+                                Render::Models::CrtRandom& random)
+{
+    if (type != FirstGroundStoneEffect && type != SecondGroundStoneEffect)
+        return std::optional<std::size_t>{};
+    constexpr std::int32_t GroundStoneLife = 40;
+    constexpr int ScaleSpan = 30, Degrees = 360;
+    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3c23d70au));      // 0x6b86c0: 0,01f.
+    constexpr double FirstScaleBase = static_cast<double>(std::bit_cast<float>(0x3f99999au)); // 0x6b8bb0: 1,2f.
+    constexpr double SecondScaleBase = 1.0;                                                   // 0x6b87d4.
+    // 0x51cc9b..0x51ccbb: el byte bajo del WORD con el bit 0x04, el 0x08 o el 0x10.
+    constexpr std::uint16_t BlockingBits = 0x04 | 0x08 | 0x10;
+    const bool first = type == FirstGroundStoneEffect;
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, type, position, angles, light);
+        const auto attribute =
+            UnmaskedCellAttribute(attributes, effect.transform.position, first ? "0x51cc8b" : "0x51cd3b");
+        if (!attribute.HasValue())
+            return Core::Unexpected(attribute.Error());
+        if ((attribute.Value() & BlockingBits) != 0)
+        {
+            // 0x51cdc0: el lugar queda con el prefijo escrito y el byte vivo en 0.
+            effect.alive = false;
+            return std::optional<std::size_t>{};
+        }
+        effect.life = GroundStoneLife;
+        effect.transform.scale = F32(static_cast<double>(random.Next() % ScaleSpan) * ScaleStep +
+                                     (first ? FirstScaleBase : SecondScaleBase));
+        effect.speed = CommonAnimationSpeed; // 0x51ccea: el mismo 0x3e99999a del prefijo.
+        effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
+        // 0x51cd0c: 0x4ea030(efecto, 0) sólo cambia la acción si es otra; el prefijo la dejó en 0 (0x518dc4).
+        return std::optional(slot);
+    }
+    return std::optional<std::size_t>{};
 }
 
 std::optional<std::size_t> ModelEffects::CreateFallingStone(const glm::vec3& position, const glm::vec3& angles,
@@ -400,6 +628,35 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
         const glm::vec3 push{0.0f, F32(static_cast<double>((random.Next() & PushMask) + PushBase) * StoneTenth), 0.0f};
         effect.life = (random.Next() & LifeMask) + LifeBase;
         effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * StoneTenth);
+        effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
+        effect.velocity =
+            Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+        effect.turnDirection = static_cast<float>((random.Next() & FallMask) + FallBase);
+        return slot;
+    }
+    return std::nullopt;
+}
+
+std::optional<std::size_t> ModelEffects::CreateGroundStoneChip(std::int16_t type, const glm::vec3& position,
+                                                               const glm::vec3& angles, const glm::vec3& light,
+                                                               Render::Models::CrtRandom& random)
+{
+    if (type != FirstStoneChipEffect && type != SecondStoneChipEffect)
+        return std::nullopt;
+    constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 15;
+    constexpr int Degrees = 360, FallMask = 15, FallBase = 28;
+    constexpr double PushStep = std::bit_cast<double>(0x3fc999999999999aull);            // 0x6ba1e8: 0,2.
+    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8a48: 0,05f.
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, type, position, angles, light);
+        effect.subtype = GroundStoneChipSubtype;
+        const glm::vec3 push{0.0f, F32(static_cast<double>((random.Next() & PushMask) + PushBase) * PushStep), 0.0f};
+        effect.life = (random.Next() & LifeMask) + LifeBase;
+        effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * ScaleStep);
         effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
         effect.velocity =
             Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(effect.transform.angles));
@@ -531,6 +788,125 @@ std::optional<std::size_t> ModelEffects::CreateFullSetFlare(const glm::vec3& pos
         effect.ownerContext = owner;
         effect.life = FullSetFlareLife;
         effect.speed = 0.0f; // 0x51e499.
+        return slot;
+    }
+    return std::nullopt;
+}
+
+namespace
+{
+// 0x51db7a..0x51ddab: los lugares del rayo por rand() % 30 y los huesos del buffer global (0x68b19fc, 0x68b1abc,
+// 0x68b187c, 0x68b217c, 0x68b21ac y 0x68b220c: 0x68b181c + hueso · 0x30).
+constexpr std::int32_t LightningLife = 100;
+constexpr std::int32_t LightningPlaces = 30;
+constexpr std::size_t NeckBone = 10, ShoulderBone = 14, BackBone = 2, LeftClawBone = 50, RightClawBone = 51,
+                      TailBone = 53;
+constexpr double LightningScaleStep = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc: 0,002f.
+constexpr double LightningScaleBase = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc: 0,3f.
+constexpr double LightningShrink = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));    // 0x6b8854: 0,2f.
+constexpr double LightningGrowth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));    // 0x6b87b8: 0,1f.
+constexpr double LightningLift = 110.0;                                                       // 0x6ba184.
+constexpr float LightningAlpha = std::bit_cast<float>(0x3f333333u);                           // 0,7f.
+constexpr int LightningAngleSpan = 360;
+constexpr int LightningSpreadX = 240, LightningCentreX = 120, LightningSpreadY = 10, LightningCentreY = 5;
+constexpr std::uint16_t LightningFlare = 0x5ac;
+constexpr float LightningFlareScale = 2.0f;
+constexpr std::int32_t LightningDecalLife = 200;
+
+float Shifted(int offset, float value)
+{
+    return F32(static_cast<double>(offset) + static_cast<double>(value));
+}
+} // namespace
+
+Core::Expected<std::optional<std::size_t>, std::string>
+ModelEffects::CreateLightning(const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, void* owner,
+                              Render::Models::CrtRandom& random, const std::function<glm::vec3(std::size_t)>& bonePoint,
+                              FrameSprites& sprites)
+{
+    if (!bonePoint)
+        return Core::Unexpected(
+            std::string("0x51dc42: falta el buffer global de la pose (0x68b181c) para el rayo 0x14d"));
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, LightningEffect, position, angles, light);
+        effect.hasOwner = owner != nullptr;
+        effect.ownerContext = owner;
+        effect.life = LightningLife;
+        effect.transform.scale =
+            F32(static_cast<double>(random.Next() % 100) * LightningScaleStep + LightningScaleBase);
+        effect.subtype = 0;
+        effect.alpha = LightningAlpha;
+        for (int axis = 0; axis < 3; ++axis)
+            effect.transform.angles[axis] = static_cast<float>(random.Next() % LightningAngleSpan);
+        effect.light = light;
+        float& scale = effect.transform.scale;
+        glm::vec3& place = effect.transform.position;
+        const std::int32_t where = random.Next() % LightningPlaces;
+        if (where == 1 || where == 2)
+            place = bonePoint(NeckBone);
+        else if (where == 3)
+        {
+            scale = F32(static_cast<double>(scale) - LightningShrink);
+            place = bonePoint(ShoulderBone);
+        }
+        else if (where == 4 || where == 5)
+            place = bonePoint(BackBone);
+        else if (where == 6 || where == 7)
+        {
+            scale = F32(static_cast<double>(scale) - LightningShrink);
+            place = bonePoint((random.Next() & 1) == 0 ? LeftClawBone : RightClawBone);
+        }
+        else if (where == 8)
+        {
+            scale = F32(static_cast<double>(scale) - LightningShrink);
+            place = bonePoint(TailBone);
+        }
+        else if (where == 9 || where == 10)
+        {
+            effect.alive = false;
+            effect.alpha = 0.0f;
+        }
+        else
+        {
+            scale = F32(static_cast<double>(scale) + LightningGrowth);
+            place.x = Shifted((random.Next() % LightningSpreadX) - LightningCentreX, place.x);
+            place.y = Shifted((random.Next() % LightningSpreadY) - LightningCentreY, place.y);
+            place.z = F32(static_cast<double>(place.z) + LightningLift);
+        }
+        effect.previousPosition = place;
+        // 0x51ddab..0x51dded: la luz guardada menos 0,3f, cada canal en la x87 hasta su fstp.
+        const glm::vec3 flare(F32(static_cast<double>(effect.light.x) - LightningScaleBase),
+                              F32(static_cast<double>(effect.light.y) - LightningScaleBase),
+                              F32(static_cast<double>(effect.light.z) - LightningScaleBase));
+        static_cast<void>(sprites.Create(LightningFlare, place, LightningFlareScale, flare, 0.0f, 0));
+        return std::optional(slot);
+    }
+    return std::optional<std::size_t>{};
+}
+
+std::optional<std::size_t> ModelEffects::CreateLightningDecal(const glm::vec3& position, const glm::vec3& angles,
+                                                              const glm::vec3& light, std::int32_t subtype, void* owner,
+                                                              std::uint32_t systemTime)
+{
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, LightningDecalEffect, position, angles, light);
+        effect.subtype = subtype;
+        effect.hasOwner = owner != nullptr;
+        effect.ownerContext = owner;
+        effect.life = LightningDecalLife;
+        effect.textureFrame = 0;
+        effect.alpha = 1.0f;
+        effect.textureTime = systemTime;
+        effect.transform.position.z = 0.0f; // 0x51de4d: la z en 0 (esi), después de la hora.
+        effect.previousPosition = effect.transform.position;
         return slot;
     }
     return std::nullopt;

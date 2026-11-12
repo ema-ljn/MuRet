@@ -115,6 +115,14 @@ constexpr float FlareRadius = 50.0f;
 constexpr std::int32_t EnergyType = 0x619, EnergySubtype = 9;
 constexpr float EnergyWidth = 10.0f;
 
+// 0x518900: los tres joints 619 de ancho 5 que suelta el calco 0x61e/1 de la mascota en cada paso, 200 más allá
+// ([ebp−0x20]) y 120 más arriba (0x6b86c8). El subtipo 5 pasaría como 0xb, pero sólo se crea el /1.
+constexpr int SummonJoints = 3;
+constexpr float SummonWidth = 5.0f;
+constexpr float SummonReach = 200.0f;
+constexpr double SummonLift = 120.0;
+constexpr int SummonPitchSpan = 90, SummonTurnSpan = 360;
+
 // 0x50ff5e..0x510002: la luz de cada bota de 0x182f a 0x1833.
 constexpr std::array<glm::vec3, 5> BootsLights{{
     {std::bit_cast<float>(0x3f266666u), std::bit_cast<float>(0x3e99999au), std::bit_cast<float>(0x3dcccccdu)},
@@ -131,7 +139,7 @@ constexpr std::int32_t CastleMap = 30;
 
 // 0x5ffdf0: por debajo de 0,01f (0x6b88d4) no posa ni dibuja.
 constexpr float DrawnAlpha = std::bit_cast<float>(0x3c23d70au);
-// 0x420e11: con +0x78 & 0x4000 el dueño le pasa 10 a 0x4182f0.
+// 0x420e11: con +0x78 & 0x4000 el dueño le pasa 10 a 0x4182f0, que 0x6002e0 lleva por 0x60033c.
 constexpr std::uint32_t RiderFlag = 0x4000;
 // 0x418951: 0x418920 sólo hace algo en los estados 5 y 6.
 constexpr std::uint8_t FirstOrderState = 5;
@@ -582,6 +590,40 @@ Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect, s
     return {};
 }
 
+Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<JointState> joints,
+                                                Render::Models::CrtRandom& random)
+{
+    if (!effect.alive)
+        return {};
+    if (effect.type != World::ColoredDecalEffect || effect.subtype != World::PetSummonSubtype)
+        return Core::Unexpected(
+            std::format("0x52b9a6: el efecto {:#x}/{} no es el 0x61e/1", effect.type, effect.subtype));
+    if (joints.empty())
+        return Core::Unexpected<std::string>("0x5189cc: faltan los joints del paso (0x530860)");
+    // 0x5208c5: el primer rand() corre para todo efecto vivo, aunque el 0x61e no use la luz.
+    static_cast<void>(random.Next());
+    glm::vec3& position = effect.transform.position;
+    for (int made = 0; made < SummonJoints; ++made)
+    {
+        glm::vec3 angles{static_cast<float>(random.Next() % SummonPitchSpan), 0.0f,
+                         static_cast<float>(random.Next() % SummonTurnSpan)};
+        const glm::vec3 reach = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, -SummonReach, 0.0f),
+                                                                     Render::Models::OriginalAngleMatrix(angles));
+        // 0x51897a..0x5189b4: cada resta se guarda; la z suma 120 antes de guardarse.
+        glm::vec3 start{F32(D(position.x) - D(reach.x)), F32(D(position.y) - D(reach.y)),
+                        F32(D(position.z) - D(reach.z) + SummonLift)};
+        const auto created = CreateFaunaJoint(joints,
+                                              {EnergyType, start, position, angles, effect.subtype, effect.ownerContext,
+                                               SummonWidth, NoKey, 0, 0, NoTarget},
+                                              random);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("0x5189cc: {}", created.Error()));
+    }
+    // 0x52cb98: el 0x61e no es un BMD y no avanza animación; la velocidad (0) girada y una vida menos.
+    World::StepModelEffect(effect, nullptr);
+    return {};
+}
+
 Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRavenPass& pass)
 {
     if (!owner.darkSpirit)
@@ -601,7 +643,9 @@ Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRav
         if (pass.lighting == nullptr)
             return Core::Unexpected<std::string>(
                 "0x5ffce0: falta el buffer dinámico de luz del terreno para el cuervo");
-        if (!pass.terrain.heights || !pass.terrain.attributes)
+        // 0x420e00..0x420e11: con 0x4000 en +0x78 del dueño, 0x4182f0(10) y 0x602e90(cuervo, 0, 0, 10).
+        const bool shell = (owner.flags78 & RiderFlag) != 0;
+        if (!shell && (!pass.terrain.heights || !pass.terrain.attributes))
             return Core::Unexpected<std::string>("0x600a0b: faltan las alturas del terreno para la sombra del cuervo");
         const Render::Models::Skeleton* skeleton = pass.models.SkeletonOf(DarkSpiritModel);
         const glm::vec3 light = World::LightAt(*pass.lighting, spirit.position.x, spirit.position.y);
@@ -613,17 +657,28 @@ Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRav
                 return posed;
             drawn.retainedMeshes = pass.carry->meshes;
         }
-        if ((owner.flags78 & RiderFlag) != 0)
-            return Core::Unexpected<std::string>("0x60033c: con +0x78 & 0x4000 del dueño, 0x420df0 dibuja el cuervo "
-                                                 "con 10, que 0x6002e0 lleva por otro camino que MuRet no tiene");
-        const float ground =
-            F32(World::TerrainHeightAt(*pass.terrain.heights, *pass.terrain.attributes, drawn.transform.position.x,
-                                       drawn.transform.position.y, pass.fixedHeight));
-        DrawDarkSpirit(pass.batch, pass.models, drawn, ground, pass.frameClock, pass.map);
-        if (pass.carry != nullptr)
-            pass.carry->models[drawn.model].position = {drawn.transform.position.x, drawn.transform.position.y, ground};
+        // +0x120: la pose de 0x5ffdf0, antes del camino de 0x6002e0 que sea.
         if (pass.originalFrame)
             spirit.pose = PosedWorldBones(pass.models, drawn);
+        if (shell)
+        {
+            // 0x60033c: el +0x108 del cuervo lo deja en 0 el rep stos de 0x415c1e y nadie lo escribe, así que el lazo
+            // del asedio (0x600343..0x600399) no lo encuentra en el pool: siempre DrawChromeShell, sin la sombra ni la
+            // altura del terreno, y el modelo compartido queda en su lugar (0x5ffdf0), no en el piso.
+            if (auto drawnShell = DrawChromeShell(pass.batch, pass.models, drawn, pass.frameClock);
+                !drawnShell.HasValue())
+                return drawnShell;
+        }
+        else
+        {
+            const float ground =
+                F32(World::TerrainHeightAt(*pass.terrain.heights, *pass.terrain.attributes, drawn.transform.position.x,
+                                           drawn.transform.position.y, pass.fixedHeight));
+            DrawDarkSpirit(pass.batch, pass.models, drawn, ground, pass.frameClock, pass.map);
+            if (pass.carry != nullptr)
+                pass.carry->models[drawn.model].position = {drawn.transform.position.x, drawn.transform.position.y,
+                                                            ground};
+        }
     }
     // 0x41835a: 0x418920, con las órdenes del A7 (CL9).
     if (spirit.state == FirstOrderState || spirit.state == SecondOrderState)

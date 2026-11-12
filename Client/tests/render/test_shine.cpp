@@ -84,6 +84,20 @@ TEST(ShineTest, TheChrome3PassIsTheLightAgainstTheNormal)
     ExpectNear(ShineTexCoords(ShinePass::Chrome3, Normal, Milliseconds(7777)), {dot, 1 - dot});
 }
 
+// 0x4000 (el camino del 10 de 0x6002e0, con la textura forzada 0x620): con c = cos(0,001·T), s = sin(0,002·T) y t,
+// u = c·nx + s·ny + nz + 5s + 3ny y v = 1 − (c·nx + s·ny + nz) − (2,5·nz + t) (0x4ed25e..0x4ed2b2).
+TEST(ShineTest, TheChrome5PassUsesSinAndCosWithItsOwnWeights)
+{
+    const auto c = static_cast<float>(std::cos(1000 * 0.001));
+    const auto s = static_cast<float>(std::sin(1000 * 0.002));
+    const float t = 1000 * 0.0001f;
+    const float sum = c * 0.2f + s * -0.4f + 0.6f;
+
+    ExpectNear(ShineTexCoords(ShinePass::Chrome5, Normal, Milliseconds(1000)),
+               {sum + 5 * s + 3 * -0.4f, 1 - sum - (2.5f * 0.6f + t)});
+    ExpectNear(ShineTexCoords(ShinePass::Chrome5, Normal, Milliseconds(0)), {0.8f - 1.2f, 1 - 0.8f - 1.5f});
+}
+
 // Q-C22: el original guarda T en un float, y en 2²⁴ + 1 ms ya no cuenta de a uno. Acá T es el reloj
 // entero desde que arranca el cliente: un ms más corre la u del pase 120 lo de un ms.
 TEST(ShineTest, TheClockCountsFromTheStart)

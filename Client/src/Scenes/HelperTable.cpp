@@ -4,23 +4,33 @@
 #include "Data/Models/PlayerModels.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/OriginalRetainedMath.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/GameRibbonCreation.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperStepParts.h"
+#include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/PetHelperSteps.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ChaosCastle.h"
+#include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/TerrainLighting.h"
+#include "World/WeaponSparkKernels.h"
+#include "World/WorldTerrain.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -31,6 +41,7 @@
 #include <cstdint>
 #include <format>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -85,7 +96,8 @@ constexpr std::int32_t ParticleSubtype = 0;
 // 0x444588..0x44459d: el aliento sale de (50; −4; 0) en el hueso 27 del buffer global (0x68b1d2c).
 constexpr std::size_t BreathBone = 27;
 constexpr glm::vec3 BreathOffset{50.0f, -4.0f, 0.0f};
-// 0x444693: con 1 en +8 del jinete, los doce 0x60f.
+// 0x444693: con 1 en +8 del jinete, los doce 0x60f. Lo pone en 1 sólo 0x421db0, en el héroe, con el A9 de las
+// mascotas y su byte 4 en 0xfe (0x4220b1..0x4220c1), sin portar.
 constexpr std::uint8_t RiderWithOrbits = 1;
 // 0x5ffe30: el alpha con que 0x5ffdf0 todavía dibuja.
 constexpr float DrawnAlpha = 0.01f;
@@ -216,6 +228,164 @@ Core::Expected<void, std::string> Breathe(const HelperState& helper, const Actor
     return EmitHelperParticle(context, type, ParticleSubtype, point.Value(), helper.angles, HorseLight, "0x4445d9");
 }
 
+// 0x4445e1..0x444654: con la acción 3 del caballo, la cinta 0x52e470 con el héroe (0x743a170) de dueño, del punto
+// (60; 0; 0) del hueso 9 del buffer global (0x68b19cc) al punto del mismo hueso, en blanco, con el tipo, el largo y la
+// key en 0. No saca rand().
+constexpr std::size_t EarthquakeRibbonBone = 9;
+constexpr glm::vec3 EarthquakeRibbonReach{60.0f, 0.0f, 0.0f}; // 0x4445ff
+constexpr glm::vec3 EarthquakeRibbonLight{1.0f, 1.0f, 1.0f};  // 0x444629..0x444637
+// 0x4453e0: la cuenta de la onda (0x7d3a0f0 % 10), la ventana del frame (0x6b86c4 y 0x6b8c04), el radio de las
+// piedras por cada dos de la cuenta (0x6b87ac), el giro entre piedras (0x6b86cc), el temblor (0x6b8a5c) y la cuenta
+// con que crea el 0xfa y la que le deja después.
+constexpr std::int32_t ShockWaveEvery = 10;
+constexpr float QuakeFirstFrame = 8.0f;
+constexpr float QuakeLastFrame = 9.5f;
+constexpr double StoneRingStep = 150.0;
+constexpr double StoneTurn = 60.0;
+constexpr int StoneCount = 6;
+constexpr int StoneDegrees = 360;
+constexpr int ShakeSpan = 3;
+constexpr double ShakeUnit = static_cast<double>(std::bit_cast<float>(0x3f333333u));
+constexpr std::uint8_t EarthquakeCount = 0x13;
+constexpr std::uint8_t EarthquakeDone = 0xfd;
+constexpr std::uint8_t EarthquakeState = 2; // 0x44558e, el estado (+0x88) del 0xfa
+
+Core::Expected<void, std::string> LeaveTheEarthquakeRibbon(const HelperStepContext& context)
+{
+    const auto first = GlobalPosePoint(context.world, EarthquakeRibbonBone, EarthquakeRibbonReach, "0x44463e");
+    if (!first.HasValue())
+    {
+        return Core::Unexpected(first.Error());
+    }
+    const auto second = GlobalPosePoint(context.world, EarthquakeRibbonBone, glm::vec3(0.0f), "0x444654");
+    if (!second.HasValue())
+    {
+        return Core::Unexpected(second.Error());
+    }
+    ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
+    const auto created =
+        CreateRibbon(context.world.DrawTail().ribbons, RibbonCreateRequest{.ownerContext = &hero,
+                                                                           .ownerEquipment = &hero.level,
+                                                                           .first = first.Value(),
+                                                                           .second = second.Value(),
+                                                                           .light = EarthquakeRibbonLight,
+                                                                           .type = 0,
+                                                                           .shortTrail = false,
+                                                                           .key = 0});
+    if (!created.HasValue())
+    {
+        return Core::Unexpected("0x444671 → " + created.Error());
+    }
+    return {};
+}
+
+// 0x4453e0(caballo, modelo), con la acción 3: la cuenta +0x8e sube (un byte) y, cada 10 pasos lógicos (0x7d3a0f0 con
+// signo), la onda 0x6eb/0 en el caballo con sus ángulos y su luz (+0xf4). Con el frame en [8; 9,5] (un NaN cae
+// afuera): con la cuenta impar, seis piedras 0x118 + (rand() & 1) en un anillo de radio (cuenta / 2) · 150 alrededor
+// del caballo, con sus ángulos y su luz; la primera a rand() % 360 + 60 grados y cada una 60 más, el tipo sacado
+// después del giro y antes del alta. Siempre, dentro de la ventana, el temblor de la cámara ((rand() % 3) − 3) · 0,7f.
+// Fuera de ella, con la cuenta en 0x13, el terremoto 0xfa con el caballo de dueño y el estado 2 (que abre y cierra el
+// registro propio, 3.848 rand() con la profundidad en 0), y la cuenta en 0xfd.
+Core::Expected<void, std::string> ShakeTheEarth(HelperState& helper, const HelperStepContext& context)
+{
+    ++helper.horse.effectCount;
+    World::ModelEffects& effects = context.world.Map().effects;
+    if (context.logicSteps % ShockWaveEvery == 0)
+    {
+        static_cast<void>(effects.CreateStompShockWave(helper.position, helper.angles, helper.light)); // 0x445425
+    }
+    const float frame = helper.horse.animation.frame;
+    if (frame >= QuakeFirstFrame && frame <= QuakeLastFrame)
+    {
+        if ((helper.horse.effectCount & 1) != 0)
+        {
+            const World::WorldTerrain& terrain =
+                context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+            const glm::vec3 reach(0.0f, F32(static_cast<double>(helper.horse.effectCount >> 1) * StoneRingStep), 0.0f);
+            glm::vec3 turn(0.0f, 0.0f, static_cast<float>(context.random.Next() % StoneDegrees));
+            for (int stone = 0; stone < StoneCount; ++stone)
+            {
+                turn.z = F32(static_cast<double>(turn.z) + StoneTurn);
+                const glm::vec3 offset =
+                    Render::Models::OriginalVectorRotate(reach, Render::Models::OriginalAngleMatrix(turn));
+                const glm::vec3 place(F32(static_cast<double>(offset.x) + static_cast<double>(helper.position.x)),
+                                      F32(static_cast<double>(offset.y) + static_cast<double>(helper.position.y)),
+                                      F32(static_cast<double>(offset.z) + static_cast<double>(helper.position.z)));
+                const auto type =
+                    static_cast<std::int16_t>(World::FirstGroundStoneEffect + (context.random.Next() & 1));
+                const auto created = effects.CreateGroundStone(type, place, helper.angles, helper.light,
+                                                               terrain.attributes.get(), context.random);
+                if (!created.HasValue())
+                {
+                    return Core::Unexpected("0x44554a → " + created.Error());
+                }
+            }
+        }
+        if (context.cameraShake == nullptr)
+        {
+            return Core::Unexpected(std::string("0x445577: falta el temblor de la cámara (0x7d325c8)"));
+        }
+        *context.cameraShake = F32(static_cast<double>((context.random.Next() % ShakeSpan) - ShakeSpan) * ShakeUnit);
+        return {};
+    }
+    if (helper.horse.effectCount == EarthquakeCount)
+    {
+        // 0x44558a..0x4455b3: el dueño se lee vivo (su tipo y sus ángulos) mientras el 0xfa dure.
+        static_cast<void>(effects.CreateEarthquake(
+            helper.position, helper.angles, helper.light, EarthquakeState,
+            World::ModelEffectOwner{.type = &helper.type, .effect = nullptr, .angles = &helper.angles},
+            context.world.Runtime().ownRecordDepth, context.world.OwnCharacter().bytef04, context.random));
+        helper.horse.effectCount = EarthquakeDone;
+    }
+    return {};
+}
+
+// 0x44469d..0x44474c, con +8 del jinete en 1: cuatro vueltas que suben la z de los ángulos 90 (0x6b8948) desde
+// (0; 0; 0), giran (0; 50; 0) con su matriz (0x5fc8f0 y 0x5fcbd0) y le suman la posición del caballo (+0x10), cada eje
+// guardado en float. En cada vuelta, tres 0x530860(0x60f, punto, punto, ángulos, 0, caballo, 40, 2, 0, 0, −1) iguales,
+// con el caballo (su HelperState) de dueño: nacen con su luz (+0xf4) y, con el ancho en 40, el paso no lo vuelve a
+// leer. Tres rand() por joint; con el pool lleno, ninguno.
+Core::Expected<void, std::string> RaiseTheOrbits(HelperState& helper, const HelperStepContext& context)
+{
+    constexpr int Turns = 4;                                                            // 0x4446c7
+    constexpr int JointsPerTurn = 3;                                                    // 0x444705
+    constexpr double TurnStep = static_cast<double>(std::bit_cast<float>(0x42b40000u)); // 0x6b8948: 90.
+    constexpr std::int32_t OrbitJoint = 0x60f, OrbitSubtype = 0, OrbitKey = 2, NoTarget = -1;
+    constexpr float OrbitWidth = 40.0f;       // 0x444727
+    const glm::vec3 reach{0.0f, 50.0f, 0.0f}; // 0x4446b2..0x4446c0
+    glm::vec3 angles{};                       // 0x44469d..0x4446ab
+    for (int turn = 0; turn < Turns; ++turn)
+    {
+        angles.z = F32(static_cast<double>(angles.z) + TurnStep);
+        const glm::vec3 rotated =
+            Render::Models::OriginalVectorRotate(reach, Render::Models::OriginalAngleMatrix(angles));
+        glm::vec3 point{F32(static_cast<double>(rotated.x) + static_cast<double>(helper.position.x)),
+                        F32(static_cast<double>(rotated.y) + static_cast<double>(helper.position.y)),
+                        F32(static_cast<double>(rotated.z) + static_cast<double>(helper.position.z))};
+        for (int made = 0; made < JointsPerTurn; ++made)
+        {
+            const World::FishEffectRequest request{.type = OrbitJoint,
+                                                   .firstPosition = point,
+                                                   .secondPosition = point,
+                                                   .angles = angles,
+                                                   .subtype = OrbitSubtype,
+                                                   .ownerContext = &helper,
+                                                   .scale = OrbitWidth,
+                                                   .key = OrbitKey,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = NoTarget};
+            const auto created =
+                CreateFaunaJoint(context.world.DrawTail().joints, request, context.random, JointOwnerKind::Helper);
+            if (!created.HasValue())
+            {
+                return Core::Unexpected(std::format("0x444740: {}", created.Error()));
+            }
+        }
+    }
+    return {};
+}
+
 // 0x4440b8..0x444766, el cuerpo del 0xbf.
 Core::Expected<void, std::string> StepTheDarkHorse(HelperState& helper, ActorState& rider,
                                                    const Render::Models::Skeleton& skeleton,
@@ -251,15 +421,25 @@ Core::Expected<void, std::string> StepTheDarkHorse(HelperState& helper, ActorSta
     {
         return breath;
     }
+    // 0x4445e1..0x44468a: la acción 3, el terremoto del Dark Lord: la cinta y 0x4453e0 (la acción se vuelve a mirar
+    // entre las dos, y la cinta no la cambia).
     if (helper.horse.animation.action == EffectHorseAction)
     {
-        return Core::Unexpected(std::string("0x4445e1: con la acción 3 del caballo, 0x52e470 con el héroe y 0x4453e0 "
-                                            "crean efectos que MuRet no tiene en el juego"));
+        if (auto ribbon = LeaveTheEarthquakeRibbon(context); !ribbon.HasValue())
+        {
+            return ribbon;
+        }
+        if (auto quake = ShakeTheEarth(helper, context); !quake.HasValue())
+        {
+            return quake;
+        }
     }
     if (rider.byte8 == RiderWithOrbits)
     {
-        return Core::Unexpected(std::string("0x444693: con +8 del jinete en 1, doce 0x530860(0x60f) alrededor del "
-                                            "caballo, que MuRet no tiene en el juego"));
+        if (auto orbits = RaiseTheOrbits(helper, context); !orbits.HasValue())
+        {
+            return orbits;
+        }
     }
     rider.byte8 = 0;            // 0x444758
     helper.alive = rider.alive; // 0x44475c..0x444764
@@ -370,6 +550,140 @@ DrawnObject DrawnHelper(const HelperState& helper, const Render::Models::Skeleto
     return drawn;
 }
 
+// 0x60277b..0x602e7d: el seno del reloj, los dos huesos de los sprites con sus corrimientos, sus luces y escalas,
+// la luz y el subtipo de los rayos por color, y las ventanas de los calcos.
+constexpr double FenrirPulseRate = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc: 0,002f.
+constexpr float FenrirPulseSwing = std::bit_cast<float>(0x3e4ccccdu);                      // 0x6b8854: 0,2f.
+constexpr std::uint8_t FenrirChargeAction = 4;
+constexpr std::uint8_t FenrirFirstStrikeAction = 1, FenrirSecondStrikeAction = 2;
+constexpr int FenrirSparkSpreadX = 10, FenrirSparkSpreadZ = 40, FenrirSparkCentreZ = 20;
+constexpr double Half = 0.5;                                                                    // 0x6b882c.
+constexpr double FenrirSparkScaleStep = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8a48.
+constexpr double FenrirSparkScaleBase = static_cast<double>(std::bit_cast<float>(0x3f333333u)); // 0x6b8a5c.
+constexpr std::size_t FenrirSparkBone = 14, FenrirEyeBone = 11, FenrirChestBone = 13;
+constexpr double FenrirEyeRed = static_cast<double>(std::bit_cast<float>(0x3f666666u));   // 0x6b8a1c: 0,9f.
+constexpr double FenrirEyeGreen = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854: 0,2f.
+constexpr double FenrirEyeBlue = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));  // 0x6b87b8: 0,1f.
+constexpr double FenrirEyeScaleStep = FenrirEyeBlue;                                      // 0x6b87b8.
+constexpr glm::vec3 FenrirLeftEye{50.0f, 2.0f, 11.0f}, FenrirRightEye{50.0f, 2.0f, -11.0f};
+constexpr glm::vec3 FenrirChest{40.0f, 15.0f, 0.0f};
+constexpr glm::vec3 FenrirChestLight{1.0f, std::bit_cast<float>(0x3e99999au), std::bit_cast<float>(0x3e4ccccdu)};
+constexpr float FenrirChestScale = 1.5f;
+constexpr std::uint16_t FenrirFlare = 0x5ac;
+constexpr std::uint16_t RedFenrir = 0x14b, BlueFenrir = 0x14c;
+constexpr std::array<std::size_t, 4> FenrirStrikeBones{22, 28, 36, 44};
+
+// Un punto del buffer global con un hueso de los de arriba, todos por debajo de los 200 del buffer.
+glm::vec3 FenrirBonePoint(std::span<const Render::Models::BoneTransform> bones, std::size_t bone,
+                          const glm::vec3& offset)
+{
+    return GlobalPosePoint(bones, bone, offset, "0x4ec110").Value();
+}
+
+// 0x60277b..0x602e7d, después de 0x5ffdf0: el cuerpo y su sombra, la chispa de la acción 4, los sprites, los rayos y
+// los calcos. Pide todo antes de sacar el primer rand().
+Core::Expected<void, std::string> DrawTheFenrir(HelperState& helper, const HelperDrawContext& context)
+{
+    if (context.effects == nullptr || context.particles == nullptr || context.sprites == nullptr ||
+        !context.systemTime || !context.globalPose)
+    {
+        return Core::Unexpected(std::format("0x60277b: el dibujo del Fenrir {:#x} pide los efectos (0x518cf0), las "
+                                            "partículas (0x53fe70), los sprites (0x5491e0), timeGetTime() y el buffer "
+                                            "global de la pose",
+                                            helper.type));
+    }
+    // 0x60277b..0x602792: fld del reloj, fmul 0,002f, fsin, fmul 0,2f y fstp.
+    const auto sine = Render::Models::Detail::SineProductPC53(static_cast<double>(context.worldClock) * FenrirPulseRate,
+                                                              FenrirPulseSwing);
+    if (!sine)
+        return Core::Unexpected(std::string("0x60278a: el seno del reloj del Fenrir no cabe en el perfil PC53"));
+    const double pulse = static_cast<double>(F32(*sine));
+    const std::int32_t map = context.world.Runtime().map;
+    auto drawn = DrawnHelper(helper, context.models.SkeletonOf(helper.type), glm::vec3(0.0f), context.stepAlpha);
+    if (context.onPose)
+        if (const auto published = context.onPose(drawn); !published.HasValue())
+            return published;
+    if (context.posedMeshes)
+        drawn.retainedMeshes = context.posedMeshes();
+    const bool charging = helper.horse.animation.action == FenrirChargeAction;
+    if (auto body = DrawFenrirBody(context.batch, context.models, drawn, map, charging, context.frameClock);
+        !body.HasValue())
+        return body;
+    const std::span<const Render::Models::BoneTransform> bones = context.globalPose();
+    Render::Models::CrtRandom& random = context.random;
+    if (charging)
+    {
+        // 0x60282f..0x6028c6: (rand() % 10 − 10; 0; rand() % 40 − 20) por 0,5 desde el hueso 14 y la 5c6/15 roja,
+        // con los ángulos del Fenrir y la escala del seno por 0,05f más 0,7f.
+        const int x = (random.Next() % FenrirSparkSpreadX) - FenrirSparkSpreadX;
+        const int z = (random.Next() % FenrirSparkSpreadZ) - FenrirSparkCentreZ;
+        const glm::vec3 offset(F32(static_cast<double>(x) * Half), 0.0f, F32(static_cast<double>(z) * Half));
+        const glm::vec3 point = FenrirBonePoint(bones, FenrirSparkBone, offset);
+        const float scale = F32(pulse * FenrirSparkScaleStep + FenrirSparkScaleBase);
+        const auto created =
+            context.particles->CreateChecked(World::SparkParticle, point, helper.angles, glm::vec3(1.0f, 0.0f, 0.0f),
+                                             World::FenrirSparkSubtype, scale, context.worldClock, random);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("0x6028c6: el alta de 0x5c6/15 falla con error {}",
+                                                static_cast<unsigned>(created.Error())));
+    }
+    // 0x602930..0x602aa2: los ojos (el hueso 11) con la luz del seno, dos sprites en cada uno de escala seno · 0,1f +
+    // 0,5, y el pecho (el 13) con uno de 1,5 y otro de 1 en (1; 0,3; 0,2).
+    const double halfPulse = pulse * Half;
+    const glm::vec3 eyeLight(F32(pulse + FenrirEyeRed), F32(halfPulse + FenrirEyeGreen),
+                             F32(halfPulse + FenrirEyeBlue));
+    const float eyeScale = F32(pulse * FenrirEyeScaleStep + Half);
+    for (const glm::vec3& eye : {FenrirLeftEye, FenrirRightEye})
+    {
+        const glm::vec3 point = FenrirBonePoint(bones, FenrirEyeBone, eye);
+        static_cast<void>(context.sprites->Create(FenrirFlare, point, eyeScale, eyeLight, 0.0f, 0));
+        static_cast<void>(context.sprites->Create(FenrirFlare, point, eyeScale, eyeLight, 0.0f, 0));
+    }
+    const glm::vec3 chest = FenrirBonePoint(bones, FenrirChestBone, FenrirChest);
+    static_cast<void>(context.sprites->Create(FenrirFlare, chest, FenrirChestScale, FenrirChestLight, 0.0f, 0));
+    static_cast<void>(context.sprites->Create(FenrirFlare, chest, 1.0f, FenrirChestLight, 0.0f, 0));
+    // 0x602aa7..0x602b50: la luz y el subtipo por color y dos 0x518cf0(0x14d, lugar, ángulos, luz, 0, Fenrir, −1).
+    glm::vec3 strikeLight(1.0f, 1.0f, std::bit_cast<float>(0x3e4ccccdu));
+    std::int32_t strike = 3;
+    if (helper.type == RedFenrir)
+    {
+        strikeLight = glm::vec3(std::bit_cast<float>(0x3f4ccccdu), 0.0f, 0.0f);
+        strike = 1;
+    }
+    else if (helper.type == BlueFenrir)
+    {
+        strikeLight = glm::vec3(std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu),
+                                std::bit_cast<float>(0x3f4ccccdu));
+        strike = 2;
+    }
+    const auto bonePoint = [bones](std::size_t bone) { return FenrirBonePoint(bones, bone, glm::vec3(0.0f)); };
+    for (int bolt = 0; bolt < 2; ++bolt)
+    {
+        const auto created = context.effects->CreateLightning(helper.position, helper.angles, strikeLight, &helper,
+                                                              random, bonePoint, *context.sprites);
+        if (!created.HasValue())
+            return Core::Unexpected("0x602b30 → " + created.Error());
+    }
+    // 0x602b55..0x602e75: los calcos 0x14e en blanco, con el subtipo del color, en los huesos de la ventana del frame.
+    const std::uint8_t action = helper.horse.animation.action;
+    const float frame = helper.horse.animation.frame;
+    std::span<const std::size_t> strikes{};
+    if (action == FenrirFirstStrikeAction && frame >= 0.0f && frame <= 1.5f)
+        strikes = FenrirStrikeBones;
+    else if (action == FenrirSecondStrikeAction && frame > 1.0f && frame <= std::bit_cast<float>(0x3fb33333u))
+        strikes = std::span(FenrirStrikeBones).first(2);
+    else if (action == FenrirSecondStrikeAction && frame > std::bit_cast<float>(0x4099999au) &&
+             frame <= std::bit_cast<float>(0x40a66666u))
+        strikes = std::span(FenrirStrikeBones).last(2);
+    for (const std::size_t bone : strikes)
+    {
+        const glm::vec3 point = FenrirBonePoint(bones, bone, glm::vec3(0.0f));
+        static_cast<void>(context.effects->CreateLightningDecal(point, helper.angles, glm::vec3(1.0f), strike, &helper,
+                                                                context.systemTime()));
+    }
+    return {};
+}
+
 // 0x6002e0 con el ayudante, ya posado por 0x5ffdf0.
 Core::Expected<void, std::string> DrawTheBody(HelperState& helper, const HelperDrawContext& context)
 {
@@ -388,12 +702,7 @@ Core::Expected<void, std::string> DrawTheBody(HelperState& helper, const HelperD
         return {};
     }
     if (IsFenrir(helper.type))
-    {
-        return Core::Unexpected(std::format("0x60277b: el dibujo del Fenrir {:#x} (sus pases, la partícula 0x5c6, la "
-                                            "sombra, los sprites de sus huesos y los dos efectos 0x14d de 0x602b30) "
-                                            "no está portado",
-                                            helper.type));
-    }
+        return DrawTheFenrir(helper, context);
     // 0x5ffce0: la luz del terreno en su lugar.
     if (context.lighting == nullptr)
     {
@@ -411,6 +720,51 @@ Core::Expected<void, std::string> DrawTheBody(HelperState& helper, const HelperD
     // −1, −1).
     DrawObject(context.batch, context.models, drawn, context.frameClock);
     return {};
+}
+
+// 0x600343..0x600399: el camino del 10 de 0x6002e0 busca al jinete (+0x108) en los 400 lugares del pool (0x743a16c,
+// de a 0x438). Si es otro que el héroe (0x743a170), con el asedio (0x4294b0 lee 0x7239ec) y su +0x78 & 0x4000, con
+// +0x370 distinto de 1 sale por 0x602e7d sin dibujar nada ni tocar el color del modelo.
+constexpr std::size_t CharacterTableSlots = 400; // 0x69780 / 0x438
+constexpr std::uint8_t ShownInTheSiege = 1;
+
+bool HiddenInTheSiege(const WorldState& world, std::size_t rider)
+{
+    const WorldRuntime& runtime = world.Runtime();
+    if (rider >= CharacterTableSlots || rider == runtime.hero || !runtime.siegeActive)
+    {
+        return false;
+    }
+    const ActorState& riding = world.Actors()[rider];
+    return (riding.flags78 & RiderWithoutDust) != 0 && riding.byte370 != ShownInTheSiege;
+}
+
+// 0x6002e0 con 10 (0x60033c..0x600435), con el ayudante ya posado por 0x5ffdf0 como lo posa el camino de su tipo: no
+// llega al caso del tipo, así que el Fenrir no pide sus efectos ni saca sus rand(), y ninguno lee la luz del terreno,
+// que 0x60039d pisa con el blanco. El 0x1c12 conserva su blendMesh, que el 0x4000 no mira.
+Core::Expected<void, std::string> DrawTheShell(HelperState& helper, const HelperDrawContext& context)
+{
+    DrawnObject drawn;
+    if (helper.type == DarkHorseModel)
+    {
+        const Render::Models::ObjectTransform place{.position = helper.position, .angles = helper.angles};
+        drawn = DrawnDarkHorse(helper.horse, context.models.SkeletonOf(DarkHorseModel), place, helper.scale,
+                               context.stepAlpha);
+    }
+    else
+    {
+        drawn = DrawnHelper(helper, context.models.SkeletonOf(helper.type), glm::vec3(0.0f), context.stepAlpha);
+    }
+    if (context.onPose)
+        if (const auto published = context.onPose(drawn); !published.HasValue())
+            return published;
+    if (context.posedMeshes)
+        drawn.retainedMeshes = context.posedMeshes();
+    if (HiddenInTheSiege(context.world, helper.rider))
+    {
+        return {};
+    }
+    return DrawChromeShell(context.batch, context.models, drawn, context.frameClock);
 }
 
 // 0x445260(lugar, 0) con un lugar vivo.
@@ -445,13 +799,9 @@ Core::Expected<void, std::string> DrawHelper(HelperState& helper, const HelperDr
         {
             helper.horse.animation.frame = 0.0f; // 0x5fff0d
         }
-        if ((rider.flags78 & RiderWithoutDust) != 0)
-        {
-            return Core::Unexpected(
-                std::string("0x60033c: con +0x78 & 0x4000 del jinete, 0x445310 dibuja el ayudante con "
-                            "10, que 0x6002e0 lleva por otro camino que MuRet no tiene"));
-        }
-        if (auto body = DrawTheBody(helper, context); !body.HasValue())
+        // 0x445310..0x445323: con 0x4000 en +0x78 del jinete, 0x602e90(lugar, 0, 0, 10).
+        const bool shell = (rider.flags78 & RiderWithoutDust) != 0;
+        if (auto body = shell ? DrawTheShell(helper, context) : DrawTheBody(helper, context); !body.HasValue())
         {
             return body;
         }
@@ -507,6 +857,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(WorldState&
         helper.horse.animation.frame = 0.0f;
         helper.horse.speed = CreatedSpeed;
         helper.horse.alpha = CreatedAlpha;
+        helper.light = HorseLight; // 0x443e2f..0x443e45
         helper.blendMesh = NoBlendMesh;
         if (type == RiderlessHelper)
         {
@@ -573,7 +924,12 @@ Core::Expected<void, std::string> DrawHelpers(const HelperDrawContext& context)
                                       context.posedMeshes,
                                       context.scene,
                                       context.lighting,
-                                      context.sprites};
+                                      context.sprites,
+                                      context.worldClock,
+                                      context.effects,
+                                      context.particles,
+                                      context.systemTime,
+                                      context.globalPose};
     for (HelperState& helper : context.world.Helpers())
     {
         if (!helper.alive)

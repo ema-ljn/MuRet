@@ -215,7 +215,7 @@ ItemShineClock ItemShineClockOf(Render::Models::ShinePass pass, Core::Duration c
     ItemShineClock shine;
     shine.word = ItemClockWord(time);
     shine.t = F32(static_cast<double>(shine.word % 10000) * 0.0001f);
-    if (pass != Render::Models::ShinePass::Chrome4)
+    if (pass != Render::Models::ShinePass::Chrome4 && pass != Render::Models::ShinePass::Chrome5)
         return shine;
     // CoreDuration es finito y acotado: ambos argumentos están dentro de |a|<2^63.
     shine.chrome4Cosine = F32(*Render::Models::Detail::CosineProductPC53(static_cast<double>(time) * 0.001f, 1));
@@ -253,6 +253,15 @@ glm::vec2 ItemShineTexCoords(Render::Models::ShinePass pass, const glm::vec3& no
         const float u = F32(sum); // 4ed1fb: spill que el último FADD vuelve a leer.
         return {F32(static_cast<double>(sine) * 3 + ny * 0.5f + u),
                 F32((1 - sum) - (nz * 0.5f + static_cast<double>(t) * 3))};
+    }
+    case ShinePass::Chrome5:
+    {
+        // 0x4ed25e..0x4ed2b2: la v resta nz · 2,5f (0x6b89a8) y t; la u suma s · 5f (0x6b87f8) y ny · 3f al spill.
+        const float c = clock.chrome4Cosine;
+        const float sine = clock.chrome4Sine;
+        const double sum = static_cast<double>(c) * nx + static_cast<double>(sine) * ny + nz;
+        const float u = F32(sum); // 4ed26e: spill que el último FADD vuelve a leer.
+        return {F32(static_cast<double>(sine) * 5 + ny * 3 + u), F32((1 - sum) - (nz * 2.5f + static_cast<double>(t)))};
     }
     }
     return {};

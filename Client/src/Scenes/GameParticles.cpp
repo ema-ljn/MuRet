@@ -154,11 +154,12 @@ StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random
                   const std::function<double(float, float)>& terrainHeight, const float& worldClock,
                   const std::function<World::WorldObject*(std::uint64_t)>& owners,
                   const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions,
-                  const std::function<std::optional<float>(std::int32_t)>& textureHeight)
+                  const std::function<std::optional<float>(std::int32_t)>& textureHeight,
+                  World::TerrainLighting* lighting)
 {
     World::PortableParticleTrigonometry trigonometry;
     const auto stepped = World::StepParticlesChecked(particles, random, std::cref(worldClock), &map, trigonometry,
-                                                     terrainHeight, owners, actorActions, textureHeight);
+                                                     terrainHeight, owners, actorActions, textureHeight, lighting);
     if (!stepped.HasValue())
     {
         return Core::Unexpected(std::format("0x637128 → 0x5446e0: el paso de las partículas falla con error {}",

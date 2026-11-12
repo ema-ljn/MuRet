@@ -585,6 +585,16 @@ Core::Expected<void, std::string> DrawPlainModelEffect(Render::ModelBatch& batch
     object.color = terrain + effect.light;
     object.alpha = effect.alpha;
     object.vertexLight = effect.vertexLight;
+    // 0x6004aa: con +0x74 en 0x80 (las grietas 0xfc, 0xff y 0x102 de subtipo 1), 0x6002e0 dibuja el cuerpo por
+    // 0x4ef0c0 con 0x82 y sale.
+    const auto flagged = [&effect]() -> Core::Expected<void, std::string>
+    {
+        if (effect.renderFlags == World::CrackRenderFlags)
+            return Core::Unexpected(std::format("0x6004aa: el dibujo del efecto {:#x}/{} con +0x74 en 0x80 (0x4ef0c0 "
+                                                "con 0x82) no está portado",
+                                                effect.type, effect.subtype));
+        return {};
+    };
     if (resources != nullptr && resources->onPose && !(effect.alpha < 0.01f) && models.Find(model) != nullptr &&
         models.SkeletonOf(model) != nullptr)
     {
@@ -593,13 +603,19 @@ Core::Expected<void, std::string> DrawPlainModelEffect(Render::ModelBatch& batch
         // 0x600328: con +0x58 en −2 (la mariposa 0xae de la selección), 0x6002e0 sale después de posar.
         if (effect.objectState.hiddenMesh != World::HiddenObject)
         {
+            if (auto checked = flagged(); !checked.HasValue())
+                return checked;
             if (auto drawn = DrawPublishedObject(batch, models, object, frameClock, resources->posedMeshes);
                 !drawn.HasValue())
                 return drawn;
         }
     }
     else if (effect.objectState.hiddenMesh != World::HiddenObject)
+    {
+        if (auto checked = flagged(); !checked.HasValue())
+            return checked;
         DrawObject(batch, models, object, frameClock);
+    }
     constexpr std::int16_t KalimaType = 9;
     if (effect.type == KalimaType && resources != nullptr && resources->kalimaPass != nullptr &&
         World::IsKalimaMap(resources->kalimaPass->map) && !(effect.alpha < 0.01f))

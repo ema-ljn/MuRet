@@ -16,10 +16,12 @@
 #include "Scenes/OwnStatHelpers.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldEntry.h"
+#include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldTransitionSupport.h"
 #include "World/ItemState.h"
+#include "World/ModelEffects.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -240,13 +242,11 @@ Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const Item
             return Core::Unexpected(std::format("0x5bc740 (0x5bc8cc), 0x443fa0: {}", created.Error()));
         }
         // 0x5bc967..0x5bca46: fuera del 0x1c12, con +0x3e2 del héroe publicado en 0, 0x518cf0(0x61e, héroe + 0x10,
-        // héroe + 0x1c, héroe + 0xf4, 1, héroe, −1, 0, 0, 0, 0) crea el efecto en el héroe, aunque 0x443fa0 no haya
-        // creado nada.
+        // héroe + 0x1c, héroe + 0xf4, 1, héroe, −1, 0, 0, 0, 0) crea el calco en el héroe, aunque 0x443fa0 no haya
+        // creado nada. Sin rand(); con la tabla llena, ninguno.
         if (type != GuardianAngel && hero.safeZone == 0)
         {
-            return Core::Unexpected(std::string("0x5bca46: fuera de la zona segura, 0x518cf0 crea el efecto 0x61e/1 "
-                                                "sobre el héroe, que World::ModelEffects no tiene (su paso, 0x518900, "
-                                                "crea la junta 0x619/1)"));
+            static_cast<void>(world.Map().effects.CreatePetSummon(hero.position, hero.angles, hero.light, &hero));
         }
         return {};
     }

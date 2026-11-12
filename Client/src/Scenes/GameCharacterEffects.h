@@ -89,6 +89,14 @@ struct GameCharacterEffectsPass
 [[nodiscard]] Core::Expected<void, std::string>
 StepFullSetFlare(World::ModelEffect& effect, std::span<JointState> joints, Render::Models::CrtRandom& random);
 
+// 0x5208a0 sobre el calco 0x61e/1 de la mascota (0x52b9a6 → 0x518900): el rand() de la luz de todo efecto vivo
+// (0x5208c5) y tres joints 619/1 de ancho 5, cada uno con su giro (rand() % 90, 0, rand() % 360), nacido donde ese giro
+// lleva (0, −200, 0) restado de la posición del efecto, con 120 más de z; la posición del efecto de segundo punto, el
+// dueño del efecto (el héroe), key −1 y sin skill ni objetivo. Después la cola común (0x52cb98): sin animación ni
+// velocidad, una vida menos.
+[[nodiscard]] Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<JointState> joints,
+                                                              Render::Models::CrtRandom& random);
+
 // Lo que lee el cuervo del juego (0x420df0 → 0x4182f0) fuera de su dueño.
 struct GameRavenPass
 {
@@ -112,8 +120,9 @@ struct GameRavenPass
 // 0x420df0: con un cuervo en +0x430, 0x4182f0. Sin pasar el trapecio (su (x, y) por 0,01f, con −20),
 // MissTheView. Si lo pasa, 0x602e90: 0x5ffdf0 (el alpha de Chaos Castle y, por encima de 0,01, la pose con
 // la luz del terreno) y 0x6002e0 (las mallas 3 y 2, y la sombra salvo en los mapas 10, 24 a 29 y 36); con
-// +0x78 & 0x4000 del dueño, 0x6002e0 recibe 10 y corta. Después 0x418920, que sólo hace algo en los estados
-// 5 y 6 (las órdenes del A7). Se dibuja como lo dejó el paso, como el personaje. En un frame del original le
-// quedan los huesos de la pose para la chispa del paso.
+// +0x78 & 0x4000 del dueño, 0x6002e0 recibe 10 y va por 0x60033c: DrawChromeShell, sin la sombra ni la altura del
+// terreno (el +0x108 del cuervo queda en 0 desde 0x415c1e, así que el lazo del asedio de 0x600343 no lo encuentra en
+// el pool). Después 0x418920, que sólo hace algo en los estados 5 y 6 (las órdenes del A7). Se dibuja como lo dejó el
+// paso, como el personaje. En un frame del original le quedan los huesos de la pose para la chispa del paso.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRavenPass& pass);
 } // namespace Client::Scenes

@@ -1554,6 +1554,115 @@ TEST(CharacterDrawingTest, TheHorseShadowGoesByTheMap)
     }
 }
 
+// Los Fenrir (0x60277b..0x60292b), con tres mallas de un triángulo: la 0 y la 1 con el pase base en blanco y sin la
+// luz por vértice, la 1 otra vez con el cromo aditivo de eff_lighting (0x68f) con la acción 4, y la sombra de las
+// tres en (0, 0, 0, 0,7) aplastada sobre el piso; en el 7 en 0,2 y sin ella en el 10, en Kalima y en el 36.
+TEST(CharacterDrawingTest, TheFenrirGoesWhiteChargesItsSecondMeshAndShadowsEveryMesh)
+{
+    const OneModel models(0x14a, "fenril.jpg", 3);
+    DrawnObject fenrir = HorseLike();
+    fenrir.model = 0x14a;
+    struct Case
+    {
+        std::int32_t map;
+        bool charging;
+        std::optional<float> shadowAlpha;
+    };
+    for (const Case& probe :
+         {Case{0, false, 0.7f}, Case{0, true, 0.7f}, Case{7, true, 0.2f}, Case{10, true, std::nullopt},
+          Case{24, false, std::nullopt}, Case{36, false, std::nullopt}})
+    {
+        SCOPED_TRACE(testing::Message() << probe.map << " " << probe.charging);
+        ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+
+        const auto drawn = Client::Scenes::DrawFenrirBody(batch, models, fenrir, probe.map, probe.charging,
+                                                          std::chrono::milliseconds{0});
+
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        const std::size_t base = 1, chrome = probe.charging ? 1 : 0, shadow = probe.shadowAlpha ? 1 : 0;
+        ASSERT_EQ(batch.Commands().size(), base + chrome + shadow);
+        EXPECT_EQ(batch.Commands()[0].state, (ModelDrawState{TextureSlot{0x300}, ModelBlend::Opaque, true}));
+        EXPECT_EQ(batch.Commands()[0].vertexCount, 2u * 3u);
+        ExpectColor(batch.Vertices()[0], 1.0f, 1.0f, 1.0f);
+        ExpectColor(batch.Vertices()[3], 1.0f, 1.0f, 1.0f);
+        if (probe.charging)
+        {
+            EXPECT_EQ(batch.Commands()[1].state.texture, std::optional(TextureSlot{0x68f}));
+            EXPECT_EQ(batch.Commands()[1].state.blend, ModelBlend::Additive);
+            EXPECT_EQ(batch.Commands()[1].vertexCount, 3u);
+        }
+        if (probe.shadowAlpha)
+        {
+            const auto& last = batch.Commands().back();
+            EXPECT_EQ(last.state, (ModelDrawState{std::nullopt, ModelBlend::BlendedShadow, true}));
+            EXPECT_EQ(last.vertexCount, 3u * 3u);
+            const Client::Render::ModelVertex& dark = batch.Vertices()[batch.Vertices().size() - 1];
+            ExpectColor(dark, 0.0f, 0.0f, 0.0f);
+            EXPECT_FLOAT_EQ(dark.color.alpha, *probe.shadowAlpha);
+            EXPECT_FLOAT_EQ(dark.position.z, 30.0f + 5.0f);
+        }
+    }
+}
+
+// 0x602e90 con 10 en 0x6002e0 (0x60033c..0x600435): el color del modelo en 1 y, malla por malla, 0x4ecc30(malla,
+// 0x4040, 0,5, …, 0x620) sin RenderBody: el pase 0x4000 con Chrome02 (0x620) forzada, aditivo, con las UV de la
+// normal (con el reloj en 0, c = 1 y s = t = 0: u = nz + 3ny y v = 1 − nz − 2,5nz), y el color multiplicado en el
+// lugar por 0,5 en cada malla que lo dibuja (Q-C95). La malla oculta del objeto (+0x58) va igual; la que no tiene
+// triángulos (0x4ecc5b) y la de N (0x4ed07a) no van ni multiplican. No miran el alpha, el color, el blendMesh ni la
+// luz por vértice del objeto, y no hay sombra.
+TEST(CharacterDrawingTest, TheChromeShellGoesMeshByMeshWithChrome02AndHalvesTheColor)
+{
+    OneModel models(0xbf, "dk.jpg", 4);
+    models.MeshAt(1).triangles.clear();
+    models.MeshAt(2).textureName = "dkneck2_N.jpg";
+    DrawnObject horse = HorseLike();
+    horse.alpha = 0.3f;
+    horse.state.blendMesh = -2;
+    horse.state.hiddenMesh = 0;
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+
+    const auto drawn = Client::Scenes::DrawChromeShell(batch, models, horse, std::chrono::milliseconds{0});
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    ASSERT_EQ(batch.Commands().size(), 1u);
+    EXPECT_EQ(batch.Commands()[0].state, (ModelDrawState{TextureSlot{0x620}, ModelBlend::Additive, true}));
+    ASSERT_EQ(batch.Commands()[0].vertexCount, 2u * 3u);
+    const auto vertices = batch.Vertices();
+    for (std::size_t corner = 0; corner < 3; ++corner)
+    {
+        ExpectColor(vertices[corner], 0.5f, 0.5f, 0.5f);
+        ExpectColor(vertices[3 + corner], 0.25f, 0.25f, 0.25f);
+        EXPECT_EQ(vertices[corner].uv, glm::vec2(1.0f, -2.5f));
+        EXPECT_EQ(vertices[3 + corner].uv, glm::vec2(1.0f, -2.5f));
+    }
+}
+
+// Las UV del 0x4000 llevan la normal con la escala del objeto (0x4ebc80 no la normaliza): con 1,6, u = 1,6 y
+// v = 1 − 1,6 − 4. Un modelo que la biblioteca no tiene no dibuja nada.
+TEST(CharacterDrawingTest, TheChromeShellTakesTheScaledNormal)
+{
+    const OneModel models(0xbf, "dk.jpg", 1);
+    DrawnObject horse = HorseLike();
+    horse.transform.scale = 1.6f;
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+
+    ASSERT_TRUE(Client::Scenes::DrawChromeShell(batch, models, horse, std::chrono::milliseconds{0}).HasValue());
+
+    ASSERT_EQ(batch.Commands().size(), 1u);
+    const float scaled = static_cast<float>(1.0 * static_cast<double>(1.6f));
+    EXPECT_EQ(batch.Vertices()[0].uv,
+              glm::vec2(scaled, static_cast<float>((1.0 - scaled) - static_cast<double>(scaled) * 2.5)));
+    DrawnObject other = horse;
+    other.model = 0xc0;
+    ModelBatch none;
+    none.Begin(Client::Render::Pass3D{});
+    ASSERT_TRUE(Client::Scenes::DrawChromeShell(none, models, other, std::chrono::milliseconds{0}).HasValue());
+    EXPECT_TRUE(none.Commands().empty());
+}
+
 // El cromo de 0x4ecc30 con 0x4 (Chrome): u = 0,5 · nz + t y v = 0,5 · ny + 2t, con la normal con la
 // escala del caballo: con 1,6 y el reloj en 0, la normal en z da u = 0,8.
 TEST(CharacterDrawingTest, TheHorseChromeTakesTheScaledNormal)

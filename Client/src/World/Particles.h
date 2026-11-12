@@ -31,6 +31,7 @@ class CrtRandom;
 namespace Client::World
 {
 class IParticleTrigonometry;
+struct TerrainLighting;
 struct WorldObject;
 
 inline constexpr std::size_t ParticleCount = 3000;
@@ -64,12 +65,20 @@ inline constexpr std::int32_t CrywolfSmokeSubtype = 21;
 // El humo 5f2/33 del 0x48 de Crywolf (0x430932): nace en 0x541a8d con la vida y los ángulos de cuatro rand() y su paso
 // (0x545ffc) frena la velocidad y lo sube con la escala, que crece.
 inline constexpr std::int32_t CrywolfRisingSmokeSubtype = 33;
+// El polvo 5f2/11 de las piedras 0x118/0x119 del pisotón del caballo oscuro (0x527631): nace en 0x541d81 corrido con
+// tres rand(), inclinado y girado, y con la luz de la creación guardada en +0x60..+0x68; su paso (0x546111) la apaga
+// con la vida, lo frena, lo agranda y lo baja.
+inline constexpr std::int32_t StoneDustSubtype = 11;
 inline constexpr std::int32_t CrywolfCloudSubtype = 9;
 inline constexpr std::int32_t AnchoredOrbitSubtype = 10;
 inline constexpr std::int32_t BubbleParticle = 0x698;
 // El polvo 5f3/0 (Effect\smoke02.tga) del galope del caballo oscuro fuera de los mapas 2 y 10 (0x4444dd): nace en
 // 0x54271f y su paso (0x546b66) lo deja sobre el terreno con el alto de su textura.
 inline constexpr std::int32_t DustParticle = 0x5f3;
+// La explosión 5ed/0 (Effect\Explotion01.jpg, cuatro por cuatro cuadros) que suelta el terremoto 0xfa en su vida 11
+// (0x521dfd): nace en 0x542a60 con vida 20 y su paso (0x5459a4) avanza el cuadro (+0x48) con la vida y prende la luz
+// dinámica. El alta termina con el sonido 0x41ed10(0x40, 0, 0), que Particles no hace: lo hace quien la crea.
+inline constexpr std::int32_t ExplosionParticle = 0x5ed;
 
 // Offsets nativos de procedencia; este DTO no promete layout binario de 0x78 bytes.
 struct Particle
@@ -90,8 +99,9 @@ struct Particle
     bool moves = false;          // +0x4c: el paso le suma la velocidad girada por los ángulos
     float verticalSpeed = 0.0f;  // +0x50
     glm::vec3 velocity{};        // +0x54
-    float rotationFactor = 0.0f; // +0x60: 622/10 retiene al crear y escribe 1,5 al avanzar; 622/8 inicializa
-    glm::vec2 field64{};         // +0x64..68: retenidos al crear
+    float rotationFactor = 0.0f; // +0x60: 622/10 retiene al crear y escribe 1,5 al avanzar; 622/8 inicializa; 5f2/11
+                                 // guarda el rojo de su luz de creación
+    glm::vec2 field64{};         // +0x64..68: retenidos al crear; 5f2/11 guarda el verde y el azul de su luz
     glm::vec3 start{};           // +0x6c, donde nació
     // En las familias Kalima esta identidad es el owner; el DWORD owner anterior sólo conserva la API legacy.
     ParticleOwner typedOwner{};
@@ -121,6 +131,8 @@ enum class ParticleError : std::uint8_t
     // 0x5476f0: el dueño (+0x40) de una 622/1 no está entre los objetos del mapa; 0x54735c: el de una 60f/0 no
     // es un personaje del pool.
     MissingOwner,
+    // 0x545cd6: la 5ed pide la luz dinámica (0x7b4ccc4) y no está, o su centro no cabe en el int32 de 0x5f9780.
+    MissingDynamicLight,
 };
 
 // 5f93c0: retorno retenido, consultado después del prefijo del slot5c5.
@@ -140,10 +152,10 @@ class Particles
 public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
-    // rand(). Se aceptan5ca/0, 5f2/0,2,21,33, 5f3/0, 5c6/1,5,9,11, 622/6,8,9,10, 5d9/0..3, 607/0, 67/0, 68/0, 698/0,
-    // 6ab/0,1 y 6ac/0; la órbita 60f/0,3,4,10 pide el overload con la trigonometría.
-    // Create es la compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina
-    // consume cinco rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().
+    // rand(). Se aceptan5ca/0, 5f2/0,2,11,21,33, 5f3/0, 5ed/0, 5c6/1,5,9,11, 622/6,8,9,10, 5d9/0..3, 607/0, 67/0,
+    // 68/0, 698/0, 6ab/0,1 y 6ac/0; la órbita 60f/0,3,4,10 pide el overload con la trigonometría. Create es la
+    // compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina consume cinco
+    // rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().
     std::optional<std::size_t> Create(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                                       const glm::vec3& light, std::int32_t subtype, float scale, float worldClock,
                                       Render::Models::CrtRandom& random);
@@ -212,11 +224,12 @@ std::optional<ParticleError> StepParticles(Particles& particles, Render::Models:
 // dueño de 622/1 (0x5476f0), que se lee y se escribe en el paso, y `actorActions` la acción del personaje dueño de
 // la órbita 60f/0 (0x54735c); sin él, una 60f/0 viva falla con MissingOwner. La 5f3 pide la altura del terreno y el
 // alto de su textura
-// (`textureHeight`): sin ellos corta después de mover, frenar y agrandar.
+// (`textureHeight`): sin ellos corta después de mover, frenar y agrandar. La 5ed pide la luz dinámica (`lighting`,
+// 0x7b4ccc4): sin ella corta con MissingDynamicLight después de su cuadro.
 [[nodiscard]] Core::Expected<void, ParticleError>
 StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
                      std::reference_wrapper<const float> worldClock, const std::int32_t* map,
                      IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight = {},
                      const ParticleObjectOwners& owners = {}, const ParticleActorActions& actorActions = {},
-                     const ParticleTextureHeight& textureHeight = {});
+                     const ParticleTextureHeight& textureHeight = {}, TerrainLighting* lighting = nullptr);
 } // namespace Client::World

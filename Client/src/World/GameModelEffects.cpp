@@ -11,6 +11,7 @@
 #include "World/SelectionParticleKernels.h"
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
+#include "Render/Models/OriginalRotation.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -23,6 +24,8 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <string_view>
+#include <utility>
 
 namespace Client::World
 {
@@ -218,15 +221,15 @@ Core::Expected<void, std::string> StepFallingStone(ModelEffect& effect, const Mo
     return {};
 }
 
-// 0x5239c8..0x523b3a con el subtipo 0: la velocidad sin girar sumada y por 0,9f (0x6b8a1c), la caída +0xe4
+// 0x5239c8..0x523b3a con el subtipo 0 y el 10: la velocidad sin girar sumada y por 0,9f (0x6b8a1c), la caída +0xe4
 // que pierde 3; en el suelo se apoya, rebota a −0,5, pierde 4 de vida y se inclina escala · 128 (si no, ·
-// 32); con rand() % 10 en 0, un fuego 5d9 con el subtipo rand() % 3 + 1. El 5 sigue a su dueño (y salta la
-// cola) y el resto no está portado.
+// 32); con el subtipo 0 y rand() % 10 en 0, un fuego 5d9 con el subtipo rand() % 3 + 1. El 10 (el de la piedra
+// 0x118/0x119) sale en 0x523ad5 sin ese rand(). El 5 sigue a su dueño (y salta la cola) y el resto no está portado.
 Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& particles, float worldClock,
                                                 Render::Models::CrtRandom& random,
                                                 const ModelEffectStepServices& services)
 {
-    if (effect.subtype != 0)
+    if (effect.subtype != 0 && effect.subtype != GroundStoneChipSubtype)
         return Core::Unexpected(std::format("0x5238be: el paso de la piedrita {:#x} con el subtipo {} no está portado",
                                             effect.type, effect.subtype));
     constexpr double Drag = static_cast<double>(std::bit_cast<float>(0x3f666666u));
@@ -252,7 +255,7 @@ Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& 
         tilt = static_cast<double>(effect.transform.scale) * GroundTilt;
     }
     effect.transform.angles.x = F32(static_cast<double>(effect.transform.angles.x) - tilt);
-    if (random.Next() % FireChance != 0)
+    if (effect.subtype == GroundStoneChipSubtype || random.Next() % FireChance != 0)
         return {};
     const int subtype = random.Next() % FireSubtypes + 1;
     const auto created = particles.CreateChecked(FireParticle, position, effect.transform.angles, effect.light, subtype,
@@ -298,6 +301,50 @@ Core::Expected<void, std::string> StepFlameJet(ModelEffect& effect, float lumino
     }
     const glm::vec3 light{luminosity, F32(static_cast<double>(luminosity) * Orange), 0.0f};
     return AddDynamicLight(services.lighting, position, light, LightRadius, "0x52ae25");
+}
+// 0x5275ca..0x5276b7, las piedras 0x118 y 0x119 del pisotón del caballo. Con la vida entre 33 y 36, en p = (x + 60;
+// y − 60; z + 50) (0x6b86cc y 0x6b86b0, cada eje en la x87 hasta su fstp): el polvo 5f2/11 con los ángulos del efecto,
+// la luz (1; 0,8f; 0,6f), la escala 2 y el efecto de dueño (que ni su paso ni su dibujo leen: MuRet no lo guarda), y la
+// piedrita 0xc8 + (rand() & 1) con el subtipo 10 y la luz del efecto. Con la vida bajo 8, el alpha por 0,7692308f
+// (0x6ba240) y la luz de las mallas (+0x68) por 0,5f. Siempre, la luz dinámica (0,79f; 0,72f; 0,49f) de radio 2
+// (0x52c4e5). Sin la tabla de efectos corta antes del rand() de la piedrita; sin la luz dinámica, al final.
+Core::Expected<void, std::string> StepGroundStone(ModelEffect& effect, Particles& particles, float worldClock,
+                                                  Render::Models::CrtRandom& random,
+                                                  const ModelEffectStepServices& services)
+{
+    constexpr std::int32_t DustAfterLife = 32, DustBeforeLife = 37, FadeLife = 8;
+    constexpr double Side = 60.0, Lift = 50.0;
+    constexpr glm::vec3 DustLight{1.0f, std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3f19999au)};
+    constexpr float DustScale = 2.0f;
+    constexpr std::int32_t ChipKind = 1;
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f44ec4fu)); // 0x6ba240.
+    constexpr double Dim = static_cast<double>(std::bit_cast<float>(0x3f000000u));  // 0x6b882c: 0,5f.
+    constexpr glm::vec3 Glow{std::bit_cast<float>(0x3f4a3d71u), std::bit_cast<float>(0x3f3851ecu),
+                             std::bit_cast<float>(0x3efae148u)};
+    constexpr std::int32_t GlowRadius = 2;
+    const glm::vec3& position = effect.transform.position;
+    if (effect.life > DustAfterLife && effect.life < DustBeforeLife)
+    {
+        const glm::vec3 point{F32(static_cast<double>(position.x) + Side), F32(static_cast<double>(position.y) - Side),
+                              F32(static_cast<double>(position.z) + Lift)};
+        const auto dust = particles.CreateChecked(BreathParticle, point, effect.transform.angles, DustLight,
+                                                  StoneDustSubtype, DustScale, worldClock, random);
+        if (!dust.HasValue())
+            return Core::Unexpected(std::format("0x527631: falló el polvo 5f2/11 de la piedra {:#x} ({})", effect.type,
+                                                static_cast<int>(dust.Error())));
+        if (services.effects == nullptr)
+            return Core::Unexpected(
+                std::format("0x52766a: la piedra {:#x} pide la tabla de efectos (0x518cf0)", effect.type));
+        const auto type = static_cast<std::int16_t>(FirstStoneChipEffect + (random.Next() & ChipKind));
+        static_cast<void>(
+            services.effects->CreateGroundStoneChip(type, point, effect.transform.angles, effect.light, random));
+    }
+    if (effect.life < FadeLife)
+    {
+        effect.alpha = F32(static_cast<double>(effect.alpha) * Fade);
+        effect.objectState.light = F32(static_cast<double>(effect.objectState.light) * Dim);
+    }
+    return AddDynamicLight(services.lighting, position, Glow, GlowRadius, "0x52c4f1");
 }
 // 0x52a737..0x52a7af con el subtipo 0: la velocidad sin girar sumada, la z de la velocidad 0,01f menos, una
 // partícula 5ac/1 en el lugar con la luz y la escala del efecto y, con la z de la velocidad bajo −2 (o NaN),
@@ -423,11 +470,12 @@ Core::Expected<void, std::string> StepFadingDecal(const ModelEffect& effect, Par
     return {};
 }
 
-// 0x52c5ca..0x52c7a6, la onda 0x6eb con el subtipo 1 (la del galope en Icarus): la escala crece (rand() % 5) ·
-// 0,1f, la posición tiembla (rand() & 7) − 4 en x y en y, cada una en la x87 hasta su fstp; una escala negativa
-// vuelve a 0 (0x52c74e) y, con el subtipo de 0 a 3, la luz es la vida, o 40 menos la vida pasados los 20, por 0,05f
-// (0x6b8ad0) en los tres canales. Tres rand(). Los demás subtipos cortan en su rama.
-Core::Expected<void, std::string> StepGallopShockWave(ModelEffect& effect, Render::Models::CrtRandom& random)
+// 0x52c5ca..0x52c7a6, la onda 0x6eb. Con el subtipo 0 (la del pisotón del caballo) la escala pierde 1 (0x6b87d4),
+// sin rand(). Con el 1 (la del galope en Icarus) la escala crece (rand() % 5) · 0,1f y la posición tiembla (rand() &
+// 7) − 4 en x y en y, cada una en la x87 hasta su fstp: tres rand(). Después, una escala negativa vuelve a 0
+// (0x52c74e) y, con el subtipo de 0 a 3, la luz es la vida, o 40 menos la vida pasados los 20, por 0,05f (0x6b8ad0)
+// en los tres canales. Los demás subtipos cortan en su rama.
+Core::Expected<void, std::string> StepShockWave(ModelEffect& effect, Render::Models::CrtRandom& random)
 {
     constexpr int GrowthSpan = 5;
     constexpr double GrowthStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b8a34: 0,1f.
@@ -435,24 +483,565 @@ Core::Expected<void, std::string> StepGallopShockWave(ModelEffect& effect, Rende
     constexpr double ShakeCentre = static_cast<double>(std::bit_cast<float>(0x40800000u)); // 0x6b8a44: 4.
     constexpr std::int32_t FadeTurn = 20, FadeEnd = 40;
     constexpr double LightPerLife = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8ad0: 0,05f.
-    if (effect.subtype != GallopShockWaveSubtype)
+    constexpr double Shrink = 1.0;                                                          // 0x6b87d4.
+    if (effect.subtype == StompShockWaveSubtype)
+        effect.transform.scale = F32(static_cast<double>(effect.transform.scale) - Shrink);
+    else if (effect.subtype == GallopShockWaveSubtype)
+    {
+        const int growth = random.Next() % GrowthSpan;
+        effect.transform.scale =
+            F32((static_cast<double>(growth) * GrowthStep) + static_cast<double>(effect.transform.scale));
+        for (int axis = 0; axis < 2; ++axis)
+        {
+            const int shake = random.Next() % ShakeSpan;
+            effect.transform.position[axis] =
+                F32((static_cast<double>(shake) - ShakeCentre) + static_cast<double>(effect.transform.position[axis]));
+        }
+    }
+    else
         return Core::Unexpected(
             std::format("0x52c5ca: el paso del 0x6eb con el subtipo {} no está portado", effect.subtype));
-    const int growth = random.Next() % GrowthSpan;
-    effect.transform.scale =
-        F32((static_cast<double>(growth) * GrowthStep) + static_cast<double>(effect.transform.scale));
-    for (int axis = 0; axis < 2; ++axis)
-    {
-        const int shake = random.Next() % ShakeSpan;
-        effect.transform.position[axis] =
-            F32((static_cast<double>(shake) - ShakeCentre) + static_cast<double>(effect.transform.position[axis]));
-    }
     // fcomp con 0 y C0: también sin orden.
     if (!(effect.transform.scale >= 0.0f))
         effect.transform.scale = 0.0f;
     const std::int32_t fade = effect.life > FadeTurn ? FadeEnd - effect.life : effect.life;
     effect.light = glm::vec3(F32(static_cast<double>(fade) * LightPerLife));
     return {};
+}
+
+// 0x5295a4..0x529655, el rayo 0x14d de los Fenrir: con el subtipo 0 el alpha sube 0,3f (0x6b89dc) y, con la suma sin
+// redondear (fst) en 1 o más, pasa al subtipo 1 con el alpha en 1; un alpha guardado negativo (o sin orden) vuelve a
+// 1. Con el 1 baja 0,3f y, con la resta sin redondear en 0 o menos (o sin orden), se apaga con el alpha en 0. Con
+// cualquier subtipo, los tres ángulos giran 0,15f (0x6b8ae8). Sin rand().
+void StepLightning(ModelEffect& effect)
+{
+    constexpr double Flash = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc: 0,3f.
+    constexpr double Spin = static_cast<double>(std::bit_cast<float>(0x3e19999au));  // 0x6b8ae8: 0,15f.
+    constexpr std::int32_t Lit = 1;
+    if (effect.subtype == 0)
+    {
+        const double brighter = static_cast<double>(effect.alpha) + Flash;
+        effect.alpha = F32(brighter);
+        if (brighter >= 1.0)
+        {
+            effect.subtype = Lit;
+            effect.alpha = 1.0f;
+        }
+        if (!(effect.alpha >= 0.0f))
+            effect.alpha = 1.0f;
+    }
+    else if (effect.subtype == Lit)
+    {
+        const double dimmer = static_cast<double>(effect.alpha) - Flash;
+        effect.alpha = F32(dimmer);
+        if (!(dimmer > 0.0))
+        {
+            effect.alpha = 0.0f;
+            effect.alive = false;
+        }
+    }
+    for (int axis = 0; axis < 3; ++axis)
+        effect.transform.angles[axis] = F32(static_cast<double>(effect.transform.angles[axis]) + Spin);
+}
+
+// 0x52965a..0x529739, el calco 0x14e de los Fenrir: x gira 0,1f (0x6b87b8); la luz baja 0,05f (0x6b8a48) en el verde
+// y el azul con el subtipo 1, en el rojo y el verde con el 2 y en el rojo y el azul con el 3; el alpha baja 0,05f y,
+// con la resta sin redondear en 0 o menos (o sin orden), se apaga. Después, con más de 200 ms de timeGetTime() desde
+// +0x1c0 (la resta y el jbe sin signo), el cuadro (+0x1c4) avanza, pasado el 4 se apaga, y +0x1c0 toma un
+// timeGetTime() nuevo. Sin rand(); sin timeGetTime(), corta antes de tocarlo.
+Core::Expected<void, std::string> StepLightningDecal(ModelEffect& effect, const ModelEffectStepServices& services)
+{
+    constexpr double Turn = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8: 0,1f.
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8a48: 0,05f.
+    constexpr std::uint32_t FramePeriod = 200;
+    constexpr std::int32_t LastFrame = 4;
+    if (!services.systemTime)
+        return Core::Unexpected(std::string("0x529701: falta timeGetTime() para el calco 0x14e de los Fenrir"));
+    effect.transform.angles.x = F32(static_cast<double>(effect.transform.angles.x) + Turn);
+    const auto fade = [&effect](int channel)
+    { effect.light[channel] = F32(static_cast<double>(effect.light[channel]) - Fade); };
+    if (effect.subtype == 1)
+    {
+        fade(1);
+        fade(2);
+    }
+    else if (effect.subtype == 2)
+    {
+        fade(0);
+        fade(1);
+    }
+    else if (effect.subtype == 3)
+    {
+        fade(0);
+        fade(2);
+    }
+    const double left = static_cast<double>(effect.alpha) - Fade;
+    effect.alpha = F32(left);
+    if (!(left > 0.0))
+        effect.alive = false;
+    if (services.systemTime() - effect.textureTime > FramePeriod)
+    {
+        ++effect.textureFrame;
+        if (effect.textureFrame > LastFrame)
+            effect.alive = false;
+        effect.textureTime = services.systemTime();
+    }
+    return {};
+}
+
+// El terremoto 0xfa y sus grietas 0xfb..0x102 (0x521c5c..0x522bd2).
+// 0x6b86c0: el 0,01f de las celdas.
+constexpr double QuakeCellScale = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
+// El tipo de dueño que el terremoto y sus grietas tratan aparte (0x521f90, 0x522ab2 y 0x522b8a): sin las tres primeras
+// grietas y con la luz azul. Ni el caballo ni el 0xfa lo tienen.
+constexpr std::uint16_t SeparateOwnerType = 0x1b1;
+// La altura de las grietas sobre el terreno: 3 (0x6b86b8), o 100 (0x6b86b4) en Kalima.
+constexpr double CrackRise = 3.0, KalimaCrackRise = 100.0;
+constexpr std::int32_t ExplosionSound = 0x40, QuakeSound = 0x97;
+
+// 0x5fc8f0 y 0x5fcbd0: `offset` girado por AngleMatrix de `angles`.
+glm::vec3 Turned(const glm::vec3& offset, const glm::vec3& angles)
+{
+    return Render::Models::OriginalVectorRotate(offset, Render::Models::OriginalAngleMatrix(angles));
+}
+
+// +0x108 distinto de 0 y su WORD +0x2, en vivo; nada sin dueño.
+Core::Expected<std::optional<std::uint16_t>, std::string> LiveOwnerType(const ModelEffect& effect,
+                                                                        std::string_view address)
+{
+    if (!effect.hasOwner)
+        return std::optional<std::uint16_t>{};
+    const std::optional<std::uint16_t> type = OwnerTypeOf(effect.owner);
+    if (!type)
+        return Core::Unexpected(std::format("{}: el efecto {:#x} lee el tipo (+0x2) de su dueño (+0x108) y no lo tiene",
+                                            address, effect.type));
+    return type;
+}
+
+// 0x6c9dd0 entre 24 y 29, o 36.
+Core::Expected<bool, std::string> QuakeInKalima(const ModelEffectStepServices& services, std::string_view address)
+{
+    if (services.map == nullptr)
+        return Core::Unexpected(std::format("{}: el terremoto lee el mapa (0x6c9dd0)", address));
+    return IsKalimaMap(*services.map);
+}
+
+Core::Expected<double, std::string> QuakeHeight(const ModelEffectStepServices& services, float x, float y,
+                                                std::string_view address)
+{
+    if (!services.terrainHeight)
+        return Core::Unexpected(std::format("{}: el terremoto pide la altura del terreno (0x5f93c0)", address));
+    return services.terrainHeight(x, y);
+}
+
+// 0x5f8290(ftol(x · 0,01f), ftol(y · 0,01f)) es y · 256 + x, sin la máscara de 0x5f82a0, y el WORD de 0x7d0d348 en ese
+// lugar (el mismo lector que las piedras, UnmaskedCellAttribute): fuera de las 256 × 256 celdas el original lee fuera
+// de la tabla, y MuRet corta (Q-C425).
+Core::Expected<std::uint16_t, std::string> QuakeCellAttribute(const ModelEffectStepServices& services,
+                                                              const glm::vec3& point, std::string_view address)
+{
+    if (services.terrainAttributes == nullptr)
+        return Core::Unexpected(std::format("{}: el terremoto lee los atributos de las celdas (0x7d0d348)", address));
+    return UnmaskedCellAttribute(services.terrainAttributes, point, address);
+}
+
+// 0x518cf0(tipo, punto, ángulos, luz, 0, dueño, tamaño, 0, 0, 0, 0) desde el paso del terremoto.
+Core::Expected<void, std::string> CreateQuakeCrack(const ModelEffectStepServices& services, std::int16_t type,
+                                                   const glm::vec3& point, const glm::vec3& angles,
+                                                   const glm::vec3& light, const ModelEffectOwner& owner,
+                                                   std::int16_t size, std::string_view address)
+{
+    if (services.effects == nullptr)
+        return Core::Unexpected(std::format("{}: el terremoto pide la tabla de efectos (0x518cf0)", address));
+    static_cast<void>(services.effects->CreateEarthquakeCrack(type, point, angles, light, 0, owner, size));
+    return {};
+}
+
+// 0x521c8f..0x5221f0, la vida 11, con la luz local en blanco y los ángulos locales en 0.
+Core::Expected<void, std::string> StepEarthquakeAtEleven(ModelEffect& effect, Particles& particles, float worldClock,
+                                                         Render::Models::CrtRandom& random, KalimaWorld* kalima,
+                                                         const ModelEffectStepServices& services)
+{
+    constexpr glm::vec3 Behind{-25.0f, -80.0f, 0.0f}; // 0x521cda..0x521cee.
+    constexpr std::uint8_t Unanchored = 3, Anchored = 2;
+    constexpr double Lift = 25.0, KalimaLift = 100.0;                   // 0x521d5a y 0x521d7e.
+    constexpr double SinkBack = 27.0;                                   // 0x6b9ff8
+    constexpr std::int32_t DisturbRadius = 2, DisturbAmplitude = -1000; // 0x521d93..0x521d98.
+    constexpr float ExplosionScale = 0.5f;                              // 0x521dd8: 0x3f000000.
+    constexpr std::int16_t FirstCrackSize = 0x96;
+    const glm::vec3 white(1.0f);
+    glm::vec3 local(0.0f);
+    glm::vec3& start = effect.start;
+    if (effect.state != Unanchored)
+    {
+        if (effect.owner.angles == nullptr)
+            return Core::Unexpected(
+                std::string("0x521cf8: el terremoto lee los ángulos (+0x1c) de su dueño (+0x108) y no los tiene"));
+        const glm::vec3 behind = Turned(Behind, *effect.owner.angles);
+        for (int axis = 0; axis < 3; ++axis)
+            start[axis] = F32(static_cast<double>(behind[axis]) + static_cast<double>(effect.transform.position[axis]));
+    }
+    const auto inKalima = QuakeInKalima(services, "0x521d55");
+    if (!inKalima.HasValue())
+        return Core::Unexpected(inKalima.Error());
+    double lift = Lift;
+    if (inKalima.Value())
+    {
+        if (effect.state == 0 || effect.state == Anchored)
+        {
+            if (kalima == nullptr)
+                return Core::Unexpected(std::string("0x521db2: el terremoto en Kalima pide sus ondas (0x437860)"));
+            const std::int32_t tileY = FtolLow(static_cast<double>(start.y) * QuakeCellScale);
+            const std::int32_t tileX = FtolLow(static_cast<double>(start.x) * QuakeCellScale);
+            if (auto disturbed = kalima->Disturb(tileX, tileY, DisturbRadius, DisturbAmplitude, random);
+                !disturbed.HasValue())
+                return disturbed;
+        }
+        else
+            lift = KalimaLift;
+    }
+    const auto ground = QuakeHeight(services, start.x, start.y, "0x521dce");
+    if (!ground.HasValue())
+        return Core::Unexpected(ground.Error());
+    start.z = F32(ground.Value() + lift);
+    const auto exploded =
+        particles.CreateChecked(ExplosionParticle, start, local, white, 0, ExplosionScale, worldClock, random);
+    if (!exploded.HasValue())
+        return Core::Unexpected(std::format("0x521dfd: falló la explosión 5ed/0 del terremoto ({})",
+                                            static_cast<unsigned>(exploded.Error())));
+    if (exploded.Value().has_value())
+    {
+        if (!services.sound)
+            return Core::Unexpected(std::string("0x542a82: la explosión 5ed pide el sonido 0x41ed10(0x40, 0, 0)"));
+        services.sound(ExplosionSound);
+    }
+    if (effect.state == 0)
+        return Core::Unexpected(
+            std::string("0x521e13: el terremoto con el estado 0 (la habilidad del Dark Lord) suelta "
+                        "joints 0x617, chispas 5c5 y el efecto 0x103, que no están portados"));
+    start.z = F32(static_cast<double>(start.z) - SinkBack);
+    const auto ownerType = LiveOwnerType(effect, "0x521f90");
+    if (!ownerType.HasValue())
+        return Core::Unexpected(ownerType.Error());
+    if (ownerType.Value() && *ownerType.Value() != SeparateOwnerType)
+    {
+        // 0x521f98..0x521ffc: el dueño de las tres es este efecto (ebx).
+        const ModelEffectOwner self{nullptr, &effect, &effect.transform.angles};
+        for (const auto& [type, address] : {std::pair<std::int16_t, std::string_view>{std::int16_t{0xfd}, "0x521fb9"},
+                                            std::pair<std::int16_t, std::string_view>{std::int16_t{0xfb}, "0x521fd9"},
+                                            std::pair<std::int16_t, std::string_view>{std::int16_t{0xfc}, "0x521ffc"}})
+        {
+            if (auto created =
+                    CreateQuakeCrack(services, type, start, local, effect.light, self, FirstCrackSize, address);
+                !created.HasValue())
+                return created;
+        }
+    }
+    // 0x522004..0x5221ea: cinco rayos de a 72° más el subtipo.
+    constexpr int Spokes = 5, ReachSpan = 150, ReachBase = 100, SizeSpan = 50, SizeBase = 40, TiltSpan = 30,
+                  TiltCentre = 15;
+    constexpr double SpokeAngle = 72.0; // 0x6b8ba0
+    constexpr double Rise = 3.0;        // 0x6b86b8
+    constexpr double Tilt = 45.0;       // 0x6b8848
+    constexpr std::uint8_t Blocked = 0x4 | 0x8 | 0x10;
+    for (int spoke = 0; spoke < Spokes; ++spoke)
+    {
+        const auto reach = static_cast<float>(random.Next() % ReachSpan + ReachBase);
+        local = {
+            0.0f, 0.0f,
+            F32(static_cast<double>(spoke) * SpokeAngle + static_cast<double>(effect.subtype))}; // fild/fmul/fiadd.
+        const glm::vec3 ray = Turned({0.0f, reach, 0.0f}, local);
+        glm::vec3 point{F32(static_cast<double>(ray.x) + static_cast<double>(start.x)),
+                        F32(static_cast<double>(ray.y) + static_cast<double>(start.y)),
+                        F32((static_cast<double>(ray.z) + static_cast<double>(start.z)) + Rise)};
+        const auto size = static_cast<std::int16_t>(random.Next() % SizeSpan + SizeBase);
+        local = {0.0f, 0.0f, F32(static_cast<double>(random.Next() % TiltSpan - TiltCentre) + Tilt)};
+        const auto attribute = QuakeCellAttribute(services, point, "0x52211d");
+        if (!attribute.HasValue())
+            return Core::Unexpected(attribute.Error());
+        // 0x52212d..0x52214d: cualquiera de los tres bits del byte bajo la deja sin grieta.
+        if ((static_cast<std::uint8_t>(attribute.Value()) & Blocked) != 0)
+            continue;
+        const auto kalimaHere = QuakeInKalima(services, "0x522153");
+        if (!kalimaHere.HasValue())
+            return Core::Unexpected(kalimaHere.Error());
+        const auto height = QuakeHeight(services, point.x, point.y, "0x52217c");
+        if (!height.HasValue())
+            return Core::Unexpected(height.Error());
+        point.z = F32(height.Value() + (kalimaHere.Value() ? KalimaCrackRise : CrackRise));
+        for (const auto& [type, address] : {std::pair<std::int16_t, std::string_view>{std::int16_t{0xfe}, "0x5221b0"},
+                                            std::pair<std::int16_t, std::string_view>{std::int16_t{0xff}, "0x5221d8"}})
+        {
+            if (auto created =
+                    CreateQuakeCrack(services, type, point, local, effect.light, effect.owner, size, address);
+                !created.HasValue())
+                return created;
+        }
+    }
+    return {};
+}
+
+// 0x5221fe..0x522493, la vida 10: cuatro anillos de cinco grietas que salen de la partida.
+Core::Expected<void, std::string> StepEarthquakeAtTen(ModelEffect& effect, Render::Models::CrtRandom& random,
+                                                      const ModelEffectStepServices& services)
+{
+    constexpr int Rings = 4, LastSteadyRing = 2, StepSpan = 15, PushSpan = 30, PushBase = 50, TurnSpan = 10,
+                  TurnBase = 62;
+    constexpr std::size_t Cracks = 5;
+    constexpr double StepBase = 85.0; // 0x6ba104
+    constexpr double Flip = 270.0;    // 0x6ba10c
+    constexpr std::int16_t CrackSize = 100;
+    constexpr std::uint8_t Blocked = 0x4 | 0x8 | 0x10;
+    std::array<glm::vec3, Cracks> points{};
+    points.fill(effect.start);
+    std::array<float, Cracks> sums{};
+    glm::vec3 local(0.0f);
+    // ebp+8: 0, 1 y 2 en los tres primeros anillos; en el cuarto, un rand() nuevo (Q-C429).
+    int parity = 0;
+    for (int ring = 0; ring < Rings; ++ring)
+    {
+        const float reach = F32(static_cast<double>(random.Next() % StepSpan) + StepBase);
+        if (ring > LastSteadyRing)
+            parity = random.Next();
+        const bool outward = parity % 2 == 0;
+        for (std::size_t crack = 0; crack < Cracks; ++crack)
+        {
+            const int push = outward ? random.Next() % PushSpan + PushBase : -PushBase - random.Next() % PushSpan;
+            sums[crack] = F32(static_cast<double>(push) + static_cast<double>(sums[crack]));
+            const int turn = (random.Next() % TurnSpan + TurnBase) * static_cast<int>(crack);
+            local.z = F32(static_cast<double>(turn) + static_cast<double>(sums[crack]));
+            const glm::vec3 step = Turned({0.0f, reach, 0.0f}, local);
+            glm::vec3& point = points[crack];
+            for (int axis = 0; axis < 3; ++axis)
+                point[axis] = F32(static_cast<double>(step[axis]) + static_cast<double>(point[axis]));
+            const auto attribute = QuakeCellAttribute(services, point, "0x522378");
+            if (!attribute.HasValue())
+                return Core::Unexpected(attribute.Error());
+            // 0x522388..0x5223a0: sólo los tres bits juntos la dejan sin grieta (en la vida 11, cualquiera; Q-C424).
+            if ((static_cast<std::uint8_t>(attribute.Value()) & Blocked) == Blocked)
+                continue;
+            const auto kalimaHere = QuakeInKalima(services, "0x5223a6");
+            if (!kalimaHere.HasValue())
+                return Core::Unexpected(kalimaHere.Error());
+            const auto height = QuakeHeight(services, point.x, point.y, "0x5223c0");
+            if (!height.HasValue())
+                return Core::Unexpected(height.Error());
+            point.z = F32(height.Value() + (kalimaHere.Value() ? KalimaCrackRise : CrackRise));
+            local.z = F32(static_cast<double>(local.z) + Flip);
+            for (const auto& [type, address] :
+                 {std::pair<std::int16_t, std::string_view>{std::int16_t{0x101}, "0x522417"},
+                  std::pair<std::int16_t, std::string_view>{std::int16_t{0x102}, "0x522440"}})
+            {
+                if (auto created =
+                        CreateQuakeCrack(services, type, point, local, effect.light, effect.owner, CrackSize, address);
+                    !created.HasValue())
+                    return created;
+            }
+        }
+        ++parity;
+    }
+    effect.life = 0;
+    if (!services.sound)
+        return Core::Unexpected(std::string("0x52248b: el terremoto pide el sonido 0x41ed10(0x97, 0, 0)"));
+    services.sound(QuakeSound);
+    return {};
+}
+
+// 0x522498..0x522765, las demás vidas: se hamaca. La fase es la vida, o 12,5 entre 10 y 15 (con 18 de paso en vez de
+// 15, y en la 15 +0xe4 cambia de signo); el pitch suma 80; la y de la velocidad es sen((20 − fase) · paso · 3,141592 ·
+// 1/180) · 260 en la x87 (los dos double de 0x6ba288 y 0x6ba280); +0xe4 baja 8 con la fase en 12,5 (comparada con
+// el double 12,5) y si no sube 8; y la posición es la partida más la velocidad girada por +0x28 (no por +0x1c), con
+// la z más +0xe4 y 200 sin redondear la suma de en medio (fst).
+Core::Expected<void, std::string> SwingTheEarthquake(ModelEffect& effect)
+{
+    constexpr std::int32_t FirstSlowLife = 10, LastSlowLife = 15, DarkLordLife = 13;
+    constexpr float SlowPhase = 12.5f, SlowPace = 18.0f, Pace = 15.0f;              // 0x5224b2, 0x5224b9 y 0x52249e.
+    constexpr double Top = 20.0;                                                    // 0x6b86d0
+    constexpr double Pi = std::bit_cast<double>(0x400921fafc8b007aull);             // 0x6ba288: 3,141592.
+    constexpr double InverseDegrees = std::bit_cast<double>(0x3f76c16c16c16c17ull); // 0x6ba280.
+    constexpr double SlowPhaseDouble = 12.5;                                        // 0x6ba278
+    constexpr float Swing = 260.0f;                                                 // 0x6b88f0
+    constexpr double Pitch = 80.0;                                                  // 0x6b9ffc
+    constexpr double Bob = 8.0;                                                     // 0x6b86c4
+    constexpr double Rise = 200.0;                                                  // 0x6b8928
+    auto phase = static_cast<float>(effect.life);
+    float pace = Pace;
+    if (effect.life >= FirstSlowLife && effect.life <= LastSlowLife)
+    {
+        phase = SlowPhase;
+        pace = SlowPace;
+        if (effect.life == LastSlowLife)
+            effect.turnDirection = F32(static_cast<double>(effect.turnDirection) * -1.0); // 0x6b8b9c
+    }
+    if (effect.state == 0 && effect.life == DarkLordLife)
+        return Core::Unexpected(std::string("0x5224ec: el terremoto con el estado 0 en la vida 13 (la habilidad del "
+                                            "Dark Lord) suelta los 0x104 y el sonido 0x96, que no están portados"));
+    glm::vec3& angles = effect.transform.angles;
+    angles.x = F32(static_cast<double>(angles.x) + Pitch);
+    const double argument = (((Top - static_cast<double>(phase)) * static_cast<double>(pace)) * Pi) * InverseDegrees;
+    const auto swing = Render::Models::Detail::SineProductPC53(argument, Swing);
+    if (!swing)
+        return Core::Unexpected(std::string("0x522696: el seno del terremoto no cabe en el perfil PC53"));
+    effect.velocity.y = F32(*swing);
+    const glm::vec3& start = effect.start;
+    glm::vec3& position = effect.transform.position;
+    position = start;
+    // 0x5226a4..0x5226dd: igual (ni C0 ni C3 sin C2) baja; menor, mayor o sin orden sube.
+    const double bob = static_cast<double>(phase) == SlowPhaseDouble ? -Bob : Bob;
+    effect.turnDirection = F32(static_cast<double>(effect.turnDirection) + bob);
+    const glm::vec3 moved = Turned(effect.velocity, effect.copiedAngles);
+    position.x = F32(static_cast<double>(moved.x) + static_cast<double>(start.x));
+    position.y = F32(static_cast<double>(moved.y) + static_cast<double>(start.y));
+    position.z = F32(
+        ((static_cast<double>(moved.z) + static_cast<double>(start.z)) + static_cast<double>(effect.turnDirection)) +
+        Rise);
+    return {};
+}
+
+Core::Expected<void, std::string> StepEarthquake(ModelEffect& effect, Particles& particles, float worldClock,
+                                                 Render::Models::CrtRandom& random, KalimaWorld* kalima,
+                                                 const ModelEffectStepServices& services)
+{
+    constexpr std::int32_t BurstLife = 11, RingLife = 10;
+    if (effect.life == BurstLife)
+        return StepEarthquakeAtEleven(effect, particles, worldClock, random, kalima, services);
+    if (effect.life == RingLife)
+        return StepEarthquakeAtTen(effect, random, services);
+    return SwingTheEarthquake(effect);
+}
+
+// 0x522a9c..0x522af7 (y 0x522b74..0x522bcd → 0x5212ce): +0x6c en vida · −0,01f (0x6b8a58) y la luz dinámica de radio
+// 1: con dueño, (0; 0; L) si es del tipo 0x1b1 y (L; 0; 0) si no; sin dueño, el blanco del prólogo (Q-C427).
+Core::Expected<void, std::string> LightTheCrack(ModelEffect& effect, float luminosity,
+                                                const ModelEffectStepServices& services, std::string_view ownerAddress,
+                                                std::string_view lightAddress)
+{
+    constexpr double Drift = static_cast<double>(std::bit_cast<float>(0xbc23d70au));
+    constexpr std::int32_t Radius = 1;
+    effect.objectState.uv.x = F32(static_cast<double>(effect.life) * Drift);
+    const auto ownerType = LiveOwnerType(effect, ownerAddress);
+    if (!ownerType.HasValue())
+        return Core::Unexpected(ownerType.Error());
+    glm::vec3 color(1.0f);
+    if (ownerType.Value())
+        color = *ownerType.Value() == SeparateOwnerType ? glm::vec3(0.0f, 0.0f, luminosity)
+                                                        : glm::vec3(luminosity, 0.0f, 0.0f);
+    return AddDynamicLight(services.lighting, effect.transform.position, color, Radius, lightAddress);
+}
+
+// 0x52284f..0x522a94 (y 0x522995..0x522a94): la piedrita 0xc8 + (rand() & 1) en la posición más (0; rand() % 150; 0)
+// girado por (0; 0; rand() % 360), con los ángulos y la luz de la grieta: los tres rand() antes del alta.
+Core::Expected<void, std::string> DropACrackChip(const ModelEffect& effect, Render::Models::CrtRandom& random,
+                                                 const ModelEffectStepServices& services, std::string_view address)
+{
+    constexpr int ReachSpan = 150, Degrees = 360, Kinds = 2;
+    const glm::vec3 reach{0.0f, static_cast<float>(random.Next() % ReachSpan), 0.0f};
+    const glm::vec3 turn{0.0f, 0.0f, static_cast<float>(random.Next() % Degrees)};
+    const glm::vec3 offset = Turned(reach, turn);
+    glm::vec3 point{};
+    for (int axis = 0; axis < 3; ++axis)
+        point[axis] = F32(static_cast<double>(offset[axis]) + static_cast<double>(effect.transform.position[axis]));
+    const auto type = static_cast<std::int16_t>(FirstStoneChipEffect + random.Next() % Kinds);
+    if (services.effects == nullptr)
+        return Core::Unexpected(
+            std::format("{}: la grieta {:#x} pide la tabla de efectos (0x518cf0)", address, effect.type));
+    static_cast<void>(services.effects->CreateStoneChip(type, point, effect.transform.angles, effect.light, random));
+    return {};
+}
+
+// 0x52276a..0x522bd2, con L, la luz local del primer rand(). +0x68 es la luz de las mallas y la z baja 0,5f (0x6b882c).
+Core::Expected<void, std::string> StepEarthquakeCrack(ModelEffect& effect, float luminosity,
+                                                      Render::Models::CrtRandom& random,
+                                                      const ModelEffectStepServices& services)
+{
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8 y 0x6b8a34.
+    constexpr double Third = static_cast<double>(std::bit_cast<float>(0x3eaaaaabu)); // 0x6ba2a0
+    constexpr double Sink = 0.5;
+    constexpr float Wide = 50.0f; // 0x6b86b0
+    constexpr std::int32_t Faded = 5, ShakeEvery = 3, ShakeAfter = 15, ShakeSpan = 8, ShakeCentre = 4;
+    float& glow = effect.objectState.light;
+    glm::vec3& position = effect.transform.position;
+    const auto sink = [&position] { position.z = F32(static_cast<double>(position.z) - Sink); };
+    const std::int32_t life = effect.life;
+    switch (effect.type)
+    {
+    case FirstEarthquakeCrack: // 0x52276a
+        glow = F32(static_cast<double>(life) * Tenth * Third);
+        if (life < 10)
+            sink();
+        if (life > ShakeAfter && life % ShakeEvery == 0)
+        {
+            const int shake = random.Next() % ShakeSpan - ShakeCentre;
+            if (services.cameraShake == nullptr)
+                return Core::Unexpected(
+                    std::string("0x5227ca: la grieta 0xfb tiembla la cámara (0x7d325c8) y no la tiene"));
+            *services.cameraShake = F32(static_cast<double>(shake) * Tenth);
+        }
+        return {};
+    case 0xfd:  // 0x5227d5
+    case 0x100: // 0x5227d5
+        glow = F32(static_cast<double>(life) * Tenth * Tenth);
+        if (life < 13)
+            sink();
+        return {};
+    case 0xfe:  // 0x522b04
+    case 0x101: // 0x522b04
+        glow = F32(static_cast<double>(life) * Tenth * Third);
+        if (life < 10)
+            sink();
+        return {};
+    case 0xfc: // 0x5227f0
+    {
+        // fcomp con 50: sólo mayor (ni menor, ni igual, ni sin orden) apaga la vida.
+        if (effect.transform.scale > Wide)
+            effect.life = 0;
+        const std::int32_t left = effect.life;
+        constexpr std::int32_t Bright = 10, Peak = 20, ChipChance = 10;
+        if (left >= Bright)
+            glow = F32(static_cast<double>(Peak - left) * Tenth);
+        else
+        {
+            if (left < Faded)
+                sink();
+            glow = F32(static_cast<double>(left) * Tenth);
+            if (left >= Faded && random.Next() % ChipChance == 0)
+            {
+                if (auto chipped = DropACrackChip(effect, random, services, "0x522a94"); !chipped.HasValue())
+                    return chipped;
+            }
+        }
+        return LightTheCrack(effect, luminosity, services, "0x522ab2", "0x522af7");
+    }
+    case 0xff: // 0x52294c
+    {
+        constexpr std::int32_t Bright = 30, Peak = 40, Low = 15, ChipChance = 15;
+        if (life >= Bright)
+            glow = F32(static_cast<double>(Peak - life) * Tenth);
+        else
+        {
+            if (life < Low)
+                sink();
+            glow = F32(static_cast<double>(life) * Tenth);
+            if (life >= Faded && random.Next() % ChipChance == 0)
+            {
+                if (auto chipped = DropACrackChip(effect, random, services, "0x522a94"); !chipped.HasValue())
+                    return chipped;
+            }
+        }
+        return LightTheCrack(effect, luminosity, services, "0x522ab2", "0x522af7");
+    }
+    default: // 0x102, 0x522b31.
+    {
+        constexpr std::int32_t Bright = 30, Peak = 40, Low = 15, Noisy = 13;
+        glow = F32(static_cast<double>(life >= Bright ? Peak - life : life) * Tenth);
+        if (life < Low)
+            sink();
+        // 0x522b6f: un rand() que nadie usa (Q-C428).
+        if (life >= Noisy)
+            static_cast<void>(random.Next());
+        return LightTheCrack(effect, luminosity, services, "0x522b8a", "0x5212da");
+    }
+    }
 }
 } // namespace
 Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
@@ -501,6 +1090,11 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
         if (auto stepped = StepStoneChip(effect, particles, worldClock, random, services); !stepped.HasValue())
             return stepped;
     }
+    else if (effect.type == FirstGroundStoneEffect || effect.type == SecondGroundStoneEffect)
+    {
+        if (auto stepped = StepGroundStone(effect, particles, worldClock, random, services); !stepped.HasValue())
+            return stepped;
+    }
     else if (effect.type == FlameJetEffect)
     {
         wholeStep = true;
@@ -531,7 +1125,34 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     }
     else if (effect.type == ShockWaveEffect)
     {
-        if (auto stepped = StepGallopShockWave(effect, random); !stepped.HasValue())
+        if (auto stepped = StepShockWave(effect, random); !stepped.HasValue())
+            return stepped;
+    }
+    else if (effect.type == LightningEffect)
+    {
+        StepLightning(effect);
+    }
+    else if (effect.type == LightningDecalEffect)
+    {
+        if (auto stepped = StepLightningDecal(effect, services); !stepped.HasValue())
+            return stepped;
+    }
+    else if (effect.type == EarthquakeEffect)
+    {
+        if (auto stepped = StepEarthquake(effect, particles, worldClock, random, kalima, services); !stepped.HasValue())
+            return stepped;
+        // 0x52cbb0: el 0xfa salta la animación y 0x51fc80; sólo pierde una vida y, con 0 o menos, muere.
+        effect.previousPosition = before;
+        --effect.life;
+        if (effect.life <= 0)
+            effect.alive = false;
+        return {};
+    }
+    else if (effect.type >= FirstEarthquakeCrack && effect.type <= LastEarthquakeCrack)
+    {
+        wholeStep = true;
+        const float luminosity = StepLuminosity(lightDraw, effect.life);
+        if (auto stepped = StepEarthquakeCrack(effect, luminosity, random, services); !stepped.HasValue())
             return stepped;
     }
     else if (effect.type != DragonEffect && effect.type != ArrivalEffect && effect.type != IcarusCloudEffect)

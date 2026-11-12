@@ -57,6 +57,11 @@ void TakeTheRidersGait(DarkHorse& horse, const Render::Models::Skeleton& skeleto
 {
     const DarkHorseGait gait = DarkHorseGaitOf(riderAction);
     Render::Models::SetAction(horse.animation, skeleton, gait.action);
+    // 0x444523..0x44452e: solo la rama de las otras acciones (la única que da la 0) borra la cuenta del terremoto.
+    if (gait.action == 0)
+    {
+        horse.effectCount = 0;
+    }
     horse.speed = gait.speed;
 }
 

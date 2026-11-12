@@ -111,10 +111,12 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> StepObjects(WorldState& world, Render::Models::CrtRandom& random,
                                                                 float worldClock);
     // 0x52d220 y 0x53c670, después de la vista previa: los efectos con modelo (la mariposa, con la altura
-    // del terreno y los sprites del frame) y las juntas.
+    // del terreno y los sprites del frame, y el calco 0x14e de los Fenrir, con timeGetTime() en `systemTime`) y las
+    // juntas.
     [[nodiscard]] Core::Expected<void, std::string> StepEffects(WorldState& world, Render::Models::ClothWorld& cloth,
                                                                 float worldClock,
-                                                                const std::function<double(float, float)>& height);
+                                                                const std::function<double(float, float)>& height,
+                                                                std::uint32_t systemTime);
 
     // Al empezar un dibujo: con cero frames copia lo que el dibujo cambia (la luz dinámica, el rand(), las
     // partículas, los efectos, los objetos, la cola, los globales de los ítems y las mallas sin luz); con frames,

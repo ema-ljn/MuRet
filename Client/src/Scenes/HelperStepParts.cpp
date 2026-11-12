@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/FaunaDrawing.h"
@@ -19,6 +20,7 @@
 #include <cstdint>
 #include <format>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -107,8 +109,14 @@ Core::Expected<bool, std::string> InTheRidersSafeCell(const HelperStepContext& c
 Core::Expected<glm::vec3, std::string> GlobalPosePoint(const WorldState& world, std::size_t bone,
                                                        const glm::vec3& offset, std::string_view address)
 {
+    return GlobalPosePoint(world.PoseCarry().bones, bone, offset, address);
+}
+
+Core::Expected<glm::vec3, std::string> GlobalPosePoint(std::span<const Render::Models::BoneTransform> bones,
+                                                       std::size_t bone, const glm::vec3& offset,
+                                                       std::string_view address)
+{
     constexpr std::size_t GlobalPoseBones = 200;
-    const auto& bones = world.PoseCarry().bones;
     if (bone >= GlobalPoseBones)
     {
         return Core::Unexpected(

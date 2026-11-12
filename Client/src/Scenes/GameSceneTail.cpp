@@ -11,6 +11,7 @@
 #include "Core/IClock.h"
 #include "Render/Billboard.h"
 #include "Render/Pass3D.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Skinning.h"
 #include "World/ModelEffects.h"
 #include "Scenes/FaunaDrawing.h"
@@ -162,7 +163,12 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
             {canvas.models, m_worldModels, world, FrameCloth().random, canvas.frameClock, 0, frames > 0,
              [&](const DrawnObject& object) { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); },
              true, [&]() { return std::span<const Render::Models::SkinnedMesh>(FramePoseCarry().meshes); },
-             SceneId::Game, &FrameLighting(), &FrameSpritesForDraw()});
+             SceneId::Game, &FrameLighting(), &FrameSpritesForDraw(), clock, &FrameEffects(), &FrameParticles(),
+             // timeGetTime (0x6b8544), del calco 0x14e de los Fenrir: el reloj del dibujo en ms.
+             [systemTime = static_cast<std::uint32_t>(
+                  std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
+             { return systemTime; },
+             [&]() { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); }});
         !result.HasValue())
         return result;
     const auto view = Render::ViewRows(pass.view);

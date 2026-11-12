@@ -79,8 +79,9 @@ struct ActorState
     // polvo ni aliento: 0x444414 y 0x44455a), su dibujo (con 0x4000, 0x602e90 con 10: 0x445310) y 0x5ffdf0
     // (con 0x1000, el frame del caballo en 0: 0x5ffefc). Quién más lo escribe en el personaje, sin leer.
     std::uint32_t flags78 = 0;
-    // +8: con 1, el paso del caballo de este jinete saca doce 0x60f (0x44468d) y lo vuelve a 0 (0x444758).
-    // 0x511290 no lo escribe; quién lo pone en 1, sin leer.
+    // +8: con 1, el paso del caballo oscuro de este jinete saca doce 60f/0 (0x44468d) y lo vuelve a 0 (0x444758),
+    // sea cual sea. 0x511290 no lo escribe y 0x5140c0 lo pone en 0. Sólo lo pone en 1 la respuesta del A9 de las
+    // mascotas (0x421db0, 0x4220a8..0x4220c1), en el héroe y con su byte 4 en 0xfe (con 0xff, 2), sin portar.
     std::uint8_t byte8 = 0;
     // La acción en +0x111, la anterior en +0x112, el frame en +0x114 y la key anterior en +0x118: lo que
     // pone 0x4ea030.

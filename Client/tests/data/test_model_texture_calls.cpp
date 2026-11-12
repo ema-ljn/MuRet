@@ -144,16 +144,17 @@ TEST(ModelTextureCallsTest, TheSkillLoaderAsksForTheDarkHorseFourthAndTheRavenFi
     EXPECT_EQ(models, (std::vector<std::uint16_t>{0x145, 0x146, 0x147, 0xbf, 0xc0, 0xc5, 0x110}));
 }
 
-// 0x615f77, 0x615fab y 0x615fdc: los Fenrir, con Skill\, antes del 0x60d530(0x3b8) de 0x615700.
+// 0x615f77, 0x615fab y 0x615fdc: los Fenrir, con Skill\, y 0x616010: su rayo 0x14d, con Effect\, antes del
+// 0x60d530(0x3b8) de 0x615700.
 TEST(ModelTextureCallsTest, TheFenrirAskForTheirTexturesBeforeTheSkillBlock)
 {
     std::vector<std::uint16_t> models;
     for (const ModelTextureCall& call : FenrirTextureCalls())
     {
         models.push_back(call.model);
-        EXPECT_EQ(call.folder, "Skill\\") << std::hex << call.model;
+        EXPECT_EQ(call.folder, call.model == 0x14d ? "Effect\\" : "Skill\\") << std::hex << call.model;
     }
-    EXPECT_EQ(models, (std::vector<std::uint16_t>{0x14a, 0x14b, 0x14c}));
+    EXPECT_EQ(models, (std::vector<std::uint16_t>{0x14a, 0x14b, 0x14c, 0x14d}));
 }
 
 // 0x2901 y 0x2600 en todas: repitiendo y sin filtro.

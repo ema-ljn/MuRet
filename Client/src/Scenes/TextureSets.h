@@ -54,7 +54,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
 // Lo que cuelga de un jugador (0x509340 y 0x50ba30) pide además Shiny03 en 0x5fe (61d937) e Impack03 de
 // Object9 en 0x5ad (61e799), del mismo lazo sin ramas de 0x61ccb0 y con el mismo sampling.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 30> EffectTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 37> EffectTextureSet{{
     {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
     // 0x61d663: ShockWave en 0x6eb, la onda del galope del caballo en Icarus (0x44431b).
     {"Effect\\ShockWave.jpg", 0x6eb, TextureSetsDetail::LinearClamp},
@@ -71,6 +71,8 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 30> EffectTextureSe
     {"Effect\\Thunder01.jpg", 0x5ca, TextureSetsDetail::LinearRepeat}, // 61da58/61da62.
     {"Effect\\smoke01.jpg", 0x5f2, TextureSetsDetail::LinearClamp},
     {"Effect\\smoke02.tga", 0x5f3, TextureSetsDetail::LinearClamp},
+    // 0x61d7e5 (0x63b870, GL_LINEAR y GL_CLAMP): Explotion01 en 0x5ed, la explosión 5ed/0 del terremoto 0xfa.
+    {"Effect\\Explotion01.jpg", 0x5ed, TextureSetsDetail::LinearClamp},
     {"Effect\\clouds.jpg", 0x622, TextureSetsDetail::LinearClamp},
     {"Effect\\lightning2.jpg", 0x5d5, TextureSetsDetail::LinearClamp},
     {"Effect\\Spark01.jpg", 0x617, TextureSetsDetail::LinearClamp},
@@ -93,6 +95,14 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 30> EffectTextureSe
     // 0x61e7bd (0x63b870, GL_LINEAR y GL_CLAMP): cra_04 en 0x5ae, la textura (+0x8) de la 6f1/3 de las botas del
     // conjunto completo (0x544095).
     {"Effect\\cra_04.jpg", 0x5ae, TextureSetsDetail::LinearClamp},
+    // 0x61e55c..0x61e5f0 (0x63b870, GL_NEAREST y GL_CLAMP): eff_lighting en 0x68f, el pase 0x46 de la malla 1 de los
+    // Fenrir con la acción 4 (0x60282a), y eff_lightinga01..05 en 0x690..0x694, los cuadros del calco 0x14e (0x52d906).
+    {"Effect\\eff_lighting.jpg", 0x68f, TextureSetsDetail::NearestClamp},
+    {"Effect\\eff_lightinga01.jpg", 0x690, TextureSetsDetail::NearestClamp},
+    {"Effect\\eff_lightinga02.jpg", 0x691, TextureSetsDetail::NearestClamp},
+    {"Effect\\eff_lightinga03.jpg", 0x692, TextureSetsDetail::NearestClamp},
+    {"Effect\\eff_lightinga04.jpg", 0x693, TextureSetsDetail::NearestClamp},
+    {"Effect\\eff_lightinga05.jpg", 0x694, TextureSetsDetail::NearestClamp},
 }};
 
 // Recursos de los joints que ya crean los peces y pájaros: 61d858/61dab9/61dad8/61dce2. 61d5db sube

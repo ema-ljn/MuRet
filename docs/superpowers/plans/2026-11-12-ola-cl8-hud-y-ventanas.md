@@ -347,9 +347,16 @@ el hito 5 y la CL9.3.
 **Hito 4, hecho en parte** (2026-11-12, PR #327): la ventana, las cifras, el mundo angosto, el paso con levantar,
 soltar y equipar (`test_cursor_item.cpp`, `test_game_inventory_step.cpp`), vestir al héroe con sus derivados,
 MoveHero y las respuestas `24`, `28`, `2A`, `F3 13` y `F3 14` (04 § Mover y equipar ítems; Q-C470 a Q-C477, P-C71 y
-P-C72). Falta: el modelo de los ítems de la UI y el fondo de la caja del título (P-C70, con su alcance leído), lo que
-el inventario muestre del `26` y del `27` (sin leer) y el cable de los `C3 24` (P-C72 g). El cartel del set
-(`0x40e6f5`) es del hito 5.
+P-C72). Falta: el fondo de la caja del título (P-C70 b), lo que el inventario muestre del `26` y del `27` (sin leer)
+y el cable de los `C3 24` (P-C72 g). El cartel del set (`0x40e6f5`) es del hito 5.
+
+**El modelo de los ítems de la UI** (2026-11-12, rama `cl8-h4b`): el pase 3D de `0x5ac120` con `0x5e1480` y
+`0x5e0720` para el equipo, la grilla, el cursor y las ranuras rápidas, en el lote de los modelos entre los dos tramos
+del 2D (`Scenes/UiItemDrawing.h`, 06 § El inventario, Q-C478 a Q-C481, P-C70 a, P-C73 y P-C74). Probado con el
+inventario abierto, ítems de 1 × 3, 2 × 3 y 1 × 4 casillas en la grilla y un arma en el equipo, en Lorencia y en
+Devias, en 640 × 480 y en 1.024 × 768 (`test_game_inventory_hud.cpp`, `test_ui_item_drawing.cpp`), y en la escena
+con los modelos de Item.bmd en las tres resoluciones de `test_game_scene_viewports.cpp`. "El dibujo" queda abierto
+solo por el fondo del título.
 
 ### Hito 5: los tooltips y la ventana del personaje (CL8.4, ~50 KB)
 

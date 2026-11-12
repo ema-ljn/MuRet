@@ -25,6 +25,7 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/TooltipLines.h"
+#include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -990,11 +991,9 @@ Core::Expected<void, std::string> DrawTheAg(Frame& frame)
 // ---------------------------------------------------------------------------------------------------------------
 // 27. El 3D de la UI (0x5ac120) y 28. las grillas (0x5f7840).
 
-Core::Expected<void, std::string> DrawTheUi3D(Frame& frame)
+Core::Expected<void, std::string> DrawTheUi3DItems(Frame& frame)
 {
     const UI::PanelState& state = frame.runtime.panels;
-    // 0x5ac120 cierra el 2D y arma su proyección de 1° con la cámara de 0x7d366f0 y la profundidad. MuRet no dibuja
-    // los modelos de los ítems de la UI (08, P-C70): saca sus rand() y no corta el lote del 2D.
     // 0x41b9e0: el ítem de la ventana de las misiones.
     if (state.delegated.quest == 1 || state.delegated.quest == 2)
         return Core::Unexpected(std::string("0x41b9e0: el ítem de la ventana de las misiones es de la CL9.1"));
@@ -1006,7 +1005,8 @@ Core::Expected<void, std::string> DrawTheUi3D(Frame& frame)
     // 0x5ac1f8: el ítem del cursor (con 0x78abb14 en 0 y 0x78aba60 distinto de 2, que MuRet no tiene).
     if (auto cursor = DrawTheCursorItem(frame.context); !cursor.HasValue())
         return cursor;
-    // 0x5ac22a..0x5ac26d: las tres ranuras rápidas, cada una con 0x5e1480(208 + 31i, 454, 20, 20, tipo, +4, 0, 0, 0).
+    // 0x5ac209..0x5ac267: las tres ranuras rápidas, cada una con 0x5e1480((float)(208 + 31i), 454, 20, 20, tipo, +4, 0,
+    // 0, 0).
     const std::span<const World::ItemState, InventoryCellCount> cells(frame.context.world.Inventory().cells);
     for (int slot = 0; slot < 3; ++slot)
     {
@@ -1018,10 +1018,23 @@ Core::Expected<void, std::string> DrawTheUi3D(Frame& frame)
             continue;
         const World::ItemState& item = cells[*found.Value()];
         const auto type = static_cast<std::int32_t>(static_cast<std::int16_t>(item.id));
-        if (auto drawn = DrawUiItem(frame.context, type, item.scalar1Low, 0, 0); !drawn.HasValue())
+        const UiItemBox box{.x = static_cast<float>(208 + 31 * slot), .y = 454.0f, .width = 20.0f, .height = 20.0f};
+        if (auto drawn = DrawUiItem(frame.context, box, type, item.scalar1Low, 0, 0, false); !drawn.HasValue())
             return drawn;
     }
     return {};
+}
+
+// 0x5ac120 cierra el 2D y arma su proyección de 1° de la pantalla entera, con la cámara en el origen y la
+// profundidad prendida: el pase de los ítems (Scenes/UiItemDrawing.h), que el primero que dibuja abre. Al final
+// (0x5ac269..0x5ac2bb) vuelve a poner la cámara del mundo sin su giro en 0x7d366f0 y en 0x7d36834 (P-C73) y abre el
+// 2D otra vez.
+Core::Expected<void, std::string> DrawTheUi3D(Frame& frame)
+{
+    auto drawn = DrawTheUi3DItems(frame);
+    if (frame.context.uiItems != nullptr)
+        CloseUiItemPass(*frame.context.uiItems);
+    return drawn;
 }
 
 // 0x5f7840.

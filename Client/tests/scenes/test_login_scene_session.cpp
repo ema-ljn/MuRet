@@ -9,6 +9,9 @@
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Data/Models/Model.h"
+#include "Data/Models/PlayerModels.h"
+#include "Data/Terrain/TerrainHeights.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Network/Connection.h"
@@ -20,6 +23,8 @@
 #include "Protocol/Connection/ServerList.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Render/TextureSlot.h"
 #include "Render/SpriteVertex.h"
 #include "Scenes/GameData.h"
@@ -28,8 +33,11 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneTextures.h"
 #include "Scenes/TextureSets.h"
+#include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
 #include "UI/LoginWindow.h"
 #include "UI/MenuBar.h"
+#include "UI/MessageArea.h"
 #include "UI/NoticeWindow.h"
 #include "UI/ServerListWindow.h"
 #include "UI/Widget.h"
@@ -42,6 +50,7 @@
 #include "support/GateFiles.h"
 #include "support/ItemFiles.h"
 #include "support/ItemSetFiles.h"
+#include "support/JpegVectors.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSessionEventSink.h"
 #include "support/RecordingSink.h"
@@ -51,11 +60,13 @@
 #include "support/ScenePrinters.h"
 #include "support/SessionPackets.h"
 #include "support/TemporaryFolder.h"
+#include "support/TerrainFiles.h"
 #include "support/TestGameServer.h"
 #include "support/UiInput.h"
 #include "Scenes/LoginModels.h"
 #include "support/FixedRandom.h"
 #include "support/LoginLogoFiles.h"
+#include "support/PlayerActors.h"
 
 #include <gtest/gtest.h>
 
@@ -66,6 +77,7 @@
 #include <initializer_list>
 #include <iterator>
 #include <map>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -179,6 +191,11 @@ std::map<std::size_t, std::string> SessionTexts()
             {451, "Clave"},
             {460, "sin pvp %s-%d"},
             {461, "servidor %s-%d"},
+            {470, "conectando"},
+            {471, "espere"},
+            {472, "mirando la cuenta"},
+            {473, "espere otra vez"},
+            {481, "conectado a %s:%d"},
             {560, "a tope"},
             {561, "ocupado"},
             {562, "libre"},
@@ -201,10 +218,21 @@ int MiddleY(const Rect& rect)
     return rect.y + rect.height / 2;
 }
 
+class LetterMeasure final : public Client::Render::Text::ITextMeasure
+{
+public:
+    [[nodiscard]] Client::Render::Text::TextExtent Measure(Client::Render::Text::FontKind /*font*/,
+                                                           std::string_view text) const override
+    {
+        return {static_cast<int>(text.size()) * 6, 13};
+    }
+};
+
 struct Harness
 {
     // Con `withTheCloth`, lo global de la tela en el contexto (el viento, el contador de pasos y el rand()).
-    explicit Harness(bool withTheCloth = false)
+    // Con `world`, el chat del mundo y un medidor de seis píxeles por byte.
+    explicit Harness(bool withTheCloth = false, Client::Scenes::WorldState* world = nullptr)
         : log(sink, LogLevel::Debug), connection(socket, IdentityObfuscation::Shared(), clock, log, 1),
           session(connection, clock, log, GameClientKeys(), SessionSettings{ServerAddress{"10.0.0.1", 44405}},
                   eventSink)
@@ -222,10 +250,13 @@ struct Harness
         {
             data = std::move(loaded).Value();
         }
-        scene.emplace(
-            SceneContext{
-                .dataRoot = folder.Path(), .textures = store, .log = log, .cloth = withTheCloth ? &cloth : nullptr},
-            data, models, &session, "0.0.0", FixedSeed);
+        scene.emplace(SceneContext{.dataRoot = folder.Path(),
+                                   .textures = store,
+                                   .log = log,
+                                   .cloth = withTheCloth ? &cloth : nullptr,
+                                   .world = world,
+                                   .textMeasure = &letters},
+                      data, models, &session, "0.0.0", FixedSeed);
     }
 
     // Lo de un frame del GameLoop con un paso: la sesión, el paso de la escena y los flancos.
@@ -248,7 +279,8 @@ struct Harness
     // Enter, el saludo del CS y la lista: la ventana de la lista está abierta.
     void ReachTheList(const std::vector<std::byte>& list)
     {
-        ASSERT_TRUE(scene->Enter().HasValue());
+        const auto entered = scene->Enter();
+        ASSERT_TRUE(entered.HasValue()) << entered.Error();
         socket.reads = {Hello()};
         Step();
         ASSERT_EQ(session.State(), SessionState::WaitingServerList);
@@ -403,6 +435,7 @@ struct Harness
     }
 
     TemporaryFolder folder{"login-scene-session"};
+    LetterMeasure letters;
     FakeTextureStore store;
     FakeSocket socket;
     FakeClock clock;
@@ -605,6 +638,68 @@ TEST(LoginSceneSessionTest, TheLoginWindowShowsWithTheGameServer)
 
     EXPECT_EQ(Harness::QuadsOf(events, LoginBackgroundSlot), 1u);
     EXPECT_TRUE(Harness::Drew(events, "servidor Veinte-1"));
+}
+
+// El área de mensajes del login: el clic en un servidor deja el 470 y el 471 (0x64630f y 0x646320), la respuesta al F4
+// 03 el 481 con la dirección y el puerto en sus marcas (0x4e33d0) y el envío de la cuenta el 472 y el 473 (0x6427d9 y
+// 0x6427ea), todos como sistema y sin nombre.
+TEST(LoginSceneSessionTest, TheLoginWritesItsStepsInTheMessageArea)
+{
+    Client::Scenes::WorldState world;
+    Harness tested(false, &world);
+    // El mundo 56 del login con un terreno plano, para que su personaje tenga dónde pararse (0x511b9f).
+    const std::filesystem::path& root = tested.folder.Path();
+    Client::Tests::WriteSceneFile(root, "World56/TerrainHeight.OZB",
+                                  std::vector<std::byte>(Client::Data::Terrain::TerrainHeightsSize));
+    Client::Tests::WriteSceneFile(root, "World56/TerrainLight.OZJ",
+                                  Client::Tests::OzjOf(Client::Tests::ReadJpegVector("light-256.jpg")));
+    Client::Tests::WriteSceneFile(root, "World56/EncTerrain56.att",
+                                  Client::Tests::EncryptTerrainAttributes(
+                                      Client::Tests::PlainTerrainAttributes(56, Client::Tests::AttributeCells::Bytes)));
+    Client::Tests::WriteSceneFile(root, "World56/EncTerrain56.map",
+                                  Client::Tests::EncryptK16(Client::Tests::PlainTerrainMapping(56)));
+    for (const char* texture : {"Interface/accept_box01.OZJ", "World56/TileGrass01.OZJ", "Object8/drop01.OZJ"})
+        Client::Tests::WriteSceneFile(root, texture,
+                                      Client::Tests::OzjOf(Client::Tests::ReadJpegVector("baseline-420.jpg")));
+    const Client::UI::MessageAreaState& area = world.Runtime().chat.area;
+    const auto row = [&area](std::int32_t back) -> const Client::UI::MessageAreaRow&
+    { return area.rows[static_cast<std::size_t>(area.count - back)]; };
+
+    tested.models.Set(Client::Data::Models::PlayerSkeletonModel, Client::Data::Models::Model{},
+                      Client::Tests::PlayerActionsSkeleton(), {});
+    const auto entered = tested.scene->Enter();
+    ASSERT_TRUE(entered.HasValue()) << entered.Error();
+    // Sin el cuervo del personaje del login: esta biblioteca no lo tiene.
+    for (auto& actor : world.Actors())
+        actor.darkSpirit.reset();
+    tested.socket.reads = {Hello()};
+    tested.Step();
+    tested.socket.reads = {ServerList({400})};
+    tested.Step();
+    ASSERT_EQ(tested.session.State(), SessionState::ChoosingServer);
+    const ServerListLayout layout = tested.ListLayout(1);
+    tested.ClickOn(layout.groupButtons[0]);
+    tested.ClickOn(layout.serverButtons[0]);
+    ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingServerAddress);
+    EXPECT_EQ(row(2).text, "conectando");
+    EXPECT_EQ(row(1).text, "espere");
+    EXPECT_EQ(row(1).name, "");
+    EXPECT_EQ(row(1).type, Client::UI::SystemMessage);
+
+    tested.socket.reads = {AddressReply(GameHost, GamePort)};
+    tested.Step();
+    EXPECT_EQ(row(1).text, "conectado a 10.0.0.2:55901");
+    tested.Step();
+    EXPECT_EQ(row(1).text, "conectado a 10.0.0.2:55901") << "una vez por dirección";
+    EXPECT_EQ(row(2).text, "espere");
+
+    tested.socket.reads = {GameHello(1, ClientVersion)};
+    tested.Step();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+    tested.TypeTheCredentials();
+    EXPECT_EQ(row(2).text, "mirando la cuenta");
+    EXPECT_EQ(row(1).text, "espere otra vez");
 }
 
 // Lo tecleado va a la cuenta, Tab pasa a la clave y Enter manda: la sesión manda el login con la

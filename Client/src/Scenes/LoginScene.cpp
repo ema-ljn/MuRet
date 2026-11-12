@@ -3,6 +3,7 @@
 #include "Render/Models/Skinning.h"
 #include "Scenes/FaunaDrawing.h"
 
+#include "App/ServerAddress.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "App/WindowState.h"
@@ -69,6 +70,7 @@
 #include "UI/GameText.h"
 #include "UI/LoginWindow.h"
 #include "UI/MenuBar.h"
+#include "UI/MessageArea.h"
 #include "UI/Notices.h"
 #include "UI/ServerListModel.h"
 #include "UI/ServerListWindow.h"
@@ -190,6 +192,13 @@ constexpr int TextBottom = 479;
 constexpr int TextSplit = 335;
 
 constexpr std::string_view VersionMark = "%s";
+// Los textos del área de mensajes: el clic en un servidor (0x64630f y 0x646320), el envío de la cuenta (0x6427d9 y
+// 0x6427ea) y la respuesta al F4 03 (0x4e33d0).
+constexpr std::size_t ConnectingText = 470;
+constexpr std::size_t PleaseWaitText = 471;
+constexpr std::size_t CheckingAccountText = 472;
+constexpr std::size_t WaitAgainText = 473;
+constexpr std::size_t ConnectedText = 481;
 
 // El lugar de un grupo sin botón para el título: solo llega con --auto-login, que elige el primero
 // de la lista aunque la ventana no lo muestre. Cualquiera que no sea el 4 da lo mismo (IsNonPvp).
@@ -359,6 +368,7 @@ Core::Expected<void, std::string> LoginScene::Enter()
     m_login.Close();
     m_notice.Close();
     m_seen.reset();
+    m_sawTheAddress = false;
     m_quit = false;
     if (m_session != nullptr)
     {
@@ -652,6 +662,11 @@ void LoginScene::StepTheScene(const Input::InputState& input, bool connecting)
     }
     // Lo que cambió con el Poll de este frame.
     FollowSession();
+    NoticeTheServerAddress();
+    if (m_failure)
+    {
+        return;
+    }
     // Con la orden de cerrar el juego, el paso no atiende nada, ni el mundo: el original no corre otro
     // después del WM_DESTROY (Q-C106), y un Esc en la cuenta volvería a conectar.
     if (m_session->State() == App::SessionState::QuitOrdered)
@@ -943,12 +958,44 @@ void LoginScene::FollowSession()
     }
 }
 
+void LoginScene::NoticeTheServerAddress()
+{
+    const std::optional<App::ServerAddress> address = m_session->GameServer();
+    const bool fresh = address.has_value() && !m_sawTheAddress;
+    m_sawTheAddress = address.has_value();
+    if (!fresh)
+    {
+        return;
+    }
+    // sprintf(481, dirección, puerto): el texto de esta edición no tiene marcas.
+    const std::string port = std::to_string(address->port);
+    const std::array<std::string_view, 2> arguments{address->host, port};
+    AddTheMessage(ConnectedText, arguments);
+}
+
+void LoginScene::AddTheMessage(std::size_t index, std::span<const std::string_view> arguments)
+{
+    if (m_context.world == nullptr || m_context.textMeasure == nullptr || m_failure)
+    {
+        return;
+    }
+    const std::string text = UI::PlaceArguments(UI::TextAt(m_texts, index).value_or(std::string_view{}), arguments);
+    if (auto added =
+            AddGameMessage(m_context.world->Runtime(), *m_context.textMeasure, m_screen, {}, text, UI::SystemMessage);
+        !added.HasValue())
+    {
+        m_failure = added.Error();
+    }
+}
+
 void LoginScene::OnServerClick(const UI::ServerClick& click)
 {
     switch (click.kind)
     {
     case UI::ServerClick::Kind::Chosen:
         m_session->ChooseServer(click.code);
+        AddTheMessage(ConnectingText);
+        AddTheMessage(PleaseWaitText);
         return;
     case UI::ServerClick::Kind::Full:
         m_notice.Open(UI::ServerFullNotice);
@@ -962,6 +1009,8 @@ void LoginScene::OnLoginRequest(const UI::LoginRequest& request)
     {
     case UI::LoginRequest::Kind::Submit:
         m_session->SubmitCredentials(request.credentials);
+        AddTheMessage(CheckingAccountText);
+        AddTheMessage(WaitAgainText);
         return;
     case UI::LoginRequest::Kind::EmptyAccount:
         m_notice.Open(UI::EmptyAccountNotice);

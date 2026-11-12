@@ -553,7 +553,7 @@ Core::Expected<void, std::string> DrawTheDurability(Frame& frame, std::int32_t t
             bool shown = true;
             if (durability == 0)
             {
-                warning = 8;
+                warning = std::uint8_t{8};
                 hud.textColors = Render::Text::TextColors{.text = 0xffffffffu, .background = 0x800a0affu};
             }
             else
@@ -564,17 +564,17 @@ Core::Expected<void, std::string> DrawTheDurability(Frame& frame, std::int32_t t
                 const auto limit = static_cast<double>(static_cast<float>(maximum));
                 if (current <= limit * static_cast<double>(0.2f))
                 {
-                    warning = 7;
+                    warning = std::uint8_t{7};
                     hud.textColors.text = 0xff0a0affu;
                 }
                 else if (current <= limit * static_cast<double>(0.3f))
                 {
-                    warning = 6;
+                    warning = std::uint8_t{6};
                     hud.textColors.text = 0xff009cffu;
                 }
                 else if (current <= limit * static_cast<double>(0.5f))
                 {
-                    warning = 5;
+                    warning = std::uint8_t{5};
                     hud.textColors.text = 0xff00e4ffu;
                 }
                 else
@@ -593,7 +593,7 @@ Core::Expected<void, std::string> DrawTheDurability(Frame& frame, std::int32_t t
         if (static_cast<std::uint16_t>(frame.own.agility * 2) < item.word20 ||
             static_cast<std::uint16_t>(frame.own.energy * 2) < item.word22 ||
             static_cast<std::uint16_t>(frame.own.word2a + frame.own.strength) < item.word1e)
-            warning = 3;
+            warning = std::uint8_t{3};
         if (warning && !frame.context.projecting)
             item.warning = *warning;
     }

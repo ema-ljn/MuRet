@@ -614,7 +614,8 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   alpha < 0,99 `0x620a00(1)`, si no opaca, y `0x2000` sin profundidad. El bucle de las UV va por
   las normales y, con más de 15.000 en una malla, escribiría una de más (Q-C96). Las filas de `0x4`,
   `0x8` y `0x1000` son las verificadas arriba (y `0x1000` lleva UV, *verificado*: la traza dibuja
-  la 141 con `glTexCoord`); las otras cinco, *estáticas*.
+  la 141 con `glTexCoord`); las otras cinco, *estáticas*. El `0x4000` lo usa la cáscara de cromo del 10 de
+  `0x6002e0` ([El caballo oscuro](#el-caballo-oscuro); en MuRet, `ShinePass::Chrome5`).
 - **Cuántos pases: el nivel.** `0x60b3d0` saca el nivel de `(arg >> 3) & 0xf` (con casos por
   modelo) y lo recorta a 2 · `DAT_006c9dcc` + 5 si ese byte de las opciones (4 en la `.data`; lo
   escriben `0x623e70` y `0x644730`) es menor que 4. De los casos por modelo, a un personaje le tocan
@@ -1194,18 +1195,62 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   aliento (`0x5f2`, o `0x607` en el mapa 7, que nace con la luz en 1; antes este documento lo daba como polvo, [Los efectos del login](#los-efectos-del-login)), que `0x53fe70` pone en el arreglo de `0x743a198` (de `0x78` bytes; lo mueve `0x5446e0` desde
   `0x634c60` y lo dibuja `0x548550` desde `0x6350b0`), desde (50; −4; 0) en el hueso 27 (`0x4ec110` con
   `0x68b1d2c`, sin el origen), con la luz 3 de `+0xf4`. En el paso, ese buffer tiene la pose del
-  último modelo que posó el dibujo anterior, que no tiene por qué ser el caballo (Q-C401); con la 3,
-  `0x52e470` con el héroe publicado y `0x4453e0` (que sube `+0x8e` y, con el contador de pasos
-  `0x7d3a0f0` múltiplo de 10, crea un `0x6eb`); con `jinete + 8` en 1, doce `0x60f` (`0x530860`, de a
-  tres en cuatro giros), y `+8` vuelve a 0; el byte vivo pasa a ser el del jinete
-  (`0x44475c..0x444764`). Y avanza con `0x4ec200` a `+0xd8`, con la acción en `+0xa0` del modelo.
+  último modelo que posó el dibujo anterior, que no tiene por qué ser el caballo (Q-C401). Con la 3 (el
+  jinete en `0x53`, el terremoto del Dark Lord), `0x52e470` con el héroe publicado (`0x743a170`) de dueño: del
+  punto (60; 0; 0) del hueso 9 del buffer global (`0x68b19cc`) al del mismo hueso, en blanco y con el tipo, el
+  largo y la key en 0; y, si la acción sigue en 3, `0x4453e0` (**el terremoto**, abajo). Con `jinete + 8` en 1
+  (sólo el héroe puede tenerlo: lo pone `0x421db0` con el A9 de las mascotas, 1 con `0xfe` y 2 con `0xff`,
+  Q-C436), doce `0x60f`/0 (`0x44469d..0x44474c`): cuatro vueltas que suben la z de los ángulos 90
+  (`0x6b8948`) desde 0, giran (0; 50; 0) con esa z y le suman la posición del caballo, cada eje en float, y
+  en cada vuelta tres `0x530860(0x60f, punto, punto, ángulos, 0, caballo, 40, 2, 0, 0, −1)` iguales: nacen
+  con la luz del caballo (`+0xf4`, 3) y, con el ancho en 40, el paso no vuelve a leer al caballo (Q-C435);
+  tres `rand()` cada uno, ninguno con el pool lleno. En la celda segura el paso no llega acá y el 1 queda
+  para el primer paso afuera (Q-C437). Después `+8` vuelve a 0 (`0x444758`, también el 2) y el byte vivo
+  pasa a ser el del jinete (`0x44475c..0x444764`). Y avanza con `0x4ec200` a `+0xd8`, con la acción en
+  `+0xa0` del modelo.
+- **El terremoto** (`0x4453e0(caballo, modelo)`, con la acción 3). Sube `+0x8e` (un byte; lo borra sólo la
+  rama de las otras acciones del jinete, la que da la 0, en `0x44452e`) y, con `0x7d3a0f0` múltiplo de 10
+  (el resto con signo de `idiv`), la onda `0x6eb`/0 en la posición y los ángulos del caballo con su luz:
+  vida 30 y escala 20, sin `rand()` (`0x51f4ad`); su paso le resta 1 a la escala (`0x52c74b`) y se dibuja en
+  el piso como la del galope (`0x52e0d2`). Con el frame (`+0x114`) en [8; 9,5] (`fcomp` con `test ah,1` y
+  `0x41`: un NaN cae afuera):
+  - con la cuenta impar, seis piedras: el giro arranca en `rand() % 360` y suma 60 (`0x6b86cc`) antes de
+    cada una; (0; (cuenta / 2) · 150; 0) (`0x6b87ac`) girado con esa z más la posición del caballo, cada
+    eje en float, y `0x518cf0(0x118 + (rand() & 1), punto, ángulos y luz del caballo, 0, 0, −1, 0, 0, 0,
+    0)`, con el `rand()` del tipo después del giro y antes del alta;
+  - siempre, el temblor de la cámara: `((rand() % 3) − 3) · 0,7f` (`0x6b8a5c`) en `0x7d325c8`.
+
+  Fuera de la ventana, con la cuenta en `0x13`, `0x518cf0(0xfa, posición, ángulos, luz, 0, caballo, −1, 0,
+  2, 0, 0)` (el terremoto con el caballo de dueño y el estado 2) y la cuenta pasa a `0xfd`, así que no
+  vuelve a llegar a `0x13` hasta que otra acción la borre.
+  - **Las piedras** `0x118` y `0x119` (`Skill\groundStone` y `groundStone2`, que `0x615700` carga en
+    `0x61641d` y `0x616442`: 2 mallas, `DhorSS.jpg` y `DhorSS_R.jpg`, 3 huesos y una acción de 5 keys).
+    Su alta (`0x51cc6b` y `0x51cd1b`), después del prefijo común, lee el atributo de su celda con
+    `0x5f8290(ftol(x · 0,01f), ftol(y · 0,01f))`, que es `y · 256 + x` sin la máscara de `0x5f82a0`
+    (Q-C431): con el bit `0x04`, el `0x08` o el `0x10` deja el lugar escrito con el byte vivo en 0 y sin
+    `rand()`. Si no, vida 40, la escala `rand() % 30 · 0,01f + 1,2f` (`0x118`) o `+ 1` (`0x119`), +0xd8 en
+    0,3f y el yaw `rand() % 360`; `0x4ea030(efecto, 0)` no hace nada (Q-C432). Su paso (`0x5275ca`): con
+    la vida entre 33 y 36, el polvo `0x5f2`/11 en (x + 60; y − 60; z + 50) con la luz (1; 0,8f; 0,6f) y
+    escala 2, y después la piedrita `0xc8 + (rand() & 1)` con el subtipo 10; con la vida bajo 8, el alpha
+    por 0,7692308f y la luz de las mallas por 0,5f; siempre la luz dinámica (0,79f; 0,72f; 0,49f) de
+    radio 2 (`0x5f9780`). Se dibujan con el genérico (`0x602e90`). Sus texturas se piden dos veces
+    (Q-C434) y `0x615700` escribe un byte de su acción 0 que ya estaba en 0 (Q-C430).
+  - **El polvo `0x5f2`/11** nace (`0x541d81`) con vida 50, siete `rand()` (x e y `(rand() & 63) − 32`, z
+    `(rand() & 63) + 32`, la inclinación `rand() % 90 − 45`, el yaw y el giro `rand() % 360` y la caída
+    `−((rand() & 7) + 40)`) y la luz de la creación guardada; su paso (`0x546111`) le da la luz `vida ·
+    0,02f` por esa luz, la velocidad por 0,4f, la escala más 0,05f y la z menos 1; se dibuja con el
+    billboard común.
+  - **La piedrita `0xc8`/`0xc9` con el subtipo 10** nace por `0x51b432` con cinco `rand()`: el empuje
+    `((rand() & 255) + 64) · 0,2` (el double `0x6ba1e8`) en y, la vida `(rand() & 15) + 32`, la escala
+    `((rand() & 3) + 15) · 0,05f`, el yaw `rand() % 360` y la caída `(rand() & 15) + 28`; su paso es el del
+    subtipo 0 sin el `rand() % 10` del fuego (`0x523ad5`).
 - **Su dibujo** (`0x6350b0`: `0x510d00`, los personajes; `0x4453b0`, los ayudantes; `0x6046a0`, los
   objetos; en el juego, desde `0x637508`, después de los peces y antes de las hojas).
   `0x4453b0` llama a `0x445260(lugar, 0)` con los 10. `0x445260` prende `+0x16c` con el frustum
   (`0x5fba90`, en su lugar por 0,01, −20) y, visto y con el jinete `0x20a` (o el tipo `0x1c12`), le
   pone la escala 1,6 en la escena 2, 1 en la 4 y, en las demás, 1 salvo a los de Fenrir (`0x14a` a
-  `0x14c`), y llama a `0x602e90(caballo, 0, 0, 0)` (10 con `+0x78 & 0x4000` del jinete, que
-  `0x6002e0` lleva por otro camino desde `0x60033c`). Después saca `rand() % 30 + 70` (`0x445336`),
+  `0x14c`), y llama a `0x602e90(caballo, 0, 0, 0)` (10 con `+0x78 & 0x4000` del jinete: **la cáscara de
+  cromo**, abajo). Después saca `rand() % 30 + 70` (`0x445336`),
   una luz que solo usa el `0x1c12` (con `0x5491e0`), aunque `0x5ffdf0` no lo haya dibujado (Q-C223).
   `0x5ffdf0`, en los mapas `0x12` a `0x17`, le baja el alpha con `+0x1a1` del héroe publicado
   (`0x5ffe09`); no lo dibuja con el alpha por debajo de 0,01; si no, con `+0x78 & 0x1000` del jinete
@@ -1218,6 +1263,28 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   como la del personaje, con la mezcla normal y sin culling (de `0x620a00`), y sin alpha test, sin
   textura y sin escribir la profundidad (`0x620910(0)` y `0x6208b0`, que `0x620890` vuelve a prender
   al final).
+- **La cáscara de cromo** (el 10 de `0x6002e0`, `0x60033c..0x600435`), con `+0x78 & 0x4000` del jinete en el
+  ayudante (`0x445310..0x445328`) o del dueño en el cuervo (`0x420e11` → `0x4182f0(10)`). `0x5ffdf0` no lee el
+  cuarto argumento: la pose, el alpha de Chaos Castle, el `0x1000` y la luz del terreno son los de siempre.
+  `0x6002e0` mira el 10 en `0x600332`, antes de cualquier caso por tipo:
+  1. recorre los 400 lugares del pool (`0x600343..0x600399`): si uno es el `+0x108` del objeto, no es el héroe,
+     el asedio está prendido (`0x4294b0`), tiene `+0x78 & 0x4000` y su `+0x370` no es 1, sale sin dibujar
+     (en el cuervo `+0x108` queda en 0, así que nunca se esconde, Q-C440);
+  2. pone el color del modelo en blanco (`0x60039d`);
+  3. malla por malla, sin `RenderBody`, `0x4ecc30(malla, 0x4040, 0,5f, blendMesh, luz, U · 8, V · 2, 0x620)`,
+     y vuelve: ni sombra ni nada del tipo (ni el cromo del cuello del caballo, ni los efectos y los `rand()`
+     del Fenrir, ni las mallas 3 y 2 del cuervo).
+
+  El `0x4000` es el pase de brillo de la tabla de arriba, con `Effect\Chrome02` forzado y aditivo: no usa la
+  luz por vértice ni el corrimiento U/V, así que blendMesh, luz, U · 8 y V · 2 no se miran, y el alpha va
+  fijo en 0,5, no el `+0x174` (Q-C438). Con ese 0,5 cada malla multiplica en el lugar el color del modelo
+  (Q-C95): la k-ésima que dibuja va en 0,5^(k+1) y el modelo compartido queda así hasta el próximo `0x5ffce0`
+  (Q-C439). Una malla sin triángulos, con la textura `0x12d` o con N en el script sale de `0x4ecc30` antes de
+  tocar el color (`0x4ecc5b`). Lo ponen en `+0x78` los handlers que llaman a `0x4e6380` (el `0x12`, el `0x13`, el
+  `0x1f`, el `0x45`, el `0x07` con el byte 3 en 1 y el `0x68`) y lo sacan `0x4e6910` y `0x4fb9e0` (al morir);
+  todos de la CL9: en MuRet nadie lo escribe todavía. MuRet: `Scenes::DrawChromeShell` (`CharacterDrawing`),
+  `Render::Models::ShinePass::Chrome5`, `DrawTheShell` y `HiddenInTheSiege` en `HelperTable.cpp`, y la rama de
+  `DrawGameRaven`.
 - **La luz por vértice.** Con `+0x44` del modelo (la copia de `+0xe8`), `0x4ebc80` deja por cada
   normal girada por su hueso max(0,2; 0,8 · L·n + 0,4), con L = (1,3; 0; 2): la rama de
   `DAT_006c8818`, que vale 1 desde el `.data` y nadie escribe (Q-C115). El ángulo con que se gira L
@@ -1256,9 +1323,13 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   es de `World::Particles` (el alta, el paso con el alto de su textura por `ParticleTextureHeightsOf` y
   el dibujo), y `Effect\ShockWave.jpg` y `Effect\smoke02.tga` suben con `EffectTextureSet`. Un hueso del
   buffer global que ningún dibujo escribió todavía es la matriz en cero de la `.bss` (200 huesos, hasta
-  `0x68b3d9c`), y el punto sale del origen (`0x4442b4` y `0x44459d`, Q-C401). Cortan con error, después de
-  los `rand()` que el original saca antes, una partícula que no se puede crear, la acción 3, el
-  `+8` del jinete y el dibujo con `+0x78 & 0x4000`; los mapas `0x12` a `0x17` bajan el alpha en el dibujo. En el
+  `0x68b3d9c`), y el punto sale del origen (`0x4442b4` y `0x44459d`, Q-C401). La acción 3 va a `CreateRibbon`
+  (la cinta) y a `ShakeTheEarth` (`0x4453e0`, con `HelperStepContext::logicSteps` y `cameraShake`; las piedras
+  con `World::ModelEffects::CreateGroundStone` y el atributo de la celda de `UnmaskedCellAttribute`, la onda con
+  `CreateStompShockWave`); el `+8` del jinete, a `RaiseTheOrbits` (`CreateFaunaJoint` con
+  `JointOwnerKind::Helper`, y `HelperState::light`); el dibujo con `+0x78 & 0x4000`, a `DrawTheShell`. Corta con
+  error, después de los `rand()` que el original saca antes, una partícula que no se puede crear; los mapas
+  `0x12` a `0x17` bajan el alpha en el dibujo. En el
   juego lo crea `0x5bc740` con el `0x1a04` en el lugar 8 (desde la auditoría del cierre de la CL7, `0x4225d0` ya no
   corta, ver [el F3 10](#el-f3-10-el-inventario)); los demás que lo crean no están portados. Desde que los ítems del
   piso no cortan siempre (`0x6374fe`), `DrawHelpers` corre en el juego. La selección crea los suyos con `0x5139f0` en la misma tabla; el del login sigue en `LoginScene` (P-C47).
@@ -1370,7 +1441,7 @@ tipo.
   demás mascotas fuera de la zona segura va a `World::ModelEffects::CreatePetSummon`, su paso a
   `Scenes::StepPetSummon` (desde `GameScene::StepTheModelEffects`, como el `5ac/3`) y sus joints a
   `CreateFaunaJoint` y `StepJoints`. Cortan con error lo del caballo (una partícula que no se puede crear, un hueso
-  más allá de los 200 del buffer global, `+0x78 & 0x4000` del jinete en el dibujo). Pruebas: `HelperTableTest` (`TheUniriaFollowsItsRiderAndRaisesTheDustOfItsGallop`,
+  más allá de los 200 del buffer global); con `+0x78 & 0x4000` del jinete, la cáscara de cromo. Pruebas: `HelperTableTest` (`TheUniriaFollowsItsRiderAndRaisesTheDustOfItsGallop`,
   `TheFenrirTakesItsGaitFromTheRider`, `InIcarusTheFenrirRaisesAWaveAndPuffsFromTwoBones`,
   `TheGuardianAngelSparklesAndFliesWithItsVelocity`, `TheUniriaAndTheDinorantDrawWithTheLightOfTheTerrain`,
   `TheDrawScaleDependsOnTheSceneAndOnTheFenrir`, `TheGuardianAngelDrawsItsBlendMeshAndLeavesItsGlow`,
@@ -5268,7 +5339,8 @@ frame del original:
   `0x5ffdf0` (el alpha de Chaos Castle con `+0x1a1` del héroe y, por encima de 0,01, la pose con la luz
   del buffer dinámico) y `0x6002e0`: las mallas 3 y 2 y la sombra sobre la altura de `0x5f93c0`, que no
   va en los mapas 10, 24 a 29 y 36 y va con alpha 0,2 en el 7 (`0x6009a9..0x6009e5`). Con `+0x78 & 0x4000`
-  del dueño, `0x4182f0` recibe 10 y `0x6002e0` corta en `0x60033c`; `0x418920` corta en los estados 5 y 6
+  del dueño, `0x4182f0` recibe 10 y `0x6002e0` lo dibuja como la cáscara de cromo de [El caballo
+  oscuro](#el-caballo-oscuro) (sin sombra ni alturas, Q-C440); `0x418920` corta en los estados 5 y 6
   (`0x418957`, las órdenes del A7). Se dibuja como lo dejó el paso, igual que el personaje, y en un frame
   del original guarda la pose para la chispa.
 

@@ -11,6 +11,7 @@
 #include "Scenes/GameProjection.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
 #include "UI/Widget.h"
 #include "support/RecordingTextDrawer.h"
 
@@ -498,7 +499,8 @@ TEST_F(ChatBubbleDrawTest, ABubbleWithoutOwnerIsCut)
     EXPECT_NE(drawn.Error().find("0x5a90b2"), std::string::npos);
 }
 
-// 0x557650 lee dónde quedó el globo: el clic derecho sobre uno ajeno llega al corte del susurro.
+// 0x557650 lee dónde quedó el globo: antes del dibujo el derecho no lo toca; después, el derecho sobre uno ajeno
+// llega al susurro (0x5577a2).
 TEST_F(ChatBubbleDrawTest, TheRightClickOnADrawnBubbleReachesTheWhisper)
 {
     ActorState& owner = Actor(4, "Tero", glm::vec3(100.0f, 0.0f, 10.0f));
@@ -510,11 +512,14 @@ TEST_F(ChatBubbleDrawTest, TheRightClickOnADrawnBubbleReachesTheWhisper)
     m_world->Actors()[0].safeZone = 1;
     const Client::Scenes::ChatBubbleStepInput input{.mouseX = 210, .mouseY = 100, .screen = Screen640};
     ASSERT_TRUE(Client::Scenes::StepTheChatBubbles(*m_world, input).HasValue());
+    EXPECT_TRUE(runtime.ui.rightClick);
+    EXPECT_EQ(Client::UI::CStringOf(runtime.chat.input.whisperBuffer), "");
 
     ASSERT_TRUE(Draw().HasValue());
-    const auto stepped = Client::Scenes::StepTheChatBubbles(*m_world, input);
+    ASSERT_TRUE(Client::Scenes::StepTheChatBubbles(*m_world, input).HasValue());
 
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x5577a2"), std::string::npos);
+    EXPECT_FALSE(runtime.ui.rightClick);
+    EXPECT_EQ(Client::UI::CStringOf(runtime.chat.input.whisperBuffer), "Tero");
+    EXPECT_EQ(runtime.lastSoundId, 0x19);
 }
 } // namespace

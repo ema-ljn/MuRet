@@ -57,14 +57,22 @@ bool ContainsLikeTheOriginal(std::string_view text, std::string_view word)
     return text.find(word) != std::string_view::npos;
 }
 
+bool ContainsAFilteredWord(std::string_view text, std::span<const std::string> filter, bool skipCommands)
+{
+    if (skipCommands && !text.empty() && text.front() == '/')
+    {
+        return false;
+    }
+    return ContainsAny(WithoutSpaces(text), filter);
+}
+
 bool IsFilteredName(std::string_view name, const NameFilters& filters)
 {
-    const std::string compact = WithoutSpaces(name);
-    if (ContainsAny(compact, filters.filterName))
+    if (ContainsAny(WithoutSpaces(name), filters.filterName))
     {
         return true;
     }
-    if ((name.empty() || name.front() != '/') && ContainsAny(compact, filters.filter))
+    if (ContainsAFilteredWord(name, filters.filter, true))
     {
         return true;
     }

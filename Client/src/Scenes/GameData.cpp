@@ -10,6 +10,7 @@
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/FilterWords.h"
 #include "Data/Text/TextTable.h"
+#include "UI/MacroFile.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -30,6 +31,9 @@ namespace
 constexpr std::uintmax_t MaxTextTableFileBytes = 1024u * 1024u;
 // Y más que los 20.004 bytes de un filtro.
 constexpr std::uintmax_t MaxFilterFileBytes = 64u * 1024u;
+// fscanf no tiene tope; MuRet lee hasta 1 MiB de Macro.txt, más que diez palabras de 0xff con cualquier blanco
+// razonable entre ellas.
+constexpr std::size_t MaxMacroFileBytes = 1024u * 1024u;
 
 Core::Expected<Data::Tables::GateTable, std::string> LoadGates(const std::filesystem::path& dataRoot)
 {
@@ -160,6 +164,22 @@ Core::Expected<std::vector<std::string>, std::string> LoadFilter(const std::file
     }
     return std::move(words).Value();
 }
+
+// 0x61c1c0: sin el archivo, o sin poder leerlo, las macros quedan vacías.
+Core::Expected<UI::Macros, std::string> LoadMacros(const std::filesystem::path& dataRoot)
+{
+    std::error_code error;
+    const auto path = Data::ResolveDataPath(dataRoot, MacroFile, error);
+    if (error || !path)
+        return UI::Macros{};
+    const auto file = Data::ReadDataFilePrefix(*path, MaxMacroFileBytes);
+    if (!file.HasValue())
+        return UI::Macros{};
+    auto macros = UI::ReadTheMacros(std::as_bytes(std::span(file.Value())));
+    if (!macros.HasValue())
+        return Core::Unexpected(std::format("{}: {}", MacroFile, macros.Error()));
+    return std::move(macros).Value();
+}
 } // namespace
 
 Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot)
@@ -187,6 +207,12 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
     }
     GameData data;
     data.text.emplace(std::move(table).Value());
+    auto macros = LoadMacros(dataRoot);
+    if (!macros.HasValue())
+    {
+        return Core::Unexpected(std::move(macros).Error());
+    }
+    data.macros = std::move(macros).Value();
     auto filter = LoadFilter(dataRoot, FilterFile, Data::Text::FilterChecksumKey);
     if (!filter.HasValue())
     {

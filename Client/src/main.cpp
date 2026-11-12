@@ -528,7 +528,9 @@ Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const
             return std::make_unique<Scenes::GameScene>(
                 context, session, &models, data.items ? &data.items->table : nullptr, &models.TextureSlots(),
                 data.gates ? &*data.gates : nullptr, data.skills ? &*data.skills : nullptr,
-                data.text ? &*data.text : nullptr);
+                data.text ? &*data.text : nullptr,
+                Scenes::GameChatTables{.filter = data.filter,
+                                       .setOptions = data.itemSets ? &data.itemSets->options : nullptr});
         }
         return nullptr;
     };
@@ -642,6 +644,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // duran hasta el cierre. La selección construye en los cinco primeros registros y escribe el mundo
     // en curso.
     Scenes::WorldState world;
+    // 0x61ee30 → 0x61c1c0: las macros de Data\Macro.txt, que GameData leyó detrás de Text.bmd, en 0x77f1db0.
+    world.Runtime().chat.input.macros = scenes.data.macros;
     // 4bada2..4bade0: la tabla global de ángulos se publica una vez con la CRT de WinMain.
     Scenes::InitializeGameItemRenderState(world.Runtime().itemRender, clothWorld.random);
     // 0x4bafad..0x4bafdf: el pool empieza en cero y el héroe apunta al personaje 0.

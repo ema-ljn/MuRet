@@ -55,4 +55,8 @@ struct InputEvent
 // InputState::Apply y la repetición la manda Platform como un Text (InputEvents.h).
 inline constexpr char BackspaceChar = '\b';
 inline constexpr char TabChar = '\t';
+// Y el de Enter: el WM_CHAR 0xd que la ventana del juego atiende en 0x4b50b0 (la entrada del chat, CL8 hito 3) y
+// que la subclase de los EDIT (0x467b10) le pasa. Los campos que no lo toman lo descartan, como cualquier byte de
+// control.
+inline constexpr char EnterChar = '\r';
 } // namespace Client::Input

@@ -10,6 +10,7 @@
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/SceneId.h"
+#include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/Dialogs.h"
 #include "UI/GameUiState.h"
@@ -83,6 +84,8 @@ struct ChatRuntime
     std::optional<std::string> selectionNotice{};
     // 0x6c7a8c (.data 1): los carteles de Slide.bmd prendidos. Lo apaga el bit 0x10 del F3 30 (0x4dd7fa).
     bool slidesOn = true;
+    // La entrada del chat (los EDIT de [0x57634f8], sus buffers, el freno y las macros).
+    UI::ChatInputState input{};
 };
 
 // Los globales del HUD del juego (0x5a7320 y sus hijos, CL8 hito 2), en la .bss salvo los que dicen otra cosa.
@@ -92,7 +95,8 @@ struct HudState
     std::int32_t partyCount = 0;
     // 0x5767960: la vida del invocado, de 0 a 100. La escribe su paquete (CL9.2).
     std::int32_t summonLife = 0;
-    // 0x77f3b74: el tiempo de la macro (hito 3).
+    // 0x77f3b74: el freno de las macros. Una que llega al freno lo deja en 0x64 (0x5a1ea1) y 0x637d44 lo baja de a
+    // uno por paso; con más de 0 no sale ninguna (0x5a116f) y el HUD dibuja "Macro Time" (0x5a7369).
     std::int32_t macroTime = 0;
     QuickSlots quickSlots{};
     // 0x6c8e5c (.data −1) y 0x6c8e64 (.data 0x80000000): el color del texto y el del fondo que lee 0x465950. Cada

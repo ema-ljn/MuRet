@@ -1418,13 +1418,76 @@ caja del entrenador (`0x44ad10`) y el cartel del set (`0x40e6c0`, Q-C472). Las h
 registro (los doce lugares y el nivel) y 8 consultas (2 de las marcas, 2 de los botones, 2 de las otras grillas y 2
 de las hermanas): **50.032**; con el mouse arriba de la grilla, 12 cierres más (46.176).
 
+**El ítem del cursor** (CL8 hito 4, 2026-11-12, *estático*). `0x7879f80` es un ítem entero (0x48 bytes) y
+`0x7879fbc` su cuenta; lo acompañan la grilla de origen (`0x78ab9b8`: el inventario u otra), el lugar de origen
+(`0x78a6758`: 0 a 11 el equipo, 12 + casilla la grilla), el destino del último `24` (`0x77f3cc8`) y la traba
+(`0x78abb39`), que prende el envío del `24` y suelta su respuesta ([04](04-protocolo.md#mover-y-equipar-ítems-24-28-2a-f3-13-y-f3-14)).
+`0x5be150` lo vuelve a su lugar: en la grilla, la copia en cada casilla de su huella desde la columna y la fila del
+lugar, con `+0x3c` en 1 solo en la de su columna y su fila; en el equipo, antes el ayudante de la mascota (el 8,
+`0x443fa0`), el cuervo (el `0x1a05` del 1, `0x420cf0`) y la capa del Wizard's Ring de nivel 3, y la copia con el
+registro abierto; después la cuenta en 0, `0x512a30` y el sonido `0x1d`. Esc lo llama al abrir el menú (`0x623f42`).
+
+**Levantar de la grilla** (`0x5c4110` desde `0x5c41f4`, sin ítem en el cursor). La casilla con un tipo bajo el
+mouse marca con 2 la huella de su ítem (el ancho y el alto de Item.bmd desde su columna y su fila), deja
+`0x78aba27` en 0, el ítem del cartel en `0x78abaa8` con su copia en `0x787a518`, `0x78abb2c` en la casilla + 12 (+
+`0x4c` con la tienda personal abierta, sin `rand()`) y la esquina de la ayuda en (izquierda + ancho · 20 / 2 +
+columna · 20, arriba + fila · 20). Con Ctrl y el flanco de Q, W o E, el tipo y el nivel (`(+4 >> 3) & 0xf`) van a esa
+ranura rápida. Con el clic y sin `0x576794c`: el modo de reparar corta (`0x5c4470`, CL9.3); si no, el clic
+consumido, la copia al cursor desde la casilla de arriba a la izquierda, la grilla y el lugar de origen,
+`0x5bd750` (la huella en `0xffff` y `+0x3c` en 0), el ítem del cartel en nada, `IsOpen(0x20)` (1 `rand()`) y el
+sonido `0x1d`. El clic derecho usa el ítem (`0x5c5895`, CL9.3); con la tienda personal abierta, el clic y el derecho
+son de ella (`0x5c5110` y `0x5c5242`, CL9.4).
+
+**El equipo** (`0x5bec50` desde `0x5c2c56`). Con el cursor vacío y el mouse sobre un lugar ocupado, `0x78abaac` en
+1, con lo que `0x5d8d50` no corre en ese paso. Sin el clic, `0x5c35ad`: la marca 3 si le falta un requisito, con
+`+0x1e`, `+0x20`, `+0x22` y `+0x26` contra la fuerza, la agilidad, la energía y otra vez la fuerza, con sus
+agregados (Q-C475), y si no la marca 2; el ítem del cartel, `0x78abb2c` en el lugar y la esquina de la ayuda en
+(izquierda + `_ftol(ancho)` / 2, arriba). Con el clic: con `0x576794c`, nada; con `0x78abb0c`, reparar (`0x5c2dd5`,
+CL9.3); si no, consume el clic y, salvo en Icarus lo único que vuela (las alas `0x1800` a `0x1806` y la Cape of
+Lord en el 7; Guardian Angel, Imp, Horn of Dinorant y Dark Horse en el 8) y en Chaos Castle `0x1a02` a `0x1a05`, pasa
+el ítem al cursor (el lugar queda en `0xffff` con su `+0x3c` como estaba), viste al héroe (`0x512a30`, que recalcula
+los derivados con `0x550d10`), borra el ítem del cartel, deja `0x78abb2c` en el lugar + 12, pide el sonido `0x1d` y
+apaga los ayudantes (el 8) o el cuervo (el `0x1a05` del 1). Con un ítem en el cursor y el mouse en un lugar,
+`0x5bee04` prueba si va: el lugar de Item.bmd (`+0x22`; el 1 y el 11 también toman lo del 0 y el 10), la clase (el
+Dark Lord con `+0x49`, el elfo y los arcos, el Magic Gladiator con las dos manos), los requisitos contra el registro
+(en words que dan la vuelta), el mapa (Atlans, Icarus y Chaos Castle con las monturas), Crywolf (las etapas 3 y 4
+con `0x200000` en `+0x7c`) y la montura en uso. Si va, la marca 2 y, con el clic, `0x78abaac` en 1, el destino
+(`0x77f3cc8`; un arma de una mano o un bastón al 1 con la derecha vacía va al 0), el aviso 1862 de Fenrir y, sin la
+traba, el `24`. Si no va, la marca 3 y, con el clic y sin la traba, `0x5be150`.
+
+**El paso del ítem del cursor** (`0x5d8d50`, desde `0x5ee1de` con `0x78abaac` en 0). La caja del caos y la lista
+del asedio en el modo 3 cortan al principio; con la traba, nada. La cadena de `0x78abb14` (1 a 6) y `0x78aba60` en 2
+son de las ventanas de NPC; con los dos en 0 va a `0x5deac5` con `esi` en 6 (`0x5da592`). Sin ítem (`0x7879fbc` ≤
+0), nada. Si no, `0x5ca250(x + 15, y + 200, 0x78a9bb0, 8, 8, 0)`: la casilla bajo el mouse es `_ftol((mouse −
+esquina) · 0,05f − tamaño · 0,5f + 0,5f)` en la x87, que trunca hacia el 0 (Q-C476); con una negativa no hace nada.
+`0x5c9b40` dice si entra: todas las casillas de su huella dentro de la grilla vacías o, en la casilla de arriba a la
+izquierda (fila · 8 + columna, Q-C474), el mismo tipo de los que se apilan (`0x1c00` a `0x1c08`, `0x807` y `0x80f`
+con el mismo `+4`, `0x1c1d` y `0x1a20` a `0x1a22`). Las casillas de la huella dentro de la grilla llevan la marca 2
+si entra, 4 si es una joya (Bless, Soul, Life o Creation) y 3 si no. Con el clic: si no entra, nada (una joya sobre
+otro ítem es de la CL9.3, `0x5d82a8`); con el inventario cerrado, nada más; si entra, el destino y, a otro lugar o
+al mismo con algo que se apila, el `24` sin la traba, o si no `0x5be150`. Después, las grillas de las otras ventanas
+(`IsOpen(0x20)` con su `rand()`; el comercio `0x5deb1c`, el almacén `0x5deb57`, la tienda personal `0x5dec19` y la
+caja del entrenador `0x44aca9` cortan). Sin el clic, sale; si no, lo consume (`0x77f3b10` en 0 y `0x6c8dcc` en 6) y
+sale si la grilla lo tomó. La tienda de NPC (`IsOpen(0x10000)`, 1 `rand()`) vende (`0x5decce`, CL9.3). Si no, el
+piso (`0x5df449`): lo que no se tira (las mascotas, las joyas, las alas, Dark Horse, Dark Raven, la Cape of Lord,
+`+0x1c % 4` en 1 o 2, ocho tipos sueltos, más de nivel 4 debajo de las alas y `+0x1b & 0x3f`) vuelve con el aviso
+269 y `0x5be150`; las cajas `0x1a20` a `0x1a25`, con el 1915; los paquetes de Bless y de Soul (`0x402b30` da 2 y 3,
+con `JGE`) y el Jewel of Guardian van a `0x5e06b6`: con el inventario abierto y el mouse a su derecha, solo
+`0x5be150`, y si no el aviso 269 antes. Tirar lo demás (`0x5df58b`, su envío) es de la CL9.3.
+
+**MoveHero** (`0x59bd3e`). Con el cursor vacío, la mano derecha vacía y un arma de los grupos 0 a 2 o del 5 en la
+izquierda, abre el registro propio (3.848 al cerrarlo), pasa el ítem del lugar 1 al cursor (sus 0x48 bytes, con la
+cuenta en su `+0x3c`) y deja el lugar en `0xffff` con `+4` en 0; `0x512a30`; la grilla del inventario, el lugar 1 y
+el destino 0; y, sin la traba, el `24` del 1 al 0. Sigue con el clic (`0x59cd23`).
+
 **Lo que porta MuRet**: la ventana entera; los ítems 3D, el del cursor y los de las ranuras con sus `rand()`; las
 cifras; el mundo angosto en `GameScene` (`0x63733e` y `0x63738a`); las texturas `0x104` a `0x120` (sin `0x106`),
-`0x652`, `0x657` y `0x658` en `HudTextureSet`; y el paso en `Scenes/GameUi.cpp` (`test_game_inventory_step.cpp`)
-sin nada bajo el mouse, con los botones de reparar y cerrar. Las otras ventanas cortan con su dirección (CL9.3,
-CL9.4 y CL9.5). Lo que pasa con un ítem o un lugar bajo el mouse, el cartel del set, la tienda personal (Open de
-`0x800`, CL9.4), el ítem del cursor (`0x5d8d50`) y lo que piden (`0x5be150`, `C3 24`, `0x550d10`, `0x54e540`)
-siguen cortados: P-C71.
+`0x652`, `0x657` y `0x658` en `HudTextureSet`; el paso en `Scenes/GameUi.cpp` (`test_game_inventory_step.cpp`) con
+los botones de reparar y cerrar, el equipo y la grilla bajo el mouse y el paso del ítem del cursor; y levantar,
+soltar, equipar, el piso, MoveHero y las respuestas en `Scenes/InventoryMoves.cpp` (`test_cursor_item.cpp` y
+`test_inventory_reply.cpp`), con Item.bmd, `0x512a30`, el cuervo y los mensajes que pide (`InventoryServices`). Las
+otras ventanas cortan con su dirección (CL9.3, CL9.4 y CL9.5), y también el cartel del set (`0x40e6f5`, los
+tooltips del hito 5), la tienda personal (Open de `0x800`, CL9.4), reparar, usar ítems y tirarlos (CL9.3): P-C71.
 
 ## La escena de carga y la de login
 

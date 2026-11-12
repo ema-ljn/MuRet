@@ -747,6 +747,43 @@ dos. El chat no saca `rand()`; el susurro, los 3.848 del registro propio de `0x5
 ([06](06-render-escenas-y-ui.md#el-chat), "La entrada del chat"). **MuRet**: `Protocol::Chat::WriteChat` y
 `WriteWhisper`, que manda `App::ServerSession::SendChat`; lo que llevan lo escribió el jugador y no va al log.
 
+### Mover y equipar ítems: `24`, `28`, `2A`, `F3 13` y `F3 14`
+
+(CL8 hito 4, 2026-11-12, *estático*; el cable de la sesión del laboratorio queda para la VM, P-C72.) Los lugares son
+los del `F3 10`: 0 a 11 el equipo y 12 + fila · 8 + columna las 64 casillas del inventario; desde `0x4c`, la tienda
+personal. Los siete bytes de un ítem son los del `F3 10`.
+
+- **`24` del cliente**: `C1 0E 24 <0> <lugar de origen> <ítem:7> <0> <lugar de destino>`, con el XOR32 desde el
+  byte 3 y en C3: 2 `rand()` (el relleno y el serial, `0x40b0a0`). Lo arman `0x449d80` y, en línea, `0x5ca46c..`
+  (la grilla), `0x5bf294..` (el equipo) y `0x59bf1c` (MoveHero). El ítem va como `+0` (el tipo & 0xff), `+4`,
+  `+0x1a`, `+0x1b`, `+0x1c`, `(tipo con signo >> 5) & 0xf0` y 0. Antes, la traba `0x78abb39` en 1: el paso del
+  equipo, el de la grilla y el del ítem del cursor no hacen nada hasta la respuesta.
+- **`24` del GameServer** (`0x4d1400`): `C3 0C 24 <resultado> <lugar> <ítem:7>`. Si llegó en C1, sin pasar por
+  SimpleModulus, `0x4d166b..0x4d1690` manda `C1 06 F1 03 00 16` con el XOR32 y en C3 sin leerlo y sin soltar la
+  traba. Cifrado, suelta la traba; con 0xff (rechazado), `0x5be150` vuelve el ítem del cursor a su lugar. Si no,
+  arma las listas de la tienda personal (`0x4d14c6..0x4d1520`), deja la cuenta del cursor en 0 y pone el ítem con
+  `0x5bc740(lugar, ítem, …, 0)` según la grilla del resultado: 0 el inventario, 1 el comercio (`0x78a92a8`), 2 el
+  almacén o la tienda (`0x78a7070`), 3 la caja del caos y 5 la caja del entrenador (`0x44ad70`). Después, el sonido
+  `0x1d`.
+- **`28`** (`0x4c5ec0`): `C1 05 28 <lugar> <fin de la espera>`. Con el lugar distinto de 0xff, `0x5bd750(lugar)` lo
+  saca (desde `0x4c` lee antes `0x6c931c` y la grilla de la tienda personal); con el segundo byte distinto de 0,
+  `0x5767954` (la espera del uso de un ítem) en 0.
+- **`2A`** (`0x4d3cc0`): `C1 06 2A <lugar> <durabilidad> <fin de la espera>`. Del 0 al 11, `+0x1a` del lugar con el
+  registro propio abierto (3.848 `rand()` al cerrarlo); desde el 12, en toda la huella del tipo de esa casilla, desde
+  la casilla misma (`0x4d3f4c..`). El tercer byte, como el del `28`.
+- **`F3 13`** (`0x4e316e`): `C1 18 F3 13 <clave:2, big-endian> <sin leer> <equipo:17>`. `0x5110d0` busca el personaje
+  de la clave (el 400 sin ninguno, que en el arreglo existe) y `0x5139f0(índice, pkt + 7, 0, 0)` lee su equipo si es
+  un jugador (`+2` en `0x20a`); si no, vuelve sin tocar nada (`0x513a12`).
+- **`F3 14`** (`0x4e31a3`): `C1 0C F3 14 <lugar> <ítem:7>`. La cuenta del cursor en 0, `0x5bc740(lugar, ítem, …, 0)`
+  y el sonido `0x45`.
+
+**MuRet** (CL8 hito 4): `Protocol::Inventory` escribe el `24` y el aviso del `24` en claro y lee los otros cinco;
+`App::ServerSession` manda el `24` (`SendItemMove`), contesta el `24` en claro sin leerlo y sin sacar sus 2
+`rand()` (P-C72) y pasa los demás al mundo (`Scenes::ApplyItemMoveResult`, `ApplyItemDelete`, `ApplyDurability`,
+`ApplyItemPut` y `ApplyEquipmentChange`). Cortan con su dirección las grillas de otras olas del `24` (`0x4d1ce0`,
+`0x4d1d0a` y `0x4d1d34`, CL9.3 y CL9.4; `0x4d1d55`, CL9.3), el `28` de la tienda personal (`0x4c5ece`, CL9.4) y el
+equipo de un jugador del `F3 13` (`0x513a1e`, CL9.2). Los tests usan ítems inventados.
+
 ## Qué implica para MuRet
 
 | Original | MuRet | Ola |

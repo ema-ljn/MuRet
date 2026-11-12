@@ -2,18 +2,28 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Data/Models/Model.h"
+#include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/Skeleton.h"
+#include "Render/Pass3D.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
+#include "Render/TextureSlot.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
+#include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameHud.h"
+#include "Scenes/GameItemSpecialDrawing.h"
+#include "Scenes/GameProjection.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"
@@ -22,19 +32,23 @@
 #include "support/GoldenDir.h"
 #include "support/RecordingTextDrawer.h"
 
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_int4.hpp>
 #include <gtest/gtest.h>
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
-// El inventario en el HUD (CL8 hito 4): la ventana de 0x5f2340, los rand() de los ítems de la UI (0x5e1480 sin el
-// modelo, P-C70), las cifras de 0x5f7840 y el ítem del cursor de 0x5f7b10. Los ítems y el zen son inventados.
+// El inventario en el HUD (CL8 hito 4): la ventana de 0x5f2340, los ítems de la UI (0x5e1480: sin los modelos, sus
+// rand(); con unos inventados, el pase de 0x5ac120), las cifras de 0x5f7840 y el ítem del cursor de 0x5f7b10. Los
+// ítems y el zen son inventados.
 namespace
 {
 using Client::Render::Color;
@@ -101,6 +115,42 @@ std::optional<Corners> NthQuadOf(const SpriteBatch& sprites, std::uint16_t slot,
     }
     return std::nullopt;
 }
+
+// Los modelos inventados del pase de la UI: un triángulo con el vértice 0 en el origen de su hueso, que cae en la
+// posición del objeto.
+class UiModels final : public Client::Scenes::IModelLibrary
+{
+public:
+    UiModels()
+    {
+        Client::Data::Models::Mesh mesh;
+        mesh.vertices = {{0, {0, 0, 0}}, {0, {1, 0, 0}}, {0, {0, 1, 0}}};
+        mesh.normals = {{0, {0, 0, 1}, 0}};
+        mesh.texCoords = {{0, 0}};
+        mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
+        mesh.textureName = "plain.jpg";
+        model.meshes = {mesh};
+        Client::Render::Models::SkeletonBone bone;
+        bone.actions = {{Client::Render::Models::BoneKey{}}};
+        skeleton.bones = {bone};
+        skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
+    }
+    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    {
+        return &model;
+    }
+    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    {
+        return &skeleton;
+    }
+    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return textures;
+    }
+    Client::Data::Models::Model model;
+    Client::Render::Models::Skeleton skeleton;
+    std::array<Client::Render::TextureSlot, 1> textures{Client::Render::TextureSlot{0x400}};
+};
 
 class GameInventoryHudTest : public Client::Tests::GoldenDataTest
 {
@@ -170,7 +220,7 @@ protected:
                                                      std::uint8_t set)
     {
         GameHudContext context = Context();
-        return Client::Scenes::DrawUiItem(context, type, level, excellent, set);
+        return Client::Scenes::DrawUiItem(context, Client::Scenes::UiItemBox{}, type, level, excellent, set, false);
     }
 
     // Un ítem de `width` × `height` desde la casilla `origin`, como lo deja 0x5bc740: el tipo en todas y +0x3c en 1
@@ -191,6 +241,58 @@ protected:
         }
     }
 
+    // El pase de la UI de `screen` con los modelos inventados; los dos fines de lote se anotan en `events`.
+    Client::Scenes::UiItemResources UiItems(Client::App::PixelSize screen)
+    {
+        special.random = &random;
+        special.worldClock = worldClock;
+        itemContext.special = &special;
+        itemContext.selections = &world.Runtime().itemRender.selections;
+        auto pass = Client::Scenes::MakeUiItemPass(screen);
+        EXPECT_TRUE(pass.HasValue());
+        return Client::Scenes::UiItemResources{.batch = models,
+                                               .models = uiModels,
+                                               .poseCarry = poseCarry,
+                                               .itemContext = itemContext,
+                                               .flushSprites = [this] { events.emplace_back("2d"); },
+                                               .flushModels = [this] { events.emplace_back("3d"); },
+                                               .pass = pass.HasValue() ? pass.Value() : Client::Scenes::UiItemPass{}};
+    }
+
+    // Dónde posa 0x5e0720 el ítem de la caja `box` en `screen`, con los ángulos de `angles`.
+    glm::vec3 PlacedAt(Client::App::PixelSize screen, std::int32_t type, std::uint32_t level,
+                       const Client::Scenes::UiItemBox& box, bool always, glm::vec3& angles)
+    {
+        const auto pass = Client::Scenes::MakeUiItemPass(screen);
+        const auto anchor = Client::Scenes::UiItemAnchor(type, level, box);
+        const auto call = Client::Scenes::UiItemCallOf(type, level);
+        if (!pass.HasValue() || !anchor.HasValue() || !call)
+        {
+            ADD_FAILURE() << "sin el punto del ítem " << type;
+            return {};
+        }
+        const auto point =
+            Client::Scenes::UnprojectGamePoint(pass.Value().projection, anchor.Value().x, anchor.Value().y);
+        const auto placed =
+            Client::Scenes::PlaceUiItem(*call, point, always, always, worldClock, &data.items->table, angles);
+        if (!placed.HasValue())
+        {
+            ADD_FAILURE() << placed.Error();
+            return {};
+        }
+        return placed.Value().position;
+    }
+
+    // La posición del vértice 0 de cada triángulo del lote de los modelos.
+    std::vector<glm::vec3> TriangleOrigins() const
+    {
+        std::vector<glm::vec3> origins;
+        const auto vertices = models.Vertices();
+        for (std::size_t index = 0; index + 2 < vertices.size(); index += 3)
+            origins.push_back(vertices[index].position);
+        return origins;
+    }
+
     std::string TextAt(std::size_t index) const
     {
         return std::string(Client::UI::TextAt(&*data.text, index).value_or("?"));
@@ -204,6 +306,12 @@ protected:
     float worldClock = 0.0f;
     Client::UI::Point mouse{};
     Client::Scenes::GameData data;
+    UiModels uiModels;
+    Client::Render::ModelBatch models;
+    Client::Scenes::FaunaDrawCarry poseCarry;
+    Client::Scenes::ItemSpecialDrawContext special;
+    Client::Scenes::ItemDrawContext itemContext;
+    std::vector<std::string> events;
 };
 
 // 0x5f2340 sin personaje ni party: la ventana en (0x1c2, 0), los doce fondos del equipo (el casco con la clase 0),
@@ -508,6 +616,119 @@ TEST_F(GameInventoryHudTest, TheHudWithTheInventoryOpenSpendsItsRandomsInLorenci
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(random.State(), expected.State());
         EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
+    }
+}
+
+// 0x5f7610 con los modelos (P-C70): el equipo y la grilla en sus cajas, en Lorencia y en Devias, en 640 × 480 y en
+// 1.024 × 768. El primer ítem cierra el 2D y abre el pase de la UI, cada ítem va donde lo posa 0x5e0720 desde el
+// punto de su caja (el arma en (0x1c2 + 15, 89), de 40 × 60; la grilla desde (0x1c2 + 15, 200), cada uno del tamaño
+// de Item.bmd: 1 × 3, 2 × 3 y 1 × 4 casillas), y los rand() son los mismos que sin dibujar.
+TEST_F(GameInventoryHudTest, TheGridItemsDrawInTheUiPassInTwoMapsAndTwoResolutions)
+{
+    world.Runtime().hud.inventoryX = 0x1c2;
+    PutItem(0, 0x000e, 1, 3);
+    PutItem(1, 0x0c0e, 2, 3);
+    PutItem(5, 0x0a05, 1, 4);
+    ItemState& weapon = world.OwnCharacter().equipment[0];
+    weapon.id = 0x0a07;
+    weapon.occupied = 1;
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const Client::App::PixelSize screen : {Screen640, Client::App::PixelSize{1024, 768}})
+        {
+            SCOPED_TRACE(testing::Message() << map << " " << screen.width);
+            world.Runtime().map = map;
+            random = CrtRandom{Seed};
+            ASSERT_TRUE(GridItems().HasValue());
+            const CrtRandom withoutModels = random;
+
+            random = CrtRandom{Seed};
+            world.Runtime().hud.uiItemAngles = {};
+            models.Begin(Client::Render::Pass3D{});
+            events.clear();
+            Client::Scenes::UiItemResources resources = UiItems(screen);
+            {
+                Client::Scenes::GamePanels panels(world, random);
+                GameHudContext context = Context();
+                context.uiItems = &resources;
+                const auto drawn = Client::Scenes::DrawTheGridItems(context, panels.Registry());
+                ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+            }
+            Client::Scenes::CloseUiItemPass(resources);
+
+            EXPECT_EQ(random.State(), withoutModels.State());
+            EXPECT_EQ(events, (std::vector<std::string>{"2d", "3d"}));
+            EXPECT_EQ(models.Pass().viewport, glm::ivec4(0, 0, screen.width, screen.height));
+            glm::vec3 angles{};
+            const std::vector<glm::vec3> expected{
+                PlacedAt(screen, 0x0a07, 0, {.x = 465.0f, .y = 89.0f, .width = 40.0f, .height = 60.0f}, false, angles),
+                PlacedAt(screen, 0x000e, 0, {.x = 465.0f, .y = 200.0f, .width = 20.0f, .height = 60.0f}, false, angles),
+                PlacedAt(screen, 0x0c0e, 0, {.x = 485.0f, .y = 200.0f, .width = 40.0f, .height = 60.0f}, false, angles),
+                PlacedAt(screen, 0x0a05, 0, {.x = 565.0f, .y = 200.0f, .width = 20.0f, .height = 80.0f}, false, angles),
+            };
+            EXPECT_EQ(TriangleOrigins(), expected);
+            EXPECT_EQ(world.Runtime().hud.uiItemAngles, angles);
+        }
+    }
+}
+
+// 0x5f7b10 con los modelos: el ítem del cursor centrado en el mouse, a 0,07 de la cámara y girando con el reloj
+// (el último argumento de 0x5e1480 en 1).
+TEST_F(GameInventoryHudTest, TheCursorItemDrawsCenteredOnTheMouse)
+{
+    world.Runtime().cursorItem.id = 0x0c0e;
+    world.Runtime().cursorItemCount = 1;
+    mouse = {300, 200};
+    worldClock = 4321.0f;
+    for (const Client::App::PixelSize screen : {Screen640, Client::App::PixelSize{1024, 768}})
+    {
+        SCOPED_TRACE(screen.width);
+        models.Begin(Client::Render::Pass3D{});
+        events.clear();
+        Client::Scenes::UiItemResources resources = UiItems(screen);
+        {
+            GameHudContext context = Context();
+            context.uiItems = &resources;
+            const auto drawn = Client::Scenes::DrawTheCursorItem(context);
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        }
+        Client::Scenes::CloseUiItemPass(resources);
+
+        EXPECT_EQ(events, (std::vector<std::string>{"2d", "3d"}));
+        glm::vec3 angles{};
+        const glm::vec3 expected =
+            PlacedAt(screen, 0x0c0e, 0, {.x = 280.0f, .y = 170.0f, .width = 40.0f, .height = 60.0f}, true, angles);
+        EXPECT_EQ(TriangleOrigins(), std::vector<glm::vec3>{expected});
+    }
+}
+
+// El HUD entero con el inventario abierto y los modelos, en Lorencia y en Devias: los mismos rand() que sin dibujar,
+// y el pase de la UI que abre el arma y cierra el final de 0x5ac120.
+TEST_F(GameInventoryHudTest, TheHudDrawsTheUiItemsBetweenItsTwoDimensionalParts)
+{
+    ItemState& weapon = world.OwnCharacter().equipment[0];
+    weapon.id = 0x0a07;
+    weapon.occupied = 1;
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        world.Runtime().map = map;
+        random = CrtRandom{Seed};
+        sprites.Begin(Screen640);
+        const CrtRandom expected = Advanced(random, HudBaseDraws + WindowDraws + Own + 2 + 1);
+        models.Begin(Client::Render::Pass3D{});
+        events.clear();
+        Client::Scenes::UiItemResources resources = UiItems(Screen640);
+
+        GameHudContext context = Context();
+        context.uiItems = &resources;
+        const auto drawn = Client::Scenes::DrawTheHud(context);
+
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(random.State(), expected.State());
+        EXPECT_EQ(events, (std::vector<std::string>{"2d", "3d"}));
+        EXPECT_FALSE(resources.open);
+        EXPECT_EQ(TriangleOrigins().size(), 1u);
     }
 }
 } // namespace

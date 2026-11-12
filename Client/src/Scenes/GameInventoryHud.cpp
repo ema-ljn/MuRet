@@ -14,10 +14,12 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameHud.h"
+#include "Scenes/GameProjection.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"
@@ -195,76 +197,7 @@ void SetWarningColor(Render::SpriteBatch& sprites, const World::ItemState& item)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// El ítem 3D de la UI (0x5e1480 → 0x5e0720), sin el dibujo.
-
-// 0x5e1480: el modelo que le pasa a 0x5e0720, o nada si vuelve sin llamarla. `level` es el +4 del ítem en 32 bits:
-// el >> 3 es con signo y sin máscara, y el & ~7 sin signo.
-std::optional<std::int32_t> UiItemModel(std::int32_t type, std::uint32_t level)
-{
-    const std::int32_t step = static_cast<std::int32_t>(level) >> 3;
-    const std::uint32_t steps = level & 0xfffffff8u;
-    constexpr std::int32_t ModelOffset = 0x212;
-    switch (type)
-    {
-    case 0x1c0b:
-        if (steps == 8)
-            return 0x223e;
-        if (steps == 0x10 || steps == 0x70 || steps == 0x78)
-            return 0x223f;
-        if (steps == 0x18 || steps == 0x68)
-            return 0x2240;
-        if (steps == 0x28)
-            return 0x2242;
-        if (steps == 0x30)
-            return 0x2243;
-        if (static_cast<std::int32_t>(steps) > 0x3f && static_cast<std::int32_t>(steps) < 0x61)
-            return 0x2244;
-        break;
-    case 0x1a0e:
-        if (steps == 8)
-            return 0x224a;
-        break;
-    case 0x1c09:
-        if (steps == 8)
-            return 0x2241;
-        break;
-    case 0x1c15:
-        return step == 1 ? 0x2245 : 0x1e27;
-    case 0x1a13:
-        if (step == 0)
-            return 0xc1c;
-        if (step == 1)
-            return 0x225;
-        if (step == 2)
-            return 0xa24;
-        return std::nullopt;
-    case 0x1c17:
-        if (step == 0)
-            return 0x1e29;
-        if (step == 1)
-            return 0x2246;
-        return std::nullopt;
-    case 0x1c18:
-        if (step == 0)
-            return 0x1e2a;
-        if (step == 1)
-            return 0x2247;
-        return std::nullopt;
-    case 0x1a14:
-        if (step == 0)
-            return 0x2249;
-        if (step >= 1 && step <= 3)
-            return 0x2248;
-        return std::nullopt;
-    case 0x1a0b:
-        if (steps == 8)
-            return 0x224c;
-        break;
-    default:
-        break;
-    }
-    return type + ModelOffset;
-}
+// El ítem 3D de la UI (0x5e1480 → 0x5e0720, Scenes/UiItemDrawing).
 
 // El pase del set de 0x60b3d0 (0x60cbd6..0x60cc29): fsin(T · 0,001) · 0,5 + 0,4 en la x87, contra el 0,01 de
 // 0x6b88d4, sin pasar por un float.
@@ -274,37 +207,74 @@ bool SetPulseIsOff(float worldClock)
         std::sin(static_cast<double>(worldClock) * static_cast<double>(0.001f)) * 0.5 + static_cast<double>(0.4f);
     return pulse <= static_cast<double>(0.01f);
 }
-} // namespace
 
-Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, std::int32_t type, std::uint32_t level,
-                                             std::uint8_t excellent, std::uint8_t set)
+// Sin la biblioteca de los modelos, los rand() del dibujo en su orden: los de 0x607b60 (1 con 0x220 y 0xc19, 2 con
+// 0xc17 y 0xe20), los de 0x609640 (2 con 0xe21 y 0xe22) y el del pase del set (0x60cc29: con el set en 1 o 2, sin
+// excelente y con el pulso apagado, rand() % 100 en el +0xc0 del modelo; como DrawItemFromMeshes, solo en un frame
+// del original). El 0x1e1e cambia de modelo sin cambiar de cuenta.
+void SpendUiItemRandoms(GameHudContext& context, std::int32_t model, std::uint8_t excellent, std::uint8_t set)
 {
-    const std::optional<std::int32_t> chosen = UiItemModel(type, level);
-    if (!chosen)
-        return {};
-    const std::int32_t model = *chosen;
-    // 0x5e0720 → 0x607b60: el objeto local con el tipo en +2 y sus rand() por el modelo.
     context.random.Discard(static_cast<std::uint32_t>(HangingRandomCount(static_cast<std::uint16_t>(model))));
-    // 0x60cf70 → 0x60b3d0, con el objeto en blanco (+0x78 y +0x98 en 0, que pone 0x607b60): sin sombra y sin las
-    // banderas de 0x518cf0.
-    constexpr std::int32_t WingsWithJoints = 0x1a18;
-    if (model == WingsWithJoints)
-        return Core::Unexpected(std::string(
-            "0x60c3b6: las uniones 0x614 y 0x613 (0x530860) del 0x1a18 en la UI van con el dibujo del ítem (P-C70)"));
-    // 0x609640, una vez: 0xe21 y 0xe22 sacan dos para las UV de un pase.
     constexpr std::int32_t ShieldWithUv = 0xe21;
     constexpr std::int32_t SecondShieldWithUv = 0xe22;
     if (model == ShieldWithUv || model == SecondShieldWithUv)
         context.random.Discard(2);
-    // 0x60cb3b: con el byte de las opciones (0x6c9dcc, 4) y sin excelente (o con uno de los modelos que no lo
-    // muestran), el pase del set con el set en 1 o 2.
     const bool showsExcellent = (excellent & 0x3fu) != 0 && (model < 0x1a12 || model > 0x1a18) && model != 0x1c30;
-    if (showsExcellent)
-        return {};
+    if (showsExcellent || context.projecting)
+        return;
     const std::uint32_t setKind = set & 3u;
     if ((setKind == 1 || setKind == 2) && SetPulseIsOff(context.worldClock))
         context.world.Runtime().itemRender.selections[static_cast<std::uint16_t>(model)] = context.random.Next() % 100;
-    return {};
+}
+
+// Item.bmd +0x24 y +0x25: las casillas de ancho y de alto, cada una por 20 (0x6b86d0) en la x87 con el fstp.
+Core::Expected<UiItemBox, std::string> ItemSizeOf(const GameHudContext& context, std::int32_t type,
+                                                  std::string_view where)
+{
+    if (context.items == nullptr)
+        return Core::Unexpected(std::format("{}: sin Item.bmd", where));
+    const auto record = type < 0 ? std::nullopt : context.items->Record(static_cast<std::size_t>(type));
+    if (!record)
+        return Core::Unexpected(std::format("{}: Item.bmd no tiene el tipo {:#x}", where, type));
+    constexpr std::size_t Width = 0x24;
+    constexpr std::size_t Height = 0x25;
+    constexpr float CellPixels = 20.0f;
+    UiItemBox box;
+    box.width = F32(static_cast<double>(std::to_integer<std::uint8_t>((*record)[Width])) * CellPixels);
+    box.height = F32(static_cast<double>(std::to_integer<std::uint8_t>((*record)[Height])) * CellPixels);
+    return box;
+}
+} // namespace
+
+Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, const UiItemBox& box, std::int32_t type,
+                                             std::uint32_t level, std::uint8_t excellent, std::uint8_t set, bool always)
+{
+    // 0x5e1486..0x5e1d69: bajo el mouse, el punto de la caja y 0x620480 con él (sin efectos fuera de 0x7d36834).
+    const bool hovered = UiItemHovered(box, context.mouse, context.world.Runtime().cursorItemCount, always);
+    const auto anchor = UiItemAnchor(type, level, box);
+    if (!anchor.HasValue())
+        return Core::Unexpected(anchor.Error());
+    const std::optional<UiItemCall> call = UiItemCallOf(type, level);
+    if (!call)
+        return {};
+    // 0x60c3b6: 0x60b3d0 cuelga del 0x1a18 las uniones 0x614 y 0x613 (0x530860) con el objeto local de 0x5e0720 de
+    // dueño, en la pila, que el paso de las uniones lee después (P-C70).
+    constexpr std::int32_t WingsWithJoints = 0x1a18;
+    if (call->model == WingsWithJoints)
+        return Core::Unexpected(std::string("0x60c3b6: las uniones 0x614 y 0x613 (0x530860) del 0x1a18 en la UI "
+                                            "tienen de dueño el objeto local de 0x5e0720 (P-C70)"));
+    if (context.uiItems == nullptr)
+    {
+        SpendUiItemRandoms(context, call->model, excellent, set);
+        return {};
+    }
+    UiItemResources& resources = *context.uiItems;
+    const UnprojectedPoint point = UnprojectGamePoint(resources.pass.projection, anchor.Value().x, anchor.Value().y);
+    auto placement =
+        PlaceUiItem(*call, point, hovered, always, context.worldClock, context.items, context.hud.uiItemAngles);
+    if (!placement.HasValue())
+        return Core::Unexpected(placement.Error());
+    return DrawUiItemModel(resources, context.random, placement.Value(), excellent, set);
 }
 
 namespace
@@ -569,18 +539,58 @@ namespace
 // ---------------------------------------------------------------------------------------------------------------
 // Los ítems 3D y las cifras de las grillas (0x5e3760).
 
-// 0x5e3760(x, y, grilla, columnas, filas, 0): el ítem de cada casilla de arriba a la izquierda (+0x3c > 0).
-Core::Expected<void, std::string> DrawTheGridModels(GameHudContext& context, std::span<const World::ItemState> cells,
-                                                    std::size_t columns, std::size_t rows)
+// 0x5e2fc0: los lugares del equipo en su orden y sus cajas: la esquina de la ventana (0x78a5a14 y 0x78a5a10) más los
+// floats de la tabla (fild, fadd y fstp; el 3, además, fsub de 10, 0x6b87a8). El 6, el 9, el 10 y el 11 van por
+// 0x5e2d00 con la esquina guardada en float antes de sumar: con estos enteros, lo mismo.
+struct EquipmentBox
 {
-    for (std::size_t cell = 0; cell < columns * rows; ++cell)
+    std::size_t slot = 0;
+    float x = 0.0f;
+    float y = 0.0f;
+    float lift = 0.0f;
+    float width = 0.0f;
+    float height = 0.0f;
+};
+
+constexpr std::array<EquipmentBox, 12> EquipmentBoxes{{
+    {.slot = 8, .x = 15.0f, .y = 46.0f, .width = 40.0f, .height = 40.0f},
+    {.slot = 7, .x = 115.0f, .y = 46.0f, .width = 60.0f, .height = 40.0f},
+    {.slot = 2, .x = 75.0f, .y = 46.0f, .width = 40.0f, .height = 40.0f},
+    {.slot = 3, .x = 75.0f, .y = 89.0f, .lift = 10.0f, .width = 40.0f, .height = 60.0f},
+    {.slot = 4, .x = 75.0f, .y = 152.0f, .width = 40.0f, .height = 40.0f},
+    {.slot = 0, .x = 15.0f, .y = 89.0f, .width = 40.0f, .height = 60.0f},
+    {.slot = 1, .x = 134.0f, .y = 89.0f, .width = 40.0f, .height = 60.0f},
+    {.slot = 5, .x = 15.0f, .y = 152.0f, .width = 40.0f, .height = 40.0f},
+    {.slot = 6, .x = 134.0f, .y = 152.0f, .width = 40.0f, .height = 40.0f},
+    {.slot = 9, .x = 55.0f, .y = 89.0f, .width = 20.0f, .height = 20.0f},
+    {.slot = 10, .x = 55.0f, .y = 152.0f, .width = 20.0f, .height = 20.0f},
+    {.slot = 11, .x = 115.0f, .y = 152.0f, .width = 20.0f, .height = 20.0f},
+}};
+
+// 0x5e3760(x, y, grilla, columnas, filas, 0): el ítem de cada casilla de arriba a la izquierda (+0x3c > 0), en la
+// casilla ((float)(20 · columna) + x, (float)(20 · fila) + y) con el fstp y del tamaño de Item.bmd.
+Core::Expected<void, std::string> DrawTheGridModels(GameHudContext& context, float x, float y,
+                                                    std::span<const World::ItemState> cells, std::size_t columns,
+                                                    std::size_t rows)
+{
+    for (std::size_t row = 0; row < rows; ++row)
     {
-        const World::ItemState& item = cells[cell];
-        if (item.id == EmptyOwnItemId || static_cast<std::int32_t>(item.occupied) <= 0)
-            continue;
-        const auto type = static_cast<std::int32_t>(static_cast<std::int16_t>(item.id));
-        if (auto drawn = DrawUiItem(context, type, item.scalar1Low, item.flags1b, item.flags1c); !drawn.HasValue())
-            return drawn;
+        const float top = F32(static_cast<double>(row * 20) + static_cast<double>(y));
+        for (std::size_t column = 0; column < columns; ++column)
+        {
+            const World::ItemState& item = cells[row * columns + column];
+            if (item.id == EmptyOwnItemId || static_cast<std::int32_t>(item.occupied) <= 0)
+                continue;
+            const auto type = static_cast<std::int32_t>(static_cast<std::int16_t>(item.id));
+            auto box = ItemSizeOf(context, type, "0x5e37fd");
+            if (!box.HasValue())
+                return Core::Unexpected(box.Error());
+            box.Value().x = F32(static_cast<double>(column * 20) + static_cast<double>(x));
+            box.Value().y = top;
+            if (auto drawn = DrawUiItem(context, box.Value(), type, item.scalar1Low, item.flags1b, item.flags1c, false);
+                !drawn.HasValue())
+                return drawn;
+        }
     }
     return {};
 }
@@ -626,24 +636,32 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::
     if (panels.IsOpen(UI::InventoryPanel))
     {
         // 0x5e2fc0: el equipo, con el registro propio abierto alrededor (los accesos de cada lugar, 0x4e79a0 y
-        // 0x40f370 o los de 0x5e2d00, quedan adentro y no sacan nada): el 8, el 7, el 2, el 3, el 4, el 0, el 1, el
-        // 5, y por 0x5e2d00 el 6, el 9, el 10 y el 11. Cada uno con su tipo y +0x3c > 0.
+        // 0x40f370 o los de 0x5e2d00, quedan adentro y no sacan nada; el color de 0x5e22d0 de cada lugar lo pisa el
+        // dibujo del modelo). Cada uno con su tipo y +0x3c > 0, en su caja.
         {
             const auto own = OwnAccess(context);
             const auto& equipment = world.OwnCharacter().equipment;
-            constexpr std::array<std::size_t, 12> Order{8, 7, 2, 3, 4, 0, 1, 5, 6, 9, 10, 11};
-            for (const std::size_t slot : Order)
+            for (const EquipmentBox& place : EquipmentBoxes)
             {
-                const World::ItemState& item = equipment[slot];
+                const World::ItemState& item = equipment[place.slot];
                 if (item.id == EmptyOwnItemId || static_cast<std::int32_t>(item.occupied) <= 0)
                     continue;
                 const auto type = static_cast<std::int32_t>(static_cast<std::int16_t>(item.id));
-                if (auto drawn = DrawUiItem(context, type, item.scalar1Low, item.flags1b, item.flags1c);
+                const UiItemBox box{.x =
+                                        F32(static_cast<double>(context.hud.inventoryX) + static_cast<double>(place.x)),
+                                    .y = F32(static_cast<double>(context.hud.inventoryY) +
+                                             static_cast<double>(place.y) - static_cast<double>(place.lift)),
+                                    .width = place.width,
+                                    .height = place.height};
+                if (auto drawn = DrawUiItem(context, box, type, item.scalar1Low, item.flags1b, item.flags1c, false);
                     !drawn.HasValue())
                     return drawn;
             }
         }
-        if (auto grid = DrawTheGridModels(context, world.Inventory().cells, InventoryColumns, InventoryColumns);
+        // 0x5f7624: la grilla, en la esquina más 15 (0x6b87bc) y 200 (0x6b8928).
+        if (auto grid = DrawTheGridModels(context, F32(static_cast<double>(context.hud.inventoryX) + 15.0),
+                                          F32(static_cast<double>(context.hud.inventoryY) + 200.0),
+                                          world.Inventory().cells, InventoryColumns, InventoryColumns);
             !grid.HasValue())
             return grid;
     }
@@ -710,6 +728,13 @@ Core::Expected<void, std::string> DrawTheCursorItem(GameHudContext& context)
         return {};
     const World::ItemState& item = runtime.cursorItem;
     const auto type = static_cast<std::int32_t>(static_cast<std::int16_t>(item.id));
-    return DrawUiItem(context, type, item.scalar1Low, item.flags1b, item.flags1c);
+    // El tamaño de Item.bmd, centrado en el mouse: fild del mouse menos la mitad (0x6b882c), con el fstp.
+    auto box = ItemSizeOf(context, type, "0x5f7b34");
+    if (!box.HasValue())
+        return Core::Unexpected(box.Error());
+    constexpr double Half = 0.5;
+    box.Value().x = F32(static_cast<double>(context.mouse.x) - static_cast<double>(box.Value().width) * Half);
+    box.Value().y = F32(static_cast<double>(context.mouse.y) - static_cast<double>(box.Value().height) * Half);
+    return DrawUiItem(context, box.Value(), type, item.scalar1Low, item.flags1b, item.flags1c, true);
 }
 } // namespace Client::Scenes

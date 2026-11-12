@@ -347,9 +347,16 @@ el hito 5 y la CL9.3.
 **Hito 4, hecho en parte** (2026-11-12, PR #327): la ventana, las cifras, el mundo angosto, el paso con levantar,
 soltar y equipar (`test_cursor_item.cpp`, `test_game_inventory_step.cpp`), vestir al héroe con sus derivados,
 MoveHero y las respuestas `24`, `28`, `2A`, `F3 13` y `F3 14` (04 § Mover y equipar ítems; Q-C470 a Q-C477, P-C71 y
-P-C72). Falta: el modelo de los ítems de la UI y el fondo de la caja del título (P-C70, con su alcance leído), lo que
-el inventario muestre del `26` y del `27` (sin leer) y el cable de los `C3 24` (P-C72 g). El cartel del set
-(`0x40e6f5`) es del hito 5.
+P-C72). Falta: el fondo de la caja del título (P-C70 b), lo que el inventario muestre del `26` y del `27` (sin leer)
+y el cable de los `C3 24` (P-C72 g). El cartel del set (`0x40e6f5`) es del hito 5.
+
+**El modelo de los ítems de la UI** (2026-11-12, rama `cl8-h4b`): el pase 3D de `0x5ac120` con `0x5e1480` y
+`0x5e0720` para el equipo, la grilla, el cursor y las ranuras rápidas, en el lote de los modelos entre los dos tramos
+del 2D (`Scenes/UiItemDrawing.h`, 06 § El inventario, Q-C478 a Q-C481, P-C70 a, P-C73 y P-C74). Probado con el
+inventario abierto, ítems de 1 × 3, 2 × 3 y 1 × 4 casillas en la grilla y un arma en el equipo, en Lorencia y en
+Devias, en 640 × 480 y en 1.024 × 768 (`test_game_inventory_hud.cpp`, `test_ui_item_drawing.cpp`), y en la escena
+con los modelos de Item.bmd en las tres resoluciones de `test_game_scene_viewports.cpp`. "El dibujo" queda abierto
+solo por el fondo del título.
 
 ### Hito 5: los tooltips y la ventana del personaje (CL8.4, ~50 KB)
 
@@ -368,9 +375,16 @@ tooltip va a la VM (P-C60). **Desbloquea:** "inventario usable".
 (`0x40e850`, `0x40eca0`, con `0x40e6c0` en el paso y `0x40ebd0` en el chat), el sprintf del CRT para los textos de
 formato (`UI/SprintfFormat`), la ayuda de los íconos de estado (`0x5a6600`); abrir el personaje con `0x550d10`, su
 paso `0x5e4510` con el `F3 06`, el botón de cerrar y el `A9 01 00 08` de `0x424230` una vez por apertura (06 § Los
-tooltips y § La ventana del personaje; Q-C590 a Q-C597, P-C100 a P-C104). Falta: el dibujo de la ventana `0x5ee2e0`
-con sus derivados (P-C100), los tres cuerpos del tooltip (P-C101) y el modo 3 de las ayudas, que solo abre
-`0x5ae360` del hito 6 (P-C102).
+tooltips y § La ventana del personaje; Q-C590 a Q-C597, P-C100 a P-C104). Falta: los tres cuerpos del tooltip
+(P-C101) y el modo 3 de las ayudas, que solo abre `0x5ae360` del hito 6 (P-C102).
+
+**El dibujo de la ventana del personaje, hecho** (2026-11-12, cierra P-C100): `0x5ee2e0` entero y el botón de cerrar
+`0x118` con la ayuda del texto 222 de `0x5f7440` (`Scenes/GameCharacterHud`), el ataque `0x5b8b80` y la magia
+`0x5513d0` con `0x40d8c0` (`Scenes/OwnDamage`), y el texto con ancho de `0x467060` (`TextCache::DrawColumns`), con
+los accesos al registro propio en su orden (de 12 a 18 cierres por frame). Probado en Lorencia y en Devias con el
+Dark Knight y el Dark Lord, y con el Wizard y la clase 3 (06 § La ventana del personaje; Q-C670 a Q-C677, P-C120 a
+P-C124). Corta sin el servidor elegido (P-C120), con la división por 0 de las letras (P-C121) y con lo que MuRet no
+tiene del registro (P-C122); lo inferido va a la VM (P-C123).
 
 **El cuerpo del ítem, hecho** (2026-11-12): `0x5b2aa0` con `0x5af590` (las clases), `0x5b2320` (las opciones),
 `0x40dd80` (el stat del conjunto), `0x40eee0` (las opciones del conjunto), `0x5b1ba0` y `0x402b30`, sobre

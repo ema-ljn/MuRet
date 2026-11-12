@@ -20,6 +20,10 @@ public:
     // del DIB (píxeles, aunque la x es de 640 × 480: Q-C519) y dibujado desde la x 0, con cx + x columnas; con x de
     // 0 o más, como Draw.
     virtual void DrawClippedAtLeft(int x, int y, std::string_view text, const Render::Text::TextStyle& style) = 0;
+    // 0x467060 con un ancho (los modos 1 y 2 de 0x554180): la caja de `columns` columnas desde x, con el fondo entero
+    // y la columna `firstColumn` del texto en su columna 0 (Render::Text::TextCache::DrawColumns).
+    virtual void DrawColumns(int x, int y, std::string_view text, const Render::Text::TextStyle& style, int firstColumn,
+                             int columns) = 0;
     // 0x553e50 y 0x554000, un renglón de un globo (0x555b00): la caja de `box` en (x, y) de la pantalla en píxeles,
     // corrida por 0x554000 (con 0x77f3b66, `clampY`, también la y). Con el texto vacío, el fondo solo.
     virtual void DrawBoxed(int x, int y, std::string_view text, const Render::Text::TextStyle& style,

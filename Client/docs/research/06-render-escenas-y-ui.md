@@ -1145,7 +1145,8 @@ En la base todo da −1 o 0 y queda el 2 (*verificado*: los dos quads finales so
 W/H, 20, 2000)`), la cámara `0x7d366f0`, profundidad; con `0x78abb00` en 0 o 3, los ítems de las grillas abiertas
 (`0x5f7610`), el del cursor (`0x5f7b10`) y las 3 ranuras rápidas (`0x558110(i)` → `0x5e1480(208 + 31i, 454, 20,
 20, …)`); si no, `0x5f70a0`. `0x633110` (después del primer cursor) es el ítem 3D de los diálogos de NPC y de la
-mezcla, con su propia proyección: CL9.3.
+mezcla, con su propia proyección: CL9.3. El pase y el dibujo de cada ítem, en § El inventario ("El pase de los
+ítems").
 
 **Las teclas por paso** (`0x5ac8d0`, `0x63717f`, `GetAsyncKeyState` con un latch por tecla): SPACE levanta el ítem
 del piso más cercano (`0x5650c0`, CL9.3); F1 cicla las ayudas (`0x77f3b08`); F2 alterna `0x6c8dd1` (el chat normal
@@ -1385,8 +1386,60 @@ un objeto local y llama a `0x607b60` (los `rand()` de lo que cuelga del modelo: 
 y `0xe22`) y, sin excelente (`& 0x3f` en 0, o con uno de los modelos `0x1a12` a `0x1a18` o `0x1c30`, que no lo muestran) y
 con el set (`& 3`) en 1 o 2,
 hace el pase del set (`0x60cc29`): con `sin(0,001 · T) · 0,5 + 0,4 ≤ 0,01` en la x87, `rand() % 100` en el `+0xc0`
-del modelo. `0x1a18` llega a sus uniones (`0x60c3b6`, `0x530860`). MuRet saca esos `rand()` y no dibuja el modelo
-(P-C70).
+del modelo. `0x1a18` llega a sus uniones (`0x60c3b6`, `0x530860`), con el objeto local de `0x5e0720` de dueño: MuRet
+corta ahí (P-C70).
+
+**El punto de la caja** (`0x5e1486..0x5e1d69`, *estático*, leído en el ASM). Con el cursor vacío (`0x7879fbc` en 0) o
+con `siempre`, el ítem está bajo el mouse si x ≤ mx < x + w e y ≤ my < y + h (el `FILD` de `0x7d3682c` y `0x7d36828`
+contra la suma de la x87). El punto es x + w · kx e y + h · ky en la x87, con los factores de la tabla por el tipo:
+0,8 y 0,85 (`0x6b8a38`, `0x6b8bac`) de `0` a `0x1ff`; 0,6 y 0,5 con el `0x40d` y 0,8 y 0,7 con los demás de `0x200` a
+`0x5ff`; 0,6 y 0,65 de `0x600` a `0x7ff`; el `0x811`, el `0x813` y el `0x814` con los suyos y 0,7 y 0,7 de `0x808`
+a `0x9ff`; 0,6 y 0,55 hasta `0xbff`; 0,5 y 0,6 hasta `0xdff` (0,7 con el `0xc0f`, 0,9 con el `0xc10`); 0,5 y 0,8
+hasta `0x11ff` (1,05 con el `0x1002`, el `0x1004` y el `0x1006`; 1,1 con el `0x1003` y el `0x1008`); 0,5 y 0,9 hasta
+`0x17ff`; y de ahí por tipo y por paso (el `0x1a0e` sin el 8 y el `0x1a0f` suman la altura
+entera, 0,6 en x), con 0,5 y 0,7 de `0x1a00` a `0x1bff`, 0,5 y 0,6 fuera de `0x1c00..0x1dff` y 0,5 y 0,95 adentro.
+Con un paso que la tabla no tiene (el `0x1a13` fuera de 0 a 2, el `0x1a14` fuera de 0 a 3, el `0x1a0b` fuera de 0 y
+1 y el `0x1c15` con el 2 o desde el 4) salta al final sin sumar: la esquina (Q-C481). Cada coordenada va con
+`_ftol`, y `0x620480` la desproyecta con la cámara de la UI: el píxel en enteros sin signo (`W · x / 640` y
+`H · y / 480`, con `imul` y la división por multiplicación), menos el centro de `0x620d10`, por las escalas de
+`0x6203c0` y por 2.000 y −2.000, girado con `0x5fcc30` y más la cámara, que queda en `0x7d36834`.
+
+**La pose** (`0x5e0720`, *estático*). Acerca el punto a la cámara (`0x5fc790` con 0,1f, o 0,07f con `siempre`, en la
+x87 con el `fstp`); pone los ángulos de `0x78aadcc..0x78aadd4` por el modelo, con los corrimientos de la posición del
+`0x1031`, el `0x1030`, el `0x1230`, el `0x122f`, el `0xa27`, el `0xc1e`, el `0x620` (este con el double 0,01 de
+`0x6ba618`; los demás con floats) y del `0x1c32` al `0x1c37`; las armas de `0x212` a `0xe11` se inclinan 15 o 25 en
+z por el byte `+0x1e` de su registro de Item.bmd (las dos manos). El `0x1e1e` con un paso que no es 0, 1 ni 2 no los
+escribe (Q-C478). Bajo el mouse, la y gira con el reloj (`0x5767b88` · 0,45 de `0x6ba224`). Elige el que posa (el
+`0x20a` con las armaduras, de `0x1012` a `0x1a11`; el `0x1e1e` dibuja y posa el `0x223a` con el paso 0 y el `0x223b`
+con el 2), la altura de más de la raíz del que dibuja (−160, −100, −50 o −70 por la familia de la armadura, en el
+`+0x84` del modelo que posa) y la escala por el modelo con los bits del binario (el `0x225`, el `0xc1c` y el `0xa24`
+con el nivel −1 que les pasa el `0x1a13` van con otra y con el nivel en 0; el `0x1e32` al `0x1e34` suben 0,05 y
+apagan la x y la z de los ángulos). Después `0x4eb860(&0x68b181c, 0, 0, 0, ángulos, &0x78aadd8, 0, 0)` posa en el
+buffer global con la acción del modelo y el frame en 0; el objeto local va con el modelo en `+2`, `0x607b60` (sus
+`rand()`), la escala, la posición, `+0xe8` en 0 y `+0x1d4` en 2, y `0x60cf70(objeto, modelo, 0, (1, 1, 1), 1, nivel,
+excelente, set, 1, 1, 1, 0, 2)` lo dibuja como un ítem del piso: `0x4ebc80` con el buffer global y `0x60b3d0`, sin
+dueño y sin luz por vértice (Q-C480).
+
+**El pase de los ítems** (`0x5ac120`, *estático*). `0x621a90` cierra el 2D; en la PROJECTION, `glPushMatrix`, la
+identidad, `0x620d10(0, 0, W, H)` y `0x6203c0(1, W / H, 20, 2.000)` (el aspecto con `FILD` y `FIDIV`); en la
+MODELVIEW, `glPushMatrix` y la identidad, que `0x620370` copia en `0x7d366f0`: la cámara de la UI en el origen, sin
+giro. `0x620850` y `0x620890` prenden la profundidad y su máscara sin limpiarla (Q-C479). Después de los ítems, la
+identidad, `glTranslatef` con −`0x7d36884..0x7d3688c`, otra vez `0x620370`, `0x620480(100, 100, local, 1)` (que
+escribe `0x7d36834`), dos `glPopMatrix` y `0x6219b0`, que abre el 2D (P-C73).
+
+**El dibujo en MuRet** (`Scenes/UiItemDrawing.h`). `MakeUiItemPass` arma el pase de la UI (la pantalla entera, la
+perspectiva de 1° con 20 y 2.000, la vista en la identidad) y su `GameProjection`; `UnprojectGamePoint` es
+`0x620480` con esas escalas; `UiItemAnchor`, `UiItemHovered`, `UiItemCallOf` y `PlaceUiItem` son `0x5e1480` y
+`0x5e0720` hasta la pose, y `DrawUiItemModel` posa en el buffer de la pose del frame, saca los `rand()` de
+`0x607b60` y dibuja con `DrawItemFromMeshes` (`0x60b3d0`) y los contextos del frame. El primer ítem que dibuja
+cierra el lote 2D (`flushSprites`) y empieza el `ModelBatch` con el pase de la UI sin inicializar el material (como
+`0x5ac120`, que no pasa por `0x620db0`); el final de `0x5ac120` (`CloseUiItemPass`) dibuja el lote de los modelos: los
+ítems quedan encima del 2D de antes y debajo del de después, y un frame sin ítems no cambia. Las cajas: el equipo en
+la esquina de la ventana más la tabla de `0x5e2fc0` (el 3 sube 10), la grilla en (x + 15 + 20 · columna, y + 200 + 20
+· fila) del tamaño de Item.bmd (`+0x24` y `+0x25`, por 20), el cursor del tamaño de Item.bmd centrado en el mouse y
+las ranuras en ((float)(208 + 31i), 454) de 20 × 20. Los ángulos de `0x78aadcc` viven en `HudState` (y en su copia
+del frame proyectado). Sin la biblioteca de los modelos (las escenas de las pruebas), cada ítem saca los mismos
+`rand()` sin dibujar.
 
 **Las cifras** (`0x5f7840`). Sale si no hay inventario, tienda, almacén, caja del caos ni comercio, salvo con la lista
 del asedio en el modo 3 o la caja del entrenador. Con la mezcla de alfa y el color (1; 0,9; 0,7), `0x5e3760(…, 1)`
@@ -1480,9 +1533,10 @@ izquierda, abre el registro propio (3.848 al cerrarlo), pasa el ítem del lugar 
 cuenta en su `+0x3c`) y deja el lugar en `0xffff` con `+4` en 0; `0x512a30`; la grilla del inventario, el lugar 1 y
 el destino 0; y, sin la traba, el `24` del 1 al 0. Sigue con el clic (`0x59cd23`).
 
-**Lo que porta MuRet**: la ventana entera; los ítems 3D, el del cursor y los de las ranuras con sus `rand()`; las
-cifras; el mundo angosto en `GameScene` (`0x63733e` y `0x63738a`); las texturas `0x104` a `0x120` (sin `0x106`),
-`0x652`, `0x657` y `0x658` en `HudTextureSet`; el paso en `Scenes/GameUi.cpp` (`test_game_inventory_step.cpp`) con
+**Lo que porta MuRet**: la ventana entera; los ítems 3D, el del cursor y los de las ranuras, dibujados en el pase de
+la UI con sus `rand()` (`Scenes/UiItemDrawing.h`, `test_ui_item_drawing.cpp` y `test_game_inventory_hud.cpp`; el
+`0x1a18` corta en `0x60c3b6`); las cifras; el mundo angosto en `GameScene` (`0x63733e` y `0x63738a`); las texturas
+`0x104` a `0x120` (sin `0x106`), `0x652`, `0x657` y `0x658` en `HudTextureSet`; el paso en `Scenes/GameUi.cpp` (`test_game_inventory_step.cpp`) con
 los botones de reparar y cerrar, el equipo y la grilla bajo el mouse y el paso del ítem del cursor; y levantar,
 soltar, equipar, el piso, MoveHero y las respuestas en `Scenes/InventoryMoves.cpp` (`test_cursor_item.cpp` y
 `test_inventory_reply.cpp`), con Item.bmd, `0x512a30`, el cuervo y los mensajes que pide (`InventoryServices`). Las
@@ -1726,15 +1780,84 @@ Abierto, la primera vez manda `C1 06 A9 01 00 08` (el caballo oscuro en la casil
 (`0x217..0x22f`, `0x18b..0x1a3`) apaga los dos flancos y abre o cierra el panel `0x400` (Open corta: CL9.2). Con
 `0x723911` en 2 (la respuesta del A9, que MuRet no lee) la ventana de la mascota es de la CL9.2.
 
-**El dibujo** (`0x5ee2e0(0x1c2, 0)`, desde `0x5f7440`). Escribe la esquina y dibuja los fondos `0x104` y `0x105`, el
-nombre, la clase, el nivel, la experiencia, las cuatro estadísticas (cinco con el Dark Lord) con sus derivados
-(`0x5b8b80`, `0x5513d0`, `0x54ee00`), los puntos y sus botones `0x120`/`0x121`, con 14 accesos al registro propio.
-Después, `0x5f7440` dibuja el botón de cerrar (`0x118`) y su ayuda (el texto 222). MuRet corta en `0x5ee2e0`
-(P-C100).
+**El dibujo** (`0x5ee2e0(0x1c2, 0)`, 10.336 bytes, desde `0x5f7440`; leído entero en el ASM de `c32bbd5f`, con el
+decompilado de guía). Escribe la esquina (`0x78aba14`, `0x78aba18`) y dibuja, en este orden:
+
+1. Los fondos `0x104` (190 × 256, du 0,7421875) y `0x105` (190 × 177 en y + 256, dv 0,69140625), opacos y en
+   blanco. Después, la mezcla alfa y la negrita.
+2. Acceso 1: el nombre del registro (`sprintf("%s")` de sus 11 bytes) y la clase, `(%s)` con el texto
+   20 + (`+0xb` >> 3) · 5 + (`+0xb` & 7). El nombre va con el color de `0x555a70` por el `+0x375` del héroe (de
+   0 a 5, de `0xfff0ff96` a `0xff1e50ff`; si no, `0xff0000ff`) sobre `0xff141414`, centrado en 120 en
+   (x + 0x23, y + 0xc).
+3. El servidor (`0x5ee629..0x5ee69c`): el texto de `0x447c70` (el 460 sin PvP, el 461 con PvP, como el título de la
+   cuenta) con el nombre del grupo (`0x7d36bb0 + 0x21e · lugar`) y el número de `[0x6d5ec4]` y `[0x6d5ecc]`. La
+   clase y el servidor se turnan en (x + 0x16, y + 0x16), centrados en 150, con a = (float)(sin(T · 0,001f) + 1) en
+   la x87: la clase con el alfa 2 − a y el servidor con a. El alfa pasa de 1 y GL lo acota (Q-C677).
+4. Los fondos `0xf5` del nivel y de los stats: uno más que los botones de `[0x6c9330]`, de 60 en 60 desde
+   (x + 13, y + 56), de 75 × 21.
+5. Acceso 2: el nivel (el texto 200), en `0xffe6e6e6` sin fondo, centrado en 82 en (x + 0xe, y + 0x3c). Acceso 3:
+   la experiencia (201), en blanco sobre `0x80000000`, desde la izquierda en 145 en (x + 0x18, y + 0x50). Acceso 4:
+   el renglón de los puntos agregados y quitados, con `wsprintfA` y el formato `'%s %d/%d | %s %d/%d'` de la
+   `.rdata` (Q-C672) sobre los textos 1412 y 1903: antes del nivel 10, todo en 0; si no, `+0x44` y `+0x46` con signo
+   y −`+0x48` y −`+0x4a`. En negrita y naranja, en 130 en y + 0x5f.
+6. Acceso 5: la fuerza (202). El color de un stat es (−(agregado ≠ 0) & `0x97d685`) − `0x984021`: naranja
+   (`0xffff9664`) con algo agregado, celeste (`0xff67bfdf`) sin nada; el valor, la suma de 16 bits del stat y lo
+   agregado. Centrada en 70 en (x + 0xe, y + 0x78). El acceso 6 solo toma el puntero al lugar 0. Después,
+   `0x5b8b80` (el ataque, con su acceso), y el acceso 7 (`0x5ef450..0x5ef55f`): el bonus de la tasa es `+0x4e`;
+   con el bit `0x400` de `+0x78` del héroe le suma la agilidad, y con tres o más en la party lo pasa por
+   `_ftol((party − 2) · 0,01f · agilidad + bonus)`. El bit `0x2000000` suma nivel / 3 + 45 al mínimo y al máximo.
+   El 203 (mínimo, máximo y tasa) con el bonus en más de 0, si no el 204; en naranja si `0x5b8b80` lo marca, en
+   blanco si no, desde la izquierda en 130 en y + 0x8c.
+7. El set (`0x5ef62a..0x5efc5f`): los lugares 2 a 6, un acceso cada uno, hasta el primero vacío o con la
+   durabilidad en 0 (la clase 3 puede no tener casco). Si pasan los cinco, el acceso 9 compara el tipo % 512 de los
+   lugares 3 a 6 con el del casco, o en la clase 3 con el de la armadura, que tiene que ser `0x100f`, `0x1014`,
+   `0x1017` o `0x1020`.
+8. Acceso 10: la agilidad (205), en y + 0xb4. El acceso 11 queda abierto hasta el final del tramo: la defensa,
+   `+0x62` (más nivel / 5 + 50 con el bit `0x2000000`), con el 206 o el 207 con set (y la defensa / 10) y el 208 o
+   el 209 sin set, según la tasa `+0x60` sea distinta de 0 (sin signo), en y + 200; y la velocidad (64): con la
+   clase **del registro** (`+0xb & 7`, Q-C674) en 0 la de la magia, si no la del ataque, en y + 0xd7.
+9. Acceso 12, abierto hasta las letras: la vitalidad (210) en y + 0xf0, la vida (211) en y + 0x104, la energía (212) en
+   y + 300 y el maná (213) en y + 0x140. Las clases 0 y 3 dibujan la magia (`0x5f04b1..0x5f0633`): `0x5513d0` con el
+   acceso 13 adentro del 12 (no saca nada) y el de la entrada de su skill en Skill.bmd (60 `rand()`); 10 más al mínimo y
+   al máximo con el bit `0x02` de `+0x3c`; con un báculo en la derecha (de `0xa00` a `0xbff`, `0x1f`, `0x17` o `0x15`),
+   el 215 con el agregado (f − r · f) · máximo (el de antes de los 10), f el byte `+0x16` del ítem por 0,01f y r el
+   factor de `0x54ee00` sobre el byte `+0x2e` de Item.bmd (Q-C671); si no, el 216; en y + 0x14f. El daño de la skill
+   (582): el Dark Knight E / 10 + 200 y el Dark Lord E / 20 + 200, en y + 0x14f; la clase 3, 200 en y + 0x15e. Con
+   puntos para repartir, el 217 en negrita, negro sobre `0xffc86e1e`, centrado en 80 en (x + 0x5f, y + 0x32), y los
+   botones `0x120` (`0x121` con el botón abajo y el mouse encima) en (x + 125, y + 115 + 60 · i). Las letras (1907),
+   centradas en 84 en (x + 0x5b, y + 0x41): `+0x44` · 100 / `+0x46` con signo y `+0x48` · 100 / 1 (Q-C670), cada una a
+   70, 60, 50 o 40, y 100 hasta 10. La primera es un `idiv` por `+0x46`, que con 0 es una excepción en `0x5f08ac`
+   (Q-C675).
+10. El Dark Lord, con el acceso 14: el mando (1170), `+0x20` más `+0x36` con su color, centrado en 70 en y + 0x168.
+
+Después, `0x5f7440` (`0x5f74a3..0x5f759a`) dibuja el botón de cerrar `0x118` (24 × 24 en (x + 25, y + 395)) y,
+con el mouse encima, el texto 222 con `0x554340` en (x + 25, y + 395 − 13).
+
+Los cierres que dejan el registro sin accesos son de 12 a 18 por frame (Q-C673): los accesos 1 a 7, el de
+`0x5b8b80`, uno por cada lugar del set que mira (de 1 a 5), el 9 si llegan los cinco, el 10, el 11, el 12 y el 14
+del Dark Lord. Cada uno saca 3.848 `rand()`, y la entrada de la skill de las clases 0 y 3, 60.
+
+**Los textos con ancho** (`0x554180` → `0x467060`). El ancho es W · k / 640, sin signo. En el modo 1, la caja tiene
+ese ancho desde x, con el fondo entero, y un texto más ancho se ve desde la columna cx − ancho (el final). En el modo
+2, el corrimiento es (caja − cx) / 2 con la división de C, la caja tiene cx + 2 · eso columnas y el texto empieza
+corrido; uno más ancho que la caja se ve por el centro (Q-C676). Un texto vacío mide como `"0"`
+(`0x4670ba..0x4670d0`). MuRet lo hace con `TextCache::DrawColumns` (la primera columna, que puede ser negativa, y
+las columnas de la caja).
+
+**Lo que corta.** Sin el servidor elegido, en `0x5ee629` (P-C120); con `+0x46` en 0 y `+0x44` en más de 10, en
+`0x5f08ac` (P-C121); con el nombre del registro sin su 0 en sus 11 bytes, en `0x5ee47b`, y con la skill del héroe
+fuera de los 64 bytes de `+0x6c` que tiene MuRet, en `0x5f04cd` (P-C122). Sin Text.bmd, Item.bmd (la magia con
+báculo, `0x5f05a2`) o Skill.bmd (`0x5513d0`), en la dirección que los lee. Un dibujo intermedio de MuRet hace la
+magia sobre una copia de la lista de los sets, para no dejar sus marcas.
 
 **Lo que porta MuRet**: abrir, el paso, los botones, el F3 06 (`Protocol/Character/LevelUpPoint`) y el A9 de la
-mascota, en `Scenes/GameUi.cpp` y `Scenes/GamePanels.cpp`. Los tests son `test_game_character_window.cpp` (en
-Lorencia y en Devias), `test_panel_registry.cpp` y `test_level_up_point.cpp`.
+mascota, en `Scenes/GameUi.cpp` y `Scenes/GamePanels.cpp`; el dibujo y el botón de cerrar, en
+`Scenes/GameCharacterHud.cpp` (desde `DrawTheWindows` de `Scenes/GameHud.cpp`), con `0x5b8b80` y `0x5513d0` en
+`Scenes/OwnDamage.cpp`, `0x40d8c0` en `Scenes/ItemSetOptionList.cpp` y los textos con ancho en
+`Render/Text/TextCache.cpp`. Los tests son `test_game_character_window.cpp` (en Lorencia y en Devias),
+`test_panel_registry.cpp`, `test_level_up_point.cpp`, `test_game_character_hud.cpp` (el Dark Knight en Lorencia y en
+Devias, el Dark Lord, el Wizard y la clase 3, con los `rand()` contados y los sprites y los textos grabados),
+`test_own_damage.cpp`, `test_item_set_option_list.cpp` y `test_text_cache.cpp`. Lo que queda para la VM, en P-C123.
 
 ## La escena de carga y la de login
 

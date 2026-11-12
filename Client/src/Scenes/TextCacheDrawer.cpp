@@ -34,6 +34,12 @@ void TextCacheDrawer::DrawClippedAtLeft(int x, int y, std::string_view text, con
     LogOnce(m_cache.DrawClippedAtLeft(m_batch, x, y, text, style));
 }
 
+void TextCacheDrawer::DrawColumns(int x, int y, std::string_view text, const Render::Text::TextStyle& style,
+                                  int firstColumn, int columns)
+{
+    LogOnce(m_cache.DrawColumns(m_batch, x, y, text, style, firstColumn, columns));
+}
+
 void TextCacheDrawer::DrawBoxed(int x, int y, std::string_view text, const Render::Text::TextStyle& style,
                                 const Render::Text::BoxShape& box, bool clampY)
 {

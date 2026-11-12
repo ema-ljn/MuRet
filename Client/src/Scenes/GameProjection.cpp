@@ -73,4 +73,36 @@ Core::Expected<glm::ivec2, std::string> ProjectGamePoint(const GameProjection& p
     return glm::ivec2(WrappedProduct(screenX, VirtualWidth) / projection.screenWidth,
                       WrappedProduct(screenY, VirtualHeight) / projection.screenHeight);
 }
+
+UnprojectedPoint UnprojectGamePoint(const GameProjection& projection, std::int32_t x, std::int32_t y)
+{
+    // 0x620486..0x6204b0: imul en 32 bits y la división sin signo por 640 y por 480 (mul por 0xcccccccd y 0x88888889).
+    constexpr std::uint32_t VirtualWidth = 640;
+    constexpr std::uint32_t VirtualHeight = 480;
+    const std::uint32_t pixelX =
+        std::bit_cast<std::uint32_t>(WrappedProduct(projection.screenWidth, std::bit_cast<std::uint32_t>(x))) /
+        VirtualWidth;
+    const std::uint32_t pixelY =
+        std::bit_cast<std::uint32_t>(WrappedProduct(projection.screenHeight, std::bit_cast<std::uint32_t>(y))) /
+        VirtualHeight;
+    const std::int32_t fromCenterX = WrappedSubtract(std::bit_cast<std::int32_t>(pixelX), projection.centerX);
+    const std::int32_t fromCenterY = WrappedSubtract(std::bit_cast<std::int32_t>(pixelY), projection.centerY);
+    // 0x6204fe..0x620535: fild, fmul por la escala y por 0x6ba148 (2.000) o 0x6ba768 (−2.000), fstp.
+    constexpr float Far = 2000.0f;
+    constexpr float NegativeFar = -2000.0f;
+    const glm::vec3 eye{
+        static_cast<float>(static_cast<double>(fromCenterX) * projection.horizontalScale * static_cast<double>(Far)),
+        static_cast<float>(static_cast<double>(fromCenterY) * projection.verticalScale *
+                           static_cast<double>(NegativeFar)),
+        NegativeFar};
+    // 0x620538..0x62057e: la cámara y el punto, cada uno con 0x5fcc30; la salida, la suma en la x87 con el fstp.
+    const Render::Models::OriginalMatrix& view = projection.view;
+    const glm::vec3 translation{-view[3], -view[7], -view[11]};
+    UnprojectedPoint unprojected;
+    unprojected.camera = Render::Models::OriginalVectorIRotate(translation, view);
+    const glm::vec3 local = Render::Models::OriginalVectorIRotate(eye, view);
+    for (int axis = 0; axis < 3; ++axis)
+        unprojected.point[axis] = static_cast<float>(static_cast<double>(unprojected.camera[axis]) + local[axis]);
+    return unprojected;
+}
 } // namespace Client::Scenes

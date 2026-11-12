@@ -25,6 +25,8 @@
 #include "World/ObjectModelStepState.h"
 #include "World/TerrainCulling.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <cstddef>
 #include <array>
 #include <cstdint>
@@ -133,6 +135,10 @@ struct HudState
     // (0x1c2, 0). Los leen su paso (0x5e4510) y su botón de cerrar (0x5f74b4), CL8 hito 5.
     std::int32_t characterX = 0;
     std::int32_t characterY = 0;
+    // 0x78aadcc..0x78aadd4 (.bss, en 0): los ángulos con que 0x5e0720 posa cada ítem de la UI. Los escribe en cada
+    // ítem y duran al siguiente y al frame siguiente: el 0x1e1e con un paso que no es 0, 1 ni 2 posa con los del
+    // anterior (Q-C478).
+    glm::vec3 uiItemAngles{};
     // [0x5763528]: el cartel de Slide.bmd (0x46aea0), que dibuja el 15 (0x46b090) y escribe al dibujar (la opacidad,
     // el corrimiento, el texto que pasa y 0x5762ee4). Lo llenan el timer 0x3eb y el 0D, y lo pasa el paso de la UI.
     UI::SlideBanner slides{};

@@ -12,6 +12,11 @@
 // Un ítem del F3 10 en el inventario propio: 0x5bc740 con la grilla 0x78a9bb0, 8 columnas, 8 filas y el
 // último argumento en 1, como la llama 0x4c55a0 (0x4c5e7f..0x4c5e8c), y el tipo de 0x54b3a0. Contrato:
 // Client/docs/research/06-render-escenas-y-ui.md, "El F3 10, el inventario".
+namespace Client::World
+{
+struct ItemState;
+}
+
 namespace Client::Scenes
 {
 struct WorldEntryResources;
@@ -38,4 +43,10 @@ inline constexpr std::uint8_t FirstSecondGridSlot = 0x4c;
 // cierra igual. Devuelve lo que pidió 0x4f2250 dentro de 0x512a30, si corrió.
 [[nodiscard]] Core::Expected<ActorStopResult, std::string>
 PlaceInventoryItem(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntryResources& resources);
+
+// 0x4225d0, la defensa del Dark Horse, que 0x54bf40 llama en 0x54cc5c con el 0x1a04: la opción 0x96 con
+// 5 + la agilidad del registro propio / 20 + 2 · WorldRuntime::darkHorseLevel, en un byte, calculada con el
+// registro abierto (3.848 rand() al cerrarlo si queda sin accesos). Si ya tiene una 0x96 desde la segunda
+// opción, le reescribe el valor; si no, o si es la primera (Q-C415), la agrega al final.
+void AddTheDarkHorseOption(World::ItemState& item, const WorldEntryResources& resources);
 } // namespace Client::Scenes

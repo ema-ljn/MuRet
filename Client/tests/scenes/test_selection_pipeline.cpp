@@ -82,6 +82,19 @@ CharacterEntryFields WithoutPet(std::uint8_t slot)
     return entry;
 }
 
+// Sin nada que cuelgue: sin mascota, sin alas (b4 >> 2 & 3 == 3, con b8 & 7 == 0) y con las manos vacías (0xfff:
+// b0 y b1 en 0xff, y los nibbles altos de b11 y b12).
+CharacterEntryFields Bare(std::uint8_t slot)
+{
+    CharacterEntryFields entry{.slot = slot};
+    entry.equipment[0] = 0xff;
+    entry.equipment[1] = 0xff;
+    entry.equipment[4] = 0x0f;
+    entry.equipment[11] = 0xf0;
+    entry.equipment[12] = 0xf0;
+    return entry;
+}
+
 CharacterEntryFields WithHeightOffsetPet(std::uint8_t slot)
 {
     CharacterEntryFields entry{.slot = slot};
@@ -516,12 +529,13 @@ TEST_F(SelectionPipelineTest, MixedWorldFailureBeforeCharacterPreventsTheCharact
 // 0x50ba30 con cada personaje de la lista, en 0x50c91e, una vez por frame del original: el dibujo de la
 // selección deja en WorldRuntime::fullSetScan lo de 0x505820 con el último, aunque MuRet no supiera qué
 // había (06, "El conjunto completo de 0x505820"). Uno sin equipo lleva las partes de la clase, que no son un
-// conjunto: [0x743a178] en 0 y [0x743a17c] en 1. Sin las acciones de Player.bmd sale antes (0x50ba87).
+// conjunto: [0x743a178] en 0 y [0x743a17c] en 1. Sin las acciones de Player.bmd sale antes (0x50ba87). Sin nada
+// que cuelgue: el esqueleto de prueba no tiene los huesos de las manos ni de las alas.
 TEST_F(SelectionPipelineTest, TheSelectionDrawingLeavesTheScanOfTheLastCharacter)
 {
     m_world.Runtime().fullSetScan = std::nullopt;
     ASSERT_NO_FATAL_FAILURE(StartSelect());
-    ASSERT_NO_FATAL_FAILURE(ReceiveList({WithoutPet(0)}));
+    ASSERT_NO_FATAL_FAILURE(ReceiveList({Bare(0)}));
     m_manager->Step(Client::Input::InputState{});
     // El paso común ya necesitó el esqueleto: se retira solo para observar la guarda del dibujo.
     m_models.Clear();

@@ -18,6 +18,7 @@
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WorldTransitionSupport.h"
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
 #include "World/TerrainCulling.h"
@@ -39,9 +40,6 @@ constexpr double DirectionOffset = 1.0;
 constexpr double DegreesPerDirection = 45.0;
 // 0x4c48eb: el contador de la espera en 30.
 constexpr std::int32_t EntryWait = WaitDrawThreshold;
-// 0x420d60: el cuervo, si el héroe lleva el 0x1c17 en la mano izquierda (+0x2d8).
-constexpr std::uint16_t RavenItem = 0x1c17;
-constexpr std::size_t LeftHand = 1;
 // 0x657ab0(−1, 0): con todas las ventanas cerradas, solo dos consultas de 0x659290 abren y cierran
 // una entrada de un byte (0x7d53711 con 0x20 y 0x7d53710 con 0x10000), y cada cierre saca un rand().
 constexpr int ClosedWindowAccesses = 2;
@@ -319,9 +317,10 @@ SettleWorldEntry(WorldEntryResult result, const WorldEntryResources& resources, 
     publisher.PublishWorldEntry();
     StartTheWait(resources);
     // 0x77f3b10 = 0 y 0x6c8dcc = 6 (su valor de la .data), sin quién los lea en MuRet.
-    if (HeroOf(resources).hands[LeftHand].model == RavenItem)
+    // 0x4c4954: 0x420d60 con el héroe publicado, el cuervo si lleva el 0x1c17 en la mano izquierda.
+    if (auto raven = RecreateTransitionRaven(HeroOf(resources), resources); !raven.HasValue())
     {
-        return Core::Unexpected(std::string("0x420d60: el cuervo del héroe (0x4167b0) no está portado en el mundo"));
+        return Core::Unexpected(raven.Error());
     }
     CreateTheArrival(resources);
     if (auto stopped = StopTheHero(resources, *player.Value(), result); !stopped.HasValue())

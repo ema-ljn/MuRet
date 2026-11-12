@@ -1,5 +1,7 @@
 #include "Scenes/WorldState.h"
 
+#include "Data/Models/PlayerModels.h"
+
 #include "Protocol/Character/CharacterList.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
@@ -138,6 +140,26 @@ const FaunaModels& WorldState::FaunaResources() const
 {
     return m_faunaResources;
 }
+SharedModelPlacement& WorldState::PlayerModel()
+{
+    return m_playerModel;
+}
+
+const SharedModelPlacement& WorldState::PlayerModel() const
+{
+    return m_playerModel;
+}
+
+void WorldState::PlacePlayerModel(const ActorState& actor)
+{
+    if (actor.type != Data::Models::PlayerSkeletonModel)
+    {
+        return;
+    }
+    m_playerModel.scale = actor.scale;
+    m_playerModel.origin = actor.position;
+}
+
 FaunaDrawCarry& WorldState::PoseCarry()
 {
     return m_poseCarry;

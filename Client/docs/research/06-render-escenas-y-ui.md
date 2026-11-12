@@ -1245,22 +1245,106 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
 - **En MuRet.** El del login es `Scenes::DarkHorse` en `LoginScene`, con su paso (`StepDarkHorse`, sin
   celda segura: el mundo 56 no tiene ninguna) y su dibujo (`DrawDarkHorse`, con la sombra por mapa). El
   del juego (CL7, hito 1, T12) es `Scenes::HelperTable`, la tabla de `0x7d335d0` en
-  `WorldState::Helpers`: `CreateHelper` (`0x443fa0` → `0x443d70`, solo el `0xbf`: los otros tipos
-  cortan), `TurnOffHelpersOf` (`0x443d40`, desde el `F3 10`; `0x510f70` en `KillOtherActors`),
-  `StepHelpers` (`0x445230` en la escena 5, en `GameScene::StepWorld`, en `0x6370f4`) y `DrawHelpers`
-  (`0x4453b0` en la escena 5). El paso saca el polvo y el aliento (CL7.6) a las partículas del juego
+  `WorldState::Helpers`: `CreateHelper` (`0x443fa0` → `0x443d70`, el `0xbf` y las [mascotas](#las-mascotas)),
+  `TurnOffHelpersOf` (`0x443d40`, desde el `F3 10`; `0x510f70` en `KillOtherActors`),
+  `StepHelpers` (`0x445230` en la escena 5, en `GameScene::StepWorld`, en `0x6370f4`, y en la 4, en
+  `0x6342f4`) y `DrawHelpers` (`0x4453b0` en la escena 5 y en la 4, `0x63486a`). El paso saca el polvo y el aliento (CL7.6) a las partículas del juego
   (`WorldState::Particles`, con el reloj del mundo de `HelperStepContext::worldClock`) y la onda de Icarus
   a los efectos con modelo (`ModelEffects::CreateGallopShockWave`, con su paso en `StepGameModelEffect`);
   el buffer global de la pose es `WorldState::PoseCarry`, que publican los dibujos del frame anterior
   (el del caballo, `DrawHelpers` por `onPose`, que `GameScene` manda a `PublishFaunaPose`). La `0x5f3`
   es de `World::Particles` (el alta, el paso con el alto de su textura por `ParticleTextureHeightsOf` y
-  el dibujo), y `Effect\ShockWave.jpg` y `Effect\smoke02.tga` suben con `EffectTextureSet`. Cortan con
-  error, después de los `rand()` que el original saca antes, un hueso del buffer global que ningún dibujo
-  conservado escribió (`0x4442b4` y `0x44459d`), una partícula que no se puede crear, la acción 3, el
-  `+8` del jinete, el dibujo con `+0x78 & 0x4000` y los mapas `0x12` a `0x17` del dibujo. En el juego no se crea
-  ninguno: `0x5bc740` corta antes con el `0x1a04` (`0x4225d0`, P-C36) y los demás que lo crean no están
-  portados; la tabla vacía no hace nada. `DrawHelpers` no corre: el dibujo del juego corta antes, a más
-  tardar en los ítems del piso (`0x6374fe`). La tabla no lleva los caballos del login ni de la selección (P-C47).
+  el dibujo), y `Effect\ShockWave.jpg` y `Effect\smoke02.tga` suben con `EffectTextureSet`. Un hueso del
+  buffer global que ningún dibujo escribió todavía es la matriz en cero de la `.bss` (200 huesos, hasta
+  `0x68b3d9c`), y el punto sale del origen (`0x4442b4` y `0x44459d`, Q-C401). Cortan con error, después de
+  los `rand()` que el original saca antes, una partícula que no se puede crear, la acción 3, el
+  `+8` del jinete y el dibujo con `+0x78 & 0x4000`; los mapas `0x12` a `0x17` bajan el alpha en el dibujo. En el
+  juego lo crea `0x5bc740` con el `0x1a04` en el lugar 8 (desde la auditoría del cierre de la CL7, `0x4225d0` ya no
+  corta, ver [el F3 10](#el-f3-10-el-inventario)); los demás que lo crean no están portados. Desde que los ítems del
+  piso no cortan siempre (`0x6374fe`), `DrawHelpers` corre en el juego. La selección crea los suyos con `0x5139f0` en la misma tabla; el del login sigue en `LoginScene` (P-C47).
+
+### Las mascotas
+
+Leído en la CL7 (2026-11-12, *estático* sobre c32bbd5f; el camino de `0x6002e0` con el `0xc6`, el `0x110` y el
+`0x1c12`, **emulado** con unicorn sobre el `main.exe`, en los mapas −1 a 56). La tabla, la creación común, el
+alpha de `0x4e9980` y el avance de `0x445006` son los del [caballo oscuro](#el-caballo-oscuro); acá va lo de cada
+tipo.
+
+- **Quién las crea en el juego.** `0x5bc740` con el lugar 8 (`0x5bc8b3..0x5bca46`, desde el `F3 10`): el Guardian
+  Angel (`0x1a00`) con el `0x1c12`, el Horn of Uniria (`0x1a02`) con el `0xc6`, el de Dinorant (`0x1a03`) con el
+  `0x110` y el Horn of Doom (`0x1a25`) con un Fenrir por el `+0x1b` del ítem, que copia antes a `+0x31b` del héroe:
+  1 el `0x14a`, 2 el `0x14c` y otro el `0x14b`. Salvo con el `0x1c12`, con `+0x3e2` del héroe en 0 sigue
+  `0x518cf0(0x61e, héroe + 0x10, héroe + 0x1c, héroe + 0xf4, 1, héroe, −1, 0, 0, 0, 0)`, aunque `0x443fa0` no haya
+  creado nada; el paso de ese efecto (`0x518900`) crea la junta `0x619/1`.
+- **`0x443d70`** con los Fenrir, el Uniria y el Dinorant: la escala en 0,9. Con el `0x1c12`: 0,7, el blendMesh
+  (`+0x64`) en 1 (`0x443f1a`) y el lugar corrido desde el del jinete `rand() % 512 − 256` en x y en y y
+  `rand() % 128 + 128` en z (`0x443f21..0x443f8c`, tres `rand()`). La velocidad del vuelo (`+0xcc..+0xd4`) no la
+  escribe: un lugar que se vuelve a usar se queda con la de antes (Q-C420).
+- **El paso** (`0x444010`, después del alpha y antes del avance):
+  - el Uniria y el Dinorant (`0x4447c4..0x444ac4`): en la celda segura del jinete (como el caballo), el alpha en 0
+    y al avance. Si no, el alpha por `+0x80` del jinete (`0x44480b..0x44484a`: con 1 o 2 baja 0,1f, restado en la
+    x87, guardado en float y comparado sin redondear, con piso 0; con otro, 1), su lugar (el Dinorant a −10 en los
+    mapas 8 y 10 y a −30 en los demás, salvo el −1) y sus ángulos, y la acción por la del jinete
+    (`0x4448b1..0x4449b7`, con `0x4ea030`): `0x0d` a `0x21`, `0x46` y `0x47` → 2 (3 el Dinorant en el 8 y el 10), el
+    galope; `0x40` y `0x41` → 6 (7 en el 8 y el 10, sin mirar el tipo); `0x22` a `0x37` → 3 (el Dinorant, 4, o 5
+    en el 8 y el 10); otra → 0 (1 el Dinorant en el 8 y el 10). Con el galope, `rand() % 2`, y con 0, fuera del 10
+    y sin `+0x78 & 0x4000` del jinete, el polvo del caballo (`0x444a19..0x444aa8`). La velocidad en 0,34 y el byte
+    vivo del jinete (`0x444ac0`);
+  - los Fenrir (`0x444af0..0x444f25`): la celda segura igual; el alpha por `+0x80`, la cabeza, el lugar y los
+    ángulos del jinete, y la acción y la velocidad por la suya (`0x444bbc..0x444c4b`): `0x56` a `0x61` → 3, `0x62` a
+    `0x65` → 4, `0x66` a `0x69` → 5, `0x76` a `0x79` y `0xc3` → 0, a 0,4 y sin polvo; `0x7a` a `0x7d` → 1, a 1;
+    `0x6a` a `0x75` → 2, a 0,6; otra deja las dos. Con la carrera o el trote, el polvo: en el 10, sin `rand()`
+    antes, desde el hueso 22 del buffer global con el frame en (1; 1,2) o desde el 44 en (4,8; 5], con (120; 0; 32),
+    40 más en x y, en la segunda ventana, 700 más en z (Q-C421), la onda `0x6eb/1` y las `5f2` del caballo en Icarus
+    (`0x444d68..0x444e16`); en los demás, `rand() % 3`, y con 0, fuera de Kalima y sin `+0x78 & 0x4000`, el polvo
+    del caballo (`0x444e6f..0x444f1d`);
+  - el Guardian Angel (`0x444f2a..0x444fff`): sin `+0x78 & 0x4000` del jinete, cuatro `5c5/1` con la luz 0,4,
+    corridas `(rand() & 15) − 8` del ayudante en cada eje. Después del avance (`0x445052..0x445221`) vuela: gira
+    20 grados hacia donde estaba el jinete al empezar el paso (`0x444080..0x44408b`) si está a 150 o más (al
+    cuadrado, en float), se mueve con su velocidad girada por sus ángulos y `(rand() & 15) − 8` en z, con
+    `rand() % 32` en 0 toma otra velocidad (de lejos `((rand() & 63) + 128) · −0,1f` en y; de cerca
+    `((rand() & 63) + 16) · −0,1f` y el rumbo `rand() % 360`; la x en 0 y `((rand() & 63) − 32) · 0,1f` en z), y
+    sube 1,5 su velocidad en z si está a menos de 100 sobre el jinete o la baja 1,5 si está a más de 200.
+- **El dibujo** (`0x445260`), con el `0x1c12` sin un jugador de jinete: la escala de `0x4452db..0x445309` (1,6 en
+  la 2 y 1 en la 4; en la 5, los Fenrir se quedan con el 0,9 y los demás van a 1). `0x6002e0` lleva el Dinorant a
+  `0x600b35` y el Uniria y el Guardian Angel, por la cadena de los mapas (`0x438fe0`, `0x42cc10`, `0x4403b0`,
+  `0x42f170`, …), a `0x602360`: los tres, `RenderBody(2, +0x174, +0x64, +0x68, +0x6c, +0x70, +0x58, −1)` con el
+  color que dejó `0x5ffce0` (la luz del terreno más el 3 de `+0xf4`, con la luz por vértice), sin sombra, sin
+  `rand()` y sin tocar el color ni `+0x88` del modelo (emulado). `+0x74`, que nadie escribe, no toma el camino del
+  `0x80` (`0x6004aa`). Los Fenrir van a `0x60277b` (*estático*): dos pases en blanco de `0x4ecc30` (las mallas 0 y
+  1) y, con la acción 4, un tercero (`0x46`, la textura `0x68f`), dos `rand()` y la partícula `0x5c6` desde el
+  hueso 14; la sombra (fuera del 10 y de Kalima), seis sprites `0x5ac` en los huesos 11 y 13 con la luz de un seno
+  del reloj del mundo y, en cada frame, dos `0x518cf0(0x14d, …)` (`0x602b30` y `0x602b50`) con el color de cada
+  uno; con otras acciones, más `0x14d` y el `0x14e` desde sus huesos. Después de `0x602e90`, el `rand() % 30 + 70`
+  de `0x445336`, por 0,01f, y con el `0x1c12` el sprite `0x5ac` en su lugar (`0x445390`: escala 1, rotación 0,
+  aditivo) con esa cuenta por (0,5; 0,8; 0,6), cada canal guardado en float: con 80, (`0x3ecccccc`; `0x3f23d70a`;
+  `0x3ef5c290`).
+- **La carga** (`0x615700`): `Skill\Rider01.bmd` (`0xc6`, `0x615eca`), `Rider02.bmd` (`0x110`, `0x615f30`; el
+  `.smd` de `0x615f17` no corre con `[0x6c9e0c]` en 1), `fenril_black`, `fenril_red` y `fenril_blue` (`0x14a` a
+  `0x14c`, `0x615f5c`, `0x615f90` y `0x615fc1`) y `HellGate.bmd` (`0xc5`, `0x61605c`). Las texturas de los Fenrir son
+  las primeras `0x60d5f0` de `0x615700` (`0x615f77`, `0x615fab` y `0x615fdc`), desde donde las dejó `0x611850`:
+  `fenril02.jpg` en `0x371` (de los tres) y `fenril_black`, `_red` y `_blue` de `0x372` a `0x374`. Después del
+  cuervo (`0x6169c2`) piden HellGate (`0x6169e0`, `0x3cb` y `0x3cc`) y el Dinorant (`0x6169fb`, `RDgon.jpg` y
+  `RDgonW.tga` en `0x3cd` y `0x3ce`). El Uniria pide las suyas solo en el lazo `0x616e20` (de `0xbe` a `0x150` con
+  `Skill\`), y encuentra por el nombre `unicon.jpg` y `unicon01.tga` en `0x2cb` y `0x2cc`, las de `Helper03` en
+  `Item\`. *Sin verificar* contra `lor_slots.bin`: `ModelTextureSlotsGoldenTest.StartupMatchesTheDump` compara
+  `0x371..0x374` y `0x3cb..0x3ce` en el laboratorio. `Rider01` tiene 2 mallas, 24 huesos y 4 acciones; `Rider02`, 2,
+  73 y 8; los Fenrir, 2, 58 y 6. El Guardian Angel es `Player\Helper01.bmd`, de `0x60ff50`.
+- **En MuRet.** `Scenes::CreateHelper` construye los siete tipos; `StepHelpers` (con `Scenes/PetHelperSteps` y
+  `Scenes/HelperStepParts`) los mueve en la escena 5 y en la 4, con el esqueleto de cada tipo de
+  `HelperStepContext::models`; `DrawHelpers` dibuja el Uniria, el Dinorant y el Guardian Angel con `DrawObject` y el
+  brillo en la tabla de sprites del frame (`HelperDrawContext::lighting` y `sprites`), en el juego (`GameSceneTail`)
+  y en la selección (`0x63486a`). `GameModels` carga los cinco modelos de `Skill\` con sus texturas. El `F3 10` crea
+  el Guardian Angel con el `rand()` compartido. Cortan con error: el dibujo de los Fenrir (`0x60277b`, los efectos
+  `0x14d`), las demás mascotas del `F3 10` fuera de la zona segura (`0x5bca46`, el efecto `0x61e/1`) y lo del caballo
+  (una partícula que no se puede crear, un hueso más allá de los 200 del buffer global, `+0x78 & 0x4000` del jinete
+  en el dibujo). Pruebas: `HelperTableTest` (`TheUniriaFollowsItsRiderAndRaisesTheDustOfItsGallop`,
+  `TheFenrirTakesItsGaitFromTheRider`, `InIcarusTheFenrirRaisesAWaveAndPuffsFromTwoBones`,
+  `TheGuardianAngelSparklesAndFliesWithItsVelocity`, `TheUniriaAndTheDinorantDrawWithTheLightOfTheTerrain`,
+  `TheDrawScaleDependsOnTheSceneAndOnTheFenrir`, `TheGuardianAngelDrawsItsBlendMeshAndLeavesItsGlow`,
+  `ThePetDrawStopsWhereMuRetHasNotArrived` y otras), `GoldenGameModels.ThePetMountsLoadWithTheirTextures`,
+  `CharacterSelectSceneTest.TheSelectionDrawsTheUniriaOfItsCharacter` e
+  `InventoryReplyTest.AGuardianAngelOfSlot8IsCreatedWithTheSharedRandom`.
 
 ### La tela de la clase 4
 
@@ -1668,7 +1752,9 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
 
   ```text
   si dueño.flags(+0x78) & 0x1000: salir
-  [zona segura del dueño (+0x3e2): en el login, 0; con 1 va a posarse, estados 3 y 4]
+  [estados 2, 5 y 6 con un objetivo o dueño.flags & 0x4000: las órdenes A7, CL9]
+  zona segura (dueño + 0x3e2 == 1, justo 1): si el estado no es 3 ni 4: estado 4, velocidad 3 (Q-C414)
+  fuera de ella: si el estado es 3 o 4: estado 0          (cada cambio pone el contador +0x60 en 0)
   frame += f(0,4); al pasar la última key, la acción por el estado (tabla 0x417f0c):
     estado 0 → acción 1 (planea), 1 → 0 (aletea), 2 → 3, 3 → 2, 4 → 1, 5 → 3
   dx = f(dueño.x − x); dy = f(dueño.y − y)
@@ -1678,7 +1764,7 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
   d2 = dy² + dx² (double); d2f = f(d2)
   si d2 ≥ 22.500: yaw = f(TurnAngle(yaw, f(CreateAngle(x, y, dueño.x, dueño.y)), f(rand() % 15 + 5)))
   v = VectorRotate(dirección, AngleMatrix(ángulos)); posición += v (cada una con f)
-  H = dueño.z + 350 en el mapa 0x37 (250 en los demás, Q-C131)
+  H = dueño.z + 350 en el mapa 0x37 o con dueño + 0x318 == 0x1a04 (250 en los demás, Q-C131, Q-C413)
   div = 28; si z < H: pitch = f(pitch − 2) (≥ −15), div = 10
             si no, si z > H + 100: pitch = f(pitch + 2) (≤ 15), div = 20
   si rand() % div == 0:                                         el sorteo
@@ -1686,6 +1772,13 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
     lejos:                base = (rand() & 63 + 128) · −0,1
     dirección = (0, f((base + dirección.y) · 0,5), f((rand() & 63 − 32) · 0,1))
   dirección.y < −12 → estado 0; si no → estado 1    (cada cambio pone el contador +0x60 en 0)
+  [lo de arriba desde dx, solo en los estados 0 y 1; en el 3 y el 4, sin rand():]
+  estado 3 (0x4178a6): posición = 0x4ec110(modelo del dueño, hueso 37 de dueño + 0x120, (−10, 0, 10), 1)
+             ángulos = (dueño.pitch, dueño.roll, f(dueño.yaw − 120))
+  estado 4 (0x4178fc): m = AngleMatrix(ángulos); si velocidad ≠ 0: posición += VectorRotate((0, −vel, 0), m)
+             h = 0x4ec110(modelo del dueño, hueso 42 de dueño + 0x120, (0, 0, 0), 1)
+             d = 0x4e9810(posición, ángulos, h, vel)   (gira yaw y pitch hacia h; d en la x87)
+             vel = f(vel + 1); si d < 50: estado 3
   si rand() % 100 == 0 y [0x7d3a0f0] % 60 == 0: el grito 0x1d1
   si dueño.z − 200 > z o la distancia horizontal² > 409.600 (640²): contador += 1
   si contador > 90: posición = (dueño.x, dueño.y, f(dueño.z + 250)); contador = 0
@@ -1703,6 +1796,19 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
   origen del jinete va de 318 a 515 (p5 a p95), a unas 4,6 unidades por paso, en el estado lento el
   92 % del tiempo. Dentro de los 150 no gira hacia él, y los sorteos le suman yaw siempre del mismo
   lado: describe curvas en un solo sentido. Nunca se posa: eso es solo en zona segura.
+- **En la zona segura** (*estático* y *emulado*: `make_raven_safe_zone_vectors.py` corre el paso real con el
+  dueño entrando y saliendo de la zona). Pasa a bajar (el estado 4) con la velocidad en 3 y, en cada paso,
+  avanza su velocidad hacia adelante, gira hacia el hueso 42 del dueño con `0x4e9810` y acelera 1: de lejos
+  no llega (la velocidad crece más que el giro) hasta que el contador de lejanía lo trae junto al dueño, y
+  a menos de 50 se posa (el 3), en el hueso 37 con (−10, 0, 10), con los ángulos del dueño y el rumbo 120
+  grados menos; la velocidad queda como estaba. Al salir de la zona vuelve al 0 y a volar. `0x4ec110` con
+  Translate en 1 suma la escala (`+0x68`) y la posición (`+0x6c`) del **modelo compartido** del tipo del
+  dueño (`0x5769ad8 + 0x20a · 0xe0`), no las del dueño: las del último `0x20a` que las copió, en su paso
+  (`0x505ec6`) o al posar su cuerpo (`0x6001b0`), y el paso del cuervo corre antes del `0x505ec6` de su
+  dueño (Q-C412). `0x4e9810`: el rumbo con `CreateAngle` de (x, y) a (x, y) del objetivo y `TurnAngle`;
+  dx y dy en la pila, dz y los cuadrados de dx y dy en float, el largo en el plano en float, el cabeceo
+  con 360 menos `CreateAngle(z, plano, z del objetivo, 0)` y `TurnAngle`, y devuelve
+  √(dz² + dx² + dy²) sin guardar en float.
 - **El dibujo** (`0x4182f0`, al final de `0x50ba30` del dueño: dentro de los personajes, antes del
   caballo y del logo). `0x5ffdf0` con la luz del terreno en su (x, y) más 0,5, la escala 0,7 y sus
   propios huesos; `0x6002e0`, caso `0xc0`: `glColor3f(1, 1, 1)`, la **malla 3** (`dksbody.tga`, mezcla
@@ -1734,7 +1840,13 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
   escala, aditivo (3 componentes), sin giro y con toda la textura. Ninguno saca `rand()`. Nace con vida
   10 y el paso de las partículas le baja uno al final del mismo paso: en cada dibujo hay 9. La pose de
   la chispa es la de MuRet, a nivel de float: `0x4eb860` acumula la posición desde la raíz en el mundo,
-  y MuRet la suma al final.
+  y MuRet la suma al final. Desde la auditoría del cierre de la CL7 (2026-11-12), **la zona segura**: los
+  estados 3 y 4 bit a bit contra el código real (`tests/vectors/world55/raven_safe_zone.txt`, de
+  `make_raven_safe_zone_vectors.py`: 4 casos y 610 pasos, con los huesos propios del dueño girados y la escala
+  y la posición del modelo compartido), `Render::Models::MoveToward` (`0x4e9810`) y
+  `WorldState::PlayerModel`, el `+0x68`/`+0x6c` de `Player.bmd`, que escriben `0x505ec6` en el paso y
+  `0x6001b0` en el dibujo del juego, del login y de la selección (Q-C412). Los estados 2, 5 y 6 (las órdenes
+  `A7`) cortan en `0x416add`.
 - **Lo que crea**: una **chispa por paso** (`0x5c6`, `Effect\Spark03.jpg`, subtipo 5), desde un
   hueso al azar de la pose del último dibujo (Q-C133): vida 10 pasos,
   velocidad R(yaw) · (−(`rand() % 2` + 2), 0, 0), color (0,3; 0,4; 0,7) y escala 0,8, que cada paso se
@@ -1885,6 +1997,19 @@ Lo que se ve en el video, una fuente por vez:
   carcaj, la posición (`0x509607`); `0x60b3d0`, que dibuja el ítem antes del caso, no los toca.
   `0x4ec190` copia el hueso sin cambios a la raíz de la pose (`0x68c4a1c`) y deja el desplazamiento
   solo en el origen: el hueso 0 que lee el caso es el del ítem colgado de ese hueso.
+- **La cola de `0x50ba30`** (`0x50db57..0x510ac2`, *estático*, cierre de la CL7, 2026-11-12). Después del
+  cuerpo, las partes y la tela, el personaje del login corre lo mismo que en el juego: el `rand() % 30 + 70`
+  de `0x50db57`, lo que cuelga (`0x509340`, con el cetro) y los efectos de las manos, del conjunto y de las
+  banderas (`0x50ea20..0x510a7a`). Esa cola no mira la escena salvo `0x510ef0` (la marca del guild, sólo en
+  la 5); la luz de lo que cuelga (`0x50db94`) es `[ebp−0x44]` más `+0xf4`, y fuera de la escena 4
+  `[ebp−0x44]` es la luz del terreno en su lugar (`0x5f99e0`, `0x50cc55`), la misma del cuerpo; con
+  `+0x375` desde 6, (1; 0,1; 0,1). El del login no es el héroe publicado (es el lugar 2), así que no corre
+  la rama del color de `0x50cca9`. MuRet (`LoginScene::DrawTheTail` → `Scenes::DrawCharacterTail`):
+  una vez por frame del original que cuenta el reloj (con varios, sólo el último dibuja) y, entre medio,
+  sobre copias del `rand()`, de los ítems y del estado de los modelos, repitiendo los sprites de lo que
+  cuelga del último frame del original (`GoldenLoginWorld.TheLoginCharacterRunsTheTailOfTheGame`,
+  `TheScepterGlowChangesOncePerOriginalFrame`). Cada entrada arranca el ritmo de la tela y de la cola,
+  como el de los objetos: entre una entrada y la otra el login no se dibuja (`EnteringAgainStartsTheScepterClock`).
 - **El blanco del casco**: la tela 0 de la clase 4, aditiva, más sus **30 destellos** (`0x455930`):
   con t = sin(T · 0,001) · 0,1 + 0,4, para k = 0..29 y p = k div 5, el sprite `0x5ac` (`flare01`) en
   la partícula k, con la escala p · 0,2 + 0,4 y la luz (6 − p) · t · 0,2, aditivo. Es lo que arma
@@ -1966,7 +2091,8 @@ más), las celdas de `0x505de0` (8, `0x506362` y `0x506833`), la cabeza (1, y 2 
 `rand() & 7` (`0x506cac`). También las rutas de la cámara (2 cada 128 pasos de la fase 1, `0x633a21` y
 `0x633a38`) y el contador protegido (8 por paso y 4 más cada 313, Q-C125). Ahora se sabe quién saca cada
 uno. MuRet lleva, con el de la CRT de la tela, los de la tela, el cetro (una vez por frame del original
-desde el cierre), el aliento, el viento de las partículas, las brasas, el cuervo, el gesto, la cabeza, 4
+desde el cierre; desde el cierre de la CL7, con el `rand() % 30` de `0x50db57` y el resto de la cola de
+`0x50ba30`, `Scenes::DrawCharacterTail`), el aliento, el viento de las partículas, las brasas, el cuervo, el gesto, la cabeza, 4
 de los 8 del contador y, desde la CL7.6 B4, el de cada objeto de `0x602ed0`; no lleva los demás, y los
 del contador y el viento los saca al principio del paso y no después de la escena, así que su `rand()` no
 sigue al del original bit a bit: habría que correrlos todos, en su orden.
@@ -2418,6 +2544,19 @@ elegido, con esa luz), y copia su nombre (`+0x1d9`) en un string del objeto de `
 llega al cuerpo: el frame siguiente lo vuelve a 0 o a 1 antes de `0x510d00`. Así, la luz de cada
 personaje es 0,4 y la del elegido 1,4, y la del lugar 0 (el "héroe") 0,5 y 1,5, antes del factor
 del nivel (§ El modelo en el binario).
+
+**Lo que cuelga y los efectos de la lista** (`0x50db57..0x510ac2`, *estático*, cierre de la CL7). `0x50ba30`
+corre con cada personaje de la lista la misma cola que en el juego: no mira la escena salvo `0x510ef0` (la
+marca del guild, sólo en la 5) y la luz de lo que cuelga (`0x50db94`), que es `[ebp−0x44]` más `+0xf4`: el 0,4
+fijo de la escena 4 (`0x50cc32`) o, en el héroe, el 0,5 que deja la rama de su color (`0x50d231`, Q-C417); con
+`+0x375` desde 6, (1; 0,1; 0,1). Así corren el `rand() % 30 + 70` de `0x50db57`, lo que cuelga con sus sprites,
+las partículas y los joints de las manos, el conjunto completo con lo que devolvió `0x505820`, y el cuervo de un
+Dark Lord que lo lleva en la mano izquierda (`0x510abd` → `0x420df0`, con el trapecio de la selección). El héroe
+abre y cierra además el registro propio para su color: 3.848 `rand()` por frame con la cuenta en 0, aunque la
+escena después tire ese color (Q-C417). MuRet (`CharacterSelectScene::DrawTheTail` → `Scenes::DrawCharacterTail`,
+con las tablas del frame de `SelectionWorld`: las del mundo en un frame del original y sus copias entre frames;
+`CharacterSelectSceneTest.TheListRunsTheTailOfTheGameWithTheLightOfSceneFour`,
+`TheHeroOfTheListClosesTheOwnRecordForItsColor` y `TheRavenOfALordInTheListIsDrawnAfterHim`).
 `DAT_07d36899`, que saca el giro en x de `0x620db0` (`0x620e94`), no lo escribe nadie (no hay un
 `mov` a esa dirección). **Verificado** en la traza (1024 × 768): la cámara y el viewport de
 § Cámara, los fondos de (0, 728) a (512, 216) y de (512, 728) a (1024, 216), antes del pase del
@@ -2933,7 +3072,10 @@ escribe este handler; quién las calcula después, sin leer (P-C28 i).
 - **La luz del héroe en la escena 5** (`0x50ba30`, desde `0x50cc55`) es la del terreno en su lugar,
   **del buffer dinámico** `0x7b4ccc4` (`0x5f99e0`), más `+0xf4..+0xfc`, que `0x511290` deja en 0. En
   la selección es 0,4 fijo, y en el login, 0,3 más el terreno. `0x50ba30` tiene además una rama
-  propia del héroe (`0x50cca9`) que lee el registro propio, sin leer en detalle.
+  propia del héroe (`0x50cca9..0x50d211`): abre el registro propio en línea (`[0x7681eb4]` por
+  `0x57630c8`), lee los bits del color y lo cierra, con 3.848 `rand()` (`0x50d1de`) si la cuenta queda en
+  0. Corre en todas las escenas; en la 4, `0x50d219` pisa después el color con 0,5 más `+0xf4` y
+  `[ebp−0x44]` con 0,5 (`0x50d231`), la luz de lo que cuelga (Q-C417).
 
 **La carga del mapa** (`0x61a560` → `0x616ec0`, *estático* salvo lo que se marca). La llaman tres
 paquetes, el `F3 03`, el `1C` y el `F3 04` ([Los cambios de mapa](#los-cambios-de-mapa)). En orden:
@@ -3037,7 +3179,7 @@ un error que nombra la dirección, nunca en silencio:
   (`0x743a170` sin tocar), el contador sin bajar a 30 y los `rand()` gastados hasta ahí: el primer y el
   segundo cierre del registro, el pasto, el lugar del héroe, los 28 de `0x511290` y lo que `0x512a30`
   sacó antes de cortar. Lo que sigue a `0x512a30` (filas 6 a 17) es `Scenes::SettleWorldEntry`, que
-  también se prueba directo; el cuervo de la fila 11 corta en `0x420d60`. Lo que MuRet no modela no se escribe: `0x7d36874`, `0x77f3b67`, `0x553780`,
+  también se prueba directo; el cuervo de la fila 11 es `Scenes::RecreateTransitionRaven` (`0x420d60`, la misma de los traslados: `WorldEntryTest.ARavenIsCreatedAt420d60AfterTheWait`). Lo que MuRet no modela no se escribe: `0x7d36874`, `0x77f3b67`, `0x553780`,
   ResourceGuard (Q-C147) y la fila 19 (los mensajes, CL9). Hito 2 incorpora `0x77f3b10`,
   `0x6c8dcc`, los elegidos de la fila 14 y `0x78abb0c`/`0x78abb10` como estado durable en
   `WorldRuntime::movement` y `WorldRuntime`; los disparadores de sonido quedan en `lastSoundId`,
@@ -3213,10 +3355,12 @@ llena). Los dos globales son `WorldRuntime::fullSetScan`, que arranca en 0 y 0 y
 Lo escriben `ApplyActorEquipment` con el héroe publicado y el dibujo del login y de la selección
 (`ScanTheDrawnCharacter`), con cada personaje en el orden del pool, antes de `DrawCharacter`, una vez
 por frame del original (`OriginalFrameCarry`, como la tela) y solo si están las acciones de
-`Player.bmd`. MuRet no dibuja los personajes del juego (corta en el primero visto, `0x510ea1`):
-`GameScene::PrepareFrame`, en un frame que llega a `0x510d00`, lo deja sin valor (`nullopt`), y
-`0x550990` corta con un error si lo lee antes de otro `0x505820` (P-C40). El bloque del dibujo que decide
-lo que devuelve no está portado.
+`Player.bmd`. En el juego, `GameScene::PrepareFrame`, en un frame que llega a `0x510d00`, lo deja sin valor
+(`nullopt`) hasta que un jugador llega a `0x50c91e` y publica el suyo (`ScanTheActor`), y `0x550990` corta con
+un error si lo lee antes de otro `0x505820` (P-C40). El bloque del dibujo que decide lo que devuelve corre en la
+cola de los tres (`DrawGameCharacterEffects`): desde el cierre de la CL7, el login y la selección con el
+`FullSetScan` que devuelve `ScanTheDrawnCharacter` (el del último frame del original; entre frames, uno sobre
+copias que no publica).
 
 ### Los stats del registro propio
 
@@ -3563,15 +3707,31 @@ MuRet: `Scenes::ApplyInventory` y `ClearForInventoryReply` (`0x4c55a0`), `Scenes
 `InventoryItemType` (`0x5bc740` y `0x54b3a0`) y `Scenes::OwnInventory`, las dos grillas, en
 `WorldState::Inventory`; `[0x78a6758]` es `WorldRuntime::slot78a6758`, en 0. El `F3 10` sin cifrar
 llega al aplicador como `App::ClearInventoryReceived`, y la sesión manda el aviso. `0x443d40` apaga los
-ayudantes del héroe publicado (`Scenes::TurnOffHelpersOf`); `0x421d60` no suelta nada: MuRet no tiene
-el cuervo en el mundo, como en `0x510f70`. Las mascotas del lugar 8 van a `Scenes::CreateHelper`, que
-crea el `0xbf` y corta con los otros (`0x443d70`); el `0xbf` no llega: corta antes, en `0x4225d0`.
-Fuera de la zona segura, el `0x61e` de `0x518cf0` corta. Cortan con error, nombrando la dirección y
-después de lo que el original hace antes (el registro se cierra igual): las mascotas del lugar 8 que
-no son el caballo (`0x443fa0` → `0x443d70`), el cuervo del lugar 1 (`0x420cf0`),
-el anillo de nivel 3 (`0x414340` y `+0x360`), el Dark Horse en cualquier lugar (`0x4225d0`, desde
-`0x54cc5c`, sin correr `0x54bf40`), la lectura del nivel con el registro cerrado (Q-C202), una casilla
+ayudantes del héroe publicado (`Scenes::TurnOffHelpersOf`). El cuervo del lugar 1 va a
+`Scenes::ReplaceTheRaven` (`0x420cf0`): suelta `ActorState::darkSpirit` y, fuera de los mapas 18 a 23, lo
+crea de nuevo con `CreateDarkSpirit` en el centro de la celda del héroe, con los 12 `rand()` de sus cierres
+(`InventoryReplyTest.TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0`). Las mascotas del lugar 8 van a `Scenes::CreateHelper` con el
+`rand()` compartido ([Las mascotas](#las-mascotas)), y el `0xbf` también desde que `0x4225d0` no corta.
+Cortan con error, nombrando la dirección y después de lo que el original hace antes (el registro se
+cierra igual): las mascotas que no son el `0x1c12` fuera de la zona segura (`0x5bca46`, el `0x61e/1` de
+`0x518cf0`), el anillo de nivel 3 (`0x414340` y `+0x360`), la lectura del nivel con el registro cerrado (Q-C202), una casilla
 fuera de su grilla (Q-C200) y `Item.bmd` sin cargar.
+
+**`0x4225d0`, la defensa del Dark Horse** (*estático*, ASM c32bbd5f; desde la auditoría del cierre de la CL7,
+2026-11-12). `0x54bf40` la llama en `0x54cc5c`, después de las opciones de magnitud y antes de las tardías de
+las armaduras, con el ítem que inicializa; sale si el tipo no es `0x1a04` (`0x4225dc`). Busca la opción `0x96`
+(el tag en `D+0x2b+i`) desde la primera; si la encuentra en la primera, sigue como si no estuviera
+(`0x422600`, Q-C415). Abre el registro propio (`0x40b240` y, sin acceso, `0x40ad90` con un objeto nuevo de
+`0xf09` bytes; con acceso, `+0xf08` + 1 y `0x40b440`; en el camino de agregar, la búsqueda del hash en línea,
+`0x42260e..0x4226dd`), escribe el valor en `D+0x33+i` (`i`, la que encontró o la cantidad `D+0x2a`) y lo cierra
+(`+0xf08` − 1 y, en 0, `0x40b4d0`, que vuelve a cifrar con 3.848 `rand()`). El valor, en un byte:
+`word(registro + 0x1a) / 20` (la agilidad; `imul 0x66666667` y `sar 3`, con signo sobre el word sin signo)
++ 2 · el byte de abajo de `[0x72397c]` (el nivel del caballo, que escribe `0x421db0` con el `A9` de las
+mascotas: tipo 1, lugar 8; sin portar, 0) + 5. Después del cierre pone el tag `0x96` en `D+0x2b+i` y, si la
+agregó, suma 1 a `D+0x2a`. En la grilla, `0x54bf40` corre con el registro cerrado: son 3.848 `rand()` más. En
+MuRet, `Scenes::AddTheDarkHorseOption` (`InventoryReplyTest.TheDarkHorseInTheGridAddsItsDefenseOption`,
+`TheWornDarkHorseGetsItsOptionWithTheRecordAlreadyOpen` y `TheDarkHorseOptionSkipsAnEarlierOneInTheFirstPlace`),
+y `[0x72397c]` es `WorldRuntime::darkHorseLevel`.
 
 ### El paso de ondas de Kalima
 
@@ -4011,11 +4171,13 @@ conserva el estado y los rand anteriores y congela los pasos siguientes.
 
 Antes del pool, `0x6342f4` pasa los diez ayudantes por `0x445230` → `0x444010`.
 En la escena 4 no corre la guarda del dueño muerto o con `+0x88` distinto de 1:
-`0x44402a` solo la aplica en la escena 5. El primer ayudante vivo llega al alpha
-de `0x4e9980` (`0x444053`) aunque su dueño esté muerto. MuRet conserva ese prefijo
-y corta en `0x444059`, antes del cuerpo todavía no portado. Los lugares muertos no
-cambian; los posteriores al corte tampoco. Con la tabla vacía el tramo no hace nada.
-El paso de la selección sigue parcial por este límite; no reutiliza el de la escena 5.
+`0x44402a` solo la aplica en la escena 5. Cada ayudante vivo llega al alpha
+de `0x4e9980` (`0x444053`) aunque su dueño esté muerto, y después al cuerpo de su
+tipo y al avance con el frame + 2 de la escena 4 ([Las mascotas](#las-mascotas)), con
+los atributos de la carga del 54. Un tipo que el paso no tiene corta en `0x444083`,
+con el alpha que subió; los posteriores al corte no cambian. Con la tabla vacía el
+tramo no hace nada. Después de los personajes, `0x63486a` los dibuja (`0x4453b0`),
+con la escala 1 de la escena 4, la luz del terreno 54 y los sprites del frame.
 
 Después del preview, `0x634315` ejecuta `0x5446e0` sobre las partículas durables del
 mundo. Sus dos rand del viento corren también con el pool vacío; las chispas del
@@ -4085,8 +4247,9 @@ un superviviente que necesite el registro propio puede cortar en Item.bmd.
 El cuerpo mueve el cuervo en **`0x50544b`**, después de `0x4fcee0` y antes de `0x505de0`, también con su dueño
 fuera del trapecio. La interfaz del paso recibe el `LoadedWorld` 55 y escribe sus paredes y su celda; no
 exige una segunda copia en `WorldState::Map()`. El dibujo lee posición, partes, animación y cabeza del pool.
-El cuervo conserva su pose para la chispa del paso siguiente. Los estados distintos de 0/1 o la zona segura
-del cuervo, todavía sin portar, cortan con su dirección y los `rand()` anteriores.
+El cuervo conserva su pose para la chispa del paso siguiente. La zona segura del cuervo (los estados 3 y 4)
+está portada desde la auditoría del cierre de la CL7 ([el cuervo](#los-efectos-del-login)); los estados 2, 5
+y 6, de las órdenes `A7`, cortan en `0x416add` con los `rand()` anteriores.
 
 Con el port, por paso, con la animación quieta (sin el `rand()` de `0x432bf1` desde el frame 3 ni el del sufijo
 al terminar la acción) y los cinco lugares vistos con el trapecio de su dibujo (*simulado*):
@@ -4438,7 +4601,7 @@ lectura de la celda. Los tamaños van desde la entrada hasta el último `ret` (*
 | `0x4ea190` | 208 | la cabeza de otro modelo | corta antes, en `0x505e0b` |
 | `0x4e96f0`, `0x4e9560` | 169, 394 | la distancia entre dos ángulos y el giro | `Render::Models::AngleDistance` y `TurnAngle` (`Scenes::StepCharacterHead`) |
 | `0x53fe70`, `0x518cf0`, `0x530860` | 15.049, 27.599, 17.516 | las partículas, los efectos y los joints | aparte, para el login; acá cortan antes |
-| `0x5f9780` | 904 | la luz al buffer dinámico | corta en `0x5f9780` |
+| `0x5f9780` | 904 | la luz al buffer dinámico | `World::AddDynamicLight` sobre `WorldState::DynamicLighting` (`0x506b50`) |
 | `0x4ec110` | 120 | un punto de un hueso | `Render::Models::OriginalRotation`; el del `0x20a` (`0x506ffc`) va a un local que nadie lee |
 | `0x5189f0` | 206 | los efectos de las `0x44` y `0x45` | corta en `0x506e5d` |
 | `0x548fe0` | 168 | llena una marca del suelo ([Las marcas del suelo](#las-marcas-del-suelo)) | solo el `0x182`; no se llega |
@@ -4465,10 +4628,14 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 - la zona segura, la cabeza (`Scenes::StepCharacterHead` sobre `ActorState::headTurn`, `+0x28..+0x38`), que con
   `+0x78 & 0x20` o `& 0x1000` no se mueve; con el héroe gira sin sortear hacia un blanco que todavía no escribe nadie
   (MoveHero, CL7.4);
+- la luz de cada mano (`0x506aec..0x506b50`, desde la auditoría del cierre de la CL7, 2026-11-12): con `+0x375`
+  debajo de 6, la derecha y después la izquierda, `0x21e` con (0,8; 0,64; 0,4) y radio 3 y `0x225`, `0xa24`, `0xc1c`
+  y `0x61f` con (0,64; 0,4; 0,24) y radio 2, por `World::AddDynamicLight` al buffer que `DynamicWorldLight` rehace
+  en cada paso (`CharacterStepTest.TheHandLightsAddToTheDynamicBufferBelowPkSix` y
+  `BothHandsAddTheirLightsRightFirst`);
 - el `rand() & 7` y el caso del `0x20a`, con los pasos solo del héroe;
 - corta con error, después de los `rand()` de antes:
   - con otro modelo (`0x505e0b`);
-  - con la luz de una mano (`0x5f9780`);
   - en el 9 (`0x506d8b`) y, en el mapa 7 de la escena 5, sin el pool de partículas para la burbuja (`0x506d77`);
   - en las acciones `0x44` y `0x45` (`0x506e5d`) y `0x96` (`0x506f62`);
   - en los pasos del héroe (`0x508668`);
@@ -4998,8 +5165,12 @@ frame del original:
   las botas lo pisan.
 - **La piel especial del mago** (`0x50ea38`): con `+0x1d4 & 7` en 0, `+0x1d5 & 0xf8` en 8 y sin
   `+0x78 & 0x4000`, Spark03 (`0x5c6`) de 0,6 y Shiny02 (`0x5fd`) de `sin(T · 0,001f) · 0,4f` en el
-  hueso 19, con luz 1 y sin `rand()`. La piel sólo la escribe la lista de la selección (`0x517270`); el
-  F3 03 la deja en 0.
+  hueso 19, con luz 1 y sin `rand()`. No se ve nunca en la 1.02 (Q-C416): `0x517270` escribe `+0x1d5`
+  con su tercer argumento (`[ebp+0x10]`, `0x5172a0`), que es 0 en la lista (`0x4c21d9`) y en el login
+  (`0x634a3e`, `EBX` en 0 desde `0x6349e1`), y el byte `[0x7437225]` en la respuesta de crear (`0x4c2341`),
+  que nadie escribe (sólo `0x7437224`, la clase);
+  los demás escriben 1 (`0x44114b`) o 0 (`0x4c45e1`, `0x4c4dc6`, `0x4c8a10`, `0x4e0c55`). MuRet lo porta
+  igual, y no llega.
 - **Las acciones** `0x94`, `0x51` y `0x5b` (`0x50f828`), que sólo escriben los paquetes (`0x4cc530`,
   `0x4ce000`): fuera de la clase 4, la `0x94` sin `+0x78 & 0x4000` pone tres lightning2 (`0x5d5`) en el
   hueso de la mano derecha (`+0x2bd`), con s = frame · 0,1f: s · 0,3f con (0,1; 0,1; 1), s con la luz
@@ -7653,7 +7824,7 @@ Ver [08](08-pendientes.md).
 | El caballo del juego: la tabla de 10 ayudantes (`0x7d335d0`), el que se apaga sin su jinete y el que se oculta en la celda segura de su jinete | `Scenes/HelperTable` en `WorldState::Helpers`: crear, apagar, el paso de la escena 5 y su dibujo, con errores donde el original crea efectos o partículas que el juego todavía no tiene | CL7 (hito 1, T12) |
 | El mundo del login: el mapa 55 entero, con los objetos después de los personajes y casos por tipo y por mapa (`0x606660`, `0x604ab0`, `0x6002e0`) | en el lote del login: el terreno (`LoadedWorld`, CL7.1) y los objetos del `.obj` (`WorldModels`, `WorldObjects` y `WorldObjectsDrawing`, CL7.2), con los casos del mapa 55 como datos y el orden del original | CL7.1, CL7.2 |
 | El dragón: un efecto con modelo (`0x518cf0`) que vuela en ocho, sin azar | el efecto `0xb4` con su paso por paso de lógica, comparado con los pasos emulados del código real | CL7.6 A |
-| Los sprites de un frame (`0x5491e0`), con el billboard de `0x621400`: el dibujo del personaje pide los 30 destellos de la tela y los cinco del cetro, y `0x549440(0)` los dibuja con la modelview en la identidad y los apaga | `Render::MakeBillboard` (bit a bit contra `0x621400`), `World::FrameSprites` (la tabla, con el alpha de `0x549290`) y `Scenes::DrawFrameSprites` en un pase de ojo, el último del 3D, que se abre solo con alguno vivo; `DrawnCharacter::sprites` recibe los destellos al dibujar la tela y el cetro (`World::CreateScepterGlow`, bit a bit contra el caso `0x620` de `0x509340`) en ese orden, con el `rand()` de la CRT de `ClothWorld`. El original sortea el cetro en cada frame dibujado, a 21,33 por segundo; MuRet lo sortea una vez por frame del original (46,875 ms) que pasó y, entre medio, repite el último sorteo en el hueso de ahora (`World::ScepterGlowCarry`, como la tela, Q-C124): a 60 FPS el tridente cambia al ritmo del original (`TheGlowIsDrawnOncePerOriginalFrame`, `TheScepterGlowChangesOncePerOriginalFrame`). Con varios frames del original de golpe, los de la tela y los del cetro salen agrupados y no intercalados (P-C22 a) | CL7.6 B1, cierre |
+| Los sprites de un frame (`0x5491e0`), con el billboard de `0x621400`: el dibujo del personaje pide los 30 destellos de la tela y los cinco del cetro, y `0x549440(0)` los dibuja con la modelview en la identidad y los apaga | `Render::MakeBillboard` (bit a bit contra `0x621400`), `World::FrameSprites` (la tabla, con el alpha de `0x549290`) y `Scenes::DrawFrameSprites` en un pase de ojo, el último del 3D, que se abre solo con alguno vivo; `DrawnCharacter::sprites` recibe los destellos al dibujar la tela y el cetro (`World::CreateScepterGlow`, bit a bit contra el caso `0x620` de `0x509340`) en ese orden, con el `rand()` de la CRT de `ClothWorld`. El original sortea el cetro en cada frame dibujado, a 21,33 por segundo; MuRet lo sortea una vez por frame del original (46,875 ms) que pasó. Desde el cierre de la CL7 el login lo sortea en la cola del juego (`LoginScene::DrawTheTail` → `Scenes::DrawCharacterTail`) y, entre medio, repite los sprites de lo que cuelga del último frame del original, como el juego y la selección con toda la tabla (`TheScepterGlowChangesOncePerOriginalFrame`); `World::ScepterGlowCarry` (el último sorteo en el hueso de ahora, como la tela, Q-C124) queda para `DrawCharacter` sin la cola (`TheGlowIsDrawnOncePerOriginalFrame`). Con varios frames del original de golpe, los de la tela y los del cetro salen agrupados y no intercalados (P-C22 a) | CL7.6 B1, cierre |
 | Las partículas (`0x53fe70`, `0x5446e0` y `0x548550`), con el aliento del caballo desde el buffer global de la pose | `World::Particles` (la tabla de 3.000, el viento y el aliento, bit a bit contra el código real) y `Scenes::DrawParticles` en el pase de ojo, después de los sprites; el aliento lo pide `LoginScene` después del paso del caballo, en el hueso 27 del último modelo dibujado que lo tiene sin ser dummy (`PosedBonePoint`) | CL7.6 B2 |
 | Las hojas (`0x530490` / `0x5306a0`), con las 80 brasas del mapa 55 y la altura del terreno de `0x5f93c0` | `World::Leaves` (las 80 brasas: nacen y caen, bit a bit contra el código real) y `World::TerrainHeightAt`; `Scenes::DrawLeaves` en el pase del mundo, después de los efectos con modelo; `LoginScene` las avanza después del caballo, con el héroe y la cámara en (0, 0, 0) hasta el primer dibujo (Q-C137) | CL7.6 B3 |
 | `0x602ed0`, después del dibujo de cada objeto visto: el `rand()` de cada uno y el brillo del farol (`0x3c`) en la escena 2 | `Scenes::ObjectFrameEffects` en `DrawWorldObjects`: un `rand()` de la CRT por objeto visto y los dos sprites de `flare01` en los huesos 8 y 9 del último modelo posado (`LastPosedBonePoint`: el dueño del dragón, Q-C140); `World::StreetLightGlowLight`, la luz; el dueño (`0xb4`) en `m_objects`, antes del `.obj` | CL7.6 B4 |

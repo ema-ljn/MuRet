@@ -62,6 +62,8 @@ struct GameCharacterEffectsPass
     float worldClock = 0.0f;
     std::int32_t map = 0;        // 0x6c9dd0
     std::int32_t logicSteps = 0; // 0x7d3a0f0
+    // 0x510a80: la escena (0x6d5dc8) es la 5. En el login y en la selección, 0x510ef0 no corre.
+    bool gameScene = true;
     // En un frame del original corren los contadores y lo que nace en las tablas durables; entre frames,
     // sólo los sprites, sobre una copia del personaje y del rand().
     bool originalFrame = true;
@@ -73,9 +75,10 @@ struct GameCharacterEffectsPass
 // los de las banderas +0x78 & 4 o 0x2000000 (0x50fba4); fuera de Chaos Castle, el contador de +0x35c con
 // +0x358 (0x50fd74, con el efecto 0x5ac/3 de cada 100) y, con el conjunto completo de 0x505820, los sprites 0x5ac
 // de las manos, las partículas 0x6f1/3 de las botas de 0x182f a 0x1833 y, por encima de +9, la órbita 0x60f/0 y los
-// joints 0x60f/0, 0x60f/0x12 y 0x610/7 (0x50fddb, con sus rand() en orden); y al final 0x510ef0 con +0x369. Sólo lo
-// llama el dibujo de la escena 5. Entre frames, los sprites, el contador y los rand() que eligen sobre la copia del
-// personaje y del rand() que da el caller; lo que nace en las tablas durables, sólo en un frame del original.
+// joints 0x60f/0, 0x60f/0x12 y 0x610/7 (0x50fddb, con sus rand() en orden); y al final, sólo en la escena 5 (0x510a80),
+// 0x510ef0 con +0x369. No hay otra puerta de escena: lo llaman el juego, el login y la selección. Entre frames, los
+// sprites, el contador y los rand() que eligen sobre la copia del personaje y del rand() que da el caller; lo que
+// nace en las tablas durables, sólo en un frame del original.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameCharacterEffects(ActorState& actor,
                                                                          const GameCharacterEffectsPass& pass);
 

@@ -132,13 +132,23 @@ FullSetScan ScanFullSet(const ScannedCharacter& character, const OwnCharacterRec
     return scan;
 }
 
-void ScanTheDrawnCharacter(WorldState& world, const ScannedCharacter& character, Render::Models::CrtRandom& random,
-                           int frames)
+FullSetScan ScanTheDrawnCharacter(WorldState& world, const ScannedCharacter& character,
+                                  Render::Models::CrtRandom& random, int frames)
 {
     WorldRuntime& runtime = world.Runtime();
+    if (frames == 0)
+    {
+        // Un dibujo entre frames no vuelve a consumir ni a publicar el scan del original.
+        std::uint8_t depth = 1;
+        Render::Models::CrtRandom copy = random;
+        return ScanFullSet(character, world.OwnCharacter(), depth, copy);
+    }
+    FullSetScan scan;
     for (int frame = 0; frame < frames; ++frame)
     {
-        runtime.fullSetScan = ScanFullSet(character, world.OwnCharacter(), runtime.ownRecordDepth, random).globals;
+        scan = ScanFullSet(character, world.OwnCharacter(), runtime.ownRecordDepth, random);
+        runtime.fullSetScan = scan.globals;
     }
+    return scan;
 }
 } // namespace Client::Scenes

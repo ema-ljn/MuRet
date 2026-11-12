@@ -70,7 +70,9 @@ struct FullSetScan
 
 // 0x50c904..0x50c926: lo que 0x50ba30 hace con un 0x20a con +0x3e4 en 0, en cada frame del original que lo
 // dibuja, `frames` veces: 0x505820 con el registro propio y la cuenta de accesos de `world`, y los
-// globales en WorldRuntime::fullSetScan. Lo que devuelve decide un bloque del dibujo que MuRet no porta.
-void ScanTheDrawnCharacter(WorldState& world, const ScannedCharacter& character, Render::Models::CrtRandom& random,
-                           int frames);
+// globales en WorldRuntime::fullSetScan. Devuelve lo del último, que lee el conjunto completo de la cola de
+// efectos (0x50fddb). Con `frames` en 0 (un dibujo entre frames), lo mismo sobre copias del rand() y de la
+// cuenta, sin publicar nada.
+[[nodiscard]] FullSetScan ScanTheDrawnCharacter(WorldState& world, const ScannedCharacter& character,
+                                                Render::Models::CrtRandom& random, int frames);
 } // namespace Client::Scenes

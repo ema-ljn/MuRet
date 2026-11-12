@@ -35,7 +35,6 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
-#include "Scenes/DarkHorse.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/HelperTable.h"
@@ -307,13 +306,13 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
         return leaves;
     if (auto fauna = StepTheFauna(); !fauna.HasValue())
         return fauna;
-    // 0x6370f4: 0x445230, los ayudantes, también en la espera. MuRet no crea ninguno (P-C47): la tabla
-    // vacía no hace nada.
-    if (auto helpers = StepHelpers(
-            HelperStepContext{.world = *m_context.world,
-                              .horseSkeleton = m_models != nullptr ? m_models->SkeletonOf(DarkHorseModel) : nullptr,
-                              .random = m_context.cloth->random,
-                              .worldClock = worldClock});
+    // 0x6370f4: 0x445230, los ayudantes, también en la espera.
+    if (auto helpers = StepHelpers(HelperStepContext{.world = *m_context.world,
+                                                     .models = m_models,
+                                                     .random = m_context.cloth->random,
+                                                     .worldClock = worldClock,
+                                                     .scene = SceneId::Game,
+                                                     .terrain = nullptr});
         !helpers.HasValue())
     {
         return helpers;

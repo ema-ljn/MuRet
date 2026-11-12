@@ -69,7 +69,8 @@ using Item4225d0 = std::function<void(ItemState&)>;
 // familia tardía. Puede referenciar D+e: se observa su valor posterior a los cálculos propios,
 // no un snapshot de entrada. No se inventan upper24 de direcciones de la máquina actual.
 // Para ID1a04, apply4225d0 debe existir y producir un estado válido de su contrato: ID preservado,
-// count0/1->1/2 y bookkeeping ordinario sin alias con metadata. La rama transitiva queda abierta.
+// count0/1->1/2 y bookkeeping ordinario sin alias con metadata. La de MuRet es Scenes::AddTheDarkHorseOption,
+// que abre el registro propio (06, "El F3 10, el inventario").
 // Una función vacía en esa rama viola la precondición y lanza; no es un éxito silencioso.
 void InitializeItemState(ItemState& item, std::span<const std::byte, Data::Tables::ItemRecordSize> metadata,
                          ItemInitializationScalars scalars, const std::uint16_t& contextWord,

@@ -22,7 +22,9 @@
 #include "World/TerrainHeight.h"
 
 #include <cstdint>
+#include <format>
 #include <string>
+#include <string_view>
 
 namespace Client::Scenes
 {
@@ -96,15 +98,20 @@ Core::Expected<void, std::string> RefreshTransitionHeight(ActorState& actor, con
                                                              actor.pet.model == Dinorant, actor.safeZone != 0));
     return {};
 }
-Core::Expected<void, std::string> RecreateTransitionRaven(ActorState& actor, const WorldEntryResources& resources)
+namespace
 {
-    constexpr std::uint16_t Raven = 0x1c17;
-    if (actor.hands[1].model != Raven)
-        return {};
-    actor.darkSpirit.reset();
+// 0x420d1a..0x420d22: 0x420cf0 no crea el cuervo en los mapas 18 a 23 (Chaos Castle); 0x420d60 no mira el mapa.
+constexpr std::int32_t FirstChaosCastleMap = 18;
+constexpr std::int32_t LastChaosCastleMap = 23;
+
+// 0x4167b0 desde 0x420d60 o 0x420cf0: el cuervo nuevo en +0x430, en el centro de la celda del dueño y a la
+// altura del terreno ahí (0x5f93c0).
+Core::Expected<void, std::string> CreateTheRaven(ActorState& actor, const WorldEntryResources& resources,
+                                                 std::string_view where)
+{
     const auto& terrain = resources.world.Map().terrain;
     if (!terrain.heights || !terrain.attributes)
-        return Core::Unexpected(std::string("0x420d60: faltan alturas o atributos para el cuervo"));
+        return Core::Unexpected(std::format("{}: faltan alturas o atributos para el cuervo", where));
     constexpr float CellSize = 100.0f;
     constexpr float Center = 50.0f;
     const double height = World::TerrainHeightAt(
@@ -114,6 +121,24 @@ Core::Expected<void, std::string> RecreateTransitionRaven(ActorState& actor, con
         CreateDarkSpirit(actor.cellX, actor.cellY, height, resources.cloth.random,
                          {actor.cellXAccesses, actor.cellYAccesses, resources.cloth.openCounterAccesses});
     return {};
+}
+} // namespace
+
+Core::Expected<void, std::string> RecreateTransitionRaven(ActorState& actor, const WorldEntryResources& resources)
+{
+    constexpr std::uint16_t Raven = 0x1c17;
+    if (actor.hands[1].model != Raven)
+        return {};
+    actor.darkSpirit.reset();
+    return CreateTheRaven(actor, resources, "0x420d60");
+}
+Core::Expected<void, std::string> ReplaceTheRaven(ActorState& actor, const WorldEntryResources& resources)
+{
+    actor.darkSpirit.reset();
+    const std::int32_t map = resources.world.Runtime().map;
+    if (map >= FirstChaosCastleMap && map <= LastChaosCastleMap)
+        return {};
+    return CreateTheRaven(actor, resources, "0x420cf0");
 }
 void ClearTransitionActorsAndItems(std::uint16_t playerKey, const WorldEntryResources& resources)
 {

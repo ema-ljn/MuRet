@@ -134,6 +134,10 @@ struct WorldRuntime
     std::uint8_t warpDepth = 0;
     // Cuántos accesos tienen abierto el registro propio ([0x7681eb4], 0xf08 bytes).
     std::uint8_t ownRecordDepth = 0;
+    // [0x72397c], el nivel del caballo oscuro: lo escribe 0x421db0 con el A9 de las mascotas (el tipo 1 en el
+    // lugar 8, 0x421e9e), sin portar (CL9), y lo leen 0x4225d0 (el byte de abajo) y 0x422930. Queda en el 0 de
+    // la .bss.
+    std::uint16_t darkHorseLevel = 0;
     // DAT_057678b0: el lugar del pool que la respuesta del F3 03 elige para el héroe, rand() % 400
     // (0x4c44d4, la única escritura; 06, "La entrada al mundo", fila 3). Cada respuesta lo vuelve a
     // sortear.

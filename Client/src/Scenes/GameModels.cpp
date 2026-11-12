@@ -36,6 +36,8 @@ constexpr Render::TextureSlot PlayerTexturesStart{0x138};
 constexpr Render::TextureSlot ItemTexturesStart{0x25a};
 // 0x615700 (0x61692a), antes de las del caballo.
 constexpr Render::TextureSlot SkillTexturesStart{0x3b8};
+// 0x615f77: los Fenrir, donde terminan las de 0x611850.
+constexpr Render::TextureSlot FenrirTexturesStart{0x371};
 // 0x61634e..0x616370: Gate02 antes del bloque 0x3b8; Blood Castle reasigna ambos Gate en el mapa.
 constexpr Render::TextureSlot GateTexturesStart{0x69};
 constexpr std::array<Data::Models::ModelTextureCall, 1> InitialGateTextures{{{0x10d, "Monster\\"}}};
@@ -50,12 +52,16 @@ constexpr std::array<Data::Models::ModelFile, 5> TailModelFiles{{{0x10f, "Skill\
                                                                  {0xc9, "Skill\\", "Stone", 2},
                                                                  {0x135, "Skill\\", "TowerGatePlane", -1}}};
 // 0x61619f: 0x60d5f0(0x10f, "Skill\\", GL_REPEAT, GL_NEAREST, 1); 0x616c5c, el mismo con el 0x12a; el lazo
-// 0x616e20 de 0xbe a 0x150 con "Skill\\": el 0xc8, el 0xc9 y el 0x135 (que 0x616d8e ya había pedido y que se
-// queda con los de esta segunda vez). Van después de las de 0x615700 que MuRet carga, así que sus slots no son
-// los del original (que pasa antes por los modelos de las habilidades que MuRet todavía no lee); ningún slot
-// fijo los pisa.
-constexpr std::array<Data::Models::ModelTextureCall, 5> TailTextureCalls{
-    {{0x10f, "Skill\\"}, {0x12a, "Skill\\"}, {0xc8, "Skill\\"}, {0xc9, "Skill\\"}, {0x135, "Skill\\"}}};
+// 0x616e20 de 0xbe a 0x150 con "Skill\\": el Uniria (0xc6, que no tiene otra), el 0xc8, el 0xc9 y el 0x135 (que
+// 0x616d8e ya había pedido y que se queda con los de esta segunda vez). Van después de las de 0x615700 que MuRet carga,
+// así que sus slots no son los del original (que pasa antes por los modelos de las habilidades que MuRet todavía no
+// lee); ningún slot fijo los pisa.
+constexpr std::array<Data::Models::ModelTextureCall, 6> TailTextureCalls{{{0x10f, "Skill\\"},
+                                                                          {0x12a, "Skill\\"},
+                                                                          {0xc6, "Skill\\"},
+                                                                          {0xc8, "Skill\\"},
+                                                                          {0xc9, "Skill\\"},
+                                                                          {0x135, "Skill\\"}}};
 
 // Sube las de `entries` de a una: la que no carga deja su línea en el log, y las demás siguen.
 void UploadEach(const std::filesystem::path& dataRoot, std::span<const Data::Textures::TextureSetEntry> entries,
@@ -122,6 +128,8 @@ Core::Expected<void, std::string> GameModels::Load(const std::filesystem::path& 
     AssignTextures(Data::Models::PlayerTextureCalls());
     m_slots.SetNext(ItemTexturesStart);
     AssignTextures(Data::Models::ItemTextureCalls());
+    m_slots.SetNext(FenrirTexturesStart);
+    AssignTextures(Data::Models::FenrirTextureCalls());
     m_slots.SetNext(GateTexturesStart);
     AssignTextures(InitialGateTextures);
     m_slots.SetNext(SkillTexturesStart);

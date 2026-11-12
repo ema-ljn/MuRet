@@ -18,6 +18,7 @@
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WorldTransitionSupport.h"
 #include "World/ItemState.h"
 
 #include <cstddef>
@@ -75,8 +76,12 @@ constexpr std::uint8_t FenrirSecondKind = 2;
 // 0x5bca8d..0x5bca93: D+4 & ~7 en 0x18, el nivel 3.
 constexpr std::uint32_t LevelBitsMask = ~std::uint32_t{7};
 constexpr std::uint32_t LevelThreeBits = 0x18;
-// 0x54cc5c: 0x54bf40 llama a 0x4225d0 con este tipo.
-constexpr std::uint16_t Item4225d0Type = DarkHorse;
+// 0x4225d0, que 0x54bf40 llama en 0x54cc5c y solo hace algo con el Dark Horse: la opción 0x96 (0x4225f2) con
+// 5 + la agilidad del registro propio (+0x1a) / 20 + 2 · el nivel del caballo ([0x72397c]).
+constexpr std::uint8_t DarkHorseOption = 0x96;
+constexpr std::uint32_t AgilityDivisor = 20;
+constexpr std::uint32_t HorseLevelFactor = 2;
+constexpr std::uint32_t DarkHorseOptionBase = 5;
 // Los 24 bits de arriba de los escalares que 0x5bc740 pone en la pila con el byte de abajo de los datos.
 constexpr std::uint32_t UpperBits = ~std::uint32_t{0xff};
 
@@ -105,7 +110,49 @@ ItemRecordOf(std::uint16_t type, const WorldEntryResources& resources, std::stri
     }
     return *record;
 }
+} // namespace
 
+// 0x4225d0(item) desde 0x54cc5c, con el Dark Horse (0x4225dc). Busca la opción 0x96 desde la primera; en la
+// primera no la toma (0x422600: con el índice en 0 sigue como si no estuviera, Q-C415). Con ella, le reescribe
+// el valor; sin ella, la agrega al final. El valor, con el registro propio abierto (0x40b240/0x40ad90 y 0x40b440,
+// y lo cierra 0x40b4d0, con sus 3.848 rand() si queda sin accesos): (+0x1a / 20 con signo, sobre el word sin
+// signo) + 2 · el byte de abajo de [0x72397c] + 5, en un byte. El tag va después de cerrar (0x42281c, 0x42291c).
+void AddTheDarkHorseOption(ItemState& item, const WorldEntryResources& resources)
+{
+    std::optional<std::uint8_t> found;
+    for (std::uint8_t index = 0; index < item.optionCount; ++index)
+    {
+        if (item.OptionTag(index) == DarkHorseOption)
+        {
+            if (index != 0)
+            {
+                found = index;
+            }
+            break;
+        }
+    }
+    WorldState& world = resources.world;
+    {
+        const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
+                                                   Render::Models::OwnRecordCloseRandoms);
+        const std::uint8_t index = found.value_or(item.optionCount);
+        // OptionTag corta con diagnóstico si el índice se pasa de las nueve que guarda ItemState.
+        static_cast<void>(item.OptionTag(index));
+        const std::uint32_t agility = world.OwnCharacter().agility;
+        const auto level = static_cast<std::uint8_t>(world.Runtime().darkHorseLevel);
+        item.optionBytes[World::ItemOptionValueOffset + index] =
+            static_cast<std::uint8_t>((agility / AgilityDivisor) + (HorseLevelFactor * level) + DarkHorseOptionBase);
+    }
+    const std::uint8_t index = found.value_or(item.optionCount);
+    item.optionBytes[index] = DarkHorseOption;
+    if (!found)
+    {
+        ++item.optionCount;
+    }
+}
+
+namespace
+{
 // 0x54bf40(item, B1, B3, B4) desde 0x5bc740. contextWord es [0x7681eb0] + 0xe, el nivel del registro
 // propio, que solo vale con el registro abierto: cerrado, el último cierre dejó rand() & 0xff en cada byte
 // (Q-C125), y MuRet no lo tiene (Q-C202).
@@ -117,12 +164,6 @@ Core::Expected<void, std::string> InitializeInventoryItem(ItemState& item, World
     {
         return Core::Unexpected(record.Error());
     }
-    if (item.id == Item4225d0Type)
-    {
-        return Core::Unexpected(std::format("{}: 0x54bf40 llama a 0x4225d0 (0x54cc5c) con el tipo {:#x}, y MuRet no "
-                                            "lo tiene: no corre 0x54bf40",
-                                            where, item.id));
-    }
     const WorldRuntime& runtime = resources.world.Runtime();
     if (World::ReadsTheContextWord(item.id, scalars.b3) && runtime.ownRecordDepth == 0)
     {
@@ -130,7 +171,8 @@ Core::Expected<void, std::string> InitializeInventoryItem(ItemState& item, World
                                             "propio cerrado, lo que dejó su último cierre (Q-C202): no corre 0x54bf40",
                                             where));
     }
-    World::InitializeItemState(item, record.Value(), scalars, resources.world.OwnCharacter().level, {});
+    World::InitializeItemState(item, record.Value(), scalars, resources.world.OwnCharacter().level,
+                               [&resources](ItemState& horse) { AddTheDarkHorseOption(horse, resources); });
     return {};
 }
 
@@ -170,8 +212,10 @@ std::optional<std::uint16_t> HelperOfThePet(const ItemState& item)
 }
 
 // 0x5bc88b..0x5bcaa7, con el héroe que relee de 0x743a170: lo que crea o suelta después de vestirlo.
-Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const ItemState& item, WorldState& world)
+Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const ItemState& item,
+                                                   const WorldEntryResources& resources)
 {
+    WorldState& world = resources.world;
     const WorldRuntime& runtime = world.Runtime();
     ActorState& hero = world.Actors()[runtime.hero];
     const std::int32_t map = runtime.map;
@@ -188,29 +232,30 @@ Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const Item
         {
             return {};
         }
-        // 0x443fa0(ayudante, héroe + 0x10, héroe, 0, 0).
-        if (auto created = CreateHelper(world, *helper, hero.position, runtime.hero); !created.HasValue())
+        // 0x443fa0(ayudante, héroe + 0x10, héroe, 0, 0), con el rand() compartido: el 0x1c12 saca tres para su lugar
+        // (0x443f21..0x443f8c), entre la cola de 0x512a30 y el cierre del registro de 0x5bcaae.
+        if (auto created = CreateHelper(world, *helper, hero.position, runtime.hero, &resources.cloth.random);
+            !created.HasValue())
         {
             return Core::Unexpected(std::format("0x5bc740 (0x5bc8cc), 0x443fa0: {}", created.Error()));
         }
-        // 0x5bc967..0x5bca46: fuera del 0x1c12, con +0x3e2 del héroe publicado en 0, 0x518cf0 crea el
-        // efecto 0x61e en el héroe, aunque 0x443fa0 no haya creado nada.
+        // 0x5bc967..0x5bca46: fuera del 0x1c12, con +0x3e2 del héroe publicado en 0, 0x518cf0(0x61e, héroe + 0x10,
+        // héroe + 0x1c, héroe + 0xf4, 1, héroe, −1, 0, 0, 0, 0) crea el efecto en el héroe, aunque 0x443fa0 no haya
+        // creado nada.
         if (type != GuardianAngel && hero.safeZone == 0)
         {
-            return Core::Unexpected(std::string("0x5bca46: fuera de la zona segura, 0x518cf0 crea el efecto 0x61e "
-                                                "sobre el héroe, que World::ModelEffects no tiene"));
+            return Core::Unexpected(std::string("0x5bca46: fuera de la zona segura, 0x518cf0 crea el efecto 0x61e/1 "
+                                                "sobre el héroe, que World::ModelEffects no tiene (su paso, 0x518900, "
+                                                "crea la junta 0x619/1)"));
         }
         return {};
     }
     if (slot == LeftHandSlot && type == DarkRaven)
     {
-        // 0x420cf0: 0x421d60 suelta el cuervo de +0x430, que MuRet no crea en el mundo; fuera de los mapas 18
-        // a 23 lo crea de nuevo.
-        if (!InChaosCastle(map))
+        // 0x5bca62: 0x420cf0 suelta el cuervo de +0x430 (0x421d60) y, fuera de los mapas 18 a 23, lo crea de nuevo.
+        if (auto raven = ReplaceTheRaven(hero, resources); !raven.HasValue())
         {
-            return Core::Unexpected(
-                std::string("0x5bc740 (0x5bca62): 0x420cf0 crea el cuervo del héroe con 0x4167b0 en "
-                            "+0x430, que MuRet no tiene en el mundo"));
+            return Core::Unexpected(std::format("0x5bc740 (0x5bca62), {}", raven.Error()));
         }
         return {};
     }
@@ -266,7 +311,7 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
     {
         return Core::Unexpected(dressed.Error());
     }
-    if (auto after = AfterTheDressing(slot, item, world); !after.HasValue())
+    if (auto after = AfterTheDressing(slot, item, resources); !after.HasValue())
     {
         return Core::Unexpected(after.Error());
     }

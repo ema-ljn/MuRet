@@ -6,11 +6,15 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Terrain/TerrainHeights.h"
 #include "Network/PacketSerials.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/DarkSpirit.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -32,6 +36,8 @@
 #include "support/SessionHarness.h"
 #include "support/TestGameServer.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -40,6 +46,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <initializer_list>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -194,6 +201,12 @@ protected:
     [[nodiscard]] Stage Fresh() const
     {
         return Stage(m_dataRoot, &*m_items);
+    }
+
+    // En el heap: WorldState pesa unos 350 KB, y tres en la pila pasan el 1 MB de la de Windows.
+    [[nodiscard]] std::unique_ptr<Stage> FreshOnTheHeap() const
+    {
+        return std::make_unique<Stage>(m_dataRoot, &*m_items);
     }
 
     std::optional<Client::Data::Tables::ItemTable> m_items;
@@ -492,40 +505,106 @@ TEST_F(InventoryReplyTest, ALateWeaponReadsTheLevelOnlyWithTheRecordOpen)
     EXPECT_EQ(held.world.Runtime().ownRecordDepth, 1);
 }
 
-// 0x54cc5c: el Dark Horse pide 0x4225d0 dentro de 0x54bf40, en la grilla o en el equipo. Corta antes de
-// 0x54bf40, con los bytes ya escritos y, en el equipo, el registro cerrado igual.
-TEST_F(InventoryReplyTest, TheDarkHorseStopsAt4225d0)
+// 0x4225d0 desde 0x54cc5c: el Dark Horse agrega la opción 0x96 con 5 + la agilidad / 20 + 2 · el nivel del
+// caballo ([0x72397c]). En la grilla, 0x54bf40 corre con el registro cerrado: 0x4225d0 lo abre y lo cierra (3.848
+// rand()), y después lo vuelve a abrir y cerrar la cola de la grilla.
+TEST_F(InventoryReplyTest, TheDarkHorseInTheGridAddsItsDefenseOption)
 {
     Stage grid = Fresh();
-    const auto inGrid = Client::Scenes::PlaceInventoryItem(12, ItemBytes(DarkHorse), grid.Resources());
-    ASSERT_FALSE(inGrid.HasValue());
-    EXPECT_NE(inGrid.Error().find("0x4225d0"), std::string::npos) << inGrid.Error();
-    EXPECT_EQ(grid.Cell(0).id, DarkHorse);
+    grid.world.OwnCharacter().agility = 205;
+    grid.world.Runtime().darkHorseLevel = 3;
 
-    Stage worn = Fresh();
-    worn.PublishedHero();
-    const auto inEquipment = Client::Scenes::PlaceInventoryItem(8, ItemBytes(DarkHorse), worn.Resources());
-    ASSERT_FALSE(inEquipment.HasValue());
-    EXPECT_NE(inEquipment.Error().find("0x4225d0"), std::string::npos) << inEquipment.Error();
-    EXPECT_EQ(worn.world.OwnCharacter().equipment[8].id, DarkHorse);
-    EXPECT_EQ(worn.world.Runtime().ownRecordDepth, 0);
-    EXPECT_EQ(worn.cloth.random.State(), AfterDraws(Seed, OwnRecordClose).State());
+    const auto placed = Client::Scenes::PlaceInventoryItem(12, ItemBytes(DarkHorse), grid.Resources());
+
+    ASSERT_TRUE(placed.HasValue()) << placed.Error();
+    const ItemState& horse = grid.Cell(0);
+    EXPECT_EQ(horse.id, DarkHorse);
+    ASSERT_EQ(horse.optionCount, 1);
+    EXPECT_EQ(horse.OptionTag(0), 0x96);
+    EXPECT_EQ(horse.OptionValue(0), 205 / 20 + 2 * 3 + 5);
+    EXPECT_EQ(grid.world.Runtime().ownRecordDepth, 0);
+    EXPECT_EQ(grid.cloth.random.State(), AfterDraws(Seed, 2 * OwnRecordClose).State());
 }
 
-// 0x5bc8cc: fuera de los mapas 18 a 23, las mascotas del lugar 8 se crean con 0x443fa0 en la tabla de
-// 0x7d335d0, que MuRet no tiene. El héroe ya está vestido, y el registro se cierra igual.
-TEST_F(InventoryReplyTest, APetOfSlot8StopsAt443fa0OutsideChaosCastle)
+// En el equipo, 0x5bc740 ya tiene el registro abierto: 0x4225d0 no lo cierra y no saca rand(). Lo que siga
+// después de 0x54bf40 (el ayudante y el efecto del lugar 8) no cambia la opción.
+TEST_F(InventoryReplyTest, TheWornDarkHorseGetsItsOptionWithTheRecordAlreadyOpen)
+{
+    Stage worn = Fresh();
+    worn.PublishedHero();
+    worn.world.OwnCharacter().agility = 40;
+
+    const auto placed = Client::Scenes::PlaceInventoryItem(8, ItemBytes(DarkHorse), worn.Resources());
+
+    if (!placed.HasValue())
+    {
+        EXPECT_EQ(placed.Error().find("0x4225d0"), std::string::npos) << placed.Error();
+    }
+    const ItemState& horse = worn.world.OwnCharacter().equipment[8];
+    EXPECT_EQ(horse.id, DarkHorse);
+    ASSERT_EQ(horse.optionCount, 1);
+    EXPECT_EQ(horse.OptionTag(0), 0x96);
+    EXPECT_EQ(horse.OptionValue(0), 40 / 20 + 5);
+    EXPECT_EQ(worn.world.Runtime().ownRecordDepth, 0);
+}
+
+// 0x4225f2..0x422602: una 0x96 desde la segunda opción recibe el valor nuevo y la cantidad no cambia; una en la
+// primera no cuenta y se agrega otra al final (Q-C415). Con el registro abierto, sin rand(); el valor va en un
+// byte: (65.535 / 20 = 3.276) + 2 · 200 + 5 = 3.681, que deja 97.
+TEST_F(InventoryReplyTest, TheDarkHorseOptionSkipsAnEarlierOneInTheFirstPlace)
 {
     Stage tested = Fresh();
-    const ActorState& hero = tested.PublishedHero();
+    tested.world.Runtime().ownRecordDepth = 1;
+    tested.world.OwnCharacter().agility = 0xffff;
+    tested.world.Runtime().darkHorseLevel = 200;
+
+    ItemState second;
+    second.id = DarkHorse;
+    second.optionCount = 2;
+    second.optionBytes[0] = 0x3e;
+    second.optionBytes[1] = 0x96;
+    second.optionBytes[Client::World::ItemOptionValueOffset + 1] = 99;
+    Client::Scenes::AddTheDarkHorseOption(second, tested.Resources());
+    EXPECT_EQ(second.optionCount, 2);
+    EXPECT_EQ(second.OptionTag(1), 0x96);
+    EXPECT_EQ(second.OptionValue(1), 97);
+
+    ItemState first;
+    first.id = DarkHorse;
+    first.optionCount = 1;
+    first.optionBytes[0] = 0x96;
+    first.optionBytes[Client::World::ItemOptionValueOffset] = 99;
+    Client::Scenes::AddTheDarkHorseOption(first, tested.Resources());
+    EXPECT_EQ(first.optionCount, 2);
+    EXPECT_EQ(first.OptionValue(0), 99);
+    EXPECT_EQ(first.OptionTag(1), 0x96);
+    EXPECT_EQ(first.OptionValue(1), 97);
+
+    EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 1);
+    EXPECT_EQ(tested.cloth.random.State(), CrtRandom(Seed).State());
+}
+
+// 0x5bc8cc: fuera de los mapas 18 a 23, el Guardian Angel del lugar 8 se crea con 0x443fa0(0x1c12, héroe + 0x10,
+// héroe, 0, 0) en la tabla de 0x7d335d0, con los tres rand() de su lugar (0x443f21..0x443f8c) entre la cola de
+// 0x512a30 y el cierre del registro: los rand() 5 a 7 de la semilla (4.116, 25.814 y 28.931) lo corren
+// (4.116 % 512 − 256; 25.814 % 512 − 256; 28.931 % 128 + 128). Sin el efecto 0x61e, que no es del 0x1c12.
+TEST_F(InventoryReplyTest, AGuardianAngelOfSlot8IsCreatedWithTheSharedRandom)
+{
+    Stage tested = Fresh();
+    ActorState& hero = tested.PublishedHero();
+    hero.position = {1000.0f, 2000.0f, 300.0f};
 
     const auto placed = Client::Scenes::PlaceInventoryItem(8, ItemBytes(GuardianAngel), tested.Resources());
 
-    ASSERT_FALSE(placed.HasValue());
-    EXPECT_NE(placed.Error().find("0x443fa0"), std::string::npos) << placed.Error();
+    ASSERT_TRUE(placed.HasValue()) << placed.Error();
     EXPECT_EQ(hero.pet.model, ModelOf(GuardianAngel));
+    const HelperState& angel = tested.world.Helpers()[0];
+    EXPECT_TRUE(angel.alive);
+    EXPECT_EQ(angel.type, 0x1c12u);
+    EXPECT_EQ(angel.rider, PublishedSlot);
+    EXPECT_EQ(angel.position, glm::vec3(764.0f, 1958.0f, 431.0f));
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
-    EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, EquipmentEntry).State());
+    EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, EquipmentEntry + 3).State());
 }
 
 // En los mapas 18 a 23 no se crea ninguna mascota, ni el cuervo.
@@ -560,32 +639,80 @@ TEST_F(InventoryReplyTest, TheReplyTurnsOffTheHorseOfThePublishedHero)
     EXPECT_TRUE(helpers[1].alive);
 }
 
-// 0x5bc9d6..0x5bc9db: Horn of Doom copia +0x1b a +0x31b antes de crear el ayudante.
+// 0x5bc9d6..0x5bc9db: Horn of Doom copia +0x1b a +0x31b antes de crear el ayudante (el 0x14c con el 2). Fuera de
+// la zona segura (+0x3e2 del héroe en 0) corta en 0x5bca46, el efecto 0x61e/1; en ella, termina.
 TEST_F(InventoryReplyTest, HornOfDoomCopiesItsFlags1bToThePetBeforeStopping)
 {
-    Stage tested = Fresh();
-    const ActorState& hero = tested.PublishedHero();
+    for (const std::uint8_t safeZone : {std::uint8_t{0}, std::uint8_t{1}})
+    {
+        SCOPED_TRACE(static_cast<int>(safeZone));
+        Stage tested = Fresh();
+        ActorState& hero = tested.PublishedHero();
+        hero.safeZone = safeZone;
 
-    const auto placed = Client::Scenes::PlaceInventoryItem(8, ItemBytes(HornOfDoom, 0, 20, 0x02), tested.Resources());
+        const auto placed =
+            Client::Scenes::PlaceInventoryItem(8, ItemBytes(HornOfDoom, 0, 20, 0x02), tested.Resources());
 
-    ASSERT_FALSE(placed.HasValue());
-    EXPECT_NE(placed.Error().find("0x5bca46"), std::string::npos) << placed.Error();
-    EXPECT_EQ(hero.pet.flags1b, 0x02);
-    EXPECT_TRUE(tested.world.Helpers()[0].alive);
-    EXPECT_EQ(tested.world.Helpers()[0].type, 0x14cu);
+        if (safeZone == 0)
+        {
+            ASSERT_FALSE(placed.HasValue());
+            EXPECT_NE(placed.Error().find("0x5bca46"), std::string::npos) << placed.Error();
+        }
+        else
+        {
+            ASSERT_TRUE(placed.HasValue()) << placed.Error();
+        }
+        EXPECT_EQ(hero.pet.flags1b, 0x02);
+        EXPECT_TRUE(tested.world.Helpers()[0].alive);
+        EXPECT_EQ(tested.world.Helpers()[0].type, 0x14cu);
+        EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, EquipmentEntry).State());
+    }
 }
 
-// 0x5bca62: el Dark Raven del lugar 1 llama a 0x420cf0, que fuera de los mapas 18 a 23 crea el cuervo.
-TEST_F(InventoryReplyTest, TheDarkRavenOfSlot1StopsAt420cf0)
+// 0x5bca62: el Dark Raven del lugar 1 llama a 0x420cf0 con el héroe publicado. Suelta el cuervo que tenía y,
+// fuera de los mapas 18 a 23, crea otro (0x4167b0) en el centro de su celda, 300 sobre el terreno, con los 12
+// rand() de los cierres de sus celdas y del contador. En Chaos Castle solo lo suelta, sin más rand() que los de
+// vestir con un escudo en el mismo lugar.
+TEST_F(InventoryReplyTest, TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0)
 {
-    Stage tested = Fresh();
-    tested.PublishedHero();
+    constexpr int RavenRandoms = 3 * Client::Render::Models::SmallLogicalCloseRandoms;
+    const auto testedStage = FreshOnTheHeap();
+    Stage& tested = *testedStage;
+    tested.world.Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    tested.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    ActorState& hero = tested.PublishedHero();
+    hero.cellX = 133;
+    hero.cellY = 127;
+    hero.darkSpirit.emplace().state = 4;
 
     const auto placed = Client::Scenes::PlaceInventoryItem(1, ItemBytes(DarkRaven), tested.Resources());
 
-    ASSERT_FALSE(placed.HasValue());
-    EXPECT_NE(placed.Error().find("0x420cf0"), std::string::npos) << placed.Error();
+    ASSERT_TRUE(placed.HasValue()) << placed.Error();
+    EXPECT_EQ(hero.hands[1].model, ModelOf(DarkRaven));
+    ASSERT_TRUE(hero.darkSpirit.has_value());
+    EXPECT_EQ(hero.darkSpirit->state, 0);
+    EXPECT_EQ(hero.darkSpirit->position, glm::vec3(13350.0f, 12750.0f, 300.0f));
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
+    EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, EquipmentEntry + RavenRandoms).State());
+
+    const auto chaosStage = FreshOnTheHeap();
+    Stage& chaos = *chaosStage;
+    ActorState& rider = chaos.PublishedHero();
+    chaos.world.Runtime().map = ChaosCastleMap;
+    rider.darkSpirit.emplace();
+
+    const auto inChaos = Client::Scenes::PlaceInventoryItem(1, ItemBytes(DarkRaven), chaos.Resources());
+
+    const auto shieldedStage = FreshOnTheHeap();
+    Stage& shielded = *shieldedStage;
+    shielded.PublishedHero();
+    shielded.world.Runtime().map = ChaosCastleMap;
+    const auto withShield = Client::Scenes::PlaceInventoryItem(1, ItemBytes(SmallShield), shielded.Resources());
+
+    ASSERT_TRUE(inChaos.HasValue()) << inChaos.Error();
+    ASSERT_TRUE(withShield.HasValue()) << withShield.Error();
+    EXPECT_FALSE(rider.darkSpirit.has_value());
+    EXPECT_EQ(chaos.cloth.random.State(), shielded.cloth.random.State());
 }
 
 // 0x5bca6c..0x5bcaa7: el Wizard's Ring de nivel 3 en el 10 o el 11 lleva a 0x414340 y a +0x360 del héroe.

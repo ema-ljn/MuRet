@@ -10,8 +10,10 @@
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/ActorAppearance.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FullSetScan.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -371,6 +373,30 @@ TEST_F(UnarmedGameCharacterTest, CatchUpSpendsTwoHandByteClosesPerOriginalFrame)
     EXPECT_EQ(Actor().bodyPose.size(), m_models.SkeletonOf(Client::Data::Models::PlayerSkeletonModel)->bones.size());
 }
 
+// Q-C412: 0x6001b0 copia la escala y la posición del personaje al modelo compartido de Player.bmd antes de posar,
+// con el alpha desde 0,01 (0x6b88d4); el cuervo de otro las lee en la zona segura. Un dibujo intermedio no las
+// toca.
+TEST_F(UnarmedGameCharacterTest, TheBodyLeavesItsScaleAndPositionInThePlayerModel)
+{
+    Actor().scale = 1.3f;
+    auto pass = Pass();
+    pass.originalFrames = 0;
+    ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
+    EXPECT_EQ(m_world->PlayerModel().scale, 0.0f);
+
+    pass.originalFrames = 1;
+    const auto drawn = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(m_world->PlayerModel().scale, 1.3f);
+    EXPECT_EQ(m_world->PlayerModel().origin, Actor().position);
+
+    m_world->PlayerModel() = {};
+    Actor().alpha = 0.009f;
+    ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
+    EXPECT_EQ(m_world->PlayerModel().scale, 0.0f);
+}
+
 TEST_F(UnarmedGameCharacterTest, TheUnportedPeriodicStatusEffectStopsBeforeTheHandByteReads)
 {
     struct Case
@@ -482,5 +508,77 @@ TEST_F(UnarmedGameCharacterTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
         EXPECT_EQ(m_cloth.random.State(), frames == 0 ? 1u : 0x18be873au);
         EXPECT_EQ(Actor().byte38eAccesses, 0);
     }
+}
+// El personaje como lo arma el caller del login o de la selección: el cuerpo de su paso, sin lo que cuelga.
+Client::Scenes::DrawnCharacter Drawn(const ActorState& actor)
+{
+    Client::Scenes::DrawnCharacter character;
+    character.appearance = Client::Scenes::AppearanceOfActor(actor);
+    character.body = actor.animation;
+    character.object = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
+    return character;
+}
+
+// 0x50db57..0x510a7a en el login y la selección, que corren el mismo 0x50ba30 que el juego: el rand() de 0x50db57 y
+// los dos cierres de +0x38e de las manos, como en DrawGameCharacters, y el cuerpo en sus huesos propios. Sin
+// 0x510ef0, que sólo corre en la escena 5 (0x510a80): con +0x369 en 1 el juego corta en 0x510f4d y esto no.
+TEST_F(UnarmedGameCharacterTest, OutsideTheGameTheTailSpendsTheSameRandomsWithoutTheSceneFiveEffect)
+{
+    Actor().byte88 = 1;
+    Actor().byte369 = 1;
+    const auto game = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    ASSERT_FALSE(game.HasValue());
+    EXPECT_NE(game.Error().find("0x510f4d"), std::string::npos) << game.Error();
+
+    m_cloth.random = Client::Render::Models::CrtRandom(1);
+    Actor().bodyPose.clear();
+    m_batch.Begin({});
+    const auto tail = Client::Scenes::DrawCharacterTail(m_batch, m_models, *m_world, Actor(), 7, Drawn(Actor()), Pass(),
+                                                        Client::Scenes::FullSetScan{}, true);
+
+    ASSERT_TRUE(tail.HasValue()) << tail.Error();
+    EXPECT_EQ(m_cloth.random.State(), 0x18be873au);
+    EXPECT_EQ(Actor().byte38eAccesses, 0);
+    EXPECT_EQ(Actor().bodyPose.size(), m_models.SkeletonOf(Client::Data::Models::PlayerSkeletonModel)->bones.size());
+}
+
+// Entre frames del original, sobre copias: ni el rand(), ni los huesos propios, ni el modelo compartido.
+TEST_F(UnarmedGameCharacterTest, OutsideTheGameAnIntermediateTailSpendsNothing)
+{
+    const auto tail = Client::Scenes::DrawCharacterTail(m_batch, m_models, *m_world, Actor(), 7, Drawn(Actor()), Pass(),
+                                                        Client::Scenes::FullSetScan{}, false);
+
+    ASSERT_TRUE(tail.HasValue()) << tail.Error();
+    EXPECT_EQ(m_cloth.random.State(), 1u);
+    EXPECT_TRUE(Actor().bodyPose.empty());
+    EXPECT_EQ(m_world->PlayerModel().scale, 0.0f);
+}
+
+// 0x510abd: el cuervo corre en todas las escenas. Sin el trapecio, el juego corta en 0x418320; fuera del juego lo
+// dibuja el caller (el login), y la cola no lo toca.
+TEST_F(UnarmedGameCharacterTest, OutsideTheGameWithoutTheTrapezoidTheCallerDrawsTheRaven)
+{
+    Actor().darkSpirit.emplace();
+    const auto game = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    ASSERT_FALSE(game.HasValue());
+    EXPECT_NE(game.Error().find("0x418320"), std::string::npos) << game.Error();
+
+    m_batch.Begin({});
+    const auto tail = Client::Scenes::DrawCharacterTail(m_batch, m_models, *m_world, Actor(), 7, Drawn(Actor()), Pass(),
+                                                        Client::Scenes::FullSetScan{}, true);
+
+    ASSERT_TRUE(tail.HasValue()) << tail.Error();
+}
+
+// Sin el flujo global de rand, no hay cola.
+TEST_F(UnarmedGameCharacterTest, TheTailNeedsTheGlobalRandom)
+{
+    auto pass = Pass();
+    pass.clothWorld = nullptr;
+    const auto tail = Client::Scenes::DrawCharacterTail(m_batch, m_models, *m_world, Actor(), 7, Drawn(Actor()), pass,
+                                                        Client::Scenes::FullSetScan{}, true);
+
+    ASSERT_FALSE(tail.HasValue());
+    EXPECT_NE(tail.Error().find("0x50db57"), std::string::npos) << tail.Error();
 }
 } // namespace

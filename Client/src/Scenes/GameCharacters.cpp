@@ -241,18 +241,24 @@ Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const I
     return {};
 }
 
-// 0x50db57..0x510ac2 sobre el cuerpo ya posado: lo que cuelga, los efectos y el cuervo. Entre frames del
-// original, sobre una copia del personaje y del rand(): lo que cuelga y los contadores quedan como los dejó
-// el último frame.
+// 0x50db57..0x510ac2 sobre el cuerpo ya posado: lo que cuelga, los efectos, en el juego (`gameScene`) 0x510ef0, y el
+// cuervo. Entre frames del original, sobre una copia del personaje y del rand(): lo que cuelga y los contadores quedan
+// como los dejó el último frame.
 Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,
                                               ActorState& actor, std::size_t slot, const DrawnCharacter& character,
                                               const GameCharacterPass& pass, const FullSetScan& scan,
-                                              bool originalFrame)
+                                              bool originalFrame, bool gameScene)
 {
     const std::vector<Render::Models::BoneTransform> body = PoseCharacterBody(models, character);
     // 0x509340 posa en los huesos propios (+0x120), que lee el paso siguiente (0x506d25, la burbuja de Atlans).
+    // 0x6001b0 copia antes la escala y la posición al modelo compartido de Player.bmd, con el alpha desde 0,01;
+    // las lee el cuervo en la zona segura (Q-C412).
     if (originalFrame)
+    {
         actor.bodyPose = body;
+        if (actor.alpha >= PlayerModelAlpha)
+            world.PlacePlayerModel(actor);
+    }
     std::optional<ActorState> projectedActor;
     std::optional<Render::Models::CrtRandom> projectedRandom;
     ActorState& drawn = originalFrame ? actor : projectedActor.emplace(actor);
@@ -290,11 +296,13 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                                .worldClock = worldClock,
                                                .map = map,
                                                .logicSteps = pass.clothWorld->logicSteps,
+                                               .gameScene = gameScene,
                                                .originalFrame = originalFrame};
     if (auto effects = DrawGameCharacterEffects(drawn, effectsPass); !effects.HasValue())
         return effects;
-    // 0x510abd: 0x420df0, el cuervo.
-    if (!drawn.darkSpirit)
+    // 0x510abd: 0x420df0, el cuervo, en todas las escenas. Fuera del juego, sin el trapecio, lo dibuja el caller
+    // (el login).
+    if (!drawn.darkSpirit || (!gameScene && pass.polygon == nullptr))
         return {};
     if (pass.polygon == nullptr)
         return Core::Unexpected<std::string>("0x418320: falta el trapecio del dibujo para el cuervo");
@@ -302,7 +310,7 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                               .models = models,
                                               .polygon = *pass.polygon,
                                               .lighting = pass.dynamicLighting,
-                                              .terrain = world.Map().terrain,
+                                              .terrain = pass.terrain != nullptr ? *pass.terrain : world.Map().terrain,
                                               .fixedHeight = pass.fixedHeight,
                                               .carry = pass.poseCarry,
                                               .frameClock = pass.frameClock,
@@ -347,7 +355,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
         return supported;
     // 0x50db94: la luz de lo que cuelga (+0x3b4), la del terreno o el rojo de los PK.
     actor.drawnLight = actor.pk >= RedPk ? glm::vec3{1.0f, 0.1f, 0.1f} : terrainLight.Value() + actor.light;
-    return DrawTheTail(batch, models, world, actor, slot, character, pass, scan, originalFrame);
+    return DrawTheTail(batch, models, world, actor, slot, character, pass, scan, originalFrame, true);
 }
 
 Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,
@@ -414,6 +422,16 @@ Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch, 
         }
     }
     return {};
+}
+
+Core::Expected<void, std::string> DrawCharacterTail(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                    WorldState& world, ActorState& actor, std::size_t slot,
+                                                    const DrawnCharacter& character, const GameCharacterPass& pass,
+                                                    const FullSetScan& scan, bool originalFrame)
+{
+    if (pass.clothWorld == nullptr)
+        return Core::Unexpected<std::string>("0x50db57: falta el flujo global de rand de lo que cuelga");
+    return DrawTheTail(batch, models, world, actor, slot, character, pass, scan, originalFrame, false);
 }
 
 Core::Expected<void, std::string> DrawGameCharacters(std::span<ActorState> actors, std::size_t hero,

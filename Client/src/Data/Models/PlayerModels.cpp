@@ -481,15 +481,22 @@ constexpr std::array<ModelFile, 243> ItemFiles = {{
     {0xc1e, ItemFolder, "HDK_Staff", -1},         // 0x6117f8
 }};
 
-// Las llamadas a 0x60da30 de 0x615700 que MuRet ya hace, en su orden.
-constexpr std::array<ModelFile, 7> SkillFiles = {{
-    {0xbf, SkillFolder, "DarkHorse", -1},    // 0x615f46
-    {0xc0, SkillFolder, "DarkSpirit", -1},   // 0x616026
-    {0x10c, BloodCastleFolder, "Gate", 1},   // 0x616304
-    {0x10d, BloodCastleFolder, "Gate", 2},   // 0x61631a
-    {0x145, SkillFolder, "elf_skill", -1},   // 0x6168f4
-    {0x146, SkillFolder, "WaveForce", -1},   // 0x61690a
-    {0x147, SkillFolder, "deathsp_eff", -1}, // 0x616920
+// Las llamadas a 0x60da30 de 0x615700 que MuRet ya hace, en su orden: las monturas de las mascotas (el Uniria, el
+// Dinorant y los tres Fenrir), el caballo, el cuervo y HellGate (0xc5), que pide texturas antes que el Dinorant.
+constexpr std::array<ModelFile, 13> SkillFiles = {{
+    {0xc6, SkillFolder, "Rider", 1},          // 0x615eca
+    {0x110, SkillFolder, "Rider", 2},         // 0x615f30, sin el .smd de 0x615f17 (0x6c9e0c en 1)
+    {0xbf, SkillFolder, "DarkHorse", -1},     // 0x615f46
+    {0x14a, SkillFolder, "fenril_black", -1}, // 0x615f5c
+    {0x14b, SkillFolder, "fenril_red", -1},   // 0x615f90
+    {0x14c, SkillFolder, "fenril_blue", -1},  // 0x615fc1
+    {0xc0, SkillFolder, "DarkSpirit", -1},    // 0x616026
+    {0xc5, SkillFolder, "HellGate", -1},      // 0x61605c
+    {0x10c, BloodCastleFolder, "Gate", 1},    // 0x616304
+    {0x10d, BloodCastleFolder, "Gate", 2},    // 0x61631a
+    {0x145, SkillFolder, "elf_skill", -1},    // 0x6168f4
+    {0x146, SkillFolder, "WaveForce", -1},    // 0x61690a
+    {0x147, SkillFolder, "deathsp_eff", -1},  // 0x616920
 }};
 } // namespace
 

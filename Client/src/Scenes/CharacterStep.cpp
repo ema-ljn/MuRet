@@ -20,6 +20,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterHead.h"
 #include "Scenes/DarkSpirit.h"
+#include "Scenes/DynamicWorldLight.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnStatHelpers.h"
@@ -31,6 +32,7 @@
 #include "World/TerrainCulling.h"
 #include "World/TerrainHeight.h"
 #include "World/TerrainWalls.h"
+#include "World/WorldObjectStepServices.h"
 #include "World/WorldTerrain.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -130,8 +132,27 @@ constexpr std::uint8_t Word42Bit = 0x08;
 constexpr std::uint32_t StillHeadFlag = 0x20;
 // 0x506acf: con +0x375 en 6 o más (sin signo), las manos no dan luz.
 constexpr std::uint8_t FirstPkWithoutLights = 6;
-// 0x506aec..0x506b26: los modelos de las manos que piden una luz a 0x5f9780.
-constexpr std::array<std::uint16_t, 5> LightModels{0x21e, 0x225, 0xa24, 0xc1c, 0x61f};
+// 0x506aec..0x506b42: los modelos de las manos que piden una luz a 0x5f9780, con su color (los tres DWORD
+// de [ebp−0x1c]) y su radio. El 0x21e (0x506af7..0x506b0c): (0,8; 0,64; 0,4) con 3. El 0x225, el 0xa24, el
+// 0xc1c y el 0x61f (0x506b2d..0x506b42): (0,64; 0,4; 0,24) con 2. Los 0,64 y 0,24 son un ulp más que los
+// float más cercanos (0x3f23d70a y 0x3e75c28f): van por sus bits.
+struct HandLight
+{
+    std::uint16_t model;
+    glm::vec3 color;
+    std::int32_t radius;
+};
+constexpr glm::vec3 BrightHandLight{std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3f23d70bu),
+                                    std::bit_cast<float>(0x3ecccccdu)};
+constexpr glm::vec3 DimHandLight{std::bit_cast<float>(0x3f23d70bu), std::bit_cast<float>(0x3ecccccdu),
+                                 std::bit_cast<float>(0x3e75c290u)};
+constexpr std::array<HandLight, 5> HandLights{
+    HandLight{.model = 0x21e, .color = BrightHandLight, .radius = 3},
+    HandLight{.model = 0x225, .color = DimHandLight, .radius = 2},
+    HandLight{.model = 0xa24, .color = DimHandLight, .radius = 2},
+    HandLight{.model = 0xc1c, .color = DimHandLight, .radius = 2},
+    HandLight{.model = 0x61f, .color = DimHandLight, .radius = 2},
+};
 // 0x506d01 y 0x506d8b: los mapas del caso del 0x20a con efectos.
 constexpr std::int32_t ClockEffectMap = 7;
 constexpr std::int32_t RandomEffectMap = 9;
@@ -627,18 +648,30 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     {
         return {};
     }
-    if (actor.safeZone == 1 || actor.darkSpirit->state > 1)
+    // 0x416add..0x4176e6 y 0x417801..0x41789d: los estados 2, 5 y 6 son los de las órdenes A7 (los paquetes de
+    // 0x416a20 y el objetivo de +0x3b0), sin portar (CL9). Nada de MuRet los pone.
+    constexpr std::uint8_t LastRestingState = 4;
+    const std::uint8_t ravenState = actor.darkSpirit->state;
+    if (ravenState == 2 || ravenState > LastRestingState)
     {
-        return Core::Unexpected(
-            std::format("0x4176f6: la zona segura o el estado del cuervo del lugar {} no están portados", slot));
+        return Core::Unexpected(std::format(
+            "0x416add: el estado {} del cuervo del lugar {} es de las órdenes A7, sin portar", ravenState, slot));
     }
     if (context.darkSpiritSkeleton == nullptr || context.particles == nullptr)
     {
         return Core::Unexpected(
             std::format("0x416a20: faltan el modelo o las partículas del cuervo del lugar {}", slot));
     }
+    const SharedModelPlacement& player = context.world.PlayerModel();
     static_cast<void>(StepDarkSpirit(*actor.darkSpirit, *context.darkSpiritSkeleton,
-                                     {.position = actor.position, .flags = actor.flags78},
+                                     {.position = actor.position,
+                                      .flags = actor.flags78,
+                                      .angles = actor.angles,
+                                      .pet = actor.pet.model,
+                                      .safeZone = actor.safeZone,
+                                      .pose = actor.bodyPose,
+                                      .modelScale = player.scale,
+                                      .modelOrigin = player.origin},
                                      static_cast<std::uint8_t>(runtime.map), *context.particles, context.worldClock,
                                      context.random, context.counter));
     return {};
@@ -782,7 +815,9 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     }
     // 0x505ec6..0x505ee4: la posición, la escala y la acción van al modelo compartido (+0x6c, +0x68 y
     // +0xa0), que leen los 0x4ec110 de más abajo y que el dibujo vuelve a escribir antes de posar. MuRet
-    // no tiene el modelo compartido.
+    // guarda la escala y la posición del de Player.bmd, que el cuervo lee en la zona segura antes de este
+    // punto de su dueño (Q-C412); los de abajo leen las del propio personaje (OwnBonePoint).
+    context.world.PlacePlayerModel(actor);
     // 0x505ef2: sin verse, nada más.
     if (!actor.seen)
     {
@@ -819,17 +854,24 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     {
         return cooldown;
     }
-    // 0x506acf..0x506b62: con +0x375 debajo de 6, la luz de cada mano, la derecha y la izquierda.
+    // 0x506acf..0x506b62: con +0x375 debajo de 6, la luz de cada mano, la derecha (+0x2b8) y después la
+    // izquierda (+0x2d8): 0x5f9780 con la x y la y del objeto (+0x10, +0x14) sobre el buffer dinámico
+    // 0x7b4ccc4, el de WorldState, que 0x5fbf60 repone en cada paso. Sin rand().
     if (actor.pk < FirstPkWithoutLights)
     {
         for (const ActorItemPart& hand : actor.hands)
         {
-            if (std::ranges::find(LightModels, hand.model) != LightModels.end())
+            const auto light =
+                std::ranges::find(HandLights, hand.model, [](const HandLight& candidate) { return candidate.model; });
+            if (light == HandLights.end())
             {
-                return Core::Unexpected(
-                    std::format("0x5f9780: la luz del modelo {:#x} en la mano del lugar {} (0x506b50) "
-                                "va al buffer dinámico 0x7b4ccc4, que MuRet no tiene",
-                                hand.model, slot));
+                continue;
+            }
+            if (auto added = World::AddDynamicLight(&context.world.DynamicLighting().Lighting(), actor.position,
+                                                    light->color, light->radius, "0x506b50");
+                !added.HasValue())
+            {
+                return Core::Unexpected(std::format("{} (la mano del lugar {})", added.Error(), slot));
             }
         }
     }

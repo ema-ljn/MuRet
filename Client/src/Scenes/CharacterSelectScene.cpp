@@ -33,14 +33,16 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/DarkSpirit.h"
-#include "Scenes/DarkHorse.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/CreatePreview.h"
 #include "Scenes/FullSetScan.h"
+#include "Scenes/GameCharacters.h"
 #include "Scenes/GameData.h"
+#include "Scenes/GameItemSpecialDrawing.h"
+#include "Scenes/ItemDrawResources.h"
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SelectionWorld.h"
 #include "World/GameCamera.h"
@@ -116,22 +118,6 @@ constexpr std::uint8_t BlockedAccountFlag = 0x10;
 
 // 0x5bb8d0 en la selección: 640, sin las ventanas del juego (06 § El trapecio completo).
 constexpr std::int32_t SelectionWorldWidth = 640;
-
-Core::Expected<void, std::string> StepSelectionHelpers(WorldState& world)
-{
-    for (HelperState& helper : world.Helpers())
-    {
-        if (!helper.alive)
-        {
-            continue;
-        }
-        // 0x44402a: el guard del jinete muerto es solo de escena5. En la4 llega al alpha
-        // (0x444053) antes del modelo y del cuerpo que todavía no están portados.
-        FadeInDarkHorse(helper.horse);
-        return Core::Unexpected(std::string("0x6342f4 → 0x444059: falta el cuerpo del ayudante de selección"));
-    }
-    return {};
-}
 
 // Si la entrada es la misma que dio el personaje: un crear en un lugar ocupado lo pisa.
 bool SameEntry(const Protocol::Character::CharacterEntry& one, const Protocol::Character::CharacterEntry& other)
@@ -428,9 +414,16 @@ void CharacterSelectScene::StepCharacters()
                 return;
             }
         }
-        if (auto helpers = StepSelectionHelpers(*m_context.world); !helpers.HasValue())
+        // 0x6342f4: 0x445230, los ayudantes, antes del pool. La escena 4 no apaga los de un jinete muerto (Q-C293).
+        if (auto helpers = StepHelpers(HelperStepContext{.world = *m_context.world,
+                                                         .models = &m_models,
+                                                         .random = m_context.cloth->random,
+                                                         .worldClock = worldClock,
+                                                         .scene = SceneId::CharacterSelect,
+                                                         .terrain = m_context.selection->Terrain()});
+            !helpers.HasValue())
         {
-            m_failure = helpers.Error();
+            m_failure = "0x6342f4 → " + helpers.Error();
             return;
         }
         const CharacterStepContext context = CharacterContext();
@@ -1078,6 +1071,27 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(SceneCanvas& canvas, flo
     {
         return;
     }
+    // 0x63486a: 0x4453b0, los ayudantes, con la escala en 1 de la escena 4 (0x4452f1), la luz del terreno 54 y los
+    // sprites del frame.
+    if (auto drawn = DrawHelpers(HelperDrawContext{
+            .batch = canvas.models,
+            .models = m_models,
+            .world = world,
+            .random = m_world.FrameRandom(),
+            .frameClock = canvas.frameClock,
+            .stepAlpha = 0.0f,
+            .originalFrame = frames > 0,
+            .onPose = [&](const DrawnObject& object) { return PublishFaunaPose(*poseCarry, m_models, object, true); },
+            .publishProjectedPose = true,
+            .posedMeshes = [&]() { return std::span<const Render::Models::SkinnedMesh>(poseCarry->meshes); },
+            .scene = SceneId::CharacterSelect,
+            .lighting = &m_world.FrameLighting(),
+            .sprites = &m_world.FrameSprites()});
+        !drawn.HasValue())
+    {
+        m_failure = "0x63486a → " + drawn.Error();
+        return;
+    }
     // 0x63486f..0x634883: las cintas, las juntas(0), los efectos con modelo(0) y 0x549510.
     if (auto drawn = m_world.DrawAfterCharacters(world, terrain, frame, camera, *poseCarry); !drawn.HasValue())
     {
@@ -1130,7 +1144,7 @@ void CharacterSelectScene::DrawTheCharacters(SceneCanvas& canvas, float alpha, s
         }
         const GameLogic::CharacterAppearance appearance =
             actor != nullptr ? AppearanceOfActor(*actor) : character.appearance;
-        ScanTheCharacter(appearance, scanFrames);
+        const FullSetScan scan = ScanTheCharacter(appearance, scanFrames);
         DrawnCharacter drawn;
         drawn.appearance = appearance;
         if (actor != nullptr)
@@ -1191,24 +1205,104 @@ void CharacterSelectScene::DrawTheCharacters(SceneCanvas& canvas, float alpha, s
                     !result.HasValue())
                     m_failure = result.Error();
             };
+        // Con el mundo 54, el mismo 0x50ba30 que el juego: el cuerpo, las partes y la tela, y después lo que
+        // cuelga y los efectos (0x50db57..0x510a7a), que no miran la escena salvo la luz (0x50cc29, 0x50d219).
+        if (actor != nullptr && poseCarry != nullptr && HasTheWorld() && HasTheSkeleton())
+        {
+            // 0x50cca9..0x50d211: el héroe publicado (0x743a170, el lugar 0 desde WinMain) abre y cierra el registro
+            // propio para su color, aun con los bits apagados, también en la escena 4, que después le pone 0,5 más
+            // +0xf4 (0x50d219): 3.848 rand() al cerrarlo, en cada frame del original.
+            if (static_cast<std::size_t>(character.slot) == hero)
+            {
+                for (int frame = 0; frame < scanFrames; ++frame)
+                {
+                    const Render::Models::LogicalAccess access(m_context.world->Runtime().ownRecordDepth,
+                                                               m_context.cloth->random,
+                                                               Render::Models::OwnRecordCloseRandoms);
+                }
+            }
+            drawn.sprites = &m_world.FrameSprites();
+            DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock, CharacterDrawPass::Body);
+            DrawTheTail(canvas, *actor, character.slot, drawn, *poseCarry, scan, scanFrames > 0);
+            if (m_failure)
+                return;
+            continue;
+        }
         DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock);
-        // Sólo un frame del original deja el cuerpo en sus huesos; un dibujo intermedio no los toca.
+        // Sólo un frame del original deja el cuerpo en sus huesos; un dibujo intermedio no los toca. 0x6001b0
+        // copia antes la escala y la posición al modelo compartido de Player.bmd, con el alpha desde 0,01
+        // (Q-C412).
         if (actor != nullptr && poseCarry != nullptr && scanFrames > 0)
+        {
             actor->bodyPose = PoseCharacterBody(m_models, drawn);
+            if (actor->alpha >= PlayerModelAlpha)
+                m_context.world->PlacePlayerModel(*actor);
+        }
     }
+}
+
+bool CharacterSelectScene::HasTheSkeleton() const
+{
+    const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    return skeleton != nullptr && !skeleton->actions.empty();
+}
+
+// 0x50db57..0x510ac2 sobre el cuerpo ya dibujado (GameCharacters.h, DrawCharacterTail), con las tablas del frame
+// del mundo 54: las del mundo en un frame del original y sus copias entre frames. La luz de lo que cuelga
+// (0x50db94, [ebp−0x44] más +0xf4) es la de la escena 4, 0,4 fijo (0x50cc29), o 0,5 en el héroe publicado, que la
+// rama de su color pisa (0x50d231); con +0x375 desde 6, (1; 0,1; 0,1). El cuervo de un Dark Lord de la lista
+// (EquipSelectionActor) va con el trapecio de la selección.
+void CharacterSelectScene::DrawTheTail(SceneCanvas& canvas, ActorState& actor, std::size_t slot,
+                                       const DrawnCharacter& drawn, FaunaDrawCarry& poseCarry, const FullSetScan& scan,
+                                       bool originalFrame)
+{
+    WorldState& world = *m_context.world;
+    ItemSpecialDrawContext special;
+    ItemDrawContext itemContext;
+    FillItemDrawContexts(special, itemContext,
+                         ItemDrawResources{.frameClock = canvas.frameClock,
+                                           .random = m_world.FrameCloth().random,
+                                           .itemRender = m_world.FrameItemRender(),
+                                           .sprites = m_world.FrameSprites(),
+                                           .poseCarry = poseCarry,
+                                           .modelState = m_world.FrameModelState(),
+                                           .joints = m_world.FrameTail().joints,
+                                           .effects = m_world.FrameEffects(),
+                                           .map = world.Runtime().map,
+                                           .originalFrame = originalFrame});
+    constexpr std::uint8_t RedPk = 6;
+    const float base = slot == world.Runtime().hero ? HeroLight : CharacterLight;
+    actor.drawnLight = actor.pk >= RedPk ? glm::vec3{1.0f, 0.1f, 0.1f} : glm::vec3(base) + actor.light;
+    const GameCharacterPass pass{.dynamicLighting = &m_world.FrameLighting(),
+                                 .clothWorld = &m_world.FrameCloth(),
+                                 .frameClock = canvas.frameClock,
+                                 .sprites = &m_world.FrameSprites(),
+                                 .poseCarry = &poseCarry,
+                                 .joints = m_world.FrameTail().joints,
+                                 .particles = &m_world.FrameParticles(),
+                                 .effects = &m_world.FrameEffects(),
+                                 .itemContext = &itemContext,
+                                 .pace = OriginalFramePaceOf(m_context.pacing),
+                                 .polygon = &m_polygon,
+                                 .fixedHeight = CameraState().fixedHeight,
+                                 .terrain = m_context.selection->Terrain()};
+    if (auto drawnTail =
+            DrawCharacterTail(canvas.models, m_models, world, actor, slot, drawn, pass, scan, originalFrame);
+        !drawnTail.HasValue())
+        m_failure = std::format("{}, en el personaje {} de la selección", drawnTail.Error(), slot);
 }
 
 // 0x50ba30 con cada uno de la lista, en 0x50c91e: son 0x20a con +0x7c y +0x3e4 en 0 (0x517270), y la vista
 // previa de la ventana de crear no lo es. Sin las acciones de Player.bmd sale antes (0x50ba87), como
 // DrawCharacter sin su esqueleto.
-void CharacterSelectScene::ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames)
+FullSetScan CharacterSelectScene::ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames)
 {
     if (m_context.world == nullptr || m_context.cloth == nullptr ||
         m_models.SkeletonOf(Data::Models::PlayerSkeletonModel) == nullptr)
     {
-        return;
+        return {};
     }
-    ScanTheDrawnCharacter(*m_context.world, ScannedCharacterOf(appearance), m_context.cloth->random, frames);
+    return ScanTheDrawnCharacter(*m_context.world, ScannedCharacterOf(appearance), m_context.cloth->random, frames);
 }
 
 void CharacterSelectScene::DrawTheCursor(SceneCanvas& canvas) const

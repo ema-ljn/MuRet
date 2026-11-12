@@ -15,6 +15,8 @@
 #include "Protocol/Character/CharacterCreate.h"
 #include "Protocol/Character/CharacterDelete.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/LogicalAccess.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/ModelVertex.h"
 #include "Render/Pass3D.h"
@@ -34,6 +36,7 @@
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/PetHelperSteps.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -178,10 +181,17 @@ public:
         {
             return &m_body;
         }
+        if (m_withHelpers && (model == Client::Scenes::UniriaModel || model == Client::Scenes::DinorantModel))
+        {
+            return &m_body;
+        }
         return m_withWings && model == 0x1a12 ? &m_wings : nullptr;
     }
-    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+    // Las alas, que cuelgan, van con su textura: 0x60b3d0 (DrawGameHanging) la pide. El cuerpo, sin.
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t model) const override
     {
+        if (m_withWings && model == 0x1a12)
+            return m_wingTextures;
         return {};
     }
     // Las texturas de efectos de GameModels: las piden las partículas y los sprites del mundo 54.
@@ -205,9 +215,17 @@ public:
         m_withRaven = true;
     }
 
+    // El esqueleto del cuerpo también para el Uniria y el Dinorant (Skill\Rider01.bmd y Rider02.bmd).
+    void EnableHelpers()
+    {
+        m_withHelpers = true;
+    }
+
 private:
     bool m_withWings;
     bool m_withRaven = false;
+    bool m_withHelpers = false;
+    std::array<TextureSlot, 1> m_wingTextures{TextureSlot{0x300}};
     Skeleton m_body;
     Skeleton m_wings;
     Model m_part;
@@ -1346,7 +1364,72 @@ TEST(CharacterSelectSceneTest, RavenSparksAgeAfterThePreviewAndTheirSlotsAreReus
     EXPECT_EQ(*reused, 0u);
 }
 
-TEST(CharacterSelectSceneTest, ASelectionHelperKeepsTheSceneFourAlphaPrefixBeforeTheMissingBody)
+// Q-C293: 0x6342f4 pasa los diez ayudantes por 0x444010 en la escena 4, sin la guarda del jinete muerto de la 5
+// (0x44402a): el Uniria del jinete 0, muerto, toma su lugar y su acción, el alpha en 1 (con +0x80 del jinete en 0),
+// la velocidad 0,34 y el byte vivo del jinete (0x444ac0), y la selección sigue.
+TEST(CharacterSelectSceneTest, ASelectionHelperRunsItsBodyWithoutTheGameGuard)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+    tested.models.EnableHelpers();
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
+    auto& helpers = world.Helpers();
+    helpers[0].horse.alpha = 0.5f;
+    helpers[1].alive = true;
+    helpers[1].type = Client::Scenes::UniriaModel;
+    helpers[1].rider = 0;
+    ASSERT_FALSE(world.Actors()[0].alive);
+
+    tested.Step();
+
+    ASSERT_FALSE(tested.scene->Failure()) << *tested.scene->Failure();
+    EXPECT_FLOAT_EQ(helpers[0].horse.alpha, 0.5f);
+    EXPECT_FALSE(helpers[1].alive);
+    EXPECT_EQ(helpers[1].horse.alpha, 1.0f);
+    EXPECT_EQ(helpers[1].position, world.Actors()[0].position);
+    EXPECT_EQ(helpers[1].horse.speed, std::bit_cast<float>(0x3eae147bu));
+}
+
+// 0x63486a: 0x4453b0 en la escena 4 dibuja el Uniria del personaje con la escala en 1 (0x4452f1, no el 0,9 de
+// 0x443d70) y el color de 0x5ffce0 con la luz del terreno 54, sin cortar.
+TEST(CharacterSelectSceneTest, TheSelectionDrawsTheUniriaOfItsCharacter)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+    tested.models.EnableHelpers();
+    // Sin nada en las manos ni alas: la cola de 0x50ba30 dibuja lo que cuelga, y el modelo de prueba no tiene ítems.
+    CharacterEntryFields hero;
+    hero.equipment[0] = 0xff;
+    hero.equipment[1] = 0xff;
+    hero.equipment[4] = 0x0f;
+    hero.equipment[11] = 0xf0;
+    hero.equipment[12] = 0xf0;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({hero}));
+    ASSERT_FALSE(tested.scene->Failure()) << *tested.scene->Failure();
+    auto& uniria = world.Helpers()[1];
+    uniria.alive = true;
+    uniria.type = Client::Scenes::UniriaModel;
+    uniria.rider = 0;
+    uniria.scale = 0.9f;
+    uniria.horse.alpha = 1.0f;
+    uniria.position = world.Actors()[0].position;
+
+    static_cast<void>(tested.Frame());
+
+    ASSERT_FALSE(tested.scene->Failure()) << *tested.scene->Failure();
+    EXPECT_TRUE(uniria.seen);
+    EXPECT_EQ(uniria.scale, 1.0f);
+}
+
+// Un ayudante que 0x444010 no sabe mover corta en 0x6342f4 → 0x444083 antes del pool, el preview y las partículas
+// (0x634315): no gasta rand() ni avanza el contador, y el alpha que subió (0x4e9980) queda.
+TEST(CharacterSelectSceneTest, ASelectionHelperFailureKeepsItsPrefixBeforeThePool)
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
@@ -1357,10 +1440,8 @@ TEST(CharacterSelectSceneTest, ASelectionHelperKeepsTheSceneFourAlphaPrefixBefor
     auto& helpers = world.Helpers();
     helpers[0].horse.alpha = 0.5f;
     helpers[1].alive = true;
-    helpers[1].type = 0xc6;
-    helpers[1].rider = 0; // muerto: 44402a solo aplica ese guard en escena5.
-    helpers[2].alive = true;
-    helpers[2].horse.alpha = 0.25f;
+    helpers[1].type = 0xae;
+    helpers[1].rider = 0;
     auto& spark = world.Particles().All()[0];
     spark.alive = true;
     spark.type = Client::World::SparkParticle;
@@ -1376,11 +1457,10 @@ TEST(CharacterSelectSceneTest, ASelectionHelperKeepsTheSceneFourAlphaPrefixBefor
     EXPECT_EQ(cloth.logicSteps, 41);
     EXPECT_EQ(spark.life, 7);
     EXPECT_FLOAT_EQ(helpers[0].horse.alpha, 0.5f);
-    EXPECT_FLOAT_EQ(helpers[1].horse.alpha, 0.1f);
     EXPECT_TRUE(helpers[1].alive);
-    EXPECT_FLOAT_EQ(helpers[2].horse.alpha, 0.25f);
+    EXPECT_EQ(helpers[1].horse.alpha, std::bit_cast<float>(0x3dcccccdu));
     ASSERT_TRUE(tested.scene->Failure());
-    EXPECT_NE(tested.scene->Failure()->find("0x6342f4"), std::string::npos);
+    EXPECT_NE(tested.scene->Failure()->find("0x6342f4 → 0x444083"), std::string::npos) << *tested.scene->Failure();
 }
 
 TEST(CharacterSelectSceneTest, AParticleBindingFailureKeepsItsPrefixAndSkipsClothAndLaterSlots)
@@ -2222,12 +2302,19 @@ TEST(CharacterSelectSceneTest, ThePreviewGreetsFromTheStart)
 
 namespace
 {
-// Dos personajes con las alas 0 (0x1a12) y sin mascota: sin el cuerpo del ayudante (0x444059).
+// Dos personajes con las alas 0 (0x1a12), sin mascota (sin el cuerpo del ayudante, 0x444059) y con las manos vacías
+// (0xfff: b0 y b1 en 0xff y los nibbles altos de b11 y b12), que FlatModels no tiene.
 std::vector<CharacterEntryFields> TwoWingedCharacters()
 {
     auto characters = TwoCharacters();
     for (auto& character : characters)
+    {
+        character.equipment[0] = 0xff;
+        character.equipment[1] = 0xff;
         character.equipment[4] = 3;
+        character.equipment[11] = 0xf0;
+        character.equipment[12] = 0xf0;
+    }
     return characters;
 }
 
@@ -2272,6 +2359,9 @@ TEST(CharacterSelectSceneTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 
     EXPECT_FALSE(world.PoseCarry().models.contains(Client::Data::Models::PlayerSkeletonModel));
     EXPECT_TRUE(world.PoseCarry().models.contains(std::uint16_t{0x1a12}));
+    // Q-C412: el último de la lista deja su escala y su posición en el modelo compartido de Player.bmd.
+    EXPECT_EQ(world.PlayerModel().scale, world.Actors()[3].scale);
+    EXPECT_EQ(world.PlayerModel().origin, world.Actors()[3].position);
     for (const std::size_t slot : Slots)
     {
         SCOPED_TRACE(slot);
@@ -2285,6 +2375,116 @@ TEST(CharacterSelectSceneTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
     for (const std::size_t slot : Slots)
         EXPECT_EQ(world.Actors()[slot].bodyPose[0][3], glm::vec3(7, 8, 9));
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
+}
+
+// 0x50db57..0x510a7a: con el mundo 54 la lista corre la misma cola de 0x50ba30 que el juego (DrawCharacterTail). La
+// luz de lo que cuelga (+0x3b4, 0x50db94) es [ebp−0x44] más +0xf4: el 0,4 fijo de la escena 4 (0x50cc29), o el 0,5
+// que la rama del color del héroe deja ahí (0x50d231). Un frame intermedio no saca rand().
+TEST(CharacterSelectSceneTest, TheListRunsTheTailOfTheGameWithTheLightOfSceneFour)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, true, false, &selection, &world, &cloth);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith(TwoWingedCharacters()));
+
+    static_cast<void>(tested.Frame());
+
+    ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
+    // El lugar 0 es el héroe publicado: 0x50d231 le pisa [ebp−0x44] con 0,5 (la traza de la selección: Helper02 con
+    // 1,5 en el elegido). Los demás, 0,4 (0x50cc32).
+    EXPECT_EQ(world.Actors()[0].drawnLight, glm::vec3(0.5f));
+    EXPECT_EQ(world.Actors()[3].drawnLight, glm::vec3(0.4f));
+    const auto random = cloth.random.State();
+    static_cast<void>(tested.Frame());
+    ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
+    EXPECT_EQ(cloth.random.State(), random);
+}
+
+// Los rand() que se sacaron de `before` hasta `after` (el LCG de la CRT), hasta 100.000.
+int DrawsBetween(Client::Render::Models::CrtRandom before, std::uint32_t after)
+{
+    for (int draws = 0; draws <= 100000; ++draws)
+    {
+        if (before.State() == after)
+            return draws;
+        static_cast<void>(before.Next());
+    }
+    return -1;
+}
+
+// 0x50cca9..0x50d211 en la escena 4: el héroe publicado (0x743a170, el lugar 0 desde WinMain) abre y cierra el
+// registro propio para su color en cada frame del original, aunque después la escena le pone 0,5 más +0xf4
+// (0x50d219). Con el registro abierto por otro no lo cierra; cerrado, 3.848 rand() más en el dibujo. MuRet no lo
+// hacía: un frame de la lista sacaba unos 380.
+TEST(CharacterSelectSceneTest, TheHeroOfTheListClosesTheOwnRecordForItsColor)
+{
+    using Client::Render::Models::OriginalFrameTime;
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, true, false, &selection, &world, &cloth);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith(TwoWingedCharacters()));
+    ASSERT_EQ(world.Runtime().hero, 0u);
+    const auto drawAt = [&tested](Client::Core::Duration clock)
+    {
+        auto& canvas = tested.target.BeginFrame(clock);
+        tested.scene->Render(canvas, 0.0f);
+        tested.target.Present();
+    };
+    drawAt(OriginalFrameTime);
+    ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
+
+    world.Runtime().ownRecordDepth = 1;
+    const Client::Render::Models::CrtRandom beforeHeld = cloth.random;
+    drawAt(OriginalFrameTime * 2);
+    const int held = DrawsBetween(beforeHeld, cloth.random.State());
+    EXPECT_EQ(world.Runtime().ownRecordDepth, 1);
+
+    world.Runtime().ownRecordDepth = 0;
+    const Client::Render::Models::CrtRandom beforeClosed = cloth.random;
+    drawAt(OriginalFrameTime * 3);
+    const int closed = DrawsBetween(beforeClosed, cloth.random.State());
+
+    ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
+    ASSERT_GE(held, 0);
+    constexpr int Close = Client::Render::Models::OwnRecordCloseRandoms;
+    EXPECT_LT(held, Close);
+    EXPECT_GE(closed, Close);
+    // Los objetos y los efectos del 54 sacan unos pocos rand() más o menos de un frame a otro.
+    EXPECT_NEAR(closed - held, Close, 16);
+    EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
+}
+
+// 0x510abd: el cuervo de un Dark Lord de la lista (EquipSelectionActor) se dibuja al final de su 0x50ba30 (0x420df0
+// → 0x4182f0), también en la selección, con su trapecio: en un frame del original deja su pose en el buffer global.
+TEST(CharacterSelectSceneTest, TheRavenOfALordInTheListIsDrawnAfterHim)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, true, false, &selection, &world, &cloth);
+    tested.models.EnableRaven();
+    CharacterEntryFields lord{.slot = 4, .classByte = 0x80};
+    lord.equipment[0] = 0xff;
+    lord.equipment[11] = 0xf0;
+    lord.equipment[1] = 5;
+    lord.equipment[12] = 0xa0;
+    lord.equipment[4] = 3;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({lord}));
+    ASSERT_TRUE(world.Actors()[4].darkSpirit.has_value());
+    ASSERT_FALSE(world.PoseCarry().models.contains(Client::Scenes::DarkSpiritModel));
+    // Nace en el centro de la celda (0, 0), fuera de la vista, y vuela hacia su dueño: acá ya llegó.
+    world.Actors()[4].darkSpirit->position = world.Actors()[4].position + glm::vec3(0.0f, 0.0f, 250.0f);
+
+    static_cast<void>(tested.Frame());
+
+    ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
+    EXPECT_TRUE(world.PoseCarry().models.contains(Client::Scenes::DarkSpiritModel));
+    EXPECT_FALSE(world.Actors()[4].darkSpirit->pose.empty());
 }
 
 // Q-C410: 0x63e3e0 arma la vista previa con 0x511290 (0x63e409), que le pone +0x11c en 1 y le da su buffer
@@ -2330,11 +2530,8 @@ TEST(CharacterSelectSceneTest, TheChosenOneGlowsAndRaisesItsTwoChaseLightsOnNati
     Client::Scenes::SelectionState selection(world);
     Client::Render::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
-    Harness tested(true, false, false, &selection, &world, &cloth);
-    auto characters = TwoCharacters();
-    for (auto& character : characters)
-        character.equipment[4] = 3; // Sin mascota: sin el cuerpo del ayudante (0x444059).
-    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith(characters));
+    Harness tested(true, true, false, &selection, &world, &cloth);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith(TwoWingedCharacters()));
     tested.online.session.ChooseCharacter(std::uint8_t{3});
     ASSERT_NE(tested.online.session.ChosenCharacter(), nullptr);
     tested.Step();

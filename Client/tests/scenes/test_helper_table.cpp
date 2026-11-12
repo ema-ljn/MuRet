@@ -7,6 +7,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
@@ -15,19 +16,25 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/PetHelperSteps.h"
+#include "Scenes/SceneId.h"
 #include "Scenes/WorldState.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/Sprites.h"
 #include "World/TerrainCulling.h"
+#include "World/TerrainLighting.h"
 #include "World/WorldTerrain.h"
 
 #include "support/GoldenDir.h"
 #include "support/PlayerActors.h"
 
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <chrono>
@@ -41,9 +48,9 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::HelperTable: la tabla de los ayudantes del juego (0x7d335d0) con el caballo oscuro (0xbf):
-// 0x443fa0 → 0x443d70, 0x443d40, el paso de la escena 5 (0x445230 → 0x444010) y su dibujo (0x4453b0 →
-// 0x445260). 06 § El caballo oscuro.
+// Client::Scenes::HelperTable: la tabla de los ayudantes del juego (0x7d335d0) con el caballo oscuro (0xbf) y las
+// mascotas: 0x443fa0 → 0x443d70, 0x443d40, el paso de las escenas 4 y 5 (0x445230 → 0x444010) y su dibujo (0x4453b0
+// → 0x445260). 06 § El caballo oscuro y § Las mascotas.
 namespace
 {
 using Client::Data::Models::Mesh;
@@ -58,14 +65,18 @@ using Client::Render::Models::SkeletonBone;
 using Client::Scenes::ActorState;
 using Client::Scenes::CreateHelper;
 using Client::Scenes::DarkHorseModel;
+using Client::Scenes::DinorantModel;
 using Client::Scenes::DrawHelpers;
+using Client::Scenes::GuardianAngelModel;
 using Client::Scenes::HelperCount;
 using Client::Scenes::HelperDrawContext;
 using Client::Scenes::HelperState;
 using Client::Scenes::HelperStepContext;
 using Client::Scenes::IModelLibrary;
+using Client::Scenes::SceneId;
 using Client::Scenes::StepHelpers;
 using Client::Scenes::TurnOffHelpersOf;
+using Client::Scenes::UniriaModel;
 using Client::Scenes::WorldState;
 using Client::World::TerrainPolygon;
 
@@ -108,16 +119,16 @@ bool HasError(const Client::Core::Expected<void, std::string>& result, std::stri
     return !result.HasValue() && result.Error().find(address) != std::string::npos;
 }
 
-// Las siete acciones de DarkHorse.bmd, de 10 keys cada una, en `boneCount` huesos: el 0 en el origen y los demás
-// colgados de él, cada uno a su número de unidades en z.
-Skeleton HorseSkeleton(std::size_t boneCount = 1)
+// Las siete acciones de DarkHorse.bmd (u otras tantas), de 10 keys cada una, en `boneCount` huesos: el 0 en el origen
+// y los demás colgados de él, cada uno a su número de unidades en z.
+Skeleton HorseSkeleton(std::size_t boneCount = 1, std::size_t actionCount = 7)
 {
     Skeleton skeleton;
     for (std::size_t index = 0; index < boneCount; ++index)
     {
         SkeletonBone bone;
         bone.parent = index == 0 ? std::int16_t{-1} : std::int16_t{0};
-        bone.actions.assign(7, std::vector<BoneKey>(10, BoneKey{}));
+        bone.actions.assign(actionCount, std::vector<BoneKey>(10, BoneKey{}));
         for (std::vector<BoneKey>& keys : bone.actions)
         {
             for (BoneKey& key : keys)
@@ -128,15 +139,27 @@ Skeleton HorseSkeleton(std::size_t boneCount = 1)
         }
         skeleton.bones.push_back(bone);
     }
-    skeleton.actions.assign(7, ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 10, .lockPositions = false});
+    skeleton.actions.assign(actionCount,
+                            ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 10, .lockPositions = false});
     return skeleton;
+}
+
+// Las mascotas que mueve 0x444010 además del caballo.
+constexpr std::array<std::uint16_t, 6> PetModels{UniriaModel, DinorantModel, 0x14a, 0x14b, 0x14c, GuardianAngelModel};
+// El Uniria y el Dinorant llegan a la acción 7 (0x44498b).
+constexpr std::size_t PetActions = 8;
+
+bool IsPet(std::uint16_t model)
+{
+    return std::find(PetModels.begin(), PetModels.end(), model) != PetModels.end();
 }
 
 // El caballo como un modelo de una malla con un triángulo, colgado del hueso 0.
 class HorseModels final : public IModelLibrary
 {
 public:
-    explicit HorseModels(std::size_t boneCount = 1) : m_skeleton(HorseSkeleton(boneCount))
+    explicit HorseModels(std::size_t boneCount = 1)
+        : m_skeleton(HorseSkeleton(boneCount)), m_petSkeleton(HorseSkeleton(1, PetActions))
     {
         Mesh mesh;
         mesh.vertices = {{0, {0, 0, 0}}, {0, {1, 0, 0}}, {0, {0, 1, 0}}};
@@ -149,19 +172,25 @@ public:
 
     [[nodiscard]] const Model* Find(std::uint16_t model) const override
     {
-        return model == DarkHorseModel ? &m_model : nullptr;
+        return model == DarkHorseModel || IsPet(model) ? &m_model : nullptr;
     }
     [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
     {
-        return model == DarkHorseModel ? &m_skeleton : nullptr;
+        if (model == DarkHorseModel)
+        {
+            return &m_skeleton;
+        }
+        return IsPet(model) ? &m_petSkeleton : nullptr;
     }
     [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t model) const override
     {
-        return model == DarkHorseModel ? std::span<const TextureSlot>(m_slots) : std::span<const TextureSlot>{};
+        return model == DarkHorseModel || IsPet(model) ? std::span<const TextureSlot>(m_slots)
+                                                       : std::span<const TextureSlot>{};
     }
 
 private:
     Skeleton m_skeleton;
+    Skeleton m_petSkeleton;
     Model m_model;
     std::array<TextureSlot, 1> m_slots{TextureSlot{0x3bc}};
 };
@@ -216,19 +245,31 @@ public:
         ASSERT_EQ(created.Value(), std::optional<std::size_t>{0});
     }
 
-    Client::Core::Expected<void, std::string> Step()
+    // 0x443fa0(tipo, héroe + 0x10, héroe, 0, 0) con el rand() compartido.
+    void Ride(std::uint16_t type)
     {
-        return StepHelpers(
-            HelperStepContext{.world = world, .horseSkeleton = &skeleton, .random = random, .worldClock = clock});
+        const auto created = CreateHelper(world, type, Rider().position, HeroSlot, &random);
+        ASSERT_TRUE(created.HasValue()) << created.Error();
+        ASSERT_EQ(created.Value(), std::optional<std::size_t>{0});
     }
 
-    // El buffer global de la pose (0x68b181c) como lo dejaría un dibujo de 39 huesos: cada uno sin giro, en
-    // PosedBone(hueso).
-    void PoseTheGlobalBones()
+    Client::Core::Expected<void, std::string> Step(SceneId scene = SceneId::Game)
+    {
+        return StepHelpers(HelperStepContext{.world = world,
+                                             .models = &models,
+                                             .random = random,
+                                             .worldClock = clock,
+                                             .scene = scene,
+                                             .terrain = nullptr});
+    }
+
+    // El buffer global de la pose (0x68b181c) como lo dejaría un dibujo de 39 huesos (o `count`): cada uno sin giro,
+    // en PosedBone(hueso).
+    void PoseTheGlobalBones(std::size_t count = PosedBones)
     {
         auto& bones = world.PoseCarry().bones;
-        bones.assign(PosedBones, Client::Render::Models::BoneTransform(1.0f));
-        for (std::size_t bone = 0; bone < PosedBones; ++bone)
+        bones.assign(count, Client::Render::Models::BoneTransform(1.0f));
+        for (std::size_t bone = 0; bone < count; ++bone)
         {
             bones[bone][3] = PosedBone(bone);
         }
@@ -250,26 +291,59 @@ public:
         return {10000.0f + at, 10100.0f + at, 170.0f + at};
     }
 
+    // Lo que el dibujo de `scene` lee: la luz del terreno de este mundo y la tabla de los sprites.
+    HelperDrawContext DrawContext(ModelBatch& batch, bool originalFrame = true, SceneId scene = SceneId::Game)
+    {
+        return HelperDrawContext{.batch = batch,
+                                 .models = models,
+                                 .world = world,
+                                 .random = random,
+                                 .frameClock = std::chrono::milliseconds{0},
+                                 .stepAlpha = 0.0f,
+                                 .originalFrame = originalFrame,
+                                 .scene = scene,
+                                 .lighting = lighting.get(),
+                                 .sprites = &sprites};
+    }
+
     Client::Core::Expected<void, std::string> Draw(ModelBatch& batch, const TerrainPolygon& polygon,
-                                                   bool originalFrame = true)
+                                                   bool originalFrame = true, SceneId scene = SceneId::Game)
     {
         world.Runtime().terrainPolygon = polygon;
         batch.Begin(Client::Render::Pass3D{});
-        return DrawHelpers(HelperDrawContext{.batch = batch,
-                                             .models = models,
-                                             .world = world,
-                                             .random = random,
-                                             .frameClock = std::chrono::milliseconds{0},
-                                             .stepAlpha = 0.0f,
-                                             .originalFrame = originalFrame});
+        return DrawHelpers(DrawContext(batch, originalFrame, scene));
+    }
+
+    // Los sprites vivos de la tabla del frame.
+    std::vector<Client::World::Sprite> LiveSprites()
+    {
+        std::vector<Client::World::Sprite> live;
+        for (const Client::World::Sprite& sprite : sprites.Sprites())
+        {
+            if (sprite.alive)
+            {
+                live.push_back(sprite);
+            }
+        }
+        return live;
     }
 
     WorldState& world = *m_world;
     CrtRandom random;
     // El reloj del mundo (0x5767b88) con que 0x53fe70 gira las 5f2: 12.345 ms, 105 grados.
     float clock = 12345.0f;
-    Skeleton skeleton = HorseSkeleton();
     HorseModels models;
+    // La luz del terreno (0x5ffce0), (0,25; 0,5; 0,75) en cada celda, y los sprites del frame (0x5491e0).
+    std::unique_ptr<Client::World::TerrainLighting> lighting = UniformLighting();
+    Client::World::FrameSprites sprites;
+
+private:
+    static std::unique_ptr<Client::World::TerrainLighting> UniformLighting()
+    {
+        auto uniform = std::make_unique<Client::World::TerrainLighting>();
+        uniform->cells.fill({0.25f, 0.5f, 0.75f});
+        return uniform;
+    }
 };
 
 const TerrainPolygon Everything{.everything = true};
@@ -656,9 +730,10 @@ TEST(HelperTableTest, TheBreathLeavesFromBone27OfTheGlobalPose)
     EXPECT_EQ(atlans.random.State(), RandomAfter(BreathSeed, 3).State());
 }
 
-// Sin el hueso 27 en el buffer global (ningún dibujo conservado lo escribió) corta después del rand() % 3. Con
-// la acción 1 del caballo, o con +0x78 & 0x4000 del jinete, no lo saca.
-TEST(HelperTableTest, TheBreathStopsWithoutItsBone)
+// Sin el hueso 27 en el buffer global (ningún dibujo lo escribió todavía) el hueso es la matriz en cero de la
+// .bss (200 huesos): el aliento sale del origen, con los mismos tres rand(). Con la acción 1 del caballo, o con
+// +0x78 & 0x4000 del jinete, no lo saca.
+TEST(HelperTableTest, TheBreathWithoutItsBoneLeavesFromTheOrigin)
 {
     HelperWorld tested(0, BreathSeed);
     ASSERT_NO_FATAL_FAILURE(tested.Mount());
@@ -666,9 +741,12 @@ TEST(HelperTableTest, TheBreathStopsWithoutItsBone)
 
     const auto stepped = tested.Step();
 
-    EXPECT_TRUE(HasError(stepped, "0x44459d")) << (stepped.HasValue() ? "" : stepped.Error());
-    EXPECT_FALSE(tested.world.Particles().All()[0].alive);
-    EXPECT_EQ(tested.random.State(), RandomAfter(BreathSeed, 1).State());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    const Client::World::Particle& breath = tested.world.Particles().All()[0];
+    EXPECT_TRUE(breath.alive);
+    EXPECT_EQ(breath.type, Client::World::BreathParticle);
+    EXPECT_EQ(breath.position, glm::vec3(0.0f));
+    EXPECT_EQ(tested.random.State(), RandomAfter(BreathSeed, 3).State());
 
     HelperWorld calm(0, BreathSeed);
     ASSERT_NO_FATAL_FAILURE(calm.Mount());
@@ -682,8 +760,8 @@ TEST(HelperTableTest, TheBreathStopsWithoutItsBone)
 TEST(HelperTableTest, TheBreathReadsThePoseTheHorseDrawLeft)
 {
     HelperWorld tested(0, BreathSeed);
-    tested.skeleton = HorseSkeleton(28);
-    const HorseModels models(28);
+    tested.models = HorseModels(28);
+    const HorseModels& models = tested.models;
     ASSERT_NO_FATAL_FAILURE(tested.Mount());
     tested.Horse().horse.alpha = 1.0f;
     tested.world.Runtime().terrainPolygon = Everything;
@@ -881,18 +959,30 @@ TEST(HelperTableTest, TheIcarusDustPicksItsBoneByTheFrame)
     }
 }
 
-// Sin el hueso del frame en el buffer global, corta después del rand() de la z, sin la onda.
-TEST(HelperTableTest, TheIcarusDustStopsWithoutItsBone)
+// Sin el hueso del frame en el buffer global vale la matriz en cero de la .bss: la onda nace en el corrimiento
+// de rand() % 16 − 8 alrededor del origen (el −5 de la semilla, el 115 − 120 de los huesos posados), igual que
+// con los huesos escritos en cero.
+TEST(HelperTableTest, TheIcarusDustWithoutItsBoneReadsAZeroBone)
 {
     HelperWorld tested(10, QuietSeed);
     ASSERT_NO_FATAL_FAILURE(tested.Mount());
     tested.Gallop(1.25f);
+    HelperWorld zeroed(10, QuietSeed);
+    ASSERT_NO_FATAL_FAILURE(zeroed.Mount());
+    zeroed.Gallop(1.25f);
+    zeroed.world.PoseCarry().bones.assign(HelperWorld::PosedBones, Client::Render::Models::BoneTransform(0.0f));
 
     const auto stepped = tested.Step();
+    const auto zeroedStep = zeroed.Step();
 
-    EXPECT_TRUE(HasError(stepped, "0x4442b4")) << (stepped.HasValue() ? "" : stepped.Error());
-    EXPECT_FALSE(tested.world.Map().effects.Effects()[0].alive);
-    EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 1).State());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    ASSERT_TRUE(zeroedStep.HasValue()) << zeroedStep.Error();
+    const Client::World::ModelEffect& wave = tested.world.Map().effects.Effects()[0];
+    ASSERT_TRUE(wave.alive);
+    EXPECT_EQ(wave.transform.position.x, -5.0f);
+    EXPECT_EQ(wave.transform.position, zeroed.world.Map().effects.Effects()[0].transform.position);
+    EXPECT_TRUE(tested.world.Particles().All()[0].alive);
+    EXPECT_EQ(tested.random.State(), zeroed.random.State());
 }
 
 // 0x4445e1: con la acción 3 del caballo (la del jinete 0x53), después del aliento, 0x52e470 y 0x4453e0;
@@ -920,15 +1010,15 @@ TEST(HelperTableTest, TheRearingAndTheOrbitsStopAfterTheBreath)
 TEST(HelperTableTest, ALiveHorseNeedsItsSkeletonAndTheMap)
 {
     HelperWorld empty;
-    EXPECT_TRUE(StepHelpers(HelperStepContext{.world = empty.world, .horseSkeleton = nullptr, .random = empty.random})
-                    .HasValue());
+    EXPECT_TRUE(
+        StepHelpers(HelperStepContext{.world = empty.world, .models = nullptr, .random = empty.random}).HasValue());
     empty.world.Map().terrain.attributes.reset();
     EXPECT_TRUE(empty.Step().HasValue());
 
     HelperWorld noSkeleton;
     ASSERT_NO_FATAL_FAILURE(noSkeleton.Mount());
-    const auto withoutSkeleton = StepHelpers(
-        HelperStepContext{.world = noSkeleton.world, .horseSkeleton = nullptr, .random = noSkeleton.random});
+    const auto withoutSkeleton =
+        StepHelpers(HelperStepContext{.world = noSkeleton.world, .models = nullptr, .random = noSkeleton.random});
     EXPECT_TRUE(HasError(withoutSkeleton, "0x615700"));
 
     HelperWorld noMap;
@@ -1093,5 +1183,676 @@ TEST(HelperTableTest, TheDrawStopsWithTheRidersFlag4000)
     EXPECT_TRUE(HasError(flagged.Draw(second, Everything), "0x60033c"));
     EXPECT_TRUE(second.Commands().empty());
     EXPECT_EQ(flagged.random.State(), CrtRandom(QuietSeed).State());
+}
+
+// Q-C293: en la escena 4 (0x6342f4) 0x444010 no apaga el ayudante de un jinete muerto: el alpha sube, el caballo lo
+// sigue, saca el rand() % 3 del aliento y apaga su byte vivo con el del jinete (0x44475c). En la 5 lo apaga antes de
+// todo, sin rand().
+TEST(HelperTableTest, TheSelectionStepRunsTheBodyOfAHorseWithoutItsRider)
+{
+    HelperWorld selection(54, QuietSeed);
+    ASSERT_NO_FATAL_FAILURE(selection.Mount());
+    selection.Rider().alive = false;
+    selection.Rider().position = CellCentre(120, 130);
+
+    const auto stepped = selection.Step(SceneId::CharacterSelect);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    const HelperState& horse = selection.Horse();
+    EXPECT_FALSE(horse.alive);
+    EXPECT_EQ(horse.position, CellCentre(120, 130));
+    EXPECT_EQ(horse.horse.alpha, std::bit_cast<float>(0x3dcccccdu));
+    EXPECT_FLOAT_EQ(horse.horse.animation.frame, 0.3f);
+    EXPECT_EQ(selection.random.State(), RandomAfter(QuietSeed, 1).State());
+
+    HelperWorld game(54, QuietSeed);
+    ASSERT_NO_FATAL_FAILURE(game.Mount());
+    game.Rider().alive = false;
+    ASSERT_TRUE(game.Step().HasValue());
+    EXPECT_FALSE(game.Horse().alive);
+    EXPECT_EQ(game.Horse().horse.alpha, 0.0f);
+    EXPECT_EQ(game.random.State(), CrtRandom(QuietSeed).State());
+}
+
+// 0x444010 corta en 0x444083 con un tipo sin cuerpo (0x443d70 no lo construye) y en 0x444010 sin el modelo del
+// tipo, el de Skill\ (0x615700) o Player\Helper01.bmd (0x60ff50).
+TEST(HelperTableTest, APetNeedsItsBodyAndItsModel)
+{
+    HelperWorld unknown;
+    unknown.world.Helpers()[0] = HelperState{.alive = true, .type = 0xae, .rider = HeroSlot};
+    EXPECT_TRUE(HasError(unknown.Step(), "0x444083"));
+
+    for (const std::uint16_t type : PetModels)
+    {
+        SCOPED_TRACE(type);
+        HelperWorld tested;
+        ASSERT_NO_FATAL_FAILURE(tested.Ride(type));
+        const auto stepped =
+            StepHelpers(HelperStepContext{.world = tested.world, .models = nullptr, .random = tested.random});
+        EXPECT_TRUE(HasError(stepped, type == GuardianAngelModel ? "0x60ff50" : "0x615700"));
+    }
+}
+
+// 0x4447c4..0x444ac4 con el galope del jinete (0x0d): el Uniria toma su lugar y sus ángulos, la acción 2 y la
+// velocidad 0,34 (0x444ab6), y con rand() % 2 en 0 el polvo 5f3 de Lorencia alrededor, con los mismos rand() que el
+// caballo (TheGallopRaisesTheDustOfItsMap). El alpha va a 1 con +0x80 del jinete en 0.
+TEST(HelperTableTest, TheUniriaFollowsItsRiderAndRaisesTheDustOfItsGallop)
+{
+    HelperWorld tested(0, DustSeed);
+    ASSERT_NO_FATAL_FAILURE(tested.Ride(UniriaModel));
+    tested.Rider().animation.action = 0x0d;
+
+    const auto stepped = tested.Step();
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    const HelperState& uniria = tested.Horse();
+    EXPECT_TRUE(uniria.alive);
+    EXPECT_EQ(uniria.position, tested.Rider().position);
+    EXPECT_EQ(uniria.angles, tested.Rider().angles);
+    EXPECT_EQ(uniria.horse.animation.action, 2u);
+    EXPECT_EQ(uniria.horse.speed, std::bit_cast<float>(0x3eae147bu));
+    EXPECT_EQ(uniria.horse.animation.frame, std::bit_cast<float>(0x3eae147bu));
+    EXPECT_EQ(uniria.horse.alpha, 1.0f);
+    const Client::World::Particle& dust = tested.world.Particles().All()[0];
+    EXPECT_TRUE(dust.alive);
+    EXPECT_EQ(dust.type, Client::World::DustParticle);
+    EXPECT_EQ(dust.subtype, 0);
+    EXPECT_EQ(dust.position, (glm::vec3{10045.0f, 10033.0f, 157.0f}));
+    EXPECT_EQ(dust.light, glm::vec3(1.0f));
+    EXPECT_EQ(tested.random.State(), RandomAfter(DustSeed, 8).State());
+
+    // 0x4449d6 y 0x4449f1: en Icarus, o con 0x4000 en +0x78 del jinete, solo el rand() % 2.
+    for (const auto& [map, flags] : {std::pair{10, 0u}, std::pair{0, 0x4000u}})
+    {
+        SCOPED_TRACE(map);
+        HelperWorld calm(map, DustSeed);
+        ASSERT_NO_FATAL_FAILURE(calm.Ride(UniriaModel));
+        calm.Rider().animation.action = 0x0d;
+        calm.Rider().flags78 = flags;
+        ASSERT_TRUE(calm.Step().HasValue());
+        EXPECT_FALSE(calm.world.Particles().All()[0].alive);
+        EXPECT_EQ(calm.random.State(), RandomAfter(DustSeed, 1).State());
+    }
+}
+
+// 0x444867..0x4449b7: la acción del Uniria y del Dinorant por la del jinete y el mapa, y la z del Dinorant: −10 en
+// Tarkan (8) e Icarus (10), −30 en los demás y la del jinete con el mundo en −1. Solo el galope saca su rand() % 2
+// (con la semilla 1, sin polvo).
+TEST(HelperTableTest, TheRidingHelpersTakeTheirActionAndHeightFromTheRiderAndTheMap)
+{
+    struct Case
+    {
+        std::uint16_t type;
+        std::int32_t map;
+        std::uint8_t riderAction;
+        std::uint8_t action;
+        float z;
+        int draws;
+    };
+    constexpr std::array<Case, 14> Cases{{
+        {UniriaModel, 0, 0x0d, 2, 170.0f, 1},
+        {DinorantModel, 0, 0x21, 2, 140.0f, 1},
+        {DinorantModel, 8, 0x46, 3, 160.0f, 1},
+        {DinorantModel, 10, 0x47, 3, 160.0f, 1},
+        {UniriaModel, 8, 0x0d, 2, 170.0f, 1},
+        {UniriaModel, 10, 0x40, 7, 170.0f, 0},
+        {DinorantModel, 0, 0x41, 6, 140.0f, 0},
+        {UniriaModel, 0, 0x22, 3, 170.0f, 0},
+        {DinorantModel, 0, 0x37, 4, 140.0f, 0},
+        {DinorantModel, 8, 0x30, 5, 160.0f, 0},
+        {UniriaModel, 8, StandingRider, 0, 170.0f, 0},
+        {DinorantModel, 10, StandingRider, 1, 160.0f, 0},
+        {DinorantModel, 2, StandingRider, 0, 140.0f, 0},
+        {DinorantModel, -1, StandingRider, 0, 170.0f, 0},
+    }};
+    for (const Case& probe : Cases)
+    {
+        SCOPED_TRACE(::testing::Message()
+                     << probe.type << " en " << probe.map << " con " << static_cast<int>(probe.riderAction));
+        HelperWorld tested(probe.map, QuietSeed);
+        ASSERT_NO_FATAL_FAILURE(tested.Ride(probe.type));
+        tested.Rider().animation.action = probe.riderAction;
+
+        ASSERT_TRUE(tested.Step().HasValue());
+
+        const HelperState& helper = tested.Horse();
+        EXPECT_EQ(helper.horse.animation.action, probe.action);
+        EXPECT_EQ(helper.position.z, probe.z);
+        EXPECT_EQ(helper.position.x, tested.Rider().position.x);
+        EXPECT_EQ(helper.horse.animation.frame, std::bit_cast<float>(0x3eae147bu));
+        EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, probe.draws).State());
+    }
+}
+
+// 0x44480b..0x44484a: con +0x80 del jinete en 1 o en 2, el alpha que dejó 0x4e9980 baja 0,1f; con otro, 1.
+TEST(HelperTableTest, TheRidersByte80FadesTheRidingHelpers)
+{
+    struct Case
+    {
+        std::uint8_t byte80;
+        float alpha;
+        std::uint32_t expected;
+    };
+    for (const Case& probe :
+         {Case{1, 0.5f, 0x3ee66667u}, Case{2, 0.05f, 0x3d3851eau}, Case{1, 0.0f, 0x0u}, Case{3, 0.5f, 0x3f800000u}})
+    {
+        for (const std::uint16_t type : {UniriaModel, std::uint16_t{0x14b}})
+        {
+            SCOPED_TRACE(::testing::Message()
+                         << type << " con " << static_cast<int>(probe.byte80) << " y " << probe.alpha);
+            HelperWorld tested;
+            ASSERT_NO_FATAL_FAILURE(tested.Ride(type));
+            tested.Horse().horse.alpha = probe.alpha;
+            tested.Rider().byte80 = probe.byte80;
+            ASSERT_TRUE(tested.Step().HasValue());
+            EXPECT_EQ(tested.Horse().horse.alpha, std::bit_cast<float>(probe.expected));
+        }
+    }
+}
+
+// 0x4447e7..0x444806 y 0x444b13..0x444b36: en la celda segura del jinete el alpha va a 0 y el ayudante avanza con la
+// acción y la velocidad que tenía, sin moverse ni sacar rand(). El Uniria no copia el byte vivo del jinete ahí.
+TEST(HelperTableTest, InTheRidersSafeCellTheRidingHelpersHide)
+{
+    for (const std::uint16_t type : {UniriaModel, DinorantModel, std::uint16_t{0x14a}})
+    {
+        SCOPED_TRACE(type);
+        HelperWorld tested(0, BreathSeed);
+        ASSERT_NO_FATAL_FAILURE(tested.Ride(type));
+        tested.Horse().position = {1.0f, 2.0f, 3.0f};
+        tested.Horse().horse.alpha = 0.7f;
+        tested.Cell(100, 100) = 1;
+        tested.Rider().animation.action = 0x0d;
+
+        ASSERT_TRUE(tested.Step(SceneId::CharacterSelect).HasValue());
+
+        const HelperState& helper = tested.Horse();
+        EXPECT_TRUE(helper.alive);
+        EXPECT_EQ(helper.horse.alpha, 0.0f);
+        EXPECT_EQ(helper.position, (glm::vec3{1.0f, 2.0f, 3.0f}));
+        EXPECT_EQ(helper.horse.animation.action, 0u);
+        EXPECT_FLOAT_EQ(helper.horse.animation.frame, 0.5f);
+        EXPECT_EQ(tested.random.State(), CrtRandom(BreathSeed).State());
+    }
+
+    HelperWorld noMap;
+    ASSERT_NO_FATAL_FAILURE(noMap.Ride(DinorantModel));
+    noMap.world.Map().terrain.attributes.reset();
+    EXPECT_TRUE(HasError(noMap.Step(), "0x4447e7"));
+}
+
+// 0x444ac0: el Uniria y el Dinorant se quedan con el byte vivo del jinete, que en la escena 4 puede estar muerto.
+TEST(HelperTableTest, TheRidingHelpersCopyTheRidersAliveByte)
+{
+    HelperWorld tested(54, QuietSeed);
+    ASSERT_NO_FATAL_FAILURE(tested.Ride(DinorantModel));
+    tested.Rider().alive = false;
+
+    ASSERT_TRUE(tested.Step(SceneId::CharacterSelect).HasValue());
+
+    EXPECT_FALSE(tested.Horse().alive);
+    EXPECT_EQ(tested.Horse().horse.alpha, 1.0f);
+}
+
+// 0x444bbc..0x444c4b: la acción y la velocidad del Fenrir por la del jinete. Las quietas (3, 4, 5 y 0, a 0,4) van
+// directo al avance; la carrera (1, a 1) y el trote (2, a 0,6) y las demás (sin tocar acción ni velocidad) siguen al
+// polvo, que fuera del 10 saca su rand() % 3 (con la semilla 1, sin polvo).
+TEST(HelperTableTest, TheFenrirTakesItsGaitFromTheRider)
+{
+    struct Case
+    {
+        std::uint8_t riderAction;
+        std::uint8_t action;
+        std::uint32_t speed;
+        int draws;
+    };
+    constexpr std::array<Case, 14> Cases{{
+        {0x56, 3, 0x3ecccccdu, 0},
+        {0x61, 3, 0x3ecccccdu, 0},
+        {0x62, 4, 0x3ecccccdu, 0},
+        {0x65, 4, 0x3ecccccdu, 0},
+        {0x66, 5, 0x3ecccccdu, 0},
+        {0x69, 5, 0x3ecccccdu, 0},
+        {0x76, 0, 0x3ecccccdu, 0},
+        {0x79, 0, 0x3ecccccdu, 0},
+        {0xc3, 0, 0x3ecccccdu, 0},
+        {0x7a, 1, 0x3f800000u, 1},
+        {0x7d, 1, 0x3f800000u, 1},
+        {0x6a, 2, 0x3f19999au, 1},
+        {0x75, 2, 0x3f19999au, 1},
+        {StandingRider, 6, 0x3f000000u, 1},
+    }};
+    for (const Case& probe : Cases)
+    {
+        SCOPED_TRACE(static_cast<int>(probe.riderAction));
+        HelperWorld tested(0, QuietSeed);
+        ASSERT_NO_FATAL_FAILURE(tested.Ride(0x14c));
+        tested.Horse().horse.animation.action = 6;
+        tested.Rider().animation.action = probe.riderAction;
+
+        ASSERT_TRUE(tested.Step().HasValue());
+
+        const HelperState& fenrir = tested.Horse();
+        EXPECT_TRUE(fenrir.alive);
+        EXPECT_EQ(fenrir.position, tested.Rider().position);
+        EXPECT_EQ(fenrir.angles, tested.Rider().angles);
+        EXPECT_EQ(fenrir.horse.alpha, 1.0f);
+        EXPECT_EQ(fenrir.horse.animation.action, probe.action);
+        EXPECT_EQ(fenrir.horse.speed, std::bit_cast<float>(probe.speed));
+        EXPECT_EQ(fenrir.horse.animation.frame, std::bit_cast<float>(probe.speed));
+        EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, probe.draws).State());
+    }
+}
+
+// 0x444e1b..0x444f25: fuera del 10, con rand() % 3 en 0, fuera de Kalima y sin el 0x4000 del jinete, el polvo
+// alrededor del Fenrir: la 5f2 en Devias, a (0; −26; −13) con la semilla 2, y la 5f3 en los demás. El Fenrir no
+// copia el byte vivo del jinete.
+TEST(HelperTableTest, TheRunningFenrirRaisesTheDustOfItsMap)
+{
+    HelperWorld devias(2, BreathSeed);
+    ASSERT_NO_FATAL_FAILURE(devias.Ride(0x14a));
+    devias.Rider().animation.action = 0x7a;
+    const auto inDevias = devias.Step(SceneId::CharacterSelect);
+    ASSERT_TRUE(inDevias.HasValue()) << inDevias.Error();
+    const Client::World::Particle& smoke = devias.world.Particles().All()[0];
+    EXPECT_TRUE(smoke.alive);
+    EXPECT_EQ(smoke.type, Client::World::BreathParticle);
+    EXPECT_EQ(smoke.subtype, 0);
+    EXPECT_EQ(smoke.position, (glm::vec3{10050.0f, 10024.0f, 157.0f}));
+    EXPECT_EQ(smoke.light, glm::vec3(1.0f));
+    EXPECT_EQ(devias.random.State(), RandomAfter(BreathSeed, 6).State());
+
+    HelperWorld lorencia(0, BreathSeed);
+    ASSERT_NO_FATAL_FAILURE(lorencia.Ride(0x14a));
+    lorencia.Rider().animation.action = 0x6a;
+    lorencia.Rider().alive = false;
+    ASSERT_TRUE(lorencia.Step(SceneId::CharacterSelect).HasValue());
+    EXPECT_TRUE(lorencia.Horse().alive);
+    EXPECT_EQ(lorencia.world.Particles().All()[0].type, Client::World::DustParticle);
+    EXPECT_EQ(lorencia.random.State(), RandomAfter(BreathSeed, 8).State());
+
+    for (const auto& [map, flags] : {std::pair{24, 0u}, std::pair{36, 0u}, std::pair{0, 0x4000u}})
+    {
+        SCOPED_TRACE(map);
+        HelperWorld calm(map, BreathSeed);
+        ASSERT_NO_FATAL_FAILURE(calm.Ride(0x14a));
+        calm.Rider().animation.action = 0x7a;
+        calm.Rider().flags78 = flags;
+        ASSERT_TRUE(calm.Step().HasValue());
+        EXPECT_FALSE(calm.world.Particles().All()[0].alive);
+        EXPECT_EQ(calm.random.State(), RandomAfter(BreathSeed, 1).State());
+    }
+}
+
+// 0x444c78..0x444e16, el Fenrir en Icarus: sin rand() antes del frame. Entre 1 y 1,2, el hueso 22 del buffer global
+// con (120; 0; 32) y 40 más en x; entre 4,8 y 5 (cerrada arriba), el 44 con 40 más en x y 700 más en z (Q-C421). La
+// onda 0x6eb/1 sin corrimiento, con su rand() de la escala, y las 5f2 (PuffTheIcarusDust): con la semilla 1, ocho y
+// 50 rand(). Fuera de las ventanas, nada.
+TEST(HelperTableTest, InIcarusTheFenrirRaisesAWaveAndPuffsFromTwoBones)
+{
+    struct Case
+    {
+        float frame;
+        std::optional<glm::vec3> base;
+    };
+    const std::array<Case, 7> Cases{{
+        {1.1f, glm::vec3{10182.0f, 10122.0f, 224.0f}},
+        {4.9f, glm::vec3{10204.0f, 10144.0f, 946.0f}},
+        {5.0f, glm::vec3{10204.0f, 10144.0f, 946.0f}},
+        {1.0f, std::nullopt},
+        {std::bit_cast<float>(0x3f99999au), std::nullopt},
+        {std::bit_cast<float>(0x4099999au), std::nullopt},
+        {5.01f, std::nullopt},
+    }};
+    for (const Case& probe : Cases)
+    {
+        SCOPED_TRACE(probe.frame);
+        HelperWorld tested(10, QuietSeed);
+        ASSERT_NO_FATAL_FAILURE(tested.Ride(0x14b));
+        tested.PoseTheGlobalBones(45);
+        tested.Horse().horse.animation.action = 1;
+        tested.Horse().horse.animation.frame = probe.frame;
+        tested.Rider().animation.action = 0x7a;
+        tested.Rider().flags78 = 0x4000;
+
+        const auto stepped = tested.Step();
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        const Client::World::ModelEffect& wave = tested.world.Map().effects.Effects()[0];
+        if (!probe.base)
+        {
+            EXPECT_FALSE(wave.alive);
+            EXPECT_FALSE(tested.world.Particles().All()[0].alive);
+            EXPECT_EQ(tested.random.State(), CrtRandom(QuietSeed).State());
+            continue;
+        }
+        EXPECT_TRUE(wave.alive);
+        EXPECT_EQ(wave.type, Client::World::ShockWaveEffect);
+        EXPECT_EQ(wave.subtype, 1);
+        EXPECT_EQ(wave.transform.position, *probe.base);
+        EXPECT_EQ(wave.transform.angles, (glm::vec3{0.0f, 0.0f, 45.0f}));
+        EXPECT_EQ(wave.transform.scale, std::bit_cast<float>(0x3f8ccccdu));
+        const Client::World::Particle& first = tested.world.Particles().All()[0];
+        EXPECT_EQ(first.type, Client::World::BreathParticle);
+        EXPECT_EQ(first.position, *probe.base + glm::vec3(9.0f, -25.0f, -17.0f));
+        const Client::World::Particle& last = tested.world.Particles().All()[7];
+        EXPECT_TRUE(last.alive);
+        EXPECT_EQ(last.position, *probe.base + glm::vec3(-2.0f, -11.0f, -13.0f));
+        EXPECT_FALSE(tested.world.Particles().All()[8].alive);
+        EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 50).State());
+    }
+}
+
+// 0x444f2a..0x444fff: sin el 0x4000 del jinete, cuatro 5c5/1 con la luz 0,4 a (rand() & 15) − 8 del Guardian Angel
+// en cada eje, con los dos rand() de cada alta. Después del avance, el vuelo (0x445052..0x445221): cerca del jinete no
+// gira, se mueve con su velocidad girada por sus ángulos y (rand() & 15) − 8 en z, y saca el rand() % 32 (con la
+// semilla 1, 12: sin otro rumbo). A 150 sobre el jinete, sin subir ni bajar la velocidad.
+TEST(HelperTableTest, TheGuardianAngelSparklesAndFliesWithItsVelocity)
+{
+    HelperWorld tested(0, QuietSeed);
+    HelperState& angel = tested.Horse();
+    angel = HelperState{.alive = true,
+                        .type = GuardianAngelModel,
+                        .scale = 0.7f,
+                        .position = {10050.0f, 10050.0f, 320.0f},
+                        .angles = {0.0f, 0.0f, 45.0f},
+                        .velocity = {0.0f, -5.0f, 0.0f},
+                        .rider = HeroSlot};
+
+    const auto stepped = tested.Step();
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    constexpr std::array<glm::vec3, 4> Sparks{{
+        {10051.0f, 10045.0f, 326.0f},
+        {10054.0f, 10048.0f, 326.0f},
+        {10051.0f, 10043.0f, 313.0f},
+        {10053.0f, 10045.0f, 318.0f},
+    }};
+    for (std::size_t index = 0; index < Sparks.size(); ++index)
+    {
+        SCOPED_TRACE(index);
+        const Client::World::Particle& spark = tested.world.Particles().All()[index];
+        EXPECT_TRUE(spark.alive);
+        EXPECT_EQ(spark.type, Client::World::FairySparkParticle);
+        EXPECT_EQ(spark.subtype, 1);
+        EXPECT_EQ(spark.position, Sparks[index]);
+        EXPECT_EQ(spark.light, glm::vec3(std::bit_cast<float>(0x3ecccccdu)));
+    }
+    EXPECT_FALSE(tested.world.Particles().All()[4].alive);
+    const glm::vec3 move = Client::Render::Models::OriginalVectorRotate(
+        {0.0f, -5.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, 45.0f}));
+    EXPECT_EQ(angel.angles, (glm::vec3{0.0f, 0.0f, 45.0f}));
+    EXPECT_EQ(angel.position.x, static_cast<float>(static_cast<double>(move.x) + 10050.0));
+    EXPECT_EQ(angel.position.y, static_cast<float>(static_cast<double>(move.y) + 10050.0));
+    EXPECT_EQ(angel.position.z, 319.0f);
+    EXPECT_EQ(angel.velocity, (glm::vec3{0.0f, -5.0f, 0.0f}));
+    EXPECT_EQ(angel.horse.alpha, std::bit_cast<float>(0x3dcccccdu));
+    EXPECT_FLOAT_EQ(angel.horse.animation.frame, 0.5f);
+    EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 22).State());
+}
+
+// 0x444f32..0x444f41: con 0x4000 en +0x78 del jinete, sin chispas. 0x445117..0x4451cb con rand() % 32 en 0 (la
+// semilla 2): de cerca, la velocidad en y ((rand() & 63) + 16) · −0,1f, el rumbo rand() % 360, 0 en x y
+// ((rand() & 63) − 32) · 0,1f en z, que sigue igual entre 100 y 200 por encima del jinete.
+TEST(HelperTableTest, NearItsRiderTheGuardianAngelTakesANewCourse)
+{
+    HelperWorld tested(0, 2);
+    tested.Rider().flags78 = 0x4000;
+    HelperState& angel = tested.Horse();
+    angel = HelperState{.alive = true,
+                        .type = GuardianAngelModel,
+                        .position = {10050.0f, 10050.0f, 320.0f},
+                        .angles = {0.0f, 0.0f, 45.0f},
+                        .rider = HeroSlot};
+
+    ASSERT_TRUE(tested.Step().HasValue());
+
+    EXPECT_FALSE(tested.world.Particles().All()[0].alive);
+    EXPECT_EQ(angel.position, (glm::vec3{10050.0f, 10050.0f, 325.0f}));
+    EXPECT_EQ(angel.angles, (glm::vec3{0.0f, 0.0f, 155.0f}));
+    EXPECT_EQ(angel.velocity.x, 0.0f);
+    EXPECT_EQ(angel.velocity.y, static_cast<float>(-2.2000000476837158));
+    EXPECT_EQ(angel.velocity.z, static_cast<float>(1.2000000476837158));
+    EXPECT_EQ(tested.random.State(), RandomAfter(2, 5).State());
+}
+
+// 0x445052..0x4450b4: a 150 o más del jinete gira 20 grados hacia donde estaba al empezar el paso (0x4e93f0 y
+// 0x4e9560), y con rand() % 32 en 0 (la semilla 48, después de las cuatro chispas) toma la velocidad de lejos,
+// ((rand() & 63) + 128) · −0,1f, sin otro rumbo. Por debajo de 100 sobre el jinete, la de z sube 1,5; por encima de
+// 200, baja 1,5.
+TEST(HelperTableTest, FarFromItsRiderTheGuardianAngelTurnsAndClimbs)
+{
+    HelperWorld tested(0, 48);
+    HelperState& angel = tested.Horse();
+    angel = HelperState{.alive = true,
+                        .type = GuardianAngelModel,
+                        .position = {11050.0f, 10050.0f, 100.0f},
+                        .angles = {0.0f, 0.0f, 45.0f},
+                        .velocity = {0.0f, -5.0f, 0.0f},
+                        .rider = HeroSlot};
+
+    ASSERT_TRUE(tested.Step().HasValue());
+
+    const float course =
+        static_cast<float>(Client::Render::Models::CreateAngle(11050.0f, 10050.0f, 10050.0f, 10050.0f));
+    const float turned = static_cast<float>(Client::Render::Models::TurnAngle(45.0f, course, 20.0f));
+    EXPECT_NE(turned, 45.0f);
+    EXPECT_EQ(angel.angles, (glm::vec3{0.0f, 0.0f, turned}));
+    const glm::vec3 move = Client::Render::Models::OriginalVectorRotate(
+        {0.0f, -5.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, turned}));
+    EXPECT_EQ(angel.position.x, static_cast<float>(static_cast<double>(move.x) + 11050.0));
+    EXPECT_EQ(angel.position.z, 100.0f);
+    EXPECT_EQ(angel.velocity.x, 0.0f);
+    EXPECT_EQ(angel.velocity.y, static_cast<float>(-15.90000057220459));
+    EXPECT_EQ(angel.velocity.z, 3.0f);
+    EXPECT_EQ(tested.random.State(), RandomAfter(48, 24).State());
+
+    HelperWorld high(0, QuietSeed);
+    high.Rider().flags78 = 0x4000;
+    high.Horse() = HelperState{.alive = true,
+                               .type = GuardianAngelModel,
+                               .position = {10050.0f, 10050.0f, 400.0f},
+                               .velocity = {0.0f, 0.0f, 1.0f},
+                               .rider = HeroSlot};
+    ASSERT_TRUE(high.Step().HasValue());
+    EXPECT_EQ(high.Horse().position.z, 402.0f);
+    EXPECT_EQ(high.Horse().velocity.z, -0.5f);
+}
+
+// Q-C420: 0x443d70 no escribe la velocidad (+0xcc): el Guardian Angel que se crea en un lugar usado se queda con la
+// del ayudante de antes. Sus tres rand() de lugar van con el rand() compartido.
+TEST(HelperTableTest, AReusedSlotKeepsTheVelocityOfThePreviousHelper)
+{
+    HelperWorld tested(0, QuietSeed);
+    tested.Horse().velocity = {1.0f, 2.0f, 3.0f};
+
+    ASSERT_NO_FATAL_FAILURE(tested.Ride(GuardianAngelModel));
+
+    const HelperState& angel = tested.Horse();
+    EXPECT_EQ(angel.velocity, (glm::vec3{1.0f, 2.0f, 3.0f}));
+    EXPECT_FLOAT_EQ(angel.scale, 0.7f);
+    EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 3).State());
+}
+
+// Q-C225 también para las mascotas: en la escena 5, con el jinete sin el 1 en +0x88, 0x444010 las apaga sin rand().
+TEST(HelperTableTest, TheGameStepTurnsOffAPetWithoutItsRider)
+{
+    for (const std::uint16_t type : PetModels)
+    {
+        SCOPED_TRACE(type);
+        HelperWorld tested(0, BreathSeed);
+        ASSERT_NO_FATAL_FAILURE(tested.Ride(type));
+        const auto drawn = tested.random.State();
+        tested.Rider().byte88 = 0;
+        ASSERT_TRUE(tested.Step().HasValue());
+        EXPECT_FALSE(tested.Horse().alive);
+        EXPECT_EQ(tested.random.State(), drawn);
+    }
+}
+
+// 0x445260 → 0x602e90 con el Uniria y el Dinorant en el juego: la escala en 1 (0x445309), el color de 0x5ffce0 con la
+// luz por vértice (la del terreno más el 3 de +0xf4) y RenderBody(2) sin blendMesh, con su luz en 1, la U y la V en
+// 0 y sin malla oculta (0x600b35 y 0x602360). Después, solo el rand() % 30 de 0x445336.
+TEST(HelperTableTest, TheUniriaAndTheDinorantDrawWithTheLightOfTheTerrain)
+{
+    for (const std::uint16_t type : {UniriaModel, DinorantModel})
+    {
+        SCOPED_TRACE(type);
+        HelperWorld tested;
+        ASSERT_NO_FATAL_FAILURE(tested.Ride(type));
+        EXPECT_FLOAT_EQ(tested.Horse().scale, 0.9f);
+        tested.Horse().horse.alpha = 1.0f;
+        tested.world.Runtime().terrainPolygon = Everything;
+        ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        std::vector<Client::Scenes::DrawnObject> posed;
+        HelperDrawContext context = tested.DrawContext(batch);
+        context.onPose = [&](const Client::Scenes::DrawnObject& object) -> Client::Core::Expected<void, std::string>
+        {
+            posed.push_back(object);
+            return {};
+        };
+
+        ASSERT_TRUE(DrawHelpers(context).HasValue());
+
+        EXPECT_FLOAT_EQ(tested.Horse().scale, 1.0f);
+        ASSERT_EQ(posed.size(), 1u);
+        const Client::Scenes::DrawnObject& object = posed.front();
+        EXPECT_EQ(object.model, type);
+        EXPECT_EQ(object.transform.position, tested.Horse().position);
+        EXPECT_EQ(object.transform.angles, tested.Rider().angles);
+        EXPECT_FLOAT_EQ(object.transform.scale, 1.0f);
+        const glm::vec3 terrain =
+            Client::World::LightAt(*tested.lighting, tested.Horse().position.x, tested.Horse().position.y);
+        EXPECT_EQ(terrain, glm::vec3(0.25f, 0.5f, 0.75f));
+        EXPECT_EQ(object.color, glm::vec3(3.25f, 3.5f, 3.75f));
+        EXPECT_TRUE(object.vertexLight);
+        EXPECT_FLOAT_EQ(object.alpha, 1.0f);
+        EXPECT_EQ(object.state.blendMesh, -1);
+        EXPECT_FLOAT_EQ(object.state.light, 1.0f);
+        EXPECT_EQ(object.state.uv, glm::vec2(0.0f));
+        EXPECT_EQ(object.state.hiddenMesh, -1);
+        EXPECT_FALSE(batch.Commands().empty());
+        EXPECT_TRUE(tested.LiveSprites().empty());
+        EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 1).State());
+    }
+}
+
+// 0x4452db..0x445309: 1,6 (0x3fcccccd) en la escena 2 y 1 en la 4; en la 5, los Fenrir se quedan con el 0,9 de
+// 0x443d70 y los demás van a 1. Con el alpha en 0 no se dibuja nada, pero la escala queda.
+TEST(HelperTableTest, TheDrawScaleDependsOnTheSceneAndOnTheFenrir)
+{
+    struct Case
+    {
+        SceneId scene;
+        std::uint16_t type;
+        std::uint32_t scale;
+    };
+    for (const Case& tested :
+         {Case{SceneId::Game, UniriaModel, 0x3f800000u}, Case{SceneId::Game, 0x14a, 0x3f666666u},
+          Case{SceneId::Game, 0x14c, 0x3f666666u}, Case{SceneId::Game, DarkHorseModel, 0x3f800000u},
+          Case{SceneId::CharacterSelect, 0x14b, 0x3f800000u},
+          Case{SceneId::CharacterSelect, DinorantModel, 0x3f800000u}, Case{SceneId::Login, 0x14b, 0x3fcccccdu},
+          Case{SceneId::Login, UniriaModel, 0x3fcccccdu}})
+    {
+        SCOPED_TRACE(testing::Message() << static_cast<int>(tested.scene) << " " << tested.type);
+        HelperWorld world;
+        ASSERT_NO_FATAL_FAILURE(world.Ride(tested.type));
+        world.Horse().horse.alpha = 0.0f;
+        ModelBatch batch;
+
+        ASSERT_TRUE(world.Draw(batch, Everything, true, tested.scene).HasValue());
+
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(world.Horse().scale), tested.scale);
+        EXPECT_TRUE(batch.Commands().empty());
+        EXPECT_EQ(world.random.State(), RandomAfter(QuietSeed, 1).State());
+    }
+}
+
+// El Guardian Angel (0x1c12) se dibuja sin un jugador de jinete (0x4452c2), con la escala en 1 y su malla 1 de
+// blendMesh (+0x64 en 1, 0x443f1a). Después, 0x445336 saca rand() % 30 + 70 (26.500 % 30 + 70 = 80 con la semilla 1,
+// después de los tres de 0x443d70) y 0x445390 crea el sprite 0x5ac en su lugar, de escala 1, con 80 · 0,01f por
+// (0,5; 0,8; 0,6) en la x87 y guardado en float: (0x3ecccccc; 0x3f23d70a; 0x3ef5c290). Con el alpha por debajo de
+// 0,01 no hay cuerpo, pero sí el rand() y el sprite.
+TEST(HelperTableTest, TheGuardianAngelDrawsItsBlendMeshAndLeavesItsGlow)
+{
+    for (const float alpha : {1.0f, 0.0f})
+    {
+        SCOPED_TRACE(alpha);
+        HelperWorld tested;
+        ASSERT_NO_FATAL_FAILURE(tested.Ride(GuardianAngelModel));
+        EXPECT_EQ(tested.Horse().blendMesh, 1);
+        EXPECT_EQ(tested.Horse().position, glm::vec3(9835.0f, 9829.0f, 360.0f));
+        tested.Rider().type = 0x100;
+        tested.Horse().horse.alpha = alpha;
+        tested.world.Runtime().terrainPolygon = Everything;
+        ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        std::vector<Client::Scenes::DrawnObject> posed;
+        HelperDrawContext context = tested.DrawContext(batch);
+        context.onPose = [&](const Client::Scenes::DrawnObject& object) -> Client::Core::Expected<void, std::string>
+        {
+            posed.push_back(object);
+            return {};
+        };
+
+        ASSERT_TRUE(DrawHelpers(context).HasValue());
+
+        EXPECT_FLOAT_EQ(tested.Horse().scale, 1.0f);
+        ASSERT_EQ(posed.size(), alpha > 0.0f ? 1u : 0u);
+        if (!posed.empty())
+        {
+            EXPECT_EQ(posed.front().model, GuardianAngelModel);
+            EXPECT_EQ(posed.front().state.blendMesh, 1);
+            EXPECT_EQ(posed.front().color, glm::vec3(3.25f, 3.5f, 3.75f));
+            EXPECT_FALSE(batch.Commands().empty());
+        }
+        EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 4).State());
+        const std::vector<Client::World::Sprite> glow = tested.LiveSprites();
+        ASSERT_EQ(glow.size(), 1u);
+        EXPECT_EQ(glow[0].texture, 0x5ac);
+        EXPECT_EQ(glow[0].position, glm::vec3(9835.0f, 9829.0f, 360.0f));
+        EXPECT_EQ(glow[0].scale, 1.0f);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(glow[0].light.x), 0x3eccccccu);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(glow[0].light.y), 0x3f23d70au);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(glow[0].light.z), 0x3ef5c290u);
+        EXPECT_EQ(glow[0].rotation, 0.0f);
+        EXPECT_EQ(glow[0].blend, 0);
+    }
+}
+
+// Lo que el dibujo no tiene: los Fenrir (0x60277b: sus pases, la partícula 0x5c6, la sombra, los sprites de sus
+// huesos y los dos efectos 0x14d de 0x602b30), que cortan sin el rand() de 0x445336; la luz del terreno de 0x5ffce0
+// para los demás; y la tabla de los sprites para el brillo del 0x1c12, que corta después de su rand().
+TEST(HelperTableTest, ThePetDrawStopsWhereMuRetHasNotArrived)
+{
+    for (const std::uint16_t fenrir : {std::uint16_t{0x14a}, std::uint16_t{0x14b}, std::uint16_t{0x14c}})
+    {
+        HelperWorld tested;
+        ASSERT_NO_FATAL_FAILURE(tested.Ride(fenrir));
+        tested.Horse().horse.alpha = 1.0f;
+        ModelBatch batch;
+        EXPECT_TRUE(HasError(tested.Draw(batch, Everything), "0x60277b")) << fenrir;
+        EXPECT_EQ(tested.random.State(), CrtRandom(QuietSeed).State());
+    }
+
+    HelperWorld unlit;
+    ASSERT_NO_FATAL_FAILURE(unlit.Ride(UniriaModel));
+    unlit.Horse().horse.alpha = 1.0f;
+    unlit.lighting.reset();
+    ModelBatch dark;
+    EXPECT_TRUE(HasError(unlit.Draw(dark, Everything), "0x5ffce0"));
+    EXPECT_TRUE(dark.Commands().empty());
+
+    HelperWorld angel;
+    ASSERT_NO_FATAL_FAILURE(angel.Ride(GuardianAngelModel));
+    angel.Horse().horse.alpha = 0.0f;
+    angel.world.Runtime().terrainPolygon = Everything;
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    HelperDrawContext context = angel.DrawContext(batch);
+    context.sprites = nullptr;
+    EXPECT_TRUE(HasError(DrawHelpers(context), "0x445390"));
+    EXPECT_EQ(angel.random.State(), RandomAfter(QuietSeed, 4).State());
 }
 } // namespace

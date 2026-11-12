@@ -21,6 +21,7 @@
 // (Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario").
 namespace
 {
+using Client::Data::Models::FenrirTextureCalls;
 using Client::Data::Models::ItemModelFiles;
 using Client::Data::Models::ItemTextureCalls;
 using Client::Data::Models::ModelFile;
@@ -100,13 +101,14 @@ TEST(ModelTextureCallsTest, TheHelpersTakeTheirTexturesFromItem)
     }
 }
 
-// Las tres tablas de llamadas, salvo el esqueleto sin mallas y los Gate01/02: sus texturas se
-// asignan en 0x616370 (el segundo, desde 0x69) y 0x6179f0 (ambos, con Blood Castle).
+// Las tablas de llamadas, salvo el esqueleto sin mallas, los Gate01/02 y el Uniria: los Gate se asignan en 0x616370
+// (el segundo, desde 0x69) y 0x6179f0 (ambos, con Blood Castle), y el Uniria (0xc6) solo en el lazo 0x616e20 del
+// final de 0x615700, que Scenes/GameModels.cpp pide aparte.
 TEST(ModelTextureCallsTest, EveryModelButTheSkeletonGetsItsTextures)
 {
     std::set<std::uint16_t> called;
     for (const std::span<const ModelTextureCall> calls :
-         {PlayerTextureCalls(), ItemTextureCalls(), SkillTextureCalls()})
+         {PlayerTextureCalls(), ItemTextureCalls(), FenrirTextureCalls(), SkillTextureCalls()})
     {
         for (const ModelTextureCall& call : calls)
         {
@@ -119,26 +121,39 @@ TEST(ModelTextureCallsTest, EveryModelButTheSkeletonGetsItsTextures)
         for (const ModelFile& file : table)
         {
             const bool worldGate = file.model == 0x10c || file.model == 0x10d;
-            EXPECT_EQ(called.contains(file.model), file.model != PlayerSkeletonModel && !worldGate)
+            const bool loopOnly = file.model == 0xc6;
+            EXPECT_EQ(called.contains(file.model), file.model != PlayerSkeletonModel && !worldGate && !loopOnly)
                 << std::hex << file.model;
         }
     }
 }
 
-// Las cinco primeras de 0x615700 después de su 0x60d530(0x3b8) (0x61692a), en su orden y con
-// Skill\: las de 0x145, 0x146 y 0x147, y después las del caballo (0x6169a7) y las del cuervo (0x6169c2).
+// Las siete primeras de 0x615700 después de su 0x60d530(0x3b8) (0x61692a), en su orden y con Skill\: las de
+// 0x145, 0x146 y 0x147, y después las del caballo (0x6169a7), las del cuervo (0x6169c2), las de HellGate
+// (0x6169e0) y las del Dinorant (0x6169fb).
 TEST(ModelTextureCallsTest, TheSkillLoaderAsksForTheDarkHorseFourthAndTheRavenFifth)
 {
     const std::span<const ModelTextureCall> calls = SkillTextureCalls();
 
-    ASSERT_EQ(calls.size(), 5u);
-    const std::vector<std::uint16_t> models{calls[0].model, calls[1].model, calls[2].model, calls[3].model,
-                                            calls[4].model};
-    EXPECT_EQ(models, (std::vector<std::uint16_t>{0x145, 0x146, 0x147, 0xbf, 0xc0}));
+    std::vector<std::uint16_t> models;
     for (const ModelTextureCall& call : calls)
     {
+        models.push_back(call.model);
         EXPECT_EQ(call.folder, "Skill\\") << std::hex << call.model;
     }
+    EXPECT_EQ(models, (std::vector<std::uint16_t>{0x145, 0x146, 0x147, 0xbf, 0xc0, 0xc5, 0x110}));
+}
+
+// 0x615f77, 0x615fab y 0x615fdc: los Fenrir, con Skill\, antes del 0x60d530(0x3b8) de 0x615700.
+TEST(ModelTextureCallsTest, TheFenrirAskForTheirTexturesBeforeTheSkillBlock)
+{
+    std::vector<std::uint16_t> models;
+    for (const ModelTextureCall& call : FenrirTextureCalls())
+    {
+        models.push_back(call.model);
+        EXPECT_EQ(call.folder, "Skill\\") << std::hex << call.model;
+    }
+    EXPECT_EQ(models, (std::vector<std::uint16_t>{0x14a, 0x14b, 0x14c}));
 }
 
 // 0x2901 y 0x2600 en todas: repitiendo y sin filtro.

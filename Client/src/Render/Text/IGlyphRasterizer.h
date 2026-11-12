@@ -22,14 +22,21 @@ struct TextExtent
     friend bool operator==(const TextExtent&, const TextExtent&) = default;
 };
 
-class IGlyphRasterizer
+// GetTextExtentPointA sobre el DC de los textos (0x57634f4): lo que piden también el paso y los paquetes, como el área
+// de mensajes al agregar un renglón (0x555190). Lo cumplen el rasterizador y el que dibuja (Scenes::ITextDrawer).
+class ITextMeasure
 {
 public:
-    virtual ~IGlyphRasterizer() = default;
+    virtual ~ITextMeasure() = default;
 
     // GetTextExtentPointA con la fuente `font`. Un texto vacío mide 0 de ancho y el alto de la
     // celda.
     [[nodiscard]] virtual TextExtent Measure(FontKind font, std::string_view text) const = 0;
+};
+
+class IGlyphRasterizer : public ITextMeasure
+{
+public:
 
     // TextOutA en (−firstColumn, 0), con la celda arriba (TA_TOP) y sin suavizado: pone 0xff en
     // cada píxel de `ink` donde cae una letra. No borra lo demás: el que llama la da en 0, como

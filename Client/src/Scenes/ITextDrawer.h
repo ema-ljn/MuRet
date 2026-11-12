@@ -11,13 +11,10 @@
 // de support/, que anota. Dibuja en el lote del frame, con el color y la mezcla que haya.
 namespace Client::Scenes
 {
-class ITextDrawer
+// Measure (Render::Text::ITextMeasure) da el ancho y el alto del texto en píxeles, para ubicarlo.
+class ITextDrawer : public Render::Text::ITextMeasure
 {
 public:
-    virtual ~ITextDrawer() = default;
-    // GetTextExtentPointA: el ancho y el alto del texto en píxeles, para ubicarlo.
-    [[nodiscard]] virtual Render::Text::TextExtent Measure(Render::Text::FontKind font,
-                                                           std::string_view text) const = 0;
     virtual void Draw(int x, int y, std::string_view text, const Render::Text::TextStyle& style) = 0;
 };
 } // namespace Client::Scenes

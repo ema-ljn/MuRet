@@ -260,7 +260,7 @@ TEST(GameUiTest, TheSiegePanelTogglesWithTabAndTakesTheMouse)
 {
     SteppingUi tested;
     auto& runtime = tested.world.Runtime();
-    runtime.siegePanelKind = 0;
+    runtime.siegePanelKind = std::uint8_t{0};
     ASSERT_TRUE(tested.Step(0x1ea, 0x104).HasValue());
     EXPECT_EQ(tested.Ui().mouseOnUi, 1);
     Press(tested.input, Key::Tab);
@@ -281,7 +281,7 @@ TEST(GameUiTest, TheSiegePanelPagesAndFades)
 {
     SteppingUi tested;
     auto& runtime = tested.world.Runtime();
-    runtime.siegePanelKind = 0;
+    runtime.siegePanelKind = std::uint8_t{0};
     const auto& panel = runtime.siegePanel;
     tested.Click();
     ASSERT_TRUE(tested.Step(panel.x + 130, panel.y + 20).HasValue());

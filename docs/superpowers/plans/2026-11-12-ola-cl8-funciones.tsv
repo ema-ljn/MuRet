@@ -1,0 +1,1126 @@
+va	bytes	olas_por_lector	conflicto	muret
+0x401040	21	paso: CL7 (ya)		src
+0x4017a0	75	HUD: CL9.3/CL9.4 ; inventario: CL8.4 ; chat: CL8.3	sí	docs
+0x4017f0	284	inventario: CL8.4		
+0x401910	20	HUD: CL9.3/CL9.4 ; inventario: CL8.4 ; chat: CL8.3	sí	
+0x401930	290	HUD: CL9.3/CL9.4 ; inventario: CL8.4 ; chat: CL8.3	sí	
+0x401a60	89	HUD: CL9.3/CL9.4 ; inventario: CL8.4	sí	
+0x401ae0	136	HUD: CL9.3/CL9.4 ; inventario: CL8.4	sí	
+0x401f30	1481	paso: CL9.3		
+0x402500	1239	paso: CL9.3		
+0x4029e0	47	paso: CL9.3		
+0x402a10	10	paso: CL9.3		
+0x402a20	107	paso: CL9.3		
+0x402a90	75	paso: CL9.3		
+0x402ae0	6	inventario: CL8.4 ; paso: CL9.3	sí	
+0x402af0	33	paso: CL8.3		
+0x402b20	10	HUD: CL8.3 marco / casos en CL9		
+0x402b30	53	HUD: CL8.4 (B2) ; inventario: CL8.4 ; paso: CL9.3	sí	
+0x402b70	66	paso: CL9.3		
+0x402bc0	301	paso: CL9.3		
+0x402cf0	51	paso: CL9.3		
+0x402d30	47	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x402d60	119	HUD: CL8.4 (B2) ; inventario: CL8.4 ; paso: CL9.3	sí	
+0x402de0	34	HUD: CL8.3 marco / casos en CL9		
+0x402e10	61	paso: CL9.3		
+0x402e50	87	paso: CL9.3		
+0x402eb0	523	paso: CL9.3		
+0x4031a0	7	chat: —		
+0x4033d0	32	chat: CL8.2 ; paso: CL7 (ya)	sí	src
+0x403d60	40	paso: CL7/CL8.3		docs
+0x406050	17322	paso: CL8.3 marco / CL9.4 ; paso: CL9.4	sí	
+0x40a450	346	paso: CL8.3 ; paso: CL9.4	sí	
+0x40a5b0	153	HUD: CL8.1		
+0x40a650	1617	HUD: CL9.4 (otro lector) ; HUD: CL9.4		
+0x40ad90	194	HUD: infra ; ventanas: no se porta: se cuentan sus rand() ; chat: no se porta ; paso: infra (portada)		src
+0x40ae60	574	paso: infra		docs
+0x40b0a0	413	ventanas: no se porta: se cuentan ; paso: infra		docs
+0x40b240	168	HUD: infra ; ventanas: no se porta: se cuentan sus rand() ; paso: infra (portada)		src
+0x40b2f0	183	HUD: infra ; ventanas: no se porta: se cuentan sus rand() ; paso: infra (portada)		src
+0x40b3b0	53	ventanas: no se porta: se cuentan sus rand() ; paso: infra		docs
+0x40b3f0	78	ventanas: no se porta: se cuentan ; paso: infra		docs
+0x40b440	133	HUD: infra ; ventanas: no se porta: se cuentan sus rand() ; paso: infra (portada)		src
+0x40b4d0	157	HUD: infra ; ventanas: no se porta: se cuentan ; paso: infra (portada)		src
+0x40b570	642	paso: infra (portada)		src
+0x40b800	495	chat: no se porta ; paso: infra (portada)		src
+0x40bab0	310	HUD: CL9.5		docs
+0x40ca20	1025	HUD: CL8.1		
+0x40cf00	34	HUD: CL8.1		
+0x40cf30	107	HUD: CL8.1 ; inventario: CL8.4	sí	
+0x40d530	287	HUD: CL8.4 ; inventario: CL8.4		
+0x40d690	151	HUD: CL8.4 (B2) ; inventario: CL8.4		src
+0x40d8c0	159	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x40dca0	193	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x40dd80	133	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x40e6c0	85	inventario: CL8.4		
+0x40e720	301	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x40e850	890	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x40ebd0	207	chat: CL9.3?		
+0x40eca0	564	HUD: CL8.4 ; HUD: CL8.4 (B2)		docs
+0x40eee0	958	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x40f370	526	HUD: infra ; chat: CL9.2 ; paso: infra (portada)	sí	src
+0x40f580	127	HUD: infra ; inventario: CL8.4 ; chat: CL9.2	sí	
+0x40f600	148	HUD: infra ; inventario: CL8.4 ; chat: CL9.2	sí	docs
+0x4125b0	16	HUD: sin asignar		
+0x412810	114	HUD: infra ; chat: no se porta		src
+0x412890	137	HUD: infra ; chat: no se porta		src
+0x413ca0	586	HUD: CL9.5		
+0x414340	46	paso: CL7 (ya)		src
+0x4149b0	4644	HUD: CL8.3 / CL9.1 (otro lector)		
+0x416660	1	paso: CL8.4		
+0x416670	314	HUD: CL8.3 / CL9.1 (otro lector)		
+0x418fb0	1292	paso: CL9.1 (quest)		
+0x4195c0	56	paso: CL9.1 (quest)		
+0x419710	301	paso: CL9.1 (quest)		
+0x419840	99	ventanas: CL9.x		
+0x419900	516	ventanas: CL9.x ; paso: CL9.1 (quest)	sí	src
+0x419b10	186	paso: CL9.1 (quest)		
+0x419bd0	3595	paso: CL9.1 (quest)		
+0x41a9e0	1921	paso: CL9.1 (quest)		
+0x41b170	1072	paso: CL9.1 (quest)		
+0x41b5a0	218	paso: CL8.3 (botón) / CL9.1 ; paso: CL9.1 (quest)	sí	
+0x41b680	392	HUD: CL9.1 datos / CL8.3 marco (otro lector)		
+0x41b810	451	HUD: CL8.1?		
+0x41b9e0	63	HUD: CL8.1?		
+0x41ba20	1312	HUD: CL9.1 datos / CL8.3 marco (otro lector)		
+0x41c2a0	383	HUD: CL9.1 datos / CL8.3 marco (otro lector)		
+0x41c420	116	HUD: CL9.1 datos / CL8.3 marco (otro lector)		
+0x41c4a0	347	HUD: CL9.1 datos / CL8.3 marco (otro lector)		
+0x41c600	1075	HUD: CL9.1 datos / CL8.3 marco (otro lector)		
+0x41ca40	276	HUD: CL9.1 datos / CL8.3 marco (otro lector) ; HUD: CL9.1 ; ventanas: CL9.x	sí	
+0x41ed10	156	HUD: CL10 ; ventanas: CL10 ; chat: CL10 ; paso: CL10 (corte) ; paso: CL10		src
+0x41ee80	72	paso: CL10		
+0x41eed0	48	paso: CL10 (corte) ; paso: CL10		docs
+0x41f620	115	HUD: infra ; ventanas: no se porta (log) ; paso: infra		docs
+0x41f6a0	127	HUD: infra ; ventanas: no se porta (log) ; paso: infra		docs
+0x41f7a0	111	HUD: infra ; ventanas: no se porta (log) ; paso: infra (portada)		src
+0x41f9a0	64	HUD: infra ; ventanas: no se porta (log) ; paso: infra		docs
+0x41f9e0	82	HUD: infra ; ventanas: no se porta (log) ; paso: infra		docs
+0x41fa40	49	HUD: infra ; ventanas: no se porta (log) ; chat: — ; paso: infra		docs
+0x41fc10	114	paso: infra		
+0x420ca0	8	ventanas: CL9.x		
+0x420cb0	8	ventanas: CL9.x		
+0x420cc0	11	ventanas: CL9.x		
+0x420cd0	29	ventanas: CL9.x		
+0x420e30	87	chat: CL9.2		src
+0x420e90	211	chat: CL9.2		
+0x421b90	125	HUD: CL9.2 ; HUD: CL9.1 / CL9.2	sí	
+0x421c10	318	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x421d60	39	paso: CL7 (ya)		src
+0x421d90	17	paso: CL9.3		
+0x4221a0	36	inventario: CL8.4		
+0x4221d0	1012	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x4225d0	856	HUD: CL8.4 (B2) ; inventario: CL7	sí	src
+0x422930	81	HUD: CL8.4 (B2) ; inventario: CL7 ; paso: CL9.3	sí	src
+0x422990	6045	HUD: CL8.4 (B2) ; inventario: CL9.3	sí	docs
+0x424130	46	paso: CL8.3		
+0x424160	208	HUD: CL8.3 / CL9.1 (otro lector) ; HUD: CL9.1 / CL9.2	sí	
+0x424230	1903	paso: CL8.3 (A9: Q-C16)		src
+0x4249a0	1173	HUD: CL8.3 / CL9.1 (otro lector)		
+0x424e40	385	HUD: CL8.3 / CL9.1 (otro lector)		
+0x424fd0	104	HUD: CL8.4 (B2) ; paso: CL9.4	sí	
+0x4294b0	6	HUD: CL9.5		src
+0x42a2b0	542	HUD: CL9.1		src
+0x42a4d0	393	HUD: CL9.1		
+0x42a660	246	HUD: CL8.1 dibujo / CL9.2 datos ; HUD: CL9.2	sí	
+0x430180	200	HUD: CL9.5		docs
+0x4303c0	11	HUD: CL9.5 ; paso: CL9.5		src
+0x435a00	19	HUD: CL9.5 ; inventario: — ; paso: CL9.5	sí	docs
+0x435b00	208	paso: CL9.5		
+0x435bd0	1633	paso: CL9.5		docs
+0x436240	817	HUD: CL9.5		
+0x4365c0	4027	HUD: CL9.5		
+0x4379f0	46	paso: CL9.3		
+0x437a20	614	paso: CL9.3		
+0x437c90	1370	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x4381f0	500	HUD: CL9.5 (Kalima)		src
+0x4383f0	417	HUD: CL8.1 dibujo / CL9.5 productor ; HUD: CL9.5 (Kalima)	sí	docs
+0x447c70	33	HUD: CL8.4 (B2) ; inventario: —	sí	src
+0x448370	51	HUD: CL8.3 ; chat: CL8.3		
+0x448580	2585	chat: CL8.3		docs
+0x448fa0	1911	HUD: CL8.3		
+0x449720	51	HUD: CL8.3 ; chat: CL8.3		
+0x449850	12	ventanas: CL8.1 ; chat: CL8.3	sí	
+0x449860	12	HUD: CL8.3		
+0x449940	18	ventanas: CL9.3		docs
+0x449960	11	paso: CL9.3		
+0x449970	29	paso: CL8.4		
+0x4499b0	572	ventanas: CL9.3 ; paso: CL9.3		src
+0x449bf0	11	ventanas: CL9.3		
+0x449c00	11	HUD: CL8.4 (B2) ; ventanas: CL9.3 ; inventario: CL8.4 ; paso: CL9.3	sí	
+0x449c10	27	ventanas: CL9.3		docs
+0x449c60	18	inventario: CL8.4		
+0x449c80	199	inventario: CL8.4		docs
+0x449d50	40	inventario: CL8.4 ; paso: CL9.3	sí	
+0x449d80	3867	inventario: CL8.4 ; paso: CL8.4 (inv) / CL9.3		
+0x44aca0	39	paso: CL8.4/CL9.3		
+0x44acd0	59	paso: CL9.3		
+0x44ad10	36	inventario: CL8.4		
+0x44ad40	45	HUD: CL8.4 (B2)		
+0x44ad70	34	inventario: CL8.4		docs
+0x44ae10	892	paso: CL9.3		
+0x44b190	833	HUD: CL9.1/CL9.3 (otro lector) ; paso: CL9.3	sí	
+0x44b4e0	39	paso: CL9.3		
+0x44b510	39	HUD: CL9.1/CL9.3 (otro lector) ; HUD: CL9.1 / CL9.2		docs
+0x44b540	206	paso: CL8.3 marco / CL9.3 ; paso: CL9.3	sí	
+0x44b610	757	HUD: CL9.1/CL9.3 (otro lector)		
+0x44b910	3904	paso: CL9.3		
+0x44c850	1982	HUD: CL9.1/CL9.3 (otro lector)		
+0x44d010	1642	paso: CL9.3		docs
+0x44d680	1337	HUD: CL9.1/CL9.3 (otro lector)		
+0x44dc10	6	ventanas: CL9.x ; paso: CL9.5	sí	
+0x44dcf0	32	ventanas: CL9.x ; paso: CL9.5	sí	
+0x44dd50	3025	paso: CL9.5		
+0x44e930	293	HUD: CL9.5		
+0x44ea60	1075	HUD: CL9.5		
+0x44f0f0	6	ventanas: CL9.x ; paso: CL9.5	sí	
+0x44f120	541	ventanas: CL9.x ; paso: CL9.5	sí	
+0x44f770	56	ventanas: CL9.x		
+0x44f810	1763	paso: CL9.5		
+0x44ff00	921	HUD: CL9.5		
+0x450f20	177	HUD: CL9.3/CL9.4 ; paso: CL9.4	sí	
+0x4516a0	5	chat: CL9.1 / existentes		
+0x4516c0	4	HUD: CL9.3/CL9.4		
+0x451770	78	HUD: CL9.4?		
+0x4517c0	78	HUD: CL8.2		
+0x451810	69	HUD: CL8.2 ; paso: CL9.4	sí	
+0x451af0	94	HUD: CL8.2		
+0x451b50	94	HUD: CL8.2		
+0x451bb0	95	HUD: CL8.2		
+0x451c20	237	HUD: CL9.3/CL9.4 ; HUD: CL9.3 (y CL9.4 la tienda personal)		
+0x451d10	51	HUD: CL9.3/CL9.4 ; chat: CL9.1 / existentes ; paso: CL9.4	sí	docs
+0x451d60	214	HUD: CL9.3/CL9.4		
+0x451e40	410	HUD: CL9.3/CL9.4		
+0x452110	180	HUD: CL9.3/CL9.4		
+0x4527d0	21	HUD: CL9.3/CL9.4		
+0x4527f0	21	HUD: CL9.3/CL9.4		
+0x452810	21	HUD: CL9.3/CL9.4		
+0x452830	43	HUD: CL9.3/CL9.4		
+0x4529d0	4	HUD: CL9.4?		
+0x4529e0	5	HUD: CL9.3/CL9.4		
+0x4529f0	5	HUD: CL9.3/CL9.4		
+0x452a00	4	HUD: CL9.3/CL9.4		
+0x452a10	706	HUD: CL9.3/CL9.4		
+0x452ce0	102	HUD: CL9.3/CL9.4		
+0x452d50	253	HUD: CL9.3/CL9.4		
+0x452e50	298	HUD: CL9.3/CL9.4		
+0x4532f0	528	inventario: —		
+0x453bd0	67	HUD: CL9.3/CL9.4		
+0x453c20	6	inventario: —		
+0x453c30	216	inventario: —		
+0x454030	28	HUD: CL9.3/CL9.4		
+0x4540b0	48	HUD: CL9.4? ; paso: CL9.4		
+0x459c70	445	ventanas: CL8.3 ; chat: CL8.2	sí	
+0x459ec0	38	HUD: CL8.3 marco / casos en CL9 ; ventanas: CL8.3 ; chat: CL8.3 (base)		
+0x459ef0	12	ventanas: CL8.3		
+0x459f00	108	HUD: sin asignar ; ventanas: CL8.3 ; chat: CL8.3 (base) ; paso: CL8.3	sí	
+0x459f70	452	ventanas: CL8.3 ; paso: CL8.3		
+0x45a140	205	ventanas: CL8.3 ; paso: CL8.3		
+0x45a210	171	ventanas: CL8.3 ; chat: CL8.3		docs
+0x45a2c0	810	ventanas: CL8.3		
+0x45a5f0	33	ventanas: CL8.3		
+0x45a650	33	ventanas: CL8.3		
+0x45a680	814	ventanas: CL8.3		
+0x45a9b0	13	ventanas: CL8.3		
+0x45a9c0	4	HUD: CL8.1 ; ventanas: CL8.3 ; chat: CL8.3 (base) ; paso: CL8.3	sí	
+0x45a9d0	19	HUD: CL8.2? ; ventanas: CL8.3 ; inventario: — ; chat: CL8.3 ; paso: CL8.2	sí	docs
+0x45a9f0	19	ventanas: CL8.3 ; chat: CL8.3		
+0x45aa10	25	ventanas: CL8.3		
+0x45aa30	25	ventanas: CL8.3		
+0x45aa50	39	ventanas: CL8.3		
+0x45aa80	320	ventanas: CL8.3 ; chat: CL8.3 ; paso: CL8.3		
+0x45abc0	404	ventanas: CL8.3		
+0x45ad80	56	ventanas: CL8.3		
+0x45adc0	33	ventanas: CL8.3		
+0x45adf0	864	ventanas: CL8.3		
+0x45b150	22	ventanas: CL8.3		
+0x45b170	144	ventanas: CL8.3		
+0x45b200	219	ventanas: CL8.3		
+0x45b2e0	827	ventanas: CL8.3		
+0x45b620	494	ventanas: CL8.2 ; chat: CL8.2		
+0x45bb10	14	chat: CL8.2		
+0x45bb20	1215	chat: CL8.2		
+0x45bfe0	346	chat: CL8.2		
+0x45c140	73	chat: \		
+0x45c190	322	chat: CL8.2		
+0x45c2e0	191	chat: CL8.2		
+0x45c3a0	187	chat: CL8.2		
+0x45c460	1849	chat: CL8.2		
+0x45cbb0	1583	chat: CL8.2 ; chat: se porta en la CL8.2 (barato); el estado, CL9.5		
+0x45d230	495	chat: CL8.2		
+0x45d760	347	chat: CL8.2		docs
+0x45d8c0	151	HUD: CL8.2? ; chat: CL8.2		
+0x45d990	443	chat: CL8.2		
+0x45db50	18	chat: CL8.2		docs
+0x45db70	193	ventanas: CL8.2 ; chat: CL8.2		
+0x45dc40	381	chat: CL8.2		
+0x45ddc0	81	chat: CL8.2		
+0x45de20	155	chat: CL8.2		
+0x45dec0	520	chat: CL8.2		
+0x45f240	413	ventanas: CL8.3 (comparte con CL8.2)		
+0x460970	502	ventanas: CL8.3		
+0x463090	247	HUD: CL9.4 (otro lector)		
+0x464620	423	ventanas: CL9.4		
+0x465950	47	HUD: infra ; inventario: — ; chat: existente	sí	docs
+0x465980	23	chat: existente		
+0x467360	55	ventanas: CL8.3 (compartido con CL8.2) ; chat: fuera de alcance	sí	
+0x4673a0	48	chat: fuera de alcance		
+0x4673d0	229	chat: fuera de alcance		
+0x4674c0	274	ventanas: CL8.3 ; chat: CL8.2	sí	
+0x4675e0	16	chat: CL8.2		
+0x4676e0	33	chat: CL8.2		
+0x467a90	123	chat: CL8.2		
+0x467b10	663	chat: CL8.2		src
+0x467db0	272	chat: fuera de alcance		
+0x467ec0	32	chat: CL8.2		
+0x467ee0	77	chat: CL8.2		
+0x467f30	31	chat: CL8.2		docs
+0x467f50	135	ventanas: CL8.3 ; chat: CL8.2	sí	
+0x467fe0	635	chat: CL8.2		docs
+0x468260	50	chat: CL8.2		
+0x4682a0	122	chat: CL8.2		
+0x468320	1613	chat: CL8.2		src
+0x468970	929	chat: CL8.3/CL9.4		
+0x468d20	36	chat: CL8.2		
+0x468d50	1160	chat: CL8.3/CL9.4		
+0x4691e0	310	chat: CL8.2		
+0x469350	29	HUD: CL8.2 (otro lector) ; chat: CL8.2		src
+0x469370	110	chat: CL8.2 ; paso: CL9.4	sí	docs
+0x4693e0	53	chat: CL8.2		docs
+0x469450	56	chat: CL8.2		
+0x4694c0	57	chat: CL8.2 ; paso: CL8.2		
+0x469500	63	chat: CL8.2		
+0x469540	579	chat: CL8.2		
+0x469790	744	chat: CL8.2		
+0x469a80	974	chat: CL8.2		
+0x46a510	45	HUD: sin asignar ; ventanas: CL8.2	sí	
+0x46a540	784	HUD: sin asignar		
+0x46a850	183	HUD: sin asignar		
+0x46a910	173	HUD: sin asignar		
+0x46ab30	141	HUD: sin asignar		
+0x46abf0	420	ventanas: CL8.2 ; chat: ver §5	sí	
+0x46add0	201	ventanas: CL8.2		
+0x46b090	67	HUD: sin asignar		
+0x46b720	115	ventanas: CL8.2 ; chat: ver §5	sí	
+0x46b7b0	24	ventanas: CL8.2		docs
+0x46b7d0	41	ventanas: CL8.2		
+0x46e4a0	26	paso: CL9.3		
+0x46e4c0	1138	paso: CL9.3		
+0x46e940	667	paso: CL9.3		
+0x471650	27	HUD: CL8.3 marco / casos en CL9 ; inventario: — ; paso: CL9.4	sí	
+0x4716e0	586	inventario: —		
+0x471930	420	paso: CL9.4		
+0x471ae0	925	HUD: CL8.3 marco / casos en CL9		
+0x471e80	51	HUD: CL8.3 marco / casos en CL9 ; inventario: — ; paso: CL9.4	sí	
+0x471f70	140	ventanas: CL8.3 (se reemplaza por la STL)		
+0x472040	23	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4727f0	1001	ventanas: CL8.3 (se reemplaza por la STL)		
+0x472be0	322	ventanas: CL8.3 (se reemplaza por la STL) ; paso: CL8.3		
+0x472d30	115	ventanas: CL8.3 (se reemplaza por la STL)		
+0x473200	384	chat: CL8.2		
+0x473a10	16	ventanas: CL8.3 (se reemplaza por la STL)		
+0x474f50	322	paso: CL9.3		
+0x4750a0	174	paso: CL9.3		
+0x475f00	51	ventanas: CL8.3 (se reemplaza por la STL)		
+0x475f40	51	ventanas: CL8.3 (se reemplaza por la STL)		
+0x475f80	142	ventanas: CL8.3 (se reemplaza por la STL)		
+0x476010	16	ventanas: CL8.3 (se reemplaza por la STL)		
+0x476040	558	ventanas: CL8.2		
+0x4767a0	321	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4768f0	109	ventanas: CL8.3 (se reemplaza por la STL) ; paso: CL8.3		
+0x476960	16	ventanas: CL8.3 (se reemplaza por la STL)		
+0x476970	174	ventanas: CL8.3 (se reemplaza por la STL)		
+0x476a20	134	ventanas: CL8.3 (se reemplaza por la STL)		
+0x476ab0	109	chat: CL8.2		
+0x477410	109	paso: CL9.3		
+0x477a80	115	ventanas: CL8.3 (se reemplaza por la STL)		
+0x477b00	27	chat: CL8.2		
+0x477b20	109	chat: CL8.2		
+0x477bd0	628	ventanas: CL8.2		
+0x477e50	87	ventanas: CL8.2		
+0x477ed0	91	ventanas: CL8.2		
+0x477f30	54	ventanas: CL8.3 (se reemplaza por la STL)		
+0x477f70	678	inventario: —		
+0x478240	142	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4782d0	36	ventanas: CL8.3 (se reemplaza por la STL) ; paso: CL8.3		
+0x478410	36	chat: CL8.2		
+0x4788a0	36	paso: CL9.3		
+0x4788d0	168	paso: CL9.3		
+0x478a70	36	chat: CL8.2		
+0x478aa0	29	ventanas: CL8.2		
+0x478ac0	81	ventanas: CL8.2		
+0x478b20	168	ventanas: CL8.3 (se reemplaza por la STL)		
+0x478d10	875	chat: CL8.3 (base)		
+0x479080	247	HUD: CL8.2 (otro lector) ; ventanas: CL8.2 ; chat: CL8.3 (base)	sí	
+0x479760	46	ventanas: CL8.3 (se reemplaza por la STL)		
+0x479790	85	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4797f0	65	ventanas: CL8.3 (se reemplaza por la STL)		
+0x479840	277	ventanas: CL8.3 (se reemplaza por la STL)		
+0x479960	1769	ventanas: CL8.2		src
+0x47aef0	46	ventanas: CL8.3 (se reemplaza por la STL)		
+0x482f80	860	paso: CL9.3		
+0x4832e0	244	HUD: CL8.3 marco / casos en CL9		
+0x4873c0	138	ventanas: CL8.3 (se reemplaza por la STL)		
+0x487450	144	ventanas: CL8.3 (se reemplaza por la STL)		
+0x487980	19	chat: CL8.2		
+0x4879a0	359	inventario: —		
+0x487bc0	26	ventanas: CL8.2		
+0x487be0	356	inventario: —		
+0x489b60	86	inventario: —		
+0x489bc0	46	ventanas: CL8.3 (se reemplaza por la STL)		
+0x489bf0	43	ventanas: CL8.3 (se reemplaza por la STL)		
+0x48a0c0	46	paso: CL9.3		
+0x48aea0	142	paso: CL9.3		
+0x48c590	115	paso: CL9.3		
+0x48c610	134	paso: CL9.3		
+0x48d1c0	43	paso: CL9.3		
+0x48d250	1213	paso: CL9.3		
+0x48dbe0	578	paso: CL9.3		
+0x48de30	131	paso: CL9.3		
+0x48dec0	264	paso: CL9.3		
+0x48e390	46	paso: CL9.3		
+0x48e3f0	59	paso: CL9.3		
+0x48e470	429	ventanas: CL8.3		
+0x48e710	33	ventanas: CL8.3		
+0x48e830	532	ventanas: CL8.3		
+0x48ea50	1025	ventanas: CL8.3		
+0x48ee60	2559	ventanas: CL8.3 (la fábrica) + CL9.4 (los casos)		docs
+0x48f890	17	ventanas: CL8.3		
+0x48f8b0	17	ventanas: CL8.3		
+0x48f910	33	ventanas: CL9.4		
+0x48f940	33	ventanas: CL9.4		
+0x48f970	33	ventanas: CL9.4		
+0x48fa60	143	ventanas: CL9.4		
+0x48fb30	11	ventanas: CL9.4		
+0x48fb40	15	ventanas: CL9.4		
+0x48fb50	15	ventanas: CL9.4		
+0x48fb80	33	ventanas: CL9.4		
+0x48fc50	33	ventanas: CL9.4		
+0x48fc80	98	ventanas: CL9.4		
+0x48fd60	33	ventanas: CL9.4		
+0x48fd90	153	ventanas: CL9.4		
+0x48fe30	33	ventanas: CL9.4		
+0x48ff00	33	ventanas: CL9.4		
+0x4900b0	33	ventanas: CL9.4		
+0x490160	33	ventanas: CL8.3		
+0x490190	99	ventanas: CL8.3		
+0x490200	391	ventanas: CL8.3		
+0x490390	250	HUD: CL8.3 (cl8-ventanas) ; ventanas: CL8.3		docs
+0x490490	474	ventanas: CL8.3		src
+0x490670	46	ventanas: CL8.3		
+0x4906a0	391	ventanas: CL8.3		src
+0x490830	76	ventanas: CL9.4		
+0x490880	72	ventanas: CL8.3		
+0x490a00	149	HUD: CL9.4? ; ventanas: CL8.3 ; paso: CL8.3	sí	
+0x490aa0	150	ventanas: CL8.3 ; paso: CL8.3		
+0x490b40	39	ventanas: CL8.3 ; chat: CL8.3		docs
+0x490b70	1264	ventanas: CL8.3		
+0x491080	1113	ventanas: CL9.4 (el marco CL8.3)		
+0x4914e0	14	ventanas: CL8.3		src
+0x4914f0	122	ventanas: CL9.4		
+0x4917e0	94	ventanas: CL9.4		
+0x491840	86	ventanas: CL8.3		
+0x491960	489	HUD: CL9.4 (otro lector) ; ventanas: CL8.3 ; chat: CL8.3/CL9.4	sí	
+0x491ca0	118	ventanas: CL8.3		
+0x491d20	33	ventanas: CL8.3		
+0x491d50	845	ventanas: CL8.3		
+0x4920a0	56	ventanas: CL8.3		
+0x4920e0	145	ventanas: CL8.3		
+0x492180	734	ventanas: CL8.3		
+0x492460	147	ventanas: CL8.3		
+0x492500	1471	ventanas: CL8.3		docs
+0x492ac0	1570	ventanas: CL8.3		
+0x4930f0	101	ventanas: CL8.3		
+0x493220	494	ventanas: CL9.4		
+0x493410	248	ventanas: CL9.4		
+0x493fc0	783	ventanas: CL9.4		
+0x4944c0	3980	ventanas: CL9.4		
+0x495450	202	ventanas: CL9.4		
+0x495e50	119	ventanas: CL9.4		
+0x495ee0	16	ventanas: CL9.4		
+0x495ef0	33	ventanas: CL9.4		
+0x4961d0	599	ventanas: CL9.4		
+0x496530	4697	ventanas: CL9.4		
+0x4977d0	63	ventanas: CL9.4		
+0x497810	113	ventanas: CL9.4		docs
+0x497890	64	ventanas: CL9.4		
+0x4978d0	24	ventanas: CL9.4		
+0x4978f0	24	ventanas: CL9.4		
+0x497910	55	ventanas: CL9.4		
+0x497970	666	ventanas: CL9.4		
+0x497c10	830	ventanas: CL9.4		
+0x497f50	1019	ventanas: CL9.4		
+0x498350	141	ventanas: CL9.4		
+0x498480	883	ventanas: CL9.4		
+0x498820	3914	ventanas: CL9.4		src
+0x499780	165	ventanas: CL9.4		
+0x499840	180	ventanas: CL9.4		
+0x4999d0	560	ventanas: CL9.4		
+0x499c00	169	ventanas: CL9.4		
+0x499d60	1125	ventanas: CL9.4		
+0x49a1f0	3958	ventanas: CL9.4		
+0x49b180	136	ventanas: CL9.4		
+0x49c8b0	386	ventanas: CL9.4		
+0x49ca40	131	ventanas: CL9.4		
+0x49cc20	1158	ventanas: CL9.4		
+0x49d0b0	3018	ventanas: CL9.4		
+0x49dc90	96	ventanas: CL9.4		
+0x49e5c0	203	ventanas: CL9.4		
+0x49e690	80	ventanas: CL9.4		
+0x49e6e0	35	ventanas: CL9.4		
+0x49e710	42	ventanas: CL9.4		
+0x49e7f0	598	ventanas: CL9.4		
+0x49ea50	199	ventanas: CL9.4		
+0x49eb20	48	ventanas: CL9.4		
+0x4a0310	174	HUD: CL9.4?		
+0x4a06b0	384	ventanas: CL9.4		
+0x4a0830	131	ventanas: CL9.4		
+0x4a0a30	1916	ventanas: CL9.4		
+0x4a11b0	3431	ventanas: CL9.4		
+0x4a2010	96	ventanas: CL9.4		
+0x4a2280	290	ventanas: CL9.4		
+0x4a23b0	11	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a23c0	148	ventanas: CL9.4		
+0x4a2620	1461	ventanas: CL9.4		
+0x4a2be0	904	ventanas: CL9.4		
+0x4a2f70	184	ventanas: CL9.4		src
+0x4a3030	1382	ventanas: CL9.4		
+0x4a35a0	344	ventanas: CL9.4		
+0x4a3700	79	ventanas: CL9.4		
+0x4a3750	138	ventanas: CL9.4		
+0x4a38a0	64	ventanas: CL9.4		
+0x4a38f0	343	ventanas: CL8.3		
+0x4a3a50	49	ventanas: CL8.3		
+0x4a3a90	231	ventanas: CL8.3		
+0x4a3b80	2104	ventanas: CL9.4 (el envío) + CL8.3 ; ventanas: CL9.4		
+0x4a43c0	111	ventanas: CL8.3		docs
+0x4a4480	1062	ventanas: CL8.3		
+0x4a4990	405	ventanas: CL8.3		
+0x4a4b30	728	ventanas: CL8.3		
+0x4a4e20	138	ventanas: CL8.3		docs
+0x4a4eb0	613	ventanas: CL8.3		
+0x4a5120	876	HUD: CL9.4?		
+0x4a5490	698	ventanas: CL8.3		
+0x4a5750	1166	ventanas: CL8.3		
+0x4a5be0	555	ventanas: CL8.3 ; chat: CL8.3		
+0x4a5e10	53	ventanas: CL8.3		
+0x4a60b0	859	ventanas: CL8.3		
+0x4a6410	14	HUD: CL9.4?		
+0x4a6420	16	HUD: CL9.4? ; ventanas: CL8.3	sí	
+0x4a6f40	829	ventanas: CL8.3		
+0x4a79d0	221	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a7ab0	221	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a8060	98	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a80d0	88	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a8130	69	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a8180	45	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a81b0	18	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a81d0	17	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a81f0	1039	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a8600	203	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a86d0	67	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a9070	17	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a9090	1039	ventanas: CL8.3 (STL)		
+0x4a94a0	203	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a9570	104	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a95e0	67	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a9630	140	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a96c0	322	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a9810	98	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a9880	24	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a9d50	62	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4a9d90	151	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4aa0b0	28	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4aa680	62	HUD: CL9.4? ; ventanas: CL8.3 (se reemplaza por la STL) ; paso: CL8.3	sí	
+0x4aa6c0	62	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4aa700	151	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4aa7a0	628	ventanas: CL8.3 (STL)		
+0x4aaa20	28	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4aaa40	321	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4aab90	115	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4aac10	109	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4aac80	82	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4aaf10	48	HUD: CL8.1 ; ventanas: CL8.3 (STL) ; paso: CL8.3	sí	
+0x4aaf40	81	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4ab030	36	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4ab060	105	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4ab220	108	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4ab290	109	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4ab360	25	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4ab380	51	ventanas: CL8.3 (se reemplaza por la STL)		
+0x4acf60	103	ventanas: CL10 (créditos del login)		src
+0x4acfd0	138	ventanas: CL10 (créditos del login)		src
+0x4af4e0	38718	chat: CL3 (fuera del chat)		src
+0x4b9b80	18709	chat: CL8.2		docs
+0x4bfdf0	16	ventanas: CL8.3		
+0x4bff10	33	ventanas: CL8.3		
+0x4bff40	712	ventanas: CL8.3		
+0x4c0510	1039	paso: CL9.4		
+0x4c0c70	67	paso: CL9.4		
+0x4c0ec0	413	ventanas: no se porta: se cuentan		docs
+0x4c1150	53	ventanas: no se porta: se cuentan sus rand()		
+0x4c1190	78	ventanas: no se porta: se cuentan		docs
+0x4c1690	52	ventanas: CL5 (seguimiento)		src
+0x4c1800	94	paso: CL9.4		
+0x4c5ec0	159	inventario: CL8.4		
+0x4c6070	923	chat: CL8.2		src
+0x4c6410	144	chat: —		
+0x4c64a0	35	chat: —		
+0x4c64d0	216	chat: —		
+0x4c65b0	269	chat: CL8.2 ; chat: CL9.4	sí	docs
+0x4d0cc0	1031	inventario: CL8.4		docs
+0x4d10d0	803	inventario: CL8.4		docs
+0x4d1400	2465	inventario: CL8.4		docs
+0x4d29a0	662	inventario: CL8.4		
+0x4d3200	753	inventario: CL8.4		
+0x4d3510	770	inventario: CL8.4		
+0x4d3820	808	inventario: CL8.4		docs
+0x4d3cc0	855	inventario: CL8.4		
+0x4d4020	2593	inventario: CL8.4		
+0x4d4af0	2681	inventario: CL9.4		
+0x4d57f0	285	inventario: CL9.4		
+0x4db120	1504	inventario: CL9.3		
+0x4dbcb0	486	inventario: CL9.4		
+0x4dd570	801	chat: CL8.2 (opciones) + CL9.2/CL9.3 (datos)		
+0x4de500	1565	inventario: CL9.x		
+0x4e05f0	31	HUD: CL9.5		
+0x4e2b10	12358	chat: CL8.2		src
+0x4e73b0	24	paso: CL9.4		
+0x4e7630	556	paso: CL9.4		
+0x4e7940	81	paso: CL9.4		
+0x4e79a0	667	HUD: CL8.4 (B2) ; chat: CL9.2	sí	src
+0x4e8070	25	paso: CL9.4		
+0x4e8380	414	HUD: CL8.4 (B2) ; ventanas: portada (protocolo) ; chat: existente ; paso: infra (portada)	sí	src
+0x4e8880	3	HUD: CL8.4 (B2) ; ventanas: portada (protocolo) ; chat: existente ; paso: infra	sí	docs
+0x4ea030	96	chat: existente ; paso: CL7 (ya)	sí	src
+0x4eb860	1046	HUD: CL8.4 (B2) ; inventario: CL6	sí	src
+0x4fb1a0	264	paso: CL7 (ya)		src
+0x4fc790	220	chat: CL9.1 (usan los globos de la CL8.2)		src
+0x4fc8c0	585	chat: CL9.1 (usan los globos de la CL8.2)		src
+0x4fcd00	473	chat: CL9.1 (usan los globos de la CL8.2)		src
+0x510ff0	120	paso: CL7/CL9.1		
+0x5110d0	53	HUD: CL8.3 marco / casos en CL9 ; chat: existente ; paso: CL9.1	sí	docs
+0x513270	37	HUD: CL8.2 ; chat: CL8.2		
+0x5132a0	37	HUD: CL8.2 ; chat: CL8.2		
+0x518cf0	27599	inventario: CL6/7		src
+0x530860	17516	HUD: CL11 ; paso: CL7 (ya)	sí	src
+0x54bf10	45	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x54d0f0	2933	HUD: CL8.4 (B2) ; inventario: CL8.4 ; paso: CL9.3	sí	
+0x54ebb0	55	HUD: CL9.5		
+0x54ee00	187	HUD: CL8.4 (B2)		src
+0x550cf0	28	ventanas: CL8.4		
+0x550d10	1698	ventanas: CL8.4		src
+0x5513d0	783	HUD: CL8.4 (B2)		
+0x5516e0	769	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x5519f0	633	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x551c70	708	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x552470	637	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x5531d0	792	HUD: CL9.2		
+0x553520	65	HUD: CL8.1 ; ventanas: portada (Input/Key.h) ; chat: existente ; paso: infra (portada)	sí	src
+0x553570	115	chat: CL8.2 ; paso: CL8.2 (nombrada)		src
+0x553670	139	chat: no se porta		
+0x553ae0	869	HUD: infra ; ventanas: CL8.2/CL8.3 ; chat: no se porta	sí	src
+0x553e50	429	HUD: CL8.2 ; chat: existente	sí	docs
+0x554000	370	HUD: infra ; chat: existente	sí	src
+0x554180	179	HUD: infra		src
+0x554240	166	HUD: CL9.4		
+0x5542f0	79	HUD: infra ; ventanas: portada (texto)		src
+0x554340	567	HUD: infra		
+0x554610	455	chat: CL8.2		docs
+0x5547e0	43	chat: CL8.2		docs
+0x554810	391	HUD: CL8.2 (otro lector) ; chat: CL8.2		src
+0x5549a0	158	chat: CL8.2		
+0x554a40	732	chat: CL8.2		
+0x554d20	779	chat: CL8.2		
+0x555190	786	ventanas: CL8.2 ; chat: CL8.2 ; paso: CL8.2 (nombrada)		src
+0x5554b0	48	chat: CL8.2		docs
+0x5554e0	834	HUD: CL8.2 (otro lector) ; chat: CL8.2 ; chat: se porta en la CL8.2 (barato); el estado, CL9.5		docs
+0x555840	559	HUD: CL8.2 ; chat: CL8.2		
+0x555a70	107	HUD: CL8.4 (B2) ; inventario: —	sí	
+0x555b00	4577	HUD: CL8.2 ; chat: CL8.2		docs
+0x556d20	170	chat: —		
+0x556dd0	915	chat: CL8.2		
+0x557170	701	HUD: CL8.2 ; HUD: CL8.2 (otro lector) ; chat: CL8.2 ; chat: CL9.1 (usan los globos de la CL8.2)	sí	src
+0x557430	298	chat: —		
+0x557560	225	chat: CL8.2		
+0x557650	470	chat: CL8.2		docs
+0x5579e0	924	inventario: —		
+0x557d80	906	HUD: CL8.1		
+0x558110	648	HUD: CL8.1 ; chat: CL9.3	sí	
+0x5583a0	107	inventario: — ; paso: CL9.5	sí	
+0x558410	121	HUD: CL8.1? ; paso: CL9.1	sí	
+0x558490	618	HUD: CL8.1		
+0x558740	87	HUD: CL9.5 ; paso: CL9.5		
+0x558bb0	754	HUD: CL9.2		docs
+0x561840	1035	inventario: —		
+0x5650c0	23133	HUD: CL9.3 ; HUD: CL9.3 (y CL9.4 la tienda personal)		src
+0x56acd0	2775	paso: CL8.3 (consulta) ; paso: CL8.3; falta en MuRet ; paso: CL7 (ya) + CL8.3 + CL9.5 (97)	sí	src
+0x56c1f0	587	chat: CL8.2		
+0x56c440	42272	chat: CL8.2 (compuertas) ; chat: CL9.4 (la tienda, CL9.3 o CL9.4)	sí	
+0x576960	126	HUD: CL8.1 ; chat: portada ; paso: infra (portada)	sí	src
+0x576a60	1096	chat: CL9.1		
+0x576eb0	24522	chat: CL9.1		
+0x59adf0	13537	paso: CL7 (ya) / CL8.3 / CL9		src
+0x59ec80	2246	paso: CL7/CL9.1 ; paso: CL9.4	sí	src
+0x59f810	871	chat: CL8.1/CL9.x		src
+0x59fb80	652	HUD: CL9.5		docs
+0x59fea0	110	chat: —		docs
+0x59ff10	22059	chat: CL8.2		src
+0x5a5860	2925	HUD: CL8.1 dibujo / CL9.2 datos		
+0x5a63d0	547	HUD: CL8.1		
+0x5a6600	988	HUD: CL8.1		
+0x5a6af0	452	HUD: CL8.1		
+0x5a6cc0	764	HUD: CL9.4		
+0x5a6fc0	857	HUD: CL9.5		
+0x5a7320	512	HUD: CL8.1		src
+0x5a7520	288	HUD: CL8.1 / CL9.5 ; HUD: CL9.5	sí	src
+0x5a7640	1661	HUD: CL9.4		
+0x5a7cc0	168	HUD: CL9.5 ; paso: CL9.4/9.5 (a confirmar)	sí	docs
+0x5a7d70	319	HUD: CL9.5/CL11 ; HUD: CL11 ; paso: —	sí	
+0x5a7eb0	2807	HUD: CL9.5		docs
+0x5a89b0	748	HUD: CL9.4 ; HUD: CL9.4 (el dibujo de la barra lo da 0x5a6af0, CL8.1)		docs
+0x5a8cc0	909	HUD: CL8.1		
+0x5a9050	573	HUD: CL8.2 ; HUD: CL8.2 (otro lector) ; chat: CL8.2		docs
+0x5a9290	924	HUD: CL8.1		
+0x5a9630	4973	HUD: CL8.1		
+0x5aa9a0	636	HUD: CL8.2 (otro lector) ; chat: CL8.2		
+0x5aac20	1512	HUD: CL8.1		
+0x5ab210	1155	HUD: CL8.1 / CL9.2 ; HUD: CL9.2	sí	
+0x5ab810	1195	HUD: CL8.1		
+0x5abcd0	1089	HUD: CL8.1		
+0x5ac120	423	HUD: CL8.1 / CL8.4		
+0x5ac2d0	1366	HUD: CL8.1		src
+0x5ac8d0	769	HUD: CL8.1 (SPACE → CL9.3) ; chat: CL8.2 (F2..F4)	sí	src
+0x5ae360	8	chat: CL8.3/CL9.3		
+0x5ae370	1703	chat: —		docs
+0x5aea20	6	HUD: CL8.4 (B2) ; inventario: CL8.4 ; chat: CL8.3/CL9.3	sí	
+0x5af090	1121	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x5af520	60	chat: CL8.3/CL9.3 ; paso: CL8.3		
+0x5af560	46	chat: CL8.3/CL9.3 ; paso: CL8.3		
+0x5af590	934	HUD: CL8.1 ; inventario: CL8.4	sí	
+0x5af9b0	323	HUD: CL8.1		
+0x5afb00	184	HUD: CL8.1		
+0x5afc00	2289	HUD: CL8.1		
+0x5b0550	2972	HUD: CL8.1 ; ventanas: CL8.1		docs
+0x5b10f0	53	HUD: CL9.1 datos / CL8.3 marco (otro lector)		
+0x5b1130	199	HUD: CL9.3 ; inventario: CL8.4 ; paso: CL8.4	sí	
+0x5b1200	228	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x5b12f0	228	HUD: CL9.3		
+0x5b13e0	399	HUD: CL8.4 (B2) ; inventario: CL8.4 ; paso: CL8.4		
+0x5b1570	1569	inventario: CL8.4		
+0x5b1ba0	198	HUD: CL8.1 ; inventario: CL8.4 ; paso: CL8.4	sí	
+0x5b1c70	1592	HUD: CL8.1? ; inventario: CL8.4	sí	
+0x5b2320	1557	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x5b2aa0	22021	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x5b8150	2604	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x5b8b80	1328	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x5b90b0	5760	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x5ba790	4388	HUD: CL9.3 ; HUD: CL9.3 (y CL9.4 la tienda personal)		
+0x5bb8d0	746	HUD: CL8.3		src
+0x5bbbc0	559	HUD: CL8.1 ; chat: CL8.1 (cl8-hud)		src
+0x5bbdf0	29	ventanas: CL9.4		
+0x5bc260	145	inventario: CL8.4		
+0x5bc300	355	inventario: CL8.4		
+0x5bc470	355	inventario: CL9.4		docs
+0x5bc5e0	343	inventario: CL8.4		
+0x5bc740	4045	inventario: CL7/8.4		src
+0x5bd750	2548	inventario: CL8.4		
+0x5be150	2740	ventanas: CL8.4 ; inventario: CL8.4 ; paso: CL8.4		src
+0x5bec50	20676	inventario: CL8.4		docs
+0x5c3d20	1005	inventario: CL8.4		
+0x5c4110	23054	inventario: CL8.4 + CL9.3		src
+0x5c9b40	480	paso: CL8.4		
+0x5ca250	60133	paso: CL8.4 / CL9.3 / CL9.4		
+0x5d8d50	31183	paso: CL8.4 / CL9.3 / CL9.4		docs
+0x5e0720	3420	HUD: CL8.4 (B2) ; inventario: CL8.4		docs
+0x5e1480	3566	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x5e2270	83	inventario: CL8.4		
+0x5e22d0	250	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x5e2460	2197	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x5e2d00	696	HUD: CL8.4 (B2)		
+0x5e2fc0	1696	HUD: CL8.4 (B2)		
+0x5e3660	242	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x5e3760	1211	HUD: CL8.4 (B2)		
+0x5e3c20	74	ventanas: CL9.3		
+0x5e3c80	1202	paso: CL8.3 marco / CL9.4 (43) ; paso: CL9.4	sí	
+0x5e4140	967	paso: CL9.4		
+0x5e4510	1990	inventario: CL8.4 ; paso: CL8.4 (con B2)		
+0x5e4ce0	3124	inventario: CL8.4 ; paso: CL8.4		src
+0x5e5920	3070	inventario: CL9.5 ; paso: CL9.5 (según B2)		
+0x5e6520	4045	paso: CL9.5		
+0x5e74f0	1444	paso: CL9.5/CL9.1 ; paso: CL9.5 (o CL9.1)		
+0x5e7aa0	154	paso: CL9.3		
+0x5e7b50	156	HUD: CL9.3? (otro lector) ; paso: CL9.3		
+0x5e7bf0	7934	paso: CL9.3		
+0x5e9b10	1339	HUD: CL9.3? (otro lector) ; HUD: CL9.3		
+0x5ea060	530	inventario: CL9.3 ; paso: CL9.3 (según B2)		
+0x5ea290	3468	inventario: CL9.4 ; paso: CL9.4 (según B2)		
+0x5eb020	2366	ventanas: CL9.4		
+0x5eb960	111	ventanas: CL9.4		
+0x5eba70	339	inventario: CL9.4 ; paso: CL9.4		
+0x5ebbd0	193	chat: CL9.x ; chat: CL9.x (a identificar) ; paso: CL9.4	sí	
+0x5ebca0	4341	paso: CL9.4		docs
+0x5ecdc0	32	ventanas: CL8.1		docs
+0x5ecde0	2929	inventario: CL9.4 ; paso: CL9.4 (según B2)		
+0x5ed960	2011	inventario: CL9.3 ; paso: CL9.3 (según B2)		
+0x5ee140	217	paso: CL8.3		docs
+0x5ee220	191	HUD: CL9.4 (otro lector) ; inventario: CL8.4	sí	
+0x5ee2e0	10336	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x5f0b40	152	HUD: CL9.4		docs
+0x5f0be0	2746	HUD: CL9.4 ; HUD: CL9.4 (el dibujo de la barra lo da 0x5a6af0, CL8.1)		
+0x5f16a0	426	HUD: CL9.4		src
+0x5f2340	3303	HUD: CL8.4 (B2) ; inventario: CL8.4		
+0x5f3030	1982	HUD: CL9.3/CL9.4 ; HUD: CL9.3		
+0x5f37f0	840	HUD: CL9.4		docs
+0x5f3b40	3031	HUD: CL9.4		
+0x5f4720	1794	HUD: CL9.3		
+0x5f4e30	2749	HUD: CL9.3		
+0x5f58f0	3158	HUD: CL9.5		
+0x5f6550	2838	HUD: CL9.5		
+0x5f70a0	191	HUD: CL9.5		
+0x5f7180	696	HUD: CL8.3 (¿fuera de alcance?)		
+0x5f7440	463	HUD: CL8.3 ; HUD: CL8.3 (cl8-ventanas)		
+0x5f7610	546	HUD: CL8.4 (B2)		docs
+0x5f7840	714	HUD: CL8.4 (B2)		docs
+0x5f7b10	174	HUD: CL8.4		
+0x5f7bc0	934	HUD: CL8.4 (B2) ; inventario: CL8.4		docs
+0x5f7f90	290	paso: CL9.4		
+0x5f80c0	80	inventario: —		
+0x5f8110	28	inventario: —		
+0x5f8130	234	paso: CL9.4		
+0x5f8220	24	paso: CL9.4		
+0x5f8240	24	paso: CL9.4		
+0x5f8260	48	HUD: CL8.4 (B2) ; inventario: — ; paso: CL9.4	sí	
+0x5fac90	552	paso: CL7 (portada)		src
+0x5fc260	274	paso: CL7 (portada)		src
+0x5fc790	47	HUD: CL8.4 (B2) ; inventario: —	sí	
+0x5fc8f0	198	HUD: CL8.1		src
+0x5fcbd0	84	HUD: CL8.1		src
+0x5fccc0	93	HUD: infra ; ventanas: portada		src
+0x5fd120	219	paso: CL9.3		
+0x5fd200	189	inventario: —		
+0x5fd4b0	55	paso: CL9.3		
+0x5fd4f0	4303	paso: CL9.3		
+0x5fe610	1378	inventario: CL9.3 ; paso: CL9.3 (según B2)		
+0x5febf0	3127	HUD: CL9.3		
+0x607b60	1017	HUD: CL8.4 (B2) ; inventario: CL7	sí	src
+0x60cf70	1268	HUD: CL8.4 (B2) ; inventario: CL7	sí	src
+0x61c170	71	chat: CL8.2 ; paso: CL8.2		src
+0x61c1c0	75	chat: CL8.2		
+0x61c210	1442	chat: CL8.2 ; paso: CL8.3	sí	src
+0x6202e0	129	HUD: CL8.1		docs
+0x620370	68	HUD: infra		src
+0x6203c0	184	HUD: infra		src
+0x620480	299	HUD: infra		src
+0x6205b0	130	HUD: infra ; ventanas: CL5 ; chat: existente	sí	
+0x620780	71	HUD: infra		src
+0x620850	28	HUD: infra		src
+0x620870	28	HUD: infra		src
+0x620890	25	HUD: infra		docs
+0x620980	113	HUD: infra ; ventanas: portada ; chat: existente	sí	src
+0x620a00	135	HUD: infra ; ventanas: portada ; chat: existente ; paso: infra (portada)	sí	src
+0x620a90	126	HUD: infra ; ventanas: portada		src
+0x620b10	125	HUD: infra		src
+0x620b90	125	HUD: infra		src
+0x620c10	128	HUD: infra ; ventanas: portada		src
+0x620c90	125	HUD: infra		src
+0x620d10	62	HUD: infra		src
+0x620d50	37	HUD: infra		src
+0x620d80	37	HUD: infra		src
+0x620db0	521	HUD: infra		src
+0x620fc0	35	HUD: CL8.1		docs
+0x6218f0	182	HUD: CL8.1		
+0x6219b0	221	HUD: CL8.1		src
+0x621a90	13	HUD: CL8.1		src
+0x621aa0	185	HUD: infra ; ventanas: portada ; inventario: CL5 ; chat: existente	sí	src
+0x621b60	347	HUD: infra ; ventanas: portada ; chat: existente	sí	src
+0x621cc0	351	HUD: CL8.1		
+0x622b40	155	chat: CL8.2		src
+0x622fb0	1745	paso: CL8.3 (a confirmar)		
+0x623690	85	HUD: infra ; inventario: CL5	sí	src
+0x6236f0	81	ventanas: CL8.3 ; paso: CL8.3		docs
+0x623750	1715	paso: CL9.4		
+0x623e70	40018	ventanas: sus olas (lector de diálogos) ; paso: CL8.3 / varios ; paso: CL10	sí	src
+0x62db60	20371	HUD: CL8.3 marco / casos en CL9 ; HUD: CL8.3 (cl8-ventanas) ; ventanas: sus olas (lector de diálogos)	sí	docs
+0x632c90	239	HUD: CL9.5 ; inventario: CL5 ; paso: infra (portada)	sí	src
+0x632e30	139	paso: CL8.3		
+0x632f70	344	paso: CL9.1		
+0x633110	396	HUD: CL9.3 / CL9.1 ; HUD: CL9.3 ; inventario: CL8.4	sí	docs
+0x633300	1416	inventario: — ; paso: CL8.3	sí	
+0x63b0e3	59	HUD: CL9.5		
+0x63b150	303	HUD: CL8.1		
+0x63b870	1164	ventanas: portada		src
+0x63c280	32	HUD: CL8.3 ; ventanas: CL5 (seguimiento)	sí	
+0x63c2a0	33	ventanas: CL5 (seguimiento)		
+0x63c2d0	78	ventanas: CL5 (seguimiento)		
+0x63c330	280	ventanas: portada (UI/Button)		src
+0x63c450	26	ventanas: portada (UI/Button)		
+0x63c470	18	ventanas: portada (UI/Button)		docs
+0x63c490	639	ventanas: portada (UI/Button)		src
+0x63c710	301	ventanas: portada (UI/Button)		src
+0x63c840	63	ventanas: portada (UI/Button)		
+0x63c880	141	ventanas: portada (UI/Button)		
+0x63c990	11	ventanas: CL5 (selección)		
+0x63c9a0	120	ventanas: CL5 (selección)		
+0x63ca20	569	HUD: CL8.3 ; ventanas: CL5 (selección)	sí	
+0x63cc60	356	ventanas: CL5 (selección)		
+0x63ce00	16	HUD: CL8.3 ; ventanas: CL5 (selección)	sí	
+0x63ce10	33	ventanas: CL5 (selección)		
+0x63ce40	11	ventanas: CL5 (selección)		
+0x63ce50	25	ventanas: CL5 (selección)		
+0x63ce70	168	ventanas: CL5 (selección)		
+0x63cf20	91	ventanas: CL5 (selección)		
+0x63cf80	42	HUD: CL8.3 ; ventanas: CL5 (selección)	sí	docs
+0x63cfb0	42	ventanas: CL5 (selección)		
+0x63d010	170	HUD: CL8.3 ; ventanas: portada (UI/CreateCharacterWindow)	sí	
+0x63d0c0	33	ventanas: portada (UI/CreateCharacterWindow)		
+0x63d0f0	162	ventanas: portada (UI/CreateCharacterWindow)		
+0x63d1a0	725	ventanas: portada (UI/CreateCharacterWindow)		src
+0x63d480	33	ventanas: portada (UI/CreateCharacterWindow)		
+0x63d4e0	387	ventanas: portada (UI/CreateCharacterWindow)		src
+0x63d670	284	ventanas: portada (UI/CreateCharacterWindow)		src
+0x63d790	36	ventanas: portada (UI/CreateCharacterWindow)		
+0x63d880	266	ventanas: portada (UI/CreateCharacterWindow)		src
+0x63e0a0	830	ventanas: portada (UI/CreateCharacterWindow)		src
+0x63e660	13	ventanas: CL8.3 (UI nueva)		
+0x63e6e0	132	HUD: CL8.3 ; ventanas: portada (UI/SelectionBar)	sí	
+0x63e770	33	ventanas: portada (UI/SelectionBar)		
+0x63e7a0	122	ventanas: portada (UI/SelectionBar)		
+0x63e820	385	ventanas: portada (UI/SelectionBar)		src
+0x63e9e0	219	ventanas: portada (UI/SelectionBar)		src
+0x63eac0	73	ventanas: portada (UI/SelectionBar)		
+0x63eb10	36	ventanas: portada (UI/SelectionBar)		
+0x63eb40	78	ventanas: portada (UI/SelectionBar)		src
+0x63eda0	66	chat: CL7/CL9.4		
+0x63ef00	117	HUD: CL8.3 ; ventanas: CL5 (seguimiento)	sí	docs
+0x63ef80	33	ventanas: CL5 (seguimiento)		
+0x63efb0	109	ventanas: CL5 (seguimiento)		
+0x63f020	828	ventanas: CL5 (seguimiento)		docs
+0x63f3a0	502	ventanas: CL5 (seguimiento)		
+0x63f5a0	82	ventanas: CL5 (seguimiento)		
+0x63f600	36	ventanas: CL5 (seguimiento)		
+0x63f630	113	ventanas: CL5 (seguimiento)		src
+0x63f6b0	724	ventanas: CL5 (seguimiento)		
+0x63f9a0	579	ventanas: CL5 (seguimiento)		
+0x63fbf0	96	ventanas: CL5 (seguimiento)		
+0x63fc50	464	ventanas: CL5 (seguimiento)		
+0x63ff30	172	ventanas: CL5 (seguimiento)		
+0x63ffe0	195	ventanas: CL5 (seguimiento)		
+0x640220	35	ventanas: portada		
+0x6402d0	396	ventanas: portada		src
+0x6404b0	80	ventanas: portada		src
+0x640580	130	ventanas: portada		src
+0x6407b0	45	ventanas: portada		
+0x6407e0	28	ventanas: portada		src
+0x640840	7	ventanas: portada		
+0x640850	51	ventanas: portada		src
+0x640ef0	107	HUD: CL8.3 ; ventanas: portada (UI/MenuBar)	sí	docs
+0x640f90	109	ventanas: portada (UI/MenuBar)		
+0x641000	171	ventanas: portada (UI/MenuBar)		src
+0x641490	125	HUD: CL8.3 ; ventanas: portada (UI/LoginWindow)	sí	docs
+0x641540	122	ventanas: portada (UI/LoginWindow)		
+0x6415c0	275	ventanas: portada (UI/LoginWindow)		src
+0x642880	122	HUD: CL8.3 ; ventanas: portada (UI/NoticeWindow)	sí	docs
+0x642930	124	ventanas: portada (UI/NoticeWindow)		
+0x6429b0	481	ventanas: portada (UI/NoticeWindow)		src
+0x642e30	208	ventanas: portada (UI/NoticeWindow)		src
+0x642f00	509	ventanas: portada (UI/NoticeWindow)		src
+0x6431b0	647	ventanas: portada (UI/NoticeWindow)		src
+0x643e70	33	ventanas: portada (UI/NoticeWindow)		
+0x643ea0	7	ventanas: portada (UI/NoticeWindow)		
+0x643ed0	33	ventanas: portada (UI/NoticeWindow)		
+0x643f00	14	ventanas: portada (UI/NoticeWindow)		
+0x643f10	19	ventanas: portada (UI/NoticeWindow)		
+0x643f30	37	ventanas: portada (UI/NoticeWindow)		
+0x643f60	53	ventanas: portada (UI/NoticeWindow)		
+0x643fd0	140	HUD: CL8.3 ; ventanas: CL5 (seguimiento)	sí	docs
+0x644060	33	ventanas: CL5 (seguimiento)		
+0x644090	137	ventanas: CL5 (seguimiento)		
+0x644120	974	ventanas: CL5 (seguimiento)		docs
+0x6444f0	43	ventanas: CL5 (seguimiento)		
+0x644520	274	ventanas: CL5 (seguimiento)		
+0x644640	98	ventanas: CL5 (seguimiento)		
+0x6446b0	36	ventanas: CL5 (seguimiento)		
+0x6446e0	77	ventanas: CL5 (seguimiento)		
+0x644730	293	ventanas: CL5 (seguimiento)		src
+0x644860	463	ventanas: CL5 (seguimiento)		
+0x644a60	13	HUD: CL8.3 ; ventanas: CL8.3 (se reemplaza por la STL)		
+0x644a80	11	ventanas: CL8.3 (se reemplaza por la STL)		
+0x644aa0	82	ventanas: CL8.3 (se reemplaza por la STL)		
+0x644b60	48	ventanas: CL8.3 (UI nueva)		docs
+0x644b90	50	ventanas: CL8.3 (UI nueva)		docs
+0x644c70	40	ventanas: CL8.3 (se reemplaza por la STL)		
+0x644ca0	44	ventanas: CL8.3 (se reemplaza por la STL)		
+0x644cd0	45	HUD: CL8.3 ; ventanas: CL8.3 (UI nueva)		docs
+0x644d60	152	ventanas: CL8.3 (se reemplaza por la STL)		
+0x644ed0	55	ventanas: CL8.3 (se reemplaza por la STL)		
+0x644f40	46	ventanas: CL8.3 (se reemplaza por la STL)		
+0x644f70	39	ventanas: CL8.3 (se reemplaza por la STL)		
+0x644fd0	239	HUD: CL8.3 ; ventanas: portada (UI/ServerListWindow)	sí	docs
+0x6450c0	33	ventanas: portada (UI/ServerListWindow)		
+0x6450f0	221	ventanas: portada (UI/ServerListWindow)		
+0x6451d0	746	ventanas: portada (UI/ServerListWindow)		src
+0x645520	403	ventanas: portada (UI/ServerListWindow)		src
+0x645ba0	86	ventanas: portada (UI/ServerListWindow)		src
+0x645de0	36	ventanas: portada (UI/ServerListWindow)		
+0x645e10	1437	ventanas: portada (UI/ServerListWindow)		src
+0x6463b0	378	ventanas: portada (UI/ServerListWindow)		src
+0x646590	33	ventanas: portada (UI/ServerListWindow)		
+0x6465c0	126	ventanas: portada (UI/ServerListWindow)		
+0x646640	406	ventanas: CL5 (seguimiento)		
+0x6467e0	65	ventanas: CL5 (seguimiento)		
+0x646830	95	ventanas: CL5 (seguimiento)		
+0x646890	75	ventanas: CL5 (seguimiento)		
+0x6468e0	28	ventanas: CL5 (seguimiento)		
+0x646e90	63	ventanas: CL5 (seguimiento)		
+0x646ef0	63	ventanas: CL5 (seguimiento)		
+0x646f80	45	ventanas: CL5 (seguimiento)		
+0x646fe0	16	HUD: CL8.3 ; ventanas: portada (Render/UiImage)	sí	docs
+0x647020	11	ventanas: CL5 (seguimiento)		
+0x647030	28	ventanas: CL5 (seguimiento)		
+0x647050	526	ventanas: portada (Render/UiImage)		src
+0x647260	116	ventanas: portada (Render/UiImage)		src
+0x6472e0	139	HUD: CL8.3 ; ventanas: portada (Render/UiImage)	sí	src
+0x647470	131	ventanas: portada (Render/UiImage)		
+0x647500	25	ventanas: portada (Render/UiImage)		
+0x647650	295	HUD: CL8.3 ; ventanas: portada (Render/UiImage)	sí	src
+0x6477b0	107	HUD: CL8.3 ; ventanas: CL5 (seguimiento)	sí	docs
+0x647820	33	ventanas: CL5 (seguimiento)		
+0x647850	109	ventanas: CL5 (seguimiento)		
+0x6478c0	802	ventanas: CL5 (seguimiento)		docs
+0x647c00	199	ventanas: CL5 (seguimiento)		
+0x647cd0	62	ventanas: CL5 (seguimiento)		
+0x647d10	36	ventanas: CL5 (seguimiento)		
+0x647d40	394	ventanas: CL5 (seguimiento)		src
+0x647ed0	21	ventanas: CL5 (seguimiento)		
+0x6485f0	274	ventanas: CL9.5		
+0x648710	33	ventanas: CL9.5		
+0x6487c0	12	ventanas: CL9.5		
+0x6487d0	553	ventanas: CL9.5		
+0x648a30	5671	ventanas: CL9.5		
+0x64a060	3082	HUD: CL9.5 / CL9.4 ; ventanas: CL9.5		
+0x64aca0	205	ventanas: CL9.5		
+0x64ad70	33	ventanas: CL9.5		
+0x64ae10	731	ventanas: CL9.5		
+0x64b200	507	ventanas: CL9.5		
+0x64b710	690	HUD: CL9.5 / CL9.4		
+0x64bd10	875	HUD: CL9.5 / CL9.4		
+0x64c840	1122	HUD: CL9.5 / CL9.4		
+0x64d190	246	HUD: CL9.5 / CL9.4		
+0x64d350	1291	ventanas: CL9.5		
+0x64d860	1505	HUD: CL9.5 / CL9.4 ; ventanas: CL9.5		
+0x64f3e0	777	ventanas: CL9.4		
+0x64f6f0	33	ventanas: CL9.4		
+0x651680	259	chat: CL7/CL9.4 ; chat: CL9.4	sí	
+0x651790	15	ventanas: CL9.4		
+0x651840	988	ventanas: CL9.4		
+0x651c20	1708	ventanas: CL9.4		
+0x6522d0	12	ventanas: CL9.4		
+0x6522e0	4	ventanas: CL9.4		
+0x6522f0	50	ventanas: CL9.4		
+0x652330	829	chat: CL8.1/CL9.2		src
+0x6529e0	687	chat: CL8.1/CL9.2		docs
+0x652c90	2303	HUD: CL9.5		
+0x654900	438	ventanas: CL9.4		
+0x654ac0	33	ventanas: CL9.4		
+0x656df0	102	ventanas: CL9.4		
+0x656e70	528	ventanas: CL9.4		
+0x657090	12	ventanas: CL9.4		
+0x6570a0	4	ventanas: CL9.4		docs
+0x6570b0	825	ventanas: CL9.4		
+0x657450	339	ventanas: CL8.3		
+0x6575b0	33	ventanas: CL8.3		
+0x6575e0	143	ventanas: CL8.3		
+0x657670	37	ventanas: CL8.3 + cortes		src
+0x6576a0	480	HUD: CL9.5 / CL9.4 ; ventanas: CL8.3	sí	
+0x657880	96	ventanas: CL8.3 ; paso: CL8.3		
+0x6578e0	67	ventanas: CL8.3 ; chat: CL8.2	sí	
+0x657930	168	ventanas: CL8.3 + cortes		docs
+0x6579e0	163	HUD: CL9.5 / CL9.4 ; HUD: CL9.5 ; ventanas: CL8.3 + cortes	sí	
+0x657a90	20	ventanas: CL8.3 ; paso: CL8.3		src
+0x657ab0	6098	ventanas: CL8.3		src
+0x659290	1418	HUD: CL8.3 ; ventanas: CL8.3 ; chat: CL8.3 ; paso: CL8.3		src
+0x659860	315	ventanas: CL8.3		
+0x6599a0	12544	ventanas: CL8.3 ; chat: CL8.3 ; chat: CL9.4 ; paso: CL8.3	sí	docs
+0x65cae0	366	ventanas: CL8.3 + cortes ; chat: CL8.3 ; paso: CL8.3		docs
+0x65cc50	41	ventanas: CL9.4		
+0x65cd20	23	ventanas: CL9.4		
+0x65ce50	33	ventanas: fuera del dominio		
+0x65dcd0	154	HUD: sin asignar		
+0x65dd70	184	HUD: sin asignar		
+0x65ec60	233	HUD: CL8.3 ; ventanas: CL8.3 (UI nueva)		docs
+0x65ed50	33	ventanas: CL8.3 (UI nueva)		
+0x65ed80	220	ventanas: CL8.3 (UI nueva)		
+0x65ee60	51	HUD: CL8.3 ; HUD: CL8.3 (cl8-ventanas) ; ventanas: CL8.3 (UI nueva) ; chat: existente	sí	src
+0x65eeb0	673	ventanas: portada (carga)		src
+0x65f160	91	ventanas: portada?		
+0x65f1c0	59	ventanas: portada (carga)		
+0x65f2b0	47	ventanas: CL8.3 (UI nueva)		
+0x65f2e0	31	ventanas: CL8.3 (UI nueva)		
+0x65f300	419	ventanas: portada (login)		src
+0x65f4b0	319	ventanas: portada (selección)		src
+0x65f5f0	31	ventanas: CL8.3 (UI nueva)		docs
+0x65f610	117	ventanas: CL8.3 (UI nueva)		docs
+0x65f690	33	ventanas: portada parcial (MenuBar)		src
+0x65f6c0	91	ventanas: portada parcial		src
+0x65f720	1138	ventanas: CL8.3 (UI nueva)		docs
+0x65fbb0	121	ventanas: CL8.3 (UI nueva)		
+0x65fc30	447	ventanas: CL8.3 (UI nueva)		src
+0x65fe00	77	HUD: CL8.3 ; HUD: CL8.3 (cl8-ventanas) ; ventanas: CL8.3 (UI nueva)		src
+0x65fe50	44	ventanas: portada		docs
+0x65feb0	304	ventanas: CL8.3		
+0x65ffe0	33	ventanas: CL8.3		
+0x660010	118	ventanas: CL8.3		
+0x660090	51	ventanas: CL8.3		
+0x660280	22	ventanas: CL8.3		
+0x660340	4	ventanas: CL8.3		
+0x660350	108	ventanas: CL8.3		
+0x6603c0	77	ventanas: CL8.3		
+0x660410	364	ventanas: CL8.3		
+0x660580	35	ventanas: CL8.3		
+0x6605b0	632	ventanas: CL8.3		
+0x660830	1095	HUD: CL9.5 / CL9.4 ; ventanas: CL8.3	sí	
+0x660da0	120	HUD: CL9.5 / CL9.4		
+0x660e20	133	HUD: CL9.5 / CL9.4		
+0x660eb0	115	HUD: CL9.5 / CL9.4		
+0x660f30	37	HUD: CL9.5 / CL9.4		
+0x660f60	119	HUD: CL9.5 / CL9.4		
+0x660fe0	60	HUD: CL9.5 / CL9.4		
+0x661020	36	HUD: CL9.5 / CL9.4		
+0x661050	64	HUD: CL9.5 / CL9.4		
+0x661090	420	ventanas: CL9.5		
+0x661240	33	ventanas: CL9.5		
+0x661310	2116	ventanas: CL9.5		
+0x661b90	36	ventanas: CL9.5		
+0x661bc0	1099	ventanas: CL9.5		
+0x662010	975	HUD: CL9.5 / CL9.4		
+0x663f40	1071	HUD: CL9.5 / CL9.4		
+0x666650	1245	HUD: CL9.5 / CL9.4		
+0x668230	1937	HUD: CL9.5 / CL9.4		
+0x6689d0	30	HUD: CL8.4 (B2) ; inventario: — ; paso: CL9.3	sí	
+0x668d50	634	HUD: CL9.5 / CL9.4		
+0x6691c0	740	ventanas: CL9.5		
+0x6694c0	1736	HUD: CL9.5 / CL9.4 ; ventanas: CL9.5		
+0x669bd0	28	HUD: CL8.3 ; ventanas: portada (ServerListWindow box)	sí	
+0x669bf0	33	ventanas: portada		
+0x669c20	79	ventanas: portada (UI/CreateCharacterWindow)		
+0x669c70	214	ventanas: portada		src
+0x669d50	63	ventanas: portada		
+0x669d90	35	ventanas: portada		
+0x669df0	211	ventanas: portada		docs
+0x669ed0	54	ventanas: portada parcial		docs
+0x669f10	33	ventanas: portada		
+0x669f40	272	ventanas: CL8.3 (UI nueva)		docs
+0x66a050	31	ventanas: portada		src
+0x66a070	19	ventanas: portada (ServerListWindow)		
+0x66a090	48	ventanas: portada		src
+0x66a120	18	HUD: CL8.3 ; ventanas: portada (ServerListWindow)	sí	docs
+0x66a140	33	ventanas: portada (ServerListWindow)		
+0x66a170	78	ventanas: portada (ServerListWindow)		
+0x66a1c0	449	ventanas: portada (ServerListWindow)		src
+0x66a390	63	ventanas: portada (ServerListWindow)		
+0x66a3d0	257	ventanas: portada (ServerListWindow)		src
+0x66a4e0	265	ventanas: portada (ServerListWindow)		src
+0x66a670	163	ventanas: portada (ServerListWindow)		
+0x66a720	43	ventanas: portada (ServerListWindow)		
+0x66a750	519	ventanas: portada (ServerListWindow)		

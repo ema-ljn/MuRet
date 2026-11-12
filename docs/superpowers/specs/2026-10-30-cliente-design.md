@@ -221,7 +221,7 @@ Cada sub-ola es un PR chico. "Terminada cuando" es la condición objetiva de cie
 | CL5 | Render 2D y la escena de login | CL5.0 el pipeline gráfico (buffers, shaders, matrices, texturas) · CL5.R las escenas de carga y de login en el binario (P-C04, P-C13) · CL5.1 `Renderer` y texturas desde OZT/OZJ · CL5.2 `SpriteBatch` en 640 × 480 escalado · CL5.3 texto con caché y colores `0x02` · CL5.4 `SceneManager`, la escena de carga y la `LoginScene` · CL5.5 UI de login conectada a CL4: lista de servidores, cuenta y clave. El mundo 3D detrás del login (el mapa 55, `World56`), el logo y el personaje llegan con la CL6 y la CL7 | GPU, shaders, coordenadas lógicas | 06, 02 |
 | CL6 | Modelos y selección de personaje | CL6.0 huesos y cuaterniones (rotaciones, slerp, una jerarquía de huesos y el skinning, a mano contra glm) · CL6.R lectura guiada del render de modelos (P-C01, ya reproducido contra las trazas) y flujo `F3` (P-C06) · CL6.1 parseo de modelos · CL6.2 skinning y animación · CL6.3 `CharacterSelectScene` con preview 3D y los paquetes de selección · CL6.4 el logo y el personaje del login · CL6.5 crear y borrar personajes (`F3 01`, `F3 02`) con la barra de la selección, la ventana de crear y su vista previa · CL6.6 la tela de la clase 4 (la capa del Dark Lord), exacta del binario | jerarquías de huesos, interpolación, cuaterniones | 05, 06, 08 |
 | CL7 | Mundo | CL7.R lectura guiada del renderer de terreno (P-C02, ya identificado y verificado), y qué mapas conoce el original y cómo pasa de uno a otro (P-C12), con el barrido del login (abajo) · **arranca por el login**: el mundo del mapa 55, el dragón, la base de los efectos con los del login y el cuervo, con la cámara fija de la escena 2 · CL7.1 terreno con capas, alfa y luz · CL7.2 objetos del `.obj` · CL7.3 cámara · CL7.4 picking y movimiento (`0xD3`/`0xD7`): caminar en Lorencia · CL7.5 los otros mapas: cargar cualquier mundo del `Data\`, cambiar de mapa (gates y warps) y lo propio de cada uno · CL7.6 los efectos del mundo y de los personajes (lo que dejó la CL6, abajo) | mallas, frustum culling, rayos | 05, 06 |
-| CL8 | HUD y ventanas | CL8.1 barras y minimapa · CL8.2 chat · CL8.3 `UI::Window` y el administrador · CL8.4 inventario | UI retenida vs inmediata, eventos | 06 |
+| CL8 | HUD y ventanas | CL8.1 el HUD (barras, números, cursor, teclas, /move y captura) · CL8.2 chat · CL8.3 los paneles, los diálogos del juego y los dos administradores de ventanas · CL8.4 inventario, tooltips y ventana del personaje | UI retenida vs inmediata, el foco del mouse, eventos | 06 |
 | CL9 | Gameplay | CL9.R por dominio (P-C09), y los mapas de evento (P-C12) · CL9.1 otros jugadores y monstruos (viewport) · CL9.2 combate y skills · CL9.3 items · CL9.4 party, gremio y comercio · CL9.5 los mapas de evento que conozca el original: entrada, reglas, paquetes y UI | modelado de dominio, consistencia con el servidor | 04 |
 | CL10 | Audio | CL10.R formatos y disparadores (P-C07) · CL10.1 música · CL10.2 efectos | audio digital, mezcla, streaming | 08 |
 | CL11 | Efectos visuales completos | CL11.R inventario de familias, casos y consumidores que no cubran ya CL7.6, CL8 o CL9 · CL11.1 joints y estelas · CL11.2 cintas · CL11.3 casos restantes de efectos con modelo, sprites y partículas · CL11.4 efectos visuales de combate, skills y eventos, conectados a sus disparadores de CL9 | ciclos de vida, pools, orden de pases y estado de GL | 06, 08 |
@@ -389,6 +389,24 @@ mapas con los gates. Cambia el orden de las sub-olas que quedaban:
 4. **Los otros mapas** (CL7.5 A a E): cada mundo del `Data\`, `Gate.bmd` con la detección del cliente, el
    `1C`, el `F3 04` y el `F3 12`, el cambio de mapa adentro del paso y los casos de cada mapa como datos.
 5. **Los efectos que dejó la CL6** (CL7.6), y un cierre como el del login.
+
+### El HUD y las ventanas (CL8)
+
+Plan: [`2026-11-12-ola-cl8-hud-y-ventanas.md`](../plans/2026-11-12-ola-cl8-hud-y-ventanas.md). El barrido de la
+CL8 (2026-11-12) leyó la UI del juego en cinco partes (el HUD y el 2D, las ventanas y su administrador, el
+inventario, el chat y el paso de la UI; [06](../../../Client/docs/research/06-render-escenas-y-ui.md#hud-y-ventanas))
+y cambió la forma de la ola:
+
+1. **No hay minimapa en el 1.02:** el modo 4 de las superposiciones es la ventana /move. La CL8.1 es el HUD con
+   /move, las teclas y la captura.
+2. **Las ventanas del juego no son clases:** el inventario, el personaje, la party y las demás son bits de un
+   registro de paneles, dibujados en modo inmediato. Las clases retenidas son solo las del administrador viejo
+   (amigos, correo, cajas de mensaje, el registro del chat) y las de la UI nueva del login. La CL8.3 son los
+   paneles, los diálogos del juego (`0x623e70`, con el menú de Esc) y los dos administradores.
+3. **Ocho hitos, un PR por hito:** la UI toma el mouse (los paneles, el bloque de UI del paso y la pasada 2D), el
+   HUD, el chat, el inventario, los tooltips y la ventana del personaje, los diálogos con el menú de Esc y las
+   teclas, las ventanas viejas, y la UI nueva con el Esc, las opciones y los créditos del login y la selección.
+4. **Usar y tirar ítems** (`26`, `23`) quedan en la CL9.3, con los ítems del piso.
 
 ## Cómo el research se vuelve test
 

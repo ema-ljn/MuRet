@@ -97,8 +97,8 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
     pide con `0x659290(0x2000000)`, la consulta del estado de los paneles de la UI (364 llamadas,
     un bit por panel), que lee `DAT_07d53709`; la escriben solo el sistema de paneles (`0x6599a0`
     la pone en 1 en `0x65c95f` y `0x657ab0` en 0 en `0x657af9`). `DAT_00723911` recuerda que ya se
-    pidió (`0x4246dd`) y vuelve a 0 cuando el panel se cierra. No es del anticheat. Qué panel es,
-    sin identificar. *Verificado* en el cable: 9 en el `muproxy.log` y 10 en la sesión real, todos
+    pidió (`0x4246dd`) y vuelve a 0 cuando el panel se cierra. No es del anticheat. Es la ventana del
+    personaje (C), la que abre la tecla C (06 § HUD y ventanas). *Verificado* en el cable: 9 en el `muproxy.log` y 10 en la sesión real, todos
     `01 00 08` y todos después de entrar al mundo.
   - `0x422990` manda el de un ítem `0x1a04` o `0x1a05` cuando cambia el que se mira (lo llama la UI,
     `0x5b2b0d`), con el lugar y la casilla que recibe.
@@ -238,8 +238,8 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
 - **`C1 03 31`, C->S** (`0x419900` en `0x419a0e`, `0x4499b0` en `0x449ad1`): tres bytes, sin
   cuerpo, en claro y sin el XOR32. `0x419900` pone en 0 `+0x21383` de `[0x710148]` antes de
   mandarlo, y `0x4499b0` sale sin mandar si la caja de `0x723c80` tiene algo (`0x449c10`) y, si no,
-  pone en 0 `0x724580` y `0x724584`. Qué hace el GS con él no está leído: MuRet lo llama
-  `WindowClose` por eso, *inferido*. Los llaman también otros lugares de la interfaz (`0x44b5da`,
+  pone en 0 `0x724580` y `0x724584`. En el GS reconstruido es `CGCloseWindow`
+  (`protocol.cpp:443`, `0x42ab20`): MuRet lo llama `WindowClose`. Los llaman también otros lugares de la interfaz (`0x44b5da`,
   `0x44b9ce`, `0x44c62e` y `0x658dfd` a `0x4499b0`), que MuRet no tiene.
 - **La suma del ejecutable (`03`)**, S->C y C->S (`0x4e2b10` → `0x4e16c0`; *estático*, ASM
   c32bbd5f, y del lado del GS la reconstrucción del research del servidor). Al entrar al mundo

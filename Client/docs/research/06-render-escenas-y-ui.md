@@ -945,7 +945,8 @@ los números y Alt con un número (cortan, CL9.2 y hito 3), el clic derecho en l
 sin ningún panel abierto, el panel del asedio de la clase 0 (`0x40f6d0`: Tab con el latch lo muestra u oculta, el
 mouse en su rectángulo de `0x97 × 0xad` es de la UI, la flecha de la página y el alfa, Q-C460). El picking del
 frame (`0x637641`) corre después del pase del mundo con las copias del frame proyectado, y el ancho del mundo
-(`0x5bb8d0`) se pide en `0x63733e`: con un panel abierto, el frame corta (el mundo angosto es del hito 4). La
+(`0x5bb8d0`) se pide en `0x63733e`: con un panel abierto, el frame ~~corta~~ achica el mundo desde el hito 4
+([El inventario](#el-inventario)). La
 pasada 2D (`0x637646..0x6376e6`) queda como ganchos en su orden, sin dibujar ni sacar `rand()`, hasta el hito 2.
 
 **Los paneles.**
@@ -1186,6 +1187,88 @@ el mensaje va al área de mensajes. No saca `rand()`.
 juego) y `UI/WhisperSenders`; la franja, en `WorldRuntime` (`chat.selectionNotice`), y el `F3 30` llena las teclas de
 las skills del registro propio (`+0x26c`), el ataque automático, el sonido, los carteles prendidos (`0x6c7a8c`), Q, W
 y E y los renglones y la transparencia del registro. El cartel de `Slide.bmd` no está (08, P-C80).
+
+### El inventario
+
+Leído en el hito 4 de la CL8 (2026-11-12, *estático*, cotejado con el PE `c32bbd5f`). MuRet lo porta en
+`Scenes/GameInventoryHud.cpp`, con los tests de `test_game_inventory_hud.cpp` en Lorencia y en Devias.
+
+**La ventana** (`0x5f2340`, desde `0x5f7440`). Empieza con su `IsOpen(0x4000000)`. La x es `0x1c2`, o `0x104` con el
+personaje o la party abiertos; la y, 0; las dos quedan en `0x78a5a14` y `0x78a5a10`, que leen las grillas y el paso.
+Todos los quads son `0x621b60(slot, x, y, w, h, 0, 0, du, dv, 1, 1, 0)`, en el orden que sigue:
+
+| Pieza | Función | Slot y lugar (desde x, y) | du × dv |
+|---|---|---|---|
+| fondo | `0x5ee220(x, y, 0)` | `0x104` (0, 0, 190 × 256) y `0x105` (0, 256, 190 × 177); con el tercer argumento, `0x117` (0, 225, 190 × 10), que el inventario no pide | 0,7421875 × 1 / 0,69140625; 0,625 |
+| equipo | `0x5e2460`, con el registro propio abierto alrededor (3.848 al cerrarlo) y la mezcla de alfa | 8 `0x113` (15, 46, 40 × 40); 7 `0x112` (115, 46, 60 × 40); 2 `0x107` (75, 46, 40 × 40), salvo la clase 3 (`+0xb & 7`, con otro acceso adentro); 3 `0x108` (75, 89, 40 × 60); 4 `0x109` (75, 152, 40 × 40); 0 `0x10a` (15, 89, 40 × 60); 1 `0x114` (134, 89, 40 × 60); 5 `0x10b` (15, 152); 6 `0x10c` (134, 152); 9 `0x10d` (55, 89, 20 × 20); 10 y 11 `0x10e` (55, 152) y (115, 152) | 0,625 × 0,625, 0,9375 × 0,625 (alas), 0,625 × 0,9375 (40 × 60) |
+| grilla | `0x5e3660(x + 15, y + 200, 0x78a9bb0, 8, 8)` | por casilla, 20 × 20 en (c · 20, f · 20): `0x115` vacía (tipo −1) u `0x116` con un tipo | 1 × 1, 0,625 × 0,6666667 |
+| zen | `0x5f2441..0x5f27ef` | `0x10f` (50, 367,7f, 113 × 18) | 0,8828125 × 0,5625 |
+| cerrar | sin el comercio (`IsOpen(0x20)`, 1 `rand()`) y sin la caja del entrenador (`0x449c00`) | `0x118` (20, 395, 24 × 24); ayuda: texto 225 | 0,75 × 0,75 |
+| reparar | sin comercio, tienda de NPC, almacén, caja del caos, lista del asedio, `0x1000`, `0x4000`, entrenador 3 ni `0x78abb00`, y nivel > 49 | `0x11e`, u `0x11f` con `0x78abb0c` en 1 (48, 395); ayuda: texto 233 | 0,75 × 0,75 |
+| tienda personal | la misma cadena, con el entrenador en cualquier valor y nivel > 5 | `0x657`, o `0x658` (`btn_pshop2`) con `0x800` o `0x20000` abiertos (76, 395); ayuda: 1127 abierta, 1125 cerrada | 0,75 × 0,75 |
+| cartel del set | `0x40e720(x, y)`, método del objeto `[0x6eed3c]` | `0x652` (14, 22 + y en float, 162 × 20) | 0,6328125 × 0,625 |
+
+Cada lugar del equipo y cada casilla toma antes el color de `0x5e22d0(ítem)`, que lee `+0x44`: 0 blanco; 1 (0,8;
+0,8; 0,8); 2 (0,6; 0,7; 1); 3 y 99 (1; 0,2; 0,1); 4 (0,5; 1; 0,6); 5 (0,8; 0,7; 0); 6 (0,8; 0,5; 0); 7 (0,8; 0,3;
+0,3); 8 (1; 0; 0); otro valor deja el que haya (Q-C471). Las casillas vacías también lo toman.
+
+Los textos: el título (texto 223) con la fuente gruesa, blanco sobre `0xff141414`, por `0x554180` en el modo 2 en
+(x + 0x23, y + 0xc) con una caja de `W · 120 / 640` píxeles (centrado en la caja, con la división de C); el texto
+224 en (`_ftol(zx)` − 30, `_ftol(zy)` + 3) y el zen en (`_ftol(zx)` + 10, ·), los dos con la fuente gruesa sobre
+`0xff282828`, el primero en `0xff96dcff` y el zen con comas cada tres cifras y su color: `0xff0000ff` desde
+10.000.000, `0xff0096ff` desde 1.000.000, `0xff18c900` desde 100.000 y si no `0xff96dcff`. Con el mouse sobre un
+botón (en float, `x ≤ m < x + 24`), la fuente normal, blanco sobre negro, y `0x554340` en (`_ftol(x)`, `_ftol(y)` −
+13) el de cerrar y − 12 los otros dos. El cartel del set: con la fuente gruesa, "[texto 989]" centrado en
+(x + 0x60, `_ftol(arriba + 3)`) en negro sobre `0x64`, y otra vez en (x + 0x5f, `_ftol(arriba + 2)`) con el
+blanco de texto y el color de los quads en (1; 0,8; 0,1) si el objeto tiene alguna opción de set (`+0x9348` o
+`+0x9349`), o (0,5; 0,5; 0,5).
+
+**Los `rand()` de la ventana**: el registro propio se cierra tres veces sin otros accesos (el equipo, el zen y el
+nivel de los botones: 3 × 3.848) y el comercio y la tienda de NPC se consultan cinco veces (cerrar 1, reparar 2,
+tienda 2; Q-C470): **11.549** por frame. Con el inventario abierto, `0x5bb8d0` (el ancho del mundo) también consulta
+el comercio y la tienda: 2 más en `0x63733e`, 2 en `0x63738a` y 2 en los avisos de durabilidad del HUD (`0x5aac20`),
+y 2 por cada munición a la vista (`0x5ab810`).
+
+**El mundo angosto** (`0x6371a0`). `0x5bb8d0` da 640 sin ventanas, 450 con una y 260 con dos. `0x63733e` lo pide para
+`0x620db0(0, 0, w, 48)` (solo la modelview) y `0x5fbb00(w · 0,0015625f, &p)`, que achica los cinco planos y el rango
+de bloques (`FrustumPointsOf`, el medio ancho por el factor) y pasa w al trapecio (`0x5fb570`). `0x63738a` lo vuelve a
+pedir para el pase del mundo, `0x620db0(0, 0, w, 432)`: el viewport de `W · w / 640` píxeles y el aspecto de 0x6203c0
+con ese ancho. El HUD y el 2D siguen en 640 × 480.
+
+**Los ítems 3D de las grillas** (`0x5f7610`, desde `0x5ac120`). Con el inventario: `0x5e2fc0`, el equipo con el
+registro propio abierto alrededor (3.848), en el orden 8, 7, 2, 3, 4, 0, 1, 5 y, por `0x5e2d00`, 6, 9, 10 y 11, cada
+uno con tipo y `+0x3c > 0`; y `0x5e3760(x + 15, y + 200, 0x78a9bb0, 8, 8, 0)`, que recorre las 64 casillas y dibuja
+solo la de arriba a la izquierda de cada ítem (`+0x3c` en 1). Después, en este orden, la tienda (`IsOpen(0x10000)`,
+1 `rand()`), el comercio (`IsOpen(0x20)`, 1), el almacén, la caja del caos, la lista del asedio en el modo 3 con
+`0x6689d0`, las tiendas personales y la caja del entrenador (`0x44ad40(0)`). El ítem del cursor (`0x5f7b10`):
+`0x7879f80` con `0x7879fbc > 0`, centrado en el mouse, con el último argumento de `0x5e1480` en 1. Las tres ranuras
+rápidas: `0x5e1480(208 + 31i, 454, 20, 20, tipo, +4, 0, 0, 0)`.
+
+**El ítem de la UI** (`0x5e1480(x, y, w, h, tipo, nivel, excelente, set, siempre)` → `0x5e0720`). El modelo es
+tipo + `0x212`, salvo: `0x1c0b` por `nivel & ~7` (8 → `0x223e`; `0x10`, `0x70` y `0x78` → `0x223f`; `0x18` y `0x68`
+→ `0x2240`; `0x28` → `0x2242`; `0x30` → `0x2243`; `0x40` a `0x60` → `0x2244`); `0x1a0e` con 8 → `0x224a`; `0x1c09`
+con 8 → `0x2241`; `0x1a0b` con 8 → `0x224c`; y por `nivel >> 3` con signo: `0x1c15` (1 → `0x2245`, si no `0x1e27`),
+`0x1a13` (0, 1 y 2 → `0xc1c`, `0x225` y `0xa24`), `0x1c17` (0 y 1 → `0x1e29` y `0x2246`), `0x1c18` (0 y 1 → `0x1e2a`
+y `0x2247`) y `0x1a14` (0 → `0x2249`, 1 a 3 → `0x2248`); con otro nivel, esos cuatro no dibujan nada. `0x5e0720` arma
+un objeto local y llama a `0x607b60` (los `rand()` de lo que cuelga del modelo: 1 con `0x220` y `0xc19`, 2 con
+`0xc17` y `0xe20`) y a `0x60cf70` → `0x60b3d0`, que con el objeto en blanco llama una vez a `0x609640` (2 con `0xe21`
+y `0xe22`) y, sin excelente (`& 0x3f` en 0, o con uno de los modelos `0x1a12` a `0x1a18` o `0x1c30`, que no lo muestran) y
+con el set (`& 3`) en 1 o 2,
+hace el pase del set (`0x60cc29`): con `sin(0,001 · T) · 0,5 + 0,4 ≤ 0,01` en la x87, `rand() % 100` en el `+0xc0`
+del modelo. `0x1a18` llega a sus uniones (`0x60c3b6`, `0x530860`). MuRet saca esos `rand()` y no dibuja el modelo
+(P-C70).
+
+**Las cifras** (`0x5f7840`). Sale si no hay inventario, tienda, almacén, caja del caos ni comercio, salvo con la lista
+del asedio en el modo 3 o la caja del entrenador. Con la mezcla de alfa y el color (1; 0,9; 0,7), `0x5e3760(…, 1)`
+dibuja las pociones `0x1c00` a `0x1c08` con durabilidad 2 o más (9 × 10, en `x + 13`) y los paquetes
+de joyas `0x181e` y `0x181f` con ((`+4 >> 3 & 0xf`) · 5 + 5) · 2 (7 × 8, en `x + 14`). Después, las mismas consultas
+que `0x5f7610` para las otras grillas.
+
+**Lo que porta MuRet**: la ventana entera; los ítems 3D, el del cursor y los de las ranuras con sus `rand()`; las
+cifras; el mundo angosto en `GameScene` (`0x63733e` y `0x63738a`); y las texturas `0x104` a `0x120` (sin `0x106`),
+`0x652`, `0x657` y `0x658` en `HudTextureSet`. Las otras grillas cortan con su dirección (CL9.3, CL9.4 y CL9.5). El
+paso del inventario (`0x5e4ce0` y las seis hijas de `0x5ee1a3`), el del ítem del cursor (`0x5d8d50`) y lo que piden
+(`0x5be150`, `0x5bec50`, `0x5c4110`, `C3 24`, `0x550d10`, `0x54e540`) siguen cortados: P-C71.
 
 ## La escena de carga y la de login
 

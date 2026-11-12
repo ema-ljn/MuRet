@@ -48,7 +48,7 @@ std::optional<MouseButton> ButtonFor(std::uint8_t button)
     }
 }
 
-// La repetición de Backspace y Tab, como el WM_CHAR que Windows repite al EDIT del campo: su byte
+// La repetición de Backspace, Tab y Enter, como el WM_CHAR que Windows repite al EDIT del campo: su byte
 // en el texto tecleado (InputEvent.h). La de las otras teclas no es un evento.
 std::optional<InputEvent> RepeatEventFor(SDL_Scancode scancode)
 {
@@ -60,6 +60,9 @@ std::optional<InputEvent> RepeatEventFor(SDL_Scancode scancode)
         break;
     case SDL_SCANCODE_TAB:
         typed = Input::TabChar;
+        break;
+    case SDL_SCANCODE_RETURN:
+        typed = Input::EnterChar;
         break;
     default:
         return std::nullopt;

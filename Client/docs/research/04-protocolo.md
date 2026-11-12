@@ -710,7 +710,8 @@ el flag de FoxAnti, y ninguno mira el largo del paquete: leen a desplazamientos 
   `sprintf(buffer de 100, texto 483, texto)` (Q-C514), `0x554610(buffer, 1)` y `0x651680` sobre `[0x7d536f0]`, la
   ventana del gremio (CL9.4). De 10 a 15 con texto, `0x46b720(b4, WORD 6, texto, tipo − 10, b12 · [0x6b8a34],
   DWORD 8)`, el cartel de `Slide.bmd`: solo en la escena 5 y con `b4` de 1 a 30 (`0x46b73e` y el bucle de
-  `0x46abf0`) agrega algo a sus colas (08, P-C80). `pkt[5]` no se lee.
+  `0x46abf0`) agrega algo a sus colas ([06 § El cartel de `Slide.bmd`](06-render-escenas-y-ui.md#el-cartel-de-slidebmd)).
+  `pkt[5]` no se lee.
 - **`F3 30`** (`0x4e32c9` → `0x4dd570(pkt + 4)`): `C1 13 F3 30 <teclas:10> <banderas> <Q> <W> <E> <chat>`. Abre el
   registro propio y llena las teclas del elegido: `+0x26c + 0x100 · [0x6d5edc]`, 0x100 bytes en `0xff`, y para cada
   tecla con skill (no `0xff`), el número de la tecla en el primer lugar `j` de las skills del registro (`+0x6c + j`)
@@ -726,8 +727,25 @@ falta en `\0` (Q-C510): el `00` y el `02` no fallan por cortos, y el `01`, el `0
 campos fijos son `TooShort`. Otro tipo u opcode, `WrongPacket`. La sesión los pasa al aplicador sin mirar su
 estado (`SessionEventApplier`): el `00` en el login pide la lista por el GS (`ServerSession::ResendServerListRequest`),
 y lo demás va a `Scenes/ChatReceive`, que corta con la dirección donde el original abre otra ola: el Guild Master del
-`01` (`0x4e3450`), la ventana del aviso del gremio (`0x4c665f`, después del aviso centrado), el cartel (`0x4c66b3`)
-y el `F3 30` sin elegido (`0x4dd645`, antes de abrir el registro). Los tests usan nombres y textos inventados.
+`01` (`0x4e3450`), la ventana del aviso del gremio (`0x4c665f`, después del aviso centrado) y el `F3 30` sin
+elegido (`0x4dd645`, antes de abrir el registro). El `0D` de 10 a 15 encola en el cartel (`UI::QueueTheSlide`, con la
+velocidad `b12 · 0,1f` en la x87 y guardada en float). Los tests usan nombres y textos inventados.
+
+### El chat que se manda: `00` y `02`
+
+(CL8 hito 3, *estático*.) Los arma el WndProc al apretar Enter (`0x4b5b0d` el chat y `0x4b70a7` el susurro) y las
+macros (`0x5a1388`), y salen en C1 con el XOR32 desde el byte 3 y en claro por `send()`, sin la cola de los cifrados:
+
+- **`C1 (0xd + n) 00`**: el nombre del héroe (`+0x1d9`, sus diez bytes con lo que haya detrás del `'\0'`) y el texto.
+- **`C1 (0xd + n) 02`**: los diez primeros bytes del buffer del susurro (`0x7798cf8`) y el texto. El destinatario
+  queda en `0x57678c4`.
+
+El texto va con su `'\0'` si tiene menos de `0x3c` bytes; si no, sus primeros `0x3c`, sin él (`0x4b7aaf` y
+`0x5a1515`). Del lado del GameServer son `PMSG_CHATDATA` y `PMSG_CHATDATA_WHISPER`: el nombre en `+3` y el texto en
+`+0xd`, de hasta 60 bytes (`CGChatRecv` y `CGChatWhisperRecv`). El camino cifrado de `0x4b6989` no se toma con estos
+dos. El chat no saca `rand()`; el susurro, los 3.848 del registro propio de `0x554a40`
+([06](06-render-escenas-y-ui.md#el-chat), "La entrada del chat"). **MuRet**: `Protocol::Chat::WriteChat` y
+`WriteWhisper`, que manda `App::ServerSession::SendChat`; lo que llevan lo escribió el jugador y no va al log.
 
 ## Qué implica para MuRet
 

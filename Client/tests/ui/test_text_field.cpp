@@ -143,4 +143,60 @@ TEST(TextFieldTest, ALatin1FieldTakesTheLettersOfItsPage)
                "a");
     EXPECT_EQ(ascii.Value(), "Pea");
 }
+
+// Los EDIT del chat (CL8 hito 3): EM_SETSEL(0, −1) elige todo y lo primero que entra lo reemplaza, aun con el campo
+// lleno; lo que no entra no lo toca.
+TEST(TextFieldTest, WhatIsTypedReplacesTheSelection)
+{
+    TextField field(4, false, TextField::Charset::Latin1);
+    field.Type("abcd");
+    field.SelectAll();
+    EXPECT_TRUE(field.AllSelected());
+
+    field.Type("\x01");
+    EXPECT_EQ(field.Value(), "abcd");
+    EXPECT_TRUE(field.AllSelected());
+
+    field.Type("xy");
+    EXPECT_EQ(field.Value(), "xy");
+    EXPECT_FALSE(field.AllSelected());
+}
+
+TEST(TextFieldTest, BackspaceErasesTheSelection)
+{
+    TextField field(Ten, false);
+    field.Type("abc");
+    field.SelectAll();
+
+    field.Backspace();
+
+    EXPECT_EQ(field.Value(), "");
+    EXPECT_FALSE(field.AllSelected());
+}
+
+// WM_SETTEXT no mira EM_LIMITTEXT ni el filtro de lo tecleado, y deja el cursor al final.
+TEST(TextFieldTest, SetTextPutsTheBytesAsTheyAre)
+{
+    TextField field(4, false, TextField::Charset::Latin1);
+    field.SelectAll();
+
+    field.SetText("abcdef\x01");
+
+    EXPECT_EQ(field.Value(), "abcdef\x01");
+    EXPECT_FALSE(field.AllSelected());
+    field.Type("g");
+    EXPECT_EQ(field.Value(), "abcdef\x01");
+}
+
+TEST(TextFieldTest, DeselectLeavesTheCursorAtTheEnd)
+{
+    TextField field(Ten, false);
+    field.Type("ab");
+    field.SelectAll();
+
+    field.Deselect();
+    field.Type("c");
+
+    EXPECT_EQ(field.Value(), "abc");
+}
 } // namespace

@@ -9,7 +9,6 @@
 
 #include <gtest/gtest.h>
 
-#include <optional>
 #include <string_view>
 
 // Los mensajes del juego sobre WorldRuntime (CL8 hito 3; 06 § El chat): 0x555190 y los relojes de 0x637700. Los
@@ -65,5 +64,22 @@ TEST(GameMessagesTest, TheClocksAddEmptyNoticesAndMessagesWhenTheyRunOut)
     ASSERT_TRUE(Client::Scenes::StepTheMessageClocks(runtime, letters, Screen640).HasValue());
     EXPECT_EQ(runtime.chat.area.clock, Client::UI::MessageClockSteps - 1);
     EXPECT_EQ(runtime.chat.log.entries[0].age, 1u);
+}
+
+// 0x637d2c y 0x637d44: el freno del chat y el de las macros bajan de a uno por paso, hasta 0.
+TEST(GameMessagesTest, TheBrakesGoDownOnePerStep)
+{
+    WorldRuntime runtime;
+    const LetterMeasure letters;
+    runtime.chat.input.brake = 2;
+    runtime.hud.macroTime = 1;
+
+    ASSERT_TRUE(Client::Scenes::StepTheMessageClocks(runtime, letters, Screen640).HasValue());
+    EXPECT_EQ(runtime.chat.input.brake, 1);
+    EXPECT_EQ(runtime.hud.macroTime, 0);
+    ASSERT_TRUE(Client::Scenes::StepTheMessageClocks(runtime, letters, Screen640).HasValue());
+    ASSERT_TRUE(Client::Scenes::StepTheMessageClocks(runtime, letters, Screen640).HasValue());
+    EXPECT_EQ(runtime.chat.input.brake, 0);
+    EXPECT_EQ(runtime.hud.macroTime, 0);
 }
 } // namespace

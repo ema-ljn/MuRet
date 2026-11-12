@@ -45,6 +45,7 @@ Devias). Todos trabajan sobre buffers: leer el archivo es tarea del que llama.
 | `ItemSetType.bmd` | `0x40c660`, desde `0x40c600` / sin buscar | 8192 × 4 bytes, el XOR3 por registro, + checksum `0xE5F1` (la paridad de `Item.bmd`; [los campos](#las-tablas-de-los-conjuntos)) | `[0x6eed3c] + 4`, 0x8000 |
 | `ItemSetOption.bmd` | `0x40c850`, desde `0x40c600` / sin buscar | 64 × 0x4c bytes, igual, + checksum `0xA2F1` | `[0x6eed3c] + 0x8004`, 0x1300 |
 | `credit.bmd` | `0x63ff30`, desde `0x63f020` / sin buscar | 400 × 33 bytes, el XOR3 del login (`0x4c1690`) de una vez sobre los 13.200, sin checksum ([los registros](#creditbmd)) | `+0x610` de la ventana de los créditos (`0x7d53728 + 0x4578`), 0x3390 |
+| `Slide.bmd` | `0x46b3b0`, desde `0x61ccb0` (`0x61ed18`) / sin buscar | 0xa030 bytes con el XOR3 entero (`0x4c1690`, la clave de `0x6c82e4`): el período, la velocidad y 5 tramos de 0x2008 bytes ([los campos](#slidebmd)) | `[0x5763528] + 0x11ac..+0x1218` |
 
 Si falta un archivo, el original muestra un `MessageBox`, manda `WM_DESTROY` y **sigue cargando**
 las demás tablas.
@@ -174,6 +175,30 @@ otro checksum, `DataError::ChecksumMismatch`, y sin todos los registros y el che
 `DataError::FileTooShort`, sin tabla (Q-C24); lo que sobra se ignora. `Scenes::LoadGameData` las
 carga después de `Item.bmd`, y sin ellas, o con un checksum que no da, es un error: el original se
 cierra.
+
+### `Slide.bmd`
+
+Leído en la CL8 (hito 3, 2026-11-12; *estático*, y la forma *verificada* con el archivo real). `0x46b3b0` (desde
+`0x61ccb0`, `0x61ed18`, con `Data\Local\Slide.bmd`) abre el archivo con `"rb"`; si no está, arma `%s - File not
+exist.`, lo muestra y manda `WM_DESTROY`. Si alguno de los cinco tramos tenía textos, antes los vacía (`0x46b5b0`).
+Lee 0xa030 bytes a la pila con `fread`, sin mirar cuántos leyó (Q-C516), y les pasa el XOR3 de una vez.
+
+| Desplazamiento | Qué | En `[0x5763528]` |
+| --- | --- | --- |
+| `0x0` | el período del timer `0x3eb`, en segundos | `+0x11ac` |
+| `0x4` | la velocidad de los carteles del timer (float) | `+0x1218` |
+| `0x8 + i · 0x2008` | el tramo i (0 a 4): el nivel tope | `+0x11b0 + 4i` |
+| `0xc + i · 0x2008` | la cuenta de textos | `+0x11c4 + 4i` |
+| `0x10 + i · 0x2008 + j · 0x100` | el texto j, hasta su `\0`, si j es menor que la cuenta | la lista de `+0x11d8 + 0xc · i` |
+
+Con una cuenta mayor que 32, los textos siguen de a 0x100 en el tramo de al lado, sobre su tope y su cuenta
+(`0x46b4d7..0x46b56b`); con una negativa no lee ninguno, pero la cuenta queda para el `rand()` de `0x46b680` (06 § El
+cartel de `Slide.bmd`). El real trae el período en 60 segundos, la velocidad en 2,5 y tres tramos: hasta el nivel 15
+con 28 textos, hasta el 30 con 20 y hasta el 50 con 19; los otros dos tienen el tope en 0 y la cuenta en −1.
+
+MuRet: `Data::Text::LoadSlideTable` lee los 0xa030 bytes (con menos, `DataError::FileTooShort`, Q-C516; lo que sobra
+se ignora), y un texto sin `\0` antes del final es `DataError::InvalidData`, porque en el original seguiría en la
+pila. `Scenes::LoadGameData` lo carga al final; uno que no está deja el cartel con lo de su constructor (Q-C517).
 
 ## Terreno de un mundo (`Data\World<N>\`)
 

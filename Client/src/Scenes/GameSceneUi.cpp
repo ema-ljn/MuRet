@@ -1,11 +1,15 @@
 #include "Scenes/GameScene.h"
 
+#include "App/ServerSession.h"
 #include "Core/Expected.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/GameChat.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/SceneCanvas.h"
@@ -20,6 +24,7 @@
 #include <cstdint>
 #include <ratio>
 #include <string>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -55,6 +60,9 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
                        input.IsDown(Input::MouseButton::Left));
     LatchTheRightButton(runtime.ui, input);
     LatchTheWheel(runtime.ui, input);
+    // Y los WM_CHAR, en su orden: Tab y Enter al WndProc (la entrada del chat) y lo demás al EDIT con el foco.
+    if (auto typed = TypeInTheGameChat(ChatContext(), input.Text()); !typed.HasValue())
+        return typed;
     // 0x637c4a..0x637c5c: con 0x5762eb4 en 0 (nadie agarró el mouse: el registro del chat o, en el hito 7, las
     // ventanas viejas) y la escena 5, 0x623e70 antes de la lógica de la escena (0x636290), con el mundo cargado o no.
     if (runtime.ui.capture != 0)
@@ -70,15 +78,41 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
 Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& input)
 {
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
+    const GameChatContext chat = ChatContext();
+    // timeGetTime() de los segundos del cartel (0x46ada0): el reloj de la escena en ms.
+    const auto systemTime =
+        m_context.clock != nullptr
+            ? static_cast<std::uint32_t>(
+                  std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
+            : 0U;
     return StepTheGameUi(GameUiContext{.world = *m_context.world,
                                        .random = m_context.cloth->random,
                                        .input = input,
                                        .mouseX = mouse.x,
                                        .mouseY = mouse.y,
-                                       .measure = m_context.textMeasure});
+                                       .measure = m_context.textMeasure,
+                                       .screen = m_screen,
+                                       .chat = &chat,
+                                       .systemTime = systemTime});
 }
 
-Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canvas)
+GameChatContext GameScene::ChatContext()
+{
+    App::ServerSession* session = m_session;
+    return GameChatContext{.world = *m_context.world,
+                           .random = m_context.cloth->random,
+                           .texts = m_texts,
+                           .items = m_items,
+                           .setOptions = m_chatTables.setOptions,
+                           .filter = m_chatTables.filter,
+                           .measure = m_context.textMeasure,
+                           .screen = m_screen,
+                           .send = session != nullptr ? ChatSender([session](Protocol::Outgoing packet)
+                                                                   { session->SendChat(std::move(packet)); })
+                                                      : ChatSender{}};
+}
+
+Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canvas, const GameProjection* projection)
 {
     WorldRuntime& runtime = m_context.world->Runtime();
     const Input::InputState noInput;
@@ -107,6 +141,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .crywolfSandOverlay = m_projectingFrame ? m_projection->crywolfSandOverlay : runtime.crywolf.sandOverlay,
         .sound = m_projectingFrame ? m_projection->sound : runtime.lastSoundId,
         .projecting = m_projectingFrame,
+        .projection = projection,
         .sprites = canvas.sprites,
         .text = canvas.text,
         .texts = m_texts,

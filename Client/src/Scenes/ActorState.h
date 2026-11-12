@@ -73,6 +73,9 @@ struct ActorState
     std::uint16_t type = 0;   // +2: 0x20a es un jugador
     std::int32_t subtype = 0; // +4: el sufijo de 0x4f2250 lo compara con 209 a 211, con signo
     float scale = 0.0f;       // +0xc, de 0x512930
+    // +0x138, el techo de la caja del personaje (+0x124..+0x138): 0x511290 lo pone por el tipo y 0x5133b0 le suma, sin
+    // portar. Lo lee el globo (0x5a9050), que va 60 más arriba.
+    float boundsTop = 0.0f;
     // +0x7c: con 0x200000, 0x4f2250 sienta al personaje (la acción 0xca). Quién lo escribe, sin leer.
     std::uint32_t flags7c = 0;
     // +0x78: 0x511290 lo pone en 0 (0x511d51). Del jinete lo leen el paso del caballo (con 0x4000, sin

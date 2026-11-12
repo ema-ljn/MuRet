@@ -156,4 +156,33 @@ std::vector<TextPiece> TextPieces(int x, int y, TextExtent extent, App::PixelSiz
     }
     return pieces;
 }
+
+OriginalQuad BoxedQuad(int x, int y, int width, int rows, bool clampY, App::PixelSize screen)
+{
+    // 0x554060..0x5540b4: con el modo 0, contra W en píxeles.
+    if (x < 0)
+        x = 0;
+    if (screen.width < x + width)
+        x = screen.width - width;
+    // 0x5540b6..0x55412a: el tope de abajo deja H · 47 / 640 (0x2f y 0x280) para la barra.
+    if (clampY)
+    {
+        constexpr int BarRows = 0x2f;
+        constexpr int BarDesignWidth = 0x280;
+        if (y < 0)
+            y = 0;
+        const int bottom = screen.height - screen.height * BarRows / BarDesignWidth;
+        if (bottom < y + rows)
+            y = bottom - rows;
+    }
+    OriginalQuad quad;
+    quad.slot = TextureSlot{0};
+    quad.x = static_cast<float>(x);
+    quad.y = static_cast<float>(y);
+    quad.width = static_cast<float>(width);
+    quad.height = static_cast<float>(rows);
+    quad.du = BoxUv(width, TextBoxWidth);
+    quad.dv = BoxUv(rows, TextBoxHeight);
+    return quad;
+}
 } // namespace Client::Render::Text

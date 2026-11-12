@@ -16,6 +16,7 @@
 // emulación del contrato, sintéticos.
 namespace
 {
+using Client::UI::ContainsAFilteredWord;
 using Client::UI::ContainsLikeTheOriginal;
 using Client::UI::ForbiddenNameNotice;
 using Client::UI::HasForbiddenSymbol;
@@ -109,6 +110,17 @@ TEST(NameChecksTest, TheFilterWordsSkipANameThatStartsWithASlash)
     EXPECT_TRUE(IsFilteredName("xb adx", filters));
     EXPECT_FALSE(IsFilteredName("/bad", filters));
     EXPECT_TRUE(IsFilteredName("x/bad", filters));
+}
+
+// 0x622b40 desde el chat (0x4b5734): con 1, un comando ("/…") no se mira; con 0 sí. Los espacios no separan.
+TEST(NameChecksTest, TheChatFilterLooksAtTheTextWithoutSpaces)
+{
+    const std::vector<std::string> words{"bad"};
+    EXPECT_TRUE(ContainsAFilteredWord("xb a dx", words, true));
+    EXPECT_FALSE(ContainsAFilteredWord("/xbadx", words, true));
+    EXPECT_TRUE(ContainsAFilteredWord("/xbadx", words, false));
+    EXPECT_FALSE(ContainsAFilteredWord("good", words, false));
+    EXPECT_FALSE(ContainsAFilteredWord("bad", {}, false));
 }
 
 // Con el texto 457 o el 458 vacíos (otro Text.bmd), 0x576960 los encuentra en cualquier nombre, y

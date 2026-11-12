@@ -10,11 +10,13 @@
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/SceneId.h"
+#include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/Dialogs.h"
 #include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
+#include "UI/SlideBanner.h"
 #include "UI/WhisperSenders.h"
 #include "World/GroundMarks.h"
 #include "World/LeafWeather.h"
@@ -83,6 +85,8 @@ struct ChatRuntime
     std::optional<std::string> selectionNotice{};
     // 0x6c7a8c (.data 1): los carteles de Slide.bmd prendidos. Lo apaga el bit 0x10 del F3 30 (0x4dd7fa).
     bool slidesOn = true;
+    // La entrada del chat (los EDIT de [0x57634f8], sus buffers, el freno y las macros).
+    UI::ChatInputState input{};
 };
 
 // Los globales del HUD del juego (0x5a7320 y sus hijos, CL8 hito 2), en la .bss salvo los que dicen otra cosa.
@@ -92,17 +96,19 @@ struct HudState
     std::int32_t partyCount = 0;
     // 0x5767960: la vida del invocado, de 0 a 100. La escribe su paquete (CL9.2).
     std::int32_t summonLife = 0;
-    // 0x77f3b74: el tiempo de la macro (hito 3).
+    // 0x77f3b74: el freno de las macros. Una que llega al freno lo deja en 0x64 (0x5a1ea1) y 0x637d44 lo baja de a
+    // uno por paso; con más de 0 no sale ninguna (0x5a116f) y el HUD dibuja "Macro Time" (0x5a7369).
     std::int32_t macroTime = 0;
     QuickSlots quickSlots{};
     // 0x6c8e5c (.data −1) y 0x6c8e64 (.data 0x80000000): el color del texto y el del fondo que lee 0x465950. Cada
     // texto del HUD deja los suyos y el que sigue sin poner otros sale con ellos, también en el frame siguiente.
     Render::Text::TextColors textColors{.text = 0xffffffffu, .background = 0x80000000u};
-    // 0x77f3b66: lo prende un aviso de durabilidad (0x5aac20) y lo apaga la barra (0x5a9290). Lo lee el inventario
+    // 0x77f3b66: lo prenden un aviso de durabilidad (0x5aac20) y un globo (0x555b00), y lo apaga la barra (0x5a9290).
+    // Lo leen 0x554000, que con él corre la y de los textos (MuRet, solo en los globos: 08, P-C83), y el inventario
     // (hito 4).
     std::uint8_t durabilityWarning = 0;
     // 0x77f31b8 y 0x77f31bc: el tamaño en 640 × 480 del último texto que lo guardó: las flechas o los virotes
-    // (0x5ab810), el área vieja (0x5554e0) y los avisos (0x554810).
+    // (0x5ab810), el área vieja (0x5554e0) y los avisos (0x554810); el de un globo (0x555b00) es en píxeles.
     std::int32_t arrowsTextWidth = 0;
     std::int32_t arrowsTextHeight = 0;
     // 0x77f3b5c: con el botón izquierdo abajo, el cursor 0xa (CursorDontMove) en vez del 3 (0x5ac7a2). Quién lo
@@ -116,6 +122,9 @@ struct HudState
     // 0x554610. 0x61bcd0 crea el DC sin ninguna (la del sistema) y el login dibuja con una antes del primer mensaje:
     // MuRet empieza con la normal.
     Render::Text::FontKind dcFont = Render::Text::FontKind::Normal;
+    // [0x5763528]: el cartel de Slide.bmd (0x46aea0), que dibuja el 15 (0x46b090) y escribe al dibujar (la opacidad,
+    // el corrimiento, el texto que pasa y 0x5762ee4). Lo llenan el timer 0x3eb y el 0D, y lo pasa el paso de la UI.
+    UI::SlideBanner slides{};
 };
 
 struct WorldRuntime

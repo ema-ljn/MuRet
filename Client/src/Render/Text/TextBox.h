@@ -41,4 +41,25 @@ void StoreColor(std::uint32_t color, std::span<std::uint8_t, 4> pixel);
 // queda en 0: el original lo deja como estaba, pero el quad de 0x554000 no lo muestra.
 void PaintTextBox(const IGlyphRasterizer& rasterizer, const TextStyle& style, std::string_view text, int firstColumn,
                   int width, int rows, TextBoxPixels rgba);
+
+// La caja de un renglón de un globo (0x555b00 → 0x553e50): las columnas (0x77f31b8, el ancho del globo) y las filas
+// (el paso de la letra). La tinta de las columnas antes de `prefixColumns` va con `prefixColor` (0x6c8e60): el gremio y
+// el puesto pasan su cx; el nombre y los renglones, 0.
+struct BoxShape
+{
+    int width = 0;
+    int rows = 0;
+    int prefixColumns = 0;
+    std::uint32_t prefixColor = 0;
+
+    friend bool operator==(const BoxShape&, const BoxShape&) = default;
+};
+
+// 0x553e50 sobre el DIB que el que llama limpió (`box.width` columnas, hasta 1.280, por `box.rows` filas): el texto en
+// (0, 0) y, de las filas hasta 32 y las columnas de la caja, la tinta con el color de adelante o el del texto y el
+// resto con el del fondo. 0x553e50 escribe `box.width` columnas por fila en un buffer de 256: con más, cada fila pisa
+// el principio de la que sigue, que la vuelve a escribir después, y la última cae debajo de las que muestra el quad.
+// Por eso alcanzan las primeras 256 (Q-C521).
+void PaintBoxedText(const IGlyphRasterizer& rasterizer, const TextStyle& style, std::string_view text,
+                    const BoxShape& box, TextBoxPixels rgba);
 } // namespace Client::Render::Text

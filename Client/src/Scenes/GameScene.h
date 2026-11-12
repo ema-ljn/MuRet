@@ -3,6 +3,7 @@
 #include "App/ServerSession.h"
 #include "App/WindowState.h"
 #include "Data/Tables/GateTable.h"
+#include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
 #include "Scenes/FaunaDrawing.h"
@@ -58,6 +59,7 @@ struct WorldObject;
 namespace Client::Scenes
 {
 class IModelLibrary;
+struct GameProjection;
 struct GameSceneFrameProjection;
 struct GameDrawTailState;
 struct GameItemRenderState;
@@ -68,6 +70,15 @@ struct ItemSpecialDrawContext;
 // (0x7d36899), que no se prende nunca.
 inline constexpr Render::ViewportRect GameWorldViewport{0, 0, 640, 432};
 
+// Lo que la entrada del chat lee de la carga (GameData): las palabras de Filter.bmd (0x622b40) y los conjuntos de
+// ItemSetOption.bmd (la cola de los nombres de 0x56c440). Tienen que vivir más que la escena.
+struct GameChatTables
+{
+    std::span<const std::string> filter{};
+    const Data::Tables::ItemSetOptionTable* setOptions = nullptr;
+};
+struct GameChatContext;
+
 class GameScene final : public IScene
 {
 public:
@@ -75,12 +86,13 @@ public:
     // (el caballo oscuro corta con error si hay uno vivo, y el cuerpo de los personajes sin Player.bmd, en
     // 0x4f9580) o sin Item.bmd (*[0x7758550]: lo que lo lee corta con error). `gameSlots` es la tabla de los
     // slots de la carga (GameModels::TextureSlots), que siguen los modelos especiales del mapa (WorldModels);
-    // sin ella, desde 0x69. Sin Text.bmd (`texts`), el HUD corta con error en el primer texto que dibuja.
+    // sin ella, desde 0x69. Sin Text.bmd (`texts`), el HUD corta con error en el primer texto que dibuja. `chat` es lo
+    // que lee la entrada del chat; vacío, sin filtro y sin los nombres de los conjuntos.
     GameScene(const SceneContext& context, App::ServerSession* session, const IModelLibrary* models = nullptr,
               const Data::Tables::ItemTable* items = nullptr,
               const Render::Models::ModelTextureSlots* gameSlots = nullptr,
               const Data::Tables::GateTable* gates = nullptr, const Data::Tables::SkillTable* skills = nullptr,
-              const Data::Text::TextTable* texts = nullptr);
+              const Data::Text::TextTable* texts = nullptr, GameChatTables chat = {});
 
     ~GameScene() override;
 
@@ -121,6 +133,8 @@ private:
     [[nodiscard]] Core::Expected<void, std::string> StepTheDialogs(const Input::InputState& input);
     // 0x636ded..0x63705b: el bloque de la UI del paso.
     [[nodiscard]] Core::Expected<void, std::string> StepTheUi(const Input::InputState& input);
+    // Lo que la entrada del chat lee y por dónde manda (App::ServerSession::SendChat).
+    [[nodiscard]] GameChatContext ChatContext();
     // 0x636da3..0x63717f: el paso con el mundo cargado, hasta su primer corte.
     [[nodiscard]] Core::Expected<void, std::string> StepWorld(const Input::InputState& input);
     [[nodiscard]] Core::Expected<void, std::string> StepTheFloorItems(float worldClock);
@@ -160,8 +174,10 @@ private:
                                                                  const World::TerrainPolygon& polygon, int frames);
     [[nodiscard]] Core::Expected<void, std::string> DrawTheTail(SceneCanvas& canvas, const Render::Pass3D& pass,
                                                                 const World::TerrainPolygon& polygon, int frames);
-    // 0x637641..0x6376eb: el picking del frame y la pasada 2D: el HUD, las superposiciones y el cursor.
-    [[nodiscard]] Core::Expected<void, std::string> DrawTheInterface(SceneCanvas& canvas);
+    // 0x637641..0x6376eb: el picking del frame y la pasada 2D: el HUD, las superposiciones y el cursor. `projection`
+    // es 0x6203c0 del pase del mundo, que leen los globos (0x5a9050); nullptr si no se pudo armar.
+    [[nodiscard]] Core::Expected<void, std::string> DrawTheInterface(SceneCanvas& canvas,
+                                                                     const GameProjection* projection);
     // Los globales de 0x60b3d0 del frame, que comparten lo que cuelga de los personajes (0x509340) y los
     // ítems del piso (0x608a00): `item` apunta a `special`.
     void FillTheItemContexts(ItemSpecialDrawContext& special, ItemDrawContext& item, Core::Duration frameClock,
@@ -193,6 +209,7 @@ private:
     const Data::Tables::GateTable* m_gates;
     const Data::Tables::SkillTable* m_skills;
     const Data::Text::TextTable* m_texts;
+    GameChatTables m_chatTables;
     // Las texturas de la escena: los cursores 2 y 3 con las ventanas, y las arenas del HUD.
     SceneTextures m_windowTextures;
     SceneTextures m_sandTextures;

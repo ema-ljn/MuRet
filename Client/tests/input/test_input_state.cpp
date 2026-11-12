@@ -432,6 +432,19 @@ TEST(InputStateTest, BackspaceAndTabGoInTheTextInOrder)
     static_assert(Client::Input::BackspaceChar == '\b' && Client::Input::TabChar == '\t');
 }
 
+// Enter también (CL8 hito 3): el WM_CHAR 0xd que atiende la ventana del juego, en su lugar.
+TEST(InputStateTest, EnterGoesInTheTextInOrder)
+{
+    InputState input;
+    input.Apply(TextEvent("ab"));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Enter));
+    input.Apply(TextEvent("c"));
+
+    EXPECT_EQ(input.Text(), "ab\rc");
+    EXPECT_TRUE(input.WasPressed(Key::Enter));
+    static_assert(Client::Input::EnterChar == '\r');
+}
+
 // El texto no es una tecla: no aprieta ninguna.
 TEST(InputStateTest, TheTextPressesNoKey)
 {

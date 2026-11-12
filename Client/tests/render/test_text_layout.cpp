@@ -17,6 +17,7 @@ namespace
 {
 using Client::App::PixelSize;
 using Client::Render::Text::BottomAlignedAt;
+using Client::Render::Text::BoxedQuad;
 using Client::Render::Text::CenteredAt;
 using Client::Render::Text::DesignX;
 using Client::Render::Text::DesignY;
@@ -241,5 +242,28 @@ TEST(TextLayoutTest, DesignXAndYWithoutAScreenAreThePixel)
     EXPECT_EQ(DesignX(240, PixelSize{0, 0}), 240);
     EXPECT_EQ(DesignY(240, PixelSize{640, 0}), 240);
     EXPECT_EQ(DesignX(0, PixelSize{0, 480}), 0);
+}
+// 0x554000 de un renglón de un globo: la x contra los bordes en píxeles, y la y solo con 0x77f3b66, contra 0 y contra
+// H − H · 47 / 640 (445 en 480). Con más de 256 columnas, el du pasa de 1 (Q-C521).
+TEST(TextLayoutTest, ABubbleBoxIsKeptInsideTheScreen)
+{
+    const auto quad = BoxedQuad(10, 20, 60, 13, true, Screen640);
+    EXPECT_EQ(quad.slot.value, 0);
+    EXPECT_EQ(quad.x, 10.0f);
+    EXPECT_EQ(quad.y, 20.0f);
+    EXPECT_EQ(quad.width, 60.0f);
+    EXPECT_EQ(quad.height, 13.0f);
+    EXPECT_EQ(quad.du, 0.23441405594348907f);
+    EXPECT_EQ(quad.dv, 0.4065625071525574f);
+    EXPECT_FALSE(quad.scaleSize);
+    EXPECT_FALSE(quad.scalePosition);
+
+    EXPECT_EQ(BoxedQuad(-5, 0, 60, 13, true, Screen640).x, 0.0f);
+    EXPECT_EQ(BoxedQuad(600, 0, 60, 13, true, Screen640).x, 580.0f);
+    EXPECT_EQ(BoxedQuad(0, -7, 60, 13, true, Screen640).y, 0.0f);
+    EXPECT_EQ(BoxedQuad(0, 440, 60, 13, true, Screen640).y, 432.0f);
+    EXPECT_EQ(BoxedQuad(0, -7, 60, 13, false, Screen640).y, -7.0f);
+    EXPECT_EQ(BoxedQuad(0, 440, 60, 13, false, Screen640).y, 440.0f);
+    EXPECT_GT(BoxedQuad(0, 0, 300, 13, true, Screen640).du, 1.0f);
 }
 } // namespace

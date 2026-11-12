@@ -28,6 +28,10 @@ struct NameFilters
 // como la página de códigos de Occidente (CP1252).
 [[nodiscard]] bool ContainsLikeTheOriginal(std::string_view text, std::string_view word);
 
+// 0x622b40(texto, comandos): con `skipCommands` y el texto empezando con '/', nada; si no, alguna palabra de
+// Filter.bmd (`filter`) en el texto sin espacios. El original arma la copia sin espacios en 0x800 bytes de la pila.
+[[nodiscard]] bool ContainsAFilteredWord(std::string_view text, std::span<const std::string> filter, bool skipCommands);
+
 // 0x622c70: alguna palabra de FilterName.bmd en el nombre sin espacios; alguna de Filter.bmd en el
 // nombre sin espacios, salvo que empiece con '/' (0x622b40 con 1); o, en el nombre tal cual, el
 // espacio, el punto, los de doble byte "\xa1\xa1", "\xa1\xa4" y "\xa1\xad", "Webzen", "WebZen",

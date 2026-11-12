@@ -1,5 +1,9 @@
 #include "UI/MessageLog.h"
 
+#include "Core/Expected.h"
+#include "UI/ChatLog.h"
+#include "UI/MessageArea.h"
+
 #include <cstdint>
 #include <optional>
 #include <string>

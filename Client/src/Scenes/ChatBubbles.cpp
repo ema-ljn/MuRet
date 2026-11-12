@@ -6,6 +6,7 @@
 #include "Scenes/GameMessages.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/MessageArea.h"
 #include "UI/MessageLog.h"
@@ -210,8 +211,12 @@ Core::Expected<void, std::string> StepTheChatBubbles(WorldState& world, const Ch
         if (CString(bubble.name) == ChatNameOf(hero) || !runtime.ui.rightClick || !bubble.owner ||
             actors[*bubble.owner].word376 != WhisperableWord376)
             continue;
-        return Core::Unexpected(std::string("0x5577a2: el clic derecho en un globo llena el destino del susurro "
-                                            "(0x7798cf8), que es del campo del chat"));
+        // 0x5577a2..0x55780d: el derecho se gasta, el nombre va al EDIT del susurro (0x4694c0(0, 0, 1, nombre), con
+        // 0x6c7b8c en 1) y con strcpy al buffer y su largo, y suena el 0x19. Sigue con los otros globos.
+        runtime.ui.rightClick = false;
+        UI::SetTheChatFields(runtime.chat.input, std::nullopt, CString(bubble.name));
+        UI::PutTheWhisperName(runtime.chat.input, CString(bubble.name));
+        runtime.lastSoundId = UI::ChatButtonSound;
     }
     return {};
 }

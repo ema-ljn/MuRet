@@ -34,12 +34,13 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet
 
 // Las del HUD del juego que sube 0x61ccb0 (0x61cce0..0x61e5f0, CL8 hito 2), en su orden y con su sampling: los
 // cursores del juego (0x63bd00 con GL_LINEAR y GL_CLAMP), la barra de abajo (GL_NEAREST y GL_CLAMP), el AG, el
-// botón de los comandos, los de la UI vieja que dibuja 0x4a5120, el registro del chat (hito 3), el cursor de
-// identificar, el de atacar en el asedio y los íconos de estado; y las de las skills, que sube 0x61ae60 desde
-// 0x61ccb0. Las sube GameModels con los modelos, y quedan. El 2 y el 3, Cursor y CursorPush, no: son de
-// WindowTextureSet, que cada escena sube y suelta, y el juego también. La pista del registro, nis_back en 0x640, la
-// pisa Skill\SwordEff.jpg con GL_LINEAR más adelante en la misma función (0x61ccb0, Q-C463): queda la de la skill.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 38> HudTextureSet{{
+// botón de los comandos, los de la UI vieja que dibuja 0x4a5120, la caja de la entrada del chat (0xef, 0xf8 y 0xf9,
+// que dibuja 0x5aa9a0), el registro del chat (hito 3), el cursor de identificar, el de atacar en el asedio y los
+// íconos de estado; y las de las skills, que sube 0x61ae60 desde 0x61ccb0. Las sube GameModels con los modelos, y
+// quedan. El 2 y el 3, Cursor y CursorPush, no: son de WindowTextureSet, que cada escena sube y suelta, y el juego
+// también. La pista del registro, nis_back en 0x640, la pisa Skill\SwordEff.jpg con GL_LINEAR más adelante en la
+// misma función (0x61ccb0, Q-C463): queda la de la skill.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 41> HudTextureSet{{
     {"Interface\\CursorAttack.tga", 0x04, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorGet.tga", 0x05, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorTalk.tga", 0x06, TextureSetsDetail::LinearClamp},
@@ -56,7 +57,10 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 38> HudTextureSet{{
     {"Interface\\Menu_Party.jpg", 0xec, TextureSetsDetail::NearestClamp},
     {"Interface\\Menu_Character.jpg", 0xed, TextureSetsDetail::NearestClamp},
     {"Interface\\Menu_Inventory.jpg", 0xee, TextureSetsDetail::NearestClamp},
+    {"Interface\\dialogue2_1.jpg", 0xef, TextureSetsDetail::NearestClamp},
     {"Interface\\Menu_Green.jpg", 0xf7, TextureSetsDetail::NearestClamp},
+    {"Interface\\dialogue1.jpg", 0xf8, TextureSetsDetail::NearestClamp},
+    {"Interface\\dialogue2.jpg", 0xf9, TextureSetsDetail::NearestClamp},
     {"Interface\\Guild.jpg", 0xfa, TextureSetsDetail::NearestClamp},
     {"Interface\\Message_box2.jpg", 0xfc, TextureSetsDetail::NearestClamp},
     {"Interface\\nis_rsframe.tga", 0x63d, TextureSetsDetail::NearestClamp},

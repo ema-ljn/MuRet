@@ -47,7 +47,7 @@ bool IsLogical(Key key)
     return key == Key::Shift || key == Key::Ctrl || key == Key::Alt;
 }
 
-// El byte que Backspace y Tab dejan en el texto tecleado (InputEvent.h); las demás, ninguno.
+// El byte que Backspace, Tab y Enter dejan en el texto tecleado (InputEvent.h); las demás, ninguno.
 std::optional<char> TypedCharOf(Key key)
 {
     switch (key)
@@ -56,6 +56,8 @@ std::optional<char> TypedCharOf(Key key)
         return BackspaceChar;
     case Key::Tab:
         return TabChar;
+    case Key::Enter:
+        return EnterChar;
     default:
         return std::nullopt;
     }

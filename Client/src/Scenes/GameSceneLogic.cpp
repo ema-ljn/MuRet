@@ -110,8 +110,9 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         .map = &m_context.world->Runtime().map,
         // 0x5227ca: la grieta 0xfb escribe el temblor de la cámara del paso lógico.
         .cameraShake = &CameraInputState().shake,
-        // 0x41ed10(id, 0, 0): MuRet no tiene audio (CL10); el sonido no saca rand() y queda mudo.
-        .sound = [](std::int32_t) {}};
+        // 0x41ed10(id, 0, 0): MuRet no tiene audio (CL10); como los demás pedidos de sonido del paso, queda anotado en
+        // WorldRuntime::lastSoundId y no saca rand().
+        .sound = [this](std::int32_t id) { m_context.world->Runtime().lastSoundId = id; }};
     auto effects = m_context.world->Map().effects.Effects();
     for (std::size_t slot = 0; slot < effects.size(); ++slot)
     {

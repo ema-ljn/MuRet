@@ -11,8 +11,6 @@
 #include "World/SelectionParticleKernels.h"
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
-#include "Data/Terrain/TerrainAttributes.h"
-#include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/OriginalRotation.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -637,21 +635,14 @@ Core::Expected<double, std::string> QuakeHeight(const ModelEffectStepServices& s
 }
 
 // 0x5f8290(ftol(x · 0,01f), ftol(y · 0,01f)) es y · 256 + x, sin la máscara de 0x5f82a0, y el WORD de 0x7d0d348 en ese
-// lugar: fuera de las 256 × 256 celdas el original lee fuera de la tabla, y MuRet corta (Q-C425).
+// lugar (el mismo lector que las piedras, UnmaskedCellAttribute): fuera de las 256 × 256 celdas el original lee fuera
+// de la tabla, y MuRet corta (Q-C425).
 Core::Expected<std::uint16_t, std::string> QuakeCellAttribute(const ModelEffectStepServices& services,
                                                               const glm::vec3& point, std::string_view address)
 {
     if (services.terrainAttributes == nullptr)
         return Core::Unexpected(std::format("{}: el terremoto lee los atributos de las celdas (0x7d0d348)", address));
-    const std::int32_t x = FtolLow(static_cast<double>(point.x) * QuakeCellScale);
-    const std::int32_t y = FtolLow(static_cast<double>(point.y) * QuakeCellScale);
-    constexpr std::uint32_t Row = 256;
-    const auto cell =
-        static_cast<std::int32_t>(static_cast<std::uint32_t>(y) * Row + static_cast<std::uint32_t>(x)); // shl 8; add.
-    if (cell < 0 || static_cast<std::size_t>(cell) >= Data::Terrain::TerrainCellCount)
-        return Core::Unexpected(
-            std::format("{}: la celda ({}, {}) del terremoto cae fuera de 0x7d0d348 (Q-C425)", address, x, y));
-    return services.terrainAttributes->cells[static_cast<std::size_t>(cell)];
+    return UnmaskedCellAttribute(services.terrainAttributes, point, address);
 }
 
 // 0x518cf0(tipo, punto, ángulos, luz, 0, dueño, tamaño, 0, 0, 0, 0) desde el paso del terremoto.

@@ -8,6 +8,7 @@
 #include "Render/ModelVertex.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -20,6 +21,7 @@
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/PetHelperSteps.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldState.h"
@@ -1224,6 +1226,44 @@ TEST(HelperTableTest, OnlyTheOtherGaitsClearTheQuakeCount)
     galloping.Horse().horse.effectCount = 7;
     ASSERT_TRUE(galloping.Step().HasValue());
     EXPECT_EQ(galloping.Horse().horse.effectCount, 7u);
+}
+
+// 0x445581..0x4455b3: fuera de la ventana, con la cuenta en 0x13, el terremoto 0xfa con el caballo de dueño (su tipo y
+// sus ángulos, leídos vivos), su posición, sus ángulos, su luz y el estado 2; su alta saca el subtipo rand() % 100 y
+// cierra el registro propio (+0xf04 sube 1 y, con la profundidad en 0, 3.848 rand()). La cuenta pasa a 0xfd y el paso
+// siguiente (0xfe) ya no lo crea.
+TEST(HelperTableTest, AtCount0x13OutsideItsWindowTheQuakeCracksTheEarth)
+{
+    HelperWorld quake;
+    ASSERT_NO_FATAL_FAILURE(quake.Mount());
+    quake.Rear(0.0f, 0x12);
+    float shake = 5.0f;
+    const auto quaked = quake.StepCounting(1, &shake);
+    ASSERT_TRUE(quaked.HasValue()) << quaked.Error();
+    EXPECT_EQ(quake.Horse().horse.effectCount, 0xfdu);
+    ASSERT_EQ(LiveEffects(quake), 1u);
+    const auto& earthquake = quake.world.Map().effects.Effects()[0];
+    CrtRandom expected = RandomAfter(QuietSeed, 1);
+    EXPECT_EQ(earthquake.type, Client::World::EarthquakeEffect);
+    EXPECT_EQ(earthquake.subtype, expected.Next() % 100);
+    EXPECT_EQ(earthquake.state, 2);
+    EXPECT_EQ(earthquake.start, CellCentre(100, 100));
+    EXPECT_EQ(earthquake.light, glm::vec3(3.0f, 3.0f, 3.0f));
+    EXPECT_EQ(earthquake.owner.type, &quake.Horse().type);
+    EXPECT_EQ(earthquake.owner.angles, &quake.Horse().angles);
+    EXPECT_EQ(Client::World::OwnerTypeOf(earthquake.owner), std::optional<std::uint16_t>(DarkHorseModel));
+    EXPECT_EQ(quake.world.OwnCharacter().bytef04, 1u);
+    EXPECT_EQ(quake.world.Runtime().ownRecordDepth, 0u);
+    for (int draw = 0; draw < Client::Render::Models::OwnRecordCloseRandoms; ++draw)
+    {
+        static_cast<void>(expected.Next());
+    }
+    EXPECT_EQ(quake.random.State(), expected.State());
+    EXPECT_EQ(shake, 5.0f);
+
+    ASSERT_TRUE(quake.StepCounting(1, &shake).HasValue());
+    EXPECT_EQ(quake.Horse().horse.effectCount, 0xfeu);
+    EXPECT_EQ(LiveEffects(quake), 1u);
 }
 
 // Sin el temblor de la cámara (0x7d325c8), la ventana corta en 0x445577 (aquí, con la cuenta par).

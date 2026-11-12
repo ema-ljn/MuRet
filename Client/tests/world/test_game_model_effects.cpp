@@ -1280,7 +1280,7 @@ TEST(GameModelEffectsTest, TheEarthquakeCutsTheDarkLordStateAndWhatItLacks)
     const auto cut =
         Client::World::StepGameModelEffect(far, nullptr, particles, 0.0f, random, nullptr, scene.Services());
     ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("Q-C425"), std::string::npos) << cut.Error();
+    EXPECT_NE(cut.Error().find("0x52211d: la celda (49, -3) de 0x5f8290 cae fuera"), std::string::npos) << cut.Error();
 }
 
 // 0x5221fe..0x522493, la vida 10: cuatro anillos de cinco grietas 0x101 y 0x102 de tamaño 100 que salen de la

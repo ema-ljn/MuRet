@@ -7,7 +7,6 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRotation.h"
-#include "World/ParticleDrawing.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjectStepServices.h"

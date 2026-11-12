@@ -122,16 +122,19 @@ struct HelperStepContext
 //   si no, copia la posición y los ángulos del jinete, toma su acción y su velocidad, saca el polvo del galope
 //   (0x44418e..0x4444ef: la 5f2 en el 2, la 5f3 en los demás y, en el 10, la onda 0x6eb/1 y las 5f2 desde un
 //   hueso del buffer global) y el aliento (0x44453f..0x4445de, del hueso 27 del buffer global) con sus rand();
-//   con +8 del jinete en 1, los doce 60f/0 alrededor del caballo, con él de dueño, en los joints del mundo
-//   (0x44469d..0x44474c, tres rand() cada uno); después pone +8 en 0 y le copia al caballo el byte vivo del jinete;
+//   con la acción 3, la cinta 0x52e470 del hueso 9 con el héroe de dueño y el terremoto 0x4453e0 (la cuenta +0x8e,
+//   la onda 0x6eb/0 cada 10 pasos lógicos, las seis piedras 0x118/0x119 y el temblor de la cámara en la ventana del
+//   frame, y el 0xfa con la cuenta en 0x13); con +8 del jinete en 1, los doce 60f/0 alrededor del caballo, con él de
+//   dueño, en los joints del mundo (0x44469d..0x44474c, tres rand() cada uno); después pone +8 en 0 y le copia al
+//   caballo el byte vivo del jinete;
 // - el Uniria y el Dinorant (0x4447c4..0x444ac4): la celda segura igual; el alpha con +0x80 del jinete, su lugar
 //   (el Dinorant más abajo en los mapas que no son el −1), su acción, el polvo con el galope y la velocidad 0,34;
 // - los Fenrir (0x444af0..0x444f25): igual, con su acción y su velocidad, y el polvo (en el 10, la onda y las
 //   5f2 desde los huesos 22 y 44 del buffer global, en dos ventanas del frame);
 // - el Guardian Angel (0x444f2a..0x444fff y 0x445052..0x445221): cuatro 5c5/1 y el vuelo hacia el jinete.
 // Corta con error, después de los rand() que el original saca antes: con un hueso del buffer global que MuRet no
-// conserva, con una partícula que no se puede crear y con la acción 3 del caballo (0x52e470); también sin el mapa
-// cargado o sin el modelo del tipo. Lo que hizo antes del corte queda.
+// conserva, con una partícula, una piedra o una cinta que no se puede crear y sin el temblor de la cámara cuando el
+// terremoto lo pide; también sin el mapa cargado o sin el modelo del tipo. Lo que hizo antes del corte queda.
 [[nodiscard]] Core::Expected<void, std::string> StepHelpers(const HelperStepContext& context);
 
 // Lo que el dibujo de los ayudantes lee y escribe fuera del mundo.

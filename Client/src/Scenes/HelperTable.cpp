@@ -18,6 +18,7 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperStepParts.h"
+#include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/PetHelperSteps.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
@@ -247,6 +248,7 @@ constexpr int ShakeSpan = 3;
 constexpr double ShakeUnit = static_cast<double>(std::bit_cast<float>(0x3f333333u));
 constexpr std::uint8_t EarthquakeCount = 0x13;
 constexpr std::uint8_t EarthquakeDone = 0xfd;
+constexpr std::uint8_t EarthquakeState = 2; // 0x44558e, el estado (+0x88) del 0xfa
 
 Core::Expected<void, std::string> LeaveTheEarthquakeRibbon(const HelperStepContext& context)
 {
@@ -282,7 +284,8 @@ Core::Expected<void, std::string> LeaveTheEarthquakeRibbon(const HelperStepConte
 // afuera): con la cuenta impar, seis piedras 0x118 + (rand() & 1) en un anillo de radio (cuenta / 2) · 150 alrededor
 // del caballo, con sus ángulos y su luz; la primera a rand() % 360 + 60 grados y cada una 60 más, el tipo sacado
 // después del giro y antes del alta. Siempre, dentro de la ventana, el temblor de la cámara ((rand() % 3) − 3) · 0,7f.
-// Fuera de ella, con la cuenta en 0x13, el terremoto 0xfa con el caballo de dueño y el estado 2, y la cuenta en 0xfd.
+// Fuera de ella, con la cuenta en 0x13, el terremoto 0xfa con el caballo de dueño y el estado 2 (que abre y cierra el
+// registro propio, 3.848 rand() con la profundidad en 0), y la cuenta en 0xfd.
 Core::Expected<void, std::string> ShakeTheEarth(HelperState& helper, const HelperStepContext& context)
 {
     ++helper.horse.effectCount;
@@ -327,7 +330,12 @@ Core::Expected<void, std::string> ShakeTheEarth(HelperState& helper, const Helpe
     }
     if (helper.horse.effectCount == EarthquakeCount)
     {
-        return Core::Unexpected(std::string("0x4455ab: el terremoto 0xfa todavía no está"));
+        // 0x44558a..0x4455b3: el dueño se lee vivo (su tipo y sus ángulos) mientras el 0xfa dure.
+        static_cast<void>(effects.CreateEarthquake(
+            helper.position, helper.angles, helper.light, EarthquakeState,
+            World::ModelEffectOwner{.type = &helper.type, .effect = nullptr, .angles = &helper.angles},
+            context.world.Runtime().ownRecordDepth, context.world.OwnCharacter().bytef04, context.random));
+        helper.horse.effectCount = EarthquakeDone;
     }
     return {};
 }

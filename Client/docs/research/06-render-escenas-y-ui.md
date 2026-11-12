@@ -1223,6 +1223,27 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   Fuera de la ventana, con la cuenta en `0x13`, `0x518cf0(0xfa, posición, ángulos, luz, 0, caballo, −1, 0,
   2, 0, 0)` (el terremoto con el caballo de dueño y el estado 2) y la cuenta pasa a `0xfd`, así que no
   vuelve a llegar a `0x13` hasta que otra acción la borre.
+  - **El `0xfa`** nace (`0x51a66d`) con el dueño, `+0x28..+0x30` con los ángulos, la partida en la posición,
+    vida 20, el subtipo `rand() % 100`, la z de los ángulos 330 más, `+0x28` 80 más, `+0x30` 180 más y `+0xe4` en
+    50; después abre el registro propio, le sube `+0xf04` y lo cierra (Q-C426). No se dibuja nunca (`0x52d400`
+    sale con el estado distinto de 0) y su paso no anima ni mueve (`0x52cbb0`). En la vida 11, con el estado
+    distinto de 3, la partida pasa a (−25; −80; 0) girado por los ángulos del dueño más la posición; en Kalima,
+    con el estado 0 o 2, revuelve el agua (`0x437860`), y si no sube 100 (afuera, 25); la z, la altura del
+    terreno más esa subida; la partícula `0x5ed`/0 (`Effect\Explotion01.jpg`, un atlas de 4 × 4 que cuenta sus
+    cuadros y prende la luz dinámica, `0x542a60`, `0x5459a4` y `0x54864b`) y su sonido `0x40`; la z menos 27; con
+    un dueño que no es `0x1b1`, las grietas `0xfd`, `0xfb` y `0xfc` de tamaño 150 con el propio `0xfa` de dueño; y
+    cinco rayos de largo `rand() % 150 + 100`, a `k · 72 + subtipo` grados, con un par `0xfe`/`0xff` de tamaño
+    `rand() % 50 + 40` (salvo en una celda con el `0x4`, el `0x8` o el `0x10`, Q-C424) a la altura del suelo más 3
+    (100 en Kalima). En la vida 10, cuatro anillos de cinco pares `0x101`/`0x102` de tamaño 100 (el sentido del
+    cuarto sale de un `rand()`, Q-C429; la celda los frena sólo con los tres bits), el sonido `0x97` y la vida en
+    0. En las demás, se hamaca alrededor de la partida. El estado 0 (la habilidad del Dark Lord) corta en
+    `0x521e13` y `0x5224ec` (CL9.2, P-C58).
+  - **Las grietas** `0xfb..0x102` (`Skill\EarthQuake01..08`, `0x6165bc..0x616688`) nacen
+    (`0x51a6e4..0x51a85c`) con la escala `tamaño · 0,01f` y la vida de su tipo y subtipo (Q-C423); en su paso, la
+    luz de las mallas, se hunden 0,5f, la `0xfb` hace temblar la cámara, la `0xfc` y la `0xff` sueltan piedritas
+    `0xc8`/`0xc9`, y prenden la luz dinámica roja con un dueño que no es `0x1b1`, azul con él y blanca sin dueño
+    (Q-C427); la `0x102` saca un `rand()` que nadie usa (Q-C428). Se dibujan con el genérico; con el subtipo 1,
+    `0xfc`, `0xff` y `0x102` ponen `+0x74` en `0x80` y su dibujo corta en `0x6004aa` (no lo alcanza el caballo).
   - **Las piedras** `0x118` y `0x119` (`Skill\groundStone` y `groundStone2`, que `0x615700` carga en
     `0x61641d` y `0x616442`: 2 mallas, `DhorSS.jpg` y `DhorSS_R.jpg`, 3 huesos y una acción de 5 keys).
     Su alta (`0x51cc6b` y `0x51cd1b`), después del prefijo común, lee el atributo de su celda con

@@ -17,6 +17,8 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/PetHelperSteps.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldState.h"
@@ -75,6 +77,7 @@ using Client::Scenes::HelperDrawContext;
 using Client::Scenes::HelperState;
 using Client::Scenes::HelperStepContext;
 using Client::Scenes::IModelLibrary;
+using Client::Scenes::JointState;
 using Client::Scenes::SceneId;
 using Client::Scenes::StepHelpers;
 using Client::Scenes::TurnOffHelpersOf;
@@ -997,9 +1000,8 @@ TEST(HelperTableTest, TheIcarusDustWithoutItsBoneReadsAZeroBone)
     EXPECT_EQ(tested.random.State(), zeroed.random.State());
 }
 
-// 0x4445e1: con la acción 3 del caballo (la del jinete 0x53), después del aliento, 0x52e470 y 0x4453e0;
-// 0x444693: con +8 del jinete en 1, los doce 0x530860. Los dos cortan, y +8 queda en 1.
-TEST(HelperTableTest, TheRearingAndTheOrbitsStopAfterTheBreath)
+// 0x4445e1: con la acción 3 del caballo (la del jinete 0x53), después del aliento, 0x52e470 y 0x4453e0 cortan.
+TEST(HelperTableTest, TheRearingStopsAfterTheBreath)
 {
     HelperWorld rearing;
     ASSERT_NO_FATAL_FAILURE(rearing.Mount());
@@ -1008,13 +1010,6 @@ TEST(HelperTableTest, TheRearingAndTheOrbitsStopAfterTheBreath)
     EXPECT_TRUE(HasError(reared, "0x4445e1")) << (reared.HasValue() ? "" : reared.Error());
     EXPECT_EQ(rearing.Horse().horse.animation.action, 3u);
     EXPECT_EQ(rearing.random.State(), RandomAfter(QuietSeed, 1).State());
-
-    HelperWorld orbits;
-    ASSERT_NO_FATAL_FAILURE(orbits.Mount());
-    orbits.Rider().byte8 = 1;
-    const auto orbited = orbits.Step();
-    EXPECT_TRUE(HasError(orbited, "0x444693")) << (orbited.HasValue() ? "" : orbited.Error());
-    EXPECT_EQ(orbits.Rider().byte8, 1);
 }
 
 // Sin el esqueleto del 0xbf o sin el mapa cargado, el paso de un caballo vivo corta; con la tabla vacía
@@ -1037,6 +1032,189 @@ TEST(HelperTableTest, ALiveHorseNeedsItsSkeletonAndTheMap)
     ASSERT_NO_FATAL_FAILURE(noMap.Mount());
     noMap.world.Map().terrain.attributes.reset();
     EXPECT_TRUE(HasError(noMap.Step(), "0x4440db"));
+}
+
+// Los doce 60f/0 de 0x44469d..0x44474c en el pool de los joints del mundo (0x74a8d78).
+std::span<JointState> Joints(HelperWorld& tested)
+{
+    return tested.world.DrawTail().joints;
+}
+
+// 0x44469d..0x44474c, con +8 del jinete en 1 (el que 0x421db0 pone con el A9): cuatro vueltas de z + 90 (0x6b8948), en
+// cada una (0; 50; 0) girado (−50 · sen z; 50 · cos z; 0) más la posición del caballo (la del jinete, (10050; 10050;
+// 170)), y tres 0x530860(0x60f, punto, punto, ángulos, 0, caballo, 40, 2, 0, 0, −1). Cada uno nace como el 60f/0 de
+// ancho 40 (0x5341fc..0x5342d2): vida 50, 20 puntos, velocidad 40, vy rand() % 500 − 250 y vz (rand() % 250 + 200)
+// · 0,01f, con la luz del caballo (+0xf4, el 3 de 0x443d70), el caballo de dueño y la key 2. Tres rand() cada uno,
+// después del del aliento; +8 vuelve a 0 y el caballo toma el byte vivo del jinete.
+TEST(HelperTableTest, TheOrbitsRaiseTwelveSparklesAroundTheHorse)
+{
+    HelperWorld tested;
+    ASSERT_NO_FATAL_FAILURE(tested.Mount());
+    EXPECT_EQ(tested.Horse().light, glm::vec3(3.0f));
+    tested.Rider().byte8 = 1;
+
+    const auto stepped = tested.Step();
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested.Rider().byte8, 0);
+    EXPECT_TRUE(tested.Horse().alive);
+    constexpr std::array<glm::vec3, 4> Points{{{10000.0f, 10050.0f, 170.0f},
+                                               {10050.0f, 10000.0f, 170.0f},
+                                               {10100.0f, 10050.0f, 170.0f},
+                                               {10050.0f, 10100.0f, 170.0f}}};
+    CrtRandom draws = RandomAfter(QuietSeed, 1);
+    const double hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
+    const std::span<JointState> joints = Joints(tested);
+    for (std::size_t index = 0; index < 12; ++index)
+    {
+        SCOPED_TRACE(index);
+        const JointState& joint = joints[index];
+        const std::size_t turn = index / 3;
+        static_cast<void>(draws.Next()); // 0x534214: la vz de ancho 10, que el ancho 40 pisa.
+        const int drift = draws.Next();
+        const int rise = draws.Next();
+        ASSERT_TRUE(joint.alive);
+        EXPECT_EQ(joint.type, 0x60f);
+        EXPECT_EQ(joint.subtype, 0);
+        EXPECT_EQ(joint.texture, 0x60f);
+        EXPECT_EQ(joint.blend, 1);
+        EXPECT_EQ(joint.width, 40.0f);
+        EXPECT_EQ(joint.key, 2);
+        EXPECT_EQ(joint.skill, 0);
+        EXPECT_EQ(joint.skillSerial, 0);
+        EXPECT_EQ(joint.ownerContext, &tested.Horse());
+        EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::Helper);
+        EXPECT_EQ(joint.angles, glm::vec3(0.0f, 0.0f, 90.0f * static_cast<float>(turn + 1)));
+        EXPECT_EQ(joint.position, Points[turn]);
+        EXPECT_EQ(joint.targetPosition, Points[turn]);
+        EXPECT_EQ(joint.light, glm::vec3(3.0f));
+        EXPECT_EQ(joint.life, 50);
+        EXPECT_EQ(joint.maximumCount, 20);
+        EXPECT_EQ(joint.speed, 40.0f);
+        EXPECT_EQ(joint.velocity, glm::vec3(0.0f, static_cast<float>(drift % 500 - 250),
+                                            static_cast<float>(static_cast<double>(rise % 250 + 200) * hundredth)));
+        EXPECT_TRUE(joint.tailEnabled);
+    }
+    EXPECT_FALSE(joints[12].alive);
+    EXPECT_EQ(tested.random.State(), draws.State());
+    EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 37).State());
+}
+
+// 0x530860 recorre el pool: los doce van a los primeros lugares libres (con cinco, los tres de la primera vuelta y
+// dos de la segunda) y, con el pool lleno, no nacen ni sacan rand(); el paso sigue y +8 vuelve a 0.
+TEST(HelperTableTest, TheOrbitsTakeOnlyTheFreeJoints)
+{
+    constexpr std::array<std::size_t, 5> FreeSlots{3, 77, 250, 498, 499};
+    HelperWorld tested;
+    ASSERT_NO_FATAL_FAILURE(tested.Mount());
+    tested.Rider().byte8 = 1;
+    const std::span<JointState> joints = Joints(tested);
+    for (JointState& joint : joints)
+    {
+        joint.alive = true;
+        joint.type = 0x697;
+    }
+    for (const std::size_t slot : FreeSlots)
+    {
+        joints[slot].alive = false;
+    }
+
+    const auto stepped = tested.Step();
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested.Rider().byte8, 0);
+    for (const std::size_t slot : FreeSlots)
+    {
+        SCOPED_TRACE(slot);
+        EXPECT_EQ(joints[slot].type, 0x60f);
+        EXPECT_EQ(joints[slot].angles, glm::vec3(0.0f, 0.0f, slot >= 498 ? 180.0f : 90.0f));
+    }
+    EXPECT_EQ(std::count_if(joints.begin(), joints.end(), [](const JointState& joint) { return joint.type == 0x60f; }),
+              5);
+    EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 1 + (5 * 3)).State());
+
+    HelperWorld full;
+    ASSERT_NO_FATAL_FAILURE(full.Mount());
+    full.Rider().byte8 = 1;
+    const std::span<JointState> pool = Joints(full);
+    for (JointState& joint : pool)
+    {
+        joint.alive = true;
+        joint.type = 0x697;
+    }
+    const auto unchanged = full.Step();
+    ASSERT_TRUE(unchanged.HasValue()) << unchanged.Error();
+    EXPECT_EQ(full.Rider().byte8, 0);
+    EXPECT_TRUE(std::all_of(pool.begin(), pool.end(), [](const JointState& joint) { return joint.type == 0x697; }));
+    EXPECT_EQ(full.random.State(), RandomAfter(QuietSeed, 1).State());
+}
+
+// En la celda segura el paso salta de 0x4440f8 a 0x445006, sin pasar por 0x444752: +8 queda en 1 y los doce esperan a
+// que el caballo salga de ella (Q-C437).
+TEST(HelperTableTest, TheOrbitsWaitUntilTheHorseLeavesTheSafeCell)
+{
+    HelperWorld tested;
+    ASSERT_NO_FATAL_FAILURE(tested.Mount());
+    tested.Rider().byte8 = 1;
+    tested.Cell(100, 100) = 1;
+    const std::span<JointState> joints = Joints(tested);
+
+    ASSERT_TRUE(tested.Step().HasValue());
+
+    EXPECT_EQ(tested.Rider().byte8, 1);
+    EXPECT_FALSE(joints[0].alive);
+    EXPECT_EQ(tested.random.State(), CrtRandom(QuietSeed).State());
+
+    tested.Cell(100, 100) = 0;
+    ASSERT_TRUE(tested.Step().HasValue());
+
+    EXPECT_EQ(tested.Rider().byte8, 0);
+    EXPECT_EQ(std::count_if(joints.begin(), joints.end(), [](const JointState& joint) { return joint.alive; }), 12);
+    EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 1 + (12 * 3)).State());
+}
+
+// El paso de los joints (0x535840) con el caballo de dueño: el avance común de 40 por sus ángulos, el giro de 0x53b239
+// con la key 2 ((vida + vy) / 2) alrededor del destino, vz, la cola y una vida menos. Con el ancho en 40, 0x53b378 no
+// lee la acción del caballo (+0x111): aunque esté en la 0xd de la caída, sigue siendo el 60f/0. Sin rand().
+TEST(HelperTableTest, TheOrbitsTurnWithoutReadingTheHorse)
+{
+    HelperWorld tested;
+    ASSERT_NO_FATAL_FAILURE(tested.Mount());
+    tested.Rider().byte8 = 1;
+    ASSERT_TRUE(tested.Step().HasValue());
+    tested.Horse().horse.animation.action = 0xd;
+    const std::span<JointState> joints = Joints(tested);
+    std::vector<JointState> expected(joints.begin(), joints.begin() + 12);
+    const std::uint32_t state = tested.random.State();
+
+    ASSERT_TRUE(Client::Scenes::StepJoints(joints, tested.random).HasValue());
+
+    for (std::size_t index = 0; index < expected.size(); ++index)
+    {
+        SCOPED_TRACE(index);
+        JointState& before = expected[index];
+        const glm::vec3 moved = Client::Render::Models::OriginalVectorRotate(
+            {0.0f, -before.speed, 0.0f}, Client::Render::Models::OriginalAngleMatrix(before.angles));
+        const float movedZ = static_cast<float>(static_cast<double>(before.position.z) + moved.z);
+        const double argument =
+            (static_cast<double>(before.life) + static_cast<double>(before.velocity.y)) / static_cast<double>(2);
+        const std::optional<double> cosine = Client::Render::Models::Detail::CosineProductPC53(argument, before.speed);
+        const std::optional<double> sine = Client::Render::Models::Detail::SineProductPC53(argument, before.speed);
+        ASSERT_TRUE(cosine.has_value());
+        ASSERT_TRUE(sine.has_value());
+        const JointState& joint = joints[index];
+        EXPECT_EQ(joint.position.x, static_cast<float>(*cosine + static_cast<double>(before.targetPosition.x)));
+        EXPECT_EQ(joint.position.y, static_cast<float>(static_cast<double>(before.targetPosition.y) - *sine));
+        EXPECT_EQ(joint.position.z,
+                  static_cast<float>(static_cast<double>(before.velocity.z) + static_cast<double>(movedZ)));
+        EXPECT_EQ(joint.subtype, 0);
+        EXPECT_TRUE(joint.tailEnabled);
+        EXPECT_EQ(joint.count, 1);
+        EXPECT_EQ(joint.life, 49);
+        EXPECT_EQ(joint.light, glm::vec3(3.0f));
+        EXPECT_TRUE(joint.alive);
+    }
+    EXPECT_EQ(tested.random.State(), state);
 }
 
 // 0x445260 en la escena 5: +0x16c con el trapecio global; visto, la escala en 1, el dibujo de 0x602e90 y

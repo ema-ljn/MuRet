@@ -6,6 +6,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
@@ -15,12 +16,15 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameRibbonCreation.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperStepParts.h"
 #include "Scenes/PetHelperSteps.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ChaosCastle.h"
+#include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -91,7 +95,8 @@ constexpr std::int32_t ParticleSubtype = 0;
 // 0x444588..0x44459d: el aliento sale de (50; −4; 0) en el hueso 27 del buffer global (0x68b1d2c).
 constexpr std::size_t BreathBone = 27;
 constexpr glm::vec3 BreathOffset{50.0f, -4.0f, 0.0f};
-// 0x444693: con 1 en +8 del jinete, los doce 0x60f.
+// 0x444693: con 1 en +8 del jinete, los doce 0x60f. Lo pone en 1 sólo 0x421db0, en el héroe, con el A9 de las
+// mascotas y su byte 4 en 0xfe (0x4220b1..0x4220c1), sin portar.
 constexpr std::uint8_t RiderWithOrbits = 1;
 // 0x5ffe30: el alpha con que 0x5ffdf0 todavía dibuja.
 constexpr float DrawnAlpha = 0.01f;
@@ -322,6 +327,52 @@ Core::Expected<void, std::string> ShakeTheEarth(HelperState& helper, const Helpe
     return {};
 }
 
+// 0x44469d..0x44474c, con +8 del jinete en 1: cuatro vueltas que suben la z de los ángulos 90 (0x6b8948) desde
+// (0; 0; 0), giran (0; 50; 0) con su matriz (0x5fc8f0 y 0x5fcbd0) y le suman la posición del caballo (+0x10), cada eje
+// guardado en float. En cada vuelta, tres 0x530860(0x60f, punto, punto, ángulos, 0, caballo, 40, 2, 0, 0, −1) iguales,
+// con el caballo (su HelperState) de dueño: nacen con su luz (+0xf4) y, con el ancho en 40, el paso no lo vuelve a
+// leer. Tres rand() por joint; con el pool lleno, ninguno.
+Core::Expected<void, std::string> RaiseTheOrbits(HelperState& helper, const HelperStepContext& context)
+{
+    constexpr int Turns = 4;                                                            // 0x4446c7
+    constexpr int JointsPerTurn = 3;                                                    // 0x444705
+    constexpr double TurnStep = static_cast<double>(std::bit_cast<float>(0x42b40000u)); // 0x6b8948: 90.
+    constexpr std::int32_t OrbitJoint = 0x60f, OrbitSubtype = 0, OrbitKey = 2, NoTarget = -1;
+    constexpr float OrbitWidth = 40.0f;       // 0x444727
+    const glm::vec3 reach{0.0f, 50.0f, 0.0f}; // 0x4446b2..0x4446c0
+    glm::vec3 angles{};                       // 0x44469d..0x4446ab
+    for (int turn = 0; turn < Turns; ++turn)
+    {
+        angles.z = F32(static_cast<double>(angles.z) + TurnStep);
+        const glm::vec3 rotated =
+            Render::Models::OriginalVectorRotate(reach, Render::Models::OriginalAngleMatrix(angles));
+        glm::vec3 point{F32(static_cast<double>(rotated.x) + static_cast<double>(helper.position.x)),
+                        F32(static_cast<double>(rotated.y) + static_cast<double>(helper.position.y)),
+                        F32(static_cast<double>(rotated.z) + static_cast<double>(helper.position.z))};
+        for (int made = 0; made < JointsPerTurn; ++made)
+        {
+            const World::FishEffectRequest request{.type = OrbitJoint,
+                                                   .firstPosition = point,
+                                                   .secondPosition = point,
+                                                   .angles = angles,
+                                                   .subtype = OrbitSubtype,
+                                                   .ownerContext = &helper,
+                                                   .scale = OrbitWidth,
+                                                   .key = OrbitKey,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = NoTarget};
+            const auto created =
+                CreateFaunaJoint(context.world.DrawTail().joints, request, context.random, JointOwnerKind::Helper);
+            if (!created.HasValue())
+            {
+                return Core::Unexpected(std::format("0x444740: {}", created.Error()));
+            }
+        }
+    }
+    return {};
+}
+
 // 0x4440b8..0x444766, el cuerpo del 0xbf.
 Core::Expected<void, std::string> StepTheDarkHorse(HelperState& helper, ActorState& rider,
                                                    const Render::Models::Skeleton& skeleton,
@@ -372,8 +423,10 @@ Core::Expected<void, std::string> StepTheDarkHorse(HelperState& helper, ActorSta
     }
     if (rider.byte8 == RiderWithOrbits)
     {
-        return Core::Unexpected(std::string("0x444693: con +8 del jinete en 1, doce 0x530860(0x60f) alrededor del "
-                                            "caballo, que MuRet no tiene en el juego"));
+        if (auto orbits = RaiseTheOrbits(helper, context); !orbits.HasValue())
+        {
+            return orbits;
+        }
     }
     rider.byte8 = 0;            // 0x444758
     helper.alive = rider.alive; // 0x44475c..0x444764
@@ -750,6 +803,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(WorldState&
         helper.horse.animation.frame = 0.0f;
         helper.horse.speed = CreatedSpeed;
         helper.horse.alpha = CreatedAlpha;
+        helper.light = HorseLight; // 0x443e2f..0x443e45
         helper.blendMesh = NoBlendMesh;
         if (type == RiderlessHelper)
         {

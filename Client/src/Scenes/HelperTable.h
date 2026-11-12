@@ -49,9 +49,9 @@ inline constexpr std::size_t HelperCount = 10;
 // Un lugar: una proyección con lo que MuRet lee, no el layout. Arranca en cero, como la .bss.
 // 0x443d70 escribe además +4 (el quinto argumento, 0), la malla oculta (+0x58) en −1, la luz del blendMesh
 // (+0x68) en 1, la meta del alpha (+0x170) en 1, la luz por vértice (+0xe8) en 1, +0xf0, +0x16d y +0x11c en
-// 0, +0x60 en 30 y la luz (+0xf4..+0xfc) en 3: MuRet los lleva fijos (DarkHorse, DrawDarkHorse y el dibujo de
-// los demás en Scenes/HelperTable.cpp) o no los lee nadie de lo portado. +0x74 no lo escribe nadie: en 0, el
-// 0x6004aa de 0x6002e0 no toma su camino del 0x80.
+// 0 y +0x60 en 30: MuRet los lleva fijos (DarkHorse, DrawDarkHorse y el dibujo de los demás en
+// Scenes/HelperTable.cpp) o no los lee nadie de lo portado. +0x74 no lo escribe nadie: en 0, el 0x6004aa de
+// 0x6002e0 no toma su camino del 0x80.
 struct HelperState
 {
     bool alive = false;     // +0
@@ -62,6 +62,10 @@ struct HelperState
     // +0xcc..+0xd4: el vuelo del 0x1c12 (0x445052..0x445221). 0x443d70 no la escribe: un lugar que se vuelve a
     // usar se queda con la del ayudante de antes (Q-C420).
     glm::vec3 velocity{};
+    // +0xf4..+0xfc, la luz propia: 3 desde 0x443d70 (0x443e2f..0x443e45), que nadie más escribe. La lee el 60f/0
+    // que el caballo suelta con +8 del jinete en 1 (0x444740 → 0x53429b); el aliento (0x4445b5) y el dibujo la llevan
+    // fija en el 3 (HorseLight en Scenes/HelperTable.cpp).
+    glm::vec3 light{};
     // +0x64: −1 de 0x443d70, y 1 con el 0x1c12 (0x443f1a), que dibuja su malla 1 como blendMesh.
     std::int16_t blendMesh = -1;
     std::size_t rider = 0; // +0x108, el jinete: un puntero al pool en el original, el lugar del pool en MuRet
@@ -118,14 +122,16 @@ struct HelperStepContext
 //   si no, copia la posición y los ángulos del jinete, toma su acción y su velocidad, saca el polvo del galope
 //   (0x44418e..0x4444ef: la 5f2 en el 2, la 5f3 en los demás y, en el 10, la onda 0x6eb/1 y las 5f2 desde un
 //   hueso del buffer global) y el aliento (0x44453f..0x4445de, del hueso 27 del buffer global) con sus rand();
+//   con +8 del jinete en 1, los doce 60f/0 alrededor del caballo, con él de dueño, en los joints del mundo
+//   (0x44469d..0x44474c, tres rand() cada uno); después pone +8 en 0 y le copia al caballo el byte vivo del jinete;
 // - el Uniria y el Dinorant (0x4447c4..0x444ac4): la celda segura igual; el alpha con +0x80 del jinete, su lugar
 //   (el Dinorant más abajo en los mapas que no son el −1), su acción, el polvo con el galope y la velocidad 0,34;
 // - los Fenrir (0x444af0..0x444f25): igual, con su acción y su velocidad, y el polvo (en el 10, la onda y las
 //   5f2 desde los huesos 22 y 44 del buffer global, en dos ventanas del frame);
 // - el Guardian Angel (0x444f2a..0x444fff y 0x445052..0x445221): cuatro 5c5/1 y el vuelo hacia el jinete.
 // Corta con error, después de los rand() que el original saca antes: con un hueso del buffer global que MuRet no
-// conserva, con una partícula que no se puede crear, con la acción 3 del caballo (0x52e470) y con el +8 del
-// jinete (0x530860); también sin el mapa cargado o sin el modelo del tipo. Lo que hizo antes del corte queda.
+// conserva, con una partícula que no se puede crear y con la acción 3 del caballo (0x52e470); también sin el mapa
+// cargado o sin el modelo del tipo. Lo que hizo antes del corte queda.
 [[nodiscard]] Core::Expected<void, std::string> StepHelpers(const HelperStepContext& context);
 
 // Lo que el dibujo de los ayudantes lee y escribe fuera del mundo.

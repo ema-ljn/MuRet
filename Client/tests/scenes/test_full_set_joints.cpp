@@ -7,6 +7,7 @@
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/HelperTable.h"
 #include "World/IFishStepServices.h"
 #include "World/Sprites.h"
 
@@ -32,6 +33,8 @@ using Client::Render::Models::CrtRandom;
 using Client::Render::Models::Detail::CosineProductPC53;
 using Client::Render::Models::Detail::SineProductPC53;
 using Client::Scenes::ActorState;
+using Client::Scenes::HelperState;
+using Client::Scenes::JointOwnerKind;
 using Client::Scenes::JointState;
 using Client::World::FishEffectRequest;
 
@@ -82,8 +85,9 @@ struct Request
     glm::vec3 angles{};
 };
 
-Client::Core::Expected<std::optional<std::size_t>, std::string> Create(std::span<JointState> joints, Request request,
-                                                                       void* owner, CrtRandom& random)
+Client::Core::Expected<std::optional<std::size_t>, std::string>
+Create(std::span<JointState> joints, Request request, void* owner, CrtRandom& random,
+       JointOwnerKind ownerKind = JointOwnerKind::ByType)
 {
     const FishEffectRequest made{request.type,
                                  request.first,
@@ -96,7 +100,7 @@ Client::Core::Expected<std::optional<std::size_t>, std::string> Create(std::span
                                  request.skill,
                                  0,
                                  -1};
-    return Client::Scenes::CreateFaunaJoint(joints, made, random);
+    return Client::Scenes::CreateFaunaJoint(joints, made, random, ownerKind);
 }
 
 // La cola común (0x53c393) con los ángulos en 0: count sube hasta maximumCount − 1.
@@ -275,6 +279,92 @@ TEST(FullSetJointsTest, TheSparkleFallsWithTheActionsOfItsOwnerAndThenOnlyFades)
             EXPECT_EQ(joint.alive, step < 10);
         }
     }
+}
+
+// 0x444740: el 60f/0 del caballo oscuro lleva su HelperState de dueño, y 0x53429b lee de él la luz propia (+0xf4, la
+// que 0x443d70 pone en 3), no la del personaje. Lo demás nace igual que con el personaje.
+TEST(FullSetJointsTest, TheSparkleOfTheHorseIsBornWithTheLightOfTheHorse)
+{
+    HelperState horse;
+    horse.light = {3.0f, 2.0f, 1.0f};
+    horse.horse.animation.action = 0xd;
+    std::array<JointState, 1> joints{};
+    CrtRandom random(1);
+    const Request request{0x60f, 0, 40.0f, 2, 0};
+
+    const auto created = Create(joints, request, &horse, random, JointOwnerKind::Helper);
+
+    ASSERT_TRUE(created.HasValue()) << created.Error();
+    ASSERT_EQ(created.Value(), std::optional<std::size_t>(0));
+    CrtRandom draws(1);
+    static_cast<void>(draws.Next());
+    const int drift = draws.Next();
+    const int rise = draws.Next();
+    EXPECT_EQ(random.State(), draws.State());
+    const JointState& joint = joints[0];
+    EXPECT_EQ(joint.ownerContext, &horse);
+    EXPECT_EQ(joint.ownerKind, JointOwnerKind::Helper);
+    EXPECT_EQ(joint.light, horse.light);
+    EXPECT_EQ(joint.life, 50);
+    EXPECT_EQ(joint.key, 2);
+    EXPECT_EQ(joint.velocity, glm::vec3(0.0f, static_cast<float>(drift % 500 - 250),
+                                        F32(static_cast<double>(rise % 250 + 200) * D(Float(0x3c23d70au)))));
+    EXPECT_EQ(joint.targetPosition, request.second);
+
+    // 0x530860 escribe el tipo de dueño en cada alta: el lugar vuelve a ByType con el personaje.
+    joints[0].alive = false;
+    ActorState actor;
+    actor.light = glm::vec3(0.5f);
+    ASSERT_TRUE(Create(joints, {0x60f, 0, 10.0f, -1, 0}, &actor, random).HasValue());
+    EXPECT_EQ(joints[0].ownerKind, JointOwnerKind::ByType);
+    EXPECT_EQ(joints[0].light, actor.light);
+}
+
+// 0x53b378..0x53b3a9 con el caballo de dueño: debajo de 40 de ancho la caída mira la acción del caballo (+0x111, la de
+// DarkHorse), no la del personaje.
+TEST(FullSetJointsTest, TheSparkleOfTheHorseFallsWithTheActionOfTheHorse)
+{
+    for (const std::uint8_t action : {std::uint8_t{0xc}, std::uint8_t{0xd}})
+    {
+        SCOPED_TRACE(static_cast<int>(action));
+        HelperState horse;
+        horse.light = glm::vec3(3.0f);
+        std::array<JointState, 1> joints{};
+        CrtRandom random(1);
+        ASSERT_TRUE(Create(joints, {0x60f, 0, 10.0f, -1, 0}, &horse, random, JointOwnerKind::Helper).HasValue());
+        JointState expected = joints[0];
+        horse.horse.animation.action = action;
+
+        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+
+        TurnSparkle(expected);
+        const JointState& joint = joints[0];
+        EXPECT_EQ(joint.position, expected.position);
+        EXPECT_EQ(joint.subtype, action == 0xd ? 1 : 0);
+        EXPECT_EQ(joint.tailEnabled, action != 0xd);
+        EXPECT_EQ(joint.life, action == 0xd ? 9 : 99);
+    }
+}
+
+// MuRet sólo sabe leer un ayudante de dueño en el 60f/0 y el 60f/0x12: con otro joint corta antes de escribir el lugar
+// y sin rand(); con el pool lleno no lee los argumentos.
+TEST(FullSetJointsTest, OnlyTheSparklesTakeAHelperForOwner)
+{
+    HelperState horse;
+    std::array<JointState, 1> joints{};
+    CrtRandom random(1);
+
+    const auto created = Create(joints, {0x610, 7, 10.0f, -1, 0}, &horse, random, JointOwnerKind::Helper);
+
+    ASSERT_FALSE(created.HasValue());
+    EXPECT_NE(created.Error().find("0x530860"), std::string::npos) << created.Error();
+    EXPECT_FALSE(joints[0].alive);
+    EXPECT_EQ(random.State(), CrtRandom(1).State());
+
+    joints[0].alive = true;
+    const auto full = Create(joints, {0x610, 7, 10.0f, -1, 0}, &horse, random, JointOwnerKind::Helper);
+    ASSERT_TRUE(full.HasValue()) << full.Error();
+    EXPECT_FALSE(full.Value().has_value());
 }
 
 // 0x53c393: un 60f/1 con la cola usaría la matriz que dejó el joint anterior; el 60f/0 que cae la apaga, así que sólo

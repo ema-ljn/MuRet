@@ -21,6 +21,7 @@
 #include "UI/Dialogs.h"
 #include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
+#include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
 
@@ -61,6 +62,7 @@ constexpr GameKey F3Key{Key::F3, 0x72};
 constexpr GameKey F4Key{Key::F4, 0x73};
 constexpr GameKey F5Key{Key::F5, 0x74};
 constexpr GameKey F6Key{Key::F6, 0x75};
+constexpr GameKey EnterKey{Key::Enter, 0x0d};
 
 constexpr GameKey Letter(char letter)
 {
@@ -164,16 +166,20 @@ Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
 }
 
 // 0x636e5d..0x636ed1: con el izquierdo abajo y el mouse fuera de las ventanas (o sobre el registro del chat), el foco
-// del administrador de ventanas (+0x44 de 0x5763514, hito 7) en 0 y, con el chat y los otros campos cerrados
-// (0x77f3b69, 0x77f3b68 y 0x77f3b6a, del hito 6), la lista de las flechas en 0, 0x4a5e10 sobre la lista de ventanas
-// (vacía hasta el hito 7) y el foco y el IME a la ventana del juego, que en MuRet siempre los tiene.
+// del administrador de las ventanas viejas (+0x44 de 0x5763514) en 0 y, con el chat y los otros campos cerrados
+// (0x77f3b69, 0x77f3b68 y 0x77f3b6a, del hito 6), la lista de las flechas en 0, 0x4a5e10 sobre la lista de ventanas y
+// el foco del teclado a la ventana del juego (SetFocus; el IME de 0x467360, MuRet no lo tiene).
 void StepTheUnownedClick(WorldRuntime& runtime)
 {
     UI::GameUiState& ui = runtime.ui;
     if (!runtime.movement.leftHeld || (ui.hovered != 0 && ui.hovered != UI::ChatLogId))
         return;
-    if (!ui.chatOpen)
-        ui.focusedList = 0;
+    runtime.oldWindows.focus = 0;
+    if (ui.chatOpen)
+        return;
+    ui.focusedList = 0;
+    UI::HideTheWindowList(runtime.oldWindows.windowList);
+    runtime.chat.input.focus = UI::ChatFocus::Game;
 }
 
 // 0x636f04..0x637056: la esquina del registro del chat (0x45a9d0). Fuera de su ventana, (−10, 0x65); en ella, 0x1a4 de
@@ -260,18 +266,29 @@ Core::Expected<void, std::string> StepTheEscapeMenu(const GameUiContext& context
     return {};
 }
 
-// 0x490490, las ventanas viejas: MuRet no tiene ninguna (hito 7). Esc solo las mira con la de arriba abierta, y
-// llega acá ya leído por 0x623e70 salvo con la de amigos abierta; F5 (0x4a5be0) y F6 (0x4906a0) sí hacen algo.
+// 0x636e3c..0x636e4c: el paso de la lista de ventanas ([0x5763524], la vtable + 0x18 con 0) y el de las ventanas
+// viejas (0x490490). Esc llega a 0x490490 ya leído por 0x623e70, salvo con la de amigos abierta (Q-C446).
 Core::Expected<void, std::string> StepTheOldWindows(const GameUiContext& context)
 {
-    UI::GameUiState& ui = context.world.Runtime().ui;
-    static_cast<void>(KeyEdge(ui, context.input, EscapeKey));
-    // 0x4904eb: F5 con el foco en la ventana del juego, que en MuRet siempre lo tiene.
-    if (KeyEdge(ui, context.input, F5Key))
-        return Core::Unexpected(std::string("0x4904f8: F5 (0x4a5be0) es de las ventanas viejas, del hito 7"));
-    if (KeyEdge(ui, context.input, F6Key))
-        return Core::Unexpected(std::string("0x49050b: F6 (0x4906a0) es de las ventanas viejas, del hito 7"));
-    return {};
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::GameUiState& ui = runtime.ui;
+    const Input::InputState& input = context.input;
+    // 0x553520 con las cuatro teclas que leen las ventanas viejas.
+    const UI::OldWindowStepView view{.mouseX = context.mouseX,
+                                     .mouseY = context.mouseY,
+                                     .keyEdge = [&ui, &input](std::uint8_t virtualKey)
+                                     {
+                                         for (const GameKey& key : {EscapeKey, F5Key, F6Key, EnterKey})
+                                         {
+                                             if (key.virtualKey == virtualKey)
+                                                 return KeyEdge(ui, input, key);
+                                         }
+                                         return false;
+                                     }};
+    const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
+    if (auto list = UI::StepTheWindowList(runtime.oldWindows, globals, view); !list.HasValue())
+        return list;
+    return UI::StepTheOldWindows(runtime.oldWindows, globals, view);
 }
 
 // 0x5ee140: los paneles con paso propio, sin diálogo y sin el menú de Esc.
@@ -748,6 +765,39 @@ void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down)
     state.pendingClick = down && (state.pendingClick || pressed);
 }
 
+void LatchTheLeftRelease(GameMovementState& state, bool pressed, bool released, bool down, std::int32_t mouseX,
+                         std::int32_t mouseY)
+{
+    if (state.releasedClick && (state.releaseX != mouseX || state.releaseY != mouseY))
+        state.releasedClick = false;
+    // Apretado después del soltado, el botón queda abajo: el WM_LBUTTONDOWN fue el último.
+    if (pressed && (!released || down))
+    {
+        state.releasedClick = false;
+        return;
+    }
+    if (!released)
+        return;
+    state.releasedClick = true;
+    state.releaseX = mouseX;
+    state.releaseY = mouseY;
+}
+
+UI::OldWindowGlobals OldWindowGlobalsOf(WorldRuntime& runtime)
+{
+    UI::GameUiState& ui = runtime.ui;
+    GameMovementState& movement = runtime.movement;
+    return UI::OldWindowGlobals{.leftHeld = movement.leftHeld,
+                                .leftClick = movement.pendingClick,
+                                .releasedClick = movement.releasedClick,
+                                .mouseOnUi = ui.mouseOnUi,
+                                .hovered = ui.hovered,
+                                .capture = ui.capture,
+                                .pressedButton = ui.pressedButton,
+                                .keyboardFocus = runtime.chat.input.focus,
+                                .sound = runtime.lastSoundId};
+}
+
 Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -812,7 +862,6 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     ui.hovered = 0;
     // 0x636e35: 0x46b7b0, las dos colas del cartel de Slide.bmd (0x46add0), sin portar (08, P-C80): vacías, porque
     // el 0D que las llena corta.
-    // 0x636e3c: la lista de ventanas ([0x5763524] vtbl + 0x18), vacía hasta el hito 7.
     if (auto old = StepTheOldWindows(context); !old.HasValue())
         return old;
     if (auto chat = StepTheChat(context); !chat.HasValue())

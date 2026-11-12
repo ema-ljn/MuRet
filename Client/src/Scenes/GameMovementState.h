@@ -26,6 +26,12 @@ struct GameMovementState
     float heldElapsed = 0.0f;
     bool leftHeld = false;
     bool previousLeftDown = false;
+    // 0x7d366ec, el flanco del soltado: lo prende WM_LBUTTONUP (0x4b3cea) con el mouse de ese momento (0x576358c y
+    // 0x5763590), lo apagan WM_LBUTTONDOWN (0x4b3947), cualquier mensaje con el mouse en otro lugar (0x4b344d) y quien
+    // lo usa (los botones viejos y la barra del título, 0x45b200 y 0x492ac0).
+    bool releasedClick = false;
+    std::int32_t releaseX = 0;
+    std::int32_t releaseY = 0;
     std::array<std::uint8_t, 256> skillDepths{};
     float selectedSkillRange = 0.0f;
     std::uint32_t targetX = 0;

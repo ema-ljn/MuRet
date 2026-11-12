@@ -553,16 +553,16 @@ TEST(GameUiTest, TheFunctionKeysChangeTheChatModes)
     EXPECT_NE(help.Error().find("0x5ac9ce"), std::string::npos);
 }
 
-// 0x637cff: Impr Pant pide la captura, que corta (P-C94); su latch la lee una vez.
-TEST(GameUiTest, ThePrintScreenKeyCutsTheScreenshot)
+// 0x637cff: Impr Pant no es de las teclas del juego, sino de lo que corre detrás del paso de cualquier escena
+// (Scenes::Screenshots): las teclas de función no tocan su latch.
+TEST(GameUiTest, TheFunctionKeysLeaveThePrintScreenKey)
 {
     SteppingUi tested;
     Press(tested.input, Key::PrintScreen);
-    const auto screenshot = Client::Scenes::StepTheFunctionKeys(GameUiContext{
+    const auto keys = Client::Scenes::StepTheFunctionKeys(GameUiContext{
         .world = tested.world, .random = tested.random, .input = tested.input, .mouseX = 320, .mouseY = 100});
-    ASSERT_FALSE(screenshot.HasValue());
-    EXPECT_NE(screenshot.Error().find("0x637cff"), std::string::npos) << screenshot.Error();
-    EXPECT_EQ(tested.Ui().keyLatches[0x2c], 1);
+    ASSERT_TRUE(keys.HasValue()) << keys.Error();
+    EXPECT_EQ(tested.Ui().keyLatches[0x2c], 0);
 }
 
 class TypedLetters final : public Client::Render::Text::ITextMeasure

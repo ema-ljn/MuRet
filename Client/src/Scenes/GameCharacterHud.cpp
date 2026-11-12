@@ -8,6 +8,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
@@ -185,13 +186,13 @@ Render::Text::TextStyle CurrentStyle(const GameHudContext& context)
     return Render::Text::TextStyle{.font = context.hud.dcFont, .colors = context.hud.textColors};
 }
 
-// 0x554180(x, y, texto, caja, 1, p6) → 0x467060 en el modo 2 (0x46711b..0x467132): (caja − cx) / 2 con la división
-// de C, la caja de cx + 2 · eso columnas desde x y el texto corrido eso; más ancho que la caja, se ve el centro.
+// 0x554180(x, y, texto, caja, 1, p6) → 0x467060 en el modo 2 (0x46711b..0x467132, Render::Text::CenterInBox):
+// (caja − cx) / 2 con la división de C, la caja de cx + 2 · eso columnas desde x y el texto corrido eso; más ancho que
+// la caja, se ve el centro. Vacío y sin caja, nada (0x467077..0x467082).
 void DrawCentered(GameHudContext& context, int x, int y, std::string_view text, int box)
 {
-    const int width = MeasuredWidth(context, text);
-    const int offset = (box - width) / 2;
-    context.text.DrawColumns(x, y, text, CurrentStyle(context), -offset, width + 2 * offset);
+    const Render::Text::CenteredInBox placed = Render::Text::CenterInBox(context.text, context.hud.dcFont, text, box);
+    context.text.DrawColumns(x, y, text, CurrentStyle(context), -placed.textColumn, placed.width);
 }
 
 // 0x554180(x, y, texto, ancho, 0, 0) → 0x467060 en el modo 1 (0x467102..0x467119): con el ancho, la caja de ese

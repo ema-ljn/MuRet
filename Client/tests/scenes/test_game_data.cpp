@@ -1,5 +1,6 @@
 #include "Scenes/GameData.h"
 
+#include "Core/Xor3.h"
 #include "Data/DataError.h"
 #include "Data/DataFile.h"
 #include "Data/Tables/GateRecord.h"
@@ -9,6 +10,7 @@
 #include "support/ItemFiles.h"
 #include "support/ItemSetFiles.h"
 #include "Data/Text/FilterWords.h"
+#include "Data/Text/MoveRequirements.h"
 #include "Data/Text/TextTable.h"
 #include "support/SceneDataFiles.h"
 #include "support/GateFiles.h"
@@ -184,6 +186,44 @@ TEST(GameDataTest, AnOverflowingMacroIsNamed)
     ASSERT_FALSE(data.HasValue());
     EXPECT_NE(data.Error().find("Macro.txt"), std::string::npos) << data.Error();
     EXPECT_NE(data.Error().find("0x61c1c0"), std::string::npos) << data.Error();
+}
+
+// 0x61ec8f → 0x448440: movereq.bmd sin mirar mayúsculas; sin él, ningún destino y sin error. Uno corto lo nombra. El
+// destino es inventado.
+TEST(GameDataTest, ReadsTheMoveRequirements)
+{
+    const TemporaryFolder folder("game-data");
+    WriteTextTable(folder.Path(), {{1, "uno"}});
+    WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
+    WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
+    Client::Tests::WriteEmptyItemSetFiles(folder.Path());
+    Client::Tests::WriteEmptySkillFile(folder.Path());
+
+    const auto without = LoadGameData(folder.Path());
+    ASSERT_TRUE(without.HasValue()) << without.Error();
+    EXPECT_TRUE(without.Value().moves.empty());
+
+    std::vector<std::byte> file(4 + Client::Data::Text::MoveRecordSize);
+    file[0] = std::byte{1};
+    const std::span<std::byte> record = std::span(file).subspan(4);
+    record[0] = std::byte{7};
+    record[4] = std::byte{'C'};
+    record[5] = std::byte{'a'};
+    record[0x44] = std::byte{40};
+    Client::Core::Xor3(record);
+    WriteSceneFile(folder.Path(), "Local/MoveReq.bmd", file);
+    const auto data = LoadGameData(folder.Path());
+    ASSERT_TRUE(data.HasValue()) << data.Error();
+    ASSERT_EQ(data.Value().moves.size(), 1u);
+    EXPECT_EQ(data.Value().moves[0].index, 7);
+    EXPECT_EQ(data.Value().moves[0].name, "Ca");
+    EXPECT_EQ(data.Value().moves[0].level, 40);
+
+    file.pop_back();
+    WriteSceneFile(folder.Path(), "Local/MoveReq.bmd", file);
+    const auto shortFile = LoadGameData(folder.Path());
+    ASSERT_FALSE(shortFile.HasValue());
+    EXPECT_NE(shortFile.Error().find("Local\\movereq.bmd"), std::string::npos) << shortFile.Error();
 }
 
 // Uno con otra suma (o la del otro archivo) es un error que lo nombra, como el "File corrupted" del

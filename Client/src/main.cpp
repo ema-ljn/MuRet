@@ -649,6 +649,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     Scenes::WorldState world;
     // 0x61ee30 → 0x61c1c0: las macros de Data\Macro.txt, que GameData leyó detrás de Text.bmd, en 0x77f1db0.
     world.Runtime().chat.input.macros = scenes.data.macros;
+    // 0x61ec8f: 0x448440 deja los destinos de movereq.bmd en la lista de 0x723c68, que dura hasta el cierre.
+    world.Runtime().moves = scenes.data.moves;
     // 0x61ed18: 0x46b3b0 deja Slide.bmd en el cartel de [0x5763528], que dura hasta el cierre.
     if (scenes.data.slides)
     {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Data/Text/MoveRequirements.h"
 #include "GameLogic/MovementSpeed.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
@@ -31,6 +32,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
 
 // Los globales en claro que sobreviven a los cambios de escena: el mundo en curso, el estado compartido
 // de la velocidad y lo que hace falta para la espera de la entrada al mundo (06, "La entrada al mundo",
@@ -168,6 +170,9 @@ struct WorldRuntime
     // 0x723c18: la cola de los textos 3D (WorldTexts.h). La llena 0x4381f0 desde el cuerpo de los personajes
     // (0x4fd603, que MuRet corta: CL9.5) y la vacía su dibujo (0x4383f0) en cada frame del juego.
     WorldTextQueue worldTexts{};
+    // 0x723c68 (+8, la lista; +0xc, la cuenta): los destinos de movereq.bmd que 0x448440 lee en la carga (0x61ccb0) y
+    // que la ventana /move recorre en su paso (0x448580) y en su dibujo (0x448fa0). main.cpp los copia de GameData.
+    std::vector<Data::Text::MoveRequirement> moves;
     std::int32_t cursorItemCount = 0;
     std::int32_t storm = 0;
     std::int32_t field78abb10 = 0;

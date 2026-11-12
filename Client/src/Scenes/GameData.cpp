@@ -10,6 +10,7 @@
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/Credits.h"
 #include "Data/Text/FilterWords.h"
+#include "Data/Text/MoveRequirements.h"
 #include "Data/Text/SlideTable.h"
 #include "Data/Text/TextTable.h"
 #include "UI/MacroFile.h"
@@ -232,6 +233,29 @@ Core::Expected<std::optional<Data::Text::SlideTable>, std::string> LoadSlides(co
         return Core::Unexpected(std::format("{}: {}", SlideTableFile, Data::DescribeDataError(table.Error())));
     return std::optional<Data::Text::SlideTable>(std::move(table).Value());
 }
+// 0x448440 lee la cuenta y cuenta · 0x50 bytes sin tope; MuRet lee hasta 1 MiB (13.107 destinos).
+constexpr std::size_t MaxMoveRequirementsBytes = 1024u * 1024u;
+
+// 0x448440: sin el archivo, la lista vacía y nada más.
+Core::Expected<std::vector<Data::Text::MoveRequirement>, std::string> LoadMoves(const std::filesystem::path& dataRoot)
+{
+    std::error_code error;
+    const auto path = Data::ResolveDataPath(dataRoot, MoveRequirementsFile, error);
+    if (error)
+    {
+        return Core::Unexpected(std::format("no se pudo buscar {} en {}: {}", MoveRequirementsFile,
+                                            Core::PathText(dataRoot), error.message()));
+    }
+    if (!path)
+        return std::vector<Data::Text::MoveRequirement>{};
+    const auto file = Data::ReadDataFilePrefix(*path, MaxMoveRequirementsBytes);
+    if (!file.HasValue())
+        return Core::Unexpected(std::format("no se pudo leer {}: {}", MoveRequirementsFile, file.Error().message()));
+    auto moves = Data::Text::LoadMoveRequirements(std::as_bytes(std::span(file.Value())));
+    if (!moves.HasValue())
+        return Core::Unexpected(std::format("{}: {}", MoveRequirementsFile, Data::DescribeDataError(moves.Error())));
+    return std::move(moves).Value();
+}
 } // namespace
 
 Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot)
@@ -289,6 +313,12 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(items).Error());
     }
     data.items.emplace(std::move(items).Value());
+    auto moves = LoadMoves(dataRoot);
+    if (!moves.HasValue())
+    {
+        return Core::Unexpected(std::move(moves).Error());
+    }
+    data.moves = std::move(moves).Value();
     auto itemSets = LoadItemSets(dataRoot);
     if (!itemSets.HasValue())
     {

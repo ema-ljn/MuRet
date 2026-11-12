@@ -46,6 +46,7 @@ Devias). Todos trabajan sobre buffers: leer el archivo es tarea del que llama.
 | `ItemSetOption.bmd` | `0x40c850`, desde `0x40c600` / sin buscar | 64 × 0x4c bytes, igual, + checksum `0xA2F1` | `[0x6eed3c] + 0x8004`, 0x1300 |
 | `credit.bmd` | `0x63ff30`, desde `0x63f020` / sin buscar | 400 × 33 bytes, el XOR3 del login (`0x4c1690`) de una vez sobre los 13.200, sin checksum ([los registros](#creditbmd)) | `+0x610` de la ventana de los créditos (`0x7d53728 + 0x4578`), 0x3390 |
 | `Slide.bmd` | `0x46b3b0`, desde `0x61ccb0` (`0x61ed18`) / sin buscar | 0xa030 bytes con el XOR3 entero (`0x4c1690`, la clave de `0x6c82e4`): el período, la velocidad y 5 tramos de 0x2008 bytes ([los campos](#slidebmd)) | `[0x5763528] + 0x11ac..+0x1218` |
+| `movereq.bmd` | `0x448440`, desde `0x61ccb0` (`0x61ec8f`, por `0x449830`) / sin buscar | la cuenta en claro y cuenta × 0x50 bytes, el XOR3 por registro (`0x449770`, la clave en la pila), sin checksum ([los campos](#movereqbmd)) | la lista de `0x723c68` (+8; la cuenta en +0xc), un bloque de 0x50 por destino |
 
 Si falta un archivo, el original muestra un `MessageBox`, manda `WM_DESTROY` y **sigue cargando**
 las demás tablas.
@@ -199,6 +200,36 @@ con 28 textos, hasta el 30 con 20 y hasta el 50 con 19; los otros dos tienen el 
 MuRet: `Data::Text::LoadSlideTable` lee los 0xa030 bytes (con menos, `DataError::FileTooShort`, Q-C516; lo que sobra
 se ignora), y un texto sin `\0` antes del final es `DataError::InvalidData`, porque en el original seguiría en la
 pila. `Scenes::LoadGameData` lo carga al final; uno que no está deja el cartel con lo de su constructor (Q-C517).
+
+### `movereq.bmd`
+
+Leído en la CL8 (hito 6, 2026-11-12; *estático*, y la forma *verificada* con el archivo real, `GoldenMoveRequirements`).
+`0x448440` (por `0x449830`, que pide el objeto de `0x723c68` con `0x449720`, desde `0x61ccb0`, `0x61ec8f`, con
+`Data\Local\movereq.bmd`) abre el archivo con `"rb"`; si no está, devuelve 0, nadie lo mira y la lista queda vacía,
+sin aviso. Pone la cuenta en 0, la lee con `fread(&cuenta, 4, 1)` y, mientras el índice es menor (con signo), pide un
+bloque de 0x50 con `operator new`, lee 0x50 bytes en él, les pasa `0x449770` (el XOR3 `FC CF AB` desde el primer byte
+del registro: como 0x50 no es múltiplo de 3, la clave vuelve a empezar en cada uno) y lo agrega al final de la lista.
+No mira cuánto leyó `fread` ni tiene checksum.
+
+| Desplazamiento | Qué | Quién lo lee |
+| --- | --- | --- |
+| `0x0` | el número del destino | nadie |
+| `0x4` | el nombre (`char[32]`, hasta su `\0`) | la ventana /move: lo dibuja (`0x448fa0`) y lo dice con el texto 260 (`0x448580`) |
+| `0x24` | otro nombre (`char[32]`) | `0x4497c0`, que busca uno con `strcmp` y devuelve su zen; solo lo llama `0x449870`, que nadie llama |
+| `0x44` | el nivel mínimo (int, con signo) | la ventana: 2/3 con las clases 3 y 4 (`ftol`) |
+| `0x48` | el zen (sin signo al comparar, con signo en el `_itoa` del dibujo) | la ventana |
+| `0x4c` | la puerta de `Gate.bmd` | nadie en el cliente |
+
+El real trae 28 destinos, del 1 (`Arena`, nivel 50, 2.000 de zen) al 28 (`Crywolf Fortress2`, nivel 300, 10.000), con
+los niveles en orden; el nombre de `+4` y el de `+0x24` difieren en las mayúsculas de las torres (`Losttower` y
+`LostTower`). Después de los 28 quedan 640 bytes, ocho registros en cero, que la cuenta no alcanza.
+
+MuRet: `Data::Text::LoadMoveRequirements` lee la cuenta de los primeros cuatro bytes (los que haya, como `fread` sobre
+el 0); con 0 o menos, ninguno. Un registro que falta es `DataError::FileTooShort` (el original lo completaría con lo
+que tuviera el bloque nuevo) y un nombre de `+4` sin `\0` antes del final de su registro, `DataError::InvalidData`
+(`strlen` seguiría fuera del bloque; uno de 32 letras sigue, como en el original, con el de `+0x24`). Lo que sobra se
+ignora. `Scenes::LoadGameData` lo carga antes de las tablas de los conjuntos (hasta 1 MiB, 13.107 destinos), y uno
+que no está deja la lista vacía; main.cpp la copia a `WorldRuntime::moves`.
 
 ## Terreno de un mundo (`Data\World<N>\`)
 

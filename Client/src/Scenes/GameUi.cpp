@@ -26,6 +26,7 @@
 #include <format>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace Client::Scenes
@@ -239,6 +240,305 @@ Core::Expected<void, std::string> StepTheOldWindows(const GameUiContext& context
     return {};
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// El paso del inventario abierto (0x5ee1ac..0x5ee1ca), CL8 hito 4. Lee la esquina que dejó su dibujo (0x78a5a14 y
+// 0x78a5a10). Levantar, soltar y equipar quedan cortados con su dirección (08, P-C71).
+
+// La lista del asedio en el modo 3, que con 0x6689d0 se suma a las ventanas con grilla.
+constexpr std::int32_t SiegeListWithInventory = 3;
+// 0x449c00: la caja del entrenador.
+constexpr std::int32_t TrainerWithBox = 3;
+constexpr std::uint16_t RepairButtonLevel = 0x32;
+constexpr std::uint16_t PersonalShopLevel = 6;
+
+// El mouse en [left, left + w) × [top, top + h), con el borde de la derecha y el de abajo en la x87:
+// FILD mouse; FILD left; FADD w; FCOMPP.
+bool MouseInEquipmentRect(const GameUiContext& context, std::int32_t left, std::int32_t top, float width, float height)
+{
+    const auto x = static_cast<double>(context.mouseX);
+    const auto y = static_cast<double>(context.mouseY);
+    return context.mouseX >= left && static_cast<double>(left) + static_cast<double>(width) > x &&
+           context.mouseY >= top && static_cast<double>(top) + static_cast<double>(height) > y;
+}
+
+// 0x5bec50(x, y, w, h, lugar): un lugar del equipo. Con la espera de 0x5767954 o la traba de C3 24 sale sin abrir el
+// registro propio; si no, lo abre (3.848 rand() al cerrarlo sin otros accesos). Sin ítem en el cursor, con el lugar
+// vacío o el mouse afuera, nada más; con un ítem en el cursor, igual con el mouse afuera.
+Core::Expected<void, std::string> StepAnEquipmentSlot(const GameUiContext& context, float x, float y, float width,
+                                                      float height, std::size_t slot)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    if (runtime.ui.field5767954 > 0 || runtime.ui.field78abb39 != 0)
+        return {};
+    // _ftol de las constantes, que son enteras.
+    const std::int32_t left = static_cast<std::int32_t>(x) + runtime.hud.inventoryX;
+    const std::int32_t top = static_cast<std::int32_t>(y) + runtime.hud.inventoryY;
+    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                            Render::Models::OwnRecordCloseRandoms);
+    const bool inside = MouseInEquipmentRect(context, left, top, width, height);
+    if (runtime.cursorItemCount > 0)
+    {
+        if (!inside)
+            return {};
+        return Core::Unexpected(std::format("0x5bee04: soltar el ítem del cursor en el lugar {} del equipo "
+                                            "(0x5bec50) es de la segunda parte del hito 4 (P-C71)",
+                                            slot));
+    }
+    if (context.world.OwnCharacter().equipment[slot].id == EmptyOwnItemId || !inside)
+        return {};
+    return Core::Unexpected(std::format("0x5c2c56: el lugar {} del equipo bajo el mouse (la marca, la ayuda, "
+                                        "levantarlo o repararlo) es de la segunda parte del hito 4 (P-C71)",
+                                        slot));
+}
+
+// 0x5c3d20: los doce lugares, el 8 y el 7 primero, el casco con la clase leída con el registro abierto (su
+// 0x5bec50 queda adentro y no saca nada al cerrar) y los otros nueve.
+Core::Expected<void, std::string> StepTheEquipment(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    if (auto slot = StepAnEquipmentSlot(context, 15.0f, 46.0f, 40.0f, 40.0f, 8); !slot.HasValue())
+        return slot;
+    if (auto slot = StepAnEquipmentSlot(context, 115.0f, 46.0f, 60.0f, 40.0f, 7); !slot.HasValue())
+        return slot;
+    {
+        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        constexpr std::uint8_t ClassWithoutHelm = 3;
+        if ((context.world.OwnCharacter().characterClass & 7u) != ClassWithoutHelm)
+        {
+            if (auto slot = StepAnEquipmentSlot(context, 75.0f, 46.0f, 40.0f, 40.0f, 2); !slot.HasValue())
+                return slot;
+        }
+    }
+    struct Slot
+    {
+        float x;
+        float y;
+        float width;
+        float height;
+        std::size_t slot;
+    };
+    constexpr std::array<Slot, 9> Slots{{{75.0f, 89.0f, 40.0f, 60.0f, 3},
+                                         {75.0f, 152.0f, 40.0f, 40.0f, 4},
+                                         {15.0f, 89.0f, 40.0f, 60.0f, 0},
+                                         {134.0f, 89.0f, 40.0f, 60.0f, 1},
+                                         {15.0f, 152.0f, 40.0f, 40.0f, 5},
+                                         {134.0f, 152.0f, 40.0f, 40.0f, 6},
+                                         {55.0f, 89.0f, 20.0f, 20.0f, 9},
+                                         {55.0f, 152.0f, 20.0f, 20.0f, 10},
+                                         {115.0f, 152.0f, 20.0f, 20.0f, 11}}};
+    for (const Slot& place : Slots)
+    {
+        if (auto slot = StepAnEquipmentSlot(context, place.x, place.y, place.width, place.height, place.slot);
+            !slot.HasValue())
+            return slot;
+    }
+    return {};
+}
+
+// 0x5c4110(x + 15, y + 200, 0x78a9bb0, 8, 8, 0): la grilla del inventario. Sale con la espera, la traba de C3 24 o
+// un ítem en el cursor; si no, 0x78abaa4 en 0 y, con el mouse sobre una casilla con un tipo, lo de ese ítem.
+Core::Expected<void, std::string> StepTheInventoryGrid(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    if (runtime.ui.field5767954 > 0 || runtime.ui.field78abb39 != 0 || runtime.cursorItemCount > 0)
+        return {};
+    const std::int32_t left = runtime.hud.inventoryX + 15;
+    const std::int32_t top = runtime.hud.inventoryY + 200;
+    const std::span<const World::ItemState, InventoryCellCount> cells(context.world.Inventory().cells);
+    for (std::size_t row = 0; row < InventoryColumns; ++row)
+    {
+        const std::int32_t cellTop = top + static_cast<std::int32_t>(row) * 20;
+        for (std::size_t column = 0; column < InventoryColumns; ++column)
+        {
+            const std::int32_t cellLeft = left + static_cast<std::int32_t>(column) * 20;
+            if (context.mouseX < cellLeft || context.mouseX >= cellLeft + 20 || context.mouseY < cellTop ||
+                context.mouseY >= cellTop + 20 || cells[row * InventoryColumns + column].id == EmptyOwnItemId)
+                continue;
+            return Core::Unexpected(std::string("0x5c41f4: el ítem de la grilla bajo el mouse (la marca, el tooltip "
+                                                "y levantarlo) es de la segunda parte del hito 4 (P-C71)"));
+        }
+    }
+    return {};
+}
+
+// 0x5e545f..0x5e5717: los botones del pie (reparar, cerrar y la tienda personal) y la S, sin la caja del
+// entrenador (0x449c00). Con la ventana de un NPC de evento (0x1000 o 0x4000), solo cerrar en x + 0x19; MuRet ya
+// cortó con ella abierta.
+Core::Expected<void, std::string> StepTheFootButtons(const GameUiContext& context, UI::PanelRegistry& panels,
+                                                     std::uint16_t level)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::PanelState& state = runtime.panels;
+    GameMovementState& movement = runtime.movement;
+    const std::int32_t x = runtime.hud.inventoryX;
+    const std::int32_t y = runtime.hud.inventoryY;
+    const auto inFoot = [&context, x, y](std::int32_t from, std::int32_t to)
+    { return InRect(context, x + from, y + 0x18b, x + to, y + 0x1a3); };
+    const auto toggleThePersonalShop = [&panels]() -> Core::Expected<void, std::string>
+    {
+        if (panels.IsOpen(UI::PersonalShopPanel))
+        {
+            if (auto closed = panels.Close(UI::PersonalShopPanel); !closed.HasValue())
+                return Core::Unexpected(std::move(closed).Error());
+            return {};
+        }
+        if (auto opened = panels.Open(UI::PersonalShopPanel); !opened.HasValue())
+            return Core::Unexpected(std::move(opened).Error());
+        return {};
+    };
+    if (state.delegated.trainer == TrainerWithBox)
+        return {};
+    if (panels.IsOpen(UI::EventNpcPanel) || panels.IsOpen(UI::SecondEventNpcPanel))
+        return {};
+    if (panels.IsOpen(UI::TradePanel) || panels.IsOpen(UI::NpcShopPanel) || panels.IsOpen(UI::WarehousePanel) ||
+        panels.IsOpen(UI::ChaosBoxPanel) || state.field78abb00 != 0)
+        return {};
+    if (level >= RepairButtonLevel)
+    {
+        runtime.field78abb10 = 1;
+        if (inFoot(0x30, 0x48) && movement.pendingClick)
+        {
+            movement.pendingClick = false;
+            state.repairMode ^= 1;
+        }
+    }
+    if (inFoot(0x14, 0x2c) && movement.pendingClick)
+    {
+        movement.pendingClick = false;
+        movement.mouseUpdateTime = 0;
+        movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+        if (auto closed = panels.Close(UI::InventoryPanel); !closed.HasValue())
+            return Core::Unexpected(std::move(closed).Error());
+    }
+    if (inFoot(0x4c, 100))
+    {
+        if (level < PersonalShopLevel)
+            return {};
+        if (movement.pendingClick)
+        {
+            movement.pendingClick = false;
+            if (auto toggled = toggleThePersonalShop(); !toggled.HasValue())
+                return toggled;
+        }
+    }
+    // 0x5e5643..0x5e5717: la S, con nivel 6 o más y sin el campo del chat. 0x77f3b69 (un campo del hito 6) MuRet no
+    // lo tiene, y el diálogo 0x73 con 0x6c7b8c no puede estar: 0x5ee140 no llega acá con un diálogo.
+    if (level < PersonalShopLevel || runtime.ui.chatOpen || !KeyEdge(runtime.ui, context.input, Letter('S')))
+        return {};
+    return toggleThePersonalShop();
+}
+
+// 0x5e571c..0x5e5910: las grillas de las otras ventanas, la caja del entrenador (0x44ad10) y el cartel del set
+// (0x40e6c0).
+Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context, UI::PanelRegistry& panels)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    const UI::PanelState& state = runtime.panels;
+    const auto cut = [](std::string_view what) { return Core::Unexpected(std::string(what)); };
+    if (panels.IsOpen(UI::TradePanel))
+        return cut("0x5e574e: las grillas del comercio (0x78a5a20 y 0x78a92a8) son de la CL9.4");
+    if (panels.IsOpen(UI::NpcShopPanel))
+        return cut("0x5e57af: la grilla de la tienda de NPC (0x78a7070) es de la CL9.3");
+    if (panels.IsOpen(UI::WarehousePanel))
+        return cut("0x5e57e6: la grilla del almacén (0x78a7070) es de la CL9.3");
+    if (panels.IsOpen(UI::ChaosBoxPanel))
+        return cut("0x5e589c: la grilla de la caja del caos (0x7d2d380) es de la CL9.3");
+    if (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory)
+        return cut("0x5e582b: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
+    if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
+        return cut("0x5e58ea: la grilla de la tienda personal (0x78ab0b8) es de la CL9.4");
+    if (state.delegated.trainer == TrainerWithBox)
+        return cut("0x44ad10: la grilla de la caja del entrenador (0x723c80) es de la CL9.3");
+    // 0x40e6c0: el mouse sobre el cartel, sin mirar el clic (Q-C472).
+    const std::int32_t x = runtime.hud.inventoryX;
+    const std::int32_t y = runtime.hud.inventoryY;
+    if (InRect(context, x + 0xe, y + 0x16, x + 0xb0, y + 0x2a))
+        return cut("0x40e6f5: el cartel del set bajo el mouse (+0x9304 y su ventana, 0x40e850 en los tooltips de "
+                   "0x5f7bc0) es de la segunda parte del hito 4 (P-C71)");
+    return {};
+}
+
+// 0x5e4ce0, el inventario. Las otras ventanas con grilla cortan donde se consultan por primera vez.
+Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& context, UI::PanelRegistry& panels)
+{
+    WorldState& world = context.world;
+    WorldRuntime& runtime = world.Runtime();
+    const UI::PanelState& state = runtime.panels;
+    const std::int32_t x = runtime.hud.inventoryX;
+    const std::int32_t y = runtime.hud.inventoryY;
+    const auto cut = [](std::string_view what) { return Core::Unexpected(std::string(what)); };
+    // 0x5e4ce0..0x5e4f2c: el mouse sobre la ventana es de la UI.
+    if (InRect(context, x, y, x + 0xbe, y + 0x1b1))
+        runtime.ui.mouseOnUi = 1;
+    if (panels.IsOpen(UI::NpcShopPanel))
+        return cut("0x5e4d2a: la tienda de NPC con el inventario es de la CL9.3");
+    if (panels.IsOpen(UI::WarehousePanel))
+        return cut("0x5e4d74: el almacén con el inventario es de la CL9.3");
+    if (panels.IsOpen(UI::ChaosBoxPanel))
+        return cut("0x5e4dc1: la caja del caos con el inventario es de la CL9.3");
+    if (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory)
+        return cut("0x5e4dea: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
+    if (panels.IsOpen(UI::TradePanel))
+        return cut("0x5e4e34: el comercio con el inventario es de la CL9.4");
+    if (panels.IsOpen(UI::EventNpcPanel) || panels.IsOpen(UI::SecondEventNpcPanel))
+        return cut("0x5e4e81: las ventanas de los NPC de evento (0x1000 y 0x4000) son de la CL9.5");
+    if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
+        return cut("0x5e4ee2: las tiendas personales con el inventario son de la CL9.4");
+    // 0x5e4f31..0x5e5128: los doce lugares del equipo, cada uno con su acceso, y +0x44 en 1 con un tipo.
+    for (World::ItemState& item : world.OwnCharacter().equipment)
+    {
+        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        item.warning = item.id == EmptyOwnItemId ? std::uint8_t{0} : std::uint8_t{1};
+    }
+    // 0x5e512f..0x5e5202: lo mismo en las grillas. Del comercio (que conserva el 99), 0x78a92a8, la tienda o el
+    // almacén, la caja del caos y la tienda personal MuRet no tiene nada todavía (CL9.3 y CL9.4); 0x449c60 hace lo
+    // mismo con la caja del entrenador (0x723c80, CL9.3).
+    for (World::ItemState& cell : world.Inventory().cells)
+        cell.warning = cell.id == EmptyOwnItemId ? std::uint8_t{0} : std::uint8_t{1};
+    runtime.ui.field78abaac = 0;
+    // 0x5e520c..0x5e5256: arriba de y + 200 (_ftol de y + 200f), el equipo; si no, la grilla.
+    if (context.mouseY < y + 200)
+    {
+        if (auto equipment = StepTheEquipment(context); !equipment.HasValue())
+            return equipment;
+    }
+    else if (auto grid = StepTheInventoryGrid(context); !grid.HasValue())
+        return grid;
+    runtime.field78abb10 = 0;
+    std::uint16_t level = 0;
+    {
+        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        level = world.OwnCharacter().level;
+    }
+    if (auto buttons = StepTheFootButtons(context, panels, level); !buttons.HasValue())
+        return buttons;
+    return StepTheOtherGrids(context, panels);
+}
+
+// 0x5ee1b1..0x5ee1ca: las seis hermanas de 0x5e4ce0, cada una con su IsOpen.
+Core::Expected<void, std::string> StepTheInventorySiblings(UI::PanelRegistry& panels)
+{
+    const auto cut = [](std::string_view what) { return Core::Unexpected(std::string(what)); };
+    if (panels.IsOpen(UI::EventNpcPanel))
+        return cut("0x5e594c: el paso de la ventana del NPC de evento 0x1000 (0x5e5920) es de la CL9.5");
+    if (panels.IsOpen(UI::SecondEventNpcPanel))
+        return cut("0x5e5f2e: el paso de la ventana del NPC de evento 0x4000 (0x5e5920) es de la CL9.5");
+    if (panels.IsOpen(UI::ChaosBoxPanel))
+        return cut("0x5fe621: el paso de la caja del caos (0x5fe610) es de la CL9.3");
+    if (panels.IsOpen(UI::WarehousePanel))
+        return cut("0x5ea071: el paso del almacén (0x5ea060) es de la CL9.3");
+    if (panels.IsOpen(UI::TradePanel))
+        return cut("0x5ece0d: el paso del comercio (0x5ecde0) es de la CL9.4");
+    if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
+        return cut("0x5ea2bd: el paso de las tiendas personales (0x5ea290) es de la CL9.4");
+    if (panels.IsOpen(UI::NpcShopPanel))
+        return cut("0x5ed98d: el paso de la tienda de NPC (0x5ed960) es de la CL9.3");
+    return {};
+}
+
 // 0x5ee140: los paneles con paso propio, sin diálogo y sin el menú de Esc.
 Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI::PanelRegistry& panels)
 {
@@ -258,9 +558,15 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
         return Core::Unexpected(std::string("0x5e3c80: el paso del panel de la party es del hito 6"));
     if (panels.IsOpen(UI::CharacterPanel))
         return Core::Unexpected(std::string("0x5e4510: el paso del panel del personaje es del hito 5"));
-    // 0x5ee1a3: las hijas del inventario (0x5e4ce0, 0x5e5920, 0x5fe610, 0x5ea060, 0x5ecde0, 0x5ea290, 0x5ed960).
+    // 0x5ee1a3: el inventario (0x5e4ce0) y sus seis hermanas (0x5e5920, 0x5fe610, 0x5ea060, 0x5ecde0, 0x5ea290 y
+    // 0x5ed960).
     if (panels.IsOpen(UI::InventoryPanel))
-        return Core::Unexpected(std::string("0x5ee1ac: el paso del inventario es del hito 4"));
+    {
+        if (auto inventory = StepTheInventoryWindow(context, panels); !inventory.HasValue())
+            return inventory;
+        if (auto siblings = StepTheInventorySiblings(panels); !siblings.HasValue())
+            return siblings;
+    }
     // 0x44b4e0: el NPC de la caja con 0x724580 fuera de 0 y 4.
     if (delegated.trainer != 0 && delegated.trainer != 4)
         return Core::Unexpected(std::string("0x44b4e0: el paso del NPC de la caja 0x723c80 es de la CL9.3"));

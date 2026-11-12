@@ -183,10 +183,10 @@ TEST(GameUiTest, TheLetterIOpensTheInventory)
     ASSERT_TRUE(tested.Step().HasValue());
     EXPECT_EQ(tested.random.State(), expected.State());
     EXPECT_EQ(tested.Panels().inventory, 1);
-    // Con el inventario abierto, 0x5ee140 corre sus hijas, que son del hito 4.
+    // Con el inventario abierto, 0x5ee140 corre su paso (0x5e4ce0) y sus seis hermanas (test_game_inventory_step).
     const auto again = tested.Step(320, 240);
-    ASSERT_FALSE(again.HasValue());
-    EXPECT_NE(again.Error().find("0x5ee1ac"), std::string::npos) << again.Error();
+    ASSERT_TRUE(again.HasValue()) << again.Error();
+    EXPECT_EQ(tested.Panels().inventory, 1);
 }
 
 // El registro del chat, fuera de su ventana en (−10, 0x65) con 0x10c × 0xfa desde su borde de abajo, queda bajo el

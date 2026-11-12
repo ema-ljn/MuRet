@@ -49,6 +49,9 @@ struct GameUiState
     bool logoutRequested = false;
     // 0x78abb39: con 1, Esc no hace nada en 0x623e70 (0x623eff). La escribe la traba de C3 24 (hito 4).
     std::uint8_t field78abb39 = 0;
+    // 0x5767954: con más de 0, el paso del equipo (0x5bec50) y de las grillas (0x5c4110) sale sin hacer nada. Lo
+    // ponen en 10 el uso de un ítem (0x59ff10, CL9.3) y las respuestas de los ítems; MuRet todavía no lo escribe.
+    std::int32_t field5767954 = 0;
     // 0x78abad9: con 1, 0x5ee140 no corre sus hijas (0x5ee181) y 0x5ebca0 no hace nada. Hito 4.
     std::uint8_t field78abad9 = 0;
     // 0x78abaac: con 1, 0x5ee140 no llama a 0x5d8d50 (0x5ee1de). Hito 4.

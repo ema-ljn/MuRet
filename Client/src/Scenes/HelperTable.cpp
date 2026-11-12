@@ -19,6 +19,8 @@
 #include "World/ChaosCastle.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/Sprites.h"
+#include "World/TerrainLighting.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -87,6 +89,19 @@ constexpr glm::vec3 BreathOffset{50.0f, -4.0f, 0.0f};
 constexpr std::uint8_t RiderWithOrbits = 1;
 // 0x5ffe30: el alpha con que 0x5ffdf0 todavía dibuja.
 constexpr float DrawnAlpha = 0.01f;
+// 0x443f1a: el blendMesh del 0x1c12; los demás, el −1 de 0x443d70.
+constexpr std::int16_t GuardianBlendMesh = 1;
+constexpr std::int16_t NoBlendMesh = -1;
+// 0x445336..0x445390: rand() % 30 + 70 por 0,01f (0x6b88d4), y con el 0x1c12 el sprite 0x5ac (Effect\flare01.jpg) de
+// escala 1, sin rotación y aditivo, con esa luz por (0,5; 0,8; 0,6) (0x6b882c, 0x6b8a38 y 0x6b8a20).
+constexpr int GlowSpan = 30;
+constexpr int GlowBase = 70;
+constexpr double GlowUnit = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
+constexpr std::uint16_t GlowSprite = 0x5ac;
+constexpr float GlowScale = 1.0f;
+constexpr double GlowRed = static_cast<double>(std::bit_cast<float>(0x3f000000u));
+constexpr double GlowGreen = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));
+constexpr double GlowBlue = static_cast<double>(std::bit_cast<float>(0x3f19999au));
 
 float F32(double value)
 {
@@ -317,7 +332,88 @@ Core::Expected<void, std::string> StepHelper(HelperState& helper, const HelperSt
     return {};
 }
 
-// 0x445260(lugar, 0) en la escena 5 con un lugar vivo.
+// 0x4452db..0x445309: con el segundo argumento en 0, 1,6 en la escena 2 y 1 en la 4; en las demás, los Fenrir se
+// quedan con la de 0x443d70 (0,9) y los demás van a 1.
+float DrawScaleOf(const HelperState& helper, SceneId scene)
+{
+    if (scene == SceneId::Login)
+    {
+        return DarkHorseLoginScale; // 0x3fcccccd
+    }
+    if (scene != SceneId::CharacterSelect && IsFenrir(helper.type))
+    {
+        return helper.scale;
+    }
+    return HorseScale;
+}
+
+// Lo que se dibuja de un ayudante que no es el caballo: su lugar, sus ángulos y su escala, la animación entre dos
+// pasos, el blendMesh con su luz en 1, la U y la V en 0, sin malla oculta, el color de 0x5ffce0 con la luz por
+// vértice (la del terreno más la de +0xf4, el 3 de 0x443d70) y su alpha.
+DrawnObject DrawnHelper(const HelperState& helper, const Render::Models::Skeleton* skeleton,
+                        const glm::vec3& terrainLight, float stepAlpha)
+{
+    DrawnObject drawn;
+    drawn.model = helper.type;
+    drawn.animation = helper.horse.animation;
+    if (skeleton != nullptr && helper.horse.animation.action < skeleton->actions.size())
+    {
+        drawn.animation = Render::Models::Interpolated(
+            helper.horse.animation, skeleton->actions[helper.horse.animation.action], helper.horse.speed, stepAlpha);
+    }
+    drawn.transform = Render::Models::ObjectTransform{.position = helper.position, .angles = helper.angles};
+    drawn.transform.scale = helper.scale;
+    drawn.state.blendMesh = helper.blendMesh;
+    drawn.color = terrainLight + HorseLight;
+    drawn.alpha = helper.horse.alpha;
+    drawn.vertexLight = true;
+    return drawn;
+}
+
+// 0x6002e0 con el ayudante, ya posado por 0x5ffdf0.
+Core::Expected<void, std::string> DrawTheBody(HelperState& helper, const HelperDrawContext& context)
+{
+    const std::int32_t map = context.world.Runtime().map;
+    if (helper.type == DarkHorseModel)
+    {
+        const Render::Models::ObjectTransform place{.position = helper.position, .angles = helper.angles};
+        auto drawn = DrawnDarkHorse(helper.horse, context.models.SkeletonOf(DarkHorseModel), place, helper.scale,
+                                    context.stepAlpha);
+        if (context.onPose)
+            if (const auto published = context.onPose(drawn); !published.HasValue())
+                return published;
+        if (context.posedMeshes)
+            drawn.retainedMeshes = context.posedMeshes();
+        DrawDarkHorse(context.batch, context.models, drawn, map, context.frameClock);
+        return {};
+    }
+    if (IsFenrir(helper.type))
+    {
+        return Core::Unexpected(std::format("0x60277b: el dibujo del Fenrir {:#x} (sus pases, la partícula 0x5c6, la "
+                                            "sombra, los sprites de sus huesos y los dos efectos 0x14d de 0x602b30) "
+                                            "no está portado",
+                                            helper.type));
+    }
+    // 0x5ffce0: la luz del terreno en su lugar.
+    if (context.lighting == nullptr)
+    {
+        return Core::Unexpected(std::format(
+            "0x5ffce0: falta el buffer dinámico de la luz del terreno para el ayudante {:#x}", helper.type));
+    }
+    const glm::vec3 terrainLight = World::LightAt(*context.lighting, helper.position.x, helper.position.y);
+    auto drawn = DrawnHelper(helper, context.models.SkeletonOf(helper.type), terrainLight, context.stepAlpha);
+    if (context.onPose)
+        if (const auto published = context.onPose(drawn); !published.HasValue())
+            return published;
+    if (context.posedMeshes)
+        drawn.retainedMeshes = context.posedMeshes();
+    // 0x600b35 (el Dinorant) y 0x602360 (el Uniria y el Guardian Angel): RenderBody(2, alpha, blendMesh, 1, 0, 0,
+    // −1, −1).
+    DrawObject(context.batch, context.models, drawn, context.frameClock);
+    return {};
+}
+
+// 0x445260(lugar, 0) con un lugar vivo.
 Core::Expected<void, std::string> DrawHelper(HelperState& helper, const HelperDrawContext& context)
 {
     WorldState& world = context.world;
@@ -332,11 +428,11 @@ Core::Expected<void, std::string> DrawHelper(HelperState& helper, const HelperDr
     {
         return {};
     }
-    if (helper.type != DarkHorseModel)
+    if (helper.type != DarkHorseModel && helper.type != RiderlessHelper && !IsRidingHelper(helper.type))
     {
         return Core::Unexpected(std::format("0x445260: el dibujo del ayudante {:#x} no está portado", helper.type));
     }
-    helper.scale = HorseScale; // 0x445309
+    helper.scale = DrawScaleOf(helper, context.scene);
     // 0x602e90 → 0x5ffdf0: en los mapas 18 a 23, con +0x1a1 del héroe, el alpha baja 0,15f y queda guardado, una
     // vez por frame del original.
     if (context.originalFrame)
@@ -352,21 +448,27 @@ Core::Expected<void, std::string> DrawHelper(HelperState& helper, const HelperDr
         if ((rider.flags78 & RiderWithoutDust) != 0)
         {
             return Core::Unexpected(
-                std::string("0x60033c: con +0x78 & 0x4000 del jinete, 0x445310 dibuja el caballo con "
+                std::string("0x60033c: con +0x78 & 0x4000 del jinete, 0x445310 dibuja el ayudante con "
                             "10, que 0x6002e0 lleva por otro camino que MuRet no tiene"));
         }
-        const Render::Models::ObjectTransform place{.position = helper.position, .angles = helper.angles};
-        auto drawn = DrawnDarkHorse(helper.horse, context.models.SkeletonOf(DarkHorseModel), place, helper.scale,
-                                    context.stepAlpha);
-        if (context.onPose)
-            if (const auto published = context.onPose(drawn); !published.HasValue())
-                return published;
-        if (context.posedMeshes)
-            drawn.retainedMeshes = context.posedMeshes();
-        DrawDarkHorse(context.batch, context.models, drawn, runtime.map, context.frameClock);
+        if (auto body = DrawTheBody(helper, context); !body.HasValue())
+        {
+            return body;
+        }
     }
-    // 0x445336..0x445358: rand() % 30 + 70, la luz que solo usa el 0x1c12.
-    static_cast<void>(context.random.Next());
+    // 0x445336..0x445358: rand() % 30 + 70, por 0,01f en la x87; solo el 0x1c12 la usa.
+    const double glow = static_cast<double>((context.random.Next() % GlowSpan) + GlowBase) * GlowUnit;
+    if (helper.type != RiderlessHelper)
+    {
+        return {};
+    }
+    if (context.sprites == nullptr)
+    {
+        return Core::Unexpected(std::string("0x445390: falta la tabla de los sprites del frame (0x5491e0) para el "
+                                            "brillo del Guardian Angel"));
+    }
+    const glm::vec3 light(F32(glow * GlowRed), F32(glow * GlowGreen), F32(glow * GlowBlue));
+    static_cast<void>(context.sprites->Create(GlowSprite, helper.position, GlowScale, light, 0.0f, 0));
     return {};
 }
 } // namespace
@@ -405,8 +507,10 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(WorldState&
         helper.horse.animation.frame = 0.0f;
         helper.horse.speed = CreatedSpeed;
         helper.horse.alpha = CreatedAlpha;
+        helper.blendMesh = NoBlendMesh;
         if (type == RiderlessHelper)
         {
+            helper.blendMesh = GuardianBlendMesh; // 0x443f1a
             if (random == nullptr)
             {
                 return Core::Unexpected(std::string("0x443f21: falta el rand() compartido del Guardian Angel"));
@@ -466,7 +570,10 @@ Core::Expected<void, std::string> DrawHelpers(const HelperDrawContext& context)
                                       true,
                                       context.publishProjectedPose ? context.onPose : decltype(context.onPose){},
                                       false,
-                                      context.posedMeshes};
+                                      context.posedMeshes,
+                                      context.scene,
+                                      context.lighting,
+                                      context.sprites};
     for (HelperState& helper : context.world.Helpers())
     {
         if (!helper.alive)

@@ -1068,7 +1068,8 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(SceneCanvas& canvas, flo
     {
         return;
     }
-    // 0x63486a: 0x4453b0, los ayudantes, con la escala en 1 de la escena 4 (0x4452f1).
+    // 0x63486a: 0x4453b0, los ayudantes, con la escala en 1 de la escena 4 (0x4452f1), la luz del terreno 54 y los
+    // sprites del frame.
     if (auto drawn = DrawHelpers(HelperDrawContext{
             .batch = canvas.models,
             .models = m_models,
@@ -1079,7 +1080,10 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(SceneCanvas& canvas, flo
             .originalFrame = frames > 0,
             .onPose = [&](const DrawnObject& object) { return PublishFaunaPose(*poseCarry, m_models, object, true); },
             .publishProjectedPose = true,
-            .posedMeshes = [&]() { return std::span<const Render::Models::SkinnedMesh>(poseCarry->meshes); }});
+            .posedMeshes = [&]() { return std::span<const Render::Models::SkinnedMesh>(poseCarry->meshes); },
+            .scene = SceneId::CharacterSelect,
+            .lighting = &m_world.FrameLighting(),
+            .sprites = &m_world.FrameSprites()});
         !drawn.HasValue())
     {
         m_failure = "0x63486a → " + drawn.Error();

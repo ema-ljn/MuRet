@@ -116,6 +116,8 @@ public:
     [[nodiscard]] World::TerrainLighting& FrameLighting();
     [[nodiscard]] Render::Models::CrtRandom& FrameRandom();
     [[nodiscard]] World::Particles& FrameParticles();
+    // La tabla de los sprites del frame (0x5491e0): la del mundo, o la proyectada en un dibujo intermedio.
+    [[nodiscard]] World::FrameSprites& FrameSprites();
 
     // 0x5fc260(0): el terreno, el pasto y las marcas del suelo.
     [[nodiscard]] Core::Expected<void, std::string> DrawTerrain(WorldState& world, const World::WorldTerrain& terrain,
@@ -138,7 +140,6 @@ private:
     [[nodiscard]] World::ModelEffects& FrameEffects();
     [[nodiscard]] std::span<World::WorldObject> FrameObjects();
     [[nodiscard]] GameDrawTailState& FrameTail();
-    [[nodiscard]] World::FrameSprites& FrameSprites();
 
     Render::ITextureStore& m_store;
     Core::Log& m_log;

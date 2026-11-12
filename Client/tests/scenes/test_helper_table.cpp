@@ -21,7 +21,9 @@
 #include "Scenes/WorldState.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/Sprites.h"
 #include "World/TerrainCulling.h"
+#include "World/TerrainLighting.h"
 #include "World/WorldTerrain.h"
 
 #include "support/GoldenDir.h"
@@ -169,7 +171,7 @@ public:
 
     [[nodiscard]] const Model* Find(std::uint16_t model) const override
     {
-        return model == DarkHorseModel ? &m_model : nullptr;
+        return model == DarkHorseModel || IsPet(model) ? &m_model : nullptr;
     }
     [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
     {
@@ -181,7 +183,8 @@ public:
     }
     [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t model) const override
     {
-        return model == DarkHorseModel ? std::span<const TextureSlot>(m_slots) : std::span<const TextureSlot>{};
+        return model == DarkHorseModel || IsPet(model) ? std::span<const TextureSlot>(m_slots)
+                                                       : std::span<const TextureSlot>{};
     }
 
 private:
@@ -287,18 +290,41 @@ public:
         return {10000.0f + at, 10100.0f + at, 170.0f + at};
     }
 
+    // Lo que el dibujo de `scene` lee: la luz del terreno de este mundo y la tabla de los sprites.
+    HelperDrawContext DrawContext(ModelBatch& batch, bool originalFrame = true, SceneId scene = SceneId::Game)
+    {
+        return HelperDrawContext{.batch = batch,
+                                 .models = models,
+                                 .world = world,
+                                 .random = random,
+                                 .frameClock = std::chrono::milliseconds{0},
+                                 .stepAlpha = 0.0f,
+                                 .originalFrame = originalFrame,
+                                 .scene = scene,
+                                 .lighting = lighting.get(),
+                                 .sprites = &sprites};
+    }
+
     Client::Core::Expected<void, std::string> Draw(ModelBatch& batch, const TerrainPolygon& polygon,
-                                                   bool originalFrame = true)
+                                                   bool originalFrame = true, SceneId scene = SceneId::Game)
     {
         world.Runtime().terrainPolygon = polygon;
         batch.Begin(Client::Render::Pass3D{});
-        return DrawHelpers(HelperDrawContext{.batch = batch,
-                                             .models = models,
-                                             .world = world,
-                                             .random = random,
-                                             .frameClock = std::chrono::milliseconds{0},
-                                             .stepAlpha = 0.0f,
-                                             .originalFrame = originalFrame});
+        return DrawHelpers(DrawContext(batch, originalFrame, scene));
+    }
+
+    // Los sprites vivos de la tabla del frame.
+    std::vector<Client::World::Sprite> LiveSprites()
+    {
+        std::vector<Client::World::Sprite> live;
+        for (const Client::World::Sprite& sprite : sprites.Sprites())
+        {
+            if (sprite.alive)
+            {
+                live.push_back(sprite);
+            }
+        }
+        return live;
     }
 
     WorldState& world = *m_world;
@@ -306,6 +332,17 @@ public:
     // El reloj del mundo (0x5767b88) con que 0x53fe70 gira las 5f2: 12.345 ms, 105 grados.
     float clock = 12345.0f;
     HorseModels models;
+    // La luz del terreno (0x5ffce0), (0,25; 0,5; 0,75) en cada celda, y los sprites del frame (0x5491e0).
+    std::unique_ptr<Client::World::TerrainLighting> lighting = UniformLighting();
+    Client::World::FrameSprites sprites;
+
+private:
+    static std::unique_ptr<Client::World::TerrainLighting> UniformLighting()
+    {
+        auto uniform = std::make_unique<Client::World::TerrainLighting>();
+        uniform->cells.fill({0.25f, 0.5f, 0.75f});
+        return uniform;
+    }
 };
 
 const TerrainPolygon Everything{.everything = true};
@@ -1650,5 +1687,171 @@ TEST(HelperTableTest, TheGameStepTurnsOffAPetWithoutItsRider)
         EXPECT_FALSE(tested.Horse().alive);
         EXPECT_EQ(tested.random.State(), drawn);
     }
+}
+
+// 0x445260 → 0x602e90 con el Uniria y el Dinorant en el juego: la escala en 1 (0x445309), el color de 0x5ffce0 con la
+// luz por vértice (la del terreno más el 3 de +0xf4) y RenderBody(2) sin blendMesh, con su luz en 1, la U y la V en
+// 0 y sin malla oculta (0x600b35 y 0x602360). Después, solo el rand() % 30 de 0x445336.
+TEST(HelperTableTest, TheUniriaAndTheDinorantDrawWithTheLightOfTheTerrain)
+{
+    for (const std::uint16_t type : {UniriaModel, DinorantModel})
+    {
+        SCOPED_TRACE(type);
+        HelperWorld tested;
+        ASSERT_NO_FATAL_FAILURE(tested.Ride(type));
+        EXPECT_FLOAT_EQ(tested.Horse().scale, 0.9f);
+        tested.Horse().horse.alpha = 1.0f;
+        tested.world.Runtime().terrainPolygon = Everything;
+        ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        std::vector<Client::Scenes::DrawnObject> posed;
+        HelperDrawContext context = tested.DrawContext(batch);
+        context.onPose = [&](const Client::Scenes::DrawnObject& object) -> Client::Core::Expected<void, std::string>
+        {
+            posed.push_back(object);
+            return {};
+        };
+
+        ASSERT_TRUE(DrawHelpers(context).HasValue());
+
+        EXPECT_FLOAT_EQ(tested.Horse().scale, 1.0f);
+        ASSERT_EQ(posed.size(), 1u);
+        const Client::Scenes::DrawnObject& object = posed.front();
+        EXPECT_EQ(object.model, type);
+        EXPECT_EQ(object.transform.position, tested.Horse().position);
+        EXPECT_EQ(object.transform.angles, tested.Rider().angles);
+        EXPECT_FLOAT_EQ(object.transform.scale, 1.0f);
+        const glm::vec3 terrain =
+            Client::World::LightAt(*tested.lighting, tested.Horse().position.x, tested.Horse().position.y);
+        EXPECT_EQ(terrain, glm::vec3(0.25f, 0.5f, 0.75f));
+        EXPECT_EQ(object.color, glm::vec3(3.25f, 3.5f, 3.75f));
+        EXPECT_TRUE(object.vertexLight);
+        EXPECT_FLOAT_EQ(object.alpha, 1.0f);
+        EXPECT_EQ(object.state.blendMesh, -1);
+        EXPECT_FLOAT_EQ(object.state.light, 1.0f);
+        EXPECT_EQ(object.state.uv, glm::vec2(0.0f));
+        EXPECT_EQ(object.state.hiddenMesh, -1);
+        EXPECT_FALSE(batch.Commands().empty());
+        EXPECT_TRUE(tested.LiveSprites().empty());
+        EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 1).State());
+    }
+}
+
+// 0x4452db..0x445309: 1,6 (0x3fcccccd) en la escena 2 y 1 en la 4; en la 5, los Fenrir se quedan con el 0,9 de
+// 0x443d70 y los demás van a 1. Con el alpha en 0 no se dibuja nada, pero la escala queda.
+TEST(HelperTableTest, TheDrawScaleDependsOnTheSceneAndOnTheFenrir)
+{
+    struct Case
+    {
+        SceneId scene;
+        std::uint16_t type;
+        std::uint32_t scale;
+    };
+    for (const Case& tested :
+         {Case{SceneId::Game, UniriaModel, 0x3f800000u}, Case{SceneId::Game, 0x14a, 0x3f666666u},
+          Case{SceneId::Game, 0x14c, 0x3f666666u}, Case{SceneId::Game, DarkHorseModel, 0x3f800000u},
+          Case{SceneId::CharacterSelect, 0x14b, 0x3f800000u},
+          Case{SceneId::CharacterSelect, DinorantModel, 0x3f800000u}, Case{SceneId::Login, 0x14b, 0x3fcccccdu},
+          Case{SceneId::Login, UniriaModel, 0x3fcccccdu}})
+    {
+        SCOPED_TRACE(testing::Message() << static_cast<int>(tested.scene) << " " << tested.type);
+        HelperWorld world;
+        ASSERT_NO_FATAL_FAILURE(world.Ride(tested.type));
+        world.Horse().horse.alpha = 0.0f;
+        ModelBatch batch;
+
+        ASSERT_TRUE(world.Draw(batch, Everything, true, tested.scene).HasValue());
+
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(world.Horse().scale), tested.scale);
+        EXPECT_TRUE(batch.Commands().empty());
+        EXPECT_EQ(world.random.State(), RandomAfter(QuietSeed, 1).State());
+    }
+}
+
+// El Guardian Angel (0x1c12) se dibuja sin un jugador de jinete (0x4452c2), con la escala en 1 y su malla 1 de
+// blendMesh (+0x64 en 1, 0x443f1a). Después, 0x445336 saca rand() % 30 + 70 (26.500 % 30 + 70 = 80 con la semilla 1,
+// después de los tres de 0x443d70) y 0x445390 crea el sprite 0x5ac en su lugar, de escala 1, con 80 · 0,01f por
+// (0,5; 0,8; 0,6) en la x87 y guardado en float: (0x3ecccccc; 0x3f23d70a; 0x3ef5c290). Con el alpha por debajo de
+// 0,01 no hay cuerpo, pero sí el rand() y el sprite.
+TEST(HelperTableTest, TheGuardianAngelDrawsItsBlendMeshAndLeavesItsGlow)
+{
+    for (const float alpha : {1.0f, 0.0f})
+    {
+        SCOPED_TRACE(alpha);
+        HelperWorld tested;
+        ASSERT_NO_FATAL_FAILURE(tested.Ride(GuardianAngelModel));
+        EXPECT_EQ(tested.Horse().blendMesh, 1);
+        EXPECT_EQ(tested.Horse().position, glm::vec3(9835.0f, 9829.0f, 360.0f));
+        tested.Rider().type = 0x100;
+        tested.Horse().horse.alpha = alpha;
+        tested.world.Runtime().terrainPolygon = Everything;
+        ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        std::vector<Client::Scenes::DrawnObject> posed;
+        HelperDrawContext context = tested.DrawContext(batch);
+        context.onPose = [&](const Client::Scenes::DrawnObject& object) -> Client::Core::Expected<void, std::string>
+        {
+            posed.push_back(object);
+            return {};
+        };
+
+        ASSERT_TRUE(DrawHelpers(context).HasValue());
+
+        EXPECT_FLOAT_EQ(tested.Horse().scale, 1.0f);
+        ASSERT_EQ(posed.size(), alpha > 0.0f ? 1u : 0u);
+        if (!posed.empty())
+        {
+            EXPECT_EQ(posed.front().model, GuardianAngelModel);
+            EXPECT_EQ(posed.front().state.blendMesh, 1);
+            EXPECT_EQ(posed.front().color, glm::vec3(3.25f, 3.5f, 3.75f));
+            EXPECT_FALSE(batch.Commands().empty());
+        }
+        EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 4).State());
+        const std::vector<Client::World::Sprite> glow = tested.LiveSprites();
+        ASSERT_EQ(glow.size(), 1u);
+        EXPECT_EQ(glow[0].texture, 0x5ac);
+        EXPECT_EQ(glow[0].position, glm::vec3(9835.0f, 9829.0f, 360.0f));
+        EXPECT_EQ(glow[0].scale, 1.0f);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(glow[0].light.x), 0x3eccccccu);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(glow[0].light.y), 0x3f23d70au);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(glow[0].light.z), 0x3ef5c290u);
+        EXPECT_EQ(glow[0].rotation, 0.0f);
+        EXPECT_EQ(glow[0].blend, 0);
+    }
+}
+
+// Lo que el dibujo no tiene: los Fenrir (0x60277b: sus pases, la partícula 0x5c6, la sombra, los sprites de sus
+// huesos y los dos efectos 0x14d de 0x602b30), que cortan sin el rand() de 0x445336; la luz del terreno de 0x5ffce0
+// para los demás; y la tabla de los sprites para el brillo del 0x1c12, que corta después de su rand().
+TEST(HelperTableTest, ThePetDrawStopsWhereMuRetHasNotArrived)
+{
+    for (const std::uint16_t fenrir : {std::uint16_t{0x14a}, std::uint16_t{0x14b}, std::uint16_t{0x14c}})
+    {
+        HelperWorld tested;
+        ASSERT_NO_FATAL_FAILURE(tested.Ride(fenrir));
+        tested.Horse().horse.alpha = 1.0f;
+        ModelBatch batch;
+        EXPECT_TRUE(HasError(tested.Draw(batch, Everything), "0x60277b")) << fenrir;
+        EXPECT_EQ(tested.random.State(), CrtRandom(QuietSeed).State());
+    }
+
+    HelperWorld unlit;
+    ASSERT_NO_FATAL_FAILURE(unlit.Ride(UniriaModel));
+    unlit.Horse().horse.alpha = 1.0f;
+    unlit.lighting.reset();
+    ModelBatch dark;
+    EXPECT_TRUE(HasError(unlit.Draw(dark, Everything), "0x5ffce0"));
+    EXPECT_TRUE(dark.Commands().empty());
+
+    HelperWorld angel;
+    ASSERT_NO_FATAL_FAILURE(angel.Ride(GuardianAngelModel));
+    angel.Horse().horse.alpha = 0.0f;
+    angel.world.Runtime().terrainPolygon = Everything;
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    HelperDrawContext context = angel.DrawContext(batch);
+    context.sprites = nullptr;
+    EXPECT_TRUE(HasError(DrawHelpers(context), "0x445390"));
+    EXPECT_EQ(angel.random.State(), RandomAfter(QuietSeed, 4).State());
 }
 } // namespace

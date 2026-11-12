@@ -1387,6 +1387,35 @@ TEST(CharacterSelectSceneTest, ASelectionHelperRunsItsBodyWithoutTheGameGuard)
     EXPECT_EQ(helpers[1].horse.speed, std::bit_cast<float>(0x3eae147bu));
 }
 
+// 0x63486a: 0x4453b0 en la escena 4 dibuja el Uniria del personaje con la escala en 1 (0x4452f1, no el 0,9 de
+// 0x443d70) y el color de 0x5ffce0 con la luz del terreno 54, sin cortar.
+TEST(CharacterSelectSceneTest, TheSelectionDrawsTheUniriaOfItsCharacter)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+    tested.models.EnableHelpers();
+    CharacterEntryFields hero;
+    hero.equipment[4] = 3;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({hero}));
+    ASSERT_FALSE(tested.scene->Failure()) << *tested.scene->Failure();
+    auto& uniria = world.Helpers()[1];
+    uniria.alive = true;
+    uniria.type = Client::Scenes::UniriaModel;
+    uniria.rider = 0;
+    uniria.scale = 0.9f;
+    uniria.horse.alpha = 1.0f;
+    uniria.position = world.Actors()[0].position;
+
+    static_cast<void>(tested.Frame());
+
+    ASSERT_FALSE(tested.scene->Failure()) << *tested.scene->Failure();
+    EXPECT_TRUE(uniria.seen);
+    EXPECT_EQ(uniria.scale, 1.0f);
+}
+
 // Un ayudante que 0x444010 no sabe mover corta en 0x6342f4 → 0x444083 antes del pool, el preview y las partículas
 // (0x634315): no gasta rand() ni avanza el contador, y el alpha que subió (0x4e9980) queda.
 TEST(CharacterSelectSceneTest, ASelectionHelperFailureKeepsItsPrefixBeforeThePool)

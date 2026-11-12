@@ -1486,8 +1486,123 @@ cifras; el mundo angosto en `GameScene` (`0x63733e` y `0x63738a`); las texturas 
 los botones de reparar y cerrar, el equipo y la grilla bajo el mouse y el paso del ítem del cursor; y levantar,
 soltar, equipar, el piso, MoveHero y las respuestas en `Scenes/InventoryMoves.cpp` (`test_cursor_item.cpp` y
 `test_inventory_reply.cpp`), con Item.bmd, `0x512a30`, el cuervo y los mensajes que pide (`InventoryServices`). Las
-otras ventanas cortan con su dirección (CL9.3, CL9.4 y CL9.5), y también el cartel del set (`0x40e6f5`, los
-tooltips del hito 5), la tienda personal (Open de `0x800`, CL9.4), reparar, usar ítems y tirarlos (CL9.3): P-C71.
+otras ventanas cortan con su dirección (CL9.3, CL9.4 y CL9.5), y también la tienda personal (Open de `0x800`, CL9.4), reparar, usar ítems y tirarlos (CL9.3): P-C71.
+
+### Los tooltips
+
+Hito 5 de la CL8. `0x5f7bc0` corre en cada frame del juego desde `0x63769b`, después de las ventanas; `0x40eca0` (el
+cartel del set) va aparte, en `0x6376c6`. Los dos llenan los mismos tres arreglos de la .bss y dibujan la caja
+`0x5af090`.
+
+**Los renglones.** Treinta de 100 bytes en `0x78793c8` (el texto), sus colores en `0x787a560` y sus negritas en
+`0x78a9230` (`Scenes::TooltipLines`). Cada cuerpo limpia los primeros 20 colores y los treinta textos, pero nadie
+limpia las negritas: un renglón sin negrita escrita queda con la del cuerpo anterior (Q-C596). Los textos con formato son
+textos de Text.bmd pasados como formato a `sprintf` (`0x6a5904`, con la tabla de estados de `0x6bdb14`): un `%` del
+texto se interpreta (Q-C590), y uno de más de 100 bytes pisaría el renglón siguiente (Q-C591).
+`UI::FormatLikeSprintf` reproduce la máquina del CRT para las marcas que usan los textos (`d i u o x X c s %`,
+banderas, ancho, precisión y `h`). Una marca rota escribe solo el carácter que la rompió, una marca al final del
+texto no escribe nada, y una marca sin su argumento queda escrita.
+
+**La caja** (`0x5af090`, `Scenes::DrawTheTooltipBox`). Mide hasta el primer renglón vacío. Un renglón que empieza
+con `\n` cuenta medio alto, y cada uno ocupa 1,1 veces su alto. El ancho es el del renglón más ancho (o
+`2 · ancho / rx` si lo pide quien llama), con 4 de margen, y la caja no pasa del borde izquierdo. Dibuja cuatro
+bordes negros con `0x621aa0` y el fondo negro con alfa 0,8, y vuelve a la textura. Cada renglón (salvo `\n` y
+`" "`, que solo bajan) va con su color de la tabla de `0x5af4f4` (`glColor3f`) y, en los colores 5, 7, 8 y 9, con un
+fondo. Termina en blanco con `0x620980`. Solo los modos 2 (centrado) y 3 (contra el borde) los usa algún cuerpo; los
+otros cortan en `0x5af471`.
+
+**El orden de `0x5f7bc0`** (`Scenes::DrawTheTooltips`):
+
+1. `0x620980`, y `0x78abb0d` (el aviso de durabilidad) en 0.
+2. El modo de reparar `0x78abb0c`, si no es 0, vuelve a 1.
+3. Con un ítem bajo el mouse (`0x78abaa8`), abre el registro propio y llama a `0x5b8150` (reparar), si el mouse
+   está sobre el inventario con el modo de reparar, o a `0x5b2aa0`. Los dos van en la esquina que dejó el paso
+   (`0x78a9bac`, `0x78a9ba8`) y con la grilla de `0x78aba27`.
+4. Con una skill de la barra bajo el mouse (`0x78abaa4` ≠ −1), `0x5b90b0`.
+5. Con el inventario abierto, la ventana del set.
+
+La rama de `0x78abb14` (el ítem del cursor en `(0x109, 0x78)`) solo la prenden las ventanas de la CL9.3 y la CL9.4.
+Un frame proyectado de MuRet no escribe nada del mundo: ni el modo de reparar, ni `+0x9304`, ni `+0x9305`.
+
+**La ventana del set** (`0x40e850`, un thiscall sobre `[0x6eed3c]`). La prende `0x40e6c0`, el mouse sobre el
+cartel del inventario en el paso (Q-C472), con `+0x9304` en 1. Escribe tres `\n` y el título `"%s %s"` con el nombre
+del conjunto y el texto 1089, en dorado y negrita, uno por clase de pieza. Con `+0x9307`, el título de la otra clase
+va a `+0x9307` renglones del final. Siguen las opciones de la lista de `0x40da20`: cada una con su texto de
+`0x40d530` y su valor (`& 0xff`), en azul, o en rojo si la opción es `0xa5` o más sin la marca de la clase. Una
+entrada de 16 o más, o más de 30 renglones, son el error. La caja va en `(x + 0x5f, y + 0x28)` del inventario, con
+0x78 de ancho, el modo 2 y el fondo `0x64`, y `+0x9304` vuelve a 0.
+
+**El cartel del set** (`0x40eca0`). Con `+0x9305` (el índice + 1 que dejó `0x40ebd0`, desde el chat, al escribir
+`/` y el nombre de un conjunto), limpia los renglones y lee el registro de ItemSetOption.bmd. Si el conjunto no se
+usa (`+0x3c` = `0xff`), apaga `+0x9305` y sale. Si no, escribe:
+
+- el título `"%s %s %s"` (el nombre, el 1089 y el 159), en dorado;
+- trece lugares: los seis pares de `+0x20` con sus valores de `+0x2c`, los dos extras (`+0x32 + j` y `+0x34 + j`)
+  y las cinco del conjunto completo (`+0x35 + j` y `+0x3a + j`);
+- dos `\n`, y la caja en `(0, 0)`.
+
+Después del sexto par, la segunda opción queda la del sexto (Q-C592). `0x40d530` con una opción de más de `0x23`
+no escribe el renglón (Q-C593). Los textos de las opciones (`0x40d530`, `Scenes::WriteTheSetOption`) son:
+
+| opciones | texto |
+|---|---|
+| 0 a 6 | 950 + opción |
+| 7 | 632 |
+| 8 a `0x14` | 949 + opción |
+| `0x15`, `0x16` y `0x17` | 970, 984 y 983 |
+| `0x18` a `0x23` | 947 + opción |
+
+**Lo que porta MuRet**: el orden de `0x5f7bc0`, la caja, la ventana y el cartel del set, el sprintf del CRT
+(`UI/SprintfFormat`) y `0x40ebd0` en la cola de los comandos del chat (Q-C594). Los tests son
+`test_game_tooltips.cpp`, `test_sprintf_format.cpp` y `test_chat_commands.cpp`. Los tres cuerpos (`0x5b2aa0`,
+`0x5b8150` y `0x5b90b0`) cortan con su dirección (P-C101), y el modo 3 de las ayudas (`0x5afc00`, `0x5af590` y
+`0x5af9b0`) no se alcanza (P-C102).
+
+### La ventana del personaje
+
+Hito 5 de la CL8. El panel es `0x2000000` (`[0x7d53709]`), con la C o el botón del HUD.
+
+**Abrirla** (`0x65c94b..0x65ca72`, en `0x6599a0`):
+
+1. Cierra todo menos el inventario y los amigos (`0x657ab0`); si cerró, el personaje en 1.
+2. Pone en 0 `[0x6eed3c] + 0x9304..0x9347`: los cuatro bytes de los tooltips y los dos nombres.
+3. Con el registro propio abierto alrededor, `0x550cf0` busca un lugar del equipo con la durabilidad (`+0x1a`) en
+   0, y con uno llama a `0x550d10`. Un lugar vacío tiene la durabilidad en 0, así que 0x550d10 corre en casi todas
+   las aperturas (Q-C595). Sus 33 cierres de `0x40e1b0` quedan dentro del acceso y no sacan nada; la cola saca sus 3
+   `rand()`, y el cierre de afuera, 3.848.
+4. Los sonidos 0x19 y 0x1c.
+
+Con las consultas de `CanOpen` y de la máscara, la C saca 4 + 3 + 3.848 `rand()`. MuRet lo hace en
+`UI::PanelRegistry::Open` con el gancho `characterOpened`, que arma `Scenes::GamePanels` con las tablas que presta el
+paso de la UI (`GamePanelTables`). Sin ItemSetType.bmd e ItemSetOption.bmd, `0x550d10` corta en `0x40e1b0`.
+
+**El paso** (`0x5e4510`, desde `0x5ee140`, después de la party). Con el personaje abierto:
+
+1. El mouse en `(x, y)` + `0xbe × 0x1b1` es de la UI (`0x775857c`), con la esquina que deja el dibujo
+   (`0x78aba14`, `0x78aba18`).
+2. `0x6c9330` es la cantidad de botones: 5 con el Dark Lord, si no 4.
+3. Abre el registro propio. Con puntos para repartir (`[0x7681eb0] + 0x68`), el clic en el botón `i`
+   (`x + 0x7d`, `y + 0x73 + 0x3c · i`, 0x18 × 0x18) apaga el flanco, manda `C1 05 F3 06 i` con `send()` sin la
+   cola (el XOR32 desde el byte 3, como lo arma el PacketWriter de la pila) y suena 0x19. Con el socket en −1 no manda
+   nada. Cierra el registro, con 3.848 `rand()`.
+4. El botón de cerrar (`x + 0x19`, `y + 0x18b`, 0x18 × 0x18) apaga el flanco, pone `0x77f3b10` en 0 con su tope
+   `0x6c8dcc` en 6 y cierra el panel.
+
+**La mascota** (`0x424130` → `0x424230`, al final de `0x5ee140`). Con el personaje cerrado, `0x723911` vuelve a 0.
+Abierto, la primera vez manda `C1 06 A9 01 00 08` (el caballo oscuro en la casilla 8, Q-C16) con `send()` y deja
+`0x723911` en 1: una vez por apertura, en el paso que sigue al que la abrió. El clic en el botón de la mascota
+(`0x217..0x22f`, `0x18b..0x1a3`) apaga los dos flancos y abre o cierra el panel `0x400` (Open corta: CL9.2). Con
+`0x723911` en 2 (la respuesta del A9, que MuRet no lee) la ventana de la mascota es de la CL9.2.
+
+**El dibujo** (`0x5ee2e0(0x1c2, 0)`, desde `0x5f7440`). Escribe la esquina y dibuja los fondos `0x104` y `0x105`, el
+nombre, la clase, el nivel, la experiencia, las cuatro estadísticas (cinco con el Dark Lord) con sus derivados
+(`0x5b8b80`, `0x5513d0`, `0x54ee00`), los puntos y sus botones `0x120`/`0x121`, con 14 accesos al registro propio.
+Después, `0x5f7440` dibuja el botón de cerrar (`0x118`) y su ayuda (el texto 222). MuRet corta en `0x5ee2e0`
+(P-C100).
+
+**Lo que porta MuRet**: abrir, el paso, los botones, el F3 06 (`Protocol/Character/LevelUpPoint`) y el A9 de la
+mascota, en `Scenes/GameUi.cpp` y `Scenes/GamePanels.cpp`. Los tests son `test_game_character_window.cpp` (en
+Lorencia y en Devias), `test_panel_registry.cpp` y `test_level_up_point.cpp`.
 
 ## La escena de carga y la de login
 

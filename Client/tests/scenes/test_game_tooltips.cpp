@@ -358,6 +358,8 @@ TEST(GameTooltipsTest, TheSetLabelListsTheOptionsOfTheSet)
     Tooltips tested(&tables.options);
     tested.world.ItemSets().byte9305 = 2;
     tested.Lines().colors[25] = 4;
+    // Q-C596: la negrita que dejó un cuerpo anterior en el título queda.
+    tested.Lines().bold[1] = 1;
     GameHudContext context = tested.Context();
     const auto drawn = Client::Scenes::DrawTheSetLabel(context);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
@@ -373,6 +375,7 @@ TEST(GameTooltipsTest, TheSetLabelListsTheOptionsOfTheSet)
     EXPECT_EQ(lines.colors[7], Client::Scenes::TooltipBlue);
     // Limpia 20 colores de los 30: el 25 queda.
     EXPECT_EQ(lines.colors[25], 4);
+    EXPECT_EQ(lines.bold[1], 1);
     EXPECT_EQ(tested.world.ItemSets().byte9305, 2);
     // La caja va arriba a la izquierda: el ancho mayor ("Agilidad +20", 72) + 4, contra el 0.
     ASSERT_FALSE(tested.text.texts.empty());

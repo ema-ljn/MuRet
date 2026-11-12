@@ -213,14 +213,6 @@ std::uint32_t LittleEndianAt(std::span<const std::byte, Data::Tables::SkillRecor
     return value;
 }
 
-// El byte `index` de las skills del registro propio (+0x6c + index): MuRet tiene las 64 de +0x6c a +0xab.
-std::optional<std::uint8_t> OwnSkillAt(const OwnCharacterRecord& own, std::uint32_t index)
-{
-    if (index >= own.words6c.size() * 4)
-        return std::nullopt;
-    return static_cast<std::uint8_t>((own.words6c[index / 4] >> ((index % 4) * 8u)) & 0xffu);
-}
-
 // 0x465950 con la fuente normal (0x5763554) y los colores de 0x6c8e5c y 0x6c8e64: el modo 1, que empieza en x, o
 // el 4, que termina en x (0x467060, Render::Text::EndingAt).
 void DrawHudText(Frame& frame, int x, int y, std::string_view text, bool endingAtX)
@@ -1129,7 +1121,7 @@ Core::Expected<void, std::string> DrawTheSkillDelay(Frame& frame, std::uint32_t 
     const std::int32_t delay = frame.own.skillDelays[index];
     if (delay <= 0)
         return {};
-    const std::optional<std::uint8_t> skill = OwnSkillAt(frame.own, index);
+    const std::optional<std::uint8_t> skill = frame.own.SkillAt(index);
     if (!skill)
         return Core::Unexpected(
             std::format("0x5532a3: la skill {} del registro propio (+0x6c + {}) no está en MuRet", index, index));
@@ -1172,7 +1164,7 @@ Core::Expected<void, std::string> DrawTheSkillIcon(Frame& frame, std::uint32_t i
     std::uint32_t skill = index;
     if (index <= 0x77)
     {
-        const std::optional<std::uint8_t> fromRecord = OwnSkillAt(frame.own, index);
+        const std::optional<std::uint8_t> fromRecord = frame.own.SkillAt(index);
         if (!fromRecord)
             return Core::Unexpected(
                 std::format("0x5a58c4: la skill {} del registro propio (+0x6c + {}) no está en MuRet", index, index));

@@ -6,6 +6,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 namespace Client::Core
 {
@@ -57,6 +58,10 @@ struct OwnCharacterRecord
 
     // 0x633f20: +0x6a y +0x6c..+0xab en 0; solo D+4 de los ocho primeros ítems en 0.
     void ResetForSelection();
+
+    // El byte `index` de las skills (+0x6c + index), el que leen la barra, la ventana del personaje y el tooltip de la
+    // skill con el lugar de la skill del héroe (+0x425). MuRet tiene los 64 de +0x6c a +0xab; con uno de más, nada.
+    [[nodiscard]] std::optional<std::uint8_t> SkillAt(std::size_t index) const;
 
     // 06, "La lógica": lo copia la selección (0x6342c0) y la respuesta no lo cambia.
     std::array<std::byte, Protocol::Character::NameSize + 1> name{}; // +0, hasta la clase

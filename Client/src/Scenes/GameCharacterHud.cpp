@@ -238,14 +238,6 @@ Core::Expected<std::string, std::string> NameOf(const OwnCharacterRecord& own)
     return name;
 }
 
-// El byte `index` de las skills del registro propio (+0x6c + index): MuRet tiene los 64 de +0x6c a +0xab.
-std::optional<std::uint8_t> OwnSkillAt(const OwnCharacterRecord& own, std::uint32_t index)
-{
-    if (index >= own.words6c.size() * 4)
-        return std::nullopt;
-    return static_cast<std::uint8_t>((own.words6c[index / 4] >> ((index % 4) * 8u)) & 0xffu);
-}
-
 // Lo que comparten los tramos de la ventana.
 struct Window
 {
@@ -558,7 +550,7 @@ Core::Expected<void, std::string> DrawTheMagic(Window& window)
     const OwnCharacterRecord& own = window.own;
     WorldState& world = context.world;
     WorldRuntime& runtime = world.Runtime();
-    const std::optional<std::uint8_t> skill = OwnSkillAt(own, window.hero.skillIndex);
+    const std::optional<std::uint8_t> skill = own.SkillAt(window.hero.skillIndex);
     if (!skill)
         return Core::Unexpected(
             std::format("0x5f04cd: el byte +0x6c + {} del registro propio no está en MuRet", window.hero.skillIndex));

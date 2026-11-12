@@ -467,6 +467,39 @@ TEST_F(CursorItemTest, WhatCannotBeDroppedGoesBackWithItsWarning)
     EXPECT_TRUE(dropped.Error().starts_with("0x5df58b:")) << dropped.Error();
 }
 
+// 0x59bd3e..0x59bf56: MoveHero pasa el arma de la izquierda al cursor en un acceso al registro propio, viste al héroe y
+// manda el 24 del lugar 1 al 0, salvo con la traba puesta.
+TEST_F(CursorItemTest, MoveHeroSendsTheLeftWeaponToTheRight)
+{
+    ItemState& left = world.OwnCharacter().equipment[1];
+    left = Invented(Sword);
+    left.occupied = 1;
+    const CrtRandom expected = Advanced(random, Own + SendRandoms);
+
+    ASSERT_TRUE(Scenes::MoveTheLeftWeaponToTheRight(Moves()).HasValue());
+
+    const Scenes::WorldRuntime& runtime = world.Runtime();
+    EXPECT_EQ(runtime.cursorItem.id, Sword);
+    EXPECT_EQ(runtime.cursorItemCount, 1);
+    EXPECT_EQ(left.id, EmptyOwnItemId);
+    EXPECT_EQ(left.scalar1Low, 0u);
+    EXPECT_EQ(outside.dressed, 1);
+    EXPECT_EQ(runtime.cursorGrid, Scenes::CursorGrid::Inventory);
+    EXPECT_EQ(runtime.slot78a6758, 1);
+    EXPECT_EQ(runtime.itemMoveTarget, 0);
+    EXPECT_EQ(runtime.ui.field78abb39, 1);
+    EXPECT_EQ(random.State(), expected.State());
+    ASSERT_EQ(outside.sent.size(), 1u);
+    EXPECT_EQ(outside.sent.front().sourceSlot, 1);
+    EXPECT_EQ(outside.sent.front().targetSlot, 0);
+
+    left = Invented(Sword);
+    const CrtRandom locked = Advanced(random, Own);
+    ASSERT_TRUE(Scenes::MoveTheLeftWeaponToTheRight(Moves()).HasValue());
+    EXPECT_EQ(random.State(), locked.State());
+    EXPECT_EQ(outside.sent.size(), 1u);
+}
+
 // Sin el envío, el 24 corta después de la traba y de sus dos rand(); sin Item.bmd, levantar corta antes de tocar nada.
 TEST_F(CursorItemTest, WithoutItsServicesAMoveStopsWithItsAddress)
 {

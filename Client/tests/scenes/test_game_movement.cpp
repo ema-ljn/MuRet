@@ -1,6 +1,7 @@
 #include "Core/Expected.h"
 #include "GameLogic/PathCell.h"
 #include "Scenes/GameMovement.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -17,6 +18,7 @@
 #include "World/WorldTerrain.h"
 #include "Network/Packet.h"
 #include "Network/Crypto/Xor32.h"
+#include "Protocol/Inventory.h"
 #include <array>
 #include <cstdint>
 #include <memory>
@@ -426,7 +428,8 @@ struct HandsClick
     bool walked = false;
 };
 
-HandsClick ClickWithTheHands(std::uint16_t right, std::uint16_t left, std::int32_t cursorItemCount = 0)
+HandsClick ClickWithTheHands(std::uint16_t right, std::uint16_t left, std::int32_t cursorItemCount = 0,
+                             const Client::Scenes::InventoryServices* inventory = nullptr)
 {
     MovingHero tested;
     tested.world.OwnCharacter().equipment[0].id = right;
@@ -434,6 +437,7 @@ HandsClick ClickWithTheHands(std::uint16_t right, std::uint16_t left, std::int32
     tested.world.Runtime().cursorItemCount = cursorItemCount;
     tested.world.Runtime().movement.mouseUpdateTime = 6;
     auto context = tested.Context();
+    context.inventory = inventory;
     context.input.leftPressed = true;
     context.input.leftDown = true;
     context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
@@ -462,17 +466,44 @@ TEST(GameMovementTest, AWeaponInTheRightHandWithTheLeftEmptyWalks)
     }
 }
 
-// 0x59bd3e: con la derecha vacía y un arma de los grupos 0 a 2 o del 5 en la izquierda, el original la
-// pasa a la derecha con el C1 .. 24 del inventario (CL8).
-TEST(GameMovementTest, AWeaponOnlyInTheLeftHandCutsAtTheMoveToTheRight)
+// 0x59bd3e..0x59bf56: con la derecha vacía y un arma de los grupos 0 a 2 o del 5 en la izquierda, el original la pasa
+// al cursor, viste al héroe y manda el C1 0E 24 del lugar 1 al 0 (Scenes::MoveTheLeftWeaponToTheRight); después sigue
+// con el clic (0x59cd23). Sin quien vista al héroe corta en 0x59bf23, con el registro ya cerrado.
+TEST(GameMovementTest, AWeaponOnlyInTheLeftHandGoesToTheRight)
 {
     for (const std::uint16_t left :
          {std::uint16_t{0x0000}, std::uint16_t{0x05ff}, std::uint16_t{0x0a00}, std::uint16_t{0x0bff}})
     {
-        const auto click = ClickWithTheHands(EmptyHand, left);
-        ASSERT_FALSE(click.result.HasValue()) << left;
-        EXPECT_TRUE(click.result.Error().starts_with("0x59bd3e:")) << click.result.Error();
-        EXPECT_FALSE(click.walked);
+        SCOPED_TRACE(left);
+        const auto cut = ClickWithTheHands(EmptyHand, left);
+        ASSERT_FALSE(cut.result.HasValue());
+        EXPECT_TRUE(cut.result.Error().starts_with("0x59bf23:")) << cut.result.Error();
+        EXPECT_FALSE(cut.walked);
+
+        int dressed = 0;
+        std::vector<Client::Protocol::Inventory::ItemMove> sent;
+        const Client::Scenes::InventoryServices inventory{.items = nullptr,
+                                                          .dressTheHero =
+                                                              [&dressed]
+                                                          {
+                                                              ++dressed;
+                                                              return Client::Core::Expected<void, std::string>{};
+                                                          },
+                                                          .replaceTheRaven = {},
+                                                          .systemMessage = {},
+                                                          .sendItemMove =
+                                                              [&sent](const Client::Protocol::Inventory::ItemMove& move)
+                                                          {
+                                                              sent.push_back(move);
+                                                              return Client::Core::Expected<void, std::string>{};
+                                                          }};
+        const auto click = ClickWithTheHands(EmptyHand, left, 0, &inventory);
+        ASSERT_TRUE(click.result.HasValue()) << click.result.Error();
+        EXPECT_EQ(dressed, 1);
+        ASSERT_EQ(sent.size(), 1u);
+        EXPECT_EQ(sent.front().sourceSlot, 1);
+        EXPECT_EQ(sent.front().targetSlot, 0);
+        EXPECT_EQ(sent.front().item[0], static_cast<std::byte>(left & 0xff));
     }
 }
 

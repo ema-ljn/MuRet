@@ -119,6 +119,12 @@ struct InventoryMoveContext
 [[nodiscard]] Core::Expected<void, std::string> PickUpFromTheEquipment(const InventoryMoveContext& context,
                                                                        std::size_t slot);
 
+// 0x59bd3e..0x59cd23, desde MoveHero (0x59bd01) con el cursor vacío, la mano derecha vacía y un arma en la izquierda:
+// en un acceso al registro propio, el ítem del lugar 1 al cursor (los 0x48 bytes, con su +0x3c) y el lugar en 0xffff
+// con +4 en 0; 0x512a30 sobre el héroe publicado; la grilla del inventario, el lugar 1 y el destino 0; y, sin la
+// traba, el C1 0E 24 del 1 al 0.
+[[nodiscard]] Core::Expected<void, std::string> MoveTheLeftWeaponToTheRight(const InventoryMoveContext& context);
+
 // 0x5c35ad, desde 0x5bec50 sin ítem en el cursor y sin el clic: la marca del lugar (3 si le falta un requisito,
 // con +0x26 contra la fuerza, Q-C475; si no, 2), el ítem bajo el mouse y la esquina de su ayuda.
 void HoverTheEquipment(const InventoryMoveContext& context, std::size_t slot, std::int32_t left, std::int32_t top,

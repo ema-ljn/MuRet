@@ -751,6 +751,31 @@ Core::Expected<void, std::string> PickUpFromTheEquipment(const InventoryMoveCont
     return {};
 }
 
+Core::Expected<void, std::string> MoveTheLeftWeaponToTheRight(const InventoryMoveContext& context)
+{
+    WorldState& world = context.world;
+    WorldRuntime& runtime = world.Runtime();
+    {
+        // 0x59bd3e..0x59bf17: abre el registro propio y lo cierra con su cuenta (3.848 rand() sin otros accesos).
+        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        ItemState& left = world.OwnCharacter().equipment[LeftHandSlot];
+        runtime.cursorItem = left;
+        runtime.cursorItemCount = static_cast<std::int32_t>(left.occupied);
+        left.id = EmptyOwnItemId;
+        left.scalar1Low = 0;
+    }
+    if (auto dressed = Dress(context.services, "0x59bf23"); !dressed.HasValue())
+        return dressed;
+    // 0x59bf28..0x59bf50.
+    runtime.cursorGrid = CursorGrid::Inventory;
+    runtime.slot78a6758 = static_cast<std::int32_t>(LeftHandSlot);
+    runtime.itemMoveTarget = 0;
+    if (runtime.ui.field78abb39 != 0)
+        return {};
+    return SendTheCursorItem(context, static_cast<std::uint8_t>(RightHandSlot));
+}
+
 void HoverTheEquipment(const InventoryMoveContext& context, std::size_t slot, std::int32_t left, std::int32_t top,
                        float width)
 {

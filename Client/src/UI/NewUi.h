@@ -141,8 +141,8 @@ private:
         bool focused = false;  // +0xd
         bool stuck = false;    // +0xe
         bool dragging = false; // +0x10 en 2
-        Point dragFrom;        // +4, +8: el mouse del último paso del arrastre
-        Point dragAt;          // +0x28, +0x2c: adónde va la ventana
+        Point dragFrom{};      // +4, +8: el mouse del último paso del arrastre
+        Point dragAt{};        // +0x28, +0x2c: adónde va la ventana
     };
 
     [[nodiscard]] Entry* Find(const NewUiWindow& window);

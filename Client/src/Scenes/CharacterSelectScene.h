@@ -35,6 +35,7 @@
 #include "UI/NameChecks.h"
 #include "UI/NewUi.h"
 #include "UI/NoticeWindow.h"
+#include "UI/Notices.h"
 #include "UI/SelectionBar.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
@@ -44,6 +45,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // La escena 4, la selección de personaje (0x633f20 al entrar, 0x6342c0 la lógica y 0x634680 el

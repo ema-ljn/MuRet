@@ -1198,9 +1198,15 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
         ScanTheCharacter(character.appearance,
                          m_fullSetScanFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing)));
         DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
-        // Sólo un frame del original deja el cuerpo en sus huesos; un dibujo intermedio no los toca.
+        // Sólo un frame del original deja el cuerpo en sus huesos; un dibujo intermedio no los toca. 0x6001b0
+        // copia antes la escala y la posición al modelo compartido de Player.bmd, con el alpha desde 0,01
+        // (Q-C412).
         if (nativeFrames > 0)
+        {
             actor.bodyPose = PoseCharacterBody(m_models, character);
+            if (actor.alpha >= PlayerModelAlpha)
+                CharacterWorld().PlacePlayerModel(actor);
+        }
     }
     // 0x4182f0 al final de 0x50ba30: el cuervo, si pasa el trapecio; sus huesos del estado del paso quedan
     // para la chispa del próximo (Q-C133).

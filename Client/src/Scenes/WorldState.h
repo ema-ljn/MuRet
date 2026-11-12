@@ -17,6 +17,8 @@
 #include "Scenes/WorldRuntime.h"
 #include "World/Particles.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <array>
 #include <cstddef>
 #include <span>
@@ -40,6 +42,18 @@ namespace Client::Scenes
 inline constexpr std::size_t ActorPoolSize = 401;
 // 0x4c20a0 pone cada personaje de la lista en chars[lugar], con el lugar de 0 a 4.
 inline constexpr std::size_t SelectionActorCount = 5;
+
+// +0x68 y +0x6c..+0x74 de un modelo compartido (0x5769ad8 + tipo · 0xe0): la escala y la posición del último
+// objeto de ese tipo que las copió. 0x4ec110 con Translate en 1 las suma a los huesos que le pasan, aunque
+// sean de otro objeto del mismo tipo.
+struct SharedModelPlacement
+{
+    float scale = 0.0f;
+    glm::vec3 origin{};
+};
+
+// 0x6b88d4 (0,01f): con menos alpha, 0x6001b0 sale sin copiar nada al modelo.
+inline constexpr float PlayerModelAlpha = 0.01f;
 
 class WorldState
 {
@@ -86,6 +100,14 @@ public:
     [[nodiscard]] const GameDrawTailState& DrawTail() const;
     [[nodiscard]] World::Leaves& Leaves();
     [[nodiscard]] const World::Leaves& Leaves() const;
+    // Player.bmd (0x20a), compartido por todos los jugadores: lo copian el paso de cada uno (0x505ec6) y la
+    // pose de su cuerpo (0x6001b0, con el alpha desde 0,01), en el juego, el login y la selección. Lo lee el
+    // cuervo en la zona segura (0x4178d2 y 0x4179a5), antes del 0x505ec6 de su dueño (Q-C412). Arranca en
+    // cero: antes de la primera copia, MuRet suma nada.
+    [[nodiscard]] SharedModelPlacement& PlayerModel();
+    [[nodiscard]] const SharedModelPlacement& PlayerModel() const;
+    // Lo que 0x505ec6 y 0x6001b0 copian de `actor` si es un 0x20a; con otro tipo, a otro modelo.
+    void PlacePlayerModel(const ActorState& actor);
 
     // Lo que hace la selección al pasar a la escena 3 con `chosen`, el elegido (06, "La lógica" y "La
     // entrada al mundo", paso 1; los tres caminos: Enter 0x6343e2..0x634470, doble clic
@@ -111,5 +133,6 @@ private:
     FaunaDrawCarry m_poseCarry;
     std::unique_ptr<GameDrawTailState> m_drawTail = std::make_unique<GameDrawTailState>();
     std::unique_ptr<World::Leaves> m_leaves = std::make_unique<World::Leaves>();
+    SharedModelPlacement m_playerModel;
 };
 } // namespace Client::Scenes

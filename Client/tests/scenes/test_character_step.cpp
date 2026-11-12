@@ -356,6 +356,71 @@ TEST(CharacterStepTest, TheRavenRunsInsideTheBodyBeforeTheCellAndHead)
     EXPECT_EQ(actor.headTurn.target, glm::vec2(0.0f));
 }
 
+// Q-C412: el cuervo posado (el estado 3, 0x4178a6) en la zona segura va al hueso 37 de los huesos propios de su
+// dueño con (−10, 0, 10), por la escala y más la posición del modelo compartido de Player.bmd: las que copió el
+// 0x505ec6 del último 0x20a que pasó antes (el del lugar 2), no las del dueño, que las copia después.
+TEST(CharacterStepTest, ThePerchedRavenUsesTheSharedModelOfThePreviousPlayer)
+{
+    GameWorld tested;
+    tested.Hero().alive = false;
+    ActorState& first = tested.Other(2, 0, 0);
+    first.position = {1000.0f, 2000.0f, 300.0f};
+    first.scale = 1.5f;
+    ActorState& owner = tested.Other(5, 0, 0);
+    owner.position = {10603.0f, 14112.0f, 580.0f};
+    owner.scale = 1.25f;
+    owner.angles = {3.0f, 0.0f, 188.0f};
+    owner.safeZone = 1;
+    tested.Cell(0, 0) = 1;
+    owner.bodyPose.assign(60, Client::Render::Models::BoneTransform(1.0f));
+    owner.bodyPose[37][3] = glm::vec3(7.0f, 8.0f, 9.0f);
+    owner.darkSpirit.emplace();
+    owner.darkSpirit->state = 3;
+    Skeleton raven;
+    raven.actions.resize(4);
+    Client::World::Particles particles;
+    tested.world.Runtime().terrainPolygon = Everything;
+
+    const auto stepped = StepCharacters({.world = tested.world,
+                                         .random = tested.random,
+                                         .playerSkeleton = tested.player,
+                                         .darkSpiritSkeleton = &raven,
+                                         .particles = &particles});
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(owner.darkSpirit->state, 3);
+    // 1,5 · ((7, 8, 9) + (−10, 0, 10)) + (1.000, 2.000, 300).
+    EXPECT_EQ(owner.darkSpirit->position, glm::vec3(995.5f, 2012.0f, 328.5f));
+    EXPECT_EQ(owner.darkSpirit->angles, glm::vec3(3.0f, 0.0f, 68.0f));
+    // El último 0x20a del paso deja lo suyo para el próximo.
+    EXPECT_EQ(tested.world.PlayerModel().scale, 1.25f);
+    EXPECT_EQ(tested.world.PlayerModel().origin, owner.position);
+}
+
+// 0x416add: los estados 2, 5 y 6 son de las órdenes A7 (CL9) y cortan antes de tocar el cuervo.
+TEST(CharacterStepTest, TheRavenOrdersOfThePacketsCut)
+{
+    for (const std::uint8_t state : {std::uint8_t{2}, std::uint8_t{5}, std::uint8_t{6}})
+    {
+        GameWorld tested(LoginMap);
+        tested.Hero().alive = false;
+        ActorState& actor = tested.Other(2, 0, 0);
+        actor.darkSpirit.emplace();
+        actor.darkSpirit->state = state;
+        Skeleton raven;
+        raven.actions.resize(4);
+        Client::World::Particles particles;
+        tested.world.Runtime().terrainPolygon = Everything;
+        const auto stepped = StepCharacters({.world = tested.world,
+                                             .random = tested.random,
+                                             .scene = SceneId::Login,
+                                             .playerSkeleton = tested.player,
+                                             .darkSpiritSkeleton = &raven,
+                                             .particles = &particles});
+        EXPECT_TRUE(HasError(stepped, "0x416add")) << static_cast<int>(state) << ": " << ErrorOf(stepped);
+    }
+}
+
 TEST(CharacterStepTest, AMissingRavenResourceCutsAfterTheBodyRandoms)
 {
     GameWorld tested(LoginMap);

@@ -251,8 +251,14 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
 {
     const std::vector<Render::Models::BoneTransform> body = PoseCharacterBody(models, character);
     // 0x509340 posa en los huesos propios (+0x120), que lee el paso siguiente (0x506d25, la burbuja de Atlans).
+    // 0x6001b0 copia antes la escala y la posición al modelo compartido de Player.bmd, con el alpha desde 0,01;
+    // las lee el cuervo en la zona segura (Q-C412).
     if (originalFrame)
+    {
         actor.bodyPose = body;
+        if (actor.alpha >= PlayerModelAlpha)
+            world.PlacePlayerModel(actor);
+    }
     std::optional<ActorState> projectedActor;
     std::optional<Render::Models::CrtRandom> projectedRandom;
     ActorState& drawn = originalFrame ? actor : projectedActor.emplace(actor);

@@ -709,6 +709,9 @@ TEST(LoginSceneModelsTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
     EXPECT_FALSE(world.PoseCarry().models.contains(Client::Data::Models::PlayerSkeletonModel));
     ASSERT_EQ(actor.bodyPose.size(), 48u);
     actor.bodyPose[0][3] = {7, 8, 9};
+    // Q-C412: 0x6001b0 deja su escala y su posición en el modelo compartido de Player.bmd.
+    EXPECT_EQ(world.PlayerModel().scale, actor.scale);
+    EXPECT_EQ(world.PlayerModel().origin, actor.position);
 
     static_cast<void>(tested.ModelsOfAFrame());
 

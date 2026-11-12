@@ -2272,6 +2272,9 @@ TEST(CharacterSelectSceneTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 
     EXPECT_FALSE(world.PoseCarry().models.contains(Client::Data::Models::PlayerSkeletonModel));
     EXPECT_TRUE(world.PoseCarry().models.contains(std::uint16_t{0x1a12}));
+    // Q-C412: el último de la lista deja su escala y su posición en el modelo compartido de Player.bmd.
+    EXPECT_EQ(world.PlayerModel().scale, world.Actors()[3].scale);
+    EXPECT_EQ(world.PlayerModel().origin, world.Actors()[3].position);
     for (const std::size_t slot : Slots)
     {
         SCOPED_TRACE(slot);

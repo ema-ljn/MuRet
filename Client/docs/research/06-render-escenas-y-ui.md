@@ -1669,7 +1669,9 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
 
   ```text
   si dueño.flags(+0x78) & 0x1000: salir
-  [zona segura del dueño (+0x3e2): en el login, 0; con 1 va a posarse, estados 3 y 4]
+  [estados 2, 5 y 6 con un objetivo o dueño.flags & 0x4000: las órdenes A7, CL9]
+  zona segura (dueño + 0x3e2 == 1, justo 1): si el estado no es 3 ni 4: estado 4, velocidad 3 (Q-C414)
+  fuera de ella: si el estado es 3 o 4: estado 0          (cada cambio pone el contador +0x60 en 0)
   frame += f(0,4); al pasar la última key, la acción por el estado (tabla 0x417f0c):
     estado 0 → acción 1 (planea), 1 → 0 (aletea), 2 → 3, 3 → 2, 4 → 1, 5 → 3
   dx = f(dueño.x − x); dy = f(dueño.y − y)
@@ -1679,7 +1681,7 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
   d2 = dy² + dx² (double); d2f = f(d2)
   si d2 ≥ 22.500: yaw = f(TurnAngle(yaw, f(CreateAngle(x, y, dueño.x, dueño.y)), f(rand() % 15 + 5)))
   v = VectorRotate(dirección, AngleMatrix(ángulos)); posición += v (cada una con f)
-  H = dueño.z + 350 en el mapa 0x37 (250 en los demás, Q-C131)
+  H = dueño.z + 350 en el mapa 0x37 o con dueño + 0x318 == 0x1a04 (250 en los demás, Q-C131, Q-C413)
   div = 28; si z < H: pitch = f(pitch − 2) (≥ −15), div = 10
             si no, si z > H + 100: pitch = f(pitch + 2) (≤ 15), div = 20
   si rand() % div == 0:                                         el sorteo
@@ -1687,6 +1689,13 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
     lejos:                base = (rand() & 63 + 128) · −0,1
     dirección = (0, f((base + dirección.y) · 0,5), f((rand() & 63 − 32) · 0,1))
   dirección.y < −12 → estado 0; si no → estado 1    (cada cambio pone el contador +0x60 en 0)
+  [lo de arriba desde dx, solo en los estados 0 y 1; en el 3 y el 4, sin rand():]
+  estado 3 (0x4178a6): posición = 0x4ec110(modelo del dueño, hueso 37 de dueño + 0x120, (−10, 0, 10), 1)
+             ángulos = (dueño.pitch, dueño.roll, f(dueño.yaw − 120))
+  estado 4 (0x4178fc): m = AngleMatrix(ángulos); si velocidad ≠ 0: posición += VectorRotate((0, −vel, 0), m)
+             h = 0x4ec110(modelo del dueño, hueso 42 de dueño + 0x120, (0, 0, 0), 1)
+             d = 0x4e9810(posición, ángulos, h, vel)   (gira yaw y pitch hacia h; d en la x87)
+             vel = f(vel + 1); si d < 50: estado 3
   si rand() % 100 == 0 y [0x7d3a0f0] % 60 == 0: el grito 0x1d1
   si dueño.z − 200 > z o la distancia horizontal² > 409.600 (640²): contador += 1
   si contador > 90: posición = (dueño.x, dueño.y, f(dueño.z + 250)); contador = 0
@@ -1704,6 +1713,19 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
   origen del jinete va de 318 a 515 (p5 a p95), a unas 4,6 unidades por paso, en el estado lento el
   92 % del tiempo. Dentro de los 150 no gira hacia él, y los sorteos le suman yaw siempre del mismo
   lado: describe curvas en un solo sentido. Nunca se posa: eso es solo en zona segura.
+- **En la zona segura** (*estático* y *emulado*: `make_raven_safe_zone_vectors.py` corre el paso real con el
+  dueño entrando y saliendo de la zona). Pasa a bajar (el estado 4) con la velocidad en 3 y, en cada paso,
+  avanza su velocidad hacia adelante, gira hacia el hueso 42 del dueño con `0x4e9810` y acelera 1: de lejos
+  no llega (la velocidad crece más que el giro) hasta que el contador de lejanía lo trae junto al dueño, y
+  a menos de 50 se posa (el 3), en el hueso 37 con (−10, 0, 10), con los ángulos del dueño y el rumbo 120
+  grados menos; la velocidad queda como estaba. Al salir de la zona vuelve al 0 y a volar. `0x4ec110` con
+  Translate en 1 suma la escala (`+0x68`) y la posición (`+0x6c`) del **modelo compartido** del tipo del
+  dueño (`0x5769ad8 + 0x20a · 0xe0`), no las del dueño: las del último `0x20a` que las copió, en su paso
+  (`0x505ec6`) o al posar su cuerpo (`0x6001b0`), y el paso del cuervo corre antes del `0x505ec6` de su
+  dueño (Q-C412). `0x4e9810`: el rumbo con `CreateAngle` de (x, y) a (x, y) del objetivo y `TurnAngle`;
+  dx y dy en la pila, dz y los cuadrados de dx y dy en float, el largo en el plano en float, el cabeceo
+  con 360 menos `CreateAngle(z, plano, z del objetivo, 0)` y `TurnAngle`, y devuelve
+  √(dz² + dx² + dy²) sin guardar en float.
 - **El dibujo** (`0x4182f0`, al final de `0x50ba30` del dueño: dentro de los personajes, antes del
   caballo y del logo). `0x5ffdf0` con la luz del terreno en su (x, y) más 0,5, la escala 0,7 y sus
   propios huesos; `0x6002e0`, caso `0xc0`: `glColor3f(1, 1, 1)`, la **malla 3** (`dksbody.tga`, mezcla
@@ -1735,7 +1757,13 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
   escala, aditivo (3 componentes), sin giro y con toda la textura. Ninguno saca `rand()`. Nace con vida
   10 y el paso de las partículas le baja uno al final del mismo paso: en cada dibujo hay 9. La pose de
   la chispa es la de MuRet, a nivel de float: `0x4eb860` acumula la posición desde la raíz en el mundo,
-  y MuRet la suma al final.
+  y MuRet la suma al final. Desde la auditoría del cierre de la CL7 (2026-11-12), **la zona segura**: los
+  estados 3 y 4 bit a bit contra el código real (`tests/vectors/world55/raven_safe_zone.txt`, de
+  `make_raven_safe_zone_vectors.py`: 4 casos y 610 pasos, con los huesos propios del dueño girados y la escala
+  y la posición del modelo compartido), `Render::Models::MoveToward` (`0x4e9810`) y
+  `WorldState::PlayerModel`, el `+0x68`/`+0x6c` de `Player.bmd`, que escriben `0x505ec6` en el paso y
+  `0x6001b0` en el dibujo del juego, del login y de la selección (Q-C412). Los estados 2, 5 y 6 (las órdenes
+  `A7`) cortan en `0x416add`.
 - **Lo que crea**: una **chispa por paso** (`0x5c6`, `Effect\Spark03.jpg`, subtipo 5), desde un
   hueso al azar de la pose del último dibujo (Q-C133): vida 10 pasos,
   velocidad R(yaw) · (−(`rand() % 2` + 2), 0, 0), color (0,3; 0,4; 0,7) y escala 0,8, que cada paso se
@@ -4087,8 +4115,9 @@ un superviviente que necesite el registro propio puede cortar en Item.bmd.
 El cuerpo mueve el cuervo en **`0x50544b`**, después de `0x4fcee0` y antes de `0x505de0`, también con su dueño
 fuera del trapecio. La interfaz del paso recibe el `LoadedWorld` 55 y escribe sus paredes y su celda; no
 exige una segunda copia en `WorldState::Map()`. El dibujo lee posición, partes, animación y cabeza del pool.
-El cuervo conserva su pose para la chispa del paso siguiente. Los estados distintos de 0/1 o la zona segura
-del cuervo, todavía sin portar, cortan con su dirección y los `rand()` anteriores.
+El cuervo conserva su pose para la chispa del paso siguiente. La zona segura del cuervo (los estados 3 y 4)
+está portada desde la auditoría del cierre de la CL7 ([el cuervo](#los-efectos-del-login)); los estados 2, 5
+y 6, de las órdenes `A7`, cortan en `0x416add` con los `rand()` anteriores.
 
 Con el port, por paso, con la animación quieta (sin el `rand()` de `0x432bf1` desde el frame 3 ni el del sufijo
 al terminar la acción) y los cinco lugares vistos con el trapecio de su dibujo (*simulado*):

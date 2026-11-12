@@ -1192,9 +1192,15 @@ void CharacterSelectScene::DrawTheCharacters(SceneCanvas& canvas, float alpha, s
                     m_failure = result.Error();
             };
         DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock);
-        // Sólo un frame del original deja el cuerpo en sus huesos; un dibujo intermedio no los toca.
+        // Sólo un frame del original deja el cuerpo en sus huesos; un dibujo intermedio no los toca. 0x6001b0
+        // copia antes la escala y la posición al modelo compartido de Player.bmd, con el alpha desde 0,01
+        // (Q-C412).
         if (actor != nullptr && poseCarry != nullptr && scanFrames > 0)
+        {
             actor->bodyPose = PoseCharacterBody(m_models, drawn);
+            if (actor->alpha >= PlayerModelAlpha)
+                m_context.world->PlacePlayerModel(*actor);
+        }
     }
 }
 

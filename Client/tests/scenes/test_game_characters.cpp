@@ -371,6 +371,30 @@ TEST_F(UnarmedGameCharacterTest, CatchUpSpendsTwoHandByteClosesPerOriginalFrame)
     EXPECT_EQ(Actor().bodyPose.size(), m_models.SkeletonOf(Client::Data::Models::PlayerSkeletonModel)->bones.size());
 }
 
+// Q-C412: 0x6001b0 copia la escala y la posición del personaje al modelo compartido de Player.bmd antes de posar,
+// con el alpha desde 0,01 (0x6b88d4); el cuervo de otro las lee en la zona segura. Un dibujo intermedio no las
+// toca.
+TEST_F(UnarmedGameCharacterTest, TheBodyLeavesItsScaleAndPositionInThePlayerModel)
+{
+    Actor().scale = 1.3f;
+    auto pass = Pass();
+    pass.originalFrames = 0;
+    ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
+    EXPECT_EQ(m_world->PlayerModel().scale, 0.0f);
+
+    pass.originalFrames = 1;
+    const auto drawn = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(m_world->PlayerModel().scale, 1.3f);
+    EXPECT_EQ(m_world->PlayerModel().origin, Actor().position);
+
+    m_world->PlayerModel() = {};
+    Actor().alpha = 0.009f;
+    ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
+    EXPECT_EQ(m_world->PlayerModel().scale, 0.0f);
+}
+
 TEST_F(UnarmedGameCharacterTest, TheUnportedPeriodicStatusEffectStopsBeforeTheHandByteReads)
 {
     struct Case

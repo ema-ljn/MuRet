@@ -2,6 +2,8 @@
 
 #include "Render/Models/OriginalRetainedMath.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <cmath>
 #include <cfloat>
 #include <limits>
@@ -122,6 +124,27 @@ double TurnAngle(float from, float to, float step)
         return b;
     }
     return high - Turn;
+}
+
+double MoveToward(const glm::vec3& position, glm::vec3& angles, const glm::vec3& target, float step)
+{
+    // 0x4e982d..0x4e9849: el rumbo, guardado en float antes de girar.
+    const float heading = F32(CreateAngle(position.x, position.y, target.x, target.y));
+    angles.z = F32(TurnAngle(angles.z, heading, step));
+    // 0x4e984c..0x4e988e: dx y dy quedan en la pila; dz y los dos cuadrados se guardan en float, y el largo
+    // en el plano también (fstp al argumento de 0x4e93f0).
+    const double dx = static_cast<double>(position.x) - static_cast<double>(target.x);
+    const double dy = static_cast<double>(position.y) - static_cast<double>(target.y);
+    const float dz = F32(static_cast<double>(position.z) - static_cast<double>(target.z));
+    const float dy2 = F32(dy * dy);
+    const float dx2 = F32(dx * dx);
+    const float flat = F32(std::sqrt(static_cast<double>(dx2) + static_cast<double>(dy2)));
+    // 0x4e9897: fsubr de 360 (0x6b869c) y fstp antes de girar.
+    const float pitch = F32(Turn - CreateAngle(position.z, flat, target.z, 0.0f));
+    angles.x = F32(TurnAngle(angles.x, pitch, step));
+    // 0x4e98b2..0x4e98c4: dz·dz + dx² + dy², en ese orden, y fsqrt.
+    return std::sqrt(((static_cast<double>(dz) * static_cast<double>(dz)) + static_cast<double>(dx2)) +
+                     static_cast<double>(dy2));
 }
 
 double AngleDistance(float from, float to, std::uint8_t mode)

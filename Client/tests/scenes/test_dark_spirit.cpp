@@ -3,6 +3,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "World/Particles.h"
@@ -23,6 +24,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 // Client::Scenes::DarkSpirit, el cuervo, contra el código real del main.exe: el constructor 0x4167b0 y el
@@ -291,6 +293,193 @@ TEST(DarkSpiritTest, TheConstructorAndTheStepMatchTheBinary)
     EXPECT_EQ(steps, 1740u);
     EXPECT_EQ(sparks, 1600u);
     EXPECT_GE(shouts, 1u);
+}
+
+// Los huesos propios del dueño de make_raven_safe_zone_vectors.py: el giro de 0,6 y 0,8 sobre z y el hueso i en
+// (−40 + 3i; 25 − 2i; 90 + 4i).
+std::vector<Client::Render::Models::BoneTransform> OwnerPose()
+{
+    constexpr std::size_t OwnerBones = 60;
+    std::vector<Client::Render::Models::BoneTransform> pose(OwnerBones);
+    for (std::size_t i = 0; i < OwnerBones; ++i)
+    {
+        const auto k = static_cast<float>(i);
+        const std::array<float, 12> rows{0.6f, -0.8f, 0.0f, -40.0f + (3.0f * k), 0.8f, 0.6f, 0.0f, 25.0f - (2.0f * k),
+                                         0.0f, 0.0f,  1.0f, 90.0f + (4.0f * k)};
+        for (int row = 0; row < 3; ++row)
+        {
+            for (int column = 0; column < 4; ++column)
+            {
+                pose[i][column][row] = rows[static_cast<std::size_t>((row * 4) + column)];
+            }
+        }
+    }
+    return pose;
+}
+
+// Los tramos de la zona segura de un caso: "desde:valor".
+std::uint8_t ZoneAt(const std::vector<std::pair<std::size_t, int>>& zones, std::size_t step)
+{
+    int zone = 0;
+    for (const auto& [from, value] : zones)
+    {
+        if (step >= from)
+        {
+            zone = value;
+        }
+    }
+    return static_cast<std::uint8_t>(zone);
+}
+
+// 0x416a20 en la zona segura (Q-C412 a Q-C414), contra el código real emulado (raven_safe_zone.txt, de
+// make_raven_safe_zone_vectors.py): entra en la zona desde lejos y baja (el estado 4) acelerando hasta que el
+// contador de lejanía lo trae, se posa (el 3) en el hueso 37 del dueño con la escala y la posición del modelo
+// compartido, sale de la zona (el 0) y vuelve; se posa enseguida desde junto al dueño; con la mascota en 0x1a04
+// en el mapa 0 vuela a 350; y +0x3e2 en 2 no es la zona segura. Bit a bit, paso por paso.
+TEST(DarkSpiritTest, TheSafeZoneStepMatchesTheBinary)
+{
+    std::ifstream file(Client::Tests::World55VectorsDir() / "raven_safe_zone.txt");
+    ASSERT_TRUE(file);
+    std::string line;
+    ASSERT_TRUE(std::getline(file, line));
+    ASSERT_EQ(line, "raven-safe-zone 1");
+    const Client::Render::Models::Skeleton skeleton = RavenSkeleton();
+    const std::vector<Client::Render::Models::BoneTransform> ownerPose = OwnerPose();
+    Terrain terrain;
+    terrain.Build(3, 5);
+    CrtRandom random;
+    DarkSpirit spirit;
+    Client::Scenes::DarkSpiritOwner owner;
+    std::uint8_t map = 0;
+    std::string start;
+    std::vector<std::pair<std::size_t, int>> zones;
+    auto particles = std::make_unique<Client::World::Particles>();
+    std::size_t cases = 0;
+    std::size_t steps = 0;
+    std::size_t step = 0;
+    std::array<std::size_t, 5> seenStates{};
+    while (std::getline(file, line) && line != "end")
+    {
+        std::istringstream words(line);
+        std::string kind;
+        words >> kind;
+        const auto next = [&words]()
+        {
+            std::string value;
+            words >> value;
+            return std::bit_cast<float>(Hex(value));
+        };
+        const std::string where = "caso " + std::to_string(cases) + ", paso " + std::to_string(step);
+        if (kind == "case")
+        {
+            ++cases;
+            step = 0;
+            std::string seed;
+            std::string mapWord;
+            std::string pet;
+            int cellX = 0;
+            int cellY = 0;
+            words >> seed >> mapWord >> cellX >> cellY >> start >> pet;
+            const float scale = next();
+            glm::vec3 origin{};
+            for (int k = 0; k < 3; ++k)
+            {
+                origin[k] = next();
+            }
+            int total = 0;
+            words >> total;
+            zones.clear();
+            std::string zone;
+            while (words >> zone)
+            {
+                const std::size_t colon = zone.find(':');
+                zones.emplace_back(std::stoul(zone.substr(0, colon)), std::stoi(zone.substr(colon + 1)));
+            }
+            map = static_cast<std::uint8_t>(Hex(mapWord));
+            random = CrtRandom(Hex(seed));
+            const double ground = Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes,
+                                                                 static_cast<float>((cellX * 100) + 50),
+                                                                 static_cast<float>((cellY * 100) + 50));
+            spirit = Client::Scenes::CreateDarkSpirit(cellX, cellY, ground, random);
+            owner = Client::Scenes::DarkSpiritOwner{.position = OwnerPosition,
+                                                    .flags = 0,
+                                                    .angles = {3.0f, 0.0f, 188.0f},
+                                                    .pet = static_cast<std::uint16_t>(Hex(pet)),
+                                                    .safeZone = 0,
+                                                    .pose = ownerPose,
+                                                    .modelScale = scale,
+                                                    .modelOrigin = origin};
+        }
+        else if (kind == "ctor")
+        {
+            std::string state;
+            words >> state;
+            EXPECT_EQ(random.State(), Hex(state)) << where << ": el rand() del constructor";
+            for (int k = 0; k < 3; ++k)
+            {
+                EXPECT_EQ(Bits(spirit.position[k]), Bits(next())) << where << ": la posición " << k;
+            }
+            for (int k = 0; k < 3; ++k)
+            {
+                EXPECT_EQ(Bits(spirit.angles[k]), Bits(next())) << where << ": los ángulos " << k;
+            }
+            EXPECT_EQ(Bits(spirit.speed), Bits(next())) << where;
+            if (start == "near")
+            {
+                spirit.position = glm::vec3(OwnerPosition.x, OwnerPosition.y,
+                                            static_cast<float>(static_cast<double>(OwnerPosition.z) + 250.0));
+            }
+            spirit.pose = FakePose();
+        }
+        else if (kind == "step")
+        {
+            owner.safeZone = ZoneAt(zones, step);
+            ++step;
+            ++steps;
+            particles->Clear();
+            const bool shout =
+                Client::Scenes::StepDarkSpirit(spirit, skeleton, owner, map, *particles, 0.0f, random, 0x12345677);
+            std::string state;
+            words >> state;
+            EXPECT_EQ(random.State(), Hex(state)) << where << ": el rand()";
+            for (int k = 0; k < 3; ++k)
+            {
+                EXPECT_EQ(Bits(spirit.position[k]), Bits(next())) << where << ": la posición " << k;
+            }
+            for (int k = 0; k < 3; ++k)
+            {
+                EXPECT_EQ(Bits(spirit.angles[k]), Bits(next())) << where << ": los ángulos " << k;
+            }
+            for (int k = 0; k < 3; ++k)
+            {
+                EXPECT_EQ(Bits(spirit.direction[k]), Bits(next())) << where << ": la dirección " << k;
+            }
+            EXPECT_EQ(Bits(spirit.speed), Bits(next())) << where << ": la velocidad";
+            int state8 = 0;
+            int action = 0;
+            words >> state8 >> action;
+            EXPECT_EQ(spirit.state, state8) << where << ": el estado";
+            EXPECT_EQ(spirit.animation.action, action) << where << ": la acción";
+            EXPECT_EQ(Bits(spirit.animation.frame), Bits(next())) << where << ": el frame";
+            int far = 0;
+            std::string sound;
+            words >> far >> sound;
+            EXPECT_EQ(spirit.far, far) << where << ": el contador";
+            EXPECT_EQ(shout, sound == "1d1") << where << ": el grito";
+            if (spirit.state < seenStates.size())
+            {
+                ++seenStates[spirit.state];
+            }
+        }
+        if (HasFailure())
+        {
+            break;
+        }
+    }
+    EXPECT_EQ(cases, 4u);
+    EXPECT_EQ(steps, 610u);
+    EXPECT_GT(seenStates[3], 100u) << "posado";
+    EXPECT_GT(seenStates[4], 100u) << "bajando";
 }
 
 // 0x415be0 guarda la altura del terreno en float (0x415ea7) y 0x4169ec le suma 300 desde ahí: f(f(h) +

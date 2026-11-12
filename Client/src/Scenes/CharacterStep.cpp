@@ -648,18 +648,30 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     {
         return {};
     }
-    if (actor.safeZone == 1 || actor.darkSpirit->state > 1)
+    // 0x416add..0x4176e6 y 0x417801..0x41789d: los estados 2, 5 y 6 son los de las órdenes A7 (los paquetes de
+    // 0x416a20 y el objetivo de +0x3b0), sin portar (CL9). Nada de MuRet los pone.
+    constexpr std::uint8_t LastRestingState = 4;
+    const std::uint8_t ravenState = actor.darkSpirit->state;
+    if (ravenState == 2 || ravenState > LastRestingState)
     {
-        return Core::Unexpected(
-            std::format("0x4176f6: la zona segura o el estado del cuervo del lugar {} no están portados", slot));
+        return Core::Unexpected(std::format(
+            "0x416add: el estado {} del cuervo del lugar {} es de las órdenes A7, sin portar", ravenState, slot));
     }
     if (context.darkSpiritSkeleton == nullptr || context.particles == nullptr)
     {
         return Core::Unexpected(
             std::format("0x416a20: faltan el modelo o las partículas del cuervo del lugar {}", slot));
     }
+    const SharedModelPlacement& player = context.world.PlayerModel();
     static_cast<void>(StepDarkSpirit(*actor.darkSpirit, *context.darkSpiritSkeleton,
-                                     {.position = actor.position, .flags = actor.flags78},
+                                     {.position = actor.position,
+                                      .flags = actor.flags78,
+                                      .angles = actor.angles,
+                                      .pet = actor.pet.model,
+                                      .safeZone = actor.safeZone,
+                                      .pose = actor.bodyPose,
+                                      .modelScale = player.scale,
+                                      .modelOrigin = player.origin},
                                      static_cast<std::uint8_t>(runtime.map), *context.particles, context.worldClock,
                                      context.random, context.counter));
     return {};
@@ -803,7 +815,9 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     }
     // 0x505ec6..0x505ee4: la posición, la escala y la acción van al modelo compartido (+0x6c, +0x68 y
     // +0xa0), que leen los 0x4ec110 de más abajo y que el dibujo vuelve a escribir antes de posar. MuRet
-    // no tiene el modelo compartido.
+    // guarda la escala y la posición del de Player.bmd, que el cuervo lee en la zona segura antes de este
+    // punto de su dueño (Q-C412); los de abajo leen las del propio personaje (OwnBonePoint).
+    context.world.PlacePlayerModel(actor);
     // 0x505ef2: sin verse, nada más.
     if (!actor.seen)
     {

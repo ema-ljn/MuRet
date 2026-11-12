@@ -86,6 +86,29 @@ inline constexpr std::int16_t LightningDecalEffect = 0x14e;
 // dueño (0x518900).
 inline constexpr std::int16_t ColoredDecalEffect = 0x61e;
 inline constexpr std::int32_t PetSummonSubtype = 1;
+// El terremoto (la familia EarthQuake): el 0xfa, que la acción 3 del caballo oscuro crea con el caballo de dueño y el
+// estado (+0x88) en 2 (0x4453e0) y que con un estado distinto de 0 no se dibuja (0x52d400). Su paso suelta en la vida
+// 11 la explosión 5ed/0 y las grietas 0xfb..0x100, y en la 10 las 0x101 y 0x102 (Data\Skill\EarthQuake01..08, que
+// dibuja 0x602e90). Los tres primeros (0xfd, 0xfb y 0xfc) llevan al 0xfa de dueño; los demás, al dueño del 0xfa.
+inline constexpr std::int16_t EarthquakeEffect = 0xfa;
+inline constexpr std::int16_t FirstEarthquakeCrack = 0xfb;
+inline constexpr std::int16_t LastEarthquakeCrack = 0x102;
+// +0x74 en 0x80: las grietas 0xfc, 0xff y 0x102 con el subtipo 1 (0x51a850); 0x6002e0 las dibuja por 0x4ef0c0 con
+// 0x82 (0x6004aa).
+inline constexpr std::uint32_t CrackRenderFlags = 0x80;
+
+struct ModelEffect;
+// +0x108, el dueño, con lo que leen de él en vivo los pasos del terremoto y sus grietas: el WORD +0x2 (su tipo) y +0x1c
+// (sus ángulos). El original guarda un puntero a un objeto de cualquier tabla; MuRet, punteros a esos campos, que
+// tienen que vivir más que el efecto (los lugares de las tablas no se mueven, y un lugar que se vuelve a usar se lee
+// como el original lo lee). Un ayudante (Scenes::HelperState) da `type` y `angles`; otro efecto, `effect` (su
+// ModelEffect::type) y sus ángulos. Sin ninguno de los tres, no hay dueño.
+struct ModelEffectOwner
+{
+    const std::uint16_t* type = nullptr;
+    const ModelEffect* effect = nullptr;
+    const glm::vec3* angles = nullptr;
+};
 
 // Proyección de los campos compartidos por los efectos de 0x1d4 bytes.
 struct ModelEffect
@@ -122,7 +145,17 @@ struct ModelEffect
     bool hasOwner = false;
     // +0x108 como dueño opaco, para los pasos que lo leen fuera de World: el ActorState del personaje del 5ac/3.
     void* ownerContext = nullptr;
+    // +0x108 con lo que leen en vivo el terremoto 0xfa y sus grietas (OwnerTypeOf). El prefijo lo pisa.
+    ModelEffectOwner owner{};
+    // +0x28..+0x30: el 0xfa copia ahí sus ángulos al nacer (0x51a66d) y su paso gira la velocidad con ellos. El prefijo
+    // no los toca.
+    glm::vec3 copiedAngles{};
+    // +0x74: el prefijo lo deja en 0; CrackRenderFlags en las grietas de subtipo 1.
+    std::uint32_t renderFlags = 0;
 };
+
+// El WORD +0x2 del dueño, leído en vivo, o nada sin dueño.
+[[nodiscard]] std::optional<std::uint16_t> OwnerTypeOf(const ModelEffectOwner& owner);
 
 class ModelEffects
 {
@@ -248,6 +281,28 @@ public:
     // el prefijo común (+0x8a en −1, sin dueño), vida 30 y escala 20, sin rand(). Lleno, ninguna.
     std::optional<std::size_t> CreateStompShockWave(const glm::vec3& position, const glm::vec3& angles,
                                                     const glm::vec3& light);
+    // 0x518cf0(0xfa, posición, ángulos, luz, 0, dueño, −1, 0, estado, 0, 0) → 0x51a66d, como la llama el caballo
+    // (0x4453e0, con el estado 2): el prefijo común (+0x8a en −1, escala 0,9, el estado en +0x88) con el dueño,
+    // +0x28..+0x30 con los ángulos, la partida con la posición, vida 20, el subtipo rand() % 100, la z de los ángulos
+    // 330 más (fld/fadd/fstp), +0x28 80 más, +0x30 180 más y +0xe4 en 50. Después, 0x51a8d8: abre el registro propio
+    // (0x4e79a0, no gasta), le sube 1 a su cuenta +0xf04 (`ownRecordCount`, que envuelve, Q-C426; la de antes va a
+    // +0x8c, que no lee nadie portado) y lo cierra (0x40f370: con `ownRecordDepth` en 0, sus 3.848 rand()). Lleno,
+    // ninguno, sin rand() y sin tocar el registro.
+    std::optional<std::size_t> CreateEarthquake(const glm::vec3& position, const glm::vec3& angles,
+                                                const glm::vec3& light, std::uint8_t state,
+                                                const ModelEffectOwner& owner, std::uint8_t& ownRecordDepth,
+                                                std::uint8_t& ownRecordCount, Render::Models::CrtRandom& random);
+    // 0x518cf0(0xfb..0x102, posición, ángulos, luz, subtipo, dueño, tamaño, 0, 0, 0, 0) → 0x51a6e4..0x51a85c: el
+    // prefijo común con el dueño y +0x8a en `size`, y la escala size · 0,01f (fild/fmul/fstp). Vida: 0xfb 35 con el
+    // subtipo 0 y 60 con el 1; 0xfc 20 con el 0 y el 1 y 50 con el 2; 0xfd, 0xfe y 0x100 35; 0xff, 0x101 y 0x102 40.
+    // +0x64 en 0 en todos salvo 0xfd y 0x100, que dejan el −1 del prefijo. Con el subtipo 1, 0xfc, 0xff y 0x102 ponen
+    // +0x74 en CrackRenderFlags. Un subtipo sin caso (0xfb con otro que 0 o 1, 0xfc con otro que 0..2) sale por
+    // 0x51db73 sin escala ni vida: la escala 0,9 del prefijo y la vida del uso anterior del lugar (Q-C423). Otro tipo
+    // o la tabla llena, ninguno. Sin rand().
+    std::optional<std::size_t> CreateEarthquakeCrack(std::int16_t type, const glm::vec3& position,
+                                                     const glm::vec3& angles, const glm::vec3& light,
+                                                     std::int32_t subtype, const ModelEffectOwner& owner,
+                                                     std::int16_t size);
     // 0x6070a0: sólo apaga el byte vivo de cada lugar (Q-C138).
     void Clear();
 

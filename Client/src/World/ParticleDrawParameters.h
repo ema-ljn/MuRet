@@ -13,7 +13,9 @@ enum class ParticleDrawKind
     Drop,
     Unrotated,
     // 0x54899a, la burbuja 698 de Crywolf: la columna de 8 cuadros de coll.jpg.
-    Bubble
+    Bubble,
+    // 0x54864b, la explosión 5ed del terremoto: los cuatro por cuatro cuadros de Explotion01.jpg.
+    Explosion
 };
 struct ParticleDrawParameters
 {

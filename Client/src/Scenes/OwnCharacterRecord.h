@@ -141,5 +141,9 @@ struct OwnCharacterRecord
     std::uint16_t wordf00 = 0;
     std::uint8_t bytef02 = 0;
     std::uint8_t bytef03 = 0;
+    // +0xf04: la cuenta que 0x518cf0 sube en algunas altas entre la apertura y el cierre del registro (la del
+    // terremoto 0xfa, 0x51a8f3..0x51a8fd, Q-C426); la de antes queda en el +0x8c del efecto. Qué cuenta, sin
+    // acreditar.
+    std::uint8_t bytef04 = 0;
 };
 } // namespace Client::Scenes

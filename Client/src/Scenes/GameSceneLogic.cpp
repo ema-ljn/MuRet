@@ -97,13 +97,21 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         .sprites = &m_sprites,
         .effects = &m_context.world->Map().effects,
         .lighting = &m_context.world->DynamicLighting().Lighting(),
-        .systemTime = [this]()
+        .systemTime =
+            [this]()
         {
             return m_context.clock != nullptr
                        ? static_cast<std::uint32_t>(
                              std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
                        : 0U;
-        }};
+        },
+        // 0x5f8290/0x7d0d348 y 0x6c9dd0: la celda y el mapa que lee el terremoto 0xfa para sus grietas.
+        .terrainAttributes = StepTerrain().attributes.get(),
+        .map = &m_context.world->Runtime().map,
+        // 0x5227ca: la grieta 0xfb escribe el temblor de la cámara del paso lógico.
+        .cameraShake = &CameraInputState().shake,
+        // 0x41ed10(id, 0, 0): MuRet no tiene audio (CL10); el sonido no saca rand() y queda mudo.
+        .sound = [](std::int32_t) {}};
     auto effects = m_context.world->Map().effects.Effects();
     for (std::size_t slot = 0; slot < effects.size(); ++slot)
     {
@@ -162,7 +170,7 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     if (auto particles = StepGameParticles(
             m_context.world->Particles(), m_context.cloth->random, runtime.map, terrainHeight, worldClock,
             ParticleOwnersAmong(m_context.world->Map().objects), ParticleActorActionsAmong(m_context.world->Actors()),
-            ParticleTextureHeightsOf(m_worldModels));
+            ParticleTextureHeightsOf(m_worldModels), &m_context.world->DynamicLighting().Lighting());
         !particles.HasValue())
     {
         return particles;

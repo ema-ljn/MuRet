@@ -42,6 +42,16 @@ ParticleDrawParameters ParticleDrawParametersOf(const Particle& particle, glm::v
         result.uv.y = static_cast<float>(static_cast<double>(frame) * BubbleRow);
         result.uvSize = glm::vec2(1.0f, static_cast<float>(BubbleRow));
     }
+    if (kind == ParticleDrawKind::Explosion)
+    {
+        // 0x54864b..0x5486b1: sin giro, la u del resto con signo cuadro % 4 (and 0x80000003 con la corrección) y la v
+        // del cociente cuadro / 4 (cdq, and 3, sar 2: hacia 0), cada una · 0,25f + 0,005f (0x6b89e0 y 0x6b89d8) en la
+        // x87, y el tamaño (0,24f; 0,24f).
+        const std::int32_t frame = std::bit_cast<std::int32_t>(particle.field48);
+        result.uv.x = static_cast<float>(static_cast<double>(frame % AtlasColumns) * Quarter + DropInset);
+        result.uv.y = static_cast<float>(static_cast<double>(frame / AtlasColumns) * Quarter + DropInset);
+        result.uvSize = glm::vec2(DropSize);
+    }
     if (kind == ParticleDrawKind::Drop)
     {
         const std::int32_t frame = std::bit_cast<std::int32_t>(particle.field48) % DropFrames;

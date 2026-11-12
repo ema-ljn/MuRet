@@ -136,6 +136,21 @@ TEST(TextureSetsTest, TheEffectSetLoadsTheCloudsWithLinearClamp)
     EXPECT_EQ(cloud->sampling.wrap, Wrap::Clamp);
 }
 
+// 0x61d7e5 sube Explotion01.jpg a 0x5ed, con GL_LINEAR y GL_CLAMP: la explosión 5ed/0 del terremoto 0xfa.
+TEST(TextureSetsTest, TheEffectSetLoadsTheEarthquakeExplosionWithLinearClamp)
+{
+    const TextureSetEntry* explosion = nullptr;
+    for (const TextureSetEntry& entry : EffectTextureSet)
+    {
+        if (entry.slot == 0x5ed)
+            explosion = &entry;
+    }
+    ASSERT_NE(explosion, nullptr);
+    EXPECT_EQ(explosion->path, "Effect\\Explotion01.jpg");
+    EXPECT_EQ(explosion->sampling.filter, Filter::Linear);
+    EXPECT_EQ(explosion->sampling.wrap, Wrap::Clamp);
+}
+
 // 0x61d6e0 y 0x61d6fc: el calco y los anillos de 0x61f deben subir a los slots originales.
 // Lee los OZJ versionados del repo: también fija el nombre real, no solo dos filas de la tabla.
 TEST(TextureSetsTest, TheArrivalGroundAndRingTexturesUploadAtTheirOriginalSlots)

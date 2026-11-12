@@ -22,6 +22,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <utility>
 
 // Client::World::ModelEffects con el dragón del login (06 § El dragón de fondo), contra lo que hizo el
 // código real del main.exe: 0x518cf0 con el 0xb4 y 1.500 pasos de 0x5208a0 (tests/vectors/world55,
@@ -690,5 +691,174 @@ TEST(ModelEffectsTest, ThePetSummonIsTheColoredDecalWithItsOwnerAndTwentySteps)
     for (auto& effect : full.Effects())
         effect.alive = true;
     EXPECT_FALSE(full.CreatePetSummon({}, {}, glm::vec3(1.0f), &owner).has_value());
+}
+} // namespace
+
+namespace
+{
+using Client::World::ModelEffectOwner;
+
+float EarthquakeSum(float value, double addend)
+{
+    return static_cast<float>(static_cast<double>(value) + addend);
+}
+
+// 0x518cf0(0xfa, posición, ángulos, luz, 0, caballo, −1, 0, 2, 0, 0) → 0x51a66d: el prefijo común con el estado 2
+// y el dueño, +0x28..+0x30 con los ángulos (x 80 más, z 180 más), la partida, vida 20, el subtipo rand() % 100, la
+// z de los ángulos 330 más y +0xe4 en 50. 0x51a8d8: abre el registro, sube su +0xf04 (envuelve) y lo cierra; con la
+// cuenta de accesos en 0, el cierre gasta sus 3.848 rand(). Lleno, ninguno: sin rand() ni registro.
+TEST(ModelEffectsTest, TheEarthquakeIsBornWithItsSubtypeAndClosesTheOwnRecord)
+{
+    for (const std::uint8_t start : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(static_cast<int>(start));
+        ModelEffects effects;
+        const std::uint16_t horseType = 0x1b1 + 1;
+        const glm::vec3 horseAngles(0.0f, 0.0f, 33.0f);
+        const ModelEffectOwner owner{.type = &horseType, .effect = nullptr, .angles = &horseAngles};
+        std::uint8_t depth = start;
+        std::uint8_t count = 0xff;
+        Client::Render::Models::CrtRandom random(7);
+        const auto slot = effects.CreateEarthquake({100.5f, 200.25f, 300.0f}, {10.0f, 20.0f, 45.3f}, glm::vec3(0.5f), 2,
+                                                   owner, depth, count, random);
+        ASSERT_EQ(slot, std::optional<std::size_t>(0));
+        const ModelEffect& quake = effects.Effects()[0];
+        Client::Render::Models::CrtRandom expected(7);
+        const int subtype = expected.Next() % 100;
+        EXPECT_TRUE(quake.alive);
+        EXPECT_EQ(quake.type, Client::World::EarthquakeEffect);
+        EXPECT_EQ(quake.subtype, subtype);
+        EXPECT_EQ(quake.state, 2);
+        EXPECT_EQ(quake.life, 20);
+        EXPECT_EQ(quake.transform.scale, 0.9f);
+        EXPECT_EQ(quake.transform.position, glm::vec3(100.5f, 200.25f, 300.0f));
+        EXPECT_EQ(quake.start, glm::vec3(100.5f, 200.25f, 300.0f));
+        EXPECT_EQ(quake.transform.angles, glm::vec3(10.0f, 20.0f, EarthquakeSum(45.3f, 330.0)));
+        EXPECT_EQ(quake.copiedAngles, glm::vec3(EarthquakeSum(10.0f, 80.0), 20.0f, EarthquakeSum(45.3f, 180.0)));
+        EXPECT_EQ(quake.turnDirection, 50.0f);
+        EXPECT_EQ(quake.light, glm::vec3(0.5f));
+        EXPECT_EQ(quake.disturbanceState, 0xffffu);
+        EXPECT_TRUE(quake.hasOwner);
+        EXPECT_EQ(quake.owner.type, &horseType);
+        EXPECT_EQ(quake.owner.angles, &horseAngles);
+        EXPECT_EQ(quake.renderFlags, 0u);
+        EXPECT_EQ(Client::World::OwnerTypeOf(quake.owner), std::optional<std::uint16_t>(0x1b2));
+        // La cuenta +0xf04 es un byte: 0xff más uno vuelve a 0.
+        EXPECT_EQ(count, 0);
+        EXPECT_EQ(depth, start);
+        if (start == 0)
+        {
+            for (int draw = 0; draw < Client::Render::Models::OwnRecordCloseRandoms; ++draw)
+                static_cast<void>(expected.Next());
+        }
+        EXPECT_EQ(random.State(), expected.State());
+    }
+
+    ModelEffects full;
+    for (auto& effect : full.Effects())
+        effect.alive = true;
+    std::uint8_t depth = 0;
+    std::uint8_t count = 4;
+    Client::Render::Models::CrtRandom untouched(7);
+    EXPECT_FALSE(full.CreateEarthquake({}, {}, glm::vec3(1.0f), 2, {}, depth, count, untouched).has_value());
+    EXPECT_EQ(untouched.State(), 7u);
+    EXPECT_EQ(count, 4);
+}
+
+struct CrackLifeCase
+{
+    std::int16_t type;
+    std::int32_t subtype;
+    std::int32_t life;
+};
+
+// 0x51a6e4..0x51a85c: la vida de cada grieta con sus subtipos, la escala size · 0,01f en la x87, +0x8a con el tamaño
+// y +0x64 en 0 salvo en 0xfd y 0x100. Sin rand().
+TEST(ModelEffectsTest, TheEarthquakeCracksTakeTheirLifeAndScaleFromTheirSize)
+{
+    constexpr CrackLifeCase Cases[] = {
+        {0xfb, 0, 35},  {0xfb, 1, 60},  {0xfc, 0, 20},  {0xfc, 1, 20},  {0xfc, 2, 50},
+        {0xfd, 0, 35},  {0xfd, 7, 35},  {0xfe, 0, 35},  {0xff, 0, 40},  {0xff, 1, 40},
+        {0x100, 0, 35}, {0x101, 0, 40}, {0x101, 3, 40}, {0x102, 0, 40}, {0x102, 1, 40},
+    };
+    const std::uint16_t horseType = 0x10;
+    const ModelEffectOwner owner{.type = &horseType, .effect = nullptr, .angles = nullptr};
+    for (const CrackLifeCase& crack : Cases)
+    {
+        for (const std::int16_t size : {std::int16_t{0x96}, std::int16_t{47}})
+        {
+            SCOPED_TRACE(std::to_string(crack.type) + "/" + std::to_string(crack.subtype) + " " + std::to_string(size));
+            ModelEffects effects;
+            const auto slot = effects.CreateEarthquakeCrack(crack.type, {1.0f, 2.0f, 3.0f}, {0.0f, 0.0f, 72.5f},
+                                                            glm::vec3(0.25f), crack.subtype, owner, size);
+            ASSERT_EQ(slot, std::optional<std::size_t>(0));
+            const ModelEffect& effect = effects.Effects()[0];
+            EXPECT_TRUE(effect.alive);
+            EXPECT_EQ(effect.type, crack.type);
+            EXPECT_EQ(effect.subtype, crack.subtype);
+            EXPECT_EQ(effect.life, crack.life);
+            const float scale =
+                static_cast<float>(static_cast<double>(size) * static_cast<double>(std::bit_cast<float>(0x3c23d70au)));
+            EXPECT_EQ(Bits(effect.transform.scale), Bits(scale));
+            EXPECT_EQ(effect.disturbanceState, static_cast<std::uint16_t>(size));
+            const bool keepsItsBlend = crack.type == 0xfd || crack.type == 0x100;
+            EXPECT_EQ(effect.objectState.blendMesh, keepsItsBlend ? Client::Render::Models::NoBlendMesh : 0);
+            const bool flagged =
+                crack.subtype == 1 && (crack.type == 0xfc || crack.type == 0xff || crack.type == 0x102);
+            EXPECT_EQ(effect.renderFlags, flagged ? Client::World::CrackRenderFlags : 0u);
+            EXPECT_EQ(effect.transform.position, glm::vec3(1.0f, 2.0f, 3.0f));
+            EXPECT_EQ(effect.transform.angles, glm::vec3(0.0f, 0.0f, 72.5f));
+            EXPECT_EQ(effect.light, glm::vec3(0.25f));
+            EXPECT_TRUE(effect.hasOwner);
+            EXPECT_EQ(effect.owner.type, &horseType);
+        }
+    }
+}
+
+// Q-C423: 0xfb con un subtipo que no es 0 ni 1 y 0xfc con uno fuera de 0..2 salen por 0x51db73 sin caso: la escala
+// 0,9 del prefijo y la vida que el lugar tenía de su uso anterior. Otro tipo o la tabla llena, ninguno.
+TEST(ModelEffectsTest, AnEarthquakeCrackWithoutItsCaseKeepsTheLifeOfThePreviousEffect)
+{
+    for (const auto& [type, subtype] :
+         {std::pair<std::int16_t, std::int32_t>{0xfb, 2}, std::pair<std::int16_t, std::int32_t>{0xfc, 3},
+          std::pair<std::int16_t, std::int32_t>{0xfb, -1}})
+    {
+        SCOPED_TRACE(std::to_string(type) + "/" + std::to_string(subtype));
+        ModelEffects effects;
+        effects.Effects()[0].life = 7;
+        const auto slot = effects.CreateEarthquakeCrack(type, {}, {}, glm::vec3(1.0f), subtype, {}, 0x96);
+        ASSERT_EQ(slot, std::optional<std::size_t>(0));
+        const ModelEffect& effect = effects.Effects()[0];
+        EXPECT_TRUE(effect.alive);
+        EXPECT_EQ(effect.life, 7);
+        EXPECT_EQ(effect.transform.scale, 0.9f);
+        EXPECT_EQ(effect.disturbanceState, 0x96u);
+        EXPECT_EQ(effect.objectState.blendMesh, Client::Render::Models::NoBlendMesh);
+        EXPECT_FALSE(effect.hasOwner);
+    }
+
+    ModelEffects effects;
+    EXPECT_FALSE(effects.CreateEarthquakeCrack(0xfa, {}, {}, glm::vec3(1.0f), 0, {}, 0x96).has_value());
+    EXPECT_FALSE(effects.CreateEarthquakeCrack(0x103, {}, {}, glm::vec3(1.0f), 0, {}, 0x96).has_value());
+    EXPECT_FALSE(effects.Effects()[0].alive);
+    for (auto& effect : effects.Effects())
+        effect.alive = true;
+    EXPECT_FALSE(effects.CreateEarthquakeCrack(0xfb, {}, {}, glm::vec3(1.0f), 0, {}, 0x96).has_value());
+}
+
+// El tipo del dueño se lee en vivo: un efecto (su +0x2 con signo, como WORD) antes que el tipo de un helper.
+TEST(ModelEffectsTest, TheOwnerTypeIsReadFromTheLiveOwner)
+{
+    ModelEffect owner;
+    owner.type = Client::World::EarthquakeEffect;
+    std::uint16_t helperType = 0x1b1;
+    EXPECT_EQ(Client::World::OwnerTypeOf({.type = &helperType, .effect = &owner, .angles = nullptr}),
+              std::optional<std::uint16_t>(0xfa));
+    EXPECT_EQ(Client::World::OwnerTypeOf({.type = &helperType, .effect = nullptr, .angles = nullptr}),
+              std::optional<std::uint16_t>(0x1b1));
+    helperType = 0x1b2;
+    EXPECT_EQ(Client::World::OwnerTypeOf({.type = &helperType, .effect = nullptr, .angles = nullptr}),
+              std::optional<std::uint16_t>(0x1b2));
+    EXPECT_EQ(Client::World::OwnerTypeOf({}), std::nullopt);
 }
 } // namespace

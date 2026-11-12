@@ -11,6 +11,10 @@ namespace Client::Render::Models
 class CrtRandom;
 struct Skeleton;
 } // namespace Client::Render::Models
+namespace Client::Data::Terrain
+{
+struct TerrainAttributes;
+}
 namespace Client::World
 {
 struct ModelEffect;
@@ -19,10 +23,12 @@ class Particles;
 class KalimaWorld;
 class FrameSprites;
 struct TerrainLighting;
-// Lo que los casos piden afuera de su efecto: la altura del terreno (0x5f93c0) de la mariposa y de las
-// piedras, la tabla de sprites del frame (0x5491e0) de la mariposa, la de los efectos (0x518cf0) y la luz
-// dinámica (0x7b4ccc4) del chorro 0x5de y de las piedras 0x118/0x119, y timeGetTime() (0x6b8544) del calco 0x14e de los
-// Fenrir. Sin ellos, el caso corta en su dirección.
+// Lo que los casos piden afuera de su efecto: la altura del terreno (0x5f93c0) de la mariposa, de las
+// piedras y del terremoto, la tabla de sprites del frame (0x5491e0) de la mariposa, la de los efectos (0x518cf0) y
+// la luz dinámica (0x7b4ccc4) del chorro 0x5de, de las piedras 0x118/0x119 y de las grietas del terremoto,
+// timeGetTime() (0x6b8544) del calco 0x14e de los Fenrir, y del terremoto 0xfa y sus grietas, los atributos de las
+// celdas (0x7d0d348), el mapa (0x6c9dd0), el temblor de la cámara (0x7d325c8) y el sonido (0x41ed10(id, 0, 0)). Sin
+// ellos, el caso corta en su dirección.
 struct ModelEffectStepServices
 {
     std::function<double(float, float)> terrainHeight{};
@@ -30,6 +36,11 @@ struct ModelEffectStepServices
     ModelEffects* effects = nullptr;
     TerrainLighting* lighting = nullptr;
     std::function<std::uint32_t()> systemTime{};
+    const Data::Terrain::TerrainAttributes* terrainAttributes = nullptr;
+    const std::int32_t* map = nullptr;
+    float* cameraShake = nullptr;
+    // MuRet todavía no tiene audio (CL10): la escena pasa uno que no hace nada.
+    std::function<void(std::int32_t)> sound{};
 };
 // 0x5208a0: CRT común, llegada/teleport, torre de Noria, 9/0 de Kalima con el owner de ondas, la mariposa
 // 0xae (sus rand() del vuelo, la luz del subtipo, las chispas 5c5/7 del /3 y el sprite 0x5ac) y los del
@@ -47,7 +58,13 @@ struct ModelEffectStepServices
 // otros subtipos del 0x6eb cortan. El rayo 0x14d de
 // los Fenrir (0x5295a4) se prende de a 0,3f con el subtipo 0 y se apaga con el 1, y gira 0,15f por eje; el calco
 // 0x14e (0x52965a) gira 0,1f en x, se apaga de a 0,05f (la luz según el subtipo) y cambia de cuadro cada 200 ms de
-// timeGetTime(), hasta el quinto.
+// timeGetTime(), hasta el quinto. El terremoto 0xfa (0x521c5c): en la vida 11 corre la partida detrás de su dueño, la
+// pone sobre el terreno (en Kalima, con la onda 0x437860), suelta la explosión 5ed/0 y, con un dueño que no es del
+// tipo 0x1b1, las grietas 0xfd, 0xfb y 0xfc, y cinco pares 0xfe/0xff donde la celda lo deja; en la 10, cuatro anillos
+// de cinco pares 0x101/0x102, el sonido 0x97 y la vida en 0; en las demás, se hamaca con +0x28. Con el estado 0 (la
+// habilidad del Dark Lord) corta donde sale de lo portado. Salta la animación y 0x51fc80 de la cola (0x52cbb0). Las
+// grietas 0xfb..0x102 (0x52276a..0x522bd2) se apagan y se hunden; la 0xfb tiembla la cámara, las 0xfc y 0xff sueltan
+// a veces piedritas 0xc8/0xc9 y, con la 0x102, prenden la luz dinámica según el tipo de su dueño.
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton, Particles& particles,
                     float worldClock, Render::Models::CrtRandom& random, KalimaWorld* kalima = nullptr,

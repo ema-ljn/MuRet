@@ -12,6 +12,7 @@
 #include "World/BloodCastleParticleKernels.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ParticleOwner.h"
+#include "World/WorldObjectStepServices.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -136,6 +137,14 @@ constexpr double DustLightPerLife = static_cast<double>(std::bit_cast<float>(0x3
 constexpr double DustGrowth = static_cast<double>(std::bit_cast<float>(0x3da3d70au));
 constexpr double DustBrake = static_cast<double>(std::bit_cast<float>(0x3f666666u));
 constexpr double DustHalfHeight = static_cast<double>(std::bit_cast<float>(0x3f000000u));
+// 0x542a69 y 0x545cac..0x545ccd: la vida de la 5ed/0, el 0,05f de su luz (0x6b8ad0), los tres factores del color
+// (0x6b882c, 0x6b89dc y 0x6b87b8) y el radio.
+constexpr std::int32_t ExplosionLife = 20;
+constexpr double ExplosionGlow = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
+constexpr double ExplosionRed = static_cast<double>(std::bit_cast<float>(0x3f000000u));
+constexpr double ExplosionGreen = static_cast<double>(std::bit_cast<float>(0x3e99999au));
+constexpr double ExplosionBlue = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+constexpr std::int32_t ExplosionLightRadius = 4;
 // 0x5446e0: el cambio del viento, (rand() % 2001 − 1000) · 0,0006 (0x6b8a50), entre ±0,6 (0x6b8a20 y
 // 0x6b8b8c), y el viento, entre ±1,7 (0x6ba3f0 y 0x6ba3ec).
 constexpr int WindSpan = 2001;
@@ -208,6 +217,28 @@ bool IsBreath(const Particle& particle)
 bool IsDust(const Particle& particle)
 {
     return particle.type == DustParticle && particle.subtype == 0;
+}
+
+// 0x542a60..0x542a75 con el subtipo 0: vida 20 (la /2 tiene 30) y la escala del pedido otra vez en +0x10. Sin rand().
+// El sonido de 0x542a82 lo hace quien la crea.
+void CreateTheExplosion(Particle& particle, float scale)
+{
+    particle.life = ExplosionLife;
+    particle.scale = scale;
+}
+
+// 0x5459a4..0x5459bc y 0x545c91..0x545cd6 con el subtipo 0, después de la vida y del movimiento común: el cuadro
+// (+0x48) es (20 − vida) / 2 con el cociente de idiv (cdq, sub y sar: hacia 0), y la luz dinámica de radio 4 es
+// (f · 0,5f; f · 0,3f; f · 0,1f) con f = vida · 0,05f (0x6b8ad0) retenido en la x87 entre los tres productos.
+Core::Expected<void, ParticleError> StepTheExplosion(Particle& particle, TerrainLighting* lighting)
+{
+    const std::int32_t frame = (ExplosionLife - particle.life) / 2;
+    particle.field48 = std::bit_cast<float>(frame);
+    const double glow = static_cast<double>(particle.life) * ExplosionGlow;
+    const glm::vec3 color{F32(glow * ExplosionRed), F32(glow * ExplosionGreen), F32(glow * ExplosionBlue)};
+    if (!AddDynamicLight(lighting, particle.position, color, ExplosionLightRadius, "0x545cd6").HasValue())
+        return Core::Unexpected(ParticleError::MissingDynamicLight);
+    return {};
 }
 
 // 0x54271f..0x542838 con el subtipo 0: la vida, la posición corrida en x y en y, la escala en la x87 (fild, por la
@@ -526,7 +557,7 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
                    ? std::nullopt
                    : std::optional(ParticleError::UnsupportedSubtype);
     }
-    if (type == BubbleParticle || type == DustParticle)
+    if (type == BubbleParticle || type == DustParticle || type == ExplosionParticle)
         return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == SparkParticle)
     {
@@ -1376,6 +1407,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheDust(particle, angles, scale, random);
             return std::optional(index);
         }
+        if (type == ExplosionParticle)
+        {
+            CreateTheExplosion(particle, scale);
+            return std::optional(index);
+        }
         if (type == CloudParticle && subtype == 8)
         {
             CreateTheCloud8(particle, scale, random);
@@ -1476,11 +1512,10 @@ const ParticleWind& Particles::Wind() const
 
 namespace
 {
-Core::Expected<void, ParticleError>
-StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const float* worldClock,
-                  const std::int32_t* map, IParticleTrigonometry* trigonometry,
-                  const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
-                  const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight)
+Core::Expected<void, ParticleError> StepParticlesImpl(
+    Particles& particles, Render::Models::CrtRandom& random, const float* worldClock, const std::int32_t* map,
+    IParticleTrigonometry* trigonometry, const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
+    const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight, TerrainLighting* lighting)
 {
     // Los punteros privados distinguen exclusivamente legacy de la API pública requerida.
     // El overload vivo siempre proporciona reloj y evaluador; no hay servicio opcional público.
@@ -1621,6 +1656,12 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
             if (!stepped.HasValue())
                 return stepped;
         }
+        else if (particle.type == ExplosionParticle)
+        {
+            const auto stepped = StepTheExplosion(particle, lighting);
+            if (!stepped.HasValue())
+                return stepped;
+        }
         else if (IsMapSpark(particle))
         {
             StepTheMapSpark(particle);
@@ -1661,19 +1702,18 @@ Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, R
                                                          const std::int32_t* map,
                                                          const ParticleTerrainHeight& terrainHeight)
 {
-    return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight, {}, {}, {});
+    return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight, {}, {}, {}, nullptr);
 }
 
-Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
-                                                         std::reference_wrapper<const float> worldClock,
-                                                         const std::int32_t* map, IParticleTrigonometry& trigonometry,
-                                                         const ParticleTerrainHeight& terrainHeight,
-                                                         const ParticleObjectOwners& owners,
-                                                         const ParticleActorActions& actorActions,
-                                                         const ParticleTextureHeight& textureHeight)
+Core::Expected<void, ParticleError>
+StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
+                     std::reference_wrapper<const float> worldClock, const std::int32_t* map,
+                     IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
+                     const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
+                     const ParticleTextureHeight& textureHeight, TerrainLighting* lighting)
 {
     return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners,
-                             actorActions, textureHeight);
+                             actorActions, textureHeight, lighting);
 }
 
 std::optional<ParticleError> StepParticles(Particles& particles, Render::Models::CrtRandom& random)

@@ -195,6 +195,8 @@ void InitializeCommonEffect(ModelEffect& effect, std::int16_t type, const glm::v
     effect.previousPosition = position;
     effect.hasOwner = false;
     effect.ownerContext = nullptr;
+    effect.owner = {};
+    effect.renderFlags = 0;
 }
 
 // Lo común de 0x518d0a..0x518e3c (la escala, la posición, los ángulos, la luz y +0xd8 en 0,3) y el caso
@@ -337,6 +339,122 @@ std::optional<std::size_t> ModelEffects::CreatePetSummon(const glm::vec3& positi
         effect.hasOwner = owner != nullptr;
         effect.ownerContext = owner;
         effect.life = ArrivalLife; // 0x51eec0: la del 0x61e y el 0x61f.
+        return slot;
+    }
+    return std::nullopt;
+}
+
+namespace
+{
+// +0x108: el dueño y lo que de él se lee en vivo.
+void SetOwner(ModelEffect& effect, const ModelEffectOwner& owner)
+{
+    effect.owner = owner;
+    effect.hasOwner = owner.type != nullptr || owner.effect != nullptr || owner.angles != nullptr;
+}
+
+// 0x51a6e4..0x51a85c: la vida de cada grieta, o nada con el subtipo que sale por 0x51db73 sin caso.
+std::optional<std::int32_t> CrackLife(std::int16_t type, std::int32_t subtype)
+{
+    constexpr std::int32_t Short = 35, Long = 40;
+    switch (type)
+    {
+    case FirstEarthquakeCrack: // 0x51a6e4: 0x23 o 0x3c.
+        if (subtype == 0)
+            return Short;
+        if (subtype == 1)
+            return 60;
+        return std::nullopt;
+    case 0xfc: // 0x51a73c: 0x14 o 0x32.
+        if (subtype == 0 || subtype == 1)
+            return 20;
+        if (subtype == 2)
+            return 50;
+        return std::nullopt;
+    case 0xfd:  // 0x51a78b
+    case 0xfe:  // 0x51a7ac
+    case 0x100: // 0x51a7e3
+        return Short;
+    default: // 0xff (0x51a7d0), 0x101 (0x51a804) y 0x102 (0x51a828).
+        return Long;
+    }
+}
+} // namespace
+
+std::optional<std::uint16_t> OwnerTypeOf(const ModelEffectOwner& owner)
+{
+    if (owner.effect != nullptr)
+        return static_cast<std::uint16_t>(owner.effect->type);
+    if (owner.type != nullptr)
+        return *owner.type;
+    return std::nullopt;
+}
+
+std::optional<std::size_t> ModelEffects::CreateEarthquake(const glm::vec3& position, const glm::vec3& angles,
+                                                          const glm::vec3& light, std::uint8_t state,
+                                                          const ModelEffectOwner& owner, std::uint8_t& ownRecordDepth,
+                                                          std::uint8_t& ownRecordCount,
+                                                          Render::Models::CrtRandom& random)
+{
+    constexpr std::int32_t EarthquakeLife = 20, Subtypes = 100;
+    constexpr double Yaw = 330.0;           // 0x6b8c8c
+    constexpr double CopiedPitch = 80.0;    // 0x6b9ffc
+    constexpr double CopiedYaw = 180.0;     // 0x6b86bc
+    constexpr float EarthquakeLift = 50.0f; // 0x51a6d5: 0x42480000.
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, EarthquakeEffect, position, angles, light);
+        effect.state = state;
+        SetOwner(effect, owner);
+        effect.copiedAngles = effect.transform.angles;
+        effect.start = effect.transform.position;
+        effect.life = EarthquakeLife;
+        effect.subtype = random.Next() % Subtypes;
+        glm::vec3& turned = effect.transform.angles;
+        turned.z = F32(static_cast<double>(turned.z) + Yaw);
+        effect.copiedAngles.x = F32(static_cast<double>(effect.copiedAngles.x) + CopiedPitch);
+        effect.copiedAngles.z = F32(static_cast<double>(effect.copiedAngles.z) + CopiedYaw);
+        effect.turnDirection = EarthquakeLift;
+        // 0x51a8d8..0x51a90f: la cuenta sube entre la apertura y el cierre.
+        const Render::Models::LogicalAccess access(ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+        ++ownRecordCount;
+        return slot;
+    }
+    return std::nullopt;
+}
+
+std::optional<std::size_t> ModelEffects::CreateEarthquakeCrack(std::int16_t type, const glm::vec3& position,
+                                                               const glm::vec3& angles, const glm::vec3& light,
+                                                               std::int32_t subtype, const ModelEffectOwner& owner,
+                                                               std::int16_t size)
+{
+    if (type < FirstEarthquakeCrack || type > LastEarthquakeCrack)
+        return std::nullopt;
+    constexpr double SizeStep = static_cast<double>(std::bit_cast<float>(0x3c23d70au)); // 0x6b86c0: 0,01f.
+    constexpr std::int16_t KeepsItsBlend = 0xfd, AlsoKeepsItsBlend = 0x100;
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeCommonEffect(effect, type, position, angles, light, 0.0f);
+        effect.subtype = subtype;
+        effect.disturbanceState = static_cast<std::uint16_t>(size);
+        effect.itemType = nullptr;
+        effect.itemLevel = nullptr;
+        SetOwner(effect, owner);
+        const std::optional<std::int32_t> life = CrackLife(type, subtype);
+        if (!life)
+            return slot;
+        effect.life = *life;
+        effect.transform.scale = F32(static_cast<double>(size) * SizeStep);
+        if (type != KeepsItsBlend && type != AlsoKeepsItsBlend)
+            effect.objectState.blendMesh = 0;
+        if (subtype == 1 && (type == 0xfc || type == 0xff || type == LastEarthquakeCrack))
+            effect.renderFlags = CrackRenderFlags; // 0x51a850
         return slot;
     }
     return std::nullopt;

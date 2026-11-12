@@ -4,6 +4,8 @@
 #include "Render/Models/OriginalRotation.h"
 #include "World/ParticleDrawing.h"
 #include "World/PortableParticleTrigonometry.h"
+#include "World/TerrainLighting.h"
+#include "World/WorldObjectStepServices.h"
 
 #include "support/ParticleDrawRecorder.h"
 #include "support/WorldObjectVectors.h"
@@ -21,6 +23,7 @@
 #include <functional>
 #include <ios>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <set>
 #include <sstream>
@@ -432,6 +435,96 @@ TEST(ParticlesTest, TheGallopDustDrawsBlendedOnTheCommonBillboard)
     EXPECT_EQ(drawn.Value()->rotation, 0.0f);
     EXPECT_EQ(drawn.Value()->position, (glm::vec3{1.0f, 2.0f, 3.0f}));
     EXPECT_EQ(drawn.Value()->light, glm::vec3(0.75f));
+}
+
+// 0x542a60 con el subtipo 0: la explosión 5ed del terremoto nace con vida 20 y la escala del pedido, sin rand() (el
+// sonido 0x41ed10(0x40, 0, 0) de 0x542a82 lo emite quien la crea). 0x5459a4 y 0x545c91..0x545cd6: después de la vida
+// y del movimiento común, el cuadro (20 − vida) / 2 en +0x48 y la luz dinámica de radio 4 (f · 0,5f; f · 0,3f;
+// f · 0,1f) con f = vida · 0,05f retenido en la x87. El viento saca sus dos rand().
+TEST(ParticlesTest, TheEarthquakeExplosionCountsItsFramesAndLightsTheGround)
+{
+    Particles particles;
+    CrtRandom random(1);
+    const auto index = particles.CreateChecked(Client::World::ExplosionParticle, {1000.5f, 2000.25f, 300.0f},
+                                               glm::vec3(0.0f), glm::vec3(1.0f), 0, 0.5f, 0.0f, random);
+    ASSERT_TRUE(index.HasValue());
+    ASSERT_EQ(index.Value(), std::optional<std::size_t>{0});
+    Particle& explosion = particles.All()[0];
+    EXPECT_TRUE(explosion.alive);
+    EXPECT_EQ(explosion.type, Client::World::ExplosionParticle);
+    EXPECT_EQ(explosion.texture, Client::World::ExplosionParticle);
+    EXPECT_EQ(explosion.subtype, 0);
+    EXPECT_EQ(explosion.life, 20);
+    EXPECT_EQ(explosion.scale, 0.5f);
+    EXPECT_EQ(explosion.position, (glm::vec3{1000.5f, 2000.25f, 300.0f}));
+    EXPECT_EQ(explosion.velocity, glm::vec3(0.0f));
+    EXPECT_EQ(explosion.light, glm::vec3(1.0f));
+    EXPECT_EQ(random.State(), 1u);
+
+    Client::World::PortableParticleTrigonometry trigonometry;
+    const float clock = 0.0f;
+    const std::int32_t map = 0;
+    CrtRandom expectedRandom(1);
+    for (const std::int32_t life : {19, 18, 17})
+    {
+        SCOPED_TRACE(life);
+        auto lighting = std::make_unique<Client::World::TerrainLighting>();
+        const auto stepped = Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map,
+                                                                 trigonometry, {}, {}, {}, {}, lighting.get());
+        ASSERT_TRUE(stepped.HasValue());
+        EXPECT_EQ(explosion.life, life);
+        EXPECT_EQ(std::bit_cast<std::int32_t>(explosion.field48), (20 - life) / 2);
+        EXPECT_EQ(explosion.position, (glm::vec3{1000.5f, 2000.25f, 300.0f}));
+        const double glow = static_cast<double>(life) * static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
+        const glm::vec3 color{static_cast<float>(glow * 0.5),
+                              static_cast<float>(glow * static_cast<double>(std::bit_cast<float>(0x3e99999au))),
+                              static_cast<float>(glow * static_cast<double>(std::bit_cast<float>(0x3dcccccdu)))};
+        auto expectedLighting = std::make_unique<Client::World::TerrainLighting>();
+        ASSERT_TRUE(
+            Client::World::AddDynamicLight(expectedLighting.get(), explosion.position, color, 4, "test").HasValue());
+        EXPECT_EQ(lighting->cells, expectedLighting->cells);
+        static_cast<void>(expectedRandom.Next());
+        static_cast<void>(expectedRandom.Next());
+        EXPECT_EQ(random.State(), expectedRandom.State());
+    }
+
+    // Sin la luz dinámica, corta con el cuadro ya escrito.
+    const auto blind = Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry);
+    ASSERT_FALSE(blind.HasValue());
+    EXPECT_EQ(blind.Error(), Client::World::ParticleError::MissingDynamicLight);
+    EXPECT_EQ(explosion.life, 16);
+    EXPECT_EQ(std::bit_cast<std::int32_t>(explosion.field48), 2);
+}
+
+// 0x548644 → 0x54864b: la 5ed no pide otra mezcla que la de su material (con el byte en 4, 0x620a00(0)), va sin giro
+// y con la celda del cuadro en el atlas de 4 × 4: la u del resto cuadro % 4 y la v del cociente cuadro / 4, cada una
+// · 0,25f + 0,005f, y el tamaño (0,24f; 0,24f).
+TEST(ParticlesTest, TheEarthquakeExplosionDrawsItsFrameFromAFourByFourAtlas)
+{
+    Particle explosion;
+    explosion.alive = true;
+    explosion.type = explosion.texture = Client::World::ExplosionParticle;
+    explosion.scale = 0.5f;
+    explosion.angles = {30.0f, 0.0f, 0.0f};
+    explosion.rotation = 12.0f;
+    explosion.light = glm::vec3(1.0f);
+    explosion.position = {1.0f, 2.0f, 3.0f};
+    const double inset = static_cast<double>(std::bit_cast<float>(0x3ba3d70au));
+    for (const std::int32_t frame : {0, 6, 9})
+    {
+        SCOPED_TRACE(frame);
+        explosion.field48 = std::bit_cast<float>(frame);
+        const auto drawn = Client::Tests::DrawOneParticle(explosion, glm::vec2(64.0f), std::uint8_t{4});
+        ASSERT_TRUE(drawn.HasValue());
+        ASSERT_TRUE(drawn.Value().has_value());
+        EXPECT_EQ(drawn.Value()->blend, Client::Tests::RecordedParticleDraw::Blend::Alpha);
+        EXPECT_EQ(drawn.Value()->texture, Client::World::ExplosionParticle);
+        EXPECT_EQ(drawn.Value()->rotation, 0.0f);
+        EXPECT_EQ(drawn.Value()->position, (glm::vec3{1.0f, 2.0f, 3.0f}));
+        EXPECT_EQ(drawn.Value()->uv, (glm::vec2{static_cast<float>((frame % 4) * 0.25 + inset),
+                                                static_cast<float>((frame / 4) * 0.25 + inset)}));
+        EXPECT_EQ(drawn.Value()->uvSize, glm::vec2(std::bit_cast<float>(0x3e75c28fu)));
+    }
 }
 
 // _ftol del reloj (0x69fd3c): con un NaN la x87 guarda 0x8000000000000000 y la rotación queda en 0.

@@ -219,8 +219,15 @@ std::vector<std::byte> ServerListOf(std::initializer_list<ServerEntry> entries)
     return ServerListWithLoads(list);
 }
 
+// Un registro de credit.bmd: un struct y no un std::pair, que MSVC avisa (C4242) al armarlo con un int.
+struct CreditRecord
+{
+    std::uint8_t kind = 0;
+    std::string_view text;
+};
+
 // Un credit.bmd inventado con `records` (la clase y el texto) al principio, cifrado con el XOR3 (0x63ff30).
-std::vector<std::byte> CreditFile(std::initializer_list<std::pair<std::uint8_t, std::string_view>> records)
+std::vector<std::byte> CreditFile(std::initializer_list<CreditRecord> records)
 {
     std::vector<std::byte> file(Client::Data::Text::CreditFileSize);
     std::size_t first = 0;
@@ -623,7 +630,8 @@ TEST(LoginSceneSessionTest, TheBarStepsWithTheLogin)
 // cierra (0x63f630 → 0x63f9a0) con otro F4 06 y se lleva el apretón: la de Esc no se abre (0x634d2c).
 TEST(LoginSceneSessionTest, TheCreditsCoverTheLogin)
 {
-    const std::vector<std::byte> credits = CreditFile({{1, "Parte"}, {3, "Alguien"}, {0, ""}});
+    const std::vector<std::byte> credits =
+        CreditFile({{.kind = 1, .text = "Parte"}, {.kind = 3, .text = "Alguien"}, {.kind = 0, .text = ""}});
     Harness tested(false, nullptr, credits);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheList(ServerList({400})));
     const Client::UI::MenuBarLayout bar = Client::UI::LayoutMenuBar(PixelSize{640, 480});

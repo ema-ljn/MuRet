@@ -66,6 +66,24 @@ TEST(InputStateTest, AHeldKeyIsPressedOnce)
     }
 }
 
+// Q-C45 (CL8, hito 8): de los que leen el apretón con 0x8001, lo ve el primero; WasPressed sigue
+// viéndolo, y el paso siguiente arranca sin nada tomado.
+TEST(InputStateTest, APressIsTakenByTheFirstReader)
+{
+    InputState input;
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Escape));
+
+    EXPECT_TRUE(input.TakePress(Key::Escape));
+    EXPECT_FALSE(input.TakePress(Key::Escape));
+    EXPECT_TRUE(input.WasPressed(Key::Escape));
+    EXPECT_FALSE(input.TakePress(Key::Enter));
+
+    input.ConsumeEdges();
+    input.Apply(KeyEvent(InputEvent::Kind::KeyUp, Key::Escape));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Escape));
+    EXPECT_TRUE(input.TakePress(Key::Escape));
+}
+
 TEST(InputStateTest, APressAndReleaseInOneFrameIsSeen)
 {
     InputState input;

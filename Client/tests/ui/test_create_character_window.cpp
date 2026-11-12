@@ -5,6 +5,7 @@
 #include "Input/Key.h"
 #include "Render/SpriteBatch.h"
 #include "Render/TextureSlot.h"
+#include "UI/NewUi.h"
 #include "UI/Widget.h"
 
 #include "support/RecordingTextDrawer.h"
@@ -36,6 +37,7 @@ using Client::UI::CreateCharacterWindow;
 using Client::UI::CreateWindowEvent;
 using Client::UI::CreateWindowLayout;
 using Client::UI::LayoutCreateWindow;
+using Client::UI::NewUiTurn;
 using Client::UI::Point;
 using Client::UI::Rect;
 
@@ -204,7 +206,7 @@ TEST(CreateCharacterWindowTest, UnderANoticeTheButtonsLetGoOfTheMouse)
     static_cast<void>(StepOnce(window, input));
     ASSERT_EQ(window.OkButton().Frame(), 1);
 
-    window.StepUnderANotice(input);
+    static_cast<void>(window.Step(input, Screen640, NewUiTurn{.mouse = false, .logic = false}));
 
     EXPECT_EQ(window.OkButton().Frame(), 0);
 }
@@ -351,10 +353,10 @@ TEST(CreateCharacterWindowTest, UnderANoticeTheNameStillTakesTheTyping)
     window.Open();
     InputState input;
     TypeText(input, "abc");
-    window.StepUnderANotice(input);
+    static_cast<void>(window.Step(input, Screen640, NewUiTurn{.mouse = false, .logic = false}));
     input.ConsumeEdges();
     TypeText(input, "\bx");
-    window.StepUnderANotice(input);
+    static_cast<void>(window.Step(input, Screen640, NewUiTurn{.mouse = false, .logic = false}));
     EXPECT_EQ(window.Name(), "abx");
 }
 } // namespace

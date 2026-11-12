@@ -39,8 +39,10 @@
 #include "Scenes/SceneWorlds.h"
 #include "Scenes/WorldModels.h"
 #include "Scenes/WorldState.h"
+#include "UI/EscapeWindow.h"
 #include "UI/LoginWindow.h"
 #include "UI/MenuBar.h"
+#include "UI/NewUi.h"
 #include "UI/NoticeWindow.h"
 #include "UI/Notices.h"
 #include "UI/ServerListWindow.h"
@@ -193,8 +195,15 @@ private:
     void OnServerClick(const UI::ServerClick& click);
     void OnLoginRequest(const UI::LoginRequest& request);
     void OnNoticeClosed(UI::NoticeId notice);
-    // Los dos botones de la barra, que todavía no hacen nada (P-C13).
+    // 0x6411b0: el menú abre la de Esc; los créditos se cortan (P-C76).
     void OnMenuBarClick(UI::MenuBarClick click);
+    // 0x647d40: lo que pasó en la de Esc.
+    void OnEscapeEvent(const UI::EscapeWindowEvent& event);
+    // 0x65fc30 al empezar el paso, como 0x637700 antes de 0x634c60: cada ventana con su turno.
+    void StepTheWindows(const Input::InputState& input);
+    // 0x65f690: abre la ventana con lo suyo y la pasa arriba con el foco.
+    void OpenNotice(UI::NoticeId notice);
+    void OpenTheEscapeWindow();
     // La ventana de la cuenta, con el título del servidor elegido.
     void OpenLogin(UI::LoginFocus focus);
     // El aviso de una sesión que falló: 0x6f con otra versión, 0x70 con lo demás.
@@ -282,6 +291,9 @@ private:
     UI::MenuBar m_menuBar;
     UI::LoginWindow m_login;
     UI::NoticeWindow m_notice;
+    UI::EscapeWindow m_escape;
+    // El administrador de la UI nueva (CL8, hito 8): el orden, el foco y el mouse de las ventanas.
+    UI::NewUi m_ui;
     // El estado de la sesión que vio el último paso, para abrir cada ventana una vez.
     std::optional<App::SessionState> m_seen;
     // Si el último paso vio la dirección del F4 03 en la sesión.

@@ -214,19 +214,26 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 18> LoginTextureSet
     {"Interface\\cr_mu_lo.tga", 0x1a, TextureSetsDetail::LinearClamp},
 }};
 
-// Las seis de 0x61ccb0 que usan el login, la selección y el juego: los dos cursores (0x61ccf9 y 0x61cd12,
+// Las de 0x61ccb0 que usan el login, la selección y el juego: los dos cursores (0x61ccf9 y 0x61cd12,
 // con filtro, UI/GameCursor.h), y lo de las ventanas (CL5.5 y CL6.5): el OK y el cancelar de la cuenta y
 // del aviso, la caja del aviso y la del código del borrado, sin filtro y sin repetir (0x2600 y
 // 0x2900). El original las sube con los datos del juego, en la carga, y no las suelta; acá las sube
 // cada escena con las suyas y las suelta al salir. Los otros cursores, de 4 a 0xa, son del HUD
-// (HudTextureSet); el cerrar, 0x726, no lo usa ninguna.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 6> WindowTextureSet{{
+// (HudTextureSet); el cerrar, 0x726, no lo usa ninguna. Y las seis de la ventana de Esc (CL8, hito 8;
+// UI/EscapeWindow.h): el marco de 0x66a1c0 (la piedra, op1_back3 y op1_back4 repetidas) y los botones.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 12> WindowTextureSet{{
     {"Interface\\Cursor.tga", 0x02, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorPush.tga", 0x03, TextureSetsDetail::LinearClamp},
     {"Interface\\message_ok_b_all.tga", 0x724, TextureSetsDetail::NearestClamp},
     {"Interface\\loding_cancel_b_all.tga", 0x725, TextureSetsDetail::NearestClamp},
     {"Interface\\message_back.tga", 0x727, TextureSetsDetail::NearestClamp},
     {"Interface\\delete_secret_number.tga", 0x728, TextureSetsDetail::NearestClamp},
+    {"Interface\\op1_stone.jpg", 0x72a, TextureSetsDetail::NearestRepeat},
+    {"Interface\\op1_back1.tga", 0x72b, TextureSetsDetail::NearestClamp},
+    {"Interface\\op1_back2.tga", 0x72c, TextureSetsDetail::NearestClamp},
+    {"Interface\\op1_back3.jpg", 0x72d, TextureSetsDetail::NearestRepeat},
+    {"Interface\\op1_back4.jpg", 0x72e, TextureSetsDetail::NearestRepeat},
+    {"Interface\\op1_b_all.tga", 0x72f, TextureSetsDetail::NearestClamp},
 }};
 
 // Las arenas de Tarkan y el humo de Crywolf y del asedio que dibuja el HUD del juego (0x5a7520): 0x61c7c0, el

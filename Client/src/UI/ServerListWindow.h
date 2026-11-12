@@ -8,6 +8,7 @@
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/SceneTextures.h"
 #include "UI/Button.h"
+#include "UI/NewUi.h"
 #include "UI/ServerListModel.h"
 #include "UI/Widget.h"
 
@@ -113,7 +114,7 @@ struct ServerListFrame
 // servidores).
 [[nodiscard]] std::array<Render::UiImage, 5> DescriptionBoxImages(Rect box, const TextureSizes& sizes);
 
-class ServerListWindow
+class ServerListWindow final : public NewUiWindow
 {
 public:
     // `texts` puede ser nullptr (sin Text.bmd: los botones salen sin rótulo) y tiene que vivir lo
@@ -122,13 +123,16 @@ public:
 
     // Abre con la lista ya agrupada (GroupServers), sin grupo elegido.
     void Open(ServerGroups groups);
-    void Close();
-    [[nodiscard]] bool IsOpen() const;
+    void Close() override;
+    [[nodiscard]] bool IsOpen() const override;
+    // La ventana (`window` de LayoutServerList).
+    [[nodiscard]] Rect Bounds(App::PixelSize screen) const override;
     // El botón de grupo elegido, desde 0.
     [[nodiscard]] std::optional<std::size_t> Selected() const;
 
-    // 0x645e10 en el paso: un clic en un grupo lo elige; uno en un servidor dice qué pasó.
-    std::optional<ServerClick> Step(const Input::InputState& input, App::PixelSize screen);
+    // 0x645e10 en el paso, con el foco: un clic en un grupo lo elige; uno en un servidor dice qué
+    // pasó. Sin el foco, solo los botones.
+    std::optional<ServerClick> Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn = {});
     // Los renglones de la descripción del grupo elegido, vacío sin él.
     [[nodiscard]] const std::vector<std::string>& Description() const;
 

@@ -45,6 +45,7 @@
 #include "Scenes/TextureMetadata.h"
 #include "Scenes/TextureSets.h"
 #include "UI/CreateCharacterWindow.h"
+#include "UI/EscapeWindow.h"
 #include "UI/MessageArea.h"
 #include "World/GameCamera.h"
 #include "World/TerrainCulling.h"
@@ -2343,9 +2344,10 @@ TEST(CharacterSelectSceneTest, UnderANoticeThePreviewStaysStill)
     }
 }
 
-// La vista previa saluda desde la entrada (0x633f20 → … → 0x63e3e0 con el Dark Knight): un paso
-// después de abrir la ventana, la misma pose que elegir otra clase y volver al Dark Knight, que la
-// arman de nuevo con la acción 1 y la avanzan.
+// La vista previa saluda desde la entrada (0x633f20 → … → 0x63e3e0 con el Dark Knight): en el paso que
+// abre la ventana, la misma pose que elegir otra clase y volver al Dark Knight, que la arman de nuevo con
+// la acción 1 y la avanzan. El clic de la barra la abre y 0x65fc30 la atiende en el mismo paso, porque la
+// barra va antes en la copia de la lista: ya avanza una vez.
 TEST(CharacterSelectSceneTest, ThePreviewGreetsFromTheStart)
 {
     const auto firstVertex = [](Harness& tested)
@@ -2361,7 +2363,6 @@ TEST(CharacterSelectSceneTest, ThePreviewGreetsFromTheStart)
     ASSERT_NO_FATAL_FAILURE(WriteNewFace(opened, 1));
     ASSERT_NO_FATAL_FAILURE(opened.ReachTheChoiceWithClasses(1));
     opened.ClickAt(CreateButton);
-    opened.Step();
     Harness rechosen;
     ASSERT_NO_FATAL_FAILURE(WriteNewFace(rechosen, 0));
     ASSERT_NO_FATAL_FAILURE(WriteNewFace(rechosen, 1));
@@ -2647,5 +2648,82 @@ TEST(CharacterSelectSceneTest, TheChosenOneGlowsAndRaisesItsTwoChaseLightsOnNati
     static_cast<void>(tested.Frame());
     ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
     EXPECT_EQ(chaseLights().size(), 2u);
+}
+
+// Los F1 02 que mandó el cliente, sin el XOR32 (el F1 01 de la cuenta va antes).
+std::vector<Client::Network::Packet> LogoutsSent(const Harness& tested)
+{
+    Client::Network::PacketSerials serials;
+    std::vector<Client::Network::Packet> found;
+    for (const Client::Network::Packet& packet :
+         Client::Tests::AsTheGameServerReceives(tested.online.socket.sent, serials).packets)
+    {
+        if (packet.Opcode() != 0xF1)
+        {
+            continue;
+        }
+        Client::Network::Packet clear = Client::Network::Crypto::Xor32Decode(packet);
+        if (clear.Bytes().size() > 3 && clear.Bytes()[3] == std::byte{0x02})
+        {
+            found.push_back(std::move(clear));
+        }
+    }
+    return found;
+}
+
+bool DrawsTheSlot(const std::vector<FrameEvent>& events, TextureSlot slot)
+{
+    return std::ranges::find(events, std::optional<TextureSlot>{slot}, &FrameEvent::texture) != events.end();
+}
+
+// La de Esc de la selección (CL8, hito 8): Esc la abre con la escena libre (0x6344ce), y con ella abierta
+// Enter no entra (0x634341). Su 1 (0x647e08) manda el C3 F1 02 02 con dos rand() de la CRT (0x648241 y el
+// serial de 0x5767913, Render/Models/LogicalAccess) y cierra la de Esc y la barra. Un clic en el marco, fuera
+// de los botones, no hace nada. La vuelta a la lista, con la respuesta del GS, es de la CL9 (Q-C79).
+TEST(CharacterSelectSceneTest, TheEscapeWindowAsksToJoinAnotherServer)
+{
+    constexpr TextureSlot EscapeButtons{0x72f};
+    constexpr TextureSlot Bar{0xf};
+    const auto openTheWindow = [](Harness& tested)
+    {
+        ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+        tested.ClickAt(tested.OnScreen(3));
+        ASSERT_NE(tested.online.session.ChosenCharacter(), nullptr);
+        tested.Tap(Key::Escape);
+        ASSERT_TRUE(DrawsTheSlot(tested.Frame(), EscapeButtons));
+        tested.Tap(Key::Enter);
+        ASSERT_EQ(tested.scene->Next(), std::nullopt);
+    };
+    const auto layoutOf = [](const Harness& tested)
+    {
+        const auto line = tested.store.Find(TextureSlot{0x72d});
+        EXPECT_TRUE(line.has_value());
+        return Client::UI::LayoutEscapeWindow(PixelSize{640, 480}, 10, line ? line->texture.textureHeight : 1);
+    };
+    Client::Render::Models::ClothWorld joinedCloth;
+    Harness joined(true, false, false, nullptr, nullptr, &joinedCloth);
+    ASSERT_NO_FATAL_FAILURE(openTheWindow(joined));
+    Client::Render::Models::ClothWorld stayedCloth;
+    Harness stayed(true, false, false, nullptr, nullptr, &stayedCloth);
+    ASSERT_NO_FATAL_FAILURE(openTheWindow(stayed));
+    const Client::UI::EscapeWindowLayout layout = layoutOf(joined);
+    const Client::UI::Rect server = layout.buttons[1];
+
+    joined.ClickAt({static_cast<float>(server.x + 5), static_cast<float>(server.y + 5)});
+    stayed.ClickAt({static_cast<float>(layout.frame.x + 2), static_cast<float>(layout.frame.y + 2)});
+
+    const std::vector<Client::Network::Packet> sent = LogoutsSent(joined);
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_TRUE(Client::Tests::SameBytes(sent[0].Bytes(), Client::Tests::Bytes({0xC1, 0x05, 0xF1, 0x02, 0x02})));
+    EXPECT_TRUE(LogoutsSent(stayed).empty());
+    EXPECT_EQ(DrawsBetween(stayedCloth.random, joinedCloth.random.State()), 2);
+    const std::vector<FrameEvent> left = joined.Frame();
+    EXPECT_FALSE(DrawsTheSlot(left, EscapeButtons));
+    EXPECT_FALSE(DrawsTheSlot(left, Bar));
+    const std::vector<FrameEvent> open = stayed.Frame();
+    EXPECT_TRUE(DrawsTheSlot(open, EscapeButtons));
+    EXPECT_TRUE(DrawsTheSlot(open, Bar));
+    EXPECT_EQ(joined.online.session.State(), SessionState::ChoosingCharacter);
+    EXPECT_EQ(joined.scene->Next(), std::nullopt);
 }
 } // namespace

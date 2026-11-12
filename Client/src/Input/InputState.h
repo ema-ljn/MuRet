@@ -40,6 +40,12 @@ public:
     // Desde el último ConsumeEdges.
     [[nodiscard]] bool WasPressed(Key key) const;
     [[nodiscard]] bool WasReleased(Key key) const;
+    // GetAsyncKeyState(vk) == 0x8001: WasPressed, si ningún lector lo tomó antes en este paso. El
+    // original borra el bit bajo en cada lectura (Q-C45): de los que leen el mismo apretón con
+    // 0x8001, lo ve el primero. La UI nueva (0x65fc30) lee antes que el paso de la escena, así que
+    // un Esc que toma una ventana no lo ve la escena (CL8, hito 8). Lo devuelve ConsumeEdges.
+    // Es const como la consulta del original, y marca la tecla como tomada.
+    [[nodiscard]] bool TakePress(Key key) const;
     [[nodiscard]] bool IsDown(MouseButton button) const;
     [[nodiscard]] bool WasPressed(MouseButton button) const;
     [[nodiscard]] bool WasReleased(MouseButton button) const;
@@ -75,6 +81,8 @@ private:
     std::bitset<KeyCount> m_keysDown;
     std::bitset<KeyCount> m_keysPressed;
     std::bitset<KeyCount> m_keysReleased;
+    // Los apretones que ya tomó un TakePress en este paso.
+    mutable std::bitset<KeyCount> m_keysTaken;
     std::bitset<MouseButtonCount> m_buttonsDown;
     std::bitset<MouseButtonCount> m_buttonsPressed;
     std::bitset<MouseButtonCount> m_buttonsReleased;

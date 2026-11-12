@@ -302,6 +302,11 @@ public:
     // otro estado, un aviso y nada.
     void DeleteCharacter(std::span<const std::byte, Protocol::Character::DeleteCodeSize> code);
 
+    // En ChoosingCharacter o InWorld, manda el pedido de salida F1 02 con `kind` (0x647f60, el C3 que arma
+    // la ventana de Esc) y sigue en el mismo estado: lo que cambia es la respuesta (OnLogoutResult). Los
+    // rand() de la CRT de 0x647f60 los saca quien lo pide. En otro estado, un aviso y nada.
+    void RequestLogout(std::uint8_t kind);
+
     // El pkt[4] de la última respuesta del F3 02 (Protocol::Character::CharacterDeleted, o el de un
     // aviso), desde que llega hasta el próximo DeleteCharacter o Start. std::nullopt antes.
     [[nodiscard]] std::optional<std::uint8_t> DeleteResult() const;

@@ -167,6 +167,8 @@ constexpr TextureSlot CreditSlot{0x11};
 constexpr TextureSlot OrnamentSlot{0x12};
 constexpr TextureSlot LoginBackgroundSlot{0x13};
 constexpr TextureSlot NoticeBoxSlot{0x727};
+// Los botones de la ventana de Esc (op1_b_all).
+constexpr TextureSlot EscapeButtonSlot{0x72f};
 
 // Textos inventados en los índices que usa el login.
 constexpr std::string_view ConnectFailedText = "no conecto";
@@ -515,9 +517,11 @@ TEST(LoginSceneSessionTest, TheBarOpensWithTheListAndStays)
               (std::vector<TextureSlot>{GroupButtonSlot, OrnamentSlot, MenuSlot, CreditSlot}));
 }
 
-// Sin aviso, la barra se atiende junto con la lista (Q-C84): con el mouse encima, los créditos
-// muestran el cuadro 1, y un clic no manda nada ni cambia la sesión, solo queda en el log (P-C13).
-// Con un aviso abierto, el aviso tiene el mouse, como en el original, donde es de toda la pantalla.
+// La barra y la lista, por el administrador (Q-C84): la barra se abrió última, así que está arriba con el
+// foco, y con el mouse encima los créditos muestran el cuadro 1. Su clic se corta (P-C76) sin mandar nada.
+// El del menú abre la de Esc (0x6411d8), de toda la pantalla, y Esc la cierra: el apretón lo toma ella y el
+// paso no la vuelve a abrir (Q-C45). Apretar en la lista la pasa arriba y atiende su clic. Con un aviso
+// abierto, el aviso tiene el mouse, como en el original, donde es de toda la pantalla.
 TEST(LoginSceneSessionTest, TheBarStepsWithTheList)
 {
     Harness tested;
@@ -530,11 +534,15 @@ TEST(LoginSceneSessionTest, TheBarStepsWithTheList)
 
     const std::size_t sent = tested.socket.sent.size();
     tested.ClickOn(bar.credit);
+    EXPECT_TRUE(tested.Logged(LogLevel::Error, "los créditos (+0x4578, 0x63f020)"));
+    EXPECT_EQ(Harness::QuadsOf(tested.Frame(), EscapeButtonSlot), 0u);
     tested.ClickOn(bar.menu);
+    // En el login, el de otro servidor no se dibuja: tres botones.
+    EXPECT_EQ(Harness::QuadsOf(tested.Frame(), EscapeButtonSlot), 3u);
+    tested.Tap(Key::Escape);
+    EXPECT_EQ(Harness::QuadsOf(tested.Frame(), EscapeButtonSlot), 0u);
     EXPECT_EQ(tested.socket.sent.size(), sent);
     EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
-    EXPECT_TRUE(tested.Logged(LogLevel::Info, "el botón de los créditos de la barra todavía no hace nada"));
-    EXPECT_TRUE(tested.Logged(LogLevel::Info, "el botón del menú de la barra todavía no hace nada"));
 
     // El 400 con carga 100: el aviso 0x63.
     const ServerListLayout layout = tested.ListLayout(1);
@@ -545,8 +553,10 @@ TEST(LoginSceneSessionTest, TheBarStepsWithTheList)
     EXPECT_EQ(Harness::TopV(tested.Frame(), CreditSlot), 0.5f / height);
 }
 
-// Y junto con la cuenta (Q-C84): los créditos muestran el cuadro 1 con el mouse encima, y un clic
-// en el menú queda en el log sin mandar nada, sin cerrar la cuenta ni sacarle el teclado.
+// Y con la cuenta (Q-C84): la cuenta está arriba, pero el mouse lo tiene la primera desde arriba que lo
+// tiene adentro, y los créditos muestran el cuadro 1. El menú abre la de Esc arriba de la cuenta, sin
+// mandar nada ni cerrarla ni sacarle el teclado. Con la cuenta abierta, Esc cierra la de Esc y el paso no la
+// vuelve a abrir (0x634d59).
 TEST(LoginSceneSessionTest, TheBarStepsWithTheLogin)
 {
     Harness tested;
@@ -559,11 +569,15 @@ TEST(LoginSceneSessionTest, TheBarStepsWithTheLogin)
 
     const std::size_t sent = tested.socket.sent.size();
     tested.ClickOn(bar.menu);
-    EXPECT_TRUE(tested.Logged(LogLevel::Info, "el botón del menú de la barra todavía no hace nada"));
     EXPECT_EQ(tested.socket.sent.size(), sent);
     EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
     EXPECT_TRUE(tested.scene->WantsTextInput());
-    EXPECT_EQ(Harness::QuadsOf(tested.Frame(), LoginBackgroundSlot), 1u);
+    const std::vector<FrameEvent> frame = tested.Frame();
+    EXPECT_EQ(Harness::QuadsOf(frame, LoginBackgroundSlot), 1u);
+    EXPECT_EQ(Harness::QuadsOf(frame, EscapeButtonSlot), 3u);
+    tested.Tap(Key::Escape);
+    EXPECT_EQ(Harness::QuadsOf(tested.Frame(), EscapeButtonSlot), 0u);
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
 }
 
 // El grupo y después el servidor: la escena le pasa el código a la sesión, que manda el F4 03 (el

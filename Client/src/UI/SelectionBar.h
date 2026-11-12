@@ -6,6 +6,7 @@
 #include "Render/SpriteBatch.h"
 #include "Scenes/ITextDrawer.h"
 #include "UI/Button.h"
+#include "UI/NewUi.h"
 #include "UI/Widget.h"
 
 #include <cstdint>
@@ -43,7 +44,7 @@ enum class SelectionBarClick : std::uint8_t
     Delete,  // 0x63edf0, las revisiones del borrado
 };
 
-class SelectionBar
+class SelectionBar final : public NewUiWindow
 {
 public:
     // `texts` puede ser nullptr y tiene que vivir lo que la barra.
@@ -57,13 +58,16 @@ public:
     // siempre.
     void Enable(bool aFreeSlot, bool aChosenOne);
 
-    std::optional<SelectionBarClick> Step(const Input::InputState& input, App::PixelSize screen);
-    // Con una ventana modal arriba (0x65fc30 le da el mouse a la de la cabeza): los botones siguen
-    // con su estado (0x63c490) pero sin el mouse encima, y no hay clic.
-    void StepWithoutTheMouse(const Input::InputState& input);
+    // 0x65f690 en 0x65f4b0, al armar la selección; la cierra el 1 de la de Esc (0x647e48).
+    void Open();
+    void Close() override;
+    [[nodiscard]] bool IsOpen() const override;
+    // La barra (`bar` de LayoutSelectionBar).
+    [[nodiscard]] Rect Bounds(App::PixelSize screen) const override;
 
-    // Si `mouse`, en píxeles, cae en el rectángulo de la barra.
-    [[nodiscard]] bool Covers(Point mouse, App::PixelSize screen) const;
+    // 0x63c490 en los cuatro botones y, con el foco, 0x63eb90: el que tuvo un clic. Sin el mouse
+    // (una ventana arriba, 0x65fc30), los botones siguen con su estado, sin encima ni clic.
+    std::optional<SelectionBarClick> Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn = {});
 
     // El adorno y la franja, el aviso del servidor (+0x511, `serverNotice`), el texto 1710, los 436
     // y 437 con la cuenta bloqueada y los cuatro botones, con la mezcla normal.
@@ -80,6 +84,7 @@ private:
     TextureSizes m_sizes;
     const Data::Text::TextTable* m_texts;
     bool m_blockedAccount = false;
+    bool m_open = false;
     Button m_create;
     Button m_menu;
     Button m_connect;

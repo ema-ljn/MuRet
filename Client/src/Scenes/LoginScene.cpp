@@ -3,6 +3,7 @@
 #include "Render/Models/Skinning.h"
 #include "Scenes/FaunaDrawing.h"
 
+#include "App/LoopTiming.h"
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
@@ -65,12 +66,14 @@
 #include "Scenes/WorldState.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/WorldMap.h"
+#include "UI/EscapeWindow.h"
 #include "UI/GameCursor.h"
 #include "UI/Widget.h"
 #include "UI/GameText.h"
 #include "UI/LoginWindow.h"
 #include "UI/MenuBar.h"
 #include "UI/MessageArea.h"
+#include "UI/NewUi.h"
 #include "UI/Notices.h"
 #include "UI/ServerListModel.h"
 #include "UI/ServerListWindow.h"
@@ -293,7 +296,8 @@ LoginScene::LoginScene(const SceneContext& context, const GameData& data, const 
       m_serverList([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
       m_menuBar([this](Render::TextureSlot slot) { return BufferSize(slot); }),
       m_login([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
-      m_notice([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts)
+      m_notice([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
+      m_escape([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts)
 {
     if (data.text)
     {
@@ -367,6 +371,11 @@ Core::Expected<void, std::string> LoginScene::Enter()
     m_menuBar.Close();
     m_login.Close();
     m_notice.Close();
+    m_escape.Arm(UI::NewUiMode::Login);
+    // 0x65f300: cada una en la cabeza, en este orden. Las opciones (+0x7e8, entre la de Esc y la barra)
+    // y los créditos (+0x4578, la última) no están (P-C75 y P-C76): ninguna se abre.
+    const std::array<UI::NewUiWindow*, 5> uiWindows{&m_notice, &m_escape, &m_menuBar, &m_serverList, &m_login};
+    m_ui.Build(UI::NewUiMode::Login, uiWindows);
     m_seen.reset();
     m_sawTheAddress = false;
     m_quit = false;
@@ -673,6 +682,13 @@ void LoginScene::StepTheScene(const Input::InputState& input, bool connecting)
     {
         return;
     }
+    // La UI nueva antes que el paso de la escena (0x63778c, una vez por frame en el original y por paso en
+    // MuRet, Q-C490): sus clics, y el Esc o el Enter que toma una ventana, no los ve el paso (Q-C45).
+    StepTheWindows(input);
+    if (m_failure || m_quit)
+    {
+        return;
+    }
     if (!connecting)
     {
         StepTheWorld();
@@ -681,35 +697,12 @@ void LoginScene::StepTheScene(const Input::InputState& input, bool connecting)
     {
         return;
     }
-    // Sin aviso, la barra se atiende junto con la cuenta o la lista: sus botones no se pisan con
-    // los de ellas (Q-C84).
-    if (!m_notice.IsOpen())
+    // 0x634d2c: Esc (0x8001) con el aviso, la cuenta, la de Esc, las opciones y los créditos cerrados, y
+    // la barra y la lista abiertas: el sonido 0x19 (0x41ed10, de la CL10) y la de Esc.
+    if (input.TakePress(Input::Key::Escape) && !m_notice.IsOpen() && !m_login.IsOpen() && !m_escape.IsOpen() &&
+        m_menuBar.IsOpen() && m_serverList.IsOpen())
     {
-        if (const std::optional<UI::MenuBarClick> click = m_menuBar.Step(input, m_screen))
-        {
-            OnMenuBarClick(*click);
-        }
-    }
-    if (m_notice.IsOpen())
-    {
-        if (const std::optional<UI::NoticeId> closed = m_notice.Step(input, m_screen))
-        {
-            OnNoticeClosed(*closed);
-        }
-    }
-    else if (m_login.IsOpen())
-    {
-        if (const std::optional<UI::LoginRequest> request = m_login.Step(input, m_screen))
-        {
-            OnLoginRequest(*request);
-        }
-    }
-    else if (m_serverList.IsOpen())
-    {
-        if (const std::optional<UI::ServerClick> click = m_serverList.Step(input, m_screen))
-        {
-            OnServerClick(*click);
-        }
+        OpenTheEscapeWindow();
     }
     // Y lo que cambió con lo que la escena le pidió a la sesión: un login que se rechaza en el
     // próximo Poll vuelve a WaitingCredentials, y la escena tiene que haber visto que salió.
@@ -908,29 +901,31 @@ void LoginScene::FollowSession()
                                   "20 de su grupo (Q-C62 y Q-C63)",
                                   groups.ignored);
         }
-        m_login.Close();
+        m_ui.Close(m_login);
         m_serverList.Open(std::move(groups));
-        // Y la barra, después de la lista: va arriba de ella.
+        m_ui.Raise(m_serverList);
+        // Y la barra, después de la lista: va arriba de ella, con el foco (Q-C84).
         m_menuBar.Open();
+        m_ui.Raise(m_menuBar);
         return;
     }
     case App::SessionState::WaitingCredentials:
-        m_serverList.Close();
+        m_ui.Close(m_serverList);
         // Con un resultado, el login se rechazó: su aviso, y el OK abre la cuenta (0x643560). Sin
         // él, el F1 00 (0x4c1e20).
         if (const std::optional<std::uint8_t> result = m_session->LoginResult())
         {
             if (const std::optional<UI::NoticeId> notice = UI::NoticeOfLoginResult(*result))
             {
-                m_notice.Open(*notice);
+                OpenNotice(*notice);
                 return;
             }
         }
         OpenLogin(UI::LoginFocus::Account);
         return;
     case App::SessionState::Failed:
-        m_serverList.Close();
-        m_login.Close();
+        m_ui.Close(m_serverList);
+        m_ui.Close(m_login);
         ShowFailure();
         return;
     case App::SessionState::Idle:
@@ -948,8 +943,8 @@ void LoginScene::FollowSession()
     case App::SessionState::WaitingDeleteResult:
     case App::SessionState::EnteringWorld:
     case App::SessionState::InWorld:
-        m_serverList.Close();
-        m_login.Close();
+        m_ui.Close(m_serverList);
+        m_ui.Close(m_login);
         return;
     case App::SessionState::QuitOrdered:
         // El juego se cierra al final de este frame (main.cpp), sin aviso: el original no dibuja
@@ -998,7 +993,7 @@ void LoginScene::OnServerClick(const UI::ServerClick& click)
         AddTheMessage(PleaseWaitText);
         return;
     case UI::ServerClick::Kind::Full:
-        m_notice.Open(UI::ServerFullNotice);
+        OpenNotice(UI::ServerFullNotice);
         return;
     }
 }
@@ -1013,10 +1008,10 @@ void LoginScene::OnLoginRequest(const UI::LoginRequest& request)
         AddTheMessage(WaitAgainText);
         return;
     case UI::LoginRequest::Kind::EmptyAccount:
-        m_notice.Open(UI::EmptyAccountNotice);
+        OpenNotice(UI::EmptyAccountNotice);
         return;
     case UI::LoginRequest::Kind::EmptyPassword:
-        m_notice.Open(UI::EmptyPasswordNotice);
+        OpenNotice(UI::EmptyPasswordNotice);
         return;
     case UI::LoginRequest::Kind::Cancel:
         // 0x642810: cierra el GameServer y conecta otra vez al ConnectServer.
@@ -1028,10 +1023,18 @@ void LoginScene::OnLoginRequest(const UI::LoginRequest& request)
 
 void LoginScene::OnMenuBarClick(UI::MenuBarClick click)
 {
-    // El original abre la ventana de Esc con el menú, y con los créditos manda el F4 06 al CS y
-    // abre la de +0x4578; ninguna de las dos se leyó.
-    m_context.log.Info("el botón {} de la barra todavía no hace nada (P-C13)",
-                       click == UI::MenuBarClick::Menu ? "del menú" : "de los créditos");
+    switch (click)
+    {
+    case UI::MenuBarClick::Menu:
+        // 0x6411d8: la de Esc, con 0x65f690 y sin sonido.
+        OpenTheEscapeWindow();
+        return;
+    case UI::MenuBarClick::Credit:
+        // 0x641203: el C1 04 F4 06 al CS (sin rand()), los créditos (+0x4578: 0x63f020 y 0x63f5a0) con
+        // 0x65f690 y su música (0x4acf60 y 0x4acfd0). Se corta antes de mandar nada (P-C76).
+        m_context.log.Error("los créditos (+0x4578, 0x63f020) y su F4 06 (0x641203) todavía no están (P-C76)");
+        return;
+    }
 }
 
 void LoginScene::OnNoticeClosed(UI::NoticeId notice)
@@ -1066,6 +1069,95 @@ void LoginScene::OpenLogin(UI::LoginFocus focus)
 {
     m_login.SetTitle(LoginTitle());
     m_login.Open(focus);
+    m_ui.Raise(m_login);
+}
+
+void LoginScene::OpenNotice(UI::NoticeId notice)
+{
+    m_notice.Open(notice);
+    m_ui.Raise(m_notice);
+}
+
+void LoginScene::OpenTheEscapeWindow()
+{
+    m_escape.Open();
+    m_ui.Raise(m_escape);
+}
+
+void LoginScene::StepTheWindows(const Input::InputState& input)
+{
+    // El original le pasa a cada ventana los milisegundos del frame; MuRet, los del paso (Q-C490).
+    constexpr double StepMs = std::chrono::duration<double, std::milli>(App::LogicStep).count();
+    m_ui.Step(input, m_screen,
+              [&](UI::NewUiWindow& window, UI::NewUiTurn turn)
+              {
+                  if (&window == &m_notice)
+                  {
+                      if (const std::optional<UI::NoticeId> closed = m_notice.Step(input, m_screen, turn))
+                      {
+                          OnNoticeClosed(*closed);
+                      }
+                  }
+                  else if (&window == &m_escape)
+                  {
+                      if (const std::optional<UI::EscapeWindowEvent> event =
+                              m_escape.Step(input, m_screen, StepMs, turn))
+                      {
+                          OnEscapeEvent(*event);
+                      }
+                  }
+                  else if (&window == &m_menuBar)
+                  {
+                      if (const std::optional<UI::MenuBarClick> click = m_menuBar.Step(input, m_screen, turn))
+                      {
+                          OnMenuBarClick(*click);
+                      }
+                  }
+                  else if (&window == &m_serverList)
+                  {
+                      if (const std::optional<UI::ServerClick> click = m_serverList.Step(input, m_screen, turn))
+                      {
+                          OnServerClick(*click);
+                      }
+                  }
+                  else if (&window == &m_login)
+                  {
+                      if (const std::optional<UI::LoginRequest> request = m_login.Step(input, m_screen, turn))
+                      {
+                          OnLoginRequest(*request);
+                      }
+                  }
+              });
+}
+
+void LoginScene::OnEscapeEvent(const UI::EscapeWindowEvent& event)
+{
+    switch (event.kind)
+    {
+    case UI::EscapeWindowEvent::Kind::Countdown:
+    {
+        // 0x647ef0: sprintf del 380 con lo que falta y 0x555190, de sistema y sin nombre.
+        const std::string seconds = std::to_string(event.seconds);
+        const std::array<std::string_view, 1> arguments{seconds};
+        AddTheMessage(UI::LeavingTheGameText, arguments);
+        return;
+    }
+    case UI::EscapeWindowEvent::Kind::Quit:
+        // 0x647d87: el log del original (0x41fa40) y el PostMessage con WM_CLOSE: lo hace Main.
+        m_context.log.Info("> Menu - Exit game.");
+        m_quit = true;
+        return;
+    case UI::EscapeWindowEvent::Kind::JoinAnotherServer:
+        // En el login el 1 está deshabilitado (0x6478c0): no tiene clic.
+        return;
+    case UI::EscapeWindowEvent::Kind::Options:
+        // 0x647e75 abre las opciones (+0x7e8: 0x644120, 0x644640 y 0x644730), que no están (P-C75).
+        m_context.log.Error("las opciones (+0x7e8, 0x644120) todavía no están (P-C75)");
+        return;
+    case UI::EscapeWindowEvent::Kind::Closed:
+        // Con Esc, el sonido 0x19 (0x41ed10, de la CL10).
+        return;
+    }
 }
 
 void LoginScene::ShowFailure()
@@ -1073,7 +1165,7 @@ void LoginScene::ShowFailure()
     // 0x4c1e20 abre el 0x6f con otra versión y el 0x70 cuando no conecta o el F1 00 no acepta. Con
     // una lista vacía, sin respuesta o una cuenta que no entra, MuRet abre el 0x70 también.
     const bool otherVersion = m_session->Failure() == App::SessionFailure::VersionMismatch;
-    m_notice.Open(otherVersion ? UI::VersionMismatchNotice : UI::ConnectFailedNotice);
+    OpenNotice(otherVersion ? UI::VersionMismatchNotice : UI::ConnectFailedNotice);
 }
 
 std::string LoginScene::LoginTitle() const
@@ -1172,10 +1264,30 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     // 0x554819..0x554845) y el área vieja. 8: la UI (CL5.5), cada ventana con su imagen y su color. 9: el cursor
     // (0x635560).
     DrawTheMessages(canvas);
-    m_serverList.Draw(sprites, canvas.text, canvas.screen);
-    m_menuBar.Draw(sprites, canvas.screen);
-    m_login.Draw(sprites, canvas.text, canvas.screen);
-    m_notice.Draw(sprites, canvas.text, canvas.screen);
+    // 0x65fe00: de la cola a la cabeza, la última que se abrió o se apretó arriba (Q-C84).
+    for (UI::NewUiWindow* window : m_ui.DrawOrder())
+    {
+        if (window == &m_serverList)
+        {
+            m_serverList.Draw(sprites, canvas.text, canvas.screen);
+        }
+        else if (window == &m_menuBar)
+        {
+            m_menuBar.Draw(sprites, canvas.screen);
+        }
+        else if (window == &m_login)
+        {
+            m_login.Draw(sprites, canvas.text, canvas.screen);
+        }
+        else if (window == &m_notice)
+        {
+            m_notice.Draw(sprites, canvas.text, canvas.screen);
+        }
+        else if (window == &m_escape)
+        {
+            m_escape.Draw(sprites, canvas.text, canvas.screen);
+        }
+    }
     if (m_context.input != nullptr)
     {
         UI::DrawGameCursor(sprites, *m_context.input, canvas.screen);
@@ -1517,6 +1629,8 @@ void LoginScene::Leave()
     m_menuBar.Close();
     m_login.Close();
     m_notice.Close();
+    m_escape.Close();
+    m_ui.Clear();
     m_textures.Release();
     m_windowTextures.Release();
     RetainTheTerrain();

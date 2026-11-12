@@ -143,6 +143,17 @@ bool InputState::WasPressed(Key key) const
     return index && m_keysPressed[*index];
 }
 
+bool InputState::TakePress(Key key) const
+{
+    const auto index = IndexOf(key);
+    if (!index || !m_keysPressed[*index] || m_keysTaken[*index])
+    {
+        return false;
+    }
+    m_keysTaken.set(*index);
+    return true;
+}
+
 bool InputState::WasReleased(Key key) const
 {
     const auto index = IndexOf(key);
@@ -196,6 +207,7 @@ void InputState::ConsumeEdges()
 {
     m_keysPressed.reset();
     m_keysReleased.reset();
+    m_keysTaken.reset();
     m_buttonsPressed.reset();
     m_buttonsReleased.reset();
     m_wheel = 0.0f;
@@ -262,6 +274,7 @@ void InputState::ReleaseEverything()
     m_keysReleased |= m_keysDown;
     m_keysDown.reset();
     m_keysPressed.reset();
+    m_keysTaken.reset();
     m_buttonsReleased |= m_buttonsDown;
     m_buttonsDown.reset();
     m_buttonsPressed.reset();

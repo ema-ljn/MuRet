@@ -3,6 +3,7 @@
 #include "App/WindowState.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
+#include "UI/NewUi.h"
 #include "UI/Widget.h"
 
 #include "support/RecordingTextDrawer.h"
@@ -28,6 +29,7 @@ using Client::UI::Rect;
 using Client::UI::SelectionBar;
 using Client::UI::SelectionBarClick;
 using Client::UI::SelectionBarLayout;
+using Client::UI::WindowHit;
 
 constexpr PixelSize Screen640{640, 480};
 
@@ -71,6 +73,7 @@ TEST(SelectionBarTest, TheLayoutFollowsTheScreen)
 TEST(SelectionBarTest, TheButtonsFollowTheSlotsAndTheChoice)
 {
     SelectionBar bar(LabSizes(), nullptr);
+    bar.Open();
     bar.Enable(false, false);
     InputState input;
     for (const Point at : {Point{30, 405}, Point{515, 405}, Point{570, 405}})
@@ -93,15 +96,19 @@ TEST(SelectionBarTest, TheButtonsFollowTheSlotsAndTheChoice)
     EXPECT_EQ(StepOnce(bar, input), std::optional{SelectionBarClick::Delete});
 }
 
-// La barra tapa su rectángulo, (22, y) de (W − 44) × 54, y nada más: el adorno de arriba no.
-TEST(SelectionBarTest, TheBarCoversItsRectangle)
+// La barra tiene el mouse en su rectángulo, (22, y) de (W − 44) × 54, y nada más: el adorno de
+// arriba no. No se arrastra (el título no cuenta), y cerrada no lo tiene.
+TEST(SelectionBarTest, TheBarHasTheMouseInItsRectangle)
 {
-    const SelectionBar bar(LabSizes(), nullptr);
-    EXPECT_TRUE(bar.Covers(Point{22, 399}, Screen640));
-    EXPECT_TRUE(bar.Covers(Point{617, 452}, Screen640));
-    EXPECT_FALSE(bar.Covers(Point{21, 420}, Screen640));
-    EXPECT_FALSE(bar.Covers(Point{500, 398}, Screen640));
-    EXPECT_FALSE(bar.Covers(Point{600, 380}, Screen640));
+    SelectionBar bar(LabSizes(), nullptr);
+    EXPECT_FALSE(bar.Hit(WindowHit::Area, Point{22, 399}, Screen640));
+    bar.Open();
+    EXPECT_TRUE(bar.Hit(WindowHit::Area, Point{22, 399}, Screen640));
+    EXPECT_TRUE(bar.Hit(WindowHit::Area, Point{617, 452}, Screen640));
+    EXPECT_FALSE(bar.Hit(WindowHit::Area, Point{21, 420}, Screen640));
+    EXPECT_FALSE(bar.Hit(WindowHit::Area, Point{500, 398}, Screen640));
+    EXPECT_FALSE(bar.Hit(WindowHit::Area, Point{600, 380}, Screen640));
+    EXPECT_FALSE(bar.Hit(WindowHit::Title, Point{22, 399}, Screen640));
 }
 
 // La textura de cada quad del lote, en orden: 0xffff sin textura.
@@ -125,6 +132,7 @@ TEST(SelectionBarTest, TheDrawGoesDecoStripTextAndButtons)
 {
     const auto texts = Client::Tests::MakeTextTable({{1710, "Synthetic"}, {436, "Blocked"}, {437, "Site"}});
     SelectionBar bar(LabSizes(), &texts);
+    bar.Open();
     Client::Render::SpriteBatch batch;
     batch.Begin(Screen640);
     Client::Tests::RecordingTextDrawer text(batch);
@@ -180,6 +188,7 @@ TEST(SelectionBarTest, ABlockedAccountShowsTheTwoTexts)
 {
     const auto texts = Client::Tests::MakeTextTable({{436, "Blocked"}, {437, "Site"}});
     SelectionBar bar(LabSizes(), &texts);
+    bar.Open();
     bar.SetBlockedAccount(true);
     Client::Render::SpriteBatch batch;
     batch.Begin(Screen640);

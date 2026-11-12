@@ -17,7 +17,8 @@ namespace Client::UI
 // `format` con su primer "%s", "%d" o "%u" cambiado por arguments[0], el siguiente por arguments[1], y
 // así (el %u es del 201 del HUD, la experiencia). Una marca sin argumento queda; un argumento de más no
 // va; un "%" que no es "%s", "%d" ni "%u", tampoco "%%", queda como está. Lo que entra de un argumento no
-// se vuelve a leer.
+// se vuelve a leer. "% d", el de la cuenta del 380 (0x647ef0), es el "%d" con la bandera del espacio de
+// sprintf: un número sin signo va con un espacio adelante.
 [[nodiscard]] std::string PlaceArguments(std::string_view format, std::span<const std::string_view> arguments);
 
 // El texto `index` de `texts`, o nada sin tabla o sin ese índice.

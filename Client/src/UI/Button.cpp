@@ -64,9 +64,9 @@ Rect Button::Area() const
     return m_area;
 }
 
-bool Button::Step(const Input::InputState& input, Point mouse)
+bool Button::Step(const Input::InputState& input, std::optional<Point> mouse)
 {
-    m_over = m_area.Contains(mouse);
+    m_over = mouse.has_value() && m_area.Contains(*mouse);
     if (!m_enabled)
     {
         m_captured = false;

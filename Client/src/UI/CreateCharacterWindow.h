@@ -6,6 +6,7 @@
 #include "Render/SpriteBatch.h"
 #include "Scenes/ITextDrawer.h"
 #include "UI/Button.h"
+#include "UI/NewUi.h"
 #include "UI/TextField.h"
 #include "UI/Widget.h"
 
@@ -50,7 +51,7 @@ enum class CreateWindowEvent : std::uint8_t
     Cancelled, // cancelar o Esc: la ventana ya se cerró
 };
 
-class CreateCharacterWindow
+class CreateCharacterWindow final : public NewUiWindow
 {
 public:
     // `texts` puede ser nullptr y tiene que vivir lo que la ventana. El armado (0x63d1a0) elige al
@@ -64,8 +65,10 @@ public:
     // 0x63d670(1): el campo vacío. La clase queda la que estaba.
     void Open();
     // 0x63d670(0): el campo vacío.
-    void Close();
-    [[nodiscard]] bool IsOpen() const;
+    void Close() override;
+    [[nodiscard]] bool IsOpen() const override;
+    // De toda la pantalla, como la base (0x669c70(W, H, −1, 0)): tiene el mouse en toda ella.
+    [[nodiscard]] Rect Bounds(App::PixelSize screen) const override;
 
     // La clase elegida, de 0 a 4 (+0x890).
     [[nodiscard]] std::uint8_t ChosenClass() const;
@@ -82,11 +85,10 @@ public:
 
     // 0x63d880: lo que se escribe va al campo; el clic en una clase habilitada la elige; después, el
     // OK, cancelar, Enter o Esc, en ese orden.
-    std::optional<CreateWindowEvent> Step(const Input::InputState& input, App::PixelSize screen);
-    // Con un aviso arriba (0x65fc30 le da el mouse a la cabeza): los botones siguen con su estado,
-    // sin el mouse encima y sin clic; el EDIT sigue con el foco de Win32 (nadie se lo saca), así que
-    // lo que se escribe entra al nombre.
-    void StepUnderANotice(const Input::InputState& input);
+    // Sin el foco (un aviso arriba, 0x65fc30): los botones siguen con su estado, sin el mouse
+    // encima y sin clic; el EDIT sigue con el foco de Win32 (nadie se lo saca), así que lo que se
+    // escribe entra al nombre.
+    std::optional<CreateWindowEvent> Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn = {});
 
     // 0x66a050: la base negra de alfa 0x80 de toda la pantalla. La vista previa va entre esto y
     // Draw, que no se oscurece.

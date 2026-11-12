@@ -31,7 +31,9 @@
 #include "Scenes/SceneTextures.h"
 #include "Scenes/SelectionWorld.h"
 #include "UI/CreateCharacterWindow.h"
+#include "UI/EscapeWindow.h"
 #include "UI/NameChecks.h"
+#include "UI/NewUi.h"
 #include "UI/NoticeWindow.h"
 #include "UI/SelectionBar.h"
 #include "World/TerrainCells.h"
@@ -128,7 +130,19 @@ private:
     // vuelve a abrirse con su aviso arriba. Si abrió uno en este paso.
     bool TakeTheCreationResult();
     // 0x63d880 con la ventana abierta y sin aviso arriba.
-    void StepTheCreateWindow(const Input::InputState& input);
+    void StepTheCreateWindow(const Input::InputState& input, UI::NewUiTurn turn);
+    // 0x65f690: abre la ventana con lo suyo y la pasa arriba con el foco.
+    void OpenTheCreateWindow();
+    void OpenNotice(UI::NoticeId notice, std::string_view argument = {});
+    void OpenTheEscapeWindow();
+    // 0x65fc30 al empezar el paso, como 0x637700 antes de 0x6342c0: cada ventana con su turno.
+    void StepTheWindows(const Input::InputState& input);
+    // 0x647d40: lo que pasó en la de Esc.
+    void OnEscapeEvent(const UI::EscapeWindowEvent& event);
+    // 0x647ef0: el 380 con lo que falta, a los mensajes.
+    void AddTheCountdown(int seconds);
+    // El 1 de la de Esc (0x647e08): el C3 F1 02 02 con sus dos rand() y se cierran ella y la barra.
+    void JoinAnotherServer();
     // 0x63d990: los chequeos del nombre, y el F3 01 y el 0x5d, o el aviso del nombre.
     void SubmitTheCreation();
     // 0x63e430 al final del paso de la ventana, que solo corre con ella arriba: la clase de la ventana
@@ -165,7 +179,7 @@ private:
     // Con la respuesta del F3 02, su aviso en lugar del 0x5d (0x4e2fe9), salvo que la sesión haya
     // caído. Si abrió uno en este paso.
     bool TakeTheDeletionResult();
-    void StepTheNotice(const Input::InputState& input);
+    void StepTheNotice(const Input::InputState& input, UI::NewUiTurn turn);
     // 0x63eb40: crear con un lugar libre de los cinco; conectar y borrar con uno elegido.
     void EnableTheBar();
     void OnTheBar(UI::SelectionBarClick click);
@@ -217,6 +231,11 @@ private:
     // Las palabras de FilterName.bmd y Filter.bmd de `data`, y los textos 457 y 458.
     UI::NameFilters m_nameFilters;
     UI::CreateCharacterWindow m_create;
+    UI::EscapeWindow m_escape;
+    // El administrador de la UI nueva (CL8, hito 8): el orden, el foco y el mouse de las ventanas.
+    UI::NewUi m_ui;
+    // Si ya se abrió la barra con la lista (0x65f4b0).
+    bool m_openedTheBar = false;
     const Render::Models::ModelTextureSlots* m_gameSlots;
     SelectionModels m_selectionModels;
     // Adaptador sin SelectionState: main conserva el NewFace en el estado durable de selección.

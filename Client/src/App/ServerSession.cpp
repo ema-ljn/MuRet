@@ -560,6 +560,18 @@ void ServerSession::DeleteCharacter(std::span<const std::byte, Protocol::Charact
     SetState(SessionState::WaitingDeleteResult);
 }
 
+void ServerSession::RequestLogout(std::uint8_t kind)
+{
+    if (m_state != SessionState::ChoosingCharacter && m_state != SessionState::InWorld)
+    {
+        m_log.Warning("se ignora el pedido de salida (F1 02 con {}): no hay un GameServer que lo espere", kind);
+        return;
+    }
+    m_log.Info("se pide la salida al GameServer (F1 02 con {})", kind);
+    Protocol::Outgoing request = Protocol::Connection::WriteLogoutRequest(kind);
+    m_connection.Send(std::move(request.packet), request.delivery);
+}
+
 std::optional<std::uint8_t> ServerSession::DeleteResult() const
 {
     return m_deleteResult;

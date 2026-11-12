@@ -15,6 +15,7 @@
 #include "Protocol/Character/CharacterDelete.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterName.h"
+#include "Protocol/Connection/Logout.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
@@ -70,9 +71,12 @@
 #include "World/WorldTerrain.h"
 #include "UI/CreateCharacterWindow.h"
 #include "UI/DeleteChecks.h"
+#include "UI/EscapeWindow.h"
 #include "UI/GameCursor.h"
 #include "UI/GameText.h"
+#include "UI/MessageArea.h"
 #include "UI/NameChecks.h"
+#include "UI/NewUi.h"
 #include "UI/Notices.h"
 #include "UI/SelectionBar.h"
 #include "UI/Widget.h"
@@ -174,7 +178,9 @@ CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Ga
                     .filter = data.filter,
                     .operation = UI::TextAt(m_texts, OperationText).value_or(std::string_view{}),
                     .server = UI::TextAt(m_texts, ServerText).value_or(std::string_view{})},
-      m_create([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts), m_gameSlots(gameSlots)
+      m_create([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
+      m_escape([this](Render::TextureSlot slot) { return m_windowTextures.BufferSize(slot); }, m_texts),
+      m_gameSlots(gameSlots)
 {
 }
 
@@ -241,6 +247,17 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
     {
         ChoosePreviewClass(Preview(), m_create.ChosenClass(), m_selectionModels);
     }
+    // 0x65f4b0 (CL8, hito 8): el aviso, la de Esc, la barra y la de crear, cada una en la cabeza; las
+    // opciones (+0x7e8, entre la de Esc y la barra) no están (P-C75). El original lo arma con la lista
+    // (0x633f20), y hasta entonces sigue con la UI del login, de la que solo el aviso se abre acá; la barra
+    // se abre con la lista (StepTheScene; Q-C495).
+    m_notice.Close();
+    m_create.Close();
+    m_bar.Close();
+    m_escape.Arm(UI::NewUiMode::Selection);
+    const std::array<UI::NewUiWindow*, 4> uiWindows{&m_notice, &m_escape, &m_bar, &m_create};
+    m_ui.Build(UI::NewUiMode::Selection, uiWindows);
+    m_openedTheBar = false;
     // El F3 00 de la entrada desde el login (0x634dce). Después de un F1 02 con 1 ya lo mandó la sesión
     // (0x4c3653) y espera la lista: no se pide otra.
     if (m_session != nullptr && m_session->State() == App::SessionState::LoggedIn)
@@ -536,7 +553,7 @@ bool CharacterSelectScene::ShowTheFailure()
     m_failureShown = true;
     m_context.log.Info("la sesión falló en la selección: se abre el aviso {:#04x}",
                        static_cast<int>(UI::ConnectFailedNotice));
-    m_notice.Open(UI::ConnectFailedNotice);
+    OpenNotice(UI::ConnectFailedNotice);
     return true;
 }
 
@@ -559,25 +576,47 @@ bool CharacterSelectScene::TakeTheCreationResult()
         // Creado: 0x65f6c0(+0x8) cierra el 0x5d; el nuevo ya está en la lista.
         if (m_notice.Notice() == UI::PleaseWaitNotice)
         {
-            m_notice.Close();
+            m_ui.Close(m_notice);
         }
         return false;
     }
     // La ventana antes que el aviso, que queda arriba (0x6431b0), con el campo vacío.
-    m_create.Open();
-    m_previewDrawFrames = {};
-    m_notice.Open(*notice);
+    OpenTheCreateWindow();
+    OpenNotice(*notice);
     return true;
 }
 
-void CharacterSelectScene::StepTheCreateWindow(const Input::InputState& input)
+void CharacterSelectScene::StepTheCreateWindow(const Input::InputState& input, UI::NewUiTurn turn)
 {
-    if (m_create.Step(input, m_screen) == UI::CreateWindowEvent::Submitted)
+    if (m_create.Step(input, m_screen, turn) == UI::CreateWindowEvent::Submitted)
     {
         SubmitTheCreation();
     }
-    // Al final de 0x63d880: la vista previa de la clase que quedó, y su avance (0x63e430).
-    StepThePreview();
+    // Al final de 0x63d880, la lógica (con el foco): la vista previa de la clase que quedó, y su avance
+    // (0x63e430).
+    if (turn.logic)
+    {
+        StepThePreview();
+    }
+}
+
+void CharacterSelectScene::OpenTheCreateWindow()
+{
+    m_create.Open();
+    m_ui.Raise(m_create);
+    m_previewDrawFrames = {};
+}
+
+void CharacterSelectScene::OpenNotice(UI::NoticeId notice, std::string_view argument)
+{
+    m_notice.Open(notice, argument);
+    m_ui.Raise(m_notice);
+}
+
+void CharacterSelectScene::OpenTheEscapeWindow()
+{
+    m_escape.Open();
+    m_ui.Raise(m_escape);
 }
 
 void CharacterSelectScene::SubmitTheCreation()
@@ -587,7 +626,7 @@ void CharacterSelectScene::SubmitTheCreation()
     {
         // El nombre no va al log: solo el aviso. La ventana queda abajo, con el nombre.
         m_context.log.Info("el nombre del personaje nuevo no pasa: el aviso {:#04x}", static_cast<int>(*refused));
-        m_notice.Open(*refused);
+        OpenNotice(*refused);
         return;
     }
     if (m_session == nullptr)
@@ -598,8 +637,8 @@ void CharacterSelectScene::SubmitTheCreation()
     if (m_session->State() == App::SessionState::WaitingCreateResult)
     {
         m_waitingForTheCreation = true;
-        m_create.Close();
-        m_notice.Open(UI::PleaseWaitNotice);
+        m_ui.Close(m_create);
+        OpenNotice(UI::PleaseWaitNotice);
     }
 }
 
@@ -617,7 +656,7 @@ bool CharacterSelectScene::TakeTheDeletionResult()
     {
         return false;
     }
-    m_notice.Open(UI::NoticeOfDeleteResult(*result));
+    OpenNotice(UI::NoticeOfDeleteResult(*result));
     return true;
 }
 
@@ -625,9 +664,9 @@ bool CharacterSelectScene::TakeTheDeletionResult()
 // en el último que estuvo bajo el mouse. El OK de uno que cierra el juego (el 0x70, Q-C69) lo dice en
 // WantsToQuit; el de la confirmación del borrado abre el del código, y el del código manda el F3 02.
 // Los demás solo se cierran.
-void CharacterSelectScene::StepTheNotice(const Input::InputState& input)
+void CharacterSelectScene::StepTheNotice(const Input::InputState& input, UI::NewUiTurn turn)
 {
-    const std::optional<UI::NoticeId> closed = m_notice.Step(input, m_screen);
+    const std::optional<UI::NoticeId> closed = m_notice.Step(input, m_screen, turn);
     if (!closed)
     {
         return;
@@ -639,7 +678,7 @@ void CharacterSelectScene::StepTheNotice(const Input::InputState& input)
         m_quit = true;
         break;
     case UI::NoticeFollowUp::AskForTheCode:
-        m_notice.Open(UI::DeletionCodeNotice);
+        OpenNotice(UI::DeletionCodeNotice);
         break;
     case UI::NoticeFollowUp::SendTheDeletion:
         SendTheDeletion();
@@ -678,12 +717,11 @@ void CharacterSelectScene::OnTheBar(UI::SelectionBarClick click)
         TryToEnter();
         break;
     case UI::SelectionBarClick::Menu:
-        // El menú (+0x3d0) es de la CL8, como el del login (P-C13).
-        m_context.log.Info("el menú de la selección todavía no está");
+        // 0x63eb90 con +0x31a: la de Esc (0x65f690).
+        OpenTheEscapeWindow();
         break;
     case UI::SelectionBarClick::Create:
-        m_create.Open();
-        m_previewDrawFrames = {};
+        OpenTheCreateWindow();
         break;
     case UI::SelectionBarClick::Delete:
         AskToDelete();
@@ -703,7 +741,7 @@ void CharacterSelectScene::AskToDelete()
     m_context.log.Info("borrar el personaje del lugar {} abre el aviso {:#04x}", chosen->slot,
                        static_cast<int>(notice));
     // El nombre va en el %s del texto 1712 del 0x5e (0x6431b0); no va al log.
-    m_notice.Open(notice, Protocol::Character::NameAsText(chosen->name));
+    OpenNotice(notice, Protocol::Character::NameAsText(chosen->name));
 }
 
 void CharacterSelectScene::SendTheDeletion()
@@ -717,7 +755,7 @@ void CharacterSelectScene::SendTheDeletion()
     if (m_session->State() == App::SessionState::WaitingDeleteResult)
     {
         m_waitingForTheDeletion = true;
-        m_notice.Open(UI::PleaseWaitNotice);
+        OpenNotice(UI::PleaseWaitNotice);
     }
 }
 
@@ -738,15 +776,17 @@ void CharacterSelectScene::Step(const Input::InputState& input)
 void CharacterSelectScene::StepTheScene(const Input::InputState& input)
 {
     m_previewAdvanced = false;
-    // Un aviso que se abre en este paso se atiende desde el siguiente: lo que se apretó en este no
-    // lo cierra antes de que se vea.
-    const bool failureOpened = ShowTheFailure();
+    // La UI nueva antes que el paso de la escena (0x63778c; Q-C490), con lo que se abrió hasta el paso
+    // anterior: un aviso que se abre en este paso se atiende desde el siguiente, y lo que se apretó en este no
+    // lo cierra antes de que se vea. El Esc o el Enter que toma una ventana no los ve el paso (Q-C45).
+    StepTheWindows(input);
+    if (m_failure || m_quit)
+    {
+        return;
+    }
+    static_cast<void>(ShowTheFailure());
     if (WaitingForTheList())
     {
-        if (m_notice.IsOpen() && !failureOpened)
-        {
-            StepTheNotice(input);
-        }
         return;
     }
     if (m_context.selection != nullptr && m_session != nullptr && !m_context.selection->IsInitialized())
@@ -759,6 +799,13 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
             m_failure = initialized.Error();
             return;
         }
+    }
+    // 0x633f20 → 0x65f4b0, con la lista: la barra, con 0x65f690 (arriba y con el foco).
+    if (!m_openedTheBar)
+    {
+        m_bar.Open();
+        m_ui.Raise(m_bar);
+        m_openedTheBar = true;
     }
     if (m_context.world != nullptr)
     {
@@ -786,39 +833,30 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
     {
         return;
     }
-    const bool deletionOpened = TakeTheDeletionResult();
-    const bool creationOpened = TakeTheCreationResult();
+    static_cast<void>(TakeTheDeletionResult());
+    static_cast<void>(TakeTheCreationResult());
     EnableTheBar();
-    if (m_notice.IsOpen())
+    // 0x634341: Enter (0x8001) con el aviso, la de crear, la de Esc y las opciones cerradas: TryToEnter. Si no
+    // se apretó Enter, Esc con las mismas cerradas: el sonido 0x19 (0x41ed10, de la CL10) y la de Esc
+    // (0x6344ce). Un Enter apretado no deja leer el Esc, aunque no entre. El original pierde un apretón corto
+    // entre dos lecturas; MuRet lo ve (Q-C45).
+    const bool modal = m_notice.IsOpen() || m_create.IsOpen() || m_escape.IsOpen();
+    if (input.TakePress(Input::Key::Enter))
     {
-        m_bar.StepWithoutTheMouse(input);
-        if (m_create.IsOpen())
+        if (!modal)
         {
-            m_create.StepUnderANotice(input);
+            TryToEnter();
         }
-        if (!failureOpened && !deletionOpened && !creationOpened)
-        {
-            StepTheNotice(input);
-        }
-        return;
     }
-    // La ventana de crear es modal (la base de toda la pantalla): tiene el mouse y el teclado.
-    if (m_create.IsOpen())
+    else if (input.TakePress(Input::Key::Escape) && !modal)
     {
-        m_bar.StepWithoutTheMouse(input);
-        StepTheCreateWindow(input);
-        return;
-    }
-    if (const std::optional<UI::SelectionBarClick> click = m_bar.Step(input, m_screen))
-    {
-        OnTheBar(*click);
-        return;
+        OpenTheEscapeWindow();
     }
     const auto now = App::LogicStep * static_cast<std::int64_t>(m_steps);
     const bool doubleClick = m_doubleClick.Step(input, now);
-    // Con el mouse sobre la barra, la UI lo tiene (+0x8de8): la escena no elige, no hace el doble clic
-    // y no busca quién está debajo, así que el contorno queda en el último.
-    if (!m_bar.Covers(UI::MouseInPixels(input, m_screen), m_screen))
+    // 0x6344d3: con el mouse en una ventana, la UI lo tiene (+0x8de8): la escena no elige, no hace el doble
+    // clic y no busca quién está debajo, así que el contorno queda en el último.
+    if (!m_ui.HasTheMouse())
     {
         m_hovered = UnderTheMouse(input);
         if (doubleClick && m_hovered)
@@ -830,15 +868,118 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
         }
         if (input.WasPressed(Input::MouseButton::Left))
         {
+            // 0x634671: elegido, 0x63eb40 habilita los botones de la barra, que el próximo paso de la UI ya
+            // atiende así.
             Choose(m_hovered);
+            EnableTheBar();
         }
     }
-    // El original pide GetAsyncKeyState(VK_RETURN) == 0x8001, y pierde un Enter corto entre dos
-    // lecturas; MuRet lo ve, como en el login (Q-C45). La barra no lo traba.
-    if (input.WasPressed(Input::Key::Enter))
+}
+
+void CharacterSelectScene::StepTheWindows(const Input::InputState& input)
+{
+    // El original le pasa a cada ventana los milisegundos del frame; MuRet, los del paso (Q-C490).
+    constexpr double StepMs = std::chrono::duration<double, std::milli>(App::LogicStep).count();
+    m_ui.Step(input, m_screen,
+              [&](UI::NewUiWindow& window, UI::NewUiTurn turn)
+              {
+                  if (&window == &m_notice)
+                  {
+                      StepTheNotice(input, turn);
+                  }
+                  else if (&window == &m_escape)
+                  {
+                      if (const std::optional<UI::EscapeWindowEvent> event =
+                              m_escape.Step(input, m_screen, StepMs, turn))
+                      {
+                          OnEscapeEvent(*event);
+                      }
+                  }
+                  else if (&window == &m_bar)
+                  {
+                      if (const std::optional<UI::SelectionBarClick> click = m_bar.Step(input, m_screen, turn))
+                      {
+                          OnTheBar(*click);
+                      }
+                  }
+                  else if (&window == &m_create)
+                  {
+                      StepTheCreateWindow(input, turn);
+                  }
+              });
+}
+
+void CharacterSelectScene::OnEscapeEvent(const UI::EscapeWindowEvent& event)
+{
+    switch (event.kind)
     {
-        TryToEnter();
+    case UI::EscapeWindowEvent::Kind::Countdown:
+        AddTheCountdown(event.seconds);
+        return;
+    case UI::EscapeWindowEvent::Kind::Quit:
+        // 0x647d87: el log del original (0x41fa40) y el PostMessage con WM_CLOSE: lo hace Main.
+        m_context.log.Info("> Menu - Exit game.");
+        m_quit = true;
+        return;
+    case UI::EscapeWindowEvent::Kind::JoinAnotherServer:
+        JoinAnotherServer();
+        return;
+    case UI::EscapeWindowEvent::Kind::Options:
+        // 0x647e75 abre las opciones (+0x7e8: 0x644120, 0x644640 y 0x644730), que no están (P-C75).
+        m_context.log.Error("las opciones (+0x7e8, 0x644120) todavía no están (P-C75)");
+        return;
+    case UI::EscapeWindowEvent::Kind::Closed:
+        // Con Esc, el sonido 0x19 (0x41ed10, de la CL10).
+        return;
     }
+}
+
+void CharacterSelectScene::AddTheCountdown(int seconds)
+{
+    // 0x647ef0: sprintf del 380 con lo que falta y 0x555190, de sistema y sin nombre.
+    if (m_context.world == nullptr || m_context.textMeasure == nullptr)
+    {
+        return;
+    }
+    const std::string left = std::to_string(seconds);
+    const std::array<std::string_view, 1> arguments{left};
+    const std::string text =
+        UI::PlaceArguments(UI::TextAt(m_texts, UI::LeavingTheGameText).value_or(std::string_view{}), arguments);
+    if (auto added =
+            AddGameMessage(m_context.world->Runtime(), *m_context.textMeasure, m_screen, {}, text, UI::SystemMessage);
+        !added.HasValue())
+    {
+        m_failure = added.Error();
+    }
+}
+
+void CharacterSelectScene::JoinAnotherServer()
+{
+    // 0x647e08: el log del original (0x41fa40), el C3 F1 02 02 (0x647f60), y se cierran la de Esc (que ya se
+    // cerró en su paso) y la barra (+0x7f50, 0x647e48). Lo que contesta el GS, la vuelta a la lista, es de la
+    // CL9 (Q-C79).
+    m_context.log.Info("> Menu - Join another server.");
+    if (m_context.cloth == nullptr)
+    {
+        m_context.log.Error("no se pide la salida: falta el rand() de la CRT del C3 F1 02 (0x647f60)");
+    }
+    else
+    {
+        // 0x648241: un rand() para el relleno del C3; 0x64826b..: el serial (0x5767913) por la tabla de
+        // protección, un byte, que se vuelve a cifrar al cerrarse con otro.
+        static_cast<void>(m_context.cloth->random.Next());
+        std::uint8_t serialDepth = 0;
+        {
+            const Render::Models::LogicalAccess serial(serialDepth, m_context.cloth->random,
+                                                       Render::Models::SerialCloseRandoms);
+        }
+        if (m_session != nullptr)
+        {
+            m_session->RequestLogout(Protocol::Connection::LogoutReturnsToServerList);
+        }
+    }
+    m_ui.Close(m_escape);
+    m_ui.Close(m_bar);
 }
 
 std::optional<std::uint8_t> CharacterSelectScene::UnderTheMouse(const Input::InputState& input) const
@@ -879,7 +1020,7 @@ void CharacterSelectScene::TryToEnter()
     }
     if (Protocol::Character::IsLocked(*chosen))
     {
-        m_notice.Open(UI::LockedCharacterNotice);
+        OpenNotice(UI::LockedCharacterNotice);
         return;
     }
     if (m_context.world != nullptr)
@@ -1025,9 +1166,25 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     std::string_view serverNotice;
     if (m_context.world != nullptr && m_context.world->Runtime().chat.selectionNotice)
         serverNotice = *m_context.world->Runtime().chat.selectionNotice;
-    m_bar.Draw(sprites, canvas.text, canvas.screen, serverNotice);
-    DrawTheCreateWindow(canvas, alpha);
-    m_notice.Draw(sprites, canvas.text, canvas.screen);
+    for (UI::NewUiWindow* window : m_ui.DrawOrder())
+    {
+        if (window == &m_bar)
+        {
+            m_bar.Draw(sprites, canvas.text, canvas.screen, serverNotice);
+        }
+        else if (window == &m_create)
+        {
+            DrawTheCreateWindow(canvas, alpha);
+        }
+        else if (window == &m_notice)
+        {
+            m_notice.Draw(sprites, canvas.text, canvas.screen);
+        }
+        else if (window == &m_escape)
+        {
+            m_escape.Draw(sprites, canvas.text, canvas.screen);
+        }
+    }
     DrawTheCursor(canvas);
 }
 
@@ -1387,6 +1544,8 @@ void CharacterSelectScene::DrawTheCursor(SceneCanvas& canvas) const
 
 void CharacterSelectScene::Leave()
 {
+    m_escape.Close();
+    m_ui.Clear();
     m_world.Release();
     m_textures.Release();
     m_windowTextures.Release();

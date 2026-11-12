@@ -7,6 +7,7 @@
 #include "Render/SpriteBatch.h"
 #include "Scenes/ITextDrawer.h"
 #include "UI/Button.h"
+#include "UI/NewUi.h"
 #include "UI/TextField.h"
 #include "UI/Widget.h"
 
@@ -67,7 +68,7 @@ struct LoginLayout
 // +106) y (+109, +131); OK y cancelar de 54 × 30 en (+150, +178) y (+211, +178).
 [[nodiscard]] LoginLayout LayoutLogin(App::PixelSize screen);
 
-class LoginWindow
+class LoginWindow final : public NewUiWindow
 {
 public:
     // `texts` puede ser nullptr (sin rótulos) y tiene que vivir lo que la ventana.
@@ -77,8 +78,10 @@ public:
     void Open(LoginFocus focus);
     // Cierra desde afuera (la escena, cuando la sesión deja de esperar la cuenta o se va) y vacía
     // la clave: lo tecleado no queda en la ventana. La cuenta queda, como el EDIT del original.
-    void Close();
-    [[nodiscard]] bool IsOpen() const;
+    void Close() override;
+    [[nodiscard]] bool IsOpen() const override;
+    // La ventana (`window` de LayoutLogin).
+    [[nodiscard]] Rect Bounds(App::PixelSize screen) const override;
     [[nodiscard]] LoginFocus Focus() const;
     // El título de arriba (0x641990): el texto 460 o 461 con el grupo y el número, ya armado.
     void SetTitle(std::string title);
@@ -87,8 +90,9 @@ public:
     [[nodiscard]] const TextField& Password() const;
 
     // 0x6418b0 en el paso, con lo tecleado desde el paso anterior. Con Submit, la clave queda
-    // vacía en la ventana; con Cancel, también; con EmptyAccount queda, como el emisor la deja.
-    std::optional<LoginRequest> Step(const Input::InputState& input, App::PixelSize screen);
+    // vacía en la ventana; con Cancel, también; con EmptyAccount queda, como el emisor la deja. Lo
+    // tecleado entra con o sin el foco de la UI; los clics, Enter y Esc, solo con él.
+    std::optional<LoginRequest> Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn = {});
     // Pone la mezcla normal (Q-C80) y dibuja el fondo, los campos, los botones, lo que tiene cada
     // campo (la clave con asteriscos), los rótulos y el título. El control activo del original
     // (0x468320) compone el caret como píxeles; no agrega el glifo "_" del camino legacy.

@@ -54,8 +54,9 @@ public:
     void MoveTo(Point topLeft);
     [[nodiscard]] Rect Area() const;
 
-    // Un paso de 0x63c490 con el mouse en `mouse`: true si fue un clic.
-    bool Step(const Input::InputState& input, Point mouse);
+    // Un paso de 0x63c490 con el mouse en `mouse`: true si fue un clic. Sin mouse, el +0xa9 en 0
+    // de una ventana que no lo tiene (0x669ed0): nunca está encima (0x63c470).
+    bool Step(const Input::InputState& input, std::optional<Point> mouse);
 
     void SetChecked(bool checked);
     [[nodiscard]] bool Checked() const;

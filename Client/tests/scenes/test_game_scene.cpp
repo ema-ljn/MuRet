@@ -465,7 +465,8 @@ private:
 // muerto, el paso de la escena 5 apaga su caballo y la espera sigue, con los 8 rand() de MoveHero. Con el
 // jinete vivo fuera de una celda segura, el aliento saca un rand() después de los seis candidatos
 // de peces del mapa inerte (con Seed, % 3 da 0) y, sin ningún dibujo antes, sale del hueso 27 en cero del
-// buffer global: la 5f2 nace y la espera sigue.
+// buffer global: la 5f2 nace, MoveHero baja el contador y el paso corta en el cuerpo del jinete, que esta
+// biblioteca no tiene (0x4f9580).
 TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
 {
     constexpr std::size_t RiderSlot = 5;
@@ -503,7 +504,8 @@ TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
 
         if (riderAlive)
         {
-            EXPECT_EQ(scene.Failure(), std::nullopt) << scene.Failure().value_or("");
+            ASSERT_TRUE(scene.Failure().has_value());
+            EXPECT_NE(scene.Failure()->find("0x4f9580"), std::string::npos) << *scene.Failure();
             EXPECT_TRUE(world.Helpers()[0].alive);
             EXPECT_TRUE(world.Particles().All()[0].alive);
             EXPECT_EQ(world.Particles().All()[0].type, Client::World::BreathParticle);

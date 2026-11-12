@@ -584,7 +584,8 @@ TEST_F(InventoryReplyTest, HornOfDoomCopiesItsFlags1bToThePetBeforeStopping)
 
 // 0x5bca62: el Dark Raven del lugar 1 llama a 0x420cf0 con el héroe publicado. Suelta el cuervo que tenía y,
 // fuera de los mapas 18 a 23, crea otro (0x4167b0) en el centro de su celda, 300 sobre el terreno, con los 12
-// rand() de los cierres de sus celdas y del contador. En Chaos Castle solo lo suelta.
+// rand() de los cierres de sus celdas y del contador. En Chaos Castle solo lo suelta, sin más rand() que los de
+// vestir con un escudo en el mismo lugar.
 TEST_F(InventoryReplyTest, TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0)
 {
     constexpr int RavenRandoms = 3 * Client::Render::Models::SmallLogicalCloseRandoms;
@@ -613,9 +614,15 @@ TEST_F(InventoryReplyTest, TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0)
 
     const auto inChaos = Client::Scenes::PlaceInventoryItem(1, ItemBytes(DarkRaven), chaos.Resources());
 
+    Stage shielded = Fresh();
+    shielded.PublishedHero();
+    shielded.world.Runtime().map = ChaosCastleMap;
+    const auto withShield = Client::Scenes::PlaceInventoryItem(1, ItemBytes(SmallShield), shielded.Resources());
+
     ASSERT_TRUE(inChaos.HasValue()) << inChaos.Error();
+    ASSERT_TRUE(withShield.HasValue()) << withShield.Error();
     EXPECT_FALSE(rider.darkSpirit.has_value());
-    EXPECT_EQ(chaos.cloth.random.State(), AfterDraws(Seed, EquipmentEntry).State());
+    EXPECT_EQ(chaos.cloth.random.State(), shielded.cloth.random.State());
 }
 
 // 0x5bca6c..0x5bcaa7: el Wizard's Ring de nivel 3 en el 10 o el 11 lleva a 0x414340 y a +0x360 del héroe.

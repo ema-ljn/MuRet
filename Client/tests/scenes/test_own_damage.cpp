@@ -19,8 +19,9 @@
 #include <vector>
 
 // Los daños del personaje propio de la ventana del personaje (CL8 hito 5; 06 § La ventana del personaje): el ataque
-// de 0x5b8b80 y la magia de 0x5513d0, con sus accesos y sus rand(). Los valores salen del ASM cotejado con el PE
-// c32bbd5f; el registro, la lista de los sets y Skill.bmd son inventados.
+// de 0x5b8b80, la magia de 0x5513d0 y el daño de la skill de 0x5516e0 (el tooltip de la skill), con sus accesos y
+// sus rand(). Los valores salen del ASM cotejado con el PE c32bbd5f; el registro, la lista de los sets y Skill.bmd son
+// inventados.
 namespace
 {
 using Client::Render::Models::CrtRandom;
@@ -31,6 +32,7 @@ using Client::Scenes::MagicDamageOf;
 using Client::Scenes::OwnAttackDamage;
 using Client::Scenes::OwnCharacterRecord;
 using Client::Scenes::OwnEquipmentOverride;
+using Client::Scenes::SkillDamageOf;
 
 constexpr std::uint32_t Seed = 0x2468aceu;
 constexpr std::uint32_t WizardClass = 0;
@@ -215,6 +217,61 @@ TEST(OwnDamageTest, TheMagicStopsWithoutItsTables)
     const auto skills = SkillsWith(5, 1, 0);
     list.count9348 = 17;
     const auto overflow = MagicDamageOf(own, 5, &skills, depth, random, list);
+    ASSERT_FALSE(overflow.HasValue());
+    EXPECT_NE(overflow.Error().find("0x40d8c0"), std::string::npos);
+    EXPECT_EQ(depth, 0);
+}
+
+// 0x5516e0: la magia sin los dos words del registro, s y s + s / 2 más el mismo p. La entrada abierta por fuera no
+// saca nada al cerrarse.
+TEST(OwnDamageTest, TheSkillDamageIsTheMagicWithoutTheRecord)
+{
+    const auto skills = SkillsWith(9, 45, 3);
+    ItemSetOptionList list;
+    list.count9348 = 2;
+    list.entries[0] = {0x20, 1, 0};
+    list.values[0] = 4;
+    list.entries[1] = {0x13, 0, 0};
+    list.values[1] = 65540;
+    list.used[0] = 1;
+    std::uint8_t depth = 0;
+    CrtRandom random{Seed};
+    const CrtRandom expected = Advanced(random, static_cast<int>(Client::Data::Tables::SkillRecordSize));
+
+    const auto damage = SkillDamageOf(9, &skills, depth, random, list);
+
+    ASSERT_TRUE(damage.HasValue()) << damage.Error();
+    const std::int32_t bonus = (4 + 65540) & 0xffff;
+    EXPECT_EQ(damage.Value().min, 45 + bonus);
+    EXPECT_EQ(damage.Value().max, 45 + 22 + bonus);
+    EXPECT_EQ(list.used[0], 1);
+    EXPECT_EQ(list.used[1], 1);
+    EXPECT_EQ(depth, 0);
+    EXPECT_EQ(random.State(), expected.State());
+
+    depth = 1;
+    const CrtRandom before = random;
+    ASSERT_TRUE(SkillDamageOf(9, &skills, depth, random, list).HasValue());
+    EXPECT_EQ(depth, 1);
+    EXPECT_EQ(random.State(), before.State());
+}
+
+// Sin Skill.bmd, error antes de abrir; con más de 16 entradas en la lista, el de 0x40d8c0.
+TEST(OwnDamageTest, TheSkillDamageStopsWithoutItsTables)
+{
+    ItemSetOptionList list;
+    std::uint8_t depth = 0;
+    CrtRandom random{Seed};
+    const CrtRandom before = random;
+
+    const auto missing = SkillDamageOf(9, nullptr, depth, random, list);
+    ASSERT_FALSE(missing.HasValue());
+    EXPECT_NE(missing.Error().find("0x5516e0"), std::string::npos);
+    EXPECT_EQ(random.State(), before.State());
+
+    const auto skills = SkillsWith(9, 1, 0);
+    list.count9348 = 17;
+    const auto overflow = SkillDamageOf(9, &skills, depth, random, list);
     ASSERT_FALSE(overflow.HasValue());
     EXPECT_NE(overflow.Error().find("0x40d8c0"), std::string::npos);
     EXPECT_EQ(depth, 0);

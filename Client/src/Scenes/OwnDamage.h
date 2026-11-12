@@ -11,9 +11,10 @@ namespace Client::Render::Models
 class CrtRandom;
 }
 
-// Los daños del personaje propio que muestran la ventana del personaje (0x5ee2e0) y el tooltip de la skill (0x5b90b0,
-// P-C101): el del ataque, 0x5b8b80, y el de la magia, 0x5513d0, con sus accesos a la tabla de protección y sus rand().
-// Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La ventana del personaje".
+// Los daños del personaje propio que muestran la ventana del personaje (0x5ee2e0) y el tooltip de la skill (0x5b90b0):
+// el del ataque, 0x5b8b80, el de la magia, 0x5513d0, y el de la skill, 0x5516e0, con sus accesos a la tabla de
+// protección y sus rand(). Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La ventana del personaje" y "El
+// cuerpo de la skill".
 namespace Client::Scenes
 {
 struct ItemSetOptionList;
@@ -58,4 +59,19 @@ struct OwnMagicDamage
 [[nodiscard]] Core::Expected<OwnMagicDamage, std::string>
 MagicDamageOf(const OwnCharacterRecord& own, std::uint8_t skill, const Data::Tables::SkillTable* skills,
               std::uint8_t& skillDepth, Render::Models::CrtRandom& random, ItemSetOptionList& setOptions);
+
+// Lo que 0x5516e0 deja en sus dos punteros.
+struct OwnSkillDamage
+{
+    std::int32_t min = 0;
+    std::int32_t max = 0;
+};
+
+// 0x5516e0(skill, &min, &max), thiscall sobre el registro propio, que no lee: 0x5513d0 sin los dos words del registro.
+// Abre la entrada `skill` de Skill.bmd (60 rand() al cerrarla en 0, `skillDepth`) y, con s, su byte +0x21, min = s y
+// max = s + s / 2; pone en 0 las 16 marcas de +0x937c y suma a los dos el mismo p de los conjuntos (0x40d8c0 y
+// 0x40d690). Sin Skill.bmd o sin la skill, error antes de abrir.
+[[nodiscard]] Core::Expected<OwnSkillDamage, std::string>
+SkillDamageOf(std::uint8_t skill, const Data::Tables::SkillTable* skills, std::uint8_t& skillDepth,
+              Render::Models::CrtRandom& random, ItemSetOptionList& setOptions);
 } // namespace Client::Scenes

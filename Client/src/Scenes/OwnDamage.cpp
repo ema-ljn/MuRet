@@ -12,9 +12,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <span>
 #include <string>
 
-// 0x5b8b80 (1.328 bytes) y 0x5513d0 (783), cotejados con el PE c32bbd5f: 06, "La ventana del personaje".
+// 0x5b8b80 (1.328 bytes), 0x5513d0 (783) y 0x5516e0 (769), cotejados con el PE c32bbd5f: 06, "La ventana del
+// personaje" y "El cuerpo de la skill".
 namespace Client::Scenes
 {
 namespace
@@ -50,6 +52,29 @@ bool HasLevel(const World::ItemState& item)
 std::uint32_t FiftyFivePercent(std::uint16_t value)
 {
     return static_cast<std::uint32_t>(value) * 55u / 100u;
+}
+
+// Skill.bmd: el byte del daño y el de los conjuntos (0x40d8c0) de una entrada.
+constexpr std::size_t DamageByte = 0x21;
+constexpr std::size_t SetOptionByte = 0x30;
+// 0x40d690 con el selector de la magia.
+constexpr std::uint32_t MagicSetSelector = 0x9f;
+
+// 0x551496 y 0x551791..0x5517c3: las 16 marcas de +0x937c en 0, con cuatro dwords, y el p de 32 bits, en 0, con lo que
+// suma 0x40d8c0 por el byte +0x30 de la skill y, en sus 16 bits de abajo (add word ptr), 0x40d690 con 0x9f.
+Core::Expected<std::int32_t, std::string> SetBonusOf(std::span<const std::byte, Data::Tables::SkillRecordSize> record,
+                                                     ItemSetOptionList& setOptions)
+{
+    setOptions.used.fill(0);
+    std::int32_t bonus = 0;
+    if (auto added = AddSkillSetOptionValues(setOptions, bonus, std::to_integer<std::uint8_t>(record[SetOptionByte]));
+        !added.HasValue())
+        return Core::Unexpected(added.Error());
+    const auto bits = std::bit_cast<std::uint32_t>(bonus);
+    auto low = static_cast<std::uint16_t>(bits);
+    if (auto added = AddItemSetOptionValues(setOptions, low, MagicSetSelector); !added.HasValue())
+        return Core::Unexpected(added.Error());
+    return std::bit_cast<std::int32_t>((bits & 0xffff0000u) | low);
 }
 } // namespace
 
@@ -119,26 +144,35 @@ Core::Expected<OwnMagicDamage, std::string> MagicDamageOf(const OwnCharacterReco
         return Core::Unexpected(std::format("0x5513d0: Skill.bmd no tiene la skill {}", skill));
     const Render::Models::LogicalAccess access(skillDepth, random,
                                                static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
-    constexpr std::size_t DamageByte = 0x21;
-    constexpr std::size_t SetOptionByte = 0x30;
     const auto base = static_cast<std::int32_t>(std::to_integer<std::uint8_t>((*record)[DamageByte]));
     OwnMagicDamage damage{.min = own.word5a + base, .max = (base >> 1) + base + own.word5c};
-    // 0x551496: las 16 marcas de +0x937c en 0, con cuatro dwords.
-    setOptions.used.fill(0);
-    std::int32_t bonus = 0;
-    if (auto added =
-            AddSkillSetOptionValues(setOptions, bonus, std::to_integer<std::uint8_t>((*record)[SetOptionByte]));
-        !added.HasValue())
-        return Core::Unexpected(added.Error());
-    // 0x40d690 suma con add word ptr: solo los 16 bits de abajo de p.
-    constexpr std::uint32_t MagicSetSelector = 0x9f;
-    const auto bits = std::bit_cast<std::uint32_t>(bonus);
-    auto low = static_cast<std::uint16_t>(bits);
-    if (auto added = AddItemSetOptionValues(setOptions, low, MagicSetSelector); !added.HasValue())
-        return Core::Unexpected(added.Error());
-    bonus = std::bit_cast<std::int32_t>((bits & 0xffff0000u) | low);
-    damage.min += bonus;
-    damage.max += bonus;
+    const auto bonus = SetBonusOf(*record, setOptions);
+    if (!bonus.HasValue())
+        return Core::Unexpected(bonus.Error());
+    damage.min += bonus.Value();
+    damage.max += bonus.Value();
+    return damage;
+}
+
+Core::Expected<OwnSkillDamage, std::string> SkillDamageOf(std::uint8_t skill, const Data::Tables::SkillTable* skills,
+                                                          std::uint8_t& skillDepth, Render::Models::CrtRandom& random,
+                                                          ItemSetOptionList& setOptions)
+{
+    if (skills == nullptr)
+        return Core::Unexpected(std::string("0x5516e0: sin Skill.bmd"));
+    const auto record = skills->Record(skill);
+    if (!record)
+        return Core::Unexpected(std::format("0x5516e0: Skill.bmd no tiene la skill {}", skill));
+    const Render::Models::LogicalAccess access(skillDepth, random,
+                                               static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+    // 0x551761..0x55178a: s y s + s / 2, con la división de C (cdq, sub, sar).
+    const auto base = static_cast<std::int32_t>(std::to_integer<std::uint8_t>((*record)[DamageByte]));
+    OwnSkillDamage damage{.min = base, .max = (base >> 1) + base};
+    const auto bonus = SetBonusOf(*record, setOptions);
+    if (!bonus.HasValue())
+        return Core::Unexpected(bonus.Error());
+    damage.min += bonus.Value();
+    damage.max += bonus.Value();
     return damage;
 }
 } // namespace Client::Scenes

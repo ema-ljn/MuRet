@@ -361,8 +361,10 @@ tooltip va a la VM (P-C60). **Desbloquea:** "inventario usable".
       **las opciones** (el `0x93`: auto-ataque `0x6c8e3c`, aviso de susurro `0x77f3b78`, volumen `0x7d3a118` como
       gancho de la CL10, brillo `0x6c9dcc` que ya lee `ItemGlow`); el diálogo de los paneles (`0x65feb0`,
       `0x6605b0`, `0x660830`, `0x660410`, `0x660350`, `0x6576a0`).
-- [ ] **Las ventanas del paso que son marco:** la party (`0x5e3c80` sin el `43`), el botón del quest (`0x41b5a0`
+- [x] **Las ventanas del paso que son marco:** la party (`0x5e3c80` sin el `43`), el botón del quest (`0x41b5a0`
       sin el contenido), la puerta de D (`0x40a450` sin `0x406050`) y los cortes sin `rand()` de las de la CL9.
+      Hecho: la party vacía (`0x6599a0(4)` con el `C1 03 42`, `0x5e3c80`, `0x5f0be0`) y los comandos (`0x40a450`,
+      `0x40a650`, hasta `0x406097`), con Q-C650 a Q-C654; lo que queda, en 08 (P-C115 a P-C117).
 - [x] **Las teclas y las superposiciones:** `0x5ac8d0` (F1..F4; SPACE como corte de la CL9.3), `0x5b0550` con las
       ayudas F1 (`0x5af090`, `0x5afb00`) y **la ventana /move** (el paso `0x5ecdc0` → `0x449850` → `0x448580` y el dibujo `0x5b0550` → `0x449860` →
       `0x448fa0`, con

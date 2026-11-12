@@ -959,14 +959,14 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 |---|---|---|---|
 | `1` | amigos (UI vieja) | `0x490a00(viejo+0x48) != 0` | CL9.4 (el toggle, CL8.3) |
 | `2` | mapa (M) | `0x77f3b08 == 4` | CL8.1 |
-| `4` | party (P) | `0x7d5370a` | CL9.4 (el toggle, CL8.3) |
+| `4` | party (P) | `0x7d5370a` | CL8 hito 6, vacía (los miembros, CL9.4) |
 | `8` | quest (T) | `*(0x710148)+0x21383` | CL9.x |
 | `0x10` | gremio (G) | `0x6522e0()` | CL9.4 |
 | `0x20` | trade | **byte protegido `0x7d53711`: 1 `rand()`** | CL9.4 |
 | `0x40` | almacén | `0x7d5370d` | CL9.3 |
 | `0x80` | — | siempre cerrado: su rama de `0x659290` da 0 (`0x659429 JNZ 0x6597f3` → `XOR AL,AL`) | — |
 | `0x100` | caja del caos | `0x7d5370e` | CL9.3 |
-| `0x200` | comandos (D) | `*(0x6e592c+4)` | CL9.4 |
+| `0x200` | comandos (D) | `*(0x6e592c+4)` | CL8 hito 6 (sin `0x406050`, CL9.4) |
 | `0x400` | mascota | `0x420cc0()`: `0x723911 == 2` (`0x424230` lo vuelve a 0 en cada paso con el personaje cerrado) | CL9.x |
 | `0x800` | tienda personal propia (S) | `0x7d5370f` | CL9.4 |
 | `0x1000`, `0x4000` | ventanas con inventario de NPC de evento (`0x7d53712` con `0x7d53714` en 0 o 1; el paso las atiende en `0x5e5920`, que manda `90`/`9A`) *inferido* | | CL9.5 |
@@ -1174,6 +1174,68 @@ no como el nombre. Al final, el 1002 en blanco en `(w / 2, alto − (r + 2) − 
 `Scenes::StepTheMoveWindow` y `Scenes::DrawTheMoveWindow` (`GameMoveWindow.h`), con `Scenes::SayInTheChat`; el paso de
 la letra es `Render::Text::FontStepFor`, que con otro ancho da el de 1.280 y no 0 (Q-C59), así que con 1.600 la
 ventana tiene 0 de ancho pero sus renglones no son de 2.
+
+**La party y los comandos** (CL8 hito 6, *estático*). Las dos ventanas del paso que son marco, en `(0x1c2, 0)`. Las
+dos usan el fondo de `0x5ee220` (la party tiene su copia): `Interface\Item_Back01.jpg` (`0x104`) de 190 × 256 en
+`(x, y)` e `Item_Back02.jpg` (`0x105`) de 190 × 177 en `y + 256` (la suma de la x87 guardada en float, `0x6b8840`),
+con du = 0,7421875 y dv = 1 y 0,69140625, escalados y sin alfa (`0x621b60`); y el botón de cerrar: `glColor3f(1, 1,
+1)` e `Interface\exit_01.jpg` (`0x118`) de 24 × 24 en `(x + 25, y + 395)` con du = dv = 0,75. Con el mouse en
+`izquierda ≤ x < izquierda + 24` (`fild` contra el float, lo mismo en y), la fuente normal, `0x6c8e5c = −1`,
+`0x6c8e64 = 0xff000000` y la ayuda (`0x554340`) en `(_ftol(x + 25), _ftol(y + 395) − 13)`, que deja la normal y los
+colores −1 y 0. El título de las dos va con `0x554180(x + 0x23, y + 0xc, texto, 120 · W / 640, 1, 3)` (la división
+sin signo de `0x5f0cd6..0x5f0cef`): el modo 2 de `0x467060` lo centra en una caja de ese ancho que empieza en
+`_ftol(x · rx)` y llena la caja con el fondo (08, P-C115). El paso de las dos mira el mouse desde la esquina que dejó
+el dibujo, que antes del primero es (0, 0) (Q-C650).
+
+La party. `Open(4)` (`0x659a82..0x659c44`), con lo que cerró: `0x78aba48 = 0`, el pedido de la lista (`0x659aa6..
+0x659b94`: el `C1 03 42` armado en la pila y mandado con `send` si el socket de `0x6c82a0` (`+0xc`) no es −1, en
+claro: no pasa por el XOR32 ni por el cifrado del C3) y `0x7d5370a = 1`; suena como todos (`0x65ca72`). El paso
+(`0x5e3c80`, desde `0x5ee18d` con `IsOpen(4)`): el mouse en `[x, x + 0xbe) × [y, y + 0x1b1)` desde
+`0x78a7068`/`0x78a706c` pone `0x775857c = 1`; con miembros (`0x78aba48 > 0`, `0x5e3cf0`), cada uno con su nombre y
+su botón de echar (`C1 04 43`, CL9.4); el clic (`0x7d366d4`) en `[x + 0x19, + 0x18) × [y + 0x18b, + 0x18)` lo apaga,
+pone `0x77f3b10 = 0` y `0x6c8dcc = 6` y llama a `Close(4)` (`0x5e40d4..0x5e411d`). No saca `rand()`. El dibujo
+(`0x5f0be0(0x1c2, 0)`, lo primero de `0x5f7440`, 2.746 B): cerrada, el ancho del mundo (`0x5bb8d0`, que con el
+inventario abierto saca los dos `rand()` del comercio y de la tienda), `0x6c8e5c = −1`, `0x6c8e64 = 0` y, con
+miembros, su lista a la derecha del mundo (`0x5f130a`, CL9.4). Abierta: la esquina en `0x78a7068`/`0x78a706c`, el
+blanco, `0x620980`, el fondo y `0x620a00(1)`; el título (190) con `0xffdcdcdc` sobre `0xff141414`, en negrita; la
+normal con `0xffe6e6e6` sobre 0 y, sin miembros, los textos 191 a 197 en `x + 0x14` y en `y + 0x32`, `0x41`, `0x50`,
+`0x64`, `0x73`, `0x82` y `0x91` (`0x554180` con 0, 0, 0: un texto vacío no se dibuja, pero se mide y deja su tamaño
+en `0x77f31b8`/`0x77f31bc`); con miembros, sus nombres, su vida y el botón de echar (`0x5f0df0`, CL9.4); con la
+cuenta negativa, nada; y el botón de cerrar con la ayuda 221, desde la esquina que acaba de escribir (`0x5f11c2`).
+Queda la mezcla normal.
+
+Los comandos. El objeto `[0x6e592c]`: `+4` abierto, `+8` un personaje (*inferido*), `+0xc`/`+0x10` la esquina que
+pone el dibujo, `+0x14..+0x1f` los doce estados y `+0x20` el comando elegido. `Open(0x200)` (`0x65a91c..0x65a934`)
+prende `+4`; en Chaos Castle `CanOpen` no deja. Cerrarlo con `CloseByMask` (`0x65897a..0x658999`) o con su botón
+(`0x40a58a..0x40a5a1`), entrar a la selección (`0x634271`) y volver al login (`0x634bf0`) dejan `+4 = 0`, `+8 = −1`,
+`+0x20 = −1` y los doce estados en 1 (que 1 es "el comando se puede", *inferido*); `0x4c7b34` también, desde una
+ventana vieja que corta antes (`0x4906a0`, hito 7). El paso (`0x40a450`, desde `0x5ee140` con `ECX = [0x6e592c]`):
+con `+4` en 1, el mouse en `[x, x + 0xbe) × [y, y + 0x1b1)` es de la UI; `0x406050` pone los doce estados en 1 y,
+con un comando elegido y un personaje elegido (`0x6c8e30 ≥ 0`), sigue en `0x406097` con lo que el comando hace sobre
+él (CL9.4; Q-C653); los botones del 1 al 11 (el 0 no: Q-C651) van en `(_ftol(x + 95 − 50), _ftol(y + 53) + 28 · c)`,
+y el clic estrictamente adentro de 108 × 20 (Q-C654) lo gasta, suelta el botón (`0x7d36874 = 0`) y elige el comando
+(`+0x20`); el botón de cerrar la cierra sin `Close`: los dos sonidos con `0x41ed10`, `0x77f3b10 = 0`, `0x6c8dcc = 6` y
+el objeto como al entrar. No saca `rand()`. El dibujo (`0x40a650`, en `0x5f75fa`): con `+4` en 1, la esquina en
+`(0x1c2, 0)`, el fondo con la mezcla que haya, `0x620a00(1)` y el blanco; el título (938) en negrita, −1 sobre
+`0xff141414`; los once botones (`Interface\Message_box.jpg`, `0xf0`, de 100 × 25 con du = 0,83203125 en `(x + 45,
+y + 53 + 28 · c)`, la y sumada en float), el del elegido con `glColor3f(0,5; 0,5; 0,5)`; el botón de cerrar con la
+ayuda 927 hecha por `sprintf` con `"D"` (Q-C652); `0x6c8e64 = 0x00141414` y cada nombre (la tabla de `0x40aca4`: 943,
+1124, 944, 945, 946, 1352, 1321, 1322, 947, 948 y 949) centrado (`0x623690`) en `(_ftol(x) + 0x32, _ftol(y) + 8)`,
+con la normal y el blanco o, el elegido y el que tiene el mouse encima (estrictamente adentro de 108 × 20), con la
+negrita y `(1; 0,8; 0,2)`, o `(0,5; 0,5; 0,5)` con el clic; y su casilla (`0x463090` en `(_ftol(x) − 0x14, _ftol(y) +
+8)`: sin mezcla, el marco `0x92 0x86 0x79` de 9 × 9 con cuatro `0x621aa0`, el blanco, la textura, la mezcla normal y,
+el elegido, la marca: `Interface\win_check.tga`, `0x64a`, de 5 × 5 en `(x + 2, y + 2)` con uv 0,625). Al final, el
+blanco, la fuente grande (`0x576355c`), con un personaje elegido su nombre en un cartel junto al mouse
+(`Interface\CursorID_Wnd.jpg`, `0x65b`; `0x40aa8d`, CL9.4), el negro y el aviso del elegido según su estado: con 0,
+el 255 del 5, el 1313 del 6, el 937 del 10 y el 257 del 3; con `0xff`, el 507; con `0xfe`, el 1320; en negrita,
+`0x6c8e64 = 0`, centrado en `(x + 0x5f, y + 0x44)`. Termina con el blanco y `0x620980`.
+
+MuRet: `Scenes::StepThePartyWindow` y `Scenes::DrawThePartyWindow` (`GamePartyWindow.h`),
+`Scenes::StepTheCommandsWindow` y `Scenes::DrawTheCommandsWindow` (`GameCommandsWindow.h`), con lo común en
+`Scenes::WindowDrawing` (`GameWindowDrawing.h`); el objeto es `UI::CommandsWindowState` y la limpieza
+`UI::ResetTheCommands`; el `C1 03 42` es `Protocol::Party::WritePartyListRequest`, que la UI pide con
+`IGameUiRequests::RequestPartyList` (sin él, abrir la party corta con `0x659aa0`). Lo que corta: 08, P-C116 y P-C117.
+Las texturas nuevas del HUD: `0x104` a `0x120` (sin `0x106`, que no se sube), `0x64a` y `0x65b`.
 
 **El HUD `0x5a7320`, hijo por hijo.** Empieza con `0x6c8e5c = −1`. La columna "base" es el estado de la traza
 (sin ventanas, sin party, sin evento, sin arco); `r` son `rand()` por frame.

@@ -10,12 +10,14 @@
 #include "Data/Terrain/TerrainHeights.h"
 #include "Network/PacketSerials.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Inventory.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
@@ -852,5 +854,112 @@ TEST_F(InventoryReplyTest, TheFiveCableSlotsDressTheHeroInTheSamePoll)
                              TailRandoms + WaitClose + WindowRandoms + StopRandom;
     constexpr int TheInventory = OwnRecordClose + EquipmentEntry + 4 * OwnRecordClose;
     EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, TheEntry + TheInventory).State());
+}
+
+// 0x4d1400, el 24 cifrado con 0: suelta la traba, deja la cuenta del cursor en 0, pone el ítem en el lugar del paquete
+// (0x5bc740 con el último argumento en 0) y pide el sonido 0x1d. Con 0xff, 0x5be150 vuelve el ítem del cursor a su
+// lugar.
+TEST_F(InventoryReplyTest, TheItemMoveResultPlacesTheItemOrPutsItBack)
+{
+    Stage tested = Fresh();
+    tested.PublishedHero();
+    Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+    runtime.ui.field78abb39 = 1;
+    runtime.cursorItem.id = Apple;
+    runtime.cursorItem.occupied = 1;
+    runtime.cursorItemCount = 1;
+    const auto moved = Client::Scenes::ApplyItemMoveResult(
+        Client::Protocol::Inventory::ItemMoveResult{.result = 0, .slot = 12 + 9, .item = ItemBytes(Apple)},
+        tested.Resources());
+    ASSERT_TRUE(moved.HasValue()) << moved.Error();
+    EXPECT_EQ(runtime.ui.field78abb39, 0);
+    EXPECT_EQ(runtime.cursorItemCount, 0);
+    EXPECT_EQ(tested.Cell(9).id, Apple);
+    EXPECT_EQ(runtime.lastSoundId, 0x1d);
+
+    Stage refused = Fresh();
+    refused.PublishedHero();
+    Client::Scenes::WorldRuntime& back = refused.world.Runtime();
+    back.ui.field78abb39 = 1;
+    back.cursorItem.id = Apple;
+    back.cursorItem.gridColumn = 1;
+    back.cursorItem.occupied = 1;
+    back.cursorItemCount = 1;
+    back.cursorGrid = Client::Scenes::CursorGrid::Inventory;
+    back.slot78a6758 = 12 + 1;
+    const auto rejected = Client::Scenes::ApplyItemMoveResult(
+        Client::Protocol::Inventory::ItemMoveResult{.result = 0xff, .slot = 0, .item = {}}, refused.Resources());
+    ASSERT_TRUE(rejected.HasValue()) << rejected.Error();
+    EXPECT_EQ(back.ui.field78abb39, 0);
+    EXPECT_EQ(back.cursorItemCount, 0);
+    EXPECT_EQ(refused.Cell(1).id, Apple);
+    EXPECT_EQ(refused.Cell(1).occupied, 1u);
+}
+
+// 0x4c5ec0 (28): 0x5bd750 con el lugar y, con pkt[4], el fin de la espera; desde el 0x4c, la tienda personal corta.
+// 0x4d3cc0 (2A): la durabilidad del lugar del equipo, con su acceso al registro, o de toda la huella de la grilla.
+TEST_F(InventoryReplyTest, TheDeleteAndTheDurabilityTouchTheirPlace)
+{
+    Stage tested = Fresh();
+    tested.PublishedHero();
+    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(12 + 2, ItemBytes(ShortSword), tested.Resources()).HasValue());
+    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(12 + 6, ItemBytes(Apple), tested.Resources()).HasValue());
+    Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+
+    const auto worn = Client::Scenes::ApplyDurability(
+        Client::Protocol::Inventory::Durability{.slot = 12 + 2, .durability = 7, .endsTheWait = 0}, tested.Resources());
+    ASSERT_TRUE(worn.HasValue()) << worn.Error();
+    for (const std::size_t cell : {2u, 10u, 18u})
+        EXPECT_EQ(tested.Cell(cell).durability, 7) << cell;
+    EXPECT_NE(tested.Cell(6).durability, 7);
+
+    tested.world.OwnCharacter().equipment[3].id = GuardianHelm;
+    const CrtRandom before = tested.cloth.random;
+    runtime.ui.field5767954 = 10;
+    const auto helm = Client::Scenes::ApplyDurability(
+        Client::Protocol::Inventory::Durability{.slot = 3, .durability = 9, .endsTheWait = 1}, tested.Resources());
+    ASSERT_TRUE(helm.HasValue()) << helm.Error();
+    EXPECT_EQ(tested.world.OwnCharacter().equipment[3].durability, 9);
+    EXPECT_EQ(runtime.ui.field5767954, 0);
+    CrtRandom expected = before;
+    expected.Discard(OwnRecordClose);
+    EXPECT_EQ(tested.cloth.random.State(), expected.State());
+
+    runtime.ui.field5767954 = 10;
+    const auto deleted = Client::Scenes::ApplyItemDelete(
+        Client::Protocol::Inventory::ItemDelete{.slot = 12 + 6, .endsTheWait = 1}, tested.Resources());
+    ASSERT_TRUE(deleted.HasValue()) << deleted.Error();
+    EXPECT_EQ(tested.Cell(6).id, EmptyOwnItemId);
+    EXPECT_EQ(runtime.ui.field5767954, 0);
+
+    const auto shop = Client::Scenes::ApplyItemDelete(
+        Client::Protocol::Inventory::ItemDelete{.slot = 0x4c, .endsTheWait = 0}, tested.Resources());
+    ASSERT_FALSE(shop.HasValue());
+    EXPECT_TRUE(shop.Error().starts_with("0x4c5ece:")) << shop.Error();
+}
+
+// 0x4e31a3 (F3 14): la cuenta del cursor en 0, el ítem en su lugar y el sonido 0x45. 0x4e316e (F3 13): sin un
+// jugador con la clave, 0x5139f0 no hace nada; con él, su equipo es de la CL9.2.
+TEST_F(InventoryReplyTest, TheItemPutAndTheEquipmentOfOthers)
+{
+    Stage tested = Fresh();
+    ActorState& hero = tested.PublishedHero();
+    Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+    runtime.cursorItemCount = 1;
+    const auto put = Client::Scenes::ApplyItemPut(
+        Client::Protocol::Inventory::ItemPut{.slot = 12 + 4, .item = ItemBytes(Apple)}, tested.Resources());
+    ASSERT_TRUE(put.HasValue()) << put.Error();
+    EXPECT_EQ(runtime.cursorItemCount, 0);
+    EXPECT_EQ(tested.Cell(4).id, Apple);
+    EXPECT_EQ(runtime.lastSoundId, 0x45);
+
+    hero.key = 0x1234;
+    const auto nobody = Client::Scenes::ApplyEquipmentChange(
+        Client::Protocol::Inventory::EquipmentChange{.key = 0x4321, .equipment = {}}, tested.Resources());
+    EXPECT_TRUE(nobody.HasValue()) << nobody.Error();
+    const auto player = Client::Scenes::ApplyEquipmentChange(
+        Client::Protocol::Inventory::EquipmentChange{.key = 0x1234, .equipment = {}}, tested.Resources());
+    ASSERT_FALSE(player.HasValue());
+    EXPECT_TRUE(player.Error().starts_with("0x513a1e:")) << player.Error();
 }
 } // namespace

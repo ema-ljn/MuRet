@@ -119,6 +119,12 @@ struct InventoryMoveContext
 [[nodiscard]] Core::Expected<void, std::string> PickUpFromTheEquipment(const InventoryMoveContext& context,
                                                                        std::size_t slot);
 
+// 0x59bd3e..0x59cd23, desde MoveHero (0x59bd01) con el cursor vacío, la mano derecha vacía y un arma en la izquierda:
+// en un acceso al registro propio, el ítem del lugar 1 al cursor (los 0x48 bytes, con su +0x3c) y el lugar en 0xffff
+// con +4 en 0; 0x512a30 sobre el héroe publicado; la grilla del inventario, el lugar 1 y el destino 0; y, sin la
+// traba, el C1 0E 24 del 1 al 0.
+[[nodiscard]] Core::Expected<void, std::string> MoveTheLeftWeaponToTheRight(const InventoryMoveContext& context);
+
 // 0x5c35ad, desde 0x5bec50 sin ítem en el cursor y sin el clic: la marca del lugar (3 si le falta un requisito,
 // con +0x26 contra la fuerza, Q-C475; si no, 2), el ítem bajo el mouse y la esquina de su ayuda.
 void HoverTheEquipment(const InventoryMoveContext& context, std::size_t slot, std::int32_t left, std::int32_t top,
@@ -147,10 +153,19 @@ struct GridDrop
 [[nodiscard]] Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveContext& context,
                                                                        const GridDrop& drop);
 
-// 0x5df449..0x5df567, desde 0x5d8d50 con el clic fuera de las ventanas: lo que no se tira al piso (el aviso 269 y
-// 0x5be150) y las cajas de 0x1a20 a 0x1a25 (el aviso 1915 y 0x5be150). Tirar lo demás (0x402b30 y el resto de
-// 0x5df567, CL9.3) corta.
-[[nodiscard]] Core::Expected<void, std::string> DropOnTheGround(const InventoryMoveContext& context);
+// 0x5df449..0x5df58b, desde 0x5d8d50 con el clic fuera de las ventanas: lo que no se tira al piso (el aviso 269 y
+// 0x5be150), las cajas de 0x1a20 a 0x1a25 (el aviso 1915 y 0x5be150) y los paquetes de joyas y el Jewel of Guardian
+// (0x402b30 y 0x5e06b6: 0x5be150, con el aviso 269 salvo con el inventario abierto y el mouse a su derecha). Tirar lo
+// demás (0x5df58b, CL9.3) corta.
+struct GroundDrop
+{
+    std::int32_t mouseX = 0;
+    // IsOpen(0x4000000), que no saca rand().
+    bool inventoryOpen = false;
+};
+
+[[nodiscard]] Core::Expected<void, std::string> DropOnTheGround(const InventoryMoveContext& context,
+                                                                const GroundDrop& drop);
 
 // 0x4d1400, el 24 cifrado: suelta la traba; con 0xff, 0x5be150; si no, la cuenta en 0 y, en el inventario,
 // 0x5bc740 con el último argumento en 0 y el sonido 0x1d.

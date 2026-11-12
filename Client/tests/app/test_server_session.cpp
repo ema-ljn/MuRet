@@ -26,6 +26,7 @@
 #include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/World.h"
@@ -4186,6 +4187,61 @@ TEST(ServerSessionTest, UnencryptedTeleportIsAnsweredWithF103BeforeReadingItsFie
     EXPECT_TRUE(SameBytes(Xor32Decode(received.packets.back()).Bytes(), Bytes({0xc1, 6, 0xf1, 3, 0, 0x1c})));
     EXPECT_TRUE(received.packets.back().WasDecrypted());
     EXPECT_TRUE(tested.eventSink.world.empty());
+}
+
+// 04 § Mover y equipar ítems: el 24 cifrado, el 28, el 2A y los F3 14 y F3 13 llegan al mundo en orden; el 24 sin
+// cifrar se contesta con el C1 06 F1 03 00 16 (0x4d166b) sin leerlo, y el 24 del cliente sale con XOR32 y en C3.
+// El ítem es inventado.
+TEST(ServerSessionTest, TheItemMovesReachTheWorldAndTheClearOneIsReported)
+{
+    namespace Inventory = Client::Protocol::Inventory;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    auto equipment = Bytes({0xc1, 0x18, 0xf3, 0x13, 0x12, 0x34, 0});
+    equipment.resize(0x18, std::byte{0x11});
+    tested.socket.reads = {Join(
+        {FromTheGameServer(Bytes({0xc1, 0x0c, 0x24, 0, 0x15, 0x21, 0x0b, 0x2c, 0, 0, 0x70, 0}), tested.gameServerSends),
+         Bytes({0xc1, 5, 0x28, 0x16, 1}), Bytes({0xc1, 6, 0x2a, 2, 9, 0}),
+         Bytes({0xc1, 0x0c, 0xf3, 0x14, 0x17, 0x21, 0x0b, 0x2c, 0, 0, 0x70, 0}), equipment})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 5u);
+    const auto* moved = std::get_if<Inventory::ItemMoveResult>(&events[0]);
+    ASSERT_NE(moved, nullptr);
+    EXPECT_EQ(moved->result, 0);
+    EXPECT_EQ(moved->slot, 0x15);
+    EXPECT_EQ(moved->item[0], std::byte{0x21});
+    const auto* deleted = std::get_if<Inventory::ItemDelete>(&events[1]);
+    ASSERT_NE(deleted, nullptr);
+    EXPECT_EQ(deleted->slot, 0x16);
+    const auto* durability = std::get_if<Inventory::Durability>(&events[2]);
+    ASSERT_NE(durability, nullptr);
+    EXPECT_EQ(durability->durability, 9);
+    const auto* put = std::get_if<Inventory::ItemPut>(&events[3]);
+    ASSERT_NE(put, nullptr);
+    EXPECT_EQ(put->slot, 0x17);
+    const auto* change = std::get_if<Inventory::EquipmentChange>(&events[4]);
+    ASSERT_NE(change, nullptr);
+    EXPECT_EQ(change->key, 0x1234);
+
+    const auto before = tested.GameServerReads().packets.size();
+    tested.socket.reads = {Bytes({0xc1, 0x0c, 0x24, 0, 0x15, 0x21, 0x0b, 0x2c, 0, 0, 0x70, 0})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto reported = tested.GameServerReads();
+    ASSERT_EQ(reported.packets.size(), before + 1);
+    EXPECT_TRUE(SameBytes(Xor32Decode(reported.packets.back()).Bytes(), Bytes({0xc1, 6, 0xf1, 3, 0, 0x16})));
+    EXPECT_TRUE(reported.packets.back().WasDecrypted());
+    EXPECT_TRUE(tested.eventSink.world.empty());
+
+    ASSERT_TRUE(tested.session
+                    .SendItemMove(Inventory::ItemMove{
+                        .sourceFlag = 0, .sourceSlot = 0x15, .item = moved->item, .targetFlag = 0, .targetSlot = 0x16})
+                    .HasValue());
+    const auto sent = tested.GameServerReads();
+    ASSERT_EQ(sent.packets.size(), before + 2);
+    EXPECT_TRUE(SameBytes(Xor32Decode(sent.packets.back()).Bytes(),
+                          Bytes({0xc1, 0x0e, 0x24, 0, 0x15, 0x21, 0x0b, 0x2c, 0, 0, 0x70, 0, 0, 0x16})));
+    EXPECT_TRUE(sent.packets.back().WasDecrypted());
 }
 
 // La conexión cifra sólo el gate: los tres C1 de mundo restantes salen con XOR32 sin C3.

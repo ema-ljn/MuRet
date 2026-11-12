@@ -665,23 +665,25 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     Scenes::GameModels models;
     // La escena en curso (0x6d5dc8) que leen el 00 y el 0D: la del SceneManager, que se arma después.
     const Scenes::SceneManager* sceneManager = nullptr;
-    Scenes::SessionEventApplier eventApplier(
-        Scenes::WorldEntryResources{.world = world,
-                                    .selection = selection,
-                                    .dataRoot = *startup.config.dataPath,
-                                    .cloth = clothWorld,
-                                    .camera = camera,
-                                    .cameraInput = cameraInput,
-                                    .models = models,
-                                    .items = scenes.data.items ? &scenes.data.items->table : nullptr,
-                                    .itemSetTables = scenes.data.itemSets ? &*scenes.data.itemSets : nullptr,
-                                    .log = log,
-                                    .clock = &clock,
-                                    .textMeasure = &frame.Value()->TextMeasure(),
-                                    .screen = [&window] { return window.PixelSize(); },
-                                    .scene = [&sceneManager]() -> std::optional<Scenes::SceneId>
-                                    { return sceneManager != nullptr ? sceneManager->Current() : std::nullopt; },
-                                    .texts = scenes.data.text ? &*scenes.data.text : nullptr});
+    // Lo que usan las respuestas del mundo y, para levantar, soltar y equipar, el juego.
+    const Scenes::WorldEntryResources worldEntry{
+        .world = world,
+        .selection = selection,
+        .dataRoot = *startup.config.dataPath,
+        .cloth = clothWorld,
+        .camera = camera,
+        .cameraInput = cameraInput,
+        .models = models,
+        .items = scenes.data.items ? &scenes.data.items->table : nullptr,
+        .itemSetTables = scenes.data.itemSets ? &*scenes.data.itemSets : nullptr,
+        .log = log,
+        .clock = &clock,
+        .textMeasure = &frame.Value()->TextMeasure(),
+        .screen = [&window] { return window.PixelSize(); },
+        .scene = [&sceneManager]() -> std::optional<Scenes::SceneId>
+        { return sceneManager != nullptr ? sceneManager->Current() : std::nullopt; },
+        .texts = scenes.data.text ? &*scenes.data.text : nullptr};
+    Scenes::SessionEventApplier eventApplier(worldEntry);
     std::optional<Online> online;
     if (startup.server)
     {
@@ -699,7 +701,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
                                        .cameraInput = &cameraInput,
                                        .selection = &selection,
                                        .world = &world,
-                                       .textMeasure = &frame.Value()->TextMeasure()};
+                                       .textMeasure = &frame.Value()->TextMeasure(),
+                                       .worldEntry = &worldEntry};
     // El cursor lo dibuja el juego: el del sistema no se ve sobre la ventana (0x4ba238). Si SDL no puede,
     // se ven los dos.
     if (const auto hidden = window.HideSystemCursor(); !hidden.HasValue())

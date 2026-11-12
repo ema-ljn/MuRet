@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Protocol/Inventory.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameChat.h"
@@ -13,6 +14,7 @@
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -69,17 +71,20 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
     if (runtime.ui.capture != 0)
         return {};
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
+    const InventoryServices inventory = InventoryContext();
     return StepTheGameDialogs(GameUiContext{.world = *m_context.world,
                                             .random = m_context.cloth->random,
                                             .input = input,
                                             .mouseX = mouse.x,
-                                            .mouseY = mouse.y});
+                                            .mouseY = mouse.y,
+                                            .inventory = &inventory});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& input)
 {
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
     const GameChatContext chat = ChatContext();
+    const InventoryServices inventory = InventoryContext();
     // timeGetTime() de los segundos del cartel (0x46ada0): el reloj de la escena en ms.
     const auto systemTime =
         m_context.clock != nullptr
@@ -95,7 +100,7 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .screen = m_screen,
                                        .chat = &chat,
                                        .systemTime = systemTime,
-                                       .items = m_items,
+                                       .inventory = &inventory,
                                        .itemSetTables = m_chatTables.itemSetTables});
 }
 
@@ -113,6 +118,18 @@ GameChatContext GameScene::ChatContext()
                            .send = session != nullptr ? ChatSender([session](Protocol::Outgoing packet)
                                                                    { session->SendChat(std::move(packet)); })
                                                       : ChatSender{}};
+}
+
+InventoryServices GameScene::InventoryContext() const
+{
+    InventoryServices services =
+        m_context.worldEntry != nullptr ? InventoryServicesOf(*m_context.worldEntry) : InventoryServices{};
+    if (m_context.worldEntry == nullptr)
+        services.items = m_items;
+    if (App::ServerSession* session = m_session; session != nullptr)
+        services.sendItemMove = [session](const Protocol::Inventory::ItemMove& move)
+        { return session->SendItemMove(move); };
+    return services;
 }
 
 Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canvas, const GameProjection* projection)

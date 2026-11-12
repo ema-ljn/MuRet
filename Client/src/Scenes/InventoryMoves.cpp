@@ -161,6 +161,11 @@ constexpr std::array<std::uint16_t, 8> KeptOnTheGround{0x13, 0xa0a, 0x812, 0x40d
 constexpr std::uint32_t MaxDroppedLevel = 4;
 constexpr std::uint8_t DroppedFlagsMask = 0x3f;
 constexpr std::uint16_t LastBox = 0x1a25;
+// 0x402b30: la joya del ítem, 2 y 3 para los paquetes de Bless y de Soul (+1); 0x5df574 los manda con JGE a 0x5e06b6,
+// como al Jewel of Guardian (0x5df57c).
+constexpr std::uint16_t BlessBundle = 0x181e;
+constexpr std::uint16_t SoulBundle = 0x181f;
+constexpr std::uint16_t JewelOfGuardian = 0x1c1f;
 
 // 0x5c2c8b..0x5c2d25: lo que no se saca en Icarus sin otra cosa que vuele (las alas de 0x1800 a 0x1806 y Cape of
 // Lord en el 7; Guardian Angel, Imp, Horn of Dinorant y Dark Horse en el 8) ni en Chaos Castle (0x1a02..0x1a05).
@@ -272,8 +277,8 @@ Core::Expected<void, std::string> UpdateTheArrows(const InventoryMoveContext& co
         const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
                                                 Render::Models::OwnRecordCloseRandoms);
         if ((context.world.OwnCharacter().characterClass & ClassMask) == ElfClass)
-            return Core::Unexpected(std::string("0x557abb: las flechas del elfo (0x5579e0 y 0x561840) son del "
-                                                "hito 5"));
+            return Core::Unexpected(std::string("0x557abb: buscar las flechas del elfo (0x5579e0, desde 0x561840) "
+                                                "no está portado (P-C72)"));
     }
     return Message(context.services, ArrowsText, "0x561c31");
 }
@@ -709,7 +714,7 @@ Core::Expected<void, std::string> PickUpFromTheEquipment(const InventoryMoveCont
     ItemState& item = world.OwnCharacter().equipment.at(slot);
     if (runtime.panels.repairMode != 0)
         return Core::Unexpected(
-            std::format("0x5c2dd5: reparar el {:#x} del lugar {} del equipo es del hito 5", item.id, slot));
+            std::format("0x5c2dd5: reparar el {:#x} del lugar {} del equipo es de la CL9.3", item.id, slot));
     runtime.movement.pendingClick = false;
     const std::int32_t type = Signed(item.id);
     const auto isWingOrCape = [](std::int32_t id) { return InRange(id, FirstWing, LastWing) || id == CapeOfLord; };
@@ -744,6 +749,31 @@ Core::Expected<void, std::string> PickUpFromTheEquipment(const InventoryMoveCont
     else if (slot == LeftHandSlot && runtime.cursorItem.id == DarkRaven)
         HeroOf(world).darkSpirit.reset();
     return {};
+}
+
+Core::Expected<void, std::string> MoveTheLeftWeaponToTheRight(const InventoryMoveContext& context)
+{
+    WorldState& world = context.world;
+    WorldRuntime& runtime = world.Runtime();
+    {
+        // 0x59bd3e..0x59bf17: abre el registro propio y lo cierra con su cuenta (3.848 rand() sin otros accesos).
+        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        ItemState& left = world.OwnCharacter().equipment[LeftHandSlot];
+        runtime.cursorItem = left;
+        runtime.cursorItemCount = static_cast<std::int32_t>(left.occupied);
+        left.id = EmptyOwnItemId;
+        left.scalar1Low = 0;
+    }
+    if (auto dressed = Dress(context.services, "0x59bf23"); !dressed.HasValue())
+        return dressed;
+    // 0x59bf28..0x59bf50.
+    runtime.cursorGrid = CursorGrid::Inventory;
+    runtime.slot78a6758 = static_cast<std::int32_t>(LeftHandSlot);
+    runtime.itemMoveTarget = 0;
+    if (runtime.ui.field78abb39 != 0)
+        return {};
+    return SendTheCursorItem(context, static_cast<std::uint8_t>(RightHandSlot));
 }
 
 void HoverTheEquipment(const InventoryMoveContext& context, std::size_t slot, std::int32_t left, std::int32_t top,
@@ -864,7 +894,7 @@ Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveCont
     {
         if (jewelMark && drop.inventoryOpen && cursor.id != JewelOfCreation)
             return Core::Unexpected(std::format("0x5d82a8: la joya {:#x} sobre otro ítem (0x5d7f50 y el C1 .. 26) es "
-                                                "del hito 5",
+                                                "de la CL9.3",
                                                 cursor.id));
         return false;
     }
@@ -904,9 +934,10 @@ Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveCont
     return true;
 }
 
-Core::Expected<void, std::string> DropOnTheGround(const InventoryMoveContext& context)
+Core::Expected<void, std::string> DropOnTheGround(const InventoryMoveContext& context, const GroundDrop& drop)
 {
-    const ItemState& cursor = context.world.Runtime().cursorItem;
+    const WorldRuntime& runtime = context.world.Runtime();
+    const ItemState& cursor = runtime.cursorItem;
     const std::int32_t type = Signed(cursor.id);
     const std::uint32_t level = LevelOf(cursor);
     // 0x5df449..0x5df544: las mascotas, las joyas, las alas, Dark Horse, Dark Raven, Cape of Lord, +0x1c % 4 en 1 o 2,
@@ -930,8 +961,19 @@ Core::Expected<void, std::string> DropOnTheGround(const InventoryMoveContext& co
             return warned;
         return ReturnTheCursorItem(context);
     }
+    // 0x5df567..0x5df585 → 0x5e06b6: los paquetes de joyas y el Jewel of Guardian. Con el inventario abierto y el
+    // mouse a su derecha, solo 0x5be150; si no, el mismo aviso 269 antes.
+    if (cursor.id == BlessBundle || cursor.id == SoulBundle || cursor.id == JewelOfGuardian)
+    {
+        if (!drop.inventoryOpen || drop.mouseX <= runtime.hud.inventoryX)
+        {
+            if (auto warned = Message(context.services, KeptText, "0x5e0701 (0x5e06d9)"); !warned.HasValue())
+                return warned;
+        }
+        return ReturnTheCursorItem(context);
+    }
     return Core::Unexpected(
-        std::format("0x5df567: tirar el {:#x} al piso (0x402b30 y su envío) es de la CL9.3", cursor.id));
+        std::format("0x5df58b: tirar el {:#x} al piso (el resto de 0x5df430 y su envío) es de la CL9.3", cursor.id));
 }
 
 Core::Expected<void, std::string> ApplyItemMoveResult(const Protocol::Inventory::ItemMoveResult& result,

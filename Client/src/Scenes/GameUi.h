@@ -2,7 +2,6 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
-#include "Data/Tables/ItemTable.h"
 
 #include <array>
 #include <cstdint>
@@ -38,6 +37,7 @@ namespace Client::Scenes
 class WorldState;
 struct GameChatContext;
 struct GameMovementState;
+struct InventoryServices;
 
 struct GameUiContext
 {
@@ -58,9 +58,11 @@ struct GameUiContext
     const GameChatContext* chat = nullptr;
     // timeGetTime() de los segundos del cartel (0x46ada0).
     std::uint32_t systemTime = 0;
-    // Item.bmd (*[0x7758550]) e ItemSetType.bmd con ItemSetOption.bmd (0x40c600), que lee 0x550d10 cuando la C o el
-    // botón del HUD abren el personaje (0x65ca1e). nullptr si no se cargaron: abrirlo corta en lo primero que las lee.
-    const Data::Tables::ItemTable* items = nullptr;
+    // Item.bmd, vestir al héroe, el cuervo, los mensajes y el envío del 24 para levantar, soltar y equipar
+    // (Scenes/InventoryMoves). nullptr (los tests que no los miran): lo que los necesita corta.
+    const InventoryServices* inventory = nullptr;
+    // ItemSetType.bmd e ItemSetOption.bmd (0x40c600), que lee 0x550d10 con el Item.bmd de `inventory` cuando la C o el
+    // botón del HUD abren el personaje (0x65ca1e). nullptr si no se cargaron: abrirlo corta en 0x40e1b0.
     const Data::Tables::ItemSetTables* itemSetTables = nullptr;
 };
 

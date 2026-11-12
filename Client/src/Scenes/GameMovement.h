@@ -21,6 +21,7 @@ struct Skeleton;
 namespace Client::Scenes
 {
 class WorldState;
+struct InventoryServices;
 struct HeroMovementInput
 {
     std::int32_t mouseX = 0;
@@ -48,6 +49,9 @@ struct HeroMovementContext
     std::function<void(std::uint8_t)> requestGate{};
     float fixedHeight = 1200.0f;
     std::function<Core::Expected<void, std::string>(std::uint8_t)> sendFacing{};
+    // Vestir al héroe y el envío del 24, para pasar el arma de la izquierda a la derecha (0x59bd3e). nullptr: corta
+    // donde los pide.
+    const InventoryServices* inventory = nullptr;
 };
 [[nodiscard]] Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& context);
 } // namespace Client::Scenes

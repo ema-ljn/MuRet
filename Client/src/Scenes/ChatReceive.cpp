@@ -119,20 +119,6 @@ Core::Expected<std::string_view, std::string> TextOf(const ChatReceiveContext& c
     return CString(*text);
 }
 
-// 0x5110d0: el primero de los 400 vivo con la clave (MOVSX de +0x1f4 contra el int del paquete: una clave desde
-// 0x8000 no la tiene nadie); sin ninguno, el 400.
-std::size_t ActorWithKey(const WorldState& world, std::uint16_t key)
-{
-    const auto actors = world.Actors();
-    for (std::size_t index = 0; index < KeySearched; ++index)
-    {
-        const ActorState& actor = actors[index];
-        if (actor.alive && static_cast<std::int32_t>(static_cast<std::int16_t>(actor.key)) == key)
-            return index;
-    }
-    return KeySearched;
-}
-
 // REPE CMPSB de 12 bytes desde +0x1d9: los diez del nombre, +0x1e3 y +0x1e4, que MuRet no tiene y toma en 0.
 bool IsTheGuildMaster(const ActorState& actor)
 {
@@ -157,6 +143,20 @@ std::uint8_t OwnSkillByte(const OwnCharacterRecord& own, std::size_t index)
                                      0xffu);
 }
 } // namespace
+
+// 0x5110d0: el primero de los 400 vivo con la clave (MOVSX de +0x1f4 contra el int del paquete: una clave desde
+// 0x8000 no la tiene nadie); sin ninguno, el 400.
+std::size_t ActorWithKey(const WorldState& world, std::uint16_t key)
+{
+    const auto actors = world.Actors();
+    for (std::size_t index = 0; index < KeySearched; ++index)
+    {
+        const ActorState& actor = actors[index];
+        if (actor.alive && static_cast<std::int32_t>(static_cast<std::int16_t>(actor.key)) == key)
+            return index;
+    }
+    return KeySearched;
+}
 
 Core::Expected<void, std::string> ApplyChat(const Protocol::Messages::Chat& chat, const ChatReceiveContext& context)
 {

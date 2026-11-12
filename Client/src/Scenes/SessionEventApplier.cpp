@@ -9,6 +9,7 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
@@ -18,6 +19,7 @@
 #include "Scenes/ChatReceive.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/IWorldTransitionPublisher.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/InventoryReply.h"
 #include "Scenes/MovementReplies.h"
 #include "Scenes/ReturnToSelection.h"
@@ -164,6 +166,16 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         ApplyReturnToSelection(m_resources);
         return {};
     }
+    if (const auto* moved = std::get_if<Protocol::Inventory::ItemMoveResult>(&event))
+        return ApplyItemMoveResult(*moved, m_resources);
+    if (const auto* deleted = std::get_if<Protocol::Inventory::ItemDelete>(&event))
+        return ApplyItemDelete(*deleted, m_resources);
+    if (const auto* durability = std::get_if<Protocol::Inventory::Durability>(&event))
+        return ApplyDurability(*durability, m_resources);
+    if (const auto* change = std::get_if<Protocol::Inventory::EquipmentChange>(&event))
+        return ApplyEquipmentChange(*change, m_resources);
+    if (const auto* put = std::get_if<Protocol::Inventory::ItemPut>(&event))
+        return ApplyItemPut(*put, m_resources);
     if (const auto* inventory = std::get_if<Protocol::Character::InventoryList>(&event))
     {
         const auto applied = ApplyInventory(*inventory, m_resources);

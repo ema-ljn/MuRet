@@ -31,6 +31,7 @@
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
+#include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
@@ -246,6 +247,16 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnNotice(packet); }) &&
         m_gameServer.On(CharacterOpcode, Protocol::OptionData::OptionDataSubcode,
                         [this](const Network::Packet& packet) { OnOptionData(packet); }) &&
+        m_gameServer.On(Protocol::Inventory::ItemMoveOpcode,
+                        [this](const Network::Packet& packet) { OnItemMove(packet); }) &&
+        m_gameServer.On(Protocol::Inventory::ItemDeleteOpcode,
+                        [this](const Network::Packet& packet) { OnItemDelete(packet); }) &&
+        m_gameServer.On(Protocol::Inventory::DurabilityOpcode,
+                        [this](const Network::Packet& packet) { OnDurability(packet); }) &&
+        m_gameServer.On(CharacterOpcode, Protocol::Inventory::EquipmentChangeSubcode,
+                        [this](const Network::Packet& packet) { OnEquipmentChange(packet); }) &&
+        m_gameServer.On(CharacterOpcode, Protocol::Inventory::ItemPutSubcode,
+                        [this](const Network::Packet& packet) { OnItemPut(packet); }) &&
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); }) &&
         m_gameServer.On(Protocol::Connection::MainCheckOpcode,
                         [this](const Network::Packet& packet) { OnMainCheck(packet); });
@@ -1013,6 +1024,75 @@ void ServerSession::OnOptionData(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(options.Value(), *this)));
+}
+
+// 04 § Mover y equipar ítems. El 24 sin cifrar no se lee: 0x4d1400 manda el C1 06 F1 03 00 16 en C3 y no suelta la
+// traba (0x4d1432..0x4d1970). Sus dos rand() (el relleno y el serial) no salen del de la CRT, como los del F3 10.
+void ServerSession::OnItemMove(const Network::Packet& packet)
+{
+    if (!packet.WasDecrypted())
+    {
+        m_log.Warning("el movimiento de ítem (24) no llegó cifrado: se le avisa al GameServer (F1 03)");
+        Protocol::Outgoing report = Protocol::Inventory::WriteClearItemMoveReport();
+        m_connection.Send(std::move(report.packet), report.delivery);
+        return;
+    }
+    const auto result = Protocol::Inventory::ReadItemMoveResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora el movimiento de ítem (24): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
+}
+
+void ServerSession::OnItemDelete(const Network::Packet& packet)
+{
+    const auto deleted = Protocol::Inventory::ReadItemDelete(packet);
+    if (!deleted.HasValue())
+    {
+        m_log.Warning("se ignora el borrado de ítem (28): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(deleted.Value(), *this)));
+}
+
+void ServerSession::OnDurability(const Network::Packet& packet)
+{
+    const auto durability = Protocol::Inventory::ReadDurability(packet);
+    if (!durability.HasValue())
+    {
+        m_log.Warning("se ignora la durabilidad (2A): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(durability.Value(), *this)));
+}
+
+void ServerSession::OnEquipmentChange(const Network::Packet& packet)
+{
+    const auto change = Protocol::Inventory::ReadEquipmentChange(packet);
+    if (!change.HasValue())
+    {
+        m_log.Warning("se ignora el equipo de otro (F3 13): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(change.Value(), *this)));
+}
+
+void ServerSession::OnItemPut(const Network::Packet& packet)
+{
+    const auto put = Protocol::Inventory::ReadItemPut(packet);
+    if (!put.HasValue())
+    {
+        m_log.Warning("se ignora el ítem puesto (F3 14): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(put.Value(), *this)));
+}
+
+Core::Expected<void, std::string> ServerSession::SendItemMove(const Protocol::Inventory::ItemMove& move)
+{
+    return SendWorldPacket(Protocol::Inventory::WriteItemMove(move));
 }
 
 void ServerSession::ResendServerListRequest()

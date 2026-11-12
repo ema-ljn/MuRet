@@ -7,6 +7,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/SceneId.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -43,6 +44,10 @@ struct ChatReceiveContext
     // 0x6d5edc: el lugar del elegido en la selección, de 0 a 4. Vacío, el −1.
     std::optional<std::uint8_t> chosenSlot{};
 };
+
+// 0x5110d0: el primero de los 400 vivo con la clave (MOVSX de +0x1f4 contra el int del paquete: una clave desde
+// 0x8000 no la tiene nadie); sin ninguno, el 400.
+[[nodiscard]] std::size_t ActorWithKey(const WorldState& world, std::uint16_t key);
 
 // 0x4c6070 fuera de la escena 2: el nombre de pkt[3..12] y, según pkt[0xd], el texto al chat de la party (~, tipo 4),
 // al aviso del gremio (@@, tipo 6), al del gremio (@, tipo 5), solo a un globo que también va al registro (#,

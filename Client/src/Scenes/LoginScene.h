@@ -39,12 +39,14 @@
 #include "Scenes/SceneWorlds.h"
 #include "Scenes/WorldModels.h"
 #include "Scenes/WorldState.h"
+#include "UI/CreditsWindow.h"
 #include "UI/EscapeWindow.h"
 #include "UI/LoginWindow.h"
 #include "UI/MenuBar.h"
 #include "UI/NewUi.h"
 #include "UI/NoticeWindow.h"
 #include "UI/Notices.h"
+#include "UI/OptionsWindow.h"
 #include "UI/ServerListWindow.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -113,11 +115,11 @@ public:
     // ventana de arriba y, sin aviso, la barra. La sesión la corre el SceneManager, antes.
     void Step(const Input::InputState& input) override;
     // 0x6350b0 sin el fundido (Q-C66) ni lo común a las escenas: en el pase 3D, el terreno, el
-    // personaje (0x510d00), el caballo y los objetos con el logo (0x6046a0); al final la UI: la lista, la barra de
-    // abajo, la cuenta y el aviso, cada uno con la mezcla normal.
+    // personaje (0x510d00), el caballo y los objetos con el logo (0x6046a0), salvo con los créditos
+    // abiertos; al final la UI, cada ventana con la mezcla normal.
     void Render(SceneCanvas& canvas, float alpha) override;
-    // Cierra las ventanas (la de la cuenta vacía la clave) y suelta sus 21 slots, los del mundo y los del
-    // logo.
+    // Cierra las ventanas (la de la cuenta vacía la clave) y suelta sus slots, los del mundo, los del logo
+    // y las ilustraciones de los créditos.
     void Leave() override;
     // La selección con el login aceptado (SessionState::LoggedIn), como 0x634dce con el 0x14.
     [[nodiscard]] std::optional<SceneId> Next() const override;
@@ -195,15 +197,24 @@ private:
     void OnServerClick(const UI::ServerClick& click);
     void OnLoginRequest(const UI::LoginRequest& request);
     void OnNoticeClosed(UI::NoticeId notice);
-    // 0x6411b0: el menú abre la de Esc; los créditos se cortan (P-C76).
+    // 0x6411b0: el menú abre la de Esc y el crédito, los créditos.
     void OnMenuBarClick(UI::MenuBarClick click);
     // 0x647d40: lo que pasó en la de Esc.
     void OnEscapeEvent(const UI::EscapeWindowEvent& event);
+    // 0x644730: lo que cambió en las opciones, a los globales.
+    void OnOptionsEvent(const UI::OptionsEvent& event);
+    // 0x641203: el F4 06, los créditos con 0x65f690 y lo que pasó al abrirlos.
+    void OpenTheCredits();
+    // Lo que pasó en los créditos al abrirlos o en un paso: cada cierre (0x63f9a0) manda el F4 06, y una
+    // ilustración nueva (0x63fc50) se sube.
+    void FollowTheCredits(const UI::CreditsStep& step);
+    void ReleaseTheIllustrations();
     // 0x65fc30 al empezar el paso, como 0x637700 antes de 0x634c60: cada ventana con su turno.
     void StepTheWindows(const Input::InputState& input);
     // 0x65f690: abre la ventana con lo suyo y la pasa arriba con el foco.
     void OpenNotice(UI::NoticeId notice);
     void OpenTheEscapeWindow();
+    void OpenTheOptions();
     // La ventana de la cuenta, con el título del servidor elegido.
     void OpenLogin(UI::LoginFocus focus);
     // El aviso de una sesión que falló: 0x6f con otra versión, 0x70 con lo demás.
@@ -292,6 +303,11 @@ private:
     UI::LoginWindow m_login;
     UI::NoticeWindow m_notice;
     UI::EscapeWindow m_escape;
+    // Las opciones (+0x7e8) y los créditos (+0x4578), con la tabla de credit.bmd de GameData.
+    UI::OptionsWindow m_options;
+    UI::CreditsWindow m_credits;
+    // El par de ilustraciones de los créditos (0x6f8 y 0x6f9) que subió el último 0x63fc50.
+    std::optional<SceneTextures> m_illustrations;
     // El administrador de la UI nueva (CL8, hito 8): el orden, el foco y el mouse de las ventanas.
     UI::NewUi m_ui;
     // El estado de la sesión que vio el último paso, para abrir cada ventana una vez.

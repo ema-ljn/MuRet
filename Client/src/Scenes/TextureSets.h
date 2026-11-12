@@ -229,13 +229,16 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 18> LoginTextureSet
 // del aviso, la caja del aviso y la del código del borrado, sin filtro y sin repetir (0x2600 y
 // 0x2900). El original las sube con los datos del juego, en la carga, y no las suelta; acá las sube
 // cada escena con las suyas y las suelta al salir. Los otros cursores, de 4 a 0xa, son del HUD
-// (HudTextureSet); el cerrar, 0x726, no lo usa ninguna. Y las seis de la ventana de Esc (CL8, hito 8;
-// UI/EscapeWindow.h): el marco de 0x66a1c0 (la piedra, op1_back3 y op1_back4 repetidas) y los botones.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 12> WindowTextureSet{{
+// (HudTextureSet). Y las del hito 8 de la CL8: el cerrar (0x726), que usan los créditos
+// (UI/CreditsWindow.h); las seis de la ventana de Esc (UI/EscapeWindow.h), el marco de 0x66a1c0 (la
+// piedra, op1_back3 y op1_back4 repetidas) y los botones; y las cinco de las opciones
+// (UI/OptionsWindow.h), el borde de arriba, las casillas y el deslizador, con el relleno repetido.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 18> WindowTextureSet{{
     {"Interface\\Cursor.tga", 0x02, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorPush.tga", 0x03, TextureSetsDetail::LinearClamp},
     {"Interface\\message_ok_b_all.tga", 0x724, TextureSetsDetail::NearestClamp},
     {"Interface\\loding_cancel_b_all.tga", 0x725, TextureSetsDetail::NearestClamp},
+    {"Interface\\message_close_b_all.tga", 0x726, TextureSetsDetail::NearestClamp},
     {"Interface\\message_back.tga", 0x727, TextureSetsDetail::NearestClamp},
     {"Interface\\delete_secret_number.tga", 0x728, TextureSetsDetail::NearestClamp},
     {"Interface\\op1_stone.jpg", 0x72a, TextureSetsDetail::NearestRepeat},
@@ -244,7 +247,34 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 12> WindowTextureSe
     {"Interface\\op1_back3.jpg", 0x72d, TextureSetsDetail::NearestRepeat},
     {"Interface\\op1_back4.jpg", 0x72e, TextureSetsDetail::NearestRepeat},
     {"Interface\\op1_b_all.tga", 0x72f, TextureSetsDetail::NearestClamp},
+    {"Interface\\op2_back1.tga", 0x730, TextureSetsDetail::NearestClamp},
+    {"Interface\\op2_ch.tga", 0x731, TextureSetsDetail::NearestClamp},
+    {"Interface\\op2_volume3.tga", 0x732, TextureSetsDetail::NearestClamp},
+    {"Interface\\op2_volume2.jpg", 0x733, TextureSetsDetail::NearestRepeat},
+    {"Interface\\op2_volume1.tga", 0x734, TextureSetsDetail::NearestClamp},
 }};
+
+// Las ilustraciones de los créditos (0x63fc50, CL8 hito 8; UI/CreditsWindow.h): el par +0x5c8 en 0x6f8
+// y 0x6f9, con filtro y sin repetir (0x63b870 con 0x2601 y 0x2900), de los nombres de +0x5cc. El original
+// las sube cuando los créditos empiezan o pasan al par siguiente, encima de las que había; el login de
+// MuRet suelta el par anterior y sube el nuevo.
+inline constexpr std::array<std::array<Data::Textures::TextureSetEntry, 2>, 8> CreditIllustrationSets{
+    {{{{"Interface\\im1_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
+       {"Interface\\im1_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}},
+     {{{"Interface\\im2_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
+       {"Interface\\im2_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}},
+     {{{"Interface\\im3_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
+       {"Interface\\im3_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}},
+     {{{"Interface\\im4_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
+       {"Interface\\im4_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}},
+     {{{"Interface\\im5_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
+       {"Interface\\im5_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}},
+     {{{"Interface\\im6_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
+       {"Interface\\im6_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}},
+     {{{"Interface\\im7_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
+       {"Interface\\im7_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}},
+     {{{"Interface\\im8_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
+       {"Interface\\im8_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}}}};
 
 // Las arenas de Tarkan y el humo de Crywolf y del asedio que dibuja el HUD del juego (0x5a7520): 0x61c7c0, el
 // login, las sube con GL_LINEAR y GL_REPEAT y no las suelta, y el juego las usa así. MuRet las suelta con el

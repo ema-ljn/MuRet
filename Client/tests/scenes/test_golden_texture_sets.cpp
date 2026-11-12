@@ -74,10 +74,13 @@ static_assert(LoadingImageSizes.size() == LoadingTextureSet.size());
 // Los dos cursores, el OK y el cancelar, con sus tres estados uno arriba del otro, la caja del aviso, que
 // mide lo que la ventana (0x6429b0), y la del código del borrado (0x642bf0). Después, las de la ventana
 // de Esc, con lo que les pone la tabla de 0x6478c0: la piedra, los dos bordes, los dos lados de una línea
-// y los botones de cuatro cuadros de 30.
-inline constexpr std::array<ImageSize, 12> WindowImageSizes{{
+// y los botones de cuatro cuadros de 30. El cerrar de los créditos tiene tres cuadros de 30 (0x63f202);
+// las de las opciones, lo que les ponen 0x644120 y 0x646640: el borde de arriba de 65, las casillas de
+// dos cuadros de 16, la perilla, el relleno y la barra.
+inline constexpr std::array<ImageSize, 18> WindowImageSizes{{
     {32, 32},
     {32, 32},
+    {54, 90},
     {54, 90},
     {54, 90},
     {352, 113},
@@ -88,6 +91,11 @@ inline constexpr std::array<ImageSize, 12> WindowImageSizes{{
     {5, 8},
     {5, 8},
     {108, 120},
+    {213, 65},
+    {16, 32},
+    {13, 13},
+    {4, 7},
+    {98, 13},
 }};
 static_assert(WindowImageSizes.size() == WindowTextureSet.size());
 

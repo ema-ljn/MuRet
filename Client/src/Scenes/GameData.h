@@ -5,6 +5,7 @@
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
+#include "Data/Text/Credits.h"
 #include "Data/Text/SlideTable.h"
 #include "Data/Text/TextTable.h"
 #include "UI/MacroFile.h"
@@ -33,6 +34,8 @@ inline constexpr std::string_view SkillTableFile = "Local\\Skill.bmd";
 // Las tablas de los conjuntos, como las pide 0x40c600 desde 0x61ccb0 (0x6c63e8 y 0x6c63c8).
 inline constexpr std::string_view ItemSetTypeFile = "Local\\ItemSetType.bmd";
 inline constexpr std::string_view ItemSetOptionFile = "Local\\ItemSetOption.bmd";
+// Los créditos, como los pide 0x63ff30 ("Data\Local\credit.bmd", 0x6d66e0).
+inline constexpr std::string_view CreditsFile = "Local\\credit.bmd";
 // Las macros, como las pide 0x61ee30 (0x6c649c), detrás de Text.bmd.
 inline constexpr std::string_view MacroFile = "Macro.txt";
 // Los textos del cartel, como los pide 0x61ccb0 (0x61ed18, con 0x6d29c8).
@@ -53,6 +56,11 @@ struct GameData
     std::optional<Data::Tables::ItemSetTables> itemSets;
     // Skill.bmd: la tabla en claro, sin el contenedor guardia del original (Q-C08).
     std::optional<Data::Tables::SkillTable> skills;
+    // credit.bmd (CL8, hito 8): los 400 registros de los créditos (UI::CreditsWindow), o ninguno si no
+    // está. El original lo lee cada vez que arma la UI del login (0x63ff30) y, si no está, avisa con un
+    // MessageBox y cierra el juego (WM_DESTROY); MuRet lo lee una vez, y sin él los créditos se cierran al
+    // abrirlos (P-C78).
+    std::vector<Data::Text::CreditEntry> credits;
     // Data\Macro.txt (0x61c1c0): main.cpp las copia a ChatInputState::macros cuando arma el mundo.
     UI::Macros macros{};
     // Slide.bmd (CL8 hito 3): el período, la velocidad y los textos del cartel de [0x5763528]. Vacío si no está.
@@ -75,6 +83,7 @@ struct GameData
 // detrás de Text.bmd, como en 0x61ee30: si Macro.txt no está o no se lee, quedan vacías, como cuando fopen falla en
 // 0x61c1c0; una palabra que desborda su lugar (Q-C531) es el error. Al final, Slide.bmd (0x46b3b0): uno que no está
 // deja `slides` vacío y el cartel con lo de su constructor (el original avisa "File not exist." y se cierra, Q-C517);
-// uno que no se lee o es corto es un error que lo nombra.
+// uno que no se lee o es corto es un error que lo nombra. credit.bmd puede faltar (los créditos quedan vacíos); uno
+// que no se lee o es corto es un error que lo nombra.
 [[nodiscard]] Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot);
 } // namespace Client::Scenes

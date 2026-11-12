@@ -4,6 +4,7 @@
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
+#include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
 #include "Scenes/ITextDrawer.h"
 #include "UI/Button.h"
@@ -40,6 +41,10 @@ struct EscapeWindowLayout
 
 // 0x66a960: el fondo de piedra, el borde de arriba, el de abajo y los dos lados, en ese orden.
 [[nodiscard]] std::array<Render::UiImage, 5> EscapeFrameImages(Rect frame, const TextureSizes& sizes);
+// Lo mismo con otro borde de arriba (`topSlot`, de `topHeight`): el de las opciones es op2_back1,
+// de 65 (0x644120).
+[[nodiscard]] std::array<Render::UiImage, 5> StoneFrameImages(Rect frame, Render::TextureSlot topSlot, int topHeight,
+                                                              const TextureSizes& sizes);
 
 // Lo que pasó en un paso de 0x647d40.
 struct EscapeWindowEvent

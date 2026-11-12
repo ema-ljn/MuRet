@@ -230,6 +230,10 @@ public:
     // 0x4c609f: el 00 con la escena 2 (el login) pide la lista de servidores, C1 04 F4 02, por el socket que esté
     // abierto, sin mirar cuál es. En el CS es el saludo (OnConnectHello); acá, el que llega por el GS (Q-C511).
     void ResendServerListRequest();
+    // 0x641203 y 0x63f9a0, al abrir y al cerrar los créditos: C1 04 F4 06 en claro por el socket que esté
+    // abierto (0x6c82a0, el del ConnectServer mientras se ve la lista), sin mirar cuál es. Cerrado, nada:
+    // el original no manda con el socket en −1.
+    void SendCreditsNotice();
 
     // 0x4e3e98: las diez últimas recepciones 1C crudas, antes de admisión y aplicación.
     // Proyección de MuRet para los 1C: pertenece a la sesión y sobrevive Start.

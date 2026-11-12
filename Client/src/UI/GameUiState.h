@@ -66,6 +66,13 @@ struct GameUiState
     // (0x625632) y la vuelta a la selección (0x4c2533, en 1). Sus lectores de MuRet (MoveHero en 0x59b22f y 0x59b89e y
     // el picking en 0x59ee4b) lo piden junto con un elegido (0x6c8e30, 0x6c8e38), que MuRet deja en −1.
     bool autoAttack = true;
+    // 0x7d3a118: el volumen. WinMain lo lee del registro (VolumeLevel, 0x4bad33..0x4bad55) y, fuera de 0 a 9,
+    // pone 5; después 0x632d80 (el DirectSound de 0x41eed0, de la CL10). MuRet no tiene registro: 5. Lo
+    // cambian las opciones (0x6447d9) y el menú de Esc del juego (0x6257b8).
+    std::int32_t volume = 5;
+    // 0x6c9dcc (.data 4): el detalle del brillo de los ítems (Render/Models/ItemGlow.h). Lo cambian las
+    // opciones (0x64480a) y el menú de Esc del juego (0x62589b).
+    std::uint8_t glowDetail = 4;
     // 0x7d366d8: la rueda, (short) HIWORD(wParam) / 120 del último WM_MOUSEWHEEL (0x4b4c19). Nadie la vuelve a 0 por
     // paso: queda hasta que la usa alguien (el registro del chat, 0x479960; el volumen del menú, 0x625782).
     std::int32_t wheel = 0;
@@ -76,9 +83,6 @@ struct GameUiState
     bool enterPressed = false;
     // SendMessageA(hWnd, WM_DESTROY) de los diálogos 0x70, 0x6f, 0x1a y 0x1c (0x62828e): el juego se cierra.
     bool destroyRequested = false;
-    // 0x7d3a118: el volumen, de 0 a 9. WinMain lo lee del registro (0x4bad4f, 5 si no está entre 0 y 9; MuRet no lee
-    // el registro y arranca en 5) y lo cambia el menú de las opciones (0x6257b8).
-    std::int32_t volume = 5;
     // 0x7d3a120 y 0x7d3a124: la esquina de la barra del volumen, que escribe el dibujo de las opciones (0x62db60) y
     // lee su paso (0x62570a).
     std::int32_t volumeBarX = 0;
@@ -88,9 +92,6 @@ struct GameUiState
     // 0x41eed0(v): lo que el menú le pide a DirectSound al cambiar el volumen (0x6257e5 y 0x6257fa), −10000 en 0 o
     // −2000 · log10(10 / v). El gancho de la CL10, como el sonido de WorldRuntime::lastSoundId.
     std::optional<std::int32_t> volumeRequest{};
-    // 0x6c9dcc (.data 4): el brillo de los ítems, de 0 a 4, el detalle de 0x60b3d0. Lo cambia el menú de las opciones
-    // (0x62589b).
-    std::uint8_t glowDetail = 4;
 };
 
 // El panel del asedio de la clase 0 (sin gremio), el objeto de 0x20 bytes que 0x412195 arma en el mapa 30

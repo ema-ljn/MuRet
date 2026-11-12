@@ -16,6 +16,7 @@
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
 #include "Protocol/Movement.h"
+#include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 
 #include <chrono>
@@ -215,6 +216,9 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> SendWalk(std::span<const Protocol::Movement::Cell> path,
                                                              Protocol::Movement::Cell target, float angle);
     [[nodiscard]] Core::Expected<void, std::string> SendFacing(std::uint8_t direction);
+    // 0x61c210: el C1 1C F3 30 con las opciones (Protocol::OptionData::WriteOptionData), en claro. Lo piden el menú
+    // de Esc (0x624036, 0x6247ee y 0x624eec) y la entrada a los mapas 30 y 31.
+    [[nodiscard]] Core::Expected<void, std::string> SendOptionData(const Protocol::OptionData::OptionBody& body);
     void RequestGate(std::uint8_t gate);
     void ConfirmTeleport();
     void RequestCrywolfState();

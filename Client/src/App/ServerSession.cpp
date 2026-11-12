@@ -1060,6 +1060,11 @@ Core::Expected<void, std::string> ServerSession::SendFacing(std::uint8_t directi
     return SendWorldPacket(Protocol::Movement::WriteFacing(direction));
 }
 
+Core::Expected<void, std::string> ServerSession::SendOptionData(const Protocol::OptionData::OptionBody& body)
+{
+    return SendWorldPacket(Protocol::OptionData::WriteOptionData(body));
+}
+
 void ServerSession::RequestGate(std::uint8_t gate)
 {
     static_cast<void>(SendWorldPacket(Protocol::World::WriteGateRequest(gate)));

@@ -3,12 +3,16 @@
 #include "Core/ByteReader.h"
 #include "Core/Expected.h"
 #include "Network/Packet.h"
+#include "Network/PacketWriter.h"
 #include "Protocol/Character/Opcodes.h"
+#include "Protocol/Outgoing.h"
 #include "Protocol/PacketFields.h"
 #include "Protocol/ProtocolError.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 
 namespace Client::Protocol::OptionData
 {
@@ -43,5 +47,12 @@ Core::Expected<OptionData, ProtocolError> ReadOptionData(const Network::Packet& 
         return Core::Unexpected(ProtocolError::TooShort);
     data.chatWindow = *chatWindow;
     return data;
+}
+
+Outgoing WriteOptionData(const OptionBody& body)
+{
+    return Xor32C1(Network::PacketWriter::C1(Character::CharacterOpcode)
+                       .PutU8(OptionDataSubcode)
+                       .PutBytes(std::as_bytes(std::span<const std::uint8_t>(body))));
 }
 } // namespace Client::Protocol::OptionData

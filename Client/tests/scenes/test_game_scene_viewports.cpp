@@ -9,6 +9,7 @@
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Protocol/Character/CharacterSelectResult.h"
+#include "Render/ModelVertex.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Pass3D.h"
 #include "Scenes/ActorState.h"
@@ -16,6 +17,7 @@
 #include "Scenes/GameData.h"
 #include "Scenes/GameModels.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/OwnInventory.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneManager.h"
@@ -24,6 +26,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
+#include "World/ItemState.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainPickingSegment.h"
 
@@ -34,8 +37,11 @@
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_int4.hpp>
+#include <glm/trigonometric.hpp>
 
 #include <gtest/gtest.h>
 
@@ -365,6 +371,54 @@ TEST_P(GameSceneViewportTest, TheInventoryNarrowsTheWorldPass)
     EXPECT_NEAR(pass.projection[1][1], 3.17159480f, 0.000001f);
     EXPECT_NEAR(pass.projection[0][0],
                 3.17159480f * static_cast<float>(viewport.viewport.w) / static_cast<float>(width), 0.00001f);
+}
+
+// 0x5ac120 con los modelos de Item.bmd (P-C70): con el inventario abierto, el arma del lugar 0 y el escudo de la
+// primera casilla van en un lote de modelos propio, después del del mundo y de un cierre del 2D, con la pantalla
+// entera, la perspectiva de 1° con 20 y 2.000 y la vista en la identidad; los vértices quedan delante de la cámara de
+// la UI, a 200 de ella (0,1 del camino a −2.000).
+TEST_P(GameSceneViewportTest, TheInventoryItemsGoInTheUiPassAfterTheWorld)
+{
+    const auto& [viewport, steps, entry] = GetParam();
+    static_cast<void>(entry);
+    ASSERT_NO_FATAL_FAILURE(EnterWorld());
+    ASSERT_NO_FATAL_FAILURE(StartGame());
+    ASSERT_NO_FATAL_FAILURE(RunSteps(steps));
+    m_world.Runtime().panels.inventory = 1;
+    Client::World::ItemState& weapon = m_world.OwnCharacter().equipment[0];
+    weapon.id = 0x0000;
+    weapon.occupied = 1;
+    Client::World::ItemState& shield = m_world.Inventory().cells[0];
+    shield.id = 0x0c00;
+    shield.occupied = 1;
+
+    m_manager->Render(0.5f);
+
+    ASSERT_NO_FATAL_FAILURE(ExpectCompleteFrame());
+    ASSERT_EQ(m_target.frames.size(), 1u);
+    const std::vector<Client::Tests::FrameEvent>& events = m_target.frames.front().events;
+    std::vector<std::size_t> models;
+    for (std::size_t index = 0; index < events.size(); ++index)
+    {
+        if (events[index].kind == Client::Tests::FrameEvent::Kind::Models)
+            models.push_back(index);
+    }
+    ASSERT_GE(models.size(), 2u);
+    const std::size_t ui = models.back();
+    ASSERT_GT(ui, 0u);
+    EXPECT_EQ(events[ui - 1].kind, Client::Tests::FrameEvent::Kind::Flush);
+    ASSERT_TRUE(events[ui].pass.has_value());
+    const Client::Render::Pass3D& pass = *events[ui].pass;
+    EXPECT_EQ(pass.viewport, glm::ivec4(0, 0, viewport.screen.width, viewport.screen.height));
+    const float aspect = static_cast<float>(static_cast<double>(viewport.screen.width) / viewport.screen.height);
+    EXPECT_EQ(pass.projection, glm::perspective(glm::radians(1.0f), aspect, 20.0f, 2000.0f));
+    EXPECT_EQ(pass.view, glm::mat4(1.0f));
+    ASSERT_FALSE(events[ui].modelVertices.empty());
+    for (const Client::Render::ModelVertex& vertex : events[ui].modelVertices)
+    {
+        EXPECT_GT(vertex.position.z, -205.0f);
+        EXPECT_LT(vertex.position.z, -195.0f);
+    }
 }
 
 TEST_P(GameSceneViewportTest, TheWaitRetainsThePresentedFrameUntilTheCounterReachesThirty)

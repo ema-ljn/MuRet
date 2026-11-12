@@ -1145,7 +1145,8 @@ En la base todo da −1 o 0 y queda el 2 (*verificado*: los dos quads finales so
 W/H, 20, 2000)`), la cámara `0x7d366f0`, profundidad; con `0x78abb00` en 0 o 3, los ítems de las grillas abiertas
 (`0x5f7610`), el del cursor (`0x5f7b10`) y las 3 ranuras rápidas (`0x558110(i)` → `0x5e1480(208 + 31i, 454, 20,
 20, …)`); si no, `0x5f70a0`. `0x633110` (después del primer cursor) es el ítem 3D de los diálogos de NPC y de la
-mezcla, con su propia proyección: CL9.3.
+mezcla, con su propia proyección: CL9.3. El pase y el dibujo de cada ítem, en § El inventario ("El pase de los
+ítems").
 
 **Las teclas por paso** (`0x5ac8d0`, `0x63717f`, `GetAsyncKeyState` con un latch por tecla): SPACE levanta el ítem
 del piso más cercano (`0x5650c0`, CL9.3); F1 cicla las ayudas (`0x77f3b08`); F2 alterna `0x6c8dd1` (el chat normal
@@ -1385,8 +1386,60 @@ un objeto local y llama a `0x607b60` (los `rand()` de lo que cuelga del modelo: 
 y `0xe22`) y, sin excelente (`& 0x3f` en 0, o con uno de los modelos `0x1a12` a `0x1a18` o `0x1c30`, que no lo muestran) y
 con el set (`& 3`) en 1 o 2,
 hace el pase del set (`0x60cc29`): con `sin(0,001 · T) · 0,5 + 0,4 ≤ 0,01` en la x87, `rand() % 100` en el `+0xc0`
-del modelo. `0x1a18` llega a sus uniones (`0x60c3b6`, `0x530860`). MuRet saca esos `rand()` y no dibuja el modelo
-(P-C70).
+del modelo. `0x1a18` llega a sus uniones (`0x60c3b6`, `0x530860`), con el objeto local de `0x5e0720` de dueño: MuRet
+corta ahí (P-C70).
+
+**El punto de la caja** (`0x5e1486..0x5e1d69`, *estático*, leído en el ASM). Con el cursor vacío (`0x7879fbc` en 0) o
+con `siempre`, el ítem está bajo el mouse si x ≤ mx < x + w e y ≤ my < y + h (el `FILD` de `0x7d3682c` y `0x7d36828`
+contra la suma de la x87). El punto es x + w · kx e y + h · ky en la x87, con los factores de la tabla por el tipo:
+0,8 y 0,85 (`0x6b8a38`, `0x6b8bac`) de `0` a `0x1ff`; 0,6 y 0,5 con el `0x40d` y 0,8 y 0,7 con los demás de `0x200` a
+`0x5ff`; 0,6 y 0,65 de `0x600` a `0x7ff`; el `0x811`, el `0x813` y el `0x814` con los suyos y 0,7 y 0,7 de `0x808`
+a `0x9ff`; 0,6 y 0,55 hasta `0xbff`; 0,5 y 0,6 hasta `0xdff` (0,7 con el `0xc0f`, 0,9 con el `0xc10`); 0,5 y 0,8
+hasta `0x11ff` (1,05 con el `0x1002`, el `0x1004` y el `0x1006`; 1,1 con el `0x1003` y el `0x1008`); 0,5 y 0,9 hasta
+`0x17ff`; y de ahí por tipo y por paso (el `0x1a0e` sin el 8 y el `0x1a0f` suman la altura
+entera, 0,6 en x), con 0,5 y 0,7 de `0x1a00` a `0x1bff`, 0,5 y 0,6 fuera de `0x1c00..0x1dff` y 0,5 y 0,95 adentro.
+Con un paso que la tabla no tiene (el `0x1a13` fuera de 0 a 2, el `0x1a14` fuera de 0 a 3, el `0x1a0b` fuera de 0 y
+1 y el `0x1c15` con el 2 o desde el 4) salta al final sin sumar: la esquina (Q-C481). Cada coordenada va con
+`_ftol`, y `0x620480` la desproyecta con la cámara de la UI: el píxel en enteros sin signo (`W · x / 640` y
+`H · y / 480`, con `imul` y la división por multiplicación), menos el centro de `0x620d10`, por las escalas de
+`0x6203c0` y por 2.000 y −2.000, girado con `0x5fcc30` y más la cámara, que queda en `0x7d36834`.
+
+**La pose** (`0x5e0720`, *estático*). Acerca el punto a la cámara (`0x5fc790` con 0,1f, o 0,07f con `siempre`, en la
+x87 con el `fstp`); pone los ángulos de `0x78aadcc..0x78aadd4` por el modelo, con los corrimientos de la posición del
+`0x1031`, el `0x1030`, el `0x1230`, el `0x122f`, el `0xa27`, el `0xc1e`, el `0x620` (este con el double 0,01 de
+`0x6ba618`; los demás con floats) y del `0x1c32` al `0x1c37`; las armas de `0x212` a `0xe11` se inclinan 15 o 25 en
+z por el byte `+0x1e` de su registro de Item.bmd (las dos manos). El `0x1e1e` con un paso que no es 0, 1 ni 2 no los
+escribe (Q-C478). Bajo el mouse, la y gira con el reloj (`0x5767b88` · 0,45 de `0x6ba224`). Elige el que posa (el
+`0x20a` con las armaduras, de `0x1012` a `0x1a11`; el `0x1e1e` dibuja y posa el `0x223a` con el paso 0 y el `0x223b`
+con el 2), la altura de más de la raíz del que dibuja (−160, −100, −50 o −70 por la familia de la armadura, en el
+`+0x84` del modelo que posa) y la escala por el modelo con los bits del binario (el `0x225`, el `0xc1c` y el `0xa24`
+con el nivel −1 que les pasa el `0x1a13` van con otra y con el nivel en 0; el `0x1e32` al `0x1e34` suben 0,05 y
+apagan la x y la z de los ángulos). Después `0x4eb860(&0x68b181c, 0, 0, 0, ángulos, &0x78aadd8, 0, 0)` posa en el
+buffer global con la acción del modelo y el frame en 0; el objeto local va con el modelo en `+2`, `0x607b60` (sus
+`rand()`), la escala, la posición, `+0xe8` en 0 y `+0x1d4` en 2, y `0x60cf70(objeto, modelo, 0, (1, 1, 1), 1, nivel,
+excelente, set, 1, 1, 1, 0, 2)` lo dibuja como un ítem del piso: `0x4ebc80` con el buffer global y `0x60b3d0`, sin
+dueño y sin luz por vértice (Q-C480).
+
+**El pase de los ítems** (`0x5ac120`, *estático*). `0x621a90` cierra el 2D; en la PROJECTION, `glPushMatrix`, la
+identidad, `0x620d10(0, 0, W, H)` y `0x6203c0(1, W / H, 20, 2.000)` (el aspecto con `FILD` y `FIDIV`); en la
+MODELVIEW, `glPushMatrix` y la identidad, que `0x620370` copia en `0x7d366f0`: la cámara de la UI en el origen, sin
+giro. `0x620850` y `0x620890` prenden la profundidad y su máscara sin limpiarla (Q-C479). Después de los ítems, la
+identidad, `glTranslatef` con −`0x7d36884..0x7d3688c`, otra vez `0x620370`, `0x620480(100, 100, local, 1)` (que
+escribe `0x7d36834`), dos `glPopMatrix` y `0x6219b0`, que abre el 2D (P-C73).
+
+**El dibujo en MuRet** (`Scenes/UiItemDrawing.h`). `MakeUiItemPass` arma el pase de la UI (la pantalla entera, la
+perspectiva de 1° con 20 y 2.000, la vista en la identidad) y su `GameProjection`; `UnprojectGamePoint` es
+`0x620480` con esas escalas; `UiItemAnchor`, `UiItemHovered`, `UiItemCallOf` y `PlaceUiItem` son `0x5e1480` y
+`0x5e0720` hasta la pose, y `DrawUiItemModel` posa en el buffer de la pose del frame, saca los `rand()` de
+`0x607b60` y dibuja con `DrawItemFromMeshes` (`0x60b3d0`) y los contextos del frame. El primer ítem que dibuja
+cierra el lote 2D (`flushSprites`) y empieza el `ModelBatch` con el pase de la UI sin inicializar el material (como
+`0x5ac120`, que no pasa por `0x620db0`); el final de `0x5ac120` (`CloseUiItemPass`) dibuja el lote de los modelos: los
+ítems quedan encima del 2D de antes y debajo del de después, y un frame sin ítems no cambia. Las cajas: el equipo en
+la esquina de la ventana más la tabla de `0x5e2fc0` (el 3 sube 10), la grilla en (x + 15 + 20 · columna, y + 200 + 20
+· fila) del tamaño de Item.bmd (`+0x24` y `+0x25`, por 20), el cursor del tamaño de Item.bmd centrado en el mouse y
+las ranuras en ((float)(208 + 31i), 454) de 20 × 20. Los ángulos de `0x78aadcc` viven en `HudState` (y en su copia
+del frame proyectado). Sin la biblioteca de los modelos (las escenas de las pruebas), cada ítem saca los mismos
+`rand()` sin dibujar.
 
 **Las cifras** (`0x5f7840`). Sale si no hay inventario, tienda, almacén, caja del caos ni comercio, salvo con la lista
 del asedio en el modo 3 o la caja del entrenador. Con la mezcla de alfa y el color (1; 0,9; 0,7), `0x5e3760(…, 1)`
@@ -1480,9 +1533,10 @@ izquierda, abre el registro propio (3.848 al cerrarlo), pasa el ítem del lugar 
 cuenta en su `+0x3c`) y deja el lugar en `0xffff` con `+4` en 0; `0x512a30`; la grilla del inventario, el lugar 1 y
 el destino 0; y, sin la traba, el `24` del 1 al 0. Sigue con el clic (`0x59cd23`).
 
-**Lo que porta MuRet**: la ventana entera; los ítems 3D, el del cursor y los de las ranuras con sus `rand()`; las
-cifras; el mundo angosto en `GameScene` (`0x63733e` y `0x63738a`); las texturas `0x104` a `0x120` (sin `0x106`),
-`0x652`, `0x657` y `0x658` en `HudTextureSet`; el paso en `Scenes/GameUi.cpp` (`test_game_inventory_step.cpp`) con
+**Lo que porta MuRet**: la ventana entera; los ítems 3D, el del cursor y los de las ranuras, dibujados en el pase de
+la UI con sus `rand()` (`Scenes/UiItemDrawing.h`, `test_ui_item_drawing.cpp` y `test_game_inventory_hud.cpp`; el
+`0x1a18` corta en `0x60c3b6`); las cifras; el mundo angosto en `GameScene` (`0x63733e` y `0x63738a`); las texturas
+`0x104` a `0x120` (sin `0x106`), `0x652`, `0x657` y `0x658` en `HudTextureSet`; el paso en `Scenes/GameUi.cpp` (`test_game_inventory_step.cpp`) con
 los botones de reparar y cerrar, el equipo y la grilla bajo el mouse y el paso del ítem del cursor; y levantar,
 soltar, equipar, el piso, MoveHero y las respuestas en `Scenes/InventoryMoves.cpp` (`test_cursor_item.cpp` y
 `test_inventory_reply.cpp`), con Item.bmd, `0x512a30`, el cuervo y los mensajes que pide (`InventoryServices`). Las

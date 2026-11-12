@@ -51,13 +51,14 @@ Core::Expected<std::vector<MoveRequirement>, DataError> LoadMoveRequirements(std
         std::ranges::copy(source, record.begin());
         Core::Xor3(record);
         const std::span<const std::byte> bytes(record);
-        const auto end = std::ranges::find(bytes.subspan(NameOffset), std::byte{0});
-        if (end == bytes.end())
+        // Los iteradores salen todos del mismo span: los de MSVC (Debug) no se comparan entre spans distintos.
+        const std::span<const std::byte> nameBytes = bytes.subspan(NameOffset);
+        const auto end = std::ranges::find(nameBytes, std::byte{0});
+        if (end == nameBytes.end())
             return Core::Unexpected(DataError::InvalidData);
         MoveRequirement move;
         move.index = static_cast<std::int32_t>(ReadWord(bytes, 0));
-        std::ranges::transform(bytes.begin() + static_cast<std::ptrdiff_t>(NameOffset), end,
-                               std::back_inserter(move.name),
+        std::ranges::transform(nameBytes.begin(), end, std::back_inserter(move.name),
                                [](std::byte letter) { return static_cast<char>(letter); });
         std::ranges::transform(bytes.subspan(SearchNameOffset, MoveNameSize), move.searchName.begin(),
                                [](std::byte letter) { return static_cast<char>(letter); });

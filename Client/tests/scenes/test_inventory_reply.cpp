@@ -725,25 +725,37 @@ TEST_F(InventoryReplyTest, TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0)
     EXPECT_EQ(chaos.cloth.random.State(), shielded.cloth.random.State());
 }
 
-// 0x5bca6c..0x5bcaa7: el Wizard's Ring de nivel 3 en el 10 o el 11 lleva a 0x414340 y a +0x360 del héroe.
-// De otro nivel no.
-TEST_F(InventoryReplyTest, ALevelThreeWizardsRingStopsAt414340)
+// 0x5bca6c..0x5bcaa7: el Wizard's Ring de nivel 3 en el 11, o en el 10 con +0x360 fuera de 1 a 3, suelta la capa
+// (0x414340) y deja +0x360 en 4. De otro nivel, o en el 10 con +0x360 de 1 a 3, no lo toca.
+TEST_F(InventoryReplyTest, ALevelThreeWizardsRingLeavesTheLayerAtFour)
 {
     for (const int ring : {10, 11})
     {
         SCOPED_TRACE(ring);
         const auto slot = static_cast<std::uint8_t>(ring);
         Stage tested = Fresh();
-        tested.PublishedHero();
+        ActorState& hero = tested.PublishedHero();
+        hero.layer.emplace();
+        hero.byte360 = 5;
         const auto placed = Client::Scenes::PlaceInventoryItem(slot, ItemBytes(WizardsRing, 0x18), tested.Resources());
-        ASSERT_FALSE(placed.HasValue());
-        EXPECT_NE(placed.Error().find("0x414340"), std::string::npos) << placed.Error();
+        ASSERT_TRUE(placed.HasValue()) << placed.Error();
+        EXPECT_FALSE(hero.layer.has_value());
+        EXPECT_EQ(hero.byte360, 4);
 
         Stage other = Fresh();
-        other.PublishedHero();
+        ActorState& plain = other.PublishedHero();
+        plain.byte360 = 5;
         const auto levelTwo = Client::Scenes::PlaceInventoryItem(slot, ItemBytes(WizardsRing, 0x10), other.Resources());
-        EXPECT_TRUE(levelTwo.HasValue()) << levelTwo.Error();
+        ASSERT_TRUE(levelTwo.HasValue()) << levelTwo.Error();
+        EXPECT_EQ(plain.byte360, 5);
     }
+
+    Stage event = Fresh();
+    ActorState& bloodCastle = event.PublishedHero();
+    bloodCastle.byte360 = 2;
+    const auto inTen = Client::Scenes::PlaceInventoryItem(10, ItemBytes(WizardsRing, 0x18), event.Resources());
+    ASSERT_TRUE(inTen.HasValue()) << inTen.Error();
+    EXPECT_EQ(bloodCastle.byte360, 2);
 }
 
 // Sin Item.bmd, la grilla corta donde lee el ancho (0x5bcc33) y el equipo en 0x54bf40, antes de 0x512a30.

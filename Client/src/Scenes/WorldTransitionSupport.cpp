@@ -3,7 +3,6 @@
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
 #include "Render/Models/Cloth.h"
-#include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorEquipment.h"
@@ -11,6 +10,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/GamePanels.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
@@ -153,14 +153,7 @@ void CreateTransitionArrival(ActorState& actor, const WorldEntryResources& resou
 }
 Core::Expected<void, std::string> CloseTransitionWindows(const WorldEntryResources& resources)
 {
-    if (resources.world.Runtime().movement.windowsMask != 0)
-        return Core::Unexpected(std::string("0x657a90: cerrar ventanas abiertas requiere los servicios de la CL8"));
-    constexpr int ClosedWindowAccesses = 2;
-    for (int query = 0; query < ClosedWindowAccesses; ++query)
-    {
-        std::uint8_t depth = 0;
-        const Render::Models::LogicalAccess access(depth, resources.cloth.random, 1);
-    }
-    return {};
+    GamePanels panels(resources.world, resources.cloth.random);
+    return panels.Registry().CloseAll();
 }
 } // namespace Client::Scenes

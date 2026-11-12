@@ -241,7 +241,8 @@ struct Harness
                                                   return Unexpected(*pollFailure);
                                               return {};
                                           },
-                                          log, [this]() { return std::exchange(order, std::nullopt); })
+                                          log, [this]() { return std::exchange(order, std::nullopt); }, {},
+                                          [this](Duration now) { afterFrames.push_back(now); })
     {
     }
 
@@ -280,6 +281,8 @@ struct Harness
     std::optional<std::string> pollFailure;
     // La escena que ordena la red en el próximo Poll (WorldRuntime::orderedScene en main.cpp).
     std::optional<SceneId> order;
+    // Los relojes con los que corrió afterSceneFrame (la vuelta de WinMain en main.cpp).
+    std::vector<Duration> afterFrames;
     SceneManager manager;
     InputState input;
 };
@@ -821,6 +824,35 @@ TEST(SceneManagerTest, RendersBetweenBeginAndPresent)
     EXPECT_TRUE(tested.stage.draws[1].frameOpen);
     EXPECT_EQ(tested.stage.draws[1].alpha, 0.5f);
 }
+// P-C61: el fin de cada vuelta corre afterSceneFrame con el reloj, con el frame dibujado o retenido (el original
+// corre el frame sin presentarlo), y no sin escena ni con un error.
+TEST(SceneManagerTest, FinishingTheLoopRunsAfterTheFrame)
+{
+    Harness tested;
+    tested.manager.FinishTheLoop();
+    EXPECT_TRUE(tested.afterFrames.empty()) << "sin escena no hay vuelta del juego";
+    ASSERT_TRUE(tested.manager.Start(FirstScene).HasValue());
+    EXPECT_TRUE(tested.afterFrames.empty()) << "el Start no termina una vuelta";
+    tested.clock.Advance(milliseconds{1234});
+
+    tested.manager.Render(0.0f);
+    EXPECT_TRUE(tested.afterFrames.empty()) << "el dibujo solo no termina la vuelta";
+    tested.manager.FinishTheLoop();
+    tested.stage.holding.insert(SceneId::Loading);
+    tested.clock.Advance(milliseconds{40});
+    EXPECT_TRUE(tested.manager.HoldsTheLastFrame());
+    tested.manager.FinishTheLoop();
+
+    EXPECT_EQ(tested.afterFrames, (std::vector<Duration>{milliseconds{1234}, milliseconds{1274}}));
+
+    tested.stage.holding.clear();
+    tested.stage.failingRender[SceneId::Loading] = "0x5fc353: falta el pasto";
+    tested.manager.Render(0.0f);
+    ASSERT_TRUE(tested.manager.Failure().has_value());
+    tested.manager.FinishTheLoop();
+    EXPECT_EQ(tested.afterFrames.size(), 2u);
+}
+
 // Una escena que pide cerrar el juego (el OK del aviso 0x70 del login, Q-C69): el SceneManager lo
 // dice, para que main.cpp corte el bucle con EXIT_SUCCESS. Sin escena, o con una que no lo pide,
 // no.

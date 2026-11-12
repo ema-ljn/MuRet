@@ -21,12 +21,16 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameGates.h"
 #include "Scenes/GameHeroFacing.h"
+#include "Scenes/GamePanels.h"
+#include "Scenes/GameUi.h"
 #include "Scenes/WorldMap.h"
 #include "World/OriginalFtol.h"
 #include "World/WorldTerrain.h"
 #include "World/TerrainHeight.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/Dialogs.h"
+#include "UI/PanelRegistry.h"
 #include <array>
 #include <cstddef>
 #include <algorithm>
@@ -37,6 +41,7 @@
 #include <span>
 #include <cstdint>
 #include <string>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -44,9 +49,10 @@ namespace
 {
 constexpr std::uint32_t FrozenHeroFlag = 0x1000;
 constexpr std::uint32_t MovementLockedFlag = 0x20;
-constexpr std::uint32_t MovementBlockedWindow = 0x8000;
-constexpr std::uint32_t WindowsClosedByWalking = 0xd3168;
-constexpr std::int32_t WorldBottom = 431;
+// 0x56b397..0x56b4d6: las ventanas que cierra caminar, en este orden.
+constexpr std::array<UI::PanelId, 9> PanelsClosedByWalking{
+    UI::TradePanel, UI::WarehousePanel, UI::SecondGuildPanel, UI::ChaosBoxPanel, UI::QuestPanel,
+    UI::Panel2000,  UI::NpcShopPanel,   UI::CastleSiegePanel, UI::EventNpcPanel};
 constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a});
 constexpr float MinimumWalkingAlpha = 0.7f;
 constexpr float TeleportFade = 0.1f;
@@ -77,16 +83,6 @@ Core::Expected<void, std::string> CloseTheClickRecord(const HeroMovementContext&
     return {};
 }
 
-void SynchronizeTheLeftButton(GameMovementState& state, const HeroMovementInput& input)
-{
-    if (!input.leftDown)
-        state.leftHeld = false;
-    else if (!state.previousLeftDown)
-        state.leftHeld = true;
-    state.previousLeftDown = input.leftDown;
-    state.pendingClick = state.pendingClick || input.leftPressed;
-}
-
 bool CanStartThePath(const ActorState& hero)
 {
     const auto action = hero.animation.action;
@@ -97,10 +93,11 @@ bool CanStartThePath(const ActorState& hero)
            (action >= 0x6a && action <= 0x7d);
 }
 
-Core::Expected<void, std::string> UpdateTheHead(ActorState& hero, const HeroMovementInput& input)
+// 0x59b1c2..0x59b1e2: el centro es la mitad del ancho del mundo (0x59b188), no 320 fijo.
+Core::Expected<void, std::string> UpdateTheHead(ActorState& hero, const HeroMovementInput& input, std::int32_t center)
 {
-    const double angle =
-        Render::Models::CreateAngle(320.0f, 180.0f, static_cast<float>(input.mouseX), static_cast<float>(input.mouseY));
+    const double angle = Render::Models::CreateAngle(
+        static_cast<float>(center), 180.0f, static_cast<float>(input.mouseX), static_cast<float>(input.mouseY));
     const auto integer = World::OriginalFtolLow(angle + static_cast<double>(hero.angles.z));
     if (!integer)
         return Core::Unexpected(std::string("0x59b1f3: ángulo de la cabeza fuera del perfil ftol"));
@@ -126,8 +123,11 @@ std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Render::Models::Cr
 Core::Expected<void, std::string> SendThePath(ActorState& hero, GameLogic::PathCell target,
                                               const HeroMovementContext& context)
 {
-    GameMovementState& state = context.world.Runtime().movement;
-    if ((state.windowsMask & MovementBlockedWindow) != 0 || (hero.flags78 & MovementLockedFlag) != 0)
+    WorldRuntime& runtime = context.world.Runtime();
+    GameMovementState& state = runtime.movement;
+    GamePanels panels(context.world, context.random);
+    // 0x56acf7: con el NPC de la caja abierto (0x8000), nada.
+    if (panels.Registry().IsOpen(UI::TrainerPanel) || (hero.flags78 & MovementLockedFlag) != 0)
         return {};
     const auto maximum = Protocol::Movement::WalkUpdateTimeMax(hero.path.count);
     if (!maximum.HasValue())
@@ -142,14 +142,21 @@ Core::Expected<void, std::string> SendThePath(ActorState& hero, GameLogic::PathC
             context.sendWalk(std::span(cells).first(hero.path.count), {target.x, target.y}, hero.angles.z);
         !sent.HasValue())
         return sent;
-    hero.movement = 1;
-    // 56b39f y56b474: incluso cerradas, ambas ventanas leen un byte lógico y cierran con1rand.
-    for (int query = 0; query < 2; ++query)
+    // 0x56b387: con el aviso de la desconexión (0x70) el héroe no camina.
+    if (runtime.dialogs.current != UI::DisconnectDialog)
+        hero.movement = 1;
+    // 0x56b397..0x56b4d6: cada una abierta se cierra; las del comercio y la tienda de NPC sacan un rand() aunque
+    // estén cerradas.
+    for (const UI::PanelId id : PanelsClosedByWalking)
     {
-        std::uint8_t depth = 0;
-        const Render::Models::LogicalAccess access(depth, context.random, 1);
+        if (!panels.Registry().IsOpen(id))
+            continue;
+        if (auto closed = panels.Registry().Close(id); !closed.HasValue())
+            return Core::Unexpected(std::move(closed).Error());
     }
-    state.windowsMask &= ~WindowsClosedByWalking;
+    // 0x56b4db: con 0x78abb00, el C1 03 97 del asedio.
+    if (runtime.panels.field78abb00 != 0)
+        return Core::Unexpected(std::string("0x56b4e8: el C1 03 97 de 0x78abb00 es de la CL9.5"));
     return {};
 }
 
@@ -201,8 +208,10 @@ Core::Expected<void, std::string> UseGroundClick(ActorState& hero, const HeroMov
 
 Core::Expected<void, std::string> ProcessInput(ActorState& hero, const HeroMovementContext& context)
 {
-    GameMovementState& state = context.world.Runtime().movement;
-    if (state.inputBlocked || context.input.mouseY > WorldBottom)
+    WorldRuntime& runtime = context.world.Runtime();
+    GameMovementState& state = runtime.movement;
+    // 0x59b846..0x59b85a: el modo del editor (0x77f3b18) y el mouse de la UI (0x775857c) saltan también la suma.
+    if (state.inputBlocked || runtime.ui.mouseOnUi != 0)
         return {};
     if (state.mouseUpdateTime >= state.mouseUpdateTimeMax && !state.movementBlocked)
     {
@@ -311,7 +320,8 @@ Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMoveme
 Core::Expected<void, std::string> CloseTheHeroActionPrefix(ActorState& hero, const HeroMovementContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    if (runtime.movement.inputBlocked || context.input.mouseY > WorldBottom)
+    // 0x57cfe2..0x57cff9.
+    if (runtime.movement.inputBlocked || runtime.ui.mouseOnUi != 0)
         return {};
     if (hero.byte80 == 1)
     {
@@ -355,7 +365,7 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
 {
     WorldRuntime& runtime = context.world.Runtime();
     ActorState& hero = context.world.Actors()[runtime.hero];
-    SynchronizeTheLeftButton(runtime.movement, context.input);
+    LatchTheLeftButton(runtime.movement, context.input.leftPressed, context.input.leftDown);
     if (runtime.movement.cameraTour)
     {
         if (!context.playerSkeleton)
@@ -376,13 +386,26 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
         return {};
     if (StepTheCounter(runtime, context.random) > WaitDrawThreshold)
         return {};
-    if (auto head = UpdateTheHead(hero, context.input); !head.HasValue())
+    // 0x59b188: el ancho del mundo, con sus consultas (2 rand() con el inventario abierto); la mitad, con signo.
+    GamePanels panels(context.world, context.random);
+    const std::int32_t center = panels.Registry().WorldWidth() / 2;
+    if (auto head = UpdateTheHead(hero, context.input, center); !head.HasValue())
         return head;
     if (hero.movement == 0)
-        if (const auto facing = StepHeroFacing({hero, runtime.movement, context.input.mouseX, context.input.mouseY, 320,
-                                                hero.animation.action != 0x3e, context.sendFacing});
-            !facing.HasValue())
+    {
+        // 0x59b357: IsOpen(0x40000) no saca rand().
+        const auto facing = StepHeroFacing({.hero = hero,
+                                            .movement = runtime.movement,
+                                            .secondGuildOpen = panels.Registry().IsOpen(UI::SecondGuildPanel),
+                                            .mouseOnUi = runtime.ui.mouseOnUi,
+                                            .mouseX = context.input.mouseX,
+                                            .mouseY = context.input.mouseY,
+                                            .centerX = center,
+                                            .headTurningAllowed = hero.animation.action != 0x3e,
+                                            .sendFacing = context.sendFacing});
+        if (!facing.HasValue())
             return facing;
+    }
     if (const auto moved = MoveTheHero(hero, context); !moved.HasValue())
         return moved;
     if (context.gates)

@@ -14,6 +14,7 @@
 #include "Scenes/GameFloorItems.h"
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/GameItemSpecialDrawing.h"
+#include "Scenes/GamePanels.h"
 #include "Scenes/IcarusObjectStep.h"
 #include "Scenes/KalimaObjectStep.h"
 #include "World/GameModelEffects.h"
@@ -49,6 +50,7 @@
 #include "World/GroundEffectDrawing.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameCursor.h"
+#include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
 #include "World/GameCamera.h"
 #include "World/GroundMarks.h"
@@ -74,6 +76,7 @@
 #include <chrono>
 #include <functional>
 #include <cstdint>
+#include <format>
 #include <optional>
 #include <ratio>
 #include <span>
@@ -128,8 +131,6 @@ constexpr std::int32_t IcarusMap = 10;
 constexpr std::int32_t DevilSquareMap = 9;
 constexpr std::int32_t FirstBloodCastleMap = 11;
 constexpr std::int32_t LastBloodCastleMap = 17;
-// 0x5bb8d0: el ancho del mundo, 640 sin ventanas abiertas (MuRet no tiene las ventanas del juego).
-constexpr std::int32_t WorldWidth = 640;
 // 0x620486..0x6204b0: el mouse de 640 × 480 vuelve a la pantalla con · W / 640 y · H / 480, en enteros.
 constexpr std::int64_t Width640 = 640;
 constexpr std::int64_t Height480 = 480;
@@ -217,6 +218,11 @@ void GameScene::Step(const Input::InputState& input)
         return;
     }
     m_cameraFrames.Step();
+    if (auto dialogs = StepTheDialogs(input); !dialogs.HasValue())
+    {
+        m_failure = dialogs.Error();
+        return;
+    }
     StepEntry();
     if (auto stepped = StepWorld(input); !stepped.HasValue())
     {
@@ -290,8 +296,9 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
         World::UpdateWaves(m_water, m_context.clock->Now(), m_context.world->DynamicLighting().Range(),
                            static_cast<std::uint8_t>(runtime.map));
     }
-    // Frontera (08 P-C41): los globales de 0x636df2..0x636e1d y la UI (0x636e11..0x63705b), que corre en
-    // cada paso desde el primero.
+    // 0x636ded..0x63705b: la UI del paso, que corre en cada paso desde el primero, también en la espera.
+    if (auto ui = StepTheUi(input); !ui.HasValue())
+        return ui;
     // 0x63706a: 0x606560, los objetos que vio el último dibujo (0x6046a0), también en la espera.
     if (auto objects = StepTheObjects(); !objects.HasValue())
     {
@@ -582,6 +589,12 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     const glm::vec3 target = runtime.map == NamedCameraMap && cameraInput.webzen
                                  ? glm::vec3(SpectatorTargetX, SpectatorTargetY, cameraInput.hero.z)
                                  : World::CameraTargetOf(cameraInput);
+    // 0x63733e: 0x5bb8d0, el ancho del mundo, con el rand() del frame. Con un panel abierto, el viewport, el rango y
+    // el trapecio se achican: eso es del hito 4, con el inventario.
+    const std::int32_t worldWidth = GamePanels(*m_context.world, FrameCloth().random).Registry().WorldWidth();
+    if (worldWidth != UI::FullWorldWidth)
+        return Core::Unexpected(
+            std::format("0x63733e: el mundo con un panel abierto (ancho {}) es del hito 4", worldWidth));
     // 0x63734d: el pase de 0x620db0(0, 0, w, 48) no dibuja; su modelview es la del pase del mundo.
     const Render::Pass3D pass = Render::MakePass3D(canvas.screen, GameWorldViewport, camera);
     m_frustum = World::SphereFrustumOf(pass.view, camera);
@@ -590,7 +603,7 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     m_terrainRange = World::TerrainRangeOf(pass.view, camera);
     if (frames > 0)
         m_context.world->DynamicLighting().PublishRange(m_terrainRange);
-    const auto polygon = PolygonOfTheFrame(camera, target, frames);
+    const auto polygon = PolygonOfTheFrame(camera, target, worldWidth, frames);
     if (!polygon.HasValue())
     {
         return Core::Unexpected(polygon.Error());
@@ -600,7 +613,9 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     canvas.models.Begin(pass);
     auto drawn = DrawTheWorldPass(canvas, pass, polygon.Value(), frames);
     canvas.flushModels();
-    return drawn;
+    if (!drawn.HasValue())
+        return drawn;
+    return DrawTheInterface();
 }
 
 void GameScene::ObserveMapLoad()
@@ -698,7 +713,8 @@ Render::Camera3D GameScene::CameraOfTheFrame(SceneCanvas& canvas, int frames)
 }
 
 Core::Expected<World::TerrainPolygon, std::string> GameScene::PolygonOfTheFrame(const Render::Camera3D& camera,
-                                                                                const glm::vec3& target, int frames)
+                                                                                const glm::vec3& target,
+                                                                                std::int32_t worldWidth, int frames)
 {
     WorldRuntime& runtime = m_context.world->Runtime();
     World::TerrainPolygonInput input;
@@ -708,7 +724,7 @@ Core::Expected<World::TerrainPolygon, std::string> GameScene::PolygonOfTheFrame(
     // El selector del mapa 30, como TerrainPolygonOf.
     input.objectPosition = glm::vec2(target.x, target.y);
     input.cameraYaw = camera.angles.z;
-    input.worldWidth = WorldWidth;
+    input.worldWidth = worldWidth;
     // 0x5fb570: las dos búsquedas del nombre del mapa 6, la de las medidas y la del giro.
     input.webzenProfile = input.webzenYaw = CameraInputState().webzen;
     if (frames == 0)

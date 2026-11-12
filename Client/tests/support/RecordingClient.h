@@ -6,6 +6,7 @@
 #include "Input/Key.h"
 #include "support/FakeClock.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <ostream>
 #include <vector>
@@ -36,6 +37,7 @@ public:
     void Render(float alpha) override;
     [[nodiscard]] bool HoldsTheLastFrame() const override;
     [[nodiscard]] bool TakeTheSceneChange() override;
+    void FinishTheLoop() override;
 
     Core::Duration pollCost{};
     Core::Duration stepCost{};
@@ -46,6 +48,8 @@ public:
     std::vector<LoopCall> calls;
     // Uno por dibujo.
     std::vector<float> alphas;
+    // Uno por FinishTheLoop: cuántas llamadas de `calls` había, para ver que va después del dibujo.
+    std::vector<std::size_t> finishedLoops;
     // Lo que contesta HoldsTheLastFrame: si el bucle tiene que dejar el último frame.
     bool holdsTheLastFrame = false;
     // Si cada paso lo prende, como el que entra al login y conecta: así un test ve que el bucle lo

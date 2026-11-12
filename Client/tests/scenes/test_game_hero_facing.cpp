@@ -18,12 +18,16 @@ struct IdleHero
 {
     Client::Scenes::ActorState hero;
     Client::Scenes::GameMovementState movement;
+    bool secondGuildOpen = false;
+    std::uint8_t mouseOnUi = 0;
     std::vector<std::uint8_t> directions;
 
     Client::Scenes::HeroFacingContext Context()
     {
         return {.hero = hero,
                 .movement = movement,
+                .secondGuildOpen = secondGuildOpen,
+                .mouseOnUi = mouseOnUi,
                 .mouseX = 420,
                 .mouseY = 180,
                 .sendFacing = [&](std::uint8_t direction) -> Client::Core::Expected<void, std::string>
@@ -121,7 +125,7 @@ TEST(GameHeroFacingTest, InhibitorsAdvanceButDoNotConsumeTheFacingAttempt)
         if (guard == 1)
             tested.hero.dying = 1;
         if (guard == 2)
-            tested.movement.facingBlocked = 1;
+            tested.mouseOnUi = 1;
         if (guard == 3)
             tested.movement.facingMode = 1;
         ASSERT_TRUE(Client::Scenes::StepHeroFacing(tested.Context()).HasValue());
@@ -135,7 +139,7 @@ TEST(GameHeroFacingTest, Window40000AllowsFacingEvenWithModeOne)
     IdleHero tested;
     tested.movement.movementTarget = 39;
     tested.movement.facingMode = 1;
-    tested.movement.windowsMask = 0x40000;
+    tested.secondGuildOpen = true;
     ASSERT_TRUE(Client::Scenes::StepHeroFacing(tested.Context()).HasValue());
     EXPECT_EQ(tested.movement.movementTarget, 0);
     EXPECT_EQ(tested.directions, (std::vector<std::uint8_t>{4}));

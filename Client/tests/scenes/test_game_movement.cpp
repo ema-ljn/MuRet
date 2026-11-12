@@ -153,10 +153,12 @@ TEST(GameMovementTest, AShiftClickIsConsumedWithoutPicking)
     EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTime, 1);
 }
 
-TEST(GameMovementTest, TheBottomBarDoesNotAdvanceTheClickWindow)
+TEST(GameMovementTest, TheMouseOnTheUiDoesNotAdvanceTheClickWindow)
 {
     MovingHero tested;
     tested.world.Runtime().movement.mouseUpdateTime = 6;
+    // 0x775857c: la UI del paso la prende con el mouse en la barra (y ≥ 432) o sobre un panel.
+    tested.world.Runtime().ui.mouseOnUi = 1;
     auto context = tested.Context();
     context.input.mouseY = 432;
     context.input.leftPressed = true;

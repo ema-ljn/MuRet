@@ -176,6 +176,9 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     // El slot BSS conserva type/speed0: si se admite toma timer/scale y un rand de FullMovement;
     // este fixture exige timer>1, sin sorteo de expiración. No crea un tipo ni un BMD artificial.
     constexpr float Reciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a});
+    // 0x636ded..0x63705b: la UI del paso con todo cerrado (la barra de skills, Q/W/E e IsOpen(0)), antes de los
+    // objetos y de la fauna.
+    Advance(expected.random, Client::Render::Models::OwnRecordCloseRandoms + 2 + 2);
     int admittedFish = 0;
     for (int slot = 0; slot < 3; ++slot)
     {

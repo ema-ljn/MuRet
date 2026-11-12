@@ -108,7 +108,7 @@ Core::Expected<void, std::string> FinishTeleport(const WorldEntryResources& reso
     CreateTransitionArrival(hero, resources);
     hero.alpha = 0.0f;
     runtime.storm = 0;
-    runtime.field78abb0c = 0;
+    runtime.panels.repairMode = 0;
     runtime.field78abb10 = 0;
     runtime.selectedTargets.fill(-1);
     runtime.byte6c8e4d = 0xff;

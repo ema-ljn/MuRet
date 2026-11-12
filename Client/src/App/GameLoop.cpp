@@ -76,10 +76,17 @@ int GameLoop::RunDecoupled(const WindowState& state, Input::InputState& input)
         // volver arranca de nuevo.
         m_clock.SleepFor(LogicStep - m_fixedStep.Accumulated());
         m_frameDeadline.reset();
+        // Retenido, el original da la vuelta y corre el frame sin presentarlo; minimizada, va por la rama sin
+        // frame, que no se modela (P-C61).
+        if (!state.minimized)
+        {
+            m_client.FinishTheLoop();
+        }
     }
     else
     {
         m_client.Render(m_lastAlpha);
+        m_client.FinishTheLoop();
         if (m_minFrameTime > Core::Duration::zero())
         {
             SleepRestOfFrame(now);
@@ -134,6 +141,10 @@ int GameLoop::RunFaithful(const WindowState& state, Input::InputState& input)
     }
     // Sin dibujo también: sin la espera el acumulador no suma y no corre nunca más un paso.
     m_pacer.EndFrame(m_clock);
+    if (!state.minimized)
+    {
+        m_client.FinishTheLoop();
+    }
     m_stats.accumulated = std::chrono::milliseconds{m_pacer.AccumulatedMs()};
     m_stats.lastMeasuredMs = m_pacer.LastMeasuredMs();
     return steps;

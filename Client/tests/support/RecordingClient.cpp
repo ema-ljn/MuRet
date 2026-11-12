@@ -61,6 +61,11 @@ bool RecordingClient::HoldsTheLastFrame() const
     return holdsTheLastFrame;
 }
 
+void RecordingClient::FinishTheLoop()
+{
+    finishedLoops.push_back(calls.size());
+}
+
 bool RecordingClient::TakeTheSceneChange()
 {
     const bool changed = m_sceneChanged;

@@ -157,6 +157,11 @@ constexpr int TailRandoms = 3;
 // Después de 0x512a30: el contador (4) y las dos consultas de 0x657a90.
 constexpr int WaitClose = 4;
 constexpr int WindowRandoms = 2;
+// 0x637641: el picking del frame del Dark Wizard (la clase 0, la del registro vacío) lee su skill del registro
+// propio (0x59efda), después del pase del mundo.
+constexpr int FramePickingRandoms = OwnRecordClose;
+// 0x636ded..0x63705b: la UI del paso con todo cerrado (la barra de skills, Q/W/E e IsOpen(0)), antes de los objetos.
+constexpr int GameUiStepRandoms = OwnRecordClose + 2 + 2;
 constexpr std::size_t PublishedSlot = 42;
 // Los rand() del pase de los objetos del primer frame del juego (0x602ef4), uno por objeto visto que llega a
 // 0x602ed0, con el héroe en la primera celda de cada mapa de referencia (*simulado*, con el port y la Data del
@@ -493,7 +498,7 @@ TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects)
     }
     const FirstObjectPass objects = LorenciaObjectPass(expected);
     ASSERT_EQ(objects.drops, 2);
-    for (int draw = 0; draw < objects.randoms; ++draw)
+    for (int draw = 0; draw < objects.randoms + FramePickingRandoms; ++draw)
     {
         static_cast<void>(expected.Next());
     }
@@ -822,7 +827,7 @@ std::uint32_t SeedOfTheSameSlotAfterAFrame()
             random = Advanced(random, OwnRecordClose + GrassRandoms);
             const int first = random.Next() % 400;
             random = Advanced(random, FromTheSlotToTheFrame + FrameRandoms);
-            random = Advanced(random, LorenciaObjectPass(random).randoms + FromTheFrameToTheSlot);
+            random = Advanced(random, LorenciaObjectPass(random).randoms + FramePickingRandoms + FromTheFrameToTheSlot);
             return random.Next() % 400 == first;
         });
 }
@@ -864,7 +869,8 @@ void DrawAGameFrame(Entry& tested)
     target.Present();
     ASSERT_TRUE(target.frames.back().presented);
     ASSERT_FALSE(tested.world.Runtime().fullSetScan.has_value());
-    ASSERT_EQ(tested.cloth.random.State(), Advanced(before, FrameRandoms + objects.randoms).State());
+    ASSERT_EQ(tested.cloth.random.State(),
+              Advanced(before, FrameRandoms + objects.randoms + FramePickingRandoms).State());
     scene.Leave();
 }
 
@@ -1164,6 +1170,7 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
                                        &*frameResources.data.skills);
         ASSERT_TRUE(game.Enter().HasValue());
         Client::Render::Models::ClothWorld reference = tested.cloth;
+        reference.random = Advanced(reference.random, GameUiStepRandoms);
         const auto heroBefore = tested.Hero();
         const auto weatherBefore = tested.world.Runtime().leafWeather;
         const auto layerBefore = tested.world.Runtime().heroCellLayer;
@@ -1193,8 +1200,9 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         EXPECT_TRUE(target.frames.back().presented);
         // El héroe visto llega a su color propio (cierre de 3.848) y al rand() común de 0x50db57.
         const int characterDraws = seen ? OwnRecordClose + 1 : 0;
-        EXPECT_EQ(tested.cloth.random.State(),
-                  Advanced(reference.random, FrameRandoms + objects.randoms + characterDraws).State());
+        EXPECT_EQ(
+            tested.cloth.random.State(),
+            Advanced(reference.random, FrameRandoms + objects.randoms + characterDraws + FramePickingRandoms).State());
         // El héroe del cable es GM (CtlCode 0x20): dibujado, 0x413fe0 le pone +0x360 en 5 y la capa de MuSign.
         EXPECT_EQ(tested.Hero().byte360, seen ? 5 : 0);
         EXPECT_EQ(tested.Hero().layer.has_value(), seen);

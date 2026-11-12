@@ -1,0 +1,637 @@
+#include "Scenes/GameUi.h"
+
+#include "Core/Expected.h"
+#include "Input/InputState.h"
+#include "Input/Key.h"
+#include "Render/Models/LogicalAccess.h"
+#include "Scenes/ActorState.h"
+#include "Scenes/GameMovementState.h"
+#include "Scenes/GamePanels.h"
+#include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
+#include "UI/Dialogs.h"
+#include "UI/GameUiState.h"
+#include "UI/PanelRegistry.h"
+
+#include <array>
+#include <cstdint>
+#include <format>
+#include <initializer_list>
+#include <string>
+#include <utility>
+
+namespace Client::Scenes
+{
+namespace
+{
+using Input::Key;
+
+// Una tecla de MuRet y su tecla virtual de Windows, la que el original pasa a GetAsyncKeyState y que indexa los
+// latches de 0x77f36d4.
+struct GameKey
+{
+    Key key;
+    std::uint8_t virtualKey;
+};
+
+constexpr GameKey TabKey{Key::Tab, 0x09};
+constexpr GameKey EscapeKey{Key::Escape, 0x1b};
+constexpr GameKey PageUpKey{Key::PageUp, 0x21};
+constexpr GameKey PageDownKey{Key::PageDown, 0x22};
+constexpr GameKey UpKey{Key::Up, 0x26};
+constexpr GameKey DownKey{Key::Down, 0x28};
+constexpr GameKey F5Key{Key::F5, 0x74};
+constexpr GameKey F6Key{Key::F6, 0x75};
+
+constexpr GameKey Letter(char letter)
+{
+    return {static_cast<Key>(static_cast<int>(Key::A) + (letter - 'A')), static_cast<std::uint8_t>(letter)};
+}
+
+constexpr GameKey Digit(int digit)
+{
+    return {static_cast<Key>(static_cast<int>(Key::Digit0) + digit), static_cast<std::uint8_t>('0' + digit)};
+}
+
+// 0x41ed10(0x19, 0, 0): el sonido de los botones y de Esc.
+constexpr std::int32_t ButtonSound = 0x19;
+// 0x636e11: desde esta y, el mouse está sobre la barra.
+constexpr std::int32_t HudTop = 0x1b0;
+// 0x5a1181..0x5a1189: Chaos Castle.
+constexpr std::int32_t FirstChaosCastleMap = 18;
+constexpr std::int32_t LastChaosCastleMap = 23;
+// 0x5a0420 y vecinas: 0x6c8dcc, el máximo de MouseUpdateTime que ponen los botones.
+constexpr std::int32_t ButtonMouseUpdateTimeMax = 6;
+
+// 0x553520(vk): con la tecla abajo y su latch en 0, lo pone en 1 y da verdadero; con la tecla arriba, lo vuelve a
+// 0. GetAsyncKeyState mira el teclado en el momento: MuRet mira el estado del frame (Input::InputState).
+bool KeyEdge(UI::GameUiState& ui, const Input::InputState& input, GameKey key)
+{
+    std::int32_t& latch = ui.keyLatches[key.virtualKey];
+    if (!input.IsDown(key.key))
+    {
+        latch = 0;
+        return false;
+    }
+    if (latch != 0)
+        return false;
+    latch = 1;
+    return true;
+}
+
+// 0x6578e0: hay un campo de texto con el foco (el chat 0x6c8e68, 0x77f3b68, el del diálogo de los paneles) o la
+// ventana del juego no lo tiene. MuRet no tiene ninguno de esos campos hasta los hitos 3 y 6, y su ventana es la
+// del juego: da falso.
+bool TextInputBusy(const WorldRuntime& runtime)
+{
+    static_cast<void>(runtime);
+    return false;
+}
+
+bool InRect(const GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right, std::int32_t bottom)
+{
+    return context.mouseX >= left && context.mouseX < right && context.mouseY >= top && context.mouseY < bottom;
+}
+
+Core::Expected<void, std::string> Toggle(UI::PanelRegistry& panels, UI::PanelId id)
+{
+    if (panels.IsOpen(id))
+    {
+        auto closed = panels.Close(id);
+        if (!closed.HasValue())
+            return Core::Unexpected(std::move(closed).Error());
+        return {};
+    }
+    auto opened = panels.Open(id);
+    if (!opened.HasValue())
+        return Core::Unexpected(std::move(opened).Error());
+    return {};
+}
+
+// 0x623f78..0x62410b: el menú de Esc (el diálogo 0x6e) en la escena 5, con cinco botones.
+Core::Expected<void, std::string> StepTheEscapeMenu(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::DialogState& dialogs = runtime.dialogs;
+    if (runtime.cursorItemCount > 0)
+        return {};
+    // 0x623f9c..0x623fb3: 5 en la escena 5.
+    constexpr std::int32_t Buttons = 5;
+    constexpr std::int32_t Left = 0x104;
+    constexpr std::int32_t Right = 0x17c;
+    constexpr std::int32_t Height = 0x16;
+    constexpr std::int32_t LastJumpTableButton = 3;
+    for (std::int32_t button = 0; button < Buttons; ++button)
+    {
+        // 0x623fdf..0x623fe6: (6 + 3i) · 10.
+        const std::int32_t top = (6 + 3 * button) * 10;
+        if (!InRect(context, Left, top, Right, top + Height) || !runtime.movement.pendingClick)
+            continue;
+        runtime.movement.pendingClick = false;
+        if (button <= LastJumpTableButton)
+        {
+            // La tabla 0x62dac4: salir del juego (0x624036), elegir otro servidor, otro personaje y las opciones.
+            return Core::Unexpected(std::format("0x62402f: el botón {} del menú de Esc es del hito 6", button));
+        }
+        // 0x6240a1: volver al juego.
+        if (dialogs.current != UI::OptionsDialog)
+        {
+            dialogs.current = dialogs.pending;
+            dialogs.pending = 0;
+        }
+        runtime.movement.mouseUpdateTime = 0;
+        runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+        runtime.lastSoundId = ButtonSound;
+    }
+    return {};
+}
+
+// 0x490490, las ventanas viejas: MuRet no tiene ninguna (hito 7). Esc solo las mira con la de arriba abierta, y
+// llega acá ya leído por 0x623e70 salvo con la de amigos abierta; F5 (0x4a5be0) y F6 (0x4906a0) sí hacen algo.
+Core::Expected<void, std::string> StepTheOldWindows(const GameUiContext& context)
+{
+    UI::GameUiState& ui = context.world.Runtime().ui;
+    static_cast<void>(KeyEdge(ui, context.input, EscapeKey));
+    // 0x4904eb: F5 con el foco en la ventana del juego, que en MuRet siempre lo tiene.
+    if (KeyEdge(ui, context.input, F5Key))
+        return Core::Unexpected(std::string("0x4904f8: F5 (0x4a5be0) es de las ventanas viejas, del hito 7"));
+    if (KeyEdge(ui, context.input, F6Key))
+        return Core::Unexpected(std::string("0x49050b: F6 (0x4906a0) es de las ventanas viejas, del hito 7"));
+    return {};
+}
+
+// 0x5ee140: los paneles con paso propio, sin diálogo y sin el menú de Esc.
+Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI::PanelRegistry& panels)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::GameUiState& ui = runtime.ui;
+    const UI::DelegatedPanels& delegated = runtime.panels.delegated;
+    if (runtime.dialogs.current == UI::EscapeMenuDialog)
+        return {};
+    // 0x5e7bf0: con 0x78abb20 en 0 devuelve 0.
+    if (ui.field78abb20 != 0)
+        return Core::Unexpected(std::string("0x5e7bf0: 0x78abb20 es del hito 4"));
+    // 0x5ee15a..0x5ee188: 0x5762eb4 (la modal de las ventanas viejas) es 0 en MuRet.
+    if (runtime.dialogs.current != 0 || ui.field5762eb8 != 0 || ui.field78abad9 != 0)
+        return {};
+    // 0x5e3c80 y 0x5e4510: la party y el personaje, cada uno con su IsOpen.
+    if (panels.IsOpen(UI::PartyPanel))
+        return Core::Unexpected(std::string("0x5e3c80: el paso del panel de la party es del hito 6"));
+    if (panels.IsOpen(UI::CharacterPanel))
+        return Core::Unexpected(std::string("0x5e4510: el paso del panel del personaje es del hito 5"));
+    // 0x5ee1a3: las hijas del inventario (0x5e4ce0, 0x5e5920, 0x5fe610, 0x5ea060, 0x5ecde0, 0x5ea290, 0x5ed960).
+    if (panels.IsOpen(UI::InventoryPanel))
+        return Core::Unexpected(std::string("0x5ee1ac: el paso del inventario es del hito 4"));
+    // 0x44b4e0: el NPC de la caja con 0x724580 fuera de 0 y 4.
+    if (delegated.trainer != 0 && delegated.trainer != 4)
+        return Core::Unexpected(std::string("0x44b4e0: el paso del NPC de la caja 0x723c80 es de la CL9.3"));
+    // 0x44dd50 y 0x44f810: el arma de asedio y la puerta.
+    if (delegated.siegeWeapon != 0 || delegated.siegeGate != 0)
+        return Core::Unexpected(std::string("0x44dd50: el paso del arma y de la puerta del asedio es de la CL9.5"));
+    // 0x5ee1de: 0x5d8d50, el ítem del cursor.
+    if (ui.field78abaac == 0 && runtime.cursorItemCount > 0)
+        return Core::Unexpected(std::string("0x5d8d50: el ítem del cursor es del hito 4"));
+    // 0x5e6520, con 0x78abb00 distinto de 0.
+    if (runtime.panels.field78abb00 != 0)
+        return Core::Unexpected(std::string("0x5e6520: 0x78abb00 es de la CL9.5"));
+    // 0x5e74f0, el panel 0x2000.
+    if (panels.IsOpen(UI::Panel2000))
+        return Core::Unexpected(std::string("0x5e74f0: el paso del panel 0x2000 es de la CL9"));
+    // 0x40a450, los comandos (+4 de 0x6e592c).
+    if (delegated.commands != 0)
+        return Core::Unexpected(std::string("0x40a450: el paso de los comandos es del hito 6 y de la CL9.4"));
+    // 0x41b5a0, el quest: con el personaje cerrado escribe +0x21390 y +0x21394 de su objeto, que MuRet no tiene
+    // ni lee; con +0x21383 en 1 o 2, su ventana.
+    if (delegated.quest == 1 || delegated.quest == 2)
+        return Core::Unexpected(std::string("0x41b5a0: el paso del quest es de la CL9.1"));
+    // 0x424130 → 0x424230: con el personaje cerrado, 0x723911 = 0. 0x416660 no hace nada.
+    runtime.panels.delegated.pet = 0;
+    return {};
+}
+
+// 0x5a05e5..0x5a10e2: la barra de skills. Abre el registro propio aunque no haya skills y lo cierra al final.
+Core::Expected<void, std::string> StepTheSkillBar(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::GameUiState& ui = runtime.ui;
+    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                            Render::Models::OwnRecordCloseRandoms);
+    if (context.world.OwnCharacter().byte6a == 0)
+        return {};
+    // 0x5a066c..0x5a06f9: el botón de la barra.
+    if (InRect(context, 0x130, 0x1bc, 0x150, 0x1e0))
+    {
+        ui.skillTooltipX = 0x140;
+        ui.skillTooltip = context.world.Actors()[runtime.hero].skillIndex;
+        ui.skillTooltipY = 0x1bc;
+        ui.mouseOnUi = 1;
+        runtime.movement.mouseUpdateTime = 0;
+        if (runtime.movement.pendingClick)
+        {
+            runtime.movement.pendingClick = false;
+            ui.skillListOpen = ui.skillListOpen == 0 ? 1 : 0;
+            runtime.lastSoundId = ButtonSound;
+        }
+    }
+    // 0x652330: sin el asedio (0x4294b0) no hace nada.
+    if (runtime.siegeActive)
+        return Core::Unexpected(std::string("0x652330: la skill del asedio en la barra es de la CL9.5"));
+    if (ui.skillListOpen != 0)
+        return Core::Unexpected(std::string("0x5a070e: la lista de skills es de la CL9.2"));
+    return {};
+}
+
+// 0x40f6d0: el paso del panel del asedio de la clase 0 (vtable 0x6b88a8 + 8).
+Core::Expected<void, std::string> StepTheSiegePanel(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    if (!runtime.siegePanelKind)
+        return {};
+    if (*runtime.siegePanelKind != 0)
+        return Core::Unexpected(std::string("0x4125a0: el paso del panel del asedio con gremio es de la CL9.5"));
+    UI::GameUiState& ui = runtime.ui;
+    UI::SiegePanelState& panel = runtime.siegePanel;
+    if (!TextInputBusy(runtime) && KeyEdge(ui, context.input, TabKey))
+        panel.visible ^= 1;
+    if (panel.visible == 0)
+        return {};
+    const std::int32_t x = context.mouseX;
+    const std::int32_t y = context.mouseY;
+    if (panel.x < x && x <= panel.x + 0x97 && panel.y < y && y < panel.y + 0xad)
+        ui.mouseOnUi = 1;
+    if (!runtime.movement.pendingClick)
+        return {};
+    // 0x40f74c..0x40f7a0: la flecha de la página, con los float 127, 24, 13 y 22 (0x6b8838, 0x6b8800, 0x6b8834 y
+    // 0x6b8820), que con enteros dan lo mismo.
+    const bool outsideThePage =
+        x < panel.x + 127 || panel.x + 127 + 24 < x || y < panel.y + 13 || panel.y + 13 + 22 < y;
+    if (!outsideThePage)
+    {
+        ++panel.page;
+        if (panel.page >= 3)
+            panel.page = 1;
+        else if (panel.page < 1)
+            panel.page = 2;
+    }
+    else
+    {
+        // 0x40f7cc..0x40f7f4: fuera de los dos, el clic sigue para los demás.
+        if (x < panel.x + 5 || panel.x + 0x2b < x || y < panel.y + 0x1c || panel.y + 0x2c < y)
+            return {};
+        // 0x40f7f6..0x40f827: la suma queda en el registro de la x87 para las comparaciones.
+        const double sum = static_cast<double>(panel.alpha) + static_cast<double>(0.1f);
+        panel.alpha = static_cast<float>(sum);
+        if (sum > static_cast<double>(1.1f))
+            panel.alpha = 0.5f;
+        else if (sum < 0.5)
+            panel.alpha = 1.0f;
+    }
+    runtime.movement.pendingClick = false;
+    runtime.movement.leftHeld = false;
+    return {};
+}
+
+// 0x59ff10: las teclas y los botones del HUD.
+Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& context, UI::PanelRegistry& panels)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::GameUiState& ui = runtime.ui;
+    GameMovementState& movement = runtime.movement;
+    const Input::InputState& input = context.input;
+    const ActorState& hero = context.world.Actors()[runtime.hero];
+    // 0x59ff3f: con el recorrido de la cámara, nada.
+    if (movement.cameraTour)
+        return {};
+    // 0x59ff45..0x5a009b: los renglones del área vieja del chat (0x77d9868), vacía hasta el hito 3.
+    // 0x5a00a1..0x5a0124: PgUp y PgDn corren el registro del chat (vtbl + 0x38 y + 0x34).
+    if (KeyEdge(ui, input, PageUpKey))
+        return Core::Unexpected(std::string("0x5a00ca: PgUp en el registro del chat es del hito 3"));
+    if (KeyEdge(ui, input, PageDownKey))
+        return Core::Unexpected(std::string("0x5a0117: PgDn en el registro del chat es del hito 3"));
+    // 0x5a0124 y 0x5a0278: arriba y abajo, con el campo del chat cerrado (0x6c7b8c) y el historial vacío
+    // (0x6c8ea8), solo mueven su latch.
+    static_cast<void>(KeyEdge(ui, input, UpKey));
+    static_cast<void>(KeyEdge(ui, input, DownKey));
+    // 0x5a03c3..0x5a05e5: los botones del HUD, cada uno con su rectángulo: abierto lo cierra y si no lo abre.
+    if (movement.pendingClick)
+    {
+        struct HudButton
+        {
+            UI::PanelId id;
+            std::int32_t left, top, right, bottom;
+        };
+        constexpr std::array<HudButton, 6> Buttons{{
+            {UI::GuildPanel, 0x246, 0x1cb, 0x27a, 0x1dd},
+            {UI::PartyPanel, 0x15c, 0x1c4, 0x174, 0x1dc},
+            {UI::CharacterPanel, 0x17b, 0x1c4, 0x193, 0x1dc},
+            {UI::InventoryPanel, 0x19a, 0x1c4, 0x1b2, 0x1dc},
+            {UI::FriendsPanel, 0x246, 0x1b3, 0x27a, 0x1c5},
+            {UI::CommandsPanel, 6, 0x1b2, 0x3b, 0x1c5},
+        }};
+        for (const HudButton& button : Buttons)
+        {
+            if (!InRect(context, button.left, button.top, button.right, button.bottom))
+                continue;
+            movement.pendingClick = false;
+            if (auto toggled = Toggle(panels, button.id); !toggled.HasValue())
+                return toggled;
+        }
+    }
+    if (auto bar = StepTheSkillBar(context); !bar.HasValue())
+        return bar;
+    // 0x5a10e7..0x5a116f: los números eligen la skill (0x59f810), con el foco en el juego, sin campos de texto,
+    // sin Alt y sin las órdenes de la mascota del Dark Lord (0x420e30, Shift con 1 a 4). 0x7d368a4 y 0x77f3b69
+    // no los escribe MuRet.
+    {
+        constexpr std::uint8_t DarkLordClass = 4;
+        if ((hero.characterClass & 7u) == DarkLordClass && input.IsDown(Key::Shift))
+        {
+            for (int digit = 1; digit <= 4; ++digit)
+            {
+                if (input.IsDown(Digit(digit).key))
+                    return Core::Unexpected(std::string("0x420e30: las órdenes de la mascota del Dark Lord son de la "
+                                                        "CL9.2"));
+            }
+        }
+        if (!input.IsDown(Key::Alt))
+        {
+            for (int digit = 1; digit <= 10; ++digit)
+            {
+                if (input.IsDown(Digit(digit % 10).key))
+                    return Core::Unexpected(std::string("0x59f810: elegir la skill con los números es de la CL9.2"));
+            }
+        }
+    }
+    // 0x5a116f..0x5a2b47: Alt con un número dice la macro (0x56c440), salvo con 0x77f3b74 o en Chaos Castle.
+    if ((runtime.map < FirstChaosCastleMap || runtime.map > LastChaosCastleMap) && input.IsDown(Key::Alt))
+    {
+        for (int digit = 1; digit <= 10; ++digit)
+        {
+            if (input.IsDown(Digit(digit % 10).key))
+                return Core::Unexpected(std::string("0x5a11cb: las macros (Alt y un número) son del hito 3"));
+        }
+    }
+    // 0x5a2b47..0x5a32dd: el clic derecho en las tres ranuras rápidas, si el héroe no se está muriendo.
+    if (hero.dying == 0 && ui.rightClick)
+    {
+        for (std::int32_t slot = 0; slot < 3; ++slot)
+        {
+            const std::int32_t left = 0xd0 + 0x1f * slot;
+            if (InRect(context, left, 0x1c4, left + 0x14, 0x1d8))
+            {
+                ui.rightClick = false;
+                return Core::Unexpected(std::string("0x5a2b9a: las ranuras rápidas (0x558110) son del hito 2 y usar el "
+                                                    "ítem (C1 26), de la CL9.3"));
+            }
+        }
+    }
+    // 0x5a32dd: con un campo de texto, los botones del modo del chat (hito 3).
+    // 0x5a343e..0x5a359a: Q, W y E solo sin campo de texto, con todo esto cerrado y el héroe vivo. Las consultas
+    // del comercio y de la tienda de NPC sacan un rand() cada una en cada paso. 0x77f3b68, entre 0x40000 y el
+    // diálogo, es un campo de texto que MuRet no tiene.
+    if (!TextInputBusy(runtime) && !panels.IsOpen(UI::TradePanel) && !panels.IsOpen(UI::WarehousePanel) &&
+        !panels.IsOpen(UI::NpcShopPanel) && !panels.IsOpen(UI::ChaosBoxPanel) && !panels.IsOpen(UI::SecondGuildPanel) &&
+        runtime.dialogs.current == 0 && runtime.panels.field78abb00 == 0 && !panels.IsOpen(UI::QuestPanel) &&
+        !panels.IsOpen(UI::EventNpcPanel) && !panels.IsOpen(UI::SecondEventNpcPanel) && !panels.IsOpen(UI::Panel2000) &&
+        !panels.IsOpen(UI::PersonalShopPanel) && !panels.IsOpen(UI::OtherShopPanel) &&
+        !panels.IsOpen(UI::TrainerPanel) && hero.dying == 0)
+    {
+        // 0x5a35a6, 0x5a3d2a y 0x5a44b1: la ranura 0, 1 y 2.
+        for (const char letter : {'Q', 'W', 'E'})
+        {
+            if (KeyEdge(ui, input, Letter(letter)))
+                return Core::Unexpected(std::format("0x558110: {} usa la ranura rápida (hito 2) con el C1 26 de la "
+                                                    "CL9.3",
+                                                    letter));
+        }
+    }
+    // 0x5a4c6e..0x5a5504: las letras de los paneles, B y R, sin campo de texto, sin diálogo y con la lista de CS
+    // cerrada. La primera que se apretó hace lo suyo y las que siguen no se leen en este paso.
+    if (!TextInputBusy(runtime) && runtime.dialogs.current == 0 && runtime.panels.delegated.castleSiegeList == 0)
+    {
+        struct PanelLetter
+        {
+            char letter;
+            UI::PanelId id;
+        };
+        constexpr std::array<PanelLetter, 9> Letters{{
+            {'G', UI::GuildPanel},
+            {'P', UI::PartyPanel},
+            {'T', UI::QuestPanel},
+            {'C', UI::CharacterPanel},
+            {'I', UI::InventoryPanel},
+            {'V', UI::InventoryPanel},
+            {'F', UI::FriendsPanel},
+            {'M', UI::MovePanel},
+            {'D', UI::CommandsPanel},
+        }};
+        bool done = false;
+        for (const PanelLetter& letter : Letters)
+        {
+            if (!KeyEdge(ui, input, Letter(letter.letter)))
+                continue;
+            // 0x5a4ea6: la cola común.
+            if (auto toggled = Toggle(panels, letter.id); !toggled.HasValue())
+                return toggled;
+            done = true;
+            break;
+        }
+        UI::PanelState& state = runtime.panels;
+        // 0x5a4ec2..0x5a4f2e: B, con la tienda de NPC abierta y 0x78abb09, el modo de reparar de la tienda.
+        if (!done && KeyEdge(ui, input, Letter('B')))
+        {
+            done = true;
+            if (panels.IsOpen(UI::NpcShopPanel) && state.field78abb09 != 0 && runtime.cursorItemCount == 0)
+            {
+                if (state.repairCursor == 0)
+                {
+                    state.repairCursor = 2;
+                    state.repairMode = 1;
+                }
+                else
+                {
+                    state.repairCursor = 0;
+                    state.repairMode = 0;
+                }
+            }
+        }
+        // 0x5a4f34..0x5a54e6: R, el modo de reparar con el inventario (nivel 50 o más).
+        if (!done && KeyEdge(ui, input, Letter('R')))
+        {
+            std::uint16_t level = 0;
+            {
+                const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                                        Render::Models::OwnRecordCloseRandoms);
+                level = context.world.OwnCharacter().level;
+            }
+            constexpr std::uint16_t RepairLevel = 0x32;
+            bool toggle = panels.IsOpen(UI::NpcShopPanel) && state.field78abb09 != 0 && runtime.cursorItemCount == 0;
+            if (!toggle && !panels.IsOpen(UI::TradePanel) && !panels.IsOpen(UI::NpcShopPanel) &&
+                panels.IsOpen(UI::InventoryPanel) && level >= RepairLevel && !panels.IsOpen(UI::WarehousePanel) &&
+                !panels.IsOpen(UI::ChaosBoxPanel) && !panels.IsOpen(UI::EventNpcPanel) && state.field78abb00 == 0)
+                toggle = true;
+            if (toggle)
+            {
+                // 0x5a54c8..0x5a54e1.
+                state.repairMode = state.repairMode == 0 ? 1 : 0;
+                state.repairCursor = state.repairMode != 0 ? 2 : 0;
+            }
+        }
+    }
+    // 0x5a5504: 0x6529e0, el asedio con la rueda o el mouse en su rectángulo; sin el asedio (0x4294b0) no hace
+    // nada.
+    if (runtime.siegeActive)
+        return Core::Unexpected(std::string("0x6529e0: la UI del asedio es de la CL9.5"));
+    // 0x5a5511: sin ningún panel abierto, el paso del panel del asedio (0x4125a0). 0x413c90 no hace nada.
+    if (!panels.IsOpen(UI::AnyPanel))
+        return StepTheSiegePanel(context);
+    return {};
+}
+} // namespace
+
+void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down)
+{
+    if (!down)
+        state.leftHeld = false;
+    else if (!state.previousLeftDown)
+        state.leftHeld = true;
+    state.previousLeftDown = down;
+    state.pendingClick = state.pendingClick || pressed;
+}
+
+Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::GameUiState& ui = runtime.ui;
+    UI::DialogState& dialogs = runtime.dialogs;
+    GamePanels panels(context.world, context.random);
+    // 0x623e9b..0x623ec2: con la de amigos abierta, Esc es de las ventanas viejas (0x490490).
+    if (!panels.Registry().IsOpen(UI::FriendsPanel) && KeyEdge(ui, context.input, EscapeKey))
+    {
+        // 0x623ec8: con el recorrido de la cámara, Esc lo corta (+0x158 = 1, 0x403d60) y sale.
+        if (runtime.movement.cameraTour)
+            return Core::Unexpected(std::string("0x623ed7: cortar el recorrido de la cámara con Esc es de la CL9.5"));
+        if (ui.field78abb39 == 0)
+        {
+            if (dialogs.current == 0)
+            {
+                auto closed = panels.Registry().PanelKey(0x1b);
+                if (!closed.HasValue())
+                    return Core::Unexpected(std::move(closed).Error());
+                if (!closed.Value())
+                {
+                    // 0x623f22..0x623f33: el menú, o en espera si algo abrió un diálogo.
+                    (dialogs.current != 0 ? dialogs.pending : dialogs.current) = UI::EscapeMenuDialog;
+                    if (runtime.cursorItemCount > 0)
+                        return Core::Unexpected(std::string("0x623f42: soltar el ítem del cursor (0x5be150) es del "
+                                                            "hito 4"));
+                }
+            }
+            else if (dialogs.current == UI::EscapeMenuDialog || dialogs.current == UI::OptionsDialog)
+            {
+                dialogs.current = dialogs.pending;
+                dialogs.pending = 0;
+            }
+            // 0x623f6a: suena con cualquier diálogo.
+            runtime.lastSoundId = ButtonSound;
+        }
+    }
+    // 0x623f78.
+    if (dialogs.current == 0)
+        return {};
+    if (dialogs.current != UI::EscapeMenuDialog)
+        return Core::Unexpected(std::format("0x625563: el diálogo {:#x} es del hito 6", dialogs.current));
+    return StepTheEscapeMenu(context);
+}
+
+Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::GameUiState& ui = runtime.ui;
+    // 0x636df2..0x636e04.
+    ui.field78abaa8 = 0;
+    ui.skillTooltip = -1;
+    ui.mouseOnUi = 0;
+    // 0x636e0b: 0x7d36899 no lo escribe nadie.
+    if (context.mouseY >= HudTop)
+        ui.mouseOnUi = 1;
+    GamePanels gamePanels(context.world, context.random);
+    UI::PanelRegistry& panels = gamePanels.Registry();
+    // 0x636e24: 0x5ecdc0, la ventana /move (0x5762eb4 es 0 en MuRet).
+    if (panels.IsOpen(UI::MovePanel))
+        return Core::Unexpected(std::string("0x5ecdc0: el paso de la ventana /move (0x449850) es del hito 6"));
+    ui.field5762eb8 = 0;
+    // 0x636e35: 0x46b7b0, las colas de los avisos y el cartel (hito 3), vacías.
+    // 0x636e3c: la lista de ventanas ([0x5763524] vtbl + 0x18), vacía hasta el hito 7.
+    if (auto old = StepTheOldWindows(context); !old.HasValue())
+        return old;
+    // 0x636e4c: el registro del chat ([0x576350c] vtbl + 0x18), del hito 3.
+    // 0x636e5d..0x636ed1: el clic sin dueño devuelve el foco y el IME a la ventana del juego, que en MuRet siempre
+    // los tiene.
+    // 0x636ed6: 0x5ebca0, con 0x78abad9 en 0 no hace nada.
+    // 0x636edb: 0x435bd0 → 0x4303c0, Crywolf, con sus estados (0x723bf9, 0x723a44) que solo escribe su paquete.
+    if (auto stepped = StepThePanels(context, panels); !stepped.HasValue())
+        return stepped;
+    if (auto keys = StepTheKeysAndButtons(context, panels); !keys.HasValue())
+        return keys;
+    // 0x5a7cc0: el rectángulo de la ayuda del F3 24 (0x5767920), que nadie prende: no consume el clic.
+    if (runtime.dialogs.current != UI::EscapeMenuDialog)
+    {
+        if (auto objects = panels.StepTheObjectPanels(); !objects.HasValue())
+            return objects;
+    }
+    // 0x637036..0x637054: el lugar del registro del chat, con 0x6c7a88 en 0: 0x45a9d0(−10, 0x65), del hito 3.
+    // 0x63705b.
+    if (runtime.dialogs.current != 0)
+        ui.mouseOnUi = 1;
+    return {};
+}
+
+Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    std::array<std::int32_t, 5>& targets = context.targets;
+    // 0x59ec97..0x59eda4: los modos del editor (0x77f3b18) no los prende nadie.
+    // 0x59edb4..0x59ee66: el elegido de antes (0x6c8e30), con 0x6c8e3c en 1 (.data).
+    constexpr std::int32_t Pool = 400;
+    const bool chaosCastle = runtime.map >= 18 && runtime.map <= 23;
+    if (runtime.map == 6 || chaosCastle || targets[2] < 0 || targets[2] > Pool)
+    {
+        targets[2] = -1;
+        targets[4] = -1;
+    }
+    else
+        return Core::Unexpected(std::string("0x59ee0b: seguir al elegido de antes es de la CL9.1"));
+    targets[0] = -1;
+    targets[1] = -1;
+    targets[3] = -1;
+    if (runtime.ui.mouseOnUi == 0)
+    {
+        if (!context.altDown)
+        {
+            const ActorState& hero = context.world.Actors()[runtime.hero];
+            const std::uint8_t heroClass = static_cast<std::uint8_t>(hero.characterClass & 7u);
+            // 0x59efda..0x59f46e: el Dark Wizard y el Elf leen su skill del registro propio para el orden de las
+            // búsquedas, que son de sus olas.
+            if (heroClass == 0 || heroClass == 2)
+            {
+                const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
+                                                        Render::Models::OwnRecordCloseRandoms);
+            }
+            // 0x59f48d → 0x5e4140: sin la party abierta, el ancho del mundo y los de la party (0x78aba48), que
+            // MuRet no tiene.
+            GamePanels panels(context.world, context.random);
+            if (!panels.Registry().IsOpen(UI::PartyPanel))
+                static_cast<void>(panels.Registry().WorldWidth());
+        }
+        // Las búsquedas: 0x59e700 (los personajes con 0x22, 1 y 4), 0x59e2e0 (el ítem del piso, sin ítem en el
+        // cursor) y 0x59eb90 (los objetos). Son de la CL9.1 y la CL9.3: dejan −1.
+    }
+    // Con el mouse en la UI, 0x59e3b0 (0x59f52a), sin rand(), del elegido.
+    // 0x59f52f.
+    if (targets[2] == -1)
+        targets[4] = -1;
+    return {};
+}
+} // namespace Client::Scenes

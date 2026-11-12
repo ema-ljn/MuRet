@@ -857,17 +857,293 @@ frame.
 
 ### HUD y ventanas
 
-- `0x5a7320` orquesta el HUD: barras de HP y MP (`0x5a89b0`), barra de skills, macro, minimapa.
-- `0x5bbbc0`: nombre y barra de HP sobre jugadores y NPCs.
-- `0x4383f0`: texto flotante (números de daño).
-- `0x490390`: administrador de ventanas: recorre las ventanas abiertas (árbol rojo-negro por
-  prioridad + lista en `+0x84`) y llama al método virtual de dibujo (`vtable + 0x14`).
-- Las ventanas (inventario, personaje, party, gremio, quest, comercio, baúl, amigos) son **clases
-  C++ con vtable**: 12 vtables, una fábrica `0x48ee60` con 11 casos, un marco común `0x492500` y
-  un método de contenido por clase. Campos: id en `+0x10`, estado en `+0x48`, banderas de
-  decoración en `+0x4c`, x/y/w/h en `+0x50..0x5c`, título en `+0x98`.
-- `ALT` muestra el HP de todos; `PRINTSCREEN` guarda una captura (`0x6202e0`,
-  `glReadPixels` + "Screen %02d…").
+Reescrita con el barrido de la CL8 (2026-11-12; plan:
+[`2026-11-12-ola-cl8-hud-y-ventanas.md`](../../../docs/superpowers/plans/2026-11-12-ola-cl8-hud-y-ventanas.md)).
+*Estático* salvo donde se dice; *verificado* es contra el frame 1 de la traza de GL de Lorencia. Lo que decía
+antes esta sección tenía cinco errores: `0x5a89b0` no son las barras propias (es la vida de la party), no hay
+minimapa (el modo 4 de las superposiciones es la ventana /move), `0x4383f0` no son los números de daño (es una
+cola de textos 3D; el daño es `0x548eb0`), `0x5bbbc0` no dibuja barras de vida y ALT no muestra el HP de todos
+(muestra los nombres de los ítems del piso), y la fábrica `0x48ee60` no arma el inventario ni el personaje (arma
+amigos, correo y sus cajas; el id de esas ventanas va en `+0x40`, no en `+0x10`).
+
+**Cuatro mecanismos de ventanas.** (1) Los **paneles por bits** de `[0x576352c]` (`IsOpen` `0x659290`, `CanOpen`
+`0x659860`, `Open` `0x6599a0`, `Close` `0x65cae0`, `CloseByMask` `0x657ab0`, las teclas `0x657880`): el
+inventario, el personaje, la party, /move, el quest, el gremio, el comercio, el almacén, las tiendas y el resto,
+en **modo inmediato** (el paso los atiende en `0x5ee140` y el HUD los dibuja con funciones sueltas). (2) El
+**administrador viejo** `*0x5763514` (ventanas retenidas de vtable de 23 entradas, un mapa id → ventana, una
+lista en orden z en `+0x84` y una cola de mensajes; la fábrica `0x48ee60`): amigos, correo, sus cajas de mensaje,
+la lista de ventanas minimizadas `[0x5763524]` y el registro del chat `[0x576350c]`. (3) La **UI nueva**
+`0x7d53728` del login y la selección, que en el juego (modo 5, `0x65f5f0`) queda vacía e inerte. (4) Los
+**diálogos del juego** `0x7d3a10c`/`0x7d3a110` (`0x6236f0` los abre o los encola), que `0x623e70` atiende por
+paso y `0x62db60` dibuja por frame; el `0x6e` es el menú de Esc, el `0x93` las opciones y el `0x70` la
+desconexión.
+
+**El clic es primero de la UI.**
+
+| Global | Qué | Quién escribe | Quién lee |
+| --- | --- | --- | --- |
+| `0x775857c` (byte) | **el mouse es de la UI** | 0 en `0x636e04` en cada paso; 1 en `0x636e1d` (y ≥ 432), en `0x637063` (aviso abierto) y en los handlers de ventana cuando el mouse cae en su rectángulo (`0x5e3ce8` party, `0x5e457d` C, `0x40a48f` D, `0x424230`, `0x41a9e0`, `0x41b170`, `0x44b540`, `0x44b910`, `0x44dd50`, `0x44f810`, `0x5e6520`, `0x5e74f0`, `0x5ebca0`, las hijas del inventario y la UI vieja: 81 escrituras en 44 funciones) | `0x59adf0` en `0x59b37a` (el giro) y `0x59b853` (el clic); `0x59ec80` en `0x59ef16` (el picking, por frame, con el valor del último paso); `0x57cfc0`, `0x5ac8d0` (teclas F), `0x5ac2d0` (el cursor, por frame) y `0x492ac0` (UI vieja) |
+| `0x7d366d4` (byte) | flanco del clic izquierdo | 1 en el WndProc; 0 en cada consumidor (más de 100) | la UI en el paso; después `MoveHero` (`0x59b88b`), que lo consume aunque no camine |
+| `0x7d36874` | botón izquierdo abajo | WndProc; algunos handlers lo bajan | `MoveHero` (apretado), `0x636e5d` |
+| `0x7d3682c`, `0x7d36828` | x, y del mouse en 640 × 480 | WndProc | todos |
+| `0x7d366d8` | rueda en muescas | WndProc; la consume quien la usa | volumen (`0x625782`) |
+| `0x5763588` | Enter (flanco propio) | | OK genérico de los avisos |
+| `0x77f3b10`, `0x6c8dcc` | `MouseUpdateTime` y su máximo | la UI pone 0 y 6 al usar un clic (`0x6240c5`, los handlers) | `MoveHero` (`0x59b860`) |
+
+**Regla** (*estático*): un clic sobre una ventana **no camina** por dos caminos que se cubren. El
+handler pone `0x775857c` y casi siempre consume `0x7d366d4`, y `MoveHero` salta todo el tramo del
+clic con la bandera (`0x59b853 → 0x59e24e`, sin subir `MouseUpdateTime`, Q-C168). Hay excepciones.
+`0x5a7cc0` no consume el clic ni pone la bandera (Q-C454). `0x435bd0` consume el clic pero no
+pone la bandera.
+
+**El orden.**
+
+Por paso (`0x637700`, 25/s, escena 5):
+
+1. `0x623e70` si `0x5762eb4 == 0`: `IsOpen(1)` (sin `rand()`); si no está abierta la de amigos, **lee el flanco
+   de Esc** (`0x553520(0x1b)`, `0x623eb5`): recorrido de cámara → lo corta; `0x78abb39` → nada; sin diálogo →
+   `0x657880(0x1b)` (diálogo de los paneles, después el panel de bit más bajo; si no cerró ninguno, abre el
+   diálogo `0x6e`, o lo encola; con ítem en el cursor, `0x5be150`; suena `0x19`); con el `0x6e` o el `0x93`
+   abiertos, los saca.
+2. `0x636290` → bloque `0x636e11..0x63705b`, solo con `0x7d36899 == 0`:
+   1. mouse y ≥ `0x1b0` → `0x775857c = 1` (el mouse está sobre la UI);
+   2. `0x5ecdc0` (mapa); `0x5762eb8 = 0`; `0x46b7b0` (colas de textos, CL8.2);
+   3. lista de ventanas (`vtbl[6](0)`), **primera en reclamar el mouse**;
+   4. `0x490490`: valida la modal; **Esc** (`0x4904bc`, la misma tabla de flancos que en el punto 1, así que solo
+      lo ve si `0x623e70` no lo leyó: es decir, con la de amigos abierta) cierra la de arriba si su `vtbl[19]`
+      lo acepta; F5 (con foco en la ventana del juego) y F6; cierra la de amigos si quedó oculta; Update de
+      **arriba hacia abajo** (estados 3 y 5 se saltean), cada una reclama el mouse si nadie lo tiene; vacía la cola
+      del administrador; `+0x40 = 0`;
+   5. registro del chat (`vtbl[6](0)`), último en reclamar; pone `0x6c7a88 = 0` en su constructor;
+   6. clic izquierdo sin dueño o del chat: foco viejo a 0 y, sin campos de texto activos (`0x6c8e68`, `0x77f3b69`,
+      `0x77f3b68`, `0x77f3b6a`), `0x5762ec0 = 0`, la lista de ventanas se pliega (`0x4a5e10`) y vuelve el foco y
+      el IME a la ventana del juego (`0x467360`);
+   7. `0x5ebca0`, `0x435bd0`, `0x5ee140`, `0x59ff10` (teclas y botones del HUD, y su cola `IsOpen(0)`),
+      `0x5a7cc0`;
+   8. si el diálogo no es `0x6e`: `0x657930` (diálogo de los paneles, gremio 2, gremio, CS);
+   9. lugar del registro del chat: con `0x6c7a88 == 1`, (0, 420) si hay paneles anchos abiertos, si no (186, 420);
+      con otro valor, `0x45a9d0(−10, 0x65)`;
+   10. con un diálogo → `0x775857c = 1`.
+
+Por frame (`0x6371a0`, el 2D en `0x637646..0x6376e6`): `0x5a7320` (el HUD, que llama a `0x5f7440` → `0x6579e0`,
+los paneles secundarios con su diálogo arriba), `0x5a7eb0`, **`0x490390`** (ventanas viejas, de abajo hacia arriba,
+y al final `gluOrtho2D(0, W, 0, H)`), `0x5f37f0`, **`0x62db60`** (diálogos: el menú de Esc va arriba de todas las
+ventanas viejas), `0x5f7bc0` (tooltip), …, `0x65fe00` (vacío) y el cursor.
+
+**Lo que porta el hito 1 de la CL8** (`Scenes/GameUi.cpp`, `Scenes/GameSceneUi.cpp`, `UI/PanelRegistry.cpp`).
+`GameScene::Step` guarda los botones del WndProc (`0x7d366d4`, `0x7d36874`, `0x7d36880`) y corre `0x623e70` antes
+de `0x636290`, con el mundo cargado o no; `StepWorld` corre el bloque `0x636ded..0x63705b` donde estaba la
+frontera de P-C41, después de las olas del agua y antes de los objetos. Del bloque, MuRet tiene: la bandera, la
+cola de Esc y F5/F6 de `0x490490` (las dos teclas cortan, hito 7), las puertas de `0x5ee140` (cada hija corta
+con su dirección; con el personaje cerrado, `0x424230` pone `0x723911` en 0), y de `0x59ff10` la salida del
+recorrido de cámara, PgUp/PgDn (cortan, hito 3), los latches de arriba y abajo, los seis botones del HUD
+(`0x5a03c3..0x5a05e5`: gremio, party, personaje, inventario, amigos y comandos, cada uno con su rectángulo y
+abierto → `Close`, si no → `Open`), la barra de skills con su botón (`0x5a066c..0x5a06f9`; la lista corta, CL9.2),
+los números y Alt con un número (cortan, CL9.2 y hito 3), el clic derecho en las tres ranuras rápidas
+(`0x5a2b47..0x5a32dd`: x `0xd0 + 0x1f·i`, 20 × 20 en y `0x1c4`; corta, hito 2 y CL9.3), la cadena de Q/W/E
+(Q-C459; la tecla corta), las letras de los paneles, B y R (la reparación es de la CL8.4), la cola `IsOpen(0)` y,
+sin ningún panel abierto, el panel del asedio de la clase 0 (`0x40f6d0`: Tab con el latch lo muestra u oculta, el
+mouse en su rectángulo de `0x97 × 0xad` es de la UI, la flecha de la página y el alfa, Q-C460). El picking del
+frame (`0x637641`) corre después del pase del mundo con las copias del frame proyectado, y el ancho del mundo
+(`0x5bb8d0`) se pide en `0x63733e`: con un panel abierto, el frame corta (el mundo angosto es del hito 4). La
+pasada 2D (`0x637646..0x6376e6`) queda como ganchos en su orden, sin dibujar ni sacar `rand()`, hasta el hito 2.
+
+**Los paneles.**
+
+El objeto (4 B, vtable `0x6baacc`) lo arma `0x657450` desde WinMain (`0x4bb96a`) con seis objetos: `0x7d536f0`
+gremio `0x10` (`0x64f3e0`), `0x7d536f4` gremio 2 `0x40000` (`0x654900`), `0x7d536f8` CS `0x80000` (`0x64aca0`),
+`0x7d536fc` lista de CS `0x100000` (`0x661090`), `0x7d53700` CS `0x200000` (`0x6485f0`) y `0x7d53704` el diálogo de
+los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de texto).
+
+| id | Qué es | De dónde sale `IsOpen` | Ola |
+|---|---|---|---|
+| `1` | amigos (UI vieja) | `0x490a00(viejo+0x48) != 0` | CL9.4 (el toggle, CL8.3) |
+| `2` | mapa (M) | `0x77f3b08 == 4` | CL8.1 |
+| `4` | party (P) | `0x7d5370a` | CL9.4 (el toggle, CL8.3) |
+| `8` | quest (T) | `*(0x710148)+0x21383` | CL9.x |
+| `0x10` | gremio (G) | `0x6522e0()` | CL9.4 |
+| `0x20` | trade | **byte protegido `0x7d53711`: 1 `rand()`** | CL9.4 |
+| `0x40` | almacén | `0x7d5370d` | CL9.3 |
+| `0x80` | — | siempre cerrado: su rama de `0x659290` da 0 (`0x659429 JNZ 0x6597f3` → `XOR AL,AL`) | — |
+| `0x100` | caja del caos | `0x7d5370e` | CL9.3 |
+| `0x200` | comandos (D) | `*(0x6e592c+4)` | CL9.4 |
+| `0x400` | mascota | `0x420cc0()`: `0x723911 == 2` (`0x424230` lo vuelve a 0 en cada paso con el personaje cerrado) | CL9.x |
+| `0x800` | tienda personal propia (S) | `0x7d5370f` | CL9.4 |
+| `0x1000`, `0x4000` | ventanas con inventario de NPC de evento (`0x7d53712` con `0x7d53714` en 0 o 1; el paso las atiende en `0x5e5920`, que manda `90`/`9A`) *inferido* | | CL9.5 |
+| `0x2000` | sin identificar | `0x7d53718` | — |
+| `0x8000` | NPC con la caja `0x723c80` | `0x449bf0()` | CL9.3 |
+| `0x10000` | tienda de NPC (la abre el `30`, `0x4d1e00` en `0x4d288e`) | **byte protegido `0x7d53710`: 1 `rand()`** | CL9.3 |
+| `0x20000` | tienda personal ajena | `0x7d5370f` | CL9.4 |
+| `0x40000` | gremio 2 (paquetes `54`, `56`) | `0x6570a0()` | CL9.4 |
+| `0x80000`, `0x100000`, `0x200000` | Castle Siege | `+4`, `+4`, `+0x14` de su objeto | CL9.5 |
+| `0x400000`, `0x800000`, `0x1000000` | ventanas de NPC (`0x44dcf0`, `0x44f770`) | `0x44dc10() == 1/2`, `0x44f0f0()` | CL9.x |
+| `0x2000000` | personaje (C) | `0x7d53709` | CL8.4 |
+| `0x4000000` | inventario (I, V) | `0x7d53708` | CL8.4 |
+
+- `IsOpen(0)` recorre 1, 2, 4… y para en el primero abierto. Los ayudantes `0x6522e0`, `0x6570a0`, `0x44dc10`,
+  `0x44f0f0`, `0x420cc0` y `0x449bf0` no llaman a `rand()` (4 a 11 bytes).
+- `CanOpen` `0x659860`: pide cerrados `0x10000` (rand), `0x20` (rand), `0x40`, `0x100`, `0x40000`, `0x2000`,
+  `0x800`, `0x20000`; el diálogo en 0 o `0x8a`; `0x78abb00 == 0`; el quest ≠ 1; la lista de CS libre; `0x400`
+  necesita el personaje; 1 y `0x200` no se abren en los mapas 18 a 23 (Chaos Castle); `0x800` necesita el
+  inventario.
+- `Open` `0x6599a0(id, aux)`: sale con 0 si ya está abierto, si `CanOpen` falla o si `0x576793c == 1` (salida
+  pedida); si el diálogo no es `0x8a`, `0x6236f0(0)`; la máscara `~id ^ 1` (todo menos el id y los amigos) va a
+  `CloseByMask` (salvo con 1 y 2, que no cierran nada); el despacho es la tabla de bytes `0x65cabc` / saltos `0x65caa0` para ids ≤ `0x20` y comparaciones
+  arriba; la salida común `0x65ca72` hace sonar `0x19` y `0x1c` y devuelve 1, aunque algo haya fallado.
+- `Close` `0x65cae0`: con `0x10000`, `0x80000`, `0x8000`, `0x80`, `0x20`, `0x40`, `0x100` y `0x1000` cierra
+  también el inventario; `0x2000000` cierra antes `0x408`; `0x4000000` cierra antes `0x11d9e0` (y no cierra si
+  la lista de CS está ocupada); `0x100000` ocupado da el texto 1641. Siempre suena `0x19` y `0x1c`.
+- `CloseByMask` `0x657ab0(máscara, flag)`: el orden fijo es `0x2000000`, 4, 8, `0x10`, `0x40000`, `0x80000`,
+  `0x100000`, `0x200000`, `0x400000`, `0x800000`, `0x1000000`, `0x20`, 1, 2, `0x40`, `0x100`, `0x200`, `0x400`,
+  `0x800`, `0x20000`, `0x1000`, `0x2000`, `0x4000`, `0x8000`, `0x10000`, `0x4000000`, y cada uno se consulta con
+  `IsOpen` **solo si está en la máscara**.
+- Teclas de los paneles: `0x657880(vk)` le da la tecla primero al diálogo (`0x660410`); con Esc cierra el abierto
+  de bit más bajo. La llaman `0x623e70` (Esc, en `0x623f19`), el WndProc `0x4af4e0` (Enter, `0x4b5185`, según el
+  diálogo: `0x7d`, `0x95`, `0x8a`, `0x8d`, `0x8b` y `0x78abb00 != 3`) y `0x403390` (después de `0x5be150`).
+- Teclas del juego (`0x59ff10`, `0x5a4c25..0x5a5504`): guarda
+  `!0x6578e0() && 0x7d3a10c == 0 && !*(0x7d536fc+4)`; G → `0x10`, P → 4, T → 8, C → `0x2000000`, I/V →
+  `0x4000000`, F → 1, M → 2, D → `0x200`, por la cola común `0x5a4ea6` (abierto → `Close`, si no → `Open`).
+
+**Los `rand()` de abrir y cerrar.**
+
+### 3.6 Los `rand()` de abrir y cerrar (*estático*)
+
+| Qué | Dónde | `rand()` | Paso/frame |
+|---|---|---|---|
+| `IsOpen(0x20)` / `IsOpen(0x10000)` | `0x659290` (cierres `0x4c0ec0` / `0x4c1190`) | 1 cada uno | donde se llame |
+| `IsOpen` de cualquier otro id | | 0 | |
+| la barra de skills de `0x59ff10`, aunque no haya skills | registro propio abierto en `0x5a05e5`, cerrado en `0x5a10e2` | 3.848 | **por paso** (Q-C458) |
+| la cadena de Q, W y E sin campo de texto | `0x5a343e..0x5a3587`: `IsOpen(0x20)`, `IsOpen(0x40)`, `IsOpen(0x10000)` y lo que sigue, con cortocircuito | 2 con todo cerrado (sale en la consulta del diálogo si hay uno, después de las dos) | **por paso** (Q-C459) |
+| `IsOpen(0)` con nada abierto debajo de `0x20` | `0x5a5511` (cola de `0x59ff10`) | 2 | **por paso**: `0x59ff10` corre en cada paso (`0x636ee6`) y solo sale antes en `0x59ff3f` |
+| **el paso del juego quieto, con todo cerrado** | `0x59ff10`: la barra, Q/W/E y la cola | **3.852** | por paso (hito 1 de la CL8, `GameUi.cpp`) |
+| R apretada con todo cerrado | `0x5a4f34..0x5a54e6`: el registro propio (cerrado en `0x5a53d8`), `IsOpen(0x10000)`, `IsOpen(0x20)` e `IsOpen(0x10000)` otra vez antes del inventario | 3.851 | por paso, con la tecla |
+| B apretada con todo cerrado | `0x5a4ec2..0x5a4f2e`: `IsOpen(0x10000)` | 1 | por paso, con la tecla |
+| el picking del frame (`0x59ec80`) con el mouse fuera de la UI y sin Alt | `0x59efda..0x59f46e`: el registro propio con la clase 0 o 2; `0x5e4140` → el ancho del mundo con la party cerrada | 3.848 (DW y Elf) + los del ancho | por frame (`0x637641`) |
+| el ancho del mundo `0x5bb8d0` con el inventario abierto | `IsOpen(0x10000)` e `IsOpen(0x20)` | 2 por llamada | 19 llamadores, por paso y por frame |
+| el resto del bloque de UI del paso (sin `0x59ff10`), con todo cerrado y `0x6c7a88 != 1` | `0x636e11..0x63705b` | 0 | por paso |
+| lo mismo con `0x6c7a88 == 1` y el inventario abierto | `0x636f04..0x636ffd` | 2 | por paso |
+| `0x657a90` con todo cerrado | `0x657ab0(−1, 0)` | 2 | evento (MuRet ya lo cuenta en `WorldEntry.cpp`) |
+| abrir el inventario (I) con todo cerrado | `CanOpen` 2 + máscara 2 | 4 | evento |
+| cerrar el inventario (I) | máscara `0x11d9e0` | 2 | evento |
+| Esc con solo el inventario abierto | `0x657880` 2 + máscara 2 | 4 | evento |
+| Esc con nada abierto | `0x657880` 2, y abre el `0x6e` | 2 | evento |
+| abrir el personaje (C) | 4 + registro propio 3.848 + `0x550d10` (CL8.4) | ≥ 3.852 | evento |
+| abrir los amigos (F) | `CanOpen` 2 + registro propio en `0x491080` 3.848 | 3.850 | evento |
+| R (reparar, nivel ≥ 50, inventario abierto) | registro propio + `IsOpen(0x10000)`, `IsOpen(0x20)`, `IsOpen(0x10000)` | 3.851 | evento (CL8.4) |
+| abrir la tienda personal (`0x800`) o la ajena (`0x20000`) | C3 `F3 10`: relleno (`0x65ae52`/`0x65b521`) + serial (`0x40b3f0`) | +2 | evento (CL9.4) |
+| abrir la tienda de NPC (`0x10000`) | cierre de su byte (`0x65be36`) | +1 | evento (CL9.3) |
+| cerrar el trade abierto | C3 `3D` (`0x6580b7` + serial) + su byte | +3 | evento (CL9.4) |
+| F6 para mostrar, si una de las ocultas ya no existe (la de amigos: `0x490490` la destruye al verla oculta) | `0x4906a0` → `0x491080` | 3.850 | evento |
+| dibujo del marco viejo | `IsOpen(1)` | 0 | frame |
+| dibujo de CS `0x200000` | `0x64a060` (`0x64a9f0`) | 1+ | **frame**, solo con ese panel (CL9.5) |
+| dibujo del retrato de la carta | `0x497c10` (`0x497cce`) | 1+ | frame, solo con esa ventana (CL9.4) |
+| botón Seleccionar servidor del Esc del login | `0x647f60` | 2 | evento (escenas 2 y 4) |
+
+El registro propio gasta 3.848 al cerrarse **si su cuenta de aperturas (`+0xf08`) vuelve a 0**; dentro de otra
+apertura no gasta. Lo mismo vale para las entradas de 1 byte.
+
+**La pasada 2D del juego** (`0x637641..0x6376eb`). Antes del 2D, `0x6375ea..0x63763c` apaga la niebla del
+mapa 30 y `0x637641` corre el picking (`0x59ec80`).
+
+
+| Dir. | Llamada | Condición | Deja |
+|---|---|---|---|
+| `0x637646` | `0x6219b0` empieza el 2D | siempre | PROJECTION: perspectiva y encima `gluOrtho2D(0, W, 0, H)` con push; MODELVIEW identidad con push; sin profundidad (`0x620870`). Traza 124236..124245 |
+| `0x63764b` | `0x4383f0` textos 3D | siempre | `glColor3f(1, 1, 1)` (traza 124242+); con textos, mezcla normal |
+| `0x637650` | `0x5bbbc0` hover y ALT | siempre | **opaca** (`0x620980`) y blanco; `0x77f3b66 = 1` |
+| `0x637660` | `0x5a7320(1)` el HUD | `0x7d36899 == 0` (sin vista de arriba); el argumento no se usa | termina con `0x5a9630`, que hace `0x621a90`: **sale del 2D por la pila** (traza 126848..126849) |
+| `0x637668` | `0x5a7eb0` cuenta y resultados de evento | siempre | mezcla y color de lo que dibuje |
+| `0x637673` | `0x490390(this = [0x5763514])` ventanas con clase | siempre | dibuja con vfunc +0x14 las de estado ≠ 3 y ≠ 5; después **PROJECTION con identidad y `gluOrtho2D` sin push** ni vuelta a MODELVIEW (traza 126850..126852) |
+| `0x637680` | `[[0x5763524]]+0x14` = `0x492500` (vtable `0x6ba074`) | siempre | marco común de ventana; en la traza, nada |
+| `0x637683` | `0x5f37f0` pedido de duelo | adentro, `0x78abad9` | |
+| `0x637696` | `0x62db60` cajas viejas | escena `0x6d5dc8 == 5` | con código 0: mezcla normal |
+| `0x63769b` | `0x5f7bc0` tooltips | siempre | |
+| `0x6376a0` | `0x554810` avisos | siempre | mezcla normal y blanco |
+| `0x6376b6` | `0x5554e0` área de mensajes | `0x6c7a88 == 1` o escena ≠ 5 | |
+| `0x6376bb` | `0x5b0550` superposiciones (abajo) | siempre | |
+| `0x6376c6` | `0x40eca0(this = [0x6eed3c])` cartel del set | `+0x9305 ≠ 0` | |
+| `0x6376cb` | `0x65ee60` → `0x65fe00` UI nueva | siempre | (portado para login/selección) |
+| `0x6376d7` | `0x5ac2d0` cursor | siempre | mezcla normal, blanco. Traza 126884 |
+| `0x6376dc` | `0x633110` ítem 3D de diálogo | `0x7d3a10c` ∈ {0x94/0x98 con `0x78abb14 == 1`, 0x96, 0xa8, 0x99, 0x94 con `0x78abb14 == 5`} | proyección propia (abajo) |
+| `0x6376e1` | `0x5ac2d0` cursor **otra vez** | siempre | Traza 126895, mismo quad |
+| `0x6376e6` | `0x621a90`, `0x620fc0` | siempre | traza 126896..126901: 3 pops en MODELVIEW, PROJECTION, 1 pop, MODELVIEW; devuelve 1 |
+
+Las pilas no cierran por modo (`0x621a90` hace dos pops en el modo que esté; `0x490390` deja PROJECTION sin
+push): puede haber underflow (*inferido*). A MuRet no le importa: `SpriteBatch` arma sus matrices por pase. Lo que
+sí importa es la mezcla cacheada (`0x7d366dc`: solo cambia GL si cambia el modo) y el color que hereda el que
+sigue, porque varias funciones dibujan sin poner color.
+
+**El HUD `0x5a7320`, hijo por hijo.** Empieza con `0x6c8e5c = −1`. La columna "base" es el estado de la traza
+(sin ventanas, sin party, sin evento, sin arco); `r` son `rand()` por frame.
+
+
+| # | Función | Qué | Condición | Base |
+|---|---|---|---|---|
+| 1 | `0x5a7520` | arenas de Tarkan (mapa 8: dos `0x622000` con `0x5c2`/`0x5c3` en (0, 0, 640, 435), UV por tiempo); Crywolf (34) con `0x576353c` → `0x435930` una vez; si no, `0x42b100` (humo; mira `0x4294b0`); `glColor3f(1,1,1)` | por mapa | blanco (traza 124245+) |
+| 2 | `0x5a7640` | guerra de gremios: marcador y marcas | `0x576796c` y `hero+0x1f2 ≠ −1`; `0x576796f` | nada |
+| 3 | `0x5a89b0` | barras de vida de la party y 'HP : %d0%' | `0x78aba48 > 0` (lista `0x77f3ce8`, 0x24 B) | nada |
+| 4 | `0x5a6fc0` | info de Castle Siege | objeto `0x5767924` | nada (libera con `0x4e05f0`) |
+| 5 | `0x42a4d0` | barras 50×2 de la cola `0x7239ac` | cola no vacía | nada |
+| 6 | `0x42a660(hero)` | íconos de estado: `+0x78` bits `0x200..0x10000` → íconos `0x4b`, `0x35`, `0x40`, `0x43`, `0x45`, `0x46`, `0xcb`, `0xcc` en (180 + 25i, 1, 20, 24) | por bit | nada |
+| 7 | `0x5ab810` | flechas (`+0xbb4 == 0x807`, Text 351) o virotes (`+0xb6c == 0x80f`, Text 352); IsOpen(4) solo con party | **abre y cierra el registro siempre** | 3.848 r |
+| 8 | `0x5ab210(…)` | ayudante (`+0x318` ∈ `0x1c12..0x1c16`, `0x1c37`: Text 354/355/1187) y vida del invocado (`0x5767960`, Text 356) con `0x5a6af0(575, 16, 50, 2, …)` | por equipo y paquete | la barra del invocado está en la traza (124268..124304) |
+| 9 | `0x5aac20` | avisos de durabilidad: IsOpen(`0x20`); si no, 12 ranuras de equipo (`0..0x360` de a `0x48`), '%s (%d/%d)' | siempre | 1 + ≥ 12 × 3.848 r |
+| 10 | macro | 'Macro Time' y `0x5a6af0(x, 404, 50, 2, …)` | `0x77f3b74 > 0` | nada |
+| 11 | `glColor3f(1,1,1)`; `0x40bab0(this = 0x723c60)` + vfunc +4 | cuenta de BC/CC | objeto activo | nada |
+| 12 | `0x5a9050` | globos y nombres sobre las cabezas (`0x77e1be0`) | entradas vivas | nada |
+| 13 | `0x451d10`/`0x451c20` | carteles [LOJA] | singleton `0x7245c8` | nada |
+| 14 | `0x5a6cc0` | marcador de duelo | `0x78abad8` | nada |
+| 15 | `0x46b090(this = [0x5763528])` | caja sin leer | | nada |
+| 16 | `0x413ca0` | Castle Siege (mapa 30) | `0x4294b0` | nada |
+| 17 | `[[0x576350c]]+0x14` = `0x479080` | ventana del chat (*inferido*) | | sin leer |
+| 18 | `0x5f7440` | ventanas (los paneles, abajo) | por máscara | 2 r |
+| 19 | `0x65dd70(this = [0x5763534])` | imagen que se desvanece (slot `0x66a`) | `+0x18` | nada |
+| 20 | `0x5a9290` | barra de abajo: Menu04 `0xe9` en (0, 387, 108, 45) y espejada en (532, 387); Menu01_new `0xe6` (0, 432, 256, 48), Menu02 `0xe7` (256, 432, 128, 48), Menu03_new `0xe8` (384, 432, 256, 48), opacos | siempre | 3.848 r; traza 124333..124379 |
+| 21 | `0x4365c0` | UI de evento | `0x723bf9`, `0x6c73d1` | nada |
+| 22 | `0x5aa9a0` | entrada del chat (`0xf8`/`0xf9` en (186, 415)) e indicador F3 (`0xef` en (432, 420)) | `0x6c8e68`/`0x77f3b69`; `0x6c8dd0` | nada |
+| 23 | `0x5abcd0` | XP: nivel `[0x7681eb0]+0xe`; base = (n + 8)(n − 1)²·10 (más un extra arriba de 255); lleno = (xp − base)/(sig − base)·10; la parte fraccionaria es el ancho de la barra sin textura `(0.92, .8, .34)` en (221, 439, ·, 4) y la entera el dígito `(0.91, .81, .6)` en (425, 434); ayuda Text 201 en (223, 424) | siempre | 3.848 r; traza 124393..124407 |
+| 24 | `0x5a8cc0` | AG: `+0x38` actual, `+0x3a` máximo; slot `0x101` en (551, 473 − h, 15, h) con h = act·36/máx y `(1, .95, .75)`; dígitos en (571, 467); ayuda Text 214 en (546, 419) | siempre | 3.848 r; traza 124427..124478 |
+| 25 | `0x652c90` | BattleSkill | `0x4294b0` | nada |
+| 26 | `0x436240` | confirmación de evento | | nada |
+| 27 | `0x5ac120` | 3D en la UI (abajo, El 3D de la UI) | siempre | traza 124479..126583 |
+| 28 | `0x5f7840` | grillas de ítems de las ventanas abiertas | por máscara | CL8.4 |
+| 29 | `0x5a9630` | barra principal (tramos arriba) | siempre | ≥ 3 × 3.848 + 60 + 8 r; traza 126584..126848 |
+| 30 | `0x5e9b10` | caja de contraseña (`0x78abb20`) | | nada |
+| 31 | IsOpen(0) | si no hay ninguna abierta → `0x4125b0` (vfunc +0xc de `[0x5763530]`) | siempre | 2 r |
+
+**El cursor del juego** (`0x5ac2d0`): `0x620a00(1)`, `glColor3f(1,1,1)`, un cuadro de 24 × 24 en (x − 2, y − 2),
+como en el login, y **dos veces por frame** (Q-C442). El slot:
+
+`0x620a00(1)`, `glColor3f(1,1,1)`, cuadro de 24 × 24 en (x − 2, y − 2) (como en el login). El elegido (*estático*):
+
+| Orden | Condición | Slot (archivo) | Depende de (ola) |
+|---|---|---|---|
+| — | solo si `0x78abb20 == 0` y `0x7d3a10c == 0`; si no, el de abajo de todo | | caja abierta (CL8.3) |
+| 1 | ítem del piso bajo el mouse (`0x6c8e28`) | 5 CursorGet | picking e ítems del piso (CL9.3) |
+| 2 | NPC bajo el mouse (`0x6c8e2c`) | 6 CursorTalk, animado: cuadro `ftol(…) % 6`, cuartos de UV (du = dv = 0,5) | NPC (CL9.1) |
+| 3 | objeto usable (`0x6c8e34`, tabla `0x7d34820`) | 8 CursorLeanAgainst si el tipo es el del mapa (0: `0x85`, 1: `0x3c`, 2: `0x5b`, 3: `0x26`), si no 9 CursorSitDown | objetos del mundo (CL7/CL9.1) |
+| 4 | personaje (`0x6c8e30`), héroe `+0x3e2 == 0`: atacable (`0x558bb0`) y `0x775857c == 0` | 4 CursorAttack, o `0x68d` CursorAttack2 en el mapa 30; si no y con IsOpen(`0x200`), `0x65a` CursorID | combate (CL9.2) |
+| 5 | IsOpen(`0x200`) | `0x65a` CursorID | identificación (CL9.3?) |
+| 6 | `0x78abb0c == 1` / `== 2` | 7 CursorRepair / el mismo girado 45° por `sin(T·k)` (`0x621cc0`) | reparar (CL9.3, tienda) |
+| 7 | botón izquierdo (`0x7d36874`): `0x77f3b5c == 0` → 3 CursorPush; si no 10 CursorDontMove | 3 / 10 | movimiento (CL6, ya está) |
+| 8 | si no | 2 Cursor | |
+
+En la base todo da −1 o 0 y queda el 2 (*verificado*: los dos quads finales son la GL 9 = slot 2). En CL8 entran el
+2, el 3, el 10 y el 7/girado; los demás se cortan con su ola y quedan como `if` sobre globals que hoy valen −1.
+
+**El 3D de la UI** (`0x5ac120`, *verificado* contra la traza 124479..126583): proyección de 1° (`0x6203c0(1.0,
+W/H, 20, 2000)`), la cámara `0x7d366f0`, profundidad; con `0x78abb00` en 0 o 3, los ítems de las grillas abiertas
+(`0x5f7610`), el del cursor (`0x5f7b10`) y las 3 ranuras rápidas (`0x558110(i)` → `0x5e1480(208 + 31i, 454, 20,
+20, …)`); si no, `0x5f70a0`. `0x633110` (después del primer cursor) es el ítem 3D de los diálogos de NPC y de la
+mezcla, con su propia proyección: CL9.3.
+
+**Las teclas por paso** (`0x5ac8d0`, `0x63717f`, `GetAsyncKeyState` con un latch por tecla): SPACE levanta el ítem
+del piso más cercano (`0x5650c0`, CL9.3); F1 cicla las ayudas (`0x77f3b08`); F2 alterna `0x6c8dd1` (el chat normal
+entra en la lista); F3 alterna `0x6c8dd0` (el modo susurro); F4 mueve el registro del chat (`0x45d8c0`,
+`0x45a9d0`). **La captura** (PrintScreen, flanco de `0x2c` en `0x637cff`): `0x637700` arma
+`Screen(%02d_%02d-%02d_%02d)-%04d.jpg` (mes, día, hora, minuto; contador `0x7d368ac` módulo 10.000) y el Text 459;
+después del dibujo de la escena, `0x6202e0` hace `glReadPixels` en RGB y `0x63b150` escribe un JPEG de calidad 100;
+el mensaje va al área de mensajes. No saca `rand()`.
 
 ## La escena de carga y la de login
 
@@ -3911,7 +4187,7 @@ intermedios sin modificar el dueño ni el CRT durables.
 
 ### El paso del juego
 
-El paso de la escena 5 es `0x636290` entero (3.844 bytes), después de `0x623e70`, la UI del juego
+El paso de la escena 5 es `0x636290` entero (3.844 bytes), después de `0x623e70`, los diálogos del juego (el menú de Esc y las opciones; [HUD y ventanas](#hud-y-ventanas))
 ([02](02-arranque-y-ciclo-de-vida.md#qué-corre-en-cada-paso-y-qué-en-cada-frame)). Después del
 bloque de la entrada, en orden (*estático*):
 
@@ -4820,7 +5096,7 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 | `0x637577..0x6375e5` | segunda consulta437850;620db0,4378a0 y cola | segunda capa | orquestador y modos portados; backend/loader Kalima permanecen explícitos437850/4378a0/4377a0 |
 | `0x6375ea..0x63763c` | en el mapa 30, con el héroe **todavía** en el rectángulo, `0x42b0f0`: `glDisable(GL_FOG)` | apaga la niebla antes del 2D; si el héroe salió, queda prendida hasta el `0x620db0` siguiente (Q-C390) | `GameScene::DrawTheWorldPass`, con la segunda lectura |
 | `0x637641` | `0x59ec80` | qué personaje está bajo el mouse | [Caminar](#caminar) |
-| `0x637646..0x6376e6` | `0x6219b0`, `0x4383f0`, `0x5bbbc0`, `0x5a7320(1)`, `0x5a7eb0`, `0x490390`, `0x5f37f0`, `0x62db60`, `0x5f7bc0`, `0x554810`, `0x5554e0`, `0x5b0550`, `0x40eca0`, `0x65ee60`/`0x65fe00`, `0x5ac2d0` × 2, `0x633110`, `0x621a90`, `0x620fc0` y uno por vtable | el 2D: el HUD, las ventanas, el texto y el cursor | CL8 |
+| `0x637646..0x6376e6` | `0x6219b0`, `0x4383f0`, `0x5bbbc0`, `0x5a7320(1)`, `0x5a7eb0`, `0x490390`, `0x5f37f0`, `0x62db60`, `0x5f7bc0`, `0x554810`, `0x5554e0`, `0x5b0550`, `0x40eca0`, `0x65ee60`/`0x65fe00`, `0x5ac2d0` × 2, `0x633110`, `0x621a90`, `0x620fc0` y uno por vtable | el 2D: el HUD, las ventanas, el texto y el cursor ([HUD y ventanas](#hud-y-ventanas)) | CL8 |
 
 **Por dentro de `0x5fc260(0)`** (*estático*), en el orden de sus llamadas:
 
@@ -7125,8 +7401,9 @@ marca; lo *emulado* corre el código real sobre el `.att` y las alturas de Loren
 
 - `WinMain` despacha **todos** los paquetes de la cola antes de `0x637700`
   ([03](03-red-y-cifrado.md#sockets)): un `D3` que llega se aplica antes de los pasos del frame.
-- En cada paso, primero la UI del juego (`0x623e70`, que consume muchos clics: `0x7d366d4` tiene más
-  de 100 escritores) y después `0x636290`, con `0x59adf0` (el `MoveHero` de MuMain: el clic, el
+- En cada paso, primero los diálogos del juego (`0x623e70`) y después `0x636290`, que antes de mover al
+  héroe corre el bloque de UI `0x636ded..0x63705b`, donde las ventanas consumen sus clics (`0x7d366d4`
+  tiene más de 100 escritores; [HUD y ventanas](#hud-y-ventanas)), con `0x59adf0` (el `MoveHero` de MuMain: el clic, el
   camino y el paso del héroe) y `0x508f00` (el `MoveCharactersClient`: las celdas ocupadas y el paso
   de los 400 personajes), en ese orden.
 - En el dibujo, `0x620480(mouse, &0x7d366c0, 1)` arma el rayo del mouse (`0x6374aa`) y, después del
@@ -7224,7 +7501,8 @@ de Lorencia verifican el componente; `GameScene`, reglas del clic y caminar sigu
   (`0x59bbe9..0x59bbf0`: la derecha en `+0xb6c`, la izquierda en `+0xbb4`). Solo con el cursor vacío
   (`[0x7879fbc]` ≤ 0), la derecha vacía (−1) y en la izquierda un arma de los grupos 0 a 2 o del 5
   (`0..0x5ff`, `0xa00..0xbff`) pasa esa arma al cursor (`0x59bdf6`), viste al héroe (`0x512a30`) y
-  manda el `C1 .. 24` que la lleva a la derecha (`0x59bf1c`, CL8; MuRet corta en `0x59bd3e`). Con
+  manda el `24` que la lleva a la derecha (`0x59bf1c`, CL8; MuRet corta en `0x59bd3e`), en `C3`: el
+  relleno en `0x59ca54` y el serial en `0x59caac`, 2 `rand()` más los cierres del registro propio del tramo. Con
   cualquier otra cosa en las manos, por ejemplo la espada en la derecha y la izquierda vacía, sigue en
   `0x59cd23`.
 - **Qué hay bajo el mouse**, desde `0x59cd28` (con `MouseUpdateTime = 0`; `+0x379` es el
@@ -7426,10 +7704,11 @@ pero manda igualmente. Sector igual no cambia cuerpo ni manda. byte381 se retien
 `Protocol::Movement::WriteFacing`/`ServerSession::SendFacing` publican los bytes crudos sin
 normalizar direction. Sus 12 tests cubren 39→40, guardas, sector/borde 112,5, modo/ventana, orden de
 campos antes del envío, wrap y errores con prefijo conservado. Las pruebas wire son de sesión y
-protocolo; el llamador conserva cabeza→rama quieta/movimiento→gates→clic→57cfc0. El binding normal
-actual usa centerX=320 y acción!=3e; la guarda1000 ya cortó antes. El ancho que cambia por ventanas
-y la guarda de blanco6c8e3c carecen de productor UI portado: el parámetro permite representarlos,
-pero no acredita esas rutas. Tampoco implementa las interacciones de llegada de CL9.
+protocolo; el llamador conserva cabeza→rama quieta/movimiento→gates→clic→57cfc0. Desde el hito 1 de la
+CL8, `MoveHero` arma centerX con `PanelRegistry::WorldWidth() / 2` (`0x59b188`), lee `0x775857c` de la UI
+del paso (`GameUiState::mouseOnUi`) en `0x59b37a` y `0x59b853`, y la ventana `0x40000` del registro
+real. La guarda de blanco6c8e3c carece de productor UI portado. Tampoco implementa las interacciones de
+llegada de CL9.
 
 **El paso entre celdas** (*emulado* con `0x4f37c0`, `0x4ea270` y `0x508a80` reales).
 

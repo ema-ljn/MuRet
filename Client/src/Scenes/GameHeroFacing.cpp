@@ -15,7 +15,6 @@ namespace Client::Scenes
 {
 namespace
 {
-constexpr std::uint32_t FacingWindow = 0x40000;
 constexpr float HalfSector = 22.5f;
 constexpr float SectorReciprocal = 0.02222222276031971f;
 
@@ -35,10 +34,10 @@ Core::Expected<void, std::string> StepHeroFacing(const HeroFacingContext& contex
     if (hero.movement != 0 || state.inputBlocked)
         return {};
     state.movementTarget = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(state.movementTarget) + 1u);
-    // 65972c -> 6570a0: ventana40000 lee un byte plano, sin cierre lógico ni RNG.
-    if ((state.windowsMask & FacingWindow) == 0 && state.facingMode == 1)
+    // 0x59b357..0x59b367: 0x65972c → 0x6570a0, el gremio 2, lee un byte plano, sin cierre lógico ni rand().
+    if (!context.secondGuildOpen && state.facingMode == 1)
         return {};
-    if (state.movementTarget < 40 || state.facingBlocked != 0 || hero.dying != 0)
+    if (state.movementTarget < 40 || context.mouseOnUi != 0 || hero.dying != 0)
         return {};
     const auto action = hero.animation.action;
     if (action == 0xcb || action == 0xcc || action == 0xc5 || action == 0xc7 || !context.headTurningAllowed ||

@@ -6,6 +6,9 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/SceneId.h"
+#include "UI/Dialogs.h"
+#include "UI/GameUiState.h"
+#include "UI/PanelRegistry.h"
 #include "World/GroundMarks.h"
 #include "World/LeafWeather.h"
 #include "World/ObjectModelStepState.h"
@@ -63,12 +66,19 @@ struct WorldRuntime
     // clase (+0x18, lo que devuelve su primer método): 0 sin gremio (0x20 bytes, vtable 0x6b88a8, en (489; 259)),
     // 1 y 2 con él. Lo dibujan 0x59ff10 y 0x5a7320, la interfaz (CL8).
     std::optional<std::uint8_t> siegePanelKind{};
+    // El de la clase 0: 0x412195 lo arma de nuevo cada vez que no había panel o era de otra clase.
+    UI::SiegePanelState siegePanel{};
+    // Los bytes de los paneles (0x7d53708..0x7d53718 y los globales que escriben sus funciones), los diálogos
+    // (0x7d3a10c, 0x7d3a110) y lo demás de la UI del juego (CL8 hito 1): la .bss, que nadie vacía al cambiar de
+    // escena.
+    UI::PanelState panels{};
+    UI::DialogState dialogs{};
+    UI::GameUiState ui{};
     GameMovementState movement{};
     // Los cinco selectores del mouse arrancan en -1 en la .data.
     std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};
     std::int32_t cursorItemCount = 0;
     std::int32_t storm = 0;
-    std::int32_t field78abb0c = 0;
     std::int32_t field78abb10 = 0;
     std::uint8_t byte6c8e4d = 0xff;
     std::optional<std::int32_t> lastSoundId{};

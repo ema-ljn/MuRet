@@ -1142,10 +1142,11 @@ igual como chat (Q-C614). El dibujo es del hito 5 (`0x40d530` y `0x5af090`): MuR
 P-C105).
 
 **La ventana /move** (el modo 4 de `0x77f3b08`, `IsOpen(2)`; CL8 hito 6, *estático*). La abre M (`0x6599a0` con el 2,
-que solo pone el modo) o el chat; F1, Esc, un destino o el renglón de abajo la cierran. Recorre la lista de `0x723c68`, los destinos de
-`movereq.bmd` (05) que `0x448440` cargó una vez. Las dos funciones arman lo mismo con el ancho de la pantalla
-(`0x6d5d60`): el ancho `w` de la ventana (190 con 640, 170 con 800, 150 con 1.024, 130 con 1.280; con otro, 0), el
-renglón `r = (0x7758568 · 640) / W` (sin signo; 12 con 640) y la altura `n · (r + 2) + 0x3c`.
+que pone el modo sin cerrar nada, `0x659f57`) o el comando del chat; F1, Esc, un destino o el renglón de abajo la
+cierran. Recorre la lista de `0x723c68`, los destinos de `movereq.bmd` (05) que `0x448440` cargó una vez. Las dos
+funciones arman lo mismo con el ancho de la pantalla (`0x6d5d60`): el ancho `w` de la ventana (190 con 640, 170 con
+800, 150 con 1.024, 130 con 1.280; con otro, 0), el renglón `r = (0x7758568 · 640) / W` (sin signo; 12 con 640) y la
+altura `n · (r + 2) + 0x3c`.
 
 El paso (`0x5ecdc0`, en `0x636e24` sin nadie que agarró el mouse, salta a `0x449850` → `0x448580`, 2.585 B): con el
 mouse en `0 < x ≤ w` y `0 < y ≤ alto`, `0x775857c = 1`. Después, cada destino en su orden, con el renglón de

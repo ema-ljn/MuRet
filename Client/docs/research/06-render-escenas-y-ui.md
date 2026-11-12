@@ -1518,7 +1518,7 @@ otros cortan en `0x5af471`.
 3. Con un ítem bajo el mouse (`0x78abaa8`), abre el registro propio y llama a `0x5b8150` (reparar), si el mouse
    está sobre el inventario con el modo de reparar, o a `0x5b2aa0`. Los dos van en la esquina que dejó el paso
    (`0x78a9bac`, `0x78a9ba8`) y con la grilla de `0x78aba27`.
-4. Con una skill de la barra bajo el mouse (`0x78abaa4` ≠ −1), `0x5b90b0`.
+4. Con una skill de la barra bajo el mouse (`0x6c9320` ≠ −1), `0x5b90b0`.
 5. Con el inventario abierto, la ventana del set.
 
 La rama de `0x78abb14` (el ítem del cursor en `(0x109, 0x78)`) solo la prenden las ventanas de la CL9.3 y la CL9.4.
@@ -1563,12 +1563,123 @@ sobre un ícono de estado, abre el registro propio y escribe los renglones:
 
 Termina con un `\n`, cierra el registro y dibuja la caja con el modo 2. No limpia nada (Q-C597).
 
+#### El cuerpo del ítem
+
+`0x5b2aa0(x, y, ítem, grilla)` (`Scenes::DrawTheItemTooltip`, `Scenes/ItemTooltip*.cpp`). Lleva la cuenta de lo
+que escribe en dos globales: N (`0x78abb30`), el renglón que sigue, y M (`0x78abb34`), cuántos renglones cuentan
+medio alto (`TooltipLines::next` y `halves`). Cada renglón es un `sprintf` en `0x78793c8 + N · 100`, casi siempre
+seguido de su color, su negrita en 0 y `N++`; un `"
+"` sube N y M. Nada mira que N quede debajo de 30: un renglón
+más pisa lo que sigue a los textos (el ítem del cursor, `0x7879f80`), y MuRet corta con la dirección del tramo
+(`Scenes::TooltipWriter`, Q-C696).
+
+**El principio** (`0x5b2aa0..0x5b2cad`). Con el tipo `0xffff` sale sin tocar nada. Si no, pone N y M en 0, limpia
+los 20 colores y los 30 textos y llama a `0x422990`, que con `0x1a04` y `0x1a05` dibuja su propio tooltip (el de la
+mascota, con el `A9`) y devuelve 1: el cuerpo sale. El registro de Item.bmd es `[0x7758550] + tipo · 0x54`, sin
+mirar el rango. Escribe un `"
+"` y toma el nivel, `(D+4 >> 3) & 0xf`. El color del nombre:
+
+| ítem | color |
+| --- | --- |
+| `0x1c0d`, `0x1c0e`, `0x180f`, `0x1c1f`, `0x1c10`, `0x1c16` y los paquetes (`0x402b30` ≥ 2: `0x181e` y `0x181f`) | 3 |
+| `0xa0a`, `0x13`, `0x812` y `0x40d` | 6 |
+| `0x1c11`, `0x1c12`, `0x1c13`, `0x1a10` y `0x1a11` | 3 |
+| `D+0x1c & 3` en 1 o 2 (una pieza de conjunto) | 9 |
+| con opciones y alguna excelente (`D+0x1b & 0x3f`) | 4 |
+| nivel 7 o más | 3 |
+| los demás | 1 con opciones, 0 sin |
+
+Después, `0x1803..0x1806` y `0x1a1e` vuelven a 3 con nivel 7 o más, o a 1 o 0 según las opciones.
+
+**El precio** (`0x5b2cad..0x5b3716`). Salvo `0x1c0c`, `0x1c17..0x1c1a` y `0x1a14` con nivel 1 o 2, pregunta por la
+tienda de NPC (`0x659290(0x10000)`, un byte protegido: 1 `rand()`). Abierta, salvo con `0x1c0b` y con `0x1c14` de
+nivel 1 a 5, escribe el precio de `0x54d0f0` y `0x5b1200`: es de la CL9.3 y MuRet corta en `0x5b2d23`. Después
+pregunta por las tiendas personales (`0x800` y `0x20000`, sin `rand()`), pero el precio solo sale con `0x78abaa4`
+en 1, que pone `0x5c4110` con la grilla de la tienda personal (`0x78ab0b8`, CL9.4): en MuRet queda en 0 (Q-C695).
+
+**Los tramos**, en orden:
+
+1. El nombre (`0x5b371b..0x5b45f4`): por tipo y nivel (las tablas de las joyas, los pergaminos, los anillos y los
+   ítems de misión), con el nombre del conjunto delante (`0x40cf30`, el nombre de ItemSetOption.bmd y un espacio) y
+   el 620 delante con alguna excelente. Va en el color del nombre, en negrita, y sigue un `"
+"`.
+2. Las líneas de cada tipo (`0x5b45f5..0x5b4f92`): el `0x1a13` (el daño, los stats y las opciones fijas de sus tres
+   niveles; desde el 3 escribe la dirección del ítem como texto y MuRet corta), las misiones (`0x1c17..0x1c1a`), el
+   `0x1c0c`, el `0x1a14` y el `0x1c13`.
+3. El daño y los stats (`0x5b4f93..0x5b58e9`): el daño (con el byte `+0x21` de la skill de los pergaminos
+   `0x1e00..0x1fff`, por su acceso), la defensa, la resistencia, la tasa de defensa, las dos velocidades de
+   Item.bmd, las pociones de asedio y la caja de la suerte.
+4. Las notas (`0x5b58ea..0x5b6a3b`): los paquetes de joyas, el texto de cada joya, las alas y los ítems de evento.
+5. Los requisitos (`0x5b6a3c..0x5b79bc`): la durabilidad (con la máxima de `0x5b1ba0`), el daño de las flechas, las
+   resistencias de `+0x4a..+0x50` y los requisitos de nivel, fuerza, agilidad, vitalidad, energía y comando contra
+   el registro propio (más sus sumas): uno que no llega va en rojo, con un renglón más (el 74 con lo que falta).
+6. Las clases (`0x5af590`), salvo en `0x1a13` y `0x1a1d`.
+7. Lo que suma cada tipo (`0x5b79df..0x5b7c37`): las botas y los cascos desde el nivel 5 (78 y 93), los bastones y
+   `0x1f`, `0x17` y `0x15` (79 con `D+0x16`), las varas `0x408..0x40e` (1234), cada uno detrás de un `"
+"`, en azul
+   y negrita; y un `"
+"` si hay opciones.
+8. El stat del conjunto (`0x40dd80` con `0x40dca0`): con `(D+0x1c >> 2) & 3` = k mayor que 0 y Item.bmd`+0x44` de 1
+   a 4, el `949 + +0x44` con 5 · k, en azul y sin negrita; los anillos y collares (`0x1a08`, `0x1a09`, `0x1a0c`,
+   `0x1a0d`, `0x1a15..0x1a1b`) suman el 1165.
+9. `0x551c70` con el octavo byte de opciones (`D+0x32`): el contador de las resistencias quedó en 7 en `[EBP+0x14]`.
+   Lee el maná de esa skill, que nadie usa (Q-C691).
+10. Las opciones (`0x5b7c62..0x5b7d9f`): cada una con `0x5b2320(tipo, renglón, opción, valor, maná)` en azul, y un
+    renglón más con algunas: `0x54` (el 94 con el valor, en azul), `0x31` y `0x3e` (179 y 1201, en el color 5) y la
+    `0x50` de `0x1f`, `0x15` y `0x17` (89, en azul). Después, un `"
+"`.
+11. Las cajas (`0x5b7de1..0x5b800d`): 1917, 1918 y 1919 en dorado; la azul `0x1a25` escribe el 1928 con el maná de
+    la skill `0x4c` (y sube M: Q-C692), el 1860 o el 1861 con 10 y el 579 si `D+0x1b` es 1 o 2, un `"
+"`, el 1920 y,
+    sin `D+0x1b`, el 1929.
+12. Las opciones del conjunto (`0x40eee0`).
+
+**`0x5b2320`** escribe el texto de una opción, sin color ni negrita: con el maná de la skill de la opción
+(`0x551c70`, 60 `rand()` si cierra en 0) las `0x12..0x18` (80 a 86), `0x31` (745), `0x36` (920), `0x38` (98), `0x3c`
+(1210), `0x3e` (1189), `0x42` (1186) y `0x4c` (1928); con el valor `& 0xff` las `0x50..0x53` (88 a 91), `0x55` (92,
+salvo en `0x1a0e..0x1a12`), `0x5e`, `0x60`, `0x61` (630, 632, 633), `0x64..0x68` (740 a 744), `0x8c..0x8f` (985,
+986, 988, 987), `0x90` (954), `0x94` (577), `0x96` (959), `0xb0` y `0xb1` (1087 y 1088); y sin argumentos las
+`0x54` (87), `0x56..0x5d` (622 a 629), `0x5f` (631), `0x62`, `0x63` (634, 635) y `0x6e` (746). Otra opción deja el
+renglón como estaba (Q-C694).
+
+**Las clases** (`0x5af590(registro)`). Junta las clases con su byte de Item.bmd`+0x45..+0x49` distinto de 0 (la
+evolución que piden es el byte − 1) y pone en 0 los colores de N + 2 y N + 3. El color de lo que el héroe no cumple
+es 2 si su clase usa el ítem y 5 si no. Sin clases, nada. El MG (`+0x1d4 & 7` = 3) escribe un `"
+"` y el 61 (lo
+usa) o el 60 (no) con el texto 23, según su byte `+0x48` y su evolución. Las demás clases, con cinco, nada; si no,
+un `"
+"` y: con una o dos, el 61 con el texto `15 + 5 · byte + clase` de cada una, en blanco si el héroe es de
+alguna con la evolución que pide; con tres o cuatro, el 60 con el texto `20 + clase` de cada clase que no lo usa
+(Q-C693).
+
+**Las opciones del conjunto** (`0x40eee0(ítem, N)`, un thiscall sobre `[0x6eed3c]`). El conjunto es el byte
+`D+0x1c & 3` − 1 del tipo en ItemSetType.bmd; con `& 3` en 0 lee el byte 3 del tipo anterior (Q-C690). Lo guarda
+en `+0x9306`; con 0 o `0xff` sale. Con el conjunto sin usar (`+0x3c` en `0xff`) deja `+0x9306` en 0 y sale. Si no,
+busca qué parte de la lista de `0x40da20` (`+0x934c`, tres bytes por opción) es de este conjunto: si su nombre es el
+de la segunda clase (`+0x9328`), desde `+0x9348 − +0x9307` hasta `+0x9348`; si no, si uno de los dos nombres
+empieza con el otro (`+0x9308`), las primeras `+0x9348 − +0x9307`; si no, ninguna. Escribe `"
+"`, el título
+`"%s %s"` (1089 y 159) en dorado y dos `"
+"`, sin negritas ni medios, y los trece lugares del cartel (los seis
+pares, los dos extras y los cinco del conjunto completo, con la segunda opción del sexto par repetida, Q-C592):
+cada opción con `0x40d530`, en azul si es la que sigue de la lista y no se pasó de las de este conjunto, o en gris
+(10). En el conjunto completo, cada lugar solo sigue en azul si la opción es la que sigue de la lista. Termina con dos
+`"
+"` y devuelve N + 2.
+
+**La caja.** Mide la primera letra del renglón 0 con la fuente que tenga el DC (cy) y calcula
+`((N − M) · cy + M · cy / 2) / ry` con `_ftol`. La caja va a esa altura arriba de y; si no entra (queda negativa),
+debajo: en `y + Item.bmd+0x25 · 20`. `0x5af090` con N renglones, el ancho propio, el modo 2 y el marco.
+
 **Lo que porta MuRet**: el orden de `0x5f7bc0`, la ayuda de los íconos de estado (`Scenes/GameHud.cpp`), la caja,
-la ventana y el cartel del set, el sprintf del CRT
-(`UI/SprintfFormat`) y `0x40ebd0` en la cola de los comandos del chat (Q-C594). Los tests son
-`test_game_tooltips.cpp`, `test_sprintf_format.cpp` y `test_chat_commands.cpp`. Los tres cuerpos (`0x5b2aa0`,
-`0x5b8150` y `0x5b90b0`) cortan con su dirección (P-C101), y el modo 3 de las ayudas (`0x5afc00`, `0x5af590` y
-`0x5af9b0`) no se alcanza (P-C102).
+la ventana y el cartel del set, el cuerpo del ítem, el sprintf del CRT (`UI/SprintfFormat`) y `0x40ebd0` en la cola
+de los comandos del chat (Q-C594). Los tests son `test_game_tooltips.cpp`, `test_item_tooltips.cpp`,
+`test_sprintf_format.cpp` y `test_chat_commands.cpp`. Del cuerpo del ítem cortan con su dirección: `0x1a04` y
+`0x1a05` (`0x4229d4`, P-C126), el precio de la tienda de NPC (`0x5b2d23`), el nombre del `0x1c0c` de nivel 2 (la
+tabla de `0x6c9350`) y del `0x1a0a` (la tabla de monstruos de `0x7681eb8`), las líneas del `0x1a1d` (`0x5b63b7`) y
+del `0x1c1c` (`0x437c90`), el `0x1a13` desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30
+(P-C125). Los otros dos cuerpos (`0x5b8150` y `0x5b90b0`) cortan con su dirección (P-C101), y el modo 3 de las
+ayudas (`0x5afc00`, `0x5af590` y `0x5af9b0`) no se alcanza (P-C102).
 
 ### La ventana del personaje
 

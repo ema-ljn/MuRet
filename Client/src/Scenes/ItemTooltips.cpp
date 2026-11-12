@@ -161,7 +161,7 @@ Core::Expected<void, std::string> DrawTheItemTooltip(const ItemTooltipContext& c
     tooltip.ClearTexts();
     if (item.id == FirstPet || item.id == SecondPet)
         return Core::Unexpected(std::format("0x4229d4: el tooltip del {:#x} (0x422990) y la A9 que pide son de la CL9 "
-                                            "(P-C11)",
+                                            "(P-C126)",
                                             item.id));
     const auto type = static_cast<std::int16_t>(item.id);
     if (hud.items == nullptr)

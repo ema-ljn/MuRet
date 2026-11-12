@@ -119,7 +119,8 @@ desde `+4`, los conjuntos desde `+0x8004`, y de `+0x9307` a `+0x940b` está lo q
 
 `ItemSetType.bmd` trae un registro de 4 bytes por tipo de ítem, con el índice de `Item.bmd` (grupo ·
 512 + número). Los bytes 0, 1 y 2 son el conjunto del ítem con su byte `+0x1c & 3` en 1, 2 o 3
-(`0x40cfa0`); 0 o 0xff es ninguno, y el byte 3 no lo lee nadie. `ItemSetOption.bmd` trae 64 conjuntos
+(`0x40cfa0`); 0 o 0xff es ninguno. El byte 3 solo lo lee `0x40eee0`, como el conjunto del tipo siguiente con
+`& 3` en 0 (Q-C690). `ItemSetOption.bmd` trae 64 conjuntos
 de `0x4c` bytes, que lee `0x40d010` con n = las piezas puestas − 1:
 
 | Bytes | Campo | Dónde |

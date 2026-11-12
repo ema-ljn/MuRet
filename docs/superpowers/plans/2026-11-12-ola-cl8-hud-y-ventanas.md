@@ -372,6 +372,11 @@ tooltips y § La ventana del personaje; Q-C590 a Q-C597, P-C100 a P-C104). Falta
 con sus derivados (P-C100), los tres cuerpos del tooltip (P-C101) y el modo 3 de las ayudas, que solo abre
 `0x5ae360` del hito 6 (P-C102).
 
+**El cuerpo del ítem, hecho** (2026-11-12): `0x5b2aa0` con `0x5af590` (las clases), `0x5b2320` (las opciones),
+`0x40dd80` (el stat del conjunto), `0x40eee0` (las opciones del conjunto), `0x5b1ba0` y `0x402b30`, sobre
+`Scenes::TooltipWriter` (06 § El cuerpo del ítem; Q-C690 a Q-C696; lo que corta, P-C125 y P-C126). Falta: el de
+reparar `0x5b8150` y el de la skill `0x5b90b0` (P-C101).
+
 ### Hito 6: los diálogos, el menú de Esc, las teclas y la captura (CL8.1 y CL8.3, ~36 KB)
 
 - [ ] **Los diálogos:** `0x633300`, `0x632e30`, el despacho por id de `0x623e70` con sus tramos de la CL8 (los

@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <iterator>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -287,15 +288,39 @@ TEST_F(ChatReceiveTest, TheFirstSystemNoticeInTheSelectionGoesToTheBar)
     EXPECT_EQ(Runtime().chat.log.entries[0].text, "segundo");
 }
 
-// 0x4c6669..0x4c66b3: el cartel (10 a 15) solo hace algo en el juego, con texto y de 1 a 30 repeticiones: ahí corta.
-TEST_F(ChatReceiveTest, TheSlideNoticeIsCutOnlyWhereItWouldQueue)
+// 0x4c6669..0x4c66b3: el cartel (10 a 15) solo encola en el juego, con texto y de 1 a 30 repeticiones: 0x46b720(pkt[4],
+// pkt[6..7], texto, tipo − 10, pkt[0xc] · 0,1f, pkt[8..0xb]), sin rand().
+TEST_F(ChatReceiveTest, TheSlideNoticeQueuesOnlyInTheGame)
 {
+    const auto& slides = m_world->Runtime().hud.slides;
     EXPECT_TRUE(
         Client::Scenes::ApplyNotice(Notice{.type = 11, .byte4 = 1, .text = "evento"}, Context(SceneId::CharacterSelect))
             .HasValue());
     EXPECT_TRUE(Client::Scenes::ApplyNotice(Notice{.type = 11, .byte4 = 31, .text = "evento"}, Context()).HasValue());
     EXPECT_TRUE(Client::Scenes::ApplyNotice(Notice{.type = 11, .byte4 = 1, .text = ""}, Context()).HasValue());
-    EXPECT_FALSE(Client::Scenes::ApplyNotice(Notice{.type = 11, .byte4 = 1, .text = "evento"}, Context()).HasValue());
+    EXPECT_TRUE(slides.normal.entries.empty());
+    EXPECT_TRUE(slides.bold.entries.empty());
+
+    ASSERT_TRUE(
+        Client::Scenes::ApplyNotice(
+            Notice{.type = 11, .byte4 = 2, .word6 = 5, .color = 0xff112233u, .speed = 30, .text = "evento"}, Context())
+            .HasValue());
+    ASSERT_TRUE(
+        Client::Scenes::ApplyNotice(Notice{.type = 14, .byte4 = 1, .color = 0x80ffffffu, .text = "aviso"}, Context())
+            .HasValue());
+
+    ASSERT_EQ(slides.normal.entries.size(), 2U);
+    auto entry = slides.normal.entries.begin();
+    EXPECT_EQ(entry->first, 0U);
+    EXPECT_EQ(entry->second.kind, 0);
+    EXPECT_EQ(entry->second.text, "evento");
+    EXPECT_EQ(entry->second.color, 0xff112233u);
+    EXPECT_EQ(entry->second.speed, static_cast<float>(30.0 * static_cast<double>(0.1f)));
+    EXPECT_EQ(std::next(entry)->first, 5U);
+    ASSERT_EQ(slides.bold.entries.size(), 1U);
+    EXPECT_EQ(slides.bold.entries.begin()->second.kind, 0);
+    EXPECT_EQ(slides.bold.entries.begin()->second.text, "aviso");
+    EXPECT_EQ(m_random.State(), After(0));
 }
 
 // 0x4dd570: 3.848 rand() al cerrar el registro, las teclas del elegido y lo demás después.

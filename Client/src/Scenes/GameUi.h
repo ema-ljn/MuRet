@@ -44,13 +44,16 @@ struct GameUiContext
     std::int32_t mouseX = 0;
     std::int32_t mouseY = 0;
     // GetTextExtentPointA sobre el DC de los textos (0x57634f4): lo mide el mouse sobre los nombres del registro del
-    // chat (0x45dec0). nullptr sin texto (los tests que no lo miran): no elige ninguno.
+    // chat (0x45dec0) y los espacios y el pedazo del cartel (0x46a9c0). nullptr sin texto (los tests que no lo miran):
+    // no elige ninguno, y el cartel que tiene que agregar un texto corta.
     const Render::Text::ITextMeasure* measure = nullptr;
     // La pantalla en píxeles (0x6d5d60 y 0x6d5d64): el clic derecho del área vieja pasa a 640 los anchos que dejó su
-    // dibujo.
+    // dibujo, y el cartel la usa en su rx (0x46a9c0 y 0x46abc0).
     App::PixelSize screen{640, 480};
     // Lo que las macros (0x5a116f) mandan y avisan. nullptr (los tests que no las miran): una macro es el error.
     const GameChatContext* chat = nullptr;
+    // timeGetTime() de los segundos del cartel (0x46ada0).
+    std::uint32_t systemTime = 0;
 };
 
 // El WndProc: 0x7d366d4 (el flanco del clic, que apagan quien lo usa y el botón suelto) y 0x7d36874 (el botón

@@ -23,6 +23,7 @@
 #include "UI/MessageArea.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
+#include "UI/SlideBanner.h"
 #include "World/ItemState.h"
 
 #include <array>
@@ -860,8 +861,13 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     if (panels.IsOpen(UI::MovePanel) && ui.capture == 0)
         return Core::Unexpected(std::string("0x5ecdc0: el paso de la ventana /move (0x449850) es del hito 6"));
     ui.hovered = 0;
-    // 0x636e35: 0x46b7b0, las dos colas del cartel de Slide.bmd (0x46add0), sin portar (08, P-C80): vacías, porque
-    // el 0D que las llena corta.
+    // 0x636e35: 0x46b7b0, las dos colas del cartel de Slide.bmd (0x46add0).
+    if (auto slides = UI::StepTheSlides(runtime.hud.slides, UI::SlideStepContext{.measure = context.measure,
+                                                                                 .dcFont = runtime.hud.dcFont,
+                                                                                 .screen = context.screen,
+                                                                                 .now = context.systemTime});
+        !slides.HasValue())
+        return slides;
     if (auto old = StepTheOldWindows(context); !old.HasValue())
         return old;
     if (auto chat = StepTheChat(context); !chat.HasValue())

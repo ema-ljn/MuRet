@@ -59,6 +59,7 @@ struct WorldObject;
 namespace Client::Scenes
 {
 class IModelLibrary;
+struct GameProjection;
 struct GameSceneFrameProjection;
 struct GameDrawTailState;
 struct GameItemRenderState;
@@ -173,8 +174,10 @@ private:
                                                                  const World::TerrainPolygon& polygon, int frames);
     [[nodiscard]] Core::Expected<void, std::string> DrawTheTail(SceneCanvas& canvas, const Render::Pass3D& pass,
                                                                 const World::TerrainPolygon& polygon, int frames);
-    // 0x637641..0x6376eb: el picking del frame y la pasada 2D: el HUD, las superposiciones y el cursor.
-    [[nodiscard]] Core::Expected<void, std::string> DrawTheInterface(SceneCanvas& canvas);
+    // 0x637641..0x6376eb: el picking del frame y la pasada 2D: el HUD, las superposiciones y el cursor. `projection`
+    // es 0x6203c0 del pase del mundo, que leen los globos (0x5a9050); nullptr si no se pudo armar.
+    [[nodiscard]] Core::Expected<void, std::string> DrawTheInterface(SceneCanvas& canvas,
+                                                                     const GameProjection* projection);
     // Los globales de 0x60b3d0 del frame, que comparten lo que cuelga de los personajes (0x509340) y los
     // ítems del piso (0x608a00): `item` apunta a `special`.
     void FillTheItemContexts(ItemSpecialDrawContext& special, ItemDrawContext& item, Core::Duration frameClock,

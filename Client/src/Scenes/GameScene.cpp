@@ -18,6 +18,7 @@
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/GameProjection.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/IcarusObjectStep.h"
 #include "Scenes/KalimaObjectStep.h"
@@ -49,6 +50,7 @@
 #include "Scenes/TextureSets.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/Slides.h"
 #include "Scenes/TerrainPolygonFrame.h"
 #include "Scenes/TerrainTiles.h"
 #include "Scenes/WorldRuntime.h"
@@ -280,8 +282,17 @@ void GameScene::StepEntry()
             input.focus = UI::ChatFocus::Game;
             UI::ClearTheLog(runtime.chat.log, runtime.ui.chatModes);
             UI::ClearTheChatFilter(runtime.chat.log);
-            // 0x636920: 0x46b010, las colas del cartel de Slide.bmd y su timer (0x46b0e0, que abre el registro propio
-            // y sortea un texto), sin portar (08, P-C80).
+            // 0x636920: 0x46b010, las colas del cartel de Slide.bmd, su timer 0x3eb y 0x46b0e0 (el registro propio y
+            // un texto de Slide.bmd, con sus rand()).
+            if (m_context.cloth != nullptr)
+            {
+                const auto now =
+                    m_context.clock != nullptr
+                        ? static_cast<std::uint32_t>(
+                              std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
+                        : 0U;
+                StartTheSlides(*m_context.world, m_context.cloth->random, now);
+            }
         }
     }
     if (m_sent || m_session == nullptr)
@@ -675,7 +686,10 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     canvas.flushModels();
     if (!drawn.HasValue())
         return drawn;
-    return DrawTheInterface(canvas);
+    // 0x6203c0 del pase del mundo: la proyección que leen los globos del HUD (0x5a9050 → 0x6205b0). Sin ella, corta
+    // solo si hay un globo vivo.
+    const auto projection = MakeGameProjection(pass, camera.fieldOfView);
+    return DrawTheInterface(canvas, projection.HasValue() ? &projection.Value() : nullptr);
 }
 
 void GameScene::ObserveMapLoad()

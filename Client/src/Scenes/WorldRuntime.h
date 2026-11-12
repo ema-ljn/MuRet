@@ -17,6 +17,7 @@
 #include "UI/MessageArea.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
+#include "UI/SlideBanner.h"
 #include "UI/WhisperSenders.h"
 #include "World/GroundMarks.h"
 #include "World/LeafWeather.h"
@@ -103,11 +104,12 @@ struct HudState
     // 0x6c8e5c (.data −1) y 0x6c8e64 (.data 0x80000000): el color del texto y el del fondo que lee 0x465950. Cada
     // texto del HUD deja los suyos y el que sigue sin poner otros sale con ellos, también en el frame siguiente.
     Render::Text::TextColors textColors{.text = 0xffffffffu, .background = 0x80000000u};
-    // 0x77f3b66: lo prende un aviso de durabilidad (0x5aac20) y lo apaga la barra (0x5a9290). Lo lee el inventario
+    // 0x77f3b66: lo prenden un aviso de durabilidad (0x5aac20) y un globo (0x555b00), y lo apaga la barra (0x5a9290).
+    // Lo leen 0x554000, que con él corre la y de los textos (MuRet, solo en los globos: 08, P-C83), y el inventario
     // (hito 4).
     std::uint8_t durabilityWarning = 0;
     // 0x77f31b8 y 0x77f31bc: el tamaño en 640 × 480 del último texto que lo guardó: las flechas o los virotes
-    // (0x5ab810), el área vieja (0x5554e0) y los avisos (0x554810).
+    // (0x5ab810), el área vieja (0x5554e0) y los avisos (0x554810); el de un globo (0x555b00) es en píxeles.
     std::int32_t arrowsTextWidth = 0;
     std::int32_t arrowsTextHeight = 0;
     // 0x77f3b5c: con el botón izquierdo abajo, el cursor 0xa (CursorDontMove) en vez del 3 (0x5ac7a2). Quién lo
@@ -121,6 +123,9 @@ struct HudState
     // 0x554610. 0x61bcd0 crea el DC sin ninguna (la del sistema) y el login dibuja con una antes del primer mensaje:
     // MuRet empieza con la normal.
     Render::Text::FontKind dcFont = Render::Text::FontKind::Normal;
+    // [0x5763528]: el cartel de Slide.bmd (0x46aea0), que dibuja el 15 (0x46b090) y escribe al dibujar (la opacidad,
+    // el corrimiento, el texto que pasa y 0x5762ee4). Lo llenan el timer 0x3eb y el 0D, y lo pasa el paso de la UI.
+    UI::SlideBanner slides{};
 };
 
 struct WorldRuntime

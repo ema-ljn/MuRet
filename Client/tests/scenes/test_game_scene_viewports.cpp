@@ -188,7 +188,7 @@ protected:
                                                            .world = &m_world};
                 auto game = std::make_unique<Client::Scenes::GameScene>(context, nullptr, &m_models,
                                                                         &m_data.items->table, &m_models.TextureSlots(),
-                                                                        &*m_data.gates, &*m_data.skills);
+                                                                        &*m_data.gates, &*m_data.skills, &*m_data.text);
                 m_game = game.get();
                 return game;
             },
@@ -334,6 +334,37 @@ TEST_P(GameSceneViewportTest, TheFirstGameDrawKeepsTheNativeViewportCameraRayAnd
     EXPECT_EQ(m_game->MouseRay()->origin, ray.origin);
     EXPECT_EQ(m_game->MouseRay()->end, ray.end);
     ExpectGamePolygon();
+}
+
+// 0x63733e y 0x63738a: con el inventario abierto, 0x5bb8d0 da 450 y el pase del mundo va con ese ancho (450 · W / 640
+// píxeles, con su aspecto), en Lorencia y en Devias; el frame sigue hasta el HUD, que dibuja la ventana.
+TEST_P(GameSceneViewportTest, TheInventoryNarrowsTheWorldPass)
+{
+    const auto& [viewport, steps, entry] = GetParam();
+    static_cast<void>(entry);
+    ASSERT_NO_FATAL_FAILURE(EnterWorld());
+    ASSERT_NO_FATAL_FAILURE(StartGame());
+    ASSERT_NO_FATAL_FAILURE(RunSteps(steps));
+    m_world.Runtime().panels.inventory = 1;
+
+    m_manager->Render(0.5f);
+
+    ASSERT_NO_FATAL_FAILURE(ExpectCompleteFrame());
+    ASSERT_EQ(m_target.frames.size(), 1u);
+    const Client::Tests::FrameEvent* models = nullptr;
+    for (const Client::Tests::FrameEvent& event : m_target.frames.front().events)
+    {
+        if (event.kind == Client::Tests::FrameEvent::Kind::Models && models == nullptr)
+            models = &event;
+    }
+    ASSERT_NE(models, nullptr);
+    ASSERT_TRUE(models->pass.has_value());
+    const Client::Render::Pass3D& pass = *models->pass;
+    const int width = 450 * viewport.screen.width / 640;
+    EXPECT_EQ(pass.viewport, glm::ivec4(0, viewport.viewport.y, width, viewport.viewport.w));
+    EXPECT_NEAR(pass.projection[1][1], 3.17159480f, 0.000001f);
+    EXPECT_NEAR(pass.projection[0][0],
+                3.17159480f * static_cast<float>(viewport.viewport.w) / static_cast<float>(width), 0.00001f);
 }
 
 TEST_P(GameSceneViewportTest, TheWaitRetainsThePresentedFrameUntilTheCounterReachesThirty)

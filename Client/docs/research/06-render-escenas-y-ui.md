@@ -1672,7 +1672,8 @@ Después, `0x1803..0x1806` y `0x1a1e` vuelven a 3 con nivel 7 o más, o a 1 o 0 
 
 **El precio** (`0x5b2cad..0x5b3716`). Salvo `0x1c0c`, `0x1c17..0x1c1a` y `0x1a14` con nivel 1 o 2, pregunta por la
 tienda de NPC (`0x659290(0x10000)`, un byte protegido: 1 `rand()`). Abierta, salvo con `0x1c0b` y con `0x1c14` de
-nivel 1 a 5, escribe el precio de `0x54d0f0` y `0x5b1200`: es de la CL9.3 y MuRet corta en `0x5b2d23`. Después
+nivel 1 a 5, escribe el precio de `0x54d0f0` y `0x5b1200`: es de la CL9.3 y MuRet corta en `0x5b2d23`, aunque
+el cálculo de `0x54d0f0` ya está portado (§ El precio de un ítem). Después
 pregunta por las tiendas personales (`0x800` y `0x20000`, sin `rand()`), pero el precio solo sale con `0x78abaa4`
 en 1, que pone `0x5c4110` con la grilla de la tienda personal (`0x78ab0b8`, CL9.4): en MuRet queda en 0 (Q-C695).
 
@@ -1750,8 +1751,8 @@ no los colores. El color del nombre es el del cuerpo del ítem sin el de los con
 
 - un `\n`;
 - el 238 con el precio: con la durabilidad debajo de la máxima (`0x5b1ba0`), pone el modo de reparar en 2 y el
-  precio es el de `0x54d0f0(ítem, 2, …)` con el formato de `0x5b13e0`; si no, `"0"` y el modo en 1. En el color del
-  nombre y en negrita;
+  precio es el de `0x54d0f0(ítem, 2)` pasado por `0x5b13e0(precio, durabilidad, máxima, tipo, buffer)` (§ El precio
+  de un ítem); si no, `"0"` y el modo en 1. En el color del nombre y en negrita;
 - un `\n`, el nombre (`"%s"` o `"%s +%d"`, con el 620 delante si alguna opción es excelente, salvo en
   `0x1803..0x1806` y desde `0x1a1e`), en el color del nombre y en negrita, y otro `\n`;
 - el 71 con la durabilidad y la máxima, en blanco, y un `\n`.
@@ -1760,16 +1761,71 @@ Los nombres del `0x180b` (`0x5b8453`, con el acceso de la skill 30 + nivel) y de
 alcanzan: esos tipos salen al principio. La altura es en enteros sin signo, `((N − M) · cy + M · cy / 2) · 480 / H`
 (`0x6d5d64`), y la caja va arriba de y o, si no entra, en `y + Item.bmd+0x25 · 20`, con el modo 2 y el marco.
 
+#### El precio de un ítem
+
+`0x54d0f0(ítem, modo)` (`Scenes::ItemPrice`, 2.933 bytes) calcula en 64 bits y devuelve EDX:EAX; los que llaman
+leen el dword bajo. Lo llaman con el modo 0 desde la grilla de la tienda de NPC (`0x5b2d2e`), con el 1 desde el
+inventario con la tienda abierta (`0x5b2e46`) y con el 2 para reparar (`0x5b838a`). Las cuentas enteras son
+`__allmul` (`0x6a1da0`, módulo 2^64) y `__alldiv` (`0x6a0150`, con signo, hacia el 0); las de la x87, en PC53 con
+las excepciones enmascaradas (P-C34).
+
+- El `0xffff` vale 0. El tipo se extiende con signo y el registro es `[0x7758550] + tipo · 0x54`, sin mirar el rango
+  (`0x54d10e`).
+- Con el dword `+0x40` (el precio fijo) distinto de 0, sale con él: por 3 en los modos distintos de 0 y redondeado.
+- Si no, el nivel es `(D+4 >> 3) & 0xf` y la base b es el word `+0x20` más 3 por nivel, más 25 con alguna opción de
+  `0x56` a `0x63`. Cada tipo tiene su cuenta:
+  - `0x807` y `0x80f`: la durabilidad por 100, 1.400 o 2.200 (70, 1.200 o 2.000 las flechas) según el nivel, sobre
+    `+0x2d`; 0 sin `+0x2d`. Desde el nivel 3 multiplica por la dirección del ítem (Q-C735).
+  - `0x181e` y `0x181f` (`0x402d60`): (5 · nivel + 5) · 18.000.000 y (nivel + 1) · 60.000.000.
+  - `0x1a03`: 960.000, más 300.000 por cada opción `0x61`, `0x67` o `0x68`.
+  - Los de precio propio (`0x54d2b1..0x54d63a`): once constantes (`0x1c0d` 9.000.000, `0x1c0e` 6.000.000, `0x180f`
+    810.000, `0x1c10` 45.000.000, `0x1c16` 36.000.000, `0x1a0f` 33.000.000, `0x1c1c` 600.000, `0x1a1d` 5.000,
+    `0x1c14` 900, `0x1c0a` 750 y `0x1c1f` 60.000.000); `0x1a0e`, `0x1a07` y `0x1a0b` en los niveles 0 y 1 (con otro,
+    0); el `0x1c09` de nivel 1 (1.000); las tablas por nivel de `0x1a10` y `0x1a11` (del 1 al 7) y de `0x1a12`, por 3,
+    y de `0x1c11`, `0x1c12` y `0x1c13` (hasta el nivel 4; desde ahí, el del 4); y los que van por la durabilidad
+    (`0x1c1d`, `0x1c15` y `0x1c07`).
+  - Con `+0x3c` = v distinto de 0: 10 · v² / 12. De `0x1c00` a `0x1c08`, por 2^nivel (`0x6a1b80`) y por la
+    durabilidad, por 3 en los modos distintos de 0, y vuelve en `0x54d6ee` con el dword bajo / 10 · 10, sin tope, sin
+    descuento y sin el redondeo del final.
+  - `0x1a14` y `0x1a1f`: de los niveles 0 y 1, después de `+0x3c`.
+  - Los ayudantes (grupo 13), los pergaminos (grupo 15) y las alas después de `0x1806`: b³ + 100 en 32 bits, por el
+    valor más 1 de cada opción `0x55`.
+  - Lo demás (las armas, las armaduras y las alas hasta `0x1806`): b suma la tabla de `0x54dc68` del nivel 5 al 13, y
+    el cubo (b + 40) · b², en 32 bits, va por 11 más 40.000.000 en las alas, o / 8 + 100. Las armas de una mano
+    (grupos 0 a 6 con `+0x1e` en 0) quedan al 80 %. Cada opción sigue la tabla de `0x54dca4`: `0x12..0x18` y `0x38`
+    suman el dword bajo de P · 1,5f (Q-C736); `0x50`, `0x51`, `0x53` y `0x55` suman P por 0,6, 1,4, 2,8 o 5,6 (los
+    doubles de `0x6ba408..0x6ba420`, un poco por encima) con el valor 4, 8, 12 o 16, y la `0x52` con 5, 10, 15 o 20 (en
+    las alas, el valor de la `0x55` va por 4); `0x54` y `0x64..0x68` suman P · 0,25; `0x56..0x63` y `0x6e` lo doblan.
+    La rama de la capa `0x1a1e` en `0x54d7b1` no se alcanza (Q-C737).
+- Los que salen por `0x54da1d` tienen tope de 3.000.000.000, con signo: uno negativo queda como está. Los modos
+  distintos de 0 dividen por 3, salvo `0x1a00` y `0x1a01`. Después, `0x1a20..0x1a25` pisan el precio (la durabilidad
+  por 50, 100, 1.000 y 10.000; 30.000 y 50.000) y `0x1a04` y `0x1a05` lo cambian por el nivel de su mascota
+  (`0x422930`, los words de `0x723968 + 0x14 · tipo`) por 2.000.000 el caballo y 1.000.000 el cuervo, en 32 bits.
+- Solo en el modo 1, salvo `0x807`, `0x80f`, desde `0x1c00`, `0x1807..0x1813`, `0x1a07`, `0x1a0a`, `0x1a0b`,
+  `0x1a0e..0x1a14`, `0x1a1d`, `0x1c07`, `0x1c15` y `0x1a20..0x1a25`, resta el dword bajo, sin signo, de
+  `_ftol((1 − durabilidad / máxima) · P · 0,6f)`, con la máxima de `0x5b1ba0`; el `0x1a1f` resta 0. Con la máxima en
+  0, la FIDIV da NaN (0 / 0, o −infinito por un precio en 0), que resta 0, o un infinito. Una durabilidad arriba de la
+  máxima resta 2^32 − x y deja el precio negativo (Q-C736).
+- El redondeo: uno negativo sale como su dword bajo; desde 1.000, a 100; desde 100, a 10.
+
+`0x5b13e0(precio, durabilidad, máxima, tipo, buffer)` (`Scenes::RepairPriceOf`) le pone al precio un tope de
+400.000.000 (con signo) y cobra 3 · p^(3/4) (dos FSQRT) · (1 − durabilidad / máxima, en float) + 1, por 1,4f con la
+durabilidad en 0, o 0 si no falta nada. Le suma eso por el byte bajo de `[0x78abb10]` y por 0,05f, lo pasa por
+`_ftol` (EAX) y lo redondea a 100 desde 1.000 y a 10 desde 100. En el buffer escribe el número con los miles
+separados por comas (`"%d,%03d"` y sus hermanos); el formato de los mil millones no se alcanza, porque el máximo es
+163.341.600. El tipo no lo lee.
+
 **Lo que porta MuRet**: el orden de `0x5f7bc0`, la ayuda de los íconos de estado (`Scenes/GameHud.cpp`), la caja, la
-ventana y el cartel del set, el cuerpo del ítem, el de reparar (salvo el precio de un ítem gastado, que corta en
-`0x5b838d`: P-C127), el sprintf del CRT (`UI/SprintfFormat`) y `0x40ebd0` en la cola de los comandos del chat
-(Q-C594). Los tests son `test_game_tooltips.cpp`, `test_item_tooltips.cpp`, `test_sprintf_format.cpp` y
-`test_chat_commands.cpp`. Del cuerpo del ítem cortan con su dirección: `0x1a04` y `0x1a05` (`0x4229d4`, P-C126), el
-precio de la tienda de NPC (`0x5b2d23`), el nombre del `0x1c0c` de nivel 2 (la tabla de `0x6c9350`) y del `0x1a0a` (la
-tabla de monstruos de `0x7681eb8`), las líneas del `0x1a1d` (`0x5b63b7`) y del `0x1c1c` (`0x437c90`), el `0x1a13`
-desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125). El de la skill (`0x5b90b0`)
-corta con su dirección (P-C101), y el modo 3 de las ayudas (`0x5afc00`, `0x5af590` y `0x5af9b0`) no se alcanza
-(P-C102).
+ventana y el cartel del set, el cuerpo del ítem, el de reparar con su precio (`0x54d0f0` y `0x5b13e0` en
+`Scenes/ItemPrice.cpp`), el sprintf del CRT (`UI/SprintfFormat`) y `0x40ebd0` en la cola de los comandos del chat
+(Q-C594). Los tests son `test_game_tooltips.cpp`, `test_item_tooltips.cpp`, `test_item_price.cpp` (con Item.bmd real
+para los de oro), `test_sprintf_format.cpp` y `test_chat_commands.cpp`. Del precio cortan con su dirección las lecturas
+que MuRet no tiene, como en P-C140. Del cuerpo del ítem cortan con su dirección: `0x1a04` y `0x1a05` (`0x4229d4`,
+P-C126), el precio de la tienda de NPC (`0x5b2d23`, con el cálculo listo), el nombre del `0x1c0c` de nivel 2 (la tabla
+de `0x6c9350`) y del `0x1a0a` (la tabla de monstruos de `0x7681eb8`), las líneas del `0x1a1d` (`0x5b63b7`) y del
+`0x1c1c` (`0x437c90`), el `0x1a13` desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125).
+El de la skill (`0x5b90b0`) corta con su dirección (P-C101), y el modo 3 de las ayudas (`0x5afc00`, `0x5af590` y
+`0x5af9b0`) no se alcanza (P-C102).
 
 ### La ventana del personaje
 

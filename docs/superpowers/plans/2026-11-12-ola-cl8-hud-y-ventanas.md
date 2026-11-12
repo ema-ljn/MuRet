@@ -398,8 +398,12 @@ tiene del registro (P-C122); lo inferido va a la VM (P-C123).
 **El cuerpo del ítem, hecho** (2026-11-12): `0x5b2aa0` con `0x5af590` (las clases), `0x5b2320` (las opciones),
 `0x40dd80` (el stat del conjunto), `0x40eee0` (las opciones del conjunto), `0x5b1ba0` y `0x402b30`, sobre
 `Scenes::TooltipWriter` (06 § El cuerpo del ítem; Q-C690 a Q-C696; lo que corta, P-C125 y P-C126), y el de reparar
-`0x5b8150` salvo el precio de un ítem gastado (06 § El cuerpo de reparar; P-C127). Falta: el de la skill `0x5b90b0`
-(P-C101).
+`0x5b8150` (06 § El cuerpo de reparar). Falta: el de la skill `0x5b90b0` (P-C101).
+
+**El precio de un ítem, hecho** (2026-11-12, cierra P-C127): `0x54d0f0` entero, con sus tres modos, y `0x5b13e0`, en
+`Scenes/ItemPrice` como funciones de datos que la tienda de NPC de la CL9.3 reutiliza. El cuerpo de reparar escribe
+con ellos el precio de un ítem gastado (06 § El precio de un ítem; Q-C735 a Q-C737). Lo que no alcanza a leer corta
+con su dirección (P-C140), y el precio de la tienda de NPC sigue cortando en `0x5b2d23` (P-C125 (a)).
 
 ### Hito 6: los diálogos, el menú de Esc, las teclas y la captura (CL8.1 y CL8.3, ~36 KB)
 

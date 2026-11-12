@@ -1606,15 +1606,84 @@ Abierto, la primera vez manda `C1 06 A9 01 00 08` (el caballo oscuro en la casil
 (`0x217..0x22f`, `0x18b..0x1a3`) apaga los dos flancos y abre o cierra el panel `0x400` (Open corta: CL9.2). Con
 `0x723911` en 2 (la respuesta del A9, que MuRet no lee) la ventana de la mascota es de la CL9.2.
 
-**El dibujo** (`0x5ee2e0(0x1c2, 0)`, desde `0x5f7440`). Escribe la esquina y dibuja los fondos `0x104` y `0x105`, el
-nombre, la clase, el nivel, la experiencia, las cuatro estadísticas (cinco con el Dark Lord) con sus derivados
-(`0x5b8b80`, `0x5513d0`, `0x54ee00`), los puntos y sus botones `0x120`/`0x121`, con 14 accesos al registro propio.
-Después, `0x5f7440` dibuja el botón de cerrar (`0x118`) y su ayuda (el texto 222). MuRet corta en `0x5ee2e0`
-(P-C100).
+**El dibujo** (`0x5ee2e0(0x1c2, 0)`, 10.336 bytes, desde `0x5f7440`; leído entero en el ASM de `c32bbd5f`, con el
+decompilado de guía). Escribe la esquina (`0x78aba14`, `0x78aba18`) y dibuja, en este orden:
+
+1. Los fondos `0x104` (190 × 256, du 0,7421875) y `0x105` (190 × 177 en y + 256, dv 0,69140625), opacos y en
+   blanco. Después, la mezcla alfa y la negrita.
+2. Acceso 1: el nombre del registro (`sprintf("%s")` de sus 11 bytes) y la clase, `(%s)` con el texto
+   20 + (`+0xb` >> 3) · 5 + (`+0xb` & 7). El nombre va con el color de `0x555a70` por el `+0x375` del héroe (de
+   0 a 5, de `0xfff0ff96` a `0xff1e50ff`; si no, `0xff0000ff`) sobre `0xff141414`, centrado en 120 en
+   (x + 0x23, y + 0xc).
+3. El servidor (`0x5ee629..0x5ee69c`): el texto de `0x447c70` (el 460 sin PvP, el 461 con PvP, como el título de la
+   cuenta) con el nombre del grupo (`0x7d36bb0 + 0x21e · lugar`) y el número de `[0x6d5ec4]` y `[0x6d5ecc]`. La
+   clase y el servidor se turnan en (x + 0x16, y + 0x16), centrados en 150, con a = (float)(sin(T · 0,001f) + 1) en
+   la x87: la clase con el alfa 2 − a y el servidor con a. El alfa pasa de 1 y GL lo acota (Q-C677).
+4. Los fondos `0xf5` del nivel y de los stats: uno más que los botones de `[0x6c9330]`, de 60 en 60 desde
+   (x + 13, y + 56), de 75 × 21.
+5. Acceso 2: el nivel (el texto 200), en `0xffe6e6e6` sin fondo, centrado en 82 en (x + 0xe, y + 0x3c). Acceso 3:
+   la experiencia (201), en blanco sobre `0x80000000`, desde la izquierda en 145 en (x + 0x18, y + 0x50). Acceso 4:
+   el renglón de los puntos agregados y quitados, con `wsprintfA` y el formato `'%s %d/%d | %s %d/%d'` de la
+   `.rdata` (Q-C672) sobre los textos 1412 y 1903: antes del nivel 10, todo en 0; si no, `+0x44` y `+0x46` con signo
+   y −`+0x48` y −`+0x4a`. En negrita y naranja, en 130 en y + 0x5f.
+6. Acceso 5: la fuerza (202). El color de un stat es (−(agregado ≠ 0) & `0x97d685`) − `0x984021`: naranja
+   (`0xffff9664`) con algo agregado, celeste (`0xff67bfdf`) sin nada; el valor, la suma de 16 bits del stat y lo
+   agregado. Centrada en 70 en (x + 0xe, y + 0x78). El acceso 6 solo toma el puntero al lugar 0. Después,
+   `0x5b8b80` (el ataque, con su acceso), y el acceso 7 (`0x5ef450..0x5ef55f`): el bonus de la tasa es `+0x4e`;
+   con el bit `0x400` de `+0x78` del héroe le suma la agilidad, y con tres o más en la party lo pasa por
+   `_ftol((party − 2) · 0,01f · agilidad + bonus)`. El bit `0x2000000` suma nivel / 3 + 45 al mínimo y al máximo.
+   El 203 (mínimo, máximo y tasa) con el bonus en más de 0, si no el 204; en naranja si `0x5b8b80` lo marca, en
+   blanco si no, desde la izquierda en 130 en y + 0x8c.
+7. El set (`0x5ef62a..0x5efc5f`): los lugares 2 a 6, un acceso cada uno, hasta el primero vacío o con la
+   durabilidad en 0 (la clase 3 puede no tener casco). Si pasan los cinco, el acceso 9 compara el tipo % 512 de los
+   lugares 3 a 6 con el del casco, o en la clase 3 con el de la armadura, que tiene que ser `0x100f`, `0x1014`,
+   `0x1017` o `0x1020`.
+8. Acceso 10: la agilidad (205), en y + 0xb4. El acceso 11 queda abierto hasta el final del tramo: la defensa,
+   `+0x62` (más nivel / 5 + 50 con el bit `0x2000000`), con el 206 o el 207 con set (y la defensa / 10) y el 208 o
+   el 209 sin set, según la tasa `+0x60` sea distinta de 0 (sin signo), en y + 200; y la velocidad (64): con la
+   clase **del registro** (`+0xb & 7`, Q-C674) en 0 la de la magia, si no la del ataque, en y + 0xd7.
+9. Acceso 12, abierto hasta las letras: la vitalidad (210) en y + 0xf0, la vida (211) en y + 0x104, la energía (212) en
+   y + 300 y el maná (213) en y + 0x140. Las clases 0 y 3 dibujan la magia (`0x5f04b1..0x5f0633`): `0x5513d0` con el
+   acceso 13 adentro del 12 (no saca nada) y el de la entrada de su skill en Skill.bmd (60 `rand()`); 10 más al mínimo y
+   al máximo con el bit `0x02` de `+0x3c`; con un báculo en la derecha (de `0xa00` a `0xbff`, `0x1f`, `0x17` o `0x15`),
+   el 215 con el agregado (f − r · f) · máximo (el de antes de los 10), f el byte `+0x16` del ítem por 0,01f y r el
+   factor de `0x54ee00` sobre el byte `+0x2e` de Item.bmd (Q-C671); si no, el 216; en y + 0x14f. El daño de la skill
+   (582): el Dark Knight E / 10 + 200 y el Dark Lord E / 20 + 200, en y + 0x14f; la clase 3, 200 en y + 0x15e. Con
+   puntos para repartir, el 217 en negrita, negro sobre `0xffc86e1e`, centrado en 80 en (x + 0x5f, y + 0x32), y los
+   botones `0x120` (`0x121` con el botón abajo y el mouse encima) en (x + 125, y + 115 + 60 · i). Las letras (1907),
+   centradas en 84 en (x + 0x5b, y + 0x41): `+0x44` · 100 / `+0x46` con signo y `+0x48` · 100 / 1 (Q-C670), cada una a
+   70, 60, 50 o 40, y 100 hasta 10. La primera es un `idiv` por `+0x46`, que con 0 es una excepción en `0x5f08ac`
+   (Q-C675).
+10. El Dark Lord, con el acceso 14: el mando (1170), `+0x20` más `+0x36` con su color, centrado en 70 en y + 0x168.
+
+Después, `0x5f7440` (`0x5f74a3..0x5f759a`) dibuja el botón de cerrar `0x118` (24 × 24 en (x + 25, y + 395)) y,
+con el mouse encima, el texto 222 con `0x554340` en (x + 25, y + 395 − 13).
+
+Los cierres que dejan el registro sin accesos son de 12 a 18 por frame (Q-C673): los accesos 1 a 7, el de
+`0x5b8b80`, uno por cada lugar del set que mira (de 1 a 5), el 9 si llegan los cinco, el 10, el 11, el 12 y el 14
+del Dark Lord. Cada uno saca 3.848 `rand()`, y la entrada de la skill de las clases 0 y 3, 60.
+
+**Los textos con ancho** (`0x554180` → `0x467060`). El ancho es W · k / 640, sin signo. En el modo 1, la caja tiene
+ese ancho desde x, con el fondo entero, y un texto más ancho se ve desde la columna cx − ancho (el final). En el modo
+2, el corrimiento es (caja − cx) / 2 con la división de C, la caja tiene cx + 2 · eso columnas y el texto empieza
+corrido; uno más ancho que la caja se ve por el centro (Q-C676). Un texto vacío mide como `"0"`
+(`0x4670ba..0x4670d0`). MuRet lo hace con `TextCache::DrawColumns` (la primera columna, que puede ser negativa, y
+las columnas de la caja).
+
+**Lo que corta.** Sin el servidor elegido, en `0x5ee629` (P-C120); con `+0x46` en 0 y `+0x44` en más de 10, en
+`0x5f08ac` (P-C121); con el nombre del registro sin su 0 en sus 11 bytes, en `0x5ee47b`, y con la skill del héroe
+fuera de los 64 bytes de `+0x6c` que tiene MuRet, en `0x5f04cd` (P-C122). Sin Text.bmd, Item.bmd (la magia con
+báculo, `0x5f05a2`) o Skill.bmd (`0x5513d0`), en la dirección que los lee. Un dibujo intermedio de MuRet hace la
+magia sobre una copia de la lista de los sets, para no dejar sus marcas.
 
 **Lo que porta MuRet**: abrir, el paso, los botones, el F3 06 (`Protocol/Character/LevelUpPoint`) y el A9 de la
-mascota, en `Scenes/GameUi.cpp` y `Scenes/GamePanels.cpp`. Los tests son `test_game_character_window.cpp` (en
-Lorencia y en Devias), `test_panel_registry.cpp` y `test_level_up_point.cpp`.
+mascota, en `Scenes/GameUi.cpp` y `Scenes/GamePanels.cpp`; el dibujo y el botón de cerrar, en
+`Scenes/GameCharacterHud.cpp` (desde `DrawTheWindows` de `Scenes/GameHud.cpp`), con `0x5b8b80` y `0x5513d0` en
+`Scenes/OwnDamage.cpp`, `0x40d8c0` en `Scenes/ItemSetOptionList.cpp` y los textos con ancho en
+`Render/Text/TextCache.cpp`. Los tests son `test_game_character_window.cpp` (en Lorencia y en Devias),
+`test_panel_registry.cpp`, `test_level_up_point.cpp`, `test_game_character_hud.cpp` (el Dark Knight en Lorencia y en
+Devias, el Dark Lord, el Wizard y la clase 3, con los `rand()` contados y los sprites y los textos grabados),
+`test_own_damage.cpp`, `test_item_set_option_list.cpp` y `test_text_cache.cpp`. Lo que queda para la VM, en P-C123.
 
 ## La escena de carga y la de login
 

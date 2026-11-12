@@ -60,12 +60,12 @@ void TakeTheRidersGait(DarkHorse& horse, const Render::Models::Skeleton& skeleto
     horse.speed = gait.speed;
 }
 
-void AdvanceDarkHorse(DarkHorse& horse, const Render::Models::Skeleton& skeleton)
+void AdvanceDarkHorse(DarkHorse& horse, const Render::Models::Skeleton& skeleton, Render::Models::AnimationScene scene)
 {
     if (horse.animation.action < skeleton.actions.size())
     {
         static_cast<void>(Render::Models::AdvanceAnimation(horse.animation, skeleton.actions[horse.animation.action],
-                                                           horse.speed, Render::Models::AnimationScene::Other));
+                                                           horse.speed, scene));
     }
 }
 

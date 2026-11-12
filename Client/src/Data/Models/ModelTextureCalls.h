@@ -35,10 +35,14 @@ inline constexpr Textures::Sampling ModelTextureSampling{Textures::Filter::Neare
 // las dos tablas). 26 modelos se piden dos veces, y la segunda encuentra los nombres de la primera.
 [[nodiscard]] std::span<const ModelTextureCall> ItemTextureCalls();
 
-// Las cinco primeras de 0x615700 después de su 0x60d530(0x3b8), con Skill\: las de 0x145, 0x146 y
-// 0x147, las del caballo oscuro y las del cuervo (0xc0, Data::Models::SkillModelFiles). Las otras, que
-// van antes y después, cuando entren las habilidades y los efectos.
+// Las siete primeras de 0x615700 después de su 0x60d530(0x3b8), con Skill\: las de 0x145, 0x146 y 0x147, las del
+// caballo oscuro, las del cuervo (0xc0), las de HellGate (0xc5) y las del Dinorant (0x110,
+// Data::Models::SkillModelFiles). Las otras, que van antes y después, cuando entren las habilidades y los efectos.
 [[nodiscard]] std::span<const ModelTextureCall> SkillTextureCalls();
+
+// Las tres primeras de 0x615700, antes de su 0x60d530(0x3b8): los Fenrir (0x14a a 0x14c), con Skill\, desde el slot
+// donde las dejó 0x611850 (0x371).
+[[nodiscard]] std::span<const ModelTextureCall> FenrirTextureCalls();
 
 // Lo que 0x60f7d0 sube a mano con 0x63b870 y 0x63bd00, sin filtro y sin repetir, en slots fijos que
 // no guardan el nombre ni corren el próximo: la piel y el segundo nivel de cada clase y el pelo

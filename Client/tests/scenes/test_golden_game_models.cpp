@@ -287,6 +287,52 @@ TEST_F(GoldenGameModels, ThePetDrawsWithItsTextures)
     }
 }
 
+// Las monturas de las mascotas de 0x615700, con su esqueleto y sus texturas subidas: el Uniria (Rider01, 0xc6) con
+// las de Helper03 (unicon.jpg y unicon01.tga de Item\, que el lazo 0x616e20 encuentra por el nombre), el Dinorant
+// (Rider02, 0x110, 0x6169fb) después de HellGate (0x6169e0) y los tres Fenrir desde 0x371, con fenril02.jpg en común.
+TEST_F(GoldenGameModels, ThePetMountsLoadWithTheirTextures)
+{
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+
+    const auto slotsOf = [&models](std::uint16_t model)
+    {
+        std::vector<std::uint16_t> slots;
+        for (const TextureSlot slot : models.MeshTextures(model))
+        {
+            slots.push_back(slot.value);
+        }
+        return slots;
+    };
+    EXPECT_EQ(slotsOf(0xc6), (std::vector<std::uint16_t>{0x2cb, 0x2cc}));
+    EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{0x2cb}), "unicon.jpg");
+    EXPECT_EQ(slotsOf(0xc5), (std::vector<std::uint16_t>{0x3cb, 0x3cc}));
+    EXPECT_EQ(slotsOf(0x110), (std::vector<std::uint16_t>{0x3cd, 0x3ce}));
+    EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{0x3cd}), "RDgon.jpg");
+    EXPECT_EQ(slotsOf(0x14a), (std::vector<std::uint16_t>{0x371, 0x372}));
+    EXPECT_EQ(slotsOf(0x14b), (std::vector<std::uint16_t>{0x371, 0x373}));
+    EXPECT_EQ(slotsOf(0x14c), (std::vector<std::uint16_t>{0x371, 0x374}));
+    EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{0x371}), "fenril02.jpg");
+    const std::set<std::uint16_t> loaded(textures.loaded.begin(), textures.loaded.end());
+    for (const std::uint16_t model : {0xc6, 0x110, 0x14a, 0x14b, 0x14c})
+    {
+        const auto* skeleton = models.SkeletonOf(model);
+        ASSERT_NE(skeleton, nullptr) << std::hex << model;
+        EXPECT_FALSE(skeleton->actions.empty()) << std::hex << model;
+        for (const TextureSlot slot : models.MeshTextures(model))
+        {
+            EXPECT_TRUE(loaded.contains(slot.value)) << std::hex << model << " " << slot.value;
+        }
+    }
+    EXPECT_EQ(models.SkeletonOf(0xc6)->actions.size(), 4u);
+    EXPECT_EQ(models.SkeletonOf(0x110)->actions.size(), 8u);
+    EXPECT_EQ(models.SkeletonOf(0x14a)->actions.size(), 6u);
+}
+
 // 0x61ca30 lee Logo05 y los cinco NewFace de Data\Logo (en la Data del repo), y les pone 0,3 a las
 // acciones 0 y 1 de los NewFace; sin la tabla de la carga, sus texturas empiezan en 0x6f8.
 TEST_F(GoldenGameModels, TheSelectionModelsLoadWithTheirSpeeds)
@@ -361,11 +407,12 @@ TEST_F(ModelTextureSlotsGoldenTest, TheCloudTextureMatchesTheNativeSlot)
     EXPECT_EQ(uploaded->texture.format == Client::Data::Textures::PixelFormat::Rgba ? 4u : 3u, components);
 }
 
-// El nombre de cada slot de 0x12e a 0x370, como lo dejan 0x60f7d0 y 0x611850, y de 0x3b8 a 0x3ca, como
-// los deja 0x615700 desde su 0x60d530(0x3b8) hasta el cuervo (0xc0, la quinta llamada, CL7.6 C), contra
-// la tabla de 0x7d3a198 volcada en Lorencia (0x38 bytes por slot, el nombre en +0). 0x138 y 0x139 son de
-// LaceArrow, que 0x615700 carga encima (Q-C89); de 0x371 a 0x3b7 van las habilidades y los efectos que
-// 0x615700 pide antes, que MuRet todavía no carga.
+// El nombre de cada slot de 0x12e a 0x374, como lo dejan 0x60f7d0 y 0x611850 y los tres Fenrir (0x615f77, 0x615fab
+// y 0x615fdc, las primeras de 0x615700), y de 0x3b8 a 0x3ce, como los deja 0x615700 desde su 0x60d530(0x3b8) hasta
+// el Dinorant (0x110, la séptima llamada, 0x6169fb), contra la tabla de 0x7d3a198 volcada en Lorencia (0x38 bytes por
+// slot, el nombre en +0). 0x138 y 0x139 son de LaceArrow, que 0x615700 carga encima (Q-C89); de 0x375 a 0x3b7 van
+// las habilidades y los efectos que 0x615700 pide antes, que MuRet todavía no carga. Lo que GameModels pide
+// después (las del lazo 0x616e20 y las de 0x61619f y 0x616c5c) no está en los slots del original.
 TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
 {
     const auto dump = DumpFile(Client::Tests::LorenciaCapture, "lor_slots.bin");
@@ -374,6 +421,7 @@ TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
     ASSERT_TRUE(table.has_value());
     constexpr std::size_t SlotBytes = 0x38;
     constexpr std::size_t NameBytes = 0x20;
+    constexpr std::uint16_t SkillBlockEnd = 0x3cf;
     ASSERT_EQ(table->size(), Client::Render::OriginalTextureSlotCount * SlotBytes);
     FakeTextureStore textures;
     RecordingSink sink;
@@ -382,11 +430,12 @@ TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
 
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
-    ASSERT_EQ(models.TextureSlots().Next(), TextureSlot{0x3cb});
+    ASSERT_FALSE(models.MeshTextures(0x110).empty());
+    ASSERT_EQ(models.MeshTextures(0x110).back(), TextureSlot{SkillBlockEnd - 1});
     std::size_t compared = 0;
-    for (std::uint16_t slot = 0x12e; slot < 0x3cb; ++slot)
+    for (std::uint16_t slot = 0x12e; slot < SkillBlockEnd; ++slot)
     {
-        if (slot == 0x138 || slot == 0x139 || (slot >= 0x371 && slot < 0x3b8))
+        if (slot == 0x138 || slot == 0x139 || (slot >= 0x375 && slot < 0x3b8))
         {
             continue;
         }
@@ -395,7 +444,7 @@ TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
         EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{slot}), name) << std::hex << slot;
         compared += name.empty() ? 0u : 1u;
     }
-    EXPECT_EQ(compared, 489u + 15u + 4u);
+    EXPECT_EQ(compared, 489u + 4u + 15u + 4u + 4u);
 }
 
 // El cuervo (0xc0, Skill\DarkSpirit.bmd): sus mallas con las texturas de la quinta llamada de 0x615700

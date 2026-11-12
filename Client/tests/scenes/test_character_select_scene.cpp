@@ -36,6 +36,7 @@
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/PetHelperSteps.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -180,6 +181,10 @@ public:
         {
             return &m_body;
         }
+        if (m_withHelpers && (model == Client::Scenes::UniriaModel || model == Client::Scenes::DinorantModel))
+        {
+            return &m_body;
+        }
         return m_withWings && model == 0x1a12 ? &m_wings : nullptr;
     }
     // Las alas, que cuelgan, van con su textura: 0x60b3d0 (DrawGameHanging) la pide. El cuerpo, sin.
@@ -210,9 +215,16 @@ public:
         m_withRaven = true;
     }
 
+    // El esqueleto del cuerpo también para el Uniria y el Dinorant (Skill\Rider01.bmd y Rider02.bmd).
+    void EnableHelpers()
+    {
+        m_withHelpers = true;
+    }
+
 private:
     bool m_withWings;
     bool m_withRaven = false;
+    bool m_withHelpers = false;
     std::array<TextureSlot, 1> m_wingTextures{TextureSlot{0x300}};
     Skeleton m_body;
     Skeleton m_wings;
@@ -1352,7 +1364,72 @@ TEST(CharacterSelectSceneTest, RavenSparksAgeAfterThePreviewAndTheirSlotsAreReus
     EXPECT_EQ(*reused, 0u);
 }
 
-TEST(CharacterSelectSceneTest, ASelectionHelperKeepsTheSceneFourAlphaPrefixBeforeTheMissingBody)
+// Q-C293: 0x6342f4 pasa los diez ayudantes por 0x444010 en la escena 4, sin la guarda del jinete muerto de la 5
+// (0x44402a): el Uniria del jinete 0, muerto, toma su lugar y su acción, el alpha en 1 (con +0x80 del jinete en 0),
+// la velocidad 0,34 y el byte vivo del jinete (0x444ac0), y la selección sigue.
+TEST(CharacterSelectSceneTest, ASelectionHelperRunsItsBodyWithoutTheGameGuard)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+    tested.models.EnableHelpers();
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
+    auto& helpers = world.Helpers();
+    helpers[0].horse.alpha = 0.5f;
+    helpers[1].alive = true;
+    helpers[1].type = Client::Scenes::UniriaModel;
+    helpers[1].rider = 0;
+    ASSERT_FALSE(world.Actors()[0].alive);
+
+    tested.Step();
+
+    ASSERT_FALSE(tested.scene->Failure()) << *tested.scene->Failure();
+    EXPECT_FLOAT_EQ(helpers[0].horse.alpha, 0.5f);
+    EXPECT_FALSE(helpers[1].alive);
+    EXPECT_EQ(helpers[1].horse.alpha, 1.0f);
+    EXPECT_EQ(helpers[1].position, world.Actors()[0].position);
+    EXPECT_EQ(helpers[1].horse.speed, std::bit_cast<float>(0x3eae147bu));
+}
+
+// 0x63486a: 0x4453b0 en la escena 4 dibuja el Uniria del personaje con la escala en 1 (0x4452f1, no el 0,9 de
+// 0x443d70) y el color de 0x5ffce0 con la luz del terreno 54, sin cortar.
+TEST(CharacterSelectSceneTest, TheSelectionDrawsTheUniriaOfItsCharacter)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+    tested.models.EnableHelpers();
+    // Sin nada en las manos ni alas: la cola de 0x50ba30 dibuja lo que cuelga, y el modelo de prueba no tiene ítems.
+    CharacterEntryFields hero;
+    hero.equipment[0] = 0xff;
+    hero.equipment[1] = 0xff;
+    hero.equipment[4] = 0x0f;
+    hero.equipment[11] = 0xf0;
+    hero.equipment[12] = 0xf0;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({hero}));
+    ASSERT_FALSE(tested.scene->Failure()) << *tested.scene->Failure();
+    auto& uniria = world.Helpers()[1];
+    uniria.alive = true;
+    uniria.type = Client::Scenes::UniriaModel;
+    uniria.rider = 0;
+    uniria.scale = 0.9f;
+    uniria.horse.alpha = 1.0f;
+    uniria.position = world.Actors()[0].position;
+
+    static_cast<void>(tested.Frame());
+
+    ASSERT_FALSE(tested.scene->Failure()) << *tested.scene->Failure();
+    EXPECT_TRUE(uniria.seen);
+    EXPECT_EQ(uniria.scale, 1.0f);
+}
+
+// Un ayudante que 0x444010 no sabe mover corta en 0x6342f4 → 0x444083 antes del pool, el preview y las partículas
+// (0x634315): no gasta rand() ni avanza el contador, y el alpha que subió (0x4e9980) queda.
+TEST(CharacterSelectSceneTest, ASelectionHelperFailureKeepsItsPrefixBeforeThePool)
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
@@ -1363,10 +1440,8 @@ TEST(CharacterSelectSceneTest, ASelectionHelperKeepsTheSceneFourAlphaPrefixBefor
     auto& helpers = world.Helpers();
     helpers[0].horse.alpha = 0.5f;
     helpers[1].alive = true;
-    helpers[1].type = 0xc6;
-    helpers[1].rider = 0; // muerto: 44402a solo aplica ese guard en escena5.
-    helpers[2].alive = true;
-    helpers[2].horse.alpha = 0.25f;
+    helpers[1].type = 0xae;
+    helpers[1].rider = 0;
     auto& spark = world.Particles().All()[0];
     spark.alive = true;
     spark.type = Client::World::SparkParticle;
@@ -1382,11 +1457,10 @@ TEST(CharacterSelectSceneTest, ASelectionHelperKeepsTheSceneFourAlphaPrefixBefor
     EXPECT_EQ(cloth.logicSteps, 41);
     EXPECT_EQ(spark.life, 7);
     EXPECT_FLOAT_EQ(helpers[0].horse.alpha, 0.5f);
-    EXPECT_FLOAT_EQ(helpers[1].horse.alpha, 0.1f);
     EXPECT_TRUE(helpers[1].alive);
-    EXPECT_FLOAT_EQ(helpers[2].horse.alpha, 0.25f);
+    EXPECT_EQ(helpers[1].horse.alpha, std::bit_cast<float>(0x3dcccccdu));
     ASSERT_TRUE(tested.scene->Failure());
-    EXPECT_NE(tested.scene->Failure()->find("0x6342f4"), std::string::npos);
+    EXPECT_NE(tested.scene->Failure()->find("0x6342f4 → 0x444083"), std::string::npos) << *tested.scene->Failure();
 }
 
 TEST(CharacterSelectSceneTest, AParticleBindingFailureKeepsItsPrefixAndSkipsClothAndLaterSlots)

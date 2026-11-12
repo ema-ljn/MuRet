@@ -7,6 +7,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
+#include "Data/Models/PlayerModels.h"
 #include "Data/Tables/GateRecord.h"
 #include "Data/Tables/GateTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -450,6 +451,10 @@ public:
     }
     [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
+        if (model == Client::Data::Models::PlayerSkeletonModel)
+        {
+            return &m_player;
+        }
         return model == Client::Scenes::DarkHorseModel ? &m_skeleton : nullptr;
     }
     [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
@@ -459,14 +464,16 @@ public:
 
 private:
     Client::Render::Models::Skeleton m_skeleton;
+    // El jinete vivo pasa por el paso de los personajes (0x4f9580), que pide Player.bmd.
+    Client::Render::Models::Skeleton m_player = Client::Tests::PlayerActionsSkeleton();
 };
 
 // 0x6370f4: 0x445230, los ayudantes, antes de MoveHero (0x63710a) y también en la espera. Con el jinete
 // muerto, el paso de la escena 5 apaga su caballo y la espera sigue, con los 8 rand() de MoveHero. Con el
 // jinete vivo fuera de una celda segura, el aliento saca un rand() después de los seis candidatos
 // de peces del mapa inerte (con Seed, % 3 da 0) y, sin ningún dibujo antes, sale del hueso 27 en cero del
-// buffer global: la 5f2 nace, MoveHero baja el contador y el paso corta en el cuerpo del jinete, que esta
-// biblioteca no tiene (0x4f9580).
+// buffer global: la 5f2 nace, MoveHero baja el contador y la espera sigue, con el cuerpo del jinete avanzado
+// por Player.bmd (0x4f9580).
 TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
 {
     constexpr std::size_t RiderSlot = 5;
@@ -504,8 +511,7 @@ TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
 
         if (riderAlive)
         {
-            ASSERT_TRUE(scene.Failure().has_value());
-            EXPECT_NE(scene.Failure()->find("0x4f9580"), std::string::npos) << *scene.Failure();
+            EXPECT_EQ(scene.Failure(), std::nullopt) << scene.Failure().value_or("");
             EXPECT_TRUE(world.Helpers()[0].alive);
             EXPECT_TRUE(world.Particles().All()[0].alive);
             EXPECT_EQ(world.Particles().All()[0].type, Client::World::BreathParticle);

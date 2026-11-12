@@ -33,7 +33,6 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/DarkSpirit.h"
-#include "Scenes/DarkHorse.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/CharacterDrawing.h"
@@ -119,22 +118,6 @@ constexpr std::uint8_t BlockedAccountFlag = 0x10;
 
 // 0x5bb8d0 en la selección: 640, sin las ventanas del juego (06 § El trapecio completo).
 constexpr std::int32_t SelectionWorldWidth = 640;
-
-Core::Expected<void, std::string> StepSelectionHelpers(WorldState& world)
-{
-    for (HelperState& helper : world.Helpers())
-    {
-        if (!helper.alive)
-        {
-            continue;
-        }
-        // 0x44402a: el guard del jinete muerto es solo de escena5. En la4 llega al alpha
-        // (0x444053) antes del modelo y del cuerpo que todavía no están portados.
-        FadeInDarkHorse(helper.horse);
-        return Core::Unexpected(std::string("0x6342f4 → 0x444059: falta el cuerpo del ayudante de selección"));
-    }
-    return {};
-}
 
 // Si la entrada es la misma que dio el personaje: un crear en un lugar ocupado lo pisa.
 bool SameEntry(const Protocol::Character::CharacterEntry& one, const Protocol::Character::CharacterEntry& other)
@@ -431,9 +414,16 @@ void CharacterSelectScene::StepCharacters()
                 return;
             }
         }
-        if (auto helpers = StepSelectionHelpers(*m_context.world); !helpers.HasValue())
+        // 0x6342f4: 0x445230, los ayudantes, antes del pool. La escena 4 no apaga los de un jinete muerto (Q-C293).
+        if (auto helpers = StepHelpers(HelperStepContext{.world = *m_context.world,
+                                                         .models = &m_models,
+                                                         .random = m_context.cloth->random,
+                                                         .worldClock = worldClock,
+                                                         .scene = SceneId::CharacterSelect,
+                                                         .terrain = m_context.selection->Terrain()});
+            !helpers.HasValue())
         {
-            m_failure = helpers.Error();
+            m_failure = "0x6342f4 → " + helpers.Error();
             return;
         }
         const CharacterStepContext context = CharacterContext();
@@ -1079,6 +1069,27 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(SceneCanvas& canvas, flo
     DrawTheCharacters(canvas, alpha, map, poseCarry, scanFrames);
     if (m_failure || poseCarry == nullptr)
     {
+        return;
+    }
+    // 0x63486a: 0x4453b0, los ayudantes, con la escala en 1 de la escena 4 (0x4452f1), la luz del terreno 54 y los
+    // sprites del frame.
+    if (auto drawn = DrawHelpers(HelperDrawContext{
+            .batch = canvas.models,
+            .models = m_models,
+            .world = world,
+            .random = m_world.FrameRandom(),
+            .frameClock = canvas.frameClock,
+            .stepAlpha = 0.0f,
+            .originalFrame = frames > 0,
+            .onPose = [&](const DrawnObject& object) { return PublishFaunaPose(*poseCarry, m_models, object, true); },
+            .publishProjectedPose = true,
+            .posedMeshes = [&]() { return std::span<const Render::Models::SkinnedMesh>(poseCarry->meshes); },
+            .scene = SceneId::CharacterSelect,
+            .lighting = &m_world.FrameLighting(),
+            .sprites = &m_world.FrameSprites()});
+        !drawn.HasValue())
+    {
+        m_failure = "0x63486a → " + drawn.Error();
         return;
     }
     // 0x63486f..0x634883: las cintas, las juntas(0), los efectos con modelo(0) y 0x549510.

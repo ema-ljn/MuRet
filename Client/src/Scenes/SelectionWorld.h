@@ -126,6 +126,7 @@ public:
     [[nodiscard]] World::Particles& FrameParticles();
     [[nodiscard]] World::ModelEffects& FrameEffects();
     [[nodiscard]] GameDrawTailState& FrameTail();
+    // La tabla de los sprites del frame (0x5491e0): la del mundo, o la proyectada en un dibujo intermedio.
     [[nodiscard]] World::FrameSprites& FrameSprites();
     [[nodiscard]] GameItemRenderState& FrameItemRender();
     [[nodiscard]] World::ObjectModelStepState& FrameModelState();

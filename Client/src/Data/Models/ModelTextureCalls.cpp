@@ -136,12 +136,21 @@ static_assert(PlayerCalls.count == PlayerCalls.calls.size(), "las llamadas de 0x
 static_assert(ItemCalls.count == ItemCalls.calls.size(), "las llamadas de 0x611850");
 
 // 0x616953, 0x616971, 0x61698c y 0x6169a7.
-constexpr std::array<ModelTextureCall, 5> SkillCalls{{
+constexpr std::array<ModelTextureCall, 7> SkillCalls{{
     {0x145, SkillFolder},
     {0x146, SkillFolder},
     {0x147, SkillFolder},
     {0xbf, SkillFolder},
-    {0xc0, SkillFolder}, // 0x6169c2, el cuervo
+    {0xc0, SkillFolder},  // 0x6169c2, el cuervo
+    {0xc5, SkillFolder},  // 0x6169e0, HellGate
+    {0x110, SkillFolder}, // 0x6169fb, el Dinorant
+}};
+
+// 0x615f77, 0x615fab y 0x615fdc: los tres Fenrir, las primeras de 0x615700, donde dejó 0x611850.
+constexpr std::array<ModelTextureCall, 3> FenrirCalls{{
+    {0x14a, SkillFolder},
+    {0x14b, SkillFolder},
+    {0x14c, SkillFolder},
 }};
 
 // 0x2600 y 0x2900 en las trece.
@@ -176,6 +185,11 @@ std::span<const ModelTextureCall> ItemTextureCalls()
 std::span<const ModelTextureCall> SkillTextureCalls()
 {
     return SkillCalls;
+}
+
+std::span<const ModelTextureCall> FenrirTextureCalls()
+{
+    return FenrirCalls;
 }
 
 std::span<const Textures::TextureSetEntry> PlayerFixedTextures()

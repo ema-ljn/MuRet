@@ -20,6 +20,7 @@
 #include "Scenes/GameTailPasses.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/SceneCanvas.h"
+#include "Scenes/SceneId.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -160,7 +161,8 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
     if (auto result = DrawHelpers(
             {canvas.models, m_worldModels, world, FrameCloth().random, canvas.frameClock, 0, frames > 0,
              [&](const DrawnObject& object) { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); },
-             true, [&]() { return std::span<const Render::Models::SkinnedMesh>(FramePoseCarry().meshes); }});
+             true, [&]() { return std::span<const Render::Models::SkinnedMesh>(FramePoseCarry().meshes); },
+             SceneId::Game, &FrameLighting(), &FrameSpritesForDraw()});
         !result.HasValue())
         return result;
     const auto view = Render::ViewRows(pass.view);

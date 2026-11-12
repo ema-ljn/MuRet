@@ -730,7 +730,7 @@ TEST_F(GameHudTest, ThePiecesOfOtherWavesStopWithTheirAddress)
     };
     const std::array<Case, 6> cases{{
         {"0x5a89b0", [](WorldState& state) { state.Runtime().hud.partyCount = 2; }},
-        {"0x5f2340", [](WorldState& state) { state.Runtime().panels.inventory = 1; }},
+        {"0x5f7180", [](WorldState& state) { state.Runtime().panels.panel2000 = 1; }},
         {"0x40bab0",
          [](WorldState& state) { state.Runtime().eventObject = Client::Scenes::EventMapObject{.field08 = 5}; }},
         {"0x40c2d0",

@@ -15,8 +15,8 @@
 // El HUD del juego (06 § HUD y ventanas, CL8 hito 2): 0x5a7320(1), lo que el dibujo del juego llama en 0x637660, las
 // superposiciones de 0x5b0550 (0x6376bb) y el cursor del juego, 0x5ac2d0, que llama dos veces (0x6376d7 y 0x6376e1).
 // En 640 × 480, con el estado de GL que dejan sus primitivas y con los rand() de la tabla de protección en su orden.
-// Lo que es de otra ola corta con su dirección donde su condición se cumple; lo que solo dibuja y no saca rand(),
-// como los ítems 3D de las ranuras rápidas, no se dibuja hasta su hito y lo dice en su lugar.
+// Lo que es de otra ola corta con su dirección donde su condición se cumple. Los modelos de los ítems de la UI (las
+// grillas, el cursor y las ranuras rápidas) no se dibujan: sacan sus rand() (GameInventoryHud.h, 08 P-C70).
 namespace Client::Render::Models
 {
 class CrtRandom;

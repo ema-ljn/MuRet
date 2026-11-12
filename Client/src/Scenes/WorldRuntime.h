@@ -17,6 +17,7 @@
 #include "UI/PanelRegistry.h"
 #include "UI/WhisperSenders.h"
 #include "World/GroundMarks.h"
+#include "World/ItemState.h"
 #include "World/LeafWeather.h"
 #include "World/ObjectModelStepState.h"
 #include "World/TerrainCulling.h"
@@ -116,6 +117,11 @@ struct HudState
     // 0x554610. 0x61bcd0 crea el DC sin ninguna (la del sistema) y el login dibuja con una antes del primer mensaje:
     // MuRet empieza con la normal.
     Render::Text::FontKind dcFont = Render::Text::FontKind::Normal;
+    // 0x78a5a14 y 0x78a5a10: la esquina del inventario, que pone su dibujo (0x5f2340) en cada frame: x en 0x104 con
+    // el personaje o la party abiertos y en 0x1c2 si no, y siempre y en 0. Los leen los ítems 3D de sus grillas
+    // (0x5f7610) y las cifras (0x5f7840) del mismo frame (CL8 hito 4).
+    std::int32_t inventoryX = 0;
+    std::int32_t inventoryY = 0;
 };
 
 struct WorldRuntime
@@ -148,6 +154,10 @@ struct WorldRuntime
     GameMovementState movement{};
     // Los cinco selectores del mouse arrancan en -1 en la .data.
     std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};
+    // 0x7879f80: el ítem del cursor, un ItemState de 0x48 bytes en la .bss. Lo dibuja 0x5f7b10 (CL8 hito 4).
+    World::ItemState cursorItem{};
+    // 0x7879fbc, el +0x3c (occupied) de cursorItem: mayor que 0 con un ítem en el cursor. MuRet lo guarda aparte, y
+    // quien levanta o suelta el ítem escribe los dos.
     std::int32_t cursorItemCount = 0;
     std::int32_t storm = 0;
     std::int32_t field78abb10 = 0;

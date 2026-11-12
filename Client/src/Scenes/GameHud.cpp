@@ -17,6 +17,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/EventMapObject.h"
+#include "Scenes/GameInventoryHud.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -642,8 +643,9 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
         return cut("0x5f0be0: la ventana de la party es de la CL9.4");
     if (panels.IsOpen(UI::CharacterPanel))
         return cut("0x5ee2e0: la ventana del personaje es del hito 5");
-    if (panels.IsOpen(UI::InventoryPanel))
-        return cut("0x5f2340: el inventario es del hito 4");
+    // 0x5f2340, que empieza con su IsOpen.
+    if (auto inventory = DrawTheInventory(frame.context, panels); !inventory.HasValue())
+        return inventory;
     if (panels.IsOpen(UI::TradePanel))
         return cut("0x5f3b40: el comercio es de la CL9.4");
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
@@ -801,29 +803,21 @@ Core::Expected<void, std::string> DrawTheAg(Frame& frame)
 
 Core::Expected<void, std::string> DrawTheUi3D(Frame& frame)
 {
-    UI::PanelRegistry& panels = frame.panels;
     const UI::PanelState& state = frame.runtime.panels;
     // 0x5ac120 cierra el 2D y arma su proyección de 1° con la cámara de 0x7d366f0 y la profundidad. MuRet no dibuja
-    // nada 3D acá hasta el hito 4 (los ítems de las grillas, el del cursor y los de las ranuras), así que no corta el
-    // lote del 2D.
+    // los modelos de los ítems de la UI (08, P-C70): saca sus rand() y no corta el lote del 2D.
     // 0x41b9e0: el ítem de la ventana de las misiones.
     if (state.delegated.quest == 1 || state.delegated.quest == 2)
         return Core::Unexpected(std::string("0x41b9e0: el ítem de la ventana de las misiones es de la CL9.1"));
     if (state.field78abb00 != 0 && state.field78abb00 != 3)
         return Core::Unexpected(std::string("0x5f70a0: los ítems de la ventana de 0x78abb00 son de la CL9.5"));
-    // 0x5f7610: los ítems de las grillas abiertas, en su orden.
-    if (panels.IsOpen(UI::InventoryPanel) || panels.IsOpen(UI::NpcShopPanel) || panels.IsOpen(UI::TradePanel) ||
-        panels.IsOpen(UI::WarehousePanel) || panels.IsOpen(UI::ChaosBoxPanel) ||
-        panels.IsOpen(UI::CastleSiegeListPanel) || panels.IsOpen(UI::PersonalShopPanel) ||
-        panels.IsOpen(UI::OtherShopPanel))
-        return Core::Unexpected(std::string("0x5f7610: los ítems 3D de las grillas son del hito 4"));
-    if (state.delegated.trainer == 3)
-        return Core::Unexpected(std::string("0x44ad40: el ítem del entrenador es de la CL9.3"));
+    // 0x5f7610: los ítems de las grillas abiertas, en su orden, y la caja del entrenador (0x44ad40(0)).
+    if (auto grids = DrawTheGridItems(frame.context, frame.panels); !grids.HasValue())
+        return grids;
     // 0x5ac1f8: el ítem del cursor (con 0x78abb14 en 0 y 0x78aba60 distinto de 2, que MuRet no tiene).
-    if (frame.runtime.cursorItemCount > 0)
-        return Core::Unexpected(std::string("0x5f7b10: el ítem del cursor es del hito 4"));
-    // 0x5ac22a..0x5ac26d: las tres ranuras rápidas. El ítem 3D de cada una (0x5e1480(208 + 31i, 454, 20, 20)) solo
-    // dibuja: llega con los ítems 3D del inventario, en el hito 4.
+    if (auto cursor = DrawTheCursorItem(frame.context); !cursor.HasValue())
+        return cursor;
+    // 0x5ac22a..0x5ac26d: las tres ranuras rápidas, cada una con 0x5e1480(208 + 31i, 454, 20, 20, tipo, +4, 0, 0, 0).
     const std::span<const World::ItemState, InventoryCellCount> cells(frame.context.world.Inventory().cells);
     for (int slot = 0; slot < 3; ++slot)
     {
@@ -831,18 +825,20 @@ Core::Expected<void, std::string> DrawTheUi3D(Frame& frame)
                                        frame.runtime.movement.gateRequestBlocked != 0);
         if (!found.HasValue())
             return Core::Unexpected(found.Error());
+        if (!found.Value())
+            continue;
+        const World::ItemState& item = cells[*found.Value()];
+        const auto type = static_cast<std::int32_t>(static_cast<std::int16_t>(item.id));
+        if (auto drawn = DrawUiItem(frame.context, type, item.scalar1Low, 0, 0); !drawn.HasValue())
+            return drawn;
     }
     return {};
 }
 
+// 0x5f7840.
 Core::Expected<void, std::string> DrawTheGrids(Frame& frame)
 {
-    UI::PanelRegistry& panels = frame.panels;
-    if (panels.IsOpen(UI::InventoryPanel) || panels.IsOpen(UI::NpcShopPanel) || panels.IsOpen(UI::WarehousePanel) ||
-        panels.IsOpen(UI::ChaosBoxPanel) || panels.IsOpen(UI::TradePanel) || panels.IsOpen(UI::CastleSiegeListPanel) ||
-        panels.IsOpen(UI::TrainerPanel))
-        return Core::Unexpected(std::string("0x5f7840: las grillas de las ventanas son del hito 4"));
-    return {};
+    return DrawTheGridNumbers(frame.context, frame.panels);
 }
 
 // ---------------------------------------------------------------------------------------------------------------

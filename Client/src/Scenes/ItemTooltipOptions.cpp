@@ -324,7 +324,7 @@ void WriteTheSetStat(Frame& frame)
 Core::Expected<void, std::string> WriteAnOption(Frame& frame, std::int32_t type, std::uint8_t tag, std::uint8_t value)
 {
     TooltipWriter& lines = frame.lines;
-    const auto* found = std::ranges::find(OptionTexts, tag, &OptionText::tag);
+    const auto found = std::ranges::find(OptionTexts, tag, &OptionText::tag);
     if (found == OptionTexts.end())
         return {};
     if (tag == LuckOption && type >= FirstQuestItem && type <= LastQuestItem)

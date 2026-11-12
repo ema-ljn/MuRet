@@ -97,6 +97,7 @@ Client::Data::Text::TextTable Texts()
                                          {88, "Opcion +%d"},
                                          {94, "Vida %d"},
                                          {159, "fin"},
+                                         {238, "Reparar: %s"},
                                          {572, "Gema para mejorar"},
                                          {577, "Golpe extra %d"},
                                          {578, "Absorbe %d"},
@@ -292,6 +293,14 @@ protected:
         }
         for (std::size_t i = expected.size(); i < Client::Scenes::TooltipLineCount; ++i)
             EXPECT_TRUE(lines.text[i].empty()) << "renglón " << i;
+    }
+
+    Client::Core::Expected<void, std::string> Repair(const ItemState& item, std::int32_t x = 320, std::int32_t y = 300)
+    {
+        GameHudContext context = Context();
+        const Client::Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, random, OwnRecordCloseRandoms);
+        return Client::Scenes::DrawTheRepairTooltip(
+            Client::Scenes::ItemTooltipContext{.hud = context, .x = x, .y = y, .item = item});
     }
 
     static CrtRandom Advanced(CrtRandom from, int count)
@@ -644,5 +653,52 @@ TEST_F(ItemTooltipsTest, EveryItemReadsItemSetTypeForItsSetOptions)
 
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x40ef05"), std::string::npos) << drawn.Error();
+}
+TEST_F(ItemTooltipsTest, TheRepairTooltipOfAFullWeaponHasNoPrice)
+{
+    world.Runtime().panels.repairMode = 2;
+    ItemState item = ExcellentWeapon();
+    item.durability = 51;
+    const CrtRandom expected = Advanced(random, OwnRecordCloseRandoms);
+
+    const auto drawn = Repair(item);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    // 0x5b8150: el precio "0" y el nombre en el color del nombre y en negrita; no limpia los colores.
+    ExpectLines({{"\n", 0, StaleBold},
+                 {"Reparar: 0", 4, 1},
+                 {"\n", 0, StaleBold},
+                 {"Brillante Hoja Gris +9", 4, 1},
+                 {"\n", 0, StaleBold},
+                 {"Vida util 51/51", 0, 0},
+                 {"\n", 0, StaleBold}},
+                4);
+    EXPECT_EQ(world.Runtime().panels.repairMode, 1);
+    EXPECT_EQ(random.State(), expected.State());
+    // (3 · 13 + 4 · 13 / 2) · 480 / 480 = 65 arriba de y, y el precio medio renglón más abajo.
+    ASSERT_FALSE(text.texts.empty());
+    EXPECT_EQ(text.texts[0].text, "Reparar: 0");
+    EXPECT_EQ(text.texts[0].y, 300 - 65 + 7);
+}
+
+TEST_F(ItemTooltipsTest, TheRepairPriceOfADamagedItemCuts)
+{
+    const auto drawn = Repair(ExcellentWeapon());
+
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_NE(drawn.Error().find("0x5b838d"), std::string::npos) << drawn.Error();
+}
+
+TEST_F(ItemTooltipsTest, SomeItemsHaveNoRepairTooltip)
+{
+    Lines().text[0] = "viejo";
+    for (const std::uint16_t type : {Jewel, Pet, BlueBox, std::uint16_t{0x807}, std::uint16_t{0x180b}})
+    {
+        ItemState item;
+        item.id = type;
+        ASSERT_TRUE(Repair(item).HasValue());
+    }
+    EXPECT_EQ(Lines().text[0], "viejo");
+    EXPECT_TRUE(text.texts.empty());
 }
 } // namespace

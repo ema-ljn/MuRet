@@ -8,10 +8,12 @@
 #include "Scenes/GameHud.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameTooltips.h"
+#include "Scenes/HudItems.h"
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/ItemTooltipParts.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
+#include "Scenes/WorldState.h"
 #include "Scenes/WorldRuntime.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
@@ -67,6 +69,14 @@ constexpr std::size_t HeightByte = 0x25;
 constexpr std::int32_t CellPixels = 20;
 // 0x5b808b: el modo centrado de 0x467060 y el marco.
 constexpr std::int32_t CenteredMode = 2;
+
+// 0x5b8150: el 238 con el precio ("0" sin nada que reparar, 0x6c9be8), el 620 de las excelentes, el 71 de la
+// durabilidad y los 480 de alto de diseño de su caja.
+constexpr std::size_t RepairPriceText = 238;
+constexpr char FullDurabilityPrice[] = "0";
+constexpr std::size_t ExcellentText = 620;
+constexpr std::size_t RepairDurabilityText = 71;
+constexpr std::uint32_t DesignHeight = 480;
 
 bool IsOneOf(std::uint16_t id, std::span<const std::uint16_t> ids)
 {
@@ -124,6 +134,60 @@ Core::Expected<void, std::string> CheckTheShops(GameHudContext& context, const W
     if (!registry.IsOpen(UI::PersonalShopPanel))
         static_cast<void>(registry.IsOpen(UI::OtherShopPanel));
     return {};
+}
+
+// 0x5b8160..0x5b821b: los tipos sin tooltip de reparar: salen sin tocar los renglones.
+bool IsRepairable(std::int32_t type)
+{
+    const auto in = [type](std::int32_t first, std::int32_t last) { return type >= first && type <= last; };
+    if (in(0x1a00, 0x1a04) || type == 0x1a0a || type == 0x807 || type == 0x80f || type >= 0x1c00 ||
+        in(0x1807, 0x1813) || in(0x1a0e, 0x1a13) || type == 0x1a14 || type == 0x1a1d || type == 0x1a05 ||
+        type == 0x1a07 || type == 0x1a0b || in(0x1a20, 0x1a25))
+        return false;
+    return true;
+}
+
+// 0x5b8265..0x5b8315: el color del nombre de 0x5b8150, sin el de los conjuntos y con la vuelta de 0x1803..0x1806 y
+// de todo desde 0x1a1e.
+std::int32_t RepairNameColorOf(const World::ItemState& item, std::int32_t level)
+{
+    const std::uint16_t id = item.id;
+    const bool options = item.optionCount > 0;
+    const std::int32_t plain = options ? TooltipBlue : TooltipWhite;
+    std::int32_t color = plain;
+    if (id == 0x1c0d || id == 0x1c0e || id == 0x180f || IsOneOf(id, JewelBundles))
+        color = TooltipGold;
+    else if (IsOneOf(id, PurpleItems))
+        color = TooltipPurple;
+    else if (id == 0x1c11 || id == 0x1c12 || id == 0x1c13)
+        color = TooltipGold;
+    else if (options && (item.flags1b & ExcellentBits) != 0)
+        color = TooltipGreen;
+    else if (level >= GoldLevel)
+        color = TooltipGold;
+    const auto type = static_cast<std::int16_t>(id);
+    if ((type >= FirstLateWing && type <= LastLateWing) || type >= CapeOfLord)
+        color = level >= GoldLevel ? TooltipGold : plain;
+    return color;
+}
+
+// 0x5b8ae1..0x5b8b6d: la caja de reparar, con la altura en enteros sin signo: ((N − M) · cy + M · cy / 2) · 480 / H.
+Core::Expected<void, std::string> DrawTheRepairBox(const ItemTooltipContext& context,
+                                                   std::span<const std::byte, Data::Tables::ItemRecordSize> record)
+{
+    GameHudContext& hud = context.hud;
+    const TooltipLines& lines = hud.hud.tooltip;
+    const std::string_view first = std::string_view(lines.text[0]).substr(0, 1);
+    const std::int32_t cy = hud.text.Measure(hud.hud.dcFont, first).height;
+    const std::int32_t sum = (lines.next - lines.halves) * cy + lines.halves * cy / 2;
+    const auto screenHeight = static_cast<std::uint32_t>(hud.sprites.Screen().height);
+    if (screenHeight == 0)
+        return Core::Unexpected(std::string("0x5b8b45: la altura de la caja de reparar sin pantalla (DIV por 0)"));
+    const std::uint32_t height = static_cast<std::uint32_t>(sum) * DesignHeight / screenHeight;
+    auto top = static_cast<std::int32_t>(static_cast<std::uint32_t>(context.y) - height);
+    if (top < 0)
+        top = context.y + std::to_integer<std::int32_t>(record[HeightByte]) * CellPixels;
+    return DrawTheTooltipBox(hud, context.x, top, lines.next, 0, CenteredMode, 1);
 }
 
 // 0x5b8020..0x5b8096: la caja, arriba del ítem con el alto que cuentan N y M: (N − M) · cy + M · cy / 2 sobre ry,
@@ -194,7 +258,66 @@ Core::Expected<void, std::string> DrawTheItemTooltip(const ItemTooltipContext& c
 
 Core::Expected<void, std::string> DrawTheRepairTooltip(const ItemTooltipContext& context)
 {
-    return Core::Unexpected(std::format("0x5b8150: el tooltip de reparar el {:#x} es del hito 5", context.item.id));
+    GameHudContext& hud = context.hud;
+    const World::ItemState& item = context.item;
+    const std::int32_t type = static_cast<std::int16_t>(item.id);
+    if (!IsRepairable(type))
+        return {};
+    if (hud.items == nullptr)
+        return Core::Unexpected(std::string("0x5b822d: el tooltip de reparar sin Item.bmd"));
+    const auto record = type < 0 ? std::nullopt : hud.items->Record(static_cast<std::size_t>(type));
+    if (!record)
+        return Core::Unexpected(std::format("0x5b822d: el tipo {:#x} lee fuera de Item.bmd", item.id));
+    // 0x5b823c..0x5b8258: N, M y los textos; los colores no.
+    TooltipLines& tooltip = hud.hud.tooltip;
+    tooltip.next = 0;
+    tooltip.halves = 0;
+    tooltip.ClearTexts();
+    const auto level = static_cast<std::int32_t>((item.scalar1Low >> LevelShift) & LevelMask);
+    const std::int32_t color = RepairNameColorOf(item, level);
+    TooltipWriter lines(tooltip, hud.texts);
+    lines.At("0x5b8327");
+    lines.NewLine();
+    // 0x5b835d..0x5b840b: el precio de reparar, con la durabilidad que falta.
+    const std::uint16_t maximum = MaxDurability(item, *record, level);
+    if (item.durability < maximum)
+        return Core::Unexpected(std::format("0x5b838d: el precio de reparar el {:#x} (0x54d0f0 y 0x5b13e0) no está "
+                                            "portado (P-C101)",
+                                            item.id));
+    lines.PrintText(RepairPriceText, std::string_view(FullDurabilityPrice));
+    if (!hud.projecting)
+        hud.world.Runtime().panels.repairMode = 1;
+    lines.Color(color);
+    lines.Bold(1);
+    lines.Next();
+    lines.NewLine();
+    // 0x5b895a..0x5b8a2b: el nombre. 0x180b (0x5b8453) y 0x1a0a (0x5b8915) no llegan: salen al principio.
+    lines.At("0x5b895a");
+    const std::string name = ItemRecordName(*record);
+    const bool plain = (type >= FirstLateWing && type <= LastLateWing) || type >= CapeOfLord;
+    if (!plain && (item.flags1b & ExcellentBits) != 0)
+    {
+        if (level == 0)
+            lines.Print("%s %s", lines.Text(ExcellentText), std::string_view(name));
+        else
+            lines.Print("%s %s +%d", lines.Text(ExcellentText), std::string_view(name), level);
+    }
+    else if (level == 0)
+        lines.Print("%s", std::string_view(name));
+    else
+        lines.Print("%s +%d", std::string_view(name), level);
+    lines.Bold(1);
+    lines.Color(color);
+    lines.Next();
+    lines.NewLine();
+    // 0x5b8a6d..0x5b8adc: la durabilidad, en blanco.
+    lines.At("0x5b8a6d");
+    lines.Line(TooltipWhite, RepairDurabilityText, static_cast<std::int32_t>(item.durability),
+               static_cast<std::int32_t>(maximum));
+    lines.NewLine();
+    if (lines.Failed())
+        return Core::Unexpected(lines.Error());
+    return DrawTheRepairBox(context, *record);
 }
 
 Core::Expected<void, std::string> DrawTheSkillTooltip(GameHudContext& context, std::int32_t x, std::int32_t y,

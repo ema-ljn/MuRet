@@ -9,7 +9,6 @@
 
 #include <gtest/gtest.h>
 
-#include <optional>
 #include <string_view>
 
 // Los mensajes del juego sobre WorldRuntime (CL8 hito 3; 06 § El chat): 0x555190 y los relojes de 0x637700. Los

@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 // El dibujo del registro del chat (CL8 hito 3; 06 § El chat): 0x479080 con el marco (0x45c460), los renglones

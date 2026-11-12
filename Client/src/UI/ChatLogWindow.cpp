@@ -1,5 +1,7 @@
 #include "UI/ChatLogWindow.h"
 
+#include "UI/ChatLog.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <optional>

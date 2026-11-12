@@ -727,9 +727,9 @@ Core::Expected<void, std::string> StepEarthquakeAtEleven(ModelEffect& effect, Pa
     {
         // 0x521f98..0x521ffc: el dueño de las tres es este efecto (ebx).
         const ModelEffectOwner self{nullptr, &effect, &effect.transform.angles};
-        for (const auto& [type, address] : {std::pair<std::int16_t, std::string_view>{0xfd, "0x521fb9"},
-                                            std::pair<std::int16_t, std::string_view>{0xfb, "0x521fd9"},
-                                            std::pair<std::int16_t, std::string_view>{0xfc, "0x521ffc"}})
+        for (const auto& [type, address] : {std::pair<std::int16_t, std::string_view>{std::int16_t{0xfd}, "0x521fb9"},
+                                            std::pair<std::int16_t, std::string_view>{std::int16_t{0xfb}, "0x521fd9"},
+                                            std::pair<std::int16_t, std::string_view>{std::int16_t{0xfc}, "0x521ffc"}})
         {
             if (auto created =
                     CreateQuakeCrack(services, type, start, local, effect.light, self, FirstCrackSize, address);
@@ -769,8 +769,8 @@ Core::Expected<void, std::string> StepEarthquakeAtEleven(ModelEffect& effect, Pa
         if (!height.HasValue())
             return Core::Unexpected(height.Error());
         point.z = F32(height.Value() + (kalimaHere.Value() ? KalimaCrackRise : CrackRise));
-        for (const auto& [type, address] : {std::pair<std::int16_t, std::string_view>{0xfe, "0x5221b0"},
-                                            std::pair<std::int16_t, std::string_view>{0xff, "0x5221d8"}})
+        for (const auto& [type, address] : {std::pair<std::int16_t, std::string_view>{std::int16_t{0xfe}, "0x5221b0"},
+                                            std::pair<std::int16_t, std::string_view>{std::int16_t{0xff}, "0x5221d8"}})
         {
             if (auto created =
                     CreateQuakeCrack(services, type, point, local, effect.light, effect.owner, size, address);
@@ -828,8 +828,9 @@ Core::Expected<void, std::string> StepEarthquakeAtTen(ModelEffect& effect, Rende
                 return Core::Unexpected(height.Error());
             point.z = F32(height.Value() + (kalimaHere.Value() ? KalimaCrackRise : CrackRise));
             local.z = F32(static_cast<double>(local.z) + Flip);
-            for (const auto& [type, address] : {std::pair<std::int16_t, std::string_view>{0x101, "0x522417"},
-                                                std::pair<std::int16_t, std::string_view>{0x102, "0x522440"}})
+            for (const auto& [type, address] :
+                 {std::pair<std::int16_t, std::string_view>{std::int16_t{0x101}, "0x522417"},
+                  std::pair<std::int16_t, std::string_view>{std::int16_t{0x102}, "0x522440"}})
             {
                 if (auto created =
                         CreateQuakeCrack(services, type, point, local, effect.light, effect.owner, CrackSize, address);

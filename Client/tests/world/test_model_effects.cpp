@@ -743,7 +743,7 @@ TEST(ModelEffectsTest, TheEarthquakeIsBornWithItsSubtypeAndClosesTheOwnRecord)
         EXPECT_EQ(quake.owner.type, &horseType);
         EXPECT_EQ(quake.owner.angles, &horseAngles);
         EXPECT_EQ(quake.renderFlags, 0u);
-        EXPECT_EQ(Client::World::OwnerTypeOf(quake.owner), std::optional<std::uint16_t>(0x1b2));
+        EXPECT_EQ(Client::World::OwnerTypeOf(quake.owner), std::optional<std::uint16_t>(std::uint16_t{0x1b2}));
         // La cuenta +0xf04 es un byte: 0xff más uno vuelve a 0.
         EXPECT_EQ(count, 0);
         EXPECT_EQ(depth, start);
@@ -820,9 +820,9 @@ TEST(ModelEffectsTest, TheEarthquakeCracksTakeTheirLifeAndScaleFromTheirSize)
 // 0,9 del prefijo y la vida que el lugar tenía de su uso anterior. Otro tipo o la tabla llena, ninguno.
 TEST(ModelEffectsTest, AnEarthquakeCrackWithoutItsCaseKeepsTheLifeOfThePreviousEffect)
 {
-    for (const auto& [type, subtype] :
-         {std::pair<std::int16_t, std::int32_t>{0xfb, 2}, std::pair<std::int16_t, std::int32_t>{0xfc, 3},
-          std::pair<std::int16_t, std::int32_t>{0xfb, -1}})
+    for (const auto& [type, subtype] : {std::pair<std::int16_t, std::int32_t>{std::int16_t{0xfb}, 2},
+                                        std::pair<std::int16_t, std::int32_t>{std::int16_t{0xfc}, 3},
+                                        std::pair<std::int16_t, std::int32_t>{std::int16_t{0xfb}, -1}})
     {
         SCOPED_TRACE(std::to_string(type) + "/" + std::to_string(subtype));
         ModelEffects effects;
@@ -854,12 +854,12 @@ TEST(ModelEffectsTest, TheOwnerTypeIsReadFromTheLiveOwner)
     owner.type = Client::World::EarthquakeEffect;
     std::uint16_t helperType = 0x1b1;
     EXPECT_EQ(Client::World::OwnerTypeOf({.type = &helperType, .effect = &owner, .angles = nullptr}),
-              std::optional<std::uint16_t>(0xfa));
+              std::optional<std::uint16_t>(std::uint16_t{0xfa}));
     EXPECT_EQ(Client::World::OwnerTypeOf({.type = &helperType, .effect = nullptr, .angles = nullptr}),
-              std::optional<std::uint16_t>(0x1b1));
+              std::optional<std::uint16_t>(std::uint16_t{0x1b1}));
     helperType = 0x1b2;
     EXPECT_EQ(Client::World::OwnerTypeOf({.type = &helperType, .effect = nullptr, .angles = nullptr}),
-              std::optional<std::uint16_t>(0x1b2));
+              std::optional<std::uint16_t>(std::uint16_t{0x1b2}));
     EXPECT_EQ(Client::World::OwnerTypeOf({}), std::nullopt);
 }
 } // namespace

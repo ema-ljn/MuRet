@@ -196,6 +196,7 @@ Core::Expected<void, std::string> Dress(ActorState& actor, const ActorEquipmentC
                                              .publishedHero = context.publishedHero,
                                              .ownRecordAccesses = context.ownRecordAccesses,
                                              .random = context.stop.random,
+                                             .held = context.held,
                                              .scan505820 = context.fullSetScan});
 }
 } // namespace

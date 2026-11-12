@@ -305,7 +305,8 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
                                                                    .items = resources.items,
                                                                    .random = resources.cloth.random},
                                           .itemSetTables = resources.itemSetTables,
-                                          .itemSets = &world.ItemSets()};
+                                          .itemSets = &world.ItemSets(),
+                                          .held = HeldItemOf(runtime)};
     const auto dressed = ApplyActorEquipment(hero, equipment);
     if (!dressed.HasValue())
     {
@@ -373,8 +374,7 @@ Core::Expected<void, std::string> PlaceInGrid(std::span<ItemState> cells, std::i
 
 // 0x5bcd0b..0x5bcf94 y 0x5bd08b..0x5bd302: con [0x78a6758] en menos de 12, abre el registro propio en línea,
 // llama a 0x54fe10 una vez por cada WORD, +0x3e y +0x42, que no sea 0 (0x5bcdd9 y 0x5bcdf0), y lo cierra
-// con 0x40b4d0 (0x5bcf8f). El ítem de 0x7879f80 no reemplaza nada: [0x7879fbc] está en 0
-// (OwnStatsContext::held).
+// con 0x40b4d0 (0x5bcf8f). 0x54fe10 lee el ítem del cursor con sus globales (HeldItemOf).
 Core::Expected<void, std::string> UpdateTheSpeedsAfterTheGrid(const WorldEntryResources& resources)
 {
     WorldRuntime& runtime = resources.world.Runtime();
@@ -391,8 +391,8 @@ Core::Expected<void, std::string> UpdateTheSpeedsAfterTheGrid(const WorldEntryRe
         {
             continue;
         }
-        if (auto updated = UpdateOwnAttackAndMagicSpeeds(own, OwnEquipmentOverride{}, runtime.ownRecordDepth,
-                                                         resources.cloth.random);
+        if (auto updated =
+                UpdateOwnAttackAndMagicSpeeds(own, HeldItemOf(runtime), runtime.ownRecordDepth, resources.cloth.random);
             !updated.HasValue())
         {
             return updated;

@@ -1104,7 +1104,7 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     // 0x636df2..0x636e04.
-    ui.field78abaa8 = 0;
+    ui.hoveredItem = {};
     ui.skillTooltip = -1;
     ui.mouseOnUi = 0;
     // 0x636e0b: 0x7d36899 no lo escribe nadie.

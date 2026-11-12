@@ -220,8 +220,8 @@ Core::Expected<void, std::string> StepTheOwnTimers(const CharacterStepContext& c
     WorldRuntime& runtime = world.Runtime();
     OwnCharacterRecord& own = world.OwnCharacter();
     ItemSetOptionList& setOptions = world.ItemSets().list;
-    // El ítem de 0x7879f80 no reemplaza nada: [0x7879fbc] está en 0 (OwnEquipmentOverride).
-    const OwnEquipmentOverride held{};
+    // El ítem del cursor, con lo que haya en sus globales (HeldItemOf).
+    const OwnEquipmentOverride held = HeldItemOf(runtime);
     // 0x4fc46a..0x4fc556: abre el registro propio en línea; 0x4fc617..0x4fc767 lo cierra en línea, con los
     // 3.848 rand() de 0x40b4d0 si la cuenta queda en 0.
     const Render::Models::LogicalAccess access(runtime.ownRecordDepth, context.random,

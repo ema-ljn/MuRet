@@ -377,12 +377,17 @@ captura con un reloj falso; /move con `movereq.bmd`. **Desbloquea:** "teclas de 
 
 ### Hito 7: las ventanas viejas (CL8.3, ~41 KB, de los que ~11 son STL)
 
-- [ ] **El administrador** (`0x48e470`, la fábrica `0x48ee60` sin los casos de amigos y correo, `0x490390`,
+- [x] **El administrador** (`0x48e470`, la fábrica `0x48ee60` sin los casos de amigos y correo, `0x490390`,
       `0x490490` con Esc, F5 y F6, `0x490200`, `0x4906a0`, `0x4914e0`, `0x490b70`), **la ventana con marco**
       (`0x491ca0`, `0x492500`, `0x492ac0`, `0x492180`, la paleta `0x491960`), los controles viejos (botón, lista,
       campo, barra), **la caja de mensaje** (`0x6b9cb4`, casos 5, 8, 9 y 10) y **la lista de ventanas**
       (`[0x5763524]`).
-- [ ] Los cortes de Chaos Castle de `WorldTransitions.cpp` (`0x4906a0`/`0x4914e0`) se resuelven acá.
+      *Hecho (hito 7):* `UI/OldWindows` y `UI/OldWindowDraw`. De los controles viejos entró el botón (`0x45ad80`,
+      `0x45b200`, `0x45b2e0`); la lista, el campo y la barra solo los arman los casos de amigos (P-C95). La lista
+      de ventanas queda sin entradas hasta la CL9.4. El soltado del izquierdo (`0x7d366ec`) entró al paso (P-C96).
+- [x] Los cortes de Chaos Castle de `WorldTransitions.cpp` (`0x4906a0`/`0x4914e0`) se resuelven acá.
+      *Hecho (hito 7):* el prefijo de Chaos Castle esconde las ventanas sin anotarlas y suelta la de amigos; el corte
+      pasa a `0x4c7b34`, el objeto de los comandos (CL9.4, P-C99).
 
 **Pruebas:** una caja de mensaje abierta a mano: el marco contra el ASM (no hay traza con ventanas viejas: va a
 la VM); el orden del mouse (lista, de arriba hacia abajo, registro del chat); Esc según `IsOpen(1)` (Q-C446); F6

@@ -74,7 +74,7 @@ inline constexpr std::int32_t NoticeCase = 10;
 inline constexpr std::int32_t KeepPlaceFlag = 0x1;
 
 // +0x40 de [0x5763524]: el id de la lista de ventanas. *Inferido*, como el del registro del chat (el 9): el que sigue
-// a él en WinMain (0x4bb786).
+// a él en WinMain (0x4bb786). Solo importan el orden y que sean distintos (P-C97).
 inline constexpr std::int32_t WindowListId = 10;
 
 // 0x459f70: un mensaje de 12 bytes (el tipo y dos argumentos) al final de la cola (+0x08..+0x30, un std::deque);

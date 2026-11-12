@@ -499,24 +499,83 @@ TEST_F(InventoryReplyTest, ALateWeaponReadsTheLevelOnlyWithTheRecordOpen)
     EXPECT_EQ(held.world.Runtime().ownRecordDepth, 1);
 }
 
-// 0x54cc5c: el Dark Horse pide 0x4225d0 dentro de 0x54bf40, en la grilla o en el equipo. Corta antes de
-// 0x54bf40, con los bytes ya escritos y, en el equipo, el registro cerrado igual.
-TEST_F(InventoryReplyTest, TheDarkHorseStopsAt4225d0)
+// 0x4225d0 desde 0x54cc5c: el Dark Horse agrega la opción 0x96 con 5 + la agilidad / 20 + 2 · el nivel del
+// caballo ([0x72397c]). En la grilla, 0x54bf40 corre con el registro cerrado: 0x4225d0 lo abre y lo cierra (3.848
+// rand()), y después lo vuelve a abrir y cerrar la cola de la grilla.
+TEST_F(InventoryReplyTest, TheDarkHorseInTheGridAddsItsDefenseOption)
 {
     Stage grid = Fresh();
-    const auto inGrid = Client::Scenes::PlaceInventoryItem(12, ItemBytes(DarkHorse), grid.Resources());
-    ASSERT_FALSE(inGrid.HasValue());
-    EXPECT_NE(inGrid.Error().find("0x4225d0"), std::string::npos) << inGrid.Error();
-    EXPECT_EQ(grid.Cell(0).id, DarkHorse);
+    grid.world.OwnCharacter().agility = 205;
+    grid.world.Runtime().darkHorseLevel = 3;
 
+    const auto placed = Client::Scenes::PlaceInventoryItem(12, ItemBytes(DarkHorse), grid.Resources());
+
+    ASSERT_TRUE(placed.HasValue()) << placed.Error();
+    const ItemState& horse = grid.Cell(0);
+    EXPECT_EQ(horse.id, DarkHorse);
+    ASSERT_EQ(horse.optionCount, 1);
+    EXPECT_EQ(horse.OptionTag(0), 0x96);
+    EXPECT_EQ(horse.OptionValue(0), 205 / 20 + 2 * 3 + 5);
+    EXPECT_EQ(grid.world.Runtime().ownRecordDepth, 0);
+    EXPECT_EQ(grid.cloth.random.State(), AfterDraws(Seed, 2 * OwnRecordClose).State());
+}
+
+// En el equipo, 0x5bc740 ya tiene el registro abierto: 0x4225d0 no lo cierra y no saca rand(). Lo que siga
+// después de 0x54bf40 (el ayudante y el efecto del lugar 8) no cambia la opción.
+TEST_F(InventoryReplyTest, TheWornDarkHorseGetsItsOptionWithTheRecordAlreadyOpen)
+{
     Stage worn = Fresh();
     worn.PublishedHero();
-    const auto inEquipment = Client::Scenes::PlaceInventoryItem(8, ItemBytes(DarkHorse), worn.Resources());
-    ASSERT_FALSE(inEquipment.HasValue());
-    EXPECT_NE(inEquipment.Error().find("0x4225d0"), std::string::npos) << inEquipment.Error();
-    EXPECT_EQ(worn.world.OwnCharacter().equipment[8].id, DarkHorse);
+    worn.world.OwnCharacter().agility = 40;
+
+    const auto placed = Client::Scenes::PlaceInventoryItem(8, ItemBytes(DarkHorse), worn.Resources());
+
+    if (!placed.HasValue())
+    {
+        EXPECT_EQ(placed.Error().find("0x4225d0"), std::string::npos) << placed.Error();
+    }
+    const ItemState& horse = worn.world.OwnCharacter().equipment[8];
+    EXPECT_EQ(horse.id, DarkHorse);
+    ASSERT_EQ(horse.optionCount, 1);
+    EXPECT_EQ(horse.OptionTag(0), 0x96);
+    EXPECT_EQ(horse.OptionValue(0), 40 / 20 + 5);
     EXPECT_EQ(worn.world.Runtime().ownRecordDepth, 0);
-    EXPECT_EQ(worn.cloth.random.State(), AfterDraws(Seed, OwnRecordClose).State());
+}
+
+// 0x4225f2..0x422602: una 0x96 desde la segunda opción recibe el valor nuevo y la cantidad no cambia; una en la
+// primera no cuenta y se agrega otra al final (Q-C415). Con el registro abierto, sin rand(); el valor va en un
+// byte: (65.535 / 20 = 3.276) + 2 · 200 + 5 = 3.681, que deja 97.
+TEST_F(InventoryReplyTest, TheDarkHorseOptionSkipsAnEarlierOneInTheFirstPlace)
+{
+    Stage tested = Fresh();
+    tested.world.Runtime().ownRecordDepth = 1;
+    tested.world.OwnCharacter().agility = 0xffff;
+    tested.world.Runtime().darkHorseLevel = 200;
+
+    ItemState second;
+    second.id = DarkHorse;
+    second.optionCount = 2;
+    second.optionBytes[0] = 0x3e;
+    second.optionBytes[1] = 0x96;
+    second.optionBytes[Client::World::ItemOptionValueOffset + 1] = 99;
+    Client::Scenes::AddTheDarkHorseOption(second, tested.Resources());
+    EXPECT_EQ(second.optionCount, 2);
+    EXPECT_EQ(second.OptionTag(1), 0x96);
+    EXPECT_EQ(second.OptionValue(1), 97);
+
+    ItemState first;
+    first.id = DarkHorse;
+    first.optionCount = 1;
+    first.optionBytes[0] = 0x96;
+    first.optionBytes[Client::World::ItemOptionValueOffset] = 99;
+    Client::Scenes::AddTheDarkHorseOption(first, tested.Resources());
+    EXPECT_EQ(first.optionCount, 2);
+    EXPECT_EQ(first.OptionValue(0), 99);
+    EXPECT_EQ(first.OptionTag(1), 0x96);
+    EXPECT_EQ(first.OptionValue(1), 97);
+
+    EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 1);
+    EXPECT_EQ(tested.cloth.random.State(), CrtRandom(Seed).State());
 }
 
 // 0x5bc8cc: fuera de los mapas 18 a 23, las mascotas del lugar 8 se crean con 0x443fa0 en la tabla de

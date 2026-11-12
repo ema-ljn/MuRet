@@ -1258,9 +1258,9 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   buffer global que ningún dibujo escribió todavía es la matriz en cero de la `.bss` (200 huesos, hasta
   `0x68b3d9c`), y el punto sale del origen (`0x4442b4` y `0x44459d`, Q-C401). Cortan con error, después de
   los `rand()` que el original saca antes, una partícula que no se puede crear, la acción 3, el
-  `+8` del jinete, el dibujo con `+0x78 & 0x4000` y los mapas `0x12` a `0x17` del dibujo. En el juego no se crea
-  ninguno: `0x5bc740` corta antes con el `0x1a04` (`0x4225d0`, P-C36) y los demás que lo crean no están
-  portados; la tabla vacía no hace nada. `DrawHelpers` no corre: el dibujo del juego corta antes, a más
+  `+8` del jinete, el dibujo con `+0x78 & 0x4000` y los mapas `0x12` a `0x17` del dibujo. En el juego lo crea
+  `0x5bc740` con el `0x1a04` en el lugar 8 (desde la auditoría del cierre de la CL7, `0x4225d0` ya no corta,
+  ver [el F3 10](#el-f3-10-el-inventario)); los demás que lo crean no están portados. `DrawHelpers` no corre: el dibujo del juego corta antes, a más
   tardar en los ítems del piso (`0x6374fe`). La tabla no lleva los caballos del login ni de la selección (P-C47).
 
 ### La tela de la clase 4
@@ -3596,12 +3596,27 @@ ayudantes del héroe publicado (`Scenes::TurnOffHelpersOf`). El cuervo del lugar
 `Scenes::ReplaceTheRaven` (`0x420cf0`): suelta `ActorState::darkSpirit` y, fuera de los mapas 18 a 23, lo
 crea de nuevo con `CreateDarkSpirit` en el centro de la celda del héroe, con los 12 `rand()` de sus cierres
 (`InventoryReplyTest.TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0`). Las mascotas del lugar 8 van a `Scenes::CreateHelper`, que
-crea el `0xbf` y corta con los otros (`0x443d70`); el `0xbf` no llega: corta antes, en `0x4225d0`.
-Fuera de la zona segura, el `0x61e` de `0x518cf0` corta. Cortan con error, nombrando la dirección y
-después de lo que el original hace antes (el registro se cierra igual): las mascotas del lugar 8 que
-no son el caballo (`0x443fa0` → `0x443d70`), el anillo de nivel 3 (`0x414340` y `+0x360`), el Dark Horse en cualquier lugar (`0x4225d0`, desde
-`0x54cc5c`, sin correr `0x54bf40`), la lectura del nivel con el registro cerrado (Q-C202), una casilla
-fuera de su grilla (Q-C200) y `Item.bmd` sin cargar.
+crea el `0xbf` y corta con los otros (`0x443d70`). Fuera de la zona segura, el `0x61e` de `0x518cf0` corta.
+Cortan con error, nombrando la dirección y después de lo que el original hace antes (el registro se cierra
+igual): las mascotas del lugar 8 que no son el caballo (`0x443fa0` → `0x443d70`), el anillo de nivel 3
+(`0x414340` y `+0x360`), la lectura del nivel con el registro cerrado (Q-C202), una casilla fuera de su grilla
+(Q-C200) y `Item.bmd` sin cargar.
+
+**`0x4225d0`, la defensa del Dark Horse** (*estático*, ASM c32bbd5f; desde la auditoría del cierre de la CL7,
+2026-11-12). `0x54bf40` la llama en `0x54cc5c`, después de las opciones de magnitud y antes de las tardías de
+las armaduras, con el ítem que inicializa; sale si el tipo no es `0x1a04` (`0x4225dc`). Busca la opción `0x96`
+(el tag en `D+0x2b+i`) desde la primera; si la encuentra en la primera, sigue como si no estuviera
+(`0x422600`, Q-C415). Abre el registro propio (`0x40b240` y, sin acceso, `0x40ad90` con un objeto nuevo de
+`0xf09` bytes; con acceso, `+0xf08` + 1 y `0x40b440`; en el camino de agregar, la búsqueda del hash en línea,
+`0x42260e..0x4226dd`), escribe el valor en `D+0x33+i` (`i`, la que encontró o la cantidad `D+0x2a`) y lo cierra
+(`+0xf08` − 1 y, en 0, `0x40b4d0`, que vuelve a cifrar con 3.848 `rand()`). El valor, en un byte:
+`word(registro + 0x1a) / 20` (la agilidad; `imul 0x66666667` y `sar 3`, con signo sobre el word sin signo)
++ 2 · el byte de abajo de `[0x72397c]` (el nivel del caballo, que escribe `0x421db0` con el `A9` de las
+mascotas: tipo 1, lugar 8; sin portar, 0) + 5. Después del cierre pone el tag `0x96` en `D+0x2b+i` y, si la
+agregó, suma 1 a `D+0x2a`. En la grilla, `0x54bf40` corre con el registro cerrado: son 3.848 `rand()` más. En
+MuRet, `Scenes::AddTheDarkHorseOption` (`InventoryReplyTest.TheDarkHorseInTheGridAddsItsDefenseOption`,
+`TheWornDarkHorseGetsItsOptionWithTheRecordAlreadyOpen` y `TheDarkHorseOptionSkipsAnEarlierOneInTheFirstPlace`),
+y `[0x72397c]` es `WorldRuntime::darkHorseLevel`.
 
 ### El paso de ondas de Kalima
 

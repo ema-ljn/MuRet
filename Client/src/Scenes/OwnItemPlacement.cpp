@@ -76,8 +76,12 @@ constexpr std::uint8_t FenrirSecondKind = 2;
 // 0x5bca8d..0x5bca93: D+4 & ~7 en 0x18, el nivel 3.
 constexpr std::uint32_t LevelBitsMask = ~std::uint32_t{7};
 constexpr std::uint32_t LevelThreeBits = 0x18;
-// 0x54cc5c: 0x54bf40 llama a 0x4225d0 con este tipo.
-constexpr std::uint16_t Item4225d0Type = DarkHorse;
+// 0x4225d0, que 0x54bf40 llama en 0x54cc5c y solo hace algo con el Dark Horse: la opción 0x96 (0x4225f2) con
+// 5 + la agilidad del registro propio (+0x1a) / 20 + 2 · el nivel del caballo ([0x72397c]).
+constexpr std::uint8_t DarkHorseOption = 0x96;
+constexpr std::uint32_t AgilityDivisor = 20;
+constexpr std::uint32_t HorseLevelFactor = 2;
+constexpr std::uint32_t DarkHorseOptionBase = 5;
 // Los 24 bits de arriba de los escalares que 0x5bc740 pone en la pila con el byte de abajo de los datos.
 constexpr std::uint32_t UpperBits = ~std::uint32_t{0xff};
 
@@ -106,7 +110,49 @@ ItemRecordOf(std::uint16_t type, const WorldEntryResources& resources, std::stri
     }
     return *record;
 }
+} // namespace
 
+// 0x4225d0(item) desde 0x54cc5c, con el Dark Horse (0x4225dc). Busca la opción 0x96 desde la primera; en la
+// primera no la toma (0x422600: con el índice en 0 sigue como si no estuviera, Q-C415). Con ella, le reescribe
+// el valor; sin ella, la agrega al final. El valor, con el registro propio abierto (0x40b240/0x40ad90 y 0x40b440,
+// y lo cierra 0x40b4d0, con sus 3.848 rand() si queda sin accesos): (+0x1a / 20 con signo, sobre el word sin
+// signo) + 2 · el byte de abajo de [0x72397c] + 5, en un byte. El tag va después de cerrar (0x42281c, 0x42291c).
+void AddTheDarkHorseOption(ItemState& item, const WorldEntryResources& resources)
+{
+    std::optional<std::uint8_t> found;
+    for (std::uint8_t index = 0; index < item.optionCount; ++index)
+    {
+        if (item.OptionTag(index) == DarkHorseOption)
+        {
+            if (index != 0)
+            {
+                found = index;
+            }
+            break;
+        }
+    }
+    WorldState& world = resources.world;
+    {
+        const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
+                                                   Render::Models::OwnRecordCloseRandoms);
+        const std::uint8_t index = found.value_or(item.optionCount);
+        // OptionTag corta con diagnóstico si el índice se pasa de las nueve que guarda ItemState.
+        static_cast<void>(item.OptionTag(index));
+        const std::uint32_t agility = world.OwnCharacter().agility;
+        const auto level = static_cast<std::uint8_t>(world.Runtime().darkHorseLevel);
+        item.optionBytes[World::ItemOptionValueOffset + index] =
+            static_cast<std::uint8_t>((agility / AgilityDivisor) + (HorseLevelFactor * level) + DarkHorseOptionBase);
+    }
+    const std::uint8_t index = found.value_or(item.optionCount);
+    item.optionBytes[index] = DarkHorseOption;
+    if (!found)
+    {
+        ++item.optionCount;
+    }
+}
+
+namespace
+{
 // 0x54bf40(item, B1, B3, B4) desde 0x5bc740. contextWord es [0x7681eb0] + 0xe, el nivel del registro
 // propio, que solo vale con el registro abierto: cerrado, el último cierre dejó rand() & 0xff en cada byte
 // (Q-C125), y MuRet no lo tiene (Q-C202).
@@ -118,12 +164,6 @@ Core::Expected<void, std::string> InitializeInventoryItem(ItemState& item, World
     {
         return Core::Unexpected(record.Error());
     }
-    if (item.id == Item4225d0Type)
-    {
-        return Core::Unexpected(std::format("{}: 0x54bf40 llama a 0x4225d0 (0x54cc5c) con el tipo {:#x}, y MuRet no "
-                                            "lo tiene: no corre 0x54bf40",
-                                            where, item.id));
-    }
     const WorldRuntime& runtime = resources.world.Runtime();
     if (World::ReadsTheContextWord(item.id, scalars.b3) && runtime.ownRecordDepth == 0)
     {
@@ -131,7 +171,8 @@ Core::Expected<void, std::string> InitializeInventoryItem(ItemState& item, World
                                             "propio cerrado, lo que dejó su último cierre (Q-C202): no corre 0x54bf40",
                                             where));
     }
-    World::InitializeItemState(item, record.Value(), scalars, resources.world.OwnCharacter().level, {});
+    World::InitializeItemState(item, record.Value(), scalars, resources.world.OwnCharacter().level,
+                               [&resources](ItemState& horse) { AddTheDarkHorseOption(horse, resources); });
     return {};
 }
 

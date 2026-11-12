@@ -14,6 +14,12 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
+
+namespace Client::Data::Terrain
+{
+struct TerrainAttributes;
+}
 
 namespace Client::Render::Models
 {
@@ -63,6 +69,13 @@ inline constexpr std::int32_t CrywolfDecalSubtype = 3;
 // Icarus crea la /1 (0x44431b), que crece y tiembla.
 inline constexpr std::int16_t ShockWaveEffect = 0x6eb;
 inline constexpr std::int32_t GallopShockWaveSubtype = 1;
+// El pisotón del caballo oscuro (0x4453e0, la acción 3 de 0x444010): cada 10 pasos lógicos la onda 0x6eb con el
+// subtipo 0, que se achica, y seis piedras 0x118 o 0x119 (Skill\groundStone y groundStone2, 0x615700) alrededor. Cada
+// piedra suelta en sus pasos 33 a 36 el polvo 5f2/11 y una piedrita 0xc8/0xc9 con el subtipo 10 (0x5275ca).
+inline constexpr std::int32_t StompShockWaveSubtype = 0;
+inline constexpr std::int16_t FirstGroundStoneEffect = 0x118;
+inline constexpr std::int16_t SecondGroundStoneEffect = 0x119;
+inline constexpr std::int32_t GroundStoneChipSubtype = 10;
 // Los del dibujo de los Fenrir (0x60277b): el rayo 0x14d (Effect\lightning_type01.bmd), que nace en un hueso del
 // Fenrir con su sprite 0x5ac y se prende y se apaga en pocos pasos, y el calco 0x14e (eff_lightinga01..05, sin
 // modelo: lo dibuja 0x52d8f2 en el piso), que cambia de textura cada 200 ms de timeGetTime().
@@ -214,6 +227,27 @@ public:
     // ninguno.
     std::optional<std::size_t> CreatePetSummon(const glm::vec3& position, const glm::vec3& angles,
                                                const glm::vec3& light, void* owner);
+    // 0x518cf0(0x118 o 0x119, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51cc6b o 0x51cd1b: el prefijo común
+    // (+0x8a en −1, sin dueño, escala 0,9) y el atributo de la celda de la posición (UnmaskedCellAttribute, en
+    // 0x51cc8b o 0x51cd3b): con el bit 0x04, el 0x08 o el 0x10 el lugar queda escrito con el byte vivo en 0, y
+    // ninguno, sin rand(). Si no, vida 40, la escala rand() % 30 · 0,01f + 1,2f (0x118) o + 1 (0x119) en la x87, +0xd8
+    // en 0,3f y el yaw rand() % 360; 0x4ea030(efecto, 0) no hace nada, porque el prefijo ya dejó la acción en 0. Dos
+    // rand(). Sin la tabla de atributos, o con una celda fuera de ella, corta después del prefijo, con el lugar vivo
+    // como lo dejó el original en ese punto. Otro tipo o la tabla llena, ninguno y sin rand().
+    [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
+    CreateGroundStone(std::int16_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
+                      const Data::Terrain::TerrainAttributes* attributes, Render::Models::CrtRandom& random);
+    // 0x518cf0(0xc8 o 0xc9, …, 10, 0, −1, 0, 0, 0, 0) → 0x51b432, la piedrita que suelta la piedra 0x118/0x119: el
+    // prefijo común, el subtipo 10 y cinco rand(): el empuje ((& 255) + 64) · 0,2 (el double 0x6ba1e8) en y, la vida
+    // (& 15) + 32, la escala ((& 3) + 15) · 0,05f, el yaw rand() % 360 y la caída (& 15) + 28 en +0xe4; la velocidad es
+    // el empuje girado por los ángulos con ese yaw. Otro tipo o la tabla llena, ninguno y sin rand().
+    std::optional<std::size_t> CreateGroundStoneChip(std::int16_t type, const glm::vec3& position,
+                                                     const glm::vec3& angles, const glm::vec3& light,
+                                                     Render::Models::CrtRandom& random);
+    // 0x518cf0(0x6eb, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51f4ad con el subtipo 0, la onda del pisotón:
+    // el prefijo común (+0x8a en −1, sin dueño), vida 30 y escala 20, sin rand(). Lleno, ninguna.
+    std::optional<std::size_t> CreateStompShockWave(const glm::vec3& position, const glm::vec3& angles,
+                                                    const glm::vec3& light);
     // 0x6070a0: sólo apaga el byte vivo de cada lugar (Q-C138).
     void Clear();
 
@@ -223,6 +257,14 @@ public:
 private:
     std::array<ModelEffect, ModelEffectCount> m_effects{};
 };
+
+// 0x5f8290(ftol(x · 0,01f), ftol(y · 0,01f)) y el WORD de 0x7d0d348 en ese índice, como lo leen las altas de las
+// piedras 0x118/0x119: y · 256 + x en 32 bits, sin la máscara de 0x5f82a0. Sin la tabla, con una coordenada que el
+// ftol de 0x69fd3c no representa o con un índice fuera de las 65.536 celdas (el original leería otra memoria), corta
+// con `address`.
+[[nodiscard]] Core::Expected<std::uint16_t, std::string>
+UnmaskedCellAttribute(const Data::Terrain::TerrainAttributes* attributes, const glm::vec3& position,
+                      std::string_view address);
 
 // 0x5208a0 sobre un efecto vivo, con el esqueleto de su modelo (para el avance, o nullptr): el caso del
 // tipo (el 0xb4: 0x52096c..0x520b72) y la cola común (0x52cb98): la animación a +0xd8 (0x4ec200; si la

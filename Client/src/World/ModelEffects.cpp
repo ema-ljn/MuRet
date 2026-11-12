@@ -1,12 +1,15 @@
 #include "World/ModelEffects.h"
 
 #include "Core/Expected.h"
+#include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
+#include "World/OriginalFtol.h"
 #include "World/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -16,10 +19,12 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <functional>
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 
 namespace Client::World
 {
@@ -359,6 +364,89 @@ std::optional<std::size_t> ModelEffects::CreateGallopShockWave(const glm::vec3& 
     return std::nullopt;
 }
 
+std::optional<std::size_t> ModelEffects::CreateStompShockWave(const glm::vec3& position, const glm::vec3& angles,
+                                                              const glm::vec3& light)
+{
+    constexpr std::int32_t StompLife = 30;
+    constexpr float StompScale = std::bit_cast<float>(0x41a00000u); // 0x51f4b4: 20.
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, ShockWaveEffect, position, angles, light);
+        effect.subtype = StompShockWaveSubtype;
+        effect.life = StompLife;
+        effect.transform.scale = StompScale;
+        return slot;
+    }
+    return std::nullopt;
+}
+
+Core::Expected<std::uint16_t, std::string> UnmaskedCellAttribute(const Data::Terrain::TerrainAttributes* attributes,
+                                                                 const glm::vec3& position, std::string_view address)
+{
+    // 0x6b86c0: el 0,01f de los dos fmul; el producto de dos floats entra entero en el double.
+    constexpr double CellsPerUnit = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
+    constexpr std::uint32_t RowShift = 8;
+    const std::optional<std::int32_t> x = OriginalFtolLow(static_cast<double>(position.x) * CellsPerUnit);
+    const std::optional<std::int32_t> y = OriginalFtolLow(static_cast<double>(position.y) * CellsPerUnit);
+    if (!x || !y)
+        return Core::Unexpected(std::format("{}: la posición por 0,01f no entra en el entero de 0x69fd3c, y su "
+                                            "continuación no está observada",
+                                            address));
+    if (attributes == nullptr)
+        return Core::Unexpected(std::format("{}: falta la tabla de atributos (0x7d0d348) para 0x5f8290", address));
+    // 0x5f8290: shl eax, 8 y add, en 32 bits; el índice firmado sólo cae en la tabla entre 0 y 0xffff.
+    const std::uint32_t index = (static_cast<std::uint32_t>(*y) << RowShift) + static_cast<std::uint32_t>(*x);
+    if (index >= Data::Terrain::TerrainCellCount)
+        return Core::Unexpected(
+            std::format("{}: la celda ({}, {}) de 0x5f8290 cae fuera de los atributos (0x7d0d348)", address, *x, *y));
+    return attributes->cells[index];
+}
+
+Core::Expected<std::optional<std::size_t>, std::string>
+ModelEffects::CreateGroundStone(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
+                                const glm::vec3& light, const Data::Terrain::TerrainAttributes* attributes,
+                                Render::Models::CrtRandom& random)
+{
+    if (type != FirstGroundStoneEffect && type != SecondGroundStoneEffect)
+        return std::optional<std::size_t>{};
+    constexpr std::int32_t GroundStoneLife = 40;
+    constexpr int ScaleSpan = 30, Degrees = 360;
+    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3c23d70au));      // 0x6b86c0: 0,01f.
+    constexpr double FirstScaleBase = static_cast<double>(std::bit_cast<float>(0x3f99999au)); // 0x6b8bb0: 1,2f.
+    constexpr double SecondScaleBase = 1.0;                                                   // 0x6b87d4.
+    // 0x51cc9b..0x51ccbb: el byte bajo del WORD con el bit 0x04, el 0x08 o el 0x10.
+    constexpr std::uint16_t BlockingBits = 0x04 | 0x08 | 0x10;
+    const bool first = type == FirstGroundStoneEffect;
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, type, position, angles, light);
+        const auto attribute =
+            UnmaskedCellAttribute(attributes, effect.transform.position, first ? "0x51cc8b" : "0x51cd3b");
+        if (!attribute.HasValue())
+            return Core::Unexpected(attribute.Error());
+        if ((attribute.Value() & BlockingBits) != 0)
+        {
+            // 0x51cdc0: el lugar queda con el prefijo escrito y el byte vivo en 0.
+            effect.alive = false;
+            return std::optional<std::size_t>{};
+        }
+        effect.life = GroundStoneLife;
+        effect.transform.scale = F32(static_cast<double>(random.Next() % ScaleSpan) * ScaleStep +
+                                     (first ? FirstScaleBase : SecondScaleBase));
+        effect.speed = CommonAnimationSpeed; // 0x51ccea: el mismo 0x3e99999a del prefijo.
+        effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
+        // 0x51cd0c: 0x4ea030(efecto, 0) sólo cambia la acción si es otra; el prefijo la dejó en 0 (0x518dc4).
+        return std::optional(slot);
+    }
+    return std::optional<std::size_t>{};
+}
+
 std::optional<std::size_t> ModelEffects::CreateFallingStone(const glm::vec3& position, const glm::vec3& angles,
                                                             const glm::vec3& light, Render::Models::CrtRandom& random)
 {
@@ -422,6 +510,35 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
         const glm::vec3 push{0.0f, F32(static_cast<double>((random.Next() & PushMask) + PushBase) * StoneTenth), 0.0f};
         effect.life = (random.Next() & LifeMask) + LifeBase;
         effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * StoneTenth);
+        effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
+        effect.velocity =
+            Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+        effect.turnDirection = static_cast<float>((random.Next() & FallMask) + FallBase);
+        return slot;
+    }
+    return std::nullopt;
+}
+
+std::optional<std::size_t> ModelEffects::CreateGroundStoneChip(std::int16_t type, const glm::vec3& position,
+                                                               const glm::vec3& angles, const glm::vec3& light,
+                                                               Render::Models::CrtRandom& random)
+{
+    if (type != FirstStoneChipEffect && type != SecondStoneChipEffect)
+        return std::nullopt;
+    constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 15;
+    constexpr int Degrees = 360, FallMask = 15, FallBase = 28;
+    constexpr double PushStep = std::bit_cast<double>(0x3fc999999999999aull);            // 0x6ba1e8: 0,2.
+    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8a48: 0,05f.
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, type, position, angles, light);
+        effect.subtype = GroundStoneChipSubtype;
+        const glm::vec3 push{0.0f, F32(static_cast<double>((random.Next() & PushMask) + PushBase) * PushStep), 0.0f};
+        effect.life = (random.Next() & LifeMask) + LifeBase;
+        effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * ScaleStep);
         effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
         effect.velocity =
             Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(effect.transform.angles));

@@ -218,15 +218,15 @@ Core::Expected<void, std::string> StepFallingStone(ModelEffect& effect, const Mo
     return {};
 }
 
-// 0x5239c8..0x523b3a con el subtipo 0: la velocidad sin girar sumada y por 0,9f (0x6b8a1c), la caída +0xe4
+// 0x5239c8..0x523b3a con el subtipo 0 y el 10: la velocidad sin girar sumada y por 0,9f (0x6b8a1c), la caída +0xe4
 // que pierde 3; en el suelo se apoya, rebota a −0,5, pierde 4 de vida y se inclina escala · 128 (si no, ·
-// 32); con rand() % 10 en 0, un fuego 5d9 con el subtipo rand() % 3 + 1. El 5 sigue a su dueño (y salta la
-// cola) y el resto no está portado.
+// 32); con el subtipo 0 y rand() % 10 en 0, un fuego 5d9 con el subtipo rand() % 3 + 1. El 10 (el de la piedra
+// 0x118/0x119) sale en 0x523ad5 sin ese rand(). El 5 sigue a su dueño (y salta la cola) y el resto no está portado.
 Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& particles, float worldClock,
                                                 Render::Models::CrtRandom& random,
                                                 const ModelEffectStepServices& services)
 {
-    if (effect.subtype != 0)
+    if (effect.subtype != 0 && effect.subtype != GroundStoneChipSubtype)
         return Core::Unexpected(std::format("0x5238be: el paso de la piedrita {:#x} con el subtipo {} no está portado",
                                             effect.type, effect.subtype));
     constexpr double Drag = static_cast<double>(std::bit_cast<float>(0x3f666666u));
@@ -252,7 +252,7 @@ Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& 
         tilt = static_cast<double>(effect.transform.scale) * GroundTilt;
     }
     effect.transform.angles.x = F32(static_cast<double>(effect.transform.angles.x) - tilt);
-    if (random.Next() % FireChance != 0)
+    if (effect.subtype == GroundStoneChipSubtype || random.Next() % FireChance != 0)
         return {};
     const int subtype = random.Next() % FireSubtypes + 1;
     const auto created = particles.CreateChecked(FireParticle, position, effect.transform.angles, effect.light, subtype,
@@ -298,6 +298,50 @@ Core::Expected<void, std::string> StepFlameJet(ModelEffect& effect, float lumino
     }
     const glm::vec3 light{luminosity, F32(static_cast<double>(luminosity) * Orange), 0.0f};
     return AddDynamicLight(services.lighting, position, light, LightRadius, "0x52ae25");
+}
+// 0x5275ca..0x5276b7, las piedras 0x118 y 0x119 del pisotón del caballo. Con la vida entre 33 y 36, en p = (x + 60;
+// y − 60; z + 50) (0x6b86cc y 0x6b86b0, cada eje en la x87 hasta su fstp): el polvo 5f2/11 con los ángulos del efecto,
+// la luz (1; 0,8f; 0,6f), la escala 2 y el efecto de dueño (que ni su paso ni su dibujo leen: MuRet no lo guarda), y la
+// piedrita 0xc8 + (rand() & 1) con el subtipo 10 y la luz del efecto. Con la vida bajo 8, el alpha por 0,7692308f
+// (0x6ba240) y la luz de las mallas (+0x68) por 0,5f. Siempre, la luz dinámica (0,79f; 0,72f; 0,49f) de radio 2
+// (0x52c4e5). Sin la tabla de efectos corta antes del rand() de la piedrita; sin la luz dinámica, al final.
+Core::Expected<void, std::string> StepGroundStone(ModelEffect& effect, Particles& particles, float worldClock,
+                                                  Render::Models::CrtRandom& random,
+                                                  const ModelEffectStepServices& services)
+{
+    constexpr std::int32_t DustAfterLife = 32, DustBeforeLife = 37, FadeLife = 8;
+    constexpr double Side = 60.0, Lift = 50.0;
+    constexpr glm::vec3 DustLight{1.0f, std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3f19999au)};
+    constexpr float DustScale = 2.0f;
+    constexpr std::int32_t ChipKind = 1;
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f44ec4fu)); // 0x6ba240.
+    constexpr double Dim = static_cast<double>(std::bit_cast<float>(0x3f000000u));  // 0x6b882c: 0,5f.
+    constexpr glm::vec3 Glow{std::bit_cast<float>(0x3f4a3d71u), std::bit_cast<float>(0x3f3851ecu),
+                             std::bit_cast<float>(0x3efae148u)};
+    constexpr std::int32_t GlowRadius = 2;
+    const glm::vec3& position = effect.transform.position;
+    if (effect.life > DustAfterLife && effect.life < DustBeforeLife)
+    {
+        const glm::vec3 point{F32(static_cast<double>(position.x) + Side), F32(static_cast<double>(position.y) - Side),
+                              F32(static_cast<double>(position.z) + Lift)};
+        const auto dust = particles.CreateChecked(BreathParticle, point, effect.transform.angles, DustLight,
+                                                  StoneDustSubtype, DustScale, worldClock, random);
+        if (!dust.HasValue())
+            return Core::Unexpected(std::format("0x527631: falló el polvo 5f2/11 de la piedra {:#x} ({})", effect.type,
+                                                static_cast<int>(dust.Error())));
+        if (services.effects == nullptr)
+            return Core::Unexpected(
+                std::format("0x52766a: la piedra {:#x} pide la tabla de efectos (0x518cf0)", effect.type));
+        const auto type = static_cast<std::int16_t>(FirstStoneChipEffect + (random.Next() & ChipKind));
+        static_cast<void>(
+            services.effects->CreateGroundStoneChip(type, point, effect.transform.angles, effect.light, random));
+    }
+    if (effect.life < FadeLife)
+    {
+        effect.alpha = F32(static_cast<double>(effect.alpha) * Fade);
+        effect.objectState.light = F32(static_cast<double>(effect.objectState.light) * Dim);
+    }
+    return AddDynamicLight(services.lighting, position, Glow, GlowRadius, "0x52c4f1");
 }
 // 0x52a737..0x52a7af con el subtipo 0: la velocidad sin girar sumada, la z de la velocidad 0,01f menos, una
 // partícula 5ac/1 en el lugar con la luz y la escala del efecto y, con la z de la velocidad bajo −2 (o NaN),
@@ -423,11 +467,12 @@ Core::Expected<void, std::string> StepFadingDecal(const ModelEffect& effect, Par
     return {};
 }
 
-// 0x52c5ca..0x52c7a6, la onda 0x6eb con el subtipo 1 (la del galope en Icarus): la escala crece (rand() % 5) ·
-// 0,1f, la posición tiembla (rand() & 7) − 4 en x y en y, cada una en la x87 hasta su fstp; una escala negativa
-// vuelve a 0 (0x52c74e) y, con el subtipo de 0 a 3, la luz es la vida, o 40 menos la vida pasados los 20, por 0,05f
-// (0x6b8ad0) en los tres canales. Tres rand(). Los demás subtipos cortan en su rama.
-Core::Expected<void, std::string> StepGallopShockWave(ModelEffect& effect, Render::Models::CrtRandom& random)
+// 0x52c5ca..0x52c7a6, la onda 0x6eb. Con el subtipo 0 (la del pisotón del caballo) la escala pierde 1 (0x6b87d4),
+// sin rand(). Con el 1 (la del galope en Icarus) la escala crece (rand() % 5) · 0,1f y la posición tiembla (rand() &
+// 7) − 4 en x y en y, cada una en la x87 hasta su fstp: tres rand(). Después, una escala negativa vuelve a 0
+// (0x52c74e) y, con el subtipo de 0 a 3, la luz es la vida, o 40 menos la vida pasados los 20, por 0,05f (0x6b8ad0)
+// en los tres canales. Los demás subtipos cortan en su rama.
+Core::Expected<void, std::string> StepShockWave(ModelEffect& effect, Render::Models::CrtRandom& random)
 {
     constexpr int GrowthSpan = 5;
     constexpr double GrowthStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b8a34: 0,1f.
@@ -435,18 +480,24 @@ Core::Expected<void, std::string> StepGallopShockWave(ModelEffect& effect, Rende
     constexpr double ShakeCentre = static_cast<double>(std::bit_cast<float>(0x40800000u)); // 0x6b8a44: 4.
     constexpr std::int32_t FadeTurn = 20, FadeEnd = 40;
     constexpr double LightPerLife = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8ad0: 0,05f.
-    if (effect.subtype != GallopShockWaveSubtype)
+    constexpr double Shrink = 1.0;                                                          // 0x6b87d4.
+    if (effect.subtype == StompShockWaveSubtype)
+        effect.transform.scale = F32(static_cast<double>(effect.transform.scale) - Shrink);
+    else if (effect.subtype == GallopShockWaveSubtype)
+    {
+        const int growth = random.Next() % GrowthSpan;
+        effect.transform.scale =
+            F32((static_cast<double>(growth) * GrowthStep) + static_cast<double>(effect.transform.scale));
+        for (int axis = 0; axis < 2; ++axis)
+        {
+            const int shake = random.Next() % ShakeSpan;
+            effect.transform.position[axis] =
+                F32((static_cast<double>(shake) - ShakeCentre) + static_cast<double>(effect.transform.position[axis]));
+        }
+    }
+    else
         return Core::Unexpected(
             std::format("0x52c5ca: el paso del 0x6eb con el subtipo {} no está portado", effect.subtype));
-    const int growth = random.Next() % GrowthSpan;
-    effect.transform.scale =
-        F32((static_cast<double>(growth) * GrowthStep) + static_cast<double>(effect.transform.scale));
-    for (int axis = 0; axis < 2; ++axis)
-    {
-        const int shake = random.Next() % ShakeSpan;
-        effect.transform.position[axis] =
-            F32((static_cast<double>(shake) - ShakeCentre) + static_cast<double>(effect.transform.position[axis]));
-    }
     // fcomp con 0 y C0: también sin orden.
     if (!(effect.transform.scale >= 0.0f))
         effect.transform.scale = 0.0f;
@@ -581,6 +632,11 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
         if (auto stepped = StepStoneChip(effect, particles, worldClock, random, services); !stepped.HasValue())
             return stepped;
     }
+    else if (effect.type == FirstGroundStoneEffect || effect.type == SecondGroundStoneEffect)
+    {
+        if (auto stepped = StepGroundStone(effect, particles, worldClock, random, services); !stepped.HasValue())
+            return stepped;
+    }
     else if (effect.type == FlameJetEffect)
     {
         wholeStep = true;
@@ -611,7 +667,7 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     }
     else if (effect.type == ShockWaveEffect)
     {
-        if (auto stepped = StepGallopShockWave(effect, random); !stepped.HasValue())
+        if (auto stepped = StepShockWave(effect, random); !stepped.HasValue())
             return stepped;
     }
     else if (effect.type == LightningEffect)

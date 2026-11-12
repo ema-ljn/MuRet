@@ -385,6 +385,56 @@ void CreateTheCrywolfSmoke(Particle& particle, Render::Models::CrtRandom& random
     particle.verticalSpeed = F32(static_cast<double>((random.Next() & RiseMask) + RiseBase) * SmokeSlowdown);
 }
 
+bool IsStoneDust(const Particle& particle)
+{
+    return particle.type == BreathParticle && particle.subtype == StoneDustSubtype;
+}
+
+// 0x541d81..0x541e72, la 5f2/11 (y la /14, que MuRet no crea): vida 50; la x y la y más (rand() & 63) − 32 y la z más
+// (rand() & 63) + 32, cada una en la x87 hasta su fstp; la inclinación rand() % 90 − 45, el yaw rand() % 360 y el giro
+// del billboard rand() % 360; +0x60..+0x68 guardan la luz de la creación y la velocidad es (0, −((rand() & 7) + 40),
+// 0), que el movimiento común gira por los ángulos. Siete rand(); el and con la corrección del signo es el & simple.
+void CreateTheStoneDust(Particle& particle, Render::Models::CrtRandom& random)
+{
+    constexpr std::int32_t Life = 50;
+    constexpr int OffsetMask = 63, OffsetCenter = 32, TiltSpan = 90, TiltCenter = 45, PushMask = 7, PushBase = 40;
+    particle.life = Life;
+    const int x = (random.Next() & OffsetMask) - OffsetCenter;
+    particle.position.x = F32(static_cast<double>(x) + static_cast<double>(particle.position.x));
+    const int y = (random.Next() & OffsetMask) - OffsetCenter;
+    particle.position.y = F32(static_cast<double>(y) + static_cast<double>(particle.position.y));
+    const int z = (random.Next() & OffsetMask) + OffsetCenter;
+    particle.position.z = F32(static_cast<double>(z) + static_cast<double>(particle.position.z));
+    particle.angles.x = static_cast<float>(random.Next() % TiltSpan - TiltCenter);
+    particle.angles.z = static_cast<float>(random.Next() % FullTurn);
+    particle.rotation = static_cast<float>(random.Next() % FullTurn);
+    particle.velocity.x = 0.0f;
+    particle.field64 = {particle.light.y, particle.light.z};
+    particle.rotationFactor = particle.light.x;
+    // fild y fchs: el empuje negado entra entero en el float.
+    particle.velocity.y = -static_cast<float>((random.Next() & PushMask) + PushBase);
+    particle.velocity.z = 0.0f;
+}
+
+// 0x546111..0x54616c, después del movimiento común: la luz es la vida por 0,02f (0x6b89e4) por la de la creación
+// (+0x60..+0x68), cada canal desde el mismo producto en la x87; la velocidad por 0,4f (0x6b87b4), la escala más
+// 0,05f (0x6b8a48) y la z 1 menos (0x6b87d4). No lee el dueño (+0x40).
+void StepTheStoneDust(Particle& particle)
+{
+    constexpr double LightPerLife = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));
+    constexpr double Brake = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));
+    constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
+    constexpr double Sink = 1.0;
+    const double glow = static_cast<double>(particle.life) * LightPerLife;
+    particle.light = {F32(glow * static_cast<double>(particle.rotationFactor)),
+                      F32(glow * static_cast<double>(particle.field64.x)),
+                      F32(glow * static_cast<double>(particle.field64.y))};
+    for (int axis = 0; axis < 3; ++axis)
+        particle.velocity[axis] = F32(static_cast<double>(particle.velocity[axis]) * Brake);
+    particle.scale = F32(static_cast<double>(particle.scale) + Growth);
+    particle.position.z = F32(static_cast<double>(particle.position.z) - Sink);
+}
+
 bool IsRisingSmoke(const Particle& particle)
 {
     return particle.type == BreathParticle && particle.subtype == CrywolfRisingSmokeSubtype;
@@ -472,7 +522,7 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     if (type == BreathParticle)
     {
         return subtype == BreathSubtype || subtype == WorldSmokeSubtype || subtype == CrywolfSmokeSubtype ||
-                       subtype == CrywolfRisingSmokeSubtype
+                       subtype == CrywolfRisingSmokeSubtype || subtype == StoneDustSubtype
                    ? std::nullopt
                    : std::optional(ParticleError::UnsupportedSubtype);
     }
@@ -1306,6 +1356,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheRisingSmoke(particle, random);
             return std::optional(index);
         }
+        if (type == BreathParticle && subtype == StoneDustSubtype)
+        {
+            CreateTheStoneDust(particle, random);
+            return std::optional(index);
+        }
         if (type == CloudParticle && subtype == CrywolfCloudSubtype)
         {
             CreateTheCloud9(particle, random);
@@ -1551,6 +1606,10 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         else if (IsRisingSmoke(particle))
         {
             StepTheRisingSmoke(particle);
+        }
+        else if (IsStoneDust(particle))
+        {
+            StepTheStoneDust(particle);
         }
         else if (IsBreath(particle))
         {

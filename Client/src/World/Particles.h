@@ -64,6 +64,10 @@ inline constexpr std::int32_t CrywolfSmokeSubtype = 21;
 // El humo 5f2/33 del 0x48 de Crywolf (0x430932): nace en 0x541a8d con la vida y los ángulos de cuatro rand() y su paso
 // (0x545ffc) frena la velocidad y lo sube con la escala, que crece.
 inline constexpr std::int32_t CrywolfRisingSmokeSubtype = 33;
+// El polvo 5f2/11 de las piedras 0x118/0x119 del pisotón del caballo oscuro (0x527631): nace en 0x541d81 corrido con
+// tres rand(), inclinado y girado, y con la luz de la creación guardada en +0x60..+0x68; su paso (0x546111) la apaga
+// con la vida, lo frena, lo agranda y lo baja.
+inline constexpr std::int32_t StoneDustSubtype = 11;
 inline constexpr std::int32_t CrywolfCloudSubtype = 9;
 inline constexpr std::int32_t AnchoredOrbitSubtype = 10;
 inline constexpr std::int32_t BubbleParticle = 0x698;
@@ -90,8 +94,9 @@ struct Particle
     bool moves = false;          // +0x4c: el paso le suma la velocidad girada por los ángulos
     float verticalSpeed = 0.0f;  // +0x50
     glm::vec3 velocity{};        // +0x54
-    float rotationFactor = 0.0f; // +0x60: 622/10 retiene al crear y escribe 1,5 al avanzar; 622/8 inicializa
-    glm::vec2 field64{};         // +0x64..68: retenidos al crear
+    float rotationFactor = 0.0f; // +0x60: 622/10 retiene al crear y escribe 1,5 al avanzar; 622/8 inicializa; 5f2/11
+                                 // guarda el rojo de su luz de creación
+    glm::vec2 field64{};         // +0x64..68: retenidos al crear; 5f2/11 guarda el verde y el azul de su luz
     glm::vec3 start{};           // +0x6c, donde nació
     // En las familias Kalima esta identidad es el owner; el DWORD owner anterior sólo conserva la API legacy.
     ParticleOwner typedOwner{};
@@ -140,7 +145,7 @@ class Particles
 public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
-    // rand(). Se aceptan5ca/0, 5f2/0,2,21,33, 5f3/0, 5c6/1,5,9,11, 622/6,8,9,10, 5d9/0..3, 607/0, 67/0, 68/0, 698/0,
+    // rand(). Se aceptan5ca/0, 5f2/0,2,11,21,33, 5f3/0, 5c6/1,5,9,11, 622/6,8,9,10, 5d9/0..3, 607/0, 67/0, 68/0, 698/0,
     // 6ab/0,1 y 6ac/0; la órbita 60f/0,3,4,10 pide el overload con la trigonometría.
     // Create es la compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina
     // consume cinco rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().

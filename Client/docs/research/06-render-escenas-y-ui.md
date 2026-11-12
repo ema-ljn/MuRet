@@ -855,6 +855,32 @@ ponerle 256 ceros (Q-C77). MuRet rasteriza cada caja desde su columna con FreeTy
 en los slots del texto, después de los 1.845 del original (`TextureSlot.h`): no se sube nada en cada
 frame.
 
+**El texto en caja, el modo 2** (hito 4 de la CL8, 2026-11-12, *estático*, leído en el ASM): `0x554180(x, y, texto,
+caja, sombra, color)` le pasa a `0x467060` el modo 1 con la sombra en 0 y el 2 con otra (`setnz` e `inc` en
+`0x5541b9..0x5541bc`); `0x5542f0` pasa el que le dan. `0x467060` no lee el color (`[ebp + 0x20]`). Mide el texto con
+`GetTextExtentPointA`: uno vacío sin caja sale sin dibujar (`0x467077..0x467082`), y uno vacío con caja mide el `"0"`
+de `0x6c7ae4` (`0x4670ba..0x4670d0`). En el modo 2 (`0x46711b..0x467132`), la columna del texto es (caja − cx) / 2,
+con la división de C (`cdq`, `sub` y `sar`, que trunca hacia el 0), y la caja queda en cx + 2 · esa columna (`lea`):
+la pedida, una menos si caja − cx es impar y positiva, o una más si es impar y negativa. Un texto más ancho que la caja
+va en una columna negativa y sale cortado de los dos lados (Q-C710). Las filas son las de la celda, hasta 32
+(`0x467184`). `0x46719f..0x4671dc` limpia el DIB en todo el ancho de la caja, y `TextOutA` escribe el texto en
+(columna, 0), salvo uno que empieza con `0x0a`. De ahí en adelante es el camino del modo 1: con más de 256 columnas,
+el corte contra W en _ftol(W − x · rx) (`0x46721f`), y las cajas de 256 con `0x465a00` desde la columna 256 k y
+`0x554000` en _ftol(x · rx + 256 k). Así el fondo (`0x6c8e64`) llena la caja entera, no solo lo que ocupa el texto.
+Con una caja negativa el ancho puede dar negativo, y el `rep stos` de `0x4671cf` limpiaría fuera del DIB (Q-C711).
+MuRet lo porta en `Render::Text::CenterInBox` (la columna y el ancho, con el `"0"` del texto vacío) y
+`Scenes::ITextDrawer::DrawColumns` → `TextCache::DrawColumns` (la caja de esas columnas con el texto desde la columna
+−columna, sus cajas de 256 y sus quads con `TextPieces` del ancho de la caja; con menos de 0 columnas, un error con
+`0x4671cf`): el título del inventario (Q-C473), el rótulo de un botón de la UI nueva (`0x63c710`) y la línea sola de
+un aviso (`0x642f00`). Los dos últimos pasan por `0x5542f0` con el fondo en 0 (`0x63c78a`, `0x642f29`), que no se ve:
+de la caja cambia solo dónde va el texto (la caja empieza en la x del botón pasada a 640 × 480, y el texto, en píxeles
+adentro) y que uno más ancho que la caja sale cortado. `DrawColumns` sirve también para el modo 1 con un ancho menor
+que cx (la caja de ese ancho, con el texto desde la columna cx − ancho). Un barrido de las 279 llamadas a `0x554180`
+(por los `push` de antes de cada una) encuentra la sombra en 1 (el modo 2) en 57 más que el título, casi todas en las
+otras ventanas (el personaje `0x5ee2e0`, la party `0x5f0be0`, las tiendas `0x5f3030` y `0x5f4720`, el almacén
+`0x5f4e30`, la caja del caos `0x5febf0`, el NPC de evento `0x5f58f0` y las del asedio), y en otras 14 la sombra va en
+un registro: van por `DrawColumns` a medida que se porten.
+
 ### HUD y ventanas
 
 Reescrita con el barrido de la CL8 (2026-11-12; plan:
@@ -1344,7 +1370,8 @@ Cada lugar del equipo y cada casilla toma antes el color de `0x5e22d0(ítem)`, q
 0,3); 8 (1; 0; 0); otro valor deja el que haya (Q-C471). Las casillas vacías también lo toman.
 
 Los textos: el título (texto 223) con la fuente gruesa, blanco sobre `0xff141414`, por `0x554180` en el modo 2 en
-(x + 0x23, y + 0xc) con una caja de `W · 120 / 640` píxeles (centrado en la caja, con la división de C); el texto
+(x + 0x23, y + 0xc) con una caja de `W · 120 / 640` píxeles (centrado en la caja, con la división de C, y el fondo en
+toda la caja: [§ Texto](#texto); en 1.600 de ancho la caja mide 300, en dos cajas); el texto
 224 en (`_ftol(zx)` − 30, `_ftol(zy)` + 3) y el zen en (`_ftol(zx)` + 10, ·), los dos con la fuente gruesa sobre
 `0xff282828`, el primero en `0xff96dcff` y el zen con comas cada tres cifras y su color: `0xff0000ff` desde
 10.000.000, `0xff0096ff` desde 1.000.000, `0xff18c900` desde 100.000 y si no `0xff96dcff`. Con el mouse sobre un

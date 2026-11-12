@@ -9,6 +9,7 @@
 #include "Scenes/GameChat.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/GamePanels.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Scenes/GameUi.h"
@@ -17,6 +18,9 @@
 #include "Scenes/WorldState.h"
 #include "UI/GameCursor.h"
 #include "UI/GameUiState.h"
+#include "UI/OldWindowDraw.h"
+#include "UI/OldWindows.h"
+#include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
 
 #include <array>
@@ -56,6 +60,10 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
         return {};
     WorldRuntime& runtime = m_context.world->Runtime();
     // Los mensajes del mouse que el WndProc atendió antes de esta vuelta de WinMain.
+    const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
+    LatchTheLeftRelease(runtime.movement, input.WasPressed(Input::MouseButton::Left),
+                        input.WasReleased(Input::MouseButton::Left), input.IsDown(Input::MouseButton::Left), mouse.x,
+                        mouse.y);
     LatchTheLeftButton(runtime.movement, input.WasPressed(Input::MouseButton::Left),
                        input.IsDown(Input::MouseButton::Left));
     LatchTheRightButton(runtime.ui, input);
@@ -63,11 +71,10 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
     // Y los WM_CHAR, en su orden: Tab y Enter al WndProc (la entrada del chat) y lo demás al EDIT con el foco.
     if (auto typed = TypeInTheGameChat(ChatContext(), input.Text()); !typed.HasValue())
         return typed;
-    // 0x637c4a..0x637c5c: con 0x5762eb4 en 0 (nadie agarró el mouse: el registro del chat o, en el hito 7, las
-    // ventanas viejas) y la escena 5, 0x623e70 antes de la lógica de la escena (0x636290), con el mundo cargado o no.
+    // 0x637c4a..0x637c5c: con 0x5762eb4 en 0 (nadie agarró el mouse: el registro del chat o una ventana vieja) y la
+    // escena 5, 0x623e70 antes de la lógica de la escena (0x636290), con el mundo cargado o no.
     if (runtime.ui.capture != 0)
         return {};
-    const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
     return StepTheGameDialogs(GameUiContext{.world = *m_context.world,
                                             .random = m_context.cloth->random,
                                             .input = input,
@@ -157,7 +164,21 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     if (auto drawn = DrawTheHud(hud); !drawn.HasValue())
         return drawn;
     // 0x637668: 0x5a7eb0, la cuenta y los resultados de los eventos (CL9.6).
-    // 0x637673: 0x490390, las ventanas con clase, y 0x637680: el marco común (hito 7).
+    // 0x637673: 0x490390, las ventanas viejas, y 0x637680: la lista de ventanas, siempre. Un dibujo intermedio de MuRet
+    // las dibuja sobre su copia.
+    UI::OldWindowManager& oldWindows = m_projectingFrame ? m_projection->oldWindows : runtime.oldWindows;
+    const UI::OldWindowDrawContext windowContext{
+        .sprites = canvas.sprites, .text = canvas.text, .dcFont = hud.hud.dcFont, .textColors = hud.hud.textColors};
+    // 0x659290(1) no saca rand(): se puede mirar antes de la ventana que la pregunta.
+    GamePanels panels(*m_context.world, FrameCloth().random);
+    const UI::OldWindowDrawView windowView{.mouseX = hud.mouse.x,
+                                           .mouseY = hud.mouse.y,
+                                           .leftClick = runtime.movement.pendingClick,
+                                           .friendsOpen = panels.Registry().IsOpen(UI::FriendsPanel)};
+    if (auto windows = UI::DrawTheOldWindows(oldWindows, windowContext, windowView); !windows.HasValue())
+        return windows;
+    if (auto list = UI::DrawTheWindowList(oldWindows, windowContext, windowView); !list.HasValue())
+        return list;
     // 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9 (hito 4).
     // 0x637696: 0x62db60, las cajas viejas, en la escena 5 (hito 6).
     // 0x63769b: 0x5f7bc0, los tooltips (hito 4).

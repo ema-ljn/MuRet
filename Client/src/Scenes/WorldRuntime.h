@@ -15,6 +15,7 @@
 #include "UI/Dialogs.h"
 #include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
+#include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
 #include "UI/WhisperSenders.h"
@@ -152,6 +153,9 @@ struct WorldRuntime
     UI::PanelState panels{};
     UI::DialogState dialogs{};
     UI::GameUiState ui{};
+    // *(0x5763514), el administrador de las ventanas viejas, y la lista de ventanas de [0x5763524] (hito 7): los arma
+    // WinMain y duran todo el juego.
+    UI::OldWindowManager oldWindows{};
     HudState hud{};
     ChatRuntime chat{};
     GameMovementState movement{};

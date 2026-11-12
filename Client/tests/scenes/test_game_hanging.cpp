@@ -327,6 +327,24 @@ TEST_F(GameHangingTest, BoltsInTheLeftHandHangOnTheBackOutsideTheSafeZone)
     EXPECT_EQ(m_random.State(), AfterRandoms(5));
 }
 
+// Q-C102: una mano con un modelo que el original no carga (0x1202, el tipo 0xff0 de la lista de la VM del
+// laboratorio) no dibuja nada y no corta el frame: 0x509340 corre igual sobre la entrada en cero de la tabla,
+// sin acciones ni mallas. Corren 0x50db57, +0x38e antes de cada mano, y el +0x38e y la luz (0x509a92) de
+// 0x509340, que no depende del modelo.
+TEST_F(GameHangingTest, AHandWhoseModelNobodyLoadsDrawsNothing)
+{
+    constexpr std::uint16_t UnloadedHand = 0x1202;
+    const HangingModels models({});
+    m_actor.hands[0].model = UnloadedHand;
+
+    const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_TRUE(m_batch.Vertices().empty());
+    EXPECT_TRUE(LiveSprites().empty());
+    EXPECT_EQ(m_random.State(), AfterRandoms(5));
+}
+
 // 0x50e896..0x50e9ea: el destello de 0x21d a −150 del hueso de la mano, con la luz del nivel 7
 // (0,5, 0,4 y 0,3 de [ebp+0xc]). Los rojos (+0x375 desde 6) y +0x1d6 en 4 no lo llevan.
 TEST_F(GameHangingTest, TheHandSwordFlareUsesTheLevelLight)

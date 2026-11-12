@@ -7,14 +7,17 @@
 #include "Protocol/Inventory.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameHud.h"
+#include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/SceneCanvas.h"
+#include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameCursor.h"
@@ -24,6 +27,7 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <optional>
 #include <ratio>
 #include <string>
 #include <utility>
@@ -168,6 +172,27 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
         .mouse = UI::MouseIn640x480(input, canvas.screen),
         .leftDown = input.IsDown(Input::MouseButton::Left)};
+    // 0x5ac120: el pase 3D de los ítems de la UI, con los modelos de los ítems, el buffer global de la pose y los
+    // contextos de 0x60b3d0 del frame (o sus copias en un dibujo intermedio). Sin la biblioteca, sin dibujo.
+    ItemSpecialDrawContext itemSpecial;
+    ItemDrawContext itemContext;
+    std::optional<UiItemResources> uiItems;
+    if (m_models != nullptr)
+    {
+        auto pass = MakeUiItemPass(canvas.screen);
+        if (!pass.HasValue())
+            return Core::Unexpected(pass.Error());
+        FillTheItemContexts(itemSpecial, itemContext, canvas.frameClock, m_projectingFrame ? 0 : 1);
+        uiItems.emplace(UiItemResources{.batch = canvas.models,
+                                        .models = *m_models,
+                                        .poseCarry = FramePoseCarry(),
+                                        .itemContext = itemContext,
+                                        .frameClock = canvas.frameClock,
+                                        .flushSprites = canvas.flushSprites,
+                                        .flushModels = canvas.flushModels,
+                                        .pass = pass.Value()});
+        hud.uiItems = &*uiItems;
+    }
     // 0x637646: 0x6219b0 empieza el 2D (gluOrtho2D y MODELVIEW identidad, con push): el lote de SceneCanvas.
     // 0x63764b: 0x4383f0, los textos 3D (hito 3).
     // 0x637650: 0x5bbbc0, el hover y Alt (hito 4).

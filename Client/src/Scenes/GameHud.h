@@ -16,7 +16,7 @@
 // superposiciones de 0x5b0550 (0x6376bb) y el cursor del juego, 0x5ac2d0, que llama dos veces (0x6376d7 y 0x6376e1).
 // En 640 × 480, con el estado de GL que dejan sus primitivas y con los rand() de la tabla de protección en su orden.
 // Lo que es de otra ola corta con su dirección donde su condición se cumple. Los modelos de los ítems de la UI (las
-// grillas, el cursor y las ranuras rápidas) no se dibujan: sacan sus rand() (GameInventoryHud.h, 08 P-C70).
+// grillas, el cursor y las ranuras rápidas) van en el pase 3D de 0x5ac120 (Scenes/UiItemDrawing.h).
 namespace Client::Render::Models
 {
 class CrtRandom;
@@ -27,6 +27,7 @@ namespace Client::Scenes
 class WorldState;
 struct GameProjection;
 struct HudState;
+struct UiItemResources;
 
 struct GameHudContext
 {
@@ -61,6 +62,9 @@ struct GameHudContext
     UI::Point mouse{};
     // 0x7d36874: el botón izquierdo abajo.
     bool leftDown = false;
+    // Lo que el tramo 3D de 0x5ac120 necesita para dibujar los modelos de los ítems de la UI. Sin él (una escena sin
+    // la biblioteca de los modelos, como las de las pruebas), cada ítem saca sus rand() sin dibujar.
+    UiItemResources* uiItems = nullptr;
 };
 
 // 0x5a7320(1): los 31 hijos del HUD en su orden (06 § HUD y ventanas, "El HUD hijo por hijo"). En el estado base

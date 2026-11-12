@@ -147,10 +147,19 @@ struct GridDrop
 [[nodiscard]] Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveContext& context,
                                                                        const GridDrop& drop);
 
-// 0x5df449..0x5df567, desde 0x5d8d50 con el clic fuera de las ventanas: lo que no se tira al piso (el aviso 269 y
-// 0x5be150) y las cajas de 0x1a20 a 0x1a25 (el aviso 1915 y 0x5be150). Tirar lo demás (0x402b30 y el resto de
-// 0x5df567, CL9.3) corta.
-[[nodiscard]] Core::Expected<void, std::string> DropOnTheGround(const InventoryMoveContext& context);
+// 0x5df449..0x5df58b, desde 0x5d8d50 con el clic fuera de las ventanas: lo que no se tira al piso (el aviso 269 y
+// 0x5be150), las cajas de 0x1a20 a 0x1a25 (el aviso 1915 y 0x5be150) y los paquetes de joyas y el Jewel of Guardian
+// (0x402b30 y 0x5e06b6: 0x5be150, con el aviso 269 salvo con el inventario abierto y el mouse a su derecha). Tirar lo
+// demás (0x5df58b, CL9.3) corta.
+struct GroundDrop
+{
+    std::int32_t mouseX = 0;
+    // IsOpen(0x4000000), que no saca rand().
+    bool inventoryOpen = false;
+};
+
+[[nodiscard]] Core::Expected<void, std::string> DropOnTheGround(const InventoryMoveContext& context,
+                                                                const GroundDrop& drop);
 
 // 0x4d1400, el 24 cifrado: suelta la traba; con 0xff, 0x5be150; si no, la cuenta en 0 y, en el inventario,
 // 0x5bc740 con el último argumento en 0 y el sonido 0x1d.

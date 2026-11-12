@@ -2566,9 +2566,12 @@ El resto de `0x634c60` (por paso) y de `0x6350b0` (por frame), llamada por llama
   `0x6c8eb4` (`0x72` en la `.data`, los seis últimos), arriba a la izquierda en y = 0 a 65 de a 13,
   salteando los vacíos (`0x555541`). Las 120 llamadas de la entrada (`0x634b4a`) la dejan vacía; el clic en
   un servidor agrega el 470 y el 471 (`0x64630f` y `0x646320`, del tipo 1: el texto `0xffff9664` sobre
-  `0x96000000`), el cancelar de la cuenta el 472 y el 473 (`0x6427d9` y `0x6427ea`) y la respuesta al
-  `F4 03` el 481; `0x5554b0` suma un renglón vacío cada 150 pasos desde el último, así que suben y se van.
-  MuRet no la tiene (*estático*; P-C27).
+  `0x96000000`), **el envío de la cuenta** el 472 y el 473 (`0x6427d9` y `0x6427ea`, al final de `0x641bf0`,
+  después del `F1 01`; antes este documento decía "el cancelar") y la respuesta al `F4 03` el 481, conecte o no
+  (`0x4e33d0`, con el texto como formato de la dirección y el puerto, Q-C464). Los cuatro van sin nombre: el de
+  `0x6e57a4` y el de `0x5767974` son cadenas vacías (`.data` en cero, nadie las escribe). `0x5554b0` suma un
+  renglón vacío cada 150 pasos desde el último, así que suben y se van. MuRet la tiene desde la CL8 (hito 3):
+  `Scenes/GameMessages` y `LoginScene::AddTheMessage`.
 
 ### Las ventanas de la UI nueva
 
@@ -2886,9 +2889,13 @@ Leída en la CL6.R en el desensamblado de `c32bbd5f`: todo *estático* salvo lo 
   0 `+0x6a` y `+0x6c..+0xab` de `[0x7681eb0]` y ocho dwords de `[0x7681eb4]` (`+0xb70`, de a `0x48`) y lo
   cierra: con la cuenta en 0, `0x40b4d0` y sus 3.848 `rand()` (Q-C238; [El paso de los personajes en la
   selección y el login](#el-paso-de-los-personajes-en-la-selección-y-el-login));
-- vacía el área de mensajes (120 líneas, `0x555190`) y, si alguno de los dos números de `pkt[5]`
-  de la lista (`0x5767958`, `0x576795c`) no es 0, escribe una línea con `sprintf` y el texto 1240
-  **como formato** (`0x63420a`).
+- abre el campo del chat (`0x6c8e68 = 1`), vacía los campos de texto (`0x553570`) y el área de mensajes (120
+  líneas, `0x555190`) y, si alguno de los dos números de `pkt[5]` de la lista no es 0, escribe una línea con
+  `sprintf` y el texto 1240 **como formato** (`0x63420a`, Q-C464), sin nombre (`0x7d3a17c` está en cero) y del
+  tipo 1. Los números son los dos nibbles de `pkt[5]` (`0x4c20a0`): el bajo a `0x5767958`, que va primero, y el
+  alto a `0x576795c`. En esta edición el 1240 es "A Conta foi enviada para o Char geral %d, Magic Gladiator
+  %d". MuRet lo hace en `CharacterSelectScene::PrepareTheCharacters` (CL8, hito 3); el vaciado de los campos va
+  con la entrada del chat.
 
 "La primera vez" es la bandera `0x7d3a13f`, que la vuelta desde el juego (el `F1 02` con 1) pone en
 0: `0x633f20` corre otra vez, con la lista nueva ([La vuelta a la selección](#la-vuelta-a-la-selección)).

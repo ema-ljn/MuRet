@@ -291,8 +291,8 @@ TEST_F(GoldenGameModels, EveryTextureTheLoadersAskForIsThere)
     EXPECT_EQ(textures.loaded.size(),
               models.TextureSlots().ToLoad().size() + PlayerFixedTextures().size() + GlowTextureSet.size() +
                   ClothTextureSet.size() + Client::Scenes::EffectTextureSet.size() +
-                  Client::Scenes::DamageTextureSet.size() + Client::Scenes::FaunaJointTextureSet.size() +
-                  Client::Scenes::GameTailTextureSet.size());
+                  Client::Scenes::DamageTextureSet.size() + Client::Scenes::HudTextureSet.size() +
+                  Client::Scenes::FaunaJointTextureSet.size() + Client::Scenes::GameTailTextureSet.size());
     for (const std::string& line : sink.lines)
     {
         EXPECT_EQ(line.find("una textura de un modelo"), std::string::npos) << line;

@@ -26,6 +26,7 @@
 #include "Scenes/OwnStatHelpers.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
+#include "UI/GameUiState.h"
 #include "Scenes/WorldState.h"
 #include "World/ObjectAlpha.h"
 #include "World/OriginalFtol.h"
@@ -1035,6 +1036,10 @@ Core::Expected<void, std::string> StepTheSiegePanel(WorldRuntime& runtime)
                                             runtime.heroGuildPost));
     }
     constexpr std::uint8_t NoGuildPanel = 0;
+    // 0x412195: el panel nuevo sale de su constructor (0x20 bytes): en (0x1e9; 0x103), en la página 1, a la vista y
+    // con el alfa en 1. El de la clase 0 que ya estaba queda como está.
+    if (runtime.siegePanelKind != NoGuildPanel)
+        runtime.siegePanel = UI::SiegePanelState{};
     runtime.siegePanelKind = NoGuildPanel;
     return {};
 }

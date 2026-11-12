@@ -25,9 +25,6 @@ LogicalAccess::~LogicalAccess()
         return;
     }
     // El cifrado del último cierre: un rand() por byte (0x40b4d0 llama a 0x69fd70 en 0x40b52e).
-    for (std::uint16_t i = 0; i < m_closeRandoms; ++i)
-    {
-        static_cast<void>(m_random.Next());
-    }
+    m_random.Discard(m_closeRandoms);
 }
 } // namespace Client::Render::Models

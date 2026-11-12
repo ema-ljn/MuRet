@@ -7,17 +7,21 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/Dialogs.h"
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
+#include "World/ItemState.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <format>
-#include <initializer_list>
+#include <span>
 #include <string>
 #include <utility>
 
@@ -372,18 +376,24 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
                 return Core::Unexpected(std::string("0x5a11cb: las macros (Alt y un número) son del hito 3"));
         }
     }
-    // 0x5a2b47..0x5a32dd: el clic derecho en las tres ranuras rápidas, si el héroe no se está muriendo.
+    // 0x5a2b47..0x5a32dd: el clic derecho en las tres ranuras rápidas, si el héroe no se está muriendo. Una ranura
+    // sin su ítem en el inventario (0x558110 da −1) sigue con la que viene.
+    const std::span<const World::ItemState, InventoryCellCount> cells(context.world.Inventory().cells);
     if (hero.dying == 0 && ui.rightClick)
     {
         for (std::int32_t slot = 0; slot < 3; ++slot)
         {
             const std::int32_t left = 0xd0 + 0x1f * slot;
-            if (InRect(context, left, 0x1c4, left + 0x14, 0x1d8))
-            {
-                ui.rightClick = false;
-                return Core::Unexpected(std::string("0x5a2b9a: las ranuras rápidas (0x558110) son del hito 2 y usar el "
-                                                    "ítem (C1 26), de la CL9.3"));
-            }
+            if (!ui.rightClick || !InRect(context, left, 0x1c4, left + 0x14, 0x1d8))
+                continue;
+            ui.rightClick = false;
+            auto found =
+                FindQuickSlotItem(runtime.hud.quickSlots, cells, slot, runtime.movement.gateRequestBlocked != 0);
+            if (!found.HasValue())
+                return Core::Unexpected(found.Error());
+            if (found.Value())
+                return Core::Unexpected(std::string("0x5a2bc8: usar el ítem de la ranura rápida (0x5af520 y el C1 26) "
+                                                    "es de la CL9.3"));
         }
     }
     // 0x5a32dd: con un campo de texto, los botones del modo del chat (hito 3).
@@ -397,13 +407,22 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
         !panels.IsOpen(UI::PersonalShopPanel) && !panels.IsOpen(UI::OtherShopPanel) &&
         !panels.IsOpen(UI::TrainerPanel) && hero.dying == 0)
     {
-        // 0x5a35a6, 0x5a3d2a y 0x5a44b1: la ranura 0, 1 y 2.
-        for (const char letter : {'Q', 'W', 'E'})
+        // 0x5a35a6, 0x5a3d2a y 0x5a44b1: la ranura 0, 1 y 2. Sin su ítem en el inventario, la tecla que sigue.
+        constexpr std::array<char, 3> QuickSlotLetters{'Q', 'W', 'E'};
+        for (int slot = 0; slot < 3; ++slot)
         {
-            if (KeyEdge(ui, input, Letter(letter)))
-                return Core::Unexpected(std::format("0x558110: {} usa la ranura rápida (hito 2) con el C1 26 de la "
-                                                    "CL9.3",
-                                                    letter));
+            const char letter = QuickSlotLetters[static_cast<std::size_t>(slot)];
+            if (!KeyEdge(ui, input, Letter(letter)))
+                continue;
+            auto found =
+                FindQuickSlotItem(runtime.hud.quickSlots, cells, slot, runtime.movement.gateRequestBlocked != 0);
+            if (!found.HasValue())
+                return Core::Unexpected(found.Error());
+            if (found.Value())
+                return Core::Unexpected(
+                    std::format("0x5a35e0: {} usa el ítem de la ranura rápida (0x5af520 y el C1 26), "
+                                "de la CL9.3",
+                                letter));
         }
     }
     // 0x5a4c6e..0x5a5504: las letras de los paneles, B y R, sin campo de texto, sin diálogo y con la lista de CS

@@ -34,7 +34,15 @@ TEST(GameTextTest, AMarkWithoutArgumentStays)
     EXPECT_EQ(PlaceArguments("%s", Three), "x");
 }
 
-// Lo que no es "%s" ni "%d" queda: el texto no es un formato, y un "%n" no escribe nada.
+// El 201 del HUD, "Exp : %u/%u": el %u también es una marca.
+TEST(GameTextTest, TheUnsignedMarkTakesAnArgument)
+{
+    constexpr std::array<std::string_view, 2> Two{"1", "2"};
+
+    EXPECT_EQ(PlaceArguments("Exp : %u/%u", Two), "Exp : 1/2");
+}
+
+// Lo que no es "%s", "%d" ni "%u" queda: el texto no es un formato, y un "%n" no escribe nada.
 TEST(GameTextTest, TheTextIsNotAFormat)
 {
     constexpr std::array<std::string_view, 1> One{"y"};

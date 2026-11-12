@@ -30,7 +30,7 @@ va	bytes	olas_por_lector	conflicto	muret
 0x403d60	40	paso: CL7/CL8.3		docs
 0x406050	17322	paso: CL8.3 marco / CL9.4 ; paso: CL9.4	sí	
 0x40a450	346	paso: CL8.3 ; paso: CL9.4	sí	
-0x40a5b0	153	HUD: CL8.1		
+0x40a5b0	153	HUD: CL8.1		src
 0x40a650	1617	HUD: CL9.4 (otro lector) ; HUD: CL9.4		
 0x40ad90	194	HUD: infra ; ventanas: no se porta: se cuentan sus rand() ; chat: no se porta ; paso: infra (portada)		src
 0x40ae60	574	paso: infra		docs
@@ -44,7 +44,7 @@ va	bytes	olas_por_lector	conflicto	muret
 0x40b570	642	paso: infra (portada)		src
 0x40b800	495	chat: no se porta ; paso: infra (portada)		src
 0x40bab0	310	HUD: CL9.5		docs
-0x40ca20	1025	HUD: CL8.1		
+0x40ca20	1025	HUD: CL8.1		src
 0x40cf00	34	HUD: CL8.1		
 0x40cf30	107	HUD: CL8.1 ; inventario: CL8.4	sí	
 0x40d530	287	HUD: CL8.4 ; inventario: CL8.4		
@@ -61,7 +61,7 @@ va	bytes	olas_por_lector	conflicto	muret
 0x40f370	526	HUD: infra ; chat: CL9.2 ; paso: infra (portada)	sí	src
 0x40f580	127	HUD: infra ; inventario: CL8.4 ; chat: CL9.2	sí	
 0x40f600	148	HUD: infra ; inventario: CL8.4 ; chat: CL9.2	sí	docs
-0x4125b0	16	HUD: sin asignar		
+0x4125b0	16	HUD: CL8.1 (despacho y corte) ; su dibujo 0x40f850: CL9.5		src
 0x412810	114	HUD: infra ; chat: no se porta		src
 0x412890	137	HUD: infra ; chat: no se porta		src
 0x413ca0	586	HUD: CL9.5		
@@ -122,7 +122,7 @@ va	bytes	olas_por_lector	conflicto	muret
 0x4294b0	6	HUD: CL9.5		src
 0x42a2b0	542	HUD: CL9.1		src
 0x42a4d0	393	HUD: CL9.1		
-0x42a660	246	HUD: CL8.1 dibujo / CL9.2 datos ; HUD: CL9.2	sí	
+0x42a660	246	HUD: CL8.1 dibujo / CL9.2 datos ; HUD: CL9.2	sí	src
 0x430180	200	HUD: CL9.5		docs
 0x4303c0	11	HUD: CL9.5 ; paso: CL9.5		src
 0x435a00	19	HUD: CL9.5 ; inventario: — ; paso: CL9.5	sí	docs
@@ -615,7 +615,7 @@ va	bytes	olas_por_lector	conflicto	muret
 0x5519f0	633	HUD: CL8.4 (B2) ; inventario: CL8.4		
 0x551c70	708	HUD: CL8.4 (B2) ; inventario: CL8.4		
 0x552470	637	HUD: CL8.4 (B2) ; inventario: CL8.4		
-0x5531d0	792	HUD: CL9.2		
+0x5531d0	792	HUD: CL9.2		src
 0x553520	65	HUD: CL8.1 ; ventanas: portada (Input/Key.h) ; chat: existente ; paso: infra (portada)	sí	src
 0x553570	115	chat: CL8.2 ; paso: CL8.2 (nombrada)		src
 0x553670	139	chat: no se porta		
@@ -625,7 +625,7 @@ va	bytes	olas_por_lector	conflicto	muret
 0x554180	179	HUD: infra		src
 0x554240	166	HUD: CL9.4		
 0x5542f0	79	HUD: infra ; ventanas: portada (texto)		src
-0x554340	567	HUD: infra		
+0x554340	567	HUD: infra		src
 0x554610	455	chat: CL8.2		docs
 0x5547e0	43	chat: CL8.2		docs
 0x554810	391	HUD: CL8.2 (otro lector) ; chat: CL8.2		src
@@ -645,11 +645,11 @@ va	bytes	olas_por_lector	conflicto	muret
 0x557560	225	chat: CL8.2		
 0x557650	470	chat: CL8.2		docs
 0x5579e0	924	inventario: —		
-0x557d80	906	HUD: CL8.1		
-0x558110	648	HUD: CL8.1 ; chat: CL9.3	sí	
+0x557d80	906	HUD: CL8.1		src
+0x558110	648	HUD: CL8.1 ; chat: CL9.3	sí	src
 0x5583a0	107	inventario: — ; paso: CL9.5	sí	
 0x558410	121	HUD: CL8.1? ; paso: CL9.1	sí	
-0x558490	618	HUD: CL8.1		
+0x558490	618	HUD: CL8.1		src
 0x558740	87	HUD: CL9.5 ; paso: CL9.5		
 0x558bb0	754	HUD: CL9.2		docs
 0x561840	1035	inventario: —		
@@ -666,10 +666,10 @@ va	bytes	olas_por_lector	conflicto	muret
 0x59fb80	652	HUD: CL9.5		docs
 0x59fea0	110	chat: —		docs
 0x59ff10	22059	chat: CL8.2		src
-0x5a5860	2925	HUD: CL8.1 dibujo / CL9.2 datos		
-0x5a63d0	547	HUD: CL8.1		
-0x5a6600	988	HUD: CL8.1		
-0x5a6af0	452	HUD: CL8.1		
+0x5a5860	2925	HUD: CL8.1 dibujo / CL9.2 datos		src
+0x5a63d0	547	HUD: CL8.1		src
+0x5a6600	988	HUD: CL8.1		docs
+0x5a6af0	452	HUD: CL8.1		src
 0x5a6cc0	764	HUD: CL9.4		
 0x5a6fc0	857	HUD: CL9.5		
 0x5a7320	512	HUD: CL8.1		src
@@ -679,16 +679,16 @@ va	bytes	olas_por_lector	conflicto	muret
 0x5a7d70	319	HUD: CL9.5/CL11 ; HUD: CL11 ; paso: —	sí	
 0x5a7eb0	2807	HUD: CL9.5		docs
 0x5a89b0	748	HUD: CL9.4 ; HUD: CL9.4 (el dibujo de la barra lo da 0x5a6af0, CL8.1)		docs
-0x5a8cc0	909	HUD: CL8.1		
+0x5a8cc0	909	HUD: CL8.1		src
 0x5a9050	573	HUD: CL8.2 ; HUD: CL8.2 (otro lector) ; chat: CL8.2		docs
-0x5a9290	924	HUD: CL8.1		
-0x5a9630	4973	HUD: CL8.1		
+0x5a9290	924	HUD: CL8.1		src
+0x5a9630	4973	HUD: CL8.1		src
 0x5aa9a0	636	HUD: CL8.2 (otro lector) ; chat: CL8.2		
-0x5aac20	1512	HUD: CL8.1		
-0x5ab210	1155	HUD: CL8.1 / CL9.2 ; HUD: CL9.2	sí	
-0x5ab810	1195	HUD: CL8.1		
-0x5abcd0	1089	HUD: CL8.1		
-0x5ac120	423	HUD: CL8.1 / CL8.4		
+0x5aac20	1512	HUD: CL8.1		src
+0x5ab210	1155	HUD: CL8.1 / CL9.2 ; HUD: CL9.2	sí	src
+0x5ab810	1195	HUD: CL8.1		src
+0x5abcd0	1089	HUD: CL8.1		src
+0x5ac120	423	HUD: CL8.1 / CL8.4		src
 0x5ac2d0	1366	HUD: CL8.1		src
 0x5ac8d0	769	HUD: CL8.1 (SPACE → CL9.3) ; chat: CL8.2 (F2..F4)	sí	src
 0x5ae360	8	chat: CL8.3/CL9.3		
@@ -701,14 +701,14 @@ va	bytes	olas_por_lector	conflicto	muret
 0x5af9b0	323	HUD: CL8.1		
 0x5afb00	184	HUD: CL8.1		
 0x5afc00	2289	HUD: CL8.1		
-0x5b0550	2972	HUD: CL8.1 ; ventanas: CL8.1		docs
+0x5b0550	2972	HUD: CL8.1 ; ventanas: CL8.1		src
 0x5b10f0	53	HUD: CL9.1 datos / CL8.3 marco (otro lector)		
 0x5b1130	199	HUD: CL9.3 ; inventario: CL8.4 ; paso: CL8.4	sí	
 0x5b1200	228	HUD: CL8.4 (B2) ; inventario: CL8.4		
 0x5b12f0	228	HUD: CL9.3		
 0x5b13e0	399	HUD: CL8.4 (B2) ; inventario: CL8.4 ; paso: CL8.4		
 0x5b1570	1569	inventario: CL8.4		
-0x5b1ba0	198	HUD: CL8.1 ; inventario: CL8.4 ; paso: CL8.4	sí	
+0x5b1ba0	198	HUD: CL8.1 ; inventario: CL8.4 ; paso: CL8.4	sí	src
 0x5b1c70	1592	HUD: CL8.1? ; inventario: CL8.4	sí	
 0x5b2320	1557	HUD: CL8.4 (B2) ; inventario: CL8.4		
 0x5b2aa0	22021	HUD: CL8.4 (B2) ; inventario: CL8.4		
@@ -829,12 +829,12 @@ va	bytes	olas_por_lector	conflicto	muret
 0x620d80	37	HUD: infra		src
 0x620db0	521	HUD: infra		src
 0x620fc0	35	HUD: CL8.1		docs
-0x6218f0	182	HUD: CL8.1		
+0x6218f0	182	HUD: CL8.1		src
 0x6219b0	221	HUD: CL8.1		src
 0x621a90	13	HUD: CL8.1		src
 0x621aa0	185	HUD: infra ; ventanas: portada ; inventario: CL5 ; chat: existente	sí	src
 0x621b60	347	HUD: infra ; ventanas: portada ; chat: existente	sí	src
-0x621cc0	351	HUD: CL8.1		
+0x621cc0	351	HUD: CL8.1		src
 0x622b40	155	chat: CL8.2		src
 0x622fb0	1745	paso: CL8.3 (a confirmar)		
 0x623690	85	HUD: infra ; inventario: CL5	sí	src

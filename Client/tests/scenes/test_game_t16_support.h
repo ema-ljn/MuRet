@@ -189,6 +189,14 @@ protected:
         return scene;
     }
 
+    // El panel del asedio de la clase 0 que arma el 30 (0x412140), oculto como lo deja Tab (0x40f6d0): a la vista, el
+    // HUD corta en su dibujo (0x40f850, el minimapa con los personajes, de la CL9.5; GameHudTest lo prueba).
+    void HideTheSiegePanel()
+    {
+        if (m_world->Runtime().siegePanelKind == std::uint8_t{0})
+            m_world->Runtime().siegePanel.visible = 0;
+    }
+
     void OpenScene()
     {
         m_ownedScene = MakeGame();

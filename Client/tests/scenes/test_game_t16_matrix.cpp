@@ -46,6 +46,7 @@ TEST_P(GameT16SceneMatrix, RealEntryReachesACompleteSceneFrameOrAnExplicitMapBou
     ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
     OpenScene();
     ASSERT_NO_FATAL_FAILURE(Step());
+    HideTheSiegePanel();
     if (kalima)
     {
         ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();

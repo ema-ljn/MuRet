@@ -20,6 +20,7 @@ using Client::Render::Text::BottomAlignedAt;
 using Client::Render::Text::CenteredAt;
 using Client::Render::Text::DesignX;
 using Client::Render::Text::DesignY;
+using Client::Render::Text::EndingAt;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::RightAlignedAt;
 using Client::Render::Text::TextExtent;
@@ -64,6 +65,20 @@ TEST(TextLayoutTest, PlacesTheLoginTextsLikeTheOriginal)
     EXPECT_EQ(text454[0].quad.y, 753.0f);
     EXPECT_EQ(text455[0].quad.y, 753.0f);
     EXPECT_EQ(text456[0].quad.y, 753.0f);
+}
+
+// El modo 4 de 0x467060, el nombre del ayudante del HUD que termina en 625: en flotante, x − cx / rx, truncado
+// hacia el 0. En 1024 × 768, con un cx de 19: 625 − 11,875 da 613 (la traza de Lorencia lo dibuja en 613 · 1,6 =
+// 980,8, truncado), cuando la cuenta entera de RightAlignedAt da 614. Del lado negativo trunca hacia el 0.
+TEST(TextLayoutTest, TheHudTextsEndAtXInFloatingPoint)
+{
+    constexpr TextExtent Label{19, 13};
+
+    EXPECT_EQ(EndingAt(625, Label, Screen1024), 613);
+    EXPECT_EQ(RightAlignedAt(625, Label, Screen1024), 614);
+    EXPECT_EQ(EndingAt(625, TextExtent{60, 13}, Screen640), 565);
+    EXPECT_EQ(EndingAt(0, Label, Screen1024), -11);
+    EXPECT_EQ(EndingAt(625, Label, PixelSize{0, 0}), 625);
 }
 
 // cx · 640 / W en 32 bits sin signo y truncado: 13 · 640 / 1024 = 8,125 da 8, y con un cx de

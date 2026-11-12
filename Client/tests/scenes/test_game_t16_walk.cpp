@@ -51,6 +51,7 @@ protected:
         }
         ASSERT_LE(m_world->Runtime().warpCounter, 0);
         static_cast<void>(Sent());
+        HideTheSiegePanel();
     }
 
     void ClickCell(std::uint8_t x, std::uint8_t y)

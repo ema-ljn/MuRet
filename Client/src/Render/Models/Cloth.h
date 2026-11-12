@@ -25,6 +25,10 @@ class CrtRandom
 public:
     explicit CrtRandom(std::uint32_t seed = 1) noexcept : m_state(seed) {}
     [[nodiscard]] int Next() noexcept;
+    // `count` rand() seguidos sin usar lo que dan: el estado de Next() repetido `count` veces, con el
+    // salto del LCG en O(log count) (la composición de s · a + c consigo misma). El HUD del juego saca
+    // más de 70.000 por frame, casi todos al cerrar el registro propio (CL8, decisión 12 del plan).
+    void Discard(std::uint32_t count) noexcept;
     [[nodiscard]] std::uint32_t State() const noexcept
     {
         return m_state;

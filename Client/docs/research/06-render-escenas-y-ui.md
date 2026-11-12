@@ -1085,11 +1085,11 @@ sigue, porque varias funciones dibujan sin poner color.
 | 4 | `0x5a6fc0` | info de Castle Siege | objeto `0x5767924` | nada (libera con `0x4e05f0`) |
 | 5 | `0x42a4d0` | barras 50×2 de la cola `0x7239ac` | cola no vacía | nada |
 | 6 | `0x42a660(hero)` | íconos de estado: `+0x78` bits `0x200..0x10000` → íconos `0x4b`, `0x35`, `0x40`, `0x43`, `0x45`, `0x46`, `0xcb`, `0xcc` en (180 + 25i, 1, 20, 24) | por bit | nada |
-| 7 | `0x5ab810` | flechas (`+0xbb4 == 0x807`, Text 351) o virotes (`+0xb6c == 0x80f`, Text 352); IsOpen(4) solo con party | **abre y cierra el registro siempre** | 3.848 r |
-| 8 | `0x5ab210(…)` | ayudante (`+0x318` ∈ `0x1c12..0x1c16`, `0x1c37`: Text 354/355/1187) y vida del invocado (`0x5767960`, Text 356) con `0x5a6af0(575, 16, 50, 2, …)` | por equipo y paquete | la barra del invocado está en la traza (124268..124304) |
-| 9 | `0x5aac20` | avisos de durabilidad: IsOpen(`0x20`); si no, 12 ranuras de equipo (`0..0x360` de a `0x48`), '%s (%d/%d)' | siempre | 1 + ≥ 12 × 3.848 r |
+| 7 | `0x5ab810` | flechas (`+0xb6c == 0x80f`, Text 351) o virotes (`+0xbb4 == 0x807`, Text 352), con las del inventario (`0x557d80`, con su acceso anidado) y en x = ancho − party − (`0x5a`, `0x4b`, `0x41`, `0x3a` o 10 por resolución); IsOpen(4) solo con party | **abre y cierra el registro siempre** | 3.848 r |
+| 8 | `0x5ab210(…)` | ayudante (`+0x318` ∈ `0x1c12..0x1c16`, `0x1c37`: Text 354/355/1187/1916, o el nombre de `Item.bmd` en los demás) con `0x5a6af0(ancho − 65, y + 12, 50, 2, durabilidad · 50 / 255)` y **un acceso al registro** (`0x5ab26c`), y vida del invocado (`0x5767960`, Text 356) en (ancho − 200, 16) | por equipo y paquete | nada; la traza tiene un ayudante `0x1c12` (el 13/0 de `Item.bmd`): su nombre (124259) y su barra (124268..124304), con 3.848 r más |
+| 9 | `0x5aac20` | avisos de durabilidad: IsOpen(`0x20`); si no, 12 ranuras de equipo (`0..0x360` de a `0x48`), '%s (%d/%d)' con la máxima de `0x5b1ba0`, y el aviso en D+0x44 (3: sin la fuerza; 7 a 8: gastado o roto) | siempre | 1 + 12 × 3.848 r |
 | 10 | macro | 'Macro Time' y `0x5a6af0(x, 404, 50, 2, …)` | `0x77f3b74 > 0` | nada |
-| 11 | `glColor3f(1,1,1)`; `0x40bab0(this = 0x723c60)` + vfunc +4 | cuenta de BC/CC | objeto activo | nada |
+| 11 | `glColor3f(1,1,1)`; `0x40bab0(this = 0x723c60)` + vfunc +4 | cuenta de DS/BC/CC: `0x40bab0` solo dibuja con +8 en 1..14; la vfunc +4 es un `ret` en DS (`0x40bdb0`) y en BC (`0x40c2d0`) y CC (`0x405090`) dibuja solo con +0x10 ≠ 0 y el mapa en 11..17 o 18..23 | objeto activo | nada (MuRet corta solo cuando dibujaría: CL9.5) |
 | 12 | `0x5a9050` | globos y nombres sobre las cabezas (`0x77e1be0`) | entradas vivas | nada |
 | 13 | `0x451d10`/`0x451c20` | carteles [LOJA] | singleton `0x7245c8` | nada |
 | 14 | `0x5a6cc0` | marcador de duelo | `0x78abad8` | nada |
@@ -1099,17 +1099,26 @@ sigue, porque varias funciones dibujan sin poner color.
 | 18 | `0x5f7440` | ventanas (los paneles, abajo) | por máscara | 2 r |
 | 19 | `0x65dd70(this = [0x5763534])` | imagen que se desvanece (slot `0x66a`) | `+0x18` | nada |
 | 20 | `0x5a9290` | barra de abajo: Menu04 `0xe9` en (0, 387, 108, 45) y espejada en (532, 387); Menu01_new `0xe6` (0, 432, 256, 48), Menu02 `0xe7` (256, 432, 128, 48), Menu03_new `0xe8` (384, 432, 256, 48), opacos | siempre | 3.848 r; traza 124333..124379 |
-| 21 | `0x4365c0` | UI de evento | `0x723bf9`, `0x6c73d1` | nada |
-| 22 | `0x5aa9a0` | entrada del chat (`0xf8`/`0xf9` en (186, 415)) e indicador F3 (`0xef` en (432, 420)) | `0x6c8e68`/`0x77f3b69`; `0x6c8dd0` | nada |
+| 21 | `0x4365c0` | UI de evento; **empieza siempre con `0x620a00(1)`** y sale con `0x6c73d1` en −1 (su `.data` es `0xff`) | `0x723bf9`, `0x6c73d1` | la mezcla normal, que hereda la XP |
+| 22 | `0x5aa9a0` | entrada del chat (`0xf8`/`0xf9` en (186, 415)) e indicador F3 (`0xef` en (432, 420)); **empieza siempre con `glColor3f(1,1,1)`** y el `SelectObject` de la fuente normal | `0x6c8e68`/`0x77f3b69`; `0x6c8dd0` | el blanco, que hereda la XP |
 | 23 | `0x5abcd0` | XP: nivel `[0x7681eb0]+0xe`; base = (n + 8)(n − 1)²·10 (más un extra arriba de 255); lleno = (xp − base)/(sig − base)·10; la parte fraccionaria es el ancho de la barra sin textura `(0.92, .8, .34)` en (221, 439, ·, 4) y la entera el dígito `(0.91, .81, .6)` en (425, 434); ayuda Text 201 en (223, 424) | siempre | 3.848 r; traza 124393..124407 |
 | 24 | `0x5a8cc0` | AG: `+0x38` actual, `+0x3a` máximo; slot `0x101` en (551, 473 − h, 15, h) con h = act·36/máx y `(1, .95, .75)`; dígitos en (571, 467); ayuda Text 214 en (546, 419) | siempre | 3.848 r; traza 124427..124478 |
 | 25 | `0x652c90` | BattleSkill | `0x4294b0` | nada |
 | 26 | `0x436240` | confirmación de evento | | nada |
 | 27 | `0x5ac120` | 3D en la UI (abajo, El 3D de la UI) | siempre | traza 124479..126583 |
 | 28 | `0x5f7840` | grillas de ítems de las ventanas abiertas | por máscara | CL8.4 |
-| 29 | `0x5a9630` | barra principal (tramos arriba) | siempre | ≥ 3 × 3.848 + 60 + 8 r; traza 126584..126848 |
+| 29 | `0x5a9630` | barra principal (tramos arriba) | siempre | 3 × 3.848 + 2 × 4 r (las celdas del héroe), y 3 × 60 r con una skill a la vista (`0x5a5926` y las dos `0x40ca20`); traza 126584..126848 |
 | 30 | `0x5e9b10` | caja de contraseña (`0x78abb20`) | | nada |
-| 31 | IsOpen(0) | si no hay ninguna abierta → `0x4125b0` (vfunc +0xc de `[0x5763530]`) | siempre | 2 r |
+| 31 | IsOpen(0) | si no hay ninguna abierta → `0x4125b0` (vfunc +0xc de `[0x5763530]`, el panel del asedio): con la clase 0 a la vista (+0x19, que su constructor `0x412195` deja en 1 y Tab apaga en `0x40f6d0`), `0x40f850` dibuja el minimapa con los personajes (2.645 B, con accesos protegidos y las texturas `0x69d`/`0x69f`): CL9.5 | siempre | 2 r |
+
+**Las cuentas del HUD** (*verificado* contra la traza de Lorencia en 1024 × 768, frame 1, CL8 hito 2). El estado
+base (sin ventanas, party, evento, flechas, ayudante ni skill) cierra 19 veces el registro propio (las flechas, los
+doce avisos, la barra de abajo, la XP, el AG y los tres de la barra principal), dos veces cada celda del héroe (4 r)
+y hace 9 consultas sueltas de `0x20` y `0x10000` (los avisos, las ventanas, el 3D, las grillas y el IsOpen(0) del
+final, este de 2): **73.129 r** (19 × 3.848 + 2 × 4 + 9). La traza agrega el ayudante (3.848) y la skill `0x2c`
+(180): 77.157. MuRet dibuja los 43 quads del 2D de ese frame (sin los textos) con la textura, la mezcla, el color, las
+esquinas y las UV de la traza (`test_game_hud.cpp`); el orbe de la vida da su alto con la vida 1421 de 31131 y
+`48 − v` (Q-C444).
 
 **El cursor del juego** (`0x5ac2d0`): `0x620a00(1)`, `glColor3f(1,1,1)`, un cuadro de 24 × 24 en (x − 2, y − 2),
 como en el login, y **dos veces por frame** (Q-C442). El slot:

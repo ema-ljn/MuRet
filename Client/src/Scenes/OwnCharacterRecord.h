@@ -115,6 +115,9 @@ struct OwnCharacterRecord
     std::uint16_t levelUpPoints = 0; // +0x68
     std::uint8_t byte6a = 0;
     std::array<std::uint32_t, 16> words6c{};
+    // +0x76c a +0xb67: la espera de cada skill, por el índice de la barra (0x5531d0, que la dibuja sobre el ícono).
+    // Nadie la escribe hasta la CL9.2: queda en 0. Las teclas de las skills (+0x26c, del F3 30) son del hito 3.
+    std::array<std::int32_t, 255> skillDelays{};
 
     std::array<World::ItemState, OwnEquipmentSlotCount> equipment{}; // +0xb68
 

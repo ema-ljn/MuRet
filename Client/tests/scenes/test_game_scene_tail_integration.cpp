@@ -105,6 +105,9 @@ protected:
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         frame.world.Runtime().drawingEnabled = true;
         frame.world.Actors()[0].position = {13550, 12550, 0};
+        // Como lo deja la entrada al mundo (WorldEntry): con el equipo en 0, los avisos de durabilidad del HUD
+        // (0x5aac20) leerían Item.bmd, que este dibujo no carga.
+        frame.world.OwnCharacter().ClearEquipmentForEntry();
         frame.scene = std::make_unique<Client::Scenes::GameScene>(
             Client::Scenes::SceneContext{.dataRoot = m_dataRoot,
                                          .textures = frame.textures,

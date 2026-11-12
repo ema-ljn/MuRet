@@ -267,6 +267,21 @@ TEST(ClothTest, TheRandomIsTheOneOfTheCrt)
     EXPECT_EQ(random.Next(), 6334);
 }
 
+// Discard salta lo mismo que Next() repetido, con cualquier cantidad: 0, potencias de 2 y los 3.848 del
+// registro propio, y una cuenta grande que pasa por todos los bits bajos.
+TEST(ClothTest, DiscardingIsTheSameAsDrawingOneByOne)
+{
+    for (const std::uint32_t count : {0u, 1u, 2u, 3u, 64u, 3848u, 46177u, 73189u})
+    {
+        CrtRandom jumped(0x1234);
+        CrtRandom drawn(0x1234);
+        jumped.Discard(count);
+        for (std::uint32_t i = 0; i < count; ++i)
+            static_cast<void>(drawn.Next());
+        EXPECT_EQ(jumped.State(), drawn.State()) << count;
+    }
+}
+
 // Las banderas que 0x50ba30 no usa: 0x100, 0x20000000, 0x2000 y 0x3000 con brillo, 0x400 y 0x800, los
 // arcos 2 y 3 y el ancho que no crece, contra el binario.
 TEST(ClothTest, TheDirectFlagsMatchTheBinaryStepByStep)

@@ -672,4 +672,87 @@ TEST(SpriteBatchTest, StartsLikeTheLogin)
     EXPECT_EQ(batch.Commands()[0].blend, BlendMode::Alpha);
     EXPECT_TRUE(batch.Commands()[0].alphaTest);
 }
+
+// 0x620980: sin mezcla y sin alpha test, con la textura prendida. La barra de abajo del juego (0x5a9290).
+TEST(SpriteBatchTest, TheOpaqueBlendKeepsTheTextureAndTurnsTheAlphaTestOff)
+{
+    SpriteBatch batch;
+    batch.Begin(Screen640);
+    EXPECT_EQ(batch.Blend(), BlendMode::Alpha);
+
+    batch.SetBlend(BlendMode::Opaque);
+    batch.Quad(PixelQuad(SlotA));
+
+    EXPECT_EQ(batch.Blend(), BlendMode::Opaque);
+    ASSERT_EQ(batch.Commands().size(), 1u);
+    EXPECT_EQ(batch.Commands()[0].blend, BlendMode::Opaque);
+    EXPECT_EQ(batch.Commands()[0].texture, SlotA);
+    EXPECT_FALSE(batch.Commands()[0].alphaTest);
+}
+
+// glEnable(GL_TEXTURE_2D) suelto (0x5544ed): después de un rectángulo, la textura vuelve sin el alpha test y sin
+// cambiar la mezcla.
+TEST(SpriteBatchTest, EnablingTheTextureLeavesTheAlphaTestOff)
+{
+    SpriteBatch batch;
+    batch.Begin(Screen640);
+    batch.SetBlend(BlendMode::Additive);
+
+    batch.ColorQuad(0, 0, 10, 10);
+    batch.EnableTexture();
+    batch.Quad(PixelQuad(SlotA));
+
+    const std::span<const DrawCommand> commands = batch.Commands();
+    ASSERT_EQ(commands.size(), 2u);
+    EXPECT_EQ(commands[1].texture, SlotA);
+    EXPECT_FALSE(commands[1].alphaTest);
+    EXPECT_EQ(commands[1].blend, BlendMode::Additive);
+    EXPECT_EQ(batch.Blend(), BlendMode::Additive);
+}
+
+// 0x621cc0(slot, 100, 200, 24, 24, grados): centrado en (100, 200) de 640 × 480, siempre escalado, con las UV
+// (0, 0), (0, 1), (1, 1) y (1, 0). Sin giro, las esquinas son (−w/2, h/2), (−w/2, −h/2), (w/2, −h/2) y (w/2, h/2)
+// alrededor del centro, con la y de GL.
+TEST(SpriteBatchTest, ARotatedQuadIsCenteredAndScaled)
+{
+    SpriteBatch batch;
+    batch.Begin(Screen640);
+    batch.SetColor(Red);
+
+    batch.RotatedQuad(SlotA, 100, 200, 24, 24, 0);
+
+    ExpectCorners(batch, 0, Corners{{{88, 292, 0, 0}, {88, 268, 0, 1}, {112, 268, 1, 1}, {112, 292, 1, 0}}});
+    EXPECT_EQ(ColorsOf(batch, 0), SixOf(Red));
+    ASSERT_EQ(batch.Commands().size(), 1u);
+    EXPECT_EQ(batch.Commands()[0].texture, SlotA);
+
+    batch.Begin(Screen1024);
+    batch.RotatedQuad(SlotA, 100, 200, 24, 24, 0);
+    const std::array<SpriteVertex, 4> scaled = CornersOf(batch, 0);
+    EXPECT_NEAR(scaled[0].x, 160.0f - 19.2f, 1e-4f);
+    EXPECT_NEAR(scaled[0].y, 768.0f - 320.0f + 19.2f, 1e-4f);
+    EXPECT_NEAR(scaled[2].x, 160.0f + 19.2f, 1e-4f);
+    EXPECT_NEAR(scaled[2].y, 768.0f - 320.0f - 19.2f, 1e-4f);
+}
+
+// El giro de 0x5fc8f0 con (0, 0, grados) y 0x5fcbd0 es el de las agujas al revés en la pantalla de GL: con 90°, la
+// esquina 0 va donde estaba la 1, y así; las UV siguen a su esquina.
+TEST(SpriteBatchTest, ARotatedQuadTurnsAroundItsCenter)
+{
+    SpriteBatch batch;
+    batch.Begin(Screen640);
+
+    batch.RotatedQuad(SlotA, 100, 200, 24, 24, 90);
+
+    const std::array<SpriteVertex, 4> corners = CornersOf(batch, 0);
+    constexpr std::array<std::array<float, 2>, 4> Turned{{{88, 268}, {112, 268}, {112, 292}, {88, 292}}};
+    for (std::size_t i = 0; i < corners.size(); ++i)
+    {
+        SCOPED_TRACE(i);
+        EXPECT_NEAR(corners[i].x, Turned[i][0], 1e-4f);
+        EXPECT_NEAR(corners[i].y, Turned[i][1], 1e-4f);
+    }
+    EXPECT_EQ(corners[1].v, 1.0f);
+    EXPECT_EQ(corners[3].u, 1.0f);
+}
 } // namespace

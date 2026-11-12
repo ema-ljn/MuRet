@@ -14,9 +14,10 @@
 // por el argumento que sigue, y lo demás queda como está.
 namespace Client::UI
 {
-// `format` con su primer "%s" o "%d" cambiado por arguments[0], el siguiente por arguments[1], y
-// así. Una marca sin argumento queda; un argumento de más no va; un "%" que no es "%s" ni "%d",
-// tampoco "%%", queda como está. Lo que entra de un argumento no se vuelve a leer.
+// `format` con su primer "%s", "%d" o "%u" cambiado por arguments[0], el siguiente por arguments[1], y
+// así (el %u es del 201 del HUD, la experiencia). Una marca sin argumento queda; un argumento de más no
+// va; un "%" que no es "%s", "%d" ni "%u", tampoco "%%", queda como está. Lo que entra de un argumento no
+// se vuelve a leer.
 [[nodiscard]] std::string PlaceArguments(std::string_view format, std::span<const std::string_view> arguments);
 
 // El texto `index` de `texts`, o nada sin tabla o sin ese índice.

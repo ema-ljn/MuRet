@@ -187,6 +187,22 @@ int CrtRandom::Next() noexcept
     return static_cast<int>((m_state >> 16) & 0x7fffu);
 }
 
+void CrtRandom::Discard(std::uint32_t count) noexcept
+{
+    // Un paso es s → s · a + c, módulo 2^32. `step` es el de 2^k pasos y se aplica cuando el bit k de
+    // `count` está prendido; componer (a1, c1) después de (a2, c2) da (a1 · a2, a1 · c2 + c1).
+    std::uint32_t stepMultiplier = 0x343fdu;
+    std::uint32_t stepIncrement = 0x269ec3u;
+    while (count != 0)
+    {
+        if ((count & 1u) != 0)
+            m_state = m_state * stepMultiplier + stepIncrement;
+        stepIncrement = stepMultiplier * stepIncrement + stepIncrement;
+        stepMultiplier *= stepMultiplier;
+        count >>= 1u;
+    }
+}
+
 void WalkTheWind(ClothWorld& world)
 {
     const int step = world.random.Next() % 200 - 100;

@@ -5,6 +5,7 @@
 #include "Render/Models/Cloth.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/Dialogs.h"
@@ -15,6 +16,7 @@
 #include <cstdint>
 #include <initializer_list>
 #include <string>
+#include <utility>
 
 #include <gtest/gtest.h>
 
@@ -217,16 +219,57 @@ TEST(GameUiTest, BWithNothingOpenAsksTheNpcShop)
     EXPECT_EQ(tested.random.State(), expected.State());
 }
 
-TEST(GameUiTest, TheQuickSlotKeysAreCuts)
+// 0x5a35ca: sin el ítem de la ranura en el inventario, 0x558110 da −1 y la tecla no hace nada más.
+TEST(GameUiTest, TheQuickSlotKeysWithoutTheirItemDoNothing)
 {
     for (const Key key : {Key::Q, Key::W, Key::E})
     {
         SteppingUi tested;
         Press(tested.input, key);
+        const CrtRandom expected = Advanced(tested.random, BaseStepRandoms);
+        const auto stepped = tested.Step();
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested.random.State(), expected.State());
+    }
+}
+
+// 0x5a35e0: con el ítem, 0x5af520 y el C1 26, de la CL9.3. La poción chica de vida, la de maná y el antídoto.
+TEST(GameUiTest, TheQuickSlotKeysWithTheirItemAreACut)
+{
+    constexpr std::array<std::pair<Key, std::uint16_t>, 3> Slots{
+        {{Key::Q, 0x1c00}, {Key::W, 0x1c04}, {Key::E, 0x1c08}}};
+    for (const auto& [key, type] : Slots)
+    {
+        SteppingUi tested;
+        tested.world.Inventory().cells[9].id = type;
+        tested.world.Inventory().cells[9].occupied = 1;
+        Press(tested.input, key);
         const auto stepped = tested.Step();
         ASSERT_FALSE(stepped.HasValue());
-        EXPECT_NE(stepped.Error().find("0x558110"), std::string::npos) << stepped.Error();
+        EXPECT_NE(stepped.Error().find("0x5a35e0"), std::string::npos) << stepped.Error();
     }
+}
+
+// 0x5a2b93: el clic derecho sobre una ranura se gasta aunque esté vacía.
+TEST(GameUiTest, TheRightClickOnAnEmptyQuickSlotIsSpent)
+{
+    SteppingUi tested;
+    tested.Ui().rightClick = true;
+    const auto stepped = tested.Step(0xd0 + 0x1f, 0x1c4);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_FALSE(tested.Ui().rightClick);
+}
+
+TEST(GameUiTest, TheRightClickOnAQuickSlotWithItsItemIsACut)
+{
+    SteppingUi tested;
+    tested.world.Inventory().cells[0].id = 0x1c05;
+    tested.world.Inventory().cells[0].occupied = 1;
+    tested.Ui().rightClick = true;
+    const auto stepped = tested.Step(0xd0 + 0x1f, 0x1c4);
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x5a2bc8"), std::string::npos) << stepped.Error();
+    EXPECT_FALSE(tested.Ui().rightClick);
 }
 
 TEST(GameUiTest, ADialogClosesTheSlotGateAfterItsTwoQueries)

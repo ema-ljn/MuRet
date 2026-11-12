@@ -3,8 +3,11 @@
 #include "Core/Expected.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Scenes/ActorState.h"
+#include "Scenes/GameHud.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/SceneCanvas.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameCursor.h"
@@ -12,6 +15,7 @@
 #include "UI/Widget.h"
 
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <string>
 
@@ -58,7 +62,7 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .mouseY = mouse.y});
 }
 
-Core::Expected<void, std::string> GameScene::DrawTheInterface()
+Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canvas)
 {
     WorldRuntime& runtime = m_context.world->Runtime();
     const Input::InputState noInput;
@@ -74,12 +78,33 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface()
                             .altDown = input.IsDown(Input::Key::Alt)});
     if (!picked.HasValue())
         return picked;
-    // 0x637646..0x6376e6: la pasada 2D, en este orden (06 § El dibujo del juego). Ninguna dibuja en MuRet hasta su
-    // hito, ni saca rand(): el HUD (0x5a7320) y lo que cuelga de él, con los rand() del estado base, son del hito 2.
-    // 0x637646: 0x6219b0 empieza el 2D (gluOrtho2D y MODELVIEW identidad, con push).
+    // 0x637646..0x6376e6: la pasada 2D, en este orden (06 § El dibujo del juego). Un dibujo intermedio de MuRet dibuja
+    // con las copias: el rand(), las cuentas de accesos, los globales del HUD, el humo de Crywolf y el sonido.
+    ActorState& hero = m_context.world->Actors()[runtime.hero];
+    GameHudContext hud{
+        .world = *m_context.world,
+        .random = FrameCloth().random,
+        .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
+        .cellXDepth = m_projectingFrame ? m_projection->heroXDepth : hero.cellXAccesses,
+        .cellYDepth = m_projectingFrame ? m_projection->heroYDepth : hero.cellYAccesses,
+        .hud = m_projectingFrame ? m_projection->hud : runtime.hud,
+        .crywolfSandOverlay = m_projectingFrame ? m_projection->crywolfSandOverlay : runtime.crywolf.sandOverlay,
+        .sound = m_projectingFrame ? m_projection->sound : runtime.lastSoundId,
+        .projecting = m_projectingFrame,
+        .sprites = canvas.sprites,
+        .text = canvas.text,
+        .texts = m_texts,
+        .items = m_items,
+        .skills = m_skills,
+        .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
+        .mouse = UI::MouseIn640x480(input, canvas.screen),
+        .leftDown = input.IsDown(Input::MouseButton::Left)};
+    // 0x637646: 0x6219b0 empieza el 2D (gluOrtho2D y MODELVIEW identidad, con push): el lote de SceneCanvas.
     // 0x63764b: 0x4383f0, los textos 3D (hito 3).
     // 0x637650: 0x5bbbc0, el hover y Alt (hito 4).
-    // 0x637660: 0x5a7320(1), el HUD, con 0x7d36899 en 0 (hito 2).
+    // 0x637660: 0x5a7320(1), el HUD, con 0x7d36899 en 0.
+    if (auto drawn = DrawTheHud(hud); !drawn.HasValue())
+        return drawn;
     // 0x637668: 0x5a7eb0, la cuenta y los resultados de los eventos (CL9.6).
     // 0x637673: 0x490390, las ventanas con clase, y 0x637680: el marco común (hito 7).
     // 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9 (hito 4).
@@ -87,12 +112,18 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface()
     // 0x63769b: 0x5f7bc0, los tooltips (hito 4).
     // 0x6376a0: 0x554810, los avisos (hito 3).
     // 0x6376b6: 0x5554e0, el área de mensajes, con 0x6c7a88 en 1: en 0 en el juego (hito 3).
-    // 0x6376bb: 0x5b0550, las superposiciones (hito 2).
+    // 0x6376bb: 0x5b0550, las superposiciones.
+    if (auto overlays = DrawTheOverlays(hud); !overlays.HasValue())
+        return overlays;
     // 0x6376c6: 0x40eca0, el cartel del set, con +0x9305 (hito 5).
     // 0x6376cb: 0x65ee60 → 0x65fe00, la UI nueva (hito 6).
-    // 0x6376d7: 0x5ac2d0, el cursor (hito 2), 0x6376dc: 0x633110, el ítem 3D del diálogo (hito 6), y 0x6376e1: el
-    // cursor otra vez.
-    // 0x6376e6: 0x621a90 y 0x620fc0 cierran el 2D.
+    // 0x6376d7: 0x5ac2d0, el cursor, 0x6376dc: 0x633110, el ítem 3D del diálogo (hito 6), y 0x6376e1: el cursor otra
+    // vez, el mismo quad.
+    if (auto cursor = DrawTheGameCursor(hud); !cursor.HasValue())
+        return cursor;
+    if (auto cursor = DrawTheGameCursor(hud); !cursor.HasValue())
+        return cursor;
+    // 0x6376e6: 0x621a90 y 0x620fc0 cierran el 2D: el lote lo dibuja quien presenta el frame.
     return {};
 }
 } // namespace Client::Scenes

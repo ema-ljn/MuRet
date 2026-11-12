@@ -36,6 +36,9 @@ enum class BlendMode : std::uint8_t
     Alpha,
     // 0x620a90: (GL_ONE, GL_ONE), y apaga el alpha test.
     Additive,
+    // 0x620980: sin mezcla (glDisable(GL_BLEND)), sin alpha test y con la textura prendida: lo que se
+    // dibuja tapa lo de abajo con su color, sin mirar el alfa. La barra de abajo del juego (0x5a9290).
+    Opaque,
 };
 
 // Un tramo de vértices que se dibuja de una vez, con el mismo estado.
@@ -60,9 +63,17 @@ public:
     // vértices y los tramos, y no toca el estado de GL que guarda.
     void Begin(App::PixelSize screen);
 
-    // 0x620a00(1) o 0x620a90: la mezcla, y con ella la textura prendida y el alpha test prendido
-    // (Alpha) o apagado (Additive). Corre aunque la mezcla sea la misma, como el original.
+    // 0x620a00(1), 0x620a90 o 0x620980: la mezcla, y con ella la textura prendida y el alpha test
+    // prendido (Alpha) o apagado (Additive y Opaque). Corre aunque la mezcla sea la misma, como el
+    // original.
     void SetBlend(BlendMode blend);
+
+    // La mezcla que dejó el último SetBlend: la que guarda 0x7d366dc y vuelve a poner la ayuda del HUD (0x554340).
+    [[nodiscard]] BlendMode Blend() const;
+
+    // glEnable(GL_TEXTURE_2D) suelto, sin tocar la mezcla ni el alpha test: la ayuda del HUD (0x5544ed) antes de su
+    // texto, después de sus quads sin textura.
+    void EnableTexture();
 
     // glColor4f: el color de los vértices que siguen, recortado a [0, 1] como lo usa la función
     // fija (06 § Primitivas 2D).
@@ -82,6 +93,12 @@ public:
     // 0x647650 (UiImage.h): pone su color como el de GL y prende la textura si tiene slot, o la
     // apaga si no (Q-C75); la mezcla y el alpha test quedan como estaban.
     void Image(const UiImage& image);
+
+    // 0x621cc0(slot, x, y, w, h, grados): el cuadro de `width` × `height` de 640 × 480, siempre
+    // escalado, centrado en (x, y) y girado `degrees` alrededor de la pantalla (0x5fc8f0 con (0, 0,
+    // grados) y 0x5fcbd0), con las UV (0, 0), (0, 1), (1, 1) y (1, 0) y el color que haya. El cursor
+    // de reparar que gira (0x5ac2d0).
+    void RotatedQuad(TextureSlot slot, float x, float y, float width, float height, float degrees);
 
     [[nodiscard]] App::PixelSize Screen() const;
     [[nodiscard]] std::span<const SpriteVertex> Vertices() const;

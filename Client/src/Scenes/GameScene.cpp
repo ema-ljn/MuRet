@@ -41,6 +41,7 @@
 #include "Scenes/HelperTable.h"
 #include "Scenes/ModelTextureTable.h"
 #include "Scenes/SceneCanvas.h"
+#include "Scenes/TextureSets.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/TerrainPolygonFrame.h"
@@ -178,9 +179,11 @@ std::uint8_t HeroCellAttribute(ActorState& hero, const Data::Terrain::TerrainAtt
 
 GameScene::GameScene(const SceneContext& context, App::ServerSession* session, const IModelLibrary* models,
                      const Data::Tables::ItemTable* items, const Render::Models::ModelTextureSlots* gameSlots,
-                     const Data::Tables::GateTable* gates, const Data::Tables::SkillTable* skills)
+                     const Data::Tables::GateTable* gates, const Data::Tables::SkillTable* skills,
+                     const Data::Text::TextTable* texts)
     : m_context(context), m_session(session), m_models(models), m_items(items), m_gameSlots(gameSlots), m_gates(gates),
-      m_skills(skills), m_tiles(context.textures)
+      m_skills(skills), m_texts(texts), m_windowTextures(context.textures, WindowTextureSet),
+      m_sandTextures(context.textures, SandTextureSet), m_tiles(context.textures)
 {
 }
 
@@ -204,7 +207,10 @@ Core::Expected<void, std::string> GameScene::Enter()
     }
     m_tiles.BindTextureTable(textureTable);
     m_characterCloths.resize(ActorPoolSize);
-    return {};
+    // El original las sube en la carga (0x61ccb0) y en el login (0x61c7c0) y no las suelta; MuRet, con cada escena.
+    if (auto loaded = m_windowTextures.Load(m_context.dataRoot); !loaded.HasValue())
+        return loaded;
+    return m_sandTextures.Load(m_context.dataRoot);
 }
 
 // 0x636290 y, después, lo de 0x637700 para la tela: el viento (0x637cec) y el contador de pasos
@@ -615,7 +621,7 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     canvas.flushModels();
     if (!drawn.HasValue())
         return drawn;
-    return DrawTheInterface();
+    return DrawTheInterface(canvas);
 }
 
 void GameScene::ObserveMapLoad()
@@ -1022,6 +1028,8 @@ void GameScene::Leave()
     m_tiles.Release();
     m_worldModels.Release();
     m_worldModelsMap.reset();
+    m_windowTextures.Release();
+    m_sandTextures.Release();
 }
 
 // Q-C70: sin conexión, el juego sigue; el texto 3 del área de mensajes es de la CL9.

@@ -526,7 +526,8 @@ Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const
         case Scenes::SceneId::Game:
             return std::make_unique<Scenes::GameScene>(
                 context, session, &models, data.items ? &data.items->table : nullptr, &models.TextureSlots(),
-                data.gates ? &*data.gates : nullptr, data.skills ? &*data.skills : nullptr);
+                data.gates ? &*data.gates : nullptr, data.skills ? &*data.skills : nullptr,
+                data.text ? &*data.text : nullptr);
         }
         return nullptr;
     };

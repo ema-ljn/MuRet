@@ -53,6 +53,16 @@ int RightAlignedAt(int x, TextExtent extent, App::PixelSize screen)
     return Shrink(x, extent.width, 640, screen.width);
 }
 
+int EndingAt(int x, TextExtent extent, App::PixelSize screen)
+{
+    if (screen.width <= 0)
+    {
+        return x;
+    }
+    return Truncate(static_cast<double>(x) -
+                    static_cast<double>(extent.width) / static_cast<double>(ScaleX(1.0f, screen)));
+}
+
 int CenteredAt(int x, TextExtent extent, App::PixelSize screen)
 {
     if (screen.width <= 0)

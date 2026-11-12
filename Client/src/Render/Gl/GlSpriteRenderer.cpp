@@ -15,7 +15,7 @@ namespace Client::Render::Gl
 {
 namespace
 {
-// 0x620a00 y 0x620a90: la mezcla normal y la aditiva.
+// 0x620a00, 0x620a90 y 0x620980: la mezcla normal, la aditiva y ninguna.
 void SetBlendFunc(const Platform::GlFunctions& gl, BlendMode blend)
 {
     switch (blend)
@@ -25,6 +25,10 @@ void SetBlendFunc(const Platform::GlFunctions& gl, BlendMode blend)
         return;
     case BlendMode::Additive:
         gl.blendFunc(GL_ONE, GL_ONE);
+        return;
+    case BlendMode::Opaque:
+        // 0x620980 apaga GL_BLEND: con (GL_ONE, GL_ZERO) el color que sale es el del quad, lo mismo.
+        gl.blendFunc(GL_ONE, GL_ZERO);
         return;
     }
 }

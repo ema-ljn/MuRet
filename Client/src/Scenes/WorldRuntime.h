@@ -1,10 +1,12 @@
 #pragma once
 
 #include "GameLogic/MovementSpeed.h"
+#include "Render/Text/TextStyle.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameItemRenderState.h"
+#include "Scenes/HudItems.h"
 #include "Scenes/SceneId.h"
 #include "UI/Dialogs.h"
 #include "UI/GameUiState.h"
@@ -49,6 +51,30 @@ struct CrywolfGlobals
     std::uint8_t sandOverlay = 0;
 };
 
+// Los globales del HUD del juego (0x5a7320 y sus hijos, CL8 hito 2), en la .bss salvo los que dicen otra cosa.
+struct HudState
+{
+    // 0x78aba48: cuántos hay en la party. Lo escribe el paquete de la party (CL9.4).
+    std::int32_t partyCount = 0;
+    // 0x5767960: la vida del invocado, de 0 a 100. La escribe su paquete (CL9.2).
+    std::int32_t summonLife = 0;
+    // 0x77f3b74: el tiempo de la macro (hito 3).
+    std::int32_t macroTime = 0;
+    QuickSlots quickSlots{};
+    // 0x6c8e5c (.data −1) y 0x6c8e64 (.data 0x80000000): el color del texto y el del fondo que lee 0x465950. Cada
+    // texto del HUD deja los suyos y el que sigue sin poner otros sale con ellos, también en el frame siguiente.
+    Render::Text::TextColors textColors{.text = 0xffffffffu, .background = 0x80000000u};
+    // 0x77f3b66: lo prende un aviso de durabilidad (0x5aac20) y lo apaga la barra (0x5a9290). Lo lee el inventario
+    // (hito 4).
+    std::uint8_t durabilityWarning = 0;
+    // 0x77f31b8 y 0x77f31bc: el tamaño en píxeles del texto de las flechas o los virotes (0x5ab810).
+    std::int32_t arrowsTextWidth = 0;
+    std::int32_t arrowsTextHeight = 0;
+    // 0x77f3b5c: con el botón izquierdo abajo, el cursor 0xa (CursorDontMove) en vez del 3 (0x5ac7a2). Quién lo
+    // escribe, sin leer: queda en 0.
+    std::uint8_t pushCursor = 0;
+};
+
 struct WorldRuntime
 {
     // Q-C180/Q-C27: primer aviso de datos que pidió WM_DESTROY. Durable incluso si Poll falla;
@@ -74,6 +100,7 @@ struct WorldRuntime
     UI::PanelState panels{};
     UI::DialogState dialogs{};
     UI::GameUiState ui{};
+    HudState hud{};
     GameMovementState movement{};
     // Los cinco selectores del mouse arrancan en -1 en la .data.
     std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};

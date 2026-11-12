@@ -253,21 +253,23 @@ selección y el juego. **Desbloquea:** todos los demás. **Cierra:** la divergen
 
 ### Hito 2: el HUD (CL8.1, ~42 KB)
 
-- [ ] **`0x5a7320` hijo por hijo** (31 llamadas, en su orden; 06 § HUD y ventanas, reescrita en este PR): los de
+- [x] **`0x5a7320` hijo por hijo** (31 llamadas, en su orden; 06 § HUD y ventanas, reescrita en este PR): los de
       la CL8 portados y los de otras olas como ganchos con su `rand()` del estado base (las flechas `0x5ab810`
       abren y cierran el registro propio siempre: 3.848).
-- [ ] **La barra:** `0x5a9290` (Menu01..04), `0x5a9630` (los orbes con el alto de Q-C444, la skill actual con su
+- [x] **La barra:** `0x5a9290` (Menu01..04), `0x5a9630` (los orbes con el alto de Q-C444, la skill actual con su
       tinte, las celdas, los números, los botones apretados y sus ayudas), `0x5abcd0` (XP), `0x5a8cc0` (AG),
       `0x6218f0` (los dígitos), `0x5a6af0` (las barras chicas), `0x5ab810`, `0x557d80`, `0x5aac20` (los avisos de
       durabilidad), `0x5ab210` (el ayudante; la vida del invocado como gancho de la CL9.2 con su global),
       `0x42a660`/`0x5a63d0`/`0x5a6600` (los íconos de estado) y lo justo de `0x5a5860`/`0x40ca20`/`0x5531d0`
-      para el ícono de la skill.
-- [ ] **El 3D de la UI:** `0x5ac120` (la proyección de 1°, la cámara, los pases), las ranuras rápidas
+      para el ícono de la skill. La ayuda de los íconos de estado (`0x5a6600`) corta: es del hito 5.
+- [x] **El 3D de la UI:** `0x5ac120` (la proyección de 1°, la cámara, los pases), las ranuras rápidas
       (`0x558110`, `0x558490`) y el camino `0x5e1480` → `0x5e0720` del ítem en la UI, que reusa el inventario.
-- [ ] **Los botones del HUD** en `0x59ff10` (`0x5a03c3..0x5a05e5`): el hit-test y el panel que abre cada uno.
-- [ ] **El cursor del juego** `0x5ac2d0` con su tabla de elección (06 § El cursor del juego) y **dibujado dos
+      Hecho sin el ítem 3D: `0x5e1480` solo dibuja y llega con los ítems 3D del inventario en el hito 4 (08,
+      P-C63).
+- [x] **Los botones del HUD** en `0x59ff10` (`0x5a03c3..0x5a05e5`): el hit-test y el panel que abre cada uno.
+- [x] **El cursor del juego** `0x5ac2d0` con su tabla de elección (06 § El cursor del juego) y **dibujado dos
       veces** (Q-C442); los casos del picking leen globals que valen −1 hasta su ola.
-- [ ] **El `rand()` del HUD por frame** con `LogicalAccess` y `CrtRandom::Discard`; `0x5f7440`, `0x5f7610` y
+- [x] **El `rand()` del HUD por frame** con `LogicalAccess` y `CrtRandom::Discard`; `0x5f7440`, `0x5f7610` y
       `0x5f7840` (las ventanas y sus grillas) como despacho con sus `IsOpen`.
 
 **Pruebas:** la traza de GL de Lorencia, frame 1 (`lorencia-frame.txt`, líneas 124230..126903): **todos** los
@@ -275,6 +277,13 @@ quads 2D del HUD tienen dueño (la barra, XP, AG, los orbes, la skill, las celda
 sus dos pociones y el pase `Chrome01`, la barra del invocado y los dos cursores); posición, UV, textura, color y
 mezcla. Los `rand()` del HUD por frame en el estado base, contados del ASM. Devias y un mapa con caso propio
 (Tarkan, las arenas de `0x5a7520`). **Desbloquea:** el hito 4 (el ítem 3D) y el 6.
+
+**Hecho** (2026-11-12, `GameHudTest`): los 43 quads 2D del frame 1 de Lorencia en 1024 × 768 (la barra del
+ayudante, que no es la del invocado, la barra de abajo, XP, AG, los orbes, la skill, las celdas, la vida, el maná, los
+números de las ranuras y los dos cursores) con su textura, mezcla, color, esquinas y UV; los `rand()` del HUD:
+73.129 en el estado base y 77.157 en el frame de la traza (06 § HUD y ventanas). El 3D de las ranuras (las pociones
+y el pase `Chrome01`, traza 124479..126583) queda para el hito 4 con `0x5e1480`. Los cortes que abre el hito están
+en 08, P-C63: el panel del asedio (`0x40f850`, el mapa 30) y la cuenta de DS/BC/CC, CL9.5.
 
 ### Hito 3: el chat (CL8.2, ~47 KB)
 

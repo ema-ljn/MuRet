@@ -16,6 +16,12 @@ namespace Client::Render::Text
 // cuenta se trunca, y con un cx de 6.710.887 o más el producto da la vuelta.
 [[nodiscard]] int RightAlignedAt(int x, TextExtent extent, App::PixelSize screen);
 
+// 0x467060 con el modo 4 (0x467146..0x46715e), el de los textos del HUD que terminan en `x` (el ayudante, los
+// avisos de durabilidad): fild de x, fild de cx, fdiv por rx (W por la inversa de 640, en float: DAT_05762ea8),
+// la resta en la x87 y _ftol, que trunca hacia el 0. No es la cuenta de RightAlignedAt: esta va en flotante.
+// Sin pantalla, la x tal cual.
+[[nodiscard]] int EndingAt(int x, TextExtent extent, App::PixelSize screen);
+
 // 0x623690: el texto centrado en `x`, de 640 × 480: x − (cx · 640 / W) / 2, con la misma división
 // en 32 bits sin signo y el shr de la mitad (los textos 436 y 437 de la selección).
 [[nodiscard]] int CenteredAt(int x, TextExtent extent, App::PixelSize screen);

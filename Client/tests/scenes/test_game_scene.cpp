@@ -109,6 +109,12 @@ constexpr int ParticleWindDraws = 2;
 constexpr int GameUiStepDraws = Client::Render::Models::OwnRecordCloseRandoms + 2 + 2;
 // 0x637641: el picking del frame del Dark Wizard (la clase 0) lee su skill del registro propio (0x59efda).
 constexpr int FramePickingDraws = Client::Render::Models::OwnRecordCloseRandoms;
+// 0x637660: el HUD (0x5a7320) en el estado base: 19 cierres del registro propio (las flechas, los doce avisos de
+// durabilidad, la barra de abajo, la experiencia, el AG y los tres de la barra principal), los de las dos celdas del
+// héroe y nueve consultas del comercio y de la tienda de NPC (los avisos, las ventanas, el 3D, las grillas y el panel
+// del asedio).
+constexpr int HudBaseDraws =
+    19 * Client::Render::Models::OwnRecordCloseRandoms + 2 * Client::Render::Models::SmallLogicalCloseRandoms + 9;
 
 // El rand() de la CRT sembrado con Seed después de `draws` llamadas.
 CrtRandom RandomAfter(int draws)
@@ -228,7 +234,12 @@ constexpr int InertFishCandidateRandoms = 3 * 2; // 447030: tres slots inactivos
 struct Harness
 {
     explicit Harness(Client::Core::Log& log, Client::App::ServerSession* session = nullptr)
-        : scene(SceneContext{.dataRoot = {}, .textures = store, .log = log, .cloth = &cloth, .world = &world}, session)
+        : scene(SceneContext{.dataRoot = Client::Tests::RepoDataDir(),
+                             .textures = store,
+                             .log = log,
+                             .cloth = &cloth,
+                             .world = &world},
+                session)
     {
         GiveInertTerrain(world);
     }
@@ -302,10 +313,14 @@ TEST(GameSceneTest, DoesNotEnterWithoutTheWorldOrTheRandom)
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
     Harness tested(log);
-    GameScene withoutWorld(SceneContext{.dataRoot = {}, .textures = tested.store, .log = log, .cloth = &tested.cloth},
-                           nullptr);
-    GameScene withoutRandom(SceneContext{.dataRoot = {}, .textures = tested.store, .log = log, .world = &tested.world},
-                            nullptr);
+    GameScene withoutWorld(
+        SceneContext{
+            .dataRoot = Client::Tests::RepoDataDir(), .textures = tested.store, .log = log, .cloth = &tested.cloth},
+        nullptr);
+    GameScene withoutRandom(
+        SceneContext{
+            .dataRoot = Client::Tests::RepoDataDir(), .textures = tested.store, .log = log, .world = &tested.world},
+        nullptr);
 
     EXPECT_FALSE(withoutWorld.Enter().HasValue());
     EXPECT_FALSE(withoutRandom.Enter().HasValue());
@@ -496,7 +511,11 @@ TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
         WorldState world;
         GiveInertTerrain(world);
         const HorseSkeletonOnly models;
-        GameScene scene(SceneContext{.dataRoot = {}, .textures = store, .log = log, .cloth = &cloth, .world = &world},
+        GameScene scene(SceneContext{.dataRoot = Client::Tests::RepoDataDir(),
+                                     .textures = store,
+                                     .log = log,
+                                     .cloth = &cloth,
+                                     .world = &world},
                         nullptr, &models);
         world.Runtime().drawingEnabled = true;
         world.Runtime().warpCounter = WorldLoadingWait;
@@ -603,7 +622,7 @@ TEST(GameSceneTest, AStepWithTheWorldLeavesAFifthOfTheShake)
     WorldState world;
     GiveInertTerrain(world);
     Client::World::GameCameraInput cameraInput;
-    GameScene scene(SceneContext{.dataRoot = {},
+    GameScene scene(SceneContext{.dataRoot = Client::Tests::RepoDataDir(),
                                  .textures = store,
                                  .log = log,
                                  .cloth = &cloth,
@@ -914,7 +933,8 @@ TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainTheGrassTheGroundMarksAn
         EXPECT_TRUE(std::ranges::equal(seen, probe.seen));
         EXPECT_TRUE(scene.MouseRay().has_value());
         EXPECT_EQ(cameraInput.hero, world.Actors()[HeroSlot].position);
-        EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8 + probe.objectDraws + FramePickingDraws).State());
+        EXPECT_EQ(cloth.random.State(),
+                  RandomAfter(4 + 8 + probe.objectDraws + FramePickingDraws + HudBaseDraws).State());
         for (const std::uint8_t row : probe.gateRows)
         {
             const std::uint8_t gate = row == 115 ? 119 : 93;
@@ -964,8 +984,9 @@ TEST_F(GameSceneDrawTest, TheStepAfterADrawStepsTheSeenObjects)
         std::vector<std::size_t> flickers;
         int stepDraws;
     };
-    for (const Case& probe : {Case{0, 143, 120, 4, 4 + 8 + 83 + 1, {1400}, {1366, 1372, 1690}, 3},
-                              Case{2, 220, 30, 3, 4 + 8 + 54, {1282, 1471, 1472, 1473}, {1262, 1462, 1464}, 3}})
+    for (const Case& probe :
+         {Case{0, 143, 120, 4, 4 + 8 + 83 + 1 + HudBaseDraws, {1400}, {1366, 1372, 1690}, 3},
+          Case{2, 220, 30, 3, 4 + 8 + 54 + HudBaseDraws, {1282, 1471, 1472, 1473}, {1262, 1462, 1464}, 3}})
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
@@ -1177,7 +1198,7 @@ TEST_F(GameSceneDrawTest, ChaosCastleDrawsRandomForEachShownCellAndNoGrass)
     const Client::Tests::FrameEvent* models = ModelsOf(target.frames[0]);
     ASSERT_NE(models, nullptr);
     EXPECT_FALSE(models->modelVertices.empty());
-    EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8 + 1 + FramePickingDraws).State());
+    EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8 + 1 + FramePickingDraws + HudBaseDraws).State());
     scene.Leave();
 }
 
@@ -1261,7 +1282,7 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
         CrtRandom expected = reference.random;
         // 50e298..50e6af: dos cierres de byte38e, uno por mano vacía fuera de la espalda.
         const int characterDraws = probe.seen ? Client::Render::Models::OwnRecordCloseRandoms + 1 + 2 : 0;
-        for (int i = 0; i < 4 + 8 + probe.objectDraws + characterDraws; ++i)
+        for (int i = 0; i < 4 + 8 + probe.objectDraws + characterDraws + HudBaseDraws; ++i)
         {
             static_cast<void>(expected.Next());
         }

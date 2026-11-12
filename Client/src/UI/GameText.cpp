@@ -20,7 +20,7 @@ constexpr std::size_t MaxBackToSpace = 10;
 
 bool IsArgumentMark(char kind)
 {
-    return kind == 's' || kind == 'd';
+    return kind == 's' || kind == 'd' || kind == 'u';
 }
 } // namespace
 

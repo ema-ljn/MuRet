@@ -4,6 +4,7 @@
 #include "App/WindowState.h"
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/SkillTable.h"
+#include "Data/Text/TextTable.h"
 #include "Scenes/FaunaDrawing.h"
 #include "World/SphereFrustum.h"
 #include "World/TerrainPickingState.h"
@@ -22,6 +23,7 @@
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/SceneTextures.h"
 #include "Scenes/TerrainTiles.h"
 #include "Scenes/WorldModels.h"
 #include "World/GameCamera.h"
@@ -73,16 +75,18 @@ public:
     // (el caballo oscuro corta con error si hay uno vivo, y el cuerpo de los personajes sin Player.bmd, en
     // 0x4f9580) o sin Item.bmd (*[0x7758550]: lo que lo lee corta con error). `gameSlots` es la tabla de los
     // slots de la carga (GameModels::TextureSlots), que siguen los modelos especiales del mapa (WorldModels);
-    // sin ella, desde 0x69.
+    // sin ella, desde 0x69. Sin Text.bmd (`texts`), el HUD corta con error en el primer texto que dibuja.
     GameScene(const SceneContext& context, App::ServerSession* session, const IModelLibrary* models = nullptr,
               const Data::Tables::ItemTable* items = nullptr,
               const Render::Models::ModelTextureSlots* gameSlots = nullptr,
-              const Data::Tables::GateTable* gates = nullptr, const Data::Tables::SkillTable* skills = nullptr);
+              const Data::Tables::GateTable* gates = nullptr, const Data::Tables::SkillTable* skills = nullptr,
+              const Data::Text::TextTable* texts = nullptr);
 
     ~GameScene() override;
 
     // Sin `context.world` o `context.cloth`, el error: la espera vive en el primero y sus cierres
-    // gastan el rand() del segundo.
+    // gastan el rand() del segundo. Sube los cursores y las ventanas (WindowTextureSet) y las arenas del HUD
+    // (SandTextureSet); una que falta, el error.
     Core::Expected<void, std::string> Enter() override;
     // 0x636290 y la tela. Después de la espera corre los personajes (0x508f00) y corta con error en la
     // primera etapa que MuRet no tiene; ahí la escena queda en Failure. Después de un corte, nada.
@@ -94,7 +98,8 @@ public:
     // 0x6371a6..0x63722e: sin el mundo cargado retiene sin leer; con él, lee el contador y retiene
     // con más de 30.
     void PrepareFrame() override;
-    // Suelta los tiles del terreno y los modelos de los objetos que subieron el dibujo y el paso.
+    // Suelta los tiles del terreno, los modelos de los objetos que subieron el dibujo y el paso, y las texturas
+    // que subió Enter.
     void Leave() override;
     // Ninguna: sin conexión, el juego sigue (Q-C70).
     [[nodiscard]] std::optional<SceneId> Next() const override;
@@ -155,8 +160,8 @@ private:
                                                                  const World::TerrainPolygon& polygon, int frames);
     [[nodiscard]] Core::Expected<void, std::string> DrawTheTail(SceneCanvas& canvas, const Render::Pass3D& pass,
                                                                 const World::TerrainPolygon& polygon, int frames);
-    // 0x637641..0x6376eb: el picking del frame y la pasada 2D.
-    [[nodiscard]] Core::Expected<void, std::string> DrawTheInterface();
+    // 0x637641..0x6376eb: el picking del frame y la pasada 2D: el HUD, las superposiciones y el cursor.
+    [[nodiscard]] Core::Expected<void, std::string> DrawTheInterface(SceneCanvas& canvas);
     // Los globales de 0x60b3d0 del frame, que comparten lo que cuelga de los personajes (0x509340) y los
     // ítems del piso (0x608a00): `item` apunta a `special`.
     void FillTheItemContexts(ItemSpecialDrawContext& special, ItemDrawContext& item, Core::Duration frameClock,
@@ -187,6 +192,10 @@ private:
     const Render::Models::ModelTextureSlots* m_gameSlots;
     const Data::Tables::GateTable* m_gates;
     const Data::Tables::SkillTable* m_skills;
+    const Data::Text::TextTable* m_texts;
+    // Las texturas de la escena: los cursores 2 y 3 con las ventanas, y las arenas del HUD.
+    SceneTextures m_windowTextures;
+    SceneTextures m_sandTextures;
     bool m_sent = false;
     bool m_firstStep = true;
     bool m_holdFrame = true;

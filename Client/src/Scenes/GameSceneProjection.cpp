@@ -36,6 +36,9 @@ void GameScene::PrepareDrawProjection(int frames)
     m_projection->heroYDepth = hero.cellYAccesses;
     m_projection->ownRecordDepth = world.Runtime().ownRecordDepth;
     m_projection->cameraShake = CameraInputState().shake;
+    m_projection->hud = world.Runtime().hud;
+    m_projection->crywolfSandOverlay = world.Runtime().crywolf.sandOverlay;
+    m_projection->sound.reset();
 }
 GameDrawTailState& GameScene::FrameTail()
 {

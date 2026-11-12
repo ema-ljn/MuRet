@@ -1,12 +1,16 @@
 #include "Render/SpriteBatch.h"
 
 #include "App/WindowState.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/OriginalQuad.h"
 #include "Render/OriginalSkewedQuad.h"
 #include "Render/QuadCorner.h"
+#include "Render/ScreenScale.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
+
+#include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
 #include <array>
@@ -39,6 +43,11 @@ std::array<Color, 4> FourOf(Color color)
 {
     return {color, color, color, color};
 }
+
+float F32(double value)
+{
+    return static_cast<float>(value);
+}
 } // namespace
 
 void SpriteBatch::Begin(App::PixelSize screen)
@@ -55,6 +64,16 @@ void SpriteBatch::SetBlend(BlendMode blend)
     m_blend = blend;
     m_textureOn = true;
     m_alphaTest = blend == BlendMode::Alpha;
+}
+
+BlendMode SpriteBatch::Blend() const
+{
+    return m_blend;
+}
+
+void SpriteBatch::EnableTexture()
+{
+    m_textureOn = true;
 }
 
 void SpriteBatch::SetColor(Color color)
@@ -105,6 +124,36 @@ void SpriteBatch::Image(const UiImage& image)
     m_textureOn = image.slot.has_value();
     m_color = Clamped(image.color);
     Append(UiImageCorners(image, m_screen), FourOf(m_color), image.slot);
+}
+
+void SpriteBatch::RotatedQuad(TextureSlot slot, float x, float y, float width, float height, float degrees)
+{
+    // 0x621cc0..0x621d31: el centro y el tamaño en píxeles, con la y dada vuelta (H − y en la x87).
+    const float centerX = ScaleX(x, m_screen);
+    const float centerY = F32(static_cast<double>(m_screen.height) - static_cast<double>(ScaleY(y, m_screen)));
+    const float pixelWidth = ScaleX(width, m_screen);
+    const float pixelHeight = ScaleY(height, m_screen);
+    // 0x621d34..0x621d82: las esquinas (−w/2, h/2), (−w/2, −h/2), (w/2, −h/2) y (w/2, h/2), con el −0,5 de
+    // 0x6ba298 y el 0,5 de 0x6b882c, y z en 0.
+    const float left = F32(static_cast<double>(pixelWidth) * -0.5);
+    const float right = F32(static_cast<double>(pixelWidth) * 0.5);
+    const float top = F32(static_cast<double>(pixelHeight) * 0.5);
+    const float bottom = F32(static_cast<double>(pixelHeight) * -0.5);
+    const std::array<glm::vec3, 4> local{glm::vec3(left, top, 0.0f), glm::vec3(left, bottom, 0.0f),
+                                         glm::vec3(right, bottom, 0.0f), glm::vec3(right, top, 0.0f)};
+    constexpr std::array<std::array<float, 2>, 4> Uvs{{{0.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f}}};
+    const Models::OriginalMatrix spin = Models::OriginalAngleMatrix({0.0f, 0.0f, degrees});
+    QuadCorners corners{};
+    for (std::size_t k = 0; k < corners.size(); ++k)
+    {
+        // 0x621de3..0x621e01: cada esquina girada (0x5fcbd0), más el centro.
+        const glm::vec3 rotated = Models::OriginalVectorRotate(local[k], spin);
+        corners[k] = QuadCorner{.x = F32(static_cast<double>(centerX) + static_cast<double>(rotated.x)),
+                                .y = F32(static_cast<double>(centerY) + static_cast<double>(rotated.y)),
+                                .u = Uvs[k][0],
+                                .v = Uvs[k][1]};
+    }
+    Append(corners, FourOf(m_color), slot);
 }
 
 App::PixelSize SpriteBatch::Screen() const

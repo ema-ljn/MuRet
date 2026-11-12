@@ -161,6 +161,8 @@ Core::Expected<void, std::string> GameModels::Load(const std::filesystem::path& 
     AssignTextures(Data::Models::SkillTextureCalls());
     AssignTextures(TailTextureCalls);
     UploadEach(dataRoot, DamageTextureSet, textures, log, &m_textureMetadata);
+    // 0x61ccb0: las del HUD, antes de las de los efectos (CL8 hito 2).
+    UploadEach(dataRoot, HudTextureSet, textures, log);
     UploadEach(dataRoot, GlowTextureSet, textures, log, &m_textureMetadata);
     UploadEach(dataRoot, ClothTextureSet, textures, log);
     UploadEach(dataRoot, EffectTextureSet, textures, log, &m_textureMetadata);

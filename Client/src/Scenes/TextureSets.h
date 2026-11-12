@@ -32,6 +32,44 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet
     {"Interface\\FontTest.tga", 0x01, TextureSetsDetail::NearestClamp},
 }};
 
+// Las del HUD del juego que sube 0x61ccb0 (0x61cce0..0x61e5f0, CL8 hito 2), en su orden y con su sampling: los
+// cursores del juego (0x63bd00 con GL_LINEAR y GL_CLAMP), la barra de abajo (GL_NEAREST y GL_CLAMP), el AG, el
+// botón de los comandos, los de la UI vieja que dibuja 0x4a5120, el cursor de identificar, el de atacar en el asedio
+// y los íconos de estado; y las de las skills, que sube 0x61ae60 desde 0x61ccb0. Las sube GameModels con los
+// modelos, y quedan. El 2 y el 3, Cursor y CursorPush, no: son de WindowTextureSet, que cada escena sube y suelta,
+// y el juego también.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 29> HudTextureSet{{
+    {"Interface\\CursorAttack.tga", 0x04, TextureSetsDetail::LinearClamp},
+    {"Interface\\CursorGet.tga", 0x05, TextureSetsDetail::LinearClamp},
+    {"Interface\\CursorTalk.tga", 0x06, TextureSetsDetail::LinearClamp},
+    {"Interface\\CursorRepair.tga", 0x07, TextureSetsDetail::LinearClamp},
+    {"Interface\\CursorLeanAgainst.tga", 0x08, TextureSetsDetail::LinearClamp},
+    {"Interface\\CursorSitDown.tga", 0x09, TextureSetsDetail::LinearClamp},
+    {"Interface\\CursorDontMove.tga", 0x0a, TextureSetsDetail::LinearClamp},
+    {"Interface\\Menu01_new.jpg", 0xe6, TextureSetsDetail::NearestClamp},
+    {"Interface\\Menu02.jpg", 0xe7, TextureSetsDetail::NearestClamp},
+    {"Interface\\Menu03_new.jpg", 0xe8, TextureSetsDetail::NearestClamp},
+    {"Interface\\Menu04.tga", 0xe9, TextureSetsDetail::NearestClamp},
+    {"Interface\\Menu_Red.jpg", 0xea, TextureSetsDetail::NearestClamp},
+    {"Interface\\Menu_Blue.jpg", 0xeb, TextureSetsDetail::NearestClamp},
+    {"Interface\\Menu_Party.jpg", 0xec, TextureSetsDetail::NearestClamp},
+    {"Interface\\Menu_Character.jpg", 0xed, TextureSetsDetail::NearestClamp},
+    {"Interface\\Menu_Inventory.jpg", 0xee, TextureSetsDetail::NearestClamp},
+    {"Interface\\Menu_Green.jpg", 0xf7, TextureSetsDetail::NearestClamp},
+    {"Interface\\Guild.jpg", 0xfa, TextureSetsDetail::NearestClamp},
+    {"Interface\\win_letter.jpg", 0x64d, TextureSetsDetail::NearestClamp},
+    {"Interface\\win_man.jpg", 0x64e, TextureSetsDetail::NearestClamp},
+    {"Interface\\win_push.jpg", 0x64f, TextureSetsDetail::NearestClamp},
+    {"Interface\\CursorID.tga", 0x65a, TextureSetsDetail::NearestClamp},
+    {"Interface\\menu01_new2.jpg", 0x65c, TextureSetsDetail::NearestClamp},
+    {"Interface\\Menu03_new_AG.jpg", 0x101, TextureSetsDetail::NearestClamp},
+    {"Interface\\CursorAttack2.tga", 0x68d, TextureSetsDetail::NearestClamp},
+    {"Interface\\StatusIcon.jpg", 0x68e, TextureSetsDetail::NearestClamp},
+    {"Interface\\Skill.jpg", 0x12a, TextureSetsDetail::NearestClamp},
+    {"Interface\\Skill2.jpg", 0x12b, TextureSetsDetail::NearestClamp},
+    {"Interface\\command.jpg", 0x12c, TextureSetsDetail::NearestClamp},
+}};
+
 // Las de los pases de brillo, que 0x61ccb0 sube en su avance 0 y nadie suelta: Shiny01 para el 0x8,
 // Chrome01 para el 0x4 y Chrome02 para el 0x200, el 0x800 y el 0x1000 (06 § Los pases de brillo).
 // No son de una escena: las sube GameModels con los modelos, y quedan.
@@ -166,12 +204,12 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 18> LoginTextureSet
     {"Interface\\cr_mu_lo.tga", 0x1a, TextureSetsDetail::LinearClamp},
 }};
 
-// Las seis de 0x61ccb0 que usan el login y la selección: los dos cursores (0x61ccf9 y 0x61cd12, con
-// filtro, UI/GameCursor.h), y lo de las ventanas (CL5.5 y CL6.5): el OK y el cancelar de la cuenta y
+// Las seis de 0x61ccb0 que usan el login, la selección y el juego: los dos cursores (0x61ccf9 y 0x61cd12,
+// con filtro, UI/GameCursor.h), y lo de las ventanas (CL5.5 y CL6.5): el OK y el cancelar de la cuenta y
 // del aviso, la caja del aviso y la del código del borrado, sin filtro y sin repetir (0x2600 y
 // 0x2900). El original las sube con los datos del juego, en la carga, y no las suelta; acá las sube
-// cada escena con las suyas y las suelta al salir. Las demás de 0x61ccb0 (los otros cursores, de 4 a
-// 0xa, y el cerrar, 0x726) no las usa ninguna de las dos.
+// cada escena con las suyas y las suelta al salir. Los otros cursores, de 4 a 0xa, son del HUD
+// (HudTextureSet); el cerrar, 0x726, no lo usa ninguna.
 inline constexpr std::array<Data::Textures::TextureSetEntry, 6> WindowTextureSet{{
     {"Interface\\Cursor.tga", 0x02, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorPush.tga", 0x03, TextureSetsDetail::LinearClamp},
@@ -179,6 +217,14 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 6> WindowTextureSet
     {"Interface\\loding_cancel_b_all.tga", 0x725, TextureSetsDetail::NearestClamp},
     {"Interface\\message_back.tga", 0x727, TextureSetsDetail::NearestClamp},
     {"Interface\\delete_secret_number.tga", 0x728, TextureSetsDetail::NearestClamp},
+}};
+
+// Las arenas de Tarkan y el humo de Crywolf y del asedio que dibuja el HUD del juego (0x5a7520): 0x61c7c0, el
+// login, las sube con GL_LINEAR y GL_REPEAT y no las suelta, y el juego las usa así. MuRet las suelta con el
+// login (LoginTextureSet): el juego las sube y las suelta él.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 2> SandTextureSet{{
+    {"Object9\\sand01.jpg", 0x5c2, TextureSetsDetail::LinearRepeat},
+    {"Object9\\sand02.jpg", 0x5c3, TextureSetsDetail::LinearRepeat},
 }};
 
 // Las seis de 0x622e40, la escena de carga: con filtro, y repetida solo la barra (0x723). Las

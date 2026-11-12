@@ -58,6 +58,9 @@ struct GameHudContext
     const Data::Tables::SkillTable* skills = nullptr;
     // [0x6eed3c] + 0x8004, los 64 conjuntos de ItemSetOption.bmd que lee el cartel (0x40eca0); sin ellos, corta.
     const Data::Tables::ItemSetOptionTable* setOptions = nullptr;
+    // [0x6eed3c] + 4, ItemSetType.bmd: el conjunto de cada tipo que leen el nombre y las opciones de un ítem en su
+    // tooltip (0x40cf30, 0x40eee0); sin ella, un ítem de conjunto corta.
+    const Data::Tables::ItemSetTypeTable* setTypes = nullptr;
     // 0x5767b88: el reloj del mundo, en ms.
     float worldClock = 0.0f;
     // 0x7d3682c y 0x7d36828: el mouse en 640 × 480 (UI::MouseIn640x480).

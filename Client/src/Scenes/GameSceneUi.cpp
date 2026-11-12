@@ -168,6 +168,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .items = m_items,
         .skills = m_skills,
         .setOptions = m_chatTables.setOptions,
+        .setTypes = m_chatTables.itemSetTables != nullptr ? &m_chatTables.itemSetTables->types : nullptr,
         .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
         .mouse = UI::MouseIn640x480(input, canvas.screen),
         .leftDown = input.IsDown(Input::MouseButton::Left)};

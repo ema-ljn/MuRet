@@ -41,6 +41,10 @@ struct TooltipLines
     std::array<std::int32_t, TooltipLineCount> colors{};
     // 0x78a9230 + 4 · i: con algo distinto de 0, la fuente negrita (0x5763558). Ningún cuerpo los limpia.
     std::array<std::int32_t, TooltipLineCount> bold{};
+    // 0x78abb30: el renglón que sigue, y 0x78abb34: cuántos "\n" lleva (los medios renglones de la altura). Los ponen
+    // en 0 el cuerpo del ítem (0x5b2aa0) y el de reparar (0x5b8150) al empezar; 0x5af590 los sigue.
+    std::int32_t next = 0;
+    std::int32_t halves = 0;
 
     // memset de los colores que limpian los cuerpos (rep stosd de 0x14).
     void ClearColors()

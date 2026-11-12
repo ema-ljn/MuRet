@@ -38,5 +38,8 @@ struct GameSceneFrameProjection
     HudState hud{};
     std::uint8_t crywolfSandOverlay = 0;
     std::optional<std::int32_t> sound{};
+    // 0x77f36d4 + 0x12 · 4 y 0x78abb38: el latch de Alt y los nombres del piso, que invierte el hover (0x5bbbc0).
+    std::int32_t altLatch = 0;
+    std::uint8_t altNames = 0;
 };
 } // namespace Client::Scenes

@@ -1073,6 +1073,36 @@ push): puede haber underflow (*inferido*). A MuRet no le importa: `SpriteBatch` 
 sí importa es la mezcla cacheada (`0x7d366dc`: solo cambia GL si cambia el modo) y el color que hereda el que
 sigue, porque varias funciones dibujan sin poner color.
 
+**Los textos 3D** (`0x4383f0`, en `0x63764b`; CL8 hito 6, *estático*). La cola es un `std::deque` de la `.bss` en
+`0x723c18` con entradas de `0x4c` bytes: el texto en 64 (`0x4381f0` copia los 64 que le pasan, con su `'\0'`) y la
+posición en tres `float`. La llena solo `0x4381f0`, desde el cuerpo de los personajes (`0x4fd603`: el tipo `0xc5`
+con su nombre y `+0x1d6`, CL9.5, que MuRet corta). El dibujo hace `glColor3f(1, 1, 1)` y, mientras la cola tenga
+entradas, toma la de adelante: su posición con la z 370 más arriba (`0x6b8b88`, `fadd` y `fstp` a `float`) por
+`0x6205b0`; con la x y la y de la pantalla en 0 o más (con signo, `0x438460..0x438469`), la negrita en el DC
+(`0x43846b`; el `GetTextExtentPointA` de al lado no se usa), el fondo `0xff000064` (`0x6c8e64`), el texto
+`0xffc8e6ff` (`0x6c8e5c`) y `0x623690`, el texto centrado en la x. Después la saca, se haya dibujado o no
+(`0x69eff0` suelta cada bloque al pasarlo). No saca `rand()`. MuRet: `Scenes::DrawTheWorldTexts` sobre
+`WorldRuntime::worldTexts`, que en el juego de hoy llega siempre vacía; sin la proyección del pase del mundo, una
+entrada corta con `0x438455`.
+
+**El hover y Alt** (`0x5bbbc0`, en `0x637650`; CL8 hito 6, *estático*). En Chaos Castle (mapas 18 a 23) sin
+"webzen" (`0x6c9ccc`) en el nombre del héroe (`0x576960`) y con un NPC (`0x6c8e2c`) o un personaje (`0x6c8e30`)
+elegido, vuelve sin hacer nada (Q-C612). Si no, `0x77f3b66` en 1 (Q-C610), `glColor3f(1, 1, 1)` y `0x620980`, y el
+primero que haya de:
+
+| Elegido | Qué hace | MuRet |
+|---|---|---|
+| NPC | `0x557170(+0x1d9, 0x78abb3c, personaje, 0, −1)`: su nombre solo en un globo (el texto vacío de la `.bss`, el modo 0 y sin color) | `AddChatBubble` |
+| personaje, con `0x6c8e38` en −1 | un monstruo (`+0x88` en 2): `0x6c8e64 = 0xff000064`, `0x6c8e5c = 0xffc8e6ff` y `0x623690(0x5bb8d0() / 2, 10, nombre)` (la mitad con `CDQ` y `SAR`, hacia el 0; el `GetTextExtentPointA` de antes no se usa). Los demás, sin tienda personal (`0x451d10` da el objeto `0x7245c8` y `0x451770` busca el personaje en su mapa, que llenan los paquetes de la CL9.4), en un globo como el NPC con `0x78abb40` | portado; la tienda da siempre 0 |
+| ítem del piso (`0x6c8e28`) | `0x5ba790(i, +0x44, +0, +0x17, +0x18, 0)` de la entrada de `0x220` bytes en `0x77f46d0`: su nombre | corta con `0x5bbd62` (CL9.3) |
+
+Después Alt: el flanco (`0x553520(0x12)`, `0x5bbd6c`) invierte `0x78abb38`, que nadie más lee ni escribe; con él
+prendido o con Alt abajo (`GetAsyncKeyState(0x12)` con el byte alto en `0x80`), cada ítem del piso vivo (`+0x44`) y
+a la vista (`+0x1b0`) que no es el elegido va a `0x5ba790` con 1 (Q-C611; MuRet corta con `0x5bbdd2`, CL9.3). No
+saca `rand()` (`0x5bb8d0` sin el inventario abierto no consulta el comercio ni la tienda de NPC). MuRet:
+`Scenes::DrawTheHover`, con el latch de Alt en `GameUiState::keyLatches[0x12]` y `0x78abb38` en
+`GameUiState::altNames`; un dibujo intermedio no escribe los globos y gira el latch sobre copias.
+
 **El HUD `0x5a7320`, hijo por hijo.** Empieza con `0x6c8e5c = −1`. La columna "base" es el estado de la traza
 (sin ventanas, sin party, sin evento, sin arco); `r` son `rand()` por frame.
 

@@ -108,20 +108,10 @@ constexpr std::int32_t WhisperModeBottom = 0x1bc;
 // 0x5ac93f..0x5ac97b: la barra levanta un ítem del piso a menos de 300 (0x6b8900).
 constexpr float PickUpDistance = 300.0f;
 
-// 0x553520(vk): con la tecla abajo y su latch en 0, lo pone en 1 y da verdadero; con la tecla arriba, lo vuelve a
-// 0. GetAsyncKeyState mira el teclado en el momento: MuRet mira el estado del frame (Input::InputState).
+// 0x553520(vk).
 bool KeyEdge(UI::GameUiState& ui, const Input::InputState& input, GameKey key)
 {
-    std::int32_t& latch = ui.keyLatches[key.virtualKey];
-    if (!input.IsDown(key.key))
-    {
-        latch = 0;
-        return false;
-    }
-    if (latch != 0)
-        return false;
-    latch = 1;
-    return true;
+    return UI::LatchTheKey(ui.keyLatches[key.virtualKey], input.IsDown(key.key));
 }
 
 // 0x6578e0: hay un campo de texto con el foco (el chat 0x6c8e68, 0x77f3b68, el del diálogo de los paneles) o la

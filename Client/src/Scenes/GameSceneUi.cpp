@@ -14,6 +14,7 @@
 #include "Scenes/GameChat.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameDialogDrawing.h"
+#include "Scenes/GameHover.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameProjection.h"
@@ -22,6 +23,7 @@
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WorldTexts.h"
 #include "UI/GameCursor.h"
 #include "UI/GameUiState.h"
 #include "UI/Widget.h"
@@ -240,7 +242,30 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .mouse = UI::MouseIn640x480(input, canvas.screen),
         .leftDown = input.IsDown(Input::MouseButton::Left)};
     // 0x637646: 0x6219b0 empieza el 2D (gluOrtho2D y MODELVIEW identidad, con push): el lote de SceneCanvas.
-    // 0x63764b: 0x4383f0, los textos 3D, y 0x637650: 0x5bbbc0, el hover y Alt (P-C93).
+    // 0x63764b: 0x4383f0, los textos 3D.
+    WorldTextDrawContext worldTexts{.queue = runtime.worldTexts,
+                                    .projection = projection,
+                                    .sprites = canvas.sprites,
+                                    .text = canvas.text,
+                                    .hud = hud.hud,
+                                    .projecting = m_projectingFrame};
+    if (auto drawn = DrawTheWorldTexts(worldTexts); !drawn.HasValue())
+        return drawn;
+    // 0x637650: 0x5bbbc0, el hover y Alt.
+    GameHoverContext hover{.world = *m_context.world,
+                           .tail = FrameTail(),
+                           .random = FrameCloth().random,
+                           .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
+                           .hud = hud.hud,
+                           .altLatch =
+                               m_projectingFrame ? m_projection->altLatch : runtime.ui.keyLatches[UI::AltVirtualKey],
+                           .altNames = m_projectingFrame ? m_projection->altNames : runtime.ui.altNames,
+                           .altDown = input.IsDown(Input::Key::Alt),
+                           .sprites = canvas.sprites,
+                           .text = canvas.text,
+                           .projecting = m_projectingFrame};
+    if (auto drawn = DrawTheHover(hover); !drawn.HasValue())
+        return drawn;
     // 0x637660: 0x5a7320(1), el HUD, con 0x7d36899 en 0.
     if (auto drawn = DrawTheHud(hud); !drawn.HasValue())
         return drawn;

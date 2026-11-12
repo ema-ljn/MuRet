@@ -16,6 +16,24 @@ namespace Client::UI
 // del chat, las de los paneles, Q/W/E, B, R y el Tab del panel del asedio: el primero que lee una tecla abajo
 // pone su latch en 1 y los demás la ven como ya leída hasta que se suelta.
 inline constexpr std::size_t VirtualKeyCount = 256;
+// VK_MENU, el Alt del hover (0x5bbd6a).
+inline constexpr std::size_t AltVirtualKey = 0x12;
+
+// 0x553520(vk), con el latch de esa tecla: con la tecla abajo y su latch en 0, lo pone en 1 y da verdadero; con la
+// tecla arriba, lo vuelve a 0 y da falso. GetAsyncKeyState mira el teclado en el momento: MuRet mira el estado del
+// frame (Input::InputState).
+inline bool LatchTheKey(std::int32_t& latch, bool down)
+{
+    if (!down)
+    {
+        latch = 0;
+        return false;
+    }
+    if (latch != 0)
+        return false;
+    latch = 1;
+    return true;
+}
 
 struct GameUiState
 {
@@ -78,6 +96,9 @@ struct GameUiState
     std::int32_t wheel = 0;
     // 0x77f36d4.
     std::array<std::int32_t, VirtualKeyCount> keyLatches{};
+    // 0x78abb38: los nombres de los ítems del piso prendidos. El flanco de Alt (0x553520(0x12)) del hover (0x5bbd6c)
+    // lo invierte (0x5bbd7f) y solo lo lee ese dibujo (0x5bbd86).
+    std::uint8_t altNames = 0;
     // 0x5763588: Enter. Lo prende el WndProc (0x4b50ff, salvo en Chaos Castle fuera de la zona segura), lo leen y
     // apagan los diálogos (0x6263df y 0x62da58) y lo apaga la cola del frame (0x63b0b7).
     bool enterPressed = false;

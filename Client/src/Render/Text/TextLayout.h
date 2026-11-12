@@ -63,6 +63,23 @@ struct TextPiece
 // Un texto de ancho 0 no da ninguna caja; el original no dibuja un texto vacío.
 [[nodiscard]] std::vector<TextPiece> TextPieces(int x, int y, TextExtent extent, App::PixelSize screen);
 
+// 0x467060 con el modo 2 (0x46711b..0x467132), el de 0x554180(x, y, texto, caja, 1, ·) y 0x5542f0(·, caja, 2, ·):
+// el texto centrado en una caja de `boxWidth` columnas, para un texto de `textWidth` (cx).
+struct CenteredInBox
+{
+    // La columna del DIB donde TextOutA pone el texto (0x46720a): (caja − cx) / 2 con la división de C (cdq, sub y
+    // sar, que trunca hacia el 0). Con un texto más ancho que la caja es negativa, y TextOutA corta la izquierda.
+    int textColumn = 0;
+    // Las columnas de la caja (lea en 0x46712c): cx + 2 · textColumn, que es la caja, o una menos si caja − cx es
+    // impar y positiva, o una más si es impar y negativa. 0x4671b4 limpia el DIB en todo este ancho (el fondo), y lo
+    // que sigue (el corte en W pasados los 256, las cajas y sus quads) es el de TextPieces con este ancho.
+    int width = 0;
+
+    friend bool operator==(const CenteredInBox&, const CenteredInBox&) = default;
+};
+
+[[nodiscard]] CenteredInBox CenterInBox(int boxWidth, int textWidth);
+
 // 0x554000(x, y, ancho, filas, …, 0, 0x280) de un renglón de un globo (0x555b00), en píxeles: una x negativa va a 0 y
 // una caja que pasa de W va contra el borde; con 0x77f3b66 prendido (`clampY`), una y negativa va a 0 y una caja que
 // pasa de H − H · 47 / 640 (con IDIV) sube hasta ahí. El quad muestra `width` columnas de la caja de 256 (con GL_CLAMP,

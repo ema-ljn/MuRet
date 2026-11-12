@@ -70,6 +70,14 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> DrawBoxed(SpriteBatch& batch, int x, int y, std::string_view text,
                                                               const TextStyle& style, const BoxShape& box, bool clampY);
 
+    // 0x554180(x, y, texto, caja, 1, ·), el modo 2 de 0x467060 (el título del inventario): el texto centrado en una
+    // caja de `boxWidth` columnas (CenterInBox) que empieza en (x, y) de 640 × 480, con el fondo en toda la caja y las
+    // cajas de 256 y sus quads de TextPieces con el ancho de la caja. Un texto vacío con caja mide "0" (0x6c7ae4,
+    // 0x4670ba..0x4670d0) y da el fondo solo; sin caja, nada. Cada caja es otra entrada de la caché. Error si la
+    // caja da menos de 0 columnas (una caja negativa: el rep stos de 0x4671cf limpiaría fuera del DIB), y los de Draw.
+    [[nodiscard]] Core::Expected<void, std::string>
+    DrawCenteredInBox(SpriteBatch& batch, int x, int y, std::string_view text, const TextStyle& style, int boxWidth);
+
     // GetTextExtentPointA, para ubicar el texto antes de dibujarlo (RightAlignedAt).
     [[nodiscard]] TextExtent Measure(FontKind font, std::string_view text) const;
 
@@ -86,7 +94,7 @@ public:
 
 private:
     // La clave: la fuente, los colores, el texto, que en el índice apunta al de su entrada, y las columnas que el modo
-    // 6 deja afuera a la izquierda.
+    // 6 deja afuera a la izquierda (negativas, las que el modo 2 deja antes del texto).
     struct Key
     {
         FontKind font = FontKind::Normal;
@@ -95,6 +103,8 @@ private:
         int skipped = 0;
         // La caja de un globo; con ancho 0, la de 0x467060.
         BoxShape box{};
+        // Las columnas de la caja del modo 2 (CenterInBox); con 0, las del texto menos `skipped`.
+        int columns = 0;
     };
     struct KeyLess
     {
@@ -107,10 +117,11 @@ private:
         std::string text;
         int skipped = 0;
         BoxShape box{};
-        // El ancho es el que se ve: el del texto menos `skipped`, o el de la caja del globo.
+        // El ancho es el que se ve: el del texto menos `skipped`, `columns` o el de la caja del globo.
         TextExtent extent;
         // Una por cada 256 columnas del texto, en orden.
         std::vector<TextureSlot> boxes;
+        int columns = 0;
     };
     using Entries = std::list<Entry>;
 

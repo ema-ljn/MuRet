@@ -30,6 +30,9 @@ namespace Client::Render::Text
 {
 namespace
 {
+// Lo que mide 0x467060 en vez de un texto vacío (0x6c7ae4, con largo 1).
+constexpr std::string_view EmptyTextMeasure = "0";
+
 // Las cajas de un texto de `width` columnas: una por cada 256, la última con lo que sobra.
 std::size_t BoxesFor(int width)
 {
@@ -131,6 +134,35 @@ Core::Expected<void, std::string> TextCache::DrawBoxed(SpriteBatch& batch, int x
     return {};
 }
 
+Core::Expected<void, std::string> TextCache::DrawCenteredInBox(SpriteBatch& batch, int x, int y, std::string_view text,
+                                                               const TextStyle& style, int boxWidth)
+{
+    // 0x467077..0x467082: un texto vacío sin caja sale sin dibujar.
+    if (text.empty() && boxWidth == 0)
+        return {};
+    // 0x4670ba..0x4670d0: uno vacío mide el "0" de 0x6c7ae4 (el alto es el de la celda, como el de un texto vacío).
+    const std::string_view measured = text.empty() ? std::string_view{EmptyTextMeasure} : text;
+    const CenteredInBox placed = CenterInBox(boxWidth, m_rasterizer->Measure(style.font, measured).width);
+    if (placed.width < 0)
+        return Core::Unexpected(std::format(
+            "0x4671cf: la caja de {} da {} columnas: el rep stos limpiaría fuera del DIB", boxWidth, placed.width));
+    // 0x467289: sin columnas no hay cajas.
+    if (placed.width == 0)
+        return {};
+    // El texto va placed.textColumn columnas a la derecha del principio de la caja.
+    const Key key{.font = style.font,
+                  .colors = style.colors,
+                  .text = text,
+                  .skipped = -placed.textColumn,
+                  .box = {},
+                  .columns = placed.width};
+    const Core::Expected<Entries::iterator, std::string> found = Find(key, batch);
+    if (!found.HasValue())
+        return Core::Unexpected(found.Error());
+    DrawPieces(batch, *found.Value(), x, y);
+    return {};
+}
+
 void TextCache::DrawPieces(SpriteBatch& batch, const Entry& entry, int x, int y)
 {
     for (const TextPiece& piece : TextPieces(x, y, entry.extent, batch.Screen()))
@@ -177,10 +209,12 @@ std::size_t TextCache::UsedSlots() const
 
 bool TextCache::KeyLess::operator()(const Key& a, const Key& b) const
 {
-    return std::tie(a.font, a.colors.text, a.colors.background, a.text, a.skipped, a.box.width, a.box.rows,
-                    a.box.prefixColumns, a.box.prefixColor) < std::tie(b.font, b.colors.text, b.colors.background,
-                                                                       b.text, b.skipped, b.box.width, b.box.rows,
-                                                                       b.box.prefixColumns, b.box.prefixColor);
+    const auto tied = [](const Key& key)
+    {
+        return std::tie(key.font, key.colors.text, key.colors.background, key.text, key.skipped, key.box.width,
+                        key.box.rows, key.box.prefixColumns, key.box.prefixColor, key.columns);
+    };
+    return tied(a) < tied(b);
 }
 
 Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const Key& key, const SpriteBatch& batch)
@@ -195,6 +229,8 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
     const bool boxed = key.box.width > 0;
     TextExtent extent = m_rasterizer->Measure(key.font, key.text);
     extent.width = std::max(extent.width - key.skipped, 0);
+    if (key.columns > 0)
+        extent.width = key.columns;
     if (boxed)
         extent = TextExtent{.width = key.box.width, .height = key.box.rows};
     // La caja de un globo es una sola: el quad muestra más de 256 columnas con la última repetida.
@@ -215,7 +251,7 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
         EvictOldest();
     }
 
-    Entry entry{key.font, key.colors, std::string(key.text), key.skipped, key.box, extent, {}};
+    Entry entry{key.font, key.colors, std::string(key.text), key.skipped, key.box, extent, {}, key.columns};
     entry.boxes.reserve(boxes);
     std::vector<Data::Textures::LoadedTexture> textures;
     textures.reserve(boxes);
@@ -260,7 +296,8 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
 
     m_entries.push_front(std::move(entry));
     const Entry& front = m_entries.front();
-    m_index.emplace(Key{front.font, front.colors, front.text, front.skipped, front.box}, m_entries.begin());
+    m_index.emplace(Key{front.font, front.colors, front.text, front.skipped, front.box, front.columns},
+                    m_entries.begin());
     return m_entries.begin();
 }
 
@@ -271,7 +308,7 @@ void TextCache::EvictOldest()
         return;
     }
     const Entry& oldest = m_entries.back();
-    m_index.erase(Key{oldest.font, oldest.colors, oldest.text, oldest.skipped, oldest.box});
+    m_index.erase(Key{oldest.font, oldest.colors, oldest.text, oldest.skipped, oldest.box, oldest.columns});
     // Al revés, para que la pila los vuelva a dar en el orden en que estaban.
     for (auto slot = oldest.boxes.rbegin(); slot != oldest.boxes.rend(); ++slot)
     {

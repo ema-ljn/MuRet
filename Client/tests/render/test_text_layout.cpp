@@ -10,8 +10,8 @@
 
 #include <vector>
 
-// Client::Render::Text::RightAlignedAt, CenteredAt, BottomAlignedAt y TextPieces: dónde van los textos del
-// login (0x6350b0) y cómo los corta y los ubica 0x467060 con 0x554000 (06 § Texto). Los textos son
+// Client::Render::Text::RightAlignedAt, CenteredAt, BottomAlignedAt, TextPieces y CenterInBox: dónde van los textos
+// del login (0x6350b0) y cómo los corta y los ubica 0x467060 con 0x554000 (06 § Texto). Los textos son
 // sintéticos y los mide el rasterizador falso: 6 columnas por letra y 13 filas.
 namespace
 {
@@ -19,6 +19,8 @@ using Client::App::PixelSize;
 using Client::Render::Text::BottomAlignedAt;
 using Client::Render::Text::BoxedQuad;
 using Client::Render::Text::CenteredAt;
+using Client::Render::Text::CenteredInBox;
+using Client::Render::Text::CenterInBox;
 using Client::Render::Text::DesignX;
 using Client::Render::Text::DesignY;
 using Client::Render::Text::EndingAt;
@@ -265,5 +267,27 @@ TEST(TextLayoutTest, ABubbleBoxIsKeptInsideTheScreen)
     EXPECT_EQ(BoxedQuad(0, -7, 60, 13, false, Screen640).y, -7.0f);
     EXPECT_EQ(BoxedQuad(0, 440, 60, 13, false, Screen640).y, 440.0f);
     EXPECT_GT(BoxedQuad(0, 0, 300, 13, true, Screen640).du, 1.0f);
+}
+
+// El modo 2 de 0x467060: el texto en la columna (caja − cx) / 2, con la división de C, y la caja en cx + 2 veces eso.
+// La caja del título del inventario en 640 × 480 (120) con 9 letras de 6 (54) deja 33 columnas de cada lado; en
+// 1.600 × 1.200 (300) con 55 columnas, 245 / 2 da 122 y la caja queda en 299, una menos que la pedida.
+TEST(TextLayoutTest, TheModeTwoCentersTheTextInItsBox)
+{
+    EXPECT_EQ(CenterInBox(120, 54), (CenteredInBox{.textColumn = 33, .width = 120}));
+    EXPECT_EQ(CenterInBox(300, 55), (CenteredInBox{.textColumn = 122, .width = 299}));
+    EXPECT_EQ(CenterInBox(192, 192), (CenteredInBox{.textColumn = 0, .width = 192}));
+}
+
+// Con un texto más ancho que la caja la columna es negativa y trunca hacia el 0 (cdq y sub antes del sar): −5 / 2 da
+// −2, y la caja queda una más ancha que la pedida. Sin caja, la columna del medio de un cx impar, o ninguna; con una
+// caja negativa, la caja da menos de 0 columnas.
+TEST(TextLayoutTest, AWiderTextGoesLeftOfItsBox)
+{
+    EXPECT_EQ(CenterInBox(10, 15), (CenteredInBox{.textColumn = -2, .width = 11}));
+    EXPECT_EQ(CenterInBox(10, 16), (CenteredInBox{.textColumn = -3, .width = 10}));
+    EXPECT_EQ(CenterInBox(0, 5), (CenteredInBox{.textColumn = -2, .width = 1}));
+    EXPECT_EQ(CenterInBox(0, 4), (CenteredInBox{.textColumn = -2, .width = 0}));
+    EXPECT_EQ(CenterInBox(-10, 5), (CenteredInBox{.textColumn = -7, .width = -9}));
 }
 } // namespace

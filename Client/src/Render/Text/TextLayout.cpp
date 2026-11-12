@@ -157,6 +157,13 @@ std::vector<TextPiece> TextPieces(int x, int y, TextExtent extent, App::PixelSiz
     return pieces;
 }
 
+CenteredInBox CenterInBox(int boxWidth, int textWidth)
+{
+    // 0x467120..0x46712f: mov, sub, cdq, sub, sar y lea. La división de C de C++ también trunca hacia el 0.
+    const int textColumn = (boxWidth - textWidth) / 2;
+    return CenteredInBox{.textColumn = textColumn, .width = textWidth + 2 * textColumn};
+}
+
 OriginalQuad BoxedQuad(int x, int y, int width, int rows, bool clampY, App::PixelSize screen)
 {
     // 0x554060..0x5540b4: con el modo 0, contra W en píxeles.

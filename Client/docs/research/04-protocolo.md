@@ -729,6 +729,22 @@ y lo demás va a `Scenes/ChatReceive`, que corta con la dirección donde el orig
 `01` (`0x4e3450`), la ventana del aviso del gremio (`0x4c665f`, después del aviso centrado), el cartel (`0x4c66b3`)
 y el `F3 30` sin elegido (`0x4dd645`, antes de abrir el registro). Los tests usan nombres y textos inventados.
 
+### El chat que se manda: `00` y `02`
+
+(CL8 hito 3, *estático*.) Los arma el WndProc al apretar Enter (`0x4b5b0d` el chat y `0x4b70a7` el susurro) y las
+macros (`0x5a1388`), y salen en C1 con el XOR32 desde el byte 3 y en claro por `send()`, sin la cola de los cifrados:
+
+- **`C1 (0xd + n) 00`**: el nombre del héroe (`+0x1d9`, sus diez bytes con lo que haya detrás del `'\0'`) y el texto.
+- **`C1 (0xd + n) 02`**: los diez primeros bytes del buffer del susurro (`0x7798cf8`) y el texto. El destinatario
+  queda en `0x57678c4`.
+
+El texto va con su `'\0'` si tiene menos de `0x3c` bytes; si no, sus primeros `0x3c`, sin él (`0x4b7aaf` y
+`0x5a1515`). Del lado del GameServer son `PMSG_CHATDATA` y `PMSG_CHATDATA_WHISPER`: el nombre en `+3` y el texto en
+`+0xd`, de hasta 60 bytes (`CGChatRecv` y `CGChatWhisperRecv`). El camino cifrado de `0x4b6989` no se toma con estos
+dos. El chat no saca `rand()`; el susurro, los 3.848 del registro propio de `0x554a40`
+([06](06-render-escenas-y-ui.md#el-chat), "La entrada del chat"). **MuRet**: `Protocol::Chat::WriteChat` y
+`WriteWhisper`, que manda `App::ServerSession::SendChat`; lo que llevan lo escribió el jugador y no va al log.
+
 ## Qué implica para MuRet
 
 | Original | MuRet | Ola |

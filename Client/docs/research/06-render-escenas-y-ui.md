@@ -1187,6 +1187,53 @@ juego) y `UI/WhisperSenders`; la franja, en `WorldRuntime` (`chat.selectionNotic
 las skills del registro propio (`+0x26c`), el ataque automático, el sonido, los carteles prendidos (`0x6c7a8c`), Q, W
 y E y los renglones y la transparencia del registro. El cartel de `Slide.bmd` no está (08, P-C80).
 
+**La entrada del chat: escribir, mandar y las macros** (CL8 hito 3, *estático*; `Scenes/GameChat.cpp`,
+`UI/ChatInput.cpp`, `UI/ChatCommands.cpp`, `UI/MacroFile.cpp`). Con `0x6c7b8c` en 1 (`.data`), el chat escribe en
+dos EDIT de Windows del objeto `[0x57634f8]` (`0x4691e0`): el del mensaje en (`0xc1`, `0x1a6`) de `0xb4 × 0xe` con
+`EM_LIMITTEXT 0x32`, y el del susurro en (`0x178`, `0x1a6`) de `0x32 × 0xe` con 10. Sus buffers son `0x7798bf8` y
+`0x7798cf8` (de los diez de `0x100` que vacía `0x553570`), con sus largos en `0x7758590` y `0x7758594`; el campo
+elegido, `0x77f3b70`; el historial, el deque de `+0x2e4` (`0x469540` guarda, `0x469790` recorre, `0x469a80` deja
+diez). La subclase `0x467b10` le pasa Tab y Enter al WndProc y descarta Esc y `0x19..0x1c`. MuRet emula los EDIT como
+el campo del login (`UI::TextField` en Latin-1): `EM_SETSEL(0, −1)` elige todo y lo primero que entra lo reemplaza,
+sin cursor en el medio ni IME. Los ids de los dos EDIT (1 y 2, los dos primeros objetos que arma WinMain en
+`0x4bb173` y `0x4bb184`) son *inferidos*.
+
+- **Enter** (`0x4b50b0..0x4b88e9`): sale sin hacer nada en Chaos Castle fuera de la zona segura, con el diálogo
+  `0x7d`, `0x95`, `0x8a`, `0x8d` o `0x8b`, con `0x78abb00` en 3 o si `0x657880(0xd)` toma la tecla. Con el campo
+  abierto lee los EDIT a los buffers y lo escrito al historial; vacío (y sin `0x77f3b69`), Enter abre el campo (dos
+  campos, los EDIT a la vista con el foco en el del mensaje) o lo cierra. Si no, corre los comandos (`0x56c440`: las
+  compuertas, `/move`, `/filter`, `/1`../`0` y la cola de los nombres; cada comando social corta con su dirección,
+  CL9.4) y el filtro (`0x622b40` con 1: el texto 570). Con `/` adelante, sin nombre o sin el modo de F3, va al chat:
+  los emotes (`0x576eb0`, que corta: CL9.1, salvo montado fuera de la zona segura), el freno (`0x5767940`: con más de
+  `0x32` no sale nada y con más de 0 no sale lo mismo que el anterior, `0x57676e4`; cada uno lo deja en `0x46`),
+  "webzen" en el nombre del héroe (solo sale lo que empieza con `/` o `!`), `/whisper off` y `on` (textos 264 y 265,
+  avisos 267 y 268, en `0x77f3b98`) o, muriéndose, `/move` no sale; después el `C1 00`
+  ([04](04-protocolo.md#el-chat-que-se-manda-00-y-02)). Si no, el susurro: `0x554a40(6, nombre)` abre y cierra el
+  registro propio (3.848 `rand()`), deja pasar con el nivel 6 o el nombre en la lista de `0x77997f8` y si no avisa
+  con el 479; manda el `C1 02` (sin "webzen" en el nombre del héroe) y lo pone en el registro con el tipo 0. Al final
+  (`0x4b8841..0x4b88e2`): el área vieja vuelve al renglón `0x72` (no con un comando atendido), el EDIT del mensaje se
+  vacía, los EDIT se ocultan, el registro corre 100, el buffer del mensaje queda en ceros y el campo se cierra. El
+  chat no saca `rand()`.
+- **El paso** (`0x59ff10`): el clic derecho en un renglón del área vieja (`0x59ff45..0x5a009b`) pone el nombre en
+  el buffer del susurro (Q-C530); PgUp y PgDn corren el registro tantos renglones como muestra (la vtable `+0x38` y
+  `+0x34`); arriba y abajo recorren el historial con el foco en un EDIT y el campo par, y si no el nombre del susurro
+  de `0x77f31cc` (cinco de `0x100`, desde el 2 de `0x6c8ea8`). Con un campo de texto, el mouse sobre un EDIT lo
+  elige (`0x469500`) y es de la UI, el clic le da el foco (`0x468d50` → `0x4682a0(1)`; sus flechas y su barra no,
+  P-C86) y el botón de F3 (`0x5a33dc`) cambia `0x6c8dd0`. Las macros (`0x5a116f..0x5a2b47`): con `0x77f3b74` en 0,
+  fuera de Chaos Castle y con Alt, cada número abajo (Q-C451) corre `0x56c440(texto, 1)` (Q-C452), los emotes, el
+  filtro y lo mismo que el chat de Enter; la que pasa los comandos deja `0x77f3b74` en `0x64` (`0x5a1ea1`).
+  `0x637d2c` y `0x637d44` bajan los dos frenos de a uno por paso.
+- **Las teclas de `0x5ac8d0`**: F2, F3 y F4 cambian lo suyo y suenan (F4, con el registro en su ventana, va a x 0 con
+  el inventario y una de las seis ventanas anchas, si no a `0xba`); la barra y F1 cortan (hito 6).
+- **El HUD**: el paso 10 dibuja "Macro Time" (`0x6c9310`) centrado en el ancho del mundo en y = `0x188` y su barra
+  en y = 404 de 50 × 2; el 22 (`0x5aa9a0`), con el campo abierto o `0x77f3b69`, la caja sin mezcla (`0xf8` y `0xf9`,
+  que `0x61ccb0` sube en `0x61cfe6` y `0x61d002`), el texto de los EDIT, los nombres del susurro de los otros lugares
+  con el campo impar y, con el modo de F3, el indicador `0xef` (`0x61cee1`). MuRet dibuja el texto de los EDIT sin
+  componer su ventana ni el cursor (P-C89).
+- **`Data\Macro.txt`**: lo lee WinMain detrás de `Text.bmd` (`0x61ee30` → `0x61c1c0`, `fscanf("%s")`, Q-C449 y
+  Q-C531). Lo escriben (`0x61c170`) la salida del juego, el cambio de servidor y el gate a los mapas 30 y 31, que son
+  de otras olas: en MuRet, lo que se guarda con `/1`../`0` dura hasta cerrar.
+
 ## La escena de carga y la de login
 
 Leído en la CL5.R en el desensamblado de `c32bbd5f` (`objdump -d -M intel`), con el decompilado

@@ -9,8 +9,10 @@
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/Xor3.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
+#include "Data/Text/Credits.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -35,10 +37,12 @@
 #include "Scenes/TextureSets.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/EscapeWindow.h"
 #include "UI/LoginWindow.h"
 #include "UI/MenuBar.h"
 #include "UI/MessageArea.h"
 #include "UI/NoticeWindow.h"
+#include "UI/OptionsWindow.h"
 #include "UI/ServerListWindow.h"
 #include "UI/Widget.h"
 #include "support/Bytes.h"
@@ -116,6 +120,7 @@ using Client::Protocol::Connection::ServerEntry;
 using Client::Protocol::Connection::WriteLoginRequest;
 using Client::Render::BlendMode;
 using Client::Render::TextureSlot;
+using Client::Scenes::CreditIllustrationSets;
 using Client::Scenes::GameData;
 using Client::Scenes::LoadGameData;
 using Client::Scenes::LoginScene;
@@ -168,6 +173,11 @@ constexpr TextureSlot LoginBackgroundSlot{0x13};
 constexpr TextureSlot NoticeBoxSlot{0x727};
 // Los botones de la ventana de Esc (op1_b_all).
 constexpr TextureSlot EscapeButtonSlot{0x72f};
+// Las casillas de las opciones (op2_ch), el botón de cerrar los créditos (message_close_b_all) y la primera
+// mitad de su ilustración.
+constexpr TextureSlot OptionsCheckSlot{0x731};
+constexpr TextureSlot CreditsCloseSlot{0x726};
+constexpr TextureSlot IllustrationSlot{0x6f8};
 
 // Textos inventados en los índices que usa el login.
 constexpr std::string_view ConnectFailedText = "no conecto";
@@ -209,6 +219,24 @@ std::vector<std::byte> ServerListOf(std::initializer_list<ServerEntry> entries)
     return ServerListWithLoads(list);
 }
 
+// Un credit.bmd inventado con `records` (la clase y el texto) al principio, cifrado con el XOR3 (0x63ff30).
+std::vector<std::byte> CreditFile(std::initializer_list<std::pair<std::uint8_t, std::string_view>> records)
+{
+    std::vector<std::byte> file(Client::Data::Text::CreditFileSize);
+    std::size_t first = 0;
+    for (const auto& [kind, text] : records)
+    {
+        file[first] = std::byte{kind};
+        for (std::size_t i = 0; i < text.size(); ++i)
+        {
+            file[first + 1 + i] = static_cast<std::byte>(text[i]);
+        }
+        first += Client::Data::Text::CreditRecordSize;
+    }
+    Client::Core::Xor3(file);
+    return file;
+}
+
 int MiddleX(const Rect& rect)
 {
     return rect.x + rect.width / 2;
@@ -232,14 +260,21 @@ public:
 struct Harness
 {
     // Con `withTheCloth`, lo global de la tela en el contexto (el viento, el contador de pasos y el rand()).
-    // Con `world`, el chat del mundo y un medidor de seis píxeles por byte.
-    explicit Harness(bool withTheCloth = false, Client::Scenes::WorldState* world = nullptr)
+    // Con `world`, el chat del mundo y un medidor de seis píxeles por byte. Con `credits`, ese credit.bmd;
+    // sin él, la tabla de los créditos queda vacía.
+    explicit Harness(bool withTheCloth = false, Client::Scenes::WorldState* world = nullptr,
+                     std::span<const std::byte> credits = {})
         : log(sink, LogLevel::Debug), connection(socket, IdentityObfuscation::Shared(), clock, log, 1),
           session(connection, clock, log, GameClientKeys(), SessionSettings{ServerAddress{"10.0.0.1", 44405}},
                   eventSink)
     {
         WriteTextureSet(folder.Path(), LoginTextureSet);
         WriteTextureSet(folder.Path(), WindowTextureSet);
+        WriteTextureSet(folder.Path(), CreditIllustrationSets.front());
+        if (!credits.empty())
+        {
+            Client::Tests::WriteSceneFile(folder.Path(), "Local/credit.bmd", credits);
+        }
         WriteTextTable(folder.Path(), SessionTexts());
         Client::Tests::WriteSceneFile(folder.Path(), "Gate.bmd", Client::Tests::GateTableBytes({}));
         Client::Tests::WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
@@ -517,7 +552,8 @@ TEST(LoginSceneSessionTest, TheBarOpensWithTheListAndStays)
 }
 
 // La barra y la lista, por el administrador (Q-C84): la barra se abrió última, así que está arriba con el
-// foco, y con el mouse encima los créditos muestran el cuadro 1. Su clic se corta (P-C76) sin mandar nada.
+// foco, y con el mouse encima los créditos muestran el cuadro 1. Sin credit.bmd, su clic manda el F4 06 dos
+// veces: al abrirlos (0x641203) y al cerrarlos enseguida con la tabla vacía (0x63ffe0 → 0x63f9a0).
 // El del menú abre la de Esc (0x6411d8), de toda la pantalla, y Esc la cierra: el apretón lo toma ella y el
 // paso no la vuelve a abrir (Q-C45). Apretar en la lista la pasa arriba y atiende su clic. Con un aviso
 // abierto, el aviso tiene el mouse, como en el original, donde es de toda la pantalla.
@@ -533,14 +569,18 @@ TEST(LoginSceneSessionTest, TheBarStepsWithTheList)
 
     const std::size_t sent = tested.socket.sent.size();
     tested.ClickOn(bar.credit);
-    EXPECT_TRUE(tested.Logged(LogLevel::Error, "los créditos (+0x4578, 0x63f020)"));
-    EXPECT_EQ(Harness::QuadsOf(tested.Frame(), EscapeButtonSlot), 0u);
+    const std::vector<std::byte> notices = Client::Tests::Bytes({0xC1, 0x04, 0xF4, 0x06, 0xC1, 0x04, 0xF4, 0x06});
+    ASSERT_EQ(tested.socket.sent.size(), sent + notices.size());
+    EXPECT_TRUE(Client::Tests::SameBytes(std::span(tested.socket.sent).last(notices.size()), notices));
+    std::vector<FrameEvent> frame = tested.Frame();
+    EXPECT_EQ(Harness::QuadsOf(frame, CreditsCloseSlot), 0u);
+    EXPECT_EQ(Harness::QuadsOf(frame, EscapeButtonSlot), 0u);
     tested.ClickOn(bar.menu);
     // En el login, el de otro servidor no se dibuja: tres botones.
     EXPECT_EQ(Harness::QuadsOf(tested.Frame(), EscapeButtonSlot), 3u);
     tested.Tap(Key::Escape);
     EXPECT_EQ(Harness::QuadsOf(tested.Frame(), EscapeButtonSlot), 0u);
-    EXPECT_EQ(tested.socket.sent.size(), sent);
+    EXPECT_EQ(tested.socket.sent.size(), sent + notices.size());
     EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
 
     // El 400 con carga 100: el aviso 0x63.
@@ -577,6 +617,67 @@ TEST(LoginSceneSessionTest, TheBarStepsWithTheLogin)
     tested.Tap(Key::Escape);
     EXPECT_EQ(Harness::QuadsOf(tested.Frame(), EscapeButtonSlot), 0u);
     EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+}
+
+// Los créditos (0x641203): el F4 06, la ilustración, el título y el botón, de toda la pantalla y arriba. Esc los
+// cierra (0x63f630 → 0x63f9a0) con otro F4 06 y se lleva el apretón: la de Esc no se abre (0x634d2c).
+TEST(LoginSceneSessionTest, TheCreditsCoverTheLogin)
+{
+    const std::vector<std::byte> credits = CreditFile({{1, "Parte"}, {3, "Alguien"}, {0, ""}});
+    Harness tested(false, nullptr, credits);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheList(ServerList({400})));
+    const Client::UI::MenuBarLayout bar = Client::UI::LayoutMenuBar(PixelSize{640, 480});
+    const std::vector<std::byte> notice = Client::Tests::Bytes({0xC1, 0x04, 0xF4, 0x06});
+    const std::size_t sent = tested.socket.sent.size();
+
+    tested.ClickOn(bar.credit);
+    ASSERT_EQ(tested.socket.sent.size(), sent + notice.size());
+    EXPECT_TRUE(Client::Tests::SameBytes(std::span(tested.socket.sent).last(notice.size()), notice));
+    std::vector<FrameEvent> frame = tested.Frame();
+    EXPECT_EQ(Harness::QuadsOf(frame, IllustrationSlot), 1u);
+    EXPECT_EQ(Harness::QuadsOf(frame, CreditsCloseSlot), 1u);
+    EXPECT_TRUE(Harness::Drew(frame, "Parte"));
+    EXPECT_TRUE(Harness::Drew(frame, "Alguien"));
+    EXPECT_FALSE(tested.scene->Failure().has_value());
+
+    tested.Tap(Key::Escape);
+    ASSERT_EQ(tested.socket.sent.size(), sent + 2 * notice.size());
+    frame = tested.Frame();
+    EXPECT_EQ(Harness::QuadsOf(frame, CreditsCloseSlot), 0u);
+    EXPECT_EQ(Harness::QuadsOf(frame, EscapeButtonSlot), 0u);
+    EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
+}
+
+// Las opciones (0x647e75): el 2 de la de Esc la cierra y las abre arriba, con sus tres casillas y su botón de
+// op1_b_all. La del ataque automático (0x6c8e3c, prendido) se apaga con un clic: el cuadro 0. Esc las cierra y
+// la de Esc no vuelve a abrirse con el mismo apretón.
+TEST(LoginSceneSessionTest, TheOptionsOpenFromTheEscapeWindow)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheList(ServerList({400})));
+    const Client::UI::MenuBarLayout bar = Client::UI::LayoutMenuBar(PixelSize{640, 480});
+    const auto line = static_cast<int>(tested.BufferHeight(TextureSlot{0x72d}));
+    const Client::UI::EscapeWindowLayout escape = Client::UI::LayoutEscapeWindow(PixelSize{640, 480}, 6, line);
+    const Client::UI::OptionsWindowLayout options = Client::UI::LayoutOptionsWindow(PixelSize{640, 480}, line);
+    const std::size_t sent = tested.socket.sent.size();
+
+    const float height = tested.BufferHeight(OptionsCheckSlot);
+
+    tested.ClickOn(bar.menu);
+    tested.ClickOn(escape.buttons[2]);
+    std::vector<FrameEvent> frame = tested.Frame();
+    EXPECT_EQ(Harness::QuadsOf(frame, EscapeButtonSlot), 1u);
+    EXPECT_EQ(Harness::QuadsOf(frame, OptionsCheckSlot), 3u);
+    EXPECT_EQ(Harness::TopV(frame, OptionsCheckSlot), (16.0f + 0.5f) / height);
+
+    tested.ClickOn(options.checks[0]);
+    EXPECT_EQ(Harness::TopV(tested.Frame(), OptionsCheckSlot), 0.5f / height);
+
+    tested.Tap(Key::Escape);
+    frame = tested.Frame();
+    EXPECT_EQ(Harness::QuadsOf(frame, OptionsCheckSlot), 0u);
+    EXPECT_EQ(Harness::QuadsOf(frame, EscapeButtonSlot), 0u);
+    EXPECT_EQ(tested.socket.sent.size(), sent);
 }
 
 // El grupo y después el servidor: la escena le pasa el código a la sesión, que manda el F4 03 (el

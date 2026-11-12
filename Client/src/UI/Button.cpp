@@ -23,8 +23,6 @@ namespace Client::UI
 namespace
 {
 constexpr int NormalFrame = 0;
-constexpr int HoverFrame = 1;
-constexpr int PressedFrame = 2;
 
 // +0xd8: lo que 0x63c490 le suma a la y del rótulo en 640 × 480 (0x3f000000 y 0x3fc00000).
 constexpr double LabelOffset = 0.5;
@@ -36,6 +34,12 @@ Button::Button(Render::TextureSlot slot, int width, int height, std::optional<in
     : m_slot(slot), m_area{.x = 0, .y = 0, .width = width, .height = height}, m_checkedFrame(checkedFrame),
       m_disabledFrame(disabledFrame)
 {
+}
+
+void Button::SetStateFrames(int pressed, int hover)
+{
+    m_pressedFrame = pressed;
+    m_hoverFrame = hover;
 }
 
 void Button::SetEnabled(bool enabled)
@@ -115,9 +119,9 @@ int Button::Frame() const
     }
     if (Pressed())
     {
-        return PressedFrame;
+        return m_pressedFrame;
     }
-    return m_hover ? HoverFrame : NormalFrame;
+    return m_hover ? m_hoverFrame : NormalFrame;
 }
 
 bool Button::Pressed() const

@@ -46,6 +46,11 @@ public:
     Button(Render::TextureSlot slot, int width, int height, std::optional<int> checkedFrame = std::nullopt,
            std::optional<int> disabledFrame = std::nullopt);
 
+    // +0xb0 y +0xb4: los cuadros de apretado y de encima, el 2 y el 1 salvo que 0x63c330 reciba
+    // otros (−1 es el 0). Las casillas de las opciones y la perilla de un deslizador tienen el 0 en
+    // los dos.
+    void SetStateFrames(int pressed, int hover);
+
     // +0xa8: deshabilitado no tiene clic ni se ve encima ni apretado (0x63c490). Arranca habilitado.
     void SetEnabled(bool enabled);
     [[nodiscard]] bool Enabled() const;
@@ -87,6 +92,8 @@ private:
     Rect m_area;
     std::optional<int> m_checkedFrame;
     std::optional<int> m_disabledFrame;
+    int m_pressedFrame = 2;
+    int m_hoverFrame = 1;
     bool m_enabled = true;
     bool m_checked = false;
     bool m_captured = false;

@@ -65,6 +65,13 @@ struct GameUiState
     // (0x625632) y la vuelta a la selección (0x4c2533, en 1). Sus lectores de MuRet (MoveHero en 0x59b22f y 0x59b89e y
     // el picking en 0x59ee4b) lo piden junto con un elegido (0x6c8e30, 0x6c8e38), que MuRet deja en −1.
     bool autoAttack = true;
+    // 0x7d3a118: el volumen. WinMain lo lee del registro (VolumeLevel, 0x4bad33..0x4bad55) y, fuera de 0 a 9,
+    // pone 5; después 0x632d80 (el DirectSound de 0x41eed0, de la CL10). MuRet no tiene registro: 5. Lo
+    // cambian las opciones (0x6447d9) y el menú de Esc del juego (0x6257b8).
+    std::int32_t volume = 5;
+    // 0x6c9dcc (.data 4): el detalle del brillo de los ítems (Render/Models/ItemGlow.h). Lo cambian las
+    // opciones (0x64480a).
+    std::uint8_t glowDetail = 4;
     // 0x7d366d8: la rueda, (short) HIWORD(wParam) / 120 del último WM_MOUSEWHEEL (0x4b4c19). Nadie la vuelve a 0 por
     // paso: queda hasta que la usa alguien (el registro del chat, 0x479960; el volumen del menú, 0x625782).
     std::int32_t wheel = 0;

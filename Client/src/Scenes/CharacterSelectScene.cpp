@@ -45,6 +45,7 @@
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/ItemDrawResources.h"
+#include "Scenes/OptionsSettings.h"
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SelectionWorld.h"
 #include "World/GameCamera.h"
@@ -78,6 +79,7 @@
 #include "UI/NameChecks.h"
 #include "UI/NewUi.h"
 #include "UI/Notices.h"
+#include "UI/OptionsWindow.h"
 #include "UI/SelectionBar.h"
 #include "UI/Widget.h"
 
@@ -180,6 +182,7 @@ CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Ga
                     .server = UI::TextAt(m_texts, ServerText).value_or(std::string_view{})},
       m_create([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
       m_escape([this](Render::TextureSlot slot) { return m_windowTextures.BufferSize(slot); }, m_texts),
+      m_options([this](Render::TextureSlot slot) { return m_windowTextures.BufferSize(slot); }, m_texts),
       m_gameSlots(gameSlots)
 {
 }
@@ -247,15 +250,16 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
     {
         ChoosePreviewClass(Preview(), m_create.ChosenClass(), m_selectionModels);
     }
-    // 0x65f4b0 (CL8, hito 8): el aviso, la de Esc, la barra y la de crear, cada una en la cabeza; las
-    // opciones (+0x7e8, entre la de Esc y la barra) no están (P-C75). El original lo arma con la lista
-    // (0x633f20), y hasta entonces sigue con la UI del login, de la que solo el aviso se abre acá; la barra
-    // se abre con la lista (StepTheScene; Q-C495).
+    // 0x65f4b0 (CL8, hito 8): el aviso, la de Esc, las opciones, la barra y la de crear, cada una en la
+    // cabeza. El original lo arma con la lista (0x633f20), y hasta entonces sigue con la UI del login, de la
+    // que solo el aviso se abre acá; la barra se abre con la lista (StepTheScene; Q-C495). Las opciones se
+    // arman de nuevo (0x644120) con los globales (0x6446e0).
     m_notice.Close();
     m_create.Close();
     m_bar.Close();
     m_escape.Arm(UI::NewUiMode::Selection);
-    const std::array<UI::NewUiWindow*, 4> uiWindows{&m_notice, &m_escape, &m_bar, &m_create};
+    m_options.Arm(CurrentOptions());
+    const std::array<UI::NewUiWindow*, 5> uiWindows{&m_notice, &m_escape, &m_options, &m_bar, &m_create};
     m_ui.Build(UI::NewUiMode::Selection, uiWindows);
     m_openedTheBar = false;
     // El F3 00 de la entrada desde el login (0x634dce). Después de un F1 02 con 1 ya lo mandó la sesión
@@ -619,6 +623,28 @@ void CharacterSelectScene::OpenTheEscapeWindow()
     m_ui.Raise(m_escape);
 }
 
+void CharacterSelectScene::OpenTheOptions()
+{
+    m_options.Open();
+    m_ui.Raise(m_options);
+}
+
+UI::OptionsSettings CharacterSelectScene::CurrentOptions() const
+{
+    return m_context.world != nullptr ? OptionsSettingsOf(m_context.world->Runtime()) : m_localOptions;
+}
+
+void CharacterSelectScene::OnOptionsEvent(const UI::OptionsEvent& event)
+{
+    // El botón de cerrar (sin sonido) y Esc (con el 0x19, de la CL10) ya las cerraron.
+    if (m_context.world != nullptr)
+    {
+        ApplyOption(m_context.world->Runtime(), event);
+        return;
+    }
+    UI::ApplyOption(m_localOptions, event);
+}
+
 void CharacterSelectScene::SubmitTheCreation()
 {
     if (const std::optional<UI::NoticeId> refused =
@@ -840,7 +866,7 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
     // se apretó Enter, Esc con las mismas cerradas: el sonido 0x19 (0x41ed10, de la CL10) y la de Esc
     // (0x6344ce). Un Enter apretado no deja leer el Esc, aunque no entre. El original pierde un apretón corto
     // entre dos lecturas; MuRet lo ve (Q-C45).
-    const bool modal = m_notice.IsOpen() || m_create.IsOpen() || m_escape.IsOpen();
+    const bool modal = m_notice.IsOpen() || m_create.IsOpen() || m_escape.IsOpen() || m_options.IsOpen();
     if (input.TakePress(Input::Key::Enter))
     {
         if (!modal)
@@ -895,6 +921,14 @@ void CharacterSelectScene::StepTheWindows(const Input::InputState& input)
                           OnEscapeEvent(*event);
                       }
                   }
+                  else if (&window == &m_options)
+                  {
+                      if (const std::optional<UI::OptionsEvent> event =
+                              m_options.Step(input, m_screen, StepMs, CurrentOptions(), turn))
+                      {
+                          OnOptionsEvent(*event);
+                      }
+                  }
                   else if (&window == &m_bar)
                   {
                       if (const std::optional<UI::SelectionBarClick> click = m_bar.Step(input, m_screen, turn))
@@ -925,8 +959,8 @@ void CharacterSelectScene::OnEscapeEvent(const UI::EscapeWindowEvent& event)
         JoinAnotherServer();
         return;
     case UI::EscapeWindowEvent::Kind::Options:
-        // 0x647e75 abre las opciones (+0x7e8: 0x644120, 0x644640 y 0x644730), que no están (P-C75).
-        m_context.log.Error("las opciones (+0x7e8, 0x644120) todavía no están (P-C75)");
+        // 0x647e6c: 0x65f6c0 la cierra y 0x65f690 abre las opciones.
+        OpenTheOptions();
         return;
     case UI::EscapeWindowEvent::Kind::Closed:
         // Con Esc, el sonido 0x19 (0x41ed10, de la CL10).
@@ -1183,6 +1217,10 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         else if (window == &m_escape)
         {
             m_escape.Draw(sprites, canvas.text, canvas.screen);
+        }
+        else if (window == &m_options)
+        {
+            m_options.Draw(sprites, canvas.text, canvas.screen, CurrentOptions());
         }
     }
     DrawTheCursor(canvas);
@@ -1545,6 +1583,7 @@ void CharacterSelectScene::DrawTheCursor(SceneCanvas& canvas) const
 void CharacterSelectScene::Leave()
 {
     m_escape.Close();
+    m_options.Close();
     m_ui.Clear();
     m_world.Release();
     m_textures.Release();

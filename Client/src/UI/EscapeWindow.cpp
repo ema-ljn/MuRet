@@ -100,7 +100,13 @@ EscapeWindowLayout LayoutEscapeWindow(App::PixelSize screen, int lines, int line
 
 std::array<Render::UiImage, 5> EscapeFrameImages(Rect frame, const TextureSizes& sizes)
 {
-    const int sideHeight = frame.height - TopHeight - BottomHeight;
+    return StoneFrameImages(frame, TopSlot, TopHeight, sizes);
+}
+
+std::array<Render::UiImage, 5> StoneFrameImages(Rect frame, Render::TextureSlot topSlot, int topHeight,
+                                                const TextureSizes& sizes)
+{
+    const int sideHeight = frame.height - topHeight - BottomHeight;
     // El fondo y los lados siguen a 0x647370 (0x647260 con 1) y repiten su textura; los bordes, no.
     Render::UiImage fill = PixelImage(StoneSlot,
                                       Rect{.x = frame.x + FillInset,
@@ -111,19 +117,19 @@ std::array<Render::UiImage, 5> EscapeFrameImages(Rect frame, const TextureSizes&
     fill.resizedWidth = true;
     fill.resizedHeight = true;
     const Render::UiImage top = PixelImage(
-        TopSlot, Rect{.x = frame.x, .y = frame.y, .width = frame.width, .height = TopHeight}, sizes(TopSlot));
+        topSlot, Rect{.x = frame.x, .y = frame.y, .width = frame.width, .height = topHeight}, sizes(topSlot));
     const Render::UiImage bottom = PixelImage(
         BottomSlot,
-        Rect{.x = frame.x, .y = frame.y + TopHeight + sideHeight, .width = frame.width, .height = BottomHeight},
+        Rect{.x = frame.x, .y = frame.y + topHeight + sideHeight, .width = frame.width, .height = BottomHeight},
         sizes(BottomSlot));
     Render::UiImage left =
-        PixelImage(LeftSlot, Rect{.x = frame.x, .y = frame.y + TopHeight, .width = SideWidth, .height = sideHeight},
+        PixelImage(LeftSlot, Rect{.x = frame.x, .y = frame.y + topHeight, .width = SideWidth, .height = sideHeight},
                    sizes(LeftSlot));
     left.resizedHeight = true;
     Render::UiImage right = PixelImage(
         RightSlot,
         Rect{
-            .x = frame.x + frame.width - SideWidth, .y = frame.y + TopHeight, .width = SideWidth, .height = sideHeight},
+            .x = frame.x + frame.width - SideWidth, .y = frame.y + topHeight, .width = SideWidth, .height = sideHeight},
         sizes(RightSlot));
     right.resizedHeight = true;
     return {fill, top, bottom, left, right};

@@ -47,6 +47,8 @@
 #include "UI/CreateCharacterWindow.h"
 #include "UI/EscapeWindow.h"
 #include "UI/MessageArea.h"
+#include "UI/OptionsWindow.h"
+#include "UI/Widget.h"
 #include "World/GameCamera.h"
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
@@ -2725,5 +2727,44 @@ TEST(CharacterSelectSceneTest, TheEscapeWindowAsksToJoinAnotherServer)
     EXPECT_TRUE(DrawsTheSlot(open, Bar));
     EXPECT_EQ(joined.online.session.State(), SessionState::ChoosingCharacter);
     EXPECT_EQ(joined.scene->Next(), std::nullopt);
+}
+
+// Las opciones de la selección (0x647e75, en el modo 4 entre la de Esc y la barra): el 2 de la de Esc las abre
+// arriba. Con ellas abiertas, Enter no entra (0x634341, +0x7f4). El volumen sube con un clic a la derecha de
+// su perilla (0x6447d9), y Esc las cierra sin volver a abrir la de Esc.
+TEST(CharacterSelectSceneTest, TheOptionsOpenFromTheEscapeWindow)
+{
+    static constexpr TextureSlot EscapeButtons{0x72f};
+    static constexpr TextureSlot Checks{0x731};
+    Client::Scenes::WorldState world;
+    Harness tested(true, false, false, nullptr, &world);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(tested.OnScreen(3));
+    ASSERT_NE(tested.online.session.ChosenCharacter(), nullptr);
+    const auto line = tested.store.Find(TextureSlot{0x72d});
+    ASSERT_TRUE(line.has_value());
+    const int lineHeight = line->texture.textureHeight;
+    const Client::UI::EscapeWindowLayout escape = Client::UI::LayoutEscapeWindow(PixelSize{640, 480}, 10, lineHeight);
+    const Client::UI::OptionsWindowLayout options = Client::UI::LayoutOptionsWindow(PixelSize{640, 480}, lineHeight);
+
+    tested.Tap(Key::Escape);
+    const Client::UI::Rect button = escape.buttons[2];
+    tested.ClickAt({static_cast<float>(button.x + 5), static_cast<float>(button.y + 5)});
+    // Las tres casillas y el botón de cerrar, de op1_b_all como los de la de Esc, que ya no se dibujan.
+    std::vector<FrameEvent> frame = tested.Frame();
+    EXPECT_EQ(std::ranges::count(frame, std::optional<TextureSlot>{Checks}, &FrameEvent::texture), 3);
+    EXPECT_EQ(std::ranges::count(frame, std::optional<TextureSlot>{EscapeButtons}, &FrameEvent::texture), 1);
+    tested.Tap(Key::Enter);
+    EXPECT_EQ(tested.scene->Next(), std::nullopt);
+
+    ASSERT_EQ(world.Runtime().ui.volume, 5);
+    const Client::UI::Point volume = options.sliders[0];
+    tested.ClickAt({static_cast<float>(volume.x + 90), static_cast<float>(volume.y + 5)});
+    EXPECT_EQ(world.Runtime().ui.volume, 6);
+
+    tested.Tap(Key::Escape);
+    frame = tested.Frame();
+    EXPECT_FALSE(DrawsTheSlot(frame, Checks));
+    EXPECT_FALSE(DrawsTheSlot(frame, EscapeButtons));
 }
 } // namespace

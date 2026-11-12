@@ -151,7 +151,7 @@ struct FreeTypeRasterizer::State
     std::vector<FT_Byte> regularBytes;
     std::vector<FT_Byte> boldBytes;
     LibraryHandle library;
-    std::array<Font, 4> fonts;
+    std::array<Font, 5> fonts;
 };
 
 namespace
@@ -351,7 +351,8 @@ FreeTypeRasterizer::Open(const std::filesystem::path& regular, const std::option
         return Unexpected(std::format("FreeType no tiene el intérprete v35: {}", FreeTypeError(error)));
     }
 
-    constexpr std::array Kinds = {FontKind::Normal, FontKind::Bold, FontKind::BigBold, FontKind::OtherFace12};
+    constexpr std::array Kinds = {FontKind::Normal, FontKind::Bold, FontKind::BigBold, FontKind::OtherFace12,
+                                  FontKind::Credits};
     for (const FontKind kind : Kinds)
     {
         const bool fromBoldFile = bold.has_value() && IsBold(kind);

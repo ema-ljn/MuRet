@@ -44,6 +44,7 @@ Devias). Todos trabajan sobre buffers: leer el archivo es tarea del que llama.
 | `Filter.bmd` | `0x549c60` / `0x549b80` | igual, con checksum `0x3E7D` | `0x077531DC`, la cuenta en `0x07758558` |
 | `ItemSetType.bmd` | `0x40c660`, desde `0x40c600` / sin buscar | 8192 × 4 bytes, el XOR3 por registro, + checksum `0xE5F1` (la paridad de `Item.bmd`; [los campos](#las-tablas-de-los-conjuntos)) | `[0x6eed3c] + 4`, 0x8000 |
 | `ItemSetOption.bmd` | `0x40c850`, desde `0x40c600` / sin buscar | 64 × 0x4c bytes, igual, + checksum `0xA2F1` | `[0x6eed3c] + 0x8004`, 0x1300 |
+| `credit.bmd` | `0x63ff30`, desde `0x63f020` / sin buscar | 400 × 33 bytes, el XOR3 del login (`0x4c1690`) de una vez sobre los 13.200, sin checksum ([los registros](#creditbmd)) | `+0x610` de la ventana de los créditos (`0x7d53728 + 0x4578`), 0x3390 |
 
 Si falta un archivo, el original muestra un `MessageBox`, manda `WM_DESTROY` y **sigue cargando**
 las demás tablas.
@@ -53,6 +54,28 @@ datos del juego. Como 20 no es múltiplo de 3, el XOR3 empieza en `FC` en cada r
 los vacíos: un registro vacío está en el archivo como `FC CF AB …`. `FilterName.bmd` trae seis
 palabras (`ADMIN`, `admin`, `GM`, `gm`, `Gm` y `gM`) y `Filter.bmd` ninguna. Los usa el nombre de
 un personaje nuevo (06 § La ventana de crear).
+
+### `credit.bmd`
+
+Leído en la CL8, hito 8 (*estático*; los conteos, *verificado* con el del laboratorio, `GoldenCredits`).
+`0x63ff30` (lo llama `0x63f020`, que arma los créditos al armar la UI del login) abre
+`Data\Local\credit.bmd` (`0x6d66e0`) con `fopen`, lee 13.200 bytes (`0x3390`) en `+0x610` de la ventana y
+les pasa `0x4c1690`, el XOR3 que cifra la cuenta del login, desde el primer byte: como 33 es múltiplo de 3,
+da lo mismo que por registro. Sin el archivo, un `MessageBox` y `WM_DESTROY`. No tiene checksum. Cada
+registro es la clase en el primer byte y el texto en los 32 que siguen, hasta su primer cero:
+
+| Clase | Qué es | En el del laboratorio |
+| --- | --- | --- |
+| 1 | el título de una parte (el renglón de arriba) | 9 |
+| 2 | un rol (el del medio) | 45 |
+| 3 | un nombre (abajo, hasta cuatro por grupo) | 190 |
+| 0 | el final: `0x63ffe0` cierra los créditos | 156, el primero en el registro 244 |
+
+`0x63ffe0` lee la clase del registro de `+0x39a0`, sin tope: después del 400 leería los bytes de la
+ventana que siguen a la tabla (`+0x39a0`, el índice mismo), pero el archivo del juego termina antes.
+Ningún texto llena los 32 bytes (el más largo tiene 25). MuRet: `Data::Text::LoadCredits`
+(`CreditsTest`), que lo lee con los datos del juego (`GameData::credits`); sin el archivo, la tabla
+queda vacía (P-C78).
 
 ### `Gate.bmd`
 

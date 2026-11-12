@@ -1033,6 +1033,18 @@ void ServerSession::ResendServerListRequest()
     static_cast<void>(SendWorldPacket(Protocol::Connection::WriteServerListRequest()));
 }
 
+void ServerSession::SendCreditsNotice()
+{
+    if (m_connection.State() != Network::LinkState::Open)
+    {
+        m_log.Warning("no se manda el F4 06 de los créditos: no hay un socket abierto");
+        return;
+    }
+    m_log.Info("los créditos mandan el F4 06 al {}", ServerName());
+    Protocol::Outgoing notice = Protocol::Connection::WriteCreditsNotice();
+    m_connection.Send(std::move(notice.packet), notice.delivery);
+}
+
 Core::Expected<void, std::string> ServerSession::SendWorldPacket(Protocol::Outgoing outgoing)
 {
     if (WithConnectServer() || m_connection.State() != Network::LinkState::Open)

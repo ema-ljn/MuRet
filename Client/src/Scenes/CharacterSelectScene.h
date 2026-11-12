@@ -36,6 +36,7 @@
 #include "UI/NewUi.h"
 #include "UI/NoticeWindow.h"
 #include "UI/Notices.h"
+#include "UI/OptionsWindow.h"
 #include "UI/SelectionBar.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
@@ -137,10 +138,16 @@ private:
     void OpenTheCreateWindow();
     void OpenNotice(UI::NoticeId notice, std::string_view argument = {});
     void OpenTheEscapeWindow();
+    // 0x647e75: 0x65f690 con las opciones.
+    void OpenTheOptions();
     // 0x65fc30 al empezar el paso, como 0x637700 antes de 0x6342c0: cada ventana con su turno.
     void StepTheWindows(const Input::InputState& input);
     // 0x647d40: lo que pasó en la de Esc.
     void OnEscapeEvent(const UI::EscapeWindowEvent& event);
+    // Los globales de las opciones (Scenes/OptionsSettings.h), o los de la escena sin el mundo.
+    [[nodiscard]] UI::OptionsSettings CurrentOptions() const;
+    // 0x644730: lo que cambió en las opciones, a los globales.
+    void OnOptionsEvent(const UI::OptionsEvent& event);
     // 0x647ef0: el 380 con lo que falta, a los mensajes.
     void AddTheCountdown(int seconds);
     // El 1 de la de Esc (0x647e08): el C3 F1 02 02 con sus dos rand() y se cierran ella y la barra.
@@ -234,6 +241,9 @@ private:
     UI::NameFilters m_nameFilters;
     UI::CreateCharacterWindow m_create;
     UI::EscapeWindow m_escape;
+    // Las opciones (+0x7e8), y lo que guardan cuando la escena no tiene el mundo (los tests).
+    UI::OptionsWindow m_options;
+    UI::OptionsSettings m_localOptions;
     // El administrador de la UI nueva (CL8, hito 8): el orden, el foco y el mouse de las ventanas.
     UI::NewUi m_ui;
     // Si ya se abrió la barra con la lista (0x65f4b0).

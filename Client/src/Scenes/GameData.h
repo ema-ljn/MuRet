@@ -5,6 +5,7 @@
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
+#include "Data/Text/Credits.h"
 #include "Data/Text/TextTable.h"
 
 #include <filesystem>
@@ -31,6 +32,8 @@ inline constexpr std::string_view SkillTableFile = "Local\\Skill.bmd";
 // Las tablas de los conjuntos, como las pide 0x40c600 desde 0x61ccb0 (0x6c63e8 y 0x6c63c8).
 inline constexpr std::string_view ItemSetTypeFile = "Local\\ItemSetType.bmd";
 inline constexpr std::string_view ItemSetOptionFile = "Local\\ItemSetOption.bmd";
+// Los créditos, como los pide 0x63ff30 ("Data\Local\credit.bmd", 0x6d66e0).
+inline constexpr std::string_view CreditsFile = "Local\\credit.bmd";
 
 struct GameData
 {
@@ -47,6 +50,11 @@ struct GameData
     std::optional<Data::Tables::ItemSetTables> itemSets;
     // Skill.bmd: la tabla en claro, sin el contenedor guardia del original (Q-C08).
     std::optional<Data::Tables::SkillTable> skills;
+    // credit.bmd (CL8, hito 8): los 400 registros de los créditos (UI::CreditsWindow), o ninguno si no
+    // está. El original lo lee cada vez que arma la UI del login (0x63ff30) y, si no está, avisa con un
+    // MessageBox y cierra el juego (WM_DESTROY); MuRet lo lee una vez, y sin él los créditos se cierran al
+    // abrirlos (P-C78).
+    std::vector<Data::Text::CreditEntry> credits;
 };
 
 // Lo de WinMain antes de la escena 1: Text.bmd en 0x4b9b9f (0x61ee30 y 0x5495e0), antes de las
@@ -62,5 +70,7 @@ struct GameData
 // (0x40c660 y 0x40c850); un error de ruta, lectura o formato las nombra. Skill.bmd también es
 // obligatorio: lee registros y checksum de un prefijo fijo, permite cola y rechaza un checksum
 // distinto (0x54acf0). La tabla queda en claro, sin el contenedor guardia del original (Q-C08).
+// credit.bmd puede faltar (los créditos quedan vacíos); uno que no se lee o es corto es un error que lo
+// nombra.
 [[nodiscard]] Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot);
 } // namespace Client::Scenes

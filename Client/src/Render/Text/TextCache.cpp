@@ -8,6 +8,7 @@
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextBox.h"
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
@@ -86,7 +87,37 @@ Core::Expected<void, std::string> TextCache::Draw(SpriteBatch& batch, int x, int
     {
         return Core::Unexpected(found.Error());
     }
-    const Entry& entry = *found.Value();
+    DrawPieces(batch, *found.Value(), x, y);
+    return {};
+}
+
+Core::Expected<void, std::string> TextCache::DrawClippedAtLeft(SpriteBatch& batch, int x, int y, std::string_view text,
+                                                               const TextStyle& style)
+{
+    if (x >= 0)
+    {
+        return Draw(batch, x, y, text, style);
+    }
+    if (text.empty())
+    {
+        return {};
+    }
+    // 0x4670f9..0x46711c: el ancho es cx + x, en 0 si da negativo, y la x pasa a 0.
+    if (m_rasterizer->Measure(style.font, text).width + x <= 0)
+    {
+        return {};
+    }
+    const Core::Expected<Entries::iterator, std::string> found = Find(Key{style.font, style.colors, text, -x}, batch);
+    if (!found.HasValue())
+    {
+        return Core::Unexpected(found.Error());
+    }
+    DrawPieces(batch, *found.Value(), 0, y);
+    return {};
+}
+
+void TextCache::DrawPieces(SpriteBatch& batch, const Entry& entry, int x, int y)
+{
     for (const TextPiece& piece : TextPieces(x, y, entry.extent, batch.Screen()))
     {
         const auto box = static_cast<std::size_t>(piece.firstColumn / TextBoxWidth);
@@ -98,7 +129,6 @@ Core::Expected<void, std::string> TextCache::Draw(SpriteBatch& batch, int x, int
         quad.slot = entry.boxes[box];
         batch.Quad(quad);
     }
-    return {};
 }
 
 TextExtent TextCache::Measure(FontKind font, std::string_view text) const
@@ -132,8 +162,8 @@ std::size_t TextCache::UsedSlots() const
 
 bool TextCache::KeyLess::operator()(const Key& a, const Key& b) const
 {
-    return std::tie(a.font, a.colors.text, a.colors.background, a.text) <
-           std::tie(b.font, b.colors.text, b.colors.background, b.text);
+    return std::tie(a.font, a.colors.text, a.colors.background, a.text, a.skipped) <
+           std::tie(b.font, b.colors.text, b.colors.background, b.text, b.skipped);
 }
 
 Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const Key& key, const SpriteBatch& batch)
@@ -145,7 +175,8 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
         return indexed->second;
     }
 
-    const TextExtent extent = m_rasterizer->Measure(key.font, key.text);
+    TextExtent extent = m_rasterizer->Measure(key.font, key.text);
+    extent.width = std::max(extent.width - key.skipped, 0);
     const std::size_t boxes = BoxesFor(extent.width);
     if (boxes > m_slotCount)
     {
@@ -163,7 +194,7 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
         EvictOldest();
     }
 
-    Entry entry{key.font, key.colors, std::string(key.text), extent, {}};
+    Entry entry{key.font, key.colors, std::string(key.text), key.skipped, extent, {}};
     entry.boxes.reserve(boxes);
     std::vector<Data::Textures::LoadedTexture> textures;
     textures.reserve(boxes);
@@ -176,13 +207,14 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
         entry.boxes.push_back(slot);
 
         const int firstColumn = static_cast<int>(k) * TextBoxWidth;
+        const int drawnColumn = key.skipped + firstColumn;
         Data::Textures::Texture texture{.width = TextBoxWidth,
                                         .height = TextBoxHeight,
                                         .textureWidth = TextBoxWidth,
                                         .textureHeight = TextBoxHeight,
                                         .format = Data::Textures::PixelFormat::Rgba,
                                         .pixels = std::vector<std::uint8_t>(TextBoxBytes)};
-        PaintTextBox(*m_rasterizer, style, key.text, firstColumn, std::min(TextBoxWidth, extent.width - firstColumn),
+        PaintTextBox(*m_rasterizer, style, key.text, drawnColumn, std::min(TextBoxWidth, extent.width - firstColumn),
                      rows, TextBoxPixels(texture.pixels.data(), TextBoxBytes));
         // Como 0x63bd00 sube la FontInput.tga del slot 0: GL_NEAREST y GL_CLAMP.
         textures.push_back(Data::Textures::LoadedTexture{
@@ -203,7 +235,7 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
 
     m_entries.push_front(std::move(entry));
     const Entry& front = m_entries.front();
-    m_index.emplace(Key{front.font, front.colors, front.text}, m_entries.begin());
+    m_index.emplace(Key{front.font, front.colors, front.text, front.skipped}, m_entries.begin());
     return m_entries.begin();
 }
 
@@ -214,7 +246,7 @@ void TextCache::EvictOldest()
         return;
     }
     const Entry& oldest = m_entries.back();
-    m_index.erase(Key{oldest.font, oldest.colors, oldest.text});
+    m_index.erase(Key{oldest.font, oldest.colors, oldest.text, oldest.skipped});
     // Al revés, para que la pila los vuelva a dar en el orden en que estaban.
     for (auto slot = oldest.boxes.rbegin(); slot != oldest.boxes.rend(); ++slot)
     {

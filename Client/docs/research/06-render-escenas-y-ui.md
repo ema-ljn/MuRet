@@ -1185,7 +1185,64 @@ el mensaje va al área de mensajes. No saca `rand()`.
 **MuRet:** `Scenes/ChatReceive`, `Scenes/ChatBubbles` (la tabla, `0x557170`, `0x557560` y `0x557650` en el paso del
 juego) y `UI/WhisperSenders`; la franja, en `WorldRuntime` (`chat.selectionNotice`), y el `F3 30` llena las teclas de
 las skills del registro propio (`+0x26c`), el ataque automático, el sonido, los carteles prendidos (`0x6c7a8c`), Q, W
-y E y los renglones y la transparencia del registro. El cartel de `Slide.bmd` no está (08, P-C80).
+y E y los renglones y la transparencia del registro. El cartel de `Slide.bmd`, abajo.
+
+### El cartel de `Slide.bmd`
+
+Leído en la CL8 (hito 3, 2026-11-12; *estático*: no hay traza de GL con un cartel). El objeto `[0x5763528]` (`0x46aea0`,
+0x121c bytes) tiene dos colas de `0x46a020` (la normal en `+4`, con la fuente de `0x5763554`, y la gruesa en
+`+0x8d8`, con la de `0x5763558`), el período del timer (`+0x11ac`, 10 del constructor), los tramos de nivel
+(`+0x11b0`, `+0x11c4` y `+0x11d8`; [05 § `Slide.bmd`](05-formatos-de-datos.md#slidebmd)) y la velocidad de los
+carteles del timer (`+0x1218`, 2,5). Cada cola tiene un multimap por el segundo de salida (`+0x84`, con repetidos:
+una clave igual entra detrás de las que había), la hora y los segundos que van (`+0x7c` y `+0x80`), dos buffers de
+0x400 bytes (`+0xac` y `+0x4ac`, el de turno en `+0xa8`), el corrimiento, el empuje, la velocidad y la máxima
+(`+0x8ac..+0x8b8`; 2,5 del constructor), la opacidad (`+0x8bc`), el pedazo de adelante (los bytes en `+0x8c0` y el
+ancho en `+0x8c4`), el alto de la letra (`+0x8c8`), el color (`+0x8cc`) y el parpadeo (`+0x8d0`). Cada byte es una
+letra (Q-C67). Solo `0x46b680` saca `rand()`.
+
+- **El arranque** (`0x46b010`, en el primer paso del juego, `0x636920`): `0x46a460(0, 0)` en la normal y `(1, 0)`
+  en la gruesa (la fuente, el segundo en 10, el parpadeo, `timeGetTime` en `+0x7c`, los buffers vacíos, el
+  corrimiento y la velocidad en 0, el empuje en 1, el pedazo y el alto en 0 y la opacidad en 0), `0x45a9d0(0,
+  0x1ad)` en las dos, `SetTimer(hWnd, 0x3eb, período · 1000)` y `0x46b0e0`.
+- **El timer** (`0x46b0e0`): con la escena 5, `0x6c7a8c` prendido y la opacidad de la normal en 0 o menos, abre y
+  cierra el registro propio para leer el nivel (`+0xe`, sin signo; 3.848 `rand()`) y llama a `0x46b680(nivel)`: el
+  primer tramo con el nivel menor o igual que su tope (con signo); si su cuenta no es 0, `rand() % cuenta` (`IDIV`)
+  y el texto de ese lugar si la lista lo tiene (sin signo); si no, `NULL`. Con texto, `0x46b720(1, 0, texto, 1,
+  [+0x1218], 0xffc8dce6)`. El `WM_TIMER` con `0x3eb` (`0x4b1a6b..0x4b1b44`) lee el foco (`0x4c0ec0`, 1 `rand()`), con
+  foco llama a `0x46b0e0`, y la cola común de la `WndProc` (`0x4b335a`) saca otro. El binario no importa
+  `KillTimer`: el timer sigue al salir del juego, y fuera de la escena 5 solo saca los dos del foco.
+- **Encolar** (`0x46b720(repeticiones, salto, texto, tipo, velocidad, color)`): con la escena 5, un texto no vacío,
+  hasta 30 repeticiones (con signo) y el tipo de 0 a 5 (sin signo), los tipos 0 a 2 van a la normal con el tipo − 1
+  y los 3 a 5 a la gruesa con el tipo − 4. `0x46abf0` agrega `repeticiones` entradas: con el tipo 1 de la cola, todas
+  con la clave 0 (salen ya); con los otros, la i-ésima en el segundo de la cola más i · salto. Una con −1 caduca a
+  los 60 segundos de su clave (`0x46ae07`). Lo llaman el timer y el `0D` de 10 a 15 ([04](04-protocolo.md)).
+- **El paso** (`0x46b7b0`, en el paso de la UI, `0x636e35`): `0x46add0` en la gruesa y después en la normal. Una
+  cola que tiene algo pasando no hace nada, ni cuenta sus segundos (`0x46a510`: está quieta sin texto o con menos
+  bytes que su pedazo). Si no, `0x46ada0` suma un segundo si pasó más de uno desde `+0x7c`, y la primera entrada del
+  multimap, si su clave ya llegó: si no caducó, `0x46a9c0` pone su color, elige su fuente en el DC y agrega
+  `640 / cx(" ") · rx` espacios (en la x87, hasta 1.024) y el texto; si no entra en los 0x400 bytes, la entrada
+  espera. Después, `0x46abc0` pone la máxima en `rx · velocidad` (o `rx · 2,5` sin una positiva) y la entrada sale.
+- **El dibujo** (`0x46b090`, el 15 del HUD): con la gruesa pasando, la normal con `0x46a540(1)` (forzada a
+  apagarse); si no, con la gruesa ya apagada, la normal con `0x46a540(0)`; después, con la normal apagada, la gruesa
+  con `0x46a540(0)`. `0x46a540` no hace nada con `0x6c7a8c` apagado; baja la opacidad de a 30 hasta 0 si está quieta
+  o forzada, y si no la sube de a 30 hasta 205; con 0 o menos sale. Dibuja con mezcla dos líneas negras de 1 de alto
+  en `y − 3` y en `y + alto + 2` (con la opacidad hasta 180 menos 25, y desde ahí la opacidad) y una franja en
+  `y − 2` de `alto + 4` con la opacidad menos 25 (`0x621aa0`, todo el ancho). Quieta y sin forzar, termina ahí. Si
+  no, elige la fuente, saca el pedazo de adelante si el corrimiento lo pasó (`0x46a850`: el pedazo son hasta 4 bytes,
+  medidos con `0x46ab30`; Q-C518), toma el alto de "Z" la primera vez y sube la y eso, y dibuja el texto con
+  `0x5542f0(x + corrimiento, y, texto, 0, 6, 0)` (el modo 6, Q-C519) con el alfa `(opacidad + 50) · alfa del color /
+  255`, a la mitad 5 de cada 10 textos dibujados (`0x5762ee4`) con el parpadeo en 1. Al final, `0x46a910` corre el
+  texto: con el mouse sobre la franja (`y − 3`, `alto + 6`) el empuje es −1 y si no 1; la velocidad suma el empuje
+  hasta la máxima, sin bajar de 0, y el corrimiento resta la velocidad.
+
+**MuRet:** `Data::Text::LoadSlideTable` y `Scenes::LoadGameData` leen el archivo; `UI::SlideBanner` es el objeto,
+en `HudState` (`hud.slides`), con `LoadTheSlides` (`0x46b3b0`), `ResetTheSlideQueues` (`0x46a460` y `0x45a9d0`),
+`PickASlide` (`0x46b680`), `QueueTheSlide` (`0x46b720` sin la escena), `StepTheSlides` (`0x46b7b0`, en
+`Scenes/GameUi`) y `DrawTheSlides` (`0x46b090`, en `Scenes/GameHud`). `Scenes/Slides` tiene el arranque
+(`StartTheSlides`, en el primer paso de `GameScene`), el cuerpo del timer (`QueueATimedSlide`, con los 3.848
+`rand()` del registro propio y el de `0x46b680`) y el timer (`RunTheSlideTimer`): `main.cpp` lo corre entre el cierre
+del contador de una vuelta de `WinMain` y la siguiente, una vez por vuelta si venció, con los dos `rand()` del foco.
+Ese momento es *inferido* (08, P-C80). El `0D` de 10 a 15 encola en `Scenes/ChatReceive`.
 
 **La entrada del chat: escribir, mandar y las macros** (CL8 hito 3, *estático*; `Scenes/GameChat.cpp`,
 `UI/ChatInput.cpp`, `UI/ChatCommands.cpp`, `UI/MacroFile.cpp`). Con `0x6c7b8c` en 1 (`.data`), el chat escribe en

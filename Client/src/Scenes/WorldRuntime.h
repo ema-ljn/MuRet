@@ -16,6 +16,7 @@
 #include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
+#include "UI/SlideBanner.h"
 #include "UI/WhisperSenders.h"
 #include "World/GroundMarks.h"
 #include "World/LeafWeather.h"
@@ -120,6 +121,9 @@ struct HudState
     // 0x554610. 0x61bcd0 crea el DC sin ninguna (la del sistema) y el login dibuja con una antes del primer mensaje:
     // MuRet empieza con la normal.
     Render::Text::FontKind dcFont = Render::Text::FontKind::Normal;
+    // [0x5763528]: el cartel de Slide.bmd (0x46aea0), que dibuja el 15 (0x46b090) y escribe al dibujar (la opacidad,
+    // el corrimiento, el texto que pasa y 0x5762ee4). Lo llenan el timer 0x3eb y el 0D, y lo pasa el paso de la UI.
+    UI::SlideBanner slides{};
 };
 
 struct WorldRuntime

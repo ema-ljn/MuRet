@@ -112,6 +112,11 @@ constexpr int ParticleWindDraws = 2;
 // 0x636ded..0x63705b, la UI del paso con todo cerrado: el registro propio de la barra de skills (0x5a05e5), las
 // consultas del comercio y de la tienda de NPC de Q, W y E (0x5a343e) y las de IsOpen(0) (0x5a5511).
 constexpr int GameUiStepDraws = Client::Render::Models::OwnRecordCloseRandoms + 2 + 2;
+// 0x636920, en el primer paso de la escena: 0x46b010 y 0x46b0e0, que abre y cierra el registro propio. Sin Slide.bmd
+// ningún tramo tiene textos y no sortea.
+constexpr int SlideStartDraws = Client::Render::Models::OwnRecordCloseRandoms;
+// El primer paso de cada escena: el cartel y, después, la UI del paso.
+constexpr int FirstStepDraws = SlideStartDraws + GameUiStepDraws;
 // 0x637641: el picking del frame del Dark Wizard (la clase 0) lee su skill del registro propio (0x59efda).
 constexpr int FramePickingDraws = Client::Render::Models::OwnRecordCloseRandoms;
 // 0x637660: el HUD (0x5a7320) en el estado base: 19 cierres del registro propio (las flechas, los doce avisos de
@@ -495,7 +500,7 @@ TEST(GameSceneTest, AStepLowersTheCounterWithTwoAccesses)
         ASSERT_EQ(tested.scene.Failure(), std::nullopt);
         const int wind = ParticleWindDraws; // El caller sigue con partículas también durante la espera.
         EXPECT_EQ(tested.cloth.random.State(),
-                  StateAfterAStep(GameUiStepDraws + InertFishCandidateRandoms + probe.draws + wind));
+                  StateAfterAStep(FirstStepDraws + InertFishCandidateRandoms + probe.draws + wind));
     }
 }
 
@@ -539,14 +544,14 @@ private:
 // 0x6370f4: 0x445230, los ayudantes, antes de MoveHero (0x63710a) y también en la espera. Con el jinete
 // muerto, el paso de la escena 5 apaga su caballo y la espera sigue, con los 8 rand() de MoveHero. Con el
 // jinete vivo fuera de una celda segura, el aliento saca un rand() después de los seis candidatos
-// de peces del mapa inerte (con Seed, un rand() antes y la UI del paso, % 3 da 0) y, sin ningún dibujo antes, sale
-// del hueso 27 en cero del buffer global: la 5f2 nace, MoveHero baja el contador y la espera sigue, con el cuerpo
-// del jinete avanzado por Player.bmd (0x4f9580).
+// de peces del mapa inerte (con Seed, tres rand() antes, el cartel y la UI del paso, % 3 da 0) y, sin ningún dibujo
+// antes, sale del hueso 27 en cero del buffer global: la 5f2 nace, MoveHero baja el contador y la espera sigue, con el
+// cuerpo del jinete avanzado por Player.bmd (0x4f9580).
 TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
 {
     constexpr std::size_t RiderSlot = 5;
-    constexpr int Skipped = 1;
-    CrtRandom first = RandomAfter(Skipped + GameUiStepDraws + InertFishCandidateRandoms);
+    constexpr int Skipped = 3;
+    CrtRandom first = RandomAfter(Skipped + FirstStepDraws + InertFishCandidateRandoms);
     ASSERT_EQ(first.Next() % 3, 0);
     for (const bool riderAlive : {false, true})
     {
@@ -595,13 +600,13 @@ TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
             EXPECT_FALSE(world.Helpers()[0].alive);
             EXPECT_EQ(world.Runtime().warpCounter, WorldLoadingWait - 1);
             EXPECT_EQ(cloth.random.State(),
-                      StateAfterAStep(Skipped + GameUiStepDraws + InertFishCandidateRandoms + 8 + ParticleWindDraws));
+                      StateAfterAStep(Skipped + FirstStepDraws + InertFishCandidateRandoms + 8 + ParticleWindDraws));
         }
     }
 }
 
 // 0x636da3 y 0x6371a6: sin el mundo cargado y sin el estado 0x3d, el paso sale antes de MoveHero y el
-// dibujo devuelve 0 sin leer el contador. La tela corre igual.
+// dibujo devuelve 0 sin leer el contador. El cartel del primer paso (0x636920) y la tela corren igual.
 TEST(GameSceneTest, WithoutTheLoadedWorldNeitherTheStepNorTheDrawReadTheCounter)
 {
     Client::Tests::RecordingSink sink;
@@ -616,7 +621,7 @@ TEST(GameSceneTest, WithoutTheLoadedWorldNeitherTheStepNorTheDrawReadTheCounter)
     EXPECT_TRUE(tested.scene.HoldsTheLastFrame());
     EXPECT_FALSE(tested.Runtime().drawingEnabled);
     EXPECT_EQ(tested.Runtime().warpCounter, 30);
-    EXPECT_EQ(tested.cloth.random.State(), StateAfterAStep(0));
+    EXPECT_EQ(tested.cloth.random.State(), StateAfterAStep(SlideStartDraws));
 }
 
 // 0x636da3..0x636dac: con la sesión en el mundo (el 0x3d que publica la respuesta del F3 03), el paso
@@ -1056,7 +1061,7 @@ TEST_F(GameSceneDrawTest, TheStepAfterADrawStepsTheSeenObjects)
             ASSERT_EQ(objects[roof].targetAlpha, 1.0f) << roof;
         }
         // Lo que saca cada uno: los rand() del paso, en el orden de los objetos.
-        CrtRandom flicker = RandomAfter(probe.drawDraws + GameUiStepDraws);
+        CrtRandom flicker = RandomAfter(probe.drawDraws + FirstStepDraws);
         std::vector<float> lights;
         for (std::size_t k = 0; k < probe.flickers.size(); ++k)
         {
@@ -1075,7 +1080,7 @@ TEST_F(GameSceneDrawTest, TheStepAfterADrawStepsTheSeenObjects)
         const auto heroBefore = world.Actors()[HeroSlot];
         const auto weatherBefore = world.Runtime().leafWeather;
         ClothWorld reference = cloth;
-        reference.random = Advanced(reference.random, GameUiStepDraws + probe.stepDraws);
+        reference.random = Advanced(reference.random, FirstStepDraws + probe.stepDraws);
         GameScene scene = Scene();
         ASSERT_TRUE(scene.Enter().HasValue());
 
@@ -1125,7 +1130,7 @@ TEST_F(GameSceneDrawTest, TheStepStopsAtTheSeenObjectsOfTheOtherMaps)
     ASSERT_TRUE(scene.Failure().has_value());
     EXPECT_NE(scene.Failure()->find("0x606560"), std::string::npos) << *scene.Failure();
     EXPECT_EQ(world.Map().objects.front().alpha, before.alpha);
-    EXPECT_EQ(cloth.random.State(), RandomAfter(GameUiStepDraws).State());
+    EXPECT_EQ(cloth.random.State(), RandomAfter(FirstStepDraws).State());
     scene.Leave();
 }
 
@@ -1295,7 +1300,7 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
         const auto weatherBefore = world.Runtime().leafWeather;
         const auto layerBefore = world.Runtime().heroCellLayer;
         ClothWorld reference = cloth;
-        reference.random = Advanced(reference.random, GameUiStepDraws);
+        reference.random = Advanced(reference.random, FirstStepDraws);
         scene.Step(Client::Input::InputState{});
 
         ASSERT_EQ(scene.Failure(), std::nullopt);
@@ -1379,7 +1384,7 @@ TEST_F(GameSceneDrawTest, TheStepAgesTheGroundMarksAfterTheCharacters)
         const auto weatherBefore = world.Runtime().leafWeather;
         const auto layerBefore = world.Runtime().heroCellLayer;
         ClothWorld reference = cloth;
-        reference.random = Advanced(reference.random, GameUiStepDraws);
+        reference.random = Advanced(reference.random, FirstStepDraws);
         scene.Step(Client::Input::InputState{});
 
         ASSERT_EQ(scene.Failure(), std::nullopt);
@@ -1418,7 +1423,7 @@ TEST_F(GameSceneDrawTest, WithoutAPreviousDrawTheFirstStepSeesWithTheTrapezoidOf
     const auto weatherBefore = world.Runtime().leafWeather;
     const auto layerBefore = world.Runtime().heroCellLayer;
     ClothWorld reference = cloth;
-    reference.random = Advanced(reference.random, GameUiStepDraws);
+    reference.random = Advanced(reference.random, FirstStepDraws);
     scene.Step(Client::Input::InputState{});
 
     ASSERT_EQ(scene.Failure(), std::nullopt);
@@ -1458,7 +1463,7 @@ TEST_F(GameSceneDrawTest, WithoutPlayerBmdTheStepStopsAtTheBody)
         const auto weatherBefore = world.Runtime().leafWeather;
         const auto layerBefore = world.Runtime().heroCellLayer;
         ClothWorld reference = cloth;
-        reference.random = Advanced(reference.random, GameUiStepDraws);
+        reference.random = Advanced(reference.random, FirstStepDraws);
         scene.Step(Client::Input::InputState{});
 
         ASSERT_TRUE(AdvanceEnvironmentPrefix(world, heroBefore, weatherBefore, layerBefore, reference).HasValue());

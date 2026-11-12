@@ -78,6 +78,12 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
 {
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
     const GameChatContext chat = ChatContext();
+    // timeGetTime() de los segundos del cartel (0x46ada0): el reloj de la escena en ms.
+    const auto systemTime =
+        m_context.clock != nullptr
+            ? static_cast<std::uint32_t>(
+                  std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
+            : 0U;
     return StepTheGameUi(GameUiContext{.world = *m_context.world,
                                        .random = m_context.cloth->random,
                                        .input = input,
@@ -85,7 +91,8 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .mouseY = mouse.y,
                                        .measure = m_context.textMeasure,
                                        .screen = m_screen,
-                                       .chat = &chat});
+                                       .chat = &chat,
+                                       .systemTime = systemTime});
 }
 
 GameChatContext GameScene::ChatContext()

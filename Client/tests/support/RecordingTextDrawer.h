@@ -8,6 +8,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ITextDrawer.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -29,6 +30,8 @@ struct RecordedText
     int y = 0;
     std::string text;
     Render::Text::TextStyle style;
+    // Si vino por DrawClippedAtLeft (el modo 6 del cartel).
+    bool clippedAtLeft = false;
 };
 
 class RecordingTextDrawer final : public Scenes::ITextDrawer
@@ -54,6 +57,21 @@ public:
                                           .y = static_cast<float>(y),
                                           .width = static_cast<float>(extent.width),
                                           .height = static_cast<float>(extent.height),
+                                          .scalePosition = true});
+    }
+
+    // Con x negativa, la marca va desde 0 con cx + x de ancho, y sin ancho no va.
+    void DrawClippedAtLeft(int x, int y, std::string_view text, const Render::Text::TextStyle& style) override
+    {
+        texts.push_back(RecordedText{.x = x, .y = y, .text = std::string(text), .style = style, .clippedAtLeft = true});
+        const int width = Measure(style.font, text).width + std::min(x, 0);
+        if (width <= 0)
+            return;
+        m_batch.Quad(Render::OriginalQuad{.slot = TextMarkerSlot,
+                                          .x = static_cast<float>(std::max(x, 0)),
+                                          .y = static_cast<float>(y),
+                                          .width = static_cast<float>(width),
+                                          .height = static_cast<float>(Height),
                                           .scalePosition = true});
     }
 

@@ -66,12 +66,14 @@
 #include "Scenes/SceneTransitions.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/SessionEventApplier.h"
+#include "Scenes/Slides.h"
 #include "Scenes/TestScene.h"
 #include "Scenes/WinMainLoop.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldLoadingScene.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/SlideBanner.h"
 #include "World/GameCamera.h"
 
 #include <chrono>
@@ -646,6 +648,11 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     Scenes::WorldState world;
     // 0x61ee30 → 0x61c1c0: las macros de Data\Macro.txt, que GameData leyó detrás de Text.bmd, en 0x77f1db0.
     world.Runtime().chat.input.macros = scenes.data.macros;
+    // 0x61ed18: 0x46b3b0 deja Slide.bmd en el cartel de [0x5763528], que dura hasta el cierre.
+    if (scenes.data.slides)
+    {
+        Client::UI::LoadTheSlides(world.Runtime().hud.slides, *scenes.data.slides);
+    }
     // 4bada2..4bade0: la tabla global de ángulos se publica una vez con la CRT de WinMain.
     Scenes::InitializeGameItemRenderState(world.Runtime().itemRender, clothWorld.random);
     // 0x4bafad..0x4bafdf: el pool empieza en cero y el héroe apunta al personaje 0.
@@ -723,15 +730,22 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         Scenes::UpdateGameItemGlowPulse(world.Runtime().itemRender, worldClock);
     };
     // P-C61: los dos contadores de WinMain y el byte del foco, con la CRT de la tela. Cada frame del original que
-    // corre en una vuelta sin minimizar cierra el contador de 0x63945d y empieza la vuelta siguiente.
+    // corre en una vuelta sin minimizar cierra el contador de 0x63945d y empieza la vuelta siguiente. Entre las dos,
+    // el WM_TIMER 0x3eb del cartel de Slide.bmd, si venció (P-C80): una vez, con la hora del bucle en ms, como
+    // timeGetTime.
     Scenes::WinMainCounters winMain;
     Client::Render::Models::OriginalFrameCarry winMainFrameCarry;
-    const auto afterSceneFrame = [&winMain, &winMainFrameCarry, &clothWorld, &startup](Core::Duration now)
+    const auto afterSceneFrame =
+        [&winMain, &winMainFrameCarry, &clothWorld, &startup, &world, &sceneManager](Core::Duration now)
     {
         const int frames = winMainFrameCarry.FramesAt(now, Scenes::OriginalFramePaceOf(startup.config.pacing));
+        const auto systemTime =
+            static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(now).count());
+        const bool gameScene = sceneManager != nullptr && sceneManager->Current() == Scenes::SceneId::Game;
         for (int i = 0; i < frames; ++i)
         {
             Scenes::CloseTheFrameCounter(clothWorld.random);
+            Scenes::RunTheSlideTimer(world, clothWorld.random, systemTime, gameScene);
             Scenes::StepTheWinMainLoop(winMain, clothWorld.random);
         }
     };

@@ -29,6 +29,7 @@
 #include "UI/GameText.h"
 #include "UI/HudPrimitives.h"
 #include "UI/PanelRegistry.h"
+#include "UI/SlideBanner.h"
 #include "UI/TextField.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
@@ -1387,7 +1388,16 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     // 0x557650.
     // 13. 0x451d10 y 0x451c20: los carteles del singleton de 0x7245c8 (CL9.5).
     // 14. 0x5a6cc0: el marcador del duelo, con 0x78abad8 (hito 4).
-    // 15. 0x46b090: la caja sin leer de [0x5763528] (hito 7).
+    // 15. 0x46b090: el cartel de Slide.bmd ([0x5763528]).
+    if (auto slides = UI::DrawTheSlides(hud.slides, UI::SlideDrawContext{.sprites = context.sprites,
+                                                                         .text = context.text,
+                                                                         .dcFont = hud.dcFont,
+                                                                         .textColors = hud.textColors,
+                                                                         .mouseX = context.mouse.x,
+                                                                         .mouseY = context.mouse.y,
+                                                                         .slidesOn = runtime.chat.slidesOn});
+        !slides.HasValue())
+        return slides;
     // 16. 0x413ca0.
     if (runtime.map == CastleSiegeMap && runtime.siegeActive)
         return Core::Unexpected(std::string("0x413ca0: la UI de Castle Siege es de la CL9.5"));

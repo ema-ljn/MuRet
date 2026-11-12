@@ -49,6 +49,7 @@
 #include "Scenes/TextureSets.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/Slides.h"
 #include "Scenes/TerrainPolygonFrame.h"
 #include "Scenes/TerrainTiles.h"
 #include "Scenes/WorldRuntime.h"
@@ -280,8 +281,17 @@ void GameScene::StepEntry()
             input.focus = UI::ChatFocus::Game;
             UI::ClearTheLog(runtime.chat.log, runtime.ui.chatModes);
             UI::ClearTheChatFilter(runtime.chat.log);
-            // 0x636920: 0x46b010, las colas del cartel de Slide.bmd y su timer (0x46b0e0, que abre el registro propio
-            // y sortea un texto), sin portar (08, P-C80).
+            // 0x636920: 0x46b010, las colas del cartel de Slide.bmd, su timer 0x3eb y 0x46b0e0 (el registro propio y
+            // un texto de Slide.bmd, con sus rand()).
+            if (m_context.cloth != nullptr)
+            {
+                const auto now =
+                    m_context.clock != nullptr
+                        ? static_cast<std::uint32_t>(
+                              std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
+                        : 0U;
+                StartTheSlides(*m_context.world, m_context.cloth->random, now);
+            }
         }
     }
     if (m_sent || m_session == nullptr)

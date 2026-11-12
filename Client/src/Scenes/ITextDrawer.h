@@ -15,5 +15,9 @@ class ITextDrawer : public Render::Text::ITextMeasure
 {
 public:
     virtual void Draw(int x, int y, std::string_view text, const Render::Text::TextStyle& style) = 0;
+    // 0x467060 con el modo 6, el del cartel de Slide.bmd (0x46a816): con x negativa, el texto corrido −x columnas
+    // del DIB (píxeles, aunque la x es de 640 × 480: Q-C519) y dibujado desde la x 0, con cx + x columnas; con x de
+    // 0 o más, como Draw.
+    virtual void DrawClippedAtLeft(int x, int y, std::string_view text, const Render::Text::TextStyle& style) = 0;
 };
 } // namespace Client::Scenes

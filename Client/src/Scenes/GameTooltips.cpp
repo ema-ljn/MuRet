@@ -19,6 +19,7 @@
 #include "Scenes/ItemTooltips.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/SkillTooltip.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"

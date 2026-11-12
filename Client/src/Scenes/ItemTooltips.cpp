@@ -319,14 +319,4 @@ Core::Expected<void, std::string> DrawTheRepairTooltip(const ItemTooltipContext&
         return Core::Unexpected(lines.Error());
     return DrawTheRepairBox(context, *record);
 }
-
-Core::Expected<void, std::string> DrawTheSkillTooltip(GameHudContext& context, std::int32_t x, std::int32_t y,
-                                                      std::int32_t skill, std::int32_t flag)
-{
-    static_cast<void>(context);
-    static_cast<void>(x);
-    static_cast<void>(y);
-    static_cast<void>(flag);
-    return Core::Unexpected(std::format("0x5b90b0: el tooltip de la skill {} es del hito 5", skill));
-}
 } // namespace Client::Scenes

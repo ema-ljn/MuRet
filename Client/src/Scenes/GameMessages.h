@@ -42,7 +42,8 @@ struct WorldRuntime;
 [[nodiscard]] Core::Expected<void, std::string> AddTheEmptyMessages(WorldRuntime& runtime,
                                                                     const Render::Text::ITextMeasure* measure);
 
-// 0x637cf3 y 0x637cf8: el reloj de los avisos (0x5547e0) y el del área vieja (0x5554b0), uno por paso.
+// 0x637cf3 y 0x637cf8: el reloj de los avisos (0x5547e0) y el del área vieja (0x5554b0), uno por paso; después,
+// 0x637d2c y 0x637d44 bajan el freno del chat y el de las macros.
 [[nodiscard]] Core::Expected<void, std::string>
 StepTheMessageClocks(WorldRuntime& runtime, const Render::Text::ITextMeasure& measure, App::PixelSize screen);
 // Lo común del dibujo de las tres escenas antes de su UI (0x6376a0..0x6376b6 en el juego, 0x63552a..0x63553f en el

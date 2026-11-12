@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextStyle.h"
 

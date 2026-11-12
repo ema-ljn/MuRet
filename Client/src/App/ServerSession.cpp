@@ -1080,6 +1080,11 @@ void ServerSession::RequestCrywolfState()
     static_cast<void>(SendWorldPacket(Protocol::World::WriteCrywolfState()));
 }
 
+void ServerSession::SendChat(Protocol::Outgoing packet)
+{
+    static_cast<void>(SendWorldPacket(std::move(packet)));
+}
+
 void ServerSession::RequestCastleSiegeState()
 {
     static_cast<void>(SendWorldPacket(Protocol::World::WriteCastleSiegeState()));

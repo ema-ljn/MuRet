@@ -6,6 +6,7 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
+#include "UI/MacroFile.h"
 
 #include <filesystem>
 #include <optional>
@@ -31,6 +32,8 @@ inline constexpr std::string_view SkillTableFile = "Local\\Skill.bmd";
 // Las tablas de los conjuntos, como las pide 0x40c600 desde 0x61ccb0 (0x6c63e8 y 0x6c63c8).
 inline constexpr std::string_view ItemSetTypeFile = "Local\\ItemSetType.bmd";
 inline constexpr std::string_view ItemSetOptionFile = "Local\\ItemSetOption.bmd";
+// Las macros, como las pide 0x61ee30 (0x6c649c), detrás de Text.bmd.
+inline constexpr std::string_view MacroFile = "Macro.txt";
 
 struct GameData
 {
@@ -47,6 +50,8 @@ struct GameData
     std::optional<Data::Tables::ItemSetTables> itemSets;
     // Skill.bmd: la tabla en claro, sin el contenedor guardia del original (Q-C08).
     std::optional<Data::Tables::SkillTable> skills;
+    // Data\Macro.txt (0x61c1c0): main.cpp las copia a ChatInputState::macros cuando arma el mundo.
+    UI::Macros macros{};
 };
 
 // Lo de WinMain antes de la escena 1: Text.bmd en 0x4b9b9f (0x61ee30 y 0x5495e0), antes de las
@@ -61,6 +66,8 @@ struct GameData
 // también: sin ellas, o con un checksum que no da, el original muestra su aviso y cierra la ventana
 // (0x40c660 y 0x40c850); un error de ruta, lectura o formato las nombra. Skill.bmd también es
 // obligatorio: lee registros y checksum de un prefijo fijo, permite cola y rechaza un checksum
-// distinto (0x54acf0). La tabla queda en claro, sin el contenedor guardia del original (Q-C08).
+// distinto (0x54acf0). La tabla queda en claro, sin el contenedor guardia del original (Q-C08). Las macros van
+// detrás de Text.bmd, como en 0x61ee30: si Macro.txt no está o no se lee, quedan vacías, como cuando fopen falla en
+// 0x61c1c0; una palabra que desborda su lugar (Q-C531) es el error.
 [[nodiscard]] Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot);
 } // namespace Client::Scenes

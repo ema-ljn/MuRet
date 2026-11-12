@@ -222,6 +222,9 @@ public:
     void RequestGate(std::uint8_t gate);
     void ConfirmTeleport();
     void RequestCrywolfState();
+    // El chat (C1 00) y el susurro (C1 02) que arma la entrada del chat (Protocol::Chat), como los demás de mundo: sin
+    // un GameServer abierto, un aviso y nada. Lo que lleva no va al log.
+    void SendChat(Protocol::Outgoing packet);
     // El B9 02 de 0x42a760 al cargar el 30 (Protocol::World::WriteCastleSiegeState).
     void RequestCastleSiegeState();
     // 0x4c609f: el 00 con la escena 2 (el login) pide la lista de servidores, C1 04 F4 02, por el socket que esté

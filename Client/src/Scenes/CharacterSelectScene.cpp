@@ -47,6 +47,7 @@
 #include "Scenes/ItemDrawResources.h"
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SelectionWorld.h"
+#include "UI/MessageArea.h"
 #include "World/GameCamera.h"
 #include "World/TerrainCulling.h"
 #include "Scenes/SceneCanvas.h"

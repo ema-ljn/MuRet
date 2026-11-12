@@ -16,6 +16,7 @@
 #include "support/SkillFiles.h"
 #include "support/GoldenDir.h"
 #include "Data/Tables/SkillTable.h"
+#include "UI/MacroFile.h"
 
 #include <gtest/gtest.h>
 
@@ -144,6 +145,45 @@ TEST(GameDataTest, WithoutTheFiltersNothingIsFiltered)
     ASSERT_TRUE(data.HasValue()) << data.Error();
     EXPECT_TRUE(data.Value().filterName.empty());
     EXPECT_TRUE(data.Value().filter.empty());
+}
+
+// 0x61ee30 → 0x61c1c0: Macro.txt, detrás de Text.bmd, sin mirar mayúsculas; sin él, las macros vacías. Las macros
+// son inventadas.
+TEST(GameDataTest, ReadsTheMacros)
+{
+    const TemporaryFolder folder("game-data");
+    WriteTextTable(folder.Path(), {{1, "uno"}});
+    WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
+    WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
+    Client::Tests::WriteEmptyItemSetFiles(folder.Path());
+    Client::Tests::WriteEmptySkillFile(folder.Path());
+
+    const auto without = LoadGameData(folder.Path());
+    ASSERT_TRUE(without.HasValue()) << without.Error();
+    EXPECT_EQ(without.Value().macros, Client::UI::Macros{});
+
+    const std::string macros = "primera\r\nsegunda\r\n";
+    WriteSceneFile(folder.Path(), "MACRO.TXT", std::as_bytes(std::span(macros)));
+    const auto data = LoadGameData(folder.Path());
+    ASSERT_TRUE(data.HasValue()) << data.Error();
+    EXPECT_EQ(data.Value().macros[0], "primera");
+    EXPECT_EQ(data.Value().macros[1], "segunda");
+    EXPECT_EQ(data.Value().macros[2], "");
+}
+
+// Q-C531: una palabra que no entra en su lugar es un error que nombra el archivo.
+TEST(GameDataTest, AnOverflowingMacroIsNamed)
+{
+    const TemporaryFolder folder("game-data");
+    WriteTextTable(folder.Path(), {{1, "uno"}});
+    const std::string macros(Client::UI::MacroSlotBytes, 'x');
+    WriteSceneFile(folder.Path(), "Macro.txt", std::as_bytes(std::span(macros)));
+
+    const auto data = LoadGameData(folder.Path());
+
+    ASSERT_FALSE(data.HasValue());
+    EXPECT_NE(data.Error().find("Macro.txt"), std::string::npos) << data.Error();
+    EXPECT_NE(data.Error().find("0x61c1c0"), std::string::npos) << data.Error();
 }
 
 // Uno con otra suma (o la del otro archivo) es un error que lo nombra, como el "File corrupted" del

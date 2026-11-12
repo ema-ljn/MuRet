@@ -30,11 +30,20 @@ public:
 
     TextField(std::size_t maxBytes, bool masked, Charset charset = Charset::Ascii);
 
-    // Suma lo que se puede de `utf8`, en orden, hasta llenar el campo.
+    // Suma lo que se puede de `utf8`, en orden, hasta llenar el campo. Con todo elegido, lo primero que entra
+    // reemplaza lo que había, como el EDIT con una selección.
     void Type(std::string_view utf8);
-    // Borra el último byte; vacío, nada.
+    // Borra el último byte; vacío, nada. Con todo elegido, lo borra todo.
     void Backspace();
     void Clear();
+    // WM_SETTEXT (la vtable + 0x4c de los EDIT, 0x467ee0): pone `raw` tal cual, en bytes, sin el tope de
+    // EM_LIMITTEXT, que solo frena lo tecleado. Deja el cursor al final y nada elegido.
+    void SetText(std::string_view raw);
+    // EM_SETSEL(0, −1): todo elegido. EM_SETSEL(−2, −1) y EM_SETSEL(10000, −1): el cursor al final, nada
+    // elegido.
+    void SelectAll();
+    void Deselect();
+    [[nodiscard]] bool AllSelected() const;
 
     // Lo que tiene. Vale hasta el próximo cambio.
     [[nodiscard]] std::string_view Value() const&;
@@ -46,9 +55,13 @@ public:
     [[nodiscard]] bool Masked() const;
 
 private:
+    // Lo elegido se va antes de la primera letra que entra.
+    void ReplaceTheSelection();
+
     std::size_t m_maxBytes;
     bool m_masked;
     Charset m_charset;
     std::string m_value;
+    bool m_allSelected = false;
 };
 } // namespace Client::UI

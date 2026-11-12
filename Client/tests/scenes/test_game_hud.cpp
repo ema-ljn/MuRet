@@ -16,6 +16,7 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
 #include "UI/GameText.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
@@ -693,6 +694,30 @@ TEST_F(GameHudTest, TheArrowsShowTheirCountAndPushTheHelperDown)
     EXPECT_EQ(world.Runtime().hud.arrowsTextWidth,
               static_cast<std::int32_t>(text.texts[0].text.size()) * Client::Tests::RecordingTextDrawer::LetterWidth);
     EXPECT_EQ(text.texts[1].y, 24);
+}
+
+// 10 y 22 (CL8 hito 3): el freno de las macros dibuja "Macro Time" centrado en el mundo, en y = 0x188; con el campo
+// del chat abierto, la caja sin mezcla (0xf8 y 0xf9) y, con el modo de F3, su indicador (0xef).
+TEST_F(GameHudTest, TheMacroTimeAndTheChatBoxAreDrawn)
+{
+    world.Runtime().hud.macroTime = Client::UI::MacroLockSteps;
+    world.Runtime().ui.chatOpen = true;
+
+    ASSERT_TRUE(Hud().HasValue());
+
+    const auto macro = std::ranges::find_if(text.texts, [](const auto& drawn) { return drawn.text == "Macro Time"; });
+    ASSERT_NE(macro, text.texts.end());
+    EXPECT_EQ(macro->x, (640 - 50) / 2);
+    EXPECT_EQ(macro->y, 0x188);
+    std::vector<std::uint16_t> chatSlots;
+    for (const DrawnQuad& quad : QuadsOf(sprites))
+    {
+        if (!quad.slot || (*quad.slot != 0xf8 && *quad.slot != 0xf9 && *quad.slot != 0xef))
+            continue;
+        chatSlots.push_back(*quad.slot);
+        EXPECT_EQ(quad.blend, *quad.slot == 0xef ? BlendMode::Alpha : BlendMode::Opaque);
+    }
+    EXPECT_EQ(chatSlots, (std::vector<std::uint16_t>{0xf8, 0xf9, 0xef}));
 }
 
 // 0x5a5860 con una skill de comando (0x78 a 0x7c): el atlas command (300) y su número desde 1, sin la espera.

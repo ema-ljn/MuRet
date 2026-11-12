@@ -1,12 +1,20 @@
 #include "UI/ChatLog.h"
 
+#include "App/WindowState.h"
+#include "Core/Expected.h"
 #include "Render/ScreenScale.h"
+#include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "UI/NameChecks.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 #include <format>
-#include <utility>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace Client::UI
 {

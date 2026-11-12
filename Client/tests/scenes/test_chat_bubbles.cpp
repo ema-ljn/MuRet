@@ -6,6 +6,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
 
 #include <gtest/gtest.h>
 
@@ -157,6 +158,32 @@ TEST_F(ChatBubblesTest, TheStepAgesTheBubblesAndForgetsTheDead)
     EXPECT_EQ(Bubbles()[0].time1, 2 * 4 + 0xa0 - 1);
     EXPECT_EQ(Bubbles()[1].time1, 0);
     EXPECT_EQ(Bubbles()[1].owner, std::optional<std::size_t>(6));
+}
+
+// 0x5577a2: con el campo del chat abierto, en la zona segura, el derecho sobre el globo de otro con +0x376 en 0xff
+// pone su nombre en el EDIT y en el buffer del susurro, gasta el derecho y suena.
+TEST_F(ChatBubblesTest, TheRightClickOnABubbleWhispersToItsOwner)
+{
+    Speaker(4, "Tordo").word376 = 0xff;
+    ASSERT_TRUE(
+        Client::Scenes::AddChatBubble(*m_world, Measure(), "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
+    Bubbles()[0].x = 100;
+    Bubbles()[0].y = 50;
+    Bubbles()[0].width = 40;
+    Bubbles()[0].height = 20;
+    auto& runtime = m_world->Runtime();
+    m_world->Actors()[runtime.hero].safeZone = 1;
+    runtime.ui.chatOpen = true;
+    runtime.ui.rightClick = true;
+
+    const Client::Scenes::ChatBubbleStepInput input{.mouseX = 110, .mouseY = 60, .screen = {640, 480}};
+    ASSERT_TRUE(Client::Scenes::StepTheChatBubbles(*m_world, input).HasValue());
+
+    EXPECT_EQ(Client::UI::CStringOf(runtime.chat.input.whisperBuffer), "Tordo");
+    EXPECT_EQ(runtime.chat.input.whisperLength, 5);
+    EXPECT_EQ(runtime.chat.input.whisper.Value(), "Tordo");
+    EXPECT_FALSE(runtime.ui.rightClick);
+    EXPECT_EQ(runtime.lastSoundId, 0x19);
 }
 
 // Con las 100 ocupadas, un personaje nuevo no tiene globo.

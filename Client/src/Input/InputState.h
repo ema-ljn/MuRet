@@ -58,7 +58,7 @@ public:
     [[nodiscard]] float MouseX() const;
     [[nodiscard]] float MouseY() const;
     // Lo tecleado desde el último ConsumeEdges, en UTF-8 y en orden, como la rueda (CL5.5): el
-    // texto de cada Text y, en su lugar, un BackspaceChar o un TabChar por cada apretón de esas
+    // texto de cada Text y, en su lugar, un BackspaceChar, un TabChar o un EnterChar por cada apretón de esas
     // teclas (InputEvent.h), para que lo de antes y lo de después de un Tab o un Backspace del
     // mismo paso no se mezclen. Vale hasta el próximo Apply o ConsumeEdges. FocusLost lo borra,
     // como los apretones.

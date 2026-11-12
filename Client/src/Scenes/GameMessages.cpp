@@ -75,8 +75,15 @@ Core::Expected<void, std::string> StepTheMessageClocks(WorldRuntime& runtime, co
         return Core::Unexpected(sound.Error());
     if (sound.Value())
         runtime.lastSoundId = *sound.Value();
+    // 0x637d2c y 0x637d44: el freno del chat y el de las macros, de a uno por paso (el 0x637cfd de PrintScreen, entre
+    // los relojes y los frenos, no los mira).
+    if (runtime.chat.input.brake > 0)
+        --runtime.chat.input.brake;
+    if (runtime.hud.macroTime > 0)
+        --runtime.hud.macroTime;
     return {};
 }
+
 void DrawTheMessages(const WorldState& world, HudState& hud, Render::SpriteBatch& sprites, ITextDrawer& text,
                      UI::Point mouse, bool inTheGame)
 {

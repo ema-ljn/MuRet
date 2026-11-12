@@ -7,6 +7,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
+#include "Data/Models/PlayerModels.h"
 #include "Data/Tables/GateRecord.h"
 #include "Data/Tables/GateTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -450,6 +451,10 @@ public:
     }
     [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
+        if (model == Client::Data::Models::PlayerSkeletonModel)
+        {
+            return &m_player;
+        }
         return model == Client::Scenes::DarkHorseModel ? &m_skeleton : nullptr;
     }
     [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
@@ -459,6 +464,8 @@ public:
 
 private:
     Client::Render::Models::Skeleton m_skeleton;
+    // El jinete vivo pasa por el paso de los personajes (0x4f9580), que pide Player.bmd.
+    Client::Render::Models::Skeleton m_player = Client::Tests::PlayerActionsSkeleton();
 };
 
 // 0x6370f4: 0x445230, los ayudantes, antes de MoveHero (0x63710a) y también en la espera. Con el jinete

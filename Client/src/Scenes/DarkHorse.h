@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Render/Models/Animation.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/CharacterDrawing.h"
@@ -47,8 +48,10 @@ void FadeInDarkHorse(DarkHorse& horse);
 // 0x444145..0x444535: la acción que le da la del jinete (0x4ea030) y su velocidad en +0xd8.
 void TakeTheRidersGait(DarkHorse& horse, const Render::Models::Skeleton& skeleton, std::uint8_t riderAction);
 
-// 0x445006..0x445039: el avance de su acción a +0xd8 (0x4ec200), el final del paso.
-void AdvanceDarkHorse(DarkHorse& horse, const Render::Models::Skeleton& skeleton);
+// 0x445006..0x445039: el avance de su acción a +0xd8 (0x4ec200), el final del paso, también el de los otros
+// ayudantes. En la escena 4 (`scene`) decide el final con el frame + 2 (Q-C21).
+void AdvanceDarkHorse(DarkHorse& horse, const Render::Models::Skeleton& skeleton,
+                      Render::Models::AnimationScene scene = Render::Models::AnimationScene::Other);
 
 // Un paso de 0x444010 con el 0xbf, sin lo que saca efectos: el alpha sube (FadeInDarkHorse) y, en la
 // celda segura del jinete (0x4440b8..0x4440f8), vuelve a 0 y el caballo avanza con la velocidad que

@@ -64,6 +64,14 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> DrawClippedAtLeft(SpriteBatch& batch, int x, int y,
                                                                       std::string_view text, const TextStyle& style);
 
+    // 0x467060 con un ancho (los modos 1 y 2 de 0x554180): una caja de `columns` columnas en (x, y) de 640 × 480, con
+    // el fondo entero y, en su columna 0, la columna `firstColumn` del texto: con más, lo de la izquierda queda
+    // afuera (el modo 1 con el ancho menor que cx); con menos de 0, la caja empieza con fondo (el modo 2, centrado).
+    // Lo que pasa del texto es fondo, aunque esté vacío. Cada caja es otra entrada de la caché. Sin columnas, nada.
+    // Los errores, los de Draw.
+    [[nodiscard]] Core::Expected<void, std::string> DrawColumns(SpriteBatch& batch, int x, int y, std::string_view text,
+                                                                const TextStyle& style, int firstColumn, int columns);
+
     // 0x553e50 y 0x554000 de un renglón de un globo (0x555b00): la caja de `box` con el texto en (0, 0), aunque esté
     // vacío (el fondo solo), en (x, y) de la pantalla en píxeles, como la corre BoxedQuad. Cada caja es otra entrada
     // de la caché, de un slot. Los errores, los de Draw.
@@ -103,7 +111,7 @@ private:
         int skipped = 0;
         // La caja de un globo; con ancho 0, la de 0x467060.
         BoxShape box{};
-        // Las columnas de la caja del modo 2 (CenterInBox); con 0, las del texto menos `skipped`.
+        // Las columnas de la caja de DrawColumns; con 0, las del texto desde `skipped`.
         int columns = 0;
     };
     struct KeyLess
@@ -117,11 +125,11 @@ private:
         std::string text;
         int skipped = 0;
         BoxShape box{};
-        // El ancho es el que se ve: el del texto menos `skipped`, `columns` o el de la caja del globo.
+        int columns = 0;
+        // El ancho es el que se ve: el del texto menos `skipped`, el de la caja de DrawColumns o el de la del globo.
         TextExtent extent;
         // Una por cada 256 columnas del texto, en orden.
         std::vector<TextureSlot> boxes;
-        int columns = 0;
     };
     using Entries = std::list<Entry>;
 

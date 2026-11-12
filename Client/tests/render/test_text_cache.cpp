@@ -23,6 +23,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <vector>
 
 // Client::Render::Text::TextCache: los textos rasterizados una vez y reusados (CL5.3), con un tope
@@ -425,6 +426,65 @@ TEST_F(TextCacheTest, ABubbleLineIsOneBoxWithItsShape)
     ASSERT_TRUE(cache.DrawBoxed(m_batch, 0, 0, "ab", Login, BoxShape{}, true).HasValue());
     EXPECT_EQ(cache.Size(), 3u);
     EXPECT_EQ(SlotsOf(m_batch).size(), 4u);
+}
+
+// 0x467060 con un ancho: la caja tiene las columnas pedidas, con el fondo entero y la columna `firstColumn` del texto
+// en su columna 0. Centrado (el modo 2), "ab" (12 columnas) en 20 empieza con 4 de fondo; con el ancho menor que cx (el
+// modo 1), "abcd" en 10 muestra desde la columna 14. La misma caja se reusa; sin columnas no dibuja.
+TEST_F(TextCacheTest, AWindowOfColumnsHasTheBackgroundAndTheTextFromItsColumn)
+{
+    TextCache cache(m_rasterizer, m_store, First, FourSlots);
+    constexpr std::array<std::uint8_t, 4> Ink{0xff, 0xff, 0xff, 0xff};
+    constexpr std::array<std::uint8_t, 4> Background{0, 0, 0, 0x80};
+    constexpr std::array<std::uint8_t, 4> Outside{0, 0, 0, 0};
+    const auto pixel = [](const std::vector<std::uint8_t>& pixels, std::size_t column)
+    { return std::array{pixels[column * 4], pixels[column * 4 + 1], pixels[column * 4 + 2], pixels[column * 4 + 3]}; };
+
+    ASSERT_TRUE(cache.DrawColumns(m_batch, 30, 40, "ab", Login, -4, 20).HasValue());
+    ASSERT_TRUE(cache.DrawColumns(m_batch, 30, 40, "ab", Login, -4, 20).HasValue());
+    EXPECT_EQ(m_rasterizer.drawCalls, 1);
+    const auto centered = m_store.Find(First);
+    ASSERT_TRUE(centered.has_value());
+    EXPECT_EQ(pixel(centered->texture.pixels, 0), Background);
+    EXPECT_EQ(pixel(centered->texture.pixels, 3), Background);
+    EXPECT_EQ(pixel(centered->texture.pixels, 4), Ink);
+    EXPECT_EQ(pixel(centered->texture.pixels, 10), Ink);
+    EXPECT_EQ(pixel(centered->texture.pixels, 16), Background);
+    EXPECT_EQ(pixel(centered->texture.pixels, 19), Background);
+    EXPECT_EQ(pixel(centered->texture.pixels, 20), Outside);
+
+    ASSERT_TRUE(cache.DrawColumns(m_batch, 30, 60, "abcd", Login, 14, 10).HasValue());
+    const auto clipped = m_store.Find(TextureSlot{static_cast<std::uint16_t>(First.value + 1)});
+    ASSERT_TRUE(clipped.has_value());
+    EXPECT_EQ(pixel(clipped->texture.pixels, 0), Ink);
+    EXPECT_EQ(pixel(clipped->texture.pixels, 1), Background);
+    EXPECT_EQ(pixel(clipped->texture.pixels, 4), Ink);
+    EXPECT_EQ(pixel(clipped->texture.pixels, 9), Background);
+    EXPECT_EQ(pixel(clipped->texture.pixels, 10), Outside);
+
+    SpriteBatch expected;
+    expected.Begin(Screen);
+    for (const auto& [y, extent, slot] :
+         {std::tuple{40, TextExtent{20, 13}, First}, std::tuple{40, TextExtent{20, 13}, First},
+          std::tuple{60, TextExtent{10, 13}, TextureSlot{static_cast<std::uint16_t>(First.value + 1)}}})
+    {
+        for (const auto& piece : TextPieces(30, y, extent, Screen))
+        {
+            auto quad = piece.quad;
+            quad.slot = slot;
+            expected.Quad(quad);
+        }
+    }
+    ASSERT_EQ(m_batch.Vertices().size(), expected.Vertices().size());
+    for (std::size_t i = 0; i < expected.Vertices().size(); ++i)
+    {
+        EXPECT_TRUE(SameVertex(m_batch.Vertices()[i], expected.Vertices()[i])) << i;
+    }
+
+    ASSERT_TRUE(cache.DrawColumns(m_batch, 30, 40, "ab", Login, -4, 0).HasValue());
+    ASSERT_TRUE(cache.DrawColumns(m_batch, 30, 40, "", Login, 0, 8).HasValue());
+    EXPECT_EQ(cache.Size(), 3u);
+    EXPECT_EQ(SlotsOf(m_batch).size(), SlotsOf(expected).size() + 1);
 }
 
 // El modo 2 de 0x467060 (el título del inventario): "ab" (12 columnas) en una caja de 40 va en la columna 14, y la caja

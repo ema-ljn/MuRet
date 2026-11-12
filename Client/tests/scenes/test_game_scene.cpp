@@ -20,6 +20,8 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
@@ -48,6 +50,8 @@
 #include "World/TerrainWalls.h"
 #include "World/WorldObjects.h"
 #include "World/WorldTerrain.h"
+#include "UI/ChatLog.h"
+#include "UI/MessageArea.h"
 
 #include "support/AppPrinters.h"
 #include "support/Bytes.h"
@@ -75,6 +79,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -230,6 +235,17 @@ void GiveInertTerrain(WorldState& world)
 }
 constexpr int InertFishCandidateRandoms = 3 * 2; // 447030: tres slots inactivos, X/Y; mapa−1 rechaza.
 
+// Seis píxeles por byte: los textos de los tests no llegan a los 256 del corte de 0x555190.
+class LetterMeasure final : public Client::Render::Text::ITextMeasure
+{
+public:
+    [[nodiscard]] Client::Render::Text::TextExtent Measure(Client::Render::Text::FontKind /*font*/,
+                                                           std::string_view text) const override
+    {
+        return {static_cast<int>(text.size()) * 6, 13};
+    }
+};
+
 // El WorldState, el rand() de la CRT y la escena, sin sesión salvo que se pase una.
 struct Harness
 {
@@ -238,7 +254,8 @@ struct Harness
                              .textures = store,
                              .log = log,
                              .cloth = &cloth,
-                             .world = &world},
+                             .world = &world,
+                             .textMeasure = &letters},
                 session)
     {
         GiveInertTerrain(world);
@@ -250,6 +267,7 @@ struct Harness
     }
 
     FakeTextureStore store;
+    LetterMeasure letters;
     ClothWorld cloth{.random = CrtRandom(Seed)};
     WorldState world;
     GameScene scene;
@@ -269,6 +287,35 @@ TEST(GameSceneTest, TheFirstStepSendsF303)
     EXPECT_EQ(online.session.State(), SessionState::EnteringWorld);
     EXPECT_FALSE(std::ranges::any_of(online.sink.lines, [](const std::string& line)
                                      { return line.find("se ignora la entrada al mundo") != std::string::npos; }));
+}
+
+// 0x63684b..0x6368f4: el primer paso cierra el campo del chat, vacía el área vieja con 120 entradas, el registro y el
+// filtro. Los pasos que siguen no lo repiten.
+TEST(GameSceneTest, TheFirstStepEmptiesTheChat)
+{
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
+    Harness tested(log);
+    WorldRuntime& runtime = tested.Runtime();
+    runtime.ui.chatOpen = true;
+    runtime.chat.log.entries.push_back(Client::UI::ChatEntry{.name = "Ana", .text = "hola", .type = 0});
+    runtime.chat.log.filter[0] = "dragon";
+    runtime.chat.area.rows[0].text = "viejo";
+    runtime.chat.area.count = 1;
+    ASSERT_TRUE(tested.scene.Enter().HasValue());
+
+    tested.scene.Step(tested.input);
+
+    ASSERT_FALSE(tested.scene.Failure().has_value()) << *tested.scene.Failure();
+    EXPECT_FALSE(runtime.ui.chatOpen);
+    EXPECT_TRUE(runtime.chat.log.entries.empty());
+    EXPECT_TRUE(runtime.chat.log.filter[0].empty());
+    EXPECT_EQ(runtime.chat.area.rows[0].text, "");
+    EXPECT_EQ(runtime.chat.area.count, static_cast<std::int32_t>(Client::UI::MessageAreaRows));
+
+    runtime.chat.log.entries.push_back(Client::UI::ChatEntry{.name = "Beto", .text = "chau", .type = 0});
+    tested.scene.Step(tested.input);
+    EXPECT_EQ(runtime.chat.log.entries.size(), 1u);
 }
 
 // Q-C70: en el juego (el modo 5), el FD_CLOSE no abre un aviso y el juego sigue sin conexión: el

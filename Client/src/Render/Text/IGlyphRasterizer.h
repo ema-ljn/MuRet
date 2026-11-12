@@ -37,7 +37,6 @@ public:
 class IGlyphRasterizer : public ITextMeasure
 {
 public:
-
     // TextOutA en (−firstColumn, 0), con la celda arriba (TA_TOP) y sin suavizado: pone 0xff en
     // cada píxel de `ink` donde cae una letra. No borra lo demás: el que llama la da en 0, como
     // 0x467060 borra el DIB.

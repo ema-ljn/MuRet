@@ -13,6 +13,8 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/ItemGlow.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkHorse.h"
@@ -22,6 +24,8 @@
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/TextureSets.h"
+#include "Scenes/WorldRuntime.h"
+#include "UI/MessageArea.h"
 #include "World/TerrainLighting.h"
 #include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
@@ -162,6 +166,17 @@ private:
     std::array<TextureSlot, 1> m_horseSlots{TextureSlot{0x3bc}};
 };
 
+// Seis píxeles por byte: los textos de los tests no llegan a los 256 del corte de 0x555190.
+class LetterMeasure final : public Client::Render::Text::ITextMeasure
+{
+public:
+    [[nodiscard]] Client::Render::Text::TextExtent Measure(Client::Render::Text::FontKind /*font*/,
+                                                           std::string_view text) const override
+    {
+        return {static_cast<int>(text.size()) * 6, 13};
+    }
+};
+
 struct Harness
 {
     explicit Harness(bool withLogo = true, bool withWorld = true) : log(sink, LogLevel::Debug)
@@ -184,6 +199,7 @@ struct Harness
     {
         SceneContext context{folder.Path(), store, log, sceneClock, cloth};
         context.world = world;
+        context.textMeasure = &letters;
         return scene.emplace(context, data, models, nullptr, "0.0.0", seed);
     }
 
@@ -208,6 +224,7 @@ struct Harness
     }
 
     TemporaryFolder folder{"login-scene-models"};
+    LetterMeasure letters;
     FakeTextureStore store;
     RecordingSink sink;
     Log log;
@@ -691,6 +708,20 @@ void EnterTheLoginWithItsWorld(Harness& tested, Client::Scenes::WorldState& worl
     for (auto& actor : world.Actors())
         actor.darkSpirit.reset();
     tested.Steps(1);
+}
+
+// 0x634b45..0x634b5e: al entrar, 120 mensajes vacíos dejan vacía el área vieja.
+TEST(LoginSceneModelsTest, EnteringEmptiesTheOldMessageArea)
+{
+    Harness tested;
+    Client::Scenes::WorldState world;
+    world.Runtime().chat.area.rows[0].text = "viejo";
+    world.Runtime().chat.area.count = 1;
+
+    ASSERT_NO_FATAL_FAILURE(EnterTheLoginWithItsWorld(tested, world));
+
+    EXPECT_EQ(world.Runtime().chat.area.rows[0].text, "");
+    EXPECT_EQ(world.Runtime().chat.area.count, static_cast<std::int32_t>(Client::UI::MessageAreaRows));
 }
 
 // Q-C410: 0x6349a0 arma al del login con 0x517270 → 0x511290, que le pone +0x11c en 1 (0x511bf7) y le da su

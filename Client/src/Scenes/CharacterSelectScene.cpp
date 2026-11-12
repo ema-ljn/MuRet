@@ -42,6 +42,7 @@
 #include "Scenes/GameCharacters.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameItemSpecialDrawing.h"
+#include "Scenes/GameMessages.h"
 #include "Scenes/ItemDrawResources.h"
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SelectionWorld.h"
@@ -55,6 +56,7 @@
 #include "Scenes/SelectionState.h"
 #include "Scenes/TerrainPolygonFrame.h"
 #include "Scenes/TextureSets.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/WorldMap.h"
@@ -79,6 +81,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <chrono>
 #include <cstddef>
@@ -88,6 +91,7 @@
 #include <ratio>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -112,6 +116,8 @@ constexpr float ChosenExtraLight = 1.0f;
 // Los textos que 0x622c70 busca en el nombre de uno nuevo.
 constexpr std::size_t OperationText = 457;
 constexpr std::size_t ServerText = 458;
+// 0x63420a: el formato del mensaje con los dos números de pkt[5] de la lista.
+constexpr std::size_t AccountNoticeText = 1240;
 
 // El bit de las banderas (+0x1d8) con el que el armado de la barra muestra los textos 436 y 437.
 constexpr std::uint8_t BlockedAccountFlag = 0x10;
@@ -366,7 +372,40 @@ bool CharacterSelectScene::PrepareTheCharacters()
                                                Render::Models::OwnRecordCloseRandoms);
     m_context.world->OwnCharacter().ResetForSelection();
     m_charactersPrepared = true;
+    // 0x634199..0x634227: el campo del chat abierto (0x6c8e68), las 120 entradas vacías y, si alguno de los dos números
+    // de pkt[5] de la lista (0x5767958 y 0x576795c, 0x4c20a0) no es 0, el 1240 con ellos, como sistema y sin nombre (el
+    // nombre de 0x7d3a17c nadie lo escribe). El vaciado de los campos (0x553570) es de la entrada del chat.
+    WorldRuntime& runtime = m_context.world->Runtime();
+    runtime.ui.chatOpen = true;
+    if (auto emptied = AddTheEmptyMessages(runtime, m_context.textMeasure); !emptied.HasValue())
+    {
+        m_failure = emptied.Error();
+        return false;
+    }
+    if (auto noticed = AddTheAccountNotice(); !noticed.HasValue())
+    {
+        m_failure = noticed.Error();
+        return false;
+    }
     return true;
+}
+
+Core::Expected<void, std::string> CharacterSelectScene::AddTheAccountNotice()
+{
+    if (m_session == nullptr || !m_session->Characters() || m_context.textMeasure == nullptr)
+        return {};
+    const std::uint8_t numbers = m_session->Characters()->notice;
+    const unsigned general = numbers & 0xfu;
+    const unsigned gladiator = static_cast<unsigned>(numbers >> 4);
+    if (general == 0 && gladiator == 0)
+        return {};
+    const std::string first = std::to_string(general);
+    const std::string second = std::to_string(gladiator);
+    const std::array<std::string_view, 2> arguments{first, second};
+    // El original usa el texto como formato de sprintf (Q-C61): MuRet pone los dos números en sus marcas.
+    const std::string text =
+        UI::PlaceArguments(UI::TextAt(m_texts, AccountNoticeText).value_or(std::string_view{}), arguments);
+    return AddGameMessage(m_context.world->Runtime(), *m_context.textMeasure, m_screen, {}, text, UI::SystemMessage);
 }
 
 CharacterStepContext CharacterSelectScene::CharacterContext()
@@ -979,7 +1018,9 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     {
         return;
     }
-    // La UI del modo 4 (0x65fe00): la barra, la ventana de crear y el aviso arriba. Y el cursor (0x634980).
+    // 0x634949..0x63495f: los avisos y el área vieja. La UI del modo 4 (0x65fe00): la barra, la ventana de crear y el
+    // aviso arriba. Y el cursor (0x634980).
+    DrawTheMessages(canvas);
     m_bar.Draw(sprites, canvas.text, canvas.screen);
     DrawTheCreateWindow(canvas, alpha);
     m_notice.Draw(sprites, canvas.text, canvas.screen);
@@ -1318,6 +1359,18 @@ FullSetScan CharacterSelectScene::ScanTheCharacter(const GameLogic::CharacterApp
         return {};
     }
     return ScanTheDrawnCharacter(*m_context.world, ScannedCharacterOf(appearance), m_context.cloth->random, frames);
+}
+
+void CharacterSelectScene::DrawTheMessages(SceneCanvas& canvas)
+{
+    if (m_context.world == nullptr)
+        return;
+    const int frames = m_messageFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
+    HudState projected;
+    HudState& hud = frames > 0 ? m_context.world->Runtime().hud : (projected = m_context.world->Runtime().hud);
+    const UI::Point mouse =
+        m_context.input != nullptr ? UI::MouseIn640x480(*m_context.input, canvas.screen) : UI::Point{};
+    Scenes::DrawTheMessages(*m_context.world, hud, canvas.sprites, canvas.text, mouse, false);
 }
 
 void CharacterSelectScene::DrawTheCursor(SceneCanvas& canvas) const

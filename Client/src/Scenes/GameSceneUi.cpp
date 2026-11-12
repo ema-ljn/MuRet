@@ -5,6 +5,7 @@
 #include "Input/Key.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameHud.h"
+#include "Scenes/GameMessages.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/SceneCanvas.h"
@@ -125,8 +126,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     // 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9 (hito 4).
     // 0x637696: 0x62db60, las cajas viejas, en la escena 5 (hito 6).
     // 0x63769b: 0x5f7bc0, los tooltips (hito 4).
-    // 0x6376a0: 0x554810, los avisos (hito 3).
-    // 0x6376b6: 0x5554e0, el área de mensajes, con 0x6c7a88 en 1: en 0 en el juego (hito 3).
+    // 0x6376a0..0x6376b6: los avisos y, con el registro del chat en su ventana, el área vieja.
+    DrawTheMessages(*m_context.world, hud.hud, canvas.sprites, canvas.text, hud.mouse, true);
     // 0x6376bb: 0x5b0550, las superposiciones.
     if (auto overlays = DrawTheOverlays(hud); !overlays.HasValue())
         return overlays;

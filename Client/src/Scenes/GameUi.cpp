@@ -5,6 +5,7 @@
 #include "Input/Key.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/GameMessages.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/HudItems.h"
@@ -94,16 +95,6 @@ bool TextInputBusy(const WorldRuntime& runtime)
     return runtime.ui.chatOpen;
 }
 
-// El nombre del héroe (+0x1d9) hasta su '\0'. Con los diez bytes llenos sigue +0x1e3, que la respuesta del F3 03 pone
-// en 0.
-std::string_view HeroName(const ActorState& hero)
-{
-    std::size_t size = 0;
-    while (size < hero.name.size() && hero.name[size] != std::byte{0})
-        ++size;
-    return {reinterpret_cast<const char*>(hero.name.data()), size};
-}
-
 // 0x636e51..0x636e5a: el registro del chat, 0x45aa80(0) por la vtable + 0x18 de 0x576350c.
 Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
 {
@@ -125,11 +116,11 @@ Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
                                    .leftDown = runtime.movement.leftHeld,
                                    .chatOpen = ui.chatOpen,
                                    .heroSafeZone = hero.safeZone != 0,
-                                   .heroName = HeroName(hero),
+                                   .heroName = HeroNameOf(hero),
                                    .chatEditFocused = ui.chatOpen,
                                    .measure = context.measure,
-                                   .dcFont = chat.dcFont};
-    const UI::ChatLogStepResult result = UI::StepTheChatLog(chat.log, chat.logFrame, globals, view);
+                                   .dcFont = runtime.hud.dcFont};
+    const UI::ChatLogStepResult result = UI::StepTheChatLog(chat.log, runtime.hud.chatFrame, globals, view);
     for (const std::int32_t sound : result.sounds)
         runtime.lastSoundId = sound;
     if (result.whisperTo)
@@ -155,7 +146,7 @@ void StepTheUnownedClick(WorldRuntime& runtime)
 // corta en la primera abierta: las del comercio y de la tienda de NPC sacan un rand().
 void PlaceTheChatLog(WorldRuntime& runtime, UI::PanelRegistry& panels)
 {
-    UI::ChatLogFrame& frame = runtime.chat.logFrame;
+    UI::ChatLogFrame& frame = runtime.hud.chatFrame;
     if (runtime.ui.chatModes.placement != 1)
     {
         frame.x = -10;
@@ -167,8 +158,7 @@ void PlaceTheChatLog(WorldRuntime& runtime, UI::PanelRegistry& panels)
         (panels.IsOpen(UI::CharacterPanel) || panels.IsOpen(UI::TradePanel) || panels.IsOpen(UI::WarehousePanel) ||
          panels.IsOpen(UI::ChaosBoxPanel) || panels.IsOpen(UI::EventNpcPanel) ||
          panels.IsOpen(UI::SecondEventNpcPanel) || panels.IsOpen(UI::NpcShopPanel) ||
-         panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel) ||
-         panels.IsOpen(UI::TrainerPanel)))
+         panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel) || panels.IsOpen(UI::TrainerPanel)))
         left = true;
     // 0x636fff: sin el inventario, o con él y ninguna de esas, el personaje con la mascota o la misión.
     else if (panels.IsOpen(UI::CharacterPanel) && (panels.IsOpen(UI::PetPanel) || panels.IsOpen(UI::QuestPanel)))

@@ -38,6 +38,9 @@ inline constexpr std::int32_t InitialLeafCount = 30;
 // Los globales de Crywolf (el mapa 34), todos en la .bss.
 struct CrywolfGlobals
 {
+    // 0x723c05: la etapa que leen los dibujos del chat (con 3 o 4 bajan sus renglones). Solo la escriben paquetes
+    // (CL9.5) y la vuelta a la selección (0x42fdc0).
+    std::uint8_t stage = 0;
     // 0x723c04: el estado del evento que lee 0x42fe50. Lo cambia solo el paquete de 0x42fe80 (CL9.5) y lo vuelve
     // a 0 la vuelta a la selección (0x42fdc0). Con 0, la carga del 34 toma EncTerrain35.att y TerrainLight
     // (0x61a560) y el dibujo de sus objetos, los casos del estado 0 (Q-C340).
@@ -54,19 +57,12 @@ struct CrywolfGlobals
     std::uint8_t sandOverlay = 0;
 };
 
-// El chat (CL8 hito 3; 06 § El chat), que vive del login al juego: el registro nuevo (el objeto de 0x576350c), el
-// área vieja y los avisos (0x77d9868 y 0x77f3b88 con sus relojes), lo que dejan sus dibujos y la fuente del DC de los
-// textos (0x57634f4).
+// El chat (CL8 hito 3; 06 § El chat), que vive del login al juego: el registro nuevo (el objeto de 0x576350c) y el
+// área vieja y los avisos (0x77d9868 y 0x77f3b88 con sus relojes). Lo que escriben sus dibujos va en HudState.
 struct ChatRuntime
 {
     UI::ChatLogState log{};
-    UI::ChatLogFrame logFrame{};
     UI::MessageAreaState area{};
-    UI::MessageFrameState areaFrame{};
-    // La fuente del último SelectObject sobre el DC de los textos, que miden 0x45bb20, 0x555190 y 0x554610. 0x61bcd0
-    // crea el DC sin ninguna (la del sistema) y el login dibuja con una antes del primer mensaje: MuRet empieza con
-    // la normal.
-    Render::Text::FontKind dcFont = Render::Text::FontKind::Normal;
     // 0x77f3b78 (.bss 0): el sonido de los avisos del filtro. Lo cambian el F3 30 (0x4dd570) y el menú de Esc
     // (0x62567b).
     bool noticeSound = false;
@@ -88,12 +84,21 @@ struct HudState
     // 0x77f3b66: lo prende un aviso de durabilidad (0x5aac20) y lo apaga la barra (0x5a9290). Lo lee el inventario
     // (hito 4).
     std::uint8_t durabilityWarning = 0;
-    // 0x77f31b8 y 0x77f31bc: el tamaño en píxeles del texto de las flechas o los virotes (0x5ab810).
+    // 0x77f31b8 y 0x77f31bc: el tamaño en 640 × 480 del último texto que lo guardó: las flechas o los virotes
+    // (0x5ab810), el área vieja (0x5554e0) y los avisos (0x554810).
     std::int32_t arrowsTextWidth = 0;
     std::int32_t arrowsTextHeight = 0;
     // 0x77f3b5c: con el botón izquierdo abajo, el cursor 0xa (CursorDontMove) en vez del 3 (0x5ac7a2). Quién lo
     // escribe, sin leer: queda en 0.
     std::uint8_t pushCursor = 0;
+    // Lo que escriben los dibujos del chat (hito 3): el marco del registro (su esquina la pone el paso), los anchos y
+    // los parpadeos del área vieja y de los avisos.
+    UI::ChatLogFrame chatFrame{};
+    UI::MessageFrameState messageFrame{};
+    // La fuente del último SelectObject sobre el DC de los textos (0x57634f4), que miden 0x45bb20, 0x555190 y
+    // 0x554610. 0x61bcd0 crea el DC sin ninguna (la del sistema) y el login dibuja con una antes del primer mensaje:
+    // MuRet empieza con la normal.
+    Render::Text::FontKind dcFont = Render::Text::FontKind::Normal;
 };
 
 struct WorldRuntime

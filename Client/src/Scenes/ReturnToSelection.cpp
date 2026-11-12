@@ -39,8 +39,9 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
         item.alive = false;
     KillOtherActors(world, NoKey);
     // 0x4c363a: 0x42fdc0 pone en su valor inicial globales de la interfaz que MuRet no tiene, y en 0 el estado de
-    // Crywolf (0x42fe32). 0x723c05 y 0x723c08, que también pone en 0, solo los escriben paquetes (CL9.5).
+    // Crywolf (0x42fe32) y su etapa (0x723c05). 0x723c08, que también pone en 0, solo lo escriben paquetes (CL9.5).
     runtime.crywolf.state = 0;
+    runtime.crywolf.stage = 0;
     // 0x4c363f: la escena 4.
     runtime.orderedScene = SceneId::CharacterSelect;
     // 0x4c3649..0x4c38e4: el estado 0x32 y el F3 00, de la sesión. 0x4c38eb y 0x4c38f2: las banderas de la

@@ -59,7 +59,7 @@ TEST(GameMessagesTest, TheClocksAddEmptyNoticesAndMessagesWhenTheyRunOut)
     EXPECT_EQ(runtime.chat.area.clock, Client::UI::MessageClockSteps);
     EXPECT_EQ(runtime.chat.area.noticeClock, Client::UI::NoticeClockSteps);
     EXPECT_EQ(runtime.chat.log.entries[0].age, 1u);
-    EXPECT_EQ(runtime.chat.dcFont, FontKind::Bold);
+    EXPECT_EQ(runtime.hud.dcFont, FontKind::Bold);
 
     // Sin vencer, solo bajan.
     ASSERT_TRUE(Client::Scenes::StepTheMessageClocks(runtime, letters, Screen640).HasValue());

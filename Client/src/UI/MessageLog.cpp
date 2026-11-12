@@ -7,8 +7,8 @@
 
 namespace Client::UI
 {
-Core::Expected<std::optional<std::int32_t>, std::string>
-AddMessage(const MessageSink& sink, std::string_view name, std::string_view text, std::int32_t type)
+Core::Expected<std::optional<std::int32_t>, std::string> AddMessage(const MessageSink& sink, std::string_view name,
+                                                                    std::string_view text, std::int32_t type)
 {
     auto sound = AddToTheLog(sink.log, sink.modes, sink.measure, name, text, type, 0, sink.noticeSound);
     if (!sound.HasValue())

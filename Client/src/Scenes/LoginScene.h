@@ -180,6 +180,8 @@ private:
     // La luz del terreno en (x, y), o 0 sin la del mundo.
     [[nodiscard]] glm::vec3 TerrainLightAt(const glm::vec3& position) const;
     void DrawTexts(SceneCanvas& canvas) const;
+    // 0x63552a..0x63553f: los avisos y el área vieja, antes de la UI.
+    void DrawTheMessages(SceneCanvas& canvas);
     // Lo que cambió en la sesión desde el último paso: abre o cierra las ventanas.
     void FollowSession();
     void OnServerClick(const UI::ServerClick& click);
@@ -214,6 +216,8 @@ private:
     Render::Models::OriginalFrameCarry m_objectEffectFrames;
     // Los frames del original de 0x505820 desde el dibujo del personaje (0x50c91e).
     Render::Models::OriginalFrameCarry m_fullSetScanFrames;
+    // Los de los avisos y el área vieja (0x554810 y 0x5554e0): con cero, el dibujo va sobre copias.
+    Render::Models::OriginalFrameCarry m_messageFrames;
     std::vector<std::optional<int>> m_objectEffectRandoms;
     const IModelLibrary& m_models;
     App::ServerSession* m_session;

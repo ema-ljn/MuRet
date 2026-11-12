@@ -117,6 +117,8 @@ private:
     void SyncTheCharacters();
     [[nodiscard]] Character MakeCharacter(const Protocol::Character::CharacterEntry& entry) const;
     [[nodiscard]] bool PrepareTheCharacters();
+    // 0x63420a: con alguno de los dos números de pkt[5] de la lista, el 1240 en el área de mensajes.
+    [[nodiscard]] Core::Expected<void, std::string> AddTheAccountNotice();
     [[nodiscard]] CharacterStepContext CharacterContext();
     void StepCharacters();
     void StepTheScene(const Input::InputState& input);
@@ -158,6 +160,8 @@ private:
                      FaunaDrawCarry& poseCarry, const FullSetScan& scan, bool originalFrame);
     // El cursor del juego (0x5ac2d0) al final de la UI, con el aviso de antes de la lista también.
     void DrawTheCursor(SceneCanvas& canvas) const;
+    // 0x634949..0x63495f: los avisos y el área vieja, antes de la UI.
+    void DrawTheMessages(SceneCanvas& canvas);
     // Con la respuesta del F3 02, su aviso en lugar del 0x5d (0x4e2fe9), salvo que la sesión haya
     // caído. Si abrió uno en este paso.
     bool TakeTheDeletionResult();
@@ -193,6 +197,8 @@ private:
     Render::Models::OriginalFrameCarry m_previewDrawFrames;
     // Los frames del original del mundo 54 desde el dibujo: con cero, el dibujo va sobre copias.
     Render::Models::OriginalFrameCarry m_worldFrames;
+    // Los de los avisos y el área vieja (0x554810 y 0x5554e0), lo mismo.
+    Render::Models::OriginalFrameCarry m_messageFrames;
     Render::Camera3D m_previewCamera;
     const Data::Text::TextTable* m_texts;
     const Data::Tables::ItemTable* m_items;

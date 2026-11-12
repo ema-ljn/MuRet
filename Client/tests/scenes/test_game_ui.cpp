@@ -199,8 +199,8 @@ TEST(GameUiTest, TheChatLogUnderTheMouseKeepsThePanelsStill)
     ASSERT_EQ(tested.Panels().inventory, 1);
     ASSERT_TRUE(tested.Step(0, 0).HasValue());
     EXPECT_EQ(tested.Ui().hovered, Client::UI::ChatLogId);
-    EXPECT_EQ(tested.world.Runtime().chat.logFrame.x, -10);
-    EXPECT_EQ(tested.world.Runtime().chat.logFrame.y, 0x65);
+    EXPECT_EQ(tested.world.Runtime().hud.chatFrame.x, -10);
+    EXPECT_EQ(tested.world.Runtime().hud.chatFrame.y, 0x65);
 }
 
 // En su ventana (0x6c7a88 en 1), la esquina va a (0xba, 0x1a4), y a x = 0 con el inventario y el personaje abiertos
@@ -210,8 +210,8 @@ TEST(GameUiTest, InItsWindowTheChatLogMovesLeftOfTheInventoryAndTheCharacter)
     SteppingUi tested;
     tested.Ui().chatModes.placement = 1;
     ASSERT_TRUE(tested.Step(320, 100).HasValue());
-    EXPECT_EQ(tested.world.Runtime().chat.logFrame.x, 0xba);
-    EXPECT_EQ(tested.world.Runtime().chat.logFrame.y, 0x1a4);
+    EXPECT_EQ(tested.world.Runtime().hud.chatFrame.x, 0xba);
+    EXPECT_EQ(tested.world.Runtime().hud.chatFrame.y, 0x1a4);
 }
 
 // El clic sin dueño con el chat cerrado devuelve la lista de las flechas a 0 (0x636ead).

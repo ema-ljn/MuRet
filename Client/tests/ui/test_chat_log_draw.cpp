@@ -40,7 +40,10 @@ constexpr PixelSize Screen640{640, 480};
 class ChatLogDrawTest : public ::testing::Test
 {
 protected:
-    ChatLogDrawTest() : m_text(m_sprites) { m_sprites.Begin(Screen640); }
+    ChatLogDrawTest() : m_text(m_sprites)
+    {
+        m_sprites.Begin(Screen640);
+    }
 
     SpriteBatch m_sprites;
     RecordingTextDrawer m_text;

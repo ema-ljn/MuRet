@@ -15,6 +15,7 @@
 #include "Scenes/GameFloorItems.h"
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/GameItemSpecialDrawing.h"
+#include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/IcarusObjectStep.h"
 #include "Scenes/KalimaObjectStep.h"
@@ -51,6 +52,7 @@
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/GroundEffectDrawing.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatLog.h"
 #include "UI/GameCursor.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
@@ -231,6 +233,8 @@ void GameScene::Step(const Input::InputState& input)
         return;
     }
     StepEntry();
+    if (m_failure)
+        return;
     if (auto stepped = StepWorld(input); !stepped.HasValue())
     {
         m_failure = stepped.Error();
@@ -250,6 +254,21 @@ void GameScene::StepEntry()
         if (m_context.camera != nullptr)
             m_context.camera->yaw = EntryYaw;
         m_firstStep = false;
+        // 0x63684b..0x6368f4: el campo del chat cerrado (0x6c8e68), 120 entradas vacías, el registro vacío (la vtable
+        // + 0x2c, 0x478d10) y el filtro también (0x45db50). Los campos de texto (0x553570) y los de la entrada
+        // (0x6c8e6c..0x6c8e7c) son de la entrada del chat.
+        if (m_context.world != nullptr)
+        {
+            WorldRuntime& runtime = m_context.world->Runtime();
+            runtime.ui.chatOpen = false;
+            if (auto emptied = AddTheEmptyMessages(runtime, m_context.textMeasure); !emptied.HasValue())
+            {
+                m_failure = emptied.Error();
+                return;
+            }
+            UI::ClearTheLog(runtime.chat.log, runtime.ui.chatModes);
+            UI::ClearTheChatFilter(runtime.chat.log);
+        }
     }
     if (m_sent || m_session == nullptr)
     {

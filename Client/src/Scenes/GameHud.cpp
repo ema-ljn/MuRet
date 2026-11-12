@@ -23,6 +23,8 @@
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatLog.h"
+#include "UI/ChatLogDraw.h"
 #include "UI/GameText.h"
 #include "UI/HudPrimitives.h"
 #include "UI/PanelRegistry.h"
@@ -1287,7 +1289,17 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     // 16. 0x413ca0.
     if (runtime.map == CastleSiegeMap && runtime.siegeActive)
         return Core::Unexpected(std::string("0x413ca0: la UI de Castle Siege es de la CL9.5"));
-    // 17. [[0x576350c]] + 0x14: la ventana del chat (hito 3).
+    // 17. [[0x576350c]] + 0x14: el registro del chat (0x479080).
+    UI::DrawTheChatLog(
+        runtime.chat.log, hud.chatFrame, runtime.ui.chatModes,
+        UI::ChatLogDrawContext{
+            .sprites = context.sprites, .text = context.text, .dcFont = hud.dcFont, .textColors = hud.textColors},
+        UI::ChatLogDrawView{.mouseX = context.mouse.x,
+                            .mouseY = context.mouse.y,
+                            .leftDown = context.leftDown,
+                            .chatOpen = runtime.ui.chatOpen,
+                            .crywolfStage = runtime.crywolf.stage,
+                            .texts = context.texts});
     // 18. 0x5f7440.
     if (auto windows = DrawTheWindows(frame); !windows.HasValue())
         return windows;
@@ -1300,6 +1312,7 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     // 22. 0x5aa9a0 empieza siempre con glColor3f(1, 1, 1) y el SelectObject de la fuente normal. La entrada del chat y
     // el indicador de F3, con 0x6c8e68, 0x77f3b69 y 0x6c8dd0 en 0, son del hito 3.
     context.sprites.SetColor(White);
+    hud.dcFont = Render::Text::FontKind::Normal;
     // 23. y 24. 0x5abcd0 y 0x5a8cc0.
     if (auto experience = DrawTheExperience(frame); !experience.HasValue())
         return experience;

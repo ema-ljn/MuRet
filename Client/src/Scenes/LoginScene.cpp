@@ -44,6 +44,7 @@
 #include "Scenes/GameData.h"
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/GameItemSpecialDrawing.h"
+#include "Scenes/GameMessages.h"
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/ItemDrawResources.h"
 #include "Scenes/LoginModels.h"
@@ -64,6 +65,7 @@
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/WorldMap.h"
 #include "UI/GameCursor.h"
+#include "UI/Widget.h"
 #include "UI/GameText.h"
 #include "UI/LoginWindow.h"
 #include "UI/MenuBar.h"
@@ -361,6 +363,16 @@ Core::Expected<void, std::string> LoginScene::Enter()
     if (m_session != nullptr)
     {
         m_session->Start();
+    }
+    m_messageFrames = {};
+    // 0x634b45..0x634b5e: 120 mensajes vacíos.
+    if (m_context.world != nullptr)
+    {
+        if (auto emptied = AddTheEmptyMessages(m_context.world->Runtime(), m_context.textMeasure); !emptied.HasValue())
+        {
+            RetainTheTerrain();
+            return emptied;
+        }
     }
     auto placed = PlaceTheModels();
     if (!placed.HasValue())
@@ -1107,8 +1119,10 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     // 6: los textos, con la mezcla aditiva que quedó (0x554000 no la cambia).
     sprites.SetColor(TextColor);
     DrawTexts(canvas);
-    // 7: el fundido no dibuja nada (Q-C66): 0x554810 pone la mezcla normal y el blanco (0x554819..0x554845)
-    // antes de la UI. 8: la UI (CL5.5), cada ventana con su imagen y su color. 9: el cursor (0x635560).
+    // 7: el fundido no dibuja nada (Q-C66). Los avisos (0x554810, que pone la mezcla normal y el blanco,
+    // 0x554819..0x554845) y el área vieja. 8: la UI (CL5.5), cada ventana con su imagen y su color. 9: el cursor
+    // (0x635560).
+    DrawTheMessages(canvas);
     m_serverList.Draw(sprites, canvas.text, canvas.screen);
     m_menuBar.Draw(sprites, canvas.screen);
     m_login.Draw(sprites, canvas.text, canvas.screen);
@@ -1411,6 +1425,18 @@ glm::vec3 LoginScene::TerrainLightAt(const glm::vec3& position) const
 {
     const World::TerrainLighting* lighting = &CharacterWorld().DynamicLighting().Lighting();
     return lighting != nullptr ? World::LightAt(*lighting, position.x, position.y) : glm::vec3(0.0f);
+}
+
+void LoginScene::DrawTheMessages(SceneCanvas& canvas)
+{
+    if (m_context.world == nullptr)
+        return;
+    const int frames = m_messageFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
+    HudState projected;
+    HudState& hud = frames > 0 ? m_context.world->Runtime().hud : (projected = m_context.world->Runtime().hud);
+    const UI::Point mouse =
+        m_context.input != nullptr ? UI::MouseIn640x480(*m_context.input, canvas.screen) : UI::Point{};
+    Scenes::DrawTheMessages(*m_context.world, hud, canvas.sprites, canvas.text, mouse, false);
 }
 
 void LoginScene::DrawTexts(SceneCanvas& canvas) const

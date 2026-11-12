@@ -735,7 +735,8 @@ TEST_F(InventoryReplyTest, ALevelThreeWizardsRingLeavesTheLayerAtFour)
     {
         SCOPED_TRACE(ring);
         const auto slot = static_cast<std::uint8_t>(ring);
-        Stage tested = Fresh();
+        const auto testedStage = FreshOnTheHeap();
+        Stage& tested = *testedStage;
         ActorState& hero = tested.PublishedHero();
         hero.layer.emplace();
         hero.byte360 = 5;
@@ -744,7 +745,8 @@ TEST_F(InventoryReplyTest, ALevelThreeWizardsRingLeavesTheLayerAtFour)
         EXPECT_FALSE(hero.layer.has_value());
         EXPECT_EQ(hero.byte360, 4);
 
-        Stage other = Fresh();
+        const auto otherStage = FreshOnTheHeap();
+        Stage& other = *otherStage;
         ActorState& plain = other.PublishedHero();
         plain.byte360 = 5;
         const auto levelTwo = Client::Scenes::PlaceInventoryItem(slot, ItemBytes(WizardsRing, 0x10), other.Resources());
@@ -752,7 +754,8 @@ TEST_F(InventoryReplyTest, ALevelThreeWizardsRingLeavesTheLayerAtFour)
         EXPECT_EQ(plain.byte360, 5);
     }
 
-    Stage event = Fresh();
+    const auto eventStage = FreshOnTheHeap();
+    Stage& event = *eventStage;
     ActorState& bloodCastle = event.PublishedHero();
     bloodCastle.byte360 = 2;
     const auto inTen = Client::Scenes::PlaceInventoryItem(10, ItemBytes(WizardsRing, 0x18), event.Resources());

@@ -19,7 +19,11 @@ namespace Client::Scenes
 class TooltipWriter
 {
 public:
+    // El renglón que sigue es TooltipLines::next (0x78abb30), como en los cuerpos del ítem y de reparar.
     TooltipWriter(TooltipLines& lines, const Data::Text::TextTable* texts);
+    // El renglón que sigue es `next`: el cuerpo de la skill (0x5b90b0) y la ayuda de los comandos (0x421c10) cuentan
+    // en un registro (EBX) y no tocan 0x78abb30 ni 0x78abb34.
+    TooltipWriter(TooltipLines& lines, const Data::Text::TextTable* texts, std::int32_t& next);
 
     // La dirección de lo que se escribe, para el error.
     void At(std::string_view where);
@@ -76,6 +80,7 @@ private:
     [[nodiscard]] bool Inside();
 
     TooltipLines& m_lines;
+    std::int32_t& m_next;
     const Data::Text::TextTable* m_texts = nullptr;
     std::string m_where;
     std::string m_error;

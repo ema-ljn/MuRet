@@ -30,9 +30,17 @@ constexpr std::uint8_t SetKindMask = 3;
 constexpr std::uint8_t NoSet = 0xff;
 // 0x40cf72: el nombre se copia con 8 dwords.
 constexpr std::size_t SetNameBytes = 0x20;
-// Skill.bmd: el byte +0x21 y el word +0x22 (el maná).
+// Skill.bmd: el byte +0x21, el word +0x22 (el maná), el word +0x24 y el byte +0x26 (0x551e25..0x551e51).
 constexpr std::size_t SkillByte21 = 0x21;
 constexpr std::size_t SkillMana = 0x22;
+constexpr std::size_t SkillStamina = 0x24;
+constexpr std::size_t SkillRange = 0x26;
+
+std::uint16_t WordAt(std::span<const std::byte, Data::Tables::SkillRecordSize> entry, std::size_t offset)
+{
+    return static_cast<std::uint16_t>(std::to_integer<std::uint32_t>(entry[offset]) |
+                                      (std::to_integer<std::uint32_t>(entry[offset + 1]) << 8u));
+}
 } // namespace
 
 std::uint8_t RecordByte(const ItemTooltipFrame& frame, std::size_t offset)
@@ -64,8 +72,9 @@ Core::Expected<SkillEntryFields, std::string> ReadTheSkillEntry(GameHudContext& 
         fields.name.push_back(static_cast<char>(std::to_integer<unsigned char>(value)));
     }
     fields.byte21 = std::to_integer<std::uint8_t>(entry[SkillByte21]);
-    fields.mana = static_cast<std::uint16_t>(std::to_integer<std::uint32_t>(entry[SkillMana]) |
-                                             (std::to_integer<std::uint32_t>(entry[SkillMana + 1]) << 8u));
+    fields.mana = WordAt(entry, SkillMana);
+    fields.stamina = WordAt(entry, SkillStamina);
+    fields.range = std::to_integer<std::uint8_t>(entry[SkillRange]);
     return fields;
 }
 

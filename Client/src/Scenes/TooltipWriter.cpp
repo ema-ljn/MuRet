@@ -14,7 +14,13 @@
 
 namespace Client::Scenes
 {
-TooltipWriter::TooltipWriter(TooltipLines& lines, const Data::Text::TextTable* texts) : m_lines(lines), m_texts(texts)
+TooltipWriter::TooltipWriter(TooltipLines& lines, const Data::Text::TextTable* texts)
+    : m_lines(lines), m_next(lines.next), m_texts(texts)
+{
+}
+
+TooltipWriter::TooltipWriter(TooltipLines& lines, const Data::Text::TextTable* texts, std::int32_t& next)
+    : m_lines(lines), m_next(next), m_texts(texts)
 {
 }
 
@@ -54,11 +60,11 @@ bool TooltipWriter::Inside()
 {
     if (Failed())
         return false;
-    if (m_lines.next >= 0 && m_lines.next < static_cast<std::int32_t>(TooltipLineCount))
+    if (m_next >= 0 && m_next < static_cast<std::int32_t>(TooltipLineCount))
         return true;
     Fail(std::format("{}: el renglón {} del tooltip cae fuera de los 30 de 0x78793c8 (el original escribe sobre lo que "
                      "sigue, el ítem del cursor en 0x7879f80)",
-                     m_where, m_lines.next));
+                     m_where, m_next));
     return false;
 }
 
@@ -66,31 +72,31 @@ std::string* TooltipWriter::Current()
 {
     if (!Inside())
         return nullptr;
-    return &m_lines.text[static_cast<std::size_t>(m_lines.next)];
+    return &m_lines.text[static_cast<std::size_t>(m_next)];
 }
 
 void TooltipWriter::Color(std::int32_t color)
 {
     if (Inside())
-        m_lines.colors[static_cast<std::size_t>(m_lines.next)] = color;
+        m_lines.colors[static_cast<std::size_t>(m_next)] = color;
 }
 
 void TooltipWriter::Bold(std::int32_t bold)
 {
     if (Inside())
-        m_lines.bold[static_cast<std::size_t>(m_lines.next)] = bold;
+        m_lines.bold[static_cast<std::size_t>(m_next)] = bold;
 }
 
 void TooltipWriter::Next()
 {
     if (!Failed())
-        ++m_lines.next;
+        ++m_next;
 }
 
 void TooltipWriter::Back()
 {
     if (!Failed())
-        --m_lines.next;
+        --m_next;
 }
 
 void TooltipWriter::AddHalf()
@@ -108,13 +114,13 @@ void TooltipWriter::NewLine()
 
 std::int32_t TooltipWriter::Count() const
 {
-    return m_lines.next;
+    return m_next;
 }
 
 void TooltipWriter::SetCount(std::int32_t count)
 {
     if (!Failed())
-        m_lines.next = count;
+        m_next = count;
 }
 
 std::int32_t TooltipWriter::Halves() const

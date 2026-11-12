@@ -36,13 +36,16 @@ struct ItemTooltipFrame
 // D+0x1b & 0x3f: alguna opción excelente.
 [[nodiscard]] bool IsExcellent(const World::ItemState& item);
 
-// Lo que se lee de una entrada de Skill.bmd con su acceso abierto: el nombre (+0, hasta su '\0'), el byte +0x21 y el
-// word +0x22 (el maná).
+// Lo que se lee de una entrada de Skill.bmd con su acceso abierto: el nombre (+0, hasta su '\0' o el fin de la
+// entrada), el byte +0x21, el word +0x22 (el maná), el word +0x24 (el texto 360, "Stamina usada") y el byte +0x26 (el
+// texto 174, "Range"), lo que 0x551c70 deja en sus punteros.
 struct SkillEntryFields
 {
     std::string name;
     std::uint8_t byte21 = 0;
     std::uint16_t mana = 0;
+    std::uint16_t stamina = 0;
+    std::uint8_t range = 0;
 };
 
 // El acceso de la entrada `skill` de Skill.bmd (0x551c70 o el mismo código en línea): se abre, se leen sus campos y

@@ -227,6 +227,8 @@ public:
     void SendChat(Protocol::Outgoing packet);
     // El B9 02 de 0x42a760 al cargar el 30 (Protocol::World::WriteCastleSiegeState).
     void RequestCastleSiegeState();
+    // El C1 03 42 de 0x6599a0(4), al abrir la ventana de la party (Protocol::Party::WritePartyListRequest), en claro.
+    void RequestPartyList();
     // 0x4c609f: el 00 con la escena 2 (el login) pide la lista de servidores, C1 04 F4 02, por el socket que esté
     // abierto, sin mirar cuál es. En el CS es el saludo (OnConnectHello); acá, el que llega por el GS (Q-C511).
     void ResendServerListRequest();

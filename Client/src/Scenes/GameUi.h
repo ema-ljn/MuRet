@@ -41,7 +41,8 @@ class WorldState;
 struct GameChatContext;
 struct GameMovementState;
 
-// Lo que los diálogos le piden al resto del cliente (el menú de Esc, 0x624036..0x62553f): el cable, el disco y el log.
+// Lo que los diálogos y los paneles le piden al resto del cliente (el menú de Esc, 0x624036..0x62553f, y la party): el
+// cable, el disco y el log.
 class IGameUiRequests
 {
 public:
@@ -50,6 +51,8 @@ public:
     virtual void SendOptionData(const Protocol::OptionData::OptionBody& body) = 0;
     // 0x62411c..: el C3 F1 02 con `kind`. Los dos rand() del C3 (el relleno y el serial) los saca el paso.
     virtual void RequestLogout(std::uint8_t kind) = 0;
+    // 0x6599a0(4): el C1 03 42 en claro, el pedido de la lista de la party al abrir su ventana.
+    virtual void RequestPartyList() = 0;
     // 0x61c170("Data\\Macro.txt"): `content` (UI::WrittenMacros) en el archivo.
     [[nodiscard]] virtual Core::Expected<void, std::string> SaveMacros(std::string_view content) = 0;
     // 0x41fa40 sobre el log del original (0x57630f0).

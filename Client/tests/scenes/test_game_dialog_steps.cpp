@@ -93,6 +93,10 @@ public:
     {
         requests.push_back({"F1 02", {kind}, {}});
     }
+    void RequestPartyList() override
+    {
+        requests.push_back({"42", {}, {}});
+    }
     Client::Core::Expected<void, std::string> SaveMacros(std::string_view content) override
     {
         requests.push_back({"Macro.txt", {}, std::string(content)});

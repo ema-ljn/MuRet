@@ -34,6 +34,7 @@
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/Party.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
@@ -1100,6 +1101,11 @@ void ServerSession::SendChat(Protocol::Outgoing packet)
 void ServerSession::RequestCastleSiegeState()
 {
     static_cast<void>(SendWorldPacket(Protocol::World::WriteCastleSiegeState()));
+}
+
+void ServerSession::RequestPartyList()
+{
+    static_cast<void>(SendWorldPacket(Protocol::Party::WritePartyListRequest()));
 }
 
 std::span<const std::vector<std::byte>> ServerSession::Teleports() const

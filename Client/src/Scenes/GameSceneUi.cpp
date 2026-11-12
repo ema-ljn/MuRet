@@ -89,6 +89,16 @@ public:
         m_session->RequestLogout(kind);
     }
 
+    void RequestPartyList() override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no se pide la lista de la party (C1 03 42): no hay servidor");
+            return;
+        }
+        m_session->RequestPartyList();
+    }
+
     // 0x61c170: fopen("wt") crea el archivo o lo vacía. Lo que guardan las macros no va al log.
     Core::Expected<void, std::string> SaveMacros(std::string_view content) override
     {
@@ -170,6 +180,7 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
 Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& input)
 {
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
+    SceneUiRequests requests(m_session, m_context.log, m_context.dataRoot);
     const GameChatContext chat = ChatContext();
     // timeGetTime() de los segundos del cartel (0x46ada0): el reloj de la escena en ms.
     const auto systemTime =
@@ -185,6 +196,7 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .measure = m_context.textMeasure,
                                        .screen = m_screen,
                                        .chat = &chat,
+                                       .requests = &requests,
                                        .systemTime = systemTime});
 }
 

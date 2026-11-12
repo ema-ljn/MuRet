@@ -4420,6 +4420,25 @@ TEST(ServerSessionTest, OptionDataUsesTheWorldConnectionAndXorDelivery)
     EXPECT_FALSE(received.packets.back().WasDecrypted());
 }
 
+// 0x6599a0(4) manda el C1 03 42 en claro, sin XOR32 ni cifrado, y solo con el socket abierto.
+TEST(ServerSessionTest, PartyListRequestGoesClearToTheGameServerOnly)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingServer());
+    const auto beforeChoosing = tested.socket.sent.size();
+    tested.session.RequestPartyList();
+    EXPECT_EQ(tested.socket.sent.size(), beforeChoosing);
+
+    Harness inWorld(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(inWorld.ReachLoggedIn());
+    const auto before = inWorld.GameServerReads().packets.size();
+    inWorld.session.RequestPartyList();
+    const auto received = inWorld.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 1);
+    EXPECT_TRUE(SameBytes(received.packets.back().Bytes(), Bytes({0xc1, 3, 0x42})));
+    EXPECT_FALSE(received.packets.back().WasDecrypted());
+}
+
 TEST(ServerSessionTest, FacingCannotGoToTheConnectServerOrAClosedConnection)
 {
     Harness tested(IdentityObfuscation::Shared());

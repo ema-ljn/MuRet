@@ -85,8 +85,8 @@ Core::Expected<ChatCommandOutcome, std::string> TheNamesTail(const ChatCommandCo
             if (!record || (*record)[ItemNamedByte] == std::byte{0})
                 continue;
             if (text == "/" + NameOf(*record))
-                return Core::Unexpected(
-                    std::format("0x576923: la ayuda del ítem {} (0x5ae360, 0x77f3b08 en 3) es del hito 6", index));
+                return Core::Unexpected(std::format(
+                    "0x576923: la ayuda del ítem {} (0x5ae360, 0x77f3b08 en 3) es del hito 6 (P-C93)", index));
         }
     }
     if (text.empty() || text.front() != '/' || context.setOptions == nullptr)
@@ -98,7 +98,7 @@ Core::Expected<ChatCommandOutcome, std::string> TheNamesTail(const ChatCommandCo
             continue;
         if (text == "/" + NameOf(*record))
             return Core::Unexpected(
-                std::format("0x40ec5c: la ayuda del conjunto {} ([0x6eed3c] + 0x9305) es del hito 6", index));
+                std::format("0x40ec5c: la ayuda del conjunto {} ([0x6eed3c] + 0x9305) es del hito 6 (P-C93)", index));
     }
     return outcome;
 }

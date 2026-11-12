@@ -516,7 +516,7 @@ TEST(GameUiTest, TheDigitsWithTheChatOpenDoNotPickASkill)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
 }
 
-// 0x5ac8d0: F1 es del hito 6; F2 cambia el chat normal del registro, F3 el modo del susurro y F4 el tamaño del
+// 0x5ac8d0: F1 corta (P-C93); F2 cambia el chat normal del registro, F3 el modo del susurro y F4 el tamaño del
 // registro y su esquina, cada una con el 0x19.
 TEST(GameUiTest, TheFunctionKeysChangeTheChatModes)
 {
@@ -551,6 +551,18 @@ TEST(GameUiTest, TheFunctionKeysChangeTheChatModes)
     const auto help = keys();
     ASSERT_FALSE(help.HasValue());
     EXPECT_NE(help.Error().find("0x5ac9ce"), std::string::npos);
+}
+
+// 0x637cff: Impr Pant pide la captura, que corta (P-C94); su latch la lee una vez.
+TEST(GameUiTest, ThePrintScreenKeyCutsTheScreenshot)
+{
+    SteppingUi tested;
+    Press(tested.input, Key::PrintScreen);
+    const auto screenshot = Client::Scenes::StepTheFunctionKeys(GameUiContext{
+        .world = tested.world, .random = tested.random, .input = tested.input, .mouseX = 320, .mouseY = 100});
+    ASSERT_FALSE(screenshot.HasValue());
+    EXPECT_NE(screenshot.Error().find("0x637cff"), std::string::npos) << screenshot.Error();
+    EXPECT_EQ(tested.Ui().keyLatches[0x2c], 1);
 }
 
 class TypedLetters final : public Client::Render::Text::ITextMeasure

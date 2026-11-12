@@ -780,7 +780,7 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
         panels.IsOpen(UI::CastleSiegeListPanel) || panels.IsOpen(UI::SecondCastleSiegePanel))
         return cut("0x6579e0: las ventanas del gremio y del asedio son de la CL9.4 y la CL9.5");
     if (state.delegated.panelDialog != 0)
-        return cut("0x660830: el diálogo de los paneles es del hito 6");
+        return cut("0x660830: el diálogo de los paneles (lo abre 0x6600d0 desde los paquetes) es de la CL9.4 (P-C90)");
     return {};
 }
 
@@ -1467,12 +1467,12 @@ Core::Expected<void, std::string> DrawTheOverlays(GameHudContext& context)
     WorldState& world = context.world;
     const std::int32_t mode = world.Runtime().panels.overlayMode;
     if (mode == 1 || mode == 2)
-        return Core::Unexpected(std::format("0x5b0550: las ayudas de F1 (el modo {}) son del hito 6", mode));
+        return Core::Unexpected(std::format("0x5b0550: las ayudas de F1 (el modo {}) son del hito 6 (P-C93)", mode));
     if (mode == 3)
-        return Core::Unexpected(std::string("0x5b0550: la ayuda del ítem de 0x77f3b0c es del hito 6"));
+        return Core::Unexpected(std::string("0x5b0550: la ayuda del ítem de 0x77f3b0c es del hito 6 (P-C93)"));
     GamePanels panels(world, context.random);
     if (panels.Registry().IsOpen(UI::MovePanel))
-        return Core::Unexpected(std::string("0x449860: la ventana /move es del hito 6"));
+        return Core::Unexpected(std::string("0x449860: la ventana /move es del hito 6 (P-C93)"));
     return {};
 }
 

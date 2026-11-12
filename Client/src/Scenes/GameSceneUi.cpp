@@ -240,8 +240,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .mouse = UI::MouseIn640x480(input, canvas.screen),
         .leftDown = input.IsDown(Input::MouseButton::Left)};
     // 0x637646: 0x6219b0 empieza el 2D (gluOrtho2D y MODELVIEW identidad, con push): el lote de SceneCanvas.
-    // 0x63764b: 0x4383f0, los textos 3D (hito 3).
-    // 0x637650: 0x5bbbc0, el hover y Alt (hito 4).
+    // 0x63764b: 0x4383f0, los textos 3D, y 0x637650: 0x5bbbc0, el hover y Alt (P-C93).
     // 0x637660: 0x5a7320(1), el HUD, con 0x7d36899 en 0.
     if (auto drawn = DrawTheHud(hud); !drawn.HasValue())
         return drawn;
@@ -259,7 +258,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         return overlays;
     // 0x6376c6: 0x40eca0, el cartel del set, con +0x9305 (hito 5).
     // 0x6376cb: 0x65ee60 → 0x65fe00, la UI nueva (hito 6).
-    // 0x6376d7: 0x5ac2d0, el cursor, 0x6376dc: 0x633110, el ítem 3D del diálogo (hito 6), y 0x6376e1: el cursor otra
+    // 0x6376d7: 0x5ac2d0, el cursor, 0x6376dc: 0x633110, el ítem 3D del diálogo (P-C90), y 0x6376e1: el cursor otra
     // vez, el mismo quad.
     if (auto cursor = DrawTheGameCursor(hud); !cursor.HasValue())
         return cursor;

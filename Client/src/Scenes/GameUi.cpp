@@ -63,6 +63,7 @@ constexpr GameKey F3Key{Key::F3, 0x72};
 constexpr GameKey F4Key{Key::F4, 0x73};
 constexpr GameKey F5Key{Key::F5, 0x74};
 constexpr GameKey F6Key{Key::F6, 0x75};
+constexpr GameKey PrintScreenKey{Key::PrintScreen, 0x2c};
 
 constexpr GameKey Letter(char letter)
 {
@@ -254,7 +255,7 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
         return {};
     // 0x5e3c80 y 0x5e4510: la party y el personaje, cada uno con su IsOpen.
     if (panels.IsOpen(UI::PartyPanel))
-        return Core::Unexpected(std::string("0x5e3c80: el paso del panel de la party es del hito 6"));
+        return Core::Unexpected(std::string("0x5e3c80: el paso del panel de la party es del hito 6 (P-C92)"));
     if (panels.IsOpen(UI::CharacterPanel))
         return Core::Unexpected(std::string("0x5e4510: el paso del panel del personaje es del hito 5"));
     // 0x5ee1a3: las hijas del inventario (0x5e4ce0, 0x5e5920, 0x5fe610, 0x5ea060, 0x5ecde0, 0x5ea290, 0x5ed960).
@@ -277,7 +278,7 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
         return Core::Unexpected(std::string("0x5e74f0: el paso del panel 0x2000 es de la CL9"));
     // 0x40a450, los comandos (+4 de 0x6e592c).
     if (delegated.commands != 0)
-        return Core::Unexpected(std::string("0x40a450: el paso de los comandos es del hito 6 y de la CL9.4"));
+        return Core::Unexpected(std::string("0x40a450: el paso de los comandos es del hito 6 (P-C92) y de la CL9.4"));
     // 0x41b5a0, el quest: con el personaje cerrado escribe +0x21390 y +0x21394 de su objeto, que MuRet no tiene
     // ni lee; con +0x21383 en 1 o 2, su ventana.
     if (delegated.quest == 1 || delegated.quest == 2)
@@ -768,7 +769,7 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     UI::PanelRegistry& panels = gamePanels.Registry();
     // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).
     if (panels.IsOpen(UI::MovePanel) && ui.capture == 0)
-        return Core::Unexpected(std::string("0x5ecdc0: el paso de la ventana /move (0x449850) es del hito 6"));
+        return Core::Unexpected(std::string("0x5ecdc0: el paso de la ventana /move (0x449850) es del hito 6 (P-C93)"));
     ui.hovered = 0;
     // 0x636e35: 0x46b7b0, las dos colas del cartel de Slide.bmd (0x46add0).
     if (auto slides = UI::StepTheSlides(runtime.hud.slides, UI::SlideStepContext{.measure = context.measure,
@@ -822,12 +823,12 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& conte
             const double dz = static_cast<double>(item.position.z) - static_cast<double>(hero.position.z);
             if (std::sqrt(dx * dx + dy * dy + dz * dz) < static_cast<double>(PickUpDistance))
                 return Core::Unexpected(std::string("0x5ac9ae: levantar el ítem del piso con la barra (0x5650c0) es "
-                                                    "del hito 6"));
+                                                    "de la CL9.3"));
         }
     }
     // 0x5ac9ce..0x5aca42: F1, la ayuda de las superposiciones (0x77f3b08) y +0x9305 de [0x6eed3c].
     if (KeyEdge(ui, input, F1Key))
-        return Core::Unexpected(std::string("0x5ac9ce: F1, la ayuda (0x77f3b08), es del hito 6"));
+        return Core::Unexpected(std::string("0x5ac9ce: F1, la ayuda (0x77f3b08), es del hito 6 (P-C93)"));
     // 0x5aca42..0x5aca86: F2, el chat normal en el registro (0x6c8dd1), y el registro corre 0 (la vtable + 0x34).
     if (KeyEdge(ui, input, F2Key))
     {
@@ -866,6 +867,11 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& conte
         }
         runtime.lastSoundId = ButtonSound;
     }
+    // 0x637cff: Impr Pant (0x553520(0x2c)), después del paso de la escena, pide la captura: el nombre con la hora
+    // (0x637700), glReadPixels y el JPEG (0x6202e0 → 0x63b150) y el texto 459 en el chat. Nadie más lee la tecla, así
+    // que su latch puede ir acá, lo último del paso que lee teclas (P-C94).
+    if (KeyEdge(ui, input, PrintScreenKey))
+        return Core::Unexpected(std::string("0x637cff: la captura de pantalla (0x6202e0) es del hito 6 (P-C94)"));
     return {};
 }
 

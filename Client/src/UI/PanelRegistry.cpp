@@ -70,7 +70,7 @@ const char* WaveOf(PanelId id)
         return "el administrador viejo (hito 7) y la CL9.4";
     case PartyPanel:
     case CommandsPanel:
-        return "el hito 6 y la CL9.4";
+        return "el hito 6 (P-C92) y la CL9.4";
     case CharacterPanel:
         return "el hito 5";
     case GuildPanel:
@@ -376,7 +376,7 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask)
 Core::Expected<bool, std::string> PanelRegistry::PanelKey(std::int32_t virtualKey)
 {
     if (m_state.delegated.panelDialog != 0)
-        return Core::Unexpected(std::string("0x660410: las teclas del diálogo de los paneles son del hito 6"));
+        return Core::Unexpected(std::string("0x660410: las teclas del diálogo de los paneles son de la CL9.4 (P-C90)"));
     if (virtualKey != EscapeKey)
         return false;
     for (PanelId bit = 1; bit <= LastScannedBit; bit <<= 1)
@@ -397,14 +397,14 @@ Core::Expected<void, std::string> PanelRegistry::CloseAll()
     if (!closed.HasValue())
         return Core::Unexpected(std::move(closed).Error());
     if (m_state.delegated.panelDialog != 0)
-        return Core::Unexpected(std::string("0x6603c0: cerrar el diálogo de los paneles es del hito 6"));
+        return Core::Unexpected(std::string("0x6603c0: cerrar el diálogo de los paneles es de la CL9.4 (P-C90)"));
     return {};
 }
 
 Core::Expected<void, std::string> PanelRegistry::StepTheObjectPanels()
 {
     if (m_state.delegated.panelDialog != 0)
-        return Core::Unexpected(std::string("0x6605b0: el paso del diálogo de los paneles es del hito 6"));
+        return Core::Unexpected(std::string("0x6605b0: el paso del diálogo de los paneles es de la CL9.4 (P-C90)"));
     for (const PanelId id :
          {SecondGuildPanel, GuildPanel, CastleSiegePanel, CastleSiegeListPanel, SecondCastleSiegePanel})
     {

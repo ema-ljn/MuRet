@@ -86,7 +86,8 @@ struct DelegatedPanels
     std::uint8_t siegeGate = 0;
     // 0x661b90 sin ítem en el cursor: algún lugar de la grilla de la caja del caos (0x7d2d380) ocupado (CL9.3).
     bool chaosBoxHasItem = false;
-    // [0x7d53704]+0x10: el diálogo de los paneles (0x65feb0, hito 6). 0x657880 le da la tecla primero.
+    // [0x7d53704]+0x10: el diálogo de los paneles (0x65feb0; lo abre 0x6600d0 desde los paquetes, CL9.4, P-C90).
+    // 0x657880 le da la tecla primero.
     std::uint8_t panelDialog = 0;
 };
 

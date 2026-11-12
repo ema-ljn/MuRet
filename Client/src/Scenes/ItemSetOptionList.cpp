@@ -121,4 +121,35 @@ Core::Expected<void, std::string> AddItemSetOptionPercentOf(ItemSetOptionList& l
     word = Low16(word + std::bit_cast<std::uint32_t>(Multiply32(share, taken.Value().count)));
     return {};
 }
+
+Core::Expected<void, std::string> AddSkillSetOptionValues(ItemSetOptionList& list, std::int32_t& value,
+                                                          std::uint32_t selector)
+{
+    const auto count = EntryCount(list, "0x40d8c0");
+    if (!count.HasValue())
+    {
+        return Core::Unexpected(count.Error());
+    }
+    // 0x40d8ee..0x40d919: cmp 0x18 / jc, el byte menos 0x1d contra el selector & 0xff, el segundo y la marca.
+    constexpr std::uint32_t LowestKind = 0x17;
+    constexpr std::uint32_t KindBase = 0x1d;
+    const std::uint32_t wanted = selector & 0xffu;
+    std::uint32_t sum = 0;
+    for (std::size_t index = 0; index < count.Value(); ++index)
+    {
+        const auto& entry = list.entries[index];
+        const std::uint32_t kind = entry[0];
+        if (kind <= LowestKind || kind - KindBase != wanted || entry[1] == 0 || list.used[index] != 0)
+        {
+            continue;
+        }
+        sum += std::bit_cast<std::uint32_t>(list.values[index]);
+        list.used[index] = 1;
+    }
+    if (sum != 0)
+    {
+        value = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(value) + sum);
+    }
+    return {};
+}
 } // namespace Client::Scenes

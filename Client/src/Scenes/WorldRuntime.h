@@ -129,6 +129,10 @@ struct HudState
     // (0x5f7610) y las cifras (0x5f7840) del mismo frame (CL8 hito 4).
     std::int32_t inventoryX = 0;
     std::int32_t inventoryY = 0;
+    // 0x78aba14 y 0x78aba18: la esquina de la ventana del personaje, que pone su dibujo (0x5ee2e0) en cada frame, en
+    // (0x1c2, 0). Los leen su paso (0x5e4510) y su botón de cerrar (0x5f74b4), CL8 hito 5.
+    std::int32_t characterX = 0;
+    std::int32_t characterY = 0;
     // [0x5763528]: el cartel de Slide.bmd (0x46aea0), que dibuja el 15 (0x46b090) y escribe al dibujar (la opacidad,
     // el corrimiento, el texto que pasa y 0x5762ee4). Lo llenan el timer 0x3eb y el 0D, y lo pasa el paso de la UI.
     UI::SlideBanner slides{};

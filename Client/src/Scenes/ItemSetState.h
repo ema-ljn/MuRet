@@ -27,10 +27,10 @@ struct ItemSetState
     // su dibujo (0x40e850, desde los tooltips), que la muestra con 1.
     std::uint8_t byte9304 = 0;
     // +0x9305: el cartel de un conjunto de ItemSetOption.bmd, su índice + 1. Lo escribe el comando "/" y el nombre
-    // (0x40ebd0) y lo dibuja 0x40eca0 hasta que lo apagan F1 (0x5aca34), 0x5ae360, abrir el personaje (0x65c9c6) o un
+    // (0x40ebd0) y lo dibuja 0x40eca0 hasta que lo apagan F1 (0x5aca34), 0x5ae360, abrir el personaje (0x65c97b) o un
     // conjunto sin usar.
     std::uint8_t byte9305 = 0;
-    // +0x9306: lo pone en 0 abrir el personaje (0x65c9c6).
+    // +0x9306: lo pone en 0 abrir el personaje (0x65c97b).
     std::uint8_t byte9306 = 0;
     // +0x9307: 0x40d010 lo pone en 0, en piezas − 1 cuando un conjunto no entra en el nombre de su
     // clase, y con un conjunto completo le suma 1 por opción si no es 0.

@@ -1,3 +1,4 @@
+#include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
 #include "UI/Dialogs.h"
 #include "UI/PanelRegistry.h"
@@ -299,13 +300,57 @@ TEST(PanelRegistryTest, TheDarkLordsPetRequestIsACut)
 
 TEST(PanelRegistryTest, PanelsOfOtherWavesCutWhenTheyOpen)
 {
-    for (const PanelId id : {FriendsPanel, PartyPanel, QuestPanel, GuildPanel, CommandsPanel, CharacterPanel})
+    for (const PanelId id : {FriendsPanel, PartyPanel, QuestPanel, GuildPanel, CommandsPanel})
     {
         Tested tested;
         const auto opened = tested.panels.Open(id);
         ASSERT_FALSE(opened.HasValue()) << std::hex << id;
         EXPECT_NE(opened.Error().find("0x6599a0"), std::string::npos) << opened.Error();
     }
+}
+
+TEST(PanelRegistryTest, TheCharacterKeepsTheInventoryOpenAndRunsItsHook)
+{
+    Tested tested;
+    int hooks = 0;
+    tested.context.characterOpened = [&hooks]() -> Client::Core::Expected<void, std::string>
+    {
+        ++hooks;
+        return {};
+    };
+    tested.state.inventory = 1;
+    tested.state.overlayMode = MoveOverlayMode;
+    const auto opened = tested.panels.Open(CharacterPanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+    EXPECT_EQ(tested.state.character, 1);
+    EXPECT_EQ(tested.state.inventory, 1);
+    EXPECT_EQ(tested.state.overlayMode, 0);
+    EXPECT_EQ(hooks, 1);
+    // CanOpen: 0x10000 y 0x20; la máscara de 0x657ab0 (sin 0x4000000): 0x20 y 0x10000.
+    EXPECT_EQ(DrawsSince(tested.random), 4);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x19, 0x1c}));
+}
+
+TEST(PanelRegistryTest, TheCharacterWithoutItsHookIsACut)
+{
+    Tested tested;
+    const auto opened = tested.panels.Open(CharacterPanel);
+    ASSERT_FALSE(opened.HasValue());
+    EXPECT_NE(opened.Error().find("0x65c966"), std::string::npos) << opened.Error();
+    // 0x65c95f ya la abrió.
+    EXPECT_EQ(tested.state.character, 1);
+}
+
+TEST(PanelRegistryTest, AnErrorOfTheCharacterHookStopsBeforeTheSounds)
+{
+    Tested tested;
+    tested.context.characterOpened = []() -> Client::Core::Expected<void, std::string>
+    { return Client::Core::Unexpected(std::string("gancho")); };
+    const auto opened = tested.panels.Open(CharacterPanel);
+    ASSERT_FALSE(opened.HasValue());
+    EXPECT_EQ(opened.Error(), "gancho");
+    EXPECT_TRUE(tested.sounds.empty());
 }
 
 TEST(PanelRegistryTest, CloseByMaskQueriesOnlyWhatIsInTheMask)

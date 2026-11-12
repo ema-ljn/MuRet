@@ -71,8 +71,6 @@ const char* WaveOf(PanelId id)
     case PartyPanel:
     case CommandsPanel:
         return "el hito 6 y la CL9.4";
-    case CharacterPanel:
-        return "el hito 5";
     case GuildPanel:
     case TradePanel:
     case PersonalShopPanel:
@@ -259,8 +257,22 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
     case SiegeWeaponPanel:
     case SecondSiegeWeaponPanel:
     case SiegeGatePanel:
-    case CharacterPanel:
         return Core::Unexpected(OpenCut(id));
+    case CharacterPanel:
+    {
+        // 0x65c94b..0x65ca72: todos menos el inventario y los amigos; con lo que cerró, el personaje.
+        mask ^= InventoryPanel;
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+            m_state.character = 1;
+        if (!m_context.characterOpened)
+            return Core::Unexpected(std::string("0x65c966: abrir el personaje sin el mundo ([0x6eed3c] y 0x550d10)"));
+        if (auto opened = m_context.characterOpened(); !opened.HasValue())
+            return Core::Unexpected(std::move(opened).Error());
+        break;
+    }
     default:
         // 0x65bfcb: un id sin caso sale con 0 y sin sonidos.
         return false;

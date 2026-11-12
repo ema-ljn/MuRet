@@ -3,6 +3,9 @@
 #include "Core/Expected.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Protocol/Character/LevelUpPoint.h"
+#include "Protocol/Outgoing.h"
+#include "Protocol/Pet/PetInfo.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameChat.h"
@@ -77,6 +80,18 @@ constexpr GameKey Digit(int digit)
 
 // 0x41ed10(0x19, 0, 0): el sonido de los botones y de Esc.
 constexpr std::int32_t ButtonSound = 0x19;
+// 0x5e455a y 0x5e4573: la ventana del personaje, 0xbe × 0x1b1 desde 0x78aba14 y 0x78aba18.
+constexpr std::int32_t CharacterWindowWidth = 0xbe;
+constexpr std::int32_t CharacterWindowHeight = 0x1b1;
+// La clase 4, el Dark Lord: cinco botones de puntos (0x5e4598) y las órdenes de la mascota con Shift (0x420e30).
+constexpr std::uint32_t DarkLordClass = 4;
+// 0x4246ea..0x424709: el botón de la mascota, fijo en la pantalla.
+constexpr std::int32_t PetButtonLeft = 0x217;
+constexpr std::int32_t PetButtonRight = 0x22f;
+constexpr std::int32_t PetButtonTop = 0x18b;
+constexpr std::int32_t PetButtonBottom = 0x1a3;
+// 0x42474c: 0x723911 en 2, la ventana de la mascota.
+constexpr std::uint8_t PetWindowOpen = 2;
 // 0x636e11: desde esta y, el mouse está sobre la barra.
 constexpr std::int32_t HudTop = 0x1b0;
 // 0x5a1181..0x5a1189: Chaos Castle.
@@ -466,6 +481,97 @@ Core::Expected<void, std::string> StepTheFootButtons(const GameUiContext& contex
     return toggleThePersonalShop();
 }
 
+// Manda un paquete por el socket del juego con send(), sin la cola (0x5e494b, 0x424610). Con el socket en −1 (`send`
+// vacío) no manda nada y sigue, como el original; sin el contexto de la sesión (los tests que no lo miran), corta.
+Core::Expected<void, std::string> SendRaw(const GameUiContext& context, Protocol::Outgoing packet,
+                                          std::string_view where)
+{
+    if (context.chat == nullptr)
+        return Core::Unexpected(std::format("{}: el send() sin el contexto de la sesión", where));
+    if (context.chat->send)
+        context.chat->send(std::move(packet));
+    return {};
+}
+
+// 0x5e4510: con el personaje abierto, el mouse sobre la ventana es de la UI; con puntos para repartir (+0x68), los
+// botones de las cuatro estadísticas (cinco con el Dark Lord, 0x6c9330) mandan F3 06, con el registro propio abierto
+// alrededor (3.848 rand() al cerrarlo sin otros accesos); y el botón de cerrar.
+Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& context, UI::PanelRegistry& panels)
+{
+    if (!panels.IsOpen(UI::CharacterPanel))
+        return {};
+    WorldRuntime& runtime = context.world.Runtime();
+    GameMovementState& movement = runtime.movement;
+    const std::int32_t x = runtime.hud.characterX;
+    const std::int32_t y = runtime.hud.characterY;
+    if (InRect(context, x, y, x + CharacterWindowWidth, y + CharacterWindowHeight))
+        runtime.ui.mouseOnUi = 1;
+    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const std::int32_t buttons = (hero.characterClass & 7u) == DarkLordClass ? 5 : 4;
+    {
+        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        if (context.world.OwnCharacter().levelUpPoints != 0)
+        {
+            for (std::int32_t button = 0; button < buttons; ++button)
+            {
+                const std::int32_t top = y + 0x73 + button * 0x3c;
+                if (!InRect(context, x + 0x7d, top, x + 0x95, top + 0x18) || !movement.pendingClick)
+                    continue;
+                movement.pendingClick = false;
+                if (auto sent = SendRaw(
+                        context, Protocol::Character::WriteLevelUpPoint(static_cast<std::uint8_t>(button)), "0x5e494b");
+                    !sent.HasValue())
+                    return sent;
+                runtime.lastSoundId = ButtonSound;
+            }
+        }
+    }
+    if (!InRect(context, x + 0x19, y + 0x18b, x + 0x31, y + 0x1a3) || !movement.pendingClick)
+        return {};
+    movement.pendingClick = false;
+    movement.mouseUpdateTime = 0;
+    movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+    if (auto closed = panels.Close(UI::CharacterPanel); !closed.HasValue())
+        return Core::Unexpected(std::move(closed).Error());
+    return {};
+}
+
+// 0x424130 → 0x424230: con el personaje cerrado, 0x723911 en 0. Abierto, la primera vez el pedido del caballo oscuro
+// (C1 06 A9 01 00 08, Q-C16) y 0x723911 en 1; el botón de la mascota abre o cierra el panel 0x400. Con 0x723911 en 2
+// (la respuesta del A9, que MuRet no lee), la ventana de la mascota es de la CL9.2. 0x416660, desde 0x424130 con 2,
+// no hace nada.
+Core::Expected<void, std::string> StepThePetButton(const GameUiContext& context, UI::PanelRegistry& panels)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    std::uint8_t& pet = runtime.panels.delegated.pet;
+    if (!panels.IsOpen(UI::CharacterPanel))
+    {
+        pet = 0;
+        return {};
+    }
+    if (pet == 0)
+    {
+        const Protocol::Pet::PetInfoRequest horse{Protocol::Pet::DarkHorsePet, Protocol::Pet::InventoryPlace,
+                                                  Protocol::Pet::PetSlot};
+        if (auto sent = SendRaw(context, Protocol::Pet::WritePetInfoRequest(horse), "0x424610"); !sent.HasValue())
+            return sent;
+        pet = 1;
+    }
+    GameMovementState& movement = runtime.movement;
+    if (InRect(context, PetButtonLeft, PetButtonTop, PetButtonRight, PetButtonBottom) && movement.pendingClick)
+    {
+        movement.leftHeld = false;
+        movement.pendingClick = false;
+        auto toggled = panels.IsOpen(UI::PetPanel) ? panels.Close(UI::PetPanel) : panels.Open(UI::PetPanel);
+        if (!toggled.HasValue())
+            return Core::Unexpected(std::move(toggled).Error());
+    }
+    if (pet == PetWindowOpen)
+        return Core::Unexpected(std::string("0x424759: la ventana de la mascota (0x723911 en 2) es de la CL9.2"));
+    return {};
+}
+
 // 0x5e571c..0x5e5910: las grillas de las otras ventanas, la caja del entrenador (0x44ad10) y el cartel del set
 // (0x40e6c0).
 Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context, UI::PanelRegistry& panels)
@@ -598,8 +704,8 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
     // 0x5e3c80 y 0x5e4510: la party y el personaje, cada uno con su IsOpen.
     if (panels.IsOpen(UI::PartyPanel))
         return Core::Unexpected(std::string("0x5e3c80: el paso del panel de la party es del hito 6"));
-    if (panels.IsOpen(UI::CharacterPanel))
-        return Core::Unexpected(std::string("0x5e4510: el paso del panel del personaje es del hito 5"));
+    if (auto character = StepTheCharacterWindow(context, panels); !character.HasValue())
+        return character;
     // 0x5ee1a3: el inventario (0x5e4ce0) y sus seis hermanas (0x5e5920, 0x5fe610, 0x5ea060, 0x5ecde0, 0x5ea290 y
     // 0x5ed960).
     if (panels.IsOpen(UI::InventoryPanel))
@@ -631,9 +737,8 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
     // ni lee; con +0x21383 en 1 o 2, su ventana.
     if (delegated.quest == 1 || delegated.quest == 2)
         return Core::Unexpected(std::string("0x41b5a0: el paso del quest es de la CL9.1"));
-    // 0x424130 → 0x424230: con el personaje cerrado, 0x723911 = 0. 0x416660 no hace nada.
-    runtime.panels.delegated.pet = 0;
-    return {};
+    // 0x5ee212: 0x424130.
+    return StepThePetButton(context, panels);
 }
 
 // 0x5a05e5..0x5a10e2: la barra de skills. Abre el registro propio aunque no haya skills y lo cierra al final.
@@ -894,7 +999,6 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
     // MuRet, y el diálogo 0x73 (con el que no se mira el foco) es del hito 6.
     if (runtime.chat.input.focus == UI::ChatFocus::Game && !ui.chatOpen && !runtime.chat.input.otherInput)
     {
-        constexpr std::uint8_t DarkLordClass = 4;
         if ((hero.characterClass & 7u) == DarkLordClass && input.IsDown(Key::Shift))
         {
             for (int digit = 1; digit <= 4; ++digit)
@@ -1117,7 +1221,8 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     // 0x636e0b: 0x7d36899 no lo escribe nadie.
     if (context.mouseY >= HudTop)
         ui.mouseOnUi = 1;
-    GamePanels gamePanels(context.world, context.random);
+    GamePanels gamePanels(context.world, context.random,
+                          GamePanelTables{.items = context.items, .itemSetTables = context.itemSetTables});
     UI::PanelRegistry& panels = gamePanels.Registry();
     // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).
     if (panels.IsOpen(UI::MovePanel) && ui.capture == 0)

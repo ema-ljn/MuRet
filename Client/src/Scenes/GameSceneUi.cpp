@@ -94,7 +94,9 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .measure = m_context.textMeasure,
                                        .screen = m_screen,
                                        .chat = &chat,
-                                       .systemTime = systemTime});
+                                       .systemTime = systemTime,
+                                       .items = m_items,
+                                       .itemSetTables = m_chatTables.itemSetTables});
 }
 
 GameChatContext GameScene::ChatContext()

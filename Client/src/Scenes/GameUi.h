@@ -2,10 +2,16 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Data/Tables/ItemTable.h"
 
 #include <array>
 #include <cstdint>
 #include <string>
+
+namespace Client::Data::Tables
+{
+struct ItemSetTables;
+}
 
 namespace Client::Input
 {
@@ -52,6 +58,10 @@ struct GameUiContext
     const GameChatContext* chat = nullptr;
     // timeGetTime() de los segundos del cartel (0x46ada0).
     std::uint32_t systemTime = 0;
+    // Item.bmd (*[0x7758550]) e ItemSetType.bmd con ItemSetOption.bmd (0x40c600), que lee 0x550d10 cuando la C o el
+    // botón del HUD abren el personaje (0x65ca1e). nullptr si no se cargaron: abrirlo corta en lo primero que las lee.
+    const Data::Tables::ItemTable* items = nullptr;
+    const Data::Tables::ItemSetTables* itemSetTables = nullptr;
 };
 
 // El WndProc: 0x7d366d4 (el flanco del clic, que apagan quien lo usa y el botón suelto) y 0x7d36874 (el botón

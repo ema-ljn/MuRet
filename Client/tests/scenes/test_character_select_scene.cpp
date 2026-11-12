@@ -2682,7 +2682,7 @@ bool DrawsTheSlot(const std::vector<FrameEvent>& events, TextureSlot slot)
 // de los botones, no hace nada. La vuelta a la lista, con la respuesta del GS, es de la CL9 (Q-C79).
 TEST(CharacterSelectSceneTest, TheEscapeWindowAsksToJoinAnotherServer)
 {
-    constexpr TextureSlot EscapeButtons{0x72f};
+    static constexpr TextureSlot EscapeButtons{0x72f};
     constexpr TextureSlot Bar{0xf};
     const auto openTheWindow = [](Harness& tested)
     {

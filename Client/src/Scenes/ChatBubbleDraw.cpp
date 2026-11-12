@@ -74,7 +74,13 @@ constexpr std::int32_t FadingSteps = 10;
 constexpr std::int32_t BlinkCycle = 6;
 constexpr std::int32_t BlinkSwapped = 3;
 // 0x555b5e..0x555bda: los bandos del asedio por +0x360.
-constexpr std::array<std::pair<std::uint8_t, std::uint8_t>, 4> SiegeSides{{{9, 6}, {10, 7}, {11, 8}, {13, 12}}};
+struct SiegeSide
+{
+    std::uint8_t first = 0;
+    std::uint8_t second = 0;
+};
+constexpr std::array<SiegeSide, 4> SiegeSides{
+    {{.first = 9, .second = 6}, {.first = 10, .second = 7}, {.first = 11, .second = 8}, {.first = 13, .second = 12}}};
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
 
 std::int32_t Wrapped(std::uint32_t value)
@@ -131,10 +137,10 @@ std::uint32_t BackgroundOf(std::uint8_t relation)
 // 0x555b5e..0x555bda: con el héroe en un bando, el dueño de otro no tiene globo.
 bool OfAnotherSiegeSide(std::uint8_t hero, std::uint8_t owner)
 {
-    for (const auto& [first, second] : SiegeSides)
+    for (const SiegeSide& side : SiegeSides)
     {
-        if (hero == first || hero == second)
-            return owner != first && owner != second;
+        if (hero == side.first || hero == side.second)
+            return owner != side.first && owner != side.second;
     }
     return false;
 }

@@ -155,19 +155,19 @@ bool TakeTheFenrirGait(HelperState& helper, const Render::Models::Skeleton& skel
     std::optional<std::uint8_t> calm;
     if (InRange(riderAction, 0x56, 0x61))
     {
-        calm = 3;
+        calm = std::uint8_t{3};
     }
     else if (InRange(riderAction, 0x62, 0x65))
     {
-        calm = 4;
+        calm = std::uint8_t{4};
     }
     else if (InRange(riderAction, 0x66, 0x69))
     {
-        calm = 5;
+        calm = std::uint8_t{5};
     }
     else if (InRange(riderAction, 0x76, 0x79) || riderAction == 0xc3)
     {
-        calm = 0;
+        calm = std::uint8_t{0};
     }
     if (calm)
     {

@@ -8,11 +8,11 @@
 
 #include <gtest/gtest.h>
 
-#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 
 // El registro del chat (0x576350c), el área vieja (0x77d9868) y su entrada 0x555190 (CL8 hito 3; 06 § El chat).
 // Los textos son inventados; las cuentas, las del ASM: 0x45bb20, 0x459c70, 0x45bfe0, 0x47a050, 0x45d8c0, 0x45dc40,

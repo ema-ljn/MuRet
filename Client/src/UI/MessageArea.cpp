@@ -1,14 +1,19 @@
 #include "UI/MessageArea.h"
 
+#include "App/WindowState.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
+#include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextLayout.h"
+#include "Render/Text/TextStyle.h"
 #include "Scenes/ITextDrawer.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Client::UI
 {

@@ -2,22 +2,32 @@
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
+#include "Scenes/GameChat.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/Dialogs.h"
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 
+#include "support/ChatTexts.h"
+#include "support/SceneDataFiles.h"
+
 #include <array>
 #include <cstdint>
 #include <initializer_list>
 #include <string>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -465,6 +475,140 @@ TEST(GameUiTest, ThePickingAsksTheWorldWidthWithThePartyClosed)
     const CrtRandom expected = Advanced(tested.random, 2);
     ASSERT_TRUE(tested.Pick().HasValue());
     EXPECT_EQ(tested.random.State(), expected.State());
+}
+
+// 0x5a00a1..0x5a0124: PgUp y PgDn corren el registro tantos renglones como muestra.
+TEST(GameUiTest, PageUpAndPageDownScrollTheChatLog)
+{
+    SteppingUi tested;
+    auto& log = tested.world.Runtime().chat.log;
+    tested.Ui().chatModes.placement = 1;
+    for (int i = 0; i < 20; ++i)
+        log.entries.push_back(Client::UI::ChatEntry{.name = "", .text = "x", .type = 0});
+    Press(tested.input, Key::PageUp);
+    ASSERT_TRUE(tested.Step(320, 100).HasValue());
+    EXPECT_EQ(log.scroll, log.rows);
+    Release(tested.input, Key::PageUp);
+    Press(tested.input, Key::PageDown);
+    ASSERT_TRUE(tested.Step(320, 100).HasValue());
+    EXPECT_EQ(log.scroll, 0);
+}
+
+// 0x5a0124..0x5a03c3: con el foco en el EDIT del mensaje, arriba trae lo último dicho; con el foco en el juego, corre
+// el nombre del susurro.
+TEST(GameUiTest, TheArrowsWalkTheHistoryOrTheWhisperNames)
+{
+    SteppingUi tested;
+    auto& input = tested.world.Runtime().chat.input;
+    Client::UI::ShowTheChatFields(input, 0);
+    Client::UI::RememberTheMessage(input, "dicho");
+    Press(tested.input, Key::Up);
+    ASSERT_TRUE(tested.Step(320, 100).HasValue());
+    EXPECT_EQ(input.message.Value(), "dicho");
+    EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x19);
+
+    Release(tested.input, Key::Up);
+    ASSERT_TRUE(tested.Step(320, 100).HasValue());
+    Client::UI::ShowTheChatFields(input, 3);
+    Press(tested.input, Key::Up);
+    ASSERT_TRUE(tested.Step(320, 100).HasValue());
+    EXPECT_EQ(input.whisperNameAt, Client::UI::FirstWhisperNameSlot - 1);
+}
+
+// Con el chat abierto, los números son del EDIT y no eligen la skill.
+TEST(GameUiTest, TheDigitsWithTheChatOpenDoNotPickASkill)
+{
+    SteppingUi tested;
+    tested.Ui().chatOpen = true;
+    Client::UI::ShowTheChatFields(tested.world.Runtime().chat.input, 0);
+    Press(tested.input, Key::Digit1);
+    const auto stepped = tested.Step(320, 100);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+}
+
+// 0x5ac8d0: F1 es del hito 6; F2 cambia el chat normal del registro, F3 el modo del susurro y F4 el tamaño del
+// registro y su esquina, cada una con el 0x19.
+TEST(GameUiTest, TheFunctionKeysChangeTheChatModes)
+{
+    SteppingUi tested;
+    const auto keys = [&tested]
+    {
+        return Client::Scenes::StepTheFunctionKeys(GameUiContext{
+            .world = tested.world, .random = tested.random, .input = tested.input, .mouseX = 320, .mouseY = 100});
+    };
+    ASSERT_TRUE(keys().HasValue());
+    EXPECT_FALSE(tested.world.Runtime().lastSoundId.has_value());
+
+    Press(tested.input, Key::F2);
+    ASSERT_TRUE(keys().HasValue());
+    EXPECT_FALSE(tested.Ui().chatModes.showChat);
+    EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x19);
+
+    Press(tested.input, Key::F3);
+    ASSERT_TRUE(keys().HasValue());
+    EXPECT_FALSE(tested.world.Runtime().chat.input.whisperMode);
+    // El latch: la F2 que sigue abajo no vuelve a cambiar.
+    EXPECT_FALSE(tested.Ui().chatModes.showChat);
+
+    Press(tested.input, Key::F4);
+    ASSERT_TRUE(keys().HasValue());
+    EXPECT_EQ(tested.Ui().chatModes.placement, 1);
+    EXPECT_EQ(tested.world.Runtime().chat.log.rows, 3);
+    EXPECT_EQ(tested.world.Runtime().hud.chatFrame.x, 0xba);
+    EXPECT_EQ(tested.world.Runtime().hud.chatFrame.y, 0x1a4);
+
+    Press(tested.input, Key::F1);
+    const auto help = keys();
+    ASSERT_FALSE(help.HasValue());
+    EXPECT_NE(help.Error().find("0x5ac9ce"), std::string::npos);
+}
+
+class TypedLetters final : public Client::Render::Text::ITextMeasure
+{
+public:
+    [[nodiscard]] Client::Render::Text::TextExtent Measure(Client::Render::Text::FontKind /*font*/,
+                                                           std::string_view text) const override
+    {
+        return {static_cast<int>(text.size()) * 6, 13};
+    }
+};
+
+// 0x5a116f..0x5a2b47: Alt y un número dicen la macro y frenan las demás hasta que 0x77f3b74 vuelva a 0. Sin la
+// entrada del chat, el error.
+TEST(GameUiTest, AltAndADigitSayTheMacro)
+{
+    SteppingUi tested;
+    tested.world.Runtime().chat.input.macros[0] = "uno";
+    Press(tested.input, Key::AltLeft);
+    Press(tested.input, Key::Digit1);
+    const auto alone = tested.Step(320, 100);
+    ASSERT_FALSE(alone.HasValue());
+    EXPECT_NE(alone.Error().find("0x5a11cb"), std::string::npos);
+
+    const auto texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
+    const TypedLetters letters;
+    std::vector<Client::Protocol::Outgoing> sent;
+    const Client::Scenes::GameChatContext chat{.world = tested.world,
+                                               .random = tested.random,
+                                               .texts = &texts,
+                                               .measure = &letters,
+                                               .send = [&sent](Client::Protocol::Outgoing packet)
+                                               { sent.push_back(std::move(packet)); }};
+    const auto step = [&]
+    {
+        return Client::Scenes::StepTheGameUi(GameUiContext{.world = tested.world,
+                                                           .random = tested.random,
+                                                           .input = tested.input,
+                                                           .mouseX = 320,
+                                                           .mouseY = 100,
+                                                           .chat = &chat});
+    };
+    const auto said = step();
+    ASSERT_TRUE(said.HasValue()) << said.Error();
+    EXPECT_EQ(sent.size(), 1u);
+    EXPECT_EQ(tested.world.Runtime().hud.macroTime, Client::UI::MacroLockSteps);
+    ASSERT_TRUE(step().HasValue());
+    EXPECT_EQ(sent.size(), 1u);
 }
 
 TEST(GameUiTest, FollowingThePreviousTargetIsACut)

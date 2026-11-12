@@ -37,13 +37,14 @@ void TextField::Type(std::string_view utf8)
 {
     for (std::size_t index = 0; index < utf8.size(); ++index)
     {
-        if (m_value.size() >= m_maxBytes)
+        if (!m_allSelected && m_value.size() >= m_maxBytes)
         {
             return;
         }
         const char byte = utf8[index];
         if (IsPrintableAscii(byte))
         {
+            ReplaceTheSelection();
             m_value.push_back(byte);
             continue;
         }
@@ -61,6 +62,7 @@ void TextField::Type(std::string_view utf8)
         const unsigned value = ((lead & LeadBits) << 6U) | (trail & TrailBits);
         if (value >= FirstLatin1Letter)
         {
+            ReplaceTheSelection();
             m_value.push_back(static_cast<char>(value));
         }
         ++index;
@@ -69,6 +71,11 @@ void TextField::Type(std::string_view utf8)
 
 void TextField::Backspace()
 {
+    if (m_allSelected)
+    {
+        Clear();
+        return;
+    }
     if (!m_value.empty())
     {
         m_value.pop_back();
@@ -78,6 +85,36 @@ void TextField::Backspace()
 void TextField::Clear()
 {
     m_value.clear();
+    m_allSelected = false;
+}
+
+void TextField::SetText(std::string_view raw)
+{
+    m_value.assign(raw);
+    m_allSelected = false;
+}
+
+void TextField::SelectAll()
+{
+    m_allSelected = true;
+}
+
+void TextField::Deselect()
+{
+    m_allSelected = false;
+}
+
+bool TextField::AllSelected() const
+{
+    return m_allSelected;
+}
+
+void TextField::ReplaceTheSelection()
+{
+    if (m_allSelected)
+    {
+        Clear();
+    }
 }
 
 std::string_view TextField::Value() const&

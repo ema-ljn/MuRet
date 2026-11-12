@@ -166,6 +166,7 @@ TEST(SelectionBarTest, TheServerNoticeGoesBeforeTheText)
 {
     const auto texts = Client::Tests::MakeTextTable({{1710, "Synthetic"}});
     SelectionBar bar(LabSizes(), &texts);
+    bar.Open();
     Client::Render::SpriteBatch batch;
     batch.Begin(Screen640);
     Client::Tests::RecordingTextDrawer text(batch);

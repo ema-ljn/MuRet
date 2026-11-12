@@ -1245,10 +1245,10 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
 - **En MuRet.** El del login es `Scenes::DarkHorse` en `LoginScene`, con su paso (`StepDarkHorse`, sin
   celda segura: el mundo 56 no tiene ninguna) y su dibujo (`DrawDarkHorse`, con la sombra por mapa). El
   del juego (CL7, hito 1, T12) es `Scenes::HelperTable`, la tabla de `0x7d335d0` en
-  `WorldState::Helpers`: `CreateHelper` (`0x443fa0` → `0x443d70`, solo el `0xbf`: los otros tipos
-  cortan), `TurnOffHelpersOf` (`0x443d40`, desde el `F3 10`; `0x510f70` en `KillOtherActors`),
-  `StepHelpers` (`0x445230` en la escena 5, en `GameScene::StepWorld`, en `0x6370f4`) y `DrawHelpers`
-  (`0x4453b0` en la escena 5). El paso saca el polvo y el aliento (CL7.6) a las partículas del juego
+  `WorldState::Helpers`: `CreateHelper` (`0x443fa0` → `0x443d70`, el `0xbf` y las [mascotas](#las-mascotas)),
+  `TurnOffHelpersOf` (`0x443d40`, desde el `F3 10`; `0x510f70` en `KillOtherActors`),
+  `StepHelpers` (`0x445230` en la escena 5, en `GameScene::StepWorld`, en `0x6370f4`, y en la 4, en
+  `0x6342f4`) y `DrawHelpers` (`0x4453b0` en la escena 5 y en la 4, `0x63486a`). El paso saca el polvo y el aliento (CL7.6) a las partículas del juego
   (`WorldState::Particles`, con el reloj del mundo de `HelperStepContext::worldClock`) y la onda de Icarus
   a los efectos con modelo (`ModelEffects::CreateGallopShockWave`, con su paso en `StepGameModelEffect`);
   el buffer global de la pose es `WorldState::PoseCarry`, que publican los dibujos del frame anterior
@@ -1258,10 +1258,93 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   buffer global que ningún dibujo escribió todavía es la matriz en cero de la `.bss` (200 huesos, hasta
   `0x68b3d9c`), y el punto sale del origen (`0x4442b4` y `0x44459d`, Q-C401). Cortan con error, después de
   los `rand()` que el original saca antes, una partícula que no se puede crear, la acción 3, el
-  `+8` del jinete, el dibujo con `+0x78 & 0x4000` y los mapas `0x12` a `0x17` del dibujo. En el juego no se crea
-  ninguno: `0x5bc740` corta antes con el `0x1a04` (`0x4225d0`, P-C36) y los demás que lo crean no están
-  portados; la tabla vacía no hace nada. `DrawHelpers` no corre: el dibujo del juego corta antes, a más
-  tardar en los ítems del piso (`0x6374fe`). La tabla no lleva los caballos del login ni de la selección (P-C47).
+  `+8` del jinete y el dibujo con `+0x78 & 0x4000`; los mapas `0x12` a `0x17` bajan el alpha en el dibujo. En el
+  juego no se crea el caballo: `0x5bc740` corta antes con el `0x1a04` (`0x4225d0`, P-C36), y los demás que lo
+  crean no están portados. Desde que los ítems del piso no cortan siempre (`0x6374fe`), `DrawHelpers` corre en el
+  juego. La selección crea los suyos con `0x5139f0` en la misma tabla; el del login sigue en `LoginScene` (P-C47).
+
+### Las mascotas
+
+Leído en la CL7 (2026-11-12, *estático* sobre c32bbd5f; el camino de `0x6002e0` con el `0xc6`, el `0x110` y el
+`0x1c12`, **emulado** con unicorn sobre el `main.exe`, en los mapas −1 a 56). La tabla, la creación común, el
+alpha de `0x4e9980` y el avance de `0x445006` son los del [caballo oscuro](#el-caballo-oscuro); acá va lo de cada
+tipo.
+
+- **Quién las crea en el juego.** `0x5bc740` con el lugar 8 (`0x5bc8b3..0x5bca46`, desde el `F3 10`): el Guardian
+  Angel (`0x1a00`) con el `0x1c12`, el Horn of Uniria (`0x1a02`) con el `0xc6`, el de Dinorant (`0x1a03`) con el
+  `0x110` y el Horn of Doom (`0x1a25`) con un Fenrir por el `+0x1b` del ítem, que copia antes a `+0x31b` del héroe:
+  1 el `0x14a`, 2 el `0x14c` y otro el `0x14b`. Salvo con el `0x1c12`, con `+0x3e2` del héroe en 0 sigue
+  `0x518cf0(0x61e, héroe + 0x10, héroe + 0x1c, héroe + 0xf4, 1, héroe, −1, 0, 0, 0, 0)`, aunque `0x443fa0` no haya
+  creado nada; el paso de ese efecto (`0x518900`) crea la junta `0x619/1`.
+- **`0x443d70`** con los Fenrir, el Uniria y el Dinorant: la escala en 0,9. Con el `0x1c12`: 0,7, el blendMesh
+  (`+0x64`) en 1 (`0x443f1a`) y el lugar corrido desde el del jinete `rand() % 512 − 256` en x y en y y
+  `rand() % 128 + 128` en z (`0x443f21..0x443f8c`, tres `rand()`). La velocidad del vuelo (`+0xcc..+0xd4`) no la
+  escribe: un lugar que se vuelve a usar se queda con la de antes (Q-C420).
+- **El paso** (`0x444010`, después del alpha y antes del avance):
+  - el Uniria y el Dinorant (`0x4447c4..0x444ac4`): en la celda segura del jinete (como el caballo), el alpha en 0
+    y al avance. Si no, el alpha por `+0x80` del jinete (`0x44480b..0x44484a`: con 1 o 2 baja 0,1f, restado en la
+    x87, guardado en float y comparado sin redondear, con piso 0; con otro, 1), su lugar (el Dinorant a −10 en los
+    mapas 8 y 10 y a −30 en los demás, salvo el −1) y sus ángulos, y la acción por la del jinete
+    (`0x4448b1..0x4449b7`, con `0x4ea030`): `0x0d` a `0x21`, `0x46` y `0x47` → 2 (3 el Dinorant en el 8 y el 10), el
+    galope; `0x40` y `0x41` → 6 (7 en el 8 y el 10, sin mirar el tipo); `0x22` a `0x37` → 3 (el Dinorant, 4, o 5
+    en el 8 y el 10); otra → 0 (1 el Dinorant en el 8 y el 10). Con el galope, `rand() % 2`, y con 0, fuera del 10
+    y sin `+0x78 & 0x4000` del jinete, el polvo del caballo (`0x444a19..0x444aa8`). La velocidad en 0,34 y el byte
+    vivo del jinete (`0x444ac0`);
+  - los Fenrir (`0x444af0..0x444f25`): la celda segura igual; el alpha por `+0x80`, la cabeza, el lugar y los
+    ángulos del jinete, y la acción y la velocidad por la suya (`0x444bbc..0x444c4b`): `0x56` a `0x61` → 3, `0x62` a
+    `0x65` → 4, `0x66` a `0x69` → 5, `0x76` a `0x79` y `0xc3` → 0, a 0,4 y sin polvo; `0x7a` a `0x7d` → 1, a 1;
+    `0x6a` a `0x75` → 2, a 0,6; otra deja las dos. Con la carrera o el trote, el polvo: en el 10, sin `rand()`
+    antes, desde el hueso 22 del buffer global con el frame en (1; 1,2) o desde el 44 en (4,8; 5], con (120; 0; 32),
+    40 más en x y, en la segunda ventana, 700 más en z (Q-C421), la onda `0x6eb/1` y las `5f2` del caballo en Icarus
+    (`0x444d68..0x444e16`); en los demás, `rand() % 3`, y con 0, fuera de Kalima y sin `+0x78 & 0x4000`, el polvo
+    del caballo (`0x444e6f..0x444f1d`);
+  - el Guardian Angel (`0x444f2a..0x444fff`): sin `+0x78 & 0x4000` del jinete, cuatro `5c5/1` con la luz 0,4,
+    corridas `(rand() & 15) − 8` del ayudante en cada eje. Después del avance (`0x445052..0x445221`) vuela: gira
+    20 grados hacia donde estaba el jinete al empezar el paso (`0x444080..0x44408b`) si está a 150 o más (al
+    cuadrado, en float), se mueve con su velocidad girada por sus ángulos y `(rand() & 15) − 8` en z, con
+    `rand() % 32` en 0 toma otra velocidad (de lejos `((rand() & 63) + 128) · −0,1f` en y; de cerca
+    `((rand() & 63) + 16) · −0,1f` y el rumbo `rand() % 360`; la x en 0 y `((rand() & 63) − 32) · 0,1f` en z), y
+    sube 1,5 su velocidad en z si está a menos de 100 sobre el jinete o la baja 1,5 si está a más de 200.
+- **El dibujo** (`0x445260`), con el `0x1c12` sin un jugador de jinete: la escala de `0x4452db..0x445309` (1,6 en
+  la 2 y 1 en la 4; en la 5, los Fenrir se quedan con el 0,9 y los demás van a 1). `0x6002e0` lleva el Dinorant a
+  `0x600b35` y el Uniria y el Guardian Angel, por la cadena de los mapas (`0x438fe0`, `0x42cc10`, `0x4403b0`,
+  `0x42f170`, …), a `0x602360`: los tres, `RenderBody(2, +0x174, +0x64, +0x68, +0x6c, +0x70, +0x58, −1)` con el
+  color que dejó `0x5ffce0` (la luz del terreno más el 3 de `+0xf4`, con la luz por vértice), sin sombra, sin
+  `rand()` y sin tocar el color ni `+0x88` del modelo (emulado). `+0x74`, que nadie escribe, no toma el camino del
+  `0x80` (`0x6004aa`). Los Fenrir van a `0x60277b` (*estático*): dos pases en blanco de `0x4ecc30` (las mallas 0 y
+  1) y, con la acción 4, un tercero (`0x46`, la textura `0x68f`), dos `rand()` y la partícula `0x5c6` desde el
+  hueso 14; la sombra (fuera del 10 y de Kalima), seis sprites `0x5ac` en los huesos 11 y 13 con la luz de un seno
+  del reloj del mundo y, en cada frame, dos `0x518cf0(0x14d, …)` (`0x602b30` y `0x602b50`) con el color de cada
+  uno; con otras acciones, más `0x14d` y el `0x14e` desde sus huesos. Después de `0x602e90`, el `rand() % 30 + 70`
+  de `0x445336`, por 0,01f, y con el `0x1c12` el sprite `0x5ac` en su lugar (`0x445390`: escala 1, rotación 0,
+  aditivo) con esa cuenta por (0,5; 0,8; 0,6), cada canal guardado en float: con 80, (`0x3ecccccc`; `0x3f23d70a`;
+  `0x3ef5c290`).
+- **La carga** (`0x615700`): `Skill\Rider01.bmd` (`0xc6`, `0x615eca`), `Rider02.bmd` (`0x110`, `0x615f30`; el
+  `.smd` de `0x615f17` no corre con `[0x6c9e0c]` en 1), `fenril_black`, `fenril_red` y `fenril_blue` (`0x14a` a
+  `0x14c`, `0x615f5c`, `0x615f90` y `0x615fc1`) y `HellGate.bmd` (`0xc5`, `0x61605c`). Las texturas de los Fenrir son
+  las primeras `0x60d5f0` de `0x615700` (`0x615f77`, `0x615fab` y `0x615fdc`), desde donde las dejó `0x611850`:
+  `fenril02.jpg` en `0x371` (de los tres) y `fenril_black`, `_red` y `_blue` de `0x372` a `0x374`. Después del
+  cuervo (`0x6169c2`) piden HellGate (`0x6169e0`, `0x3cb` y `0x3cc`) y el Dinorant (`0x6169fb`, `RDgon.jpg` y
+  `RDgonW.tga` en `0x3cd` y `0x3ce`). El Uniria pide las suyas solo en el lazo `0x616e20` (de `0xbe` a `0x150` con
+  `Skill\`), y encuentra por el nombre `unicon.jpg` y `unicon01.tga` en `0x2cb` y `0x2cc`, las de `Helper03` en
+  `Item\`. *Sin verificar* contra `lor_slots.bin`: `ModelTextureSlotsGoldenTest.StartupMatchesTheDump` compara
+  `0x371..0x374` y `0x3cb..0x3ce` en el laboratorio. `Rider01` tiene 2 mallas, 24 huesos y 4 acciones; `Rider02`, 2,
+  73 y 8; los Fenrir, 2, 58 y 6. El Guardian Angel es `Player\Helper01.bmd`, de `0x60ff50`.
+- **En MuRet.** `Scenes::CreateHelper` construye los siete tipos; `StepHelpers` (con `Scenes/PetHelperSteps` y
+  `Scenes/HelperStepParts`) los mueve en la escena 5 y en la 4, con el esqueleto de cada tipo de
+  `HelperStepContext::models`; `DrawHelpers` dibuja el Uniria, el Dinorant y el Guardian Angel con `DrawObject` y el
+  brillo en la tabla de sprites del frame (`HelperDrawContext::lighting` y `sprites`), en el juego (`GameSceneTail`)
+  y en la selección (`0x63486a`). `GameModels` carga los cinco modelos de `Skill\` con sus texturas. El `F3 10` crea
+  el Guardian Angel con el `rand()` compartido. Cortan con error: el dibujo de los Fenrir (`0x60277b`, los efectos
+  `0x14d`), las demás mascotas del `F3 10` fuera de la zona segura (`0x5bca46`, el efecto `0x61e/1`) y lo del caballo
+  (una partícula que no se puede crear, un hueso más allá de los 200 del buffer global, `+0x78 & 0x4000` del jinete
+  en el dibujo). Pruebas: `HelperTableTest` (`TheUniriaFollowsItsRiderAndRaisesTheDustOfItsGallop`,
+  `TheFenrirTakesItsGaitFromTheRider`, `InIcarusTheFenrirRaisesAWaveAndPuffsFromTwoBones`,
+  `TheGuardianAngelSparklesAndFliesWithItsVelocity`, `TheUniriaAndTheDinorantDrawWithTheLightOfTheTerrain`,
+  `TheDrawScaleDependsOnTheSceneAndOnTheFenrir`, `TheGuardianAngelDrawsItsBlendMeshAndLeavesItsGlow`,
+  `ThePetDrawStopsWhereMuRetHasNotArrived` y otras), `GoldenGameModels.ThePetMountsLoadWithTheirTextures`,
+  `CharacterSelectSceneTest.TheSelectionDrawsTheUniriaOfItsCharacter` e
+  `InventoryReplyTest.AGuardianAngelOfSlot8IsCreatedWithTheSharedRandom`.
 
 ### La tela de la clase 4
 
@@ -3567,11 +3650,11 @@ llega al aplicador como `App::ClearInventoryReceived`, y la sesión manda el avi
 ayudantes del héroe publicado (`Scenes::TurnOffHelpersOf`). El cuervo del lugar 1 va a
 `Scenes::ReplaceTheRaven` (`0x420cf0`): suelta `ActorState::darkSpirit` y, fuera de los mapas 18 a 23, lo
 crea de nuevo con `CreateDarkSpirit` en el centro de la celda del héroe, con los 12 `rand()` de sus cierres
-(`InventoryReplyTest.TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0`). Las mascotas del lugar 8 van a `Scenes::CreateHelper`, que
-crea el `0xbf` y corta con los otros (`0x443d70`); el `0xbf` no llega: corta antes, en `0x4225d0`.
-Fuera de la zona segura, el `0x61e` de `0x518cf0` corta. Cortan con error, nombrando la dirección y
-después de lo que el original hace antes (el registro se cierra igual): las mascotas del lugar 8 que
-no son el caballo (`0x443fa0` → `0x443d70`), el anillo de nivel 3 (`0x414340` y `+0x360`), el Dark Horse en cualquier lugar (`0x4225d0`, desde
+(`InventoryReplyTest.TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0`). Las mascotas del lugar 8 van a `Scenes::CreateHelper` con el
+`rand()` compartido ([Las mascotas](#las-mascotas)); el `0xbf` no llega: corta antes, en `0x4225d0`.
+Cortan con error, nombrando la dirección y después de lo que el original hace antes (el registro se
+cierra igual): las mascotas que no son el `0x1c12` fuera de la zona segura (`0x5bca46`, el `0x61e/1` de
+`0x518cf0`), el anillo de nivel 3 (`0x414340` y `+0x360`), el Dark Horse en cualquier lugar (`0x4225d0`, desde
 `0x54cc5c`, sin correr `0x54bf40`), la lectura del nivel con el registro cerrado (Q-C202), una casilla
 fuera de su grilla (Q-C200) y `Item.bmd` sin cargar.
 
@@ -4013,11 +4096,13 @@ conserva el estado y los rand anteriores y congela los pasos siguientes.
 
 Antes del pool, `0x6342f4` pasa los diez ayudantes por `0x445230` → `0x444010`.
 En la escena 4 no corre la guarda del dueño muerto o con `+0x88` distinto de 1:
-`0x44402a` solo la aplica en la escena 5. El primer ayudante vivo llega al alpha
-de `0x4e9980` (`0x444053`) aunque su dueño esté muerto. MuRet conserva ese prefijo
-y corta en `0x444059`, antes del cuerpo todavía no portado. Los lugares muertos no
-cambian; los posteriores al corte tampoco. Con la tabla vacía el tramo no hace nada.
-El paso de la selección sigue parcial por este límite; no reutiliza el de la escena 5.
+`0x44402a` solo la aplica en la escena 5. Cada ayudante vivo llega al alpha
+de `0x4e9980` (`0x444053`) aunque su dueño esté muerto, y después al cuerpo de su
+tipo y al avance con el frame + 2 de la escena 4 ([Las mascotas](#las-mascotas)), con
+los atributos de la carga del 54. Un tipo que el paso no tiene corta en `0x444083`,
+con el alpha que subió; los posteriores al corte no cambian. Con la tabla vacía el
+tramo no hace nada. Después de los personajes, `0x63486a` los dibuja (`0x4453b0`),
+con la escala 1 de la escena 4, la luz del terreno 54 y los sprites del frame.
 
 Después del preview, `0x634315` ejecuta `0x5446e0` sobre las partículas durables del
 mundo. Sus dos rand del viento corren también con el pool vacío; las chispas del

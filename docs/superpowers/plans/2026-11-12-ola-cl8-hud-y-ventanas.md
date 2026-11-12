@@ -329,10 +329,10 @@ olas: los emotes (`0x576eb0` → `C1 18`, CL9.1, P-C87), el gremio y el Guild Ma
 - [ ] **El dibujo:** `0x5f2340`, `0x5ee220`, `0x5e2460`, `0x5e3660`, el zen, los ítems de la grilla con su modelo
       (`0x5f7610` → `0x5e1480`) y el ítem del cursor (`0x5f7b10`); las texturas `0x104`..`0x120` y `0x658` con su
       archivo, leído de `0x61ccb0`.
-- [ ] **El paso:** las hijas del inventario en `0x5ee140`, `0x5be150` entero (P-C58), `0x5bec50` en las ramas de
+- [x] **El paso:** las hijas del inventario en `0x5ee140`, `0x5be150` entero (P-C58), `0x5bec50` en las ramas de
       inventario y equipo, `0x5d8d50` y `0x5ca250` en sus tramos de la CL8.4 (el tramo de tramos del TSV), con
       `0x5c9b40`, `0x5c3d20`, `0x5bd750` y `0x449d80` (`C3 24` con la traba `0x78abb39`).
-- [ ] **El equipo:** volver a vestir al héroe al equipar y desequipar (`ActorEquipment`, `0x550d10`), los
+- [x] **El equipo:** volver a vestir al héroe al equipar y desequipar (`ActorEquipment`, `0x550d10`), los
       derivados (`0x54e540`, P-C58) y el corte de `MoveHero` `0x59bd3e` (el `24` del lugar 1 al 0, en `C3` con 2
       `rand()`; 06 corregido).
 - [ ] **Las respuestas:** `24` (`C3`), `F3 13`, `F3 14`, `2A` (durabilidad) y lo que el inventario muestre de
@@ -343,6 +343,13 @@ descifrados con SimpleModulus (cabeceras y cuerpos sin nombres); la grilla de 8 
 (`0x5c9b40`); los `rand()` del paso con el inventario abierto (2 por `0x636f49` y `0x636fb2`, además de los 3.850 del paso
 quieto y los 2 de cada llamada al ancho del mundo). **Desbloquea:**
 el hito 5 y la CL9.3.
+
+**Hito 4, hecho en parte** (2026-11-12, PR #327): la ventana, las cifras, el mundo angosto, el paso con levantar,
+soltar y equipar (`test_cursor_item.cpp`, `test_game_inventory_step.cpp`), vestir al héroe con sus derivados,
+MoveHero y las respuestas `24`, `28`, `2A`, `F3 13` y `F3 14` (04 § Mover y equipar ítems; Q-C470 a Q-C477, P-C71 y
+P-C72). Falta: el modelo de los ítems de la UI y el fondo de la caja del título (P-C70, con su alcance leído), lo que
+el inventario muestre del `26` y del `27` (sin leer) y el cable de los `C3 24` (P-C72 g). El cartel del set
+(`0x40e6f5`) es del hito 5.
 
 ### Hito 5: los tooltips y la ventana del personaje (CL8.4, ~50 KB)
 

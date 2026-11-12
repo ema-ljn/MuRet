@@ -1307,7 +1307,8 @@ sin cursor en el medio ni IME. Los ids de los dos EDIT (1 y 2, los dos primeros 
   filtro y lo mismo que el chat de Enter; la que pasa los comandos deja `0x77f3b74` en `0x64` (`0x5a1ea1`).
   `0x637d2c` y `0x637d44` bajan los dos frenos de a uno por paso.
 - **Las teclas de `0x5ac8d0`**: F2, F3 y F4 cambian lo suyo y suenan (F4, con el registro en su ventana, va a x 0 con
-  el inventario y una de las seis ventanas anchas, si no a `0xba`); la barra y F1 cortan (hito 6).
+  el inventario y una de las seis ventanas anchas, si no a `0xba`); la barra (CL9.3) y F1 (P-C93) cortan, y después
+  Impr Pant (`0x637cff`, la captura, P-C94).
 - **El HUD**: el paso 10 dibuja "Macro Time" (`0x6c9310`) centrado en el ancho del mundo en y = `0x188` y su barra
   en y = 404 de 50 × 2; el 22 (`0x5aa9a0`), con el campo abierto o `0x77f3b69`, la caja sin mezcla (`0xf8` y `0xf9`,
   que `0x61ccb0` sube en `0x61cfe6` y `0x61d002`), el texto de los EDIT, los nombres del susurro de los otros lugares
@@ -1315,7 +1316,85 @@ sin cursor en el medio ni IME. Los ids de los dos EDIT (1 y 2, los dos primeros 
   componer su ventana ni el cursor (P-C89).
 - **`Data\Macro.txt`**: lo lee WinMain detrás de `Text.bmd` (`0x61ee30` → `0x61c1c0`, `fscanf("%s")`, Q-C449 y
   Q-C531). Lo escriben (`0x61c170`) la salida del juego, el cambio de servidor y el gate a los mapas 30 y 31, que son
-  de otras olas: en MuRet, lo que se guarda con `/1`../`0` dura hasta cerrar.
+  de otras olas salvo las dos primeras: en MuRet lo escriben los botones del menú de Esc del juego (hito 6, [Los
+  diálogos del juego](#los-diálogos-del-juego)).
+
+### Los diálogos del juego
+
+CL8, hito 6 (2026-11-12). *Estático*, con el ASM de `0x623e70`, `0x62db60`, `0x632e30`, `0x633300` y `0x61c210`;
+sin traza de GL con un diálogo. En MuRet: `Scenes/GameDialogSteps` (el paso), `Scenes/GameDialogDrawing` (el
+dibujo), `UI/GameDialogs` (las cajas) y `Protocol/OptionData` (el `F3 30`). Los globales son de la `.bss`: el
+abierto `0x7d3a10c` y el que espera `0x7d3a110` (`UI::DialogState`; `0x6236f0` abre, encola o pasa el que espera),
+los renglones `0x7d36a98` (7 de `0x26` bytes seguidos), su cuenta `0x7d368e4`, los dos botones `0x7d368b8` (estado,
+x, y, ancho y alto) y la página del `0x8c` (`0x7d3a0f4`, `0x7d3a0f8`, `0x7d3a0f9`).
+
+**El despacho** (`0x623f78..0x6263d9`). Después de Esc, `0x623e70` compara el abierto en este orden: `0x6e` el menú
+(`0x623f90`), `0x93` las opciones (`0x62556f`), los tramos de otras olas, las cajas con botones (`0x8a`, `0x8c`,
+`0x8b`, `0x97` y `0x9b`, `0x62d756`) y, después de todas las comparaciones, el OK genérico (`0x6263df`), al que
+llega cualquier id que no está. MuRet lo tiene como tabla (`Scenes::DialogRoutes`): cada ola registra sus ids, y
+los de las otras cortan con la dirección de su tramo (P-C90).
+
+**El menú de Esc** (`0x6e`). Cinco botones en la escena 5, x en `[0x104, 0x17c)` e y en `[(6 + 3i) · 10, + 0x16)`.
+Cada uno, con el clic (que apaga), según la tabla de `0x62dac4`:
+
+| Botón | Qué hace, en orden |
+| --- | --- |
+| 0, salir | "> Menu - Exit game." al log; guarda (`0x61c210` y `0x61c170`); con la caja del caos abierta, el aviso 592 de error; si no, la salida |
+| 1, otro servidor | el log; con la caja del caos, el aviso; si no, la salida con 2; después guarda |
+| 2, otro personaje | el log; guarda; con la caja del caos, el aviso; si no, la salida con 1 |
+| 3, opciones | abre el `0x93` (o lo deja esperando) y no pasa por la cola |
+| 4, cerrar | va derecho a la cola |
+
+La salida pone `0x576793c` en 1, saca 1 `rand()` y manda el `C3 F1 02` con el tipo (`0x62449a`, `0x6244d0`,
+`0x6244f2`; el `C3` saca el del relleno y el de la serial). Guardar es el `F3 30` de `0x61c210` y `Macro.txt`
+(`0x61c170`, `UI::WrittenMacros`). La cola (`0x6240a1`): si el abierto no es el `0x93`, pasa el que espera; después
+`MouseUpdateTime` en 0, su máximo en 6 y el sonido `0x19`.
+
+**El `F3 30`** (`0x61c210`): `C1 1C F3 30` en claro, con los 24 bytes de su pila. Abre y cierra el registro propio
+(3.848 `rand()`); para cada lugar de 0 a `0x71` con tecla (`+0x26c + elegido · 0x100 + lugar` distinto de `0xff`)
+escribe el byte de la skill (`+0x6c + lugar`) en `[tecla]`; en `[10]`, 1 o 2 por el ataque automático, 4 u 8 por
+el sonido de los avisos y `0x10` sin carteles; en `[11..13]`, el byte bajo de Q, W y E; en `[14]`, los renglones
+del registro / 3 en el nibble alto (0 con su lugar en 0) y la transparencia · 10 truncada en el bajo (Q-C551). Sin
+elegido o con una tecla de 24 o más (pisaría la pila), MuRet corta (`0x61c2c6`, `0x61c2e8`).
+
+**Las opciones** (`0x93`). Sin ítem en el cursor, filas de `0x78 × 0x16` desde x = `0x104`: volver en y = `0x1e`
+(deja el menú esperando, Q-C550), el ataque automático en `0x3c` (`0x6c8e3c`), el sonido de los avisos en `0x5a`
+(`0x77f3b78`), el volumen en `0x78`, los carteles en `0x96` (`0x6c7a8c`) y cerrar en `0xe8`. El volumen
+(`0x7d3a118`, de 0 a 9) se agarra en la barra de `0x32 × 8` que dejó el dibujo (`0x7d3a120`, `0x7d3a124`) y sigue al
+mouse de a 5 píxeles, o cambia con la rueda; con otro valor, `0x41eed0` le pide a DirectSound −10.000 o
+`−2000 · log10(10 / v)` (CL10, P-C79). Las cinco casillas del brillo (x desde `0x10e` de a `0x14`, `0x12` de ancho,
+y de `0xc8` a `0xda`, con los bordes) ponen `0x6c9dcc` con el clic sin apagarlo. Son los mismos globales que las
+opciones de la UI nueva del login ([Las opciones](#las-opciones)).
+
+**Las cajas.** `0x632e30(texto)` parte el texto en renglones de menos de `0x26` (`0x632c90`), deja el primer botón
+en `(1, 0x47, 0x8c, 0x46, 0x15)` y el otro en 0, y abre el `0x8a` (o lo deja esperando). `0x633300(renglones,
+primero, id)` copia los textos de `Text.bmd` con un `strcpy` por renglón (Q-C554; el `0x9a` los parte uno detrás
+del otro), arma los botones `(1, 0x15, 0x5a, 0x46, 0x15)` y `(3, 0x78, 0x5a, 0x46, 0x15)` (y = `0x78` en el `0x9a`) y
+abre el id; el `0x99`, el `0xa3`, el `0x96` y el `0xa8` arman su texto con un formato (CL9.3). El paso (`0x62d756`):
+cada botón con estado, con el mouse en `[x + 0xd5, x + w + 0xd5] × [y + 0x3c, y + h + 0x3c]`, va a 2 y con el clic
+se elige (apaga el clic y el botón abajo); afuera, a 1 (Q-C552). En el `0x8c`, las flechas (`0x62d7eb`,
+`[0xf9, 0x108]` y `[0x179, 0x188]` × `[0xca, 0xde]`) cambian la página con el clic sin apagarlo y vuelven a partir el
+texto `0x7d3a0f4 + página`. Enter o un botón elegido cierran.
+
+**El OK genérico** (`0x6263df`): lee y apaga Enter (`0x5763588`, que prende el WndProc en `0x4b50ff` y apaga la cola
+del frame en `0x63b0b7`); salvo el `0x73`, el clic en `[0x11c, 0x162) × [0x62, 0x77)` también. Con uno de los dos,
+el `0x70`, el `0x6f`, el `0x1a` y el `0x1c` cierran el juego (`SendMessageA(WM_DESTROY)`, `0x62828e`); el `0x73` y
+el `0x8f` son de otras olas; los demás pasan el que espera.
+
+**El dibujo** (`0x62db60`, en `0x637696` con la escena 5). Siempre deja `0x620980`, el blanco, la fuente normal en el
+DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos van con `0x554180` centrados en
+`0x140 − (cx · 640 / W) / 2` y dejan su tamaño en `0x77f31b8`.
+
+| Diálogo | Lo que dibuja |
+| --- | --- |
+| `0x6e` | 5 × `0xf0` en `(260, 60 + 30i, 120, 22)` con las UV `(0, 0, 0,83203125, 1)`, el del mouse otra vez en aditiva con `(0,8; 0,6; 0,4)`; los textos 381, 382, 383, 385 y 384 en y = `0x41` de a `0x1e` |
+| `0x93` | 7 filas (la 5 de 44, la 6 en y = 232); 385 en `0x23`; `"%s  On"`/`"%s  Off"` con 386 (`0x41`), 387 (`0x5f`) y 919 (`0x9b`); 389 en `x = 0x140 − (cx + 0x36) / 2` (`0x7d`) y la barra en `(x + 0x144 + cx, 0x7f)`: gris 0,2 de 50 × 8, negro de 48 × 6 y blanco de `(v + 1) · 4,8` × 6; el marco del brillo (gris `(268, 198, 102, 22)`, negro `(269, 199, 100, 20)`), 5 casillas de 18 en y = 200 (`(0,8; 0,6; 0,3)` hasta `0x6c9dcc`, negras después) y las cifras 5, 7, 9, 11 y 13 de 12 × 12 en y = 202 con los colores al revés; 1840 en `0xb9` (Q-C555) y 388 en `0xed` |
+| `0x8a`, `0x8c`, `0x9b` / `0x8b`, `0x97` | `0xfc` de 213 × 5 en (213, 60), 4 / 7 filas de `0xfb` de 213 × 40 y otra `0xfc`; cada botón con estado, `0xf0 + estado` en `(x + 213, y + 60, w, h − 1)` con las UV `(0, 0, w / 128, h / 32)`; en el `0x8c`, las flechas (`CursorSitDown` girada 270 y 90 grados, 25 × 16, en (253, 210) y (383, 210)): gris en su tope, 0,7 con el mouse y 0,5 con el clic, que apaga (Q-C553); los renglones del `0x8a` y el `0x8c` desde `((7 − renglones) · 0x12) / 2 + 0x4c`; los del `0x8b`, el `0x97` y el `0x9b`, el objeto del evento (`0x632a2b`) |
+| OK genérico | `0xf0` de 213 × 64 en (213, 60) y el OK, `0xf1` (`0xf2` con el mouse en `[0x11c, 0x161] × [0x62, 0x76]`) de 70 × 21 en (284, 98); su texto en y = `0x4b`, o en `0x45` y `0x51` los de dos renglones: el `0x70` el 402, el `0x6f` y el `0x1a` el 405 y el 406, el `0x1c` el 409 y el `0x8f` el 401 |
+
+`0x61ccb0` sube `Message_box` (`0xf0`), `ok`, `ok2`, `cancel`, `cancel2` (`0xf1` a
+`0xf4`), `Message_box1` (`0xfb`) y `Message_box2` (`0xfc`); el `bar.jpg` de `0xfd` es de `0x5e9b10`, la caja de la
+contraseña del HUD, y MuRet no lo sube.
 
 ## La escena de carga y la de login
 

@@ -368,9 +368,16 @@ tooltip va a la VM (P-C60). **Desbloquea:** "inventario usable".
 (`0x40e850`, `0x40eca0`, con `0x40e6c0` en el paso y `0x40ebd0` en el chat), el sprintf del CRT para los textos de
 formato (`UI/SprintfFormat`), la ayuda de los íconos de estado (`0x5a6600`); abrir el personaje con `0x550d10`, su
 paso `0x5e4510` con el `F3 06`, el botón de cerrar y el `A9 01 00 08` de `0x424230` una vez por apertura (06 § Los
-tooltips y § La ventana del personaje; Q-C590 a Q-C597, P-C100 a P-C104). Falta: el dibujo de la ventana `0x5ee2e0`
-con sus derivados (P-C100), los tres cuerpos del tooltip (P-C101) y el modo 3 de las ayudas, que solo abre
-`0x5ae360` del hito 6 (P-C102).
+tooltips y § La ventana del personaje; Q-C590 a Q-C597, P-C100 a P-C104). Falta: los tres cuerpos del tooltip
+(P-C101) y el modo 3 de las ayudas, que solo abre `0x5ae360` del hito 6 (P-C102).
+
+**El dibujo de la ventana del personaje, hecho** (2026-11-12, cierra P-C100): `0x5ee2e0` entero y el botón de cerrar
+`0x118` con la ayuda del texto 222 de `0x5f7440` (`Scenes/GameCharacterHud`), el ataque `0x5b8b80` y la magia
+`0x5513d0` con `0x40d8c0` (`Scenes/OwnDamage`), y el texto con ancho de `0x467060` (`TextCache::DrawColumns`), con
+los accesos al registro propio en su orden (de 12 a 18 cierres por frame). Probado en Lorencia y en Devias con el
+Dark Knight y el Dark Lord, y con el Wizard y la clase 3 (06 § La ventana del personaje; Q-C670 a Q-C677, P-C120 a
+P-C124). Corta sin el servidor elegido (P-C120), con la división por 0 de las letras (P-C121) y con lo que MuRet no
+tiene del registro (P-C122); lo inferido va a la VM (P-C123).
 
 ### Hito 6: los diálogos, el menú de Esc, las teclas y la captura (CL8.1 y CL8.3, ~36 KB)
 

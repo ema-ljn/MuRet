@@ -18,6 +18,9 @@ namespace Client::Scenes
 {
 namespace
 {
+// 0x5122d9 y 0x5123ba: el techo de la caja (+0x138).
+constexpr float PlayerBoundsTop = 120.0f;
+constexpr float OtherBoundsTop = 150.0f;
 constexpr std::uint16_t SafeAttribute = 1;
 constexpr double PetHeightOffset = 30.0;      // 0x6b8858
 constexpr double LargePetHeightOffset = 90.0; // 0x6b8948
@@ -112,6 +115,9 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.type = type;
     actor.subtype = 0;
     actor.scale = PlayerScale;
+    // 0x51228d..0x5123ba: por la tabla de 0x512700 con el tipo − 0x154, el 0x20a va a 0x5122d4 (120); los NewFace dan
+    // la vuelta y van al de afuera de la tabla, 0x5123a9 (150).
+    actor.boundsTop = type == Data::Models::PlayerSkeletonModel ? PlayerBoundsTop : OtherBoundsTop;
     actor.alphaTarget = 1.0f;
     actor.alpha = 1.0f;
     // 0x511bdf y 0x512499: el alpha de a 0,05 (0x4e9980) y la luz del blendMesh en 1,0.

@@ -14,6 +14,7 @@
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"
+#include "UI/SlideBanner.h"
 #include "UI/WhisperSenders.h"
 
 #include <array>
@@ -52,8 +53,8 @@ constexpr std::uint8_t SystemNotice = 1;
 constexpr std::uint8_t GuildNotice = 2;
 constexpr std::uint8_t FirstSlideNotice = 10;
 constexpr std::uint8_t LastSlideNotice = 15;
-// 0x46b73e: CMP ESI, 0x1e con JG.
-constexpr std::uint8_t MaxSlideRepeats = 0x1e;
+// 0x6b8a34: 0,1f, la velocidad del cartel por cada unidad de pkt[0xc].
+constexpr float SlideSpeedStep = 0.1f;
 // 0x4dd7c3..0x4dd88d: las banderas y los campos del F3 30.
 constexpr std::uint8_t AutoAttackFlag = 0x01;
 constexpr std::uint8_t NoticeSoundFlag = 0x04;
@@ -264,11 +265,15 @@ Core::Expected<void, std::string> ApplyNotice(const Protocol::Messages::Notice& 
     }
     if (notice.type < FirstSlideNotice || notice.type > LastSlideNotice || text.empty())
         return {};
-    // 0x46b720 y 0x46abf0: solo en la escena 5 y con 1 a 30 repeticiones (pkt[4]) agregan algo a una cola.
-    if (context.scene != SceneId::Game || notice.byte4 == 0 || notice.byte4 > MaxSlideRepeats)
+    // 0x4c667d..0x4c66b3: 0x46b720(pkt[4], pkt[6..7], texto, tipo − 10, pkt[0xc] · 0,1f, pkt[8..0xb]). La x87
+    // multiplica el byte por el float y guarda en float: el producto es exacto y se redondea una vez. 0x46b720 y
+    // 0x46abf0 solo encolan en la escena 5.
+    if (context.scene != SceneId::Game)
         return {};
-    return Core::Unexpected(std::string("0x4c66b3: las colas del cartel de Slide.bmd ([0x5763528], 0x46b720) no "
-                                        "están (08, P-C80)"));
+    const auto speed = static_cast<float>(static_cast<double>(notice.speed) * static_cast<double>(SlideSpeedStep));
+    UI::QueueTheSlide(runtime.hud.slides, notice.byte4, notice.word6, text, notice.type - FirstSlideNotice, speed,
+                      notice.color);
+    return {};
 }
 
 Core::Expected<void, std::string> ApplyOptionData(const Protocol::OptionData::OptionData& data,

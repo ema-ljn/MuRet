@@ -166,6 +166,7 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.guildStatus = 0xff;
     actor.light = {};
     actor.drawnLight = {};
+    actor.byte390 = 0; // 0x51186b
     // 0x511878: reconstruir el dueño borra el cuervo anterior.
     actor.darkSpirit.reset();
     // 0x511872: +0x364 en 0 sin 0x414340, así que +0x360 queda como estaba.

@@ -369,8 +369,9 @@ tooltip va a la VM (P-C60). **Desbloquea:** "inventario usable".
       `Data\Local\movereq.bmd`).
 - [ ] **El hover y ALT** (`0x5bbbc0`: los nombres por los globos; los carteles del piso como corte de la CL9.3) y
       **los textos 3D** (`0x4383f0`; el productor de Kalima es de la CL9.5).
-- [ ] **La captura:** el flanco de PrintScreen (`0x637cff`), el nombre y el contador (`0x637700`), `0x6202e0`,
-      el JPEG y el mensaje Text 459 por el área de mensajes.
+- [x] **La captura:** el flanco de PrintScreen (`0x637cff`), el nombre y el contador (`0x637700`), `0x6202e0`,
+      el JPEG y el mensaje Text 459 por el área de mensajes. Hecho el 2026-11-12 (`Scenes::Screenshots`; el JPEG
+      sale igual byte a byte al de la 6b): el frame retenido con el pedido corta (P-C110).
 
 **Pruebas:** los bytes de `F1 02 xx` y `F3 30` y su orden; los `rand()` de salir (3.848 + 2); el nombre de la
 captura con un reloj falso; /move con `movereq.bmd`. **Desbloquea:** "teclas de la UI" y "captura".

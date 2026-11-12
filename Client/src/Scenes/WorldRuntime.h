@@ -172,7 +172,7 @@ struct WorldRuntime
     WorldTextQueue worldTexts{};
     // 0x723c68 (+8, la lista; +0xc, la cuenta): los destinos de movereq.bmd que 0x448440 lee en la carga (0x61ccb0) y
     // que la ventana /move recorre en su paso (0x448580) y en su dibujo (0x448fa0). main.cpp los copia de GameData.
-    std::vector<Data::Text::MoveRequirement> moves;
+    std::vector<Data::Text::MoveRequirement> moves{};
     std::int32_t cursorItemCount = 0;
     std::int32_t storm = 0;
     std::int32_t field78abb10 = 0;

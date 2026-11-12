@@ -13,6 +13,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameData.h"
+#include "Scenes/GameDialogDrawing.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameSceneFrameProjection.h"
@@ -238,7 +239,9 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     // 0x637668: 0x5a7eb0, la cuenta y los resultados de los eventos (CL9.6).
     // 0x637673: 0x490390, las ventanas con clase, y 0x637680: el marco común (hito 7).
     // 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9 (hito 4).
-    // 0x637696: 0x62db60, las cajas viejas, en la escena 5 (hito 6).
+    // 0x637696: 0x62db60, los diálogos, en la escena 5.
+    if (auto dialogs = DrawTheGameDialogs(hud); !dialogs.HasValue())
+        return dialogs;
     // 0x63769b: 0x5f7bc0, los tooltips (hito 4).
     // 0x6376a0..0x6376b6: los avisos y, con el registro del chat en su ventana, el área vieja.
     DrawTheMessages(*m_context.world, hud.hud, canvas.sprites, canvas.text, hud.mouse, true);

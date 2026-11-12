@@ -104,6 +104,11 @@ struct HelperStepContext
     SceneId scene = SceneId::Game;
     // Los atributos (0x7d0d348) de la carga de la escena 4; vacío, los del mapa del juego.
     const World::WorldTerrain* terrain = nullptr;
+    // 0x7d3a0f0, la cuenta de los pasos lógicos que 0x4453e0 lee cruda para la onda 0x6eb/0 de la acción 3 del
+    // caballo (P-C22 a: en el original es la cuenta cifrada, Q-C125).
+    std::int32_t logicSteps = 0;
+    // 0x7d325c8, el temblor de la cámara que escribe 0x4453e0 (0x445577). nullptr: corta si la rama lo pide.
+    float* cameraShake = nullptr;
 };
 
 // 0x445230: 0x444010(lugar, 0) en los 10, en la escena 5 (0x6370f4) y en la 4 (0x6342f4). En la 5, con el jinete

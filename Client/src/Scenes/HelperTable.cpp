@@ -12,6 +12,8 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/GameDrawTail.h"
+#include "Scenes/GameRibbonCreation.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/HelperStepParts.h"
 #include "Scenes/PetHelperSteps.h"
@@ -220,6 +222,106 @@ Core::Expected<void, std::string> Breathe(const HelperState& helper, const Actor
     return EmitHelperParticle(context, type, ParticleSubtype, point.Value(), helper.angles, HorseLight, "0x4445d9");
 }
 
+// 0x4445e1..0x444654: con la acción 3 del caballo, la cinta 0x52e470 con el héroe (0x743a170) de dueño, del punto
+// (60; 0; 0) del hueso 9 del buffer global (0x68b19cc) al punto del mismo hueso, en blanco, con el tipo, el largo y la
+// key en 0. No saca rand().
+constexpr std::size_t EarthquakeRibbonBone = 9;
+constexpr glm::vec3 EarthquakeRibbonReach{60.0f, 0.0f, 0.0f}; // 0x4445ff
+constexpr glm::vec3 EarthquakeRibbonLight{1.0f, 1.0f, 1.0f};  // 0x444629..0x444637
+// 0x4453e0: la cuenta de la onda (0x7d3a0f0 % 10), la ventana del frame (0x6b86c4 y 0x6b8c04), el radio de las
+// piedras por cada dos de la cuenta (0x6b87ac), el giro entre piedras (0x6b86cc), el temblor (0x6b8a5c) y la cuenta
+// con que crea el 0xfa y la que le deja después.
+constexpr std::int32_t ShockWaveEvery = 10;
+constexpr float QuakeFirstFrame = 8.0f;
+constexpr float QuakeLastFrame = 9.5f;
+constexpr double StoneRingStep = 150.0;
+constexpr double StoneTurn = 60.0;
+constexpr int StoneCount = 6;
+constexpr int StoneDegrees = 360;
+constexpr int ShakeSpan = 3;
+constexpr double ShakeUnit = static_cast<double>(std::bit_cast<float>(0x3f333333u));
+constexpr std::uint8_t EarthquakeCount = 0x13;
+constexpr std::uint8_t EarthquakeDone = 0xfd;
+constexpr std::int16_t FirstGroundStone = 0x118;
+
+Core::Expected<void, std::string> LeaveTheEarthquakeRibbon(const HelperStepContext& context)
+{
+    const auto first = GlobalPosePoint(context.world, EarthquakeRibbonBone, EarthquakeRibbonReach, "0x44463e");
+    if (!first.HasValue())
+    {
+        return Core::Unexpected(first.Error());
+    }
+    const auto second = GlobalPosePoint(context.world, EarthquakeRibbonBone, glm::vec3(0.0f), "0x444654");
+    if (!second.HasValue())
+    {
+        return Core::Unexpected(second.Error());
+    }
+    ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
+    const auto created = CreateRibbon(context.world.DrawTail().ribbons,
+                                      RibbonCreateRequest{.ownerContext = &hero,
+                                                          .ownerEquipment = &hero.level,
+                                                          .first = first.Value(),
+                                                          .second = second.Value(),
+                                                          .light = EarthquakeRibbonLight,
+                                                          .type = 0,
+                                                          .shortTrail = false,
+                                                          .key = 0});
+    if (!created.HasValue())
+    {
+        return Core::Unexpected("0x444671 → " + created.Error());
+    }
+    return {};
+}
+
+// 0x4453e0(caballo, modelo), con la acción 3: la cuenta +0x8e sube (un byte) y, cada 10 pasos lógicos, la onda 0x6eb/0
+// en el caballo con su luz (+0xf4). Con el frame en [8; 9,5] (sin orden, afuera): con la cuenta impar, seis piedras
+// 0x118 + (rand() & 1) en un anillo de radio (cuenta / 2) · 150 alrededor del caballo, la primera a rand() % 360 + 60
+// grados y cada una 60 más, y siempre el temblor de la cámara ((rand() % 3) − 3) · 0,7f. Fuera de la ventana, con la
+// cuenta en 0x13, el terremoto 0xfa con el caballo de dueño y el estado 2, y la cuenta en 0xfd.
+Core::Expected<void, std::string> ShakeTheEarth(HelperState& helper, const HelperStepContext& context)
+{
+    ++helper.horse.effectCount;
+    World::ModelEffects& effects = context.world.Map().effects;
+    if (context.logicSteps % ShockWaveEvery == 0)
+    {
+        return Core::Unexpected(std::string("0x445425: la onda 0x6eb/0 todavía no está"));
+    }
+    const float frame = helper.horse.animation.frame;
+    if (frame >= QuakeFirstFrame && frame <= QuakeLastFrame)
+    {
+        if ((helper.horse.effectCount & 1) != 0)
+        {
+            const glm::vec3 reach(0.0f, F32(static_cast<double>(helper.horse.effectCount >> 1) * StoneRingStep), 0.0f);
+            glm::vec3 turn(0.0f, 0.0f, static_cast<float>(context.random.Next() % StoneDegrees));
+            for (int stone = 0; stone < StoneCount; ++stone)
+            {
+                turn.z = F32(static_cast<double>(turn.z) + StoneTurn);
+                const glm::vec3 offset =
+                    Render::Models::OriginalVectorRotate(reach, Render::Models::OriginalAngleMatrix(turn));
+                const glm::vec3 place(F32(static_cast<double>(offset.x) + static_cast<double>(helper.position.x)),
+                                      F32(static_cast<double>(offset.y) + static_cast<double>(helper.position.y)),
+                                      F32(static_cast<double>(offset.z) + static_cast<double>(helper.position.z)));
+                const auto type = static_cast<std::int16_t>(FirstGroundStone + (context.random.Next() & 1));
+                static_cast<void>(type);
+                static_cast<void>(place);
+                static_cast<void>(effects);
+                return Core::Unexpected(std::string("0x44554a: las piedras 0x118/0x119 todavía no están"));
+            }
+        }
+        if (context.cameraShake == nullptr)
+        {
+            return Core::Unexpected(std::string("0x445577: falta el temblor de la cámara (0x7d325c8)"));
+        }
+        *context.cameraShake = F32(static_cast<double>((context.random.Next() % ShakeSpan) - ShakeSpan) * ShakeUnit);
+        return {};
+    }
+    if (helper.horse.effectCount == EarthquakeCount)
+    {
+        return Core::Unexpected(std::string("0x4455ab: el terremoto 0xfa todavía no está"));
+    }
+    return {};
+}
+
 // 0x4440b8..0x444766, el cuerpo del 0xbf.
 Core::Expected<void, std::string> StepTheDarkHorse(HelperState& helper, ActorState& rider,
                                                    const Render::Models::Skeleton& skeleton,
@@ -255,10 +357,18 @@ Core::Expected<void, std::string> StepTheDarkHorse(HelperState& helper, ActorSta
     {
         return breath;
     }
+    // 0x4445e1..0x44468a: la acción 3, el terremoto del Dark Lord: la cinta y 0x4453e0 (la acción se vuelve a mirar
+    // entre las dos, y la cinta no la cambia).
     if (helper.horse.animation.action == EffectHorseAction)
     {
-        return Core::Unexpected(std::string("0x4445e1: con la acción 3 del caballo, 0x52e470 con el héroe y 0x4453e0 "
-                                            "crean efectos que MuRet no tiene en el juego"));
+        if (auto ribbon = LeaveTheEarthquakeRibbon(context); !ribbon.HasValue())
+        {
+            return ribbon;
+        }
+        if (auto quake = ShakeTheEarth(helper, context); !quake.HasValue())
+        {
+            return quake;
+        }
     }
     if (rider.byte8 == RiderWithOrbits)
     {

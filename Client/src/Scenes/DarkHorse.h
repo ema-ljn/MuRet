@@ -29,6 +29,10 @@ struct DarkHorse
     float speed = 0.5f;
     // +0x174: 0 al crearlo (0x443d70).
     float alpha = 0.0f;
+    // +0x8e: la cuenta del terremoto de la acción 3 (0x4453e0 la sube en cada paso con esa acción). La pone en 0 la
+    // rama de las otras acciones del jinete (0x44452e); 0x443d70 no la escribe, así que un lugar que se vuelve a usar
+    // se queda con la del ayudante de antes, y la .bss deja la 0 al primero.
+    std::uint8_t effectCount = 0;
 };
 
 // La acción del caballo por la del jinete (+0x111), con su velocidad (0x444010 con el 0xbf).
@@ -45,7 +49,8 @@ struct DarkHorseGait
 // que le falta, con un solo redondeo a float. Corre al empezar el paso, también en la celda segura.
 void FadeInDarkHorse(DarkHorse& horse);
 
-// 0x444145..0x444535: la acción que le da la del jinete (0x4ea030) y su velocidad en +0xd8.
+// 0x444145..0x444535: la acción que le da la del jinete (0x4ea030) y su velocidad en +0xd8; con una acción del
+// jinete que no es ninguna de las del caballo, también la cuenta del terremoto (+0x8e) en 0 (0x44452e).
 void TakeTheRidersGait(DarkHorse& horse, const Render::Models::Skeleton& skeleton, std::uint8_t riderAction);
 
 // 0x445006..0x445039: el avance de su acción a +0xd8 (0x4ec200), el final del paso, también el de los otros

@@ -420,7 +420,8 @@ void CharacterSelectScene::StepCharacters()
                                                          .random = m_context.cloth->random,
                                                          .worldClock = worldClock,
                                                          .scene = SceneId::CharacterSelect,
-                                                         .terrain = m_context.selection->Terrain()});
+                                                         .terrain = m_context.selection->Terrain(),
+                                                         .logicSteps = m_context.cloth->logicSteps});
             !helpers.HasValue())
         {
             m_failure = "0x6342f4 → " + helpers.Error();

@@ -40,7 +40,11 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet
 // desde 0x61ccb0. Las sube GameModels con los modelos, y quedan. El 2 y el 3, Cursor y CursorPush, no: son de
 // WindowTextureSet, que cada escena sube y suelta, y el juego también. La pista del registro, nis_back en 0x640, la
 // pisa Skill\SwordEff.jpg con GL_LINEAR más adelante en la misma función (0x61ccb0, Q-C463): queda la de la skill.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 47> HudTextureSet{{
+// Las de las ventanas del paso que son marco (hito 6): win_check en 0x64a (0x61d1f0, con 0x63bd00), la casilla de los
+// comandos; CursorID_Wnd en 0x65b (0x61d3ab), el cartel del personaje elegido; y las de 0x104 a 0x120 que 0x61ae60
+// sube después de command.jpg (0x61aec8..0x61b1f2): el fondo de las ventanas, los casilleros del equipo, la plata, la
+// grilla, la línea del comercio y los botones, entre ellos el de cerrar (0x118). La 0x106 no la sube nadie.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 77> HudTextureSet{{
     {"Interface\\CursorAttack.tga", 0x04, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorGet.tga", 0x05, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorTalk.tga", 0x06, TextureSetsDetail::LinearClamp},
@@ -76,10 +80,12 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 47> HudTextureSet{{
     {"Interface\\nis_btnchat.jpg", 0x642, TextureSetsDetail::NearestClamp},
     {"Interface\\nis_btnsize.jpg", 0x643, TextureSetsDetail::NearestClamp},
     {"Interface\\nis_btnalpha.jpg", 0x644, TextureSetsDetail::NearestClamp},
+    {"Interface\\win_check.tga", 0x64a, TextureSetsDetail::NearestClamp},
     {"Interface\\win_letter.jpg", 0x64d, TextureSetsDetail::NearestClamp},
     {"Interface\\win_man.jpg", 0x64e, TextureSetsDetail::NearestClamp},
     {"Interface\\win_push.jpg", 0x64f, TextureSetsDetail::NearestClamp},
     {"Interface\\CursorID.tga", 0x65a, TextureSetsDetail::NearestClamp},
+    {"Interface\\CursorID_Wnd.jpg", 0x65b, TextureSetsDetail::NearestClamp},
     {"Interface\\menu01_new2.jpg", 0x65c, TextureSetsDetail::NearestClamp},
     {"Interface\\Menu03_new_AG.jpg", 0x101, TextureSetsDetail::NearestClamp},
     {"Skill\\SwordEff.jpg", 0x640, TextureSetsDetail::LinearClamp},
@@ -88,6 +94,34 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 47> HudTextureSet{{
     {"Interface\\Skill.jpg", 0x12a, TextureSetsDetail::NearestClamp},
     {"Interface\\Skill2.jpg", 0x12b, TextureSetsDetail::NearestClamp},
     {"Interface\\command.jpg", 0x12c, TextureSetsDetail::NearestClamp},
+    {"Interface\\Item_Back01.jpg", 0x104, TextureSetsDetail::NearestClamp},
+    {"Interface\\Item_Back02.jpg", 0x105, TextureSetsDetail::NearestClamp},
+    {"Interface\\Item_Cap.jpg", 0x107, TextureSetsDetail::NearestClamp},
+    {"Interface\\Item_Upper.jpg", 0x108, TextureSetsDetail::NearestClamp},
+    {"Interface\\Item_Lower.jpg", 0x109, TextureSetsDetail::NearestClamp},
+    {"Interface\\Item_Weapon01.jpg", 0x10a, TextureSetsDetail::NearestClamp},
+    {"Interface\\Item_Gloves.jpg", 0x10b, TextureSetsDetail::NearestClamp},
+    {"Interface\\Item_Boots.jpg", 0x10c, TextureSetsDetail::NearestClamp},
+    {"Interface\\Item_NeckLace.jpg", 0x10d, TextureSetsDetail::NearestClamp},
+    {"Interface\\Item_Ring.jpg", 0x10e, TextureSetsDetail::NearestClamp},
+    {"Interface\\Item_Money.jpg", 0x10f, TextureSetsDetail::NearestClamp},
+    {"Interface\\Money_01.jpg", 0x110, TextureSetsDetail::NearestClamp},
+    {"Interface\\Money_02.jpg", 0x111, TextureSetsDetail::NearestClamp},
+    {"Interface\\Item_Wing.jpg", 0x112, TextureSetsDetail::NearestClamp},
+    {"Interface\\Item_Fairy.jpg", 0x113, TextureSetsDetail::NearestClamp},
+    {"Interface\\Item_Weapon02.jpg", 0x114, TextureSetsDetail::NearestClamp},
+    {"Interface\\Item_box.jpg", 0x115, TextureSetsDetail::NearestClamp},
+    {"Interface\\InventoryBox2.jpg", 0x116, TextureSetsDetail::NearestClamp},
+    {"Interface\\Trading_line.jpg", 0x117, TextureSetsDetail::NearestClamp},
+    {"Interface\\exit_01.jpg", 0x118, TextureSetsDetail::NearestClamp},
+    {"Interface\\exit_02.jpg", 0x119, TextureSetsDetail::NearestClamp},
+    {"Interface\\buy_01.jpg", 0x11a, TextureSetsDetail::NearestClamp},
+    {"Interface\\buy_02.jpg", 0x11b, TextureSetsDetail::NearestClamp},
+    {"Interface\\sell_01.jpg", 0x11c, TextureSetsDetail::NearestClamp},
+    {"Interface\\sell_02.jpg", 0x11d, TextureSetsDetail::NearestClamp},
+    {"Interface\\repair_01.jpg", 0x11e, TextureSetsDetail::NearestClamp},
+    {"Interface\\repair_02.jpg", 0x11f, TextureSetsDetail::NearestClamp},
+    {"Interface\\level_01.jpg", 0x120, TextureSetsDetail::NearestClamp},
 }};
 
 // Las de los pases de brillo, que 0x61ccb0 sube en su avance 0 y nadie suelta: Shiny01 para el 0x8,

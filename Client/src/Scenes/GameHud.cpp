@@ -18,9 +18,11 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbleDraw.h"
 #include "Scenes/EventMapObject.h"
+#include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameHelps.h"
 #include "Scenes/GameMoveWindow.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/GamePartyWindow.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
@@ -735,6 +737,9 @@ Core::Expected<void, std::string> DrawTheEventObject(Frame& frame)
 // ---------------------------------------------------------------------------------------------------------------
 // 18. Las ventanas (0x5f7440).
 
+// 0x5f7465: la x de la ventana de la party.
+constexpr std::int32_t PartyWindowLeft = 0x1c2;
+
 Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
 {
     Render::SpriteBatch& sprites = frame.context.sprites;
@@ -744,8 +749,9 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     sprites.SetBlend(BlendMode::Opaque);
     frame.context.hud.textColors.text = 0xffff8080u;
     const auto cut = [](std::string_view what) { return Core::Unexpected(std::string(what)); };
-    if (panels.IsOpen(UI::PartyPanel) || frame.context.hud.partyCount != 0)
-        return cut("0x5f0be0: la ventana de la party es de la CL9.4");
+    // 0x5f7474: 0x5f0be0(0x1c2, 0), que empieza con su IsOpen.
+    if (auto party = DrawThePartyWindow(frame.context, panels, PartyWindowLeft, 0); !party.HasValue())
+        return party;
     if (panels.IsOpen(UI::CharacterPanel))
         return cut("0x5ee2e0: la ventana del personaje es del hito 5");
     if (panels.IsOpen(UI::InventoryPanel))
@@ -776,8 +782,9 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
         return cut("0x424160: la ventana de la mascota es de la CL9.2");
     if (panels.IsOpen(UI::Panel2000))
         return cut("0x5f7180: la ventana 0x2000 es del hito 4");
-    if (state.delegated.commands != 0)
-        return cut("0x40a650: la ventana de los comandos es de la CL9.4");
+    // 0x5f75fa: 0x40a650, que empieza con +4 de [0x6e592c].
+    if (auto commands = DrawTheCommandsWindow(frame.context); !commands.HasValue())
+        return commands;
     if (panels.IsOpen(UI::SecondGuildPanel) || panels.IsOpen(UI::GuildPanel) || panels.IsOpen(UI::CastleSiegePanel) ||
         panels.IsOpen(UI::CastleSiegeListPanel) || panels.IsOpen(UI::SecondCastleSiegePanel))
         return cut("0x6579e0: las ventanas del gremio y del asedio son de la CL9.4 y la CL9.5");

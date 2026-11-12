@@ -6,12 +6,14 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameChat.h"
+#include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameDialogSteps.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMoveWindow.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/GamePartyWindow.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -247,8 +249,8 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
     if (runtime.dialogs.current != 0 || ui.capture != 0 || ui.hovered != 0 || ui.field78abad9 != 0)
         return {};
     // 0x5e3c80 y 0x5e4510: la party y el personaje, cada uno con su IsOpen.
-    if (panels.IsOpen(UI::PartyPanel))
-        return Core::Unexpected(std::string("0x5e3c80: el paso del panel de la party es del hito 6 (P-C92)"));
+    if (auto party = StepThePartyWindow(context, panels); !party.HasValue())
+        return party;
     if (panels.IsOpen(UI::CharacterPanel))
         return Core::Unexpected(std::string("0x5e4510: el paso del panel del personaje es del hito 5"));
     // 0x5ee1a3: las hijas del inventario (0x5e4ce0, 0x5e5920, 0x5fe610, 0x5ea060, 0x5ecde0, 0x5ea290, 0x5ed960).
@@ -269,9 +271,9 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
     // 0x5e74f0, el panel 0x2000.
     if (panels.IsOpen(UI::Panel2000))
         return Core::Unexpected(std::string("0x5e74f0: el paso del panel 0x2000 es de la CL9"));
-    // 0x40a450, los comandos (+4 de 0x6e592c).
-    if (delegated.commands != 0)
-        return Core::Unexpected(std::string("0x40a450: el paso de los comandos es del hito 6 (P-C92) y de la CL9.4"));
+    // 0x40a450, los comandos ([0x6e592c]), que empieza con su +4.
+    if (auto commands = StepTheCommandsWindow(context); !commands.HasValue())
+        return commands;
     // 0x41b5a0, el quest: con el personaje cerrado escribe +0x21390 y +0x21394 de su objeto, que MuRet no tiene
     // ni lee; con +0x21383 en 1 o 2, su ventana.
     if (delegated.quest == 1 || delegated.quest == 2)
@@ -759,6 +761,7 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     if (context.mouseY >= HudTop)
         ui.mouseOnUi = 1;
     GamePanels gamePanels(context.world, context.random);
+    gamePanels.LendThePartyList(context.world, context.requests);
     UI::PanelRegistry& panels = gamePanels.Registry();
     // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).
     if (panels.IsOpen(UI::MovePanel) && ui.capture == 0)

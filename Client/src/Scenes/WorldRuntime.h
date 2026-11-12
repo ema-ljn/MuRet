@@ -97,8 +97,18 @@ struct ChatRuntime
 // Los globales del HUD del juego (0x5a7320 y sus hijos, CL8 hito 2), en la .bss salvo los que dicen otra cosa.
 struct HudState
 {
-    // 0x78aba48: cuántos hay en la party. Lo escribe el paquete de la party (CL9.4).
+    // 0x78aba48: cuántos hay en la party. Lo pone en 0 abrir la ventana (0x659aa0) y lo escribe la lista (C1 42,
+    // 0x4d67e0, CL9.4).
     std::int32_t partyCount = 0;
+    // 0x78a7068 y 0x78a706c: la esquina de la ventana de la party, que pone su dibujo (0x5f0be0) con la ventana
+    // abierta, en (0x1c2, 0). La lee su paso (0x5e3c80), que antes del primer dibujo ve los ceros de la .bss (Q-C650).
+    std::int32_t partyX = 0;
+    std::int32_t partyY = 0;
+    // +0xc y +0x10 de [0x6e592c]: la esquina de la ventana de los comandos, que pone su dibujo (0x40a650) con la
+    // ventana abierta, en (0x1c2, 0). La lee su paso (0x40a450), que antes del primer dibujo ve los ceros del
+    // constructor (*inferido*, Q-C650).
+    std::int32_t commandsX = 0;
+    std::int32_t commandsY = 0;
     // 0x5767960: la vida del invocado, de 0 a 100. La escribe su paquete (CL9.2).
     std::int32_t summonLife = 0;
     // 0x77f3b74: el freno de las macros. Una que llega al freno lo deja en 0x64 (0x5a1ea1) y 0x637d44 lo baja de a

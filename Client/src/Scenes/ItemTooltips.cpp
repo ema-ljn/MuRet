@@ -10,6 +10,7 @@
 #include "Scenes/GameTooltips.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/ITextDrawer.h"
+#include "Scenes/ItemPrice.h"
 #include "Scenes/ItemTooltipParts.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
@@ -27,6 +28,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -171,6 +173,21 @@ std::int32_t RepairNameColorOf(const World::ItemState& item, std::int32_t level)
     return color;
 }
 
+// 0x5b8373..0x5b839b: un ítem gastado pone el modo de reparar en 2 y lleva el precio de 0x54d0f0 en el modo 2 con el
+// formato de 0x5b13e0, que lee [0x78abb10]. El 0x1a04 y el 0x1a05, los únicos que leen las mascotas, salen al
+// principio de 0x5b8150.
+Core::Expected<RepairPrice, std::string> RepairTheWornItem(GameHudContext& hud, const World::ItemState& item,
+                                                           std::uint16_t maximum)
+{
+    WorldRuntime& runtime = hud.world.Runtime();
+    if (!hud.projecting)
+        runtime.panels.repairMode = 2;
+    auto price = ItemPrice(item, *hud.items, RepairPriceMode, std::nullopt);
+    if (!price.HasValue())
+        return Core::Unexpected(std::move(price).Error());
+    return RepairPriceOf(price.Value(), item.durability, maximum, runtime.field78abb10);
+}
+
 // 0x5b8ae1..0x5b8b6d: la caja de reparar, con la altura en enteros sin signo: ((N − M) · cy + M · cy / 2) · 480 / H.
 Core::Expected<void, std::string> DrawTheRepairBox(const ItemTooltipContext& context,
                                                    std::span<const std::byte, Data::Tables::ItemRecordSize> record)
@@ -281,12 +298,18 @@ Core::Expected<void, std::string> DrawTheRepairTooltip(const ItemTooltipContext&
     // 0x5b835d..0x5b840b: el precio de reparar, con la durabilidad que falta.
     const std::uint16_t maximum = MaxDurability(item, *record, level);
     if (item.durability < maximum)
-        return Core::Unexpected(std::format("0x5b838d: el precio de reparar el {:#x} (0x54d0f0 y 0x5b13e0) no está "
-                                            "portado (P-C101)",
-                                            item.id));
-    lines.PrintText(RepairPriceText, std::string_view(FullDurabilityPrice));
-    if (!hud.projecting)
-        hud.world.Runtime().panels.repairMode = 1;
+    {
+        auto price = RepairTheWornItem(hud, item, maximum);
+        if (!price.HasValue())
+            return Core::Unexpected(std::move(price).Error());
+        lines.PrintText(RepairPriceText, std::string_view(price.Value().text));
+    }
+    else
+    {
+        lines.PrintText(RepairPriceText, std::string_view(FullDurabilityPrice));
+        if (!hud.projecting)
+            hud.world.Runtime().panels.repairMode = 1;
+    }
     lines.Color(color);
     lines.Bold(1);
     lines.Next();

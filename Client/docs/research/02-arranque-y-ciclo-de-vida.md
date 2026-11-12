@@ -96,7 +96,7 @@ entry 0x6a2444 (arranque del CRT)
        ├─ volumen         VolumeLevel en el registro SOFTWARE\Webzen\Mu\Config
        ├─ timers          SetTimer x3
        └─ bucle           PeekMessageA en idle, GetMessageA al bloquear
-             ├─ sin mensaje  mantenimiento del hash anti-tamper
+             ├─ sin mensaje  mantenimiento del hash anti-tamper (saca rand(): 4 + 1, Q-C457)
              ├─ frame        0x63945d (orquestador) → 0x637700 (render loop)
              └─ WM_QUIT      0x456eb0 + 0x4aeda0 + 0x4017a0 y return
 ```
@@ -644,7 +644,9 @@ el derecho.
 
 *Estático*, del desensamblado de `WinMain`. El bucle de mensajes llama a `PeekMessageA`
 (`0x4bbc0e`) con las banderas en 0 (`PM_NOREMOVE`), que vuelve enseguida; con un mensaje lo saca
-con `GetMessageA` y lo despacha, y sin mensajes hace el mantenimiento del hash (no se porta),
+con `GetMessageA` y lo despacha, y sin mensajes hace el mantenimiento del hash (no se porta, pero sus `rand()` sí: el contador protegido
+`0x5763578`, abierto en `0x4bbc57` y cerrado en `0x4bdf6d` con 4 mientras valga ≤ 30, y el foco, con 1; el frame
+`0x63945d` vuelve a abrir y cerrar el contador después de `0x637700`, con 4 más: Q-C457, P-C61),
 consulta `IsIconic` (`0x4bdaef`), que solo elige una rama del hash, y en `0x4be019` lee el foco,
 `DAT_05763580`. El bucle no duerme nunca: ni `WinMain` ni lo que llama en cada vuelta sin foco
 (por llamadas directas) llama a `Sleep`, y `WaitMessage` y `MsgWait*` ni están importadas.

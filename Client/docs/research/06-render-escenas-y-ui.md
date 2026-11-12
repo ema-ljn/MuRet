@@ -946,7 +946,7 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | `0x10` | gremio (G) | `0x6522e0()` | CL9.4 |
 | `0x20` | trade | **byte protegido `0x7d53711`: 1 `rand()`** | CL9.4 |
 | `0x40` | almacén | `0x7d5370d` | CL9.3 |
-| `0x80` | — | ninguna rama lo da por abierto (*inferido* del despacho; su rama de `0x659290` sin leer) | — |
+| `0x80` | — | siempre cerrado: su rama de `0x659290` da 0 (`0x659429 JNZ 0x6597f3` → `XOR AL,AL`) | — |
 | `0x100` | caja del caos | `0x7d5370e` | CL9.3 |
 | `0x200` | comandos (D) | `*(0x6e592c+4)` | CL9.4 |
 | `0x400` | mascota | `0x420cc0()` | CL9.x |
@@ -994,7 +994,10 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 |---|---|---|---|
 | `IsOpen(0x20)` / `IsOpen(0x10000)` | `0x659290` (cierres `0x4c0ec0` / `0x4c1190`) | 1 cada uno | donde se llame |
 | `IsOpen` de cualquier otro id | | 0 | |
-| `IsOpen(0)` con nada abierto debajo de `0x20` | `0x5a5511` (cola de `0x59ff10`) | 2 | **por paso**, si `0x59ff10` llega a `0x5a4c25` (P-C60 g) |
+| la barra de skills de `0x59ff10`, aunque no haya skills | registro propio abierto en `0x5a05e5`, cerrado en `0x5a10e2` | 3.848 | **por paso** (Q-C458) |
+| `IsOpen(0)` con nada abierto debajo de `0x20` | `0x5a5511` (cola de `0x59ff10`) | 2 | **por paso**: `0x59ff10` corre en cada paso (`0x636ee6`) y solo sale antes en `0x59ff3f` |
+| R apretada | `0x5a4f34..0x5a54e6`: el registro propio, cerrado en `0x5a53d8` | 3.848 | por paso, con la tecla |
+| el ancho del mundo `0x5bb8d0` con el inventario abierto | `IsOpen(0x10000)` e `IsOpen(0x20)` | 2 por llamada | 19 llamadores, por paso y por frame |
 | bloque de UI del paso con todo cerrado y `0x6c7a88 != 1` | `0x636e11..0x63705b` | 0 | por paso |
 | lo mismo con `0x6c7a88 == 1` y el inventario abierto | `0x636f04..0x636ffd` | 2 | por paso |
 | `0x657a90` con todo cerrado | `0x657ab0(−1, 0)` | 2 | evento (MuRet ya lo cuenta en `WorldEntry.cpp`) |

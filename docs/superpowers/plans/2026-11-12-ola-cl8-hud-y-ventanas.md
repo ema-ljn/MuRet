@@ -31,7 +31,7 @@ Ninguna biblioteca nueva.
 
 **Spec:** el roadmap y el research que deja este barrido: 06 § HUD y ventanas (corregido acá), § El paso del
 juego, § El dibujo del juego, § Texto; 02 (el WndProc, las teclas, el foco); 04 (los paquetes del chat y del
-inventario); las filas nuevas del 07 (Q-C442 a Q-C457) y del 08 (P-C59 a P-C61). El mapa de las funciones del
+inventario); las filas nuevas del 07 (Q-C442 a Q-C458) y del 08 (P-C59 a P-C61). El mapa de las funciones del
 barrido, con la ola que le dio cada lector, está en
 [`2026-11-12-ola-cl8-funciones.tsv`](2026-11-12-ola-cl8-funciones.tsv) (1.125 funciones) y
 [`2026-11-12-ola-cl8-tramos.tsv`](2026-11-12-ola-cl8-tramos.tsv) (los tramos de las funciones grandes): es la
@@ -78,8 +78,11 @@ con los demás casos como cortes por dirección.
    (4), /move (2), el quest (8), el gremio (`0x10`), el comercio (`0x20`), el almacén (`0x40`), la caja del caos
    (`0x100`), la tienda de NPC (`0x10000`), las tiendas personales (`0x800`, `0x20000`) y otros 15 ids, con
    `IsOpen` `0x659290`, `CanOpen` `0x659860`, `Open` `0x6599a0`, `Close` `0x65cae0`, `CloseByMask` `0x657ab0`
-   y las teclas `0x657880`. **Son UI inmediata**: no hay clase por ventana; el paso las atiende en `0x5ee140` y
-   el HUD las dibuja con funciones sueltas. Las vtables que el laboratorio llamó "inventario" y "personaje"
+   y las teclas `0x657880`. **Son UI inmediata** en su mayoría: el paso las atiende en `0x5ee140` y el HUD las
+   dibuja con funciones sueltas. Algunos ids tienen un objeto retenido detrás: los seis que arma `0x657450` desde
+   `WinMain` (el gremio `0x10` y `0x40000`, los tres de Castle Siege y el diálogo de los paneles, con paso por
+   virtual en `0x657930` y dibujo en `0x6579e0`), y otros delegan su estado (el 1 en el administrador viejo, el 8
+   en `[0x710148]+0x21383`, el `0x200`, el `0x400`, el `0x8000`, el `0x400000`/`0x800000` y el `0x1000000`). Las vtables que el laboratorio llamó "inventario" y "personaje"
    (`0x6ba7c8`, `0x6ba804`) son de la UI nueva del login y la selección.
 2. **El administrador viejo** `*0x5763514` (ventanas retenidas de vtable de 23 entradas, un mapa id → ventana,
    una lista en orden z, una cola de mensajes, la fábrica `0x48ee60`): solo lo usan los amigos, el correo, sus
@@ -106,21 +109,32 @@ héroe gira (`18 .. 7A`) con el mouse sobre la barra y el original no.
 - `IsOpen(0x20)` e `IsOpen(0x10000)` leen un byte protegido (`0x7d53711`, `0x7d53710`) y sacan **1 `rand()`
   cada uno, aunque estén cerrados**; los demás ids, 0. `IsOpen(0)` con todo cerrado, `CanOpen`, `CloseByMask`
   y Esc los consultan: Esc con todo cerrado saca 2 antes de abrir el menú (Q-C447).
-- La cola de `0x59ff10` (`0x5a5511`) hace `IsOpen(0)`: **2 `rand()` por paso** en el juego quieto, si
-  `0x59ff10` llega ahí en cada paso. MuRet hoy no los saca.
+- **El paso quieto saca al menos 3.850 `rand()` en `0x59ff10`**, que corre en cada paso (`0x636ee6`; su única
+  salida temprana es `0x59ff3f`): el tramo de la barra de skills abre el registro propio en `0x5a05e5` y lo
+  cierra en `0x5a10e2` aunque no haya skills (3.848, Q-C458), y la cola `IsOpen(0)` de `0x5a5511` saca 2. Las
+  teclas del chat (`0x59ff45..0x5a03c3`) no están contadas todavía: es un piso. MuRet hoy no saca ninguno.
 - **El HUD saca decenas de miles de `rand()` por frame** por el registro propio (`0x7681eb4`, 3.848 por cierre):
   en el estado base, como mínimo 73.189 (`0x5ab810`, `0x5aac20` con sus 12 ranuras, `0x5a9290`, `0x5abcd0`,
   `0x5a8cc0`, `0x5a9630` y los `IsOpen`). Van después de los del 3D del mismo frame.
 - El picking del frame (`0x59ec80`) saca 3.848 por frame con el mouse en el mundo y el héroe de clase 0 o 2,
   y 0 con el mouse en la UI. MuRet no lo porta todavía.
 - Abrir el inventario cuesta 4; el personaje y los amigos, 3.848 más; cada `C3` de la UI, 2 (relleno y serial).
-- **El foco protegido** `0x5763580` (*estático*, Q-C457, P-C61): `WinMain` lo lee por la tabla de protección en
-  cada vuelta que llama al frame (`0x4bdf76..0x4be02f`) y el WndProc en cada mensaje de su segundo switch
-  (`0x4b335a..0x4b3414`): **1 `rand()` por vuelta y otro por mensaje de Windows**, en todas las escenas. El de
-  los mensajes depende de Windows y no se puede reproducir paso a paso.
+- **La vuelta de `WinMain`** (*estático*, Q-C457, P-C61): sin mensajes pendientes, abre y cierra el contador
+  protegido de 4 bytes `0x5763578` (`0x4bbc57`, cierre en `0x4bdf6d`: 4 `rand()` mientras valga ≤ 30) y el foco
+  `0x5763580` (`0x4bdf76..0x4be02f`: 1), y con foco llama al frame `0x63945d`, que después de `0x637700` vuelve
+  a abrir y cerrar el contador (`0x63950d`, cierre en `0x63b066`: 4). **Son 9 `rand()` por frame del original**,
+  en todas las escenas; cada ~31 vueltas el contador va por otra rama, sin leer. Además el WndProc lee el foco en
+  cada mensaje que llega a su cola común (`0x4b335a..0x4b3414`): **1 por mensaje de Windows**, que no se puede
+  reproducir paso a paso.
 
-**El ancho del mundo** depende de los paneles abiertos: 640, 450 con uno y 260 con dos (`0x5bb8d0`), con la
-cámara y el recorte del terreno que ya usa MuRet. La CL7 lo dejó en 640 (decisión 4 de su plan).
+**El ancho del mundo** (`0x5bb8d0`) depende de los paneles abiertos: 640 sin ninguno, 450 con uno de una lista
+(el inventario, la C, 4, 8, `0x10`, `0x200`, `0x2000`, `0x40000`, `0x80000`, `0x100000`, `0x200000` o
+`0x78abb00`) y 260 solo con ciertos pares (el inventario con la C, `0x10000`, `0x40`, `0x100`, `0x20`, `0x1000`,
+`0x4000`, `0x800`, `0x20000` u `0x8000`; la C con 8 o `0x400`; el inventario con el `0x100000` de tipo 3);
+`0x44dc20` y `0x44f100` pisan el resultado. **Con el inventario abierto consulta `0x10000` y `0x20`: 2 `rand()`
+por llamada**, y tiene 19 llamadores (9 en `0x5fb570` por frame, `0x63733e`, `0x63738a`, `MoveHero` en
+`0x59b188`, `0x5aac20`, `0x5ab810`, `0x5a7320`…). MuRet tiene el 640 fijo (`GameScene.cpp:131`,
+`TerrainCulling.h`, `CharacterSelectScene.cpp`); la CL7 lo dejó así (decisión 4 de su plan).
 
 **El GameServer 1.02 reconstruido no atiende** varios opcodes que el cliente manda desde la UI (`BC`, `3F`, `9F`,
 `A9` del 1.02 sí, `AA`, `AB`, `AC`, `AF`, `B2`, `B7`, `BD`, `D0`, `E5`, y `C0`..`CA` de amigos y correo): el
@@ -132,12 +146,16 @@ cliente es la Season 1 completa. Para esos, el oráculo es el cliente (los bytes
    mouse) se explican en los PRs.
 2. **Los paneles no son clases.** `UI::PanelRegistry` reproduce los bits de `[0x576352c]` con su tabla, su orden
    fijo de consultas y sus `rand()`; cada id tiene ganchos (abrir, cerrar, paso, dibujo, rectángulo) que
-   registra su ola. Un id sin dueño se comporta como cerrado (y su consulta saca lo que saca). La clase
+   registra su ola, y su estado puede ser un byte propio (protegido o no) o delegado en otro objeto, como en el
+   original. Un id sin dueño se comporta como cerrado (y su consulta saca lo que saca). La clase
    retenida (`UI::Window`) queda para lo que en el original es retenido: el administrador viejo y la UI nueva.
    La fila del roadmap cambia de "CL8.3 `UI::Window` y el administrador" a "CL8.3 los paneles, los diálogos y
    los dos administradores".
 3. **Un solo dueño del orden:** `UI::GameUi` corre el bloque de UI del paso y la pasada 2D, y es el único lugar
-   que llama a las piezas. Ningún hito porta su parte "por su lado".
+   que llama a las piezas. Ningún hito porta su parte "por su lado". También son suyos los sitios de la UI que
+   `0x637700` llama fuera de esos tramos, cada uno en su lugar: `0x623e70` en `0x637c5c` (por paso, **antes** de
+   `0x636290`), `0x5ac8d0` en `0x63717f`, los relojes del chat `0x5547e0`/`0x5554b0` en `0x637cf3`/`0x637cf8`, el
+   flanco de PrintScreen en `0x637cff` y la bandera del diálogo en `0x63705b`.
 4. **Los ganchos sacan los `rand()` del estado base** y cortan con error y dirección cuando el estado deja de
    ser el base (decisión 4 de la CL7, generalizada).
 5. **Usar y tirar ítems (`26`, `23`) van con la CL9.3**, con los ítems del piso y las pociones del HUD: "inventario
@@ -158,12 +176,14 @@ cliente es la Season 1 completa. Para esos, el oráculo es el cliente (los bytes
     que ser igual byte a byte al del original; el nombre, el contador y el mensaje, sí.
 12. **El salto del LCG:** `CrtRandom::Discard(n)` en O(log n), probado contra n llamadas a `Next()`, para los
     miles de `rand()` del HUD por frame.
-13. **El foco protegido** (P-C61): MuRet saca el `rand()` de la vuelta de `WinMain` (uno por frame del original,
-    antes de sus pasos y su dibujo, en todas las escenas) en el hito 1. El de los mensajes no se modela: depende
-    de cuántos mensajes manda Windows. Queda como divergencia registrada (Q-C457), salvo que Emanuel pida otra
-    cosa.
-14. **El picking del juego** (`0x59ec80`): el hito 1 porta la compuerta de la bandera y el tramo que saca los
-    `rand()` (`0x59efda..0x59f46e`); la búsqueda del ítem del piso, el NPC, el personaje y el objeto queda en
+13. **La vuelta de `WinMain`** (P-C61): MuRet saca sus 9 `rand()` por frame del original en todas las escenas,
+    en el hito 1: 4 del contador y 1 del foco antes de los pasos y el dibujo, y 4 del contador después. La rama
+    del contador de cada ~31 vueltas se lee en el hito 1 (si no cierra estática, va al 08). El `rand()` del foco
+    por mensaje del WndProc no se modela: depende de cuántos mensajes manda Windows. Queda como divergencia
+    registrada (Q-C457), salvo que Emanuel pida otra cosa.
+14. **El picking del juego** (`0x59ec80`): el hito 1 porta la compuerta de la bandera, la de Alt
+    (`GetAsyncKeyState(0x12)` en `0x59ef37`) y el tramo que saca los `rand()` (`0x59efda..0x59f46e`, con la clase
+    0 o 2); la búsqueda del ítem del piso, el NPC, el personaje y el objeto queda en
     sus olas (CL9.1, CL9.3) como cortes que dejan −1, que es el estado de la traza.
 
 ## Los hitos
@@ -189,23 +209,30 @@ El esqueleto de todo lo demás. Entra:
       la bandera, el mapa (`0x5ecdc0`), las colas de texto (`0x46b7b0`), la lista de ventanas, `0x490490`, el
       registro del chat, el clic sin dueño, `0x5ebca0`, `0x435bd0`, `0x5ee140` (sus puertas, sin hijas),
       `0x59ff10`, `0x5a7cc0`, `0x657930`, el lugar del registro del chat y la bandera del diálogo.
-- [ ] **`0x59ff10`, el esqueleto:** las puertas de entrada, las letras de los paneles (G, P, T, C, I, V, F, M, D por
-      `0x5a4ea6`, `0x5a4c45..0x5a5504`) y la cola `IsOpen(0)` (`0x5a5511`, 2 `rand()` por paso). Los botones del
-      HUD, la barra de skills, las pociones, las macros y las teclas del chat quedan como ganchos de los hitos 2 y
-      3 y de la CL9.
+- [ ] **`0x59ff10`, el esqueleto:** la salida temprana (`0x59ff3f`), el tramo de la barra de skills como gancho
+      que abre y cierra el registro propio en su lugar (`0x5a05e5..0x5a10e2`, 3.848 por paso; la barra en sí es de
+      la CL9.2), las letras de los paneles (G, P, T, C, I, V, F, M, D por `0x5a4ea6`, `0x5a4c45..0x5a5504`), B
+      (`0x5a4ec2..0x5a4f2e`) y R (`0x5a4f34..0x5a54e6`, que abre el registro propio y lo cierra con la tecla
+      apretada: 3.848 más; la reparación es de la CL9.3) y la cola `IsOpen(0)` (`0x5a5511`, 2). Los botones del
+      HUD, las pociones, las macros y las teclas del chat quedan como ganchos de los hitos 2 y 3 y de la CL9;
+      antes de cerrar el hito se cuentan los `rand()` de las teclas del chat (`0x59ff45..0x5a03c3`) en el estado
+      base.
 - [ ] **Los diálogos, lo mínimo:** el par `0x7d3a10c`/`0x7d3a110`, `0x6236f0` y el prólogo de `0x623e70`
       (`0x623e70..0x623f78`: `IsOpen(1)`, el flanco de Esc, `0x657880`, abrir el `0x6e`). El menú en sí es del
       hito 6.
 - [ ] **La pasada 2D del juego** `0x637641..0x6376eb` en `GameScene`, en su orden, con el estado de mezcla y color
       que deja cada llamada y un gancho por llamada (la tabla de 06 § El dibujo del juego, que este hito
-      completa); el picking (`0x59ec80`) con la compuerta y su tramo de `rand()`; el ancho del mundo
-      640/450/260 (`0x5bb8d0`).
-- [ ] **El `rand()` de la vuelta de `WinMain`** (decisión 13), en el bucle, para todas las escenas.
+      completa); el picking (`0x59ec80`) con sus compuertas y su tramo de `rand()`; el ancho del mundo
+      (`0x5bb8d0`) con su orden de consultas, llamado en cada sitio donde lo llama el original (sus `rand()`
+      dependen de cuántas veces se llama), en lugar del 640 fijo.
+- [ ] **Los 9 `rand()` de la vuelta de `WinMain`** (decisión 13), en el bucle, para todas las escenas.
 
-**Pruebas:** los `rand()` por paso con todo cerrado (los 2 de `0x5a5511`), con Esc (2 y el `0x6e`), con el
-inventario abierto por `I` (4) y cerrado (2); cada id de `IsOpen` (solo `0x20` y `0x10000` sacan); el orden de
+**Pruebas:** los `rand()` por paso con todo cerrado (los 3.848 de la barra de skills y los 2 de `0x5a5511`), con
+Esc (2 y el `0x6e`, **antes** de los del paso), con R apretada (3.848 más), con el inventario abierto por `I` (4)
+y cerrado (2), y con el inventario abierto (los 2 de cada llamada al ancho del mundo); cada id de `IsOpen` (solo `0x20` y `0x10000` sacan); el orden de
 las 26 consultas de `CloseByMask`; un clic en y ≥ 432 que no camina ni gira (no sale `18 .. 7A` ni `D3`); el
-ancho del mundo con uno y dos paneles. **Desbloquea:** todos los demás. **Cierra:** la divergencia del giro, el
+ancho del mundo con cada panel y con los pares que dan 260; los 9 de la vuelta de `WinMain` en el login, la
+selección y el juego. **Desbloquea:** todos los demás. **Cierra:** la divergencia del giro, el
 `0x657a90` de P-C58, P-C41 (a) en lo que toca al bloque de UI.
 
 ### Hito 2: el HUD (CL8.1, ~42 KB)
@@ -277,7 +304,8 @@ corrimiento, los relojes de 151 y 301 pasos; los `rand()` (mandar 0, susurrar 3.
 
 **Pruebas:** el cable de la sesión (`wire/20261030T192219Z_8920d1`): los `C3 24` del cliente y del GS
 descifrados con SimpleModulus (cabeceras y cuerpos sin nombres); la grilla de 8 × 8 con ítems de varios tamaños
-(`0x5c9b40`); los `rand()` del paso con el inventario abierto (2 por `0x636f49` y `0x636fb2`). **Desbloquea:**
+(`0x5c9b40`); los `rand()` del paso con el inventario abierto (2 por `0x636f49` y `0x636fb2`, además de los 3.850 del paso
+quieto y los 2 de cada llamada al ancho del mundo). **Desbloquea:**
 el hito 5 y la CL9.3.
 
 ### Hito 5: los tooltips y la ventana del personaje (CL8.4, ~50 KB)
@@ -305,7 +333,8 @@ tooltip va a la VM (P-C60). **Desbloquea:** "inventario usable".
 - [ ] **Las ventanas del paso que son marco:** la party (`0x5e3c80` sin el `43`), el botón del quest (`0x41b5a0`
       sin el contenido), la puerta de D (`0x40a450` sin `0x406050`) y los cortes sin `rand()` de las de la CL9.
 - [ ] **Las teclas y las superposiciones:** `0x5ac8d0` (F1..F4; SPACE como corte de la CL9.3), `0x5b0550` con las
-      ayudas F1 (`0x5af090`, `0x5afb00`) y **la ventana /move** (`0x448580`, `0x448fa0`, `0x449860`, con
+      ayudas F1 (`0x5af090`, `0x5afb00`) y **la ventana /move** (el paso `0x5ecdc0` → `0x449850` → `0x448580` y el dibujo `0x5b0550` → `0x449860` →
+      `0x448fa0`, con
       `Data\Local\movereq.bmd`).
 - [ ] **El hover y ALT** (`0x5bbbc0`: los nombres por los globos; los carteles del piso como corte de la CL9.3) y
       **los textos 3D** (`0x4383f0`; el productor de Kalima es de la CL9.5).
@@ -383,7 +412,7 @@ Cada uno queda en el código con su dirección y en el 08 (P-C59). Los principal
 ## Lo que queda para la VM (al final de la ola)
 
 En el 08 (P-C60): una traza de GL con el inventario, la C, una caja de mensaje vieja y el menú de Esc abiertos;
-los `rand()` reales por paso (los 2 de `0x5a5511`) y por frame (el HUD, el picking) con un contador en
+los `rand()` reales por paso (los ≥ 3.850 de `0x59ff10`) y por frame (el HUD, el picking) con un contador en
 `0x69fd70`; los rectángulos reales de las ventanas con una y dos abiertas; el ancho de `GetTextExtentPointA`;
 el orden fino del tooltip; qué abre F4 (`0x45a9d0`) y qué son `[0x5763530]` (`0x4125b0`) y la imagen de
 `0x65dd70`; el ancho del texto de la línea 124268 de la traza (Q-nuevo del HUD); el foco protegido por mensaje
@@ -414,10 +443,25 @@ el orden fino del tooltip; qué abre F4 (`0x45a9d0`) y qué son `[0x5763530]` (`
   entero con ganchos y nadie lo porta por su lado.
 - **Los `rand()` del HUD por frame** son muchos y su cuenta exacta (`0x5aac20` tiene caminos de uno y dos
   cierres por ranura) pide lectura fina; si la lectura no cierra, se porta con la cuenta leída y la VM confirma.
-- **`IsOpen(0x80)`**: ninguna fuente lo da por abierto; falta leer su rama de `0x659290`.
 - **El foco protegido por mensaje** (Q-C457): la secuencia de la CRT del original depende de los mensajes de
   Windows entre frames; MuRet reproduce la cuenta y el orden dentro de cada paso y cada frame.
 - **El quest** cruza la CL8 (el botón y la ventana) y la CL9.1 (los datos con los NPC): el corte queda en
   `0x41b5a0`.
 - Sin leer a fondo: `0x492ac0`, `0x490b70`, los números del marco viejo, `0x65f720`, `0x660410`, `0x5ee2e0`,
   `0x5b2aa0`, las ramas de la CL9 de `0x5ca250` y `0x5d8d50`, `0x406050`. Cada hito los lee antes de portar.
+
+## Lo que cambió con la revisión adversarial
+
+Una revisión independiente contra el ASM (2026-11-12) confirmó los `rand()` de `IsOpen`, el piso de 73.189 del
+HUD por frame, los 3.848 del picking, los 2 de Esc, los 4 de abrir el inventario, el `rand()` del foco por
+mensaje, la bandera del clic, el cursor doble y el orden de la pasada 2D. Corrigió tres cuentas y cuatro
+detalles, ya aplicados arriba:
+
+- El paso quieto saca **≥ 3.850** `rand()`, no 2: la barra de skills de `0x59ff10` abre y cierra el registro
+  propio en cada paso (Q-C458). Faltaban las letras B y R.
+- La vuelta de `WinMain` saca **9** por frame del original, no 1: el contador protegido `0x5763578` antes y
+  después del frame, además del foco.
+- El ancho del mundo saca 2 por llamada con el inventario abierto, y 260 sale solo con ciertos pares.
+- Hay sitios de la UI fuera de los dos tramos (`0x623e70` antes del paso, `0x5ac8d0`, los relojes, PrintScreen),
+  algunos paneles tienen un objeto retenido detrás, el picking también mira Alt, a /move le faltaba el paso
+  `0x449850`, e `IsOpen(0x80)` siempre da 0.

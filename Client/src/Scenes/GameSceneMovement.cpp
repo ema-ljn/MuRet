@@ -33,6 +33,8 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
     const auto ticks =
         m_context.clock ? std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count() : 0;
+    // El flanco del clic ya quedó en 0x7d366d4 al empezar el paso (StepTheDialogs), y la UI pudo usarlo: MoveHero
+    // no lo vuelve a prender.
     HeroMovementContext context{
         .world = world,
         .random = m_context.cloth->random,
@@ -40,8 +42,8 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         .items = m_items,
         .skills = m_skills,
         .gates = m_gates,
-        .input = {mouse.x, mouse.y, input.WasPressed(Input::MouseButton::Left), input.IsDown(Input::MouseButton::Left),
-                  input.IsDown(Input::Key::Shift), static_cast<float>(ticks), static_cast<std::uint32_t>(ticks)},
+        .input = {mouse.x, mouse.y, false, input.IsDown(Input::MouseButton::Left), input.IsDown(Input::Key::Shift),
+                  static_cast<float>(ticks), static_cast<std::uint32_t>(ticks)},
         .fixedHeight = CameraState().fixedHeight};
     context.pickTarget = [&]() -> Core::Expected<std::optional<GameLogic::PathCell>, std::string>
     {

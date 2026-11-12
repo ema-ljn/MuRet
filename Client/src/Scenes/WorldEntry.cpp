@@ -11,6 +11,7 @@
 #include "Scenes/ActorEquipment.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/GamePanels.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/SceneId.h"
@@ -40,10 +41,6 @@ constexpr double DirectionOffset = 1.0;
 constexpr double DegreesPerDirection = 45.0;
 // 0x4c48eb: el contador de la espera en 30.
 constexpr std::int32_t EntryWait = WaitDrawThreshold;
-// 0x657ab0(−1, 0): con todas las ventanas cerradas, solo dos consultas de 0x659290 abren y cierran
-// una entrada de un byte (0x7d53711 con 0x20 y 0x7d53710 con 0x10000), y cada cierre saca un rand().
-constexpr int ClosedWindowAccesses = 2;
-constexpr std::uint16_t ByteEntryCloseRandoms = 1;
 // 0x4c49d6..0x4c4a11: los sonidos fuera de Blood Castle (11 a 17) y de Chaos Castle (18 a 23).
 constexpr std::int32_t FirstBloodCastleMap = 11;
 constexpr std::int32_t LastBloodCastleMap = 17;
@@ -211,15 +208,12 @@ void StartTheWait(const WorldEntryResources& resources)
     runtime.warpCounter = EntryWait;
 }
 
-// 0x4c4987: 0x657a90 cierra las ventanas abiertas. MuRet no tiene ventanas: quedan los rand() de las
-// consultas con todas cerradas, sobre entradas que nadie más tiene abiertas.
-void CloseTheWindows(Render::Models::CrtRandom& random)
+// 0x4c4987: 0x657a90 cierra los paneles abiertos y el diálogo de los paneles; con todo cerrado, los 2 rand() de las
+// consultas del comercio y de la tienda de NPC.
+Core::Expected<void, std::string> CloseTheWindows(const WorldEntryResources& resources)
 {
-    for (int query = 0; query < ClosedWindowAccesses; ++query)
-    {
-        std::uint8_t accesses = 0;
-        const Render::Models::LogicalAccess access(accesses, random, ByteEntryCloseRandoms);
-    }
+    GamePanels panels(resources.world, resources.cloth.random);
+    return panels.Registry().CloseAll();
 }
 
 // 0x4c49ce..0x4c4a16: 0x41ee00(id, 1) fuera de los mapas de evento.
@@ -242,11 +236,12 @@ Core::Expected<void, std::string> StopTheHero(const WorldEntryResources& resourc
 {
     ActorState& hero = HeroOf(resources);
     hero.alpha = 0.0f;
-    CloseTheWindows(resources.cloth.random);
+    if (auto closed = CloseTheWindows(resources); !closed.HasValue())
+        return closed;
     WorldRuntime& runtime = resources.world.Runtime();
     runtime.byte6c8e4d = 0xff;
     runtime.selectedTargets.fill(-1);
-    runtime.field78abb0c = 0;
+    runtime.panels.repairMode = 0;
     runtime.field78abb10 = 0;
     hero.movement = 0;
     const auto stopped = SetActorStop(hero, StopContextOf(resources, player));

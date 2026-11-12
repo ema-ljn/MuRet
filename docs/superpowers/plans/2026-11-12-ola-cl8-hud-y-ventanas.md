@@ -195,21 +195,23 @@ gancho); el detalle por función está en el TSV.
 
 El esqueleto de todo lo demás. Entra:
 
-- [ ] **El registro de paneles** `UI::PanelRegistry`: `0x659290` (con los dos bytes protegidos y su `rand()`),
+- [x] **El registro de paneles** `UI::PanelRegistry`: `0x659290` (con los dos bytes protegidos y su `rand()`),
       `0x659860`, `0x65cae0`, `0x657ab0` (el orden fijo de 26 entradas, cada cierre como gancho), el esqueleto y
       la salida común de `0x6599a0` (`0x65ca72`: sonidos como gancho de la CL10 y el `1` que devuelve aunque el
       caso falle, Q-C445), `0x657880` (Esc al bit más bajo), `0x657a90` (reemplaza la cuenta a mano de
       `WorldEntry.cpp` y `WorldTransitionSupport.cpp` y resuelve el corte de P-C58 con ventanas abiertas) y
       `0x657930`/`0x6579e0` como ganchos.
-- [ ] **El clic consumible y la bandera:** `0x7d366d4` (flanco), `0x7d36874` (abajo), `0x7d366d8` (rueda) y
+- [x] **El clic consumible y la bandera:** `0x7d366d4` (flanco), `0x7d36874` (abajo), `0x7d366d8` (rueda) y
       `0x775857c` en el estado del paso; `MoveHero` la lee en `0x59b37a` y `0x59b853` (se va `facingBlocked` y el
       `mouseY > 431`); `SendMove` mira `0x7d3a10c != 0x70` antes de `Movement = 1` (`0x56b387`) y cierra las
       ventanas contra el registro real; el corte de `0x78abb00` (`C1 03 97`, CL9.5) queda explícito.
-- [ ] **El bloque de UI del paso** `0x636ded..0x63705b` en `GameScene`, en su orden, con un gancho por llamada:
+      *Hecho (hito 1):* también el clic derecho (`0x7d36880`); la rueda queda para su lector, el volumen de las
+      opciones (`0x625782`, hito 6).
+- [x] **El bloque de UI del paso** `0x636ded..0x63705b` en `GameScene`, en su orden, con un gancho por llamada:
       la bandera, el mapa (`0x5ecdc0`), las colas de texto (`0x46b7b0`), la lista de ventanas, `0x490490`, el
       registro del chat, el clic sin dueño, `0x5ebca0`, `0x435bd0`, `0x5ee140` (sus puertas, sin hijas),
       `0x59ff10`, `0x5a7cc0`, `0x657930`, el lugar del registro del chat y la bandera del diálogo.
-- [ ] **`0x59ff10`, el esqueleto:** la salida temprana (`0x59ff3f`), el tramo de la barra de skills como gancho
+- [x] **`0x59ff10`, el esqueleto:** la salida temprana (`0x59ff3f`), el tramo de la barra de skills como gancho
       que abre y cierra el registro propio en su lugar (`0x5a05e5..0x5a10e2`, 3.848 por paso; la barra en sí es de
       la CL9.2), las letras de los paneles (G, P, T, C, I, V, F, M, D por `0x5a4ea6`, `0x5a4c45..0x5a5504`), B
       (`0x5a4ec2..0x5a4f2e`) y R (`0x5a4f34..0x5a54e6`, que abre el registro propio y lo cierra con la tecla
@@ -217,14 +219,20 @@ El esqueleto de todo lo demás. Entra:
       HUD, las pociones, las macros y las teclas del chat quedan como ganchos de los hitos 2 y 3 y de la CL9;
       antes de cerrar el hito se cuentan los `rand()` de las teclas del chat (`0x59ff45..0x5a03c3`) en el estado
       base.
-- [ ] **Los diálogos, lo mínimo:** el par `0x7d3a10c`/`0x7d3a110`, `0x6236f0` y el prólogo de `0x623e70`
+      *Hecho (hito 1):* los botones del HUD entraron acá (el hit-test y el panel que abre cada uno), y la cadena de
+      Q/W/E saca 2 `rand()` por paso en el estado base (Q-C459): el paso quieto es de 3.852.
+- [x] **Los diálogos, lo mínimo:** el par `0x7d3a10c`/`0x7d3a110`, `0x6236f0` y el prólogo de `0x623e70`
       (`0x623e70..0x623f78`: `IsOpen(1)`, el flanco de Esc, `0x657880`, abrir el `0x6e`). El menú en sí es del
       hito 6.
-- [ ] **La pasada 2D del juego** `0x637641..0x6376eb` en `GameScene`, en su orden, con el estado de mezcla y color
+- [x] **La pasada 2D del juego** `0x637641..0x6376eb` en `GameScene`, en su orden, con el estado de mezcla y color
       que deja cada llamada y un gancho por llamada (la tabla de 06 § El dibujo del juego, que este hito
       completa); el picking (`0x59ec80`) con sus compuertas y su tramo de `rand()`; el ancho del mundo
       (`0x5bb8d0`) con su orden de consultas, llamado en cada sitio donde lo llama el original (sus `rand()`
       dependen de cuántas veces se llama), en lugar del 640 fijo.
+      *Hecho (hito 1):* el picking y el ancho del mundo en `0x63733e`, en el giro de `MoveHero` (`0x59b188`) y en
+      el picking (`0x5e4140`); los demás llamadores son de los hitos que los portan. Las llamadas de la pasada 2D
+      quedan como ganchos en su orden, sin dibujar ni sacar `rand()`: la tabla del estado de GL va con el HUD
+      (hito 2), que es el primero que dibuja.
 - [ ] **Los 9 `rand()` de la vuelta de `WinMain`** (decisión 13), en el bucle, para todas las escenas.
 
 **Pruebas:** los `rand()` por paso con todo cerrado (los 3.848 de la barra de skills y los 2 de `0x5a5511`), con

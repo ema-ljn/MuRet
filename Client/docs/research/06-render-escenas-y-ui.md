@@ -930,6 +930,24 @@ los paneles secundarios con su diálogo arriba), `0x5a7eb0`, **`0x490390`** (ven
 y al final `gluOrtho2D(0, W, 0, H)`), `0x5f37f0`, **`0x62db60`** (diálogos: el menú de Esc va arriba de todas las
 ventanas viejas), `0x5f7bc0` (tooltip), …, `0x65fe00` (vacío) y el cursor.
 
+**Lo que porta el hito 1 de la CL8** (`Scenes/GameUi.cpp`, `Scenes/GameSceneUi.cpp`, `UI/PanelRegistry.cpp`).
+`GameScene::Step` guarda los botones del WndProc (`0x7d366d4`, `0x7d36874`, `0x7d36880`) y corre `0x623e70` antes
+de `0x636290`, con el mundo cargado o no; `StepWorld` corre el bloque `0x636ded..0x63705b` donde estaba la
+frontera de P-C41, después de las olas del agua y antes de los objetos. Del bloque, MuRet tiene: la bandera, la
+cola de Esc y F5/F6 de `0x490490` (las dos teclas cortan, hito 7), las puertas de `0x5ee140` (cada hija corta
+con su dirección; con el personaje cerrado, `0x424230` pone `0x723911` en 0), y de `0x59ff10` la salida del
+recorrido de cámara, PgUp/PgDn (cortan, hito 3), los latches de arriba y abajo, los seis botones del HUD
+(`0x5a03c3..0x5a05e5`: gremio, party, personaje, inventario, amigos y comandos, cada uno con su rectángulo y
+abierto → `Close`, si no → `Open`), la barra de skills con su botón (`0x5a066c..0x5a06f9`; la lista corta, CL9.2),
+los números y Alt con un número (cortan, CL9.2 y hito 3), el clic derecho en las tres ranuras rápidas
+(`0x5a2b47..0x5a32dd`: x `0xd0 + 0x1f·i`, 20 × 20 en y `0x1c4`; corta, hito 2 y CL9.3), la cadena de Q/W/E
+(Q-C459; la tecla corta), las letras de los paneles, B y R (la reparación es de la CL8.4), la cola `IsOpen(0)` y,
+sin ningún panel abierto, el panel del asedio de la clase 0 (`0x40f6d0`: Tab con el latch lo muestra u oculta, el
+mouse en su rectángulo de `0x97 × 0xad` es de la UI, la flecha de la página y el alfa, Q-C460). El picking del
+frame (`0x637641`) corre después del pase del mundo con las copias del frame proyectado, y el ancho del mundo
+(`0x5bb8d0`) se pide en `0x63733e`: con un panel abierto, el frame corta (el mundo angosto es del hito 4). La
+pasada 2D (`0x637646..0x6376e6`) queda como ganchos en su orden, sin dibujar ni sacar `rand()`, hasta el hito 2.
+
 **Los paneles.**
 
 El objeto (4 B, vtable `0x6baacc`) lo arma `0x657450` desde WinMain (`0x4bb96a`) con seis objetos: `0x7d536f0`
@@ -949,7 +967,7 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | `0x80` | — | siempre cerrado: su rama de `0x659290` da 0 (`0x659429 JNZ 0x6597f3` → `XOR AL,AL`) | — |
 | `0x100` | caja del caos | `0x7d5370e` | CL9.3 |
 | `0x200` | comandos (D) | `*(0x6e592c+4)` | CL9.4 |
-| `0x400` | mascota | `0x420cc0()` | CL9.x |
+| `0x400` | mascota | `0x420cc0()`: `0x723911 == 2` (`0x424230` lo vuelve a 0 en cada paso con el personaje cerrado) | CL9.x |
 | `0x800` | tienda personal propia (S) | `0x7d5370f` | CL9.4 |
 | `0x1000`, `0x4000` | ventanas con inventario de NPC de evento (`0x7d53712` con `0x7d53714` en 0 o 1; el paso las atiende en `0x5e5920`, que manda `90`/`9A`) *inferido* | | CL9.5 |
 | `0x2000` | sin identificar | `0x7d53718` | — |
@@ -970,7 +988,7 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
   inventario.
 - `Open` `0x6599a0(id, aux)`: sale con 0 si ya está abierto, si `CanOpen` falla o si `0x576793c == 1` (salida
   pedida); si el diálogo no es `0x8a`, `0x6236f0(0)`; la máscara `~id ^ 1` (todo menos el id y los amigos) va a
-  `CloseByMask`; el despacho es la tabla de bytes `0x65cabc` / saltos `0x65caa0` para ids ≤ `0x20` y comparaciones
+  `CloseByMask` (salvo con 1 y 2, que no cierran nada); el despacho es la tabla de bytes `0x65cabc` / saltos `0x65caa0` para ids ≤ `0x20` y comparaciones
   arriba; la salida común `0x65ca72` hace sonar `0x19` y `0x1c` y devuelve 1, aunque algo haya fallado.
 - `Close` `0x65cae0`: con `0x10000`, `0x80000`, `0x8000`, `0x80`, `0x20`, `0x40`, `0x100` y `0x1000` cierra
   también el inventario; `0x2000000` cierra antes `0x408`; `0x4000000` cierra antes `0x11d9e0` (y no cierra si
@@ -995,10 +1013,14 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | `IsOpen(0x20)` / `IsOpen(0x10000)` | `0x659290` (cierres `0x4c0ec0` / `0x4c1190`) | 1 cada uno | donde se llame |
 | `IsOpen` de cualquier otro id | | 0 | |
 | la barra de skills de `0x59ff10`, aunque no haya skills | registro propio abierto en `0x5a05e5`, cerrado en `0x5a10e2` | 3.848 | **por paso** (Q-C458) |
+| la cadena de Q, W y E sin campo de texto | `0x5a343e..0x5a3587`: `IsOpen(0x20)`, `IsOpen(0x40)`, `IsOpen(0x10000)` y lo que sigue, con cortocircuito | 2 con todo cerrado (sale en la consulta del diálogo si hay uno, después de las dos) | **por paso** (Q-C459) |
 | `IsOpen(0)` con nada abierto debajo de `0x20` | `0x5a5511` (cola de `0x59ff10`) | 2 | **por paso**: `0x59ff10` corre en cada paso (`0x636ee6`) y solo sale antes en `0x59ff3f` |
-| R apretada | `0x5a4f34..0x5a54e6`: el registro propio, cerrado en `0x5a53d8` | 3.848 | por paso, con la tecla |
+| **el paso del juego quieto, con todo cerrado** | `0x59ff10`: la barra, Q/W/E y la cola | **3.852** | por paso (hito 1 de la CL8, `GameUi.cpp`) |
+| R apretada con todo cerrado | `0x5a4f34..0x5a54e6`: el registro propio (cerrado en `0x5a53d8`), `IsOpen(0x10000)`, `IsOpen(0x20)` e `IsOpen(0x10000)` otra vez antes del inventario | 3.851 | por paso, con la tecla |
+| B apretada con todo cerrado | `0x5a4ec2..0x5a4f2e`: `IsOpen(0x10000)` | 1 | por paso, con la tecla |
+| el picking del frame (`0x59ec80`) con el mouse fuera de la UI y sin Alt | `0x59efda..0x59f46e`: el registro propio con la clase 0 o 2; `0x5e4140` → el ancho del mundo con la party cerrada | 3.848 (DW y Elf) + los del ancho | por frame (`0x637641`) |
 | el ancho del mundo `0x5bb8d0` con el inventario abierto | `IsOpen(0x10000)` e `IsOpen(0x20)` | 2 por llamada | 19 llamadores, por paso y por frame |
-| bloque de UI del paso con todo cerrado y `0x6c7a88 != 1` | `0x636e11..0x63705b` | 0 | por paso |
+| el resto del bloque de UI del paso (sin `0x59ff10`), con todo cerrado y `0x6c7a88 != 1` | `0x636e11..0x63705b` | 0 | por paso |
 | lo mismo con `0x6c7a88 == 1` y el inventario abierto | `0x636f04..0x636ffd` | 2 | por paso |
 | `0x657a90` con todo cerrado | `0x657ab0(−1, 0)` | 2 | evento (MuRet ya lo cuenta en `WorldEntry.cpp`) |
 | abrir el inventario (I) con todo cerrado | `CanOpen` 2 + máscara 2 | 4 | evento |
@@ -1007,7 +1029,7 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | Esc con nada abierto | `0x657880` 2, y abre el `0x6e` | 2 | evento |
 | abrir el personaje (C) | 4 + registro propio 3.848 + `0x550d10` (CL8.4) | ≥ 3.852 | evento |
 | abrir los amigos (F) | `CanOpen` 2 + registro propio en `0x491080` 3.848 | 3.850 | evento |
-| R (reparar, nivel ≥ 50) | registro propio + `IsOpen(0x10000)`, `IsOpen(0x20)` | 3.850 | evento (CL8.4) |
+| R (reparar, nivel ≥ 50, inventario abierto) | registro propio + `IsOpen(0x10000)`, `IsOpen(0x20)`, `IsOpen(0x10000)` | 3.851 | evento (CL8.4) |
 | abrir la tienda personal (`0x800`) o la ajena (`0x20000`) | C3 `F3 10`: relleno (`0x65ae52`/`0x65b521`) + serial (`0x40b3f0`) | +2 | evento (CL9.4) |
 | abrir la tienda de NPC (`0x10000`) | cierre de su byte (`0x65be36`) | +1 | evento (CL9.3) |
 | cerrar el trade abierto | C3 `3D` (`0x6580b7` + serial) + su byte | +3 | evento (CL9.4) |
@@ -7682,10 +7704,11 @@ pero manda igualmente. Sector igual no cambia cuerpo ni manda. byte381 se retien
 `Protocol::Movement::WriteFacing`/`ServerSession::SendFacing` publican los bytes crudos sin
 normalizar direction. Sus 12 tests cubren 39→40, guardas, sector/borde 112,5, modo/ventana, orden de
 campos antes del envío, wrap y errores con prefijo conservado. Las pruebas wire son de sesión y
-protocolo; el llamador conserva cabeza→rama quieta/movimiento→gates→clic→57cfc0. El binding normal
-actual usa centerX=320 y acción!=3e; la guarda1000 ya cortó antes. El ancho que cambia por ventanas
-y la guarda de blanco6c8e3c carecen de productor UI portado: el parámetro permite representarlos,
-pero no acredita esas rutas. Tampoco implementa las interacciones de llegada de CL9.
+protocolo; el llamador conserva cabeza→rama quieta/movimiento→gates→clic→57cfc0. Desde el hito 1 de la
+CL8, `MoveHero` arma centerX con `PanelRegistry::WorldWidth() / 2` (`0x59b188`), lee `0x775857c` de la UI
+del paso (`GameUiState::mouseOnUi`) en `0x59b37a` y `0x59b853`, y la ventana `0x40000` del registro
+real. La guarda de blanco6c8e3c carece de productor UI portado. Tampoco implementa las interacciones de
+llegada de CL9.
 
 **El paso entre celdas** (*emulado* con `0x4f37c0`, `0x4ea270` y `0x508a80` reales).
 

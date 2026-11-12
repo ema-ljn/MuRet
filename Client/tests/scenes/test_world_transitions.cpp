@@ -402,18 +402,20 @@ TEST(WorldTransitionsTest, UnportedOpenWindowsKeepTheConfirmedWaitPrefixAndStopB
 {
     Transition tested;
     Publisher publisher;
-    tested.world.Runtime().movement.windowsMask = 0x8000;
+    // El NPC de la caja (0x8000), que cierra la CL9.3.
+    tested.world.Runtime().panels.delegated.trainer = 1;
     tested.world.Runtime().warpCounter = 9999999;
     tested.Hero().alpha = 1.0f;
     const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 30, 31, 0},
                                                       Transition::PlayerKey, tested.Resources(), publisher);
     ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x657a90"), std::string::npos);
+    EXPECT_NE(result.Error().find("0x657ab0(0x8000)"), std::string::npos);
     EXPECT_EQ(publisher.confirmations, 1);
     EXPECT_EQ(tested.world.Runtime().warpCounter, 30);
     EXPECT_EQ(tested.Hero().alpha, 1.0f);
     EXPECT_FALSE(tested.world.Map().effects.Effects()[0].alive);
-    EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 20).State());
+    // Los 20 del prefijo y la consulta del comercio (0x20, 0x657fc1), que 0x657ab0 hace antes que la del 0x8000.
+    EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 20 + 1).State());
 }
 TEST_F(WorldTransitionsMapsTest, LeavingChaosCastleStopsAtTheUiEvenWithEquipmentAvailable)
 {

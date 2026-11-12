@@ -112,6 +112,10 @@ public:
 private:
     // 0x6362b2..0x63693a: solo el primer paso de la escena.
     void StepEntry();
+    // Los botones del mouse del WndProc y 0x623e70, los diálogos, antes de la lógica de la escena (GameSceneUi.cpp).
+    [[nodiscard]] Core::Expected<void, std::string> StepTheDialogs(const Input::InputState& input);
+    // 0x636ded..0x63705b: el bloque de la UI del paso.
+    [[nodiscard]] Core::Expected<void, std::string> StepTheUi(const Input::InputState& input);
     // 0x636da3..0x63717f: el paso con el mundo cargado, hasta su primer corte.
     [[nodiscard]] Core::Expected<void, std::string> StepWorld(const Input::InputState& input);
     [[nodiscard]] Core::Expected<void, std::string> StepTheFloorItems(float worldClock);
@@ -139,7 +143,7 @@ private:
     // 0x5fbb00 → 0x5fb570: el trapecio alrededor de `target`, con su transición si corre un frame. Con un
     // frame los dos quedan en WorldRuntime (TerrainPolygonFrame.h); en un dibujo intermedio, nada.
     [[nodiscard]] Core::Expected<World::TerrainPolygon, std::string>
-    PolygonOfTheFrame(const Render::Camera3D& camera, const glm::vec3& target, int frames);
+    PolygonOfTheFrame(const Render::Camera3D& camera, const glm::vec3& target, std::int32_t worldWidth, int frames);
     // 0x637410: terreno, objetos, suelo, aves y personajes; después continúa la cola del frame.
     // `frames` son los frames del original del reloj: con 0, los objetos no sacan rand().
     [[nodiscard]] Core::Expected<void, std::string> DrawTheWorldPass(SceneCanvas& canvas, const Render::Pass3D& pass,
@@ -151,6 +155,8 @@ private:
                                                                  const World::TerrainPolygon& polygon, int frames);
     [[nodiscard]] Core::Expected<void, std::string> DrawTheTail(SceneCanvas& canvas, const Render::Pass3D& pass,
                                                                 const World::TerrainPolygon& polygon, int frames);
+    // 0x637641..0x6376eb: el picking del frame y la pasada 2D.
+    [[nodiscard]] Core::Expected<void, std::string> DrawTheInterface();
     // Los globales de 0x60b3d0 del frame, que comparten lo que cuelga de los personajes (0x509340) y los
     // ítems del piso (0x608a00): `item` apunta a `special`.
     void FillTheItemContexts(ItemSpecialDrawContext& special, ItemDrawContext& item, Core::Duration frameClock,

@@ -51,6 +51,20 @@
 
 namespace
 {
+// La semilla que deja el rand() de la CRT en `state` después de `draws` llamadas: el LCG (· 214013 + 2531011) se
+// invierte módulo 2^32 con el inverso de 214013.
+constexpr std::uint32_t SeedBefore(std::uint32_t state, int draws)
+{
+    constexpr std::uint32_t InverseMultiplier = 0xb9b33155u;
+    for (int i = 0; i < draws; ++i)
+        state = (state - 2531011u) * InverseMultiplier;
+    return state;
+}
+
+// 0x636ded..0x63705b con el registro propio abierto: la barra de skills no saca, y quedan las consultas del
+// comercio y de la tienda de NPC de Q, W y E (0x5a343e) y las de IsOpen(0) (0x5a5511).
+constexpr int NestedGameUiStepDraws = 2 + 2;
+
 class KalimaLiveObjectsTest : public Client::Tests::T16::SceneTest, public testing::WithParamInterface<int>
 {
 protected:
@@ -253,11 +267,11 @@ TEST_P(KalimaLiveObjectsTest, NativeStepSpawnsTheAmbientModelAndDrawsItsWholeLif
     Step();
     DrawCompleteFrame();
     ASSERT_FALSE(m_scene->Failure()) << *m_scene->Failure();
-    // Semilla del contrato4385a0: selección,spawn,XY,tres del5ac/7,guard15 y escala9.
+    // Semilla del contrato4385a0: selección,spawn,XY,tres del5ac/7,guard15 y escala9. La UI del paso saca antes.
     m_world->OwnCharacter().level = 40;
     m_world->Runtime().ownRecordDepth = 1;
     m_cloth->logicSteps = 1;
-    m_cloth->random = Client::Render::Models::CrtRandom(335);
+    m_cloth->random = Client::Render::Models::CrtRandom(SeedBefore(335, NestedGameUiStepDraws));
     Step();
     ASSERT_FALSE(m_scene->Failure()) << *m_scene->Failure();
     auto effects = m_world->Map().effects.Effects();

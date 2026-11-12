@@ -29,6 +29,8 @@ public:
     [[nodiscard]] Render::Text::TextExtent Measure(Render::Text::FontKind font, std::string_view text) const override;
     void Draw(int x, int y, std::string_view text, const Render::Text::TextStyle& style) override;
     void DrawClippedAtLeft(int x, int y, std::string_view text, const Render::Text::TextStyle& style) override;
+    void DrawColumns(int x, int y, std::string_view text, const Render::Text::TextStyle& style, int firstColumn,
+                     int columns) override;
     void DrawBoxed(int x, int y, std::string_view text, const Render::Text::TextStyle& style,
                    const Render::Text::BoxShape& box, bool clampY) override;
 

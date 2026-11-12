@@ -116,6 +116,21 @@ Core::Expected<void, std::string> TextCache::DrawClippedAtLeft(SpriteBatch& batc
     return {};
 }
 
+Core::Expected<void, std::string> TextCache::DrawColumns(SpriteBatch& batch, int x, int y, std::string_view text,
+                                                         const TextStyle& style, int firstColumn, int columns)
+{
+    // 0x467289: sin columnas no hay tramos.
+    if (columns <= 0)
+        return {};
+    const Core::Expected<Entries::iterator, std::string> found =
+        Find(Key{.font = style.font, .colors = style.colors, .text = text, .skipped = firstColumn, .columns = columns},
+             batch);
+    if (!found.HasValue())
+        return Core::Unexpected(found.Error());
+    DrawPieces(batch, *found.Value(), x, y);
+    return {};
+}
+
 Core::Expected<void, std::string> TextCache::DrawBoxed(SpriteBatch& batch, int x, int y, std::string_view text,
                                                        const TextStyle& style, const BoxShape& box, bool clampY)
 {
@@ -178,9 +193,9 @@ std::size_t TextCache::UsedSlots() const
 bool TextCache::KeyLess::operator()(const Key& a, const Key& b) const
 {
     return std::tie(a.font, a.colors.text, a.colors.background, a.text, a.skipped, a.box.width, a.box.rows,
-                    a.box.prefixColumns, a.box.prefixColor) < std::tie(b.font, b.colors.text, b.colors.background,
-                                                                       b.text, b.skipped, b.box.width, b.box.rows,
-                                                                       b.box.prefixColumns, b.box.prefixColor);
+                    a.box.prefixColumns, a.box.prefixColor,
+                    a.columns) < std::tie(b.font, b.colors.text, b.colors.background, b.text, b.skipped, b.box.width,
+                                          b.box.rows, b.box.prefixColumns, b.box.prefixColor, b.columns);
 }
 
 Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const Key& key, const SpriteBatch& batch)
@@ -195,6 +210,10 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
     const bool boxed = key.box.width > 0;
     TextExtent extent = m_rasterizer->Measure(key.font, key.text);
     extent.width = std::max(extent.width - key.skipped, 0);
+    // 0x4670ba..0x4670d0: el alto de un texto vacío es el de "0".
+    if (key.columns > 0)
+        extent = TextExtent{.width = key.columns,
+                            .height = m_rasterizer->Measure(key.font, key.text.empty() ? "0" : key.text).height};
     if (boxed)
         extent = TextExtent{.width = key.box.width, .height = key.box.rows};
     // La caja de un globo es una sola: el quad muestra más de 256 columnas con la última repetida.
@@ -215,7 +234,7 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
         EvictOldest();
     }
 
-    Entry entry{key.font, key.colors, std::string(key.text), key.skipped, key.box, extent, {}};
+    Entry entry{key.font, key.colors, std::string(key.text), key.skipped, key.box, key.columns, extent, {}};
     entry.boxes.reserve(boxes);
     std::vector<Data::Textures::LoadedTexture> textures;
     textures.reserve(boxes);
@@ -260,7 +279,8 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
 
     m_entries.push_front(std::move(entry));
     const Entry& front = m_entries.front();
-    m_index.emplace(Key{front.font, front.colors, front.text, front.skipped, front.box}, m_entries.begin());
+    m_index.emplace(Key{front.font, front.colors, front.text, front.skipped, front.box, front.columns},
+                    m_entries.begin());
     return m_entries.begin();
 }
 
@@ -271,7 +291,7 @@ void TextCache::EvictOldest()
         return;
     }
     const Entry& oldest = m_entries.back();
-    m_index.erase(Key{oldest.font, oldest.colors, oldest.text, oldest.skipped, oldest.box});
+    m_index.erase(Key{oldest.font, oldest.colors, oldest.text, oldest.skipped, oldest.box, oldest.columns});
     // Al revés, para que la pila los vuelva a dar en el orden en que estaban.
     for (auto slot = oldest.boxes.rbegin(); slot != oldest.boxes.rend(); ++slot)
     {

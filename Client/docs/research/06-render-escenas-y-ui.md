@@ -1760,6 +1760,100 @@ Los nombres del `0x180b` (`0x5b8453`, con el acceso de la skill 30 + nivel) y de
 alcanzan: esos tipos salen al principio. La altura es en enteros sin signo, `((N − M) · cy + M · cy / 2) · 480 / H`
 (`0x6d5d64`), y la caja va arriba de y o, si no entra, en `y + Item.bmd+0x25 · 20`, con el modo 2 y el marco.
 
+#### El cuerpo de la skill
+
+`0x5b90b0(x, y, lugar, skill de asedio)` (`Scenes::DrawTheSkillTooltip`, 5.760 bytes), cdecl. `0x5f7bc0` lo llama con
+el lugar de la skill del héroe (`0x6c9320`) y 0. El asedio (`0x652c90`, CL9.5) lo llama con el `+0x371` del héroe:
+`(0x37, 0x45, 0x59fb80(+0x371), +0x371)`.
+
+Lee la clase (`+0x1d4 & 7`) antes de todo y llama a `0x421c10(x, y, lugar)`, **la ayuda de los comandos del cuervo**.
+Con un lugar de `0x78` a `0x7b` y el Dark Lord, sin limpiar nada, escribe:
+
+- en el renglón 0, el nombre del comando c (el texto 1219 + c, de formato) en azul y negrita;
+- en el 1, el color 0;
+- `\n` en el 1 y en el 2;
+- en el 3, la ayuda (1223 + c) (Q-C720).
+
+Dibuja la caja con 4 renglones arriba de y, a `(4 · cy) / 2 / ry` (Q-C721), y devuelve 1: el cuerpo sale sin abrir
+nada ni sacar `rand()`.
+
+Si no, abre el registro propio y, con la skill del byte `+0x6c + lugar`:
+
+1. Los daños. `0x5513d0` da la magia. `0x5516e0` (thiscall que no lee el registro) da el de la skill: con s, el
+   `+0x21` de su entrada, s y s + s / 2, más el mismo p de los conjuntos que la magia. `0x5b8b80` da el ataque, que se
+   suma al de la skill. Los dos primeros abren la entrada de la skill (60 `rand()` al cerrarla en 0); el ataque abre
+   el registro propio adentro del otro y no saca nada.
+2. `0x551c70(skill, 1, nombre, &maná, &alcance, &stamina)` copia el nombre con `strcpy` a un buffer de 256 en la
+   pila. Deja el word `+0x22`, el byte `+0x26` y el word `+0x24` extendidos a 32 bits; el segundo argumento no se
+   usa.
+3. El nombre es el 1200 (`wsprintfA("%s")`) con la `0x3c`, algo en la mano derecha del héroe (`+0x2b8` ≠ −1) y la
+   opción `0x42` entre las `D+0x2a` del lugar 0 del registro (`+0xb97 + i`).
+4. Cuenta en EBX, sin limpiar ni tocar `0x78abb30` ni `0x78abb34`: `\n`, el nombre (`"%s"`) en azul y negrita, y
+   `\n`.
+5. Los stats, con lo de los ítems y en 16 bits:
+   - fuerza: `+0x18 + +0x2a`;
+   - agilidad: `+0x1a + +0x2c`;
+   - vitalidad: `+0x1c + +0x2e`;
+   - energía: `+0x1e + +0x30`;
+   - comando: `+0x20 + +0x36`.
+6. El daño según la clase:
+   - el Wizard con la `0x10` escribe la absorción, por `_ftol` (Q-C724):
+     - el 578 con `agilidad · 0,02f + energía · 0,005f + 10`;
+     - el 880 con `+0x28 · 0,02f`;
+     - el 881 con `energía · 0,025f + 60`;
+   - el Wizard con otra skill escribe el 170 con la magia, salvo que el cuarto argumento sea `0x43`, `0x44` o `0x45`
+     (Q-C722);
+   - las clases 1 a 4 dependen de la skill:
+     - con la `0x3e`, el 1237 en el color 5;
+     - con una de la tabla de `0x5ba73c` (`6`, `0xf`, `0x10`, `0x12`, `0x1a..0x1c`, `0x1e..0x24`, `0x30`, `0x35`,
+       `0x3f`, `0x40`, `0x43..0x48`, `0x4b` y `0x4c`), nada;
+     - con las demás, el 879 con el daño de la skill más el del ataque;
+   - las clases 5 a 7 no escriben nada.
+7. Con la `0x4c`, v es el `+0x21` de su entrada (`0x552470(0x4c, &v)`, con el acceso). Escribe el 879 con d y
+   d + 30, y d depende de la clase:
+   - 1 y 3: `f / 3 + a / 5 + vi / 5 + e / 7 + v`;
+   - 0: `f / 5 + a / 5 + vi / 7 + e / 3 + v`;
+   - 2: `f / 5 + a / 3 + vi / 7 + e / 5 + v`;
+   - 4: el del 0 más `c / 3`;
+   - 5 a 7: el daño de la skill más el del ataque.
+8. La elfa:
+   - con la `0x1a`, el 171 con `e / 5 + 5`;
+   - con la `0x1b`, el 172 con `(e >> 3) + 2`;
+   - con la `0x1c`, el 173 con `e / 7 + 3`.
+9. Los costos:
+   - el 174 con el alcance, si no es 0;
+   - el 175 con el maná;
+   - el 360 con la stamina, si es más de 0.
+10. El Dark Knight, en el color 5:
+    - el 96 con la `0x2f`;
+    - el 99 (el combo) con el `+0x390` del héroe en 1, nivel 220 o más y una skill de `0x13..0x17` o `0x29..0x2b`.
+      `+0x390` lo pone en 0 `0x511290` y en 1 las misiones (`0x418e20`, `0x418ee0`).
+11. `0x5519f0(skill)` (thiscall, con el acceso) da el byte `+0x30`. Si no es `0xff`, escribe el 1080 + byte, de
+    formato y sin argumentos, en azul.
+12. El acceso de la entrada, en línea:
+    - con `+0x31` en 2, abre adentro la entrada del `+0x32`, escribe el 1480 con su nombre (el `%s` del principio de
+      la entrada) y el 1481 con su `+0x21`, los dos en el color 5, y la cierra;
+    - con `+0x31` en 1, escribe el 1482 y el 1483 con `+0x33`, en el color 5.
+
+    Después cierra la entrada.
+13. La cola:
+    - el Dark Lord con la `0x3f` y la party (`0x78aba48`) en 0 o menos: el 1185 en el color 5;
+    - con la `0x4c`: el 1926 y el 1927 en el color 5 (Q-C723);
+    - un `\n` sin color ni negrita.
+
+Cada renglón escrito, salvo los `\n`, lleva su color (0 si no dice otro) y la negrita en 0. Al final:
+
+1. Cierra el registro propio: 3.848 `rand()` si su cuenta vuelve a 0.
+2. Mide cy con `GetTextExtentPointA` sobre el primer carácter del renglón 0.
+3. Dibuja la caja arriba de y, a `((N − 3) · cy + (3 · cy) / 2) / ry` por `_ftol`, con N renglones, el modo 2 y el
+   marco. No mira si entra arriba.
+
+**Los `rand()`**, con las entradas en 0:
+
+- una skill saca 4.148: cinco accesos de Skill.bmd y el registro;
+- la `0x4c` saca 60 más;
+- `+0x31` en 2 con otra skill en `+0x32` saca otros 60.
+
 **Lo que porta MuRet**: el orden de `0x5f7bc0`, la ayuda de los íconos de estado (`Scenes/GameHud.cpp`), la caja, la
 ventana y el cartel del set, el cuerpo del ítem, el de reparar (salvo el precio de un ítem gastado, que corta en
 `0x5b838d`: P-C127), el sprintf del CRT (`UI/SprintfFormat`) y `0x40ebd0` en la cola de los comandos del chat
@@ -1767,9 +1861,10 @@ ventana y el cartel del set, el cuerpo del ítem, el de reparar (salvo el precio
 `test_chat_commands.cpp`. Del cuerpo del ítem cortan con su dirección: `0x1a04` y `0x1a05` (`0x4229d4`, P-C126), el
 precio de la tienda de NPC (`0x5b2d23`), el nombre del `0x1c0c` de nivel 2 (la tabla de `0x6c9350`) y del `0x1a0a` (la
 tabla de monstruos de `0x7681eb8`), las líneas del `0x1a1d` (`0x5b63b7`) y del `0x1c1c` (`0x437c90`), el `0x1a13`
-desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125). El de la skill (`0x5b90b0`)
-corta con su dirección (P-C101), y el modo 3 de las ayudas (`0x5afc00`, `0x5af590` y `0x5af9b0`) no se alcanza
-(P-C102).
+desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125). El cuerpo de la skill y la ayuda
+de los comandos están en `Scenes/SkillTooltip.cpp`, con `0x5516e0` en `Scenes/OwnDamage` (`test_skill_tooltip.cpp`).
+Cortan con su dirección lo que leen fuera de lo que MuRet tiene (P-C135), y lo que depende de otras olas o de la VM
+está en P-C136. El modo 3 de las ayudas (`0x5afc00`, `0x5af590` y `0x5af9b0`) no se alcanza (P-C102).
 
 ### La ventana del personaje
 

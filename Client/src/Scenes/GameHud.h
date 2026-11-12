@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
@@ -55,6 +56,8 @@ struct GameHudContext
     const Data::Text::TextTable* texts = nullptr;
     const Data::Tables::ItemTable* items = nullptr;
     const Data::Tables::SkillTable* skills = nullptr;
+    // [0x6eed3c] + 0x8004, los 64 conjuntos de ItemSetOption.bmd que lee el cartel (0x40eca0); sin ellos, corta.
+    const Data::Tables::ItemSetOptionTable* setOptions = nullptr;
     // 0x5767b88: el reloj del mundo, en ms.
     float worldClock = 0.0f;
     // 0x7d3682c y 0x7d36828: el mouse en 640 × 480 (UI::MouseIn640x480).

@@ -1,5 +1,6 @@
 #include "UI/ChatCommands.h"
 
+#include "Data/Tables/ItemSetTables.h"
 #include "Data/Text/TextTable.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
@@ -7,11 +8,13 @@
 #include "UI/PanelRegistry.h"
 
 #include "support/ChatTexts.h"
+#include "support/ItemSetFiles.h"
 #include "support/SceneDataFiles.h"
 
 #include <gtest/gtest.h>
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -148,5 +151,48 @@ TEST_F(Commands, AnEmoteIsCut)
     ASSERT_FALSE(emote.HasValue());
     EXPECT_NE(emote.Error().find("CL9.1"), std::string::npos);
     EXPECT_FALSE(Client::UI::CheckTheEmotes(texts, "#e783").HasValue());
+}
+
+// 0x40ebd0: "/" y el nombre de un conjunto usado prende su cartel (+0x9305 en su índice + 1) y pone 0x77f3b08 en 0;
+// otro texto con "/" lo apaga si hay algún conjunto usado, y uno sin "/" no lo toca. Nunca es un comando (0x576912).
+TEST(SetCommands, TheNameOfASetShowsItsLabel)
+{
+    std::vector<std::byte> plain(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff});
+    const std::string_view name = "Delta";
+    const std::size_t offset = 2 * Client::Data::Tables::ItemSetOptionRecordSize;
+    for (std::size_t i = 0; i < name.size(); ++i)
+        plain[offset + i] = static_cast<std::byte>(name[i]);
+    plain[offset + name.size()] = std::byte{0};
+    plain[offset + 0x3c] = std::byte{4};
+    const Client::Data::Tables::ItemSetTables tables = Client::Tests::ItemSetTablesFrom(
+        std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0}), plain);
+    const Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
+    ChatLogState log;
+    std::array<std::string, MacroCount> macros{};
+    std::int32_t overlayMode = 3;
+    std::uint8_t label = 9;
+    const ChatCommandContext context{.texts = texts,
+                                     .items = nullptr,
+                                     .setOptions = &tables.options,
+                                     .map = 0,
+                                     .logoutRequested = false,
+                                     .warehouseOpen = false,
+                                     .log = log,
+                                     .macros = macros,
+                                     .overlayMode = overlayMode,
+                                     .setLabel = &label};
+    const auto shown = Client::UI::RunTheChatCommand(context, "/Delta", false);
+    ASSERT_TRUE(shown.HasValue()) << shown.Error();
+    EXPECT_FALSE(shown.Value().handled);
+    EXPECT_EQ(label, 3);
+    EXPECT_EQ(overlayMode, 0);
+
+    overlayMode = 3;
+    ASSERT_TRUE(Client::UI::RunTheChatCommand(context, "/Delt", false).HasValue());
+    EXPECT_EQ(label, 0);
+    EXPECT_EQ(overlayMode, 3);
+    label = 5;
+    ASSERT_TRUE(Client::UI::RunTheChatCommand(context, "Delta", false).HasValue());
+    EXPECT_EQ(label, 5);
 }
 } // namespace

@@ -10,6 +10,7 @@
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/TooltipLines.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/Dialogs.h"
@@ -131,6 +132,8 @@ struct HudState
     // [0x5763528]: el cartel de Slide.bmd (0x46aea0), que dibuja el 15 (0x46b090) y escribe al dibujar (la opacidad,
     // el corrimiento, el texto que pasa y 0x5762ee4). Lo llenan el timer 0x3eb y el 0D, y lo pasa el paso de la UI.
     UI::SlideBanner slides{};
+    // 0x78793c8, 0x787a560 y 0x78a9230: los renglones de los tooltips, sus colores y sus negritas (CL8 hito 5).
+    TooltipLines tooltip{};
 };
 
 // 0x78ab9b8, la grilla del ítem del cursor: un puntero en la .bss (0 al arrancar). Lo escriben levantar de una grilla

@@ -7,6 +7,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -133,7 +134,8 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
                                           .warehouseOpen = panels.Registry().IsOpen(UI::WarehousePanel),
                                           .log = runtime.chat.log,
                                           .macros = runtime.chat.input.macros,
-                                          .overlayMode = runtime.panels.overlayMode};
+                                          .overlayMode = runtime.panels.overlayMode,
+                                          .setLabel = &context.world.ItemSets().byte9305};
     auto outcome = UI::RunTheChatCommand(commands, text, fromMacro);
     if (!outcome.HasValue())
         return outcome;

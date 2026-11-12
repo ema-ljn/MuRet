@@ -11,6 +11,7 @@
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"
+#include "Scenes/GameTooltips.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/WorldRuntime.h"
@@ -147,6 +148,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .texts = m_texts,
         .items = m_items,
         .skills = m_skills,
+        .setOptions = m_chatTables.setOptions,
         .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
         .mouse = UI::MouseIn640x480(input, canvas.screen),
         .leftDown = input.IsDown(Input::MouseButton::Left)};
@@ -160,13 +162,17 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     // 0x637673: 0x490390, las ventanas con clase, y 0x637680: el marco común (hito 7).
     // 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9 (hito 4).
     // 0x637696: 0x62db60, las cajas viejas, en la escena 5 (hito 6).
-    // 0x63769b: 0x5f7bc0, los tooltips (hito 4).
+    // 0x63769b: 0x5f7bc0, los tooltips.
+    if (auto tooltips = DrawTheTooltips(hud); !tooltips.HasValue())
+        return tooltips;
     // 0x6376a0..0x6376b6: los avisos y, con el registro del chat en su ventana, el área vieja.
     DrawTheMessages(*m_context.world, hud.hud, canvas.sprites, canvas.text, hud.mouse, true);
     // 0x6376bb: 0x5b0550, las superposiciones.
     if (auto overlays = DrawTheOverlays(hud); !overlays.HasValue())
         return overlays;
-    // 0x6376c6: 0x40eca0, el cartel del set, con +0x9305 (hito 5).
+    // 0x6376c6: 0x40eca0, el cartel del set, con +0x9305.
+    if (auto label = DrawTheSetLabel(hud); !label.HasValue())
+        return label;
     // 0x6376cb: 0x65ee60 → 0x65fe00, la UI nueva (hito 6).
     // 0x6376d7: 0x5ac2d0, el cursor, 0x6376dc: 0x633110, el ítem 3D del diálogo (hito 6), y 0x6376e1: el cursor otra
     // vez, el mismo quad.

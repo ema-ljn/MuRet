@@ -11,6 +11,7 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/HudItems.h"
+#include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
@@ -486,12 +487,17 @@ Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context
         return cut("0x5e58ea: la grilla de la tienda personal (0x78ab0b8) es de la CL9.4");
     if (state.delegated.trainer == TrainerWithBox)
         return cut("0x44ad10: la grilla de la caja del entrenador (0x723c80) es de la CL9.3");
-    // 0x40e6c0: el mouse sobre el cartel, sin mirar el clic (Q-C472).
+    // 0x40e6c0: el mouse sobre el cartel, sin mirar el clic (Q-C472), prende la ventana del set (+0x9304), que dibujan
+    // los tooltips (0x40e850), y gasta el flanco del clic.
     const std::int32_t x = runtime.hud.inventoryX;
     const std::int32_t y = runtime.hud.inventoryY;
     if (InRect(context, x + 0xe, y + 0x16, x + 0xb0, y + 0x2a))
-        return cut("0x40e6f5: el cartel del set bajo el mouse (+0x9304 y su ventana, 0x40e850 en los tooltips de "
-                   "0x5f7bc0) es de la segunda parte del hito 4 (P-C71)");
+    {
+        context.world.ItemSets().byte9304 = 1;
+        runtime.movement.pendingClick = false;
+        runtime.movement.mouseUpdateTime = 0;
+        runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
+    }
     return {};
 }
 

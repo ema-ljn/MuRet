@@ -10,12 +10,13 @@
 
 #include <cstdint>
 #include <optional>
+#include <string_view>
 
 // La barra de la selección (la ventana +0x7f50 del modo 4: 0x63e820 la arma, 0x63ec00 la dibuja y
 // 0x63eb90 la atiende; 06 § La selección de personaje, "La barra"). No es modal: tapa solo su
-// rectángulo, y los personajes no se eligen debajo. Sin el string del primer aviso 0x0D del servidor
-// (+0x511), que MuRet no lee. Se atiende en el paso (Q-C81). *Estático*, y *emulado* el lugar en
-// cuatro pantallas.
+// rectángulo, y los personajes no se eligen debajo. El texto del primer 0D con 1 que llega en la
+// selección (+0x511) lo guarda el juego (WorldRuntime): la barra del original se arma una vez. Se
+// atiende en el paso (Q-C81). *Estático*, y *emulado* el lugar en cuatro pantallas.
 namespace Client::UI
 {
 struct SelectionBarLayout
@@ -64,9 +65,10 @@ public:
     // Si `mouse`, en píxeles, cae en el rectángulo de la barra.
     [[nodiscard]] bool Covers(Point mouse, App::PixelSize screen) const;
 
-    // El adorno y la franja, el texto 1710, los 436 y 437 con la cuenta bloqueada y los cuatro
-    // botones, con la mezcla normal.
-    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen);
+    // El adorno y la franja, el aviso del servidor (+0x511, `serverNotice`), el texto 1710, los 436
+    // y 437 con la cuenta bloqueada y los cuatro botones, con la mezcla normal.
+    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen,
+              std::string_view serverNotice = {});
 
     [[nodiscard]] const Button& CreateButton() const;
     [[nodiscard]] const Button& ConnectButton() const;

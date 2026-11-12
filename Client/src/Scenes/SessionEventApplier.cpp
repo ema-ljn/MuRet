@@ -2,19 +2,26 @@
 
 #include "App/CharacterEvent.h"
 #include "App/ServerSession.h"
+#include "App/WindowState.h"
 #include "App/WorldEvent.h"
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
+#include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
+#include "Protocol/OptionData.h"
 #include "Protocol/World.h"
+#include "Render/Models/Cloth.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/ChatReceive.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/InventoryReply.h"
 #include "Scenes/MovementReplies.h"
 #include "Scenes/ReturnToSelection.h"
+#include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -23,6 +30,7 @@
 #include "World/LeafWeather.h"
 
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 #include <variant>
@@ -50,6 +58,20 @@ WorldEntryResources WithTheSiegeRequest(const WorldEntryResources& resources, Ap
     WorldEntryResources bound = resources;
     bound.requestCastleSiegeState = [&session] { session.RequestCastleSiegeState(); };
     return bound;
+}
+
+// Lo que el chat que llega lee del juego y de la sesión: 0x6d5edc es el elegido de la lista.
+ChatReceiveContext ChatContextOf(const WorldEntryResources& resources, const App::ServerSession& session)
+{
+    const Protocol::Character::CharacterEntry* chosen = session.ChosenCharacter();
+    return ChatReceiveContext{.world = resources.world,
+                              .random = resources.cloth.random,
+                              .measure = resources.textMeasure,
+                              .screen = resources.screen ? resources.screen() : App::PixelSize{640, 480},
+                              .scene = resources.scene ? resources.scene() : std::nullopt,
+                              .texts = resources.texts,
+                              .chosenSlot =
+                                  chosen != nullptr ? std::optional<std::uint8_t>(chosen->slot) : std::nullopt};
 }
 
 // El 0x3d de la respuesta va a la sesión que la está aplicando.
@@ -101,6 +123,26 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
     }
     if (const auto* regen = std::get_if<Protocol::World::Regen>(&event))
         return ApplyRegen(*regen, session.PlayerIndex(), WithTheSiegeRequest(m_resources, session));
+    if (const auto* chat = std::get_if<Protocol::Messages::Chat>(&event))
+    {
+        // 0x4c6095: en el login, el 00 es el saludo del CS y pide la lista por el socket abierto.
+        if (m_resources.scene && m_resources.scene() == SceneId::Login)
+        {
+            session.ResendServerListRequest();
+            return {};
+        }
+        return ApplyChat(*chat, ChatContextOf(m_resources, session));
+    }
+    if (const auto* chat = std::get_if<Protocol::Messages::KeyChat>(&event))
+        return ApplyKeyChat(*chat, ChatContextOf(m_resources, session));
+    if (const auto* whisper = std::get_if<Protocol::Messages::Whisper>(&event))
+        return ApplyWhisper(*whisper, ChatContextOf(m_resources, session));
+    if (const auto* result = std::get_if<Protocol::Messages::WhisperResult>(&event))
+        return ApplyWhisperResult(*result, ChatContextOf(m_resources, session));
+    if (const auto* notice = std::get_if<Protocol::Messages::Notice>(&event))
+        return ApplyNotice(*notice, ChatContextOf(m_resources, session));
+    if (const auto* options = std::get_if<Protocol::OptionData::OptionData>(&event))
+        return ApplyOptionData(*options, ChatContextOf(m_resources, session));
     return ApplyWorldContent(event, session);
 }
 

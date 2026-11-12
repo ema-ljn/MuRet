@@ -38,6 +38,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
+#include "Scenes/ChatBubbles.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/HelperTable.h"
@@ -268,6 +269,8 @@ void GameScene::StepEntry()
             }
             UI::ClearTheLog(runtime.chat.log, runtime.ui.chatModes);
             UI::ClearTheChatFilter(runtime.chat.log);
+            // 0x636920: 0x46b010, las colas del cartel de Slide.bmd y su timer (0x46b0e0, que abre el registro propio
+            // y sortea un texto), sin portar (08, P-C80).
         }
     }
     if (m_sent || m_session == nullptr)
@@ -352,6 +355,14 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     {
         return helpers;
     }
+    // 0x6370f9: 0x557650, los globos. 0x6370fe..0x637105: 0x451c10, las tiendas personales (0x7245c8), que no
+    // tienen ninguna hasta la CL9.4.
+    const UI::Point bubbleMouse = UI::MouseIn640x480(input, m_screen);
+    if (auto bubbles = StepTheChatBubbles(
+            *m_context.world,
+            ChatBubbleStepInput{.mouseX = bubbleMouse.x, .mouseY = bubbleMouse.y, .screen = m_screen});
+        !bubbles.HasValue())
+        return bubbles;
     // 63710a: MoveHero sale con más de30, pero la lógica posterior sigue durante la espera.
     if (auto moved = StepTheHero(input); !moved.HasValue())
         return moved;

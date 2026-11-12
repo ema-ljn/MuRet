@@ -31,6 +31,9 @@ namespace Client::Scenes
 // 06, fila 7 de 0x4c3940: doce lugares desde +0xb68, de a 0x48, y el tipo en −1 al vaciarlos.
 inline constexpr std::size_t OwnEquipmentSlotCount = 12;
 inline constexpr std::uint16_t EmptyOwnItemId = 0xffff;
+// +0x26c: las teclas de las skills de cada uno de los cinco lugares de la selección, de a 0x100.
+inline constexpr std::size_t OwnSkillKeyPlaces = 5;
+inline constexpr std::size_t OwnSkillKeyBytes = 0x100;
 
 struct OwnCharacterRecord
 {
@@ -115,8 +118,12 @@ struct OwnCharacterRecord
     std::uint16_t levelUpPoints = 0; // +0x68
     std::uint8_t byte6a = 0;
     std::array<std::uint32_t, 16> words6c{};
+    // +0x26c a +0x76b: las teclas de las skills, 0x100 bytes por cada lugar de la selección (0x6d5edc, de 0 a 4). El
+    // F3 30 llena el del elegido (0x4dd632..0x4dd6dc): 0xff en todos y, en el lugar de cada skill del registro, el
+    // número de su tecla. Las lee el HUD (0x5a61f9) y las usa la CL9.
+    std::array<std::array<std::uint8_t, OwnSkillKeyBytes>, OwnSkillKeyPlaces> skillKeys{};
     // +0x76c a +0xb67: la espera de cada skill, por el índice de la barra (0x5531d0, que la dibuja sobre el ícono).
-    // Nadie la escribe hasta la CL9.2: queda en 0. Las teclas de las skills (+0x26c, del F3 30) son del hito 3.
+    // Nadie la escribe hasta la CL9.2: queda en 0.
     std::array<std::int32_t, 255> skillDelays{};
 
     std::array<World::ItemState, OwnEquipmentSlotCount> equipment{}; // +0xb68

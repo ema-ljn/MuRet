@@ -9,6 +9,7 @@
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/WhisperSenders.h"
 #include "World/GameCamera.h"
 
 #include <cstdint>
@@ -49,8 +50,9 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
     // nueva (SelectionState::BeginSelection y GameScene::Enter).
     runtime.drawingEnabled = false; // 0x4c38f9
     // 0x4c3900: el estado 0 (la sesión espera la lista). 0x4c390a: 0x4c2480.
-    resources.camera.level = 0; // 0x4c250e, el word 0x7d3a0ec
-    runtime.map = NoMap;        // 0x4c2540
+    resources.camera.level = 0;   // 0x4c250e, el word 0x7d3a0ec
+    runtime.ui.autoAttack = true; // 0x4c2533, 0x6c8e3c
+    runtime.map = NoMap;          // 0x4c2540
     // 0x4c2546: 0x419900 manda el C1 03 31 (la sesión). 0x4c2575..0x4c25ea: abre el registro propio por la
     // tabla de protección (o lo da de alta con la cuenta en 1, que es lo mismo para MuRet); 0x4c2600..
     // 0x4c260b escribe; 0x4c260f..0x4c264b lo cierra, y el cierre que lo deja en 0 lo vuelve a cifrar
@@ -64,6 +66,10 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
         own.word40 = 0;
         own.word42 = 0;
     }
+    // 0x4c266b: el sonido de los avisos (0x77f3b78) en 0, y 0x4c2671: 0x555030 vacía la lista de los que susurraron
+    // (el próximo lugar, 0x77f3b9c, queda).
+    runtime.chat.noticeSound = false;
+    UI::ClearTheWhisperSenders(runtime.chat.whisperSenders);
     // 0x4c2650..0x4c26fd: globales y objetos que MuRet no tiene, el byte del A0 ([0x710148] + 4 en 0xff,
     // Q-C215) y 0x657670, cuyo 0x4499b0 manda el segundo C1 03 31 (la sesión, Q-C214).
     // MuRet: la cámara copia la posición del héroe publicado, que la selección lee desde acá (Q-C213).

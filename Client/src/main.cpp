@@ -651,6 +651,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // Los modelos del personaje y de los ítems: los lee la carga (0x61ccb0) y quedan, como GameData.
     // La respuesta del F3 03 toma de acá Player.bmd para la acción de parado.
     Scenes::GameModels models;
+    // La escena en curso (0x6d5dc8) que leen el 00 y el 0D: la del SceneManager, que se arma después.
+    const Scenes::SceneManager* sceneManager = nullptr;
     Scenes::SessionEventApplier eventApplier(
         Scenes::WorldEntryResources{.world = world,
                                     .selection = selection,
@@ -662,7 +664,12 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
                                     .items = scenes.data.items ? &scenes.data.items->table : nullptr,
                                     .itemSetTables = scenes.data.itemSets ? &*scenes.data.itemSets : nullptr,
                                     .log = log,
-                                    .clock = &clock});
+                                    .clock = &clock,
+                                    .textMeasure = &frame.Value()->TextMeasure(),
+                                    .screen = [&window] { return window.PixelSize(); },
+                                    .scene = [&sceneManager]() -> std::optional<Scenes::SceneId>
+                                    { return sceneManager != nullptr ? sceneManager->Current() : std::nullopt; },
+                                    .texts = scenes.data.text ? &*scenes.data.text : nullptr});
     std::optional<Online> online;
     if (startup.server)
     {
@@ -737,6 +744,7 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     };
     Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, models, session), *frame.Value(), clock,
                                  pollNetwork, log, takeSceneOrder, beforeSceneFrame, afterSceneFrame, afterSceneStep);
+    sceneManager = &manager;
     // La primera vuelta de WinMain, antes del primer frame: la escena entra adentro de él (0x63945d).
     Scenes::StepTheWinMainLoop(winMain, clothWorld.random);
     if (!manager.Start(Scenes::FirstScene).HasValue())

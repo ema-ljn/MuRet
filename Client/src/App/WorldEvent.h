@@ -2,6 +2,8 @@
 
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Messages.h"
+#include "Protocol/OptionData.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
 
@@ -26,5 +28,7 @@ struct ReturnToSelectionReceived
 using WorldEvent =
     std::variant<Protocol::Character::CharacterSelectResult, Protocol::Character::InventoryList, ClearInventoryReceived,
                  ReturnToSelectionReceived, Protocol::World::Weather, Protocol::Movement::Walk,
-                 Protocol::Movement::Damage, Protocol::World::Teleport, Protocol::World::Regen>;
+                 Protocol::Movement::Damage, Protocol::World::Teleport, Protocol::World::Regen,
+                 Protocol::Messages::Chat, Protocol::Messages::KeyChat, Protocol::Messages::Whisper,
+                 Protocol::Messages::WhisperResult, Protocol::Messages::Notice, Protocol::OptionData::OptionData>;
 } // namespace Client::App

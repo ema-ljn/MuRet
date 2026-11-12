@@ -657,7 +657,8 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     if (panels.IsOpen(UI::MovePanel) && ui.capture == 0)
         return Core::Unexpected(std::string("0x5ecdc0: el paso de la ventana /move (0x449850) es del hito 6"));
     ui.hovered = 0;
-    // 0x636e35: 0x46b7b0, las colas de los avisos y el cartel (hito 3), vacías.
+    // 0x636e35: 0x46b7b0, las dos colas del cartel de Slide.bmd (0x46add0), sin portar (08, P-C80): vacías, porque
+    // el 0D que las llena corta.
     // 0x636e3c: la lista de ventanas ([0x5763524] vtbl + 0x18), vacía hasta el hito 7.
     if (auto old = StepTheOldWindows(context); !old.HasValue())
         return old;

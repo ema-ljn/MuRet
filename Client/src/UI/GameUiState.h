@@ -61,6 +61,10 @@ struct GameUiState
     // 0x7d3685c: el derecho abajo. Lo prende WM_RBUTTONDOWN, lo apaga WM_RBUTTONUP y lo apaga quien lo usa (el
     // registro del chat, 0x45d760).
     bool rightDown = false;
+    // 0x6c8e3c (.data 1): el ataque automático. Lo escriben el F3 30 (el bit 0x01, 0x4dd7d7), el menú de Esc
+    // (0x625632) y la vuelta a la selección (0x4c2533, en 1). Sus lectores de MuRet (MoveHero en 0x59b22f y 0x59b89e y
+    // el picking en 0x59ee4b) lo piden junto con un elegido (0x6c8e30, 0x6c8e38), que MuRet deja en −1.
+    bool autoAttack = true;
     // 0x7d366d8: la rueda, (short) HIWORD(wParam) / 120 del último WM_MOUSEWHEEL (0x4b4c19). Nadie la vuelve a 0 por
     // paso: queda hasta que la usa alguien (el registro del chat, 0x479960; el volumen del menú, 0x625782).
     std::int32_t wheel = 0;

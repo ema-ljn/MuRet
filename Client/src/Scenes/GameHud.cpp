@@ -1282,7 +1282,9 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     context.sprites.SetColor(White);
     if (auto event = DrawTheEventObject(frame); !event.HasValue())
         return event;
-    // 12. 0x5a9050: los globos y los nombres sobre las cabezas (0x77e1be0), vacíos hasta el hito 3.
+    // 12. 0x5a9050: los globos y los nombres sobre las cabezas (0x77e1be0, Scenes/ChatBubbles), sin dibujar (08,
+    // P-C81): no saca rand() y escribe en cada entrada dónde quedó (+0x278..+0x284), que lee el clic derecho de
+    // 0x557650.
     // 13. 0x451d10 y 0x451c20: los carteles del singleton de 0x7245c8 (CL9.5).
     // 14. 0x5a6cc0: el marcador del duelo, con 0x78abad8 (hito 4).
     // 15. 0x46b090: la caja sin leer de [0x5763528] (hito 7).

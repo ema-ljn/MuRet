@@ -31,6 +31,8 @@
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
+#include "Protocol/Messages.h"
+#include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/World.h"
@@ -233,6 +235,17 @@ void ServerSession::RegisterGameServerHandlers()
         m_gameServer.On(Protocol::World::WorldOpcode, Protocol::World::RegenSubcode,
                         [this](const Network::Packet& packet) { OnRegen(packet); }) &&
         m_gameServer.On(Protocol::World::WeatherOpcode, [this](const Network::Packet& packet) { OnWeather(packet); }) &&
+        m_gameServer.On(Protocol::Messages::ChatOpcode, [this](const Network::Packet& packet) { OnChat(packet); }) &&
+        m_gameServer.On(Protocol::Messages::KeyChatOpcode,
+                        [this](const Network::Packet& packet) { OnKeyChat(packet); }) &&
+        m_gameServer.On(Protocol::Messages::WhisperOpcode,
+                        [this](const Network::Packet& packet) { OnWhisper(packet); }) &&
+        m_gameServer.On(Protocol::Messages::WhisperResultOpcode,
+                        [this](const Network::Packet& packet) { OnWhisperResult(packet); }) &&
+        m_gameServer.On(Protocol::Messages::NoticeOpcode,
+                        [this](const Network::Packet& packet) { OnNotice(packet); }) &&
+        m_gameServer.On(CharacterOpcode, Protocol::OptionData::OptionDataSubcode,
+                        [this](const Network::Packet& packet) { OnOptionData(packet); }) &&
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); }) &&
         m_gameServer.On(Protocol::Connection::MainCheckOpcode,
                         [this](const Network::Packet& packet) { OnMainCheck(packet); });
@@ -932,6 +945,80 @@ void ServerSession::OnWeather(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(weather.Value(), *this)));
+}
+
+// 04 § El chat que llega: ninguno mira el estado de la sesión, la escena (salvo el 00 y el 0D, que la mira el sink)
+// ni el flag de cifrado. Los avisos del log no llevan el nombre ni el texto.
+void ServerSession::OnChat(const Network::Packet& packet)
+{
+    const auto chat = Protocol::Messages::ReadChat(packet);
+    if (!chat.HasValue())
+    {
+        m_log.Warning("se ignora el chat (00): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(chat.Value(), *this)));
+}
+
+void ServerSession::OnKeyChat(const Network::Packet& packet)
+{
+    const auto chat = Protocol::Messages::ReadKeyChat(packet);
+    if (!chat.HasValue())
+    {
+        m_log.Warning("se ignora el chat por clave (01): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(chat.Value(), *this)));
+}
+
+void ServerSession::OnWhisper(const Network::Packet& packet)
+{
+    const auto whisper = Protocol::Messages::ReadWhisper(packet);
+    if (!whisper.HasValue())
+    {
+        m_log.Warning("se ignora el susurro (02): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(whisper.Value(), *this)));
+}
+
+void ServerSession::OnWhisperResult(const Network::Packet& packet)
+{
+    const auto result = Protocol::Messages::ReadWhisperResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora el resultado del susurro (0C): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
+}
+
+void ServerSession::OnNotice(const Network::Packet& packet)
+{
+    const auto notice = Protocol::Messages::ReadNotice(packet);
+    if (!notice.HasValue())
+    {
+        m_log.Warning("se ignora el aviso (0D): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(notice.Value(), *this)));
+}
+
+void ServerSession::OnOptionData(const Network::Packet& packet)
+{
+    const auto options = Protocol::OptionData::ReadOptionData(packet);
+    if (!options.HasValue())
+    {
+        m_log.Warning("se ignoran las opciones (F3 30): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(options.Value(), *this)));
+}
+
+void ServerSession::ResendServerListRequest()
+{
+    m_log.Info("el 00 llegó en el login: se pide la lista de servidores por el GameServer");
+    static_cast<void>(SendWorldPacket(Protocol::Connection::WriteServerListRequest()));
 }
 
 Core::Expected<void, std::string> ServerSession::SendWorldPacket(Protocol::Outgoing outgoing)

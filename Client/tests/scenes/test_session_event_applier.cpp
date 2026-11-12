@@ -9,6 +9,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
@@ -25,10 +26,14 @@
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 #include "support/SessionHarness.h"
+#include "support/SessionPackets.h"
 
 #include <gtest/gtest.h>
 
+#include <cstddef>
+#include <optional>
 #include <string>
+#include <vector>
 
 namespace
 {
@@ -166,6 +171,31 @@ TEST(SessionEventApplierTest, WalkAndDamageReachTheirAppliersWithoutFallingThrou
     const Client::App::WorldEvent damage = Client::Protocol::Movement::Damage{42, false, 50, 0, false};
     EXPECT_TRUE(tested.applier.ApplyWorld(walk, online.session).HasValue());
     EXPECT_TRUE(tested.applier.ApplyWorld(damage, online.session).HasValue());
+}
+// 0x4c6098: en la escena 2, el 00 pide la lista por el GameServer sin mirar el paquete (CL8 hito 3).
+TEST(SessionEventApplierTest, The00InTheLoginAsksForTheListThroughTheGameServer)
+{
+    Applier tested;
+    Client::Tests::LoggedInSession online;
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    const std::size_t sent = online.socket.sent.size();
+    Client::Scenes::SessionEventApplier inTheLogin{Client::Scenes::WorldEntryResources{
+        .world = tested.world,
+        .selection = tested.selection,
+        .dataRoot = {},
+        .cloth = tested.cloth,
+        .camera = tested.camera,
+        .cameraInput = tested.input,
+        .models = tested.models,
+        .log = tested.log,
+        .scene = [] { return std::optional<Client::Scenes::SceneId>(Client::Scenes::SceneId::Login); }}};
+    const Client::App::WorldEvent event = Client::Protocol::Messages::Chat{};
+
+    ASSERT_TRUE(inTheLogin.ApplyWorld(event, online.session).HasValue());
+    const std::vector<std::byte> request(online.socket.sent.begin() + static_cast<std::ptrdiff_t>(sent),
+                                         online.socket.sent.end());
+    EXPECT_EQ(request, Client::Tests::ListRequest());
+    EXPECT_EQ(tested.cloth.random.State(), Client::Render::Models::CrtRandom{}.State());
 }
 TEST(SessionEventApplierTest, TeleportUsesTheCursorGuardBeforeTouchingTheHero)
 {

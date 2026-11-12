@@ -3,6 +3,7 @@
 #include "GameLogic/MovementSpeed.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
+#include "Scenes/ChatBubbles.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameMovementState.h"
@@ -14,6 +15,7 @@
 #include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
+#include "UI/WhisperSenders.h"
 #include "World/GroundMarks.h"
 #include "World/LeafWeather.h"
 #include "World/ObjectModelStepState.h"
@@ -66,6 +68,21 @@ struct ChatRuntime
     // 0x77f3b78 (.bss 0): el sonido de los avisos del filtro. Lo cambian el F3 30 (0x4dd570) y el menú de Esc
     // (0x62567b).
     bool noticeSound = false;
+    // 0x77f3b98 (.bss 0): con 1, el 02 no hace nada (0x4e34f1). Lo escriben /whisper off y on y el menú de Esc.
+    bool whisperBlocked = false;
+    // 0x57678c4: los 11 bytes del destino del último susurro que salió (0x4b87e9, al mandar). El 0C con 0 los da de
+    // nombre al error (0x4e3684); sin ninguno, vacío como la .bss.
+    std::string lastWhisperTarget{};
+    // 0x77997f8 y 0x77f3b9c: los que susurraron con el nivel propio menor que 10 (0x554d20).
+    UI::WhisperSenders whisperSenders{};
+    // 0x77e1be0: los globos.
+    ChatBubbleTable bubbles{};
+    // +0x510 y +0x511 de la barra de la selección (la ventana +0x7f50 de la UI nueva, 0x7d53728): el primer 0D con 1
+    // que llega en la selección (0x63eda0) y no se vuelve a escribir, porque la barra se arma una vez (0x63e6e0).
+    // Vacío, +0x510 en 0.
+    std::optional<std::string> selectionNotice{};
+    // 0x6c7a8c (.data 1): los carteles de Slide.bmd prendidos. Lo apaga el bit 0x10 del F3 30 (0x4dd7fa).
+    bool slidesOn = true;
 };
 
 // Los globales del HUD del juego (0x5a7320 y sus hijos, CL8 hito 2), en la .bss salvo los que dicen otra cosa.

@@ -1021,7 +1021,11 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     // 0x634949..0x63495f: los avisos y el área vieja. La UI del modo 4 (0x65fe00): la barra, la ventana de crear y el
     // aviso arriba. Y el cursor (0x634980).
     DrawTheMessages(canvas);
-    m_bar.Draw(sprites, canvas.text, canvas.screen);
+    // +0x511: el primer 0D con 1 que llegó en la selección, que guarda el juego.
+    std::string_view serverNotice;
+    if (m_context.world != nullptr && m_context.world->Runtime().chat.selectionNotice)
+        serverNotice = *m_context.world->Runtime().chat.selectionNotice;
+    m_bar.Draw(sprites, canvas.text, canvas.screen, serverNotice);
     DrawTheCreateWindow(canvas, alpha);
     m_notice.Draw(sprites, canvas.text, canvas.screen);
     DrawTheCursor(canvas);

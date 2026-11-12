@@ -632,9 +632,14 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, ActorItemPart& part
         part.animation.previousKey = 2;
         part.animation.frame = 3.2f;
     }
+    // Q-C102: un modelo que el original no carga es una entrada de la tabla en cero, y 0x509340 no la mira:
+    // 0x4ec200 y 0x4eb860 no hacen nada sin acciones (+0x26), 0x4ebc80 no tiene mallas que recorrer (+0x24) y
+    // 0x60b3d0 tampoco (su rand() es del set, que 0x509340 pasa en 0). La luz de 0x509a92 y el caso del modelo
+    // corren igual. Así, la mano de un tipo que no es un ítem (0xff0 da 0x1202) no dibuja nada. Sin portar:
+    // los efectos por nivel de 0x60b3d0 (0x530860, 0x5491e0) sobre un modelo así.
     const Render::Models::Skeleton* skeleton = pass.models.SkeletonOf(type);
     if (pass.models.Find(type) == nullptr || skeleton == nullptr)
-        return Core::Unexpected(std::format("0x509340: falta el modelo {:#x} de lo que cuelga", model));
+        return ItemSprites(frame, model, origin);
     // 0x5093a3 y 0x50997e: la acción del modelo es la de la parte, salvo 0x1a18 en la zona segura (con el
     // modelo de la parte, no con el que dibuja).
     const std::uint8_t action = part.model == 0x1a18 && actor.safeZone != 0 ? 1 : part.animation.action;

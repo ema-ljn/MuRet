@@ -10,14 +10,18 @@
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Terrain/TerrainHeights.h"
 #include "Input/InputState.h"
 #include "Network/PacketSerials.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterSelectScene.h"
+#include "Scenes/DarkSpirit.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/FaunaStep.h"
 #include "Scenes/FaunaState.h"
@@ -705,20 +709,41 @@ TEST_F(WorldEntryTest, TheSoundsSkipTheEventMaps)
     EXPECT_EQ(chaosCastle.Value().sounds, (std::vector<std::int32_t>{0x8b}));
 }
 
-// 0x420d60: el cuervo del 0x1c17 en la mano izquierda no está portado en el mundo.
-TEST_F(WorldEntryTest, ARavenStopsAt420d60AfterTheWait)
+// 0x4c4954: 0x420d60 con el héroe publicado, entre la espera y el segundo efecto de llegada. Con el 0x1c17 en
+// la mano izquierda suelta el cuervo que tenía y crea otro (0x4167b0) en el centro de su celda, 300 sobre el
+// terreno, con los 12 rand() de los cierres de sus celdas y del contador; sin el 0x1c17 no toca nada.
+TEST_F(WorldEntryTest, ARavenIsCreatedAt420d60AfterTheWait)
 {
+    constexpr int RavenRandoms = 3 * Client::Render::Models::SmallLogicalCloseRandoms;
     Entry tested(m_dataRoot, Seed);
+    tested.world.Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    tested.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     ActorState& hero = tested.DressedHero(PublishedSlot);
     hero.hands[1].model = 0x1c17;
+    hero.cellX = 133;
+    hero.cellY = 127;
+    hero.darkSpirit.emplace().state = 4;
     RecordingPublisher publisher;
+    publisher.onPublish = [&] { EXPECT_EQ(hero.darkSpirit->state, 4); };
 
     const auto settled = SettleWorldEntry({}, tested.Resources(), publisher);
 
-    ASSERT_FALSE(settled.HasValue());
-    EXPECT_NE(settled.Error().find("0x420d60"), std::string::npos);
+    ASSERT_TRUE(settled.HasValue()) << settled.Error();
+    ASSERT_TRUE(hero.darkSpirit.has_value());
+    EXPECT_EQ(hero.darkSpirit->state, 0);
+    EXPECT_EQ(hero.darkSpirit->position, glm::vec3(13350.0f, 12750.0f, 300.0f));
     EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold);
-    EXPECT_EQ(tested.AliveArrivals(), 1u);
+    EXPECT_EQ(tested.AliveArrivals(), 2u);
+    EXPECT_EQ(tested.cloth.random.State(),
+              AfterDraws(Seed, OwnRecordClose + WaitClose + WindowRandoms + RavenRandoms + StopRandom).State());
+
+    Entry unarmed(m_dataRoot, Seed);
+    ActorState& walker = unarmed.DressedHero(PublishedSlot);
+    walker.darkSpirit.emplace().state = 4;
+    RecordingPublisher quiet;
+    ASSERT_TRUE(SettleWorldEntry({}, unarmed.Resources(), quiet).HasValue());
+    ASSERT_TRUE(walker.darkSpirit.has_value());
+    EXPECT_EQ(walker.darkSpirit->state, 4);
 }
 
 // ---- Una segunda respuesta (T13; 06, "La entrada al mundo", "Una segunda respuesta") ----

@@ -41,6 +41,7 @@
 #include "World/GroundMarks.h"
 #include "World/Leaves.h"
 #include "World/LeafWeather.h"
+#include "World/Particles.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainWalls.h"
@@ -463,7 +464,8 @@ private:
 // 0x6370f4: 0x445230, los ayudantes, antes de MoveHero (0x63710a) y también en la espera. Con el jinete
 // muerto, el paso de la escena 5 apaga su caballo y la espera sigue, con los 8 rand() de MoveHero. Con el
 // jinete vivo fuera de una celda segura, el aliento saca un rand() después de los seis candidatos
-// de peces del mapa inerte (con Seed, % 3 da 0) y corta antes de que MoveHero toque el contador.
+// de peces del mapa inerte (con Seed, % 3 da 0) y, sin ningún dibujo antes, sale del hueso 27 en cero del
+// buffer global: la 5f2 nace y la espera sigue.
 TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
 {
     constexpr std::size_t RiderSlot = 5;
@@ -501,10 +503,11 @@ TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
 
         if (riderAlive)
         {
-            ASSERT_TRUE(scene.Failure().has_value());
-            EXPECT_NE(scene.Failure()->find("0x44459d"), std::string::npos) << *scene.Failure();
-            EXPECT_EQ(world.Runtime().warpCounter, WorldLoadingWait);
-            EXPECT_EQ(cloth.random.State(), RandomAfter(InertFishCandidateRandoms + 1).State());
+            EXPECT_EQ(scene.Failure(), std::nullopt) << scene.Failure().value_or("");
+            EXPECT_TRUE(world.Helpers()[0].alive);
+            EXPECT_TRUE(world.Particles().All()[0].alive);
+            EXPECT_EQ(world.Particles().All()[0].type, Client::World::BreathParticle);
+            EXPECT_EQ(world.Runtime().warpCounter, WorldLoadingWait - 1);
         }
         else
         {

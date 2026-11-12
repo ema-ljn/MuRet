@@ -656,9 +656,10 @@ TEST(HelperTableTest, TheBreathLeavesFromBone27OfTheGlobalPose)
     EXPECT_EQ(atlans.random.State(), RandomAfter(BreathSeed, 3).State());
 }
 
-// Sin el hueso 27 en el buffer global (ningún dibujo conservado lo escribió) corta después del rand() % 3. Con
-// la acción 1 del caballo, o con +0x78 & 0x4000 del jinete, no lo saca.
-TEST(HelperTableTest, TheBreathStopsWithoutItsBone)
+// Sin el hueso 27 en el buffer global (ningún dibujo lo escribió todavía) el hueso es la matriz en cero de la
+// .bss (200 huesos): el aliento sale del origen, con los mismos tres rand(). Con la acción 1 del caballo, o con
+// +0x78 & 0x4000 del jinete, no lo saca.
+TEST(HelperTableTest, TheBreathWithoutItsBoneLeavesFromTheOrigin)
 {
     HelperWorld tested(0, BreathSeed);
     ASSERT_NO_FATAL_FAILURE(tested.Mount());
@@ -666,9 +667,12 @@ TEST(HelperTableTest, TheBreathStopsWithoutItsBone)
 
     const auto stepped = tested.Step();
 
-    EXPECT_TRUE(HasError(stepped, "0x44459d")) << (stepped.HasValue() ? "" : stepped.Error());
-    EXPECT_FALSE(tested.world.Particles().All()[0].alive);
-    EXPECT_EQ(tested.random.State(), RandomAfter(BreathSeed, 1).State());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    const Client::World::Particle& breath = tested.world.Particles().All()[0];
+    EXPECT_TRUE(breath.alive);
+    EXPECT_EQ(breath.type, Client::World::BreathParticle);
+    EXPECT_EQ(breath.position, glm::vec3(0.0f));
+    EXPECT_EQ(tested.random.State(), RandomAfter(BreathSeed, 3).State());
 
     HelperWorld calm(0, BreathSeed);
     ASSERT_NO_FATAL_FAILURE(calm.Mount());
@@ -881,18 +885,30 @@ TEST(HelperTableTest, TheIcarusDustPicksItsBoneByTheFrame)
     }
 }
 
-// Sin el hueso del frame en el buffer global, corta después del rand() de la z, sin la onda.
-TEST(HelperTableTest, TheIcarusDustStopsWithoutItsBone)
+// Sin el hueso del frame en el buffer global vale la matriz en cero de la .bss: la onda nace en el corrimiento
+// de rand() % 16 − 8 alrededor del origen (el −5 de la semilla, el 115 − 120 de los huesos posados), igual que
+// con los huesos escritos en cero.
+TEST(HelperTableTest, TheIcarusDustWithoutItsBoneReadsAZeroBone)
 {
     HelperWorld tested(10, QuietSeed);
     ASSERT_NO_FATAL_FAILURE(tested.Mount());
     tested.Gallop(1.25f);
+    HelperWorld zeroed(10, QuietSeed);
+    ASSERT_NO_FATAL_FAILURE(zeroed.Mount());
+    zeroed.Gallop(1.25f);
+    zeroed.world.PoseCarry().bones.assign(HelperWorld::PosedBones, Client::Render::Models::BoneTransform(0.0f));
 
     const auto stepped = tested.Step();
+    const auto zeroedStep = zeroed.Step();
 
-    EXPECT_TRUE(HasError(stepped, "0x4442b4")) << (stepped.HasValue() ? "" : stepped.Error());
-    EXPECT_FALSE(tested.world.Map().effects.Effects()[0].alive);
-    EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 1).State());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    ASSERT_TRUE(zeroedStep.HasValue()) << zeroedStep.Error();
+    const Client::World::ModelEffect& wave = tested.world.Map().effects.Effects()[0];
+    ASSERT_TRUE(wave.alive);
+    EXPECT_EQ(wave.transform.position.x, -5.0f);
+    EXPECT_EQ(wave.transform.position, zeroed.world.Map().effects.Effects()[0].transform.position);
+    EXPECT_TRUE(tested.world.Particles().All()[0].alive);
+    EXPECT_EQ(tested.random.State(), zeroed.random.State());
 }
 
 // 0x4445e1: con la acción 3 del caballo (la del jinete 0x53), después del aliento, 0x52e470 y 0x4453e0;

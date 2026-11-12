@@ -6,11 +6,15 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Terrain/TerrainHeights.h"
 #include "Network/PacketSerials.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/DarkSpirit.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -32,6 +36,8 @@
 #include "support/SessionHarness.h"
 #include "support/TestGameServer.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -40,6 +46,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <initializer_list>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -575,17 +582,40 @@ TEST_F(InventoryReplyTest, HornOfDoomCopiesItsFlags1bToThePetBeforeStopping)
     EXPECT_EQ(tested.world.Helpers()[0].type, 0x14cu);
 }
 
-// 0x5bca62: el Dark Raven del lugar 1 llama a 0x420cf0, que fuera de los mapas 18 a 23 crea el cuervo.
-TEST_F(InventoryReplyTest, TheDarkRavenOfSlot1StopsAt420cf0)
+// 0x5bca62: el Dark Raven del lugar 1 llama a 0x420cf0 con el héroe publicado. Suelta el cuervo que tenía y,
+// fuera de los mapas 18 a 23, crea otro (0x4167b0) en el centro de su celda, 300 sobre el terreno, con los 12
+// rand() de los cierres de sus celdas y del contador. En Chaos Castle solo lo suelta.
+TEST_F(InventoryReplyTest, TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0)
 {
+    constexpr int RavenRandoms = 3 * Client::Render::Models::SmallLogicalCloseRandoms;
     Stage tested = Fresh();
-    tested.PublishedHero();
+    tested.world.Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    tested.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    ActorState& hero = tested.PublishedHero();
+    hero.cellX = 133;
+    hero.cellY = 127;
+    hero.darkSpirit.emplace().state = 4;
 
     const auto placed = Client::Scenes::PlaceInventoryItem(1, ItemBytes(DarkRaven), tested.Resources());
 
-    ASSERT_FALSE(placed.HasValue());
-    EXPECT_NE(placed.Error().find("0x420cf0"), std::string::npos) << placed.Error();
+    ASSERT_TRUE(placed.HasValue()) << placed.Error();
+    EXPECT_EQ(hero.hands[1].model, ModelOf(DarkRaven));
+    ASSERT_TRUE(hero.darkSpirit.has_value());
+    EXPECT_EQ(hero.darkSpirit->state, 0);
+    EXPECT_EQ(hero.darkSpirit->position, glm::vec3(13350.0f, 12750.0f, 300.0f));
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
+    EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, EquipmentEntry + RavenRandoms).State());
+
+    Stage chaos = Fresh();
+    ActorState& rider = chaos.PublishedHero();
+    chaos.world.Runtime().map = ChaosCastleMap;
+    rider.darkSpirit.emplace();
+
+    const auto inChaos = Client::Scenes::PlaceInventoryItem(1, ItemBytes(DarkRaven), chaos.Resources());
+
+    ASSERT_TRUE(inChaos.HasValue()) << inChaos.Error();
+    EXPECT_FALSE(rider.darkSpirit.has_value());
+    EXPECT_EQ(chaos.cloth.random.State(), AfterDraws(Seed, EquipmentEntry).State());
 }
 
 // 0x5bca6c..0x5bcaa7: el Wizard's Ring de nivel 3 en el 10 o el 11 lleva a 0x414340 y a +0x360 del héroe.

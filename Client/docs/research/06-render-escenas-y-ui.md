@@ -1254,9 +1254,10 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   el buffer global de la pose es `WorldState::PoseCarry`, que publican los dibujos del frame anterior
   (el del caballo, `DrawHelpers` por `onPose`, que `GameScene` manda a `PublishFaunaPose`). La `0x5f3`
   es de `World::Particles` (el alta, el paso con el alto de su textura por `ParticleTextureHeightsOf` y
-  el dibujo), y `Effect\ShockWave.jpg` y `Effect\smoke02.tga` suben con `EffectTextureSet`. Cortan con
-  error, después de los `rand()` que el original saca antes, un hueso del buffer global que ningún dibujo
-  conservado escribió (`0x4442b4` y `0x44459d`), una partícula que no se puede crear, la acción 3, el
+  el dibujo), y `Effect\ShockWave.jpg` y `Effect\smoke02.tga` suben con `EffectTextureSet`. Un hueso del
+  buffer global que ningún dibujo escribió todavía es la matriz en cero de la `.bss` (200 huesos, hasta
+  `0x68b3d9c`), y el punto sale del origen (`0x4442b4` y `0x44459d`, Q-C401). Cortan con error, después de
+  los `rand()` que el original saca antes, una partícula que no se puede crear, la acción 3, el
   `+8` del jinete, el dibujo con `+0x78 & 0x4000` y los mapas `0x12` a `0x17` del dibujo. En el juego no se crea
   ninguno: `0x5bc740` corta antes con el `0x1a04` (`0x4225d0`, P-C36) y los demás que lo crean no están
   portados; la tabla vacía no hace nada. `DrawHelpers` no corre: el dibujo del juego corta antes, a más
@@ -3037,7 +3038,7 @@ un error que nombra la dirección, nunca en silencio:
   (`0x743a170` sin tocar), el contador sin bajar a 30 y los `rand()` gastados hasta ahí: el primer y el
   segundo cierre del registro, el pasto, el lugar del héroe, los 28 de `0x511290` y lo que `0x512a30`
   sacó antes de cortar. Lo que sigue a `0x512a30` (filas 6 a 17) es `Scenes::SettleWorldEntry`, que
-  también se prueba directo; el cuervo de la fila 11 corta en `0x420d60`. Lo que MuRet no modela no se escribe: `0x7d36874`, `0x77f3b67`, `0x553780`,
+  también se prueba directo; el cuervo de la fila 11 es `Scenes::RecreateTransitionRaven` (`0x420d60`, la misma de los traslados: `WorldEntryTest.ARavenIsCreatedAt420d60AfterTheWait`). Lo que MuRet no modela no se escribe: `0x7d36874`, `0x77f3b67`, `0x553780`,
   ResourceGuard (Q-C147) y la fila 19 (los mensajes, CL9). Hito 2 incorpora `0x77f3b10`,
   `0x6c8dcc`, los elegidos de la fila 14 y `0x78abb0c`/`0x78abb10` como estado durable en
   `WorldRuntime::movement` y `WorldRuntime`; los disparadores de sonido quedan en `lastSoundId`,
@@ -3563,13 +3564,14 @@ MuRet: `Scenes::ApplyInventory` y `ClearForInventoryReply` (`0x4c55a0`), `Scenes
 `InventoryItemType` (`0x5bc740` y `0x54b3a0`) y `Scenes::OwnInventory`, las dos grillas, en
 `WorldState::Inventory`; `[0x78a6758]` es `WorldRuntime::slot78a6758`, en 0. El `F3 10` sin cifrar
 llega al aplicador como `App::ClearInventoryReceived`, y la sesión manda el aviso. `0x443d40` apaga los
-ayudantes del héroe publicado (`Scenes::TurnOffHelpersOf`); `0x421d60` no suelta nada: MuRet no tiene
-el cuervo en el mundo, como en `0x510f70`. Las mascotas del lugar 8 van a `Scenes::CreateHelper`, que
+ayudantes del héroe publicado (`Scenes::TurnOffHelpersOf`). El cuervo del lugar 1 va a
+`Scenes::ReplaceTheRaven` (`0x420cf0`): suelta `ActorState::darkSpirit` y, fuera de los mapas 18 a 23, lo
+crea de nuevo con `CreateDarkSpirit` en el centro de la celda del héroe, con los 12 `rand()` de sus cierres
+(`InventoryReplyTest.TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0`). Las mascotas del lugar 8 van a `Scenes::CreateHelper`, que
 crea el `0xbf` y corta con los otros (`0x443d70`); el `0xbf` no llega: corta antes, en `0x4225d0`.
 Fuera de la zona segura, el `0x61e` de `0x518cf0` corta. Cortan con error, nombrando la dirección y
 después de lo que el original hace antes (el registro se cierra igual): las mascotas del lugar 8 que
-no son el caballo (`0x443fa0` → `0x443d70`), el cuervo del lugar 1 (`0x420cf0`),
-el anillo de nivel 3 (`0x414340` y `+0x360`), el Dark Horse en cualquier lugar (`0x4225d0`, desde
+no son el caballo (`0x443fa0` → `0x443d70`), el anillo de nivel 3 (`0x414340` y `+0x360`), el Dark Horse en cualquier lugar (`0x4225d0`, desde
 `0x54cc5c`, sin correr `0x54bf40`), la lectura del nivel con el registro cerrado (Q-C202), una casilla
 fuera de su grilla (Q-C200) y `Item.bmd` sin cargar.
 
@@ -4438,7 +4440,7 @@ lectura de la celda. Los tamaños van desde la entrada hasta el último `ret` (*
 | `0x4ea190` | 208 | la cabeza de otro modelo | corta antes, en `0x505e0b` |
 | `0x4e96f0`, `0x4e9560` | 169, 394 | la distancia entre dos ángulos y el giro | `Render::Models::AngleDistance` y `TurnAngle` (`Scenes::StepCharacterHead`) |
 | `0x53fe70`, `0x518cf0`, `0x530860` | 15.049, 27.599, 17.516 | las partículas, los efectos y los joints | aparte, para el login; acá cortan antes |
-| `0x5f9780` | 904 | la luz al buffer dinámico | corta en `0x5f9780` |
+| `0x5f9780` | 904 | la luz al buffer dinámico | `World::AddDynamicLight` sobre `WorldState::DynamicLighting` (`0x506b50`) |
 | `0x4ec110` | 120 | un punto de un hueso | `Render::Models::OriginalRotation`; el del `0x20a` (`0x506ffc`) va a un local que nadie lee |
 | `0x5189f0` | 206 | los efectos de las `0x44` y `0x45` | corta en `0x506e5d` |
 | `0x548fe0` | 168 | llena una marca del suelo ([Las marcas del suelo](#las-marcas-del-suelo)) | solo el `0x182`; no se llega |
@@ -4465,10 +4467,14 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 - la zona segura, la cabeza (`Scenes::StepCharacterHead` sobre `ActorState::headTurn`, `+0x28..+0x38`), que con
   `+0x78 & 0x20` o `& 0x1000` no se mueve; con el héroe gira sin sortear hacia un blanco que todavía no escribe nadie
   (MoveHero, CL7.4);
+- la luz de cada mano (`0x506aec..0x506b50`, desde la auditoría del cierre de la CL7, 2026-11-12): con `+0x375`
+  debajo de 6, la derecha y después la izquierda, `0x21e` con (0,8; 0,64; 0,4) y radio 3 y `0x225`, `0xa24`, `0xc1c`
+  y `0x61f` con (0,64; 0,4; 0,24) y radio 2, por `World::AddDynamicLight` al buffer que `DynamicWorldLight` rehace
+  en cada paso (`CharacterStepTest.TheHandLightsAddToTheDynamicBufferBelowPkSix` y
+  `BothHandsAddTheirLightsRightFirst`);
 - el `rand() & 7` y el caso del `0x20a`, con los pasos solo del héroe;
 - corta con error, después de los `rand()` de antes:
   - con otro modelo (`0x505e0b`);
-  - con la luz de una mano (`0x5f9780`);
   - en el 9 (`0x506d8b`) y, en el mapa 7 de la escena 5, sin el pool de partículas para la burbuja (`0x506d77`);
   - en las acciones `0x44` y `0x45` (`0x506e5d`) y `0x96` (`0x506f62`);
   - en los pasos del héroe (`0x508668`);

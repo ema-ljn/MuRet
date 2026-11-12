@@ -13,6 +13,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterHead.h"
 #include "Scenes/DarkSpirit.h"
+#include "Scenes/DynamicWorldLight.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -21,6 +22,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/TerrainCulling.h"
+#include "World/TerrainLighting.h"
 #include "World/Particles.h"
 #include "World/TerrainWalls.h"
 #include "World/WorldTerrain.h"
@@ -35,6 +37,7 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -1104,32 +1107,88 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
     }
 }
 
-// 0x506acf..0x506b62: con +0x375 debajo de 6, un arma con luz en cualquiera de las dos manos pide el buffer
-// dinámico (0x5f9780), que MuRet no tiene; corta después de la zona segura. Con 6 o más, no hay luces.
-TEST(CharacterStepTest, TheHandLightsStopBelowPkSix)
+// La celda (x, y) del buffer dinámico 0x7b4ccc4.
+glm::vec3 DynamicLightAt(WorldState& world, std::uint8_t x, std::uint8_t y)
 {
-    for (const std::uint16_t model : std::array<std::uint16_t, 5>{0x21e, 0x225, 0xa24, 0xc1c, 0x61f})
+    const auto& cell = world.DynamicLighting().Lighting().cells[Client::Data::Terrain::CellIndex(x, y)];
+    return {cell[0], cell[1], cell[2]};
+}
+
+// 0x506acf..0x506b62: con +0x375 debajo de 6, un arma con luz en cualquiera de las dos manos suma al buffer
+// dinámico (0x5f9780) con la x y la y del objeto, sin rand(); el paso sigue hasta el final. El 0x21e da
+// (0,8; 0,64; 0,4) con radio 3 y los otros cuatro (0,64; 0,4; 0,24) con radio 2, con los bits de los DWORD de
+// 0x506af7..0x506b05 y 0x506b2d..0x506b3b. Con 6 o más, no hay luces.
+TEST(CharacterStepTest, TheHandLightsAddToTheDynamicBufferBelowPkSix)
+{
+    struct Case
+    {
+        std::uint16_t model;
+        std::array<std::uint32_t, 3> color;
+        bool radiusThree;
+    };
+    constexpr std::array<std::uint32_t, 3> Bright{0x3f4ccccdu, 0x3f23d70bu, 0x3ecccccdu};
+    constexpr std::array<std::uint32_t, 3> Dim{0x3f23d70bu, 0x3ecccccdu, 0x3e75c290u};
+    for (const Case& probe : {Case{0x21e, Bright, true}, Case{0x225, Dim, false}, Case{0xa24, Dim, false},
+                              Case{0xc1c, Dim, false}, Case{0x61f, Dim, false}})
     {
         for (const std::size_t hand : {std::size_t{0}, std::size_t{1}})
         {
-            SCOPED_TRACE(::testing::Message() << model << " en la mano " << hand);
+            SCOPED_TRACE(::testing::Message() << probe.model << " en la mano " << hand);
             GameWorld tested;
-            tested.Hero().hands[hand].model = model;
+            tested.Hero().hands[hand].model = probe.model;
+            // En (0; 0): la celda del centro recibe el color entero, con peso 1.
             tested.Cell(0, 0) = 1;
 
             const auto stepped = tested.Step(Everything);
 
-            EXPECT_TRUE(HasError(stepped, "0x5f9780")) << ErrorOf(stepped);
+            ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+            EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws).State());
             EXPECT_EQ(tested.Hero().safeZone, 1);
-            EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws - 1).State());
+            const glm::vec3 center = DynamicLightAt(tested.world, 0, 0);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(center.r), probe.color[0]);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(center.g), probe.color[1]);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(center.b), probe.color[2]);
+            // A dos celdas, el peso de radio 2 es 0 y no toca la celda; el de radio 3 deja un tercio.
+            const glm::vec3 two = DynamicLightAt(tested.world, 2, 0);
+            if (probe.radiusThree)
+            {
+                EXPECT_GT(two.r, 0.0f);
+            }
+            else
+            {
+                EXPECT_EQ(two, glm::vec3(0.0f));
+            }
+            EXPECT_EQ(DynamicLightAt(tested.world, 3, 0), glm::vec3(0.0f));
 
             GameWorld outlaw;
-            outlaw.Hero().hands[hand].model = model;
+            outlaw.Hero().hands[hand].model = probe.model;
             outlaw.Hero().pk = 6;
             EXPECT_TRUE(outlaw.Step(Everything).HasValue());
             EXPECT_EQ(outlaw.random.State(), RandomAfter(SeenHeroDraws).State());
+            EXPECT_EQ(DynamicLightAt(outlaw.world, 0, 0), glm::vec3(0.0f));
         }
     }
+}
+
+// Con luz en las dos manos, primero la derecha y después la izquierda: cada canal suma en double y guarda en
+// float, sobre lo que dejó la otra.
+TEST(CharacterStepTest, BothHandsAddTheirLightsRightFirst)
+{
+    GameWorld tested;
+    tested.Hero().hands[0].model = 0x21e;
+    tested.Hero().hands[1].model = 0x61f;
+
+    ASSERT_TRUE(tested.Step(Everything).HasValue());
+
+    const glm::vec3 center = DynamicLightAt(tested.world, 0, 0);
+    const auto sum = [](std::uint32_t first, std::uint32_t second)
+    {
+        return static_cast<float>(static_cast<double>(std::bit_cast<float>(second)) +
+                                  static_cast<double>(std::bit_cast<float>(first)));
+    };
+    EXPECT_EQ(center.r, sum(0x3f4ccccdu, 0x3f23d70bu));
+    EXPECT_EQ(center.g, sum(0x3f23d70bu, 0x3ecccccdu));
+    EXPECT_EQ(center.b, sum(0x3ecccccdu, 0x3e75c290u));
 }
 
 // El caso del 0x20a en 0x506cf8 y los pasos del héroe (0x50862f), después del rand() & 7: el mapa 7 y las
@@ -1353,8 +1412,8 @@ TEST(CharacterStepTest, KalimaParticleCutsAfterItsTwoRandoms)
     EXPECT_EQ(hero.random.State(), RandomAfter(SeenHeroDraws + 2).State());
 }
 
-// Después de la cabeza, otro que el héroe sigue el camino del 0x20a del héroe: la luz de una mano corta antes del
-// rand() & 7; el mapa 7 (solo en el juego) y las acciones 0x44, 0x45 y 0x96 cortan después.
+// Después de la cabeza, otro que el héroe sigue el camino del 0x20a del héroe: la luz de una mano suma al buffer
+// dinámico y sigue; el mapa 7 (solo en el juego) y las acciones 0x44, 0x45 y 0x96 cortan después del rand() & 7.
 TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
 {
     struct Case
@@ -1368,9 +1427,8 @@ TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
     };
     constexpr std::uint16_t NoItem = Client::Scenes::NoItemModel;
     for (const Case& probe :
-         {Case{"la luz", 0, 1, 0x21e, "0x5f9780", false}, Case{"el mapa 7", 7, 1, NoItem, "0x506d77", true},
-          Case{"la 0x44", 2, 0x44, NoItem, "0x506e5d", true}, Case{"la 0x45", 0, 0x45, NoItem, "0x506e5d", true},
-          Case{"la 0x96", 2, 0x96, NoItem, "0x506f62", true}})
+         {Case{"el mapa 7", 7, 1, NoItem, "0x506d77", true}, Case{"la 0x44", 2, 0x44, NoItem, "0x506e5d", true},
+          Case{"la 0x45", 0, 0x45, NoItem, "0x506e5d", true}, Case{"la 0x96", 2, 0x96, NoItem, "0x506f62", true}})
     {
         SCOPED_TRACE(probe.name);
         GameWorld tested(probe.map);
@@ -1400,6 +1458,17 @@ TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
     const auto stepped = selection.Step(Everything, SceneId::CharacterSelect);
     EXPECT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(selection.random.State(), expected.State());
+
+    GameWorld lit;
+    lit.Hero().alive = false;
+    lit.Other(3).hands[0].model = 0x21e;
+    CrtRandom afterTheLight(Seed);
+    Skip(afterTheLight, WallDraws);
+    static_cast<void>(DrawASeenOther(afterTheLight));
+    const auto litStep = lit.Step(Everything);
+    EXPECT_TRUE(litStep.HasValue()) << ErrorOf(litStep);
+    EXPECT_EQ(lit.random.State(), afterTheLight.State());
+    EXPECT_EQ(DynamicLightAt(lit.world, 0, 0).r, std::bit_cast<float>(0x3f4ccccdu));
 }
 
 // Las salidas de 0x508ba0 antes de la celda: el que se muere sale (0x508bb6) y corta en su cuerpo (0x4fb9e0),

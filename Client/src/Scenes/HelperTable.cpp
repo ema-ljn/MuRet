@@ -145,16 +145,22 @@ Core::Expected<bool, std::string> InTheRidersSafeCell(const WorldState& world, c
 
 // 0x4ec110(hueso, desplazamiento, salida, 0) sobre el buffer global de la pose (0x68b181c + hueso · 0x30): sin la
 // escala ni el origen del modelo, el punto que deja el último modelo posado del dibujo anterior, que MuRet lleva en
-// WorldState::PoseCarry (Q-C401). Un hueso que ningún dibujo conservado escribió corta.
+// WorldState::PoseCarry (Q-C401). El buffer es de 200 huesos en la .bss (le sigue 0x68b3d9c): un hueso que ningún
+// dibujo escribió todavía es la matriz en cero, y el punto el origen (el primer paso de un jinete antes de su
+// primer dibujo). Más allá de los 200 corta.
 Core::Expected<glm::vec3, std::string> GlobalPosePoint(const WorldState& world, std::size_t bone,
                                                        const glm::vec3& offset, std::string_view address)
 {
+    constexpr std::size_t GlobalPoseBones = 200;
     const auto& bones = world.PoseCarry().bones;
+    if (bone >= GlobalPoseBones)
+    {
+        return Core::Unexpected(
+            std::format("{}: el hueso {} pasa los 200 del buffer global de la pose (0x68b181c)", address, bone));
+    }
     if (bone >= bones.size())
     {
-        return Core::Unexpected(std::format("{}: el hueso {} del buffer global de la pose (0x68b181c) es de un dibujo "
-                                            "que MuRet no conserva",
-                                            address, bone));
+        return glm::vec3(0.0f);
     }
     return Render::Models::OriginalVectorTransform(offset, Render::Models::OriginalMatrixOf(bones[bone]));
 }

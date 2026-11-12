@@ -85,8 +85,9 @@ struct CharacterStepContext
 
 // 0x508f00. Corta con error, en el orden del original, en el mapa 30 (0x412140), sin el mapa cargado
 // (0x508f14), en las ramas de 0x508ba0 que MuRet no tiene, en las de 0x4fd5f0 fuera del 0x20a quieto (06, su
-// tabla de cortes) y en las de 0x505de0 que crean luces, efectos o partículas que MuRet no tiene (06, "Los
-// efectos de los personajes (0x505de0)"). Lo que hizo antes del corte queda, con los rand() que sacó.
+// tabla de cortes) y en las de 0x505de0 que crean efectos o partículas que MuRet no tiene (06, "Los efectos
+// de los personajes (0x505de0)"); las luces de las manos van al buffer dinámico de `world`. Lo que hizo antes
+// del corte queda, con los rand() que sacó.
 [[nodiscard]] Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context);
 
 // 0x508ea0 para un objeto fuera del pool: no borra ni marca TerrainWall y nunca es el héroe publicado.

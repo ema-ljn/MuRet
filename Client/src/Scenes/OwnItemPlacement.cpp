@@ -18,6 +18,7 @@
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WorldTransitionSupport.h"
 #include "World/ItemState.h"
 
 #include <cstddef>
@@ -170,8 +171,10 @@ std::optional<std::uint16_t> HelperOfThePet(const ItemState& item)
 }
 
 // 0x5bc88b..0x5bcaa7, con el héroe que relee de 0x743a170: lo que crea o suelta después de vestirlo.
-Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const ItemState& item, WorldState& world)
+Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const ItemState& item,
+                                                   const WorldEntryResources& resources)
 {
+    WorldState& world = resources.world;
     const WorldRuntime& runtime = world.Runtime();
     ActorState& hero = world.Actors()[runtime.hero];
     const std::int32_t map = runtime.map;
@@ -204,13 +207,10 @@ Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const Item
     }
     if (slot == LeftHandSlot && type == DarkRaven)
     {
-        // 0x420cf0: 0x421d60 suelta el cuervo de +0x430, que MuRet no crea en el mundo; fuera de los mapas 18
-        // a 23 lo crea de nuevo.
-        if (!InChaosCastle(map))
+        // 0x5bca62: 0x420cf0 suelta el cuervo de +0x430 (0x421d60) y, fuera de los mapas 18 a 23, lo crea de nuevo.
+        if (auto raven = ReplaceTheRaven(hero, resources); !raven.HasValue())
         {
-            return Core::Unexpected(
-                std::string("0x5bc740 (0x5bca62): 0x420cf0 crea el cuervo del héroe con 0x4167b0 en "
-                            "+0x430, que MuRet no tiene en el mundo"));
+            return Core::Unexpected(std::format("0x5bc740 (0x5bca62), {}", raven.Error()));
         }
         return {};
     }
@@ -266,7 +266,7 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
     {
         return Core::Unexpected(dressed.Error());
     }
-    if (auto after = AfterTheDressing(slot, item, world); !after.HasValue())
+    if (auto after = AfterTheDressing(slot, item, resources); !after.HasValue())
     {
         return Core::Unexpected(after.Error());
     }

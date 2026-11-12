@@ -5,6 +5,7 @@
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Render/Text/TextBox.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 
@@ -56,6 +57,19 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> Draw(SpriteBatch& batch, int x, int y, std::string_view text,
                                                          const TextStyle& style);
 
+    // 0x5542f0(x, y, texto, 0, 6, 0), el modo 6 de 0x467060 (el cartel de Slide.bmd): con x negativa, TextOutA en
+    // (x, 0) del DIB, así que se ven las columnas del texto desde −x (las de 640 × 480 tomadas como píxeles, Q-C519),
+    // cx + x de ancho, desde la x 0; sin ninguna, nada. Cada corte es otra entrada de la caché, como el original, que
+    // lo rasteriza en cada frame. Con x de 0 o más, Draw.
+    [[nodiscard]] Core::Expected<void, std::string> DrawClippedAtLeft(SpriteBatch& batch, int x, int y,
+                                                                      std::string_view text, const TextStyle& style);
+
+    // 0x553e50 y 0x554000 de un renglón de un globo (0x555b00): la caja de `box` con el texto en (0, 0), aunque esté
+    // vacío (el fondo solo), en (x, y) de la pantalla en píxeles, como la corre BoxedQuad. Cada caja es otra entrada
+    // de la caché, de un slot. Los errores, los de Draw.
+    [[nodiscard]] Core::Expected<void, std::string> DrawBoxed(SpriteBatch& batch, int x, int y, std::string_view text,
+                                                              const TextStyle& style, const BoxShape& box, bool clampY);
+
     // GetTextExtentPointA, para ubicar el texto antes de dibujarlo (RightAlignedAt).
     [[nodiscard]] TextExtent Measure(FontKind font, std::string_view text) const;
 
@@ -71,12 +85,16 @@ public:
     [[nodiscard]] std::size_t UsedSlots() const;
 
 private:
-    // La clave: la fuente, los colores y el texto, que en el índice apunta al de su entrada.
+    // La clave: la fuente, los colores, el texto, que en el índice apunta al de su entrada, y las columnas que el modo
+    // 6 deja afuera a la izquierda.
     struct Key
     {
         FontKind font = FontKind::Normal;
         TextColors colors;
         std::string_view text;
+        int skipped = 0;
+        // La caja de un globo; con ancho 0, la de 0x467060.
+        BoxShape box{};
     };
     struct KeyLess
     {
@@ -87,6 +105,9 @@ private:
         FontKind font = FontKind::Normal;
         TextColors colors;
         std::string text;
+        int skipped = 0;
+        BoxShape box{};
+        // El ancho es el que se ve: el del texto menos `skipped`, o el de la caja del globo.
         TextExtent extent;
         // Una por cada 256 columnas del texto, en orden.
         std::vector<TextureSlot> boxes;
@@ -96,6 +117,8 @@ private:
     // La entrada de `key`, rasterizada y subida si no estaba, al frente de la lista. Para hacerle
     // lugar no saca una entrada que ya está en `batch`.
     [[nodiscard]] Core::Expected<Entries::iterator, std::string> Find(const Key& key, const SpriteBatch& batch);
+    // Los quads de `entry` en (x, y), como TextPieces.
+    static void DrawPieces(SpriteBatch& batch, const Entry& entry, int x, int y);
     // Saca la entrada del fondo de la lista (la que hace más tiempo que no se dibuja).
     void EvictOldest();
 

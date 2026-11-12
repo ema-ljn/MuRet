@@ -9,6 +9,7 @@
 #include "Scenes/GameChat.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/SceneCanvas.h"
@@ -78,6 +79,12 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
 {
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
     const GameChatContext chat = ChatContext();
+    // timeGetTime() de los segundos del cartel (0x46ada0): el reloj de la escena en ms.
+    const auto systemTime =
+        m_context.clock != nullptr
+            ? static_cast<std::uint32_t>(
+                  std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
+            : 0U;
     return StepTheGameUi(GameUiContext{.world = *m_context.world,
                                        .random = m_context.cloth->random,
                                        .input = input,
@@ -85,7 +92,8 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .mouseY = mouse.y,
                                        .measure = m_context.textMeasure,
                                        .screen = m_screen,
-                                       .chat = &chat});
+                                       .chat = &chat,
+                                       .systemTime = systemTime});
 }
 
 GameChatContext GameScene::ChatContext()
@@ -104,7 +112,7 @@ GameChatContext GameScene::ChatContext()
                                                       : ChatSender{}};
 }
 
-Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canvas)
+Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canvas, const GameProjection* projection)
 {
     WorldRuntime& runtime = m_context.world->Runtime();
     const Input::InputState noInput;
@@ -133,6 +141,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .crywolfSandOverlay = m_projectingFrame ? m_projection->crywolfSandOverlay : runtime.crywolf.sandOverlay,
         .sound = m_projectingFrame ? m_projection->sound : runtime.lastSoundId,
         .projecting = m_projectingFrame,
+        .projection = projection,
         .sprites = canvas.sprites,
         .text = canvas.text,
         .texts = m_texts,

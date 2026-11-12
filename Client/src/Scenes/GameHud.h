@@ -25,6 +25,7 @@ class CrtRandom;
 namespace Client::Scenes
 {
 class WorldState;
+struct GameProjection;
 struct HudState;
 
 struct GameHudContext
@@ -45,6 +46,9 @@ struct GameHudContext
     // Un dibujo intermedio de MuRet no escribe los avisos de los ítems puestos (D+0x44): van a una copia que nadie
     // lee, y el frame siguiente del original los vuelve a escribir.
     bool projecting = false;
+    // 0x6203c0 del pase del mundo de este frame, que leen los globos (0x5a9050 → 0x6205b0). Sin ella, un globo vivo
+    // corta.
+    const GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;
     ITextDrawer& text;
     // Text.bmd, Item.bmd y Skill.bmd; sin alguna, lo que la lee corta con error.

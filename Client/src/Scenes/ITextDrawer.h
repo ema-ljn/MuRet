@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Render/Text/TextBox.h"
 #include "Render/Text/TextStyle.h"
 
 #include <string_view>
@@ -15,5 +16,13 @@ class ITextDrawer : public Render::Text::ITextMeasure
 {
 public:
     virtual void Draw(int x, int y, std::string_view text, const Render::Text::TextStyle& style) = 0;
+    // 0x467060 con el modo 6, el del cartel de Slide.bmd (0x46a816): con x negativa, el texto corrido −x columnas
+    // del DIB (píxeles, aunque la x es de 640 × 480: Q-C519) y dibujado desde la x 0, con cx + x columnas; con x de
+    // 0 o más, como Draw.
+    virtual void DrawClippedAtLeft(int x, int y, std::string_view text, const Render::Text::TextStyle& style) = 0;
+    // 0x553e50 y 0x554000, un renglón de un globo (0x555b00): la caja de `box` en (x, y) de la pantalla en píxeles,
+    // corrida por 0x554000 (con 0x77f3b66, `clampY`, también la y). Con el texto vacío, el fondo solo.
+    virtual void DrawBoxed(int x, int y, std::string_view text, const Render::Text::TextStyle& style,
+                           const Render::Text::BoxShape& box, bool clampY) = 0;
 };
 } // namespace Client::Scenes

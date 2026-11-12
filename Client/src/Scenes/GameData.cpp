@@ -9,6 +9,7 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/FilterWords.h"
+#include "Data/Text/SlideTable.h"
 #include "Data/Text/TextTable.h"
 #include "UI/MacroFile.h"
 
@@ -16,6 +17,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <format>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -180,6 +182,27 @@ Core::Expected<UI::Macros, std::string> LoadMacros(const std::filesystem::path& 
         return Core::Unexpected(std::format("{}: {}", MacroFile, macros.Error()));
     return std::move(macros).Value();
 }
+
+// 0x46b3b0 lee 0xa030 bytes sin mirar el tamaño: un archivo más largo se lee igual.
+Core::Expected<std::optional<Data::Text::SlideTable>, std::string> LoadSlides(const std::filesystem::path& dataRoot)
+{
+    std::error_code error;
+    const auto path = Data::ResolveDataPath(dataRoot, SlideTableFile, error);
+    if (error)
+    {
+        return Core::Unexpected(
+            std::format("no se pudo buscar {} en {}: {}", SlideTableFile, Core::PathText(dataRoot), error.message()));
+    }
+    if (!path)
+        return std::optional<Data::Text::SlideTable>{};
+    const auto file = Data::ReadDataFilePrefix(*path, Data::Text::SlideTableSize);
+    if (!file.HasValue())
+        return Core::Unexpected(std::format("no se pudo leer {}: {}", SlideTableFile, file.Error().message()));
+    auto table = Data::Text::LoadSlideTable(std::as_bytes(std::span(file.Value())));
+    if (!table.HasValue())
+        return Core::Unexpected(std::format("{}: {}", SlideTableFile, Data::DescribeDataError(table.Error())));
+    return std::optional<Data::Text::SlideTable>(std::move(table).Value());
+}
 } // namespace
 
 Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot)
@@ -250,6 +273,12 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(skills).Error());
     }
     data.skills.emplace(std::move(skills).Value());
+    auto slides = LoadSlides(dataRoot);
+    if (!slides.HasValue())
+    {
+        return Core::Unexpected(std::move(slides).Error());
+    }
+    data.slides = std::move(slides).Value();
     return data;
 }
 } // namespace Client::Scenes

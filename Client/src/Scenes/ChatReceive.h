@@ -73,8 +73,8 @@ struct ChatReceiveContext
 
 // 0x4c65b0: 0, un aviso centrado (0x554610 sin resaltar); 1, fuera de la selección, un mensaje de sistema y, en ella,
 // el primero va a la franja de la barra (0x63eda0) y los demás al chat; 2, el aviso del gremio (el 483 con el texto,
-// resaltado) y su ventana (0x651680, CL9.4: corta); 10 a 15 con texto, el cartel (0x46b720), que en la escena 5 y con
-// 1 a 30 repeticiones corta (08, P-C80).
+// resaltado) y su ventana (0x651680, CL9.4: corta); 10 a 15 con texto, en la escena 5, a las colas del cartel de
+// Slide.bmd (0x46b720, UI::QueueTheSlide).
 [[nodiscard]] Core::Expected<void, std::string> ApplyNotice(const Protocol::Messages::Notice& notice,
                                                             const ChatReceiveContext& context);
 

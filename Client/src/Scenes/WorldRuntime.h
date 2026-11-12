@@ -13,6 +13,7 @@
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/Dialogs.h"
+#include "UI/GameDialogs.h"
 #include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
@@ -146,6 +147,8 @@ struct WorldRuntime
     // escena.
     UI::PanelState panels{};
     UI::DialogState dialogs{};
+    // 0x7d36a98, 0x7d368e4, 0x7d368b8 y 0x7d3a0f4..0x7d3a0f9: el texto y los botones de las cajas viejas (hito 6).
+    UI::DialogBoxState dialogBox{};
     UI::GameUiState ui{};
     HudState hud{};
     ChatRuntime chat{};

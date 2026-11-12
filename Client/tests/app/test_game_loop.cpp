@@ -778,6 +778,38 @@ TEST(GameLoopTest, PollsOncePerFrameBeforeTheSteps)
     }
 }
 
+// P-C61: cada vuelta con la ventana sin minimizar termina con FinishTheLoop, después del dibujo y también con el
+// frame retenido, donde el original corre el frame sin presentarlo; minimizada, no (la rama sin frame de
+// WinMain). En los dos modos.
+TEST(GameLoopTest, EachLoopNotMinimizedFinishesAfterTheDrawing)
+{
+    WindowState minimized;
+    minimized.minimized = true;
+    for (const PacingMode mode : {PacingMode::Decoupled, PacingMode::Faithful})
+    {
+        FakeClock clock;
+        RecordingClient client{clock};
+        GameLoop loop{clock, client, mode};
+        InputState input;
+
+        loop.RunFrame(WindowState{}, input);
+        ASSERT_EQ(client.finishedLoops.size(), 1u);
+        EXPECT_EQ(client.finishedLoops[0], client.calls.size());
+        EXPECT_EQ(client.calls.back(), LoopCall::Render);
+
+        client.holdsTheLastFrame = true;
+        clock.Advance(10ms);
+        loop.RunFrame(WindowState{}, input);
+        EXPECT_EQ(client.finishedLoops.size(), 2u);
+        EXPECT_EQ(client.alphas.size(), 1u) << "retenido no dibuja";
+
+        client.holdsTheLastFrame = false;
+        clock.Advance(10ms);
+        loop.RunFrame(minimized, input);
+        EXPECT_EQ(client.finishedLoops.size(), 2u);
+    }
+}
+
 // Minimizada no se dibuja, pero la red sigue, como en el original (0x4e1d50 corre en cada vuelta
 // del bucle de WinMain): 26 frames son 26 polls, con los 25 pasos de
 // AMinimizedWindowStepsWithoutDrawing. En el modo fiel, también uno por frame.

@@ -32,5 +32,9 @@ public:
     // escena (cargar sus texturas y sus modelos) corre dentro de un paso, y el original no la mide, porque
     // mide desde después de los pasos (0x63852b). GameLoop lo mira después de los pasos, en los dos modos.
     [[nodiscard]] virtual bool TakeTheSceneChange() = 0;
+    // El fin de una vuelta del bucle con la ventana sin minimizar, dibujada o retenida: lo que el original saca
+    // después del frame (0x63945d, después de 0x637700) y al empezar la vuelta siguiente (WinMain), P-C61. Sin
+    // nada que hacer por omisión.
+    virtual void FinishTheLoop() {}
 };
 } // namespace Client::App

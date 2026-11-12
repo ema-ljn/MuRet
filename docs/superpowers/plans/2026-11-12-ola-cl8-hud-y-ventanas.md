@@ -233,7 +233,15 @@ El esqueleto de todo lo demás. Entra:
       el picking (`0x5e4140`); los demás llamadores son de los hitos que los portan. Las llamadas de la pasada 2D
       quedan como ganchos en su orden, sin dibujar ni sacar `rand()`: la tabla del estado de GL va con el HUD
       (hito 2), que es el primero que dibuja.
-- [ ] **Los 9 `rand()` de la vuelta de `WinMain`** (decisión 13), en el bucle, para todas las escenas.
+- [x] **Los 9 `rand()` de la vuelta de `WinMain`** (decisión 13), en el bucle, para todas las escenas.
+      *Hecho (hito 1):* `Scenes/WinMainLoop` (los dos contadores, con la rama de la vuelta 31 de Q-C461: 21 en
+      lugar de 5) y `main.cpp`, que saca los 5 de la primera vuelta antes de entrar a la primera escena y, al final
+      de cada vuelta del bucle con la ventana sin minimizar (`ILoopClient::FinishTheLoop`, `afterSceneFrame` del
+      `SceneManager`), 4 + 5 por cada frame del original que corre en ella: uno por vuelta en el modo fiel, por el
+      reloj en el desacoplado, como la tela. Con el frame retenido también, porque el original corre el frame sin
+      presentarlo; minimizada no, porque el original va por la rama sin frame, que no se modela. Lo que queda
+      distinto (P-C61): en el connect del login (Q-C85) el original está parado adentro del paso y MuRet sigue
+      dando vueltas, y en el desacoplado, al volver de minimizada, el reloj pone al día hasta 64 vueltas de una vez.
 
 **Pruebas:** los `rand()` por paso con todo cerrado (los 3.848 de la barra de skills y los 2 de `0x5a5511`), con
 Esc (2 y el `0x6e`, **antes** de los del paso), con R apretada (3.848 más), con el inventario abierto por `I` (4)

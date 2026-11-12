@@ -41,11 +41,15 @@ public:
     // éxito sin red. `takeSceneOrder` corre después de un pollNetwork que salió bien y devuelve la
     // escena que ordenó la red, una vez (main.cpp: WorldRuntime::orderedScene). Los dos pueden estar
     // vacíos. beforeSceneFrame publica el prefijo global aun si la escena retiene el dibujo;
-    // el caller decide qué frames son originales. La fábrica, el frame, el reloj y el log viven más.
+    // el caller decide qué frames son originales. afterSceneFrame corre al final de cada vuelta del bucle con la
+    // ventana sin minimizar (FinishTheLoop), dibujada o retenida, con una escena y sin un error: la cola de
+    // 0x63945d y el principio de la vuelta siguiente de WinMain (P-C61). La fábrica, el frame, el reloj y el
+    // log viven más.
     SceneManager(SceneFactory factory, IFrameTarget& frame, Core::IClock& clock,
                  std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log,
                  std::function<std::optional<SceneId>()> takeSceneOrder = {},
-                 std::function<void(Core::Duration)> beforeSceneFrame = {});
+                 std::function<void(Core::Duration)> beforeSceneFrame = {},
+                 std::function<void(Core::Duration)> afterSceneFrame = {});
     ~SceneManager() override;
 
     SceneManager(const SceneManager&) = delete;
@@ -91,6 +95,8 @@ public:
     // Si un Step entró a otra escena desde la última vez (Request); el Start no cuenta, porque va antes
     // del bucle.
     [[nodiscard]] bool TakeTheSceneChange() override;
+    // afterSceneFrame con el reloj, con una escena y sin un error.
+    void FinishTheLoop() override;
 
 private:
     // La fábrica y el Enter de `id`; si falla, queda sin escena y con el error.
@@ -108,6 +114,8 @@ private:
     std::function<std::optional<SceneId>()> m_takeSceneOrder;
     // Prefijo global del dibujo, una vez por frame, antes del despacho y de la guarda de la escena.
     std::function<void(Core::Duration)> m_beforeSceneFrame;
+    // Lo de la vuelta del bucle después del frame (FinishTheLoop).
+    std::function<void(Core::Duration)> m_afterSceneFrame;
     // La escena que ordenó la red y todavía no entró: la toma el próximo Step.
     std::optional<SceneId> m_networkOrder;
     std::unique_ptr<IScene> m_scene;

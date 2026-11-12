@@ -66,6 +66,7 @@
 #include "Scenes/SelectionState.h"
 #include "Scenes/SessionEventApplier.h"
 #include "Scenes/TestScene.h"
+#include "Scenes/WinMainLoop.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldLoadingScene.h"
 #include "Scenes/WorldRuntime.h"
@@ -707,8 +708,23 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         const float worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(now).count());
         Scenes::UpdateGameItemGlowPulse(world.Runtime().itemRender, worldClock);
     };
+    // P-C61: los dos contadores de WinMain y el byte del foco, con la CRT de la tela. Cada frame del original que
+    // corre en una vuelta sin minimizar cierra el contador de 0x63945d y empieza la vuelta siguiente.
+    Scenes::WinMainCounters winMain;
+    Client::Render::Models::OriginalFrameCarry winMainFrameCarry;
+    const auto afterSceneFrame = [&winMain, &winMainFrameCarry, &clothWorld, &startup](Core::Duration now)
+    {
+        const int frames = winMainFrameCarry.FramesAt(now, Scenes::OriginalFramePaceOf(startup.config.pacing));
+        for (int i = 0; i < frames; ++i)
+        {
+            Scenes::CloseTheFrameCounter(clothWorld.random);
+            Scenes::StepTheWinMainLoop(winMain, clothWorld.random);
+        }
+    };
     Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, models, session), *frame.Value(), clock,
-                                 pollNetwork, log, takeSceneOrder, beforeSceneFrame);
+                                 pollNetwork, log, takeSceneOrder, beforeSceneFrame, afterSceneFrame);
+    // La primera vuelta de WinMain, antes del primer frame: la escena entra adentro de él (0x63945d).
+    Scenes::StepTheWinMainLoop(winMain, clothWorld.random);
     if (!manager.Start(Scenes::FirstScene).HasValue())
     {
         return EXIT_FAILURE;

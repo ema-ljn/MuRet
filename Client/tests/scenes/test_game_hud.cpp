@@ -3,6 +3,7 @@
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Tables/SkillTable.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
@@ -16,10 +17,12 @@
 #include "Scenes/GameProjection.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/TooltipLines.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
 #include "UI/GameText.h"
+#include "UI/SprintfFormat.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
 #include "support/GoldenDir.h"
@@ -935,5 +938,74 @@ TEST_F(GameHudTest, TheCursorsOfOtherWavesStop)
     drawn = Cursor();
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x558bb0"), std::string::npos) << drawn.Error();
+}
+
+// 6. 0x5a6600 (desde 0x42a735): el mouse sobre un ícono de estado dibuja su ayuda en la caja de los tooltips, en
+// (x + 10, 0x1d), con el registro propio y la entrada de Skill.bmd del ícono abiertos alrededor (3.848 y 60 rand()).
+// El 0xcc escribe tres textos y deja los colores del 3 y del 4 (Q-C597).
+TEST_F(GameHudTest, TheMouseOverAStatusIconShowsItsHelp)
+{
+    Hero().flags78 = 0x10000;
+    Client::Scenes::TooltipLines& lines = world.Runtime().hud.tooltip;
+    lines.colors[3] = Client::Scenes::TooltipWhiteOnRed;
+    const CrtRandom before = random;
+    mouse = {320, 300};
+    ASSERT_TRUE(Hud().HasValue());
+    CrtRandom away = random;
+    for (std::uint32_t i = 0; i < OwnRecordCloseRandoms + Client::Data::Tables::SkillRecordSize; ++i)
+        static_cast<void>(away.Next());
+
+    random = before;
+    sprites.Begin(Screen640);
+    mouse = {190, 10};
+    const auto drawn = Hud();
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(random.State(), away.State());
+    EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
+    const auto record = data.skills->Record(0xcc);
+    ASSERT_TRUE(record.has_value());
+    std::string name;
+    for (const std::byte value : *record)
+    {
+        if (value == std::byte{0})
+            break;
+        name.push_back(static_cast<char>(std::to_integer<unsigned char>(value)));
+    }
+    EXPECT_EQ(lines.text[0], "\n");
+    ASSERT_FALSE(name.empty());
+    EXPECT_EQ(lines.text[1], name);
+    EXPECT_TRUE(std::ranges::any_of(text.texts, [&name](const auto& drawnText) { return drawnText.text == name; }));
+    EXPECT_EQ(lines.colors[1], Client::Scenes::TooltipBlue);
+    EXPECT_EQ(lines.bold[1], 1);
+    EXPECT_EQ(lines.text[2], "\n");
+    const std::array<std::size_t, 3> texts{1638, 1639, 1472};
+    for (std::size_t i = 0; i < texts.size(); ++i)
+    {
+        const std::optional<std::string_view> help = Client::UI::TextAt(&*data.text, texts[i]);
+        ASSERT_TRUE(help.has_value());
+        EXPECT_EQ(lines.text[3 + i], Client::UI::Sprintf(*help)) << i;
+    }
+    EXPECT_EQ(lines.colors[3], Client::Scenes::TooltipWhiteOnRed);
+    EXPECT_EQ(lines.colors[5], Client::Scenes::TooltipWhite);
+    EXPECT_EQ(lines.text[6], "\n");
+}
+
+// 0x5a6600 con un ícono sin texto en la tabla de 0x5a69fc (el 0x35): el renglón 3 queda con lo que tenía, en blanco
+// (Q-C597).
+TEST_F(GameHudTest, AStatusIconWithoutTextKeepsTheThirdLine)
+{
+    Hero().flags78 = 0x400;
+    Client::Scenes::TooltipLines& lines = world.Runtime().hud.tooltip;
+    lines.text[3] = "previo";
+    lines.colors[3] = Client::Scenes::TooltipRed;
+    mouse = {190, 10};
+    const auto drawn = Hud();
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(lines.text[3], "previo");
+    EXPECT_EQ(lines.colors[3], Client::Scenes::TooltipWhite);
+    EXPECT_EQ(lines.text[4], "\n");
+    // El nombre de la entrada 0x35 de Skill.bmd está vacío: la caja mide hasta el renglón 1 y no escribe nada.
+    EXPECT_EQ(lines.text[1], "");
+    EXPECT_TRUE(text.texts.empty());
 }
 } // namespace

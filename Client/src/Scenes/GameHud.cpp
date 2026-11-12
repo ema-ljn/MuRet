@@ -20,9 +20,11 @@
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GameInventoryHud.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/GameTooltips.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/TooltipLines.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -33,6 +35,7 @@
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
+#include "UI/SprintfFormat.h"
 #include "UI/TextField.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
@@ -369,6 +372,86 @@ void DrawStatusIcon(Frame& frame, std::int32_t icon, int x, int y, int width, in
          F32(static_cast<double>((index / 8) * 36) * Texel), 0.125f, 0.13671875f);
 }
 
+// El nombre de un registro de Skill.bmd como lo copia strcpy (0x551e0c): hasta su '\0', dentro del registro.
+std::string SkillRecordName(std::span<const std::byte, Data::Tables::SkillRecordSize> record)
+{
+    std::string name;
+    for (const std::byte value : record)
+    {
+        if (value == std::byte{0})
+            break;
+        name.push_back(static_cast<char>(std::to_integer<unsigned char>(value)));
+    }
+    return name;
+}
+
+// 0x5a6600(x, y, ícono), desde 0x42a735 con el mouse sobre el ícono: su ayuda en la caja de los tooltips (0x5af090,
+// con el modo 2 y el marco). Con el registro propio abierto alrededor, el nombre de la entrada `icon` de Skill.bmd
+// (0x551c70, con el acceso de la entrada: 60 rand() al cerrarla en 0) va en azul y negrita en el renglón 1, entre dos
+// "\n", y el texto del ícono (la tabla de 0x5a69fc), en blanco en el 3; el 0xcc lleva tres, del 3 al 5. No limpia
+// los renglones: un ícono sin texto deja el 3 que había, y el 0xcc, los colores y las negritas del 3 y del 4
+// (Q-C597).
+Core::Expected<void, std::string> DrawTheStatusHelp(Frame& frame, std::int32_t x, std::int32_t y, std::int32_t icon)
+{
+    struct HelpText
+    {
+        std::int32_t icon = 0;
+        std::size_t text = 0;
+    };
+    constexpr std::array<HelpText, 6> Texts{
+        {{0x40, 1466}, {0x43, 1468}, {0x45, 1469}, {0x46, 1470}, {0x4b, 1467}, {0xcb, 1471}}};
+    // 0x5a6855..0x5a6888: los tres del 0xcc.
+    constexpr std::int32_t ThreeLinesIcon = 0xcc;
+    constexpr std::array<std::size_t, 3> ThreeLines{1638, 1639, 1472};
+    TooltipLines& lines = frame.context.hud.tooltip;
+    std::size_t last = 3;
+    {
+        const auto own = OwnAccess(frame);
+        const auto skill = static_cast<std::uint32_t>(icon);
+        auto record = SkillRecordOf(frame, skill, "0x551c70");
+        if (!record.HasValue())
+            return Core::Unexpected(record.Error());
+        std::string name;
+        {
+            const auto entry = SkillAccess(frame, skill);
+            name = SkillRecordName(record.Value());
+        }
+        lines.text[0] = "\n";
+        lines.text[1] = UI::Sprintf("%s", std::string_view(name));
+        lines.colors[1] = TooltipBlue;
+        lines.bold[1] = 1;
+        lines.text[2] = "\n";
+        const auto write = [&](std::size_t line, std::size_t index) -> Core::Expected<void, std::string>
+        {
+            const auto text = TextOf(frame, index, "0x5a6888");
+            if (!text.HasValue())
+                return Core::Unexpected(text.Error());
+            lines.text[line] = UI::Sprintf(text.Value());
+            return {};
+        };
+        if (icon == ThreeLinesIcon)
+        {
+            for (std::size_t i = 0; i < ThreeLines.size(); ++i)
+            {
+                if (auto written = write(3 + i, ThreeLines[i]); !written.HasValue())
+                    return written;
+            }
+            last = 5;
+        }
+        for (const HelpText& help : Texts)
+        {
+            if (help.icon != icon)
+                continue;
+            if (auto written = write(3, help.text); !written.HasValue())
+                return written;
+        }
+        lines.colors[last] = TooltipWhite;
+        lines.bold[last] = 0;
+        lines.text[last + 1] = "\n";
+    }
+    return DrawTheTooltipBox(frame.context, x, y, static_cast<std::int32_t>(last + 2), 0, 2, 1);
+}
+
 Core::Expected<void, std::string> DrawTheStatusIcons(Frame& frame)
 {
     struct StatusIcon
@@ -393,8 +476,10 @@ Core::Expected<void, std::string> DrawTheStatusIcons(Frame& frame)
         DrawStatusIcon(frame, icon.icon, x, 1, 20, 24);
         const UI::Point mouse = frame.context.mouse;
         if (x < mouse.x && mouse.x < x + 20 && 1 < mouse.y && mouse.y < 25)
-            return Core::Unexpected(
-                std::format("0x5a6600: la ayuda del ícono de estado 0x{:x} es del hito 5", icon.icon));
+        {
+            if (auto help = DrawTheStatusHelp(frame, x + 10, 0x1d, icon.icon); !help.HasValue())
+                return help;
+        }
         shown = static_cast<std::uint8_t>(shown + 1);
     }
     return {};

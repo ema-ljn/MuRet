@@ -1552,7 +1552,19 @@ no escribe el renglón (Q-C593). Los textos de las opciones (`0x40d530`, `Scenes
 | `0x15`, `0x16` y `0x17` | 970, 984 y 983 |
 | `0x18` a `0x23` | 947 + opción |
 
-**Lo que porta MuRet**: el orden de `0x5f7bc0`, la caja, la ventana y el cartel del set, el sprintf del CRT
+**La ayuda de los íconos de estado** (`0x5a6600(x + 10, 0x1d, ícono)`, desde `0x42a735`, en el HUD). Con el mouse
+sobre un ícono de estado, abre el registro propio y escribe los renglones:
+
+- 0 y 2: `\n`;
+- 1: el nombre de la entrada del ícono en Skill.bmd (`0x551c70`, con el acceso de la entrada: 60 `rand()` al
+  cerrarla en 0), en azul y negrita;
+- 3: el texto del caso del ícono (la tabla de `0x5a69fc`: 1466, 1468, 1469, 1470, 1467 y 1471 para `0x40`, `0x43`,
+  `0x45`, `0x46`, `0x4b` y `0xcb`), en blanco. El `0xcc` escribe tres, del 3 al 5 (1638, 1639 y 1472).
+
+Termina con un `\n`, cierra el registro y dibuja la caja con el modo 2. No limpia nada (Q-C597).
+
+**Lo que porta MuRet**: el orden de `0x5f7bc0`, la ayuda de los íconos de estado (`Scenes/GameHud.cpp`), la caja,
+la ventana y el cartel del set, el sprintf del CRT
 (`UI/SprintfFormat`) y `0x40ebd0` en la cola de los comandos del chat (Q-C594). Los tests son
 `test_game_tooltips.cpp`, `test_sprintf_format.cpp` y `test_chat_commands.cpp`. Los tres cuerpos (`0x5b2aa0`,
 `0x5b8150` y `0x5b90b0`) cortan con su dirección (P-C101), y el modo 3 de las ayudas (`0x5afc00`, `0x5af590` y

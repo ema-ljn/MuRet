@@ -1,21 +1,17 @@
 #include "Scenes/GameScene.h"
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/GameItemSpecialDrawing.h"
-#include "Scenes/FaunaJointCreation.h"
-#include "Scenes/FaunaEffects.h"
+#include "Scenes/ItemDrawResources.h"
 #include "World/ITerrainAttributeQuerySource.h"
 #include "World/TerrainAttributeQuery.h"
 #include "Data/Terrain/TerrainAttributes.h"
-#include "Render/Models/OriginalRotation.h"
 #include "World/KalimaWorld.h"
-#include "World/IFishStepServices.h"
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Render/Billboard.h"
 #include "Render/Pass3D.h"
 #include "Render/Models/Skinning.h"
-#include "Render/Models/HalfLifeMath.h"
 #include "World/ModelEffects.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameDrawTail.h"
@@ -33,7 +29,6 @@
 
 #include <chrono>
 #include <algorithm>
-#include <cstddef>
 #include <cstdint>
 #include <glm/ext/vector_float3.hpp>
 #include <ratio>
@@ -87,49 +82,17 @@ Core::Expected<void, std::string> GameScene::DrawTheBirds(SceneCanvas& canvas, c
 void GameScene::FillTheItemContexts(ItemSpecialDrawContext& special, ItemDrawContext& item, Core::Duration frameClock,
                                     int frames)
 {
-    special.worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(frameClock).count());
-    special.random = &FrameCloth().random;
-    special.pulse = &FrameItemRender().specialPulse;
-    special.sprites = &FrameSpritesForDraw();
-    special.bonePoint = [this](std::size_t bone) -> Core::Expected<glm::vec3, std::string>
-    {
-        const auto& bones = FramePoseCarry().bones;
-        if (bone >= bones.size())
-            return Core::Unexpected(std::string("0x4ec110: el hueso del ítem excede la pose compartida"));
-        return Render::Models::OriginalVectorTransform({}, Render::Models::OriginalMatrixOf(bones[bone]));
-    };
-    // privateBoneOrigin sigue ausente: object+120 no está representado por el scratch global.
-    item.special = &special;
-    item.glowPulse = FrameItemRender().glowPulse;
-    item.selections = &FrameItemRender().selections;
-    item.originalFrame = frames > 0;
-    item.modelState = &FrameModelState();
-    item.map = m_context.world->Runtime().map;
-    item.poseBones = [this]() { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); };
-    item.createJoint = [this](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
-    {
-        // Productores de Helper07, dueño opaco (FloorItemState del piso o ActorState de lo que cuelga): nunca
-        // interpretarlo como FaunaObject.
-        if (!((request.type == 0x613 && request.subtype == 4) || (request.type == 0x614 && request.subtype == 14)))
-            return Core::Unexpected(std::string("0x530860: creador del joint de ítem fuera del contrato de dueño"));
-        const auto created = CreateFaunaJoint(FrameTail().joints, request, FrameCloth().random);
-        return created.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(created.Error());
-    };
-    item.createEffect = [this](std::uint16_t type, std::int32_t subtype,
-                               const DrawnObject& object) -> Core::Expected<void, std::string>
-    {
-        if (type == 0xc2 && subtype == 3)
-        {
-            static_cast<void>(CreateFaunaLightning(FrameEffects(), object.transform.position));
-            return {};
-        }
-        if (subtype != 0 ||
-            (type != World::DragonEffect && type != World::ArrivalEffect && type != World::TeleportEffect))
-            return Core::Unexpected(std::string("0x518cf0: creador del efecto de ítem fuera del contrato portable"));
-        static_cast<void>(FrameEffects().Create(static_cast<std::int16_t>(type), object.transform.position,
-                                                object.transform.angles, object.color, object.transform.scale));
-        return {};
-    };
+    FillItemDrawContexts(special, item,
+                         ItemDrawResources{.frameClock = frameClock,
+                                           .random = FrameCloth().random,
+                                           .itemRender = FrameItemRender(),
+                                           .sprites = FrameSpritesForDraw(),
+                                           .poseCarry = FramePoseCarry(),
+                                           .modelState = FrameModelState(),
+                                           .joints = FrameTail().joints,
+                                           .effects = FrameEffects(),
+                                           .map = m_context.world->Runtime().map,
+                                           .originalFrame = frames > 0});
 }
 
 Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, const Render::Pass3D& pass,

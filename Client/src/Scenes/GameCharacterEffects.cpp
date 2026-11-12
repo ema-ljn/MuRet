@@ -506,8 +506,9 @@ Result GuildMark(const Tail& tail)
 {
     const ActorState& actor = tail.actor;
     const std::int32_t map = tail.pass.map;
-    if (actor.byte88 != 1 || (map >= FirstBloodCastle && map <= LastBloodCastle) || World::IsChaosCastleMap(map) ||
-        map == CastleMap)
+    // 0x510a7a: sólo en la escena 5.
+    if (!tail.pass.gameScene || actor.byte88 != 1 || (map >= FirstBloodCastle && map <= LastBloodCastle) ||
+        World::IsChaosCastleMap(map) || map == CastleMap)
         return {};
     if (actor.byte369 == 1 && tail.pass.originalFrame)
         return Core::Unexpected<std::string>("0x510f4d: el efecto 0x140 de +0x369 no está portado");

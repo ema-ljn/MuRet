@@ -22,6 +22,7 @@
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CreatePreview.h"
+#include "Scenes/FullSetScan.h"
 #include "Scenes/GameData.h"
 #include "Scenes/IScene.h"
 #include "Scenes/SceneCanvas.h"
@@ -36,6 +37,7 @@
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -131,8 +133,9 @@ private:
     // y el avance adicional: con un aviso arriba solo avanza desde 0x508ea0.
     void StepThePreview();
     void DrawTheCreateWindow(SceneCanvas& canvas, float alpha);
-    // 0x505820 con un personaje que se dibuja, `frames` veces (Scenes/FullSetScan.h), sobre WorldState.
-    void ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames);
+    // 0x505820 con un personaje que se dibuja, `frames` veces (Scenes/FullSetScan.h), sobre WorldState: lo que
+    // devuelve el último, que lee el conjunto completo de la cola de efectos.
+    FullSetScan ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames);
     // 0x635ae0 (0x6346ca) y 0x5fbb00 (0x63475c) en cada frame del original que cuenta el reloj, uno detrás
     // del otro; un dibujo intermedio solo consulta la cámara. Con un error del trapecio deja m_failure.
     [[nodiscard]] Render::Camera3D StepTheCameraAndTheTrapezoid(const World::GameCameraInput& input,
@@ -148,6 +151,11 @@ private:
                                       int scanFrames);
     void DrawTheCharacters(SceneCanvas& canvas, float alpha, std::uint8_t map, FaunaDrawCarry* poseCarry,
                            int scanFrames);
+    // Si Player.bmd tiene su esqueleto con acciones: sin ellas, 0x50ba30 sale antes (0x50ba87).
+    [[nodiscard]] bool HasTheSkeleton() const;
+    // 0x50db57..0x510a7a con un personaje de la lista, después de su cuerpo; un error queda en m_failure.
+    void DrawTheTail(SceneCanvas& canvas, ActorState& actor, std::size_t slot, const DrawnCharacter& drawn,
+                     FaunaDrawCarry& poseCarry, const FullSetScan& scan, bool originalFrame);
     // El cursor del juego (0x5ac2d0) al final de la UI, con el aviso de antes de la lista también.
     void DrawTheCursor(SceneCanvas& canvas) const;
     // Con la respuesta del F3 02, su aviso en lugar del 0x5d (0x4e2fe9), salvo que la sesión haya

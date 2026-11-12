@@ -26,9 +26,7 @@
 #include "Core/Log.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
-#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalAngles.h"
-#include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
@@ -61,7 +59,6 @@
 #include "World/TerrainLighting.h"
 #include "Scenes/DynamicWorldLight.h"
 #include <memory>
-#include "World/Sprites.h"
 #include "World/WorldObjects.h"
 #include "Scenes/WorldModels.h"
 
@@ -854,6 +851,37 @@ TEST_F(GoldenLoginWorld, TheDrawingAndTheNextEntryUseThePoolCharacter)
     EXPECT_EQ(actor.darkSpirit->position, glm::vec3(50.0f, 50.0f, 750.0f));
 }
 
+// El Dark Lord del login corre lo que cuelga y los efectos de 0x50ba30 como el juego (0x50db57..0x510a7a): la luz de lo
+// que cuelga (0x50db94) es la del terreno en su lugar más +0xf4, la del cuerpo, o el rojo de un PK desde 6; un frame
+// del original deja el cuerpo en sus huesos (+0x120), y uno intermedio no los toca.
+TEST_F(GoldenLoginWorld, TheLoginCharacterRunsTheTailOfTheGame)
+{
+    using namespace std::chrono_literals;
+    Client::Scenes::WorldState world;
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(
+        SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth, .world = &world},
+        *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    scene.Step(Client::Input::InputState{});
+    auto& actor = world.Actors()[2];
+    DrawAt(scene, 40ms);
+    ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
+    EXPECT_EQ(actor.drawnLight, scene.TheCharacterToDraw(0.0f).light);
+    ASSERT_FALSE(actor.bodyPose.empty());
+    const auto posed = actor.bodyPose;
+
+    actor.pk = 6;
+    actor.animation.frame += 1.0f;
+    DrawAt(scene, 40ms);
+    EXPECT_EQ(actor.drawnLight, glm::vec3(1.0f, 0.1f, 0.1f));
+    EXPECT_EQ(actor.bodyPose, posed) << "un dibujo intermedio no posa";
+    DrawAt(scene, 87ms);
+    EXPECT_NE(actor.bodyPose, posed);
+    EXPECT_FALSE(scene.Failure().has_value());
+    scene.Leave();
+}
+
 TEST_F(GoldenLoginWorld, TheLoginPublishesTheCharacterCutAndKeepsItsRandomState)
 {
     Client::Scenes::WorldState world;
@@ -952,8 +980,9 @@ TEST_F(GoldenLoginWorld, TheHeadSeesTheCharacterAfterEveryDraw)
     scene.Leave();
 }
 
-// El cetro sortea una vez por frame del original (World::ScepterGlowCarry): dos frames de MuRet con el
-// mismo reloj dibujan los mismos cinco sprites, en el mismo lugar; uno 47 ms después, otros.
+// El cetro sortea una vez por frame del original: lo que cuelga (0x509340) corre con el flujo global sólo en un frame
+// que cuenta el reloj, y un dibujo intermedio repite sus sprites del último. Dos frames de MuRet con el mismo reloj
+// dibujan los mismos cinco sprites, en el mismo lugar; uno 47 ms después, otros.
 TEST_F(GoldenLoginWorld, TheScepterGlowChangesOncePerOriginalFrame)
 {
     Client::Render::Models::ClothWorld cloth;
@@ -982,43 +1011,62 @@ TEST_F(GoldenLoginWorld, TheScepterGlowChangesOncePerOriginalFrame)
         return positions;
     };
 
+    const Client::Render::Models::CrtRandom beforeFirst = cloth.random;
     const std::vector<glm::vec3> first = scepterAt(std::chrono::milliseconds{40});
+    const std::uint32_t beforeAgain = cloth.random.State();
     const std::vector<glm::vec3> again = scepterAt(std::chrono::milliseconds{40});
+    const std::uint32_t afterAgain = cloth.random.State();
     const std::vector<glm::vec3> next = scepterAt(std::chrono::milliseconds{87});
 
     ASSERT_EQ(first.size(), 30u);
+    EXPECT_NE(beforeAgain, beforeFirst.State());
     EXPECT_EQ(again, first);
+    // El dibujo intermedio no saca del flujo global: ni el cetro ni los objetos.
+    EXPECT_EQ(afterAgain, beforeAgain);
     EXPECT_NE(next, first);
     scene.Leave();
 }
 
-// Cada entrada empieza el ritmo del cetro (World::ScepterGlowCarry, P-C27 i): el original lo sortea en cada frame
-// que dibuja (0x509340), y entre una entrada y la otra el login no se dibuja. El primer dibujo de la segunda
-// sortea uno, por más que haya pasado desde el último de la primera (por el reloj, 5 s serían 64).
+// Cada entrada empieza el ritmo de lo que cuelga y de la tela (P-C27 i): el original los corre en cada frame que
+// dibuja (0x509340, 0x50d58b), y entre una entrada y la otra el login no se dibuja. El primer dibujo de la segunda
+// corre uno, por más que haya pasado desde el último de la primera (por el reloj, 5 s serían 64): saca del flujo
+// global lo que el primero de la primera entrada.
 TEST_F(GoldenLoginWorld, EnteringAgainStartsTheScepterClock)
 {
     using namespace std::chrono_literals;
     Client::Render::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    // Los rand() que sacó un dibujo, contados desde el estado de antes.
+    const auto spent = [&cloth](const Client::Render::Models::CrtRandom& before)
+    {
+        Client::Render::Models::CrtRandom walk = before;
+        int count = 0;
+        while (walk.State() != cloth.random.State() && count < 1'000'000)
+        {
+            static_cast<void>(walk.Next());
+            ++count;
+        }
+        return count;
+    };
     ASSERT_TRUE(scene.Enter().HasValue());
     scene.Step(Client::Input::InputState{});
+    const Client::Render::Models::CrtRandom beforeFirstEntry = cloth.random;
     DrawAt(scene, 40ms);
+    const int firstEntry = spent(beforeFirstEntry);
     scene.Leave();
 
     ASSERT_TRUE(scene.Enter().HasValue());
     scene.Step(Client::Input::InputState{});
-    // El cetro que pide el dibujo, con su propio rand() para contar los sorteos.
-    const Client::Scenes::DrawnCharacter character = scene.TheCharacterToDraw(0.0f);
-    ASSERT_NE(character.scepter, nullptr);
-    Client::World::FrameSprites sprites;
-    Client::Render::Models::CrtRandom random(5);
-    character.scepter->Create(sprites,
-                              Client::Render::Models::OriginalMatrixOf(Client::Render::Models::BoneTransform(1.0f)),
-                              1.0f, glm::vec3(0.0f), random, 40ms + 5s, character.pace);
-    Client::Render::Models::CrtRandom once(5);
-    static_cast<void>(Client::World::DrawScepterGlowRandoms(once));
-    EXPECT_EQ(random.State(), once.State()) << "un sorteo, no 64";
+    const Client::Render::Models::CrtRandom beforeSecondEntry = cloth.random;
+    DrawAt(scene, 40ms + 5s);
+    const int secondEntry = spent(beforeSecondEntry);
+
+    // Un frame cuesta unos 370 (la tela, el cetro y un rand() por objeto, con algunos que dependen de lo que sale);
+    // 64 serían miles.
+    ASSERT_GT(firstEntry, 0);
+    EXPECT_LT(secondEntry, firstEntry + firstEntry / 2) << "un frame del original, no 64";
+    EXPECT_GT(secondEntry, firstEntry / 2);
     scene.Leave();
 }
 

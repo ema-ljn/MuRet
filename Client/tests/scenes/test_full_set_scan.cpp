@@ -247,7 +247,7 @@ TEST(FullSetScanCharacterTest, ItReadsTheClassAndTheFiveBodyParts)
 
 // 0x50c904..0x50c926 una vez por frame del original: deja lo del último en WorldRuntime::fullSetScan, aunque
 // MuRet no supiera qué había, y la clase 3 con el conjunto abre y cierra el registro de WorldState en cada
-// uno. Sin frames, nada.
+// uno, y devuelve lo del último. Sin frames, devuelve lo mismo sin gastar ni publicar nada.
 TEST(FullSetScanDrawingTest, EachOriginalFrameScansTheDrawnCharacter)
 {
     Client::Scenes::WorldState world;
@@ -255,10 +255,17 @@ TEST(FullSetScanDrawingTest, EachOriginalFrameScansTheDrawnCharacter)
     world.OwnCharacter().equipment[OwnArmorSlot].id = 0x1005;
     CrtRandom random(Seed);
 
-    Client::Scenes::ScanTheDrawnCharacter(world, WearingPlus13(MagicGladiator, 9), random, 0);
+    const auto projected = Client::Scenes::ScanTheDrawnCharacter(world, WearingPlus13(MagicGladiator, 9), random, 0);
     EXPECT_FALSE(world.Runtime().fullSetScan.has_value());
+    EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
+    EXPECT_EQ(random.State(), CrtRandom(Seed).State());
+    EXPECT_TRUE(projected.complete);
+    EXPECT_EQ(projected.globals.dword743a178, 13);
+    EXPECT_EQ(projected.globals.byte743a17c, 0);
 
-    Client::Scenes::ScanTheDrawnCharacter(world, WearingPlus13(MagicGladiator, 9), random, 2);
+    const auto scanned = Client::Scenes::ScanTheDrawnCharacter(world, WearingPlus13(MagicGladiator, 9), random, 2);
+    EXPECT_TRUE(scanned.complete);
+    EXPECT_EQ(scanned.globals.dword743a178, 13);
     ASSERT_TRUE(world.Runtime().fullSetScan.has_value());
     EXPECT_EQ(world.Runtime().fullSetScan->dword743a178, 13);
     EXPECT_EQ(world.Runtime().fullSetScan->byte743a17c, 0);
@@ -266,7 +273,7 @@ TEST(FullSetScanDrawingTest, EachOriginalFrameScansTheDrawnCharacter)
     EXPECT_EQ(random.State(), AfterDraws(Seed, 2 * OwnRecordCloseRandoms).State());
 
     // El que viene después pisa los dos.
-    Client::Scenes::ScanTheDrawnCharacter(world, Wearing(0, 9, {13, 13, 8, 13, 13}), random, 1);
+    EXPECT_FALSE(Client::Scenes::ScanTheDrawnCharacter(world, Wearing(0, 9, {13, 13, 8, 13, 13}), random, 1).complete);
     EXPECT_EQ(world.Runtime().fullSetScan->dword743a178, 0);
     EXPECT_EQ(world.Runtime().fullSetScan->byte743a17c, 1);
 }

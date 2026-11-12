@@ -32,6 +32,7 @@ class ModelEffects;
 class Particles;
 struct TerrainLighting;
 struct TerrainPolygon;
+struct WorldTerrain;
 } // namespace Client::World
 
 // Los personajes en el dibujo del juego (0x6374dd, 0x510d00), hasta donde MuRet los tiene. Contrato: 06
@@ -41,7 +42,9 @@ namespace Client::Scenes
 class CharacterCloth;
 class IModelLibrary;
 class WorldState;
+struct DrawnCharacter;
 struct FaunaDrawCarry;
+struct FullSetScan;
 struct ItemDrawContext;
 
 // Los recursos del pase 0x510d00 en el juego. La luz es el buffer dinámico, no su base sombreada.
@@ -80,6 +83,8 @@ struct GameCharacterPass
     // (0x6c9d5c) de la altura del terreno bajo su sombra (0x5f93c0).
     const World::TerrainPolygon* polygon = nullptr;
     float fixedHeight = 1200.0f;
+    // El terreno de esa altura; sin él, el del mapa del mundo (WorldState::Map). La selección tiene el suyo.
+    const World::WorldTerrain* terrain = nullptr;
 };
 
 // El cuerpo del jugador ordinario, su luz del terreno y el override del héroe, reutilizando
@@ -91,6 +96,21 @@ struct GameCharacterPass
 [[nodiscard]] Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch,
                                                                    const IModelLibrary& models, WorldState& world,
                                                                    const GameCharacterPass& pass);
+
+// 0x50db57..0x510a7a sobre un 0x20a con el cuerpo, las partes y la tela ya dibujados (DrawCharacter con
+// CharacterDrawPass::Body), en el login (la escena 2) y en la selección (la 4), que corren el mismo 0x50ba30 que el
+// juego: el cuerpo en sus huesos propios y, con el alpha desde 0,01, la escala y la posición en el modelo
+// compartido (0x6001b0, Q-C412), lo que cuelga (DrawGameHanging) y los efectos del jugador
+// (DrawGameCharacterEffects), sin 0x510ef0, que sólo corre en la escena 5, y el cuervo (0x510abd → 0x420df0) con el
+// trapecio de `pass` (sin él, lo dibuja el caller, como el login). `actor.drawnLight` ya tiene la luz de lo que
+// cuelga (+0x3b4, 0x50db94); `scan` es lo que devolvió 0x505820 en este dibujo. Lee de `pass` el flujo global
+// (clothWorld), el buffer global de la pose, los sprites, los joints, las partículas, los efectos, los ítems y, para
+// el cuervo, la luz dinámica, el terreno y su altura fija. Entre frames del original, sobre una copia del personaje y
+// del rand().
+[[nodiscard]] Core::Expected<void, std::string>
+DrawCharacterTail(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world, ActorState& actor,
+                  std::size_t slot, const DrawnCharacter& character, const GameCharacterPass& pass,
+                  const FullSetScan& scan, bool originalFrame);
 
 // 0x510d00: el bit del CtlCode (+0x1d8) con el que el héroe no se dibuja en la escena 5.
 inline constexpr std::uint8_t UndrawnHeroControlBit = 0x04;

@@ -40,8 +40,12 @@
 #include "Scenes/DarkHorse.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/FullSetScan.h"
+#include "Scenes/GameCharacters.h"
 #include "Scenes/GameData.h"
+#include "Scenes/GameItemRenderState.h"
+#include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/ITextDrawer.h"
+#include "Scenes/ItemDrawResources.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/LoginActor.h"
 #include "Scenes/SceneCameras.h"
@@ -71,7 +75,9 @@
 #include "World/TerrainHeight.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
+#include "World/ObjectModelStepState.h"
 #include "World/SphereFrustum.h"
+#include "World/Sprites.h"
 #include "World/ParticleDrawing.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"
@@ -320,6 +326,7 @@ Core::Expected<void, std::string> LoginScene::Enter()
     m_cameraFrames = {};
     m_objectEffectFrames = {};
     m_fullSetScanFrames = {};
+    m_characterCloth.RestartTheClock();
     m_drawnCamera = {};
     World::GameCameraInput& cameraInput = CameraInputState();
     cameraInput.scene = World::CullingScene::Login;
@@ -551,7 +558,9 @@ Core::Expected<void, std::string> LoginScene::PlaceTheModels()
     m_drawnSinceEntering = false;
     m_steppedSinceEntering = false;
     m_particleFailureReported = false;
-    m_scepterGlow = {};
+    m_tailSprites.Clear();
+    m_tailSpriteReplay.Clear();
+    m_tailSpriteReplayValid = false;
     if (m_world && m_world->map == DragonMap)
     {
         (void)CharacterWorld().Map().effects.Create(World::DragonEffect, DragonOwnerPosition, glm::vec3(0.0f),
@@ -1128,14 +1137,13 @@ void LoginScene::ReportParticleFailure(const World::ParticleDrawingFailure& fail
 // 0x50ba30 con el del login, en 0x50c91e: un 0x20a con +0x7c y +0x3e4 en 0 (0x517270). Con la clase 4 no
 // abre el registro. Sin las acciones de Player.bmd sale antes (0x50ba87), como DrawCharacter sin su
 // esqueleto.
-void LoginScene::ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames)
+FullSetScan LoginScene::ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames)
 {
-    if (m_context.world == nullptr || m_context.cloth == nullptr ||
-        m_models.SkeletonOf(Data::Models::PlayerSkeletonModel) == nullptr)
+    if (m_context.cloth == nullptr || m_models.SkeletonOf(Data::Models::PlayerSkeletonModel) == nullptr)
     {
-        return;
+        return {};
     }
-    ScanTheDrawnCharacter(*m_context.world, ScannedCharacterOf(appearance), m_context.cloth->random, frames);
+    return ScanTheDrawnCharacter(CharacterWorld(), ScannedCharacterOf(appearance), m_context.cloth->random, frames);
 }
 
 DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
@@ -1159,7 +1167,6 @@ DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
     character.clothWorld = m_context.cloth;
     character.map = m_world ? m_world->map : 0;
     character.sprites = &m_sprites;
-    character.scepter = &m_scepterGlow;
     character.pace = OriginalFramePaceOf(m_context.pacing);
     return character;
 }
@@ -1195,17 +1202,29 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     };
     if (actor.alive && actor.seen)
     {
-        ScanTheCharacter(character.appearance,
-                         m_fullSetScanFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing)));
-        DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
-        // Sólo un frame del original deja el cuerpo en sus huesos; un dibujo intermedio no los toca. 0x6001b0
-        // copia antes la escala y la posición al modelo compartido de Player.bmd, con el alpha desde 0,01
-        // (Q-C412).
-        if (nativeFrames > 0)
+        const FullSetScan scan =
+            ScanTheCharacter(character.appearance,
+                             m_fullSetScanFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing)));
+        // Con el flujo global y Player.bmd, el mismo 0x50ba30 que el juego: el cuerpo, las partes y la tela, y
+        // después lo que cuelga y los efectos (0x50db57..0x510a7a), que no miran la escena salvo 0x510ef0.
+        const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+        if (m_context.cloth != nullptr && skeleton != nullptr && !skeleton->actions.empty())
         {
-            actor.bodyPose = PoseCharacterBody(m_models, character);
-            if (actor.alpha >= PlayerModelAlpha)
-                CharacterWorld().PlacePlayerModel(actor);
+            DrawCharacter(canvas.models, m_models, character, canvas.frameClock, CharacterDrawPass::Body);
+            DrawTheTail(canvas, actor, character, carry, scan, nativeFrames);
+        }
+        else
+        {
+            DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
+            // Sólo un frame del original deja el cuerpo en sus huesos; un dibujo intermedio no los toca. 0x6001b0
+            // copia antes la escala y la posición al modelo compartido de Player.bmd, con el alpha desde 0,01
+            // (Q-C412).
+            if (nativeFrames > 0)
+            {
+                actor.bodyPose = PoseCharacterBody(m_models, character);
+                if (actor.alpha >= PlayerModelAlpha)
+                    CharacterWorld().PlacePlayerModel(actor);
+            }
         }
     }
     // 0x4182f0 al final de 0x50ba30: el cuervo, si pasa el trapecio; sus huesos del estado del paso quedan
@@ -1264,6 +1283,82 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     // 0x5306a0, después de 0x549510: las brasas, en el mundo.
     DrawLeaves(canvas.models, m_leaves);
     m_drawnSinceEntering = true;
+}
+
+// 0x50db57..0x510a7a con el personaje del login, después de su cuerpo (GameCharacters.h, DrawCharacterTail): una vez
+// por frame del original que cuenta el reloj (con varios, sólo el último dibuja), y con cero una sobre copias. La luz
+// de lo que cuelga (0x50db94) es la del terreno en su lugar (0x5f99e0, fuera de la escena 4) más +0xf4, la misma del
+// cuerpo, o el rojo de los PK. Lo que sortea (el brillo del cetro de 0x509340) cambia sólo en un frame del original:
+// un dibujo intermedio repite sus sprites del último. El cuervo lo dibuja DrawTheRaven.
+void LoginScene::DrawTheTail(SceneCanvas& canvas, ActorState& actor, const DrawnCharacter& character,
+                             FaunaDrawCarry& carry, const FullSetScan& scan, int frames)
+{
+    WorldState& world = CharacterWorld();
+    Render::Models::ClothWorld& cloth = *m_context.cloth;
+    constexpr std::uint8_t RedPk = 6;
+    actor.drawnLight = actor.pk >= RedPk ? glm::vec3{1.0f, 0.1f, 0.1f} : character.light;
+    const bool originalFrame = frames > 0;
+    // Entre frames, los globales de los ítems sobre copias, como GameScene y SelectionWorld.
+    std::optional<GameItemRenderState> projectedItems;
+    std::optional<World::ObjectModelStepState> projectedModels;
+    std::optional<Render::Models::CrtRandom> projectedRandom;
+    GameItemRenderState& items =
+        originalFrame ? world.Runtime().itemRender : projectedItems.emplace(world.Runtime().itemRender);
+    World::ObjectModelStepState& modelState =
+        originalFrame ? world.Runtime().objectModelState : projectedModels.emplace(world.Runtime().objectModelState);
+    Render::Models::CrtRandom& itemRandom = originalFrame ? cloth.random : projectedRandom.emplace(cloth.random);
+    const int runs = std::max(frames, 1);
+    for (int run = 0; run < runs; ++run)
+    {
+        const bool last = run + 1 == runs;
+        Render::ModelBatch discarded;
+        if (!last)
+            discarded = canvas.models;
+        Render::ModelBatch& batch = last ? canvas.models : discarded;
+        m_tailSprites.Clear();
+        ItemSpecialDrawContext special;
+        ItemDrawContext itemContext;
+        FillItemDrawContexts(special, itemContext,
+                             ItemDrawResources{.frameClock = canvas.frameClock,
+                                               .random = itemRandom,
+                                               .itemRender = items,
+                                               .sprites = m_tailSprites,
+                                               .poseCarry = carry,
+                                               .modelState = modelState,
+                                               .joints = world.DrawTail().joints,
+                                               .effects = world.Map().effects,
+                                               .map = world.Runtime().map,
+                                               .originalFrame = originalFrame});
+        const GameCharacterPass pass{.dynamicLighting = &world.DynamicLighting().Lighting(),
+                                     .clothWorld = &cloth,
+                                     .frameClock = canvas.frameClock,
+                                     .sprites = &m_tailSprites,
+                                     .poseCarry = &carry,
+                                     .joints = world.DrawTail().joints,
+                                     .particles = &world.Particles(),
+                                     .effects = &world.Map().effects,
+                                     .itemContext = &itemContext};
+        if (auto drawn =
+                DrawCharacterTail(batch, m_models, world, actor, LoginActorSlot, character, pass, scan, originalFrame);
+            !drawn.HasValue())
+        {
+            m_failure = drawn.Error() + ", en el personaje del login";
+            return;
+        }
+    }
+    if (originalFrame)
+    {
+        m_tailSpriteReplay = m_tailSprites;
+        m_tailSpriteReplayValid = true;
+    }
+    if (!originalFrame && !m_tailSpriteReplayValid)
+        return;
+    for (World::Sprite& sprite : (originalFrame ? m_tailSprites : m_tailSpriteReplay).Sprites())
+    {
+        if (sprite.alive)
+            static_cast<void>(m_sprites.Create(sprite.texture, sprite.position, sprite.scale, sprite.light,
+                                               sprite.rotation, sprite.blend));
+    }
 }
 
 void LoginScene::DrawTheRaven(SceneCanvas& canvas, float alpha, FaunaDrawCarry* carry)
@@ -1404,7 +1499,6 @@ void LoginScene::OnFrameHeld()
         m_objectEffectFrames = {};
         m_fullSetScanFrames = {};
         m_characterCloth.RestartTheClock();
-        m_scepterGlow.RestartTheClock();
     }
 }
 

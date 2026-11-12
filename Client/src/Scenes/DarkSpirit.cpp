@@ -2,6 +2,7 @@
 
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"

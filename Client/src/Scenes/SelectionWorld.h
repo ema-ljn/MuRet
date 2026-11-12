@@ -43,9 +43,15 @@
 // efectos con modelo(0) y 0x549510 después de los personajes; y en el pase de ojo los sprites, las
 // partículas y los números. Un dibujo intermedio de MuRet (sin frame del original) corre sobre copias:
 // no saca rand() de la CRT ni cambia el estado del paso. Contrato: 06 § El mundo de la selección.
+namespace Client::World
+{
+struct ObjectModelStepState;
+}
+
 namespace Client::Scenes
 {
 struct FaunaDrawCarry;
+struct GameItemRenderState;
 class WorldState;
 
 // Las texturas que la selección le presta a los sprites y a las partículas: las de su juego (0x61ca30:
@@ -111,11 +117,18 @@ public:
                                                                 const std::function<double(float, float)>& height);
 
     // Al empezar un dibujo: con cero frames copia lo que el dibujo cambia (la luz dinámica, el rand(), las
-    // partículas, los efectos, los objetos y la cola); con frames, presta los del mundo.
+    // partículas, los efectos, los objetos, la cola, los globales de los ítems y las mallas sin luz); con frames,
+    // presta los del mundo. Los personajes de la lista (0x50ba30) usan los mismos.
     void BeginFrame(WorldState& world, Render::Models::ClothWorld& cloth, int frames);
     [[nodiscard]] World::TerrainLighting& FrameLighting();
     [[nodiscard]] Render::Models::CrtRandom& FrameRandom();
+    [[nodiscard]] Render::Models::ClothWorld& FrameCloth();
     [[nodiscard]] World::Particles& FrameParticles();
+    [[nodiscard]] World::ModelEffects& FrameEffects();
+    [[nodiscard]] GameDrawTailState& FrameTail();
+    [[nodiscard]] World::FrameSprites& FrameSprites();
+    [[nodiscard]] GameItemRenderState& FrameItemRender();
+    [[nodiscard]] World::ObjectModelStepState& FrameModelState();
 
     // 0x5fc260(0): el terreno, el pasto y las marcas del suelo.
     [[nodiscard]] Core::Expected<void, std::string> DrawTerrain(WorldState& world, const World::WorldTerrain& terrain,
@@ -135,10 +148,7 @@ public:
 
 private:
     struct Projection;
-    [[nodiscard]] World::ModelEffects& FrameEffects();
     [[nodiscard]] std::span<World::WorldObject> FrameObjects();
-    [[nodiscard]] GameDrawTailState& FrameTail();
-    [[nodiscard]] World::FrameSprites& FrameSprites();
 
     Render::ITextureStore& m_store;
     Core::Log& m_log;

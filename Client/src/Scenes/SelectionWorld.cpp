@@ -17,6 +17,7 @@
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/GameItemRenderState.h"
 #include "Scenes/GameParticles.h"
 #include "Scenes/SceneTextures.h"
 #include "Scenes/TerrainTiles.h"
@@ -28,6 +29,7 @@
 #include "World/GameModelEffects.h"
 #include "World/GroundMarks.h"
 #include "World/ModelEffects.h"
+#include "World/ObjectModelStepState.h"
 #include "World/Particles.h"
 #include "World/SphereFrustum.h"
 #include "World/Sprites.h"
@@ -115,6 +117,8 @@ struct SelectionWorld::Projection
     World::ModelEffects effects{};
     std::vector<World::WorldObject> objects{};
     GameDrawTailState tail{};
+    GameItemRenderState items{};
+    World::ObjectModelStepState modelState{};
 };
 
 SelectionWorld::SelectionWorld(Render::ITextureStore& store, Core::Log& log)
@@ -253,6 +257,8 @@ void SelectionWorld::BeginFrame(WorldState& world, Render::Models::ClothWorld& c
     m_projection->effects = world.Map().effects;
     m_projection->objects = world.Map().objects;
     m_projection->tail = world.DrawTail();
+    m_projection->items = world.Runtime().itemRender;
+    m_projection->modelState = world.Runtime().objectModelState;
     // Los sprites del dibujo intermedio salen de la muestra del último frame original (0x549510).
     m_projectedSprites.Clear();
 }
@@ -265,6 +271,21 @@ World::TerrainLighting& SelectionWorld::FrameLighting()
 Render::Models::CrtRandom& SelectionWorld::FrameRandom()
 {
     return m_projecting ? m_projection->cloth.random : m_cloth->random;
+}
+
+Render::Models::ClothWorld& SelectionWorld::FrameCloth()
+{
+    return m_projecting ? m_projection->cloth : *m_cloth;
+}
+
+GameItemRenderState& SelectionWorld::FrameItemRender()
+{
+    return m_projecting ? m_projection->items : m_world->Runtime().itemRender;
+}
+
+World::ObjectModelStepState& SelectionWorld::FrameModelState()
+{
+    return m_projecting ? m_projection->modelState : m_world->Runtime().objectModelState;
 }
 
 World::Particles& SelectionWorld::FrameParticles()

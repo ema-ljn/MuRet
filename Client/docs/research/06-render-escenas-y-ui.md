@@ -1914,6 +1914,19 @@ Lo que se ve en el video, una fuente por vez:
   carcaj, la posición (`0x509607`); `0x60b3d0`, que dibuja el ítem antes del caso, no los toca.
   `0x4ec190` copia el hueso sin cambios a la raíz de la pose (`0x68c4a1c`) y deja el desplazamiento
   solo en el origen: el hueso 0 que lee el caso es el del ítem colgado de ese hueso.
+- **La cola de `0x50ba30`** (`0x50db57..0x510ac2`, *estático*, cierre de la CL7, 2026-11-12). Después del
+  cuerpo, las partes y la tela, el personaje del login corre lo mismo que en el juego: el `rand() % 30 + 70`
+  de `0x50db57`, lo que cuelga (`0x509340`, con el cetro) y los efectos de las manos, del conjunto y de las
+  banderas (`0x50ea20..0x510a7a`). Esa cola no mira la escena salvo `0x510ef0` (la marca del guild, sólo en
+  la 5); la luz de lo que cuelga (`0x50db94`) es `[ebp−0x44]` más `+0xf4`, y fuera de la escena 4
+  `[ebp−0x44]` es la luz del terreno en su lugar (`0x5f99e0`, `0x50cc55`), la misma del cuerpo; con
+  `+0x375` desde 6, (1; 0,1; 0,1). El del login no es el héroe publicado (es el lugar 2), así que no corre
+  la rama del color de `0x50cca9`. MuRet (`LoginScene::DrawTheTail` → `Scenes::DrawCharacterTail`):
+  una vez por frame del original que cuenta el reloj (con varios, sólo el último dibuja) y, entre medio,
+  sobre copias del `rand()`, de los ítems y del estado de los modelos, repitiendo los sprites de lo que
+  cuelga del último frame del original (`GoldenLoginWorld.TheLoginCharacterRunsTheTailOfTheGame`,
+  `TheScepterGlowChangesOncePerOriginalFrame`). Cada entrada arranca el ritmo de la tela y de la cola,
+  como el de los objetos: entre una entrada y la otra el login no se dibuja (`EnteringAgainStartsTheScepterClock`).
 - **El blanco del casco**: la tela 0 de la clase 4, aditiva, más sus **30 destellos** (`0x455930`):
   con t = sin(T · 0,001) · 0,1 + 0,4, para k = 0..29 y p = k div 5, el sprite `0x5ac` (`flare01`) en
   la partícula k, con la escala p · 0,2 + 0,4 y la luz (6 − p) · t · 0,2, aditivo. Es lo que arma
@@ -1995,7 +2008,8 @@ más), las celdas de `0x505de0` (8, `0x506362` y `0x506833`), la cabeza (1, y 2 
 `rand() & 7` (`0x506cac`). También las rutas de la cámara (2 cada 128 pasos de la fase 1, `0x633a21` y
 `0x633a38`) y el contador protegido (8 por paso y 4 más cada 313, Q-C125). Ahora se sabe quién saca cada
 uno. MuRet lleva, con el de la CRT de la tela, los de la tela, el cetro (una vez por frame del original
-desde el cierre), el aliento, el viento de las partículas, las brasas, el cuervo, el gesto, la cabeza, 4
+desde el cierre; desde el cierre de la CL7, con el `rand() % 30` de `0x50db57` y el resto de la cola de
+`0x50ba30`, `Scenes::DrawCharacterTail`), el aliento, el viento de las partículas, las brasas, el cuervo, el gesto, la cabeza, 4
 de los 8 del contador y, desde la CL7.6 B4, el de cada objeto de `0x602ed0`; no lleva los demás, y los
 del contador y el viento los saca al principio del paso y no después de la escena, así que su `rand()` no
 sigue al del original bit a bit: habría que correrlos todos, en su orden.
@@ -2447,6 +2461,19 @@ elegido, con esa luz), y copia su nombre (`+0x1d9`) en un string del objeto de `
 llega al cuerpo: el frame siguiente lo vuelve a 0 o a 1 antes de `0x510d00`. Así, la luz de cada
 personaje es 0,4 y la del elegido 1,4, y la del lugar 0 (el "héroe") 0,5 y 1,5, antes del factor
 del nivel (§ El modelo en el binario).
+
+**Lo que cuelga y los efectos de la lista** (`0x50db57..0x510ac2`, *estático*, cierre de la CL7). `0x50ba30`
+corre con cada personaje de la lista la misma cola que en el juego: no mira la escena salvo `0x510ef0` (la
+marca del guild, sólo en la 5) y la luz de lo que cuelga (`0x50db94`), que es `[ebp−0x44]` más `+0xf4`: el 0,4
+fijo de la escena 4 (`0x50cc32`) o, en el héroe, el 0,5 que deja la rama de su color (`0x50d231`, Q-C417); con
+`+0x375` desde 6, (1; 0,1; 0,1). Así corren el `rand() % 30 + 70` de `0x50db57`, lo que cuelga con sus sprites,
+las partículas y los joints de las manos, el conjunto completo con lo que devolvió `0x505820`, y el cuervo de un
+Dark Lord que lo lleva en la mano izquierda (`0x510abd` → `0x420df0`, con el trapecio de la selección). El héroe
+abre y cierra además el registro propio para su color: 3.848 `rand()` por frame con la cuenta en 0, aunque la
+escena después tire ese color (Q-C417). MuRet (`CharacterSelectScene::DrawTheTail` → `Scenes::DrawCharacterTail`,
+con las tablas del frame de `SelectionWorld`: las del mundo en un frame del original y sus copias entre frames;
+`CharacterSelectSceneTest.TheListRunsTheTailOfTheGameWithTheLightOfSceneFour`,
+`TheHeroOfTheListClosesTheOwnRecordForItsColor` y `TheRavenOfALordInTheListIsDrawnAfterHim`).
 `DAT_07d36899`, que saca el giro en x de `0x620db0` (`0x620e94`), no lo escribe nadie (no hay un
 `mov` a esa dirección). **Verificado** en la traza (1024 × 768): la cámara y el viewport de
 § Cámara, los fondos de (0, 728) a (512, 216) y de (512, 728) a (1024, 216), antes del pase del
@@ -2962,7 +2989,10 @@ escribe este handler; quién las calcula después, sin leer (P-C28 i).
 - **La luz del héroe en la escena 5** (`0x50ba30`, desde `0x50cc55`) es la del terreno en su lugar,
   **del buffer dinámico** `0x7b4ccc4` (`0x5f99e0`), más `+0xf4..+0xfc`, que `0x511290` deja en 0. En
   la selección es 0,4 fijo, y en el login, 0,3 más el terreno. `0x50ba30` tiene además una rama
-  propia del héroe (`0x50cca9`) que lee el registro propio, sin leer en detalle.
+  propia del héroe (`0x50cca9..0x50d211`): abre el registro propio en línea (`[0x7681eb4]` por
+  `0x57630c8`), lee los bits del color y lo cierra, con 3.848 `rand()` (`0x50d1de`) si la cuenta queda en
+  0. Corre en todas las escenas; en la 4, `0x50d219` pisa después el color con 0,5 más `+0xf4` y
+  `[ebp−0x44]` con 0,5 (`0x50d231`), la luz de lo que cuelga (Q-C417).
 
 **La carga del mapa** (`0x61a560` → `0x616ec0`, *estático* salvo lo que se marca). La llaman tres
 paquetes, el `F3 03`, el `1C` y el `F3 04` ([Los cambios de mapa](#los-cambios-de-mapa)). En orden:
@@ -3242,10 +3272,12 @@ llena). Los dos globales son `WorldRuntime::fullSetScan`, que arranca en 0 y 0 y
 Lo escriben `ApplyActorEquipment` con el héroe publicado y el dibujo del login y de la selección
 (`ScanTheDrawnCharacter`), con cada personaje en el orden del pool, antes de `DrawCharacter`, una vez
 por frame del original (`OriginalFrameCarry`, como la tela) y solo si están las acciones de
-`Player.bmd`. MuRet no dibuja los personajes del juego (corta en el primero visto, `0x510ea1`):
-`GameScene::PrepareFrame`, en un frame que llega a `0x510d00`, lo deja sin valor (`nullopt`), y
-`0x550990` corta con un error si lo lee antes de otro `0x505820` (P-C40). El bloque del dibujo que decide
-lo que devuelve no está portado.
+`Player.bmd`. En el juego, `GameScene::PrepareFrame`, en un frame que llega a `0x510d00`, lo deja sin valor
+(`nullopt`) hasta que un jugador llega a `0x50c91e` y publica el suyo (`ScanTheActor`), y `0x550990` corta con
+un error si lo lee antes de otro `0x505820` (P-C40). El bloque del dibujo que decide lo que devuelve corre en la
+cola de los tres (`DrawGameCharacterEffects`): desde el cierre de la CL7, el login y la selección con el
+`FullSetScan` que devuelve `ScanTheDrawnCharacter` (el del último frame del original; entre frames, uno sobre
+copias que no publica).
 
 ### Los stats del registro propio
 
@@ -5048,8 +5080,12 @@ frame del original:
   las botas lo pisan.
 - **La piel especial del mago** (`0x50ea38`): con `+0x1d4 & 7` en 0, `+0x1d5 & 0xf8` en 8 y sin
   `+0x78 & 0x4000`, Spark03 (`0x5c6`) de 0,6 y Shiny02 (`0x5fd`) de `sin(T · 0,001f) · 0,4f` en el
-  hueso 19, con luz 1 y sin `rand()`. La piel sólo la escribe la lista de la selección (`0x517270`); el
-  F3 03 la deja en 0.
+  hueso 19, con luz 1 y sin `rand()`. No se ve nunca en la 1.02 (Q-C416): `0x517270` escribe `+0x1d5`
+  con su tercer argumento (`[ebp+0x10]`, `0x5172a0`), que es 0 en la lista (`0x4c21d9`) y en el login
+  (`0x634a3e`, `EBX` en 0 desde `0x6349e1`), y el byte `[0x7437225]` en la respuesta de crear (`0x4c2341`),
+  que nadie escribe (sólo `0x7437224`, la clase);
+  los demás escriben 1 (`0x44114b`) o 0 (`0x4c45e1`, `0x4c4dc6`, `0x4c8a10`, `0x4e0c55`). MuRet lo porta
+  igual, y no llega.
 - **Las acciones** `0x94`, `0x51` y `0x5b` (`0x50f828`), que sólo escriben los paquetes (`0x4cc530`,
   `0x4ce000`): fuera de la clase 4, la `0x94` sin `+0x78 & 0x4000` pone tres lightning2 (`0x5d5`) en el
   hueso de la mano derecha (`+0x2bd`), con s = frame · 0,1f: s · 0,3f con (0,1; 0,1; 1), s con la luz
@@ -7703,7 +7739,7 @@ Ver [08](08-pendientes.md).
 | El caballo del juego: la tabla de 10 ayudantes (`0x7d335d0`), el que se apaga sin su jinete y el que se oculta en la celda segura de su jinete | `Scenes/HelperTable` en `WorldState::Helpers`: crear, apagar, el paso de la escena 5 y su dibujo, con errores donde el original crea efectos o partículas que el juego todavía no tiene | CL7 (hito 1, T12) |
 | El mundo del login: el mapa 55 entero, con los objetos después de los personajes y casos por tipo y por mapa (`0x606660`, `0x604ab0`, `0x6002e0`) | en el lote del login: el terreno (`LoadedWorld`, CL7.1) y los objetos del `.obj` (`WorldModels`, `WorldObjects` y `WorldObjectsDrawing`, CL7.2), con los casos del mapa 55 como datos y el orden del original | CL7.1, CL7.2 |
 | El dragón: un efecto con modelo (`0x518cf0`) que vuela en ocho, sin azar | el efecto `0xb4` con su paso por paso de lógica, comparado con los pasos emulados del código real | CL7.6 A |
-| Los sprites de un frame (`0x5491e0`), con el billboard de `0x621400`: el dibujo del personaje pide los 30 destellos de la tela y los cinco del cetro, y `0x549440(0)` los dibuja con la modelview en la identidad y los apaga | `Render::MakeBillboard` (bit a bit contra `0x621400`), `World::FrameSprites` (la tabla, con el alpha de `0x549290`) y `Scenes::DrawFrameSprites` en un pase de ojo, el último del 3D, que se abre solo con alguno vivo; `DrawnCharacter::sprites` recibe los destellos al dibujar la tela y el cetro (`World::CreateScepterGlow`, bit a bit contra el caso `0x620` de `0x509340`) en ese orden, con el `rand()` de la CRT de `ClothWorld`. El original sortea el cetro en cada frame dibujado, a 21,33 por segundo; MuRet lo sortea una vez por frame del original (46,875 ms) que pasó y, entre medio, repite el último sorteo en el hueso de ahora (`World::ScepterGlowCarry`, como la tela, Q-C124): a 60 FPS el tridente cambia al ritmo del original (`TheGlowIsDrawnOncePerOriginalFrame`, `TheScepterGlowChangesOncePerOriginalFrame`). Con varios frames del original de golpe, los de la tela y los del cetro salen agrupados y no intercalados (P-C22 a) | CL7.6 B1, cierre |
+| Los sprites de un frame (`0x5491e0`), con el billboard de `0x621400`: el dibujo del personaje pide los 30 destellos de la tela y los cinco del cetro, y `0x549440(0)` los dibuja con la modelview en la identidad y los apaga | `Render::MakeBillboard` (bit a bit contra `0x621400`), `World::FrameSprites` (la tabla, con el alpha de `0x549290`) y `Scenes::DrawFrameSprites` en un pase de ojo, el último del 3D, que se abre solo con alguno vivo; `DrawnCharacter::sprites` recibe los destellos al dibujar la tela y el cetro (`World::CreateScepterGlow`, bit a bit contra el caso `0x620` de `0x509340`) en ese orden, con el `rand()` de la CRT de `ClothWorld`. El original sortea el cetro en cada frame dibujado, a 21,33 por segundo; MuRet lo sortea una vez por frame del original (46,875 ms) que pasó. Desde el cierre de la CL7 el login lo sortea en la cola del juego (`LoginScene::DrawTheTail` → `Scenes::DrawCharacterTail`) y, entre medio, repite los sprites de lo que cuelga del último frame del original, como el juego y la selección con toda la tabla (`TheScepterGlowChangesOncePerOriginalFrame`); `World::ScepterGlowCarry` (el último sorteo en el hueso de ahora, como la tela, Q-C124) queda para `DrawCharacter` sin la cola (`TheGlowIsDrawnOncePerOriginalFrame`). Con varios frames del original de golpe, los de la tela y los del cetro salen agrupados y no intercalados (P-C22 a) | CL7.6 B1, cierre |
 | Las partículas (`0x53fe70`, `0x5446e0` y `0x548550`), con el aliento del caballo desde el buffer global de la pose | `World::Particles` (la tabla de 3.000, el viento y el aliento, bit a bit contra el código real) y `Scenes::DrawParticles` en el pase de ojo, después de los sprites; el aliento lo pide `LoginScene` después del paso del caballo, en el hueso 27 del último modelo dibujado que lo tiene sin ser dummy (`PosedBonePoint`) | CL7.6 B2 |
 | Las hojas (`0x530490` / `0x5306a0`), con las 80 brasas del mapa 55 y la altura del terreno de `0x5f93c0` | `World::Leaves` (las 80 brasas: nacen y caen, bit a bit contra el código real) y `World::TerrainHeightAt`; `Scenes::DrawLeaves` en el pase del mundo, después de los efectos con modelo; `LoginScene` las avanza después del caballo, con el héroe y la cámara en (0, 0, 0) hasta el primer dibujo (Q-C137) | CL7.6 B3 |
 | `0x602ed0`, después del dibujo de cada objeto visto: el `rand()` de cada uno y el brillo del farol (`0x3c`) en la escena 2 | `Scenes::ObjectFrameEffects` en `DrawWorldObjects`: un `rand()` de la CRT por objeto visto y los dos sprites de `flare01` en los huesos 8 y 9 del último modelo posado (`LastPosedBonePoint`: el dueño del dragón, Q-C140); `World::StreetLightGlowLight`, la luz; el dueño (`0xb4`) en `m_objects`, antes del `.obj` | CL7.6 B4 |

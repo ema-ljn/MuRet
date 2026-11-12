@@ -203,6 +203,12 @@ protected:
         return Stage(m_dataRoot, &*m_items);
     }
 
+    // En el heap: WorldState pesa unos 350 KB, y tres en la pila pasan el 1 MB de la de Windows.
+    [[nodiscard]] std::unique_ptr<Stage> FreshOnTheHeap() const
+    {
+        return std::make_unique<Stage>(m_dataRoot, &*m_items);
+    }
+
     std::optional<Client::Data::Tables::ItemTable> m_items;
 };
 
@@ -648,7 +654,8 @@ TEST_F(InventoryReplyTest, HornOfDoomCopiesItsFlags1bToThePetBeforeStopping)
 TEST_F(InventoryReplyTest, TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0)
 {
     constexpr int RavenRandoms = 3 * Client::Render::Models::SmallLogicalCloseRandoms;
-    Stage tested = Fresh();
+    const auto testedStage = FreshOnTheHeap();
+    Stage& tested = *testedStage;
     tested.world.Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     tested.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     ActorState& hero = tested.PublishedHero();
@@ -666,14 +673,16 @@ TEST_F(InventoryReplyTest, TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0)
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
     EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, EquipmentEntry + RavenRandoms).State());
 
-    Stage chaos = Fresh();
+    const auto chaosStage = FreshOnTheHeap();
+    Stage& chaos = *chaosStage;
     ActorState& rider = chaos.PublishedHero();
     chaos.world.Runtime().map = ChaosCastleMap;
     rider.darkSpirit.emplace();
 
     const auto inChaos = Client::Scenes::PlaceInventoryItem(1, ItemBytes(DarkRaven), chaos.Resources());
 
-    Stage shielded = Fresh();
+    const auto shieldedStage = FreshOnTheHeap();
+    Stage& shielded = *shieldedStage;
     shielded.PublishedHero();
     shielded.world.Runtime().map = ChaosCastleMap;
     const auto withShield = Client::Scenes::PlaceInventoryItem(1, ItemBytes(SmallShield), shielded.Resources());

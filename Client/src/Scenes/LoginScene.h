@@ -19,6 +19,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterHead.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/FullSetScan.h"
 #include "Scenes/GameData.h"
 #include "Scenes/IScene.h"
 #include "Scenes/LoadedWorld.h"
@@ -27,7 +28,6 @@
 #include "World/TerrainLighting.h"
 #include "World/Leaves.h"
 #include "World/ParticleDrawing.h"
-#include "World/ScepterGlow.h"
 #include "World/Sprites.h"
 #include "World/WorldObjects.h"
 #include "Data/Terrain/TerrainObjects.h"
@@ -138,11 +138,12 @@ public:
     [[nodiscard]] const CharacterHead& Head() const;
     [[nodiscard]] std::optional<std::string> Failure() const override;
     // El personaje que dibuja el frame con `alpha` (0x510d00 → 0x50ba30): el cuerpo entre pasos, la cabeza
-    // del paso, la luz del terreno en su lugar más la suya, y su tela, su cetro y la tabla de los sprites de
-    // la escena, con el ritmo del contexto.
+    // del paso, la luz del terreno en su lugar más la suya, y su tela y la tabla de los sprites de la escena, con
+    // el ritmo del contexto. Lo que cuelga (el cetro con su brillo) va aparte, con DrawCharacterTail.
     [[nodiscard]] DrawnCharacter TheCharacterToDraw(float alpha);
-    // 0x505820 con el personaje que se dibuja, `frames` veces (Scenes/FullSetScan.h), sobre WorldState.
-    void ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames);
+    // 0x505820 con el personaje que se dibuja, `frames` veces (Scenes/FullSetScan.h), sobre WorldState: lo que
+    // devuelve el último, que lee el conjunto completo de la cola de efectos.
+    FullSetScan ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames);
 
 private:
     // 0x60da30 y 0x60d5f0 con el 0xa2 (LoginLogoFile), sin un 0x60d530 antes (Q-C92).
@@ -170,6 +171,10 @@ private:
     void DrawTheModels(SceneCanvas& canvas, float alpha);
     // 0x4182f0: el cuervo, si pasa el trapecio (si no, MissTheView), y su pose para la chispa.
     void DrawTheRaven(SceneCanvas& canvas, float alpha, FaunaDrawCarry* carry = nullptr);
+    // 0x50db57..0x510a7a con el personaje, después de su cuerpo, `frames` veces (con cero, una entre frames); un
+    // error queda en m_failure.
+    void DrawTheTail(SceneCanvas& canvas, ActorState& actor, const DrawnCharacter& character, FaunaDrawCarry& carry,
+                     const FullSetScan& scan, int frames);
     // El corte del pase de partículas, en el log: una vez por entrada.
     void ReportParticleFailure(const World::ParticleDrawingFailure& failure);
     // La luz del terreno en (x, y), o 0 sin la del mundo.
@@ -243,8 +248,11 @@ private:
     bool m_steppedSinceEntering = false;
     // Si el pase de partículas ya se cortó (y se dijo en el log) desde que se entró.
     bool m_particleFailureReported = false;
-    // El sorteo del brillo del cetro entre frames (World::ScepterGlowCarry): una vez por frame del original.
-    World::ScepterGlowCarry m_scepterGlow;
+    // Los sprites de lo que cuelga y de los efectos del personaje (el brillo del cetro, 0x509340): los del último
+    // frame del original, que un dibujo intermedio repite, como el juego y la selección con toda la tabla.
+    World::FrameSprites m_tailSprites;
+    World::FrameSprites m_tailSpriteReplay;
+    bool m_tailSpriteReplayValid = false;
     // El logo: su modelo, los slots de sus mallas desde donde terminó el mundo y sus texturas.
     SingleModelLibrary m_logo;
     std::optional<Render::Models::ModelTextureSlots> m_logoSlots;

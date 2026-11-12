@@ -237,7 +237,7 @@ TEST(GameUiTest, TheQuickSlotKeysWithoutTheirItemDoNothing)
 TEST(GameUiTest, TheQuickSlotKeysWithTheirItemAreACut)
 {
     constexpr std::array<std::pair<Key, std::uint16_t>, 3> Slots{
-        {{Key::Q, 0x1c00}, {Key::W, 0x1c04}, {Key::E, 0x1c08}}};
+        {{Key::Q, std::uint16_t{0x1c00}}, {Key::W, std::uint16_t{0x1c04}}, {Key::E, std::uint16_t{0x1c08}}}};
     for (const auto& [key, type] : Slots)
     {
         SteppingUi tested;

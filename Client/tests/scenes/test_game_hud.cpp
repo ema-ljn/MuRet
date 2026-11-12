@@ -379,8 +379,18 @@ const std::vector<TraceQuad>& LorenciaFrameQuads()
          Digits,
          {409.760010f, 52.799988f, 0.0f, 0.0f},
          {424.160004f, 36.799988f, 0.0625f, 0.5f}},
-        {126875, 2, BlendMode::Alpha, White, {566.400024f, 462.399994f, 0.0f, 0.0f}, {604.800049f, 424.0f, 1.0f, 1.0f}},
-        {126886, 2, BlendMode::Alpha, White, {566.400024f, 462.399994f, 0.0f, 0.0f}, {604.800049f, 424.0f, 1.0f, 1.0f}},
+        {126875,
+         std::uint16_t{2},
+         BlendMode::Alpha,
+         White,
+         {566.400024f, 462.399994f, 0.0f, 0.0f},
+         {604.800049f, 424.0f, 1.0f, 1.0f}},
+        {126886,
+         std::uint16_t{2},
+         BlendMode::Alpha,
+         White,
+         {566.400024f, 462.399994f, 0.0f, 0.0f},
+         {604.800049f, 424.0f, 1.0f, 1.0f}},
     };
     return quads;
 }

@@ -9,7 +9,6 @@
 #include "Render/Text/TextStyle.h"
 #include "Scenes/ITextDrawer.h"
 
-#include <cstdint>
 #include <string>
 #include <string_view>
 

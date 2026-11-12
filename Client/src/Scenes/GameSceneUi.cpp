@@ -17,6 +17,7 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <ratio>
 #include <string>
 
 namespace Client::Scenes

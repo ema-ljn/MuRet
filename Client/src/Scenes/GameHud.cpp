@@ -5,7 +5,6 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/OriginalQuad.h"
 #include "Render/OriginalSkewedQuad.h"
@@ -27,6 +26,7 @@
 #include "UI/GameText.h"
 #include "UI/HudPrimitives.h"
 #include "UI/PanelRegistry.h"
+#include "UI/Widget.h"
 #include "World/ItemState.h"
 #include "World/OriginalFtol.h"
 

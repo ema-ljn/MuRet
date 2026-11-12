@@ -2,6 +2,7 @@
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/SkillTable.h"
+#include "Data/Text/TextTable.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Pose.h"
 #include "Scenes/DynamicWorldLight.h"

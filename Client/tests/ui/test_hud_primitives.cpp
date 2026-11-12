@@ -3,8 +3,8 @@
 #include "App/WindowState.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
+#include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
-#include "Render/TextureSlot.h"
 #include "support/RecordingTextDrawer.h"
 
 #include <gtest/gtest.h>

@@ -21,7 +21,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
-#include <initializer_list>
 #include <span>
 #include <string>
 #include <utility>

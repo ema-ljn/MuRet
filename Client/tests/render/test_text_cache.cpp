@@ -1,6 +1,7 @@
 #include "Render/Text/TextCache.h"
 
 #include "App/WindowState.h"
+#include "Core/Expected.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
 #include "Render/SpriteBatch.h"
@@ -42,6 +43,8 @@ using Client::Render::SpriteVertex;
 using Client::Render::TextureSlot;
 using Client::Render::Text::BoxedQuad;
 using Client::Render::Text::BoxShape;
+using Client::Render::Text::CenteredInBox;
+using Client::Render::Text::CenterInBox;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextCache;
 using Client::Render::Text::TextColors;
@@ -89,6 +92,14 @@ protected:
     {
         const auto drawn = cache.Draw(m_batch, x, y, text, style);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    }
+
+    // El modo 2 como lo piden las escenas: CenterInBox con el rasterizador de la caché y DrawColumns.
+    Client::Core::Expected<void, std::string> DrawCentered(TextCache& cache, int x, int y, std::string_view text,
+                                                           int box)
+    {
+        const CenteredInBox placed = CenterInBox(m_rasterizer, Login.font, text, box);
+        return cache.DrawColumns(m_batch, x, y, text, Login, -placed.textColumn, placed.width);
     }
 
     FakeGlyphRasterizer m_rasterizer;
@@ -485,5 +496,180 @@ TEST_F(TextCacheTest, AWindowOfColumnsHasTheBackgroundAndTheTextFromItsColumn)
     ASSERT_TRUE(cache.DrawColumns(m_batch, 30, 40, "", Login, 0, 8).HasValue());
     EXPECT_EQ(cache.Size(), 3u);
     EXPECT_EQ(SlotsOf(m_batch).size(), SlotsOf(expected).size() + 1);
+}
+
+// El modo 2 de 0x467060 (el título del inventario): "ab" (12 columnas) en una caja de 40 va en la columna 14, y la caja
+// entera es del fondo: 14 columnas antes, la tinta de la a en la 14, la de la b en la 20 y fondo hasta la 39. Las filas
+// son las de la celda; lo que pasa de la caja queda en 0. El quad es el de TextPieces con el ancho de la caja, desde x.
+TEST_F(TextCacheTest, TheModeTwoBoxIsTheBackgroundWithTheTextInTheMiddle)
+{
+    TextCache cache(m_rasterizer, m_store, First, FourSlots);
+
+    const auto drawn = DrawCentered(cache, 10, 20, "ab", 40);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    const auto box = m_store.Find(First);
+    ASSERT_TRUE(box.has_value());
+    const auto alphaAt = [&](int column, int row)
+    { return box->texture.pixels[static_cast<std::size_t>((row * 256 + column) * 4) + 3]; };
+    EXPECT_EQ(alphaAt(0, 0), 0x80);
+    EXPECT_EQ(alphaAt(13, 0), 0x80);
+    EXPECT_EQ(alphaAt(14, 0), 0xff);
+    EXPECT_EQ(alphaAt(16, 3), 0xff);
+    EXPECT_EQ(alphaAt(17, 0), 0x80);
+    EXPECT_EQ(alphaAt(20, 0), 0xff);
+    EXPECT_EQ(alphaAt(23, 0), 0x80);
+    EXPECT_EQ(alphaAt(39, 12), 0x80);
+    EXPECT_EQ(alphaAt(40, 0), 0);
+    EXPECT_EQ(alphaAt(0, 13), 0);
+
+    SpriteBatch expected;
+    expected.Begin(Screen);
+    const std::vector pieces = TextPieces(10, 20, TextExtent{40, 13}, Screen);
+    ASSERT_EQ(pieces.size(), 1u);
+    auto quad = pieces[0].quad;
+    quad.slot = First;
+    expected.Quad(quad);
+    ASSERT_EQ(m_batch.Vertices().size(), expected.Vertices().size());
+    for (std::size_t i = 0; i < expected.Vertices().size(); ++i)
+    {
+        EXPECT_TRUE(SameVertex(m_batch.Vertices()[i], expected.Vertices()[i])) << i;
+    }
+}
+
+// La caja del título en 1.600 × 1.200 mide 300 columnas: con "ab", (300 − 12) / 2 = 144 y la caja queda en 300, en
+// dos cajas de 256 y 44. Desde x = 485 (1.212,5 píxeles) no pasa del borde: los quads van en 1.212 y 1.468. La
+// tinta de la a está en la columna 144 de la primera; la segunda es toda fondo.
+TEST_F(TextCacheTest, AModeTwoBoxPast256ColumnsGoesInBoxesOf256)
+{
+    constexpr PixelSize Screen1600{1600, 1200};
+    m_batch.Begin(Screen1600);
+    TextCache cache(m_rasterizer, m_store, First, FourSlots);
+
+    const auto drawn = DrawCentered(cache, 485, 12, "ab", 300);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(cache.UsedSlots(), 2u);
+    const std::vector pieces = TextPieces(485, 12, TextExtent{300, 13}, Screen1600);
+    ASSERT_EQ(pieces.size(), 2u);
+    EXPECT_EQ(pieces[0].quad.x, 1212.0f);
+    EXPECT_EQ(pieces[1].quad.x, 1468.0f);
+    EXPECT_EQ(pieces[1].width, 44);
+    SpriteBatch expected;
+    expected.Begin(Screen1600);
+    for (std::size_t k = 0; k < pieces.size(); ++k)
+    {
+        auto quad = pieces[k].quad;
+        quad.slot = TextureSlot{static_cast<std::uint16_t>(First.value + k)};
+        expected.Quad(quad);
+    }
+    ASSERT_EQ(m_batch.Vertices().size(), expected.Vertices().size());
+    for (std::size_t i = 0; i < expected.Vertices().size(); ++i)
+    {
+        EXPECT_TRUE(SameVertex(m_batch.Vertices()[i], expected.Vertices()[i])) << i;
+    }
+    const auto first = m_store.Find(First);
+    const auto second = m_store.Find(TextureSlot{static_cast<std::uint16_t>(First.value + 1)});
+    ASSERT_TRUE(first.has_value());
+    ASSERT_TRUE(second.has_value());
+    const auto alphaAt = [](const std::vector<std::uint8_t>& pixels, int column)
+    { return pixels[static_cast<std::size_t>(column * 4) + 3]; };
+    EXPECT_EQ(alphaAt(first->texture.pixels, 143), 0x80);
+    EXPECT_EQ(alphaAt(first->texture.pixels, 144), 0xff);
+    EXPECT_EQ(alphaAt(first->texture.pixels, 255), 0x80);
+    EXPECT_EQ(alphaAt(second->texture.pixels, 0), 0x80);
+    EXPECT_EQ(alphaAt(second->texture.pixels, 43), 0x80);
+    EXPECT_EQ(alphaAt(second->texture.pixels, 44), 0);
+}
+
+// Pasados los 256, la caja se corta en el borde derecho como un texto ancho (0x46721f): en 640 × 480, desde x = 400,
+// quedan 240 columnas, en un solo quad.
+TEST_F(TextCacheTest, AWideModeTwoBoxIsCutAtTheRightEdge)
+{
+    TextCache cache(m_rasterizer, m_store, First, FourSlots);
+
+    ASSERT_TRUE(DrawCentered(cache, 400, 12, "ab", 300).HasValue());
+
+    ASSERT_EQ(m_batch.Vertices().size(), 6u);
+    EXPECT_EQ(m_batch.Vertices()[0].x, 400.0f);
+    EXPECT_EQ(m_batch.Vertices()[2].x, 640.0f);
+}
+
+// Un texto más ancho que su caja va en una columna negativa y TextOutA corta la izquierda: "abcdefgh" (48) en 30 va en
+// la −9 y la caja queda en 30. La a y la b quedan afuera, la c en la columna 3 y la g en la 27; la h, después de la
+// caja.
+TEST_F(TextCacheTest, AModeTwoTextWiderThanItsBoxIsCutOnBothSides)
+{
+    TextCache cache(m_rasterizer, m_store, First, FourSlots);
+
+    ASSERT_TRUE(DrawCentered(cache, 10, 20, "abcdefgh", 30).HasValue());
+
+    const auto box = m_store.Find(First);
+    ASSERT_TRUE(box.has_value());
+    const auto alphaAt = [&](int column) { return box->texture.pixels[static_cast<std::size_t>(column * 4) + 3]; };
+    EXPECT_EQ(alphaAt(0), 0x80);
+    EXPECT_EQ(alphaAt(2), 0x80);
+    EXPECT_EQ(alphaAt(3), 0xff);
+    EXPECT_EQ(alphaAt(29), 0xff);
+    EXPECT_EQ(alphaAt(30), 0);
+    ASSERT_EQ(m_batch.Vertices().size(), 6u);
+    EXPECT_EQ(m_batch.Vertices()[2].x - m_batch.Vertices()[0].x, 30.0f);
+}
+
+// Un texto vacío con caja mide el "0" de 0x6c7ae4 (6 columnas): (20 − 6) / 2 = 7, y la caja de 20 es todo fondo. Uno
+// que empieza con un salto de línea no llega a TextOutA (0x4671e1): fondo también. Sin caja, uno vacío no dibuja.
+TEST_F(TextCacheTest, AnEmptyModeTwoTextIsItsBackground)
+{
+    TextCache cache(m_rasterizer, m_store, First, FourSlots);
+
+    ASSERT_TRUE(DrawCentered(cache, 10, 20, "", 20).HasValue());
+    ASSERT_TRUE(DrawCentered(cache, 10, 40, "\nab", 40).HasValue());
+
+    EXPECT_EQ(cache.Size(), 2u);
+    for (const TextureSlot slot : {First, TextureSlot{static_cast<std::uint16_t>(First.value + 1)}})
+    {
+        const auto box = m_store.Find(slot);
+        ASSERT_TRUE(box.has_value());
+        for (int column = 0; column < 20; ++column)
+        {
+            EXPECT_EQ(box->texture.pixels[static_cast<std::size_t>(column * 4) + 3], 0x80) << column;
+        }
+    }
+    ASSERT_EQ(m_batch.Vertices().size(), 12u);
+    EXPECT_EQ(m_batch.Vertices()[2].x - m_batch.Vertices()[0].x, 20.0f);
+
+    ASSERT_TRUE(DrawCentered(cache, 10, 20, "", 0).HasValue());
+    EXPECT_EQ(cache.Size(), 2u);
+    EXPECT_EQ(m_batch.Vertices().size(), 12u);
+}
+
+// La clave es la caja que queda, no la pedida: 40 y 41 dan la misma con "ab" (la columna 14 y 40 columnas), y 42 es
+// otra. Draw es otra entrada aunque el texto sea el mismo.
+TEST_F(TextCacheTest, TheModeTwoBoxIsInTheKey)
+{
+    TextCache cache(m_rasterizer, m_store, First, FourSlots);
+
+    Draw(cache, "ab");
+    ASSERT_TRUE(DrawCentered(cache, 0, 0, "ab", 40).HasValue());
+    ASSERT_TRUE(DrawCentered(cache, 0, 0, "ab", 41).HasValue());
+    EXPECT_EQ(cache.Size(), 2u);
+    ASSERT_TRUE(DrawCentered(cache, 0, 0, "ab", 42).HasValue());
+    EXPECT_EQ(cache.Size(), 3u);
+    EXPECT_EQ(m_rasterizer.drawCalls, 3);
+}
+
+// Una caja que da menos de 0 columnas (una caja negativa) es un error con la dirección del rep stos que limpiaría fuera
+// del DIB; una que da 0 no dibuja nada.
+TEST_F(TextCacheTest, ANegativeModeTwoBoxIsAnError)
+{
+    TextCache cache(m_rasterizer, m_store, First, FourSlots);
+
+    const auto negative = DrawCentered(cache, 0, 0, "a", -10);
+    ASSERT_FALSE(negative.HasValue());
+    EXPECT_NE(negative.Error().find("0x4671cf"), std::string::npos) << negative.Error();
+
+    ASSERT_TRUE(DrawCentered(cache, 0, 0, "ab", 0).HasValue());
+    EXPECT_EQ(cache.Size(), 0u);
+    EXPECT_TRUE(m_batch.Vertices().empty());
 }
 } // namespace

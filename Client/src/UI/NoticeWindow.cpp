@@ -8,7 +8,6 @@
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
-#include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
@@ -225,11 +224,13 @@ void NoticeWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text,
                 const std::vector<std::string> lines = SplitIntoLines(placed, MaxLines, LineBytes);
                 if (lines.size() == 1)
                 {
-                    // 0x467060, el modo 2: (352 − cx) / 2 en píxeles; MuRet centra antes de pasar a
-                    // 640 × 480.
-                    const int width = text.Measure(NoticeStyle.font, lines[0]).width;
-                    text.Draw(Render::Text::DesignX(box.x + (BoxWidth - width) / 2, screen),
-                              Render::Text::DesignY(box.y + OneLineTop, screen), lines[0], NoticeStyle);
+                    // 0x642f44..0x642f95: 0x467060 en el modo 2, la caja de 352 desde la x de la caja pasada a
+                    // 640 × 480, con el texto en (352 − cx) / 2 en píxeles.
+                    const Render::Text::CenteredInBox centered =
+                        Render::Text::CenterInBox(text, NoticeStyle.font, lines[0], BoxWidth);
+                    text.DrawColumns(Render::Text::DesignX(box.x, screen),
+                                     Render::Text::DesignY(box.y + OneLineTop, screen), lines[0], NoticeStyle,
+                                     -centered.textColumn, centered.width);
                 }
                 else
                 {

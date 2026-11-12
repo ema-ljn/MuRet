@@ -119,8 +119,13 @@ Core::Expected<void, std::string> TextCache::DrawClippedAtLeft(SpriteBatch& batc
 Core::Expected<void, std::string> TextCache::DrawColumns(SpriteBatch& batch, int x, int y, std::string_view text,
                                                          const TextStyle& style, int firstColumn, int columns)
 {
+    // 0x4671b4..0x4671cf: con menos de 0 columnas, el rep stos de la limpieza del DIB lleva 3 · columnas / 4 en ecx,
+    // que sin signo es enorme.
+    if (columns < 0)
+        return Core::Unexpected(
+            std::format("0x4671cf: la caja de {} columnas: el rep stos limpiaría fuera del DIB", columns));
     // 0x467289: sin columnas no hay tramos.
-    if (columns <= 0)
+    if (columns == 0)
         return {};
     const Core::Expected<Entries::iterator, std::string> found =
         Find(Key{.font = style.font, .colors = style.colors, .text = text, .skipped = firstColumn, .columns = columns},

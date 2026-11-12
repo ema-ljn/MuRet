@@ -147,8 +147,9 @@ std::optional<std::uint32_t> Button::DrawLabel(Scenes::ITextDrawer& text, App::P
     }
     constexpr Render::Text::FontKind Font = Render::Text::FontKind::OtherFace12;
     const Render::Text::TextExtent extent = text.Measure(Font, m_label);
-    // 0x467060, el modo 2: (ancho − cx) / 2 con la división de C.
-    const int centered = m_area.x + (m_area.width - extent.width) / 2;
+    // 0x63c7bf..0x63c7c9: la caja, de _ftol(derecha − izquierda), en el modo 2 de 0x467060: el texto en la columna
+    // (ancho − cx) / 2, con la división de C.
+    const Render::Text::CenteredInBox placed = Render::Text::CenterInBox(m_area.width, extent.width);
     // 0x63c7e1..0x63c80d: fild de h − cy, fmul por 0,5, fiadd de la y, fdiv por ry y fadd de +0xd8,
     // en la x87 de 53 bits; _ftol trunca.
     const double middle = static_cast<double>(m_area.height - extent.height) * 0.5 + static_cast<double>(m_area.y);
@@ -156,8 +157,10 @@ std::optional<std::uint32_t> Button::DrawLabel(Scenes::ITextDrawer& text, App::P
     const double offset = Pressed() ? PressedLabelOffset : LabelOffset;
     const int y = static_cast<int>(middle / ratioY + offset);
     const std::uint32_t color = LabelColor();
-    text.Draw(Render::Text::DesignX(centered, screen), y, m_label,
-              Render::Text::TextStyle{Font, Render::Text::TextColors{color, 0}});
+    // 0x63c812..0x63c82c: la x del botón pasa a 640 × 480 (_ftol, fdiv por rx y _ftol), y la caja empieza ahí.
+    text.DrawColumns(Render::Text::DesignX(m_area.x, screen), y, m_label,
+                     Render::Text::TextStyle{Font, Render::Text::TextColors{color, 0}}, -placed.textColumn,
+                     placed.width);
     return color;
 }
 

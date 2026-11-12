@@ -219,7 +219,8 @@ TEST(ButtonTest, ADisabledLabelHasItsColor)
 // 0x63c710: el rótulo va con la fuente DAT_05763560, el color del estado y fondo 0, centrado en
 // el ancho del botón (el modo 2 de 0x467060), y la y en 640 × 480 es ((h − cy) · 0,5 + y) / ry más
 // 0,5, o 1,5 apretado, truncada. En 640 × 480, un rótulo de 3 letras (18 × 13) en un botón de
-// 108 × 26 en (100, 50) va en (145, 57), y apretado en (145, 58).
+// 108 × 26 en (100, 50) va en una caja de 108 desde (100, 57), y apretado desde (100, 58), con el
+// texto en la columna (108 − 18) / 2 = 45.
 TEST(ButtonTest, TheLabelIsCenteredWithTheColorOfItsState)
 {
     Button button = GroupButton();
@@ -243,8 +244,11 @@ TEST(ButtonTest, TheLabelIsCenteredWithTheColorOfItsState)
 
     ASSERT_EQ(text.texts.size(), 3u);
     EXPECT_EQ(text.texts[0].text, "abc");
-    EXPECT_EQ(text.texts[0].x, 145);
+    EXPECT_EQ(text.texts[0].x, 100);
     EXPECT_EQ(text.texts[0].y, 57);
+    EXPECT_TRUE(text.texts[0].windowed);
+    EXPECT_EQ(text.texts[0].firstColumn, -45);
+    EXPECT_EQ(text.texts[0].columns, 108);
     EXPECT_EQ(text.texts[0].style.font, Client::Render::Text::FontKind::OtherFace12);
     EXPECT_EQ(text.texts[0].style.colors.text, 0xffe2e2e2u);
     EXPECT_EQ(text.texts[0].style.colors.background, 0u);
@@ -253,7 +257,8 @@ TEST(ButtonTest, TheLabelIsCenteredWithTheColorOfItsState)
     EXPECT_EQ(text.texts[2].style.colors.text, 0xffe2e2e2u);
 }
 
-// En 1024 × 768, la x pasa a 640 × 480 con DesignX y la y, 56,5 / 1,6000001 + 0,5, queda en 35.
+// En 1024 × 768, la x del botón pasa a 640 × 480 con DesignX (100 / 1,6000001 da 62) y la caja empieza ahí, con el
+// texto 45 columnas adentro; la y, 56,5 / 1,6000001 + 0,5, queda en 35.
 TEST(ButtonTest, TheLabelGoesToTheDesignSpace)
 {
     Button button = GroupButton();
@@ -265,8 +270,10 @@ TEST(ButtonTest, TheLabelGoesToTheDesignSpace)
     button.DrawLabel(text, Screen1024);
 
     ASSERT_EQ(text.texts.size(), 1u);
-    EXPECT_EQ(text.texts[0].x, 90);
+    EXPECT_EQ(text.texts[0].x, 62);
     EXPECT_EQ(text.texts[0].y, 35);
+    EXPECT_EQ(text.texts[0].firstColumn, -45);
+    EXPECT_EQ(text.texts[0].columns, 108);
 }
 
 // Sin pantalla (un lado en 0) el rótulo no tiene dónde ir: la y se divide por la proporción.

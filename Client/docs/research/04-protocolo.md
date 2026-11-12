@@ -676,6 +676,59 @@ Antes de cada `1C` va el `/move` del cliente en el chat, y después el servidor 
   cámara `CCameraMove`, el único camino a él ([06](06-render-escenas-y-ui.md#la-cámara-del-juego);
   *estático*).
 
+### El chat que llega: `00`, `01`, `02`, `0C`, `0D` y `F3 30`
+
+Leído en el ASM en la CL8 (hito 3, 2026-11-12; *estático* todo). Ninguno de los seis mira el estado de la sesión ni
+el flag de FoxAnti, y ninguno mira el largo del paquete: leen a desplazamientos fijos, también más allá del final
+(Q-C510). Los textos se copian crudos, con lo que traigan después del primer `\0`.
+
+- **`00`** (`0x4e2b10` caso 0 → `0x4c6070`). Con la escena 2 (`[0x6d5dc8]`, el login) no lee el paquete: anota en el
+  log (`0x41fa40`) y manda `C1 04 F4 02` en claro por el socket abierto. Es el pedido de la lista que sigue al saludo
+  del CS, y sale igual si el `00` llega por el GS (Q-C511). Fuera de la escena 2: `C1 len 00 <nombre:10> <texto>`.
+  El nombre va a un buffer de 11 bytes en cero, y `pkt[0xd]` elige: `~`, la party (tipo 4, 59 bytes desde
+  `pkt[0xe]`); `@@`, el aviso del gremio (tipo 6, 58 desde `pkt[0xf]`); `@`, el gremio (tipo 5, 59 desde
+  `pkt[0xe]`); `#`, solo un globo por nombre que también va al registro (`0x557560` con 1, 59 desde `pkt[0xe]`); y
+  si no, un globo por nombre (`0x557560` con 0) y el chat (tipo 3), 60 desde `pkt[0xd]`. Cada copia va a un buffer
+  de 61 en cero (`REP MOVSD` y `MOVSB`, sin mirar el `\0`). Los tipos van a `0x555190`; los globos, en
+  [06](06-render-escenas-y-ui.md#el-chat). Sin `rand()`.
+- **`01`** (`0x4e33fc`): `C1 len 01 <clave:2, big-endian> <texto>`. `0x5110d0` busca entre los 400 el primero vivo
+  con esa clave (con `MOVSX` de `+0x1f4`: una clave desde `0x8000` no la tiene nadie, Q-C515) y, sin ninguno,
+  devuelve el 400. Con el héroe en `+0x368 = 0x80` y ese personaje llamado `"길드 마스터"` (`0x6c8404`, 12 bytes con
+  `REPE CMPSB` desde `+0x1d9`) abre la ventana del gremio (`0x6599a0` con `0x40000`, CL9.4). Si no,
+  `0x557170(nombre, pkt + 5, personaje, 0, sin color)`: el texto se lee en el paquete mismo, hasta su `\0`.
+- **`02`** (`0x4e34ea`): `C1 len 02 <nombre:10> <texto>`. Con `0x77f3b98` en 1 (`/whisper off`) no hace nada. Si
+  no, `0x554d20(10, nombre)` lee el nivel propio (`+0xe`) con el registro propio abierto y lo cierra (3.848
+  `rand()`), y anota al emisor si el nivel es menor que 10 (Q-C453); con `0x77f3b78` suena el `0x26`; y
+  `0x555190(nombre, 60 bytes desde pkt[0xd], 0)`.
+- **`0C`** (`0x4e366f`): `C1 04 0C <resultado>`. Con 0, `0x555190(0x57678c4, texto 482, 2)`: el destino del último
+  susurro que salió (`0x4b87e9`) y el error. Con otro, nada.
+- **`0D`** (`0x4c65b0`): `C1 len 0D <tipo> <b4> <b5> <WORD 6> <DWORD 8> <b12> <texto>`, el texto desde `pkt[0xd]`.
+  Con 0, `0x554610(texto, 0)`, el aviso centrado. Con 1, fuera de la escena 4, `0x555190("", texto, 1)`; en la 4,
+  si la barra de la selección (la ventana `+0x7f50`) tiene su `+0x510` en 0, `0x63eda0` lo pone en 1 y copia el
+  texto a `+0x511` con `strcpy` (Q-C513); si ya está, va al área de mensajes con el `""` de `0x5767984`. La barra
+  se arma una vez (`0x63e6e0`, desde `0x65ec60`): el aviso queda hasta que se cierra el juego. Con 2,
+  `sprintf(buffer de 100, texto 483, texto)` (Q-C514), `0x554610(buffer, 1)` y `0x651680` sobre `[0x7d536f0]`, la
+  ventana del gremio (CL9.4). De 10 a 15 con texto, `0x46b720(b4, WORD 6, texto, tipo − 10, b12 · [0x6b8a34],
+  DWORD 8)`, el cartel de `Slide.bmd`: solo en la escena 5 y con `b4` de 1 a 30 (`0x46b73e` y el bucle de
+  `0x46abf0`) agrega algo a sus colas (08, P-C80). `pkt[5]` no se lee.
+- **`F3 30`** (`0x4e32c9` → `0x4dd570(pkt + 4)`): `C1 13 F3 30 <teclas:10> <banderas> <Q> <W> <E> <chat>`. Abre el
+  registro propio y llena las teclas del elegido: `+0x26c + 0x100 · [0x6d5edc]`, 0x100 bytes en `0xff`, y para cada
+  tecla con skill (no `0xff`), el número de la tecla en el primer lugar `j` de las skills del registro (`+0x6c + j`)
+  que tenga ese número; lo cierra (3.848 `rand()`). Después: el bit `0x01`, el ataque automático (`0x6c8e3c`);
+  `0x04`, el sonido de los avisos (`0x77f3b78`); `0x10`, los carteles apagados (`0x6c7a8c` en 0); Q, W y E,
+  `0x1c00 +` el byte en las ranuras rápidas; y el byte del chat: `(alto · 3)` con `IMUL` de un byte son los renglones
+  del registro (con 0, el registro sale de su ventana; si no, entra y `0x472020` los pone en `+0x104`) y `bajo ·
+  0,1f` (`FILD` y `FMUL` por el float de `0x6b87b8`), su transparencia. Sin elegido (`[0x6d5edc]` en −1), escribe
+  en `+0x16c`.
+
+**MuRet** (CL8 hito 3): `Protocol::Messages` y `Protocol::OptionData` leen solo los bytes que llegaron, con lo que
+falta en `\0` (Q-C510): el `00` y el `02` no fallan por cortos, y el `01`, el `0C`, el `0D` y el `F3 30` sin sus
+campos fijos son `TooShort`. Otro tipo u opcode, `WrongPacket`. La sesión los pasa al aplicador sin mirar su
+estado (`SessionEventApplier`): el `00` en el login pide la lista por el GS (`ServerSession::ResendServerListRequest`),
+y lo demás va a `Scenes/ChatReceive`, que corta con la dirección donde el original abre otra ola: el Guild Master del
+`01` (`0x4e3450`), la ventana del aviso del gremio (`0x4c665f`, después del aviso centrado), el cartel (`0x4c66b3`)
+y el `F3 30` sin elegido (`0x4dd645`, antes de abrir el registro). Los tests usan nombres y textos inventados.
+
 ## Qué implica para MuRet
 
 | Original | MuRet | Ola |

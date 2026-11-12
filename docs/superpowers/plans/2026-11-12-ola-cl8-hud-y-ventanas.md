@@ -301,7 +301,7 @@ en 08, P-C63: el panel del asedio (`0x40f850`, el mapa 30) y la cuenta de DS/BC/
       los renglones, Enter con todas sus compuertas (el filtro, el freno `0x5767940`, "webzen", `/whisper on/off`,
       muerto con `/move`), `0x56c440` solo con sus compuertas, `/filter`, `/N` y Chaos Castle, `C1 00`, `C1 02` y
       `0x554a40` (3.848). El predicado `TextInputBusy()` (`0x6578e0`) que frena las letras del hito 1.
-- [ ] **Recibir:** `00`, `01` (sin el Guild Master), `02` (`0x554d20`, 3.848), `0C`, `0D` 0/1/2 (con la franja
+- [x] **Recibir:** `00`, `01` (sin el Guild Master), `02` (`0x554d20`, 3.848), `0C`, `0D` 0/1/2 (con la franja
       `+0x511` de la selección) y `F3 30` entero (`0x4dd570`: guarda las teclas de skills y Q/W/E para la CL9).
 - [ ] **Los globos** (`0x557170`, `0x557560`, `0x557650`, `0x556dd0`, `0x5a9050`, `0x555840`, `0x555b00`,
       `0x513270`, `0x5132a0`; el `#` largo; la tabla compartida con el hover del hito 6) y **las macros**
@@ -312,6 +312,12 @@ en 08, P-C63: el panel del asedio (`0x40f850`, el mapa 30) y la cuenta de DS/BC/
 `CGChatWhisperRecv`); el formato, los colores (Q-C450), el corte a 256 y a 180 px, la cuenta de 120 y el
 corrimiento, los relojes de 151 y 301 pasos; los `rand()` (mandar 0, susurrar 3.848, recibir un `02` 3.848,
 `F3 30` 3.848). Textos inventados. **Desbloquea:** la captura (su mensaje) y /move (manda por el chat).
+
+**Recibir, hecho** (2026-11-12, `ChatReceiveTest`, `ChatBubblesTest`, `WhisperSendersTest`, `MessagesProtocolTest`):
+los seis mensajes (04 § El chat que llega), los globos sin su dibujo (`0x557170`, `0x557560` y `0x557650` en el paso;
+el dibujo `0x5a9050`, 08 P-C81) y la franja de la selección. El cartel de `Slide.bmd` queda sin portar (08, P-C80:
+el `0D` de 10 a 15 corta, y los `rand()` de su timer, desde el primer paso del juego, faltan). Los cortes hacia la
+CL9.4 y el campo del chat, en 08 P-C82; los quirks, Q-C510 a Q-C515.
 
 ### Hito 4: el inventario y el ítem en el cursor (CL8.4, ~40 KB)
 

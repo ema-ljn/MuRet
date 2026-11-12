@@ -1154,6 +1154,39 @@ entra en la lista); F3 alterna `0x6c8dd0` (el modo susurro); F4 mueve el registr
 después del dibujo de la escena, `0x6202e0` hace `glReadPixels` en RGB y `0x63b150` escribe un JPEG de calidad 100;
 el mensaje va al área de mensajes. No saca `rand()`.
 
+### El chat
+
+**Lo que llega** (CL8 hito 3, 2026-11-12; *estático*). Los paquetes están en
+[04](04-protocolo.md#el-chat-que-llega-00-01-02-0c-0d-y-f3-30); acá, lo que hacen sus funciones en la UI.
+
+- **Los globos** (`0x77e1be0`, 100 entradas de `0x294` bytes en la `.bss`). `0x557170(nombre, texto, personaje,
+  modo, color)` busca la entrada de ese personaje (`+0x274`) o una libre (nombre y renglón de abajo sin tiempo);
+  con las 100 ocupadas, nada. Solo si el personaje está vivo y a la vista. El color es su PK (`+0x375`), o 0 con
+  `+0x88` en 4; con gremio (`+0x1f2` como `short` ≥ 0), `0x556dd0` llena el gremio y el puesto con la tabla de los
+  gremios (`0x787aa4c`, CL9.4). Con el texto vacío, solo el nombre: 100 pasos en una entrada nueva y 10 en la suya.
+  Si no, en su entrada el renglón vivo sube al de arriba, y el texto dura `2 · largo + 0xa0` pasos (modo 0) o 1.000
+  (modo 1, que también lo manda al registro del chat con el tipo 3); con 20 bytes o más se parte en dos renglones
+  con `0x5549a0`, la cabeza arriba (`+0x16c`) y la cola, que empieza con el espacio, abajo (`+0x6c`).
+  `0x557560(nombre, texto, modo)` busca por nombre entre los 400, primero los de `+0x88` en 1 y después los de 2,
+  comparando con `strcmp` el nombre de `+0x1d9` (que sigue en `+0x1e3` con los diez bytes llenos). `0x557650`, en el
+  paso del juego (`0x6370f9`), baja los tres relojes y pone en 0 los de un dueño muerto o fuera de la vista; con el
+  chat abierto, el héroe en zona segura y el derecho sobre un globo ajeno (`+0x278..+0x284`, que escribe el dibujo)
+  de un dueño con `+0x376 = 0xff`, llena el destino del susurro (`0x7798cf8`). Nada de esto saca `rand()`. El dibujo
+  (`0x5a9050`, el 12 del HUD, con `0x555840`, `0x555b00`, `0x513270` y `0x5132a0`) no está leído (08, P-C81).
+- **Los que susurraron** (`0x77997f8`, diez lugares de 10 bytes más uno; el próximo en `0x77f3b9c`). `0x554d20`
+  anota con `strcpy` (Q-C512) un nombre que no esté, si el nivel propio es menor que 10 (Q-C453), y el próximo vuelve
+  al 0 después del 9. `0x555030` pone los 110 bytes en 0 y deja el próximo; lo llama la vuelta a la selección
+  (`0x4c2671`), que también apaga el sonido de los avisos (`0x77f3b78`, `0x4c266b`) y prende el ataque automático
+  (`0x6c8e3c`, `0x4c2533`).
+- **La franja de la selección.** El primer `0D` con 1 que llega en la escena 4 queda en `+0x511` de la barra (la
+  ventana `+0x7f50`), que `0x63ec00` dibuja en `(x + 7, y + 40)` con la fuente del 1710, blanco sobre 0, antes del
+  1710. La barra se arma una vez, así que el texto queda para todas las selecciones siguientes.
+
+**MuRet:** `Scenes/ChatReceive`, `Scenes/ChatBubbles` (la tabla, `0x557170`, `0x557560` y `0x557650` en el paso del
+juego) y `UI/WhisperSenders`; la franja, en `WorldRuntime` (`chat.selectionNotice`), y el `F3 30` llena las teclas de
+las skills del registro propio (`+0x26c`), el ataque automático, el sonido, los carteles prendidos (`0x6c7a8c`), Q, W
+y E y los renglones y la transparencia del registro. El cartel de `Slide.bmd` no está (08, P-C80).
+
 ## La escena de carga y la de login
 
 Leído en la CL5.R en el desensamblado de `c32bbd5f` (`objdump -d -M intel`), con el decompilado

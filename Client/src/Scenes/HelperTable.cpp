@@ -13,7 +13,6 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/DarkHorse.h"
-#include "Scenes/GameDrawTail.h"
 #include "Scenes/GameRibbonCreation.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
@@ -30,6 +29,7 @@
 #include "World/Sprites.h"
 #include "World/TerrainLighting.h"
 #include "World/WeaponSparkKernels.h"
+#include "World/WorldTerrain.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -247,7 +247,6 @@ constexpr int ShakeSpan = 3;
 constexpr double ShakeUnit = static_cast<double>(std::bit_cast<float>(0x3f333333u));
 constexpr std::uint8_t EarthquakeCount = 0x13;
 constexpr std::uint8_t EarthquakeDone = 0xfd;
-constexpr std::int16_t FirstGroundStone = 0x118;
 
 Core::Expected<void, std::string> LeaveTheEarthquakeRibbon(const HelperStepContext& context)
 {
@@ -262,15 +261,15 @@ Core::Expected<void, std::string> LeaveTheEarthquakeRibbon(const HelperStepConte
         return Core::Unexpected(second.Error());
     }
     ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
-    const auto created = CreateRibbon(context.world.DrawTail().ribbons,
-                                      RibbonCreateRequest{.ownerContext = &hero,
-                                                          .ownerEquipment = &hero.level,
-                                                          .first = first.Value(),
-                                                          .second = second.Value(),
-                                                          .light = EarthquakeRibbonLight,
-                                                          .type = 0,
-                                                          .shortTrail = false,
-                                                          .key = 0});
+    const auto created =
+        CreateRibbon(context.world.DrawTail().ribbons, RibbonCreateRequest{.ownerContext = &hero,
+                                                                           .ownerEquipment = &hero.level,
+                                                                           .first = first.Value(),
+                                                                           .second = second.Value(),
+                                                                           .light = EarthquakeRibbonLight,
+                                                                           .type = 0,
+                                                                           .shortTrail = false,
+                                                                           .key = 0});
     if (!created.HasValue())
     {
         return Core::Unexpected("0x444671 → " + created.Error());
@@ -278,24 +277,27 @@ Core::Expected<void, std::string> LeaveTheEarthquakeRibbon(const HelperStepConte
     return {};
 }
 
-// 0x4453e0(caballo, modelo), con la acción 3: la cuenta +0x8e sube (un byte) y, cada 10 pasos lógicos, la onda 0x6eb/0
-// en el caballo con su luz (+0xf4). Con el frame en [8; 9,5] (sin orden, afuera): con la cuenta impar, seis piedras
-// 0x118 + (rand() & 1) en un anillo de radio (cuenta / 2) · 150 alrededor del caballo, la primera a rand() % 360 + 60
-// grados y cada una 60 más, y siempre el temblor de la cámara ((rand() % 3) − 3) · 0,7f. Fuera de la ventana, con la
-// cuenta en 0x13, el terremoto 0xfa con el caballo de dueño y el estado 2, y la cuenta en 0xfd.
+// 0x4453e0(caballo, modelo), con la acción 3: la cuenta +0x8e sube (un byte) y, cada 10 pasos lógicos (0x7d3a0f0 con
+// signo), la onda 0x6eb/0 en el caballo con sus ángulos y su luz (+0xf4). Con el frame en [8; 9,5] (un NaN cae
+// afuera): con la cuenta impar, seis piedras 0x118 + (rand() & 1) en un anillo de radio (cuenta / 2) · 150 alrededor
+// del caballo, con sus ángulos y su luz; la primera a rand() % 360 + 60 grados y cada una 60 más, el tipo sacado
+// después del giro y antes del alta. Siempre, dentro de la ventana, el temblor de la cámara ((rand() % 3) − 3) · 0,7f.
+// Fuera de ella, con la cuenta en 0x13, el terremoto 0xfa con el caballo de dueño y el estado 2, y la cuenta en 0xfd.
 Core::Expected<void, std::string> ShakeTheEarth(HelperState& helper, const HelperStepContext& context)
 {
     ++helper.horse.effectCount;
     World::ModelEffects& effects = context.world.Map().effects;
     if (context.logicSteps % ShockWaveEvery == 0)
     {
-        return Core::Unexpected(std::string("0x445425: la onda 0x6eb/0 todavía no está"));
+        static_cast<void>(effects.CreateStompShockWave(helper.position, helper.angles, helper.light)); // 0x445425
     }
     const float frame = helper.horse.animation.frame;
     if (frame >= QuakeFirstFrame && frame <= QuakeLastFrame)
     {
         if ((helper.horse.effectCount & 1) != 0)
         {
+            const World::WorldTerrain& terrain =
+                context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
             const glm::vec3 reach(0.0f, F32(static_cast<double>(helper.horse.effectCount >> 1) * StoneRingStep), 0.0f);
             glm::vec3 turn(0.0f, 0.0f, static_cast<float>(context.random.Next() % StoneDegrees));
             for (int stone = 0; stone < StoneCount; ++stone)
@@ -306,11 +308,14 @@ Core::Expected<void, std::string> ShakeTheEarth(HelperState& helper, const Helpe
                 const glm::vec3 place(F32(static_cast<double>(offset.x) + static_cast<double>(helper.position.x)),
                                       F32(static_cast<double>(offset.y) + static_cast<double>(helper.position.y)),
                                       F32(static_cast<double>(offset.z) + static_cast<double>(helper.position.z)));
-                const auto type = static_cast<std::int16_t>(FirstGroundStone + (context.random.Next() & 1));
-                static_cast<void>(type);
-                static_cast<void>(place);
-                static_cast<void>(effects);
-                return Core::Unexpected(std::string("0x44554a: las piedras 0x118/0x119 todavía no están"));
+                const auto type =
+                    static_cast<std::int16_t>(World::FirstGroundStoneEffect + (context.random.Next() & 1));
+                const auto created = effects.CreateGroundStone(type, place, helper.angles, helper.light,
+                                                               terrain.attributes.get(), context.random);
+                if (!created.HasValue())
+                {
+                    return Core::Unexpected("0x44554a → " + created.Error());
+                }
             }
         }
         if (context.cameraShake == nullptr)

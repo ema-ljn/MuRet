@@ -45,6 +45,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <span>
@@ -268,6 +269,30 @@ public:
                                              .scene = scene,
                                              .terrain = nullptr});
     }
+
+    // El paso del juego con la cuenta de los pasos lógicos (0x7d3a0f0) y el temblor de la cámara (0x7d325c8).
+    Client::Core::Expected<void, std::string> StepCounting(std::int32_t logicSteps, float* shake)
+    {
+        return StepHelpers(HelperStepContext{.world = world,
+                                             .models = &models,
+                                             .random = random,
+                                             .worldClock = clock,
+                                             .scene = SceneId::Game,
+                                             .terrain = nullptr,
+                                             .logicSteps = logicSteps,
+                                             .cameraShake = shake});
+    }
+
+    // El jinete en la 0x53 con el caballo ya en su acción 3, en `frame` y con la cuenta +0x8e en `count`.
+    void Rear(float frame, std::uint8_t count = 0)
+    {
+        Rider().animation.action = RearingRider;
+        Horse().horse.animation.action = EarthquakeAction;
+        Horse().horse.animation.frame = frame;
+        Horse().horse.effectCount = count;
+    }
+
+    static constexpr std::uint8_t EarthquakeAction = 3;
 
     // El buffer global de la pose (0x68b181c) como lo dejaría un dibujo de 39 huesos (o `count`): cada uno sin giro,
     // en PosedBone(hueso).
@@ -1001,16 +1026,213 @@ TEST(HelperTableTest, TheIcarusDustWithoutItsBoneReadsAZeroBone)
     EXPECT_EQ(tested.random.State(), zeroed.random.State());
 }
 
-// 0x4445e1: con la acción 3 del caballo (la del jinete 0x53), después del aliento, 0x52e470 y 0x4453e0 cortan.
-TEST(HelperTableTest, TheRearingStopsAfterTheBreath)
+float QuakeF32(double value)
+{
+    return static_cast<float>(value);
+}
+
+// 0x445571: ((rand() % 3) − 3) · 0,7f (0x6b8a5c), guardado en float en 0x7d325c8.
+float QuakeShake(CrtRandom& random)
+{
+    return QuakeF32(static_cast<double>((random.Next() % 3) - 3) * static_cast<double>(0.7f));
+}
+
+std::size_t LiveEffects(HelperWorld& tested)
+{
+    const auto effects = tested.world.Map().effects.Effects();
+    return static_cast<std::size_t>(
+        std::count_if(effects.begin(), effects.end(), [](const auto& effect) { return effect.alive; }));
+}
+
+// 0x4445e1..0x44468a: con la acción 3 del caballo (la del jinete 0x53), después del aliento, 0x52e470 con el héroe
+// (0x743a170) de dueño, del punto (60; 0; 0) del hueso 9 del buffer global (0x68b19cc) al del mismo hueso, en blanco y
+// con el tipo, el largo y la key en 0; después 0x4453e0 sube la cuenta +0x8e. Con 1 paso lógico no hay onda y con el
+// frame en 0 queda fuera de la ventana: ni piedras ni temblor. Ninguno de los dos saca rand().
+TEST(HelperTableTest, TheRearingLeavesARibbonFromBone9AndCountsTheQuake)
 {
     HelperWorld rearing;
     ASSERT_NO_FATAL_FAILURE(rearing.Mount());
+    rearing.PoseTheGlobalBones();
     rearing.Rider().animation.action = RearingRider;
-    const auto reared = rearing.Step();
-    EXPECT_TRUE(HasError(reared, "0x4445e1")) << (reared.HasValue() ? "" : reared.Error());
-    EXPECT_EQ(rearing.Horse().horse.animation.action, 3u);
+    float shake = 5.0f;
+    const auto reared = rearing.StepCounting(1, &shake);
+    ASSERT_TRUE(reared.HasValue()) << reared.Error();
+    EXPECT_EQ(rearing.Horse().horse.animation.action, HelperWorld::EarthquakeAction);
+    EXPECT_EQ(rearing.Horse().horse.effectCount, 1u);
+    const auto& ribbons = rearing.world.DrawTail().ribbons;
+    EXPECT_EQ(std::count_if(ribbons.begin(), ribbons.end(), [](const auto& ribbon) { return ribbon.alive; }), 1);
+    const auto& ribbon = ribbons[0];
+    EXPECT_TRUE(ribbon.alive);
+    EXPECT_EQ(ribbon.ownerContext, &rearing.Rider());
+    EXPECT_EQ(ribbon.ownerEquipment, &rearing.Rider().level);
+    EXPECT_EQ(ribbon.type, 0);
+    EXPECT_EQ(ribbon.key, 0);
+    EXPECT_EQ(ribbon.life, 30);
+    EXPECT_EQ(ribbon.count, 1);
+    EXPECT_EQ(ribbon.light, glm::vec3(1.0f, 1.0f, 1.0f));
+    EXPECT_EQ(ribbon.first[0], HelperWorld::PosedBone(9) + glm::vec3(60.0f, 0.0f, 0.0f));
+    EXPECT_EQ(ribbon.second[0], HelperWorld::PosedBone(9));
+    EXPECT_EQ(LiveEffects(rearing), 0u);
+    EXPECT_EQ(shake, 5.0f);
     EXPECT_EQ(rearing.random.State(), RandomAfter(QuietSeed, 1).State());
+
+    // El paso siguiente alarga la misma cinta (el mismo dueño) y la cuenta sigue.
+    ASSERT_TRUE(rearing.StepCounting(2, &shake).HasValue());
+    EXPECT_EQ(ribbon.count, 2);
+    EXPECT_EQ(rearing.Horse().horse.effectCount, 2u);
+}
+
+// 0x4453f8..0x445425: con la cuenta de los pasos lógicos múltiplo de 10 (el resto con signo de idiv, también en los
+// negativos), la onda 0x6eb/0 en la posición y los ángulos del caballo (los del jinete) con su luz (+0xf4, el 3 de
+// 0x443d70): vida 30 y escala 20, sin rand(). Con otra cuenta, ninguna.
+TEST(HelperTableTest, EveryTenLogicStepsTheRearingStompsAShockWave)
+{
+    for (const std::int32_t steps : {0, 20, -10})
+    {
+        HelperWorld stomp;
+        ASSERT_NO_FATAL_FAILURE(stomp.Mount());
+        stomp.Rider().animation.action = RearingRider;
+        float shake = 0.0f;
+        ASSERT_TRUE(stomp.StepCounting(steps, &shake).HasValue()) << steps;
+        ASSERT_EQ(LiveEffects(stomp), 1u) << steps;
+        const auto& wave = stomp.world.Map().effects.Effects()[0];
+        EXPECT_EQ(wave.type, Client::World::ShockWaveEffect);
+        EXPECT_EQ(wave.subtype, Client::World::StompShockWaveSubtype);
+        EXPECT_EQ(wave.transform.position, CellCentre(100, 100));
+        EXPECT_EQ(wave.transform.angles, glm::vec3(0.0f, 0.0f, 45.0f));
+        EXPECT_EQ(wave.light, glm::vec3(3.0f, 3.0f, 3.0f));
+        EXPECT_EQ(wave.life, 30);
+        EXPECT_EQ(wave.transform.scale, 20.0f);
+        EXPECT_EQ(stomp.random.State(), RandomAfter(QuietSeed, 1).State()) << steps;
+    }
+    HelperWorld quiet;
+    ASSERT_NO_FATAL_FAILURE(quiet.Mount());
+    quiet.Rider().animation.action = RearingRider;
+    float shake = 0.0f;
+    ASSERT_TRUE(quiet.StepCounting(7, &shake).HasValue());
+    EXPECT_EQ(LiveEffects(quiet), 0u);
+}
+
+// 0x44542d..0x445553: con el frame en [8; 9,5] y la cuenta impar (4 + 1 = 5), seis piedras en un anillo de radio
+// (5 / 2) · 150 = 300 alrededor del caballo: el giro arranca en rand() % 360 y suma 60 antes de cada una, (0; 300; 0)
+// girado con esa z más la posición del caballo, cada eje en float; el tipo 0x118 + (rand() & 1) sale después del giro
+// y antes del alta, que saca sus dos rand() (la escala y el yaw) con la luz del caballo y vida 40. Después, el temblor
+// de la cámara. Con 1 paso lógico, sin onda.
+TEST(HelperTableTest, InItsWindowTheQuakeRingsSixStonesOnOddCountsAndShakesTheCamera)
+{
+    HelperWorld quake;
+    ASSERT_NO_FATAL_FAILURE(quake.Mount());
+    quake.Rear(8.0f, 4);
+    float shake = 0.0f;
+    const auto quaked = quake.StepCounting(1, &shake);
+    ASSERT_TRUE(quaked.HasValue()) << quaked.Error();
+    EXPECT_EQ(quake.Horse().horse.effectCount, 5u);
+
+    CrtRandom expected = RandomAfter(QuietSeed, 1);
+    const glm::vec3 horse = CellCentre(100, 100);
+    const glm::vec3 reach(0.0f, 300.0f, 0.0f);
+    glm::vec3 turn(0.0f, 0.0f, static_cast<float>(expected.Next() % 360));
+    const auto effects = quake.world.Map().effects.Effects();
+    for (std::size_t stone = 0; stone < 6; ++stone)
+    {
+        turn.z = QuakeF32(static_cast<double>(turn.z) + 60.0);
+        const glm::vec3 offset =
+            Client::Render::Models::OriginalVectorRotate(reach, Client::Render::Models::OriginalAngleMatrix(turn));
+        const glm::vec3 place(QuakeF32(static_cast<double>(offset.x) + static_cast<double>(horse.x)),
+                              QuakeF32(static_cast<double>(offset.y) + static_cast<double>(horse.y)),
+                              QuakeF32(static_cast<double>(offset.z) + static_cast<double>(horse.z)));
+        const int type = 0x118 + (expected.Next() & 1);
+        static_cast<void>(expected.Next());
+        static_cast<void>(expected.Next());
+        const auto& effect = effects[stone];
+        EXPECT_TRUE(effect.alive) << stone;
+        EXPECT_EQ(effect.type, type) << stone;
+        EXPECT_EQ(effect.transform.position, place) << stone;
+        EXPECT_EQ(effect.light, glm::vec3(3.0f, 3.0f, 3.0f)) << stone;
+        EXPECT_EQ(effect.life, 40) << stone;
+        // El anillo, sin la matriz: (−300 · sen z; 300 · cos z) alrededor del caballo.
+        const double radians = static_cast<double>(turn.z) * 3.14159265358979323846 / 180.0;
+        EXPECT_NEAR(effect.transform.position.x - horse.x, -300.0 * std::sin(radians), 0.01) << stone;
+        EXPECT_NEAR(effect.transform.position.y - horse.y, 300.0 * std::cos(radians), 0.01) << stone;
+    }
+    EXPECT_FALSE(effects[6].alive);
+    EXPECT_EQ(shake, QuakeShake(expected));
+    EXPECT_EQ(quake.random.State(), expected.State());
+}
+
+// 0x445476: con la cuenta par (5 + 1 = 6) no hay piedras, pero dentro de la ventana (9,5 incluido) el temblor sí.
+TEST(HelperTableTest, OnEvenCountsTheQuakeOnlyShakesTheCamera)
+{
+    HelperWorld quake;
+    ASSERT_NO_FATAL_FAILURE(quake.Mount());
+    quake.Rear(9.5f, 5);
+    float shake = 0.0f;
+    ASSERT_TRUE(quake.StepCounting(1, &shake).HasValue());
+    EXPECT_EQ(quake.Horse().horse.effectCount, 6u);
+    EXPECT_EQ(LiveEffects(quake), 0u);
+    CrtRandom expected = RandomAfter(QuietSeed, 1);
+    EXPECT_EQ(shake, QuakeShake(expected));
+    EXPECT_EQ(quake.random.State(), expected.State());
+}
+
+// 0x44542d..0x445455: el frame por debajo de 8, por encima de 9,5 o NaN (fcomp + test ah,1 lo manda afuera) solo
+// sube la cuenta: ni piedras ni temblor ni rand(), y con una cuenta que no llega a 0x13, nada más.
+TEST(HelperTableTest, OutsideItsWindowTheQuakeOnlyCounts)
+{
+    for (const float frame : {7.99f, 9.51f, std::numeric_limits<float>::quiet_NaN()})
+    {
+        HelperWorld quake;
+        ASSERT_NO_FATAL_FAILURE(quake.Mount());
+        quake.Rear(frame, 4);
+        float shake = 5.0f;
+        ASSERT_TRUE(quake.StepCounting(1, &shake).HasValue()) << frame;
+        EXPECT_EQ(quake.Horse().horse.effectCount, 5u) << frame;
+        EXPECT_EQ(LiveEffects(quake), 0u) << frame;
+        EXPECT_EQ(shake, 5.0f) << frame;
+        EXPECT_EQ(quake.random.State(), RandomAfter(QuietSeed, 1).State()) << frame;
+    }
+}
+
+// 0x51cc8b: una piedra que cae en una celda con el bit 0x04, 0x08 o 0x10 no nace y no saca sus dos rand(); el tipo
+// ya salió. Con todo el mapa en 0x08: el giro, seis tipos y el temblor.
+TEST(HelperTableTest, TheStonesSkipTheCellsTheirAttributeMasks)
+{
+    HelperWorld quake;
+    ASSERT_NO_FATAL_FAILURE(quake.Mount());
+    quake.world.Map().terrain.attributes->cells.fill(0x08);
+    quake.Rear(8.5f, 4);
+    float shake = 0.0f;
+    ASSERT_TRUE(quake.StepCounting(1, &shake).HasValue());
+    EXPECT_EQ(LiveEffects(quake), 0u);
+    CrtRandom expected = RandomAfter(QuietSeed, 8);
+    EXPECT_EQ(shake, QuakeShake(expected));
+    EXPECT_EQ(quake.random.State(), expected.State());
+}
+
+// 0x44452e: sólo la rama de las otras acciones del jinete (la que da la acción 0) borra la cuenta; el galope la deja.
+TEST(HelperTableTest, OnlyTheOtherGaitsClearTheQuakeCount)
+{
+    HelperWorld standing;
+    ASSERT_NO_FATAL_FAILURE(standing.Mount());
+    standing.Horse().horse.effectCount = 7;
+    ASSERT_TRUE(standing.Step().HasValue());
+    EXPECT_EQ(standing.Horse().horse.effectCount, 0u);
+
+    HelperWorld galloping;
+    ASSERT_NO_FATAL_FAILURE(galloping.Mount());
+    galloping.Gallop();
+    galloping.Horse().horse.effectCount = 7;
+    ASSERT_TRUE(galloping.Step().HasValue());
+    EXPECT_EQ(galloping.Horse().horse.effectCount, 7u);
+}
+
+// Sin el temblor de la cámara (0x7d325c8), la ventana corta en 0x445577 (aquí, con la cuenta par).
+TEST(HelperTableTest, TheQuakeWithoutTheCameraShakeStops)
+{
+    HelperWorld quake;
+    ASSERT_NO_FATAL_FAILURE(quake.Mount());
+    quake.Rear(8.0f, 5);
+    EXPECT_TRUE(HasError(quake.StepCounting(1, nullptr), "0x445577"));
 }
 
 // Sin el esqueleto del 0xbf o sin el mapa cargado, el paso de un caballo vivo corta; con la tabla vacía

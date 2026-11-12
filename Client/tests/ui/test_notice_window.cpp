@@ -134,7 +134,8 @@ TEST(NoticeWindowTest, TheBaseDarkensTheScreen)
 }
 
 // 0x642bf0: una línea va centrada en el ancho de la caja, en la y + 38, con la fuente
-// DAT_05763560 en blanco. "Synthetic" mide 9 · 6 = 54: (352 − 54) / 2 = 149.
+// DAT_05763560 en blanco: 0x642f00 la pasa en el modo 2, en una caja de 352 desde la x de la caja.
+// "Synthetic" mide 9 · 6 = 54: el texto va en la columna (352 − 54) / 2 = 149.
 TEST(NoticeWindowTest, OneLineIsCentered)
 {
     const auto texts = Client::Tests::MakeTextTable({{402, "Synthetic"}});
@@ -148,8 +149,11 @@ TEST(NoticeWindowTest, OneLineIsCentered)
 
     ASSERT_EQ(text.texts.size(), 1u);
     EXPECT_EQ(text.texts[0].text, "Synthetic");
-    EXPECT_EQ(text.texts[0].x, 144 + 149);
+    EXPECT_EQ(text.texts[0].x, 144);
     EXPECT_EQ(text.texts[0].y, 183 + 38);
+    EXPECT_TRUE(text.texts[0].windowed);
+    EXPECT_EQ(text.texts[0].firstColumn, -149);
+    EXPECT_EQ(text.texts[0].columns, 352);
     EXPECT_EQ(text.texts[0].style.font, Client::Render::Text::FontKind::OtherFace12);
     EXPECT_EQ(text.texts[0].style.colors.text, 0xffffffffu);
     EXPECT_EQ(text.texts[0].style.colors.background, 0u);

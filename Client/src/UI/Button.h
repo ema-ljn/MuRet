@@ -72,9 +72,10 @@ public:
     void SetLabel(std::string label, ButtonColors colors);
     // 0x63c710: con la fuente DAT_05763560, el color del estado y el fondo en 0, centrado en el
     // ancho del botón (el modo 2 de 0x467060). La y en 640 × 480 es ((h − cy) · 0,5 + y) / ry más
-    // 0,5, o 1,5 apretado (+0xd8), truncada. La x la centra 0x467060 en píxeles, después de pasar
-    // la del botón a 640 × 480; MuRet centra en píxeles y después pasa a 640 × 480 (DesignX), que
-    // puede correr el rótulo un píxel fuera de 640 × 480. Sin pantalla (un lado en 0), nada. Da el
+    // 0,5, o 1,5 apretado (+0xd8), truncada. La caja, del ancho del botón, empieza en su x pasada a
+    // 640 × 480 (DesignX), y 0x467060 pone el texto adentro, en píxeles (ITextDrawer::DrawColumns
+    // con CenterInBox): un rótulo más ancho que el botón sale cortado de los dos lados (Q-C710), y
+    // el fondo en 0 no se ve. Sin pantalla (un lado en 0), nada. Da el
     // color con que lo dibujó, o nada si no lo dibujó: 0x63c710 lo deja como el color del texto
     // (DAT_006c8e5c), y lo que se dibuja después sin poner otro sale con él (Q-C83).
     std::optional<std::uint32_t> DrawLabel(Scenes::ITextDrawer& text, App::PixelSize screen) const;

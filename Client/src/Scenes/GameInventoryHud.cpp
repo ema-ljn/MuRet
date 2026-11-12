@@ -4,7 +4,6 @@
 #include "Core/Expected.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/OriginalQuad.h"
-#include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -127,20 +126,16 @@ void DrawText(GameHudContext& context, int x, int y, std::string_view text)
                       Render::Text::TextStyle{.font = context.hud.dcFont, .colors = context.hud.textColors});
 }
 
-// 0x554180(x, y, texto, ancho, 1, p6) → 0x467060 con el modo 2: el texto centrado en una caja de `boxPixels` píxeles
-// que empieza en _ftol(x · rx): (ancho − cx) / 2 con la división de C, como el rótulo de un botón (UI::Button). El
-// fondo de 0x467060 llena la caja entera; el de MuRet, solo lo que ocupa el texto (08, P-C70).
+// 0x554180(x, y, texto, ancho, 1, p6) → 0x467060 con el modo 2: una caja de `boxPixels` píxeles que empieza en
+// _ftol(x · rx), con el texto en la columna (ancho − cx) / 2 de la división de C y el fondo en toda la caja, con la
+// fuente y los colores que haya (Render::Text::CenterInBox).
 void DrawTextCenteredInBox(GameHudContext& context, int x, int y, std::string_view text, int boxPixels)
 {
-    const App::PixelSize screen = context.sprites.Screen();
-    const Render::Text::TextExtent extent = context.text.Measure(context.hud.dcFont, text);
-    int left = x;
-    if (screen.width > 0)
-    {
-        const int pixelX = Truncate(static_cast<double>(x) * static_cast<double>(Render::ScaleX(1.0f, screen)));
-        left = Render::Text::DesignX(pixelX + (boxPixels - extent.width) / 2, screen);
-    }
-    DrawText(context, left, y, text);
+    const Render::Text::CenteredInBox placed =
+        Render::Text::CenterInBox(context.text, context.hud.dcFont, text, boxPixels);
+    context.text.DrawColumns(x, y, text,
+                             Render::Text::TextStyle{.font = context.hud.dcFont, .colors = context.hud.textColors},
+                             -placed.textColumn, placed.width);
 }
 
 // 0x623690(x, y, texto): centrado en x, con la fuente y los colores que haya.

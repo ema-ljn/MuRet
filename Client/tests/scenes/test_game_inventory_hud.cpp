@@ -356,13 +356,17 @@ TEST_F(GameInventoryHudTest, TheWindowDrawsItsQuadsAndSpendsItsRandomsInLorencia
     ASSERT_TRUE(zen.has_value());
     EXPECT_FLOAT_EQ(zen->first.x, 500.0f);
     EXPECT_NEAR(zen->first.y, 480.0f - 367.7f, 1e-4f);
-    // El título (Text 223) centrado en 120 desde 485, en negrita y en blanco sobre gris; "Zen" (224) en (470, 370)
+    // El título (Text 223) en una caja de 120 desde 485, en negrita y en blanco sobre gris; "Zen" (224) en (470, 370)
     // y la cifra en (510, 370), con su color; el cartel del set (989) dos veces, centrado en 546 y 545.
     ASSERT_EQ(text.texts.size(), 5u);
     const std::string title = TextAt(223);
     EXPECT_EQ(text.texts[0].text, title);
-    EXPECT_EQ(text.texts[0].x, 485 + (120 - static_cast<int>(title.size()) * 6) / 2);
+    const int titleWidth = static_cast<int>(title.size()) * 6;
+    EXPECT_EQ(text.texts[0].x, 485);
     EXPECT_EQ(text.texts[0].y, 12);
+    EXPECT_TRUE(text.texts[0].windowed);
+    EXPECT_EQ(text.texts[0].firstColumn, -((120 - titleWidth) / 2));
+    EXPECT_EQ(text.texts[0].columns, titleWidth + 2 * ((120 - titleWidth) / 2));
     EXPECT_EQ(text.texts[0].style.font, Client::Render::Text::FontKind::Bold);
     EXPECT_EQ(text.texts[0].style.colors.background, 0xff141414u);
     EXPECT_EQ(text.texts[1].text, TextAt(224));
@@ -380,6 +384,49 @@ TEST_F(GameInventoryHudTest, TheWindowDrawsItsQuadsAndSpendsItsRandomsInLorencia
     EXPECT_EQ(text.texts[4].x, 0x1c2 + 0x5f - static_cast<int>(set.size()) * 6 / 2);
     EXPECT_EQ(text.texts[4].y, 24);
     EXPECT_EQ(text.texts[4].style.colors.text, 0xffffffffu);
+}
+
+// 0x5f240b..0x5f2459: el título va en el modo 2 en una caja de W · 120 / 640 píxeles desde x + 0x23, con el texto en
+// la columna (caja − cx) / 2 y el fondo en toda la caja (P-C70 b): 120 en 640 × 480, 192 en 1.024 × 768 y 300 en
+// 1.600 × 1.200, que TextCache parte en dos cajas (TextCacheTest.AModeTwoBoxPast256ColumnsGoesInBoxesOf256). Con la
+// party abierta, desde 0x104 + 0x23. Lo mismo en Lorencia y en Devias.
+TEST_F(GameInventoryHudTest, TheTitleFillsItsWholeBoxInThreeResolutions)
+{
+    struct Case
+    {
+        Client::App::PixelSize screen;
+        int box = 0;
+        std::uint8_t party = 0;
+    };
+    constexpr std::array<Case, 4> Cases{{
+        {.screen = Screen640, .box = 120, .party = 0},
+        {.screen = {1024, 768}, .box = 192, .party = 0},
+        {.screen = {1600, 1200}, .box = 300, .party = 0},
+        {.screen = {1600, 1200}, .box = 300, .party = 1},
+    }};
+    const int titleWidth = static_cast<int>(TextAt(223).size()) * Client::Tests::RecordingTextDrawer::LetterWidth;
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const Case& probe : Cases)
+        {
+            SCOPED_TRACE(testing::Message()
+                         << "mapa " << map << ", " << probe.screen.width << " de ancho, party " << int{probe.party});
+            world.Runtime().map = map;
+            world.Runtime().panels.party = probe.party;
+            sprites.Begin(probe.screen);
+            text.texts.clear();
+
+            ASSERT_TRUE(Window().HasValue());
+
+            ASSERT_FALSE(text.texts.empty());
+            const int column = (probe.box - titleWidth) / 2;
+            EXPECT_EQ(text.texts[0].x, probe.party != 0 ? 0x104 + 0x23 : 0x1c2 + 0x23);
+            EXPECT_EQ(text.texts[0].y, 12);
+            EXPECT_TRUE(text.texts[0].windowed);
+            EXPECT_EQ(text.texts[0].firstColumn, -column);
+            EXPECT_EQ(text.texts[0].columns, titleWidth + 2 * column);
+        }
+    }
 }
 
 // Con el personaje o la party abiertos, la ventana va en x = 0x104.

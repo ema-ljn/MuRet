@@ -250,10 +250,11 @@ void DrawObjectFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models
 
 // 0x4ebc80 sobre `bones`, los huesos que posó 0x5ffdf0 en el buffer propio (+0x120): una por malla del modelo de
 // `object`, en su orden, con su escala y su posición; también las que no tienen textura, que 0x4eff40 no mira. Una
-// malla con índices fuera de rango queda vacía. Sin el modelo, ninguna.
+// malla con índices fuera de rango queda vacía. Sin el modelo, ninguna. `boneScale` es el 0x6c881c que deja 0x5ffdf0
+// por su modo: 1, o 1,2 con el 2 y 1,4 con el 3 (0x5fff82..0x5fffaf, Render::Models::SkinMeshAroundBones).
 [[nodiscard]] std::vector<Render::Models::SkinnedMesh>
 SkinObjectMeshes(const IModelLibrary& models, const DrawnObject& object,
-                 std::span<const Render::Models::BoneTransform> bones);
+                 std::span<const Render::Models::BoneTransform> bones, float boneScale = 1.0f);
 
 // Un pase de 0x60cd60: la escala que 0x4ebc80 lee de 0x6c881c y el color del modelo (+0x48..+0x50).
 struct ObjectOutlinePass

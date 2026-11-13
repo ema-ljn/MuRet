@@ -536,7 +536,7 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
     // lo que cuelga y de su rand() % 30, en el primer hueso con nombre que su alta no registró (0x427291); lo de
     // 0x50bf45, después de la sombra.
     constexpr std::array cases{Case{Spider, 0x59, "0x50bb96", 0, 0}, Case{HelperType, 0x20, "0x427291", 6, 4},
-                               Case{Spider, 0x4d, "0x50c177", 6, 0}, Case{0x18e, 0x21, "0x4ee770", 0, 4}};
+                               Case{Spider, 0x49, "0x50c36b", 6, 0}, Case{0x18e, 0x21, "0x4ee770", 0, 4}};
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.address);
@@ -718,6 +718,116 @@ TEST_F(MonsterDrawingTest, TheMonster0x37WearsItsClothOutsideChaosCastle)
     const auto unsupplied = Draw(Pass());
     ASSERT_FALSE(unsupplied.HasValue());
     EXPECT_NE(unsupplied.Error().find("0x50d58b"), std::string::npos) << unsupplied.Error();
+}
+
+// 0x50c177: el +0x376 0x4d (el monstruo 77, el tipo 0x189 con su segundo modelo 0x18a). Con el reloj en 0, s = 0,5: el
+// pase 0x44 con el factor 0,65 (k por el (1; 0,5; 0) del modelo), +0x68 en f(1,5 · 0,3f), el cuerpo otra vez a 1,2 y
+// a 1,4 alrededor de su hueso con la malla 0 de blendMesh, el 0x18a con su pase 0x42 de Chrome01 y su común en 0,6, y
+// la tela de la grilla del 0x4d, como la arma y la simula CharacterCloth. En Lorencia, en Devias y en Icarus (el 10,
+// sin sombra), igual.
+TEST_F(MonsterDrawingTest, ThePhoenixDrawsItsWiderBodiesItsSecondModelAndItsCloth)
+{
+    constexpr std::uint16_t Phoenix = 0x189;
+    for (const std::int32_t map : {0, 2, 10})
+    {
+        SCOPED_TRACE(map);
+        m_world = std::make_unique<Client::Scenes::WorldState>();
+        SetUp();
+        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_world->Runtime().map = map;
+        ActorState& phoenix = Monster(3, Phoenix, 0x4d);
+        std::vector<Client::Scenes::CharacterCloth> cloths(4);
+        GameCharacterPass pass = Pass();
+        pass.cloths = cloths;
+        Client::Render::Models::ClothWorld expectedWorld = m_clothWorld;
+
+        const auto result = Draw(pass);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        // El tipo vuelve, +0x64 queda en −1 y +0x68 en la luz de la tela del blendMesh.
+        EXPECT_EQ(phoenix.type, Phoenix);
+        EXPECT_EQ(phoenix.dword64, -1);
+        EXPECT_EQ(phoenix.blendMeshLight, static_cast<float>((1.0 - 0.5 + 1.0) * static_cast<double>(0.3f)));
+        // 0x743748c, 0x74374bc y 0x74374ec: los huesos 23 y 14 del 0x18a y el 24 del 0x189 (el hueso k en (0, 0, k)).
+        const auto& bones = m_world->Runtime().phoenixBones;
+        EXPECT_EQ(bones[0][3], glm::vec3(0.0f, 0.0f, 23.0f));
+        EXPECT_EQ(bones[1][3], glm::vec3(0.0f, 0.0f, 14.0f));
+        EXPECT_EQ(bones[2][3], glm::vec3(0.0f, 0.0f, 24.0f));
+        const std::size_t shadow = map == 10 ? 0u : 3u;
+        const auto& vertices = m_batch.Vertices();
+        ASSERT_GE(vertices.size(), 3u + shadow + 15u);
+        // El cuerpo en 0,6 (0x5ffce0 con el 0x189).
+        ExpectColor(vertices[0], 0.6f, 0.6f, 0.6f, 1.0f);
+        // El pase 0x44: k = 0,65.
+        const std::size_t shine = 3 + shadow;
+        ExpectColor(vertices[shine], 0.65f, 0.325f, 0.0f, 1.0f);
+        // 0x602e90(objeto, 1, 2, 0) y (objeto, 1, 3, 0): el vértice (1, 0, 0) del hueso 0 a 1,2 y a 1,4.
+        EXPECT_FLOAT_EQ(vertices[shine + 3 + 1].position.x, 151.2f);
+        EXPECT_FLOAT_EQ(vertices[shine + 6 + 1].position.x, 151.4f);
+        EXPECT_FLOAT_EQ(vertices[shine + 6 + 2].position.y, 151.4f);
+        // El 0x18a: RenderBody(0x42) con Chrome01 y el común en 0,6, a la escala 1.
+        const auto& commands = m_batch.Commands();
+        const std::size_t second = shine + 9;
+        EXPECT_FLOAT_EQ(vertices[second + 1].position.x, 151.0f);
+        ExpectColor(vertices[second + 3], 0.6f, 0.6f, 0.6f, 1.0f);
+        bool chromed = false;
+        for (const auto& command : commands)
+            chromed = chromed || (command.state.texture.has_value() && command.state.texture->value == 0x5c0 &&
+                                  command.state.blend == Client::Render::ModelBlend::Additive);
+        EXPECT_TRUE(chromed);
+        // La tela: una, armada y simulada sobre la pose del 0x18a.
+        ASSERT_EQ(cloths[3].Cloths().size(), 1u);
+        EXPECT_EQ(cloths[3].Count(), 1);
+        EXPECT_EQ(cloths[3].Cloths()[0].Front().value, 0x629);
+        EXPECT_EQ(cloths[3].Cloths()[0].Columns(), 5);
+        EXPECT_EQ(cloths[3].Cloths()[0].Rows(), 12);
+        EXPECT_EQ(cloths[3].Cloths()[0].Spheres().size(), 1u);
+        Client::Scenes::CharacterCloth expected;
+        Client::Render::ModelBatch expectedBatch;
+        expectedBatch.Begin(Client::Render::Pass3D{});
+        const Client::Render::Models::ClothBody body{
+            .bones = phoenix.bodyPose, .angles = phoenix.angles, .scale = phoenix.scale, .position = phoenix.position};
+        expected.FrameTheMonsterCloth(expectedBatch, 0x4d, body, expectedWorld, static_cast<std::uint8_t>(map), 0.0f);
+        ASSERT_EQ(expected.Cloths().size(), 1u);
+        const auto particles = cloths[3].Cloths()[0].Particles();
+        const auto reference = expected.Cloths()[0].Particles();
+        ASSERT_EQ(particles.size(), reference.size());
+        for (std::size_t index = 0; index < particles.size(); ++index)
+            EXPECT_EQ(particles[index].position, reference[index].position) << index;
+        ASSERT_EQ(vertices.size(), second + 6 + expectedBatch.Vertices().size());
+        for (std::size_t index = 0; index < expectedBatch.Vertices().size(); ++index)
+            EXPECT_EQ(vertices[second + 6 + index].position, expectedBatch.Vertices()[index].position) << index;
+        // Los de la tela y, después, el de 0x50db57 y los dos de +0x38e del lazo de las manos.
+        for (std::size_t call = 0; call < 3; ++call)
+            static_cast<void>(expectedWorld.random.Next());
+        EXPECT_EQ(m_clothWorld.random.State(), expectedWorld.random.State());
+        EXPECT_NE(m_clothWorld.random.State(), AfterRandoms(3));
+        TearDown();
+    }
+}
+
+// Entre frames del original el 0x4d dibuja lo mismo sobre la copia: no guarda +0x64, +0x68, el tipo ni los huesos,
+// no arma la tela ni saca rand(); sin la tela persistente del lugar, corta en 0x50c283.
+TEST_F(MonsterDrawingTest, ThePhoenixBetweenOriginalFramesStoresNothing)
+{
+    ActorState& phoenix = Monster(3, 0x189, 0x4d);
+    std::vector<Client::Scenes::CharacterCloth> cloths(4);
+    GameCharacterPass pass = Pass();
+    pass.cloths = cloths;
+    pass.originalFrames = 0;
+
+    const auto result = Draw(pass);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(phoenix.dword64, -1);
+    EXPECT_EQ(phoenix.blendMeshLight, 1.0f);
+    EXPECT_TRUE(phoenix.bodyPose.empty());
+    EXPECT_EQ(m_world->Runtime().phoenixBones[2], Client::Render::Models::BoneTransform{});
+    EXPECT_TRUE(cloths[3].Cloths().empty());
+    EXPECT_EQ(m_clothWorld.random.State(), 1u);
+    const auto unsupplied = Draw(Pass());
+    ASSERT_FALSE(unsupplied.HasValue());
+    EXPECT_NE(unsupplied.Error().find("0x50c283"), std::string::npos) << unsupplied.Error();
 }
 
 // 0x50bf98: el +0x376 0x45 saca su rand() % 30, pone nueve flare01 de 0,6 con su luz y, antes de cada una de sus tres

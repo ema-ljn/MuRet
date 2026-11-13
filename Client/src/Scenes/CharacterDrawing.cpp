@@ -1286,7 +1286,7 @@ void DrawObjectFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models
 }
 
 std::vector<Render::Models::SkinnedMesh> SkinObjectMeshes(const IModelLibrary& models, const DrawnObject& object,
-                                                          std::span<const BoneTransform> bones)
+                                                          std::span<const BoneTransform> bones, float boneScale)
 {
     const Data::Models::Model* model = models.Find(object.model);
     if (model == nullptr)
@@ -1295,7 +1295,8 @@ std::vector<Render::Models::SkinnedMesh> SkinObjectMeshes(const IModelLibrary& m
     for (std::size_t index = 0; index < model->meshes.size(); ++index)
     {
         if (IndicesInRange(model->meshes[index]))
-            static_cast<void>(Render::Models::SkinMesh(model->meshes[index], bones, object.transform, skinned[index]));
+            static_cast<void>(Render::Models::SkinMeshAroundBones(model->meshes[index], bones, object.transform,
+                                                                  boneScale, skinned[index]));
     }
     return skinned;
 }

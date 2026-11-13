@@ -113,7 +113,8 @@ std::optional<std::string_view> UnreachableCaseOf(const ActorState& actor, std::
                                                   0x49, 0x4a, 0x4d, 0x4e, 0x51, 0xfa};
     if (map == 0x22 && OneOf(type, Map34))
         return "0x4306a0";
-    constexpr std::array<std::uint16_t, 15> Late{0x18a, 0x10a, 0x10b, 0x12b, 0x12c, 0x12d, 0x12e, 0x12f,
+    // El 0x18a no lo da ninguna alta, pero el +0x376 0x4d lo dibuja con el tipo + 1 (0x50c244): tiene su caso.
+    constexpr std::array<std::uint16_t, 14> Late{0x10a, 0x10b, 0x12b, 0x12c, 0x12d, 0x12e, 0x12f,
                                                  0x130, 0x199, 0xf9,  0x11b, 0x114, 0x140, 0x12a};
     if (OneOf(type, Late) || (type == 0x112 && subtype == 1) || (type == 0xcc && (subtype == 3 || subtype == 4)) ||
         (type == 0xcb && (subtype == 2 || subtype == 3)) || (type == 0x138 && subtype == 0) || type == 0x139 ||
@@ -363,6 +364,16 @@ LateResult DrawTheLateCase(MonsterBodyFrame& frame)
         return Core::Unexpected(
             Cut("0x4ed775", "la onda de 0x4ecc30 (la bandera 0x400) de la malla 1 de 0x6002e0", 0x185).Error());
     }
+    case 0x18a:
+        // 0x601601..0x60164f, el segundo modelo del +0x376 0x4d (0x50c244): con el +0x88 en 0 y el color en 1,
+        // RenderBody(0x42) con Chrome01 (0x5c0); después el +0x88 en 0xff, el color en 0,6 y el común (0x602216).
+        model.object.unlitMesh = std::int16_t{0};
+        model.object.color = glm::vec3(1.0f);
+        if (auto drawn = DrawBodyPass(model, AdditiveFlags, WithTexture(args, ChromeTexture)); !drawn.HasValue())
+            return Core::Unexpected(drawn.Error());
+        model.object.unlitMesh.reset();
+        model.object.color = glm::vec3(SixTenths);
+        return LateNext::Common;
     case 0x18e:
         return DrawTheSpiritBody(frame);
     case 0x18f:

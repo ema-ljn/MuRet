@@ -126,6 +126,30 @@ constexpr ClothShape RobeCloth{.bone = 19,
                                .back = TextureSlot{0x251},
                                .flags = 0x405};
 
+// 0x50c2ca..0x50c313, el +0x376 0x4d (el tipo 0x189), y 0x50c5fa..0x50c629, el 0x47, el 0x4a y el 0x12d.
+constexpr std::uint16_t PhoenixMonster = 0x4d;
+constexpr ClothShape PhoenixCloth{.bone = 10,
+                                  .anchor = {0.0f, -10.0f, 0.0f},
+                                  .columns = 5,
+                                  .rows = 12,
+                                  .width = 15.0f,
+                                  .height = 240.0f,
+                                  .front = TextureSlot{0x629},
+                                  .back = TextureSlot{0x629},
+                                  .flags = 0x1100};
+constexpr Sphere PhoenixSphere{{0.0f, 0.0f, 40.0f}, 30.0f, 10};
+constexpr ClothShape BannerCloth{.bone = 0x13,
+                                 .anchor = {0.0f, 10.0f, 0.0f},
+                                 .columns = 5,
+                                 .rows = 15,
+                                 .width = 30.0f,
+                                 .height = 300.0f,
+                                 .front = TextureSlot{0x255},
+                                 .back = TextureSlot{0x255},
+                                 .flags = 0x1100};
+// 0x50c5ad..0x50c5bb: SUB 0x47, NEG, SBB y AND 2 sobre 0x253: el 0x47 con la 0x253, los otros con la 0x255.
+constexpr TextureSlot FirstBannerTexture{0x253};
+
 template <std::size_t N> void AddSpheres(Cloth& cloth, const std::array<Sphere, N>& spheres)
 {
     for (const Sphere& sphere : spheres)
@@ -160,6 +184,62 @@ bool WearsACloth(std::uint8_t characterClass, std::uint8_t map)
 bool WearsTheMonsterCloth(std::uint16_t monster, std::uint8_t map)
 {
     return monster == ClothMonster && !(map >= FirstClothlessMap && map <= LastClothlessMap);
+}
+
+bool WearsAGridClothOfItsOwn(std::uint16_t monster)
+{
+    return monster == PhoenixMonster || monster == 0x47 || monster == 0x4a || monster == 0x12d;
+}
+
+void CharacterCloth::FrameTheMonsterCloth(Render::ModelBatch& batch, std::uint16_t monster,
+                                          const Render::Models::ClothBody& body, Render::Models::ClothWorld& world,
+                                          std::uint8_t map, float worldTime)
+{
+    m_flares.clear();
+    if (m_cloths.empty())
+    {
+        // 0x50c291..0x50c31e y 0x50c5ad..0x50c632: new(0x64) de una, armada con su forma, y +0x18c en 1.
+        m_cloths.assign(1, Cloth{});
+        if (monster == PhoenixMonster)
+        {
+            m_cloths[0].Build(PhoenixCloth, body);
+            m_cloths[0].AddSphere(PhoenixSphere.local, PhoenixSphere.radius, PhoenixSphere.bone);
+        }
+        else
+        {
+            ClothShape banner = BannerCloth;
+            if (monster == 0x47)
+                banner.front = banner.back = FirstBannerTexture;
+            m_cloths[0].Build(banner, body);
+        }
+        m_count = 1;
+    }
+    m_simulatedBody = SimulatedBodyOf(body);
+    // 0x50c337 y 0x50c648: 0x455190(0,005f, 5) sobre la primera, con el dt fijo.
+    if (!m_cloths[0].Simulate(StepTime, StepsPerFrame, body, world, map))
+    {
+        // 0x4fb1a0(personaje, objeto, 0): las suelta; el frame siguiente, con +0x190 en 0, la vuelve a armar.
+        for (Cloth& released : m_cloths)
+            released.Release();
+        m_cloths.clear();
+        m_count = 0;
+        m_simulatedBody.reset();
+        return;
+    }
+    // 0x50c35c y 0x50c669: el +0x18 con (0, 0).
+    Draw(batch, m_cloths[0], PlainClothColor, worldTime);
+}
+
+void CharacterCloth::DrawTheMonsterCloth(Render::ModelBatch& batch, const Render::Models::ClothBody& body,
+                                         float worldTime)
+{
+    m_flares.clear();
+    if (m_cloths.empty())
+        return;
+    const Cloth& cloth = m_cloths[0];
+    const std::optional<ClothCarry> carry =
+        m_simulatedBody ? ClothCarryOf(*m_simulatedBody, body, cloth.Bone()) : std::nullopt;
+    Draw(batch, cloth, PlainClothColor, worldTime, carry);
 }
 
 void CharacterCloth::Build(const ClothWearer& wearer, const Render::Models::ClothBody& body)

@@ -3,6 +3,7 @@
 #include "Data/Text/DialogTable.h"
 #include "Data/Text/MoveRequirements.h"
 #include "GameLogic/MovementSpeed.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Scenes/ChatBubbles.h"
@@ -296,6 +297,10 @@ struct WorldRuntime
     std::int32_t field78abb10 = 0;
     std::uint8_t byte6c8e4d = 0xff;
     std::optional<std::int32_t> lastSoundId{};
+    // 0x743748c, 0x74374bc y 0x74374ec: las matrices que copia el dibujo del +0x376 0x4d (0x50c177): los huesos 23 y 14
+    // de su segundo modelo (el 0x18a) y el 24 del primero (el 0x189), de +0x120. Las lee el ataque de 0x4f5b70
+    // (0x4f840e y 0x4f8b92, hito 3).
+    std::array<Render::Models::BoneTransform, 3> phoenixBones{};
     World::ObjectModelStepState objectModelState{};
     // 7d365a0, .bss0.6061c0 lee el count retenido antes de60657a;6063d0 lo produce
     // sólo paraIcarus/Chaos/asedio. Kalima conserva0 después del reset del pase exitoso.

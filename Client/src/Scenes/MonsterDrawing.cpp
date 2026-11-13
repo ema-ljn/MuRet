@@ -9,6 +9,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/ObjectState.h"
+#include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/PassColors.h"
 #include "Render/Models/Pose.h"
@@ -91,6 +92,26 @@ constexpr std::uint16_t WideOutlineType = 0x172;
 constexpr std::uint16_t KalimaGate = 0xc5;                                       // los monstruos 152 a 158 (0x514390)
 constexpr auto ArmorPart = static_cast<std::size_t>(GameLogic::BodyPart::Armor); // +0x238
 constexpr std::uint32_t RiderFlag = 0x4000;
+
+// El tercer argumento de 0x602e90, que pasa a 0x5ffdf0 (0x5fff7f..0x5fffb7): con 1, el contorno; con 2 y 3, sin él,
+// 0x6c881c en 1,2f (0x3f99999a) y 1,4f (0x3fb33333) para el último 0x4ebc80, el del cuerpo; con otro, 1. 0x6002e0 no
+// lo mira.
+enum class PoseMode : std::uint8_t
+{
+    Plain = 0,
+    Outlined = 1,
+    Wider = 2,
+    Widest = 3,
+};
+
+float BoneScaleOf(PoseMode mode)
+{
+    if (mode == PoseMode::Wider)
+        return std::bit_cast<float>(0x3f99999au);
+    if (mode == PoseMode::Widest)
+        return std::bit_cast<float>(0x3fb33333u);
+    return 1.0f;
+}
 
 float F32(double value)
 {
@@ -230,6 +251,8 @@ struct MonsterFrame
     std::int32_t map = 0;
     float worldClock = 0.0f;
     bool originalFrame = true;
+    // El tercer argumento de 0x50ba30 (0x510ea1: el lugar en 0x6c8e30 o 0x6c8e2c): Outlined o Plain.
+    PoseMode outline = PoseMode::Plain;
 };
 
 // 0x50bae7..0x50bbca: la tela sobre la malla (MonsterCloth.h) entre 0x5ffdf0 y 0x6002e0, sobre `meshes` (lo que dejó
@@ -256,9 +279,10 @@ Result StepTheMeshCloth(MonsterFrame& frame, std::span<Render::Models::SkinnedMe
     return cloth.Frame(*model, actor.type, meshes, body, *frame.pass.clothWorld, static_cast<std::uint8_t>(frame.map));
 }
 
-// 0x5ffdf0 (con su 0x5ffce0) y 0x6002e0 sin casos: la pose en los huesos propios, el contorno y el cuerpo. Con la tela
-// sobre la malla (0x50bae7), 0x5ffdf0 y 0x6002e0 van separados y la tela entre los dos, con el cuarto argumento en 0.
-Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton, std::uint16_t special)
+// 0x602e90(objeto, 1, mode, special): 0x5ffdf0 (con su 0x5ffce0) y 0x6002e0: la pose en los huesos propios, el contorno
+// (con Outlined) y el cuerpo, con las mallas a la escala de `mode` alrededor de sus huesos. Con la tela sobre la malla
+// (0x50bae7), 0x5ffdf0 y 0x6002e0 van separados y la tela entre los dos, con el cuarto argumento en 0.
+Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton, std::uint16_t special, PoseMode mode)
 {
     ActorState& actor = frame.actor;
     const bool cloth = WearsClothOnTheMesh(actor.word376);
@@ -318,8 +342,7 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
     object.alpha = actor.alpha;
     object.vertexLight = light.vertexLight;
     // 0x5fffb4: el contorno, salvo con +0x78 & 0x4000 (0x60cd74).
-    const auto slot = static_cast<std::int32_t>(frame.slot);
-    if ((slot == frame.pass.hovered || slot == frame.pass.targeted) && (actor.flags78 & RiderFlag) == 0)
+    if (mode == PoseMode::Outlined && (actor.flags78 & RiderFlag) == 0)
     {
         const auto passes = OutlinePassesOf(actor, frame.map);
         // 0x60cdd9: el 0xc5 (las puertas de Kalima) solo con su malla 0, y con el +0x58 de textura (0x60ce4e).
@@ -330,8 +353,8 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
         else
             DrawObjectOutline(frame.batch, frame.fauna, object, frame.pass.frameClock, bones, passes);
     }
-    // 0x600177: el último 0x4ebc80 de 0x5ffdf0, con la escala en 1, deja las mallas en 0x5786f9c.
-    std::vector<Render::Models::SkinnedMesh> meshes = SkinObjectMeshes(frame.fauna, object, bones);
+    // 0x600177: el último 0x4ebc80 de 0x5ffdf0, con la escala de 0x6c881c por el modo, deja las mallas en 0x5786f9c.
+    std::vector<Render::Models::SkinnedMesh> meshes = SkinObjectMeshes(frame.fauna, object, bones, BoneScaleOf(mode));
     if (cloth)
     {
         if (auto stepped = StepTheMeshCloth(frame, meshes, bones, transform.position); !stepped.HasValue())
@@ -515,13 +538,23 @@ Result DrawTheShinePass(MonsterFrame& frame, MonsterBodyModel& model, std::uint3
 // sombra; si el monstruo nunca se posó (el alpha por debajo de 0,01f desde que llegó), el original las dibuja con las
 // de otro modelo y un color de menos de un centésimo, y MuRet no dibuja (Q-C863). El +0x44 del modelo (la luz por
 // vértice, que mira el 0x140) es el de 0x5ffce0 (*inferido*: la sombra no lo toca).
-Result DrawTheShines(MonsterFrame& frame)
+constexpr std::uint32_t ShinyPass = 0x48;
+constexpr std::uint32_t ChromePass = 0x44;
+constexpr std::int32_t OwnTexture = -1;
+
+// Las mallas de 0x5786f9c que leen los pases de 0x60b130 después de la sombra (Q-C863): la pose guardada (+0x120)
+// pasada otra vez al mundo con la posición, los ángulos y la escala, como la sombra.
+struct PosedBody
+{
+    DrawnObject object;
+    std::vector<Render::Models::SkinnedMesh> meshes;
+};
+
+PosedBody PosedBodyOf(const MonsterFrame& frame)
 {
     const ActorState& actor = frame.actor;
-    const std::uint16_t monster = actor.word376;
-    if (actor.bodyPose.empty())
-        return {};
-    DrawnObject object;
+    PosedBody posed;
+    DrawnObject& object = posed.object;
     object.model = actor.type;
     object.animation = actor.animation;
     object.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
@@ -531,15 +564,24 @@ Result DrawTheShines(MonsterFrame& frame)
                                                .hiddenMesh = static_cast<std::int16_t>(actor.dword58)};
     object.alpha = actor.alpha;
     object.vertexLight = actor.byteE8 != 0 && actor.type != 0x189 && actor.type != 0xe4;
-    const std::vector<Render::Models::SkinnedMesh> meshes = SkinObjectMeshes(frame.fauna, object, actor.bodyPose);
+    posed.meshes = SkinObjectMeshes(frame.fauna, object, actor.bodyPose);
+    return posed;
+}
+
+Result DrawTheShines(MonsterFrame& frame)
+{
+    const ActorState& actor = frame.actor;
+    const std::uint16_t monster = actor.word376;
+    if (actor.bodyPose.empty())
+        return {};
+    const PosedBody posed = PosedBodyOf(frame);
     MonsterBodyModel model{.batch = frame.batch,
                            .models = frame.fauna,
-                           .object = object,
-                           .meshes = meshes,
+                           .object = posed.object,
+                           .meshes = posed.meshes,
                            .frameClock = frame.pass.frameClock};
-    constexpr std::uint32_t Shiny = 0x48;
-    constexpr std::uint32_t Chrome = 0x44;
-    constexpr std::int32_t OwnTexture = -1;
+    constexpr std::uint32_t Shiny = ShinyPass;
+    constexpr std::uint32_t Chrome = ChromePass;
     if (monster == 0x35 || monster == 0x36)
     {
         constexpr std::int32_t Flare = 0x5fd;
@@ -556,14 +598,107 @@ Result DrawTheShines(MonsterFrame& frame)
     return DrawTheShinePass(frame, model, monster == 0x43 ? 0x144 : Chrome, factor, OwnTexture);
 }
 
-// 0x50bf45..0x50c904: lo que se agrega por el +0x376. El 0x45, hasta sus partículas, el 0x46 y los pases de brillo
-// (MonsterShines); los demás cortan.
+// 0x50c24d..0x50c366 con el tipo + 1 (el 0x18a): 0x602e90(objeto, 1, contorno, 0); los huesos 23 y 14 de su pose a
+// 0x743748c y 0x74374bc (solo en el frame del original); y la tela del 0x4d sobre esa pose, la del lugar
+// (pass.cloths[slot]), que entre frames del original se dibuja como quedó.
+Result DrawTheSecondPhoenixModel(MonsterFrame& frame)
+{
+    constexpr std::size_t FirstBone = 23;
+    constexpr std::size_t SecondBone = 14;
+    ActorState& actor = frame.actor;
+    const Render::Models::Skeleton* skeleton = frame.fauna.SkeletonOf(actor.type);
+    if (skeleton == nullptr)
+        return Core::Unexpected(std::format("0x50c248: falta el modelo {:#x} del +0x376 0x4d", actor.type));
+    if (auto drawn = DrawTheBody(frame, *skeleton, 0, frame.outline); !drawn.HasValue())
+        return drawn;
+    if (actor.bodyPose.size() <= FirstBone)
+        return Cut("0x50c256", "el hueso 23 de una pose más corta (el buffer de +0x120 fuera del modelo)", actor.type);
+    if (frame.originalFrame)
+    {
+        frame.world.Runtime().phoenixBones[0] = actor.bodyPose[FirstBone];
+        frame.world.Runtime().phoenixBones[1] = actor.bodyPose[SecondBone];
+    }
+    if (frame.slot >= frame.pass.cloths.size())
+        return Core::Unexpected<std::string>("0x50c283: falta la tela persistente del lugar del personaje");
+    CharacterCloth& cloth = frame.pass.cloths[frame.slot];
+    const Render::Models::ClothBody body{
+        .bones = actor.bodyPose, .angles = actor.angles, .scale = actor.scale, .position = actor.position};
+    if (frame.originalFrame)
+        cloth.FrameTheMonsterCloth(frame.batch, actor.word376, body, *frame.pass.clothWorld,
+                                   static_cast<std::uint8_t>(frame.map), frame.worldClock);
+    else
+        cloth.DrawTheMonsterCloth(frame.batch, body, frame.worldClock);
+    return {};
+}
+
+// 0x50c177..0x50c366, el +0x376 0x4d (el monstruo 77: el tipo 0x189, que el alta carga con su segundo modelo, el
+// 0x18a, Monster57): s = f((sin((ftol(T) % 10.000) · 0,001f) + 1) · 0,5f), sin redondear el seno antes de la suma; el
+// pase 0x44 de 0x60b130 con el factor f(s · 0,7f + 0,3f), sobre la pose guardada como los de MonsterShines; +0x64 en 0
+// y +0x68 en f((1 − s + 1) · 0,3f), guardados; 0x602e90(objeto, 1, 2, 0) y (objeto, 1, 3, 0), el cuerpo otra vez a 1,2
+// y a 1,4 alrededor de sus huesos, sin contorno; el hueso 24 de la pose a 0x74374ec (en el frame del original); +0x64
+// en −1; y el tipo + 1 (DrawTheSecondPhoenixModel), que después vuelve. No saca rand() propios: los de la tela y los de
+// cada 0x6002e0.
+Result DrawThePhoenix(MonsterFrame& frame)
+{
+    constexpr std::int32_t Period = 10000;
+    constexpr std::size_t TailBone = 24;
+    constexpr float Rate = std::bit_cast<float>(0x3a83126fu);   // 0x6b89c8: 0,001
+    constexpr float Weight = std::bit_cast<float>(0x3f333333u); // 0x6b8a5c: 0,7
+    constexpr float Floor = std::bit_cast<float>(0x3e99999au);  // 0x6b89dc: 0,3
+    ActorState& actor = frame.actor;
+    const auto clock = World::OriginalFtolLow(D(frame.worldClock));
+    if (!clock)
+        return Core::Unexpected<std::string>("0x50c17d: el reloj del mundo no cabe en 0x69fd3c");
+    const std::optional<double> wave =
+        Render::Models::Detail::SineSumPC53(static_cast<double>(*clock % Period) * D(Rate), 1.0);
+    if (!wave)
+        return Core::Unexpected<std::string>("0x50c1b7: el seno del reloj no cabe en el perfil PC53");
+    const float s = F32(*wave * 0.5);
+    if (!actor.bodyPose.empty())
+    {
+        const PosedBody posed = PosedBodyOf(frame);
+        MonsterBodyModel model{.batch = frame.batch,
+                               .models = frame.fauna,
+                               .object = posed.object,
+                               .meshes = posed.meshes,
+                               .frameClock = frame.pass.frameClock};
+        if (auto shone = DrawTheShinePass(frame, model, ChromePass, F32(D(s) * D(Weight) + D(Floor)), OwnTexture);
+            !shone.HasValue())
+            return shone;
+    }
+    actor.dword64 = 0;
+    actor.blendMeshLight = F32((1.0 - D(s) + 1.0) * D(Floor));
+    const Render::Models::Skeleton* skeleton = frame.fauna.SkeletonOf(actor.type);
+    if (skeleton == nullptr)
+        return Core::Unexpected(std::format("0x50c20b: falta el modelo {:#x} del +0x376 0x4d", actor.type));
+    for (const PoseMode mode : {PoseMode::Wider, PoseMode::Widest})
+    {
+        if (auto drawn = DrawTheBody(frame, *skeleton, 0, mode); !drawn.HasValue())
+            return drawn;
+    }
+    if (actor.bodyPose.size() <= TailBone)
+        return Cut("0x50c227", "el hueso 24 de una pose más corta (el buffer de +0x120 fuera del modelo)", actor.type);
+    if (frame.originalFrame)
+        frame.world.Runtime().phoenixBones[2] = actor.bodyPose[TailBone];
+    actor.dword64 = -1;
+    // 0x50c244..0x50c34b: INC y DEC de +0x2 alrededor del segundo modelo y de la tela.
+    const std::uint16_t type = actor.type;
+    actor.type = static_cast<std::uint16_t>(type + 1);
+    Result second = DrawTheSecondPhoenixModel(frame);
+    actor.type = type;
+    return second;
+}
+
+// 0x50bf45..0x50c904: lo que se agrega por el +0x376. El 0x45, hasta sus partículas, el 0x46, el 0x4d y los pases de
+// brillo (MonsterShines); los demás cortan.
 Result DrawTheDecorations(MonsterFrame& frame)
 {
     if (frame.actor.word376 == 0x45)
         return DrawTheSparksOf0x45(frame);
     if (frame.actor.word376 == 0x46)
         return DrawTheFlareOf0x46(frame);
+    if (frame.actor.word376 == 0x4d)
+        return DrawThePhoenix(frame);
     if (MonsterShines(frame.actor.word376))
         return DrawTheShines(frame);
     return CheckMonsterDecorations(frame.actor.word376);
@@ -1036,8 +1171,10 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
                        .worldClock =
                            static_cast<float>(std::chrono::duration<double, std::milli>(pass.frameClock).count()),
                        .originalFrame = originalFrame};
+    const auto slotIndex = static_cast<std::int32_t>(slot);
+    frame.outline = slotIndex == pass.hovered || slotIndex == pass.targeted ? PoseMode::Outlined : PoseMode::Plain;
     const std::uint16_t special = WearsClothOnTheMesh(actor.word376) ? 0 : SpecialOf(actor.word376);
-    if (auto body = DrawTheBody(frame, *skeleton, special); !body.HasValue())
+    if (auto body = DrawTheBody(frame, *skeleton, special, frame.outline); !body.HasValue())
         return body;
     if (auto shadow = DrawTheShadow(frame); !shadow.HasValue())
         return shadow;

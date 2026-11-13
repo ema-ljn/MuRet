@@ -10365,7 +10365,9 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
      mallas 0 y 1 con 2 y con `0x44` y Chrome01; con otro, el común en (0,1; 1; 0,8)); el `0x187` ((0,9; 0,8; 1) con
      `RenderBody(4)` y `0x5c1`, y el común en 1); el `0x18e`, que lee el contador de pasos (`0x7d3a0f0`, cuatro `rand()`
      sin otro acceso abierto) y, 25 pasos o más después de `+0x188` (con signo), hace el común, `0x44` con 1 y `0x48`
-     con (0,3; 0,3; 1), los dos con Chrome01; el `0x198`, el común;
+     con (0,3; 0,3; 1), los dos con Chrome01; el `0x198`, el común; el `0x18a` (`0x601601`, el segundo modelo del
+     `+0x376` `0x4d`, que ninguna alta da: lo dibuja `0x50c244` con el tipo + 1), con `model+0x88` en 0 y el color en 1,
+     `RenderBody(0x42)` con Chrome01, y después `model+0x88` en `0xff`, el color en 0,6 y el común (`0x602216`);
    - `0x602391`: el `0x177` con la luz en `sin(T · 0,002f) · 0,3f + 0,5f`, la malla 0 con la textura de su malla 6
      (`IndexTexture[6]`, `[model+0x38]+0xc`) y blendMesh 0, y la malla 3 con `0x44`, blendMesh 3 y la V en
      `−((ftol(T) % 100) · 0,01f)` (el resto con el signo del dividendo); `0x60243e`: el `0x1f3` y el `0x1f4`, la malla 0
@@ -10408,6 +10410,22 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    de `0x5786f9c` como las dejó el último `0x4ebc80`: las del cuerpo, o las de la sombra, que son las mismas; MuRet las
    vuelve a pasar a la pose guardada. Un monstruo que nunca se posó (el alpha por debajo de 0,01f desde que llegó) las
    dibuja con las de otro modelo (Q-C863). Con el alpha por debajo de 0,99, Q-C95 oscurece cada malla en el lugar.
+   El `0x4d` (fase 8, `0x50c177..0x50c366`, el monstruo 77, el tipo `0x189`, que el alta carga con su segundo modelo, el
+   `0x18a`): s = f((sin((ftol(T) % 10.000) · 0,001f) + 1) · 0,5f), con el resto con el signo del dividendo y la suma
+   antes de redondear el seno; `0x60b130(modelo, objeto, tipo, +0x174, 0x44, f(s · 0,7f + 0,3f), −1)`; `+0x64` en 0 y
+   `+0x68` en f((1 − s + 1) · 0,3f), guardados; `0x602e90(objeto, 1, 2, 0)` y `0x602e90(objeto, 1, 3, 0)`: el tercer
+   argumento de `0x5ffdf0` (`0x5fff7f..0x5fffaf`) en 2 o 3 deja `0x6c881c` en 1,2f o 1,4f, sin contorno, y el último
+   `0x4ebc80` pasa cada vértice al mundo a esa escala alrededor de su hueso (`0x6002e0` no mira ese argumento), así que
+   el cuerpo va otra vez, más grande, con la malla 0 como blendMesh y por la luz de `+0x68`; el hueso 24 de `+0x120` a
+   `0x74374ec`; `+0x64` en −1; `INC` de `+0x2` y `0x602e90(objeto, 1, contorno, 0)` con el `0x18a` (su caso de
+   `0x6002e0`, arriba); sus huesos 23 y 14 a `0x743748c` y `0x74374bc` (los lee el ataque de `0x4f5b70`, `0x4f840e` y
+   `0x4f8b92`); con `+0x190` en 0, `new(0x64)` de una tela de la grilla (`0x4548b0`, la vtable `0x6b8cd8`) armada por
+   su `+4` (`0x454a50`) con (objeto, 10, 0, −10, 0, 5, 12, 15, 240, `0x629`, `0x629`, `0x1100`) y `0x455cd0(0, 0, 40,
+   30, 10)`, y `+0x18c` en 1 (la textura `0x629` la carga `0x61ccb0`, `0x61db41`); `0x455190(0,005f, 5)` sin mirar
+   `+0x78`, y si se rompe `0x4fb1a0(personaje, objeto, 0)`; si no, su `+0x18` (`0x455930`) con el color nulo, que es
+   `glColor3f(1, 1, 1)`; y `DEC` de `+0x2`. La tela se simula con el tipo en `0x18a` y sobre su pose. No saca `rand()`
+   propios: los de la tela (su viento y su contador) y los de cada `0x6002e0`. Lo que queda en `+0x120`, `+0x64` y
+   `+0x68`, Q-C864.
 5. **El gremio** (`0x50c972`, con `+0x1f2` distinto de `0xffff`, que en un monstruo nunca pasa), **la luz** (`0x50cc55`:
    el terreno más la propia en `+0x3b4`, el `0x189` en 0,6), **las partes** (`0x50d363`: con `+0x3e3` en 0, el Angel de
    Chaos Castle con `+0x88` en 1 y el lazo de las seis partes de `+0x1f8`) y **las telas** (`0x50d58b`): bVar23
@@ -10436,7 +10454,10 @@ del mundo (sin ellas, corta en `0x5fb2f0`; sus tipos de verdad, el `0x1f3` y el 
 `DrawGameCharacters`; el cuervo con `DrawGameRaven`, como el de un jugador. Entre frames del original, todo sobre una
 copia del personaje y del `rand()`. Del `0x45`, sus nueve sprites y los cuatro `rand()` de su primera partícula, que
 corta en `0x50c0db` (la `0x5c6/3` no está en `World::Particles`, CL11; entre frames del original no crea las
-partículas); del `0x46`, su sprite. Cortan con su dirección: los casos de `0x6002e0` y de su cadena, lo demás de `0x50bf45`, las partes (`0x50d3e3`), el Angel (`0x50d383`) y el gremio (`0x50c99b`), el joint `0x618/6` en
+partículas); del `0x46`, su sprite; del `0x4d`, todo (`DrawGameMonster` con el modo de `0x5ffdf0`, que da la escala de
+`SkinObjectMeshes`; los huesos en `WorldRuntime::phoenixBones`, en el frame del original; la tela con
+`CharacterCloth::FrameTheMonsterCloth` del lugar, y entre frames del original `DrawTheMonsterCloth`, que la dibuja como
+quedó; sin `GameCharacterPass::cloths`, corta en `0x50c283`). Cortan con su dirección: los casos de `0x6002e0` y de su cadena, lo demás de `0x50bf45`, las partes (`0x50d3e3`), el Angel (`0x50d383`) y el gremio (`0x50c99b`), el joint `0x618/6` en
 `CreateFaunaJoint` (`0x530c18`), los efectos de la CL11 del `0x16e`, de `0x43c150` y de `0x42dfe0` ([Los helpers
 de Kalima y del asedio](#los-helpers-de-kalima-y-del-asedio-0x43c150-y-0x42dfe0)) y de los otros helpers de `0x510a1e`
 (`Scenes::DrawTheMonsterHelpers`, que sigue) y `0x510f4d` (`0x518cf0`, CL11); 08, P-C179.

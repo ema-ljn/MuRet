@@ -335,7 +335,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     // 0x637660: 0x5a7320(1), el HUD, con 0x7d36899 en 0.
     if (auto drawn = DrawTheHud(hud); !drawn.HasValue())
         return drawn;
-    // 0x637668: 0x5a7eb0, la cuenta y los resultados de los eventos (CL9.6).
+    // 0x637668: 0x5a7eb0, la cuenta y los resultados de los eventos (CL9.5).
     // 0x637673: 0x490390, las ventanas viejas, y 0x637680: la lista de ventanas, siempre. Un dibujo intermedio de MuRet
     // las dibuja sobre su copia.
     UI::OldWindowManager& oldWindows = m_projectingFrame ? m_projection->oldWindows : runtime.oldWindows;

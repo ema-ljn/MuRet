@@ -215,17 +215,17 @@ std::int32_t DrawTheChatRow(const OldWindowDrawContext& context, const OldList& 
 
 // 0x45f9c0, la vtable + 0x14 de los renglones (0x47a810 con los elementos de 0x11c del registro del chat): la barra
 // (0x45fac0, igual a 0x461890) y los renglones. Con +0xc8 en 1 (0x45f240) la lista muestra su segundo deque (+0xcc),
-// que 0x460130 llena con push_front: el primero es el último renglón, partido en el ancho de la lista menos 0x1e
-// (0x459c70). MuRet no lo parte (P-C218) y lo lee de atrás para adelante.
+// que 0x460130 llena con push_front: el primero es el último pedazo del renglón más nuevo, partido en el ancho de la
+// lista menos 0x1e (0x459c70). El iterador corre hasta el final de ese deque (+0xe8, 0x45f9fd).
 void DrawTheChatLines(const OldWindowDrawContext& context, OldChatPart& chat, const OldWindowDrawView& view)
 {
     OldList& list = chat.lines;
-    const std::size_t size = chat.lineRows.size();
+    const std::size_t size = chat.wrappedRows.size();
     OldDraw::DrawTheOldList(
         context, list, size,
         OldDraw::OldListDrawing{.head = [&] { OldDraw::DrawTheListBar(context.sprites, list, size, view); },
                                 .row = [&](std::int32_t row, std::size_t at)
-                                { return DrawTheChatRow(context, list, chat.lineRows[size - 1 - at], row, view); },
+                                { return DrawTheChatRow(context, list, chat.wrappedRows[at], row, view); },
                                 .tail = {}});
 }
 
@@ -379,26 +379,34 @@ std::int32_t DrawTheBodyRow(const OldWindowDrawContext& context, const OldList& 
 
 // 0x464d90, la vtable + 0x14 del cuerpo (0x47a810 con los elementos de 0x3f0): la barra (0x464e90, igual a 0x461890) y
 // los renglones. Como la de los renglones del chat, muestra su segundo deque, que 0x465450 llena con push_front y
-// partido (P-C218): MuRet lo lee de atrás para adelante.
+// partido.
 void DrawTheBodyLines(const OldWindowDrawContext& context, OldLetterPart& letter, const OldWindowDrawView& view)
 {
     OldList& list = letter.lines;
-    const std::size_t size = letter.lineRows.size();
+    const std::size_t size = letter.wrappedRows.size();
     OldDraw::DrawTheOldList(
         context, list, size,
         OldDraw::OldListDrawing{.head = [&] { OldDraw::DrawTheListBar(context.sprites, list, size, view); },
                                 .row = [&](std::int32_t row, std::size_t at)
-                                { return DrawTheBodyRow(context, list, size, letter.lineRows[size - 1 - at], row); },
+                                { return DrawTheBodyRow(context, list, size, letter.wrappedRows[at], row); },
                                 .tail = {}});
+}
+
+// Lo que mide el 9 de los renglones al volver a partirlos durante el dibujo: GetTextExtentPointA sobre el DC, con la
+// fuente que tenga en ese momento.
+OldWindowMeasure MeasureOfTheDraw(const OldWindowDrawContext& context)
+{
+    return OldWindowMeasure{.measure = context.text, .dcFont = context.dcFont, .screen = context.sprites.Screen()};
 }
 } // namespace
 
-void DrawTheChatWindow(OldWindowManager& manager, OldWindow& chat, const OldWindowDrawContext& context,
-                       const OldWindowDrawView& view)
+Core::Expected<void, std::string> DrawTheChatWindow(OldWindowManager& manager, OldWindow& chat,
+                                                    const OldWindowDrawContext& context, const OldWindowDrawView& view)
 {
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetBlend(Render::BlendMode::Alpha);
-    SettleTheLetterKindsForTheDraw(manager, chat);
+    if (auto settled = SettleTheLetterKindsForTheDraw(manager, chat, MeasureOfTheDraw(context)); !settled.HasValue())
+        return settled;
     OldChatPart& part = chat.chat;
     DrawTheChatLines(context, part, view);
     if (ListCount(part.users, part.members.size()) > MembersShown || part.mode >= WithInvites)
@@ -427,14 +435,16 @@ void DrawTheChatWindow(OldWindowManager& manager, OldWindow& chat, const OldWind
     if (part.mode >= WithInvites)
         DrawTheButton(context, part.sendButton, view);
     sprites.SetBlend(Render::BlendMode::Opaque);
+    return {};
 }
 
-void DrawTheReadWindow(OldWindowManager& manager, OldWindow& read, const OldWindowDrawContext& context,
-                       const OldWindowDrawView& view)
+Core::Expected<void, std::string> DrawTheReadWindow(OldWindowManager& manager, OldWindow& read,
+                                                    const OldWindowDrawContext& context, const OldWindowDrawView& view)
 {
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetBlend(Render::BlendMode::Alpha);
-    SettleTheLetterKindsForTheDraw(manager, read);
+    if (auto settled = SettleTheLetterKindsForTheDraw(manager, read, MeasureOfTheDraw(context)); !settled.HasValue())
+        return settled;
     OldLetterPart& letter = read.letter;
     DrawTheBodyLines(context, letter, view);
     const float left = ToFloat(Steps::ClientX(read, 0));
@@ -468,14 +478,16 @@ void DrawTheReadWindow(OldWindowManager& manager, OldWindow& read, const OldWind
     for (const OldButton& button : letter.buttons)
         DrawTheButton(context, button, view);
     sprites.SetBlend(Render::BlendMode::Opaque);
+    return {};
 }
 
-void DrawTheWriteWindow(OldWindowManager& manager, OldWindow& write, const OldWindowDrawContext& context,
-                        const OldWindowDrawView& view)
+Core::Expected<void, std::string> DrawTheWriteWindow(OldWindowManager& manager, OldWindow& write,
+                                                     const OldWindowDrawContext& context, const OldWindowDrawView& view)
 {
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetBlend(Render::BlendMode::Alpha);
-    SettleTheLetterKindsForTheDraw(manager, write);
+    if (auto settled = SettleTheLetterKindsForTheDraw(manager, write, MeasureOfTheDraw(context)); !settled.HasValue())
+        return settled;
     OldLetterPart& letter = write.letter;
     const float left = ToFloat(Steps::ClientX(write, 0));
     const float width = ToFloat(Steps::ClientWidth(write));
@@ -505,13 +517,14 @@ void DrawTheWriteWindow(OldWindowManager& manager, OldWindow& write, const OldWi
     drawTheEdit(letter.text);
     sprites.SetBlend(Render::BlendMode::Opaque);
     if (letter.buttons.size() != WriteButtonCount)
-        return;
+        return {};
     DrawTheButton(context, letter.buttons[0], view);
     DrawTheButton(context, letter.buttons[1], view);
     if (letter.withPortrait != WithThePortrait)
-        return;
+        return {};
     DrawTheButton(context, letter.buttons[2], view);
     DrawTheButton(context, letter.buttons[3], view);
+    return {};
 }
 
 Core::Expected<void, std::string> DrawTheChatsInTheList(OldWindowManager& manager, const OldWindow& window,

@@ -37,6 +37,9 @@ namespace Client::UI::Steps
 
 // 0x45abc0.
 void PlaceAgainstTheParent(OldWindowManager& manager, OldWindowBase& base);
+// El 9 de 0x45abc0 sin mirar el mensaje: lo que hacen al empezar 0x45fea0 y 0x465270 (la vtable + 0x90 de los
+// renglones del chat y del cuerpo de una carta).
+void SizeAgainstTheParent(OldWindowManager& manager, OldWindowBase& base);
 
 // 0x45aa80 desde la cola hasta el rectángulo (ver OldWindows.cpp).
 [[nodiscard]] bool ClaimTheMouse(OldWindowManager& manager, const OldWindowBase& base, const OldWindowGlobals& globals,

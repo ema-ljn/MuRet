@@ -28,8 +28,8 @@
 // 0x47c6a0, 0x47c700, 0x47c750, 0x47cf60 y 0x47d140, en los mismos lugares. Lo propio de cada una (*inferido* por la
 // vtable y lo que llaman, sin compararlo instrucción por instrucción): las cartas, + 0x2c 0x47eac0 y + 0x94..+ 0x98
 // 0x4636b0 y 0x463960 (copiar la deque de las cartas), + 0x40 0x463d50 (los renglones); la del cuerpo, + 0x2c
-// 0x47bba0 (con 0x47bf00, el += de su iterador) y + 0x90..+ 0x98 0x465270, 0x464ae0 y 0x465450 (agregar un renglón):
-// los reemplaza el std::deque de la ventana (OldLetterPart), sin partir los renglones (P-C218). Los dibujos (+ 0x14
+// 0x47bba0 (con 0x47bf00, el += de su iterador) y + 0x90..+ 0x98 0x465270, 0x464ae0 y 0x465450 (agregar un renglón y
+// partirlo): están en UI/LetterWindows, sobre los dos std::deque de la ventana (OldLetterPart). Los dibujos (+ 0x14
 // 0x464d90, + 0x7c..+ 0x80 0x464e90 y 0x465770, + 0x9c 0x464190 y 0x465710) están en UI/LetterWindowsDraw y
 // UI/FriendWindowsDraw (P-C213); 0x47bf90 no lo llama nadie.
 namespace Client::UI
@@ -46,7 +46,8 @@ struct OldList
     // +0xc4: el elegido, contando desde 1; 0, ninguno.
     std::int32_t selection = 0;
     // +0xc8 y +0xf8: con 1, la cuenta es +0xf8 y no el tamaño del deque (0x4720e0). Las listas de la CL9.4 los dejan en
-    // 0 (0x460970, 0x462010).
+    // 0 (0x460970, 0x462010); las de los renglones del chat y del cuerpo de una carta ponen +0xc8 en 1 (0x45f240,
+    // 0x464620), y +0xf8 es el tamaño de su segundo deque, el de los renglones partidos (UI/LetterWindows).
     std::int32_t fixedCount = 0;
     std::int32_t fixedCountValue = 0;
     // +0xfc.
@@ -120,8 +121,9 @@ void SelectThePrevious(OldList& list, std::size_t size, std::int32_t steps);
 [[nodiscard]] std::int32_t ListRowY(const OldList& list, std::size_t size, std::int32_t row);
 
 // 0x47a9d0, la vtable + 0x28: el 9 (con padre) vuelve a contar los renglones con el alto de antes de medir
-// (ftol(h · 1/13 − 0,5)), el 0xe va al final (y elige el último con +0xbc), y el 0xf y el 0x10 suben o bajan la
-// elección (con +0xbc) y la dejan a la vista. Siempre da 0: después corre 0x45abc0.
+// (ftol(h · 1/13 − 0,5); las de los renglones del chat y de una carta corren antes su vtable + 0x90, que mide), el 0xe
+// va al final (y elige el último con +0xbc), y el 0xf y el 0x10 suben o bajan la elección (con +0xbc) y la dejan a la
+// vista. Siempre da 0: después corre 0x45abc0.
 void HandleTheListMessage(OldList& list, std::size_t size);
 
 // 0x47b9c0, la vtable + 0x70: los bordes de la pista y el tamaño y el lugar del cursor de la barra, como 0x47a230 del

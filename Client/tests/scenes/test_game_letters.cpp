@@ -6,6 +6,7 @@
 #include "Core/Expected.h"
 #include "Data/Text/TextTable.h"
 #include "Network/Delivery.h"
+#include "Network/Packet.h"
 #include "Protocol/FriendChat.h"
 #include "Protocol/Friends.h"
 #include "Protocol/Letters.h"
@@ -28,6 +29,7 @@
 #include "UI/FriendWindows.h"
 #include "UI/LetterModel.h"
 #include "UI/LetterWindows.h"
+#include "UI/LetterWindowsDraw.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
@@ -49,6 +51,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // El chat con un amigo y las cartas del juego (CL9 hito 10; 04 § Las cartas y el chat con un amigo): los botones 3 y 4
@@ -314,8 +317,9 @@ protected:
         OldWindow* chat = FirstOfKind(OldWindowKind::ChatWindow);
         if (!joined.HasValue() || chat == nullptr)
             return 0;
-        Client::UI::AddAChatMember(Manager(), *chat, Hero, 0, 0, m_oldTexts, Hero);
-        Client::UI::AddAChatMember(Manager(), *chat, "Tordo", 1, 0, m_oldTexts, Hero);
+        if (!Client::UI::AddAChatMember(Manager(), *chat, Hero, 0, 0, m_oldTexts, Hero, &m_oldMeasure).HasValue() ||
+            !Client::UI::AddAChatMember(Manager(), *chat, "Tordo", 1, 0, m_oldTexts, Hero, &m_oldMeasure).HasValue())
+            return 0;
         m_rooms.calls.clear();
         return chat->base.id;
     }
@@ -422,8 +426,10 @@ TEST_F(GameLettersTest, AChatWithAFriendInvitesAnother)
     EXPECT_EQ(m_rooms.calls[1].bytes,
               Xor32Of(Joined(Bytes({0xc1, 0x10, 0x00, 0x00, 0x04, 0x03}), ChatTextOf("77", 10))));
 
-    Client::UI::AddAChatMember(Manager(), *chat, Hero, 0, 0, m_oldTexts, Hero);
-    EXPECT_EQ(Client::UI::AddAChatMember(Manager(), *chat, "Tordo", 1, 0, m_oldTexts, Hero), 2);
+    ASSERT_TRUE(Client::UI::AddAChatMember(Manager(), *chat, Hero, 0, 0, m_oldTexts, Hero, &m_oldMeasure).HasValue());
+    const auto members = Client::UI::AddAChatMember(Manager(), *chat, "Tordo", 1, 0, m_oldTexts, Hero, &m_oldMeasure);
+    ASSERT_TRUE(members.HasValue()) << members.Error();
+    EXPECT_EQ(members.Value(), 2);
     EXPECT_EQ(chat->frame.title, std::optional<std::string>("Chat: Tordo"));
     EXPECT_EQ(Client::UI::FindTheChatWith(Manager(), "Tordo", Hero), chatId);
 
@@ -550,8 +556,9 @@ TEST_F(GameLettersTest, TheFriendStateClosesAndOpensItsChat)
         m_oldTexts, m_oldMeasure, &globals, &view);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     OldWindow* chat = &Manager().windows.at(created.Value());
-    Client::UI::AddAChatMember(Manager(), *chat, Hero, 0, 0, m_oldTexts, Hero);
-    Client::UI::AddAChatMember(Manager(), *chat, "Tordo", 1, 0, m_oldTexts, Hero);
+    ASSERT_TRUE(Client::UI::AddAChatMember(Manager(), *chat, Hero, 0, 0, m_oldTexts, Hero, &m_oldMeasure).HasValue());
+    ASSERT_TRUE(
+        Client::UI::AddAChatMember(Manager(), *chat, "Tordo", 1, 0, m_oldTexts, Hero, &m_oldMeasure).HasValue());
     ASSERT_EQ(Manager().windowList.list.chats.size(), 1u);
 
     ASSERT_TRUE(Client::Scenes::ApplyFriendState(Client::Protocol::Friends::FriendState{.name = "Tordo", .state = 0xfd},
@@ -743,7 +750,9 @@ TEST_F(GameLettersTest, TheReadWindowDeletesRepliesAndGoesOn)
         if (!created.HasValue())
             return 0;
         OldWindow& read = Manager().windows.at(created.Value());
-        Client::UI::SetTheLetter(Manager(), read, Manager().letterModel.letters[0], "Linea uno\n\nLinea dos");
+        const auto set = Client::UI::SetTheLetter(Manager(), read, Manager().letterModel.letters[0],
+                                                  "Linea uno\n\nLinea dos", &m_oldMeasure);
+        EXPECT_TRUE(set.HasValue()) << set.Error();
         Manager().letterWindows[7] = created.Value();
         return created.Value();
     };
@@ -849,6 +858,105 @@ TEST_P(GameLettersMapsTest, TheChatAndItsRowInTheWindowListAreDrawnInEveryMap)
     EXPECT_EQ(text.texts.back().text, "Tordo");
     EXPECT_EQ(text.texts.back().x, windowList.base.x + 2);
     EXPECT_EQ(text.texts.back().y, windowList.list.bottom - 17 + 3);
+    EXPECT_EQ(m_random.State(), After(0));
+}
+
+// El C1 04 de la sala con 100 bytes de Tordo (0x4dd3d0 → 0x493f80 → 0x45f6f0): 0x45fea0 lo parte en el ancho de los
+// renglones menos 0x1e (240 − 30, con letras de 2) con la sangría de "Tordo" más 5; el primer pedazo con el nombre y el
+// segundo sin él, adelante (0x460130). El dibujo (0x45f9c0) los muestra del más nuevo al más viejo: el segundo abajo.
+// Una carta con un renglón largo (0x464ae0 → 0x465450) se parte igual, sin sangría. Igual en Lorencia y en Devias, sin
+// sacar rand().
+TEST_P(GameLettersMapsTest, TheLongLinesOfAChatAndOfALetterAreWrappedInEveryMap)
+{
+    Runtime().map = GetParam();
+    const std::int32_t chatId = JoinARoomWithTordo();
+    ASSERT_NE(chatId, 0);
+    constexpr std::string_view Said =
+        "la vaquita para la parrilla se junta el viernes a la noche y cada uno trae algo para compartir, che!";
+    ASSERT_EQ(Said.size(), 100u);
+    auto bytes =
+        Joined(Bytes({0xc1, 5 + 100, Client::Protocol::FriendChat::MessageOpcode, 1, 100}), ChatTextOf(Said, 100));
+    auto packet = Client::Network::Packet::FromBytes(std::move(bytes));
+    ASSERT_TRUE(packet.HasValue());
+    const auto applied = Client::Scenes::ApplyRoomPacket(chatId, packet.Value(), Context());
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+
+    const OldWindow& chat = Manager().windows.at(chatId);
+    ASSERT_EQ(chat.chat.lineRows.size(), 1u);
+    EXPECT_EQ(chat.chat.lineRows[0].text, Said);
+    ASSERT_EQ(chat.chat.wrappedRows.size(), 2u);
+    EXPECT_EQ(chat.chat.wrappedRows[0].name, "");
+    EXPECT_EQ(chat.chat.wrappedRows[0].text, "he!");
+    EXPECT_EQ(chat.chat.wrappedRows[1].name, "Tordo");
+    EXPECT_EQ(chat.chat.wrappedRows[1].text, Said.substr(0, 97));
+    EXPECT_EQ(chat.chat.lines.fixedCountValue, 2);
+
+    Client::Render::SpriteBatch sprites;
+    sprites.Begin(Client::App::PixelSize{640, 480});
+    Client::Tests::RecordingTextDrawer text(sprites);
+    FontKind font = FontKind::Bold;
+    Client::Render::Text::TextColors colors{};
+    const Client::UI::OldWindowDrawContext context{
+        .sprites = sprites, .text = text, .dcFont = font, .textColors = colors};
+    const Client::UI::OldWindowDrawView drawView{
+        .friendsOpen = true, .texts = &m_oldTexts, .chatPlacement = Runtime().ui.chatModes.placement};
+    const auto windows = Client::UI::DrawTheOldWindows(Manager(), context, drawView);
+    ASSERT_TRUE(windows.HasValue()) << windows.Error();
+    const auto drawn = [&](std::string_view what)
+    {
+        for (const Client::Tests::RecordedText& recorded : text.texts)
+        {
+            if (recorded.text == what)
+                return &recorded;
+        }
+        return static_cast<const Client::Tests::RecordedText*>(nullptr);
+    };
+    const Client::Tests::RecordedText* first = drawn(Said.substr(0, 97));
+    const Client::Tests::RecordedText* second = drawn("he!");
+    const Client::Tests::RecordedText* name = drawn("Tordo: ");
+    ASSERT_NE(first, nullptr);
+    ASSERT_NE(second, nullptr);
+    ASSERT_NE(name, nullptr);
+    EXPECT_EQ(second->x, chat.chat.lines.base.x + 8);
+    EXPECT_EQ(first->y, second->y - 13);
+    EXPECT_EQ(name->y, first->y);
+    // El dibujo mide "Tordo: " con su texto (6 por letra), no con la medida del paquete.
+    EXPECT_EQ(first->x, chat.chat.lines.base.x + 8 + 42);
+
+    auto view = View();
+    auto globals = Globals();
+    auto created = Client::UI::CreateTheOldWindow(
+        Manager(),
+        Client::UI::OldWindowRequest{
+            .kind = Client::UI::LetterReadCase, .x = 120, .y = 110, .data = "Leer", .aux = 0, .flags = 0},
+        m_oldTexts, m_oldMeasure, &globals, &view);
+    ASSERT_TRUE(created.HasValue()) << created.Error();
+    constexpr std::string_view Long = "el horno de barro ya esta listo para las empanadas de carne del domingo que "
+                                      "viene, asi que cada uno avise cuantas va a comer antes";
+    const Client::UI::LetterEntry entry{.selected = 0,
+                                        .index = 7,
+                                        .name = "Tordo",
+                                        .subject = "Horno",
+                                        .date = "2026/11/13",
+                                        .time = "10:20",
+                                        .type = 1};
+    OldWindow& read = Manager().windows.at(created.Value());
+    const auto set = Client::UI::SetTheLetter(Manager(), read, entry, "Hola\n" + std::string(Long), &m_oldMeasure);
+    ASSERT_TRUE(set.HasValue()) << set.Error();
+    // 360 de adentro − 0x78 del retrato: 240, y 210 para partir (105 letras de 2).
+    ASSERT_EQ(read.letter.lines.base.width, 240);
+    EXPECT_EQ(read.letter.wrappedRows,
+              (std::deque<std::string>{std::string(Long.substr(105)), std::string(Long.substr(0, 105)), "Hola"}));
+    EXPECT_EQ(read.letter.lines.fixedCountValue, 3);
+
+    text.texts.clear();
+    ASSERT_TRUE(Client::UI::DrawTheReadWindow(Manager(), read, context, drawView).HasValue());
+    ASSERT_GE(text.texts.size(), 3u);
+    EXPECT_EQ(text.texts[0].text, Long.substr(105));
+    EXPECT_EQ(text.texts[1].text, Long.substr(0, 105));
+    EXPECT_EQ(text.texts[2].text, "Hola");
+    EXPECT_EQ(text.texts[1].y, text.texts[0].y - 13);
+    EXPECT_EQ(text.texts[2].y, text.texts[1].y - 13);
     EXPECT_EQ(m_random.State(), After(0));
 }
 

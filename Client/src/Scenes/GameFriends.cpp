@@ -345,7 +345,12 @@ Core::Expected<void, std::string> ApplyFriendState(const Protocol::Friends::Frie
         UI::SortTheFriends(manager.friendModel, UI::SameSort);
         UI::RefreshTheFriendTab(manager);
         // 0x4a75c0: todos los chats con un amigo reciben el 402 y se cierran.
-        UI::CloseTheChats(manager, texts);
+        std::optional<UI::OldWindowMeasure> measure;
+        if (context.measure != nullptr)
+            measure.emplace(UI::OldWindowMeasure{
+                .measure = *context.measure, .dcFont = runtime.hud.dcFont, .screen = context.screen});
+        if (auto closed = UI::CloseTheChats(manager, texts, measure ? &*measure : nullptr); !closed.HasValue())
+            return closed;
         UI::MarkTheFriendList(manager, 0, texts);
         return {};
     }

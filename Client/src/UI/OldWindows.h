@@ -205,14 +205,20 @@ struct OldChatPart
     std::string lastText;
     // +0x1b4: el EDIT, con el tope de 100.
     OldEdit edit;
-    // +0x2a0: los renglones (0x45f240), sin partir en el ancho de la lista (P-C218). Su std::deque de MSVC6 (0x473ac0
-    // 0x473e80 0x473ec0 0x474040 0x476e10 0x476e30 0x476ea0 0x478500 0x478590 0x478610 0x487610 0x487b70 0x48ba10
-    // 0x48c9b0 0x48cd90, y 0x4723c0 y 0x489cd0 desde el unwind) es la de MuRet; los destructores del chat (0x48f910,
-    // 0x493160, con su lista de miembros 0x487d90), de la de leer (0x48f940), de la de escribir (0x48f970, 0x48f9a0),
-    // del retrato (0x495ef0, 0x495f20) y de las dos listas (0x4633b0 0x4633e0 0x488960 0x488990; 0x4647e0 0x464810
-    // 0x488360 0x488390) son los de C++ al soltar la ventana (P-C216).
+    // +0x2a0: los renglones (0x45f240). Su std::deque de MSVC6 (0x473ac0 0x473e80 0x473ec0 0x474040 0x476e10 0x476e30
+    // 0x476ea0 0x478500 0x478590 0x478610 0x487610 0x487b70 0x48ba10 0x48c9b0 0x48cd90, y 0x4723c0 y 0x489cd0 desde el
+    // unwind) es la de MuRet; los destructores del chat (0x48f910, 0x493160, con su lista de miembros 0x487d90), de la
+    // de leer (0x48f940), de la de escribir (0x48f970, 0x48f9a0), del retrato (0x495ef0, 0x495f20) y de las dos listas
+    // (0x4633b0 0x4633e0 0x488960 0x488990; 0x4647e0 0x464810 0x488360 0x488390) son los de C++ al soltar la ventana
+    // (P-C216).
+    //   - `lineRows` (el deque de +0x7c de la lista): los renglones como llegan (0x45f6f0). El original los
+    //     agrega adelante; MuRet, atrás: el último de `lineRows` es el primero del original.
+    //   - `wrappedRows` (el de +0xcc): los mismos partidos en el ancho de la lista menos 0x1e (0x45fea0 con
+    //     0x460130), el más nuevo primero, que es lo que muestra la lista (+0xc8 en 1). Su tamaño es +0xf8
+    //     (OldList::fixedCountValue).
     OldList lines;
     std::deque<ChatLine> lineRows;
+    std::deque<ChatLine> wrappedRows;
     // +0x3d0: los miembros de la sala.
     OldList users;
     std::deque<FriendEntry> members;
@@ -266,11 +272,14 @@ struct OldLetterPart
 {
     OldPortraitPart portrait;
     // La de leer: +0x778, la carta (0x138 bytes, 0x499cb0); +0x770 en 1, la carta de "webzen" (sin retrato, el C7);
-    // +0x8b0, la lista de los renglones del cuerpo (0x464620), partido por '\n'.
+    // +0x8b0, la lista de los renglones del cuerpo (0x464620), partido por '\n': `lineRows` como llegan (0x464ae0, al
+    // revés que el original, como en OldChatPart) y `wrappedRows` partidos en el ancho de la lista menos 0x1e (0x465270
+    // con 0x465450), el más nuevo primero; su tamaño es +0xf8.
     LetterEntry entry;
     std::int32_t fromWebzen = 0;
     OldList lines;
     std::deque<std::string> lineRows;
+    std::deque<std::string> wrappedRows;
     // +0x774 de la de leer: 2 en el constructor (0x48f460), y nadie más lo escribe (*estático*). Con 2 o más, el dibujo
     // le deja lugar al retrato abajo a la derecha (0x499e44) y lo dibuja (0x49a1d0), y el paso se lo copia a él
     // (+0x69c del retrato, 0x49b1ea).

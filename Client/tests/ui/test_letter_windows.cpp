@@ -122,11 +122,23 @@ TEST(ChatWindowTest, TheFriendOfAChatAndItsClosedTitle)
     EXPECT_EQ(chat.frame.title, std::optional<std::string>("Chat Tordo"));
     EXPECT_EQ(chat.chat.edit.base.state, 0);
 
-    // 0x493f80: el renglón lleva el nombre del miembro con ese número (0x461530); con 0xff, ninguno.
-    Client::UI::AddAChatLine(chat, 1, "hola", 3, 0);
-    Client::UI::AddAChatLine(chat, 0xff, "aviso", 1, 0);
+    // 0x493f80: el renglón lleva el nombre del miembro con ese número (0x461530); con 0xff, ninguno. Con menos de 20
+    // bytes no hace falta medir; con el nombre y el texto vacíos, 0x45f6f0 no agrega nada.
+    Client::UI::OldWindowManager manager;
+    ASSERT_TRUE(Client::UI::AddAChatLine(manager, chat, 1, "hola", 3, 0, nullptr).HasValue());
+    ASSERT_TRUE(Client::UI::AddAChatLine(manager, chat, 0xff, "aviso", 1, 0, nullptr).HasValue());
+    ASSERT_TRUE(Client::UI::AddAChatLine(manager, chat, 0xff, "", 1, 0, nullptr).HasValue());
     ASSERT_EQ(chat.chat.lineRows.size(), 2u);
     EXPECT_EQ(chat.chat.lineRows[0].name, "Tordo");
     EXPECT_EQ(chat.chat.lineRows[1].name, "");
+    ASSERT_EQ(chat.chat.wrappedRows.size(), 2u);
+    EXPECT_EQ(chat.chat.wrappedRows[0].text, "aviso");
+    EXPECT_EQ(chat.chat.wrappedRows[1].text, "hola");
+    EXPECT_EQ(chat.chat.lines.fixedCountValue, 2);
+    // Uno largo sin la medida corta.
+    const auto unmeasured =
+        Client::UI::AddAChatLine(manager, chat, 1, "un texto inventado bastante largo", 3, 0, nullptr);
+    ASSERT_FALSE(unmeasured.HasValue());
+    EXPECT_NE(unmeasured.Error().find("0x4601a8"), std::string::npos);
 }
 } // namespace

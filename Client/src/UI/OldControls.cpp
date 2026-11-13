@@ -297,7 +297,8 @@ void HandleTheListMessage(OldList& list, std::size_t size)
     {
     case SizeMessage:
     {
-        // La vtable + 0x90 de las listas de la CL9.4 es 0x472130, un ret.
+        // La vtable + 0x90 de las listas de la CL9.4 es 0x472130, un ret; la de los renglones del chat y de una carta
+        // (0x45fea0, 0x465270) la corre antes quien la llama (UI/LetterWindows, DrainTheWrappedList).
         if (list.base.parent == 0)
             return;
         const std::int32_t before = list.rows;

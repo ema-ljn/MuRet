@@ -108,18 +108,25 @@ Core::Expected<void, std::string> SystemMessage(const ChatReceiveContext& contex
     return AddGameMessage(context.world.Runtime(), *context.measure, context.screen, "", text, UI::SystemMessage);
 }
 
+// GetTextExtentPointA sobre el DC con su fuente, si hay con qué medir.
+std::optional<UI::OldWindowMeasure> OldWindowMeasureOf(const ChatReceiveContext& context)
+{
+    if (context.measure == nullptr)
+        return std::nullopt;
+    return UI::OldWindowMeasure{
+        .measure = *context.measure, .dcFont = context.world.Runtime().hud.dcFont, .screen = context.screen};
+}
+
 // Lo que la fábrica y los pasos de las ventanas viejas leen del juego desde un paquete: los textos, la medida, los
 // globales y la vista sin el mouse ni las teclas (el cable no está: lo que manda, corta).
 class OldWindowsFromAPacket
 {
 public:
     explicit OldWindowsFromAPacket(const ChatReceiveContext& context)
-        : m_texts(OldWindowTextsOf(context.texts)), m_globals(OldWindowGlobalsOf(context.world.Runtime()))
+        : m_texts(OldWindowTextsOf(context.texts)), m_measure(OldWindowMeasureOf(context)),
+          m_globals(OldWindowGlobalsOf(context.world.Runtime()))
     {
         WorldRuntime& runtime = context.world.Runtime();
-        if (context.measure != nullptr)
-            m_measure.emplace(UI::OldWindowMeasure{
-                .measure = *context.measure, .dcFont = runtime.hud.dcFont, .screen = context.screen});
         m_view.texts = &m_texts;
         m_view.measure = m_measure ? &*m_measure : nullptr;
         m_view.heroName = std::string(HeroNameOf(context.world.Actors()[runtime.hero]));
@@ -145,6 +152,10 @@ public:
     [[nodiscard]] const UI::OldWindowStepView& View() const
     {
         return m_view;
+    }
+    [[nodiscard]] const UI::OldWindowMeasure* Measure() const
+    {
+        return m_view.measure;
     }
 
     // 0x48ee60(caso, x, y, texto, 0, banderas).
@@ -332,7 +343,8 @@ Core::Expected<void, std::string> ApplyLetterRead(const Protocol::Letters::Lette
     UI::OldWindow* read = UI::FindTheOldWindow(manager, id);
     if (read == nullptr)
         return Core::Unexpected(std::string("0x4dcb70: la ventana de leer no se armó y el original sigue con NULL"));
-    UI::SetTheLetter(manager, *read, shown, letter.body);
+    if (auto set = UI::SetTheLetter(manager, *read, shown, letter.body, windows.Measure()); !set.HasValue())
+        return set;
     // 0x491720: la ventana de la carta, si 0x491570 la había anotado.
     if (const auto found = manager.letterWindows.find(shown.index); found != manager.letterWindows.end())
         found->second = id;
@@ -485,8 +497,9 @@ Core::Expected<void, std::string> ApplyInviteResult(const Protocol::FriendChat::
     auto line = TextOf(context, index, "0x4dd020");
     if (!line.HasValue())
         return Core::Unexpected(std::move(line).Error());
-    UI::AddAChatLine(*chat, NoSpeaker, text + line.Value(), SystemLine, 0);
-    return {};
+    const std::optional<UI::OldWindowMeasure> measure = OldWindowMeasureOf(context);
+    return UI::AddAChatLine(manager, *chat, NoSpeaker, text + line.Value(), SystemLine, 0,
+                            measure ? &*measure : nullptr);
 }
 
 Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Network::Packet& packet,
@@ -523,14 +536,19 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
         const std::string name = UI::FriendName(got.name);
         if (got.kind == 0)
         {
-            const std::int32_t count =
-                UI::AddAChatMember(manager, *chat, name, got.index, 0, windows.Texts(), windows.View().heroName);
-            if (count > 2)
+            const auto count = UI::AddAChatMember(manager, *chat, name, got.index, 0, windows.Texts(),
+                                                  windows.View().heroName, windows.Measure());
+            if (!count.HasValue())
+                return Core::Unexpected(std::move(count).Error());
+            if (count.Value() > 2)
             {
                 auto text = TextOf(context, CameInText, "0x4dd1e0");
                 if (!text.HasValue())
                     return Core::Unexpected(std::move(text).Error());
-                UI::AddAChatLine(*chat, NoSpeaker, name + text.Value(), SystemLine, 0);
+                if (auto added = UI::AddAChatLine(manager, *chat, NoSpeaker, name + text.Value(), SystemLine, 0,
+                                                  windows.Measure());
+                    !added.HasValue())
+                    return added;
             }
         }
         else if (got.kind == 1)
@@ -540,9 +558,15 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
                 auto text = TextOf(context, WentOutText, "0x4dd1e0");
                 if (!text.HasValue())
                     return Core::Unexpected(std::move(text).Error());
-                UI::AddAChatLine(*chat, NoSpeaker, name + text.Value(), SystemLine, 0);
+                if (auto added = UI::AddAChatLine(manager, *chat, NoSpeaker, name + text.Value(), SystemLine, 0,
+                                                  windows.Measure());
+                    !added.HasValue())
+                    return added;
             }
-            UI::RemoveAChatMember(manager, *chat, name, windows.Texts(), windows.View().heroName);
+            if (auto removed = UI::RemoveAChatMember(manager, *chat, name, windows.Texts(), windows.View().heroName,
+                                                     windows.Measure());
+                !removed.HasValue())
+                return removed;
         }
         else
             return {};
@@ -561,8 +585,10 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
             UI::OldWindow* chat = ChatOf(manager, window);
             if (chat == nullptr)
                 return Core::Unexpected(std::string("0x4e6240(2): el chat no está y el original sigue con NULL"));
-            static_cast<void>(
-                UI::AddAChatMember(manager, *chat, row.name, row.index, 0, windows.Texts(), windows.View().heroName));
+            if (auto added = UI::AddAChatMember(manager, *chat, row.name, row.index, 0, windows.Texts(),
+                                                windows.View().heroName, windows.Measure());
+                !added.HasValue())
+                return Core::Unexpected(std::move(added).Error());
         }
         return {};
     }
@@ -588,8 +614,8 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
         }
         else if (chat->base.state == HiddenState || UI::LastOldWindow(manager) != window)
             UI::MarkTheChatWaiting(manager, window, runtime.lastSoundId);
-        UI::AddAChatLine(*chat, message.Value().index, message.Value().text, MemberLine, 0);
-        return {};
+        return UI::AddAChatLine(manager, *chat, message.Value().index, message.Value().text, MemberLine, 0,
+                                windows.Measure());
     }
     case Chat::NoticeOpcode:
     {
@@ -622,8 +648,8 @@ Core::Expected<void, std::string> ApplyChatRoomClosed(const App::ChatRoomClosed&
     auto text = TextOf(context, RoomClosedText, "0x49e480");
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
-    UI::AddAChatLine(*chat, NoSpeaker, text.Value(), SystemLine, 0);
-    return {};
+    const std::optional<UI::OldWindowMeasure> measure = OldWindowMeasureOf(context);
+    return UI::AddAChatLine(manager, *chat, NoSpeaker, text.Value(), SystemLine, 0, measure ? &*measure : nullptr);
 }
 
 void FlushTheChatRoomOrders(UI::ChatRooms& rooms, App::IChatRoomLinks* links)

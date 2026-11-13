@@ -40,15 +40,24 @@ void MarkTheChatWaiting(OldWindowManager& manager, std::int32_t id, std::optiona
 // 0x495530: el amigo del chat (el primer miembro que no es el héroe con menos de 3; tipo 1), ninguno (tipo 0) o la sala
 // de 3 o más (tipo 2).
 [[nodiscard]] std::string ChatFriend(const OldWindow& chat, std::string_view hero, std::int32_t& kind);
-// 0x493f80: un renglón con el nombre del miembro `speaker` (0x461530; 0xff o ninguno, vacío).
-void AddAChatLine(OldWindow& chat, std::uint8_t speaker, std::string_view text, std::int32_t kind, std::int32_t extra);
+// 0x493f80: un renglón con el nombre del miembro `speaker` (0x461530; 0xff o ninguno, vacío) a la vtable + 0x94 de
+// los renglones (0x45f6f0): con el nombre y el texto vacíos, nada; si no, al primer deque y todos vueltos a partir en
+// el ancho de la lista (0x45fea0). Partir un renglón de 20 bytes o más mide con `measure`: sin ella, corta.
+[[nodiscard]] Core::Expected<void, std::string> AddAChatLine(OldWindowManager& manager, OldWindow& chat,
+                                                             std::uint8_t speaker, std::string_view text,
+                                                             std::int32_t kind, std::int32_t extra,
+                                                             const OldWindowMeasure* measure);
 // 0x493c90: el miembro nuevo o su número y estado; el título (994 y los nombres, 0x461600), la pestaña de las ventanas
-// (0x4914f0), 0x495630(0) con 2 o más y la lista de renglones más angosta con 3 o más. Da cuántos miembros hay.
-std::int32_t AddAChatMember(OldWindowManager& manager, OldWindow& chat, std::string_view name, std::uint8_t index,
-                            std::uint8_t state, const OldWindowTexts& texts, std::string_view hero);
+// (0x4914f0), 0x495630(0) con 2 o más y la lista de renglones más angosta con 3 o más (el 9, que vuelve a partir los
+// renglones). Da cuántos miembros hay.
+[[nodiscard]] Core::Expected<std::int32_t, std::string>
+AddAChatMember(OldWindowManager& manager, OldWindow& chat, std::string_view name, std::uint8_t index,
+               std::uint8_t state, const OldWindowTexts& texts, std::string_view hero, const OldWindowMeasure* measure);
 // 0x493e90: con 3 o más, saca al miembro y rehace el título; con menos de 3 después, la lista de renglones ancha.
-void RemoveAChatMember(OldWindowManager& manager, OldWindow& chat, std::string_view name, const OldWindowTexts& texts,
-                       std::string_view hero);
+[[nodiscard]] Core::Expected<void, std::string> RemoveAChatMember(OldWindowManager& manager, OldWindow& chat,
+                                                                  std::string_view name, const OldWindowTexts& texts,
+                                                                  std::string_view hero,
+                                                                  const OldWindowMeasure* measure);
 // 0x4942d0: los amigos que se pueden invitar: los del modelo, menos los miembros y los que no están en línea (0xfd+).
 void FillTheInvites(OldWindowManager& manager, OldWindow& chat, std::string_view hero);
 // 0x495630: con 1, el EDIT apagado y el título con el 995 adelante; con 0, el EDIT prendido y el título sin él.
@@ -56,12 +65,15 @@ void CloseTheChat(OldWindow& chat, std::int32_t closed, const OldWindowTexts& te
 // 0x4a6840 y 0x4a75c0 sobre los chats de +0xb4: los que tienen la lista de invitar la rehacen; todos reciben el 402 y
 // se cierran.
 void RefreshTheInvites(OldWindowManager& manager, std::string_view hero);
-void CloseTheChats(OldWindowManager& manager, const OldWindowTexts& texts);
+[[nodiscard]] Core::Expected<void, std::string> CloseTheChats(OldWindowManager& manager, const OldWindowTexts& texts,
+                                                              const OldWindowMeasure* measure);
 // 0x4a0960 sobre la pestaña de las cartas de la de amigos, si está.
 void RefreshTheLettersTab(OldWindowManager& manager);
-// 0x499cb0: la carta (0x138 bytes a +0x778) y el cuerpo partido por '\n' (strtok, sin los vacíos) a la lista de +0x8b0,
-// con el 0xe.
-void SetTheLetter(OldWindowManager& manager, OldWindow& read, const LetterEntry& entry, std::string_view body);
+// 0x499cb0: la carta (0x138 bytes a +0x778) y el cuerpo partido por '\n' (strtok, sin los vacíos) a la lista de +0x8b0
+// (0x464ae0, que vuelve a partir todos en el ancho de la lista con cada uno), con el 0xe.
+[[nodiscard]] Core::Expected<void, std::string> SetTheLetter(OldWindowManager& manager, OldWindow& read,
+                                                             const LetterEntry& entry, std::string_view body,
+                                                             const OldWindowMeasure* measure);
 // 0x493a70, desde el destructor del chat (0x493160): el C1 03 01 por la conexión de la sala (0x493510) y 0x49dfd0.
 [[nodiscard]] Core::Expected<void, std::string> LeaveTheChatRoom(OldWindowManager& manager, const OldWindow& chat);
 // 0x4a6550, el timer 1002 (WM_TIMER, 0x4b1a5b): cada chat de +0xb4 de la lista de ventanas, en su orden, que esté
@@ -69,8 +81,10 @@ void SetTheLetter(OldWindowManager& manager, OldWindow& read, const LetterEntry&
 void PingTheChatRooms(OldWindowManager& manager);
 // Lo que el dibujo del chat (0x493fc0), de la de leer (0x499d60) y de la de escribir (0x498480) hace antes de dibujar:
 // arrastradas o cambiando de tamaño (el estado en 4 o 1), el 8 de 0x45aa50 a sus hijas y, cambiando de tamaño, el 9 a
-// sus listas (la de escribir no tiene listas ni manda el 9). El dibujo en sí está en UI/LetterWindowsDraw.
-void SettleTheLetterKindsForTheDraw(OldWindowManager& manager, OldWindow& window);
+// sus listas (la de escribir no tiene listas ni manda el 9; el 9 de los renglones del chat y del cuerpo de una carta
+// los vuelve a partir midiendo con `measure`, el DC del dibujo). El dibujo en sí está en UI/LetterWindowsDraw.
+[[nodiscard]] Core::Expected<void, std::string>
+SettleTheLetterKindsForTheDraw(OldWindowManager& manager, OldWindow& window, const OldWindowMeasure& measure);
 
 // 0x497890 (la vtable + 0x40 del retrato): con el personaje armado, sus ángulos (Scenes, PortraitCallKind::SetAngle) y
 // +0x6ac y +0x6b0 en `angle`; sin armar, nada.

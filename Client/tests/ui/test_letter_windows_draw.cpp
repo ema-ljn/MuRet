@@ -22,6 +22,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <optional>
 #include <span>
@@ -206,11 +207,17 @@ protected:
         EXPECT_TRUE(opened.HasValue()) << opened.Error();
         m_chat = opened.HasValue() ? opened.Value() : 0;
         OldWindow& chat = Chat();
-        static_cast<void>(Client::UI::AddAChatMember(m_manager, chat, Hero, 0, 0, m_texts, Hero));
+        EXPECT_TRUE(Client::UI::AddAChatMember(m_manager, chat, Hero, 0, 0, m_texts, Hero, &m_measure).HasValue());
         for (const NewMember& member : members)
-            static_cast<void>(Client::UI::AddAChatMember(m_manager, chat, member.name, member.index, 0, m_texts, Hero));
+            EXPECT_TRUE(
+                Client::UI::AddAChatMember(m_manager, chat, member.name, member.index, 0, m_texts, Hero, &m_measure)
+                    .HasValue());
         for (const NewLine& line : lines)
-            Client::UI::AddAChatLine(chat, line.speaker, line.text, line.kind, 0);
+        {
+            const auto added =
+                Client::UI::AddAChatLine(m_manager, chat, line.speaker, line.text, line.kind, 0, &m_measure);
+            EXPECT_TRUE(added.HasValue()) << added.Error();
+        }
         return chat;
     }
 
@@ -232,15 +239,16 @@ protected:
         EXPECT_TRUE(opened.HasValue()) << opened.Error();
         m_letter = opened.HasValue() ? opened.Value() : 0;
         OldWindow& read = Letter();
-        Client::UI::SetTheLetter(m_manager, read,
-                                 Client::UI::LetterEntry{.selected = 0,
-                                                         .index = 3,
-                                                         .name = "Tordo",
-                                                         .subject = "Asado",
-                                                         .date = "2026/11/13",
-                                                         .time = "21:30",
-                                                         .type = 1},
-                                 body);
+        const auto set = Client::UI::SetTheLetter(m_manager, read,
+                                                  Client::UI::LetterEntry{.selected = 0,
+                                                                          .index = 3,
+                                                                          .name = "Tordo",
+                                                                          .subject = "Asado",
+                                                                          .date = "2026/11/13",
+                                                                          .time = "21:30",
+                                                                          .type = 1},
+                                                  body, &m_measure);
+        EXPECT_TRUE(set.HasValue()) << set.Error();
         return read;
     }
 
@@ -333,7 +341,7 @@ protected:
 
     LetterMeasure m_letters;
     const OldWindowTexts m_texts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No", .lookup = TextOf};
-    const OldWindowMeasure m_measure{.measure = m_letters, .dcFont = FontKind::Normal, .screen = Screen640};
+    OldWindowMeasure m_measure{.measure = m_letters, .dcFont = FontKind::Normal, .screen = Screen640};
     OldWindowManager m_manager;
     SpriteBatch m_sprites;
     RecordingTextDrawer m_text;
@@ -532,7 +540,10 @@ TEST_F(LetterWindowsDrawTest, TheChatRowColorsGoByTheKind)
     m_sprites.Begin(Screen640);
     m_text.texts.clear();
     m_colors = TextColors{.text = 0xff123456u, .background = 0xff000000u};
-    Chat().chat.lineRows.resize(1);
+    // Solo el primero que llegó, que es el último del segundo deque.
+    std::deque<Client::UI::ChatLine>& wrapped = Chat().chat.wrappedRows;
+    wrapped.erase(wrapped.begin(), wrapped.end() - 1);
+    Chat().chat.lines.fixedCountValue = 1;
     ASSERT_TRUE(Draw().HasValue());
     ExpectTexts(0, {
                        {"Tordo: ", 113, 213, TextColors{.text = 0xff123456u, .background = 0xff000000u}},
@@ -576,6 +587,77 @@ TEST_F(LetterWindowsDrawTest, TheScrolledLinesStartFromTheLast)
               std::string(1, static_cast<char>('j' - (rows - 1))));
 }
 
+// 0x45f6f0 → 0x45fea0 → 0x460130: con 20 bytes o más entre el nombre y el texto, el texto se parte en el ancho de los
+// renglones menos 0x1e (240 − 30) con la sangría ftol((cx de "Tordo" + 5) / rx) = 35 en el primero: 29 letras de 6 y el
+// resto. El primero va con el nombre y el segundo sin él, adelante: el dibujo pone el segundo abajo y el primero, con
+// "Tordo: " (42 de ancho, no 35), arriba.
+TEST_F(LetterWindowsDrawTest, ALongChatLineIsWrappedWithTheIndentOfTheName)
+{
+    constexpr std::string_view Said = "el asado del domingo se hace en la casa de la abuela con todos";
+    OldWindow& chat = OpenAChat({{"Tordo", 1}}, {{1, std::string(Said), 3}});
+    const OldChatPart& part = chat.chat;
+    ASSERT_EQ(part.lines.base.width, 240);
+    ASSERT_EQ(part.wrappedRows.size(), 2u);
+    EXPECT_EQ(part.wrappedRows[0],
+              (Client::UI::ChatLine{.name = "", .text = std::string(Said.substr(29)), .kind = 3, .extra = 0}));
+    EXPECT_EQ(part.wrappedRows[1],
+              (Client::UI::ChatLine{.name = "Tordo", .text = std::string(Said.substr(0, 29)), .kind = 3, .extra = 0}));
+    EXPECT_EQ(part.lines.fixedCountValue, 2);
+
+    ASSERT_TRUE(Draw().HasValue());
+    ExpectTexts(0, {
+                       {std::string(Said.substr(29)), 113, 213, TextColors{.text = Dim, .background = 0}},
+                       {"Tordo: ", 113, 200, TextColors{.text = 0xffefdccdu, .background = 0}},
+                       {std::string(Said.substr(0, 29)), 155, 200, TextColors{.text = Dim, .background = 0}},
+                   });
+}
+
+// En 800 × 600 (rx = 1,25) la sangría es ftol(35 / 1,25) = 28 y 0x459c70 mide en 640: el primero se lleva 38 letras.
+TEST_F(LetterWindowsDrawTest, TheWrappingMeasuresIn640)
+{
+    constexpr std::string_view Said = "el asado del domingo se hace en la casa de la abuela con todos";
+    m_measure.screen = PixelSize{800, 600};
+    const OldChatPart& part = OpenAChat({{"Tordo", 1}}, {{1, std::string(Said), 3}}).chat;
+    ASSERT_EQ(part.wrappedRows.size(), 2u);
+    EXPECT_EQ(part.wrappedRows[0].text, Said.substr(38));
+    EXPECT_EQ(part.wrappedRows[1].text, Said.substr(0, 38));
+}
+
+// El tercer miembro (0x493c90) angosta los renglones 0x50 y les manda el 9 (0x479240), que primero los vuelve a partir
+// (0x45fea0, en 160 − 30): 16, 21, 21 y 4 letras, y después cuenta los renglones con el alto ya medido.
+TEST_F(LetterWindowsDrawTest, TheThirdMemberNarrowsTheLinesAndWrapsThemAgain)
+{
+    constexpr std::string_view Said = "el asado del domingo se hace en la casa de la abuela con todos";
+    OldWindow& chat = OpenAChat({{"Tordo", 1}}, {{1, std::string(Said), 3}, {0xff, "listo", 1}});
+    ASSERT_EQ(chat.chat.wrappedRows.size(), 3u);
+    ASSERT_TRUE(Client::UI::AddAChatMember(m_manager, chat, "Zorzal", 2, 0, m_texts, Hero, &m_measure).HasValue());
+    const OldChatPart& part = chat.chat;
+    EXPECT_EQ(part.lines.base.width, 160);
+    std::deque<std::string> texts;
+    for (const Client::UI::ChatLine& line : part.wrappedRows)
+        texts.push_back(line.text);
+    EXPECT_EQ(texts, (std::deque<std::string>{"listo", std::string(Said.substr(58)), std::string(Said.substr(37, 21)),
+                                              std::string(Said.substr(16, 21)), std::string(Said.substr(0, 16))}));
+    EXPECT_EQ(part.wrappedRows[4].name, "Tordo");
+    EXPECT_EQ(part.wrappedRows[3].name, "");
+    EXPECT_EQ(part.lines.fixedCountValue, 5);
+}
+
+// 0x460308: un texto que no entra en 10 renglones hace que el original lea el que sobra fuera de su búfer de la pila;
+// MuRet corta. 0x45f6f0 guarda hasta 0x100 bytes.
+TEST_F(LetterWindowsDrawTest, AChatLineInMoreThanTenRowsIsACut)
+{
+    OldWindow& chat = OpenAChat({{"Tordo", 1}, {"Zorzal", 2}}, {});
+    std::string said;
+    while (said.size() < 0x120)
+        said += "la ronda de mate sigue en la plaza hasta tarde ";
+    const auto added = Client::UI::AddAChatLine(m_manager, chat, 1, said, 3, 0, &m_measure);
+    ASSERT_FALSE(added.HasValue());
+    EXPECT_NE(added.Error().find("0x460308"), std::string::npos);
+    ASSERT_EQ(chat.chat.lineRows.size(), 1u);
+    EXPECT_EQ(chat.chat.lineRows[0].text.size(), 0x100u);
+}
+
 // Arrastrado (el estado en 4), el dibujo (0x493fc0, sin el marco) vuelve a ubicar a sus hijas con el 8 antes de
 // dibujarlas; cambiando de tamaño (1), también el 9 a las tres listas.
 TEST_F(LetterWindowsDrawTest, TheDraggedChatPlacesItsChildrenBeforeTheDraw)
@@ -585,7 +667,8 @@ TEST_F(LetterWindowsDrawTest, TheDraggedChatPlacesItsChildrenBeforeTheDraw)
     chat.base.y += 20;
     chat.base.state = Client::UI::DraggedWindow;
 
-    Client::UI::DrawTheChatWindow(m_manager, chat, Context(), OldWindowDrawView{.texts = &m_texts});
+    ASSERT_TRUE(
+        Client::UI::DrawTheChatWindow(m_manager, chat, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
 
     const OldChatPart& part = chat.chat;
     EXPECT_EQ(part.lines.base.x, 115);
@@ -738,7 +821,8 @@ TEST_F(LetterWindowsDrawTest, TheDraggedReadWindowPlacesItsChildren)
     read.base.height += 13;
     read.base.state = Client::UI::ResizedWindow;
 
-    Client::UI::DrawTheReadWindow(m_manager, read, Context(), OldWindowDrawView{.texts = &m_texts});
+    ASSERT_TRUE(
+        Client::UI::DrawTheReadWindow(m_manager, read, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
 
     const Client::UI::OldLetterPart& letter = read.letter;
     EXPECT_EQ(letter.lines.base.x, 115);
@@ -894,7 +978,8 @@ TEST_F(LetterWindowsDrawTest, TheDraggedWriteWindowPlacesItsChildrenWithoutSizin
     write.base.height += 13;
     write.base.state = Client::UI::ResizedWindow;
 
-    Client::UI::DrawTheWriteWindow(m_manager, write, Context(), OldWindowDrawView{.texts = &m_texts});
+    ASSERT_TRUE(
+        Client::UI::DrawTheWriteWindow(m_manager, write, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
 
     EXPECT_EQ(letter.to.base.x, toX + 10);
     EXPECT_EQ(letter.subject.base.y, 80 + 20 + 0x15 + 0x12);

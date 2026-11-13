@@ -362,11 +362,20 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
             return rows;
     }
     else if (window.kind == OldWindowKind::ChatWindow)
-        DrawTheChatWindow(manager, window, context, view);
+    {
+        if (auto drawn = DrawTheChatWindow(manager, window, context, view); !drawn.HasValue())
+            return drawn;
+    }
     else if (window.kind == OldWindowKind::LetterReadWindow)
-        DrawTheReadWindow(manager, window, context, view);
+    {
+        if (auto drawn = DrawTheReadWindow(manager, window, context, view); !drawn.HasValue())
+            return drawn;
+    }
     else if (window.kind == OldWindowKind::LetterWriteWindow)
-        DrawTheWriteWindow(manager, window, context, view);
+    {
+        if (auto drawn = DrawTheWriteWindow(manager, window, context, view); !drawn.HasValue())
+            return drawn;
+    }
     const OldWindowBase& base = window.base;
     // 0x49258d..0x4925dd: la del final de la lista con la ventana de amigos abierta se dibuja como es; las demás, en
     // gris.

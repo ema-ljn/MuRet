@@ -407,6 +407,10 @@ amigos. **Desbloquea:** 10.
       `0x50ba30` con el personaje fuera del pool (`+0x3e4`), el pase con la profundidad borrada, el retrato en blanco
       (`0x653`) y la ayuda con la caja de `0x5af090` en el modo 1 (Q-C1010). La acción `0x78` sigue cortada en
       `SetActorAttack` (`0x4f4a10`, hito 3, P-C219).
+- [x] **Los renglones partidos** (fase 4, P-C218 cerrado): el segundo deque de los renglones del chat y del cuerpo de
+      una carta (`0x45f6f0`, `0x45fea0`, `0x460130`; `0x464ae0`, `0x465270`, `0x465450`), las marcas de `0x45f240` y
+      `0x464620`, la cola que parte antes del 9 (`0x479240`, `0x47c150`) y el dibujo por `wrappedRows[at]`. Los
+      pedazos de más (`0x460308`, `0x4654af`), cortados.
 
 **Pruebas:** abrir un chat con un amigo e invitar a otro; mandar, leer y borrar una carta, byte a byte.
 

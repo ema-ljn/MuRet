@@ -201,6 +201,46 @@ std::int32_t ClientHeight(const OldWindow& window)
     return window.base.height - (HasNoInsets(window) ? 0 : ClientHeightCut);
 }
 
+namespace
+{
+// El 9 de 0x45abc0 sobre el padre ya encontrado: el tamaño según +0x64 (0, el fijo si no es 0x0; 1, el ancho de adentro
+// del padre más +0x70; 2, el alto más +0x74; 3, los dos).
+void SizeAgainst(const OldWindow& p, OldWindowBase& base)
+{
+    switch (base.sizeMode)
+    {
+    case 0:
+        if (base.sizeX == 0 && base.sizeY == 0)
+            return;
+        base.width = base.sizeX;
+        base.height = base.sizeY;
+        return;
+    case 1:
+        base.width = ClientWidth(p) + base.sizeX;
+        base.height = base.sizeY;
+        return;
+    case 2:
+        base.width = base.sizeX;
+        base.height = ClientHeight(p) + base.sizeY;
+        return;
+    case 3:
+        base.height = ClientHeight(p) + base.sizeY;
+        base.width = ClientWidth(p) + base.sizeX;
+        return;
+    default:
+        return;
+    }
+}
+} // namespace
+
+void SizeAgainstTheParent(OldWindowManager& manager, OldWindowBase& base)
+{
+    if (base.parent == 0)
+        return;
+    if (const OldWindow* parent = FindTheOldWindow(manager, base.parent); parent != nullptr)
+        SizeAgainst(*parent, base);
+}
+
 // 0x45abc0, la vtable + 0x24 de todas: el 8 ubica y el 9 mide contra el área de adentro del padre.
 void PlaceAgainstTheParent(OldWindowManager& manager, OldWindowBase& base)
 {
@@ -235,29 +275,7 @@ void PlaceAgainstTheParent(OldWindowManager& manager, OldWindowBase& base)
             return;
         }
     }
-    switch (base.sizeMode)
-    {
-    case 0:
-        if (base.sizeX == 0 && base.sizeY == 0)
-            return;
-        base.width = base.sizeX;
-        base.height = base.sizeY;
-        return;
-    case 1:
-        base.width = ClientWidth(p) + base.sizeX;
-        base.height = base.sizeY;
-        return;
-    case 2:
-        base.width = base.sizeX;
-        base.height = ClientHeight(p) + base.sizeY;
-        return;
-    case 3:
-        base.height = ClientHeight(p) + base.sizeY;
-        base.width = ClientWidth(p) + base.sizeX;
-        return;
-    default:
-        return;
-    }
+    SizeAgainst(p, base);
 }
 
 // 0x45aa80 desde la cola hasta el rectángulo: el mouse sobre la ventana la hace la de abajo si no hay otra (y nadie

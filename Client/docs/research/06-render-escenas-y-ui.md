@@ -1216,8 +1216,23 @@ los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
   marca de `win_mark.tga` (`0x64c`, 4 × 6) en `x + w − 7` con `glColor3f(255, 0, 0)`. La vtable
   + `0x54` del marco, al final, dibuja el retrato en la de leer con `+0x774` en 2 o más (`0x49a1d0`) y en la de
   escribir con `+0xb0` en 1 (`0x498800`): `0x497c10` con el gancho del juego (`OldWindowDrawView::portrait`,
-  [El retrato de las cartas](#el-retrato-de-las-cartas)); sin él, corta. Los renglones del original están partidos en
-  el ancho de la lista (P-C218).
+  [El retrato de las cartas](#el-retrato-de-las-cartas)); sin él, corta. **Los renglones partidos** (P-C218, cerrado
+  en el hito 10): la lista de los renglones del chat (`0x45f240`, vtable `0x6b9030`) y la del cuerpo de una carta
+  (`0x464620`, `0x6b93d4`) tienen `+0xbc` en 0 (sin las flechas), `+0xc8` en 1 (la cuenta es `+0xf8`, el tamaño de un
+  segundo deque en `+0xcc`) y la de la carta, `+0x128` en 1. La + `0x94` (`0x45f6f0` con el nombre y el texto, que no
+  hace nada con los dos vacíos; `0x464ae0` con el texto, `strncpy` `0x3e9`, y la + `0x58` con 0) agrega el renglón
+  adelante del deque de `+0x7c` y llama a la + `0x90` (`0x45fea0`, `0x465270`): el 9 de `0x45abc0` contra el padre sin
+  mirar el mensaje, el segundo deque vacío y la + `0x98` (`0x460130`, `0x465450`) con cada renglón del primero de atrás
+  para adelante (del más viejo al más nuevo). La + `0x98` del chat, con menos de 20 bytes entre el nombre y el texto
+  (sin signo, `0x46019a`), pone el renglón entero adelante del segundo deque; si no, parte el texto con `0x459c70` en el
+  ancho de la lista menos `0x1e`, hasta 10 renglones, con la sangría `ftol((cx + 5) / rx)` (`GetTextExtentPointA` del
+  nombre solo, sin ": "), y pone adelante el primer pedazo con el nombre y los demás sin él, salteando los vacíos. La de
+  la carta, con menos de 20 bytes, el renglón entero; si no, hasta `0x50` sin sangría, en el búfer global `0x575de34`.
+  Con un pedazo de más (11 o `0x51`) el original lee fuera de su búfer (el chat, la pila desde `EBP − 0x14`; la carta,
+  `0x5762e34`): MuRet corta (`0x460308`, `0x4654af`). La cola de estas dos listas (`0x479240`, `0x47c150`) corre la +
+  `0x90` antes del 9, así que cuenta los renglones con el alto ya medido. El dibujo (`0x45f9c0`, `0x464d90`) recorre el
+  segundo deque desde el corrimiento: el más nuevo abajo. MuRet guarda el primero al revés (`lineRows`, el más nuevo
+  al final) y el segundo como el original (`wrappedRows`); durante el dibujo, el 9 mide con el DC del dibujo.
 
 El paso y el ubicado de las tres ventanas siguen el orden del ASM. El retrato lo da el juego
 ([El retrato de las cartas](#el-retrato-de-las-cartas)); el `CA` arma el chat y abre la conexión de la sala

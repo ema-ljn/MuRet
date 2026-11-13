@@ -6,6 +6,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "UI/ChatInput.h"
 #include "UI/FriendModel.h"
+#include "UI/LetterModel.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 
@@ -16,6 +17,7 @@
 #include <functional>
 #include <list>
 #include <map>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -64,6 +66,12 @@ inline constexpr std::int32_t ModalQuestionCase = 5;
 inline constexpr std::int32_t ModalNoticeCase = 8;
 inline constexpr std::int32_t QuestionCase = 9;
 inline constexpr std::int32_t NoticeCase = 10;
+// El chat con un amigo: el 1 a la vista (el que pedí) y el 2 minimizado (el que me llaman); el 6, leer una carta; el 7,
+// escribir una (CL9 hito 10).
+inline constexpr std::int32_t ChatCase = 1;
+inline constexpr std::int32_t CalledChatCase = 2;
+inline constexpr std::int32_t LetterReadCase = 6;
+inline constexpr std::int32_t LetterWriteCase = 7;
 // El bit 0 del último argumento de 0x48ee60: no correr la cascada sobre las que están en el mismo lugar.
 inline constexpr std::int32_t KeepPlaceFlag = 0x1;
 
@@ -129,8 +137,14 @@ struct OldWindowListPart
     float blinkStep = 0.0f;
     // +0x150: F5 la mostró con 1 (Enter elige; 0x4a4e20).
     std::int32_t armed = 0;
-    // +0x144: llegó una carta nueva (0x4a6420, hito 10). Al abrir la de amigos, la abre en la pestaña de las cartas.
+    // +0x144: llegó una carta nueva (0x4a6420). Al abrir la de amigos, la abre en la pestaña de las cartas.
     std::int32_t newLetter = 0;
+    // +0xb4: los chats con un amigo, en el orden en que se armaron (0x4a4990); los busca 0x4a6430 por el amigo.
+    std::deque<std::int32_t> chats;
+    // +0x118: los chats con un mensaje sin ver, para F5 (0x4a5e50, que no repite).
+    std::deque<std::int32_t> waiting;
+    // +0x158: los amigos a los que se les pidió una sala (C1 CA) y no contestó el CA (0x4a6910, 0x4a6af0, 0x4a6bc0).
+    std::deque<std::string> pending;
 };
 
 // Un renglón de la lista de la pestaña de las ventanas (0x49e6e0, 0x4c bytes): elegido, el id y el título (strncpy de
@@ -155,6 +169,96 @@ struct OldTabPart
     std::deque<FriendEntry> friends;
     // El de la lista de ventanas.
     std::deque<WindowRow> windows;
+    // El de la lista de cartas: la copia del modelo (+0x12c, 0x49f500 desde 0x4a0960), y +0x414, todas marcadas
+    // (0x4a09d0).
+    std::deque<LetterEntry> letters;
+    std::int32_t allChecked = 0;
+};
+
+// Un renglón del chat con un amigo (la lista 0x45f240 de +0x2a0, su vtable + 0x94 desde 0x493f80): el nombre del que
+// habla (0x461530 por su número; vacío, 0x6e57a4), el texto, el tipo (1, del sistema; 3, de un miembro) y el cuarto
+// argumento.
+struct ChatLine
+{
+    std::string name;
+    std::string text;
+    std::int32_t kind = 0;
+    std::int32_t extra = 0;
+    friend bool operator==(const ChatLine&, const ChatLine&) = default;
+};
+
+// Lo que agrega el chat con un amigo (vtable 0x6b9dc8, 0x778 bytes). Los miembros y los que se pueden invitar son
+// renglones de 0x14 como los amigos: el nombre en +4, el número del miembro en +0xf y el estado en +0x10.
+struct OldChatPart
+{
+    // +0xb0: 1 sin la lista de invitar; 2 con ella (0x4944c0 con el 10 y 1).
+    std::int32_t mode = 1;
+    // +0xb4: el último texto mandado (0x100 bytes).
+    std::string lastText;
+    // +0x1b4: el EDIT, con el tope de 100.
+    OldEdit edit;
+    // +0x2a0: los renglones.
+    OldList lines;
+    std::deque<ChatLine> lineRows;
+    // +0x3d0: los miembros de la sala.
+    OldList users;
+    std::deque<FriendEntry> members;
+    // +0x518 y +0x6e8: el botón de invitar (el 1: muestra u oculta la lista) y el de mandar la invitación (el 2).
+    OldButton inviteButton;
+    OldButton sendButton;
+    // +0x5a0: los amigos que se pueden invitar (0x4942d0).
+    OldList invite;
+    std::deque<FriendEntry> invitable;
+    // +0x770: la sala (0x493530).
+    std::uint32_t room = 0;
+    // +0x774.
+    std::int32_t aux = 0;
+};
+
+// El retrato de las ventanas de una carta (vtable 0x6ba008, 0x495e50): +0xb0 en la de leer y +0xb4 en la de escribir.
+// Su personaje (+0x7c) y lo que lo arma, lo viste y lo mueve (0x4961d0, 0x4977d0, 0x497810, 0x4978f0, 0x496530) y lo
+// dibuja (0x497c10) son de Scenes, por OldWindowStepView::portrait; UI guarda lo que le piden.
+struct OldPortraitPart
+{
+    OldWindowBase base;
+    // +0x68c: el personaje armado (0x4961d0).
+    std::int32_t built = 0;
+    // +0x250 del personaje (0x4977d0), el equipo (0x497810) y +0x6a4, la acción (0x4978f0).
+    std::uint8_t portraitClass = 0;
+    std::array<std::byte, 17> equipment{};
+    std::int32_t action = 0;
+    // +0x6ac/+0x6b0, el ángulo (0x497890), y +0x6b8/+0x6bc, el zoom (0x4978d0).
+    float angle = 0.0f;
+    float zoom = 0.0f;
+    // +0x694 (la vtable + 0x48, 0x495ee0): la de escribir lo pone en 1.
+    std::int32_t follow = 0;
+    // El personaje de +0x7c, que arma Scenes; UI no lo mira.
+    std::shared_ptr<void> actor;
+};
+
+// Lo que agregan las ventanas de una carta: la de leer (vtable 0x6b9c58, 0xc88 bytes) y la de escribir (0x6b9bfc,
+// 0xc64 bytes).
+struct OldLetterPart
+{
+    OldPortraitPart portrait;
+    // La de leer: +0x778, la carta (0x138 bytes, 0x499cb0); +0x770 en 1, la carta de "webzen" (sin retrato, el C7);
+    // +0x8b0, la lista de los renglones del cuerpo (0x464620), partido por '\n'.
+    LetterEntry entry;
+    std::int32_t fromWebzen = 0;
+    OldList lines;
+    std::deque<std::string> lineRows;
+    // La de escribir: +0x778, mandada sin respuesta (el C5); +0x77c, 1 con el nombre puesto (0x4983e0) y 2 con el
+    // asunto (0x498420); +0x780, +0x86c y +0x958, los EDIT del nombre, del asunto y del cuerpo.
+    std::int32_t sending = 0;
+    std::int32_t prepared = 0;
+    OldEdit to;
+    OldEdit subject;
+    OldEdit text;
+    // Los botones: cinco en la de leer (+0x9e0..+0xc00), cuatro en la de escribir (+0xa44..+0xbdc).
+    std::vector<OldButton> buttons;
+    // +0xb0 de la de escribir: 0 en el constructor y 1 al final de 0x497f50; con 1, 0x499780 pasa por los botones 4 y
+    // 5 y por el retrato.
+    std::int32_t withPortrait = 0;
 };
 
 // Lo que agrega la ventana de amigos (vtable 0x6b9d6c, 0xb50 bytes).
@@ -193,6 +297,11 @@ enum class OldWindowKind : std::uint8_t
     LettersTab,
     // vtable 0x6b9d10.
     AddFriendBox,
+    // vtable 0x6b9dc8: el chat con un amigo (los casos 1 y 2).
+    ChatWindow,
+    // vtable 0x6b9c58 y 0x6b9bfc: leer y escribir una carta (los casos 6 y 7).
+    LetterReadWindow,
+    LetterWriteWindow,
 };
 
 struct OldWindow
@@ -207,6 +316,8 @@ struct OldWindow
     std::vector<OldWindow> tabs;
     OldTabPart tab;
     OldAddBoxPart add;
+    OldChatPart chat;
+    OldLetterPart letter;
 };
 
 // El administrador, *(0x5763514), y los globales de las ventanas viejas que solo usa él.
@@ -255,8 +366,17 @@ struct OldWindowManager
     std::int32_t letter = 0;
     // [0x5763518]: los amigos.
     FriendModel friendModel;
-    // 0x5767970: el tope de las cartas que manda el C0 (0x4dc010); lo lee el hito 10.
+    // 0x5767970: el tope de las cartas que manda el C0 (0x4dc010); lo lee el C6 (0x4dcb4c).
     std::uint8_t letterLimit = 0;
+    // [0x576351c] y [0x5763520]: las cartas y las salas del chat con un amigo (CL9 hito 10).
+    LetterModel letterModel;
+    ChatRooms chatRooms;
+    // +0x94: la ventana de leer de cada carta (0x491720; 0x491570 y 0x491780 la buscan).
+    std::map<std::uint16_t, std::int32_t> letterWindows;
+    // 0x5762f0c y 0x5762f10: dónde abre el C7 la próxima ventana de leer (−1, en (100, 100); 0x49a1f0 las pone al
+    // pasar a otra carta).
+    std::int32_t nextReadX = -1;
+    std::int32_t nextReadY = -1;
     // El EDIT de las ventanas viejas con el foco del teclado (GetFocus, con ChatFocus::OldWindow): su id.
     std::int32_t focusedEdit = 0;
     // 0x5762ebc: la caja modal. Con una, la fábrica no arma otra.
@@ -307,14 +427,54 @@ enum class FriendSendKind : std::uint8_t
     Delete,
     // C1 04 C4 y el estado.
     State,
+    // CL9 hito 10. C1 0D CA y el nombre: pedir una sala para chatear con el amigo.
+    RoomRequest,
+    // C1 14 CB: invitar a `name` a la sala `room` de la ventana `window`.
+    Invite,
+    // C2 C5 (cifrado como C4): la carta de la ventana `window` a `name`, con `subject`, `body`, la dirección (`value`)
+    // y la acción del retrato.
+    LetterSend,
+    // C1 06 C7 y C1 06 C8 con la carta `index`, y C1 03 C9.
+    LetterRead,
+    LetterDelete,
+    LetterList,
 };
 struct FriendSend
 {
     FriendSendKind kind = FriendSendKind::ListRequest;
     std::uint8_t value = 0;
     std::string name;
+    std::uint16_t index = 0;
+    std::uint16_t room = 0;
+    std::int32_t window = 0;
+    std::uint8_t action = 0;
+    std::string subject{};
+    std::string body{};
     friend bool operator==(const FriendSend&, const FriendSend&) = default;
 };
+
+// Lo que UI le pide al retrato (OldPortraitPart), con la dirección del método de la vtable 0x6ba008.
+enum class PortraitCallKind : std::uint8_t
+{
+    // +0x30, 0x4961d0: arma el personaje de +0x7c en la celda del héroe.
+    Build,
+    // +0x34, 0x4977d0: la clase (con 0x513100).
+    SetClass,
+    // +0x38, 0x497810: el equipo (con 0x5139f0).
+    SetEquipment,
+    // +0x3c, 0x496530: copia la clase y el equipo del héroe.
+    CopyTheHero,
+    // +0x4c, 0x4978f0: la acción (con 0x495a20).
+    SetAction,
+    // +0x50, 0x497910: la acción que sigue (1) o la anterior (−1) a la de +0x6a4 (0x495a20).
+    TurnAction,
+    // +0x18, 0x45aa80 con su +0x20, 0x497970: la cola, y el mouse que lo gira, lo acerca y (con +0x694 en 1) le vuelve
+    // a copiar el héroe (la vtable + 0x3c). El tercer argumento es el del paso.
+    Step,
+};
+// El tercer argumento es el corrimiento de TurnAction o el argumento de Step; los demás pasan 0.
+using OldPortraitHook =
+    std::function<Core::Expected<void, std::string>(OldPortraitPart&, PortraitCallKind, std::int32_t)>;
 using OldWindowSender = std::function<void(const FriendSend&)>;
 
 // Lo que el paso lee del juego.
@@ -338,6 +498,14 @@ struct OldWindowStepView
     // 0x491080(0x186, 0x106): abrir la de amigos con su registro propio, su mensaje y su cartel, que son del juego
     // (Scenes/GameFriends). Lo llama 0x4906a0 al volver a mostrar con la de amigos ya soltada.
     std::function<Core::Expected<void, std::string>()> openFriends{};
+    // CL9 hito 10: el personaje del retrato de las cartas (Scenes). Sin él, lo que lo usa corta.
+    OldPortraitHook portrait{};
+    // 0x4dcb70 sobre la copia del C7 que guardó 0x4a03c0 (0x4a11b0 con el 10 y 2): Scenes la vuelve a aplicar.
+    std::function<Core::Expected<void, std::string>(const std::vector<std::byte>&)> replayLetter{};
+    // 0x622b40(texto, 0): el filtro de las malas palabras, que pone el texto 0x76e6dd4 si salta. Sin él, nada.
+    std::function<bool(std::string_view)> badWord{};
+    // [0x743a170] + 0x1d9: el nombre del héroe (0x495530, 0x461600, 0x4942d0).
+    std::string heroName{};
 };
 
 // Los textos de Text.bmd que usa la caja de mensaje: el título y el botón de un solo botón (228), el título de dos

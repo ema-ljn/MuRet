@@ -31,8 +31,10 @@
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
+#include "Protocol/FriendChat.h"
 #include "Protocol/Friends.h"
 #include "Protocol/Inventory.h"
+#include "Protocol/Letters.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
@@ -276,7 +278,20 @@ void ServerSession::RegisterGameServerHandlers()
         m_gameServer.On(Protocol::Friends::FriendDeleteOpcode,
                         [this](const Network::Packet& packet) { OnFriendDeleteResult(packet); }) &&
         m_gameServer.On(Protocol::Friends::FriendStateOpcode,
-                        [this](const Network::Packet& packet) { OnFriendState(packet); });
+                        [this](const Network::Packet& packet) { OnFriendState(packet); }) &&
+        // CL9 hito 10: las cartas y el chat con un amigo.
+        m_gameServer.On(Protocol::Letters::LetterSendOpcode,
+                        [this](const Network::Packet& packet) { OnLetterSendResult(packet); }) &&
+        m_gameServer.On(Protocol::Letters::LetterListOpcode,
+                        [this](const Network::Packet& packet) { OnLetterRow(packet); }) &&
+        m_gameServer.On(Protocol::Letters::LetterReadOpcode,
+                        [this](const Network::Packet& packet) { OnLetterRead(packet); }) &&
+        m_gameServer.On(Protocol::Letters::LetterDeleteOpcode,
+                        [this](const Network::Packet& packet) { OnLetterDeleteResult(packet); }) &&
+        m_gameServer.On(Protocol::FriendChat::RoomRequestOpcode,
+                        [this](const Network::Packet& packet) { OnRoomAnswer(packet); }) &&
+        m_gameServer.On(Protocol::FriendChat::InviteOpcode,
+                        [this](const Network::Packet& packet) { OnInviteResult(packet); });
     assert(registered && "los handlers del GameServer se registran una vez");
 }
 
@@ -1086,6 +1101,72 @@ void ServerSession::OnFriendState(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(state.Value(), *this)));
+}
+
+void ServerSession::OnLetterSendResult(const Network::Packet& packet)
+{
+    const auto read = Protocol::Letters::ReadLetterSendResult(packet);
+    if (!read.HasValue())
+    {
+        m_log.Warning("se ignora el resultado de mandar una carta (C5): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
+}
+
+void ServerSession::OnLetterRow(const Network::Packet& packet)
+{
+    const auto read = Protocol::Letters::ReadLetterRow(packet);
+    if (!read.HasValue())
+    {
+        m_log.Warning("se ignora una carta de la lista (C6): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
+}
+
+void ServerSession::OnLetterRead(const Network::Packet& packet)
+{
+    const auto read = Protocol::Letters::ReadLetterRead(packet);
+    if (!read.HasValue())
+    {
+        m_log.Warning("se ignora la carta para leer (C7): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
+}
+
+void ServerSession::OnLetterDeleteResult(const Network::Packet& packet)
+{
+    const auto read = Protocol::Letters::ReadLetterDeleteResult(packet);
+    if (!read.HasValue())
+    {
+        m_log.Warning("se ignora el resultado de borrar una carta (C8): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
+}
+
+void ServerSession::OnRoomAnswer(const Network::Packet& packet)
+{
+    const auto read = Protocol::FriendChat::ReadRoomAnswer(packet);
+    if (!read.HasValue())
+    {
+        m_log.Warning("se ignora la sala del chat con un amigo (CA): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
+}
+
+void ServerSession::OnInviteResult(const Network::Packet& packet)
+{
+    const auto read = Protocol::FriendChat::ReadInviteResult(packet);
+    if (!read.HasValue())
+    {
+        m_log.Warning("se ignora el resultado de invitar al chat (CB): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(read.Value(), *this)));
 }
 
 void ServerSession::OnNotice(const Network::Packet& packet)

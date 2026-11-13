@@ -995,7 +995,7 @@ como datos (`OldWindowKind`) y despacha con una función por método.
   ventana y cada botón toman el id que sigue de `0x5762eb0` (sumado antes de usarlo); el valor de partida, el que
   sigue al de la lista de ventanas, es *inferido* (P-C97). El 3 (la ventana de amigos) y el 4 (la caja de agregar un
   amigo) son del hito 9 de la CL9 ("Los amigos", abajo); el 1 y el 2 (el chat con un amigo) y el 6 y el 7 (las
-  cartas), del hito 10 (P-C183).
+  cartas), del hito 10 ("Las cartas y el chat con un amigo", abajo).
 - **El paso.** La lista de ventanas (`0x636e43`) y `0x490490`: la modal que ya no está; Esc (`0x4904bc`, Q-C446) le
   pide al administrador que cierre la del final si está a la vista; F5, con el foco del teclado en la ventana del
   juego, va a `0x4a5be0(1)` sobre la lista de ventanas, que sin entradas no hace nada; F6 alterna `+0xa8` y llama a
@@ -1104,6 +1104,53 @@ el texto (`0xff`) toma +`0x9c`, el fondo (0) +`0xa0` (0 en la caja de agregar: t
 del medio +`0xa4`, y adentro del cursor el texto toma el fondo y lo demás `0xffc8c8c8`; al final, +`0x80` suma uno. MuRet dibuja el
 bitmap como un quad del fondo, el texto con el dibujante de texto y el cursor como un quad de 1 × min(+`0xac`, alto)
 en la columna después del texto (*inferido*: el texto solo crece por el final; P-C181).
+
+**Las cartas y el chat con un amigo** (CL9 hito 10, `UI/LetterModel`, `UI/LetterWindows`, `Scenes/GameLetters`;
+*estático*; los paquetes, en [04](04-protocolo.md#las-cartas-y-el-chat-con-un-amigo-c5cb-y-la-conexión-de-la-sala)).
+Las cartas viven en el `std::deque` de `[0x576351c]` (elementos de `0x138`: la marca, el número, el que la manda, el
+asunto, la fecha, la hora y leída en `+0x134`), que ordena `0x49f870` con el `std::sort` de MSVC6 (por leída, por el
+que la manda, por la fecha y la hora o por el asunto, con `0x49c190`), y en un `std::map` de las copias del `C7`
+(`0x4a03c0`); el primer paso del juego vacía los dos (`0x49f260`, `0x4a0560`). Las salas, en `[0x5763520]`: 256
+lugares que `0x49e280` toma desde un cursor con vuelta y las conexiones (P-C211). El administrador guarda el mapa de
+las cartas con ventana de leer (`+0x94`: `0x491570` la anota con 0, `0x491720` le pone la ventana, `0x491780` la da y
+`0x4916b0` la saca) y el lugar de la próxima (`0x5762f0c`, −1 sin lugar); la lista de ventanas, los chats (`+0xb4`),
+los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
+
+- **La pestaña de amigos**, botones 3 y 4 (`0x49d0b0`): el chat con el elegido en línea (`0x4a6430`: lo sube si ya
+  hay; si no y no se pidió, el `C1 CA`) y la de escribir (`0x48ee60(7, 100, 100, sprintf(1071, 1000))`) con su nombre
+  (`0x4983e0`: el foco al asunto y `+0x77c` en 1), con la cola `0x49dc37` (el 8 y el 9).
+- **El chat** (casos 1 y 2, vtable `0x6b9dc8`, `0x493220`): el marco de `0xfa × 0xaa` (mínimo `0x96` de alto), el EDIT
+  de 100 con el filtro 4, la lista de renglones (`0x464620`), la de miembros, la de invitar (oculta) y dos botones con
+  el 993; `+0xb0` en 1. `0x4944c0`: el 6 le da el foco al EDIT y la lista de miembros a las flechas; el 7 (Enter)
+  pasa el texto por el filtro (`0x622b40`, el 570) y, distinto del último, lo manda por la sala (P-C211), vacía el
+  EDIT y con menos de 2 miembros lo cierra (`0x495630(1)`: el 995 adelante del título y el EDIT apagado); el 10 y 1
+  muestra u oculta la de invitar (`+0x50` más de ancho, `0x4942d0`: los amigos menos los miembros y los de desde
+  `0xfd`) y el 10 y 2 (o el doble clic en ella) invita con el EDIT sin el foco. Los miembros (`0x493c90`,
+  `0x493e90`) rehacen el título (994 y hasta tres nombres de atrás para adelante con `", "`, y `"..."` con el
+  tercero: Q-C1004), la pestaña de las ventanas y el ancho de los renglones con 3 o más. El `C1` y el `C4` de los
+  amigos rehacen las listas de invitar (`0x4a6840`) y cierran o abren el chat con ese amigo (`0x495630`); el `C4`
+  con `0xfc`, todos con el 402 (`0x4a75c0`).
+- **La de leer** (caso 6, vtable `0x6b9c58`, `0x4999d0`): `0xfa × 0xb6` con las banderas `0x1b`, la lista del cuerpo
+  (`0x8b0`, partido por `'\n'` con `strtok`: sin los renglones vacíos, `0x499cb0`), cinco botones (responder,
+  borrar, cerrar, la anterior y la siguiente: el 1010..1013 y el 1002) y el retrato de `0x78` a la derecha (P-C212).
+  `0x49a1f0`: el 10 y 1 abre la de escribir con el remitente y `sprintf(1016, asunto)` cortado en `0x20`; el 2
+  pregunta con el 1017 (caso 5) y el sí manda el `C8` y la cierra; el 3 la cierra; el 5 y el 6 eligen la que sigue o
+  la de antes en la pestaña, la cierran, sueltan su carta, dejan su lugar a la otra y la leen (Q-C1007).
+- **La de escribir** (caso 7, vtable `0x6b9bfc`, `0x497f50`): `0xfa × 0xd8` con las banderas `0x1b`, los EDIT del
+  nombre (10), del asunto (`0x20`) y del cuerpo (1000), cuatro botones (mandar, cerrar y las acciones del retrato,
+  el 1001..1004) y el retrato copiado del héroe con la acción `0x7a` y el ángulo 90. `0x498820`: el 6 le da el foco
+  al EDIT de `+0x77c` y lo vuelve a 0 (Q-C1006); el 10 y 1 manda el `C5` (Q-C1002, Q-C1003) si no hay uno pendiente
+  (`+0x778`), con la caja modal del 1006, 1007 o 1008 y el foco al EDIT que falta; el 2 la cierra si no hay asunto ni
+  cuerpo, o pregunta con el 1009 (`0x499840`, también la cruz y Esc); el 4 y el 5 cambian la acción del retrato.
+- **La pestaña de las cartas** (`0x4a11b0`): el 13 (doble clic) es el 10 y 2; el 10 y 1, la de escribir; el 2, leer
+  la elegida (`C7`, o la copia, o subir su ventana); el 3, responder; el 4, la pregunta del 1017 con alguna marcada o
+  el aviso del 1031; el 5, el `C9`; el 12 con el sí, un `C8` por marcada. La lista copia el modelo (`0x4a0960`) con
+  la elegida que estaba, y el clic en la columna de la marca da vuelta la carta (`0x464510`).
+
+El paso y el ubicado de las tres ventanas siguen el orden del ASM; sus dibujos (`0x493fc0`, `0x499d60`, `0x498480`,
+la pestaña `0x4a0a30` y las listas de `0x3f0`) cortan (P-C213); los renglones de los chats en la lista de ventanas de
+F5 (`+0xdc`), también (P-C215). Con el retrato del juego sin portar, abrir una carta o la de escribir corta
+(P-C212); el `CA` arma el chat y corta en la conexión (P-C211).
 
 **Los paneles.**
 

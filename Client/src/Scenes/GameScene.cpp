@@ -62,6 +62,7 @@
 #include "UI/FriendModel.h"
 #include "UI/GameCursor.h"
 #include "UI/GameUiState.h"
+#include "UI/LetterModel.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
@@ -287,10 +288,11 @@ void GameScene::StepEntry()
             input.focus = UI::ChatFocus::Game;
             UI::ClearTheLog(runtime.chat.log, runtime.ui.chatModes);
             UI::ClearTheChatFilter(runtime.chat.log);
-            // 0x6368f9..0x636915: las ventanas viejas (0x48ea50), los amigos (0x49bac0) y las cartas (0x49f260, del
-            // hito 10: MuRet no guarda ninguna).
+            // 0x6368f9..0x636915: las ventanas viejas (0x48ea50), los amigos (0x49bac0) y las cartas (0x49f260: la
+            // lista y, con 0x4a0560, las copias de 0x4a03c0).
             UI::ResetTheOldWindows(runtime.oldWindows);
             UI::ClearTheFriends(runtime.oldWindows.friendModel);
+            UI::ClearTheLetters(runtime.oldWindows.letterModel);
             // 0x636920: 0x46b010, las colas del cartel de Slide.bmd, su timer 0x3eb y 0x46b0e0 (el registro propio y
             // un texto de Slide.bmd, con sus rand()).
             if (m_context.cloth != nullptr)

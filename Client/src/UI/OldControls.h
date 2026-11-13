@@ -60,6 +60,9 @@ struct OldList
     // +0x134 y +0x138 de la lista de amigos: el ancho de "ZZZZZZZZZZ" y el del texto 1022, + 8 (0x460970).
     std::int32_t nameWidth = 0;
     std::int32_t placeWidth = 0;
+    // +0x13c de la lista de las cartas (0x463190): el ancho del texto 1030, + 8. En ella, +0x130 es el ancho de la
+    // columna de la marca (0x19) y +0x134 y +0x138, los de los textos 1028 y 1029 (CL9 hito 10).
+    std::int32_t subjectWidth = 0;
     // +0x144 de la lista de amigos: 0x49ddd0 la pone en 1 antes de copiar el modelo. Nadie la lee en el hito 9
     // (*estático*: no hay otra escritura ni lectura de +0x144 en la vtable 0x6b90cc).
     std::int32_t refreshed = 0;

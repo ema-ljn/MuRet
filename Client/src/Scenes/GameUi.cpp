@@ -4,15 +4,18 @@
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Protocol/Character/LevelUpPoint.h"
+#include "Protocol/Letters.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ChatReceive.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameDialogSteps.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameFriends.h"
+#include "Scenes/GameLetters.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMoveWindow.h"
 #include "Scenes/GameMovementState.h"
@@ -31,6 +34,7 @@
 #include "UI/Dialogs.h"
 #include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
+#include "UI/NameChecks.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
@@ -46,6 +50,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace Client::Scenes
 {
@@ -304,7 +309,29 @@ public:
                                    { UI::SetTheChatFields(chat, std::nullopt, name); },
                                    .openFriends = [this]() { return OpenTheFriendsWindow(); }};
         if (IGameUiRequests* requests = m_context.requests; requests != nullptr)
-            view.send = [requests](const UI::FriendSend& send) { requests->SendFriendPacket(FriendPacketOf(send)); };
+            view.send = [requests, &random = m_context.random](const UI::FriendSend& send)
+            { SendAFriendPacket(*requests, random, send); };
+        // CL9 hito 10: el filtro de las malas palabras de las cartas y del chat con un amigo (0x622b40 con 0).
+        if (const GameChatContext* chatContext = m_context.chat; chatContext != nullptr)
+            view.badWord = [filter = chatContext->filter](std::string_view text)
+            { return UI::ContainsAFilteredWord(text, filter, false); };
+        view.heroName = std::string(HeroNameOf(m_context.world.Actors()[runtime.hero]));
+        // 0x4a11b0 con el 10 y 2 sobre una carta guardada: 0x4dcb70 con la copia de 0x4a03c0.
+        view.replayLetter = [this](const std::vector<std::byte>& copy) -> Core::Expected<void, std::string>
+        {
+            auto letter = Protocol::Letters::ReadLetterCopy(copy);
+            if (!letter.HasValue())
+                return Core::Unexpected(std::string("0x4a11b0(2): la carta guardada no se lee"));
+            const ChatReceiveContext receive{.world = m_context.world,
+                                             .random = m_context.random,
+                                             .measure = m_context.measure,
+                                             .screen = m_context.screen,
+                                             .scene = std::nullopt,
+                                             .texts = m_context.texts,
+                                             .chosenSlot = m_context.chosenSlot};
+            return ApplyLetterRead(letter.Value(), receive);
+        };
+        // El retrato de las cartas (P-C212) queda sin el gancho: abrir una carta o la de escribir corta.
         return view;
     }
 

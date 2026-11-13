@@ -384,10 +384,14 @@ amigos. **Desbloquea:** 10.
 
 ### Hito 10: el chat entre amigos y las cartas (CL9.4, ~39 KB)
 
-- [ ] **El chat entre amigos:** `CA` y `CB` (`0x4dce10`, `0x4dd020`, `0x493530`), la ventana de chat
-      (`0x496530`, con su "max chat count over"), invitar (`0x49d0b0`) y `0x4944c0`.
-- [ ] **Las cartas:** `C5`..`C9` (`0x4dc9e0`, `0x4dcb70`, `0x4dcd90`, `0x49eb60`, `0x49ee20`, `0x49f870`), las
-      ventanas de escribir y leer (`0x49a1f0`, `0x4a11b0`) y el retrato (`0x497c10`).
+- [x] **El chat entre amigos:** `CA` y `CB` (`0x4dce10`, `0x4dd020`, `0x493530`), la ventana de chat
+      (`0x493160`..`0x4942d0`, con el "max chat count over" de `0x49e280`; no `0x496530`, que es del retrato,
+      P-C210), invitar (`0x49d0b0`) y `0x4944c0`. La conexión de la sala, cortada (P-C211); los chats en F5,
+      cortados (P-C215).
+- [x] **Las cartas:** `C5`..`C9` (`0x4dc840`, `0x4dc9e0`, `0x4dcb70`, `0x4dcd90`, `0x49eb60`, `0x49ee20`,
+      `0x49f870`), la pestaña de las cartas (`0x4a11b0`) y las ventanas de leer y de escribir (`0x49a1f0`,
+      `0x498820`). El retrato (`0x497c10`), cortado por el gancho que el juego no da (P-C212); los dibujos del
+      chat, de las cartas y de su pestaña, cortados (P-C213).
 
 **Pruebas:** abrir un chat con un amigo e invitar a otro; mandar, leer y borrar una carta, byte a byte.
 

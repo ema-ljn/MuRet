@@ -316,7 +316,8 @@ Core::Expected<void, std::string> DrawTheFriendsWindow(OldWindowManager& manager
         DrawTheWindowsTab(window.tabs[WindowsTabNumber], context, view);
     else if (current == LettersTabNumber)
         return Core::Unexpected(
-            std::string("0x4a2620: el dibujo de la pestaña de las cartas (0x4a0a30) es del hito 10"));
+            std::string("0x4a2620: el dibujo de la pestaña de las cartas (0x4a0a30, con la lista 0x47eed0, su barra "
+                        "0x463db0 y sus renglones 0x4641f0 con la casilla 0x463090) no está portado (P-C213)"));
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetBlend(Render::BlendMode::Alpha);
     SetThePalette(sprites, BlackIndex, 1.0f);

@@ -2,8 +2,10 @@
 
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/FriendChat.h"
 #include "Protocol/Friends.h"
 #include "Protocol/Inventory.h"
+#include "Protocol/Letters.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/World.h"
@@ -37,5 +39,7 @@ using WorldEvent =
                  Protocol::Inventory::EquipmentChange, Protocol::Inventory::ItemPut, Protocol::Inventory::LifeRefill,
                  Protocol::Inventory::ManaRefill, Protocol::Friends::FriendList, Protocol::Friends::FriendAddResult,
                  Protocol::Friends::FriendRequest, Protocol::Friends::FriendDeleteResult,
-                 Protocol::Friends::FriendState>;
+                 Protocol::Friends::FriendState, Protocol::Letters::LetterSendResult, Protocol::Letters::LetterRow,
+                 Protocol::Letters::LetterRead, Protocol::Letters::LetterDeleteResult, Protocol::FriendChat::RoomAnswer,
+                 Protocol::FriendChat::InviteResult>;
 } // namespace Client::App

@@ -380,6 +380,14 @@ private:
     void OnFriendRequest(const Network::Packet& packet);
     void OnFriendDeleteResult(const Network::Packet& packet);
     void OnFriendState(const Network::Packet& packet);
+    // CL9 hito 10: las cartas y el chat con un amigo (C5..C8, CA y CB, 0x4e5ac6..0x4e5b42), sin guarda de escena ni
+    // del flag de cifrado, como los de los amigos.
+    void OnLetterSendResult(const Network::Packet& packet);
+    void OnLetterRow(const Network::Packet& packet);
+    void OnLetterRead(const Network::Packet& packet);
+    void OnLetterDeleteResult(const Network::Packet& packet);
+    void OnRoomAnswer(const Network::Packet& packet);
+    void OnInviteResult(const Network::Packet& packet);
     // El F1 02 con 1, con `encrypted` en el flag del paquete.
     void ReturnToSelection(bool encrypted);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.

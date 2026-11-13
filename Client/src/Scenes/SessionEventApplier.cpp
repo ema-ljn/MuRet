@@ -9,8 +9,10 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/FriendChat.h"
 #include "Protocol/Friends.h"
 #include "Protocol/Inventory.h"
+#include "Protocol/Letters.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
@@ -19,6 +21,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GameFriends.h"
+#include "Scenes/GameLetters.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/InventoryMoves.h"
@@ -157,6 +160,19 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
         return ApplyFriendDeleteResult(*deleted, ChatContextOf(m_resources, session));
     if (const auto* state = std::get_if<Protocol::Friends::FriendState>(&event))
         return ApplyFriendState(*state, ChatContextOf(m_resources, session));
+    // CL9 hito 10.
+    if (const auto* sent = std::get_if<Protocol::Letters::LetterSendResult>(&event))
+        return ApplyLetterSendResult(*sent, ChatContextOf(m_resources, session));
+    if (const auto* row = std::get_if<Protocol::Letters::LetterRow>(&event))
+        return ApplyLetterRow(*row, ChatContextOf(m_resources, session));
+    if (const auto* letter = std::get_if<Protocol::Letters::LetterRead>(&event))
+        return ApplyLetterRead(*letter, ChatContextOf(m_resources, session));
+    if (const auto* deleted = std::get_if<Protocol::Letters::LetterDeleteResult>(&event))
+        return ApplyLetterDeleteResult(*deleted, ChatContextOf(m_resources, session));
+    if (const auto* answer = std::get_if<Protocol::FriendChat::RoomAnswer>(&event))
+        return ApplyRoomAnswer(*answer, ChatContextOf(m_resources, session));
+    if (const auto* invited = std::get_if<Protocol::FriendChat::InviteResult>(&event))
+        return ApplyInviteResult(*invited, ChatContextOf(m_resources, session));
     return ApplyWorldContent(event, session);
 }
 

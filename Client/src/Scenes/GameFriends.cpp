@@ -2,17 +2,21 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Protocol/FriendChat.h"
 #include "Protocol/Friends.h"
+#include "Protocol/Letters.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/GameUi.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatLog.h"
 #include "UI/FriendModel.h"
 #include "UI/FriendWindows.h"
 #include "UI/GameText.h"
+#include "UI/LetterWindows.h"
 #include "UI/MessageArea.h"
 #include "UI/OldWindows.h"
 #include "UI/SlideBanner.h"
@@ -143,10 +147,42 @@ Protocol::Outgoing FriendPacketOf(const UI::FriendSend& send)
         return Protocol::Friends::WriteFriendDelete(send.name);
     case UI::FriendSendKind::State:
         return Protocol::Friends::WriteFriendState(send.value);
+    // CL9 hito 10.
+    case UI::FriendSendKind::RoomRequest:
+        return Protocol::FriendChat::WriteRoomRequest(send.name);
+    case UI::FriendSendKind::Invite:
+        return Protocol::FriendChat::WriteInvite(send.name, send.room, static_cast<std::uint32_t>(send.window));
+    case UI::FriendSendKind::LetterSend:
+        return Protocol::Letters::WriteLetterSend(
+            Protocol::Letters::LetterToSend{.window = static_cast<std::uint32_t>(send.window),
+                                            .name = send.name,
+                                            .subject = send.subject,
+                                            .direction = send.value,
+                                            .action = send.action,
+                                            .body = send.body});
+    case UI::FriendSendKind::LetterRead:
+        return Protocol::Letters::WriteLetterReadRequest(send.index);
+    case UI::FriendSendKind::LetterDelete:
+        return Protocol::Letters::WriteLetterDelete(send.index);
+    case UI::FriendSendKind::LetterList:
+        return Protocol::Letters::WriteLetterListRequest();
     case UI::FriendSendKind::ListRequest:
     default:
         return Protocol::Friends::WriteFriendListRequest();
     }
+}
+
+void SendAFriendPacket(IGameUiRequests& requests, Render::Models::CrtRandom& random, const UI::FriendSend& send)
+{
+    if (send.kind == UI::FriendSendKind::LetterSend)
+    {
+        static_cast<void>(random.Next());
+        std::uint8_t serialDepth = 0;
+        {
+            const Render::Models::LogicalAccess serial(serialDepth, random, Render::Models::SerialCloseRandoms);
+        }
+    }
+    requests.SendFriendPacket(FriendPacketOf(send));
 }
 
 Core::Expected<void, std::string> OpenTheFriends(const FriendsOpenContext& context, const UI::OldWindowGlobals& globals,
@@ -232,7 +268,8 @@ Core::Expected<void, std::string> ApplyFriendAddResult(const Protocol::Friends::
         UI::AddAFriend(manager.friendModel, name, 0, result.state);
         UI::SortTheFriends(manager.friendModel, UI::SameSort);
         UI::RefreshTheFriendTab(manager);
-        // 0x4a6840: el estado en las ventanas de chat con un amigo (hito 10): ninguna.
+        // 0x4a6840: los chats con la lista de invitar abierta la rehacen.
+        UI::RefreshTheInvites(manager, HeroNameOf(context.world.Actors()[runtime.hero]));
         return {};
     }
     case NoSuchCharacter:
@@ -299,20 +336,31 @@ Core::Expected<void, std::string> ApplyFriendDeleteResult(const Protocol::Friend
 Core::Expected<void, std::string> ApplyFriendState(const Protocol::Friends::FriendState& state,
                                                    const ChatReceiveContext& context)
 {
-    UI::OldWindowManager& manager = context.world.Runtime().oldWindows;
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::OldWindowManager& manager = runtime.oldWindows;
+    const UI::OldWindowTexts texts = OldWindowTextsOf(context.texts);
     if (state.state == UI::AllOfflineState)
     {
         UI::SetAllTheFriends(manager.friendModel, 0, UI::AllOfflineState);
         UI::SortTheFriends(manager.friendModel, UI::SameSort);
         UI::RefreshTheFriendTab(manager);
-        // 0x4a75c0: los chats con un amigo fuera de línea (hito 10): ninguno.
-        UI::MarkTheFriendList(manager, 0, OldWindowTextsOf(context.texts));
+        // 0x4a75c0: todos los chats con un amigo reciben el 402 y se cierran.
+        UI::CloseTheChats(manager, texts);
+        UI::MarkTheFriendList(manager, 0, texts);
         return {};
     }
     UI::SetAFriend(manager.friendModel, state.name, 0, state.state);
     UI::SortTheFriends(manager.friendModel, UI::SameSort);
     UI::RefreshTheFriendTab(manager);
-    // 0x4a6840 y 0x4a6430(nombre) con 0x495630: el estado en el chat con ese amigo (hito 10): ninguno.
+    // 0x4dc7f4: 0x4a6840 y el chat con el amigo (0x4a6430; el −1 pasa el JBE y 0x490a00 no lo encuentra): con el
+    // estado desde 0xfd (fuera de línea), 0x495630(1); si no, 0x495630(0).
+    const std::string_view hero = HeroNameOf(context.world.Actors()[runtime.hero]);
+    UI::RefreshTheInvites(manager, hero);
+    const std::int32_t id = UI::FindTheChatWith(manager, UI::FriendName(state.name), hero);
+    if (id == 0)
+        return {};
+    if (UI::OldWindow* chat = UI::FindTheOldWindow(manager, id); chat != nullptr)
+        UI::CloseTheChat(*chat, state.state >= UI::FirstOfflineFriendState ? 1 : 0, texts);
     return {};
 }
 } // namespace Client::Scenes

@@ -861,6 +861,79 @@ y `TooShort`) y escribe los cinco que manda (`WriteFriendListRequest`, `WriteFri
 `IGameUiRequests::SendFriendPacket`. Lo del chat con un amigo y las cartas corta con su dirección para el hito 10
 (08, P-C183). Los tests usan nombres inventados.
 
+### Las cartas y el chat con un amigo: `C5`..`CB` y la conexión de la sala
+
+(CL9 hito 10, 2026-11-13, *estático*.) La reconstrucción del GameServer 0.97 no tiene cartas ni chat con un amigo:
+el `switch` de `protocol.cpp` no tiene `C5`..`CB`. El oráculo es el ASM del cliente; el cable, de un servidor que los
+tenga, queda para la VM (08, P-C214). El dispatcher (`0x4e5ac6..0x4e5b42`) pasa `C5`..`C8`, `CA` y `CB` sin
+compuertas y sin `rand()`, como los de los amigos; no tiene caso para el `C9`, que solo sale. Los nombres van en 10
+bytes con `strncpy` a un buffer de 11 en cero.
+
+- **`C5`** (`0x4dc840`): `C1 len C5 <resultado> <ventana:u32>`. 1: el 4 a la de escribir (`0x459f70`) y
+  `sprintf(1046, 1000)` al chat (`0x555190`); 0, 2, 3, 4, 6 y 7: `+0x778` de la ventana en 0 sin mirar que esté
+  (Q-C1001) y la caja del 1053, 1061, 1064, 1065, 1068 o 423 (`0x48ee60(10, −1, −1, texto, 0, 0)`); 5 y más de 7,
+  nada.
+- **`C6`** (`0x4dc9e0`): `C1 len C6 <relleno> <número:u16> <nombre:10> <fecha:10 en pkt[0x10]> <hora:8 en pkt[0x1b]>
+  <asunto:0x20 en pkt[0x2e]> <tipo en pkt[0x4e]>`. 0 y 1: la carta al modelo (`0x49eb60`, si el número no está) y el
+  orden por la fecha (`0x49f870(2)`); 2: el sonido `0x29`, la marca de carta nueva (`0x4a6420`: `+0x144` de la lista
+  de ventanas), el 1062 al chat, la carta sin leer y el orden que estaba (−1); después, la pestaña (`0x4a0960`) y,
+  con el tope del `C0` (`0x5767970`) alcanzado, el 1073 al chat.
+- **`C7`** (`0x4dcb70`, en C2): `C2 len C7 <relleno> <número:u16> <largo:u16> <clase> <equipo:17> <dirección>
+  <acción> <cuerpo>`. Pone un 0 en `pkt[0x1c + largo]` sin mirar el tamaño (Q-C1000); guarda los primeros `0x404`
+  bytes (`0x4a03c0`, si no había copia), marca la carta leída (`+0x134 = 1`), la pestaña, y arma la de leer
+  (`0x48ee60(6)` con `sprintf(1054, asunto)` en (100, 100) o, con `0x5762f0c` distinto de −1, donde quedó la
+  anterior con el bit 0 de las banderas), el cuerpo (`0x499cb0`), la ventana en el mapa de las cartas (`0x491720`)
+  y, salvo que el que la manda empiece con `webzen` (`strncmp` de 10), el retrato: la clase (los bits 4..6 y el 4 de
+  `pkt[8]`, `0x4977d0`), el equipo (`0x497810`), la acción + `0x78` (`0x4978f0`), el ángulo (los 6 bits de abajo de
+  la dirección por 6, con el personaje armado) y el zoom (`((dir >> 6) · 5 + 0x28) · 2 · 0,01`). Por último, el 14 a
+  la ventana.
+- **`C8`** (`0x4dcd90`): `C1 len C8 <resultado> <número:u16>`. 0: la caja del 1055; 1: la carta fuera del modelo
+  (`0x49ee20`) y de las copias (`0x4a0500`); después, la pestaña.
+- **`CA`** (`0x4dce10`): `C1 len CA <IP:15> <sala:u16 en pkt[0x12]> <ticket:u32> <tipo> <nombre:10> <resultado>`. 0 y 2:
+  el amigo fuera de los pedidos (`0x4a6bc0`) y la caja del 1069 o 1070; 1: con el tipo 0, fuera de los pedidos y el
+  chat (`0x48ee60(1, 100, 100, 994)`) que entra a la sala (`0x493530`); con el 1, el chat que ya había con el amigo
+  (`0x4a6430`: con −1 nada; con uno, sale de su sala y entra a la nueva; sin ninguno, como el 2); con el 2, el chat
+  minimizado (`0x48ee60(2)`), la sala, el estado 5, al fondo (el 5 al administrador) y fuera de la pestaña de las
+  ventanas (`0x49e710`).
+- **`CB`** (`0x4dd020`): `C1 len CB <resultado> <ventana:u32>`. Con el chat de esa ventana: 0, el 1056; 1, el elegido
+  de la lista de invitar con el 1057; 3, el 1074; renglones del sistema del chat (`0x493f80` con 0xff y 1).
+
+Lo que mandan las ventanas sale en C1 con el XOR32 desde el byte 3 y en claro por el `send()` del socket, salvo la
+carta:
+
+- **`C1 0D CA <nombre:10>`**: `0x49d0b0` con el 3, con el amigo en línea, sin chat con él (`0x4a6430`) y sin pedirlo
+  ya (`0x4a6af0`); lo anota (`0x4a6910`). Con `+0xe0` del administrador en 1 (fuera de línea), nada.
+- **`C1 14 CB <nombre:10> <0> <sala:u16> <ventana:u32>`**: `0x4944c0` con el 10 y 2 (o el doble clic en la lista de
+  invitar), con el EDIT sin el foco, el elegido y de 2 a `0x1d` miembros; con más, el 1074 al chat.
+- **`C2 len C5 <ventana:u32> <nombre:10> <asunto:0x20> <dirección> <acción> <largo:u16> <cuerpo>`**: `0x498820` con
+  el 10 y 1, con el XOR32 desde el byte 4, y sale cifrado como C4 por la cola de los cifrados (`0x4992fe..0x499416`):
+  antes, un `rand()` del relleno y el serial de la tabla de protección (`0x5767913`), como el `C3 F1 02` (Q-C1002).
+  El cuerpo pasa `"\r"` a `"\n"` y se come el que sigue; `"\r\n\r\n"` deja un espacio en medio (Q-C1003). La
+  dirección es `(ángulo / 6) & 0x3f | ((zoom · 100 − 80 + 5) · 0,1) << 6` y la acción, la del retrato − `0x78`.
+- **`C1 06 C7 <0> <número:u16>`**: la pestaña de las cartas con el 10 y 2 (o el doble clic) y la de leer con el 5 y
+  el 6 (la que sigue y la de antes, `0x49ff50` y `0x4a0070`), si la carta no tiene ventana (`0x491570`) ni copia
+  (`0x4a04a0`, que vuelve a `0x4dcb70`).
+- **`C1 06 C8 <0> <número:u16>`**: el sí de la pregunta de borrar, uno por cada carta marcada de la pestaña
+  (`0x4a11b0` con el 12) o el de la de leer (`0x49a1f0`, que después se cierra).
+- **`C1 03 C9`**: la pestaña con el 10 y 5, en claro.
+
+La conexión de la sala (`0x49de50`): un lugar de 256 (`0x49e280`; sin lugar, `"max chat count over"` al chat) y un
+socket al puerto 55980 de la IP del `CA` con el mensaje `0x500 + lugar`; por ella, `C1 10 00 <0> <sala:u16>
+<ticket:10>` (el ticket en decimal con `_itoa` y el XOR de 3 bytes `FC CF AB`), los mensajes (`C1 len 04 <0> <largo>
+<texto>`, con el XOR de 3 bytes) y la salida (`C1 03 01`, del destructor `0x493a70`). Lo que llega (`0x4e1d50`, que
+despacha a `0x4dd1b0..0x4dd540` con la ventana): `00` (`0x4dd1b0`, distinto de 0, la caja del 1058), `01`
+(`0x4dd1e0`, un miembro entra o sale con el 1059 o el 1060), `02` (los miembros, en línea en `0x4e6240`), `04`
+(`0x4dd3d0`, un mensaje de hasta 100: minimizado, el 1063 al chat y la ventana oculta en la lista de ventanas; oculto
+o no arriba, el sonido `0x28` y la ventana en espera, `0x4a5e50`) y `0D` (`pkt[0x68] = 0` y el texto al chat).
+
+**MuRet** (CL9 hito 10): `Protocol::Letters` y `Protocol::FriendChat` leen y escriben todo lo de arriba (con
+`WrongPacket` y `TooShort`; el largo del `C7` que no entra en el paquete, rechazado: Q-C1000). `App::ServerSession`
+registra `C5`..`C8`, `CA` y `CB` juntos y los pasa al mundo (`Scenes::ApplyLetterSendResult`, `ApplyLetterRow`,
+`ApplyLetterRead`, `ApplyLetterDeleteResult`, `ApplyRoomAnswer` y `ApplyInviteResult`); lo que mandan las ventanas
+sale por `Scenes::SendAFriendPacket`, que saca los `rand()` de la carta. La conexión de la sala no se abre (P-C211):
+el `CA` toma el lugar y corta; `Scenes::ApplyRoomPacket` (lo de `0x4e6240`) solo lo llaman los tests. Los tests usan
+nombres y textos inventados.
+
 ## Qué implica para MuRet
 
 | Original | MuRet | Ola |

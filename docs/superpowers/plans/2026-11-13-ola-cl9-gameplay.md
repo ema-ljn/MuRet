@@ -314,6 +314,10 @@ el viewport. **Desbloquea:** 4 y 11.
       la cabeza de `0x57cfc0` (`Scenes/HeroSkills`: el derecho, el ataque automático, el reloj, la zona segura, el
       blanco `0x57ce80` y el lazo de las manos), desde MoveHero (`0x59e255`), y las órdenes del cuervo (`0x420f70`).
       Las ramas de cada clase y lo que mandan las cuatro funciones quedan cortados con su dirección (08, P-C268).
+      En la fase 2c, la rama de las clases 1, 3 y 4 (`0x581894..0x5897a7`, `Scenes/HeroSkillsKnight`: los `19` y
+      `1E` de las `0x29`, `0x2a`, `0x30`, `0x37`, `0x38`, `0x3e`, `0x3f`, `0x40`, `0x41`, `0x4b` y `0x4c`, con
+      `0x551c70`, `0x551f40`, `0x4e9920`, `0x4e9c50` y `0x57cf90`); cortan el camino de la poción (`0x581b88`) y el
+      Magic Gladiator en la rama del Wizard (`0x5897b7`) (08, P-C223).
 - [x] **Lo que llega:** el `0x19` (`0x4cc530`, 6,5 KB, con las acciones `0x94`, `0x51` y `0x5b` de
       `0x50f828`), el `0x1E` (`0x4ce000`), el `0x1B` (`0x4cbe90`), el `0x07` (los estados de un personaje,
       `GCSend_07` del GS: `0x4cbe00`, con `0x4e6910`), el `0x48`, el `0x69`, el `0x73` (`0x4d5b10`),

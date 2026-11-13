@@ -10247,9 +10247,75 @@ abierto; con una igual, `0x55a368` mira el maná y la poción y, si no alcanza, 
 (`GameSceneMovement.cpp`: `World::PickTerrain` y `PickTerrainTarget`, *inferido*) y el envío de la sesión. Los nuevos
 globales: `0x7d36840` y `0x7d368a4` en `UI::GameUiState` (`rightReleased`, `rightHoldFrames`; el soltado lo prende
 `LatchTheRightButton`), `0x6c8e50` y `0x7758580..0x7758588` en `GameMovementState` (`followTarget`, `weaponSkill`).
-Cortan con su dirección (P-C268): las ramas de las clases (`0x57d790`, `0x581894`, `0x5897b7`, `0x5808ef`), lo que
-manda `0x559890` (`0x559afc`, `0x55a368`) y `0x561f60` (`0x562024`). Las órdenes del cuervo (`0x420f70`) están
-portadas, con `Protocol::Pet::WritePetCommand`.
+Cortan con su dirección (P-C268): las ramas de las clases (`0x57d790`, `0x5897b7`, `0x5808ef`), lo que manda
+`0x559890` (`0x559afc`, `0x55a368`) y `0x561f60` (`0x562024`). La de las clases 1, 3 y 4 (`0x581894`) está portada:
+[Las skills del caballero](#las-skills-del-caballero). Las órdenes del cuervo (`0x420f70`) están portadas, con
+`Protocol::Pet::WritePetCommand`.
+
+### Las skills del caballero
+
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*.) La rama de `0x57cfc0` de las clases 1, 3 y 4 (Dark Knight, Magic
+Gladiator y Dark Lord: `+0x1d4 & 7`, `0x58187c..0x58188e`), `0x581894..0x5897a7`. Abre el registro propio en
+`0x581894` y lo tiene abierto hasta `0x5854be..0x5897a2`, donde lo cierra (3.848 `rand()`): los accesos del medio
+(`0x4f3f80`, `0x552c50`, `0x552990`, la durabilidad del caballo) no sacan nada. `EBX` vale `0x5d` (`0x58187f`) en toda
+la rama. Cada acceso a una entrada de Skill.bmd saca 60 `rand()` al cerrarla, y cada celda lógica del héroe (`+0x420`
+y después `+0x41c`) 4.
+
+1. `0x551c70(skill, 1, 0, &maná, 0, &stamina)`: el WORD `+0x22` y el WORD `+0x24` de la entrada (60).
+2. Con el héroe que no es un jugador (`0x20a`), nada más. Si el héroe publicado no tiene arma derecha (`+0x2b8` en −1)
+   o tiene un escudo (`0xc12` a `0xe11`, `MOVSX`) en una de las manos (`+0x2b8`, `+0x2d8`), solo siguen `0x30`, `0x40`,
+   `0x3f`, `0x41`, `0x3e`, `0x4b` y `0x4c`.
+3. Si se puede (`[ebp−0x3d]`, 1): la `0x3f` pide alguien en la party (`0x78aba48` > 0), la `0x4c` Fenrir (`0x1c37`) en
+   `+0x318` del publicado y la `0x3e` durabilidad en el caballo (`+0xdc6`, el lugar 8 del equipo). En Chaos Castle (18
+   a 23) no se pueden `0x3e`, `0x31`, `0x78` a `0x7b` ni `0x4c`; afuera, la `0x3e` mira la durabilidad otra vez.
+4. Con el maná de la skill por encima de `+0x24` del registro propio, `0x558110(3)` busca una poción de maná: sin ella,
+   no se puede; con ella, `0x5af520` mira las ventanas (el mensaje `0x555190` si no deja), la espera `0x5767954`, el
+   `C1 26 <casilla + 0xc> 00 <0x78abb26>` y el sonido `0x21` (`0x1c00`) o `0x20` (`0x1c01..0x1c09`), y no se puede
+   (Q-C1233). Si no, con la stamina (`+0x24` de la entrada) por encima de `+0x38`, no se puede; si no, `0x552c50` con el
+   lugar `+0x425` del publicado dice si se puede (la espera).
+5. `0x551f40`: la energía que pide, contra `+0x30 + +0x1e` (60). El Dark Lord (4): con el requisito de `0x5521f0` (60)
+   por encima de `+0x36 + +0x20` (el liderazgo), nada más, se pudiera o no. Sin poder, nada más.
+6. La skill, por la tabla `0x599e10`/`0x599de0` (la skill − `0x29`, hasta `0x23`). Las que no están (`0x2b` a `0x2f`,
+   `0x31` a `0x36`, `0x39` a `0x3d`, `0x42` a `0x4a`) van al cierre.
+
+Los envíos: el `1E` (`C1 0C 1E <skill> <x> <y> <rumbo> <b7> <b8> <clave H L> <b11>`) y el `19` (`C1 06 19 <skill>
+<clave H L>`), los dos con el XOR32 y cifrados como C3 (el relleno `0x69fd70` y el serial `0x40ae60`/`0x40b0a0`: dos
+`rand()` antes de mirar el socket), [04](04-protocolo.md#las-skills-que-se-mandan-19-y-1e). Antes de cada uno, el
+`strstr` en línea con "webzen" sobre el nombre del héroe publicado (`+0x1d9`): con él, no sale ni se leen sus celdas.
+El `1E` deja la skill en `0x5767948` y lee las celdas (8). El `19` pasa el freno de 300 ms (`0x576791c`,
+`PassesTheActionBrake`) y lleva la clave del jugador (`0x57678bc`). El rumbo es `_ftol(+0x24 · 256/360)` (`0x6ba440`).
+La clave es la de `0x558eb0(héroe, 0x7758588)` (el elegido de la skill del arma), `0xffff` si es −1. "Fuera de
+alcance" es la distancia del héroe al centro de la celda del blanco (`0x77e1ba8 · 100 + 50`, `0x77e1bac · 100 + 50`)
+mayor que el alcance · 100 (`test ah, 0x41`: con NaN, en alcance). La posición del blanco: las dos diferencias de
+celdas entre −8 y 7, arriba la X + 8 y abajo `(Y − 8) & 0xf`. Al terminar, `+0x378` en 0 (`0x5854b4`, `0x588868`).
+
+| Skill | Lo que hace |
+| --- | --- |
+| `0x29` | el rumbo hacia `+0x3a8` (`0x4e93f0` en `+0x24`), la clave, el `1E` con 0 en `b7` y `b8`; `0x4f3f80` y la acción `0x3d` |
+| `0x2a` | el rumbo; fuera de alcance, `0x6c8e38` en −1 y nada más. La celda de `0x4e9920` en `b8`, la clave, el `1E`; la acción `0x3e`, sin `0x4f3f80` |
+| `0x37` | el rumbo, las celdas (8) y la posición del blanco (`0x77e1ba8` menos la celda) en `b7`; la clave, el `1E` (las celdas otra vez); `0x4f3f80` y `0x3d` |
+| `0x38` | montado (`+0x318` de `0x1c14` a `0x1c16` o `0x1c37`) o fuera de alcance, nada. Las celdas, la posición en `b7`, el rumbo opuesto `_ftol((+0x24 + 180) · 1/360 · 255)` en `b8`, la clave y el `1E` con el rumbo `_ftol(+0x24 · 1/360 · 255)`; `0x4f3f80` y `0x8d` (la `0x5d` de Fenrir no llega, Q-C1231) |
+| `0x3e`, `0x41` | la `0x3e`, solo en el caballo oscuro (`0x1c16`) y fuera de la zona segura. Fuera de alcance, `0x6c8e38` en −1. La celda del blanco (`_ftol(+0x3a8 · 0,01)`, `_ftol(+0x3ac · 0,01)`) contra la del héroe en `b7`, la de `0x4e9920` en `b8`, la clave y, después, el rumbo; el `1E` y `0x4f3f80`. La `0x41`: `0x51` en el caballo, `0x5b` en Fenrir (fuera de la zona segura) o `0x94`; la `0x3e`: `0x53` y el sonido `0x1ce` |
+| `0x30` | el `19` y, salga o no, la acción `0x3f` |
+| `0x3f`, `0x40`, `0x4b` | el `19`, sin acción |
+| `0x4c` | la celda del blanco (· 0,01). Fuera de alcance: sin elegido, `0x6c8e38` en −1; con él, las celdas (8) y `0x4eac00(X, Y, blanco, +0x3e8, alcance · 1,2)` (`0x6b8bb0`, en float): con camino, `+0x378` en 1. En alcance: la celda de `0x4e9920`; sin elegido, `+0x434` en −1 y nada más (ni `+0x378`); si no, el rumbo, `0x552990` (la espera), la clave (sin mirar el −1), `+0x434` con el elegido y el `1E` con la celda en `b8` y la clave de la magia en `b11` (`0x57cf90` en línea: `0x77f3bad` + 1, de 1 a `0x32`, también en `+0x1bd`); `+0x378` en 0 y la acción de las manos del héroe (`0x4e9c50`) |
+
+**`0x4e9920(x, y, blancoX, blancoY)`**: con cada coordenada por −0,01 (`0x6ba110`) y su `_ftol` (las Y primero),
+`((y − blancoY + 8) << 4) | (x − blancoX + 8)`, sin enmascarar el de abajo (Q-C1232). Las de la rama le pasan la
+posición del héroe y el `_ftol` de `+0x3a8`/`+0x3ac` sin escalar. **`0x4e9c50(con, en)`**: la acción de `en` por las
+manos de `con` (`0x63` las dos, `0x64` la derecha, `0x65` la izquierda, `0x62` ninguna). **`0x551f40`**: con `+0x2c`
+en 0, 0; si no, `(+0x20 · +0x2c · 4) / 100 + 20`.
+
+Después del cierre, el Magic Gladiator sigue en la rama del Wizard (`0x5897b7`); el caballero y el Dark Lord, en
+`0x5808da`.
+
+**MuRet**: `Scenes/HeroSkillsKnight` (`UseTheKnightSkill`), con `Scenes/Skill551c70` (`SkillCostsOf`),
+`Skill551f40` (`SkillEnergyRequirement`), `Skill4e9920` (`RelativeTargetCell`), `Skill4e9c50` (`ActionByTheHands`) y
+`Skill57cf90` (`NextMagicKey`), que llaman también otras ramas; `ChosenKeyOf` con el elegido como argumento;
+`Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic`. Los nuevos globales en `GameMovementState`: `0x5767948`
+(`sentSkill`) y `0x77f3bad` (`magicKeyCounter`); `+0x1bd` es `ActorState::magicKey`. `HeroSkillContext` lleva la
+clave del jugador, `GetTickCount` y el esqueleto del jugador. Cortan (P-C223): el camino de la poción (`0x581b88`), el
+Magic Gladiator después de la rama (`0x5897b7`), `0x4ea030` sin el esqueleto y el freno sin el reloj.
 
 ### Las órdenes del cuervo
 

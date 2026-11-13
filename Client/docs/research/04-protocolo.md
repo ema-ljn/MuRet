@@ -931,8 +931,23 @@ Los avisos: el `19` (`0x4cc562..0x4cce21`) y el `1E` (`0x4ce032`) que no llegaro
 **MuRet**: `Protocol::Skill` lee los nueve (WrongPacket con otro tipo u opcode, TooShort si faltan campos) y escribe
 el aviso (`WriteClearSkillReport`); `App::ServerSession` los registra juntos (`RegisterSkillHandlers`) y los pasa al
 mundo, donde `Scenes::SessionEventApplier::ApplySkillEvent` los manda a `Scenes/SkillReplies`. El `B7` y los C→S de
-las skills (`19`, `1E`, `D3`, `DF` y `26` de las cuatro funciones por clase) son de la fase 2 (08, P-C264). Los tests
-usan claves inventadas.
+las skills (`19`, `1E`, `D3`, `DF` y `26` de las cuatro funciones por clase) son de la fase 2 (08, P-C264; los `19` y
+`1E` de la rama del caballero, abajo). Los tests usan claves inventadas.
+
+### Las skills que se mandan: `19` y `1E`
+
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*, contra `protocol.cpp` del GameServer reconstruido.) Las ramas de las
+clases de `0x57cfc0` los arman en línea, con el XOR32 desde `pkt[3]` (`EBX` en `0x5d`), y los mandan cifrados como C3:
+el relleno (`0x69fd70`) y el serial (`0x40ae60`, `0x40b0a0`) sacan dos `rand()` antes de mirar el socket (`+0xc` de
+`0x6c82a0`). Lo que hacen y cuándo, en [06](06-render-escenas-y-ui.md#las-skills-del-caballero).
+
+| Paquete | Layout | GameServer 0.97 |
+| --- | --- | --- |
+| `19` | `C1 06 19 <skill> <clave H L>`; las `0x30`, `0x3f`, `0x40` y `0x4b` del caballero mandan la clave del jugador (`0x57678bc`) | `CGMagicAttack` (`0x425f60`) lo pide cifrado (`DataEncryptCheck`) y lee la skill y la clave; `PMSG_MAGICATTACK` tiene un `Dis` más que no lee. El repack lo recibe como `A5` |
+| `1E` | `C1 0C 1E <skill> <x> <y> <rumbo> <b7> <b8> <clave H L> <b11>`: la celda lógica del héroe, el rumbo (`· 256/360`; la `0x38`, `· 1/360 · 255`), en `b7` la posición del blanco y en `b8` la celda de `0x4e9920` o el rumbo opuesto, la clave del elegido y en `b11` la clave de la magia (`0x57cf90`, la `0x4c`) | `CGDurationMagicRecv` (`0x427870`) lo pide cifrado y lee los cuatro primeros (`PMSG_DURATION_MAGIC_RECV`); `EnableSkill` (`0x457694`) deja `0x29`, `0x2a` y `0x37`, no `0x38`, `0x3e`, `0x41` ni `0x4c` (Q-C1230). También `A6` |
+
+**MuRet**: `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic` (`EncryptedC1`); los dos `rand()` del C3 los saca
+quien los manda (`Scenes::UseTheKnightSkill`). Los tests usan claves inventadas.
 
 ### Las órdenes del cuervo: `A7` y `A8`
 

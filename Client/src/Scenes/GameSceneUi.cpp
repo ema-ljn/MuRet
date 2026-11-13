@@ -336,6 +336,9 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                                         .pass = pass.Value()});
         hud.uiItems = &*uiItems;
     }
+    // 0x42403d: el A9 del tooltip de las mascotas sale por la sesión del juego, como el del botón de la mascota.
+    if (App::ServerSession* session = m_session; session != nullptr && !m_projectingFrame)
+        hud.send = [session](Protocol::Outgoing packet) { session->SendChat(std::move(packet)); };
     // 0x637646: 0x6219b0 empieza el 2D (gluOrtho2D y MODELVIEW identidad, con push): el lote de SceneCanvas.
     // 0x63764b: 0x4383f0, los textos 3D.
     WorldTextDrawContext worldTexts{.queue = runtime.worldTexts,

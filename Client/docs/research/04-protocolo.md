@@ -101,7 +101,9 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
     personaje (C), la que abre la tecla C (06 § HUD y ventanas). *Verificado* en el cable: 9 en el `muproxy.log` y 10 en la sesión real, todos
     `01 00 08` y todos después de entrar al mundo.
   - `0x422990` manda el de un ítem `0x1a04` o `0x1a05` cuando cambia el que se mira (lo llama la UI,
-    `0x5b2b0d`), con el lugar y la casilla que recibe.
+    `0x5b2b0d`): la mascota (1 el caballo, 0 el cuervo) y los bytes de abajo de `0x78abb28` y `0x78abb2c`, la
+    ventana y el lugar del ítem del cartel (desde el inventario, 0 y la casilla + 12 o el lugar del equipo).
+    *Estático*; MuRet lo manda desde la CL9 hito 4 (`Scenes::DrawThePetTooltip`, [06](06-render-escenas-y-ui.md#el-a9-de-las-mascotas)).
 
   La respuesta S->C es el handler `A9` (`0x4e4ca1` → `0x421db0`): guarda por `pkt[3]` (el tipo) el
   nivel de `pkt[6]` y un DWORD de `pkt[8]` en la tabla de `0x723960`, y recalcula los atributos

@@ -91,6 +91,13 @@ ItemSetNameOf(const GameHudContext& context, std::uint16_t type, std::uint8_t pi
 void WriteTheItemClasses(const GameHudContext& context, TooltipWriter& lines,
                          std::span<const std::byte, Data::Tables::ItemRecordSize> record);
 
+// 0x5b2320(tipo, renglón, opción, valor, maná): el texto de la opción `tag` en el renglón que sigue de `lines`, sin su
+// color ni su negrita. Las que leen el maná abren la entrada de la skill de la opción (0x551c70, que pisa el maná del
+// argumento: 60 rand() si su cuenta vuelve a 0). Una opción que no está en la tabla de 0x5b2a00 deja el renglón como
+// estaba. La llaman las opciones del ítem (0x5b7c62), la caja azul (0x5b7e49) y el tooltip de las mascotas (0x423b1d).
+[[nodiscard]] Core::Expected<void, std::string> WriteAnOption(GameHudContext& context, TooltipWriter& lines,
+                                                              std::int32_t type, std::uint8_t tag, std::uint8_t value);
+
 // 0x5b79bd..0x5b801a: las clases (0x5af590), lo que suma cada tipo, el stat del conjunto (0x40dd80), las opciones
 // (0x5b2320), las cajas 0x1a20 a 0x1a25 y las opciones del conjunto (0x40eee0).
 [[nodiscard]] Core::Expected<void, std::string> WriteTheOptions(ItemTooltipFrame& frame);

@@ -320,15 +320,17 @@ el viewport. **Desbloquea:** 4 y 11.
       el `B7`, la lista de skills (`F3 11`, `0x4c5070`) y el invocado (`F3 20`, `0x5ab210`). *Hecho
       (2026-11-13):* `Protocol/Skill`, `Scenes/SkillReplies` y `Scenes/ActorFlags`, salvo el `B7` (del asedio,
       08, P-C264 e), el dibujo del invocado (`0x5ab210`) y los efectos de la CL11 (P-C265).
-- [ ] **El cuervo y las mascotas:** las órdenes del `A7` (los paquetes de `0x416a20`, `0x418920` desde
+- [x] **El cuervo y las mascotas:** las órdenes del `A7` (los paquetes de `0x416a20`, `0x418920` desde
       `0x41835a`, el objetivo de `+0x3b0` y los estados 2, 5 y 6 del cuervo), el `A8`, el `A9` (`0x421db0`,
       `0x4225d0`, `0x422930`, la ventana `0x424160`, el tooltip `0x422990`), `0x420cd0`, y los íconos de estado
-      (`0x42a660`). *Hecho en parte (2026-11-13):* el `A7` y el `A8` (`Protocol/Pet/PetOrders`,
+      (`0x42a660`). *Hecho (2026-11-13):* el `A7` y el `A8` (`Protocol/Pet/PetOrders`,
       `Scenes/PetOrders`); en la fase 2, los estados 2, 5 y 6 del paso, `0x418920` (con sus efectos cortados, CL11), el
       `A9` (`Scenes/PetStats`), `0x420cd0`, abrir y cerrar el panel `0x400` y el paso de la ventana (`0x424759`); los
       íconos ya estaban; en la fase 2b, las órdenes del derecho (`0x420f70`, `Scenes/HeroSkills`); en la fase 2c, el
       dibujo de la ventana (`0x424160`, `0x4249a0`, `0x424e40`, `0x416670`, `0x4149b0` y el cartel del cuervo
-      `0x418460`, `Scenes/GamePetWindow`). Queda el tooltip (`0x422990`) (08, P-C266).
+      `0x418460`, `Scenes/GamePetWindow`) y el tooltip (`0x422990`, `Scenes/PetTooltip`, con el `A9` que pide; el
+      precio de la tienda de NPC corta hasta `0x5b1130`, 08 P-C246). Los joints del cuervo con `0xfe` y `0xff` y los
+      efectos del ataque quedan para la CL11 (08, P-C266).
 
 **Pruebas:** cada skill de cada clase manda sus bytes; el `0x19` y el `0x1E` sobre el héroe y sobre otro; las
 demoras; los `rand()` de la barra con skills (hoy se sacan sin ninguna); el cuervo con cada orden.

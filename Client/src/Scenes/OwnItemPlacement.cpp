@@ -118,30 +118,34 @@ ItemRecordOf(std::uint16_t type, const WorldEntryResources& resources, std::stri
 }
 } // namespace
 
+// 0x4225ec..0x422606: el lazo que busca la 0x96.
+std::uint8_t DarkHorseOptionPlace(const ItemState& item)
+{
+    for (std::uint8_t index = 0; index < item.optionCount; ++index)
+    {
+        if (item.OptionTag(index) == DarkHorseOption)
+            return index != 0 ? index : item.optionCount;
+    }
+    return item.optionCount;
+}
+
+void AddTheDarkHorseOption(ItemState& item, const WorldEntryResources& resources)
+{
+    AddTheDarkHorseOption(item, resources.world, resources.world.Runtime().ownRecordDepth, resources.cloth.random);
+}
+
 // 0x4225d0(item) desde 0x54cc5c, con el Dark Horse (0x4225dc). Busca la opción 0x96 desde la primera; en la
 // primera no la toma (0x422600: con el índice en 0 sigue como si no estuviera, Q-C415). Con ella, le reescribe
 // el valor; sin ella, la agrega al final. El valor, con el registro propio abierto (0x40b240/0x40ad90 y 0x40b440,
 // y lo cierra 0x40b4d0, con sus 3.848 rand() si queda sin accesos): (+0x1a / 20 con signo, sobre el word sin
 // signo) + 2 · el byte de abajo de [0x72397c] + 5, en un byte. El tag va después de cerrar (0x42281c, 0x42291c).
-void AddTheDarkHorseOption(ItemState& item, const WorldEntryResources& resources)
+void AddTheDarkHorseOption(ItemState& item, const WorldState& world, std::uint8_t& ownRecordDepth,
+                           Render::Models::CrtRandom& random)
 {
-    std::optional<std::uint8_t> found;
-    for (std::uint8_t index = 0; index < item.optionCount; ++index)
+    const std::uint8_t index = DarkHorseOptionPlace(item);
+    const bool found = index != item.optionCount;
     {
-        if (item.OptionTag(index) == DarkHorseOption)
-        {
-            if (index != 0)
-            {
-                found = index;
-            }
-            break;
-        }
-    }
-    WorldState& world = resources.world;
-    {
-        const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
-                                                   Render::Models::OwnRecordCloseRandoms);
-        const std::uint8_t index = found.value_or(item.optionCount);
+        const Render::Models::LogicalAccess access(ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
         // OptionTag corta con diagnóstico si el índice se pasa de las nueve que guarda ItemState.
         static_cast<void>(item.OptionTag(index));
         const std::uint32_t agility = world.OwnCharacter().agility;
@@ -149,7 +153,6 @@ void AddTheDarkHorseOption(ItemState& item, const WorldEntryResources& resources
         item.optionBytes[World::ItemOptionValueOffset + index] =
             static_cast<std::uint8_t>((agility / AgilityDivisor) + (HorseLevelFactor * level) + DarkHorseOptionBase);
     }
-    const std::uint8_t index = found.value_or(item.optionCount);
     item.optionBytes[index] = DarkHorseOption;
     if (!found)
     {

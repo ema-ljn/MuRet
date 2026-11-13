@@ -2089,8 +2089,9 @@ más pisa lo que sigue a los textos (el ítem del cursor, `0x7879f80`), y MuRet 
 
 **El principio** (`0x5b2aa0..0x5b2cad`). Con el tipo `0xffff` sale sin tocar nada. Si no, pone N y M en 0, limpia
 los 20 colores y los 30 textos y llama a `0x422990`, que con `0x1a04` y `0x1a05` dibuja su propio tooltip (el de la
-mascota, con el `A9`) y devuelve 1: el cuerpo sale. El registro de Item.bmd es `[0x7758550] + tipo · 0x54`, sin
-mirar el rango. Escribe un `\n` y toma el nivel, `(D+4 >> 3) & 0xf`. El color del nombre:
+mascota, con el `A9`: "El tooltip de las mascotas", en [El A9 de las mascotas](#el-a9-de-las-mascotas)) y devuelve 1:
+el cuerpo sale. El registro de Item.bmd es `[0x7758550] + tipo · 0x54`, sin mirar el rango. Escribe un `\n` y toma
+el nivel, `(D+4 >> 3) & 0xf`. El color del nombre:
 
 | ítem | color |
 | --- | --- |
@@ -2293,8 +2294,8 @@ Cada renglón escrito, salvo los `\n`, lleva su color (0 si no dice otro) y la n
 ventana y el cartel del set, el cuerpo del ítem, el de reparar (con el precio de un ítem gastado, § El precio de un
 ítem), el sprintf del CRT (`UI/SprintfFormat`) y `0x40ebd0` en la cola de los comandos del chat
 (Q-C594). Los tests son `test_game_tooltips.cpp`, `test_item_tooltips.cpp`, `test_sprintf_format.cpp` y
-`test_chat_commands.cpp`. Del cuerpo del ítem cortan con su dirección: `0x1a04` y `0x1a05` (`0x4229d4`, P-C126), el
-precio de la tienda de NPC (`0x5b2d23`), el nombre del `0x1c0c` de nivel 2 (la tabla de `0x6c9350`) y del `0x1a0a` (la
+`test_chat_commands.cpp`. Del cuerpo del ítem cortan con su dirección: `0x1a04` y `0x1a05` (`0x4229d4`, P-C126,
+portado en la CL9), el precio de la tienda de NPC (`0x5b2d23`), el nombre del `0x1c0c` de nivel 2 (la tabla de `0x6c9350`) y del `0x1a0a` (la
 tabla de monstruos de `0x7681eb8`), las líneas del `0x1a1d` (`0x5b63b7`) y del `0x1c1c` (`0x437c90`), el `0x1a13`
 desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125). El cuerpo de la skill y la ayuda
 de los comandos están en `Scenes/SkillTooltip.cpp`, con `0x5516e0` en `Scenes/OwnDamage` (`test_skill_tooltip.cpp`).
@@ -2361,7 +2362,7 @@ ventana y el cartel del set, el cuerpo del ítem, el de reparar con su precio (`
 (Q-C594). Los tests son `test_game_tooltips.cpp`, `test_item_tooltips.cpp`, `test_item_price.cpp` (con Item.bmd real
 para los de oro), `test_sprintf_format.cpp` y `test_chat_commands.cpp`. Del precio cortan con su dirección las lecturas
 que MuRet no tiene, como en P-C140. Del cuerpo del ítem cortan con su dirección: `0x1a04` y `0x1a05` (`0x4229d4`,
-P-C126), el precio de la tienda de NPC (`0x5b2d23`, con el cálculo listo), el nombre del `0x1c0c` de nivel 2 (la tabla
+P-C126, portado en la CL9), el precio de la tienda de NPC (`0x5b2d23`, con el cálculo listo), el nombre del `0x1c0c` de nivel 2 (la tabla
 de `0x6c9350`) y del `0x1a0a` (la tabla de monstruos de `0x7681eb8`), las líneas del `0x1a1d` (`0x5b63b7`) y del
 `0x1c1c` (`0x437c90`), el `0x1a13` desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125).
 El de la skill (`0x5b90b0`) corta con su dirección (P-C101). La ayuda del ítem (el modo 3) está en § HUD y
@@ -10350,8 +10351,8 @@ personaje vuelve a pedir el caballo. Con `0x723911` en 2, `0x424759..0x424990`: 
 el personaje abierto), 190 × 433 es de la UI; las dos pestañas, de a 45 desde 15 y de 49 de ancho: la que no está
 elegida, entre 67 y 83, la elige (`0x723910`); la elegida, entre 63 y 83, solo se come el clic; el botón de cerrar
 (20, 395, 24 × 24) cierra el `0x400`. **MuRet**: `UI::PanelRegistry::Open`/`CloseByMask` y `StepThePetWindow`
-(`GameCharacterWindowTest.ThePetWindowOpensChoosesItsTabAndCloses`). El tooltip de las mascotas (`0x422990`) sigue sin
-portar (08, P-C266).
+(`GameCharacterWindowTest.ThePetWindowOpensChoosesItsTabAndCloses`). El tooltip de las mascotas (`0x422990`) va más
+abajo.
 
 **El dibujo de la ventana de la mascota** (CL9 hito 4, fase 2c, 2026-11-13, *estático*). `0x5f7440` llama siempre a
 `0x424160(héroe)` (`0x5f75e7`, el héroe de `[0x743a170]`), entre la ventana de las misiones y la `0x2000`:
@@ -10403,6 +10404,51 @@ liderazgo; el cuervo, uno; el cartel, otro) y la skill `0x3e`, 60; cada ancho de
 **MuRet**: `Scenes::DrawThePetWindow` (`Scenes/GamePetWindow`), desde `DrawTheWindows`; un dibujo intermedio no
 escribe el 0 de `0x723911` (lo vuelve a escribir el paso). La rama `0x415869` corta (08, P-C245). Las cuatro texturas
 (`0xf5`, `0x646`, `0x65d` y `0x65e`) van en `HudTextureSet` (`test_game_pet_window.cpp`).
+
+**El tooltip de las mascotas** (CL9 hito 4, fase 2c, 2026-11-13, *estático*). `0x5b2aa0` pone N y M (`0x78abb30` y
+`0x78abb34`) en 0, limpia los 20 colores y los 30 textos y llama a `0x422990(x, y, ítem, grilla)` (`0x5b2b0d`). Con
+otro tipo que `0x1a04` (el caballo) o `0x1a05` (el cuervo) devuelve 0 y el cuerpo sigue; con esos dos devuelve 1 y el
+cuerpo sale (`0x5b2b17`):
+
+- **El pedido** (`0x4229d4..0x422a12`, `0x423c65..0x42403d`): la clave es `((y & 0xffff) << 16) | (x & 0xffff)`. Si
+  no es la de `[0x723914]`, o el tipo no es `[0x723918]` (word), o `D+4` no es `[0x72391c]`, guarda los tres y manda
+  `C1 06 A9`, la mascota (1 el caballo, 0 el cuervo) y los bytes de abajo de `0x78abb28` y `0x78abb2c` (la ventana y
+  el lugar del ítem del cartel, [04](04-protocolo.md)), con el XOR32, y no dibuja nada en ese frame. Arrancan en 0;
+  `0x421d90` (desde el comercio, `0x44c633`) pone en 0 dieciocho dwords desde `0x723918`: el tipo y `D+4`, no la clave.
+  El frame siguiente dibuja con lo que haya en `0x723960`, conteste o no el servidor.
+- **El cuerpo** (N en `EBX` y M en `[EBP−0x24]`; no toca `0x78abb30` ni `0x78abb34`): `0x4221d0(mascota)` con su acceso
+  al registro propio; el precio: con la tienda de NPC abierta (`IsOpen(0x10000)`, 1 `rand()`), `0x422930` / 3 / 100 ·
+  100 con el formato de `0x5b1130` en el 63, un `"
+"`, N = 2 y M = 1; si no, `IsOpen(0x800)` y, sin ella,
+  `IsOpen(0x20000)`, y con alguna y `0x78abaa4` el de la tienda personal (`0x422b12`). Después: el color 1 y la negrita
+  1 en N (antes de mirar el tipo); el nombre, `sprintf` del 1187 (el caballo, que pide el nivel `nivel · 2 + 0xda`) o
+  del 1214 (el cuervo, que pide el liderazgo `nivel · 15 + 0xb9`), N y M suben; el color 0 y dos `"
+"`; la
+  experiencia y la que sigue (201, `+0` y `+4`), el nivel (`"%s : %d"` con el 368 y `+8`) y M + 4; el cuervo, el daño
+  (203, `+0xc`, `+0xe` y `+0x12`) y la velocidad (64, `+0x10`) y M + 2; la durabilidad (70, `+0xa`) y M + 1. El caballo,
+  el nivel pedido (76) y, con el registro propio abierto, si su nivel (`+0xe`) no alcanza, el renglón en rojo sin
+  negrita y lo que falta (74) igual; si alcanza, en blanco sin negrita. El cuervo, el liderazgo pedido (698) y, con el
+  registro abierto, `+0x36 + +0x20` en 16 bits: si no alcanza, sin negrita y en rojo, y lo que falta (74) en rojo; el
+  último renglón sin negrita. Un `"
+"`, las clases (61 con el 24) en el 5 y M + 2. Las opciones, mientras `i < D+0x2a`
+  (la cuenta se vuelve a leer): `0x4225d0(ítem)` (con el cuervo vuelve enseguida) y `0x5b2320(tipo, renglón, tag, valor,
+  0)`, en azul sin negrita, y M + 1 por cada una. El caballo, la defensa (744, `(nivel + 30) / 2`) en azul con la
+  negrita que hubiera y M + 1, y la skill (1188 con 2) en azul sin negrita. Los renglones que no escribe la negrita
+  quedan con la de antes.
+- **La caja** (`0x423bf1..0x423c4a`): cy de la primera letra del renglón 0 en la fuente del DC, `h = (N − M) · cy + M ·
+  cy / 2` (con signo), y `0x5af090(x, y − _ftol(h / ry), N, 0, 2, 1)`, o en y si la resta da negativo. M cuenta
+  renglones de texto y no sus `"\n"`: la caja sube menos de lo que mide (Q-C1043).
+
+Los `rand()`: el de la tienda de NPC y 60 por cada opción que lee el maná de su skill (la de skill del caballo, `0x3e`);
+los accesos al registro propio (`0x4221d0`, los requisitos y `0x4225d0`) cierran dentro del de `0x5f7bc0`. Con la `0x96`
+en la primera opción del caballo (Q-C415), cada `0x4225d0` del lazo agrega otra y el lazo no termina hasta que la
+cuenta da la vuelta (Q-C1044). **MuRet**: `Scenes::DrawThePetTooltip` (`Scenes/PetTooltip`), desde
+`DrawTheItemTooltip`; el pedido anotado en `WorldRuntime::petTooltipQuery` y el `A9` por `GameHudContext::send`;
+`UpdatePetStats` y `AddTheDarkHorseOption` con la cuenta de accesos dada, y `WriteAnOption` (`0x5b2320`) a la vista. Un
+dibujo intermedio no anota ni pide, y escribe la tabla de las mascotas y la opción del caballo en copias. Cortan con su
+dirección el precio de la tienda de NPC (`0x422a55`, el formato de `0x5b1130` es de la CL9.3, 08 P-C246) y una `0x96`
+fuera de las nueve opciones de `ItemState` (`0x423b07`, Q-C1044). La tienda personal no llega (`0x78abaa4` en 0, como en
+el cuerpo del ítem). Tests: `test_pet_tooltip.cpp`.
 
 ### Las misiones
 

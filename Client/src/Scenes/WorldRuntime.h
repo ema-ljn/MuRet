@@ -196,6 +196,19 @@ struct PetStats
     std::uint16_t word12 = 0;
 };
 
+// 0x723914, 0x723918 y 0x72391c: el último ítem del que el tooltip de las mascotas (0x422990) pidió el A9. Si el ítem
+// que muestra no es ese (otro lugar de la caja, otro tipo u otro D+4), lo anota, pide el A9 y no dibuja nada en ese
+// frame. Arrancan en 0 (la .bss). 0x421d90, desde el comercio (0x44b910, CL9.3), pone en 0 dieciocho dwords desde
+// 0x723918: el tipo y D+4, no la clave.
+struct PetTooltipQuery
+{
+    // ((y & 0xffff) << 16) | (x & 0xffff), con la x y la y de 0x422990: el centro de arriba de la caja.
+    std::uint32_t key = 0;
+    std::uint16_t type = 0;
+    // D+4 del ítem (World::ItemState::scalar1Low).
+    std::uint32_t scalar = 0;
+};
+
 // Un nodo de la lista de huesos con nombre de [0x6e5640] (0x401000 → 0x4011c0): el personaje (el lugar del pool), el
 // nombre que le da el creador del monstruo y el hueso de su modelo. Lo leen los efectos (CL11).
 struct NamedBone
@@ -356,6 +369,8 @@ struct WorldRuntime
     // 0x723910: la pestaña de la ventana de la mascota (0 el caballo, que dibuja 0x424e40, y 1 el cuervo, 0x416670),
     // que eligen los dos botones de 0x424759. El 0x723911 de al lado es UI::DelegatedPanels::pet.
     std::uint8_t petTab = 0;
+    // 0x723914, 0x723918 y 0x72391c: de qué ítem pidió el A9 el tooltip de las mascotas (0x422990).
+    PetTooltipQuery petTooltipQuery{};
     // DAT_057678b0: el lugar del pool que la respuesta del F3 03 elige para el héroe, rand() % 400
     // (0x4c44d4, la única escritura; 06, "La entrada al mundo", fila 3). Cada respuesta lo vuelve a
     // sortear.

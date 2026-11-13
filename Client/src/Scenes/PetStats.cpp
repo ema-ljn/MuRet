@@ -17,6 +17,7 @@
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -192,12 +193,18 @@ void ResetThePets(WorldRuntime& runtime)
 
 void UpdatePetStats(std::uint8_t pet, WorldState& world, Render::Models::CrtRandom& random)
 {
+    WorldRuntime& runtime = world.Runtime();
+    UpdatePetStats(pet, world, runtime.pets, runtime.ownRecordDepth, random);
+}
+
+void UpdatePetStats(std::uint8_t pet, const WorldState& world, std::array<PetStats, PetStatsCount>& pets,
+                    std::uint8_t& ownRecordDepth, Render::Models::CrtRandom& random)
+{
     std::uint32_t allowance = 0;
     std::uint32_t strength = 0;
     std::uint32_t word2a = 0;
     {
-        const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, random,
-                                                   Render::Models::OwnRecordCloseRandoms);
+        const Render::Models::LogicalAccess access(ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
         const OwnCharacterRecord& own = world.OwnCharacter();
         strength = own.strength;
         allowance = static_cast<std::uint32_t>(own.word36) + own.leadership;
@@ -205,7 +212,7 @@ void UpdatePetStats(std::uint8_t pet, WorldState& world, Render::Models::CrtRand
     }
     if (pet != RavenPetStats && pet != DarkHorsePetStats)
         return;
-    PetStats& stats = world.Runtime().pets[pet];
+    PetStats& stats = pets[pet];
     const std::uint32_t level = stats.level;
     stats.nextExperience = NextExperience(level);
     if (pet == RavenPetStats)

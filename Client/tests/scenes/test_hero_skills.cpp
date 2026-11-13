@@ -737,31 +737,35 @@ TEST(HeroSkillsTest, TheWeaponSkillsGoToTheirTails)
         EXPECT_EQ(ClearBytesOf(tested->sent[2]), (std::vector<std::uint8_t>{0xc1, 0x05, 0xdf, 184, 117}));
     }
     {
-        // 0x561f60: la del elfo, sin la lista; fuera de la 0x18 y la 0x36 no tira y sigue a la rama de la clase.
+        // 0x561f60: la del elfo, sin la lista; fuera de la 0x18 y la 0x36 no tira y sigue a la rama de la clase
+        // (0x57d790), que con la 0x13 no manda nada.
         const auto tested = AHeroClicking(0x13, Elf);
         auto& item = tested->world.OwnCharacter().equipment[0];
         item.optionCount = 1;
         item.optionBytes[0] = 0x13;
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x57d790")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_TRUE(tested->sent.empty());
     }
 }
 
-// El elfo mira las dos manos con 0x561f60 y, sin la opción, va a su rama (0x57d790).
+// El elfo mira las dos manos con 0x561f60 y, sin la opción, va a su rama (0x57d790): la cabeza (el registro propio y
+// las entradas del costo, de la espera y de la energía), el blanco y, en alcance, la skill del arma con el elegido y la
+// celda lógica para la línea de vista; la 0x18 no es de las que mandan ahí (HeroSkillsElf, con sus tests).
 TEST(HeroSkillsTest, AnElfLooksAtBothHandsAndGoesToItsBranch)
 {
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
         const auto tested = AHeroClicking(0x18, Elf, map);
-        const CrtRandom expected = Advanced(tested->random, AimDraws + 2 * OwnDraws);
+        const CrtRandom expected =
+            Advanced(tested->random, AimDraws + 2 * OwnDraws + OwnDraws + 3 * EntryDraws + 2 * CellDraws);
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x57d790")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(tested->random.State(), expected.State());
-        EXPECT_EQ(tested->Movement().weaponSkill.active, 0u);
+        EXPECT_TRUE(tested->sent.empty());
+        EXPECT_EQ(tested->Movement().weaponSkill.active, 1u);
+        EXPECT_EQ(tested->Movement().weaponSkill.target, static_cast<std::int32_t>(ChosenSlot));
     }
 }
 
@@ -1192,7 +1196,7 @@ TEST(HeroSkillsTest, TheElfPenetrationSendsWhereTheTargetIs)
 }
 
 // 0x562a8a y 0x563eae: con "webzen" en el nombre no sale el 1E (y no hay freno), pero la usó; fuera de alcance
-// (0x56298f, 0x563e66), ni el 1E ni el rumbo, y sigue a la rama de la clase.
+// (0x56298f, 0x563e66), ni el 1E ni el rumbo, y sigue a la rama de la clase, que con un monstruo no camina.
 TEST(HeroSkillsTest, TheElfShotNeedsTheNameAndTheReach)
 {
     {
@@ -1210,13 +1214,14 @@ TEST(HeroSkillsTest, TheElfShotNeedsTheNameAndTheReach)
         const auto tested = AnElfWithTheOption(0x36, 2);
         tested->world.Actors()[ChosenSlot].position = {18850.0f, 11550.0f, 0.0f};
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x57d790")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_TRUE(tested->sent.empty());
+        EXPECT_EQ(tested->Hero().movement, 0);
     }
 }
 
-// 0x56205f..0x562092: sin maná y sin poción, la opción que sigue (y la rama de la clase); con una, 0x5af520 (hito 5).
+// 0x56205f..0x562092: sin maná y sin poción, la opción que sigue (y la rama de la clase, que sin maná ni poción no
+// sigue, 0x57d821); con una, 0x5af520 (hito 5).
 TEST(HeroSkillsTest, TheElfShotWithoutMana)
 {
     for (const std::int32_t map : {0, 2})
@@ -1225,8 +1230,7 @@ TEST(HeroSkillsTest, TheElfShotWithoutMana)
         const auto tested = AnElfWithTheOption(0x18, map);
         tested->skills = SkillsWith({{0x18, 6, 0, 0x10}});
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x57d790")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         auto& potion = tested->world.Inventory().cells[30];
         potion.id = 0x1c04;
         potion.occupied = 1;

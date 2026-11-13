@@ -332,6 +332,10 @@ el viewport. **Desbloquea:** 4 y 11.
       `0x551f40`, `0x4e9920`, `0x4e9c50` y `0x57cf90`, y el costo y la poción de `Scenes/HeroSkillCasts`); corta
       la poción con una en el inventario (`0x581b9e`, hito 5), y el Magic Gladiator sigue en la rama del Wizard
       (`0x5897b7`) (08, P-C223).
+      En la fase 2c-A2, la rama del elfo (`0x57d790..0x58187c`, `Scenes/HeroSkillsElf`: los `19` de las
+      invocaciones, de las `0x1a` a `0x1c` y de la `0x35`, y los `1E` de la `0x34` y la `0x4c`) y `0x55faa0`
+      (`Scenes/Skill55faa0`, con el `D3`, sus `19` y `0x4f48e0`); cortan la poción (`0x57d837`, hito 5) y
+      `0x5808da` (08, P-C220).
 - [x] **Lo que llega:** el `0x19` (`0x4cc530`, 6,5 KB, con las acciones `0x94`, `0x51` y `0x5b` de
       `0x50f828`), el `0x1E` (`0x4ce000`), el `0x1B` (`0x4cbe90`), el `0x07` (los estados de un personaje,
       `GCSend_07` del GS: `0x4cbe00`, con `0x4e6910`), el `0x48`, el `0x69`, el `0x73` (`0x4d5b10`),

@@ -10311,9 +10311,10 @@ abierto; con una igual, `0x55a368` mira el maná y la poción y, si no alcanza, 
 (`GameSceneMovement.cpp`: `World::PickTerrain` y `PickTerrainTarget`, *inferido*) y el envío de la sesión. Los nuevos
 globales: `0x7d36840` y `0x7d368a4` en `UI::GameUiState` (`rightReleased`, `rightHoldFrames`; el soltado lo prende
 `LatchTheRightButton`), `0x6c8e50` y `0x7758580..0x7758588` en `GameMovementState` (`followTarget`, `weaponSkill`).
-Cortan con su dirección (P-C268): la rama del elfo (`0x57d790`) y las `0x43` a `0x48` (`0x5808ef`). La de las clases
-1, 3 y 4 (`0x581894`) y la del Wizard (`0x5897b7`, también la del Magic Gladiator después de la suya) están portadas:
-[Las skills del caballero](#las-skills-del-caballero) y [La rama del Wizard](#la-rama-del-wizard). Las órdenes del
+Corta con su dirección (P-C268) `0x5808da`, las `0x43` a `0x48` (`0x5808ef`). La rama del elfo (`0x57d790`), la de
+las clases 1, 3 y 4 (`0x581894`) y la del Wizard (`0x5897b7`, también la del Magic Gladiator después de la suya) están
+portadas: [La rama del elfo](#la-rama-del-elfo), [Las skills del caballero](#las-skills-del-caballero) y
+[La rama del Wizard](#la-rama-del-wizard). Las órdenes del
 cuervo (`0x420f70`) están portadas, con `Protocol::Pet::WritePetCommand`.
 
 #### Lo que mandan las skills de las armas (fase 2c)
@@ -10367,6 +10368,67 @@ derecha con el subtipo 0 (`Scenes::OwnerBonePointOf`, con el modelo de Player.bm
 del primer dibujo, la matriz en cero, Q-C318). El paso (`0x546d54`) pone la escala en `sin(vida · π/18) · 3`
 (`[0x6ba370]`, `[0x6b86b8]`) y vuelve a llamar a `0x53fdb0`, sin `rand()`; el dibujo es el billboard común (`0x5488f6`,
 el byte 8 de `0x548cf0` → `0x54889a`) con Shiny03 (`0x61d937`).
+
+### La rama del elfo
+
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*.) `0x57d790..0x58187c`, el paso 11 de [Usar una skill](#usar-una-skill)
+con la clase 2 (`+0x1d4 & 7`); los pedazos `0x57fa46..0x5808da` y `0x58097a..0x58187c` solo los muestra `objdump`. La
+skill está en `[ebp-0x44]`, el héroe en `[ebp+8]` y el alcance en `[ebp-0x50]`.
+
+1. **La cabeza**, con el registro propio abierto (3.848 `rand()` al cerrarlo): `0x551c70` (la entrada, 60 `rand()`),
+   el maná contra `+0x24` (`JLE` con signo; sin él, `0x558110(3)` en `0x57d821` y, con la poción, `0x5af520` y el
+   `26`, hito 5, y nada más), la stamina contra `+0x38`, `0x552c50` con el lugar `+0x425` del publicado (60) y
+   `0x551f40` (60) contra `+0x1e` + `+0x30`. Cerrado el registro, `0x57ce80`, sin mirar su resultado.
+2. **Por la skill** (`0x57e130..0x57e150`): de `0x1e` a `0x24`, las invocaciones; la `0x34`, el tiro; las demás,
+   por el alcance.
+3. **Las invocaciones** (`0x57f252`): en el mapa 10 o de 18 a 23 (`0x6c9dd0`), nada. Si no, sin "webzen" y con el
+   freno, el `19` con la clave del jugador (`0x57678bc`), `0x4f5290` (la acción `0x92` del elfo, sin `rand()`) y nada
+   más.
+4. **La `0x34`** (`0x57e14d`): un jugador con un arma de tiro en el héroe publicado (`CMP` de WORD con signo: la
+   derecha de `0xa1a` a `0xa20` o de `0xa22` a `0xc11`, o la izquierda de `0xa12` a `0xa18`, `0xa23`, `0xa26` o
+   `0xa27`), flechas (`0x561c50`) y la celda `0x77e1ba8`/`0x77e1bac` al alcance (el límite en la x87). Entonces el
+   ángulo hacia `+0x3a8`, la clave de `0x558eb0` con `0x7758588` (`0xffff` sin él) y, sin "webzen", `0x5767948` en
+   `0x34` y el `1E` con la celda lógica del héroe (la Y, `+0x420`, antes que la X, 4 `rand()` cada una), el rumbo ·
+   256/360 y la clave; después `0x4f4a10`. Con cualquier "no" sigue por el alcance sin `0x4f4a10`, y con todo también
+   sigue. La flecha de `0x53e2b0` (`0x57ef77..0x57f002`) no se alcanza (Q-C1212).
+5. **Por el alcance** (`0x57f008`): con un elegido (`0x6c8e30`), `0x7758580` en 1, `0x7758584` el lugar `+0x425`
+   del publicado y `0x7758588` el elegido, atacable o no. La distancia al centro de la celda contra el alcance · 100,
+   guardado en un float (`[ebp-0x34]`, `0x57f087`). Fuera: con un elegido que sea jugador (`+0x88` en 1) y la skill
+   de `0x1a` a `0x1c` o el elegido atacable (`0x558bb0`), el camino (`0x4eac00`) hasta el alcance, `+0x378` en 1 y
+   `+0x379` en 5 (Q-C1213); salvo `0x43` a `0x47` y `0x4c`, nada más. Después, la celda del héroe y `0x558800`. Con
+   la línea de vista y un elegido: un jugador con la `0x1a` a `0x1c`, `0x55faa0(héroe, héroe)` (`0x57f239`) y nada
+   más; atacable, con la `0x33` o la `0x2e` y un jugador con el arma de tiro, `0x55faa0(héroe, héroe)` (`0x57fa20`) y
+   sigue.
+6. **Por la skill** (− `0x1a`, tablas `0x599dac` y `0x599d9c`): **`0x1a` a `0x1c`** (`0x57fa46`), de cualquier
+   tipo, el `19` con la clave del jugador y `0x4f5290`, y nada más; **`0x35`** (`0x580188`), igual y `+0x378` en 0;
+   **`0x4c`** (`0x58097a`), como la del Wizard: la celda de `+0x3a8` (`ftol` · 0,01); en alcance (el mismo float) y
+   con el elegido atacable, `0x4e9920` y, sin elegido, `+0x434` en −1; con él, el ángulo, `0x552990`, la clave de
+   `0x558eb0`, `+0x434` en el elegido y, sin "webzen", `0x5767948` y el `1E` con la celda del héroe, el rumbo, la
+   posición relativa en `pkt[8]`, la clave y la clave mágica (`0x57cf90` en línea); `+0x378` en 0 y, en un jugador,
+   `0x4e9c50`. Fuera de alcance o sin atacable: sin elegido `0x6c8e38` en −1; con él, el camino hasta el alcance ·
+   1,2 (`+0x378` en 1, sin `+0x379`). Las demás y lo que sigue de la `0x35` y la `0x4c` van a `0x5808da` (las `0x43` a
+   `0x48`, de todas las clases).
+
+**`0x55faa0(p1, p2)`** (`0x57f239` y `0x57fa20` de la rama, `0x56654a` y `0x5666db` de `0x5650c0`): primero el `D3` de
+girar con la celda lógica del héroe publicado (la X, `+0x41c`, y después la Y, `+0x420`) y su ángulo de antes de girar
+(Q-C1214). Después la skill del lugar `0x7758584` en el registro propio, sin mirar `0x7758580` (Q-C1215), la
+posición del blanco `0x7758588` (sin mirar el −1) en `+0x3a8` de p1 y el ángulo de p2 hacia ella (`0x4e93f0`); por la
+skill − `0x1a` (tabla `0x56181c`): `0x1a` a `0x1c`, sin "webzen" y con el freno, el `19` con la clave del blanco
+(`+0x1f4`) y `0x4f5290(p1)`; `0x33`, sin flechas (`0x561c50`) nada y si no el `19` y `0x4f4a10(p1)`; `0x2e`, igual con
+`0x4f48e0(p1)`; las demás, nada.
+
+**`0x4f48e0(c)`**: en un jugador, `0x4f3f80` y la acción de tirar por las manos (`0x4ea030`): montado en Uniria o
+Dinorant (`+0x318`, `0x1c14` o `0x1c15`) fuera de la zona segura (`+0x3e2`), `0x82` con un arco en la izquierda
+(`0xa12` a `0xa18`, `0xa23`, `0xa26` o `0xa27`) y `0x83` con una ballesta en la derecha (`0xa1a` a `0xa20`, `0xa22` o
+`0xa24` a `0xc11`); si no, `0x7e` y `0x7f` sin alas (`+0x2f8` en −1) y `0x80` y `0x81` con ellas; sin arma de tiro,
+ninguna. En todos los casos, `+0x38f` sube.
+
+**MuRet**: `Scenes/HeroSkillsElf` (`UseTheElfSkill`, desde `UseTheClassSkill` con la clase 2) y `Scenes/Skill55faa0`
+(`UseTheElfSkillOnItsTarget`, con `0x4f48e0` adentro), con los ayudantes de las otras ramas (`Skill4f5290`,
+`Skill57ce80`, `Skill551f40`, `Skill4e9920`, `Skill4e9c50`, `Skill57cf90` y `HeroSkillSupport`), `SkillCostOf` y
+`UseAManaPotion`, `CheckTheArrows` y `SetActorAttack`. Los envíos en
+[04](04-protocolo.md#lo-que-manda-la-rama-del-elfo-19-1e-y-d3). Cortan (08, P-C220): la poción (`0x57d837`, hito 5) y
+`0x5808da` (`0x5808ef`).
 
 ### Las skills del caballero
 

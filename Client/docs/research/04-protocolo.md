@@ -972,6 +972,21 @@ además, con el freno de 300 ms (`0x576791c`, que la `0x28` no mira).
 `DurationMagicSend::magicKey`), `WriteTeleportMagic` y `WriteTargetTeleport`; los `rand()` los saca
 `Scenes::SendTheSkillPacket`. El `D3` de girar de `0x55cbc0` es el `WriteWalk` de un paso, sin C3 ni `rand()`.
 
+### Lo que manda la rama del elfo: `19`, `1E` y `D3`
+
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*.) La rama del elfo de `0x57cfc0` y `0x55faa0`
+([06](06-render-escenas-y-ui.md#la-rama-del-elfo)) los arman en línea como la del Wizard: C3 con sus dos `rand()`
+antes de `send()`, sin "webzen" en el nombre del héroe publicado, y el `19` con el freno de 300 ms.
+
+| Paquete | Quién lo manda | Layout | GameServer 0.97 |
+| --- | --- | --- | --- |
+| `19` | las invocaciones (`0x57f2fe`), las `0x1a` a `0x1c` (`0x57fadb`) y la `0x35` (`0x58021d`); `0x55faa0` (`0x56018f`, `0x5608fd`, `0x56109a`) | `C1 06 19 <skill> <clave H L>`: la rama manda la clave del jugador (`0x57678bc`); `0x55faa0`, la del blanco (`+0x1f4` de `0x7758588`) | `CGMagicAttack` (`0x425f60`) |
+| `1E` | la `0x34` (`0x57e2c8..0x57ef4e`) y la `0x4c` (`0x580af3..0x5817a5`) | `C1 0C 1E <skill> <x> <y> <rumbo> 00 <espalda> <clave H L> <clave de la magia>`, como el de la rama del Wizard: la `0x34` deja la espalda y la clave de la magia en 0 y manda la clave de `0x558eb0` con `0x7758588` (o `0xffff`); la `0x4c`, la celda de `0x4e9920` y la clave de `0x57cf90` | `CGDurationMagicRecv` (`0x427870`) lee la skill, X, Y y el rumbo (Q-C1211) |
+| `D3` | `0x55faa0` (`0x55fac2..0x55ffcf`) | el giro de un paso de `0x55cbc0`, con la celda lógica del héroe publicado (la X antes que la Y) y su ángulo de antes de girar (Q-C1214) | como el de `0x55cbc0` |
+
+**MuRet**: `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic` con `Scenes::SendTheSkillPacket`, y el `D3` con
+`SendTheTurn`, el de la rama del Wizard.
+
 ### Las órdenes del cuervo: `A7` y `A8`
 
 (CL9 hito 4, 2026-11-13, *estático*.) El GameServer 0.97 no tiene el Dark Lord y no los manda (P-C262): el oráculo es

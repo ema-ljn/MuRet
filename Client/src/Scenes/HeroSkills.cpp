@@ -9,6 +9,7 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/HeroAttack.h"
 #include "Scenes/HeroSkillCasts.h"
+#include "Scenes/HeroSkillsElf.h"
 #include "Scenes/HeroSkillsKnight.h"
 #include "Scenes/HeroSkillsWizard.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -381,7 +382,7 @@ Core::Expected<void, std::string> UseTheClassSkill(ActorState& hero, std::uint8_
                                                    const HeroSkillContext& context)
 {
     if (heroClass == ElfClass)
-        return Core::Unexpected(std::format("0x57d790: la skill {:#x} del elfo es de la fase 2c", skill));
+        return UseTheElfSkill(hero, skill, context);
     if (heroClass == KnightClass || heroClass == GladiatorClass || heroClass == LordClass)
     {
         if (auto used = UseTheKnightSkill(hero, heroClass, skill, context); !used.HasValue())

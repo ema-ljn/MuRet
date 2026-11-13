@@ -1639,7 +1639,6 @@ Core::Expected<void, std::string> DrawTheGameCursor(GameHudContext& context)
             return Core::Unexpected(attackable.Error());
         if (attackable.Value() && runtime.ui.mouseOnUi == 0)
         {
-            constexpr std::int32_t CastleSiegeMap = 30;
             cursor(runtime.map == CastleSiegeMap ? 0x68d : 4);
             return {};
         }

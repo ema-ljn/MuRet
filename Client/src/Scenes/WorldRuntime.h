@@ -353,8 +353,8 @@ struct WorldRuntime
     // cuervo y el 1 el caballo. 0x420cd0 pone en 0 los tres. El nivel del caballo ([0x72397c]) lo leen 0x4225d0 (el
     // byte de abajo) y 0x422930; el del cuervo ([0x723968]), el requisito de liderazgo del 0x1a5 (0x5bf027) y 0x422930.
     std::array<PetStats, PetStatsCount> pets{};
-    // 0x723910: la pestaña de la ventana de la mascota (0 el cuervo, 1 el caballo), que eligen los dos botones de
-    // 0x424759. El 0x723911 de al lado es UI::DelegatedPanels::pet.
+    // 0x723910: la pestaña de la ventana de la mascota (0 el caballo, que dibuja 0x424e40, y 1 el cuervo, 0x416670),
+    // que eligen los dos botones de 0x424759. El 0x723911 de al lado es UI::DelegatedPanels::pet.
     std::uint8_t petTab = 0;
     // DAT_057678b0: el lugar del pool que la respuesta del F3 03 elige para el héroe, rand() % 400
     // (0x4c44d4, la única escritura; 06, "La entrada al mundo", fila 3). Cada respuesta lo vuelve a

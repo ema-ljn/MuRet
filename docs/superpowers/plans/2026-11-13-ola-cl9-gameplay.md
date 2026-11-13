@@ -326,8 +326,9 @@ el viewport. **Desbloquea:** 4 y 11.
       (`0x42a660`). *Hecho en parte (2026-11-13):* el `A7` y el `A8` (`Protocol/Pet/PetOrders`,
       `Scenes/PetOrders`); en la fase 2, los estados 2, 5 y 6 del paso, `0x418920` (con sus efectos cortados, CL11), el
       `A9` (`Scenes/PetStats`), `0x420cd0`, abrir y cerrar el panel `0x400` y el paso de la ventana (`0x424759`); los
-      íconos ya estaban; en la fase 2b, las órdenes del derecho (`0x420f70`, `Scenes/HeroSkills`). Quedan el dibujo
-      de la ventana (`0x424160`) y el tooltip (`0x422990`) para una sub-ola del cuervo (08, P-C266).
+      íconos ya estaban; en la fase 2b, las órdenes del derecho (`0x420f70`, `Scenes/HeroSkills`); en la fase 2c, el
+      dibujo de la ventana (`0x424160`, `0x4249a0`, `0x424e40`, `0x416670`, `0x4149b0` y el cartel del cuervo
+      `0x418460`, `Scenes/GamePetWindow`). Queda el tooltip (`0x422990`) (08, P-C266).
 
 **Pruebas:** cada skill de cada clase manda sus bytes; el `0x19` y el `0x1E` sobre el héroe y sobre otro; las
 demoras; los `rand()` de la barra con skills (hoy se sacan sin ninguna); el cuervo con cada orden.

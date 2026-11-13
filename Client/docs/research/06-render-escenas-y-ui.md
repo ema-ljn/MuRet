@@ -10350,8 +10350,59 @@ personaje vuelve a pedir el caballo. Con `0x723911` en 2, `0x424759..0x424990`: 
 el personaje abierto), 190 × 433 es de la UI; las dos pestañas, de a 45 desde 15 y de 49 de ancho: la que no está
 elegida, entre 67 y 83, la elige (`0x723910`); la elegida, entre 63 y 83, solo se come el clic; el botón de cerrar
 (20, 395, 24 × 24) cierra el `0x400`. **MuRet**: `UI::PanelRegistry::Open`/`CloseByMask` y `StepThePetWindow`
-(`GameCharacterWindowTest.ThePetWindowOpensChoosesItsTabAndCloses`). El dibujo (`0x424160`, con `0x4249a0` y
-`0x424e40`) y el tooltip de las mascotas (`0x422990`) siguen sin portar (08, P-C266).
+(`GameCharacterWindowTest.ThePetWindowOpensChoosesItsTabAndCloses`). El tooltip de las mascotas (`0x422990`) sigue sin
+portar (08, P-C266).
+
+**El dibujo de la ventana de la mascota** (CL9 hito 4, fase 2c, 2026-11-13, *estático*). `0x5f7440` llama siempre a
+`0x424160(héroe)` (`0x5f75e7`, el héroe de `[0x743a170]`), entre la ventana de las misiones y la `0x2000`:
+
+- **`0x4249a0`**: con el personaje cerrado (`IsOpen(0x2000000)`, sin `rand()`), `0x723911` en 0 y sale. Abierto, el
+  botón de la mascota en (535, 395), 24 × 24 con du = dv = 0,75: `pet1.jpg` (`0x65d`) o, con `0x723911` en 2,
+  `pet2.jpg` (`0x65e`); con el mouse en [`0x217`, `0x22f`) × [`0x18b`, `0x1a3`), la fuente normal, los colores −1 y
+  `0xff000000` y la ayuda (`0x554340`) del texto 1217 en (`0x217`, `0x17e`). Con `0x723911` en 2, la ventana en `x =
+  0x104` (`0x1c2` sin el personaje, que acá nunca pasa): el fondo de `0x5ee220(x, 0)`; las pestañas de `win_button.tga`
+  (`0x646`) en `x + 45 · i + 15`, de 49 de ancho y du = 0,765625, primero la que no está elegida en gris (0,6) en y = 67
+  y de 16 de alto, después la elegida en blanco en y = 63 y de 20; las dos líneas de `Trading_line` (`0x117`) en y = 80
+  y 380, de 190 × 10 con dv = 0,625; el marco sin textura en (0,9; 0,9; 0,6), 12 adentro: (x + 12, 90, 166, 1), (x +
+  12, 380, 166, 1), (x + 12, 90, 1, 290) y (x + 178, 90, 1, 291); la mezcla normal, el botón de cerrar (`0x118` en x +
+  25, 395) con su ayuda (1002) en (`_ftol(x + 25)`, 382); y en negrita, con `0xffdcdcdc` sobre 0, el título (1217) en
+  la caja de 120 desde (x + `0x23`, `0xc`) y los nombres de las pestañas centrados con `0x623690`: 1187 en (x + `0x28`,
+  `0x46`) y 1217 en (x + `0x55`, `0x46`).
+- **La pestaña 0, el caballo (`0x424e40`)**: con la mascota del héroe (`+0x318`) en `0x1c16`, `Level_box.jpg` (`0xf5`)
+  en (x + 19 − 6, 96), 75 × 21 con du = 0,5859375 y dv = 0,65625, la mezcla normal, el nombre (1187) en negrita centrado
+  en (x + `0x55`, `0x14`) y `0x4149b0(1, x, 0, la tabla del tipo 1, 0)`. Sin el caballo, `sprintf(1233, 1187)` con la
+  grande en negrita (`0x576355c`), en negro centrado en (x + `0x5f`, `0xdc`) y en `0xff3c3cdc` en (x + `0x5e`,
+  `0xdb`).
+- **La pestaña 1, el cuervo**: con el cuervo del héroe (`+0x430`), `0x416670` sobre él: dos `Level_box` en y = 96 y
+  236, el título (1214) en la caja de 120 desde (x + `0x23`, `0x14`) y `0x4149b0(+0x444, x, 0, los 0x14 bytes de
+  +0x448, 1)`; `+0x444` lo escribe solo `0x4167b0`, en 0 (Q-C1041). Sin cuervo, 1169 como el "no tiene" del caballo.
+- **`0x4149b0(tipo, x, y, datos, órdenes)`**: desde y + 100, con `0xff67bfdf` el nivel (200) en la caja de 70 desde x +
+  `0xe`; 20 más abajo y con `0xffe6e6e6` sobre `0x80000000`, de a 15 y en la caja de 145 desde x + `0x18` (`0x554180`
+  con el modo 1 y ese ancho): la vida (358, durabilidad y 255) y su barra (el fondo (0,2; 0; 0) de 145 × 8 y lo lleno
+  (225, 15, 0)/255 de `min(durabilidad, 255) · 1/255 · 143` × 6 en (x + `0x19`, + 1)), la experiencia (201); con el
+  tipo 1, en un acceso al registro propio, el % del cetro (1234, el byte `+0x16` del lugar 0 si no está vacío), que
+  queda por 0,01; el daño (203, `+0xc`, `+0xe` y `+0x12`): el tipo 0 le suma ese % (Q-C1040) y el 1, con el registro
+  abierto, lo de la skill `0x3e` (`0x5516e0`); la velocidad (64, `+0x10`); y el liderazgo que pide, `nivel · 15 + 0xb9`
+  (698), en `0xff3c3cdc` si `+0x36 + +0x20` del registro propio (16 bits) no alcanza, con su acceso (Q-C1042). Con las
+  órdenes: el título (1218) en `0xff67bfdf` sobre `0xf` en la caja de 70 desde (x + `0xe`, y + `0xf0`) y los cuatro
+  íconos de `command.jpg` (`0x12c`) de 22 × 26 en (x + 24, y + 260 + 28 · k), u = 0,125 · k, du = 0,125, dv =
+  0,13671875, cada uno con su texto (1219 + k) en (`_ftol` + 30, `_ftol` + 10); con el mouse sobre uno (los bordes
+  incluidos), su ayuda (1223 + k) en su esquina, y sale. Sin las órdenes y con el tipo 0 (`0x415869`), una rama que no
+  llama nadie.
+- **El cartel del cuervo** (con cuervo, la vtable + `0xc`: `0x4182e0` salta a `0x418460`), con o sin la ventana: en
+  negrita con `0xffdcdcdc` sobre `0x80000000`, a `x = ancho del mundo − 50 − c − 15`, con c = 50 con la party (`0x78aba48`
+  positivo) más 60 con la mascota del héroe de `0x1c12` a `0x1c16` o `0x1c37`; un acceso para la durabilidad del lugar 1
+  (`+0xbce`) · 50 / 255; la mezcla normal; el nombre (1214) que termina en `_ftol(x) + 50`, y = 4 (`0x5542f0` con el
+  modo 4, que no mide); la barra `0x5a6af0(x, 16, 50, 2, lleno, 0, 1)`; y el ícono de la orden (`+0x45c`) de
+  `command.jpg`, 16 × 20 en (otro ancho del mundo − 20 − c − 65, 5) con u = ((orden % 8) · 32 + 6) / 256, v = ((orden /
+  8) · 28 + 3) / 256, du = 0,078125 y dv = 0,10546875; con el mouse encima (12 × 20, los bordes incluidos), la ayuda
+  1219 + orden en (`_ftol(x)`, 25).
+
+Los `rand()`: los accesos al registro propio sacan 3.848 al cerrarse en 0 (el caballo, tres: el cetro, el daño y el
+liderazgo; el cuervo, uno; el cartel, otro) y la skill `0x3e`, 60; cada ancho del mundo, dos con el inventario solo.
+**MuRet**: `Scenes::DrawThePetWindow` (`Scenes/GamePetWindow`), desde `DrawTheWindows`; un dibujo intermedio no
+escribe el 0 de `0x723911` (lo vuelve a escribir el paso). La rama `0x415869` corta (08, P-C245). Las cuatro texturas
+(`0xf5`, `0x646`, `0x65d` y `0x65e`) van en `HudTextureSet` (`test_game_pet_window.cpp`).
 
 ### Las misiones
 

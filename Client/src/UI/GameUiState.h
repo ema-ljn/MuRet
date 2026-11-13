@@ -35,6 +35,19 @@ inline bool LatchTheKey(std::int32_t& latch, bool down)
     return true;
 }
 
+// Adónde apunta 0x78abaa8: MuRet guarda la grilla o el equipo y el índice.
+struct HoveredItem
+{
+    enum class Place : std::uint8_t
+    {
+        None,
+        InventoryCell, // 0x78a9bb0 + índice · 0x48
+        Equipment,     // [0x7681eb4] + 0xb6c + lugar · 0x48
+    };
+    Place place = Place::None;
+    std::size_t index = 0;
+};
+
 struct GameUiState
 {
     // 0x775857c: el mouse es de la UI. 0x636e04 lo pone en 0 en cada paso, la UI en 1 y lo leen MoveHero
@@ -45,8 +58,16 @@ struct GameUiState
     // 0x78a9bac y 0x78a9ba8: dónde va ese tooltip (0x5a06a4, 0x5a06ba).
     std::int32_t skillTooltipX = 0;
     std::int32_t skillTooltipY = 0;
-    // 0x78abaa8: 0x636df2 lo pone en 0 en cada paso.
-    std::int32_t field78abaa8 = 0;
+    // 0x78abaa8: el ítem bajo el mouse, un puntero del original. 0x636df2 lo pone en 0 en cada paso, la grilla del
+    // inventario (0x5c429e) lo apunta a la casilla y el equipo (0x5c3aad) al lugar; levantar lo vuelve a 0. Lo leen
+    // Ctrl+Q/W/E (0x5c4b09) y el cartel.
+    HoveredItem hoveredItem{};
+    // 0x78aba27: el último argumento de 0x5c4110 o 0 desde el equipo (0x5c4298, 0x5c3ab3).
+    std::uint8_t field78aba27 = 0;
+    // 0x78abb28 y 0x78abb2c: de qué ventana y qué lugar es el ítem del cartel (0x5aed40): 0 y el lugar del inventario
+    // (la casilla + 12, o el del equipo) desde el inventario.
+    std::int32_t field78abb28 = 0;
+    std::int32_t field78abb2c = 0;
     // 0x5762eb8: la ventana bajo el mouse. 0x636e2f lo pone en 0 en cada paso, el registro del chat (0x45aa80) lo
     // pone en su id y lo leen 0x5ee140 y el clic sin dueño (0x636e66).
     std::int32_t hovered = 0;
@@ -68,8 +89,13 @@ struct GameUiState
     bool chatOpen = false;
     // 0x576793c: la salida pedida desde el menú de Esc (0x62411c). Con 1, Open no abre (0x6599a0).
     bool logoutRequested = false;
-    // 0x78abb39: con 1, Esc no hace nada en 0x623e70 (0x623eff). La escribe la traba de C3 24 (hito 4).
+    // 0x78abb39: la traba del C1 .. 24 que sale. Con 1, Esc no hace nada en 0x623e70 (0x623eff) y el equipo y la
+    // grilla no corren (0x5bec50, 0x5c4110). La ponen en 1 los envíos (0x5ca557, 0x5bf294, 0x59bf56) y en 0 el 24
+    // cifrado (0x4d1400).
     std::uint8_t field78abb39 = 0;
+    // 0x5767954: con más de 0, el paso del equipo (0x5bec50) y de las grillas (0x5c4110) sale sin hacer nada. Lo
+    // ponen en 10 el uso de un ítem (0x59ff10, CL9.3) y las respuestas de los ítems; MuRet todavía no lo escribe.
+    std::int32_t field5767954 = 0;
     // 0x78abad9: con 1, 0x5ee140 no corre sus hijas (0x5ee181) y 0x5ebca0 no hace nada. Hito 4.
     std::uint8_t field78abad9 = 0;
     // 0x78abaac: con 1, 0x5ee140 no llama a 0x5d8d50 (0x5ee1de). Hito 4.

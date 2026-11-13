@@ -102,4 +102,25 @@ TEST(TextCacheDrawerTest, AnErrorGoesToTheLogOnce)
     tested.drawer.Draw(10, 20, Synthetic, Login);
     EXPECT_EQ(tested.batch.Vertices().size(), 6u);
 }
+
+// DrawColumns va a la caché con su caja: el texto (90 columnas) centrado en 300 desde x = 10 son dos cajas, de 256 y
+// de 44. Una caja de menos de 0 columnas (el modo 2 con una caja negativa, 0x4671cf) no dibuja, y su error va al log
+// una vez.
+TEST(TextCacheDrawerTest, DrawsAWindowOfColumnsInBoxesOf256)
+{
+    Harness tested;
+
+    tested.drawer.DrawColumns(10, 20, Synthetic, Login, -105, 300);
+
+    EXPECT_EQ(tested.batch.Vertices().size(), 12u);
+    EXPECT_EQ(tested.cache.UsedSlots(), 2u);
+    EXPECT_TRUE(tested.sink.lines.empty());
+
+    tested.batch.Begin(Screen);
+    tested.drawer.DrawColumns(10, 20, Synthetic, Login, 0, -300);
+    tested.drawer.DrawColumns(10, 20, Synthetic, Login, 0, -300);
+    EXPECT_TRUE(tested.batch.Vertices().empty());
+    ASSERT_EQ(tested.sink.lines.size(), 1u);
+    EXPECT_NE(tested.sink.lines[0].find("0x4671cf"), std::string::npos) << tested.sink.lines[0];
+}
 } // namespace

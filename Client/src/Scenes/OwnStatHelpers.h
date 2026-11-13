@@ -26,6 +26,7 @@ namespace Client::Scenes
 struct ItemSetOptionList;
 struct OwnCharacterRecord;
 struct Scan505820;
+struct WorldRuntime;
 
 // El ítem de 0x7879f80 y lo que decide si 0x54efe0, 0x54f9b0 y 0x54fe10 lo leen en lugar de un lugar
 // del equipo: con [0x7879fbc] > 0, con signo (jle), y [0x78ab9b8] == 0x78a9bb0, el lugar [0x78a6758],
@@ -38,6 +39,10 @@ struct OwnEquipmentOverride
     std::uint32_t slot78a6758 = 0;
     World::ItemState item7879f80{};
 };
+
+// Los cuatro de WorldRuntime: cursorItemCount, cursorGrid en el inventario, slot78a6758 y cursorItem. El original los
+// lee de la .bss cada vez; MuRet los copia al armar el contexto.
+[[nodiscard]] OwnEquipmentOverride HeldItemOf(const WorldRuntime& runtime);
 
 // 0x54ee00 (cdecl, devuelve un float): con max = byte +0x2d de Item.bmd, más 1 por cada uno de los
 // primeros 4 niveles ((scalar1 >> 3) & 15) y 2 por cada uno de los otros, más 20 con flags1c % 4 en 1 o

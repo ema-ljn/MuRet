@@ -24,6 +24,7 @@ namespace Client::Scenes
 {
 class SelectionState;
 class WorldState;
+struct WorldEntryResources;
 
 // De dónde leen (el Data\ del cliente), adónde suben sus texturas (Render::ITextureStore, CL5.1), el
 // log y el reloj del bucle (CL6.4).
@@ -64,6 +65,10 @@ struct SceneContext
     // El GetTextExtentPointA del DC de los textos (0x57634f4) fuera del dibujo: el mouse sobre los nombres del
     // registro del chat (0x45dec0) y los cortes de los mensajes. nullptr sin bucle: no mide.
     const Render::Text::ITextMeasure* textMeasure = nullptr;
+    // Los de las respuestas del mundo (SessionEventApplier), que main arma una vez: el juego los usa para levantar,
+    // soltar y equipar (InventoryServicesOf). nullptr en los tests que no lo miran: lo que necesita vestir al héroe,
+    // el cuervo o los mensajes corta.
+    const WorldEntryResources* worldEntry = nullptr;
 };
 
 // Cómo cuentan los frames del original la tela y el cetro con el ritmo `pacing`.

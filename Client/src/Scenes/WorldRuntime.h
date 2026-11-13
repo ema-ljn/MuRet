@@ -24,9 +24,12 @@
 #include "UI/SlideBanner.h"
 #include "UI/WhisperSenders.h"
 #include "World/GroundMarks.h"
+#include "World/ItemState.h"
 #include "World/LeafWeather.h"
 #include "World/ObjectModelStepState.h"
 #include "World/TerrainCulling.h"
+
+#include <glm/ext/vector_float3.hpp>
 
 #include <cstddef>
 #include <array>
@@ -138,12 +141,30 @@ struct HudState
     // 0x554610. 0x61bcd0 crea el DC sin ninguna (la del sistema) y el login dibuja con una antes del primer mensaje:
     // MuRet empieza con la normal.
     Render::Text::FontKind dcFont = Render::Text::FontKind::Normal;
+    // 0x78a5a14 y 0x78a5a10: la esquina del inventario, que pone su dibujo (0x5f2340) en cada frame: x en 0x104 con
+    // el personaje o la party abiertos y en 0x1c2 si no, y siempre y en 0. Los leen los ítems 3D de sus grillas
+    // (0x5f7610) y las cifras (0x5f7840) del mismo frame (CL8 hito 4).
+    std::int32_t inventoryX = 0;
+    std::int32_t inventoryY = 0;
+    // 0x78aadcc..0x78aadd4 (.bss, en 0): los ángulos con que 0x5e0720 posa cada ítem de la UI. Los escribe en cada
+    // ítem y duran al siguiente y al frame siguiente: el 0x1e1e con un paso que no es 0, 1 ni 2 posa con los del
+    // anterior (Q-C478).
+    glm::vec3 uiItemAngles{};
     // [0x5763528]: el cartel de Slide.bmd (0x46aea0), que dibuja el 15 (0x46b090) y escribe al dibujar (la opacidad,
     // el corrimiento, el texto que pasa y 0x5762ee4). Lo llenan el timer 0x3eb y el 0D, y lo pasa el paso de la UI.
     UI::SlideBanner slides{};
     // 0x78793c8, 0x787a560, 0x78a9230 y 0x78abb30: la lista de la caja de ayuda (0x5af090). Los renglones que una
     // ayuda no vuelve a escribir quedan como los dejó la anterior.
     TipList tips{};
+};
+
+// 0x78ab9b8, la grilla del ítem del cursor: un puntero en la .bss (0 al arrancar). Lo escriben levantar de una grilla
+// (0x5c52e2, con la que sea) y del equipo y MoveHero (0x5c2d37 y 0x59bf32, con 0x78a9bb0). MuRet solo levanta del
+// inventario: las otras grillas (0x78a92a8, 0x78a7070, 0x7d2d380, 0x78ab0b8 y 0x723c80) cortan antes.
+enum class CursorGrid : std::uint8_t
+{
+    None,      // 0
+    Inventory, // 0x78a9bb0
 };
 
 struct WorldRuntime
@@ -187,7 +208,18 @@ struct WorldRuntime
     // 0x723c68 (+8, la lista; +0xc, la cuenta): los destinos de movereq.bmd que 0x448440 lee en la carga (0x61ccb0) y
     // que la ventana /move recorre en su paso (0x448580) y en su dibujo (0x448fa0). main.cpp los copia de GameData.
     std::vector<Data::Text::MoveRequirement> moves{};
+    // 0x7879f80: el ítem del cursor, un ItemState de 0x48 bytes en la .bss. Lo dibuja 0x5f7b10 (CL8 hito 4).
+    World::ItemState cursorItem{};
+    // 0x7879fbc, el +0x3c (occupied) de cursorItem: mayor que 0 con un ítem en el cursor. MuRet lo guarda aparte, y
+    // quien levanta o suelta el ítem escribe los dos.
     std::int32_t cursorItemCount = 0;
+    // 0x78ab9b8: la grilla de donde salió el ítem del cursor (CL8 hito 4).
+    CursorGrid cursorGrid = CursorGrid::None;
+    // 0x77f3cc8: el lugar adonde va el C1 .. 24 que sale (0x5ca4b0, 0x5bf209, 0x59bf46).
+    std::int32_t itemMoveTarget = 0;
+    // 0x787a518: la copia del ítem bajo el mouse que lee el cartel (0x5c42a7 y 0x5c3aba). Levantar un ítem le pone el
+    // tipo en 0xffff (0x5c5358, 0x5c2d74).
+    World::ItemState hoveredItemCopy{};
     std::int32_t storm = 0;
     std::int32_t field78abb10 = 0;
     std::uint8_t byte6c8e4d = 0xff;
@@ -277,7 +309,8 @@ struct WorldRuntime
     // inventario, lo compara con signo con 12 (0x5bcd0b y 0x5bd08b) y, con menos, abre el registro propio
     // para las velocidades (0x54fe10). Lo escriben quince lugares de la interfaz del inventario y del juego
     // (0x44add8, 0x561b6d, 0x561bf7, 0x59bf3c, 0x5c2d5c, 0x5c5131, 0x5c5154, 0x5c51c3, 0x5c51f8, 0x5c5277,
-    // 0x5c5301, 0x5c5330, 0x5c6c15, 0x5c8edd y 0x5c8f53; estático), y MuRet no tiene ninguno: queda en 0.
+    // 0x5c5301, 0x5c5330, 0x5c6c15, 0x5c8edd y 0x5c8f53; estático). MuRet tiene los del inventario: levantar de la
+    // grilla (0x5c5301) y del equipo (0x5c2d5c) y MoveHero (0x59bf3c), el lugar de donde salió el ítem del cursor.
     std::int32_t slot78a6758 = 0;
     // El trapecio del último 0x5fb570, en celdas: las Y en 0x78ecbf0 y las X en 0x78ecc00, que solo escriben
     // 0x5fba55 y 0x5fba68 (por su dirección, en .text). A 0x5fb570 lo llama solo 0x5fbb00 (0x5fbeef), y a

@@ -64,6 +64,16 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> DrawClippedAtLeft(SpriteBatch& batch, int x, int y,
                                                                       std::string_view text, const TextStyle& style);
 
+    // 0x467060 con un ancho (los modos 1 y 2 de 0x554180): una caja de `columns` columnas en (x, y) de 640 × 480, con
+    // el fondo entero y, en su columna 0, la columna `firstColumn` del texto: con más, lo de la izquierda queda
+    // afuera (el modo 1 con el ancho menor que cx); con menos de 0, la caja empieza con fondo (el modo 2, centrado).
+    // Lo que pasa del texto es fondo, aunque esté vacío. Pasadas las 256 columnas, las cajas de 256 y el corte en el
+    // borde derecho son los de TextPieces con el ancho de la caja. Cada caja es otra entrada de la caché. Sin columnas,
+    // nada. Error con menos de 0 columnas (una caja negativa en el modo 2: el rep stos de 0x4671cf limpiaría fuera del
+    // DIB, Q-C711), y los de Draw. Las columnas del modo 2 las da CenterInBox.
+    [[nodiscard]] Core::Expected<void, std::string> DrawColumns(SpriteBatch& batch, int x, int y, std::string_view text,
+                                                                const TextStyle& style, int firstColumn, int columns);
+
     // 0x553e50 y 0x554000 de un renglón de un globo (0x555b00): la caja de `box` con el texto en (0, 0), aunque esté
     // vacío (el fondo solo), en (x, y) de la pantalla en píxeles, como la corre BoxedQuad. Cada caja es otra entrada
     // de la caché, de un slot. Los errores, los de Draw.
@@ -86,7 +96,7 @@ public:
 
 private:
     // La clave: la fuente, los colores, el texto, que en el índice apunta al de su entrada, y las columnas que el modo
-    // 6 deja afuera a la izquierda.
+    // 6 deja afuera a la izquierda (negativas, las que el modo 2 deja antes del texto).
     struct Key
     {
         FontKind font = FontKind::Normal;
@@ -95,6 +105,8 @@ private:
         int skipped = 0;
         // La caja de un globo; con ancho 0, la de 0x467060.
         BoxShape box{};
+        // Las columnas de la caja de DrawColumns; con 0, las del texto desde `skipped`.
+        int columns = 0;
     };
     struct KeyLess
     {
@@ -107,7 +119,8 @@ private:
         std::string text;
         int skipped = 0;
         BoxShape box{};
-        // El ancho es el que se ve: el del texto menos `skipped`, o el de la caja del globo.
+        int columns = 0;
+        // El ancho es el que se ve: el del texto menos `skipped`, el de la caja de DrawColumns o el de la del globo.
         TextExtent extent;
         // Una por cada 256 columnas del texto, en orden.
         std::vector<TextureSlot> boxes;

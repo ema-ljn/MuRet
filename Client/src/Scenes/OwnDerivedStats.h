@@ -57,9 +57,9 @@ struct OwnStatsContext
     // 0 saca 3.848 rand() de `random`.
     std::uint8_t& ownRecordAccesses;
     Render::Models::CrtRandom& random;
-    // El ítem de 0x7879f80 y sus condiciones, para 0x54efe0, 0x54f9b0 y 0x54fe10. Por defecto no
-    // reemplaza nada: [0x7879fbc] está en la .bss (0 al arrancar) y solo lo escriben handlers del
-    // protocolo que MuRet no tiene (0x4d1c89 y 0x4d29cb; estático).
+    // El ítem de 0x7879f80 y sus condiciones, para 0x54efe0, 0x54f9b0 y 0x54fe10 (HeldItemOf). Por defecto no
+    // reemplaza nada, como [0x7879fbc] en la .bss (0 al arrancar). Lo escriben levantar un ítem (las copias de 0x48
+    // bytes a 0x7879f80, CL8 hito 4) y los 24 y F3 14 que llegan (0x4d1c89 y 0x4d29cb).
     OwnEquipmentOverride held{};
     // [0x743a178] y [0x743a17c], que lee 0x550990: lo que dejó el último 0x505820 (WorldRuntime::fullSetScan).
     // Desde 0x512a30 con el héroe publicado, el de esa misma llamada; si no, el del último dibujo de los

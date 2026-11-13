@@ -120,6 +120,18 @@ Core::Expected<std::string_view, std::string> TextOf(const ChatReceiveContext& c
     return CString(*text);
 }
 
+// REPE CMPSB de 12 bytes desde +0x1d9: los diez del nombre, +0x1e3 y +0x1e4, que MuRet no tiene y toma en 0.
+bool IsTheGuildMaster(const ActorState& actor)
+{
+    for (std::size_t i = 0; i < actor.name.size(); ++i)
+    {
+        if (std::to_integer<std::uint8_t>(actor.name[i]) != GuildMasterName[i])
+            return false;
+    }
+    return actor.byte1e3 == GuildMasterName[actor.name.size()];
+}
+} // namespace
+
 // 0x5110d0: el primero de los 400 vivo con la clave (MOVSX de +0x1f4 contra el int del paquete: una clave desde
 // 0x8000 no la tiene nadie); sin ninguno, el 400.
 std::size_t ActorWithKey(const WorldState& world, std::uint16_t key)
@@ -133,18 +145,6 @@ std::size_t ActorWithKey(const WorldState& world, std::uint16_t key)
     }
     return KeySearched;
 }
-
-// REPE CMPSB de 12 bytes desde +0x1d9: los diez del nombre, +0x1e3 y +0x1e4, que MuRet no tiene y toma en 0.
-bool IsTheGuildMaster(const ActorState& actor)
-{
-    for (std::size_t i = 0; i < actor.name.size(); ++i)
-    {
-        if (std::to_integer<std::uint8_t>(actor.name[i]) != GuildMasterName[i])
-            return false;
-    }
-    return actor.byte1e3 == GuildMasterName[actor.name.size()];
-}
-} // namespace
 
 Core::Expected<void, std::string> ApplyChat(const Protocol::Messages::Chat& chat, const ChatReceiveContext& context)
 {

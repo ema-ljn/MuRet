@@ -2,6 +2,7 @@
 
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/World.h"
@@ -30,5 +31,7 @@ using WorldEvent =
                  ReturnToSelectionReceived, Protocol::World::Weather, Protocol::Movement::Walk,
                  Protocol::Movement::Damage, Protocol::World::Teleport, Protocol::World::Regen,
                  Protocol::Messages::Chat, Protocol::Messages::KeyChat, Protocol::Messages::Whisper,
-                 Protocol::Messages::WhisperResult, Protocol::Messages::Notice, Protocol::OptionData::OptionData>;
+                 Protocol::Messages::WhisperResult, Protocol::Messages::Notice, Protocol::OptionData::OptionData,
+                 Protocol::Inventory::ItemMoveResult, Protocol::Inventory::ItemDelete, Protocol::Inventory::Durability,
+                 Protocol::Inventory::EquipmentChange, Protocol::Inventory::ItemPut>;
 } // namespace Client::App

@@ -78,6 +78,10 @@ constexpr std::uint8_t FenrirSecondKind = 2;
 // 0x5bca8d..0x5bca93: D+4 & ~7 en 0x18, el nivel 3.
 constexpr std::uint32_t LevelBitsMask = ~std::uint32_t{7};
 constexpr std::uint32_t LevelThreeBits = 0x18;
+// +0x360 del héroe: con 1 a 3 el anillo del lugar 10 no se mira (0x5bca76..0x5bca82); el de nivel 3 lo deja en 4.
+constexpr std::uint8_t FirstRingLayer = 1;
+constexpr std::uint8_t LastRingLayer = 3;
+constexpr std::uint8_t WizardsRingLayer = 4;
 // 0x4225d0, que 0x54bf40 llama en 0x54cc5c y solo hace algo con el Dark Horse: la opción 0x96 (0x4225f2) con
 // 5 + la agilidad del registro propio (+0x1a) / 20 + 2 · el nivel del caballo ([0x72397c]).
 constexpr std::uint8_t DarkHorseOption = 0x96;
@@ -259,12 +263,14 @@ Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const Item
         }
         return {};
     }
-    const bool ring = slot == SecondRingSlot || slot == FirstRingSlot;
+    // 0x5bca6c..0x5bcaa7: el lugar 11, o el 10 con +0x360 fuera de 1 a 3, con el Wizard's Ring de nivel 3: 0x414340
+    // suelta la capa de +0x364 y +0x360 queda en 4.
+    const bool ring = slot == SecondRingSlot ||
+                      (slot == FirstRingSlot && (hero.byte360 < FirstRingLayer || hero.byte360 > LastRingLayer));
     if (ring && type == WizardsRing && (item.scalar1Low & LevelBitsMask) == LevelThreeBits)
     {
-        return Core::Unexpected(std::format("0x5bc740 (0x5bca76..0x5bcaa7): el {:#x} de nivel 3 en el lugar {} mira "
-                                            "+0x360 del héroe y llama a 0x414340 (+0x364), que MuRet no tiene",
-                                            type, slot));
+        ReleaseTheLayer(hero);
+        hero.byte360 = WizardsRingLayer;
     }
     return {};
 }
@@ -305,7 +311,8 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
                                                                    .items = resources.items,
                                                                    .random = resources.cloth.random},
                                           .itemSetTables = resources.itemSetTables,
-                                          .itemSets = &world.ItemSets()};
+                                          .itemSets = &world.ItemSets(),
+                                          .held = HeldItemOf(runtime)};
     const auto dressed = ApplyActorEquipment(hero, equipment);
     if (!dressed.HasValue())
     {
@@ -373,8 +380,7 @@ Core::Expected<void, std::string> PlaceInGrid(std::span<ItemState> cells, std::i
 
 // 0x5bcd0b..0x5bcf94 y 0x5bd08b..0x5bd302: con [0x78a6758] en menos de 12, abre el registro propio en línea,
 // llama a 0x54fe10 una vez por cada WORD, +0x3e y +0x42, que no sea 0 (0x5bcdd9 y 0x5bcdf0), y lo cierra
-// con 0x40b4d0 (0x5bcf8f). El ítem de 0x7879f80 no reemplaza nada: [0x7879fbc] está en 0
-// (OwnStatsContext::held).
+// con 0x40b4d0 (0x5bcf8f). 0x54fe10 lee el ítem del cursor con sus globales (HeldItemOf).
 Core::Expected<void, std::string> UpdateTheSpeedsAfterTheGrid(const WorldEntryResources& resources)
 {
     WorldRuntime& runtime = resources.world.Runtime();
@@ -391,8 +397,8 @@ Core::Expected<void, std::string> UpdateTheSpeedsAfterTheGrid(const WorldEntryRe
         {
             continue;
         }
-        if (auto updated = UpdateOwnAttackAndMagicSpeeds(own, OwnEquipmentOverride{}, runtime.ownRecordDepth,
-                                                         resources.cloth.random);
+        if (auto updated =
+                UpdateOwnAttackAndMagicSpeeds(own, HeldItemOf(runtime), runtime.ownRecordDepth, resources.cloth.random);
             !updated.HasValue())
         {
             return updated;

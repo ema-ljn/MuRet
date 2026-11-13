@@ -8,21 +8,26 @@
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Protocol/Character/CharacterList.h"
+#include "Protocol/Inventory.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameDialogDrawing.h"
 #include "Scenes/GameHover.h"
 #include "Scenes/GameHud.h"
+#include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/SceneCanvas.h"
+#include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldTexts.h"
@@ -172,6 +177,7 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
         if (const Protocol::Character::CharacterEntry* chosen = m_session->ChosenCharacter(); chosen != nullptr)
             chosenSlot = chosen->slot;
     }
+    const InventoryServices inventory = InventoryContext();
     return StepTheGameDialogs(GameUiContext{.world = *m_context.world,
                                             .random = m_context.cloth->random,
                                             .input = input,
@@ -181,7 +187,8 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
                                             .screen = m_screen,
                                             .texts = m_texts,
                                             .chosenSlot = chosenSlot,
-                                            .requests = &requests});
+                                            .requests = &requests,
+                                            .inventory = &inventory});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& input)
@@ -189,6 +196,7 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
     SceneUiRequests requests(m_session, m_context.log, m_context.dataRoot);
     const GameChatContext chat = ChatContext();
+    const InventoryServices inventory = InventoryContext();
     // timeGetTime() de los segundos del cartel (0x46ada0): el reloj de la escena en ms.
     const auto systemTime =
         m_context.clock != nullptr
@@ -204,7 +212,8 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .screen = m_screen,
                                        .chat = &chat,
                                        .requests = &requests,
-                                       .systemTime = systemTime});
+                                       .systemTime = systemTime,
+                                       .inventory = &inventory});
 }
 
 GameChatContext GameScene::ChatContext()
@@ -221,6 +230,18 @@ GameChatContext GameScene::ChatContext()
                            .send = session != nullptr ? ChatSender([session](Protocol::Outgoing packet)
                                                                    { session->SendChat(std::move(packet)); })
                                                       : ChatSender{}};
+}
+
+InventoryServices GameScene::InventoryContext() const
+{
+    InventoryServices services =
+        m_context.worldEntry != nullptr ? InventoryServicesOf(*m_context.worldEntry) : InventoryServices{};
+    if (m_context.worldEntry == nullptr)
+        services.items = m_items;
+    if (App::ServerSession* session = m_session; session != nullptr)
+        services.sendItemMove = [session](const Protocol::Inventory::ItemMove& move)
+        { return session->SendItemMove(move); };
+    return services;
 }
 
 Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canvas, const GameProjection* projection)
@@ -261,6 +282,27 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
         .mouse = UI::MouseIn640x480(input, canvas.screen),
         .leftDown = input.IsDown(Input::MouseButton::Left)};
+    // 0x5ac120: el pase 3D de los ítems de la UI, con los modelos de los ítems, el buffer global de la pose y los
+    // contextos de 0x60b3d0 del frame (o sus copias en un dibujo intermedio). Sin la biblioteca, sin dibujo.
+    ItemSpecialDrawContext itemSpecial;
+    ItemDrawContext itemContext;
+    std::optional<UiItemResources> uiItems;
+    if (m_models != nullptr)
+    {
+        auto pass = MakeUiItemPass(canvas.screen);
+        if (!pass.HasValue())
+            return Core::Unexpected(pass.Error());
+        FillTheItemContexts(itemSpecial, itemContext, canvas.frameClock, m_projectingFrame ? 0 : 1);
+        uiItems.emplace(UiItemResources{.batch = canvas.models,
+                                        .models = *m_models,
+                                        .poseCarry = FramePoseCarry(),
+                                        .itemContext = itemContext,
+                                        .frameClock = canvas.frameClock,
+                                        .flushSprites = canvas.flushSprites,
+                                        .flushModels = canvas.flushModels,
+                                        .pass = pass.Value()});
+        hud.uiItems = &*uiItems;
+    }
     // 0x637646: 0x6219b0 empieza el 2D (gluOrtho2D y MODELVIEW identidad, con push): el lote de SceneCanvas.
     // 0x63764b: 0x4383f0, los textos 3D.
     WorldTextDrawContext worldTexts{.queue = runtime.worldTexts,

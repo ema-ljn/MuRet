@@ -326,13 +326,13 @@ olas: los emotes (`0x576eb0` → `C1 18`, CL9.1, P-C87), el gremio y el Guild Ma
 
 ### Hito 4: el inventario y el ítem en el cursor (CL8.4, ~40 KB)
 
-- [ ] **El dibujo:** `0x5f2340`, `0x5ee220`, `0x5e2460`, `0x5e3660`, el zen, los ítems de la grilla con su modelo
+- [x] **El dibujo:** `0x5f2340`, `0x5ee220`, `0x5e2460`, `0x5e3660`, el zen, los ítems de la grilla con su modelo
       (`0x5f7610` → `0x5e1480`) y el ítem del cursor (`0x5f7b10`); las texturas `0x104`..`0x120` y `0x658` con su
       archivo, leído de `0x61ccb0`.
-- [ ] **El paso:** las hijas del inventario en `0x5ee140`, `0x5be150` entero (P-C58), `0x5bec50` en las ramas de
+- [x] **El paso:** las hijas del inventario en `0x5ee140`, `0x5be150` entero (P-C58), `0x5bec50` en las ramas de
       inventario y equipo, `0x5d8d50` y `0x5ca250` en sus tramos de la CL8.4 (el tramo de tramos del TSV), con
       `0x5c9b40`, `0x5c3d20`, `0x5bd750` y `0x449d80` (`C3 24` con la traba `0x78abb39`).
-- [ ] **El equipo:** volver a vestir al héroe al equipar y desequipar (`ActorEquipment`, `0x550d10`), los
+- [x] **El equipo:** volver a vestir al héroe al equipar y desequipar (`ActorEquipment`, `0x550d10`), los
       derivados (`0x54e540`, P-C58) y el corte de `MoveHero` `0x59bd3e` (el `24` del lugar 1 al 0, en `C3` con 2
       `rand()`; 06 corregido).
 - [ ] **Las respuestas:** `24` (`C3`), `F3 13`, `F3 14`, `2A` (durabilidad) y lo que el inventario muestre de
@@ -343,6 +343,29 @@ descifrados con SimpleModulus (cabeceras y cuerpos sin nombres); la grilla de 8 
 (`0x5c9b40`); los `rand()` del paso con el inventario abierto (2 por `0x636f49` y `0x636fb2`, además de los 3.850 del paso
 quieto y los 2 de cada llamada al ancho del mundo). **Desbloquea:**
 el hito 5 y la CL9.3.
+
+**Hito 4, hecho en parte** (2026-11-12, PR #327): la ventana, las cifras, el mundo angosto, el paso con levantar,
+soltar y equipar (`test_cursor_item.cpp`, `test_game_inventory_step.cpp`), vestir al héroe con sus derivados,
+MoveHero y las respuestas `24`, `28`, `2A`, `F3 13` y `F3 14` (04 § Mover y equipar ítems; Q-C470 a Q-C477, P-C71 y
+P-C72). Falta: ~~el fondo de la caja del título (P-C70 b)~~ (hecho, abajo), lo que el inventario muestre del `26` y
+del `27` (sin leer) y el cable de los `C3 24` (P-C72 g). El cartel del set (`0x40e6f5`) es del hito 5.
+
+**El modelo de los ítems de la UI** (2026-11-12, rama `cl8-h4b`): el pase 3D de `0x5ac120` con `0x5e1480` y
+`0x5e0720` para el equipo, la grilla, el cursor y las ranuras rápidas, en el lote de los modelos entre los dos tramos
+del 2D (`Scenes/UiItemDrawing.h`, 06 § El inventario, Q-C478 a Q-C481, P-C70 a, P-C73 y P-C74). Probado con el
+inventario abierto, ítems de 1 × 3, 2 × 3 y 1 × 4 casillas en la grilla y un arma en el equipo, en Lorencia y en
+Devias, en 640 × 480 y en 1.024 × 768 (`test_game_inventory_hud.cpp`, `test_ui_item_drawing.cpp`), y en la escena
+con los modelos de Item.bmd en las tres resoluciones de `test_game_scene_viewports.cpp`. "El dibujo" queda abierto
+solo por el fondo del título.
+
+**El fondo del título** (2026-11-12, rama `cl8-h4c`, P-C70 b): el modo 2 de `0x467060` con una sola primitiva,
+`TextCache::DrawColumns` por `ITextDrawer::DrawColumns` (la del hito 5, con los tramos de 256, el corte en W y el
+error de `0x4671cf`), y la cuenta en `Render::Text::CenterInBox`: la caja de `W · 120 / 640` con el texto en la
+columna (caja − cx) / 2, el fondo en toda la caja y las cajas de 256 pasados los 256 (06 § Texto, Q-C473, Q-C710,
+Q-C711). El rótulo de los botones y la línea sola de los avisos, con el fondo en 0, pasan por lo mismo. Probado en
+Lorencia y en Devias, en 640, 1.024 y 1.600 de ancho, y con la party abierta (`test_game_inventory_hud.cpp`,
+`test_text_cache.cpp`, `test_text_layout.cpp`, `test_text_cache_drawer.cpp`, `test_button.cpp`,
+`test_notice_window.cpp`). "El dibujo" queda hecho.
 
 ### Hito 5: los tooltips y la ventana del personaje (CL8.4, ~50 KB)
 

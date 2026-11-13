@@ -38,6 +38,10 @@ struct RecordedText
     // La caja, si vino por DrawBoxed (un renglón de un globo), con la x y la y en píxeles antes de 0x554000.
     std::optional<Render::Text::BoxShape> box{};
     bool clampY = false;
+    // Si vino por DrawColumns (0x467060 con un ancho): la primera columna del texto y las de la caja.
+    bool windowed = false;
+    int firstColumn = 0;
+    int columns = 0;
 };
 
 class RecordingTextDrawer final : public Scenes::ITextDrawer
@@ -77,6 +81,27 @@ public:
                                           .x = static_cast<float>(std::max(x, 0)),
                                           .y = static_cast<float>(y),
                                           .width = static_cast<float>(width),
+                                          .height = static_cast<float>(Height),
+                                          .scalePosition = true});
+    }
+
+    // La marca va desde x con el ancho de la caja, aunque el texto esté vacío; sin columnas no va.
+    void DrawColumns(int x, int y, std::string_view text, const Render::Text::TextStyle& style, int firstColumn,
+                     int columns) override
+    {
+        texts.push_back(RecordedText{.x = x,
+                                     .y = y,
+                                     .text = std::string(text),
+                                     .style = style,
+                                     .windowed = true,
+                                     .firstColumn = firstColumn,
+                                     .columns = columns});
+        if (columns <= 0)
+            return;
+        m_batch.Quad(Render::OriginalQuad{.slot = TextMarkerSlot,
+                                          .x = static_cast<float>(x),
+                                          .y = static_cast<float>(y),
+                                          .width = static_cast<float>(columns),
                                           .height = static_cast<float>(Height),
                                           .scalePosition = true});
     }

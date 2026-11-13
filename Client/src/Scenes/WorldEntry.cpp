@@ -14,6 +14,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/MapLoad.h"
+#include "Scenes/OwnStatHelpers.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldMap.h"
@@ -157,7 +158,8 @@ Core::Expected<void, std::string> DressTheHero(const WorldEntryResources& resour
                                           .fullSetScan = world.Runtime().fullSetScan,
                                           .stop = StopContextOf(resources, player),
                                           .itemSetTables = resources.itemSetTables,
-                                          .itemSets = &world.ItemSets()};
+                                          .itemSets = &world.ItemSets(),
+                                          .held = HeldItemOf(world.Runtime())};
     const auto dressed = ApplyActorEquipment(HeroOf(resources), equipment);
     if (!dressed.HasValue())
     {

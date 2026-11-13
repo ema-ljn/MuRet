@@ -7,6 +7,7 @@
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnItemOptions.h"
+#include "Scenes/WorldRuntime.h"
 #include "World/Ftol.h"
 #include "World/ItemState.h"
 
@@ -26,6 +27,14 @@
 // el PE c32bbd5f: 06, "Los ocho helpers de los stats propios".
 namespace Client::Scenes
 {
+OwnEquipmentOverride HeldItemOf(const WorldRuntime& runtime)
+{
+    return OwnEquipmentOverride{.dword7879fbc = runtime.cursorItemCount,
+                                .window78ab9b8Is78a9bb0 = runtime.cursorGrid == CursorGrid::Inventory,
+                                .slot78a6758 = static_cast<std::uint32_t>(runtime.slot78a6758),
+                                .item7879f80 = runtime.cursorItem};
+}
+
 namespace
 {
 using Data::Tables::ItemTable;

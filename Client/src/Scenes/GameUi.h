@@ -41,6 +41,7 @@ namespace Client::Scenes
 class WorldState;
 struct GameChatContext;
 struct GameMovementState;
+struct InventoryServices;
 struct WorldRuntime;
 
 // Lo que los diálogos y los paneles le piden al resto del cliente (el menú de Esc, 0x624036..0x62553f, y la party): el
@@ -87,6 +88,9 @@ struct GameUiContext
     IGameUiRequests* requests = nullptr;
     // timeGetTime() de los segundos del cartel (0x46ada0).
     std::uint32_t systemTime = 0;
+    // Item.bmd, vestir al héroe, el cuervo, los mensajes y el envío del 24 para levantar, soltar y equipar
+    // (Scenes/InventoryMoves). nullptr (los tests que no los miran): lo que los necesita corta.
+    const InventoryServices* inventory = nullptr;
 };
 
 // El WndProc: 0x7d366d4 (el flanco del clic, que apagan quien lo usa y el botón suelto) y 0x7d36874 (el botón

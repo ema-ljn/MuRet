@@ -12,6 +12,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/MapLoad.h"
+#include "Scenes/OwnStatHelpers.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
@@ -66,7 +67,7 @@ Core::Expected<void, std::string> DressTransitionHero(ActorState& actor, const W
         return Core::Unexpected(stop.Error());
     const ActorEquipmentContext context{
         world.OwnCharacter(), world.Runtime().ownRecordDepth, PublishedHero(resources), world.Runtime().fullSetScan,
-        stop.Value(),         resources.itemSetTables,        &world.ItemSets()};
+        stop.Value(),         resources.itemSetTables,        &world.ItemSets(),        HeldItemOf(world.Runtime())};
     const auto dressed = ApplyActorEquipment(actor, context);
     if (!dressed.HasValue())
         return Core::Unexpected(dressed.Error());

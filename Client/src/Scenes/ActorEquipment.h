@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Scenes/ActorActions.h"
+#include "Scenes/OwnStatHelpers.h"
 
 #include <cstdint>
 #include <optional>
@@ -45,6 +46,8 @@ struct ActorEquipmentContext
     // 0x40e1b0 antes de tocar nada (Scenes::OwnStatsContext).
     const Data::Tables::ItemSetTables* itemSetTables = nullptr;
     ItemSetState* itemSets = nullptr;
+    // El ítem del cursor para 0x54efe0, 0x54f9b0 y 0x54fe10 (HeldItemOf): lo que hay en sus globales al llamar.
+    OwnEquipmentOverride held{};
 };
 
 // 0x512a30 sobre `actor`: con el tipo 0x20a, los modelos, los niveles y los bytes del equipo propio, la

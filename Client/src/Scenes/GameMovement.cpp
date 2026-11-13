@@ -23,6 +23,7 @@
 #include "Scenes/GameHeroFacing.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/WorldMap.h"
 #include "World/OriginalFtol.h"
 #include "World/WorldTerrain.h"
@@ -76,9 +77,11 @@ Core::Expected<void, std::string> CloseTheClickRecord(const HeroMovementContext&
     const bool weaponOnTheLeft = (left >= 0 && left < 0x600) || (left >= 0xa00 && left < 0xc00);
     if (context.world.Runtime().cursorItemCount <= 0 && right == -1 && weaponOnTheLeft)
     {
-        return Core::Unexpected(std::string("0x59bd3e: con la mano derecha vacía y un arma en la izquierda, el "
-                                            "original la pasa a la derecha con el C1 .. 24 del inventario (CL8), "
-                                            "que MuRet no tiene"));
+        static const InventoryServices NoServices{};
+        return MoveTheLeftWeaponToTheRight(
+            InventoryMoveContext{.world = context.world,
+                                 .random = context.random,
+                                 .services = context.inventory != nullptr ? *context.inventory : NoServices});
     }
     return {};
 }

@@ -78,6 +78,7 @@ struct GameChatTables
     const Data::Tables::ItemSetOptionTable* setOptions = nullptr;
 };
 struct GameChatContext;
+struct InventoryServices;
 
 class GameScene final : public IScene
 {
@@ -135,6 +136,9 @@ private:
     [[nodiscard]] Core::Expected<void, std::string> StepTheUi(const Input::InputState& input);
     // Lo que la entrada del chat lee y por dónde manda (App::ServerSession::SendChat).
     [[nodiscard]] GameChatContext ChatContext();
+    // Lo que levantar, soltar y equipar piden afuera: los de SceneContext::worldEntry y el envío del 24
+    // (App::ServerSession::SendItemMove).
+    [[nodiscard]] InventoryServices InventoryContext() const;
     // 0x636da3..0x63717f: el paso con el mundo cargado, hasta su primer corte.
     [[nodiscard]] Core::Expected<void, std::string> StepWorld(const Input::InputState& input);
     [[nodiscard]] Core::Expected<void, std::string> StepTheFloorItems(float worldClock);

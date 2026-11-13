@@ -79,6 +79,7 @@
 #include "World/WorldObjects.h"
 #include "World/WorldTerrain.h"
 
+#include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
@@ -87,7 +88,6 @@
 #include <chrono>
 #include <functional>
 #include <cstdint>
-#include <format>
 #include <optional>
 #include <ratio>
 #include <span>
@@ -145,6 +145,8 @@ constexpr std::int32_t LastBloodCastleMap = 17;
 // 0x620486..0x6204b0: el mouse de 640 × 480 vuelve a la pantalla con · W / 640 y · H / 480, en enteros.
 constexpr std::int64_t Width640 = 640;
 constexpr std::int64_t Height480 = 480;
+// 0x6ba070: lo que 0x637355 multiplica por el ancho del mundo para el primer argumento de 0x5fbb00.
+constexpr float WorldWidthFactor = 0.0015625f;
 
 float F32(double value)
 {
@@ -661,18 +663,16 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     const glm::vec3 target = runtime.map == NamedCameraMap && cameraInput.webzen
                                  ? glm::vec3(SpectatorTargetX, SpectatorTargetY, cameraInput.hero.z)
                                  : World::CameraTargetOf(cameraInput);
-    // 0x63733e: 0x5bb8d0, el ancho del mundo, con el rand() del frame. Con un panel abierto, el viewport, el rango y
-    // el trapecio se achican: eso es del hito 4, con el inventario.
+    // 0x63733e: 0x5bb8d0, el ancho del mundo, con los rand() del frame (las consultas del comercio y de la tienda
+    // con el inventario abierto): 640 sin ventanas, 450 con una y 260 con dos.
     const std::int32_t worldWidth = GamePanels(*m_context.world, FrameCloth().random).Registry().WorldWidth();
-    if (worldWidth != UI::FullWorldWidth)
-        return Core::Unexpected(
-            std::format("0x63733e: el mundo con un panel abierto (ancho {}) es del hito 4", worldWidth));
     // 0x63734d: el pase de 0x620db0(0, 0, w, 48) no dibuja; su modelview es la del pase del mundo.
-    const Render::Pass3D pass = Render::MakePass3D(canvas.screen, GameWorldViewport, camera);
-    m_frustum = World::SphereFrustumOf(pass.view, camera);
-    // 0x637366: 0x5fbb00(w · 0,0015625, &p), el rango de bloques y el trapecio; con w en 640, 1. El trapecio y
-    // su nivel quedan en los globales de WorldRuntime, que lee 0x5fba90 en el paso que sigue.
-    m_terrainRange = World::TerrainRangeOf(pass.view, camera);
+    const glm::mat4 view = Render::MakePass3D(canvas.screen, GameWorldViewport, camera).view;
+    // 0x637352..0x637366: 0x5fbb00(w · 0,0015625f, &p), los cinco planos, el rango de bloques y el trapecio; con w en
+    // 640, 1. El trapecio y su nivel quedan en los globales de WorldRuntime, que lee 0x5fba90 en el paso que sigue.
+    const float widthFactor = F32(static_cast<double>(worldWidth) * static_cast<double>(WorldWidthFactor));
+    m_frustum = World::SphereFrustumOf(view, camera, widthFactor);
+    m_terrainRange = World::TerrainRangeOf(view, camera, widthFactor);
     if (frames > 0)
         m_context.world->DynamicLighting().PublishRange(m_terrainRange);
     const auto polygon = PolygonOfTheFrame(camera, target, worldWidth, frames);
@@ -680,8 +680,12 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     {
         return Core::Unexpected(polygon.Error());
     }
+    // 0x63738a: 0x5bb8d0 otra vez, con sus rand(), para el ancho del pase del mundo.
+    const std::int32_t passWidth = GamePanels(*m_context.world, FrameCloth().random).Registry().WorldWidth();
     // 0x637391..0x637404: el glClearColor del mapa, que nadie usa (Q-C143).
-    // 0x637410: el pase del mundo.
+    // 0x637410: el pase del mundo, 0x620db0(0, 0, w, 432), con el aspecto de su viewport.
+    const Render::Pass3D pass =
+        Render::MakePass3D(canvas.screen, Render::ViewportRect{0, 0, passWidth, GameWorldViewport.height}, camera);
     canvas.models.Begin(pass);
     auto drawn = DrawTheWorldPass(canvas, pass, polygon.Value(), frames);
     canvas.flushModels();

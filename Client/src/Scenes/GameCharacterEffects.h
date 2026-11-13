@@ -122,7 +122,7 @@ struct GameRavenPass
 // la luz del terreno) y 0x6002e0 (las mallas 3 y 2, y la sombra salvo en los mapas 10, 24 a 29 y 36); con
 // +0x78 & 0x4000 del dueño, 0x6002e0 recibe 10 y va por 0x60033c: DrawChromeShell, sin la sombra ni la altura del
 // terreno (el +0x108 del cuervo queda en 0 desde 0x415c1e, así que el lazo del asedio de 0x600343 no lo encuentra en
-// el pool). Después 0x418920, que sólo hace algo en los estados 5 y 6 (las órdenes del A7). Se dibuja como lo dejó el
+// el pool). Después 0x418920, que sólo hace algo en los estados 5 y 6 (los que pone el A8). Se dibuja como lo dejó el
 // paso, como el personaje. En un frame del original le quedan los huesos de la pose para la chispa del paso.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRavenPass& pass);
 } // namespace Client::Scenes

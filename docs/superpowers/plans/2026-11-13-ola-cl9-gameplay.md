@@ -300,7 +300,9 @@ el viewport. **Desbloquea:** 4 y 11.
 - [ ] **El cuervo y las mascotas:** las órdenes del `A7` (los paquetes de `0x416a20`, `0x418920` desde
       `0x41835a`, el objetivo de `+0x3b0` y los estados 2, 5 y 6 del cuervo), el `A8`, el `A9` (`0x421db0`,
       `0x4225d0`, `0x422930`, la ventana `0x424160`, el tooltip `0x422990`), `0x420cd0`, y los íconos de estado
-      (`0x42a660`).
+      (`0x42a660`). *Hecho en parte (2026-11-13):* el `A7` y el `A8` (`Protocol/Pet/PetOrders`,
+      `Scenes/PetOrders`); los estados 2, 5 y 6 del paso, `0x418920`, el `A9`, la ventana, el tooltip, `0x420cd0` y
+      los íconos quedan para la fase 2 y una sub-ola del cuervo (08, P-C266).
 
 **Pruebas:** cada skill de cada clase manda sus bytes; el `0x19` y el `0x1E` sobre el héroe y sobre otro; las
 demoras; los `rand()` de la barra con skills (hoy se sacan sin ninguna); el cuervo con cada orden.

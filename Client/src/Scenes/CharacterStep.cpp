@@ -649,14 +649,15 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     {
         return {};
     }
-    // 0x416add..0x4176e6 y 0x417801..0x41789d: los estados 2, 5 y 6 son los de las órdenes A7 (los paquetes de
-    // 0x416a20 y el objetivo de +0x3b0), sin portar (CL9). Nada de MuRet los pone.
+    // 0x416add..0x4176e6 y 0x417801..0x41789d: los estados 2, 5 y 6 los pone el A8 (Scenes/PetOrders, 0x416570);
+    // su paso (con el C1 que manda 0x416a20 y el blanco de +0x3b0) es de la fase 2 (08, P-C266).
     constexpr std::uint8_t LastRestingState = 4;
     const std::uint8_t ravenState = actor.darkSpirit->state;
     if (ravenState == 2 || ravenState > LastRestingState)
     {
-        return Core::Unexpected(std::format(
-            "0x416add: el estado {} del cuervo del lugar {} es de las órdenes A7, sin portar", ravenState, slot));
+        return Core::Unexpected(
+            std::format("0x416add: el estado {} del cuervo del lugar {} es del ataque del A8, sin portar (fase 2)",
+                        ravenState, slot));
     }
     if (context.darkSpiritSkeleton == nullptr || context.particles == nullptr)
     {

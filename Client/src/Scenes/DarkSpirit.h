@@ -7,6 +7,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <span>
 #include <vector>
@@ -28,7 +29,8 @@ struct TerrainPolygon;
 // +0xc), lo mueve 0x416a20 en cada paso de su dueño y lo dibuja 0x4182f0. Contrato: 06 § El cuervo.
 // Verificado bit a bit contra el código real emulado (tests/vectors/world55/raven.txt), en los estados 0
 // y 1, los del vuelo libre: los únicos del login. El 3 (posado en el hombro) y el 4 (bajando al hombro) son
-// los de la zona segura, portados desde el ASM; el 2, el 5 y el 6 son de las órdenes A7 (CL9).
+// los de la zona segura, portados desde el ASM; el 2, el 5 y el 6 los pone el A8 (Scenes/PetOrders) y su paso es de
+// la fase 2 (08, P-C266).
 namespace Client::Scenes
 {
 inline constexpr std::uint16_t DarkSpiritModel = 0xc0;
@@ -45,6 +47,20 @@ struct DarkSpirit
     std::uint8_t state = 0;                   // +0x110: 0 rápido (dirección y < −12), 1 lento, 3 posado, 4 bajando
     Render::Models::AnimationState animation; // +0x111 la acción, +0x114 el frame
     float alpha = 1.0f;                       // +0x174: aparece de golpe
+    // Lo que escriben las órdenes que llegan (Scenes/PetOrders, CL9 hito 4), con el offset del objeto y, entre
+    // paréntesis, el del CHARACTER de +0xc. Qué deja en cada uno 0x4167b0, sin leer: quedan en 0 hasta la primera.
+    // +0x45c: la orden del A7 (0x416510). La lee el paso en 0x417a9d (los estados del A8, sin portar).
+    std::uint8_t order = 0;
+    // +0x1ad (+0x1a1): en 1 con la orden 3 del A7 y con el estado 5 del A8.
+    std::uint8_t byte1ad = 0;
+    // +8: el personaje del blanco (0x416510 con la orden 3 y 0x416570), el lugar del pool; el 400 si la clave no está.
+    std::size_t target = 0;
+    // +0x3b0 (+0x3a4): el lugar del blanco del A8, que lee el paso (0x416a73).
+    std::uint16_t target3b0 = 0;
+    // +0x38d (+0x381): el A8 lo pone en 0.
+    std::uint8_t byte38d = 0;
+    // +0xf0 (+0xe4): el A8 con el estado 5 lo pone en 0,5.
+    float floatF0 = 0.0f;
     // La posición antes del último paso, para dibujarlo entre dos pasos (D-C4); el salto junto al dueño
     // la pisa con la nueva.
     glm::vec3 previousPosition{};

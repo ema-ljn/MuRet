@@ -1169,7 +1169,7 @@ TEST_F(GameRavenTest, TheOwnersFlag4000DrawsTheRavenAsAChromeShellWithoutShadow)
     EXPECT_EQ(carry.models.at(Client::Scenes::DarkSpiritModel).position, glm::vec3(1050.0f, 1060.0f, 300.0f));
 }
 
-// 0x41835a: 0x418920 corta en los estados 5 y 6 (las órdenes del A7) después del dibujo, con el 0x4000 o sin él.
+// 0x41835a: 0x418920 corta en los estados 5 y 6 (los del A8) después del dibujo, con el 0x4000 o sin él.
 TEST_F(GameRavenTest, TheOrderStatesCutAfterTheDraw)
 {
     for (const std::uint32_t flags : {0u, 0x4000u})

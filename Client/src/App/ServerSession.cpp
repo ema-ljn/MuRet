@@ -37,6 +37,7 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/Party.h"
 #include "Protocol/Pet/PetInfo.h"
+#include "Protocol/Pet/PetOrders.h"
 #include "Protocol/Skill.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
@@ -270,8 +271,8 @@ void ServerSession::RegisterGameServerHandlers()
     RegisterSkillHandlers();
 }
 
-// CL9 hito 4: las skills que llegan (04 § Las skills). Los C3 del 19 y el 1E llegan descifrados con el opcode de la
-// tabla (0xa5 → 0x19 y 0xa6 → 0x1e), como los demás.
+// CL9 hito 4: las skills que llegan (04 § Las skills) y las órdenes del cuervo (A7 y A8). Los C3 del 19 y el 1E llegan
+// descifrados con el opcode de la tabla (0xa5 → 0x19 y 0xa6 → 0x1e), como los demás.
 void ServerSession::RegisterSkillHandlers()
 {
     using Protocol::Character::CharacterOpcode;
@@ -288,7 +289,9 @@ void ServerSession::RegisterSkillHandlers()
         m_gameServer.On(CharacterOpcode, Skill::SkillListSubcode,
                         [this](const Network::Packet& packet) { OnSkillList(packet); }) &&
         m_gameServer.On(CharacterOpcode, Skill::SummonLifeSubcode,
-                        [this](const Network::Packet& packet) { OnSummonLife(packet); });
+                        [this](const Network::Packet& packet) { OnSummonLife(packet); }) &&
+        m_gameServer.On(Protocol::Pet::PetOrderOpcode, [this](const Network::Packet& packet) { OnPetOrder(packet); }) &&
+        m_gameServer.On(Protocol::Pet::PetAttackOpcode, [this](const Network::Packet& packet) { OnPetAttack(packet); });
     assert(registered && "los handlers de las skills se registran una vez");
 }
 
@@ -1380,6 +1383,30 @@ void ServerSession::OnSummonLife(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(summon.Value(), *this)));
+}
+
+// 0x4e4c0a: la orden del cuervo del héroe, sin mirar el cifrado.
+void ServerSession::OnPetOrder(const Network::Packet& packet)
+{
+    const auto order = Protocol::Pet::ReadPetOrder(packet);
+    if (!order.HasValue())
+    {
+        m_log.Warning("se ignora la orden del cuervo (A7): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(order.Value(), *this)));
+}
+
+// 0x4e4c42: el ataque del cuervo de un Dark Lord, sin mirar el cifrado.
+void ServerSession::OnPetAttack(const Network::Packet& packet)
+{
+    const auto attack = Protocol::Pet::ReadPetAttack(packet);
+    if (!attack.HasValue())
+    {
+        m_log.Warning("se ignora el ataque del cuervo (A8): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(attack.Value(), *this)));
 }
 
 // P-C33: 0x4c6e32 prueba el flag antes de leer los campos; cero manda el F1 03.

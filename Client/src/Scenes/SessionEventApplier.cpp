@@ -13,6 +13,7 @@
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Pet/PetOrders.h"
 #include "Protocol/Skill.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
@@ -23,6 +24,7 @@
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/InventoryReply.h"
 #include "Scenes/MovementReplies.h"
+#include "Scenes/PetOrders.h"
 #include "Scenes/ReturnToSelection.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
@@ -153,7 +155,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
     return ApplyWorldContent(event, session);
 }
 
-// CL9 hito 4: las skills que llegan (Scenes/SkillReplies.h). nullopt si `event` no es una.
+// CL9 hito 4: las skills que llegan (Scenes/SkillReplies.h) y las órdenes del cuervo (Scenes/PetOrders.h). nullopt
+// si `event` no es una.
 std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySkillEvent(const App::WorldEvent& event)
 {
     if (const auto* attack = std::get_if<Protocol::Skill::MagicAttack>(&event))
@@ -176,6 +179,16 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySkill
     if (const auto* summon = std::get_if<Protocol::Skill::SummonLife>(&event))
     {
         ApplySummonLife(*summon, m_resources);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* order = std::get_if<Protocol::Pet::PetOrder>(&event))
+    {
+        ApplyPetOrder(*order, m_resources.world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* attack = std::get_if<Protocol::Pet::PetAttack>(&event))
+    {
+        ApplyPetAttack(*attack, m_resources);
         return Core::Expected<void, std::string>{};
     }
     return std::nullopt;

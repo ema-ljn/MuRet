@@ -680,10 +680,10 @@ Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRav
                                                             ground};
         }
     }
-    // 0x41835a: 0x418920, con las órdenes del A7 (CL9).
+    // 0x41835a: 0x418920 con los estados 5 y 6 que pone el A8 (Scenes/PetOrders), sin portar: fase 2 (08, P-C266).
     if (spirit.state == FirstOrderState || spirit.state == SecondOrderState)
         return Core::Unexpected(
-            std::format("0x418957: el estado {} del cuervo (las órdenes del A7) no está portado", spirit.state));
+            std::format("0x418957: el estado {} del cuervo (el ataque del A8) no está portado", spirit.state));
     return {};
 }
 } // namespace Client::Scenes

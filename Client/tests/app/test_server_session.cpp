@@ -30,6 +30,7 @@
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Pet/PetOrders.h"
 #include "Protocol/Skill.h"
 #include "Protocol/World.h"
 #include "Protocol/Character/CharacterCreate.h"
@@ -1102,6 +1103,27 @@ TEST(ServerSessionTest, TheOtherClearSkillsReachTheWorld)
               Bytes({0xC1, 0x07, 0xF3, 0x11, 0xFF, 0x00, 0x02})})};
     static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.eventSink.TakeWorldEvents().size(), 3u);
+}
+
+// 0x4e4c0a y 0x4e4c42: las órdenes del cuervo entran al mundo sin mirar el cifrado.
+TEST(ServerSessionTest, TheRavenOrdersReachTheWorld)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {Join({Bytes({0xC1, 0x07, 0xA7, 0x00, 0x03, 0x12, 0x34}),
+                                 Bytes({0xC1, 0x09, 0xA8, 0x00, 0x01, 0x12, 0x34, 0x05, 0x67})})};
+    static_cast<void>(tested.session.Poll());
+    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 2u);
+    const auto* order = std::get_if<Client::Protocol::Pet::PetOrder>(&events[0]);
+    ASSERT_NE(order, nullptr);
+    EXPECT_EQ(order->order, 3);
+    EXPECT_EQ(order->key, 0x1234);
+    const auto* attack = std::get_if<Client::Protocol::Pet::PetAttack>(&events[1]);
+    ASSERT_NE(attack, nullptr);
+    EXPECT_EQ(attack->kind, 1);
+    EXPECT_EQ(attack->owner, 0x1234);
+    EXPECT_EQ(attack->target, 0x0567);
 }
 
 // 0x4c1ec0: el F1 00 aceptado deja la clave del jugador (pkt[5..6], big endian) para el F3 03.

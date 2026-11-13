@@ -397,7 +397,7 @@ TEST(CharacterStepTest, ThePerchedRavenUsesTheSharedModelOfThePreviousPlayer)
     EXPECT_EQ(tested.world.PlayerModel().origin, owner.position);
 }
 
-// 0x416add: los estados 2, 5 y 6 son de las órdenes A7 (CL9) y cortan antes de tocar el cuervo.
+// 0x416add: los estados 2, 5 y 6, que pone el A8, cortan antes de tocar el cuervo (fase 2, P-C266).
 TEST(CharacterStepTest, TheRavenOrdersOfThePacketsCut)
 {
     for (const std::uint8_t state : {std::uint8_t{2}, std::uint8_t{5}, std::uint8_t{6}})

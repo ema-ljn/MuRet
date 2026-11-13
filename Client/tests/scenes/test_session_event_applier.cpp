@@ -11,6 +11,7 @@
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
+#include "Protocol/Pet/PetOrders.h"
 #include "Protocol/Skill.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
@@ -186,6 +187,9 @@ TEST(SessionEventApplierTest, TheSkillsReachTheirAppliers)
     EXPECT_EQ(tested->world.Runtime().hud.summonLife, 0x42);
     EXPECT_TRUE(tested->applier.ApplyWorld(cancel, online.session).HasValue());
     EXPECT_TRUE(tested->applier.ApplyWorld(attack, online.session).HasValue());
+    // El A8 sin el cuervo del dueño no hace nada.
+    const Client::App::WorldEvent raven = Client::Protocol::Pet::PetAttack{1, 0x0777, 0x0888};
+    EXPECT_TRUE(tested->applier.ApplyWorld(raven, online.session).HasValue());
     // F3 11 sin Skill.bmd corta en la cuenta.
     const Client::App::WorldEvent list =
         Client::Protocol::Skill::SkillList{.count = 0xfe, .list = 0, .slot = 0, .skill = 0x11, .entries = {}};

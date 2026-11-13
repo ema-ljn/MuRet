@@ -2452,10 +2452,10 @@ corrido; uno más ancho que la caja se ve por el centro (Q-C676). Un texto vací
 las columnas de la caja).
 
 **Lo que corta.** Sin el servidor elegido, en `0x5ee629` (P-C120); con `+0x46` en 0 y `+0x44` en más de 10, en
-`0x5f08ac` (P-C121); con el nombre del registro sin su 0 en sus 11 bytes, en `0x5ee47b`, y con la skill del héroe
-fuera de los 64 bytes de `+0x6c` que tiene MuRet, en `0x5f04cd` (P-C122). Sin Text.bmd, Item.bmd (la magia con
-báculo, `0x5f05a2`) o Skill.bmd (`0x5513d0`), en la dirección que los lee. Un dibujo intermedio de MuRet hace la
-magia sobre una copia de la lista de los sets, para no dejar sus marcas.
+`0x5f08ac` (P-C121); con el nombre del registro sin su 0 en sus 11 bytes, en `0x5ee47b` (P-C122). La skill del héroe
+(`+0x6c + [+0x425]`) está siempre en los 256 bytes que escribe el `F3 11`: el corte de `0x5f04cd` no se alcanza.
+Sin Text.bmd, Item.bmd (la magia con báculo, `0x5f05a2`) o Skill.bmd (`0x5513d0`), en la dirección que los lee. Un
+dibujo intermedio de MuRet hace la magia sobre una copia de la lista de los sets, para no dejar sus marcas.
 
 **Lo que porta MuRet**: abrir, el paso, los botones, el F3 06 (`Protocol/Character/LevelUpPoint`) y el A9 de la
 mascota, en `Scenes/GameUi.cpp` y `Scenes/GamePanels.cpp`; el dibujo y el botón de cerrar, en
@@ -9779,6 +9779,27 @@ elige, con el ataque automático fuera de los mapas 6 y 18 a 23 y la skill del h
 **MuRet**: `Scenes/SkillReplies` (los nueve), `Scenes/ActorFlags` (`0x4e6910`, `0x439d40`, `0x518ac0`, `0x534f90`),
 `Scenes/SkillDelays` y la lista y los números en `Scenes/GameUi.cpp`. Las cuatro funciones por clase que usan una
 skill (`0x559890`, `0x55b6f0`, `0x55cbc0`, `0x55faa0`) y quien llama a `0x552f10` son de la fase 2 (08, P-C264).
+
+### Las órdenes del cuervo
+
+(CL9 hito 4, 2026-11-13, *estático*.) El objeto del cuervo (`+0x430` del Dark Lord, [El cuervo](#el-cuervo)) tiene un
+CHARACTER en `+0xc`: abajo, los offsets del objeto y, entre paréntesis, los del CHARACTER que usa `Scenes::DarkSpirit`.
+
+- **`0x416510(clave, orden)`**, desde el `A7` con el cuervo del héroe: la orden en `+0x45c`; si el estado (`+0x11c`,
+  `+0x110`) no es 5 ni 6, `+0x1ad` (`+0x1a1`) en 0; con la orden 3, `+0x1ad` en 1 y el blanco (`+8`) en el personaje
+  de la clave por `0x5110d0`, el 400 si no está.
+- **`0x416570(blanco, tipo)`**, desde el `A8` con el cuervo del dueño (el 400 si no está): el blanco en `+8`; con
+  `0x1000` en `+0x78` del dueño, nada más. Si no, el lugar del blanco en `+0x3b0` (`+0x3a4`); con `0x4000`,
+  `0x4164f0(tipo + 5)` y nada más. Si no, `+0x38d` (`+0x381`) en 0 y `0x4164f0(tipo + 5)`; en el estado 5, `+0x1ad`
+  en 1, `+0xf0` (`+0xe4`) en 0,5, la velocidad (`+0xe4`, `+0xd8`) en `rand() % 10 + 20` y el sonido `0x1d2`; en el 6,
+  el sonido `0x1d0`. El tipo + 5 envuelve en el byte: `0xfd` es el estado 2.
+- **`0x4164f0(estado)`**: `+0x6c` (la lejanía, `+0x60`) en 0 y el estado.
+
+Los estados 2, 5 y 6 los mueve `0x416a20` (`0x416add..0x4176e6` y `0x417801..0x41789d`): con el blanco de `+0x3a4`
+en el pool y `0x4000` en el blanco o en el dueño, la distancia, `+0x3a4` en `0xffff` y un C1 al GameServer; la orden
+de `+0x45c` la mira `0x417a9d`. Eso, `0x418920` (desde el dibujo, `0x41835a`), el `A9` (`0x421db0`, `0x4225d0`,
+`0x422930`), la ventana de la mascota (`0x424160`), su tooltip (`0x422990`), `0x420cd0` y los íconos de estado
+(`0x42a660`) quedan sin portar (08, P-C266): el paso del cuervo corta en `0x416add` con esos estados.
 
 ### La tabla de protección
 

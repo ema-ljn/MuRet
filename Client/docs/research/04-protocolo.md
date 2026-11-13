@@ -837,6 +837,18 @@ mundo, donde `Scenes::SessionEventApplier::ApplySkillEvent` los manda a `Scenes/
 las skills (`19`, `1E`, `D3`, `DF` y `26` de las cuatro funciones por clase) son de la fase 2 (08, P-C264). Los tests
 usan claves inventadas.
 
+### Las órdenes del cuervo: `A7` y `A8`
+
+(CL9 hito 4, 2026-11-13, *estático*.) El GameServer 0.97 no tiene el Dark Lord y no los manda (P-C262): el oráculo es
+el cliente. Lo que hacen está en [06](06-render-escenas-y-ui.md#las-órdenes-del-cuervo).
+
+- **`A7`** (`0x4e4c0a` → `0x421b50`): `C1 07 A7 <?> <orden> <clave H L>`. `pkt[3]` no lo lee nadie.
+- **`A8`** (`0x4e4c42` → `0x421b70`): `C1 09 A8 <?> <tipo> <dueño H L> <blanco H L>`. `pkt[3]`, igual.
+
+Ninguno mira el largo. **MuRet**: `Protocol::Pet::ReadPetOrder` y `ReadPetAttack` (TooShort si faltan campos),
+registrados con las skills; `Scenes/PetOrders` los aplica. El `A9` de respuesta (`0x421db0`) sigue sin leerse (08,
+P-C266).
+
 ## Qué implica para MuRet
 
 | Original | MuRet | Ola |

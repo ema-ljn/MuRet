@@ -26,4 +26,13 @@ int OriginalFramesOfTheSteps::FramesAtDraw(Render::Models::OriginalFramePace pac
         m_carry %= Render::Models::OriginalFrameTime;
     return 1;
 }
+
+bool OriginalFramesOfTheSteps::NextDrawIsAnOriginalFrame(Render::Models::OriginalFramePace pace) const
+{
+    if (!m_started || pace == Render::Models::OriginalFramePace::OncePerDraw)
+        return true;
+    const std::uint64_t newSteps = m_steps - m_stepsAtTheLastDraw;
+    return newSteps != 0 &&
+           m_carry + (App::LogicStep * static_cast<std::int64_t>(newSteps)) >= Render::Models::OriginalFrameTime;
+}
 } // namespace Client::Scenes

@@ -1377,6 +1377,59 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
     }
 }
 
+// [0x743a178] y [0x743a17c] los reescribe 0x505820 desde 0x50c91e en cada frame del original que dibuja a un jugador
+// (06, "El conjunto completo de 0x505820"), y la C los lee en 0x550990 (0x65ca1e → 0x550d10) desde el paso que sigue.
+// Con el héroe de TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelection en Lorencia: el primer dibujo es un frame
+// del original y publica el scan del héroe. Uno sin pasos nuevos, en el modo desacoplado, es intermedio: no lo borra
+// ni lo publica, y queda lo que había (antes lo borraba, y la C cortaba en 0x550990 casi siempre). Con 80 ms de
+// pasos el dibujo que sigue es otro frame del original, que lo vuelve a escribir.
+TEST_F(GameSceneDrawTest, AnIntermediateDrawKeepsTheScanOfTheLastFrame)
+{
+    ASSERT_NO_FATAL_FAILURE(Prepare(0, 96, 126));
+    MakeTheHeroAPlayer(95, 126);
+    world.Runtime().terrainPolygon = SelectionPolygon();
+    GameScene scene = Scene();
+    ASSERT_TRUE(scene.Enter().HasValue());
+    scene.Step(Client::Input::InputState{});
+    ASSERT_EQ(scene.Failure(), std::nullopt);
+    ASSERT_TRUE(world.Actors()[HeroSlot].seen);
+    Client::Tests::RecordingFrameTarget target;
+    world.Runtime().fullSetScan = std::nullopt;
+
+    scene.PrepareFrame();
+    ASSERT_FALSE(scene.HoldsTheLastFrame());
+    scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
+    ASSERT_EQ(scene.Failure(), std::nullopt);
+    target.Present();
+    ASSERT_TRUE(world.Runtime().fullSetScan.has_value()) << "el frame del original publica el scan del héroe";
+    const Client::Scenes::Scan505820 heroScan = *world.Runtime().fullSetScan;
+
+    // Lo que dejó otro jugador dibujado después del héroe en ese frame.
+    const Client::Scenes::Scan505820 other{.dword743a178 = 123, .byte743a17c = 42};
+    world.Runtime().fullSetScan = other;
+    scene.PrepareFrame();
+    ASSERT_FALSE(scene.HoldsTheLastFrame());
+    scene.Render(target.BeginFrame(std::chrono::milliseconds{1010}), 0.0f);
+    ASSERT_EQ(scene.Failure(), std::nullopt);
+    target.Present();
+    ASSERT_TRUE(world.Runtime().fullSetScan.has_value()) << "un dibujo intermedio no lo borra";
+    EXPECT_EQ(world.Runtime().fullSetScan->dword743a178, other.dword743a178);
+    EXPECT_EQ(world.Runtime().fullSetScan->byte743a17c, other.byte743a17c);
+
+    scene.Step(Client::Input::InputState{});
+    scene.Step(Client::Input::InputState{});
+    ASSERT_EQ(scene.Failure(), std::nullopt);
+    scene.PrepareFrame();
+    ASSERT_FALSE(scene.HoldsTheLastFrame());
+    EXPECT_FALSE(world.Runtime().fullSetScan.has_value()) << "antes de otro frame del original, sin saber";
+    scene.Render(target.BeginFrame(std::chrono::milliseconds{1090}), 0.0f);
+    ASSERT_EQ(scene.Failure(), std::nullopt);
+    ASSERT_TRUE(world.Runtime().fullSetScan.has_value());
+    EXPECT_EQ(world.Runtime().fullSetScan->dword743a178, heroScan.dword743a178);
+    EXPECT_EQ(world.Runtime().fullSetScan->byte743a17c, heroScan.byte743a17c);
+    scene.Leave();
+}
+
 // 0x63712d: después de los personajes, el paso del juego envejece las marcas del suelo (0x549090), sin rand(): la
 // prendida pierde un paso de vida, crece 0,004 y se pone roja (0,1; 0; 0); la apagada no cambia. Con el héroe de
 // TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelection, en Lorencia y en Devias.

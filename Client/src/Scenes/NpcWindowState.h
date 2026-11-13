@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 // Las grillas y los globales de las ventanas de los NPC (CL9 hito 6): la tienda y el almacén comparten la grilla de
 // 0x78a7070, la caja del caos tiene la suya en 0x7d2d380, y el 30 (0x4d1e00), el 31 (0x4c5f60), el 83 y el 86
@@ -47,6 +48,16 @@ struct JewelMixState
     std::uint8_t kind = 0xff;
     // 0x6c62e1: cuántas juntar (10, 20 o 30; 0xff sin elegir), con signo para el BC 00 (0x40276b).
     std::uint8_t count = 0xff;
+    // La lista de 0x6e5660 (la clase de 0x46e290, vtable 0x6b85f8), solo sus filas en orden: lo que agrega 0x46e940
+    // (la casilla en +4 y el nivel en +8) y su cuenta (+0xa8). No es de los globales de 0x402e10: la vacían 0x402a10
+    // (0x482f80) y la llenan 0x402a20 desde el paso del 0xa4. Lo demás de la lista (la esquina, el desplazamiento, el
+    // elegido y su dibujo) no está (08 P-C338).
+    struct BundleRow
+    {
+        std::int32_t cell = 0;
+        std::uint8_t level = 0;
+    };
+    std::vector<BundleRow> bundles{};
 };
 
 // 0x78ab9bc..0x78ab9c8: lo que el almacén dejó esperando la contraseña, que el 83 con 0xc manda (0x4e4744..). Con el

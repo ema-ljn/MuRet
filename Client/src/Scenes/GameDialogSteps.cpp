@@ -118,6 +118,7 @@ constexpr std::int32_t ChaosMixModeDialog = 0x8e;
 // 0x6259c6, 0x625b23 y 0x625f98: la mezcla de joyas.
 constexpr std::int32_t JewelMenuDialog = 0xa1;
 constexpr std::int32_t JewelChoiceDialog = 0xa2;
+constexpr std::int32_t JewelUnmixDialog = 0xa4;
 constexpr std::int32_t JewelResultDialog = 0xa6;
 // 0x625929..0x625986: los dos botones del 0x8e, x en [245, 395] e y desde 180 de a 85, de 35 de alto, con los bordes.
 constexpr std::int32_t MixModeLeft = 245;
@@ -182,7 +183,7 @@ constexpr auto Routes = std::to_array<DialogRoute>({
     {ChaosMixModeDialog, DialogStep::ChaosMixMode, "0x625910", ""},
     {JewelMenuDialog, DialogStep::JewelMenu, "0x6259c6", ""},
     {JewelChoiceDialog, DialogStep::JewelChoice, "0x625b23", ""},
-    {0xa4, DialogStep::Cut, "0x625cf4", "fase 3 del hito 6 (08 P-C198)"},
+    {JewelUnmixDialog, DialogStep::JewelUnmix, "0x625cf4", ""},
     {JewelResultDialog, DialogStep::JewelResult, "0x625f98", ""},
     {0xa7, DialogStep::Cut, "0x62601e", "CL9.4"},
     {0x9c, DialogStep::Cut, "0x6260d1", "CL9.4"},
@@ -928,6 +929,8 @@ Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context
         return StepTheJewelMenu(context);
     case DialogStep::JewelChoice:
         return StepTheJewelChoice(context);
+    case DialogStep::JewelUnmix:
+        return StepTheJewelUnmix(context);
     case DialogStep::JewelResult:
         return StepTheJewelResult(context);
     case DialogStep::TypedText:

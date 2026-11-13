@@ -38,9 +38,10 @@ enum class DialogStep : std::uint8_t
     YesNo,
     // 0x625910: el modo de la caja del caos (0x8e).
     ChaosMixMode,
-    // 0x6259c6, 0x625b23 y 0x625f98: la mezcla de joyas (0xa1, 0xa2 y 0xa6, Scenes/JewelMix.h).
+    // 0x6259c6, 0x625b23, 0x625cf4 y 0x625f98: la mezcla de joyas (0xa1, 0xa2, 0xa4 y 0xa6, Scenes/JewelMix.h).
     JewelMenu,
     JewelChoice,
+    JewelUnmix,
     JewelResult,
     // 0x6260f6: el título o el precio de la tienda personal (0x91).
     TypedText,

@@ -335,15 +335,4 @@ TEST(JewelMixDialogsTest, UnmixingSendsBc01WithTheSlotAndTheResultReturns)
         EXPECT_EQ(jewels.kind, 0xff);
     }
 }
-
-// Lo que sigue cortado de la mezcla de joyas: el paso del 0xa4, con la lista de 0x6e5660.
-TEST(JewelMixDialogsTest, TheUnmixListIsCut)
-{
-    JewelMixDialogs tested(0);
-    auto& runtime = tested.Runtime();
-    runtime.dialogs.current = 0xa4;
-    const auto list = tested.Click(0, 0);
-    ASSERT_FALSE(list.HasValue());
-    EXPECT_NE(list.Error().find("0x625cf4"), std::string::npos) << list.Error();
-}
 } // namespace

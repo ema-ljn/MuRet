@@ -7,8 +7,8 @@
 // La mezcla de joyas (CL9 hito 6, fase 3b; 06 § Los diálogos del juego, "La mezcla de joyas"): los diálogos que abre
 // el 30 con 9 (0x4d25aa) desde 0xa1 y lo que hacen en el paso de 0x623e70, con las funciones de 0x402a10..0x402eb0 y
 // el BC (Protocol::JewelMix). Ninguno saca rand(): el inventario (0x78a9bb0) no está en la tabla de protección y el BC
-// y el 31 salen en claro. Los dibujos (0x62e92e, 0x62ed0a, 0x62f371, 0x62faeb y 0x62fc1f) y el 0xa4 (0x625cf4, con
-// la lista de 0x6e5660) cortan (08 P-C198).
+// y el 31 salen en claro. Los dibujos van en Scenes/GameDialogDrawing; del 0xa4, la lista de 0x6e5660 (su paso, su
+// elegido y su dibujo) corta (08 P-C338).
 namespace Client::Scenes
 {
 struct GameUiContext;
@@ -25,6 +25,12 @@ struct GameUiContext;
 // 0xa3 con su texto (0x633300(0, 0, 0xa3)), con el MouseUpdateTime en 0 y su máximo en 6; si no, el aviso de
 // 0x402b70 y la vuelta de 0x402e50. Después, x en [279, 360] e y en [365, 390] cierra todo (0x402eb0).
 [[nodiscard]] Core::Expected<void, std::string> StepTheJewelChoice(const GameUiContext& context);
+
+// 0x625cf4..0x625f96, el 0xa4: con el clic (leído antes, y que apaga solo si da), las dos joyas (y en [160, 185], x
+// en [235, 315] y [315, 395]) eligen 0x6c62e0 y llenan la lista de 0x6e5660 (0x402a10 y 0x402a20); sin paquetes, el
+// aviso 1818 de error y la vuelta de 0x402e50. Sin joya, x en [279,5; 359,5] e y en [200, 225] con el clic (que no
+// apaga) cierra todo (0x402eb0). Con una, el paso de la lista corta (0x625dbe, 08 P-C338).
+[[nodiscard]] Core::Expected<void, std::string> StepTheJewelUnmix(const GameUiContext& context);
 
 // 0x625f98..0x62601d, el 0xa6: con el clic (que apaga), x en [287, 352] e y en [170, 195] vuelve con 0x402e50.
 [[nodiscard]] Core::Expected<void, std::string> StepTheJewelResult(const GameUiContext& context);

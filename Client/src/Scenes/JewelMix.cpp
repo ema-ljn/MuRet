@@ -93,6 +93,19 @@ constexpr std::int32_t ChoiceCloseTop = 365;
 constexpr std::int32_t ChoiceCloseBottom = 390;
 constexpr std::int32_t ResultLeft = 287;
 constexpr std::int32_t ResultRight = 352;
+// 0x625d00..0x625d6f: las dos joyas del 0xa4, de 80 desde x = 235, en y de 160 a 185.
+constexpr float UnmixKindLeft = 235.0f;
+constexpr float UnmixKindWidth = 80.0f;
+constexpr float UnmixKindTop = 160.0f;
+constexpr float UnmixKindBottom = 185.0f;
+// 0x625f4d..0x625f96: sin joya, el cancelar del 0xa4.
+constexpr float UnmixCloseLeft = 279.5f;
+constexpr float UnmixCloseRight = 359.5f;
+constexpr float UnmixCloseTop = 200.0f;
+constexpr float UnmixCloseBottom = 225.0f;
+// 0x402a20: el nivel del paquete, (+4 >> 3) & 0xf.
+constexpr std::uint32_t LevelShift = 3;
+constexpr std::uint32_t LevelMask = 0xf;
 constexpr std::int32_t ResultTop = 170;
 constexpr std::int32_t ResultBottom = 195;
 
@@ -100,6 +113,14 @@ constexpr std::int32_t ResultBottom = 195;
 bool Within(const GameUiContext& context, std::int32_t left, std::int32_t right, std::int32_t top, std::int32_t bottom)
 {
     return context.mouseX >= left && context.mouseX <= right && context.mouseY >= top && context.mouseY <= bottom;
+}
+
+// Lo mismo con los bordes en float (0x625d17..0x625d59 y 0x625f4d..0x625f96).
+bool WithinFloat(const GameUiContext& context, float left, float right, float top, float bottom)
+{
+    const auto x = static_cast<float>(context.mouseX);
+    const auto y = static_cast<float>(context.mouseY);
+    return x >= left && x <= right && y >= top && y <= bottom;
 }
 
 void LeaveTheMouseTime(WorldRuntime& runtime)
@@ -306,6 +327,24 @@ Core::Expected<void, std::string> AskTheQuestion(const GameUiContext& context)
     LeaveTheMouseTime(runtime);
     return {};
 }
+// 0x402a10 y 0x402a20: la lista de 0x6e5660 vacía (0x482f80) y llena, casilla por casilla, con los paquetes de la
+// joya elegida (0x181e con 0, 0x181f con 1) y su nivel. 0x46e940 rechaza una casilla fuera de [0, 0x40] o repetida,
+// que acá no llegan.
+void FillTheBundles(WorldState& world)
+{
+    JewelMixState& jewels = world.Runtime().npcWindows.jewels;
+    jewels.bundles.clear();
+    const auto& cells = world.Inventory().cells;
+    for (std::size_t cell = 0; cell < cells.size(); ++cell)
+    {
+        const std::uint16_t id = cells[cell].id;
+        if ((id != BlessBundle || jewels.kind != BlessKind) && (id != SoulBundle || jewels.kind != SoulKind))
+            continue;
+        jewels.bundles.push_back(JewelMixState::BundleRow{
+            .cell = static_cast<std::int32_t>(cell),
+            .level = static_cast<std::uint8_t>((cells[cell].scalar1Low >> LevelShift) & LevelMask)});
+    }
+}
 } // namespace
 
 Core::Expected<void, std::string> StepTheJewelMenu(const GameUiContext& context)
@@ -382,6 +421,51 @@ Core::Expected<void, std::string> StepTheJewelChoice(const GameUiContext& contex
     if (Within(context, CloseLeft, CloseRight, ChoiceCloseTop, ChoiceCloseBottom))
         return CloseTheJewelMix(context);
     return {};
+}
+
+Core::Expected<void, std::string> StepTheJewelUnmix(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    JewelMixState& jewels = runtime.npcWindows.jewels;
+    bool& click = runtime.movement.pendingClick;
+    // 0x625d0c: el clic, leído antes de las joyas (DL).
+    const bool clicked = click;
+    float left = UnmixKindLeft;
+    for (std::uint8_t kind = 0; kind < 2; ++kind, left += UnmixKindWidth)
+    {
+        if (!WithinFloat(context, left, left + UnmixKindWidth, UnmixKindTop, UnmixKindBottom) || !clicked)
+            continue;
+        // 0x625d73..0x625dac.
+        click = false;
+        jewels.kind = kind;
+        FillTheBundles(context.world);
+        if (jewels.bundles.empty())
+        {
+            const std::optional<std::string_view> text = UI::TextAt(context.texts, NoBundleText);
+            if (!text)
+                return Core::Unexpected(std::format("0x625d9a: sin el texto {} de Text.bmd", NoBundleText));
+            if (context.measure == nullptr)
+                return Core::Unexpected(std::format("0x625da4: el mensaje del texto {} sin medidor", NoBundleText));
+            // 0x555190(0x7d3a158, texto, 2): el nombre es una cadena de la .bss que solo lee este PUSH (*inferido*:
+            // vacía).
+            if (auto added = AddGameMessage(runtime, *context.measure, context.screen, {}, *text, UI::ErrorMessage);
+                !added.HasValue())
+                return Core::Unexpected(std::move(added).Error());
+            if (auto back = ReturnToTheChoice(context); !back.HasValue())
+                return back;
+        }
+        break;
+    }
+    if (jewels.kind == Unchosen)
+    {
+        // 0x625f4d..0x625f37: el cancelar, sin apagar el clic.
+        if (WithinFloat(context, UnmixCloseLeft, UnmixCloseRight, UnmixCloseTop, UnmixCloseBottom) && click)
+            return CloseTheJewelMix(context);
+        return {};
+    }
+    return Core::Unexpected(std::string("0x625dbe: el paso de la lista de 0x6e5660 (0x402af0 → 0x45aa80, la vtable "
+                                        "0x6b85f8), su OK con el elegido (+0x64 y 0x402a90) y el cancelar "
+                                        "(0x625ebe..0x625f37) son del hito 6 y no están (08 P-C338)"));
 }
 
 Core::Expected<void, std::string> StepTheJewelResult(const GameUiContext& context)

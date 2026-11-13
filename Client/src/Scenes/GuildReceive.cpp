@@ -2,10 +2,13 @@
 
 #include "Core/Expected.h"
 #include "Protocol/Guild.h"
+#include "Protocol/Movement.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/Emote.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GuildPanels.h"
@@ -13,6 +16,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/Dialogs.h"
+#include "UI/Emotes.h"
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelDialog.h"
@@ -47,8 +51,26 @@ constexpr std::size_t FirstLeaveResultText = 511;
 constexpr std::uint8_t LastNumberedLeaveResult = 4;
 constexpr std::size_t ListAgainText = 568; // 0x76e6b7c, el 53 con 5
 constexpr std::size_t CreateResultTexts[] = {516, 0, 517, 518, 940, 941, 942};
-// 0x4d74b0: el buffer de los renglones (sprintf sin tope).
+constexpr std::size_t FirstWarRequestText = 519;
+constexpr std::uint8_t LastWarRequestResult = 6;
+constexpr std::size_t WarStartText = 526;      // 0x76e3a44
+constexpr std::size_t TypedWarStartText = 533; // 0x76e4278
+constexpr std::size_t WarEndTexts[] = {527, 528, 529, 530, 531, 532, 480};
+constexpr std::size_t UnionListEmptyText = 1328; // 0x771e61c, el EB con 0
+// E5 (0x6565e0): la alianza (1) y la rivalidad (2), con el pedido 1 o el otro, y la pregunta.
+constexpr std::size_t UnionRequestText = 1280;
+constexpr std::size_t UnionJoinText = 1281;
+constexpr std::size_t UnionOtherText = 1282;
+constexpr std::size_t RelationQuestionText = 1283;
+constexpr std::size_t RivalRequestText = 1284;
+constexpr std::size_t RivalOtherText = 1285;
+constexpr std::size_t RivalJoinText = 1286;
+// 0x6c845c y 0x6c8470: lo que queda en el buffer sin texto.
+constexpr std::string_view InvalidAssign = "Invalid GuildAssign";
+constexpr std::string_view InvalidRelationship = "Invalid GuildRelationShipResult";
+// 0x4d74b0 y 0x6565e0: los buffers de los renglones (sprintf sin tope) y cuántos son.
 constexpr std::size_t JoinLineBytes = 0x32;
+constexpr std::size_t RelationLineBytes = 0x40;
 // 0x4d7c30: los resultados que sacan del gremio, el que además borra la entrada y el que pide la lista.
 constexpr std::uint8_t LeftGuild = 1;
 constexpr std::uint8_t GuildRemoved = 4;
@@ -57,6 +79,40 @@ constexpr std::uint8_t AskTheListAgain = 5;
 constexpr std::uint8_t GuildCreated = 1;
 constexpr std::int32_t NoEditFieldLimit = 10; // 0x6c8e78
 constexpr std::int32_t ButtonMouseUpdateTimeMax = 6;
+// 0x4d8150: el resultado que no toca a los personajes.
+constexpr std::uint8_t WarRequested = 1;
+// 0x4e43b5 y 0x4d82b2: el tipo que prende 0x576796d.
+constexpr std::uint8_t TypedWar = 1;
+// +0x374 de cada personaje: 0 otro gremio, 1 el del héroe, 2 el rival.
+constexpr std::uint8_t OtherGuild = 0;
+constexpr std::uint8_t HeroGuild = 1;
+constexpr std::uint8_t RivalGuild = 2;
+// 0x4d832a..0x4d8369: la búsqueda del rival mira de la entrada 0 a la 1998 (EDI < 0x78a597d).
+constexpr std::size_t RivalSearched = GuildTableSize - 1;
+// 0x4d8467 y 0x4d8a2d/0x4d8e11: los gestos y sus acciones.
+constexpr std::uint8_t WarStartAnimation = 0xc0;
+constexpr std::uint8_t WarStartAction = 0x94;
+constexpr std::uint8_t WarWonAnimation = 0xa7;
+constexpr std::uint8_t WarWonAction = 0x89;
+constexpr std::uint8_t WarLostAnimation = 0xad;
+constexpr std::uint8_t WarLostAction = 0x8d;
+// 0x4d8870: el gesto de cada resultado: 0 el de ganar, 2 el de perder, 1 ninguno.
+constexpr std::int32_t WonGesture = 0;
+constexpr std::int32_t NoGesture = 1;
+constexpr std::int32_t LostGesture = 2;
+// 0x4d9940: rompe la alianza (la relación 1, el pedido 2, el resultado 1).
+constexpr std::uint8_t UnionRelation = 1;
+constexpr std::uint8_t RivalRelation = 2;
+constexpr std::uint8_t BreakRequest = 2;
+// 0x4d9e5f y 0x4d9b80.
+constexpr std::uint8_t ListResultOk = 1;
+constexpr std::uint8_t RefreshKind = 1;
+constexpr std::uint8_t RefreshEmpty = 0;
+constexpr std::uint8_t RefreshAgain = 1;
+// 0x4d9bb7: la cuenta de la lista de la alianza desde la que pide la lista otra vez.
+constexpr std::size_t UnionRowsBeforeAsking = 2;
+// 0x4d9940 con el índice −1: 0x787aa4c − 0x58 = 0x787a9f4, el primer byte del miembro 74 (Q-C1281).
+constexpr std::size_t MemberBeforeTheTable = 74;
 // 0x4d7b60: el bit del servidor conectado y lo que queda sin él.
 constexpr std::uint8_t ConnectedBit = 0x80;
 constexpr std::uint8_t ServerMask = 0x7f;
@@ -104,6 +160,17 @@ Core::Expected<void, std::string> AddTextMessage(const GuildReceiveContext& cont
     return AddMessage(context, text.Value(), type);
 }
 
+// 0x554610(texto, 1): el aviso resaltado.
+Core::Expected<void, std::string> AddHighlightedNotice(const GuildReceiveContext& context, std::string_view text)
+{
+    auto measure = MeasureOf(context, "0x554610");
+    if (!measure.HasValue())
+        return Core::Unexpected(measure.Error());
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::AddNotice(runtime.chat.area, *measure.Value(), runtime.hud.dcFont, text, 1);
+    return {};
+}
+
 // sprintf(buffer, Text.bmd[index], argumento) a un buffer de `bytes`: uno más largo pisa lo que sigue en la pila
 // (Q-C1282).
 Core::Expected<std::string, std::string> Formatted(const GuildReceiveContext& context, std::size_t index,
@@ -117,6 +184,11 @@ Core::Expected<std::string, std::string> Formatted(const GuildReceiveContext& co
     if (line.size() >= bytes)
         return Core::Unexpected(std::string(where) + ": el renglón no entra en su buffer de la pila (Q-C1282)");
     return line;
+}
+
+template <std::size_t Size> std::string_view NameOf(const std::array<char, Size>& name)
+{
+    return CString(std::string_view(name.data(), name.size()));
 }
 
 template <std::size_t Size> void CopyName(std::array<char, Size>& target, const GuildName& source)
@@ -167,6 +239,47 @@ Core::Expected<void, std::string> Send(const GuildReceiveContext& context, Proto
         return Core::Unexpected(std::string(where) + ": el paquete del gremio sin el cable");
     context.send(std::move(packet));
     return {};
+}
+
+// 0x4d8150, 0x4d8260 y 0x4d8870: +0x374 de cada personaje vivo: 1 los del gremio del héroe (con gremio), 2 los del
+// rival (solo el 62, con `rival`), 0 los demás.
+void MarkTheGuilds(WorldState& world, std::optional<std::int32_t> rival)
+{
+    const ActorState& hero = world.Actors()[world.Runtime().hero];
+    for (std::size_t index = 0; index < ActorCount; ++index)
+    {
+        ActorState& actor = world.Actors()[index];
+        if (!actor.alive)
+            continue;
+        // El héroe es uno de los 400: su gremio se lee de nuevo en cada vuelta.
+        const std::int16_t heroGuild = GuildIndexOf(hero);
+        actor.byte374 = OtherGuild;
+        if (heroGuild != NoGuildIndex && GuildIndexOf(actor) == heroGuild)
+            actor.byte374 = HeroGuild;
+        if (rival && static_cast<std::int32_t>(GuildIndexOf(actor)) == *rival)
+            actor.byte374 = RivalGuild;
+    }
+}
+
+// 0x576a60(héroe, héroe, animación, acción) (Scenes::PlayTheEmote: parado, la animación y un C1 18) y después, haya
+// actuado o no, el C1 05 18 propio con la acción y el sector de +0x24 del héroe (0x4d84f5..0x4d851f, la cuenta de
+// 0x59b456). Con el héroe parado salen dos C1 18 iguales, como en un emote (Q-C776).
+Core::Expected<void, std::string> Gesture(const GuildReceiveContext& context, std::uint8_t animation,
+                                          std::uint8_t action, std::string_view where)
+{
+    if (context.models == nullptr)
+        return Core::Unexpected(std::string(where) + ": 0x576a60, el gesto, sin los modelos (0x4ea030)");
+    ActionSender send;
+    if (context.send)
+    {
+        send = [&context](std::uint8_t direction, std::uint8_t sent)
+        { context.send(Protocol::Movement::WriteAction(direction, sent)); };
+    }
+    ActorState& hero = HeroOf(context);
+    const EmoteContext emote{.hero = hero, .models = *context.models, .send = send};
+    if (auto played = PlayTheEmote(hero, UI::EmoteCase{animation, action}, emote); !played.HasValue())
+        return Core::Unexpected(played.Error());
+    return SendTheAction(hero.angles.z, action, send, where);
 }
 
 // 0x6600d0 con los renglones; ocupado, OutputDebugStringA y el aviso de 0x6d69a8 (tipo 1).
@@ -340,6 +453,109 @@ Core::Expected<void, std::string> ApplyViewportGuildDelete(const ViewportGuildDe
     return {};
 }
 
+Core::Expected<void, std::string> ApplyWarRequestResult(const WarRequestResult& result,
+                                                        const GuildReceiveContext& context)
+{
+    if (result.result <= LastWarRequestResult)
+    {
+        if (auto added = AddTextMessage(context, FirstWarRequestText + result.result, UI::ErrorMessage);
+            !added.HasValue())
+            return added;
+    }
+    GuildState& guild = context.world.Runtime().guild;
+    if (result.result == WarRequested || guild.warOn != 0)
+        return {};
+    guild.warOn = 0;
+    guild.rivalIndex = -1;
+    guild.rival[0] = '\0';
+    MarkTheGuilds(context.world, std::nullopt);
+    return {};
+}
+
+Core::Expected<void, std::string> ApplyWarRequest(const WarRequest& request, const GuildReceiveContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    GuildState& guild = runtime.guild;
+    CopyName(guild.rival, request.name);
+    UI::PushDialog(runtime.dialogs, UI::IgnoredOverChaosCastle);
+    if (request.type == TypedWar)
+        guild.warType = 1;
+    return {};
+}
+
+Core::Expected<void, std::string> ApplyWarStart(const WarStart& start, const GuildReceiveContext& context)
+{
+    GuildState& guild = context.world.Runtime().guild;
+    CopyName(guild.rival, start.name);
+    guild.warOn = 1;
+    const std::size_t format = start.type == 0 ? WarStartText : TypedWarStartText;
+    if (start.type != 0)
+        guild.warType = 1;
+    // 0x4d82c6: sprintf a un buffer de 100.
+    constexpr std::size_t NoticeBytes = 100;
+    auto line = Formatted(context, format, NameOf(guild.rival), NoticeBytes, "0x4d82c6");
+    if (!line.HasValue())
+        return Core::Unexpected(line.Error());
+    if (auto noticed = AddHighlightedNotice(context, line.Value()); !noticed.HasValue())
+        return noticed;
+    guild.warTeam = start.team;
+    // 0x4d830b..0x4d8369: strcmp de +0xd de cada entrada con el nombre del paquete y su cero; sin ninguna, queda el
+    // índice que había.
+    const std::string_view name = NameOf(guild.rival);
+    for (std::size_t index = 0; index < RivalSearched; ++index)
+    {
+        if (NameOf(guild.table[index].guildName) == name)
+        {
+            guild.rivalIndex = static_cast<std::int32_t>(index);
+            break;
+        }
+    }
+    if (guild.rivalIndex >= 0)
+        MarkTheGuilds(context.world, guild.rivalIndex);
+    return Gesture(context, WarStartAnimation, WarStartAction, "0x4d8473");
+}
+
+Core::Expected<void, std::string> ApplyWarEnd(const WarEnd& end, const GuildReceiveContext& context)
+{
+    if (end.result >= std::size(WarEndTexts))
+        return Core::Unexpected(std::string("0x4d894f: con un resultado mayor que 6, 0x554610 muestra el buffer de la "
+                                            "pila sin inicializar"));
+    auto text = TextOf(context, WarEndTexts[end.result]);
+    if (!text.HasValue())
+        return Core::Unexpected(text.Error());
+    // 0x4d88ba: sprintf sin argumentos.
+    const std::string line = UI::PlaceArguments(text.Value(), {});
+    std::int32_t gesture = WonGesture;
+    if (end.result == 1 || end.result == 2 || end.result == 4)
+        gesture = LostGesture;
+    else if (end.result == 6)
+        gesture = NoGesture;
+    GuildState& guild = context.world.Runtime().guild;
+    guild.byte5767816 = 0;
+    if (auto noticed = AddHighlightedNotice(context, line); !noticed.HasValue())
+        return noticed;
+    guild.warOn = 0;
+    guild.warType = 0;
+    guild.rivalIndex = -1;
+    guild.rival[0] = '\0';
+    // 0x4d898c..0x4d8a13: con la guerra apagada, el rival no se busca.
+    MarkTheGuilds(context.world, std::nullopt);
+    if (gesture == WonGesture)
+        return Gesture(context, WarWonAnimation, WarWonAction, "0x4d8e1b");
+    if (gesture == LostGesture)
+        return Gesture(context, WarLostAnimation, WarLostAction, "0x4d8a39");
+    return {};
+}
+
+Core::Expected<void, std::string> ApplyWarScore(const WarScore& score, const GuildReceiveContext& context)
+{
+    GuildState& guild = context.world.Runtime().guild;
+    guild.warOn = 1;
+    guild.ourScore = score.ours;
+    guild.theirScore = score.theirs;
+    return {};
+}
+
 Core::Expected<void, std::string> ApplyGuildInfo(const GuildInfo& info, const GuildReceiveContext& context)
 {
     GuildState& guild = context.world.Runtime().guild;
@@ -363,6 +579,196 @@ Core::Expected<void, std::string> ApplyGuildInfo(const GuildInfo& info, const Gu
     return {};
 }
 
+Core::Expected<void, std::string> ApplyAssignResult(const AssignResult& result, const GuildReceiveContext& context)
+{
+    std::optional<std::size_t> index;
+    if (result.result == 1)
+    {
+        constexpr std::array<std::size_t, 3> Assigned{1374, 1375, 1376};
+        if (result.type >= 1 && result.type <= Assigned.size())
+            index = Assigned[result.type - 1u];
+    }
+    else
+    {
+        switch (result.result)
+        {
+        case 0x10:
+            index = 522;
+            break;
+        case 0x11:
+            index = 1386;
+            break;
+        case 0x12:
+            index = 1326;
+            break;
+        case 0x13:
+            index = 1327;
+            break;
+        default:
+            break;
+        }
+    }
+    if (!index)
+        return AddMessage(context, InvalidAssign, UI::SystemMessage);
+    return AddTextMessage(context, *index, UI::SystemMessage);
+}
+
+Core::Expected<void, std::string> ApplyRelationshipRequest(const RelationshipRequest& request,
+                                                           const GuildReceiveContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    GuildState& guild = runtime.guild;
+    // 0x656603: con el diálogo ocupado, no (C1 08 E6 con 0).
+    if (UI::PanelDialogHandle(runtime.panels.delegated.panelDialog) != 0)
+        return Send(context,
+                    WriteRelationshipAnswer(request.relation, request.request, 0, request.keyHigh, request.keyLow),
+                    "0x656616");
+    guild.relationRequest = request.request;
+    guild.relation = request.relation;
+    guild.relationKeyHigh = request.keyHigh;
+    guild.relationKeyLow = request.keyLow;
+    const auto key = static_cast<std::uint16_t>((request.keyHigh << 8) | request.keyLow);
+    const std::size_t index = ActorWithKey(context.world, key);
+    if (index >= ActorCount)
+        return {};
+    if (request.relation != UnionRelation && request.relation != RivalRelation)
+        return Core::Unexpected(std::string("0x656db1: con una relación que no es 1 ni 2, 0x6600d0 abre el diálogo con "
+                                            "los buffers de la pila sin inicializar"));
+    const bool isUnion = request.relation == UnionRelation;
+    const std::size_t asked = isUnion ? UnionRequestText : RivalRequestText;
+    std::size_t detail = 0;
+    if (isUnion)
+        detail = request.request == 1 ? UnionJoinText : UnionOtherText;
+    else
+        detail = request.request == 1 ? RivalJoinText : RivalOtherText;
+    auto first = Formatted(context, asked, HeroNameOf(context.world.Actors()[index]), RelationLineBytes, "0x656cd2");
+    if (!first.HasValue())
+        return Core::Unexpected(first.Error());
+    auto second = Formatted(context, detail, {}, RelationLineBytes, "0x656d8a");
+    if (!second.HasValue())
+        return Core::Unexpected(second.Error());
+    auto third = Formatted(context, RelationQuestionText, {}, RelationLineBytes, "0x656d9f");
+    if (!third.HasValue())
+        return Core::Unexpected(third.Error());
+    const std::array<std::string, 3> lines{first.Value(), second.Value(), third.Value()};
+    auto opened = OpenTheDialog(context, lines, UI::PanelDialogOwner::Relationship);
+    if (!opened.HasValue())
+        return Core::Unexpected(opened.Error());
+    guild.secondWindow.dialog2a4 = opened.Value();
+    return {};
+}
+
+Core::Expected<void, std::string> ApplyRelationshipResult(const RelationshipResult& result,
+                                                          const GuildReceiveContext& context)
+{
+    std::optional<std::size_t> index;
+    if (result.result == 1)
+    {
+        if (result.relation == UnionRelation)
+        {
+            if (result.request == 1)
+                index = 1381;
+            else if (result.request == BreakRequest)
+                index = 1382;
+            else if (result.request == 0x10)
+                index = 1635;
+        }
+        else
+        {
+            index = result.request == 1 ? 1383 : 1384;
+        }
+    }
+    else if (result.result == 0)
+    {
+        index = 1328;
+    }
+    else
+    {
+        // 0x4d9a04: el switch de pkt[5].
+        constexpr std::array<std::pair<std::uint8_t, std::size_t>, 13> Results{{{0x10, 1637},
+                                                                                {0x11, 1386},
+                                                                                {0x15, 1250},
+                                                                                {0x16, 1251},
+                                                                                {0x17, 1252},
+                                                                                {0x18, 1253},
+                                                                                {0x19, 1254},
+                                                                                {0x1a, 1255},
+                                                                                {0x1b, 1333},
+                                                                                {0x1c, 1329},
+                                                                                {0x1d, 1331},
+                                                                                {0x1e, 1287},
+                                                                                {0x20, 1268}}};
+        for (const auto& [code, text] : Results)
+        {
+            if (code == result.result)
+                index = text;
+        }
+    }
+    const auto added = index ? AddTextMessage(context, *index, UI::SystemMessage)
+                             : AddMessage(context, InvalidRelationship, UI::SystemMessage);
+    if (!added.HasValue())
+        return added;
+    if (result.key != context.playerKey || result.result != 1 || result.relation != UnionRelation ||
+        result.request != BreakRequest)
+        return {};
+    // 0x4d9b2b: el primer byte del nombre de la alianza del gremio del héroe. Con −1, el del miembro 74 (Q-C1281).
+    GuildState& guild = context.world.Runtime().guild;
+    const std::int16_t heroGuild = GuildIndexOf(HeroOf(context));
+    if (heroGuild == NoGuildIndex)
+    {
+        guild.members[MemberBeforeTheTable].name[0] = '\0';
+        return {};
+    }
+    auto entry = EntryOf(guild, heroGuild, "0x4d9b2b");
+    if (!entry.HasValue())
+        return Core::Unexpected(entry.Error());
+    entry.Value()->unionName[0] = '\0';
+    return {};
+}
+
+Core::Expected<void, std::string> ApplyUnionList(const UnionList& list, const GuildReceiveContext& context)
+{
+    if (list.result != ListResultOk)
+        return {};
+    GuildWindowState& window = context.world.Runtime().guild.window;
+    for (const UnionEntry& entry : list.entries)
+    {
+        GuildUnionRow row;
+        constexpr std::uint8_t NibbleShift = 4;
+        constexpr std::uint8_t LowNibble = 0x0f;
+        for (std::size_t i = 0; i < GuildMarkNibbles; ++i)
+        {
+            const std::uint8_t packed = entry.mark[i / 2];
+            row.mark[i] = (i % 2) == 0 ? static_cast<std::uint8_t>(packed >> NibbleShift)
+                                       : static_cast<std::uint8_t>(packed & LowNibble);
+        }
+        CopyName(row.name, entry.name);
+        row.byte0 = entry.byte0;
+        window.unions.push_back(row);
+    }
+    return {};
+}
+
+Core::Expected<void, std::string> ApplyUnionListRefresh(const UnionListRefresh& refresh,
+                                                        const GuildReceiveContext& context)
+{
+    if (refresh.kind != RefreshKind)
+        return {};
+    if (refresh.result == RefreshEmpty)
+        return AddTextMessage(context, UnionListEmptyText, UI::SystemMessage);
+    if (refresh.result != RefreshAgain)
+        return {};
+    GuildWindowState& window = context.world.Runtime().guild.window;
+    // 0x4d9bb2: la vtable + 0x9c de la lista (*inferido*: cuántas filas tiene). Con más de 2, Sleep(500), que MuRet no
+    // hace (P-C282), y el C1 03 E9.
+    if (window.unions.size() > UnionRowsBeforeAsking)
+    {
+        if (auto sent = Send(context, WriteUnionListRequest(), "0x4d9bc8"); !sent.HasValue())
+            return sent;
+    }
+    window.unions.clear();
+    return {};
+}
 } // namespace
 
 Core::Expected<void, std::string> ApplyGuildPacket(const GuildPacket& packet, const GuildReceiveContext& context)
@@ -391,8 +797,28 @@ Core::Expected<void, std::string> ApplyGuildPacket(const GuildPacket& packet, co
                 return ApplyCreateResult(received, context);
             else if constexpr (std::is_same_v<Received, ViewportGuildDelete>)
                 return ApplyViewportGuildDelete(received, context);
-            else
+            else if constexpr (std::is_same_v<Received, WarRequestResult>)
+                return ApplyWarRequestResult(received, context);
+            else if constexpr (std::is_same_v<Received, WarRequest>)
+                return ApplyWarRequest(received, context);
+            else if constexpr (std::is_same_v<Received, WarStart>)
+                return ApplyWarStart(received, context);
+            else if constexpr (std::is_same_v<Received, WarEnd>)
+                return ApplyWarEnd(received, context);
+            else if constexpr (std::is_same_v<Received, WarScore>)
+                return ApplyWarScore(received, context);
+            else if constexpr (std::is_same_v<Received, GuildInfo>)
                 return ApplyGuildInfo(received, context);
+            else if constexpr (std::is_same_v<Received, AssignResult>)
+                return ApplyAssignResult(received, context);
+            else if constexpr (std::is_same_v<Received, RelationshipRequest>)
+                return ApplyRelationshipRequest(received, context);
+            else if constexpr (std::is_same_v<Received, RelationshipResult>)
+                return ApplyRelationshipResult(received, context);
+            else if constexpr (std::is_same_v<Received, UnionList>)
+                return ApplyUnionList(received, context);
+            else
+                return ApplyUnionListRefresh(received, context);
         },
         packet);
 }

@@ -10,8 +10,8 @@
 #include <string>
 
 // Las dos ventanas del gremio y el diálogo de los paneles en el registro (CL9 hito 8; 06 § El gremio): lo que hacen al
-// cerrarse (0x6522f0 y 0x6570b0) y la función que responde al diálogo (0x4d6b60). Lo que mandan va por `send` (el
-// GameServer de la sesión, en claro).
+// cerrarse (0x6522f0 y 0x6570b0) y las dos funciones que responden al diálogo (0x4d6b60 y 0x653c00). Lo que mandan va
+// por `send` (el GameServer de la sesión, en claro).
 namespace Client::Scenes
 {
 class WorldState;
@@ -19,8 +19,8 @@ class WorldState;
 // El envío de los paquetes del gremio (la sesión, o lo que la UI le pide).
 using GuildSender = std::function<void(Protocol::Outgoing)>;
 
-// 0x4d6b60 (el 50: con 8 acepta, C1 06 51 01; con cualquier otro motivo, 00). Devuelve 1: el diálogo se cierra. Sin
-// `send`, corta.
+// 0x4d6b60 (el 50: con 8 acepta, C1 06 51 01; con cualquier otro motivo, 00) y 0x653c00 (el E5: con 8, C1 08 E6 con 1;
+// con 0x10, con 0; con los demás, nada). Las dos devuelven 1: el diálogo se cierra. Sin `send`, corta.
 [[nodiscard]] Core::Expected<bool, std::string> AnswerThePanelDialog(WorldState& world, const GuildSender& send,
                                                                      UI::PanelDialogOwner owner, std::uint32_t reason);
 

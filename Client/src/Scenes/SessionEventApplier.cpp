@@ -86,7 +86,7 @@ ChatReceiveContext ChatContextOf(const WorldEntryResources& resources, const App
 }
 
 // Lo que los paquetes del gremio leen del juego y de la sesión (CL9 hito 8): lo que mandan va por el GameServer de la
-// sesión; el gesto de 0x576a60 llega con el hito 1.
+// sesión, también los C1 18 del gesto de la guerra (0x576a60, el emote del hito 1, con los modelos de la escena).
 GuildReceiveContext GuildContextOf(const WorldEntryResources& resources, App::ServerSession& session)
 {
     const std::uint32_t now =
@@ -102,7 +102,8 @@ GuildReceiveContext GuildContextOf(const WorldEntryResources& resources, App::Se
                                .playerKey = session.PlayerIndex(),
                                .now = now,
                                .send = [&session](Protocol::Outgoing packet)
-                               { session.SendGuildPacket(std::move(packet)); }};
+                               { session.SendGuildPacket(std::move(packet)); },
+                               .models = &resources.models};
 }
 
 // El 0x3d de la respuesta va a la sesión que la está aplicando.

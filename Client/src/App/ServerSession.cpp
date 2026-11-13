@@ -290,7 +290,9 @@ bool ServerSession::RegisterGuildHandlers()
     using namespace Protocol::Guild;
     for (const std::uint8_t opcode :
          {JoinRequestOpcode, JoinResultOpcode, MemberListOpcode, LeaveResultOpcode, MasterQuestionOpcode,
-          CreateResultOpcode, ViewportGuildDeleteOpcode, GuildInfoOpcode})
+          CreateResultOpcode, ViewportGuildDeleteOpcode, WarRequestResultOpcode, WarRequestOpcode, WarStartOpcode,
+          WarEndOpcode, WarScoreOpcode, GuildInfoOpcode, AssignResultOpcode, RelationshipRequestOpcode,
+          RelationshipResultOpcode, UnionListOpcode, UnionListRefreshOpcode})
     {
         if (!m_gameServer.On(opcode, [this](const Network::Packet& packet) { OnGuild(packet); }))
             return false;

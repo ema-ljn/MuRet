@@ -26,6 +26,9 @@ constexpr std::int32_t GuildCloseSound = 0x1c;
 constexpr std::int32_t FirstGuildTab = 1;
 // 0x6570b0: C1 04 54 00.
 constexpr std::uint8_t ClosedMasterAnswer = 0;
+// 0x653c69..0x6545de: el resultado del E6 que manda el E5 aceptado y el rechazado.
+constexpr std::uint8_t RelationshipAccepted = 1;
+constexpr std::uint8_t RelationshipRefused = 0;
 
 Core::Expected<void, std::string> Send(const GuildSender& send, Protocol::Outgoing packet, const char* where)
 {
@@ -53,6 +56,20 @@ Core::Expected<bool, std::string> AnswerThePanelDialog(WorldState& world, const 
         // 0x4d6b83: 8 acepta; lo demás (Cancelar, Esc, el reloj) rechaza. La clave, de 0x78aba40 (SAR 8 y el byte).
         const auto key = static_cast<std::uint16_t>(guild.requester);
         if (auto sent = Send(send, Protocol::Guild::WriteJoinAnswer(reason == UI::PanelAnswerConfirm, key), "0x4d6b60");
+            !sent.HasValue())
+            return Core::Unexpected(std::move(sent).Error());
+        return true;
+    }
+    case UI::PanelDialogOwner::Relationship:
+    {
+        // 0x653c23 y 0x654289: solo Confirmar y Cancelar mandan; con lo demás, nada.
+        if (reason != UI::PanelAnswerConfirm && reason != UI::PanelAnswerCancel)
+            return true;
+        const std::uint8_t result = reason == UI::PanelAnswerConfirm ? RelationshipAccepted : RelationshipRefused;
+        if (auto sent = Send(send,
+                             Protocol::Guild::WriteRelationshipAnswer(guild.relation, guild.relationRequest, result,
+                                                                      guild.relationKeyHigh, guild.relationKeyLow),
+                             "0x653c00");
             !sent.HasValue())
             return Core::Unexpected(std::move(sent).Error());
         return true;

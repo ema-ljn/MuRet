@@ -19,8 +19,8 @@
 #include <variant>
 #include <vector>
 
-// Los paquetes del gremio (CL9 hito 8; 04 § El gremio, la alianza y la guerra): lo que leen 0x4e2b10 y sus funciones y
-// lo que mandan las respuestas. Los nombres de gremio y de personaje son inventados.
+// Los paquetes del gremio, de la alianza y de la guerra (CL9 hito 8; 04 § El gremio, la alianza y la guerra): lo que
+// leen 0x4e2b10 y sus funciones y lo que mandan las respuestas. Los nombres de gremio y de personaje son inventados.
 namespace
 {
 using Client::Network::Delivery;
@@ -92,6 +92,8 @@ TEST(GuildProtocolTest, TheResultsReadTheFourthByte)
     EXPECT_EQ(ReadAs<Guild::JoinResult>(Bytes({0xc1, 0x04, 0x51, 0x07})).result, 7);
     EXPECT_EQ(ReadAs<Guild::LeaveResult>(Bytes({0xc1, 0x04, 0x53, 0x05})).result, 5);
     EXPECT_EQ(ReadAs<Guild::CreateResult>(Bytes({0xc1, 0x04, 0x56, 0x01})).result, 1);
+    EXPECT_EQ(ReadAs<Guild::WarRequestResult>(Bytes({0xc1, 0x04, 0x60, 0x06})).result, 6);
+    EXPECT_EQ(ReadAs<Guild::WarEnd>(Bytes({0xc1, 0x0c, 0x63, 0x02, 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'})).result, 2);
     static_cast<void>(ReadAs<Guild::MasterQuestion>(Bytes({0xc1, 0x03, 0x54})));
 }
 
@@ -125,6 +127,30 @@ TEST(GuildProtocolTest, TheMemberListReadsItsEntriesFromTheTwentyFourthByte)
     EXPECT_EQ(ErrorOf(Guild::ReadGuildPacket(PacketOf(shorter))), ProtocolError::TooShort);
 }
 
+// 0x4d8260 y 0x4e4382: el nombre de pkt[3..10], el tipo y (el 62) el equipo; 0x4e4400: los dos puntajes.
+TEST(GuildProtocolTest, TheWarPacketsReadTheRivalAndTheScores)
+{
+    std::vector<std::byte> start = Bytes({0xc1, 0x0d, 0x62});
+    Append(start, "Caranchos", 8);
+    start.insert(start.end(), {std::byte{1}, std::byte{0}});
+    const auto war = ReadAs<Guild::WarStart>(start);
+    // Ocho bytes sin su cero: el aplicador lo pone (0x4d8282).
+    EXPECT_EQ(TextOf(war.name), "Carancho");
+    EXPECT_EQ(war.type, 1);
+    EXPECT_EQ(war.team, 0);
+
+    std::vector<std::byte> request = Bytes({0xc1, 0x0c, 0x61});
+    Append(request, "Teros", 8);
+    request.push_back(std::byte{1});
+    const auto asked = ReadAs<Guild::WarRequest>(request);
+    EXPECT_EQ(TextOf(asked.name), "Teros");
+    EXPECT_EQ(asked.type, 1);
+
+    const auto score = ReadAs<Guild::WarScore>(Bytes({0xc1, 0x06, 0x64, 0x03, 0x01, 0x00}));
+    EXPECT_EQ(score.ours, 3);
+    EXPECT_EQ(score.theirs, 1);
+}
+
 // 0x4e42c7: la clave en pkt[4], los nombres en pkt[9] y pkt[0x11] y la marca en pkt[0x19].
 TEST(GuildProtocolTest, TheGuildInfoReadsTheKeyTheNamesAndTheMark)
 {
@@ -142,6 +168,60 @@ TEST(GuildProtocolTest, TheGuildInfoReadsTheKeyTheNamesAndTheMark)
     EXPECT_EQ(info.mark[31], 31 * 7);
 }
 
+// E1, E5 y E6: los bytes desde pkt[3]; la clave del E6 en big-endian (0x4d9ae9).
+TEST(GuildProtocolTest, TheAlliancePacketsReadTheirBytesInOrder)
+{
+    const auto assigned = ReadAs<Guild::AssignResult>(Bytes({0xc1, 0x05, 0xe1, 0x02, 0x01}));
+    EXPECT_EQ(assigned.type, 2);
+    EXPECT_EQ(assigned.result, 1);
+
+    const auto request = ReadAs<Guild::RelationshipRequest>(Bytes({0xc1, 0x07, 0xe5, 0x01, 0x02, 0x12, 0x34}));
+    EXPECT_EQ(request.relation, 1);
+    EXPECT_EQ(request.request, 2);
+    EXPECT_EQ(request.keyHigh, 0x12);
+    EXPECT_EQ(request.keyLow, 0x34);
+
+    const auto result = ReadAs<Guild::RelationshipResult>(Bytes({0xc1, 0x08, 0xe6, 0x01, 0x02, 0x01, 0x12, 0x34}));
+    EXPECT_EQ(result.relation, 1);
+    EXPECT_EQ(result.request, 2);
+    EXPECT_EQ(result.result, 1);
+    EXPECT_EQ(result.key, 0x1234);
+}
+
+// 0x4d9e50: un C2 con la cuenta en pkt[4] y el resultado en pkt[5]; con 1, las entradas de 0x29 bytes desde pkt[8].
+TEST(GuildProtocolTest, TheUnionListReadsItsEntriesOnlyWithResultOne)
+{
+    std::vector<std::byte> bytes = Bytes({0xc2, 0x00, 0x31, 0xe9, 0x01, 0x01, 0xee, 0xee, 0x07});
+    for (int i = 0; i < 32; ++i)
+        bytes.push_back(static_cast<std::byte>(0x10 + i));
+    Append(bytes, "Ceibos", 8);
+    ASSERT_EQ(bytes.size(), 0x31u);
+    const auto list = ReadAs<Guild::UnionList>(bytes);
+    EXPECT_EQ(list.count, 1);
+    ASSERT_EQ(list.entries.size(), 1u);
+    EXPECT_EQ(list.entries[0].byte0, 7);
+    EXPECT_EQ(list.entries[0].mark[0], 0x10);
+    EXPECT_EQ(list.entries[0].mark[31], 0x2f);
+    EXPECT_EQ(TextOf(list.entries[0].name), "Ceibos");
+
+    const auto refused = ReadAs<Guild::UnionList>(Bytes({0xc2, 0x00, 0x08, 0xe9, 0x05, 0x00, 0x00, 0x00}));
+    EXPECT_EQ(refused.count, 5);
+    EXPECT_TRUE(refused.entries.empty());
+}
+
+// 0x4e4486: el EB lee pkt[4] solo con pkt[3] en 1.
+TEST(GuildProtocolTest, TheUnionRefreshReadsTheResultOnlyForKindOne)
+{
+    const auto refresh = ReadAs<Guild::UnionListRefresh>(Bytes({0xc1, 0x05, 0xeb, 0x01, 0x01}));
+    EXPECT_EQ(refresh.kind, 1);
+    EXPECT_EQ(refresh.result, 1);
+    const auto other = ReadAs<Guild::UnionListRefresh>(Bytes({0xc1, 0x04, 0xeb, 0x02}));
+    EXPECT_EQ(other.kind, 2);
+    EXPECT_EQ(other.result, 0);
+    EXPECT_EQ(ErrorOf(Guild::ReadGuildPacket(PacketOf(Bytes({0xc1, 0x04, 0xeb, 0x01})))), ProtocolError::TooShort);
+}
+
+// El 52 y el E9 solo en C2; los demás solo en C1; el 55 y el 5C caen en el default de 0x4e2b10.
 TEST(GuildProtocolTest, TheWrongTypeOrOpcodeIsNotAGuildPacket)
 {
     EXPECT_EQ(ErrorOf(Guild::ReadGuildPacket(PacketOf(Bytes({0xc1, 0x06, 0x52, 0x00, 0x00, 0x00})))),
@@ -163,11 +243,14 @@ TEST(GuildProtocolTest, TheJoinAnswerCarriesTheKey)
     EXPECT_TRUE(SameBytes(PlainOf(Guild::WriteJoinAnswer(false, 0x8001)), Bytes({0xc1, 0x06, 0x51, 0x00, 0x80, 0x01})));
 }
 
-// El pedido de tres bytes va tal cual (C1 03 52); el 54, con el XOR32.
+// Los pedidos de tres bytes van tal cual (C1 03 52 y C1 03 E9); los demás con el XOR32.
 TEST(GuildProtocolTest, TheRequestsAndAnswersHaveTheirBytes)
 {
     EXPECT_TRUE(SameBytes(RawOf(Guild::WriteMemberListRequest()), Bytes({0xc1, 0x03, 0x52})));
+    EXPECT_TRUE(SameBytes(RawOf(Guild::WriteUnionListRequest()), Bytes({0xc1, 0x03, 0xe9})));
     EXPECT_TRUE(SameBytes(PlainOf(Guild::WriteMasterAnswer(0)), Bytes({0xc1, 0x04, 0x54, 0x00})));
+    EXPECT_TRUE(SameBytes(PlainOf(Guild::WriteRelationshipAnswer(1, 2, 1, 0x12, 0x34)),
+                          Bytes({0xc1, 0x08, 0xe6, 0x01, 0x02, 0x01, 0x12, 0x34})));
 }
 
 // 0x6552b0: C1 2B 55, el nombre y la marca de 32 bytes.

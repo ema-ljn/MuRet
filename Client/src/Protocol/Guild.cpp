@@ -27,6 +27,10 @@ constexpr std::size_t MemberEntrySize = 0xd;
 // 0x4e42c7: la clave en pkt[4] y los nombres en pkt[9] y pkt[0x11], la marca en pkt[0x19].
 constexpr std::size_t GuildInfoKeyOffset = 4;
 constexpr std::size_t GuildInfoNameOffset = 9;
+// 0x4d9e50: las entradas desde pkt[8], de 0x29 bytes.
+constexpr std::size_t FirstUnionOffset = 8;
+// EB: solo pkt[3] == 1 lee pkt[4].
+constexpr std::uint8_t RefreshKind = 1;
 
 // Un lector parado en `offset` del paquete entero (pkt[0] es el C1 o el C2).
 std::optional<Core::ByteReader> At(const Network::Packet& packet, std::size_t offset)
@@ -108,6 +112,44 @@ Core::Expected<GuildPacket, ProtocolError> ReadMemberList(const Network::Packet&
     return GuildPacket{std::move(list)};
 }
 
+Core::Expected<GuildPacket, ProtocolError> ReadWarRequest(const Network::Packet& packet)
+{
+    Core::ByteReader reader = AfterTheOpcode(packet);
+    WarRequest request;
+    if (!CopyTo(reader, request.name))
+        return Core::Unexpected(ProtocolError::TooShort);
+    const auto type = reader.ReadU8();
+    if (!type)
+        return Core::Unexpected(ProtocolError::TooShort);
+    request.type = *type;
+    return GuildPacket{request};
+}
+
+Core::Expected<GuildPacket, ProtocolError> ReadWarStart(const Network::Packet& packet)
+{
+    Core::ByteReader reader = AfterTheOpcode(packet);
+    WarStart start;
+    if (!CopyTo(reader, start.name))
+        return Core::Unexpected(ProtocolError::TooShort);
+    const auto type = reader.ReadU8();
+    const auto team = reader.ReadU8();
+    if (!type || !team)
+        return Core::Unexpected(ProtocolError::TooShort);
+    start.type = *type;
+    start.team = *team;
+    return GuildPacket{start};
+}
+
+Core::Expected<GuildPacket, ProtocolError> ReadWarScore(const Network::Packet& packet)
+{
+    Core::ByteReader reader = AfterTheOpcode(packet);
+    const auto ours = reader.ReadU8();
+    const auto theirs = reader.ReadU8();
+    if (!ours || !theirs)
+        return Core::Unexpected(ProtocolError::TooShort);
+    return GuildPacket{WarScore{.ours = *ours, .theirs = *theirs}};
+}
+
 Core::Expected<GuildPacket, ProtocolError> ReadKeyed(const Network::Packet& packet, bool viewport)
 {
     Core::ByteReader reader = AfterTheOpcode(packet);
@@ -138,6 +180,86 @@ Core::Expected<GuildPacket, ProtocolError> ReadGuildInfo(const Network::Packet& 
     return GuildPacket{info};
 }
 
+Core::Expected<GuildPacket, ProtocolError> ReadAssignResult(const Network::Packet& packet)
+{
+    Core::ByteReader reader = AfterTheOpcode(packet);
+    const auto type = reader.ReadU8();
+    const auto result = reader.ReadU8();
+    if (!type || !result)
+        return Core::Unexpected(ProtocolError::TooShort);
+    return GuildPacket{AssignResult{.type = *type, .result = *result}};
+}
+
+Core::Expected<GuildPacket, ProtocolError> ReadRelationshipRequest(const Network::Packet& packet)
+{
+    Core::ByteReader reader = AfterTheOpcode(packet);
+    const auto relation = reader.ReadU8();
+    const auto request = reader.ReadU8();
+    const auto high = reader.ReadU8();
+    const auto low = reader.ReadU8();
+    if (!relation || !request || !high || !low)
+        return Core::Unexpected(ProtocolError::TooShort);
+    return GuildPacket{
+        RelationshipRequest{.relation = *relation, .request = *request, .keyHigh = *high, .keyLow = *low}};
+}
+
+Core::Expected<GuildPacket, ProtocolError> ReadRelationshipResult(const Network::Packet& packet)
+{
+    Core::ByteReader reader = AfterTheOpcode(packet);
+    const auto relation = reader.ReadU8();
+    const auto request = reader.ReadU8();
+    const auto result = reader.ReadU8();
+    // 0x4d9ae9: CONCAT11(pkt[6], pkt[7]).
+    const auto key = reader.ReadU16Be();
+    if (!relation || !request || !result || !key)
+        return Core::Unexpected(ProtocolError::TooShort);
+    return GuildPacket{RelationshipResult{.relation = *relation, .request = *request, .result = *result, .key = *key}};
+}
+
+Core::Expected<GuildPacket, ProtocolError> ReadUnionList(const Network::Packet& packet)
+{
+    auto head = At(packet, Network::MinPacketSize(Network::PacketType::C2));
+    if (!head)
+        return Core::Unexpected(ProtocolError::TooShort);
+    const auto count = head->ReadU8();
+    const auto result = head->ReadU8();
+    if (!count || !result)
+        return Core::Unexpected(ProtocolError::TooShort);
+    UnionList list{.count = *count, .result = *result, .entries = {}};
+    // 0x4d9e5f: solo con el resultado en 1 y alguna entrada se leen.
+    if (list.result != 1 || list.count == 0)
+        return GuildPacket{std::move(list)};
+    auto entries = At(packet, FirstUnionOffset);
+    if (!entries)
+        return Core::Unexpected(ProtocolError::TooShort);
+    for (std::uint8_t i = 0; i < list.count; ++i)
+    {
+        UnionEntry entry;
+        const auto first = entries->ReadU8();
+        if (!first || !CopyMark(*entries, entry.mark) || !CopyTo(*entries, entry.name))
+            return Core::Unexpected(ProtocolError::TooShort);
+        entry.byte0 = *first;
+        list.entries.push_back(entry);
+    }
+    return GuildPacket{std::move(list)};
+}
+
+Core::Expected<GuildPacket, ProtocolError> ReadUnionListRefresh(const Network::Packet& packet)
+{
+    Core::ByteReader reader = AfterTheOpcode(packet);
+    const auto kind = reader.ReadU8();
+    if (!kind)
+        return Core::Unexpected(ProtocolError::TooShort);
+    UnionListRefresh refresh{.kind = *kind, .result = 0};
+    if (refresh.kind != RefreshKind)
+        return GuildPacket{refresh};
+    const auto result = reader.ReadU8();
+    if (!result)
+        return Core::Unexpected(ProtocolError::TooShort);
+    refresh.result = *result;
+    return GuildPacket{refresh};
+}
+
 Core::Expected<GuildPacket, ProtocolError> ReadC1(const Network::Packet& packet, std::uint8_t opcode)
 {
     switch (opcode)
@@ -154,8 +276,26 @@ Core::Expected<GuildPacket, ProtocolError> ReadC1(const Network::Packet& packet,
         return ReadResult<CreateResult>(packet);
     case ViewportGuildDeleteOpcode:
         return ReadKeyed(packet, true);
+    case WarRequestResultOpcode:
+        return ReadResult<WarRequestResult>(packet);
+    case WarRequestOpcode:
+        return ReadWarRequest(packet);
+    case WarStartOpcode:
+        return ReadWarStart(packet);
+    case WarEndOpcode:
+        return ReadResult<WarEnd>(packet);
+    case WarScoreOpcode:
+        return ReadWarScore(packet);
     case GuildInfoOpcode:
         return ReadGuildInfo(packet);
+    case AssignResultOpcode:
+        return ReadAssignResult(packet);
+    case RelationshipRequestOpcode:
+        return ReadRelationshipRequest(packet);
+    case RelationshipResultOpcode:
+        return ReadRelationshipResult(packet);
+    case UnionListRefreshOpcode:
+        return ReadUnionListRefresh(packet);
     default:
         return Core::Unexpected(ProtocolError::WrongPacket);
     }
@@ -171,6 +311,8 @@ Core::Expected<GuildPacket, ProtocolError> ReadGuildPacket(const Network::Packet
     {
         if (*opcode == MemberListOpcode)
             return ReadMemberList(packet);
+        if (*opcode == UnionListOpcode)
+            return ReadUnionList(packet);
         return Core::Unexpected(ProtocolError::WrongPacket);
     }
     if (packet.Type() != Network::PacketType::C1)
@@ -201,4 +343,19 @@ Outgoing WriteCreate(const GuildName& name, const GuildMark& mark)
     return Xor32C1(Network::PacketWriter::C1(CreateOpcode).PutBytes(name).PutBytes(markBytes));
 }
 
+Outgoing WriteRelationshipAnswer(std::uint8_t relation, std::uint8_t request, std::uint8_t result, std::uint8_t keyHigh,
+                                 std::uint8_t keyLow)
+{
+    return Xor32C1(Network::PacketWriter::C1(RelationshipResultOpcode)
+                       .PutU8(relation)
+                       .PutU8(request)
+                       .PutU8(result)
+                       .PutU8(keyHigh)
+                       .PutU8(keyLow));
+}
+
+Outgoing WriteUnionListRequest()
+{
+    return ClearC1(Network::PacketWriter::C1(UnionListOpcode));
+}
 } // namespace Client::Protocol::Guild

@@ -115,7 +115,7 @@ TEST_F(PanelDialogTest, ItDoesNotOpenWithTooManyLinesOrWhenBusy)
     EXPECT_EQ(Open(Client::UI::PanelDialogOk, std::vector<std::string>(11, "x")), PanelDialogOpening::TooManyLines);
     EXPECT_EQ(m_dialog.opened, 0u);
     ASSERT_EQ(Open(Client::UI::PanelDialogOk), PanelDialogOpening::Opened);
-    EXPECT_EQ(Open(Client::UI::PanelDialogOk, {"otro"}, PanelDialogOwner::GuildJoin, 99), PanelDialogOpening::Busy);
+    EXPECT_EQ(Open(Client::UI::PanelDialogOk, {"otro"}, PanelDialogOwner::Relationship, 99), PanelDialogOpening::Busy);
     EXPECT_EQ(m_dialog.opened, OpenedAt);
     EXPECT_EQ(m_dialog.owner, PanelDialogOwner::GuildJoin);
 }

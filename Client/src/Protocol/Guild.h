@@ -11,11 +11,12 @@
 #include <variant>
 #include <vector>
 
-// 04 § El gremio, la alianza y la guerra (CL9 hito 8): los paquetes del gremio que 0x4e2b10 reparte a 0x4d74b0,
-// 0x4d7a20, 0x4d7b60, 0x4d7c30 y 0x4d7ff0, y los que el dispatcher atiende en línea (0x54, 0x5D y 0x66), sin aplicar
-// nada; y los que el cliente manda. El original lee sus campos a desplazamientos fijos sin mirar el largo: acá, un
-// paquete que no trae los campos que se leen es TooShort, y una lista que dice más entradas que las que trae, también.
-// Los bytes sobrantes se ignoran. 0x55 y 0x5C no tienen caso en 0x4e2b10 (van al default): el cliente no los lee.
+// 04 § El gremio, la alianza y la guerra (CL9 hito 8): los paquetes que 0x4e2b10 reparte a 0x4d74b0, 0x4d7a20,
+// 0x4d7b60, 0x4d7c30, 0x4d7ff0, 0x4d8150, 0x4d8260, 0x4d8870, 0x4d9810, 0x6565e0, 0x4d9940, 0x4d9e50 y 0x4d9b80, y los
+// que el dispatcher atiende en línea (0x54, 0x5D, 0x61, 0x64 y 0x66), sin aplicar nada; y los que el cliente manda. El
+// original lee sus campos a desplazamientos fijos sin mirar el largo: acá, un paquete que no trae los campos que se
+// leen es TooShort, y una lista que dice más entradas que las que trae, también. Los bytes sobrantes se ignoran. 0x55 y
+// 0x5C no tienen caso en 0x4e2b10 (van al default): el cliente no los lee.
 namespace Client::Protocol::Guild
 {
 inline constexpr std::uint8_t JoinRequestOpcode = 0x50;
@@ -26,7 +27,17 @@ inline constexpr std::uint8_t MasterQuestionOpcode = 0x54;
 inline constexpr std::uint8_t CreateOpcode = 0x55;
 inline constexpr std::uint8_t CreateResultOpcode = 0x56;
 inline constexpr std::uint8_t ViewportGuildDeleteOpcode = 0x5d;
+inline constexpr std::uint8_t WarRequestResultOpcode = 0x60;
+inline constexpr std::uint8_t WarRequestOpcode = 0x61;
+inline constexpr std::uint8_t WarStartOpcode = 0x62;
+inline constexpr std::uint8_t WarEndOpcode = 0x63;
+inline constexpr std::uint8_t WarScoreOpcode = 0x64;
 inline constexpr std::uint8_t GuildInfoOpcode = 0x66;
+inline constexpr std::uint8_t AssignResultOpcode = 0xe1;
+inline constexpr std::uint8_t RelationshipRequestOpcode = 0xe5;
+inline constexpr std::uint8_t RelationshipResultOpcode = 0xe6;
+inline constexpr std::uint8_t UnionListOpcode = 0xe9;
+inline constexpr std::uint8_t UnionListRefreshOpcode = 0xeb;
 
 // Los nombres de gremio: 8 bytes sin terminador (el original los copia con dos DWORD y pone el cero él).
 inline constexpr std::size_t GuildNameSize = 8;
@@ -47,7 +58,7 @@ struct JoinRequest
     std::uint16_t key = 0;
 };
 
-// 51 (0x4d7a20), 53 (0x4d7c30) y 56 (0x4d7ff0): el resultado de pkt[3].
+// 51 (0x4d7a20), 53 (0x4d7c30), 56 (0x4d7ff0) y 60 (0x4d8150): el resultado de pkt[3].
 struct JoinResult
 {
     std::uint8_t result = 0;
@@ -57,6 +68,10 @@ struct LeaveResult
     std::uint8_t result = 0;
 };
 struct CreateResult
+{
+    std::uint8_t result = 0;
+};
+struct WarRequestResult
 {
     std::uint8_t result = 0;
 };
@@ -91,6 +106,34 @@ struct ViewportGuildDelete
     std::uint16_t key = 0;
 };
 
+// 61 (0x4e4382): el nombre del gremio de pkt[3..10] y el tipo de pkt[0xb].
+struct WarRequest
+{
+    GuildName name{};
+    std::uint8_t type = 0;
+};
+
+// 62 (0x4d8260): el nombre de pkt[3..10], el tipo de pkt[0xb] y el equipo de pkt[0xc].
+struct WarStart
+{
+    GuildName name{};
+    std::uint8_t type = 0;
+    std::uint8_t team = 0;
+};
+
+// 63 (0x4d8870): el resultado de pkt[3]. El nombre de pkt[4..11] no se lee.
+struct WarEnd
+{
+    std::uint8_t result = 0;
+};
+
+// 64 (0x4e4400): los dos puntajes de pkt[3] y pkt[4]. pkt[5] no se lee.
+struct WarScore
+{
+    std::uint8_t ours = 0;
+    std::uint8_t theirs = 0;
+};
+
 // 66 (0x4e42c7 → 0x447b90): la clave del DWORD de pkt[4], los dos nombres de pkt[9..0x10] y pkt[0x11..0x18] y la
 // marca de pkt[0x19..0x38].
 struct GuildInfo
@@ -101,10 +144,60 @@ struct GuildInfo
     GuildMark mark{};
 };
 
-using GuildPacket = std::variant<JoinRequest, JoinResult, MemberList, LeaveResult, MasterQuestion, CreateResult,
-                                 ViewportGuildDelete, GuildInfo>;
+// E1 (0x4d9810): el tipo de pkt[3] y el resultado de pkt[4].
+struct AssignResult
+{
+    std::uint8_t type = 0;
+    std::uint8_t result = 0;
+};
 
-// El paquete del gremio que es, por su opcode. 52 es C2; los demás, C1. Otro opcode u otro tipo: WrongPacket.
+// E5 (0x4e4444 → 0x6565e0): pkt[3..6], el tipo de relación, el pedido y la clave de quien pide (alto y bajo).
+struct RelationshipRequest
+{
+    std::uint8_t relation = 0;
+    std::uint8_t request = 0;
+    std::uint8_t keyHigh = 0;
+    std::uint8_t keyLow = 0;
+};
+
+// E6 (0x4d9940): el tipo de relación de pkt[3], el pedido de pkt[4], el resultado de pkt[5] y la clave de pkt[6..7].
+struct RelationshipResult
+{
+    std::uint8_t relation = 0;
+    std::uint8_t request = 0;
+    std::uint8_t result = 0;
+    std::uint16_t key = 0;
+};
+
+// Una entrada del E9: 0x29 bytes desde pkt[8]: un byte, la marca y el nombre.
+struct UnionEntry
+{
+    std::uint8_t byte0 = 0;
+    GuildMark mark{};
+    GuildName name{};
+};
+
+// E9 (0x4d9e50), un C2: la cuenta de pkt[4], el resultado de pkt[5] y las entradas.
+struct UnionList
+{
+    std::uint8_t count = 0;
+    std::uint8_t result = 0;
+    std::vector<UnionEntry> entries;
+};
+
+// EB (0x4e4486): pkt[3] y, si es 1, pkt[4] (0x4d9b80).
+struct UnionListRefresh
+{
+    std::uint8_t kind = 0;
+    std::uint8_t result = 0;
+};
+
+using GuildPacket =
+    std::variant<JoinRequest, JoinResult, MemberList, LeaveResult, MasterQuestion, CreateResult, ViewportGuildDelete,
+                 WarRequestResult, WarRequest, WarStart, WarEnd, WarScore, GuildInfo, AssignResult, RelationshipRequest,
+                 RelationshipResult, UnionList, UnionListRefresh>;
+
+// El paquete del gremio que es, por su opcode. 52 y E9 son C2; los demás, C1. Otro opcode u otro tipo: WrongPacket.
 [[nodiscard]] Core::Expected<GuildPacket, ProtocolError> ReadGuildPacket(const Network::Packet& packet);
 
 // 0x4d6b60 y 0x4d754d..: C1 06 51 [sí] [clave alta] [clave baja], con el XOR32 y en claro. Con 8 (Confirmar) el 1; con
@@ -119,4 +212,11 @@ using GuildPacket = std::variant<JoinRequest, JoinResult, MemberList, LeaveResul
 
 // 0x6552b0: C1 2B 55, el nombre del gremio (8 bytes) y la marca (32), con el XOR32 y en claro.
 [[nodiscard]] Outgoing WriteCreate(const GuildName& name, const GuildMark& mark);
+
+// 0x6565e0 y 0x653c00: C1 08 E6 [relación] [pedido] [resultado] [clave alta] [clave baja], con el XOR32 y en claro.
+[[nodiscard]] Outgoing WriteRelationshipAnswer(std::uint8_t relation, std::uint8_t request, std::uint8_t result,
+                                               std::uint8_t keyHigh, std::uint8_t keyLow);
+
+// 0x4d9b80 y 0x651840: C1 03 E9 en claro, el pedido de la lista de la alianza.
+[[nodiscard]] Outgoing WriteUnionListRequest();
 } // namespace Client::Protocol::Guild

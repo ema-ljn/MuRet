@@ -2523,7 +2523,8 @@ guerra (1 del gremio del héroe, 2 del rival, 0 los demás).
   también prende `0x576796d`) resaltado (`0x554610(…, 1)`), el equipo; busca el rival por nombre (`strcmp` de `+0xd`)
   en las entradas 0 a 1.998 (sin encontrarlo queda el índice que había) y, con el índice ≥ 0, marca `+0x374` de los
   400 vivos (el gremio del héroe se relee en cada vuelta). Después `0x576a60(héroe, héroe, 0xc0, 0x94)` y su
-  `C1 05 18` con `0x94` y la dirección de `+0x24` del héroe.
+  `C1 05 18` con `0x94` y la dirección de `+0x24` del héroe. Con el héroe parado, `0x576a60` anima y manda el suyo:
+  salen dos `C1 18` iguales, como en un emote (Q-C776).
 - `63` (`0x4d8870`): el aviso resaltado (527..532 de 0 a 5, 480 con 6; con más, el buffer de la pila sin
   inicializar: corta), `0x5767816 = 0`, la guerra apagada, el rival olvidado y `+0x374` remarcado; con 0, 3 y 5 el
   gesto `(0xa7, 0x89)`, con 1, 2 y 4 `(0xad, 0x8d)`, con 6 ninguno; cada gesto con su `C1 18`.

@@ -364,6 +364,14 @@ tienda personal y ver la de otro; armar una party y echar a alguien; un duelo; c
 **Pruebas:** crear un gremio, sumar a alguien, salir; la marca de otro en el viewport; una alianza; una guerra
 con su marcador y los dos `C1 18`. **Desbloquea:** 12.
 
+**Fase 1 (2026-11-13):** los 18 paquetes que llegan (`50`..`54`, `56`, `5D`, `60`..`64`, `66`, `E1`, `E5`, `E6`,
+`E9`, `EB`) con lo que escriben, sus respuestas (`51`, `52`, `54`, `E6`, `E9`, los `C1 18` de la guerra con
+`0x576a60` del hito 1), el globo (`0x556dd0`), las dos ventanas al cerrarse (`0x6522f0`, `0x6570b0`), abrirlas desde
+el registro, y el diálogo de los paneles (`0x65feb0`..`0x6605b0` y dónde quedan sus botones). Queda para la fase 2
+(08, P-C281): el dibujo y el paso de las ventanas, las listas, el alta (`0x6552b0`, `0x655d70`, `0x4e3450`), las
+ventanas de la alianza que mandan, el dibujo del diálogo, el marcador (`0x5a7640`), la marca en el viewport y el
+color de la tela.
+
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 
 - [ ] **Los controles de las ventanas viejas** que la CL8 dejó sin portar (57 funciones de la CL8.3, 14 KB: las

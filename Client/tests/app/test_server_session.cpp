@@ -4600,7 +4600,7 @@ TEST(ServerSessionTest, GuildPacketsReachTheSink)
     const auto list =
         Bytes({0xc2, 0, 0x18, 0x52, 1, 0, 0, 0, 5, 0, 0, 0, 0, 'T', 'e', 'r', 'o', 's', 0, 0, 0, 0, 0, 0});
     const auto broken = Bytes({0xc1, 3, 0x51});
-    const auto refresh = Bytes({0xc1, 4, 0x53, 5});
+    const auto refresh = Bytes({0xc1, 5, 0xeb, 1, 0});
     tested.socket.reads = {Join({join, list, broken, refresh})};
     EXPECT_TRUE(tested.session.Poll().HasValue());
     ASSERT_EQ(tested.eventSink.world.size(), 3u);
@@ -4612,7 +4612,7 @@ TEST(ServerSessionTest, GuildPacketsReachTheSink)
     EXPECT_EQ(std::get<Client::Protocol::Guild::MemberList>(*listed).score, 5);
     const auto* refreshed = std::get_if<Client::Protocol::Guild::GuildPacket>(&tested.eventSink.world[2]);
     ASSERT_NE(refreshed, nullptr);
-    EXPECT_EQ(std::get<Client::Protocol::Guild::LeaveResult>(*refreshed).result, 5);
+    EXPECT_TRUE(std::holds_alternative<Client::Protocol::Guild::UnionListRefresh>(*refreshed));
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 

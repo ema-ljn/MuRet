@@ -2,14 +2,19 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Data/Models/Model.h"
+#include "Data/Models/PlayerModels.h"
 #include "Data/Text/TextTable.h"
 #include "Network/Crypto/Xor32.h"
 #include "Protocol/Guild.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/Skeleton.h"
+#include "Render/TextureSlot.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GuildPanels.h"
 #include "Scenes/GuildState.h"
@@ -19,6 +24,7 @@
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
 
+#include "support/PlayerActors.h"
 #include "support/SceneDataFiles.h"
 
 #include <gtest/gtest.h>
@@ -28,14 +34,16 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
-// Los paquetes del gremio que llegan (CL9 hito 8; 06 § El gremio): 0x4e2b10 con el 50, 51, 52, 53, 54, 56, 5D y 66, las
-// dos ventanas al cerrarse (0x6522f0, 0x6570b0) y la respuesta del diálogo de los paneles (0x4d6b60). Los nombres de
-// gremio, de personaje y los textos son inventados.
+// Los paquetes del gremio, de la alianza y de la guerra que llegan (CL9 hito 8; 06 § El gremio): 0x4e2b10 con el 50,
+// 51, 52, 53, 54, 56, 5D, 60..64, 66, E1, E5, E6, E9 y EB, las dos ventanas al cerrarse (0x6522f0, 0x6570b0) y las
+// respuestas del diálogo de los paneles (0x4d6b60, 0x653c00). El gesto de la guerra es el emote del hito 1
+// (Scenes::PlayTheEmote). Los nombres de gremio, de personaje y los textos son inventados.
 namespace
 {
 using Client::Render::Models::CrtRandom;
@@ -129,6 +137,30 @@ std::vector<std::uint8_t> Plain(const Client::Protocol::Outgoing& sent)
     return bytes;
 }
 
+// Player.bmd con sus 205 acciones (las que mira 0x4ea030 en el gesto); ningún otro modelo.
+class GestureModels final : public Client::Scenes::IModelLibrary
+{
+public:
+    const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
+    {
+        return nullptr;
+    }
+    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    {
+        return model == Client::Data::Models::PlayerSkeletonModel ? &player : nullptr;
+    }
+    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+    {
+        return {};
+    }
+    Client::Render::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
+};
+
+// 0x576a84: las acciones de parado (1..12 y 0x8a), las únicas con las que 0x576a60 anima y manda.
+constexpr std::uint8_t Standing = 1;
+constexpr std::uint8_t Walking = 0x0d;
+constexpr std::uint8_t ElfClass = 2;
+
 class GuildReceiveTest : public ::testing::Test
 {
 protected:
@@ -154,6 +186,7 @@ protected:
         Runtime().hero = 0;
         ActorState& hero = Actor(0, "Hornero", 0x0042);
         hero.word1f2 = 0xffff;
+        hero.type = Client::Data::Models::PlayerSkeletonModel;
     }
 
     ActorState& Actor(std::size_t index, std::string_view name, std::uint16_t key)
@@ -168,7 +201,7 @@ protected:
         return actor;
     }
 
-    [[nodiscard]] GuildReceiveContext Context()
+    [[nodiscard]] GuildReceiveContext Context(bool withModels = true)
     {
         return GuildReceiveContext{.world = *m_world,
                                    .random = m_random,
@@ -178,12 +211,13 @@ protected:
                                    .playerKey = PlayerKey,
                                    .now = Now,
                                    .send = [this](Client::Protocol::Outgoing packet)
-                                   { m_sent.push_back(Plain(packet)); }};
+                                   { m_sent.push_back(Plain(packet)); },
+                                   .models = withModels ? &m_models : nullptr};
     }
 
-    Client::Core::Expected<void, std::string> Apply(const Guild::GuildPacket& packet)
+    Client::Core::Expected<void, std::string> Apply(const Guild::GuildPacket& packet, bool withModels = true)
     {
-        return Client::Scenes::ApplyGuildPacket(packet, Context());
+        return Client::Scenes::ApplyGuildPacket(packet, Context(withModels));
     }
 
     [[nodiscard]] Client::Scenes::WorldRuntime& Runtime()
@@ -244,6 +278,7 @@ protected:
     LetterMeasure m_letters;
     Client::Data::Text::TextTable m_texts;
     std::vector<std::vector<std::uint8_t>> m_sent;
+    GestureModels m_models;
 };
 
 // 0x4e4279 abre la ventana 2 (0x6599a0 con 0x40000: CanOpen y CloseByMask, cuatro rand()); el 56 con 1 la cierra
@@ -489,4 +524,228 @@ TEST_F(GuildReceiveTest, TheGuildInfoWritesTheEntryOfItsKey)
     EXPECT_EQ(TextOf(GuildOf().table[2].guildName), "");
 }
 
+// 0x6565e0: la alianza pide con el nombre de quien la propone; Confirmar (0x653c00 con 8) manda C1 08 E6 con 1. Con el
+// diálogo ocupado, el 0 sin preguntar.
+TEST_F(GuildReceiveTest, AnAllianceRequestAsksAndTheAnswerGoesBack)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        Reset(map);
+        Actor(5, "Benteveo", 0x0123);
+        ASSERT_TRUE(
+            Apply(Guild::RelationshipRequest{.relation = 1, .request = 1, .keyHigh = 0x01, .keyLow = 0x23}).HasValue());
+        ASSERT_EQ(Dialog().opened, Now);
+        EXPECT_EQ(Dialog().owner, Client::UI::PanelDialogOwner::Relationship);
+        EXPECT_EQ(Dialog().lines[0], "Benteveo propone alianza");
+        EXPECT_EQ(Dialog().lines[1], "para unirse");
+        EXPECT_EQ(Dialog().lines[2], "Acepta la alianza?");
+        EXPECT_EQ(GuildOf().secondWindow.dialog2a4, Now);
+
+        ASSERT_TRUE(
+            Apply(Guild::RelationshipRequest{.relation = 2, .request = 2, .keyHigh = 0x01, .keyLow = 0x23}).HasValue());
+        EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{{0xc1, 0x08, 0xe6, 0x02, 0x02, 0x00, 0x01, 0x23}}));
+        m_sent.clear();
+
+        const auto answered = Client::Scenes::AnswerThePanelDialog(*m_world, Context().send,
+                                                                   Client::UI::PanelDialogOwner::Relationship, 8);
+        ASSERT_TRUE(answered.HasValue()) << answered.Error();
+        EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{{0xc1, 0x08, 0xe6, 0x01, 0x01, 0x01, 0x01, 0x23}}));
+        m_sent.clear();
+        // 0x654289: lo que no es Confirmar ni Cancelar no manda nada.
+        ASSERT_TRUE(Client::Scenes::AnswerThePanelDialog(*m_world, Context().send,
+                                                         Client::UI::PanelDialogOwner::Relationship, 0x50)
+                        .HasValue());
+        EXPECT_TRUE(m_sent.empty());
+    }
+}
+
+// 0x6565e0 con la rivalidad (2): sus textos.
+TEST_F(GuildReceiveTest, ARivalryRequestHasItsOwnLines)
+{
+    Actor(5, "Benteveo", 0x0123);
+    ASSERT_TRUE(
+        Apply(Guild::RelationshipRequest{.relation = 2, .request = 2, .keyHigh = 0x01, .keyLow = 0x23}).HasValue());
+    EXPECT_EQ(Dialog().lines[0], "Benteveo propone rivalidad");
+    EXPECT_EQ(Dialog().lines[1], "rival otra");
+}
+
+// 0x4d9940: el E6 que rompe la alianza del héroe (la clave suya, 1, 2 y 1) borra el nombre de la alianza; los demás
+// solo son un mensaje (o "Invalid GuildRelationShipResult").
+TEST_F(GuildReceiveTest, BreakingTheAllianceClearsItsName)
+{
+    NameTheGuild(3, 77, "Horneros", "Ceibos");
+    m_world->Actors()[0].word1f2 = 3;
+    ASSERT_TRUE(Apply(Guild::RelationshipResult{.relation = 1, .request = 2, .result = 1, .key = 0x0999}).HasValue());
+    EXPECT_EQ(TextOf(GuildOf().table[3].unionName), "Ceibos");
+    ASSERT_TRUE(
+        Apply(Guild::RelationshipResult{.relation = 1, .request = 2, .result = 1, .key = PlayerKey}).HasValue());
+    EXPECT_EQ(TextOf(GuildOf().table[3].unionName), "");
+    ASSERT_TRUE(Apply(Guild::RelationshipResult{.relation = 1, .request = 1, .result = 0x20, .key = 0}).HasValue());
+    ASSERT_TRUE(Apply(Guild::RelationshipResult{.relation = 1, .request = 1, .result = 0x12, .key = 0}).HasValue());
+    const std::vector<std::pair<std::int32_t, std::string>> expected{
+        {Client::UI::SystemMessage, "alianza rota"},
+        {Client::UI::SystemMessage, "alianza rota"},
+        {Client::UI::SystemMessage, "resultado 20"},
+        // 0x45bb20 corta desde 30 bytes en dos renglones.
+        {Client::UI::SystemMessage, "Invalid GuildRelationShipResul"},
+        {Client::UI::SystemMessage, "t"}};
+    EXPECT_EQ(Messages(), expected);
+}
+
+// 0x4d9940 sin gremio (−1): escribe el primer byte del miembro 74 (Q-C1281).
+TEST_F(GuildReceiveTest, BreakingWithoutAGuildWritesTheMemberBeforeTheTable)
+{
+    Fill(GuildOf().members[74].name, "Chingolo");
+    ASSERT_TRUE(
+        Apply(Guild::RelationshipResult{.relation = 1, .request = 2, .result = 1, .key = PlayerKey}).HasValue());
+    EXPECT_EQ(GuildOf().members[74].name[0], '\0');
+    EXPECT_EQ(GuildOf().members[74].name[1], 'h');
+}
+
+// 0x4d9e50 agrega las filas con la marca en nibbles; 0x4d9b80 con 1 pide la lista otra vez (con más de 2) y la vacía;
+// con 0, el mensaje.
+TEST_F(GuildReceiveTest, TheUnionListAndItsRefresh)
+{
+    Guild::UnionEntry entry{.byte0 = 3, .mark = {}, .name = GuildNameOf("Ceibos")};
+    entry.mark[0] = 0x4f;
+    ASSERT_TRUE(Apply(Guild::UnionList{.count = 3, .result = 1, .entries = {entry, entry, entry}}).HasValue());
+    ASSERT_EQ(GuildOf().window.unions.size(), 3u);
+    EXPECT_EQ(GuildOf().window.unions[0].mark[0], 4);
+    EXPECT_EQ(GuildOf().window.unions[0].mark[1], 0xf);
+    EXPECT_EQ(TextOf(GuildOf().window.unions[0].name), "Ceibos");
+    EXPECT_EQ(GuildOf().window.unions[0].byte0, 3);
+
+    ASSERT_TRUE(Apply(Guild::UnionListRefresh{.kind = 1, .result = 1}).HasValue());
+    EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{{0xc1, 0x03, 0xe9}}));
+    EXPECT_TRUE(GuildOf().window.unions.empty());
+
+    ASSERT_TRUE(Apply(Guild::UnionListRefresh{.kind = 1, .result = 0}).HasValue());
+    const std::vector<std::pair<std::int32_t, std::string>> expected{{Client::UI::SystemMessage, "sin alianza"}};
+    EXPECT_EQ(Messages(), expected);
+}
+
+// 0x4d9810: el E1 con 1 da el texto del tipo; con otro, el del resultado; si no, "Invalid GuildAssign".
+TEST_F(GuildReceiveTest, TheAssignResultIsASystemMessage)
+{
+    ASSERT_TRUE(Apply(Guild::AssignResult{.type = 2, .result = 1}).HasValue());
+    ASSERT_TRUE(Apply(Guild::AssignResult{.type = 9, .result = 1}).HasValue());
+    const std::vector<std::pair<std::int32_t, std::string>> expected{
+        {Client::UI::SystemMessage, "asignado 2"}, {Client::UI::SystemMessage, "Invalid GuildAssign"}};
+    EXPECT_EQ(Messages(), expected);
+}
+
+// La guerra: el 61 guarda al rival y abre el diálogo 0x7f; el 62 la empieza (el aviso, +0x374 de cada personaje, el
+// gesto 0x576a60 con 0xc0 y 0x94 y su C1 05 18); el 64 trae los puntajes; el 63 la termina con el gesto de ganar (0xa7,
+// 0x89) y su C1 18. Con el héroe parado, cada gesto anima y manda dos C1 18 iguales (el de 0x576a60 y el propio). En
+// Lorencia, en Devias y en Arena (6).
+TEST_F(GuildReceiveTest, AWarStartsScoresAndEndsWithTwoActions)
+{
+    for (const std::int32_t map : {0, 2, 6})
+    {
+        SCOPED_TRACE(map);
+        Reset(map);
+        NameTheGuild(1, 11, "Horneros");
+        NameTheGuild(2, 22, "Teros");
+        ActorState& hero = m_world->Actors()[0];
+        hero.word1f2 = 1;
+        hero.angles.z = 90.0f;
+        hero.animation.action = Standing;
+        Actor(5, "Calandria", 0x0105).word1f2 = 1;
+        Actor(6, "Carancho", 0x0106).word1f2 = 2;
+        Actor(7, "Chingolo", 0x0107);
+
+        ASSERT_TRUE(Apply(Guild::WarRequest{.name = GuildNameOf("Teros"), .type = 1}).HasValue());
+        EXPECT_EQ(TextOf(GuildOf().rival), "Teros");
+        EXPECT_EQ(GuildOf().warType, 1);
+        EXPECT_EQ(Runtime().dialogs.current, 0x7f);
+        GuildOf().warType = 0;
+
+        ASSERT_TRUE(Apply(Guild::WarStart{.name = GuildNameOf("Teros"), .type = 0, .team = 1}).HasValue());
+        EXPECT_EQ(GuildOf().warOn, 1);
+        EXPECT_EQ(GuildOf().warType, 0);
+        EXPECT_EQ(GuildOf().warTeam, 1);
+        EXPECT_EQ(GuildOf().rivalIndex, 2);
+        EXPECT_EQ(LastNotice(), "guerra con Teros");
+        EXPECT_EQ(hero.byte374, 1);
+        EXPECT_EQ(m_world->Actors()[5].byte374, 1);
+        EXPECT_EQ(m_world->Actors()[6].byte374, 2);
+        EXPECT_EQ(m_world->Actors()[7].byte374, 0);
+        // (90 + 22.5) / 45 + 1 = 3.5: el sector 3.
+        EXPECT_EQ(hero.animation.action, 0xc0);
+        const std::vector<std::uint8_t> started{0xc1, 0x05, 0x18, 0x03, 0x94};
+        EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{started, started}));
+
+        ASSERT_TRUE(Apply(Guild::WarScore{.ours = 3, .theirs = 1}).HasValue());
+        EXPECT_EQ(GuildOf().ourScore, 3);
+        EXPECT_EQ(GuildOf().theirScore, 1);
+
+        // La animación del gesto terminó: el héroe está parado otra vez.
+        hero.animation.action = Standing;
+        ASSERT_TRUE(Apply(Guild::WarEnd{0}).HasValue());
+        EXPECT_EQ(LastNotice(), "fin 527");
+        EXPECT_EQ(GuildOf().warOn, 0);
+        EXPECT_EQ(GuildOf().rivalIndex, -1);
+        EXPECT_EQ(TextOf(GuildOf().rival), "");
+        EXPECT_EQ(m_world->Actors()[6].byte374, 0);
+        EXPECT_EQ(m_world->Actors()[5].byte374, 1);
+        EXPECT_EQ(hero.animation.action, 0xa7);
+        const std::vector<std::uint8_t> won{0xc1, 0x05, 0x18, 0x03, 0x89};
+        EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{started, started, won, won}));
+        EXPECT_EQ(DrawsSince(), 0);
+    }
+}
+
+// 0x4d8870: perder (1, 2 y 4) es el otro gesto (0xad, 0x8d; el elfo anima la siguiente, 0x576a9d); el 6 no tiene;
+// más de 6 lee la pila sin inicializar: corta. Caminando, 0x576a60 no anima ni manda: queda solo el C1 18 propio.
+TEST_F(GuildReceiveTest, TheWarEndGestureDependsOnTheResult)
+{
+    ActorState& hero = m_world->Actors()[0];
+    hero.characterClass = ElfClass;
+    hero.animation.action = Standing;
+    // (0 + 22.5) / 45 + 1 = 1.5: el sector 1.
+    const std::vector<std::uint8_t> lost{0xc1, 0x05, 0x18, 0x01, 0x8d};
+    ASSERT_TRUE(Apply(Guild::WarEnd{2}).HasValue());
+    EXPECT_EQ(hero.animation.action, 0xae);
+    EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{lost, lost}));
+    ASSERT_TRUE(Apply(Guild::WarEnd{6}).HasValue());
+    EXPECT_EQ(LastNotice(), "empate");
+    EXPECT_EQ(m_sent.size(), 2u);
+
+    hero.animation.action = Walking;
+    ASSERT_TRUE(Apply(Guild::WarEnd{4}).HasValue());
+    EXPECT_EQ(hero.animation.action, Walking);
+    EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{lost, lost, lost}));
+    EXPECT_FALSE(Apply(Guild::WarEnd{7}).HasValue());
+}
+
+// Sin los modelos de 0x4ea030, el 62 corta después de marcar a los personajes y antes del gesto y de los C1 18.
+TEST_F(GuildReceiveTest, WithoutTheModelsTheWarStartIsCut)
+{
+    NameTheGuild(2, 22, "Teros");
+    const auto applied = Apply(Guild::WarStart{.name = GuildNameOf("Teros"), .type = 1, .team = 0}, false);
+    ASSERT_FALSE(applied.HasValue());
+    EXPECT_NE(applied.Error().find("0x576a60"), std::string::npos);
+    EXPECT_EQ(GuildOf().warOn, 1);
+    EXPECT_EQ(GuildOf().warType, 1);
+    EXPECT_EQ(LastNotice(), "partido con Teros");
+    EXPECT_TRUE(m_sent.empty());
+}
+
+// 0x4d8150: con un resultado que no es 1 y sin guerra, apaga al rival y desmarca.
+TEST_F(GuildReceiveTest, ARefusedWarRequestForgetsTheRival)
+{
+    Fill(GuildOf().rival, "Teros");
+    GuildOf().rivalIndex = 2;
+    m_world->Actors()[0].byte374 = 2;
+    ASSERT_TRUE(Apply(Guild::WarRequestResult{1}).HasValue());
+    EXPECT_EQ(GuildOf().rivalIndex, 2);
+    ASSERT_TRUE(Apply(Guild::WarRequestResult{3}).HasValue());
+    EXPECT_EQ(GuildOf().rivalIndex, -1);
+    EXPECT_EQ(TextOf(GuildOf().rival), "");
+    EXPECT_EQ(m_world->Actors()[0].byte374, 0);
+    const std::vector<std::pair<std::int32_t, std::string>> expected{{Client::UI::ErrorMessage, "guerra 520"},
+                                                                     {Client::UI::ErrorMessage, "guerra 522"}};
+    EXPECT_EQ(Messages(), expected);
+}
 } // namespace

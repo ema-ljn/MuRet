@@ -25,6 +25,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
+#include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 #include "World/GameCamera.h"
 

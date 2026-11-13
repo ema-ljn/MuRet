@@ -56,9 +56,9 @@ struct ContractMessage
 ShowTheContractMessage(WorldRuntime& runtime, const Data::Text::TextTable* texts, const ContractMessage& message);
 
 // 0x435ad0(altar, valor): con la etapa en 3 o 4 en el mapa 34, el byte de 0x6c73cc + altar; no mira la salida pedida.
-// El altar sale de la clave del BD 03 − 0x13c sin tope (Q-C1347): fuera de 0..4 corta.
-[[nodiscard]] Core::Expected<void, std::string> SetTheAltar(WorldRuntime& runtime, std::int32_t altar,
-                                                            std::uint8_t value);
+// El altar sale de la clave del BD 03 − 0x13c sin tope (Q-C1347): dentro de la guarda y fuera de 0..4, el original
+// escribe en la .data de al lado; MuRet no escribe y devuelve false, y el BD 03 descarta lo que sigue.
+[[nodiscard]] bool SetTheAltar(WorldRuntime& runtime, std::int32_t altar, std::uint8_t value);
 
 struct ContractWindowContext
 {

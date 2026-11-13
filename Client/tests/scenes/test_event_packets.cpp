@@ -5,6 +5,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainLight.h"
+#include "Data/Text/DialogTable.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Events.h"
 #include "Protocol/Outgoing.h"
@@ -34,6 +35,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -195,6 +197,14 @@ protected:
         const auto applied = Apply(packet);
         EXPECT_FALSE(applied.HasValue());
         return applied.HasValue() ? std::string{} : applied.Error();
+    }
+
+    // Lo que el original hace fuera de sus tablas: la sesión sigue y el resto del paquete se descarta, con el porqué.
+    std::string Discarded(const Events::EventPacket& packet)
+    {
+        const EventPacketResult result = Applied(packet);
+        EXPECT_TRUE(result.discarded.has_value());
+        return result.discarded.value_or(std::string{});
     }
 
     // El aviso de 0x632e30 con `text`, como lo deja UI::OpenMessageBox en una caja vacía.
@@ -601,16 +611,54 @@ TEST_F(EventPacketsTest, TheResultsFillTheEventObjectAndPushTheirDialog)
 }
 
 // Q-C1324: más de 11 registros pasan los 0x108 bytes de +0x2c; menos bytes que los que copia, del buffer de la
-// recepción. Los dos cortan.
-TEST_F(EventPacketsTest, TheResultsThatOverflowTheObjectAreCut)
+// recepción. En los dos se descarta el resto, después de los botones, +0x24 y +0x28 (0x40bd34..0x40bd81): ni la copia
+// ni el 0x8b. Blood Castle (0x40c12a) y Chaos Castle (0x404e0a) sin los 24 bytes, ídem. La sesión sigue.
+TEST_F(EventPacketsTest, TheResultsThatOverflowTheObjectAreDiscarded)
 {
-    Runtime().map = 9;
-    Runtime().eventObject = EventMapObject{.kind = EventMapKind::DevilSquare};
-    const std::string overflow =
-        Cut(Events::EventResult{.rank = 1, .count = 12, .scores = std::vector<std::byte>(12 * 24)});
-    EXPECT_NE(overflow.find("Q-C1324"), std::string::npos) << overflow;
-    const std::string shorter = Cut(Events::EventResult{.rank = 1, .count = 2, .scores = std::vector<std::byte>(24)});
-    EXPECT_NE(shorter.find("0x40bd97"), std::string::npos) << shorter;
+    for (const std::int32_t map : DevilSquareMaps)
+    {
+        SCOPED_TRACE(map);
+        Runtime() = WorldRuntime{};
+        Runtime().map = map;
+        Runtime().eventObject = EventMapObject{.kind = EventMapKind::DevilSquare};
+        Runtime().eventObject->field2c[0] = 0x55;
+        const std::string overflow = Discarded(
+            Events::EventResult{.rank = 1, .count = 12, .scores = std::vector<std::byte>(12 * 24, std::byte{7})});
+        EXPECT_NE(overflow.find("Q-C1324"), std::string::npos) << overflow;
+        EXPECT_EQ(Runtime().eventObject->field24, 12);
+        EXPECT_EQ(Runtime().eventObject->field28, 1);
+        EXPECT_EQ(Runtime().eventObject->field2c[0], 0x55);
+        EXPECT_EQ(Runtime().dialogBox.buttons[0].y, 0x104);
+        EXPECT_EQ(Runtime().dialogs.current, 0);
+        const std::string shorter =
+            Discarded(Events::EventResult{.rank = 1, .count = 2, .scores = std::vector<std::byte>(24, std::byte{7})});
+        EXPECT_NE(shorter.find("0x40bd97"), std::string::npos) << shorter;
+        EXPECT_EQ(Runtime().eventObject->field24, 2);
+        EXPECT_EQ(Runtime().eventObject->field2c[0], 0x55);
+        EXPECT_EQ(Runtime().dialogs.current, 0);
+    }
+    for (const auto& [kind, count, where, map] :
+         {std::tuple{EventMapKind::BloodCastle, std::uint8_t{0xff}, "0x40c12a", 11},
+          std::tuple{EventMapKind::ChaosCastle, std::uint8_t{0xfe}, "0x404e0a", 18}})
+    {
+        SCOPED_TRACE(map);
+        Runtime() = WorldRuntime{};
+        Runtime().map = map;
+        Runtime().eventObject = EventMapObject{.kind = kind};
+        const std::string shorter =
+            Discarded(Events::EventResult{.rank = 4, .count = count, .scores = std::vector<std::byte>(23)});
+        EXPECT_NE(shorter.find(where), std::string::npos) << shorter;
+        EXPECT_EQ(Runtime().eventObject->field24, 4);
+        EXPECT_EQ(Runtime().dialogs.current, 0);
+    }
+    for (const std::int32_t map : {0, 2})
+    {
+        Runtime() = WorldRuntime{};
+        Runtime().map = map;
+        const EventPacketResult result =
+            Applied(Events::EventResult{.rank = 1, .count = 12, .scores = std::vector<std::byte>(5)});
+        EXPECT_FALSE(result.discarded.has_value());
+    }
 }
 
 // ----- 94, 95 y 96.
@@ -652,6 +700,26 @@ TEST_F(EventPacketsTest, TheChipInfoOpensTheChipWindow)
         EXPECT_EQ(Runtime().chat.input.fieldCount, 1);
         EXPECT_TRUE(Runtime().events.serialEntry);
         EXPECT_EQ(random.State(), closedAgain);
+    }
+}
+
+// 0x4dd926..0x4dd92c: el 94 con el tipo 0 corto lee los números del Muto del buffer de la recepción. Se descartan,
+// después del cierre de todo (con sus rand()) y de 0x78abb00/04; la sesión sigue.
+TEST_F(EventPacketsTest, TheChipInfoWithoutTheMutoNumbersIsDiscarded)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        Runtime() = WorldRuntime{};
+        Runtime().map = map;
+        Runtime().events.mutoNumbers = {4, 5, 6};
+        const std::uint32_t closed = AfterClosingAll();
+        const std::string discarded = Discarded(Events::EventChipInfo{.type = 0, .count = 7});
+        EXPECT_NE(discarded.find("0x4dd92c"), std::string::npos) << discarded;
+        EXPECT_EQ(random.State(), closed);
+        EXPECT_EQ(Runtime().panels.field78abb00, 1);
+        EXPECT_EQ(Runtime().panels.field78abb04, 7);
+        EXPECT_EQ(Runtime().events.mutoNumbers, (std::array<std::uint16_t, 3>{4, 5, 6}));
     }
 }
 
@@ -1034,8 +1102,14 @@ TEST_F(EventPacketsTest, TheCrywolfStateReloadsTheLightAndTheAttributes)
     EXPECT_EQ(world.Map().terrain.attributes->cells, plain);
     EXPECT_FALSE(Runtime().fatalDataMessage.has_value());
 
-    const std::string broken = Cut(Events::CrywolfState{.state = 3, .stage = 5});
+    // Q-C1328: con el estado ya escrito, se descartan la carga y 0x4033b0; la sesión sigue.
+    const std::string broken = Discarded(Events::CrywolfState{.state = 3, .stage = 2});
     EXPECT_NE(broken.find("Q-C1328"), std::string::npos) << broken;
+    EXPECT_EQ(Runtime().crywolf.state, 3);
+    EXPECT_EQ(Runtime().crywolf.stage, 2);
+    EXPECT_EQ(world.Map().terrain.lighting->cells, Shaded("world35/TerrainLight.OZJ"));
+    EXPECT_EQ(world.Map().terrain.attributes->cells, plain);
+    EXPECT_EQ(Runtime().events.cameraTour.stage, 5);
 }
 
 // En Lorencia y en Devias el BD 00 también recarga, de World1 y World3 (Q-C1340): TerrainLight1 no está y deja el aviso
@@ -1089,7 +1163,8 @@ TEST_F(EventPacketsTest, TheCrywolfInterfaceResetMatchesTheData)
 // ----- BD 02 a 0C: la interfaz de Crywolf (GS 0.97 no los manda; el oráculo es el ASM del cliente).
 
 // BD 02, 07, 08 y 09 escriben en cualquier mapa y etapa: la luz y los altares (0x430000), el rango y la experiencia
-// (0x437600), los resultados con su ventana (0x437620) y 0x7d2dc9d. Un lugar de 5 o más escribiría fuera de las tablas.
+// (0x437600), los resultados con su ventana (0x437620) y 0x7d2dc9d. Un lugar de 5 o más escribiría fuera de las tablas
+// (Q-C1341): se descarta desde ese registro, y los de antes quedan.
 TEST_F(EventPacketsTest, TheCrywolfInterfacePacketsWriteOnAnyMap)
 {
     for (const std::int32_t map : {0, 2, 34})
@@ -1115,9 +1190,16 @@ TEST_F(EventPacketsTest, TheCrywolfInterfacePacketsWriteOnAnyMap)
         EXPECT_EQ(std::string(ui.rankingNames[2].data()), "LoboGris01");
         Applied(Events::CrywolfChaosBox{.value = 7});
         EXPECT_EQ(ui.byte7d2dc9d, 7);
-        ranking.entries.front().place = 5;
-        const std::string cut = Cut(ranking);
-        EXPECT_NE(cut.find("0x437632"), std::string::npos) << cut;
+        ranking.entries.front().place = 0;
+        ranking.entries.front().score = 70;
+        ranking.entries.push_back({.place = 5, .name = {'Z'}, .score = 60, .classByte = 0x10});
+        ranking.entries.push_back({.place = 1, .name = {'Y'}, .score = 50, .classByte = 0x20});
+        ui.byte723bf9 = 0;
+        const std::string discarded = Discarded(ranking);
+        EXPECT_NE(discarded.find("0x437632"), std::string::npos) << discarded;
+        EXPECT_EQ(ui.byte723bf9, 1);
+        EXPECT_EQ(ui.dwords6c73e0, (std::array<std::int32_t, 6>{-1, 70, -1, 90, -1, -1}));
+        EXPECT_EQ(ui.rankingClasses[1], 0);
     }
 }
 
@@ -1197,7 +1279,8 @@ TEST_F(EventPacketsTest, TheFailedCrywolfContractStandsTheHeroUp)
 
 // BD 03 con 1: 0x435b00(3) y (4), el altar de la clave − 0x13c (0x435ad0) solo con la defensa en el 34, y en cualquier
 // mapa el héroe sentado (0x200000 en +0x7c y la acción 0xca) y el C1 05 18 con el rumbo de +0x24 y 0x82, con el XOR32.
-// No saca rand(). Con la clave fuera de los cinco altares, en el 34 corta (Q-C1347).
+// No saca rand(). Con la clave fuera de los cinco altares, en el 34 (Q-C1347) se descarta el resto después de los dos
+// renglones: ni el altar ni el héroe sentado ni el 18; fuera del 34 sigue entero.
 TEST_F(EventPacketsTest, TheSignedCrywolfContractSitsTheHero)
 {
     for (const std::int32_t map : {0, 2, 34})
@@ -1226,11 +1309,30 @@ TEST_F(EventPacketsTest, TheSignedCrywolfContractSitsTheHero)
         EXPECT_TRUE(Client::Tests::SameBytes(worldPackets[0].packet.Bytes(),
                                              Client::Tests::Bytes({0xC1, 0x05, 0x18, 0x92, 0xAC})));
     }
-    Runtime().map = 34;
-    const std::string cut = Cut(Events::CrywolfContract{.result = 1, .value = 0x13, .key = 0x141});
-    EXPECT_NE(cut.find("0x435aeb"), std::string::npos) << cut;
+    for (const std::uint16_t key : {std::uint16_t{0x141}, std::uint16_t{0x13b}})
+    {
+        SCOPED_TRACE(key);
+        Runtime() = WorldRuntime{};
+        Runtime().map = 34;
+        Runtime().crywolf.stage = 3;
+        Hero().flags7c = 1;
+        Hero().animation = {};
+        worldPackets.clear();
+        const std::string discarded = Discarded(Events::CrywolfContract{.result = 1, .value = 0x13, .key = key});
+        EXPECT_NE(discarded.find("0x435aeb"), std::string::npos) << discarded;
+        const auto& ui = Runtime().crywolf.ui;
+        EXPECT_EQ(std::string(ui.contractLines[0].data()), "contrato firmado");
+        EXPECT_EQ(std::string(ui.contractLines[1].data()), "altar tomado");
+        EXPECT_EQ(ui.altars, (std::array<std::uint8_t, 5>{2, 2, 2, 2, 2}));
+        EXPECT_EQ(Hero().flags7c, 1u);
+        EXPECT_EQ(Hero().animation.action, 0);
+        EXPECT_TRUE(worldPackets.empty());
+    }
     Runtime().map = 0;
-    Applied(Events::CrywolfContract{.result = 1, .value = 0x13, .key = 0x141});
+    worldPackets.clear();
+    const EventPacketResult outside = Applied(Events::CrywolfContract{.result = 1, .value = 0x13, .key = 0x141});
+    EXPECT_FALSE(outside.discarded.has_value());
+    EXPECT_EQ(worldPackets.size(), 1u);
 }
 
 // BD 0C (0x430040, los efectos de la CL11) corta con su dirección.
@@ -1271,7 +1373,7 @@ TEST_F(EventPacketsTest, TheSoccerScoreIsKeptBeforeTheEffectCut)
     EXPECT_FALSE(soccer.active);
 }
 
-// 0x4da070: los avisos por comando, el sonido 0x5a, el diálogo de 0x632f70 (hito 2) y el efecto (CL11) cortan.
+// 0x4da070: los avisos por comando y el sonido 0x5a; el efecto (CL11) corta.
 TEST_F(EventPacketsTest, TheServerCommandsShowTheirNotices)
 {
     struct Case
@@ -1301,11 +1403,59 @@ TEST_F(EventPacketsTest, TheServerCommandsShowTheirNotices)
     Applied(Events::ServerCommand{.command = 7, .value5 = 0, .value6 = 0});
     EXPECT_EQ(Runtime().dialogs.current, 0xaa);
     EXPECT_EQ(Applied(Events::ServerCommand{.command = 2}).sounds, std::vector<std::int32_t>{0x5a});
-    EXPECT_NE(Cut(Events::ServerCommand{.command = 5, .value5 = 1}).find("0x4da195"), std::string::npos);
     EXPECT_NE(Cut(Events::ServerCommand{.command = 0}).find("0x4da125"), std::string::npos);
     ResetTheBox();
     Applied(Events::ServerCommand{.command = 4});
     Applied(Events::ServerCommand{.command = 0x32});
     EXPECT_EQ(Runtime().dialogs.current, 0);
+}
+
+// 0x4da18f..0x4da195: el comando 5 es 0x632f70(pkt[5]), el diálogo de Dialog.bmd con sus respuestas en el 0x8d (o
+// esperando, con otra caja abierta). Desde el 200 el original lee fuera de los 200 de 0x7688ac0 (Q-C1325): se
+// descarta. Sin Dialog.bmd corta, como 0x632f70 desde las respuestas.
+TEST_F(EventPacketsTest, TheServerCommandFiveOpensTheAnswersDialog)
+{
+    Client::Data::Text::DialogTable table(Client::Data::Text::DialogCount);
+    std::ranges::copy(std::string_view("un dialogo inventado"), table[0xc7].text.begin());
+    table[0xc7].answerCount = 1;
+    std::ranges::copy(std::string_view("seguir"), table[0xc7].answers[0].begin());
+    std::ranges::copy(std::string_view("sin respuestas"), table[3].text.begin());
+    texts = Client::Tests::MakeTextTable({{Client::UI::NoAnswersText, "nada mas"}});
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        Runtime() = WorldRuntime{};
+        Runtime().map = map;
+        Runtime().dialogTable = table;
+        for (const std::uint8_t index : {std::uint8_t{0xc7}, std::uint8_t{3}})
+        {
+            SCOPED_TRACE(int{index});
+            ResetTheBox();
+            Client::UI::DialogBoxState expected;
+            Client::UI::DialogState expectedDialogs;
+            ASSERT_TRUE(Client::UI::OpenTheAnswersDialog(expected, expectedDialogs, &table, &texts, index).HasValue());
+            const EventPacketResult result = Applied(Events::ServerCommand{.command = 5, .value5 = index});
+            EXPECT_FALSE(result.discarded.has_value());
+            EXPECT_EQ(Runtime().dialogs.current, Client::UI::AnswersDialog);
+            EXPECT_EQ(Runtime().dialogBox.dialogIndex, index);
+            EXPECT_EQ(Runtime().dialogBox.lineCount, expected.lineCount);
+            EXPECT_EQ(Runtime().dialogBox.answerCount, expected.answerCount);
+            EXPECT_EQ(Runtime().dialogBox.rows, expected.rows);
+            EXPECT_EQ(Runtime().dialogBox.answers, expected.answers);
+        }
+        ResetTheBox();
+        Runtime().dialogs.current = Client::UI::MessageBoxDialog;
+        Applied(Events::ServerCommand{.command = 5, .value5 = 3});
+        EXPECT_EQ(Runtime().dialogs.current, Client::UI::MessageBoxDialog);
+        EXPECT_EQ(Runtime().dialogs.pending, Client::UI::AnswersDialog);
+
+        ResetTheBox();
+        const std::string discarded = Discarded(Events::ServerCommand{.command = 5, .value5 = 200});
+        EXPECT_NE(discarded.find("Q-C1325"), std::string::npos) << discarded;
+        EXPECT_EQ(Runtime().dialogs.current, 0);
+        EXPECT_EQ(Runtime().dialogBox.dialogIndex, -1);
+    }
+    Runtime().dialogTable.clear();
+    EXPECT_NE(Cut(Events::ServerCommand{.command = 5, .value5 = 3}).find("Dialog.bmd"), std::string::npos);
 }
 } // namespace

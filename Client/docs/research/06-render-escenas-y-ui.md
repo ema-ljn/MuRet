@@ -9659,7 +9659,9 @@ con enteros salvo la rama de `fDistance`, que caminar no usa):
 - **Sale con falso con `sx == 0` o `sy == 0`** (`0x4eadc1..0x4eadce`, Q-C156; *emulado*).
 - **La meta**: con `bClearGoal` pone `Map[meta] = 0`, **escribe el mapa** (solo con el asedio,
   `0x435a00`, en el mapa 34 y el registro de `0x6c8e54` de tipo `0x204..0x208`, que `0x4eac00` mira para cualquier
-  camino: Q-C1350 y Q-C1351); con `bErrorCheck`, una meta con
+  camino: Q-C1350 y Q-C1351; de las 15 llamadas a `0x4eac00`, las 7 que MuRet no porta, `0x55980f`, `0x566272`,
+  `0x57f148`, `0x58edc6`, `0x59ba9c`, `0x59d653` y `0x59ddbc`, tienen que pasarle a `PathFinder::Find` la bandera de
+  `Scenes::CrywolfAltarGoal` al portarlas); con `bErrorCheck`, una meta con
   `Map ≥ iWall` sin el `0x20` falla; si no, `NodeFlag[meta] = 4`.
 - **El tope de vueltas**: 500 con `bErrorCheck` y 50 sin (`0x4eb0dc`, Q-C157).
 - **La lista abierta** es un árbol binario sin balancear de nodos de `0x14` bytes: inserta

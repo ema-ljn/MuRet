@@ -172,7 +172,8 @@ TEST_F(CrywolfContractTest, WhatDoesNotFitIsCut)
     EXPECT_NE(missing.Error().find("2008"), std::string::npos) << missing.Error();
 }
 
-// 0x435ad0: el byte del altar con la etapa 3 o 4 en el 34, sin mirar la salida; fuera de 0..4 corta (Q-C1347).
+// 0x435ad0: el byte del altar con la etapa 3 o 4 en el 34, sin mirar la salida; fuera de 0..4, dentro de la guarda, no
+// escribe y da false (el original escribe en la .data de al lado, Q-C1347).
 TEST_F(CrywolfContractTest, TheAltarIsSetOnlyInTheDefense)
 {
     for (const std::int32_t map : {0, 2, CrywolfMap})
@@ -180,12 +181,18 @@ TEST_F(CrywolfContractTest, TheAltarIsSetOnlyInTheDefense)
         SCOPED_TRACE(map);
         Enter(map, 3);
         Runtime().ui.logoutRequested = true;
-        ASSERT_TRUE(Client::Scenes::SetTheAltar(Runtime(), 4, 0x13).HasValue());
+        const auto before = Ui().altars;
+        EXPECT_TRUE(Client::Scenes::SetTheAltar(Runtime(), 4, 0x13));
         EXPECT_EQ(Ui().altars[4], map == CrywolfMap ? 0x13 : 0x02);
-        EXPECT_EQ(Client::Scenes::SetTheAltar(Runtime(), 5, 1).HasValue(), map != CrywolfMap);
+        EXPECT_EQ(Client::Scenes::SetTheAltar(Runtime(), 5, 1), map != CrywolfMap);
+        EXPECT_EQ(Client::Scenes::SetTheAltar(Runtime(), -1, 1), map != CrywolfMap);
+        auto expected = before;
+        if (map == CrywolfMap)
+            expected[4] = 0x13;
+        EXPECT_EQ(Ui().altars, expected);
     }
     Enter(CrywolfMap, 5);
-    ASSERT_TRUE(Client::Scenes::SetTheAltar(Runtime(), -1, 1).HasValue());
+    EXPECT_TRUE(Client::Scenes::SetTheAltar(Runtime(), -1, 1));
 }
 
 // 0x435c6b..0x435cb4 y 0x4361b4: el No deja 0x723bdc en 1 y pasa a la ventana 2 con 1952; la ventana 1 se queda con

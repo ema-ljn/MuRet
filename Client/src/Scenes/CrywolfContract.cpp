@@ -100,7 +100,9 @@ Result ShowTheContractMessage(WorldRuntime& runtime, const Data::Text::TextTable
     std::string text;
     if (message.message == AltarOfferMessage)
     {
-        // 0x435b33..0x435b5f: wsprintfA(renglón, [0x77500a4], altar & 0xf) y la ventana 1, sin pasar por la 2.
+        // 0x435b33..0x435b5f: wsprintfA(renglón, [0x77500a4], altar & 0xf) y la ventana 1, sin pasar por la 2. Con
+        // 0x38 solo llama 0x567ba4, con el tipo del blanco − 0x204 ya en 0..4: la guarda no se alcanza desde un
+        // paquete.
         if (message.altar < 0 || static_cast<std::size_t>(message.altar) >= ui.altars.size())
             return Core::Unexpected(std::format("0x435b39: el altar {} lee fuera de 0x6c73cc", message.altar));
         const std::optional<std::string_view> format = UI::TextAt(texts, OfferText);
@@ -138,15 +140,16 @@ Result ShowTheContractMessage(WorldRuntime& runtime, const Data::Text::TextTable
     return {};
 }
 
-Result SetTheAltar(WorldRuntime& runtime, std::int32_t altar, std::uint8_t value)
+bool SetTheAltar(WorldRuntime& runtime, std::int32_t altar, std::uint8_t value)
 {
     if (!InTheDefense(runtime))
-        return {};
+        return true;
     CrywolfInterface& ui = runtime.crywolf.ui;
+    // 0x435aeb: sin tope en el original (Q-C1347).
     if (altar < 0 || static_cast<std::size_t>(altar) >= ui.altars.size())
-        return Core::Unexpected(std::format("0x435aeb: el altar {} escribe fuera de 0x6c73cc..0x6c73d0", altar));
+        return false;
     ui.altars[static_cast<std::size_t>(altar)] = value;
-    return {};
+    return true;
 }
 
 Result StepTheContractWindow(const ContractWindowContext& context)

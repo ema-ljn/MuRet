@@ -589,6 +589,8 @@ Core::Expected<void, std::string> DrawTheEventChipWindow(GameHudContext& context
     WindowDrawing::DrawTheWindowBack(sprites, WindowLeft, WindowTop);
     context.hud.textColors = TitleColors;
     // 0x5f65df: 0x54ebb0(0xec), el nombre del NPC 236 en la tabla de NpcName(%s).txt.
+    // TODO(hito 2): en el juego este corte salta con cada 94 hasta que el hito 2 porte 0x54e7f0 y 0x54e8d0 (P-C174);
+    // al juntar el hito 2 en el hito 11, GameSceneUi le pasa esa tabla a npcName (P-C248).
     const std::optional<std::string_view> title = context.npcName ? context.npcName(TitleNpc) : std::nullopt;
     if (!title)
         return Core::Unexpected(std::string("0x5f65df: el título es el NPC 236 de 0x54ebb0, la tabla de "

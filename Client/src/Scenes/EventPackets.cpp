@@ -3,6 +3,7 @@
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
+#include "Data/Text/DialogTable.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Events.h"
 #include "Protocol/Movement.h"
@@ -290,6 +291,14 @@ public:
 private:
     // ----- Lo que comparten los handlers.
 
+    // Donde el original lee o escribe fuera de sus tablas y sigue: lo de antes queda hecho, con sus rand(), y el resto
+    // del paquete no se aplica. No es un error de la sesión: va a EventPacketResult::discarded (Q-C174, Q-C778).
+    Applied Discard(std::string reason)
+    {
+        m_result.discarded = std::move(reason);
+        return {};
+    }
+
     [[nodiscard]] Core::Expected<std::string_view, std::string> Text(std::size_t index, std::string_view where) const
     {
         const std::optional<std::string_view> text = UI::TextAt(m_context.texts, index);
@@ -470,19 +479,27 @@ private:
         m_runtime.dialogBox.buttons[0] = button;
     }
 
-    // El rep movs de `count` registros de 24 bytes desde pkt[5] a +0x2c.
-    Applied CopyTheResults(EventMapObject& event, const Events::EventResult& packet, std::size_t count,
-                           std::string_view where)
+    // El rep movs de `count` registros de 24 bytes desde pkt[5] a +0x2c. Con menos bytes en el paquete (el original lee
+    // el buffer de la recepción) o más de 11 registros (pisa el heap, Q-C1324) no copia, descarta el resto del paquete
+    // y devuelve false.
+    [[nodiscard]] bool CopyTheResults(EventMapObject& event, const Events::EventResult& packet, std::size_t count,
+                                      std::string_view where)
     {
         const std::size_t bytes = count * ResultRecordBytes;
         if (bytes > packet.scores.size())
-            return Core::Unexpected(std::format("{}: copia {} bytes desde pkt[5] y el paquete trae {}: el resto lo "
-                                                "leería del buffer de la recepción",
-                                                where, bytes, packet.scores.size()));
+        {
+            m_result.discarded = std::format("{}: copia {} bytes desde pkt[5] y el paquete trae {}: el resto lo "
+                                             "leería del buffer de la recepción",
+                                             where, bytes, packet.scores.size());
+            return false;
+        }
         if (bytes > event.field2c.size() * sizeof(std::int32_t))
-            return Core::Unexpected(std::format("{}: {} registros de 24 bytes pasan los 0x108 de +0x2c y pisan el "
-                                                "heap después del objeto de 0x134 bytes (Q-C1324)",
-                                                where, count));
+        {
+            m_result.discarded = std::format("{}: {} registros de 24 bytes pasan los 0x108 de +0x2c y pisan el heap "
+                                             "después del objeto de 0x134 bytes (Q-C1324)",
+                                             where, count);
+            return false;
+        }
         for (std::size_t at = 0; at < bytes; ++at)
         {
             const std::size_t word = at / sizeof(std::int32_t);
@@ -492,7 +509,7 @@ private:
             value = (value & ~(0xffu << shift)) | (byte << shift);
             event.field2c[word] = static_cast<std::int32_t>(value);
         }
-        return {};
+        return true;
     }
 
     // ----- 0B (0x4e3594).
@@ -671,8 +688,8 @@ private:
             SetTheResultButtons(DevilSquareResultButton);
             event.field24 = packet.count;
             event.field28 = packet.rank;
-            if (auto copied = CopyTheResults(event, packet, packet.count, "0x40bd97"); !copied.HasValue())
-                return copied;
+            if (!CopyTheResults(event, packet, packet.count, "0x40bd97"))
+                return {};
             UI::PushDialog(m_runtime.dialogs, DevilSquareResultDialog);
             return {};
         }
@@ -693,8 +710,8 @@ private:
             return {};
         SetTheResultButtons(CastleResultButton);
         event.field24 = packet.rank;
-        if (auto copied = CopyTheResults(event, packet, 1, where); !copied.HasValue())
-            return copied;
+        if (!CopyTheResults(event, packet, 1, where))
+            return {};
         UI::PushDialog(m_runtime.dialogs, dialog);
         return {};
     }
@@ -716,10 +733,10 @@ private:
         }
         if (panels.field78abb00 != MutoWindow)
             return {};
-        // 0x4dd926..0x4dd949: los tres números si ninguno es 0xffff.
+        // 0x4dd926..0x4dd949: los tres números si ninguno es 0xffff. Sin ellos, el original los lee del buffer de la
+        // recepción: se descartan, después del cierre (con sus rand()) y de 0x78abb00/04.
         if (!packet.muto)
-            return Core::Unexpected(std::string("0x4dd92c: el 94 con el tipo 0 lee pkt[6..0xb], que el paquete no "
-                                                "trae"));
+            return Discard("0x4dd92c: el 94 con el tipo 0 lee pkt[6..0xb], que el paquete no trae");
         const auto& numbers = *packet.muto;
         if (numbers[0] == NoMutoNumber || numbers[1] == NoMutoNumber || numbers[2] == NoMutoNumber)
             return {};
@@ -1080,7 +1097,8 @@ private:
 
     Applied On(const Events::CrywolfState& packet)
     {
-        if (auto changed = ChangeTheCrywolfState(packet.state, packet.stage); !changed.HasValue())
+        // Con un estado de más de 2 (Q-C1328) el resto se descarta, también 0x4033b0.
+        if (auto changed = ChangeTheCrywolfState(packet.state, packet.stage); !changed.HasValue() || m_result.discarded)
             return changed;
         // 0x4033b0: +0x154 del recorrido de la cámara, que con la 2 empieza (Scenes/CameraTour.h).
         m_runtime.events.cameraTour.stage = packet.stage;
@@ -1120,9 +1138,9 @@ private:
             return {};
         crywolf.state = state;
         if (state > LastLitCrywolfState)
-            return Core::Unexpected(std::format("0x42ff81: con el estado {} de Crywolf, 0x5f8f40 lee el buffer de la "
-                                                "luz sin escribir (Q-C1328)",
-                                                static_cast<int>(state)));
+            return Discard(std::format("0x42ff81: con el estado {} de Crywolf, 0x5f8f40 y 0x5f8390 leen el buffer de "
+                                       "la pila sin escribir (Q-C1328)",
+                                       static_cast<int>(state)));
         return ReloadTheCrywolfTerrain(state);
     }
 
@@ -1195,9 +1213,12 @@ private:
                 ShowTheContractMessage(m_runtime, m_context.texts, {.message = ContractSignedSecondMessage, .line = 1});
             !shown.HasValue())
             return shown;
-        if (auto set = SetTheAltar(m_runtime, static_cast<std::int32_t>(packet.key) - FirstAltarKey, packet.value);
-            !set.HasValue())
-            return set;
+        // 0x4e11b5..0x4e11c2: la clave − 0x13c sin tope (Q-C1347).
+        const std::int32_t altar = static_cast<std::int32_t>(packet.key) - FirstAltarKey;
+        if (!SetTheAltar(m_runtime, altar, packet.value))
+            return Discard(std::format("0x435aeb: el altar {} (la clave {:#x} − 0x13c) escribe fuera de "
+                                       "0x6c73cc..0x6c73d0 (Q-C1347)",
+                                       altar, packet.key));
         hero.flags7c |= SittingFlag;
         if (m_context.playerSkeleton == nullptr)
             return Core::Unexpected(std::string("0x4e11d9: 0x4ea030 sienta al héroe (0xca) con el esqueleto de "
@@ -1272,7 +1293,7 @@ private:
 
     // ----- BD 08 (0x4e5a39 → 0x4e1680 → 0x437620 por registro): los puntos, la clase y el nombre del lugar, y la
     // ventana de los resultados. El lugar es el byte del registro sin tope: con 5 o más escribe fuera de las tres
-    // tablas.
+    // tablas (Q-C1341), y MuRet descarta desde ese registro; los de antes quedan escritos.
 
     Applied On(const Events::CrywolfRanking& packet)
     {
@@ -1280,9 +1301,9 @@ private:
         for (const Events::CrywolfRankingEntry& entry : packet.entries)
         {
             if (entry.place >= CrywolfRankingPlaces)
-                return Core::Unexpected(std::format("0x437632: el lugar {} de los resultados de Crywolf escribe fuera "
-                                                    "de 0x6c73e4, 0x723a30 y 0x7239f8",
-                                                    static_cast<int>(entry.place)));
+                return Discard(std::format("0x437632: el lugar {} de los resultados de Crywolf escribe fuera de "
+                                           "0x6c73e4, 0x723a30 y 0x7239f8 (Q-C1341)",
+                                           static_cast<int>(entry.place)));
             const std::size_t place = entry.place;
             ui.dwords6c73e0[place + 1] = entry.score;
             ui.rankingClasses[place] = entry.classByte;
@@ -1352,9 +1373,13 @@ private:
         case CommandMessage:
             return MessageBoxOf(MessageBase + packet.value5, "0x4da183");
         case CommandDialog:
-            return Core::Unexpected(std::format("0x4da195: el diálogo {} de la tabla de 0x632f70 es del hito 2 de la "
-                                                "CL9",
-                                                static_cast<int>(packet.value5)));
+            // 0x4da18f..0x4da195: 0x632f70(pkt[5]) sin tope; desde el 200 lee fuera de 0x7688ac0 (Q-C1325).
+            if (packet.value5 >= Data::Text::DialogCount)
+                return Discard(std::format("0x4da195: el diálogo {} de 0x632f70 cae fuera de los 200 de 0x7688ac0 "
+                                           "(Q-C1325)",
+                                           static_cast<int>(packet.value5)));
+            return UI::OpenTheAnswersDialog(m_runtime.dialogBox, m_runtime.dialogs, &m_runtime.dialogTable,
+                                            m_context.texts, packet.value5);
         case CommandFixedNotice:
             return MessageBoxOf(FixedNoticeText, "0x4da1a6");
         case CommandCastleNotice:

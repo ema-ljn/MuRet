@@ -9,6 +9,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Events.h"
 #include "Protocol/Messages.h"
 #include "Network/Crypto/Xor32.h"
 #include "Protocol/Movement.h"
@@ -202,6 +203,25 @@ TEST(SessionEventApplierTest, TheActionOfAnotherSitsThroughTheSession)
     const auto plain = Client::Network::Crypto::Xor32Decode(Client::Tests::PacketOf(action));
     EXPECT_TRUE(Client::Tests::SameBytes(plain.Bytes(), Client::Tests::Bytes({0xc1, 5, 0x18, 3, 0x82})));
 }
+// 0x4dd92c: un 94 de tipo 0 sin los números del Muto (el original los lee del buffer de la recepción) se descarta con
+// un aviso en el log, después de lo que el original hizo antes, y la sesión sigue (CL9 hito 11, como Q-C778).
+TEST(SessionEventApplierTest, ADiscardedEventPacketIsLoggedAndTheSessionGoesOn)
+{
+    auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online;
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    const Client::App::WorldEvent event =
+        Client::Protocol::Events::EventPacket{Client::Protocol::Events::EventChipInfo{.type = 0, .count = 3}};
+
+    const auto result = tested->applier.ApplyWorld(event, online.session);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(tested->world.Runtime().panels.field78abb00, 1);
+    ASSERT_EQ(tested->sink.lines.size(), 1u);
+    EXPECT_EQ(tested->sink.levels[0], Client::Core::LogLevel::Warning);
+    EXPECT_NE(tested->sink.lines[0].find("0x4dd92c"), std::string::npos) << tested->sink.lines[0];
+}
+
 // 0x4c6098: en la escena 2, el 00 pide la lista por el GameServer sin mirar el paquete (CL8 hito 3).
 TEST(SessionEventApplierTest, The00InTheLoginAsksForTheListThroughTheGameServer)
 {

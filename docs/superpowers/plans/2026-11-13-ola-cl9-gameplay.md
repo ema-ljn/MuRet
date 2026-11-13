@@ -446,7 +446,12 @@ amigos. **Desbloquea:** 10.
       que llaman a `0x4eac00`: el clic en el suelo, el NPC, el `D3`, los caminos del viewport y el reintento de
       `0x508e0e`. La cámara del juego y el centro del mundo leen el recorrido (`0x635ead..0x635ed8`, `0x637324`, con
       `0x4034b0`), con la meta de D por su nivel (`0x6361d0`): `World::GameCameraInput::tour`. Siguen cortando las
-      chispas de `0x403b09` y el `0xed` (CL11), `0x403abe` y `0x43114d`. Q-C1350, Q-C1351, P-C328, P-C329.)
+      chispas de `0x403b09` y el `0xed` (CL11), `0x403abe` y `0x43114d`; hasta la CL11 ese corte cierra el cliente
+      unos 5 s después de un `BD 00` con la etapa 2 (en el 34 en `0x43114d`, en los otros en `0x403abe`), y fuera
+      del 34 el original también se cae (P-C299). Q-C1350, Q-C1351, P-C328, P-C329.)
+      (Revisión contra el ASM: lo que el original lee o escribe fuera de sus tablas y sigue ya no cierra la sesión;
+      se descarta el resto del paquete con un aviso (`EventPacketResult::discarded`): el `93` y el `94` cortos,
+      Q-C1324, Q-C1325, Q-C1328, Q-C1341 y Q-C1347. El `F3 40` con 5 abre `0x632f70` (P-C292).)
 - [ ] **Las reglas por mapa:** el arma de Blood Castle (`0x50de84`), las trampas de Chaos Castle (`0x405597`,
       `0x405d49`), el `AF 02` (`0x4fbee8`; decía `AF 01`), Kalima, y Crywolf (`BD`, `0x42fe80`, `0x42fe50`,
       `0x430a40`, `0x61a6f4`; P-C58).

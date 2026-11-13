@@ -7,6 +7,7 @@
 #include "App/WorldEvent.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelectResult.h"
@@ -287,6 +288,9 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         const auto applied = ApplyEventPacket(*packet, context);
         if (!applied.HasValue())
             return Core::Unexpected(applied.Error());
+        // Lo que el original hace fuera de sus tablas se descarta con un aviso, y la sesión sigue (Q-C174, Q-C778).
+        if (applied.Value().discarded)
+            m_resources.log.Warning("se descarta el resto del paquete de evento: {}", *applied.Value().discarded);
         // Los sonidos que pidió quedan sin tocar: MuRet no tiene audio hasta la CL10.
         return {};
     }

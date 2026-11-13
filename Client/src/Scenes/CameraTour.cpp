@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <format>
 #include <string>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -165,6 +166,7 @@ bool MoveTheCamera(CameraTour& tour, const ActorState& hero)
 }
 
 // El lugar de una clave del guion en +0x38 y +0x78 (clave − 10000). Las claves de los guiones van de 10000 a 0x272b.
+// El tope es una guarda de MuRet: 0x4037d7 y 0x403933 indexan sin mirar, y las claves de los guiones nunca lo alcanzan.
 Core::Expected<std::size_t, std::string> SlotOf(std::int32_t key, const char* address)
 {
     constexpr std::int32_t ScriptSlots = 50;

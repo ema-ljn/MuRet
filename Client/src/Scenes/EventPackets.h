@@ -27,7 +27,8 @@ class ITextMeasure;
 // CL9 hito 11: lo que los paquetes de los eventos (Protocol::Events, 04 § Los eventos) hacen al llegar, como el
 // dispatcher 0x4e2b10 y sus handlers, sobre los globales de WorldRuntime: los avisos (0x632e30, 0x633300), los
 // mensajes (0x555190), el .att (0x7d0d348), el objeto del evento de [0x723c60], los chips (0x78abb00), Crywolf y los
-// personajes. Lo que es de otra ola u otro hito corta con su dirección, después de lo que el original hizo antes.
+// personajes. Lo que es de otra ola u otro hito corta con su dirección, después de lo que el original hizo antes; lo
+// que el original hace fuera de sus tablas se descarta (EventPacketResult::discarded).
 namespace Client::Scenes
 {
 class WorldState;
@@ -64,6 +65,10 @@ struct EventPacketResult
 {
     std::vector<std::int32_t> sounds;
     std::vector<std::int32_t> stoppedSounds;
+    // Dónde y por qué MuRet descartó el resto del paquete: donde el original lee o escribe fuera de sus tablas y sigue
+    // (el 93 y el 94 cortos, Q-C1324, Q-C1325, Q-C1328, Q-C1341 y Q-C1347). Lo de antes, con sus rand(), queda hecho;
+    // la sesión lo anota en el log y sigue, como con el D3 y el 18 de una clave desconocida (Q-C174, Q-C778).
+    std::optional<std::string> discarded;
 };
 
 [[nodiscard]] Core::Expected<EventPacketResult, std::string>

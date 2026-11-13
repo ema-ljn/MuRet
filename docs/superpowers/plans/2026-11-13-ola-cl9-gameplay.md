@@ -321,8 +321,9 @@ el viewport. **Desbloquea:** 4 y 11.
       blanco `0x57ce80` y el lazo de las manos), desde MoveHero (`0x59e255`), y las órdenes del cuervo (`0x420f70`).
       Las ramas de cada clase y lo que mandan las cuatro funciones quedan cortados con su dirección (08, P-C268).
       En la fase 2c-A, `0x558110` con 3 y 4, `0x559890` (`0x559afc`, `0x55a368`) con `0x559510` → `0x55b6f0` y
-      la cola del elfo de `0x561f60` (`0x562024`), en `Scenes/HeroSkillCasts`; cortan la partícula `0x5fe`
-      (CL11), la poción (hito 5) y, todavía, la rama del elfo, `0x55faa0` y el caso 5 de `0x5650c0` (P-C269).
+      la cola del elfo de `0x561f60` (`0x562024`), en `Scenes/HeroSkillCasts`; cortan la poción (hito 5) y, todavía,
+      la rama del elfo, `0x55faa0` y el caso 5 de `0x5650c0` (P-C269). En la fase 2c-A2, el brillo `0x5fe` de
+      `0x55be23` en el pool de partículas (`0x542bff`, `0x546d54`, `0x53fdb0` y el billboard común).
 - [x] **Lo que llega:** el `0x19` (`0x4cc530`, 6,5 KB, con las acciones `0x94`, `0x51` y `0x5b` de
       `0x50f828`), el `0x1E` (`0x4ce000`), el `0x1B` (`0x4cbe90`), el `0x07` (los estados de un personaje,
       `GCSend_07` del GS: `0x4cbe00`, con `0x4e6910`), el `0x48`, el `0x69`, el `0x73` (`0x4d5b10`),

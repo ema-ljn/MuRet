@@ -84,6 +84,11 @@ inline constexpr std::int32_t ExplosionParticle = 0x5ed;
 // la frena y avanza el cuadro (+0x48), y 548550 la dibuja con los cuadros de dos por dos (0x5487b9). No lee el subtipo.
 // La 5e3 comparte su creación (sin la luz) y su paso, pero nadie la pide en MuRet.
 inline constexpr std::int32_t BloodParticle = 0x5e4;
+// El brillo 5fe (Effect\Shiny03.jpg, 0x61d937) de las skills de las armas (0x55be23, sobre el héroe): nace en 0x542bff
+// con vida 18 y sin rand(), y 0x53fdb0 la pone en el hueso de su dueño (+0x40); su paso (0x546d54) le da la escala
+// sin(vida · π/18) · 3 y la vuelve a poner en el hueso. 548550 la dibuja con el billboard común (0x5488f6 → 0x54889a).
+// No lee el subtipo; 0x53fdb0 sí.
+inline constexpr std::int32_t SkillShineParticle = 0x5fe;
 
 // Offsets nativos de procedencia; este DTO no promete layout binario de 0x78 bytes.
 struct Particle
@@ -151,6 +156,9 @@ using ParticleObjectOwners = std::function<WorldObject*(std::uint64_t)>;
 // La acción (+0x111) del personaje de una identidad (ParticleOwnerKind::Actor, el lugar del pool): lo que el paso de
 // la órbita 60f/0 lee por el puntero +0x40 (0x54735f). nullopt si no está.
 using ParticleActorActions = std::function<std::optional<std::uint8_t>(std::uint64_t)>;
+// 0x53fdb0(partícula): el punto en el mundo del hueso que sigue la 5fe, el de su dueño (+0x40, ParticleOwner del pool
+// de personajes) que elige el héroe publicado con el subtipo. nullopt si el dueño no está o no se resuelve.
+using ParticleOwnerBones = std::function<std::optional<glm::vec3>(const Particle&)>;
 
 class Particles
 {
@@ -189,6 +197,13 @@ public:
     CreateOwnedChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                        std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,
                        std::int32_t scene, ParticleOwner owner = {});
+    // 0x53fe70 con la 5fe (SkillShineParticle) de las skills: el prefijo común, la vida 18 (0x542c00) y 0x53fdb0 con
+    // `bones` y `owner` (el dueño, +0x40), que pisa la posición. Sin rand(). Con los 3.000 llenos, nada; sin el
+    // dueño, MissingOwner con el lugar apagado. Otro tipo, UnsupportedType.
+    [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
+    CreateFollowingChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
+                           const glm::vec3& light, std::int32_t subtype, float scale, ParticleOwner owner,
+                           const ParticleOwnerBones& bones);
     // 0x6070a0, al entrar a la escena: apaga el byte vivo de cada lugar. El viento sigue como estaba.
     void Clear();
 
@@ -231,11 +246,13 @@ std::optional<ParticleError> StepParticles(Particles& particles, Render::Models:
 // la órbita 60f/0 (0x54735c); sin él, una 60f/0 viva falla con MissingOwner. La 5f3 pide la altura del terreno y el
 // alto de su textura
 // (`textureHeight`): sin ellos corta después de mover, frenar y agrandar. La 5ed pide la luz dinámica (`lighting`,
-// 0x7b4ccc4): sin ella corta con MissingDynamicLight después de su cuadro.
+// 0x7b4ccc4): sin ella corta con MissingDynamicLight después de su cuadro. La 5fe pide el hueso de su dueño
+// (`ownerBones`, 0x53fdb0): sin él corta con MissingOwner después de su escala.
 [[nodiscard]] Core::Expected<void, ParticleError>
 StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
                      std::reference_wrapper<const float> worldClock, const std::int32_t* map,
                      IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight = {},
                      const ParticleObjectOwners& owners = {}, const ParticleActorActions& actorActions = {},
-                     const ParticleTextureHeight& textureHeight = {}, TerrainLighting* lighting = nullptr);
+                     const ParticleTextureHeight& textureHeight = {}, TerrainLighting* lighting = nullptr,
+                     const ParticleOwnerBones& ownerBones = {});
 } // namespace Client::World

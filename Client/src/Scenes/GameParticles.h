@@ -23,6 +23,7 @@ class CrtRandom;
 namespace Client::World
 {
 class Particles;
+struct Particle;
 struct TerrainLighting;
 struct WorldObject;
 } // namespace Client::World
@@ -33,6 +34,7 @@ namespace Client::Scenes
 {
 struct ActorState;
 class IModelLibrary;
+class WorldState;
 struct DrawnObject;
 struct FaunaDrawCarry;
 
@@ -58,14 +60,16 @@ StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles,
 // worldClock presta el lvalue del caller durante la pasada; no retiene ni copia ese owner. `owners`
 // resuelve el dueño de 622/1 entre los objetos del mapa (World::ParticleObjectOwners), `actorActions` da la acción
 // del personaje dueño de la órbita 60f/0 (World::ParticleActorActions), `textureHeight`, el alto de la textura
-// que lee la 5f3 (World::ParticleTextureHeight), y `lighting`, la luz dinámica (0x7b4ccc4) de la 5ed.
+// que lee la 5f3 (World::ParticleTextureHeight), `lighting`, la luz dinámica (0x7b4ccc4) de la 5ed, y `ownerBones`, el
+// hueso del dueño de la 5fe (World::ParticleOwnerBones, 0x53fdb0).
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map,
                   const std::function<double(float, float)>& terrainHeight = {}, const float& worldClock = 0.0f,
                   const std::function<World::WorldObject*(std::uint64_t)>& owners = {},
                   const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions = {},
                   const std::function<std::optional<float>(std::int32_t)>& textureHeight = {},
-                  World::TerrainLighting* lighting = nullptr);
+                  World::TerrainLighting* lighting = nullptr,
+                  const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones = {});
 
 // La acción (+0x111) del personaje de un lugar del pool entre `actors`, que tienen que vivir más que el
 // resolvedor: lo que el paso de la órbita 60f/0 lee por el puntero +0x40 (0x54735f).
@@ -80,6 +84,16 @@ ParticleActorActionsAmong(std::span<const ActorState> actors);
 // tienen que vivir más que el resolvedor: lo que el original lee por el puntero +0x40.
 [[nodiscard]] std::function<World::WorldObject*(std::uint64_t)>
 ParticleOwnersAmong(std::span<World::WorldObject> objects);
+
+// 0x53fdb0(partícula) con un dueño del pool de personajes (ParticleOwnerKind::Actor): el hueso es el byte +5 de la
+// parte del héroe publicado ([0x743a170] + 0x2bd + (subtipo % 2, con signo) · 0x20: la mano derecha con 0, la izquierda
+// con 1 y la quinta del cuerpo con −1) y el punto local (0; −120; 0) con la 5fe y la 62d, cero con las demás.
+// 0x4ec110 con el modelo del dueño (+2): su origen (+0x6c) pasa a ser la posición del dueño y la escala (+0x68) es la
+// que quedó en el modelo; con los huesos propios (+0x120) del último dibujo, una matriz en cero antes del primero
+// (Q-C318). MuRet guarda el modelo de Player.bmd (WorldState::PlayerModel): con otro tipo, nullopt.
+[[nodiscard]] std::optional<glm::vec3> OwnerBonePointOf(WorldState& world, const World::Particle& particle);
+// El resolvedor de 0x53fdb0 sobre `world`, que tiene que vivir más que él.
+[[nodiscard]] std::function<std::optional<glm::vec3>(const World::Particle&)> ParticleOwnerBonesOf(WorldState& world);
 
 // 0x637558 → 0x548550(0), en el pase de ojo después de los sprites. Conserva la geometría y
 // las operaciones anteriores a un fallo y devuelve la dirección y el lugar que falló.

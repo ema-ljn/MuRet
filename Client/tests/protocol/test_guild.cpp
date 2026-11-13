@@ -321,4 +321,33 @@ TEST(GuildProtocolTest, TheGuildInfoRequestPadsBeforeTheKey)
     EXPECT_TRUE(SameBytes(PlainOf(sent), Bytes({0xc1, 0x08, 0x66, 0x00, 0x78, 0x56, 0x34, 0x12})));
     EXPECT_NE(sent.packet.Bytes()[3], std::byte{0x00});
 }
+
+// 0x650830: C1 0C EB 01 y los 8 bytes del nombre, con el XOR32 desde pkt[3]; 0x62a878: C1 17 53, el nombre de 10 y el
+// número de 10, igual.
+TEST(GuildProtocolTest, TheUnionKickAndTheLeaveCarryTheirNames)
+{
+    Guild::GuildName guild{};
+    const std::string_view invented = "Ombues";
+    for (std::size_t i = 0; i < invented.size(); ++i)
+        guild[i] = static_cast<std::byte>(invented[i]);
+    const auto kick = Guild::WriteUnionKick(guild);
+    EXPECT_EQ(kick.delivery, Delivery::Clear);
+    std::vector<std::byte> expected = Bytes({0xc1, 0x0c, 0xeb, 0x01});
+    Append(expected, invented, 8);
+    EXPECT_TRUE(SameBytes(PlainOf(kick), expected));
+    EXPECT_NE(kick.packet.Bytes()[3], std::byte{0x01});
+
+    Guild::CharacterName name{};
+    const std::string_view character = "Tala";
+    for (std::size_t i = 0; i < character.size(); ++i)
+        name[i] = static_cast<std::byte>(character[i]);
+    Guild::LeaveNumber number{};
+    const std::string_view digits = "1234567";
+    for (std::size_t i = 0; i < digits.size(); ++i)
+        number[i] = static_cast<std::byte>(digits[i]);
+    expected = Bytes({0xc1, 0x17, 0x53});
+    Append(expected, character, 10);
+    Append(expected, digits, 10);
+    EXPECT_TRUE(SameBytes(PlainOf(Guild::WriteLeave(name, number)), expected));
+}
 } // namespace

@@ -437,6 +437,12 @@ abre el diálogo `0x7d` del juego). Queda (08 P-C287 y P-C288): la ventana de lo
 la alianza (`0x408a24`, `C1 07 E5 01 01`), la rivalidad y romperla (`0x409066` y `0x409663`, con la animación `0xb7` y
 el `C1 05 18`), y el estado del 6 con los dos maestros, que lee el `+4` de la tabla de los gremios (`0x4062e4`).
 
+**Fase 5 (2026-11-13):** con los hitos 9 y 7 mergeados otra vez, las pestañas 0 y 2 de la ventana del gremio: sus pasos
+(`0x64fc00`: salir o disolver, con `0x64de90` y el diálogo `0x7d`; `0x650c10`: romper la alianza con el `C1 07 E5 01
+02`, echar a un gremio con `0x650830` y el `C1 0C EB 01`) y los tres dibujos (`0x64fdf0`, `0x6507d0`, `0x651400`) con
+las listas del aviso (`0x46b800`, desde el `0D` tipo 2 por `0x651680`) y de la alianza (`0x46d440`, `0x46d900`), su
+paso y su dibujo sobre `UI::OldList` y el `0x47a810` del hito 9, y los botones `+0x42c`, `+0x64c` y `+0x6d4`.
+
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 
 - [x] **Los controles de las ventanas viejas** que la CL8 dejó sin portar (57 funciones de la CL8.3, 14 KB: las

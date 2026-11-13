@@ -3,6 +3,8 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/GuildState.h"
+#include "Scenes/GuildWindow.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneId.h"
@@ -75,7 +77,9 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
     runtime.chat.noticeSound = false;
     UI::ClearTheWhisperSenders(runtime.chat.whisperSenders);
     // 0x4c2650..0x4c26fd: globales y objetos que MuRet no tiene, el byte del A0 ([0x710148] + 4 en 0xff,
-    // Q-C215) y 0x657670, cuyo 0x4499b0 manda el segundo C1 03 31 (la sesión, Q-C214).
+    // Q-C215) y 0x657670, cuyo 0x4499b0 manda el segundo C1 03 31 (la sesión, Q-C214). De 0x657670, MuRet tiene la
+    // lista del aviso del gremio, que vacía 0x651790 (0x657681).
+    ClearTheGuildNotice(runtime.guild.window);
     // MuRet: la cámara copia la posición del héroe publicado, que la selección lee desde acá (Q-C213).
     resources.cameraInput.hero = world.Actors()[runtime.hero].position;
 }

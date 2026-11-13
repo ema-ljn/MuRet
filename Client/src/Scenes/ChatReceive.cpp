@@ -9,6 +9,7 @@
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GuildState.h"
+#include "Scenes/GuildWindow.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneId.h"
@@ -28,6 +29,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -287,8 +289,8 @@ Core::Expected<void, std::string> ApplyNotice(const Protocol::Messages::Notice& 
         const std::array<std::string_view, 1> arguments{text};
         const std::string line = UI::PlaceArguments(format.Value(), arguments);
         UI::AddNotice(runtime.chat.area, *measure.Value(), runtime.hud.dcFont, line, 1);
-        return Core::Unexpected(std::string("0x4c665f: 0x651680 guarda el aviso del gremio en su ventana "
-                                            "([0x7d536f0]), que es de la CL9.4"));
+        // 0x4c665f: 0x651680 con el texto del paquete, a la lista del aviso de la ventana del gremio.
+        return AddTheGuildNotice(runtime.guild.window, *measure.Value(), runtime.hud.dcFont, context.screen, text);
     }
     if (notice.type < FirstSlideNotice || notice.type > LastSlideNotice || text.empty())
         return {};

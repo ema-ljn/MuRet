@@ -65,6 +65,8 @@ enum class PanelDialogOwner : std::uint8_t
     Relationship, // 0x653c00, el pedido de alianza o de rivalidad (el E5)
     GuildDismiss, // 0x64def0, quitarle el cargo a un miembro (la pestaña de los miembros)
     GuildKick,    // 0x64e550, echar a un miembro (la pestaña de los miembros)
+    GuildDisband, // 0x64de90, disolver el gremio (la pestaña 0)
+    UnionKick,    // 0x650830, echar a un gremio de la alianza (la pestaña de la alianza)
 };
 
 // La respuesta: si la función devuelve distinto de 0 el diálogo se cierra (las de MuRet devuelven 1).

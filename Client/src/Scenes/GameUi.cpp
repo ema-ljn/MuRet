@@ -1671,6 +1671,7 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     gamePanels.LendTheGuildWindowStep(GuildWindowStepContext{.world = context.world,
                                                              .mouseX = context.mouseX,
                                                              .mouseY = context.mouseY,
+                                                             .screen = context.screen,
                                                              .send = GuildSenderOf(context.requests),
                                                              .keyEdge = PageKeyEdges(runtime.ui, context.input),
                                                              .keyDown = ArrowKeysDown(context.input),

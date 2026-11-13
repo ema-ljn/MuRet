@@ -465,4 +465,14 @@ Outgoing WriteAssignStatus(std::uint8_t type, std::uint8_t status, const Charact
 {
     return Xor32C1(Network::PacketWriter::C1(AssignResultOpcode).PutU8(type).PutU8(status).PutBytes(name));
 }
+
+Outgoing WriteUnionKick(const GuildName& name)
+{
+    return Xor32C1(Network::PacketWriter::C1(UnionKickOpcode).PutU8(UnionKickKind).PutBytes(name));
+}
+
+Outgoing WriteLeave(const CharacterName& name, const LeaveNumber& number)
+{
+    return Xor32C1(Network::PacketWriter::C1(LeaveResultOpcode).PutBytes(name).PutBytes(number));
+}
 } // namespace Client::Protocol::Guild

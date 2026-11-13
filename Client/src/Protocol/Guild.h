@@ -41,6 +41,9 @@ inline constexpr std::uint8_t RelationshipRequestOpcode = 0xe5;
 inline constexpr std::uint8_t RelationshipResultOpcode = 0xe6;
 inline constexpr std::uint8_t UnionListOpcode = 0xe9;
 inline constexpr std::uint8_t UnionListRefreshOpcode = 0xeb;
+// 0x650830: el EB que manda el cliente (echar a un gremio de la alianza) y su tipo.
+inline constexpr std::uint8_t UnionKickOpcode = 0xeb;
+inline constexpr std::uint8_t UnionKickKind = 1;
 
 // Los nombres de gremio: 8 bytes sin terminador (el original los copia con dos DWORD y pone el cero él).
 inline constexpr std::size_t GuildNameSize = 8;
@@ -53,6 +56,9 @@ inline constexpr std::size_t MaxMembers = 80;
 
 using GuildName = std::array<std::byte, GuildNameSize>;
 using CharacterName = std::array<std::byte, CharacterNameSize>;
+// 0x62a878: los diez bytes del número que escribió el jugador (0x7798bf8).
+inline constexpr std::size_t LeaveNumberSize = 10;
+using LeaveNumber = std::array<std::byte, LeaveNumberSize>;
 using GuildMark = std::array<std::uint8_t, MarkBytes>;
 
 // 50 (0x4d74b0): la clave de quien pide entrar, pkt[3] · 0x100 + pkt[4] (sin el 0x7f).
@@ -280,4 +286,13 @@ using GuildPacket =
 // 0x64def0: C1 0F E1 [tipo] [puesto] [nombre, 10 bytes], con el XOR32 y en claro. Quitarle el cargo a un miembro manda
 // el tipo 3 con el puesto 0.
 [[nodiscard]] Outgoing WriteAssignStatus(std::uint8_t type, std::uint8_t status, const CharacterName& name);
+
+// 0x650830 (la respuesta 8 del diálogo de la pestaña de la alianza): C1 0C EB 01 [nombre del gremio, 8 bytes de
+// 0x7d535a8], con el XOR32 y en claro. El GS 0.97 no tiene el EB: lo que dice el cliente es el ASM.
+[[nodiscard]] Outgoing WriteUnionKick(const GuildName& name);
+
+// 0x62a878 (el sí del diálogo 0x7d del juego): C1 17 53 [nombre, 10 bytes del lugar 0x6d5e2c de 0x787a5e8] [número,
+// 10 bytes de 0x7798bf8], con el XOR32 y en claro. El GS (0x420bf0, CGGuildDelUser) lee el nombre en +3 y el número en
+// +0xd: el maestro con su propio nombre disuelve el gremio, con otro lo echa; el que no es maestro sale.
+[[nodiscard]] Outgoing WriteLeave(const CharacterName& name, const LeaveNumber& number);
 } // namespace Client::Protocol::Guild

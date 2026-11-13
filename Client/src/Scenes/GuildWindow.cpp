@@ -13,14 +13,19 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameHud.h"
+#include "Scenes/GameMessages.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GameWindowDrawing.h"
 #include "Scenes/GuildPanels.h"
 #include "Scenes/GuildState.h"
+#include "Scenes/GuildWindowTabs.h"
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
+#include "UI/ChatLog.h"
 #include "UI/ChatLogWindow.h"
+#include "UI/Dialogs.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelDialog.h"
@@ -28,6 +33,7 @@
 #include "UI/GameUiState.h"
 #include "UI/OldWindowBase.h"
 #include "UI/PanelRegistry.h"
+#include "UI/SprintfFormat.h"
 #include "World/OriginalFtol.h"
 
 #include <algorithm>
@@ -125,6 +131,20 @@ constexpr std::int32_t MemberRowAbove = 3;
 constexpr std::int32_t MemberRowHeight = 0xd;
 // 0x46cab0: el corrimiento hasta el final.
 constexpr std::int32_t ScrollToTheEnd = -10000;
+// 0x64fc00: el maestro de la alianza (1270, OK), el diálogo de disolver el gremio (1363 a 1366, de a 0x32, con
+// Confirmar) y el diálogo 0x7d del juego que pide el número (0x64fdb0) con la cuenta de Tab (0x6c8e6c) en 1.
+constexpr std::size_t UnionMasterText = 1270;
+constexpr std::array<std::size_t, 4> DisbandTexts{1363, 1364, 1365, 1366};
+constexpr std::int32_t NumberDialog = 0x7d;
+constexpr std::int32_t NumberDialogFields = 1;
+// 0x650c10: el maestro de la alianza (1271), C1 07 E5 01 02 (romper la alianza) con el aviso 1387 del tipo 1, y el
+// diálogo de echar a un gremio de ella (1423 con el nombre y 1369).
+constexpr std::size_t UnionMasterLeaveText = 1271;
+constexpr std::uint8_t UnionRelation = 1;
+constexpr std::uint8_t BreakRequest = 2;
+constexpr std::size_t UnionLeftText = 1387;
+constexpr std::int32_t UnionLeftType = 1;
+constexpr std::size_t UnionKickText = 1423;
 
 float F32(double value)
 {
@@ -179,14 +199,15 @@ Core::Expected<void, std::string> AskForTheUnionList(const GuildWindowStepContex
     return {};
 }
 
-// 0x46d3a0, la vtable + 0x88 de la lista de los miembros: el mouse sobre el renglón con el clic lo elige (corrimiento
-// + renglón + 1, la + 0x58), invierte +0 de su elemento y gasta el clic. Siempre 1.
-std::int32_t HoverTheMemberRow(const GuildWindowStepContext& context, std::int32_t row, std::size_t at)
+// 0x46d3a0, la vtable + 0x88 de la lista de los miembros (0x46c3d0 la del aviso y 0x46e1e0 la de la alianza, iguales
+// salvo el tamaño del elemento y la y del renglón de la alianza, que es su + 0xa0): el mouse sobre el renglón con el
+// clic lo elige (corrimiento + renglón + 1, la + 0x58), invierte +0 de su elemento y gasta el clic. Siempre 1.
+template <typename Row>
+std::int32_t HoverTheRow(const GuildWindowStepContext& context, UI::OldList& list, std::vector<Row>& rows,
+                         std::int32_t row, std::size_t at)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    GuildWindowState& window = runtime.guild.window;
-    UI::OldList& list = window.memberList;
-    const std::size_t size = window.members.size();
+    const std::size_t size = rows.size();
     const std::int32_t width =
         Truncate(static_cast<double>(list.base.width) - static_cast<double>(list.thumbWidth) + 1.0);
     if (UI::MouseInRect(context.mouseX, context.mouseY, list.base.x, UI::ListRowY(list, size, row) - MemberRowAbove,
@@ -194,37 +215,71 @@ std::int32_t HoverTheMemberRow(const GuildWindowStepContext& context, std::int32
         runtime.movement.pendingClick)
     {
         UI::SelectInTheList(list, size, list.scroll + row + 1);
-        GuildMemberRow& member = window.members[at];
-        member.toggled = (member.toggled + 1) % 2;
+        Row& element = rows[at];
+        element.toggled = (element.toggled + 1) % 2;
         runtime.movement.pendingClick = false;
     }
     return 1;
 }
 
-// 0x650378: la vtable + 0x18 de la lista, 0x45aa80(0): la cola (vacía: nadie le manda mensajes), el mouse y 0x47b0f0.
-void StepTheMemberList(const GuildWindowStepContext& context)
+// 0x650378, 0x64fc14 y 0x650c3c: 0x5762eb4 con el id de la lista, su vtable + 0x18 (0x45aa80(0): la cola, vacía
+// porque nadie le manda mensajes, el mouse y 0x47b0f0 o sus iguales 0x480e00 y 0x4824d0) y 0x5762eb4 en 0.
+template <typename Row>
+void StepTheGuildList(const GuildWindowStepContext& context, UI::OldList& list, std::vector<Row>& rows)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    GuildWindowState& window = runtime.guild.window;
-    UI::OldList& list = window.memberList;
-    if (!PassesTheGuildWindowGate(list.base, runtime.ui, context.mouseX, context.mouseY))
-        return;
-    const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
-    const UI::OldListGlobals listGlobals{.leftClick = globals.leftClick,
-                                         .wheel = globals.wheel,
-                                         .capture = globals.capture,
-                                         .focusedList = globals.focusedList,
-                                         .mouseOnUi = globals.mouseOnUi,
-                                         .sound = globals.sound,
-                                         .drawn = runtime.oldWindows.drawn == 1,
-                                         .modal = runtime.oldWindows.modal};
-    const UI::OldListView view{
-        .mouseX = context.mouseX, .mouseY = context.mouseY, .keyDown = [&context](std::uint8_t key) {
-            return context.keyDown && context.keyDown(key);
-        }};
-    static_cast<void>(UI::StepTheListMouse(list, window.members.size(), listGlobals, view,
-                                           [&context](std::int32_t row, std::size_t at)
-                                           { return HoverTheMemberRow(context, row, at); }));
+    runtime.ui.capture = list.base.id;
+    if (PassesTheGuildWindowGate(list.base, runtime.ui, context.mouseX, context.mouseY))
+    {
+        const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
+        const UI::OldListGlobals listGlobals{.leftClick = globals.leftClick,
+                                             .wheel = globals.wheel,
+                                             .capture = globals.capture,
+                                             .focusedList = globals.focusedList,
+                                             .mouseOnUi = globals.mouseOnUi,
+                                             .sound = globals.sound,
+                                             .drawn = runtime.oldWindows.drawn == 1,
+                                             .modal = runtime.oldWindows.modal};
+        const UI::OldListView view{
+            .mouseX = context.mouseX, .mouseY = context.mouseY, .keyDown = [&context](std::uint8_t key) {
+                return context.keyDown && context.keyDown(key);
+            }};
+        static_cast<void>(UI::StepTheListMouse(list, rows.size(), listGlobals, view,
+                                               [&context, &list, &rows](std::int32_t row, std::size_t at)
+                                               { return HoverTheRow(context, list, rows, row, at); }));
+    }
+    runtime.ui.capture = 0;
+}
+
+// 0x46c930, 0x46bca0 y 0x46d900 después de armar el elemento: adelante, con más de +0xfc saca del final (0x47b7e0 y sus
+// iguales 0x4814f0 y 0x482bc0), elige 0, uno más de corrimiento con más que los renglones, lo acota, 1 si es el único,
+// y al final el último (la cuenta) con el corrimiento hasta el final (−10.000).
+template <typename Row> void PutFirst(UI::OldList& list, std::vector<Row>& rows, Row row)
+{
+    rows.insert(rows.begin(), std::move(row));
+    while (std::cmp_greater(rows.size(), list.maxEntries))
+        rows.pop_back();
+    const std::size_t size = rows.size();
+    UI::SelectInTheList(list, size, 0);
+    if (UI::ListCount(list, size) > list.rows)
+        ++list.scroll;
+    if (const std::int32_t count = UI::ListCount(list, size); count >= list.rows && count - list.scroll < list.rows)
+        list.scroll = count - list.rows;
+    if (size == 1)
+        UI::SelectInTheList(list, size, 1);
+    if (size != 0)
+    {
+        UI::SelectInTheList(list, size, UI::ListCount(list, size));
+        UI::ScrollTheList(list, size, ScrollToTheEnd);
+    }
+}
+
+// 0x47a410 y sus iguales 0x480260 y 0x4818b0: la vacía, elige 0 y vuelve el corrimiento a 0.
+template <typename Row> void ClearTheGuildList(UI::OldList& list, std::vector<Row>& rows)
+{
+    rows.clear();
+    UI::SelectInTheList(list, 0, 0);
+    list.scroll = 0;
 }
 
 // 0x64faa0: el lugar de `name` entre los 0x78aba38 miembros de 0x787a5e8 (strcmp), o −1.
@@ -240,12 +295,44 @@ Core::Expected<std::int32_t, std::string> FindTheMember(const GuildState& guild,
     return -1;
 }
 
-// 0x6505cb..0x65062c y 0x6504a9: strcpy del nombre a 0x7d535a8 (12 bytes hasta 0x7d535b4).
+// 0x6505cb..0x65062c, 0x6504a9 y 0x6513a0: strcpy del nombre a 0x7d535a8 (12 bytes hasta 0x7d535b4): el nombre y su
+// 0; lo que sigue queda del nombre de antes, y el E1 (10 bytes) y el EB (8) lo mandan (Q-C1292).
 void ChooseTheMember(GuildState& guild, std::string_view name)
 {
-    guild.chosenName = {};
-    for (std::size_t index = 0; index < name.size() && index + 1 < guild.chosenName.size(); ++index)
+    std::size_t index = 0;
+    for (; index < name.size() && index + 1 < guild.chosenName.size(); ++index)
         guild.chosenName[index] = name[index];
+    guild.chosenName[index] = '\0';
+}
+
+// 0x6600d0(renglones, cuántos, paso, banderas, función, 0) con lo que da en +0x428.
+Core::Expected<void, std::string> OpenTheGuildDialog(const GuildWindowStepContext& context,
+                                                     std::span<const std::string> lines, std::uint32_t flags,
+                                                     UI::PanelDialogOwner owner, std::string_view where)
+{
+    if (context.measure == nullptr)
+        return Core::Unexpected(std::format("{}: el diálogo de los paneles (0x6600d0) sin medidor", where));
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::PanelDialogState& dialog = runtime.panels.delegated.panelDialog;
+    const auto opened = UI::OpenThePanelDialog(
+        dialog, UI::PanelDialogRequest{.lines = lines, .flags = flags, .owner = owner, .placed = 0}, *context.measure,
+        runtime.hud.dcFont, context.now);
+    if (opened == UI::PanelDialogOpening::Busy)
+        return Core::Unexpected(std::string("0x6600f9: el aviso del diálogo ocupado (0x6d69a8, en EUC-KR) no está en "
+                                            "Text.bmd"));
+    runtime.guild.window.dialog = opened == UI::PanelDialogOpening::Opened ? UI::PanelDialogHandle(dialog) : 0U;
+    return {};
+}
+
+// Un diálogo de un renglón con OK y sin dueño (0x6600d0(texto, 1, 0x32, 1, 0, 0)).
+Core::Expected<void, std::string> TellTheMaster(const GuildWindowStepContext& context, std::size_t text,
+                                                std::string_view where)
+{
+    auto line = TextOf(context.texts, text, where);
+    if (!line.HasValue())
+        return Core::Unexpected(std::move(line).Error());
+    const std::array<std::string, 1> lines{std::string(line.Value())};
+    return OpenTheGuildDialog(context, lines, UI::PanelDialogOk, UI::PanelDialogOwner::None, where);
 }
 
 // 0x650648 y 0x6507ad: 0x6600d0(renglones, 2, 0x40, 4, función, 0), con lo que da en +0x428.
@@ -262,16 +349,7 @@ Core::Expected<void, std::string> AskAboutTheMember(const GuildWindowStepContext
         return Core::Unexpected(std::move(second).Error());
     const std::array<std::string_view, 1> arguments{name};
     const std::array<std::string, 2> lines{UI::PlaceArguments(format.Value(), arguments), std::string(second.Value())};
-    WorldRuntime& runtime = context.world.Runtime();
-    UI::PanelDialogState& dialog = runtime.panels.delegated.panelDialog;
-    const auto opened = UI::OpenThePanelDialog(
-        dialog, UI::PanelDialogRequest{.lines = lines, .flags = UI::PanelDialogConfirm, .owner = owner, .placed = 0},
-        *context.measure, runtime.hud.dcFont, context.now);
-    if (opened == UI::PanelDialogOpening::Busy)
-        return Core::Unexpected(std::string("0x6600f9: el aviso del diálogo ocupado (0x6d69a8, en EUC-KR) no está en "
-                                            "Text.bmd"));
-    runtime.guild.window.dialog = opened == UI::PanelDialogOpening::Opened ? UI::PanelDialogHandle(dialog) : 0U;
-    return {};
+    return OpenTheGuildDialog(context, lines, UI::PanelDialogConfirm, owner, "0x650648");
 }
 
 // 0x6503bd..0x6507bb: los tres botones del maestro, uno detrás del otro.
@@ -335,9 +413,7 @@ Core::Expected<void, std::string> StepTheMembersTab(const GuildWindowStepContext
     WorldRuntime& runtime = context.world.Runtime();
     GuildWindowState& window = runtime.guild.window;
     UI::OldList& list = window.memberList;
-    runtime.ui.capture = list.base.id;
-    StepTheMemberList(context);
-    runtime.ui.capture = 0;
+    StepTheGuildList(context, list, window.members);
     if (context.keyEdge(PageUpKey))
         UI::ScrollTheList(list, window.members.size(), -list.rows);
     if (context.keyEdge(PageDownKey))
@@ -347,36 +423,144 @@ Core::Expected<void, std::string> StepTheMembersTab(const GuildWindowStepContext
     return StepTheMasterButtons(context);
 }
 
+// El gremio (+0xd) y la alianza (+4) de la entrada del héroe (+0x1f2), sin mirar el −1 (Q-C1281).
+struct HeroGuildNames
+{
+    std::string_view guild;
+    std::string_view alliance;
+};
+
+Core::Expected<HeroGuildNames, std::string> HeroGuildNamesOf(WorldState& world, std::string_view where)
+{
+    const auto index = static_cast<std::int16_t>(world.Actors()[world.Runtime().hero].word1f2);
+    const GuildState& guild = world.Runtime().guild;
+    const auto name = GuildNameAt(guild, index);
+    const auto alliance = UnionNameAt(guild, index);
+    if (!name || !alliance)
+        return Core::Unexpected(std::format("{}: el gremio {} del héroe cae fuera de la tabla", where, index));
+    return HeroGuildNames{.guild = *name, .alliance = *alliance};
+}
+
+// 0x64fdb0..0x64fddf y 0x64de99..0x64ded4: el diálogo 0x7d del juego (0x7d3a10c), 0x553570(0), el campo del chat
+// cerrado (0x6c8e68) y un solo campo para Tab (0x6c8e6c). 0x6c8e78 (el tope de la entrada sin EDIT, de [0x7d3a0a4]) y
+// 0x77f31c0 (sus marcas) son de la entrada sin EDIT, que MuRet no tiene.
+void OpenTheNumberDialog(WorldRuntime& runtime)
+{
+    runtime.dialogs.current = NumberDialog;
+    UI::ResetTheTextBuffers(runtime.chat.input, false);
+    runtime.ui.chatOpen = false;
+    runtime.chat.input.fieldCount = NumberDialogFields;
+}
+
+// 0x64fc00: la pestaña 0.
+Core::Expected<void, std::string> StepTheNoticeTab(const GuildWindowStepContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    GuildState& guild = runtime.guild;
+    GuildWindowState& window = guild.window;
+    StepTheGuildList(context, window.noticeList, window.notice);
+    const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
+    if (!UI::ClickTheButton(window.tabButtons[GuildLeaveButton], globals, context.mouseX, context.mouseY))
+        return {};
+    const ActorState& hero = context.world.Actors()[runtime.hero];
+    if (hero.guildStatus == MasterStatus)
+    {
+        auto names = HeroGuildNamesOf(context.world, "0x64fc55");
+        if (!names.HasValue())
+            return Core::Unexpected(std::move(names).Error());
+        if (names.Value().guild == names.Value().alliance)
+            return TellTheMaster(context, UnionMasterText, "0x64fcd5");
+        std::array<std::string, DisbandTexts.size()> lines{};
+        for (std::size_t line = 0; line < lines.size(); ++line)
+        {
+            auto text = TextOf(context.texts, DisbandTexts[line], "0x64fce7");
+            if (!text.HasValue())
+                return Core::Unexpected(std::move(text).Error());
+            lines[line] = std::string(text.Value());
+        }
+        return OpenTheGuildDialog(context, lines, UI::PanelDialogConfirm, UI::PanelDialogOwner::GuildDisband,
+                                  "0x64fcd5");
+    }
+    // 0x64fd9c: 0x64faa0 con el nombre del héroe (+0x1d9).
+    auto index = FindTheMember(guild, HeroNameOf(hero));
+    if (!index.HasValue())
+        return Core::Unexpected(std::move(index).Error());
+    guild.kickMember = index.Value();
+    OpenTheNumberDialog(runtime);
+    return {};
+}
+
+// 0x650c10: la pestaña de la alianza.
+Core::Expected<void, std::string> StepTheUnionTab(const GuildWindowStepContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    GuildState& guild = runtime.guild;
+    GuildWindowState& window = guild.window;
+    StepTheGuildList(context, window.unionList, window.unions);
+    const ActorState& hero = context.world.Actors()[runtime.hero];
+    if (hero.guildStatus != MasterStatus)
+        return {};
+    auto names = HeroGuildNamesOf(context.world, "0x650c74");
+    if (!names.HasValue())
+        return Core::Unexpected(std::move(names).Error());
+    if (names.Value().alliance.empty())
+        return {};
+    const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
+    if (UI::ClickTheButton(window.tabButtons[GuildUnionLeaveButton], globals, context.mouseX, context.mouseY))
+    {
+        if (names.Value().guild == names.Value().alliance)
+        {
+            if (auto told = TellTheMaster(context, UnionMasterLeaveText, "0x650d22"); !told.HasValue())
+                return told;
+        }
+        else
+        {
+            if (!context.send)
+                return Core::Unexpected(std::string("0x650d35: el C1 07 E5 de salir de la alianza sin el cable"));
+            context.send(Protocol::Guild::WriteRelationshipRequest(UnionRelation, BreakRequest, hero.key));
+            // 0x651277..0x651290: sprintf con el 1387 sin argumentos y 0x555190("", texto, 1).
+            auto format = TextOf(context.texts, UnionLeftText, "0x65127a");
+            if (!format.HasValue())
+                return Core::Unexpected(std::move(format).Error());
+            if (context.measure == nullptr)
+                return Core::Unexpected(std::string("0x651290: el aviso de salir de la alianza sin medidor"));
+            if (auto added = AddGameMessage(runtime, *context.measure, context.screen, {}, UI::Sprintf(format.Value()),
+                                            UnionLeftType);
+                !added.HasValue())
+                return added;
+        }
+    }
+    if (!UI::ClickTheButton(window.tabButtons[GuildUnionKickButton], globals, context.mouseX, context.mouseY))
+        return {};
+    const auto at = UI::SelectedInTheList(window.unionList, window.unions.size());
+    if (!at)
+        return {};
+    const std::string_view name = GuildTextOf(window.unions[*at].name);
+    if (name == names.Value().guild)
+        return {};
+    auto format = TextOf(context.texts, UnionKickText, "0x651367");
+    if (!format.HasValue())
+        return Core::Unexpected(std::move(format).Error());
+    auto second = TextOf(context.texts, KickText, "0x651372");
+    if (!second.HasValue())
+        return Core::Unexpected(std::move(second).Error());
+    const std::array<std::string_view, 1> arguments{name};
+    const std::array<std::string, 2> lines{UI::PlaceArguments(format.Value(), arguments), std::string(second.Value())};
+    ChooseTheMember(guild, name);
+    return OpenTheGuildDialog(context, lines, UI::PanelDialogConfirm, UI::PanelDialogOwner::UnionKick, "0x6513d8");
+}
+
 // 0x651bbf..0x651c05: el paso de la pestaña.
 Core::Expected<void, std::string> StepTheTab(const GuildWindowStepContext& context, std::int32_t tab)
 {
     switch (tab)
     {
     case 0:
-        return Core::Unexpected(std::string("0x64fc00: el paso de la pestaña 0 del gremio no está portado (P-C287)"));
+        return StepTheNoticeTab(context);
     case MembersTab:
         return StepTheMembersTab(context);
     case UnionTab:
-        return Core::Unexpected(
-            std::string("0x650c10: el paso de la pestaña de la alianza no está portado (P-C287, P-C288)"));
-    default:
-        return {};
-    }
-}
-
-// 0x652291..0x6522c0: el dibujo de la pestaña, que no está portado.
-Core::Expected<void, std::string> DrawTheTab(std::int32_t tab)
-{
-    switch (tab)
-    {
-    case 0:
-        return Core::Unexpected(std::string("0x64fdf0: el dibujo de la pestaña 0 del gremio no está portado (P-C287)"));
-    case MembersTab:
-        return Core::Unexpected(
-            std::string("0x6507d0: el dibujo de la pestaña de los miembros no está portado (P-C287)"));
-    case UnionTab:
-        return Core::Unexpected(
-            std::string("0x651400: el dibujo de la pestaña de la alianza no está portado (P-C287, P-C288)"));
+        return StepTheUnionTab(context);
     default:
         return {};
     }
@@ -521,30 +705,59 @@ void AddTheGuildMember(WorldState& world, const GuildMemberSlot& slot)
     row.slot.number = slot.number;
     row.slot.server = slot.server;
     row.slot.status = slot.status;
-    window.members.insert(window.members.begin(), row);
-    // 0x47b7e0: más de +0xfc (0x96) saca los de más del final.
-    while (std::cmp_greater(window.members.size(), list.maxEntries))
-        window.members.pop_back();
-    const std::size_t size = window.members.size();
-    UI::SelectInTheList(list, size, 0);
-    if (UI::ListCount(list, size) > list.rows)
-        ++list.scroll;
-    if (const std::int32_t count = UI::ListCount(list, size); count >= list.rows && count - list.scroll < list.rows)
-        list.scroll = count - list.rows;
-    if (size == 1)
-        UI::SelectInTheList(list, size, 1);
-    if (size != 0)
-    {
-        UI::SelectInTheList(list, size, UI::ListCount(list, size));
-        UI::ScrollTheList(list, size, ScrollToTheEnd);
-    }
+    PutFirst(list, window.members, row);
 }
 
 void ClearTheGuildMembers(GuildWindowState& window)
 {
-    window.members.clear();
-    UI::SelectInTheList(window.memberList, 0, 0);
-    window.memberList.scroll = 0;
+    ClearTheGuildList(window.memberList, window.members);
+}
+
+Core::Expected<void, std::string> AddTheGuildNotice(GuildWindowState& window, const Render::Text::ITextMeasure& measure,
+                                                    Render::Text::FontKind font, App::PixelSize screen,
+                                                    std::string_view text)
+{
+    constexpr int NoticeWidth = 0x6e;
+    constexpr int NoticeLines = 5;
+    auto wrapped = UI::WrapByWidth(text, measure, font, screen, NoticeWidth, NoticeLines, 0);
+    if (!wrapped.HasValue())
+        return Core::Unexpected(std::move(wrapped).Error());
+    UI::OldList& list = window.noticeList;
+    for (const std::string& line : wrapped.Value().lines)
+    {
+        // 0x46bca0: sin texto o vacío, nada; strcpy a 0x575d234 (+0 de 0x575d230 nadie lo escribe: 0).
+        if (line.empty())
+            continue;
+        PutFirst(list, window.notice, GuildNoticeRow{.toggled = 0, .text = line});
+    }
+    const std::size_t size = window.notice.size();
+    UI::ScrollTheList(list, size, UI::ListCount(list, size) - list.rows);
+    return {};
+}
+
+void ClearTheGuildNotice(GuildWindowState& window)
+{
+    ClearTheGuildList(window.noticeList, window.notice);
+}
+
+void AddTheUnion(GuildWindowState& window, const std::array<std::uint8_t, GuildMarkNibbles>& mark,
+                 std::string_view name, std::uint8_t number)
+{
+    if (name.empty() || name.front() == '\0')
+        return;
+    GuildUnionRow row{};
+    row.mark = mark;
+    // 0x46d93d: strncpy(+0x44, nombre, 8) y +0x4c en 0.
+    constexpr std::size_t NameCopy = 8;
+    for (std::size_t index = 0; index < NameCopy && index < name.size() && name[index] != '\0'; ++index)
+        row.name[index] = name[index];
+    row.byte0 = number;
+    PutFirst(window.unionList, window.unions, row);
+}
+
+void ClearTheUnions(GuildWindowState& window)
+{
+    ClearTheGuildList(window.unionList, window.unions);
 }
 
 void LendTheGuildWindowStepTo(UI::PanelContext& panels, const GuildWindowStepContext& context)
@@ -607,6 +820,7 @@ Core::Expected<void, std::string> DrawTheGuildWindow(GameHudContext& context)
         return {};
     if (auto tabs = DrawTheTabs(context, window.tab, x, y); !tabs.HasValue())
         return tabs;
-    return DrawTheTab(window.tab);
+    // 0x652291..0x6522c0: el dibujo de la pestaña.
+    return DrawTheGuildTab(context, window.tab);
 }
 } // namespace Client::Scenes

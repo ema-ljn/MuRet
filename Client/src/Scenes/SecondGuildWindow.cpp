@@ -127,20 +127,6 @@ constexpr double SwatchFrameOut = 1.0;
 constexpr double SwatchFrameGrow = 2.0;
 constexpr float SwatchDuStep = 0.03125f;
 constexpr float SwatchDvStep = 0.033333335f;
-// 0x471520(x, y, w, h, 0): las cuatro rayas del marco, de 2: arriba y abajo con el 0x117 (u 0,0390625, v 0,3125,
-// du 0,6640625, dv 0,125; la de abajo 1 más ancha), a los costados con el 0x104 (u 0,00390625, v 0,3125, du 0,0078125,
-// dv 0,48828125).
-constexpr std::uint16_t FrameRowSlot = 0x117;
-constexpr std::uint16_t FrameSideSlot = 0x104;
-constexpr float FrameLine = 2.0f;
-constexpr float FrameRowU = 0.0390625f;
-constexpr float FrameRowV = 0.3125f;
-constexpr float FrameRowDu = 0.6640625f;
-constexpr float FrameRowDv = 0.125f;
-constexpr float FrameSideU = 0.00390625f;
-constexpr float FrameSideV = 0.3125f;
-constexpr float FrameSideDu = 0.0078125f;
-constexpr float FrameSideDv = 0.48828125f;
 // 0x655ac0: los dos marcos (140 × 20 en (x + 0x19, y + 0x41) y 53 × 53 en (x + 0x45, y + 0x68)), el texto en
 // (x + 0x19, y + 0x47) y la marca de 48 en (x + 0x48, y + 0x6b).
 constexpr float NameBoxWidth = 140.0f;
@@ -522,18 +508,6 @@ void QuadAt(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, 
                                       .alpha = 0.0f});
 }
 
-// 0x471520(x, y, w, h, 0): las rayas del marco. Con 1, antes, la caja sin textura de glColor4ub(0x92, 0x90, 0x8d,
-// 0xc8) (0x621aa0) y 0x459ec0: ninguna página de la ventana 2 lo pide.
-void DrawTheFrame(Render::SpriteBatch& sprites, float x, float y, float width, float height)
-{
-    QuadAt(sprites, FrameRowSlot, x, y, width, FrameLine, FrameRowU, FrameRowV, FrameRowDu, FrameRowDv);
-    QuadAt(sprites, FrameRowSlot, x, F32(static_cast<double>(y) + static_cast<double>(height)),
-           F32(static_cast<double>(width) + 1.0), FrameLine, FrameRowU, FrameRowV, FrameRowDu, FrameRowDv);
-    QuadAt(sprites, FrameSideSlot, x, y, FrameLine, height, FrameSideU, FrameSideV, FrameSideDu, FrameSideDv);
-    QuadAt(sprites, FrameSideSlot, F32(static_cast<double>(x) + static_cast<double>(width)), y, FrameLine, height,
-           FrameSideU, FrameSideV, FrameSideDu, FrameSideDv);
-}
-
 // 0x5f1bb0(x, y, w, h, color): el marco 0x116 y el cuadrado del color.
 Core::Expected<void, std::string> DrawTheSwatch(GameHudContext& context, float x, float y, std::int32_t width,
                                                 std::int32_t height, std::int32_t color)
@@ -757,13 +731,15 @@ Core::Expected<void, std::string> DrawTheConfirmation(GameHudContext& context, G
     Render::SpriteBatch& sprites = context.sprites;
     SelectFont(context, FontKind::Normal);
     context.hud.textColors.background = 0;
-    DrawTheFrame(sprites, static_cast<float>(x + PageLeft), static_cast<float>(y + 0x41), NameBoxWidth, NameBoxHeight);
+    WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + PageLeft), static_cast<float>(y + 0x41), NameBoxWidth,
+                                NameBoxHeight);
     auto name = TextOf(context.texts, NameText, "0x655b2a");
     if (!name.HasValue())
         return Core::Unexpected(std::move(name).Error());
     DrawInTheBox(context, x + PageLeft, y + 0x47,
                  std::format("{} : {}", name.Value(), NameOf(guild.table[CreatingIndex].guildName)));
-    DrawTheFrame(sprites, static_cast<float>(x + 0x45), static_cast<float>(y + 0x68), MarkBoxSide, MarkBoxSide);
+    WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x45), static_cast<float>(y + 0x68), MarkBoxSide,
+                                MarkBoxSide);
     if (context.guildMarks == nullptr)
         return Core::Unexpected(std::string("0x655b98: la marca nueva sin la tabla de las marcas"));
     auto slot = context.guildMarks->Upload(guild, CreatingGuildIndex, true);

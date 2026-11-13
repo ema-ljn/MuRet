@@ -1,6 +1,7 @@
 #include "Scenes/ChatReceive.h"
 
 #include "App/WindowState.h"
+#include "Data/Text/TextTable.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
 #include "Render/Models/Cloth.h"
@@ -9,6 +10,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbles.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
@@ -16,6 +18,8 @@
 #include "UI/ChatInput.h"
 #include "UI/MessageArea.h"
 #include "UI/WhisperSenders.h"
+
+#include "support/SceneDataFiles.h"
 
 #include <gtest/gtest.h>
 
@@ -25,6 +29,7 @@
 #include <cstdint>
 #include <memory>
 #include <iterator>
+#include <map>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -311,6 +316,29 @@ TEST_F(ChatReceiveTest, NoticesGoToTheCenterOrToTheChat)
     ASSERT_EQ(Runtime().chat.log.entries.size(), 1u);
     EXPECT_EQ(Runtime().chat.log.entries[0].type, Client::UI::SystemMessage);
     EXPECT_FALSE(Runtime().chat.selectionNotice.has_value());
+}
+
+// 0x4c6634..0x4c665f: el 2 va al área de los avisos con el 483 (0x554610 con 1) y su texto, sin el 483, a la lista del
+// aviso de la ventana del gremio (0x651680: adelante, renglón por renglón).
+TEST_F(ChatReceiveTest, TheGuildNoticeGoesToTheAreaAndToTheGuildWindow)
+{
+    auto table = Client::Data::Text::LoadTextTable(Client::Tests::TextTableBytes({{483, "Gremio: %s"}}));
+    ASSERT_TRUE(table.HasValue());
+    ChatReceiveContext context = Context();
+    context.texts = &table.Value();
+    ASSERT_TRUE(Client::Scenes::ApplyNotice(Notice{.type = 2, .text = "reunion"}, context).HasValue());
+    ASSERT_TRUE(Client::Scenes::ApplyNotice(Notice{.type = 2, .text = "hoy"}, context).HasValue());
+
+    EXPECT_EQ(Runtime().chat.area.noticeCount, 2);
+    const auto& notices = Runtime().chat.area.notices;
+    EXPECT_TRUE(std::any_of(notices.begin(), notices.begin() + 2,
+                            [](const auto& notice) { return notice.text == "Gremio: reunion"; }));
+    const Client::Scenes::GuildWindowState& window = Runtime().guild.window;
+    ASSERT_EQ(window.notice.size(), 2u);
+    EXPECT_EQ(window.notice[0].text, "hoy");
+    EXPECT_EQ(window.notice[1].text, "reunion");
+    EXPECT_EQ(window.noticeList.selection, 2);
+    EXPECT_EQ(m_random.State(), After(0));
 }
 
 // 0x4c65f9: en la selección, el primer 1 va a la franja de la barra y los demás al chat.

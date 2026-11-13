@@ -100,6 +100,44 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
                                       .alpha = 0.0f});
 }
 
+void DrawTheFrame(Render::SpriteBatch& sprites, float x, float y, float width, float height)
+{
+    constexpr std::uint16_t FrameRowSlot = 0x117;
+    constexpr std::uint16_t FrameSideSlot = 0x104;
+    constexpr float FrameLine = 2.0f;
+    constexpr float FrameRowU = 0.0390625f;
+    constexpr float FrameRowV = 0.3125f;
+    constexpr float FrameRowDu = 0.6640625f;
+    constexpr float FrameRowDv = 0.125f;
+    constexpr float FrameSideU = 0.00390625f;
+    constexpr float FrameSideV = 0.3125f;
+    constexpr float FrameSideDu = 0.0078125f;
+    constexpr float FrameSideDv = 0.48828125f;
+    const auto quad =
+        [&sprites](std::uint16_t slot, float left, float top, float w, float h, float u, float v, float du, float dv)
+    {
+        sprites.Quad(Render::OriginalQuad{.slot = Render::TextureSlot{slot},
+                                          .x = left,
+                                          .y = top,
+                                          .width = w,
+                                          .height = h,
+                                          .u = u,
+                                          .v = v,
+                                          .du = du,
+                                          .dv = dv,
+                                          .scaleSize = true,
+                                          .scalePosition = true,
+                                          .alpha = 0.0f});
+    };
+    const auto f32 = [](double value) { return static_cast<float>(value); };
+    quad(FrameRowSlot, x, y, width, FrameLine, FrameRowU, FrameRowV, FrameRowDu, FrameRowDv);
+    quad(FrameRowSlot, x, f32(static_cast<double>(y) + static_cast<double>(height)),
+         f32(static_cast<double>(width) + 1.0), FrameLine, FrameRowU, FrameRowV, FrameRowDu, FrameRowDv);
+    quad(FrameSideSlot, x, y, FrameLine, height, FrameSideU, FrameSideV, FrameSideDu, FrameSideDv);
+    quad(FrameSideSlot, f32(static_cast<double>(x) + static_cast<double>(width)), y, FrameLine, height, FrameSideU,
+         FrameSideV, FrameSideDu, FrameSideDv);
+}
+
 void DrawTheWindowBack(Render::SpriteBatch& sprites, std::int32_t x, std::int32_t y)
 {
     const auto left = static_cast<float>(x);

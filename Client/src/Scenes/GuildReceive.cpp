@@ -350,7 +350,8 @@ Core::Expected<void, std::string> ApplyMemberList(const MemberList& list, const 
     guild.score = std::max(list.score, 0);
     GuildWindowState& window = guild.window;
     ClearTheGuildMembers(window);
-    window.unions.clear();
+    // 0x4d7b96: 0x651830.
+    ClearTheUnions(window);
     CopyName(window.name88, list.name);
     for (std::size_t i = 0; i < list.members.size(); ++i)
     {
@@ -835,18 +836,19 @@ Core::Expected<void, std::string> ApplyUnionList(const UnionList& list, const Gu
     GuildWindowState& window = context.world.Runtime().guild.window;
     for (const UnionEntry& entry : list.entries)
     {
-        GuildUnionRow row;
+        std::array<std::uint8_t, GuildMarkNibbles> mark{};
         constexpr std::uint8_t NibbleShift = 4;
         constexpr std::uint8_t LowNibble = 0x0f;
         for (std::size_t i = 0; i < GuildMarkNibbles; ++i)
         {
             const std::uint8_t packed = entry.mark[i / 2];
-            row.mark[i] = (i % 2) == 0 ? static_cast<std::uint8_t>(packed >> NibbleShift)
-                                       : static_cast<std::uint8_t>(packed & LowNibble);
+            mark[i] = (i % 2) == 0 ? static_cast<std::uint8_t>(packed >> NibbleShift)
+                                   : static_cast<std::uint8_t>(packed & LowNibble);
         }
-        CopyName(row.name, entry.name);
-        row.byte0 = entry.byte0;
-        window.unions.push_back(row);
+        // 0x4d9ebb: 0x6517e0(marca, pkt + 0x21, pkt[0]), con el nombre de 8 bytes sin su 0.
+        std::array<char, GuildNameSize + 1> name{};
+        CopyName(name, entry.name);
+        AddTheUnion(window, mark, GuildTextOf(name), entry.byte0);
     }
     return {};
 }
@@ -861,14 +863,16 @@ Core::Expected<void, std::string> ApplyUnionListRefresh(const UnionListRefresh& 
     if (refresh.result != RefreshAgain)
         return {};
     GuildWindowState& window = context.world.Runtime().guild.window;
-    // 0x4d9bb2: la vtable + 0x9c de la lista (*inferido*: cuántas filas tiene). Con más de 2, Sleep(500), que MuRet no
+    // 0x4d9bb2: 0x651810, la vtable + 0x9c de la lista de la alianza (0x46e280: +0xa8, cuántas filas tiene; en esta
+    // instancia la + 0x9c no es la y del renglón, que es la + 0xa0, *estático*). Con más de 2, Sleep(500), que MuRet no
     // hace (P-C282), y el C1 03 E9.
     if (window.unions.size() > UnionRowsBeforeAsking)
     {
         if (auto sent = Send(context, WriteUnionListRequest(), "0x4d9bc8"); !sent.HasValue())
             return sent;
     }
-    window.unions.clear();
+    // 0x4d9d95: 0x651830.
+    ClearTheUnions(window);
     return {};
 }
 } // namespace

@@ -2849,9 +2849,9 @@ Con gremio, las pestañas: `glColor4ub(0x92, 0x90, 0x8d, 0xff)` y las rayas de 5
 una: blanca la elegida y en 0,6 las otras, el `0x646` de 52 × 16 en (x + `0xf` + `0x36` · k, y + `0x4b`) (la elegida, 2
 más arriba y 18 de alto; du 0,75, dv 0,9375) y su texto (946, 1330 y 1352) centrado en `_ftol(rx · 52)` en
 y + `0x4b` + 4 (la elegida, uno más arriba); blanco y el dibujo de la pestaña (`0x64fdf0`, `0x6507d0` o `0x651400`).
-**MuRet** (CL9 hito 8, fase 4): `Scenes::StepTheGuildWindow` y `DrawTheGuildWindow`, con la compuerta común
-(`PassesTheGuildWindowGate`); los pasos y los dibujos de las pestañas, las listas y los botones cortan con su
-dirección (08 P-C287). Tests: `GuildWindowTest`.
+**MuRet** (CL9 hito 8, fases 4 y 5): `Scenes::StepTheGuildWindow` y `DrawTheGuildWindow`, con la compuerta común
+(`PassesTheGuildWindowGate`); los pasos de las pestañas en `GuildWindow.cpp` y sus dibujos en `GuildWindowTabs.cpp`
+(`DrawTheGuildTab`). Tests: `GuildWindowTest`.
 
 **La pestaña de los miembros, el paso (`0x650350`).** La lista `+0x94` (`0x46c470`, vtable `0x6b971c`) está en
 (`0x1d2`, `0x159`) de `0x9d` × `0xeb`, colgada de su borde de abajo, con 18 renglones y sin padre. El `52` la vacía
@@ -2874,6 +2874,70 @@ diálogo de los paneles con dos renglones (`sprintf` con el 1367 y el nombre; el
 `StepTheGuildWindow`; los botones abren con `GuildDismiss` y `GuildKick` (`AnswerThePanelDialog`). Cortan la ventana
 de los cargos (`0x6504b6`) y el diálogo `0x7d` (`0x62a810`). Tests: `GuildWindowTest` (la lista, PgUp y PgDn, el clic
 en un renglón, quitar el cargo con el `E1` byte a byte, echar y el cargo).
+
+**Las listas del aviso y de la alianza.** `+0x1c8` (`0x46b800`, vtable final `0x6b95e8`) y `+0x2f8` (`0x46d440`,
+`0x6b97bc`; `0x6b9688` y `0x6b9860` son las de la clase de en medio, y `0x46d630` es el destructor) son la misma
+plantilla que la de los miembros con elementos de `0x40` y `0x54`: colgadas de su borde de abajo (`+0x78` en 2), 6
+renglones, hasta `0x96`, `+0xbc` en 1, el cursor de 13 y sin padre, en (0, 0) de 100 × 100 (`0x45a210`) hasta que el
+dibujo de su pestaña les pone tamaño (la `+8`, `0x45a9f0`) y lugar (`0x45a9d0`). Sus funciones son iguales a las de la
+de los miembros salvo el tamaño del elemento (comparadas normalizadas): agregar `0x46bca0` y `0x46d900` (la `+0x94`,
+como `0x46c930` sin el héroe), recortar `0x4814f0` y `0x482bc0`, vaciar `0x480260` y `0x4818b0`, pasar `0x480e00` y
+`0x4824d0`, dibujar `0x480520` y `0x481bf0`, el renglón del clic `0x46c3d0` y `0x46e1e0`. En la de la alianza la `+0x9c`
+es `0x46e280` (la cuenta, `+0xa8`) y la y del renglón es la `+0xa0`. El aviso (`0x651680`, desde el `0D` tipo 2 con el
+texto del paquete, `0x4c665f`): `0x459c70(texto, buffers, 0x6e, 5, 0x100, 0, 0)`, cada renglón no vacío adelante
+(`0x46bca0`: `strcpy` a `+4` de `0x575d230`, `+0` en 0) y al final `+0x34(cuenta − renglones)`: el corrimiento vuelve a
+0, con lo último en el renglón de abajo. `0x651790` la vacía (desde `0x657670` al volver a la selección). La alianza
+(`0x6517e0(marca, nombre, número)`, desde el `E9` con `pkt + 0x21` y `pkt[0]`): sin nombre nada; si no, el elemento de
+`0x5762e50` (`+0` en 0, la marca en nibbles, el nombre con `strncpy` de 8 y `+0x4c` en 0, el número en `+0x50`)
+adelante. `0x651830` la vacía (el `52` y el `EB` con 1).
+
+**La pestaña 0, el paso (`0x64fc00`).** `0x5762eb4` con el id de `+0x1c8`, su `+0x18` y `0x5762eb4` en 0; después
+`+0x42c` (`+0x20`). Con el clic, si el héroe es maestro: con el gremio (`+0xd` de su entrada, sin mirar el −1) igual a
+la alianza (`+4`) abre el diálogo de los paneles con el 1270 (`0x6600d0(texto, 1, 0x32, 1, 0, 0)`, sin función); si no,
+el de disolver: los textos 1363 a 1366 de a `0x32`, Confirmar (4) y `0x64de90`, que con 8 pone 0 en `0x6d5e2c` y abre
+el diálogo `0x7d` (`0x7d3a10c`) con `0x553570(0)`, `0x6c8e68` en 0, `0x6c8e6c` en 1 y lo de la entrada sin `EDIT`
+(`0x6c8e78`, `0x77f31c0`). Sin ser maestro, lo mismo que `0x64de90` pero con el lugar del héroe en `0x787a5e8`
+(`0x64faa0` con `+0x1d9`) en `0x6d5e2c`: sale del gremio con el `C1 53` del diálogo `0x7d`.
+
+**La pestaña 0, el dibujo (`0x64fdf0`).** El marco de 53 (`0x471520(x + 0x45, y + 0x68, 53, 53, 0)`), la marca de 48
+del gremio del héroe (`0x5f16a0(+0x1f2, 1)` y el `0x22` en (x + `0x48`, y + `0x6b`)), el marco de 140 × 62 en
+(x + `0x19`, y + `0xaa`) y, en x + `0x1e` de a `0xd` desde y + `0xb2`, con `0x5542f0` en el modo 1 en cajas de
+`_ftol(rx · 140)`: `"%s :"` con el 1332; el 1256 con `0x78aba3c`; los miembros (con el héroe maestro, el 1362 con
+`0x78aba38` y su tope, que abre el registro propio `0x57630c8` y al cerrarlo saca sus rand(): con la clase 4,
+`+0xb & 7`, liderazgo / 10 + nivel / 10 hasta `0x50`, si no nivel / 10; sin ser maestro, el 1310 con la cuenta) y
+`"%s : %s"` con el 1321 y el nombre de `+0x88` (vacío, el 1361). El 1323 en y + `0xfa` en `_ftol(rx · 136)`; la lista
+del aviso de `0x88` × `0x50` en (x + `0x1c`, y + `0x104` + su alto) con su dibujo (`0x480520`: la cabeza `0x46be20`,
+sin encabezados, y el renglón `0x46c2c0`: la franja del elegido y el texto en x + 4); el marco de 140 × 95 en
+(x + `0x19`, y + `0xf6`); `+0x42c` con el 188 (el maestro) o el 189 (`+0x30`) y su dibujo.
+
+**La pestaña de los miembros, el dibujo (`0x6507d0`).** Con `0x78aba38` de más de 0, la lista `+0x94` (`0x47a810`: la
+cabeza `0x46cb20`, la caja del 7 de la paleta con alfa 0,4, la barra y los encabezados 1389, 1307 y 1022 en
+x + `0xe`, `0x41` y `0x6a`, y − alto − `0xc`; el renglón `0x46d050`: el color del puesto con alfa `0x7f` (`0x80` en
+`0x64`/`0x32`, `0x40` en `0x96`/`0x50`, `0x20` en `0xc8`/`0x64`, sobre rojo `0xff`) en 13 desde la y − 3, la franja del
+elegido, el nombre en x + 8, el texto del puesto (1300 a 1302) centrado en `0x46` desde x + 8 + `0x2d` y el servidor + 1
+en `0xff00c4ff` en x + ancho − `0x1e`). Con el héroe maestro, los tres botones.
+
+**La pestaña de la alianza, el paso (`0x650c10`).** `0x5762eb4` con el id de `+0x2f8`, su `+0x18` (`0x4824d0`, con el
+renglón `0x46e1e0`) y 0. Con el héroe maestro y alianza (`+4` de su entrada): `+0x64c` con el clic, si el gremio es el
+de la alianza, el diálogo del 1271 (como el 1270); si no, `C1 07 E5 01 02` con `+0x1f5` y `+0x1f4` del héroe (XOR32 y
+en claro) y `0x555190("", sprintf(1387), 1)`. Después `+0x6d4`: con el clic y un elegido (`+0x64`) cuyo nombre
+(`+0x44`) no es el gremio del héroe, el 1423 con el nombre y el 1369 debajo (de a `0x40`), `strcpy` del nombre a
+`0x7d535a8` (Q-C1292) y el diálogo con Confirmar y `0x650830`: con 8, `C1 0C EB 01` y los 8 bytes de `0x7d535a8` (XOR32,
+en claro); el GS 0.97 no tiene el `EB`.
+
+**La pestaña de la alianza, el dibujo (`0x651400`).** Sin alianza: los textos 1257 a 1267 con `0x554180` en x + `0x19`,
+desde y + `0x6a` (de a `0xf`, `0x19` antes del sexto y `0x14` antes del noveno); desde el sexto, `0x6c8e5c` en −1 y
+`0x6c8e64` en `0xff0000cc`, y al final `0x6c8e5c` otra vez en −1. Con alianza, la lista `+0x2f8` de `0xa0` × `0x50` en
+x + `0xf`, colgada de y + `0x6e` más el alto de **la lista del aviso** (`+0x224`, Q-C1293), con su dibujo (`0x481bf0`:
+la cabeza `0x46daa0` con los encabezados 182 y 1330 en x + `0xf` y `0x71`; el renglón `0x46dfa0`: la franja, la marca
+del elemento por la entrada 1999 de la tabla (`0x78a5986`) con `0x5f16a0(1999, 1)` y un quad de 8 × 8 en x + 4, que
+después deja la marca del gremio del héroe o ceros con `+0x1f2` negativo (Q-C1294); el nombre en x + `0x10` y el número
+con el modo 4 a la derecha de x + `0x8e`). Con el héroe maestro: con su gremio igual a la alianza, `+0x64c` con el 1324,
+`+0x6d4` prendido (`+4(0)`) y los dos dibujados; si no, `+0x64c` con el 1325, `+0x6d4` apagado (6) y solo `+0x64c`.
+**MuRet** (fase 5): las listas sobre `UI::OldList` con su dibujo (`UI::OldDraw::DrawTheOldList`), los pasos en
+`StepTheGuildWindow` (`GuildDisband` y `UnionKick` en `AnswerThePanelDialog`) y los dibujos en `DrawTheGuildTab`. La
+marca de cada renglón de la alianza sube al mismo slot y el lote las dibuja después (P-C289). Tests: `GuildWindowTest`,
+`GuildReceiveTest.TheUnionListAndItsRefresh`, `ChatReceiveTest.TheGuildNoticeGoesToTheAreaAndToTheGuildWindow`.
 
 ## La escena de carga y la de login
 

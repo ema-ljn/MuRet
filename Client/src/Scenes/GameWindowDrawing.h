@@ -21,6 +21,12 @@ namespace Client::Scenes::WindowDrawing
 void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, float width, float height, float du,
           float dv);
 
+// 0x471520(x, y, w, h, 0): las cuatro rayas del marco, de 2: arriba y abajo con el 0x117 (u 0,0390625, v 0,3125,
+// du 0,6640625, dv 0,125; la de abajo 1 más ancha), a los costados con el 0x104 (u 0,00390625, v 0,3125, du 0,0078125,
+// dv 0,48828125). Con 1, antes, la caja sin textura de glColor4ub(0x92, 0x90, 0x8d, 0xc8) (0x621aa0) y 0x459ec0: ni la
+// ventana 2 del gremio ni la del gremio lo piden.
+void DrawTheFrame(Render::SpriteBatch& sprites, float x, float y, float width, float height);
+
 // 0x5ee220(x, y, 0), y la copia que tiene 0x5f0be0: Interface\Item_Back01.jpg (0x104) de 190 × 256 en (x, y) y
 // Item_Back02.jpg (0x105) de 190 × 177 en y + 256 (0x6b8840, la suma de la x87 guardada en float), las dos con du =
 // 0,7421875 y dv = 1 y 0,69140625.

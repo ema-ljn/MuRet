@@ -696,18 +696,22 @@ TEST_F(GuildReceiveTest, BreakingWithoutAGuildWritesTheMemberBeforeTheTable)
     EXPECT_EQ(GuildOf().members[74].name[1], 'h');
 }
 
-// 0x4d9e50 agrega las filas con la marca en nibbles; 0x4d9b80 con 1 pide la lista otra vez (con más de 2) y la vacía;
-// con 0, el mensaje.
+// 0x4d9e50 agrega las filas con la marca en nibbles, cada una adelante (0x6517e0 → 0x46d900); 0x4d9b80 con 1 pide la
+// lista otra vez (con más de 2) y la vacía (0x651830); con 0, el mensaje.
 TEST_F(GuildReceiveTest, TheUnionListAndItsRefresh)
 {
     Guild::UnionEntry entry{.byte0 = 3, .mark = {}, .name = GuildNameOf("Ceibos")};
     entry.mark[0] = 0x4f;
-    ASSERT_TRUE(Apply(Guild::UnionList{.count = 3, .result = 1, .entries = {entry, entry, entry}}).HasValue());
+    const Guild::UnionEntry last{.byte0 = 7, .mark = {}, .name = GuildNameOf("Talas")};
+    ASSERT_TRUE(Apply(Guild::UnionList{.count = 3, .result = 1, .entries = {entry, entry, last}}).HasValue());
     ASSERT_EQ(GuildOf().window.unions.size(), 3u);
-    EXPECT_EQ(GuildOf().window.unions[0].mark[0], 4);
-    EXPECT_EQ(GuildOf().window.unions[0].mark[1], 0xf);
-    EXPECT_EQ(TextOf(GuildOf().window.unions[0].name), "Ceibos");
-    EXPECT_EQ(GuildOf().window.unions[0].byte0, 3);
+    EXPECT_EQ(TextOf(GuildOf().window.unions[0].name), "Talas");
+    EXPECT_EQ(GuildOf().window.unions[0].byte0, 7);
+    EXPECT_EQ(GuildOf().window.unions[1].mark[0], 4);
+    EXPECT_EQ(GuildOf().window.unions[1].mark[1], 0xf);
+    EXPECT_EQ(TextOf(GuildOf().window.unions[1].name), "Ceibos");
+    EXPECT_EQ(GuildOf().window.unions[1].byte0, 3);
+    EXPECT_EQ(GuildOf().window.unionList.selection, 3);
 
     ASSERT_TRUE(Apply(Guild::UnionListRefresh{.kind = 1, .result = 1}).HasValue());
     EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{{0xc1, 0x03, 0xe9}}));

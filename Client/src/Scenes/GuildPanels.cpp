@@ -36,6 +36,8 @@ constexpr std::uint8_t RelationshipRefused = 0;
 constexpr std::uint8_t DismissType = 3;
 // 0x64e55e: el diálogo del juego que pide el número para echar a un miembro.
 constexpr std::int32_t KickDialogId = 0x7d;
+// 0x64dec9: la cuenta de Tab (0x6c8e6c) con el diálogo 0x7d.
+constexpr std::int32_t NumberDialogFields = 1;
 
 Core::Expected<void, std::string> Send(const GuildSender& send, Protocol::Outgoing packet, const char* where)
 {
@@ -100,12 +102,41 @@ Core::Expected<bool, std::string> AnswerThePanelDialog(WorldState& world, const 
     case UI::PanelDialogOwner::GuildKick:
     {
         // 0x64e553: con 8, el diálogo 0x7d del juego (0x7d3a10c), que pide el número del maestro y manda el C1 53
-        // (0x62a878), con el lugar del miembro de 0x7d536c8 en 0x6d5e2c. Ese diálogo corta en su paso (0x62a810).
+        // (0x62a878), con el lugar del miembro de 0x7d536c8 en 0x6d5e2c. A diferencia de 0x64de90, no toca los
+        // campos del chat.
         if (reason != UI::PanelAnswerConfirm)
             return true;
         WorldRuntime& runtime = world.Runtime();
         runtime.dialogs.current = KickDialogId;
         runtime.guild.kickMember = runtime.guild.kickIndex;
+        return true;
+    }
+    case UI::PanelDialogOwner::GuildDisband:
+    {
+        // 0x64de93: con 8, 0x6d5e2c en 0 (el lugar 0 de 0x787a5e8: el maestro, si el 52 lo manda primero, *inferido*)
+        // y el diálogo 0x7d con 0x553570(0), el campo del chat cerrado (0x6c8e68) y la cuenta de Tab (0x6c8e6c) en 1.
+        // 0x6c8e78 y 0x77f31c0 son de la entrada sin EDIT, que MuRet no tiene.
+        if (reason != UI::PanelAnswerConfirm)
+            return true;
+        WorldRuntime& runtime = world.Runtime();
+        runtime.guild.kickMember = 0;
+        runtime.dialogs.current = KickDialogId;
+        UI::ResetTheTextBuffers(runtime.chat.input, false);
+        runtime.ui.chatOpen = false;
+        runtime.chat.input.fieldCount = NumberDialogFields;
+        return true;
+    }
+    case UI::PanelDialogOwner::UnionKick:
+    {
+        // 0x650858: con 8, C1 0C EB 01 y los 8 bytes de 0x7d535a8 (el nombre que dejó el botón +0x6d4); con lo demás,
+        // nada.
+        if (reason != UI::PanelAnswerConfirm)
+            return true;
+        Protocol::Guild::GuildName name{};
+        for (std::size_t index = 0; index < name.size(); ++index)
+            name[index] = static_cast<std::byte>(guild.chosenName[index]);
+        if (auto sent = Send(send, Protocol::Guild::WriteUnionKick(name), "0x650830"); !sent.HasValue())
+            return Core::Unexpected(std::move(sent).Error());
         return true;
     }
     case UI::PanelDialogOwner::None:

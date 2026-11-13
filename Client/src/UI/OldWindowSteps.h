@@ -26,7 +26,8 @@ namespace Client::UI::Steps
                            std::int32_t height, std::int32_t mode);
 
 // La vtable + 0x3c..+0x48: el área de adentro. El marco y sus derivadas (0x48f890..0x48f8e0) le sacan el borde y la
-// barra; las pestañas de la de amigos (0x48fb40..0x48fb70), nada.
+// barra; las pestañas de la de amigos (0x48fb40..0x48fb70: la x en 0x48fb40, la y en 0x48fb50, el ancho y el alto),
+// nada.
 [[nodiscard]] std::int32_t ClientX(const OldWindow& window, std::int32_t offset);
 [[nodiscard]] std::int32_t ClientY(const OldWindow& window, std::int32_t offset);
 [[nodiscard]] std::int32_t ClientWidth(const OldWindow& window);

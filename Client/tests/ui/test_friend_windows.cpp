@@ -8,6 +8,7 @@
 #include "UI/FriendModel.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
+#include "UI/OldWindowSteps.h"
 #include "UI/OldWindows.h"
 
 #include <gtest/gtest.h>
@@ -244,8 +245,9 @@ TEST_F(FriendWindowsTest, WithTwoEqualNamesTheRefreshChoosesTheLast)
     EXPECT_EQ(FriendTab().tab.list.selection, 3);
 }
 
-// Agregar: el botón 1 arma la caja (0x48ee60(4)), modal y con el foco en su EDIT; lo escrito y Enter (el 7 de la
-// subclase) le mandan el 11 a la pestaña, que manda el C1 0D C1, y la caja se cierra.
+// Agregar: el botón 1 arma la caja (0x48ee60(4)), modal y con el foco en su EDIT, y le manda el 8 y el 9 con su paso
+// (0x49dc37); lo escrito y Enter (el 7 de la subclase) le mandan el 11 a la pestaña, que manda el C1 0D C1, y la caja
+// se cierra.
 TEST_F(FriendWindowsTest, TheAddBoxSendsTheTypedName)
 {
     ASSERT_TRUE(OpenFriends().HasValue());
@@ -259,6 +261,8 @@ TEST_F(FriendWindowsTest, TheAddBoxSendsTheTypedName)
     EXPECT_EQ(m_manager.modal, box);
     EXPECT_EQ(m_manager.windows.at(box).kind, OldWindowKind::AddFriendBox);
     EXPECT_EQ(m_manager.windows.at(box).frame.title, std::optional<std::string>("t1023"));
+    EXPECT_EQ(m_manager.windows.at(box).base.current.type, Client::UI::SizeMessage);
+    EXPECT_TRUE(m_manager.windows.at(box).base.queue.empty());
     EXPECT_EQ(m_focus, ChatFocus::OldWindow);
     ASSERT_TRUE(Client::UI::HasAnOldEditFocused(m_manager, m_focus));
 
@@ -304,6 +308,8 @@ TEST_F(FriendWindowsTest, DeletingAsksAndSendsTheChosenName)
     ASSERT_NE(question, 0);
     EXPECT_EQ(m_manager.windows.at(question).box.lines[0], "Hornerot1024");
     EXPECT_EQ(m_manager.windows.at(question).box.owner, FriendTab().base.id);
+    // 0x49dc37: también a la pregunta, el 8 y el 9 con su paso.
+    EXPECT_EQ(m_manager.windows.at(question).base.current.type, Client::UI::SizeMessage);
     m_keys.insert(EnterKey);
     auto stepped = Step();
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -370,6 +376,29 @@ TEST_F(FriendWindowsTest, ANewWindowRowIsChosenWithoutScroll)
     EXPECT_EQ(tab.tab.windows[0].title, "aviso tres");
     EXPECT_EQ(tab.tab.list.selection, 1);
     EXPECT_EQ(tab.tab.list.scroll, 0);
+}
+
+// 0x4914f0 vacía la lista con su vtable + 0x2c (0x47d320): sin renglones queda sin elegido (+0x58(0), 0x47de10) y sin
+// corrimiento; con renglones, el último que entra deja elegido el primero.
+TEST_F(FriendWindowsTest, RefillingTheWindowsTabResetsTheChoiceAndTheScroll)
+{
+    ASSERT_TRUE(OpenFriends().HasValue());
+    Client::UI::OldList& list = Friends().tabs[2].tab.list;
+    list.selection = 2;
+    list.scroll = 1;
+    Client::UI::Steps::FillTheWindowsTab(m_manager);
+    EXPECT_TRUE(Friends().tabs[2].tab.windows.empty());
+    EXPECT_EQ(list.selection, 0);
+    EXPECT_EQ(list.scroll, 0);
+
+    OpenABox(Client::UI::NoticeCase, "aviso uno");
+    OpenABox(Client::UI::NoticeCase, "aviso dos");
+    list.selection = 2;
+    list.scroll = 1;
+    Client::UI::Steps::FillTheWindowsTab(m_manager);
+    ASSERT_EQ(Friends().tabs[2].tab.windows.size(), 2u);
+    EXPECT_EQ(list.selection, 1);
+    EXPECT_EQ(list.scroll, 0);
 }
 
 // 0x4a2f70: la F la cierra si está arriba y el chat cerrado.

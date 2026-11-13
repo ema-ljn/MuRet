@@ -26,7 +26,13 @@
 // (0x45ad80) y la lista de ventanas de [0x5763524]. El original las arma sobre la ventana base 0x45a210 (vtable
 // 0x6b8d6c) y despacha por vtable; MuRet las guarda como datos (OldWindow, con su clase en `kind`) y cada función de
 // la vtable es una función de acá con la dirección del método de cada clase. Los std::map, std::list y std::deque de
-// la STL de MSVC6 del original son los de la STL de MuRet, con el mismo orden.
+// la STL de MSVC6 del original son los de la STL de MuRet, con el mismo orden. Los del hito 9: el std::deque<WindowRow>
+// de la pestaña de las ventanas (el erase y sus iteradores: 0x474070, 0x474460, 0x478640, 0x4786d0, 0x478750, 0x478d00,
+// 0x489d80 y 0x489e20) y los dos std::map del administrador (insert, lower_bound, ++ y erase: 0x4a81f0, 0x4a95e0,
+// 0x4aa0b0, 0x4aa7a0 y 0x4aaf40). Los destructores de la ventana de amigos, la caja de agregar, las pestañas y su
+// base, el marco, la lista de amigos, la de ventanas y el EDIT (0x4621e0, 0x467710, 0x488090, 0x488660, 0x488690,
+// 0x48fb30, 0x48fb80, 0x48fbb0, 0x48fc50, 0x48fcf0, 0x48fd60, 0x48fe30, 0x48fe60, 0x48ff00, 0x48ff30, 0x4900b0,
+// 0x4900e0 y 0x491d50) son el de C++ al soltar la ventana (0x490200); el EDIT de MuRet no tiene HWND que destruir.
 //
 // La CL9 (hito 9) agrega la ventana de amigos (vtable 0x6b9d6c) con sus tres pestañas (0x6b9e24, la de los amigos;
 // 0x6b9edc, la de las ventanas, y 0x6b9f38, la de las cartas, que es del hito 10) y la caja de agregar un amigo

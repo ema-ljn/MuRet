@@ -52,6 +52,14 @@ struct OldWindowDrawView
     bool leftClick = false;
     // 0x659290(1): el panel 1, la ventana de amigos. Sin ella, todas se dibujan como si no fueran la de arriba.
     bool friendsOpen = false;
+    // Los textos de Text.bmd de la ventana de amigos (los encabezados de las columnas y el botón del estado). Sin
+    // ellos, vacíos.
+    const OldWindowTexts* texts = nullptr;
+    // 0x5762ec0: la lista que toma las flechas del teclado; su renglón elegido va más claro (0x461cd0).
+    std::int32_t focusedList = 0;
+    // GetFocus() de 0x468320: el id del EDIT con el foco de Windows (OldWindowManager::focusedEdit con
+    // ChatFocus::OldWindow), o 0.
+    std::int32_t focusedEdit = 0;
 };
 
 // 0x491960(índice, alfa): el glColor4ub de cada uno de los 19 colores de las ventanas, con el alfa en ftol(alfa ·

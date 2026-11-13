@@ -240,11 +240,22 @@ struct OldPortraitPart
     std::uint8_t portraitClass = 0;
     std::array<std::byte, 17> equipment{};
     std::int32_t action = 0;
-    // +0x6ac/+0x6b0, el ángulo (0x497890), y +0x6b8/+0x6bc, el zoom (0x4978d0).
+    // +0x6ac y +0x6b0, el ángulo de partida y el de ahora (0x497890; el arrastre y el clic derecho de 0x497970), y
+    // +0x6b8 y +0x6bc, el zoom de partida y el de ahora (0x4978d0; la rueda y el clic derecho). 0x495e50 pone los
+    // zoom en 1.
+    float baseAngle = 0.0f;
     float angle = 0.0f;
-    float zoom = 0.0f;
+    float baseZoom = 1.0f;
+    float zoom = 1.0f;
+    // +0x6b4: la X del mouse del último paso del arrastre (0x497970).
+    float dragX = 0.0f;
+    // +0x690: la ayuda a la vista (el ícono de abajo a la izquierda, 0x497970 y 0x497c10).
+    std::int32_t help = 0;
     // +0x694 (la vtable + 0x48, 0x495ee0): la de escribir lo pone en 1.
     std::int32_t follow = 0;
+    // +0x6c0: el retrato en blanco (0x497970 y 0x497c10). Solo lo escribe 0x495e50 (en 0), pero en la de leer cae en
+    // su +0x770, la carta de "webzen" que pone el C7 (0x4dccda): OldLetterPart::fromWebzen lo lleva igual.
+    std::int32_t blank = 0;
     // El personaje de +0x7c, que arma Scenes; UI no lo mira.
     std::shared_ptr<void> actor;
 };
@@ -488,8 +499,10 @@ enum class PortraitCallKind : std::uint8_t
     SetAction,
     // +0x50, 0x497910: la acción que sigue (1) o la anterior (−1) a la de +0x6a4 (0x495a20).
     TurnAction,
-    // +0x18, 0x45aa80 con su +0x20, 0x497970: la cola, y el mouse que lo gira, lo acerca y (con +0x694 en 1) le vuelve
-    // a copiar el héroe (la vtable + 0x3c). El tercer argumento es el del paso.
+    // +0x40, 0x497890 con el personaje armado: sus ángulos (+0x1c..+0x24). El ángulo de la ventana lo pone UI.
+    SetAngle,
+    // La parte del personaje del paso del retrato (0x4979c0..0x4979cf): +0x360 del héroe publicado en +0x360 del
+    // personaje. La cola, el mouse y la copia del héroe (la vtable + 0x3c) son de UI (0x497970).
     Step,
 };
 // El tercer argumento es el corrimiento de TurnAction o el argumento de Step; los demás pasan 0.
@@ -520,6 +533,9 @@ struct OldWindowStepView
     std::function<Core::Expected<void, std::string>()> openFriends{};
     // CL9 hito 10: el personaje del retrato de las cartas (Scenes). Sin él, lo que lo usa corta.
     OldPortraitHook portrait{};
+    // 0x78abaac (GameUiState::field78abaac): con 1, el paso del retrato que sigue al héroe le vuelve a copiar el equipo
+    // (0x4979b0).
+    std::uint8_t field78abaac = 0;
     // 0x4dcb70 sobre la copia del C7 que guardó 0x4a03c0 (0x4a11b0 con el 10 y 2): Scenes la vuelve a aplicar.
     std::function<Core::Expected<void, std::string>(const std::vector<std::byte>&)> replayLetter{};
     // 0x622b40(texto, 0): el filtro de las malas palabras, que pone el texto 0x76e6dd4 si salta. Sin él, nada.

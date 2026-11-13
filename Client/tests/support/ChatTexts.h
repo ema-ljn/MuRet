@@ -1,6 +1,7 @@
 #pragma once
 
 #include "UI/ChatCommands.h"
+#include "UI/Emotes.h"
 
 #include <cstddef>
 #include <map>

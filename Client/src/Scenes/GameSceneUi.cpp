@@ -201,7 +201,8 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
                                             .texts = m_texts,
                                             .chosenSlot = chosenSlot,
                                             .requests = &requests,
-                                            .inventory = &inventory});
+                                            .inventory = &inventory,
+                                            .worldEntry = m_context.worldEntry});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& input)
@@ -227,7 +228,8 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .requests = &requests,
                                        .systemTime = systemTime,
                                        .inventory = &inventory,
-                                       .itemSetTables = m_chatTables.itemSetTables});
+                                       .itemSetTables = m_chatTables.itemSetTables,
+                                       .worldEntry = m_context.worldEntry});
 }
 
 GameChatContext GameScene::ChatContext()
@@ -243,7 +245,8 @@ GameChatContext GameScene::ChatContext()
                            .screen = m_screen,
                            .send = session != nullptr ? ChatSender([session](Protocol::Outgoing packet)
                                                                    { session->SendChat(std::move(packet)); })
-                                                      : ChatSender{}};
+                                                      : ChatSender{},
+                           .models = m_models};
 }
 
 InventoryServices GameScene::InventoryContext() const
@@ -271,7 +274,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                             .random = FrameCloth().random,
                             .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
                             .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
-                            .altDown = input.IsDown(Input::Key::Alt)});
+                            .altDown = input.IsDown(Input::Key::Alt),
+                            .ray = m_mouseRay});
     if (!picked.HasValue())
         return picked;
     // 0x637646..0x6376e6: la pasada 2D, en este orden (06 § El dibujo del juego). Un dibujo intermedio de MuRet dibuja

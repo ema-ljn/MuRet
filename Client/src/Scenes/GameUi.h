@@ -5,6 +5,7 @@
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "UI/OldWindows.h"
+#include "World/TerrainPickingSegment.h"
 
 #include <array>
 #include <cstdint>
@@ -53,6 +54,7 @@ class WorldState;
 struct GameChatContext;
 struct GameMovementState;
 struct InventoryServices;
+struct WorldEntryResources;
 struct WorldRuntime;
 
 // Lo que los diálogos y los paneles le piden al resto del cliente (el menú de Esc, 0x624036..0x62553f, y la party): el
@@ -107,6 +109,9 @@ struct GameUiContext
     // ItemSetType.bmd e ItemSetOption.bmd (0x40c600), que lee 0x550d10 con el Item.bmd de `inventory` cuando la C o el
     // botón del HUD abren el personaje (0x65ca1e). nullptr si no se cargaron: abrirlo corta en 0x40e1b0.
     const Data::Tables::ItemSetTables* itemSetTables = nullptr;
+    // CL9 hito 10: lo del juego que usa el personaje del retrato de las cartas (Scenes/LetterPortrait), que vive más
+    // que el paso. nullptr: el retrato corta (P-C212).
+    const WorldEntryResources* worldEntry = nullptr;
 };
 
 // El WndProc: 0x7d366d4 (el flanco del clic, que apagan quien lo usa y el botón suelto) y 0x7d36874 (el botón
@@ -147,6 +152,8 @@ struct FramePickingContext
     std::array<std::int32_t, 5>& targets;
     // GetAsyncKeyState(0x12) en 0x59ef37.
     bool altDown = false;
+    // El segmento del mouse del dibujo (GameScene::MouseRay): la cámara (0x7d36834) y el punto lejano (0x7d366c0).
+    std::optional<World::TerrainPickingSegment> ray{};
 };
 
 // 0x63717f → 0x5ac8d0: las teclas de función, al final de la lógica del paso con el mundo cargado. La barra (levantar
@@ -155,7 +162,11 @@ struct FramePickingContext
 // (0x637cff, la captura) no es de acá: va detrás del paso de cualquier escena (Scenes::Screenshots).
 [[nodiscard]] Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& context);
 
-// 0x637641 → 0x59ec80: el picking del frame, primero del 2D. Las búsquedas del ítem del piso, del NPC, del
-// personaje y del objeto son de sus olas (CL9.1, CL9.3) y dejan −1, como en la traza.
+// 0x637641 → 0x59ec80: el picking del frame, primero del 2D. El elegido de antes (0x6c8e30) sigue si es un monstruo
+// (+0x88 en 2) con el ataque automático y sin botones; los demás lugares vuelven a −1. Fuera de la UI, sin Alt: los
+// personajes de las máscaras 0x22 y 1 (al revés con la skill 0x1a a 0x1c del Dark Wizard o del Elf, que abre el
+// registro propio) en 0x6c8e30 y, sin ninguno, los de la 4 (los NPC) en 0x6c8e2c (PickTheCharacter, 0x59e700); con
+// Alt, la 4 primero y después 0x22 y 1. El ítem del piso (0x59e2e0) y los objetos (0x59eb90) son de la CL9.3: −1.
+// Al final, sin elegido, 0x6c8e38 en −1 (salvo cuando el segundo intento de personajes acierta: vuelve antes).
 [[nodiscard]] Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& context);
 } // namespace Client::Scenes

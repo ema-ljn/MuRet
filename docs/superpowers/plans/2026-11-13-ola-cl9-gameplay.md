@@ -214,26 +214,26 @@ portar y las ramas que el hito llena en funciones de otras olas. El detalle por 
 
 ### Hito 1: el emote y los otros jugadores (CL9.1, ~35 KB)
 
-- [ ] **El emote entero** (§ Lo que encontró el barrido): `UI::CheckTheEmotes` pasa a `FindTheEmote`, que
+- [x] **El emote entero** (§ Lo que encontró el barrido): `UI::CheckTheEmotes` pasa a `FindTheEmote`, que
       devuelve el caso con los 95 textos en el orden del original (incluidos los 15 literales, comparados con
       `0x576960` sobre los bytes CP949 tal cual); `0x576a60` con su compuerta (`+0x111` en 1..12 o `0x8a`), el +1
       del elfo y `0x4ea030`; los dos `C1 05 18`, con `Protocol::Movement::WriteAction(dir, acción)` (el
       `WriteFacing` de hoy pasa a ser `WriteAction(dir, 0x7a)`); y la compuerta de la CL8 (montado fuera de la
       zona segura, nada) queda como está. Se va el corte de `ChatCommands.cpp` y P-C87 se cierra.
-- [ ] **Sentarse** (`0x4f2250`, tramo `0x4f2416..0x4f2bea`): el `C1 18` que hoy corta en `ActorActions.cpp`.
-- [ ] **Los otros jugadores entran y salen:** el `0x12` (`0x4c8860` con su cola de 10 ranuras de `0x100` B,
+- [x] **Sentarse** (`0x4f2250`, tramo `0x4f2416..0x4f2bea`): el `C1 18` que hoy corta en `ActorActions.cpp`.
+- [x] **Los otros jugadores entran y salen:** el `0x12` (`0x4c8860` con su cola de 10 ranuras de `0x100` B,
       `0x77f3ba0`), el alta (`0x512870`, `0x5139f0` con la apariencia, el nombre en `+0x1d9`, el GM por
       "webzen", las banderas de `+0x78` con `0x4e6380` y `0x42ab40`, el `+0x360` del `0x4c89e1`), el `0x14`
       (`0x4ca780`, con el caso `0x13d`, `0x510ff0` y la limpieza de `0x451430`/`0x451630`), el `0x45`
       (`0x4c92a0`, los transformados, *inferido*), el `0x25` (el equipo de otro, `0x4c8380`) y el `0xDF` (la
       posición, `0x4c6b40` y `0x51fe10`).
-- [ ] **La acción de otro** (`0x18`, `0x4cb750`): la tabla acción → animación con sus variantes de elfo, los
+- [x] **La acción de otro** (`0x18`, `0x4cb750`): la tabla acción → animación con sus variantes de elfo, los
       casos `0x12` (sonido `0x6f`, CL10), `0x78`/`0x79` (`0x4f4a10`, es del hito 3: corta), `0x7a`/`0x7b`
       (`0x4f2250`) y `0x7e`; el modelo `0x1c16` no se toca.
-- [ ] **Lo que el héroe ya hace con otros:** el `D3` y el `D7` de otros (hoy portados) los encuentran; el
+- [x] **Lo que el héroe ya hace con otros:** el `D3` y el `D7` de otros (hoy portados) los encuentran; el
       picking de personajes de `0x59ec80` (el corte de la CL8 que deja −1) y el elegido (`0x59ee0b`), con sus
       `rand()`; las búsquedas muertas `0x5132d0`, `0x5178f0` y `0x517920` se anotan.
-- [ ] Lo que cada alta llama de la CL11 (el efecto de llegada `0x518cf0` ya portado en parte, los joints
+- [x] Lo que cada alta llama de la CL11 (el efecto de llegada `0x518cf0` ya portado en parte, los joints
       `0x530860`) se llama hasta donde está portado y corta con su dirección donde no.
 
 **Pruebas:** los 95 textos contra su caso (un test por fila de la tabla, y el orden: un texto que contiene dos
@@ -390,14 +390,18 @@ amigos. **Desbloquea:** 10.
       `Network::Connection` de la sesión, con el `C1 03 05` del timer 1002); los chats en F5 (P-C215: falta el dibujo).
 - [x] **Las cartas:** `C5`..`C9` (`0x4dc840`, `0x4dc9e0`, `0x4dcb70`, `0x4dcd90`, `0x49eb60`, `0x49ee20`,
       `0x49f870`), la pestaña de las cartas (`0x4a11b0`) y las ventanas de leer y de escribir (`0x49a1f0`,
-      `0x498820`). El retrato (`0x497c10`), cortado por el gancho que el juego no da (P-C212); los dibujos del
-      chat, de las cartas y de su pestaña, cortados (P-C213).
+      `0x498820`). Los dibujos del chat, de las cartas y de su pestaña, cortados (P-C213).
 - [x] **Los dibujos** (P-C213 y P-C215, cerrados): el EDIT de varios renglones (`+0xc4` en 1: `EM_GETLINECOUNT`,
       `0x468970` y el cursor y la selección de `0x468d50`; P-C217), el chat (`0x493fc0`, con sus listas `0x45f9c0`,
       `0x460550`, `0x491ba0` y las texturas `0x64b`, `0x64c` y `0x651`), la de leer (`0x499d60`), la de escribir
       (`0x498480`), la pestaña de las cartas (`0x4a0a30`, `0x4641f0`) y los renglones de los chats en F5 (`0x4a5490`
-      desde `0x4a5537`, `0x4a5750`). El retrato de las cartas (`0x49a1d0`, `0x498800` → `0x497c10`) sigue cortado
+      desde `0x4a5537`, `0x4a5750`). El dibujo del retrato (`0x49a1d0`, `0x498800` → `0x497c10`) sigue cortado
       (P-C212), y los íconos de la barra (`0x4a5120`), con la CL8 (P-C63).
+- [x] **El retrato de las cartas** (fase 3b, P-C212): `Scenes/LetterPortrait` (`0x495e50`, `0x4961d0`, `0x4977d0`
+      con `0x513100`, `0x497810` con `0x5139f0` sobre un objeto, `0x496530`, `0x495a20`, `0x497890`..`0x497910`),
+      el paso `0x497970` en `UI/LetterWindows` y el gancho del juego (`LetterPortraitHook`): abrir la de escribir y
+      el `C7` ya no cortan. Del dibujo, `0x497c10` y `0x495760` hasta el modelo; el modelo fuera del pool (P-C310),
+      la acción `0x78` (P-C219) y lo de 2D (P-C311), cortados.
 
 **Pruebas:** abrir un chat con un amigo e invitar a otro; mandar, leer y borrar una carta, byte a byte.
 

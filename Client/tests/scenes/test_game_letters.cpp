@@ -587,10 +587,11 @@ TEST_F(GameLettersTest, WritingALetterSendsItByteByByte)
     OldWindow* write = FirstOfKind(OldWindowKind::LetterWriteWindow);
     ASSERT_NE(write, nullptr);
     EXPECT_EQ(m_random.State(), After(0));
-    // Los tres de 0x497f50 y el paso del retrato con cada uno de los dos de 0x49dc37.
-    EXPECT_EQ(m_portraitCalls, (std::vector<PortraitCallKind>{PortraitCallKind::Build, PortraitCallKind::CopyTheHero,
-                                                              PortraitCallKind::SetAction, PortraitCallKind::Step,
-                                                              PortraitCallKind::Step}));
+    // Los cuatro de 0x497f50 (el ángulo con el personaje armado). Los dos pasos de 0x49dc37 van con 1: 0x45aa80 sale
+    // después de la cola, sin 0x497970.
+    EXPECT_EQ(m_portraitCalls,
+              (std::vector<PortraitCallKind>{PortraitCallKind::Build, PortraitCallKind::CopyTheHero,
+                                             PortraitCallKind::SetAction, PortraitCallKind::SetAngle}));
     EXPECT_EQ(write->frame.title, std::optional<std::string>("Carta nueva (1000)"));
     EXPECT_EQ(write->letter.to.text.Value(), "Tordo");
     EXPECT_EQ(write->letter.prepared, 1);

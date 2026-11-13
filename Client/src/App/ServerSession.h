@@ -4,7 +4,6 @@
 #include "App/IChatRoomLinks.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
-#include "App/TeleportHistory.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/IntervalTimer.h"
@@ -236,6 +235,9 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> SendWalk(std::span<const Protocol::Movement::Cell> path,
                                                              Protocol::Movement::Cell target, float angle);
     [[nodiscard]] Core::Expected<void, std::string> SendFacing(std::uint8_t direction);
+    // El C1 18 de sentarse (0x4f2416..0x4f2bea) y del emote (0x576a60 y los casos de 0x576eb0), con
+    // Protocol::Movement::WriteAction: como el original con el socket en −1, sin un GameServer abierto un aviso y nada.
+    void SendAction(std::uint8_t direction, std::uint8_t action);
     // 0x61c210: el C1 1C F3 30 con las opciones (Protocol::OptionData::WriteOptionData), en claro. Lo piden el menú
     // de Esc (0x624036, 0x6247ee y 0x624eec) y la entrada a los mapas 30 y 31.
     [[nodiscard]] Core::Expected<void, std::string> SendOptionData(const Protocol::OptionData::OptionBody& body);
@@ -275,10 +277,6 @@ public:
     void CloseChatRoom(std::uint32_t room) override;
     // Las salas anotadas, para los tests.
     [[nodiscard]] std::size_t ChatRoomCount() const;
-
-    // 0x4e3e98: las diez últimas recepciones 1C crudas, antes de admisión y aplicación.
-    // Proyección de MuRet para los 1C: pertenece a la sesión y sobrevive Start.
-    [[nodiscard]] std::span<const std::vector<std::byte>> Teleports() const;
 
     // Cuántas veces se llamó a Start: lo que elige o manda alguien de afuera (el AutoLogin) es de
     // una vuelta, y con un Start empieza otra.
@@ -390,6 +388,13 @@ private:
     void OnWeather(const Network::Packet& packet);
     void OnWalk(const Network::Packet& packet);
     void OnDamage(const Network::Packet& packet);
+    void OnAction(const Network::Packet& packet);
+    // Los otros jugadores en el viewport (CL9 hito 1): 0x12, 0x14, 0x45, 0x25 y 0xDF.
+    void OnViewportPlayers(const Network::Packet& packet);
+    void OnViewportLeave(const Network::Packet& packet);
+    void OnTransformed(const Network::Packet& packet);
+    void OnEquipmentShown(const Network::Packet& packet);
+    void OnViewportPosition(const Network::Packet& packet);
     void OnTeleport(const Network::Packet& packet);
     void OnRegen(const Network::Packet& packet);
     void OnChat(const Network::Packet& packet);
@@ -442,7 +447,6 @@ private:
     // "ConnectServer" o "GameServer", para el log, según con cuál habla el estado.
     [[nodiscard]] std::string_view ServerName() const;
 
-    TeleportHistory m_teleports;
     Network::Connection& m_connection;
     Core::IClock& m_clock;
     Core::Log& m_log;

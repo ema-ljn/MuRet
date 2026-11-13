@@ -71,4 +71,11 @@ void PingTheChatRooms(OldWindowManager& manager);
 // arrastradas o cambiando de tamaño (el estado en 4 o 1), el 8 de 0x45aa50 a sus hijas y, cambiando de tamaño, el 9 a
 // sus listas (la de escribir no tiene listas ni manda el 9). El dibujo en sí está en UI/LetterWindowsDraw.
 void SettleTheLetterKindsForTheDraw(OldWindowManager& manager, OldWindow& window);
+
+// 0x497890 (la vtable + 0x40 del retrato): con el personaje armado, sus ángulos (Scenes, PortraitCallKind::SetAngle) y
+// +0x6ac y +0x6b0 en `angle`; sin armar, nada.
+[[nodiscard]] Core::Expected<void, std::string>
+SetThePortraitAngle(const OldWindowStepView* view, OldPortraitPart& portrait, float angle, std::string_view where);
+// 0x4978d0 (la vtable + 0x44): +0x6b8 y +0x6bc en `zoom`.
+void SetThePortraitZoom(OldPortraitPart& portrait, float zoom);
 } // namespace Client::UI

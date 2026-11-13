@@ -1152,7 +1152,8 @@ los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
   con `0xfc`, todos con el 402 (`0x4a75c0`).
 - **La de leer** (caso 6, vtable `0x6b9c58`, `0x4999d0`): `0xfa × 0xb6` con las banderas `0x1b`, la lista del cuerpo
   (`0x8b0`, partido por `'\n'` con `strtok`: sin los renglones vacíos, `0x499cb0`), cinco botones (responder,
-  borrar, cerrar, la anterior y la siguiente: el 1010..1013 y el 1002) y el retrato de `0x78` a la derecha (P-C212).
+  borrar, cerrar, la anterior y la siguiente: el 1010..1013 y el 1002) y el retrato de `0x78` a la derecha
+  ([El retrato de las cartas](#el-retrato-de-las-cartas)).
   `0x49a1f0`: el 10 y 1 abre la de escribir con el remitente y `sprintf(1016, asunto)` cortado en `0x20`; el 2
   pregunta con el 1017 (caso 5) y el sí manda el `C8` y la cierra; el 3 la cierra; el 5 y el 6 eligen la que sigue o
   la de antes en la pestaña, la cierran, sueltan su carta, dejan su lugar a la otra y la leen (Q-C1007).
@@ -1217,8 +1218,9 @@ los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
   escribir con `+0xb0` en 1 (`0x498800`): corta (P-C212). Los renglones del original están partidos en el ancho de la
   lista (P-C218).
 
-El paso y el ubicado de las tres ventanas siguen el orden del ASM. Con el retrato del juego sin portar, abrir una carta o la de
-escribir corta (P-C212); el `CA` arma el chat y abre la conexión de la sala (`App::IChatRoomLinks`; 04).
+El paso y el ubicado de las tres ventanas siguen el orden del ASM. El retrato lo da el juego
+([El retrato de las cartas](#el-retrato-de-las-cartas)); el `CA` arma el chat y abre la conexión de la sala
+(`App::IChatRoomLinks`; 04).
 
 **Los paneles.**
 
@@ -1308,7 +1310,9 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | F6 para mostrar, si una de las ocultas ya no existe (la de amigos: `0x490490` la destruye al verla oculta) | `0x4906a0` → `0x491080`, sin `CanOpen` (CL9 hito 9) | 3.848 | evento |
 | dibujo del marco viejo | `IsOpen(1)` | 0 | frame |
 | dibujo de CS `0x200000` | `0x64a060` (`0x64a9f0`) | 1+ | **frame**, solo con ese panel (CL9.5) |
-| dibujo del retrato de la carta | `0x497c10` (`0x497cce`) | 1+ | frame, solo con esa ventana (CL9.4) |
+| armar el retrato de una carta | `0x4961d0`: la celda del personaje (2 cierres), la del héroe (2) y `0x511290` | 44 | evento (la de leer y la de escribir, CL9 hito 10) |
+| copiar el héroe en el retrato con `+0x3e3` del héroe distinto de 0 | `0x496530`: un acceso al registro propio para comparar y uno por grupo distinto | 3.848 por acceso, más los de `0x495a20` | evento y, siguiendo al héroe con `0x78abaac` en 1, **por paso** (`0x497970`) |
+| dibujo del retrato de la carta | `0x497c10` (`0x497cce`): con la animación vuelta a empezar y `+0x698` en 0, más los de `0x495a20` | 1+ | frame, solo con esa ventana (CL9 hito 10) |
 | botón Seleccionar servidor del Esc del login | `0x647f60` | 2 | evento (escenas 2 y 4) |
 
 El registro propio gasta 3.848 al cerrarse **si su cuenta de aperturas (`+0xf08`) vuelve a 0**; dentro de otra
@@ -1811,7 +1815,7 @@ sin cursor en el medio ni IME. Los ids de los dos EDIT (1 y 2, los dos primeros 
   campos, los EDIT a la vista con el foco en el del mensaje) o lo cierra. Si no, corre los comandos (`0x56c440`: las
   compuertas, `/move`, `/filter`, `/1`../`0` y la cola de los nombres; cada comando social corta con su dirección,
   CL9.4) y el filtro (`0x622b40` con 1: el texto 570). Con `/` adelante, sin nombre o sin el modo de F3, va al chat:
-  los emotes (`0x576eb0`, que corta: CL9.1, salvo montado fuera de la zona segura), el freno (`0x5767940`: con más de
+  los emotes (`0x576eb0`, abajo, salvo montado fuera de la zona segura), el freno (`0x5767940`: con más de
   `0x32` no sale nada y con más de 0 no sale lo mismo que el anterior, `0x57676e4`; cada uno lo deja en `0x46`),
   "webzen" en el nombre del héroe (solo sale lo que empieza con `/` o `!`), `/whisper off` y `on` (textos 264 y 265,
   avisos 267 y 268, en `0x77f3b98`) o, muriéndose, `/move` no sale; después el `C1 00`
@@ -1831,6 +1835,22 @@ sin cursor en el medio ni IME. Los ids de los dos EDIT (1 y 2, los dos primeros 
   fuera de Chaos Castle y con Alt, cada número abajo (Q-C451) corre `0x56c440(texto, 1)` (Q-C452), los emotes, el
   filtro y lo mismo que el chat de Enter; la que pasa los comandos deja `0x77f3b74` en `0x64` (`0x5a1ea1`).
   `0x637d2c` y `0x637d44` bajan los dos frenos de a uno por paso.
+- **El emote** (`0x576eb0`, CL9 hito 1, *estático*): con ESI en el héroe, prueba 95 disparadores con
+  `0x576960(lo dicho, texto, 0)` en un orden fijo (`0x576ede..0x577f88`): los textos 270 a 290, 292 a 316, 318 a 347
+  y el 783 de `Text.bmd` por tramos, con 15 literales del binario metidos entre ellos (`0x6c90e0..0x6c912c`: `;`, ㅠ.ㅠ, ㅜ.ㅜ,
+  `T_T`, ㅡ.ㅡ, ㅡ.,ㅡ, ㅡ,.ㅡ, `-.-`, `-_-`, `^^`, `^.^`, `^_^`, /ㅡ, ㅡ^ y, después del 783, `hustle`; los coreanos en
+  CP949), y al final, cada uno solo, el 291, el 317 y el 348. El primero que está decide uno de 22 casos; sin ninguno,
+  nada. Cada caso llama a `0x576a60(héroe, héroe, animación, acción)` y después manda su propio `C1 05 18` con la
+  acción y la dirección del ángulo del héroe ([04](04-protocolo.md#la-acción-18)). `0x576a60`, con la acción de ahora
+  (`+0x111`) de 1 a 12 o `0x8a` (las de parado de `0x4f2250`), pone la animación con `0x4ea030`
+  (con las acciones del modelo del tipo del personaje, `+2`: un transformado no usa las de `Player.bmd`; con el elfo,
+  `+0x1d4 & 7 == 2`, la siguiente, salvo de `0xb7` a `0xc0`) y manda el mismo `C1 18`: con el héroe parado salen dos
+  iguales (Q-C776); caminando (`0x0d..0x21`), pegando o en otra acción, solo el del caso, sin animarse. La dirección
+  de los dos sale del héroe aunque `0x576a60` reciba otro personaje (la guerra de gremios, `0x4d8473`, `0x4d8a39` y
+  `0x4d8e1d`, hito 8). `0x576960` avanza con `_mbclen`: con la página de códigos coreana (949) no encuentra un literal
+  que empiece en el segundo byte de un carácter doble; MuRet compara de a un byte, como con la occidental (1252). Ni
+  la búsqueda ni los casos sacan `rand()`. En MuRet: `UI::FindTheEmote`, `Scenes::PlayTheEmote` y
+  `Scenes::DoTheEmote`, con los `C1 18` por el `send` del chat.
 - **Las teclas de `0x5ac8d0`**: F2, F3 y F4 cambian lo suyo y suenan (F4, con el registro en su ventana, va a x 0 con
   el inventario y una de las seis ventanas anchas, si no a `0xba`); F1 cicla las ayudas ("Las ayudas de F1"); la
   barra (CL9.3) corta, y después Impr Pant (`0x637cff`, la captura, P-C94).
@@ -5222,8 +5242,8 @@ escribe este handler; quién las calcula después, sin leer (P-C28 i).
   dos giros de `0x53d2c0(0x61f, …, ±ángulo)` que se apagan con la vida. Al ser dos iguales, se suma
   dos veces.
 - **La acción de parado** (`0x4f2250`) depende del arma, de la zona segura, de la mascota y del
-  mapa ([Caminar](#caminar), `SetPlayerStop`). Sentado arma un `C1 .. 18`: la tabla del XOR32 va en
-  línea (P-C14 c).
+  mapa ([Caminar](#caminar), `SetPlayerStop`). Sentado manda un `C1 05 18` con `0x82`, con el XOR32 en
+  línea ([04](04-protocolo.md#la-acción-18)).
 - **La luz del héroe en la escena 5** (`0x50ba30`, desde `0x50cc55`) es la del terreno en su lugar,
   **del buffer dinámico** `0x7b4ccc4` (`0x5f99e0`), más `+0xf4..+0xfc`, que `0x511290` deja en 0. En
   la selección es 0,4 fijo, y en el login, 0,3 más el terreno. `0x50ba30` tiene además una rama
@@ -9227,6 +9247,16 @@ de Lorencia verifican el componente; `GameScene`, reglas del clic y caminar sigu
   (`test`/`jle`, `0x59af01`) y cierra con `0x412890`; el segundo (`0x59af5f..0x59afd1`) lo lee y
   cierra con `0x40b800`, y `0x59afd6` compara con 30 (`jg` al epílogo, `0x59e2c0`). Cada cierre que
   deja la cuenta en 0 gasta 4 `rand()`. Con más de 30 sale antes de `0x57cfc0` (`0x59e255`).
+- **El derecho sobre el elegido** (`0x59afdf..0x59b185`, entre el contador y la cabeza; *estático*, CL9 hito 1). Con
+  la ventana de una carta (`+0xf0` de `[0x5763514]`, si `0x490a00` la encuentra) y el flanco del derecho
+  (`0x7d36880`), el nombre del elegido (`+0x1d9` del lugar `0x6c8e30`, sin mirar el −1) va al campo de esa ventana
+  (`+0xb4`, sus métodos `+0x4c` y `+0x30(1)`). Después, con el chat abierto (`0x6c8e68`), el héroe en la zona segura
+  (`+0x3e2`), un elegido, el derecho y `+0x376` del elegido en `0xff` (solo lo escribe `0x5140c0`, el alta de los
+  monstruos): el derecho se gasta (`0x59b092`); en Chaos Castle (18 a 23), nada más. Si no, `0x4694c0(0, 0, 1, lugar)`
+  con el lugar de ahora del historial de los susurros (`0x77f31cc + 0x6c8ea8 · 0x100`), **antes** de las copias
+  (Q-C804); el nombre al buffer del susurro (`0x7798cf8`), del buffer al lugar, el buffer en 0 (0x100 bytes) y del
+  lugar al buffer; su largo en `0x7758594` y el sonido `0x19`. Sin `rand()`. MuRet: `NameTheChosen`
+  (`GameMovement.cpp`); la carta es del hito 10 y corta en `0x59b003` (P-C162).
 - **Si el héroe camina** (`+0x378`, `0x59b295..0x59b304`; *verificado* el cuerpo, abajo): con
   `+0x78 & 0x20`, `SetPlayerStop` (`0x4f2250`); si no, `SetPlayerWalk` (`0x4f37c0`) y
   `MovePath(héroe, 1)` (`0x4ea270`). Al llegar, `+0x378 = 0`, `SetPlayerStop`, `0x77f3ba8 =
@@ -9272,7 +9302,9 @@ de Lorencia verifican el componente; `GameScene`, reglas del clic y caminar sigu
   | nada de eso | `0x59ddef` | el terreno, abajo |
 
   En la zona segura, un clic sobre un monstruo o un jugador no ataca: cae a las filas de abajo y, si
-  no hay otra cosa, al terreno (`0x59cd2e`).
+  no hay otra cosa, al terreno (`0x59cd2e`). `0x558bb0` da 0 sin elegido o con un ítem en el cursor
+  (`[0x7879fbc]` > 0). En MuRet la primera fila corta en `0x59cd3c` (el ataque, hito 3) y las otras tres no
+  pasan: sus lugares siguen en −1 hasta la hito 2 y la CL9.3 (P-C162).
 - **El terreno** (`0x59ddef..0x59e248`): con Shift abajo (`GetAsyncKeyState(VK_SHIFT)`, `0x59ddf1`)
   no camina (Q-C169). Si el picking toca, saca el blanco. Si el héroe camina y su celda lógica
   (`+0x41c`, `+0x420`) está a 2 o más de la que se ve (`ftol(posición · 0,01)`), no hace un camino
@@ -9456,7 +9488,7 @@ de publicar **C1 05 18 dir 7A**, con XOR32 y Delivery::Clear; acción 39 sólo e
 pero manda igualmente. Sector igual no cambia cuerpo ni manda. byte381 se retiene por 511290.
 
 `GameHeroFacing` implementa ese kernel mediante un callback independiente del D3;
-`Protocol::Movement::WriteFacing`/`ServerSession::SendFacing` publican los bytes crudos sin
+`Protocol::Movement::WriteAction(dir, 0x7a)`/`ServerSession::SendFacing` publican los bytes crudos sin
 normalizar direction. Sus 12 tests cubren 39→40, guardas, sector/borde 112,5, modo/ventana, orden de
 campos antes del envío, wrap y errores con prefijo conservado. Las pruebas wire son de sesión y
 protocolo; el llamador conserva cabeza→rama quieta/movimiento→gates→clic→57cfc0. Desde el hito 1 de la
@@ -9562,8 +9594,9 @@ signo. En este orden:
    `TerrainWall` (`0x7d0d348`, `0x4f23c1`) apagado en su celda (`ftol(y · 0,01)`, `ftol(x · 0,01)` y
    `0x5f82a0`, `0x4f2365..0x4f23dd`).
 7. **Sentado** (`+0x7c & 0x200000`), vuele o no: con la acción ya en `0xca` no pone ninguna; si no,
-   la `0xca` y un `C1 .. 18` con el XOR32 en línea (sentarse, CL9). La rama está dos veces, volando
-   (`0x4f23e3`) y en el piso (`0x4f2801`), hasta `0x4f2bea`.
+   la `0xca` y el `C1 05 18` con la dirección de su propio ángulo (`+0x24`, no el del héroe) y `0x82`, con el XOR32
+   en línea ([04](04-protocolo.md#la-acción-18)), y sigue al sufijo. La rama está dos veces, volando (`0x4f23e3`,
+   el paquete en `0x4f2416`) y en el piso (`0x4f2801`, en `0x4f2834`), hasta `0x4f2bea`.
 8. Volando: `0xa` con un arma de la derecha del grupo 4 de abajo, y 9 si no (`0x4f27c6..0x4f27fc`).
 9. En el piso (`0x4f2bf6..0x4f2d82`): 1 (2 el elfo, `clase & 7` en 2) con las dos manos vacías o
    en la zona segura de los mapas de menos de 11 o más de 23. Si no, por la derecha: los grupos 0
@@ -9580,8 +9613,9 @@ tipo o esos subtipos lee la tabla de sonidos de los modelos (`0x5769ad8 + tipo �
 leer en detalle. Gasta de uno a tres `rand()`. MuRet (`Scenes::SetActorStop`) porta los pasos 2 a 9
 y el sufijo, y corta con un error explícito en la rama de los que no son jugadores, el `TerrainWall`
 de los mapas de vuelo en la escena 5 cuando quien llama no lo presta (el paso de los personajes lo presta en
-todos los mapas desde el PR de Atlans: en el 7 y en Kalima, fuera de la zona segura, de pie nadan), el
-`C1 .. 18` de sentarse y la tabla de sonidos.
+todos los mapas desde el PR de Atlans: en el 7 y en Kalima, fuera de la zona segura, de pie nadan), sentarse
+cuando quien llama no presta quien mande el `C1 18` (desde la CL9 lo prestan el paso del héroe y el `18`) y la tabla
+de sonidos.
 
 `0x4f9580` no toca el movimiento: da la **velocidad de la animación**, la base del `PlaySpeed` de la
 acción (después va `0x4ec200`, salvo con `+0x78 & 0x1000`), con multiplicadores por tipo, acción y
@@ -9613,7 +9647,7 @@ de escena: el juego sigue en la 5, porque las ocho escrituras de `0x6d5dc8` (`0x
 Los formatos, en [04](04-protocolo.md#los-cambios-de-mapa-1c-f3-04-y-f3-12).
 
 **El warp, `1C` del servidor** (`0x4c6e10`, desde `0x4e3f2a`, que antes lo copia a la cola de
-`0x77f27b4`). Con el cuarto argumento del dispatcher en 0 no hace nada de esto y manda un C3 con `C1
+`0x77f27b4`, la de los `12`: [Los otros jugadores en el viewport](#los-otros-jugadores-en-el-viewport)). Con el cuarto argumento del dispatcher en 0 no hace nada de esto y manda un C3 con `C1
 06 F1 03 00 1C` (*inferido*: el aviso de FoxAnti). Si no:
 
 1. `0x5be150`: con cursorItemCount<=0 sale en `0x5be160`, sin RNG; con ítem sigue pendiente.
@@ -9791,6 +9825,145 @@ propio del terreno de algunos mapas (*estático*; MuRet ya tiene lo marcado con 
 Fuera de Lorencia pero en el mismo lugar del paso: con la capa 1 en 3 o en 10 o más, Devias oculta
 los techos `0x51`, `0x52`, `0x60`, `0x62` y `0x63` y no nieva.
 
+### Los otros jugadores en el viewport
+
+*Estático* (CL9 hito 1, 2026-11-13); el cable con jugadores reales queda para la VM (08, P-C160). Los formatos, en
+[04](04-protocolo.md#los-otros-jugadores-12-14-45-25-y-df). Cada celda protegida (`+0x41c`, `+0x420`) que se escribe o
+se lee abre y cierra su entrada de [la tabla de protección](#la-tabla-de-protección): 4 `rand()` por acceso que la
+deja cerrada.
+
+**El alta, `0x512870(clave, tipo, X, Y, ángulo)`**. Busca en los 400 primeros (uno menos que el pool: el 400 es el
+"ninguno", que existe) un vivo con la clave, con el `MOVSX` de `+0x1f4` contra el int: lo construye otra vez con
+`0x511290` ([Los personajes de la lista](#los-personajes-de-la-lista); 28 `rand()` desde cero) sin tocar la clave y
+pone `+0x78` y `+0x7c` en 0. Si no hay, el primero sin el byte vivo: `0x401040` (sus nodos), `0x421d60` (el cuervo),
+`0x4fb1a0` (sus telas) y `0x414340` (la capa), `0x511290`, la clave (el `WORD` de abajo) y las dos banderas en 0. Con
+los 400 vivos devuelve el 400 sin tocar nada. Devuelve el puntero. **La baja, `0x510ff0(clave)`**: el primero vivo
+con la clave queda muerto, con `0x401040`, sus ayudantes apagados (`0x511031..0x51104b`, como `0x443d40`), el cuervo,
+las telas y la capa. Nadie más llama a la pareja en la ruta del viewport; el alta de los monstruos (`0x5141e0`) es de
+la hito 2. Las búsquedas `0x5132d0`, `0x5178f0` y `0x517920` no tienen llamadores ni punteros en el binario.
+
+**La cola de `0x77f27b4`**. Antes de `0x4c8860`, el dispatcher copia el paquete entero, con su largo, a una cola de
+diez ranuras de `0x100` bytes (los largos en `0x77e1bb0` y la cuenta, un char con signo, en `0x77f3ba0`;
+`0x4e372e..0x4e37b8`). La misma secuencia corre antes del `0x0B` (`0x4e3594`, su caso en el dispatcher), del `0x1C`
+(`0x4e3e98`, antes de `0x4c6e10`), del `0x24` (`0x4e38ca`, antes de `0x4d1400`) y del `0x2A` (`0x4e3ace`, antes de
+`0x4d3cc0`), sin mirar el flag de cifrado ni si el paquete se lee. Con la cuenta en más de 9 la deja en 9 y corre las
+ranuras 1..9 a 0..8; un paquete de más de `0x100` no entra, pero el corrimiento ya se hizo. El estado 1 del `12` la
+escribe otra vez (paso 5, Q-C801). Nadie la lee: `0x557830` (un volcado) y `0x4c12a0` no tienen llamadores. MuRet: la
+sesión hace la copia (`ISessionEventSink::CopyToPacketRing`) y la cola es `WorldRuntime::viewportPackets`
+(`Scenes::StoreViewportPacket`); el `0x0B` es del hito 11 (P-C162).
+
+**El `12`, `0x4c8860(paquete, largo)`**, por cada registro:
+
+1. Copia los diez bytes del nombre con un 0 detrás; si tienen `"webzen"` (`0x576960`, distinguiendo mayúsculas), el
+   registro no hace nada (`0x4c88dc`).
+2. Con el estado 1 (`+4 & 0xf`), si hay un vivo con la clave (`0x5110d0`), guarda el byte de abajo de su `+0x1f2`,
+   `+0x368`, `+0x369`, `+0x370`, `+0x360`, `+0x78` y `+0x372`.
+3. `0x512870(clave sin el bit 15, 0x20a, X, Y, 0)`. Con el estado 1 y lo guardado, lo devuelve: `+0x1f2` con el
+   `MOVZX` del byte, sin el de arriba (Q-C800).
+4. La clase, `((b & 0x10) | (b >> 4)) >> 1`, en `+0x1d4`; la piel (`+0x1d5`) en 0, `+0x88` en 1 y el PK (`+0x28 &
+   0xf`) en `+0x375`.
+5. Por el estado (`0x4c9288`): el 1, `0x53d930` (la acción `0x93` en el frame 5, `+0x80` en 3, el alpha de destino en
+   1, el efecto `0x5c6` y el sonido `0x76`, con `0x4f3f80` antes: el registro propio abierto y cerrado) y el paquete
+   otra vez a la cola (`0x4c8a43..0x4c8ad4`, Q-C801); el 2, la acción `0xc5`, el 3, `0xcb`, y el 4, `0xc9`, con
+   `0x4ea030`, y las del elfo (la clase `& 7` en 2) `0xc7`, `0xcc` y `0xca`.
+6. Las banderas de `+0x18` con `0x4e6380` (cada una prende su bit en `+0x78` o en `+0x7c`; las que crean efectos
+   o joints son de la CL11).
+7. La celda protegida en X e Y (8 `rand()`), y `+0x39a`/`+0x39b` igual; el ángulo, `((+0x28 >> 4) − 1) · 45`.
+8. Recién llegado: la X y la Y de la tabla (8 `rand()`), la posición en `(celda + 0,5) · 100`, el efecto `0x61f`
+   (`0x518cf0`, con el personaje de dueño en `+0x108`) y el alpha en 0. Si no: la Y, la X (8 `rand()`) y `0x4eac00`
+   hasta `+0x26`/`+0x27`; con camino, `+0x378` en 1.
+9. En Kalima (24 a 29 y 36), el joint `0x610`/8 de `0x530860`.
+10. El equipo: `0x5139f0(0x5110d0(clave), +5, 0, 0)` ([Los personajes de la lista](#los-personajes-de-la-lista)).
+11. El nombre en `+0x1d9`, `+0x1e3` en 0 y, con el estado 1 y lo guardado, `+0x360` y `+0x78` otra vez.
+12. `0x42ab40` (las banderas de Castle Siege, solo en el 30) y `0x412140` (el panel del asedio).
+
+**El `14`, `0x4ca780`**, por cada clave: con la información de Castle Siege (`0x5767924`, que crea el `B2 20`), la
+clave entera `0x13d` pone sus bytes 4 a 6 en 0 y cualquier otra los `0x1f` a `0x21` (Q-C802); `0x510ff0` con la clave
+sin el bit 15, y `0x451630` busca la tienda personal de la clave en el mapa de `0x7245c8`, que solo llena el `3F`:
+sin entradas no llega a `0x451430`.
+
+**El `45`, `0x4c92a0`**: el transformado. El nombre y `"webzen"` como en el `12`; después lee la clase del héroe
+publicado (`0x4c9328`) y llama a `0x5141e0`, el alta del monstruo o del transformado del tipo de `+4` (la hito 2).
+Sobre lo que devuelve (`0x4c9356..0x4c9762`): con `+0x376` en 7, la escala en 0,8; esa clase, el PK, `+0x88` y
+`+0x3e3` en 1; `0x4e6380` y `0x42ab40`; la celda protegida, `+0x39a`/`+0x39b` y el ángulo. Recién llegado, la posición
+del centro, el alpha en 0, el efecto `0xec` (`0x518cf0`) y el joint `0x5d5`/2 (`0x53fe70`); si no, el camino con la Y
+leída antes que la X. Al final, el nombre, `+0x1e3` en 0 y `0x512a30` sobre el héroe publicado.
+
+**El `25`, `0x4c8380`**: el personaje de la clave entera (`0x5110d0`, el 400 si no hay) y el ítem: el tipo de
+`0x54b3a0` (`0x1fff` sin ítem), el lugar en el nibble alto de `pkt[6]` y el nivel en el bajo (`0x513340` con el
+nibble entero: de 8 a 15 da 0, `0x51334e`), el excelente `pkt[8] & 0x3f` y el set `pkt[9]`.
+
+| lugar | vacío | con ítem |
+| --- | --- | --- |
+| 0, la derecha | modelo `0xffff`, el excelente en 0 | modelo (tipo + `0x212`), nivel y excelente |
+| 1, la izquierda | lo mismo y `0x421d60` sobre **el héroe publicado** (Q-C803) | lo mismo y `0x420d60` (el cuervo otra vez) |
+| 2 a 6, el cuerpo | la parte de la clase (`0x2212` + …) con nivel, excelente y set en 0 | modelo, nivel, excelente y set |
+| 7, las alas | modelo `0xffff` | modelo y nivel 0 |
+| 8, la mascota | modelo `0xffff` y `0x443d40` | modelo, nivel 0 y el ayudante de la tabla de `0x4c882c` sobre el tipo − `0x1a00`: 0 → `0x1c12`, 2 → `0xc6`, 3 → `0x110`, 4 → `0xbf`, `0x25` (Fenrir) → el excelente en `+0x31b` y `0x14a` con 1, `0x14c` con 2 y `0x14b` con otro, con `0x443fa0` |
+| 9 a 15 | nada | nada |
+
+Al final, `0x4053f0` y `0x512930`.
+
+**El `DF`, `0x4c6b40`**: el personaje de la clave entera. Con el tipo `0xf1` (que solo crea `0x5141e0`), el empujón
+(`+0xe4`, `+0xd0` y `+0xcc`), el sonido `0x1b` y los joints `0x5c5` de `0x51fe10`; si no, la celda protegida en
+`pkt[5]` y `pkt[6]` (8 `rand()`), `+0x39a`/`+0x39b` y `+0x399` en 1.
+
+**Lo que el héroe ya hacía con otros**: el `D3` y el `D7` ([Caminar](#caminar)) buscan al personaje por la clave en
+el mismo pool, así que mueven y lastiman a los que da de alta el `12`.
+
+**MuRet** (`Scenes/ActorCreation.h`, `Scenes/ViewportPlayers.h`, `Scenes/ActorCharacterSet.h` y
+`Scenes/ActorEffectFlags.h`). `CreateActor` y `RemoveActor` son `0x512870` y `0x510ff0`, para la hito 2 también:
+`CreateActor(mundo, clave, tipo, {X, Y, ángulo}, contexto de 0x511290, telas)` devuelve el lugar (el 400 con el pool
+lleno). `0x401040` y `0x4fb1a0` no tienen qué soltar en el mundo de MuRet (P-C161). El efecto `0x61f` va sin el
+dueño, como el de la entrada del héroe. Cortan con su dirección, después de lo que el original hace antes: Kalima en
+`0x4c91dc` (CL11), el alta del `45` en `0x4c934c` (la hito 2; lo que sigue está portado en
+`Scenes::FinishTheTransformed`, que corta en `0x4c965c` con el recién llegado, CL11), el tipo `0xf1` del `DF` en
+`0x4c6b80` (la hito 2 y la CL11), y las banderas que crean efectos (`0x4e644f`, `0x4e662d`, `0x4e6725`, `0x4e676e`,
+`0x4e67d6` y `0x4e6869`, CL11 y CL10; `0x4e68f5`, P-C163). Los sonidos (`0x76`, `0x84`) quedan en el último sonido,
+sin audio hasta la CL10 (08, P-C162). Tests: `ViewportPlayersTest`, `ViewportLeaveTest`, `ViewportTransformedTest`,
+`ShownEquipmentTest` y `ViewportPacketRingTest`, en Lorencia y en Devias.
+
+### El picking de los personajes del juego
+
+*Estático* (CL9 hito 1, 2026-11-13). `0x637641` llama a `0x59ec80` en cada frame de la escena 5, con el segmento
+del mouse del dibujo ([El picking](#el-picking): de la cámara `0x7d36834` al punto lejano `0x7d366c0`). Los lugares
+que escribe: `0x6c8e28` (el ítem del piso), `0x6c8e2c` (el NPC), `0x6c8e30` (el elegido), `0x6c8e34` (el objeto) y
+`0x6c8e38` (el que se ataca).
+
+1. `0x59ee4b..0x59ef10`: el elegido de antes sigue solo con el ataque automático (`0x6c8e3c`), fuera del mapa 6 y de
+   Chaos Castle (18 a 23), entre 0 y 400, sin morirse (`+0x389`) y con `+0x88` en 2 (un monstruo); si no, `0x6c8e30`
+   y `0x6c8e38` en −1. Si sigue, con `0x6c8e38` en −1, un botón del mouse (`0x7d36874`, `0x7d366d4`, `0x7d3685c` o
+   `0x7d36880`) o el héroe muriéndose, solo `0x6c8e30` en −1.
+2. `0x6c8e28`, `0x6c8e2c` y `0x6c8e34` en −1. Con el mouse en la UI (`0x775857c`), `0x59e3b0` (la party) y el final.
+3. Con Alt (`GetAsyncKeyState(0x12)`): el ítem del piso (`0x59e2e0`, sin ítem en el cursor); sin él, `0x59e700(4)` en
+   `0x6c8e2c`; sin NPC, `0x59e700(0x22)` y `0x59e700(1)` en `0x6c8e30` (el que acierta vuelve sin el final) y los
+   objetos (`0x59eb90`).
+4. Sin Alt: el orden es `0x22` y 1, al revés si el héroe es Dark Wizard o Elf (`+0x1d4 & 7` en 0 o 2) y la skill de
+   su lugar (`+0x425`) en el registro propio, abierto (3.848 `rand()` al cerrarlo), es `0x1a` a `0x1c`. `0x5e4140`
+   (la party); sin elegido, el primero, el segundo (si acierta vuelve sin el final), `0x59e700(4)` en `0x6c8e2c`, el
+   ítem del piso y los objetos.
+5. El final (`0x59f52f`): sin elegido, `0x6c8e38` en −1.
+
+**`0x59e700(máscara)`**: los 400 primeros con `+0x88 & máscara == +0x88`, vivos, a la vista (`+0x16c`) y con el
+alpha sobre 0 se tiñen: `+0xe8` en 1 y la luz (`+0xf4`) por el `WORD` de `+0x1d6`, de 0 a 4: (0,2; 0,2; 0,2), (−0,4;
+−0,4; −0,4), (0,2; −0,6; −0,6), (1,5; 1,5; 1,5) y (0,3; 0,2; −0,5); con 5 o más la deja; con el PK (`+0x375`) en 6 o
+más, (−0,4; −0,4; −0,4). Después, de los mismos, sin el que se muere, sin `+0x7c & 0x10000000`, sin el héroe
+publicado (salvo en la escena 4) y con `+0x42c`, gana el de menor distancia² a la cámara (`0x7d36884`; la suma
+`(dz² + dy²) + dx²` en el x87 contra un float que arranca en `0x5368d4a5`, ~10¹²) cuya caja (`+0x13c`) toca el
+segmento (`0x622900`). En Lorencia la capa 1 en 4 y en Devias en 3 (los techos y los pisos de arriba) cuentan solo si
+es la capa de la celda del héroe (`0x77f36d0`), con la celda de la posición truncada (`0x69fd3c`) sobre 100. El
+primero gana los empates. Con jugadores en la party (`0x78aba48`), además escribe sus datos; vacía, nada. No saca
+`rand()`.
+
+**MuRet**: `Scenes::PickTheCharacter` es `0x59e700` y `Scenes::PickInTheFrame` (`GameUi.h`) es `0x59ec80`, con el
+segmento de `GameScene::MouseRay`. El dibujo de los personajes del juego toma el elegido (`0x6c8e30`) y el NPC
+(`0x6c8e2c`) del frame anterior. El ítem del piso y los objetos son de la CL9.3 (−1) y la party, de la hito 7 (vacía).
+`0x6c8e38` solo baja a −1 acá: lo suben el ataque (`0x59d3fd`) y las skills, de los hitos 3 y 4. Con el elegido de
+verdad, cada lector de `0x6c8e30` y `0x6c8e38` está portado, corta con su dirección o no se alcanza: la lista, en 08,
+P-C162 (d). La vuelta a la selección los deja en −1 (`0x4c2515..0x4c252d`). Lo *inferido* (la cámara, la caja y la
+doble precisión), en 08, P-C164. Tests: `CharacterPickingTest` y
+`GameUiTest.ThePreviousMonsterStaysOutsideTheMapSix`.
+
 ### La vuelta a la selección
 
 El `F1 02` con `pkt[4]` en 1 (`0x4c2710` salta a `0x4c2f5b` en `0x4c274f`; *estático*, CL7 hito 1,
@@ -9824,6 +9997,7 @@ llega con la CL9.
 | Dónde | Qué hace | MuRet |
 | --- | --- | --- |
 | `0x4c250e` | el nivel de la cámara (el WORD `0x7d3a0ec`) en 0 | `GameCamera::level` en 0 |
+| `0x4c2515..0x4c252d` | los cinco del picking (`0x6c8e2c`, `0x6c8e34`, `0x6c8e30`, `0x6c8e28` y `0x6c8e38`) en −1 | `WorldRuntime::selectedTargets` en −1 (CL9 hito 1) |
 | `0x4c2540` | el mundo en curso (`0x6c9dd0`) en −1 | `WorldRuntime::map` en −1 |
 | `0x4c2546` | `0x419900`, con `[0x710148]`: pone en 0 su `+0x21383` y manda `C1 03 31` (`0x419a0e`), en claro y sin XOR32 | la sesión: `WriteWindowClose` |
 | `0x4c2575..0x4c264b` | abre el registro propio por la tabla de protección (o lo da de alta con la cuenta en 1, `0x4c25cf..0x4c25ea`), pone en 0 `+0x3c` (byte), `+0x3e`, `+0x40` y `+0x42` (`0x4c2600..0x4c260b`) y lo cierra: si queda en 0, `0x40b4d0` y sus 3.848 `rand()` | `LogicalAccess` con `OwnRecordCloseRandoms` |
@@ -9831,7 +10005,7 @@ llega con la CL9.
 | `0x4c26da..0x4c26e7` | con `[0x576352c]` (el objeto que crea WinMain en `0x4bb993` y suelta al cerrar, `0x4af319`), `0x657670`, cuyo `0x4499b0`, si la caja de `0x723c80` está vacía (`0x449c10`: los 32 lugares de `0x48` bytes con el WORD en `0xffff`), pone en 0 `0x724580` y `0x724584` y manda otro `C1 03 31` (`0x449ad1`) | la sesión: el segundo `WriteWindowClose` (Q-C214) |
 
 Lo demás que escriben `0x4c2480` y `0x4c2710` son globales de la interfaz, del chat, del gremio y
-del juego que MuRet no tiene (`0x57678ed..0x5767960`, `0x6c82e8`, `0x6c8e28..0x6c8e50`,
+del juego que MuRet no tiene (`0x57678ed..0x5767960`, `0x6c82e8`, `0x6c8e3d..0x6c8e50`,
 `0x78abaa8`, `0x77f3b67`, `0x78abb04..0x78abb10`, `0x6c9320..0x6c932c`, `0x77f3b78`, `0x77f3b08`,
 `+0x2134c..+0x21385` de `[0x710148]`), y las llamadas `0x5545f0`, `0x555030`, `0x40ba20` (con
 `[0x723c60]`), `0x5e3c70`, `0x5ecda0`, `0x403300` y `0x403d60`. Ninguna de esas llamadas, ni
@@ -9925,6 +10099,109 @@ los contratos de sus llamadas y de los dos cierres del contador. El análisis de
 exportadas (7.471 bytes) coincide con el PE de hash
 `c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a`, sin ejecución ni nueva
 emulación. CL7.P permanece abierta; no se reconstruyen las transformaciones de protección.
+
+### El retrato de las cartas
+
+(CL9 hito 10, `Scenes/LetterPortrait`, con el paso en `UI/LetterWindows`; *estático*, del ASM.) La ventana de leer
+lleva el retrato en `+0xb0` y la de escribir en `+0xb4`: un objeto de `0x6c4` bytes (vtable `0x6ba008`, armado por
+`0x495e50`, que lo deja en cero salvo el zoom de base y el de ahora en 1 y `+0x4b0` en −1) con un personaje y un
+ayudante propios, fuera del pool y de la tabla de los ayudantes. MuRet parte el objeto en lo de la ventana
+(`UI::OldPortraitPart`) y lo del juego (`Scenes::LetterPortrait`, en `OldPortraitPart::actor`):
+
+| Lugar | Qué | En MuRet |
+| --- | --- | --- |
+| `+0x40`..`+0x5c` | el id, el estado, las banderas (`+0x4c`), el lugar y el tamaño de la base | `OldPortraitPart::base` |
+| `+0x7c` | un personaje de `0x438` bytes, como los del pool | `LetterPortrait::actor` |
+| `+0x4b4` | un ayudante de `0x1d4` bytes, como los de `0x7d335d0`, con el personaje de jinete | `LetterPortrait::helper` |
+| `+0x688` | la escala del ayudante, relativa (Q-C1030) | `LetterPortrait::helperScale` |
+| `+0x68c` | armado: lo pone en 1 `0x4961d0` al final (`0x496415`) | `OldPortraitPart::built` |
+| `+0x690`, `+0x694` | la ayuda y seguir al héroe | `help`, `follow` |
+| `+0x698` | quieto (la acción pedida ya salió) | `LetterPortrait::idle` |
+| `+0x6a0` | la última acción que mostró `0x495a20` | `LetterPortrait::shownAction` |
+| `+0x6a4` | la acción pedida | `OldPortraitPart::action` |
+| `+0x6a8` | el frame entero que guarda el dibujo | `LetterPortrait::frameMark` |
+| `+0x6ac`, `+0x6b0` | el ángulo de base y el de ahora | `baseAngle`, `angle` |
+| `+0x6b4` | la X del mouse con que se lo gira | `dragX` |
+| `+0x6b8`, `+0x6bc` | el zoom de base y el de ahora | `baseZoom`, `zoom` |
+| `+0x6c0` | en blanco: la carta de webzen (Q-C1025) | `blank` |
+
+**La vtable.** `+0x30` es `0x4961d0`: el ayudante en cero; las entradas de la celda lógica del personaje (`+0x41c` y
+`+0x420`) abiertas mientras borra los `0x438` bytes (Q-C1027) y cerradas, la X y después la Y; la celda lógica del héroe
+publicado, la Y y después la X; `0x511290(personaje, 0x20a, X, Y, 0)`; el lugar en (−300, −300, −300); y `+0x68c` en 1.
+Desde cero, **44 `rand()`** (4 + 4, 4 + 4 y los 28 de `0x511290`). `+0x34` es `0x4977d0`: la clase (`+0x1d4`) y
+`0x513100` (Q-C1024), que no llama a `0x4f2250` con la acción entre `0x22` y `0x97` o entre `0xc5` y `0xcc`. `+0x38` es
+`0x497810`: `0x5139f0(0, equipo, personaje, ayudante)`, que con un objeto no mata el ayudante con `0x443d40` (lo pone en
+0) y le pasa cada mascota a `0x443d70` (Q-C1026; `0x443d70` no hace nada en los mapas 18 a 23 ni con el ayudante vivo);
+`+0x688` con la escala del ayudante por 0,7 (`0x6b8a5c`) entre la del héroe publicado; y la zona segura (`+0x3e2`) en 1
+con alas y la acción pedida pasada de `0x82`. `+0x3c` es `0x496530` (abajo). `+0x40` es `0x497890`: los ángulos del
+personaje en (−20, 5, 60) y el de base y el de ahora en el pedido; `+0x44`, `0x4978d0`: el zoom de base y el de ahora;
+`+0x48`, seguir al héroe; `+0x4c`, `0x4978f0`: la acción pedida y `0x495a20(acción, 0)`; `+0x50`, `0x497910`: `+0x6a4`
+con lo que da `0x495a20(+0x6a4, corrimiento)`, `+0x6a8` en 0 y `+0x698` en 1. Las de la clase, el equipo, la copia y el
+ángulo no hacen nada sin armar (`0x4977d9`, `0x49781e`, `0x496548`, `0x49789b`); la de la acción y la de girarla no lo
+miran. La de escribir (`0x497f50`) llama a `+0x30`, `+0x3c`, `+0x48(1)`, `+0x4c(0x7a)` y `+0x40(90)`; el `C7`
+(`0x4dcb70`), a `+0x34`, `+0x38`, `+0x4c`, `+0x40` y `+0x44` con lo de la carta.
+
+**La copia del héroe, `0x496530`.** Con la clase del héroe publicado distinta, la copia y `0x513100`. Después compara
+por grupos (el cuerpo con la cabeza, las manos, las alas y la mascota), según `+0x3e3` del héroe:
+
+- **En 0, contra el héroe** (`0x496595..0x496658`): `0x496430` (el word del modelo, el nivel `+2` y el byte `+3`)
+  sobre la cabeza y las cinco partes del cuerpo, las dos manos, las alas y la mascota, cortando en la primera
+  distinta de cada grupo. La copia (`0x4969b2..0x496a5e`) es de partes enteras de `0x20` bytes: con el cuerpo,
+  `0x4fb1a0(personaje, 0, 0)` (las telas) y las seis partes, con su byte `+0x14` y sus dwords `+0x18` y `+0x1c` en 0.
+- **Distinto de 0, contra el registro propio** (`0x49665d..0x496975`), en un solo acceso (3.848 `rand()` al
+  cerrarlo): `0x496470` sobre los lugares 2 a 6 (sin ítem, el modelo base de la clase), las manos 0 y 1, las alas 7
+  y la mascota 8 (sin ítem, −1). La copia (`0x496a65..0x497636`, con `0x4964f0`: el modelo, el nivel y el byte `+3`;
+  el `+4` queda) abre un acceso por grupo, con sus 3.848 al cerrarlo; la del cuerpo pone la cabeza en el casco de la
+  clase y llama a `0x4fb1a0` antes de abrir.
+
+Sin nada distinto, termina. Con la mascota distinta, `0x495a20(0x7a, 0)`, `+0x6a4` en `0x7a` y el ayudante de nuevo;
+si no, `0x495a20(+0x6a0, 0)` y el ayudante de nuevo solo con las manos distintas (Q-C1029). El ayudante de nuevo
+(`0x497676..0x49777c`): vivo en 0 y, por la mascota (las tablas `0x4977a4` y `0x49778c`), `0x443d70` con `0x1c12`
+(el guardián), `0xc6` (`0x1c14`), `0x110` (`0x1c15`), `0xbf` (`0x1c16`) o, con `0x1c37`, `0x14a`, `0x14c` o `0x14b`
+por el byte `+3` en 1, 2 u otro; después su alpha (`+0x174`) en 0 y `+0x688` con su escala por 0,7 entre la del
+personaje del retrato (Q-C1030). Devuelve si algo difería.
+
+**La acción, `0x495a20(acción, corrimiento)`.** Con el ayudante vivo y montado (`0xc6`, `0x110`, `0xbf` o
+`0x14a..0x14c`), la lista de `0x6c7b08` (`0x7a`, `0x7c`, `0x78`; con el índice negativo suma 300); si no, la de los
+gestos de `0x6c7b14` (24, de `0x7a` a `0x78`, Q-C1028; suma 2.400). El índice es el de la acción (el tamaño si no
+está) más el corrimiento, y el resto es con signo. Por la tabla `0x495dd4`: `0x7a`, `0x4f2250`; `0x78`, `0x4f4a10`
+y `+0x381` en 1, el frame en 0 y `+0x3a4` en `0xffff`; `0x7c`, `0x4f37c0` (los tres con el mundo en 0); y `0x80` a
+`0x94`, `0x4ea030` con la animación de cada gesto (la del elfo con la clase & 7 en 2: la misma tabla que el `0x18`,
+`Scenes::TableAnimationOf`). Después, `0x4fd5f0` y `0x505de0` con el mundo en curso, y `+0x6a0` con la acción, que
+devuelve.
+
+**El paso, `0x497970`** (la vtable + `0x20`, después de la cola y del mouse de `0x45aa80`): en blanco, solo el mouse
+sobre la UI. Si no, con seguir al héroe y `0x78abaac` en 1, la copia (`+0x3c`); `+0x360` del personaje con el del
+héroe; y con `+0x4c` & 1 a la vista, el ícono de la ayuda (16 × 16 en (x + 1; y + alto − `0x11`)) la prende o la
+apaga con el clic, y adentro del retrato el clic apaga la ayuda y lo agarra (sin nadie con el mouse: `0x5762eb4`
+con su id, el estado en 2, `+0x6b4` con la X y `SetCapture`), el derecho vuelve el ángulo y el zoom a los de base y
+la rueda suma 0,02 por paso al zoom, entre 0,8 y 1,1. Girándolo (el estado en 2), el clic suma al ángulo lo que
+corrió la X; sin clic, lo suelta. Sin `+0x4c` & 1, adentro y quieto, el mouse es de la UI y el clic se apaga.
+
+**El dibujo, `0x497c10`** (la vtable + `0x14`). Con el frame del personaje por debajo de `+0x6a8` (la animación
+volvió a empezar): sin `+0x698`, **un `rand()`** (`0x497cce`) y con `rand() % 4 == 0`, `+0x698` en 1 y
+`0x495a20(+0x6a4, 0)`; si no, con `+0x6a4` fuera de `0x7a..0x82`, `+0x698` en 0 y `0x495a20(0x7a, 0)`; y `+0x6a8`
+en 0. Si no, `+0x6a8` con el frame truncado. Con `+0x360` por debajo de 4, `0x414340`; y `0x495760`:
+
+1. Con el mundo en 0, `0x4fd5f0` y `0x505de0` del personaje y `0x444010(ayudante, 1)`.
+2. La proyección: `0x620d10(x · W / 640, y · H / 480, ancho · W / 640, 141 · H / 480)` (`0x6ba004`, truncados) y
+   `0x6203c0(1, ancho · W / 640 entre 141 · H / 480, 2.000, 20.000)`, sin el × 1,4 de `0x620db0`.
+3. La vista: la identidad en `0x7d366f0` (`0x620370`), `glRotatef(−90)` en X y en Z, `glTranslatef(−10.000, 0,
+   −75)` y `glTranslatef(−X, −Y, −Z)` del personaje, con 50 más de bajada (`0x6b86b0`) con el caballo oscuro
+   (`0x1c16`) en `+0x318`.
+4. El estado de GL (sin alpha test, con textura, profundidad, caras y su escritura, `GL_LEQUAL`,
+   `glAlphaFunc(GL_GREATER, 0,25)`, sin niebla y la profundidad borrada; las importaciones, *inferidas* de sus
+   constantes) y el del personaje: los ángulos en (0, 0, `+0x6b0`), la escala en zoom · 0,7, la del ayudante en
+   `+0x688` · zoom, las luces en 1, `+0x3e4` en 1 y la zona segura como en `0x497810`.
+5. `0x445260(ayudante, 1)` y `0x50ba30(personaje, personaje, 0)`; después el viewport de la pantalla entera.
+
+Lo de 2D (en blanco, el cuadro negro y el bitmap `0x653`; el ícono de la ayuda y su caja) va antes y después.
+
+MuRet arma el pase (`Scenes::PortraitPass`, `PrepareThePortraitDraw`) y corta en el modelo (`DrawThePortraitModel`,
+P-C310): el dibujo de `Scenes/GameCharacters` y de `HelperTable` lee el jinete del pool. Con el ayudante vivo, el paso
+`0x444010` también corta (P-C310). La acción `0x78` corta en `0x4f4a10` (P-C219), y lo de 2D es del dibujo de las
+cartas (P-C311, P-C213). `UI::OldWindowStepView::portrait` es `Scenes::LetterPortraitHook` con los recursos del mundo
+(`GameUiContext::worldEntry`, `ChatReceiveContext::worldEntry`): el primer pedido crea el `LetterPortrait`.
 
 ## Lo que no se sabe
 

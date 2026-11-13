@@ -9,6 +9,7 @@
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameItemRenderState.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/ItemHelpLevels.h"
 #include "Scenes/SceneId.h"
@@ -197,6 +198,9 @@ struct WorldRuntime
     // escena.
     UI::PanelState panels{};
     UI::DialogState dialogs{};
+    // El gremio, la alianza y la guerra (CL9 hito 8): la tabla de los gremios (0x787aa48), los miembros (0x787a5e8),
+    // los globales de la guerra y lo que los paquetes guardan en las dos ventanas del gremio.
+    GuildState guild{};
     // 0x7d36a98, 0x7d368e4, 0x7d368b8 y 0x7d3a0f4..0x7d3a0f9: el texto y los botones de las cajas viejas (hito 6).
     UI::DialogBoxState dialogBox{};
     UI::GameUiState ui{};

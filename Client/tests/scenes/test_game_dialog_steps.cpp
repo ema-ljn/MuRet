@@ -4,6 +4,7 @@
 #include "Input/InputState.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -28,6 +29,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -96,6 +98,13 @@ public:
     void RequestPartyList() override
     {
         requests.push_back({"42", {}, {}});
+    }
+    void SendGuildPacket(Client::Protocol::Outgoing packet) override
+    {
+        std::vector<std::uint8_t> bytes;
+        for (const std::byte value : packet.packet.Bytes())
+            bytes.push_back(std::to_integer<std::uint8_t>(value));
+        requests.push_back({"guild", std::move(bytes), {}});
     }
     Client::Core::Expected<void, std::string> SaveMacros(std::string_view content) override
     {

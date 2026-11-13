@@ -16,6 +16,7 @@
 #include "Scenes/GameMoveWindow.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/GuildPanels.h"
 #include "Scenes/GamePartyWindow.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/InventoryMoves.h"
@@ -99,6 +100,14 @@ constexpr std::int32_t PetButtonTop = 0x18b;
 constexpr std::int32_t PetButtonBottom = 0x1a3;
 // 0x42474c: 0x723911 en 2, la ventana de la mascota.
 constexpr std::uint8_t PetWindowOpen = 2;
+
+// Los paquetes del gremio que manda la UI (CL9 hito 8) van por las peticiones de la escena; sin ellas, nada.
+GuildSender GuildSenderOf(IGameUiRequests* requests)
+{
+    if (requests == nullptr)
+        return {};
+    return [requests](Protocol::Outgoing packet) { requests->SendGuildPacket(std::move(packet)); };
+}
 // 0x5aca1b..0x5aca24: F1 da la vuelta por 0, 1 y 2 (idiv por 3).
 constexpr std::int32_t FunctionHelpModes = 3;
 // 0x636e11: desde esta y, el mouse está sobre la barra.
@@ -1374,6 +1383,7 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
     UI::GameUiState& ui = runtime.ui;
     UI::DialogState& dialogs = runtime.dialogs;
     GamePanels panels(context.world, context.random);
+    panels.LendTheGuild(context.world, GuildSenderOf(context.requests));
     // 0x623e9b..0x623ec2: con la de amigos abierta, Esc es de las ventanas viejas (0x490490).
     if (!panels.Registry().IsOpen(UI::FriendsPanel) && KeyEdge(ui, context.input, EscapeKey))
     {
@@ -1424,6 +1434,8 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
                           GamePanelTables{.items = context.inventory != nullptr ? context.inventory->items : nullptr,
                                           .itemSetTables = context.itemSetTables});
     gamePanels.LendThePartyList(context.world, context.requests);
+    gamePanels.LendTheGuild(context.world, GuildSenderOf(context.requests));
+    gamePanels.LendThePanelDialogStep(context.world, context.mouseX, context.mouseY, context.systemTime);
     UI::PanelRegistry& panels = gamePanels.Registry();
     // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).
     if (panels.IsOpen(UI::MovePanel) && ui.capture == 0)

@@ -15,6 +15,11 @@
 // entradas de 0x294 bytes, que llenan los mensajes que llegan (0x557170, por el 00 y el 01, y 0x557560 por nombre), que
 // el paso del juego envejece (0x557650, 0x6370f9) y que el HUD dibuja (0x5a9050, el 12). El hover de los personajes
 // del hito 6 usa la misma tabla. Los textos se guardan hasta su '\0', como los leen strcpy y strlen.
+namespace Client::Data::Text
+{
+class TextTable;
+}
+
 namespace Client::Scenes
 {
 class WorldState;
@@ -34,8 +39,8 @@ struct ChatBubble
 {
     // +0: el nombre, strcpy del de quien habla.
     std::string name;
-    // +0x18 y +0x36: el gremio y el puesto, que escribe 0x556dd0 con la tabla de los gremios (CL9.4). Sin gremio,
-    // vacíos.
+    // +0x18 y +0x36: la alianza ("<%s>", con el texto de +0x370) y el gremio con el puesto ("[%s] %s"), que escribe
+    // 0x556dd0 con la tabla de los gremios (CL9 hito 8). Sin gremio, vacíos; sin alianza, +0x18 vacío.
     std::string guild;
     std::string guildPost;
     // +0x54: el título de la tienda personal (0x7245c8, CL9.4). Sin tienda, vacío.
@@ -75,11 +80,13 @@ enum class ChatBubbleMode : std::uint8_t
     Log = 1,
 };
 
-// Lo que mide el registro del chat en el modo 1 (0x45bb20).
+// Lo que mide el registro del chat en el modo 1 (0x45bb20) y los textos del gremio del globo (0x556dd0).
 struct ChatBubbleMeasure
 {
     const Render::Text::ITextMeasure& measure;
     App::PixelSize screen{};
+    // Text.bmd: los puestos del gremio y de la alianza. Sin él, un personaje con gremio corta.
+    const Data::Text::TextTable* texts = nullptr;
 };
 
 // 0x557170(nombre, texto, personaje, modo, color): con el personaje vivo y a la vista (+0x16c), la entrada que ya es
@@ -87,7 +94,7 @@ struct ChatBubbleMeasure
 // él, el PK, o 0 con +0x88 en 4) y el gremio y la tienda (0x556dd0). Con el texto vacío solo prende el nombre. En la
 // entrada suya, el renglón vivo sube al de arriba. Con 20 bytes o más, el texto se corta en dos (0x5549a0): la cabeza
 // arriba y la cola abajo, con el mismo tiempo. El modo 1 lo agrega también al registro (0x45bb20 con el tipo 3) y el
-// sonido que pida queda en WorldRuntime::lastSoundId. Un personaje con gremio corta: la tabla es de la CL9.4.
+// sonido que pida queda en WorldRuntime::lastSoundId. El gremio sale de WorldRuntime::guild (CL9 hito 8).
 [[nodiscard]] Core::Expected<void, std::string> AddChatBubble(WorldState& world, const ChatBubbleMeasure& measure,
                                                               std::string_view name, std::string_view text,
                                                               std::size_t owner, ChatBubbleMode mode,

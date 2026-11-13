@@ -11,6 +11,11 @@ namespace Client::Render
 class SpriteBatch;
 }
 
+namespace Client::Data::Text
+{
+class TextTable;
+}
+
 namespace Client::Render::Models
 {
 class CrtRandom;
@@ -51,6 +56,8 @@ struct GameHoverContext
     // Un dibujo intermedio de MuRet no escribe los globos (0x557170): el dibujo de los globos lee una copia de la
     // tabla del último frame del original, que es el que los escribe. Los demás estado que escribe le llegan en copias.
     bool projecting = false;
+    // Text.bmd: los puestos del gremio del globo (0x556dd0).
+    const Data::Text::TextTable* texts = nullptr;
 };
 
 // 0x5bbbc0: en Chaos Castle (18 a 23), sin "webzen" en el nombre del héroe, con un NPC o un personaje elegido no hace

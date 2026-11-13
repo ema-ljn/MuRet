@@ -2464,6 +2464,109 @@ mascota, en `Scenes/GameUi.cpp` y `Scenes/GamePanels.cpp`; el dibujo y el botón
 Devias, el Dark Lord, el Wizard y la clase 3, con los `rand()` contados y los sprites y los textos grabados),
 `test_own_damage.cpp`, `test_item_set_option_list.cpp` y `test_text_cache.cpp`. Lo que queda para la VM, en P-C123.
 
+### El gremio, la alianza y la guerra
+
+(CL9 hito 8, 2026-11-13, *estático* salvo donde se dice; los paquetes en [04](04-protocolo.md#el-gremio-la-alianza-y-la-guerra-50-66-y-e1-eb).)
+
+**Los globales.** La tabla de los gremios (`[0x723c58]`, entradas de `0x58` bytes en `0x787aa48`, 2.000 lugares,
+la cuenta en `0x723c5c`): `+0` la clave, `+4` el nombre de la alianza (8 y su cero), `+0xd` el del gremio, `+0x16` la
+marca en 64 nibbles. `0x447b00(clave)` la busca de 0 hasta la cuenta *inclusive* (con la cuenta en 0 mira la entrada
+0, que tiene la clave 0; Q-C1280). Justo antes, `0x787a5e8`: 80 lugares de `0xe` bytes con los miembros del `52`; el
+índice −1 de la tabla cae en el miembro 74 (Q-C1281). `0x78aba38` la cuenta del `52` (−1 al salir), `0x78aba3c` el
+puntaje (sin negativos), `0x78aba40` la clave de quien pidió entrar. La guerra: `0x576796c` en guerra,
+`0x576796d` el tipo, `0x576796e` el equipo, `0x5767804` el rival (8 y su cero), `0x57678b4`/`0x57678b8` los puntajes y
+`0x6c82f0` (`.data` −1) el índice del rival. El pedido del `E5`: `0x7d536e0` la relación, `0x7d536ea` el pedido,
+`0x7d536e8`/`0x7d536e9` la clave. En cada personaje, `+0x1f2` el índice del gremio (MOVSX; −1 sin gremio), `+0x368`
+el puesto (`0x80` el maestro, `0x40`, `0x20`; `0xff` sin gremio), `+0x370` la relación y `+0x374` cómo se lo ve en la
+guerra (1 del gremio del héroe, 2 del rival, 0 los demás).
+
+**Los paquetes.**
+
+- `50` (`0x4d74b0`): guarda la clave en `0x78aba40`; con el diálogo de los paneles ocupado (`0x660340` ≠ 0) manda el
+  `51` con 0 y nada más. Si no, busca al personaje (`0x5110d0`; sin él lee fuera de los 400: corta) y abre el diálogo
+  con dos renglones (`sprintf` de los textos 418, con el nombre, y 429 a buffers de `0x32`, Q-C1282), Confirmar y
+  Cancelar (4) y `0x4d6b60`, que responde el `51` con 1 si el motivo es 8 y con 0 si no, y devuelve 1.
+- `51` (`0x4d7a20`): de 0 a 7, el texto 503 + resultado como error (`0x555190` tipo 2); siempre `0x6236f0(0)`.
+- `52` (`0x4d7b60`): la cuenta, el puntaje, el nombre en `+0x88` de la ventana (`0x651650`), las dos listas de la
+  ventana vaciadas (`0x6517d0`, `0x651830`) y cada miembro copiado a `0x787a5e8` y agregado a la lista (`0x6517a0`).
+  Más de 80 pisan la tabla de los gremios: MuRet corta.
+- `53` (`0x4d7c30`): de 0 a 4, el texto 511 + resultado; con 5, el 568 y el `C1 03 52`. Con 1 y con 4 (el `JZ`
+  del 1 cae sobre un `CMP AL,4` y sigue): el 4 con gremio (`+0x1f2` ≠ −1) pone −1 y borra la entrada (la clave −1 y el
+  primer byte de los dos nombres); los dos ponen `+0x368 = 0xff`, `+0x370 = 0`, `0x576796c = 0`,
+  `0x78aba38 = −1` y cierran el gremio (`0x65cae0(0x10)`).
+- `54` (`0x4e4279`): `0x6599a0(0x40000)`, la ventana 2.
+- `56` (`0x4d7ff0`): con 1, los diez primeros bytes del buffer del mensaje (`0x7798bf8`) y su largo en 0,
+  `0x6c8e78 = 10`, cierra la ventana 2 (`0x65cae0(0x40000)`), `0x77f3b10 = 0` y `0x6c8dcc = 6`; con 0, 2..6, los
+  textos 516, 517, 518, 940, 941 y 942 como error.
+- `5D` (`0x4e42f0`): `0x78aba38 = −1`; el personaje de la clave (sin él, escribe fuera: corta) queda con `+0x1f2 = −1`,
+  `+0x368 = 0xff`, `+0x369`, `+0x36c` y `+0x370` en 0, y cierra el gremio.
+- `60` (`0x4d8150`): de 0 a 6, el texto 519 + resultado; con un resultado que no es 1 y sin guerra, apaga la guerra,
+  el índice del rival en −1, el nombre vacío, y vuelve a marcar `+0x374` de los vivos sin el rival.
+- `61` (`0x4e4382`): copia el rival, `0x6236f0(0x7f)` y, con el tipo 1, `0x576796d = 1`.
+- `62` (`0x4d8260`): copia el rival, prende la guerra, el aviso (`sprintf` del 526, o del 533 con el tipo ≠ 0, que
+  también prende `0x576796d`) resaltado (`0x554610(…, 1)`), el equipo; busca el rival por nombre (`strcmp` de `+0xd`)
+  en las entradas 0 a 1.998 (sin encontrarlo queda el índice que había) y, con el índice ≥ 0, marca `+0x374` de los
+  400 vivos (el gremio del héroe se relee en cada vuelta). Después `0x576a60(héroe, héroe, 0xc0, 0x94)` y su
+  `C1 05 18` con `0x94` y la dirección de `+0x24` del héroe.
+- `63` (`0x4d8870`): el aviso resaltado (527..532 de 0 a 5, 480 con 6; con más, el buffer de la pila sin
+  inicializar: corta), `0x5767816 = 0`, la guerra apagada, el rival olvidado y `+0x374` remarcado; con 0, 3 y 5 el
+  gesto `(0xa7, 0x89)`, con 1, 2 y 4 `(0xad, 0x8d)`, con 6 ninguno; cada gesto con su `C1 18`.
+- `64` (`0x4e4400`): prende la guerra y guarda los dos puntajes.
+- `66` (`0x4e42c7` → `0x447b90`): la entrada de la clave (sin ella, nada) con los dos nombres y la marca abierta en
+  nibbles (el alto primero).
+- `E1` (`0x4d9810`): mensaje del sistema (tipo 1): con 1, el tipo 1..3 da 1374..1376; con otro, `0x10` 522, `0x11`
+  1386, `0x12` 1326, `0x13` 1327; si no, `"Invalid GuildAssign"`.
+- `E5` (`[0x7d536f4]→0x6565e0`): con el diálogo ocupado responde el `E6` con 0 sin guardar nada. Si no, guarda los
+  cuatro bytes y, con el personaje de la clave, abre el diálogo con tres renglones de `0x40` (1280 con el nombre y
+  1281/1282 con la alianza, 1284 y 1286/1285 con la rivalidad, y 1283; con otra relación, los buffers sin inicializar:
+  corta) y `0x653c00`, que responde con 1 a Confirmar y con 0 a Cancelar (lo demás, nada) y devuelve 1. El handle va a
+  `+0x2a4` de la ventana 2.
+- `E6` (`0x4d9940`): mensaje del sistema según el resultado (1381/1382/1635 o el inválido con la alianza; 1383/1384
+  con la rivalidad; 1328 con 0; la tabla de `0x10`..`0x20`; si no, `"Invalid GuildRelationShipResult"`); con la clave
+  del jugador, resultado 1, relación 1 y pedido 2 (romper la alianza), borra el nombre de la alianza del gremio del
+  héroe (con −1, el miembro 74: Q-C1281).
+- `E9` (`0x4d9e50`): con el resultado 1, agrega cada fila a la lista de la alianza (`+0x2f8`, `0x6517e0`) sin vaciarla.
+- `EB` (`0x4d9b80`, con el tipo 1): con 0, el texto 1328; con 1, si la lista tiene más de dos filas (la vtable +
+  `0x9c`, *inferido*), `Sleep(500)` (P-C282) y el `C1 03 E9`; después la vacía.
+
+**El globo** (`0x556dd0`): con gremio (`+0x1f2` ≥ 0) y nombre de alianza, `+0x18` es `"<%s> %s"` con el texto de
+`+0x370` (4: 1296 con el maestro, 1295 si no; 2: 1298/1297; 8: 1299; el 1 escribe 1295 y el `default` lo pisa con
+`"<%s>"`) o `"<%s>"`; sin alianza, vacío. `+0x65 = +0x374` y `+0x36` es `"[%s] %s"` con el puesto (0: 1330, `0x80`:
+1300, `0x40`: 1301, `0x20`: 1302) o `"[%s]"`. Sin gremio, los dos vacíos y `+0x65 = 0`. Los dos buffers son de
+`0x1e` bytes (Q-C1283).
+
+**El diálogo de los paneles** (`[0x7d53704]`, `0x65feb0`, `0x1064` bytes). `0x6600d0(renglones, cuenta, paso,
+banderas, función, arriba)`: con más de 10 renglones o con otro abierto (`+0x10` ≠ 0; con el aviso de `0x6d69a8`)
+devuelve 0; si no, `0x660090`, `+0xa24` = arriba, copia cada renglón no vacío (`strcpy` sin tope) y suma
+`cy + 2` de `GetTextExtentPoint32A` con el DC; el alto es eso + `0x2b`, + `0x14` con botones (`& 7`), + `0x11` con el
+campo (`0x10`) y + `0x11` con el reloj (8); el ancho `0xd5`; `GetTickCount()` en `+0xe34` y `+0x10` (el handle que
+devuelve) y el final del reloj (`+0xe3c`, 5.000) en `+0xe38`. Los botones (`+0xe40`, `+0xec8`, `+0xf50`, `+0xfd8`):
+Aceptar o Sí (228), No (229), Confirmar (1037), Cancelar (1038), de `0x32 × 0x12`; sus ids son del contador de
+`0x5762eb0` (P-C280). Los motivos: 1 Enter sin botones, 2 Aceptar/Sí, 4 No, 8 Confirmar, `0x10` Cancelar, `0x20` el
+reloj, y Esc `0x42`, `0x44`, `0x50` o `0x41` según los botones. `0x660410(vk)`: Esc responde siempre; Enter solo con el
+campo. `0x6603c0` cancela (2, 4, `0x10` o 1) sin mirar lo que devuelve. `0x6605b0`: el mouse sobre la caja centrada
+en `(0x140, 0x82)` es de la UI; con `+8` corre ese paso; si no, el reloj (con 8) o los botones (`0x45b200`) eligen el
+motivo. Con la función en 0 se cierra sin llamarla; si devuelve 0 queda abierto; si no, `+4 = 0` y `0x660350`, que
+con el campo vacía el EDIT o el buffer del chat. Lo atienden `0x657880` (la tecla, antes que los paneles), `0x657930`
+(el paso) y `0x657a90` (cerrar todo cancela). El dibujo, `0x660830`: la caja en `x = 0xd6` e `y = 0x82 − alto / 2`
+(nunca menos de 40; 10 con `+0xa24`) y los botones en `y + 0x14 + 15 · renglones (+17 con el campo, +17 con el reloj)
++ 9`, en `0x127` uno solo o `0x104` y `0x14a` dos.
+
+**Las dos ventanas al cerrarse.** `0x6522f0` (`[0x7d536f0]`, el gremio): `+0x7c = 0`, la pestaña 1, `+0x84 = 0`, el
+sonido `0x1c` y, si el diálogo abierto es el suyo (`+0x428`, `0x64fbd0`), lo cancela. `0x6570b0` (`[0x7d536f4]`, la
+ventana 2): la cierra; el héroe con el gremio 1999 (el que `0x4e34a0` pone al abrir el alta) vuelve a −1; el sonido
+`0x1c`; `0x7d536e4`, `0x7d536ec` y `0x77f3b68` en 0; cancela el diálogo si es `+0x2a0` o `+0x2a4` (`0x654f50`) y
+manda `C1 04 54 00`.
+
+**MuRet** (`Scenes::ApplyGuildPacket`, `Scenes/GuildPanels`, `UI::PanelDialog`, `WorldRuntime::guild`): todo lo de
+arriba menos lo que es de la fase 2 (P-C281): el dibujo y el paso de las dos ventanas, sus pestañas y las clases de
+las listas (`0x46b800`..`0x46d630`; MuRet guarda lo que se les agrega), el alta (`0x6552b0`, `0x655d70` y el `01` del
+Guild Master, `0x4e3450`), las ventanas de la alianza que mandan (`0x64e600`, `0x64def0`, `0x650c10`, `0x650830`), el
+dibujo del diálogo (`0x660830`, salvo la parte que ubica los botones) y el marcador (`0x5a7640`, con las marcas de
+`0x5f16a0`). El gesto es `Scenes::PlayTheEmote` (hito 1). Los handlers no sacan `rand()` propios: solo el registro
+de los paneles, y abrir el gremio o la ventana 2 (el `54`) saca los cuatro de `CanOpen` y `CloseByMask` (las
+consultas del comercio y de la tienda); cerrarlos, ninguno.
+
 ## La escena de carga y la de login
 
 Leído en la CL5.R en el desensamblado de `c32bbd5f` (`objdump -d -M intel`), con el decompilado

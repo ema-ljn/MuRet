@@ -809,6 +809,51 @@ solo con `0xfe` y `0xff`); `App::ServerSession` los pasa al mundo y `Scenes::App
 escriben el registro propio que leen los orbes y el AG del HUD (06). Un lugar fuera de la grilla corta con
 `0x4d35f6` o `0x4d3917` (08, P-C150). Los tests usan valores inventados.
 
+### El gremio, la alianza y la guerra: `50`..`66` y `E1`..`EB`
+
+(CL9 hito 8, 2026-11-13, *estático*, contra el GameServer 0.97 reconstruido; la alianza, `E1`..`EB`, no la tiene:
+el ASM del cliente es el oráculo.) `0x4e2b10` los reparte sin mirar la escena ni el flag de cifrado. El `55` y el
+`5C` caen en el `default`: el cliente los ignora (el GS 0.97 manda el `5C`, `GCGuildViewportNowPaint`). Las
+funciones de cada uno y lo que hacen están en [06](06-render-escenas-y-ui.md#el-gremio-la-alianza-y-la-guerra).
+
+| Opcode | Función | Formato (lo que lee) |
+| --- | --- | --- |
+| `50` | `0x4d74b0` | `C1 05 50 <clave:2>`, el byte alto entero (sin `& 0x7f`) |
+| `51`, `53`, `56`, `60` | `0x4d7a20`, `0x4d7c30`, `0x4d7ff0`, `0x4d8150` | `C1 04 <op> <resultado>` |
+| `52` | `0x4d7b60` | C2: `pkt[5]` la cuenta, el DWORD de `pkt[8]` el puntaje (negativo, 0), `pkt[0xd..0x14]` un nombre de gremio y las entradas desde `pkt[0x18]`, de `0xd` bytes: el nombre (10), el número, el servidor (bit 7 conectado, los 7 de abajo; sin él, `0xff`) y el puesto. `pkt[4]` no se lee |
+| `54` | `0x4e4279` | sin campos: abre el panel `0x40000` |
+| `5D` | `0x4e42f0` | `C1 05 5D <clave:2>` con el byte alto `& 0x7f` |
+| `61` | `0x4e4382` | `C1 0C 61 <gremio:8> <tipo>` |
+| `62` | `0x4d8260` | `C1 0D 62 <gremio:8> <tipo> <equipo>` |
+| `63` | `0x4d8870` | `C1 0C 63 <resultado> <gremio:8>`; el nombre no se lee |
+| `64` | `0x4e4400` | `C1 06 64 <nuestro> <suyo> <x>`; `pkt[5]` no se lee |
+| `66` | `0x4e42c7` → `0x447b90` | `C1 39 66 x <clave:4 LE> x <alianza:8> <gremio:8> <marca:32>` |
+| `E1` | `0x4d9810` | `C1 05 E1 <tipo> <resultado>` |
+| `E5` | `0x4e4444` → `0x6565e0` | `C1 07 E5 <relación> <pedido> <clave alta> <clave baja>` |
+| `E6` | `0x4d9940` | `C1 08 E6 <relación> <pedido> <resultado> <clave:2 BE>` |
+| `E9` | `0x4d9e50` | C2: `pkt[4]` la cuenta, `pkt[5]` el resultado; con 1, las entradas desde `pkt[8]`, de `0x29` bytes: un byte, la marca (32) y el nombre (8) |
+| `EB` | `0x4e4486` → `0x4d9b80` | `C1 <op> EB <tipo> [<resultado>]`: `pkt[4]` solo con el tipo 1 |
+
+Lo que manda el cliente, por el socket del GameServer (`0x6c82a0`) sin la capa del `C3`:
+
+- `C1 06 51 <sí> <clave:2>` con el XOR32 (`0x4d6b60`, y `0x4d754d` con el diálogo ocupado: el 0).
+- `C1 03 52`, sin campos (`0x4d7d95`, `0x6599a0(0x10)`).
+- `C1 04 54 <respuesta>` con el XOR32 (`0x6570b0` al cerrar la ventana 2: el 0).
+- `C1 2B 55 <gremio:8> <marca:32>` con el XOR32 (`0x6552b0`, el alta, que MuRet no tiene todavía: P-C281).
+- `C1 05 18 <dirección> <acción>` con el XOR32: la guerra (`0x4d8473` con `0x94`, `0x4d8a39` y `0x4d8e1b` con
+  `0x8d` y `0x89`), después del de `0x576a60`, que manda el suyo si el héroe está parado (hito 1, `Scenes::PlayTheEmote`).
+- `C1 08 E6 <relación> <pedido> <resultado> <clave alta> <clave baja>` con el XOR32 (`0x653c00`, y `0x656616` con el
+  diálogo ocupado: el 0).
+- `C1 03 E9`, sin campos (`0x4d9bc8`).
+
+Contra el GS 0.97 (08, P-C283): el `52` tiene la cabecera de `0x10` bytes y entradas de `0xc` (`PMSG_GUILDLIST`, sin
+el puesto), y el 1.02 lee una de `0x18` y entradas de `0xd`; el `5C` no tiene handler; la alianza (`E1`..`EB`) no
+existe.
+
+**MuRet**: `Protocol::Guild::ReadGuildPacket` lee los 18 (el `52` y el `E9` solo en C2) y sus `Write*` arman lo que
+manda; `App::ServerSession` los registra en un bloque (`RegisterGuildHandlers`) y `Scenes::ApplyGuildPacket` los
+aplica (06). Los tests usan nombres inventados.
+
 ## Qué implica para MuRet
 
 | Original | MuRet | Ola |

@@ -186,6 +186,8 @@ struct ActorState
     std::uint8_t targetY = 0;
     std::uint8_t direction = 0;
     std::uint8_t byte369 = 0;
+    // +0x36c: el 5D lo pone en 0 (0x4e4348); qué es, sin leer en el hito 8.
+    std::uint32_t dword36c = 0;
     std::uint8_t byte370 = 0;
     std::uint8_t byte374 = 0;
     // +0x381: la habilidad activa inhibe la orientación quieta (59b3e4). Retenido por 511290.

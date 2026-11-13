@@ -233,6 +233,9 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> SendItemMove(const Protocol::Inventory::ItemMove& move);
     // El C1 03 42 de 0x6599a0(4), al abrir la ventana de la party (Protocol::Party::WritePartyListRequest), en claro.
     void RequestPartyList();
+    // Los C1 del gremio, de la alianza y de la guerra (Protocol::Guild; CL9 hito 8), como los demás de mundo: sin un
+    // GameServer abierto, un aviso y nada.
+    void SendGuildPacket(Protocol::Outgoing packet);
     // 0x4c609f: el 00 con la escena 2 (el login) pide la lista de servidores, C1 04 F4 02, por el socket que esté
     // abierto, sin mirar cuál es. En el CS es el saludo (OnConnectHello); acá, el que llega por el GS (Q-C511).
     void ResendServerListRequest();
@@ -331,6 +334,7 @@ public:
 private:
     void RegisterConnectServerHandlers();
     void RegisterGameServerHandlers();
+    [[nodiscard]] bool RegisterGuildHandlers();
 
     // Los eventos de la conexión, en orden, hasta que un handler cambie o cierre la conexión.
     void HandleEvents();
@@ -372,6 +376,8 @@ private:
     void OnItemPut(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
     void OnMainCheck(const Network::Packet& packet);
+    // CL9 hito 8: los 18 paquetes del gremio, de la alianza y de la guerra (Protocol::Guild::ReadGuildPacket).
+    void OnGuild(const Network::Packet& packet);
     // El F1 02 con 1, con `encrypted` en el flag del paquete.
     void ReturnToSelection(bool encrypted);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.

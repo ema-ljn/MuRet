@@ -108,6 +108,16 @@ public:
         m_session->RequestPartyList();
     }
 
+    void SendGuildPacket(Protocol::Outgoing packet) override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no se manda el paquete del gremio: no hay servidor");
+            return;
+        }
+        m_session->SendGuildPacket(std::move(packet));
+    }
+
     // 0x61c170: fopen("wt") crea el archivo o lo vacía. Lo que guardan las macros no va al log.
     Core::Expected<void, std::string> SaveMacros(std::string_view content) override
     {
@@ -329,7 +339,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                            .altDown = input.IsDown(Input::Key::Alt),
                            .sprites = canvas.sprites,
                            .text = canvas.text,
-                           .projecting = m_projectingFrame};
+                           .projecting = m_projectingFrame,
+                           .texts = m_texts};
     if (auto drawn = DrawTheHover(hover); !drawn.HasValue())
         return drawn;
     // 0x637660: 0x5a7320(1), el HUD, con 0x7d36899 en 0.

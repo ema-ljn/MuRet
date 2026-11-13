@@ -4,6 +4,7 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/GuildPanels.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnDerivedStats.h"
@@ -80,5 +81,15 @@ void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)
         runtime.hud.partyCount = 0;
         requests->RequestPartyList();
     };
+}
+
+void GamePanels::LendTheGuild(WorldState& world, const GuildSender& send)
+{
+    LendTheGuildTo(m_context, world, send);
+}
+
+void GamePanels::LendThePanelDialogStep(WorldState& world, std::int32_t mouseX, std::int32_t mouseY, std::uint32_t now)
+{
+    LendThePanelDialogStepTo(m_context, world, mouseX, mouseY, now);
 }
 } // namespace Client::Scenes

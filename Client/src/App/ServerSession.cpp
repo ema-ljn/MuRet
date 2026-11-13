@@ -35,6 +35,7 @@
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/Guild.h"
 #include "Protocol/Party.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/World.h"
@@ -264,8 +265,24 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnItemPut(packet); }) &&
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); }) &&
         m_gameServer.On(Protocol::Connection::MainCheckOpcode,
-                        [this](const Network::Packet& packet) { OnMainCheck(packet); });
+                        [this](const Network::Packet& packet) { OnMainCheck(packet); }) &&
+        RegisterGuildHandlers();
     assert(registered && "los handlers del GameServer se registran una vez");
+}
+
+// CL9 hito 8: el gremio, la alianza y la guerra (0x4e2b10 con 50..54, 56, 5D, 60..64, 66, E1, E5, E6, E9 y EB). El
+// 55 y el 5C caen en el default del original: no se registran.
+bool ServerSession::RegisterGuildHandlers()
+{
+    using namespace Protocol::Guild;
+    for (const std::uint8_t opcode :
+         {JoinRequestOpcode, JoinResultOpcode, MemberListOpcode, LeaveResultOpcode, MasterQuestionOpcode,
+          CreateResultOpcode, ViewportGuildDeleteOpcode, GuildInfoOpcode})
+    {
+        if (!m_gameServer.On(opcode, [this](const Network::Packet& packet) { OnGuild(packet); }))
+            return false;
+    }
+    return true;
 }
 
 void ServerSession::Start()
@@ -1021,6 +1038,17 @@ void ServerSession::OnWhisperResult(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
 }
 
+void ServerSession::OnGuild(const Network::Packet& packet)
+{
+    auto guild = Protocol::Guild::ReadGuildPacket(packet);
+    if (!guild.HasValue())
+    {
+        m_log.Warning("se ignora el paquete del gremio: {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(guild).Value(), *this)));
+}
+
 void ServerSession::OnNotice(const Network::Packet& packet)
 {
     const auto notice = Protocol::Messages::ReadNotice(packet);
@@ -1214,6 +1242,11 @@ void ServerSession::RequestCastleSiegeState()
 void ServerSession::RequestPartyList()
 {
     static_cast<void>(SendWorldPacket(Protocol::Party::WritePartyListRequest()));
+}
+
+void ServerSession::SendGuildPacket(Protocol::Outgoing packet)
+{
+    static_cast<void>(SendWorldPacket(std::move(packet)));
 }
 
 std::span<const std::vector<std::byte>> ServerSession::Teleports() const

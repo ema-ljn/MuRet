@@ -154,7 +154,8 @@ Core::Expected<void, std::string> ApplyChat(const Protocol::Messages::Chat& chat
     const std::string name = SpeakerName(chat);
     const std::string_view raw = chat.text;
     const char mark = raw.empty() ? '\0' : raw.front();
-    const ChatBubbleMeasure bubbleMeasure{.measure = *measure.Value(), .screen = context.screen};
+    const ChatBubbleMeasure bubbleMeasure{
+        .measure = *measure.Value(), .screen = context.screen, .texts = context.texts};
     if (mark == PartyMark)
         return AddMessage(context, name, CopiedText(raw, 1, MarkedTextBytes), UI::PartyMessage);
     if (mark == GuildMark)
@@ -181,13 +182,16 @@ Core::Expected<void, std::string> ApplyKeyChat(const Protocol::Messages::KeyChat
     const auto actors = world.Actors();
     const ActorState& speaker = actors[index];
     if (actors[world.Runtime().hero].guildStatus == GuildMasterStatus && IsTheGuildMaster(speaker))
-        return Core::Unexpected(std::string("0x4e3450: el 01 del Guild Master abre la ventana del gremio "
-                                            "(0x6599a0 con 0x40000), que es de la CL9.4"));
+        return Core::Unexpected(
+            std::string("0x4e3450: el 01 del Guild Master abre la ventana 2 del gremio (0x6599a0 "
+                        "con 0x40000) y prende el campo del nombre (0x553570(0), 0x77f3b68), que "
+                        "es del alta del gremio (0x6552b0), del hito 8 de la CL9, fase 2 (P-C281)"));
     auto measure = MeasureOf(context, "0x4e34d6");
     if (!measure.HasValue())
         return Core::Unexpected(measure.Error());
-    return AddChatBubble(world, ChatBubbleMeasure{.measure = *measure.Value(), .screen = context.screen},
-                         ChatNameOf(speaker), CString(chat.text), index, ChatBubbleMode::Chat);
+    return AddChatBubble(
+        world, ChatBubbleMeasure{.measure = *measure.Value(), .screen = context.screen, .texts = context.texts},
+        ChatNameOf(speaker), CString(chat.text), index, ChatBubbleMode::Chat);
 }
 
 Core::Expected<void, std::string> ApplyWhisper(const Protocol::Messages::Whisper& whisper,

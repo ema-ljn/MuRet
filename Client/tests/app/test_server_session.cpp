@@ -26,6 +26,7 @@
 #include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/Guild.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
@@ -4515,6 +4516,46 @@ TEST(ServerSessionTest, PartyListRequestGoesClearToTheGameServerOnly)
     ASSERT_EQ(received.packets.size(), before + 1);
     EXPECT_TRUE(SameBytes(received.packets.back().Bytes(), Bytes({0xc1, 3, 0x42})));
     EXPECT_FALSE(received.packets.back().WasDecrypted());
+}
+
+// CL9 hito 8: los paquetes del gremio (un C1 y el C2 de la lista) llegan al sink como Protocol::Guild::GuildPacket; uno
+// que no se lee se ignora sin cortar la sesión.
+TEST(ServerSessionTest, GuildPacketsReachTheSink)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto join = Bytes({0xc1, 5, 0x50, 0x01, 0x23});
+    const auto list =
+        Bytes({0xc2, 0, 0x18, 0x52, 1, 0, 0, 0, 5, 0, 0, 0, 0, 'T', 'e', 'r', 'o', 's', 0, 0, 0, 0, 0, 0});
+    const auto broken = Bytes({0xc1, 3, 0x51});
+    const auto refresh = Bytes({0xc1, 4, 0x53, 5});
+    tested.socket.reads = {Join({join, list, broken, refresh})};
+    EXPECT_TRUE(tested.session.Poll().HasValue());
+    ASSERT_EQ(tested.eventSink.world.size(), 3u);
+    const auto* asked = std::get_if<Client::Protocol::Guild::GuildPacket>(&tested.eventSink.world[0]);
+    ASSERT_NE(asked, nullptr);
+    EXPECT_EQ(std::get<Client::Protocol::Guild::JoinRequest>(*asked).key, 0x0123);
+    const auto* listed = std::get_if<Client::Protocol::Guild::GuildPacket>(&tested.eventSink.world[1]);
+    ASSERT_NE(listed, nullptr);
+    EXPECT_EQ(std::get<Client::Protocol::Guild::MemberList>(*listed).score, 5);
+    const auto* refreshed = std::get_if<Client::Protocol::Guild::GuildPacket>(&tested.eventSink.world[2]);
+    ASSERT_NE(refreshed, nullptr);
+    EXPECT_EQ(std::get<Client::Protocol::Guild::LeaveResult>(*refreshed).result, 5);
+    EXPECT_NE(tested.session.State(), SessionState::Failed);
+}
+
+// Lo que mandan las respuestas del gremio va por el GameServer tal cual lo arma Protocol::Guild.
+TEST(ServerSessionTest, GuildPacketsGoToTheGameServer)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto before = tested.GameServerReads().packets.size();
+    tested.session.SendGuildPacket(Client::Protocol::Guild::WriteMemberListRequest());
+    tested.session.SendGuildPacket(Client::Protocol::Guild::WriteJoinAnswer(true, 0x0123));
+    const auto received = tested.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 2);
+    EXPECT_TRUE(SameBytes(received.packets[before].Bytes(), Bytes({0xc1, 3, 0x52})));
+    EXPECT_TRUE(SameBytes(Xor32Decode(received.packets[before + 1]).Bytes(), Bytes({0xc1, 6, 0x51, 1, 0x01, 0x23})));
 }
 
 TEST(ServerSessionTest, FacingCannotGoToTheConnectServerOrAClosedConnection)

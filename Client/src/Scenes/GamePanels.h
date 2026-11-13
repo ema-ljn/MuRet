@@ -1,7 +1,10 @@
 #pragma once
 
 #include "Data/Tables/ItemTable.h"
+#include "Scenes/GuildPanels.h"
 #include "UI/PanelRegistry.h"
+
+#include <cstdint>
 
 namespace Client::Data::Tables
 {
@@ -49,6 +52,13 @@ public:
     // 0x659aa0..0x659c3d: con `requests`, abrir la party pone en 0 la cuenta de `world` (HudState::partyCount) y pide
     // la lista (C1 03 42). Lo presta el paso de la UI, el que abre la party; sin él, o con nullptr, abrirla corta.
     void LendThePartyList(WorldState& world, IGameUiRequests* requests);
+
+    // CL9 hito 8: abrir el gremio pide la lista (C1 03 52), cerrar sus dos ventanas (0x6522f0 y 0x6570b0) y responder
+    // al diálogo de los paneles (0x4d6b60 y 0x653c00), con `send`. Sin él, lo que lo usa corta.
+    void LendTheGuild(WorldState& world, const GuildSender& send);
+
+    // 0x6605b0 en el paso de la UI, con el mouse en 640 × 480 y el reloj del paso.
+    void LendThePanelDialogStep(WorldState& world, std::int32_t mouseX, std::int32_t mouseY, std::uint32_t now);
 
 private:
     UI::PanelContext m_context;

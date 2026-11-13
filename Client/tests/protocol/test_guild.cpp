@@ -1,0 +1,189 @@
+#include "Protocol/Guild.h"
+
+#include "Network/Crypto/Xor32.h"
+#include "Network/Delivery.h"
+#include "Protocol/Outgoing.h"
+#include "Protocol/ProtocolError.h"
+
+#include "support/Bytes.h"
+#include "support/ExpectedError.h"
+#include "support/Packets.h"
+#include "support/SameBytes.h"
+
+#include <gtest/gtest.h>
+
+#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <string_view>
+#include <variant>
+#include <vector>
+
+// Los paquetes del gremio (CL9 hito 8; 04 § El gremio, la alianza y la guerra): lo que leen 0x4e2b10 y sus funciones y
+// lo que mandan las respuestas. Los nombres de gremio y de personaje son inventados.
+namespace
+{
+using Client::Network::Delivery;
+using Client::Network::Crypto::Xor32Decode;
+using Client::Protocol::ProtocolError;
+using Client::Tests::Bytes;
+using Client::Tests::ErrorOf;
+using Client::Tests::PacketOf;
+using Client::Tests::SameBytes;
+namespace Guild = Client::Protocol::Guild;
+
+void Append(std::vector<std::byte>& bytes, std::string_view text, std::size_t size)
+{
+    for (std::size_t i = 0; i < size; ++i)
+        bytes.push_back(i < text.size() ? static_cast<std::byte>(text[i]) : std::byte{0});
+}
+
+void AppendFilled(std::vector<std::byte>& bytes, std::size_t size, int value)
+{
+    for (std::size_t i = 0; i < size; ++i)
+        bytes.push_back(static_cast<std::byte>(value));
+}
+
+std::string TextOf(const Guild::GuildName& name)
+{
+    std::string text;
+    for (const std::byte value : name)
+    {
+        if (value == std::byte{0})
+            break;
+        text.push_back(static_cast<char>(value));
+    }
+    return text;
+}
+
+template <typename Read> Read ReadAs(const std::vector<std::byte>& bytes)
+{
+    const auto read = Guild::ReadGuildPacket(PacketOf(bytes));
+    EXPECT_TRUE(read.HasValue());
+    if (!read.HasValue())
+        return {};
+    EXPECT_TRUE(std::holds_alternative<Read>(read.Value()));
+    if (!std::holds_alternative<Read>(read.Value()))
+        return {};
+    return std::get<Read>(read.Value());
+}
+
+std::vector<std::byte> PlainOf(const Client::Protocol::Outgoing& sent)
+{
+    const auto plain = Xor32Decode(sent.packet);
+    return {plain.Bytes().begin(), plain.Bytes().end()};
+}
+
+std::vector<std::byte> RawOf(const Client::Protocol::Outgoing& sent)
+{
+    return {sent.packet.Bytes().begin(), sent.packet.Bytes().end()};
+}
+
+// 0x4d74d6: el 50 arma la clave con el byte alto entero; 0x4e42fb, el 5D, le saca el bit 7.
+TEST(GuildProtocolTest, TheJoinRequestKeepsTheHighBitAndTheViewportDeleteDropsIt)
+{
+    EXPECT_EQ(ReadAs<Guild::JoinRequest>(Bytes({0xc1, 0x05, 0x50, 0x81, 0x23})).key, 0x8123);
+    EXPECT_EQ(ReadAs<Guild::ViewportGuildDelete>(Bytes({0xc1, 0x05, 0x5d, 0x81, 0x23})).key, 0x0123);
+}
+
+// Los de un byte de resultado en pkt[3], y el 54, que no se lee.
+TEST(GuildProtocolTest, TheResultsReadTheFourthByte)
+{
+    EXPECT_EQ(ReadAs<Guild::JoinResult>(Bytes({0xc1, 0x04, 0x51, 0x07})).result, 7);
+    EXPECT_EQ(ReadAs<Guild::LeaveResult>(Bytes({0xc1, 0x04, 0x53, 0x05})).result, 5);
+    EXPECT_EQ(ReadAs<Guild::CreateResult>(Bytes({0xc1, 0x04, 0x56, 0x01})).result, 1);
+    static_cast<void>(ReadAs<Guild::MasterQuestion>(Bytes({0xc1, 0x03, 0x54})));
+}
+
+// 0x4d7b60: un C2 con la cuenta en pkt[5], el puntaje en pkt[8], el nombre en pkt[0xd] y las entradas de 0xd bytes
+// desde pkt[0x18].
+TEST(GuildProtocolTest, TheMemberListReadsItsEntriesFromTheTwentyFourthByte)
+{
+    std::vector<std::byte> bytes =
+        Bytes({0xc2, 0x00, 0x32, 0x52, 0x01, 0x02, 0xee, 0xee, 0xfb, 0xff, 0xff, 0xff, 0xee});
+    Append(bytes, "Horneros", 8);
+    AppendFilled(bytes, 3, 0xee);
+    Append(bytes, "Tordo", 10);
+    bytes.insert(bytes.end(), {std::byte{3}, std::byte{0x84}, std::byte{0x80}});
+    Append(bytes, "Benteveo1x", 10);
+    bytes.insert(bytes.end(), {std::byte{9}, std::byte{0x05}, std::byte{0x00}});
+    ASSERT_EQ(bytes.size(), 0x32u);
+
+    const auto list = ReadAs<Guild::MemberList>(bytes);
+    EXPECT_EQ(list.count, 2);
+    EXPECT_EQ(list.score, -5);
+    EXPECT_EQ(TextOf(list.name), "Horneros");
+    ASSERT_EQ(list.members.size(), 2u);
+    EXPECT_EQ(list.members[0].number, 3);
+    EXPECT_EQ(list.members[0].server, 0x84);
+    EXPECT_EQ(list.members[0].status, 0x80);
+    EXPECT_EQ(list.members[1].name[9], std::byte{'x'});
+    EXPECT_EQ(list.members[1].server, 0x05);
+
+    std::vector<std::byte> shorter(bytes.begin(), bytes.end() - 1);
+    shorter[2] = std::byte{0x31};
+    EXPECT_EQ(ErrorOf(Guild::ReadGuildPacket(PacketOf(shorter))), ProtocolError::TooShort);
+}
+
+// 0x4e42c7: la clave en pkt[4], los nombres en pkt[9] y pkt[0x11] y la marca en pkt[0x19].
+TEST(GuildProtocolTest, TheGuildInfoReadsTheKeyTheNamesAndTheMark)
+{
+    std::vector<std::byte> bytes = Bytes({0xc1, 0x39, 0x66, 0xee, 0x2a, 0x00, 0x00, 0x00, 0xee});
+    Append(bytes, "Ceibos", 8);
+    Append(bytes, "Horneros", 8);
+    for (int i = 0; i < 32; ++i)
+        bytes.push_back(static_cast<std::byte>(i * 7));
+    ASSERT_EQ(bytes.size(), 0x39u);
+    const auto info = ReadAs<Guild::GuildInfo>(bytes);
+    EXPECT_EQ(info.key, 42);
+    EXPECT_EQ(TextOf(info.unionName), "Ceibos");
+    EXPECT_EQ(TextOf(info.guildName), "Horneros");
+    EXPECT_EQ(info.mark[0], 0);
+    EXPECT_EQ(info.mark[31], 31 * 7);
+}
+
+TEST(GuildProtocolTest, TheWrongTypeOrOpcodeIsNotAGuildPacket)
+{
+    EXPECT_EQ(ErrorOf(Guild::ReadGuildPacket(PacketOf(Bytes({0xc1, 0x06, 0x52, 0x00, 0x00, 0x00})))),
+              ProtocolError::WrongPacket);
+    EXPECT_EQ(ErrorOf(Guild::ReadGuildPacket(PacketOf(Bytes({0xc2, 0x00, 0x06, 0x50, 0x00, 0x00})))),
+              ProtocolError::WrongPacket);
+    EXPECT_EQ(ErrorOf(Guild::ReadGuildPacket(PacketOf(Bytes({0xc1, 0x04, 0x55, 0x00})))), ProtocolError::WrongPacket);
+    EXPECT_EQ(ErrorOf(Guild::ReadGuildPacket(PacketOf(Bytes({0xc1, 0x04, 0x5c, 0x00})))), ProtocolError::WrongPacket);
+    EXPECT_EQ(ErrorOf(Guild::ReadGuildPacket(PacketOf(Bytes({0xc1, 0x03, 0x51})))), ProtocolError::TooShort);
+}
+
+// 0x4d6b60: C1 06 51 [sí] [clave], con el XOR32 y en claro.
+TEST(GuildProtocolTest, TheJoinAnswerCarriesTheKey)
+{
+    const auto yes = Guild::WriteJoinAnswer(true, 0x1234);
+    EXPECT_EQ(yes.delivery, Delivery::Clear);
+    EXPECT_TRUE(SameBytes(PlainOf(yes), Bytes({0xc1, 0x06, 0x51, 0x01, 0x12, 0x34})));
+    EXPECT_NE(yes.packet.Bytes()[3], std::byte{0x01});
+    EXPECT_TRUE(SameBytes(PlainOf(Guild::WriteJoinAnswer(false, 0x8001)), Bytes({0xc1, 0x06, 0x51, 0x00, 0x80, 0x01})));
+}
+
+// El pedido de tres bytes va tal cual (C1 03 52); el 54, con el XOR32.
+TEST(GuildProtocolTest, TheRequestsAndAnswersHaveTheirBytes)
+{
+    EXPECT_TRUE(SameBytes(RawOf(Guild::WriteMemberListRequest()), Bytes({0xc1, 0x03, 0x52})));
+    EXPECT_TRUE(SameBytes(PlainOf(Guild::WriteMasterAnswer(0)), Bytes({0xc1, 0x04, 0x54, 0x00})));
+}
+
+// 0x6552b0: C1 2B 55, el nombre y la marca de 32 bytes.
+TEST(GuildProtocolTest, TheCreateCarriesTheNameAndTheMark)
+{
+    Guild::GuildName name{};
+    const std::string_view invented = "Horneros";
+    for (std::size_t i = 0; i < name.size(); ++i)
+        name[i] = static_cast<std::byte>(invented[i]);
+    Guild::GuildMark mark{};
+    for (std::size_t i = 0; i < mark.size(); ++i)
+        mark[i] = static_cast<std::uint8_t>(0x11 * (i % 16));
+    std::vector<std::byte> expected = Bytes({0xc1, 0x2b, 0x55});
+    Append(expected, invented, 8);
+    for (const std::uint8_t value : mark)
+        expected.push_back(std::byte{value});
+    EXPECT_TRUE(SameBytes(PlainOf(Guild::WriteCreate(name, mark)), expected));
+}
+} // namespace

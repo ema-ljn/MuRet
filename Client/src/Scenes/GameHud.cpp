@@ -31,6 +31,7 @@
 #include "Scenes/OwnInventory.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/UiItemDrawing.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -39,6 +40,7 @@
 #include "UI/GameText.h"
 #include "UI/HudPrimitives.h"
 #include "UI/MessageArea.h"
+#include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
 #include "UI/SprintfFormat.h"
@@ -873,8 +875,14 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     if (panels.IsOpen(UI::SecondGuildPanel) || panels.IsOpen(UI::GuildPanel) || panels.IsOpen(UI::CastleSiegePanel) ||
         panels.IsOpen(UI::CastleSiegeListPanel) || panels.IsOpen(UI::SecondCastleSiegePanel))
         return cut("0x6579e0: las ventanas del gremio y del asedio son de la CL9.4 y la CL9.5");
-    if (state.delegated.panelDialog != 0)
-        return cut("0x660830: el diálogo de los paneles (lo abre 0x6600d0 desde los paquetes) es de la CL9.4 (P-C90)");
+    if (UI::PanelDialogHandle(state.delegated.panelDialog) != 0)
+    {
+        // 0x660830: la caja y los botones van donde los lee el paso (0x6605b0); lo que se ve, no.
+        static_cast<void>(UI::PlaceThePanelDialog(frame.runtime.panels.delegated.panelDialog));
+        return cut(
+            "0x660830: el dibujo del diálogo de los paneles (la caja de 0x6576a0, los renglones de 0x5542f0 y los "
+            "botones) es del hito 8 de la CL9, fase 2 (P-C281)");
+    }
     return {};
 }
 
@@ -1461,7 +1469,12 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     hud.textColors.text = 0xffffffffu;
     // 1. 0x5a7520.
     DrawTheSands(frame);
-    // 2. 0x5a7640: la guerra de gremios, con 0x576796c (CL9.4): nada.
+    // 2. 0x5a7640: el marcador de la guerra de gremios, con 0x576796c y el héroe con gremio. Dibuja las dos marcas
+    // (0x5f16a0), que llegan con la del viewport (0x50d533, hito 8 de la CL9, fase 2, P-C281).
+    if (runtime.guild.warOn != 0 && static_cast<std::int16_t>(frame.hero.word1f2) != NoGuildIndex)
+        return Core::Unexpected(
+            std::string("0x5a7640: el marcador de la guerra de gremios dibuja las marcas de 0x5f16a0, "
+                        "que no están portadas (P-C281)"));
     // 3. 0x5a89b0: las barras de la party.
     if (hud.partyCount > 0)
         return Core::Unexpected(std::string("0x5a89b0: las barras de vida de la party son de la CL9.4"));

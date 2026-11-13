@@ -1,21 +1,27 @@
 #include "Scenes/ChatBubbles.h"
 
 #include "App/WindowState.h"
+#include "Data/Text/TextTable.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
+#include "support/SceneDataFiles.h"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 
 // Los globos (CL8 hito 3; 06 § El chat, "Los globos"): 0x557170, 0x557560 y 0x557650. Los nombres y los textos son
 // inventados.
@@ -133,12 +139,111 @@ TEST_F(ChatBubblesTest, ByNamePrefersPlayers)
     EXPECT_EQ(Bubbles()[0].owner, std::optional<std::size_t>(9));
 }
 
-// 0x556e95: un personaje con gremio lee la tabla de los gremios, de la CL9.4.
-TEST_F(ChatBubblesTest, ASpeakerWithAGuildIsCut)
+// Un Text.bmd inventado con los puestos de 0x556dd0.
+Client::Data::Text::TextTable GuildPosts()
 {
-    Speaker(4, "Tordo").word1f2 = 3;
+    const std::map<std::size_t, std::string> texts{{1295, "aliado"},     {1296, "jefe aliado"}, {1297, "rival"},
+                                                   {1298, "jefe rival"}, {1299, "ocho"},        {1300, "jefe"},
+                                                   {1301, "segundo"},    {1302, "guerrero"},    {1330, "socio"}};
+    auto table = Client::Data::Text::LoadTextTable(Client::Tests::TextTableBytes(texts));
+    EXPECT_TRUE(table.HasValue());
+    return std::move(table).Value();
+}
+
+void NameTheGuild(WorldState& world, std::size_t index, std::string_view unionName, std::string_view guildName)
+{
+    Client::Scenes::GuildTableEntry& entry = world.Runtime().guild.table[index];
+    entry.unionName.fill('\0');
+    entry.guildName.fill('\0');
+    std::copy(unionName.begin(), unionName.end(), entry.unionName.begin());
+    std::copy(guildName.begin(), guildName.end(), entry.guildName.begin());
+}
+
+// 0x556e95..0x557139: la alianza por +0x370 (con +0x368 en 0x80, el texto del jefe), +0x65 = +0x374 y el gremio con el
+// puesto de +0x368.
+TEST_F(ChatBubblesTest, ASpeakerWithAGuildShowsTheUnionAndThePost)
+{
+    const Client::Data::Text::TextTable texts = GuildPosts();
+    NameTheGuild(*m_world, 3, "Ceibos", "Horneros");
+    struct Case
+    {
+        std::uint8_t relation;
+        std::uint8_t status;
+        std::string guild;
+        std::string post;
+    };
+    const Case cases[] = {
+        {4, 0x80, "<Ceibos> jefe aliado", "[Horneros] jefe"},
+        {4, 0x00, "<Ceibos> aliado", "[Horneros] socio"},
+        {2, 0x80, "<Ceibos> jefe rival", "[Horneros] jefe"},
+        {2, 0x40, "<Ceibos> rival", "[Horneros] segundo"},
+        {8, 0x20, "<Ceibos> ocho", "[Horneros] guerrero"},
+        // 0x556eb4: con 1, "<%s> %s" y después el default, "<%s>".
+        {1, 0x80, "<Ceibos>", "[Horneros] jefe"},
+        {0, 0xff, "<Ceibos>", "[Horneros]"},
+    };
+    for (const Case& c : cases)
+    {
+        SCOPED_TRACE(c.guild + " " + c.post);
+        ActorState& speaker = Speaker(4, "Tordo");
+        speaker.word1f2 = 3;
+        speaker.byte370 = c.relation;
+        speaker.guildStatus = c.status;
+        speaker.byte374 = 2;
+        ChatBubbleMeasure measure = Measure();
+        measure.texts = &texts;
+        ASSERT_TRUE(
+            Client::Scenes::AddChatBubble(*m_world, measure, "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
+        EXPECT_EQ(Bubbles()[0].guild, c.guild);
+        EXPECT_EQ(Bubbles()[0].guildPost, c.post);
+        EXPECT_EQ(Bubbles()[0].guildByte, 2);
+    }
+}
+
+// 0x556ea5 y 0x55701e: sin alianza, +0x18 vacío; sin gremio otra vez, los dos vacíos y +0x65 en 0.
+TEST_F(ChatBubblesTest, WithoutAUnionOrAGuildTheLinesAreEmpty)
+{
+    const Client::Data::Text::TextTable texts = GuildPosts();
+    NameTheGuild(*m_world, 5, "", "Teros");
+    ActorState& speaker = Speaker(4, "Tordo");
+    speaker.word1f2 = 5;
+    speaker.guildStatus = 0;
+    speaker.byte374 = 1;
+    ChatBubbleMeasure measure = Measure();
+    measure.texts = &texts;
+    ASSERT_TRUE(Client::Scenes::AddChatBubble(*m_world, measure, "Tordo", "uno", 4, ChatBubbleMode::Chat).HasValue());
+    EXPECT_EQ(Bubbles()[0].guild, "");
+    EXPECT_EQ(Bubbles()[0].guildPost, "[Teros] socio");
+    EXPECT_EQ(Bubbles()[0].guildByte, 1);
+
+    speaker.word1f2 = 0xffff;
+    ASSERT_TRUE(Client::Scenes::AddChatBubble(*m_world, measure, "Tordo", "dos", 4, ChatBubbleMode::Chat).HasValue());
+    EXPECT_EQ(Bubbles()[0].guild, "");
+    EXPECT_EQ(Bubbles()[0].guildPost, "");
+    EXPECT_EQ(Bubbles()[0].guildByte, 0);
+}
+
+// Sin Text.bmd, o con un renglón de 0x1e bytes o más (Q-C1283), corta; fuera de la tabla, también.
+TEST_F(ChatBubblesTest, AGuildLineThatDoesNotFitIsCut)
+{
+    NameTheGuild(*m_world, 3, "", "Horneros");
+    ActorState& speaker = Speaker(4, "Tordo");
+    speaker.word1f2 = 3;
+    speaker.guildStatus = 0x80;
     EXPECT_FALSE(
         Client::Scenes::AddChatBubble(*m_world, Measure(), "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
+
+    const auto longPost =
+        Client::Data::Text::LoadTextTable(Client::Tests::TextTableBytes({{1300, "un puesto largo de mas"}}));
+    ASSERT_TRUE(longPost.HasValue());
+    ChatBubbleMeasure measure = Measure();
+    measure.texts = &longPost.Value();
+    const auto cut = Client::Scenes::AddChatBubble(*m_world, measure, "Tordo", "hola", 4, ChatBubbleMode::Chat);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("Q-C1283"), std::string::npos);
+
+    speaker.word1f2 = 2000;
+    EXPECT_FALSE(Client::Scenes::AddChatBubble(*m_world, measure, "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
 }
 
 // 0x557650: los relojes bajan y, con el dueño muerto, quedan en 0.

@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Render/Models/LogicalAccess.h"
 #include "UI/Dialogs.h"
+#include "UI/PanelDialog.h"
 
 #include <array>
 #include <cstdint>
@@ -69,10 +70,11 @@ const char* WaveOf(PanelId id)
     case FriendsPanel:
         return "el administrador viejo (hito 7) y la CL9.4";
     case GuildPanel:
+    case SecondGuildPanel:
+        return "la CL9.4 (hito 8, las ventanas del gremio)";
     case TradePanel:
     case PersonalShopPanel:
     case OtherShopPanel:
-    case SecondGuildPanel:
         return "la CL9.4";
     case WarehousePanel:
     case ChaosBoxPanel:
@@ -256,9 +258,34 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
             m_state.delegated.commands = 1;
         break;
     }
+    case GuildPanel:
+    {
+        // 0x659c7a..0x659e41: con lo que cerró, el C1 03 52 y 0x6522d0.
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            if (!m_context.guildOpened)
+                return Core::Unexpected(
+                    std::string("0x6599a0(0x10): abrir el gremio pide la lista (C1 03 52) sin el cable"));
+            m_context.guildOpened();
+            m_state.delegated.guild = 1;
+        }
+        break;
+    }
+    case SecondGuildPanel:
+    {
+        // 0x65be98..0x65beb5: con lo que cerró, 0x657090.
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+            m_state.delegated.secondGuild = 1;
+        break;
+    }
     case FriendsPanel:
     case QuestPanel:
-    case GuildPanel:
     case TradePanel:
     case WarehousePanel:
     case ChaosBoxPanel:
@@ -270,7 +297,6 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
     case TrainerPanel:
     case NpcShopPanel:
     case OtherShopPanel:
-    case SecondGuildPanel:
     case CastleSiegePanel:
     case CastleSiegeListPanel:
     case SecondCastleSiegePanel:
@@ -393,6 +419,17 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask)
         case CommandsPanel:
             ResetTheCommands(m_state.delegated);
             break;
+        case GuildPanel:
+        case SecondGuildPanel:
+        {
+            // 0x657c6a y 0x657c9c: la vtable + 0x2c de [0x7d536f0] (0x6522f0) y de [0x7d536f4] (0x6570b0).
+            const auto& closer = id == GuildPanel ? m_context.guildClosed : m_context.secondGuildClosed;
+            if (!closer)
+                return Core::Unexpected(CloseCut(id));
+            if (auto window = closer(); !window.HasValue())
+                return Core::Unexpected(std::move(window).Error());
+            break;
+        }
         case InventoryPanel:
             // 0x659250..0x65926a.
             m_state.inventory = 0;
@@ -410,8 +447,10 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask)
 
 Core::Expected<bool, std::string> PanelRegistry::PanelKey(std::int32_t virtualKey)
 {
-    if (m_state.delegated.panelDialog != 0)
-        return Core::Unexpected(std::string("0x660410: las teclas del diálogo de los paneles son de la CL9.4 (P-C90)"));
+    // 0x657880: 0x660410 primero, que cerrado da 0.
+    auto dialog = ThePanelDialogKey(m_state.delegated.panelDialog, virtualKey, m_context.panelDialogAnswer);
+    if (!dialog.HasValue() || dialog.Value())
+        return dialog;
     if (virtualKey != EscapeKey)
         return false;
     for (PanelId bit = 1; bit <= LastScannedBit; bit <<= 1)
@@ -431,15 +470,19 @@ Core::Expected<void, std::string> PanelRegistry::CloseAll()
     auto closed = CloseByMask(AllPanels);
     if (!closed.HasValue())
         return Core::Unexpected(std::move(closed).Error());
-    if (m_state.delegated.panelDialog != 0)
-        return Core::Unexpected(std::string("0x6603c0: cerrar el diálogo de los paneles es de la CL9.4 (P-C90)"));
-    return {};
+    return CancelThePanelDialog(m_state.delegated.panelDialog, m_context.panelDialogAnswer);
 }
 
 Core::Expected<void, std::string> PanelRegistry::StepTheObjectPanels()
 {
-    if (m_state.delegated.panelDialog != 0)
-        return Core::Unexpected(std::string("0x6605b0: el paso del diálogo de los paneles es de la CL9.4 (P-C90)"));
+    if (PanelDialogHandle(m_state.delegated.panelDialog) != 0)
+    {
+        if (!m_context.panelDialogStep)
+            return Core::Unexpected(
+                std::string("0x6605b0: el paso del diálogo de los paneles sin el mouse ni el reloj"));
+        if (auto dialog = m_context.panelDialogStep(); !dialog.HasValue())
+            return dialog;
+    }
     for (const PanelId id :
          {SecondGuildPanel, GuildPanel, CastleSiegePanel, CastleSiegeListPanel, SecondCastleSiegePanel})
     {

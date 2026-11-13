@@ -400,6 +400,40 @@ TEST(PanelRegistryTest, OpeningThePartyWithoutTheListRequestCuts)
     EXPECT_TRUE(tested.sounds.empty());
 }
 
+// 0x659c7a..0x659e41: el gremio pide la lista (el gancho) antes de su byte; 0x65be98: la ventana 2 solo prende el suyo.
+// Los dos sacan los cuatro rand() de CanOpen y de CloseByMask; cerrarlos va por sus ganchos (0x6522f0 y 0x6570b0).
+TEST(PanelRegistryTest, TheGuildWindowsOpenWithTheirHooksAndCloseThroughThem)
+{
+    Tested tested;
+    std::vector<std::uint8_t> guildWhenAsked;
+    tested.context.guildOpened = [&tested, &guildWhenAsked]()
+    { guildWhenAsked.push_back(tested.state.delegated.guild); };
+    int closings = 0;
+    tested.context.guildClosed = [&tested, &closings]() -> Client::Core::Expected<void, std::string>
+    {
+        ++closings;
+        tested.state.delegated.guild = 0;
+        return {};
+    };
+    const auto opened = tested.panels.Open(GuildPanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+    EXPECT_EQ(guildWhenAsked, (std::vector<std::uint8_t>{0}));
+    EXPECT_EQ(tested.state.delegated.guild, 1);
+    EXPECT_EQ(DrawsSince(tested.random), 4);
+
+    // Abrir la ventana 2 cierra el gremio por su gancho.
+    const auto second = tested.panels.Open(SecondGuildPanel);
+    ASSERT_TRUE(second.HasValue()) << second.Error();
+    EXPECT_TRUE(second.Value());
+    EXPECT_EQ(closings, 1);
+    EXPECT_EQ(tested.state.delegated.secondGuild, 1);
+    EXPECT_EQ(DrawsSince(tested.random), 8);
+
+    // Sin el gancho de la ventana 2, cerrarla corta.
+    EXPECT_FALSE(tested.panels.Close(SecondGuildPanel).HasValue());
+}
+
 // 0x65a91c..0x65a934: los comandos prenden +4 de [0x6e592c]; en Chaos Castle CanOpen no los deja.
 TEST(PanelRegistryTest, OpeningTheCommandsSetsTheirByte)
 {
@@ -554,8 +588,13 @@ TEST(PanelRegistryTest, OtherKeysGoOnlyToThePanelDialog)
     EXPECT_FALSE(key.Value());
     EXPECT_EQ(tested.state.inventory, 1);
 
-    tested.state.delegated.panelDialog = 1;
-    EXPECT_FALSE(tested.panels.PanelKey(0x1b).HasValue());
+    // 0x657880: con el diálogo de los paneles abierto (sin quien lo abrió), el Esc lo cierra él y la ventana queda.
+    tested.state.delegated.panelDialog.opened = 1;
+    const auto escape = tested.panels.PanelKey(0x1b);
+    ASSERT_TRUE(escape.HasValue()) << escape.Error();
+    EXPECT_TRUE(escape.Value());
+    EXPECT_EQ(tested.state.delegated.panelDialog.opened, 0);
+    EXPECT_EQ(tested.state.inventory, 1);
 }
 
 TEST(PanelRegistryTest, CloseAllWithNothingOpenDrawsTwo)

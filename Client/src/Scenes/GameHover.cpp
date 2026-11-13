@@ -52,8 +52,10 @@ Core::Expected<void, std::string> NameBubble(GameHoverContext& context, std::int
     if (context.projecting)
         return {};
     const ActorState& actor = context.world.Actors()[static_cast<std::size_t>(index)];
-    return AddChatBubble(context.world, ChatBubbleMeasure{.measure = context.text, .screen = context.sprites.Screen()},
-                         ChatNameOf(actor), "", static_cast<std::size_t>(index), ChatBubbleMode::Chat);
+    return AddChatBubble(
+        context.world,
+        ChatBubbleMeasure{.measure = context.text, .screen = context.sprites.Screen(), .texts = context.texts},
+        ChatNameOf(actor), "", static_cast<std::size_t>(index), ChatBubbleMode::Chat);
 }
 
 // 0x5bbc9e..0x5bbd2f: el personaje elegido.

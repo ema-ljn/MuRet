@@ -5,18 +5,22 @@
 #include "App/WindowState.h"
 #include "App/WorldEvent.h"
 #include "Core/Expected.h"
+#include "Core/IClock.h"
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Guild.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Outgoing.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/GuildReceive.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/InventoryMoves.h"
@@ -31,10 +35,12 @@
 #include "Scenes/WorldTransitions.h"
 #include "World/LeafWeather.h"
 
+#include <chrono>
 #include <cstdint>
 #include <optional>
 #include <span>
 #include <string>
+#include <utility>
 #include <variant>
 
 namespace Client::Scenes
@@ -74,6 +80,26 @@ ChatReceiveContext ChatContextOf(const WorldEntryResources& resources, const App
                               .texts = resources.texts,
                               .chosenSlot =
                                   chosen != nullptr ? std::optional<std::uint8_t>(chosen->slot) : std::nullopt};
+}
+
+// Lo que los paquetes del gremio leen del juego y de la sesión (CL9 hito 8): lo que mandan va por el GameServer de la
+// sesión; el gesto de 0x576a60 llega con el hito 1.
+GuildReceiveContext GuildContextOf(const WorldEntryResources& resources, App::ServerSession& session)
+{
+    const std::uint32_t now =
+        resources.clock != nullptr
+            ? static_cast<std::uint32_t>(
+                  std::chrono::duration_cast<std::chrono::milliseconds>(resources.clock->Now()).count())
+            : 0U;
+    return GuildReceiveContext{.world = resources.world,
+                               .random = resources.cloth.random,
+                               .measure = resources.textMeasure,
+                               .screen = resources.screen ? resources.screen() : App::PixelSize{640, 480},
+                               .texts = resources.texts,
+                               .playerKey = session.PlayerIndex(),
+                               .now = now,
+                               .send = [&session](Protocol::Outgoing packet)
+                               { session.SendGuildPacket(std::move(packet)); }};
 }
 
 // El 0x3d de la respuesta va a la sesión que la está aplicando.
@@ -145,6 +171,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
         return ApplyNotice(*notice, ChatContextOf(m_resources, session));
     if (const auto* options = std::get_if<Protocol::OptionData::OptionData>(&event))
         return ApplyOptionData(*options, ChatContextOf(m_resources, session));
+    if (const auto* guild = std::get_if<Protocol::Guild::GuildPacket>(&event))
+        return ApplyGuildPacket(*guild, GuildContextOf(m_resources, session));
     return ApplyWorldContent(event, session);
 }
 

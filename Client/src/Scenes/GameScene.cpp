@@ -49,6 +49,7 @@
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/TextureSets.h"
 #include "Scenes/SceneContext.h"
+#include "Scenes/SkillDelays.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/Slides.h"
 #include "Scenes/TerrainPolygonFrame.h"
@@ -210,6 +211,9 @@ Core::Expected<void, std::string> GameScene::Enter()
     }
     m_firstStep = true;
     m_holdFrame = true;
+    // Fuera de la escena 5, 0x4eb620 no baja las esperas: lo que pasó afuera no cuenta.
+    m_frameStarts = true;
+    m_lastFrameStart.reset();
     m_groundEffects.Reset();
     auto& textureTable = m_context.world->FaunaResources().TextureTable();
     textureTable.Bind(m_context.textures);
@@ -234,6 +238,27 @@ void GameScene::Step(const Input::InputState& input)
     if (m_failure)
     {
         return;
+    }
+    // 0x4eb620, al empezar un frame del original y antes de sus pasos: en la escena 5, 0x552f10 con los ms de
+    // timeGetTime() desde el frame anterior (sin tope: 02, "Lo que va por reloj"). El primero de la escena, con 0; los
+    // frames que la espera retiene no empiezan uno, y el siguiente se lleva todo su tiempo (P-C267).
+    if (m_frameStarts && m_context.world != nullptr && m_context.cloth != nullptr)
+    {
+        m_frameStarts = false;
+        const std::uint32_t now =
+            m_context.clock != nullptr
+                ? static_cast<std::uint32_t>(
+                      std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
+                : 0U;
+        const auto elapsed = static_cast<std::int32_t>(now - m_lastFrameStart.value_or(now));
+        m_lastFrameStart = now;
+        if (auto counted = CountDownSkillDelays(
+                elapsed, {.world = *m_context.world, .random = m_context.cloth->random, .skills = m_skills});
+            !counted.HasValue())
+        {
+            m_failure = counted.Error();
+            return;
+        }
     }
     m_cameraFrames.Step();
     if (auto dialogs = StepTheDialogs(input); !dialogs.HasValue())
@@ -631,6 +656,8 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     WorldRuntime& runtime = m_context.world->Runtime();
     const World::WorldTerrain& terrain = m_context.world->Map().terrain;
     const int frames = m_cameraFrames.FramesAtDraw(OriginalFramePaceOf(m_context.pacing));
+    if (frames > 0)
+        m_frameStarts = true;
     m_framePoseCarry = &m_context.world->PoseCarry();
     m_frameSprites = &m_sprites;
     PrepareDrawProjection(frames);

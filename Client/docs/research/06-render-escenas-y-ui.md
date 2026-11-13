@@ -9759,8 +9759,11 @@ vuelven (`0x552c50` dice que se puede); si no, con el registro abierto: con la e
 (`0x552c50`: no se puede); si el requisito pasa de `+0x36 + +0x20` (el liderazgo), igual; si no, la ponen, salvo
 `0x552c50` con la skill `0x4c` (`0x552ee3`). `0x552f10(transcurrido)`, con el registro abierto, baja las de los
 `+0x6a + 2` primeros lugares (hasta 256) que están corriendo, sin pasar de 0; con `+0x6a` desde `0xfe` el lugar 255
-sería el equipo de `+0xb68` y MuRet corta (`0x5530bb`). La llama `0x4eb620` con los milisegundos del frame (sin
-portar, fase 2).
+sería el equipo de `+0xb68` y MuRet corta (`0x5530bb`). La llama `0x4eb620` (`0x4eb758`), en la escena 5, al principio
+de cada frame y antes de los pasos, con los milisegundos de `timeGetTime()` desde el frame anterior, sin tope: 3.848
+`rand()` por frame, delante del cartel y de la UI del paso. MuRet lo hace en el primer paso después de un dibujo que es
+un frame del original, y en el primero de la escena con 0 ms (`GameScene::Step`); la espera que retiene el dibujo no
+empieza frames (P-C267).
 
 **La lista de la barra** (`0x5a070e..0x5a1098`, con el registro propio que abrió la barra). Por cada lugar de los 64 con
 una skill que no es de `0x43` a `0x48`, la entrada de Skill.bmd abierta y cerrada; con el `+0x31` en 1 no se ve. Las

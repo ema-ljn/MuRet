@@ -228,6 +228,10 @@ private:
     World::GameCameraInput m_localCameraInput;
     // Los frames del original, por los pasos de la escena (#307).
     OriginalFramesOfTheSteps m_cameraFrames;
+    // 0x4eb620: un frame del original empieza con el primer paso después del dibujo que lo fue; el timeGetTime() del
+    // anterior, para la espera de las skills (CL9 hito 4).
+    bool m_frameStarts = true;
+    std::optional<std::uint32_t> m_lastFrameStart;
     GroundEffectFrame m_groundEffects;
     std::vector<CharacterCloth> m_characterCloths;
     World::FrameSprites m_sprites;

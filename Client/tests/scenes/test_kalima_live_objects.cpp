@@ -16,6 +16,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <algorithm>
 #include "World/Particles.h"
@@ -119,17 +120,25 @@ TEST_P(KalimaLiveObjectsTest, HotEntryDrawFinishesMovementBodiesAndWaterOverlays
     EXPECT_TRUE(causticPrefix); // Geometría real de4395ba, no sólo un mensaje de frontera.
 }
 
-TEST_P(KalimaLiveObjectsTest, TheFirstPopulatedStepAndDrawFinishWithNativeWaterfallParticles)
+// El objeto 40 suelta la 0x6f1 con rand() % 4 en 0 (0x438c10). Con los 3.848 rand() de 0x4eb620 al empezar cada frame
+// (la espera de las skills, CL9 hito 4), el primero que la saca con la semilla de la fixture es el tercero.
+TEST_P(KalimaLiveObjectsTest, TheFirstPopulatedFramesFinishWithNativeWaterfallParticles)
 {
     Teleport(static_cast<std::uint8_t>(GetParam()), 64, 64);
     ASSERT_FALSE(m_pollFailure.has_value()) << *m_pollFailure;
     OpenScene();
-    Step();
-    ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
-    Draw();
-    ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
-    const auto alive = std::count_if(m_world->Particles().All().begin(), m_world->Particles().All().end(),
-                                     [](const auto& p) { return p.alive && p.type == 0x6f1; });
+    constexpr int FramesUntilTheMist = 3;
+    std::ptrdiff_t alive = 0;
+    for (int frame = 0; frame < FramesUntilTheMist; ++frame)
+    {
+        EXPECT_EQ(alive, 0) << frame;
+        Step();
+        ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
+        Draw();
+        ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
+        alive = std::count_if(m_world->Particles().All().begin(), m_world->Particles().All().end(),
+                              [](const auto& p) { return p.alive && p.type == 0x6f1; });
+    }
     EXPECT_GT(alive, 0);
     EXPECT_EQ(m_world->Map().objects.size(), 2266u);
 }

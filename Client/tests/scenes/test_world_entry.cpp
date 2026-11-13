@@ -1175,9 +1175,10 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
                                        &*frameResources.data.skills);
         ASSERT_TRUE(game.Enter().HasValue());
         Client::Render::Models::ClothWorld reference = tested.cloth;
-        // 0x636920: el cartel del primer paso (0x46b010 y 0x46b0e0, que abre y cierra el registro propio; sin
-        // Slide.bmd no sortea), y la UI del paso.
-        reference.random = Advanced(reference.random, OwnRecordClose + GameUiStepRandoms);
+        // 0x4eb620, al empezar el frame: 0x552f10 (la espera de las skills) abre y cierra el registro propio. 0x636920:
+        // el cartel del primer paso (0x46b010 y 0x46b0e0, que abre y cierra el registro propio; sin Slide.bmd no
+        // sortea), y la UI del paso.
+        reference.random = Advanced(reference.random, OwnRecordClose + OwnRecordClose + GameUiStepRandoms);
         const auto heroBefore = tested.Hero();
         const auto weatherBefore = tested.world.Runtime().leafWeather;
         const auto layerBefore = tested.world.Runtime().heroCellLayer;

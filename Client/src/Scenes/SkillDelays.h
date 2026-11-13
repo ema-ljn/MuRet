@@ -39,7 +39,8 @@ struct SkillDelayContext
 [[nodiscard]] Core::Expected<bool, std::string> TryStartSkillDelay(std::uint8_t slot, const SkillDelayContext& context);
 
 // 0x552f10(transcurrido): con el registro abierto, baja las esperas de los +0x6a + 2 primeros lugares (hasta 256) que
-// están corriendo, sin pasar de 0. La llama 0x4eb620 en la escena 5 con los milisegundos del frame (sin portar).
+// están corriendo, sin pasar de 0. La llama 0x4eb620 en la escena 5 con los milisegundos del frame (GameScene::Step, al
+// empezar cada frame del original).
 [[nodiscard]] Core::Expected<void, std::string> CountDownSkillDelays(std::int32_t elapsed,
                                                                      const SkillDelayContext& context);
 } // namespace Client::Scenes

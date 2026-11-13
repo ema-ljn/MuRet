@@ -65,6 +65,15 @@ TEST_P(GameT16SceneMatrix, RealEntryReachesACompleteSceneFrameOrAnExplicitMapBou
     }
     if (kalima)
     {
+        // La 0x6f1 del objeto 40 sale con rand() % 4 en 0 (0x438c10): con los 3.848 rand() de 0x4eb620 al empezar cada
+        // frame (CL9 hito 4), la primera se ve en el tercero (KalimaLiveObjectsTest).
+        for (int frame = 1; frame < 3; ++frame)
+        {
+            ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
+            ASSERT_NO_FATAL_FAILURE(Step());
+            ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
+            ASSERT_NO_FATAL_FAILURE(DrawCompleteFrame());
+        }
         ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
         EXPECT_EQ(m_world->Map().objects.size(), 2266u);
         EXPECT_TRUE(std::ranges::any_of(m_world->Map().objects, [](const auto& object)
@@ -82,7 +91,7 @@ TEST_P(GameT16SceneMatrix, RealEntryReachesACompleteSceneFrameOrAnExplicitMapBou
                 }
         EXPECT_TRUE(water);
         EXPECT_TRUE(particle);
-        RecordProperty("blocked_phase", "none on populated entry frame; cycle covered by KalimaLiveObjectsTest");
+        RecordProperty("blocked_phase", "none on the first populated frames; cycle covered by KalimaLiveObjectsTest");
         return;
     }
     if (map <= 4 || (map >= 6 && map <= 17) || (map >= 30 && map <= 34))

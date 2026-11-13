@@ -235,10 +235,11 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
         if (closed.Value())
         {
             m_state.inventory = 1;
+            // 0x65c039: arma el C1 A9 que pide la mascota; el plan pone el A9 en el hito 4 (CL9.2, 08 P-C195).
             if (m_context.heroClass == DarkLordClass)
                 return Core::Unexpected(
-                    std::string("0x65c039: el pedido de la mascota del Dark Lord (C1 A9) al abrir el inventario es de "
-                                "la CL9"));
+                    std::string("0x65c039: el pedido de la mascota del Dark Lord (C1 A9) al abrir el inventario es del "
+                                "hito 4 de la CL9 (CL9.2)"));
         }
         break;
     }

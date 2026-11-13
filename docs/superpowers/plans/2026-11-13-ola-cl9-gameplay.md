@@ -390,8 +390,12 @@ amigos. **Desbloquea:** 10.
       `Network::Connection` de la sesión, con el `C1 03 05` del timer 1002); los chats en F5 (P-C215: falta el dibujo).
 - [x] **Las cartas:** `C5`..`C9` (`0x4dc840`, `0x4dc9e0`, `0x4dcb70`, `0x4dcd90`, `0x49eb60`, `0x49ee20`,
       `0x49f870`), la pestaña de las cartas (`0x4a11b0`) y las ventanas de leer y de escribir (`0x49a1f0`,
-      `0x498820`). El retrato (`0x497c10`), cortado por el gancho que el juego no da (P-C212); los dibujos del
-      chat, de las cartas y de su pestaña, cortados (P-C213).
+      `0x498820`). Los dibujos del chat, de las cartas y de su pestaña, cortados (P-C213).
+- [x] **El retrato de las cartas** (fase 3b, P-C212): `Scenes/LetterPortrait` (`0x495e50`, `0x4961d0`, `0x4977d0`
+      con `0x513100`, `0x497810` con `0x5139f0` sobre un objeto, `0x496530`, `0x495a20`, `0x497890`..`0x497910`),
+      el paso `0x497970` en `UI/LetterWindows` y el gancho del juego (`LetterPortraitHook`): abrir la de escribir y
+      el `C7` ya no cortan. Del dibujo, `0x497c10` y `0x495760` hasta el modelo; el modelo fuera del pool (P-C310),
+      la acción `0x78` (P-C219) y lo de 2D (P-C311), cortados.
 
 **Pruebas:** abrir un chat con un amigo e invitar a otro; mandar, leer y borrar una carta, byte a byte.
 

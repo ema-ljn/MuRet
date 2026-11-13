@@ -1132,7 +1132,8 @@ los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
   con `0xfc`, todos con el 402 (`0x4a75c0`).
 - **La de leer** (caso 6, vtable `0x6b9c58`, `0x4999d0`): `0xfa × 0xb6` con las banderas `0x1b`, la lista del cuerpo
   (`0x8b0`, partido por `'\n'` con `strtok`: sin los renglones vacíos, `0x499cb0`), cinco botones (responder,
-  borrar, cerrar, la anterior y la siguiente: el 1010..1013 y el 1002) y el retrato de `0x78` a la derecha (P-C212).
+  borrar, cerrar, la anterior y la siguiente: el 1010..1013 y el 1002) y el retrato de `0x78` a la derecha
+  ([El retrato de las cartas](#el-retrato-de-las-cartas)).
   `0x49a1f0`: el 10 y 1 abre la de escribir con el remitente y `sprintf(1016, asunto)` cortado en `0x20`; el 2
   pregunta con el 1017 (caso 5) y el sí manda el `C8` y la cierra; el 3 la cierra; el 5 y el 6 eligen la que sigue o
   la de antes en la pestaña, la cierran, sueltan su carta, dejan su lugar a la otra y la leen (Q-C1007).
@@ -1149,8 +1150,8 @@ los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
 
 El paso y el ubicado de las tres ventanas siguen el orden del ASM; sus dibujos (`0x493fc0`, `0x499d60`, `0x498480`,
 la pestaña `0x4a0a30` y las listas de `0x3f0`) cortan (P-C213); los renglones de los chats en la lista de ventanas de
-F5 (`+0xdc`), también (P-C215). Con el retrato del juego sin portar, abrir una carta o la de escribir corta
-(P-C212); el `CA` arma el chat y abre la conexión de la sala (`App::IChatRoomLinks`; 04).
+F5 (`+0xdc`), también (P-C215). El retrato lo da el juego ([El retrato de las cartas](#el-retrato-de-las-cartas),
+fase 3b); el `CA` arma el chat y abre la conexión de la sala (`App::IChatRoomLinks`; 04).
 
 **Los paneles.**
 
@@ -1240,7 +1241,9 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | F6 para mostrar, si una de las ocultas ya no existe (la de amigos: `0x490490` la destruye al verla oculta) | `0x4906a0` → `0x491080`, sin `CanOpen` (CL9 hito 9) | 3.848 | evento |
 | dibujo del marco viejo | `IsOpen(1)` | 0 | frame |
 | dibujo de CS `0x200000` | `0x64a060` (`0x64a9f0`) | 1+ | **frame**, solo con ese panel (CL9.5) |
-| dibujo del retrato de la carta | `0x497c10` (`0x497cce`) | 1+ | frame, solo con esa ventana (CL9.4) |
+| armar el retrato de una carta | `0x4961d0`: la celda del personaje (2 cierres), la del héroe (2) y `0x511290` | 44 | evento (la de leer y la de escribir, CL9 hito 10) |
+| copiar el héroe en el retrato con `+0x3e3` del héroe distinto de 0 | `0x496530`: un acceso al registro propio para comparar y uno por grupo distinto | 3.848 por acceso, más los de `0x495a20` | evento y, siguiendo al héroe con `0x78abaac` en 1, **por paso** (`0x497970`) |
+| dibujo del retrato de la carta | `0x497c10` (`0x497cce`): con la animación vuelta a empezar y `+0x698` en 0, más los de `0x495a20` | 1+ | frame, solo con esa ventana (CL9 hito 10) |
 | botón Seleccionar servidor del Esc del login | `0x647f60` | 2 | evento (escenas 2 y 4) |
 
 El registro propio gasta 3.848 al cerrarse **si su cuenta de aperturas (`+0xf08`) vuelve a 0**; dentro de otra
@@ -10027,6 +10030,109 @@ los contratos de sus llamadas y de los dos cierres del contador. El análisis de
 exportadas (7.471 bytes) coincide con el PE de hash
 `c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a`, sin ejecución ni nueva
 emulación. CL7.P permanece abierta; no se reconstruyen las transformaciones de protección.
+
+### El retrato de las cartas
+
+(CL9 hito 10, `Scenes/LetterPortrait`, con el paso en `UI/LetterWindows`; *estático*, del ASM.) La ventana de leer
+lleva el retrato en `+0xb0` y la de escribir en `+0xb4`: un objeto de `0x6c4` bytes (vtable `0x6ba008`, armado por
+`0x495e50`, que lo deja en cero salvo el zoom de base y el de ahora en 1 y `+0x4b0` en −1) con un personaje y un
+ayudante propios, fuera del pool y de la tabla de los ayudantes. MuRet parte el objeto en lo de la ventana
+(`UI::OldPortraitPart`) y lo del juego (`Scenes::LetterPortrait`, en `OldPortraitPart::actor`):
+
+| Lugar | Qué | En MuRet |
+| --- | --- | --- |
+| `+0x40`..`+0x5c` | el id, el estado, las banderas (`+0x4c`), el lugar y el tamaño de la base | `OldPortraitPart::base` |
+| `+0x7c` | un personaje de `0x438` bytes, como los del pool | `LetterPortrait::actor` |
+| `+0x4b4` | un ayudante de `0x1d4` bytes, como los de `0x7d335d0`, con el personaje de jinete | `LetterPortrait::helper` |
+| `+0x688` | la escala del ayudante, relativa (Q-C1030) | `LetterPortrait::helperScale` |
+| `+0x68c` | armado: lo pone en 1 `0x4961d0` al final (`0x496415`) | `OldPortraitPart::built` |
+| `+0x690`, `+0x694` | la ayuda y seguir al héroe | `help`, `follow` |
+| `+0x698` | quieto (la acción pedida ya salió) | `LetterPortrait::idle` |
+| `+0x6a0` | la última acción que mostró `0x495a20` | `LetterPortrait::shownAction` |
+| `+0x6a4` | la acción pedida | `OldPortraitPart::action` |
+| `+0x6a8` | el frame entero que guarda el dibujo | `LetterPortrait::frameMark` |
+| `+0x6ac`, `+0x6b0` | el ángulo de base y el de ahora | `baseAngle`, `angle` |
+| `+0x6b4` | la X del mouse con que se lo gira | `dragX` |
+| `+0x6b8`, `+0x6bc` | el zoom de base y el de ahora | `baseZoom`, `zoom` |
+| `+0x6c0` | en blanco: la carta de webzen (Q-C1025) | `blank` |
+
+**La vtable.** `+0x30` es `0x4961d0`: el ayudante en cero; las entradas de la celda lógica del personaje (`+0x41c` y
+`+0x420`) abiertas mientras borra los `0x438` bytes (Q-C1027) y cerradas, la X y después la Y; la celda lógica del héroe
+publicado, la Y y después la X; `0x511290(personaje, 0x20a, X, Y, 0)`; el lugar en (−300, −300, −300); y `+0x68c` en 1.
+Desde cero, **44 `rand()`** (4 + 4, 4 + 4 y los 28 de `0x511290`). `+0x34` es `0x4977d0`: la clase (`+0x1d4`) y
+`0x513100` (Q-C1024), que no llama a `0x4f2250` con la acción entre `0x22` y `0x97` o entre `0xc5` y `0xcc`. `+0x38` es
+`0x497810`: `0x5139f0(0, equipo, personaje, ayudante)`, que con un objeto no mata el ayudante con `0x443d40` (lo pone en
+0) y le pasa cada mascota a `0x443d70` (Q-C1026; `0x443d70` no hace nada en los mapas 18 a 23 ni con el ayudante vivo);
+`+0x688` con la escala del ayudante por 0,7 (`0x6b8a5c`) entre la del héroe publicado; y la zona segura (`+0x3e2`) en 1
+con alas y la acción pedida pasada de `0x82`. `+0x3c` es `0x496530` (abajo). `+0x40` es `0x497890`: los ángulos del
+personaje en (−20, 5, 60) y el de base y el de ahora en el pedido; `+0x44`, `0x4978d0`: el zoom de base y el de ahora;
+`+0x48`, seguir al héroe; `+0x4c`, `0x4978f0`: la acción pedida y `0x495a20(acción, 0)`; `+0x50`, `0x497910`: `+0x6a4`
+con lo que da `0x495a20(+0x6a4, corrimiento)`, `+0x6a8` en 0 y `+0x698` en 1. Las de la clase, el equipo, la copia y el
+ángulo no hacen nada sin armar (`0x4977d9`, `0x49781e`, `0x496548`, `0x49789b`); la de la acción y la de girarla no lo
+miran. La de escribir (`0x497f50`) llama a `+0x30`, `+0x3c`, `+0x48(1)`, `+0x4c(0x7a)` y `+0x40(90)`; el `C7`
+(`0x4dcb70`), a `+0x34`, `+0x38`, `+0x4c`, `+0x40` y `+0x44` con lo de la carta.
+
+**La copia del héroe, `0x496530`.** Con la clase del héroe publicado distinta, la copia y `0x513100`. Después compara
+por grupos (el cuerpo con la cabeza, las manos, las alas y la mascota), según `+0x3e3` del héroe:
+
+- **En 0, contra el héroe** (`0x496595..0x496658`): `0x496430` (el word del modelo, el nivel `+2` y el byte `+3`)
+  sobre la cabeza y las cinco partes del cuerpo, las dos manos, las alas y la mascota, cortando en la primera
+  distinta de cada grupo. La copia (`0x4969b2..0x496a5e`) es de partes enteras de `0x20` bytes: con el cuerpo,
+  `0x4fb1a0(personaje, 0, 0)` (las telas) y las seis partes, con su byte `+0x14` y sus dwords `+0x18` y `+0x1c` en 0.
+- **Distinto de 0, contra el registro propio** (`0x49665d..0x496975`), en un solo acceso (3.848 `rand()` al
+  cerrarlo): `0x496470` sobre los lugares 2 a 6 (sin ítem, el modelo base de la clase), las manos 0 y 1, las alas 7
+  y la mascota 8 (sin ítem, −1). La copia (`0x496a65..0x497636`, con `0x4964f0`: el modelo, el nivel y el byte `+3`;
+  el `+4` queda) abre un acceso por grupo, con sus 3.848 al cerrarlo; la del cuerpo pone la cabeza en el casco de la
+  clase y llama a `0x4fb1a0` antes de abrir.
+
+Sin nada distinto, termina. Con la mascota distinta, `0x495a20(0x7a, 0)`, `+0x6a4` en `0x7a` y el ayudante de nuevo;
+si no, `0x495a20(+0x6a0, 0)` y el ayudante de nuevo solo con las manos distintas (Q-C1029). El ayudante de nuevo
+(`0x497676..0x49777c`): vivo en 0 y, por la mascota (las tablas `0x4977a4` y `0x49778c`), `0x443d70` con `0x1c12`
+(el guardián), `0xc6` (`0x1c14`), `0x110` (`0x1c15`), `0xbf` (`0x1c16`) o, con `0x1c37`, `0x14a`, `0x14c` o `0x14b`
+por el byte `+3` en 1, 2 u otro; después su alpha (`+0x174`) en 0 y `+0x688` con su escala por 0,7 entre la del
+personaje del retrato (Q-C1030). Devuelve si algo difería.
+
+**La acción, `0x495a20(acción, corrimiento)`.** Con el ayudante vivo y montado (`0xc6`, `0x110`, `0xbf` o
+`0x14a..0x14c`), la lista de `0x6c7b08` (`0x7a`, `0x7c`, `0x78`; con el índice negativo suma 300); si no, la de los
+gestos de `0x6c7b14` (24, de `0x7a` a `0x78`, Q-C1028; suma 2.400). El índice es el de la acción (el tamaño si no
+está) más el corrimiento, y el resto es con signo. Por la tabla `0x495dd4`: `0x7a`, `0x4f2250`; `0x78`, `0x4f4a10`
+y `+0x381` en 1, el frame en 0 y `+0x3a4` en `0xffff`; `0x7c`, `0x4f37c0` (los tres con el mundo en 0); y `0x80` a
+`0x94`, `0x4ea030` con la animación de cada gesto (la del elfo con la clase & 7 en 2: la misma tabla que el `0x18`,
+`Scenes::TableAnimationOf`). Después, `0x4fd5f0` y `0x505de0` con el mundo en curso, y `+0x6a0` con la acción, que
+devuelve.
+
+**El paso, `0x497970`** (la vtable + `0x20`, después de la cola y del mouse de `0x45aa80`): en blanco, solo el mouse
+sobre la UI. Si no, con seguir al héroe y `0x78abaac` en 1, la copia (`+0x3c`); `+0x360` del personaje con el del
+héroe; y con `+0x4c` & 1 a la vista, el ícono de la ayuda (16 × 16 en (x + 1; y + alto − `0x11`)) la prende o la
+apaga con el clic, y adentro del retrato el clic apaga la ayuda y lo agarra (sin nadie con el mouse: `0x5762eb4`
+con su id, el estado en 2, `+0x6b4` con la X y `SetCapture`), el derecho vuelve el ángulo y el zoom a los de base y
+la rueda suma 0,02 por paso al zoom, entre 0,8 y 1,1. Girándolo (el estado en 2), el clic suma al ángulo lo que
+corrió la X; sin clic, lo suelta. Sin `+0x4c` & 1, adentro y quieto, el mouse es de la UI y el clic se apaga.
+
+**El dibujo, `0x497c10`** (la vtable + `0x14`). Con el frame del personaje por debajo de `+0x6a8` (la animación
+volvió a empezar): sin `+0x698`, **un `rand()`** (`0x497cce`) y con `rand() % 4 == 0`, `+0x698` en 1 y
+`0x495a20(+0x6a4, 0)`; si no, con `+0x6a4` fuera de `0x7a..0x82`, `+0x698` en 0 y `0x495a20(0x7a, 0)`; y `+0x6a8`
+en 0. Si no, `+0x6a8` con el frame truncado. Con `+0x360` por debajo de 4, `0x414340`; y `0x495760`:
+
+1. Con el mundo en 0, `0x4fd5f0` y `0x505de0` del personaje y `0x444010(ayudante, 1)`.
+2. La proyección: `0x620d10(x · W / 640, y · H / 480, ancho · W / 640, 141 · H / 480)` (`0x6ba004`, truncados) y
+   `0x6203c0(1, ancho · W / 640 entre 141 · H / 480, 2.000, 20.000)`, sin el × 1,4 de `0x620db0`.
+3. La vista: la identidad en `0x7d366f0` (`0x620370`), `glRotatef(−90)` en X y en Z, `glTranslatef(−10.000, 0,
+   −75)` y `glTranslatef(−X, −Y, −Z)` del personaje, con 50 más de bajada (`0x6b86b0`) con el caballo oscuro
+   (`0x1c16`) en `+0x318`.
+4. El estado de GL (sin alpha test, con textura, profundidad, caras y su escritura, `GL_LEQUAL`,
+   `glAlphaFunc(GL_GREATER, 0,25)`, sin niebla y la profundidad borrada; las importaciones, *inferidas* de sus
+   constantes) y el del personaje: los ángulos en (0, 0, `+0x6b0`), la escala en zoom · 0,7, la del ayudante en
+   `+0x688` · zoom, las luces en 1, `+0x3e4` en 1 y la zona segura como en `0x497810`.
+5. `0x445260(ayudante, 1)` y `0x50ba30(personaje, personaje, 0)`; después el viewport de la pantalla entera.
+
+Lo de 2D (en blanco, el cuadro negro y el bitmap `0x653`; el ícono de la ayuda y su caja) va antes y después.
+
+MuRet arma el pase (`Scenes::PortraitPass`, `PrepareThePortraitDraw`) y corta en el modelo (`DrawThePortraitModel`,
+P-C310): el dibujo de `Scenes/GameCharacters` y de `HelperTable` lee el jinete del pool. Con el ayudante vivo, el paso
+`0x444010` también corta (P-C310). La acción `0x78` corta en `0x4f4a10` (P-C219), y lo de 2D es del dibujo de las
+cartas (P-C311, P-C213). `UI::OldWindowStepView::portrait` es `Scenes::LetterPortraitHook` con los recursos del mundo
+(`GameUiContext::worldEntry`, `ChatReceiveContext::worldEntry`): el primer pedido crea el `LetterPortrait`.
 
 ## Lo que no se sabe
 

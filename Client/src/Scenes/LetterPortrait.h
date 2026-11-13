@@ -43,8 +43,9 @@ struct LetterPortrait
 
 // 0x4961d0 (la vtable + 0x30): el ayudante en cero; las entradas de la celda del personaje (+0x41c y +0x420) abiertas
 // mientras borra el personaje y cerradas, la X y después la Y (4 rand() cada una si quedan en 0); la celda lógica del
-// héroe publicado, la Y y después la X (otros 4 y 4); 0x511290(personaje, 0x20a, X, Y, 0), con sus 28 rand(); y el
-// lugar en (−300, −300, −300). Desde cero, 44 rand(). Quien llama pone +0x68c en 1.
+// héroe publicado, la Y y después la X (otros 4 y 4); 0x511290(personaje, 0x20a, X, Y, 0), con sus 28 rand(); el
+// lugar en (−300, −300, −300); y +0x68c en 1 (0x496415: en MuRet, OldPortraitPart::built, que pone el gancho). Desde
+// cero, 44 rand().
 [[nodiscard]] Core::Expected<void, std::string> BuildThePortrait(LetterPortrait& portrait,
                                                                  const WorldEntryResources& resources);
 

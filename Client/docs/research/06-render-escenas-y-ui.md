@@ -2739,8 +2739,9 @@ marca del rival (la primera entrada de 0 a 1998 con su nombre; sin ninguna, la 0
 (`0x57678b8`) en `(_ftol(x) + 13, 19)` y su nombre (`0x5542f0` con el modo 1) en `(_ftol(x) + 30, 19)`. Después, el
 segundo marcador con `0x576796f` (el `F3 23`, `0x4d9f00`, del hito 11; P-C284).
 
-**El dibujo del diálogo** (`0x660830`, el último de `0x6579e0`): sin `+0x10`, nada; con `+0xc` (el dibujo de quien
-lo abrió, que solo `0x660090` escribe, en 0), ese. Si no, la caja de `0x6576a0(alto, −1 o 10)`: `0x620c10` (la mezcla
+**El dibujo del diálogo** (`0x660830`, el último de `0x6579e0`): sin `+0x10`, nada; con `+0xc` (el dibujo propio que
+pone `0x6602b0` junto con el paso `+8`, y que `0x660090` borra al abrir; solo lo usa la ventana de los cargos, abajo),
+ese. Si no, la caja de `0x6576a0(alto, −1 o 10)`: `0x620c10` (la mezcla
 de `0x620a00` sin el alpha test), `glColor4f(1, 1, 1, 0,8)`, `Message_box2` (`0xfc`) de 213 × 5 en `(214, y)`, una
 fila de `Message_box1` (`0xfb`) de 213 × 40 por cada 40 de `alto − 10` (desde `y + 5`), el resto con `(resto · 0,025) ·
 40` de alto y `dv = (resto · 0,025) · 0,625`, y otra vez la `0xfc`, todas con `du = 0,83203125`; después el blanco y
@@ -2755,8 +2756,8 @@ al armarse. Sin `rand()`.
 
 **MuRet** (`Scenes::ApplyGuildPacket`, `Scenes/GuildPanels`, `UI::PanelDialog`, `WorldRuntime::guild`): todo lo de
 arriba menos lo que queda para después (P-C281): el dibujo y el paso de la ventana del gremio, sus pestañas y las
-clases de las listas (`0x46b800`..`0x46d630`; MuRet guarda lo que se les agrega) y las ventanas de la alianza que mandan
-(`0x64e600`, `0x64def0`, `0x650c10`, `0x650830`); el alta es de la fase 3 (abajo). La
+clases de las listas (`0x46b800`..`0x46d630`; MuRet guarda lo que se les agrega) y las ventanas que mandan
+(`0x64e600`, `0x64def0`, `0x650c10`, `0x650830`), portadas en las fases 4 y 5; el alta es de la fase 3 (abajo). La
 fase 2 suma el `65` y el `67`, el dibujo del diálogo (`Scenes::DrawThePanelDialog`; la caja de `0x6576a0` con
 `SpriteBatch::SetBlendWithoutAlphaTest`, que es `0x620c10`; el campo de texto y el reloj cortan, P-C285), la marca
 (`Scenes::PaintTheGuildMark` y `GuildMarkTextures`: cada (índice, fondo) en su slot de la tabla de la escena, desde
@@ -2871,9 +2872,35 @@ diálogo de los paneles con dos renglones (`sprintf` con el 1367 y el nombre; el
 `0x64e550` (con 8, el diálogo `0x7d` del juego, `0x7d3a10c`, con el lugar de `0x64faa0` de `0x7d536c8` en
 `0x6d5e2c`). El diálogo `0x7d` pide el número y manda `C1 53` con el nombre de `0x787a5e8` y diez bytes de
 `0x7798bf8` (`0x62a878`). **MuRet** (fase 4): `AddTheGuildMember`, `ClearTheGuildMembers` y la pestaña en
-`StepTheGuildWindow`; los botones abren con `GuildDismiss` y `GuildKick` (`AnswerThePanelDialog`). Cortan la ventana
-de los cargos (`0x6504b6`) y el diálogo `0x7d` (`0x62a810`). Tests: `GuildWindowTest` (la lista, PgUp y PgDn, el clic
-en un renglón, quitar el cargo con el `E1` byte a byte, echar y el cargo).
+`StepTheGuildWindow`; los botones abren con `GuildDismiss` y `GuildKick` (`AnswerThePanelDialog`). Corta el diálogo
+`0x7d` (`0x62a810`). Tests: `GuildWindowTest` (la lista, PgUp y PgDn, el clic en un renglón, quitar el cargo con el
+`E1` byte a byte, echar y el cargo).
+
+**La ventana de los cargos (`0x64e600` y `0x64f1c0`).** El botón `+0x4b4` abre el diálogo de los paneles sin renglones
+(`0x6600d0(0, 0, 0, 0, 0, 0)`: `0xd5` × `0x2b`, sin botones ni función), guarda lo que da en `+0x428` y le pone los
+ganchos con `0x6602b0(0x64e600, 0x64f1c0)` (`0x6504be`); con otro diálogo abierto, `0x6600d0` da 0 y los ganchos
+quedarían en el abierto (MuRet corta antes, en `0x6600f9`). Cerrar (`0x660350`) no los borra; el próximo `0x6600d0`
+sí (`0x660090`). Los globales: dos botones de `0x32` × `0x12` armados antes de `WinMain` (`0x64e590` y `0x64e5d0` con
+`0x45ad80`), `0x7d535b8` (5, el 228) y `0x7d53640` (6, el 229), a los que `0x64f3e0` les pone el comando y el texto
+(`0x45b150`), el padre (`+0x44` con el `+0x40` de la ventana) y el tamaño; el cargo elegido `0x7d536d8` (0x40 en
+`0x64f3e0`, nadie lo vuelve a poner al abrir) y la esquina `0x7d536d0`/`0x7d536d4` (0 en `0x64f3e0`). El dibujo
+(`0x64f1c0`, en lugar de todo `0x660830`): `0x6576a0(0x96, −1)`, la caja de 150 en (`0xd6`, `0x82 − 0x4b`) con su
+esquina en los dos globales; `0x620a00(1)`; `0x471520(x + 0x14, y + 0x13, 170, 20, cargo == 0x40)` (con 1, antes, la
+caja sin textura de `glColor4ub(0x92, 0x90, 0x8d, 0xc8)` y `0x459ec0`); el 1311 en (x + `0x14`, y + `0x18`) con
+`0x5542f0` en el modo 2 en `_ftol(rx · 170)` (`0x6b899c`); `0x471520(x + 0x14, y + 0x27, 170, 20, cargo == 0x20)`; el
+1312 en y + `0x2e`; `sprintf(1314, 0x7d535a8, 1301 con 0x40 o 1302)` (en un buffer de `0x40`) en y + `0x4b`; el 1315 en
+y + `0x5d`, todos con la fuente y los colores que haya; y los botones en (x + `0x37`, y + `0x75`) y (x + `0x6e`,
+y + `0x75`) (`0x45a9d0` y `0x45b2e0`). El paso (`0x64e600`, después del mouse sobre la caja de `0x6605b0`, en lugar de
+los botones y el reloj): el mouse sobre `0xd5` × `0xfa` desde la esquina prende `0x775857c`; con el flanco del clic
+(`0x7d366d4`, que no gasta), `(x + 0x14, y + 0x13, 0xaa, 0x14)` elige `0x40` y `(x + 0x14, y + 0x29, 0xaa, 0x14)`,
+`0x20` (la y de la segunda caja dibujada es `0x27`); `0x7d535b8` (`0x45b200`) manda `C1 0F E1` con 1 si `0x7d535b4` es
+0 o 2 si no, el cargo y los diez bytes de `0x7d535a8` (XOR32, en claro por el socket), después `C1 03 52` y
+`0x6603c0` sobre `[0x7d53704]`; después `0x7d53640` cancela igual. La esquina que lee es la del dibujo anterior.
+**MuRet** (fase 5): `UI::PanelDialogHooks` en `PanelDialogState` (`HookThePanelDialog`), el paso en
+`Scenes::StepTheGuildPositions` (desde `LendThePanelDialogStepTo`), el dibujo en `Scenes::DrawTheGuildPositions` (desde
+`DrawThePanelDialog`) y los globales en `GuildState::positions`, con los ids −20 y −21 (P-C280). Sin `rand()`. Tests:
+`GuildWindowTest` (abrir, dibujar, elegir y mandar el `E1` 01 y 02 byte a byte con el `52`, cancelar),
+`PanelDialogTest.WithItsOwnStepItOnlyTakesTheMouse`.
 
 **Las listas del aviso y de la alianza.** `+0x1c8` (`0x46b800`, vtable final `0x6b95e8`) y `+0x2f8` (`0x46d440`,
 `0x6b97bc`; `0x6b9688` y `0x6b9860` son las de la clase de en medio, y `0x46d630` es el destructor) son la misma

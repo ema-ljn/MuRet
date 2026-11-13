@@ -6,6 +6,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GuildState.h"
+#include "Scenes/GuildWindow.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -204,15 +205,21 @@ void LendTheGuildTo(UI::PanelContext& context, WorldState& world, const GuildSen
     context.panelDialogAnswer = AnswerOf(world, send);
 }
 
-void LendThePanelDialogStepTo(UI::PanelContext& context, WorldState& world, std::int32_t mouseX, std::int32_t mouseY,
-                              std::uint32_t now)
+void LendThePanelDialogStepTo(UI::PanelContext& context, WorldState& world, const GuildSender& send,
+                              std::int32_t mouseX, std::int32_t mouseY, std::uint32_t now)
 {
-    context.panelDialogStep = [&world, &context, mouseX, mouseY, now]() -> Core::Expected<void, std::string>
+    context.panelDialogStep = [&world, &context, send, mouseX, mouseY, now]() -> Core::Expected<void, std::string>
     {
         WorldRuntime& runtime = world.Runtime();
         const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
-        return UI::StepThePanelDialog(runtime.panels.delegated.panelDialog, globals, mouseX, mouseY, now,
-                                      context.panelDialogAnswer);
+        UI::PanelDialogState& dialog = runtime.panels.delegated.panelDialog;
+        if (auto stepped = UI::StepThePanelDialog(dialog, globals, mouseX, mouseY, now, context.panelDialogAnswer);
+            !stepped.HasValue())
+            return stepped;
+        // 0x660623: abierto y con +8, el paso propio después del mouse sobre la caja (StepThePanelDialog no hizo más).
+        if (UI::PanelDialogHandle(dialog) == 0 || dialog.hooks != UI::PanelDialogHooks::GuildPositions)
+            return {};
+        return StepTheGuildPositions(world, send, mouseX, mouseY, context.panelDialogAnswer);
     };
 }
 } // namespace Client::Scenes

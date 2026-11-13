@@ -4,6 +4,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "UI/ChatLogWindow.h"
+#include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 #include "UI/Widget.h"
 
@@ -135,6 +136,7 @@ std::array<OldButton, PanelDialogButtonCount> PanelDialogState::DefaultButtons()
 void ResetThePanelDialog(PanelDialogState& dialog)
 {
     dialog.owner = PanelDialogOwner::None;
+    dialog.hooks = PanelDialogHooks::None;
     dialog.opened = 0;
     dialog.lineCount = 0;
     dialog.flags = 0;
@@ -255,8 +257,10 @@ Core::Expected<void, std::string> StepThePanelDialog(PanelDialogState& dialog, c
     if (MouseInRect(mouseX, mouseY, CenterX - dialog.width / 2, CenterY - dialog.height / 2, dialog.width,
                     dialog.height, TopLeftRect))
         globals.mouseOnUi = 1;
-    // 0x66061c: +8, el paso propio que pone 0x6602b0 (desde 0x650350, la ventana del gremio), no lo pone nadie de
-    // MuRet.
+    // 0x66061c: +8, el paso propio que pone 0x6602b0 (0x6504d4, la ventana de los cargos del gremio), en lugar de lo
+    // demás. Lo llama Scenes después de este.
+    if (dialog.hooks != PanelDialogHooks::None)
+        return {};
     const bool timedOut = ThePanelDialogTimedOut(dialog, now);
     std::optional<std::uint32_t> reason;
     if (timedOut)

@@ -42,7 +42,7 @@ using GuildSender = std::function<void(Protocol::Outgoing)>;
 void LendTheGuildTo(UI::PanelContext& context, WorldState& world, const GuildSender& send);
 
 // 0x6605b0 en el paso de la UI: el diálogo con el mouse (640 × 480), los globales de la UI vieja y el reloj (el
-// GetTickCount() del paso).
-void LendThePanelDialogStepTo(UI::PanelContext& context, WorldState& world, std::int32_t mouseX, std::int32_t mouseY,
-                              std::uint32_t now);
+// GetTickCount() del paso). Con los ganchos de la ventana de los cargos (+8), su paso (0x64e600, que manda por `send`).
+void LendThePanelDialogStepTo(UI::PanelContext& context, WorldState& world, const GuildSender& send,
+                              std::int32_t mouseX, std::int32_t mouseY, std::uint32_t now);
 } // namespace Client::Scenes

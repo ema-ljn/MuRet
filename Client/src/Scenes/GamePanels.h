@@ -65,8 +65,10 @@ public:
     // al diálogo de los paneles (0x4d6b60 y 0x653c00), con `send`. Sin él, lo que lo usa corta.
     void LendTheGuild(WorldState& world, const GuildSender& send);
 
-    // 0x6605b0 en el paso de la UI, con el mouse en 640 × 480 y el reloj del paso.
-    void LendThePanelDialogStep(WorldState& world, std::int32_t mouseX, std::int32_t mouseY, std::uint32_t now);
+    // 0x6605b0 en el paso de la UI, con el mouse en 640 × 480 y el reloj del paso; lo que manda la ventana de los
+    // cargos va por `send`.
+    void LendThePanelDialogStep(WorldState& world, const GuildSender& send, std::int32_t mouseX, std::int32_t mouseY,
+                                std::uint32_t now);
 
     // 0x657959: el paso de la ventana 2 del gremio ([0x7d536f4]) con el mouse, el reloj, Text.bmd y los filtros.
     void LendTheSecondGuildStep(const SecondGuildStepContext& context);

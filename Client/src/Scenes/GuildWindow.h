@@ -6,6 +6,7 @@
 #include "Scenes/GuildPanels.h"
 #include "Scenes/GuildState.h"
 #include "UI/OldWindowBase.h"
+#include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
 
 #include <array>
@@ -110,15 +111,25 @@ void ClearTheUnions(GuildWindowState& window);
 //
 // 0x650350, la pestaña de los miembros: 0x5762eb4 con el id de la lista, la lista (0x45aa80(0) y 0x47b0f0, con su
 // renglón 0x46d3a0) y 0x5762eb4 en 0; PgUp y PgDn la corren los renglones que muestra (la vtable + 0x38 y + 0x34). Con
-// el héroe maestro (+0x368 en 0x80), los tres botones (0x45b200) sobre el elegido: el cargo (no al maestro) abre la
-// ventana de los cargos, que corta (0x64e600, P-C288); quitarlo (solo al 0x40 o al 0x20) y echarlo (no al maestro)
-// abren el diálogo de los paneles con Confirmar y Cancelar, que responden 0x64def0 y 0x64e550 (GuildPanels).
+// el héroe maestro (+0x368 en 0x80), los tres botones (0x45b200) sobre el elegido: el cargo (no al maestro) guarda su
+// puesto y su nombre y abre la ventana de los cargos (el diálogo de los paneles vacío con los ganchos de 0x64e600 y
+// 0x64f1c0); quitarlo (solo al 0x40 o al 0x20) y echarlo (no al maestro) abren el diálogo de los paneles con
+// Confirmar y Cancelar, que responden 0x64def0 y 0x64e550 (GuildPanels).
 //
 // 0x650c10, la pestaña de la alianza: la lista +0x2f8 (0x4824d0 con 0x46e1e0) con 0x5762eb4 y, con el héroe maestro y
 // alianza (+4 de su entrada), +0x64c: el maestro de la alianza recibe el aviso 1271; el otro manda C1 07 E5 01 02 con
 // su clave y avisa el 1387 (0x555190, tipo 1). Después +0x6d4 sobre la fila elegida que no es su gremio: su nombre a
 // 0x7d535a8 y el diálogo del 1423 con el nombre y el 1369 (Confirmar, 0x650830, el EB).
 [[nodiscard]] Core::Expected<void, std::string> StepTheGuildWindow(const GuildWindowStepContext& context);
+
+// 0x64e600, el paso de la ventana de los cargos (+8 del diálogo de los paneles, después del mouse sobre su caja): el
+// mouse sobre 0xd5 × 0xfa desde la esquina que dejó el dibujo es de la UI; con el flanco del clic, las cajas de
+// 0xaa × 0x14 en (x + 0x14, y + 0x13) y (x + 0x14, y + 0x29) eligen 0x40 o 0x20. El botón 0x7d535b8 manda C1 0F E1
+// (1 si el elegido no tenía cargo, 2 si tenía; el cargo y su nombre) y C1 03 52, y cancela el diálogo (0x6603c0, con
+// `answer`); después, 0x7d53640 lo cancela. Sin `send`, el E1 corta.
+[[nodiscard]] Core::Expected<void, std::string> StepTheGuildPositions(WorldState& world, const GuildSender& send,
+                                                                      std::int32_t mouseX, std::int32_t mouseY,
+                                                                      const UI::PanelDialogAnswer& answer);
 
 // 0x657977: el paso de arriba en el registro. `context` se copia; el mundo tiene que vivir más que el contexto del
 // registro.

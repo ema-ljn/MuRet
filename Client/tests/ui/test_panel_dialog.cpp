@@ -209,6 +209,30 @@ TEST_F(PanelDialogTest, TheStepClicksTheConfirmButton)
     EXPECT_EQ(m_dialog.opened, 0u);
 }
 
+// 0x66061c: con el paso propio (+8, 0x6602b0), 0x6605b0 hace solo el mouse sobre la caja: ni los botones ni el reloj
+// (lo demás es de quien lo puso). Cerrar (0x660350) no borra los ganchos; abrir (0x660090), sí.
+TEST_F(PanelDialogTest, WithItsOwnStepItOnlyTakesTheMouse)
+{
+    ASSERT_EQ(Open(Client::UI::PanelDialogConfirm | Client::UI::PanelDialogTimed), PanelDialogOpening::Opened);
+    Client::UI::HookThePanelDialog(m_dialog, Client::UI::PanelDialogHooks::GuildPositions);
+    static_cast<void>(Client::UI::PlaceThePanelDialog(m_dialog));
+    const auto& confirm = m_dialog.buttons[Client::UI::PanelConfirmButton].base;
+    m_released = true;
+    m_pressedButton = confirm.id;
+    ASSERT_TRUE(
+        Client::UI::StepThePanelDialog(m_dialog, Globals(), confirm.x + 5, confirm.y + 5, OpenedAt + 6000, Recorder())
+            .HasValue());
+    EXPECT_EQ(m_mouseOnUi, 1);
+    EXPECT_TRUE(m_answers.empty());
+    EXPECT_TRUE(m_released);
+    EXPECT_NE(m_dialog.opened, 0u);
+
+    ASSERT_TRUE(Client::UI::CloseThePanelDialog(m_dialog).HasValue());
+    EXPECT_EQ(m_dialog.hooks, Client::UI::PanelDialogHooks::GuildPositions);
+    ASSERT_EQ(Open(Client::UI::PanelDialogOk), PanelDialogOpening::Opened);
+    EXPECT_EQ(m_dialog.hooks, Client::UI::PanelDialogHooks::None);
+}
+
 // 0x660580: con el reloj (8), al pasar el final responde 0x20; sin él, nunca.
 TEST_F(PanelDialogTest, TheTimerAnswersWhenItRunsOut)
 {

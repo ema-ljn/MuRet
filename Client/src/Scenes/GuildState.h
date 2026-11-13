@@ -283,6 +283,46 @@ struct SecondGuildWindowState
     std::uint32_t dialog2a4 = 0;
 };
 
+// La ventana de los cargos (0x64e600 y 0x64f1c0, los ganchos que pone 0x6602b0 en el diálogo de los paneles): sus dos
+// botones globales de 0x32 × 0x12 (0x45ad80 desde 0x64e590 y 0x64e5d0, antes de WinMain; el comando y el texto de
+// 0x45b150 y el tamaño de 0x45a9f0 en 0x64f3e0): 0x7d535b8 (5, el 228) y 0x7d53640 (6, el 229), colgados de la
+// ventana del gremio (+0x44 con su +0x40). Los ubica su dibujo. Ids del contador 0x5762eb0: MuRet les da −20 y −21
+// (P-C280).
+inline constexpr std::size_t GuildPositionsOkButton = 0;
+inline constexpr std::size_t GuildPositionsCancelButton = 1;
+inline constexpr std::size_t GuildPositionsButtonCount = 2;
+inline constexpr std::int32_t GuildPositionsFirstId = -20;
+// 0x7d536d8: el cargo elegido, el del asistente (0x40, el que deja 0x64f3e0) o el del maestro de batalla (0x20).
+inline constexpr std::int32_t AssistantChoice = 0x40;
+inline constexpr std::int32_t BattleMasterChoice = 0x20;
+
+[[nodiscard]] inline std::array<UI::OldButton, GuildPositionsButtonCount> GuildPositionsButtons()
+{
+    std::array<UI::OldButton, GuildPositionsButtonCount> buttons{};
+    for (std::size_t index = 0; index < buttons.size(); ++index)
+    {
+        UI::OldButton& button = buttons[index];
+        button.base.id = GuildPositionsFirstId - static_cast<std::int32_t>(index);
+        button.base.parent = GuildWindowId;
+        button.base.width = 0x32;
+        button.base.height = 0x12;
+        button.command = 5 + static_cast<std::int32_t>(index);
+    }
+    return buttons;
+}
+
+struct GuildPositionsState
+{
+    // 0x7d536d0 y 0x7d536d4: la esquina de la caja que deja el dibujo (0x6576a0 con 0x96) y lee el paso del cuadro
+    // siguiente; 0x64f3e0 las pone en 0.
+    std::int32_t x = 0;
+    std::int32_t y = 0;
+    // 0x7d536d8. Nadie lo vuelve a 0x40 al abrir: queda el último.
+    std::int32_t choice = AssistantChoice;
+    // 0x7d535b8 y 0x7d53640. Los textos (0x45b150) los copia MuRet la primera vez que los dibuja.
+    std::array<UI::OldButton, GuildPositionsButtonCount> buttons = GuildPositionsButtons();
+};
+
 struct GuildState
 {
     // 0x787a5e8 y 0x787aa48: los dos arreglos van seguidos, y el original escribe a uno desde el otro (Q-C1281).
@@ -343,6 +383,7 @@ struct GuildState
 
     GuildWindowState window{};
     SecondGuildWindowState secondWindow{};
+    GuildPositionsState positions{};
 };
 
 // 0x447b00(clave): la primera entrada con la clave, mirando de 0 hasta la cuenta inclusive (una más: con la cuenta en

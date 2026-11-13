@@ -432,7 +432,7 @@ Core::Expected<void, std::string> DrawTheNoticeTab(GameHudContext& context)
     const std::int32_t y = window.base.y;
     const ActorState& hero = context.world.Actors()[runtime.hero];
     WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x45), static_cast<float>(y + 0x68), MarkBoxSide,
-                                MarkBoxSide);
+                                MarkBoxSide, false);
     if (context.guildMarks == nullptr)
         return Core::Unexpected(std::string("0x64fe4a: la marca del gremio (0x5f16a0) sin la tabla de las marcas"));
     auto slot = context.guildMarks->Upload(guild, static_cast<std::int16_t>(hero.word1f2), true);
@@ -441,7 +441,7 @@ Core::Expected<void, std::string> DrawTheNoticeTab(GameHudContext& context)
     WindowDrawing::Quad(sprites, slot.Value().value, static_cast<float>(x + 0x48), static_cast<float>(y + 0x6b),
                         MarkSide, MarkSide, 1.0f, 1.0f);
     WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x19), static_cast<float>(y + 0xaa), InfoBoxWidth,
-                                InfoBoxHeight);
+                                InfoBoxHeight, false);
     const std::int32_t left = x + 0x1e;
     std::int32_t top = y + 0xb2;
     const std::int32_t box = BoxOf(context, InfoTextBox);
@@ -504,7 +504,7 @@ Core::Expected<void, std::string> DrawTheNoticeTab(GameHudContext& context)
         return drawn;
     top -= 0xe;
     WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x19), static_cast<float>(top), InfoBoxWidth,
-                                NoticeBoxHeight);
+                                NoticeBoxHeight, false);
     UI::OldButton& leave = window.tabButtons[GuildLeaveButton];
     if (auto labeled = RelabelTheButton(context, leave, hero.guildStatus == MasterStatus ? MasterLeaveText : LeaveText,
                                         "0x6502f8");

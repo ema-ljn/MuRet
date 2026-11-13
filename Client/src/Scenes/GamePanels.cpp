@@ -112,9 +112,10 @@ void GamePanels::LendTheGuild(WorldState& world, const GuildSender& send)
     LendTheGuildTo(m_context, world, send);
 }
 
-void GamePanels::LendThePanelDialogStep(WorldState& world, std::int32_t mouseX, std::int32_t mouseY, std::uint32_t now)
+void GamePanels::LendThePanelDialogStep(WorldState& world, const GuildSender& send, std::int32_t mouseX,
+                                        std::int32_t mouseY, std::uint32_t now)
 {
-    LendThePanelDialogStepTo(m_context, world, mouseX, mouseY, now);
+    LendThePanelDialogStepTo(m_context, world, send, mouseX, mouseY, now);
 }
 
 void GamePanels::LendTheSecondGuildStep(const SecondGuildStepContext& context)

@@ -145,6 +145,17 @@ constexpr std::uint8_t BreakRequest = 2;
 constexpr std::size_t UnionLeftText = 1387;
 constexpr std::int32_t UnionLeftType = 1;
 constexpr std::size_t UnionKickText = 1423;
+// 0x64e600: el mouse de la UI sobre 0xd5 × 0xfa desde la esquina, las dos cajas de 0xaa × 0x14 en x + 0x14 (y + 0x13
+// y y + 0x29) y el tipo del E1: 1 sin cargo, 2 con uno.
+constexpr std::int32_t PositionsMouseWidth = 0xd5;
+constexpr std::int32_t PositionsMouseHeight = 0xfa;
+constexpr std::int32_t PositionsChoiceLeft = 0x14;
+constexpr std::int32_t AssistantChoiceTop = 0x13;
+constexpr std::int32_t BattleMasterChoiceTop = 0x29;
+constexpr std::int32_t PositionsChoiceWidth = 0xaa;
+constexpr std::int32_t PositionsChoiceHeight = 0x14;
+constexpr std::uint8_t AppointType = 1;
+constexpr std::uint8_t ChangeType = 2;
 
 float F32(double value)
 {
@@ -372,8 +383,13 @@ Core::Expected<void, std::string> StepTheMasterButtons(const GuildWindowStepCont
         {
             guild.chosenStatus = member->status;
             ChooseTheMember(guild, GuildTextOf(member->name));
-            return Core::Unexpected(std::string("0x6504b6: la ventana de los cargos (0x6600d0 vacío y 0x6602b0 con "
-                                                "0x64e600 y 0x64f1c0) no está portada (P-C288)"));
+            // 0x6504b6: 0x6600d0 sin renglones ni botones (0xd5 × 0x2b) con lo que da en +0x428, y 0x6602b0 con el paso
+            // y el dibujo de la ventana de los cargos. Con otro abierto, 0x6600f9 corta antes (el original le pondría
+            // los ganchos al abierto).
+            if (auto opened = OpenTheGuildDialog(context, {}, 0, UI::PanelDialogOwner::None, "0x6504b6");
+                !opened.HasValue())
+                return opened;
+            UI::HookThePanelDialog(runtime.panels.delegated.panelDialog, UI::PanelDialogHooks::GuildPositions);
         }
     }
     if (UI::ClickTheButton(window.memberButtons[GuildDismissButton], globals, context.mouseX, context.mouseY))
@@ -758,6 +774,48 @@ void AddTheUnion(GuildWindowState& window, const std::array<std::uint8_t, GuildM
 void ClearTheUnions(GuildWindowState& window)
 {
     ClearTheGuildList(window.unionList, window.unions);
+}
+
+Core::Expected<void, std::string> StepTheGuildPositions(WorldState& world, const GuildSender& send, std::int32_t mouseX,
+                                                        std::int32_t mouseY, const UI::PanelDialogAnswer& answer)
+{
+    WorldRuntime& runtime = world.Runtime();
+    GuildState& guild = runtime.guild;
+    GuildPositionsState& positions = guild.positions;
+    const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
+    if (UI::MouseInRect(mouseX, mouseY, positions.x, positions.y, PositionsMouseWidth, PositionsMouseHeight,
+                        TopLeftRect))
+        runtime.ui.mouseOnUi = 1;
+    // 0x64e64e: con el flanco del clic (0x7d366d4, que no gasta), las dos cajas eligen el cargo.
+    if (runtime.movement.pendingClick)
+    {
+        if (UI::MouseInRect(mouseX, mouseY, positions.x + PositionsChoiceLeft, positions.y + AssistantChoiceTop,
+                            PositionsChoiceWidth, PositionsChoiceHeight, TopLeftRect))
+            positions.choice = AssistantChoice;
+        if (UI::MouseInRect(mouseX, mouseY, positions.x + PositionsChoiceLeft, positions.y + BattleMasterChoiceTop,
+                            PositionsChoiceWidth, PositionsChoiceHeight, TopLeftRect))
+            positions.choice = BattleMasterChoice;
+    }
+    UI::PanelDialogState& dialog = runtime.panels.delegated.panelDialog;
+    if (UI::ClickTheButton(positions.buttons[GuildPositionsOkButton], globals, mouseX, mouseY))
+    {
+        // 0x64e6cc: sin cargo (0x7d535b4 en 0), C1 0F E1 01; con uno, 02; con el elegido y los 10 bytes de 0x7d535a8,
+        // por el socket (0x6c82a0). Después C1 03 52 (0x64efca) y 0x6603c0.
+        if (!send)
+            return Core::Unexpected(std::string("0x64e6cc: el E1 de la ventana de los cargos sin el cable"));
+        const std::uint8_t type = guild.chosenStatus == 0 ? AppointType : ChangeType;
+        Protocol::Guild::CharacterName name{};
+        for (std::size_t index = 0; index < name.size(); ++index)
+            name[index] = static_cast<std::byte>(guild.chosenName[index]);
+        send(Protocol::Guild::WriteAssignStatus(type, static_cast<std::uint8_t>(positions.choice), name));
+        send(Protocol::Guild::WriteMemberListRequest());
+        if (auto cancelled = UI::CancelThePanelDialog(dialog, answer); !cancelled.HasValue())
+            return cancelled;
+    }
+    // 0x64f196: el otro botón cancela (cerrado, 0x6603c0 no hace nada).
+    if (UI::ClickTheButton(positions.buttons[GuildPositionsCancelButton], globals, mouseX, mouseY))
+        return UI::CancelThePanelDialog(dialog, answer);
+    return {};
 }
 
 void LendTheGuildWindowStepTo(UI::PanelContext& panels, const GuildWindowStepContext& context)

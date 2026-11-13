@@ -100,8 +100,18 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
                                       .alpha = 0.0f});
 }
 
-void DrawTheFrame(Render::SpriteBatch& sprites, float x, float y, float width, float height)
+void DrawTheFrame(Render::SpriteBatch& sprites, float x, float y, float width, float height, bool filled)
 {
+    // 0x471532..0x47155e: la caja de glColor4ub(0x92, 0x90, 0x8d, 0xc8) y 0x459ec0.
+    constexpr Render::Color FrameFill{
+        .red = 146.0f / 255.0f, .green = 144.0f / 255.0f, .blue = 141.0f / 255.0f, .alpha = 200.0f / 255.0f};
+    if (filled)
+    {
+        sprites.SetColor(FrameFill);
+        sprites.ColorQuad(x, y, width, height);
+        sprites.SetColor(White);
+        sprites.EnableTexture();
+    }
     constexpr std::uint16_t FrameRowSlot = 0x117;
     constexpr std::uint16_t FrameSideSlot = 0x104;
     constexpr float FrameLine = 2.0f;

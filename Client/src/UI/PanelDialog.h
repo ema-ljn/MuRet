@@ -69,6 +69,15 @@ enum class PanelDialogOwner : std::uint8_t
     UnionKick,    // 0x650830, echar a un gremio de la alianza (la pestaña de la alianza)
 };
 
+// +8 y +0xc: el paso y el dibujo propios que pone 0x6602b0. El paso (0x6605b0) lo llama después del mouse sobre la caja
+// en lugar de los botones y el reloj; el dibujo (0x660830), en lugar de todo. Los borra 0x660090 al abrir (0x6600d0);
+// cerrar (0x660350) no los toca. El original guarda las funciones; MuRet, de quién son, y los llama Scenes.
+enum class PanelDialogHooks : std::uint8_t
+{
+    None,
+    GuildPositions, // 0x64e600 y 0x64f1c0, la ventana de los cargos (el botón +0x4b4 de la ventana del gremio)
+};
+
 // La respuesta: si la función devuelve distinto de 0 el diálogo se cierra (las de MuRet devuelven 1).
 using PanelDialogAnswer =
     std::function<Core::Expected<bool, std::string>(PanelDialogOwner owner, std::uint32_t reason)>;
@@ -76,6 +85,7 @@ using PanelDialogAnswer =
 struct PanelDialogState
 {
     PanelDialogOwner owner = PanelDialogOwner::None; // +4
+    PanelDialogHooks hooks = PanelDialogHooks::None; // +8 y +0xc
     // +0x10: abierto, con el GetTickCount() de cuando se abrió (lo que devuelve 0x6600d0 y guardan las ventanas).
     std::uint32_t opened = 0;
     std::int32_t lineCount = 0; // +0x14
@@ -96,6 +106,12 @@ struct PanelDialogState
 
 // 0x660090: todo en 0 menos el tamaño, el reloj y los botones.
 void ResetThePanelDialog(PanelDialogState& dialog);
+
+// 0x6602b0(paso, dibujo): pone +8 y +0xc, esté abierto o no.
+inline void HookThePanelDialog(PanelDialogState& dialog, PanelDialogHooks hooks)
+{
+    dialog.hooks = hooks;
+}
 
 enum class PanelDialogOpening : std::uint8_t
 {
@@ -152,7 +168,8 @@ struct PanelDialogRequest
                                   std::int32_t mouseY);
 
 // 0x6605b0: abierto, el mouse sobre la caja (0x140 − ancho / 2, 0x82 − alto / 2) es de la UI; después, los botones
-// (0x45b200) o el reloj, y la respuesta.
+// (0x45b200) o el reloj, y la respuesta. Con el paso propio (+8), nada más: lo llama quien lo puso
+// (Scenes::LendThePanelDialogStepTo).
 [[nodiscard]] Core::Expected<void, std::string> StepThePanelDialog(PanelDialogState& dialog,
                                                                    const OldWindowGlobals& globals, std::int32_t mouseX,
                                                                    std::int32_t mouseY, std::uint32_t now,

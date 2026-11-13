@@ -732,14 +732,14 @@ Core::Expected<void, std::string> DrawTheConfirmation(GameHudContext& context, G
     SelectFont(context, FontKind::Normal);
     context.hud.textColors.background = 0;
     WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + PageLeft), static_cast<float>(y + 0x41), NameBoxWidth,
-                                NameBoxHeight);
+                                NameBoxHeight, false);
     auto name = TextOf(context.texts, NameText, "0x655b2a");
     if (!name.HasValue())
         return Core::Unexpected(std::move(name).Error());
     DrawInTheBox(context, x + PageLeft, y + 0x47,
                  std::format("{} : {}", name.Value(), NameOf(guild.table[CreatingIndex].guildName)));
     WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x45), static_cast<float>(y + 0x68), MarkBoxSide,
-                                MarkBoxSide);
+                                MarkBoxSide, false);
     if (context.guildMarks == nullptr)
         return Core::Unexpected(std::string("0x655b98: la marca nueva sin la tabla de las marcas"));
     auto slot = context.guildMarks->Upload(guild, CreatingGuildIndex, true);

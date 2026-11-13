@@ -13,6 +13,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/GuildDrawing.h"
 #include "Scenes/GuildMarks.h"
 #include "Scenes/GuildPanels.h"
 #include "Scenes/GuildState.h"
@@ -25,6 +26,7 @@
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/PanelDialog.h"
+#include "UI/PanelRegistry.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/RecordingTextDrawer.h"
@@ -180,6 +182,8 @@ int Draws(const CrtRandom& random)
 Client::Data::Text::TextTable WindowTexts()
 {
     std::map<std::size_t, std::string> texts{{180, "Gremio"},
+                                             {228, "Aceptar"},
+                                             {229, "Cancelar"},
                                              {182, "Gremios"},
                                              {185, "Sin gremio"},
                                              {186, "busca uno"},
@@ -199,6 +203,10 @@ Client::Data::Text::TextTable WindowTexts()
                                              {1308, "Quitar"},
                                              {1309, "Echar"},
                                              {1310, "Socios: %d"},
+                                             {1311, "Hacerlo ayudante"},
+                                             {1312, "Hacerlo guerrero"},
+                                             {1314, "%s sera %s"},
+                                             {1315, "Elegi el cargo"},
                                              {1321, "Aviso de"},
                                              {1323, "El aviso"},
                                              {1324, "Romperla"},
@@ -369,6 +377,70 @@ protected:
                                .mouse = {m_mouseX, m_mouseY},
                                .guildMarks = &m_marks};
         return Client::Scenes::DrawTheGuildWindow(context);
+    }
+
+    // 0x6605b0 por el registro (LendThePanelDialogStepTo), con la respuesta de LendTheGuildTo.
+    Client::Core::Expected<void, std::string> StepTheDialog()
+    {
+        Client::UI::PanelContext panels{.random = m_random, .dialogs = Runtime().dialogs};
+        Client::Scenes::LendTheGuildTo(panels, *m_world, Sender());
+        Client::Scenes::LendThePanelDialogStepTo(panels, *m_world, Sender(), m_mouseX, m_mouseY, Now);
+        return panels.panelDialogStep();
+    }
+
+    // Un clic en (x, y) del paso del diálogo: el flanco y el soltado en dos cuadros.
+    Client::Core::Expected<void, std::string> ClickTheDialogAt(std::int32_t x, std::int32_t y)
+    {
+        m_mouseX = x;
+        m_mouseY = y;
+        Client::Scenes::GameMovementState& movement = Runtime().movement;
+        movement.pendingClick = true;
+        movement.leftHeld = true;
+        if (auto pressed = StepTheDialog(); !pressed.HasValue())
+            return pressed;
+        movement.pendingClick = false;
+        movement.leftHeld = false;
+        movement.releasedClick = true;
+        auto released = StepTheDialog();
+        movement.releasedClick = false;
+        return released;
+    }
+
+    Client::Core::Expected<void, std::string> ClickThePositionsButton(std::size_t button)
+    {
+        const Client::UI::OldButton& target = Guild().positions.buttons.at(button);
+        return ClickTheDialogAt(target.base.x + target.base.width / 2, target.base.y + target.base.height / 2);
+    }
+
+    // 0x660830 (el último de 0x6579e0).
+    Client::Core::Expected<void, std::string> DrawTheDialog()
+    {
+        Client::Scenes::WorldRuntime& runtime = Runtime();
+        Client::Scenes::ActorState& hero = Hero();
+        GameHudContext context{.world = *m_world,
+                               .random = m_random,
+                               .ownRecordDepth = runtime.ownRecordDepth,
+                               .cellXDepth = hero.cellXAccesses,
+                               .cellYDepth = hero.cellYAccesses,
+                               .hud = runtime.hud,
+                               .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                               .sound = m_sound,
+                               .sprites = m_sprites,
+                               .text = m_text,
+                               .texts = &m_texts,
+                               .mouse = {m_mouseX, m_mouseY},
+                               .guildMarks = &m_marks};
+        return Client::Scenes::DrawThePanelDialog(context, runtime.panels.delegated.panelDialog);
+    }
+
+    // El maestro elige a `name` (con su cargo) y aprieta el botón del cargo.
+    void OpenThePositionsFor(std::string_view name, std::uint8_t status)
+    {
+        JoinTheGuild("");
+        Hero().guildStatus = MasterStatus;
+        AddMember(name, status);
+        const auto clicked = Click(Client::Scenes::GuildAssignButton);
+        ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
     }
 
     // El mouse sobre la pestaña `tab` del paso (0x34 × 0x10 en x + 0xf, 0x43 y 0x77, y + 0x4b).
@@ -681,22 +753,156 @@ TEST_P(GuildWindowTest, TheMasterKicksTheChosenMember)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x6503cf..0x6504d4: el cargo al elegido guarda su puesto y su nombre, y la ventana de los cargos corta (P-C288). Sin
-// ser maestro, los botones no hacen nada.
-TEST_P(GuildWindowTest, TheAssignButtonCutsAndOnlyTheMasterHasButtons)
+// 0x6503cf..0x6504d4: el cargo al elegido guarda su puesto y su nombre y abre el diálogo de los paneles vacío (0xd5 ×
+// 0x2b, sin botones ni dueño) con los ganchos de la ventana de los cargos (0x6602b0), con lo que da en +0x428. Sin ser
+// maestro, los botones no hacen nada. El que se abre después vuelve sin ganchos (0x660090).
+TEST_P(GuildWindowTest, TheAssignButtonOpensThePositionsWindow)
 {
     JoinTheGuild("");
     AddMember("Sauce", BattleMasterStatus);
     ASSERT_TRUE(Click(Client::Scenes::GuildAssignButton).HasValue());
     ASSERT_TRUE(Click(Client::Scenes::GuildKickButton).HasValue());
-    EXPECT_EQ(Runtime().panels.delegated.panelDialog.opened, 0U);
+    Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    EXPECT_EQ(dialog.opened, 0U);
 
     Hero().guildStatus = MasterStatus;
     const auto clicked = Click(Client::Scenes::GuildAssignButton);
-    ASSERT_FALSE(clicked.HasValue());
-    EXPECT_NE(clicked.Error().find("0x6504b6"), std::string::npos) << clicked.Error();
+    ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
     EXPECT_EQ(Guild().chosenStatus, BattleMasterStatus);
     EXPECT_EQ(Client::Scenes::GuildTextOf(Guild().chosenName), "Sauce");
+    EXPECT_EQ(dialog.opened, Now);
+    EXPECT_EQ(Guild().window.dialog, Now);
+    EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::None);
+    EXPECT_EQ(dialog.hooks, Client::UI::PanelDialogHooks::GuildPositions);
+    EXPECT_EQ(dialog.flags, 0U);
+    EXPECT_EQ(dialog.lineCount, 0);
+    EXPECT_EQ(dialog.width, 0xd5);
+    EXPECT_EQ(dialog.height, 0x2b);
+    EXPECT_TRUE(m_sent.empty());
+
+    // Cerrar no borra los ganchos; abrir otro, sí.
+    ASSERT_TRUE(Client::UI::CloseThePanelDialog(dialog).HasValue());
+    EXPECT_EQ(dialog.hooks, Client::UI::PanelDialogHooks::GuildPositions);
+    ASSERT_TRUE(Click(Client::Scenes::GuildDismissButton).HasValue());
+    EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::GuildDismiss);
+    EXPECT_EQ(dialog.hooks, Client::UI::PanelDialogHooks::None);
+    EXPECT_EQ(Draws(m_random), 0);
+}
+
+// 0x64f1c0: la caja de 0x96 en (0xd6, 0x37), que deja la esquina para el paso; las dos cajas de 170 × 20 en
+// (x + 0x14, y + 0x13) y (x + 0x14, y + 0x27), rellena (0x621aa0) la del cargo elegido; los textos centrados en 170
+// desde x + 0x14, con la fuente y los colores que había; y los dos botones en y + 0x75. Sin rand().
+TEST_P(GuildWindowTest, ThePositionsWindowDrawsItsBoxesAndTexts)
+{
+    OpenThePositionsFor("Sauce", MemberStatus);
+    Runtime().hud.textColors = Client::Render::Text::TextColors{.text = RowText, .background = 0};
+    const auto drawn = DrawTheDialog();
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(Guild().positions.x, 0xd6);
+    EXPECT_EQ(Guild().positions.y, 0x37);
+
+    const std::vector<DrawnQuad> quads = QuadsOf(m_sprites);
+    EXPECT_EQ(CountQuadsAt(quads, 0xfc, 214.0f, 55.0f, 213.0f, 5.0f), 1U);
+    EXPECT_EQ(CountQuadsAt(quads, 0xfb, 214.0f, 60.0f, 213.0f, 40.0f), 1U);
+    EXPECT_EQ(CountQuadsAt(quads, 0xfb, 214.0f, 180.0f, 213.0f, 20.0f), 1U);
+    EXPECT_EQ(CountQuadsAt(quads, 0xfc, 214.0f, 200.0f, 213.0f, 5.0f), 1U);
+    // La del ayudante (0x40, el que deja 0x64f3e0), rellena; la del guerrero, no.
+    EXPECT_EQ(CountQuadsAt(quads, NoTexture, 234.0f, 74.0f, 170.0f, 20.0f), 1U);
+    EXPECT_EQ(CountQuadsAt(quads, 0x117, 234.0f, 74.0f, 170.0f, 2.0f), 1U);
+    EXPECT_EQ(CountQuadsAt(quads, 0x104, 234.0f, 74.0f, 2.0f, 20.0f), 1U);
+    EXPECT_EQ(CountQuadsAt(quads, NoTexture, 234.0f, 94.0f, 170.0f, 20.0f), 0U);
+    EXPECT_EQ(CountQuadsAt(quads, 0x117, 234.0f, 94.0f, 170.0f, 2.0f), 1U);
+
+    struct Line
+    {
+        std::string_view text;
+        int y;
+    };
+    const std::array<Line, 4> lines{Line{"Hacerlo ayudante", 55 + 0x18}, Line{"Hacerlo guerrero", 55 + 0x2e},
+                                    Line{"Sauce sera Ayudante", 55 + 0x4b}, Line{"Elegi el cargo", 55 + 0x5d}};
+    std::size_t at = 0;
+    for (const Line& line : lines)
+    {
+        SCOPED_TRACE(line.text);
+        at = FindText(m_text.texts, line.text, at);
+        ASSERT_LT(at, m_text.texts.size());
+        const auto& text = m_text.texts[at];
+        const int width = Client::Tests::RecordingTextDrawer::LetterWidth * static_cast<int>(line.text.size());
+        EXPECT_EQ(text.x, 234);
+        EXPECT_EQ(text.y, line.y);
+        EXPECT_TRUE(text.windowed);
+        EXPECT_EQ(text.firstColumn, -((170 - width) / 2));
+        EXPECT_EQ(text.style.colors.text, RowText);
+    }
+    EXPECT_LT(FindText(m_text.texts, "Aceptar", at), m_text.texts.size());
+    EXPECT_LT(FindText(m_text.texts, "Cancelar", at), m_text.texts.size());
+    EXPECT_EQ(Guild().positions.buttons[Client::Scenes::GuildPositionsOkButton].base.x, 214 + 0x37);
+    EXPECT_EQ(Guild().positions.buttons[Client::Scenes::GuildPositionsCancelButton].base.x, 214 + 0x6e);
+    EXPECT_EQ(Guild().positions.buttons[Client::Scenes::GuildPositionsOkButton].base.y, 55 + 0x75);
+
+    // Con el guerrero elegido, la rellena es la de abajo y el texto dice el 1302.
+    Guild().positions.choice = Client::Scenes::BattleMasterChoice;
+    m_text.texts.clear();
+    m_sprites.Begin(Screen640);
+    ASSERT_TRUE(DrawTheDialog().HasValue());
+    const std::vector<DrawnQuad> again = QuadsOf(m_sprites);
+    EXPECT_EQ(CountQuadsAt(again, NoTexture, 234.0f, 74.0f, 170.0f, 20.0f), 0U);
+    EXPECT_EQ(CountQuadsAt(again, NoTexture, 234.0f, 94.0f, 170.0f, 20.0f), 1U);
+    EXPECT_LT(FindText(m_text.texts, "Sauce sera Guerrero"), m_text.texts.size());
+    EXPECT_EQ(Draws(m_random), 0);
+}
+
+// 0x64e600: con el flanco del clic, las cajas eligen el cargo (0x40 o 0x20) desde la esquina del último dibujo;
+// Aceptar manda C1 0F E1 01 (el elegido sin cargo), el cargo y los 10 bytes de 0x7d535a8, y C1 03 52, y cierra el
+// diálogo. Sin rand().
+TEST_P(GuildWindowTest, ThePositionsWindowAppointsAMember)
+{
+    OpenThePositionsFor("Sauce", MemberStatus);
+    // Antes del primer dibujo la esquina es la de 0x64f3e0, (0, 0).
+    ASSERT_TRUE(ClickTheDialogAt(0x14 + 2, 0x29 + 2).HasValue());
+    EXPECT_EQ(Guild().positions.choice, Client::Scenes::BattleMasterChoice);
+    ASSERT_TRUE(DrawTheDialog().HasValue());
+    Runtime().ui.mouseOnUi = 0;
+    ASSERT_TRUE(ClickTheDialogAt(234 + 2, 74 + 2).HasValue());
+    EXPECT_EQ(Guild().positions.choice, Client::Scenes::AssistantChoice);
+    EXPECT_EQ(Runtime().ui.mouseOnUi, 1);
+    ASSERT_TRUE(ClickTheDialogAt(234 + 2, 55 + 0x29 + 2).HasValue());
+    EXPECT_EQ(Guild().positions.choice, Client::Scenes::BattleMasterChoice);
+    EXPECT_TRUE(m_sent.empty());
+    ASSERT_NE(Runtime().panels.delegated.panelDialog.opened, 0U);
+
+    const auto clicked = ClickThePositionsButton(Client::Scenes::GuildPositionsOkButton);
+    ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
+    ASSERT_EQ(m_sent.size(), 2U);
+    EXPECT_EQ(PlainOf(m_sent[0]), BytesOf({0xc1, 0x0f, 0xe1, 0x01, 0x20, 'S', 'a', 'u', 'c', 'e', 0, 0, 0, 0, 0}));
+    const auto list = m_sent[1].packet.Bytes();
+    EXPECT_EQ(std::vector<std::byte>(list.begin(), list.end()), BytesOf({0xc1, 0x03, 0x52}));
+    EXPECT_EQ(Runtime().panels.delegated.panelDialog.opened, 0U);
+    EXPECT_EQ(Runtime().lastSoundId, 0x19);
+    EXPECT_EQ(Draws(m_random), 0);
+}
+
+// 0x64eb53: con el elegido con cargo (0x7d535b4 distinto de 0), el E1 va con 2; los 10 bytes son los de 0x7d535a8
+// después del strcpy (lo que sigue al 0 queda del nombre de antes, Q-C1292). Cancelar (0x7d53640) cierra sin mandar.
+TEST_P(GuildWindowTest, ThePositionsWindowChangesAPositionOrCancels)
+{
+    Fill(Guild().chosenName, "Algarrobo");
+    OpenThePositionsFor("Tala", BattleMasterStatus);
+    ASSERT_TRUE(DrawTheDialog().HasValue());
+    Guild().positions.choice = Client::Scenes::AssistantChoice;
+    ASSERT_TRUE(ClickThePositionsButton(Client::Scenes::GuildPositionsOkButton).HasValue());
+    ASSERT_EQ(m_sent.size(), 2U);
+    EXPECT_EQ(PlainOf(m_sent[0]),
+              BytesOf({0xc1, 0x0f, 0xe1, 0x02, 0x40, 'T', 'a', 'l', 'a', 0, 'r', 'o', 'b', 'o', 0}));
+
+    m_sent.clear();
+    ASSERT_TRUE(Click(Client::Scenes::GuildAssignButton).HasValue());
+    ASSERT_NE(Runtime().panels.delegated.panelDialog.opened, 0U);
+    const auto cancelled = ClickThePositionsButton(Client::Scenes::GuildPositionsCancelButton);
+    ASSERT_TRUE(cancelled.HasValue()) << cancelled.Error();
+    EXPECT_EQ(Runtime().panels.delegated.panelDialog.opened, 0U);
+    EXPECT_TRUE(m_sent.empty());
+    EXPECT_EQ(Draws(m_random), 0);
 }
 
 // 0x64fdf0 sin ser maestro: el marco de 53 con la marca de 48 del gremio del héroe (0x5f16a0(3, 1)), el marco de 140 ×

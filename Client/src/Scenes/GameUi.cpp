@@ -1657,7 +1657,8 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
                                           .itemSetTables = context.itemSetTables});
     gamePanels.LendThePartyList(context.world, context.requests);
     gamePanels.LendTheGuild(context.world, GuildSenderOf(context.requests));
-    gamePanels.LendThePanelDialogStep(context.world, context.mouseX, context.mouseY, context.systemTime);
+    gamePanels.LendThePanelDialogStep(context.world, GuildSenderOf(context.requests), context.mouseX, context.mouseY,
+                                      context.systemTime);
     gamePanels.LendTheSecondGuildStep(SecondGuildStepContext{
         .world = context.world,
         .mouseX = context.mouseX,

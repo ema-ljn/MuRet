@@ -1,6 +1,7 @@
 #include "Scenes/GuildDrawing.h"
 
 #include "Core/Expected.h"
+#include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -14,10 +15,13 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"
+#include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
+#include "UI/SprintfFormat.h"
 #include "UI/Widget.h"
+#include "World/OriginalFtol.h"
 
 #include <algorithm>
 #include <array>
@@ -83,6 +87,38 @@ constexpr float LineStep = 15.0f;
 // 0x65ff12..0x65ff9c: los textos que 0x65feb0 les copia a los botones (vtable + 0x2c, 0x45b170): Aceptar o Sí, No,
 // Confirmar y Cancelar.
 constexpr std::array<std::size_t, UI::PanelDialogButtonCount> ButtonTexts{228, 229, 1037, 1038};
+// 0x64f1c0, la ventana de los cargos: la caja de 0x6576a0(0x96, −1), en (0xd6, 0x82 − 0x4b) con 40 de mínimo.
+constexpr std::int32_t PositionsBoxHeight = 0x96;
+constexpr std::int32_t PanelBoxLeft = 0xd6;
+constexpr std::int32_t PanelCenterY = 0x82;
+constexpr std::int32_t PanelBoxMinimumTop = 40;
+constexpr std::int32_t PositionsBoxTop = PanelCenterY - PositionsBoxHeight / 2 < PanelBoxMinimumTop
+                                             ? PanelBoxMinimumTop
+                                             : PanelCenterY - PositionsBoxHeight / 2;
+// 0x64f1f4..0x64f377: las dos cajas de 170 × 20 en x + 0x14 (y + 0x13 y y + 0x27; rellena la del cargo elegido) y los
+// textos en x + 0x14 centrados en _ftol(rx · 170) (0x6b899c): el 1311 en y + 0x18, el 1312 en y + 0x2e, el 1314 con el
+// nombre y el 1301 o el 1302 en y + 0x4b y el 1315 en y + 0x5d.
+constexpr std::int32_t PositionsLeft = 0x14;
+constexpr std::int32_t AssistantFrameTop = 0x13;
+constexpr std::int32_t BattleMasterFrameTop = 0x27;
+constexpr float PositionsFrameWidth = 170.0f;
+constexpr float PositionsFrameHeight = 20.0f;
+constexpr double PositionsTextBox = 170.0;
+constexpr std::size_t AssistantText = 1311;
+constexpr std::int32_t AssistantTextTop = 0x18;
+constexpr std::size_t BattleMasterText = 1312;
+constexpr std::int32_t BattleMasterTextTop = 0x2e;
+constexpr std::size_t PositionsQuestionText = 1314;
+constexpr std::int32_t PositionsQuestionTop = 0x4b;
+constexpr std::size_t AssistantNameText = 1301;
+constexpr std::size_t BattleMasterNameText = 1302;
+constexpr std::size_t PositionsHintText = 1315;
+constexpr std::int32_t PositionsHintTop = 0x5d;
+// 0x64f37c..0x64f3cb: los botones globales en (x + 0x37, y + 0x75) y (x + 0x6e, y + 0x75), con los textos que les pone
+// 0x64f3e0 (0x45b150).
+constexpr std::int32_t PositionsButtonsTop = 0x75;
+constexpr std::array<std::int32_t, GuildPositionsButtonCount> PositionsButtonLefts{0x37, 0x6e};
+constexpr std::array<std::size_t, GuildPositionsButtonCount> PositionsButtonTexts{228, 229};
 
 float F32(double value)
 {
@@ -93,6 +129,31 @@ template <std::size_t Size> std::string_view NameOf(const std::array<char, Size>
 {
     const auto end = std::ranges::find(name, '\0');
     return {name.data(), static_cast<std::size_t>(end - name.begin())};
+}
+
+std::int32_t Truncate(double value)
+{
+    return World::OriginalFtolLow(value).value_or(0);
+}
+
+Core::Expected<std::string_view, std::string> PositionsTextOf(const GameHudContext& context, std::size_t index,
+                                                              std::string_view where)
+{
+    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    if (!text)
+        return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
+    return *text;
+}
+
+// 0x5542f0(x, y, texto, caja, 2, 0): el texto centrado en la caja (0x467060 en el modo 2), sin medir.
+void DrawInTheMiddle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t box)
+{
+    if (text.empty() && box == 0)
+        return;
+    const Render::Text::CenteredInBox placed = Render::Text::CenterInBox(context.text, context.hud.dcFont, text, box);
+    context.text.DrawColumns(x, y, text,
+                             Render::Text::TextStyle{.font = context.hud.dcFont, .colors = context.hud.textColors},
+                             -placed.textColumn, placed.width);
 }
 
 // 0x5a7870..0x5a78b8: strcmp de +0xd de cada entrada con el rival; sin ninguna, EAX queda en 0 (0x5a78ba).
@@ -193,11 +254,74 @@ Core::Expected<void, std::string> DrawTheWarScore(GameHudContext& context, UI::P
     return {};
 }
 
+Core::Expected<void, std::string> DrawTheGuildPositions(GameHudContext& context)
+{
+    GuildState& guild = context.world.Runtime().guild;
+    GuildPositionsState& positions = guild.positions;
+    Render::SpriteBatch& sprites = context.sprites;
+    DrawTheDialogBox(sprites, PositionsBoxHeight, PositionsBoxTop);
+    positions.x = PanelBoxLeft;
+    positions.y = PositionsBoxTop;
+    const std::int32_t x = positions.x;
+    const std::int32_t y = positions.y;
+    // 0x64f1ef: 0x620a00(1).
+    sprites.SetBlend(BlendMode::Alpha);
+    const auto rx = static_cast<double>(Render::ScaleX(1.0f, sprites.Screen()));
+    const std::int32_t box = Truncate(rx * PositionsTextBox);
+    const std::int32_t left = x + PositionsLeft;
+    WindowDrawing::DrawTheFrame(sprites, static_cast<float>(left), static_cast<float>(y + AssistantFrameTop),
+                                PositionsFrameWidth, PositionsFrameHeight, positions.choice == AssistantChoice);
+    auto assistant = PositionsTextOf(context, AssistantText, "0x64f25c");
+    if (!assistant.HasValue())
+        return Core::Unexpected(std::move(assistant).Error());
+    DrawInTheMiddle(context, left, y + AssistantTextTop, assistant.Value(), box);
+    WindowDrawing::DrawTheFrame(sprites, static_cast<float>(left), static_cast<float>(y + BattleMasterFrameTop),
+                                PositionsFrameWidth, PositionsFrameHeight, positions.choice == BattleMasterChoice);
+    auto battleMaster = PositionsTextOf(context, BattleMasterText, "0x64f2d9");
+    if (!battleMaster.HasValue())
+        return Core::Unexpected(std::move(battleMaster).Error());
+    DrawInTheMiddle(context, left, y + BattleMasterTextTop, battleMaster.Value(), box);
+    // 0x64f2e8..0x64f310: sprintf con el 1314, el nombre de 0x7d535a8 y el cargo (el 1301 con 0x40, si no el 1302).
+    auto question = PositionsTextOf(context, PositionsQuestionText, "0x64f30a");
+    if (!question.HasValue())
+        return Core::Unexpected(std::move(question).Error());
+    auto position = PositionsTextOf(
+        context, positions.choice == AssistantChoice ? AssistantNameText : BattleMasterNameText, "0x64f2f3");
+    if (!position.HasValue())
+        return Core::Unexpected(std::move(position).Error());
+    DrawInTheMiddle(context, left, y + PositionsQuestionTop,
+                    UI::Sprintf(question.Value(), NameOf(guild.chosenName), position.Value()), box);
+    auto hint = PositionsTextOf(context, PositionsHintText, "0x64f36d");
+    if (!hint.HasValue())
+        return Core::Unexpected(std::move(hint).Error());
+    DrawInTheMiddle(context, left, y + PositionsHintTop, hint.Value(), box);
+    const UI::OldWindowDrawContext buttons{
+        .sprites = sprites, .text = context.text, .dcFont = context.hud.dcFont, .textColors = context.hud.textColors};
+    const UI::OldWindowDrawView view{.mouseX = context.mouse.x, .mouseY = context.mouse.y};
+    for (std::size_t index = 0; index < positions.buttons.size(); ++index)
+    {
+        UI::OldButton& button = positions.buttons[index];
+        if (!button.label)
+        {
+            auto label = PositionsTextOf(context, PositionsButtonTexts[index], "0x64f5f7");
+            if (!label.HasValue())
+                return Core::Unexpected(std::move(label).Error());
+            button.label = std::string(label.Value());
+        }
+        button.base.x = x + PositionsButtonLefts[index];
+        button.base.y = y + PositionsButtonsTop;
+        UI::DrawTheOldButton(buttons, button, view);
+    }
+    return {};
+}
+
 Core::Expected<void, std::string> DrawThePanelDialog(GameHudContext& context, UI::PanelDialogState& dialog)
 {
     if (UI::PanelDialogHandle(dialog) == 0)
         return {};
-    // 0x660846: +0xc, el dibujo de quien lo abrió, lo escribe solo 0x660090, en 0 (*inferido*): nunca hay.
+    // 0x660846: +0xc, el dibujo propio que pone 0x6602b0, en lugar de todo.
+    if (dialog.hooks == UI::PanelDialogHooks::GuildPositions)
+        return DrawTheGuildPositions(context);
     if ((dialog.flags & UI::PanelDialogTextField) != 0)
         return Core::Unexpected(
             std::string("0x66097a: el campo de texto del diálogo de los paneles (0x10, la caja 0x10f, "

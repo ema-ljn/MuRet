@@ -68,7 +68,7 @@ const char* WaveOf(PanelId id)
     switch (id)
     {
     case FriendsPanel:
-        return "el administrador viejo (hito 7) y la CL9.4";
+        return "la ventana de amigos, sin el paso de las ventanas viejas (CL9 hito 9)";
     case GuildPanel:
     case SecondGuildPanel:
         return "la CL9.4 (hito 8, las ventanas del gremio)";
@@ -118,7 +118,7 @@ bool PanelRegistry::IsOpen(PanelId id)
     switch (id)
     {
     case FriendsPanel:
-        return delegated.friends != 0;
+        return m_context.friendsShown ? m_context.friendsShown() : delegated.friends != 0;
     case MovePanel:
         return m_state.overlayMode == MoveOverlayMode;
     case PartyPanel:
@@ -285,6 +285,12 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
         break;
     }
     case FriendsPanel:
+        // 0x659f3d: sin cerrar nada, 0x491080(0x186, 0x106) y los sonidos.
+        if (!m_context.friendsOpened)
+            return Core::Unexpected(OpenCut(id));
+        if (auto opened = m_context.friendsOpened(); !opened.HasValue())
+            return Core::Unexpected(std::move(opened).Error());
+        break;
     case QuestPanel:
     case TradePanel:
     case WarehousePanel:
@@ -430,6 +436,13 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask)
                 return Core::Unexpected(std::move(window).Error());
             break;
         }
+        case FriendsPanel:
+            // 0x6584e5: 0x4914e0.
+            if (!m_context.friendsClosed)
+                return Core::Unexpected(CloseCut(id));
+            if (auto closed = m_context.friendsClosed(); !closed.HasValue())
+                return Core::Unexpected(std::move(closed).Error());
+            break;
         case InventoryPanel:
             // 0x659250..0x65926a.
             m_state.inventory = 0;

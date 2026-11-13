@@ -59,8 +59,10 @@
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
+#include "UI/FriendModel.h"
 #include "UI/GameCursor.h"
 #include "UI/GameUiState.h"
+#include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
 #include "World/GameCamera.h"
@@ -285,6 +287,10 @@ void GameScene::StepEntry()
             input.focus = UI::ChatFocus::Game;
             UI::ClearTheLog(runtime.chat.log, runtime.ui.chatModes);
             UI::ClearTheChatFilter(runtime.chat.log);
+            // 0x6368f9..0x636915: las ventanas viejas (0x48ea50), los amigos (0x49bac0) y las cartas (0x49f260, del
+            // hito 10: MuRet no guarda ninguna).
+            UI::ResetTheOldWindows(runtime.oldWindows);
+            UI::ClearTheFriends(runtime.oldWindows.friendModel);
             // 0x636920: 0x46b010, las colas del cartel de Slide.bmd, su timer 0x3eb y 0x46b0e0 (el registro propio y
             // un texto de Slide.bmd, con sus rand()).
             if (m_context.cloth != nullptr)
@@ -1131,7 +1137,11 @@ bool GameScene::WantsToQuit() const
 // Mientras el campo del chat está abierto, uno de sus EDIT tiene el foco y recibe los WM_CHAR.
 bool GameScene::WantsTextInput() const
 {
-    return m_context.world != nullptr && m_context.world->Runtime().ui.chatOpen;
+    if (m_context.world == nullptr)
+        return false;
+    // El chat abierto o el EDIT de una ventana vieja con el foco (CL9 hito 9).
+    const WorldRuntime& runtime = m_context.world->Runtime();
+    return runtime.ui.chatOpen || runtime.chat.input.focus == UI::ChatFocus::OldWindow;
 }
 
 bool GameScene::HoldsTheLastFrame() const

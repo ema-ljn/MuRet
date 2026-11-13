@@ -13,6 +13,7 @@
 #include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameDialogSteps.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/GameFriends.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMoveWindow.h"
 #include "Scenes/GameMovementState.h"
@@ -149,11 +150,11 @@ bool KeyEdge(UI::GameUiState& ui, const Input::InputState& input, GameKey key)
 }
 
 // 0x6578e0: hay un campo de texto con el foco (el chat 0x6c8e68, 0x77f3b68, el del diálogo de los paneles) o la
-// ventana del juego no lo tiene. MuRet tiene el del chat (hito 3); los otros son del hito 6, y su ventana es la del
-// juego.
+// ventana del juego no lo tiene. MuRet tiene el del chat (hito 3) y el EDIT de las ventanas viejas (CL9 hito 9, que
+// toma el foco de Windows); los otros son del hito 6, y su ventana es la del juego.
 bool TextInputBusy(const WorldRuntime& runtime)
 {
-    return runtime.ui.chatOpen;
+    return runtime.ui.chatOpen || runtime.chat.input.focus == UI::ChatFocus::OldWindow;
 }
 
 // 0x636e51..0x636e5a: el registro del chat, 0x45aa80(0) por la vtable + 0x18 de 0x576350c.
@@ -253,25 +254,95 @@ Core::Expected<void, std::string> Toggle(UI::PanelRegistry& panels, UI::PanelId 
     return {};
 }
 
+// Las cinco teclas que leen las ventanas viejas con 0x553520 (Esc, F5, F6, Enter y la F de la de amigos, 0x4a2f70) y
+// las dos que leen abajo con GetAsyncKeyState (las flechas de las listas, 0x47b0f0).
+constexpr std::array<GameKey, 5> OldWindowEdgeKeys{EscapeKey, F5Key, F6Key, EnterKey, Letter('F')};
+constexpr std::array<GameKey, 2> OldWindowDownKeys{UpKey, DownKey};
+
+// Lo que las ventanas viejas leen del juego en el paso de la UI (CL9 hito 9): la vista de 0x490490 (el mouse, las
+// teclas, el chat abierto, Text.bmd, la medida del DC, el cable y el EDIT del susurro) y 0x491080, que la usa también
+// (el panel 1 y 0x4906a0). Vive lo que el paso.
+class OldWindowSight
+{
+public:
+    explicit OldWindowSight(const GameUiContext& context) : m_context(context), m_texts(OldWindowTextsOf(context.texts))
+    {
+        if (context.measure != nullptr)
+            m_measure.emplace(UI::OldWindowMeasure{
+                .measure = *context.measure, .dcFont = context.world.Runtime().hud.dcFont, .screen = context.screen});
+    }
+    OldWindowSight(const OldWindowSight&) = delete;
+    OldWindowSight& operator=(const OldWindowSight&) = delete;
+    OldWindowSight(OldWindowSight&&) = delete;
+    OldWindowSight& operator=(OldWindowSight&&) = delete;
+    ~OldWindowSight() = default;
+
+    [[nodiscard]] UI::OldWindowStepView View() const
+    {
+        WorldRuntime& runtime = m_context.world.Runtime();
+        UI::GameUiState& ui = runtime.ui;
+        UI::ChatInputState& chat = runtime.chat.input;
+        const Input::InputState& input = m_context.input;
+        UI::OldWindowStepView view{.mouseX = m_context.mouseX,
+                                   .mouseY = m_context.mouseY,
+                                   .keyEdge =
+                                       [&ui, &input](std::uint8_t virtualKey)
+                                   {
+                                       for (const GameKey& key : OldWindowEdgeKeys)
+                                       {
+                                           if (key.virtualKey == virtualKey)
+                                               return KeyEdge(ui, input, key);
+                                       }
+                                       return false;
+                                   },
+                                   .keyDown =
+                                       [&input](std::uint8_t virtualKey)
+                                   {
+                                       for (const GameKey& key : OldWindowDownKeys)
+                                       {
+                                           if (key.virtualKey == virtualKey)
+                                               return input.IsDown(key.key);
+                                       }
+                                       return false;
+                                   },
+                                   .chatOpen = ui.chatOpen,
+                                   .texts = &m_texts,
+                                   .measure = m_measure ? &*m_measure : nullptr,
+                                   .send = {},
+                                   // 0x4694c0(0, 0, 1, nombre).
+                                   .whisperTo = [&chat](std::string_view name)
+                                   { UI::SetTheChatFields(chat, std::nullopt, name); },
+                                   .openFriends = [this]() { return OpenTheFriendsWindow(); }};
+        if (IGameUiRequests* requests = m_context.requests; requests != nullptr)
+            view.send = [requests](const UI::FriendSend& send) { requests->SendFriendPacket(FriendPacketOf(send)); };
+        return view;
+    }
+
+    // 0x491080(0x186, 0x106) con los globales de ahora.
+    [[nodiscard]] Core::Expected<void, std::string> OpenTheFriendsWindow() const
+    {
+        const UI::OldWindowGlobals globals = OldWindowGlobalsOf(m_context.world.Runtime());
+        const UI::OldWindowStepView view = View();
+        return OpenTheFriends(FriendsOpenContext{.world = m_context.world,
+                                                 .random = m_context.random,
+                                                 .measure = m_context.measure,
+                                                 .screen = m_context.screen,
+                                                 .texts = m_context.texts},
+                              globals, view);
+    }
+
+private:
+    const GameUiContext& m_context;
+    UI::OldWindowTexts m_texts;
+    std::optional<UI::OldWindowMeasure> m_measure;
+};
+
 // 0x636e3c..0x636e4c: el paso de la lista de ventanas ([0x5763524], la vtable + 0x18 con 0) y el de las ventanas
 // viejas (0x490490). Esc llega a 0x490490 ya leído por 0x623e70, salvo con la de amigos abierta (Q-C446).
-Core::Expected<void, std::string> StepTheOldWindows(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheOldWindows(const GameUiContext& context, const OldWindowSight& sight)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
-    const Input::InputState& input = context.input;
-    // 0x553520 con las cuatro teclas que leen las ventanas viejas.
-    const UI::OldWindowStepView view{.mouseX = context.mouseX,
-                                     .mouseY = context.mouseY,
-                                     .keyEdge = [&ui, &input](std::uint8_t virtualKey)
-                                     {
-                                         for (const GameKey& key : {EscapeKey, F5Key, F6Key, EnterKey})
-                                         {
-                                             if (key.virtualKey == virtualKey)
-                                                 return KeyEdge(ui, input, key);
-                                         }
-                                         return false;
-                                     }};
+    const UI::OldWindowStepView view = sight.View();
     const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
     if (auto list = UI::StepTheWindowList(runtime.oldWindows, globals, view); !list.HasValue())
         return list;
@@ -1044,7 +1115,7 @@ void StepTheArrowKey(const GameUiContext& context, GameKey key, std::int32_t dir
     if (!KeyEdge(runtime.ui, context.input, key))
         return;
     bool sound = false;
-    if (input.focus != UI::ChatFocus::Game && input.field % 2 == 0)
+    if ((input.focus == UI::ChatFocus::Message || input.focus == UI::ChatFocus::Whisper) && input.field % 2 == 0)
         sound = UI::RecallFromTheHistory(input, direction);
     else
         sound = UI::StepTheWhisperName(input, direction);
@@ -1375,7 +1446,11 @@ UI::OldWindowGlobals OldWindowGlobalsOf(WorldRuntime& runtime)
                                 .capture = ui.capture,
                                 .pressedButton = ui.pressedButton,
                                 .keyboardFocus = runtime.chat.input.focus,
-                                .sound = runtime.lastSoundId};
+                                .sound = runtime.lastSoundId,
+                                .focusedList = ui.focusedList,
+                                .wheel = ui.wheel,
+                                .rightClick = ui.rightClick,
+                                .doubleClick = ui.doubleClick};
 }
 
 Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context)
@@ -1431,12 +1506,14 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     // 0x636e0b: 0x7d36899 no lo escribe nadie.
     if (context.mouseY >= HudTop)
         ui.mouseOnUi = 1;
+    const OldWindowSight sight(context);
     GamePanels gamePanels(context.world, context.random,
                           GamePanelTables{.items = context.inventory != nullptr ? context.inventory->items : nullptr,
                                           .itemSetTables = context.itemSetTables});
     gamePanels.LendThePartyList(context.world, context.requests);
     gamePanels.LendTheGuild(context.world, GuildSenderOf(context.requests));
     gamePanels.LendThePanelDialogStep(context.world, context.mouseX, context.mouseY, context.systemTime);
+    gamePanels.LendTheFriends([&sight]() { return sight.OpenTheFriendsWindow(); });
     UI::PanelRegistry& panels = gamePanels.Registry();
     // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).
     if (panels.IsOpen(UI::MovePanel) && ui.capture == 0)
@@ -1452,7 +1529,7 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
                                                                                  .now = context.systemTime});
         !slides.HasValue())
         return slides;
-    if (auto old = StepTheOldWindows(context); !old.HasValue())
+    if (auto old = StepTheOldWindows(context, sight); !old.HasValue())
         return old;
     if (auto chat = StepTheChat(context); !chat.HasValue())
         return chat;

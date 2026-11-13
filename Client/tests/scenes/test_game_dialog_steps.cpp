@@ -106,6 +106,13 @@ public:
             bytes.push_back(std::to_integer<std::uint8_t>(value));
         requests.push_back({"guild", std::move(bytes), {}});
     }
+    void SendFriendPacket(Client::Protocol::Outgoing packet) override
+    {
+        std::vector<std::uint8_t> bytes;
+        for (const std::byte value : packet.packet.Bytes())
+            bytes.push_back(std::to_integer<std::uint8_t>(value));
+        requests.push_back({"amigos", std::move(bytes), {}});
+    }
     Client::Core::Expected<void, std::string> SaveMacros(std::string_view content) override
     {
         requests.push_back({"Macro.txt", {}, std::string(content)});

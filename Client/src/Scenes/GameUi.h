@@ -65,6 +65,8 @@ public:
     virtual void RequestPartyList() = 0;
     // CL9 hito 8: los paquetes del gremio que manda la UI (Protocol::Guild: el 51, el 52, el 54 y el E6), en claro.
     virtual void SendGuildPacket(Protocol::Outgoing packet) = 0;
+    // CL9 hito 9: lo que mandan la ventana de amigos y sus cajas (Protocol::Friends, por Scenes::FriendPacketOf).
+    virtual void SendFriendPacket(Protocol::Outgoing packet) = 0;
     // 0x61c170("Data\\Macro.txt"): `content` (UI::WrittenMacros) en el archivo.
     [[nodiscard]] virtual Core::Expected<void, std::string> SaveMacros(std::string_view content) = 0;
     // 0x41fa40 sobre el log del original (0x57630f0).

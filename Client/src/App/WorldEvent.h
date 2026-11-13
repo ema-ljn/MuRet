@@ -3,6 +3,7 @@
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Guild.h"
+#include "Protocol/Friends.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
@@ -38,5 +39,7 @@ using WorldEvent =
                  Protocol::Inventory::EquipmentChange, Protocol::Inventory::ItemPut, Protocol::Inventory::LifeRefill,
                  Protocol::Inventory::ManaRefill, Protocol::Movement::Action, Protocol::Viewport::Players,
                  Protocol::Viewport::Leave, Protocol::Viewport::Transformed, Protocol::Viewport::EquipmentShown,
-                 Protocol::Viewport::Position, Protocol::Guild::GuildPacket>;
+                 Protocol::Viewport::Position, Protocol::Guild::GuildPacket, Protocol::Friends::FriendList,
+                 Protocol::Friends::FriendAddResult, Protocol::Friends::FriendRequest,
+                 Protocol::Friends::FriendDeleteResult, Protocol::Friends::FriendState>;
 } // namespace Client::App

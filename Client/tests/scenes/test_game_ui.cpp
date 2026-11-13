@@ -16,7 +16,9 @@
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/Dialogs.h"
+#include "UI/FriendWindows.h"
 #include "UI/GameUiState.h"
+#include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 
@@ -711,6 +713,22 @@ std::int32_t OpenABox(WorldState& world, std::int32_t x, std::int32_t y)
     return opened.HasValue() ? opened.Value() : 0;
 }
 
+// La ventana de amigos de verdad (0x491080 desde el nivel, CL9 hito 9): el panel 1 abierto es que esté.
+void OpenTheFriendsWindowIn(WorldState& world)
+{
+    const TypedLetters letters;
+    auto& runtime = world.Runtime();
+    const Client::UI::OldWindowTexts texts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No"};
+    const Client::UI::OldWindowMeasure measure{
+        .measure = letters, .dcFont = Client::Render::Text::FontKind::Normal, .screen = {640, 480}};
+    const Client::UI::OldWindowStepView view{.texts = &texts, .measure = &measure};
+    const auto opened =
+        Client::UI::OpenTheFriendsWindow(runtime.oldWindows, Client::UI::FriendsWindowX, Client::UI::FriendsWindowY,
+                                         Client::Scenes::OldWindowGlobalsOf(runtime), view);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+}
+
 // 0x636e3c..0x636e5a: la lista de ventanas y las ventanas viejas toman el mouse antes que el registro del chat; sobre
 // una caja, el clic no es del juego (0x636e5d) y el foco del administrador queda.
 TEST(GameUiTest, TheOldWindowsTakeTheMouseBeforeTheChatLog)
@@ -754,12 +772,20 @@ TEST(GameUiTest, EscapeReachesTheOldWindowsOnlyWithTheFriendsWindowOpen)
         SCOPED_TRACE(friendsOpen);
         SteppingUi tested;
         auto& runtime = tested.world.Runtime();
-        runtime.panels.delegated.friends = friendsOpen ? std::uint8_t{1} : std::uint8_t{0};
+        if (friendsOpen)
+            OpenTheFriendsWindowIn(tested.world);
         const std::int32_t box = OpenABox(tested.world, 300, 0);
         Press(tested.input, Key::Escape);
         const auto dialogs = tested.Dialogs(639, 300);
         ASSERT_TRUE(dialogs.HasValue()) << dialogs.Error();
-        const auto stepped = tested.Step(639, 300);
+        // La de amigos mide el texto de su botón del estado en cada paso (0x4a3030).
+        const TypedLetters letters;
+        const auto stepped = Client::Scenes::StepTheGameUi(GameUiContext{.world = tested.world,
+                                                                         .random = tested.random,
+                                                                         .input = tested.input,
+                                                                         .mouseX = 639,
+                                                                         .mouseY = 300,
+                                                                         .measure = &letters});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(runtime.oldWindows.windows.contains(box), !friendsOpen);
         EXPECT_EQ(runtime.dialogs.current == Client::UI::EscapeMenuDialog, !friendsOpen);

@@ -72,7 +72,11 @@ protected:
                                 .capture = m_capture,
                                 .pressedButton = m_pressedButton,
                                 .keyboardFocus = m_focus,
-                                .sound = m_sound};
+                                .sound = m_sound,
+                                .focusedList = m_focusedList,
+                                .wheel = m_wheel,
+                                .rightClick = m_rightClick,
+                                .doubleClick = m_doubleClick};
     }
 
     PanelDialogState m_dialog;
@@ -88,6 +92,10 @@ protected:
     std::int32_t m_pressedButton = 0;
     Client::UI::ChatFocus m_focus{};
     std::optional<std::int32_t> m_sound;
+    std::int32_t m_focusedList = 0;
+    std::int32_t m_wheel = 0;
+    bool m_rightClick = false;
+    bool m_doubleClick = false;
 };
 
 // 0x6600d0: el alto suma cy + 2 de cada renglón no vacío, 0x3f con botones (0x2b sin ellos) y 0x11 por el campo y por

@@ -18,10 +18,12 @@
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/Emotes.h"
+#include "UI/FriendWindows.h"
 #include "UI/GameText.h"
 #include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
 #include "UI/NameChecks.h"
+#include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "UI/WhisperSenders.h"
 
@@ -319,12 +321,28 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
     while (!rest.empty())
     {
         const std::size_t key = rest.find_first_of(Keys);
+        // El EDIT de una ventana vieja con el foco de Windows (CL9 hito 9) recibe el WM_CHAR, y su subclase (0x467b10)
+        // le pasa el Enter a su padre; el Tab no lo mira (P-C181).
+        const bool oldEdit = UI::HasAnOldEditFocused(runtime.oldWindows, input.focus);
         if (const std::string_view run = rest.substr(0, key); !run.empty())
-            UI::TypeInTheChat(input, run);
+        {
+            if (oldEdit)
+                UI::TypeInTheOldEdit(runtime.oldWindows, run);
+            else
+                UI::TypeInTheChat(input, run);
+        }
         if (key == std::string_view::npos)
             break;
         const char pressed = rest[key];
         rest.remove_prefix(key + 1);
+        if (oldEdit)
+        {
+            if (pressed == Input::EnterChar)
+                UI::PressEnterInTheOldEdit(runtime.oldWindows);
+            else if (pressed == Input::BackspaceChar)
+                UI::BackspaceInTheOldEdit(runtime.oldWindows);
+            continue;
+        }
         if (pressed == Input::TabChar)
         {
             if (UI::PressTabInTheChat(input, runtime.ui.chatOpen))
@@ -364,9 +382,18 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
         if (taken.Value())
             return {};
     }
-    // 0x4b52fc..0x4b5334: +0x150 de [0x5763524], 0x5762ebc y +0xc0 de [0x5763514] son de las ventanas viejas (hito
-    // 7), vacías. 0x4b533d..0x4b5360: con el foco fuera de la ventana del juego, 0x467360 guarda el modo del IME, que
-    // MuRet no tiene.
+    // 0x4b5198..0x4b5334: el Enter es de las ventanas viejas con la lista de ventanas armada (+0x150 de [0x5763524]),
+    // con la caja modal (0x5762ebc) arriba de todas (el último de +0x84) o con una caja no modal (+0xb8 de
+    // [0x5763514], 0x4918a0) arriba de todas. 0x4b533d..0x4b5360: con el foco fuera de la ventana del juego, 0x467360
+    // guarda el modo del IME, que MuRet no tiene.
+    const UI::OldWindowManager& old = runtime.oldWindows;
+    if (old.windowList.list.armed == 1)
+        return {};
+    const std::int32_t top = UI::LastOldWindow(old);
+    if (old.modal != 0 && top == old.modal)
+        return {};
+    if (!old.boxes.empty() && std::ranges::find(old.boxes, top) != old.boxes.end())
+        return {};
     // 0x4b5397..0x4b5435: con el campo cerrado, el EDIT de [0x5763504] (el del diálogo, hito 6, vacío en MuRet); con
     // él abierto, los dos EDIT y lo escrito al historial (la vtable + 8).
     if (!ui.chatOpen)

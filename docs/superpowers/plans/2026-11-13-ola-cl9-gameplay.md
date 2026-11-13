@@ -380,13 +380,14 @@ alianza que mandan y el color de la tela en la guerra, que espera la parte del d
 
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 
-- [ ] **Los controles de las ventanas viejas** que la CL8 dejó sin portar (57 funciones de la CL8.3, 14 KB: las
+- [x] **Los controles de las ventanas viejas** que la CL8 dejó sin portar (57 funciones de la CL8.3, 14 KB: las
       listas, los campos de texto, los botones de `0x45adf0`..`0x4aa7a0`; los que son la STL se reemplazan por la
       STL) y las vecinas de `0x479960` que leen las flechas (`0x47c870`, `0x47f7b0` y las chicas; `0x480e00` y
-      `0x4824d0` van con el 8, `0x4852b0` y `0x486910` con el 12).
-- [ ] **La lista de amigos:** `C0` (`0x4dc010`, `0x49b220`, `0x49c260`), `C1`..`C4` (`0x4dc3d0`, `0x4dc5b0`,
+      `0x4824d0` van con el 8, `0x4852b0` y `0x486910` con el 12). El EDIT, simplificado (08, P-C181).
+- [x] **La lista de amigos:** `C0` (`0x4dc010`, `0x49b220`, `0x49c260`), `C1`..`C4` (`0x4dc3d0`, `0x4dc5b0`,
       `0x4dc690`, `0x4dc720`), los casos de la fábrica `0x48ee60` que no son del correo, F5 y F6
-      (`0x490538`, `0x490561`) y la ventana de amigos (`0x4905a2`).
+      (`0x490538`, `0x490561`) y la ventana de amigos (`0x4905a2`). Sin los dibujos (08, P-C180); lo del hito 10,
+      cortado (P-C183); las filas del TSV que faltan, en P-C185.
 
 **Pruebas:** la lista con varios amigos, agregar y borrar uno, el cambio de estado; los `rand()` de abrir la
 ventana (los 3.848 del registro propio de la CL8). Si el PR pasa de ~90 KB, se parte en los controles y los

@@ -140,6 +140,10 @@ public:
     {
         requests.emplace_back("guild");
     }
+    void SendFriendPacket(Client::Protocol::Outgoing /*packet*/) override
+    {
+        requests.emplace_back("amigos");
+    }
     Client::Core::Expected<void, std::string> SaveMacros(std::string_view /*content*/) override
     {
         requests.emplace_back("Macro.txt");

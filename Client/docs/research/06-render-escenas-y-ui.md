@@ -10337,10 +10337,10 @@ abierto; con una igual, `0x55a368` mira el maná y la poción y, si no alcanza, 
 (`GameSceneMovement.cpp`: `World::PickTerrain` y `PickTerrainTarget`, *inferido*) y el envío de la sesión. Los nuevos
 globales: `0x7d36840` y `0x7d368a4` en `UI::GameUiState` (`rightReleased`, `rightHoldFrames`; el soltado lo prende
 `LatchTheRightButton`), `0x6c8e50` y `0x7758580..0x7758588` en `GameMovementState` (`followTarget`, `weaponSkill`).
-Corta con su dirección (P-C268) `0x5808da`, las `0x43` a `0x48` (`0x5808ef`). La rama del elfo (`0x57d790`), la de
-las clases 1, 3 y 4 (`0x581894`) y la del Wizard (`0x5897b7`, también la del Magic Gladiator después de la suya) están
-portadas: [La rama del elfo](#la-rama-del-elfo), [Las skills del caballero](#las-skills-del-caballero) y
-[La rama del Wizard](#la-rama-del-wizard). Las órdenes del
+La rama del elfo (`0x57d790`), la de las clases 1, 3 y 4 (`0x581894`), la del Wizard (`0x5897b7`, también la del
+Magic Gladiator después de la suya) y la cola de las `0x43` a `0x48` (`0x5808da`) están portadas:
+[La rama del elfo](#la-rama-del-elfo), [Las skills del caballero](#las-skills-del-caballero),
+[La rama del Wizard](#la-rama-del-wizard) y [La cola de las 0x43 a 0x48](#la-cola-de-las-0x43-a-0x48). Las órdenes del
 cuervo (`0x420f70`) están portadas, con `Protocol::Pet::WritePetCommand`.
 
 #### Lo que mandan las skills de las armas (fase 2c)
@@ -10453,8 +10453,8 @@ ninguna. En todos los casos, `+0x38f` sube.
 (`UseTheElfSkillOnItsTarget`, con `0x4f48e0` adentro), con los ayudantes de las otras ramas (`Skill4f5290`,
 `Skill57ce80`, `Skill551f40`, `Skill4e9920`, `Skill4e9c50`, `Skill57cf90` y `HeroSkillSupport`), `SkillCostOf` y
 `UseAManaPotion`, `CheckTheArrows` y `SetActorAttack`. Los envíos en
-[04](04-protocolo.md#lo-que-manda-la-rama-del-elfo-19-1e-y-d3). Cortan (08, P-C220): la poción (`0x57d837`, hito 5) y
-`0x5808da` (`0x5808ef`).
+[04](04-protocolo.md#lo-que-manda-la-rama-del-elfo-19-1e-y-d3). Corta (08, P-C220) la poción (`0x57d837`, hito 5);
+`0x5808da` es `UseTheSharedTail` ([La cola de las 0x43 a 0x48](#la-cola-de-las-0x43-a-0x48)).
 
 ### Las skills del caballero
 
@@ -10511,7 +10511,7 @@ manos de `con` (`0x63` las dos, `0x64` la derecha, `0x65` la izquierda, `0x62` n
 en 0, 0; si no, `(+0x20 · +0x2c · 4) / 100 + 20`.
 
 Después del cierre, el Magic Gladiator sigue en la rama del Wizard (`0x5897b7`); el caballero y el Dark Lord, en
-`0x5808da`.
+`0x5808da` ([La cola de las 0x43 a 0x48](#la-cola-de-las-0x43-a-0x48)).
 
 **MuRet**: `Scenes/HeroSkillsKnight` (`UseTheKnightSkill`), con el costo y la poción de la parte compartida
 (`SkillCostOf` y `UseAManaPotion`, `Scenes/HeroSkillCasts`, [arriba](#lo-que-mandan-las-skills-de-las-armas-fase-2c)) y
@@ -10588,8 +10588,60 @@ dirección en `Scenes/Skill4f5290`, `Skill57ce80` y, compartidos con la rama del
 `Skill4e9920`, `Skill551f40` y `Skill57cf90`, y lo que va en línea en `Scenes/HeroSkillSupport`. `0x5767948` es
 `GameMovementState::lastShotSkill`, el del elfo. Los envíos en
 [04](04-protocolo.md#lo-que-manda-la-rama-del-wizard-19-1e-1c-y-b0). La clave del jugador llega de la sesión
-(`ServerSession::PlayerIndex`). Cortan: la party (`0x58b06e`, `0x59272c`, hito 7), la poción (`0x589936`, hito 5) y
-`0x5808da` (`0x5808ef`) (08, P-C222).
+(`ServerSession::PlayerIndex`). Cortan: la party (`0x58b06e`, `0x59272c`, hito 7) y la poción (`0x589936`, hito 5)
+(08, P-C222); `0x5808da` es `UseTheSharedTail` ([abajo](#la-cola-de-las-0x43-a-0x48)).
+
+### La cola de las 0x43 a 0x48
+
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*.) `0x5808da..0x599d5d`, el final de `0x57cfc0` para todas las clases. El
+`.asm` no lo trae: sale de `objdump` sobre el binario. Llegan el elfo (la tabla `0x57fa31` por la skill − `0x1a` y el
+final de la `0x35` y de la `0x4c`; fuera de alcance, solo las `0x43` a `0x47`, `0x57f165..0x57f184`), las clases 1 y 4
+al terminar su rama (`0x5854be → 0x5897a7 → 0x5897b1`: todos los caminos de la rama llegan), el Wizard y el Magic
+Gladiator desde `0x5925ae` (fuera de alcance, también solo las `0x43` a `0x47`, `0x58ede3..0x58edf7`) y las clases 5 a
+7 directo desde `0x5897b1`. De la cabeza de [Usar una skill](#usar-una-skill): en la zona segura pasan solo en Blood
+Castle y Chaos Castle (paso 7); con el ataque automático dejan `0x6c8e38` en −1 (paso 8); `0x5a5540` no las mira. En
+Skill.bmd son 스턴, 스턴해제, 스웰마나, 투명, 투명해제 y 마법해제 (*inferido*: Stern, Cancel Stern, Swell Mana,
+Invisibility, Cancel Invisibility y Abolish Magic), con el maná 70, 25, 35, 80, 40 y 90, la stamina 50, 30, 30, 60, 30
+y 70, el alcance 2 la `0x43` y 0 las demás, sin espera y con `+0x31` en 1. La skill está en `[ebp-0x44]` y el héroe en
+`[ebp+8]` y en `ESI`; `EBX` vale `0x5d` en toda la función (la constante del XOR32).
+
+1. **`0x5808da..0x5808e9`**: fuera de `0x43` a `0x48`, nada.
+2. **La cabeza (`0x5808ef..0x594002`)**: el registro propio (`0x4e79a0`), abierto hasta `0x599d4c..0x599d58`
+   (`0x40f370`); `0x551c70(skill, 1, 0, &maná, 0, &stamina)`; sin un jugador (`+2` en `0x20a`), solo el cierre. Con
+   el maná de la skill por encima de `+0x24` del registro propio (`JLE` con signo), `0x558110(3)`: sin poción,
+   `0x593fe0`; con ella, `0x5af520` y el `C1 26` (`0x593874`, con la espera de `0x5767954` y los sonidos `0x21`/`0x20`
+   en `0x593f73..0x593fa1`) o el aviso de `0x555190` (`0x580961`), y `0x593fe0`. Con el maná, la stamina por encima de
+   `+0x38` (`JG` con signo) va a `0x593fe0`; si no, `0x552c50` con `+0x425` del héroe publicado, sin mirar lo que
+   devuelve. `0x593fe0`: `0x551f40` (la energía, en `[ebp-0x84]`, que nadie lee) y la tabla `0x599ed0` por la skill −
+   `0x43`. Nada de la cabeza frena la skill (Q-C1226).
+3. **La `0x43` (`0x594009..0x594e3d`)**: `0x4e93f0` hacia `+0x3a8` en `+0x24`; la celda del blanco (`ftol` de `+0x3a8`
+   · 0,01 y después de `+0x3ac` · 0,01); `0x4e7e40` sobre `+0x420` y después `+0x41c`, y
+   `0x5ae300(celdaX, celdaY, blancoX, blancoY)`: `((dx + 8) << 4) | ((dy − 8) & 0xf)`, cada eje entre −8 y 7 (la
+   cuenta que la `0x36` del elfo hace en línea, `0x562a01`); `0x4e9920` con la posición del héroe y el `ftol` de `+0x3ac`
+   y después de `+0x3a8`, sin escalar; la clave de `0x558eb0(héroe, 0x7758588)`, o `0xffff` con −1 (Q-C1228). Sin
+   "webzen" (`0x6c9204`): `0x5767948` en la skill (`0x594140`) y el `1E` con la celda lógica (la X en `0x5942c9`, antes
+   que la Y en `0x5943c8`), el rumbo `ftol(+0x24 · 256/360)` (`0x5944d0`), la celda de `0x5ae300` en `pkt[7]`, la de
+   `0x4e9920` en `pkt[8]`, la clave y la clave de la magia de `0x57cf90(0)` (`0x59497a`): con el puntero nulo, 0, sin
+   tocar `0x77f3bad`. Sin el freno de 300 ms. Después, `0x4f3f80` (`0x594de9`), con el registro propio abierto.
+4. **Las `0x44` a `0x48` (`0x594e42`, `0x595e25`, `0x596dca`, `0x597d7e` y `0x598d65`)**: dos copias cada una, por
+   `0x6c8e30` en −1 o no. Sin "webzen" (`0x6c920c` a `0x6c9254`, dos por skill) y con el freno de 300 ms
+   (`0x576791c`, el `GetTickCount` en `0x594ebe`/`0x59567d`, `0x595ea1`/`0x596660`, `0x596e46`/`0x597603`,
+   `0x597dfa`/`0x5985bf` y `0x598de1`/`0x5995a0`), el `19` con la clave del jugador (`0x57678bc`) o el WORD `+0x1f4`
+   del elegido (`0x595858`, `0x59683b`, `0x5977de`, `0x598796` y `0x59977b`), sin mirar si se lo puede atacar
+   (Q-C1229). Con el nombre o el freno, sin el `19`, a la acción. No llaman a `0x4f3f80`.
+5. **La acción (hasta `0x599d45`)**: con el héroe fuera de la zona segura (`+0x3e2`), por `+0x318`: `0x52` el caballo
+   oscuro (`0x1c16`), `0x40` Uniria (`0x1c14`), `0x41` Dinorant (`0x1c15`) y `0x5d` Fenrir (`0x1c37`, `PUSH EBX`); si
+   no, `0x87` la `0x44` y la `0x47` (`0x598d5b` y su par) y `0x3f` las demás (`0x599d3a`). `0x4ea030(héroe, acción)`,
+   `+0x378` en 0 (`0x599d45`) y el cierre del registro propio. Ningún efecto ni sonido sale de la cola, salvo los de
+   la poción.
+
+**MuRet**: `Scenes/HeroSkillsTail` (`UseTheSharedTail`), desde `UseTheClassSkill` (las clases 1, 4 y 5 a 7),
+`UseTheElfSkill` y `UseTheWizardSkill`, con `SkillCostOf`, `UseAManaPotion` (con la poción corta en `0x580954`, del
+hito 5, 08 P-C269 b), `TryStartSkillDelay`, `SkillEnergyRequirement`, `RelativeTargetCell`, `ChosenKeyOf` con el
+elegido, `HasTheSilentName`, `PassesTheSkillBrake`, `SendTheSkillPacket`, `RefreshCombatActionSpeeds` y
+`SetTheActorAction`; `0x5ae300` va en el archivo. Un elegido fuera del pool corta donde se lee su clave (corte de
+MuRet, sin contraparte). Los envíos en [04](04-protocolo.md#lo-que-manda-la-cola-de-las-0x43-a-0x48-19-y-1e). Fuera
+de alcance, el Wizard deja el camino armado y la cola pone `+0x378` en 0 (`HeroSkillsWizardTest.OutOfReachTheSkillWalksToTheChosen`).
 
 ### Las órdenes del cuervo
 

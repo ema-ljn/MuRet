@@ -821,7 +821,8 @@ TEST(HeroSkillsTest, WithoutAChosenTheSkillAimsAtTheTerrain)
     }
 }
 
-// 0x5897aa y 0x5808da: las clases 5 a 7 (sin rama) apuntan y siguen solo con las 0x43 a 0x48.
+// 0x5897aa y 0x5808da: las clases 5 a 7 (sin rama) apuntan y siguen solo con las 0x43 a 0x48 (HeroSkillsTail): la
+// 0x43, con el registro propio, las entradas del costo, la espera y la energía, la celda dos veces y el 1E.
 TEST(HeroSkillsTest, TheOtherClassesOnlyGoOnWith43To48)
 {
     {
@@ -833,9 +834,16 @@ TEST(HeroSkillsTest, TheOtherClassesOnlyGoOnWith43To48)
         EXPECT_EQ(tested->Movement().targetX, 184u);
     }
     const auto tested = AHeroClicking(0x43, 7);
+    constexpr int SendDraws = 2;
+    const CrtRandom expected =
+        Advanced(tested->random, AimDraws + OwnDraws + 3 * EntryDraws + 4 * CellDraws + SendDraws);
     const auto result = tested->Use();
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_TRUE(Contains(result.Error(), "0x5808ef")) << result.Error();
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(tested->random.State(), expected.State());
+    ASSERT_EQ(tested->sent.size(), 1u);
+    EXPECT_EQ(ClearBytesOf(tested->sent[0])[2], 0x1e);
+    EXPECT_EQ(ClearBytesOf(tested->sent[0])[3], 0x43);
+    EXPECT_EQ(tested->Hero().animation.action, 0x3f);
 }
 
 // Un Dark Lord con el cuervo, el botón derecho abajo y el lugar `slot` elegido, que guarda lo que manda.

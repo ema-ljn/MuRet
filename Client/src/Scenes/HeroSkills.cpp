@@ -11,6 +11,7 @@
 #include "Scenes/HeroSkillCasts.h"
 #include "Scenes/HeroSkillsElf.h"
 #include "Scenes/HeroSkillsKnight.h"
+#include "Scenes/HeroSkillsTail.h"
 #include "Scenes/HeroSkillsWizard.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
@@ -377,7 +378,8 @@ Core::Expected<bool, std::string> UseTheWeaponSkills(ActorState& hero, std::uint
     return false;
 }
 
-// 0x57d787..0x58188e y 0x5897aa..0x5897b1: la rama de la clase. Las 0x43 a 0x48 (0x5808da) son de todas.
+// 0x57d787..0x58188e y 0x5897aa..0x5897b1: la rama de la clase. Las 0x43 a 0x48 (0x5808da, HeroSkillsTail) son de
+// todas.
 Core::Expected<void, std::string> UseTheClassSkill(ActorState& hero, std::uint8_t heroClass, std::uint8_t skill,
                                                    const HeroSkillContext& context)
 {
@@ -393,10 +395,8 @@ Core::Expected<void, std::string> UseTheClassSkill(ActorState& hero, std::uint8_
     }
     if (heroClass == WizardClass)
         return UseTheWizardSkill(hero, skill, context);
-    // 0x5808da..0x5808e9: fuera de 0x43 a 0x48, nada.
-    if (!InRange(skill, 0x43, 0x48))
-        return {};
-    return Core::Unexpected(std::format("0x5808ef: la skill {:#x} (0x43 a 0x48) es de la fase 2c", skill));
+    // 0x5897b1: las clases 1, 4 y 5 a 7, a 0x5808da (las 0x43 a 0x48).
+    return UseTheSharedTail(hero, skill, context);
 }
 
 // 0x57d12c..0x57d1b8: el derecho. Con los frames de la carga (0x7d368a4), el soltado la usa y si no, cuentan; si no,

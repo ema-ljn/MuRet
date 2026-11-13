@@ -353,7 +353,8 @@ const Network::IObfuscation& ChooseObfuscation(App::ObfuscationMode mode, const 
 // declarado antes en main.
 //
 // El relleno de lo que cifra la conexión sale de std::random_device: solo tiene que cambiar de una
-// corrida a otra (Network/Connection.h), y los tests le dan uno fijo.
+// corrida a otra (Network/Connection.h), y los tests le dan uno fijo. Las salas del chat con un amigo abren sus
+// sockets con el mismo resolver, que muere después de la sesión que los guarda.
 struct Online
 {
     Online(const ServerStartup& server, App::ObfuscationMode obfuscation, Core::IClock& clock, Core::Log& log,
@@ -367,6 +368,11 @@ struct Online
         {
             autoLogin.emplace(session, *server.credentials, log);
         }
+        // Las salas del chat con un amigo (0x49de50): un socket por sala, con la ofuscación de la config.
+        session.EnableChatRooms(
+            App::ChatRoomSockets{.make = [this] { return std::make_unique<Network::SystemSocket>(resolver); },
+                                 .obfuscation = &ChooseObfuscation(obfuscation, foxAnti),
+                                 .paddingSeed = std::random_device{}()});
     }
 
     // El pollNetwork del SceneManager: la sesión y, después, el AutoLogin, que mira lo que llegó.

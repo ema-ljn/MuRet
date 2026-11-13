@@ -520,10 +520,10 @@ Core::Expected<void, std::string> SayInTheChat(OldWindowManager& manager, OldWin
     if (text.substr(0, 0xff) != std::string_view(part.lastText).substr(0, 0xff))
     {
         part.lastText = text.substr(0, 0xff);
-        // 0x493510: sin la conexión de la sala (0x49e420 da 0), no manda nada.
+        // 0x493510: sin la conexión de la sala (0x49e420 da 0), no manda nada; con ella, el C1 04 (Scenes lo saca).
         if (!text.empty() && FindTheChatRoom(manager.chatRooms, part.room) != nullptr)
-            return Cut("0x4944c0(7): el mensaje por la conexión de la sala (C1 04, send de 0x4e8880) no está portado "
-                       "(P-C211)");
+            manager.chatRooms.orders.push_back(
+                ChatRoomOrder{.kind = ChatRoomOrder::Kind::Message, .room = part.room, .text = text});
     }
     part.edit.text.Clear();
     if (part.members.size() < 2)
@@ -1559,10 +1559,23 @@ void SetTheLetter(OldWindowManager& manager, OldWindow& read, const LetterEntry&
 
 Core::Expected<void, std::string> LeaveTheChatRoom(OldWindowManager& manager, const OldWindow& chat)
 {
-    // 0x493510: sin la conexión de la sala no manda el C1 03 01.
+    // 0x493510: sin la conexión de la sala no manda el C1 03 01; con ella, la salida y 0x49dfd0, que la cierra.
     if (FindTheChatRoom(manager.chatRooms, chat.chat.room) != nullptr)
-        return Cut("0x493a70: la salida por la conexión de la sala (C1 03 01) no está portada (P-C211)");
+        manager.chatRooms.orders.push_back(
+            ChatRoomOrder{.kind = ChatRoomOrder::Kind::Leave, .room = chat.chat.room, .text = {}});
     DropTheChatRoom(manager.chatRooms, chat.chat.room);
     return {};
+}
+
+void PingTheChatRooms(OldWindowManager& manager)
+{
+    for (const std::int32_t id : manager.windowList.list.chats)
+    {
+        const OldWindow* chat = FindTheOldWindow(manager, id);
+        if (chat == nullptr || FindTheChatRoom(manager.chatRooms, chat->chat.room) == nullptr)
+            continue;
+        manager.chatRooms.orders.push_back(
+            ChatRoomOrder{.kind = ChatRoomOrder::Kind::Ping, .room = chat->chat.room, .text = {}});
+    }
 }
 } // namespace Client::UI

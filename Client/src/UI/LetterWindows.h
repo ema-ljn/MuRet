@@ -64,4 +64,7 @@ void RefreshTheLettersTab(OldWindowManager& manager);
 void SetTheLetter(OldWindowManager& manager, OldWindow& read, const LetterEntry& entry, std::string_view body);
 // 0x493a70, desde el destructor del chat (0x493160): el C1 03 01 por la conexión de la sala (0x493510) y 0x49dfd0.
 [[nodiscard]] Core::Expected<void, std::string> LeaveTheChatRoom(OldWindowManager& manager, const OldWindow& chat);
+// 0x4a6550, el timer 1002 (WM_TIMER, 0x4b1a5b): cada chat de +0xb4 de la lista de ventanas, en su orden, que esté
+// (0x490a00) y tenga la conexión de su sala (0x493510), le manda el C1 03 05.
+void PingTheChatRooms(OldWindowManager& manager);
 } // namespace Client::UI

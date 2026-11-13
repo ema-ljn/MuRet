@@ -27,6 +27,8 @@ inline constexpr std::uint8_t MemberOpcode = 0x01;
 inline constexpr std::uint8_t MembersOpcode = 0x02;
 inline constexpr std::uint8_t MessageOpcode = 0x04;
 inline constexpr std::uint8_t NoticeOpcode = 0x0d;
+// El que manda el timer 1002 a cada sala (0x4a6550).
+inline constexpr std::uint8_t PingOpcode = 0x05;
 // El puerto del servidor del chat (0x49df17, PUSH 0xdaac).
 inline constexpr std::uint16_t ChatPort = 55980;
 inline constexpr std::size_t ChatNameSize = 10;
@@ -122,4 +124,6 @@ void FlipChatText(std::vector<std::byte>& bytes);
 [[nodiscard]] Outgoing WriteMessage(std::string_view text);
 // 0x493a70, al soltar la ventana: C1 03 01, que sale como está (no tiene bytes después del opcode).
 [[nodiscard]] Outgoing WriteLeave();
+// 0x4a6550, cada 15 s (el timer 1002 de 0x48e470): C1 03 05, que sale como está.
+[[nodiscard]] Outgoing WritePing();
 } // namespace Client::Protocol::FriendChat

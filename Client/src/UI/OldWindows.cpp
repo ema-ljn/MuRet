@@ -1296,8 +1296,8 @@ void ForgetTheHiddenWindows(OldWindowManager& manager)
 void ResetTheOldWindows(OldWindowManager& manager)
 {
     // 0x48ea5f..0x48eb43: +0x48 en 0, los dos mapas (soltando cada ventana con su destructor: el de leer saca su carta
-    // de +0x94; el del chat no tiene sala en MuRet, P-C211, y no corta), la lista del orden, 0x4a4480 (los chats de
-    // +0xb4 y +0x118 de la lista de ventanas), lo que escondió F6 y las cajas.
+    // de +0x94; el del chat, 0x493160, sale de su sala con 0x493a70), la lista del orden, 0x4a4480 (los chats de +0xb4
+    // y +0x118 de la lista de ventanas), lo que escondió F6 y las cajas.
     manager.friends = 0;
     for (const auto& [id, window] : manager.windows)
         static_cast<void>(Steps::ForgetTheLetterKind(manager, window));

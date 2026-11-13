@@ -92,6 +92,22 @@ struct ChatRoom
     std::uint32_t room = 0;
     std::int32_t window = 0;
 };
+struct ChatRoomOrder
+{
+    enum class Kind : std::uint8_t
+    {
+        // C1 04 con `text` (0x4944c0 con el 7).
+        Message,
+        // C1 03 01 (0x493a70) y el cierre de la conexión (0x49dfd0).
+        Leave,
+        // C1 03 05 (0x4a6550).
+        Ping,
+    };
+    Kind kind = Kind::Message;
+    std::uint32_t room = 0;
+    std::string text;
+    friend bool operator==(const ChatRoomOrder&, const ChatRoomOrder&) = default;
+};
 struct ChatRooms
 {
     // +0: dónde empieza a buscar 0x49e280; +1..+0x100, los lugares ocupados.
@@ -99,8 +115,12 @@ struct ChatRooms
     std::array<std::uint8_t, ChatSlots> used{};
     // +0x108: cada lugar con su sala.
     std::map<std::uint32_t, std::uint32_t> slots;
-    // +0x118: cada sala con su conexión. MuRet no abre la conexión (P-C211): queda vacío.
+    // +0x118: cada sala con su conexión (la de la sesión, App::IChatRoomLinks), desde que 0x49de50 la abre.
     std::map<std::uint32_t, ChatRoom> rooms;
+    // Lo que las ventanas le mandan a la conexión de su sala (el mensaje de 0x4944c0 con el 7, la salida de 0x493a70
+    // con el cierre de 0x49dfd0 y el de 0x4a6550), en orden: UI no ve la sesión, y Scenes lo saca
+    // (Scenes::FlushTheChatRoomOrders).
+    std::deque<ChatRoomOrder> orders;
 };
 
 // 0x49e280: desde el cursor, el primer lugar libre (corre el cursor con vuelta en 0xff); lo marca y lo asocia a la
@@ -112,4 +132,6 @@ struct ChatRooms
 
 // 0x49dfd0: sin la sala, nada; con ella, la saca y libera el lugar que la tenga.
 void DropTheChatRoom(ChatRooms& rooms, std::uint32_t room);
+// 0x49de50 con el connect que falla: la sala no se anota y el lugar que tomó 0x49e280 queda tomado (Q-C1005).
+void ForgetTheChatRoom(ChatRooms& rooms, std::uint32_t room);
 } // namespace Client::UI

@@ -3,6 +3,7 @@
 #include "App/CharacterEvent.h"
 #include "App/Credentials.h"
 #include "App/FaithfulPacer.h"
+#include "App/IChatRoomLinks.h"
 #include "App/ISessionEventSink.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
@@ -53,6 +54,7 @@
 #include <fstream>
 #include <ios>
 #include <iterator>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -187,6 +189,7 @@ ServerSession::ServerSession(Network::Connection& connection, Core::IClock& cloc
     RegisterGameServerHandlers();
     // El timer global no depende de abrir una conexión ni de autenticar (04 § El flujo de conexión).
     m_keepalive.Start(m_clock.Now());
+    m_chatRoomPing.Start(m_clock.Now());
 }
 
 void ServerSession::RegisterConnectServerHandlers()
@@ -330,9 +333,15 @@ Core::Expected<void, std::string> ServerSession::Poll()
     {
         return Core::Unexpected(*m_applicationFailure);
     }
+    PollTheChatRooms();
+    if (m_applicationFailure)
+    {
+        return Core::Unexpected(*m_applicationFailure);
+    }
     const Core::Duration now = m_clock.Now();
     // También consume los vencimientos sin GS: no quedan pendientes para la próxima conexión.
     const bool keepaliveDue = m_keepalive.Due(now);
+    const bool chatRoomPingDue = m_chatRoomPing.Due(now);
     const std::string_view awaited = Awaited(m_state);
     if (!awaited.empty() && now - m_stateSince >= ReplyTimeout)
     {
@@ -344,6 +353,10 @@ Core::Expected<void, std::string> ServerSession::Poll()
     if (keepaliveDue && m_connection.State() == Network::LinkState::Open && !WithConnectServer())
     {
         SendKeepalive(now);
+    }
+    if (chatRoomPingDue && !m_chatRooms.empty() && !CheckApplication(m_eventSink.ApplyWorld(ChatRoomPingDue{}, *this)))
+    {
+        return Core::Unexpected(*m_applicationFailure);
     }
     return {};
 }
@@ -1367,6 +1380,98 @@ void ServerSession::RequestPartyList()
 void ServerSession::SendFriendPacket(Protocol::Outgoing packet)
 {
     static_cast<void>(SendWorldPacket(std::move(packet)));
+}
+
+void ServerSession::EnableChatRooms(ChatRoomSockets sockets)
+{
+    m_chatRoomSockets = std::move(sockets);
+}
+
+void ServerSession::OpenChatRoom(std::uint32_t room, std::int32_t window, std::string_view address)
+{
+    if (m_chatRooms.contains(room))
+    {
+        m_log.Warning("la sala {} del chat con un amigo ya tiene su conexión", room);
+        return;
+    }
+    if (!m_chatRoomSockets.make || m_chatRoomSockets.obfuscation == nullptr)
+    {
+        m_log.Warning("no se abre la sala {} del chat con un amigo: no hay red para las salas", room);
+        return;
+    }
+    ChatRoomLink link{.window = window, .opened = false, .socket = m_chatRoomSockets.make(), .connection = nullptr};
+    link.connection = std::make_unique<Network::Connection>(*link.socket, *m_chatRoomSockets.obfuscation, m_clock,
+                                                            m_log, m_chatRoomSockets.paddingSeed);
+    link.connection->Open(address, ChatRoomPort, m_keys);
+    m_chatRooms.emplace(room, std::move(link));
+}
+
+void ServerSession::SendToChatRoom(std::uint32_t room, Protocol::Outgoing packet)
+{
+    const auto found = m_chatRooms.find(room);
+    if (found == m_chatRooms.end())
+    {
+        m_log.Warning("no se manda a la sala {} del chat con un amigo: no tiene conexión", room);
+        return;
+    }
+    found->second.connection->Send(std::move(packet.packet), packet.delivery);
+}
+
+void ServerSession::CloseChatRoom(std::uint32_t room)
+{
+    const auto found = m_chatRooms.find(room);
+    if (found == m_chatRooms.end())
+        return;
+    found->second.connection->Close();
+    m_chatRooms.erase(found);
+}
+
+std::size_t ServerSession::ChatRoomCount() const
+{
+    return m_chatRooms.size();
+}
+
+// 0x49e510: cada sala, en el orden del mapa. Un handler puede cerrar o abrir salas (al soltar un chat): se recorre
+// una copia de las salas y se busca cada una antes de usarla.
+void ServerSession::PollTheChatRooms()
+{
+    std::vector<std::uint32_t> rooms;
+    rooms.reserve(m_chatRooms.size());
+    for (const auto& [room, link] : m_chatRooms)
+        rooms.push_back(room);
+    for (const std::uint32_t room : rooms)
+    {
+        auto found = m_chatRooms.find(room);
+        if (found == m_chatRooms.end())
+            continue;
+        Network::Connection* connection = found->second.connection.get();
+        const std::vector<Network::Event> events = connection->Poll();
+        for (const Network::Event& event : events)
+        {
+            found = m_chatRooms.find(room);
+            if (found == m_chatRooms.end() || found->second.connection.get() != connection)
+                break;
+            ChatRoomLink& link = found->second;
+            if (std::holds_alternative<Network::Opened>(event))
+            {
+                link.opened = true;
+            }
+            else if (const auto* packet = std::get_if<Network::Packet>(&event))
+            {
+                if (!CheckApplication(m_eventSink.ApplyWorld(
+                        ChatRoomPacket{.room = room, .window = link.window, .packet = *packet}, *this)))
+                    return;
+            }
+            else if (std::holds_alternative<Network::Closed>(event))
+            {
+                const ChatRoomClosed closed{.room = room, .window = link.window, .opened = link.opened};
+                if (!link.opened)
+                    m_chatRooms.erase(found);
+                if (!CheckApplication(m_eventSink.ApplyWorld(closed, *this)))
+                    return;
+            }
+        }
+    }
 }
 
 std::span<const std::vector<std::byte>> ServerSession::Teleports() const

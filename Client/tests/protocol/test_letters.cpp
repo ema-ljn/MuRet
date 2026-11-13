@@ -213,14 +213,15 @@ TEST(FriendChatTest, TheJoinCarriesTheRoomAndTheTicket)
     EXPECT_TRUE(SameBytes(SentBytes(join), Xor32Of(plain)));
 }
 
-// 0x4944c0 con el 7 y 0x493a70.
-TEST(FriendChatTest, TheMessageAndTheLeave)
+// 0x4944c0 con el 7, 0x493a70 y 0x4a6550.
+TEST(FriendChatTest, TheMessageTheLeaveAndThePing)
 {
     const auto message = Chat::WriteMessage("hola che");
     auto plain = Bytes({0xc1, 0x0d, 0x04, 0x00, 0x08});
     plain = Joined(plain, ChatTextOf(TextOf("hola che", 8)));
     EXPECT_TRUE(SameBytes(SentBytes(message), Xor32Of(plain)));
     EXPECT_TRUE(SameBytes(SentBytes(Chat::WriteLeave()), Bytes({0xc1, 0x03, 0x01})));
+    EXPECT_TRUE(SameBytes(SentBytes(Chat::WritePing()), Bytes({0xc1, 0x03, 0x05})));
 }
 
 // 0x4dce10: CA por su lugar.

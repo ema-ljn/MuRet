@@ -1,6 +1,8 @@
 #include "Scenes/GameLetters.h"
 
+#include "App/IChatRoomLinks.h"
 #include "App/WindowState.h"
+#include "App/WorldEvent.h"
 #include "Core/Expected.h"
 #include "Data/Text/TextTable.h"
 #include "Network/Delivery.h"
@@ -99,6 +101,52 @@ std::vector<std::byte> BytesOf(const Outgoing& sent)
     return {sent.packet.Bytes().begin(), sent.packet.Bytes().end()};
 }
 
+// El XOR de 3 bytes del chat (0x6c82e4), por el lugar.
+std::vector<std::byte> ChatTextOf(std::string_view text, std::size_t size)
+{
+    constexpr std::array<int, 3> Key{0xfc, 0xcf, 0xab};
+    std::vector<std::byte> bytes;
+    Append(bytes, text, size);
+    for (std::size_t at = 0; at < bytes.size(); ++at)
+        bytes[at] ^= static_cast<std::byte>(Key[at % Key.size()]);
+    return bytes;
+}
+
+std::vector<std::byte> Joined(std::vector<std::byte> head, const std::vector<std::byte>& tail)
+{
+    head.insert(head.end(), tail.begin(), tail.end());
+    return head;
+}
+
+// Las conexiones de las salas (App::IChatRoomLinks), anotadas en orden.
+class FakeRooms final : public Client::App::IChatRoomLinks
+{
+public:
+    struct Call
+    {
+        std::string kind;
+        std::uint32_t room = 0;
+        std::int32_t window = 0;
+        std::string address;
+        std::vector<std::byte> bytes;
+    };
+
+    void OpenChatRoom(std::uint32_t room, std::int32_t window, std::string_view address) override
+    {
+        calls.push_back(
+            Call{.kind = "open", .room = room, .window = window, .address = std::string(address), .bytes = {}});
+    }
+    void SendToChatRoom(std::uint32_t room, Outgoing packet) override
+    {
+        calls.push_back(Call{.kind = "send", .room = room, .window = 0, .address = {}, .bytes = BytesOf(packet)});
+    }
+    void CloseChatRoom(std::uint32_t room) override
+    {
+        calls.push_back(Call{.kind = "close", .room = room, .window = 0, .address = {}, .bytes = {}});
+    }
+    std::vector<Call> calls;
+};
+
 class LetterMeasure final : public ITextMeasure
 {
 public:
@@ -175,7 +223,8 @@ protected:
                                   .screen = Client::App::PixelSize{640, 480},
                                   .scene = Client::Scenes::SceneId::Game,
                                   .texts = &m_texts,
-                                  .chosenSlot = std::nullopt};
+                                  .chosenSlot = std::nullopt,
+                                  .rooms = &m_rooms};
     }
 
     // Lo que el juego le da al paso (Scenes/GameUi), con un retrato de prueba: arma el personaje (+0x68c en 1) con el
@@ -244,6 +293,29 @@ protected:
         }
     }
 
+    // El chat con Tordo en la sala 0x0304 (el botón 3 y el CA con 1), con el héroe y Tordo de miembros. Las llamadas a
+    // las salas quedan vacías. Da el id del chat, o 0.
+    [[nodiscard]] std::int32_t JoinARoomWithTordo()
+    {
+        OpenTheFriendsWithThree();
+        ChooseTheFriend("Tordo");
+        Client::UI::PostToTheWindow(Manager(), Friends().tabs[Client::UI::FriendTabNumber].base.id,
+                                    Client::UI::CommandMessage, 3, 0);
+        if (!Step().HasValue())
+            return 0;
+        const auto joined = Client::Scenes::ApplyRoomAnswer(
+            Client::Protocol::FriendChat::RoomAnswer{
+                .address = "10.0.0.9", .room = 0x0304, .ticket = 77, .type = 0, .name = "Tordo", .result = 1},
+            Context());
+        OldWindow* chat = FirstOfKind(OldWindowKind::ChatWindow);
+        if (!joined.HasValue() || chat == nullptr)
+            return 0;
+        Client::UI::AddAChatMember(Manager(), *chat, Hero, 0, 0, m_oldTexts, Hero);
+        Client::UI::AddAChatMember(Manager(), *chat, "Tordo", 1, 0, m_oldTexts, Hero);
+        m_rooms.calls.clear();
+        return chat->base.id;
+    }
+
     [[nodiscard]] OldWindow& Friends()
     {
         return Manager().windows.at(Manager().friends);
@@ -296,12 +368,14 @@ protected:
     std::vector<FriendSend> m_sent;
     std::vector<PortraitCallKind> m_portraitCalls;
     std::vector<std::vector<std::byte>> m_replayed;
+    FakeRooms m_rooms;
 };
 
 // El botón 3 con un amigo en línea: C1 0D CA con su nombre, y queda pedido (+0x158): otro 3 no vuelve a mandar. El CA
-// con 1 y el tipo 0 arma el chat (0x48ee60(1)), lo suma a +0xb4, toma un lugar (0x49e280) y corta en la conexión de la
-// sala (P-C211). Con los miembros, el botón 1 muestra la lista de invitar (sin el amigo ni los de fuera de línea) y el
-// 2, con el EDIT sin el foco, manda el C1 14 CB con la sala y la ventana. Nada de esto saca rand().
+// con 1 y el tipo 0 arma el chat (0x48ee60(1)), lo suma a +0xb4, toma un lugar (0x49e280), abre la conexión de la sala
+// (0x49de50) y manda por ella el C1 10 00 con la sala y el ticket (0x493530). Con los miembros, el botón 1 muestra la
+// lista de invitar (sin el amigo ni los de fuera de línea) y el 2, con el EDIT sin el foco, manda el C1 14 CB con la
+// sala y la ventana. Nada de esto saca rand().
 TEST_F(GameLettersTest, AChatWithAFriendInvitesAnother)
 {
     OpenTheFriendsWithThree();
@@ -322,8 +396,7 @@ TEST_F(GameLettersTest, AChatWithAFriendInvitesAnother)
         Client::Protocol::FriendChat::RoomAnswer{
             .address = "10.0.0.9", .room = 0x0304, .ticket = 77, .type = 0, .name = "Tordo", .result = 1},
         Context());
-    ASSERT_FALSE(joined.HasValue());
-    EXPECT_NE(joined.Error().find("P-C211"), std::string::npos);
+    ASSERT_TRUE(joined.HasValue()) << joined.Error();
     EXPECT_FALSE(Client::UI::IsAPendingChat(Manager(), "Tordo"));
     OldWindow* chat = FirstOfKind(OldWindowKind::ChatWindow);
     ASSERT_NE(chat, nullptr);
@@ -332,6 +405,18 @@ TEST_F(GameLettersTest, AChatWithAFriendInvitesAnother)
     EXPECT_EQ(Manager().windowList.list.chats, std::deque<std::int32_t>{chatId});
     EXPECT_EQ(Manager().chatRooms.used[0], 1);
     EXPECT_EQ(Manager().chatRooms.slots.at(0), 0x0304u);
+    const Client::UI::ChatRoom* room = Client::UI::FindTheChatRoom(Manager().chatRooms, 0x0304);
+    ASSERT_NE(room, nullptr);
+    EXPECT_EQ(room->window, chatId);
+    ASSERT_EQ(m_rooms.calls.size(), 2u);
+    EXPECT_EQ(m_rooms.calls[0].kind, "open");
+    EXPECT_EQ(m_rooms.calls[0].room, 0x0304u);
+    EXPECT_EQ(m_rooms.calls[0].window, chatId);
+    EXPECT_EQ(m_rooms.calls[0].address, "10.0.0.9");
+    EXPECT_EQ(m_rooms.calls[1].kind, "send");
+    EXPECT_EQ(m_rooms.calls[1].room, 0x0304u);
+    EXPECT_EQ(m_rooms.calls[1].bytes,
+              Xor32Of(Joined(Bytes({0xc1, 0x10, 0x00, 0x00, 0x04, 0x03}), ChatTextOf("77", 10))));
 
     Client::UI::AddAChatMember(Manager(), *chat, Hero, 0, 0, m_oldTexts, Hero);
     EXPECT_EQ(Client::UI::AddAChatMember(Manager(), *chat, "Tordo", 1, 0, m_oldTexts, Hero), 2);
@@ -364,6 +449,87 @@ TEST_F(GameLettersTest, AChatWithAFriendInvitesAnother)
     ASSERT_FALSE(chat->chat.lineRows.empty());
     EXPECT_EQ(chat->chat.lineRows.back().text, "Calandria entro invitado");
     EXPECT_EQ(m_random.State(), After(0));
+}
+
+// Enter en el chat (0x4944c0 con el 7) deja el C1 04 para la sala, que sale cuando Scenes vacía las órdenes; el mismo
+// texto otra vez no sale. El timer 1002 (0x4a6550) deja el C1 03 05. El FD_CLOSE de la sala (0x49e480) le da al chat
+// el 402 de nadie y la sala sigue anotada. Soltar el chat (0x493160 → 0x493a70) manda el C1 03 01 y cierra la conexión
+// (0x49dfd0), con el lugar libre. Nada saca rand().
+TEST_F(GameLettersTest, TheChatRoomCarriesTheMessagesThePingAndTheLeave)
+{
+    const std::int32_t chatId = JoinARoomWithTordo();
+    ASSERT_NE(chatId, 0);
+    for (int times = 0; times < 2; ++times)
+    {
+        Manager().windows.at(chatId).chat.edit.text.SetText("hola");
+        Client::UI::PostToTheWindow(Manager(), chatId, Client::UI::EnterMessage, 0, 0);
+        auto stepped = Step();
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    }
+    EXPECT_EQ(Manager().chatRooms.orders.size(), 1u);
+    Client::UI::PingTheChatRooms(Manager());
+    Client::Scenes::FlushTheChatRoomOrders(Manager().chatRooms, &m_rooms);
+    EXPECT_TRUE(Manager().chatRooms.orders.empty());
+    ASSERT_EQ(m_rooms.calls.size(), 2u);
+    EXPECT_EQ(m_rooms.calls[0].kind, "send");
+    EXPECT_EQ(m_rooms.calls[0].room, 0x0304u);
+    EXPECT_EQ(m_rooms.calls[0].bytes, Xor32Of(Joined(Bytes({0xc1, 0x09, 0x04, 0x00, 0x04}), ChatTextOf("hola", 4))));
+    EXPECT_EQ(m_rooms.calls[1].kind, "send");
+    EXPECT_EQ(m_rooms.calls[1].bytes, Bytes({0xc1, 0x03, 0x05}));
+
+    ASSERT_TRUE(Client::Scenes::ApplyChatRoomClosed(
+                    Client::App::ChatRoomClosed{.room = 0x0304, .window = chatId, .opened = true}, Context())
+                    .HasValue());
+    const OldWindow& chat = Manager().windows.at(chatId);
+    ASSERT_FALSE(chat.chat.lineRows.empty());
+    EXPECT_EQ(chat.chat.lineRows.back().text, "se fue todo el mundo");
+    EXPECT_NE(Client::UI::FindTheChatRoom(Manager().chatRooms, 0x0304), nullptr);
+
+    m_rooms.calls.clear();
+    Client::UI::PostToTheManager(Manager(), Client::UI::CloseMessage, chatId, 0);
+    auto stepped = Step();
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_FALSE(Manager().windows.contains(chatId));
+    EXPECT_EQ(Client::UI::FindTheChatRoom(Manager().chatRooms, 0x0304), nullptr);
+    EXPECT_EQ(Manager().chatRooms.used[0], 0);
+    Client::Scenes::FlushTheChatRoomOrders(Manager().chatRooms, &m_rooms);
+    ASSERT_EQ(m_rooms.calls.size(), 2u);
+    EXPECT_EQ(m_rooms.calls[0].kind, "send");
+    EXPECT_EQ(m_rooms.calls[0].bytes, Bytes({0xc1, 0x03, 0x01}));
+    EXPECT_EQ(m_rooms.calls[1].kind, "close");
+    EXPECT_EQ(m_rooms.calls[1].room, 0x0304u);
+    EXPECT_EQ(m_random.State(), After(0));
+}
+
+// El connect que falla (0x49de50 no anota la sala): la sala se olvida, el lugar de 0x49e280 queda tomado (Q-C1005) y
+// Enter ya no manda nada. Las ventanas del primer paso del juego (0x48ea50) sueltan los chats, que salen de sus salas.
+TEST_F(GameLettersTest, ARoomThatDoesNotConnectIsForgottenAndTheResetLeavesTheRooms)
+{
+    std::int32_t chatId = JoinARoomWithTordo();
+    ASSERT_NE(chatId, 0);
+    ASSERT_TRUE(Client::Scenes::ApplyChatRoomClosed(
+                    Client::App::ChatRoomClosed{.room = 0x0304, .window = chatId, .opened = false}, Context())
+                    .HasValue());
+    EXPECT_EQ(Client::UI::FindTheChatRoom(Manager().chatRooms, 0x0304), nullptr);
+    EXPECT_EQ(Manager().chatRooms.used[0], 1);
+    EXPECT_TRUE(Manager().windows.at(chatId).chat.lineRows.empty());
+    Manager().windows.at(chatId).chat.edit.text.SetText("hola");
+    Client::UI::PostToTheWindow(Manager(), chatId, Client::UI::EnterMessage, 0, 0);
+    ASSERT_TRUE(Step().HasValue());
+    EXPECT_TRUE(Manager().chatRooms.orders.empty());
+
+    Client::UI::ResetTheOldWindows(Manager());
+    Client::UI::ClearTheFriends(Manager().friendModel);
+    m_rooms.calls.clear();
+    chatId = JoinARoomWithTordo();
+    ASSERT_NE(chatId, 0);
+    Client::UI::ResetTheOldWindows(Manager());
+    EXPECT_TRUE(Manager().windows.empty());
+    EXPECT_EQ(Client::UI::FindTheChatRoom(Manager().chatRooms, 0x0304), nullptr);
+    Client::Scenes::FlushTheChatRoomOrders(Manager().chatRooms, &m_rooms);
+    ASSERT_EQ(m_rooms.calls.size(), 2u);
+    EXPECT_EQ(m_rooms.calls[0].bytes, Bytes({0xc1, 0x03, 0x01}));
+    EXPECT_EQ(m_rooms.calls[1].kind, "close");
 }
 
 // 0x4dc720: el amigo fuera de línea cierra su chat (el 995 adelante y el EDIT apagado) y de vuelta en línea lo abre;

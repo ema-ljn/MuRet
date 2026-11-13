@@ -30,6 +30,7 @@ public:
     Core::Expected<void, std::string> ApplyWorld(const App::WorldEvent& event, App::ServerSession& session) override;
 
 private:
+    Core::Expected<void, std::string> ApplyWorldEvent(const App::WorldEvent& event, App::ServerSession& session);
     Core::Expected<void, std::string> ApplyWorldContent(const App::WorldEvent& event, App::ServerSession& session);
     WorldEntryResources m_resources;
 };

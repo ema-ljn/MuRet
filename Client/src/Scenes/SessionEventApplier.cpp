@@ -34,6 +34,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldTransitions.h"
+#include "UI/LetterWindows.h"
 #include "World/LeafWeather.h"
 
 #include <cstdint>
@@ -68,7 +69,7 @@ WorldEntryResources WithTheSiegeRequest(const WorldEntryResources& resources, Ap
 }
 
 // Lo que el chat que llega lee del juego y de la sesión: 0x6d5edc es el elegido de la lista.
-ChatReceiveContext ChatContextOf(const WorldEntryResources& resources, const App::ServerSession& session)
+ChatReceiveContext ChatContextOf(const WorldEntryResources& resources, App::ServerSession& session)
 {
     const Protocol::Character::CharacterEntry* chosen = session.ChosenCharacter();
     return ChatReceiveContext{.world = resources.world,
@@ -78,7 +79,8 @@ ChatReceiveContext ChatContextOf(const WorldEntryResources& resources, const App
                               .scene = resources.scene ? resources.scene() : std::nullopt,
                               .texts = resources.texts,
                               .chosenSlot =
-                                  chosen != nullptr ? std::optional<std::uint8_t>(chosen->slot) : std::nullopt};
+                                  chosen != nullptr ? std::optional<std::uint8_t>(chosen->slot) : std::nullopt,
+                              .rooms = &session};
 }
 
 // El 0x3d de la respuesta va a la sesión que la está aplicando.
@@ -116,8 +118,18 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyCharacter(const App:
                                        m_resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel));
 }
 
+// Lo que las ventanas de los chats dejaron para sus salas (un chat que se soltó sale de la suya) sale al final de cada
+// recepción.
 Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::WorldEvent& event,
                                                                   App::ServerSession& session)
+{
+    auto applied = ApplyWorldEvent(event, session);
+    FlushTheChatRoomOrders(m_resources.world.Runtime().oldWindows.chatRooms, &session);
+    return applied;
+}
+
+Core::Expected<void, std::string> SessionEventApplier::ApplyWorldEvent(const App::WorldEvent& event,
+                                                                       App::ServerSession& session)
 {
     if (const auto* walk = std::get_if<Protocol::Movement::Walk>(&event))
         return ApplyWalkReply(*walk, session.PlayerIndex(), m_resources);
@@ -173,6 +185,15 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
         return ApplyRoomAnswer(*answer, ChatContextOf(m_resources, session));
     if (const auto* invited = std::get_if<Protocol::FriendChat::InviteResult>(&event))
         return ApplyInviteResult(*invited, ChatContextOf(m_resources, session));
+    if (const auto* room = std::get_if<App::ChatRoomPacket>(&event))
+        return ApplyRoomPacket(room->window, room->packet, ChatContextOf(m_resources, session));
+    if (const auto* closed = std::get_if<App::ChatRoomClosed>(&event))
+        return ApplyChatRoomClosed(*closed, ChatContextOf(m_resources, session));
+    if (std::holds_alternative<App::ChatRoomPingDue>(event))
+    {
+        UI::PingTheChatRooms(m_resources.world.Runtime().oldWindows);
+        return {};
+    }
     return ApplyWorldContent(event, session);
 }
 

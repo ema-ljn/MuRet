@@ -14,6 +14,7 @@
 #include "Scenes/FaunaEffects.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameFloorItems.h"
+#include "Scenes/GameLetters.h"
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameMessages.h"
@@ -256,6 +257,10 @@ void GameScene::Step(const Input::InputState& input)
     {
         Render::Models::StepTheClothWorld(*m_context.cloth);
     }
+    // Lo que las ventanas del paso dejaron para las salas del chat con un amigo (Enter en un chat, los chats que se
+    // soltaron, también los de 0x48ea50): el original lo manda en el momento, por la conexión de cada sala.
+    if (m_context.world != nullptr)
+        FlushTheChatRoomOrders(m_context.world->Runtime().oldWindows.chatRooms, m_session);
 }
 
 void GameScene::StepEntry()

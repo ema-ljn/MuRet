@@ -1,5 +1,6 @@
 #pragma once
 
+#include "App/IChatRoomLinks.h"
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Protocol/Messages.h"
@@ -43,6 +44,8 @@ struct ChatReceiveContext
     const Data::Text::TextTable* texts = nullptr;
     // 0x6d5edc: el lugar del elegido en la selección, de 0 a 4. Vacío, el −1.
     std::optional<std::uint8_t> chosenSlot{};
+    // Las conexiones de las salas del chat con un amigo (la sesión); sin ellas, el CA que entra a una corta.
+    App::IChatRoomLinks* rooms = nullptr;
 };
 
 // 0x5110d0: el primero de los 400 vivo con la clave (MOVSX de +0x1f4 contra el int del paquete: una clave desde

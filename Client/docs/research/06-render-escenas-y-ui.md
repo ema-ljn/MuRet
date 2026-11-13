@@ -1111,7 +1111,7 @@ Las cartas viven en el `std::deque` de `[0x576351c]` (elementos de `0x138`: la m
 asunto, la fecha, la hora y leída en `+0x134`), que ordena `0x49f870` con el `std::sort` de MSVC6 (por leída, por el
 que la manda, por la fecha y la hora o por el asunto, con `0x49c190`), y en un `std::map` de las copias del `C7`
 (`0x4a03c0`); el primer paso del juego vacía los dos (`0x49f260`, `0x4a0560`). Las salas, en `[0x5763520]`: 256
-lugares que `0x49e280` toma desde un cursor con vuelta y las conexiones (P-C211). El administrador guarda el mapa de
+lugares que `0x49e280` toma desde un cursor con vuelta y las conexiones (las de `App::ServerSession` en MuRet). El administrador guarda el mapa de
 las cartas con ventana de leer (`+0x94`: `0x491570` la anota con 0, `0x491720` le pone la ventana, `0x491780` la da y
 `0x4916b0` la saca) y el lugar de la próxima (`0x5762f0c`, −1 sin lugar); la lista de ventanas, los chats (`+0xb4`),
 los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
@@ -1122,7 +1122,7 @@ los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
 - **El chat** (casos 1 y 2, vtable `0x6b9dc8`, `0x493220`): el marco de `0xfa × 0xaa` (mínimo `0x96` de alto), el EDIT
   de 100 con el filtro 4, la lista de renglones (`0x464620`), la de miembros, la de invitar (oculta) y dos botones con
   el 993; `+0xb0` en 1. `0x4944c0`: el 6 le da el foco al EDIT y la lista de miembros a las flechas; el 7 (Enter)
-  pasa el texto por el filtro (`0x622b40`, el 570) y, distinto del último, lo manda por la sala (P-C211), vacía el
+  pasa el texto por el filtro (`0x622b40`, el 570) y, distinto del último, lo manda por la sala (`C1 04`), vacía el
   EDIT y con menos de 2 miembros lo cierra (`0x495630(1)`: el 995 adelante del título y el EDIT apagado); el 10 y 1
   muestra u oculta la de invitar (`+0x50` más de ancho, `0x4942d0`: los amigos menos los miembros y los de desde
   `0xfd`) y el 10 y 2 (o el doble clic en ella) invita con el EDIT sin el foco. Los miembros (`0x493c90`,
@@ -1150,7 +1150,7 @@ los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
 El paso y el ubicado de las tres ventanas siguen el orden del ASM; sus dibujos (`0x493fc0`, `0x499d60`, `0x498480`,
 la pestaña `0x4a0a30` y las listas de `0x3f0`) cortan (P-C213); los renglones de los chats en la lista de ventanas de
 F5 (`+0xdc`), también (P-C215). Con el retrato del juego sin portar, abrir una carta o la de escribir corta
-(P-C212); el `CA` arma el chat y corta en la conexión (P-C211).
+(P-C212); el `CA` arma el chat y abre la conexión de la sala (`App::IChatRoomLinks`; 04).
 
 **Los paneles.**
 

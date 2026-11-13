@@ -182,4 +182,9 @@ void DropTheChatRoom(ChatRooms& rooms, std::uint32_t room)
         return;
     }
 }
+
+void ForgetTheChatRoom(ChatRooms& rooms, std::uint32_t room)
+{
+    rooms.rooms.erase(room);
+}
 } // namespace Client::UI

@@ -202,4 +202,9 @@ Outgoing WriteLeave()
 {
     return ClearC1(Network::PacketWriter::C1(MemberOpcode));
 }
+
+Outgoing WritePing()
+{
+    return ClearC1(Network::PacketWriter::C1(PingOpcode));
+}
 } // namespace Client::Protocol::FriendChat

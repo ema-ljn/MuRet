@@ -920,7 +920,8 @@ carta:
 La conexión de la sala (`0x49de50`): un lugar de 256 (`0x49e280`; sin lugar, `"max chat count over"` al chat) y un
 socket al puerto 55980 de la IP del `CA` con el mensaje `0x500 + lugar`; por ella, `C1 10 00 <0> <sala:u16>
 <ticket:10>` (el ticket en decimal con `_itoa` y el XOR de 3 bytes `FC CF AB`), los mensajes (`C1 len 04 <0> <largo>
-<texto>`, con el XOR de 3 bytes) y la salida (`C1 03 01`, del destructor `0x493a70`). Lo que llega (`0x4e1d50`, que
+<texto>`, con el XOR de 3 bytes), la salida (`C1 03 01`, del destructor `0x493a70`) y, cada 15 s, `C1 03 05` (el timer
+1002, `0x4b1a5b` → `0x4a6550`, a la sala de cada chat de la lista de ventanas). Lo que llega (`0x4e1d50`, que
 despacha a `0x4dd1b0..0x4dd540` con la ventana): `00` (`0x4dd1b0`, distinto de 0, la caja del 1058), `01`
 (`0x4dd1e0`, un miembro entra o sale con el 1059 o el 1060), `02` (los miembros, en línea en `0x4e6240`), `04`
 (`0x4dd3d0`, un mensaje de hasta 100: minimizado, el 1063 al chat y la ventana oculta en la lista de ventanas; oculto
@@ -930,9 +931,12 @@ o no arriba, el sonido `0x28` y la ventana en espera, `0x4a5e50`) y `0D` (`pkt[0
 `WrongPacket` y `TooShort`; el largo del `C7` que no entra en el paquete, rechazado: Q-C1000). `App::ServerSession`
 registra `C5`..`C8`, `CA` y `CB` juntos y los pasa al mundo (`Scenes::ApplyLetterSendResult`, `ApplyLetterRow`,
 `ApplyLetterRead`, `ApplyLetterDeleteResult`, `ApplyRoomAnswer` y `ApplyInviteResult`); lo que mandan las ventanas
-sale por `Scenes::SendAFriendPacket`, que saca los `rand()` de la carta. La conexión de la sala no se abre (P-C211):
-el `CA` toma el lugar y corta; `Scenes::ApplyRoomPacket` (lo de `0x4e6240`) solo lo llaman los tests. Los tests usan
-nombres y textos inventados.
+sale por `Scenes::SendAFriendPacket`, que saca los `rand()` de la carta. La conexión de la sala es otra
+`Network::Connection` de la sesión (`App::IChatRoomLinks`, P-C211): lo que llega por ella va a `Scenes::ApplyRoomPacket`
+(lo de `0x4e6240`) y su cierre a `Scenes::ApplyChatRoomClosed`; lo que mandan las ventanas lo saca
+`Scenes::FlushTheChatRoomOrders`. El connect no espera, como el del GameServer de MuRet: la sala se anota al empezar y
+el `C1 10 00` sale con el connect. Ni el GameServer 0.97 ni el repo de research tienen un servidor del chat: lo del
+cable es del ASM del cliente (*estático*). Los tests usan nombres y textos inventados.
 
 ## Qué implica para MuRet
 

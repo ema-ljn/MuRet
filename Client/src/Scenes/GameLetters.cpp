@@ -1,5 +1,7 @@
 #include "Scenes/GameLetters.h"
 
+#include "App/IChatRoomLinks.h"
+#include "App/WorldEvent.h"
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Protocol/FriendChat.h"
@@ -54,6 +56,8 @@ constexpr std::size_t OfflineText = 1070;
 constexpr std::size_t LettersFullText = 1073;
 constexpr std::size_t InviteFullText = 1074;
 constexpr std::size_t SeventhSendText = 423;
+// 0x49e480 con FD_CLOSE: se cortó la conexión de la sala.
+constexpr std::size_t RoomClosedText = 402;
 // 0x4dc840 con el 1 y 0x49d0b0: el costo de una carta.
 constexpr std::int32_t LetterCost = 1000;
 // 0x41ed10(0x29, 0, 0): llegó una carta. Queda en lastSoundId (CL10).
@@ -178,9 +182,11 @@ void RefreshTheTab(UI::OldWindowManager& manager)
     UI::RefreshTheLettersTab(manager);
 }
 
-// 0x493530(sala, ticket) sobre el chat: +0x770 = sala y 0x49de50: un lugar (0x49e280; sin ninguno, "max chat count
-// over" y nada más) y la conexión al puerto 55980 con el mensaje 0x500 + lugar, que MuRet no abre (P-C211). Con ella,
-// el original manda el C1 10 00 con la sala y el ticket. El lugar no se suelta si la conexión falla (Q-C1005).
+// 0x493530(ip, sala, ticket) sobre el chat: +0x770 = sala y 0x49de50: un lugar (0x49e280; sin ninguno, "max chat
+// count over" y nada más), la conexión al puerto 55980 con el mensaje 0x500 + lugar y la sala anotada con la ventana; y
+// por ella, el C1 10 00 con la sala y el ticket. El connect del original espera (0x4e8570): si falla, la sala no se
+// anota, no sale nada y el lugar queda tomado (Q-C1005). En MuRet conecta sin esperar: la sala se anota al empezar,
+// el C1 10 00 espera en la cola y, si el connect falla, ApplyChatRoomClosed la olvida.
 Core::Expected<void, std::string> JoinTheRoom(const ChatReceiveContext& context, UI::OldWindow& chat,
                                               const Protocol::FriendChat::RoomAnswer& answer)
 {
@@ -188,8 +194,12 @@ Core::Expected<void, std::string> JoinTheRoom(const ChatReceiveContext& context,
     chat.chat.room = answer.room;
     if (!UI::TakeAChatSlot(manager.chatRooms, answer.room))
         return SystemMessage(context, MaxChatCountOver, "0x49e280");
-    return Core::Unexpected(std::string("0x49de50: la conexión de la sala del chat con un amigo (0x4e81b0 y 0x4e8570 "
-                                        "al puerto 55980) no está portada (P-C211)"));
+    if (context.rooms == nullptr)
+        return Core::Unexpected(std::string("0x49de50: la conexión de la sala del chat con un amigo, sin la sesión"));
+    context.rooms->OpenChatRoom(answer.room, chat.base.id, answer.address);
+    manager.chatRooms.rooms.try_emplace(answer.room, UI::ChatRoom{.room = answer.room, .window = chat.base.id});
+    context.rooms->SendToChatRoom(answer.room, Protocol::FriendChat::WriteJoin(answer.room, answer.ticket));
+    return {};
 }
 
 // El chat de la ventana `id`, si está y es un chat (0x490a00).
@@ -582,6 +592,50 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
     }
     default:
         return {};
+    }
+}
+
+Core::Expected<void, std::string> ApplyChatRoomClosed(const App::ChatRoomClosed& closed,
+                                                      const ChatReceiveContext& context)
+{
+    UI::OldWindowManager& manager = context.world.Runtime().oldWindows;
+    if (!closed.opened)
+    {
+        UI::ForgetTheChatRoom(manager.chatRooms, closed.room);
+        return {};
+    }
+    // 0x49e480 con FD_CLOSE: el chat de la sala, si está, con el 402 de nadie (0x493f80 con 0xff y 1).
+    UI::OldWindow* chat = ChatOf(manager, closed.window);
+    if (chat == nullptr)
+        return {};
+    auto text = TextOf(context, RoomClosedText, "0x49e480");
+    if (!text.HasValue())
+        return Core::Unexpected(std::move(text).Error());
+    UI::AddAChatLine(*chat, NoSpeaker, text.Value(), SystemLine, 0);
+    return {};
+}
+
+void FlushTheChatRoomOrders(UI::ChatRooms& rooms, App::IChatRoomLinks* links)
+{
+    while (!rooms.orders.empty())
+    {
+        const UI::ChatRoomOrder order = std::move(rooms.orders.front());
+        rooms.orders.pop_front();
+        if (links == nullptr)
+            continue;
+        switch (order.kind)
+        {
+        case UI::ChatRoomOrder::Kind::Message:
+            links->SendToChatRoom(order.room, Protocol::FriendChat::WriteMessage(order.text));
+            break;
+        case UI::ChatRoomOrder::Kind::Leave:
+            links->SendToChatRoom(order.room, Protocol::FriendChat::WriteLeave());
+            links->CloseChatRoom(order.room);
+            break;
+        case UI::ChatRoomOrder::Kind::Ping:
+            links->SendToChatRoom(order.room, Protocol::FriendChat::WritePing());
+            break;
+        }
     }
 }
 } // namespace Client::Scenes

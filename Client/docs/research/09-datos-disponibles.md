@@ -55,12 +55,12 @@ con `.jpg` → `.OZJ`, `.tga` → `.OZT`, `.bmp` → `.OZB` como hace el cliente
   mundo 31 (`w31\`), 8 del castillo (`BattleCastle\`) y 1 de `w34\`. Los piden sobre todo
   `0x61b350` (53) y `0x616ec0` (33). En el `Data\` del laboratorio no hay ningún `.wav` que empiece
   con `p` ni con `s`, y la segunda copia no trae sonidos: se dan por faltantes.
-- **`Monster50` sí hace falta.** El tipo de monstruo 58 (`0x3a`, caso de `0x5141e0`) pide
-  `0x612d90(0x31)`, o sea `Monster50.bmd`, y el `MonsterSetBase.txt` del servidor en uso pone 63
-  en el mapa 8. El nombre que pasa a `0x60da30` es `Monster`, así que cuando aparece uno, **el
+- **`Monster50` sí hace falta.** El tipo de monstruo 68 (el caso `0x3a` de `0x5141e0`, `0x51481a`;
+  antes este documento decía "el tipo 58", que es el número del caso) pide `0x612d90(0x31)`, o sea
+  `Monster50.bmd` (CL9 hito 2, P-C173). El nombre que pasa a `0x60da30` es `Monster`, así que cuando aparece uno, **el
   original se cierra** (`0x612dd6`..`0x612de1`: el `MessageBoxA` y el `WM_DESTROY` de Q-C23;
   *estático*, CL6.R). Antes este documento decía "no se dibujaría". La sesión del cable no pasó
-  por ahí. Los otros tres números que faltan no los pide ningún tipo.
+  por ahí. Los otros tres números que faltan no los pide ningún tipo, ni los seis creadores de evento.
 - **Cuatro modelos de versión `0x00`.** `Object3\Object25`, `27`, `33` y `90` llevan 0 en el byte
   de la versión: el lector los lee en claro, como los `0x0A`
   ([05](05-formatos-de-datos.md#modelos-bmd)).

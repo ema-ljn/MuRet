@@ -9673,6 +9673,65 @@ regresiones del sink observan esos datos retenidos y el recorrido juego→selecc
 del orden de los tres paquetes. Esto no implementa la UI pendiente ni la descarga nativa de
 modelos/sonidos, y no sustituye la observación nativa pendiente de P-C45.
 
+### Las misiones
+
+(CL9 hito 2, 2026-11-13, *estático*.) El objeto de las misiones vive en `[0x710148]` (`Scenes::QuestState` en
+`WorldRuntime`, salvo la ventana `+0x21383`, que es `UI::DelegatedPanels::quest`): `+4` la clase `& 7` (`0xff` antes
+del primer `A0`), `+5` la evolución (`clase >> 3`), `+6..+9` los cuatro bytes del `9F`, `+0xc` los 200 registros de
+`0x2a8` de `quest.bmd` (`0x418d10`, el XOR3 de `0x418de0` con la clave de `0x6c64b4`), `+0x2134c` los 50 bytes de
+estado (dos bits por misión), `+0x2137e` la misión en curso (un byte, Q-C842), `+0x2137f` la mayor alcanzada,
+`+0x21380..+0x21382` la lista, `+0x21384` el diálogo, `+0x21386` el estado (5: una condición no se cumple), `+0x21388`
+el zen pedido, `+0x2138c` la pestaña y `+0x2138d` la marca de volver a leer la clase.
+
+Un registro lleva su nombre (`0x20` bytes) y su cabecera, 16 pedidos de `0x14` desde `+0x26` (el `+6` enlaza
+condiciones; `+7..+0xb` las marcas de clase; `+0xc..+0x13` los cuatro diálogos) y 16 condiciones de `0x14` desde
+`+0x168` (misión pedida, nivel mínimo y máximo, zen y su diálogo), con dos bytes de relleno en `+0x166`. La marca de
+la clase se lee como `+7 + clase` desde el pedido, y con una clase alta cae en el relleno (0) o en las condiciones
+(`Scenes::ClassFlagOf`).
+
+- **El estado** (`0x4195c0`, `0x419560`): el byte `i / 4` corrido `2 · ((i − i / 4) & 0xf)` bits (Q-C841).
+- **El `A0`** (`0x418e20`), **el `A1` y el `A2`** (`0x418ee0`) y **el `A3`** (`0x4ddb80`): 04, "Las misiones y los
+  NPC". El `A1` y el `A2` cierran todos los paneles (`0x657a90`, con sus dos `rand()` de los bytes protegidos de
+  `0x6594a3` y `0x6597f9`) y abren el diálogo (`0x4198b0(−1)`).
+- **Las condiciones** (`0x418fb0`): por cada pedido de la clase y cada condición enlazada, la misión pedida terminada,
+  el nivel con el registro propio abierto y cerrado (cada cierre a 0 saca 3.848 `rand()`) y el zen. **Los ítems**
+  (`0x4194c0` con `0x558410`). **El diálogo** (`0x418f40`, `0x419600`, `0x419710`): el texto `%d) %s` de cada
+  respuesta va a un buffer de `0x48` bytes en la pila (más largo corta), y sin respuestas el texto 609.
+- **La ventana** (`0x41ca40` el dibujo, `0x41ba20` y `0x41c600` sus dos vistas, `0x41b5a0` el paso, `0x41b9e0` el
+  ítem, `0x419bd0` y `0x41a9e0` los pasos que mandan `A2`, `0x41b170` la pestaña): sin portar; cortan con su
+  dirección (`GameHud.cpp`, `GameUi.cpp`).
+
+MuRet: `Protocol::Quest`, `Scenes::Quests`, `Scenes::QuestReplies` y los diálogos de `UI::GameDialogs`.
+
+### El alta de un monstruo
+
+(CL9 hito 2, 2026-11-13, *estático*: las tablas están leídas del listado caso por caso.) `0x5141e0(tipo, x, y,
+clave)` prueba primero seis creadores de evento, en este orden, y el primero que devuelve un personaje gana:
+`0x439df0` (Kalima y los suyos, 56 tipos entre 144 y 338, en cualquier mapa), `0x42d070` (solo el mapa 30, 14 tipos),
+`0x440530` (290 a 303), `0x42f190` (solo el mapa 35), `0x430c90` (solo el 34) y `0x425db0` (304 a 309). Después el
+switch por `tipo − 1` sin signo hasta 300 (la tabla de bytes `0x517138` sobre la de saltos `0x516f44`: 124 casos y
+el default `0x516e2a`, que carga `Monster01` y crea `0x152`; el 0, el 4 y el 8 además escriben su nombre y su arma).
+
+Cada caso carga sus modelos (`0x612d90(n)`, `Monster{n + 1}.bmd` en `0x152 + n`, o `0x612270(n)` los NPC), crea con
+`0x512870(clave, modelo, x, y, ángulo)` y escribe en el personaje: la escala `+0xc`, el sufijo `+4`, el nivel
+`+0x1d6`, las partes `+0x218..+0x2da`, el nombre en `+0x1d9` (un `strcpy` sin tope, Q-C847) y otros campos (`+0x58`,
+`+0x64`, `+0x68`, `+0x78`, `+0x88`, `+0x92`, `+0x98`, `+0x114`, `+0x118`, `+0x130..+0x138`, `+0x16c`, `+0x170`,
+`+0x375`, `+0x386`, `+0x38a`, `+0x394`, `+0x3e4`); algunos visten (`0x512930`), ponen la caja (`0x5133b0`), la acción
+(`0x4ea030`), la altura del terreno (`0x5f93c0`) o bajan `+0x18`, marcan mallas del modelo (73 y 75) o un byte de
+otro (77), y cuelgan joints (`0x530860`), huesos con nombre (`0x401000`), sonidos o el efecto de llegada. Lo que
+depende del mapa: el 34 pone la escala en 1 en Devil Square; la familia del 88 pone `+0x2ba` en 8 del mapa 8 al 12
+(Q-C846). Dos casos sacan un `rand()`: `0x51443f` (163 a 173 impares) antes de cargar, para elegir el modelo y el
+arma, y `0x514358` (224) después de la escala, para el sufijo `10 + r`. En el mapa 30, cuatro tipos miran el byte
+del asedio (`0x4294b0`, Q-C330), y en el 34 el 348 gira a 90 en las columnas 62 y 183.
+
+La cola `0x5140c0`: en los mapas 10 a 17 los tipos `0x54..0x8f` van con el nivel en 0 y la escala más
+`(mapa − 9) / 3 · 0,05`; el nombre de la tabla de `0x7681eb8` si el tipo está (P-C174); `+0x376` el tipo, `+8` en 0,
+`+0x3a4` el word de `0x57678b0`, y la clase del objeto `+0x88`: 4 para los NPC (201 a 259), 8 para las trampas (100 a
+110) y 2 para el resto.
+
+MuRet: `Scenes::MonsterKinds` (las tablas en `MonsterKindTable.cpp`, `MonsterCreationOf`, `ResolveMonsterSteps` y
+`MonsterTailOf`). Los pasos que no son de esta ola cortan (08, P-C175).
+
 ### La tabla de protección
 
 Algunas variables del juego viven cifradas en la tabla de `0x57630c8` y están en claro solo mientras

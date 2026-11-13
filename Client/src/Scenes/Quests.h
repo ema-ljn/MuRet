@@ -16,7 +16,7 @@ class CrtRandom;
 
 // Las funciones del objeto de las misiones [0x710148] (QuestState) que no dibujan: el estado que llega en el A0, el
 // A1 y el A2, las condiciones de quest.bmd, los ítems pedidos y la apertura de la ventana. Contrato:
-// Client/docs/research/06-render-escenas-y-ui.md, "Las misiones", y Q-C840 a Q-C846 en 07.
+// Client/docs/research/06-render-escenas-y-ui.md, "Las misiones", y Q-C840 a Q-C845 en 07.
 namespace Client::Scenes
 {
 class WorldState;

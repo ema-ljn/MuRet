@@ -823,6 +823,59 @@ Core::Expected<void, std::string> DrawHelper(HelperState& helper, const HelperDr
 }
 } // namespace
 
+Core::Expected<bool, std::string> ConstructHelper(HelperState& helper, std::uint16_t type, const glm::vec3& position,
+                                                  const ActorState& rider, std::size_t riderSlot, std::int32_t map,
+                                                  Render::Models::CrtRandom* random)
+{
+    // 0x443d73..0x443d87: en los mapas 18 a 23, nada (devuelve 0).
+    if (InChaosCastle(map))
+    {
+        return false;
+    }
+    // 0x443d8d: el lugar vivo queda como está (devuelve 1: 0x443fa0 prueba el siguiente).
+    if (helper.alive)
+    {
+        return false;
+    }
+    if (type != DarkHorseModel && type != RiderlessHelper && !IsRidingHelper(type))
+    {
+        return Core::Unexpected(std::format("0x443d70: el constructor del ayudante {:#x} no está portado", type));
+    }
+    helper.alive = true;
+    helper.type = type;
+    helper.rider = riderSlot;
+    helper.seen = false;
+    helper.scale = type == DarkHorseModel ? HorseScale : IsRidingHelper(type) ? RidingHelperScale : GuardianScale;
+    helper.position = position;
+    helper.angles = rider.angles;
+    // 0x443e1d y 0x443e23: la key anterior y el frame; +0x111 y +0x112 quedan (Q-C221).
+    helper.horse.animation.previousKey = 0;
+    helper.horse.animation.frame = 0.0f;
+    helper.horse.speed = CreatedSpeed;
+    helper.horse.alpha = CreatedAlpha;
+    helper.light = HorseLight; // 0x443e2f..0x443e45
+    helper.blendMesh = NoBlendMesh;
+    if (type == RiderlessHelper)
+    {
+        helper.blendMesh = GuardianBlendMesh; // 0x443f1a
+        if (random == nullptr)
+        {
+            return Core::Unexpected(std::string("0x443f21: falta el rand() compartido del Guardian Angel"));
+        }
+        constexpr int HorizontalSpan = 512;
+        constexpr int HorizontalCentre = 256;
+        constexpr int VerticalSpan = 128;
+        constexpr int VerticalBase = 128;
+        helper.position.x = static_cast<float>(static_cast<double>(rider.position.x) +
+                                               (random->Next() % HorizontalSpan) - HorizontalCentre);
+        helper.position.y = static_cast<float>(static_cast<double>(rider.position.y) +
+                                               (random->Next() % HorizontalSpan) - HorizontalCentre);
+        helper.position.z =
+            static_cast<float>(static_cast<double>(rider.position.z) + (random->Next() % VerticalSpan) + VerticalBase);
+    }
+    return true;
+}
+
 Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(WorldState& world, std::uint16_t type,
                                                                      const glm::vec3& position, std::size_t rider,
                                                                      Render::Models::CrtRandom* random)
@@ -840,44 +893,15 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(WorldState&
     HelperTable& helpers = world.Helpers();
     for (std::size_t slot = 0; slot < helpers.size(); ++slot)
     {
-        HelperState& helper = helpers[slot];
-        if (helper.alive)
+        auto built = ConstructHelper(helpers[slot], type, position, riding, rider, map, random);
+        if (!built.HasValue())
         {
-            continue;
+            return Core::Unexpected(built.Error());
         }
-        helper.alive = true;
-        helper.type = type;
-        helper.rider = rider;
-        helper.seen = false;
-        helper.scale = type == DarkHorseModel ? HorseScale : IsRidingHelper(type) ? RidingHelperScale : GuardianScale;
-        helper.position = position;
-        helper.angles = riding.angles;
-        // 0x443e1d y 0x443e23: la key anterior y el frame; +0x111 y +0x112 quedan (Q-C221).
-        helper.horse.animation.previousKey = 0;
-        helper.horse.animation.frame = 0.0f;
-        helper.horse.speed = CreatedSpeed;
-        helper.horse.alpha = CreatedAlpha;
-        helper.light = HorseLight; // 0x443e2f..0x443e45
-        helper.blendMesh = NoBlendMesh;
-        if (type == RiderlessHelper)
+        if (built.Value())
         {
-            helper.blendMesh = GuardianBlendMesh; // 0x443f1a
-            if (random == nullptr)
-            {
-                return Core::Unexpected(std::string("0x443f21: falta el rand() compartido del Guardian Angel"));
-            }
-            constexpr int HorizontalSpan = 512;
-            constexpr int HorizontalCentre = 256;
-            constexpr int VerticalSpan = 128;
-            constexpr int VerticalBase = 128;
-            helper.position.x = static_cast<float>(static_cast<double>(riding.position.x) +
-                                                   (random->Next() % HorizontalSpan) - HorizontalCentre);
-            helper.position.y = static_cast<float>(static_cast<double>(riding.position.y) +
-                                                   (random->Next() % HorizontalSpan) - HorizontalCentre);
-            helper.position.z = static_cast<float>(static_cast<double>(riding.position.z) +
-                                                   (random->Next() % VerticalSpan) + VerticalBase);
+            return std::optional<std::size_t>{slot};
         }
-        return std::optional<std::size_t>{slot};
     }
     return std::optional<std::size_t>{};
 }

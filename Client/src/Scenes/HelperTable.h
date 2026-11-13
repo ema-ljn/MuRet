@@ -40,6 +40,7 @@ struct WorldTerrain;
 // caballo oscuro" y "Las mascotas".
 namespace Client::Scenes
 {
+struct ActorState;
 class IModelLibrary;
 class WorldState;
 struct DrawnObject;
@@ -88,6 +89,15 @@ using HelperTable = std::array<HelperState, HelperCount>;
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateHelper(WorldState& world, std::uint16_t type, const glm::vec3& position, std::size_t rider,
              Render::Models::CrtRandom* random = nullptr);
+
+// 0x443d70(tipo, posición, jinete, lugar, 0, 0) sobre un lugar: en los mapas 18 a 23 (`map`) o con el lugar vivo, nada
+// (false). Si no, lo arma como dice CreateHelper, con el jinete `rider` (su lugar en el pool, `riderSlot`, o
+// ActorPoolSize para un objeto fuera del pool, como el retrato de las cartas) y devuelve true. Los tipos sin portar
+// cortan antes de tocarlo.
+[[nodiscard]] Core::Expected<bool, std::string> ConstructHelper(HelperState& helper, std::uint16_t type,
+                                                                const glm::vec3& position, const ActorState& rider,
+                                                                std::size_t riderSlot, std::int32_t map,
+                                                                Render::Models::CrtRandom* random);
 
 // 0x443d40(jinete): apaga el byte vivo de los lugares vivos de ese jinete. Lo demás queda.
 void TurnOffHelpersOf(HelperTable& helpers, std::size_t rider);

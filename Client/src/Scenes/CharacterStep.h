@@ -100,4 +100,10 @@ struct CharacterStepContext
 
 // 0x508ea0 para un objeto fuera del pool: no borra ni marca TerrainWall y nunca es el héroe publicado.
 [[nodiscard]] Core::Expected<void, std::string> StepCharacter(ActorState& actor, const CharacterStepContext& context);
+
+// 0x4fd5f0(objeto, objeto) y 0x505de0(objeto, objeto) seguidos, sin 0x508ea0: no mira el byte vivo ni si se ve (+0x16c
+// queda como está) ni corre 0x508ba0. Lo llama el retrato de las cartas (0x495a20, 0x495dad..0x495db8, y su dibujo,
+// 0x495760), con un personaje fuera del pool que no es el héroe.
+[[nodiscard]] Core::Expected<void, std::string> StepTheBodyAndEffects(ActorState& actor,
+                                                                      const CharacterStepContext& context);
 } // namespace Client::Scenes

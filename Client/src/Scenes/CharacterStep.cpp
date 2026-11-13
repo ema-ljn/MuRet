@@ -1090,4 +1090,15 @@ Core::Expected<void, std::string> StepCharacter(ActorState& actor, const Charact
 {
     return StepACharacter(actor, ActorPoolSize, false, context);
 }
+
+Core::Expected<void, std::string> StepTheBodyAndEffects(ActorState& actor, const CharacterStepContext& context)
+{
+    if (auto body = StepTheBody(actor, ActorPoolSize, false, context); !body.HasValue())
+    {
+        return body;
+    }
+    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    return StepTheEffects(actor, ActorPoolSize, false, context,
+                          terrain.attributes ? &terrain.attributes->cells : nullptr);
+}
 } // namespace Client::Scenes

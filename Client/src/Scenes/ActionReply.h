@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Scenes/ActionSend.h"
 
+#include <cstdint>
 #include <string>
 
 namespace Client::Protocol::Movement
@@ -28,4 +29,9 @@ struct WorldEntryResources;
 [[nodiscard]] Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Action& reply,
                                                                  const WorldEntryResources& resources,
                                                                  const ActionSender& sendAction);
+
+// La tabla de 0x4cb871..0x4cbcc8: de 0x80 a 0x9b, la animación de cada acción, otra para el elfo (+0x1d4 & 7 en 2) de
+// 0x80 a 0x91. Fuera de la tabla, la acción misma. El retrato de las cartas (0x495b56..0x495da1) tiene la misma de 0x80
+// a 0x94.
+[[nodiscard]] std::uint8_t TableAnimationOf(std::uint8_t characterClass, std::uint8_t action);
 } // namespace Client::Scenes

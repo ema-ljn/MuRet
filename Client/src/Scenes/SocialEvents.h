@@ -10,7 +10,6 @@
 #include <cstdint>
 #include <functional>
 #include <optional>
-#include <span>
 #include <string>
 
 // Lo que hacen el comercio, la party y el duelo que llegan (CL9 hito 7; 04 § El comercio, § La party y § El duelo):

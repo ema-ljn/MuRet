@@ -10156,10 +10156,57 @@ de `DrawTheHud`, con `WorldRuntime::healthBars` (un `std::deque<QueuedHealthBar>
 (`0x42a529`). El `0x1a8` corta todavía en `0x4f9580` (su modelo, P-C52 d), así que la cola se llena cuando el cuerpo
 de los monstruos esté portado. Tests: `HealthBarsTest` y `GameHudTest.TheFifthChildDrawsHalfTheHealthBars`.
 
-**El NewFace del mapa 30**, sin portar: `0x42d890` (desde `0x4fcbb0`, al terminar la animación) y `0x42da90` (desde
+**Los objetos del asedio del mapa 30**: `0x42d890` (desde `0x4fcbb0`, al terminar la animación) y `0x42da90` (desde
 `0x508eed`, después de `0x505de0`) solo actúan en el mapa 30, con `+0x376` de los objetos del asedio (`0x42d890`, el
-221, 222, 277, 286 y 287; `0x42da90`, el 216, 277, 278, 283, 286 y 287, con `0x5f93c0` y `0x7239e4`). MuRet corta en `0x42d890`
-(como antes) y en `0x42dac4`; con los modelos de los monstruos sin portar, no se llega a ninguno.
+221, 222, 277, 286 y 287; `0x42da90`, el 216, 277, 278, 283, 286 y 287, con `0x5f93c0` y `0x7239e4`). `0x42d890` está
+portado ([El cuerpo de los monstruos y los NPC](#el-cuerpo-de-los-monstruos-y-los-npc)); MuRet corta en `0x42dac4`.
+
+### El cuerpo de los monstruos y los NPC
+
+(CL9 hito 2, fase 4, 2026-11-13, *estático*.) El paso de un personaje (`0x508ea0`) es el mismo para todos los modelos; lo
+que cambia con otro que el `0x20a` está en cinco lugares. El modelo es el de `0x5769ad8 + tipo · 0xe0`: Player.bmd, el
+NewFace suelto o el que cargó el alta ([Los modelos de los monstruos y los NPC](#los-modelos-de-los-monstruos-y-los-npc)).
+
+1. **`0x4f9580`**: la velocidad es la de la acción en el modelo (sin la de cada personaje, que es solo de Player.bmd);
+   los factores comunes (`+0x3e3`, la `0x3f`, las `0x4d`/`0x4f`/`0x5a`, la clase 4 y la `0x44`) corren igual y después
+   los del tipo (`0x4f96d4..0x4f9737`): el NewFace por 2 (`FADD`), el `0x192` en la acción 6 pasado el frame 6 por 4
+   (`0x6b8a44`) y el `0x1a9` en la 6 por 0,5.
+2. **`0x4fcbb0`**, al terminar la acción (`0x4fce5e`), en orden: el `0xc5` pone `+0x111` en 1 sin `0x4ea030`;
+   `0x42d890` en el mapa 30 por `+0x376` (221 y 222 a la 0; 277 con `+0x78` en `0x20000` a la 2 y `+0x42c` en 0, con
+   `+0x78` en 0 a la 0 y `+0x42c` en 1; 286 y 287: la 5 pasa a la 4 sin `0x4ea030` con `0x7239d8` en 2, `+0x110` en 1
+   y `+0x100` en `0x12c`, la 4 y la 2 quedan en la 4 y la 0 en la 0), y si devuelve 1, `0x4f9580` otra vez; en el
+   mapa 1, el `0x28` a la 0; los monstruos (`0x152..0x1c9`): la 6 con `+0x38a` en 0 lo pone en 1 y llama a `0x52e810`
+   (los restos), las 1, 3, 4, 5, 8, 9 y `0xb` a la 0; el `0x1ce` y el `0x1cf`: `rand() % 16` debajo de 12 a la 0, si no
+   a `1 + rand() % 2`; el NewFace nada; el resto a `rand() % 2`. Después (`0x4fce68`), el `0xc5` con el frame en 8, y
+   en cada paso, terminado o no (`0x4fce7a`), el `0x1f5` compara el frame que su modelo guarda (`+0xa8`) con la última
+   key y sortea con `rand() % 32` la 1 o la 0.
+3. **`0x4fcee0`** desde el frame 3 (`0x4fd10b..0x4fd5df`): deja estela (`0x52e470`) con `+0x376` en `0x47`, `0x4a` o
+   `0x12d` en las acciones 3 y 4, el `0x194` en la 3, el `0x195` y el `0x197` en la 3 y la 4, y cualquier otro con una
+   espada (`0x212..0x411`) en la derecha en la 3 y la 4; después los helpers `0x441260` (el `0x1a7`), `0x42fa40` (el
+   `0x1b1` y el `0x1b3`), `0x432bd0` (su `rand()` y el `0x1ab`, del `0x1ae` al `0x1b1`, el `0x1b3` y el `0x1b4`) y
+   `0x426d90` (del `0x1b8` al `0x1ba`).
+4. **`0x505de0`**: sin acciones va a la caja de `0x505e15`; la cabeza pasa antes por `0x4ea190` (`0x5068e3`): la acción
+   6 no toca el blanco, la 0 sortea uno (`rand() % 32` en 0: `rand() % 128 − 64` y `rand() % 48 − 16`), la 2 con
+   `+0x3a4` distinto de −1 mira a ese personaje del pool con `0x4ea0e0` (el rumbo de `0x4e93f0` a menos de 90 grados
+   de `+0x24` por `0x4e96f0` sin signo: el blanco es `+0x24` menos el rumbo y `(z del otro − (z + 50)) · 0,2f`; si no,
+   en 0) y el resto en 0. Después del `rand() & 7` (`0x506cac`), el caso de `tipo − 0x152` (la tabla de bytes
+   `0x508884` sobre la de saltos `0x50880c`): 29 modelos con efectos; el `0x183`, el `0x184` y el `0x188` saltan a
+   `0x50862f`; los demás, a los seis helpers de `0x5085db`, que actúan solo con algunos (`0x43bdd0` con el `0xc5` y del
+   `0x191` al `0x197`; `0x42de90` en el mapa 30 con el `0x19b..0x1a1` y el `0x1fc`; `0x441210` con el `0x1a4`;
+   `0x42f550` en el 35 con el `0x1b1..0x1b3`; `0x431470` con el `0x1ab` y del `0x1ad` al `0x1b5`; `0x426ce0` con el
+   `0x1b6`, el `0x1b7` y el `0x1bb`). Lo que sigue (`0x50862f..0x508801`) es del `0x20a`.
+5. **`0x4f37c0`**, caminando (`0x4f3efa..0x4f3f67`): sorteado con `rand() & 15`, el sonido sale de la tabla del modelo
+   (`+0xaa`, la de `0x612c80`): con la primera en −1 nada; si no, una de las dos primeras por `rand() & 1`, más `0xd2`
+   (y 5 con el subtipo 9). El arreglo empieza en 0 (`0x60dbe0`): un modelo sin `0x612c80`, como los NPC, suena `0xd2`.
+
+MuRet: `Scenes::ModelBody` (`ModelSpeedOf`, `FinishTheModelAction` con `0x42d890`, `SetTheModelHeadTarget` y
+`LookAtTheTarget`, `ModelTrailCutOf` y `ModelEffectsCutOf`), llamado desde `CharacterStep` con el modelo de
+`WorldState::FaunaResources()` (con la biblioteca del mapa detrás); el sonido al caminar con
+`ActorWalkContext::modelSounds` (`FaunaModels::SoundActions`). Cortan con su dirección los efectos por tipo (3 y 4, CL11),
+el `0x1f5` (`0x4fce84`: MuRet no guarda el frame de la última pose de cada modelo), la acción 6 que termina con
+`+0x38a` en 0 (`0x4fcc3c`) y el subtipo 209 a 211 caminando (`0x4f3ef2`, dos sonidos); 08, P-C241. Tests:
+`ModelBodyTest` y `MonsterStep` (`test_model_body.cpp`: un Monster02 que avanza con su velocidad y descansa al terminar
+la 3, con sus `rand()`), `ActorWalkTest.AnotherModelSoundsFromItsModelTable`.
 
 ### La tabla de protección
 

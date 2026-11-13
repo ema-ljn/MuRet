@@ -346,6 +346,7 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.byte372 = 0; // 0x511ccf
     actor.byte374 = 0; // 0x511c13
     actor.byte42c = 1; // 0x511c92
+    actor.byte110 = 0; // 0x511c69
     actor.word1f2 = NoItemModel;
     actor.byte399 = 0;
     actor.byte80 = 0;

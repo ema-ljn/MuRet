@@ -258,15 +258,17 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
       `WorldState::FaunaResources()` con sus tablas (velocidades, sonidos, hueso de la cabeza, texturas fijas) y la
       acción `0x4ea030` ya no corta; el `0x1f3` (`BloodCastle01`, Q-C108) corta (P-C240).
 - [ ] Las partes de monstruo de `0x50ba30` y `0x4fd5f0` que la CL7 dejó cortadas, y los monstruos que la revisión
-      de la CL.M dejó en la CL7 por `0x50ba30` (`0x4271d0`, `0x441400`, `0x434180`) (08, P-C176 y P-C178).
+      de la CL.M dejó en la CL7 por `0x50ba30` (`0x4271d0`, `0x441400`, `0x434180`) (08, P-C176 y P-C178). Hecho el
+      paso del cuerpo (`0x4f9580`, `0x4fcbb0`, `0x4ea190`/`0x4ea0e0` y el sonido al caminar; 06, "El cuerpo de los
+      monstruos y los NPC"); quedan el dibujo y los efectos por tipo (08, P-C241).
 - [ ] **La tela sobre la malla** (P-C22 f, vtable `0x6b8d04`: los monstruos `0x59..0x8f`; los tres pantalones
       también la usan), y Q-C95 con el primer modelo que se desvanezca (§ Lo que dejó la CL6).
 - [x] El picking de NPC y monstruos en `0x59ec80`, con la caja de cada tipo.
 - [x] **Lo que se ve sobre ellos:** las barras de vida (`0x42a4d0`, `0x42a2b0`) y los mensajes de monstruo
       (`0x4fc790`, `0x4fc8c0`, `0x4fcd00`, con el mensaje del nombre y su reloj; 06, "Lo que dicen los NPC" y "Las
       barras de vida del 0x1a8").
-- [ ] NewFace del mapa 30 (`0x42d890`, `0x42da90`, con los monstruos `0x11e` y `0x11f`): cortan en `0x42d890` y
-      `0x42dac4`; llegan con los modelos de los monstruos (P-C176).
+- [ ] NewFace del mapa 30 (`0x42d890`, `0x42da90`, con los monstruos `0x11e` y `0x11f`): `0x42d890` hecho; queda
+      `0x42da90`, que corta en `0x42dac4` (P-C241 f).
 - [x] **Hablar con un NPC:** el `C1 30` desde la interacción de llegada (`0x5650c0`, el corte de
       `GameMovement.cpp`, solo su rama de NPC), el diálogo `0x8d` (`0x62d91d`, `0x632f70`, la lista
       `0x7d3a0fc`). Lo que abre cada NPC (tienda, almacén, caja del caos) es del hito 6. El escritor del `C1 30`

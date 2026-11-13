@@ -216,6 +216,9 @@ struct WorldRuntime
     // 0x7239f0 (.bss 0): cuándo 0x42b540 eligió la música del mapa 30, en ms de timeGetTime guardados en float. Lo
     // ponen en 0 la carga del 30 (0x42a795) y 0x4294c0 (los paquetes del asedio, CL9.5).
     float siegeMusicTime = 0.0f;
+    // 0x7239d8 (.bss 0): lo pone en 0 la carga del 30 (0x42a78e) y en 2 0x42d890 cuando el 286 o el 287 terminan la
+    // acción 5 (0x42d8f6); lo lee 0x42da90 (0x42db7b), sin portar.
+    std::uint8_t castleByte7239d8 = 0;
     // 0x6c649a (.data 0xff): el puesto del héroe en su gremio, que solo copia 0x412120 desde 0x4d9260 (el
     // paquete del gremio, CL9). Sin ese paquete queda en 0xff, sin gremio.
     std::uint8_t heroGuildPost = 0xff;

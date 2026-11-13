@@ -150,13 +150,15 @@ void FillTheGrassOffsets(std::vector<float>& offsets, Render::Models::CrtRandom&
 
 // 0x42a760, con el mapa 30, después de los especiales de 0x616ec0 y antes de leer los archivos: 0x7239f0 en 0
 // (0x42a795), el pedido B9 02 (0x42a7d3..0x42aa52), el lancero 0x612d90(0x4d) en el modelo 0x19f y sus cinco
-// objetos con 0x606660 (0x42aa70..0x42ab27), en (x; 11.300; 270), ángulos en 0 y escala 1. El byte 0x7239d8,
-// que también pone en 0 (0x42a78e), lo leen solo 0x42d890 y 0x42da90 con los monstruos 0x11e y 0x11f (CL9.1).
+// objetos con 0x606660 (0x42aa70..0x42ab27), en (x; 11.300; 270), ángulos en 0 y escala 1. El byte 0x7239d8
+// (WorldRuntime::castleByte7239d8), que también pone en 0 (0x42a78e), lo escribe 0x42d890 y lo lee 0x42da90 con los
+// monstruos 0x11e y 0x11f.
 Core::Expected<void, std::string> PrepareTheCastleSiege(WorldMap& loaded, std::int32_t map,
                                                         const MapLoadContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
     runtime.siegeMusicTime = 0.0f;
+    runtime.castleByte7239d8 = 0;
     // 0x42a981: el B9 02 sale solo con el socket del GS abierto (0x6c82a0 + 0xc distinto de −1).
     if (context.requestCastleSiegeState)
         context.requestCastleSiegeState();

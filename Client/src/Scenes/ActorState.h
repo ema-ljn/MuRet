@@ -109,6 +109,10 @@ struct ActorState
     std::int32_t dword394 = 0;
     std::uint8_t byte3e4 = 0;
     std::uint8_t byte42d = 0;
+    // +0x110 (0x511290 lo pone en 0, 0x511c69) y +0x100: 0x42d890 los pone en 1 y en 0x12c cuando el 286 o el 287 del
+    // mapa 30 terminan la acción 5 (0x42d8fd y 0x42d904); los lee 0x42da90, sin portar.
+    std::uint8_t byte110 = 0;
+    std::int32_t dword100 = 0;
     // +0x3a4: la cola 0x5140c0 le copia el WORD de [0x57678b0] (WorldRuntime::heroSlot).
     std::uint16_t word3a4 = 0;
     // +0x428: −0x80 desde 0x511290 (0x511c77); el 68 lo pone en 0x96 (0x4e0b8a). Quién lo lee, sin leer.

@@ -21,6 +21,7 @@
 #include "Scenes/GameCharacterHud.h"
 #include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameHelps.h"
+#include "Scenes/ChaosBoxDrawing.h"
 #include "Scenes/GameInventoryHud.h"
 #include "Scenes/GameMoveWindow.h"
 #include "Scenes/GamePanels.h"
@@ -847,8 +848,9 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
         return cut("0x5f3030: las tiendas personales son de la CL9.4");
     if (panels.IsOpen(UI::NpcShopPanel))
         return cut("0x5f4720: el dibujo de la tienda del NPC es de la fase 3 del hito 6 (08 P-C192)");
-    if (panels.IsOpen(UI::ChaosBoxPanel))
-        return cut("0x5febf0: el dibujo de la caja del caos es de la fase 3 del hito 6 (08 P-C192)");
+    // 0x5f75b2: 0x5febf0, que empieza con su IsOpen.
+    if (auto chaos = DrawTheChaosBox(frame.context, panels); !chaos.HasValue())
+        return chaos;
     if (state.delegated.trainer != 0 && state.delegated.trainer != 4)
         return cut("0x44b510: la ventana del entrenador es de la CL9.3");
     if (state.delegated.siegeWeapon != 0)

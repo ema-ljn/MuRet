@@ -6,6 +6,8 @@
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Scenes/ChaosMix.h"
+#include "Scenes/GameMessages.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
@@ -20,6 +22,8 @@
 #include "UI/ChatInput.h"
 #include "UI/Dialogs.h"
 #include "UI/GameDialogs.h"
+#include "UI/GameText.h"
+#include "UI/SprintfFormat.h"
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
@@ -84,6 +88,19 @@ constexpr std::int32_t MixButtonX = 0x4b;
 constexpr std::int32_t MixButtonY = 300;
 constexpr std::int32_t MixButtonWidth = 0x2c;
 constexpr std::int32_t MixButtonHeight = 0x20;
+// 0x5fea4f..0x5fea6c: 0x633300(1, 0x21b, 0x98), el diálogo de mezclar.
+constexpr std::int32_t MixDialogLines = 1;
+constexpr std::int32_t MixDialogText = 0x21b;
+// Los avisos del botón de mezclar (0x5fe982..0x5feb06) y su tipo (0x555190 con 2).
+constexpr std::size_t NotEnoughZenText = 596;
+constexpr std::size_t LevelTooLowText = 1171;
+constexpr std::size_t NotTheSameText = 600;
+constexpr std::size_t NothingToMixText = 580;
+constexpr std::size_t MixingText = 591;
+constexpr std::size_t NoRoomText = 581;
+constexpr std::int32_t ErrorMessageType = 2;
+// 0x5feaab: el nivel del héroe que pide la capa, el 10 del wsprintfA.
+constexpr std::int32_t CapeLevel = 10;
 // 0x5decd9..0x5ded0e: la grilla de la tienda, donde se vende.
 constexpr std::int32_t ShopGridLeft = 0xf;
 constexpr std::int32_t ShopGridRight = 0xc3;
@@ -230,6 +247,115 @@ bool IsUnsellable(const World::ItemState& item)
     const std::int32_t level = LevelOf(item);
     return InRange(type, 0x1c17, 0x1c1a) || type == 0x1c0b || type == 0x1a13 ||
            (type == 0x1c14 && level >= 1 && level <= 5);
+}
+
+// 0x555190(0x6e57a4, texto, 2): el aviso de error, sin nombre.
+Core::Expected<void, std::string> ErrorMessage(const GameUiContext& context, std::string_view text,
+                                               std::string_view where)
+{
+    if (context.measure == nullptr)
+        return Core::Unexpected(std::format("{}: el aviso (0x555190) sin el medidor de los textos", where));
+    return AddGameMessage(context.world.Runtime(), *context.measure, context.screen, {}, text, ErrorMessageType);
+}
+
+Core::Expected<std::string_view, std::string> TextOf(const GameUiContext& context, std::size_t index,
+                                                     std::string_view where)
+{
+    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    if (!text)
+        return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
+    return *text;
+}
+
+Core::Expected<void, std::string> TextMessage(const GameUiContext& context, std::size_t index, std::string_view where)
+{
+    auto text = TextOf(context, index, where);
+    if (!text.HasValue())
+        return Core::Unexpected(text.Error());
+    return ErrorMessage(context, text.Value(), where);
+}
+
+// 0x5fe690..0x5feb0e: el botón de mezclar. El zen del registro propio (+0xecc, abierto y cerrado: 3.848 rand() sin
+// otros accesos) contra el precio que dejó el dibujo (0x7d2dca0, sin signo): con el precio igual o mayor, el aviso
+// 596. Si no, lo que pide el tipo de la mezcla (0x7d2dc98): los avisos de los negativos y del 0, o, con lugar en el
+// inventario (0x5fd200) y sin ítem en el cursor, 0x78abb14 en 2 y el diálogo 0x98 con el texto 0x21b. El clic se
+// gasta y suena 0x19, salvo con el zen que no alcanza, que no suena.
+Core::Expected<void, std::string> PressTheMixButton(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    NpcWindowState& npc = runtime.npcWindows;
+    std::uint32_t zen = 0;
+    {
+        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        zen = context.world.OwnCharacter().zen;
+    }
+    if (npc.mixPrice >= zen)
+    {
+        // 0x5feafa..0x5feb0e.
+        if (auto shown = TextMessage(context, NotEnoughZenText, "0x5feb06"); !shown.HasValue())
+            return shown;
+        runtime.movement.pendingClick = false;
+        return {};
+    }
+    runtime.movement.pendingClick = false;
+    switch (MixButtonActionFor(npc.mixKind))
+    {
+    case MixButtonAction::LevelTooLow:
+    {
+        // 0x5feaab..0x5feae2: wsprintfA con el texto 1171 y 10.
+        auto format = TextOf(context, LevelTooLowText, "0x5feab6");
+        if (!format.HasValue())
+            return Core::Unexpected(format.Error());
+        if (auto shown = ErrorMessage(context, UI::Sprintf(format.Value(), std::int32_t{CapeLevel}), "0x5feae2");
+            !shown.HasValue())
+            return shown;
+        break;
+    }
+    case MixButtonAction::NotTheSame:
+        // 0x5fea87..0x5fea93.
+        if (auto shown = TextMessage(context, NotTheSameText, "0x5fea93"); !shown.HasValue())
+            return shown;
+        break;
+    case MixButtonAction::NothingToMix:
+    {
+        // 0x5feac4..0x5feae2: sprintf con el texto 580 y el 591.
+        auto format = TextOf(context, NothingToMixText, "0x5fead2");
+        auto mixing = TextOf(context, MixingText, "0x5fead2");
+        if (!format.HasValue())
+            return Core::Unexpected(format.Error());
+        if (!mixing.HasValue())
+            return Core::Unexpected(mixing.Error());
+        if (auto shown = ErrorMessage(context, UI::Sprintf(format.Value(), mixing.Value()), "0x5feae2");
+            !shown.HasValue())
+            return shown;
+        break;
+    }
+    case MixButtonAction::Mix:
+    {
+        // 0x5fe9bd..0x5fea82.
+        const MixRoom room = MixRoomFor(npc, npc.mixKind);
+        if (!HasRoomFor(context.world.Inventory().cells, NpcGridColumns, NpcGridColumns, room.width, room.height))
+        {
+            if (auto shown = TextMessage(context, NoRoomText, "0x5fea27"); !shown.HasValue())
+                return shown;
+            break;
+        }
+        if (runtime.cursorItemCount > 0)
+            break;
+        npc.cursorChoice = MixChoice;
+        npc.dialogAnswer = NoAnswerYet;
+        if (auto opened = UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, MixDialogLines,
+                                             MixDialogText, ConfirmDialog);
+            !opened.HasValue())
+            return Core::Unexpected(std::move(opened).Error());
+        break;
+    }
+    case MixButtonAction::Nothing:
+        break;
+    }
+    runtime.lastSoundId = ButtonSound;
+    return {};
 }
 
 } // namespace
@@ -391,9 +517,10 @@ Core::Expected<void, std::string> StepTheChaosBox(const GameUiContext& context, 
     const std::int32_t top = runtime.hud.npcWindowY + MixButtonY;
     if (runtime.npcWindows.chaosMixState == 0 &&
         InRect(context, left, top, left + MixButtonWidth, top + MixButtonHeight) && movement.pendingClick)
-        return Core::Unexpected(std::string("0x5fe690: el botón de mezclar lee el tipo de la mezcla (0x7d2dc98, de "
-                                            "0x5fd4f0) y su precio (0x7d2dca0, del dibujo 0x5febf0): es de la fase 3 "
-                                            "del hito 6 (08 P-C192)"));
+    {
+        if (auto mixed = PressTheMixButton(context); !mixed.HasValue())
+            return mixed;
+    }
     // 0x5feb15..0x5feb69: cerrar la caja, sin MouseUpdateTime.
     const std::int32_t x = runtime.hud.inventoryX;
     const std::int32_t y = runtime.hud.inventoryY;

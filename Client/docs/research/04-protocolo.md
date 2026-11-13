@@ -1079,8 +1079,10 @@ ASM del cliente):
   y `CGCloseWindow` no leen cuerpo.
 - **`86`** la mezcla: el sí del `0x98` con `0x78abb14` en 2 (`0x5d934f..0x5d9633`) pone `0x7d2dc80` en 1 y manda
   `C1 04 86 <0x7d2dc98>` con el XOR32 en claro. `CGChaosBoxItemMixButtonClick` no lee el tipo: el byte sale como lo
-  arma el cliente (el ASM es el oráculo) y lo arma `0x5fd4f0`, que sigue cortado con el botón de mezclar
-  (`0x5fe690`, 08 P-C192).
+  arma el cliente (el ASM es el oráculo): el tipo de `0x5fd4f0` filtrado por el modo de la caja (`0x5fd4b0`), que
+  `0x5d8d50` recalcula en cada paso con la caja abierta, y el sí llega del `0x98` que abre el botón de mezclar
+  (`0x5fe690`; 06 § "La caja del caos"). Los tipos que pueden salir: 1 a 8, `0xb`, `0xf` a `0x11` y `0x16` a `0x1c`
+  (el botón no abre el `0x98` con el 0 ni con los negativos).
 - **`83`** la contraseña (`C1 10 83`, `0x5e7e90`, `PMSG_WAREHOUSEPASSSEND` de `0x10` bytes): la manda el paso del
   teclado (`0x5e7bf0`), que sigue cortado.
 

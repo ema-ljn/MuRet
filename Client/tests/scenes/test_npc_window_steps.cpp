@@ -11,6 +11,8 @@
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/GameDialogSteps.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/HudItems.h"
@@ -24,6 +26,7 @@
 #include "Scenes/WorldState.h"
 #include "UI/GameDialogs.h"
 #include "UI/GameUiState.h"
+#include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
 
@@ -40,6 +43,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -80,17 +84,30 @@ constexpr int CursorTradeQuery = 1;
 constexpr int TradeQuery = 1;
 // 0x5cb3af y 0x5e7aa0: veinte cambios de dos teclas.
 constexpr int KeypadRandoms = 40;
+// Con la caja del caos abierta, IsOpen(0) (0x5a5511) para en 0x100, antes del IsOpen(0x10000): uno menos. La cadena
+// de Q, W y E pasa por el 0x10000 antes del 0x100 y saca los mismos.
+constexpr int ChaosBoxStepRandoms = QuietStepRandoms - 1;
 constexpr std::int32_t InventoryX = 0x1c2;
 constexpr std::int32_t NpcX = 0x104;
 constexpr std::int32_t NpcGridLeft = NpcX + 0xf;
 constexpr std::int32_t NpcGridTop = 0x32;
+// El botón de mezclar (0x5fe690, de 0x2c × 0x20 en la esquina más (0x4b, 300)) y el precio del 3 que deja 0x5febf0.
+constexpr std::int32_t MixButtonX = NpcX + 0x4b + 5;
+constexpr std::int32_t MixButtonY = 300 + 5;
+constexpr std::uint32_t UpgradePrice = 2'000'000;
 
 // Un arma de 1 por 3 y un escudo de 2 por 2 con precio fijo (+0x40) y durabilidad (+0x2d), una joya de 1 por 1 y la
-// fruta.
+// fruta. Para la caja del caos, la joya de Soul, la del caos y el ojo y la llave del Devil Square, de 1 por 1 (los dos
+// últimos con precio fijo).
 constexpr std::uint16_t Sword = 0x0001;
 constexpr std::uint16_t Shield = 0x0c00;
 constexpr std::uint16_t Jewel = 0x1c0d;
 constexpr std::uint16_t Fruit = 0x1a0f;
+constexpr std::uint16_t Soul = 0x1c0e;
+constexpr std::uint16_t ChaosJewel = 0x180f;
+constexpr std::uint16_t Eye = 0x1c11;
+constexpr std::uint16_t Key = 0x1c12;
+constexpr std::uint32_t EyePrice = 1000;
 constexpr std::uint32_t SwordPrice = 15000;
 constexpr std::uint32_t ShieldPrice = 9000;
 constexpr std::uint8_t SwordDurability = 30;
@@ -113,10 +130,14 @@ Client::Data::Tables::ItemTable SyntheticItems()
         std::uint32_t price;
         std::uint8_t durability;
     };
-    constexpr std::array<Shape, 4> Shapes{{{Sword, 1, 3, SwordPrice, SwordDurability},
+    constexpr std::array<Shape, 8> Shapes{{{Sword, 1, 3, SwordPrice, SwordDurability},
                                            {Shield, 2, 2, ShieldPrice, ShieldDurability},
                                            {Jewel, 1, 1, 0, 0},
-                                           {Fruit, 1, 1, 0, 0}}};
+                                           {Fruit, 1, 1, 0, 0},
+                                           {Soul, 1, 1, 0, 0},
+                                           {ChaosJewel, 1, 1, 0, 0},
+                                           {Eye, 1, 1, EyePrice, 0},
+                                           {Key, 1, 1, EyePrice, 0}}};
     std::vector<std::byte> plain(Client::Data::Tables::ItemTableSize);
     for (const Shape& shape : Shapes)
     {
@@ -153,6 +174,17 @@ void Place(std::span<ItemState> cells, ItemState item, std::int32_t column, std:
         }
     }
 }
+
+// Mide como el rasterizador falso: 6 columnas por letra y 13 filas.
+class LetterMeasure final : public Client::Render::Text::ITextMeasure
+{
+public:
+    [[nodiscard]] Client::Render::Text::TextExtent Measure(Client::Render::Text::FontKind,
+                                                           std::string_view text) const override
+    {
+        return {static_cast<int>(text.size()) * 6, 13};
+    }
+};
 
 class NpcWindowStepsTest : public ::testing::Test
 {
@@ -194,6 +226,7 @@ protected:
                              .input = input,
                              .mouseX = x,
                              .mouseY = y,
+                             .measure = &measure,
                              .texts = &texts,
                              .inventory = &services,
                              .sendNpcWindow = [this](Client::Protocol::Outgoing packet)
@@ -229,6 +262,29 @@ protected:
         return world.Runtime().npcWindows;
     }
 
+    // Lo que avisó 0x555190 con el tipo 2, en orden.
+    [[nodiscard]] std::vector<std::string> Errors() const
+    {
+        std::vector<std::string> errors;
+        for (const Client::UI::MessageAreaRow& row : world.Runtime().chat.area.rows)
+        {
+            if (row.type == 2 && !row.text.empty())
+                errors.push_back(row.text);
+        }
+        return errors;
+    }
+
+    // La caja del 3: una espada +9 con suerte (0x54), una joya de Bless, una de Soul y una del caos.
+    void FillTheUpgrade()
+    {
+        ItemState sword{.id = Sword, .scalar1Low = 9u << 3, .optionCount = 1};
+        sword.optionBytes[0] = 0x54;
+        Place(Npc().chaosBox, sword, 0, 0, 1, 3);
+        Place(Npc().chaosBox, ItemState{.id = Jewel}, 2, 0, 1, 1);
+        Place(Npc().chaosBox, ItemState{.id = Soul}, 3, 0, 1, 1);
+        Place(Npc().chaosBox, ItemState{.id = ChaosJewel}, 4, 0, 1, 1);
+    }
+
     WorldState world;
     CrtRandom random{0x2468aceu};
     InputState input;
@@ -241,9 +297,17 @@ protected:
                                                                         {0x218, "vender esto"},
                                                                         {0x219, "que vale"},
                                                                         {0x21a, "mucho?"},
+                                                                        {0x21b, "mezclar ya?"},
+                                                                        {580, "no hay %s"},
+                                                                        {581, "sin lugar"},
+                                                                        {591, "mezcla"},
+                                                                        {596, "sin zen"},
+                                                                        {600, "no son iguales"},
+                                                                        {1171, "desde el nivel %d"},
                                                                         {1900, "rio"},
                                                                         {1901, " y suerte"},
                                                                         {0x76e, "elegir"}});
+    LetterMeasure measure;
     Client::Scenes::InventoryServices services;
     std::vector<Client::Protocol::Outgoing> sent;
     std::vector<std::size_t> messages;
@@ -665,7 +729,7 @@ TEST_F(NpcWindowStepsTest, TheWarehouseButtonsOpenTheKeypadAndClose)
 }
 
 // 0x5d934f..0x5d9633: con 0x78abb14 en 2 y el sí, la mezcla pedida (0x7d2dc80 en 1) y el C1 04 86 con el tipo, con
-// el XOR32 y en claro, sin rand(); con el no, nada. El botón de mezclar y 0x5d8d50 con la caja abierta cortan.
+// el XOR32 y en claro, sin rand(); con el no, nada.
 TEST_F(NpcWindowStepsTest, TheMixConfirmationSends86)
 {
     auto& runtime = world.Runtime();
@@ -689,16 +753,142 @@ TEST_F(NpcWindowStepsTest, TheMixConfirmationSends86)
     ASSERT_TRUE(Client::Scenes::StepTheCursorChoice(Context(0, 0)).HasValue());
     EXPECT_EQ(sent.size(), 1u);
     EXPECT_EQ(Npc().cursorChoice, 0);
+    EXPECT_EQ(runtime.dialogs.current, 0);
+}
 
+// 0x5d8db6..0x5d8dda y 0x5fe690..0x5fea82, en Lorencia, Devias y Noria (la del duende del caos): con la caja abierta,
+// cada paso cuenta lo que vale (0x5fd120: 15.000 de la espada y los fijos de las joyas) y el tipo (0x5fd4f0): la
+// espada +9 con suerte, Bless, Soul y la joya del caos son el 3, con la suerte. El clic en el botón de mezclar, con más
+// zen que el precio del dibujo, abre y cierra el registro propio, pone 0x78abb14 en 2 y abre el 0x98 con el texto
+// 0x21b, y suena. El sí y el paso siguiente mandan el C1 04 86 03 en claro, y la mezcla pedida apaga el botón.
+TEST_F(NpcWindowStepsTest, TheMixButtonAsksAndTheYesSends86WithTheKind)
+{
+    for (const std::int32_t map : {0, 2, 3})
+    {
+        SCOPED_TRACE(map);
+        SetUp();
+        sent.clear();
+        auto& runtime = world.Runtime();
+        runtime.map = map;
+        runtime.panels.chaosBox = 1;
+        runtime.dialogs.current = 0;
+        runtime.lastSoundId = 0;
+        Npc().chaosMixMode = 0;
+        Npc().chaosMixState = 0;
+        Npc().mixLuck = 0;
+        FillTheUpgrade();
+        world.OwnCharacter().zen = UpgradePrice + 1;
+
+        const CrtRandom scanned = Advanced(random, ChaosBoxStepRandoms);
+        const auto quiet = Step(NpcX + 0x20, 300);
+        ASSERT_TRUE(quiet.HasValue()) << quiet.Error();
+        EXPECT_EQ(random.State(), scanned.State());
+        EXPECT_EQ(Npc().chaosBoxValue, 15'000 + 100'000 + 70'000 + 40'000);
+        EXPECT_EQ(Npc().mixKind, 3);
+        EXPECT_EQ(Npc().mixLuck, 1);
+        EXPECT_EQ(Npc().mixWidth, 1);
+        EXPECT_EQ(Npc().mixHeight, 3);
+
+        // El precio que deja el dibujo del 3 (0x5feec8).
+        Npc().mixPrice = UpgradePrice;
+        const CrtRandom asked = Advanced(random, ChaosBoxStepRandoms + Own);
+        Click();
+        const auto pressed = Step(MixButtonX, MixButtonY);
+        ASSERT_TRUE(pressed.HasValue()) << pressed.Error();
+        EXPECT_EQ(random.State(), asked.State());
+        EXPECT_TRUE(sent.empty());
+        EXPECT_EQ(runtime.dialogs.current, 0x98);
+        EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "mezclar ya?");
+        EXPECT_EQ(Npc().cursorChoice, 2);
+        EXPECT_EQ(Npc().dialogAnswer, 0xff);
+        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_EQ(runtime.lastSoundId, 0x19);
+        EXPECT_TRUE(Errors().empty());
+
+        Click();
+        ASSERT_TRUE(Dialogs(0x15 + 0xd5, 0x5a + 0x64).HasValue());
+        EXPECT_EQ(Npc().dialogAnswer, 1);
+        const CrtRandom mixed = Advanced(random, ChaosBoxStepRandoms);
+        ASSERT_TRUE(Step(NpcX + 0x20, 300).HasValue());
+        EXPECT_EQ(random.State(), mixed.State());
+        ASSERT_EQ(sent.size(), 1u);
+        EXPECT_EQ(sent[0].delivery, Delivery::Clear);
+        EXPECT_TRUE(SameBytes(Plain(0).Bytes(), Bytes({0xc1, 0x04, 0x86, 0x03})));
+        EXPECT_EQ(Npc().chaosMixState, 1);
+
+        // Con la mezcla pedida, el botón no hace nada y el clic queda.
+        Click();
+        ASSERT_TRUE(Step(MixButtonX, MixButtonY).HasValue());
+        EXPECT_EQ(sent.size(), 1u);
+        EXPECT_EQ(runtime.dialogs.current, 0);
+        EXPECT_TRUE(runtime.movement.pendingClick);
+    }
+}
+
+// 0x5fe982..0x5feb0e: los avisos del botón de mezclar (0x555190 con el tipo 2). Con el zen igual al precio, el 596 y
+// sin sonido; con el ojo y la llave de niveles distintos (el −2), el 600; sin nada en la caja (el 0), el 580 con el
+// 591; con el −0x18, el 1171 con 10 (el wsprintfA de 0x5feab6); con el inventario lleno, el 581. Cada uno gasta el
+// clic y saca los 3.848 rand() del registro propio.
+TEST_F(NpcWindowStepsTest, TheMixButtonWarnsWithoutZenRoomOrAMix)
+{
+    auto& runtime = world.Runtime();
     runtime.panels.chaosBox = 1;
-    Npc().chaosMixState = 0;
+    world.OwnCharacter().zen = UpgradePrice;
+    FillTheUpgrade();
+    ASSERT_TRUE(Step(NpcX + 0x20, 300).HasValue());
+    ASSERT_EQ(Npc().mixKind, 3);
+    Npc().mixPrice = UpgradePrice;
+    runtime.lastSoundId = 0;
+    const CrtRandom poor = Advanced(random, ChaosBoxStepRandoms + Own);
     Click();
-    const auto mixed = Step(NpcX + 0x4b + 5, 300 + 5);
-    ASSERT_FALSE(mixed.HasValue());
-    EXPECT_NE(mixed.Error().find("0x5fe690"), std::string::npos) << mixed.Error();
-    const auto stepped = Step(NpcX + 0x20, 300);
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x5d8db6"), std::string::npos) << stepped.Error();
+    ASSERT_TRUE(Step(MixButtonX, MixButtonY).HasValue());
+    EXPECT_EQ(random.State(), poor.State());
+    EXPECT_EQ(Errors(), std::vector<std::string>{"sin zen"});
+    EXPECT_EQ(runtime.lastSoundId, 0);
+    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_EQ(runtime.dialogs.current, 0);
+
+    // El ojo +1 y la llave +2 con la joya del caos.
+    for (ItemState& cell : Npc().chaosBox)
+        cell = ItemState{.id = EmptyOwnItemId};
+    Place(Npc().chaosBox, ItemState{.id = Eye, .scalar1Low = 1u << 3}, 0, 0, 1, 1);
+    Place(Npc().chaosBox, ItemState{.id = Key, .scalar1Low = 2u << 3}, 1, 0, 1, 1);
+    Place(Npc().chaosBox, ItemState{.id = ChaosJewel}, 2, 0, 1, 1);
+    ASSERT_TRUE(Step(NpcX + 0x20, 300).HasValue());
+    ASSERT_EQ(Npc().mixKind, -2);
+    Npc().mixPrice = 0;
+    Click();
+    ASSERT_TRUE(Step(MixButtonX, MixButtonY).HasValue());
+    EXPECT_EQ(Errors().back(), "no son iguales");
+    EXPECT_EQ(runtime.lastSoundId, 0x19);
+
+    for (ItemState& cell : Npc().chaosBox)
+        cell = ItemState{.id = EmptyOwnItemId};
+    ASSERT_TRUE(Step(NpcX + 0x20, 300).HasValue());
+    ASSERT_EQ(Npc().mixKind, 0);
+    Click();
+    ASSERT_TRUE(Step(MixButtonX, MixButtonY).HasValue());
+    EXPECT_EQ(Errors().back(), "no hay mezcla");
+
+    // El −0x18 lo deja 0x5fd4f0 con las alas y la pluma +1 sin el nivel 10. El botón (0x5ee1b1) corre antes que
+    // 0x5d8d50 (0x5ee1de) y lee el tipo del paso anterior.
+    Npc().mixKind = -0x18;
+    Click();
+    ASSERT_TRUE(Step(MixButtonX, MixButtonY).HasValue());
+    EXPECT_EQ(Errors().back(), "desde el nivel 10");
+    EXPECT_EQ(Npc().mixKind, 0);
+
+    // El 0xf (solo Bless) pide 1 × 1, y el inventario está lleno.
+    for (ItemState& cell : world.Inventory().cells)
+        cell = ItemState{.id = Jewel};
+    Place(Npc().chaosBox, ItemState{.id = Jewel}, 0, 0, 1, 1);
+    ASSERT_TRUE(Step(NpcX + 0x20, 300).HasValue());
+    ASSERT_EQ(Npc().mixKind, 0xf);
+    Click();
+    ASSERT_TRUE(Step(MixButtonX, MixButtonY).HasValue());
+    EXPECT_EQ(Errors().back(), "sin lugar");
+    EXPECT_EQ(runtime.dialogs.current, 0);
+    EXPECT_TRUE(sent.empty());
 }
 
 // 0x633644..0x633739: el 0x96 nombra la fruta de nivel 2 (el texto 167) en "( %s )" y el sí (0x628b2d) abre el 0xa8

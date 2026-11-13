@@ -17,6 +17,7 @@
 #include "Scenes/GameProjection.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/ItemSetState.h"
+#include "Scenes/NpcWindowState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/UiItemDrawing.h"
@@ -332,6 +333,7 @@ void DrawTheEquipmentSlots(GameHudContext& context, std::int32_t x, std::int32_t
     SetWarningColor(sprites, equipment[11]);
     Quad(sprites, 0x10e, column115, row152, 20.0f, 20.0f, 0.625f, 0.625f);
 }
+} // namespace
 
 // 0x5e3660(x, y, grilla, columnas, filas): una casilla de 20 × 20 por lugar, con el color del aviso de lo que haya
 // (también de las vacías): Item_box (0x115) vacía, InventoryBox2 (0x116) con un tipo.
@@ -381,6 +383,8 @@ std::uint32_t ZenColor(std::uint32_t zen)
     return 0xff96dcffu;
 }
 
+namespace
+{
 // Un botón de 24 × 24 al pie de la ventana y su ayuda con el mouse encima, en (_ftol(x), _ftol(y) − arriba).
 Core::Expected<void, std::string> DrawFootButton(GameHudContext& context, std::uint16_t slot, float x, float y,
                                                  std::size_t help, int above, std::string_view where)
@@ -614,6 +618,21 @@ void DrawTheGridCounts(Render::SpriteBatch& sprites, float x, float y, std::span
         }
     }
 }
+
+// La grilla de la caja del caos (0x7d2d380): 8 × 4 desde la esquina de la ventana del NPC más 15 (0x6b87bc) y 110
+// (0x6ba184), con el fild, el fadd y el fstp.
+constexpr std::size_t ChaosBoxGridColumns = 8;
+constexpr std::size_t ChaosBoxGridRows = 4;
+
+float ChaosBoxGridLeft(const GameHudContext& context)
+{
+    return F32(static_cast<double>(context.hud.npcWindowX) + 15.0);
+}
+
+float ChaosBoxGridTop(const GameHudContext& context)
+{
+    return F32(static_cast<double>(context.hud.npcWindowY) + 110.0);
+}
 } // namespace
 
 Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::PanelRegistry& panels)
@@ -659,9 +678,16 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::
         return Core::Unexpected(std::string("0x5f76df: los ítems del comercio (0x78a5a20) son de la CL9.4"));
     if (panels.IsOpen(UI::WarehousePanel))
         return Core::Unexpected(std::string("0x5f7756: los ítems del almacén (0x78a7070) son de la CL9.3"));
+    // 0x5f77c6: la caja del caos, 0x5e3760(x + 15, y + 110, 0x7d2d380, 8, 4, 0) desde la esquina que dejó su dibujo.
     if (panels.IsOpen(UI::ChaosBoxPanel))
-        return Core::Unexpected(std::string("0x5f77c6: los ítems de la caja del caos (0x7d2d380) son de la CL9.3"));
-    if (panels.IsOpen(UI::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory)
+    {
+        if (auto chaos = DrawTheGridModels(context, ChaosBoxGridLeft(context), ChaosBoxGridTop(context),
+                                           runtime.npcWindows.chaosBox, ChaosBoxGridColumns, ChaosBoxGridRows);
+            !chaos.HasValue())
+            return chaos;
+    }
+    // 0x5f7772..0x5f7799: sin la caja, con la lista del asedio, el mismo dibujo si la marca del héroe lo pide.
+    else if (panels.IsOpen(UI::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory)
         return Core::Unexpected(std::string("0x5f7792: 0x6689d0, la marca del asedio del héroe, es de la CL9.5"));
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
         return Core::Unexpected(std::string("0x5f7821: los ítems de la tienda personal (0x78ab0b8) son de la CL9.4"));
@@ -696,9 +722,11 @@ Core::Expected<void, std::string> DrawTheGridNumbers(GameHudContext& context, UI
         return Core::Unexpected(std::string("0x5f79b7: las cifras del comercio (0x78a5a20) son de la CL9.4"));
     if (panels.IsOpen(UI::WarehousePanel))
         return Core::Unexpected(std::string("0x5f7a2e: las cifras del almacén (0x78a7070) son de la CL9.3"));
+    // 0x5f7a9e: la caja del caos, 0x5e3760(x + 15, y + 110, 0x7d2d380, 8, 4, 1).
     if (panels.IsOpen(UI::ChaosBoxPanel))
-        return Core::Unexpected(std::string("0x5f7a9e: las cifras de la caja del caos (0x7d2d380) son de la CL9.3"));
-    if (panels.IsOpen(UI::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory)
+        DrawTheGridCounts(context.sprites, ChaosBoxGridLeft(context), ChaosBoxGridTop(context),
+                          world.Runtime().npcWindows.chaosBox, ChaosBoxGridColumns, ChaosBoxGridRows);
+    else if (panels.IsOpen(UI::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory)
         return Core::Unexpected(std::string("0x5f7a6a: 0x6689d0, la marca del asedio del héroe, es de la CL9.5"));
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
         return Core::Unexpected(std::string("0x5f7af9: las cifras de la tienda personal (0x78ab0b8) son de la CL9.4"));

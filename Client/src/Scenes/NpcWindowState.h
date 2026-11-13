@@ -47,11 +47,13 @@ struct NpcWindowState
     std::array<World::ItemState, NpcGridCellCount> grid{};
     // 0x7d2d380: la grilla de la caja del caos.
     std::array<World::ItemState, ChaosBoxCellCount> chaosBox{};
-    std::array<std::int32_t, ChaosRateCount> chaosRates{};
+    // 0x6c9da8 (.data): 75, 70, 65, 60, 55 y 50 hasta que el 30 con el resultado 3 las pisa.
+    std::array<std::int32_t, ChaosRateCount> chaosRates{75, 70, 65, 60, 55, 50};
     // 0x7d2dc80: el estado de la mezcla. 1 la pide (0x5d9362), 2 la deja lista (0x4c5f60 y 0x4da280) y 0 la apaga
     // (abrir la caja, 0x65ac28, y el 86 con 2 o 0xb).
     std::int32_t chaosMixState = 0;
-    // 0x7d2dc9d: lo pone en 0 abrir la caja del caos (0x65a94f).
+    // 0x7d2dc9d: lo pone en 0 abrir la caja del caos (0x65a94f) y lo escribe un paquete del asedio (0x4e5a28, CL9.5).
+    // Con algo, el dibujo suma "+ n%" a la chance del 2 y del 8 (0x5ff2f2).
     std::uint8_t field7d2dc9d = 0;
     // 0x6c932f: la traba del almacén. La escriben el 83 con 0 y 1 y la apagan abrirlo y cerrarlo.
     std::uint8_t warehouseLocked = 0;
@@ -86,9 +88,37 @@ struct NpcWindowState
     // tiene.
     std::int32_t inputMode = 10;
     std::uint8_t numberField = 0;
-    // 0x7d2dc98: el tipo de la mezcla que manda el C1 04 86 (0x5d93f8). Lo arma 0x5fd4b0 con la caja abierta
-    // (0x5d8dda), que es de la fase 3 (08 P-C192): hasta entonces, el 0 de la .bss.
+    // 0x7d2dc98: el tipo de la mezcla que manda el C1 04 86 (0x5d93f8). Lo arma 0x5fd4b0 en cada paso con la caja
+    // abierta (0x5d8dda, Scenes::ScanTheChaosBox).
     std::int32_t mixKind = 0;
+    // 0x7d2d378: lo que vale la caja (0x5fd120 desde 0x5d8dcd), con lo que el dibujo saca la chance de la mezcla 1.
+    std::int32_t chaosBoxValue = 0;
+    // 0x7d3a114 (.bss, 0): el modo de la caja que elige el diálogo 0x8e (0x62599b, el botón 0 o el 1). 0x5fd4b0 lo
+    // mira y el dibujo pone su título.
+    std::int32_t chaosMixMode = 0;
+    // 0x6c9da0 y 0x6c9da4 (.data, 5 y 4): el ancho y el alto más grandes (Item.bmd +0x24 y +0x25) de lo que hay en la
+    // caja, que 0x5fd4f0 vuelve a 1 antes de contar. Siguen a las tasas (0x6c9da8): el dibujo del 2 las lee en fila.
+    std::int32_t mixWidth = 5;
+    std::int32_t mixHeight = 4;
+    // 0x7d2dc84: la capa del 0x1c, 3 con armas excelentes y 4 con armaduras (0x5fdbe6, 0x5fdc1d).
+    std::int32_t mixCapeKind = 0;
+    // 0x7d2dc88: lo que valen (0x54d0f0 en el modo 1, tope 1.000.000) los ítems de nivel 4 o más con una opción de
+    // 0x50 a 0x53, la chance del 0x1c.
+    std::int32_t mixExcellentValue = 0;
+    // 0x7d2dc8c: el nivel + 1 de los dos ítems del 2 (0x1c11 y 0x1c12) o del 8 (0x1a10 y 0x1a11).
+    std::int32_t mixLevel = 0;
+    // 0x7d2dc90: la opción de las alas (0x50 o 0x51 su valor, 0x55 su valor · 4). Nadie más la lee.
+    std::int32_t mixWingOption = 0;
+    // 0x7d2dc94: la chance de las alas del 7 y la capa del 0x18, tope 90.
+    std::int32_t mixWingRate = 0;
+    // 0x7d2dc9c: la suerte (la opción 0x54) del último ítem de nivel 9 a 12 o de nivel 4 o más que la mira.
+    std::uint8_t mixLuck = 0;
+    // 0x7d2dca0: el precio de la mezcla, que escribe el dibujo (0x5febf0) y lee el botón de mezclar (0x5fe982).
+    std::uint32_t mixPrice = 0;
+    // 0x78aba34: el impuesto de la caja del caos, en por ciento. Lo escribe el B2 1A con +4 en 1 (0x4e5507 y
+    // 0x4dfbb0, el byte de +5; CL9.5): hasta entonces, el 0 de la .bss. Lo leen el título de la caja (0x5fed3e), el
+    // precio con impuesto (0x5b12f0) y el entrenador (0x44d89e).
+    std::int32_t chaosTaxRate = 0;
     // 0x6e5798: con 0, el 30 con 9 abre el diálogo 0xa1 (0x4d259d).
     std::uint8_t field6e5798 = 0;
     // El SetCursorPos que pidió el último 30 (0x4d28f6), con el mouse que vea la escena: NpcTalkCursorWarp. Aplicarlo

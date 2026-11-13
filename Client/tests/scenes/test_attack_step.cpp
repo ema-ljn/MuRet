@@ -628,6 +628,70 @@ TEST(AttackStepTest, TheTargetWithDamageBleedsTenTimes)
     }
 }
 
+// 0x5041bf..0x50426f: el blanco 0x18e (las estatuas de Blood Castle) con daño, después de la sangre, tira cinco veces
+// rand() & 1; con 0, rand() % 30 para la z (z + 50 + el rand()) y la piedra 0x10b (0x51bafb, nueve rand(): con el
+// subtipo 0 pasa al 1), con los ángulos y la luz del que pega y sin dueño. Después, el sonido 0x88 y el resto. En
+// Lorencia, en Devias y en Blood Castle 1 (el 11).
+TEST(AttackStepTest, TheStatueWithDamageThrowsStones)
+{
+    constexpr int Bleeding = 10 * (3 + 4);
+    constexpr int Flips = 5;
+    constexpr int StoneDraws = 1 + 9;
+    const glm::vec3 victimAt{12800.0f, 6400.0f, 150.0f};
+    for (const std::int32_t map : {0, 2, 11})
+    {
+        SCOPED_TRACE(map);
+        AttackWorld tested;
+        tested.world.Runtime().map = map;
+        tested.Victim().alive = true;
+        tested.Victim().type = 0x18e;
+        tested.Victim().damage = 12;
+        tested.Victim().position = victimAt;
+        ActorState& hero = tested.Striker(HeroSlot, 0x23, VictimSlot);
+        hero.byte381 = 14;
+        hero.angles = {0.0f, 0.0f, 135.0f};
+        hero.light = {0.25f, 0.5f, 0.75f};
+
+        const auto stepped = tested.Attack(hero, HeroSlot);
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        CrtRandom expected(Seed);
+        expected.Discard(CountingStep + SkillRead + Bleeding);
+        std::vector<int> rises;
+        for (int flip = 0; flip < Flips; ++flip)
+        {
+            if ((expected.Next() & 1) != 0)
+                continue;
+            rises.push_back(expected.Next() % 30);
+            expected.Discard(9);
+        }
+        ASSERT_FALSE(rises.empty());
+        EXPECT_EQ(DrawsSince(Seed, tested.random),
+                  CountingStep + SkillWithTarget + Bleeding + Flips + static_cast<int>(rises.size()) * StoneDraws);
+        EXPECT_NE(std::ranges::find(tested.sounds, 0x88), tested.sounds.end());
+        std::vector<const Client::World::ModelEffect*> stones;
+        for (const Client::World::ModelEffect& effect : tested.world.Map().effects.Effects())
+        {
+            if (effect.alive && effect.type == Client::World::DebrisEffect)
+                stones.push_back(&effect);
+        }
+        ASSERT_EQ(stones.size(), rises.size());
+        for (std::size_t index = 0; index < stones.size(); ++index)
+        {
+            const Client::World::ModelEffect& stone = *stones[index];
+            const float lifted = static_cast<float>(static_cast<double>(victimAt.z) + 50.0);
+            const float z = static_cast<float>(static_cast<double>(rises[index]) + static_cast<double>(lifted));
+            EXPECT_EQ(stone.transform.position, (glm::vec3{victimAt.x, victimAt.y, z + 50.0f}));
+            EXPECT_EQ(stone.subtype, 1);
+            EXPECT_EQ(stone.light, hero.light);
+            EXPECT_EQ(stone.ownerContext, nullptr);
+            EXPECT_EQ(stone.disturbanceState, 0xffff);
+            EXPECT_GE(stone.life, 32);
+            EXPECT_LE(stone.life, 47);
+        }
+    }
+}
+
 // 0x4fb08c..0x4fb0da: con el 0x815 en la izquierda del registro propio, el frame 5 de cualquiera que pegue pide veinte
 // chispas 0x5c6/12 sobre él, con su luz (+0xf4), escala 2 y seis rand() cada una, y el ataque sigue hasta el sonido.
 // Sin el pool corta después del registro; con el pool lleno no saca nada más.

@@ -9709,6 +9709,22 @@ z del blanco en la x87 (`fild` y `fadd`) y piden `0x53fe70(0x5e4, punto, o+0x1c,
 MuRet la crea, la mueve y la dibuja en el pool de partículas del mundo (`World::BloodParticle`, el mismo que usa
 la escena y el paso de los personajes; `BloodParticlesTest`, `AttackStepTest.TheTargetWithDamageBleedsTenTimes`).
 
+**Las piedras de las estatuas** (`0x5041bf..0x50426f`, *estático*; CL9 hito 3, fase 2e). Con el blanco `0x18e` (las
+estatuas 132 a 134 de Blood Castle, `0x51455d`) con daño, después de la sangre, cinco `rand() & 1`; con 0, el punto
+del blanco con la z en `(z + 50) + rand() % 30` y `0x518cf0(0x10b, punto, o+0x1c, o+0xf4, 0, sin dueño, −1, 0, 0, 0,
+0)`; después, el sonido `0x88`. El alta (`0x51bafb`, la del `0x10a` también; sale en `0x51bc42` sin la salida común):
+la z 50 más, el empuje (0; ((`rand()` & 127) + 32) · 0,1f; 0), la vida (& 15) + 32, la escala ((& 3) + 8) · 0,1f, la z
+de los ángulos en `rand() % 360` para girar el empuje (`0x5fc8f0`, `0x5fcbd0`) a la velocidad, la caída `+0xe4` en
+`rand() % 5` + 2 y, con el `0x10b` de subtipo 0, el subtipo 1 y otro `rand() % 5` en la caída; al final los tres
+ángulos en `rand() % 360`: nueve `rand()` (ocho con el `0x10a`). El paso (`0x52531d`), después del `rand()` de la luz
+local: la posición más la velocidad sin girar, la velocidad por 0,9f (y por 1,1f con el subtipo 1), la z más la caída
+y la caída menos 3; con la altura del terreno (`0x5f93c0`) por encima de la z, la z queda en ella, la caída por
+−0,2f, cinco vidas menos y la x de los ángulos menos escala · 128; si no, menos escala · 16; `+0x174` = vida · 0,1f.
+Termina en `0x5252e6`: `rand() % 10` y, con 0, el polvo `0x5f3`/0 en un punto que nadie escribe (Q-C1176; MuRet pone
+la posición de la piedra, P-C232). La cola común la mueve otra vez, con la velocidad girada (Q-C1177). MuRet la crea
+(`ModelEffects::CreateDebris`) y la mueve (`World::StepGameModelEffect`); su dibujo, con el modelo, es de la CL11
+(`AttackStepTest.TheStatueWithDamageThrowsStones`, `GameModelEffectsTest.TheStatueStonesJumpFallTiltAndSometimesRaiseDust`).
+
 **Las chispas del `0x815`** (`0x4fb0d1`, *estático*). En `0x4f97b0`, con `+0x381` en 1 o más, el `0x815` en la
 izquierda del registro propio y el `0x20a`, veinte `0x53fe70(0x5c6, o+0x10, o+0x1c, o+0xf4, 12, 2,0f, 0)`. La
 creación (`0x540a04`, la tabla de `0x5443c0` por subtipo − 1) pone la textura `0x5fc`, `+0x38` en 1,0f, la
@@ -9763,7 +9779,6 @@ dos `rand()` del giro de la cabeza, `0x5068fd`, descontados: uno en 32 por paso 
 | `0x558f29` | los nombres de gremio | el héroe en la guerra de gremios (hito 8) |
 | los cortes de [La flecha](#la-flecha) | las skills de tiro, los joints de las flechas y sus partículas sin portar | el elfo con esas armas o skills (fase 2e) |
 | `0x50419c` | la partícula `0x5e4` sin el pool de partículas | nadie en el juego: `GameScene` pasa el del mundo (fase 2d) |
-| `0x504267` | el efecto `0x10b` | el que pega al `0x18e` con daño, con un `rand() & 1` en 0 de los cinco |
 | `0x50428c` | `0x42ea00` | nadie: el mapa 30 corta antes (`0x412140`) |
 | `0x5042ce` | `0x52e740` | las acciones de skill `0x38` a `0x3c` (hito 4) |
 | `0x505169` | los joints `0x618`/0 y /1 sin el pool de joints | nadie en el juego (fase 2d) |

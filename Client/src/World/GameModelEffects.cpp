@@ -1045,6 +1045,63 @@ Core::Expected<void, std::string> StepEarthquakeCrack(ModelEffect& effect, float
     }
     }
 }
+
+// 0x52531d..0x525433 y 0x5252e6..0x525318: las piedras 0x10a y 0x10b. La posición más la velocidad (sin girar), la
+// velocidad por 0,9f (0x6b8a1c), la z más la caída +0xe4 y, con el subtipo 1, la velocidad por 1,1f (0x6b8830); la
+// caída menos 3. Con la altura del terreno (0x5f93c0) por encima de la z (FCOM: igual o NaN no), la z queda en ella,
+// la caída por −0,2f (0x6b8d3c), cinco vidas menos y la x de los ángulos menos escala · 128; si no, menos escala · 16.
+// +0x174 = vida · 0,1f. En 0x5252e6, rand() % 10 y, con 0, 0x53fe70(0x5f3, [EBP − 0x28], ángulos, (1; 1; 1), 0,
+// 1,0f, 0): ese punto es un local que ningún camino escribe (Q-C1176); MuRet pone la posición del efecto (*emulado*,
+// P-C232). La partícula no cambia nada del efecto ni de sus rand().
+Core::Expected<void, std::string> StepDebris(ModelEffect& effect, Particles& particles, float worldClock,
+                                             Render::Models::CrtRandom& random, const ModelEffectStepServices& services)
+{
+    glm::vec3& position = effect.transform.position;
+    for (int axis = 0; axis < 3; ++axis)
+        position[axis] = F32(static_cast<double>(effect.velocity[axis]) + static_cast<double>(position[axis]));
+    constexpr double Brake = static_cast<double>(std::bit_cast<float>(0x3f666666u));
+    constexpr double Boost = static_cast<double>(std::bit_cast<float>(0x3f8ccccdu));
+    constexpr double Bounce = static_cast<double>(std::bit_cast<float>(0xbe4ccccdu));
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+    constexpr double Gravity = 3.0, GroundTilt = 128.0, AirTilt = 16.0;
+    constexpr std::int32_t BoostedSubtype = 1;
+    constexpr std::int32_t GroundWear = 5;
+    for (int axis = 0; axis < 3; ++axis)
+        effect.velocity[axis] = F32(static_cast<double>(effect.velocity[axis]) * Brake);
+    position.z = F32(static_cast<double>(position.z) + static_cast<double>(effect.turnDirection));
+    if (effect.subtype == BoostedSubtype)
+    {
+        for (int axis = 0; axis < 3; ++axis)
+            effect.velocity[axis] = F32(static_cast<double>(effect.velocity[axis]) * Boost);
+    }
+    effect.turnDirection = F32(static_cast<double>(effect.turnDirection) - Gravity);
+    if (!services.terrainHeight)
+        return Core::Unexpected(std::string("0x5253d9: la piedra 0x10b pide la altura del terreno (0x5f93c0)"));
+    const double ground = services.terrainHeight(position.x, position.y);
+    float& pitch = effect.transform.angles.x;
+    if (ground > static_cast<double>(position.z))
+    {
+        position.z = F32(ground);
+        effect.turnDirection = F32(static_cast<double>(effect.turnDirection) * Bounce);
+        effect.life -= GroundWear;
+        pitch = F32(static_cast<double>(pitch) - static_cast<double>(effect.transform.scale) * GroundTilt);
+    }
+    else
+    {
+        pitch = F32(static_cast<double>(pitch) - static_cast<double>(effect.transform.scale) * AirTilt);
+    }
+    effect.alpha = F32(static_cast<double>(effect.life) * Tenth);
+    // 0x5252e6.
+    constexpr int DustChance = 10;
+    if (random.Next() % DustChance != 0)
+        return {};
+    const auto dust = particles.CreateChecked(DustParticle, position, effect.transform.angles, glm::vec3(1.0f), 0, 1.0f,
+                                              worldClock, random);
+    if (!dust.HasValue())
+        return Core::Unexpected(std::format("0x525310: el polvo 0x5f3/0 de la piedra 0x10b falla con error {}",
+                                            static_cast<unsigned>(dust.Error())));
+    return {};
+}
 } // namespace
 Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
                                                       Particles& particles, float worldClock,
@@ -1149,6 +1206,12 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
         if (effect.life <= 0)
             effect.alive = false;
         return {};
+    }
+    else if (effect.type == FirstDebrisEffect || effect.type == DebrisEffect)
+    {
+        wholeStep = true;
+        if (auto stepped = StepDebris(effect, particles, worldClock, random, services); !stepped.HasValue())
+            return stepped;
     }
     else if (effect.type >= FirstEarthquakeCrack && effect.type <= LastEarthquakeCrack)
     {

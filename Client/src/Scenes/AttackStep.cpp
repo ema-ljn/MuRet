@@ -11,10 +11,12 @@
 #include "Scenes/HeroAttack.h"
 #include "Scenes/MonsterAttackStep.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/IFishStepServices.h"
 #include "World/ItemState.h"
+#include "World/ModelEffects.h"
 #include "World/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -298,17 +300,21 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
         }
         if (victim.type == SmokeType)
         {
-            // 0x5041db..0x504267: cinco rand() & 1; con 0, rand() % 30 y el efecto 0x10b.
+            // 0x5041bf..0x50426f: cinco rand() & 1; con 0, el punto del blanco con la z en (z + 50) + rand() % 30 y
+            // 0x518cf0(0x10b, punto, o+0x1c, o+0xf4, 0, sin dueño, −1, 0, 0, 0, 0) (0x504267, la piedra; 0x51bafb).
             constexpr int Puffs = 5;
+            constexpr int HeightSpan = 30;
+            constexpr double Lift = 50.0; // 0x6b86b0
             for (int i = 0; i < Puffs; ++i)
             {
-                if ((context.random.Next() & 1) == 0)
-                {
-                    static_cast<void>(context.random.Next());
-                    return Core::Unexpected(std::format("0x504267: el efecto 0x10b (0x518cf0) sobre el blanco {}, sin "
-                                                        "portar",
-                                                        target));
-                }
+                if ((context.random.Next() & 1) != 0)
+                    continue;
+                const float lifted = static_cast<float>(static_cast<double>(victim.position.z) + Lift);
+                const int rise = context.random.Next() % HeightSpan;
+                const glm::vec3 point{victim.position.x, victim.position.y,
+                                      static_cast<float>(static_cast<double>(rise) + static_cast<double>(lifted))};
+                static_cast<void>(context.world.Map().effects.CreateDebris(World::DebrisEffect, point, actor.angles,
+                                                                           actor.light, context.random));
             }
             // 0x50427d: 0x41ed10(0x88, 0, 0).
             constexpr std::int32_t SmokeSound = 0x88;

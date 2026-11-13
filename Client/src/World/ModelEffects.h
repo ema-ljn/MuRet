@@ -46,6 +46,10 @@ inline constexpr std::int16_t ButterflyEffect = 0xae;
 // del 0x18 del 4 (sin modelo: sólo el pase del suelo) y las dos piedritas que salta el chorro (Stone01/02).
 inline constexpr std::int16_t FallingStoneEffect = 0xda;
 inline constexpr std::int16_t FlameJetEffect = 0x5de;
+// Las piedras del 0x10a y del 0x10b (0x51bafb, 0x52531d): el ataque con daño a las estatuas 0x18e de Blood Castle
+// suelta el 0x10b (0x504267), que salta, cae sobre el terreno y se inclina.
+inline constexpr std::int16_t FirstDebrisEffect = 0x10a;
+inline constexpr std::int16_t DebrisEffect = 0x10b;
 inline constexpr std::int16_t FirstStoneChipEffect = 0xc8;
 inline constexpr std::int16_t SecondStoneChipEffect = 0xc9;
 // Los de Icarus (0x605d70 y 0x6061c0): la nube 0xbb (Object11\cloud) sobre el héroe y el 0x5ac, sin modelo,
@@ -215,6 +219,13 @@ public:
     // en float. Lleno, ninguno y sin rand().
     std::optional<std::size_t> CreateFallingStone(const glm::vec3& position, const glm::vec3& angles,
                                                   const glm::vec3& light, Render::Models::CrtRandom& random);
+    // 0x518cf0(0x10a o 0x10b, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51bafb, que sale en 0x51bc42 sin la
+    // salida común: el prefijo (sin dueño, +0x8a en −1), la z 50 más, el empuje (0; ((& 127) + 32) · 0,1f; 0), la vida
+    // (& 15) + 32, la escala ((& 3) + 8) · 0,1f, la z de los ángulos en % 360 para girar el empuje a la velocidad, la
+    // caída +0xe4 en % 5 + 2 y, con el 0x10b, el subtipo 1 y otro % 5 más en la caída; al final, los tres ángulos en
+    // % 360. Nueve rand() con el 0x10b, ocho con el 0x10a. Lleno, ninguno y sin rand().
+    std::optional<std::size_t> CreateDebris(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
+                                            const glm::vec3& light, Render::Models::CrtRandom& random);
     // 0x518cf0(0x5de, …, 0, 0, −1, 0, 0, 0, 0) → 0x51e7d8 con el subtipo 0: el prefijo común, vida 40 y el
     // registro propio abierto y cerrado (copia su +0xf04 a +0x8c, que sólo lee la rama del dueño héroe, y el
     // cierre que deja la cuenta en 0 gasta sus 3.848 rand()). Lleno, ninguno.

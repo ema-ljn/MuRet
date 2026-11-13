@@ -934,6 +934,25 @@ mundo, donde `Scenes::SessionEventApplier::ApplySkillEvent` los manda a `Scenes/
 las skills (`19`, `1E`, `D3`, `DF` y `26` de las cuatro funciones por clase) son de la fase 2 (08, P-C264). Los tests
 usan claves inventadas.
 
+### Las skills que salen: `19`, `1E`, `1C` y `B0`
+
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*, contra `protocol.cpp` del GameServer 0.97 reconstruido.) Las arman en
+línea `0x57cfc0` y las funciones por clase ([06](06-render-escenas-y-ui.md#la-rama-del-wizard)), con el XOR32 desde
+`pkt[3]` y cifradas como C3: antes de `send()`, el `rand()` del relleno (`0x69fd70`) y el serial (`0x5767913`,
+abierto y cerrado: un `rand()` más al cerrarlo en 0), aunque el socket esté cerrado. Sin "webzen" en el nombre del
+héroe publicado; el `19`, además, con el freno de 300 ms (`0x576791c`, que la `0x28` no mira).
+
+| Paquete | Quién lo manda | Layout | GameServer 0.97 |
+| --- | --- | --- | --- |
+| `19` | `0x58a1e5`, `0x58a954`, `0x58ba70` (Wizard), `0x55cbc0` y las de cl9-h4 | `C1 06 19 <skill> <clave H L>` | `CGMagicAttack` (`0x425f60`) lee la skill y la clave en big endian, igual |
+| `1E` | `0x58c1b6`, `0x58cf37`, `0x58dcc4`, `0x58ef1e`, `0x58fced`, `0x590b18`, `0x591859` (Wizard) y `0x55e67e` | `C1 0C 1E <skill> <x> <y> <rumbo> 00 <posición> <clave H L> <clave mágica>`; el rumbo es `ftol(ángulo · 0,7111)` (`0x6ba440`) y sin blanco la clave es `0xffff` | `CGDurationMagicRecv` (`0x427870`) lee la skill, X, Y y el rumbo: lo demás no lo usa (08, P-C221) |
+| `1C` | el Teleport (`0x593151..0x59350e`) | `C1 06 1C 00 <x> <y>` | `CGTeleportMagicRecv` (`0x426450`): el 0 es la skill 6 |
+| `B0` | el Teleport Ally (`0x59293b..0x592d1b`) | `C1 07 B0 <clave L H> <x> <y>`: el WORD `+0x1f4` del elegido tal cual, en little endian | `CGTargetTeleportRecv` (`0x426870`) la arma con `NumberH \| NumberL << 8`, igual |
+
+**MuRet**: `Protocol::Skill::WriteMagicAttack` (cl9-h4), `WriteDurationMagic`, `WriteTeleportMagic` y
+`WriteTargetTeleport`; los `rand()` los saca `Scenes::SendTheSkillPacket`. El `D3` de girar de `0x55cbc0` es el
+`WriteWalk` de un paso, sin C3 ni `rand()`.
+
 ### Las órdenes del cuervo: `A7` y `A8`
 
 (CL9 hito 4, 2026-11-13, *estático*.) El GameServer 0.97 no tiene el Dark Lord y no los manda (P-C262): el oráculo es

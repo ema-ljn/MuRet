@@ -10315,6 +10315,72 @@ Cortan con su dirección (P-C268): las ramas de las clases (`0x57d790`, `0x58189
 manda `0x559890` (`0x559afc`, `0x55a368`) y `0x561f60` (`0x562024`). Las órdenes del cuervo (`0x420f70`) están
 portadas, con `Protocol::Pet::WritePetCommand`.
 
+### La rama del Wizard
+
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*.) `0x5897aa..0x593874`, el paso 11 de [Usar una skill](#usar-una-skill)
+con la clase 0 o 3 (el Magic Gladiator llega por `0x5897a7`, desde el final de la rama de las clases 1, 3 y 4); otra
+clase va a `0x5808da`. La skill está en `[ebp-0x44]` y el héroe en `ESI` y en `[ebp+8]` (Q-C1225).
+
+1. **La cabeza**, con el registro propio abierto (cerrarlo son 3.848 `rand()` en cada salida): `0x551c70` (la `0x3a`
+   y la `0x28` cuestan lo de la `0x28`, y la `0x28` sin stamina; la entrada, 60 `rand()`), `0x551f40` (otros 60)
+   contra `+0x1e` + `+0x30` (`JLE` con signo), el maná contra `+0x24` (sin él, `0x558110(3)` y, con la poción,
+   `0x5af520` y el `26`, hito 5), la stamina contra `+0x38` (sin ella, con la `0x3a` o la `0x28`, el soltado, el clic,
+   el botón y los frames del derecho en 0) y `0x552c50` con el lugar `+0x425` del publicado (la entrada, 60). Cerrado
+   el registro, `0x57ce80`, con su resultado en `[ebp-0x3d]`.
+2. **Por la skill** (− `0xa`, tablas `0x599e54` y `0x599e34`): `0xa` y `0xe`, Hellfire e Inferno; `0x10`, Soul
+   Barrier; `0x12` a `0x17` y `0x2f`, nada; `0x28` y `0x3a`; `0x4c`; las demás, por el alcance (`0x58c15e`).
+3. **`0x3a`** (`0x58a141`), solo un jugador (`0x20a`): el `19` con la clave del jugador (`0x57678bc`), `0x4f3f80`, la
+   acción `0x44` (`0x4ea030`) y `+0x378` en 0. **`0x28`** (`0x58a89a`): igual con la clave de
+   `0x558eb0(héroe, elegido)` (sin ella, la del jugador, Q-C1224), sin freno, y la acción `0x45`.
+4. **Hellfire, Inferno y Aqua Beam** (`0x58c1b6`, `0x58cf37`, `0x58fced`), solo un jugador: `0x5767948` en la
+   skill y el `1E` con la celda lógica del héroe (`+0x420` y `+0x41c`, 4 `rand()` cada una), su rumbo y la clave
+   `0xffff`; después `0x4f3f80`, la acción `0x96`, `0x95` o `0x94` y `+0x378` en 0; el Aqua Beam pone `0x77f3ba4` en
+   0 (y lee `+0x3e2` con Fenrir sin usarlo).
+5. **Soul Barrier** (`0x58b026`): sin elegido, el `19` con la clave del jugador, `0x4f5290` y sigue como las demás.
+   Con un elegido que no es jugador (`+0x88` distinto de 1), `0x6c8e38` en −1; con un jugador, si está en la party
+   (`0x59e680`, los nombres de `0x77f3cd0`), `+0x3a4`, `0x7758580..88` y, fuera de alcance, el camino (`+0x379` en
+   5); dentro, el `19` con su clave.
+6. **`0x4c`** (`0x58dcc4`): la celda de `+0x3a8` (`ftol` · 0,01). En alcance y con el elegido atacable
+   (`0x558bb0`): `0x4e9920` (la posición relativa), sin elegido `+0x434` en −1 y nada; si no, el ángulo, `0x552990`,
+   la clave de `0x558eb0`, `+0x434` en el elegido y el `1E` con la celda del héroe, la posición, la clave y la clave
+   mágica (`0x77f3bad`, de 1 a `0x32`, también en `+0x1bd`); `+0x378` en 0 y, en un jugador, `0x4e9c50`. Fuera:
+   sin elegido `0x6c8e38` en −1; con él, el camino (`0x4eac00`) hasta el alcance · 1,2, con `+0x378` en 1.
+7. **Por el alcance** (`0x58c15e`): con un elegido, `0x7758580` en 1, `0x7758584` el lugar `+0x425` y `0x7758588`
+   el elegido si `0x558bb0` lo deja atacar (−1 si no). La distancia al centro de la celda `0x77e1ba8`/`0x77e1bac`
+   contra el alcance · 100 (en alcance con C0 o C3). Fuera: con un elegido atacable, el camino hasta el alcance
+   (`+0x378` en 1 y `+0x379` en 5); salvo `0x43` a `0x47` y `0x4c`, nada más. Después, la celda del héroe y
+   `0x558800`: sin línea de vista, `0x5925ae`. Con un elegido atacable, `0x55cbc0(héroe, héroe)`. Sin blanco
+   (`[ebp-0x3d]`), `0x5925ae`; con él, el ángulo hacia `+0x3a8` y (− 5, tablas `0x599eac` y `0x599e98`): **Flame** (5),
+   el `1E` con la celda de `+0x3a8` y `0x4f5290`; **8 y 9**, de cualquier tipo, el `1E` con la celda del héroe y la
+   clave mágica, y `0x4f5290`; **Aqua Beam** (`0xc`); **`0x26` y `0x27`**, solo un jugador, el `1E` con la celda de
+   `+0x3a8` y la clave de `0x558eb0(héroe, 0x7758588)` (Q-C1223), `0x4f5290` y `+0x378` en 0; las demás, `0x5925ae`.
+8. **`0x5925ae`**: el Magic Gladiator o sin blanco, a `0x5808da`; el Wizard con la 6 o la `0xf`.
+9. **Teleport** (6, `0x593051`): con el cursor (`0x7879fbc`), `0x1000` en `+0x78`, la acción (`0x93` en un jugador, 5
+   en otro), `+0x80` en 1 o 2 o el alpha debajo de 0,7, nada. La pared de la celda del blanco (`0x5f82a0`, con
+   `& 0xff`) sin `0x20` ni `0x40`; el ángulo; con `0x576794c` o `0x77f3bb0`, o a menos de 3.000 ms de `0x77f3bb4`
+   (`GetTickCount`, resta sin signo), nada. Si no, `0x576794c` en 1, el `1C` y `0x4f5370` (la acción `0x93`, o 5).
+10. **Teleport Ally** (`0xf`, `0x5925d9`): sin elegido, nada. En el asedio (`0x4294b0`), los pares de puestos (`+0x360`
+    9/6, `0xa`/7, `0xb`/8, `0xd`/`0xc`) del publicado y del héroe (Q-C1220); sin asedio, el nombre del elegido entre
+    los de la party. Con el cursor o el elegido que no puede (como el Teleport), nada. Una celda de al lado del héroe
+    (`ftol` de su posición · 0,01) con dos `rand() % 3` (Q-C1222) en `0x77e1ba8`/`0x77e1bac`, sin pared (salvo
+    `0x20`) o, en el mapa 30, con el héroe publicado dentro del castillo; con más de diez tapadas, nada. El elegido
+    mira a su `+0x3a8`; con `0x576794c`, lo baja y nada; si no, en 1, el `B0` y `0x4f5370` sobre el elegido.
+
+**`0x55cbc0(p1, p2)`** (`0x58eecc` y `0x5663b2` de `0x5650c0`): la skill del lugar `0x7758584` (registro propio).
+Con la `0x2b`, la `0x2f`, o la `0x49` sin la derecha del publicado de `0xc12` a `0xe11` (`MOVSX`), nada. Si no, la
+posición del blanco `0x7758588` (sin mirar el −1) en `+0x3a8` de p1 y el ángulo de p2 hacia ella; por la tabla
+`0x55fa54`: 1, 2, 3, 4, 7, `0xb`, `0x11` y `0x2d`, el `19` (con el freno y sin "webzen"), `0x4f5290(p1)` y el `D3` de
+girar con la celda lógica del publicado (`+0x41c` y `+0x420`) y su ángulo; `0x49`, igual con `0x4ea030(p2, 0x86)` y
+`0x4f3f80`; `0xd`, sin freno, `0x5767948` y el `1E` con la celda de `+0x3a8`, el rumbo de p2 y la clave de
+`0x558eb0(p1, 0x7758588)`, `0x4f5290(p1)` y el `D3`.
+
+**MuRet**: `Scenes/HeroSkillsWizard` (`UseTheWizardSkill`, desde `UseTheHeroSkill` con la clase 0) y
+`Scenes/Skill55cbc0` (`UseTheSkillOnItsTarget`); los ayudantes con dirección en `Scenes/Skill4f5290`, `Skill4e9c50`,
+`Skill4e9920`, `Skill551f40` y `Skill57ce80`, y lo que va en línea en `Scenes/HeroSkillSupport`. Los envíos en
+[04](04-protocolo.md#las-skills-que-salen-19-1e-1c-y-b0). La clave del jugador llega de la sesión
+(`ServerSession::PlayerIndex`). Cortan: la party (`0x58b06e`, `0x59272c`, hito 7), la poción (`0x589936`, hito 5) y
+`0x5808da` (`0x5808ef`) (08, P-C222).
+
 ### Las órdenes del cuervo
 
 (CL9 hito 4, 2026-11-13, *estático*.) El objeto del cuervo (`+0x430` del Dark Lord, [El cuervo](#el-cuervo)) tiene un

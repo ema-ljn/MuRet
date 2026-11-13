@@ -21,7 +21,9 @@
 // rasterizador falso: un bloque de 3 × 4 arriba a la izquierda de cada letra de 6 columnas.
 namespace
 {
+using Client::Render::Text::BoxShape;
 using Client::Render::Text::FontKind;
+using Client::Render::Text::PaintBoxedText;
 using Client::Render::Text::PaintTextBox;
 using Client::Render::Text::StoreColor;
 using Client::Render::Text::TextBoxBytes;
@@ -144,5 +146,43 @@ TEST(TextBoxTest, OnlyFullInkIsText)
 
     EXPECT_EQ(PixelAt(box, 0, 0), (Rgba{0, 0, 0, 0x80}));
     EXPECT_EQ(PixelAt(box, 1, 0), (Rgba{0xaa, 0x22, 0x33, 0xff}));
+}
+
+// 0x553e50: la tinta antes de las columnas de adelante va con su color y la otra con el del texto; el resto de la caja,
+// el ancho del globo por las filas del paso, con el fondo, y afuera 0.
+TEST(TextBoxTest, ABubbleBoxHasItsPrefixColumns)
+{
+    const FakeGlyphRasterizer rasterizer;
+    std::vector<std::uint8_t> box(TextBoxBytes, 0x5a);
+
+    PaintBoxedText(rasterizer, Style, "ab",
+                   BoxShape{.width = 20, .rows = 12, .prefixColumns = 6, .prefixColor = 0xff00ffc8},
+                   std::span<std::uint8_t, TextBoxBytes>(box));
+
+    constexpr Rgba Prefix{0xc8, 0xff, 0x00, 0xff};
+    constexpr Rgba Text{0xaa, 0x22, 0x33, 0xff};
+    constexpr Rgba Background{0, 0, 0, 0x80};
+    EXPECT_EQ(PixelAt(box, 0, 0), Prefix);
+    EXPECT_EQ(PixelAt(box, 2, 3), Prefix);
+    EXPECT_EQ(PixelAt(box, 6, 0), Text);
+    EXPECT_EQ(PixelAt(box, 3, 0), Background);
+    EXPECT_EQ(PixelAt(box, 19, 11), Background);
+    EXPECT_EQ(PixelAt(box, 20, 0), (Rgba{0, 0, 0, 0}));
+    EXPECT_EQ(PixelAt(box, 0, 12), (Rgba{0, 0, 0, 0}));
+}
+
+// Sin texto, el fondo solo; con más de 256 columnas (Q-C521), las 256 de la caja, y las filas hasta 32.
+TEST(TextBoxTest, AnEmptyOrWideBubbleBoxIsItsBackground)
+{
+    const FakeGlyphRasterizer rasterizer;
+    std::vector<std::uint8_t> box(TextBoxBytes, 0x5a);
+
+    PaintBoxedText(rasterizer, Style, "", BoxShape{.width = 300, .rows = 40, .prefixColumns = 0, .prefixColor = 0},
+                   std::span<std::uint8_t, TextBoxBytes>(box));
+
+    constexpr Rgba Background{0, 0, 0, 0x80};
+    EXPECT_EQ(PixelAt(box, 0, 0), Background);
+    EXPECT_EQ(PixelAt(box, 255, 31), Background);
+    EXPECT_EQ(rasterizer.drawCalls, 0);
 }
 } // namespace

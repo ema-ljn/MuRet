@@ -12,10 +12,14 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaEffects.h"
+#include "Scenes/GameChat.h"
 #include "Scenes/GameFloorItems.h"
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/GameItemSpecialDrawing.h"
+#include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/GameProjection.h"
+#include "Scenes/GameUi.h"
 #include "Scenes/IcarusObjectStep.h"
 #include "Scenes/KalimaObjectStep.h"
 #include "World/GameModelEffects.h"
@@ -37,6 +41,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
+#include "Scenes/ChatBubbles.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/HelperTable.h"
@@ -45,12 +50,15 @@
 #include "Scenes/TextureSets.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/Slides.h"
 #include "Scenes/TerrainPolygonFrame.h"
 #include "Scenes/TerrainTiles.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/GroundEffectDrawing.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
+#include "UI/ChatLog.h"
 #include "UI/GameCursor.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
@@ -181,9 +189,9 @@ std::uint8_t HeroCellAttribute(ActorState& hero, const Data::Terrain::TerrainAtt
 GameScene::GameScene(const SceneContext& context, App::ServerSession* session, const IModelLibrary* models,
                      const Data::Tables::ItemTable* items, const Render::Models::ModelTextureSlots* gameSlots,
                      const Data::Tables::GateTable* gates, const Data::Tables::SkillTable* skills,
-                     const Data::Text::TextTable* texts)
+                     const Data::Text::TextTable* texts, GameChatTables chat)
     : m_context(context), m_session(session), m_models(models), m_items(items), m_gameSlots(gameSlots), m_gates(gates),
-      m_skills(skills), m_texts(texts), m_windowTextures(context.textures, WindowTextureSet),
+      m_skills(skills), m_texts(texts), m_chatTables(chat), m_windowTextures(context.textures, WindowTextureSet),
       m_sandTextures(context.textures, SandTextureSet), m_tiles(context.textures)
 {
 }
@@ -231,6 +239,8 @@ void GameScene::Step(const Input::InputState& input)
         return;
     }
     StepEntry();
+    if (m_failure)
+        return;
     if (auto stepped = StepWorld(input); !stepped.HasValue())
     {
         m_failure = stepped.Error();
@@ -250,6 +260,40 @@ void GameScene::StepEntry()
         if (m_context.camera != nullptr)
             m_context.camera->yaw = EntryYaw;
         m_firstStep = false;
+        // 0x636843..0x6368f4: los campos de texto (0x553570(1)), el campo del chat cerrado (0x6c8e68), 0x77f3b69 en
+        // 0, los dos campos de Tab (0x6c8e6c; 0x6c8e70, 0x6c8e78 y 0x6c8e7c son de la entrada sin EDIT), 120 entradas
+        // vacías, el EDIT del login vacío y oculto (0x469420 y 0x469450(3), que MuRet no tiene en el juego), la
+        // entrada del chat (0x469320), el foco a la ventana del juego, el registro vacío (la vtable + 0x2c, 0x478d10) y
+        // el filtro también (0x45db50).
+        if (m_context.world != nullptr)
+        {
+            WorldRuntime& runtime = m_context.world->Runtime();
+            UI::ChatInputState& input = runtime.chat.input;
+            UI::ResetTheTextBuffers(input, true);
+            runtime.ui.chatOpen = false;
+            input.otherInput = false;
+            input.fieldCount = UI::ChatFieldCount;
+            if (auto emptied = AddTheEmptyMessages(runtime, m_context.textMeasure); !emptied.HasValue())
+            {
+                m_failure = emptied.Error();
+                return;
+            }
+            UI::ResetTheChatInput(input);
+            input.focus = UI::ChatFocus::Game;
+            UI::ClearTheLog(runtime.chat.log, runtime.ui.chatModes);
+            UI::ClearTheChatFilter(runtime.chat.log);
+            // 0x636920: 0x46b010, las colas del cartel de Slide.bmd, su timer 0x3eb y 0x46b0e0 (el registro propio y
+            // un texto de Slide.bmd, con sus rand()).
+            if (m_context.cloth != nullptr)
+            {
+                const auto now =
+                    m_context.clock != nullptr
+                        ? static_cast<std::uint32_t>(
+                              std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
+                        : 0U;
+                StartTheSlides(*m_context.world, m_context.cloth->random, now);
+            }
+        }
     }
     if (m_sent || m_session == nullptr)
     {
@@ -333,13 +377,33 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     {
         return helpers;
     }
+    // 0x6370f9: 0x557650, los globos. 0x6370fe..0x637105: 0x451c10, las tiendas personales (0x7245c8), que no
+    // tienen ninguna hasta la CL9.4.
+    const UI::Point bubbleMouse = UI::MouseIn640x480(input, m_screen);
+    if (auto bubbles = StepTheChatBubbles(
+            *m_context.world,
+            ChatBubbleStepInput{.mouseX = bubbleMouse.x, .mouseY = bubbleMouse.y, .screen = m_screen});
+        !bubbles.HasValue())
+        return bubbles;
     // 63710a: MoveHero sale con más de30, pero la lógica posterior sigue durante la espera.
     if (auto moved = StepTheHero(input); !moved.HasValue())
         return moved;
     // 63710f: personajes sobre el trapecio retenido del último dibujo.
     if (auto stepped = StepTheCharacters(worldClock); !stepped.HasValue())
         return stepped;
-    return StepTheEffects(worldClock);
+    if (auto effects = StepTheEffects(worldClock); !effects.HasValue())
+        return effects;
+    // 0x63717f: 0x5ac8d0, las teclas de función.
+    const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
+    const GameChatContext chat = ChatContext();
+    return StepTheFunctionKeys(GameUiContext{.world = *m_context.world,
+                                             .random = m_context.cloth->random,
+                                             .input = input,
+                                             .mouseX = mouse.x,
+                                             .mouseY = mouse.y,
+                                             .measure = m_context.textMeasure,
+                                             .screen = m_screen,
+                                             .chat = &chat});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheObjects()
@@ -622,7 +686,10 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     canvas.flushModels();
     if (!drawn.HasValue())
         return drawn;
-    return DrawTheInterface(canvas);
+    // 0x6203c0 del pase del mundo: la proyección que leen los globos del HUD (0x5a9050 → 0x6205b0). Sin ella, corta
+    // solo si hay un globo vivo.
+    const auto projection = MakeGameProjection(pass, camera.fieldOfView);
+    return DrawTheInterface(canvas, projection.HasValue() ? &projection.Value() : nullptr);
 }
 
 void GameScene::ObserveMapLoad()
@@ -1044,9 +1111,10 @@ bool GameScene::WantsToQuit() const
     return false;
 }
 
+// Mientras el campo del chat está abierto, uno de sus EDIT tiene el foco y recibe los WM_CHAR.
 bool GameScene::WantsTextInput() const
 {
-    return false;
+    return m_context.world != nullptr && m_context.world->Runtime().ui.chatOpen;
 }
 
 bool GameScene::HoldsTheLastFrame() const

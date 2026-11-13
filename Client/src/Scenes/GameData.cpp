@@ -9,12 +9,15 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/FilterWords.h"
+#include "Data/Text/SlideTable.h"
 #include "Data/Text/TextTable.h"
+#include "UI/MacroFile.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <format>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -30,6 +33,9 @@ namespace
 constexpr std::uintmax_t MaxTextTableFileBytes = 1024u * 1024u;
 // Y más que los 20.004 bytes de un filtro.
 constexpr std::uintmax_t MaxFilterFileBytes = 64u * 1024u;
+// fscanf no tiene tope; MuRet lee hasta 1 MiB de Macro.txt, más que diez palabras de 0xff con cualquier blanco
+// razonable entre ellas.
+constexpr std::size_t MaxMacroFileBytes = 1024u * 1024u;
 
 Core::Expected<Data::Tables::GateTable, std::string> LoadGates(const std::filesystem::path& dataRoot)
 {
@@ -160,6 +166,43 @@ Core::Expected<std::vector<std::string>, std::string> LoadFilter(const std::file
     }
     return std::move(words).Value();
 }
+
+// 0x61c1c0: sin el archivo, o sin poder leerlo, las macros quedan vacías.
+Core::Expected<UI::Macros, std::string> LoadMacros(const std::filesystem::path& dataRoot)
+{
+    std::error_code error;
+    const auto path = Data::ResolveDataPath(dataRoot, MacroFile, error);
+    if (error || !path)
+        return UI::Macros{};
+    const auto file = Data::ReadDataFilePrefix(*path, MaxMacroFileBytes);
+    if (!file.HasValue())
+        return UI::Macros{};
+    auto macros = UI::ReadTheMacros(std::as_bytes(std::span(file.Value())));
+    if (!macros.HasValue())
+        return Core::Unexpected(std::format("{}: {}", MacroFile, macros.Error()));
+    return std::move(macros).Value();
+}
+
+// 0x46b3b0 lee 0xa030 bytes sin mirar el tamaño: un archivo más largo se lee igual.
+Core::Expected<std::optional<Data::Text::SlideTable>, std::string> LoadSlides(const std::filesystem::path& dataRoot)
+{
+    std::error_code error;
+    const auto path = Data::ResolveDataPath(dataRoot, SlideTableFile, error);
+    if (error)
+    {
+        return Core::Unexpected(
+            std::format("no se pudo buscar {} en {}: {}", SlideTableFile, Core::PathText(dataRoot), error.message()));
+    }
+    if (!path)
+        return std::optional<Data::Text::SlideTable>{};
+    const auto file = Data::ReadDataFilePrefix(*path, Data::Text::SlideTableSize);
+    if (!file.HasValue())
+        return Core::Unexpected(std::format("no se pudo leer {}: {}", SlideTableFile, file.Error().message()));
+    auto table = Data::Text::LoadSlideTable(std::as_bytes(std::span(file.Value())));
+    if (!table.HasValue())
+        return Core::Unexpected(std::format("{}: {}", SlideTableFile, Data::DescribeDataError(table.Error())));
+    return std::optional<Data::Text::SlideTable>(std::move(table).Value());
+}
 } // namespace
 
 Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot)
@@ -187,6 +230,12 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
     }
     GameData data;
     data.text.emplace(std::move(table).Value());
+    auto macros = LoadMacros(dataRoot);
+    if (!macros.HasValue())
+    {
+        return Core::Unexpected(std::move(macros).Error());
+    }
+    data.macros = std::move(macros).Value();
     auto filter = LoadFilter(dataRoot, FilterFile, Data::Text::FilterChecksumKey);
     if (!filter.HasValue())
     {
@@ -224,6 +273,12 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(skills).Error());
     }
     data.skills.emplace(std::move(skills).Value());
+    auto slides = LoadSlides(dataRoot);
+    if (!slides.HasValue())
+    {
+        return Core::Unexpected(std::move(slides).Error());
+    }
+    data.slides = std::move(slides).Value();
     return data;
 }
 } // namespace Client::Scenes

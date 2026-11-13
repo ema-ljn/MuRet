@@ -17,7 +17,7 @@ struct GameMovementState
     std::int32_t movementTarget = 0;
     std::int32_t facingMode = 0; // 0x78abb18, cero desde la selección
     // 0x7d366d4, el flanco del clic izquierdo: lo prende el paso con el apretón (antes de 0x623e70) y lo apagan
-    // quien lo usa, la UI primero (06 § HUD y ventanas, "El clic es primero de la UI").
+    // quien lo usa, la UI primero (06 § HUD y ventanas, "El clic es primero de la UI"), y el botón suelto.
     bool pendingClick = false;
     bool inputBlocked = false;
     bool movementBlocked = false;

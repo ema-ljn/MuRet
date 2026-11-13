@@ -10,12 +10,15 @@
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ChatBubbles.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GameData.h"
+#include "Scenes/GameProjection.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
 #include "UI/GameText.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
@@ -454,6 +457,7 @@ protected:
                               .crywolfSandOverlay = runtime.crywolf.sandOverlay,
                               .sound = sound,
                               .projecting = projecting,
+                              .projection = projection,
                               .sprites = sprites,
                               .text = text,
                               .texts = &*data.text,
@@ -530,6 +534,7 @@ protected:
     float worldClock = 0.0f;
     Client::UI::Point mouse{};
     bool leftDown = false;
+    const Client::Scenes::GameProjection* projection = nullptr;
     Client::Scenes::GameData data;
 };
 
@@ -695,6 +700,30 @@ TEST_F(GameHudTest, TheArrowsShowTheirCountAndPushTheHelperDown)
     EXPECT_EQ(text.texts[1].y, 24);
 }
 
+// 10 y 22 (CL8 hito 3): el freno de las macros dibuja "Macro Time" centrado en el mundo, en y = 0x188; con el campo
+// del chat abierto, la caja sin mezcla (0xf8 y 0xf9) y, con el modo de F3, su indicador (0xef).
+TEST_F(GameHudTest, TheMacroTimeAndTheChatBoxAreDrawn)
+{
+    world.Runtime().hud.macroTime = Client::UI::MacroLockSteps;
+    world.Runtime().ui.chatOpen = true;
+
+    ASSERT_TRUE(Hud().HasValue());
+
+    const auto macro = std::ranges::find_if(text.texts, [](const auto& drawn) { return drawn.text == "Macro Time"; });
+    ASSERT_NE(macro, text.texts.end());
+    EXPECT_EQ(macro->x, (640 - 50) / 2);
+    EXPECT_EQ(macro->y, 0x188);
+    std::vector<std::uint16_t> chatSlots;
+    for (const DrawnQuad& quad : QuadsOf(sprites))
+    {
+        if (!quad.slot || (*quad.slot != 0xf8 && *quad.slot != 0xf9 && *quad.slot != 0xef))
+            continue;
+        chatSlots.push_back(*quad.slot);
+        EXPECT_EQ(quad.blend, *quad.slot == 0xef ? BlendMode::Alpha : BlendMode::Opaque);
+    }
+    EXPECT_EQ(chatSlots, (std::vector<std::uint16_t>{0xf8, 0xf9, 0xef}));
+}
+
 // 0x5a5860 con una skill de comando (0x78 a 0x7c): el atlas command (300) y su número desde 1, sin la espera.
 TEST_F(GameHudTest, ACommandSkillDrawsItsIconAndItsNumber)
 {
@@ -757,6 +786,45 @@ TEST_F(GameHudTest, ThePiecesOfOtherWavesStopWithTheirAddress)
         ASSERT_FALSE(drawn.HasValue());
         EXPECT_NE(drawn.Error().find(probe.address), std::string::npos) << drawn.Error();
     }
+}
+
+// 12. 0x5a9050: los globos, con la proyección del pase del mundo (sin ella, un globo vivo corta). El globo prende
+// 0x77f3b66 y la barra de abajo (0x5a9290) lo apaga.
+TEST_F(GameHudTest, TheTwelfthChildDrawsTheChatBubbles)
+{
+    Client::Scenes::ActorState& owner = world.Actors()[4];
+    owner.alive = true;
+    owner.seen = true;
+    owner.boundsTop = 120.0f;
+    Client::Scenes::ChatBubble& bubble = world.Runtime().chat.bubbles[0];
+    bubble.name = "Tero";
+    bubble.nameTime = 100;
+    bubble.owner = 4;
+
+    const auto cut = Hud();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x5a90be"), std::string::npos) << cut.Error();
+
+    // La vista deja el ojo en (x, y, 1): el dueño en el origen va al centro.
+    Client::Scenes::GameProjection flat;
+    flat.view = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+    flat.horizontalScale = 1.0f;
+    flat.verticalScale = 1.0f;
+    flat.centerX = 320;
+    flat.centerY = 240;
+    flat.screenWidth = 640;
+    flat.screenHeight = 480;
+    projection = &flat;
+    text.texts.clear();
+    const auto drawn = Hud();
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    ASSERT_EQ(text.texts.size(), 1u);
+    EXPECT_EQ(text.texts[0].text, "Tero");
+    EXPECT_TRUE(text.texts[0].box.has_value());
+    EXPECT_EQ(bubble.x, 320 - 27 / 2);
+    EXPECT_EQ(bubble.y, 240 - 0x24);
+    EXPECT_EQ(world.Runtime().hud.durabilityWarning, 0);
 }
 
 // Devil Square tiene su objeto de evento, pero su método +4 es un ret (0x40bdb0) y la cuenta (0x40bab0) sale con +8

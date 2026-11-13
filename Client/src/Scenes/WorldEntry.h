@@ -1,11 +1,14 @@
 #pragma once
 
+#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "Scenes/SceneId.h"
 
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -20,6 +23,11 @@ namespace Client::Data::Tables
 struct ItemSetTables;
 }
 
+namespace Client::Data::Text
+{
+class TextTable;
+}
+
 namespace Client::Protocol::Character
 {
 struct CharacterSelectResult;
@@ -28,6 +36,11 @@ struct CharacterSelectResult;
 namespace Client::Render::Models
 {
 struct ClothWorld;
+}
+
+namespace Client::Render::Text
+{
+class ITextMeasure;
 }
 
 namespace Client::World
@@ -73,6 +86,14 @@ struct WorldEntryResources
     // El B9 02 que 0x42a760 manda al cargar el 30 con el socket del GS abierto: SessionEventApplier lo ata a la
     // sesión que aplica la respuesta. Vacío, como el socket en −1, no sale nada.
     std::function<void()> requestCastleSiegeState{};
+    // Lo que miden los mensajes que llegan (00, 01, 02, 0C, 0D) al entrar al chat (0x555190, 0x554610, 0x45bb20): el
+    // medidor del frame y el tamaño de la ventana. Sin medidor, un mensaje corta con error.
+    const Render::Text::ITextMeasure* textMeasure = nullptr;
+    std::function<App::PixelSize()> screen{};
+    // 0x6d5dc8, la escena en curso, que miran el 00 (la 2) y el 0D (la 4 y la 5). Vacía, ninguna.
+    std::function<std::optional<SceneId>()> scene{};
+    // Text.bmd: el 482 del 0C y el 483 del 0D con 2. nullptr si no se cargó: esos mensajes cortan con error.
+    const Data::Text::TextTable* texts = nullptr;
 };
 
 // Lo que la entrada pide afuera y MuRet todavía no hace (sin audio hasta la CL10): los sonidos de

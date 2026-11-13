@@ -16,6 +16,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ChatBubbleDraw.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/HudItems.h"
@@ -23,9 +24,15 @@
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
+#include "UI/ChatLog.h"
+#include "UI/ChatLogDraw.h"
 #include "UI/GameText.h"
 #include "UI/HudPrimitives.h"
+#include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
+#include "UI/SlideBanner.h"
+#include "UI/TextField.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
 #include "World/OriginalFtol.h"
@@ -93,6 +100,31 @@ constexpr std::size_t HelperSlot = 8;
 
 // 1/256, el téxel de los íconos (0x6b8940).
 constexpr double Texel = 0.00390625;
+
+// 0x5a736b..0x5a7452: el freno de las macros, su texto (0x6c9310) en y = 0x188 y su barra en y = 404, de 50 × 2.
+constexpr std::string_view MacroTimeText = "Macro Time";
+constexpr int MacroTimeTextTop = 0x188;
+constexpr float MacroTimeBarTop = 404.0f;
+constexpr float MacroTimeBarWidth = 50.0f;
+constexpr float MacroTimeBarHeight = 2.0f;
+// 0x5aa9a0: la caja de la entrada del chat (los slots 0xf8 y 0xf9, dialogue1 y dialogue2), el indicador de F3 (el
+// 0xef, dialogue2_1) y los nombres del susurro de los otros lugares, de 15 en 15 desde (0x178, 0x1a6).
+constexpr std::uint16_t ChatBoxLeftSlot = 0xf8;
+constexpr std::uint16_t ChatBoxRightSlot = 0xf9;
+constexpr std::uint16_t WhisperModeSlot = 0xef;
+constexpr int WhisperNamesLeft = 0x178;
+constexpr int WhisperNamesTop = 0x1a6;
+constexpr int WhisperNamesStep = 0xf;
+// 0x5aaa77 y 0x5aaa7f: los colores que deja para los nombres.
+constexpr Render::Text::TextColors WhisperNamesColors{.text = 0xffc8c8c8u, .background = 0x64000000u};
+// 0x4691e0: el color del texto de los EDIT (la vtable + 0x40) y el fondo del del susurro (+ 0x44), con los bytes
+// en el orden de TextColors.
+constexpr Render::Text::TextColors MessageEditColors{.text = 0xffd2e6ffu, .background = 0};
+constexpr Render::Text::TextColors WhisperEditColors{.text = 0xffc8c8c8u, .background = 0x00191919u};
+// La esquina de los dos EDIT (0x45a9d0 en 0x4691e0).
+constexpr int MessageEditLeft = 0xc1;
+constexpr int WhisperEditLeft = 0x178;
+constexpr int ChatEditTop = 0x1a6;
 
 // La x87 de 53 bits y el fstp en float.
 float F32(double value)
@@ -389,6 +421,80 @@ void DrawAmmoText(Frame& frame, float x, std::string_view text)
     const Render::Text::TextExtent extent = frame.context.text.Measure(Render::Text::FontKind::Normal, text);
     frame.context.hud.arrowsTextWidth = Render::Text::DesignX(extent.width, frame.context.sprites.Screen());
     frame.context.hud.arrowsTextHeight = Render::Text::DesignY(extent.height, frame.context.sprites.Screen());
+}
+
+// 10. 0x5a736b..0x5a7452: con el freno de las macros (0x77f3b74), "Macro Time" centrado en el ancho del mundo
+// (0x5bb8d0, con sus consultas) y la barra (0x5a6af0) con el freno / 2, en verde y dentro de la pantalla. El texto
+// deja su tamaño en 0x77f31b8 y 0x77f31bc.
+void DrawTheMacroTime(Frame& frame)
+{
+    HudState& hud = frame.context.hud;
+    const std::int32_t time = hud.macroTime;
+    if (time <= 0)
+        return;
+    const std::int32_t worldWidth = frame.panels.WorldWidth();
+    const float x = F32((static_cast<double>(worldWidth) - 50.0) * 0.5);
+    const std::int32_t fill = time * 50 / 100;
+    frame.context.sprites.SetBlend(BlendMode::Alpha);
+    DrawHudText(frame, Truncate(x), MacroTimeTextTop, MacroTimeText, false);
+    const Render::Text::TextExtent extent = frame.context.text.Measure(Render::Text::FontKind::Normal, MacroTimeText);
+    hud.arrowsTextWidth = Render::Text::DesignX(extent.width, frame.context.sprites.Screen());
+    hud.arrowsTextHeight = Render::Text::DesignY(extent.height, frame.context.sprites.Screen());
+    UI::DrawGauge(frame.context.sprites, x, MacroTimeBarTop, MacroTimeBarWidth, MacroTimeBarHeight,
+                  static_cast<float>(fill), false, true);
+}
+
+// 0x468320 de un EDIT del chat a la vista: lo que tiene, con la fuente normal y sus colores, en su esquina. El
+// original compone la ventana del EDIT en una textura (con el cursor); MuRet dibuja el texto, como el campo del login
+// (sin el cursor).
+void DrawTheChatEdit(Frame& frame, const UI::TextField& field, int left, Render::Text::TextColors colors)
+{
+    const std::string_view value = field.Value();
+    if (value.empty())
+        return;
+    frame.context.text.Draw(left, ChatEditTop, value,
+                            Render::Text::TextStyle{.font = Render::Text::FontKind::Normal, .colors = colors});
+}
+
+// 22. 0x5aa9a0: con el campo del chat abierto (o 0x77f3b69), la caja sin mezcla, los dos EDIT (0x469350), con el
+// campo del susurro elegido los nombres de los otros lugares (cada uno deja su tamaño en 0x77f31b8 y 0x77f31bc,
+// también los vacíos), y con el modo del susurro (F3) su indicador.
+void DrawTheChatInput(Frame& frame)
+{
+    GameHudContext& context = frame.context;
+    HudState& hud = context.hud;
+    const UI::ChatInputState& input = frame.runtime.chat.input;
+    context.sprites.SetColor(White);
+    hud.dcFont = Render::Text::FontKind::Normal;
+    if (!frame.runtime.ui.chatOpen && !input.otherInput)
+        return;
+    context.sprites.SetBlend(BlendMode::Opaque);
+    Quad(context.sprites, ChatBoxLeftSlot, 186.0f, 415.0f, 134.0f, 29.0f, 0.0f, 0.0f, 0.51953125f, 0.90625f);
+    Quad(context.sprites, ChatBoxRightSlot, 320.0f, 415.0f, 134.0f, 29.0f, 0.0f, 0.0f, 0.51953125f, 0.90625f);
+    context.sprites.SetBlend(BlendMode::Alpha);
+    if (input.shown)
+    {
+        DrawTheChatEdit(frame, input.message, MessageEditLeft, MessageEditColors);
+        DrawTheChatEdit(frame, input.whisper, WhisperEditLeft, WhisperEditColors);
+    }
+    hud.textColors = WhisperNamesColors;
+    if (input.field % 2 == UI::WhisperField)
+    {
+        for (std::int32_t slot = 0; slot < static_cast<std::int32_t>(UI::WhisperNameSlots); ++slot)
+        {
+            if (slot == input.whisperNameAt)
+                continue;
+            const std::string_view name = UI::CStringOf(input.whisperNames[static_cast<std::size_t>(slot)]);
+            if (!name.empty())
+                DrawHudText(frame, WhisperNamesLeft, (slot - input.whisperNameAt) * WhisperNamesStep + WhisperNamesTop,
+                            name, false);
+            const Render::Text::TextExtent extent = context.text.Measure(Render::Text::FontKind::Normal, name);
+            hud.arrowsTextWidth = Render::Text::DesignX(extent.width, context.sprites.Screen());
+            hud.arrowsTextHeight = Render::Text::DesignY(extent.height, context.sprites.Screen());
+        }
+    }
+    if (input.whisperMode)
+        Quad(context.sprites, WhisperModeSlot, 432.0f, 420.0f, 15.0f, 16.0f, 0.0f, 0.0f, 0.9375f, 1.0f);
 }
 
 Core::Expected<bool, std::string> DrawTheArrows(Frame& frame)
@@ -1274,20 +1380,53 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     if (auto durability = DrawTheDurability(frame, top.Value()); !durability.HasValue())
         return durability;
     // 10. La macro.
-    if (hud.macroTime > 0)
-        return Core::Unexpected(std::string("0x5a7369: el tiempo de la macro es del hito 3"));
+    DrawTheMacroTime(frame);
     // 11.
     context.sprites.SetColor(White);
     if (auto event = DrawTheEventObject(frame); !event.HasValue())
         return event;
-    // 12. 0x5a9050: los globos y los nombres sobre las cabezas (0x77e1be0), vacíos hasta el hito 3.
+    // 12. 0x5a9050: los globos y los nombres sobre las cabezas (0x77e1be0, Scenes/ChatBubbleDraw). No saca rand() y
+    // escribe en cada entrada dónde quedó (+0x278..+0x284), que lee el clic derecho de 0x557650.
+    ChatBubbleDrawContext bubbles{.world = world,
+                                  .projection = context.projection,
+                                  .sprites = context.sprites,
+                                  .text = context.text,
+                                  .dcFont = hud.dcFont,
+                                  .textColors = hud.textColors,
+                                  .clampBoxes = hud.durabilityWarning,
+                                  .boxWidth = hud.arrowsTextWidth,
+                                  .boxHeight = hud.arrowsTextHeight,
+                                  .mouse = context.mouse,
+                                  .blink = hud.messageFrame.areaBlink,
+                                  .projecting = context.projecting};
+    if (auto drawn = DrawTheChatBubbles(bubbles); !drawn.HasValue())
+        return drawn;
     // 13. 0x451d10 y 0x451c20: los carteles del singleton de 0x7245c8 (CL9.5).
     // 14. 0x5a6cc0: el marcador del duelo, con 0x78abad8 (hito 4).
-    // 15. 0x46b090: la caja sin leer de [0x5763528] (hito 7).
+    // 15. 0x46b090: el cartel de Slide.bmd ([0x5763528]).
+    if (auto slides = UI::DrawTheSlides(hud.slides, UI::SlideDrawContext{.sprites = context.sprites,
+                                                                         .text = context.text,
+                                                                         .dcFont = hud.dcFont,
+                                                                         .textColors = hud.textColors,
+                                                                         .mouseX = context.mouse.x,
+                                                                         .mouseY = context.mouse.y,
+                                                                         .slidesOn = runtime.chat.slidesOn});
+        !slides.HasValue())
+        return slides;
     // 16. 0x413ca0.
     if (runtime.map == CastleSiegeMap && runtime.siegeActive)
         return Core::Unexpected(std::string("0x413ca0: la UI de Castle Siege es de la CL9.5"));
-    // 17. [[0x576350c]] + 0x14: la ventana del chat (hito 3).
+    // 17. [[0x576350c]] + 0x14: el registro del chat (0x479080).
+    UI::DrawTheChatLog(
+        runtime.chat.log, hud.chatFrame, runtime.ui.chatModes,
+        UI::ChatLogDrawContext{
+            .sprites = context.sprites, .text = context.text, .dcFont = hud.dcFont, .textColors = hud.textColors},
+        UI::ChatLogDrawView{.mouseX = context.mouse.x,
+                            .mouseY = context.mouse.y,
+                            .leftDown = context.leftDown,
+                            .chatOpen = runtime.ui.chatOpen,
+                            .crywolfStage = runtime.crywolf.stage,
+                            .texts = context.texts});
     // 18. 0x5f7440.
     if (auto windows = DrawTheWindows(frame); !windows.HasValue())
         return windows;
@@ -1297,9 +1436,8 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     // 21. 0x4365c0 empieza siempre con 0x620a00(1), y la traza lo muestra antes de la experiencia. La UI de los
     // eventos, con 0x723bf9 y 0x6c73d1 (.data −1, sale sin dibujar), es de la CL9.5.
     context.sprites.SetBlend(BlendMode::Alpha);
-    // 22. 0x5aa9a0 empieza siempre con glColor3f(1, 1, 1) y el SelectObject de la fuente normal. La entrada del chat y
-    // el indicador de F3, con 0x6c8e68, 0x77f3b69 y 0x6c8dd0 en 0, son del hito 3.
-    context.sprites.SetColor(White);
+    // 22. 0x5aa9a0.
+    DrawTheChatInput(frame);
     // 23. y 24. 0x5abcd0 y 0x5a8cc0.
     if (auto experience = DrawTheExperience(frame); !experience.HasValue())
         return experience;

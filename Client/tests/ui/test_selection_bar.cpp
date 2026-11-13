@@ -152,6 +152,28 @@ TEST(SelectionBarTest, TheDrawGoesDecoStripTextAndButtons)
     }
 }
 
+// 0x63ec45..0x63ecbf: el aviso del servidor (+0x511, el primer 0D con 1 en la selección) va antes del 1710, en
+// (x + 7, y + 40) de la barra, blanco sobre 0. El texto es inventado.
+TEST(SelectionBarTest, TheServerNoticeGoesBeforeTheText)
+{
+    const auto texts = Client::Tests::MakeTextTable({{1710, "Synthetic"}});
+    SelectionBar bar(LabSizes(), &texts);
+    Client::Render::SpriteBatch batch;
+    batch.Begin(Screen640);
+    Client::Tests::RecordingTextDrawer text(batch);
+
+    bar.Draw(batch, text, Screen640, "Aviso de prueba");
+
+    const Rect strip = LayoutSelectionBar(Screen640).bar;
+    ASSERT_EQ(text.texts.size(), 2u);
+    EXPECT_EQ(text.texts[0].text, "Aviso de prueba");
+    EXPECT_EQ(text.texts[0].x, strip.x + 7);
+    EXPECT_EQ(text.texts[0].y, strip.y + 40);
+    EXPECT_EQ(text.texts[0].style.colors.text, 0xffffffffu);
+    EXPECT_EQ(text.texts[0].style.colors.background, 0u);
+    EXPECT_EQ(text.texts[1].text, "Synthetic");
+}
+
 // Con el +0x543, los textos 436 y 437 entre el 1710 y los botones, centrados en 320 de 640 × 480
 // (0x623690, con 6 columnas por letra del texto falso), en 330 y 348, en negro sobre 0x8000ffff.
 TEST(SelectionBarTest, ABlockedAccountShowsTheTwoTexts)

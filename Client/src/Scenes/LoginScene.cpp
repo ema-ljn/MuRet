@@ -3,6 +3,7 @@
 #include "Render/Models/Skinning.h"
 #include "Scenes/FaunaDrawing.h"
 
+#include "App/ServerAddress.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "App/WindowState.h"
@@ -44,6 +45,7 @@
 #include "Scenes/GameData.h"
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/GameItemSpecialDrawing.h"
+#include "Scenes/GameMessages.h"
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/ItemDrawResources.h"
 #include "Scenes/LoginModels.h"
@@ -64,9 +66,11 @@
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/WorldMap.h"
 #include "UI/GameCursor.h"
+#include "UI/Widget.h"
 #include "UI/GameText.h"
 #include "UI/LoginWindow.h"
 #include "UI/MenuBar.h"
+#include "UI/MessageArea.h"
 #include "UI/Notices.h"
 #include "UI/ServerListModel.h"
 #include "UI/ServerListWindow.h"
@@ -188,6 +192,13 @@ constexpr int TextBottom = 479;
 constexpr int TextSplit = 335;
 
 constexpr std::string_view VersionMark = "%s";
+// Los textos del área de mensajes: el clic en un servidor (0x64630f y 0x646320), el envío de la cuenta (0x6427d9 y
+// 0x6427ea) y la respuesta al F4 03 (0x4e33d0).
+constexpr std::size_t ConnectingText = 470;
+constexpr std::size_t PleaseWaitText = 471;
+constexpr std::size_t CheckingAccountText = 472;
+constexpr std::size_t WaitAgainText = 473;
+constexpr std::size_t ConnectedText = 481;
 
 // El lugar de un grupo sin botón para el título: solo llega con --auto-login, que elige el primero
 // de la lista aunque la ventana no lo muestre. Cualquiera que no sea el 4 da lo mismo (IsNonPvp).
@@ -357,10 +368,21 @@ Core::Expected<void, std::string> LoginScene::Enter()
     m_login.Close();
     m_notice.Close();
     m_seen.reset();
+    m_sawTheAddress = false;
     m_quit = false;
     if (m_session != nullptr)
     {
         m_session->Start();
+    }
+    m_messageFrames = {};
+    // 0x634b45..0x634b5e: 120 mensajes vacíos.
+    if (m_context.world != nullptr)
+    {
+        if (auto emptied = AddTheEmptyMessages(m_context.world->Runtime(), m_context.textMeasure); !emptied.HasValue())
+        {
+            RetainTheTerrain();
+            return emptied;
+        }
     }
     auto placed = PlaceTheModels();
     if (!placed.HasValue())
@@ -640,6 +662,11 @@ void LoginScene::StepTheScene(const Input::InputState& input, bool connecting)
     }
     // Lo que cambió con el Poll de este frame.
     FollowSession();
+    NoticeTheServerAddress();
+    if (m_failure)
+    {
+        return;
+    }
     // Con la orden de cerrar el juego, el paso no atiende nada, ni el mundo: el original no corre otro
     // después del WM_DESTROY (Q-C106), y un Esc en la cuenta volvería a conectar.
     if (m_session->State() == App::SessionState::QuitOrdered)
@@ -931,12 +958,44 @@ void LoginScene::FollowSession()
     }
 }
 
+void LoginScene::NoticeTheServerAddress()
+{
+    const std::optional<App::ServerAddress> address = m_session->GameServer();
+    const bool fresh = address.has_value() && !m_sawTheAddress;
+    m_sawTheAddress = address.has_value();
+    if (!fresh)
+    {
+        return;
+    }
+    // sprintf(481, dirección, puerto): el texto de esta edición no tiene marcas.
+    const std::string port = std::to_string(address->port);
+    const std::array<std::string_view, 2> arguments{address->host, port};
+    AddTheMessage(ConnectedText, arguments);
+}
+
+void LoginScene::AddTheMessage(std::size_t index, std::span<const std::string_view> arguments)
+{
+    if (m_context.world == nullptr || m_context.textMeasure == nullptr || m_failure)
+    {
+        return;
+    }
+    const std::string text = UI::PlaceArguments(UI::TextAt(m_texts, index).value_or(std::string_view{}), arguments);
+    if (auto added =
+            AddGameMessage(m_context.world->Runtime(), *m_context.textMeasure, m_screen, {}, text, UI::SystemMessage);
+        !added.HasValue())
+    {
+        m_failure = added.Error();
+    }
+}
+
 void LoginScene::OnServerClick(const UI::ServerClick& click)
 {
     switch (click.kind)
     {
     case UI::ServerClick::Kind::Chosen:
         m_session->ChooseServer(click.code);
+        AddTheMessage(ConnectingText);
+        AddTheMessage(PleaseWaitText);
         return;
     case UI::ServerClick::Kind::Full:
         m_notice.Open(UI::ServerFullNotice);
@@ -950,6 +1009,8 @@ void LoginScene::OnLoginRequest(const UI::LoginRequest& request)
     {
     case UI::LoginRequest::Kind::Submit:
         m_session->SubmitCredentials(request.credentials);
+        AddTheMessage(CheckingAccountText);
+        AddTheMessage(WaitAgainText);
         return;
     case UI::LoginRequest::Kind::EmptyAccount:
         m_notice.Open(UI::EmptyAccountNotice);
@@ -1107,8 +1168,10 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     // 6: los textos, con la mezcla aditiva que quedó (0x554000 no la cambia).
     sprites.SetColor(TextColor);
     DrawTexts(canvas);
-    // 7: el fundido no dibuja nada (Q-C66): 0x554810 pone la mezcla normal y el blanco (0x554819..0x554845)
-    // antes de la UI. 8: la UI (CL5.5), cada ventana con su imagen y su color. 9: el cursor (0x635560).
+    // 7: el fundido no dibuja nada (Q-C66). Los avisos (0x554810, que pone la mezcla normal y el blanco,
+    // 0x554819..0x554845) y el área vieja. 8: la UI (CL5.5), cada ventana con su imagen y su color. 9: el cursor
+    // (0x635560).
+    DrawTheMessages(canvas);
     m_serverList.Draw(sprites, canvas.text, canvas.screen);
     m_menuBar.Draw(sprites, canvas.screen);
     m_login.Draw(sprites, canvas.text, canvas.screen);
@@ -1411,6 +1474,18 @@ glm::vec3 LoginScene::TerrainLightAt(const glm::vec3& position) const
 {
     const World::TerrainLighting* lighting = &CharacterWorld().DynamicLighting().Lighting();
     return lighting != nullptr ? World::LightAt(*lighting, position.x, position.y) : glm::vec3(0.0f);
+}
+
+void LoginScene::DrawTheMessages(SceneCanvas& canvas)
+{
+    if (m_context.world == nullptr)
+        return;
+    const int frames = m_messageFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
+    HudState projected;
+    HudState& hud = frames > 0 ? m_context.world->Runtime().hud : (projected = m_context.world->Runtime().hud);
+    const UI::Point mouse =
+        m_context.input != nullptr ? UI::MouseIn640x480(*m_context.input, canvas.screen) : UI::Point{};
+    Scenes::DrawTheMessages(*m_context.world, hud, canvas.sprites, canvas.text, mouse, false);
 }
 
 void LoginScene::DrawTexts(SceneCanvas& canvas) const

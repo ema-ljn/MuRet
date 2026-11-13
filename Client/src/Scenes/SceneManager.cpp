@@ -31,10 +31,11 @@ SceneManager::SceneManager(SceneFactory factory, IFrameTarget& frame, Core::IClo
                            std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log,
                            std::function<std::optional<SceneId>()> takeSceneOrder,
                            std::function<void(Core::Duration)> beforeSceneFrame,
-                           std::function<void(Core::Duration)> afterSceneFrame)
+                           std::function<void(Core::Duration)> afterSceneFrame,
+                           std::function<Core::Expected<void, std::string>()> afterSceneStep)
     : m_factory(std::move(factory)), m_frame(frame), m_clock(clock), m_pollNetwork(std::move(pollNetwork)), m_log(log),
       m_takeSceneOrder(std::move(takeSceneOrder)), m_beforeSceneFrame(std::move(beforeSceneFrame)),
-      m_afterSceneFrame(std::move(afterSceneFrame))
+      m_afterSceneFrame(std::move(afterSceneFrame)), m_afterSceneStep(std::move(afterSceneStep))
 {
 }
 
@@ -112,6 +113,15 @@ void SceneManager::Step(const Input::InputState& input)
     if (TakeTheSceneFailure("avanzar"))
     {
         return;
+    }
+    if (m_afterSceneStep)
+    {
+        if (auto after = m_afterSceneStep(); !after.HasValue())
+        {
+            m_failure = after.Error();
+            m_log.Error("no se pudo terminar el paso de la escena {}: {}", Describe(*m_current), *m_failure);
+            return;
+        }
     }
     const std::optional<SceneId> next = m_scene->Next();
     if (!next)

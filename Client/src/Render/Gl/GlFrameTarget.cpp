@@ -9,6 +9,7 @@
 #include "Render/Gl/GlSpriteRenderer.h"
 #include "Render/Gl/TextureTable.h"
 #include "Render/Pass3D.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneText.h"
 
@@ -84,6 +85,11 @@ void GlFrameTarget::Present()
     FlushModels();
     FlushSprites();
     m_present();
+}
+
+const Render::Text::ITextMeasure& GlFrameTarget::TextMeasure() const
+{
+    return m_text->Drawer();
 }
 
 void GlFrameTarget::FlushSprites()

@@ -51,6 +51,7 @@
 #include <memory>
 #include <optional>
 #include <random>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -180,8 +181,15 @@ private:
     // La luz del terreno en (x, y), o 0 sin la del mundo.
     [[nodiscard]] glm::vec3 TerrainLightAt(const glm::vec3& position) const;
     void DrawTexts(SceneCanvas& canvas) const;
+    // 0x63552a..0x63553f: los avisos y el área vieja, antes de la UI.
+    void DrawTheMessages(SceneCanvas& canvas);
     // Lo que cambió en la sesión desde el último paso: abre o cierra las ventanas.
     void FollowSession();
+    // La respuesta al F4 03 (0x4e3341), conecte o no: el 481 en el área de mensajes, una vez por dirección.
+    void NoticeTheServerAddress();
+    // 0x555190 con el texto `index` de Text.bmd como sistema y sin nombre: el de 0x6e57a4 y el de 0x5767974 están
+    // en 0. `arguments` van a las marcas del texto, que el original usa como formato (Q-C61).
+    void AddTheMessage(std::size_t index, std::span<const std::string_view> arguments = {});
     void OnServerClick(const UI::ServerClick& click);
     void OnLoginRequest(const UI::LoginRequest& request);
     void OnNoticeClosed(UI::NoticeId notice);
@@ -214,6 +222,8 @@ private:
     Render::Models::OriginalFrameCarry m_objectEffectFrames;
     // Los frames del original de 0x505820 desde el dibujo del personaje (0x50c91e).
     Render::Models::OriginalFrameCarry m_fullSetScanFrames;
+    // Los de los avisos y el área vieja (0x554810 y 0x5554e0): con cero, el dibujo va sobre copias.
+    Render::Models::OriginalFrameCarry m_messageFrames;
     std::vector<std::optional<int>> m_objectEffectRandoms;
     const IModelLibrary& m_models;
     App::ServerSession* m_session;
@@ -274,6 +284,8 @@ private:
     UI::NoticeWindow m_notice;
     // El estado de la sesión que vio el último paso, para abrir cada ventana una vez.
     std::optional<App::SessionState> m_seen;
+    // Si el último paso vio la dirección del F4 03 en la sesión.
+    bool m_sawTheAddress = false;
     // La pantalla del último frame: las ventanas se ubican y leen el mouse con ella. Hasta el
     // primero, la de referencia.
     App::PixelSize m_screen{640, 480};

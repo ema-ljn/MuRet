@@ -26,6 +26,7 @@
 #include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/World.h"
 #include "Protocol/Character/CharacterCreate.h"
@@ -1505,9 +1506,10 @@ TEST(ServerSessionTest, WhatFollowsTheAddressIsDropped)
     EXPECT_EQ(tested.Warnings(), Lines{});
 }
 
-// Con el GameServer, el 00 va a su dispatcher, que tiene los F1 y no el 00: no es el saludo del CS
-// ni pide otra lista.
-TEST(ServerSessionTest, WithTheGameServerThe00IsNotTheConnectHello)
+// Con el GameServer, el 00 va a su dispatcher, que lo tiene como el chat (0x4e2b10, CL8 hito 3): no es el saludo del
+// CS y la sesión no pide otra lista. Lo que aplica decide con la escena: en la 2, 0x4c6070 pide la lista por el GS
+// sin leer el paquete (0x4c6098).
+TEST(ServerSessionTest, WithTheGameServerThe00IsTheChat)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachGameServer());
@@ -1518,8 +1520,13 @@ TEST(ServerSessionTest, WithTheGameServerThe00IsNotTheConnectHello)
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingGameHello);
     EXPECT_TRUE(SameBytes(tested.socket.sent, sentToTheConnectServer));
-    EXPECT_EQ(tested.Warnings(),
-              Lines{"[warning] un paquete con el opcode 00 no tiene handler: se descarta, y este aviso no se repite"});
+    EXPECT_EQ(tested.Warnings(), Lines{});
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    EXPECT_NE(std::get_if<Client::Protocol::Messages::Chat>(&events[0]), nullptr);
+
+    tested.session.ResendServerListRequest();
+    EXPECT_TRUE(SameBytes(tested.socket.sent, Join({sentToTheConnectServer, ListRequest()})));
 }
 
 // Pregunta 9: una lista vacía es un error que lo dice, y la sesión cierra el CS.

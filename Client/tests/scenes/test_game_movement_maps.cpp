@@ -185,6 +185,7 @@ protected:
         HeroMovementContext context{
             .world = m_world, .random = m_random, .playerSkeleton = &m_skeleton, .skills = &*m_skills};
         context.input.leftPressed = click;
+        context.input.leftDown = click;
         context.input.worldTime = static_cast<float>(m_ticks) * 40.0f;
         context.input.ticksMs = m_ticks++ * 40;
         context.pickTarget = [&]() -> Expected<std::optional<PathCell>, std::string> { return m_target; };

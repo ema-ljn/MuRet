@@ -287,23 +287,23 @@ en 08, P-C63: el panel del asedio (`0x40f850`, el mapa 30) y la cuenta de DS/BC/
 
 ### Hito 3: el chat (CL8.2, ~47 KB)
 
-- [ ] **Las dos áreas de mensajes:** la vieja (`0x77d9868`, 120 renglones; `0x555190`, `0x5549a0`, `0x5554e0`,
+- [x] **Las dos áreas de mensajes:** la vieja (`0x77d9868`, 120 renglones; `0x555190`, `0x5549a0`, `0x5554e0`,
       los relojes `0x5554b0` y `0x5547e0`), que también dibujan el login y la selección (P-C27 a, el 1240 de la
       selección), y la nueva (`0x576350c`, un registro del administrador viejo: `0x45b620`, `0x45bb20`,
       `0x459c70`, `0x45c460`, `0x45cbb0`, `0x45c140`, `0x45bfe0`, `0x45d8c0`, `0x45d990`, `0x45d760`,
       `0x45dc40`/`0x45ddc0`/`0x45de20`). Esto trae la base de las ventanas viejas (`0x45a210`: id, estado,
       rectángulo, cola de mensajes) que completa el hito 7. Un `MessageLog::Add(nombre, texto, tipo)` para los 98
       llamadores.
-- [ ] **Los avisos centrados** (`0x554610`, `0x554810`) y **el cartel de `Slide.bmd`** (`[0x5763528]`,
+- [x] **Los avisos centrados** (`0x554610`, `0x554810`) y **el cartel de `Slide.bmd`** (`[0x5763528]`,
       `0x46b3b0`, `0x46b090`, `0x46b7b0`).
-- [ ] **Escribir y mandar:** los dos campos (50 y 10 bytes, Latin1, seleccionar todo al tomar el foco, Tab, el
+- [x] **Escribir y mandar:** los dos campos (50 y 10 bytes, Latin1, seleccionar todo al tomar el foco, Tab, el
       historial `0x469540`/`0x469790`), la caja `0x5aa9a0`, F2, F3, F4, PgUp/PgDn, arriba/abajo, el clic derecho en
       los renglones, Enter con todas sus compuertas (el filtro, el freno `0x5767940`, "webzen", `/whisper on/off`,
       muerto con `/move`), `0x56c440` solo con sus compuertas, `/filter`, `/N` y Chaos Castle, `C1 00`, `C1 02` y
       `0x554a40` (3.848). El predicado `TextInputBusy()` (`0x6578e0`) que frena las letras del hito 1.
-- [ ] **Recibir:** `00`, `01` (sin el Guild Master), `02` (`0x554d20`, 3.848), `0C`, `0D` 0/1/2 (con la franja
+- [x] **Recibir:** `00`, `01` (sin el Guild Master), `02` (`0x554d20`, 3.848), `0C`, `0D` 0/1/2 (con la franja
       `+0x511` de la selección) y `F3 30` entero (`0x4dd570`: guarda las teclas de skills y Q/W/E para la CL9).
-- [ ] **Los globos** (`0x557170`, `0x557560`, `0x557650`, `0x556dd0`, `0x5a9050`, `0x555840`, `0x555b00`,
+- [x] **Los globos** (`0x557170`, `0x557560`, `0x557650`, `0x556dd0`, `0x5a9050`, `0x555840`, `0x555b00`,
       `0x513270`, `0x5132a0`; el `#` largo; la tabla compartida con el hover del hito 6) y **las macros**
       (`0x61c1c0`/`0x61c170` con `Data\Macro.txt`, Alt+dígito con la tecla abajo, Q-C449 y Q-C451, el bloqueo
       `0x77f3b74` y la barra que dibuja el HUD).
@@ -312,6 +312,17 @@ en 08, P-C63: el panel del asedio (`0x40f850`, el mapa 30) y la cuenta de DS/BC/
 `CGChatWhisperRecv`); el formato, los colores (Q-C450), el corte a 256 y a 180 px, la cuenta de 120 y el
 corrimiento, los relojes de 151 y 301 pasos; los `rand()` (mandar 0, susurrar 3.848, recibir un `02` 3.848,
 `F3 30` 3.848). Textos inventados. **Desbloquea:** la captura (su mensaje) y /move (manda por el chat).
+
+**Recibir, hecho** (2026-11-12, `ChatReceiveTest`, `ChatBubblesTest`, `WhisperSendersTest`, `MessagesProtocolTest`):
+los seis mensajes (04 § El chat que llega), los globos sin su dibujo (`0x557170`, `0x557560` y `0x557650` en el paso;
+el dibujo `0x5a9050`, 08 P-C81) y la franja de la selección. Los cortes hacia la CL9.4, en 08 P-C82; los quirks,
+Q-C510 a Q-C515.
+
+**Hito 3, hecho** (2026-11-12, PR #326): las dos áreas, los avisos centrados, el cartel de `Slide.bmd` con su timer
+(P-C80 queda para la VM: el orden del `WM_TIMER` frente a la red), escribir y mandar (Q-C530, Q-C531, P-C85 a
+P-C89), recibir, el dibujo de los globos (P-C81, P-C83) y las macros. Quedan cortes con su dirección hacia otras
+olas: los emotes (`0x576eb0` → `C1 18`, CL9.1, P-C87), el gremio y el Guild Master (CL9.4, P-C82), y Espacio y F1
+(hito 6).
 
 ### Hito 4: el inventario y el ítem en el cursor (CL8.4, ~40 KB)
 

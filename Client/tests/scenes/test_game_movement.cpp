@@ -127,6 +127,7 @@ TEST(GameMovementTest, AClickBeforeTheWindowExpiresStaysPending)
     MovingHero tested;
     auto context = tested.Context();
     context.input.leftPressed = true;
+    context.input.leftDown = true;
     const auto result = StepHeroMovement(context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(tested.world.Runtime().movement.pendingClick);
@@ -139,6 +140,7 @@ TEST(GameMovementTest, AShiftClickIsConsumedWithoutPicking)
     tested.world.Runtime().movement.mouseUpdateTime = 6;
     auto context = tested.Context();
     context.input.leftPressed = true;
+    context.input.leftDown = true;
     context.input.shiftDown = true;
     int picks = 0;
     context.pickTarget = [&]() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
@@ -162,6 +164,7 @@ TEST(GameMovementTest, TheMouseOnTheUiDoesNotAdvanceTheClickWindow)
     auto context = tested.Context();
     context.input.mouseY = 432;
     context.input.leftPressed = true;
+    context.input.leftDown = true;
     const auto result = StepHeroMovement(context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTime, 6);
@@ -177,6 +180,7 @@ TEST(GameMovementTest, AClickFindsAndSendsTheHistoricalD3)
     tested.world.Runtime().movement.mouseUpdateTime = 6;
     auto context = tested.Context();
     context.input.leftPressed = true;
+    context.input.leftDown = true;
     context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
     { return std::optional{Client::GameLogic::PathCell{179, 116}}; };
     std::vector<std::byte> bytes;
@@ -222,6 +226,7 @@ TEST(GameMovementTest, AClickDuringTheWarpWaitRemainsPending)
     tested.world.Runtime().warpCounter = 50;
     auto context = tested.Context();
     context.input.leftPressed = true;
+    context.input.leftDown = true;
     const auto result = StepHeroMovement(context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(tested.world.Runtime().movement.pendingClick);
@@ -320,6 +325,7 @@ TEST(GameMovementTest, TheShockActionConsumesTheClickWithoutStartingAnotherPath)
     tested.world.Runtime().movement.mouseUpdateTime = 6;
     auto context = tested.Context();
     context.input.leftPressed = true;
+    context.input.leftDown = true;
     int picks = 0;
     context.pickTarget = [&]() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
     {
@@ -372,6 +378,7 @@ TEST(GameMovementTest, AShiftClickClosesItsOwnRecordBeforeTheActionPrefix)
         tested.world.Runtime().movement.mouseUpdateTime = 6;
         auto context = tested.Context();
         context.input.leftPressed = true;
+        context.input.leftDown = true;
         context.input.shiftDown = true;
         CrtRandom expected = tested.random;
         for (int i = 0; i < 8 + (depth == 0 ? 2 * 3848 : 0) + 60; ++i)
@@ -389,6 +396,7 @@ TEST(GameMovementTest, AClickClosesBeforePickingAndReadsTwoWindowsAfterSending)
     tested.world.Runtime().movement.mouseUpdateTime = 6;
     auto context = tested.Context();
     context.input.leftPressed = true;
+    context.input.leftDown = true;
     CrtRandom expected = tested.random;
     for (int i = 0; i < 8 + 3848; ++i)
         static_cast<void>(expected.Next());
@@ -427,6 +435,7 @@ HandsClick ClickWithTheHands(std::uint16_t right, std::uint16_t left, std::int32
     tested.world.Runtime().movement.mouseUpdateTime = 6;
     auto context = tested.Context();
     context.input.leftPressed = true;
+    context.input.leftDown = true;
     context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
     { return std::optional{Client::GameLogic::PathCell{183, 115}}; };
     HandsClick click;

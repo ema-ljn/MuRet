@@ -1,9 +1,11 @@
 #pragma once
 
+#include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Render/Text/TextBox.h"
 #include "Render/Text/TextCache.h"
 #include "Render/Text/TextStyle.h"
 #include "Scenes/ITextDrawer.h"
@@ -26,8 +28,13 @@ public:
 
     [[nodiscard]] Render::Text::TextExtent Measure(Render::Text::FontKind font, std::string_view text) const override;
     void Draw(int x, int y, std::string_view text, const Render::Text::TextStyle& style) override;
+    void DrawClippedAtLeft(int x, int y, std::string_view text, const Render::Text::TextStyle& style) override;
+    void DrawBoxed(int x, int y, std::string_view text, const Render::Text::TextStyle& style,
+                   const Render::Text::BoxShape& box, bool clampY) override;
 
 private:
+    void LogOnce(const Core::Expected<void, std::string>& drawn);
+
     Render::Text::TextCache& m_cache;
     Render::SpriteBatch& m_batch;
     Core::Log& m_log;

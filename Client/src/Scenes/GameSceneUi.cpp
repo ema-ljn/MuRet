@@ -1,10 +1,15 @@
 #include "Scenes/GameScene.h"
 
+#include "App/ServerSession.h"
 #include "Core/Expected.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/GameChat.h"
 #include "Scenes/GameHud.h"
+#include "Scenes/GameMessages.h"
+#include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/SceneCanvas.h"
@@ -19,17 +24,28 @@
 #include <cstdint>
 #include <ratio>
 #include <string>
+#include <utility>
 
 namespace Client::Scenes
 {
 namespace
 {
-// El WndProc: WM_RBUTTONDOWN prende 0x7d36880 y WM_RBUTTONUP lo apaga. MuRet ve los dos mensajes del paso juntos:
-// apretado y soltado en el mismo paso, queda apagado, como después de los dos mensajes.
+// El WndProc: WM_RBUTTONDOWN prende 0x7d36880 (con 0x7d3685c en 0, que el apretón siempre ve así: lo apagó el
+// WM_RBUTTONUP de antes) y 0x7d3685c, y WM_RBUTTONUP apaga los dos. MuRet ve los mensajes del paso juntos: apretado y
+// soltado en el mismo paso, quedan apagados, como después de los dos.
 void LatchTheRightButton(UI::GameUiState& ui, const Input::InputState& input)
 {
-    ui.rightClick =
-        input.IsDown(Input::MouseButton::Right) && (ui.rightClick || input.WasPressed(Input::MouseButton::Right));
+    const bool down = input.IsDown(Input::MouseButton::Right);
+    const bool pressed = input.WasPressed(Input::MouseButton::Right);
+    ui.rightClick = down && (ui.rightClick || pressed);
+    ui.rightDown = down && (ui.rightDown || pressed);
+}
+
+// WM_MOUSEWHEEL (0x4b4c19) escribe la rueda del último mensaje; sin mensajes, queda la de antes.
+void LatchTheWheel(UI::GameUiState& ui, const Input::InputState& input)
+{
+    if (const float notches = input.LastWheel(); notches != 0.0f)
+        ui.wheel = static_cast<std::int32_t>(notches);
 }
 } // namespace
 
@@ -43,8 +59,14 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
     LatchTheLeftButton(runtime.movement, input.WasPressed(Input::MouseButton::Left),
                        input.IsDown(Input::MouseButton::Left));
     LatchTheRightButton(runtime.ui, input);
-    // 0x637c4a..0x637c5c: con 0x5762eb4 en 0 (la modal de las ventanas viejas, del hito 7) y la escena 5, 0x623e70
-    // antes de la lógica de la escena (0x636290), con el mundo cargado o no.
+    LatchTheWheel(runtime.ui, input);
+    // Y los WM_CHAR, en su orden: Tab y Enter al WndProc (la entrada del chat) y lo demás al EDIT con el foco.
+    if (auto typed = TypeInTheGameChat(ChatContext(), input.Text()); !typed.HasValue())
+        return typed;
+    // 0x637c4a..0x637c5c: con 0x5762eb4 en 0 (nadie agarró el mouse: el registro del chat o, en el hito 7, las
+    // ventanas viejas) y la escena 5, 0x623e70 antes de la lógica de la escena (0x636290), con el mundo cargado o no.
+    if (runtime.ui.capture != 0)
+        return {};
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
     return StepTheGameDialogs(GameUiContext{.world = *m_context.world,
                                             .random = m_context.cloth->random,
@@ -56,14 +78,41 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
 Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& input)
 {
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
+    const GameChatContext chat = ChatContext();
+    // timeGetTime() de los segundos del cartel (0x46ada0): el reloj de la escena en ms.
+    const auto systemTime =
+        m_context.clock != nullptr
+            ? static_cast<std::uint32_t>(
+                  std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
+            : 0U;
     return StepTheGameUi(GameUiContext{.world = *m_context.world,
                                        .random = m_context.cloth->random,
                                        .input = input,
                                        .mouseX = mouse.x,
-                                       .mouseY = mouse.y});
+                                       .mouseY = mouse.y,
+                                       .measure = m_context.textMeasure,
+                                       .screen = m_screen,
+                                       .chat = &chat,
+                                       .systemTime = systemTime});
 }
 
-Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canvas)
+GameChatContext GameScene::ChatContext()
+{
+    App::ServerSession* session = m_session;
+    return GameChatContext{.world = *m_context.world,
+                           .random = m_context.cloth->random,
+                           .texts = m_texts,
+                           .items = m_items,
+                           .setOptions = m_chatTables.setOptions,
+                           .filter = m_chatTables.filter,
+                           .measure = m_context.textMeasure,
+                           .screen = m_screen,
+                           .send = session != nullptr ? ChatSender([session](Protocol::Outgoing packet)
+                                                                   { session->SendChat(std::move(packet)); })
+                                                      : ChatSender{}};
+}
+
+Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canvas, const GameProjection* projection)
 {
     WorldRuntime& runtime = m_context.world->Runtime();
     const Input::InputState noInput;
@@ -92,6 +141,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .crywolfSandOverlay = m_projectingFrame ? m_projection->crywolfSandOverlay : runtime.crywolf.sandOverlay,
         .sound = m_projectingFrame ? m_projection->sound : runtime.lastSoundId,
         .projecting = m_projectingFrame,
+        .projection = projection,
         .sprites = canvas.sprites,
         .text = canvas.text,
         .texts = m_texts,
@@ -111,8 +161,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     // 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9 (hito 4).
     // 0x637696: 0x62db60, las cajas viejas, en la escena 5 (hito 6).
     // 0x63769b: 0x5f7bc0, los tooltips (hito 4).
-    // 0x6376a0: 0x554810, los avisos (hito 3).
-    // 0x6376b6: 0x5554e0, el área de mensajes, con 0x6c7a88 en 1: en 0 en el juego (hito 3).
+    // 0x6376a0..0x6376b6: los avisos y, con el registro del chat en su ventana, el área vieja.
+    DrawTheMessages(*m_context.world, hud.hud, canvas.sprites, canvas.text, hud.mouse, true);
     // 0x6376bb: 0x5b0550, las superposiciones.
     if (auto overlays = DrawTheOverlays(hud); !overlays.HasValue())
         return overlays;

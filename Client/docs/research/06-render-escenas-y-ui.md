@@ -883,7 +883,7 @@ desconexión.
 | Global | Qué | Quién escribe | Quién lee |
 | --- | --- | --- | --- |
 | `0x775857c` (byte) | **el mouse es de la UI** | 0 en `0x636e04` en cada paso; 1 en `0x636e1d` (y ≥ 432), en `0x637063` (aviso abierto) y en los handlers de ventana cuando el mouse cae en su rectángulo (`0x5e3ce8` party, `0x5e457d` C, `0x40a48f` D, `0x424230`, `0x41a9e0`, `0x41b170`, `0x44b540`, `0x44b910`, `0x44dd50`, `0x44f810`, `0x5e6520`, `0x5e74f0`, `0x5ebca0`, las hijas del inventario y la UI vieja: 81 escrituras en 44 funciones) | `0x59adf0` en `0x59b37a` (el giro) y `0x59b853` (el clic); `0x59ec80` en `0x59ef16` (el picking, por frame, con el valor del último paso); `0x57cfc0`, `0x5ac8d0` (teclas F), `0x5ac2d0` (el cursor, por frame) y `0x492ac0` (UI vieja) |
-| `0x7d366d4` (byte) | flanco del clic izquierdo | 1 en el WndProc; 0 en cada consumidor (más de 100) | la UI en el paso; después `MoveHero` (`0x59b88b`), que lo consume aunque no camine |
+| `0x7d366d4` (byte) | flanco del clic izquierdo | 1 en el `WM_LBUTTONDOWN` con `0x7d36874` en 0 (`0x4b395a`); 0 en el `WM_LBUTTONUP` (`0x4b3ce3`) y en cada consumidor (más de 100) | la UI en el paso; después `MoveHero` (`0x59b88b`), que lo consume aunque no camine |
 | `0x7d36874` | botón izquierdo abajo | WndProc; algunos handlers lo bajan | `MoveHero` (apretado), `0x636e5d` |
 | `0x7d3682c`, `0x7d36828` | x, y del mouse en 640 × 480 | WndProc | todos |
 | `0x7d366d8` | rueda en muescas | WndProc; la consume quien la usa | volumen (`0x625782`) |
@@ -1153,6 +1153,169 @@ entra en la lista); F3 alterna `0x6c8dd0` (el modo susurro); F4 mueve el registr
 `Screen(%02d_%02d-%02d_%02d)-%04d.jpg` (mes, día, hora, minuto; contador `0x7d368ac` módulo 10.000) y el Text 459;
 después del dibujo de la escena, `0x6202e0` hace `glReadPixels` en RGB y `0x63b150` escribe un JPEG de calidad 100;
 el mensaje va al área de mensajes. No saca `rand()`.
+
+### El chat
+
+**Lo que llega** (CL8 hito 3, 2026-11-12; *estático*). Los paquetes están en
+[04](04-protocolo.md#el-chat-que-llega-00-01-02-0c-0d-y-f3-30); acá, lo que hacen sus funciones en la UI.
+
+- **Los globos** (`0x77e1be0`, 100 entradas de `0x294` bytes en la `.bss`). `0x557170(nombre, texto, personaje,
+  modo, color)` busca la entrada de ese personaje (`+0x274`) o una libre (nombre y renglón de abajo sin tiempo);
+  con las 100 ocupadas, nada. Solo si el personaje está vivo y a la vista. El color es su PK (`+0x375`), o 0 con
+  `+0x88` en 4; con gremio (`+0x1f2` como `short` ≥ 0), `0x556dd0` llena el gremio y el puesto con la tabla de los
+  gremios (`0x787aa4c`, CL9.4). Con el texto vacío, solo el nombre: 100 pasos en una entrada nueva y 10 en la suya.
+  Si no, en su entrada el renglón vivo sube al de arriba, y el texto dura `2 · largo + 0xa0` pasos (modo 0) o 1.000
+  (modo 1, que también lo manda al registro del chat con el tipo 3); con 20 bytes o más se parte en dos renglones
+  con `0x5549a0`, la cabeza arriba (`+0x16c`) y la cola, que empieza con el espacio, abajo (`+0x6c`).
+  `0x557560(nombre, texto, modo)` busca por nombre entre los 400, primero los de `+0x88` en 1 y después los de 2,
+  comparando con `strcmp` el nombre de `+0x1d9` (que sigue en `+0x1e3` con los diez bytes llenos). `0x557650`, en el
+  paso del juego (`0x6370f9`), baja los tres relojes y pone en 0 los de un dueño muerto o fuera de la vista; con el
+  chat abierto, el héroe en zona segura y el derecho sobre un globo ajeno (`+0x278..+0x284`, que escribe el dibujo)
+  de un dueño con `+0x376 = 0xff`, llena el destino del susurro (`0x7798cf8`). Nada de esto saca `rand()`.
+- **El dibujo de los globos** (`0x5a9050`, el 12 del HUD; leído en el ASM, *estático*). Pone la normal en el DC y
+  recorre tres veces las entradas vivas (con el nombre o el renglón de abajo con tiempo). La primera proyecta con
+  `0x6205b0` (la caché `0x6203c0` del pase del mundo) el punto (x, y, techo + z + 60) del dueño, con el techo en
+  `+0x138` (120 los jugadores, `0x5122d4`, y 150 los demás tipos, `0x5123a9`) y el 60 de `0x6b86cc`; lo mide con
+  `0x555840` y lo deja centrado en la x (la mitad del ancho pasado a 640 con `IDIV`) y 0x24 más arriba. `0x555840` mide
+  con la normal: el ancho es el mayor del nombre más 3, el gremio, el puesto y los renglones con tiempo (los dos si el
+  de arriba tiene; si no, el de abajo si tiene), y el alto, el paso de la letra por las cinco medidas (Q-C520); con el
+  título de una tienda personal mide también el título (CL9.4). La segunda pasada, para cada par que se pisa en
+  640 × 480, sube el primero arriba del otro si su y está antes de la mitad del otro, y si no lo baja debajo. La tercera
+  corre cada uno contra los bordes (Q-C522) y llama a `0x555b00`. `0x555b00`, con `TextOut` distinto de 1: no dibuja
+  si el dueño tiene el bit `0x10000000` de `+0x7c`, o si en el asedio (`0x7239ec`) un dueño ajeno con el bit `0x4000`
+  de `+0x78` es de otro bando que el héroe (`+0x360`: 9 y 6, 10 y 7, 11 y 8, 13 y 12). Pone la mezcla 1 y el blanco,
+  deja el tamaño en `0x77f31b8` y `0x77f31bc`, prende `0x77f3b66` (08, P-C83) y lleva el paso de la letra a 32 como
+  mucho (en `0x7758568`) y el ancho a 1.280. El nombre va con el color de `+0x64` (seis colores, y `0xff0000ff` para
+  los demás); el color de adelante (`0x6c8e60`) y el fondo son los del globo propio (`0xff00ffc8` y `0x9600643c`) o los
+  de `0x513270` y `0x5132a0` con 1 si el `+0x1f2` del dueño es el del héroe (también los dos sin gremio) y con su
+  `+0x370` si no (0: `0xffffe6e6` y `0x96321e0a`; 2 u 8: `0xff001eff` y `0x96000000`; otro: `0xff00ffc8` y
+  `0x96503214`). Con el mouse encima (el tamaño pasado a 640 sin signo), el campo del chat abierto, el héroe en zona
+  segura, otro nombre que el suyo y `0x77f3b94 % 6 < 3`, el texto y el fondo se cambian. Los renglones van de a un
+  paso: el gremio y el puesto (enteros con el color de adelante: `0x553e50` toma como columnas de adelante el cx del
+  texto de adelante), el nombre y, con el fondo de `+0x65` (0: `0x96321e0a`; 1: `0x9600321e`; otro: `0x96000032`), el
+  de arriba y el de abajo si el de arriba tiene tiempo, o solo el de abajo, en `0xffc8dce6` o, con menos de 10 pasos,
+  `0x80c8dce6`. Cada renglón es una caja de 256 × 32 (`0x553e50`) del ancho del globo y el alto del paso, que
+  `0x554000` corre contra los bordes en píxeles y, con `0x77f3b66`, con la y contra 0 y contra `H − H · 47 / 640`
+  (Q-C521). Nada de esto saca `rand()`.
+- **Los que susurraron** (`0x77997f8`, diez lugares de 10 bytes más uno; el próximo en `0x77f3b9c`). `0x554d20`
+  anota con `strcpy` (Q-C512) un nombre que no esté, si el nivel propio es menor que 10 (Q-C453), y el próximo vuelve
+  al 0 después del 9. `0x555030` pone los 110 bytes en 0 y deja el próximo; lo llama la vuelta a la selección
+  (`0x4c2671`), que también apaga el sonido de los avisos (`0x77f3b78`, `0x4c266b`) y prende el ataque automático
+  (`0x6c8e3c`, `0x4c2533`).
+- **La franja de la selección.** El primer `0D` con 1 que llega en la escena 4 queda en `+0x511` de la barra (la
+  ventana `+0x7f50`), que `0x63ec00` dibuja en `(x + 7, y + 40)` con la fuente del 1710, blanco sobre 0, antes del
+  1710. La barra se arma una vez, así que el texto queda para todas las selecciones siguientes.
+
+**MuRet:** `Scenes/ChatReceive`, `Scenes/ChatBubbles` (la tabla, `0x557170`, `0x557560` y `0x557650` en el paso del
+juego), `Scenes/ChatBubbleDraw` (el dibujo, con la proyección del pase del mundo que le pasa `GameScene`; un dibujo
+intermedio escribe en una copia de la tabla, y el clic derecho lee la del último frame) y `UI/WhisperSenders`; la franja, en `WorldRuntime` (`chat.selectionNotice`), y el `F3 30` llena las teclas de
+las skills del registro propio (`+0x26c`), el ataque automático, el sonido, los carteles prendidos (`0x6c7a8c`), Q, W
+y E y los renglones y la transparencia del registro. El cartel de `Slide.bmd`, abajo.
+
+### El cartel de `Slide.bmd`
+
+Leído en la CL8 (hito 3, 2026-11-12; *estático*: no hay traza de GL con un cartel). El objeto `[0x5763528]` (`0x46aea0`,
+0x121c bytes) tiene dos colas de `0x46a020` (la normal en `+4`, con la fuente de `0x5763554`, y la gruesa en
+`+0x8d8`, con la de `0x5763558`), el período del timer (`+0x11ac`, 10 del constructor), los tramos de nivel
+(`+0x11b0`, `+0x11c4` y `+0x11d8`; [05 § `Slide.bmd`](05-formatos-de-datos.md#slidebmd)) y la velocidad de los
+carteles del timer (`+0x1218`, 2,5). Cada cola tiene un multimap por el segundo de salida (`+0x84`, con repetidos:
+una clave igual entra detrás de las que había), la hora y los segundos que van (`+0x7c` y `+0x80`), dos buffers de
+0x400 bytes (`+0xac` y `+0x4ac`, el de turno en `+0xa8`), el corrimiento, el empuje, la velocidad y la máxima
+(`+0x8ac..+0x8b8`; 2,5 del constructor), la opacidad (`+0x8bc`), el pedazo de adelante (los bytes en `+0x8c0` y el
+ancho en `+0x8c4`), el alto de la letra (`+0x8c8`), el color (`+0x8cc`) y el parpadeo (`+0x8d0`). Cada byte es una
+letra (Q-C67). Solo `0x46b680` saca `rand()`.
+
+- **El arranque** (`0x46b010`, en el primer paso del juego, `0x636920`): `0x46a460(0, 0)` en la normal y `(1, 0)`
+  en la gruesa (la fuente, el segundo en 10, el parpadeo, `timeGetTime` en `+0x7c`, los buffers vacíos, el
+  corrimiento y la velocidad en 0, el empuje en 1, el pedazo y el alto en 0 y la opacidad en 0), `0x45a9d0(0,
+  0x1ad)` en las dos, `SetTimer(hWnd, 0x3eb, período · 1000)` y `0x46b0e0`.
+- **El timer** (`0x46b0e0`): con la escena 5, `0x6c7a8c` prendido y la opacidad de la normal en 0 o menos, abre y
+  cierra el registro propio para leer el nivel (`+0xe`, sin signo; 3.848 `rand()`) y llama a `0x46b680(nivel)`: el
+  primer tramo con el nivel menor o igual que su tope (con signo); si su cuenta no es 0, `rand() % cuenta` (`IDIV`)
+  y el texto de ese lugar si la lista lo tiene (sin signo); si no, `NULL`. Con texto, `0x46b720(1, 0, texto, 1,
+  [+0x1218], 0xffc8dce6)`. El `WM_TIMER` con `0x3eb` (`0x4b1a6b..0x4b1b44`) lee el foco (`0x4c0ec0`, 1 `rand()`), con
+  foco llama a `0x46b0e0`, y la cola común de la `WndProc` (`0x4b335a`) saca otro. El binario no importa
+  `KillTimer`: el timer sigue al salir del juego, y fuera de la escena 5 solo saca los dos del foco.
+- **Encolar** (`0x46b720(repeticiones, salto, texto, tipo, velocidad, color)`): con la escena 5, un texto no vacío,
+  hasta 30 repeticiones (con signo) y el tipo de 0 a 5 (sin signo), los tipos 0 a 2 van a la normal con el tipo − 1
+  y los 3 a 5 a la gruesa con el tipo − 4. `0x46abf0` agrega `repeticiones` entradas: con el tipo 1 de la cola, todas
+  con la clave 0 (salen ya); con los otros, la i-ésima en el segundo de la cola más i · salto. Una con −1 caduca a
+  los 60 segundos de su clave (`0x46ae07`). Lo llaman el timer y el `0D` de 10 a 15 ([04](04-protocolo.md)).
+- **El paso** (`0x46b7b0`, en el paso de la UI, `0x636e35`): `0x46add0` en la gruesa y después en la normal. Una
+  cola que tiene algo pasando no hace nada, ni cuenta sus segundos (`0x46a510`: está quieta sin texto o con menos
+  bytes que su pedazo). Si no, `0x46ada0` suma un segundo si pasó más de uno desde `+0x7c`, y la primera entrada del
+  multimap, si su clave ya llegó: si no caducó, `0x46a9c0` pone su color, elige su fuente en el DC y agrega
+  `640 / cx(" ") · rx` espacios (en la x87, hasta 1.024) y el texto; si no entra en los 0x400 bytes, la entrada
+  espera. Después, `0x46abc0` pone la máxima en `rx · velocidad` (o `rx · 2,5` sin una positiva) y la entrada sale.
+- **El dibujo** (`0x46b090`, el 15 del HUD): con la gruesa pasando, la normal con `0x46a540(1)` (forzada a
+  apagarse); si no, con la gruesa ya apagada, la normal con `0x46a540(0)`; después, con la normal apagada, la gruesa
+  con `0x46a540(0)`. `0x46a540` no hace nada con `0x6c7a8c` apagado; baja la opacidad de a 30 hasta 0 si está quieta
+  o forzada, y si no la sube de a 30 hasta 205; con 0 o menos sale. Dibuja con mezcla dos líneas negras de 1 de alto
+  en `y − 3` y en `y + alto + 2` (con la opacidad hasta 180 menos 25, y desde ahí la opacidad) y una franja en
+  `y − 2` de `alto + 4` con la opacidad menos 25 (`0x621aa0`, todo el ancho). Quieta y sin forzar, termina ahí. Si
+  no, elige la fuente, saca el pedazo de adelante si el corrimiento lo pasó (`0x46a850`: el pedazo son hasta 4 bytes,
+  medidos con `0x46ab30`; Q-C518), toma el alto de "Z" la primera vez y sube la y eso, y dibuja el texto con
+  `0x5542f0(x + corrimiento, y, texto, 0, 6, 0)` (el modo 6, Q-C519) con el alfa `(opacidad + 50) · alfa del color /
+  255`, a la mitad 5 de cada 10 textos dibujados (`0x5762ee4`) con el parpadeo en 1. Al final, `0x46a910` corre el
+  texto: con el mouse sobre la franja (`y − 3`, `alto + 6`) el empuje es −1 y si no 1; la velocidad suma el empuje
+  hasta la máxima, sin bajar de 0, y el corrimiento resta la velocidad.
+
+**MuRet:** `Data::Text::LoadSlideTable` y `Scenes::LoadGameData` leen el archivo; `UI::SlideBanner` es el objeto,
+en `HudState` (`hud.slides`), con `LoadTheSlides` (`0x46b3b0`), `ResetTheSlideQueues` (`0x46a460` y `0x45a9d0`),
+`PickASlide` (`0x46b680`), `QueueTheSlide` (`0x46b720` sin la escena), `StepTheSlides` (`0x46b7b0`, en
+`Scenes/GameUi`) y `DrawTheSlides` (`0x46b090`, en `Scenes/GameHud`). `Scenes/Slides` tiene el arranque
+(`StartTheSlides`, en el primer paso de `GameScene`), el cuerpo del timer (`QueueATimedSlide`, con los 3.848
+`rand()` del registro propio y el de `0x46b680`) y el timer (`RunTheSlideTimer`): `main.cpp` lo corre entre el cierre
+del contador de una vuelta de `WinMain` y la siguiente, una vez por vuelta si venció, con los dos `rand()` del foco.
+Ese momento es *inferido* (08, P-C80). El `0D` de 10 a 15 encola en `Scenes/ChatReceive`.
+
+**La entrada del chat: escribir, mandar y las macros** (CL8 hito 3, *estático*; `Scenes/GameChat.cpp`,
+`UI/ChatInput.cpp`, `UI/ChatCommands.cpp`, `UI/MacroFile.cpp`). Con `0x6c7b8c` en 1 (`.data`), el chat escribe en
+dos EDIT de Windows del objeto `[0x57634f8]` (`0x4691e0`): el del mensaje en (`0xc1`, `0x1a6`) de `0xb4 × 0xe` con
+`EM_LIMITTEXT 0x32`, y el del susurro en (`0x178`, `0x1a6`) de `0x32 × 0xe` con 10. Sus buffers son `0x7798bf8` y
+`0x7798cf8` (de los diez de `0x100` que vacía `0x553570`), con sus largos en `0x7758590` y `0x7758594`; el campo
+elegido, `0x77f3b70`; el historial, el deque de `+0x2e4` (`0x469540` guarda, `0x469790` recorre, `0x469a80` deja
+diez). La subclase `0x467b10` le pasa Tab y Enter al WndProc y descarta Esc y `0x19..0x1c`. MuRet emula los EDIT como
+el campo del login (`UI::TextField` en Latin-1): `EM_SETSEL(0, −1)` elige todo y lo primero que entra lo reemplaza,
+sin cursor en el medio ni IME. Los ids de los dos EDIT (1 y 2, los dos primeros objetos que arma WinMain en
+`0x4bb173` y `0x4bb184`) son *inferidos*.
+
+- **Enter** (`0x4b50b0..0x4b88e9`): sale sin hacer nada en Chaos Castle fuera de la zona segura, con el diálogo
+  `0x7d`, `0x95`, `0x8a`, `0x8d` o `0x8b`, con `0x78abb00` en 3 o si `0x657880(0xd)` toma la tecla. Con el campo
+  abierto lee los EDIT a los buffers y lo escrito al historial; vacío (y sin `0x77f3b69`), Enter abre el campo (dos
+  campos, los EDIT a la vista con el foco en el del mensaje) o lo cierra. Si no, corre los comandos (`0x56c440`: las
+  compuertas, `/move`, `/filter`, `/1`../`0` y la cola de los nombres; cada comando social corta con su dirección,
+  CL9.4) y el filtro (`0x622b40` con 1: el texto 570). Con `/` adelante, sin nombre o sin el modo de F3, va al chat:
+  los emotes (`0x576eb0`, que corta: CL9.1, salvo montado fuera de la zona segura), el freno (`0x5767940`: con más de
+  `0x32` no sale nada y con más de 0 no sale lo mismo que el anterior, `0x57676e4`; cada uno lo deja en `0x46`),
+  "webzen" en el nombre del héroe (solo sale lo que empieza con `/` o `!`), `/whisper off` y `on` (textos 264 y 265,
+  avisos 267 y 268, en `0x77f3b98`) o, muriéndose, `/move` no sale; después el `C1 00`
+  ([04](04-protocolo.md#el-chat-que-se-manda-00-y-02)). Si no, el susurro: `0x554a40(6, nombre)` abre y cierra el
+  registro propio (3.848 `rand()`), deja pasar con el nivel 6 o el nombre en la lista de `0x77997f8` y si no avisa
+  con el 479; manda el `C1 02` (sin "webzen" en el nombre del héroe) y lo pone en el registro con el tipo 0. Al final
+  (`0x4b8841..0x4b88e2`): el área vieja vuelve al renglón `0x72` (no con un comando atendido), el EDIT del mensaje se
+  vacía, los EDIT se ocultan, el registro corre 100, el buffer del mensaje queda en ceros y el campo se cierra. El
+  chat no saca `rand()`.
+- **El paso** (`0x59ff10`): el clic derecho en un renglón del área vieja (`0x59ff45..0x5a009b`) pone el nombre en
+  el buffer del susurro (Q-C530), y el derecho sobre un globo (`0x5577a2`, en `0x557650`), en el EDIT y en el
+  buffer; PgUp y PgDn corren el registro tantos renglones como muestra (la vtable `+0x38` y
+  `+0x34`); arriba y abajo recorren el historial con el foco en un EDIT y el campo par, y si no el nombre del susurro
+  de `0x77f31cc` (cinco de `0x100`, desde el 2 de `0x6c8ea8`). Con un campo de texto, el mouse sobre un EDIT lo
+  elige (`0x469500`) y es de la UI, el clic le da el foco (`0x468d50` → `0x4682a0(1)`; sus flechas y su barra no,
+  P-C86) y el botón de F3 (`0x5a33dc`) cambia `0x6c8dd0`. Las macros (`0x5a116f..0x5a2b47`): con `0x77f3b74` en 0,
+  fuera de Chaos Castle y con Alt, cada número abajo (Q-C451) corre `0x56c440(texto, 1)` (Q-C452), los emotes, el
+  filtro y lo mismo que el chat de Enter; la que pasa los comandos deja `0x77f3b74` en `0x64` (`0x5a1ea1`).
+  `0x637d2c` y `0x637d44` bajan los dos frenos de a uno por paso.
+- **Las teclas de `0x5ac8d0`**: F2, F3 y F4 cambian lo suyo y suenan (F4, con el registro en su ventana, va a x 0 con
+  el inventario y una de las seis ventanas anchas, si no a `0xba`); la barra y F1 cortan (hito 6).
+- **El HUD**: el paso 10 dibuja "Macro Time" (`0x6c9310`) centrado en el ancho del mundo en y = `0x188` y su barra
+  en y = 404 de 50 × 2; el 22 (`0x5aa9a0`), con el campo abierto o `0x77f3b69`, la caja sin mezcla (`0xf8` y `0xf9`,
+  que `0x61ccb0` sube en `0x61cfe6` y `0x61d002`), el texto de los EDIT, los nombres del susurro de los otros lugares
+  con el campo impar y, con el modo de F3, el indicador `0xef` (`0x61cee1`). MuRet dibuja el texto de los EDIT sin
+  componer su ventana ni el cursor (P-C89).
+- **`Data\Macro.txt`**: lo lee WinMain detrás de `Text.bmd` (`0x61ee30` → `0x61c1c0`, `fscanf("%s")`, Q-C449 y
+  Q-C531). Lo escriben (`0x61c170`) la salida del juego, el cambio de servidor y el gate a los mapas 30 y 31, que son
+  de otras olas: en MuRet, lo que se guarda con `/1`../`0` dura hasta cerrar.
 
 ## La escena de carga y la de login
 
@@ -2566,9 +2729,12 @@ El resto de `0x634c60` (por paso) y de `0x6350b0` (por frame), llamada por llama
   `0x6c8eb4` (`0x72` en la `.data`, los seis últimos), arriba a la izquierda en y = 0 a 65 de a 13,
   salteando los vacíos (`0x555541`). Las 120 llamadas de la entrada (`0x634b4a`) la dejan vacía; el clic en
   un servidor agrega el 470 y el 471 (`0x64630f` y `0x646320`, del tipo 1: el texto `0xffff9664` sobre
-  `0x96000000`), el cancelar de la cuenta el 472 y el 473 (`0x6427d9` y `0x6427ea`) y la respuesta al
-  `F4 03` el 481; `0x5554b0` suma un renglón vacío cada 150 pasos desde el último, así que suben y se van.
-  MuRet no la tiene (*estático*; P-C27).
+  `0x96000000`), **el envío de la cuenta** el 472 y el 473 (`0x6427d9` y `0x6427ea`, al final de `0x641bf0`,
+  después del `F1 01`; antes este documento decía "el cancelar") y la respuesta al `F4 03` el 481, conecte o no
+  (`0x4e33d0`, con el texto como formato de la dirección y el puerto, Q-C464). Los cuatro van sin nombre: el de
+  `0x6e57a4` y el de `0x5767974` son cadenas vacías (`.data` en cero, nadie las escribe). `0x5554b0` suma un
+  renglón vacío cada 150 pasos desde el último, así que suben y se van. MuRet la tiene desde la CL8 (hito 3):
+  `Scenes/GameMessages` y `LoginScene::AddTheMessage`.
 
 ### Las ventanas de la UI nueva
 
@@ -2886,9 +3052,13 @@ Leída en la CL6.R en el desensamblado de `c32bbd5f`: todo *estático* salvo lo 
   0 `+0x6a` y `+0x6c..+0xab` de `[0x7681eb0]` y ocho dwords de `[0x7681eb4]` (`+0xb70`, de a `0x48`) y lo
   cierra: con la cuenta en 0, `0x40b4d0` y sus 3.848 `rand()` (Q-C238; [El paso de los personajes en la
   selección y el login](#el-paso-de-los-personajes-en-la-selección-y-el-login));
-- vacía el área de mensajes (120 líneas, `0x555190`) y, si alguno de los dos números de `pkt[5]`
-  de la lista (`0x5767958`, `0x576795c`) no es 0, escribe una línea con `sprintf` y el texto 1240
-  **como formato** (`0x63420a`).
+- abre el campo del chat (`0x6c8e68 = 1`), vacía los campos de texto (`0x553570`) y el área de mensajes (120
+  líneas, `0x555190`) y, si alguno de los dos números de `pkt[5]` de la lista no es 0, escribe una línea con
+  `sprintf` y el texto 1240 **como formato** (`0x63420a`, Q-C464), sin nombre (`0x7d3a17c` está en cero) y del
+  tipo 1. Los números son los dos nibbles de `pkt[5]` (`0x4c20a0`): el bajo a `0x5767958`, que va primero, y el
+  alto a `0x576795c`. En esta edición el 1240 es "A Conta foi enviada para o Char geral %d, Magic Gladiator
+  %d". MuRet lo hace en `CharacterSelectScene::PrepareTheCharacters` (CL8, hito 3); el vaciado de los campos va
+  con la entrada del chat.
 
 "La primera vez" es la bandera `0x7d3a13f`, que la vuelta desde el juego (el `F1 02` con 1) pone en
 0: `0x633f20` corre otra vez, con la lista nueva ([La vuelta a la selección](#la-vuelta-a-la-selección)).
@@ -7500,8 +7670,9 @@ de Lorencia verifican el componente; `GameScene`, reglas del clic y caminar sigu
   (`0x77f3b10`) no sube (Q-C168). Solo con `MouseUpdateTime ≥ MouseUpdateTimeMax` (`0x6c8dcc`) y
   `0x77f3bac` en 0 mira el mouse: el flanco `0x7d366d4`, que consume; el botón abajo, `0x7d36874`; o
   el auto-ataque (`0x6c8e3c`, con `0x6c8e38 == 1` y un personaje bajo el mouse, fuera de los mapas 6
-  y 18 a 23). Un clic dentro de la ventana de `MouseUpdateTimeMax` queda pendiente, porque
-  `MoveHero` no lo borra (Q-C166). Con un botón abajo una hora (`(T − 0x77f3b44) · 0,001 ≥ 3.600`)
+  y 18 a 23). Un clic dentro de la ventana de `MouseUpdateTimeMax` queda pendiente mientras el
+  botón sigue abajo, porque `MoveHero` no lo borra (Q-C166); el `WM_LBUTTONUP` lo apaga
+  (`0x4b3ce3`). Con un botón abajo una hora (`(T − 0x77f3b44) · 0,001 ≥ 3.600`)
   suelta los dos (`0x59b8e7..0x59b921`, Q-C167).
 - **La acción del héroe** (`0x59babe..0x59bb1f`): sigue si la acción (`+0x111`) no es `0xc2` (el
   golpe), `+0x80` no es 1 ni 2, el alpha es ≥ 0,7 y la acción es < `0x22` o > `0x97`; o si la acción

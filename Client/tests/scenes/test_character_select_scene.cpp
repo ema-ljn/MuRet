@@ -32,6 +32,8 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "World/ParticleOwner.h"
 #include "World/SelectionParticleKernels.h"
+#include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/GameData.h"
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SceneContext.h"
@@ -43,6 +45,7 @@
 #include "Scenes/TextureMetadata.h"
 #include "Scenes/TextureSets.h"
 #include "UI/CreateCharacterWindow.h"
+#include "UI/MessageArea.h"
 #include "World/GameCamera.h"
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
@@ -245,6 +248,17 @@ void RetainLoginTerrain(Client::Scenes::SelectionState& selection)
     selection.RetainTerrain(LoginMap, std::move(terrain).Value());
 }
 
+// Seis píxeles por byte: los textos de los tests no llegan a los 256 del corte de 0x555190.
+class LetterMeasure final : public Client::Render::Text::ITextMeasure
+{
+public:
+    [[nodiscard]] Client::Render::Text::TextExtent Measure(Client::Render::Text::FontKind /*font*/,
+                                                           std::string_view text) const override
+    {
+        return {static_cast<int>(text.size()) * 6, 13};
+    }
+};
+
 struct Harness
 {
     explicit Harness(bool withSession = true, bool withWings = false, bool withTheMouse = false,
@@ -256,14 +270,29 @@ struct Harness
     {
         Client::Tests::WriteTextureSet(folder.Path(), SelectionTextureSet);
         Client::Tests::WriteTextureSet(folder.Path(), WindowTextureSet);
-        Client::Tests::WriteTextTable(
-            folder.Path(),
-            {{402, "no conecta"},     {434, "bloqueado"},      {401, "codigo invalido"}, {417, "cuenta bloqueada"},
-             {439, "char bloqueado"}, {436, "cuenta del ADM"}, {437, "el sitio"},        {471, "espere"},
-             {540, "Synthetic A"},    {559, "Synthetic B"},    {1654, "del gremio"},     {1711, "nivel alto"},
-             {1712, "borrar %s"},     {1713, "el codigo"},     {1714, "borrado"},        {390, "corto"},
-             {391, "simbolos"},       {457, "Synthetic Op"},   {458, "Synthetic Srv"},   {396, "limite"},
-             {1715, "filtrado"},      {1716, "rechazado"}});
+        Client::Tests::WriteTextTable(folder.Path(), {{402, "no conecta"},
+                                                      {434, "bloqueado"},
+                                                      {401, "codigo invalido"},
+                                                      {417, "cuenta bloqueada"},
+                                                      {439, "char bloqueado"},
+                                                      {436, "cuenta del ADM"},
+                                                      {437, "el sitio"},
+                                                      {471, "espere"},
+                                                      {540, "Synthetic A"},
+                                                      {559, "Synthetic B"},
+                                                      {1654, "del gremio"},
+                                                      {1711, "nivel alto"},
+                                                      {1712, "borrar %s"},
+                                                      {1713, "el codigo"},
+                                                      {1714, "borrado"},
+                                                      {390, "corto"},
+                                                      {391, "simbolos"},
+                                                      {457, "Synthetic Op"},
+                                                      {458, "Synthetic Srv"},
+                                                      {396, "limite"},
+                                                      {1715, "filtrado"},
+                                                      {1716, "rechazado"},
+                                                      {1240, "General %d, Gladiador %d"}});
         Client::Tests::WriteFilterFile(folder.Path(), {"GM"}, Client::Data::Text::FilterNameChecksumKey,
                                        "Local/FilterName.bmd");
         Client::Tests::WriteSceneFile(folder.Path(), "Gate.bmd", Client::Tests::GateTableBytes({}));
@@ -290,7 +319,8 @@ struct Harness
                          .camera = selection != nullptr || worldState != nullptr ? &camera : nullptr,
                          .cameraInput = selection != nullptr || worldState != nullptr ? &cameraInput : nullptr,
                          .selection = selection,
-                         .world = worldState},
+                         .world = worldState,
+                         .textMeasure = &letters},
             data, models, withSession ? &online.session : nullptr);
     }
 
@@ -428,6 +458,7 @@ struct Harness
     }
 
     TemporaryFolder folder{"character-select-scene"};
+    LetterMeasure letters;
     FakeTextureStore store;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log;
@@ -1222,6 +1253,49 @@ TEST(CharacterSelectSceneTest, TheFirstNativeStepConstructsBothPreviewsAndResets
     // Constructores56, propio3848, preview19, partículas2 y finalmente tela9; antes, los 65.536 del pasto
     // (0x5f8300) de la carga del 54 (0x61a560), que no crea objetos con rand().
     EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(1, 3934 + 65536).State());
+}
+
+// 0x634199..0x634227: el primer paso con la lista abre el campo del chat, vacía el área vieja con 120 entradas y, con
+// los dos números de pkt[5] (el bajo y el alto), escribe el 1240 como sistema y sin nombre.
+TEST(CharacterSelectSceneTest, TheFirstStepEmptiesTheMessagesAndWritesTheAccountNotice)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+    Client::Scenes::WorldRuntime& runtime = world.Runtime();
+    runtime.chat.area.rows[3].text = "viejo";
+    runtime.chat.area.count = 4;
+
+    ASSERT_NO_FATAL_FAILURE(tested.Enter());
+    tested.online.socket.reads = {Client::Tests::CharacterListBytes({}, 0, 0, 0x21)};
+    tested.Step();
+
+    ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
+    EXPECT_TRUE(runtime.ui.chatOpen);
+    const Client::UI::MessageAreaState& area = runtime.chat.area;
+    ASSERT_EQ(area.count, static_cast<std::int32_t>(Client::UI::MessageAreaRows));
+    EXPECT_EQ(area.rows[3].text, "");
+    EXPECT_EQ(area.rows.back().name, "");
+    EXPECT_EQ(area.rows.back().text, "General 1, Gladiador 2");
+    EXPECT_EQ(area.rows.back().type, Client::UI::SystemMessage);
+}
+
+// Con pkt[5] en 0, solo las entradas vacías.
+TEST(CharacterSelectSceneTest, WithoutNumbersThereIsNoAccountNotice)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
+
+    ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
+    EXPECT_TRUE(world.Runtime().ui.chatOpen);
+    EXPECT_EQ(world.Runtime().chat.area.rows.back().text, "");
 }
 
 TEST(CharacterSelectSceneTest, TheFirstSelectionHeroNeedsItemBmdBeforeAnyWorldEntry)

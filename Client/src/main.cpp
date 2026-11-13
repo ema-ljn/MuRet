@@ -53,6 +53,7 @@
 #include "Scenes/GameData.h"
 #include "Scenes/GameModels.h"
 #include "Scenes/GameItemRenderState.h"
+#include "Scenes/GameMessages.h"
 #include "Scenes/GameScene.h"
 #include "Scenes/IScene.h"
 #include "Scenes/LoadingScene.h"
@@ -65,12 +66,14 @@
 #include "Scenes/SceneTransitions.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/SessionEventApplier.h"
+#include "Scenes/Slides.h"
 #include "Scenes/TestScene.h"
 #include "Scenes/WinMainLoop.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldLoadingScene.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/SlideBanner.h"
 #include "World/GameCamera.h"
 
 #include <chrono>
@@ -527,7 +530,9 @@ Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const
             return std::make_unique<Scenes::GameScene>(
                 context, session, &models, data.items ? &data.items->table : nullptr, &models.TextureSlots(),
                 data.gates ? &*data.gates : nullptr, data.skills ? &*data.skills : nullptr,
-                data.text ? &*data.text : nullptr);
+                data.text ? &*data.text : nullptr,
+                Scenes::GameChatTables{.filter = data.filter,
+                                       .setOptions = data.itemSets ? &data.itemSets->options : nullptr});
         }
         return nullptr;
     };
@@ -641,6 +646,13 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // duran hasta el cierre. La selección construye en los cinco primeros registros y escribe el mundo
     // en curso.
     Scenes::WorldState world;
+    // 0x61ee30 → 0x61c1c0: las macros de Data\Macro.txt, que GameData leyó detrás de Text.bmd, en 0x77f1db0.
+    world.Runtime().chat.input.macros = scenes.data.macros;
+    // 0x61ed18: 0x46b3b0 deja Slide.bmd en el cartel de [0x5763528], que dura hasta el cierre.
+    if (scenes.data.slides)
+    {
+        Client::UI::LoadTheSlides(world.Runtime().hud.slides, *scenes.data.slides);
+    }
     // 4bada2..4bade0: la tabla global de ángulos se publica una vez con la CRT de WinMain.
     Scenes::InitializeGameItemRenderState(world.Runtime().itemRender, clothWorld.random);
     // 0x4bafad..0x4bafdf: el pool empieza en cero y el héroe apunta al personaje 0.
@@ -650,6 +662,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // Los modelos del personaje y de los ítems: los lee la carga (0x61ccb0) y quedan, como GameData.
     // La respuesta del F3 03 toma de acá Player.bmd para la acción de parado.
     Scenes::GameModels models;
+    // La escena en curso (0x6d5dc8) que leen el 00 y el 0D: la del SceneManager, que se arma después.
+    const Scenes::SceneManager* sceneManager = nullptr;
     Scenes::SessionEventApplier eventApplier(
         Scenes::WorldEntryResources{.world = world,
                                     .selection = selection,
@@ -661,7 +675,12 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
                                     .items = scenes.data.items ? &scenes.data.items->table : nullptr,
                                     .itemSetTables = scenes.data.itemSets ? &*scenes.data.itemSets : nullptr,
                                     .log = log,
-                                    .clock = &clock});
+                                    .clock = &clock,
+                                    .textMeasure = &frame.Value()->TextMeasure(),
+                                    .screen = [&window] { return window.PixelSize(); },
+                                    .scene = [&sceneManager]() -> std::optional<Scenes::SceneId>
+                                    { return sceneManager != nullptr ? sceneManager->Current() : std::nullopt; },
+                                    .texts = scenes.data.text ? &*scenes.data.text : nullptr});
     std::optional<Online> online;
     if (startup.server)
     {
@@ -678,7 +697,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
                                        .camera = &camera,
                                        .cameraInput = &cameraInput,
                                        .selection = &selection,
-                                       .world = &world};
+                                       .world = &world,
+                                       .textMeasure = &frame.Value()->TextMeasure()};
     // El cursor lo dibuja el juego: el del sistema no se ve sobre la ventana (0x4ba238). Si SDL no puede,
     // se ven los dos.
     if (const auto hidden = window.HideSystemCursor(); !hidden.HasValue())
@@ -710,20 +730,39 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         Scenes::UpdateGameItemGlowPulse(world.Runtime().itemRender, worldClock);
     };
     // P-C61: los dos contadores de WinMain y el byte del foco, con la CRT de la tela. Cada frame del original que
-    // corre en una vuelta sin minimizar cierra el contador de 0x63945d y empieza la vuelta siguiente.
+    // corre en una vuelta sin minimizar cierra el contador de 0x63945d y empieza la vuelta siguiente. Entre las dos,
+    // el WM_TIMER 0x3eb del cartel de Slide.bmd, si venció (P-C80): una vez, con la hora del bucle en ms, como
+    // timeGetTime.
     Scenes::WinMainCounters winMain;
     Client::Render::Models::OriginalFrameCarry winMainFrameCarry;
-    const auto afterSceneFrame = [&winMain, &winMainFrameCarry, &clothWorld, &startup](Core::Duration now)
+    const auto afterSceneFrame =
+        [&winMain, &winMainFrameCarry, &clothWorld, &startup, &world, &sceneManager](Core::Duration now)
     {
         const int frames = winMainFrameCarry.FramesAt(now, Scenes::OriginalFramePaceOf(startup.config.pacing));
+        const auto systemTime =
+            static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(now).count());
+        const bool gameScene = sceneManager != nullptr && sceneManager->Current() == Scenes::SceneId::Game;
         for (int i = 0; i < frames; ++i)
         {
             Scenes::CloseTheFrameCounter(clothWorld.random);
+            Scenes::RunTheSlideTimer(world, clothWorld.random, systemTime, gameScene);
             Scenes::StepTheWinMainLoop(winMain, clothWorld.random);
         }
     };
+    // 0x637cf3 y 0x637cf8: los relojes de los mensajes, detrás del paso de cualquier escena. Mientras conecta, el
+    // original no corre ningún paso (el connect bloquea, Q-C85).
+    const auto afterSceneStep = [&world, &frame, &window, session]() -> Core::Expected<void, std::string>
+    {
+        if (session != nullptr && (session->State() == App::SessionState::ConnectingConnectServer ||
+                                   session->State() == App::SessionState::ConnectingGameServer))
+        {
+            return {};
+        }
+        return Scenes::StepTheMessageClocks(world.Runtime(), frame.Value()->TextMeasure(), window.PixelSize());
+    };
     Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, models, session), *frame.Value(), clock,
-                                 pollNetwork, log, takeSceneOrder, beforeSceneFrame, afterSceneFrame);
+                                 pollNetwork, log, takeSceneOrder, beforeSceneFrame, afterSceneFrame, afterSceneStep);
+    sceneManager = &manager;
     // La primera vuelta de WinMain, antes del primer frame: la escena entra adentro de él (0x63945d).
     Scenes::StepTheWinMainLoop(winMain, clothWorld.random);
     if (!manager.Start(Scenes::FirstScene).HasValue())

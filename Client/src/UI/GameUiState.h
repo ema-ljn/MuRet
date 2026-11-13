@@ -1,5 +1,7 @@
 #pragma once
 
+#include "UI/ChatLog.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -26,13 +28,23 @@ struct GameUiState
     std::int32_t skillTooltipY = 0;
     // 0x78abaa8: 0x636df2 lo pone en 0 en cada paso.
     std::int32_t field78abaa8 = 0;
-    // 0x5762eb8: 0x636e2f lo pone en 0 en cada paso; lo lee 0x5ee140.
-    std::int32_t field5762eb8 = 0;
+    // 0x5762eb8: la ventana bajo el mouse. 0x636e2f lo pone en 0 en cada paso, el registro del chat (0x45aa80) lo
+    // pone en su id y lo leen 0x5ee140 y el clic sin dueño (0x636e66).
+    std::int32_t hovered = 0;
+    // 0x5762eb4: la ventana que agarró el mouse (el borde o la barra del registro del chat). Con otra que no sea 0,
+    // no corren 0x623e70 (0x637c4a), la ventana /move (0x5ecdd1) ni los paneles (0x5ee167).
+    std::int32_t capture = 0;
+    // 0x5762ec0: la lista que toma las flechas del teclado. La pone el registro del chat y la vuelve a 0 el clic sin
+    // dueño con el chat cerrado (0x636ead).
+    std::int32_t focusedList = 0;
     // 0x7798bf4: la lista de skills abierta (el botón de la barra, 0x5a06e7).
     std::uint8_t skillListOpen = 0;
-    // 0x6c7a88 (.data 1): el lugar del registro del chat. Lo pone en 0 su constructor (0x45b620), que corre
-    // desde WinMain antes de la primera escena, y nadie más lo escribe hasta el hito 3.
-    std::int32_t chatPlacement = 0;
+    // 0x6c7a88 (.data 1): el lugar del registro del chat, que su constructor (0x45b620) pone en 0 desde WinMain antes
+    // de la primera escena; y 0x6c8dd1 (.data 1), F2, el chat normal a la vista.
+    ChatModes chatModes{};
+    // 0x6c8e68: el campo del chat abierto. Mientras está abierto, su EDIT tiene el foco (el clic sin dueño no se lo
+    // saca, 0x636e80).
+    bool chatOpen = false;
     // 0x576793c: la salida pedida desde el menú de Esc (0x62411c). Con 1, Open no abre (0x6599a0).
     bool logoutRequested = false;
     // 0x78abb39: con 1, Esc no hace nada en 0x623e70 (0x623eff). La escribe la traba de C3 24 (hito 4).
@@ -46,6 +58,16 @@ struct GameUiState
     // 0x7d36880: el flanco del clic derecho. Lo prende WM_RBUTTONDOWN si el botón no estaba abajo, lo apaga
     // WM_RBUTTONUP (02, la tabla del WndProc) y lo apaga quien lo usa.
     bool rightClick = false;
+    // 0x7d3685c: el derecho abajo. Lo prende WM_RBUTTONDOWN, lo apaga WM_RBUTTONUP y lo apaga quien lo usa (el
+    // registro del chat, 0x45d760).
+    bool rightDown = false;
+    // 0x6c8e3c (.data 1): el ataque automático. Lo escriben el F3 30 (el bit 0x01, 0x4dd7d7), el menú de Esc
+    // (0x625632) y la vuelta a la selección (0x4c2533, en 1). Sus lectores de MuRet (MoveHero en 0x59b22f y 0x59b89e y
+    // el picking en 0x59ee4b) lo piden junto con un elegido (0x6c8e30, 0x6c8e38), que MuRet deja en −1.
+    bool autoAttack = true;
+    // 0x7d366d8: la rueda, (short) HIWORD(wParam) / 120 del último WM_MOUSEWHEEL (0x4b4c19). Nadie la vuelve a 0 por
+    // paso: queda hasta que la usa alguien (el registro del chat, 0x479960; el volumen del menú, 0x625782).
+    std::int32_t wheel = 0;
     // 0x77f36d4.
     std::array<std::int32_t, VirtualKeyCount> keyLatches{};
 };

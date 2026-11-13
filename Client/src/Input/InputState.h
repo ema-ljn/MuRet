@@ -45,11 +45,14 @@ public:
     [[nodiscard]] bool WasReleased(MouseButton button) const;
     // Las muescas sumadas desde el último ConsumeEdges.
     [[nodiscard]] float Wheel() const;
+    // Las muescas del último evento de la rueda desde el último ConsumeEdges, o 0 sin ninguno: lo que deja el
+    // último WM_MOUSEWHEEL en el global del original, que no suma.
+    [[nodiscard]] float LastWheel() const;
     // La última posición, en píxeles del framebuffer (InputEvent.h); 0 hasta el primer Motion.
     [[nodiscard]] float MouseX() const;
     [[nodiscard]] float MouseY() const;
     // Lo tecleado desde el último ConsumeEdges, en UTF-8 y en orden, como la rueda (CL5.5): el
-    // texto de cada Text y, en su lugar, un BackspaceChar o un TabChar por cada apretón de esas
+    // texto de cada Text y, en su lugar, un BackspaceChar, un TabChar o un EnterChar por cada apretón de esas
     // teclas (InputEvent.h), para que lo de antes y lo de después de un Tab o un Backspace del
     // mismo paso no se mezclen. Vale hasta el próximo Apply o ConsumeEdges. FocusLost lo borra,
     // como los apretones.
@@ -76,6 +79,7 @@ private:
     std::bitset<MouseButtonCount> m_buttonsPressed;
     std::bitset<MouseButtonCount> m_buttonsReleased;
     float m_wheel = 0.0f;
+    float m_lastWheel = 0.0f;
     float m_mouseX = 0.0f;
     float m_mouseY = 0.0f;
     std::string m_text;

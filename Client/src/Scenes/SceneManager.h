@@ -43,13 +43,16 @@ public:
     // vacíos. beforeSceneFrame publica el prefijo global aun si la escena retiene el dibujo;
     // el caller decide qué frames son originales. afterSceneFrame corre al final de cada vuelta del bucle con la
     // ventana sin minimizar (FinishTheLoop), dibujada o retenida, con una escena y sin un error: la cola de
-    // 0x63945d y el principio de la vuelta siguiente de WinMain (P-C61). La fábrica, el frame, el reloj y el
-    // log viven más.
+    // 0x63945d y el principio de la vuelta siguiente de WinMain (P-C61). afterSceneStep corre después de cada paso de
+    // la escena que salió bien, antes de su pedido de otra: lo que 0x637700 hace en todas las escenas detrás de su
+    // lógica, como los relojes de los mensajes (0x637cf3 y 0x637cf8). Su error queda en Failure, como el de un
+    // paso. La fábrica, el frame, el reloj y el log viven más.
     SceneManager(SceneFactory factory, IFrameTarget& frame, Core::IClock& clock,
                  std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log,
                  std::function<std::optional<SceneId>()> takeSceneOrder = {},
                  std::function<void(Core::Duration)> beforeSceneFrame = {},
-                 std::function<void(Core::Duration)> afterSceneFrame = {});
+                 std::function<void(Core::Duration)> afterSceneFrame = {},
+                 std::function<Core::Expected<void, std::string>()> afterSceneStep = {});
     ~SceneManager() override;
 
     SceneManager(const SceneManager&) = delete;
@@ -116,6 +119,8 @@ private:
     std::function<void(Core::Duration)> m_beforeSceneFrame;
     // Lo de la vuelta del bucle después del frame (FinishTheLoop).
     std::function<void(Core::Duration)> m_afterSceneFrame;
+    // Lo de 0x637700 detrás del paso de cualquier escena.
+    std::function<Core::Expected<void, std::string>()> m_afterSceneStep;
     // La escena que ordenó la red y todavía no entró: la toma el próximo Step.
     std::optional<SceneId> m_networkOrder;
     std::unique_ptr<IScene> m_scene;

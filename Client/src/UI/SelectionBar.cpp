@@ -53,6 +53,11 @@ constexpr int RightTextFromRight = 464;
 constexpr int TextTop = 40;
 constexpr Render::Text::TextStyle RightStyle{Render::Text::FontKind::OtherFace12,
                                              Render::Text::TextColors{0xff27d9ff, 0}};
+// 0x63ec45..0x63ecbf: el aviso del servidor (+0x511), en (x + 7, y + 40) con la misma fuente, blanco sobre 0, antes
+// del 1710. 0x5542f0 no dibuja un texto vacío.
+constexpr int NoticeLeft = 7;
+constexpr Render::Text::TextStyle NoticeStyle{Render::Text::FontKind::OtherFace12,
+                                              Render::Text::TextColors{0xffffffff, 0}};
 // Con el +0x543, los textos 436 y 437 centrados en (320, 330) y (320, 348) de 640 × 480
 // (0x623690), en negro sobre 0x8000ffff.
 constexpr std::size_t BlockedText = 436;
@@ -151,7 +156,8 @@ bool SelectionBar::Covers(Point mouse, App::PixelSize screen) const
     return LayoutSelectionBar(screen).bar.Contains(mouse);
 }
 
-void SelectionBar::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen)
+void SelectionBar::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen,
+                        std::string_view serverNotice)
 {
     Place(screen);
     sprites.SetBlend(Render::BlendMode::Alpha);
@@ -166,6 +172,11 @@ void SelectionBar::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text,
     // 0x620a00(1) y glColor4f(1, 1, 1, 1): la franja dejó la textura apagada y su color (Q-C75).
     sprites.SetBlend(Render::BlendMode::Alpha);
     sprites.SetColor(Render::Color{});
+    if (!serverNotice.empty())
+    {
+        text.Draw(Render::Text::DesignX(m_layout.bar.x + NoticeLeft, screen),
+                  Render::Text::DesignY(m_layout.bar.y + TextTop, screen), serverNotice, NoticeStyle);
+    }
     if (const std::optional<std::string_view> right = TextAt(m_texts, RightText); right && !right->empty())
     {
         text.Draw(Render::Text::DesignX(screen.width - RightTextFromRight, screen),

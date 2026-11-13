@@ -47,7 +47,7 @@ bool IsLogical(Key key)
     return key == Key::Shift || key == Key::Ctrl || key == Key::Alt;
 }
 
-// El byte que Backspace y Tab dejan en el texto tecleado (InputEvent.h); las demás, ninguno.
+// El byte que Backspace, Tab y Enter dejan en el texto tecleado (InputEvent.h); las demás, ninguno.
 std::optional<char> TypedCharOf(Key key)
 {
     switch (key)
@@ -56,6 +56,8 @@ std::optional<char> TypedCharOf(Key key)
         return BackspaceChar;
     case Key::Tab:
         return TabChar;
+    case Key::Enter:
+        return EnterChar;
     default:
         return std::nullopt;
     }
@@ -115,6 +117,7 @@ void InputState::Apply(const InputEvent& event)
         if (std::isfinite(event.wheel))
         {
             m_wheel += event.wheel;
+            m_lastWheel = event.wheel;
         }
         return;
     case InputEvent::Kind::Motion:
@@ -171,6 +174,11 @@ float InputState::Wheel() const
     return m_wheel;
 }
 
+float InputState::LastWheel() const
+{
+    return m_lastWheel;
+}
+
 float InputState::MouseX() const
 {
     return m_mouseX;
@@ -193,6 +201,7 @@ void InputState::ConsumeEdges()
     m_buttonsPressed.reset();
     m_buttonsReleased.reset();
     m_wheel = 0.0f;
+    m_lastWheel = 0.0f;
     m_text.clear();
 }
 
@@ -259,6 +268,7 @@ void InputState::ReleaseEverything()
     m_buttonsDown.reset();
     m_buttonsPressed.reset();
     m_wheel = 0.0f;
+    m_lastWheel = 0.0f;
     m_text.clear();
 }
 

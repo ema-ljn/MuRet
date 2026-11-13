@@ -218,8 +218,14 @@ public:
     void RequestGate(std::uint8_t gate);
     void ConfirmTeleport();
     void RequestCrywolfState();
+    // El chat (C1 00) y el susurro (C1 02) que arma la entrada del chat (Protocol::Chat), como los demás de mundo: sin
+    // un GameServer abierto, un aviso y nada. Lo que lleva no va al log.
+    void SendChat(Protocol::Outgoing packet);
     // El B9 02 de 0x42a760 al cargar el 30 (Protocol::World::WriteCastleSiegeState).
     void RequestCastleSiegeState();
+    // 0x4c609f: el 00 con la escena 2 (el login) pide la lista de servidores, C1 04 F4 02, por el socket que esté
+    // abierto, sin mirar cuál es. En el CS es el saludo (OnConnectHello); acá, el que llega por el GS (Q-C511).
+    void ResendServerListRequest();
 
     // 0x4e3e98: las diez últimas recepciones 1C crudas, antes de admisión y aplicación.
     // Proyección de MuRet para los 1C: pertenece a la sesión y sobrevive Start.
@@ -332,6 +338,12 @@ private:
     void OnDamage(const Network::Packet& packet);
     void OnTeleport(const Network::Packet& packet);
     void OnRegen(const Network::Packet& packet);
+    void OnChat(const Network::Packet& packet);
+    void OnKeyChat(const Network::Packet& packet);
+    void OnWhisper(const Network::Packet& packet);
+    void OnWhisperResult(const Network::Packet& packet);
+    void OnNotice(const Network::Packet& packet);
+    void OnOptionData(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
     void OnMainCheck(const Network::Packet& packet);
     // El F1 02 con 1, con `encrypted` en el flag del paquete.

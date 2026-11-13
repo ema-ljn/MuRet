@@ -1,16 +1,23 @@
 #pragma once
 
 #include "GameLogic/MovementSpeed.h"
+#include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
+#include "Scenes/ChatBubbles.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/SceneId.h"
+#include "UI/ChatInput.h"
+#include "UI/ChatLog.h"
 #include "UI/Dialogs.h"
 #include "UI/GameUiState.h"
+#include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
+#include "UI/SlideBanner.h"
+#include "UI/WhisperSenders.h"
 #include "World/GroundMarks.h"
 #include "World/LeafWeather.h"
 #include "World/ObjectModelStepState.h"
@@ -35,6 +42,9 @@ inline constexpr std::int32_t InitialLeafCount = 30;
 // Los globales de Crywolf (el mapa 34), todos en la .bss.
 struct CrywolfGlobals
 {
+    // 0x723c05: la etapa que leen los dibujos del chat (con 3 o 4 bajan sus renglones). Solo la escriben paquetes
+    // (CL9.5) y la vuelta a la selección (0x42fdc0).
+    std::uint8_t stage = 0;
     // 0x723c04: el estado del evento que lee 0x42fe50. Lo cambia solo el paquete de 0x42fe80 (CL9.5) y lo vuelve
     // a 0 la vuelta a la selección (0x42fdc0). Con 0, la carga del 34 toma EncTerrain35.att y TerrainLight
     // (0x61a560) y el dibujo de sus objetos, los casos del estado 0 (Q-C340).
@@ -51,6 +61,34 @@ struct CrywolfGlobals
     std::uint8_t sandOverlay = 0;
 };
 
+// El chat (CL8 hito 3; 06 § El chat), que vive del login al juego: el registro nuevo (el objeto de 0x576350c) y el
+// área vieja y los avisos (0x77d9868 y 0x77f3b88 con sus relojes). Lo que escriben sus dibujos va en HudState.
+struct ChatRuntime
+{
+    UI::ChatLogState log{};
+    UI::MessageAreaState area{};
+    // 0x77f3b78 (.bss 0): el sonido de los avisos del filtro. Lo cambian el F3 30 (0x4dd570) y el menú de Esc
+    // (0x62567b).
+    bool noticeSound = false;
+    // 0x77f3b98 (.bss 0): con 1, el 02 no hace nada (0x4e34f1). Lo escriben /whisper off y on y el menú de Esc.
+    bool whisperBlocked = false;
+    // 0x57678c4: los 11 bytes del destino del último susurro que salió (0x4b87e9, al mandar). El 0C con 0 los da de
+    // nombre al error (0x4e3684); sin ninguno, vacío como la .bss.
+    std::string lastWhisperTarget{};
+    // 0x77997f8 y 0x77f3b9c: los que susurraron con el nivel propio menor que 10 (0x554d20).
+    UI::WhisperSenders whisperSenders{};
+    // 0x77e1be0: los globos.
+    ChatBubbleTable bubbles{};
+    // +0x510 y +0x511 de la barra de la selección (la ventana +0x7f50 de la UI nueva, 0x7d53728): el primer 0D con 1
+    // que llega en la selección (0x63eda0) y no se vuelve a escribir, porque la barra se arma una vez (0x63e6e0).
+    // Vacío, +0x510 en 0.
+    std::optional<std::string> selectionNotice{};
+    // 0x6c7a8c (.data 1): los carteles de Slide.bmd prendidos. Lo apaga el bit 0x10 del F3 30 (0x4dd7fa).
+    bool slidesOn = true;
+    // La entrada del chat (los EDIT de [0x57634f8], sus buffers, el freno y las macros).
+    UI::ChatInputState input{};
+};
+
 // Los globales del HUD del juego (0x5a7320 y sus hijos, CL8 hito 2), en la .bss salvo los que dicen otra cosa.
 struct HudState
 {
@@ -58,21 +96,35 @@ struct HudState
     std::int32_t partyCount = 0;
     // 0x5767960: la vida del invocado, de 0 a 100. La escribe su paquete (CL9.2).
     std::int32_t summonLife = 0;
-    // 0x77f3b74: el tiempo de la macro (hito 3).
+    // 0x77f3b74: el freno de las macros. Una que llega al freno lo deja en 0x64 (0x5a1ea1) y 0x637d44 lo baja de a
+    // uno por paso; con más de 0 no sale ninguna (0x5a116f) y el HUD dibuja "Macro Time" (0x5a7369).
     std::int32_t macroTime = 0;
     QuickSlots quickSlots{};
     // 0x6c8e5c (.data −1) y 0x6c8e64 (.data 0x80000000): el color del texto y el del fondo que lee 0x465950. Cada
     // texto del HUD deja los suyos y el que sigue sin poner otros sale con ellos, también en el frame siguiente.
     Render::Text::TextColors textColors{.text = 0xffffffffu, .background = 0x80000000u};
-    // 0x77f3b66: lo prende un aviso de durabilidad (0x5aac20) y lo apaga la barra (0x5a9290). Lo lee el inventario
+    // 0x77f3b66: lo prenden un aviso de durabilidad (0x5aac20) y un globo (0x555b00), y lo apaga la barra (0x5a9290).
+    // Lo leen 0x554000, que con él corre la y de los textos (MuRet, solo en los globos: 08, P-C83), y el inventario
     // (hito 4).
     std::uint8_t durabilityWarning = 0;
-    // 0x77f31b8 y 0x77f31bc: el tamaño en píxeles del texto de las flechas o los virotes (0x5ab810).
+    // 0x77f31b8 y 0x77f31bc: el tamaño en 640 × 480 del último texto que lo guardó: las flechas o los virotes
+    // (0x5ab810), el área vieja (0x5554e0) y los avisos (0x554810); el de un globo (0x555b00) es en píxeles.
     std::int32_t arrowsTextWidth = 0;
     std::int32_t arrowsTextHeight = 0;
     // 0x77f3b5c: con el botón izquierdo abajo, el cursor 0xa (CursorDontMove) en vez del 3 (0x5ac7a2). Quién lo
     // escribe, sin leer: queda en 0.
     std::uint8_t pushCursor = 0;
+    // Lo que escriben los dibujos del chat (hito 3): el marco del registro (su esquina la pone el paso), los anchos y
+    // los parpadeos del área vieja y de los avisos.
+    UI::ChatLogFrame chatFrame{};
+    UI::MessageFrameState messageFrame{};
+    // La fuente del último SelectObject sobre el DC de los textos (0x57634f4), que miden 0x45bb20, 0x555190 y
+    // 0x554610. 0x61bcd0 crea el DC sin ninguna (la del sistema) y el login dibuja con una antes del primer mensaje:
+    // MuRet empieza con la normal.
+    Render::Text::FontKind dcFont = Render::Text::FontKind::Normal;
+    // [0x5763528]: el cartel de Slide.bmd (0x46aea0), que dibuja el 15 (0x46b090) y escribe al dibujar (la opacidad,
+    // el corrimiento, el texto que pasa y 0x5762ee4). Lo llenan el timer 0x3eb y el 0D, y lo pasa el paso de la UI.
+    UI::SlideBanner slides{};
 };
 
 struct WorldRuntime
@@ -101,6 +153,7 @@ struct WorldRuntime
     UI::DialogState dialogs{};
     UI::GameUiState ui{};
     HudState hud{};
+    ChatRuntime chat{};
     GameMovementState movement{};
     // Los cinco selectores del mouse arrancan en -1 en la .data.
     std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};

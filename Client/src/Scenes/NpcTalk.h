@@ -22,7 +22,8 @@ inline constexpr std::uint32_t NpcTalkBlockedFlag = 0x10000000;
 // 0x5674c8..0x5695b3, el caso 2 de 0x5650c0: el máximo de MouseUpdateTime en 12; fuera de Crywolf activo, el héroe
 // parado (0x4f2250) y +0x378 en 0; con el NPC de 0x6c8e54 (+0x376 de 0xcd o más), el aviso de nivel del 0xee, las
 // banderas de los paneles, la ventana de las misiones cerrada, el C3 A0 si las misiones no tienen la clase, el aviso
-// del 0x101 y el C3 30. Al final, 0x6eeda8 y 0x6c8e54 en −1. Los altares de Crywolf para el elfo (0x567b6d) cortan:
-// son del hito 11.
+// del 0x101 y el C3 30; en Crywolf activo, antes del C3 30, el clic en un altar (0x567b00..0x567c23,
+// Scenes::ClickTheCrywolfAltar, CL9 hito 11), que con una elfa muestra el estado del altar en vez de hablar. Al final,
+// 0x6eeda8 y 0x6c8e54 en −1.
 [[nodiscard]] Core::Expected<void, std::string> TalkToTheNpc(ActorState& hero, const HeroMovementContext& context);
 } // namespace Client::Scenes

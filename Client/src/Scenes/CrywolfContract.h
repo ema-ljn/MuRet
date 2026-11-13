@@ -95,8 +95,8 @@ enum class AltarClick : std::uint8_t
 // 0x567b00..0x567c23, la llegada al blanco 0x6c8e54 de 0x5650c0 con un altar (los tipos 0x204..0x208, el altar 0..4):
 // con una elfa, el altar contratado (0x4365a0, el nibble alto en 1) da 0x435b00(0x34); sin contratos (el nibble bajo
 // en 0), 0x435b00(0x35); con contratos, 0x435b00(0x38, 0, clave, altar) y 0x435b00(0x39, 1, clave, −1), con la clave
-// +0x1f4 del blanco con signo. La llama 0x5650c0, que MuRet no tiene en esta rama: el clic queda cortado ahí (P-C249),
-// cableado al juntarse con el hito 2.
+// +0x1f4 del blanco con signo. La llama la llegada a un NPC con Crywolf activo (0x5650c0 con +0x379 en 2,
+// Scenes::TalkToTheNpc), antes del C1 30.
 [[nodiscard]] Core::Expected<AltarClick, std::string> ClickTheCrywolfAltar(WorldRuntime& runtime,
                                                                            const Data::Text::TextTable* texts,
                                                                            const ActorState& hero,

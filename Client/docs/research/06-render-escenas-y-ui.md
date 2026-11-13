@@ -1627,8 +1627,11 @@ el `BD 03` del servidor la sienta.
   una elfa (`+0x1d4 & 7` distinto de 2), el `C1 30` de hablar de siempre (`0x567c2d`); con ella, el altar contratado
   (`0x4365a0`: el nibble alto en 1) da `0x435b00(0x34)`; sin contratos (el bajo en 0), `0x35`; si no, `0x38` con la
   clave `+0x1f4` del altar (con `MOVSX`) y el altar, y `0x39` en el renglón 1: la pregunta. Después sigue en
-  `0x569573`. MuRet lo tiene en `Scenes::ClickTheCrywolfAltar`, que nadie llama todavía: la llegada `0x5650c0` corta
-  en `GameMovement` y se cablea al juntarse con el hito 2 (08, P-C249).
+  `0x569573`. MuRet lo tiene en `Scenes::ClickTheCrywolfAltar`, que llama la llegada a un NPC del hito 2
+  (`Scenes::TalkToTheNpc`, el caso 2 de `0x5650c0`) antes del `C1 30`: con `Contract` sigue en `0x569573` sin hablar;
+  con `Talk`, el `30` de `0x567c2d`; con otro blanco, el de `0x568288`. El camino hasta un altar todavía corta: con
+  Crywolf activo, el A* de `0x4eac00` pasa una bandera a `0x4ead70` (`0x4eac41`) que `GameLogic::PathFinder` no tiene
+  (08, P-C249).
 - **El paso** (`0x435c5c..0x436220`), con el izquierdo abajo y las cajas sin los bordes. La ventana 1: el No en
   (`0x14a`, `0x180`) × (`0xfa`, `0x118`) deja `0x723bdc` en 1 y llama a `0x435b00(2)` (la ventana 2 con 1952);
   después el Sí en (`0xfa`, `0x130`) × (`0xfa`, `0x118`): con la mascota `0x1c14`, `0x1c15` o `0x1c37` en `+0x318`

@@ -435,6 +435,8 @@ amigos. **Desbloquea:** 10.
       paso `0x435c5c` con el `C1 06 BD 03` y el dibujo `0x436274`; el clic en un altar, `0x567b00`, es
       `ClickTheCrywolfAltar` y se cablea en `0x5650c0` al juntarse con el hito 2. El `BD 0C`, leído entero, queda en la
       CL11. Q-C1347, Q-C1348, P-C249.)
+      (Fase 5: juntado el hito 2 en `f2dd89b`; `0x5650c0` llama a `ClickTheCrywolfAltar` en `0x567b00`, antes del
+      `C1 30`. El camino hasta un altar, la bandera del A* de `0x4eac41`, sigue cortando. P-C249.)
 - [ ] **Las reglas por mapa:** el arma de Blood Castle (`0x50de84`), las trampas de Chaos Castle (`0x405597`,
       `0x405d49`), el `AF 02` (`0x4fbee8`; decía `AF 01`), Kalima, y Crywolf (`BD`, `0x42fe80`, `0x42fe50`,
       `0x430a40`, `0x61a6f4`; P-C58).

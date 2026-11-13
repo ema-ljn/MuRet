@@ -427,44 +427,91 @@ TEST(NpcTalkTest, TheQuestWindowClosesAndTheQuestListGoesFirst)
     EXPECT_EQ(tested->random.State(), expected.State());
 }
 
-// 0x5674d2 y 0x567b00..0x5688fd: con Crywolf activo el héroe no se para; el elfo frente a un altar corta (hito 11) y
-// los demás le hablan. En el 34 sin el evento, un altar no habla, pero 0x6c8e54 vuelve a −1.
+// 0x5674d2 y 0x567b00..0x5688fd: con Crywolf activo el héroe no se para; frente a un altar, una elfa no habla (lo que
+// muestra, abajo) y los demás sí. En el 34 sin el evento, un altar no habla, pero 0x6c8e54 vuelve a −1; en Lorencia y
+// en Devias, con cualquier etapa, un modelo de altar es un NPC más.
 TEST(NpcTalkTest, CrywolfAltarsTalkOnlyWhenTheyCan)
 {
     struct Case
     {
+        std::int32_t map = 34;
         std::uint8_t stage = 0;
         std::uint16_t model = 0;
         std::uint8_t characterClass = 0;
         bool talks = false;
-        bool cut = false;
     };
-    for (const Case& tested :
-         {Case{3, 0x204, 2, false, true}, Case{4, 0x208, 0, true, false}, Case{3, 0x1f0, 2, true, false},
-          Case{0, 0x206, 0, false, false}, Case{0, 0x209, 0, true, false}})
+    for (const Case& tested : {Case{34, 3, 0x204, 2, false}, Case{34, 4, 0x208, 0, true}, Case{34, 3, 0x1f0, 2, true},
+                               Case{34, 0, 0x206, 0, false}, Case{34, 0, 0x209, 0, true}, Case{0, 3, 0x204, 2, true},
+                               Case{2, 4, 0x206, 2, true}})
     {
-        SCOPED_TRACE(std::format("{} {:#x} {}", tested.stage, tested.model, tested.characterClass));
+        SCOPED_TRACE(std::format("{} {} {:#x} {}", tested.map, tested.stage, tested.model, tested.characterClass));
         const auto hero = std::make_unique<TalkingHero>();
         auto& runtime = hero->world.Runtime();
-        runtime.map = 34;
+        runtime.map = tested.map;
         runtime.crywolf.stage = tested.stage;
         hero->Npc().type = tested.model;
         hero->Hero().characterClass = tested.characterClass;
+        hero->texts = Client::Tests::MakeTextTable(
+            {{2002, "altar tomado"}, {2003, "altar sin contratos"}, {2006, "quedan %d"}, {2007, "contratar?"}});
         const CrtRandom start = hero->random;
         const auto arrived = hero->Arrive();
-        if (tested.cut)
-        {
-            ASSERT_FALSE(arrived.HasValue());
-            EXPECT_NE(arrived.Error().find("0x567b6d"), std::string::npos) << arrived.Error();
-            continue;
-        }
         ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
         EXPECT_EQ(hero->events, tested.talks ? std::vector<std::string>{"30 8123"} : std::vector<std::string>{});
         EXPECT_EQ(runtime.movement.chosenNpc, -1);
-        EXPECT_EQ(hero->Hero().movement, tested.stage == 0 ? 0 : 1);
-        if (tested.stage != 0)
+        const bool crywolf = tested.map == 34 && tested.stage != 0;
+        EXPECT_EQ(hero->Hero().movement, crywolf ? 1 : 0);
+        if (crywolf)
         {
             EXPECT_EQ(hero->random.State(), Advanced(start, OwnRecordRandoms + (tested.talks ? C3Randoms : 0)).State());
+        }
+    }
+}
+
+// 0x567b4c..0x567c23 (CL9 hito 11): una elfa frente a un altar, con Crywolf activo, no manda el C1 30: con el altar
+// contratado, 0x435b00(0x34); sin contratos, 0x435b00(0x35); si no, 0x435b00(0x38) con los contratos que quedan y la
+// pregunta 0x39 con la clave del altar. Las tres siguen en 0x569573 (0x6eeda8 por el +0x376 y 0x6c8e54 en −1).
+TEST(NpcTalkTest, AnElfAtACrywolfAltarSeesItsStateInsteadOfTalking)
+{
+    struct Case
+    {
+        std::uint8_t altar = 0;
+        std::string_view first;
+        std::string_view second;
+        std::uint8_t window = 0;
+        std::int32_t value = 0;
+    };
+    constexpr std::uint16_t AltarKey = 0x8140;
+    for (const Case& tested : {Case{0x13, "altar tomado", "", 2, 0}, Case{0x20, "altar sin contratos", "", 2, 0},
+                               Case{0x03, "quedan 3", "contratar?", 1, static_cast<std::int16_t>(AltarKey)}})
+    {
+        SCOPED_TRACE(std::format("{:#x}", tested.altar));
+        for (const std::uint8_t stage : {std::uint8_t{3}, std::uint8_t{4}})
+        {
+            SCOPED_TRACE(stage);
+            const auto hero = std::make_unique<TalkingHero>();
+            auto& runtime = hero->world.Runtime();
+            runtime.map = 34;
+            runtime.crywolf.stage = stage;
+            runtime.crywolf.ui.altars[2] = tested.altar;
+            hero->Npc().type = 0x206;
+            hero->Npc().key = AltarKey;
+            hero->Npc().word376 = 0xe5;
+            hero->Hero().characterClass = 2;
+            hero->texts = Client::Tests::MakeTextTable(
+                {{2002, "altar tomado"}, {2003, "altar sin contratos"}, {2006, "quedan %d"}, {2007, "contratar?"}});
+            const CrtRandom start = hero->random;
+            const auto arrived = hero->Arrive();
+            ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
+            EXPECT_TRUE(hero->events.empty());
+            const auto& ui = runtime.crywolf.ui;
+            EXPECT_EQ(std::string_view(ui.contractLines[0].data()), tested.first);
+            EXPECT_EQ(std::string_view(ui.contractLines[1].data()), tested.second);
+            EXPECT_EQ(ui.byte723a44, tested.window);
+            EXPECT_EQ(ui.dwords723bdc[1], tested.value);
+            EXPECT_EQ(runtime.movement.chosenNpc, -1);
+            EXPECT_EQ(runtime.byte6eeda8, 1);
+            EXPECT_EQ(hero->Hero().movement, 1);
+            EXPECT_EQ(hero->random.State(), Advanced(start, OwnRecordRandoms).State());
         }
     }
 }

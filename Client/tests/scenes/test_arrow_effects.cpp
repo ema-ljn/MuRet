@@ -558,4 +558,55 @@ TEST(ArrowEffectsTest, TheFifthSubtypeBurnsBlue)
         EXPECT_TRUE(arrow.alive);
     }
 }
+
+// Los misiles de los monstruos (0x5037d0 sin blanco y 0x5040a9 con blanco, este sin el 0x180): 0x53e2b0(c, o, 0, 0, 0,
+// 0) va a 0x53d9a0 con las manos de +0x2b8/+0x2d8, sin el registro propio; con el arco 0xa12 en la izquierda sale la
+// 0xdb del monstruo, con los 3.848 rand() de la salida del alta como única diferencia con las manos vacías. En
+// Lorencia y en Devias.
+TEST(ArrowEffectsTest, TheMonsterMissilesShootWithTheirHands)
+{
+    constexpr std::array<std::uint16_t, 4> Missiles{0x168, 0x175, 0x17a, 0x180};
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const std::uint16_t type : Missiles)
+        {
+            for (const bool withTarget : {true, false})
+            {
+                SCOPED_TRACE(::testing::Message() << "mapa " << map << ", el tipo " << type
+                                                  << (withTarget ? ", con blanco" : ", sin blanco"));
+                const auto shoot = [&](bool armed)
+                {
+                    auto tested = std::make_unique<ArrowWorld>(map);
+                    ActorState& monster = tested->world.Actors()[OtherSlot];
+                    monster = ActorState{};
+                    monster.alive = true;
+                    monster.type = type;
+                    monster.byte88 = 2;
+                    monster.word376 = 0xffff;
+                    monster.position = {1000.0f, 1000.0f, 0.0f};
+                    monster.animation.action = 1;
+                    monster.byte381 = 14;
+                    monster.attackTarget = withTarget ? static_cast<std::uint16_t>(HeroSlot) : NoTarget;
+                    monster.hands[0].model = 0xffff;
+                    monster.hands[1].model = armed ? std::uint16_t{0xa12} : std::uint16_t{0xffff};
+                    const auto struck = StepTheAttack(monster, OtherSlot, tested->Context());
+                    EXPECT_TRUE(struck.HasValue()) << ErrorOf(struck);
+                    return tested;
+                };
+                const auto bare = shoot(false);
+                const auto armed = shoot(true);
+
+                const bool shoots = !withTarget || type != 0x180;
+                EXPECT_EQ(DrawsSince(Seed, armed->random) - DrawsSince(Seed, bare->random), shoots ? ArrowCreation : 0);
+                const auto arrows = armed->Arrows();
+                ASSERT_EQ(arrows.size(), shoots ? 1u : 0u);
+                if (!shoots)
+                    continue;
+                EXPECT_EQ(arrows.front()->type, 0xdb);
+                EXPECT_EQ(arrows.front()->ownerContext, &armed->world.Actors()[OtherSlot]);
+                EXPECT_EQ(arrows.front()->byte89, 0);
+            }
+        }
+    }
+}
 } // namespace

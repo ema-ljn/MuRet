@@ -11,6 +11,8 @@
 #include "UI/ChatInput.h"
 #include "UI/FriendModel.h"
 #include "UI/FriendWindows.h"
+#include "UI/LetterModel.h"
+#include "UI/LetterWindows.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
@@ -31,11 +33,11 @@
 #include <vector>
 
 // El dibujo de la ventana de amigos (CL9 hito 9; 06 § HUD y ventanas, "Los amigos"): 0x4a2620 con los encabezados
-// (0x4a2460), el botón del estado (0x463090), la pestaña de amigos (0x49cc20) o la de ventanas (0x49e7f0) con su lista
-// (0x47a810, la barra 0x461890 y los renglones 0x461cd0 y 0x462a60), y la caja de agregar (0x4a3750) con su EDIT
-// (0x468320). La ventana de amigos queda en (0x186, 0x106), de 250 × 170: el área de adentro en (395, 283) de 240 ×
-// 144, las pestañas en (395, 304) de 240 × 125 y sus listas con el borde de abajo en 407, de 86 de alto. Los nombres
-// y los textos son inventados.
+// (0x4a2460), el botón del estado (0x463090), la pestaña de amigos (0x49cc20), la de las cartas (0x4a0a30, CL9 hito 10)
+// o la de ventanas (0x49e7f0) con su lista (0x47a810, la barra 0x461890 y los renglones 0x461cd0, 0x4641f0 y 0x462a60),
+// y la caja de agregar (0x4a3750) con su EDIT (0x468320). La ventana de amigos queda en (0x186, 0x106), de 250 × 170:
+// el área de adentro en (395, 283) de 240 × 144, las pestañas en (395, 304) de 240 × 125 y sus listas con el borde de
+// abajo en 407, de 86 de alto. Los nombres y los textos son inventados.
 namespace
 {
 using Client::App::PixelSize;
@@ -517,20 +519,137 @@ TEST_F(FriendWindowsDrawTest, TheHeaderUnderTheMouseIsWhite)
                    });
 }
 
-// La pestaña de las cartas (0x4a0a30) es del hito 10: el dibujo corta con la dirección.
-TEST_F(FriendWindowsDrawTest, TheLettersTabIsACut)
+// La pestaña de las cartas (0x4a0a30, CL9 hito 10) con dos cartas, la primera marcada y sin leer, la segunda leída y
+// elegida, todas marcadas y el orden por la fecha: el negro de abajo, la barra de la lista sin mezcla, los renglones
+// (0x4641f0) de abajo hacia arriba con su casilla, su sobre y sus tres textos en cajas, la franja de las columnas con
+// sus tres rayas y sus marcas, la casilla de todas y el sobre, los títulos (el del orden en blanco) y los cuatro
+// botones; después, lo de la ventana de amigos.
+TEST_F(FriendWindowsDrawTest, TheLettersTabIsDrawnLikeTheOriginal)
 {
     OpenFriends();
+    Client::UI::AddALetter(m_manager.letterModel, 1, "Tordo", "Asado", "2026/11/13", "21:30", 0);
+    Client::UI::AddALetter(m_manager.letterModel, 2, "Calandria", "Mate", "2026/11/12", "08:15", 1);
+    Client::UI::RefreshTheLettersTab(m_manager);
+    OldWindow& tab = Friends().tabs[Client::UI::LettersTabNumber];
+    ASSERT_EQ(tab.tab.letters.size(), 2u);
+    tab.tab.letters[0].selected = 1;
+    tab.tab.allChecked = 1;
+    Client::UI::SelectInTheList(tab.tab.list, 2, 2);
+    m_manager.letterModel.sortMode = Client::UI::ByDateLetters;
     Friends().friends.currentTab = Client::UI::LettersTabNumber;
+    // 0x463190: la columna de la marca de 0x19 y las de los textos de 5 letras, + 8.
+    ASSERT_EQ(tab.tab.list.headers, 0x19);
+    ASSERT_EQ(tab.tab.list.nameWidth, 38);
+    ASSERT_EQ(tab.tab.list.placeWidth, 38);
+    ASSERT_EQ(tab.tab.list.subjectWidth, 38);
 
-    const auto drawn = Client::UI::DrawTheFriendsWindow(m_manager, Friends(), Context(),
-                                                        OldWindowDrawView{.friendsOpen = true, .texts = &m_texts});
+    const auto drawn = Draw();
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x4a2620"), std::string::npos);
-    EXPECT_NE(drawn.Error().find("0x4a0a30"), std::string::npos);
-    // 0x490390 lo pasa para arriba.
-    EXPECT_FALSE(Draw().HasValue());
+    const TextureSlot button{Client::UI::WindowButtonSlot};
+    const TextureSlot mail{0x64b};
+    std::vector<ExpectedCommand> expected{
+        {std::nullopt, BlendMode::Alpha, 2},   // la sombra del marco y el negro debajo de la lista
+        {ScrollbarSlot, BlendMode::Opaque, 2}, // la barra
+        {std::nullopt, BlendMode::Opaque, 2},
+        {ScrollbarSlot, BlendMode::Opaque, 3},
+        {std::nullopt, BlendMode::Opaque, 4}, // "Tordo": la casilla, marcada, el sobre y los textos
+        {CheckSlot, BlendMode::Alpha, 1},
+        {mail, BlendMode::Alpha, 1},
+        {TextMarkerSlot, BlendMode::Alpha, 3},
+        {std::nullopt, BlendMode::Alpha, 1}, // "Calandria", elegida: la franja
+        {std::nullopt, BlendMode::Opaque, 4},
+        {mail, BlendMode::Alpha, 1},
+        {TextMarkerSlot, BlendMode::Alpha, 3},
+        {std::nullopt, BlendMode::Alpha, 9},  // la franja de las columnas, las tres rayas y las tres marcas
+        {std::nullopt, BlendMode::Opaque, 4}, // la casilla de todas, marcada, y el sobre
+        {CheckSlot, BlendMode::Alpha, 1},
+        {mail, BlendMode::Alpha, 1},
+        {TextMarkerSlot, BlendMode::Alpha, 3}, // los títulos de las columnas
+    };
+    for (std::size_t at = 0; at < 4; ++at)
+    {
+        expected.push_back({button, BlendMode::Alpha, 1});
+        expected.push_back({TextMarkerSlot, BlendMode::Alpha, 1});
+    }
+    expected.push_back({std::nullopt, BlendMode::Alpha, 14});
+    expected.push_back({TextMarkerSlot, BlendMode::Alpha, 4});
+    expected.push_back({std::nullopt, BlendMode::Opaque, 4});
+    expected.push_back({TextureSlot{Client::UI::WindowTitleSlot}, BlendMode::Alpha, 1});
+    ExpectCommands(expected);
+
+    // 0x4a0ac1: el 7 en (395, 304 + 86 + 0x12) de 240 × (125 − 86 − 18).
+    ExpectBox(QuadOf(0, 1), 395.0f, 408.0f, 635.0f, 429.0f);
+    // 0x4641f0: la casilla en (x + 1, y − 1) y el sobre de 13 × 9 en (x + 0xb, y − 1); el de la leída, de 13 × 10 en
+    // y − 2 y desde 0,28125 de la textura.
+    ExpectBox(QuadOf(4, 0), 396.0f, 336.0f, 405.0f, 337.0f);
+    ExpectBox(QuadOf(6), 406.0f, 336.0f, 419.0f, 345.0f);
+    EXPECT_FLOAT_EQ(VertexOf(6, 0, 0).v, 0.0f);
+    EXPECT_FLOAT_EQ(VertexOf(6, 0, 2).u, 0.8125f);
+    EXPECT_FLOAT_EQ(VertexOf(6, 0, 2).v, 0.28125f);
+    ExpectBox(QuadOf(8), 395.0f, 321.0f, 623.0f, 334.0f);
+    ExpectBox(QuadOf(9, 0), 396.0f, 323.0f, 405.0f, 324.0f);
+    ExpectBox(QuadOf(10), 406.0f, 322.0f, 419.0f, 332.0f);
+    EXPECT_FLOAT_EQ(VertexOf(10, 0, 0).v, 0.28125f);
+    EXPECT_FLOAT_EQ(VertexOf(10, 0, 2).v, 0.59375f);
+    // 0x4a0c53..0x4a0e70: las rayas en x + 0x19, x + 0x19 + 38 y x + 0x19 + 76, de 125 − 22 − 17 desde y + 0x11, y sus
+    // marcas del 14, de 10, en y + 3.
+    ExpectBox(QuadOf(12, 3), 420.0f, 321.0f, 421.0f, 407.0f);
+    ExpectBox(QuadOf(12, 4), 458.0f, 321.0f, 459.0f, 407.0f);
+    ExpectBox(QuadOf(12, 5), 496.0f, 321.0f, 497.0f, 407.0f);
+    EXPECT_EQ(VertexOf(12, 5).color, PaletteOf(2));
+    ExpectBox(QuadOf(12, 6), 420.0f, 307.0f, 421.0f, 317.0f);
+    ExpectBox(QuadOf(12, 8), 496.0f, 307.0f, 497.0f, 317.0f);
+    EXPECT_EQ(VertexOf(12, 6).color, PaletteOf(14));
+    // 0x4a0e91..0x4a0efd: la casilla de todas en (x + 1, y + 3) y el sobre en (x + 0xb, y + 3).
+    ExpectBox(QuadOf(13, 0), 396.0f, 307.0f, 405.0f, 308.0f);
+    ExpectBox(QuadOf(15), 406.0f, 307.0f, 419.0f, 316.0f);
+
+    // El nombre 4 después de la marca en una caja de 38 − 4, la fecha sin "20" centrada en la de 38 (48 columnas, desde
+    // la 5) y el asunto 4 después de la fecha, en lo que queda hasta la barra: 240 − 13 − 101 − 4.
+    ExpectTexts(0, {
+                       {"Tordo", 424, 337, Dim},
+                       {"26/11/13", 458, 337, Dim},
+                       {"Asado", 500, 337, Dim},
+                       {"Calandria", 424, 324, Black},
+                       {"26/11/12", 458, 324, Black},
+                       {"Mate", 500, 324, Black},
+                       {"t1028", 424, 307, Dim},
+                       {"t1029", 462, 307, White},
+                       {"t1030", 500, 307, Dim},
+                   });
+    const std::vector<std::tuple<int, int>> boxes{{0, 34}, {5, 38}, {0, 122}, {0, 34}, {5, 38}, {0, 122}};
+    for (std::size_t at = 0; at < boxes.size(); ++at)
+    {
+        SCOPED_TRACE(at);
+        EXPECT_TRUE(m_text.texts[at].windowed);
+        EXPECT_EQ(m_text.texts[at].firstColumn, std::get<0>(boxes[at]));
+        EXPECT_EQ(m_text.texts[at].columns, std::get<1>(boxes[at]));
+    }
+}
+
+// En 800 × 600 las cajas de los textos de un renglón van en píxeles: ftol(38 · 1,25 − 4), ftol(38 · 1,25) y
+// ftol(122 · 1,25). El título bajo el mouse va en blanco.
+TEST_F(FriendWindowsDrawTest, TheLetterBoxesAreInPixels)
+{
+    OpenFriends();
+    Client::UI::AddALetter(m_manager.letterModel, 1, "Tordo", "Asado", "2026/11/13", "21:30", 0);
+    Client::UI::RefreshTheLettersTab(m_manager);
+    Friends().friends.currentTab = Client::UI::LettersTabNumber;
+    m_sprites.Begin(PixelSize{800, 600});
+
+    Client::UI::DrawTheFriendsWindow(
+        m_manager, Friends(), Context(),
+        OldWindowDrawView{.mouseX = 500, .mouseY = 310, .friendsOpen = true, .texts = &m_texts});
+
+    ASSERT_GE(m_text.texts.size(), 6u);
+    EXPECT_EQ(m_text.texts[0].columns, 43);
+    // (47 − 48) / 2 trunca hacia el 0: la fecha desde su columna 0, con sus 48.
+    EXPECT_EQ(m_text.texts[1].firstColumn, 0);
+    EXPECT_EQ(m_text.texts[1].columns, 48);
+    EXPECT_EQ(m_text.texts[2].columns, 152);
+    // El mouse en (500, 310): sobre la columna del asunto, desde x + 0x19 + 76 de 38 × 0x13.
+    ExpectTexts(3, {{"t1028", 424, 307, Dim}, {"t1029", 462, 307, Dim}, {"t1030", 500, 307, White}});
 }
 
 // La caja de agregar (0x4a3750): los dos botones y, con la mezcla normal, el EDIT (0x468320): con +0x4c & 8 el negro

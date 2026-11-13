@@ -1191,13 +1191,23 @@ los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
   del 2 en `y + 0xe` y `y + 0x1d`; abajo, el negro de 19 de los botones y su raya; el 1000 y el 1005 en `(x + 3, y + 3)`
   y `(x + 3, y + 0x12)`, en `0xffc8dce6` (solo el color del texto) y alineados a la derecha en el ancho del 1000 (el
   modo 3 de `0x467060`: el texto en la columna caja − cx del DIB); los tres EDIT (`0x468320`, el del cuerpo con su
-  barra `0x468970`); sin mezcla, los botones `+0xa44` y `+0xacc` y, con `+0xb0` en 1, `+0xb54` y `+0xbdc`. La vtable
+  barra `0x468970`); sin mezcla, los botones `+0xa44` y `+0xacc` y, con `+0xb0` en 1, `+0xb54` y `+0xbdc`. **La
+  pestaña de las cartas** (`0x4a0a30`, desde `0x4a2620` en `UI/FriendWindowsDraw`; el 8 y el 9 del principio son los de
+  las otras pestañas): el negro de abajo, la lista sin mezcla (`0x47eed0`, la plantilla `0x47a810` con los elementos de
+  `0x138`; la barra `0x463db0` = `0x461890`), la franja de las columnas como la de amigos, con tres rayas y tres marcas
+  al final de la marca (`+0x130`, `0x19`), del nombre y de la fecha (FILD de x y FIADD de la suma), la casilla de
+  todas (`+0x414`, `0x463090`) en `(x + 1, y + 3)`, `win_mail.tga` (`0x64b`) de 13 × 9 en `(x + 0xb, y + 3)`, los
+  títulos 1028, 1029 y 1030 en `x + 4` después de su columna (en blanco el del mouse, de `0x13` de alto, o el del
+  orden de `[0x576351c]`) y, sin mezcla, los cuatro botones. Cada renglón (`0x4641f0`): el elegido como el de amigos,
+  su casilla (`+0` en 1) en `(x + 1, y − 1)`, el sobre (el de una leída, `+0x134` en 1, de 13 × 10 desde 0,28125 en
+  `y − 2`), y con `0x465950` directo el nombre en `x + 0x19 + 4`, en una caja de `ftol(ancho · rx − 4)` píxeles (el
+  modo 5 de `0x467060`: desde la columna 0 del texto, cortado a la derecha), la fecha sin sus dos primeros caracteres
+  (`+0x115`) centrada en la suya (el modo 2) y el asunto 4 después, en lo que queda hasta la barra. La vtable
   + `0x54` del marco, al final, dibuja el retrato en la de leer con `+0x774` en 2 o más (`0x49a1d0`) y en la de
   escribir con `+0xb0` en 1 (`0x498800`): corta (P-C212). Los renglones del original están partidos en el ancho de la
   lista (P-C218).
 
-El paso y el ubicado de las tres ventanas siguen el orden del ASM. El dibujo de la pestaña de las cartas
-(`0x4a0a30`) corta (P-C213); los renglones de los chats en la lista de ventanas de F5
+El paso y el ubicado de las tres ventanas siguen el orden del ASM. Los renglones de los chats en la lista de ventanas de F5
 (`+0xdc`), también (P-C215). Con el retrato del juego sin portar, abrir una carta o la de
 escribir corta (P-C212); el `CA` arma el chat y abre la conexión de la sala (`App::IChatRoomLinks`; 04).
 

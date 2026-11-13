@@ -353,10 +353,7 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
     else if (window.kind == OldWindowKind::AddFriendBox)
         DrawTheAddFriendBox(manager, window, context, view);
     else if (window.kind == OldWindowKind::FriendsWindow)
-    {
-        if (auto drawn = DrawTheFriendsWindow(manager, window, context, view); !drawn.HasValue())
-            return drawn;
-    }
+        DrawTheFriendsWindow(manager, window, context, view);
     else if (window.kind == OldWindowKind::WindowList)
     {
         if (auto rows = DrawTheListRows(window, context); !rows.HasValue())

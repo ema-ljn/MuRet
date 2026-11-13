@@ -1,13 +1,14 @@
 #include "UI/FriendWindowsDraw.h"
 
 #include "App/WindowState.h"
-#include "Core/Expected.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Scenes/ITextDrawer.h"
 #include "UI/FriendModel.h"
 #include "UI/FriendWindows.h"
+#include "UI/LetterModel.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
@@ -100,6 +101,32 @@ constexpr std::int32_t ColumnHeight = 0x13;
 constexpr std::int32_t FriendNameX = 3;
 constexpr std::int32_t PlaceGap = 4;
 constexpr std::int32_t WindowTitleX = 8;
+// 0x4a0a30 (CL9 hito 10): los títulos de las columnas de la lista de las cartas (0x770868c, 0x77087b8 y 0x77088e4).
+constexpr std::size_t SenderColumnText = 1028;
+constexpr std::size_t DateColumnText = 1029;
+constexpr std::size_t SubjectColumnText = 1030;
+// 0x4a0a30 y 0x4641f0: la casilla en x + 1 (la de todas en y + 3, la de una carta 1 más arriba que su renglón) y
+// win_mail.tga (0x64b) en x + 0xb, de 13 × 9 desde arriba (0, 0, 0,8125 y 0,28125); la de una carta leída (+0x134 en
+// 1), de 13 × 10 desde 0,28125 con 0,3125 de alto, 2 más arriba que su renglón.
+constexpr std::uint16_t MailSlot = 0x64b;
+constexpr std::int32_t LetterCheckboxX = 1;
+constexpr std::int32_t MailX = 0xb;
+constexpr float MailWidth = 13.0f;
+constexpr float MailHeight = 9.0f;
+constexpr float MailDu = 0.8125f;
+constexpr float MailDv = 0.28125f;
+constexpr std::int32_t OpenedLetter = 1;
+constexpr float OpenedMailHeight = 10.0f;
+constexpr float OpenedMailV = 0.28125f;
+constexpr float OpenedMailDv = 0.3125f;
+constexpr std::int32_t OpenedMailRise = 2;
+// 0x4641f0: el nombre y el asunto 4 después de su columna, en una caja de 4 menos (0x6b8a44); la fecha desde +0x115,
+// sin sus dos primeros caracteres.
+constexpr std::int32_t LetterTextGap = 4;
+constexpr double LetterBoxCut = 4.0;
+constexpr std::size_t DateSkip = 2;
+// 0x4670ba..0x4670d0: un texto vacío mide el "0" de 0x6c7ae4.
+constexpr std::string_view EmptyTextMeasure = "0";
 
 std::string TextAt(const OldWindowDrawView& view, std::size_t index)
 {
@@ -193,6 +220,118 @@ void DrawTheColumnTitle(const OldWindowDrawContext& context, const OldWindowDraw
     context.textColors.text = LitColor;
     static_cast<void>(DrawText(context, textX, textY, text));
     context.textColors.text = DimColor;
+}
+
+// 0x465950(x, y, texto, caja, 0, 5, 0, 0x280) → 0x467060 con el modo 5 (0x4670df..0x4670fd): con caja, el texto desde
+// su columna 0 en una caja de ese ancho, cortado a la derecha; sin caja (0 o menos), de su ancho. Vacío y sin caja no
+// dibuja nada (0x467077..0x467098).
+void DrawInABox(const OldWindowDrawContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+                std::int32_t box)
+{
+    if (text.empty() && box == 0)
+        return;
+    const std::int32_t width = context.text.Measure(context.dcFont, text.empty() ? EmptyTextMeasure : text).width;
+    context.text.DrawColumns(x, y, text, Render::Text::TextStyle{.font = context.dcFont, .colors = context.textColors},
+                             0, box > 0 ? box : width);
+}
+
+// 0x465950(x, y, texto, caja, 0, 2, 0, 0x280) → 0x467060 con el modo 2: el texto centrado en la caja.
+void DrawCenteredInABox(const OldWindowDrawContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+                        std::int32_t box)
+{
+    if (text.empty() && box == 0)
+        return;
+    const Render::Text::CenteredInBox placed = Render::Text::CenterInBox(context.text, context.dcFont, text, box);
+    context.text.DrawColumns(x, y, text, Render::Text::TextStyle{.font = context.dcFont, .colors = context.textColors},
+                             -placed.textColumn, placed.width);
+}
+
+// 0x4641f0, la vtable + 0x80 de la lista de las cartas (0x463190, CL9 hito 10): el renglón (DrawTheChosenRow), su
+// casilla (0x463090, marcada con +0 en 1), el sobre, el nombre (strncpy de 0xff) en la caja de su columna (+0x134), la
+// fecha centrada en la suya (+0x138) y el asunto (+0x13) en lo que queda hasta la barra, con 0x465950 directo: las
+// cajas en píxeles (ftol(ancho · rx)). Termina sin mezcla; da 1.
+std::int32_t DrawTheLetterRow(const OldWindowDrawContext& context, const OldWindow& tab, std::int32_t row,
+                              std::size_t at, const OldWindowDrawView& view)
+{
+    Render::SpriteBatch& sprites = context.sprites;
+    const OldList& list = tab.tab.list;
+    const std::size_t size = tab.tab.letters.size();
+    OldDraw::DrawTheChosenRow(context, list, size, row, view.focusedList);
+    const LetterEntry& entry = tab.tab.letters[at];
+    const std::int32_t x = list.base.x;
+    const std::int32_t y = ListRowY(list, size, row);
+    OldDraw::DrawTheCheckbox(sprites, x + LetterCheckboxX, y - 1, entry.selected == 1);
+    if (entry.type == OpenedLetter)
+        OldDraw::Quad(sprites, MailSlot, ToFloat(x + MailX), ToFloat(y - OpenedMailRise), MailWidth, OpenedMailHeight,
+                      0.0f, OpenedMailV, MailDu, OpenedMailDv);
+    else
+        OldDraw::Quad(sprites, MailSlot, ToFloat(x + MailX), ToFloat(y - 1), MailWidth, MailHeight, 0.0f, 0.0f, MailDu,
+                      MailDv);
+    const double rx = RatioX(sprites.Screen());
+    const std::int32_t mark = list.headers;
+    DrawInABox(context, x + mark + LetterTextGap, y, entry.name,
+               Truncate(static_cast<double>(list.nameWidth) * rx - LetterBoxCut));
+    // strncpy desde +0x115: la fecha (+0x113) sin sus dos primeros caracteres (*inferido* para una más corta).
+    const std::string date = entry.date.size() > DateSkip ? entry.date.substr(DateSkip) : std::string();
+    DrawCenteredInABox(context, x + mark + list.nameWidth, y, date,
+                       Truncate(static_cast<double>(list.placeWidth) * rx));
+    const std::int32_t columns = mark + list.nameWidth + list.placeWidth;
+    const std::int32_t rest = Truncate(static_cast<double>(list.base.width) - static_cast<double>(list.thumbWidth) -
+                                       static_cast<double>(columns) - LetterBoxCut);
+    DrawInABox(context, x + columns + LetterTextGap, y, entry.subject, Truncate(static_cast<double>(rest) * rx));
+    sprites.SetBlend(Render::BlendMode::Opaque);
+    return 1;
+}
+
+// 0x4a0a30, la vtable + 0x14 de la pestaña de las cartas (CL9 hito 10; la ubicación del principio, el 8 a la lista y a
+// los cuatro botones y el 9 a la lista, está en SettleTheFriendsForTheDraw): el negro de abajo, la lista sin mezcla
+// (0x47eed0, la plantilla de 0x47a810 con los elementos de 0x138, con la barra 0x463db0, igual a 0x461890, y los
+// renglones 0x4641f0), la franja de las columnas con sus tres rayas y sus marcas al final de la marca, del nombre y de
+// la fecha, la casilla de todas (+0x414) y el sobre, los títulos de las columnas (en blanco el del mouse o el del
+// orden de [0x576351c]) y, sin mezcla, los cuatro botones.
+void DrawTheLettersTab(const OldWindowManager& manager, OldWindow& tab, const OldWindowDrawContext& context,
+                       const OldWindowDrawView& view)
+{
+    Render::SpriteBatch& sprites = context.sprites;
+    DrawTheTabBottom(sprites, tab);
+    sprites.SetBlend(Render::BlendMode::Opaque);
+    OldList& list = tab.tab.list;
+    const std::size_t size = tab.tab.letters.size();
+    OldDraw::DrawTheOldList(context, list, size,
+                            OldDraw::OldListDrawing{.head = [&] { OldDraw::DrawTheListBar(sprites, list, size, view); },
+                                                    .row = [&](std::int32_t row, std::size_t at)
+                                                    { return DrawTheLetterRow(context, tab, row, at, view); },
+                                                    .tail = {}});
+    DrawTheColumnBar(sprites, tab);
+    // 0x4a0c53..0x4a0e70: FILD de x y FIADD de la suma de las columnas de antes, con la raya del 2 que dejó la franja.
+    const std::int32_t left = Steps::ClientX(tab, 0);
+    const std::array<std::int32_t, 3> ends{list.headers, list.headers + list.nameWidth,
+                                           list.headers + list.nameWidth + list.placeWidth};
+    const float separatorHeight = F32(static_cast<double>(Steps::ClientHeight(tab)) - SeparatorCut - SeparatorCutAgain);
+    for (const std::int32_t end : ends)
+        sprites.ColorQuad(ToFloat(left + end), ToFloat(Steps::ClientY(tab, SeparatorY)), 1.0f, separatorHeight);
+    SetThePalette(sprites, ColumnTickIndex, 1.0f);
+    for (const std::int32_t end : ends)
+        sprites.ColorQuad(ToFloat(left + end), ToFloat(Steps::ClientY(tab, TickY)), 1.0f, TickHeight);
+    WhiteWithTexture(sprites);
+    context.textColors = Render::Text::TextColors{.text = DimColor, .background = 0};
+    OldDraw::DrawTheCheckbox(sprites, Steps::ClientX(tab, LetterCheckboxX), Steps::ClientY(tab, TickY),
+                             tab.tab.allChecked == 1);
+    OldDraw::Quad(sprites, MailSlot, ToFloat(Steps::ClientX(tab, MailX)), ToFloat(Steps::ClientY(tab, TickY)),
+                  MailWidth, MailHeight, 0.0f, 0.0f, MailDu, MailDv);
+    const std::int32_t top = Steps::ClientY(tab, 0);
+    const std::int32_t textX = Steps::ClientX(tab, ColumnTextX);
+    const std::int32_t textY = Steps::ClientY(tab, ColumnTextY);
+    const std::int32_t sort = manager.letterModel.sortMode;
+    DrawTheColumnTitle(context, view, left + ends[0], top, list.nameWidth, sort == BySenderLetters, textX + ends[0],
+                       textY, TextAt(view, SenderColumnText));
+    DrawTheColumnTitle(context, view, left + ends[1], top, list.placeWidth, sort == ByDateLetters, textX + ends[1],
+                       textY, TextAt(view, DateColumnText));
+    DrawTheColumnTitle(context, view, left + ends[2], top, list.subjectWidth, sort == BySubjectLetters, textX + ends[2],
+                       textY, TextAt(view, SubjectColumnText));
+    sprites.SetBlend(Render::BlendMode::Opaque);
+    for (const OldButton& button : tab.tab.buttons)
+        DrawTheButton(context, button, view);
 }
 
 // 0x49cc20, la vtable + 0x14 de la pestaña de amigos (la ubicación del principio está en
@@ -317,9 +456,8 @@ void DrawTheFriendList(const OldWindowDrawContext& context, OldList& list, const
                                 .tail = {}});
 }
 
-Core::Expected<void, std::string> DrawTheFriendsWindow(OldWindowManager& manager, OldWindow& window,
-                                                       const OldWindowDrawContext& context,
-                                                       const OldWindowDrawView& view)
+void DrawTheFriendsWindow(OldWindowManager& manager, OldWindow& window, const OldWindowDrawContext& context,
+                          const OldWindowDrawView& view)
 {
     SettleTheFriendsForTheDraw(manager, window);
     const std::int32_t current = window.friends.currentTab;
@@ -328,9 +466,7 @@ Core::Expected<void, std::string> DrawTheFriendsWindow(OldWindowManager& manager
     else if (current == WindowsTabNumber)
         DrawTheWindowsTab(window.tabs[WindowsTabNumber], context, view);
     else if (current == LettersTabNumber)
-        return Core::Unexpected(
-            std::string("0x4a2620: el dibujo de la pestaña de las cartas (0x4a0a30, con la lista 0x47eed0, su barra "
-                        "0x463db0 y sus renglones 0x4641f0 con la casilla 0x463090) no está portado (P-C213)"));
+        DrawTheLettersTab(manager, window.tabs[LettersTabNumber], context, view);
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetBlend(Render::BlendMode::Alpha);
     SetThePalette(sprites, BlackIndex, 1.0f);
@@ -346,7 +482,6 @@ Core::Expected<void, std::string> DrawTheFriendsWindow(OldWindowManager& manager
     context.textColors.background = 0;
     DrawTheHeaderTitles(window, context);
     DrawTheStateButton(manager, window, context, view);
-    return {};
 }
 
 void DrawTheAddFriendBox(OldWindowManager& manager, OldWindow& box, const OldWindowDrawContext& context,

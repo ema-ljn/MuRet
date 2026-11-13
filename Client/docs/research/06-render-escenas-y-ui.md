@@ -1750,7 +1750,12 @@ un objeto local y llama a `0x607b60` (los `rand()` de lo que cuelga del modelo: 
 y `0xe22`) y, sin excelente (`& 0x3f` en 0, o con uno de los modelos `0x1a12` a `0x1a18` o `0x1c30`, que no lo muestran) y
 con el set (`& 3`) en 1 o 2,
 hace el pase del set (`0x60cc29`): con `sin(0,001 · T) · 0,5 + 0,4 ≤ 0,01` en la x87, `rand() % 100` en el `+0xc0`
-del modelo. `0x1a18` llega a sus uniones (`0x60c3b6`, `0x530860`), con el objeto local de `0x5e0720` de dueño: MuRet
+del modelo. T es el float del reloj del mundo (`0x5767b88`); el pulso se guarda en un float para el alpha del pase
+(`FST`, `0x60cc19`), pero la comparación es la de la x87 sin redondear (`FCOMP`, `0x60cc1c`): un pulso apenas arriba
+del `0,01f` cuyo float ya es `0,01f` no saca el `rand()`. MuRet hace las dos cosas con `Render::Models::SetPulseAt` y
+`SetPulseIsOff`, en `DrawItemFromMeshes` (el piso, lo que cuelga de los personajes y la UI) y en la cuenta de la UI
+sin modelos (CL8, 2026-11-13; `PassColorsTest` y
+`UiItemDrawingTest.TheSetRandomWaitsForTheUnroundedPulse`). `0x1a18` llega a sus uniones (`0x60c3b6`, `0x530860`), con el objeto local de `0x5e0720` de dueño: MuRet
 corta ahí (P-C70).
 
 **El punto de la caja** (`0x5e1486..0x5e1d69`, *estático*, leído en el ASM). Con el cursor vacío (`0x7879fbc` en 0) o

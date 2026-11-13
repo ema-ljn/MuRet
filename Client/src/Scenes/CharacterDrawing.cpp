@@ -45,6 +45,7 @@
 #include <format>
 #include <optional>
 #include <random>
+#include <ratio>
 #include <span>
 #include <string>
 #include <utility>
@@ -1482,10 +1483,17 @@ Core::Expected<void, std::string> DrawItemOptionPasses(Render::ModelBatch& batch
                                                        const ItemDrawContext& context)
 {
     const auto draws = RetainedObjectMeshDraws(models, base, frameClock, meshes, false, false, true);
-    SetFade fade{Render::Models::SetAlphaAt(frameClock)};
+    // 0x60cbff..0x60cc1c: T es el float del reloj del mundo; sin él, el reloj del frame. El alpha es el pulso en un
+    // float (FST) y el rand() lo decide el pulso de la x87, sin redondear (FCOMP).
+    const double milliseconds = context.special && context.special->worldClock
+                                    ? static_cast<double>(*context.special->worldClock)
+                                    : std::chrono::duration<double, std::milli>(frameClock).count();
+    const double pulse = Render::Models::SetPulseAt(milliseconds);
+    SetFade fade{static_cast<float>(pulse)};
     for (const auto& pass : glow.passes)
     {
-        if (pass.shine == Render::Models::ShinePass::Chrome3 && fade.alpha <= 0.01f && context.originalFrame)
+        if (pass.shine == Render::Models::ShinePass::Chrome3 && Render::Models::SetPulseIsOff(pulse) &&
+            context.originalFrame)
         {
             if (!context.special || !context.special->random)
                 return Core::Unexpected(std::string("0x60cc29: falta el CRT del brillo ancient"));

@@ -31,9 +31,17 @@ namespace Client::Render::Models
 // del mundo en ms (DAT_05767b88).
 [[nodiscard]] Color ExcellentColorAt(Core::Duration clock);
 
-// El alpha con que 0x60b3d0 llama al pase de set: sin(0,001 · T) · 0,5 + 0,4. Como es menor que 0,99,
-// 0x4ecc30 multiplica por él, en el lugar, el color del modelo en cada malla que dibuja ese pase: la
-// primera va por a, la segunda por a² (Q-C95).
+// El pulso del pase de set en la x87 (0x60cbff..0x60cc13), antes de guardarlo: sin(0,001 · T) · 0,5 + 0,4,
+// con T el reloj del mundo en ms (el float de 0x5767b88) y las cuentas en doble (PC53).
+[[nodiscard]] double SetPulseAt(double milliseconds);
+
+// 0x60cc1c: FCOMP del pulso de la x87, sin redondearlo a float, contra el 0,01 de 0x6b88d4. Apagado (menor o
+// igual), el pase de set saca su rand() % 100 (0x60cc29).
+[[nodiscard]] bool SetPulseIsOff(double pulse);
+
+// El alpha con que 0x60b3d0 llama al pase de set: el pulso guardado en un float (el FST de 0x60cc19). Como es
+// menor que 0,99, 0x4ecc30 multiplica por él, en el lugar, el color del modelo en cada malla que dibuja ese
+// pase: la primera va por a, la segunda por a² (Q-C95).
 [[nodiscard]] float SetAlphaAt(Core::Duration clock);
 
 // La malla que 0x60b130 (los pases 0x48 y 0x44) y 0x60b300 (el 0x240, el 0x1040 y el de set) le

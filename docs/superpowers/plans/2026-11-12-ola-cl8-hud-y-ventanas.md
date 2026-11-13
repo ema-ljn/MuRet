@@ -385,6 +385,11 @@ cerrado (`0x561b13`, Q-C773), en P-C151 (06 § El inventario, "Las flechas del e
 `0x725a44` es el nivel del cuervo (`[0x723968]`, `WorldRuntime::ravenLevel`) · 15 + `0xb9` contra el liderazgo; el
 `0x1a5` es el Dark Raven con 32 tipos por grupo, un tipo vacío en el Item.bmd de la 1.02 (Q-C775).
 
+**El pulso del set, hecho** (2026-11-13, rama `cl8-gaps`): el `rand()` de `0x60cc29` lo decide el pulso de la x87 sin
+redondear (`FCOMP` en `0x60cc1c`), no el alpha guardado en un float, con T del float del mundo; `DrawItemFromMeshes`
+y la cuenta de la UI sin modelos comparten `Render::Models::SetPulseAt` y `SetPulseIsOff` (06 § El inventario; el borde, a los
+4.036.258.298 ns del reloj del frame, en `UiItemDrawingTest.TheSetRandomWaitsForTheUnroundedPulse`).
+
 ### Hito 5: los tooltips y la ventana del personaje (CL8.4, ~50 KB)
 
 - [x] **El tooltip** `0x5f7bc0` y sus tres cuerpos (`0x5b2aa0`, `0x5b8150`, `0x5b90b0`) con sus helpers, el

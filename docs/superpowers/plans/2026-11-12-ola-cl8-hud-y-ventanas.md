@@ -369,10 +369,10 @@ Lorencia y en Devias, en 640, 1.024 y 1.600 de ancho, y con la party abierta (`t
 
 ### Hito 5: los tooltips y la ventana del personaje (CL8.4, ~50 KB)
 
-- [ ] **El tooltip** `0x5f7bc0` y sus tres cuerpos (`0x5b2aa0`, `0x5b8150`, `0x5b90b0`) con sus helpers, el
+- [x] **El tooltip** `0x5f7bc0` y sus tres cuerpos (`0x5b2aa0`, `0x5b8150`, `0x5b90b0`) con sus helpers, el
       cartel del set (`0x40eca0`) y la info del ítem del modo 3 de las superposiciones (`0x5afc00`, `0x5af590`,
-      `0x5af9b0`).
-- [ ] **La ventana del personaje** (`0x2000000`): el dibujo `0x5ee2e0`, el paso `0x5e4510` (los botones de
+      `0x5af9b0`). El modo 3 solo lo abre `0x5ae360`, con F1 en el hito 6 (P-C102).
+- [x] **La ventana del personaje** (`0x2000000`): el dibujo `0x5ee2e0`, el paso `0x5e4510` (los botones de
       puntos con el registro propio, 3.848, y `F3 06`), las pestañas y el `A9 01 00 08` (`0x424130`/`0x424230`,
       Q-C16), y los cálculos que muestra (`0x54d0f0`, `0x5516e0` y vecinas).
 
@@ -410,7 +410,7 @@ P-C135, y lo que deja a otras olas o a la VM, en P-C136.
 `Scenes/ItemPrice` como funciones de datos que la tienda de NPC de la CL9.3 reutiliza. El cuerpo de reparar escribe
 con ellos el precio de un ítem gastado (06 § El precio de un ítem; Q-C735 a Q-C737). Lo que no alcanza a leer corta
 con su dirección (P-C140), y el precio de la tienda de NPC sigue cortando en `0x5b2d23` (P-C125 (a)). Con esto, del
-tooltip queda solo el modo 3 de las ayudas, del hito 6 (P-C102).
+tooltip queda solo el modo 3 de las ayudas, del hito 6 (P-C102), y el hito 5 queda completo.
 
 ### Hito 6: los diálogos, el menú de Esc, las teclas y la captura (CL8.1 y CL8.3, ~36 KB)
 

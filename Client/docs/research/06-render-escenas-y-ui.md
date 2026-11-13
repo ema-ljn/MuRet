@@ -1856,8 +1856,8 @@ Cada renglón escrito, salvo los `\n`, lleva su color (0 si no dice otro) y la n
 - `+0x31` en 2 con otra skill en `+0x32` saca otros 60.
 
 **Lo que porta MuRet**: el orden de `0x5f7bc0`, la ayuda de los íconos de estado (`Scenes/GameHud.cpp`), la caja, la
-ventana y el cartel del set, el cuerpo del ítem, el de reparar (salvo el precio de un ítem gastado, que corta en
-`0x5b838d`: P-C127), el sprintf del CRT (`UI/SprintfFormat`) y `0x40ebd0` en la cola de los comandos del chat
+ventana y el cartel del set, el cuerpo del ítem, el de reparar (con el precio de un ítem gastado, § El precio de un
+ítem), el sprintf del CRT (`UI/SprintfFormat`) y `0x40ebd0` en la cola de los comandos del chat
 (Q-C594). Los tests son `test_game_tooltips.cpp`, `test_item_tooltips.cpp`, `test_sprintf_format.cpp` y
 `test_chat_commands.cpp`. Del cuerpo del ítem cortan con su dirección: `0x1a04` y `0x1a05` (`0x4229d4`, P-C126), el
 precio de la tienda de NPC (`0x5b2d23`), el nombre del `0x1c0c` de nivel 2 (la tabla de `0x6c9350`) y del `0x1a0a` (la

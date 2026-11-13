@@ -47,7 +47,7 @@ struct ItemState
     std::uint8_t gridColumn = 0; // D+42/43, sólo productores de grillas
     std::uint8_t gridRow = 0;
     // D+0x44: el aviso del ítem puesto que deja el HUD (0x5aac20): 8 roto, 7, 6 y 5 por la durabilidad que queda y
-    // 3 sin los requisitos. Nadie lo vuelve a 0; lo lee el inventario (hito 4).
+    // 3 sin los requisitos. Lo vuelve a 0 el 23 que tira un ítem del equipo (0x4d11f5); lo lee el inventario (hito 4).
     std::uint8_t warning = 0;
 
     // Precondición: index < MaxItemOptions; no implica index < optionCount.

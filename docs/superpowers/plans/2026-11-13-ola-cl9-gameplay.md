@@ -303,12 +303,20 @@ demoras; los `rand()` de la barra con skills (hoy se sacan sin ninguna); el cuer
 
 ### Hito 5: los ítems del piso, usar y tirar (CL9.3, ~20 KB)
 
-- [ ] **El piso:** el `0x20` (`0x4d0ba0`, la tabla `0x77f46c8` de `0x220` B por ítem, `0x608350`, `0x607fb0`,
+- [x] **El piso:** el `0x20` (`0x4d0ba0`, la tabla `0x77f46c8` de `0x220` B por ítem, `0x608350`, `0x607fb0`,
       `0x608880`), los nombres con Alt (`0x5ba790`, `0x608a00`), levantar con SPACE y por llegada (`C1 22`, la
       rama de ítem de `0x5650c0` y `0x59ec80`) y lo que falta del `0x22` y el `0x23` (`0x4d0cc0`, `0x4d10d0`).
-- [ ] **Usar y tirar** (decisión 5 de la CL8): el `26` (`0x5c4110`, Q/W/E `0x5a2b47..0x5a4c45`), el `23`
-      (`0x5df430..0x5dfe34`), las joyas sobre un ítem (`0x5fd4b0`, `0x5fd4f0`, `0x5d82a8`) y la fruta de stats
-      (`0x2C`, `0x4de500`).
+      Hecho el 2026-11-13: de `0x59ec80` solo las dos llamadas a la búsqueda `0x59e2e0` (`Scenes::PickTheFloorItem`)
+      y la rama del ítem de MoveHero; los cortes, en 08 P-C271, y lo que queda para la VM, en P-C270.
+- [x] **Usar y tirar** (decisión 5 de la CL8): el `26` (`0x5c4110`, Q/W/E `0x5a2b47..0x5a4c45`), el `23`
+      (`0x5df430..0x5dfe34`) y la fruta de stats (`0x2C`, `0x4de500`). Hecho el 2026-11-13: del clic derecho en la
+      grilla, las pociones, el pergamino del portal y la caja de la suerte de nivel 14.
+- [x] **Fase 2:** las joyas sobre un ítem (`0x5d82a8`) y el clic derecho de `0x5c7bc6` en adelante (los libros,
+      las esferas, la fruta, `0x1a0b` y los demás ítems), 08 P-C272. `0x5fd4b0` y `0x5fd4f0` no son de las joyas:
+      son la cuenta de la caja del caos y de la lista del asedio, que cortan en `0x5d8db6` y `0x5d8dad`. Hecho el
+      2026-11-13, sobre el hito 1 mergeado: `Scenes::UseTheLaterGridItem` y la joya en `DropOnTheInventoryGrid`.
+      Cortan el diálogo de la fruta (`0x63330f`) y el paso del 0xa9 (`0x6282dc`), de la CL9.3, y el clic derecho con
+      el almacén abierto (`0x5c8e8f`, hito 6, P-C274); lo de la VM, en P-C275.
 
 **Pruebas:** el `0x20` con varios ítems y su dibujo en la traza; levantar y tirar byte a byte; las pociones
 de Q/W/E; los `rand()` de la búsqueda del ítem del piso en el picking. **Desbloquea:** —.

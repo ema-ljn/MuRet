@@ -5,6 +5,7 @@
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
+#include "Render/Models/RayPicking.h"
 #include "Scenes/ModelPoseCallbacks.h"
 #include "World/ModelEffects.h"
 #include "World/SphereFrustum.h"
@@ -67,6 +68,16 @@ struct FloorItemState
     std::int16_t screenY = 0;
     std::int32_t effectCounter = 0; // +4;608780 usa el valor anterior, luego suma uno.
     float dropSpeed = 0;            // +e4;608880 resta6 incluso después de tocar el suelo.
+    // CL9 hito 5: el tipo del ítem (+4 de la entrada de 0x220 bytes, el de 0x54b3a0; `type` es el modelo, +0x4e) y su
+    // durabilidad (+0x1e), que escribe 0x608350.
+    std::int16_t itemType = 0;
+    std::uint8_t durability = 0;
+    // +0x124 y +0x130 del objeto: la caja de (−30, −30, −30) a (30, 30, 30) de 0x608350.
+    glm::vec3 boundingMin{};
+    glm::vec3 boundingMax{};
+    // +0x13c: la caja que 0x60cf70 (0x4ebc80) arma en cada cuerpo dibujado con alpha > 0,01, desde la posición de ese
+    // dibujo; la lee el picking (0x59e2e0). Sin dibujo queda la anterior.
+    Render::Models::Box pickBox{};
 };
 
 struct FloorItemDrawContext

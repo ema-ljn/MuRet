@@ -424,7 +424,11 @@ está en [06](06-render-escenas-y-ui.md#la-escena-del-juego).
 | `0xBD` | C->S y S->C | `0x4c421a`, `0x4c785d`; `0x4e2b10` → `0x4033b0` | el estado de Crywolf; el recorrido de la cámara (abajo) |
 | `0x46` | S->C | `0x4dab90` → `0x5f8750` o `0x5f8710` | cambia bits del `.att`: el único camino al `0x40` y al `0x80` de la cámara ([06](06-render-escenas-y-ui.md#la-cámara-del-juego)) |
 | `0x18` | S->C | `0x4cb750` | acción o animación de un personaje remoto, según `pkt[6]` |
-| `0x22` | S->C | `0x4d0cc0` | crea objetos de 0xF08 bytes desde una plantilla |
+| `0x20` / `0x21` | S->C (C2) | `0x4d0ba0` / `0x4e3849` | los ítems del piso que aparecen y los que se van (abajo) |
+| `0x22` | C->S (C3) y S->C (C3) | `0x5650c0` (`0x566bd2`) / `0x4d0cc0` | levantar un ítem del piso y el resultado (abajo; antes esta tabla decía "crea objetos de 0xF08 bytes": es el registro propio, que abre para el zen) |
+| `0x23` | C->S (C3) y S->C | `0x5d8d50` (`0x5e04cc`) / `0x4d10d0` | tirar el ítem del cursor y el resultado (abajo) |
+| `0x26` | C->S (C3) | `0x59ff10` (`0x5a30dc`), `0x5c4110` (`0x5c5e4a`) | usar un ítem del inventario (abajo) |
+| `0x2C` | S->C | `0x4de500` | la fruta de stats (abajo) |
 | `0x26` / `0x27` | S->C | `0x4d3510` / `0x4d3820` | la vida y el maná (abajo); el objeto de 0xF08 bytes que esta tabla les daba es la entrada del registro propio en la tabla de protección, que abren y cierran |
 | `0x0D` | S->C | `0x4c65b0` | avisos del servidor: chat, banner, notificación |
 | `0x02` | S->C | `0x4e34ea` | mensaje privado: nombre de 10 bytes en `+3`, texto de 60 en `+0xD` |
@@ -956,6 +960,54 @@ personaje elegido. La entrada a la selección porta la cola de `0x5bbe10` (`Scen
 que queda (levantar y soltar en las grillas del comercio y lo que falta de las tiendas personales) lo dicen 08
 P-C205 y P-C208. Los tests (`TradePartyDuelTest`, `SocialEventsTest`, `GameSocialStepsTest` y los
 de los diálogos, la party, los comandos y el registro de las ventanas) usan nombres inventados.
+
+### Los ítems del piso: `20`, `21`, `22`, `23`, `26` y `2C`
+
+(CL9 hito 5, 2026-11-13, *estático*, contra `gs_protocol.h` y `protocol.cpp` del GameServer 0.97 reconstruido. El
+cable de la sesión del laboratorio queda para la VM, 08 P-C270.) El dispatcher (`0x4e2b10`) no mira si llegaron
+cifrados: el `22` y el `23` llegan en C3 o en C1, igual. Los siete bytes de un ítem son los del `F3 10`, y la entrada
+del piso es la de `0x220` bytes de `0x77f46c8` (1000), con el objeto en `+0x4c`.
+
+- **`20`** (`0x4d0ba0`): `C2 <largo:2> 20 <cuenta> {<clave:2, alto primero> <x> <y> <ítem:7>}`, de a 11 bytes desde
+  `pkt[5]`. La entrada es `clave & 0x7fff` (la 0 si pasa de 999) y el bit 15 dice "recién caído". Cada una va a
+  `0x608350(entrada, ítem, ((x + 0,5) · 100, (y + 0,5) · 100), recién caído)`, en orden. El GameServer 0.97 arma
+  entradas de 9 bytes (`PMSG_ITEMVIEWPORTCREATE`, el ítem de 5): con él, el cliente lee las entradas corridas
+  (07 Q-C1240).
+- **`21`** (`0x4e3849`, en el dispatcher): `C2 <largo:2> 21 <cuenta> {<clave:2, alto primero>}`. Apaga `+0x4c` de la
+  entrada de la clave entera (sin la máscara del `20`), con las de 1000 o más en la 0. El GameServer usa el mismo
+  par de bytes (`PMSG_VIEWPORTDESTROY`, *inferido* por el struct).
+- **`22` del cliente** (el caso 1 de `0x5650c0`, `0x566755`): `C1 05 22 <índice:2, alto primero>`, con el XOR32
+  desde el byte 3 y en C3 (2 `rand()`). Antes, el índice en `0x6c82e8`; mientras no vuelva a −1, no sale otro. Es
+  `PMSG_ITEMGETREQUEST` del GameServer, de 5 bytes.
+- **`22` del GameServer** (`0x4d0cc0`): `C3 <largo> 22 <resultado> …`. Con `0xfe`, el zen en `pkt[4..7]` con el
+  byte alto primero (`+0xecc` del registro propio, abierto); con un lugar (o `0xfd`, "en otro lado"), los siete
+  bytes del ítem desde `pkt[4]`; con `0xff`, nada. El sonido (CL10) sale de `pkt[4..]` como un ítem, también con el
+  zen. El GameServer 0.97 lo manda en C3 de 8 bytes (`PMSG_ITEMGETRESULT`, `Data[4]`): el ítem de un lugar sale
+  corto (07 Q-C1240).
+- **`23` del cliente** (`0x5dfe27..0x5e0685`): `C1 06 23 <x> <y> <lugar>`, la celda del terreno bajo el mouse
+  (`0x5fc260(1)` y `0x5fac90`, como MoveHero) y el byte bajo de `[0x78a6758]`, de donde salió el ítem del cursor;
+  con el XOR32 y en C3. Es `PMSG_ITEMTHROW`, de 6 bytes.
+- **`23` del GameServer** (`0x4d10d0`): `C1 05 23 <resultado> <lugar>` (`PMSG_ITEMTHROW_RESULT`). Con 0, `0x5be150`
+  vuelve el ítem del cursor; si no, el lugar sale del equipo (0 a 11, con el registro abierto) o de la grilla
+  (`0x5bd750`), y la cuenta del cursor queda en 0. Las dos ramas dejan `0x6c82ec` en −1. Con 0 no lee `pkt[4]`
+  (`0x4d10de`).
+- **`26` del cliente** (`0x5a2c01..`, `0x5a3623..`, `0x5a3da8..`, `0x5a452f..` y `0x5c5937..`): `C1 06 26 <lugar>
+  <destino> <[0x78abb26]>`, el lugar + 12 de la casilla, 0 y el byte que ponen dos diálogos de `0x623e70`; con el
+  XOR32 y en C3. `PMSG_USEITEM` del GameServer 0.97 es de 5 bytes, sin el tercero (07 Q-C1241). Lo mismo mandan los
+  libros y las esferas (`0x5c91a3..`) y el `0x1a0b` (`0x5c84e1..`) desde la grilla. La joya sobre un ítem
+  (`0x5d83ee..`, CL9 hito 5, fase 2) lleva un destino: `C1 06 26 <[0x78a6758]> <[0x77f3cc8]> <[0x78abb26]>`, el lugar
+  de la joya y el del origen del ítem, + 12; con los mismos dos `rand()` del envío.
+- **`2C`** (`0x4de500`): `C1 06 2C <resultado> <puntos> <stat>`. Con 0 o 3 y un stat de 0 a 4 (la energía, la
+  vitalidad, la agilidad, la fuerza y el comando), suma o resta los puntos con el registro abierto; otros resultados
+  abren un aviso. El GameServer 0.97 manda `C1 04 2C <resultado>` (`PMSG_USE_STAT_FRUIT`): sin los puntos ni el stat,
+  el cliente lee lo que quedó en su buffer (07 Q-C1240).
+
+**MuRet** (CL9 hito 5): `Protocol::FloorItems` lee los cinco que llegan y escribe los tres que salen;
+`App::ServerSession` los registra en un bloque y manda el `22`, el `23` y el `26` (`SendPickUp`, `SendDrop` y
+`SendUseItem`). Un `22`, un `23` o un `2C` más cortos de lo que lee el cliente no llegan al mundo, salvo lo que el
+original escribe en todos sus caminos (`ShortPickUpResult`, `ShortDropResult` con `pkt[3]` si llegó, y
+`ShortStatFruit`; 07 Q-C1240). Un `20` corto no escribe nada fijo y se ignora entero. Lo que hace el mundo con cada uno, en [06](06-render-escenas-y-ui.md#los-ítems-del-piso). Los tests
+usan ítems inventados.
 
 ### Los otros jugadores: `12`, `14`, `45`, `25` y `DF`
 

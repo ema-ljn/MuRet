@@ -7,6 +7,7 @@
 #include "Render/Models/Pose.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
 #include "Scenes/GameDrawTail.h"
@@ -401,6 +402,8 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     // 0x63717f: 0x5ac8d0, las teclas de función.
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
     const GameChatContext chat = ChatContext();
+    // CL9 hito 5: la barra levanta el ítem del piso con el C1 05 22 (InventoryContext).
+    const InventoryServices inventory = InventoryContext();
     return StepTheFunctionKeys(GameUiContext{.world = *m_context.world,
                                              .random = m_context.cloth->random,
                                              .input = input,
@@ -408,7 +411,9 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
                                              .mouseY = mouse.y,
                                              .measure = m_context.textMeasure,
                                              .screen = m_screen,
-                                             .chat = &chat});
+                                             .chat = &chat,
+                                             .inventory = &inventory,
+                                             .fixedHeight = CameraState().fixedHeight});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheObjects()

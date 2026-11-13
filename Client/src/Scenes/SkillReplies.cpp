@@ -9,6 +9,8 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Scenes/ActorActions.h"
+#include "Scenes/ActorCombat.h"
+#include "Scenes/ActorEffectFlags.h"
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
@@ -27,7 +29,6 @@
 #include <cstdint>
 #include <format>
 #include <string>
-#include <string_view>
 
 namespace Client::Scenes
 {
@@ -84,10 +85,20 @@ Core::Expected<void, std::string> Act(ActorState& actor, std::uint8_t action, co
     return {};
 }
 
-// 0x4f4a10, la acción de ataque, es del hito 3: lo que la llama corta ahí.
-Core::Expected<void, std::string> AttackAction(std::string_view where)
+// 0x4f4a10, la acción de ataque (Scenes::SetActorAttack, CL9 hito 3).
+Core::Expected<void, std::string> AttackAction(ActorState& actor, const WorldEntryResources& resources)
 {
-    return Core::Unexpected(std::format("{}: la acción de ataque de 0x4f4a10 es del hito 3 (CL9)", where));
+    return SetActorAttack(actor, CombatContextOf(resources));
+}
+
+// 0x4cd68e y 0x4cdd2e: 0x4f4a10, el frame en 0 y +0x381 en 1 (0x4cde62).
+Core::Expected<void, std::string> AttackAndSettle(ActorState& actor, const WorldEntryResources& resources)
+{
+    if (auto attacked = AttackAction(actor, resources); !attacked.HasValue())
+        return attacked;
+    actor.animation.frame = 0.0f;
+    actor.byte381 = 1;
+    return {};
 }
 
 // 0x41ed10(id, …): MuRet no tiene audio (CL10).
@@ -271,7 +282,7 @@ Core::Expected<void, std::string> StrikeUnlessHero(const Cast& cast)
     if (cast.sourceIsHero)
         return Settle(cast);
     if (!IsPlayer(cast.source))
-        return AttackAction("0x4cd68e");
+        return AttackAndSettle(cast.source, cast.resources);
     if (auto hit = HitAction(cast.source, cast.resources); !hit.HasValue())
         return hit;
     cast.source.animation.frame = 0.0f;
@@ -310,13 +321,13 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
     case 0xc9:
         source.flags78 |= 0x100;
         source.byte381 = 1;
-        return AttackAction("0x4cd327");
+        return AttackAction(source, resources);
     case 0xca:
         source.byte381 = 1;
         source.flags78 |= 0x8;
-        return AttackAction("0x4cd35c");
+        return AttackAction(source, resources);
     case 0xc8:
-        return AttackAction("0x4cd35c");
+        return AttackAction(source, resources);
     // 0x4cd369: suena y sigue como la 0x10.
     case 0x1a:
     case 0x1b:
@@ -426,7 +437,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         }
         if (IsPlayer(source))
             return {};
-        return AttackAction("0x4cd68e");
+        return AttackAndSettle(source, resources);
     // 0x4cd6a5: con la skill salida, apaga el 0xc1/1 del blanco y crea el 0xc1/1 y el 0xc1/2 (CL11).
     case 0x33:
     {
@@ -529,7 +540,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         if (auto acted = Act(source, action, resources); !acted.HasValue())
             return acted;
         if (!IsPlayer(source))
-            return AttackAction("0x4cdd2e");
+            return AttackAndSettle(source, resources);
         return Settle(cast);
     }
     // 0x4cdd45: sin 0x10 en el blanco, apaga su 0x5ac/1 y crea otro (CL11).
@@ -584,10 +595,11 @@ Core::Expected<void, std::string> DurationAction(ActorState& actor, std::uint8_t
 {
     switch (skill)
     {
+    // 0x4cea88 y 0x4ceaad.
     case 0x18:
     case 0x34:
     case 0x36:
-        return AttackAction("0x4cea88");
+        return AttackAction(actor, resources);
     case 0xc:
         return Act(actor, 0x94, resources);
     case 0xa:
@@ -669,9 +681,14 @@ Core::Expected<void, std::string> ApplyDurationMagic(const DurationMagic& magic,
     // 0x4cea3e..0x4cea4d: FILD, por 1/255 (0x6b88f8) y por 360 (0x6b869c), exacto en double (Q-C1201).
     actor.angles.z = static_cast<float>(static_cast<double>(magic.direction) * static_cast<double>(1.0f / 255.0f) *
                                         static_cast<double>(360.0f));
+    // 0x4cece8: otro que un jugador, 0x4f4a10 y el frame en 0, también el héroe.
     if (!IsPlayer(actor))
-        return AttackAction("0x4cecec");
-    if (index != world.Runtime().hero)
+    {
+        if (auto attacked = AttackAction(actor, resources); !attacked.HasValue())
+            return attacked;
+        actor.animation.frame = 0.0f;
+    }
+    else if (index != world.Runtime().hero)
     {
         if (auto acted = DurationAction(actor, magic.skill, resources); !acted.HasValue())
             return acted;
@@ -760,8 +777,12 @@ Core::Expected<void, std::string> ApplyActorState(const Protocol::Skill::ActorSt
     const bool lit = (actor.flags78 & state.mask) == state.mask;
     if (state.type == 1)
     {
+        // 0x4cbe47: sin todas, 0x4e6380(máscara, personaje) (Scenes::ApplyEffectFlags, CL9 hito 1).
         if (!lit)
-            return Core::Unexpected(std::string("0x4cbe47: las banderas de 0x4e6380 son del hito 1 (CL9)"));
+        {
+            WorldRuntime& runtime = world.Runtime();
+            return ApplyEffectFlags(actor, state.mask, &actor == &world.Actors()[runtime.hero], runtime.lastSoundId);
+        }
         // 0x4cbe52..0x4cbe72: el NEG/SBB deja +0x7c entero en 0x200000 si lo tenía y en 0 si no (Q-C1202).
         constexpr std::uint32_t Sitting = 0x200000;
         actor.flags7c = (actor.flags7c & Sitting) == Sitting ? Sitting : 0u;
@@ -789,8 +810,9 @@ Core::Expected<void, std::string> ApplySkillTarget(const SkillTarget& target, co
     source.attackTarget = static_cast<std::uint16_t>(targetIndex);
     // 0x4cc2a9: SAR 0xf del blanco entero; con el bit, 0x5110d0 no lo encontró y ya volvió.
     source.skillSucceeded = (target.target >> 15) != 0 ? std::uint8_t{1} : std::uint8_t{0};
+    // 0x4cc503..0x4cc51c: 0x4f4a10, el frame en 0 y +0x381 en 1.
     if (target.skill >= 1 && target.skill <= 0xd)
-        return AttackAction("0x4cc50a");
+        return AttackAndSettle(source, resources);
     return {};
 }
 

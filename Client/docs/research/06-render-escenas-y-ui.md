@@ -3588,7 +3588,7 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
   y la posición del modelo compartido), `Render::Models::MoveToward` (`0x4e9810`) y
   `WorldState::PlayerModel`, el `+0x68`/`+0x6c` de `Player.bmd`, que escriben `0x505ec6` en el paso y
   `0x6001b0` en el dibujo del juego, del login y de la selección (Q-C412). Los estados 2, 5 y 6 (las órdenes
-  `A7`) cortan en `0x416add`.
+  `A7`) están en [el ataque del cuervo](#el-ataque-del-cuervo) (CL9 hito 4).
 - **Lo que crea**: una **chispa por paso** (`0x5c6`, `Effect\Spark03.jpg`, subtipo 5), desde un
   hueso al azar de la pose del último dibujo (Q-C133): vida 10 pasos,
   velocidad R(yaw) · (−(`rand() % 2` + 2), 0, 0), color (0,3; 0,4; 0,7) y escala 0,8, que cada paso se
@@ -6234,7 +6234,7 @@ fuera del trapecio. La interfaz del paso recibe el `LoadedWorld` 55 y escribe su
 exige una segunda copia en `WorldState::Map()`. El dibujo lee posición, partes, animación y cabeza del pool.
 El cuervo conserva su pose para la chispa del paso siguiente. La zona segura del cuervo (los estados 3 y 4)
 está portada desde la auditoría del cierre de la CL7 ([el cuervo](#los-efectos-del-login)); los estados 2, 5
-y 6, de las órdenes `A7`, cortan en `0x416add` con los `rand()` anteriores.
+y 6, de las órdenes `A7`, están portados en la CL9 hito 4 ([el ataque del cuervo](#el-ataque-del-cuervo)).
 
 Con el port, por paso, con la animación quieta (sin el `rand()` de `0x432bf1` desde el frame 3 ni el del sufijo
 al terminar la acción) y los cinco lugares vistos con el trapecio de su dibujo (*simulado*):
@@ -10086,18 +10086,18 @@ la rama de la skill:
 
 | Skill | Qué hace |
 | --- | --- |
-| `0xc8`, `0xc9`, `0xca` | `0xc9` prende `0x100` y `0xca` `8` en `+0x78`, `+0x381` en 1; las tres van a `0x4f4a10` (hito 3) |
+| `0xc8`, `0xc9`, `0xca` | `0xc9` prende `0x100` y `0xca` `8` en `+0x78`, `+0x381` en 1; las tres van a `0x4f4a10` (`Scenes::SetActorAttack`, hito 3) y vuelven sin el frame en 0 |
 | `0x1a`..`0x24` (sin `0x1d`) | el sonido `0x6f` si `+0x376` no es `0x4d`; sigue como la `0x10` |
 | `0x10` | fuera del héroe, `0x4f5290` y el frame en 0 |
 | `0x3` | el sonido `0x50` salvo el tipo `0x1a5`; para al blanco (`0x4f2250`) en las acciones `0xcb`, `0xcc`, `0xc5` y `0xc7`; sigue como la 1 |
-| `0x1`, `0x2`, `0x4`, `0x7`, `0xb`, `0x11` | fuera del héroe: un jugador `0x4f5290` y el frame en 0; otro, `0x4f4a10` (hito 3) |
+| `0x1`, `0x2`, `0x4`, `0x7`, `0xb`, `0x11` | fuera del héroe: un jugador `0x4f5290` y el frame en 0; otro, `0x4f4a10` y el frame en 0 (`0x4cd68e`) |
 | `0xf` | el blanco se va (`0x53d8d0`) y la fuente llega (`0x53d930`), cada uno con la acción `0x93`, el destello `0x5c6` y el sonido `0x76`; en el héroe, `0x576794c` en 0; el sonido `0x83` |
 | `0x6` | la fuente se va (`0x53d8d0`) |
 | `0x13`..`0x16`, `0x38`, `0x39`, `0x2c` | la acción (`0x38`..`0x3b`, `0x8d`, `0x84`, `0x85`) y su sonido |
 | `0x17` | `0x3c` o `0x29` alternadas con `+0x38f` |
 | `0x3c`, `0x3d`, `0x4a` | `0x4e` con un pegaso (en la `0x4a`, solo el Dark Horse), `0x58` con Fenrir, si no `0x4c` |
 | `0x18`, `0x34`, `0x36`, `0x33`, `0x2e` | la acción por las manos (`0x4cc110`, y `0x4cc1d0` en la `0x2e`); la `0x33` salida apaga el `0xc1/1` del blanco y crea otro (CL11, `0x4cd6ff`) |
-| `0x37` | salida: apaga el `0x628/0` del blanco y crea otro (CL11, `0x4cd664`); si no, un monstruo va a `0x4f4a10` |
+| `0x37` | salida: apaga el `0x628/0` del blanco y crea otro (CL11, `0x4cd664`); si no, un monstruo va a `0x4f4a10` con el frame en 0 (`0x4cd68e`) |
 | `0x43`..`0x48` | la acción por la montura (Dark Horse `0x52`, Uniria `0x40`, Dinorant `0x41`, Fenrir `0x5d`; si no `0x3f` o `0x87`); salidas, la `0x44` baja el `0x1000` del blanco, la `0x46` le prende `0x4000` (si no es la fuente), la `0x47` le baja `0x4000`, la `0x48` le baja seis y la `0x45` prende `0x2000` en la fuente y crea su `0x138` (CL11, `0x4cdb72`) |
 | `0x4b`, `0x40` | `0x200` (`0x800` con `0x4f3f80` antes) en el blanco; la acción del Dark Horse, Fenrir o `0x8e` |
 | `0x35`, `0x30` | sin `0x400` (`0x10`) en el blanco, apaga y crea su `0x5ac/2` (`0x5ac/1`) (CL11, `0x4cdc88`, `0x4cdd84`); con él, sigue |
@@ -10110,8 +10110,8 @@ la rama de la skill:
 `0x5d` (Fenrir), `0x92` (elfo) o `0x8e + rand() % 2`; en otro, 3 y 4 de a tres con `+0x38f`.
 
 **`0x4ce000`, el `1E`.** Sobre el personaje de la clave (el 400 si no está): la skill en `+0x38e`, el rumbo
-(`rumbo · 1/255 · 360`, en double, Q-C1201), y un monstruo va a `0x4f4a10` (hito 3). Otro jugador hace la acción de la
-tabla de `0x4ced44` (las `0x18`, `0x34` y `0x36` van a `0x4f4a10`; `0xc` `0x94`, `0xa` `0x96`, `0xe` `0x95`, `0x41`
+(`rumbo · 1/255 · 360`, en double, Q-C1201), y un monstruo va a `0x4f4a10` con el frame en 0 (`0x4cece8`). Otro jugador hace la acción de la
+tabla de `0x4ced44` (las `0x18` y `0x34` van a `0x4f4a10` en `0x4cea88` y la `0x36` en `0x4ceaad`; `0xc` `0x94`, `0xa` `0x96`, `0xe` `0x95`, `0x41`
 `0x94` o `0x5b` con Fenrir, `0x3e` `0x53` y el sonido `0x1ce`, `0x2a` `0x3e`, `0x2f` `0x42` o `0x5f`, `0x29` y `0x37`
 `0x3d`, `0x38` `0x8d`, `0x2b` `0x43`, `0x43` y `0x46` `0x3f`, `0x4c` por las dos manos de `0x4e9c50`, las demás
 `0x4f5290`) con el frame en 0. Después, todos: la celda en `+0x39c`/`+0x39d`, `+0x381` en 1, `+0x3a4` en `0xffff` y
@@ -10128,13 +10128,13 @@ joints `0x10f/4` y `0x10f/9` aunque no estuviera; `0x10` el efecto `0x5ac/1`; `0
 `0x100000` baja el suyo, trece de `+0x78` y apaga todo lo anterior. Los efectos se buscan por su dueño
 (`0x518ac0`, Q-C1200) y los joints por `+0x54` (`0x534f90`).
 
-**`0x4cbe00`, el `07`.** Con el tipo 1: sin la máscara prendida entera en `+0x78`, `0x4e6380` (hito 1, corta en
-`0x4cbe47`); con ella, `+0x7c` queda en `0x200000` si lo tenía y en 0 si no (el `NEG`/`SBB` de `0x4cbe52`, Q-C1202).
+**`0x4cbe00`, el `07`.** Con el tipo 1: sin la máscara prendida entera en `+0x78`, `0x4e6380` con la máscara
+(`0x4cbe47`, `Scenes::ApplyEffectFlags` del hito 1, que sabe si es el héroe publicado); con ella, `+0x7c` queda en `0x200000` si lo tenía y en 0 si no (el `NEG`/`SBB` de `0x4cbe52`, Q-C1202).
 Con otro tipo y la máscara prendida, `0x4e6910`.
 
 **`0x4cc290`, el `69`.** Sin el blanco, nada (con el bit 15 no lo encuentra). La fuente en `0x5767964`, la skill en
 `+0x42e` (protegido como `+0x38e`, un `rand()`), el blanco en `+0x3a4` y su bit 15 en `+0x38d` (siempre 0 cuando
-llega acá); con las skills 1 a `0xd`, `0x4f4a10` (hito 3, `0x4cc50a`).
+llega acá); con las skills 1 a `0xd`, `0x4f4a10` (`0x4cc50a`), el frame en 0 y `+0x381` en 1.
 
 **`0x4dbf50`, el `48`.** Con un personaje de la clave que es un jugador (`+0x88` en 1) y el tipo `0x10`, quince joints
 `0x60f/2`, el efecto `0x61e` y el sonido `0x98`: corta en `0x4dbfc5` (CL11).
@@ -10176,8 +10176,10 @@ elige, con el ataque automático fuera de los mapas 6 y 18 a 23 y la skill del h
 `0x6c8e30` y `0x6c8e38` vuelven a −1.
 
 **MuRet**: `Scenes/SkillReplies` (los nueve), `Scenes/ActorFlags` (`0x4e6910`, `0x439d40`, `0x518ac0`, `0x534f90`),
-`Scenes/SkillDelays` y la lista y los números en `Scenes/GameUi.cpp`. Las cuatro funciones por clase que usan una
-skill (`0x559890`, `0x55b6f0`, `0x55cbc0`, `0x55faa0`) y quien llama a `0x552f10` son de la fase 2 (08, P-C264).
+`Scenes/SkillDelays` y la lista y los números en `Scenes/GameUi.cpp`; `0x4f4a10` es `Scenes::SetActorAttack` y
+`0x4e6380` `Scenes::ApplyEffectFlags` (los dos con sus `rand()` y sus cortes). `0x552f10` lo llama el comienzo de cada
+frame (`GameScene::Step`, P-C267). Las cuatro funciones por clase que usan una skill (`0x559890`, `0x55b6f0`,
+`0x55cbc0`, `0x55faa0`), y `0x57cfc0`, que las llama, quedan para la fase 2b (08, P-C268).
 
 ### Las órdenes del cuervo
 

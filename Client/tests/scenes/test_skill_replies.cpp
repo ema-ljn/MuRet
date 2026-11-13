@@ -1,5 +1,6 @@
 #include "Scenes/SkillReplies.h"
 
+#include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
@@ -13,8 +14,8 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
@@ -251,15 +252,77 @@ TEST(SkillRepliesTest, TheHitOfAMonsterAlternatesEveryThree)
     EXPECT_EQ(caster.attackCount, 2);
 }
 
-// Las ramas 1, 2, 4, 7, 0xb y 0x11 en un monstruo llaman a 0x4f4a10, del hito 3.
-TEST(SkillRepliesTest, TheStrikeOfAMonsterIsTheAttackActionOfHito3)
+// 0x4cd3e0 → 0x4cd68e: las ramas 1, 2, 4, 7, 0xb y 0x11 en un monstruo hacen la acción de ataque de 0x4f4a10
+// (SetActorAttack: la 3 con +0x38f en 0, que sube dos veces), el frame en 0 y +0x381 en 1. Los rand(): el cierre de
+// +0x38e y el del sonido de pegar sin la tabla del modelo (P-C253). En Lorencia, Devias y Kalima (un monstruo que no es
+// de los de 0x43a2f0).
+TEST(SkillRepliesTest, TheStrikeOfAMonsterIsTheAttackAction)
 {
-    auto tested = std::make_unique<Replies>();
-    tested->Actor(CasterIndex).type = MonsterType;
-    const auto applied = tested->Attack(0x1);
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x4f4a10"), std::string::npos) << applied.Error();
-    EXPECT_EQ(tested->Actor(CasterIndex).byte38e, 0x1);
+    for (const std::int32_t map : {0, 2, 0x18})
+    {
+        for (const int skill : {1, 2, 4, 7, 0xb, 0x11})
+        {
+            SCOPED_TRACE(std::to_string(map) + " " + std::to_string(skill));
+            auto tested = std::make_unique<Replies>();
+            tested->world.Runtime().map = map;
+            ActorState& caster = tested->Actor(CasterIndex);
+            caster.type = MonsterType;
+            caster.animation.frame = 2.0f;
+            const CrtRandom expected = Advanced(tested->cloth.random, ActorByteRandoms + 1);
+            ASSERT_TRUE(tested->Attack(static_cast<std::uint8_t>(skill)).HasValue());
+            EXPECT_EQ(caster.byte38e, skill);
+            EXPECT_EQ(caster.animation.action, 3);
+            EXPECT_EQ(caster.attackCount, 2);
+            EXPECT_EQ(caster.animation.frame, 0.0f);
+            EXPECT_EQ(caster.byte381, 1);
+            EXPECT_EQ(tested->cloth.random.State(), expected.State());
+        }
+    }
+}
+
+// 0x4cd316, 0x4cd34b y 0x4cd35b: la 0xc9, la 0xca y la 0xc8 de un jugador pegan con 0x4f4a10 (sin armas, la 0x22, con
+// los 3848 rand() de 0x4f3f80) y vuelven sin el frame en 0 (ya en la 0x22, 0x4ea030 no lo toca); las dos primeras
+// prenden su bandera y +0x381.
+TEST(SkillRepliesTest, TheMonsterSkillsOfAPlayerAreTheAttackAction)
+{
+    for (const auto& [skill, flag, settled] :
+         {std::tuple{0xc9, 0x100u, 1}, std::tuple{0xca, 0x8u, 1}, std::tuple{0xc8, 0u, 0}})
+    {
+        SCOPED_TRACE(skill);
+        auto tested = std::make_unique<Replies>();
+        ActorState& caster = tested->Actor(CasterIndex);
+        caster.animation.action = 0x22;
+        caster.animation.frame = 2.0f;
+        const CrtRandom expected = Advanced(tested->cloth.random, ActorByteRandoms + OwnRecordRandoms);
+        ASSERT_TRUE(tested->Attack(static_cast<std::uint8_t>(skill)).HasValue());
+        EXPECT_EQ(caster.animation.action, 0x22);
+        EXPECT_EQ(caster.attackCount, 1);
+        EXPECT_EQ(caster.flags78, flag);
+        EXPECT_EQ(caster.byte381, settled);
+        EXPECT_EQ(caster.animation.frame, 2.0f);
+        EXPECT_EQ(tested->cloth.random.State(), expected.State());
+    }
+}
+
+// 0x4cd681 y 0x4cdd21: la 0x37 sin salir y la 0x3f en un monstruo terminan en 0x4f4a10 (la 3, que pisa la 0x4d de la
+// 0x3f), el frame en 0 y +0x381; en un jugador, la 0x37 vuelve sin nada y la 0x3f se queda con su acción.
+TEST(SkillRepliesTest, TheSkills37And3FOfAMonsterEndInTheAttackAction)
+{
+    for (const std::uint8_t skill : {std::uint8_t{0x37}, std::uint8_t{0x3f}})
+    {
+        SCOPED_TRACE(int{skill});
+        auto monster = std::make_unique<Replies>();
+        monster->Actor(CasterIndex).type = MonsterType;
+        ASSERT_TRUE(monster->Attack(skill, CasterKey, false).HasValue());
+        EXPECT_EQ(monster->Actor(CasterIndex).animation.action, 3);
+        EXPECT_EQ(monster->Actor(CasterIndex).attackCount, 2);
+        EXPECT_EQ(monster->Actor(CasterIndex).byte381, 1);
+
+        auto player = std::make_unique<Replies>();
+        ASSERT_TRUE(player->Attack(skill, CasterKey, false).HasValue());
+        EXPECT_EQ(player->Actor(CasterIndex).attackCount, 0);
+        EXPECT_EQ(player->Actor(CasterIndex).byte381, skill == 0x3f ? 1 : 0);
+    }
 }
 
 // 0x4cdda4: la 0x31 en Atlans (8) y en el cielo (10) es la 0x41; en Lorencia, Devias y los demás, la 0x40.
@@ -443,6 +506,33 @@ TEST(SkillRepliesTest, TheDurationMagicOfAnotherPlayerActsAndKeepsTheCell)
     EXPECT_EQ(tested->cloth.random.State(), expected.State());
 }
 
+// 0x4cea84 (0x18 y 0x34) y 0x4ceaa9 (0x36): otro jugador hace la acción de ataque de 0x4f4a10 (sin armas, la 0x22 con
+// los 3848 rand() de 0x4f3f80) y el frame en 0, en Lorencia, Devias y Atlans (8).
+TEST(SkillRepliesTest, TheDurationMagicOfAnotherPlayerCanBeTheAttackAction)
+{
+    for (const std::int32_t map : {0, 2, 8})
+    {
+        for (const std::uint8_t skill : {std::uint8_t{0x18}, std::uint8_t{0x34}, std::uint8_t{0x36}})
+        {
+            SCOPED_TRACE(std::to_string(map) + " " + std::to_string(skill));
+            auto tested = std::make_unique<Replies>();
+            tested->world.Runtime().map = map;
+            ActorState& caster = tested->Actor(CasterIndex);
+            caster.animation.frame = 2.0f;
+            const CrtRandom expected = Advanced(tested->cloth.random, ActorByteRandoms + OwnRecordRandoms);
+            ASSERT_TRUE(
+                Client::Scenes::ApplyDurationMagic(DurationMagic{skill, CasterKey, 4, 5, 0}, tested->Resources())
+                    .HasValue());
+            EXPECT_EQ(caster.animation.action, 0x22);
+            EXPECT_EQ(caster.attackCount, 1);
+            EXPECT_EQ(caster.animation.frame, 0.0f);
+            EXPECT_EQ(caster.skillCellX, 4);
+            EXPECT_EQ(caster.byte381, 1);
+            EXPECT_EQ(tested->cloth.random.State(), expected.State());
+        }
+    }
+}
+
 // Sobre el héroe: sin acción, pero con la celda.
 TEST(SkillRepliesTest, TheDurationMagicOfTheHeroOnlyKeepsTheCell)
 {
@@ -458,16 +548,28 @@ TEST(SkillRepliesTest, TheDurationMagicOfTheHeroOnlyKeepsTheCell)
     EXPECT_EQ(hero.attackTarget, 0xffff);
 }
 
-// Un monstruo hace la acción de ataque de 0x4f4a10 (hito 3), después de la skill y el rumbo.
-TEST(SkillRepliesTest, TheDurationMagicOfAMonsterIsTheAttackActionOfHito3)
+// 0x4cece8: un monstruo hace la acción de ataque de 0x4f4a10 después de la skill y el rumbo, con el frame en 0, y
+// sigue con la celda, +0x381, +0x3a4 y +0x380. Los rand(): el cierre de +0x38e y el del sonido de pegar.
+TEST(SkillRepliesTest, TheDurationMagicOfAMonsterIsTheAttackAction)
 {
     auto tested = std::make_unique<Replies>();
-    tested->Actor(CasterIndex).type = MonsterType;
-    const auto applied =
-        Client::Scenes::ApplyDurationMagic(DurationMagic{0xc, CasterKey, 1, 2, 0xff}, tested->Resources());
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x4cecec"), std::string::npos) << applied.Error();
-    EXPECT_EQ(tested->Actor(CasterIndex).byte38e, 0xc);
+    ActorState& caster = tested->Actor(CasterIndex);
+    caster.type = MonsterType;
+    caster.animation.frame = 2.0f;
+    caster.byte380 = 2;
+    const CrtRandom expected = Advanced(tested->cloth.random, ActorByteRandoms + 1);
+    ASSERT_TRUE(
+        Client::Scenes::ApplyDurationMagic(DurationMagic{0xc, CasterKey, 1, 2, 0xff}, tested->Resources()).HasValue());
+    EXPECT_EQ(caster.byte38e, 0xc);
+    EXPECT_EQ(caster.animation.action, 3);
+    EXPECT_EQ(caster.attackCount, 2);
+    EXPECT_EQ(caster.animation.frame, 0.0f);
+    EXPECT_EQ(caster.skillCellX, 1);
+    EXPECT_EQ(caster.skillCellY, 2);
+    EXPECT_EQ(caster.byte381, 1);
+    EXPECT_EQ(caster.attackTarget, 0xffff);
+    EXPECT_EQ(caster.byte380, 0);
+    EXPECT_EQ(tested->cloth.random.State(), expected.State());
     // 255 · (1/255) · 360 en double pasa de 360 y queda en el float de arriba.
     EXPECT_EQ(tested->Actor(CasterIndex).angles.z,
               static_cast<float>(255.0 * static_cast<double>(1.0f / 255.0f) * 360.0));
@@ -549,10 +651,32 @@ TEST(SkillRepliesTest, TheActorStateOfTypeOneRewritesTheSecondFlags)
         Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x10, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags7c, 0u);
-    const auto unlit =
-        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x40, CasterKey}, tested->Resources());
-    ASSERT_FALSE(unlit.HasValue());
-    EXPECT_NE(unlit.Error().find("0x4e6380"), std::string::npos) << unlit.Error();
+    // 0x4cbe47: sin prender, 0x4e6380 con la máscara (ApplyEffectFlags): el 4 se prende y +0x7c queda.
+    ASSERT_TRUE(
+        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x4, CasterKey}, tested->Resources())
+            .HasValue());
+    EXPECT_EQ(caster.flags78, 0x34u);
+    EXPECT_EQ(caster.flags7c, 0u);
+    // El 0x1000 prende su bit y corta en los joints (CL11).
+    const auto joints =
+        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x1000, CasterKey}, tested->Resources());
+    ASSERT_FALSE(joints.HasValue());
+    EXPECT_NE(joints.Error().find("0x4e662d"), std::string::npos) << joints.Error();
+    EXPECT_EQ(caster.flags78, 0x1034u);
+}
+
+// 0x4cbe45: 0x4e6380 sabe si es el héroe publicado ([0x743a170]): el 0x2000000 corta en él y en otro se prende.
+TEST(SkillRepliesTest, TheActorStateOfTypeOneKnowsThePublishedHero)
+{
+    auto tested = std::make_unique<Replies>();
+    const auto hero = Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x2000000, HeroKey},
+                                                      tested->Resources());
+    ASSERT_FALSE(hero.HasValue());
+    EXPECT_NE(hero.Error().find("0x4e68f5"), std::string::npos) << hero.Error();
+    ASSERT_TRUE(Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x2000000, CasterKey},
+                                                tested->Resources())
+                    .HasValue());
+    EXPECT_EQ(tested->Actor(CasterIndex).flags78, 0x2000000u);
 }
 
 TEST(SkillRepliesTest, TheActorStateOfAnotherTypeLowersTheLitFlag)
@@ -629,13 +753,33 @@ TEST(SkillRepliesTest, TheSkillTargetKeepsTheSkillAndTheTarget)
     EXPECT_EQ(caster.byte42e, 0x20);
 }
 
-TEST(SkillRepliesTest, TheSkillTargetOfTheFirstSkillsIsTheAttackActionOfHito3)
+// 0x4cc503..0x4cc51c: con las skills 1 a 0xd, 0x4f4a10 (un jugador sin armas: los 3848 rand() de 0x4f3f80 y la
+// 0x22), el frame en 0 y +0x381 en 1; con 0 o 0xe, nada de eso.
+TEST(SkillRepliesTest, TheSkillTargetOfTheFirstSkillsIsTheAttackAction)
 {
-    auto tested = std::make_unique<Replies>();
-    const auto applied = Client::Scenes::ApplySkillTarget(SkillTarget{0xd, CasterKey, TargetKey}, tested->Resources());
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x4cc50a"), std::string::npos) << applied.Error();
-    EXPECT_EQ(tested->Actor(CasterIndex).byte42e, 0xd);
+    for (const std::uint8_t skill : {std::uint8_t{1}, std::uint8_t{0xd}})
+    {
+        auto tested = std::make_unique<Replies>();
+        ActorState& caster = tested->Actor(CasterIndex);
+        caster.animation.frame = 2.0f;
+        const CrtRandom expected = Advanced(tested->cloth.random, ActorByteRandoms + OwnRecordRandoms);
+        ASSERT_TRUE(
+            Client::Scenes::ApplySkillTarget(SkillTarget{skill, CasterKey, TargetKey}, tested->Resources()).HasValue());
+        EXPECT_EQ(caster.byte42e, skill);
+        EXPECT_EQ(caster.animation.action, 0x22);
+        EXPECT_EQ(caster.attackCount, 1);
+        EXPECT_EQ(caster.animation.frame, 0.0f);
+        EXPECT_EQ(caster.byte381, 1);
+        EXPECT_EQ(tested->cloth.random.State(), expected.State());
+    }
+    for (const std::uint8_t skill : {std::uint8_t{0}, std::uint8_t{0xe}})
+    {
+        auto tested = std::make_unique<Replies>();
+        ASSERT_TRUE(
+            Client::Scenes::ApplySkillTarget(SkillTarget{skill, CasterKey, TargetKey}, tested->Resources()).HasValue());
+        EXPECT_EQ(tested->Actor(CasterIndex).byte381, 0);
+        EXPECT_EQ(tested->Actor(CasterIndex).attackCount, 0);
+    }
 }
 
 TEST(SkillRepliesTest, TheLevelUpEffectOfAPlayerIsACL11Cut)

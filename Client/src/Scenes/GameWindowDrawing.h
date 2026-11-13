@@ -34,9 +34,9 @@ void SelectFont(GameHudContext& context, Render::Text::FontKind font);
 void DrawText(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text);
 
 // 0x554180(x, y, texto, 120 · W / 640, 1, 3), el título de una ventana: 0x467060 con el modo 2 centra el texto en una
-// caja de 120 · W / 640 píxeles (la división sin signo de 0x5f0cd6..0x5f0cef) que empieza en _ftol(x · rx), y deja
-// en 0x77f31b8 el ancho recortado a la caja. El fondo de 0x467060 llena la caja entera; el de MuRet va solo detrás del
-// texto, y la x pasa por 640 × 480 antes de dibujar (08, P-C115).
+// caja de 120 · W / 640 píxeles (la división sin signo de 0x5f0cd6..0x5f0cef) que empieza en _ftol(x · rx), con el
+// fondo en toda la caja (Render::Text::CenterInBox e ITextDrawer::DrawColumns, Q-C710), y deja en 0x77f31b8 el ancho
+// recortado a la caja. Un texto vacío mide el "0" y dibuja solo el fondo.
 void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text);
 
 // 0x623690(x, y, texto): x − (cx · 640 / W) / 2 y 0x554180(…, 0, 0, 0).

@@ -424,7 +424,8 @@ tooltip queda solo el modo 3 de las ayudas, del hito 6 (P-C102), y el hito 5 que
 - [x] **Las ventanas del paso que son marco:** la party (`0x5e3c80` sin el `43`), el botón del quest (`0x41b5a0`
       sin el contenido), la puerta de D (`0x40a450` sin `0x406050`) y los cortes sin `rand()` de las de la CL9.
       Hecho: la party vacía (`0x6599a0(4)` con el `C1 03 42`, `0x5e3c80`, `0x5f0be0`) y los comandos (`0x40a450`,
-      `0x40a650`, hasta `0x406097`), con Q-C650 a Q-C654; lo que queda, en 08 (P-C115 a P-C117).
+      `0x40a650`, hasta `0x406097`), con Q-C650 a Q-C654; lo que queda, en 08 (P-C116 y P-C117; el título
+      con su caja, P-C115, cerrado el 2026-11-13).
 - [x] **Las teclas y las superposiciones:** `0x5ac8d0` (F1..F4; SPACE como corte de la CL9.3), `0x5b0550` con las
       ayudas F1 (`0x5af090`, `0x5afb00`) y **la ventana /move** (el paso `0x5ecdc0` → `0x449850` → `0x448580` y el dibujo `0x5b0550` → `0x449860` →
       `0x448fa0`, con

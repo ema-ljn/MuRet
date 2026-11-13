@@ -1253,7 +1253,9 @@ con du = 0,7421875 y dv = 1 y 0,69140625, escalados y sin alfa (`0x621b60`); y e
 `0x6c8e64 = 0xff000000` y la ayuda (`0x554340`) en `(_ftol(x + 25), _ftol(y + 395) − 13)`, que deja la normal y los
 colores −1 y 0. El título de las dos va con `0x554180(x + 0x23, y + 0xc, texto, 120 · W / 640, 1, 3)` (la división
 sin signo de `0x5f0cd6..0x5f0cef`): el modo 2 de `0x467060` lo centra en una caja de ese ancho que empieza en
-`_ftol(x · rx)` y llena la caja con el fondo (08, P-C115). El paso de las dos mira el mouse desde la esquina que dejó
+`_ftol(x · rx)` y llena la caja con el fondo; con el texto vacío, mide el `"0"` y dibuja solo el fondo. MuRet:
+`Scenes::WindowDrawing::DrawTitle`, con `Render::Text::CenterInBox` e `ITextDrawer::DrawColumns`, como el título del
+inventario (Q-C710). El paso de las dos mira el mouse desde la esquina que dejó
 el dibujo, que antes del primero es (0, 0) (Q-C650).
 
 La party. `Open(4)` (`0x659a82..0x659c44`), con lo que cerró: `0x78aba48 = 0`, el pedido de la lista (`0x659aa6..

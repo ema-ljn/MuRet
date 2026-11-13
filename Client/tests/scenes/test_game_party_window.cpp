@@ -397,9 +397,12 @@ TEST_P(GamePartyWindowTest, TheEmptyPartyDrawsItsFrameTitleAndLines)
 
     const auto& texts = m_text.texts;
     ASSERT_EQ(texts.size(), 7U);
-    // (120 − 30) / 2 desde 485.
+    // La caja de 120 desde 485, con el fondo en toda ella y el texto corrido (120 − 30) / 2.
     EXPECT_EQ(texts[0].text, "Grupo");
-    EXPECT_EQ(texts[0].x, 530);
+    EXPECT_EQ(texts[0].x, 485);
+    EXPECT_TRUE(texts[0].windowed);
+    EXPECT_EQ(texts[0].firstColumn, -45);
+    EXPECT_EQ(texts[0].columns, 120);
     EXPECT_EQ(texts[0].y, 12);
     EXPECT_EQ(texts[0].style.font, FontKind::Bold);
     EXPECT_EQ(texts[0].style.colors.text, 0xffdcdcdcu);
@@ -477,16 +480,34 @@ TEST_P(GamePartyWindowTest, TheMembersAndAMissingTableCut)
     EXPECT_NE(missing.Error().find("0x5f0cf6"), std::string::npos) << missing.Error();
 }
 
-// En 800 × 600 la caja del título es de 150 píxeles desde _ftol(485 · 1,25) = 606: el texto empieza en 666 y vuelve a
-// 640 × 480 como 532 (08, P-C115). La medida queda recortada a la caja y pasada a 640.
+// En 800 × 600 la caja del título es de 150 píxeles: DrawColumns la pone en _ftol(485 · 1,25) = 606, con el texto
+// corrido (150 − 30) / 2 = 60 columnas, sin pasar la x por 640 × 480.
 TEST_P(GamePartyWindowTest, TheTitleBoxScalesWithTheScreen)
 {
     Runtime().panels.party = 1;
     m_sprites.Begin(Screen800);
     ASSERT_TRUE(Draw(0, 0).HasValue());
     ASSERT_FALSE(m_text.texts.empty());
-    EXPECT_EQ(m_text.texts[0].x, 532);
+    EXPECT_EQ(m_text.texts[0].x, 485);
     EXPECT_EQ(m_text.texts[0].y, 12);
+    EXPECT_EQ(m_text.texts[0].firstColumn, -60);
+    EXPECT_EQ(m_text.texts[0].columns, 150);
+}
+
+// 0x554180 con caja llama a 0x467060 aunque el título esté vacío: mide el "0" (6 columnas) y dibuja solo el fondo, en
+// 6 + 2 · ((120 − 6) / 2) columnas.
+TEST_P(GamePartyWindowTest, AnEmptyTitleDrawsOnlyItsBox)
+{
+    std::map<std::size_t, std::string> texts = PartyTexts();
+    texts[190].clear();
+    m_texts = Client::Tests::MakeTextTable(texts);
+    Runtime().panels.party = 1;
+    ASSERT_TRUE(Draw(0, 0).HasValue());
+    ASSERT_FALSE(m_text.texts.empty());
+    EXPECT_EQ(m_text.texts[0].text, "");
+    EXPECT_EQ(m_text.texts[0].x, 485);
+    EXPECT_EQ(m_text.texts[0].firstColumn, -57);
+    EXPECT_EQ(m_text.texts[0].columns, 120);
 }
 
 INSTANTIATE_TEST_SUITE_P(TwoMaps, GamePartyWindowTest, ::testing::Values(Lorencia, Devias));

@@ -221,7 +221,7 @@ portar y las ramas que el hito llena en funciones de otras olas. El detalle por 
       `WriteFacing` de hoy pasa a ser `WriteAction(dir, 0x7a)`); y la compuerta de la CL8 (montado fuera de la
       zona segura, nada) queda como está. Se va el corte de `ChatCommands.cpp` y P-C87 se cierra.
 - [x] **Sentarse** (`0x4f2250`, tramo `0x4f2416..0x4f2bea`): el `C1 18` que hoy corta en `ActorActions.cpp`.
-- [ ] **Los otros jugadores entran y salen:** el `0x12` (`0x4c8860` con su cola de 10 ranuras de `0x100` B,
+- [x] **Los otros jugadores entran y salen:** el `0x12` (`0x4c8860` con su cola de 10 ranuras de `0x100` B,
       `0x77f3ba0`), el alta (`0x512870`, `0x5139f0` con la apariencia, el nombre en `+0x1d9`, el GM por
       "webzen", las banderas de `+0x78` con `0x4e6380` y `0x42ab40`, el `+0x360` del `0x4c89e1`), el `0x14`
       (`0x4ca780`, con el caso `0x13d`, `0x510ff0` y la limpieza de `0x451430`/`0x451630`), el `0x45`
@@ -230,10 +230,10 @@ portar y las ramas que el hito llena en funciones de otras olas. El detalle por 
 - [x] **La acción de otro** (`0x18`, `0x4cb750`): la tabla acción → animación con sus variantes de elfo, los
       casos `0x12` (sonido `0x6f`, CL10), `0x78`/`0x79` (`0x4f4a10`, es del hito 3: corta), `0x7a`/`0x7b`
       (`0x4f2250`) y `0x7e`; el modelo `0x1c16` no se toca.
-- [ ] **Lo que el héroe ya hace con otros:** el `D3` y el `D7` de otros (hoy portados) los encuentran; el
+- [x] **Lo que el héroe ya hace con otros:** el `D3` y el `D7` de otros (hoy portados) los encuentran; el
       picking de personajes de `0x59ec80` (el corte de la CL8 que deja −1) y el elegido (`0x59ee0b`), con sus
       `rand()`; las búsquedas muertas `0x5132d0`, `0x5178f0` y `0x517920` se anotan.
-- [ ] Lo que cada alta llama de la CL11 (el efecto de llegada `0x518cf0` ya portado en parte, los joints
+- [x] Lo que cada alta llama de la CL11 (el efecto de llegada `0x518cf0` ya portado en parte, los joints
       `0x530860`) se llama hasta donde está portado y corta con su dirección donde no.
 
 **Pruebas:** los 95 textos contra su caso (un test por fila de la tabla, y el orden: un texto que contiene dos

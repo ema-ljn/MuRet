@@ -37,6 +37,7 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/Party.h"
 #include "Protocol/Pet/PetInfo.h"
+#include "Protocol/Viewport.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
 
@@ -234,6 +235,16 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnDamage(packet); }) &&
         m_gameServer.On(Protocol::Movement::ActionOpcode,
                         [this](const Network::Packet& packet) { OnAction(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::PlayersOpcode,
+                        [this](const Network::Packet& packet) { OnViewportPlayers(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::LeaveOpcode,
+                        [this](const Network::Packet& packet) { OnViewportLeave(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::TransformedOpcode,
+                        [this](const Network::Packet& packet) { OnTransformed(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::EquipmentShownOpcode,
+                        [this](const Network::Packet& packet) { OnEquipmentShown(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::PositionOpcode,
+                        [this](const Network::Packet& packet) { OnViewportPosition(packet); }) &&
         m_gameServer.On(Protocol::World::TeleportOpcode,
                         [this](const Network::Packet& packet) { OnTeleport(packet); }) &&
         m_gameServer.On(Protocol::World::WorldOpcode, Protocol::World::RegenSubcode,
@@ -1261,6 +1272,62 @@ void ServerSession::OnAction(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(action.Value(), *this)));
+}
+
+// 0x4e372e, 0x4e3819, 0x4e3b2c, 0x4e36c5 y 0x4e3716: el dispatcher no mira la escena ni el flag de cifrado.
+void ServerSession::OnViewportPlayers(const Network::Packet& packet)
+{
+    const auto players = Protocol::Viewport::ReadPlayers(packet);
+    if (!players.HasValue())
+    {
+        m_log.Warning("se ignoran los jugadores del viewport (12): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(players.Value(), *this)));
+}
+
+void ServerSession::OnViewportLeave(const Network::Packet& packet)
+{
+    const auto leave = Protocol::Viewport::ReadLeave(packet);
+    if (!leave.HasValue())
+    {
+        m_log.Warning("se ignoran las bajas del viewport (14): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(leave.Value(), *this)));
+}
+
+void ServerSession::OnTransformed(const Network::Packet& packet)
+{
+    const auto transformed = Protocol::Viewport::ReadTransformed(packet);
+    if (!transformed.HasValue())
+    {
+        m_log.Warning("se ignoran los transformados del viewport (45): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(transformed.Value(), *this)));
+}
+
+void ServerSession::OnEquipmentShown(const Network::Packet& packet)
+{
+    const auto shown = Protocol::Viewport::ReadEquipmentShown(packet);
+    if (!shown.HasValue())
+    {
+        m_log.Warning("se ignora el equipo de otro (25): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(shown.Value(), *this)));
+}
+
+void ServerSession::OnViewportPosition(const Network::Packet& packet)
+{
+    const auto position = Protocol::Viewport::ReadPosition(packet);
+    if (!position.HasValue())
+    {
+        m_log.Warning("se ignora la posición de otro (DF): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(position.Value(), *this)));
 }
 
 // P-C33: 0x4c6e32 prueba el flag antes de leer los campos; cero manda el F1 03.

@@ -30,6 +30,7 @@
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Viewport.h"
 #include "Protocol/World.h"
 #include "Protocol/Character/CharacterCreate.h"
 #include "Protocol/Character/CharacterDelete.h"
@@ -4201,6 +4202,43 @@ TEST(ServerSessionTest, WalkDamageTeleportAndRegenReachTheSinkInWireOrder)
     EXPECT_EQ(revived->bp, 0x9abc);
     EXPECT_EQ(revived->experience, 0x04030201u);
     EXPECT_EQ(revived->zen, 0x08070605u);
+    EXPECT_NE(tested.session.State(), SessionState::Failed);
+}
+
+// 04 § Los otros jugadores: el 12, el 14, el 45, el 25 y el DF llegan al mundo en el orden del cable.
+TEST(ServerSessionTest, TheViewportPacketsReachTheSinkInWireOrder)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    auto players = Bytes({0xc2, 0, 5 + 0x2c, 0x12, 1, 0x80, 0x45, 130, 125, 0x20});
+    players.resize(5 + 0x2c);
+    auto transformed = Bytes({0xc2, 0, 5 + 0x1c, 0x45, 1, 0x00, 0x46, 70, 80, 0x01, 0x23});
+    transformed.resize(5 + 0x1c);
+    const auto leave = Bytes({0xc1, 6, 0x14, 1, 0x80, 0x45});
+    const auto shown = Bytes({0xc1, 12, 0x25, 0x00, 0x45, 1, 0x80, 0, 0, 0, 0xd0, 0});
+    const auto position = Bytes({0xc1, 7, 0xdf, 0x00, 0x45, 140, 141});
+    tested.socket.reads = {Join({players, transformed, shown, position, leave})};
+    EXPECT_TRUE(tested.session.Poll().HasValue());
+    ASSERT_EQ(tested.eventSink.world.size(), 5u);
+    const auto* arrived = std::get_if<Client::Protocol::Viewport::Players>(&tested.eventSink.world[0]);
+    ASSERT_NE(arrived, nullptr);
+    ASSERT_EQ(arrived->records.size(), 1u);
+    EXPECT_EQ(arrived->records[0].key, 0x45);
+    EXPECT_TRUE(arrived->records[0].isNew);
+    EXPECT_EQ(arrived->packet.size(), 5u + 0x2c);
+    const auto* changed = std::get_if<Client::Protocol::Viewport::Transformed>(&tested.eventSink.world[1]);
+    ASSERT_NE(changed, nullptr);
+    ASSERT_EQ(changed->records.size(), 1u);
+    EXPECT_EQ(changed->records[0].type, 0x0123);
+    const auto* equipped = std::get_if<Client::Protocol::Viewport::EquipmentShown>(&tested.eventSink.world[2]);
+    ASSERT_NE(equipped, nullptr);
+    EXPECT_EQ(equipped->key, 0x45);
+    const auto* moved = std::get_if<Client::Protocol::Viewport::Position>(&tested.eventSink.world[3]);
+    ASSERT_NE(moved, nullptr);
+    EXPECT_EQ(moved->x, 140);
+    const auto* left = std::get_if<Client::Protocol::Viewport::Leave>(&tested.eventSink.world[4]);
+    ASSERT_NE(left, nullptr);
+    EXPECT_EQ(left->keys, (std::vector<std::uint16_t>{0x8045}));
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 

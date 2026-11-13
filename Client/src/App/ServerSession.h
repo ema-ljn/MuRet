@@ -359,6 +359,12 @@ private:
     void OnWalk(const Network::Packet& packet);
     void OnDamage(const Network::Packet& packet);
     void OnAction(const Network::Packet& packet);
+    // Los otros jugadores en el viewport (CL9 hito 1): 0x12, 0x14, 0x45, 0x25 y 0xDF.
+    void OnViewportPlayers(const Network::Packet& packet);
+    void OnViewportLeave(const Network::Packet& packet);
+    void OnTransformed(const Network::Packet& packet);
+    void OnEquipmentShown(const Network::Packet& packet);
+    void OnViewportPosition(const Network::Packet& packet);
     void OnTeleport(const Network::Packet& packet);
     void OnRegen(const Network::Packet& packet);
     void OnChat(const Network::Packet& packet);

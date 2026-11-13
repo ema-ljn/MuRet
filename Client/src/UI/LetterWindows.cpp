@@ -1594,7 +1594,20 @@ void SettleTheLetterKindsForTheDraw(OldWindowManager& manager, OldWindow& window
             return;
         PostToTheList(manager, letter.lines, letter.lineRows.size(), SizeType);
         PostToTheBase(manager, letter.portrait.base, SizeType);
+        return;
     }
+    if (window.kind != OldWindowKind::LetterWriteWindow || letter.buttons.size() != WriteButtonTexts.size())
+        return;
+    // 0x4984af..0x498532: el 8 a los botones +0xa44 y +0xacc, a los tres EDIT, a los botones +0xb54 y +0xbdc y al
+    // retrato (+0xb4). Sin el 9, ni cambiando de tamaño.
+    Steps::PostAndSettle(manager, letter.buttons[0], PlaceType);
+    Steps::PostAndSettle(manager, letter.buttons[1], PlaceType);
+    PostToTheEdit(manager, letter.to, PlaceType);
+    PostToTheEdit(manager, letter.subject, PlaceType);
+    PostToTheEdit(manager, letter.text, PlaceType);
+    Steps::PostAndSettle(manager, letter.buttons[2], PlaceType);
+    Steps::PostAndSettle(manager, letter.buttons[3], PlaceType);
+    PostToTheBase(manager, letter.portrait.base, PlaceType);
 }
 
 void PingTheChatRooms(OldWindowManager& manager)

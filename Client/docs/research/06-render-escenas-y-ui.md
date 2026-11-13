@@ -1185,13 +1185,19 @@ los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
   `0xffc8dce6`, que saca la mezcla); abajo, la raya del 2 a 20 del borde y el negro de 18 de los botones y, con
   `+0x774` en 2 o más (lo pone en 2 `0x48f460` y nadie lo cambia), solo hasta el retrato (`0x78` antes del borde
   derecho) y con una raya de 19 al costado; arriba, la raya en `y + 0xe` y el negro de 14; el 1014 con el que la
-  manda, la fecha y la hora en `(x + 3, y + 3)` con los colores del último renglón, y los cinco botones. La vtable
+  manda, la fecha y la hora en `(x + 3, y + 3)` con los colores del último renglón, y los cinco botones. **La de
+  escribir** (`0x498480`): arrastrada o cambiando de tamaño, el 8 a los botones `+0xa44` y `+0xacc`, a los tres EDIT,
+  a los botones `+0xb54` y `+0xbdc` y al retrato, sin el 9; arriba, el negro de 29 de los dos renglones y las rayas
+  del 2 en `y + 0xe` y `y + 0x1d`; abajo, el negro de 19 de los botones y su raya; el 1000 y el 1005 en `(x + 3, y + 3)`
+  y `(x + 3, y + 0x12)`, en `0xffc8dce6` (solo el color del texto) y alineados a la derecha en el ancho del 1000 (el
+  modo 3 de `0x467060`: el texto en la columna caja − cx del DIB); los tres EDIT (`0x468320`, el del cuerpo con su
+  barra `0x468970`); sin mezcla, los botones `+0xa44` y `+0xacc` y, con `+0xb0` en 1, `+0xb54` y `+0xbdc`. La vtable
   + `0x54` del marco, al final, dibuja el retrato en la de leer con `+0x774` en 2 o más (`0x49a1d0`) y en la de
   escribir con `+0xb0` en 1 (`0x498800`): corta (P-C212). Los renglones del original están partidos en el ancho de la
   lista (P-C218).
 
-El paso y el ubicado de las tres ventanas siguen el orden del ASM. Los dibujos de la de escribir (`0x498480`) y de
-la pestaña de las cartas (`0x4a0a30`) cortan (P-C213); los renglones de los chats en la lista de ventanas de F5
+El paso y el ubicado de las tres ventanas siguen el orden del ASM. El dibujo de la pestaña de las cartas
+(`0x4a0a30`) corta (P-C213); los renglones de los chats en la lista de ventanas de F5
 (`+0xdc`), también (P-C215). Con el retrato del juego sin portar, abrir una carta o la de
 escribir corta (P-C212); el `CA` arma el chat y abre la conexión de la sala (`App::IChatRoomLinks`; 04).
 

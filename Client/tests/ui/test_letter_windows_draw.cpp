@@ -81,11 +81,16 @@ public:
     }
 };
 
-// Cada texto es "t<índice>", salvo el formato del renglón de arriba de la de leer (1014).
+// Cada texto es "t<índice>", salvo el formato del renglón de arriba de la de leer (1014) y los rótulos de la de
+// escribir (1000 y 1005), de anchos distintos.
 std::string TextOf(std::size_t index)
 {
     if (index == 1014)
         return "De %s el %s a las %s";
+    if (index == 1000)
+        return "Destinatario";
+    if (index == 1005)
+        return "Tema";
     return "t" + std::to_string(index);
 }
 
@@ -241,6 +246,21 @@ protected:
     OldWindow& Letter()
     {
         return m_manager.windows.at(m_letter);
+    }
+
+    // 0x48ee60 con el 7 en (100, 80): el retrato de prueba lo arma y 0x497f50 deja +0xb0 en 1.
+    OldWindow& OpenAWrite()
+    {
+        const OldWindowGlobals globals = Globals();
+        const OldWindowStepView view = StepView();
+        const auto opened = Client::UI::CreateTheOldWindow(
+            m_manager,
+            Client::UI::OldWindowRequest{
+                .kind = Client::UI::LetterWriteCase, .x = ChatX, .y = ChatY, .data = "t1053", .aux = 0, .flags = 0},
+            m_texts, m_measure, &globals, &view);
+        EXPECT_TRUE(opened.HasValue()) << opened.Error();
+        m_letter = opened.HasValue() ? opened.Value() : 0;
+        return Letter();
     }
 
     // El paso de las ventanas, con la cola del administrador.
@@ -693,5 +713,162 @@ TEST_F(LetterWindowsDrawTest, TheDraggedReadWindowPlacesItsChildren)
     // El retrato: 0x77 desde el borde derecho, 0xf abajo, y 0xf menos alto que el área de adentro.
     EXPECT_EQ(letter.portrait.base.x, 115 + 360 - 0x77);
     EXPECT_EQ(letter.portrait.base.height, 169 - 0xf);
+}
+
+// La de escribir con el retrato (+0xb0 en 1): con la mezcla normal, arriba el negro de 29 con las rayas en y + 0xe y
+// y + 0x1d, abajo el negro de 19 y su raya; el 1000 y el 1005 alineados a la derecha en el ancho del 1000, en
+// 0xffc8dce6 con el fondo que había; los tres EDIT (el del cuerpo con su barra, que termina sin mezcla) y los cuatro
+// botones. Al final del marco, la vtable + 0x54 (0x498800) corta en el dibujo del retrato.
+TEST_F(LetterWindowsDrawTest, TheWriteWindowDrawsItsBarsItsLabelsItsEditsAndItsButtonsUntilThePortrait)
+{
+    OldWindow& write = OpenAWrite();
+    const Client::UI::OldLetterPart& letter = write.letter;
+    ASSERT_EQ(letter.withPortrait, 1);
+    ASSERT_EQ(write.base.width, 370);
+    ASSERT_EQ(write.base.height, 216);
+    ASSERT_EQ(letter.buttons.size(), 4u);
+    m_colors = TextColors{.text = 0xff123456u, .background = 0x00abcdefu};
+
+    const auto drawn = Draw();
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_NE(drawn.Error().find("0x498800"), std::string::npos);
+    EXPECT_NE(drawn.Error().find("0x497c10"), std::string::npos);
+    EXPECT_NE(drawn.Error().find("P-C212"), std::string::npos);
+
+    std::vector<ExpectedCommand> expected{
+        {std::nullopt, BlendMode::Alpha, 6},   // la sombra, los negros y las rayas
+        {TextMarkerSlot, BlendMode::Alpha, 2}, // el 1000 y el 1005
+        {std::nullopt, BlendMode::Alpha, 3},   // los fondos de los tres EDIT
+        {ScrollbarSlot, BlendMode::Alpha, 2},  // las flechas del cuerpo
+        {std::nullopt, BlendMode::Alpha, 2},   // los costados de su barra
+        {ScrollbarSlot, BlendMode::Opaque, 3}, // la barra, sin mezcla
+    };
+    for (std::size_t button = 0; button < 4; ++button)
+    {
+        expected.push_back({ButtonSlot, BlendMode::Alpha, 1});
+        expected.push_back({TextMarkerSlot, BlendMode::Alpha, 1});
+    }
+    expected.push_back({TextureSlot{Client::UI::WindowTitleSlot}, BlendMode::Opaque, 1});
+    ExpectCommands(expected);
+    // El área de adentro: (105, 101), 360 × 190.
+    ExpectBox(QuadOf(0, 1), 105.0f, 101.0f, 465.0f, 130.0f);
+    EXPECT_EQ(VertexOf(0, 1).color, PaletteOf(7));
+    ExpectBox(QuadOf(0, 2), 105.0f, 115.0f, 465.0f, 116.0f);
+    EXPECT_EQ(VertexOf(0, 2).color, PaletteOf(2));
+    ExpectBox(QuadOf(0, 3), 105.0f, 130.0f, 465.0f, 131.0f);
+    EXPECT_EQ(VertexOf(0, 3).color, PaletteOf(2));
+    ExpectBox(QuadOf(0, 4), 105.0f, 272.0f, 465.0f, 291.0f);
+    EXPECT_EQ(VertexOf(0, 4).color, PaletteOf(7));
+    ExpectBox(QuadOf(0, 5), 105.0f, 272.0f, 465.0f, 273.0f);
+    EXPECT_EQ(VertexOf(0, 5).color, PaletteOf(2));
+    // Los botones en su orden: +0xa44, +0xacc, +0xb54 y +0xbdc, en x + 0xc, 0x3f, 0xfa y 0x12d del área de adentro y
+    // 0x10 sobre su borde de abajo.
+    ExpectBox(QuadOf(6), 117.0f, 275.0f, 167.0f, 289.0f);
+    ExpectBox(QuadOf(8), 168.0f, 275.0f, 218.0f, 289.0f);
+    ExpectBox(QuadOf(10), 355.0f, 275.0f, 405.0f, 289.0f);
+    ExpectBox(QuadOf(12), 406.0f, 275.0f, 456.0f, 289.0f);
+
+    // 0x467060 con el modo 3: la caja es la del 1000 (12 letras), y el 1005 empieza 8 letras antes de su columna 0.
+    const TextColors labels{.text = Dim, .background = 0x00abcdefu};
+    ExpectTexts(0, {
+                       {"Destinatario", 108, 104, labels},
+                       {"Tema", 108, 119, labels},
+                   });
+    EXPECT_TRUE(m_text.texts[0].windowed);
+    EXPECT_EQ(m_text.texts[0].firstColumn, 0);
+    EXPECT_EQ(m_text.texts[0].columns, 72);
+    EXPECT_TRUE(m_text.texts[1].windowed);
+    EXPECT_EQ(m_text.texts[1].firstColumn, 24 - 72);
+    EXPECT_EQ(m_text.texts[1].columns, 72);
+}
+
+// Sin el retrato (+0xb0 en 0), los botones +0xb54 y +0xbdc no se dibujan y la vtable + 0x54 no dibuja nada.
+TEST_F(LetterWindowsDrawTest, WithoutThePortraitTheWriteWindowDrawsTwoButtons)
+{
+    OldWindow& write = OpenAWrite();
+    write.letter.withPortrait = 0;
+
+    ASSERT_TRUE(Draw().HasValue());
+
+    std::vector<ExpectedCommand> expected{
+        {std::nullopt, BlendMode::Alpha, 6},
+        {TextMarkerSlot, BlendMode::Alpha, 2},
+        {std::nullopt, BlendMode::Alpha, 3},
+        {ScrollbarSlot, BlendMode::Alpha, 2},
+        {std::nullopt, BlendMode::Alpha, 2},
+        {ScrollbarSlot, BlendMode::Opaque, 3},
+        {ButtonSlot, BlendMode::Alpha, 1},
+        {TextMarkerSlot, BlendMode::Alpha, 1},
+        {ButtonSlot, BlendMode::Alpha, 1},
+        {TextMarkerSlot, BlendMode::Alpha, 1},
+        {TextureSlot{Client::UI::WindowTitleSlot}, BlendMode::Opaque, 1},
+    };
+    ExpectCommands(expected);
+}
+
+// Con el foco en el EDIT del asunto y texto en los tres: cada uno con su texto, y el cursor solo en el del foco.
+TEST_F(LetterWindowsDrawTest, TheWriteWindowEditsShowTheirTextAndTheFocusedCaret)
+{
+    OldWindow& write = OpenAWrite();
+    Client::UI::OldLetterPart& letter = write.letter;
+    letter.to.text.SetText("Tordo");
+    letter.subject.text.SetText("Asado");
+    letter.text.text.SetText("Hay asado");
+    m_focusedEdit = letter.subject.base.id;
+
+    static_cast<void>(Draw());
+
+    ASSERT_GE(m_text.texts.size(), 5u);
+    EXPECT_EQ(m_text.texts[2].text, "Tordo");
+    EXPECT_EQ(m_text.texts[2].x, letter.to.base.x);
+    EXPECT_EQ(m_text.texts[2].y, letter.to.base.y);
+    EXPECT_EQ(m_text.texts[3].text, "Asado");
+    EXPECT_EQ(m_text.texts[3].y, letter.subject.base.y);
+    EXPECT_EQ(m_text.texts[4].text, "Hay asado");
+    EXPECT_EQ(m_text.texts[4].y, letter.text.base.y);
+    // El cursor va después del texto del asunto, en la columna de su ancho + 1, y se junta con el fondo del cuerpo.
+    ExpectCommands({
+        {std::nullopt, BlendMode::Alpha, 6},
+        {TextMarkerSlot, BlendMode::Alpha, 2},
+        {std::nullopt, BlendMode::Alpha, 1},
+        {TextMarkerSlot, BlendMode::Alpha, 1},
+        {std::nullopt, BlendMode::Alpha, 1},
+        {TextMarkerSlot, BlendMode::Alpha, 1},
+        {std::nullopt, BlendMode::Alpha, 2},
+        {TextMarkerSlot, BlendMode::Alpha, 1},
+    });
+    const Box caret = QuadOf(6, 0);
+    EXPECT_FLOAT_EQ(caret.left, static_cast<float>(letter.subject.base.x + 31));
+    EXPECT_FLOAT_EQ(caret.right - caret.left, 1.0f);
+    EXPECT_EQ(letter.subject.draws, 1);
+    EXPECT_EQ(letter.to.draws, 1);
+}
+
+// Arrastrada y cambiando de tamaño, 0x498480 vuelve a ubicar los botones, los EDIT y el retrato (el 8), pero no los
+// mide (no manda el 9): el EDIT del cuerpo queda con su alto.
+TEST_F(LetterWindowsDrawTest, TheDraggedWriteWindowPlacesItsChildrenWithoutSizingThem)
+{
+    OldWindow& write = OpenAWrite();
+    const Client::UI::OldLetterPart& letter = write.letter;
+    const std::int32_t toX = letter.to.base.x;
+    const std::int32_t bodyHeight = letter.text.base.height;
+    const std::int32_t portraitHeight = letter.portrait.base.height;
+    write.base.x += 10;
+    write.base.y += 20;
+    write.base.height += 13;
+    write.base.state = Client::UI::ResizedWindow;
+
+    Client::UI::DrawTheWriteWindow(m_manager, write, Context(), OldWindowDrawView{.texts = &m_texts});
+
+    EXPECT_EQ(letter.to.base.x, toX + 10);
+    EXPECT_EQ(letter.subject.base.y, 80 + 20 + 0x15 + 0x12);
+    EXPECT_EQ(letter.text.base.y, 80 + 20 + 0x15 + 0x21);
+    EXPECT_EQ(letter.text.base.height, bodyHeight);
+    // Los botones, a 0x10 del borde de abajo del área de adentro, que bajó 13 más.
+    EXPECT_EQ(letter.buttons[0].base.x, 127);
+    EXPECT_EQ(letter.buttons[0].base.y, 275 + 20 + 13);
+    EXPECT_EQ(letter.buttons[3].base.x, 416);
+    EXPECT_EQ(letter.portrait.base.x, 115 + 360 - 0x77);
+    EXPECT_EQ(letter.portrait.base.height, portraitHeight);
 }
 } // namespace

@@ -27,6 +27,13 @@ void DrawTheChatWindow(OldWindowManager& manager, OldWindow& chat, const OldWind
 void DrawTheReadWindow(OldWindowManager& manager, OldWindow& read, const OldWindowDrawContext& context,
                        const OldWindowDrawView& view);
 
+// 0x498480: con la mezcla normal, arrastrada o cambiando de tamaño ubica a sus hijas (sin el 9); arriba, el negro (el
+// 7) de los dos renglones y las rayas del 2 debajo de cada uno; abajo, el negro y la raya de los botones; el 1000 y el
+// 1005 alineados a la derecha en el ancho del 1000 (el modo 3 de 0x467060); los tres EDIT (0x468320); sin mezcla, los
+// botones +0xa44 y +0xacc y, con +0xb0 en 1, +0xb54 y +0xbdc.
+void DrawTheWriteWindow(OldWindowManager& manager, OldWindow& write, const OldWindowDrawContext& context,
+                        const OldWindowDrawView& view);
+
 // La vtable + 0x54 de las de una carta, al final del marco: 0x49a1d0 (la de leer, con +0x774 en 2 o más) y 0x498800
 // (la de escribir, con +0xb0 en 1) dibujan el retrato (su vtable + 0x14, 0x497c10), que es de Scenes y corta
 // (P-C212). Sin el retrato, nada.

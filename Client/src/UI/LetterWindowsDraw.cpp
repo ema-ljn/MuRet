@@ -82,6 +82,27 @@ constexpr std::size_t ReadHeaderText = 1014;
 constexpr std::int32_t ReadHeaderX = 3;
 constexpr std::int32_t ReadHeaderY = 3;
 
+// 0x498537..0x4986e8: arriba, el negro de 29 (0x41e80000) con las rayas del 2 en y + 0xe y en y + 0x1d; abajo, el negro
+// de 19 (0x41980000) desde 19 (0x6b8870) sobre el borde y su raya.
+constexpr float WriteHeaderHeight = 29.0f;
+constexpr std::int32_t WriteToLineY = 0xe;
+constexpr std::int32_t WriteSubjectLineY = 0x1d;
+constexpr double WriteBottomRise = 19.0;
+constexpr float WriteBottomHeight = 19.0f;
+// 0x4986f5..0x49876d: el 1000 y el 1005 en x + 3 y en y + 3 y y + 0x12, en 0xffc8dce6, en la caja del ancho del 1000.
+constexpr std::uint32_t WriteTextColor = 0xffc8dce6u;
+constexpr std::size_t ToText = 1000;
+constexpr std::size_t SubjectText = 1005;
+constexpr std::int32_t WriteLabelX = 3;
+constexpr std::int32_t ToLabelY = 3;
+constexpr std::int32_t SubjectLabelY = 0x12;
+// 0x4987c7: los botones +0xb54 y +0xbdc, con +0xb0 en 1.
+constexpr std::int32_t WithThePortrait = 1;
+// +0xa44, +0xacc, +0xb54 y +0xbdc (0x48f4ee).
+constexpr std::size_t WriteButtonCount = 4;
+// 0x4670ba..0x4670d0: un texto vacío mide el "0" de 0x6c7ae4.
+constexpr std::string_view EmptyTextMeasure = "0";
+
 float F32(double value)
 {
     return static_cast<float>(value);
@@ -199,6 +220,19 @@ std::string TextAt(const OldWindowDrawView& view, std::size_t index)
     return view.texts != nullptr ? view.texts->At(index) : std::string();
 }
 
+// 0x5542f0(x, y, texto, caja, 3, 0) → 0x465950 → 0x467060 con el modo 3 (0x467134..0x467144): TextOutA pone el texto
+// en la columna caja − cx del DIB, que tiene la caja de ancho: alineado a la derecha de la caja, cortado a la izquierda
+// si es más ancho. Sin texto y sin caja no dibuja nada (0x5542f8..0x55430f); vacío y con caja, el fondo solo.
+void DrawRightAligned(const OldWindowDrawContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+                      std::int32_t box)
+{
+    if (text.empty() && box == 0)
+        return;
+    const std::int32_t width = context.text.Measure(context.dcFont, text.empty() ? EmptyTextMeasure : text).width;
+    context.text.DrawColumns(x, y, text, Render::Text::TextStyle{.font = context.dcFont, .colors = context.textColors},
+                             width - box, box);
+}
+
 // 0x465770, la vtable + 0x80 de la lista del cuerpo (0x464620, vtable 0x6b93d4): con la mezcla normal, el renglón
 // (sprintf "%s", 0x6c7084) en x + 10 y en su y (0x465710, igual a 0x461c70), con 0x465950 directo. Con 0x6c7a88 en 1
 // vuelve a poner el fondo en 0, que ya está en 0 (0x4657a5..0x4657be). Da 1.
@@ -304,6 +338,50 @@ void DrawTheReadWindow(OldWindowManager& manager, OldWindow& read, const OldWind
     for (const OldButton& button : letter.buttons)
         DrawTheButton(context, button, view);
     sprites.SetBlend(Render::BlendMode::Opaque);
+}
+
+void DrawTheWriteWindow(OldWindowManager& manager, OldWindow& write, const OldWindowDrawContext& context,
+                        const OldWindowDrawView& view)
+{
+    Render::SpriteBatch& sprites = context.sprites;
+    sprites.SetBlend(Render::BlendMode::Alpha);
+    SettleTheLetterKindsForTheDraw(manager, write);
+    OldLetterPart& letter = write.letter;
+    const float left = ToFloat(Steps::ClientX(write, 0));
+    const float width = ToFloat(Steps::ClientWidth(write));
+    SetThePalette(sprites, BlackIndex, 1.0f);
+    sprites.ColorQuad(left, ToFloat(Steps::ClientY(write, 0)), width, WriteHeaderHeight);
+    SetThePalette(sprites, LineIndex, 1.0f);
+    sprites.ColorQuad(left, ToFloat(Steps::ClientY(write, WriteToLineY)), width, 1.0f);
+    sprites.ColorQuad(left, ToFloat(Steps::ClientY(write, WriteSubjectLineY)), width, 1.0f);
+    SetThePalette(sprites, BlackIndex, 1.0f);
+    sprites.ColorQuad(left, FromTheBottom(write, WriteBottomRise), width, WriteBottomHeight);
+    SetThePalette(sprites, LineIndex, 1.0f);
+    sprites.ColorQuad(left, FromTheBottom(write, WriteBottomRise), width, 1.0f);
+    WhiteWithTexture(sprites);
+    // Solo el color del texto (0x6c8e5c): el fondo queda el que haya.
+    context.textColors.text = WriteTextColor;
+    // GetTextExtentPointA del 1000 con el DC (0x498702..0x49871b): la caja de los dos.
+    const std::string to = TextAt(view, ToText);
+    const std::int32_t box = context.text.Measure(context.dcFont, to).width;
+    DrawRightAligned(context, Steps::ClientX(write, WriteLabelX), Steps::ClientY(write, ToLabelY), to, box);
+    DrawRightAligned(context, Steps::ClientX(write, WriteLabelX), Steps::ClientY(write, SubjectLabelY),
+                     TextAt(view, SubjectText), box);
+    // 0x498772..0x4987a1: la vtable + 0x14 (0x468320) del nombre, del asunto y del cuerpo, con la mezcla normal.
+    const auto drawTheEdit = [&](OldEdit& edit)
+    { OldDraw::DrawTheOldEdit(context, edit, view.focusedEdit != 0 && view.focusedEdit == edit.base.id, view); };
+    drawTheEdit(letter.to);
+    drawTheEdit(letter.subject);
+    drawTheEdit(letter.text);
+    sprites.SetBlend(Render::BlendMode::Opaque);
+    if (letter.buttons.size() != WriteButtonCount)
+        return;
+    DrawTheButton(context, letter.buttons[0], view);
+    DrawTheButton(context, letter.buttons[1], view);
+    if (letter.withPortrait != WithThePortrait)
+        return;
+    DrawTheButton(context, letter.buttons[2], view);
+    DrawTheButton(context, letter.buttons[3], view);
 }
 
 Core::Expected<void, std::string> DrawTheLetterPortrait(const OldWindow& window)

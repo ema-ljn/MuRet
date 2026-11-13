@@ -367,8 +367,7 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
     else if (window.kind == OldWindowKind::LetterReadWindow)
         DrawTheReadWindow(manager, window, context, view);
     else if (window.kind == OldWindowKind::LetterWriteWindow)
-        return Core::Unexpected(
-            std::string("0x498480: el dibujo de la ventana de escribir una carta no está portado (P-C213)"));
+        DrawTheWriteWindow(manager, window, context, view);
     const OldWindowBase& base = window.base;
     // 0x49258d..0x4925dd: la del final de la lista con la ventana de amigos abierta se dibuja como es; las demás, en
     // gris.

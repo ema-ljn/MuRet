@@ -5,6 +5,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ArrowEffects.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/HeroAttack.h"
@@ -333,24 +334,23 @@ std::int32_t OwnSkillIndex(const CharacterStepContext& context, std::uint8_t ski
 Core::Expected<void, std::string> StrikeNothing(ActorState& actor, std::size_t slot,
                                                 const CharacterStepContext& context)
 {
-    // 0x502b12..0x502ef9: +0x38e; con 0x18, el segundo argumento de 0x59fb80.
-    static_cast<void>(ReadTheSkill(actor, context.random));
+    // 0x502b12..0x502ef9: +0x38e; con 0x18, la bandera (el quinto argumento de 0x53e2b0) en 1.
+    constexpr std::uint8_t FlaggedSkill = 0x18;
+    const std::uint8_t flag = ReadTheSkill(actor, context.random) == FlaggedSkill ? 1 : 0;
     const bool shoots = actor.type == PlayerType ? IsOneOf(RangedActions, actor.animation.action) : actor.byte88 == 1;
     if (shoots)
     {
-        // 0x502fbe..0x503760: dos lecturas más; la segunda va a 0x59fb80 (0x50376a) y su lugar a 0x53e2b0.
-        static_cast<void>(ReadTheSkill(actor, context.random));
+        // 0x502fbe..0x503760: dos lecturas más; la primera es la skill de 0x53e2b0 (0x5031e4) y la segunda va a
+        // 0x59fb80 (0x50376a), que da el lugar. 0x50377d: 0x53e2b0(c, o, 0, lugar, bandera, skill).
+        const std::uint8_t skill = ReadTheSkill(actor, context.random);
         const std::uint8_t second = ReadTheSkill(actor, context.random);
         const std::int32_t index = OwnSkillIndex(context, second);
-        return Core::Unexpected(std::format("0x50377d: la flecha sin blanco del lugar {} (acción {:#x}, la skill {} en "
-                                            "el lugar {}): 0x53e2b0, sin portar",
-                                            slot, actor.animation.action, second, index));
+        if (auto fired = FireTheArrow(actor, slot, index, flag, skill, context); !fired.HasValue())
+            return fired;
     }
+    // 0x503785..0x5037d0: los tipos que tiran, 0x53e2b0(c, o, 0, 0, 0, 0).
     if (IsOneOf(MissileTypes, actor.type) || actor.type == MissileTypeWithoutTarget)
-    {
-        return Core::Unexpected(
-            std::format("0x5037d0: 0x53e2b0 del tipo {:#x} (lugar {}), sin portar (fase 2c)", actor.type, slot));
-    }
+        return FireTheArrow(actor, slot, 0, 0, 0, context);
     return {};
 }
 
@@ -428,19 +428,19 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
     const ActorState& victim = actors[static_cast<std::size_t>(target)];
     if (actor.type == PlayerType && IsOneOf(RangedActions, actor.animation.action))
     {
-        // 0x5038a1..0x504043: dos lecturas de +0x38e; la segunda va a 0x59fb80 (0x504048) y su lugar a 0x53e2b0.
-        static_cast<void>(ReadTheSkill(actor, context.random));
+        // 0x5038a1..0x504043: dos lecturas de +0x38e; la primera es la skill de 0x53e2b0 (0x503ac7) y la segunda va a
+        // 0x59fb80 (0x504048), que da el lugar. 0x504060: 0x53e2b0(c, o, el blanco, lugar, 0, skill), y sigue.
+        const std::uint8_t skill = ReadTheSkill(actor, context.random);
         const std::uint8_t second = ReadTheSkill(actor, context.random);
         const std::int32_t index = OwnSkillIndex(context, second);
-        return Core::Unexpected(
-            std::format("0x504060: la flecha del lugar {} (acción {:#x}, la skill {} en el lugar {}) "
-                        "hacia el {}: 0x53e2b0, sin portar",
-                        slot, actor.animation.action, second, index, target));
+        if (auto fired = FireTheArrow(actor, slot, index, 0, skill, context); !fired.HasValue())
+            return fired;
     }
+    // 0x504068..0x5040a9: los tipos que tiran con blanco, 0x53e2b0(c, o, el blanco, 0, 0, 0).
     if (IsOneOf(MissileTypes, actor.type))
     {
-        return Core::Unexpected(
-            std::format("0x5040a9: 0x53e2b0 del tipo {:#x} (lugar {}), sin portar (fase 2c)", actor.type, slot));
+        if (auto fired = FireTheArrow(actor, slot, 0, 0, 0, context); !fired.HasValue())
+            return fired;
     }
     // 0x5040b9: el blanco con daño (+0x384, el del último 0x15).
     if (victim.damage != 0)

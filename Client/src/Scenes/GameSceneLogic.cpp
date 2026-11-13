@@ -1,4 +1,5 @@
 #include "Scenes/GameScene.h"
+#include "Scenes/ArrowEffects.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
@@ -134,6 +135,20 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         {
             if (auto stepped = StepPetSummon(effect, m_context.world->DrawTail().joints, m_context.cloth->random);
                 !stepped.HasValue())
+                return stepped;
+            continue;
+        }
+        // 0x5208a0 sobre las flechas de 0x53d9a0 (CL9 hito 3, fase 2e): su choque lee el pool de personajes y el
+        // registro propio, fuera de World.
+        if (IsArrowEffect(effect.type))
+        {
+            const ArrowStepContext arrows{.world = *m_context.world,
+                                          .random = m_context.cloth->random,
+                                          .particles = &m_context.world->Particles(),
+                                          .sprites = &m_sprites,
+                                          .lighting = &m_context.world->DynamicLighting().Lighting(),
+                                          .worldClock = worldClock};
+            if (auto stepped = StepArrow(effect, skeleton, arrows); !stepped.HasValue())
                 return stepped;
             continue;
         }

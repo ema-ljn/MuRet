@@ -152,6 +152,32 @@ struct ModelEffect
     glm::vec3 copiedAngles{};
     // +0x74: el prefijo lo deja en 0; CrackRenderFlags en las grietas de subtipo 1.
     std::uint32_t renderFlags = 0;
+    // CL9 hito 3, fase 2e (las flechas). +0x89: el byte del noveno argumento de 0x518cf0, el lugar de la skill en el
+    // registro propio que 0x520170 lee al chocar. +0x1bd: el del décimo, que nadie portado lee. +0x8c: la cuenta +0xf04
+    // del registro propio que la salida de las flechas (0x51a1b6) copia entre la apertura y el cierre. +0x100: el
+    // prefijo lo pone en 0; con la skill 0x34, los pasos que le quedan sin chocar (0x52045c, hito 4).
+    std::uint8_t byte89 = 0;
+    std::uint8_t byte1bd = 0;
+    std::uint16_t word8c = 0;
+    std::int32_t dword100 = 0;
+};
+
+// Los once argumentos de 0x518cf0, como los escribe su prefijo (0x518d28..0x518e36): el tipo en +0x2, la posición en
+// +0x10, los ángulos en +0x1c, la luz en +0xf4, el subtipo en +0x4, el dueño en +0x108 (`owner`, opaco), +0x8a,
+// +0x89, +0x88 y +0x1bd, y la escala (de 0 o menos, 0,9).
+struct ModelEffectArguments
+{
+    std::int16_t type = 0;
+    glm::vec3 position{};
+    glm::vec3 angles{};
+    glm::vec3 light{};
+    std::int32_t subtype = 0;
+    void* owner = nullptr;
+    std::uint16_t key = 0xffff;
+    std::uint8_t byte89 = 0;
+    std::uint8_t byte88 = 0;
+    std::uint8_t byte1bd = 0;
+    float scale = 0.0f;
 };
 
 // El WORD +0x2 del dueño, leído en vivo, o nada sin dueño.
@@ -303,6 +329,11 @@ public:
                                                      const glm::vec3& angles, const glm::vec3& light,
                                                      std::int32_t subtype, const ModelEffectOwner& owner,
                                                      std::int16_t size);
+    // 0x518cf0 hasta su switch (0x518e3c): el primer lugar sin el byte vivo con lo que escribe el prefijo (el byte
+    // vivo, los argumentos, +0x58 y +0x64 en −1, +0x68 en 1, el alpha en 1, +0xd8 en 0,3, la acción y el frame en 0,
+    // +0x74 y +0x100 en 0, la luz por vértice y la velocidad en 0). Los demás campos del lugar quedan los del uso
+    // anterior. Lleno, nada (0x51db71), sin rand(). El caso de cada tipo lo sigue quien lo llama (Scenes/ArrowEffects).
+    std::optional<std::size_t> Begin(const ModelEffectArguments& arguments);
     // 0x6070a0: sólo apaga el byte vivo de cada lugar (Q-C138).
     void Clear();
 

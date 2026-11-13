@@ -217,6 +217,30 @@ ModelEffect ArrivalAt(const glm::vec3& position, const glm::vec3& angles, const 
 }
 } // namespace
 
+std::optional<std::size_t> ModelEffects::Begin(const ModelEffectArguments& arguments)
+{
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeCommonEffect(effect, arguments.type, arguments.position, arguments.angles, arguments.light,
+                               arguments.scale);
+        effect.subtype = arguments.subtype;
+        effect.hasOwner = arguments.owner != nullptr;
+        effect.ownerContext = arguments.owner;
+        effect.itemType = nullptr;
+        effect.itemLevel = nullptr;
+        effect.disturbanceState = arguments.key;
+        effect.state = arguments.byte88;
+        effect.byte89 = arguments.byte89;
+        effect.byte1bd = arguments.byte1bd;
+        effect.dword100 = 0;
+        return slot;
+    }
+    return std::nullopt;
+}
+
 std::optional<std::size_t> ModelEffects::CreateKalimaEffect(const glm::vec3& position, const glm::vec3& angles,
                                                             const glm::vec3& light, Render::Models::CrtRandom& random)
 {

@@ -179,8 +179,8 @@ Core::Expected<void, std::string> StepButterfly(ModelEffect& effect, Particles& 
     static_cast<void>(services.sprites->Create(Glow, position, 1.0f, light, 0.0f, 0));
     return {};
 }
-// 0x5208c5..0x52091a: la luz local del paso, del primer rand(): ((r & 3) + 7) · 0,1f (0x6b87b8); con
-// menos de 5 de vida, menos (5 − vida) · 0,2f (0x6b8854), guardada en float y comparada sin redondear con 0.
+} // namespace
+
 float StepLuminosity(int draw, std::int32_t life)
 {
     constexpr int LightMask = 3, LightBase = 7;
@@ -198,6 +198,8 @@ float StepLuminosity(int draw, std::int32_t life)
     return light;
 }
 
+namespace
+{
 // 0x52444d..0x5244ae: cae con +0xe4, que pierde 1 por paso; si el suelo (0x5f93c0, ordenado y por encima)
 // la pasó, se apoya, rebota a −0,4f (0x6ba18c), pierde 4 de vida y 2 en la y de su velocidad.
 Core::Expected<void, std::string> StepFallingStone(ModelEffect& effect, const ModelEffectStepServices& services)

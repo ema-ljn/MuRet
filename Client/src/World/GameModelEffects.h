@@ -42,6 +42,10 @@ struct ModelEffectStepServices
     // MuRet todavía no tiene audio (CL10): la escena pasa uno que no hace nada.
     std::function<void(std::int32_t)> sound{};
 };
+// 0x5208c5..0x52091a: la luz local del paso, del primer rand(): ((r & 3) + 7) · 0,1f (0x6b87b8); con menos de 5 de
+// vida, menos (5 − vida) · 0,2f (0x6b8854), guardada en float y comparada sin redondear con 0.
+[[nodiscard]] float StepLuminosity(int draw, std::int32_t life);
+
 // 0x5208a0: CRT común, llegada/teleport, torre de Noria, 9/0 de Kalima con el owner de ondas, la mariposa
 // 0xae (sus rand() del vuelo, la luz del subtipo, las chispas 5c5/7 del /3 y el sprite 0x5ac) y los del
 // Dungeon y Lost Tower: la piedra 0xda que rebota (0x52444d), el chorro 0x5de/0 (0x52ad21: seis llamas

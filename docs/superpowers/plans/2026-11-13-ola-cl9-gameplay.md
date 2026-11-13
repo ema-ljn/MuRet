@@ -304,7 +304,9 @@ Lorencia, Devias y un mapa de evento; el `0x1F` con un tipo `0x98..0x9e`; el cor
       la regla 4e y la decisión 5: la sangre `0x5e4` del blanco con daño (`0x53fe70` en `0x542b3b`, `0x5446e0` en
       `0x546b04` y su dibujo, `0x5487b9`) en el pool del mundo (P-C257 a); las veinte `0x5c6`/12 del `0x815`
       (`0x540a04`, `0x545397`) y los joints `0x618`/0 y /1 del que mató (`0x532125`, `0x538313`) con el rayo `0x5d5`
-      (P-C257 b y c).
+      (P-C257 b y c). Fase 2e (2026-11-13): la flecha del elfo con arco o ballesta y de los arcos montados
+      (`0x53e2b0`, `0x53d9a0`, el alta `0x51c43b`/`0x51a41e`, el paso `0x5208a0` y el choque `0x520170` con
+      `0x517850`; `Scenes::FireTheArrow`, P-C257 d); sus cortes, para la CL11 y el hito 4, en P-C230 y P-C231.
 
 **Pruebas:** el `D7`/`A4` que sale al pegar; la muerte de un monstruo y la de otro jugador; la experiencia del
 `0x16` y del `0x9C` contra el struct del GS (`GCKillPlayerExpSend`); los `rand()` del paso con un monstruo en

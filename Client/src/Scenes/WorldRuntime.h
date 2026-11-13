@@ -395,6 +395,9 @@ struct WorldRuntime
     // [0x6c88ac] (.data, 15): desde cuántos pasos de +0x381 corre la habilidad de 0x4fd5f0 (0x4fdbe5, con signo). Lo
     // escribe solo 0x4f97b0: 15 en 0x4f987d, antes de su switch, y 5 en 0x4f9ee2, un caso de habilidad (hito 4).
     std::int32_t skillThreshold = 15;
+    // [0x5767948] (.bss, 0): la skill (el sexto argumento, & 0xff) del último tiro de 0x53d9a0 (0x53deb6, CL9 hito 3,
+    // fase 2e). Lo lee la habilidad 0x31 (06, la tabla de globales), del hito 4.
+    std::uint32_t lastShotSkill = 0;
     // +0xaa..+0xbc de los modelos de [0x5769ad8]: lo que 0x612c80 escribió desde el alta de cada monstruo (0x612d90,
     // MonsterSounds.h), que leen 0x4f4a10 y 0x4f5660 (CL9 hito 3, fase 2c). No se vacía: nadie más escribe esas WORD,
     // y un modelo que se suelta conserva las suyas.

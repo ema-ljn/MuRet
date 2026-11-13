@@ -1556,6 +1556,30 @@ Core::Expected<void, std::string> LeaveTheChatRoom(OldWindowManager& manager, co
     return {};
 }
 
+void SettleTheLetterKindsForTheDraw(OldWindowManager& manager, OldWindow& window)
+{
+    const std::int32_t state = window.base.state;
+    if (state != DraggedWindow && state != ResizedWindow)
+        return;
+    if (window.kind == OldWindowKind::ChatWindow)
+    {
+        // 0x493fd7..0x49408d: el 8 a los renglones, a los miembros, a los de invitar, a los dos botones y al EDIT; el 9
+        // a las tres listas.
+        OldChatPart& chat = window.chat;
+        PostToTheList(manager, chat.lines, chat.lineRows.size(), PlaceType);
+        PostToTheList(manager, chat.users, chat.members.size(), PlaceType);
+        PostToTheList(manager, chat.invite, chat.invitable.size(), PlaceType);
+        Steps::PostAndSettle(manager, chat.inviteButton, PlaceType);
+        Steps::PostAndSettle(manager, chat.sendButton, PlaceType);
+        PostToTheEdit(manager, chat.edit, PlaceType);
+        if (state != ResizedWindow)
+            return;
+        PostToTheList(manager, chat.lines, chat.lineRows.size(), SizeType);
+        PostToTheList(manager, chat.users, chat.members.size(), SizeType);
+        PostToTheList(manager, chat.invite, chat.invitable.size(), SizeType);
+    }
+}
+
 void PingTheChatRooms(OldWindowManager& manager)
 {
     for (const std::int32_t id : manager.windowList.list.chats)

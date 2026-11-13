@@ -43,12 +43,14 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet
 // Las de las ventanas del paso que son marco (hito 6): win_check en 0x64a (0x61d1f0, con 0x63bd00), la casilla de los
 // comandos; CursorID_Wnd en 0x65b (0x61d3ab), el cartel del personaje elegido. Las de las ventanas viejas (CL9 hito 9,
 // UI/OldWindowDraw.h): win_titlebar, win_button, win_size, win_resize y win_scrollbar en 0x645 a 0x649
-// (0x61d151..0x61d1db, sin filtro y sin repetir), que la CL8 dibujaba sin subirlas. Las del inventario (hito 4):
-// setitem, btn_pshop y btn_pshop2 en 0x652, 0x657 y 0x658 (0x61d319..0x61d354). Y las de 0x104 a 0x120 que 0x61ae60
+// (0x61d151..0x61d1db, sin filtro y sin repetir), que la CL8 dibujaba sin subirlas, y las de las cartas y los chats
+// (CL9 hito 10): win_mail y win_mark en 0x64b y 0x64c (0x61d20c, 0x61d228; las dibujan 0x4a0a30, 0x4641f0 y 0x4a5750)
+// y win_question en 0x651 (0x61d29e; la dibuja el retrato, 0x497c10). Las del inventario (hito 4): setitem, btn_pshop
+// y btn_pshop2 en 0x652, 0x657 y 0x658 (0x61d319..0x61d354). Y las de 0x104 a 0x120 que 0x61ae60
 // sube después de command.jpg (0x61aec8..0x61b1f2), de los hitos 4 y 6: el fondo de las ventanas, los casilleros del
 // equipo, la plata, la grilla, la línea del comercio y los botones, entre ellos el de cerrar (0x118). La 0x106 no la
 // sube nadie.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 85> HudTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 88> HudTextureSet{{
     {"Interface\\CursorAttack.tga", 0x04, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorGet.tga", 0x05, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorTalk.tga", 0x06, TextureSetsDetail::LinearClamp},
@@ -90,9 +92,12 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 85> HudTextureSet{{
     {"Interface\\win_resize.tga", 0x648, TextureSetsDetail::NearestClamp},
     {"Interface\\win_scrollbar.jpg", 0x649, TextureSetsDetail::NearestClamp},
     {"Interface\\win_check.tga", 0x64a, TextureSetsDetail::NearestClamp},
+    {"Interface\\win_mail.tga", 0x64b, TextureSetsDetail::NearestClamp},
+    {"Interface\\win_mark.tga", 0x64c, TextureSetsDetail::NearestClamp},
     {"Interface\\win_letter.jpg", 0x64d, TextureSetsDetail::NearestClamp},
     {"Interface\\win_man.jpg", 0x64e, TextureSetsDetail::NearestClamp},
     {"Interface\\win_push.jpg", 0x64f, TextureSetsDetail::NearestClamp},
+    {"Interface\\win_question.tga", 0x651, TextureSetsDetail::NearestClamp},
     {"Interface\\setitem.jpg", 0x652, TextureSetsDetail::NearestClamp},
     {"Interface\\btn_pshop.jpg", 0x657, TextureSetsDetail::NearestClamp},
     {"Interface\\btn_pshop2.jpg", 0x658, TextureSetsDetail::NearestClamp},

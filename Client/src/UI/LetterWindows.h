@@ -67,4 +67,8 @@ void SetTheLetter(OldWindowManager& manager, OldWindow& read, const LetterEntry&
 // 0x4a6550, el timer 1002 (WM_TIMER, 0x4b1a5b): cada chat de +0xb4 de la lista de ventanas, en su orden, que esté
 // (0x490a00) y tenga la conexión de su sala (0x493510), le manda el C1 03 05.
 void PingTheChatRooms(OldWindowManager& manager);
+// Lo que el dibujo del chat (0x493fc0), de la de leer (0x499d60) y de la de escribir (0x498480) hace antes de dibujar:
+// arrastradas o cambiando de tamaño (el estado en 4 o 1), el 8 de 0x45aa50 a sus hijas y, cambiando de tamaño, el 9 a
+// sus listas. El dibujo en sí está en UI/LetterWindowsDraw.
+void SettleTheLetterKindsForTheDraw(OldWindowManager& manager, OldWindow& window);
 } // namespace Client::UI

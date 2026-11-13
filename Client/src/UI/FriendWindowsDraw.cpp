@@ -19,6 +19,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -120,25 +121,6 @@ std::string PlaceOf(const OldWindowDrawView& view, std::uint8_t state)
     return Sprintf(TextAt(view, ServerPlaceText), static_cast<std::int32_t>(state) + 1);
 }
 
-// 0x461cd0, la vtable + 0x80 de la lista de amigos: el renglón (DrawTheChosenRow), el nombre (sprintf "%s",
-// 0x6c7084) y, con +0x130 en 1, el lugar. Da 1.
-std::int32_t DrawTheFriendRow(const OldWindowDrawContext& context, const OldWindow& tab, std::int32_t row,
-                              std::size_t at, const OldWindowDrawView& view)
-{
-    const OldList& list = tab.tab.list;
-    const std::size_t size = tab.tab.friends.size();
-    OldDraw::DrawTheChosenRow(context, list, size, row, view.focusedList);
-    const FriendEntry& entry = tab.tab.friends[at];
-    const std::int32_t x = list.base.x + FriendNameX;
-    const std::int32_t y = ListRowY(list, size, row);
-    // 0x465950 directo, sin el corte de 0x5542f0 para el texto vacío: vacío, tampoco dibuja nada.
-    static_cast<void>(DrawText(context, x, y, entry.name));
-    if (list.headers == 1)
-        static_cast<void>(DrawText(context, list.nameWidth + x + PlaceGap, y, PlaceOf(view, entry.state)));
-    context.sprites.SetBlend(Render::BlendMode::Opaque);
-    return 1;
-}
-
 // 0x462a60, la vtable + 0x80 de la lista de ventanas: el renglón y el título (sprintf "%s"). Da 1.
 std::int32_t DrawTheWindowRow(const OldWindowDrawContext& context, const OldWindow& tab, std::int32_t row,
                               std::size_t at, const OldWindowDrawView& view)
@@ -221,7 +203,9 @@ void DrawTheFriendTab(const OldWindowManager& manager, OldWindow& tab, const Old
     Render::SpriteBatch& sprites = context.sprites;
     DrawTheTabBottom(sprites, tab);
     sprites.SetBlend(Render::BlendMode::Opaque);
-    DrawTheTabList(context, tab, tab.tab.friends.size(), view, DrawTheFriendRow);
+    DrawTheFriendList(context, tab.tab.list, tab.tab.friends, view);
+    for (const OldButton& button : tab.tab.buttons)
+        DrawTheButton(context, button, view);
     DrawTheColumnBar(sprites, tab);
     const OldList& list = tab.tab.list;
     const std::int32_t left = Steps::ClientX(tab, 0);
@@ -303,6 +287,35 @@ void DrawTheStateButton(const OldWindowManager& manager, const OldWindow& window
                              manager.offlineSent == 1);
 }
 } // namespace
+
+std::int32_t DrawTheFriendRow(const OldWindowDrawContext& context, const OldList& list,
+                              const std::deque<FriendEntry>& friends, std::int32_t row, std::size_t at,
+                              const OldWindowDrawView& view)
+{
+    const std::size_t size = friends.size();
+    OldDraw::DrawTheChosenRow(context, list, size, row, view.focusedList);
+    const FriendEntry& entry = friends[at];
+    const std::int32_t x = list.base.x + FriendNameX;
+    const std::int32_t y = ListRowY(list, size, row);
+    // 0x465950 directo, sin el corte de 0x5542f0 para el texto vacío: vacío, tampoco dibuja nada.
+    static_cast<void>(DrawText(context, x, y, entry.name));
+    if (list.headers == 1)
+        static_cast<void>(DrawText(context, list.nameWidth + x + PlaceGap, y, PlaceOf(view, entry.state)));
+    context.sprites.SetBlend(Render::BlendMode::Opaque);
+    return 1;
+}
+
+void DrawTheFriendList(const OldWindowDrawContext& context, OldList& list, const std::deque<FriendEntry>& friends,
+                       const OldWindowDrawView& view)
+{
+    const std::size_t size = friends.size();
+    OldDraw::DrawTheOldList(
+        context, list, size,
+        OldDraw::OldListDrawing{.head = [&] { OldDraw::DrawTheListBar(context.sprites, list, size, view); },
+                                .row = [&](std::int32_t row, std::size_t at)
+                                { return DrawTheFriendRow(context, list, friends, row, at, view); },
+                                .tail = {}});
+}
 
 Core::Expected<void, std::string> DrawTheFriendsWindow(OldWindowManager& manager, OldWindow& window,
                                                        const OldWindowDrawContext& context,

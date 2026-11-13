@@ -356,8 +356,9 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .sprites = canvas.sprites, .text = canvas.text, .dcFont = hud.hud.dcFont, .textColors = hud.hud.textColors};
     // 0x659290(1) no saca rand(): se puede mirar antes de la ventana que la pregunta.
     GamePanels panels(*m_context.world, FrameCloth().random);
-    // Los textos de la ventana de amigos, la lista con las flechas del teclado (0x5762ec0) y el EDIT con el foco de
-    // Windows (GetFocus() de 0x468320: el de las ventanas viejas, con ChatFocus::OldWindow).
+    // Los textos de la ventana de amigos, la lista con las flechas del teclado (0x5762ec0), el EDIT con el foco de
+    // Windows (GetFocus() de 0x468320: el de las ventanas viejas, con ChatFocus::OldWindow) y dónde va el registro del
+    // chat (0x6c7a88).
     const UI::OldWindowTexts friendTexts = OldWindowTextsOf(m_texts);
     const bool editFocused = runtime.chat.input.focus == UI::ChatFocus::OldWindow;
     const UI::OldWindowDrawView windowView{.mouseX = hud.mouse.x,
@@ -366,7 +367,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                                            .friendsOpen = panels.Registry().IsOpen(UI::FriendsPanel),
                                            .texts = &friendTexts,
                                            .focusedList = runtime.ui.focusedList,
-                                           .focusedEdit = editFocused ? oldWindows.focusedEdit : 0};
+                                           .focusedEdit = editFocused ? oldWindows.focusedEdit : 0,
+                                           .chatPlacement = runtime.ui.chatModes.placement};
     if (auto windows = UI::DrawTheOldWindows(oldWindows, windowContext, windowView); !windows.HasValue())
         return windows;
     if (auto list = UI::DrawTheWindowList(oldWindows, windowContext, windowView); !list.HasValue())

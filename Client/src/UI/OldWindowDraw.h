@@ -60,6 +60,9 @@ struct OldWindowDrawView
     // GetFocus() de 0x468320: el id del EDIT con el foco de Windows (OldWindowManager::focusedEdit con
     // ChatFocus::OldWindow), o 0.
     std::int32_t focusedEdit = 0;
+    // 0x6c7a88: con 1, el registro del chat en su ventana (ChatModes::placement); los renglones del chat con un amigo
+    // (0x460550) y de la carta (0x465770) dejan sin fondo un texto de fondo negro.
+    std::int32_t chatPlacement = 0;
 };
 
 // 0x491960(índice, alfa): el glColor4ub de cada uno de los 19 colores de las ventanas, con el alfa en ftol(alfa ·

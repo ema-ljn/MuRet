@@ -1140,8 +1140,8 @@ los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
   hay; si no y no se pidió, el `C1 CA`) y la de escribir (`0x48ee60(7, 100, 100, sprintf(1071, 1000))`) con su nombre
   (`0x4983e0`: el foco al asunto y `+0x77c` en 1), con la cola `0x49dc37` (el 8 y el 9).
 - **El chat** (casos 1 y 2, vtable `0x6b9dc8`, `0x493220`): el marco de `0xfa × 0xaa` (mínimo `0x96` de alto), el EDIT
-  de 100 con el filtro 4, la lista de renglones (`0x464620`), la de miembros, la de invitar (oculta) y dos botones con
-  el 993; `+0xb0` en 1. `0x4944c0`: el 6 le da el foco al EDIT y la lista de miembros a las flechas; el 7 (Enter)
+  de 100 con el filtro 4, la lista de renglones (`0x45f240`, la plantilla del registro del chat con elementos de
+  `0x11c`), la de miembros, la de invitar (oculta) y dos botones con el 993; `+0xb0` en 1. `0x4944c0`: el 6 le da el foco al EDIT y la lista de miembros a las flechas; el 7 (Enter)
   pasa el texto por el filtro (`0x622b40`, el 570) y, distinto del último, lo manda por la sala (`C1 04`), vacía el
   EDIT y con menos de 2 miembros lo cierra (`0x495630(1)`: el 995 adelante del título y el EDIT apagado); el 10 y 1
   muestra u oculta la de invitar (`+0x50` más de ancho, `0x4942d0`: los amigos menos los miembros y los de desde
@@ -1167,10 +1167,26 @@ los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
   el aviso del 1031; el 5, el `C9`; el 12 con el sí, un `C8` por marcada. La lista copia el modelo (`0x4a0960`) con
   la elegida que estaba, y el clic en la columna de la marca da vuelta la carta (`0x464510`).
 
-El paso y el ubicado de las tres ventanas siguen el orden del ASM; sus dibujos (`0x493fc0`, `0x499d60`, `0x498480`,
-la pestaña `0x4a0a30` y las listas de `0x3f0`) cortan (P-C213); los renglones de los chats en la lista de ventanas de
-F5 (`+0xdc`), también (P-C215). Con el retrato del juego sin portar, abrir una carta o la de escribir corta
-(P-C212); el `CA` arma el chat y abre la conexión de la sala (`App::IChatRoomLinks`; 04).
+- **Los dibujos** (`UI/LetterWindowsDraw`, *estático*; la vtable + `0x50`, que el marco `0x492500` llama después de
+  la sombra). Arrastradas o cambiando de tamaño (el estado en 4 o 1), las tres vuelven a ubicar a sus hijas con el 8
+  y, cambiando de tamaño, a medir sus listas con el 9 antes de dibujar. **El chat** (`0x493fc0`): con la mezcla
+  normal, los renglones (`0x45f9c0`, la plantilla `0x47a810` con la barra `0x45fac0` = `0x461890`); cada uno
+  (`0x460550`) en `y − 13 · renglón − 0x10` desde el borde de abajo de la lista, el nombre con `": "` en `x + 8` y el
+  texto después de su ancho en 640 × 480 (`ftol(cx / rx)`), con los colores de su tipo (el 1, del sistema, en
+  `0xff46a5d2`; el nombre de un miembro, 3, en `0xffefdccd` y su texto en `0xffc8dce6`; sin caso para 6 o más) y, con
+  el registro del chat en su ventana (`0x6c7a88`), sin un fondo negro en el texto. `0x5763510 + 8`, que elige los
+  códigos de color de `"%c%c%s"`, es 0 en este main.exe, como en el registro del chat (`0x45cbb0`). Con más de dos
+  miembros o con la lista de invitar (`+0xb0` en 2) se dibujan los miembros (la lista de amigos, `0x47a810` con
+  `0x461cd0`, sin el lugar) y su raya (`0x491ba0`: los filos del 2 en `x` y `x + 4` y el 1 de 3 en el medio, 16 más
+  corta que el área de adentro) a `0x50` del borde derecho; con la de invitar, también ella y su raya a `0xa0`. Abajo,
+  la raya del 2 a 16 del borde y el negro (el 7) de los 15 de abajo; el botón de invitar, el EDIT (sin mezcla: la
+  sacó el botón) y, con la de invitar, el botón de mandar la invitación. Los renglones del original están partidos en
+  el ancho de la lista (P-C218).
+
+El paso y el ubicado de las tres ventanas siguen el orden del ASM. Los dibujos de la de leer (`0x499d60`), de la de
+escribir (`0x498480`) y de la pestaña de las cartas (`0x4a0a30`) cortan (P-C213); los renglones de los chats en la
+lista de ventanas de F5 (`+0xdc`), también (P-C215). Con el retrato del juego sin portar, abrir una carta o la de
+escribir corta (P-C212); el `CA` arma el chat y abre la conexión de la sala (`App::IChatRoomLinks`; 04).
 
 **Los paneles.**
 

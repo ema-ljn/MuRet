@@ -14,6 +14,7 @@
 #include "UI/ChatLog.h"
 #include "UI/ChatLogWindow.h"
 #include "UI/FriendWindowsDraw.h"
+#include "UI/LetterWindowsDraw.h"
 #include "UI/OldControls.h"
 #include "UI/OldEditLines.h"
 #include "UI/OldWindowBase.h"
@@ -361,11 +362,11 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
         if (auto rows = DrawTheListRows(window, context); !rows.HasValue())
             return rows;
     }
-    else if (window.kind == OldWindowKind::ChatWindow || window.kind == OldWindowKind::LetterReadWindow ||
-             window.kind == OldWindowKind::LetterWriteWindow)
-        return Core::Unexpected(std::string("0x493fc0, 0x499d60 y 0x498480: el dibujo del chat con un amigo y de las "
-                                            "ventanas de una carta (con el retrato, 0x497c10, y las listas de 0x3f0, "
-                                            "0x464620) no está portado (P-C213)"));
+    else if (window.kind == OldWindowKind::ChatWindow)
+        DrawTheChatWindow(manager, window, context, view);
+    else if (window.kind == OldWindowKind::LetterReadWindow || window.kind == OldWindowKind::LetterWriteWindow)
+        return Core::Unexpected(std::string("0x499d60 y 0x498480: el dibujo de las ventanas de una carta (con la lista "
+                                            "de 0x3f0, 0x464620) no está portado (P-C213)"));
     const OldWindowBase& base = window.base;
     // 0x49258d..0x4925dd: la del final de la lista con la ventana de amigos abierta se dibuja como es; las demás, en
     // gris.
@@ -441,7 +442,7 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
         sprites.SetColor(Render::Color{});
         sprites.SetBlend(Render::BlendMode::Opaque);
     }
-    // La vtable + 0x54: 0x48f900 (nada) en las tres.
+    // La vtable + 0x54: 0x48f900 (nada) en todas, salvo en las de una carta.
     return {};
 }
 } // namespace

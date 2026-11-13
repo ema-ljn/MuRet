@@ -1,9 +1,14 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "UI/FriendModel.h"
+#include "UI/OldControls.h"
 #include "UI/OldWindowDraw.h"
 #include "UI/OldWindows.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <deque>
 #include <string>
 
 // El dibujo de la ventana de amigos y de la caja de agregar un amigo (CL9 hito 9; 06 § HUD y ventanas, "Los amigos"):
@@ -24,4 +29,15 @@ namespace Client::UI
 // el EDIT (0x468320). Termina sin mezcla (0x620980).
 void DrawTheAddFriendBox(OldWindowManager& manager, OldWindow& box, const OldWindowDrawContext& context,
                          const OldWindowDrawView& view);
+
+// 0x461cd0, la vtable + 0x80 de la lista de amigos (0x460970): el renglón (DrawTheChosenRow), el nombre (sprintf
+// "%s", 0x6c7084) y, con +0x130 en 1, el lugar. Da 1.
+std::int32_t DrawTheFriendRow(const OldWindowDrawContext& context, const OldList& list,
+                              const std::deque<FriendEntry>& friends, std::int32_t row, std::size_t at,
+                              const OldWindowDrawView& view);
+
+// 0x47a810, la vtable + 0x14 de una lista de 0x460970 (la de la pestaña de amigos y la de los miembros y la de invitar
+// del chat con un amigo): la barra (0x461890) y los renglones de 0x461cd0.
+void DrawTheFriendList(const OldWindowDrawContext& context, OldList& list, const std::deque<FriendEntry>& friends,
+                       const OldWindowDrawView& view);
 } // namespace Client::UI

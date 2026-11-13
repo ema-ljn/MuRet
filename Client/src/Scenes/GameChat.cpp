@@ -19,6 +19,7 @@
 #include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
 #include "UI/NameChecks.h"
+#include "UI/OldControls.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "UI/WhisperSenders.h"
@@ -309,10 +310,15 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
         // El EDIT de una ventana vieja con el foco de Windows (CL9 hito 9) recibe el WM_CHAR, y su subclase (0x467b10)
         // le pasa el Enter a su padre; el Tab no lo mira (P-C181).
         const bool oldEdit = UI::HasAnOldEditFocused(runtime.oldWindows, input.focus);
+        // El EDIT de [0x5763504] con el foco (la entrada del número de serie, hito 11): la misma subclase, con el
+        // filtro de +0x4c.
+        const bool dialogEdit = input.focus == UI::ChatFocus::Dialog;
         if (const std::string_view run = rest.substr(0, key); !run.empty())
         {
             if (oldEdit)
                 UI::TypeInTheOldEdit(runtime.oldWindows, run);
+            else if (dialogEdit)
+                UI::TypeInTheEdit(input.dialogEdit, run);
             else
                 UI::TypeInTheChat(input, run);
         }
@@ -327,6 +333,19 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
             else if (pressed == Input::BackspaceChar)
                 UI::BackspaceInTheOldEdit(runtime.oldWindows);
             continue;
+        }
+        if (dialogEdit)
+        {
+            // 0x467b5d..0x467c19: sin padre (+0x44 en 0), el Tab y el Enter van como WM_CHAR a la ventana del juego
+            // (+0x84); el Enter no con la lista de ventanas armada (+0x150 de [0x5763524]) ni con +0xb4 (la vtable +
+            // 0x5c, 0x4676d0) o +0xc4 en 1, que nadie prende en este EDIT. El borrar es del EDIT.
+            if (pressed == Input::BackspaceChar)
+            {
+                input.dialogEdit.text.Backspace();
+                continue;
+            }
+            if (pressed == Input::EnterChar && runtime.oldWindows.windowList.list.armed == 1)
+                continue;
         }
         if (pressed == Input::TabChar)
         {
@@ -379,10 +398,11 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
         return {};
     if (!old.boxes.empty() && std::ranges::find(old.boxes, top) != old.boxes.end())
         return {};
-    // 0x4b5397..0x4b5435: con el campo cerrado, el EDIT de [0x5763504] (el del diálogo, hito 6, vacío en MuRet); con
-    // él abierto, los dos EDIT y lo escrito al historial (la vtable + 8).
+    // 0x4b5397..0x4b5435: con el campo cerrado, el texto del EDIT de [0x5763504] (el de la entrada del número de serie,
+    // hito 11; el de los diálogos es del hito 6); con él abierto, los dos EDIT y lo escrito al historial (la vtable +
+    // 8).
     if (!ui.chatOpen)
-        UI::CopyIntoTheBuffer(input.messageBuffer, "");
+        UI::CopyIntoTheBuffer(input.messageBuffer, input.dialogEdit.text.Value());
     else
     {
         UI::ReadTheChatFields(input);
@@ -409,8 +429,11 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
         return {};
     }
     input.field = UI::MessageField;
-    // 0x4b555f..0x4b561e: 0x77f3b6a (un número para un diálogo), 0x78aba60 en 1 (0x5ebbd0, CL9.4) y 0x77f3b6b (el
-    // F3 30) no los prende MuRet.
+    // 0x4b555f..0x4b5614: 0x77f3b6a (un número para un diálogo) y 0x78aba60 en 1 (0x5ebbd0, CL9.4) no los prende
+    // MuRet. 0x4b5616 y 0x4b8888: con la entrada del número de serie (0x77f3b6b), nada más: ni se dice, ni se vacía
+    // el buffer, ni se cierra el campo.
+    if (runtime.events.serialEntry)
+        return {};
     auto said = SayWhatWasTyped(context);
     if (!said.HasValue())
         return Core::Unexpected(said.Error());
@@ -420,7 +443,9 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
     UI::SetTheChatFields(input, std::string_view{}, std::nullopt);
     UI::ShowTheChatFields(input, Hide);
     UI::ScrollTheLog(runtime.chat.log, ui.chatModes, ScrollAfterSaying);
-    // 0x4b8886..0x4b88e2.
+    // 0x4b8886..0x4b88e2, con 0x77f3b6b en 0.
+    if (runtime.events.serialEntry)
+        return {};
     input.messageBuffer.fill('\0');
     input.messageLength = 0;
     ui.chatOpen = false;

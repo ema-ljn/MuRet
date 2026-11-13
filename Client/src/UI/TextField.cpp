@@ -94,6 +94,11 @@ void TextField::SetText(std::string_view raw)
     m_allSelected = false;
 }
 
+void TextField::SetLimit(std::size_t maxBytes)
+{
+    m_maxBytes = maxBytes;
+}
+
 void TextField::SelectAll()
 {
     m_allSelected = true;

@@ -441,6 +441,22 @@ Result StepTheBloodCastleWindow(const GameUiContext& context)
 }
 } // namespace
 
+std::int32_t CountInventoryItems(const OwnInventory& inventory, std::int32_t type, std::int32_t level)
+{
+    constexpr std::int32_t AnyItem = -1;
+    std::int32_t count = 0;
+    for (const World::ItemState& item : inventory.cells)
+    {
+        if (static_cast<std::int32_t>(static_cast<std::int16_t>(item.id)) != type)
+            continue;
+        if (type != AnyItem && static_cast<std::int32_t>(item.occupied) <= 0)
+            continue;
+        if (level == AnyItem || static_cast<std::int32_t>((item.scalar1Low >> 3) & 0xfu) == level)
+            ++count;
+    }
+    return count;
+}
+
 std::int32_t FindInventoryItem(const OwnInventory& inventory, std::uint16_t type, std::int32_t level)
 {
     constexpr std::int32_t Side = 8;

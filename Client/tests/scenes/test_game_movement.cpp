@@ -19,6 +19,8 @@
 #include "Network/Packet.h"
 #include "Network/Crypto/Xor32.h"
 #include "Protocol/Inventory.h"
+#include "Scenes/EventGlobals.h"
+#include "UI/ChatInput.h"
 #include <array>
 #include <cstdint>
 #include <memory>
@@ -208,8 +210,10 @@ TEST(GameMovementTest, AClickFindsAndSendsTheHistoricalD3)
 }
 // CL9 hito 11, 0x56b4db..0x56b78f: con la ventana de los eventos (0x78abb00) abierta, después del D3 va el C1 03 97,
 // 0x78abb00 vuelve a 0, el cursor queda pedido en SetCursorPos(x · ancho / 260, y · alto / 480) (Q-C1330), 0x6c8dcc
-// a 6 y el izquierdo suelto; con el 3 (el número de serie), corta en 0x56b6a9 después del envío. En Lorencia y en
-// Devias, cada caso con un héroe quieto, porque el anterior lo deja caminando.
+// a 6 y el izquierdo suelto; con el 3 (el número de serie), antes cierra la entrada (0x56b6a9..0x56b72a): el campo
+// elegido en 0, el buffer del mensaje vacío, el EDIT de [0x5763504] vacío, el chat cerrado y 0x77f3b6b en 0, sin
+// tocar el foco ni el buffer del susurro. En Lorencia y en Devias, cada caso con un héroe quieto, porque el anterior
+// lo deja caminando.
 TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
 {
     struct Walk
@@ -223,6 +227,18 @@ TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
         out.tested->world.Runtime().map = map;
         out.tested->world.Runtime().movement.mouseUpdateTime = 6;
         out.tested->world.Runtime().panels.field78abb00 = window;
+        if (window == 3)
+        {
+            // Lo que deja abierta la entrada: un número a medio escribir, el foco en el EDIT y un susurro guardado.
+            Client::UI::ChatInputState& input = out.tested->world.Runtime().chat.input;
+            input.dialogEdit.text.SetText("AB12");
+            input.focus = Client::UI::ChatFocus::Dialog;
+            input.field = 1;
+            input.messageBuffer[0] = 'm';
+            input.messageLength = 1;
+            input.whisperBuffer[0] = 'w';
+            out.tested->world.Runtime().events.serialEntry = true;
+        }
         auto context = out.tested->Context();
         context.input.leftPressed = true;
         context.input.leftDown = true;
@@ -263,11 +279,20 @@ TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
         }
 
         Walk serial;
-        const auto serialCut = walk(map, 3, serial);
-        ASSERT_FALSE(serialCut.HasValue());
-        EXPECT_NE(serialCut.Error().find("0x56b6a9"), std::string::npos) << serialCut.Error();
+        const auto closed = walk(map, 3, serial);
+        ASSERT_TRUE(closed.HasValue()) << closed.Error();
+        const Client::Scenes::WorldRuntime& runtime = serial.tested->world.Runtime();
         EXPECT_EQ(serial.sent, (std::vector<std::string>{"D3", "97"}));
-        EXPECT_FALSE(serial.tested->world.Runtime().movement.cursorWarpRequest.has_value());
+        EXPECT_EQ(runtime.panels.field78abb00, 0);
+        EXPECT_TRUE(runtime.movement.cursorWarpRequest.has_value());
+        EXPECT_EQ(runtime.chat.input.field, Client::UI::MessageField);
+        EXPECT_EQ(runtime.chat.input.dialogEdit.text.Value(), "");
+        EXPECT_EQ(runtime.chat.input.whisperBuffer[0], 'w');
+        EXPECT_EQ(runtime.chat.input.messageBuffer[0], '\0');
+        EXPECT_EQ(runtime.chat.input.messageLength, 0);
+        EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Dialog);
+        EXPECT_FALSE(runtime.ui.chatOpen);
+        EXPECT_FALSE(runtime.events.serialEntry);
     }
 }
 

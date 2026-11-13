@@ -39,6 +39,8 @@ public:
     // WM_SETTEXT (la vtable + 0x4c de los EDIT, 0x467ee0): pone `raw` tal cual, en bytes, sin el tope de
     // EM_LIMITTEXT, que solo frena lo tecleado. Deja el cursor al final y nada elegido.
     void SetText(std::string_view raw);
+    // EM_LIMITTEXT (0x467f30, la vtable + 0x3c de los EDIT): el tope de lo tecleado. Lo que ya tiene queda.
+    void SetLimit(std::size_t maxBytes);
     // EM_SETSEL(0, −1): todo elegido. EM_SETSEL(−2, −1) y EM_SETSEL(10000, −1): el cursor al final, nada
     // elegido.
     void SelectAll();

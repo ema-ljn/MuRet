@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -278,6 +279,35 @@ TEST(EventsProtocolTest, WritesTheEventWindowLeaveInTheClear)
     const Client::Protocol::Outgoing leave = Events::WriteEventWindowLeave();
     EXPECT_EQ(leave.delivery, Delivery::Clear);
     EXPECT_TRUE(SameBytes(leave.packet.Bytes(), Bytes({0xC1, 0x03, 0x97})));
+}
+
+// La ventana de 0x78abb00 (0x5e6520): el C1 04 98 01 (0x5e65f6..0x5e67a0), el C1 05 95 tipo lugar (0x5e6a1b..0x5e6bc9,
+// el lugar crudo: el GS le suma 12) y el C1 12 9D con los tres pedazos de 4 bytes del EDIT, cada uno con un 0
+// (0x5e6d34..0x5e7184), todos con el XOR32 desde el byte 3 y por el send en claro.
+TEST(EventsProtocolTest, WritesTheChipWindowRequestsWithTheXor32)
+{
+    const Client::Protocol::Outgoing muto = Events::WriteMutoNumberRequest();
+    EXPECT_EQ(muto.delivery, Delivery::Clear);
+    EXPECT_TRUE(SameBytes(muto.packet.Bytes(), Bytes({0xC1, 0x04, 0x98, 0x10})));
+    EXPECT_TRUE(SameBytes(Xor32Decode(muto.packet).Bytes(), Bytes({0xC1, 0x04, 0x98, 0x01})));
+
+    const Client::Protocol::Outgoing rena = Events::WriteEventChipRegister(0, 0x1f);
+    EXPECT_EQ(rena.delivery, Delivery::Clear);
+    EXPECT_TRUE(SameBytes(rena.packet.Bytes(), Bytes({0xC1, 0x05, 0x95, 0x1C, 0xBF})));
+    const Client::Protocol::Outgoing stone = Events::WriteEventChipRegister(1, 0x05);
+    EXPECT_TRUE(SameBytes(stone.packet.Bytes(), Bytes({0xC1, 0x05, 0x95, 0x1D, 0xA4})));
+    EXPECT_TRUE(SameBytes(Xor32Decode(stone.packet).Bytes(), Bytes({0xC1, 0x05, 0x95, 0x01, 0x05})));
+
+    Events::SerialPieces pieces{};
+    const std::string_view serial = "AB12CD34EF56";
+    for (std::size_t at = 0; at < serial.size(); ++at)
+        pieces[at / 4][at % 4] = static_cast<std::uint8_t>(serial[at]);
+    const Client::Protocol::Outgoing number = Events::WriteSerialNumber(pieces);
+    EXPECT_EQ(number.delivery, Delivery::Clear);
+    EXPECT_TRUE(SameBytes(number.packet.Bytes(), Bytes({0xC1, 0x12, 0x9D, 0x55, 0xAB, 0x28, 0x85, 0xF6, 0x96, 0x7A,
+                                                        0xB7, 0x35, 0x7C, 0x64, 0x1B, 0x73, 0xCF, 0x04})));
+    EXPECT_TRUE(SameBytes(Xor32Decode(number.packet).Bytes(), Bytes({0xC1, 0x12, 0x9D, 'A', 'B', '1', '2', 0, 'C', 'D',
+                                                                     '3', '4', 0, 'E', 'F', '5', '6', 0})));
 }
 
 // 0x4fbeed..0x4fc231: C1 06 AF 02 x y con el XOR32 byte a byte desde el 02 (la clave en 3, 4 y 5: 0x89, 0xbc y

@@ -346,6 +346,27 @@ Outgoing WriteEventWindowLeave()
     return ClearC1(Network::PacketWriter::C1(EventWindowLeaveOpcode));
 }
 
+Outgoing WriteMutoNumberRequest()
+{
+    return Xor32C1(Network::PacketWriter::C1(MutoNumberRequestOpcode).PutU8(MutoNumberRequestByte));
+}
+
+Outgoing WriteEventChipRegister(std::uint8_t type, std::uint8_t itemPlace)
+{
+    return Xor32C1(Network::PacketWriter::C1(EventChipCountOpcode).PutU8(type).PutU8(itemPlace));
+}
+
+Outgoing WriteSerialNumber(const SerialPieces& pieces)
+{
+    Network::PacketWriter writer = Network::PacketWriter::C1(SerialResultOpcode);
+    for (const auto& piece : pieces)
+    {
+        writer.PutBytes(std::as_bytes(std::span(piece)));
+        writer.PutU8(0);
+    }
+    return Xor32C1(writer);
+}
+
 Outgoing WriteChaosCastleReposition(std::uint8_t x, std::uint8_t y)
 {
     return Xor32C1(Network::PacketWriter::C1(ChaosCastleOpcode).PutU8(ChaosCastleRepositionSubcode).PutU8(x).PutU8(y));

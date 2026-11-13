@@ -10,6 +10,7 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CameraTour.h"
+#include "Scenes/EventChipWindow.h"
 #include "Scenes/EventNpcWindows.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameCommandsWindow.h"
@@ -144,11 +145,13 @@ bool KeyEdge(UI::GameUiState& ui, const Input::InputState& input, GameKey key)
 }
 
 // 0x6578e0: hay un campo de texto con el foco (el chat 0x6c8e68, 0x77f3b68, el del diálogo de los paneles) o la
-// ventana del juego no lo tiene. MuRet tiene el del chat (hito 3) y el EDIT de las ventanas viejas (CL9 hito 9, que
-// toma el foco de Windows); los otros son del hito 6, y su ventana es la del juego.
+// ventana del juego no lo tiene. MuRet tiene el del chat (hito 3), el EDIT de las ventanas viejas (CL9 hito 9, que
+// toma el foco de Windows) y el de [0x5763504] que enfoca la entrada del número de serie (hito 11); los otros son del
+// hito 6, y su ventana es la del juego.
 bool TextInputBusy(const WorldRuntime& runtime)
 {
-    return runtime.ui.chatOpen || runtime.chat.input.focus == UI::ChatFocus::OldWindow;
+    return runtime.ui.chatOpen || runtime.chat.input.focus == UI::ChatFocus::OldWindow ||
+           runtime.chat.input.focus == UI::ChatFocus::Dialog;
 }
 
 // 0x636e51..0x636e5a: el registro del chat, 0x45aa80(0) por la vtable + 0x18 de 0x576350c.
@@ -1008,9 +1011,12 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
         if (auto cursor = StepTheCursorItem(context, panels); !cursor.HasValue())
             return cursor;
     }
-    // 0x5e6520, con 0x78abb00 distinto de 0.
+    // 0x5ee1ec: 0x5e6520, con 0x78abb00 distinto de 0.
     if (runtime.panels.field78abb00 != 0)
-        return Core::Unexpected(std::string("0x5e6520: el paso de la ventana de 0x78abb00 no está portado (P-C295)"));
+    {
+        if (auto chips = StepTheEventChipWindow(context, panels); !chips.HasValue())
+            return chips;
+    }
     // 0x5e74f0, el panel 0x2000.
     if (panels.IsOpen(UI::Panel2000))
         return Core::Unexpected(std::string("0x5e74f0: el paso del panel 0x2000 es de la CL9"));

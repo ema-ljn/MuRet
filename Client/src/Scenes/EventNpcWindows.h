@@ -39,4 +39,8 @@ struct OwnInventory;
 // >> 3) & 0xf), o cualquiera con −1, recorriendo de la columna 7 a la 0 y en cada una de la fila 7 a la 0; −1 sin
 // ninguno.
 [[nodiscard]] std::int32_t FindInventoryItem(const OwnInventory& inventory, std::uint16_t type, std::int32_t level);
+
+// 0x558740(tipo, nivel): cuántas casillas del inventario tienen el tipo (el word con signo), +0x3c mayor que 0 salvo
+// con el tipo −1 y el nivel, o cualquiera con −1. Con (−1, −1) cuenta las libres.
+[[nodiscard]] std::int32_t CountInventoryItems(const OwnInventory& inventory, std::int32_t type, std::int32_t level);
 } // namespace Client::Scenes

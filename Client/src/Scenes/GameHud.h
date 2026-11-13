@@ -10,6 +10,8 @@
 #include "UI/Widget.h"
 
 #include <cstdint>
+#include <string_view>
+#include <functional>
 #include <optional>
 #include <string>
 
@@ -78,6 +80,10 @@ struct GameHudContext
     // El código del servidor elegido (App::ServerSession::ChosenServer), de donde salen [0x6d5ec4] (el lugar del
     // grupo) y [0x6d5ecc] (el número) que lee la ventana del personaje; sin él, corta.
     std::optional<std::uint16_t> chosenServer{};
+    // 0x54ebb0: el nombre de un NPC por su tipo, de la tabla de 0x7681eb8 que carga 0x54e7f0 desde
+    // Data\Local\NpcName(%s).txt (el hito 2 de los NPC). MuRet todavía no la carga: vacía, lo que la lee corta (el
+    // título de la ventana de los chips, 0x5f65df).
+    std::function<std::optional<std::string_view>(std::uint16_t)> npcName{};
     // Lo que el tramo 3D de 0x5ac120 necesita para dibujar los modelos de los ítems de la UI. Sin él (una escena sin
     // la biblioteca de los modelos, como las de las pruebas), cada ítem saca sus rand() sin dibujar.
     UiItemResources* uiItems = nullptr;

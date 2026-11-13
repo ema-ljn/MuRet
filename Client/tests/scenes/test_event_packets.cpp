@@ -602,7 +602,8 @@ TEST_F(EventPacketsTest, TheResultsThatOverflowTheObjectAreCut)
 // ----- 94, 95 y 96.
 
 // 0x4dd8a0: cierra todo (con sus rand()), 0x78abb04 = la cuenta con signo y 0x78abb00 = tipo + 1; con 1, los números
-// del Muto si ninguno es 0xffff; con 3, el número de serie en cero y el chat cerrado, y corta (fase 2).
+// del Muto si ninguno es 0xffff; con 3 (0x4dd8ce..0x4dd920), el número de serie en cero, los buffers del chat vacíos,
+// el campo cerrado, un solo campo para el Tab y 0x77f3b6b en 1.
 TEST_F(EventPacketsTest, TheChipInfoOpensTheChipWindow)
 {
     for (const std::int32_t map : {0, 2})
@@ -624,11 +625,19 @@ TEST_F(EventPacketsTest, TheChipInfoOpensTheChipWindow)
 
         Runtime().events.serial[0] = std::byte{0x55};
         Runtime().ui.chatOpen = true;
-        const std::string cut = Cut(Events::EventChipInfo{.type = 2, .count = 1});
-        EXPECT_NE(cut.find("0x4dd8f2"), std::string::npos) << cut;
+        Runtime().chat.input.messageBuffer[0] = 'a';
+        Runtime().chat.input.messageLength = 1;
+        Runtime().chat.input.fieldCount = 2;
+        const std::uint32_t closedAgain = AfterClosingAll();
+        Applied(Events::EventChipInfo{.type = 2, .count = 1});
         EXPECT_EQ(Runtime().panels.field78abb00, 3);
         EXPECT_EQ(Runtime().events.serial[0], std::byte{0});
         EXPECT_FALSE(Runtime().ui.chatOpen);
+        EXPECT_EQ(Runtime().chat.input.messageBuffer[0], '\0');
+        EXPECT_EQ(Runtime().chat.input.messageLength, 0);
+        EXPECT_EQ(Runtime().chat.input.fieldCount, 1);
+        EXPECT_TRUE(Runtime().events.serialEntry);
+        EXPECT_EQ(random.State(), closedAgain);
     }
 }
 

@@ -17,6 +17,7 @@
 #include "Scenes/ActorMotion.h"
 #include "Scenes/ActorWalk.h"
 #include "Scenes/CameraTour.h"
+#include "Scenes/EventChipWindow.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/GameMovementState.h"
@@ -51,8 +52,6 @@ namespace
 {
 constexpr std::uint32_t FrozenHeroFlag = 0x1000;
 constexpr std::uint32_t MovementLockedFlag = 0x20;
-// 0x56b693: con 3, la entrada del número de serie (el 94 con el tipo 2).
-constexpr std::int32_t SerialEventWindow = 3;
 // 0x56b785: lo que SendMove deja en 0x6c8dcc al cerrar la ventana de los eventos.
 constexpr std::int32_t EventWindowUpdateTimeMax = 6;
 // 0x56b397..0x56b4d6: las ventanas que cierra caminar, en este orden.
@@ -157,10 +156,9 @@ Core::Expected<void, std::string> LeaveTheEventWindow(const HeroMovementContext&
         return Core::Unexpected(std::string("0x56b4e8: falta el servicio de envío del C1 03 97"));
     if (auto sent = context.sendEventWindowLeave(); !sent.HasValue())
         return sent;
-    if (runtime.panels.field78abb00 == SerialEventWindow)
-        return Core::Unexpected(std::string("0x56b6a9: cerrar la entrada del número de serie (0x6c8e74, 0x77f3b70, los "
-                                            "diez buffers de 0x7798bf8, los EDIT de [0x5763504] y [0x5763508], "
-                                            "0x77f3b6a, 0x77f3b6c, 0x78abacc y 0x77f3b6b) no está portado (P-C295)"));
+    // 0x56b6a9..0x56b72a.
+    if (runtime.panels.field78abb00 == SerialNumberWindow)
+        CloseTheSerialEntry(runtime);
     runtime.panels.field78abb00 = 0;
     // 0x56b77f: SetCursorPos mueve el cursor de Windows; queda pedido para la plataforma.
     const auto [x, y] =

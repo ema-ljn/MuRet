@@ -15,6 +15,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/EventChipWindow.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameHud.h"
@@ -29,6 +30,7 @@
 #include "UI/GameText.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
+#include "World/Sprites.h"
 #include "support/GoldenDir.h"
 #include "support/RecordingTextDrawer.h"
 
@@ -39,6 +41,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -749,6 +752,75 @@ TEST_F(GameInventoryHudTest, TheCursorItemDrawsCenteredOnTheMouse)
         const glm::vec3 expected =
             PlacedAt(screen, 0x0c0e, 0, {.x = 280.0f, .y = 170.0f, .width = 40.0f, .height = 60.0f}, true, angles);
         EXPECT_EQ(TriangleOrigins(), std::vector<glm::vec3>{expected});
+    }
+}
+
+// CL9 hito 11, 0x5f70a0: los modelos de la ventana de 0x78abb00 con el tamaño de Item.bmd: el 0x1c15 (de nivel 0, o
+// con +4 en 0xf con 2 y 4; con 5, el tipo 0) en (540, 298) y en (540, 333), y con 4 solo el de abajo. Lo mismo, con
+// los mismos rand(), que esas llamadas a 0x5e1480 una por una. El brillo de la Rena deja publicada su malla sin luz
+// para los dibujos siguientes: cada caso dibuja una vez antes. En Lorencia y en Devias.
+TEST_F(GameInventoryHudTest, TheChipWindowDrawsItsModels)
+{
+    struct Case
+    {
+        std::int32_t window;
+        std::int32_t type;
+        std::uint32_t level;
+        bool upper;
+    };
+    // Un pase de la UI con `draw` y lo que dejó en el lote de los modelos.
+    const auto pass = [this](const auto& draw)
+    {
+        auto glow = std::make_unique<Client::World::FrameSprites>();
+        special.sprites = glow.get();
+        world.Runtime().hud.uiItemAngles = {};
+        models.Begin(Client::Render::Pass3D{});
+        Client::Scenes::UiItemResources resources = UiItems(Screen640);
+        GameHudContext context = Context();
+        context.uiItems = &resources;
+        const auto drawn = draw(context);
+        EXPECT_TRUE(drawn.HasValue()) << drawn.Error();
+        Client::Scenes::CloseUiItemPass(resources);
+        return TriangleOrigins();
+    };
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const Case probe :
+             {Case{1, 0x1c15, 0, true}, Case{2, 0x1c15, 0xf, true}, Case{4, 0x1c15, 0xf, false}, Case{5, 0, 0, true}})
+        {
+            SCOPED_TRACE(testing::Message() << map << " " << probe.window);
+            world.Runtime().map = map;
+            world.Runtime().panels.field78abb00 = probe.window;
+            const auto chips = [](GameHudContext& context) { return Client::Scenes::DrawTheEventChipItems(context); };
+            static_cast<void>(pass(chips));
+
+            random = CrtRandom{Seed};
+            const std::vector<glm::vec3> drawn = pass(chips);
+            const CrtRandom afterChips = random;
+
+            random = CrtRandom{Seed};
+            const std::vector<glm::vec3> expected = pass(
+                [&probe](GameHudContext& context) -> Client::Core::Expected<void, std::string>
+                {
+                    auto box = Client::Scenes::ItemSizeOf(context, probe.type, "test");
+                    if (!box.HasValue())
+                        return Client::Core::Unexpected(box.Error());
+                    box.Value().x = 540.0f;
+                    if (probe.upper)
+                    {
+                        box.Value().y = 298.0f;
+                        if (auto upper =
+                                Client::Scenes::DrawUiItem(context, box.Value(), probe.type, probe.level, 0, 0, false);
+                            !upper.HasValue())
+                            return upper;
+                    }
+                    box.Value().y = 333.0f;
+                    return Client::Scenes::DrawUiItem(context, box.Value(), probe.type, probe.level, 0, 0, false);
+                });
+            EXPECT_EQ(random.State(), afterChips.State());
+            ASSERT_FALSE(drawn.empty());
+            EXPECT_EQ(drawn, expected);
+        }
     }
 }
 

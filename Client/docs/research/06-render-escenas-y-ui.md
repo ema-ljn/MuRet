@@ -1666,6 +1666,70 @@ caos y el asedio, y que el inventario lee antes (`0x5e4e76..0x5e4ed0`): con uno 
   la 0, y devuelve la primera casilla con ese tipo, `+0x3c` mayor que 0 y `(+4 >> 3) & 0xf` igual al nivel (o
   cualquiera con −1); −1 sin ninguna. Lo prueban `EventNpcWindowTest` y `EventsTest.WritesTheEventEntriesWithTheXor32`.
 
+### La ventana de los chips
+
+CL9 hito 11, fase 4 (`Scenes/EventChipWindow`). **Todo es *estático***, sin traza de GL; lo que la VM tiene que
+confirmar está en 08 (P-C247, P-C248). La abre el `94` (`0x4dd8a0`): `0x78abb00` = tipo + 1 y `0x78abb04` = la cuenta.
+Con 1, la Rena (el `0x1c15` de nivel 0); con 2, la piedra (el mismo de nivel 1); con 3, la entrada del número de
+serie; con 4, el pedido del número del Muto. Ocupa la esquina del inventario (`0x78a5a14`/`0x78a5a10` en (`0x1c2`,
+0), que escribe el dibujo) y cuenta como un panel en el ancho del mundo (`0x5bb8d0`). MuRet tiene `0x6c7b8c` (`.data`) en 1, el
+modo con EDIT: lo que el original hace con 0 (la entrada sin EDIT, `0x553ae0`, y `0x6c8e78`) no se alcanza.
+
+- **El paso, `0x5e6520`** (desde `0x5ee1ec`, después del ítem del cursor, con `0x78abb00` distinto de 0). El mouse en
+  [`0x1c2`, `0x280`) × [0, `0x1b1`) es de la UI (`0x775857c`). Los botones miran el soltado (`0x7d366ec`):
+  - con 4, [`0x1e5`, `0x25d`) × [`0xdc`, `0xf4`): el `C1 04 98 01` y el soltado apagado;
+  - con 3, el botón de confirmar en (`ftol(0x1c2 + 35)`, `ftol(esquina + 290)`) de 120 × 22: sin casillas libres
+    (`0x558740(−1, −1)` en 0), el aviso 896 (`0x5e6d22`); si no, el `C1 12 9D` con los 12 bytes de GetText del EDIT
+    de `[0x5763504]` (Q-C1344). Después el izquierdo suelto (`0x7d36874`);
+  - con cualquier otro, [`0x1e5`, `0x25d`) × [`0xe7`, `0xfd`): el soltado apagado, `0x5583a0(0x1c15, 1)` con 2 o
+    `(0x1c15, 0)` con los demás y, con una casilla, el `C1 05 95` con `0x78abb00` − 1 y la casilla (04 § Los eventos).
+  Después, el clic (`0x7d366d4`) en el botón de cerrar (x + `0x19`, y + `0x18b` de la esquina del inventario, 24 ×
+  24): el clic apagado, `0x77f3b10` en 0 y `0x6c8dcc` en 6, el `C1 03 97` en claro, `0x78abb00` en 0, el inventario
+  cerrado (`0x65cae0(0x4000000, 0)`, con los `rand()` de sus lecturas protegidas: dos con el inventario abierto, y
+  `0x659250` pone `0x78abb00` y `0x78abb04` en 0), `0x553570(0)`, el chat cerrado (`0x6c8e68`), `0x77f3b6a`,
+  `0x77f3b6c`, `0x78abacc` y `0x77f3b6b` en 0 y `SetFocus` a la ventana del juego. El texto del EDIT queda (Q-C1345).
+  Al final, el soltado apagado (`0x5e74cc`). Lo prueban `EventChipWindowTest` en Lorencia y en Devias.
+- **El dibujo, `0x5f6550`** (desde `0x5f75d0`, después de los NPC de evento). El color blanco, la mezcla normal, la
+  esquina en (`0x1c2`, 0), el fondo (`0x5ee220`) y el título en (x + `0x23`, y + `0xc`) en `0xfff0ff96` sobre 0: el
+  nombre del NPC 236 de `0x54ebb0`, la tabla de `Data\Local\NpcName(%s).txt` que carga `0x54e7f0` (MuRet no la
+  carga: `GameHudContext::npcName` la presta y sin ella corta en `0x5f65df`, P-C248). Después la cuenta del `0x1c15`
+  (`0x558740`, de nivel 1 con 2) y el texto en `0xffd2e6ff`.
+  - Con 4, el botón `0xf0` (120 de ancho desde x = 485, du = 0,83203125) en y 220 de 24 de alto con el texto 903
+    centrado en (`0x221`, `0xe1`); con los otros salvo el 3, en 231 de 22 con el 243 (1) o el 818 (2) en (`0x221`,
+    `0xec`), en blanco y negrita si hay ítems y en gris (0,4) con la normal si no. Con el mouse arriba y el clic
+    (`0x7d366d4`), la fuente normal y el gris; con el soltado, el clic y el izquierdo apagados.
+  - Con 3, la entrada: x = 450 + 35 e y = la esquina + 250; los textos 893, 916 y 917 (estos dos en `0xff67bfdf`) y
+    894 en negrita, centrados en x + 56,5, en y − `0x28`, − `0xf`, − 5 y − `0x19`; el marco `0x10f` en (x + 3, y +
+    10) de 113 × 18; el EDIT de `[0x5763504]` reconfigurado en cada frame (`+0x4c` en 2, el fondo en 0, EM_LIMITTEXT
+    12, 150 × 14 en (`ftol(x)` + 10, y + 15), la vtable + `0x30` que le da el foco y su dibujo `0x468320`) y el botón
+    de confirmar 40 más abajo con el 895 en (x + 60, y + 5), en `0xff697370` con el mouse arriba.
+  - El botón de cerrar con su ayuda 1002, la fuente normal y los cuatro textos del tipo centrados en x + 95: 700 a
+    703 (1) u 882 a 885 (2) desde y + 100; 891, 892, 897 y 898 (3) o 900, 706, 901 y 902 (4) desde y + 70, de a 15.
+    Con 3 y el resultado del `9D` (`0x78ab078`, si su primer byte no es 0), su sombra negra en negrita en (+1, +
+    `0x105`) y él en `0xff67d2ff` en `0x104` más abajo, en blanco o en gris (0,6) según el signo de
+    `sin(0x5767b88 · 0,01)`.
+  - Salvo con 3, los rótulos en negrita en x `0x1e5` (245 u 819 en y `0x122`, 246 u 820 en `0x145`, solo con 1 y 2) y
+    `"x%d"` de la cuenta y de `0x78abb04` en la fuente grande en `0xff0096d4`, en x `0x230` e y 300 y 335 (con 5, 290
+    y 325; las tablas `0x5f7078` y `0x5f708c`). No saca `rand()`; un dibujo intermedio no escribe el foco, el EDIT ni
+    el clic.
+- **Los ítems, `0x5f70a0`** (desde el 3D de la UI, `0x5ac1da`, con `0x78abb00` fuera de 0 y 3): el modelo del
+  `0x1c15` (`+4` en 0; en `0xf` con 2 y 4; con 5, el tipo 0) del tamaño de `Item.bmd` en (540, 298), salvo con 4, y
+  en (540, 333), con `0x5e1480` y sus `rand()`. Después `0x5ac1df` salta a `0x5ac269`: sin las grillas (`0x5f7610`),
+  el ítem del cursor ni las ranuras rápidas.
+- **La entrada del número de serie.** La abre el `94` con el tipo 2 (`0x4dd8ce..0x4dd920`): los `0x40` bytes de
+  `0x78ab078` en 0, `0x553570(0)`, el chat cerrado, `0x6c8e6c` en 1 (un solo campo para el Tab) y `0x77f3b6b` en 1
+  (`0x77f3b6a`, `0x77f3b6c`, `0x78abacc` y `0x6c8e78` en `0xc` son del modo sin EDIT). La cierran la X (arriba) y
+  `SendMove` con 3 después del `97` (`0x56b6a9..0x56b72a`): `0x6c8e74` en −1, el campo elegido en 0, los diez
+  buffers de `0x7798bf8` salvo el del susurro con sus largos, la vtable + `0x4c` con 0 en `[0x5763504]` y
+  `[0x5763508]`, el chat cerrado y `0x77f3b6b` en 0, sin `SetFocus`. El WndProc mira `0x77f3b6b` en siete lugares:
+  `0x4b4dbe` y `0x4b4e55`, con `0x6c7b8c` en 0; `0x4b5616` y `0x4b8888`, el Enter con texto, que con él prendido
+  pone el campo en 0 y nada más (Q-C1346); `0x4b8934`, `0x4b89b3` y `0x4b8aa9`, las letras que la ventana del juego
+  escribe en sus buffers (solo letras y cifras, en mayúscula), que MuRet no modela (P-C247). El EDIT con el foco
+  filtra lo tecleado con su subclase `0x467b10` (`UI::FilteredByTheEdit`) y le pasa el Tab y el Enter a la ventana del
+  juego; con el chat cerrado, el Enter lee su texto (`0x4b540a`). Lo prueban `EventChipWindowTest`,
+  `GameChat.TheSerialEditFiltersWhatIsTyped`, `GameChat.AStuckSerialEntrySwallowsEnter` y
+  `GameMovementTest.AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor`.
+
 ### La captura de pantalla
 
 (CL8 hito 6, 2026-11-12; *estático*, ASM de `c32bbd5f`.) Todo pasa en `0x637700`, en cualquier escena, y en

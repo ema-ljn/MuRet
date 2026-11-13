@@ -831,7 +831,7 @@ nombre del evento (un puntero a su registro, `0x76bd1dc + 300 · índice`) impri
 | `C1 91 tipo …` | `0x4da8c0` | tipo 1 (Devil Square): `pkt[4]` 0 → 643, si no 644 con los minutos; tipo 2 (Blood Castle): 850 o 851 con el nombre 1146; tipo 4 (Chaos Castle): la palabra `pkt[4]:pkt[6]` y `pkt[5]`, con 850 + 1156 o 1164 + 851 en los registros 1154/1155 y el diálogo `0x9a` | `PMSG_ENTERCOUNT_RESULT` (`CGEnterCountRequest` `0x429c10`), sólo los tipos 1 y 2: el 4 no lo manda |
 | `C1 04 92 tipo` | `0x4e4930` | con el objeto del evento (`[0x723c60]`), `0x40ba60(pkt[3] + 1)`: `+8` y `GetTickCount` en `+0xc`, que dibuja la cuenta de 30 s (`0x40bab0`) | `PMSG_SET_DEVILSQUARE`: Devil Square 0..2 y Blood Castle 3..6; el 10..13 de Chaos Castle no lo manda |
 | `C1 93 puesto cuenta registros…` | `0x4e4959` → `0x4e7360` → método `+0xc` | Devil Square (`0x40bd20`): con cuenta < 200, `cuenta` registros de 24 bytes a `+0x2c` y el diálogo `0x8b`; Blood Castle (`0x40c0c0`) con cuenta `0xff` y Chaos Castle (`0x404da0`) con `0xfe`: uno, con los diálogos `0x97` y `0x9b` | `PMSG_DEVILSQUARERESULT` de 11 registros (`0x10d`); Blood Castle manda puesto 1, cuenta `0xff` y `0x35` bytes. Con más de 11, Q-C1324 |
-| `C1 94 tipo cuenta:2 [a:2 b:2 c:2]` | `0x4dd8a0` | cierra las ventanas, `0x78abb04` = cuenta y `0x78abb00` = tipo + 1; con el 1 (Muto) los tres números si ninguno es `0xffff`; con el 3, el número de serie en cero y su entrada (corta, `0x4dd8f2`) | `PMSG_EVENTCHIPINFO` (`0xc`), igual |
+| `C1 94 tipo cuenta:2 [a:2 b:2 c:2]` | `0x4dd8a0` | cierra las ventanas, `0x78abb04` = cuenta y `0x78abb00` = tipo + 1; con el 1 (Muto) los tres números si ninguno es `0xffff`; con el 3, el número de serie en cero y su entrada (`0x4dd8ce..0x4dd920`: `0x553570(0)`, el chat cerrado, un solo campo para el Tab y `0x77f3b6b` en 1; 06 § La ventana de los chips) | `PMSG_EVENTCHIPINFO` (`0xc`), igual |
 | `C1 06 95 tipo cuenta:2` | `0x4e49d4` | `0x78abb04` = cuenta salvo `0xffff` | `PMSG_EVENTCHIP_RESULT`, −1 al fallar, igual |
 | `C1 96 … a:2 b:2 c:2` | `0x4e49fb` | los tres números (`0x6c9328`, `0x6c932c`) si ninguno es `0xffff` | `PMSG_EVENTCHIP_MUTO`; al fallar a = −1, que el cliente salta |
 | `C1 04 99 tipo` | `0x4e4a40` | con 0 o 1, los diálogos `0x8f` o `0x90` | `PMSG_RESULT`, igual |
@@ -857,9 +857,22 @@ nombre del evento (un puntero a su registro, `0x76bd1dc + 300 · índice`) impri
 Lo que manda el cliente:
 
 - **`C1 03 97`** (`0x56b4e8..0x56b5a0`), en claro y sin XOR32: `SendMove` lo agrega después del `D3` con `0x78abb00`
-  distinto de 0; después, con 3, cierra la entrada del número de serie (corta, `0x56b6a9`), y si no pone `0x78abb00`
+  distinto de 0; después, con 3, cierra la entrada del número de serie (`0x56b6a9..0x56b72a`), y pone `0x78abb00`
   en 0, el cursor con `SetCursorPos` en x · ancho / 260 (Q-C1330), `0x6c8dcc` en 6 y el izquierdo suelto. El GS lo
-  atiende en `CGEventChip97Request`.
+  atiende en `CGEventChip97Request` (apaga `m_IfState` del tipo 9). También lo manda, en claro, la X de la ventana
+  de `0x78abb00` (`0x5e72e3`, el paso `0x5e6520`), que después cierra el inventario (`0x65cae0(0x4000000, 0)`).
+- **`C1 04 98 01`** (`0x5e65f6..0x5e67a0`), **`C1 05 95 tipo casilla`** (`0x5e68ed..0x5e6bc9`) y **`C1 12 9D
+  a:4 0 b:4 0 c:4 0`** (`0x5e6db9..0x5e7184`), los tres con el XOR32 y en claro, desde el paso de la ventana de
+  `0x78abb00` al soltar el clic (`0x7d366ec`) sobre su botón (fase 4 del hito 11; *estático*; 06 § La ventana de los
+  chips). El `98` con el tipo 4 (el número del Muto): el GS lo atiende en `CGEventChip98Request` (`0x42a6e0`), que no
+  lee el cuerpo y le pide el número al servidor de los chips. El `95` con 1, 2 u otro que no sea 3: el tipo es
+  `0x78abb00` − 1 en un byte y la casilla la de `0x5583a0` para el `0x1c15` de nivel 1 (con 2) o 0, sin sumarle nada;
+  sin el ítem no sale. El GS (`CGEventChipRegRequest`, `0x429fc0`) acepta los tipos 0 y 1 y le suma 12 a la casilla.
+  El `9D` con 3, si `0x558740(−1, −1)` encuentra alguna casilla libre (si no, el aviso 896): los 12 bytes del texto del
+  EDIT de `[0x5763504]` (GetText, la vtable + `0x50`) en tres pedazos de 4, cada uno con un 0; detrás del `'\0'` de un
+  texto más corto el original deja la pila del paso y MuRet ceros (P-C247). El GS 0.97 no atiende el `9D`: el oráculo
+  es el ASM del cliente. MuRet: `Protocol::Events::WriteMutoNumberRequest`, `WriteEventChipRegister` y
+  `WriteSerialNumber`.
 - **`C1 05 90 cuadrado casilla`** (`0x5e5b2f..0x5e5eb4`, el paso de la ventana de Devil Square) y **`C1 05 9A puente
   casilla`** (`0x5e6156..`, la de Blood Castle), con el XOR32 y en claro (fase 2; *estático*). El cuadrado va de 0 a
   5 y la casilla de la invitación (`0x1c13`) más `0x18`; el puente de 1 a 7 y la casilla de la capa (`0x1a12`) más

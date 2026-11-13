@@ -215,7 +215,8 @@ void SpendUiItemRandoms(GameHudContext& context, std::int32_t model, std::uint8_
         context.world.Runtime().itemRender.selections[static_cast<std::uint16_t>(model)] = context.random.Next() % 100;
 }
 
-// Item.bmd +0x24 y +0x25: las casillas de ancho y de alto, cada una por 20 (0x6b86d0) en la x87 con el fstp.
+} // namespace
+
 Core::Expected<UiItemBox, std::string> ItemSizeOf(const GameHudContext& context, std::int32_t type,
                                                   std::string_view where)
 {
@@ -232,7 +233,6 @@ Core::Expected<UiItemBox, std::string> ItemSizeOf(const GameHudContext& context,
     box.height = F32(static_cast<double>(std::to_integer<std::uint8_t>((*record)[Height])) * CellPixels);
     return box;
 }
-} // namespace
 
 Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, const UiItemBox& box, std::int32_t type,
                                              std::uint32_t level, std::uint8_t excellent, std::uint8_t set, bool always)

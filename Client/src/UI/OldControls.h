@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <functional>
 #include <optional>
+#include <string_view>
 
 // Los controles de las ventanas viejas que la CL8 dejó sin portar (CL9 hito 9; 06 § HUD y ventanas, "Las ventanas
 // viejas"): la plantilla de lista de 0x45adf0..0x4a7280 y el EDIT de 0x4674c0.
@@ -173,4 +174,17 @@ struct OldEdit
     // +0xac: el alto de "1" en píxeles (0x6c7af4), que 0x468320 mide la primera vez (0 hasta entonces).
     float caretHeight = 0.0f;
 };
+
+// +0x4c del EDIT: los filtros de su subclase.
+inline constexpr std::int32_t DigitsOnlyEdit = 1;
+inline constexpr std::int32_t UppercaseLettersAndDigitsEdit = 2;
+
+// Lo que la subclase 0x467b10 deja pasar de un WM_CHAR al EDIT (0x467c2a..0x467cd0) y cómo: Esc y 0x19..0x1c nunca;
+// con +0x4c & 1, solo las cifras (y el borrar, 3 y 0x18; el pegar, 0x16, lo mira 0x467a90 y MuRet no lo tiene); si
+// no, con +0x4c & 2, las cifras y las mayúsculas, y las minúsculas pasadas a mayúscula; sin filtro, todo. Un byte de
+// 0x80 o más es negativo como char y no pasa ninguno de los dos filtros.
+[[nodiscard]] std::optional<char> FilteredByTheEdit(std::int32_t filter, char typed);
+
+// WM_CHAR al EDIT con el foco: cada letra de `typed` por el filtro de +0x4c y lo que pasa al texto, con su tope.
+void TypeInTheEdit(OldEdit& edit, std::string_view typed);
 } // namespace Client::UI

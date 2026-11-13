@@ -1,5 +1,6 @@
 #pragma once
 
+#include "UI/OldControls.h"
 #include "UI/TextField.h"
 
 #include <array>
@@ -57,6 +58,8 @@ enum class ChatFocus : std::uint8_t
     Whisper,
     // El EDIT de una ventana vieja (la caja de agregar un amigo, 0x4682a0): OldWindowManager::focusedEdit.
     OldWindow,
+    // El EDIT de [0x5763504] (ChatInputState::dialogEdit), que toma el foco con la vtable + 0x30 (0x4682a0).
+    Dialog,
 };
 
 using ChatBuffer = std::array<char, ChatBufferSize>;
@@ -98,6 +101,11 @@ struct ChatInputState
     std::string lastSaid;
     // 0x77f1db0: las macros, como las dejó Data\Macro.txt (0x61c1c0) y las cambia /1../0 (0x56f0b0).
     std::array<std::string, MacroCount> macros{};
+    // [0x5763504]: el EDIT de WinMain (0x4674c0, 0x4bb31b), el del nombre en la creación de personajes, que en el juego
+    // usan el diálogo 0x73 (hito 6) y la entrada del número de serie (0x5f6550, CL9 hito 11). Su texto lo lee el Enter
+    // con el campo del chat cerrado (0x4b540a). El de [0x5763508] (el código del borrado) no lo tiene MuRet: en el
+    // juego solo lo vacía 0x56b6a9.
+    OldEdit dialogEdit{};
 };
 
 // El texto de un buffer hasta su '\0'.

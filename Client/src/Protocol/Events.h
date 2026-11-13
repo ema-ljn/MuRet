@@ -27,6 +27,10 @@ inline constexpr std::uint8_t EventResultOpcode = 0x93;
 inline constexpr std::uint8_t EventChipInfoOpcode = 0x94;
 inline constexpr std::uint8_t EventChipCountOpcode = 0x95;
 inline constexpr std::uint8_t MutoNumbersOpcode = 0x96;
+// C→S: 0x5e65f6, el C1 04 98 01 del botón de la ventana de 0x78abb00 con el 4 (el GS lo atiende en
+// CGEventChip98Request y no lee el 01).
+inline constexpr std::uint8_t MutoNumberRequestOpcode = 0x98;
+inline constexpr std::uint8_t MutoNumberRequestByte = 0x01;
 // C→S: 0x56b4e8, el C1 03 97 de SendMove con 0x78abb00 (el GS lo atiende en CGEventChip97Request).
 inline constexpr std::uint8_t EventWindowLeaveOpcode = 0x97;
 inline constexpr std::uint8_t EventDialogOpcode = 0x99;
@@ -303,6 +307,21 @@ using EventPacket =
 
 // 0x56b4e8..0x56b5a0: C1 03 97 en claro, sin XOR32 ni cifrado, con send directo.
 [[nodiscard]] Outgoing WriteEventWindowLeave();
+
+// 0x5e65da..0x5e6864: C1 04 98 01, con el XOR32 y en claro (el send del paso).
+[[nodiscard]] Outgoing WriteMutoNumberRequest();
+
+// 0x5e68ed..0x5e6c94: C1 05 95 tipo casilla, el tipo (0x78abb00 − 1, en un byte) y la casilla del inventario de la
+// Rena o la piedra (0x1c15; de 0 a 63, sin sumarle nada: el GS le suma 12), con el XOR32 y en claro
+// (PMSG_REQ_EVENTCHIP; el GS acepta los tipos 0 y 1).
+[[nodiscard]] Outgoing WriteEventChipRegister(std::uint8_t type, std::uint8_t itemPlace);
+
+// 0x5e6db9..0x5e723b: C1 12 9D con los tres pedazos del número de serie, cada uno de 4 bytes y un 0, con el XOR32 y en
+// claro, con el opcode del 9D que llega (SerialResultOpcode). El GS 0.97 no lo atiende: el oráculo es el ASM.
+inline constexpr std::size_t SerialPieceCount = 3;
+inline constexpr std::size_t SerialPieceBytes = 4;
+using SerialPieces = std::array<std::array<std::uint8_t, SerialPieceBytes>, SerialPieceCount>;
+[[nodiscard]] Outgoing WriteSerialNumber(const SerialPieces& pieces);
 
 // 0x4fbeed..0x4fc2c9: C1 06 AF 02 x y, con el XOR32 y en claro (el send del paso, sin C3).
 [[nodiscard]] Outgoing WriteChaosCastleReposition(std::uint8_t x, std::uint8_t y);

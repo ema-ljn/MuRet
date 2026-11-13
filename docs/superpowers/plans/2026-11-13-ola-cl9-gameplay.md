@@ -412,6 +412,10 @@ amigos. **Desbloquea:** 10.
       `BD 00` y la etapa 2, lo único que lo empieza; el guion corta en `0x4035da`. Q-C1341..Q-C1343, P-C298,
       P-C299. La rama `cl9-h9` está juntada con el EDIT; la ventana de `0x78abb00` y el número de serie siguen
       cortando, con lo que falta medido en P-C295.)
+      (Fase 4, *estática*: la ventana de `0x78abb00`, `0x5f6550`, su paso `0x5e6520` con el `C1 04 98 01`, el
+      `C1 05 95`, el `C1 12 9D` y el `97` de la X, y sus ítems `0x5f70a0`; la entrada del número de serie,
+      `0x4dd8ce..0x4dd920` y `0x56b6a9`, con el EDIT de `[0x5763504]` y los caminos del Enter que miran `0x77f3b6b`.
+      El título, el nombre del NPC 236 de `0x54e7f0`, corta para el hito 2. Q-C1344..Q-C1346, P-C247, P-C248.)
 - [ ] **Las reglas por mapa:** el arma de Blood Castle (`0x50de84`), las trampas de Chaos Castle (`0x405597`,
       `0x405d49`), el `AF 02` (`0x4fbee8`; decía `AF 01`), Kalima, y Crywolf (`BD`, `0x42fe80`, `0x42fe50`,
       `0x430a40`, `0x61a6f4`; P-C58).

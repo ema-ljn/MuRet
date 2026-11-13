@@ -67,6 +67,10 @@ struct EventGlobals
     std::array<std::uint16_t, 3> mutoNumbers{0xffff, 0xffff, 0xffff};
     // 0x78ab078 (.bss 0): los 0x40 bytes del 9D (0x4e4ab9), que 0x94 con el tipo 2 vacía (0x4dd8f5).
     std::array<std::byte, 0x40> serial{};
+    // 0x77f3b6b (.bss 0): la entrada del número de serie, que prende el 94 con el tipo 2 (0x4dd919) y apagan
+    // SendMove (0x56b72a) y el botón de cerrar de su ventana (0x5e74b6); el 94 con otro tipo la deja como está. La lee
+    // el Enter del WndProc (0x4b5616 y 0x4b8888) y, con 0x6c7b8c en 0, sus teclas (Scenes/EventChipWindow.h).
+    bool serialEntry = false;
     // El recorrido de la cámara ([0x6e5904], Scenes/CameraTour.h).
     CameraTour cameraTour{};
     // 0x78ab9cc (.bss 0): los niveles de los seis cuadrados de Devil Square, {mínimo, máximo}, que escribe el dibujo de

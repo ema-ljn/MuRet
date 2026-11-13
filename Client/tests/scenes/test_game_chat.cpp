@@ -8,11 +8,13 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/EventGlobals.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/MessageArea.h"
+#include "UI/OldControls.h"
 #include "UI/PanelRegistry.h"
 #include "UI/WhisperSenders.h"
 
@@ -300,6 +302,58 @@ TEST_F(GameChat, ChaosCastleAndSomeDialogsBlockEnter)
     world.Runtime().dialogs.current = 0x7d;
     ASSERT_TRUE(Type("\r").HasValue());
     EXPECT_FALSE(world.Runtime().ui.chatOpen);
+}
+
+// CL9 hito 11: con el foco en el EDIT de [0x5763504] (la entrada del número de serie), la subclase 0x467b10 filtra lo
+// tecleado con +0x4c en 2 (cifras y letras, las minúsculas en mayúscula), el borrar es del EDIT y el Tab y el Enter van
+// a la ventana del juego: con 0x78abb00 en 3 el Enter solo prende 0x5763588 (0x4b52f6). Nada llega a los campos del
+// chat.
+TEST_F(GameChat, TheSerialEditFiltersWhatIsTyped)
+{
+    world.Runtime().panels.field78abb00 = 3;
+    world.Runtime().events.serialEntry = true;
+    Input().focus = Client::UI::ChatFocus::Dialog;
+    Input().dialogEdit.filter = Client::UI::UppercaseLettersAndDigitsEdit;
+    Input().dialogEdit.text.SetLimit(12);
+    ASSERT_TRUE(Type("ab-1 c\bz9\r\t").HasValue());
+    EXPECT_EQ(Input().dialogEdit.text.Value(), "AB1Z9");
+    EXPECT_EQ(Input().message.Value(), "");
+    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Dialog);
+    EXPECT_TRUE(world.Runtime().ui.enterPressed);
+    EXPECT_FALSE(world.Runtime().ui.chatOpen);
+    EXPECT_TRUE(sent.empty());
+}
+
+// 0x4b540a: con el campo cerrado, Enter lee el texto del EDIT de [0x5763504]; lo que dejó la X de la ventana de
+// 0x78abb00 (que no lo vacía, Q-C1345) sale como chat, y sale otra vez con el Enter siguiente.
+TEST_F(GameChat, WithTheFieldClosedEnterSaysTheSerialEdit)
+{
+    Input().dialogEdit.text.SetText("AB12");
+    ASSERT_TRUE(Type("\r").HasValue());
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_EQ(Decode(sent[0]).text, "AB12");
+    EXPECT_FALSE(world.Runtime().ui.chatOpen);
+    EXPECT_EQ(Input().dialogEdit.text.Value(), "AB12");
+}
+
+// 0x4b5616 y 0x4b8888: con 0x77f3b6b prendido y 0x78abb00 en otro valor (un 94 de otro tipo sobre la entrada, Q-C1346),
+// Enter pone el campo elegido en 0 y nada más: no dice, no vacía el buffer y no cierra el campo.
+TEST_F(GameChat, AStuckSerialEntrySwallowsEnter)
+{
+    world.Runtime().panels.field78abb00 = 1;
+    world.Runtime().events.serialEntry = true;
+    ASSERT_TRUE(Type("\rhola").HasValue());
+    ASSERT_TRUE(world.Runtime().ui.chatOpen);
+    Input().field = 1;
+    Input().focus = Client::UI::ChatFocus::Message;
+    const auto before = random.State();
+    ASSERT_TRUE(Type("\r").HasValue());
+    EXPECT_TRUE(sent.empty());
+    EXPECT_EQ(Input().field, Client::UI::MessageField);
+    EXPECT_TRUE(world.Runtime().ui.chatOpen);
+    EXPECT_EQ(std::string_view(Input().messageBuffer.data()), "hola");
+    EXPECT_EQ(Input().message.Value(), "hola");
+    EXPECT_EQ(random.State(), before);
 }
 
 // Un comando que se atiende (/1) no manda nada ni vuelve el área vieja, pero cierra el campo.

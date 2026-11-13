@@ -8,6 +8,7 @@
 #include "Render/Models/Animation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/EventChipWindow.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/FaunaObject.h"
@@ -183,7 +184,6 @@ constexpr std::array<std::uint8_t, 3> ChaosCastleCollapseAreas{0, 3, 6};
 
 // 0x4dd8a0: el modo de 0x78abb00 (pkt[3] + 1) con los números del Muto y con el número de serie.
 constexpr std::int32_t MutoWindow = 1;
-constexpr std::int32_t SerialWindow = 3;
 constexpr std::uint16_t NoMutoNumber = 0xffff;
 constexpr std::uint16_t NoChipCount = 0xffff;
 
@@ -697,15 +697,11 @@ private:
         UI::PanelState& panels = m_runtime.panels;
         panels.field78abb04 = static_cast<std::int16_t>(packet.count);
         panels.field78abb00 = std::int32_t{packet.type} + 1;
-        if (panels.field78abb00 == SerialWindow)
+        if (panels.field78abb00 == SerialNumberWindow)
         {
-            // 0x4dd8ce..0x4dd8ec: el número de serie en cero, 0x553570(0) y el campo del chat cerrado.
-            m_runtime.events.serial = {};
-            UI::ResetTheTextBuffers(m_runtime.chat.input, false);
-            m_runtime.ui.chatOpen = false;
-            return Core::Unexpected(std::string("0x4dd8f2: la entrada del número de serie (0x77f3b6a, 0x77f3b6c, "
-                                                "0x78abacc, 0x6c8e78 en 0xc, 0x6c8e6c en 1 y 0x77f3b6b en 1, que lee "
-                                                "el Enter del chat) no está portada (P-C295)"));
+            // 0x4dd8ce..0x4dd920.
+            OpenTheSerialEntry(m_runtime);
+            return {};
         }
         if (panels.field78abb00 != MutoWindow)
             return {};

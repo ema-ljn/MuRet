@@ -19,6 +19,7 @@
 #include "Scenes/ChatBubbleDraw.h"
 #include "Scenes/CrywolfInterfaceDrawing.h"
 #include "Scenes/EventMapObject.h"
+#include "Scenes/EventChipWindow.h"
 #include "Scenes/EventDrawing.h"
 #include "Scenes/EventNpcWindows.h"
 #include "Scenes/EventPackets.h"
@@ -875,8 +876,12 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     // 0x5f75cb: 0x5f58f0, los NPC de evento (CL9 hito 11), que empieza con sus IsOpen.
     if (auto events = DrawTheEventNpcWindow(frame.context, panels); !events.HasValue())
         return events;
+    // 0x5f75d0: 0x5f6550, con 0x78abb00 distinto de 0.
     if (state.field78abb00 != 0)
-        return cut("0x5f6550: la ventana de 0x78abb00 no está portada (P-C295)");
+    {
+        if (auto chips = DrawTheEventChipWindow(frame.context); !chips.HasValue())
+            return chips;
+    }
     if (state.delegated.quest == 1 || state.delegated.quest == 2)
         return cut("0x41ca40: la ventana de las misiones es de la CL9.1");
     if (state.delegated.pet == 2)
@@ -1019,9 +1024,10 @@ Core::Expected<void, std::string> DrawTheUi3DItems(Frame& frame)
     // 0x41b9e0: el ítem de la ventana de las misiones.
     if (state.delegated.quest == 1 || state.delegated.quest == 2)
         return Core::Unexpected(std::string("0x41b9e0: el ítem de la ventana de las misiones es de la CL9.1"));
-    if (state.field78abb00 != 0 && state.field78abb00 != 3)
-        return Core::Unexpected(
-            std::string("0x5f70a0: los ítems de la ventana de 0x78abb00 no están portados (P-C295)"));
+    // 0x5ac1cc..0x5ac1df: con 0x78abb00 fuera de 0 y 3, 0x5f70a0 y el salto a 0x5ac269, sin las grillas, el ítem del
+    // cursor ni las ranuras rápidas.
+    if (state.field78abb00 != 0 && state.field78abb00 != SerialNumberWindow)
+        return DrawTheEventChipItems(frame.context);
     // 0x5f7610: los ítems de las grillas abiertas, en su orden, y la caja del entrenador (0x44ad40(0)).
     if (auto grids = DrawTheGridItems(frame.context, frame.panels); !grids.HasValue())
         return grids;

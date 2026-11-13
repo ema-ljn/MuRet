@@ -105,7 +105,7 @@
 // El punto de entrada del cliente: arma las capas y arranca, sin lógica propia. main va por fases,
 // como los pasos de WinMain en MuMain (InitializeWorkingDirectoryAndLog, MainLoop, ShutdownRuntime
 // en App/Platform/Windows/Winmain.cpp), y las de más de un paso tienen su función:
-//   0. El manejador de caídas, antes que nada, como la primera llamada de WinMain (0x4b9b97): si
+//   0. El manejador de caídas, antes que nada, como la primera llamada de WinMain (0x4b9b80, en 0x4b9b97): si
 //      el cliente se cae, escribe MuError.dmp en la carpeta actual y, con el log ya abierto, su
 //      línea (Core/Crash/CrashHandler.h). Si no se puede instalar, un aviso y se sigue sin él.
 //   1. ReadStartup, antes de SDL_Init: la carpeta del ejecutable, los argumentos y la config, y,

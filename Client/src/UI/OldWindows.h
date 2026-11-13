@@ -139,7 +139,9 @@ struct OldWindowListPart
     std::int32_t armed = 0;
     // +0x144: llegó una carta nueva (0x4a6420). Al abrir la de amigos, la abre en la pestaña de las cartas.
     std::int32_t newLetter = 0;
-    // +0xb4: los chats con un amigo, en el orden en que se armaron (0x4a4990); los busca 0x4a6430 por el amigo.
+    // +0xb4: los chats con un amigo, en el orden en que se armaron (0x4a4990); los busca 0x4a6430 por el amigo. Las
+    // std::deque<int> de MSVC6 de +0xb4 y +0x118 (0x4a6f40 0x4a7b90 0x4a9630 0x4a96c0 0x4a9810 0x4aaa40 0x4aab90
+    // 0x4aac10 0x4aac80 0x4aafa0 0x4ab030 0x4ab220 0x4ab290 0x4ab380; P-C215, P-C216) son las de MuRet.
     std::deque<std::int32_t> chats;
     // +0xf0: el elegido, un iterador de +0xb4 (0x4a5be0, 0x4a4eb0): acá su lugar, con el tamaño de `chats` por el
     // final. 0x4a48b0 lo pone al final y 0x4a4b30, al sacar un chat. Al agregar uno (0x4a4990) un final pasa a
@@ -147,7 +149,9 @@ struct OldWindowListPart
     std::size_t cursor = 0;
     // +0x118: los chats con un mensaje sin ver, para F5 (0x4a5e50, que no repite).
     std::deque<std::int32_t> waiting;
-    // +0x158: los amigos a los que se les pidió una sala (C1 CA) y no contestó el CA (0x4a6910, 0x4a6af0, 0x4a6bc0).
+    // +0x158: los amigos a los que se les pidió una sala (C1 CA) y no contestó el CA (0x4a6910, 0x4a6af0, 0x4a6bc0). Su
+    // contenedor de MSVC6 (0x475c00, 0x469540: 0x475f40 0x477a80 0x477b20 0x478a70 0x4a7f10 0x4a8060 0x4a9c00 0x4ab1b0)
+    // es el de MuRet (P-C216).
     std::deque<std::string> pending;
 };
 
@@ -201,7 +205,12 @@ struct OldChatPart
     std::string lastText;
     // +0x1b4: el EDIT, con el tope de 100.
     OldEdit edit;
-    // +0x2a0: los renglones.
+    // +0x2a0: los renglones. Su std::deque de MSVC6 (0x473ac0 0x473e80 0x473ec0 0x474040 0x476e10 0x476e30 0x476ea0
+    // 0x478500 0x478590 0x478610 0x487610 0x487b70 0x48ba10 0x48c9b0 0x48cd90, y 0x4723c0 y 0x489cd0 desde el unwind)
+    // es la de MuRet; los destructores del chat (0x48f910, 0x493160, con su lista de miembros 0x487d90), de la de leer
+    // (0x48f940), de la de escribir (0x48f970, 0x48f9a0), del retrato (0x495ef0, 0x495f20) y de las dos listas
+    // (0x4633b0 0x4633e0 0x488960 0x488990; 0x4647e0 0x464810 0x488360 0x488390) son los de C++ al soltar la ventana
+    // (P-C216).
     OldList lines;
     std::deque<ChatLine> lineRows;
     // +0x3d0: los miembros de la sala.

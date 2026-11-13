@@ -13,7 +13,16 @@
 // Las cartas y las salas del chat con un amigo (CL9 hito 10; 06 § HUD y ventanas, "Las cartas y el chat con un
 // amigo"): el objeto de [0x576351c], que llenan el C6 (0x49eb60) y el C8 (0x49ee20) y que la pestaña de las cartas
 // copia a su lista (0x4a0960); y el de [0x5763520], las salas, que arma 0x49de50 al llegar un CA. Los std::deque y
-// std::map de la STL de MSVC6 son los de MuRet, con el mismo orden.
+// std::map de la STL de MSVC6 son los de MuRet, con el mismo orden (P-C216, por quién los llama, *estático*): la deque
+// de las cartas y sus copias en la lista (0x4746d0 0x474760 0x474b50 0x474b90 0x474ba0 0x477120 0x477270 0x4772f0
+// 0x477310 0x477380 0x478780 0x478810 0x47ee30 0x487740 0x4877d0 0x487860 0x489e50 0x48bcb0 0x48ca90 0x48cdf0
+// 0x4a7dc0); el std::sort de 0x49f870, que es Core::Msvc6Sort (0x4ab4d0 0x4abe80 0x4ac370 0x4ac3f0 0x4ac860 0x4aca90
+// 0x4acb50 0x4acca0 0x4acd10); el mapa de las copias (0x4a03c0, 0x4a0500, 0x4a0560: 0x4a8bf0 0x4aa390 0x4aa3d0
+// 0x4aae80 0x4aaeb0 0x4ab160 0x4ab340); el de las ventanas de leer y el de los lugares de las salas (0x491570..0x491780
+// y 0x49e280: 0x4a98a0 0x4a9e30 0x4aad60 0x4aad90 0x4ab300); el de las salas (0x49de50, 0x49dfd0, 0x49e120, 0x49e420:
+// 0x4a8720 0x4a8b30 0x4a8ba0 0x4aa0d0 0x4aa110 0x4aadf0 0x4aae20 0x4ab320); las marcadas de la pestaña (0x4a11b0:
+// 0x4a98c0 0x4a9bc0 0x4aace0 0x4ab0d0 0x4ab3c0); y los destructores de los dos objetos al salir (0x4aeda0 desde
+// WinMain, 0x4bec50 0x4bed30 0x4bfce0 0x4bfdd0 0x4bfe00 0x4bfef0), que son los de C++.
 namespace Client::UI
 {
 // 0x49f870: por el tipo (0), el que la manda (1), la fecha y la hora (2) o el asunto (3); −1, el que estaba.

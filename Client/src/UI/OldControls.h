@@ -17,6 +17,20 @@
 // byte a byte salvo el tamaño del elemento (0x47b0f0, 0x47e010, 0x47f7b0 y 0x47c870 son el mismo paso del mouse;
 // 0x461830 y 0x4625c0, el mismo cambio de renglones). MuRet guarda los elementos en su dueño y la lista recibe cuántos
 // hay; lo que cada instancia hace con un renglón (el clic, el dibujo) es del que la usa.
+//
+// Las de la CL9.4 (P-C216, *verificado* contra el ASM: las mismas instrucciones que la de amigos, salvo los
+// desplazamientos y el tamaño del elemento), por el lugar en la vtable. La de las cartas (0x6b92a0 y 0x6b9340): + 0x28
+// 0x47f090 (= 0x47a9d0), + 0x34 0x47efd0 (= 0x47a910), + 0x3c 0x472340 (= 0x4720c0), + 0x40 0x472350 (= 0x4720d0),
+// + 0x44 0x47f060 (= 0x47a9a0), + 0x4c 0x47f2a0 (= 0x47abe0), + 0x50 0x47f350 (= 0x47ac90), + 0x5c 0x47f5e0
+// (= 0x47af20), + 0x60 0x47f640 (= 0x47af80), + 0x64 0x47f690 (= 0x47afd0), + 0x6c 0x47fea0 (= 0x47b7e0) y + 0x70
+// 0x480080 (= 0x47b9c0). La del chat con un amigo, de 0x3f0 (0x6b93d4 y 0x6b9474): 0x47c150, 0x47c090, 0x472200,
+// 0x472210, 0x47c120, 0x47c2c0 (+ 0x48, = 0x47ab40), 0x47c360, 0x47c410, 0x472220 (+ 0x54, = 0x4720e0), 0x47c670,
+// 0x47c6a0, 0x47c700, 0x47c750, 0x47cf60 y 0x47d140, en los mismos lugares. Lo propio de cada una (*inferido* por la
+// vtable y lo que llaman, sin compararlo instrucción por instrucción): las cartas, + 0x2c 0x47eac0 y + 0x94..+ 0x98
+// 0x4636b0 y 0x463960 (copiar la deque de las cartas), + 0x40 0x463d50 (los renglones); el chat, + 0x2c
+// 0x47bba0 (con 0x47bf00, el += de su iterador) y + 0x90..+ 0x98 0x465270, 0x464ae0 y 0x465450 (agregar un renglón):
+// los reemplaza el std::deque de la ventana (OldLetterPart, OldChatPart). Los dibujos (+ 0x14 0x464d90 y 0x47bf90,
+// + 0x7c..+ 0x80 0x464e90 y 0x465770, + 0x9c 0x464190 y 0x465710) son de P-C213.
 namespace Client::UI
 {
 // La lista (0x45e2e0 y sus derivadas), sobre la ventana base: el rectángulo cuelga de su borde de abajo (+0x78 en 2,

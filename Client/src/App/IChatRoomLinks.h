@@ -9,7 +9,9 @@
 // de la sala"): 0x49de50 abre, por sala, un socket de la misma clase que el del GameServer (0x4e8090, 0x4e81b0) al
 // puerto 55980 de la IP del CA, con WSAAsyncSelect y el mensaje 0x500 + su lugar (0x4e8570). Lo que llega pasa por el
 // mismo camino que lo del GameServer (0x49e510 → 0x4e1d50 con 1 → 0x4e6240); lo que sale, por su send. Lo implementa
-// la sesión (App::ServerSession) y lo usan las salas de Scenes.
+// la sesión (App::ServerSession) y lo usan las salas de Scenes. Los métodos de esa clase que suelta una sala (0x49e110,
+// el destructor del objeto de 0x402c bytes, → 0x4e8180 0x4e8860 0x4e8bd0 0x4e8c30 0x4e8ea0 0x4e8ef0 0x4e8f10 0x4e8f50
+// 0x4e9330 0x4e9350; P-C216, *inferido* por quién los llama) los reemplazan Network::Connection y su ISocket.
 namespace Client::App
 {
 // El puerto de 0x49de50 (0xdaac).

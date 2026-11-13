@@ -1749,13 +1749,56 @@ el clic elige el botón, después se apagan el clic y el izquierdo, y el flanco 
 el no. El `0x94`, el `0x98` y el `0x99` dejan la respuesta en `0x6c932e` (1 el sí, 2 el no; `0x62a779`), cierran y
 suenan; el `0x96` con el sí pasa el que espera y abre el `0xa8` con `0x633300(1, 0x76e, 0xa8)`; el `0xa9` con el sí,
 fuera del almacén, `0x80` y el comercio (`0x5af520`), manda el `26` de la joya (08, P-C193), o con una de ellas el
-aviso 474, y con el no suelta la joya (`0x5be150`). El `0x9a`, el `0xa3`, el `0xa8` y el `0xaa` siguen cortados
-(P-C192). El texto del `0x96` y del `0xa8` (`0x63330f` → `0x633644`): el nombre del ítem de `0x78a59c8` en
+aviso 474, y con el no suelta la joya (`0x5be150`). El `0xa3` es de la mezcla de joyas (abajo); el `0x9a`, el
+`0xa8` y el `0xaa` siguen cortados (P-C198). El texto del `0x96` y del `0xa8` (`0x63330f` → `0x633644`): el nombre del ítem de `0x78a59c8` en
 `"( %s )"` (el `0xa8` agrega el texto 1901 con `"( %s%s )"`), con la fruta (`0x1a0f`) de nivel 0 a 4 por los textos
 168, 169, 167, 166 y 1900, y debajo el mismo texto en cada renglón (07, Q-C922). El OK del `0x73` (Enter,
 `0x626460..0x6282c8`) es el zen del almacén ([04](04-protocolo.md#las-ventanas-de-los-npc-30-a-34-81-a-83-86-y-87),
 el `81`) y termina con los campos de texto como antes del `0x73` (`0x6c8e78` en `0x2a`, dos campos de Tab y
 `0x77f3b6a` en 0) y el sonido; el del `0x8f` (`0x628276`) cierra y abre el teclado del almacén en 6 (`0x5e7aa0`).
+
+**El modo de la caja del caos y la mezcla de joyas** (CL9 hito 6, fase 3b, 2026-11-13, *estático*; en MuRet
+`DialogStep::ChaosMixMode`, `Scenes/JewelMix` y `Protocol::JewelMix`). Ninguno saca `rand()`: el inventario de
+`0x78a9bb0` no está en la tabla de protección y lo que mandan sale en claro. Los botones comparan el mouse entero
+pasado a float con los floats de la `.rdata`, con los bordes adentro.
+
+- `0x8e` (`0x625910`), el modo que abre `0x65aaf2` al abrir la caja: con el clic, que **no** apaga, el botón de x en
+  `[245, 395]` e y en `[180 + 85i, 215 + 85i]` deja `i` en `0x7d3a114` (el modo de `0x5fd4b0` y del dibujo de la
+  caja) y pasa el que espera, sin sonido ni `MouseUpdateTime`. El dibujo pone los botones 10 píxeles más abajo
+  (07, Q-C945).
+- La mezcla de joyas, que abre el `30` con 9 (`0x4d25aa`, con `0x6e5798` en 0; los textos 1805 a 1822 de
+  `Text.bmd`: juntar 10, 20 o 30 joyas de bendición `0x1c0d` o del alma `0x1c0e` en un paquete `0x181e` o `0x181f`,
+  o deshacer uno; *inferido* de los textos y los tipos). Los globales son `0x6e5794` (0 juntar, 1 deshacer),
+  `0x6e5798` (mandada), `0x6e5799` (por qué no: 2, 4 o 5), `0x6e579a` (las contadas), `0x6e579c` (el precio),
+  `0x6e57a0`, y `0x6c62d8`/`0x6c62dc`/`0x6c62e0`/`0x6c62e1` (la casilla y el nivel del paquete, la joya y cuántas;
+  `0xff` en la `.data`). `0x402e10` los vuelve a su arranque; `0x402eb0` es eso, el diálogo cerrado y el `C1 03 31`
+  en claro; `0x402e50` apaga la mandada, cierra, borra el porqué y la joya y abre el `0xa2` o el `0xa4` según el
+  modo (con otro, `0x402eb0`).
+- `0xa1` (`0x6259c6`): con el clic (que apaga), x en `[245, 395]` e y en `[190, 225]` o `[255, 290]` cierra y abre el
+  `0xa2` con el modo 0 o el `0xa4` con el 1, con `MouseUpdateTime` en 0 y su máximo en 6, sin sonido; después, x en
+  `[279, 360]` e y en `[320, 345]`, `0x402eb0`.
+- `0xa2` (`0x625b23`): con el clic (que apaga), las joyas en y `[185, 210]`, x `[245, 325]` (bendición, 0) o
+  `[325, 405]` (alma, 1); con una elegida (el byte no negativo), los paquetes en x `[245, 395]` e y `[225, 260]`,
+  `[270, 305]` y `[315, 350]` guardan la joya, ponen 10, 20 o 30 y preguntan a `0x402b70`. Si alcanza, cierran y abren
+  el `0xa3` con `0x633300(0, 0, 0xa3)`; si no, el aviso (1817 si faltan, 1818 si no hay paquete; el 5 sin aviso) de
+  error y `0x402e50`. Después, x en `[279, 360]` e y en `[365, 390]`, `0x402eb0`.
+- `0x402bc0` al juntar cuenta en las 64 casillas, fila por fila, las de la joya elegida y alcanza en cuanto la cuenta
+  (un byte) llega a `0x6c62e1` con signo; al deshacer mira el tipo del paquete de la casilla `0x6c62d8` (−1 y desde
+  `0x40` no; otro negativo leería antes de la grilla y MuRet corta). Alcanza: `0x6e57a0` en 100 y el precio
+  (`0x402cf0`: las joyas · 50.000, o 1.000.000 al deshacer).
+- `0xa3`, de sí y no (los botones con arriba en `0xd2`): el sí deja 1 en `0x6c932e`, cierra, abre el `0xa5` y llama a
+  `0x4029e0`, que con la mezcla sin mandar y sin porqué la marca y manda el `BC` (04); el no deja 2 y llama a
+  `0x402e50`. Los dos con `MouseUpdateTime` en 0, su máximo en 6 y el sonido `0x19`.
+- `0xa6` (`0x625f98`, lo abre `0x405220`): con el clic (que apaga), x en `[287, 352]` e y en `[170, 195]`, `0x402e50`.
+
+El texto del `0xa3` (`0x63340d`) es `sprintf` del 1809 (juntar: la joya, 1806 o 1807, y las contadas) o del 1813
+(deshacer: la joya y el nivel + 1) en 300 bytes de la pila, partido con `0x632c90` en a lo sumo 2 renglones de
+`0x1e` bytes de otra parte de la pila (de los que pone en 0 solo los primeros 20 bytes: Q-C946) y copiados con
+`strcpy` a los dos primeros; debajo, el precio con el 1810 o el 1814. El del `0x99` (`0x63333d`) es el número de
+`0x77f3b6c` con sus puntos (`0x5b1130`) en el formato del primer texto y los siguientes con `0x69fd9b` sin argumentos.
+Lo abre `0x5dc7d5`, con `0x78aba60` en 2 (CL9.4): MuRet lo porta para cuando llegue. Siguen cortados (08, P-C198) el
+`0xa4` (`0x625cf4`, con la lista de `0x6e5660`), el `0x91`, el `0x9a`, el `0xa8` y el `0xaa`, y los dibujos de la
+mezcla de joyas.
 
 **El dibujo** (`0x62db60`, en `0x637696` con la escena 5). Siempre deja `0x620980`, el blanco, la fuente normal en el
 DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos van con `0x554180` centrados en
@@ -1767,6 +1810,7 @@ DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos
 | `0x93` | 7 filas (la 5 de 44, la 6 en y = 232); 385 en `0x23`; `"%s  On"`/`"%s  Off"` con 386 (`0x41`), 387 (`0x5f`) y 919 (`0x9b`); 389 en `x = 0x140 − (cx + 0x36) / 2` (`0x7d`) y la barra en `(x + 0x144 + cx, 0x7f)`: gris 0,2 de 50 × 8, negro de 48 × 6 y blanco de `(v + 1) · 4,8` × 6; el marco del brillo (gris `(268, 198, 102, 22)`, negro `(269, 199, 100, 20)`), 5 casillas de 18 en y = 200 (`(0,8; 0,6; 0,3)` hasta `0x6c9dcc`, negras después) y las cifras 5, 7, 9, 11 y 13 de 12 × 12 en y = 202 con los colores al revés; 1840 en `0xb9` (Q-C555) y 388 en `0xed` |
 | `0x8a`, `0x8c`, `0x9b` / `0x8b`, `0x97` | `0xfc` de 213 × 5 en (213, 60), 4 / 7 filas de `0xfb` de 213 × 40 y otra `0xfc`; cada botón con estado, `0xf0 + estado` en `(x + 213, y + 60, w, h − 1)` con las UV `(0, 0, w / 128, h / 32)`; en el `0x8c`, las flechas (`CursorSitDown` girada 270 y 90 grados, 25 × 16, en (253, 210) y (383, 210)): gris en su tope, 0,7 con el mouse y 0,5 con el clic, que apaga (Q-C553); los renglones del `0x8a`, el `0x8c` y el `0x8d` (`0x632472`) desde `((7 − 0x7d3a0fc − renglones) · 0x12) / 2 + 0x4c`, con 0x46 como mínimo en el `0x8d`; los del `0x8b`, el `0x97` y el `0x9b`, el objeto del evento (`0x632a2b`) |
 | `0x8d` | el marco de las cajas con `((renglones + respuestas) · 0x12 + 0x31) / 40` filas, de 4 a 9 (`0x631150`); el texto como el `0x8a`; debajo, cada respuesta en amarillo, o en rojo la del mouse (`(y − tope) / 0x12`, a no más de `0x6a` de x = `0x13f`), y si su primer byte no es 0 su renglón (la y baja solo con las dibujadas); al final, el blanco |
+| `0x8e` | `0xfc` de 213 × 5 en (213, 120), 5 filas de `0xfb` desde 125 y `0xfc` en 325; los 2 botones `0xf0` de 150 × 35 en `(245, 190 + 85i)` con las UV `(0, 0, 0,83203125, 1)`, en blanco con el mouse en `[245, 395] × [y, y + 35]` y en 0,7 si no; el título 735 + i en negrita con `0xfffff0c8` centrado en y + 12; en la normal y en blanco, las explicaciones en x = `0xf8` (872, 873 y 1923 en 150, 160 y 170; 870 y 871 en 240 y 250); en la cola (`0x632323`), el 734 en negrita con `0xff0080ff` centrado en 135, y así queda el DC |
 | OK genérico | `0xf0` de 213 × 64 en (213, 60) y el OK, `0xf1` (`0xf2` con el mouse en `[0x11c, 0x161] × [0x62, 0x76]`) de 70 × 21 en (284, 98); su texto en y = `0x4b`, o en `0x45` y `0x51` los de dos renglones: el `0x70` el 402, el `0x6f` y el `0x1a` el 405 y el 406, el `0x1c` el 409 y el `0x8f` el 401 |
 
 `0x61ccb0` sube `Message_box` (`0xf0`), `ok`, `ok2`, `cancel`, `cancel2` (`0xf1` a

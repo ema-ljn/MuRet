@@ -23,6 +23,33 @@ inline constexpr std::size_t ChaosRateCount = 6;
 
 // 0x78ab9bc..0x78ab9c8: lo que el almacén dejó esperando la contraseña, que el 83 con 0xc manda (0x4e4744..). Con el
 // primero en −1, el zen (0x4e6f80 con el segundo y el tercero); si no, un ítem (0x449d80 con los cuatro).
+// La mezcla de joyas del NPC del 30 con 9 (los diálogos 0xa1, 0xa2, 0xa3, 0xa4 y 0xa6, y el BC; los textos 1806 a
+// 1815 de Text.bmd, "misturar" y "dissolver"): juntar 10, 20 o 30 joyas de bendición (0x1c0d) o del alma (0x1c0e)
+// en un paquete (0x181e o 0x181f), o deshacer uno. Los globales de 0x6e5794..0x6e57a0 y 0x6c62d8..0x6c62e1; los de
+// 0x6c62xx empiezan en 0xff en la .data, los de 0x6e57xx en 0 en la .bss. 0x402e10 los vuelve a esos valores (salvo
+// 0x6e579c, que deja en −1).
+struct JewelMixState
+{
+    // 0x6e5794: 0 juntar (el 0xa2) y 1 deshacer (el 0xa4). Lo eligen los botones del 0xa1.
+    std::int32_t mode = 0;
+    // 0x6e5799: por qué no se puede (2 faltan joyas, 4 no hay paquete que deshacer, 5 otro caso; 0x402bc0).
+    std::uint8_t refusal = 0;
+    // 0x6e579a: las joyas contadas (0x402bc0), o 1 al deshacer.
+    std::uint8_t counted = 0;
+    // 0x6e579c: el precio (0x402cf0): la cuenta · 50.000 al juntar y 1.000.000 al deshacer.
+    std::int32_t price = 0;
+    // 0x6e57a0: 100 con la mezcla posible (0x402cb2), 0 o el tipo si no. Nadie de los portados lo lee.
+    std::uint8_t field6e57a0 = 0;
+    // 0x6c62d8: la casilla del inventario del paquete a deshacer (0x402a90); el BC 01 le suma 12 (0x401f5a).
+    std::int32_t cell = -1;
+    // 0x6c62dc: el nivel del paquete a deshacer (0x402a90, 0x402ae0).
+    std::int32_t level = -1;
+    // 0x6c62e0: la joya, 0 bendición y 1 alma; 0xff sin elegir.
+    std::uint8_t kind = 0xff;
+    // 0x6c62e1: cuántas juntar (10, 20 o 30; 0xff sin elegir), con signo para el BC 00 (0x40276b).
+    std::uint8_t count = 0xff;
+};
+
 struct PendingWarehouseMove
 {
     std::int32_t slot = 0;
@@ -119,8 +146,11 @@ struct NpcWindowState
     // 0x4dfbb0, el byte de +5; CL9.5): hasta entonces, el 0 de la .bss. Lo leen el título de la caja (0x5fed3e), el
     // precio con impuesto (0x5b12f0) y el entrenador (0x44d89e).
     std::int32_t chaosTaxRate = 0;
-    // 0x6e5798: con 0, el 30 con 9 abre el diálogo 0xa1 (0x4d259d).
+    // 0x6e5798: con 0, el 30 con 9 abre el diálogo 0xa1 (0x4d259d). Es la mezcla de joyas mandada (0x4029e0 lo pone
+    // en 1 con el BC; 0x402e50 y 0x402e10 lo vuelven a 0): mientras, el 30 con 9 no abre nada.
     std::uint8_t field6e5798 = 0;
+    // La mezcla de joyas (los diálogos 0xa1..0xa6 y el BC, Scenes/JewelMix.h).
+    JewelMixState jewels{};
     // El SetCursorPos que pidió el último 30 (0x4d28f6), con el mouse que vea la escena: NpcTalkCursorWarp. Aplicarlo
     // a la ventana es de la plataforma (CL10).
     bool cursorWarpRequested = false;

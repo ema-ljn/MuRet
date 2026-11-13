@@ -30,6 +30,8 @@ inline constexpr std::int32_t PagedDialog = 0x8c;
 // 0x633300: los textos que se arman con su propio formato (0x63330f, 0x633327 y 0x63340d) o con 0x632c90 seguidos
 // (0x6333a8).
 inline constexpr std::int32_t MoneyTextDialog = 0x99;
+// El 0xa3 es la pregunta de la mezcla de joyas (los textos 1809 y 1813 de 0x63340d), con los botones más abajo
+// (0x6282f1); el nombre viene de la CL8.
 inline constexpr std::int32_t ServerTimeDialog = 0xa3;
 inline constexpr std::int32_t ItemNameDialog = 0x96;
 inline constexpr std::int32_t ItemNameWithLuckDialog = 0xa8;
@@ -83,6 +85,20 @@ struct DialogBoxState
 // siguiente. MuRet corta al final de las 10.
 [[nodiscard]] std::string_view DialogAnswer(const DialogBoxState& box, std::size_t row);
 
+// Lo que leen los textos con formato de 0x633300 (0x63333d y 0x63340d), de los globales de otras ventanas.
+struct DialogTextArguments
+{
+    // 0x99: el número de 0x77f3b6c ya con sus puntos (0x5b1130).
+    std::string_view money{};
+    // 0xa3, la mezcla de joyas: 0x6e5794 (0 juntar, 1 deshacer), 0x6c62e0 (la joya: 0 bendición y cualquier otro el
+    // alma), 0x6e579a (las contadas), 0x6c62dc (el nivel del paquete, 0x402ae0) y 0x6e579c (el precio).
+    std::int32_t jewelMode = 0;
+    std::uint8_t jewelKind = 0;
+    std::uint8_t jewelCount = 0;
+    std::int32_t jewelLevel = 0;
+    std::int32_t jewelPrice = 0;
+};
+
 // El renglón `row` como lo lee el dibujo: desde su primer byte hasta el primer '\0', que puede estar en el renglón
 // siguiente. Sin '\0' hasta el final de los 7, el original seguiría leyendo la .bss: MuRet corta ahí.
 [[nodiscard]] std::string_view DialogRow(const DialogBoxState& box, std::size_t row);
@@ -97,11 +113,19 @@ void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view 
 // (0x633644..0x633739) nombran el ítem de los diálogos (`dialogItem`, 0x78a59c8): la fruta (0x1a0f) de nivel 0 a 4
 // con el texto 168, 169, 167, 166 o 1900, cualquier otro con nada, entre "( " y " )" en el primer renglón (con el
 // 1901 detrás en el 0xa8), y debajo `lineCount` veces el texto `firstText`; el 0xa8 con sus tres botones. Sin el ítem
-// cortan. Los de 0x99 y 0xa3 arman su texto con un formato y cortan con su dirección (CL9.3). Lo que se escribiría
-// fuera de los 7 renglones corta, como un texto que no está.
+// cortan. Los de 0x99 y 0xa3 arman su texto con un formato (0x63333d y 0x63340d) con lo que trae `arguments`: sin
+// él cortan. Lo que se escribiría fuera de los 7 renglones corta, como un texto que no está.
+//   - 0x99: el texto `firstText` como formato con el número de 0x77f3b6c con sus puntos (0x5b1130, que arma quien
+//     llama) en el primer renglón y los siguientes `lineCount − 1` con 0x69fd9b sin argumentos (el texto es el
+//     formato: MuRet lo copia, y un '%' saldría distinto).
+//   - 0xa3: "%s ... %d" (1809 al juntar, con la joya y las contadas; 1813 al deshacer, con la joya y el nivel + 1),
+//     con la joya del 1806 o del 1807, partido en a lo sumo 2 renglones de 0x1e bytes (0x632c90 en la pila, cuyos
+//     renglones copia con strcpy a los dos primeros), y debajo el precio con el 1810 o el 1814. Sin mirar
+//     `lineCount` ni `firstText`.
 [[nodiscard]] Core::Expected<void, std::string>
 OpenTextDialog(DialogBoxState& box, DialogState& dialogs, const Data::Text::TextTable* texts, std::int32_t lineCount,
-               std::int32_t firstText, std::int32_t id, const World::ItemState* dialogItem = nullptr);
+               std::int32_t firstText, std::int32_t id, const World::ItemState* dialogItem = nullptr,
+               const DialogTextArguments* arguments = nullptr);
 
 // 0x419710(índice), lo que muestra la ventana de las misiones: [0x6d5e28] = índice, el texto de Dialog.bmd partido en
 // los 7 renglones (0x632c90), las respuestas en 0 y, por cada una, "%d) %s" (wsprintf con 0x6c64b8) en un renglón; sin

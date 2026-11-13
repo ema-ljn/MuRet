@@ -1085,6 +1085,14 @@ ASM del cliente):
   (el botón no abre el `0x98` con el 0 ni con los negativos).
 - **`83`** la contraseña (`C1 10 83`, `0x5e7e90`, `PMSG_WAREHOUSEPASSSEND` de `0x10` bytes): la manda el paso del
   teclado (`0x5e7bf0`), que sigue cortado.
+- **`BC`** la mezcla de joyas (CL9 hito 6, fase 3b; 06 § "El modo de la caja del caos y la mezcla de joyas"): el sí
+  del `0xa3` llama a `0x4029e0`, que con `0x6e5798` en 0 y `0x6e5799` en 0 pone la primera en 1 y, según
+  `0x6e5794`, manda `C1 06 BC 00 <joya> <cuántas / 10 − 1>` (`0x402500`: `0x6c62e0`, y `0x6c62e1` con signo dividido
+  hacia el cero) o `C1 07 BC 01 <joya> <nivel> <lugar>` (`0x401f30`: `0x6c62e0`, `0x6c62dc` y `0x6c62d8` + 12, que
+  queda así en el global, Q-C947). Los dos arman el C1 de a un byte con el XOR32 de cada byte nuevo y lo mandan con
+  `send()` en claro, sin la tabla de protección: sin `rand()`. El GameServer 0.97 no atiende el `BC` (no está en
+  `protocol.cpp`): el ASM es el oráculo. Las respuestas (`0x4da460`, `0x4da540` y la rama de `0x4e45c8` del
+  dispatcher, que llaman a `0x402e50`) no están portadas (08, P-C199). **MuRet**: `Protocol::JewelMix`.
 
 Los `rand()`: con la tienda abierta, cada `IsOpen(0x10000)` saca uno (también el de `0x5decc1` al vender); con el
 almacén abierto, la cadena de Q, W y E (`0x5a343e`) e `IsOpen(0)` (`0x5a5511`) se paran en `0x40` antes de la tienda:

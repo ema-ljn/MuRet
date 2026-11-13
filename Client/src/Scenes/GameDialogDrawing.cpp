@@ -30,6 +30,7 @@
 #include <cstdlib>
 #include <format>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -189,6 +190,41 @@ constexpr int GenericTextTop = 60;
 constexpr int GenericTextY = GenericTextTop + 0xf;
 constexpr int GenericFirstRowY = GenericTextTop + 9;
 constexpr int GenericSecondRowY = GenericTextTop + 0x15;
+
+// 0x62e65c..0x62e929: el modo de la caja del caos (0x8e). El marco, 0xfc de 213 × 5 en (213, 120), 5 filas de 0xfb de
+// 213 × 40 desde y = 125 y otra vez 0xfc; los dos botones, 0xf0 de 150 × 35 en (245, 190 + 85i) con las UV (0, 0,
+// 0,83203125, 1), en blanco con el mouse en [245, 395] × [y, y + 35] (con los bordes) y en 0,7 si no; su título (735
+// + i) en negrita, centrado en y + 12, con 0xfffff0c8; y en la normal, con blanco, la explicación de cada uno en x =
+// 0xf8 (872, 873 y 1923 en y = 150, 160 y 170; 870 y 871 en 240 y 250).
+constexpr int MixModeTop = 120;
+constexpr int MixModeRows = 5;
+constexpr int MixModeFirstRowY = 125;
+constexpr int MixModeButtons = 2;
+constexpr int MixModeButtonLeft = 245;
+constexpr int MixModeButtonRight = 395;
+constexpr int MixModeButtonTop = 190;
+constexpr int MixModeButtonStep = 85;
+constexpr float MixModeButtonWidth = 150.0f;
+constexpr int MixModeButtonHeight = 35;
+constexpr int MixModeTitleDrop = 12;
+constexpr Color MixModeIdle{0.7f, 0.7f, 0.7f, 1.0f};
+constexpr std::uint32_t MixModeTitleColor = 0xfffff0c8u;
+constexpr std::size_t FirstMixModeTitle = 735;
+constexpr int MixModeNotesX = 0xf8;
+struct MixModeNote
+{
+    int y = 0;
+    std::size_t text = 0;
+};
+constexpr std::array<MixModeNote, 3> RegularMixNotes{{{0x96, 872}, {0xa0, 873}, {0xaa, 1923}}};
+constexpr std::array<MixModeNote, 2> ChaosWeaponNotes{{{0xf0, 870}, {0xfa, 871}}};
+// 0x632323..0x63236d: el título, el 734 en negrita con 0xff0080ff, centrado en y = 120 + 0xf.
+constexpr std::size_t MixModeTitle = 734;
+constexpr std::uint32_t MixModeHeadColor = 0xff0080ffu;
+constexpr int MixModeTitleY = MixModeTop + 0xf;
+// La cola de 0x62db60 (0x632323, 0x632372, ..) lleva los títulos de los diálogos de la CL9.3; los que no son de esta
+// fase cortan en su dibujo.
+constexpr std::int32_t ChaosMixModeDialog = 0x8e;
 
 // 0x63140b..0x631d66: los textos de Text.bmd de los del OK genérico que llegan a la CL8, uno o dos renglones.
 struct GenericText
@@ -508,6 +544,55 @@ Core::Expected<void, std::string> DrawTheBoxText(Frame& frame, std::int32_t id)
     return {};
 }
 
+// 0x62e65c..0x62e929: el modo de la caja del caos, sin el título de la cola.
+Core::Expected<void, std::string> DrawTheMixModes(Frame& frame)
+{
+    Render::SpriteBatch& sprites = frame.context.sprites;
+    HudState& hud = frame.context.hud;
+    sprites.SetColor(White);
+    Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(MixModeTop), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
+    int y = MixModeFirstRowY;
+    for (int row = 0; row < MixModeRows; ++row, y += BoxRowStep)
+        Quad(frame, BoxRowSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxRowHeight, MessageBoxDu, BoxDv);
+    Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
+    int top = MixModeButtonTop;
+    for (int button = 0; button < MixModeButtons; ++button, top += MixModeButtonStep)
+    {
+        const bool hovered = MouseIn(frame, MixModeButtonLeft, top, MixModeButtonRight, top + MixModeButtonHeight);
+        sprites.SetColor(hovered ? White : MixModeIdle);
+        Quad(frame, MessageBoxSlot, static_cast<float>(MixModeButtonLeft), static_cast<float>(top), MixModeButtonWidth,
+             static_cast<float>(MixModeButtonHeight), MessageBoxDu, 1.0f);
+        hud.dcFont = Render::Text::FontKind::Bold;
+        hud.textColors.text = MixModeTitleColor;
+        if (auto drawn =
+                DrawCenteredText(frame, top + MixModeTitleDrop, FirstMixModeTitle + static_cast<std::size_t>(button));
+            !drawn.HasValue())
+            return drawn;
+        hud.dcFont = Render::Text::FontKind::Normal;
+        hud.textColors.text = DialogTextColors.text;
+        const std::span<const MixModeNote> notes = button == 0 ? std::span<const MixModeNote>(RegularMixNotes)
+                                                               : std::span<const MixModeNote>(ChaosWeaponNotes);
+        for (const MixModeNote& note : notes)
+        {
+            auto text = TextOf(frame, note.text);
+            if (!text.HasValue())
+                return Core::Unexpected(std::move(text).Error());
+            DrawText(frame, MixModeNotesX, note.y, text.Value());
+        }
+    }
+    sprites.SetColor(White);
+    return {};
+}
+
+// 0x632323..0x63236d: el título del 0x8e, que deja la negrita y su color.
+Core::Expected<void, std::string> DrawTheMixModeTitle(Frame& frame)
+{
+    HudState& hud = frame.context.hud;
+    hud.dcFont = Render::Text::FontKind::Bold;
+    hud.textColors.text = MixModeHeadColor;
+    return DrawCenteredText(frame, MixModeTitleY, MixModeTitle);
+}
+
 // 0x630c51..0x630d4c: el marco del OK genérico y su botón.
 void DrawTheGenericBox(Frame& frame)
 {
@@ -515,6 +600,22 @@ void DrawTheGenericBox(Frame& frame)
     const std::uint16_t slot = MouseIn(frame, OkLeft, OkTop, OkRight, OkBottom) ? OkHoverSlot : OkSlot;
     Quad(frame, slot, OkX, OkY, OkWidth, OkHeight, OkDu, OkDv);
 }
+
+// Los tramos de 0x62db60 de los diálogos de la fase 3 del hito 6 que no se dibujan todavía: la mezcla de joyas (el
+// 0xa1, el 0xa2, el 0xa4, el 0xa5 que espera el BC y el 0xa6) y el 0x91 con su EDIT.
+struct CutDrawing
+{
+    std::int32_t id = 0;
+    std::string_view address{};
+};
+constexpr auto CutDrawings = std::to_array<CutDrawing>({
+    {0xa1, "0x62e92e"},
+    {0xa2, "0x62ed0a"},
+    {0xa4, "0x62f371"},
+    {0xa5, "0x62faeb"},
+    {0xa6, "0x62fc1f"},
+    {0x91, "0x6304f2"},
+});
 
 // El corte de un diálogo que no es de la CL8, con la ola de su paso.
 Core::Unexpected<std::string> CutTheDialog(std::int32_t id)
@@ -529,6 +630,13 @@ Core::Unexpected<std::string> CutTheDialog(std::int32_t id)
     // 0x630c7b: el 0x73 dibuja el EDIT de su campo (0x5763504), como corta su paso.
     if (id == 0x73)
         wave = "CL9.4";
+    // Los de la mezcla de joyas y el 0x91, con la dirección de su tramo de 0x62db60.
+    for (const auto& [jewel, address] : CutDrawings)
+    {
+        if (jewel == id)
+            return Core::Unexpected(
+                std::format("{}: el dibujo del diálogo {:#x} es de la fase 3 del hito 6 (08 P-C198)", address, id));
+    }
     return Core::Unexpected(std::format("0x62db60: el dibujo del diálogo {:#x} es de la {}", id, wave));
 }
 } // namespace
@@ -562,6 +670,11 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
         if (auto drawn = DrawTheOptions(frame); !drawn.HasValue())
             return drawn;
     }
+    else if (id == ChaosMixModeDialog)
+    {
+        if (auto drawn = DrawTheMixModes(frame); !drawn.HasValue())
+            return drawn;
+    }
     else if (box)
         DrawTheBox(frame, id);
     else if (generic)
@@ -570,7 +683,10 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
         return CutTheDialog(id);
     // 0x63140b: la mezcla normal y los textos de la cola.
     sprites.SetBlend(BlendMode::Alpha);
-    // 0x631432: la tabla 0x632bf0 lleva el 0x8a, el 0x8c y el 0x8d a 0x632472, y las otras cajas a 0x632a2b.
+    // 0x631432: la tabla 0x632bf0 lleva el 0x8e a 0x632323, el 0x8a, el 0x8c y el 0x8d a 0x632472, y las otras cajas
+    // a 0x632a2b.
+    if (id == ChaosMixModeDialog)
+        return DrawTheMixModeTitle(frame);
     if (id == UI::MessageBoxDialog || id == UI::PagedDialog || id == UI::AnswersDialog)
         return DrawTheBoxText(frame, id);
     if (box)

@@ -1679,7 +1679,7 @@ x, y, ancho y alto) y la página del `0x8c` (`0x7d3a0f4`, `0x7d3a0f8`, `0x7d3a0f
 
 **El despacho** (`0x623f78..0x6263d9`). Después de Esc, `0x623e70` compara el abierto en este orden: `0x6e` el menú
 (`0x623f90`), `0x93` las opciones (`0x62556f`), los tramos de otras olas, las cajas con botones (`0x8a`, `0x8c`,
-`0x8b`, `0x97` y `0x9b`, `0x62d756`) y, después de todas las comparaciones, el OK genérico (`0x6263df`), al que
+`0x8d`, `0x8b`, `0x97` y `0x9b`, `0x62d756`) y, después de todas las comparaciones, el OK genérico (`0x6263df`), al que
 llega cualquier id que no está. MuRet lo tiene como tabla (`Scenes::DialogRoutes`): cada ola registra sus ids, y
 los de las otras cortan con la dirección de su tramo (P-C90).
 
@@ -1723,7 +1723,18 @@ abre el id; el `0x99`, el `0xa3`, el `0x96` y el `0xa8` arman su texto con un fo
 cada botón con estado, con el mouse en `[x + 0xd5, x + w + 0xd5] × [y + 0x3c, y + h + 0x3c]`, va a 2 y con el clic
 se elige (apaga el clic y el botón abajo); afuera, a 1 (Q-C552). En el `0x8c`, las flechas (`0x62d7eb`,
 `[0xf9, 0x108]` y `[0x179, 0x188]` × `[0xca, 0xde]`) cambian la página con el clic sin apagarlo y vuelven a partir el
-texto `0x7d3a0f4 + página`. Enter o un botón elegido cierran.
+texto `0x7d3a0f4 + página`. Enter o un botón elegido cierran, salvo en el `0x8d`.
+
+**El diálogo de las respuestas** (`0x8d`, CL9 hito 2, *estático*). Lo abre `0x632f70(índice)`: los botones en 0, el
+texto del registro de `Dialog.bmd` (`0x7688ac0 + índice · 0x400`) partido en los renglones, cada respuesta como
+`"%d) %s"` en un renglón de `0x7d3691c` (10 de `0x26`) con su cuenta en `0x7d3a0fc` (sin ninguna, `"1) "` y el 609) y
+el índice en `0x6d5e28`. Lo abre el `F3 40` (`0x4da070`, caso 5, hito 11). En el paso pasa por los botones (que
+quedaron en 0) y, en `0x62d91d`, las respuestas: el texto arranca en `y = máx(((7 − respuestas − renglones) · 0x12) /
+2 + 0x4c, 0x46)` y las respuestas siguen debajo (`+ renglones · 0x12`), de `0x12` en `0x12`. Con la y del mouse no
+negativa, dentro de las respuestas, a no más de `0x6a` de x = `0x13f` y el clic, la respuesta es el desvío / `0x12`
+(con signo); si es menor que la cuenta del registro (`+0x12c`, con 1 como mínimo), apaga el clic, `MouseUpdateTime`
+en 0, su máximo en 6, el sonido `0x19`, el que espera pasa a abierto y, con el `+0x130` de la respuesta de 0 o más,
+`0x632f70` lo muestra. Enter no lo cierra (`0x62d917` salta el cierre de `0x62da58`).
 
 **El OK genérico** (`0x6263df`): lee y apaga Enter (`0x5763588`, que prende el WndProc en `0x4b50ff` y apaga la cola
 del frame en `0x63b0b7`); salvo el `0x73`, el clic en `[0x11c, 0x162) × [0x62, 0x77)` también. Con uno de los dos,
@@ -1738,7 +1749,8 @@ DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos
 | --- | --- |
 | `0x6e` | 5 × `0xf0` en `(260, 60 + 30i, 120, 22)` con las UV `(0, 0, 0,83203125, 1)`, el del mouse otra vez en aditiva con `(0,8; 0,6; 0,4)`; los textos 381, 382, 383, 385 y 384 en y = `0x41` de a `0x1e` |
 | `0x93` | 7 filas (la 5 de 44, la 6 en y = 232); 385 en `0x23`; `"%s  On"`/`"%s  Off"` con 386 (`0x41`), 387 (`0x5f`) y 919 (`0x9b`); 389 en `x = 0x140 − (cx + 0x36) / 2` (`0x7d`) y la barra en `(x + 0x144 + cx, 0x7f)`: gris 0,2 de 50 × 8, negro de 48 × 6 y blanco de `(v + 1) · 4,8` × 6; el marco del brillo (gris `(268, 198, 102, 22)`, negro `(269, 199, 100, 20)`), 5 casillas de 18 en y = 200 (`(0,8; 0,6; 0,3)` hasta `0x6c9dcc`, negras después) y las cifras 5, 7, 9, 11 y 13 de 12 × 12 en y = 202 con los colores al revés; 1840 en `0xb9` (Q-C555) y 388 en `0xed` |
-| `0x8a`, `0x8c`, `0x9b` / `0x8b`, `0x97` | `0xfc` de 213 × 5 en (213, 60), 4 / 7 filas de `0xfb` de 213 × 40 y otra `0xfc`; cada botón con estado, `0xf0 + estado` en `(x + 213, y + 60, w, h − 1)` con las UV `(0, 0, w / 128, h / 32)`; en el `0x8c`, las flechas (`CursorSitDown` girada 270 y 90 grados, 25 × 16, en (253, 210) y (383, 210)): gris en su tope, 0,7 con el mouse y 0,5 con el clic, que apaga (Q-C553); los renglones del `0x8a` y el `0x8c` desde `((7 − renglones) · 0x12) / 2 + 0x4c`; los del `0x8b`, el `0x97` y el `0x9b`, el objeto del evento (`0x632a2b`) |
+| `0x8a`, `0x8c`, `0x9b` / `0x8b`, `0x97` | `0xfc` de 213 × 5 en (213, 60), 4 / 7 filas de `0xfb` de 213 × 40 y otra `0xfc`; cada botón con estado, `0xf0 + estado` en `(x + 213, y + 60, w, h − 1)` con las UV `(0, 0, w / 128, h / 32)`; en el `0x8c`, las flechas (`CursorSitDown` girada 270 y 90 grados, 25 × 16, en (253, 210) y (383, 210)): gris en su tope, 0,7 con el mouse y 0,5 con el clic, que apaga (Q-C553); los renglones del `0x8a`, el `0x8c` y el `0x8d` (`0x632472`) desde `((7 − 0x7d3a0fc − renglones) · 0x12) / 2 + 0x4c`, con 0x46 como mínimo en el `0x8d`; los del `0x8b`, el `0x97` y el `0x9b`, el objeto del evento (`0x632a2b`) |
+| `0x8d` | el marco de las cajas con `((renglones + respuestas) · 0x12 + 0x31) / 40` filas, de 4 a 9 (`0x631150`); el texto como el `0x8a`; debajo, cada respuesta en amarillo, o en rojo la del mouse (`(y − tope) / 0x12`, a no más de `0x6a` de x = `0x13f`), y si su primer byte no es 0 su renglón (la y baja solo con las dibujadas); al final, el blanco |
 | OK genérico | `0xf0` de 213 × 64 en (213, 60) y el OK, `0xf1` (`0xf2` con el mouse en `[0x11c, 0x161] × [0x62, 0x76]`) de 70 × 21 en (284, 98); su texto en y = `0x4b`, o en `0x45` y `0x51` los de dos renglones: el `0x70` el 402, el `0x6f` y el `0x1a` el 405 y el 406, el `0x1c` el 409 y el `0x8f` el 401 |
 
 `0x61ccb0` sube `Message_box` (`0xf0`), `ok`, `ok2`, `cancel`, `cancel2` (`0xf1` a
@@ -9101,14 +9113,32 @@ de Lorencia verifican el componente; `GameScene`, reglas del clic y caminar sigu
   | --- | --- | --- |
   | un personaje atacable (`0x558bb0`), con el héroe fuera de la zona segura | `0x59d3de` | `+0x379 = 3`, el blanco en `0x6c8ebc` y el camino hasta él, o `0x5650c0` si está cerca; un elfo que camina manda antes un `C1 05 DF X Y` (*verificado* uno en el cable) |
   | un objeto para usar (`0x6c8e34`, la tabla `0x7d34820`) | `0x59d8c3` | `+0x379 = 4`, si la celda tiene `0x40` o vale menos de 2 y el héroe está quieto |
-  | un NPC (`0x6c8e2c`), con las ventanas `0x10000` y `0x40` cerradas | `0x59da75` | `+0x379 = 2` |
+  | un NPC (`0x6c8e2c`), con las ventanas `0x10000` y `0x40` cerradas | `0x59da75` | `+0x379 = 2` (salvo con `0x10000000` en `+0x7c`), el NPC en `0x6c8ebc` y en `0x6c8e54`, su celda como blanco y el camino hasta él; sin camino, `0x5650c0` (hablarle ahí) |
   | un ítem del piso (`0x6c8e28`) | `0x59dc5e` | `+0x379 = 1`; si el camino falla, `0x5650c0` (levantarlo ahí) |
   | nada de eso | `0x59ddef` | el terreno, abajo |
 
   En la zona segura, un clic sobre un monstruo o un jugador no ataca: cae a las filas de abajo y, si
   no hay otra cosa, al terreno (`0x59cd2e`). `0x558bb0` da 0 sin elegido o con un ítem en el cursor
-  (`[0x7879fbc]` > 0). En MuRet la primera fila corta en `0x59cd3c` (el ataque, hito 3) y las otras tres no
-  pasan: sus lugares siguen en −1 hasta la hito 2 y la CL9.3 (P-C162).
+  (`[0x7879fbc]` > 0). En MuRet la primera fila corta en `0x59cd3c` (el ataque, hito 3), la del NPC va a hablarle
+  (CL9 hito 2, abajo) y las del objeto y el ítem del piso no pasan: sus lugares siguen en −1 hasta la CL9.3
+  (P-C162).
+- **Hablar con un NPC** (CL9 hito 2, *estático*; MuRet: `WalkToTheNpc` en `GameMovement.cpp` y
+  `Scenes/NpcTalk.cpp`). La fila del NPC (`0x59da75..0x59dc59`): la tienda de NPC saca su `rand()` (el byte
+  protegido) y el almacén no; con las dos cerradas, `+0x379 = 2` salvo con el bit `0x10000000` de `+0x7c`, el NPC en
+  `0x6c8ebc` y en `0x6c8e54`, su celda (`ftol(posición · 0,01)`) en `0x77e1ba8` y `0x77e1bac`, su tipo (`+2`, MOVSX)
+  en `0x7798bf0` y el dword de `+0x24` en `0x77f36cc`; las celdas del héroe (y, después x, 4 `rand()` cada una) y
+  `0x4eac00`, que con Crywolf activo y un altar (`0x204..0x208`) en `0x6c8e54` le pasa una bandera al A* (MuRet
+  corta en `0x4eac41`, hito 11). Con camino, `SendMove`; sin él, `0x5650c0(héroe, héroe, 1)`. La llegada
+  (`0x5650c0`, el caso 2, `0x5674c8..0x5695b3`): `MouseUpdateTimeMax = 12`; fuera de Crywolf activo (etapa 3 o 4 de
+  `0x723c05` y el mapa 34), `SetPlayerStop` y `+0x378 = 0`; sin NPC en `0x6c8e54`, nada más. Con `+0x376` < `0xcd`,
+  `0x6c8e54 = −1` y sale. Lee el nivel del registro propio (3.848 `rand()`); el `0xee` con nivel < 10 da el texto 663
+  con el 10 (`sprintf`, tipo 1) y sale **sin** borrar `0x6c8e54`. `0x78abb09` en 1 con `0xf3`, `0xf6` y `0xfb` (0 con
+  los demás), `0x78abb0c = 0`, la ventana de las misiones cerrada con `0x65cae0(8, 0)` (el `C1 03 31`), el `C3 A0` con
+  `[0x710148] + 4 == 0xff`, y el `0x101` con el bit `0x2000000` de `+0x78` del héroe da el texto 1830 (tipo 2),
+  `0x6c8e54 = −1` y sale. Después, el `C3 30` con la clave (`+0x1f4`): siempre fuera del 34; en el 34 sin el evento,
+  no con un altar; con Crywolf activo, un elfo frente a un altar va a `0x4365a0` y `0x435b00` (la tabla `0x6c73cc`,
+  hito 11) y los demás hablan. Al final, `0x6eeda8 = (+0x376 == 0xe5)` y `0x6c8e54 = −1`. Cada `C3` saca el `rand()`
+  del relleno y el del serial. Los otros casos (1, 3, 4 y 5) son de otros hitos.
 - **El terreno** (`0x59ddef..0x59e248`): con Shift abajo (`GetAsyncKeyState(VK_SHIFT)`, `0x59ddf1`)
   no camina (Q-C169). Si el picking toca, saca el blanco. Si el héroe camina y su celda lógica
   (`+0x41c`, `+0x420`) está a 2 o más de la que se ve (`ftol(posición · 0,01)`), no hace un camino

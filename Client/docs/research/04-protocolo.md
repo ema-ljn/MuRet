@@ -889,12 +889,14 @@ cifrado, y no miran el largo.
   >> 1` en `+0x1d4` del personaje y, si es el héroe, en `+0xb` del registro; `0xcb` solo el efecto. Los cuatro
   siguen con quince joints `0x60f` (`0x530860`), el `0x61e` de `0x518cf0` y, salvo `0xc8`, `0x513100` y la acción
   `0xb8`. Otro tipo: solo el sonido.
-- **`30`** (C→S, `0x567c2d..0x567db5`): `C1 05 30 <claveH> <claveL>` con la clave `+0x1f4` del NPC, C3. El GS
-  contesta con el `C3 30` (`PMSG_TALKRESULT`) que abre la ventana del NPC (hito 6).
+- **`30`** (C→S, `0x567c2d..0x567db5`, y las copias de `0x568288`, `0x568908` y `0x568f54`): `C1 05 30 <claveH>
+  <claveL>` con la clave `+0x1f4` del NPC (MOVSX, el alto con SAR), C3. Lo manda la llegada al NPC elegido
+  (`0x5650c0` con `+0x379` en 2; 06, "Hablar con un NPC"): cada uno saca el `rand()` del relleno y el del serial.
+  El GS contesta con el `C3 30` (`PMSG_TALKRESULT`) que abre la ventana del NPC (hito 6).
 - **`31`** (C→S, `0x419900`): `C1 03 31` en claro, al cerrar la ventana de las misiones (`CGCloseWindow`).
 
 **MuRet**: `Protocol::Quest` (lectores y escritores), `App::ServerSession` los registra juntos y el sink los aplica
-con `Scenes::ApplyQuest*` (06, "Las misiones"). Un paquete corto se ignora con un aviso. Los joints del `A3` cortan
+con `Scenes::ApplyQuest*` (06, "Las misiones"); el `A0` y el `30` de la llegada, `Scenes::TalkToTheNpc`. Un paquete corto se ignora con un aviso. Los joints del `A3` cortan
 (CL11).
 
 ### Los monstruos y los NPC que entran: `13`, `1F`, `68` y `1A`

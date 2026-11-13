@@ -260,10 +260,10 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
 - [ ] **Lo que se ve sobre ellos:** las barras de vida (`0x42a4d0`, `0x42a2b0`), NewFace (`0x42d890`,
       `0x42da90`, con los monstruos `0x11e` y `0x11f`) y los mensajes de monstruo (`0x4fc790`, `0x4fc8c0`,
       `0x4fcd00`).
-- [ ] **Hablar con un NPC:** el `C1 30` desde la interacción de llegada (`0x5650c0`, el corte de
+- [x] **Hablar con un NPC:** el `C1 30` desde la interacción de llegada (`0x5650c0`, el corte de
       `GameMovement.cpp`, solo su rama de NPC), el diálogo `0x8d` (`0x62d91d`, `0x632f70`, la lista
       `0x7d3a0fc`). Lo que abre cada NPC (tienda, almacén, caja del caos) es del hito 6. El escritor del `C1 30`
-      ya está.
+      ya está. (Los altares de Crywolf, `0x4eac41` y `0x567b6d`, cortan: hito 11.)
 - [x] **Las misiones, sin la ventana:** `A0`..`A3` (`0x418e20`, `0x418ee0`, `0x4198b0`, `0x4ddb80`), el `9F`, el
       objeto `[0x710148]` y las funciones que no dibujan, con `Quest.bmd` y `Dialog.bmd`.
 - [ ] **La ventana del quest** (`0x41ca40`, `0x41ba20`, `0x41c600`, `0x41b5a0`, `0x41b9e0`) y sus pasos que mandan

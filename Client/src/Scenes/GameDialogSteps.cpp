@@ -1,6 +1,7 @@
 #include "Scenes/GameDialogSteps.h"
 
 #include "Core/Expected.h"
+#include "Data/Text/DialogTable.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/OptionData.h"
 #include "Render/Models/Cloth.h"
@@ -28,6 +29,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <format>
 #include <optional>
 #include <span>
@@ -131,7 +133,7 @@ constexpr auto Routes = std::to_array<DialogRoute>({
     {0x9c, DialogStep::Cut, "0x6260d1", "CL9.4"},
     {0x91, DialogStep::Cut, "0x6260f6", "CL9.3"},
     {UI::MessageBoxDialog, DialogStep::Buttons, "0x62d756", ""},
-    {0x8d, DialogStep::Cut, "0x62d91d", "CL9.1"},
+    {UI::AnswersDialog, DialogStep::Buttons, "0x62d756", ""},
     {UI::PagedDialog, DialogStep::Buttons, "0x62d756", ""},
     {0x8b, DialogStep::Buttons, "0x62d756", ""},
     {0x97, DialogStep::Buttons, "0x62d756", ""},
@@ -439,7 +441,50 @@ Core::Expected<void, std::string> StepTheOptions(const GameUiContext& context)
     return {};
 }
 
-// 0x62d756..0x62da57: las cajas con botones; Enter o un botón las cierran.
+// 0x62d91d..0x62da57: las respuestas del 0x8d. Con el mouse sobre una (a no más de 0x6a de x = 0x13f) y el clic, el
+// clic se apaga, los botones dejan lo suyo y el diálogo que espera pasa a abierto; con el +0x130 de la respuesta en
+// Dialog.bmd de 0 o más, 0x632f70 lo muestra.
+Core::Expected<void, std::string> StepTheAnswers(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    const UI::DialogBoxState& box = runtime.dialogBox;
+    const std::int32_t answersTop =
+        UI::DialogTextTop(box, UI::AnswersDialog) + box.lineCount * UI::DialogLineStep; // 0x62d943..0x62d94a
+    // 0x62d948: la y del mouse negativa sale.
+    if (context.mouseY < 0)
+        return {};
+    const std::int32_t offset = context.mouseY - answersTop;
+    if (offset >= box.answerCount * UI::DialogLineStep)
+        return {};
+    if (std::abs(UI::AnswersCenterX - context.mouseX) > UI::AnswersHalfWidth)
+        return {};
+    bool& click = runtime.movement.pendingClick;
+    if (!click)
+        return {};
+    // 0x62d98c..0x62d9a9: la división con signo, hacia el cero; un desvío negativo sale.
+    const std::int32_t answer = offset / UI::DialogLineStep;
+    if (offset < 0 || answer < 0)
+        return {};
+    // 0x62d9af..0x62d9ca: la cuenta del registro de 0x6d5e28 en Dialog.bmd (+0x12c), con 1 como mínimo.
+    const Data::Text::DialogTable& table = runtime.dialogTable;
+    if (box.dialogIndex < 0 || static_cast<std::size_t>(box.dialogIndex) >= table.size())
+        return Core::Unexpected(std::format("0x62d9b8: el diálogo {} no está en Dialog.bmd", box.dialogIndex));
+    const Data::Text::DialogRecord& dialog = table[static_cast<std::size_t>(box.dialogIndex)];
+    if (answer >= std::max(dialog.answerCount, 1))
+        return {};
+    if (static_cast<std::size_t>(answer) >= dialog.next.size())
+        return Core::Unexpected(std::format("0x62d9fe: la respuesta {} pasa las 10 de Dialog.bmd", answer));
+    click = false;
+    PressTheButton(runtime);
+    const std::int32_t next = dialog.next[static_cast<std::size_t>(answer)];
+    runtime.dialogs.current = runtime.dialogs.pending;
+    runtime.dialogs.pending = 0;
+    if (next < 0)
+        return {};
+    return UI::OpenTheAnswersDialog(runtime.dialogBox, runtime.dialogs, &table, context.texts, next);
+}
+
+// 0x62d756..0x62da57: las cajas con botones; Enter o un botón las cierran, salvo el 0x8d, que sigue en sus respuestas.
 Core::Expected<void, std::string> StepTheButtons(const GameUiContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -454,6 +499,9 @@ Core::Expected<void, std::string> StepTheButtons(const GameUiContext& context)
             !paged.HasValue())
             return paged;
     }
+    // 0x62d911: el 0x8d no llega al cierre de 0x62da58 (ni Enter ni sus botones lo cierran).
+    if (runtime.dialogs.current == UI::AnswersDialog)
+        return StepTheAnswers(context);
     // 0x62da58..0x62da94.
     if (runtime.ui.enterPressed)
         runtime.ui.enterPressed = false;

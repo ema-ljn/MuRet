@@ -203,4 +203,13 @@ TEST(SkillProtocolTest, TheClearReportIsF103WithTheHead)
         EXPECT_TRUE(SameBytes(Xor32Decode(report.packet).Bytes(), Bytes({0xc1, 0x06, 0xf1, 0x03, 0x00, head})));
     }
 }
+
+// 0x55bf36..0x55c622 (0x55b6f0): el 19 del cliente, C1 06 19 [skill] [clave H] [clave L], para cifrar; la clave entera,
+// con su bit 15.
+TEST(SkillProtocolTest, TheMagicAttackGoesOutWithTheBigEndianKey)
+{
+    const auto attack = Skill::WriteMagicAttack(0x3c, 0x8a1b);
+    EXPECT_EQ(attack.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(attack.packet).Bytes(), Bytes({0xc1, 0x06, 0x19, 0x3c, 0x8a, 0x1b})));
+}
 } // namespace

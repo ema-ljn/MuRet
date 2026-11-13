@@ -5,9 +5,7 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/ProtocolError.h"
 
-#include <cstddef>
 #include <cstdint>
-#include <span>
 #include <vector>
 
 // 04 § Las skills (CL9 hito 4): lo que llega de las skills y de los estados de los personajes. Los lectores son la
@@ -119,5 +117,11 @@ struct SummonLife
 // cabeza es la del opcode en el 19 (0x4cc562..0x4cce21) y en el 1E (0x4ce032..), y 0xf1 en el 73 (0x4d5d8c),
 // *estático*.
 [[nodiscard]] Outgoing WriteClearSkillReport(std::uint8_t head);
+
 inline constexpr std::uint8_t Report73Head = 0xf1;
+
+// El 19 que manda el cliente (0x55b6f0, 0x559890, 0x55cbc0, 0x55faa0 y las ramas de 0x57cfc0): C1 06 19 [skill]
+// [clave H] [clave L], con el XOR32 sobre los bytes 3 a 5 y en C3 (sus dos rand(), el relleno y el serial, los saca
+// quien lo manda). La clave es +0x1f4 del blanco, entera. Es el PMSG_MAGICATTACK del GameServer (CGMagicAttack).
+[[nodiscard]] Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key);
 } // namespace Client::Protocol::Skill

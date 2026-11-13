@@ -8,6 +8,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/HeroAttack.h"
+#include "Scenes/HeroSkillCasts.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -169,25 +170,6 @@ std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Render::Models::Cr
     return cell;
 }
 
-// 0x5526f0(skill, héroe): el alcance (+0x26 de Skill.bmd, con su acceso), 2 más montado en el 0x1c16.
-Core::Expected<float, std::string> SkillRangeOf(std::uint8_t skill, const ActorState& hero,
-                                                const HeroSkillContext& context)
-{
-    if (context.skills == nullptr)
-        return Core::Unexpected(std::string("0x5526f0: falta Skill.bmd"));
-    const auto record = context.skills->Record(skill);
-    if (!record)
-        return Core::Unexpected(std::string("0x5526f0: falta el registro de habilidad"));
-    float range = 0.0f;
-    {
-        const auto entry = EntryAccess(context, skill);
-        range = static_cast<float>(std::to_integer<std::uint8_t>((*record)[0x26]));
-    }
-    if (hero.pet.model == 0x1c16)
-        range += 2.0f;
-    return range;
-}
-
 // 0x57d2da..0x57d307: el byte +0x31 de la entrada (0x5aea30 la abre y 0x4e7c40 la cierra).
 Core::Expected<std::uint8_t, std::string> PartyByteOf(std::uint8_t skill, const HeroSkillContext& context)
 {
@@ -290,9 +272,9 @@ Core::Expected<void, std::string> AimTheSkill(ActorState& hero, const HeroSkillC
     return {};
 }
 
-// 0x559890(héroe, ítem): la skill del arma de las clases 1, 3 y 4. Con lo que la frena, 0; lo que pega o manda corta
-// (0x559afc, las de la lista; 0x55a368, la de una opción del arma). Sin opción igual, 0 con el registro cerrado.
-Core::Expected<bool, std::string> UseTheWeaponSkill(const ActorState& hero, const World::ItemState& item,
+// 0x559890(héroe, ítem): la skill del arma de las clases 1, 3 y 4. Con lo que la frena, 0; las de la lista van a
+// 0x559afc (UseTheListedWeaponSkill) y las demás a las opciones del arma (UseTheWeaponOptions, HeroSkillCasts).
+Core::Expected<bool, std::string> UseTheWeaponSkill(ActorState& hero, const World::ItemState& item,
                                                     const HeroSkillContext& context)
 {
     const std::uint8_t action = hero.animation.action;
@@ -346,18 +328,8 @@ Core::Expected<bool, std::string> UseTheWeaponSkill(const ActorState& hero, cons
         break;
     }
     if (special)
-        return Core::Unexpected(std::format("0x559afc: la skill {:#x} del arma (0x559890) es de la fase 2c", skill));
-    // 0x559a21..0x55b49e: las opciones del arma (+0x2a, +0x2b...) contra la skill del lugar del héroe, con el registro
-    // abierto; el resultado (0x559a2d) queda en 0 si ninguna es.
-    const auto own = OwnAccess(context);
-    const std::uint8_t used = OwnSkillByte(context.world.OwnCharacter(), published.skillIndex);
-    for (std::uint8_t option = 0; option < item.optionCount; ++option)
-    {
-        if (item.OptionTag(option) == used)
-            return Core::Unexpected(
-                std::format("0x55a368: la skill {:#x} de la opción del arma (0x559890) es de la fase 2c", used));
-    }
-    return false;
+        return UseTheListedWeaponSkill(hero, item, skill, context);
+    return UseTheWeaponOptions(hero, item, context);
 }
 
 // 0x561f60(héroe, ítem): lo mismo para el elfo, sin la lista: las opciones del arma contra la skill del lugar.

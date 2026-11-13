@@ -309,6 +309,21 @@ Core::Expected<void, std::string> Send(const OldWindowStepView& view, FriendSend
     return {};
 }
 
+// 0x49dc37..0x49dc62, la cola de los casos 1, 2 y 4 de 0x49d0b0 (el 4, la carta, es del hito 10): con el id que dio
+// 0x48ee60 (0, sin caja), la busca (0x490a00) y le manda el 8 y el 9, cada uno con su paso con 1 (0x45aa50).
+Core::Expected<void, std::string> PlaceTheNewBox(OldWindowManager& manager, std::int32_t id,
+                                                 const OldWindowGlobals& globals, const OldWindowStepView& view)
+{
+    if (id == 0)
+        return {};
+    OldWindow* box = FindTheOldWindow(manager, id);
+    if (box == nullptr)
+        return {};
+    if (auto placed = Steps::PostAndStep(manager, *box, PlaceMessage, globals, view); !placed.HasValue())
+        return placed;
+    return Steps::PostAndStep(manager, *box, SizeMessage, globals, view);
+}
+
 // 0x461f00 (los amigos) y 0x462bd0 (las ventanas), la vtable + 0x88: el renglón bajo el mouse. Da 1: el paso sigue.
 std::int32_t HoverTheRow(OldWindowManager& manager, OldWindow& tab, std::int32_t row, std::size_t at,
                          const OldWindowGlobals& globals, const OldWindowStepView& view)
@@ -476,7 +491,7 @@ Core::Expected<void, std::string> HandleTheFriendTabMessage(OldWindowManager& ma
         if (!created.HasValue())
             return Core::Unexpected(std::move(created).Error());
         manager.letter = created.Value();
-        return {};
+        return PlaceTheNewBox(manager, created.Value(), globals, view);
     }
     case SecondCommand:
     {
@@ -493,7 +508,7 @@ Core::Expected<void, std::string> HandleTheFriendTabMessage(OldWindowManager& ma
             globals, view, "0x49d0b0(2)");
         if (!created.HasValue())
             return Core::Unexpected(std::move(created).Error());
-        return {};
+        return PlaceTheNewBox(manager, created.Value(), globals, view);
     }
     case ThirdCommand:
     {

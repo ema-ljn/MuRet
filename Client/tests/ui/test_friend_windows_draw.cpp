@@ -28,7 +28,6 @@
 #include <string>
 #include <string_view>
 #include <tuple>
-#include <utility>
 #include <vector>
 
 // El dibujo de la ventana de amigos (CL9 hito 9; 06 § HUD y ventanas, "Los amigos"): 0x4a2620 con los encabezados
@@ -118,6 +117,14 @@ struct ExpectedCommand
     std::size_t quads;
 };
 
+// Un amigo del modelo: un agregado y no un std::pair, que con un literal int en el estado convertiría a std::uint8_t
+// adentro de <utility> (C4244 con /WX en MSVC).
+struct NewFriend
+{
+    std::string name;
+    std::uint8_t state = 0;
+};
+
 // Un texto: lo que dice, dónde y de qué color.
 using ExpectedText = std::tuple<std::string, int, int, std::uint32_t>;
 
@@ -161,13 +168,13 @@ protected:
     }
 
     // 0x491080 la primera vez, con los amigos en el modelo y copiados a la pestaña (0x49ddd0).
-    void OpenFriends(const std::vector<std::pair<std::string, std::uint8_t>>& friends = {})
+    void OpenFriends(const std::vector<NewFriend>& friends = {})
     {
         const auto opened = Client::UI::OpenTheFriendsWindow(m_manager, Client::UI::FriendsWindowX,
                                                              Client::UI::FriendsWindowY, Globals(), StepView());
         ASSERT_TRUE(opened.HasValue()) << opened.Error();
-        for (const auto& [name, state] : friends)
-            Client::UI::AddAFriend(m_manager.friendModel, name, 0, state);
+        for (const NewFriend& entry : friends)
+            Client::UI::AddAFriend(m_manager.friendModel, entry.name, 0, entry.state);
         Client::UI::RefreshTheFriendTab(m_manager);
     }
 

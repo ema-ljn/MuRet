@@ -1047,7 +1047,8 @@ agregar, borrar, chat y carta), las ventanas (`0x6b9edc`, las cajas y los chats 
 (`0x49dcf0`; la de estado ordena por nombre primero). Los dos órdenes son los de `0x49c190` (nombre, de la Z a la A
 con `char` con signo) y `0x49c240` (el estado más alto primero) con el `std::sort` de MSVC6 (Q-C881). Agregar abre la
 caja `0x4a3700` (caso 4, modal, con su EDIT de `0x4674c0`); borrar, la pregunta modal del nombre con el 1024
-(`0x48ee60(5, …)`) que vuelve a la pestaña como el 12; el botón del estado (`0x4a3030`) pregunta "¿salir de línea?" o
+(`0x48ee60(5, …)`) que vuelve a la pestaña como el 12, y a las dos les manda el 8 y el 9 con su paso (`0x49dc37`,
+`0x490a00` y `0x45aa50`); el botón del estado (`0x4a3030`) pregunta "¿salir de línea?" o
 manda el `C4 01`. La F, con el chat cerrado, la cierra si es la de arriba (`0x4a2f70`). F5 y F6 ya estaban (CL8); con
 F6 la de amigos oculta se suelta (`0x4905a2`) y `0x4906a0` la vuelve a abrir al mostrar (Q-C448). El primer paso del
 juego suelta todas las ventanas (`0x48ea50`) y vacía la lista de amigos (`0x6368f9..0x636915`). El dibujo, abajo; el

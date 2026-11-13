@@ -127,26 +127,41 @@ MANUAL.update({
     0x4ACD50: ('CL3', 'parte un texto por separadores (la línea de comandos o la config), sin uso'),
     0x4ACE00: ('CL3', 'prueba los caracteres de un texto (la línea de comandos o la config), sin uso'),
 })
-# Exclusiones ya decididas en el roadmap (Fuera de alcance) con la función que las abre.
+# Por qué no se porta cada grupo de exclusiones (Fuera de alcance del roadmap). El grupo va al principio
+# del propósito de cada fila y el motivo, en next_action.
+WHY_NOT = {
+    'GameGuard': 'anticheat (nProtect GameGuard): MuRet no corre GameGuard; sus avisos de Text.bmd (790..800) '
+                 'solo los muestra su callback',
+    'ResourceGuard': 'anticheat: el chequeo de los recursos al entrar al mundo no tiene efecto en este build',
+    'hash anti-tamper': 'anticheat: la tabla hash de tamaños al azar no cambia el juego; el rand() de la protección '
+                        'se cuenta aparte (07 Q-C125, 08 P-C22)',
+    'launcher': 'es del launcher (el auto-update y el servidor que deja en el registro); queda para más adelante, '
+                'si MuRet tiene un launcher propio o una reinterpretación',
+}
+GG_WHERE = ('docs/superpowers/specs/2026-10-30-cliente-design.md#fuera-de-alcance ("el anticheat del propio '
+            'main.exe"); Client/docs/research/10-cobertura-roadmap.md#gameguard')
+# Exclusiones ya decididas en el roadmap (Fuera de alcance) con la función que las abre: qué hace, dónde
+# está la decisión y su grupo de WHY_NOT.
 EXCLUDED_ROOTS = {
-    0x4B96B0: ('fin del auto-update del launcher: copia mu._xe, mumsg._ll, wz_zp._ll y message._tf',
+    0x4B96B0: ('fin del auto-update: copia mu._xe, mumsg._ll, wz_zp._ll y message._tf',
                'Client/docs/research/02-arranque-y-ciclo-de-vida.md (tabla de WinMain: "no se porta: es del '
-               'launcher")'),
+               'launcher")', 'launcher'),
     0x6922C0: ('wzPopLaunchInfo: lee del registro el servidor que dejó el launcher',
-               'docs/superpowers/specs/2026-10-30-cliente-design.md#fuera-de-alcance; 02-arranque-y-ciclo-de-vida.md'),
-    0x681EC0: ('ResourceGuard: chequeo anti-tamper de los recursos al entrar al mundo, sin efecto (el jmp de 0x4c4ad5)',
-               'Client/docs/research/07-quirks-y-bugs.md Q-C147; anticheat de main.exe, Fuera de alcance'),
+               'docs/superpowers/specs/2026-10-30-cliente-design.md#fuera-de-alcance; 02-arranque-y-ciclo-de-vida.md',
+               'launcher'),
+    0x681EC0: ('chequeo de los recursos al entrar al mundo, sin efecto (el jmp de 0x4c4ad5)',
+               'Client/docs/research/07-quirks-y-bugs.md Q-C147; anticheat de main.exe, Fuera de alcance',
+               'ResourceGuard'),
     # nProtect GameGuard, enlazado en el exe (10-cobertura-roadmap.md, GameGuard).
-    0x686550: ('GameGuard: lo arranca un inicializador estático (0x68653e, fuera de funciones); filtro de excepciones '
-               'temporal 0x689dd0, el objeto de 0x128c bytes de DAT_07d5c9f0 y 0x6869f0 (CryptoAPI con '
-               'CryptVerifySignatureA, registro, hilos y los LoadLibrary de nombres cifrados de 0x688b60..0x68bbb0)',
-               'docs/superpowers/specs/2026-10-30-cliente-design.md#fuera-de-alcance ("el anticheat del propio '
-               'main.exe"); 05-formatos-de-datos.md (el bloque de 0x688b60, probablemente de la protección)'),
-    0x4505D0: ('callback de GameGuard: los mensajes 0x3e9..0x3f8 de GameMon (error y cierre de la comunicación, '
-               'speedhack, hack detectado, autenticación) con MessageBoxA "Error"; lo llaman 0x688590 y 0x6891d0',
-               'docs/superpowers/specs/2026-10-30-cliente-design.md#fuera-de-alcance; 10-cobertura-roadmap.md'),
-    0x450380: ('texto de los errores de GameGuard ("GameGuard Error : %lu", los códigos 0x6e..0xdc), sin uso',
-               'docs/superpowers/specs/2026-10-30-cliente-design.md#fuera-de-alcance; 10-cobertura-roadmap.md'),
+    0x686550: ('arranque de la librería: lo llama un inicializador estático (0x68653e, fuera de funciones); filtro '
+               'de excepciones temporal 0x689dd0, el objeto de 0x128c bytes de DAT_07d5c9f0 y 0x6869f0 (CryptoAPI '
+               'con CryptVerifySignatureA, registro, hilos y los LoadLibrary de nombres cifrados de '
+               '0x688b60..0x68bbb0)', GG_WHERE + '; 05-formatos-de-datos.md (el bloque de 0x688b60)', 'GameGuard'),
+    0x4505D0: ('el callback de GameMon: los mensajes 0x3e9..0x3f8 (error y cierre de la comunicación, speedhack, '
+               'hack detectado, autenticación) con un MessageBoxA "Error" y los textos 792, 793, 794 y 799 de '
+               'Text.bmd; lo llaman 0x688590 y 0x6891d0', GG_WHERE, 'GameGuard'),
+    0x450380: ('el aviso de un código de error ("GameGuard Error : %lu", los códigos 0x6e..0xdc, con los textos 792, '
+               '795 a 798 y 800 de Text.bmd), sin uso', GG_WHERE, 'GameGuard'),
 }
 # Gigantes con ramas de varias olas: la ola responsable sale de su papel, no de quién lo cita más.
 ROLE_OVERRIDES = {
@@ -631,8 +646,8 @@ def build(args):
 
     # 2) Exclusiones ya decididas y lo que solo ellas alcanzan.
     excluded = {}
-    for a, (what, where) in EXCLUDED_ROOTS.items():
-        excluded[a] = (what, where)
+    for a, (what, where, group) in EXCLUDED_ROOTS.items():
+        excluded[a] = (what, where, group)
     # Una llamada desde código que Ghidra no puso en ninguna función (un inicializador estático, un hueco
     # entre funciones) cuenta como de la función excluida que tenga al lado (0x68653e, antes de 0x686550;
     # el hueco que sigue a 0x68585b) o, si no hay ninguna, de la que sigue al hueco.
@@ -673,7 +688,7 @@ def build(args):
                 hit = sorted(refs_x(a) & set(excluded))
                 if hit:
                     root = hit[0]
-                    excluded[a] = (f'solo la alcanza {root:#x} ({excluded[root][0][:60]})', excluded[root][1])
+                    excluded[a] = (f'solo la alcanza {root:#x}',) + excluded[root][1:]
                     grew = True
 
     close_exclusions(set())
@@ -904,7 +919,8 @@ def build(args):
         if a not in own or a in wave:
             continue
         if w == 'excluded':
-            excluded[a] = (why, 'lectura del .c y el .asm (10-cobertura-roadmap.md, Lo leído a mano)')
+            group = 'GameGuard' if why == _GGLIB else 'hash anti-tamper'
+            excluded[a] = (why, 'lectura del .c y el .asm (10-cobertura-roadmap.md, Lo leído a mano)', group)
             continue
         wave[a], basis[a] = w, 'lectura'
         ev[a].append(f'leída a mano: {why}')
@@ -928,8 +944,8 @@ def build(args):
         for a in sorted(loose - set(excluded)):
             hit = sorted({c for c in F.callees[a] if c in excluded})
             if hit:
-                excluded[a] = (f'código muerto que solo usa funciones excluidas, como {hit[0]:#x} '
-                               f'({excluded[hit[0]][0][:50]})', excluded[hit[0]][1])
+                excluded[a] = (f'código muerto que solo usa funciones excluidas, como {hit[0]:#x}',) \
+                    + excluded[hit[0]][1:]
                 grew = True
     close_exclusions(dead)
 
@@ -967,8 +983,7 @@ def build(args):
                 why = f'hereda la ola de quien lo llama: {caller_txt}'
             elif m and int(m.group(1), 16) in excluded:
                 row['primary_wave'] = ''
-                what = clean(excluded[int(m.group(1), 16)][0], 60)
-                why = f'sin llamadas directas; el destino está excluido ({what})'
+                why = f'sin llamadas directas; el destino está excluido ({excluded[int(m.group(1), 16)][2]})'
             elif fam:
                 row['primary_wave'] = fam[0][0]
                 why = f'sin llamadas directas; el destino es {fam[0][1]}'
@@ -980,6 +995,8 @@ def build(args):
             row['analysis_state'] = 'static'
             row['implementation_state'] = 'not-applicable'
             row['next_action'] = 'nada: es un salto al destino; lo cubre la ola del destino'
+            if m and int(m.group(1), 16) in excluded:
+                row['next_action'] = f'nada: no se porta; {WHY_NOT[excluded[int(m.group(1), 16)][2]]}'
         elif k in ('eh', 'crt', 'libjpeg', 'stl', 'glue'):
             row['classification'] = 'library'
             row['analysis_state'] = 'static' if k in ('stl', 'libjpeg') else 'inferred'
@@ -1028,13 +1045,13 @@ def build(args):
                                         f'la llaman {len(callers)} funciones', 300)
                 row['next_action'] = 'nada: MuRet usa std::string'
         elif a in excluded:
-            what, where = excluded[a]
+            what, where, group = excluded[a]
             row['classification'] = 'excluded'
-            row['purpose'] = clean(what)
+            row['purpose'] = clean(f'{group}: {what}', 300)
             row['evidence'] = clean(f'{asm}; {where}', 300)
             row['analysis_state'] = 'static' if a in EXCLUDED_ROOTS or a in MANUAL else 'inferred'
             row['implementation_state'] = 'not-applicable'
-            row['next_action'] = 'nada: fuera de alcance del roadmap'
+            row['next_action'] = f'{"por ahora nada" if group == "launcher" else "nada"}: no se porta; {WHY_NOT[group]}'
         elif a in wave:
             w = wave[a]
             row['classification'] = 'game'

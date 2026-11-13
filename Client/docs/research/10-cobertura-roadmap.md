@@ -151,27 +151,49 @@ Webzen enlazado al final (el manejador de caídas de la CL3, el SimpleModulus de
 destino. Su `implementation_state` es `not-applicable`: lo cubre la ola del destino.
 
 **Exclusiones.** Se aplican las que ya estaban en Fuera de alcance, sin agregar ninguna: el launcher
-(`0x4b96b0`, el fin del auto-update, y `wzPopLaunchInfo` en `0x6922c0`) y el anticheat del propio
-`main.exe`. Una función queda excluida si solo la alcanzan funciones excluidas o código muerto (los
-métodos de una clase que se llaman entre sí, también). Una llamada desde código que Ghidra no puso en
-ninguna función cuenta como de la función excluida que tiene al lado, o si no la hay, de la que sigue
-al hueco.
+y el anticheat del propio `main.exe`. Ninguna se porta; el launcher queda para más adelante, por si
+MuRet llega a tener uno propio o una reinterpretación (Emanuel, 2026-11-13). Cada fila excluida
+empieza su `purpose` con el nombre de su grupo y dice el motivo en `next_action`, así que se las
+puede filtrar por grupo:
 
-- **ResourceGuard** (`0x681ec0`, Q-C147 de [07](07-quirks-y-bugs.md)): el chequeo de los recursos al
-  entrar al mundo, sin efecto en este build; 07 ya dice que no se porta.
-- **El hash anti-tamper** de [02](02-arranque-y-ciclo-de-vida.md): la tabla que arma el inicializador
-  `0x4acef0` con tamaños al azar (`0x447f80`..`0x448310`), leída a mano.
-- **GameGuard**, nuevo en este informe. `0x450380` arma el texto `"GameGuard Error : %lu"` para los
-  códigos de error de GameGuard (`0x6e`..`0xdc`) y no tiene llamadas. `0x4505d0` es el callback que
-  recibe los mensajes de GameMon (`0x3e9`..`0x3f8`: error y cierre de la comunicación, speedhack,
-  hack detectado, autenticación) y muestra un `MessageBoxA` con `"Error"`. Lo llaman `0x688590` y
-  `0x6891d0`, de una librería que arranca un inicializador estático: el código en `0x68653e`, fuera
-  de toda función, llama a `0x686550`, que pone un filtro de excepciones temporal, crea un objeto de
-  `0x128c` bytes y lo inicializa con `0x6869f0` (registro, `CryptVerifySignatureA`, `CryptDecrypt`,
-  `VirtualProtect`, hilos y los `LoadLibrary` con nombres cifrados de `0x688b60`..`0x68bbb0` que
+| Grupo | Funciones | Bytes | Qué es y por qué no se porta |
+| --- | ---: | ---: | --- |
+| GameGuard | 72 | 29.306 | el anticheat nProtect GameGuard, enlazado en el exe ([abajo](#gameguard)); MuRet no corre GameGuard |
+| ResourceGuard | 37 | 4.682 | `0x681ec0`: al entrar al mundo arma un objeto, lee la ruta del exe y chequea los recursos, pero el `jmp` de `0x4c4ad5` saltea el aviso y el resultado no se usa (Q-C147 de [07](07-quirks-y-bugs.md)) |
+| hash anti-tamper | 11 | 742 | la tabla hash que arma el inicializador `0x4acef0` con tamaños al azar (`0x447f80`..`0x448310`, [02](02-arranque-y-ciclo-de-vida.md)), leída a mano. El `rand()` que gasta la protección se cuenta aparte: Q-C125 de 07 y P-C22 de [08](08-pendientes.md) |
+| launcher | 9 | 3.233 | el fin del auto-update (`0x4b96b0` y su copia `0x4b9550`: renombra `mu._xe`, `mumsg._ll`, `wz_zp._ll` y `message._tf`) y `wzPopLaunchInfo` (`0x6922c0`), que lee del registro el servidor que dejó `Mu.exe` ([02](02-arranque-y-ciclo-de-vida.md#del-launcher-al-juego)) |
+
+Una función queda excluida si solo la alcanzan funciones excluidas o código muerto (los métodos de
+una clase que se llaman entre sí, también). Una llamada desde código que Ghidra no puso en ninguna
+función cuenta como de la función excluida que tiene al lado, o si no la hay, de la que sigue al
+hueco.
+
+### GameGuard
+
+Nuevo en este informe. Antes caía en la CL7 por una cadena de inferencias débil (una llamada a
+`0x4505d0`).
+
+- `0x450380` arma el texto `"GameGuard Error : %lu"` para los códigos de error de GameGuard
+  (`0x6e`..`0xdc`) y no tiene llamadas.
+- `0x4505d0` es el callback que recibe los mensajes de GameMon (`0x3e9`..`0x3f8`: error y cierre de
+  la comunicación, speedhack, hack detectado, autenticación) y los muestra en un `MessageBoxA` con
+  `"Error"`. Lo llaman `0x688590` y `0x6891d0`.
+- La librería la arranca un inicializador estático: el código en `0x68653e`, fuera de toda función,
+  llama a `0x686550`, que pone un filtro de excepciones temporal, crea un objeto de `0x128c` bytes y
+  lo inicializa con `0x6869f0` (registro, `CryptVerifySignatureA`, `CryptDecrypt`, `VirtualProtect`,
+  hilos y los `LoadLibrary` con nombres cifrados de `0x688b60`..`0x68bbb0`, que
   [05](05-formatos-de-datos.md#el-pipeline-de-las-dlls) dejó como "probablemente de la protección").
-  Es el anticheat del propio `main.exe`. Antes de este informe, 29 KB de esa librería caían en la
-  CL7 por una cadena de inferencias débil (una llamada a `0x4505d0`).
+
+**Por qué no se porta.** Es un anticheat: MuRet no lo corre, como tampoco FoxAnti, y no cambia
+nada del juego que se ve ni del protocolo. **Los textos de `Text.bmd`.** Los avisos que muestra
+son los registros 790 a 800 de `Text.bmd` (`[error1001]` a `[error1011]`: "No se puede conectar a
+nProtect", "Se ha detectado un hackeo de velocidad", "GameGuard ya se está ejecutando"…), y del 801
+al 808 hay registros reservados (`Reserve : GameGuard`). Solo los usan estas dos funciones: el
+callback `0x4505d0` lee el 792, el 793, el 794 y el 799, y `0x450380`, el 792, el 795 al 798 y el 800
+(ninguna otra función del decompilado apunta a los registros 788 a 808). MuRet carga `Text.bmd`
+entero (CL1), así que los textos quedan en la tabla aunque nadie los muestre.
+
+Las 72 funciones: `0x450380`, `0x4505d0`, `0x686550`, `0x6867f0`, `0x6869a0`, `0x6869f0`, `0x688260`, `0x688270`, `0x688400`, `0x688590`, `0x688640`, `0x6886e0`, `0x688730`, `0x688980`, `0x688a80`, `0x688b60`, `0x688dd0`, `0x688eb0`, `0x688fa0`, `0x6890b0`, `0x6891d0`, `0x689520`, `0x689b20`, `0x689c00`, `0x689ce0`, `0x689ef0`, `0x68a140`, `0x68a170`, `0x68a250`, `0x68a3b0`, `0x68a4d0`, `0x68a6e0`, `0x68a780`, `0x68a940`, `0x68ac00`, `0x68b690`, `0x68b8b0`, `0x68b960`, `0x68b980`, `0x68b9a0`, `0x68b9d0`, `0x68b9f0`, `0x68bbb0`, `0x68bc00`, `0x68be30`, `0x68c200`, `0x68c210`, `0x68c230`, `0x68c240`, `0x68c3a0`, `0x68c420`, `0x68c4a0`, `0x68c5e0`, `0x68c650`, `0x68c6a0`, `0x68c720`, `0x68cb50`, `0x68cba0`, `0x68cc10`, `0x68d340`, `0x68d640`, `0x68d730`, `0x68dce0`, `0x68dd70`, `0x68de10`, `0x68de80`, `0x68e320`, `0x68e390`, `0x68e510`, `0x6915c0`, `0x691600`, `0x6916a0`.
 
 ## Lo leído a mano
 

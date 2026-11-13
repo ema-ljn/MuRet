@@ -27,6 +27,7 @@
 #include "Network/SocketError.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Inventory.h"
+#include "Protocol/JewelMix.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
@@ -4607,6 +4608,27 @@ TEST(ServerSessionTest, TheQuestPacketsReachTheWorld)
     ASSERT_NE(prize, nullptr);
     EXPECT_EQ(prize->key, 0x21);
     EXPECT_EQ(prize->kind, Quest::PointsPrize);
+}
+
+// 0x4e4547: el BC llega al mundo con pkt[3] y pkt[4]; corto, un aviso y nada (CL9 hito 6). Valores inventados.
+TEST(ServerSessionTest, TheJewelMixAnswerReachesTheWorld)
+{
+    namespace JewelMix = Client::Protocol::JewelMix;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {
+        Join({Bytes({0xc1, 5, 0xbc, 1, 7}), Bytes({0xc1, 4, 0xbc, 0}), Bytes({0xc1, 5, 0xbc, 0, 4})})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 2u);
+    const auto* unmixed = std::get_if<JewelMix::JewelMixAnswer>(&events[0]);
+    ASSERT_NE(unmixed, nullptr);
+    EXPECT_EQ(unmixed->subcode, 1);
+    EXPECT_EQ(unmixed->result, 7);
+    const auto* mixed = std::get_if<JewelMix::JewelMixAnswer>(&events[1]);
+    ASSERT_NE(mixed, nullptr);
+    EXPECT_EQ(mixed->subcode, 0);
+    EXPECT_EQ(mixed->result, 4);
 }
 
 // El A0, el A2 y el 30 salen con el XOR32 y cifrados como C3; el C1 03 31 de 0x419900, en claro.

@@ -3,6 +3,7 @@
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Inventory.h"
+#include "Protocol/JewelMix.h"
 #include "Protocol/Messages.h"
 #include "Protocol/NpcWindows.h"
 #include "Protocol/OptionData.h"
@@ -41,7 +42,7 @@ using WorldEvent =
                  Protocol::NpcWindows::BuyResult, Protocol::NpcWindows::SellResult, Protocol::NpcWindows::RepairResult,
                  Protocol::NpcWindows::WarehouseMoney, Protocol::NpcWindows::NpcWindowClosed,
                  Protocol::NpcWindows::WarehouseState, Protocol::NpcWindows::ChaosMixResult,
-                 Protocol::Quest::QuestFlag, Protocol::Quest::QuestList,
+                 Protocol::JewelMix::JewelMixAnswer, Protocol::Quest::QuestFlag, Protocol::Quest::QuestList,
                  Protocol::Quest::QuestStateChange, Protocol::Quest::SetQuestResult, Protocol::Quest::QuestResult,
                  Protocol::Movement::Action, Protocol::Viewport::Players, Protocol::Viewport::Leave,
                  Protocol::Viewport::Transformed, Protocol::Viewport::EquipmentShown, Protocol::Viewport::Position,

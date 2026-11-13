@@ -1,13 +1,17 @@
 #pragma once
 
+#include "Core/Expected.h"
+#include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/ProtocolError.h"
 
 #include <cstdint>
 
 // 04 § Las ventanas de los NPC, "La mezcla de joyas" (CL9 hito 6): el BC que mandan los diálogos de la mezcla de
 // joyas por 0x4029e0, juntar (BC 00, 0x402500) o deshacer un paquete (BC 01, 0x401f30). Los dos arman el C1 de a un
 // byte con el XOR32 de cada byte nuevo (la clave de 32 bytes desde 0xe7 0x6d 0x3a, desde pkt[3]) y lo mandan con
-// send() en claro, sin la tabla de protección. El GameServer 0.97 no atiende el BC: el ASM es el oráculo.
+// send() en claro, sin la tabla de protección. El GameServer 0.97 no atiende el BC ni lo manda: el ASM es el oráculo,
+// también de la respuesta (0x4e4547).
 namespace Client::Protocol::JewelMix
 {
 inline constexpr std::uint8_t JewelMixOpcode = 0xbc;
@@ -20,4 +24,14 @@ inline constexpr std::uint8_t UnmixSubcode = 0x01;
 // 0x401f30: C1 07 BC 01 con la joya (0x6c62e0), el nivel del paquete (0x6c62dc) y su lugar del inventario
 // (0x6c62d8, que 0x401f5a ya pasó de casilla a lugar sumando 12).
 [[nodiscard]] Outgoing WriteJewelUnmix(std::uint8_t kind, std::uint8_t level, std::uint8_t slot);
+
+// 0x4e4547: la respuesta, C1 BC <pkt[3]> <pkt[4]>. El dispatcher mira pkt[3] (0 juntar, 1 deshacer, otro nada) y,
+// con 0 o 1, pkt[4]; nada más. `result` queda en 0 cuando pkt[3] no es 0 ni 1.
+struct JewelMixAnswer
+{
+    std::uint8_t subcode = 0;
+    std::uint8_t result = 0;
+};
+
+[[nodiscard]] Core::Expected<JewelMixAnswer, ProtocolError> ReadJewelMixAnswer(const Network::Packet& packet);
 } // namespace Client::Protocol::JewelMix

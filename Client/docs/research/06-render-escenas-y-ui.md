@@ -10430,7 +10430,7 @@ entrada de `0x5897a7` para el Magic Gladiator) y `Scenes/Skill55cbc0` (`UseTheSk
 dirección en `Scenes/Skill4f5290`, `Skill57ce80` y, compartidos con la rama del caballero, `Skill4e9c50`,
 `Skill4e9920`, `Skill551f40` y `Skill57cf90`, y lo que va en línea en `Scenes/HeroSkillSupport`. `0x5767948` es
 `GameMovementState::lastShotSkill`, el del elfo. Los envíos en
-[04](04-protocolo.md#las-skills-que-salen-19-1e-1c-y-b0). La clave del jugador llega de la sesión
+[04](04-protocolo.md#lo-que-manda-la-rama-del-wizard-19-1e-1c-y-b0). La clave del jugador llega de la sesión
 (`ServerSession::PlayerIndex`). Cortan: la party (`0x58b06e`, `0x59272c`, hito 7), la poción (`0x589936`, hito 5) y
 `0x5808da` (`0x5808ef`) (08, P-C222).
 

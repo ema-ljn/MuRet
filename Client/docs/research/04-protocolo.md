@@ -881,8 +881,10 @@ cifrado, y no miran el largo.
   `estado`: el GS manda `GetQuestStateBYTE`, el byte con las cuatro misiones (Q-C843). Después `0x657a90` (cierra
   todos los paneles) y `0x4198b0(−1)`.
 - **`A2`** (`0x4e4ba9`): `C1 06 A2 <misión> <resultado> <estado>`; con resultado 0, lo mismo que el `A1` con
-  `pkt[5]`. El cliente lo manda (`C1 05 A2 <misión> 1`, C3) desde el paso de la ventana (`0x419bd0` y `0x41a9e0`)
-  cuando las condiciones de `0x418fb0` se cumplen.
+  `pkt[5]`. El cliente lo manda (`C1 05 A2 <misión> 1`, C3) desde el paso de la ventana: las respuestas (`0x419bd0`,
+  la acción 1 cuando las condiciones de `0x418fb0` se cumplen y la 3 sin mirarlas) y el botón de terminar
+  (`0x41a9e0`, con los ítems de `0x419b10`). MuRet: `Scenes::StepTheQuestWindow` (CL9 hito 2, fase 5b;
+  [06](06-render-escenas-y-ui.md#las-misiones)).
 - **`A3`** (`0x4e4bf2` → `0x4ddb80`): `C1 07 A3 <claveH> <claveL> <tipo> <valor>`, también al viewport
   (`MsgSendV2`). La clave va `& 0x7fff` a `0x5110d0` (el 400 sin nadie). El sonido `0x66` y, por tipo: `0xc8` y
   `0xca` suman `valor` a `+0x68` del registro propio si es el héroe; `0xc9` pone la clase `((v & 0x10) | (v >> 4))

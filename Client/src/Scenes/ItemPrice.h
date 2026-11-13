@@ -9,8 +9,8 @@
 #include <string>
 
 // El precio de un ítem (0x54d0f0) y el de repararlo (0x5b13e0), CL8 hito 5 (06 § El precio de un ítem). Son
-// funciones de datos: no abren el registro propio ni sacan rand(). Las usan el cuerpo de reparar (0x5b8150) y, en la
-// CL9.3, el precio de la tienda de NPC del cuerpo del ítem (0x5b2d23, P-C125 (a)).
+// funciones de datos: no abren el registro propio ni sacan rand(). Las usan el cuerpo de reparar (0x5b8150) y el precio
+// de la tienda de NPC del cuerpo del ítem (0x5b2d23, CL9 hito 6).
 namespace Client::Scenes
 {
 // Los modos con que lo llaman: 0 desde la grilla de la tienda de NPC (0x5b2d2e), 1 desde el inventario con la tienda

@@ -12,12 +12,15 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameTooltips.h"
+#include "Scenes/ItemPrice.h"
 #include "Scenes/ItemSetState.h"
+#include "Scenes/NpcWindowState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/ZenText.h"
 #include "UI/GameUiState.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
@@ -85,6 +88,7 @@ Client::Data::Text::TextTable Texts()
                                          {27, "Clase C2"},
                                          {40, "Golpe"},
                                          {60, "No: %s"},
+                                         {63, "Venta: %s"},
                                          {61, "Si: %s"},
                                          {64, "Ritmo %d"},
                                          {65, "Aguante %d"},
@@ -110,6 +114,7 @@ Client::Data::Text::TextTable Texts()
                                          {951, "Stat B +%d"},
                                          {970, "Stat C %d"},
                                          {1089, "Grupo"},
+                                         {1620, "Compra: %s(%s)"},
                                          {1860, "Suerte %d"},
                                          {1863, "Sello uno"},
                                          {1920, "Abrir"},
@@ -263,12 +268,13 @@ protected:
     }
 
     // 0x5f7bc0: el cuerpo con el registro propio abierto alrededor.
-    Client::Core::Expected<void, std::string> Draw(const ItemState& item, std::int32_t x = 320, std::int32_t y = 300)
+    Client::Core::Expected<void, std::string> Draw(const ItemState& item, std::int32_t x = 320, std::int32_t y = 300,
+                                                   std::uint8_t grid = 0)
     {
         GameHudContext context = Context();
         const Client::Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, random, OwnRecordCloseRandoms);
         return Client::Scenes::DrawTheItemTooltip(
-            Client::Scenes::ItemTooltipContext{.hud = context, .x = x, .y = y, .item = item});
+            Client::Scenes::ItemTooltipContext{.hud = context, .x = x, .y = y, .item = item, .grid = grid});
     }
 
     void HeroIs(std::uint8_t characterClass)
@@ -595,16 +601,78 @@ TEST_F(ItemTooltipsTest, TheTicketKeepsItsTooltipWithTheNpcShopOpen)
     EXPECT_EQ(Lines().text[1], "Boleto +1");
 }
 
-TEST_F(ItemTooltipsTest, ThePriceOfTheNpcShopCuts)
+// 0x5b2d23..0x5b2e41: desde la grilla de la tienda de NPC (0x78aba27), el 1620 con el precio de 0x54d0f0 en el modo 0
+// con el impuesto (0x5b1200: 3 %, 64 bits y división con signo) y sin él, con el color del nombre y sin escribir la
+// negrita, y un "\n" detrás. En Lorencia, Devias y Noria.
+TEST_F(ItemTooltipsTest, TheNpcShopGridShowsTheBuyingPriceWithTheTax)
+{
+    for (const std::int32_t map : {0, 2, 3})
+    {
+        SCOPED_TRACE(map);
+        world.Runtime().map = map;
+        world.Runtime().panels.npcShop = 1;
+        world.Runtime().npcWindows.taxRate = 3;
+        const ItemState item = ExcellentWeapon();
+        const auto price = Client::Scenes::ItemPrice(item, items, Client::Scenes::ShopGridPrice, std::nullopt);
+        ASSERT_TRUE(price.HasValue()) << price.Error();
+        const std::uint32_t taxed = price.Value() + static_cast<std::uint32_t>(std::int64_t{3} * price.Value() / 100);
+        const CrtRandom expected = Advanced(random, OwnRecordCloseRandoms + NpcShopQuery + SkillAccess);
+
+        const auto drawn = Draw(item, 320, 300, 1);
+
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(random.State(), expected.State());
+        const TooltipLines& lines = Lines();
+        EXPECT_EQ(lines.text[0], "\n");
+        EXPECT_EQ(lines.text[1],
+                  "Compra: " + Client::Scenes::FormatZen(taxed) + "(" + Client::Scenes::FormatZen(price.Value()) + ")");
+        EXPECT_EQ(lines.colors[1], 4);
+        EXPECT_EQ(lines.bold[1], StaleBold);
+        EXPECT_EQ(lines.text[2], "\n");
+        EXPECT_EQ(lines.text[3], "Brillante Hoja Gris +9");
+        EXPECT_EQ(lines.next, 18);
+        EXPECT_EQ(lines.halves, 6);
+    }
+}
+
+// 0x5b2e46..0x5b2f34: desde el inventario con la tienda abierta, el 63 con el precio de venta (el modo 1); sin el
+// impuesto. El precio de 1.000 o más lleva las comas de 0x5b1130.
+TEST_F(ItemTooltipsTest, TheInventoryShowsTheSellingPriceWithTheShopOpen)
 {
     world.Runtime().panels.npcShop = 1;
-    const CrtRandom expected = Advanced(random, OwnRecordCloseRandoms + NpcShopQuery);
+    world.Runtime().npcWindows.taxRate = 50;
+    const ItemState item = ExcellentWeapon();
+    const auto price = Client::Scenes::ItemPrice(item, items, Client::Scenes::InventoryPrice, std::nullopt);
+    ASSERT_TRUE(price.HasValue()) << price.Error();
+    ASSERT_GE(price.Value(), 1000u);
 
-    const auto drawn = Draw(ExcellentWeapon());
+    const auto drawn = Draw(item);
 
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x5b2d23"), std::string::npos) << drawn.Error();
-    EXPECT_EQ(random.State(), expected.State());
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(Lines().text[1], "Venta: " + Client::Scenes::FormatZen(price.Value()));
+    EXPECT_NE(Lines().text[1].find(','), std::string::npos);
+    EXPECT_EQ(Lines().colors[1], 4);
+    EXPECT_EQ(Lines().text[2], "\n");
+}
+
+// 0x5b2d03: la caja de la suerte (0x1c0b) no muestra precio con la tienda abierta: el tooltip y los rand() son los
+// mismos que con la tienda cerrada (el IsOpen(0x10000) saca el suyo igual).
+TEST_F(ItemTooltipsTest, TheLuckyBoxHasNoPriceInTheShop)
+{
+    ItemState box;
+    box.id = 0x1c0b;
+    const CrtRandom before = random;
+    ASSERT_TRUE(Draw(box).HasValue());
+    const std::uint32_t closedState = random.State();
+    const auto closedLines = Lines().text;
+
+    random = before;
+    world.Runtime().panels.npcShop = 1;
+    const auto drawn = Draw(box);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(random.State(), closedState);
+    EXPECT_EQ(Lines().text, closedLines);
 }
 
 TEST_F(ItemTooltipsTest, ThePetTooltipCutsAfterClearingTheLines)

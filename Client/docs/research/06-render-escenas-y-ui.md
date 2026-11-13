@@ -2226,9 +2226,14 @@ Después, `0x1803..0x1806` y `0x1a1e` vuelven a 3 con nivel 7 o más, o a 1 o 0 
 
 **El precio** (`0x5b2cad..0x5b3716`). Salvo `0x1c0c`, `0x1c17..0x1c1a` y `0x1a14` con nivel 1 o 2, pregunta por la
 tienda de NPC (`0x659290(0x10000)`, un byte protegido: 1 `rand()`). Abierta, salvo con `0x1c0b` y con `0x1c14` de
-nivel 1 a 5, escribe el precio de `0x54d0f0` y `0x5b1200`: es de la CL9.3 y MuRet corta en `0x5b2d23`, aunque
-el cálculo de `0x54d0f0` ya está portado (§ El precio de un ítem). Después
-pregunta por las tiendas personales (`0x800` y `0x20000`, sin `rand()`), pero el precio solo sale con `0x78abaa4`
+nivel 1 a 5, escribe el precio (CL9 hito 6, *estático*; `Scenes::WriteTheShopPrice` en `Scenes/ItemTooltips.cpp`).
+Desde la grilla de la tienda (`0x78aba27` distinto de 0, `0x5b2d23`) el texto 1620 con dos `%s`: `0x5b1200(precio)`
+y el precio de `0x54d0f0(ítem, 0)` con las comas de `0x5b1130` (en línea, `0x6c9844..0x6c9870`). `0x5b1200` suma al
+precio el impuesto de la tienda (`0x78aba30`, en por ciento, con signo): `_allmul` del impuesto por el precio sin
+signo en 64 bits, `_alldiv` por 100 con signo y el dword bajo sumado; lo escribe con sus copias de los mismos formatos
+(`0x6c9874..0x6c98a0`). Desde otro lado (`0x5b2e46`), el 63 con `0x54d0f0(ítem, 1)` con comas. El renglón va con el
+color del nombre y sin escribir la negrita, y detrás un `"\n"` (`0x6c99c8`) que suma un medio. Después de este
+precio sale; si no, pregunta por las tiendas personales (`0x800` y `0x20000`, sin `rand()`), pero el precio solo sale con `0x78abaa4`
 en 1, que pone `0x5c4110` con la grilla de la tienda personal (`0x78ab0b8`, CL9.4): en MuRet queda en 0 (Q-C695).
 
 **Los tramos**, en orden:
@@ -2414,8 +2419,7 @@ ventana y el cartel del set, el cuerpo del ítem, el de reparar (con el precio d
 ítem), el sprintf del CRT (`UI/SprintfFormat`) y `0x40ebd0` en la cola de los comandos del chat
 (Q-C594). Los tests son `test_game_tooltips.cpp`, `test_item_tooltips.cpp`, `test_sprintf_format.cpp` y
 `test_chat_commands.cpp`. Del cuerpo del ítem cortan con su dirección: `0x1a04` y `0x1a05` (`0x4229d4`, P-C126), el
-precio de la tienda de NPC (`0x5b2d23`), el nombre del `0x1c0c` de nivel 2 (la tabla de `0x6c9350`) y del `0x1a0a` (la
-tabla de monstruos de `0x7681eb8`), las líneas del `0x1a1d` (`0x5b63b7`) y del `0x1c1c` (`0x437c90`), el `0x1a13`
+nombre del `0x1c0c` de nivel 2 (la tabla de `0x6c9350`) y del `0x1a0a` (la tabla de monstruos de `0x7681eb8`), las líneas del `0x1a1d` (`0x5b63b7`) y del `0x1c1c` (`0x437c90`), el `0x1a13`
 desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125). El cuerpo de la skill y la ayuda
 de los comandos están en `Scenes/SkillTooltip.cpp`, con `0x5516e0` en `Scenes/OwnDamage` (`test_skill_tooltip.cpp`).
 Cortan con su dirección lo que leen fuera de lo que MuRet tiene (P-C135), y lo que depende de otras olas o de la VM
@@ -2481,7 +2485,7 @@ ventana y el cartel del set, el cuerpo del ítem, el de reparar con su precio (`
 (Q-C594). Los tests son `test_game_tooltips.cpp`, `test_item_tooltips.cpp`, `test_item_price.cpp` (con Item.bmd real
 para los de oro), `test_sprintf_format.cpp` y `test_chat_commands.cpp`. Del precio cortan con su dirección las lecturas
 que MuRet no tiene, como en P-C140. Del cuerpo del ítem cortan con su dirección: `0x1a04` y `0x1a05` (`0x4229d4`,
-P-C126), el precio de la tienda de NPC (`0x5b2d23`, con el cálculo listo), el nombre del `0x1c0c` de nivel 2 (la tabla
+P-C126), el nombre del `0x1c0c` de nivel 2 (la tabla
 de `0x6c9350`) y del `0x1a0a` (la tabla de monstruos de `0x7681eb8`), las líneas del `0x1a1d` (`0x5b63b7`) y del
 `0x1c1c` (`0x437c90`), el `0x1a13` desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125).
 El de la skill (`0x5b90b0`) corta con su dirección (P-C101). La ayuda del ítem (el modo 3) está en § HUD y

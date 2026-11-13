@@ -329,4 +329,37 @@ TEST_F(CrywolfContractTest, TheAltarClickShowsTheOfferToAnElf)
     EXPECT_EQ(Client::Scenes::ClickTheCrywolfAltar(Runtime(), &texts, hero, altar).Value(), AltarClick::Contract);
     EXPECT_EQ(Ui().byte723a44, 0);
 }
+
+// 0x4eac0a..0x4eac41: la bandera del A* con la etapa 3 o 4 en el 34 y un altar (0x204..0x208, el word +2 con signo) en
+// 0x6c8e54, vivo o no. En Lorencia, Devias, con otra etapa, otro tipo o sin NPC elegido (Q-C1350), sin bandera.
+TEST_F(CrywolfContractTest, TheAltarGoalNeedsTheDefenseInCrywolfAndAChosenAltar)
+{
+    constexpr std::size_t AltarSlot = 9;
+    const auto goal = [this](std::int32_t map, std::uint8_t stage, std::int32_t chosen, std::uint16_t type)
+    {
+        Enter(map, stage);
+        Runtime().movement.chosenNpc = chosen;
+        world->Actors()[AltarSlot] = ActorState{};
+        world->Actors()[AltarSlot].type = type;
+        return Client::Scenes::CrywolfAltarGoal(*world);
+    };
+    const auto slot = static_cast<std::int32_t>(AltarSlot);
+    for (const std::uint8_t stage : {std::uint8_t{3}, std::uint8_t{4}})
+    {
+        for (const std::uint16_t type : {std::uint16_t{0x204}, std::uint16_t{0x206}, std::uint16_t{0x208}})
+        {
+            SCOPED_TRACE(type);
+            EXPECT_TRUE(goal(CrywolfMap, stage, slot, type));
+            EXPECT_FALSE(goal(0, stage, slot, type));
+            EXPECT_FALSE(goal(2, stage, slot, type));
+        }
+    }
+    for (const std::uint8_t stage : {std::uint8_t{0}, std::uint8_t{2}, std::uint8_t{5}})
+        EXPECT_FALSE(goal(CrywolfMap, stage, slot, 0x205)) << int{stage};
+    for (const std::uint16_t type : {std::uint16_t{0x203}, std::uint16_t{0x209}, std::uint16_t{0x8204}})
+        EXPECT_FALSE(goal(CrywolfMap, 4, slot, type)) << type;
+    EXPECT_FALSE(goal(CrywolfMap, 4, -1, 0x205));
+    // Otro registro en 0x6c8e54: mira el elegido, no el altar.
+    EXPECT_FALSE(goal(CrywolfMap, 4, slot + 1, 0x205));
+}
 } // namespace

@@ -18,10 +18,12 @@
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/MonsterKinds.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/GameMovementState.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
+#include "World/TerrainWalls.h"
 #include "World/WorldTerrain.h"
 
 #include "support/FakeTextureStore.h"
@@ -36,10 +38,12 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <memory>
 #include <span>
@@ -270,6 +274,52 @@ TEST_F(MonsterViewportTest, TheMonstersOfLorenciaAndDeviasComeFromTheirCase)
         EXPECT_EQ(actor.targetX, cell.x);
         EXPECT_EQ(actor.movement, 1);
         EXPECT_EQ(actor.alpha, 1.0f);
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, WalkingRecordDraws).State());
+    }
+}
+
+// 0x4ca06e → 0x4eac00 (Q-C1351): el camino de un monstruo que no es recién llegado también lleva la bandera si
+// 0x6c8e54 tiene un altar (el registro 9, muerto) con la etapa 4 en el 34: su blanco, de pared en el TerrainWall, queda
+// en 0 y el camino llega. En Lorencia y Devias el camino para al lado del blanco, que queda como estaba.
+TEST_F(MonsterViewportTest, AChosenCrywolfAltarAlsoClearsTheGoalOfAMonster)
+{
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}, std::uint8_t{34}})
+    {
+        SCOPED_TRACE(static_cast<int>(map));
+        Load(map);
+        game->world.Runtime().crywolf.stage = 4;
+        game->world.Runtime().movement.chosenNpc = 9;
+        Actor(9).type = 0x205;
+        const Cell cell = FreeRow();
+        const Cell target{Byte(cell.x + 4), cell.y};
+        auto& goal = game->world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(target.x, target.y)];
+        goal = Client::World::BlockedWallBit;
+        const std::array<MonsterRecordBytes, 1> records{{{.key = 0x0123,
+                                                          .typeHigh = 0xb0,
+                                                          .typeLow = 3,
+                                                          .x = cell.x,
+                                                          .y = cell.y,
+                                                          .targetX = target.x,
+                                                          .targetY = target.y,
+                                                          .direction = 0x35}}};
+        const auto applied = Monsters(records);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        const ActorState& actor = Actor(1);
+        EXPECT_EQ(actor.movement, 1);
+        ASSERT_GT(actor.path.count, 1);
+        const auto& last = actor.path.cells[actor.path.count - 1U];
+        if (map == 34)
+        {
+            EXPECT_EQ(goal, 0);
+            EXPECT_EQ(last.x, target.x);
+            EXPECT_EQ(last.y, target.y);
+        }
+        else
+        {
+            EXPECT_EQ(goal, Client::World::BlockedWallBit);
+            EXPECT_FALSE(last.x == target.x && last.y == target.y);
+            EXPECT_EQ(std::max(std::abs(last.x - target.x), std::abs(last.y - target.y)), 1);
+        }
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, WalkingRecordDraws).State());
     }
 }

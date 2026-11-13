@@ -33,7 +33,8 @@ std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Render::Models::Cr
     return cell;
 }
 
-void RetryPath(ActorState& actor, Render::Models::CrtRandom& random, Data::Terrain::TerrainLayer<std::uint16_t>& walls)
+void RetryPath(ActorState& actor, Render::Models::CrtRandom& random, Data::Terrain::TerrainLayer<std::uint16_t>& walls,
+               bool altarGoal)
 {
     if (actor.movementCooldown != 0 || actor.type == PathlessType)
     {
@@ -47,7 +48,7 @@ void RetryPath(ActorState& actor, Render::Models::CrtRandom& random, Data::Terra
     }
     const auto startY = ReadCell(actor.cellYAccesses, actor.cellY, random);
     const auto startX = ReadCell(actor.cellXAccesses, actor.cellX, random);
-    const auto path = GameLogic::PathFinder(walls).Find({startX, startY}, {actor.targetX, actor.targetY});
+    const auto path = GameLogic::PathFinder(walls).Find({startX, startY}, {actor.targetX, actor.targetY}, altarGoal);
     if (path)
     {
         actor.path = *path;
@@ -126,7 +127,7 @@ Core::Expected<void, std::string> StepOtherActorMotion(ActorState& actor, const 
     }
     if (actor.movement == 0)
     {
-        RetryPath(actor, motion.random, walls);
+        RetryPath(actor, motion.random, walls, motion.altarGoal);
         return {};
     }
     const auto walked = SetActorWalk(actor, walk);

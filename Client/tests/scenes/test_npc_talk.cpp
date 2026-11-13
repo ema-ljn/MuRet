@@ -4,9 +4,11 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainMapping.h"
 #include "Data/Text/TextTable.h"
+#include "GameLogic/Path.h"
 #include "GameLogic/PathCell.h"
 #include "Protocol/Movement.h"
 #include "Render/Models/Cloth.h"
@@ -23,8 +25,10 @@
 #include "Scenes/WorldState.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
+#include "World/TerrainWalls.h"
 #include "World/WorldTerrain.h"
 
+#include "support/GoldenDir.h"
 #include "support/SceneDataFiles.h"
 
 #include <algorithm>
@@ -37,6 +41,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -289,24 +294,91 @@ TEST(NpcTalkTest, TheHeroTalksWhenItArrives)
     EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTimeMax, 12);
 }
 
-// 0x4eac41 y 0x59dc32: el camino a un altar de Crywolf activo y un NPC fuera del mapa cortan.
-TEST(NpcTalkTest, TheCrywolfAltarAndAnNpcOutsideTheMapAreCut)
+// 0x59dc32: un NPC fuera del mapa corta.
+TEST(NpcTalkTest, AnNpcOutsideTheMapIsCut)
 {
+    const auto tested = std::make_unique<TalkingHero>();
+    tested->Npc().position.x = 25700.0f;
+    const auto clicked = tested->Click();
+    ASSERT_FALSE(clicked.HasValue());
+    EXPECT_NE(clicked.Error().find("0x59dc32"), std::string::npos) << clicked.Error();
+}
+
+// 0x4eac0a..0x4eac41 desde 0x59dc32: con Crywolf activo, el altar recién elegido (0x59db1f) le pone la bandera al A*,
+// que pone en 0 el word de su celda (0x4eae0d) aunque sea pared: el camino llega a la celda del altar. Con la etapa 2
+// la meta queda y el clic va al más cercano.
+TEST(NpcTalkTest, TheWalkToACrywolfAltarClearsItsCell)
+{
+    for (const std::uint8_t stage : {std::uint8_t{2}, std::uint8_t{3}, std::uint8_t{4}})
     {
+        SCOPED_TRACE(stage);
         const auto tested = std::make_unique<TalkingHero>();
         tested->world.Runtime().map = 34;
-        tested->world.Runtime().crywolf.stage = 4;
+        tested->world.Runtime().crywolf.stage = stage;
         tested->Npc().type = 0x205;
+        auto& walls = tested->world.Map().terrain.attributes->cells;
+        const std::size_t altar = Client::Data::Terrain::CellIndex(185, 115);
+        walls[altar] = 0x06;
         const auto clicked = tested->Click();
-        ASSERT_FALSE(clicked.HasValue());
-        EXPECT_NE(clicked.Error().find("0x4eac41"), std::string::npos) << clicked.Error();
+        ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
+        EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 185 115"}));
+        const auto& path = tested->Hero().path;
+        ASSERT_GE(path.count, 2);
+        const Client::GameLogic::PathCell last = path.cells[path.count - 1U];
+        if (stage == 2)
+        {
+            EXPECT_EQ(walls[altar], 0x06);
+            // El más cercano de 0x4eb0f4..0x4eb3fc: el primero con la heurística 4 es la diagonal de arriba.
+            EXPECT_EQ(last, (Client::GameLogic::PathCell{184, 114}));
+        }
+        else
+        {
+            EXPECT_EQ(walls[altar], 0);
+            EXPECT_EQ(last, (Client::GameLogic::PathCell{185, 115}));
+        }
     }
+}
+
+// 0x59e21f → 0x4eac00 (Q-C1351): el clic en el suelo también lleva la bandera si 0x6c8e54 todavía tiene un altar (un
+// camino a un altar que el clic cortó). En el 34 con la etapa 4 la celda de pared del clic queda en 0 y el camino
+// llega; en Lorencia y Devias, el más cercano.
+TEST(NpcTalkTest, AGroundClickWithAChosenAltarAlsoClearsItsCell)
+{
+    for (const std::int32_t map : {0, 2, 34})
     {
+        SCOPED_TRACE(map);
         const auto tested = std::make_unique<TalkingHero>();
-        tested->Npc().position.x = 25700.0f;
-        const auto clicked = tested->Click();
-        ASSERT_FALSE(clicked.HasValue());
-        EXPECT_NE(clicked.Error().find("0x59dc32"), std::string::npos) << clicked.Error();
+        auto& runtime = tested->world.Runtime();
+        runtime.map = map;
+        runtime.crywolf.stage = 4;
+        runtime.movement.chosenNpc = static_cast<std::int32_t>(NpcSlot);
+        tested->Npc().type = 0x205;
+        auto& walls = tested->world.Map().terrain.attributes->cells;
+        const std::size_t clicked = Client::Data::Terrain::CellIndex(186, 115);
+        walls[clicked] = 0x04;
+        runtime.movement.mouseUpdateTime = 6;
+        auto context = tested->Context();
+        context.input.leftPressed = true;
+        context.input.leftDown = true;
+        context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+        { return std::optional<Client::GameLogic::PathCell>{Client::GameLogic::PathCell{186, 115}}; };
+        const auto stepped = Client::Scenes::StepHeroMovement(context);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 186 115"}));
+        const auto& path = tested->Hero().path;
+        ASSERT_GE(path.count, 2);
+        const Client::GameLogic::PathCell last = path.cells[path.count - 1U];
+        if (map == 34)
+        {
+            EXPECT_EQ(walls[clicked], 0);
+            EXPECT_EQ(last, (Client::GameLogic::PathCell{186, 115}));
+        }
+        else
+        {
+            EXPECT_EQ(walls[clicked], 0x04);
+            EXPECT_EQ(last, (Client::GameLogic::PathCell{185, 114}));
+        }
+        EXPECT_EQ(runtime.movement.chosenNpc, static_cast<std::int32_t>(NpcSlot));
     }
 }
 
@@ -512,6 +584,101 @@ TEST(NpcTalkTest, AnElfAtACrywolfAltarSeesItsStateInsteadOfTalking)
             EXPECT_EQ(runtime.byte6eeda8, 1);
             EXPECT_EQ(hero->Hero().movement, 1);
             EXPECT_EQ(hero->random.State(), Advanced(start, OwnRecordRandoms).State());
+        }
+    }
+}
+
+// El camino hasta un altar de Crywolf con el Data del repo (0x59dc32 → 0x4eac00 → 0x4ead70), en Lorencia, Devias y
+// Crywolf, con la etapa 4 en los tres. El altar está en una celda que el .att tiene de pared (0x04, sola entre celdas
+// libres), con el 0x02 de personaje (0x509165), y la elfa cuatro celdas al este. Solo en el 34 la bandera (0x4eac41)
+// pone en 0 la celda del altar: el A* exacto llega a ella y la llegada (0x567b00) muestra la oferta del contrato. En el
+// 0 y el 2 el exacto falla en la meta (0x4eae38), el más cercano para en la diagonal de arriba y la llegada le habla
+// con el C1 30.
+class NpcTalkDataTest : public Client::Tests::GoldenDataTest
+{
+};
+
+TEST_F(NpcTalkDataTest, OnlyInCrywolfTheWalkReachesTheAltarCell)
+{
+    struct Case
+    {
+        std::int32_t map;
+        std::uint8_t altarX;
+        std::uint8_t altarY;
+    };
+    constexpr std::int32_t CrywolfMap = 34;
+    constexpr std::uint8_t Away = 4;
+    for (const Case& probe : {Case{0, 172, 47}, Case{2, 181, 109}, Case{CrywolfMap, 116, 114}})
+    {
+        SCOPED_TRACE(probe.map);
+        const auto tested = std::make_unique<TalkingHero>();
+        auto loaded = Client::World::LoadWorldTerrain(m_dataRoot, static_cast<std::uint8_t>(probe.map));
+        ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+        tested->world.Map().terrain = std::move(loaded).Value();
+        auto& runtime = tested->world.Runtime();
+        runtime.map = probe.map;
+        runtime.crywolf.stage = 4;
+        const auto heroX = static_cast<std::uint8_t>(probe.altarX + Away);
+        const auto center = [](std::uint8_t cell) { return (static_cast<float>(cell) * 100.0f) + 50.0f; };
+        ActorState& hero = tested->Hero();
+        hero.cellX = hero.targetX = heroX;
+        hero.cellY = hero.targetY = probe.altarY;
+        hero.position = {center(heroX), center(probe.altarY), 0.0f};
+        hero.characterClass = 2;
+        ActorState& altar = tested->Npc();
+        altar.type = 0x206;
+        altar.key = 0x013e;
+        altar.position = {center(probe.altarX), center(probe.altarY), 0.0f};
+        auto& walls = tested->world.Map().terrain.attributes->cells;
+        const std::size_t cell = Client::Data::Terrain::CellIndex(probe.altarX, probe.altarY);
+        ASSERT_EQ(walls[cell], Client::World::BlockedWallBit);
+        for (std::uint8_t x = probe.altarX + 1; x <= heroX; ++x)
+            ASSERT_LT(walls[Client::Data::Terrain::CellIndex(x, probe.altarY)], 2) << int{x};
+        Client::World::MarkCharacterWall(walls, probe.altarX, probe.altarY);
+        tested->texts = Client::Tests::MakeTextTable({{2006, "quedan %d"}, {2007, "contratar?"}});
+
+        const auto clicked = tested->Click();
+        ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
+        const Client::GameLogic::Path path = hero.path;
+        ASSERT_GE(path.count, 2);
+        const Client::GameLogic::PathCell last = path.cells[path.count - 1U];
+        if (probe.map == CrywolfMap)
+        {
+            EXPECT_EQ(walls[cell], 0);
+            EXPECT_EQ(path.count, Away + 1);
+            EXPECT_EQ(last, (Client::GameLogic::PathCell{probe.altarX, probe.altarY}));
+        }
+        else
+        {
+            EXPECT_EQ(walls[cell], Client::World::BlockedWallBit | Client::World::CharacterWallBit);
+            // El más cercano: la diagonal de arriba, como en TheWalkToACrywolfAltarClearsItsCell.
+            EXPECT_EQ(last, (Client::GameLogic::PathCell{static_cast<std::uint8_t>(probe.altarX + 1),
+                                                         static_cast<std::uint8_t>(probe.altarY - 1)}));
+        }
+        constexpr int StepLimit = 100;
+        for (int step = 0; step < StepLimit && hero.movement != 0; ++step)
+        {
+            const auto stepped = Client::Scenes::StepHeroMovement(tested->Context());
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        }
+        EXPECT_EQ(hero.movement, 0);
+        EXPECT_EQ(hero.cellX, last.x);
+        EXPECT_EQ(hero.cellY, last.y);
+        EXPECT_EQ(runtime.movement.chosenNpc, -1);
+        const std::string walk = std::format("D3 {} {}", probe.altarX, probe.altarY);
+        const auto& ui = runtime.crywolf.ui;
+        if (probe.map == CrywolfMap)
+        {
+            EXPECT_EQ(tested->events, (std::vector<std::string>{walk}));
+            EXPECT_EQ(std::string_view(ui.contractLines[0].data()), "quedan 2");
+            EXPECT_EQ(std::string_view(ui.contractLines[1].data()), "contratar?");
+            EXPECT_EQ(ui.byte723a44, 1);
+            EXPECT_EQ(ui.dwords723bdc[1], 0x013e);
+        }
+        else
+        {
+            EXPECT_EQ(tested->events, (std::vector<std::string>{walk, "30 013e"}));
+            EXPECT_EQ(ui.byte723a44, 0);
         }
     }
 }

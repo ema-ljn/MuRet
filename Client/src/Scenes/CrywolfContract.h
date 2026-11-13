@@ -20,6 +20,7 @@ namespace Client::Scenes
 {
 struct ActorState;
 struct WorldRuntime;
+class WorldState;
 
 // Los mensajes de 0x435b00: el texto 1950 + n de Text.bmd ([0x774bf04 + 300 · n]).
 inline constexpr std::int32_t ContractRefusedMessage = 2; // el No (0x435ca4)
@@ -101,4 +102,12 @@ enum class AltarClick : std::uint8_t
                                                                            const Data::Text::TextTable* texts,
                                                                            const ActorState& hero,
                                                                            const ActorState& target);
+
+// 0x4eac0a..0x4eac41, al entrar a 0x4eac00 (el camino, GameLogic::PathFinder::Find): con la etapa en 3 o 4 (0x435a00)
+// en el mapa 34 (0x4303c0) y el word +2 del personaje de 0x6c8e54 (el tipo, con signo) en 0x204..0x208, un altar, la
+// bandera +0x20 de 0x4ead70 en 1: el A* pone en 0 el word de la meta en el TerrainWall vivo (clearGoal), así que el
+// camino llega a la celda del altar. 0x4eac00 la calcula en cada llamada con lo que haya en 0x6c8e54, sin mirar quién
+// camina ni adónde: también el clic en el suelo, el D3 y los caminos de los otros personajes (Q-C1351). Con 0x6c8e54 en
+// −1 (sin NPC elegido) el original lee el registro −1, fuera de la tabla (Q-C1350): MuRet lo toma sin altar.
+[[nodiscard]] bool CrywolfAltarGoal(const WorldState& world);
 } // namespace Client::Scenes

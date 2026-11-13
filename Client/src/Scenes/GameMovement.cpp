@@ -18,6 +18,7 @@
 #include "Scenes/ActorWalk.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/CameraTour.h"
+#include "Scenes/CrywolfContract.h"
 #include "Scenes/EventChipWindow.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneId.h"
@@ -251,7 +252,9 @@ Core::Expected<void, std::string> UseGroundClick(ActorState& hero, const HeroMov
     }
     const auto startY = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
     const auto startX = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
-    const auto path = GameLogic::PathFinder(terrain.attributes->cells).Find({startX, startY}, target);
+    // 0x4eac0a..0x4eac41: con un altar de Crywolf en 0x6c8e54, también el clic en el suelo pone en 0 la meta.
+    const auto path = GameLogic::PathFinder(terrain.attributes->cells)
+                          .Find({startX, startY}, target, CrywolfAltarGoal(context.world));
     if (!path)
     {
         state.mouseUpdateTime = 0;
@@ -304,23 +307,13 @@ Core::Expected<void, std::string> WalkToTheNpc(ActorState& hero, const HeroMovem
         return Core::Unexpected(std::string("0x4eac00: falta TerrainWall para caminar"));
     const auto startY = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
     const auto startX = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
-    // 0x4eac0a..0x4eac41: con Crywolf activo (0x435a00 y el mapa 34) y un altar en 0x6c8e54 (0x204..0x208), el A*
-    // (0x4ead70) va con una bandera que MuRet no tiene.
-    constexpr std::int32_t CrywolfMap = 34;
-    constexpr std::uint8_t ThirdStage = 3;
-    constexpr std::uint8_t FourthStage = 4;
-    constexpr std::int16_t FirstAltar = 0x204;
-    constexpr std::int16_t LastAltar = 0x208;
-    const bool crywolf =
-        (runtime.crywolf.stage == ThirdStage || runtime.crywolf.stage == FourthStage) && runtime.map == CrywolfMap;
-    const auto model = static_cast<std::int16_t>(target.type);
-    if (crywolf && model >= FirstAltar && model <= LastAltar)
-        return Core::Unexpected(std::string("0x4eac41: el camino a un altar de Crywolf (la bandera del A* de 0x4ead70) "
-                                            "es del hito 11"));
     const GameLogic::PathCell goal{static_cast<std::uint8_t>(*x & 0xff), static_cast<std::uint8_t>(*y & 0xff)};
     if (*x != goal.x || *y != goal.y)
         return Core::Unexpected(std::format("0x59dc32: el destino ({}, {}) del NPC sale del mapa", *x, *y));
-    if (const auto path = GameLogic::PathFinder(terrain.attributes->cells).Find({startX, startY}, goal))
+    // 0x4eac0a..0x4eac41: con Crywolf activo (0x435a00 y el mapa 34) y el altar recién elegido en 0x6c8e54
+    // (0x204..0x208), el A* (0x4ead70) pone en 0 el word de su celda y el camino llega hasta el altar.
+    if (const auto path = GameLogic::PathFinder(terrain.attributes->cells)
+                              .Find({startX, startY}, goal, CrywolfAltarGoal(context.world)))
     {
         hero.path = *path;
         return SendThePath(hero, goal, context);

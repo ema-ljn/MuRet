@@ -181,6 +181,41 @@ TEST(MovementRepliesTest, OtherActorUsesTheLiveWallsAndKeepsLogicalPositionUntil
         EXPECT_FALSE(other.path.cells[index].x == 21 && other.path.cells[index].y == 21);
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 8).State());
 }
+// 0x4c6b09 → 0x4eac00 (Q-C1351): con la etapa 4 en el 34 y un altar en 0x6c8e54 (el registro 9, aunque esté muerto),
+// el D3 de otro también lleva la bandera: la celda del blanco, con el 0x02 de otro personaje, queda en 0 y el camino
+// llega a ella. En Lorencia y Devias la meta queda y el camino va al más cercano.
+TEST(MovementRepliesTest, AChosenCrywolfAltarAlsoClearsTheGoalOfAnotherWalk)
+{
+    for (const std::int32_t map : {0, 2, 34})
+    {
+        SCOPED_TRACE(map);
+        const auto tested = std::make_unique<Replies>();
+        tested->world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        tested->world.Runtime().map = map;
+        tested->world.Runtime().crywolf.stage = 4;
+        tested->world.Runtime().movement.chosenNpc = 9;
+        tested->world.Actors()[9].type = 0x206;
+        auto& other = tested->world.Actors()[8];
+        other = Client::Tests::UnarmedPlayer();
+        other.alive = true;
+        other.key = 44;
+        other.cellX = 20;
+        other.cellY = 21;
+        other.position = {2050.0f, 2150.0f, 33.0f};
+        auto& goal = tested->world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(24, 21)];
+        goal = 0x02;
+        const auto applied = Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {24, 21}, 15},
+                                                            Replies::PlayerKey, tested->Resources());
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(other.movement, 1);
+        ASSERT_GT(other.path.count, 1);
+        const auto& last = other.path.cells[other.path.count - 1U];
+        EXPECT_EQ(goal, map == 34 ? 0 : 0x02);
+        EXPECT_EQ(last.x, map == 34 ? 24 : 23);
+        EXPECT_EQ(last.y, map == 34 ? 21 : 20);
+        EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(1, 8).State());
+    }
+}
 TEST(MovementRepliesTest, CooldownPreservesAnExistingPathButStillUpdatesTheTargetAndDirection)
 {
     Replies tested;

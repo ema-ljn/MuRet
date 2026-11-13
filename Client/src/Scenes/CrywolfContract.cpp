@@ -5,6 +5,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
 #include "UI/GameText.h"
 #include "UI/OriginalFormat.h"
 
@@ -239,5 +240,20 @@ Core::Expected<AltarClick, std::string> ClickTheCrywolfAltar(WorldRuntime& runti
     if (!shown.HasValue())
         return Core::Unexpected(std::move(shown).Error());
     return AltarClick::Contract;
+}
+
+bool CrywolfAltarGoal(const WorldState& world)
+{
+    // 0x4eac0a..0x4eac1a.
+    const WorldRuntime& runtime = world.Runtime();
+    if (!InTheDefense(runtime))
+        return false;
+    // 0x4eac1c..0x4eac3f: [0x743a16c] + 0x438 · [0x6c8e54] + 2, con CMP de 16 bits con signo.
+    const std::int32_t chosen = runtime.movement.chosenNpc;
+    const auto actors = world.Actors();
+    if (chosen < 0 || static_cast<std::size_t>(chosen) >= actors.size())
+        return false;
+    const auto type = static_cast<std::int16_t>(actors[static_cast<std::size_t>(chosen)].type);
+    return type >= static_cast<std::int16_t>(FirstAltarType) && type <= static_cast<std::int16_t>(LastAltarType);
 }
 } // namespace Client::Scenes

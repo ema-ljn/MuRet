@@ -19,6 +19,7 @@
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterHead.h"
+#include "Scenes/CrywolfContract.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/FaunaModels.h"
@@ -222,7 +223,7 @@ Core::Expected<void, std::string> StepOtherCharacter(ActorState& actor, std::siz
         // Los sonidos de los modelos que cargó el alta (0x612c80); los del NewFace, que carga 0x60dbe0, sin leer.
         player || IsNewFace(actor.type) ? std::span<const std::int16_t>{}
                                         : context.world.FaunaResources().SoundActions(actor.type)};
-    ActorMotionContext motion{context.world.Runtime(), context.random, {}};
+    ActorMotionContext motion{context.world.Runtime(), context.random, {}, CrywolfAltarGoal(context.world)};
     if (terrain.heights)
     {
         motion.height = [&](float x, float y)

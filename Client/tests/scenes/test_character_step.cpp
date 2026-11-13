@@ -1379,6 +1379,34 @@ TEST(CharacterStepTest, AnotherCharacterRunsItsWholeStepBeforeTheHero)
     }
 }
 
+// 0x508e0e → 0x4eac00 (Q-C1351): otro quieto con el blanco lejos de su celda reintenta el camino (0x508c84), y
+// 0x4eac0a..0x4eac41 le pone la bandera si 0x6c8e54 tiene un altar (el registro 9, muerto) con la etapa 4 en el 34: su
+// blanco, de pared, queda en 0 y el camino llega. En Lorencia y Devias la pared queda y el camino para al lado.
+TEST(CharacterStepTest, AnotherCharacterRetriesItsPathWithTheCrywolfAltarFlag)
+{
+    for (const std::int32_t map : {0, 2, 34})
+    {
+        SCOPED_TRACE(::testing::Message() << "mapa " << map);
+        GameWorld tested(map);
+        tested.world.Runtime().crywolf.stage = 4;
+        tested.world.Runtime().movement.chosenNpc = 9;
+        tested.world.Actors()[9].type = 0x205;
+        ActorState& other = tested.Other(3);
+        other.targetX = 7;
+        tested.Cell(7, 4) = Client::World::BlockedWallBit;
+
+        const auto stepped = tested.Step(Everything);
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(other.movement, 1);
+        ASSERT_GT(other.path.count, 1);
+        const auto& last = other.path.cells[other.path.count - 1U];
+        EXPECT_EQ(tested.Cell(7, 4), map == 34 ? 0 : Client::World::BlockedWallBit);
+        EXPECT_EQ(last.x, map == 34 ? 7 : 6);
+        EXPECT_EQ(last.y, map == 34 ? 4 : 3);
+    }
+}
+
 // 0x5068eb..0x5069ab con otro que el héroe, paso a paso: rand() % 32 en 0 sortea el blanco con dos rand() más
 // (+0x34 y +0x38), y los dos ángulos giran hacia él (+0x28 y +0x2c), como en el login. Con el héroe muerto, cada
 // paso saca el TerrainWall del otro y lo suyo, con 1 o 3 en la cabeza. En Lorencia y en Devias.

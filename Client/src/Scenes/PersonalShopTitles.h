@@ -7,7 +7,7 @@
 
 // Los carteles de las tiendas personales: el mapa del singleton de 0x7245c8 (0x451d10) por personaje (CL9 hito 7,
 // fase 3; 06 § Lo social en pantalla, "Las tiendas personales"). Los métodos de acá cambian el mapa; el dibujo
-// (0x451c20) y lo que mide para él cortan con su dirección (08 P-C208 a).
+// (0x451c20) y lo que mide para él están en Scenes/ShopSigns (fase 6b).
 namespace Client::Scenes
 {
 class WorldState;
@@ -15,8 +15,9 @@ struct PersonalShopState;
 
 // 0x4511f0 (AddShopTitle): con un personaje que no es jugador (+0x88 distinto de 1), solo el log (0x6c7938). Si no, sin
 // cartel uno nuevo (0x4521d0 y 0x4524e0) con la clave, el nombre (+0x1d9) y el título; con cartel de la misma clave, el
-// nombre y el título nuevos (0x452540); con otra clave, solo el log (0x6c7900). Las dos ramas que escriben miden con la
-// negrita (0x452540 y 0x4531b0: SelectObject del DC con 0x5763558), y el DC queda con ella.
+// nombre y el título nuevos (0x452540); con otra clave, solo el log (0x6c7900). Las dos ramas que escriben miden: el
+// texto 1104 y el nombre con la negrita (SelectObject del DC con 0x5763558, 0x452760 y 0x4531c6) y las líneas del
+// título con la normal (0x5763554, 0x4531f7), que queda en el DC.
 void AddShopTitle(WorldState& world, std::int32_t key, std::size_t index, std::string_view title);
 
 // 0x451430: saca el cartel del personaje, si tiene.

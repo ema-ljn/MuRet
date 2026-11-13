@@ -51,7 +51,8 @@ void AddShopTitle(WorldState& world, std::int32_t key, std::size_t index, std::s
         // 0x451308: "AddShopTitle: player key value is different" al log, nada más.
         return;
     }
-    runtime.hud.dcFont = Render::Text::FontKind::Bold;
+    // 0x4531f7: después del nombre en negrita, las líneas con la normal, que queda.
+    runtime.hud.dcFont = Render::Text::FontKind::Normal;
 }
 
 void RemoveShopTitle(PersonalShopState& shops, std::size_t index)

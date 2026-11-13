@@ -2,6 +2,7 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Data/Text/TextTable.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextBox.h"
@@ -9,11 +10,13 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/GameProjection.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
 #include "UI/Widget.h"
 #include "support/RecordingTextDrawer.h"
+#include "support/SceneDataFiles.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -31,7 +34,7 @@
 // El dibujo de los globos (CL8 hito 3; 06 § El chat, "Los globos"): 0x5a9050, 0x555840 y 0x555b00 con TextOut distinto
 // de 1. La proyección de los tests deja la x de la pantalla en el centro menos la x del dueño y la y en el centro más
 // la altura del globo (el techo más la z más 60) menos 300, con el ojo siempre a 1. El texto mide como el rasterizador
-// falso: 6 columnas por letra. Los nombres y los textos son inventados.
+// falso: 6 columnas por letra. Los nombres, los títulos y los textos (el 1104 también) son inventados.
 namespace
 {
 using Client::App::PixelSize;
@@ -52,6 +55,9 @@ constexpr PixelSize Screen1024{1024, 768};
 constexpr int Step640 = 12;
 constexpr int Step1024 = 14;
 constexpr float PlayerTop = 120.0f;
+// El texto 1104, la cabeza del título de una tienda: 8 letras, 48 columnas.
+constexpr std::string_view ShopHeader = "[Puesto]";
+constexpr int ShopHeaderWidth = 48;
 
 GameProjection FlatProjection(PixelSize screen)
 {
@@ -119,7 +125,8 @@ protected:
                                       .boxHeight = m_boxHeight,
                                       .mouse = mouse,
                                       .blink = blink,
-                                      .projecting = projecting};
+                                      .projecting = projecting,
+                                      .texts = m_withTexts ? &m_texts : nullptr};
         return Client::Scenes::DrawTheChatBubbles(context);
     }
 
@@ -142,6 +149,8 @@ protected:
     std::uint8_t m_clampBoxes = 0;
     std::int32_t m_boxWidth = 0;
     std::int32_t m_boxHeight = 0;
+    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable({{1104, std::string(ShopHeader)}});
+    bool m_withTexts = true;
 };
 
 // 0x555840: el nombre con 3 más, el gremio y el puesto, y los renglones que tienen tiempo; el alto, cinco pasos.
@@ -153,7 +162,7 @@ TEST_F(ChatBubbleDrawTest, TheMeasureTakesTheWidestShownText)
     bubble.line2 = "una linea larga";
     const auto measure = [&](int step)
     {
-        const auto measured = Client::Scenes::MeasureTheChatBubble(bubble, m_text, step);
+        const auto measured = Client::Scenes::MeasureTheChatBubble(bubble, m_text, step, nullptr);
         ASSERT_TRUE(measured.HasValue()) << measured.Error();
     };
 
@@ -172,17 +181,28 @@ TEST_F(ChatBubbleDrawTest, TheMeasureTakesTheWidestShownText)
     EXPECT_EQ(bubble.height, 5 * Step1024);
 }
 
-// 0x5559dd: el título de una tienda personal corta, después de escribir el tamaño.
-TEST_F(ChatBubbleDrawTest, AShopTitleIsCutAfterTheMeasure)
+// 0x5559c2..0x555a62: con el título corto de una tienda (+0x54), el ancho es al menos el del título más el del texto
+// 1104, en negrita, y el alto suma un renglón. Sin Text.bmd corta, después de escribir el tamaño de siempre.
+TEST_F(ChatBubbleDrawTest, AShopTitleWidensTheMeasureByOneRow)
 {
     ChatBubble bubble;
     bubble.name = "Tero";
     bubble.shopTitle = "Vendo cosas";
 
-    const auto measured = Client::Scenes::MeasureTheChatBubble(bubble, m_text, Step640);
+    ASSERT_TRUE(Client::Scenes::MeasureTheChatBubble(bubble, m_text, Step640, &m_texts).HasValue());
+    EXPECT_EQ(bubble.width, 11 * 6 + ShopHeaderWidth);
+    EXPECT_EQ(bubble.height, 6 * Step640);
 
+    // Un nombre más ancho que los dos queda.
+    bubble.name = "Un nombre bastante largo";
+    ASSERT_TRUE(Client::Scenes::MeasureTheChatBubble(bubble, m_text, Step1024, &m_texts).HasValue());
+    EXPECT_EQ(bubble.width, 24 * 6 + 3);
+    EXPECT_EQ(bubble.height, 6 * Step1024);
+
+    bubble.name = "Tero";
+    const auto measured = Client::Scenes::MeasureTheChatBubble(bubble, m_text, Step640, nullptr);
     ASSERT_FALSE(measured.HasValue());
-    EXPECT_NE(measured.Error().find("0x5559dd"), std::string::npos);
+    EXPECT_NE(measured.Error().find("0x555a0f"), std::string::npos);
     EXPECT_EQ(bubble.width, 27);
     EXPECT_EQ(bubble.height, 60);
 }
@@ -488,7 +508,7 @@ TEST_F(ChatBubbleDrawTest, WithoutTheProjectionALiveBubbleIsCut)
     EXPECT_NE(drawn.Error().find("0x5a90be"), std::string::npos);
 }
 
-// 0x5a90b2: un globo vivo sin dueño es de una tienda personal (CL9.4).
+// 0x5a90b2: un globo vivo sin dueño (+0x288, que solo escribe 0x557430, sin quien la llame) corta.
 TEST_F(ChatBubbleDrawTest, ABubbleWithoutOwnerIsCut)
 {
     Bubbles(3).nameTime = 5;
@@ -521,5 +541,163 @@ TEST_F(ChatBubbleDrawTest, TheRightClickOnADrawnBubbleReachesTheWhisper)
     EXPECT_FALSE(runtime.ui.rightClick);
     EXPECT_EQ(Client::UI::CStringOf(runtime.chat.input.whisperBuffer), "Tero");
     EXPECT_EQ(runtime.lastSoundId, 0x19);
+}
+
+// 0x5563a4..0x5565ef: con el cartel del dueño, el texto 1104 (como lo de adelante, de su ancho) y el título corto a su
+// derecha, en negrita y dos renglones más arriba, con los colores de 0x451af0, 0x451b50 y 0x451bb0; los demás
+// renglones, uno más arriba (Q-C978), y el DC en la normal.
+TEST_F(ChatBubbleDrawTest, ABubbleOfAShopOwnerHasItsTitleAbove)
+{
+    Actor(4, "Tero", glm::vec3(100.0f, 7.0f, 10.0f));
+    Bubble(0, 4, "Tero", "hola").shopTitle = "Vendo cosas";
+    Client::Scenes::PersonalShopState& shops = m_world->Runtime().social.personalShop;
+    shops.titles[4] = Client::Scenes::ShopTitle{.key = 0x0444, .name = "Tero", .title = "Vendo cosas y mas cosas"};
+
+    ASSERT_TRUE(Draw().HasValue());
+
+    // x: 320 − 100 − 114 / 2; y: 94, como sin tienda; 72 de alto.
+    EXPECT_EQ(Bubbles(0).x, 163);
+    EXPECT_EQ(Bubbles(0).y, 94);
+    EXPECT_EQ(Bubbles(0).width, 114);
+    EXPECT_EQ(Bubbles(0).height, 72);
+    ASSERT_EQ(Texts().size(), 4u);
+    const TextColors plain{.text = 0xff00e6e6u, .background = 0x8029396cu};
+    EXPECT_EQ(Texts()[0].text, ShopHeader);
+    EXPECT_EQ(Texts()[0].x, 163);
+    EXPECT_EQ(Texts()[0].y, 94 - 2 * Step640);
+    EXPECT_EQ(Texts()[0].style.font, FontKind::Bold);
+    EXPECT_EQ(Texts()[0].style.colors, plain);
+    EXPECT_EQ(
+        Texts()[0].box.value(),
+        (Client::Render::Text::BoxShape{
+            .width = ShopHeaderWidth, .rows = Step640, .prefixColumns = ShopHeaderWidth, .prefixColor = 0xff0096fau}));
+    EXPECT_TRUE(Texts()[0].clampY);
+    EXPECT_EQ(Texts()[1].text, "Vendo cosas");
+    EXPECT_EQ(Texts()[1].x, 163 + ShopHeaderWidth);
+    EXPECT_EQ(Texts()[1].y, 94 - 2 * Step640);
+    EXPECT_EQ(Texts()[1].style.font, FontKind::Bold);
+    EXPECT_EQ(Texts()[1].style.colors, plain);
+    EXPECT_EQ(Texts()[1].box.value().width, 114 - ShopHeaderWidth);
+    EXPECT_EQ(Texts()[1].box.value().prefixColumns, 0);
+    EXPECT_EQ(Texts()[2].text, "Tero");
+    EXPECT_EQ(Texts()[2].y, 94 - Step640);
+    EXPECT_EQ(Texts()[2].style.font, FontKind::Normal);
+    EXPECT_EQ(Texts()[3].text, "hola");
+    EXPECT_EQ(Texts()[3].y, 94);
+    EXPECT_EQ(m_dcFont, FontKind::Normal);
+}
+
+// 0x451af0, 0x451b50 y 0x451bb0: +0x60 del cartel (0x4517c0) cambia los colores; +0x370 en 2 u 8 va como el PK 6, y el
+// PK 4 y el 5 tienen los suyos.
+TEST_F(ChatBubbleDrawTest, TheShopTitleColorsComeFromTheSignAndTheOwner)
+{
+    ActorState& owner = Actor(4, "Tero", glm::vec3(100.0f, 7.0f, 10.0f));
+    Bubble(0, 4, "Tero", "hola").shopTitle = "Vendo";
+    Client::Scenes::PersonalShopState& shops = m_world->Runtime().social.personalShop;
+    shops.titles[4] = Client::Scenes::ShopTitle{.key = 0x0444, .name = "Tero", .title = "Vendo"};
+    struct Case
+    {
+        bool hovered = false;
+        std::uint8_t pk = 0;
+        std::uint8_t relation = 0;
+        std::uint32_t text = 0;
+        std::uint32_t header = 0;
+        std::uint32_t background = 0;
+    };
+    const std::vector<Case> cases{
+        {.hovered = true,
+         .pk = 0,
+         .relation = 0,
+         .text = 0xffffe6e6u,
+         .header = 0xff29396cu,
+         .background = 0x800096fau},
+        {.hovered = false,
+         .pk = 3,
+         .relation = 1,
+         .text = 0xff00e6e6u,
+         .header = 0xff0096fau,
+         .background = 0x8029396cu},
+        {.hovered = false,
+         .pk = 4,
+         .relation = 0,
+         .text = 0xff00b4e6u,
+         .header = 0xff00b4e6u,
+         .background = 0x8029396cu},
+        {.hovered = true,
+         .pk = 5,
+         .relation = 0,
+         .text = 0xff006ee6u,
+         .header = 0xff006ee6u,
+         .background = 0x80527ab6u},
+        {.hovered = true,
+         .pk = 6,
+         .relation = 0,
+         .text = 0xff0014f0u,
+         .header = 0xff0014f0u,
+         .background = 0x80527ab6u},
+        {.hovered = false,
+         .pk = 0,
+         .relation = 2,
+         .text = 0xff0014f0u,
+         .header = 0xff0014f0u,
+         .background = 0x8029396cu},
+        {.hovered = true,
+         .pk = 4,
+         .relation = 8,
+         .text = 0xff0014f0u,
+         .header = 0xff0014f0u,
+         .background = 0x80527ab6u},
+    };
+    for (const Case& c : cases)
+    {
+        SCOPED_TRACE(c.text);
+        shops.titles[4].hovered = c.hovered ? 1 : 0;
+        owner.pk = c.pk;
+        owner.byte370 = c.relation;
+        m_text.texts.clear();
+        ASSERT_TRUE(Draw().HasValue());
+        ASSERT_EQ(Texts().size(), 4u);
+        for (std::size_t row = 0; row < 2; ++row)
+        {
+            EXPECT_EQ(Texts()[row].style.colors, (TextColors{.text = c.text, .background = c.background}));
+            EXPECT_EQ(Texts()[row].box.value().prefixColor, c.header);
+        }
+    }
+}
+
+// El dibujo mira el cartel (0x451810) y no +0x54: un globo de antes del cartel no tiene título pero dibuja el texto
+// 1104 y un título vacío con el ancho del globo menos el del texto, negativo en uno angosto (Q-C978); un título sin
+// cartel ensancha la medida y no se dibuja. Sin Text.bmd, el dibujo con cartel corta.
+TEST_F(ChatBubbleDrawTest, TheTitleRowsFollowTheSignAndNotTheBubble)
+{
+    Actor(4, "Tero", glm::vec3(100.0f, 7.0f, 10.0f));
+    Bubble(0, 4, "Tero", "hola");
+    Client::Scenes::PersonalShopState& shops = m_world->Runtime().social.personalShop;
+    shops.titles[4] = Client::Scenes::ShopTitle{.key = 0x0444, .name = "Tero", .title = "Vendo"};
+
+    ASSERT_TRUE(Draw().HasValue());
+    EXPECT_EQ(Bubbles(0).width, 27);
+    EXPECT_EQ(Bubbles(0).height, 60);
+    ASSERT_EQ(Texts().size(), 4u);
+    EXPECT_EQ(Texts()[0].text, ShopHeader);
+    EXPECT_EQ(Texts()[1].text, "");
+    EXPECT_EQ(Texts()[1].box.value().width, 27 - ShopHeaderWidth);
+    EXPECT_EQ(Texts()[2].y, 94 - Step640);
+
+    m_withTexts = false;
+    const auto cut = Draw();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x556421"), std::string::npos);
+
+    m_withTexts = true;
+    shops.titles.clear();
+    Bubbles(0).shopTitle = "Vendo";
+    m_text.texts.clear();
+    ASSERT_TRUE(Draw().HasValue());
+    EXPECT_EQ(Bubbles(0).width, 30 + ShopHeaderWidth);
+    EXPECT_EQ(Bubbles(0).height, 72);
+    ASSERT_EQ(Texts().size(), 2u);
+    EXPECT_EQ(Texts()[0].text, "Tero");
+    EXPECT_EQ(Texts()[0].y, Bubbles(0).y);
 }
 } // namespace

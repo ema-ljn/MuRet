@@ -5,6 +5,7 @@
 #include "Core/Log.h"
 #include "Core/PathText.h"
 #include "Data/DataPath.h"
+#include "Data/Models/PlayerModels.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Protocol/Character/CharacterList.h"
@@ -220,17 +221,19 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
 GameChatContext GameScene::ChatContext()
 {
     App::ServerSession* session = m_session;
-    return GameChatContext{.world = *m_context.world,
-                           .random = m_context.cloth->random,
-                           .texts = m_texts,
-                           .items = m_items,
-                           .setOptions = m_chatTables.setOptions,
-                           .filter = m_chatTables.filter,
-                           .measure = m_context.textMeasure,
-                           .screen = m_screen,
-                           .send = session != nullptr ? ChatSender([session](Protocol::Outgoing packet)
-                                                                   { session->SendChat(std::move(packet)); })
-                                                      : ChatSender{}};
+    return GameChatContext{
+        .world = *m_context.world,
+        .random = m_context.cloth->random,
+        .texts = m_texts,
+        .items = m_items,
+        .setOptions = m_chatTables.setOptions,
+        .filter = m_chatTables.filter,
+        .measure = m_context.textMeasure,
+        .screen = m_screen,
+        .send = session != nullptr
+                    ? ChatSender([session](Protocol::Outgoing packet) { session->SendChat(std::move(packet)); })
+                    : ChatSender{},
+        .playerSkeleton = m_models != nullptr ? m_models->SkeletonOf(Data::Models::PlayerSkeletonModel) : nullptr};
 }
 
 InventoryServices GameScene::InventoryContext() const

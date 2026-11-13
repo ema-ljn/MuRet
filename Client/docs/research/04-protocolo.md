@@ -590,6 +590,50 @@ bit el cliente para a otro jugador una vez de cada dos, con un `rand() & 1` (las
 Q-C178). Este documento lo daba
 como posición y dirección: lo de caminar es solo esa parada.
 
+### La acción: `18`
+
+CL9 hito 1 (2026-11-13). *Estático*, con el ASM de `0x4cb750`, `0x576a60`, `0x576eb0`, `0x4f2250` y `0x59b456`,
+cotejado con `CGActionRecv` (`0x425cd0`) y `GCActionSend` (`0x425c50`) del GameServer del laboratorio; sin captura
+del cable con un emote ni sentado.
+
+- **C→S `C1 05 18 [dir] [acción]`**, con el XOR32 en línea (`Protocol::Movement::WriteAction`). `dir` sale del
+  ángulo `+0x24` de un personaje: `_ftol((ángulo + 22,5f) · 0,0222f + 1) & 0xff` y el resto con signo por 8, que es
+  `& 7` (Q-C777). Lo mandan el héroe quieto que gira (`0x59b456`, con `0x7a`); sentarse (`0x4f2416` volando y
+  `0x4f2834` por el piso, en `0x4f2250`), con `0x82` y el ángulo del que se sienta; y el emote (`0x576a60` y cada
+  caso de `0x576eb0`, [06](06-render-escenas-y-ui.md#el-chat)), con la acción del caso y siempre el ángulo del héroe
+  (`[0x743a170] + 0x24`): con el héroe parado salen dos iguales (Q-C776). Sin portar: `0x56c440`, `0x406050` (la
+  ventana de comandos, CL9.4), `0x4295f0` dos veces (Fenrir) y `0x4e1010` (las misiones: el único que prende
+  `0x200000` en `+0x7c`, solo en el héroe, pone la `0xca` y manda `0x82`).
+- **S→C `C1 07 18 [clave:2, big-endian] [dir] [acción]`** (`0x4cb750`, desde `0x4e39ab` sin guarda de escena ni
+  del flag): `0x5110d0` busca la clave (MOVSX: desde `0x8000` no la tiene nadie; sin nadie, el 400, Q-C778). Con el
+  caballo oscuro (`+0x318` en `0x1c16`) no hace nada. Si no, `+0x24` = (dir − 1) · 45 (`0x6b87d4` y `0x6b8848`),
+  `+0x378` (Movement) en 0 y la X y la Y en el centro de la celda blanco (`+0x39a`/`+0x39b` · 100 + 50, Q-C779), y
+  según la acción (`acción − 0x12` contra `0x89`, las tablas `0x4cbd70` y `0x4cbcec`), con `0x4ea030`, que no pone
+  la que el modelo no tiene ni repite la de ahora:
+
+| Acción | Qué hace |
+| --- | --- |
+| `0x12` | la `0x98` y el sonido `0x41ed10(0x6f, 0, 0)` (CL10) |
+| `0x78`, `0x79` | `0x4f4a10` (sin leer, hito 3), `+0x381` en 1, `+0x114` en 0, `+0x3a4` con `[0x57678b0]` y `[0x5767964]` con el índice |
+| `0x7a`, `0x7b` | `0x4f2250`, la de parado: sentado, la `0xca` y el `C1 18` de `0x82`; después su `rand()` |
+| `0x7e` | la 5 |
+| `0x80`, `0x81`, `0x82` | `0xc5`, `0xcb` y `0xc9`; con el elfo (`+0x1d4 & 7 == 2`), `0xc7`, `0xcc` y `0xca` |
+| `0x83` a `0x91` | `0x99`, `0x9b`, `0x9d`, `0xa3`, `0xa1`, `0xa5`, `0xa7`, `0x9f`, `0xa9`, `0xab`, `0xad`, `0xaf`, `0xb1`, `0xb3` y `0xb5`, la del emote de esa acción; con el elfo, la siguiente |
+| `0x92` a `0x9b` | `0xb7`, `0xb8`, `0xc0`, `0xb9`, `0xba`, `0xbb`, `0xbc`, `0xbd`, `0xbe` y `0xbf`, sin mirar la clase |
+| cualquier otra | ella misma |
+
+  No saca `rand()`, salvo `0x4f2250`. Lo que los demás ven de un emote es la animación que se puso el que lo hizo.
+- **El GameServer** (`CGActionRecv`): guarda la dirección y la acción sin validarlas y reenvía el `C1 07 18` con la
+  clave del que la hizo a los jugadores de su viewport (`VpPlayer2`), no a él: el emote propio se ve por `0x576a60` y
+  el de los demás por `0x4cb750`. Las acciones de descanso que mira son `0x6c`, `0x6d` y `0x6e` (`m_ViewState` 2 a 4
+  y `m_Rest`): el `0x82` de sentarse del 1.02 no las prende (08, P-C152). `GCActionSend` (`MsgSendV2`) la manda de un
+  ataque con `0x78` (`CGAttack`) y del escudo (la skill 18) con `0x12`; caminando en Blood Castle, `CGMoveRecv` le
+  manda al propio jugador la `0x66`, que el cliente pone tal cual.
+
+En MuRet: `Protocol::Movement::ReadAction`, `ServerSession::OnAction` y `Scenes::ApplyActionReply` (una clave
+desconocida se descarta, como el `D3`; el `0x78`/`0x79` corta con `0x4cb821` hasta el hito 3); los que mandan,
+`Scenes::SendTheAction` con `ServerSession::SendAction` (sin el GameServer abierto, un aviso y nada).
+
 ### Los cambios de mapa: `1C`, `F3 04` y `F3 12`
 
 *Estático* salvo lo que se marca; qué hace el cliente, en

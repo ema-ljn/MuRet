@@ -15,6 +15,7 @@
 #include "Protocol/OptionData.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
+#include "Scenes/ActionReply.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/IWorldEntryPublisher.h"
@@ -118,6 +119,9 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
         return ApplyWalkReply(*walk, session.PlayerIndex(), m_resources);
     if (const auto* damage = std::get_if<Protocol::Movement::Damage>(&event))
         return ApplyDamageReply(*damage, session.PlayerIndex(), m_resources);
+    if (const auto* action = std::get_if<Protocol::Movement::Action>(&event))
+        return ApplyActionReply(*action, m_resources, [&session](std::uint8_t direction, std::uint8_t sent)
+                                { session.SendAction(direction, sent); });
     if (const auto* teleport = std::get_if<Protocol::World::Teleport>(&event))
     {
         SessionPublisher publisher(session);

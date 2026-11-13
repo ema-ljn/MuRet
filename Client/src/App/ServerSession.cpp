@@ -232,6 +232,8 @@ void ServerSession::RegisterGameServerHandlers()
         m_gameServer.On(Protocol::Movement::WalkOpcode, [this](const Network::Packet& packet) { OnWalk(packet); }) &&
         m_gameServer.On(Protocol::Movement::DamageOpcode,
                         [this](const Network::Packet& packet) { OnDamage(packet); }) &&
+        m_gameServer.On(Protocol::Movement::ActionOpcode,
+                        [this](const Network::Packet& packet) { OnAction(packet); }) &&
         m_gameServer.On(Protocol::World::TeleportOpcode,
                         [this](const Network::Packet& packet) { OnTeleport(packet); }) &&
         m_gameServer.On(Protocol::World::WorldOpcode, Protocol::World::RegenSubcode,
@@ -1178,7 +1180,12 @@ Core::Expected<void, std::string> ServerSession::SendWalk(std::span<const Protoc
 
 Core::Expected<void, std::string> ServerSession::SendFacing(std::uint8_t direction)
 {
-    return SendWorldPacket(Protocol::Movement::WriteFacing(direction));
+    return SendWorldPacket(Protocol::Movement::WriteAction(direction, Protocol::Movement::FacingAction));
+}
+
+void ServerSession::SendAction(std::uint8_t direction, std::uint8_t action)
+{
+    static_cast<void>(SendWorldPacket(Protocol::Movement::WriteAction(direction, action)));
 }
 
 Core::Expected<void, std::string> ServerSession::SendOptionData(const Protocol::OptionData::OptionBody& body)
@@ -1242,6 +1249,18 @@ void ServerSession::OnDamage(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(damage.Value(), *this)));
+}
+
+// 0x4cb750 (desde 0x4e39ab): la acción de otro, sin guarda de escena ni del flag de cifrado.
+void ServerSession::OnAction(const Network::Packet& packet)
+{
+    const auto action = Protocol::Movement::ReadAction(packet);
+    if (!action.HasValue())
+    {
+        m_log.Warning("se ignora la acción (18): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(action.Value(), *this)));
 }
 
 // P-C33: 0x4c6e32 prueba el flag antes de leer los campos; cero manda el F1 03.

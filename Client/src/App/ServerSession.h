@@ -217,6 +217,9 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> SendWalk(std::span<const Protocol::Movement::Cell> path,
                                                              Protocol::Movement::Cell target, float angle);
     [[nodiscard]] Core::Expected<void, std::string> SendFacing(std::uint8_t direction);
+    // El C1 18 de sentarse (0x4f2416..0x4f2bea) y del emote (0x576a60 y los casos de 0x576eb0), con
+    // Protocol::Movement::WriteAction: como el original con el socket en −1, sin un GameServer abierto un aviso y nada.
+    void SendAction(std::uint8_t direction, std::uint8_t action);
     // 0x61c210: el C1 1C F3 30 con las opciones (Protocol::OptionData::WriteOptionData), en claro. Lo piden el menú
     // de Esc (0x624036, 0x6247ee y 0x624eec) y la entrada a los mapas 30 y 31.
     [[nodiscard]] Core::Expected<void, std::string> SendOptionData(const Protocol::OptionData::OptionBody& body);
@@ -355,6 +358,7 @@ private:
     void OnWeather(const Network::Packet& packet);
     void OnWalk(const Network::Packet& packet);
     void OnDamage(const Network::Packet& packet);
+    void OnAction(const Network::Packet& packet);
     void OnTeleport(const Network::Packet& packet);
     void OnRegen(const Network::Packet& packet);
     void OnChat(const Network::Packet& packet);

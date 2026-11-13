@@ -4475,6 +4475,40 @@ TEST(ServerSessionTest, FacingUsesTheWorldConnectionAndXorDelivery)
     EXPECT_FALSE(received.packets.back().WasDecrypted());
 }
 
+// 0x4f2416 y 0x576a60: el C1 05 18 de sentarse y del emote, con el XOR32 por el GS; sin el GS abierto, nada.
+TEST(ServerSessionTest, TheActionUsesTheWorldConnectionAndXorDelivery)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingServer());
+    const auto beforeChoosing = tested.socket.sent.size();
+    tested.session.SendAction(3, 0x82);
+    EXPECT_EQ(tested.socket.sent.size(), beforeChoosing);
+
+    Harness inWorld(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(inWorld.ReachLoggedIn());
+    const auto before = inWorld.GameServerReads().packets.size();
+    inWorld.session.SendAction(0xf7, 0x82);
+    const auto received = inWorld.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 1);
+    EXPECT_TRUE(SameBytes(Xor32Decode(received.packets.back()).Bytes(), Bytes({0xc1, 5, 0x18, 0xf7, 0x82})));
+    EXPECT_FALSE(received.packets.back().WasDecrypted());
+}
+
+// 0x4e39ab: el 18 va a 0x4cb750 sin guarda; la sesión lo lee y lo pasa al sink. Corto, un aviso y nada.
+TEST(ServerSessionTest, TheActionOfAnotherReachesTheSink)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {Join({Bytes({0xc1, 6, 0x18, 0x12, 0x34, 3}), Bytes({0xc1, 7, 0x18, 0x92, 0x34, 3, 0x83})})};
+    EXPECT_TRUE(tested.session.Poll().HasValue());
+    ASSERT_EQ(tested.eventSink.world.size(), 1u);
+    const auto* action = std::get_if<Client::Protocol::Movement::Action>(&tested.eventSink.world[0]);
+    ASSERT_NE(action, nullptr);
+    EXPECT_EQ(action->key, 0x9234);
+    EXPECT_EQ(action->direction, 3);
+    EXPECT_EQ(action->action, 0x83);
+}
+
 // 0x61c210 manda el F3 30 en claro con el XOR32, por el GS: no pasa por el cifrado del C3.
 TEST(ServerSessionTest, OptionDataUsesTheWorldConnectionAndXorDelivery)
 {

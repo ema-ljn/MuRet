@@ -19,7 +19,8 @@ namespace Client::Scenes
 // personaje van a la selección, la respuesta del F3 03 a ApplyWorldEntry, el F3 10 a ApplyInventory, o sin
 // cifrar a ClearForInventoryReply, el F1 02 con 1 a ApplyReturnToSelection y el 0F sólo a la meta
 // durable del clima (sin avanzar su cuenta actual ni crear lluvia). D3/D7 van a los aplicadores de
-// movimiento y daño; 1C y F3 04 a las transiciones síncronas antes del próximo evento del cable.
+// movimiento y daño, el 18 a ApplyActionReply con el C1 18 de sentarse atado a la sesión; 1C y F3 04 a las
+// transiciones síncronas antes del próximo evento del cable.
 class SessionEventApplier final : public App::ISessionEventSink
 {
 public:

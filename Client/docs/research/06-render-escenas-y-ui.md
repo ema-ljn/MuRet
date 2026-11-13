@@ -1619,7 +1619,7 @@ sin cursor en el medio ni IME. Los ids de los dos EDIT (1 y 2, los dos primeros 
   campos, los EDIT a la vista con el foco en el del mensaje) o lo cierra. Si no, corre los comandos (`0x56c440`: las
   compuertas, `/move`, `/filter`, `/1`../`0` y la cola de los nombres; cada comando social corta con su dirección,
   CL9.4) y el filtro (`0x622b40` con 1: el texto 570). Con `/` adelante, sin nombre o sin el modo de F3, va al chat:
-  los emotes (`0x576eb0`, que corta: CL9.1, salvo montado fuera de la zona segura), el freno (`0x5767940`: con más de
+  los emotes (`0x576eb0`, abajo, salvo montado fuera de la zona segura), el freno (`0x5767940`: con más de
   `0x32` no sale nada y con más de 0 no sale lo mismo que el anterior, `0x57676e4`; cada uno lo deja en `0x46`),
   "webzen" en el nombre del héroe (solo sale lo que empieza con `/` o `!`), `/whisper off` y `on` (textos 264 y 265,
   avisos 267 y 268, en `0x77f3b98`) o, muriéndose, `/move` no sale; después el `C1 00`
@@ -1639,6 +1639,21 @@ sin cursor en el medio ni IME. Los ids de los dos EDIT (1 y 2, los dos primeros 
   fuera de Chaos Castle y con Alt, cada número abajo (Q-C451) corre `0x56c440(texto, 1)` (Q-C452), los emotes, el
   filtro y lo mismo que el chat de Enter; la que pasa los comandos deja `0x77f3b74` en `0x64` (`0x5a1ea1`).
   `0x637d2c` y `0x637d44` bajan los dos frenos de a uno por paso.
+- **El emote** (`0x576eb0`, CL9 hito 1, *estático*): con ESI en el héroe, prueba 95 disparadores con
+  `0x576960(lo dicho, texto, 0)` en un orden fijo (`0x576ede..0x577f88`): los textos 270 a 290, 292 a 316, 318 a 347
+  y el 783 de `Text.bmd` por tramos, con 15 literales del binario metidos entre ellos (`0x6c90e0..0x6c912c`: `;`, ㅠ.ㅠ, ㅜ.ㅜ,
+  `T_T`, ㅡ.ㅡ, ㅡ.,ㅡ, ㅡ,.ㅡ, `-.-`, `-_-`, `^^`, `^.^`, `^_^`, /ㅡ, ㅡ^ y, después del 783, `hustle`; los coreanos en
+  CP949), y al final, cada uno solo, el 291, el 317 y el 348. El primero que está decide uno de 22 casos; sin ninguno,
+  nada. Cada caso llama a `0x576a60(héroe, héroe, animación, acción)` y después manda su propio `C1 05 18` con la
+  acción y la dirección del ángulo del héroe ([04](04-protocolo.md#la-acción-18)). `0x576a60`, con la acción de ahora
+  (`+0x111`) de 1 a 12 o `0x8a` (las de parado de `0x4f2250`), pone la animación con `0x4ea030` (con el elfo,
+  `+0x1d4 & 7 == 2`, la siguiente, salvo de `0xb7` a `0xc0`) y manda el mismo `C1 18`: con el héroe parado salen dos
+  iguales (Q-C776); caminando (`0x0d..0x21`), pegando o en otra acción, solo el del caso, sin animarse. La dirección
+  de los dos sale del héroe aunque `0x576a60` reciba otro personaje (la guerra de gremios, `0x4d8473`, `0x4d8a39` y
+  `0x4d8e1d`, hito 8). `0x576960` avanza con `_mbclen`: con la página de códigos coreana (949) no encuentra un literal
+  que empiece en el segundo byte de un carácter doble; MuRet compara de a un byte, como con la occidental (1252). Ni
+  la búsqueda ni los casos sacan `rand()`. En MuRet: `UI::FindTheEmote`, `Scenes::PlayTheEmote` y
+  `Scenes::DoTheEmote`, con los `C1 18` por el `send` del chat.
 - **Las teclas de `0x5ac8d0`**: F2, F3 y F4 cambian lo suyo y suenan (F4, con el registro en su ventana, va a x 0 con
   el inventario y una de las seis ventanas anchas, si no a `0xba`); F1 cicla las ayudas ("Las ayudas de F1"); la
   barra (CL9.3) corta, y después Impr Pant (`0x637cff`, la captura, P-C94).
@@ -5030,8 +5045,8 @@ escribe este handler; quién las calcula después, sin leer (P-C28 i).
   dos giros de `0x53d2c0(0x61f, …, ±ángulo)` que se apagan con la vida. Al ser dos iguales, se suma
   dos veces.
 - **La acción de parado** (`0x4f2250`) depende del arma, de la zona segura, de la mascota y del
-  mapa ([Caminar](#caminar), `SetPlayerStop`). Sentado arma un `C1 .. 18`: la tabla del XOR32 va en
-  línea (P-C14 c).
+  mapa ([Caminar](#caminar), `SetPlayerStop`). Sentado manda un `C1 05 18` con `0x82`, con el XOR32 en
+  línea ([04](04-protocolo.md#la-acción-18)).
 - **La luz del héroe en la escena 5** (`0x50ba30`, desde `0x50cc55`) es la del terreno en su lugar,
   **del buffer dinámico** `0x7b4ccc4` (`0x5f99e0`), más `+0xf4..+0xfc`, que `0x511290` deja en 0. En
   la selección es 0,4 fijo, y en el login, 0,3 más el terreno. `0x50ba30` tiene además una rama
@@ -9264,7 +9279,7 @@ de publicar **C1 05 18 dir 7A**, con XOR32 y Delivery::Clear; acción 39 sólo e
 pero manda igualmente. Sector igual no cambia cuerpo ni manda. byte381 se retiene por 511290.
 
 `GameHeroFacing` implementa ese kernel mediante un callback independiente del D3;
-`Protocol::Movement::WriteFacing`/`ServerSession::SendFacing` publican los bytes crudos sin
+`Protocol::Movement::WriteAction(dir, 0x7a)`/`ServerSession::SendFacing` publican los bytes crudos sin
 normalizar direction. Sus 12 tests cubren 39→40, guardas, sector/borde 112,5, modo/ventana, orden de
 campos antes del envío, wrap y errores con prefijo conservado. Las pruebas wire son de sesión y
 protocolo; el llamador conserva cabeza→rama quieta/movimiento→gates→clic→57cfc0. Desde el hito 1 de la
@@ -9370,8 +9385,9 @@ signo. En este orden:
    `TerrainWall` (`0x7d0d348`, `0x4f23c1`) apagado en su celda (`ftol(y · 0,01)`, `ftol(x · 0,01)` y
    `0x5f82a0`, `0x4f2365..0x4f23dd`).
 7. **Sentado** (`+0x7c & 0x200000`), vuele o no: con la acción ya en `0xca` no pone ninguna; si no,
-   la `0xca` y un `C1 .. 18` con el XOR32 en línea (sentarse, CL9). La rama está dos veces, volando
-   (`0x4f23e3`) y en el piso (`0x4f2801`), hasta `0x4f2bea`.
+   la `0xca` y el `C1 05 18` con la dirección de su propio ángulo (`+0x24`, no el del héroe) y `0x82`, con el XOR32
+   en línea ([04](04-protocolo.md#la-acción-18)), y sigue al sufijo. La rama está dos veces, volando (`0x4f23e3`,
+   el paquete en `0x4f2416`) y en el piso (`0x4f2801`, en `0x4f2834`), hasta `0x4f2bea`.
 8. Volando: `0xa` con un arma de la derecha del grupo 4 de abajo, y 9 si no (`0x4f27c6..0x4f27fc`).
 9. En el piso (`0x4f2bf6..0x4f2d82`): 1 (2 el elfo, `clase & 7` en 2) con las dos manos vacías o
    en la zona segura de los mapas de menos de 11 o más de 23. Si no, por la derecha: los grupos 0
@@ -9388,8 +9404,9 @@ tipo o esos subtipos lee la tabla de sonidos de los modelos (`0x5769ad8 + tipo �
 leer en detalle. Gasta de uno a tres `rand()`. MuRet (`Scenes::SetActorStop`) porta los pasos 2 a 9
 y el sufijo, y corta con un error explícito en la rama de los que no son jugadores, el `TerrainWall`
 de los mapas de vuelo en la escena 5 cuando quien llama no lo presta (el paso de los personajes lo presta en
-todos los mapas desde el PR de Atlans: en el 7 y en Kalima, fuera de la zona segura, de pie nadan), el
-`C1 .. 18` de sentarse y la tabla de sonidos.
+todos los mapas desde el PR de Atlans: en el 7 y en Kalima, fuera de la zona segura, de pie nadan), sentarse
+cuando quien llama no presta quien mande el `C1 18` (desde la CL9 lo prestan el paso del héroe y el `18`) y la tabla
+de sonidos.
 
 `0x4f9580` no toca el movimiento: da la **velocidad de la animación**, la base del `PlaySpeed` de la
 acción (después va `0x4ec200`, salvo con `+0x78 & 0x1000`), con multiplicadores por tipo, acción y

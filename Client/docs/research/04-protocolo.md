@@ -991,6 +991,21 @@ antes de `send()`, sin "webzen" en el nombre del héroe publicado, y el `19` con
 **MuRet**: `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic` con `Scenes::SendTheSkillPacket`, el `D3` con
 `SendTheTurn`, el de la rama del Wizard, y el `10` con `WriteSkillHits` desde `Scenes::HitTheTargetsAround`.
 
+### Lo que manda la cola de las 0x43 a 0x48: `19` y `1E`
+
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*, contra `protocol.cpp` y `ObjUseSkill.cpp` del GameServer 0.97
+reconstruido.) La cola de `0x57cfc0` (`0x5808da..0x599d5d`, [06](06-render-escenas-y-ui.md#la-cola-de-las-0x43-a-0x48),
+de todas las clases) los arma en línea como las ramas: C3 con sus dos `rand()` antes de `send()` y sin "webzen" en el
+nombre del héroe publicado; el `19`, además, con el freno de 300 ms, y el `1E` sin él.
+
+| Paquete | Quién lo manda | Layout | GameServer 0.97 |
+| --- | --- | --- | --- |
+| `1E` | la `0x43` (`0x594137..0x594de1`) | `C1 0C 1E 43 <x> <y> <rumbo> <hacia> <espalda> <clave H L> 00`: la celda lógica del héroe (la X se lee antes), `ftol(+0x24 · 256/360)`, la celda hacia el blanco de `0x5ae300` (desde la celda lógica, cada eje entre −8 y 7), la de `0x4e9920` (desde la posición), la clave de `0x558eb0` con `0x7758588` (o `0xffff`) y la clave de la magia de `0x57cf90(0)`, siempre 0 (Q-C1228) | `CGDurationMagicRecv` (`0x427870`) lee los cuatro primeros, pero `EnableSkill` (`0x457680`) no tiene la 67 en su lista: la descarta. No la usa nadie: el ASM del cliente es el oráculo |
+| `19` | las `0x44` a `0x48` (`0x594e42..0x599d1c`, dos copias cada una) | `C1 06 19 <skill> <clave H L>`: con `0x6c8e30` en −1, la del jugador (`0x57678bc`); si no, el WORD `+0x1f4` del elegido, sin mirar si se lo puede atacar (Q-C1229) | `CGMagicAttack` (`0x425f60`): la skill tiene que estar entre las del personaje (`gObjGetMagicSearch`) y en su clase (`SkillGetRequireClass`); `UseSkill2` (`0x457b30`) cobra el maná y la stamina si `RunningSkill` (`0x457c70`) da 1, y como no tiene un caso para 68 a 72 va al `default` (`0x457f7a`): `gObjAttack` sobre la clave que llega (sin elegido, la del propio jugador). Sin lo que hacen en 1.02 (Stern, Swell Mana, Invisibility...): el ASM del cliente es el oráculo |
+
+**MuRet**: `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic` (`magicKey` en 0) con
+`Scenes::SendTheSkillPacket`, desde `Scenes::UseTheSharedTail`. Los tests usan claves inventadas.
+
 ### Las órdenes del cuervo: `A7` y `A8`
 
 (CL9 hito 4, 2026-11-13, *estático*.) El GameServer 0.97 no tiene el Dark Lord y no los manda (P-C262): el oráculo es

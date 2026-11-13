@@ -7,8 +7,9 @@
 #include <string>
 
 // CL9 hito 4, fase 2c: la acción de golpe de las skills (0x4f5290), que llaman las ramas del elfo, de las clases 1, 3 y
-// 4, del Wizard y de las 0x43 a 0x48 de 0x57cfc0 (0x57f997, 0x58016f, 0x5808cb, 0x58c156, 0x58fcd4, 0x591840 y
-// 0x5925a1) y 0x55cbc0. Es la misma que SkillReplies usa con las skills que llegan, con el contexto de pegar.
+// 4 y del Wizard de 0x57cfc0 (0x57f997, 0x58016f, 0x5808cb, 0x58c156, 0x58fcd4, 0x591840 y 0x5925a1) y 0x55cbc0; la
+// cola de las 0x43 a 0x48 no (HeroSkillsTail.h). Es la misma que SkillReplies usa con las skills que llegan, con el
+// contexto de pegar.
 namespace Client::Scenes
 {
 struct ActorState;

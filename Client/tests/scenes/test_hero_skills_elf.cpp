@@ -532,7 +532,8 @@ TEST(HeroSkillsElfTest, TheSkill4cCastsWithThePositionAndTheMagicKey)
 }
 
 // 0x57f098..0x57f184: fuera de alcance, un monstruo no lleva camino (solo un jugador, +0x88 en 1); las otras skills
-// terminan ahí. Las 0x43 a 0x47 siguen hasta 0x5808da, que corta en 0x5808ef.
+// terminan ahí. Las 0x43 a 0x47 siguen por la línea de vista hasta la cola (0x5808da, HeroSkillsTail); la 0x48, solo en
+// alcance.
 TEST(HeroSkillsElfTest, OutOfReachOnlyAPlayerIsWalkedTo)
 {
     for (const std::int32_t map : {0, 2})
@@ -547,11 +548,38 @@ TEST(HeroSkillsElfTest, OutOfReachOnlyAPlayerIsWalkedTo)
         EXPECT_EQ(tested->Movement().weaponSkill.active, 1u);
         EXPECT_EQ(tested->Movement().weaponSkill.target, static_cast<std::int32_t>(ChosenSlot));
     }
-    const auto tested = AnElf(0x43);
-    tested->Movement().selectedSkillRange = 1.0f;
-    const auto result = tested->Use();
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_TRUE(Contains(result.Error(), "0x5808ef")) << result.Error();
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        // La 0x47: la línea de vista y, en la cola, el 19 con la clave del elegido y la acción 0x87.
+        const auto tested = AnElf(0x47, map);
+        tested->Movement().selectedSkillRange = 1.0f;
+        const CrtRandom expected = Advanced(tested->random, HeadDraws + HeroCellDraws + HeadDraws + SendDraws);
+        const auto result = tested->Use();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(tested->random.State(), expected.State());
+        ASSERT_EQ(tested->sent.size(), 1u);
+        EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x06, 0x19, 0x47, 0x0a, 0x1b}));
+        EXPECT_EQ(tested->Hero().animation.action, 0x87);
+    }
+    {
+        // La 0x48 fuera de alcance termina con la cabeza.
+        const auto tested = AnElf(0x48);
+        tested->Movement().selectedSkillRange = 1.0f;
+        const CrtRandom expected = Advanced(tested->random, HeadDraws);
+        ASSERT_TRUE(tested->Use().HasValue());
+        EXPECT_EQ(tested->random.State(), expected.State());
+        EXPECT_TRUE(tested->sent.empty());
+        EXPECT_EQ(tested->Hero().animation.action, 1);
+    }
+    // En alcance, la 0x48 llega a la cola.
+    const auto tested = AnElf(0x48, 2);
+    const CrtRandom expected = Advanced(tested->random, HeadDraws + HeroCellDraws + HeadDraws + SendDraws);
+    ASSERT_TRUE(tested->Use().HasValue());
+    EXPECT_EQ(tested->random.State(), expected.State());
+    ASSERT_EQ(tested->sent.size(), 1u);
+    EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x06, 0x19, 0x48, 0x0a, 0x1b}));
+    EXPECT_EQ(tested->Hero().animation.action, 0x3f);
 }
 
 // 0x55faa0 con las demás skills: el D3 y el ángulo, y nada más.

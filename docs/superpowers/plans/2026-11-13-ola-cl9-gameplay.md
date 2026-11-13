@@ -349,6 +349,9 @@ el viewport. **Desbloquea:** 4 y 11.
       (`Scenes/Skill55faa0`, con el `D3`, sus `19` y `0x4f48e0`); cortan la poción (`0x57d837`, hito 5) y
       `0x5808da` (08, P-C220). También el caso 5 de `0x5650c0` (`0x56601f`, `UseTheSkillOnArrival` en
       `Scenes/HeroAttack.cpp`), que llega a `0x55b6f0`, `0x55cbc0` y `0x55faa0` con la skill pendiente.
+      En la fase 2c-D, la cola de las `0x43` a `0x48` (`0x5808da..0x599d5d`, `Scenes/HeroSkillsTail`, de todas las
+      clases: el `1E` de la `0x43` y los `19` de las `0x44` a `0x48`, con la acción por la montura); corta la poción
+      con una en el inventario (`0x580954`, hito 5, 08, P-C269 b). Con ella, `0x57cfc0` no corta ninguna rama.
       En la fase 5, los cortes de la flecha que el hito 3 dejó (P-C231): las skills de tiro (`0x53e741`, la bandera
       `0x53e2e0`, el `0x13a`, el `0x105`, la `0xdb`/3 y /4 y la `0xe1`/1) y el choque de `0x5201ed` con `0x517a20` y
       el C1 10 (`Scenes/ArrowEffects`, `Scenes/SkillHits`, `Protocol::Skill::WriteSkillHits`); lo que dibujan corta

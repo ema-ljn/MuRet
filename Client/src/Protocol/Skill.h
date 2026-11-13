@@ -168,7 +168,8 @@ struct SkillHitsSend
 };
 [[nodiscard]] Outgoing WriteSkillHits(const SkillHitsSend& send);
 
-// El 1E que manda el cliente (el elfo, 0x561f60 en 0x562b36 y 0x563f5a, y las ramas del caballero, 0x582439..0x5896a3):
+// El 1E que manda el cliente (el elfo, 0x561f60 en 0x562b36 y 0x563f5a, las ramas del caballero, 0x582439..0x5896a3, y
+// la 0x43 de la cola de 0x57cfc0, 0x594137..0x594de1):
 // C1 0C 1E [skill] [X] [Y] [rumbo] [hacia] [espalda] [clave H] [clave L] [clave de la magia], con el XOR32 sobre los
 // bytes 3 a 11 y en C3 como el 19. El GameServer lee solo los 7 primeros (PMSG_DURATION_MAGIC_RECV,
 // CGDurationMagicRecv 0x427870).
@@ -178,13 +179,15 @@ struct DurationMagicSend
     std::uint8_t x = 0;
     std::uint8_t y = 0;
     std::uint8_t direction = 0;
-    // ((dx + 8) << 4) | ((dy − 8) & 0xf), con la distancia de la celda lógica al blanco entre −8 y 7.
+    // ((dx + 8) << 4) | ((dy − 8) & 0xf), con la distancia de la celda lógica al blanco entre −8 y 7 (en la 0x43 de la
+    // cola, 0x5ae300).
     std::uint8_t towards = 0;
-    // El rumbo dado vuelta (+180°) en la misma escala de 0 a 255; las 0x2a, 0x3e, 0x41 y 0x4c del caballero ponen la
-    // celda de 0x4e9920.
+    // El rumbo dado vuelta (+180°) en la misma escala de 0 a 255; las 0x2a, 0x3e, 0x41 y 0x4c del caballero y la 0x43
+    // de la cola ponen la celda de 0x4e9920.
     std::uint8_t back = 0;
     std::uint16_t key = 0;
-    // La clave de la magia (0x57cf90, +0x1bd) de la 0x4c del caballero; 0 en las demás.
+    // La clave de la magia (0x57cf90, +0x1bd) de la 0x4c del caballero; 0 en las demás (la 0x43 de la cola la pide a
+    // 0x57cf90 con un puntero nulo: 0).
     std::uint8_t magicKey = 0;
 };
 [[nodiscard]] Outgoing WriteDurationMagic(const DurationMagicSend& send);

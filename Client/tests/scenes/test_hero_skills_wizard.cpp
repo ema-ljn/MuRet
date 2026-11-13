@@ -222,7 +222,8 @@ std::unique_ptr<WizardHero> AWizard(std::uint8_t skill, std::uint8_t heroClass =
     return std::make_unique<WizardHero>(skill, heroClass, map);
 }
 
-// 0x5897a7..0x5897b1: otra clase que 0 y 3 va directo a 0x5808da, sin rand(); ahí, fuera de 0x43 a 0x48, nada.
+// 0x5897a7..0x5897b1: otra clase que 0 y 3 va directo a 0x5808da, sin rand(); ahí, fuera de 0x43 a 0x48, nada, y con
+// ellas la cola (HeroSkillsTail).
 TEST(HeroSkillsWizardTest, TheOtherClassesGoStraightToTheSharedTail)
 {
     for (const std::uint8_t heroClass : {Knight, Elf, Lord})
@@ -235,10 +236,14 @@ TEST(HeroSkillsWizardTest, TheOtherClassesGoStraightToTheSharedTail)
             EXPECT_EQ(tested->random.State(), expected.State());
             EXPECT_EQ(tested->Movement().targetX, 0u);
         }
-        const auto tested = AWizard(0x43, heroClass);
+        const auto tested = AWizard(0x44, heroClass);
+        const CrtRandom expected = Advanced(tested->random, HeadDraws + SendDraws);
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x5808ef")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(tested->random.State(), expected.State());
+        ASSERT_EQ(tested->sent.size(), 1u);
+        EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x06, 0x19, 0x44, 0x0a, 0x1b}));
+        EXPECT_EQ(tested->Hero().animation.action, 0x87);
     }
 }
 
@@ -622,12 +627,27 @@ TEST(HeroSkillsWizardTest, OutOfReachTheSkillWalksToTheChosen)
         EXPECT_EQ(tested->Movement().weaponSkill.active, 1u);
         EXPECT_EQ(tested->Movement().weaponSkill.target, -1);
     }
-    // La 0x43 sigue fuera de alcance hasta 0x5808da.
+    {
+        // La 0x48 camina y termina ahí.
+        const auto tested = AWizard(0x48, Wizard, 2);
+        tested->Movement().selectedSkillRange = 1.0f;
+        ASSERT_TRUE(tested->Use().HasValue());
+        EXPECT_TRUE(tested->sent.empty());
+        EXPECT_EQ(tested->Hero().movement, 1);
+    }
+    // La 0x43 sigue fuera de alcance, después del camino, hasta la cola (0x5808da, HeroSkillsTail): el 1E y +0x378 en
+    // 0, que deja el camino armado sin andar.
     const auto tested = AWizard(0x43);
     tested->Movement().selectedSkillRange = 1.0f;
     const auto result = tested->Use();
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_TRUE(Contains(result.Error(), "0x5808ef")) << result.Error();
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_FALSE(tested->sent.empty());
+    const std::vector<std::uint8_t> last = tested->Sent(tested->sent.size() - 1);
+    EXPECT_EQ(last[2], 0x1e);
+    EXPECT_EQ(last[3], 0x43);
+    EXPECT_EQ(tested->Hero().movement, 0);
+    EXPECT_EQ(tested->Hero().movementType, 5);
+    EXPECT_GT(tested->Hero().path.count, 0);
 }
 
 // 0x55cbc0 desde 0x58eecc: la 1 (de la lista del 19) pega al elegido con el 19, 0x4f5290 y el D3 de girar con la celda

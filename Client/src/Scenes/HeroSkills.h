@@ -65,7 +65,7 @@ struct HeroSkillContext
 // en Blood Castle y Chaos Castle, y las skills de la lista), 0x6c8e38 por la clase, la acción del héroe, y, salvo el
 // Wizard, el blanco (0x57ce80), la línea de vista (0x558800) y la skill de cada mano (0x559890 o 0x561f60). La rama de
 // las clases 1, 3 y 4 (0x581894) está en HeroSkillsKnight.h, la del elfo (0x57d790) en HeroSkillsElf.h y la del
-// Wizard (0x5897b7, también la del Magic Gladiator después de la suya) es UseTheWizardSkill (HeroSkillsWizard.h); las
-// skills 0x43..0x48 (0x5808da) cortan con su dirección.
+// Wizard (0x5897b7, también la del Magic Gladiator después de la suya) es UseTheWizardSkill (HeroSkillsWizard.h); la
+// cola de las skills 0x43..0x48 (0x5808da), de todas las clases, es UseTheSharedTail (HeroSkillsTail.h).
 [[nodiscard]] Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSkillContext& context);
 } // namespace Client::Scenes

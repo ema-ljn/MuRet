@@ -15,6 +15,7 @@
 #include "Scenes/HeroSkillCasts.h"
 #include "Scenes/HeroSkillSupport.h"
 #include "Scenes/HeroSkills.h"
+#include "Scenes/HeroSkillsTail.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/Skill4e9920.h"
 #include "Scenes/Skill4e9c50.h"
@@ -70,14 +71,6 @@ bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
 bool IsPlayer(const ActorState& actor)
 {
     return actor.type == Data::Models::PlayerSkeletonModel;
-}
-
-// 0x5808da..0x5808e9: fuera de 0x43 a 0x48, nada; las demás, de todas las clases, son la cola compartida.
-Core::Expected<void, std::string> ToTheSharedTail(std::uint8_t skill)
-{
-    if (!InRange(skill, 0x43, 0x48))
-        return {};
-    return Core::Unexpected(std::format("0x5808ef: la skill {:#x} (0x43 a 0x48) es de la fase 2c", skill));
 }
 
 Core::Expected<void, std::string> Act(ActorState& actor, std::uint8_t action, const HeroSkillContext& context)
@@ -305,7 +298,7 @@ Core::Expected<void, std::string> WizardBranch::Use()
     m_class = static_cast<std::uint8_t>(m_hero.characterClass & ClassMask);
     // 0x5897a7..0x5897b1.
     if (m_class != WizardClass && m_class != GladiatorClass)
-        return ToTheSharedTail(m_skill);
+        return UseTheSharedTail(m_hero, m_skill, m_context);
     const auto head = PassesTheHead();
     if (!head.HasValue())
         return Core::Unexpected(head.Error());
@@ -704,12 +697,12 @@ Core::Expected<void, std::string> WizardBranch::CastAtTheWeaponTarget()
 Core::Expected<void, std::string> WizardBranch::UseTheWizardOnly()
 {
     if (m_class != WizardClass || !m_aimed)
-        return ToTheSharedTail(m_skill);
+        return UseTheSharedTail(m_hero, m_skill, m_context);
     if (m_skill == 6)
         return Teleport();
     if (m_skill == 0xf)
         return TeleportTheAlly();
-    return ToTheSharedTail(m_skill);
+    return UseTheSharedTail(m_hero, m_skill, m_context);
 }
 
 // 0x593051..0x593873: Teleport (6) a la celda del blanco (0x77e1ba8, 0x77e1bac).

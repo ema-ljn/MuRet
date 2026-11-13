@@ -16,7 +16,7 @@ namespace Client::Scenes
 class WorldState;
 struct ActorState;
 
-// Las cadenas "webzen" (0x6c91ac..0x6c91fc en 0x57cfc0 y 0x6c8fb0..0x6c8fc0 en 0x55cbc0): el strstr en línea sobre el
+// Las cadenas "webzen" (0x6c91ac..0x6c9254 en 0x57cfc0 y 0x6c8fb0..0x6c8fc0 en 0x55cbc0): el strstr en línea sobre el
 // nombre del héroe publicado (+0x1d9, con el strlen que sigue a +0x1e3). Con el nombre, la rama no manda y sigue con lo
 // de después del envío.
 [[nodiscard]] bool HasTheSilentName(const WorldState& world);

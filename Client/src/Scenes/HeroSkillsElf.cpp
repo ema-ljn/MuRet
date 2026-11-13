@@ -14,6 +14,7 @@
 #include "Scenes/HeroSkillCasts.h"
 #include "Scenes/HeroSkillSupport.h"
 #include "Scenes/HeroSkills.h"
+#include "Scenes/HeroSkillsTail.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/Skill4e9920.h"
@@ -118,14 +119,6 @@ SkillCell ReadTheHeroCell(ActorState& hero, const HeroSkillContext& context)
     const std::uint8_t y = ReadTheSkillCell(hero.cellYAccesses, hero.cellY, context.random);
     const std::uint8_t x = ReadTheSkillCell(hero.cellXAccesses, hero.cellX, context.random);
     return {x, y};
-}
-
-// 0x5808da..0x5808e9: fuera de 0x43 a 0x48, nada; las demás, de todas las clases, son la cola compartida.
-Core::Expected<void, std::string> ToTheSharedTail(std::uint8_t skill)
-{
-    if (!InRange(skill, 0x43, 0x48))
-        return {};
-    return Core::Unexpected(std::format("0x5808ef: la skill {:#x} (0x43 a 0x48) es de la fase 2c", skill));
 }
 
 class ElfBranch
@@ -404,7 +397,7 @@ Core::Expected<void, std::string> ElfBranch::UseByReach()
     case Skill4c:
         return CastTheSkill4c();
     default:
-        return ToTheSharedTail(m_skill);
+        return UseTheSharedTail(m_hero, m_skill, m_context);
     }
 }
 
@@ -424,7 +417,7 @@ Core::Expected<void, std::string> ElfBranch::CastThe35()
     if (auto hit = SetTheHitAction(m_hero, CombatContextOf(m_context)); !hit.HasValue())
         return hit;
     m_hero.movement = 0;
-    return ToTheSharedTail(m_skill);
+    return UseTheSharedTail(m_hero, m_skill, m_context);
 }
 
 // 0x58097a..0x581877: la 0x4c. La celda de +0x3a8 (ftol · 0,01) es la meta del camino; en alcance (el límite del
@@ -454,14 +447,14 @@ Core::Expected<void, std::string> ElfBranch::CastTheSkill4c()
         if (m_runtime.selectedTargets[2] == -1)
         {
             m_runtime.selectedTargets[4] = -1;
-            return ToTheSharedTail(m_skill);
+            return UseTheSharedTail(m_hero, m_skill, m_context);
         }
         // 0x58182f..0x581848: FMUL y FSTP a un float de la pila.
         const auto reach =
             static_cast<float>(static_cast<double>(m_state.selectedSkillRange) * static_cast<double>(WalkReach));
         if (auto walked = WalkToward(*aimX, *aimY, reach, false, "0x581853"); !walked.HasValue())
             return walked;
-        return ToTheSharedTail(m_skill);
+        return UseTheSharedTail(m_hero, m_skill, m_context);
     }
     // 0x5809fa..0x580a1a: los ftol de +0x3ac y +0x3a8 sin escalar.
     const auto wholeY = World::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.y));
@@ -476,7 +469,7 @@ Core::Expected<void, std::string> ElfBranch::CastTheSkill4c()
     {
         // 0x5817db.
         m_hero.skillTarget4c = -1;
-        return ToTheSharedTail(m_skill);
+        return UseTheSharedTail(m_hero, m_skill, m_context);
     }
     // 0x580a36..0x580a7d.
     m_hero.angles.z = static_cast<float>(Render::Models::CreateAngle(m_hero.position.x, m_hero.position.y,
@@ -518,7 +511,7 @@ Core::Expected<void, std::string> ElfBranch::CastTheSkill4c()
             !acted.HasValue())
             return acted;
     }
-    return ToTheSharedTail(m_skill);
+    return UseTheSharedTail(m_hero, m_skill, m_context);
 }
 } // namespace
 

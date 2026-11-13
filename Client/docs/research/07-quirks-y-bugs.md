@@ -540,6 +540,7 @@ dos clases y la regla cambia según cuál:
 | Q-C1005 | la sala, `0x49de50` | toma el lugar (`0x49e280`) antes de conectar y, si la conexión falla, no lo suelta: después de 256 fallas, "max chat count over" para siempre. *Estático* | robustez | igual: el lugar queda tomado y la conexión corta (P-C211) | CL9 |
 | Q-C1006 | la de escribir, `0x4996e3` | el 6 (subirla) le da el foco al EDIT de `+0x77c` y lo vuelve a 0: la segunda vez que se la sube, el foco va al nombre aunque se estuviera escribiendo el cuerpo. *Estático* | visible | se porta igual (`UI::HandleTheWriteMessage`) | CL9 |
 | Q-C1007 | la anterior y la siguiente, `0x49ff50` y `0x4a0070` | dan el número de la otra carta, con 0 por ninguna: una carta con el número 0 no se puede leer desde la de al lado. *Estático* | borde | se porta igual (`UI::NeighbourOfTheLetter`) | CL9 |
+| Q-C1008 | la lista de ventanas, `0x4a4eb0` | el renglón bajo el mouse es `trunc(tamaño − (mouse − (+0x104 − alto)) / (renglón + 4))`: con el mouse en el borde de arriba (adentro para `0x459f00`) da el tamaño, el iterador queda en el final y, con el soltado, `0x490a00` busca el id que haya en la ranura después del último chat (memoria del bloque del deque). *Estático* | borde | MuRet no busca ninguna: la lista se oculta igual (`OldWindowsTest.F5ShowsTheChatsAndChoosesOne`) | CL9 |
 
 ## Fuera de alcance
 

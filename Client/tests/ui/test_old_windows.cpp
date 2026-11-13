@@ -699,4 +699,79 @@ TEST_F(OldWindowsTest, TheTopWindowWithTheFriendsWindowOpenIsNotDimmed)
     EXPECT_FLOAT_EQ(m_sprites.Vertices()[commands[7].firstVertex].color.red, 153.0f / 255.0f);
     EXPECT_EQ(m_text.texts[3].style.colors.text, 0xffc8dce6u);
 }
+// P-C215: F5 con dos chats (dos cajas como chats): 0x4a5be0 la muestra y elige el que no es la de arriba, después el
+// que sigue con vuelta; Enter sube el elegido (0x4a4e20); el mouse sobre los renglones (0x4a4eb0) los elige de abajo
+// hacia arriba y el soltado minimiza la de arriba o sube otra. En el borde de arriba, ninguno (Q-C1008).
+TEST_F(OldWindowsTest, F5ShowsTheChatsAndChoosesOne)
+{
+    constexpr std::uint8_t F5Key = 0x74;
+    const std::int32_t first = Open(Client::UI::QuestionCase, "Uno");
+    const std::int32_t second = Open(Client::UI::QuestionCase, "Dos");
+    OldWindow& list = m_manager.windowList;
+    list.list.chats = {first, second};
+    list.list.cursor = 2;
+    list.list.rowHeight = 14.0f;
+    m_keys.insert(F5Key);
+    ASSERT_TRUE(Step(0, 0).HasValue());
+    EXPECT_EQ(list.base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(list.list.armed, 1);
+    EXPECT_EQ(list.base.height, 36);
+    EXPECT_EQ(list.base.y, 0x1b3 - 36);
+    EXPECT_FLOAT_EQ(list.list.blinkStep, 0.25f);
+    EXPECT_EQ(list.list.cursor, 0u);
+    m_keys.insert(F5Key);
+    ASSERT_TRUE(Step(0, 0).HasValue());
+    EXPECT_EQ(list.list.cursor, 1u);
+    m_keys.insert(F5Key);
+    ASSERT_TRUE(Step(0, 0).HasValue());
+    EXPECT_EQ(list.list.cursor, 0u);
+    m_keys.insert(EnterKey);
+    ASSERT_TRUE(Step(0, 0).HasValue());
+    EXPECT_EQ(list.base.state, Client::UI::HiddenWindow);
+    EXPECT_EQ(list.list.armed, 0);
+    EXPECT_EQ(m_manager.order.back(), first);
+
+    // Oculta, F5 saltea la de arriba (ahora la primera). El mouse en el renglón de abajo es el primero: es la de arriba
+    // y se minimiza.
+    m_keys.insert(F5Key);
+    ASSERT_TRUE(Step(0, 0).HasValue());
+    EXPECT_EQ(list.list.cursor, 1u);
+    Release();
+    ASSERT_TRUE(Step(0x250, 0x1b3 - 5).HasValue());
+    EXPECT_EQ(m_sound, std::optional<std::int32_t>(ButtonSound));
+    EXPECT_EQ(m_mouseOnUi, 1);
+    EXPECT_EQ(list.base.state, Client::UI::HiddenWindow);
+    EXPECT_EQ(Window(first).base.state, Client::UI::HiddenWindow);
+    EXPECT_EQ(m_manager.order.front(), first);
+
+    // La primera, oculta, se sube.
+    m_keys.insert(F5Key);
+    ASSERT_TRUE(Step(0, 0).HasValue());
+    Release();
+    m_leftHeld = true;
+    ASSERT_TRUE(Step(0x250, 0x1b3 - 5).HasValue());
+    EXPECT_EQ(m_manager.order.back(), first);
+    EXPECT_EQ(Window(first).base.state, Client::UI::ShownWindow);
+    EXPECT_FALSE(m_leftHeld);
+
+    // El borde de arriba da el final: ninguna, y la lista se oculta igual.
+    m_keys.insert(F5Key);
+    ASSERT_TRUE(Step(0, 0).HasValue());
+    Release();
+    ASSERT_TRUE(Step(0x250, 0x1b3 - 36).HasValue());
+    EXPECT_EQ(list.list.cursor, 2u);
+    EXPECT_EQ(list.base.state, Client::UI::HiddenWindow);
+    EXPECT_EQ(m_manager.order.back(), first);
+
+    // Fuera de los renglones y sin F5, el elegido va al final; al soltar un chat (0x4a4b30), también.
+    m_keys.insert(F5Key);
+    ASSERT_TRUE(Step(0, 0).HasValue());
+    list.list.armed = 0;
+    ASSERT_TRUE(Step(0, 0).HasValue());
+    EXPECT_EQ(list.list.cursor, 2u);
+    list.list.cursor = 0;
+    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, first).HasValue());
+    EXPECT_EQ(list.list.chats.size(), 1u);
+    EXPECT_EQ(list.list.cursor, 1u);
+}
 } // namespace

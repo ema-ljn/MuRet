@@ -6,6 +6,7 @@
 #include "UI/ChatLogWindow.h"
 #include "UI/LetterWindows.h"
 #include "UI/OldWindowBase.h"
+#include "UI/OldWindowDrawParts.h"
 #include "UI/OldWindowSteps.h"
 
 #include <algorithm>
@@ -92,8 +93,11 @@ constexpr std::int32_t NoCommand = 2;
 constexpr std::int32_t WindowListX = 0x246;
 constexpr std::int32_t WindowListY = 0x1b3;
 constexpr std::int32_t WindowListWidth = 0x34;
-// 0x4a5e10: oculta, el parpadeo baja de a 0,25.
+// 0x4a5e10: oculta, el parpadeo baja de a 0,25; 0x4a5be0: a la vista, sube.
 constexpr float WindowListBlinkDown = -0.25f;
+constexpr float WindowListBlinkUp = 0.25f;
+// 0x6b8a44: lo que suman al alto del renglón (+0x100) 0x4a4eb0, 0x4a5be0 y 0x4a5490.
+constexpr double WindowListRowMargin = 4.0;
 
 } // namespace
 
@@ -431,11 +435,68 @@ Core::Expected<void, std::string> BeforeTheMouse(OldWindowManager& manager, OldW
             StepTheButton(manager, button, arg, globals, view);
         return {};
     }
+    // 0x4a4e20, la vtable + 0x1c de la lista: con +0x150 en 1, Enter sube el elegido (si está y no es el final), la
+    // oculta y apaga +0x150.
     if (window.kind == OldWindowKind::WindowList && window.list.armed == 1 && view.keyEdge && view.keyEdge(EnterKey))
     {
+        const OldWindowListPart& list = window.list;
+        if (list.cursor < list.chats.size() && FindTheOldWindow(manager, list.chats[list.cursor]) != nullptr)
+            PostToTheManager(manager, RaiseMessage, list.chats[list.cursor], 0);
         HideTheWindowList(window);
         window.list.armed = 0;
     }
+    return {};
+}
+
+// 0x4a4eb0, la vtable + 0x58 de la lista, a la vista: el mouse sobre los renglones (de abajo hacia arriba, desde
+// +0x104) los elige y es de la UI; con el soltado, el foco al juego, el 0x19 y la ventana del renglón: la de arriba se
+// minimiza (y sigue a la vista la lista) y otra se sube. Fuera, sin F5, el elegido va al final.
+Core::Expected<void, std::string> StepTheWindowListRows(OldWindowManager& manager, OldWindow& window,
+                                                        const OldWindowGlobals& globals, const OldWindowStepView& view)
+{
+    OldWindowListPart& list = window.list;
+    const std::size_t size = list.chats.size();
+    const double step = static_cast<double>(list.rowHeight) + WindowListRowMargin;
+    const std::int32_t height = OldDraw::Truncate(step * static_cast<double>(size));
+    if (window.base.state != ShownWindow)
+        return {};
+    if (!Steps::MouseIn(view, window.base.x, list.bottom - height, window.base.width, height, 1))
+    {
+        if (list.armed == 0)
+            list.cursor = size;
+        return {};
+    }
+    list.armed = 0;
+    manager.focus = window.base.id;
+    // 0x4a4f28..0x4a4f5a: trunc(tamaño − (mouse − (+0x104 − alto)) / (renglón + 4)), y el iterador avanza eso desde el
+    // principio, sin pasar el final.
+    const auto from = static_cast<double>(view.mouseY - list.bottom + height);
+    const std::int32_t row = OldDraw::Truncate(static_cast<double>(size) - from / step);
+    list.cursor = row > 0 ? std::min(static_cast<std::size_t>(row), size) : 0;
+    if (globals.releasedClick && window.base.state == ShownWindow)
+    {
+        // SetFocus([0x5763544]), como FocusTheGame.
+        globals.keyboardFocus = ChatFocus::Game;
+        globals.sound = ButtonSound;
+        globals.releasedClick = false;
+        // Con el elegido en el final (el borde de arriba, 0 de distancia), el original lee la ranura después del último
+        // (Q-C1008): MuRet no encuentra ninguna.
+        const std::int32_t id = list.cursor < size ? list.chats[list.cursor] : 0;
+        if (OldWindow* chosen = id != 0 ? FindTheOldWindow(manager, id) : nullptr; chosen != nullptr)
+        {
+            if (chosen->base.state != HiddenWindow && TopOldWindow(manager) == id)
+            {
+                PostToTheManager(manager, MinimizeMessage, id, 0);
+                HideTheWindowList(window);
+                globals.mouseOnUi = 1;
+                return {};
+            }
+            PostToTheManager(manager, RaiseMessage, id, 0);
+            globals.leftHeld = false;
+        }
+        HideTheWindowList(window);
+    }
+    globals.mouseOnUi = 1;
     return {};
 }
 
@@ -447,9 +508,8 @@ Core::Expected<void, std::string> AfterTheMove(OldWindowManager& manager, OldWin
 {
     if (IsAFriendsKind(window.kind))
         return AfterTheFriendsMove(manager, window, globals, view);
-    if (window.kind == OldWindowKind::WindowList && window.base.state == ShownWindow)
-        return Core::Unexpected(
-            std::string("0x4a4eb0: la lista de ventanas a la vista (sus renglones) es de la CL9.4"));
+    if (window.kind == OldWindowKind::WindowList)
+        return StepTheWindowListRows(manager, window, globals, view);
     return {};
 }
 
@@ -1091,12 +1151,11 @@ Core::Expected<void, std::string> StepTheOldWindows(OldWindowManager& manager, c
                 PostToTheManager(manager, CloseMessage, LastOldWindow(manager), 0);
         }
     }
-    // 0x490538..0x49055c: F5 con el foco en la ventana del juego, 0x4a5be0(1) sobre la lista de ventanas: sin chats con
-    // un amigo (+0xdc), nada; con ellos, la muestra (P-C215).
-    if (globals.keyboardFocus == ChatFocus::Game && view.keyEdge && view.keyEdge(F5Key) &&
-        !manager.windowList.list.chats.empty())
-        return Core::Unexpected(std::string("0x4a5be0(1): F5 con los chats con un amigo, la lista de ventanas a la "
-                                            "vista (0x4a4eb0, 0x4a4e20) no está portada (P-C215)"));
+    // 0x490538..0x49055c: F5 con el foco en la ventana del juego, 0x4a5be0(1) sobre la lista de ventanas. Con el foco
+    // en un EDIT (los del chat, los de una ventana vieja), su subclase lo lee igual (0x467d3b) con cada mensaje que le
+    // llega, antes del paso (*inferido*: acá, en el lugar del de la ventana del juego).
+    if (view.keyEdge && view.keyEdge(F5Key))
+        ShowTheWindowList(manager, 1);
     // 0x490561..0x4905a2: F6 esconde las ventanas, o las vuelve a mostrar si escondió alguna.
     if (view.keyEdge && view.keyEdge(F6Key) && (manager.hiddenByF6 == 0 || !manager.hidden.empty()))
     {
@@ -1160,9 +1219,13 @@ Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager,
         manager.focus = 0;
     // 0x49e710(id) sobre la pestaña de las ventanas de la de amigos.
     Steps::ForgetTheWindowRow(manager, id);
-    // 0x4a4b30(id): sale de los chats de +0xb4 de la lista de ventanas.
+    // 0x4a4b30(id): sale de los chats de +0xb4 de la lista de ventanas y, si estaba, el elegido va al final.
     std::deque<std::int32_t>& chats = manager.windowList.list.chats;
-    chats.erase(std::remove(chats.begin(), chats.end(), id), chats.end());
+    if (const auto chat = std::find(chats.begin(), chats.end(), id); chat != chats.end())
+    {
+        chats.erase(chat);
+        manager.windowList.list.cursor = chats.size();
+    }
     if (manager.modal == id)
         manager.modal = 0;
     return {};
@@ -1239,7 +1302,9 @@ void ResetTheOldWindows(OldWindowManager& manager)
     manager.windows.clear();
     manager.tabs.clear();
     manager.order.clear();
+    // 0x4a448e: el elegido al final antes de vaciar (el iterador queda en un bloque que se suelta; acá, en 0).
     manager.windowList.list.chats.clear();
+    manager.windowList.list.cursor = 0;
     manager.windowList.list.waiting.clear();
     ForgetTheHiddenWindows(manager);
     manager.boxes.clear();
@@ -1258,6 +1323,50 @@ void SettleTheButtons(OldWindowManager& manager, OldWindow& box)
 {
     for (OldButton& button : box.box.buttons)
         PostAndSettle(manager, button, PlaceMessage);
+}
+
+void ShowTheWindowList(OldWindowManager& manager, std::int32_t arm)
+{
+    OldWindow& window = manager.windowList;
+    OldWindowListPart& list = window.list;
+    const std::size_t size = list.chats.size();
+    if (size == 0)
+        return;
+    list.armed = arm;
+    if (window.base.state == HiddenWindow)
+    {
+        // 0x4a5c0f..0x4a5c6b: la vtable + 4 con 0; el alto suma y la y resta lo de los renglones.
+        window.base.state = ShownWindow;
+        const double step = static_cast<double>(list.rowHeight) + WindowListRowMargin;
+        const double rows = static_cast<double>(size) * step;
+        window.base.height = OldDraw::Truncate(rows + static_cast<double>(window.base.height));
+        window.base.y = OldDraw::Truncate(static_cast<double>(window.base.y) - rows);
+        list.blinkStep = WindowListBlinkUp;
+        if (arm != 1)
+            return;
+        // 0x4a5c7b..0x4a5d2d: desde el principio, saltea los que son la de arriba (el final de +0x80).
+        list.cursor = 0;
+        if (size <= 1)
+            return;
+        while (list.chats[list.cursor] == LastOldWindow(manager))
+        {
+            ++list.cursor;
+            if (list.cursor == size)
+                return;
+        }
+        return;
+    }
+    if (arm != 1)
+        return;
+    // 0x4a5d37..0x4a5e00: el que sigue, con vuelta al principio.
+    if (list.cursor >= size)
+    {
+        list.cursor = 0;
+        return;
+    }
+    ++list.cursor;
+    if (list.cursor == size)
+        list.cursor = 0;
 }
 
 void HideTheWindowList(OldWindow& list)

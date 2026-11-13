@@ -122,9 +122,9 @@ struct OldMessageBox
     std::array<OldButton, 2> buttons;
 };
 
-// Lo que agrega la lista de ventanas de [0x5763524] (vtable 0x6ba074). Sus dos colas de ids (+0xb4, los chats con un
-// amigo que agrega 0x4a4990, y +0x118, el orden de F5) solo las llenan los chats con un amigo (hito 10): hasta
-// entonces están vacías y MuRet no las tiene.
+// Lo que agrega la lista de ventanas de [0x5763524] (vtable 0x6ba074: + 0x1c 0x4a4e20, + 0x50 0x4a5490 y + 0x58
+// 0x4a4eb0). Sus colas de ids (+0xb4, los chats con un amigo que agrega 0x4a4990, y +0x118, los que esperan) solo las
+// llenan los chats con un amigo (hito 10).
 struct OldWindowListPart
 {
     // +0x100: el alto de un renglón en 640 × 480, que el dibujo mide la primera vez (GetTextExtentPointA de "0").
@@ -141,6 +141,10 @@ struct OldWindowListPart
     std::int32_t newLetter = 0;
     // +0xb4: los chats con un amigo, en el orden en que se armaron (0x4a4990); los busca 0x4a6430 por el amigo.
     std::deque<std::int32_t> chats;
+    // +0xf0: el elegido, un iterador de +0xb4 (0x4a5be0, 0x4a4eb0): acá su lugar, con el tamaño de `chats` por el
+    // final. 0x4a48b0 lo pone al final y 0x4a4b30, al sacar un chat. Al agregar uno (0x4a4990) un final pasa a
+    // señalarlo, como el iterador del deque de MSVC6, que queda en el lugar que se llena.
+    std::size_t cursor = 0;
     // +0x118: los chats con un mensaje sin ver, para F5 (0x4a5e50, que no repite).
     std::deque<std::int32_t> waiting;
     // +0x158: los amigos a los que se les pidió una sala (C1 CA) y no contestó el CA (0x4a6910, 0x4a6af0, 0x4a6bc0).
@@ -407,7 +411,7 @@ struct OldWindowGlobals
     ChatFocus& keyboardFocus;
     std::optional<std::int32_t>& sound;
     // 0x5762ec0 (la lista que toma las flechas), 0x7d366d8 (la rueda), 0x7d36880 (el clic derecho) y 0x7d36849 (el
-    // doble clic, que MuRet no tiene en el juego: P-C182).
+    // doble clic, P-C182).
     std::int32_t& focusedList;
     std::int32_t& wheel;
     bool& rightClick;
@@ -603,4 +607,9 @@ void SettleTheButtons(OldWindowManager& manager, OldWindow& box);
 
 // 0x4a5e10: oculta la lista de ventanas si está a la vista.
 void HideTheWindowList(OldWindow& list);
+
+// 0x4a5be0(arm), F5 (0x490538 con el foco en el juego y 0x467d3b en un EDIT): con chats con un amigo, +0x150 = arm y,
+// oculta, la muestra (alta y y por el renglón de +0x100 más 4, el parpadeo sube de a 0,25) y, con 1, elige el primero
+// que no es la de arriba; a la vista, con 1, elige el que sigue, con vuelta.
+void ShowTheWindowList(OldWindowManager& manager, std::int32_t arm);
 } // namespace Client::UI

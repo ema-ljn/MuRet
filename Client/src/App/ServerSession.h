@@ -233,6 +233,11 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> SendItemMove(const Protocol::Inventory::ItemMove& move);
     // El C1 03 42 de 0x6599a0(4), al abrir la ventana de la party (Protocol::Party::WritePartyListRequest), en claro.
     void RequestPartyList();
+    // CL9 hito 11: el C1 03 97 de SendMove con 0x78abb00 en 1 o 2 (Protocol::Events::WriteEventWindowLeave), en claro,
+    // y el C1 06 AF 02 x y de 0x4fbee8 en Chaos Castle (Protocol::Events::WriteChaosCastleReposition), con el XOR
+    // de 32.
+    [[nodiscard]] Core::Expected<void, std::string> SendEventWindowLeave();
+    [[nodiscard]] Core::Expected<void, std::string> SendChaosCastleReposition(std::uint8_t x, std::uint8_t y);
     // 0x4c609f: el 00 con la escena 2 (el login) pide la lista de servidores, C1 04 F4 02, por el socket que esté
     // abierto, sin mirar cuál es. En el CS es el saludo (OnConnectHello); acá, el que llega por el GS (Q-C511).
     void ResendServerListRequest();
@@ -358,6 +363,9 @@ private:
     void OnTeleport(const Network::Packet& packet);
     void OnRegen(const Network::Packet& packet);
     void OnChat(const Network::Packet& packet);
+    // CL9 hito 11, los eventos (04 § Los eventos): los registra juntos y los lee con Protocol::Events::ReadEventPacket.
+    [[nodiscard]] bool RegisterTheEventPackets();
+    void OnEventPacket(const Network::Packet& packet);
     void OnKeyChat(const Network::Packet& packet);
     void OnWhisper(const Network::Packet& packet);
     void OnWhisperResult(const Network::Packet& packet);

@@ -1201,6 +1201,44 @@ TEST_F(GameSceneDrawTest, TheFrameDrawsTheChatBubblesWithTheWorldProjection)
     scene.Leave();
 }
 
+// 0x5a7eb0 (0x637668): con la palabra del F3 22 (0x5767816) en 1 o más y hasta 10 minutos (659 s), el tiempo es de la
+// fase 2 del hito 11 de la CL9 y corta después del HUD; con 11 minutos (660 s) o en 0, sale sin dibujar.
+TEST_F(GameSceneDrawTest, TheEventTimeOfTheF322CutsUpToTenMinutes)
+{
+    struct Case
+    {
+        std::uint8_t map;
+        std::uint8_t x;
+        std::uint8_t y;
+    };
+    for (const Case& probe : {Case{0, 143, 120}, Case{2, 220, 30}})
+    {
+        SCOPED_TRACE(static_cast<int>(probe.map));
+        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
+        for (const std::uint16_t time : {std::uint16_t{0}, std::uint16_t{1}, std::uint16_t{659}, std::uint16_t{660}})
+        {
+            SCOPED_TRACE(time);
+            world.Runtime().events.timeValue = time;
+            GameScene scene = Scene();
+            ASSERT_TRUE(scene.Enter().HasValue());
+            Client::Tests::RecordingFrameTarget target;
+
+            scene.PrepareFrame();
+            scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
+
+            if (time != 0 && time < 660)
+            {
+                ASSERT_TRUE(scene.Failure().has_value());
+                EXPECT_NE(scene.Failure()->find("0x5a7f1c"), std::string::npos) << *scene.Failure();
+            }
+            else
+                EXPECT_FALSE(scene.Failure().has_value()) << *scene.Failure();
+            scene.Leave();
+        }
+    }
+    world.Runtime().events.timeValue = 0;
+}
+
 // 0x5fc365 con una marca prendida (como la dejarían 0x505de0 o 0x52e810, que MuRet no corre): 0x549130 lee el
 // byte +0x28 del slot 0x5e3, Effect\blood01.tga, que el juego de MuRet no sube (0x61d7aa). Corta ahí, con el
 // terreno y el pasto dibujados, los 4 + 8 rand() de siempre y sin un vértice del calco (08 P-C49).

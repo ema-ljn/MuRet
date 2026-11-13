@@ -24,6 +24,7 @@
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
 #include "UI/GameText.h"
+#include "UI/OriginalFormat.h"
 #include "UI/SprintfFormat.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
@@ -469,6 +470,7 @@ protected:
                               .items = &data.items->table,
                               .skills = &*data.skills,
                               .worldClock = worldClock,
+                              .tickCount = tickCount,
                               .mouse = mouse,
                               .leftDown = leftDown};
     }
@@ -537,6 +539,7 @@ protected:
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     float worldClock = 0.0f;
+    std::uint32_t tickCount = 0;
     Client::UI::Point mouse{};
     bool leftDown = false;
     const Client::Scenes::GameProjection* projection = nullptr;
@@ -834,8 +837,13 @@ TEST_F(GameHudTest, ThePiecesOfOtherWavesStopWithTheirAddress)
     const std::array<Case, 6> cases{{
         {"0x5a89b0", [](WorldState& state) { state.Runtime().hud.partyCount = 2; }},
         {"0x5f7180", [](WorldState& state) { state.Runtime().panels.panel2000 = 1; }},
-        {"0x40bab0",
-         [](WorldState& state) { state.Runtime().eventObject = Client::Scenes::EventMapObject{.field08 = 5}; }},
+        {"0x405090",
+         [](WorldState& state)
+         {
+             state.Runtime().map = 23;
+             state.Runtime().eventObject =
+                 Client::Scenes::EventMapObject{.kind = Client::Scenes::EventMapKind::ChaosCastle, .field10 = 7};
+         }},
         {"0x40c2d0",
          [](WorldState& state)
          {
@@ -914,6 +922,59 @@ TEST_F(GameHudTest, TheEventObjectsWithoutTheirPacketsDrawNothing)
         world.Runtime().eventObject = Client::Scenes::EventMapObject{.kind = kind};
         const auto drawn = Hud();
         EXPECT_TRUE(drawn.HasValue()) << drawn.Error();
+    }
+}
+
+// CL9 hito 11, 0x40bab0: con +8 de 1 a 14, el texto de la entrada con los segundos que faltan de 30 desde +0xc
+// (GetTickCount), en 0xffff8080 sobre 0x80000000 en (10, 0x174). El 12 de Chaos Castle toma el 828 (no el 825).
+// Vencida, el frame del original apaga +8; un dibujo intermedio no. En Lorencia, Devias y los mapas del evento.
+TEST_F(GameHudTest, TheEventCountdownDrawsTheSecondsLeftAndExpires)
+{
+    const std::optional<std::string_view> format = Client::UI::TextAt(&*data.text, 828);
+    const std::optional<std::string_view> name = Client::UI::TextAt(&*data.text, 1147);
+    ASSERT_TRUE(format && name);
+    const std::vector<Client::UI::FormatArgument> arguments{Client::UI::TextArgument{.index = 1147, .text = *name}, 18};
+    const auto expected = Client::UI::FormatOriginal(Client::UI::FormatFunction::Wsprintf, *format, arguments, "test");
+    ASSERT_TRUE(expected.HasValue()) << expected.Error();
+    for (const std::int32_t map : {0, 2, 9, 11, 18})
+    {
+        SCOPED_TRACE(map);
+        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime().map = map;
+        world.Runtime().eventObject = Client::Scenes::EventMapObject{.field08 = 12, .field0c = 1000};
+        tickCount = 1000 + 12345;
+        text.texts.clear();
+        ASSERT_TRUE(Hud().HasValue());
+        const auto countdown = std::ranges::find(text.texts, expected.Value(), &Client::Tests::RecordedText::text);
+        ASSERT_NE(countdown, text.texts.end());
+        EXPECT_EQ(countdown->x, 10);
+        EXPECT_EQ(countdown->y, 0x174);
+        EXPECT_EQ(countdown->style.colors.text, 0xffff8080u);
+        EXPECT_EQ(countdown->style.colors.background, 0x80000000u);
+
+        tickCount = 1000 + 30001;
+        ASSERT_TRUE(Hud(true).HasValue());
+        EXPECT_EQ(world.Runtime().eventObject->field08, 12);
+        ASSERT_TRUE(Hud().HasValue());
+        EXPECT_EQ(world.Runtime().eventObject->field08, 0);
+    }
+}
+
+// CL9 hito 11, 0x4365c0: con el aviso de Crywolf (0x6c73d1, .data −1) en 0 o más, que pone el BD 00 con la etapa 5
+// (0x42fec8), el dibujo de la interfaz de Crywolf es de la fase 2 y corta en 0x436b97; en −1 sigue.
+TEST_F(GameHudTest, TheCrywolfNoticeCutsTheHudUntilItsInterfaceIsPorted)
+{
+    for (const std::int32_t map : {0, 2, 34})
+    {
+        SCOPED_TRACE(map);
+        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime().map = map;
+        ASSERT_EQ(world.Runtime().crywolf.ui.message, -1);
+        ASSERT_TRUE(Hud().HasValue());
+        world.Runtime().crywolf.ui.message = 1;
+        const auto cut = Hud();
+        ASSERT_FALSE(cut.HasValue());
+        EXPECT_NE(cut.Error().find("0x436b97"), std::string::npos) << cut.Error();
     }
 }
 

@@ -14,6 +14,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DynamicWorldLight.h"
+#include "Scenes/EventPackets.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
@@ -192,12 +193,21 @@ Core::Expected<void, std::string> SelectionWorld::StepObjects(WorldState& world,
     std::span<World::WorldObject> objects = world.Map().objects;
     // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no toca ninguno.
     bool anySeen = false;
+    bool anyAlive = false;
     for (const World::WorldObject& object : objects)
     {
         anySeen = anySeen || (object.alive && object.seen);
+        anyAlive = anyAlive || object.alive;
+    }
+    // 0x5ff960 con cada vivo y la cuenta del derrumbe al final (0x606610), también en la espera (CL9 hito 11).
+    if (anyAlive)
+    {
+        if (auto collapse = CheckTheObjectCollapse(world.Runtime()); !collapse.HasValue())
+            return collapse;
     }
     if (!anySeen)
     {
+        CountDownTheObjectCollapse(world.Runtime());
         return {};
     }
     const auto map = static_cast<std::uint8_t>(world.Runtime().map);
@@ -211,6 +221,7 @@ Core::Expected<void, std::string> SelectionWorld::StepObjects(WorldState& world,
     {
         return Core::Unexpected(stepped.Error() + ", en la selección");
     }
+    CountDownTheObjectCollapse(world.Runtime());
     return {};
 }
 

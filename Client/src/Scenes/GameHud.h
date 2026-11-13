@@ -64,6 +64,8 @@ struct GameHudContext
     const Data::Tables::ItemSetTypeTable* setTypes = nullptr;
     // 0x5767b88: el reloj del mundo, en ms.
     float worldClock = 0.0f;
+    // GetTickCount del frame (App::TickCountMs), que lee la cuenta de los eventos (0x40bab0).
+    std::uint32_t tickCount = 0;
     // 0x7d3682c y 0x7d36828: el mouse en 640 × 480 (UI::MouseIn640x480).
     UI::Point mouse{};
     // 0x7d36874: el botón izquierdo abajo.

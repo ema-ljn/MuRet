@@ -531,9 +531,9 @@ std::int32_t ReadHeroCell(std::uint8_t value, std::uint8_t& depth, Render::Model
 
 // 0x4fbe10, por cada personaje que da un paso: compara la celda lógica del héroe (+0x41c y +0x420) con la
 // guardada (0x743a180 y 0x743a184, .bss 0). Si es la misma y pasaron 10 s (el reloj del mundo menos 0x743a188,
-// por 0,001f, en la x87) en una celda con el bit 8 del atributo, manda C1 06 AF 01 x y (CL9.5). Con la misma
-// celda guarda el reloj solo si pasó ese tiempo; con otra, guarda la celda y el reloj. Cada comparación abre y
-// cierra su entrada.
+// por 0,001f, en la x87) en una celda con el bit 8 del atributo, manda C1 06 AF 02 x y (0x4fbeed..0x4fc39d, CL9
+// hito 11). Con la misma celda guarda el reloj solo si pasó ese tiempo; con otra, guarda la celda y el reloj.
+// Cada comparación abre y cierra su entrada.
 Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -558,10 +558,21 @@ Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& 
                                                    static_cast<std::uint8_t>(runtime.reportedCellY));
         if ((terrain.attributes->cells[cell] & ReportedCellBit) == ReportedCellBit)
         {
-            return Core::Unexpected(std::format("0x4fbee8: el héroe lleva 10 s en la celda ({}; {}) con el bit 8 y "
-                                                "0x4fbe10 manda C1 06 AF 01 (CL9.5)",
-                                                runtime.reportedCellX, runtime.reportedCellY));
+            // 0x4fbeed..0x4fc231: C1, el largo, AF, 02 y el byte bajo de 0x743a180 y de 0x743a184, con el XOR de
+            // 32 byte a byte desde el 02; 0x4fc26c..0x4fc39d lo manda (send o la cola de [0x6c82a0]). Sin socket
+            // (+0xc en −1) el original no manda nada y sigue; la sesión de MuRet sin el GameServer abierto devuelve
+            // error, como con el D3.
+            if (!context.sendChaosCastleReposition)
+                return Core::Unexpected(std::format("0x4fbee8: el héroe lleva 10 s en la celda ({}; {}) con el bit 8 "
+                                                    "y no hay sesión para el C1 06 AF 02",
+                                                    runtime.reportedCellX, runtime.reportedCellY));
+            // 0x4fc30b y 0x4fc355: con el envío fallido también guarda el reloj antes de salir.
+            auto sent = context.sendChaosCastleReposition(static_cast<std::uint8_t>(runtime.reportedCellX),
+                                                          static_cast<std::uint8_t>(runtime.reportedCellY));
+            runtime.reportedCellTime = context.worldClock;
+            return sent;
         }
+        // 0x4fc39d: sin el bit, el reloj del mundo a 0x743a188.
         runtime.reportedCellTime = context.worldClock;
         return {};
     }

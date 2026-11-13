@@ -81,6 +81,9 @@ struct CharacterStepContext
     ActorCooldownServices cooldown{};
     // Solicitudes de sonido: el consumidor CL10 decide cómo reproducirlas.
     std::function<void(std::int32_t)> soundRequest{};
+    // CL9 hito 11: el C1 06 AF 02 x y de 0x4fbee8 (Chaos Castle, el héroe 10 s en una celda con el bit 8), por la
+    // sesión. Vacío, ese envío corta.
+    std::function<Core::Expected<void, std::string>(std::uint8_t, std::uint8_t)> sendChaosCastleReposition{};
 };
 
 // 0x508f00. Corta con error, en el orden del original, en el mapa 30 (0x412140), sin el mapa cargado

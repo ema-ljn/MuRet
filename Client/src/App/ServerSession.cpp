@@ -31,6 +31,7 @@
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
+#include "Protocol/Events.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
@@ -264,8 +265,44 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnItemPut(packet); }) &&
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); }) &&
         m_gameServer.On(Protocol::Connection::MainCheckOpcode,
-                        [this](const Network::Packet& packet) { OnMainCheck(packet); });
+                        [this](const Network::Packet& packet) { OnMainCheck(packet); }) &&
+        RegisterTheEventPackets();
     assert(registered && "los handlers del GameServer se registran una vez");
+}
+
+// CL9 hito 11: los paquetes de los eventos (04 § Los eventos), por opcode o por subcódigo como los despacha 0x4e2b10.
+// El F3 va por subcódigo (CharacterOpcode es el mismo 0xf3), y el AF, el BC y el BD solo con los que el original
+// atiende; los demás quedan sin handler, como antes.
+bool ServerSession::RegisterTheEventPackets()
+{
+    namespace Events = Protocol::Events;
+    const auto handler = [this](const Network::Packet& packet) { OnEventPacket(packet); };
+    constexpr std::array<std::uint8_t, 15> Opcodes{
+        Events::EventStateOpcode,       Events::MapAttributesOpcode, Events::ItemAcquiredOpcode,
+        Events::DevilSquareEntryOpcode, Events::EventOpenTimeOpcode, Events::EventCountdownOpcode,
+        Events::EventResultOpcode,      Events::EventChipInfoOpcode, Events::EventChipCountOpcode,
+        Events::MutoNumbersOpcode,      Events::EventDialogOpcode,   Events::BloodCastleEntryOpcode,
+        Events::EventPlayStateOpcode,   Events::SerialResultOpcode,  Events::EventSoundOpcode};
+    struct WithSubcode
+    {
+        std::uint8_t opcode;
+        std::uint8_t subcode;
+    };
+    constexpr std::array<WithSubcode, 7> Subcodes{{
+        {Events::ChaosCastleOpcode, Events::ChaosCastleEntrySubcode},
+        {Events::JewelMixOpcode, Events::JewelMixSubcode},
+        {Events::JewelMixOpcode, Events::JewelUnmixSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfStateSubcode},
+        {Events::WorldOpcode, Events::EventTimeSubcode},
+        {Events::WorldOpcode, Events::SoccerScoreSubcode},
+        {Events::WorldOpcode, Events::ServerCommandSubcode},
+    }};
+    bool registered = true;
+    for (const std::uint8_t opcode : Opcodes)
+        registered = m_gameServer.On(opcode, handler) && registered;
+    for (const WithSubcode& entry : Subcodes)
+        registered = m_gameServer.On(entry.opcode, entry.subcode, handler) && registered;
+    return registered;
 }
 
 void ServerSession::Start()
@@ -963,6 +1000,21 @@ void ServerSession::OnInventoryReply(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
 }
 
+// 0x4e2b10 con los opcodes de los eventos: ninguno mira la escena, el estado de la sesión ni el flag de cifrado. El 0B
+// guarda antes su copia en la cola de 0x77f27b4 (0x4e3594..0x4e361f), como el 1C, aunque llegue corto.
+void ServerSession::OnEventPacket(const Network::Packet& packet)
+{
+    if (packet.Opcode() == Protocol::Events::EventStateOpcode)
+        m_teleports.Record(packet.Bytes());
+    auto event = Protocol::Events::ReadEventPacket(packet);
+    if (!event.HasValue())
+    {
+        m_log.Warning("se ignora el paquete de evento {:02X}: {}", packet.Opcode().value_or(0), Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(event).Value(), *this)));
+}
+
 // 0x4e36b5: sin guarda de escena, estado de login ni procedencia cifrada. La Connection ya normalizó C3.
 void ServerSession::OnWeather(const Network::Packet& packet)
 {
@@ -1214,6 +1266,16 @@ void ServerSession::RequestCastleSiegeState()
 void ServerSession::RequestPartyList()
 {
     static_cast<void>(SendWorldPacket(Protocol::Party::WritePartyListRequest()));
+}
+
+Core::Expected<void, std::string> ServerSession::SendEventWindowLeave()
+{
+    return SendWorldPacket(Protocol::Events::WriteEventWindowLeave());
+}
+
+Core::Expected<void, std::string> ServerSession::SendChaosCastleReposition(std::uint8_t x, std::uint8_t y)
+{
+    return SendWorldPacket(Protocol::Events::WriteChaosCastleReposition(x, y));
 }
 
 std::span<const std::vector<std::byte>> ServerSession::Teleports() const

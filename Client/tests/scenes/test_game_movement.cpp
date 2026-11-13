@@ -206,6 +206,81 @@ TEST(GameMovementTest, AClickFindsAndSendsTheHistoricalD3)
     EXPECT_EQ(tested.world.Actors()[0].movementType, 0);
     EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTimeMax, 16);
 }
+// CL9 hito 11, 0x56b4db..0x56b78f: con la ventana de los eventos (0x78abb00) abierta, después del D3 va el C1 03 97,
+// 0x78abb00 vuelve a 0, el cursor a SetCursorPos(x · ancho / 260, y · alto / 480) (Q-C1330), 0x6c8dcc a 6 y el
+// izquierdo suelto. Sin SetCursorPos en la plataforma corta en 0x56b77f; con el 3 (el número de serie), en
+// 0x56b6a9 después del envío. En Lorencia y en Devias.
+// 0x56b4db..0x56b78f: cada caso con un héroe quieto, porque el anterior lo deja caminando.
+TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndMovesTheCursor)
+{
+    struct Walk
+    {
+        std::unique_ptr<MovingHero> tested;
+        std::vector<std::string> sent;
+        std::vector<std::pair<std::int32_t, std::int32_t>> cursor;
+    };
+    const auto walk = [](std::int32_t map, std::int32_t window, bool withCursor, Walk& out)
+    {
+        out.tested = std::make_unique<MovingHero>();
+        out.tested->world.Runtime().map = map;
+        out.tested->world.Runtime().movement.mouseUpdateTime = 6;
+        out.tested->world.Runtime().panels.field78abb00 = window;
+        auto context = out.tested->Context();
+        context.input.leftPressed = true;
+        context.input.leftDown = true;
+        context.input.mouseX = 130;
+        context.input.mouseY = 240;
+        context.screenWidth = 800;
+        context.screenHeight = 600;
+        context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+        { return std::optional{Client::GameLogic::PathCell{179, 116}}; };
+        context.sendWalk = [&out](auto, auto, float) -> Client::Core::Expected<void, std::string>
+        {
+            out.sent.emplace_back("D3");
+            return {};
+        };
+        context.sendEventWindowLeave = [&out]() -> Client::Core::Expected<void, std::string>
+        {
+            out.sent.emplace_back("97");
+            return {};
+        };
+        if (withCursor)
+            context.moveTheCursor = [&out](std::int32_t x, std::int32_t y) -> Client::Core::Expected<void, std::string>
+            {
+                out.cursor.emplace_back(x, y);
+                return {};
+            };
+        return StepHeroMovement(context);
+    };
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        Walk left;
+        const auto result = walk(map, 1, true, left);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(left.sent, (std::vector<std::string>{"D3", "97"}));
+        ASSERT_EQ(left.cursor.size(), 1u);
+        EXPECT_EQ(left.cursor[0], (std::pair<std::int32_t, std::int32_t>{400, 300}));
+        EXPECT_EQ(left.tested->world.Runtime().panels.field78abb00, 0);
+        EXPECT_EQ(left.tested->world.Runtime().movement.mouseUpdateTimeMax, 6);
+        EXPECT_FALSE(left.tested->world.Runtime().movement.leftHeld);
+
+        Walk withoutCursor;
+        const auto cut = walk(map, 2, false, withoutCursor);
+        ASSERT_FALSE(cut.HasValue());
+        EXPECT_NE(cut.Error().find("0x56b77f"), std::string::npos) << cut.Error();
+        EXPECT_EQ(withoutCursor.tested->world.Runtime().panels.field78abb00, 0);
+        EXPECT_EQ(withoutCursor.sent, (std::vector<std::string>{"D3", "97"}));
+
+        Walk serial;
+        const auto serialCut = walk(map, 3, true, serial);
+        ASSERT_FALSE(serialCut.HasValue());
+        EXPECT_NE(serialCut.Error().find("0x56b6a9"), std::string::npos) << serialCut.Error();
+        EXPECT_EQ(serial.sent, (std::vector<std::string>{"D3", "97"}));
+        EXPECT_TRUE(serial.cursor.empty());
+    }
+}
+
 TEST(GameMovementTest, AWalkingHeroMovesByTwelveAndKeepsTheLogicalCellAhead)
 {
     MovingHero tested;

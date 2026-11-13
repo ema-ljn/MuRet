@@ -6,6 +6,7 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Pose.h"
 #include "Scenes/DynamicWorldLight.h"
+#include "Scenes/EventPackets.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
@@ -504,9 +505,19 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
             return stepped;
         world.Runtime().objectSelectionCount = 0;
     }
-    // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no toca ninguno.
+    // 0x6065bd y 0x6065da: 0x5ff960 con cada vivo (los vistos de un sector que pasó y todos los de uno que no). Con
+    // el derrumbe pedido para este mapa corta antes del paso (CL9 hito 11, fase 2); MuRet no tiene los sectores en
+    // el paso, así que mira todos los vivos.
+    if (std::ranges::any_of(objects, [](const World::WorldObject& object) { return object.alive; }))
+    {
+        if (auto collapse = CheckTheObjectCollapse(world.Runtime()); !collapse.HasValue())
+            return collapse;
+    }
+    // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no toca ninguno; la cuenta del
+    // derrumbe baja igual (0x606610).
     if (std::ranges::none_of(objects, [](const World::WorldObject& object) { return object.alive && object.seen; }))
     {
+        CountDownTheObjectCollapse(world.Runtime());
         return {};
     }
     // 0x4250f0 lleva los del 33 y los del 54 (los de la selección, vistos en su dibujo, que siguen durante la
@@ -571,6 +582,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     {
         return Core::Unexpected(stepped.Error() + ", en el " + MapText(map));
     }
+    // 0x606610..0x606618: la cuenta del derrumbe, al final de cada paso.
+    CountDownTheObjectCollapse(world.Runtime());
     return {};
 }
 

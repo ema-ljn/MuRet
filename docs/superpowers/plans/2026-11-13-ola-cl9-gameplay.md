@@ -389,15 +389,22 @@ amigos. **Desbloquea:** 10.
 
 ### Hito 11: los eventos (CL9.5, ~26 KB)
 
-- [ ] **El estado de los eventos:** el `0x0B` (`0x4455c0` y su cola), el `0x46` (`0x4dab90`), el `0x47`
+- [x] **El estado de los eventos:** el `0x0B` (`0x4455c0` y su cola), el `0x46` (`0x4dab90`), el `0x47`
       (`0x4d6990`), `0x90`..`0x96` (`0x4da8c0`, la cuenta mm:ss; `0x4dd8a0`, los chips), `0x99`, `0x9A`
       (`0x4da780`), `0x9B`, `0x9D`, `0x9E`, `AF` (`0x4daa90`), `BC` (`0x4da540`), `F3 23` y `F3 40`.
+      (Fase 1, 2026-11-13: los 21 lectores de `Protocol::Events`, también el `F3 22` y el `BD 00`, y
+      `Scenes::ApplyEventPacket`; 04 § Los eventos, Q-C1320..Q-C1332, P-C290..P-C293.)
 - [ ] **Las ventanas y el HUD de los eventos:** el NPC de evento (`0x5f58f0`), la cuenta y los resultados
       (`0x5a7eb0`, `0x5f6550`), `0x78abb00` (`0x5e5920`, `0x5e6520`), los contadores de Devil Square, Blood
       Castle y Chaos Castle (`0x40bab0`, `0x40c2d0`, `0x405090`), el `C1 03 97` de `SendMove`.
+      (Fase 1: la cuenta de 30 s, `0x40bab0`, y el `C1 03 97` con el cursor, Q-C1330. Las ventanas, `0x40c2d0`,
+      `0x405090` y la interfaz de Crywolf cortan con su dirección para la fase 2, P-C291.)
 - [ ] **Las reglas por mapa:** el arma de Blood Castle (`0x50de84`), las trampas de Chaos Castle (`0x405597`,
-      `0x405d49`), el `AF 01` (`0x4fbee8`), Kalima, y Crywolf (`BD`, `0x42fe80`, `0x42fe50`, `0x430a40`,
-      `0x61a6f4`; P-C58).
+      `0x405d49`), el `AF 02` (`0x4fbee8`; decía `AF 01`), Kalima, y Crywolf (`BD`, `0x42fe80`, `0x42fe50`,
+      `0x430a40`, `0x61a6f4`; P-C58).
+      (Fase 1: el arma de Blood Castle, Q-C1331 y Q-C1332; el `AF 02`; los derrumbes de los rectángulos de Chaos
+      Castle del `9B` y la trampa armada; `0x42fe80` hasta la luz y el `.att`, que cortan en `0x42ff81`. El
+      derrumbe de los objetos, `0x5ff960`, es de la fase 2; los monstruos de Kalima y de Crywolf, del hito 2.)
 
 **Pruebas:** entrar a Blood Castle, Devil Square y Chaos Castle con vectores de cada paquete; las cuentas;
 los `rand()` de los contadores; Crywolf solo contra el ASM. **Desbloquea:** —.

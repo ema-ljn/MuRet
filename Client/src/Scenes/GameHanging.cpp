@@ -761,6 +761,32 @@ Result HangTheBack(Frame& frame, bool back, std::uint8_t& petExcellent)
     return {};
 }
 
+// 0x50de84..0x50defd: en Blood Castle con +0x360, el arma del evento a la espalda, del lugar de las alas:
+// 0x509340(0, 0, 15, c, +0x2f8, modelo, 0, 0, 1, 1, 0). El modelo es 0xc1c, 0x225 o 0xa24 con +0x360 del 1 al 3
+// y, con otro valor (el 5 de los GM), el que quedó en [ebp-0x18]: el del lugar que eligió la espalda (0x50dd97),
+// aunque no colgara. No pisa el paso con el de Player.bmd (0x50de23) ni vuelve el frame (0x50de5a), y 0x50de8a
+// pone en 0 el excelente que después lleva Helper02 ([ebp-0x24], Q-C1331).
+Result HangTheEventWeapon(Frame& frame, bool back, std::uint8_t& petExcellent)
+{
+    constexpr std::array<std::int32_t, 3> EventWeapons{0xc1c, 0x225, 0xa24};
+    ActorState& actor = frame.actor;
+    petExcellent = 0;
+    ActorItemPart& wings = actor.wings;
+    wings.bone = WingsBone;
+    wings.speed = Render::Models::WingKeysPerOriginalFrame(actor.animation.action);
+    std::int32_t model = static_cast<std::int16_t>(actor.hands[BackItemOf(actor, back).hand].model);
+    const auto weapon = static_cast<std::size_t>(actor.byte360);
+    if (weapon >= 1 && weapon <= EventWeapons.size())
+        model = EventWeapons[weapon - 1];
+    // Q-C1332: con el lugar vacío (−1, un GM sin arma), 0x50934f toma la entrada −1 de [0x5769ad8] y escribe
+    // en los 0xe0 bytes de antes de la tabla de modelos.
+    if (model < 0)
+        return Core::Unexpected(std::format("0x50def8: el arma del evento de Blood Castle con +0x360 en {} cuelga el "
+                                            "modelo {} y 0x509340 escribe antes de la tabla de modelos (Q-C1332)",
+                                            weapon, model));
+    return HangItem(frame, {0.0f, 0.0f, 15.0f}, wings, model, 0, 0, true);
+}
+
 // 0x50df22..0x50e05d: las alas y Helper02 con su chispa.
 Result HangWingsAndPet(Frame& frame, std::uint8_t petExcellent)
 {
@@ -1211,11 +1237,13 @@ Core::Expected<void, std::string> DrawGameHanging(ActorState& actor, const GameH
     std::uint8_t petExcellent = 0;
     if (auto hung = HangTheBack(frame, back, petExcellent); !hung.HasValue())
         return hung;
-    // 0x50de63: en Blood Castle (11 a 17) con +0x360, el arma del evento (del 1 al 3: 0xc1c, 0x225 y 0xa24;
-    // con otro valor, el modelo que quedó en [ebp-0x18]). MuRet solo escribe el 5 de los GM (0x413fe0), y lo
-    // deja en el registro desde su primer dibujo.
+    // 0x50de63: en Blood Castle (11 a 17) con +0x360, el arma del evento (CL9 hito 11). +0x360 lo escriben el 9B
+    // (0x511150, del 1 al 3) y 0x413fe0 (el 5 de los GM, que queda en el registro desde su primer dibujo).
     if (pass.map >= FirstBloodCastle && pass.map <= LastBloodCastle && actor.byte360 != 0)
-        return Core::Unexpected(std::string("0x50de84: el arma del evento de Blood Castle (+0x360) no está portada"));
+    {
+        if (auto hung = HangTheEventWeapon(frame, back, petExcellent); !hung.HasValue())
+            return hung;
+    }
     // 0x50df01 y 0x50df07: la capa de los GM, antes de las alas.
     if (auto layer = StepTheLayer(actor); !layer.HasValue())
         return layer;

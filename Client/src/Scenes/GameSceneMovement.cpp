@@ -78,6 +78,11 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         context.requestGate = [&](std::uint8_t gate) { m_session->RequestGate(gate); };
     if (m_session)
         context.sendFacing = [&](std::uint8_t direction) { return m_session->SendFacing(direction); };
+    // CL9 hito 11: el C1 03 97 va por la sesión; SetCursorPos queda sin servicio (la plataforma no mueve el cursor).
+    if (m_session)
+        context.sendEventWindowLeave = [&]() { return m_session->SendEventWindowLeave(); };
+    context.screenWidth = m_screen.width;
+    context.screenHeight = m_screen.height;
     const InventoryServices inventory = InventoryContext();
     context.inventory = &inventory;
     return StepHeroMovement(context);

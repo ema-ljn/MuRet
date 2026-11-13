@@ -2,6 +2,7 @@
 
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Scenes/EventPackets.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -39,10 +40,9 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
     for (auto& item : world.DrawTail().floorItems)
         item.alive = false;
     KillOtherActors(world, NoKey);
-    // 0x4c363a: 0x42fdc0 pone en su valor inicial globales de la interfaz que MuRet no tiene, y en 0 el estado de
-    // Crywolf (0x42fe32) y su etapa (0x723c05). 0x723c08, que también pone en 0, solo lo escriben paquetes (CL9.5).
-    runtime.crywolf.state = 0;
-    runtime.crywolf.stage = 0;
+    // 0x4c363a: 0x42fdc0, los globales de la interfaz de Crywolf a su valor inicial y el estado (0x42fe32), la
+    // etapa (0x723c05) y 0x723c08 en 0 (CL9 hito 11).
+    ResetTheCrywolfInterface(runtime);
     // 0x4c363f: la escena 4.
     runtime.orderedScene = SceneId::CharacterSelect;
     // 0x4c3649..0x4c38e4: el estado 0x32 y el F3 00, de la sesión. 0x4c38eb y 0x4c38f2: las banderas de la

@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <format>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -148,6 +149,26 @@ Core::Expected<void, std::string> OpenTextDialog(DialogBoxState& box, DialogStat
         box.buttons[1].y = ChaosCastleButtonsY;
     }
     PushDialog(dialogs, id);
+    return {};
+}
+
+Core::Expected<void, std::string> OpenTheChaosCastleDialog(DialogBoxState& box, DialogState& dialogs,
+                                                           std::span<const std::string_view> texts)
+{
+    box.lineCount = 0;
+    for (const std::string_view text : texts)
+    {
+        auto written = SplitIntoRows(box, static_cast<std::size_t>(box.lineCount), text, "0x6333e9");
+        if (!written.HasValue())
+            return Core::Unexpected(std::move(written).Error());
+        box.lineCount += written.Value();
+    }
+    ResetTheButtons(box);
+    box.buttons[0] = FirstTextButton;
+    box.buttons[1] = SecondTextButton;
+    box.buttons[0].y = ChaosCastleButtonsY;
+    box.buttons[1].y = ChaosCastleButtonsY;
+    PushDialog(dialogs, ChaosCastleDialog);
     return {};
 }
 

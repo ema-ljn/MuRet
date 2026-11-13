@@ -7065,7 +7065,8 @@ entrar a Devias armado). `Scenes::DrawGameHanging` corre, sobre el cuerpo ya dib
   `0x6002e0` hace `RenderBody(2)` con la luz en 1 y `RenderBody(0x44)` con (1; 0,5; 0), con la luz por
   vértice y la pose en el buffer global. Sin `rand()`. `+0x360` queda en 5 en el registro (Q-C301). En
   Chaos Castle corta (`0x5ffe09` lee `+0x1a1` del héroe), y en Blood Castle (`0x50de63`, antes de la capa)
-  el 5 de un GM corta en `0x50de84`, el arma del evento.
+  el 5 de un GM cuelga el arma del lugar de la espalda en el lugar de las alas (`0x50de84`, el arma del evento,
+  CL9 hito 11) y, sin arma, corta en `0x50def8` (Q-C1332).
 - **Las alas y Helper02**, fuera de los mapas 18 a 23: las alas en 47 a (0, 0, 15) y Helper02 en 34 a
   (20, 0, 0) y 0,5 keys por frame, con el excelente del arma de la espalda (Q-C297), y su destello rojo
   `0x5ac` de 1,5 en (20, 0, 15) del hueso 34.
@@ -7111,8 +7112,13 @@ Entre frames del original, lo que cuelga se dibuja con una copia del personaje y
 avanzar; sus joints y partículas van a la copia de la cola, que no avanza. Cortan con su dirección: el
 origen del `0xef` (`0x5096ac`; solo lo cuelga el monstruo con `+0x376` en `0x2a`, `0x50c79a`, CL9.1), el
 lugar de los monstruos `0x84` a `0x86` (`0x5093f3`), las capas del 6 al 13 (`0x4140d5`), la de los GM en
-Chaos Castle (`0x5ffe09`), el arma del evento de Blood Castle (`0x50de84`) y el efecto cada 30 pasos de
-`+0x78 & 0x800` (`0x50e0c0`). `GameHangingTest` y `GameCharacterRenderTest` cubren la espalda (hueso 47 y
+Chaos Castle (`0x5ffe09`) y el efecto cada 30 pasos de
+`+0x78 & 0x800` (`0x50e0c0`). **El arma del evento de Blood Castle** (`0x50de84..0x50defd`, CL9 hito 11): en los
+mapas 11 a 17 con `+0x360` distinto de 0 (lo escribe el `9B`, 04), `0x509340(0, 0, 15, c, +0x2f8, modelo, 0, 0, 1,
+1, 0)` en el lugar de las alas (hueso 47, la velocidad de las alas de la acción), con el modelo `0xc1c`, `0x225` o
+`0xa24` para el 1, 2 y 3, y con otro valor el del lugar que eligió la espalda (`[ebp-0x18]`, `0x50dd97`); sin el paso
+de Player.bmd (`0x50de23`) ni la vuelta del frame (`0x50de5a`), y con el excelente de Helper02 en 0 (Q-C1331); con
+el lugar vacío corta (Q-C1332). `GameHangingTest` y `GameCharacterRenderTest` cubren la espalda (hueso 47 y
 su lugar), la mano (hueso 33), las saetas, Helper02, los sprites de `0x21d` y `0xc19`, los joints y las
 partículas de las armas, la luz por nivel, MuSign en el hueso 20 con sus dos pases, las cuentas de `rand()`
 y los cortes; `HangingJointsTest` y `WeaponSparkParticlesTest` cubren la creación y el paso de los joints
@@ -7949,7 +7955,8 @@ mapas (`0x60d09f` y `0x60d113`) vale para cualquier `+0x88`: (0,1; 0,01; 0) a 0,
 0,04 / escala + 1,02 − 0,02 (Q-C323). No hay marca del gremio (`0x50d4fb`), capa, alas, mascota ni armas en la
 espalda. El alpha de los objetos baja 0,15f con `+0x1a1` del héroe (`0x5ffdf0`), que sólo escriben los paquetes.
 Al caminar, `0x4fbe10` guarda la celda del héroe y, si se queda 10 s en una celda con el bit 8 del atributo, manda
-`C1 06 AF 01` (CL9.5, corta).
+`C1 06 AF 02 x y` con el XOR32 (`MOV CL,0x2` en `0x4fbf6a`; `0x4fbee8`, CL9 hito 11, por la sesión:
+`CharacterStepContext::sendChaosCastleReposition`).
 
 **En MuRet.** `World::StepChaosCastleCell` desde el dibujo del terreno, `World::StepChaosCastlePrelude` y
 `World::StepChaosCastleSeenObject` (`World/ChaosCastle`) desde `GameScene::StepTheObjects`,

@@ -1,14 +1,17 @@
 #include "Scenes/SessionEventApplier.h"
 
 #include "App/CharacterEvent.h"
+#include "App/FaithfulPacer.h"
 #include "App/ServerSession.h"
 #include "App/WindowState.h"
 #include "App/WorldEvent.h"
 #include "Core/Expected.h"
+#include "Core/IClock.h"
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Events.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
@@ -17,6 +20,7 @@
 #include "Render/Models/Cloth.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/EventPackets.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/InventoryMoves.h"
@@ -187,6 +191,23 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         {
             return Core::Unexpected(applied.Error());
         }
+        // Los sonidos que pidió quedan sin tocar: MuRet no tiene audio hasta la CL10.
+        return {};
+    }
+    if (const auto* packet = std::get_if<Protocol::Events::EventPacket>(&event))
+    {
+        // CL9 hito 11: GetTickCount es el reloj de la sesión en ms (App::TickCountMs); sin reloj, 0.
+        const EventPacketContext context{
+            .world = m_resources.world,
+            .random = m_resources.cloth.random,
+            .texts = m_resources.texts,
+            .measure = m_resources.textMeasure,
+            .screen = m_resources.screen ? m_resources.screen() : App::PixelSize{640, 480},
+            .tickCount = m_resources.clock != nullptr ? App::TickCountMs(m_resources.clock->Now()) : 0U,
+            .playerSkeleton = m_resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel)};
+        const auto applied = ApplyEventPacket(*packet, context);
+        if (!applied.HasValue())
+            return Core::Unexpected(applied.Error());
         // Los sonidos que pidió quedan sin tocar: MuRet no tiene audio hasta la CL10.
         return {};
     }

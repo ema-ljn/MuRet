@@ -809,6 +809,56 @@ solo con `0xfe` y `0xff`); `App::ServerSession` los pasa al mundo y `Scenes::App
 escriben el registro propio que leen los orbes y el AG del HUD (06). Un lugar fuera de la grilla corta con
 `0x4d35f6` o `0x4d3917` (08, P-C150). Los tests usan valores inventados.
 
+### Los eventos: `0B`, `46`, `47`, `90`..`9E`, `AF`, `BC`, `BD 00` y `F3 22`/`23`/`40`
+
+(CL9 hito 11, 2026-11-13, *estático*, contra el ASM y contra `gs_protocol.h` y `protocol.cpp` del GameServer
+reconstruido.) Todos llegan por `0x4e2b10` sin guarda de escena, de estado de la sesión ni del flag C3. Los formatos
+de Text.bmd los arma `sprintf` de la CRT (`0x69fd9b`) o `wsprintfA` (`[0x6b851c]`) según el handler: el primero
+entiende `"% d"` (la bandera del espacio) y el segundo no (P-C290, *inferido*): copia el espacio y la letra y no toma
+el argumento, así que los textos con `"% s"` y `"% d"` del 91 salen sin el nombre ni el número. Un `%d` que toma el
+nombre del evento (un puntero a su registro, `0x76bd1dc + 300 · índice`) imprime la dirección (Q-C1321).
+
+| Paquete | Handler | Lo que lee | GameServer 1.02 |
+| --- | --- | --- | --- |
+| `C1 05 0B estado evento` | `0x4e3594` | guarda la copia en la cola de `0x77f27b4` (como el `1C`); con evento 1 o 3, la tormenta (`0x723c50`) en 1 o 3 si estado ≠ 0, y siempre los 40 pájaros apagados (`0x4455c0`) | `PMSG_EVENTSTATE` (`GCEventStateSend` `0x416560`, `GCMapEventStateSend` `0x4165c0`), igual |
+| `C1 46 tipo atributo modo cuenta …` | `0x4dab90` | tipo 1: `cuenta` celdas `(x, y)` desde `pkt[7]`, `0x5f8730` (quita) con modo ≠ 0 y `0x5f8710` (agrega) con 0. Tipo 0: `cuenta` rectángulos `(x1, y1, x2, y2)`; en Blood Castle (11..17) con el atributo 8, antes el derrumbe `0x5ff930(mapa, 0x24, 0, 1)`; cada uno con `0x5f8750(x1, y1, x2 − x1 + 1, y2 − y1 + 1, atributo, 1 − modo)` en un byte (Q-C1320). Otro tipo, nada | `PMSG_SETMAPATTR_COUNT` (Blood Castle `0x497cb0`, `0x497ea0`, `0x498090`): el tipo 0 con cuenta 1, el atributo 4 (la entrada y la puerta) u 8 (el puente), `btMapSetType` = vivo ? 0 : 1 y dos pares `(x, y)`, que el cliente lee como un rectángulo; el largo cubre seis pares (`7 + 2 · 6`) y los otros 8 bytes no los lee |
+| `C1 47 clave:2 … ítem:4 nivel` (hasta `pkt[0xc]`) | `0x4d6990` | la clave big-endian; con la del héroe, nada; con otra, el aviso con el nombre del ítem (`0x5b1c70`) | no está; el oráculo es el cliente |
+| `C1 04 90 resultado` | `0x4e4870` | cierra el NPC de evento (`0x65cae0(0x1000, 0)`) y, con 1..5, el aviso 677, 678, 686, 687 o 679 | `PMSG_RESULT`, igual |
+| `C1 91 tipo …` | `0x4da8c0` | tipo 1 (Devil Square): `pkt[4]` 0 → 643, si no 644 con los minutos; tipo 2 (Blood Castle): 850 o 851 con el nombre 1146; tipo 4 (Chaos Castle): la palabra `pkt[4]:pkt[6]` y `pkt[5]`, con 850 + 1156 o 1164 + 851 en los registros 1154/1155 y el diálogo `0x9a` | `PMSG_ENTERCOUNT_RESULT` (`CGEnterCountRequest` `0x429c10`), sólo los tipos 1 y 2: el 4 no lo manda |
+| `C1 04 92 tipo` | `0x4e4930` | con el objeto del evento (`[0x723c60]`), `0x40ba60(pkt[3] + 1)`: `+8` y `GetTickCount` en `+0xc`, que dibuja la cuenta de 30 s (`0x40bab0`) | `PMSG_SET_DEVILSQUARE`: Devil Square 0..2 y Blood Castle 3..6; el 10..13 de Chaos Castle no lo manda |
+| `C1 93 puesto cuenta registros…` | `0x4e4959` → `0x4e7360` → método `+0xc` | Devil Square (`0x40bd20`): con cuenta < 200, `cuenta` registros de 24 bytes a `+0x2c` y el diálogo `0x8b`; Blood Castle (`0x40c0c0`) con cuenta `0xff` y Chaos Castle (`0x404da0`) con `0xfe`: uno, con los diálogos `0x97` y `0x9b` | `PMSG_DEVILSQUARERESULT` de 11 registros (`0x10d`); Blood Castle manda puesto 1, cuenta `0xff` y `0x35` bytes. Con más de 11, Q-C1324 |
+| `C1 94 tipo cuenta:2 [a:2 b:2 c:2]` | `0x4dd8a0` | cierra las ventanas, `0x78abb04` = cuenta y `0x78abb00` = tipo + 1; con el 1 (Muto) los tres números si ninguno es `0xffff`; con el 3, el número de serie en cero y su entrada (corta, `0x4dd8f2`) | `PMSG_EVENTCHIPINFO` (`0xc`), igual |
+| `C1 06 95 tipo cuenta:2` | `0x4e49d4` | `0x78abb04` = cuenta salvo `0xffff` | `PMSG_EVENTCHIP_RESULT`, −1 al fallar, igual |
+| `C1 96 … a:2 b:2 c:2` | `0x4e49fb` | los tres números (`0x6c9328`, `0x6c932c`) si ninguno es `0xffff` | `PMSG_EVENTCHIP_MUTO`; al fallar a = −1, que el cliente salta |
+| `C1 04 99 tipo` | `0x4e4a40` | con 0 o 1, los diálogos `0x8f` o `0x90` | `PMSG_RESULT`, igual |
+| `C1 04 9A resultado` | `0x4da780` | cierra las ventanas y, con `sprintf`: 1 → 854; 2 → 852 con 1146; 3 → 686; 4 → 687; 5 → 853 con 1146 y 10; 6 → 867 con 6; 8 → 852 con 1147; 9 → 853 con 1147 y 100 | `PMSG_RESULT`, igual |
+| `C1 0E 9B estado quedan:2 máx:2 actual:2 dueño:2 arma` | `0x4e4999` → método `+8` | Blood Castle (`0x40c140`): 0 gira a los jugadores (`0x5111a0(0xc0)`) y la música `0x8b`; 0, 1 y 4, `+0x10` = estado + 1, el tiempo y las cuentas (`0x40ba80`) y el arma en `+0x360` del dueño (`0x511150`, Q-C1326); 2, `0x40ba20` y la música apagada; 3, el derrumbe `(mapa, 0x24, 0x14, 1)`. Chaos Castle (`0x404e20`), 5..10: la trampa armada, la entrada, la música; el tiempo; el fin; los tres derrumbes con cuatro rectángulos del atributo 8 cada uno. Devil Square, `ret` | `PMSG_STATEBLOODCASTLE` (`0xe`), igual |
+| `C1 44 9D resultado datos:0x40` | `0x4e4a86` | el aviso 886 + resultado (0..4) o 899 (5) y siempre los `0x40` bytes en `0x78ab078` | no está |
+| `C1 06 9E … sonido:2` | `0x4e4ad4` | con 0, 1 o 2, el sonido `0x5b`, `0x5c` o `0x5d` (CL10) | no está |
+| `C1 05 AF 01 resultado` | `0x4e5032` → `0x4daa90` | como el 9A con Chaos Castle (1147, 100), y 7 → 423 | no está en el 0.97; el oráculo es el cliente |
+| `C1 05 BC 00/01 resultado` | `0x4e4547`, `0x4da540` | el texto de la mezcla (1801/1800 con 1816 y 868, o 1817, 1811, 1812, 1815) en `"%s%s %s"`, `0x6236f0(0)` y `0x6236f0(0xa6)`, y la ventana de la mezcla (`0x402e50`, corta) | no está |
+| `C1 06 BD 00 estado etapa` | `0x4e5965` | `0x42fe80(estado, etapa)` (la interfaz de Crywolf; con otro estado que el anterior, la luz y el `.att`, que cortan en `0x42ff81`) y `0x4033b0(etapa)` en el recorrido de la cámara | no está |
+| `C1 F3 22 b w:2` | `0x4e31f8` | el byte de `pkt[4]` a `0x5767814` y la palabra de `pkt[6]` a `0x5767816` | `PMSG_F3_22` (`0x418330`, la guerra de gremios) mide 6: la palabra la lee fuera del paquete (Q-C1322) |
+| `C1 16 F3 23 nombre:8 p1 nombre:8 p2` | `0x4d9f00` | los nombres con su `'\0'`, los puntos, `0x576796f` = p1 ≠ `0xff`, y el efecto `0x60e` en la celda del héroe (`0x518cf0`, corta) | `PMSG_BATTLESOCCER_SCORE` (`0x16`): la palabra de `pkt[0x15]` toma `pkt[0x16]` (Q-C1323) |
+| `C1 07 F3 40 comando a b` | `0x4da070` | por la tabla `0x4da24c`: 0, el efecto `0x60e` en la celda (`0x518cf0`, corta); 1, el aviso 650 + a (810 + a desde `0x14`); 2, el sonido `0x5a`; 3, 710 + a; 5, el diálogo a de `0x632f70` (corta); 6, 449; 7, con a en 0 el texto 2020 en el diálogo `0xaa` y si no el aviso 2020 + a; `0xd`, 1826; `0x2f..0x31`, 1776 + comando | `PMSG_F3_40`, igual |
+
+Lo que manda el cliente:
+
+- **`C1 03 97`** (`0x56b4e8..0x56b5a0`), en claro y sin XOR32: `SendMove` lo agrega después del `D3` con `0x78abb00`
+  distinto de 0; después, con 3, cierra la entrada del número de serie (corta, `0x56b6a9`), y si no pone `0x78abb00`
+  en 0, el cursor con `SetCursorPos` en x · ancho / 260 (Q-C1330), `0x6c8dcc` en 6 y el izquierdo suelto. El GS lo
+  atiende en `CGEventChip97Request`.
+- **`C1 06 AF 02 x y`** (`0x4fbee8`, desde `0x4fbe10`), con el XOR32: en Chaos Castle, el héroe 10 s en la misma
+  celda con el bit 8 del atributo. `MOV CL,0x2` en `0x4fbf6a`: no es el `AF 01` que decía 06.
+
+**MuRet**: `Protocol::Events` lee los 21 con `TooShort` cuando faltan los bytes que el original lee siempre (los que
+dependen de un campo se miran al aplicar) y escribe el `97` y el `AF 02`. `App::ServerSession::RegisterTheEventPackets`
+los registra en un bloque y `Scenes::ApplyEventPacket` (`Scenes/EventPackets.cpp`) los aplica sobre
+`WorldRuntime::events` (`EventGlobals`), el objeto del evento, las celdas de `TerrainWall`, los diálogos y la caja de
+mensajes; `UI::FormatOriginal` hace las dos funciones de formato con los argumentos que pasa el original. Los cortes
+están en 08 (P-C291 y P-C292). Los tests usan textos inventados, salvo los formatos de `Text.bmd` que se citan
+arriba.
+
 ## Qué implica para MuRet
 
 | Original | MuRet | Ola |
@@ -824,6 +874,7 @@ escriben el registro propio que leen los orbes y el AG del HUD (06). Un lugar fu
 | La respuesta del `F3 03`: un C3 de `0x34` bytes que `0x4c3940` lee hasta el `0x37` (Q-C144), y el `F3 10` con entradas de 8 bytes | un lector de la respuesta con `TooShort`, el estado `0x3d` en la sesión, y un lector del `F3 10` con el lugar y los 7 bytes de cada ítem (propuesta del barrido de Lorencia) | CL7 |
 | Caminar: el `D3` con el tope de 14 y la dirección final por el blanco o por el ángulo; el `D3` y el `D7` del servidor | un escritor del `D3` contra el `SendMove` real emulado y los bytes del cable, y lectores del `D3` y del `D7` (este, al menos, con la sacudida); el `A3` y el `A4` siguen siendo de la capa de FoxAnti (propuesta del barrido) | CL7.4 |
 | Los cambios de mapa: el `1C` en los dos sentidos, el `F3 04`, el `F3 12` y el `BD 00` | lectores del `1C` y del `F3 04`, escritores del `1C` (en C3), del `F3 12` y del `BD 00` (en C1 con el XOR32), y la espera del warp en la sesión (propuesta del barrido) | CL7.5 |
+| Los paquetes de los eventos, sin guarda de escena, con `sprintf` o `wsprintfA` según el handler | `Protocol::Events` (lectores y los escritores del `97` y del `AF 02`) y `Scenes::ApplyEventPacket` sobre `WorldRuntime::events` y el objeto del evento; `UI::FormatOriginal` para los dos formatos ([Los eventos](#los-eventos-0b-46-47-909e-af-bc-bd-00-y-f3-222340)) | CL9 hito 11 |
 
 Tests que fija:
 

@@ -11,6 +11,7 @@
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 
+#include "App/ServerSession.h"
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
 #include "Render/Models/Cloth.h"
@@ -64,20 +65,27 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock)
     auto& runtime = m_context.world->Runtime();
     const Render::Models::Skeleton* player =
         m_models != nullptr ? m_models->SkeletonOf(Data::Models::PlayerSkeletonModel) : nullptr;
-    if (auto stepped = StepCharacters(
-            CharacterStepContext{.world = *m_context.world,
-                                 .random = m_context.cloth->random,
-                                 .scene = SceneId::Game,
-                                 .playerSkeleton = player,
-                                 .items = m_items,
-                                 .terrain = &StepTerrain(),
-                                 .darkSpiritSkeleton = m_models ? m_models->SkeletonOf(DarkSpiritModel) : nullptr,
-                                 .particles = &m_context.world->Particles(),
-                                 .worldClock = worldClock,
-                                 .counter = m_context.cloth->logicSteps,
-                                 .actionSpeeds = &m_context.world->ActionSpeeds(),
-                                 .fixedHeight = CameraState().fixedHeight,
-                                 .soundRequest = [&](std::int32_t sound) { runtime.lastSoundId = sound; }});
+    if (auto stepped = StepCharacters(CharacterStepContext{
+            .world = *m_context.world,
+            .random = m_context.cloth->random,
+            .scene = SceneId::Game,
+            .playerSkeleton = player,
+            .items = m_items,
+            .terrain = &StepTerrain(),
+            .darkSpiritSkeleton = m_models ? m_models->SkeletonOf(DarkSpiritModel) : nullptr,
+            .particles = &m_context.world->Particles(),
+            .worldClock = worldClock,
+            .counter = m_context.cloth->logicSteps,
+            .actionSpeeds = &m_context.world->ActionSpeeds(),
+            .fixedHeight = CameraState().fixedHeight,
+            .soundRequest = [&](std::int32_t sound) { runtime.lastSoundId = sound; },
+            // CL9 hito 11: el AF 02 de 0x4fbee8 por la sesión.
+            .sendChaosCastleReposition = [this](std::uint8_t x, std::uint8_t y) -> Core::Expected<void, std::string>
+            {
+                if (m_session == nullptr)
+                    return Core::Unexpected(std::string("0x4fbee8: no hay sesión para el AF 02"));
+                return m_session->SendChaosCastleReposition(x, y);
+            }});
         !stepped.HasValue())
     {
         return stepped;

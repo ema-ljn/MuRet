@@ -5,6 +5,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Scenes/ChatBubbles.h"
+#include "Scenes/EventGlobals.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameMovementState.h"
@@ -49,16 +50,43 @@ namespace Client::Scenes
 // .data[0x6c8c5c] = 1e 00 00 00; los otros cuatro campos del clima están en .bss.
 inline constexpr std::int32_t InitialLeafCount = 30;
 
+// Los globales de la interfaz de Crywolf que escriben el BD 00 (0x42fe80) y 0x42fdc0, que los vuelve a su valor
+// inicial (los de la .data en 0x6c73d0.., los demás en la .bss). Los lee la UI de los eventos (0x4365c0), que MuRet
+// no tiene: el HUD corta con 0x6c73d1 en 0 o más (CL9 hito 11).
+struct CrywolfInterface
+{
+    std::int32_t dword723a40 = 0;
+    std::uint8_t byte723a3d = 0;
+    std::uint8_t byte723a44 = 0;
+    std::uint8_t byte723ca0 = 0;
+    std::uint8_t byte723bec = 0;
+    std::int32_t dword723bd8 = 0;
+    std::array<std::int32_t, 4> dwords723bdc{};
+    std::int32_t dword7239f4 = 0;
+    // 0x6c73d1 (.data 0xff): con −1 (con signo) 0x4365c0 sale sin dibujar el aviso (0x436bc7).
+    std::int8_t message = -1;
+    std::int32_t dword6c73d4 = 0x64;
+    std::int32_t dword6c73d8 = 1;
+    std::int32_t dword6c73dc = 0x0a;
+    // 0x6c73e0..0x6c73f4, seis dwords en −1.
+    std::array<std::int32_t, 6> dwords6c73e0{-1, -1, -1, -1, -1, -1};
+    std::int32_t dword6c73f8 = 0x186;
+    std::int32_t dword6c8e54 = -1;
+    // 0x723c08: la luz de los dos 0x4ecc30 del estado 2 (0x430a33).
+    std::int32_t light = 0;
+};
+
 // Los globales de Crywolf (el mapa 34), todos en la .bss.
 struct CrywolfGlobals
 {
-    // 0x723c05: la etapa que leen los dibujos del chat (con 3 o 4 bajan sus renglones). Solo la escriben paquetes
-    // (CL9.5) y la vuelta a la selección (0x42fdc0).
+    // 0x723c05: la etapa que leen los dibujos del chat (con 3 o 4 bajan sus renglones). Solo la escriben el BD 00
+    // (0x42fe80, CL9 hito 11) y 0x42fdc0 (la vuelta a la selección y la etapa 6).
     std::uint8_t stage = 0;
-    // 0x723c04: el estado del evento que lee 0x42fe50. Lo cambia solo el paquete de 0x42fe80 (CL9.5) y lo vuelve
-    // a 0 la vuelta a la selección (0x42fdc0). Con 0, la carga del 34 toma EncTerrain35.att y TerrainLight
-    // (0x61a560) y el dibujo de sus objetos, los casos del estado 0 (Q-C340).
+    // 0x723c04: el estado del evento que lee 0x42fe50. Lo cambia solo el BD 00 (0x42fe80, CL9 hito 11) y lo vuelve
+    // a 0 0x42fdc0. Con 0, la carga del 34 toma EncTerrain35.att y TerrainLight (0x61a560) y el dibujo de sus
+    // objetos, los casos del estado 0 (Q-C340).
     std::uint8_t state = 0;
+    CrywolfInterface ui{};
     // 0x5763358: el clima, rand() % 3 cada 70.001 frames de sus objetos (0x430510). Lo leen las hojas (0x530490
     // y 0x5306a0) y el 0x49 del dibujo (0x430942).
     std::int32_t weather = 0;
@@ -243,8 +271,10 @@ struct WorldRuntime
     // a poner en 0xff.
     std::uint8_t chaosCastleArea = 0xff;
     // 0x6c634d (.data 1): la trampa de Chaos Castle armada. 0x4055b0 la gasta con el primer 3 visto; solo el
-    // paquete de 0x404e20 la vuelve a armar (CL9.5).
+    // 9B de Chaos Castle (0x404e45, CL9 hito 11) la vuelve a armar.
     std::uint8_t chaosCastleTrapArmed = 1;
+    // Lo demás que escriben los paquetes de los eventos (CL9 hito 11).
+    EventGlobals events{};
     // Lo de Crywolf que leen y escriben la carga, sus objetos y sus hojas.
     CrywolfGlobals crywolf{};
     // 0x5763538 (.bss 0): el contador de 0x6046a0, que da la vuelta de 1 a 41 al empezar cada dibujo de los

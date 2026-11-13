@@ -8,6 +8,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -74,6 +75,12 @@ void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view 
                                                                const Data::Text::TextTable* texts,
                                                                std::int32_t lineCount, std::int32_t firstText,
                                                                std::int32_t id);
+
+// 0x633300(n, 0x482, 0x9a) con los textos 1154.. ya escritos en la memoria de Text.bmd por quien llama (el 91 con 4,
+// 0x4da8c0, CL9 hito 11): `texts` en el lugar de los n registros, partidos con 0x632c90 uno detrás del otro, los
+// botones del 0x9a y el 0x9a por 0x6236f0.
+[[nodiscard]] Core::Expected<void, std::string> OpenTheChaosCastleDialog(DialogBoxState& box, DialogState& dialogs,
+                                                                         std::span<const std::string_view> texts);
 
 // 0x62d756..0x62d7e9: los dos botones. Con estado 1 o más, el mouse en [x + 0xd5, x + w + 0xd5] × [y + 0x3c, y + h +
 // 0x3c] (con los bordes) lo pone en 2 y, con el clic (0x7d366d4), lo apaga, apaga el botón abajo (0x7d36874) y lo

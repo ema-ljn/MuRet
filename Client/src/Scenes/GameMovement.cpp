@@ -41,6 +41,7 @@
 #include <optional>
 #include <span>
 #include <cstdint>
+#include <format>
 #include <string>
 #include <utility>
 
@@ -50,6 +51,10 @@ namespace
 {
 constexpr std::uint32_t FrozenHeroFlag = 0x1000;
 constexpr std::uint32_t MovementLockedFlag = 0x20;
+// 0x56b693: con 3, la entrada del número de serie (el 94 con el tipo 2).
+constexpr std::int32_t SerialEventWindow = 3;
+// 0x56b785: lo que SendMove deja en 0x6c8dcc al cerrar la ventana de los eventos.
+constexpr std::int32_t EventWindowUpdateTimeMax = 6;
 // 0x56b397..0x56b4d6: las ventanas que cierra caminar, en este orden.
 constexpr std::array<UI::PanelId, 9> PanelsClosedByWalking{
     UI::TradePanel, UI::WarehousePanel, UI::SecondGuildPanel, UI::ChaosBoxPanel, UI::QuestPanel,
@@ -123,6 +128,54 @@ std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Render::Models::Cr
     return cell;
 }
 
+// 0x56b72f..0x56b77f: el lugar de SetCursorPos. Y = alto · y / 480 (MUL sin signo); X = (640 · x / 260, IMUL con
+// signo) · ancho / 640 (MUL sin signo): el cursor queda en x · ancho / 260 y no en x · ancho / 640 (Q-C1330).
+std::pair<std::int32_t, std::int32_t> EventWindowCursor(std::int32_t mouseX, std::int32_t mouseY, std::int32_t width,
+                                                        std::int32_t height)
+{
+    constexpr std::uint64_t DivideBy480 = 0x88888889u; // >> 40
+    constexpr std::int64_t DivideBy260 = 0x7e07e07f;   // >> 39
+    constexpr std::uint64_t DivideBy640 = 0xcccccccdu; // >> 41
+    constexpr std::uint32_t Width640 = 640;
+    const auto rows = static_cast<std::uint32_t>(height) * static_cast<std::uint32_t>(mouseY);
+    const auto y = static_cast<std::int32_t>((rows * DivideBy480) >> 40u);
+    const auto scaled = static_cast<std::int32_t>(static_cast<std::uint32_t>(mouseX) * Width640);
+    auto quotient = static_cast<std::int32_t>((static_cast<std::int64_t>(scaled) * DivideBy260) >> 39);
+    if (quotient < 0)
+        ++quotient;
+    const auto columns = static_cast<std::uint32_t>(quotient) * static_cast<std::uint32_t>(width);
+    const auto x = static_cast<std::int32_t>((columns * DivideBy640) >> 41u);
+    return {x, y};
+}
+
+// 0x56b4e8..0x56b78f: el C1 03 97 (sin cifrar, por el socket de [0x6c82a0]); con 3, la entrada del número de serie;
+// 0x78abb00 en 0, SetCursorPos, 0x6c8dcc en 6 y el izquierdo suelto (0x7d36874).
+Core::Expected<void, std::string> LeaveTheEventWindow(const HeroMovementContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    if (!context.sendEventWindowLeave)
+        return Core::Unexpected(std::string("0x56b4e8: falta el servicio de envío del C1 03 97"));
+    if (auto sent = context.sendEventWindowLeave(); !sent.HasValue())
+        return sent;
+    if (runtime.panels.field78abb00 == SerialEventWindow)
+        return Core::Unexpected(std::string("0x56b6a9: cerrar la entrada del número de serie (0x6c8e74, 0x77f3b70, los "
+                                            "diez buffers de 0x7798bf8, los EDIT de [0x5763504] y [0x5763508], "
+                                            "0x77f3b6a, 0x77f3b6c, 0x78abacc y 0x77f3b6b) es de la fase 2 del hito 11 "
+                                            "de la CL9"));
+    runtime.panels.field78abb00 = 0;
+    const auto [x, y] =
+        EventWindowCursor(context.input.mouseX, context.input.mouseY, context.screenWidth, context.screenHeight);
+    if (!context.moveTheCursor)
+        return Core::Unexpected(std::format("0x56b77f: SetCursorPos({}, {}) mueve el cursor de Windows, y la "
+                                            "plataforma de MuRet no lo mueve (fase 2 del hito 11 de la CL9)",
+                                            x, y));
+    if (auto moved = context.moveTheCursor(x, y); !moved.HasValue())
+        return moved;
+    runtime.movement.mouseUpdateTimeMax = EventWindowUpdateTimeMax;
+    runtime.movement.leftHeld = false;
+    return {};
+}
+
 Core::Expected<void, std::string> SendThePath(ActorState& hero, GameLogic::PathCell target,
                                               const HeroMovementContext& context)
 {
@@ -157,10 +210,10 @@ Core::Expected<void, std::string> SendThePath(ActorState& hero, GameLogic::PathC
         if (auto closed = panels.Registry().Close(id); !closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());
     }
-    // 0x56b4db: con 0x78abb00, el C1 03 97 del asedio.
-    if (runtime.panels.field78abb00 != 0)
-        return Core::Unexpected(std::string("0x56b4e8: el C1 03 97 de 0x78abb00 es de la CL9.5"));
-    return {};
+    // 0x56b4db: con la ventana de los eventos (0x78abb00), el C1 03 97 (CL9 hito 11).
+    if (runtime.panels.field78abb00 == 0)
+        return {};
+    return LeaveTheEventWindow(context);
 }
 
 Core::Expected<void, std::string> UseGroundClick(ActorState& hero, const HeroMovementContext& context)

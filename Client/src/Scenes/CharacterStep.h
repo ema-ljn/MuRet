@@ -86,6 +86,9 @@ struct CharacterStepContext
     ActorCooldownServices cooldown{};
     // Solicitudes de sonido: el consumidor CL10 decide cómo reproducirlas.
     std::function<void(std::int32_t)> soundRequest{};
+    // GetAsyncKeyState(0x11) con 0x80 en el byte de arriba: Ctrl abajo, que 0x558eb0 lee en la habilidad del héroe
+    // (0x558fd6, CL9 hito 3).
+    bool controlDown = false;
 };
 
 // 0x508f00. Corta con error, en el orden del original, en el mapa 30 (0x412140), sin el mapa cargado

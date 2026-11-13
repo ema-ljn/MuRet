@@ -145,7 +145,8 @@ private:
     // 0x636da3..0x63717f: el paso con el mundo cargado, hasta su primer corte.
     [[nodiscard]] Core::Expected<void, std::string> StepWorld(const Input::InputState& input);
     [[nodiscard]] Core::Expected<void, std::string> StepTheFloorItems(float worldClock);
-    [[nodiscard]] Core::Expected<void, std::string> StepTheCharacters(float worldClock);
+    // `controlDown`: Ctrl, para 0x558eb0 en la habilidad del héroe (CL9 hito 3).
+    [[nodiscard]] Core::Expected<void, std::string> StepTheCharacters(float worldClock, bool controlDown);
     // `terrainHeight` es la altura de 0x5f93c0 que pide la mariposa 0xae del 54 (0x520dad).
     [[nodiscard]] Core::Expected<void, std::string>
     StepTheModelEffects(float worldClock, const std::function<double(float, float)>& terrainHeight);

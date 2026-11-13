@@ -59,7 +59,7 @@ Core::Expected<void, std::string> GameScene::StepTheFloorItems(float worldClock)
     return {};
 }
 
-Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock)
+Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock, bool controlDown)
 {
     auto& runtime = m_context.world->Runtime();
     const Render::Models::Skeleton* player =
@@ -78,7 +78,8 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock)
                                  .counter = m_context.cloth->logicSteps,
                                  .actionSpeeds = &m_context.world->ActionSpeeds(),
                                  .fixedHeight = CameraState().fixedHeight,
-                                 .soundRequest = [&](std::int32_t sound) { runtime.lastSoundId = sound; }});
+                                 .soundRequest = [&](std::int32_t sound) { runtime.lastSoundId = sound; },
+                                 .controlDown = controlDown});
         !stepped.HasValue())
     {
         return stepped;

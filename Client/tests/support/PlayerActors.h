@@ -39,8 +39,9 @@ inline Scenes::ActorState UnarmedPlayer(std::uint8_t characterClass = 0)
     actor.hands[1].model = Scenes::NoItemModel;
     actor.wings.model = Scenes::NoItemModel;
     actor.pet.model = Scenes::NoItemModel;
-    // 0x511290: sin gremio (+0x1f2 en −1).
+    // 0x511290: sin gremio (+0x1f2 en −1) y +0x376 en 0xffff (0x511d72), el de un jugador sin transformar.
     actor.word1f2 = Scenes::NoItemModel;
+    actor.word376 = 0xffff;
     return actor;
 }
 

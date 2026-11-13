@@ -31,6 +31,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Input/InputState.h"
+#include "Input/Key.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ModelTextureSlots.h"
@@ -392,7 +393,7 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     if (auto moved = StepTheHero(input); !moved.HasValue())
         return moved;
     // 63710f: personajes sobre el trapecio retenido del último dibujo.
-    if (auto stepped = StepTheCharacters(worldClock); !stepped.HasValue())
+    if (auto stepped = StepTheCharacters(worldClock, input.IsDown(Input::Key::Ctrl)); !stepped.HasValue())
         return stepped;
     if (auto effects = StepTheEffects(worldClock); !effects.HasValue())
         return effects;

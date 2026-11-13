@@ -337,6 +337,40 @@ Core::Expected<bool, std::string> IsAttackable(const WorldState& world, bool con
     return controlDown && !isHero;
 }
 
+Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker, bool controlDown)
+{
+    constexpr std::int32_t NoKey = -1;
+    const WorldRuntime& runtime = world.Runtime();
+    // 0x558eb3..0x558ed8: el cursor (JG, con signo), el elegido y el héroe publicado.
+    const std::int32_t chosen = runtime.selectedTargets[2];
+    if (runtime.cursorItemCount > 0 || chosen == -1 || attacker != runtime.hero)
+        return NoKey;
+    const auto actors = world.Actors();
+    if (chosen < 0 || static_cast<std::size_t>(chosen) >= actors.size())
+        return Core::Unexpected(std::format("0x558ede: el elegido {} está fuera del pool", chosen));
+    const ActorState& target = actors[static_cast<std::size_t>(chosen)];
+    const bool isHero = static_cast<std::size_t>(chosen) == runtime.hero;
+    const auto key = static_cast<std::int32_t>(static_cast<std::int16_t>(target.key));
+    // 0x558ef0..0x558f08.
+    if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap)
+        return key;
+    const AttackRules& rules = runtime.attackRules;
+    // 0x558f09..0x558f7c.
+    if (rules.byte576796c != 0 && target.pk >= MinimumOutlawPk && target.word1f2 != NoGuild)
+        return Core::Unexpected(std::string("0x558f29: comparar los nombres de gremio de 0x787aa55 en la guerra de "
+                                            "gremios es del hito 8"));
+    // 0x558f84..0x558fed.
+    if (rules.duelActive)
+        return key == rules.duelKey ? key : NoKey;
+    if (target.byte370 == 2 || target.byte370 == 8)
+        return key;
+    if (rules.byte576796c != 0)
+        return target.byte374 == 2 && !isHero ? key : NoKey;
+    if (target.pk >= MinimumOutlawPk)
+        return key;
+    return controlDown && !isHero ? key : NoKey;
+}
+
 bool PassesTheActionBrake(std::uint32_t& last, std::int32_t skill, const std::function<std::uint32_t()>& tickCount)
 {
     if (skill != BrakeSkill)

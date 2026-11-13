@@ -4,6 +4,7 @@
 #include "Protocol/Movement.h"
 #include "Scenes/ActorCombat.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <span>
@@ -22,6 +23,16 @@ struct ActorState;
 // de gremios, el duelo, el PK de 6 o más o, si no, con Ctrl abajo (GetAsyncKeyState(0x11) en 0x558e7f, `controlDown`)
 // y que no sea el héroe. Corta donde compara los nombres de gremio (0x787aa55, del hito 8).
 [[nodiscard]] Core::Expected<bool, std::string> IsAttackable(const WorldState& world, bool controlDown);
+
+// 0x558eb0(c, [0x6c8e30]), la hermana de 0x558bb0 que el paso de la habilidad deja en o+0x8a (0x4fdc10): la clave
+// (+0x1f4, MOVSX) del elegido si el héroe lo puede atacar, y −1 si no. −1 con un ítem en el cursor, sin elegido o si
+// `attacker` (el lugar de c) no es el héroe publicado ([0x743a170]). En Chaos Castle (18 a 23), la clave, también la
+// del héroe. Después, como 0x558bb0 sin el asedio ni el tipo del objeto: +0x370 en 2 u 8; fuera de la guerra de
+// gremios, el PK de 6 o más o Ctrl abajo (0x558fd6) con otro que el héroe; en ella, +0x374 en 2 con otro; en el duelo,
+// la clave del rival, sin comparar el nombre. Corta donde compara los nombres de gremio (0x558f29, hito 8). No saca
+// rand().
+[[nodiscard]] Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker,
+                                                                    bool controlDown);
 
 // El freno de 300 ms (0x57f2d1..0x57f2f9, y el mismo en 0x559890, 0x55b6f0, 0x55cbc0 y 0x55faa0): salvo con la skill
 // 0x28, si |GetTickCount() − [0x576791c]| (resta de 32 bits con signo, CDQ/XOR/SUB) es 300 o menos, no pasa; si

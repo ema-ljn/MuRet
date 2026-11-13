@@ -205,6 +205,9 @@ struct ActorState
     // mató (0x4d0a7e) y +0x398, que el 0x17 de los empujes pone en 0. Quién más los escribe, sin leer.
     std::uint8_t byte380 = 0;
     std::uint16_t word382 = 0;
+    // o+0x8a: la clave del elegido que deja 0x558eb0 (−1 sin él) en cada paso de la habilidad (0x4fdc10, CL9 hito 3,
+    // fase 2b). La leen los casos de habilidad de 0x4fd5f0 (el 5 la pasa a 0x518cf0 en 0x4fdf6b), del hito 4.
+    std::uint16_t word8a = 0;
     std::uint16_t attackTarget = 0;
     glm::vec3 attackPosition{};
     std::uint8_t attackCount = 0;

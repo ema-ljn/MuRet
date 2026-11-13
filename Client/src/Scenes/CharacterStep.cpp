@@ -20,6 +20,7 @@
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorDying.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/AttackStep.h"
 #include "Scenes/CharacterHead.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/DynamicWorldLight.h"
@@ -675,15 +676,12 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
                                             "hueso 42 (0x4ec110), sin portar",
                                             action, slot));
     }
-    // 0x4fdb9a..0x4fdbeb: +0x381 en 0, debajo de [0x6c88ac] (15): salta a 0x50539e sin la habilidad. Lo ponen en 1 el
-    // ataque al llegar (0x5653c1, HeroAttack) y el 18 con 0x78 y 0x79 (0x4cb830, ActionReply): entonces cada paso
-    // llama a 0x4f97b0 y 0x4f5b70 y suma uno, y desde 15 corre la habilidad de +0x382 (0x4fdbf1..0x50539e).
-    if (actor.byte381 != 0)
+    // 0x4fdb9a..0x50539e: con +0x381 distinto de 0, 0x4f97b0 y 0x4f5b70 y +0x381 += 1; desde [0x6c88ac], la habilidad
+    // de +0x38e con el blanco de +0x3a4. Lo ponen en 1 el ataque al llegar (0x5653c1, HeroAttack) y el 18 con 0x78 y
+    // 0x79 (0x4cb830, ActionReply).
+    if (auto attacked = StepTheAttack(actor, slot, context); !attacked.HasValue())
     {
-        return Core::Unexpected(std::format("0x4fdbb1: +0x381 en {} del lugar {} (después de 0x4f4a10): 0x4f97b0, "
-                                            "0x4f5b70 y, desde el paso 15, la habilidad de +0x382 "
-                                            "(0x4fdbf1..0x50539e) no están portados (CL9 hito 3, fase 2b)",
-                                            actor.byte381, slot));
+        return attacked;
     }
     // 0x5053a2..0x5053f0: +0x428 en −128 (0x511290, 0x511c77; los paquetes lo ponen en 0x96): nada.
     // 0x5053fc: 0x42a2b0, solo el 0x1a8.

@@ -35,6 +35,8 @@ inline constexpr std::int32_t MoneyTextDialog = 0x99;
 inline constexpr std::int32_t ServerTimeDialog = 0xa3;
 inline constexpr std::int32_t ItemNameDialog = 0x96;
 inline constexpr std::int32_t ItemNameWithLuckDialog = 0xa8;
+// 0x4da1b9: la pregunta que abre el F3 40 (0x4da070, hito 11) con el texto 2020 y +5 en 0, con su sí y su no.
+inline constexpr std::int32_t NoticeQuestionDialog = 0xaa;
 // 0x632f70: el diálogo de Dialog.bmd con respuestas (el de los NPC, CL9 hito 2).
 inline constexpr std::int32_t AnswersDialog = 0x8d;
 // 0x7d3691c: las respuestas de 0x419710 y 0x632f70, 10 renglones de 0x26 (0x5f dwords en 0).

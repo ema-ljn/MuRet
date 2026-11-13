@@ -33,7 +33,8 @@ enum class DialogStep : std::uint8_t
     Buttons,
     // 0x6263df: Enter o el botón (0x11c, 0x62, 0x46, 0x15) cierran.
     GenericOk,
-    // 0x6282dc: los dos botones de sí y no (y Esc, el no) de 0x94, 0x96, 0x98, 0x99, 0xa3 y 0xa9.
+    // 0x6282dc: los dos botones de sí y no (y Esc, el no) de 0x94, 0x96, 0x98, 0x99, 0x9a, 0xa3, 0xa8 (con su tercero),
+    // 0xa9 y 0xaa.
     YesNo,
     // 0x625910: el modo de la caja del caos (0x8e).
     ChaosMixMode,
@@ -41,6 +42,8 @@ enum class DialogStep : std::uint8_t
     JewelMenu,
     JewelChoice,
     JewelResult,
+    // 0x6260f6: el título o el precio de la tienda personal (0x91).
+    TypedText,
     // Un tramo de otra ola: corta con `address` y `wave`.
     Cut,
 };

@@ -22,6 +22,7 @@
 #include "UI/GameText.h"
 #include "UI/GameUiState.h"
 #include "UI/HudPrimitives.h"
+#include "UI/SprintfFormat.h"
 #include "UI/Widget.h"
 
 #include <algorithm>
@@ -194,18 +195,47 @@ constexpr int GenericSecondRowY = GenericTextTop + 0x15;
 
 // 0x630cc4..0x630da7: el marco de los de sí y no (CL9 hito 6), 0xfc de 213 × 5 en (213, 100), 3 filas de 0xfb de 213 ×
 // 40 desde y = 105 y otra vez 0xfc, con las UV de las cajas. El 0xa3 lo pone en y = 210 (0x630cc9..0x630cd3) y el 0x9a
-// lleva 4 filas (0x630d20..0x630d2c): son de sus diálogos, que siguen cortados.
+// lleva 4 filas (0x630d20..0x630d2c).
 constexpr int YesNoBoxTop = 0x64;
+constexpr int ServerTimeBoxTop = 0xd2;
 constexpr int YesNoBoxRows = 3;
+constexpr int ChaosCastleBoxRows = 4;
+// 0x630db4..0x630deb: en el 0x9a, antes de cada botón, el sí en (1; 0,3; 0,3) sin el ítem (el dword 0x78a59cc, el +4 de
+// 0x78a59c8, en 0xff) y si no en blanco. El color queda.
+constexpr std::uint32_t NoDialogItem = 0xff;
+constexpr Color NoItemYesColor{1.0f, 0.3f, 0.3f, 1.0f};
+// 0x630e1f..0x630f53 y 0x630fdb..0x6310d5: los tres botones del 0xa8, con la mezcla normal y en negrita, 0x646 en (x +
+// 213, y + 100, w, h) con las UV (0, 0, 0,765625, 1), y su texto ("%s" del 1412 y del 1903 en [EBP − 0x100], de 100
+// bytes; el 229 tal cual el tercero) en x + 0xed − cx / 2 e y + 100 + 4, con 0x6c8e5c en 0xff000000 y 0x6c8e64 en
+// 0xff. Vuelve el color del texto, no el del fondo, y la negrita queda. El tercero (0x7d36908) se dibuja sin mirar su
+// estado.
+constexpr std::uint16_t LuckButtonSlot = 0x646;
+constexpr float LuckButtonDu = 0.765625f;
+constexpr int LuckButtonTextX = 0xed;
+constexpr int LuckButtonTextDrop = 4;
+constexpr std::uint32_t LuckButtonTextColor = 0xff000000u;
+constexpr std::uint32_t LuckButtonBackground = 0xffu;
+constexpr std::array<std::size_t, 2> LuckButtonTexts{1412, 1903};
+constexpr std::size_t LuckThirdButtonText = 229;
+constexpr std::size_t LuckButtonRoom = 100;
 // 0x630df1..0x630fbe: los dos botones con estado de 1 a 4, 0xf0 + estado en (x + 213, y + 100, w, h) con las UV (0,
 // 0, w / 128, h / 32): sin el − 1 del alto de las cajas (0x631245).
 constexpr std::int32_t YesNoLastButtonState = 4;
-// 0x631412..0x631418 y 0x632637..0x632905: los renglones arrancan en x = 0x15e e y = 100 + 0xf + 0xf; con 0x78abb14
-// en 3, en x = 0x140 e y = 100 + 0xf, y en 4, en x = 0x140 e y = 100 + 0xf + 0x1e. Al 0x96 no lo mueven.
-constexpr int YesNoTextTop = YesNoBoxTop + 0xf;
+// 0x631412..0x631418 y 0x632637..0x632905: los renglones arrancan en x = 0x15e e y = arriba + 0xf + 0xf; con 0x78abb14
+// en 3, en x = 0x140 e y = arriba + 0xf, y en 4, en x = 0x140 e y = arriba + 0xf + 0x1e. Al 0x96 no lo mueven; el 0x9a
+// va en x = 0x140 sin mirar 0x78abb14 y el 0xa3 en x = 0x145, salvo que 0x78abb14 lo mueva.
+constexpr int YesNoTextDrop = 0xf;
+constexpr int YesNoTextTop = YesNoBoxTop + YesNoTextDrop;
 constexpr int YesNoTextX = 0x15e;
-constexpr int YesNoTextY = YesNoTextTop + 0xf;
-constexpr int LowerYesNoTextY = YesNoTextTop + 0x1e;
+constexpr int ServerTimeTextX = 0x145;
+constexpr int LowerTextDrop = 0x1e;
+constexpr int LowerYesNoTextY = YesNoTextTop + LowerTextDrop;
+// 0x632683..0x6328e3: el título de la mezcla, en negrita y en (1, 1, 0), centrado en y = arriba + 0xf + 10, con el
+// sprintf del texto del tipo (0x7d2dc98) en [EBP − 0x9c], de 100 bytes; los renglones siguen 0x22 más abajo, en 0x140.
+constexpr int MixTitleDrop = 10;
+constexpr int MixTitleRowsDrop = 0x22;
+constexpr Color MixTitleColor{1.0f, 1.0f, 0.0f, 1.0f};
+constexpr std::size_t MixTitleRoom = 100;
 // Lo que 0x632637 lee de 0x78abb14 (NpcWindowState::cursorChoice).
 constexpr std::int32_t RedFirstRowChoice = 1;
 constexpr std::int32_t MixChoice = 2;
@@ -220,6 +250,10 @@ constexpr Color YesNoRowColor{1.0f, 0.7f, 0.0f, 1.0f};
 constexpr Color RedRowColor{1.0f, 0.0f, 0.0f, 1.0f};
 constexpr Color RedFourthRowColor{1.0f, 0.1f, 0.1f, 1.0f};
 constexpr Color MixRowColor{0.9f, 0.9f, 1.0f, 1.0f};
+// 0x630477..0x6304d4: los de sí y no, que dibuja 0x630cc4 (el 0x94 entra por 0x630cbd, sin mirar el 0xa3).
+constexpr auto YesNoDialogs =
+    std::to_array<std::int32_t>({0x94, UI::ItemNameDialog, 0x98, UI::MoneyTextDialog, UI::ChaosCastleDialog,
+                                 UI::ServerTimeDialog, UI::ItemNameWithLuckDialog, 0xa9, UI::NoticeQuestionDialog});
 // 0x632a45..0x632aeb: los renglones del 0xa9 (la joya de bendición, CL9 hito 5) en la fuente gruesa y en amarillo,
 // centrados desde y = 100 + 0xf + 0x1e.
 constexpr std::int32_t BlessDialog = 0xa9;
@@ -644,54 +678,202 @@ void DrawTheGenericBox(Frame& frame)
     Quad(frame, slot, OkX, OkY, OkWidth, OkHeight, OkDu, OkDv);
 }
 
-// 0x630cc4..0x630fbe: el marco de los de sí y no que llegan a MuRet (el paso YesNo: 0x94, 0x96, 0x98, 0x99 y 0xa9) y
-// sus dos botones. El color del 0x9a (0x630db4..0x630deb) y el botón del 0xa8 (0x630e0f..0x630f53) son de sus
-// diálogos.
-void DrawTheYesNoBox(Frame& frame)
+// La y del marco de los de sí y no ([EBP − 0x20], 0x630cc4..0x630cd8).
+int YesNoTopOf(std::int32_t id)
 {
-    Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(YesNoBoxTop), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
-    int y = YesNoBoxTop + static_cast<int>(BoxEdgeHeight);
-    for (int row = 0; row < YesNoBoxRows; ++row, y += BoxRowStep)
+    return id == UI::ServerTimeDialog ? ServerTimeBoxTop : YesNoBoxTop;
+}
+
+// Un sprintf a un buffer de la pila de 0x62db60: lo que no entra la pisa, y corta.
+Core::Expected<std::string, std::string> Fits(std::string text, std::size_t room, std::string_view where)
+{
+    if (text.size() >= room)
+        return Core::Unexpected(std::format("{}: el sprintf escribe {} bytes en un buffer de {} y pisa la pila", where,
+                                            text.size() + 1, room));
+    return text;
+}
+
+// 0x630e1f..0x630f50 y 0x630fdb..0x6310d0: un botón del 0xa8, su texto y la vuelta del color y de la mezcla.
+void DrawTheLuckButton(Frame& frame, const UI::DialogButton& button, int top, std::string_view text)
+{
+    Render::SpriteBatch& sprites = frame.context.sprites;
+    HudState& hud = frame.context.hud;
+    sprites.SetBlend(BlendMode::Alpha);
+    hud.dcFont = Render::Text::FontKind::Bold;
+    Quad(frame, LuckButtonSlot, static_cast<float>(button.x) + BoxLeft, static_cast<float>(button.y + top),
+         static_cast<float>(button.width), static_cast<float>(button.height), LuckButtonDu, 1.0f);
+    const std::uint32_t saved = hud.textColors.text;
+    hud.textColors.text = LuckButtonTextColor;
+    hud.textColors.background = LuckButtonBackground;
+    DrawCenteredAt(frame, button.x + LuckButtonTextX, top + button.y + LuckButtonTextDrop, text);
+    hud.textColors.text = saved;
+    sprites.SetBlend(BlendMode::Opaque);
+}
+
+// 0x630cc4..0x6310d5: el marco de los de sí y no (0x94, 0x96, 0x98, 0x99, 0x9a, 0xa3, 0xa8, 0xa9 y 0xaa) y sus botones
+// con estado de 1 a 4; los del 0xa8 con su texto, y después su tercero.
+Core::Expected<void, std::string> DrawTheYesNoBox(Frame& frame, std::int32_t id)
+{
+    Render::SpriteBatch& sprites = frame.context.sprites;
+    const int top = YesNoTopOf(id);
+    const int rows = id == UI::ChaosCastleDialog ? ChaosCastleBoxRows : YesNoBoxRows;
+    Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(top), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
+    int y = top + static_cast<int>(BoxEdgeHeight);
+    for (int row = 0; row < rows; ++row, y += BoxRowStep)
         Quad(frame, BoxRowSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxRowHeight, MessageBoxDu, BoxDv);
     Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
-    for (const UI::DialogButton& button : frame.runtime.dialogBox.buttons)
+    const UI::DialogBoxState& box = frame.runtime.dialogBox;
+    for (std::size_t index = 0; index < box.buttons.size(); ++index)
     {
+        if (id == UI::ChaosCastleDialog)
+        {
+            const bool noItem = frame.runtime.dialogItem.scalar1Low == NoDialogItem && index == 0;
+            sprites.SetColor(noItem ? NoItemYesColor : White);
+        }
+        const UI::DialogButton& button = box.buttons[index];
         if (button.state < 1 || button.state > YesNoLastButtonState)
             continue;
+        if (id == UI::ItemNameWithLuckDialog)
+        {
+            auto text = TextOf(frame, LuckButtonTexts[index]);
+            if (!text.HasValue())
+                return Core::Unexpected(std::move(text).Error());
+            auto written = Fits(UI::Sprintf("%s", text.Value()), LuckButtonRoom, "0x630ed3");
+            if (!written.HasValue())
+                return Core::Unexpected(std::move(written).Error());
+            DrawTheLuckButton(frame, button, top, written.Value());
+            continue;
+        }
         const float width = static_cast<float>(button.width);
         const float height = static_cast<float>(button.height);
         Quad(frame, static_cast<std::uint16_t>(MessageBoxSlot + button.state), static_cast<float>(button.x) + BoxLeft,
-             static_cast<float>(button.y + YesNoBoxTop), width, height, width * ButtonDu, height * ButtonDv);
+             static_cast<float>(button.y + top), width, height, width * ButtonDu, height * ButtonDv);
     }
+    if (id != UI::ItemNameWithLuckDialog)
+        return {};
+    auto third = TextOf(frame, LuckThirdButtonText);
+    if (!third.HasValue())
+        return Core::Unexpected(std::move(third).Error());
+    DrawTheLuckButton(frame, box.thirdButton, top, third.Value());
+    return {};
 }
 
-// 0x632637..0x632a2a: los renglones del 0x94, el 0x96, el 0x98 y el 0x99, cada uno centrado en su x. No vuelve al
-// blanco ni a la fuente normal. Con 0x78abb14 en 2, salvo en el 0x96, antes va el título de la mezcla.
+// 0x632683..0x632877: el título de la mezcla, del tipo (0x7d2dc98; ECX es el tipo, o 0 si es negativo, y 7 con el 0xb).
+// Cada texto es el formato de un sprintf; el 0x1c con otra capa (0x7d2dc84) que la 3 o la 4 deja el buffer como
+// estaba en la pila, y corta.
+Core::Expected<std::string, std::string> TheMixTitle(const Frame& frame)
+{
+    const NpcWindowState& npc = frame.runtime.npcWindows;
+    const std::int32_t kind = npc.mixKind;
+    const auto format = [&frame](std::size_t index) { return TextOf(frame, index); };
+    std::size_t index = 0;
+    switch (kind)
+    {
+    case 0xc:
+        index = 618;
+        break;
+    case 0x16:
+    case 0x17:
+    {
+        auto creative = format(664);
+        if (!creative.HasValue())
+            return Core::Unexpected(std::move(creative).Error());
+        return UI::Sprintf(creative.Value(), kind - 10);
+    }
+    case 0xf:
+        index = 1413;
+        break;
+    case 0x10:
+        index = 1414;
+        break;
+    case 0x11:
+        index = 1415;
+        break;
+    case 0x19:
+        index = 1921;
+        break;
+    case 0x1a:
+        index = 1922;
+        break;
+    case 0x1b:
+        index = 1923;
+        break;
+    case 0x1c:
+    {
+        // 0x6327bb..0x63280f: "%s(%s)" (0x6d6344 y 0x6d634c) con el 1923 y el 1924 (capa 3) o el 1925 (capa 4).
+        if (npc.mixCapeKind != 3 && npc.mixCapeKind != 4)
+            return Core::Unexpected(std::format("0x6327eb: el título del 0x1c con la capa {} deja el buffer de la pila "
+                                                "sin escribir",
+                                                npc.mixCapeKind));
+        auto first = format(1923);
+        auto cape = format(npc.mixCapeKind == 3 ? 1924 : 1925);
+        if (!first.HasValue())
+            return Core::Unexpected(std::move(first).Error());
+        if (!cape.HasValue())
+            return Core::Unexpected(std::move(cape).Error());
+        return UI::Sprintf("%s(%s)", first.Value(), cape.Value());
+    }
+    case 0x18:
+        index = 1172;
+        break;
+    default:
+    {
+        // 0x6326b9..0x6326cd y 0x63282c..0x632837: el 601 + ECX hasta 4 y el 607 + ECX después (el 0xb, con 7, el
+        // 614).
+        const std::int32_t shown = kind == 0xb ? 7 : std::max(kind, 0);
+        index = static_cast<std::size_t>(shown) + (shown <= 4 ? 601u : 607u);
+        break;
+    }
+    }
+    auto text = format(index);
+    if (!text.HasValue())
+        return Core::Unexpected(std::move(text).Error());
+    return UI::Sprintf(text.Value());
+}
+
+// 0x632637..0x632a2a: los renglones de los de sí y no que van a 0x632637, cada uno centrado en su x. No vuelve al
+// blanco ni a la fuente normal. Con 0x78abb14 en 2, salvo en el 0x96 y el 0x9a, antes va el título de la mezcla.
 Core::Expected<void, std::string> DrawTheYesNoRows(Frame& frame, std::int32_t id)
 {
     const std::int32_t choice = frame.runtime.npcWindows.cursorChoice;
+    const int top = YesNoTopOf(id) + YesNoTextDrop;
     int x = YesNoTextX;
-    int y = YesNoTextY;
-    if (id != UI::ItemNameDialog)
+    int y = top + YesNoTextDrop;
+    Render::SpriteBatch& sprites = frame.context.sprites;
+    if (id == UI::ChaosCastleDialog)
+        x = CenterX;
+    else if (id != UI::ItemNameDialog)
     {
+        if (id == UI::ServerTimeDialog)
+            x = ServerTimeTextX;
         if (choice == MixChoice)
-            return Core::Unexpected(std::format("0x632683: el título de la mezcla del diálogo {:#x} (el tipo de "
-                                                "0x7d2dc98) es de la caja del caos, de la fase 3 del hito 6 (08 "
-                                                "P-C194)",
-                                                id));
-        if (choice == RaisedTextChoice)
         {
             x = CenterX;
-            y = YesNoTextTop;
+            const int titleY = top + MixTitleDrop;
+            frame.context.hud.dcFont = Render::Text::FontKind::Bold;
+            sprites.SetColor(MixTitleColor);
+            auto title = TheMixTitle(frame);
+            if (!title.HasValue())
+                return Core::Unexpected(std::move(title).Error());
+            auto written = Fits(std::move(title).Value(), MixTitleRoom, "0x632855");
+            if (!written.HasValue())
+                return Core::Unexpected(std::move(written).Error());
+            DrawCentered(frame, titleY, written.Value());
+            y = titleY + MixTitleRowsDrop;
+            frame.context.hud.dcFont = Render::Text::FontKind::Normal;
+        }
+        else if (choice == RaisedTextChoice)
+        {
+            x = CenterX;
+            y = top;
         }
         else if (choice == LoweredTextChoice)
         {
             x = CenterX;
-            y = LowerYesNoTextY;
+            y = top + LowerTextDrop;
         }
     }
     const UI::DialogBoxState& box = frame.runtime.dialogBox;
-    Render::SpriteBatch& sprites = frame.context.sprites;
     for (std::int32_t row = 0; row < box.lineCount; ++row, y += UI::DialogLineStep)
     {
         sprites.SetColor(YesNoRowColor);
@@ -788,8 +970,8 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
     }
     const bool box = id == UI::MessageBoxDialog || id == UI::PagedDialog || id == UI::AnswersDialog || id == 0x8b ||
                      id == 0x97 || id == 0x9b;
-    // 0x630477..0x6304d4: los de sí y no van a 0x630cc4; MuRet dibuja los que tienen su paso (0x6282dc).
-    const bool yesNo = id != 0 && DialogRouteOf(id).step == DialogStep::YesNo;
+    // 0x630477..0x6304d4: los de sí y no van a 0x630cc4.
+    const bool yesNo = std::ranges::find(YesNoDialogs, id) != YesNoDialogs.end();
     if (id == UI::EscapeMenuDialog)
     {
         if (auto drawn = DrawTheEscapeMenu(frame); !drawn.HasValue())
@@ -807,22 +989,23 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
     }
     else if (box)
         DrawTheBox(frame, id);
-    else if (id == UI::ServerTimeDialog)
-        return Core::Unexpected(std::string("0x630cc9: el marco del 0xa3 en y = 210 (0x630cc9..0x630cd3) y su x "
-                                            "(0x632658..0x632667) son de la fase 4 del hito 6 (08 P-C198)"));
     else if (yesNo)
-        DrawTheYesNoBox(frame);
+    {
+        if (auto drawn = DrawTheYesNoBox(frame, id); !drawn.HasValue())
+            return drawn;
+    }
     else if (generic)
         DrawTheGenericBox(frame);
     else if (id != 0)
         return CutTheDialog(id);
     // 0x63140b: la mezcla normal y los textos de la cola.
     sprites.SetBlend(BlendMode::Alpha);
-    // 0x631432: la tabla 0x632bf0 lleva el 0x8e a 0x632323, el 0x8a, el 0x8c y el 0x8d a 0x632472, y las otras cajas
-    // a 0x632a2b.
+    // 0x631432: la tabla 0x632bf0 lleva el 0x8e a 0x632323, el 0x8a, el 0x8c, el 0x8d y el 0xaa a 0x632472, y las otras
+    // cajas a 0x632a2b.
     if (id == ChaosMixModeDialog)
         return DrawTheMixModeTitle(frame);
-    if (id == UI::MessageBoxDialog || id == UI::PagedDialog || id == UI::AnswersDialog)
+    if (id == UI::MessageBoxDialog || id == UI::PagedDialog || id == UI::AnswersDialog ||
+        id == UI::NoticeQuestionDialog)
         return DrawTheBoxText(frame, id);
     // 0x632637 y 0x632a45: los renglones de los de sí y no.
     if (yesNo && id == BlessDialog)

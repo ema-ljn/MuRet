@@ -442,6 +442,11 @@ amigos. **Desbloquea:** 10.
       `0x4036d0`, `0x403900`, `0x403d40` y `0x403d60`. Cortan las chispas de `0x4039f0` (`0x403b09`: los joints
       `0x615/7` y `0x614/0x11` y la partícula `0x5f6/1`), el `0xed` (`0x4039a0`, CL11) y la cámara del juego que lo
       lee (`0x635ead`, `0x637324`). Q-C1349, P-C299.)
+      (Fase 6, *estática*: el camino hasta un altar, `0x4eac0a..0x4eac41` (`Scenes::CrywolfAltarGoal`), en los cinco
+      que llaman a `0x4eac00`: el clic en el suelo, el NPC, el `D3`, los caminos del viewport y el reintento de
+      `0x508e0e`. La cámara del juego y el centro del mundo leen el recorrido (`0x635ead..0x635ed8`, `0x637324`, con
+      `0x4034b0`), con la meta de D por su nivel (`0x6361d0`): `World::GameCameraInput::tour`. Siguen cortando las
+      chispas de `0x403b09` y el `0xed` (CL11), `0x403abe` y `0x43114d`. Q-C1350, Q-C1351, P-C328, P-C329.)
 - [ ] **Las reglas por mapa:** el arma de Blood Castle (`0x50de84`), las trampas de Chaos Castle (`0x405597`,
       `0x405d49`), el `AF 02` (`0x4fbee8`; decía `AF 01`), Kalima, y Crywolf (`BD`, `0x42fe80`, `0x42fe50`,
       `0x430a40`, `0x61a6f4`; P-C58).

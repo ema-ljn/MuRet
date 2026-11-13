@@ -1629,9 +1629,13 @@ el `BD 03` del servidor la sienta.
   clave `+0x1f4` del altar (con `MOVSX`) y el altar, y `0x39` en el renglón 1: la pregunta. Después sigue en
   `0x569573`. MuRet lo tiene en `Scenes::ClickTheCrywolfAltar`, que llama la llegada a un NPC del hito 2
   (`Scenes::TalkToTheNpc`, el caso 2 de `0x5650c0`) antes del `C1 30`: con `Contract` sigue en `0x569573` sin hablar;
-  con `Talk`, el `30` de `0x567c2d`; con otro blanco, el de `0x568288`. El camino hasta un altar todavía corta: con
-  Crywolf activo, el A* de `0x4eac00` pasa una bandera a `0x4ead70` (`0x4eac41`) que `GameLogic::PathFinder` no tiene
-  (08, P-C249).
+  con `Talk`, el `30` de `0x567c2d`; con otro blanco, el de `0x568288`. **El camino hasta el altar** (`0x4eac0a..0x4eac41`,
+  fase 6): con la etapa 3 o 4 (`0x435a00`) en el 34 (`0x4303c0`) y el registro de `0x6c8e54` de tipo `0x204..0x208` (el
+  word `+2` de `[0x743a16c] + 0x438 · n`, comparado con signo), `0x4eac00` pasa `bClearGoal` en 1 a las dos pasadas de
+  `0x4ead70`, que ponen en 0 el word de la meta (`0x4eae04`): la celda del altar, ocupada por él (`0x02`), deja de
+  bloquear y el camino llega hasta ella en vez de quedarse en la diagonal. La bandera no mira quién camina ni adónde
+  (Q-C1351), y con `0x6c8e54` en −1 lee el registro −1 (Q-C1350). MuRet: `Scenes::CrywolfAltarGoal`, en los cinco que
+  llaman a `0x4eac00` (`NpcTalkDataTest.OnlyInCrywolfTheWalkReachesTheAltarCell`, con el `.att` de los mapas 0, 2 y 34).
 - **El paso** (`0x435c5c..0x436220`), con el izquierdo abajo y las cajas sin los bordes. La ventana 1: el No en
   (`0x14a`, `0x180`) × (`0xfa`, `0x118`) deja `0x723bdc` en 1 y llama a `0x435b00(2)` (la ventana 2 con 1952);
   después el Sí en (`0xfa`, `0x130`) × (`0xfa`, `0x118`): con la mascota `0x1c14`, `0x1c15` o `0x1c37` en `+0x318`
@@ -6132,7 +6136,7 @@ bloque de la entrada, en orden (*estático*):
 | `0x637123` | `0x53c670` | los joints | no |
 | `0x637128` | **`0x5446e0`** | el viento y las partículas | sí (`StepParticles`) |
 | `0x63712d` | `0x549090` | las marcas del suelo (`0x760cab0`, [Las marcas del suelo](#las-marcas-del-suelo)): les baja la vida | después de la espera, `World::StepGroundMarks` (CL7, hito 1); en la espera, frontera (P-C49 c) |
-| `0x637138` | `0x403590` | `0x4033d0` y compañía (el recorrido de la cámara), sin leer | — |
+| `0x637138` | `0x403590` | el recorrido de la cámara ([El recorrido de la cámara](#el-recorrido-de-la-cámara)) | `Scenes::StepTheCameraTour` (CL9 hito 11) |
 | `0x637144..0x63717a` | `0x5fc0d0` y `0x5fc0b0`, con `0x7d2d35e` | funciones de un `ret` | nada |
 | `0x63717f` | `0x5ac8d0` | F1 a F4 (CL3.3) | CL8 |
 
@@ -6985,7 +6989,7 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 | `0x6371a6` | con `0x7d3a101` en 0, devuelve 0 | sin leer el contador | `GameScene::PrepareFrame` |
 | `0x6371b7..0x63722e` | el contador por la tabla de protección, con su cierre (`0x40b800`, `0x637229`); **con más de 30, devuelve 0** (`jle` con signo) | no dibuja ni presenta | `GameScene::PrepareFrame` (T5) |
 | `0x63723a` | `0x7d368a0 = 0` | sin niebla | sí |
-| `0x637241` | **`0x635ae0()`** y, fuera del mapa 6, `0x44dc60(&p)` (`0x4034b0` con el recorrido) | la cámara y el punto del recorte; la rama de `0x63724a` no corre nunca (Q-C189) | [La cámara del juego](#la-cámara-del-juego): `GameScene`, con los dos accesos a la celda del héroe (8 `rand()`) y `World::CameraTargetOf`; en el mapa 6 con "webzen" en el nombre, la cámara de espectador sin esos accesos y el punto (6.400; 15.400) con la z del héroe ([Los objetos de la Arena](#los-objetos-de-la-arena)) |
+| `0x637241` | **`0x635ae0()`** y, fuera del mapa 6, `0x44dc60(&p)` (`0x4034b0` con el recorrido) | la cámara y el punto del recorte; la rama de `0x63724a` no corre nunca (Q-C189) | [La cámara del juego](#la-cámara-del-juego): `GameScene`, con los dos accesos a la celda del héroe (8 `rand()`) y `World::FollowedPointOf` (`World::CameraTargetOf` o, con el recorrido andando, su posición: CL9 hito 11); en el mapa 6 con "webzen" en el nombre, la cámara de espectador sin esos accesos y el punto (6.400; 15.400) con la z del héroe ([Los objetos de la Arena](#los-objetos-de-la-arena)) |
 | `0x63734d` | `0x620db0(0, 0, w, 48)` | la franja, que no dibuja | sí (`MakePass3D`) |
 | `0x637366` | **`0x5fbb00(w / 640, &p)`** | el rango de bloques y el trapecio | sí (`TerrainRangeOf`, `TerrainPolygonOf(Game)`; en el juego, `StepTheTerrainPolygon` con el trapecio y el nivel efectivo globales de `WorldRuntime`, T11b) |
 | `0x637391..0x637404` | `glClearColor` por mapa: en el 0, (0,0390625; 0,078125; 0,0546875) | no se usa (Q-C143) | ver abajo |
@@ -8848,9 +8852,18 @@ del guion, `+0x148` el comienzo del reloj, `+0x14c` la clave siguiente, `+0x150`
   `0x4039a0`). Con las veces, avanza vuelve la cuenta a 0 y suma `+0x140`; verdadero con `+0x114` en 8 o más.
   `0x403900` y `0x403760` buscan la clave entre los 400 vivos y, sin ella, **siguen con el registro 399** (Q-C1349).
 
+**La cámara** (fase 6, *estático*). `0x635ae0` y el centro del mundo de `0x6371a0` leen `0x4033d0` en cada frame del
+original, fuera del mapa 6 con "webzen": la cámara (`0x635ead`) escribe la z del héroe en 300 (`0x635ec0`, Q-C153) y
+`0x4034b0` pisa su objetivo con `+4..+0xc` y le devuelve `+0x150`, que guarda como word en `0x7d3a0ec` (`0x635ed2`); el
+centro (`0x637324`) también lo pisa con `0x4034b0`, sin el nivel. El nivel elige la meta de D en el mismo frame (1.000 +
+100 · nivel, `0x6361d0`), el trapecio (`0x5fb570`) y el far del frame siguiente ([La cámara del
+juego](#la-cámara-del-juego)). Cortado, terminado o con otra etapa, el frame siguiente vuelve al héroe: el nivel a 0, el
+far del nivel una vez más, D baja hacia 1.000 y el trapecio sigue con el nivel hasta que D llega. MuRet:
+`World::GameCameraInput::tour`, que llena `GameScene::CameraOfTheFrame`, y `World::FollowedPointOf`
+(`GameSceneDrawTest.TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain`, en los mapas 0, 2 y 34).
+
 Lo que todavía corta (P-C299): las chispas de `0x4039f0` y el `0xed`; en el 34 la primera alta, la barrera 349,
-corta antes, en el joint `0x618` de su caso (`0x43114d`, hito 2). Tampoco está la cámara del juego leyendo el recorrido
-(`0x635ead`: la posición de `0x4034b0` y `+0x150` en `0x7d3a0ec`; `0x637324`, el centro del mundo).
+corta antes, en el joint `0x618` de su caso (`0x43114d`, hito 2).
 
 ### La cámara del juego
 
@@ -8874,7 +8887,7 @@ no detectaban todas. El pase y las
 copiar su posición de la expectativa. `GameCameraOf` conserva la D usada antes del suavizado, el
 zoom y el far, y reconstruye el dibujo con el héroe del último paso lógico sin otro avance. La
 integración en las escenas es la CL7.3 B; los ocho `rand()` protegidos por frame, la CL7.P. El
-recorrido `CCameraMove` sigue fuera de este valor de cámara.
+recorrido `CCameraMove` entra en la CL9 (hito 11, fase 6): `GameCameraInput::tour`, sin vectores emulados propios.
 
 **Contraste ASM y pseudocódigo (CL7.3 A).** Para `0x5fcc30`, el orden de las dos sumas
 lo fija el ASM, no la expresión reordenada del pseudocódigo de Ghidra. Cada componente conserva
@@ -8895,7 +8908,7 @@ ASM. En el alcance de la CL7.3 A no aparecieron discrepancias de lógica ni de c
 | `0x635f02..0x635feb` | z base 255 en mapa 30 en todas las escenas; `0x40` deja 1.201; las escenas fijas pisan posición/yaw antes del zoom |
 | `0x635fed..0x6360fe` | zoom ±10, hasta 210, con giro fijo −45; también se aplica un zoom negativo distinto de cero |
 | `0x636104..0x63614f` | balanceo del mapa 5, con las tasas float exactas y sin actualizar D ni su meta |
-| `0x636150..0x63624d` | D/meta 3.200 en la rama especial del mapa 6, 1.100 en mapa 30 en cualquier escena, o suavizado de un tercio hacia 1.000 tras el reset |
+| `0x636150..0x63624d` | D/meta 3.200 en la rama especial del mapa 6, 1.100 en mapa 30 en cualquier escena, o suavizado de un tercio hacia 1.000 tras el reset (con el recorrido, hacia 1.000 + 100 · su nivel: CL9 hito 11) |
 | retornos de `0x635ae0` | `AL = 0`; el pseudocódigo no implica que todo EAX valga 0. MuRet devuelve una cámara por su propia interfaz |
 
 El recorrido `CCameraMove`, la vista superior muerta y los accesos protegidos no se incluyeron en
@@ -9004,8 +9017,8 @@ Unicorn/MuRet tanto en PC53 como PC64, restaurando su CW. Esa es evidencia nativ
 11. **El final** (`0x636104..0x636258`): en el mapa 5, el balanceo `X += 2 · sin(T · 0,0005)` e `Y
     += 2,5 · sin(T · 0,0008)` (T en `0x5767b88`), sin suavizar D; en el 6 con "webzen", D y su meta
     en 3.200; en el 30, en 1.100; en los demás, la meta (`0x6d5ee0`) es 1.000, 1.100, 1.200, 1.300 o
-    1.400 según el nivel ya vuelto a 0, y D = f32((meta − D) · 0,33333334 + D), un tercio por frame
-    (Q-C151). Siempre devuelve `al = 0`: en `0x6371a0`, la rama del objetivo en `H + 0x17c` está
+    1.400 según el nivel ya reescrito (0, o el `+0x150` del recorrido; la tabla `0x636270`), y D = f32((meta − D)
+    · 0,33333334 + D), un tercio por frame (Q-C151); fuera de 0 a 4 (el `ja` de `0x6361da`) no toca D ni la meta. Siempre devuelve `al = 0`: en `0x6371a0`, la rama del objetivo en `H + 0x17c` está
     muerta.
 
 **Lo que queda de una vez a la otra** (*estático*). D arranca en 1.000: lo pone `0x635ad0`, un
@@ -9608,8 +9621,9 @@ de Lorencia verifican el componente; `GameScene`, reglas del clic y caminar sigu
   protegido) y el almacén no; con las dos cerradas, `+0x379 = 2` salvo con el bit `0x10000000` de `+0x7c`, el NPC en
   `0x6c8ebc` y en `0x6c8e54`, su celda (`ftol(posición · 0,01)`) en `0x77e1ba8` y `0x77e1bac`, su tipo (`+2`, MOVSX)
   en `0x7798bf0` y el dword de `+0x24` en `0x77f36cc`; las celdas del héroe (y, después x, 4 `rand()` cada una) y
-  `0x4eac00`, que con Crywolf activo y un altar (`0x204..0x208`) en `0x6c8e54` le pasa una bandera al A* (MuRet
-  corta en `0x4eac41`, hito 11). Con camino, `SendMove`; sin él, `0x5650c0(héroe, héroe, 1)`. La llegada
+  `0x4eac00`, que con Crywolf activo y un altar (`0x204..0x208`) en `0x6c8e54` le pasa `bClearGoal` al A*
+  (`0x4eac0a..0x4eac41`; MuRet: `Scenes::CrywolfAltarGoal`, hito 11, [La interfaz de Crywolf](#la-interfaz-de-crywolf)).
+  Con camino, `SendMove`; sin él, `0x5650c0(héroe, héroe, 1)`. La llegada
   (`0x5650c0`, el caso 2, `0x5674c8..0x5695b3`): `MouseUpdateTimeMax = 12`; fuera de Crywolf activo (etapa 3 o 4 de
   `0x723c05` y el mapa 34), `SetPlayerStop` y `+0x378 = 0`; sin NPC en `0x6c8e54`, nada más. Con `+0x376` < `0xcd`,
   `0x6c8e54 = −1` y sale. Lee el nivel del registro propio (3.848 `rand()`); el `0xee` con nivel < 10 da el texto 663
@@ -9643,8 +9657,9 @@ x y en y; y la lista abierta (la vtable `0x6ba068`, la cantidad y la raíz).
 con enteros salvo la rama de `fDistance`, que caminar no usa):
 
 - **Sale con falso con `sx == 0` o `sy == 0`** (`0x4eadc1..0x4eadce`, Q-C156; *emulado*).
-- **La meta**: con `bClearGoal` pone `Map[meta] = 0`, **escribe el mapa** (solo el asedio,
-  `0x435a00`, en el mapa 34 con un blanco de tipo `0x204..0x208`); con `bErrorCheck`, una meta con
+- **La meta**: con `bClearGoal` pone `Map[meta] = 0`, **escribe el mapa** (solo con el asedio,
+  `0x435a00`, en el mapa 34 y el registro de `0x6c8e54` de tipo `0x204..0x208`, que `0x4eac00` mira para cualquier
+  camino: Q-C1350 y Q-C1351); con `bErrorCheck`, una meta con
   `Map ≥ iWall` sin el `0x20` falla; si no, `NodeFlag[meta] = 4`.
 - **El tope de vueltas**: 500 con `bErrorCheck` y 50 sin (`0x4eb0dc`, Q-C157).
 - **La lista abierta** es un árbol binario sin balancear de nodos de `0x14` bytes: inserta

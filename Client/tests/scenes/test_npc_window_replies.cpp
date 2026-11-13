@@ -239,6 +239,24 @@ TEST_F(NpcWindowRepliesTest, TheWarehouseAndTheChaosBoxOpenWithTheInventory)
     EXPECT_EQ(Npc().chaosRates, (std::array<std::int32_t, 6>{10, 20, 30, 40, 0, 0}));
 }
 
+// 0x4d2591: el 7 abre el entrenador (0x8000): cerrar todo (2 rand()) y 0x6599a0(0x8000) con CanOpen y CloseByMask (la
+// tienda y el comercio, 4), 0x449940(1) con la caja vacía y sin el inventario.
+TEST_F(NpcWindowRepliesTest, TheTrainerOpensItsMenuWithoutTheInventory)
+{
+    auto& runtime = stage->world.Runtime();
+    runtime.npcWindows.trainerBox[4].id = Jewel;
+    const CrtRandom expected = Advanced(stage->cloth.random, 2 + 4);
+    const auto talked = Talk(7);
+    ASSERT_TRUE(talked.HasValue()) << talked.Error();
+    EXPECT_EQ(stage->cloth.random.State(), expected.State());
+    EXPECT_EQ(runtime.panels.delegated.trainer, 1);
+    EXPECT_EQ(runtime.npcWindows.trainerBox[4].id, 0xffff);
+    EXPECT_EQ(runtime.panels.inventory, 0);
+    EXPECT_EQ(runtime.lastSoundId, 0x1c);
+    EXPECT_TRUE(Npc().cursorWarpRequested);
+    EXPECT_TRUE(stage->sent.empty());
+}
+
 // Con cada ventana abierta (y el inventario), el mundo es de 260 (0x5bb8e3..0x5bb9a3).
 TEST_F(NpcWindowRepliesTest, TheWorldIs260WideWithEachWindowOpen)
 {

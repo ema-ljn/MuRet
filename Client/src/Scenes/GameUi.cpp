@@ -1090,7 +1090,7 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
             return siblings;
     }
     // 0x44b4e0: el entrenador, por 0x724580.
-    if (auto trainer = StepTheTrainer(context); !trainer.HasValue())
+    if (auto trainer = StepTheTrainer(context, panels); !trainer.HasValue())
         return trainer;
     // 0x44dd50 y 0x44f810: el arma de asedio y la puerta.
     if (delegated.siegeWeapon != 0 || delegated.siegeGate != 0)

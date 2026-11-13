@@ -13,6 +13,7 @@
 #include "Scenes/OwnDerivedStats.h"
 #include "Scenes/OwnItemPlacement.h"
 #include "Scenes/OwnStatHelpers.h"
+#include "Scenes/PetTrainer.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -60,12 +61,13 @@ constexpr std::int32_t BloodCastleDialog = 0xa1;
 constexpr std::uint8_t ChaosBoxGrid = 3;
 constexpr std::uint8_t TrainerGrid = 5;
 // Los textos de Text.bmd de los mensajes (0x76bd1dc + 300 · índice) y su tipo de 0x555190.
-constexpr std::size_t ChaosBoxNotEmptyText = 593; // 0x76e88c8, 0x65894f
-constexpr std::size_t MixFailedText = 594;        // 0x76e89f4, 0x4da2a6
-constexpr std::size_t MixSucceededText = 595;     // 0x76e8b20, 0x4da2c7
-constexpr std::size_t MixRefusedText = 596;       // 0x76e8c4c, 0x4da333
-constexpr std::size_t MixNoticeText = 649;        // 0x76eca68, 0x4da352
-constexpr std::size_t SecondMixNoticeText = 689;  // 0x76ef948, 0x4da36c
+constexpr std::size_t ChaosBoxNotEmptyText = 593;    // 0x76e88c8, 0x65894f
+constexpr std::size_t TrainerBoxNotEmptyText = 1211; // 0x7715d00, 0x658de5
+constexpr std::size_t MixFailedText = 594;           // 0x76e89f4, 0x4da2a6
+constexpr std::size_t MixSucceededText = 595;        // 0x76e8b20, 0x4da2c7
+constexpr std::size_t MixRefusedText = 596;          // 0x76e8c4c, 0x4da333
+constexpr std::size_t MixNoticeText = 649;           // 0x76eca68, 0x4da352
+constexpr std::size_t SecondMixNoticeText = 689;     // 0x76ef948, 0x4da36c
 constexpr std::int32_t ErrorMessage = 2;
 constexpr std::int32_t SystemMessage = 1;
 // 0x4da38c/0x4da3a8: los resultados del 86.
@@ -165,6 +167,12 @@ Core::Expected<void, std::string> NpcWindowOpened(const NpcWindowContext& contex
         context.world.Runtime().ui.field78abb20 = 0;
         return {};
     }
+    if (id == UI::TrainerPanel)
+    {
+        // 0x65be8b: 0x449940(1).
+        OpenTheTrainer(context.world, TrainerMenuMode);
+        return {};
+    }
     if (id != UI::ChaosBoxPanel)
         return Core::Unexpected(std::format("0x6599a0({:#x}) no es una ventana de NPC", id));
     npc.field7d2dc9d = 0;
@@ -209,6 +217,21 @@ Core::Expected<bool, std::string> NpcWindowClosing(const NpcWindowContext& conte
         if (auto sent = Send(context.send, Npc::WriteChaosBoxClose(), "0x658767: el C1 03 87"); !sent.HasValue())
             return Core::Unexpected(sent.Error());
         EmptyTheGrid(npc.chaosBox);
+        return true;
+    }
+    case UI::TrainerPanel:
+    {
+        // 0x658dda..0x658dfd: con algo en la caja, el texto 1211 sin cerrar; si no, 0x4499b0, que vuelve a mirarla.
+        if (TrainerBoxHasItems(context.world))
+        {
+            if (auto shown = Message(context.services, TrainerBoxNotEmptyText, ErrorMessage, "0x658def");
+                !shown.HasValue())
+                return Core::Unexpected(shown.Error());
+            return false;
+        }
+        auto closed = CloseTheTrainer(context.world, &context.services, context.send);
+        if (!closed.HasValue())
+            return Core::Unexpected(std::move(closed).Error());
         return true;
     }
     case UI::NpcShopPanel:

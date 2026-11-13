@@ -41,14 +41,16 @@ struct NpcWindowContext
 };
 
 // UI::PanelContext::npcWindowOpened. 0x40: 0x6c932f y 0x78abb20 en 0 (0x659f8d..0x659f94). 0x100: 0x7d2dc9d en 0, el
-// C1 04 BD 09 con el XOR32 en claro (0x65a94f..0x65ac07) y 0x7d2dc80 en 0 (0x65ac28).
+// C1 04 BD 09 con el XOR32 en claro (0x65a94f..0x65ac07) y 0x7d2dc80 en 0 (0x65ac28). 0x8000: 0x449940(1) (0x65be8b),
+// el modo 1 del entrenador y su caja vacía.
 [[nodiscard]] Core::Expected<void, std::string> NpcWindowOpened(const NpcWindowContext& context, UI::PanelId id);
 
 // UI::PanelContext::npcWindowClosing. 0x40 (0x65852b..0x65871d): con la traba del 24 (0x78abb39), false; si no, la
 // grilla de 0x78a7070 vacía, 0x5be150 con un ítem en el cursor, el C1 03 82 en claro y 0x6c932f en 0. 0x100
 // (0x658741..0x658961): con algo en la caja (0x5e3c20) o en el cursor, el texto 593 de error y false; si no, el C1 03
-// 87 en claro y la grilla de 0x7d2d380 vacía. 0x10000 (0x659063..): el C1 03 31 en claro y la grilla de 0x78a7070
-// vacía; el byte protegido ya lo bajó el registro.
+// 87 en claro y la grilla de 0x7d2d380 vacía. 0x8000 (0x658dda..0x658dfd): con algo en la caja del entrenador
+// (0x449c10), el texto 1211 de error y false; si no, 0x4499b0 (Scenes/PetTrainer.h). 0x10000 (0x659063..): el C1 03 31
+// en claro y la grilla de 0x78a7070 vacía; el byte protegido ya lo bajó el registro.
 [[nodiscard]] Core::Expected<bool, std::string> NpcWindowClosing(const NpcWindowContext& context, UI::PanelId id);
 
 // 0x4d28a9..0x4d28f6: adónde manda 0x4d1e00 el cursor con SetCursorPos, desde el mouse en 640 × 480 (0x7d3682c y

@@ -1090,6 +1090,8 @@ void ServerSession::OnOptionData(const Network::Packet& packet)
 // traba (0x4d1432..0x4d1970). Sus dos rand() (el relleno y el serial) no salen del de la CRT, como los del F3 10.
 void ServerSession::OnItemMove(const Network::Packet& packet)
 {
+    // 0x4e38ca..0x4e394f: la copia en la cola, antes del flag y del lector, incluso si se rechaza o está corto.
+    m_eventSink.CopyToPacketRing(packet.Bytes());
     if (!packet.WasDecrypted())
     {
         m_log.Warning("el movimiento de ítem (24) no llegó cifrado: se le avisa al GameServer (F1 03)");
@@ -1143,6 +1145,8 @@ void ServerSession::OnItemDelete(const Network::Packet& packet)
 
 void ServerSession::OnDurability(const Network::Packet& packet)
 {
+    // 0x4e3ace..0x4e3b53: la copia en la cola, antes del lector, incluso si está corto.
+    m_eventSink.CopyToPacketRing(packet.Bytes());
     const auto durability = Protocol::Inventory::ReadDurability(packet);
     if (!durability.HasValue())
     {
@@ -1269,11 +1273,6 @@ void ServerSession::SendGuildPacket(Protocol::Outgoing packet)
     static_cast<void>(SendWorldPacket(std::move(packet)));
 }
 
-std::span<const std::vector<std::byte>> ServerSession::Teleports() const
-{
-    return m_teleports.Entries();
-}
-
 // 06 § Caminar: los ecos y el daño se aplican sin guarda de escena ni del flag de cifrado.
 void ServerSession::OnWalk(const Network::Packet& packet)
 {
@@ -1312,6 +1311,8 @@ void ServerSession::OnAction(const Network::Packet& packet)
 // 0x4e372e, 0x4e3819, 0x4e3b2c, 0x4e36c5 y 0x4e3716: el dispatcher no mira la escena ni el flag de cifrado.
 void ServerSession::OnViewportPlayers(const Network::Packet& packet)
 {
+    // 0x4e372e..0x4e37b8: la copia en la cola, antes del lector, incluso si está corto.
+    m_eventSink.CopyToPacketRing(packet.Bytes());
     const auto players = Protocol::Viewport::ReadPlayers(packet);
     if (!players.HasValue())
     {
@@ -1368,8 +1369,8 @@ void ServerSession::OnViewportPosition(const Network::Packet& packet)
 // P-C33: 0x4c6e32 prueba el flag antes de leer los campos; cero manda el F1 03.
 void ServerSession::OnTeleport(const Network::Packet& packet)
 {
-    // 0x4e3e98..0x4e3f1d, antes del flag y del lector, incluso si se rechaza o está corto.
-    m_teleports.Record(packet.Bytes());
+    // 0x4e3e98..0x4e3f1d: la copia en la cola, antes del flag y del lector, incluso si se rechaza o está corto.
+    m_eventSink.CopyToPacketRing(packet.Bytes());
     if (!packet.WasDecrypted())
     {
         m_log.Warning("el warp (1C) no llegó cifrado: se le avisa al GameServer (F1 03)");

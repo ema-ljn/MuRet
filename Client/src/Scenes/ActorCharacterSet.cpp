@@ -109,7 +109,7 @@ void PutTheEventWeapon(ActorState& actor, GameLogic::Equipment equipment)
     const bool kept = actor.byte360 != 0 && actor.byte360 <= LastEventWeapon;
     if (kept)
         return;
-    actor.byte360 = (ByteOf(equipment, 11) & 2) != 0 ? Byte11Weapon : 0;
+    actor.byte360 = (ByteOf(equipment, 11) & 2) != 0 ? Byte11Weapon : std::uint8_t{0};
 }
 
 // 0x513d84..0x51409b: con +0x3e3 en 0, la ropa y los bits de las partes y de las manos.

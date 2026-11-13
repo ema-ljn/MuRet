@@ -14,16 +14,19 @@
 #include "Data/Tables/SkillTable.h"
 #include "Protocol/Movement.h"
 #include "Scenes/GameMovementState.h"
+#include "UI/ChatInput.h"
 #include "Scenes/WorldMap.h"
 #include "World/WorldTerrain.h"
 #include "Network/Packet.h"
 #include "Network/Crypto/Xor32.h"
 #include "Protocol/Inventory.h"
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <span>
 #include <vector>
 #include <cstddef>
@@ -266,6 +269,137 @@ TEST(GameMovementTest, ASittingHeroWithACharacterUnderTheMouseSkipsTheWaitCounte
     const auto result = StepHeroMovement(tested.Context());
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(tested.world.Runtime().warpCounter, 50);
+}
+
+// Un nombre inventado para el personaje elegido y otro para el lugar del historial.
+void NameTheActor(Client::Scenes::ActorState& actor, std::string_view name)
+{
+    actor.name.fill(std::byte{0});
+    for (std::size_t i = 0; i < name.size(); ++i)
+        actor.name[i] = static_cast<std::byte>(name[i]);
+}
+
+// Lo que pide 0x59b036..0x59b086: el chat abierto, el héroe en la zona segura, un elegido con +0x376 en 0xff y el
+// derecho.
+std::unique_ptr<MovingHero> AHeroRightClickingTheChosen(std::int32_t map)
+{
+    auto tested = std::make_unique<MovingHero>();
+    auto& runtime = tested->world.Runtime();
+    runtime.map = map;
+    runtime.ui.chatOpen = true;
+    runtime.ui.rightClick = true;
+    runtime.selectedTargets[2] = 5;
+    tested->world.Actors()[0].safeZone = 1;
+    auto& chosen = tested->world.Actors()[5];
+    chosen.alive = true;
+    chosen.word376 = 0xff;
+    NameTheActor(chosen, "Rival01");
+    auto& input = runtime.chat.input;
+    input.whisperBuffer.fill('x');
+    auto& slot = input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)];
+    slot.fill('y');
+    Client::UI::CopyIntoTheBuffer(slot, "Viejo07");
+    return tested;
+}
+
+// 0x59b036..0x59b185 (Q-C804): el derecho sobre el elegido se gasta, el nombre va al buffer del susurro (vaciado entero
+// antes) y al lugar del historial, con su largo y el sonido 0x19; el EDIT del susurro toma lo que había en el lugar.
+TEST(GameMovementTest, TheRightClickOnTheChosenWritesItsNameAndLeavesTheOldOneInTheEdit)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        const auto tested = AHeroRightClickingTheChosen(map);
+        const auto result = StepHeroMovement(tested->Context());
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        const auto& runtime = tested->world.Runtime();
+        const auto& input = runtime.chat.input;
+        const auto& slot = input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)];
+        EXPECT_FALSE(runtime.ui.rightClick);
+        EXPECT_EQ(Client::UI::CStringOf(input.whisperBuffer), "Rival01");
+        EXPECT_TRUE(
+            std::all_of(input.whisperBuffer.begin() + 7, input.whisperBuffer.end(), [](char c) { return c == '\0'; }));
+        EXPECT_EQ(input.whisperLength, 7);
+        EXPECT_EQ(Client::UI::CStringOf(slot), "Rival01");
+        // strcpy: después del 0, el lugar conserva lo que tenía.
+        EXPECT_EQ(slot[8], 'y');
+        EXPECT_EQ(input.whisper.Value(), "Viejo07");
+        EXPECT_EQ(runtime.lastSoundId, 0x19);
+    }
+}
+
+// 0x59b092..0x59b0a1: en Chaos Castle el derecho se gasta y nada más; con +0x376 distinto de 0xff (un jugador del 12,
+// 0xffff de 0x511290) ni se gasta.
+TEST(GameMovementTest, TheRightClickOnTheChosenNeedsItsWordAndAMapOutsideChaosCastle)
+{
+    {
+        const auto tested = AHeroRightClickingTheChosen(18);
+        const auto result = StepHeroMovement(tested->Context());
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        const auto& input = tested->world.Runtime().chat.input;
+        EXPECT_FALSE(tested->world.Runtime().ui.rightClick);
+        EXPECT_EQ(Client::UI::CStringOf(input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)]), "Viejo07");
+        EXPECT_EQ(input.whisperBuffer[0], 'x');
+        EXPECT_FALSE(tested->world.Runtime().lastSoundId.has_value());
+    }
+    {
+        const auto tested = AHeroRightClickingTheChosen(0);
+        tested->world.Actors()[5].word376 = 0xffff;
+        const auto result = StepHeroMovement(tested->Context());
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_TRUE(tested->world.Runtime().ui.rightClick);
+        EXPECT_EQ(tested->world.Runtime().chat.input.whisperBuffer[0], 'x');
+    }
+}
+
+// 0x59afdf..0x59b001: la ventana de la carta (+0xf0) cuenta solo si 0x490a00 la encuentra; sin ella, nada.
+TEST(GameMovementTest, ALetterIdWithoutItsWindowDoesNotTakeTheRightClick)
+{
+    const auto tested = AHeroRightClickingTheChosen(0);
+    tested->world.Runtime().ui.chatOpen = false;
+    tested->world.Runtime().oldWindows.letter = 0x77;
+    const auto result = StepHeroMovement(tested->Context());
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_TRUE(tested->world.Runtime().ui.rightClick);
+}
+
+// 0x59cd2e..0x59cd43: fuera de la zona segura y con el cursor vacío, el clic con un personaje elegido va a 0x558bb0 y
+// al ataque, que corta (hito 3); en la zona segura, el mismo clic camina (0x59d8c3, como sin elegido).
+TEST(GameMovementTest, AClickWithAChosenOutsideTheSafeZoneCutsAtTheAttack)
+{
+    for (const std::uint8_t safeZone : {std::uint8_t{0}, std::uint8_t{1}})
+    {
+        SCOPED_TRACE(static_cast<int>(safeZone));
+        const auto tested = std::make_unique<MovingHero>();
+        tested->world.Map().terrain.attributes->cells[115 * 256 + 180] = 2;
+        tested->world.Runtime().movement.mouseUpdateTime = 6;
+        tested->world.Runtime().selectedTargets[2] = 5;
+        tested->world.Actors()[0].safeZone = safeZone;
+        auto context = tested->Context();
+        context.input.leftPressed = true;
+        context.input.leftDown = true;
+        context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+        { return std::optional{Client::GameLogic::PathCell{179, 116}}; };
+        int walks = 0;
+        context.sendWalk = [&](std::span<const Client::Protocol::Movement::Cell>, Client::Protocol::Movement::Cell,
+                               float) -> Client::Core::Expected<void, std::string>
+        {
+            ++walks;
+            return {};
+        };
+        const auto result = StepHeroMovement(context);
+        if (safeZone == 0)
+        {
+            ASSERT_FALSE(result.HasValue());
+            EXPECT_NE(result.Error().find("0x59cd3c"), std::string::npos);
+            EXPECT_EQ(walks, 0);
+        }
+        else
+        {
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            EXPECT_EQ(walks, 1);
+        }
+    }
 }
 
 TEST(GameMovementTest, TheOwnRecordAndSkillDepthsAreIndependent)

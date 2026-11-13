@@ -20,6 +20,7 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/ViewportPacketRing.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -38,6 +39,7 @@
 #include <cstddef>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -234,5 +236,23 @@ TEST(SessionEventApplierTest, TeleportUsesTheCursorGuardBeforeTouchingTheHero)
     const auto result = tested.applier.ApplyWorld(event, online.session);
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x5be150"), std::string::npos);
+}
+
+// 0x4e3e98..0x4e3f1d: el dispatcher copia el 1C a la cola de 0x77f27b4, la misma de los 12 (Q-C801), antes de mirar el
+// flag de cifrado. Con la sesión de verdad y este aplicador, un 1C sin cifrar, que se rechaza sin leerlo, ocupa una
+// ranura.
+TEST(SessionEventApplierTest, ATeleportTakesOneSlotOfThePacketRing)
+{
+    const auto tested = std::make_unique<Applier>();
+    const auto online = std::make_unique<Client::Tests::LoggedInSession>(&tested->applier);
+    ASSERT_NO_FATAL_FAILURE(online->LogIn());
+    const auto teleport = Client::Tests::Bytes({0xc1, 8, 0x1c, 23, 0, 30, 31, 0});
+    online->socket.reads = {teleport};
+    ASSERT_TRUE(online->session.Poll().HasValue());
+    const Client::Scenes::ViewportPacketRing& ring = tested->world.Runtime().viewportPackets;
+    ASSERT_EQ(ring.count, 1);
+    EXPECT_EQ(ring.sizes[0], 8);
+    EXPECT_TRUE(Client::Tests::SameBytes(std::span(ring.slots[0]).first(teleport.size()), teleport));
+    EXPECT_EQ(online->session.State(), Client::App::SessionState::LoggedIn);
 }
 } // namespace

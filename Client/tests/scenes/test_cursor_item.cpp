@@ -414,7 +414,7 @@ TEST_F(CursorItemTest, TheOldDarkRavenAsksForTheLeadershipOfTheRavenLevel)
     EXPECT_EQ(mark(), 3);
     own.leadership = 0xb9;
     EXPECT_EQ(mark(), 2);
-    runtime.ravenLevel = 2;
+    runtime.pets[Client::Scenes::RavenPetStats].level = 2;
     EXPECT_EQ(mark(), 3);
     own.leadership = 0xb9 + 30;
     EXPECT_EQ(mark(), 2);
@@ -422,7 +422,7 @@ TEST_F(CursorItemTest, TheOldDarkRavenAsksForTheLeadershipOfTheRavenLevel)
     own.leadership = 0xb9 + 29;
     EXPECT_EQ(mark(), 3);
     // 4.357 · 15 + 0xb9 = 0x10004: queda 4.
-    runtime.ravenLevel = 4357;
+    runtime.pets[Client::Scenes::RavenPetStats].level = 4357;
     own.leadership = 4;
     EXPECT_EQ(mark(), 2);
 }

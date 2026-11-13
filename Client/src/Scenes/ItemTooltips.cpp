@@ -174,15 +174,17 @@ std::int32_t RepairNameColorOf(const World::ItemState& item, std::int32_t level)
 }
 
 // 0x5b8373..0x5b839b: un ítem gastado pone el modo de reparar en 2 y lleva el precio de 0x54d0f0 en el modo 2 con el
-// formato de 0x5b13e0, que lee [0x78abb10]. El 0x1a04 y el 0x1a05, los únicos que leen las mascotas, salen al
-// principio de 0x5b8150.
+// formato de 0x5b13e0, que lee [0x78abb10]. El 0x1a04 y el 0x1a05, los únicos que leen las mascotas (0x422930, con los
+// niveles del A9), salen al principio de 0x5b8150.
 Core::Expected<RepairPrice, std::string> RepairTheWornItem(GameHudContext& hud, const World::ItemState& item,
                                                            std::uint16_t maximum)
 {
     WorldRuntime& runtime = hud.world.Runtime();
     if (!hud.projecting)
         runtime.panels.repairMode = 2;
-    auto price = ItemPrice(item, *hud.items, RepairPriceMode, std::nullopt);
+    const PetPriceLevels pets{.raven = runtime.pets[RavenPetStats].level,
+                              .horse = runtime.pets[DarkHorsePetStats].level};
+    auto price = ItemPrice(item, *hud.items, RepairPriceMode, pets);
     if (!price.HasValue())
         return Core::Unexpected(std::move(price).Error());
     return RepairPriceOf(price.Value(), item.durability, maximum, runtime.field78abb10);

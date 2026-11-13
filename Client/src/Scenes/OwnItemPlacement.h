@@ -45,8 +45,8 @@ inline constexpr std::uint8_t FirstSecondGridSlot = 0x4c;
 PlaceInventoryItem(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntryResources& resources);
 
 // 0x4225d0, la defensa del Dark Horse, que 0x54bf40 llama en 0x54cc5c con el 0x1a04: la opción 0x96 con
-// 5 + la agilidad del registro propio / 20 + 2 · WorldRuntime::darkHorseLevel, en un byte, calculada con el
-// registro abierto (3.848 rand() al cerrarlo si queda sin accesos). Si ya tiene una 0x96 desde la segunda
-// opción, le reescribe el valor; si no, o si es la primera (Q-C415), la agrega al final.
+// 5 + la agilidad del registro propio / 20 + 2 · el nivel del caballo (WorldRuntime::pets), en un byte, calculada con
+// el registro abierto (3.848 rand() al cerrarlo si queda sin accesos). Si ya tiene una 0x96 desde la segunda opción, le
+// reescribe el valor; si no, o si es la primera (Q-C415), la agrega al final.
 void AddTheDarkHorseOption(World::ItemState& item, const WorldEntryResources& resources);
 } // namespace Client::Scenes

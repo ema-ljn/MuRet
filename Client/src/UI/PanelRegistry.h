@@ -183,6 +183,9 @@ struct PanelContext
     // +0x9304 a +0x9327 en 0, y con el registro propio abierto, 0x550d10 si un lugar del equipo tiene la durabilidad
     // en 0 (0x550cf0). Sin él, abrir el personaje corta.
     std::function<Core::Expected<void, std::string>()> characterOpened{};
+    // 0x659ff6..0x65a8a3: lo que abrir la mascota hace si cerró lo demás, después de 0x420cb0: los pedidos del cuervo y
+    // del caballo, C1 06 A9 00 00 01 y A9 01 00 08, con el XOR32 y por send() (CL9 hito 4). Sin él, abrirla corta.
+    std::function<void()> petOpened{};
 };
 
 class PanelRegistry

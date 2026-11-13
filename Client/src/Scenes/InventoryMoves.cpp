@@ -635,8 +635,8 @@ Core::Expected<bool, std::string> FitsTheSlot(const InventoryMoveContext& contex
     // 0xb9, en 16 bits (la palabra de arriba no llega), contra el liderazgo (+0x20) sin agregados.
     if (cursor.id == OldDarkRaven)
     {
-        const auto required =
-            static_cast<std::uint16_t>((runtime.ravenLevel * RavenLeadershipPerLevel + RavenLeadershipBase) & 0xffffu);
+        const auto required = static_cast<std::uint16_t>(
+            (runtime.pets[RavenPetStats].level * RavenLeadershipPerLevel + RavenLeadershipBase) & 0xffffu);
         if (required > own.leadership)
             ok = false;
     }

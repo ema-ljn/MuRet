@@ -1,8 +1,15 @@
 #pragma once
 
+#include "Core/Expected.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/ProtocolError.h"
 
 #include <cstdint>
+
+namespace Client::Network
+{
+class Packet;
+}
 
 // El pedido de la información de una mascota (A9, C->S): qué mascota, en qué lugar y en qué
 // casilla. Contrato: Client/docs/research/04-protocolo.md, "A9, C->S: pedir la información de una
@@ -41,4 +48,18 @@ inline constexpr PetInfoRequest LoginScenePetInfoRequest{DarkRavenPet, Inventory
 // A9: C1 06 A9, la mascota, el lugar y la casilla, con el XOR32 y en claro, como sale al
 // ConnectServer (Xor32C1).
 [[nodiscard]] Outgoing WritePetInfoRequest(const PetInfoRequest& request);
+
+// Lo que pasan 0x4e4ca1..0x4e4cb8 a 0x421db0 (CL9 hito 4): pkt[3] a pkt[6] y el DWORD de pkt[8], en little endian.
+// El byte de pkt[7] no lo lee nadie.
+struct PetInfoReply
+{
+    std::uint8_t pet = 0;         // pkt[3]: 0 el cuervo, 1 el caballo
+    std::uint8_t kind = 0;        // pkt[4]: 0, 0xfe y 0xff hacen algo más con la mascota del héroe (06, "El A9")
+    std::uint8_t slot = 0;        // pkt[5]: la casilla, 1 el cuervo y 8 el caballo
+    std::uint8_t level = 0;       // pkt[6]
+    std::uint32_t experience = 0; // pkt[8]
+};
+
+// El A9 que llega, C1 y sin mirar el cifrado ni el largo en el original: MuRet da TooShort sin los 12 bytes.
+[[nodiscard]] Core::Expected<PetInfoReply, ProtocolError> ReadPetInfoReply(const Network::Packet& packet);
 } // namespace Client::Protocol::Pet

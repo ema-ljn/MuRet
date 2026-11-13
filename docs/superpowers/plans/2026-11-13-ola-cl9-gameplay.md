@@ -289,8 +289,8 @@ el viewport. **Desbloquea:** 4 y 11.
       `0x552f10`) y la barra de skills (`0x5a05e5..0x5a1170`, el tramo de `0x59ff10` que hoy solo saca sus
       3.848 `rand()`; los números `0x59f810`). *Hecho en parte (2026-11-13):* las demoras (`Scenes/SkillDelays`),
       la lista de la barra con sus `rand()`, Ctrl con un número, `0x420e90`, `0x420e30` y `0x59f810`
-      (`Scenes/GameUi.cpp`); las cuatro funciones por clase y quien llama a `0x552f10` (`0x4eb620`) son de la fase 2
-      (08, P-C264).
+      (`Scenes/GameUi.cpp`); en la fase 2, `0x4eb620` (`GameScene::Step`, P-C267); las cuatro funciones por clase
+      quedan para la fase 2 (08, P-C264).
 - [x] **Lo que llega:** el `0x19` (`0x4cc530`, 6,5 KB, con las acciones `0x94`, `0x51` y `0x5b` de
       `0x50f828`), el `0x1E` (`0x4ce000`), el `0x1B` (`0x4cbe90`), el `0x07` (los estados de un personaje,
       `GCSend_07` del GS: `0x4cbe00`, con `0x4e6910`), el `0x48`, el `0x69`, el `0x73` (`0x4d5b10`),
@@ -301,8 +301,10 @@ el viewport. **Desbloquea:** 4 y 11.
       `0x41835a`, el objetivo de `+0x3b0` y los estados 2, 5 y 6 del cuervo), el `A8`, el `A9` (`0x421db0`,
       `0x4225d0`, `0x422930`, la ventana `0x424160`, el tooltip `0x422990`), `0x420cd0`, y los íconos de estado
       (`0x42a660`). *Hecho en parte (2026-11-13):* el `A7` y el `A8` (`Protocol/Pet/PetOrders`,
-      `Scenes/PetOrders`); los estados 2, 5 y 6 del paso, `0x418920`, el `A9`, la ventana, el tooltip, `0x420cd0` y
-      los íconos quedan para la fase 2 y una sub-ola del cuervo (08, P-C266).
+      `Scenes/PetOrders`); en la fase 2, los estados 2, 5 y 6 del paso, `0x418920` (con sus efectos cortados, CL11), el
+      `A9` (`Scenes/PetStats`), `0x420cd0`, abrir y cerrar el panel `0x400` y el paso de la ventana (`0x424759`); los
+      íconos ya estaban. Quedan el dibujo de la ventana (`0x424160`) y el tooltip (`0x422990`) para una sub-ola del
+      cuervo (08, P-C266).
 
 **Pruebas:** cada skill de cada clase manda sus bytes; el `0x19` y el `0x1E` sobre el héroe y sobre otro; las
 demoras; los `rand()` de la barra con skills (hoy se sacan sin ninguna); el cuervo con cada orden.

@@ -353,6 +353,42 @@ TEST(PanelRegistryTest, AnErrorOfTheCharacterHookStopsBeforeTheSounds)
     EXPECT_TRUE(tested.sounds.empty());
 }
 
+// 0x659fd9..0x65a8af (CL9 hito 4): la mascota, con el personaje abierto, cierra lo demás menos el personaje y los
+// amigos, pone 0x723911 en 2 (0x420cb0) y pide el cuervo y el caballo (el gancho); cerrarla, o cerrar el personaje, la
+// vuelve a 0 (0x420ca0). Sin el gancho, abrirla corta después de 0x420cb0.
+TEST(PanelRegistryTest, ThePetOpensBesideTheCharacterAndAsksForBothPets)
+{
+    Tested tested;
+    tested.state.character = 1;
+    tested.state.overlayMode = MoveOverlayMode;
+    std::vector<std::uint8_t> petWhenAsked;
+    tested.context.petOpened = [&tested, &petWhenAsked]() { petWhenAsked.push_back(tested.state.delegated.pet); };
+    const auto opened = tested.panels.Open(PetPanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+    EXPECT_EQ(petWhenAsked, (std::vector<std::uint8_t>{2}));
+    EXPECT_TRUE(tested.panels.IsOpen(PetPanel));
+    EXPECT_EQ(tested.state.character, 1);
+    EXPECT_EQ(tested.state.overlayMode, 0);
+
+    const auto closed = tested.panels.Close(PetPanel);
+    ASSERT_TRUE(closed.HasValue()) << closed.Error();
+    EXPECT_EQ(tested.state.delegated.pet, 0);
+    EXPECT_EQ(tested.state.character, 1);
+
+    ASSERT_TRUE(tested.panels.Open(PetPanel).HasValue());
+    ASSERT_TRUE(tested.panels.Close(CharacterPanel).HasValue());
+    EXPECT_EQ(tested.state.delegated.pet, 0);
+    EXPECT_EQ(tested.state.character, 0);
+
+    Tested unhooked;
+    unhooked.state.character = 1;
+    const auto cut = unhooked.panels.Open(PetPanel);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x659ff6"), std::string::npos) << cut.Error();
+    EXPECT_EQ(unhooked.state.delegated.pet, 2);
+}
+
 // 0x659a82..0x659c44: la party cierra lo demás menos los amigos, pone la cuenta en 0 y pide la lista (el gancho) antes
 // de prenderse, y suena. Los únicos rand() son los de las consultas del comercio y de la tienda, en CanOpen y en lo
 // que cierra.

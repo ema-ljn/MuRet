@@ -851,8 +851,11 @@ el cliente. Lo que hacen está en [06](06-render-escenas-y-ui.md#las-órdenes-de
   GameServer 0.97 no lo lee. **MuRet**: `Protocol::Pet::WritePetCommand`.
 
 Ninguno mira el largo. **MuRet**: `Protocol::Pet::ReadPetOrder` y `ReadPetAttack` (TooShort si faltan campos),
-registrados con las skills; `Scenes/PetOrders` los aplica. El `A9` de respuesta (`0x421db0`) sigue sin leerse (08,
-P-C266).
+registrados con las skills; `Scenes/PetOrders` los aplica. El `A9` de respuesta (`0x4e4ca1` → `0x421db0`): `C1 0C A9
+<tipo> <clase> <casilla> <nivel> <?> <experiencia: 4, little endian>`, sin mirar el cifrado ni el largo; `pkt[7]` no lo
+lee nadie. **MuRet**: `Protocol::Pet::ReadPetInfoReply` (TooShort sin los 12 bytes) y `Scenes::ApplyPetInfo`
+([06](06-render-escenas-y-ui.md#el-a9-de-las-mascotas)). Abrir el panel de la mascota manda `A9 00 00 01` y `A9 01 00
+08` (`0x659ff6..0x65a8a3`).
 
 ## Qué implica para MuRet
 

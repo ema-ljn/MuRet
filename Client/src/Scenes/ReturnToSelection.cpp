@@ -5,6 +5,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/PetStats.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -71,7 +72,9 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
     runtime.chat.noticeSound = false;
     UI::ClearTheWhisperSenders(runtime.chat.whisperSenders);
     // 0x4c2650..0x4c26fd: globales y objetos que MuRet no tiene, el byte del A0 ([0x710148] + 4 en 0xff,
-    // Q-C215) y 0x657670, cuyo 0x4499b0 manda el segundo C1 03 31 (la sesión, Q-C214).
+    // Q-C215) y 0x657670, cuyo 0x4499b0 manda el segundo C1 03 31 (la sesión, Q-C214) y cuyo 0x420cd0 pone en 0 las
+    // mascotas (CL9 hito 4).
+    ResetThePets(runtime);
     // MuRet: la cámara copia la posición del héroe publicado, que la selección lee desde acá (Q-C213).
     resources.cameraInput.hero = world.Actors()[runtime.hero].position;
 }

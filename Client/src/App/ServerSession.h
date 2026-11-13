@@ -385,6 +385,7 @@ private:
     void OnSummonLife(const Network::Packet& packet);
     void OnPetOrder(const Network::Packet& packet);
     void OnPetAttack(const Network::Packet& packet);
+    void OnPetInfo(const Network::Packet& packet);
     // El F1 02 con 1, con `encrypted` en el flag del paquete.
     void ReturnToSelection(bool encrypted);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.

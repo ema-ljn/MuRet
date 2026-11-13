@@ -248,6 +248,24 @@ TEST(ReturnToSelectionWithoutDataTest, WithTheOwnRecordOpenTheReturnDrawsNoRand)
     EXPECT_EQ(tested.world.Runtime().orderedScene, Client::Scenes::SceneId::CharacterSelect);
 }
 
+// 0x4c26e7 → 0x657670 → 0x420cd0 (CL9 hito 4): la vuelta pone en 0 la pestaña, la ventana y las tres mascotas.
+TEST(ReturnToSelectionWithoutDataTest, TheReturnForgetsThePets)
+{
+    Returning tested({}, Seed);
+    Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+    runtime.petTab = 1;
+    runtime.panels.delegated.pet = 2;
+    runtime.pets[1].level = 30;
+    runtime.pets[0].experience = 12;
+
+    ApplyReturnToSelection(tested.Resources());
+
+    EXPECT_EQ(runtime.petTab, 0);
+    EXPECT_EQ(runtime.panels.delegated.pet, 0);
+    EXPECT_EQ(runtime.pets[1].level, 0);
+    EXPECT_EQ(runtime.pets[0].experience, 0u);
+}
+
 // 0x510f70 compara la clave con signo (movsx en 0x510f8a): con −1, la clave 0x7fff muere y la 0xffff no;
 // los muertos quedan muertos. El caballo del que muere se apaga (0x510fa1..0x510fc0); el del que queda, no.
 TEST(ReturnToSelectionWithoutDataTest, OnlyTheKeyFFFFSurvives)

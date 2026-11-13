@@ -145,7 +145,7 @@ void AddTheDarkHorseOption(ItemState& item, const WorldEntryResources& resources
         // OptionTag corta con diagnóstico si el índice se pasa de las nueve que guarda ItemState.
         static_cast<void>(item.OptionTag(index));
         const std::uint32_t agility = world.OwnCharacter().agility;
-        const auto level = static_cast<std::uint8_t>(world.Runtime().darkHorseLevel);
+        const auto level = static_cast<std::uint8_t>(world.Runtime().pets[DarkHorsePetStats].level);
         item.optionBytes[World::ItemOptionValueOffset + index] =
             static_cast<std::uint8_t>((agility / AgilityDivisor) + (HorseLevelFactor * level) + DarkHorseOptionBase);
     }

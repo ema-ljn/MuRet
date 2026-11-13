@@ -291,7 +291,9 @@ void ServerSession::RegisterSkillHandlers()
         m_gameServer.On(CharacterOpcode, Skill::SummonLifeSubcode,
                         [this](const Network::Packet& packet) { OnSummonLife(packet); }) &&
         m_gameServer.On(Protocol::Pet::PetOrderOpcode, [this](const Network::Packet& packet) { OnPetOrder(packet); }) &&
-        m_gameServer.On(Protocol::Pet::PetAttackOpcode, [this](const Network::Packet& packet) { OnPetAttack(packet); });
+        m_gameServer.On(Protocol::Pet::PetAttackOpcode,
+                        [this](const Network::Packet& packet) { OnPetAttack(packet); }) &&
+        m_gameServer.On(Protocol::Pet::PetInfoOpcode, [this](const Network::Packet& packet) { OnPetInfo(packet); });
     assert(registered && "los handlers de las skills se registran una vez");
 }
 
@@ -1407,6 +1409,18 @@ void ServerSession::OnPetAttack(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(attack.Value(), *this)));
+}
+
+// 0x4e4ca1: la información de una mascota, sin mirar el cifrado.
+void ServerSession::OnPetInfo(const Network::Packet& packet)
+{
+    const auto info = Protocol::Pet::ReadPetInfoReply(packet);
+    if (!info.HasValue())
+    {
+        m_log.Warning("se ignora la información de la mascota (A9): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(info.Value(), *this)));
 }
 
 // P-C33: 0x4c6e32 prueba el flag antes de leer los campos; cero manda el F1 03.

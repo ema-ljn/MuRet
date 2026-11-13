@@ -173,6 +173,25 @@ enum class CursorGrid : std::uint8_t
     Inventory, // 0x78a9bb0
 };
 
+// Las mascotas de 0x723960 (CL9 hito 4): 0x14 bytes por tipo, tres (0x420cd0 pone en 0 quince dwords).
+inline constexpr std::size_t PetStatsCount = 3;
+inline constexpr std::size_t RavenPetStats = 0;
+inline constexpr std::size_t DarkHorsePetStats = 1;
+
+struct PetStats
+{
+    std::uint32_t experience = 0;     // +0: el DWORD del A9 (pkt[8])
+    std::uint32_t nextExperience = 0; // +4: (nivel + 11) · (nivel + 1)³ · 100, en 32 bits (0x4221d0)
+    std::uint16_t level = 0;          // +8: pkt[6]
+    std::uint16_t durability = 0;     // +0xa: la durabilidad del caballo del registro propio (+0xdc6) o del cartel
+    // +0xc a +0x12: lo que 0x4221d0 calcula con el nivel, el liderazgo (+0x36 + +0x20 del registro propio) y, en el
+    // caballo, la fuerza y +0x2a. Los lee la ventana de la mascota (0x4249a0) y su tooltip (0x422990).
+    std::uint16_t word0c = 0;
+    std::uint16_t word0e = 0;
+    std::uint16_t word10 = 0;
+    std::uint16_t word12 = 0;
+};
+
 struct WorldRuntime
 {
     // Q-C180/Q-C27: primer aviso de datos que pidió WM_DESTROY. Durable incluso si Poll falla;
@@ -292,13 +311,13 @@ struct WorldRuntime
     std::uint8_t warpDepth = 0;
     // Cuántos accesos tienen abierto el registro propio ([0x7681eb4], 0xf08 bytes).
     std::uint8_t ownRecordDepth = 0;
-    // [0x72397c], el nivel del caballo oscuro: lo escribe 0x421db0 con el A9 de las mascotas (el tipo 1 en el
-    // lugar 8, 0x421e9e), sin portar (CL9), y lo leen 0x4225d0 (el byte de abajo) y 0x422930. Queda en el 0 de
-    // la .bss.
-    std::uint16_t darkHorseLevel = 0;
-    // [0x723968], el nivel del cuervo: la mascota 0 de 0x421db0 (el A9 con el tipo 0, sin portar, CL9). Lo lee el
-    // requisito de liderazgo del 0x1a5 (0x5bf027). Queda en el 0 de la .bss.
-    std::uint16_t ravenLevel = 0;
+    // 0x723960: lo de cada mascota que escribe el A9 (0x421db0 y 0x4221d0, Scenes/PetInfo.h), por el tipo: el 0 el
+    // cuervo y el 1 el caballo. 0x420cd0 pone en 0 los tres. El nivel del caballo ([0x72397c]) lo leen 0x4225d0 (el
+    // byte de abajo) y 0x422930; el del cuervo ([0x723968]), el requisito de liderazgo del 0x1a5 (0x5bf027) y 0x422930.
+    std::array<PetStats, PetStatsCount> pets{};
+    // 0x723910: la pestaña de la ventana de la mascota (0 el cuervo, 1 el caballo), que eligen los dos botones de
+    // 0x424759. El 0x723911 de al lado es UI::DelegatedPanels::pet.
+    std::uint8_t petTab = 0;
     // DAT_057678b0: el lugar del pool que la respuesta del F3 03 elige para el héroe, rand() % 400
     // (0x4c44d4, la única escritura; 06, "La entrada al mundo", fila 3). Cada respuesta lo vuelve a
     // sortear.

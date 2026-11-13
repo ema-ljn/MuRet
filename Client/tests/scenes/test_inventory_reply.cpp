@@ -516,7 +516,7 @@ TEST_F(InventoryReplyTest, TheDarkHorseInTheGridAddsItsDefenseOption)
 {
     Stage grid = Fresh();
     grid.world.OwnCharacter().agility = 205;
-    grid.world.Runtime().darkHorseLevel = 3;
+    grid.world.Runtime().pets[Client::Scenes::DarkHorsePetStats].level = 3;
 
     const auto placed = Client::Scenes::PlaceInventoryItem(12, ItemBytes(DarkHorse), grid.Resources());
 
@@ -560,7 +560,7 @@ TEST_F(InventoryReplyTest, TheDarkHorseOptionSkipsAnEarlierOneInTheFirstPlace)
     Stage tested = Fresh();
     tested.world.Runtime().ownRecordDepth = 1;
     tested.world.OwnCharacter().agility = 0xffff;
-    tested.world.Runtime().darkHorseLevel = 200;
+    tested.world.Runtime().pets[Client::Scenes::DarkHorsePetStats].level = 200;
 
     ItemState second;
     second.id = DarkHorse;

@@ -30,6 +30,7 @@
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Pet/PetInfo.h"
 #include "Protocol/Pet/PetOrders.h"
 #include "Protocol/Skill.h"
 #include "Protocol/World.h"
@@ -1124,6 +1125,22 @@ TEST(ServerSessionTest, TheRavenOrdersReachTheWorld)
     EXPECT_EQ(attack->kind, 1);
     EXPECT_EQ(attack->owner, 0x1234);
     EXPECT_EQ(attack->target, 0x0567);
+}
+
+// 0x4e4ca1: el A9 de las mascotas entra al mundo sin mirar el cifrado (CL9 hito 4).
+TEST(ServerSessionTest, ThePetInfoReachesTheWorld)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {Bytes({0xC1, 0x0C, 0xA9, 0x00, 0x00, 0x01, 0x07, 0x00, 0x10, 0x27, 0x00, 0x00})};
+    static_cast<void>(tested.session.Poll());
+    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* info = std::get_if<Client::Protocol::Pet::PetInfoReply>(&events[0]);
+    ASSERT_NE(info, nullptr);
+    EXPECT_EQ(info->slot, 1);
+    EXPECT_EQ(info->level, 7);
+    EXPECT_EQ(info->experience, 10000u);
 }
 
 // 0x4c1ec0: el F1 00 aceptado deja la clave del jugador (pkt[5..6], big endian) para el F3 03.

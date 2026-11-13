@@ -1,6 +1,8 @@
 #include "Scenes/GamePanels.h"
 
 #include "Core/Expected.h"
+#include "Protocol/Outgoing.h"
+#include "Protocol/Pet/PetInfo.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameUi.h"
@@ -15,7 +17,9 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <string>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -79,6 +83,18 @@ void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)
     {
         runtime.hud.partyCount = 0;
         requests->RequestPartyList();
+    };
+}
+
+void GamePanels::LendThePetRequests(std::function<void(Protocol::Outgoing)> send)
+{
+    m_context.petOpened = [send = std::move(send)]()
+    {
+        if (!send)
+            return;
+        send(Protocol::Pet::WritePetInfoRequest(Protocol::Pet::LoginScenePetInfoRequest));
+        send(Protocol::Pet::WritePetInfoRequest(
+            {Protocol::Pet::DarkHorsePet, Protocol::Pet::InventoryPlace, Protocol::Pet::PetSlot}));
     };
 }
 } // namespace Client::Scenes

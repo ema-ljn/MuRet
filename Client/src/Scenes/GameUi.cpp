@@ -1,6 +1,7 @@
 #include "Scenes/GameUi.h"
 
 #include "Core/Expected.h"
+#include "Data/Tables/SkillTable.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Protocol/Character/LevelUpPoint.h"
@@ -35,6 +36,7 @@
 #include "UI/SlideBanner.h"
 #include "World/ItemState.h"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
@@ -99,6 +101,22 @@ constexpr std::int32_t PetButtonTop = 0x18b;
 constexpr std::int32_t PetButtonBottom = 0x1a3;
 // 0x42474c: 0x723911 en 2, la ventana de la mascota.
 constexpr std::uint8_t PetWindowOpen = 2;
+// 0x42475f..0x424990: la ventana de la mascota y sus botones (0x6b8a08, 0x6b8a04, 0x6b87bc, 0x6b8874, 0x6b8a00,
+// 0x6b89f8, 0x6b89fc, 0x6b86d0, 0x6b8800, 0x6b8804 y 0x6b89f4).
+constexpr std::int32_t PetWindowLeft = 0x1c2;
+constexpr std::int32_t PetWindowBesideTheCharacter = 0x104;
+constexpr float PetWindowWidth = 190.0f;
+constexpr float PetWindowHeight = 433.0f;
+constexpr std::uint8_t PetTabCount = 2;
+constexpr std::int32_t PetTabStep = 0x2d;
+constexpr float PetTabLeft = 15.0f;
+constexpr float PetTabWidth = 49.0f;
+constexpr float PetOtherTabTop = 67.0f;
+constexpr float PetChosenTabTop = 63.0f;
+constexpr float PetTabBottom = 83.0f;
+constexpr float PetCloseLeft = 20.0f;
+constexpr float PetCloseSize = 24.0f;
+constexpr float PetCloseTop = 395.0f;
 // 0x5aca1b..0x5aca24: F1 da la vuelta por 0, 1 y 2 (idiv por 3).
 constexpr std::int32_t FunctionHelpModes = 3;
 // 0x636e11: desde esta y, el mouse está sobre la barra.
@@ -649,10 +667,53 @@ Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& co
     return {};
 }
 
+// 0x424759..0x424990, la ventana de la mascota abierta (CL9 hito 4): a la izquierda de 0x1c2, o de 0x104 con el
+// personaje abierto, 190 × 433 es de la UI (0x775857c). Las dos pestañas (el cuervo y el caballo, de a 45 desde 15, de
+// 49 de ancho): un clic en la que no está elegida, entre 67 y 83, la elige; en la elegida, entre 63 y 83, solo se
+// come el clic. El botón de cerrar (20, 395, de 24 × 24) cierra el panel 0x400. Todo en float, con los bordes
+// incluidos salvo los de la UI y los del botón. Sin rand().
+Core::Expected<void, std::string> StepThePetWindow(const GameUiContext& context, UI::PanelRegistry& panels)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    GameMovementState& movement = runtime.movement;
+    const std::int32_t left = panels.IsOpen(UI::CharacterPanel) ? PetWindowBesideTheCharacter : PetWindowLeft;
+    const auto mouseX = static_cast<float>(context.mouseX);
+    const auto mouseY = static_cast<float>(context.mouseY);
+    const auto base = static_cast<float>(left);
+    if (left <= context.mouseX && mouseX < base + PetWindowWidth && context.mouseY >= 0 && mouseY < PetWindowHeight)
+        runtime.ui.mouseOnUi = 1;
+    const auto clickTab = [&](std::uint8_t tab, float top)
+    {
+        const float x = static_cast<float>(tab * PetTabStep) + base + PetTabLeft;
+        if (x <= mouseX && mouseX <= x + PetTabWidth && top <= mouseY && mouseY <= PetTabBottom &&
+            movement.pendingClick)
+        {
+            movement.leftHeld = false;
+            movement.pendingClick = false;
+            runtime.petTab = tab;
+        }
+    };
+    for (std::uint8_t tab = 0; tab < PetTabCount; ++tab)
+        if (runtime.petTab != tab)
+            clickTab(tab, PetOtherTabTop);
+    for (std::uint8_t tab = 0; tab < PetTabCount; ++tab)
+        if (runtime.petTab == tab)
+            clickTab(tab, PetChosenTabTop);
+    const float closeLeft = base + PetCloseLeft;
+    if (closeLeft <= mouseX && mouseX < closeLeft + PetCloseSize && PetCloseTop <= mouseY &&
+        mouseY < PetCloseTop + PetCloseSize && movement.pendingClick)
+    {
+        movement.leftHeld = false;
+        movement.pendingClick = false;
+        if (auto closed = panels.Close(UI::PetPanel); !closed.HasValue())
+            return Core::Unexpected(std::move(closed).Error());
+    }
+    return {};
+}
+
 // 0x424130 → 0x424230: con el personaje cerrado, 0x723911 en 0. Abierto, la primera vez el pedido del caballo oscuro
-// (C1 06 A9 01 00 08, Q-C16) y 0x723911 en 1; el botón de la mascota abre o cierra el panel 0x400. Con 0x723911 en 2
-// (la respuesta del A9, que MuRet no lee), la ventana de la mascota es de la CL9.2. 0x416660, desde 0x424130 con 2,
-// no hace nada.
+// (C1 06 A9 01 00 08, Q-C16) y 0x723911 en 1; el botón de la mascota abre o cierra el panel 0x400. Con 0x723911 en 2,
+// el paso de la ventana de la mascota. 0x416660, desde 0x424130 con 2, no hace nada.
 Core::Expected<void, std::string> StepThePetButton(const GameUiContext& context, UI::PanelRegistry& panels)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -680,7 +741,7 @@ Core::Expected<void, std::string> StepThePetButton(const GameUiContext& context,
             return Core::Unexpected(std::move(toggled).Error());
     }
     if (pet == PetWindowOpen)
-        return Core::Unexpected(std::string("0x424759: la ventana de la mascota (0x723911 en 2) es de la CL9.2"));
+        return StepThePetWindow(context, panels);
     return {};
 }
 
@@ -1601,6 +1662,8 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
                           GamePanelTables{.items = context.inventory != nullptr ? context.inventory->items : nullptr,
                                           .itemSetTables = context.itemSetTables});
     gamePanels.LendThePartyList(context.world, context.requests);
+    if (context.chat != nullptr)
+        gamePanels.LendThePetRequests(context.chat->send);
     UI::PanelRegistry& panels = gamePanels.Registry();
     // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).
     if (panels.IsOpen(UI::MovePanel) && ui.capture == 0)

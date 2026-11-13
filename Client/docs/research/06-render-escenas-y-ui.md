@@ -1047,7 +1047,7 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | `0x80` | — | siempre cerrado: su rama de `0x659290` da 0 (`0x659429 JNZ 0x6597f3` → `XOR AL,AL`) | — |
 | `0x100` | caja del caos | `0x7d5370e` | CL9.3 |
 | `0x200` | comandos (D) | `*(0x6e592c+4)` | CL8 hito 6 (sin `0x406050`, CL9.4) |
-| `0x400` | mascota | `0x420cc0()`: `0x723911 == 2` (`0x424230` lo vuelve a 0 en cada paso con el personaje cerrado) | CL9.x |
+| `0x400` | mascota | `0x420cc0()`: `0x723911 == 2` (`0x424230` lo vuelve a 0 en cada paso con el personaje cerrado) | CL9 hito 4 (abrir y cerrar; [El A9 de las mascotas](#el-a9-de-las-mascotas)) |
 | `0x800` | tienda personal propia (S) | `0x7d5370f` | CL9.4 |
 | `0x1000`, `0x4000` | ventanas con inventario de NPC de evento (`0x7d53712` con `0x7d53714` en 0 o 1; el paso las atiende en `0x5e5920`, que manda `90`/`9A`) *inferido* | | CL9.5 |
 | `0x2000` | sin identificar | `0x7d53718` | — |
@@ -5696,11 +5696,11 @@ las armaduras, con el ítem que inicializa; sale si el tipo no es `0x1a04` (`0x4
 (`+0xf08` − 1 y, en 0, `0x40b4d0`, que vuelve a cifrar con 3.848 `rand()`). El valor, en un byte:
 `word(registro + 0x1a) / 20` (la agilidad; `imul 0x66666667` y `sar 3`, con signo sobre el word sin signo)
 + 2 · el byte de abajo de `[0x72397c]` (el nivel del caballo, que escribe `0x421db0` con el `A9` de las
-mascotas: tipo 1, lugar 8; sin portar, 0) + 5. Después del cierre pone el tag `0x96` en `D+0x2b+i` y, si la
+mascotas: tipo 1, lugar 8) + 5. Después del cierre pone el tag `0x96` en `D+0x2b+i` y, si la
 agregó, suma 1 a `D+0x2a`. En la grilla, `0x54bf40` corre con el registro cerrado: son 3.848 `rand()` más. En
 MuRet, `Scenes::AddTheDarkHorseOption` (`InventoryReplyTest.TheDarkHorseInTheGridAddsItsDefenseOption`,
 `TheWornDarkHorseGetsItsOptionWithTheRecordAlreadyOpen` y `TheDarkHorseOptionSkipsAnEarlierOneInTheFirstPlace`),
-y `[0x72397c]` es `WorldRuntime::darkHorseLevel`.
+y `[0x72397c]` es `WorldRuntime::pets[1].level` ([El A9 de las mascotas](#el-a9-de-las-mascotas)).
 
 ### El paso de ondas de Kalima
 
@@ -9842,6 +9842,48 @@ efectos y las partículas son de la CL11 y cortan con su dirección (`0x418aff`,
 después de los `rand()` que sacan antes (`test_raven_attack.cpp`, `test_character_step.cpp`,
 `test_game_character_effects.cpp`).
 
+
+### El A9 de las mascotas
+
+(CL9 hito 4, fase 2, 2026-11-13, *estático*.) El handler (`0x4e4ca1`) pasa a `0x421db0` `pkt[3]` (el tipo: 0 el cuervo,
+1 el caballo), `pkt[4]` (la clase), `pkt[5]` (la casilla), `pkt[6]` (el nivel) y el DWORD de `pkt[8]` (la
+experiencia), y después corre `0x550d10` con el registro propio abierto (`0x4e79a0` y `0x40f370`). La tabla de
+`0x723960` tiene `0x14` bytes por tipo: la experiencia (`+0`), la que sigue (`+4`), el nivel (`+8`), la durabilidad
+(`+0xa`) y cuatro WORD que calcula `0x4221d0` (`+0xc` a `+0x12`). `0x420cd0` (desde `0x657670`, en la vuelta a la
+selección) pone en 0 `0x723910` (la pestaña), `0x723911` (la ventana) y quince dwords (tres tipos).
+
+- **Con la ventana de la mascota abierta** (`0x420cc0`, `0x723911` en 2): con el cuervo del héroe y el tipo 0, su
+  vtable + 8 (`0x417f30`); la tabla del tipo toma el nivel, la durabilidad del caballo del registro propio (`+0xdc6`,
+  aunque sea el cuervo: Q-C1207) y la experiencia; `0x4221d0(tipo)`.
+- **Si no**: con algo en el cartel (`0x787a518` distinto de `0xffff`) y salvo con la casilla debajo de 12 y el
+  entrenador abierto (`0x8000`), la tabla toma el nivel, la durabilidad del ítem del cartel (`0x787a532`) y la
+  experiencia; `0x4221d0(tipo)`. Con la clase 0, `0xfe` o `0xff`: el tipo 0 en la casilla 1, con el cuervo del héroe,
+  su vtable + 8 y, con `0xfe`, + `0x14` (`0x418390`, cinco joints `0x60f/2`) y con `0xff`, + `0x18` (`0x418400`,
+  quince); el tipo 1 en la casilla 8, el nivel en `0x72397c`, la durabilidad del registro (`+0xdc6`), la experiencia
+  y, con `0xfe` o `0xff`, el `+8` del héroe en la clase + 3 (1 o 2, los doce `0x60f` del paso del caballo,
+  `0x444693`); `0x4221d0(1)` y, con el registro abierto, `0x4225d0(+0xdac)`, la opción `0x96` del Dark Horse.
+- **`0x4221d0(tipo)`**: con el registro abierto y cerrado lee el liderazgo `L = +0x36 + +0x20` y, para el caballo, la
+  fuerza (`+0x18`) y `+0x2a`. Con el tipo 0 o 1: la que sigue, `(nivel + 11) · (nivel + 1)³ · 100` en 32 bits; el
+  cuervo, `+0xc = (nivel + 12) · 15 + L / 8` y `+0xe = L / 4 + 200 + nivel · 15`; el caballo, `+0xc = L / 10 +
+  (+0x2a + fuerza) / 10 + nivel · 5` y `+0xe = +0xc + +0xc / 2`; los dos, `+0x10 = L / 50 + nivel · 4 / 5 + 20` y
+  `+0x12 = nivel · 16 + 1000`, en 16 bits. Con otro tipo, solo el acceso.
+- **`0x417f30(nivel, experiencia)`**: lee `L` (un acceso) y la durabilidad del cuervo (`+0xbce`, otro); el nivel en
+  `+0x1e2` y `+0x450`, la durabilidad en `+0x452`, la experiencia en `+0x448`, la que sigue en `+0x44c` y las del
+  cuervo de `0x4221d0` en `+0x454` (la de `+0xc`), `+0x456`, `+0x458` y `+0x45a`.
+
+**MuRet**: `Scenes::ApplyPetInfo` (`Scenes/PetStats`), con `WorldRuntime::pets` y los campos del cuervo de
+`Scenes::DarkSpirit`; un tipo de más de 2 que escribe la tabla corta (`0x421dfd`, Q-C1208), y los joints de `0xfe` y
+`0xff` cortan como de la CL11 (`0x421f9a`, `0x421fae`). `PetStatsTest`.
+
+**La ventana de la mascota.** El botón de 0x424230 abre el panel `0x400` (`0x6599a0`, `0x659fd9..0x65a8af`): cierra
+todo menos el personaje y los amigos y, si cerró, `0x420cb0` (`0x723911` en 2) y los dos pedidos, `A9 00 00 01` y
+`A9 01 00 08` ([04](04-protocolo.md)). Cerrarlo es `0x420ca0` (`0x723911` en 0, `0x6589b1`), y el paso siguiente del
+personaje vuelve a pedir el caballo. Con `0x723911` en 2, `0x424759..0x424990`: a la izquierda de `0x1c2` (`0x104` con
+el personaje abierto), 190 × 433 es de la UI; las dos pestañas, de a 45 desde 15 y de 49 de ancho: la que no está
+elegida, entre 67 y 83, la elige (`0x723910`); la elegida, entre 63 y 83, solo se come el clic; el botón de cerrar
+(20, 395, 24 × 24) cierra el `0x400`. **MuRet**: `UI::PanelRegistry::Open`/`CloseByMask` y `StepThePetWindow`
+(`GameCharacterWindowTest.ThePetWindowOpensChoosesItsTabAndCloses`). El dibujo (`0x424160`, con `0x4249a0` y
+`0x424e40`) y el tooltip de las mascotas (`0x422990`) siguen sin portar (08, P-C266).
 ### La tabla de protección
 
 Algunas variables del juego viven cifradas en la tabla de `0x57630c8` y están en claro solo mientras

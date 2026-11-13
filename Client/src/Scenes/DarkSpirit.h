@@ -64,6 +64,18 @@ struct DarkSpirit
     std::uint8_t byte38d = 0;
     // +0xf0 (+0xe4): el A8 con el estado 5 lo pone en 0,5; es la aceleración del ataque, que sube 0,2 por paso.
     float floatF0 = 0.0f;
+    // Lo que escribe 0x417f30 (la vtable + 8) con el A9 del cuervo (0x421db0, Scenes/PetInfo.h): el nivel en +0x1e2
+    // (+0x1d6) y +0x450, la experiencia, la que sigue, la durabilidad del lugar 1 del registro propio (+0xbce) y lo que
+    // sale del nivel y del liderazgo, como las del cuervo de 0x4221d0.
+    std::uint16_t word1e2 = 0;
+    std::uint32_t experience = 0;     // +0x448
+    std::uint32_t nextExperience = 0; // +0x44c
+    std::uint16_t level = 0;          // +0x450
+    std::uint16_t durability = 0;     // +0x452
+    std::uint16_t word454 = 0;
+    std::uint16_t word456 = 0;
+    std::uint16_t word458 = 0;
+    std::uint16_t word45a = 0;
     // La posición antes del último paso, para dibujarlo entre dos pasos (D-C4); el salto junto al dueño
     // la pisa con la nueva.
     glm::vec3 previousPosition{};

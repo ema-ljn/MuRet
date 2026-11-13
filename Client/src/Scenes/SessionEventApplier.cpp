@@ -13,6 +13,7 @@
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Pet/PetInfo.h"
 #include "Protocol/Pet/PetOrders.h"
 #include "Protocol/Skill.h"
 #include "Protocol/World.h"
@@ -25,6 +26,7 @@
 #include "Scenes/InventoryReply.h"
 #include "Scenes/MovementReplies.h"
 #include "Scenes/PetOrders.h"
+#include "Scenes/PetStats.h"
 #include "Scenes/ReturnToSelection.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
@@ -155,7 +157,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
     return ApplyWorldContent(event, session);
 }
 
-// CL9 hito 4: las skills que llegan (Scenes/SkillReplies.h) y las órdenes del cuervo (Scenes/PetOrders.h). nullopt
+// CL9 hito 4: las skills que llegan (Scenes/SkillReplies.h), las órdenes del cuervo (Scenes/PetOrders.h) y el A9 de
+// las mascotas (Scenes/PetStats.h). nullopt
 // si `event` no es una.
 std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySkillEvent(const App::WorldEvent& event)
 {
@@ -191,6 +194,8 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySkill
         ApplyPetAttack(*attack, m_resources);
         return Core::Expected<void, std::string>{};
     }
+    if (const auto* info = std::get_if<Protocol::Pet::PetInfoReply>(&event))
+        return ApplyPetInfo(*info, m_resources);
     return std::nullopt;
 }
 

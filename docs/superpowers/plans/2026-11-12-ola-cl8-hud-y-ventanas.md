@@ -421,28 +421,43 @@ tooltip queda solo el modo 3 de las ayudas, del hito 6 (P-C102), y el hito 5 que
       **las opciones** (el `0x93`: auto-ataque `0x6c8e3c`, aviso de susurro `0x77f3b78`, volumen `0x7d3a118` como
       gancho de la CL10, brillo `0x6c9dcc` que ya lee `ItemGlow`); el diálogo de los paneles (`0x65feb0`,
       `0x6605b0`, `0x660830`, `0x660410`, `0x660350`, `0x6576a0`).
-- [ ] **Las ventanas del paso que son marco:** la party (`0x5e3c80` sin el `43`), el botón del quest (`0x41b5a0`
+- [x] **Las ventanas del paso que son marco:** la party (`0x5e3c80` sin el `43`), el botón del quest (`0x41b5a0`
       sin el contenido), la puerta de D (`0x40a450` sin `0x406050`) y los cortes sin `rand()` de las de la CL9.
-- [ ] **Las teclas y las superposiciones:** `0x5ac8d0` (F1..F4; SPACE como corte de la CL9.3), `0x5b0550` con las
+      Hecho: la party vacía (`0x6599a0(4)` con el `C1 03 42`, `0x5e3c80`, `0x5f0be0`) y los comandos (`0x40a450`,
+      `0x40a650`, hasta `0x406097`), con Q-C650 a Q-C654; lo que queda, en 08 (P-C115 a P-C117).
+- [x] **Las teclas y las superposiciones:** `0x5ac8d0` (F1..F4; SPACE como corte de la CL9.3), `0x5b0550` con las
       ayudas F1 (`0x5af090`, `0x5afb00`) y **la ventana /move** (el paso `0x5ecdc0` → `0x449850` → `0x448580` y el dibujo `0x5b0550` → `0x449860` →
       `0x448fa0`, con
-      `Data\Local\movereq.bmd`).
-- [ ] **El hover y ALT** (`0x5bbbc0`: los nombres por los globos; los carteles del piso como corte de la CL9.3) y
+      `Data\Local\movereq.bmd`). El dibujo de la ayuda del ítem y del cartel del conjunto (`0x5afb00` es solo del
+      modo 3) corta para el hito 5 (08, P-C105).
+- [x] **El hover y ALT** (`0x5bbbc0`: los nombres por los globos; los carteles del piso como corte de la CL9.3) y
       **los textos 3D** (`0x4383f0`; el productor de Kalima es de la CL9.5).
-- [ ] **La captura:** el flanco de PrintScreen (`0x637cff`), el nombre y el contador (`0x637700`), `0x6202e0`,
-      el JPEG y el mensaje Text 459 por el área de mensajes.
+- [x] **La captura:** el flanco de PrintScreen (`0x637cff`), el nombre y el contador (`0x637700`), `0x6202e0`,
+      el JPEG y el mensaje Text 459 por el área de mensajes. Hecho el 2026-11-12 (`Scenes::Screenshots`; el JPEG
+      sale igual byte a byte al de la 6b): el frame retenido con el pedido corta (P-C110).
 
 **Pruebas:** los bytes de `F1 02 xx` y `F3 30` y su orden; los `rand()` de salir (3.848 + 2); el nombre de la
 captura con un reloj falso; /move con `movereq.bmd`. **Desbloquea:** "teclas de la UI" y "captura".
 
+**Los hitos 5 y 6, juntos** (2026-11-13): lo que portaron los dos queda una sola vez. La caja de las ayudas de F1 es
+la de los tooltips (`0x5af090`, `Scenes::DrawTheTooltipBox` sobre `HudState::tooltip`), y `Scenes/TipBox` se borró;
+el cartel del conjunto en `0x6376c6` es el del hito 5 (`Scenes::DrawTheSetLabel`), abierto por la cola del chat
+(`0x40ebd0`, Q-C594, que trae Q-C614). La ayuda del ítem se abre (el modo 3) y corta en su dibujo, desde `0x5b09a8`
+(P-C105, que trae P-C102). El texto de la caja de los tooltips todavía no pasa por `CenterInBox` (P-C145).
+
 ### Hito 7: las ventanas viejas (CL8.3, ~41 KB, de los que ~11 son STL)
 
-- [ ] **El administrador** (`0x48e470`, la fábrica `0x48ee60` sin los casos de amigos y correo, `0x490390`,
+- [x] **El administrador** (`0x48e470`, la fábrica `0x48ee60` sin los casos de amigos y correo, `0x490390`,
       `0x490490` con Esc, F5 y F6, `0x490200`, `0x4906a0`, `0x4914e0`, `0x490b70`), **la ventana con marco**
       (`0x491ca0`, `0x492500`, `0x492ac0`, `0x492180`, la paleta `0x491960`), los controles viejos (botón, lista,
       campo, barra), **la caja de mensaje** (`0x6b9cb4`, casos 5, 8, 9 y 10) y **la lista de ventanas**
       (`[0x5763524]`).
-- [ ] Los cortes de Chaos Castle de `WorldTransitions.cpp` (`0x4906a0`/`0x4914e0`) se resuelven acá.
+      *Hecho (hito 7):* `UI/OldWindows` y `UI/OldWindowDraw`. De los controles viejos entró el botón (`0x45ad80`,
+      `0x45b200`, `0x45b2e0`); la lista, el campo y la barra solo los arman los casos de amigos (P-C95). La lista
+      de ventanas queda sin entradas hasta la CL9.4. El soltado del izquierdo (`0x7d366ec`) entró al paso (P-C96).
+- [x] Los cortes de Chaos Castle de `WorldTransitions.cpp` (`0x4906a0`/`0x4914e0`) se resuelven acá.
+      *Hecho (hito 7):* el prefijo de Chaos Castle esconde las ventanas sin anotarlas y suelta la de amigos; el corte
+      pasa a `0x4c7b34`, el objeto de los comandos (CL9.4, P-C99).
 
 **Pruebas:** una caja de mensaje abierta a mano: el marco contra el ASM (no hay traza con ventanas viejas: va a
 la VM); el orden del mouse (lista, de arriba hacia abajo, registro del chat); Esc según `IsOpen(1)` (Q-C446); F6
@@ -450,12 +465,16 @@ dos veces (Q-C448). **Desbloquea:** amigos y correo en la CL9.4.
 
 ### Hito 8: la UI nueva generalizada y lo que quedó del login (CL8.3, ~14 KB)
 
-- [ ] **El administrador de la UI nueva** (`0x65fc30`, el arrastre `0x65f720`/`0x669f40`/`0x65fbb0`,
+- [x] **El administrador de la UI nueva** (`0x65fc30`, el arrastre `0x65f720`/`0x669f40`/`0x65fbb0`,
       `0x65f610`/`0x65f690`/`0x65f6c0`, los modos y el vaciado del modo 5 `0x65f5f0`): mueve el orden del foco y
-      del mouse de cada ventana del login a un solo lugar (Q-C84) y cierra P-C08.
-- [ ] **El Esc del login y la selección** (`+0x3d0`: `0x6478c0`, `0x647d40`, `0x647f60` con su `C3 F1 02`),
+      del mouse de cada ventana del login a un solo lugar (Q-C84) y cierra P-C08. Hecho: `UI::NewUi`, por paso
+      (Q-C490, Q-C491).
+- [x] **El Esc del login y la selección** (`+0x3d0`: `0x6478c0`, `0x647d40`, `0x647f60` con su `C3 F1 02`),
       **las opciones** (`+0x7e8`: `0x644120`, `0x644730`) y **los créditos** (`+0x4578`: `0x63f020`, `0x63f630`,
-      con `Data\Local\credit.bmd`).
+      con `Data\Local\credit.bmd`). Hecho el Esc (`UI::EscapeWindow`, Q-C492 a Q-C497), las opciones
+      (`UI::OptionsWindow` y `UI::Slider`) y los créditos (`UI::CreditsWindow`, `Data::Text::LoadCredits`, el
+      `F4 06`), en el administrador de cada escena (Q-C498 a Q-C506, P-C75 y P-C76 cerrados). Sin el sonido ni
+      la música (P-C79) ni la respuesta del CS al `F4 06` (P-C78).
 
 **Pruebas:** las del login y la selección siguen verdes; el arrastre y los `rand()` del `C3 F1 02`. Puede ir en
 cualquier momento después del hito 1.

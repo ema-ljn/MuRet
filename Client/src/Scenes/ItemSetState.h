@@ -6,9 +6,9 @@
 #include <cstddef>
 #include <cstdint>
 
-// Lo que escriben 0x40e1b0, 0x40d010 y 0x40da20 en el objeto de los conjuntos, [0x6eed3c] (el estático
-// de 0x6e5930), de +0x9307 a +0x940b. Es una proyección tipada, no el layout; cada campo dice su
-// offset. Las tablas de +4 y +0x8004 son Data::Tables::ItemSetTables; +0x9304 y +0x9305 son de los tooltips
+// Lo que escriben 0x40e1b0, 0x40d010, 0x40da20, F1, las ayudas del chat y los tooltips en el objeto de los conjuntos,
+// [0x6eed3c] (el estático de 0x6e5930), de +0x9304 a +0x940b. Es una proyección tipada, no el layout; cada campo dice
+// su offset. Las tablas de +4 y +0x8004 son Data::Tables::ItemSetTables; +0x9304 y +0x9305 son de los tooltips
 // (CL8 hito 5) y +0x9306 no lo lee nadie de lo portado. Arranca en cero, como el objeto estático, que además su
 // constructor (0x40f2a0) pone en cero de +0x9304 a +0x9347. Contrato: Client/docs/research/06-render-escenas-y-ui.md,
 // "Los stats del registro propio".

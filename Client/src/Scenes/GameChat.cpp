@@ -15,6 +15,7 @@
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/GameText.h"
+#include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
 #include "UI/NameChecks.h"
 #include "UI/PanelRegistry.h"
@@ -135,6 +136,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
                                           .log = runtime.chat.log,
                                           .macros = runtime.chat.input.macros,
                                           .overlayMode = runtime.panels.overlayMode,
+                                          .helpItem = runtime.panels.helpItem,
                                           .setLabel = &context.world.ItemSets().byte9305};
     auto outcome = UI::RunTheChatCommand(commands, text, fromMacro);
     if (!outcome.HasValue())
@@ -160,8 +162,8 @@ Core::Expected<std::string, std::string> FilteredOf(const GameChatContext& conte
     return std::string(filtered.Value());
 }
 
-// 0x4b5734..0x4b6f54 (Enter) y 0x5a1214..0x5a1e9e (las macros): el freno (0x5767940 y lo último dicho, 0x57676e4),
-// "webzen" en el nombre del héroe, /whisper off y on (vivo) o /move (muriéndose), y el C1 00 con el nombre del héroe.
+} // namespace
+
 Core::Expected<void, std::string> SayInTheChat(const GameChatContext& context, std::string_view said)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -211,6 +213,8 @@ Core::Expected<void, std::string> SayInTheChat(const GameChatContext& context, s
     return {};
 }
 
+namespace
+{
 // 0x554a40(6, 0x7798cf8): el nivel del registro propio (+0xe), con su acceso, o el nombre en uno de los diez lugares
 // de 0x77997f8 (strcmp, que sigue en el lugar de al lado si el nombre llena el suyo); si no, el aviso 479.
 Core::Expected<bool, std::string> MayWhisper(const GameChatContext& context)
@@ -328,10 +332,11 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
     UI::GameUiState& ui = runtime.ui;
     UI::ChatInputState& input = runtime.chat.input;
     const ActorState& hero = context.world.Actors()[runtime.hero];
-    // 0x4b5226..0x4b52f6. 0x5763588 = 1 (que solo lee la UI de los diálogos, hito 6) no lo escribe MuRet; la escena
-    // es la 5 y 0x77f3b68, el campo del diálogo, no se prende (hito 6).
+    // 0x4b50c0..0x4b5106: en Chaos Castle fuera de la zona segura, nada; si no, 0x5763588 en 1, el Enter que leen los
+    // diálogos (0x6263df y 0x62da58). La escena es la 5 y 0x77f3b68, el campo del diálogo, no se prende (hito 6).
     if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap && hero.safeZone == 0)
         return {};
+    ui.enterPressed = true;
     if (std::ranges::find(EnterBlockingDialogs, runtime.dialogs.current) != EnterBlockingDialogs.end())
         return {};
     if (runtime.panels.field78abb00 == EnterBlockingField)

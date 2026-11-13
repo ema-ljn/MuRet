@@ -31,6 +31,19 @@ std::string PlaceArguments(std::string_view format, std::span<const std::string_
     std::size_t next = 0;
     for (std::size_t i = 0; i < format.size(); ++i)
     {
+        // "% d": el espacio, si el número no trae el signo.
+        const bool spaced = format[i] == Mark && i + 2 < format.size() && format[i + 1] == ' ' && format[i + 2] == 'd';
+        if (spaced && next < arguments.size())
+        {
+            if (!arguments[next].starts_with('-'))
+            {
+                placed.push_back(' ');
+            }
+            placed.append(arguments[next]);
+            ++next;
+            i += 2;
+            continue;
+        }
         const bool mark = format[i] == Mark && i + 1 < format.size() && IsArgumentMark(format[i + 1]);
         if (mark && next < arguments.size())
         {

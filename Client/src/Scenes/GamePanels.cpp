@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/GameUi.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnDerivedStats.h"
@@ -67,5 +68,17 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
 GamePanels::GamePanels(WorldState& world, Render::Models::CrtRandom& random, GamePanelTables tables)
     : m_context(ContextOf(world, random, tables)), m_registry(world.Runtime().panels, m_context)
 {
+}
+
+void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)
+{
+    if (requests == nullptr)
+        return;
+    WorldRuntime& runtime = world.Runtime();
+    m_context.partyOpened = [&runtime, requests]()
+    {
+        runtime.hud.partyCount = 0;
+        requests->RequestPartyList();
+    };
 }
 } // namespace Client::Scenes

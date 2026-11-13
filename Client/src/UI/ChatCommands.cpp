@@ -72,9 +72,9 @@ Core::Expected<ChatCommandOutcome, std::string> SocialCommand(const ChatCommandC
     return Core::Unexpected(std::format("{}: {} es de la CL9.4", address, what));
 }
 
-// 0x576894..0x576922 y 0x40ebd0: "/" y el nombre de un ítem abre su ayuda (del hito 6); si no, 0x40ebd0 compara con
-// "/" y el nombre de cada conjunto usado (strncmp en los dos sentidos: iguales), y antes de cada comparación pone el
-// cartel (+0x9305) en 0. Con uno igual, 0x77f3b08 en 0 y el cartel en su índice + 1. Devuelve 0 (0x576912).
+// 0x576894..0x576922 y 0x40ebd0: "/" y el nombre de un ítem abre su ayuda; si no, 0x40ebd0 compara con "/" y el
+// nombre de cada conjunto usado (strncmp en los dos sentidos: iguales), y antes de cada comparación pone el cartel
+// (+0x9305) en 0. Con uno igual, 0x77f3b08 en 0 y el cartel en su índice + 1. Devuelve 0 (0x576912).
 Core::Expected<ChatCommandOutcome, std::string> TheNamesTail(const ChatCommandContext& context, std::string_view text,
                                                              ChatCommandOutcome outcome)
 {
@@ -85,11 +85,17 @@ Core::Expected<ChatCommandOutcome, std::string> TheNamesTail(const ChatCommandCo
             const auto record = context.items->Record(index);
             if (!record || (*record)[ItemNamedByte] == std::byte{0})
                 continue;
-            if (text == "/" + NameOf(*record))
-                return Core::Unexpected(
-                    std::format("0x576923: la ayuda del ítem {} (0x5ae360, 0x77f3b08 en 3) es del hito 6", index));
+            if (text != "/" + NameOf(*record))
+                continue;
+            // 0x576923..0x576952: sin el cartel del conjunto (0x5ae360), la ayuda del ítem (el modo 3), el 0x19 y 1.
+            if (context.setLabel != nullptr)
+                *context.setLabel = 0;
+            context.overlayMode = ItemHelpMode;
+            context.helpItem = static_cast<std::int32_t>(index);
+            return ChatCommandOutcome{.handled = true, .notices = {}, .sound = true};
         }
     }
+    // 0x576900..0x576912: 0x40ebd0 y 0, que manda el texto como chat.
     if (text.empty() || text.front() != '/' || context.setOptions == nullptr)
         return outcome;
     for (std::size_t index = 0; index < context.setOptions->Count(); ++index)

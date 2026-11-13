@@ -199,7 +199,7 @@ Render::Text::TextColors LineColors(std::int32_t color)
 
 // 0x465950(x, y, texto, caja, 0, modo, 0, 0x280) → 0x467060: el texto en una caja de `boxPixels` píxeles que empieza
 // en _ftol(x · rx), corrido (caja − cx) / 2 con el modo 2 o caja − cx con el 3. El fondo de 0x467060 llena la caja; el
-// de MuRet, lo que ocupa el texto (08, P-C70). Devuelve lo que baja: cy / ry, la mitad si empieza con '\n'.
+// de MuRet, lo que ocupa el texto (08, P-C145). Devuelve lo que baja: cy / ry, la mitad si empieza con '\n'.
 double DrawLine(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t boxPixels,
                 std::int32_t mode)
 {

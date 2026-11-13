@@ -25,8 +25,9 @@
 //   glGetError                            los tests, después de cada paso
 //   glEnable, glDisable, glBlendFunc      la mezcla (el lab de la CL5.0 y GlSpriteRenderer)
 //   glDepthFunc, glDepthMask              la profundidad del pase 3D (GlModelRenderer, CL6.3)
-//   glPixelStorei                         GL_UNPACK_ALIGNMENT al subir una textura (GlTexture)
-//   glReadPixels                          leer lo dibujado (GlFramebuffer)
+//   glPixelStorei                         GL_UNPACK_ALIGNMENT al subir una textura (GlTexture) y
+//                                         GL_PACK_ALIGNMENT al leer la captura (GlScreenReader)
+//   glReadPixels                          leer lo dibujado (GlFramebuffer y GlScreenReader)
 //   glGenTextures a glTexParameteri       las texturas (GlTexture y el color de GlFramebuffer)
 //   glGenFramebuffers a glCheck...        el framebuffer de los tests (GlFramebuffer)
 //   glCreateShader a glUniform1i          los shaders, el programa, la matriz y las banderas del

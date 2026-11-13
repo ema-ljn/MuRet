@@ -37,6 +37,11 @@ Core::Expected<std::uint8_t, ProtocolError> ReadLogoutResult(const Network::Pack
     return *result;
 }
 
+Outgoing WriteLogoutRequest(std::uint8_t kind)
+{
+    return EncryptedC1(Network::PacketWriter::C1(JoinOpcode).PutU8(LogoutSubcode).PutU8(kind));
+}
+
 Outgoing WriteClearLogoutReport()
 {
     return EncryptedC1(Network::PacketWriter::C1(JoinOpcode)

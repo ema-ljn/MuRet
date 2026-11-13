@@ -1,0 +1,158 @@
+#include "Scenes/GameHelps.h"
+
+#include "Core/Expected.h"
+#include "Data/Text/TextTable.h"
+#include "Render/SpriteBatch.h"
+#include "Scenes/GameHud.h"
+#include "Scenes/GameTooltips.h"
+#include "Scenes/TooltipLines.h"
+#include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
+#include "UI/PanelRegistry.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <format>
+#include <optional>
+#include <string>
+#include <string_view>
+
+namespace Client::Scenes
+{
+namespace
+{
+// 0x6c9740..0x6c9754: el renglón "\n" de las ayudas.
+constexpr std::string_view LineBreak = "\n";
+
+// Los textos de cada ayuda de F1: el título y los renglones (0x76c5e7c, 0x76c5fa8..0x76c75ec; 0x76c75ec,
+// 0x76c7718..0x76c89d8).
+struct FunctionHelpTexts
+{
+    std::size_t title = 0;
+    std::size_t first = 0;
+    std::size_t last = 0;
+};
+constexpr FunctionHelpTexts FirstHelpTexts{.title = 120, .first = 121, .last = 139};
+constexpr FunctionHelpTexts SecondHelpTexts{.title = 140, .first = 141, .last = 156};
+// 0x5af090(1, 1, cuántos, 0, 2, 1).
+constexpr std::int32_t HelpCorner = 1;
+constexpr std::int32_t CenteredMode = 2;
+// 0x5b05bf..0x5b05ce: el título, con el color 1 y la negrita.
+constexpr std::int32_t TitleColor = 1;
+
+// 0x5b089c..0x5b0944: las flechas y los virotes cierran la ayuda; las franjas de tipos.
+constexpr std::int32_t ArrowsItem = 0x807;
+constexpr std::int32_t BoltsItem = 0x80f;
+constexpr std::int32_t FifthKind = 5;
+
+struct ItemKind
+{
+    std::int32_t kind = 0;
+    std::int32_t dividend = 0;
+};
+
+// 0x5b08b4..0x5b0975: la franja del ítem y lo que divide por el ancho de la pantalla; sin franja, nada.
+std::optional<ItemKind> KindOf(std::int32_t item, std::int32_t screenWidth)
+{
+    if (item >= 0 && item < 0xa00)
+        return ItemKind{.kind = 1, .dividend = 0x870};
+    if (item >= 0xa00 && item < 0xc00)
+        return ItemKind{.kind = 2, .dividend = 0x708};
+    if (item >= 0xc00 && item < 0xe00)
+        return ItemKind{.kind = 3, .dividend = 0x708};
+    if (item >= 0xe00 && item < 0x1800)
+        return ItemKind{.kind = 4, .dividend = 0x708};
+    if (item >= 0x1e00 && item < 0x2000)
+    {
+        // 0x5b094f..0x5b0975: 0x1734 en 640 y 1.280, 0x1450 en 800 y 1.024 y, con otro, sin división.
+        if (screenWidth == 640 || screenWidth == 1280)
+            return ItemKind{.kind = FifthKind, .dividend = 0x1734};
+        if (screenWidth == 800 || screenWidth == 1024)
+            return ItemKind{.kind = FifthKind, .dividend = 0x1450};
+        return ItemKind{.kind = FifthKind, .dividend = 0};
+    }
+    return std::nullopt;
+}
+
+// 0x5b0807..0x5b088c: el divisor de cada ancho de pantalla (0x6d5d60); con otro, 0.
+std::int32_t DivisorOf(std::int32_t screenWidth)
+{
+    switch (screenWidth)
+    {
+    case 640:
+    case 800:
+        return 0x5a;
+    case 1024:
+        return 0x67;
+    case 1280:
+        return 0x7b;
+    default:
+        return 0;
+    }
+}
+} // namespace
+
+Core::Expected<void, std::string> DrawTheFunctionHelp(GameHudContext& context, std::int32_t mode)
+{
+    if (context.texts == nullptr)
+        return Core::Unexpected(std::format("0x5b0590: la ayuda {} de F1 sin Text.bmd", mode));
+    const FunctionHelpTexts& help = mode == UI::FirstHelpMode ? FirstHelpTexts : SecondHelpTexts;
+    // 0x5b056c y 0x5b0571..0x5b0581: sin mezcla y el renglón que sigue (0x78abb30) en 0.
+    context.sprites.SetBlend(Render::BlendMode::Opaque);
+    TooltipLines& lines = context.hud.tooltip;
+    lines.next = 0;
+    const auto next = [&lines]() { return static_cast<std::size_t>(lines.next++); };
+    const auto add = [&](std::size_t index, std::int32_t color, std::int32_t bold) -> Core::Expected<void, std::string>
+    {
+        const std::optional<std::string_view> text = context.texts->Text(index);
+        if (!text)
+            return Core::Unexpected(std::format("0x5b0590: la ayuda {} de F1 sin el texto {}", mode, index));
+        if (text->size() >= TooltipLineBytes)
+            return Core::Unexpected(
+                std::format("0x5b05bb: el texto {} ({} bytes) no entra en un renglón de la caja de ayuda (Q-C613)",
+                            index, text->size()));
+        const std::size_t line = next();
+        lines.text[line] = std::string(*text);
+        lines.colors[line] = color;
+        lines.bold[line] = bold;
+        return {};
+    };
+    lines.text[next()] = std::string(LineBreak);
+    if (auto added = add(help.title, TitleColor, 1); !added.HasValue())
+        return added;
+    lines.text[next()] = std::string(LineBreak);
+    for (std::size_t index = help.first; index <= help.last; ++index)
+    {
+        if (auto added = add(index, 0, 0); !added.HasValue())
+            return added;
+    }
+    lines.text[next()] = std::string(LineBreak);
+    // 0x5b0696 y 0x5b069d: 0x77f3b66 y la caja de los tooltips, arriba a la izquierda y con marco.
+    context.hud.durabilityWarning = 1;
+    return DrawTheTooltipBox(context, HelpCorner, HelpCorner, lines.next, 0, CenteredMode, 1);
+}
+
+Core::Expected<void, std::string> DrawTheItemHelp(GameHudContext& context)
+{
+    // 0x5b0802.
+    context.sprites.SetBlend(Render::BlendMode::Opaque);
+    UI::PanelState& panels = context.world.Runtime().panels;
+    const std::int32_t item = panels.helpItem;
+    const std::int32_t screenWidth = context.sprites.Screen().width;
+    const std::optional<ItemKind> kind =
+        item == ArrowsItem || item == BoltsItem ? std::nullopt : KindOf(item, screenWidth);
+    if (!kind)
+    {
+        // 0x5b10c2: 0x77f3b08 en 0.
+        if (!context.projecting)
+            panels.overlayMode = 0;
+        return {};
+    }
+    if (kind->dividend != 0 && DivisorOf(screenWidth) == 0)
+        return Core::Unexpected(std::format(
+            "0x5b097b: la ayuda del ítem {} divide por 0 con una pantalla de {} de ancho (Q-C615)", item, screenWidth));
+    return Core::Unexpected(std::format("0x5b09a8: el dibujo de la ayuda del ítem {} (0x5afc00, 0x5af590, 0x5af9b0 y "
+                                        "0x5afb00) no está portado (P-C105)",
+                                        item));
+}
+} // namespace Client::Scenes

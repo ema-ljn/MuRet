@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/DataError.h"
+#include "Data/Textures/JpegErrors.h"
 
 #include <algorithm>
 #include <csetjmp>
@@ -32,21 +33,6 @@ constexpr int SixBSampleBits = 8;
 static_assert(SixBSampleBits == BITS_IN_JSAMPLE, "jpeg_read_scanlines da muestras de 8 bits");
 } // namespace
 
-// libjpeg llama a estas dos como funciones de C, así que lo son: una función de C y una de C++ son
-// de tipos distintos ([dcl.link]). static: no salen de este archivo.
-extern "C"
-{
-    // error_exit: libjpeg lo llama ante un error y no puede volver. Salta al setjmp de Decompress,
-    // con el jmp_buf que dejó el Decompressor en client_data.
-    [[noreturn]] static void JumpOnError(j_common_ptr info)
-    {
-        std::longjmp(*static_cast<std::jmp_buf*>(info->client_data), 1);
-    }
-
-    // output_message: los mensajes no se muestran (JpegImage.h).
-    static void DiscardMessage(j_common_ptr /*info*/) {}
-}
-
 namespace
 {
 // El descompresor de libjpeg, que se libera al salir por cualquier camino (regla 8). Liberar uno
@@ -66,9 +52,11 @@ struct Decompressor
 
     explicit Decompressor(std::jmp_buf& target) : jump(target)
     {
+        // El error salta al setjmp de Decompress, con el jmp_buf que queda en client_data
+        // (JpegErrors.h).
         info.err = jpeg_std_error(&errors);
-        errors.error_exit = JumpOnError;
-        errors.output_message = DiscardMessage;
+        errors.error_exit = JpegJumpOnError;
+        errors.output_message = JpegDiscardMessage;
         info.client_data = &jump;
     }
     ~Decompressor()

@@ -752,6 +752,48 @@ TEST_F(GameHudTest, ACommandSkillDrawsItsIconAndItsNumber)
     EXPECT_FLOAT_EQ(number->first.x, 303.5f);
 }
 
+// 18. 0x5f7440: la party (0x5f0be0, lo primero) y los comandos (0x40a650, casi al final) en (0x1c2, 0), con el fondo
+// de Item_Back01 y 02 y el botón de cerrar; los comandos, con sus once botones de Message_box. En Lorencia y en Devias.
+TEST_F(GameHudTest, TheEighteenthChildDrawsThePartyAndTheCommands)
+{
+    const auto windowAt = [](const std::vector<DrawnQuad>& quads)
+    {
+        return std::ranges::find_if(quads, [](const DrawnQuad& quad)
+                                    { return quad.slot == std::uint16_t{0x104} && quad.first.x == 450.0f; });
+    };
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime().map = map;
+        world.Runtime().panels.party = 1;
+        sprites.Begin(Screen640);
+        const auto party = Hud();
+        ASSERT_TRUE(party.HasValue()) << party.Error();
+        const std::vector<DrawnQuad> partyQuads = QuadsOf(sprites);
+        const auto partyWindow = windowAt(partyQuads);
+        ASSERT_NE(partyWindow, partyQuads.end());
+        ASSERT_GE(std::distance(partyWindow, partyQuads.end()), 3);
+        EXPECT_EQ(std::next(partyWindow)->slot, std::uint16_t{0x105});
+        EXPECT_EQ(std::next(partyWindow, 2)->slot, std::uint16_t{0x118});
+        EXPECT_EQ(world.Runtime().hud.partyX, 0x1c2);
+
+        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime().map = map;
+        world.Runtime().panels.delegated.commands = 1;
+        sprites.Begin(Screen640);
+        const auto commands = Hud();
+        ASSERT_TRUE(commands.HasValue()) << commands.Error();
+        const std::vector<DrawnQuad> commandQuads = QuadsOf(sprites);
+        const auto commandWindow = windowAt(commandQuads);
+        ASSERT_NE(commandWindow, commandQuads.end());
+        EXPECT_EQ(std::count_if(commandWindow, commandQuads.end(),
+                                [](const DrawnQuad& quad) { return quad.slot == std::uint16_t{0xf0}; }),
+                  11);
+        EXPECT_EQ(world.Runtime().hud.commandsX, 0x1c2);
+    }
+}
+
 // Lo que es de otra ola corta con su dirección donde su condición se cumple.
 TEST_F(GameHudTest, ThePiecesOfOtherWavesStopWithTheirAddress)
 {

@@ -68,9 +68,6 @@ const char* WaveOf(PanelId id)
     {
     case FriendsPanel:
         return "el administrador viejo (hito 7) y la CL9.4";
-    case PartyPanel:
-    case CommandsPanel:
-        return "el hito 6 y la CL9.4";
     case GuildPanel:
     case TradePanel:
     case PersonalShopPanel:
@@ -234,14 +231,37 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
         }
         break;
     }
-    case FriendsPanel:
     case PartyPanel:
+    {
+        // 0x659a82..0x659c44: con lo que cerró, la cuenta en 0, el pedido de la lista y la party.
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            if (!m_context.partyOpened)
+                return Core::Unexpected(std::string("0x659aa0: abrir la party pide la lista (C1 03 42) sin el cable"));
+            m_context.partyOpened();
+            m_state.party = 1;
+        }
+        break;
+    }
+    case CommandsPanel:
+    {
+        // 0x65a91c..0x65a934: con lo que cerró, +4 de [0x6e592c].
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+            m_state.delegated.commands = 1;
+        break;
+    }
+    case FriendsPanel:
     case QuestPanel:
     case GuildPanel:
     case TradePanel:
     case WarehousePanel:
     case ChaosBoxPanel:
-    case CommandsPanel:
     case PetPanel:
     case PersonalShopPanel:
     case EventNpcPanel:
@@ -370,6 +390,9 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask)
         case MovePanel:
             m_state.overlayMode = 0;
             break;
+        case CommandsPanel:
+            ResetTheCommands(m_state.delegated);
+            break;
         case InventoryPanel:
             // 0x659250..0x65926a.
             m_state.inventory = 0;
@@ -388,7 +411,7 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask)
 Core::Expected<bool, std::string> PanelRegistry::PanelKey(std::int32_t virtualKey)
 {
     if (m_state.delegated.panelDialog != 0)
-        return Core::Unexpected(std::string("0x660410: las teclas del diálogo de los paneles son del hito 6"));
+        return Core::Unexpected(std::string("0x660410: las teclas del diálogo de los paneles son de la CL9.4 (P-C90)"));
     if (virtualKey != EscapeKey)
         return false;
     for (PanelId bit = 1; bit <= LastScannedBit; bit <<= 1)
@@ -409,14 +432,14 @@ Core::Expected<void, std::string> PanelRegistry::CloseAll()
     if (!closed.HasValue())
         return Core::Unexpected(std::move(closed).Error());
     if (m_state.delegated.panelDialog != 0)
-        return Core::Unexpected(std::string("0x6603c0: cerrar el diálogo de los paneles es del hito 6"));
+        return Core::Unexpected(std::string("0x6603c0: cerrar el diálogo de los paneles es de la CL9.4 (P-C90)"));
     return {};
 }
 
 Core::Expected<void, std::string> PanelRegistry::StepTheObjectPanels()
 {
     if (m_state.delegated.panelDialog != 0)
-        return Core::Unexpected(std::string("0x6605b0: el paso del diálogo de los paneles es del hito 6"));
+        return Core::Unexpected(std::string("0x6605b0: el paso del diálogo de los paneles es de la CL9.4 (P-C90)"));
     for (const PanelId id :
          {SecondGuildPanel, GuildPanel, CastleSiegePanel, CastleSiegeListPanel, SecondCastleSiegePanel})
     {
@@ -424,6 +447,14 @@ Core::Expected<void, std::string> PanelRegistry::StepTheObjectPanels()
             return Core::Unexpected(std::format("0x657930({:#x}): el paso de este panel es de {}", id, WaveOf(id)));
     }
     return {};
+}
+
+void ResetTheCommands(DelegatedPanels& delegated)
+{
+    delegated.commands = 0;
+    delegated.commandsWindow.target = -1;
+    delegated.commandsWindow.chosen = -1;
+    delegated.commandsWindow.states.fill(CommandReady);
 }
 
 std::int32_t PanelRegistry::WorldWidth()

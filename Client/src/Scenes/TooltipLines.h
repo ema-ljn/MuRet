@@ -6,8 +6,9 @@
 #include <string>
 
 // Los renglones de los tooltips (06 § Los tooltips, CL8 hito 5): tres arreglos de la .bss que llenan los cuerpos
-// (0x5b2aa0, 0x5b8150, 0x5b90b0), la ventana del set (0x40e850) y su cartel (0x40eca0), y que dibuja 0x5af090. Nadie
-// los vuelve a poner en 0 entre un frame y otro: cada cuerpo limpia lo suyo y lo que no escribe queda del anterior.
+// (0x5b2aa0, 0x5b8150, 0x5b90b0), la ventana del set (0x40e850), su cartel (0x40eca0) y las ayudas de F1 (0x5b0550), y
+// que dibuja 0x5af090. Nadie los vuelve a poner en 0 entre un frame y otro: cada cuerpo limpia lo suyo y lo que no
+// escribe queda del anterior.
 namespace Client::Scenes
 {
 // 0x78793c8: 30 renglones de 100 bytes, hasta 0x7879f80 (donde empieza el ítem del cursor).
@@ -42,7 +43,8 @@ struct TooltipLines
     // 0x78a9230 + 4 · i: con algo distinto de 0, la fuente negrita (0x5763558). Ningún cuerpo los limpia.
     std::array<std::int32_t, TooltipLineCount> bold{};
     // 0x78abb30: el renglón que sigue, y 0x78abb34: cuántos "\n" lleva (los medios renglones de la altura). Los ponen
-    // en 0 el cuerpo del ítem (0x5b2aa0) y el de reparar (0x5b8150) al empezar; 0x5af590 los sigue.
+    // en 0 el cuerpo del ítem (0x5b2aa0) y el de reparar (0x5b8150) al empezar; 0x5af590 los sigue. Las ayudas de F1
+    // (0x5b057b) ponen en 0 solo el primero.
     std::int32_t next = 0;
     std::int32_t halves = 0;
 

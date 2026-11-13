@@ -1,6 +1,9 @@
 #include "UI/ChatCommands.h"
 
+#include "Core/Xor3.h"
 #include "Data/Tables/ItemSetTables.h"
+#include "Data/Tables/ItemTable.h"
+#include "Data/Tables/RecordTable.h"
 #include "Data/Text/TextTable.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
@@ -16,6 +19,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -35,15 +39,20 @@ protected:
     ChatCommandContext Context()
     {
         return ChatCommandContext{.texts = texts,
-                                  .items = nullptr,
-                                  .setOptions = nullptr,
+                                  .items = items,
+                                  .setOptions = setOptions,
                                   .map = map,
                                   .logoutRequested = logoutRequested,
                                   .warehouseOpen = warehouseOpen,
                                   .log = log,
                                   .macros = macros,
-                                  .overlayMode = overlayMode};
+                                  .overlayMode = overlayMode,
+                                  .helpItem = helpItem,
+                                  .setLabel = &setLabel};
     }
+
+    const Client::Data::Tables::ItemTable* items = nullptr;
+    const Client::Data::Tables::ItemSetOptionTable* setOptions = nullptr;
 
     Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
     std::int32_t map = 0;
@@ -52,7 +61,34 @@ protected:
     ChatLogState log;
     std::array<std::string, MacroCount> macros{};
     std::int32_t overlayMode = 0;
+    std::int32_t helpItem = 0;
+    std::uint8_t setLabel = 0;
 };
+
+// Una tabla de `count` registros de `Size` bytes con `name` en los lugares de `named` y `flag` en el byte `at` de
+// cada uno, cifrada con XOR3 como la lee RecordTable.
+template <std::size_t Size>
+Client::Data::Tables::RecordTable<Size> TableWith(std::size_t count, std::span<const std::size_t> named,
+                                                  std::string_view name, std::size_t at, std::byte flag,
+                                                  std::byte other)
+{
+    std::vector<std::byte> bytes(count * Size);
+    for (std::size_t index = 0; index < count; ++index)
+    {
+        const std::span<std::byte> record = std::span(bytes).subspan(index * Size, Size);
+        record[at] = other;
+        for (const std::size_t chosen : named)
+        {
+            if (chosen != index)
+                continue;
+            for (std::size_t i = 0; i < name.size(); ++i)
+                record[i] = static_cast<std::byte>(name[i]);
+            record[at] = flag;
+        }
+        Client::Core::Xor3(record);
+    }
+    return Client::Data::Tables::RecordTable<Size>(bytes);
+}
 
 TEST_F(Commands, AnythingElseIsNotACommand)
 {
@@ -153,6 +189,24 @@ TEST_F(Commands, AnEmoteIsCut)
     EXPECT_FALSE(Client::UI::CheckTheEmotes(texts, "#e783").HasValue());
 }
 
+// 0x576894..0x576952: "/" y el nombre de un ítem (con +0x24) apaga el cartel del conjunto, abre la ayuda del ítem (el
+// modo 3 con el ítem en 0x77f3b0c), suena y no manda nada.
+TEST_F(Commands, AnItemNameOpensItsHelp)
+{
+    constexpr std::array<std::size_t, 1> Named{7};
+    const auto table =
+        TableWith<Client::Data::Tables::ItemRecordSize>(16, Named, "Espadin", 0x24, std::byte{1}, std::byte{0});
+    items = &table;
+    setLabel = 4;
+    const auto outcome = Client::UI::RunTheChatCommand(Context(), "/Espadin", false);
+    ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
+    EXPECT_TRUE(outcome.Value().handled);
+    EXPECT_TRUE(outcome.Value().sound);
+    EXPECT_EQ(overlayMode, Client::UI::ItemHelpMode);
+    EXPECT_EQ(helpItem, 7);
+    EXPECT_EQ(setLabel, 0);
+}
+
 // 0x40ebd0: "/" y el nombre de un conjunto usado prende su cartel (+0x9305 en su índice + 1) y pone 0x77f3b08 en 0;
 // otro texto con "/" lo apaga si hay algún conjunto usado, y uno sin "/" no lo toca. Nunca es un comando (0x576912).
 TEST(SetCommands, TheNameOfASetShowsItsLabel)
@@ -170,6 +224,7 @@ TEST(SetCommands, TheNameOfASetShowsItsLabel)
     ChatLogState log;
     std::array<std::string, MacroCount> macros{};
     std::int32_t overlayMode = 3;
+    std::int32_t helpItem = 0;
     std::uint8_t label = 9;
     const ChatCommandContext context{.texts = texts,
                                      .items = nullptr,
@@ -180,10 +235,12 @@ TEST(SetCommands, TheNameOfASetShowsItsLabel)
                                      .log = log,
                                      .macros = macros,
                                      .overlayMode = overlayMode,
+                                     .helpItem = helpItem,
                                      .setLabel = &label};
     const auto shown = Client::UI::RunTheChatCommand(context, "/Delta", false);
     ASSERT_TRUE(shown.HasValue()) << shown.Error();
     EXPECT_FALSE(shown.Value().handled);
+    EXPECT_FALSE(shown.Value().sound);
     EXPECT_EQ(label, 3);
     EXPECT_EQ(overlayMode, 0);
 

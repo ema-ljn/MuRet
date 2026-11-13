@@ -4,6 +4,7 @@
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
 #include "UI/Button.h"
+#include "UI/NewUi.h"
 #include "UI/Widget.h"
 
 #include <cstdint>
@@ -42,18 +43,21 @@ enum class MenuBarClick : std::uint8_t
     Credit,
 };
 
-class MenuBar
+class MenuBar final : public NewUiWindow
 {
 public:
     explicit MenuBar(TextureSizes sizes);
 
     // 0x65f690: abre la barra. Una que ya está abierta queda como estaba.
     void Open();
-    void Close();
-    [[nodiscard]] bool IsOpen() const;
+    void Close() override;
+    [[nodiscard]] bool IsOpen() const override;
+    // La ventana de W − 60 × 30 (`bar` de LayoutMenuBar).
+    [[nodiscard]] Rect Bounds(App::PixelSize screen) const override;
 
-    // 0x63c490 en los dos botones y 0x6411b0: el botón que tuvo un clic, el menú primero.
-    std::optional<MenuBarClick> Step(const Input::InputState& input, App::PixelSize screen);
+    // 0x63c490 en los dos botones y, con el foco, 0x6411b0: el botón que tuvo un clic, el menú
+    // primero.
+    std::optional<MenuBarClick> Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn = {});
     // 0x641440 con la mezcla normal (Q-C80): el adorno y después los dos botones, sin rótulo.
     void Draw(Render::SpriteBatch& sprites, App::PixelSize screen);
 

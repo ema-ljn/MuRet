@@ -29,6 +29,7 @@
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
+#include "Protocol/OptionData.h"
 #include "Protocol/World.h"
 #include "Protocol/Character/CharacterCreate.h"
 #include "Protocol/Character/CharacterDelete.h"
@@ -1452,6 +1453,34 @@ TEST(ServerSessionTest, ChoosingOutOfTurnIsIgnored)
     EXPECT_TRUE(SameBytes(tested.socket.sent, sent));
     EXPECT_EQ(tested.Warnings(), (Lines{"[warning] se ignora la elección de un servidor: la sesión no la espera",
                                         "[warning] se ignora la elección de un servidor: la sesión no la espera"}));
+}
+
+// Los créditos (0x641203 y 0x63f9a0): C1 04 F4 06 en claro por el socket abierto, sin cambiar de estado; cada
+// cierre manda otro.
+TEST(ServerSessionTest, TheCreditsSendF406)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
+    tested.socket.reads = {ServerList({401, 400})};
+    static_cast<void>(tested.session.Poll());
+
+    tested.session.SendCreditsNotice();
+    tested.session.SendCreditsNotice();
+
+    EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
+    EXPECT_TRUE(SameBytes(tested.socket.sent, Join({PetInfoRequest(), ListRequest(), Bytes({0xC1, 0x04, 0xF4, 0x06}),
+                                                    Bytes({0xC1, 0x04, 0xF4, 0x06})})));
+}
+
+// Sin un socket abierto, nada: el original no manda con el socket en −1.
+TEST(ServerSessionTest, TheCreditsNeedAnOpenSocket)
+{
+    Harness tested(IdentityObfuscation::Shared());
+
+    tested.session.SendCreditsNotice();
+
+    EXPECT_TRUE(tested.socket.sent.empty());
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "no se manda el F4 06 de los créditos"));
 }
 
 // La dirección del F4 03: la sesión la guarda, cierra el CS y conecta al GS, sin avisos.
@@ -4421,6 +4450,48 @@ TEST(ServerSessionTest, FacingUsesTheWorldConnectionAndXorDelivery)
     const auto received = tested.GameServerReads();
     ASSERT_EQ(received.packets.size(), before + 1);
     EXPECT_TRUE(SameBytes(Xor32Decode(received.packets.back()).Bytes(), Bytes({0xc1, 5, 0x18, 0xf7, 0x7a})));
+    EXPECT_FALSE(received.packets.back().WasDecrypted());
+}
+
+// 0x61c210 manda el F3 30 en claro con el XOR32, por el GS: no pasa por el cifrado del C3.
+TEST(ServerSessionTest, OptionDataUsesTheWorldConnectionAndXorDelivery)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto before = tested.GameServerReads().packets.size();
+    Client::Protocol::OptionData::OptionBody body{};
+    body[0] = 0x21;
+    body[10] = 0x0a;
+    body[0x17] = 0x5c;
+    ASSERT_TRUE(tested.session.SendOptionData(body).HasValue());
+    const auto received = tested.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 1);
+    const auto decoded = Xor32Decode(received.packets.back());
+    const auto bytes = decoded.Bytes();
+    ASSERT_EQ(bytes.size(), 0x1cu);
+    EXPECT_TRUE(SameBytes(bytes.first(4), Bytes({0xc1, 0x1c, 0xf3, 0x30})));
+    EXPECT_EQ(bytes[4], std::byte{0x21});
+    EXPECT_EQ(bytes[14], std::byte{0x0a});
+    EXPECT_EQ(bytes[0x1b], std::byte{0x5c});
+    EXPECT_FALSE(received.packets.back().WasDecrypted());
+}
+
+// 0x6599a0(4) manda el C1 03 42 en claro, sin XOR32 ni cifrado, y solo con el socket abierto.
+TEST(ServerSessionTest, PartyListRequestGoesClearToTheGameServerOnly)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingServer());
+    const auto beforeChoosing = tested.socket.sent.size();
+    tested.session.RequestPartyList();
+    EXPECT_EQ(tested.socket.sent.size(), beforeChoosing);
+
+    Harness inWorld(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(inWorld.ReachLoggedIn());
+    const auto before = inWorld.GameServerReads().packets.size();
+    inWorld.session.RequestPartyList();
+    const auto received = inWorld.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 1);
+    EXPECT_TRUE(SameBytes(received.packets.back().Bytes(), Bytes({0xc1, 3, 0x42})));
     EXPECT_FALSE(received.packets.back().WasDecrypted());
 }
 

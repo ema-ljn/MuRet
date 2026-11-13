@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Data/Text/MoveRequirements.h"
 #include "GameLogic/MovementSpeed.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
@@ -11,11 +12,14 @@
 #include "Scenes/HudItems.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/TooltipLines.h"
+#include "Scenes/WorldTexts.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/Dialogs.h"
+#include "UI/GameDialogs.h"
 #include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
+#include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
 #include "UI/WhisperSenders.h"
@@ -32,6 +36,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
 
 // Los globales en claro que sobreviven a los cambios de escena: el mundo en curso, el estado compartido
 // de la velocidad y lo que hace falta para la espera de la entrada al mundo (06, "La entrada al mundo",
@@ -96,8 +101,18 @@ struct ChatRuntime
 // Los globales del HUD del juego (0x5a7320 y sus hijos, CL8 hito 2), en la .bss salvo los que dicen otra cosa.
 struct HudState
 {
-    // 0x78aba48: cuántos hay en la party. Lo escribe el paquete de la party (CL9.4).
+    // 0x78aba48: cuántos hay en la party. Lo pone en 0 abrir la ventana (0x659aa0) y lo escribe la lista (C1 42,
+    // 0x4d67e0, CL9.4).
     std::int32_t partyCount = 0;
+    // 0x78a7068 y 0x78a706c: la esquina de la ventana de la party, que pone su dibujo (0x5f0be0) con la ventana
+    // abierta, en (0x1c2, 0). La lee su paso (0x5e3c80), que antes del primer dibujo ve los ceros de la .bss (Q-C650).
+    std::int32_t partyX = 0;
+    std::int32_t partyY = 0;
+    // +0xc y +0x10 de [0x6e592c]: la esquina de la ventana de los comandos, que pone su dibujo (0x40a650) con la
+    // ventana abierta, en (0x1c2, 0). La lee su paso (0x40a450), que antes del primer dibujo ve los ceros del
+    // constructor (*inferido*, Q-C650).
+    std::int32_t commandsX = 0;
+    std::int32_t commandsY = 0;
     // 0x5767960: la vida del invocado, de 0 a 100. La escribe su paquete (CL9.2).
     std::int32_t summonLife = 0;
     // 0x77f3b74: el freno de las macros. Una que llega al freno lo deja en 0x64 (0x5a1ea1) y 0x637d44 lo baja de a
@@ -179,12 +194,23 @@ struct WorldRuntime
     // escena.
     UI::PanelState panels{};
     UI::DialogState dialogs{};
+    // 0x7d36a98, 0x7d368e4, 0x7d368b8 y 0x7d3a0f4..0x7d3a0f9: el texto y los botones de las cajas viejas (hito 6).
+    UI::DialogBoxState dialogBox{};
     UI::GameUiState ui{};
+    // *(0x5763514), el administrador de las ventanas viejas, y la lista de ventanas de [0x5763524] (hito 7): los arma
+    // WinMain y duran todo el juego.
+    UI::OldWindowManager oldWindows{};
     HudState hud{};
     ChatRuntime chat{};
     GameMovementState movement{};
     // Los cinco selectores del mouse arrancan en -1 en la .data.
     std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};
+    // 0x723c18: la cola de los textos 3D (WorldTexts.h). La llena 0x4381f0 desde el cuerpo de los personajes
+    // (0x4fd603, que MuRet corta: CL9.5) y la vacía su dibujo (0x4383f0) en cada frame del juego.
+    WorldTextQueue worldTexts{};
+    // 0x723c68 (+8, la lista; +0xc, la cuenta): los destinos de movereq.bmd que 0x448440 lee en la carga (0x61ccb0) y
+    // que la ventana /move recorre en su paso (0x448580) y en su dibujo (0x448fa0). main.cpp los copia de GameData.
+    std::vector<Data::Text::MoveRequirement> moves{};
     // 0x7879f80: el ítem del cursor, un ItemState de 0x48 bytes en la .bss. Lo dibuja 0x5f7b10 (CL8 hito 4).
     World::ItemState cursorItem{};
     // 0x7879fbc, el +0x3c (occupied) de cursorItem: mayor que 0 con un ítem en el cursor. MuRet lo guarda aparte, y

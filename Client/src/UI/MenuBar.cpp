@@ -5,6 +5,7 @@
 #include "Render/SpriteBatch.h"
 #include "Render/TextureSlot.h"
 #include "UI/Button.h"
+#include "UI/NewUi.h"
 #include "UI/Widget.h"
 
 #include <bit>
@@ -84,16 +85,25 @@ bool MenuBar::IsOpen() const
     return m_open;
 }
 
-std::optional<MenuBarClick> MenuBar::Step(const Input::InputState& input, App::PixelSize screen)
+Rect MenuBar::Bounds(App::PixelSize screen) const
+{
+    return LayoutMenuBar(screen).bar;
+}
+
+std::optional<MenuBarClick> MenuBar::Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn)
 {
     if (!m_open)
     {
         return std::nullopt;
     }
     Place(screen);
-    const Point mouse = MouseInPixels(input, screen);
+    const std::optional<Point> mouse = MouseOfTheTurn(turn, input, screen);
     const bool menu = m_menu.Step(input, mouse);
     const bool credit = m_credit.Step(input, mouse);
+    if (!turn.logic)
+    {
+        return std::nullopt;
+    }
     if (menu)
     {
         return MenuBarClick::Menu;

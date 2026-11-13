@@ -68,6 +68,8 @@ constexpr int Own = OwnRecordCloseRandoms;
 constexpr int WindowDraws = 3 * Own + 5;
 // El HUD sin ventanas, como en GameHudTest.
 constexpr int HudBaseDraws = 19 * Own + 2 * SmallLogicalCloseRandoms + 9;
+// El ancho del mundo (0x5bb8d0) con el inventario abierto: las consultas de la tienda y del comercio.
+constexpr int WorldWidthDraws = 2;
 constexpr std::uint16_t DigitSlot = 1;
 
 CrtRandom Advanced(CrtRandom random, int count)
@@ -646,7 +648,8 @@ TEST_F(GameInventoryHudTest, TheCursorItemSpendsTheRandomsOfItsModel)
 
 // El HUD entero con el inventario abierto, en Lorencia y en Devias: el estado base más la ventana, el cierre del
 // registro alrededor del equipo de 0x5e2fc0 y las dos consultas que el ancho del mundo (0x5bb8d0) hace con el
-// inventario abierto (la tienda y el comercio) en los avisos de durabilidad.
+// inventario abierto (la tienda y el comercio), en los avisos de durabilidad y en la party cerrada (0x5f0be0, que con
+// su IsOpen(4) en 0 salta a 0x5f12d0 y lo llama).
 TEST_F(GameInventoryHudTest, TheHudWithTheInventoryOpenSpendsItsRandomsInLorenciaAndDevias)
 {
     for (const std::int32_t map : {0, 2})
@@ -655,7 +658,7 @@ TEST_F(GameInventoryHudTest, TheHudWithTheInventoryOpenSpendsItsRandomsInLorenci
         world.Runtime().map = map;
         random = CrtRandom{Seed};
         sprites.Begin(Screen640);
-        const CrtRandom expected = Advanced(random, HudBaseDraws + WindowDraws + Own + 2);
+        const CrtRandom expected = Advanced(random, HudBaseDraws + WindowDraws + Own + 2 * WorldWidthDraws);
 
         GameHudContext context = Context();
         const auto drawn = Client::Scenes::DrawTheHud(context);
@@ -762,7 +765,7 @@ TEST_F(GameInventoryHudTest, TheHudDrawsTheUiItemsBetweenItsTwoDimensionalParts)
         world.Runtime().map = map;
         random = CrtRandom{Seed};
         sprites.Begin(Screen640);
-        const CrtRandom expected = Advanced(random, HudBaseDraws + WindowDraws + Own + 2 + 1);
+        const CrtRandom expected = Advanced(random, HudBaseDraws + WindowDraws + Own + 2 * WorldWidthDraws + 1);
         models.Begin(Client::Render::Pass3D{});
         events.clear();
         Client::Scenes::UiItemResources resources = UiItems(Screen640);

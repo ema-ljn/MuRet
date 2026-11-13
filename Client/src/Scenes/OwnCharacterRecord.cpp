@@ -86,4 +86,15 @@ void OwnCharacterRecord::ClearEquipmentForInventory()
         item.flags1b = 0;
     }
 }
+
+std::uint8_t OwnSkillByte(const OwnCharacterRecord& own, std::size_t index)
+{
+    constexpr std::size_t BytesPerWord = 4;
+    constexpr std::uint32_t BitsPerByte = 8;
+    if (index >= own.words6c.size() * BytesPerWord)
+        return 0;
+    const std::uint32_t word = own.words6c[index / BytesPerWord];
+    return static_cast<std::uint8_t>((word >> (static_cast<std::uint32_t>(index % BytesPerWord) * BitsPerByte)) &
+                                     0xffu);
+}
 } // namespace Client::Scenes

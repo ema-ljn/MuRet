@@ -42,6 +42,17 @@ TEST(GameTextTest, TheUnsignedMarkTakesAnArgument)
     EXPECT_EQ(PlaceArguments("Exp : %u/%u", Two), "Exp : 1/2");
 }
 
+// La cuenta del 380 (0x647ef0), "...en% d segundos.": con la bandera del espacio, un número sin
+// signo va con un espacio adelante, y uno negativo con su signo. Texto inventado.
+TEST(GameTextTest, TheSpaceFlagPadsAnUnsignedNumber)
+{
+    constexpr std::array<std::string_view, 1> Five{"5"};
+    constexpr std::array<std::string_view, 1> MinusOne{"-1"};
+
+    EXPECT_EQ(PlaceArguments("faltan% d pasos", Five), "faltan 5 pasos");
+    EXPECT_EQ(PlaceArguments("faltan% d pasos", MinusOne), "faltan-1 pasos");
+}
+
 // Lo que no es "%s", "%d" ni "%u" queda: el texto no es un formato, y un "%n" no escribe nada.
 TEST(GameTextTest, TheTextIsNotAFormat)
 {

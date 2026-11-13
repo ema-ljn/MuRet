@@ -14,6 +14,7 @@
 #include "Scenes/ITextDrawer.h"
 #include "UI/Button.h"
 #include "UI/GameText.h"
+#include "UI/NewUi.h"
 #include "UI/Widget.h"
 
 #include <bit>
@@ -114,14 +115,43 @@ void SelectionBar::Enable(bool aFreeSlot, bool aChosenOne)
     m_delete.SetEnabled(aChosenOne);
 }
 
-std::optional<SelectionBarClick> SelectionBar::Step(const Input::InputState& input, App::PixelSize screen)
+void SelectionBar::Open()
 {
+    m_open = true;
+}
+
+void SelectionBar::Close()
+{
+    m_open = false;
+}
+
+bool SelectionBar::IsOpen() const
+{
+    return m_open;
+}
+
+Rect SelectionBar::Bounds(App::PixelSize screen) const
+{
+    return LayoutSelectionBar(screen).bar;
+}
+
+std::optional<SelectionBarClick> SelectionBar::Step(const Input::InputState& input, App::PixelSize screen,
+                                                    NewUiTurn turn)
+{
+    if (!m_open)
+    {
+        return std::nullopt;
+    }
     Place(screen);
-    const Point mouse = MouseInPixels(input, screen);
+    const std::optional<Point> mouse = MouseOfTheTurn(turn, input, screen);
     const bool create = m_create.Step(input, mouse);
     const bool menu = m_menu.Step(input, mouse);
     const bool connect = m_connect.Step(input, mouse);
     const bool remove = m_delete.Step(input, mouse);
+    if (!turn.logic)
+    {
+        return std::nullopt;
+    }
     if (connect)
     {
         return SelectionBarClick::Connect;
@@ -141,24 +171,13 @@ std::optional<SelectionBarClick> SelectionBar::Step(const Input::InputState& inp
     return std::nullopt;
 }
 
-void SelectionBar::StepWithoutTheMouse(const Input::InputState& input)
-{
-    // Un punto que no está en ningún botón: sin encima ni clic, y la captura se suelta con el botón.
-    constexpr Point Nowhere{-1, -1};
-    for (Button* button : {&m_create, &m_menu, &m_connect, &m_delete})
-    {
-        static_cast<void>(button->Step(input, Nowhere));
-    }
-}
-
-bool SelectionBar::Covers(Point mouse, App::PixelSize screen) const
-{
-    return LayoutSelectionBar(screen).bar.Contains(mouse);
-}
-
 void SelectionBar::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen,
                         std::string_view serverNotice)
 {
+    if (!m_open)
+    {
+        return;
+    }
     Place(screen);
     sprites.SetBlend(Render::BlendMode::Alpha);
     sprites.Image(PixelImage(DecoSlot, m_layout.deco, m_sizes(DecoSlot)));

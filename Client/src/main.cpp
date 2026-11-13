@@ -25,6 +25,7 @@
 #include "Core/TeeSink.h"
 #include "Data/Tables/ItemTable.h"
 #include "Input/InputState.h"
+#include "Input/Key.h"
 #include "Network/Connection.h"
 #include "Network/FoxAntiObfuscation.h"
 #include "Network/IObfuscation.h"
@@ -35,6 +36,7 @@
 #include "Platform/BasePath.h"
 #include "Platform/DisplayModes.h"
 #include "Platform/GlLoader.h"
+#include "Platform/LocalTime.h"
 #include "Platform/SdlClock.h"
 #include "Platform/SdlContext.h"
 #include "Platform/SdlLog.h"
@@ -44,6 +46,7 @@
 #include "Platform/WindowEvents.h"
 #include "Protocol/Connection/MainCheck.h"
 #include "Render/Gl/GlFrameTarget.h"
+#include "Render/Gl/GlScreenReader.h"
 #include "Render/Gl/TextureTable.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Animation.h"
@@ -59,11 +62,13 @@
 #include "Scenes/LoadingScene.h"
 #include "Scenes/LoginScene.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneManager.h"
 #include "Scenes/SceneText.h"
 #include "Scenes/SceneTransitions.h"
+#include "Scenes/Screenshots.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/SessionEventApplier.h"
 #include "Scenes/Slides.h"
@@ -73,6 +78,7 @@
 #include "Scenes/WorldLoadingScene.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/GameUiState.h"
 #include "UI/SlideBanner.h"
 #include "World/GameCamera.h"
 
@@ -649,6 +655,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     Scenes::WorldState world;
     // 0x61ee30 → 0x61c1c0: las macros de Data\Macro.txt, que GameData leyó detrás de Text.bmd, en 0x77f1db0.
     world.Runtime().chat.input.macros = scenes.data.macros;
+    // 0x61ec8f: 0x448440 deja los destinos de movereq.bmd en la lista de 0x723c68, que dura hasta el cierre.
+    world.Runtime().moves = scenes.data.moves;
     // 0x61ed18: 0x46b3b0 deja Slide.bmd en el cartel de [0x5763528], que dura hasta el cierre.
     if (scenes.data.slides)
     {
@@ -739,9 +747,20 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // timeGetTime.
     Scenes::WinMainCounters winMain;
     Client::Render::Models::OriginalFrameCarry winMainFrameCarry;
-    const auto afterSceneFrame =
-        [&winMain, &winMainFrameCarry, &clothWorld, &startup, &world, &sceneManager](Core::Duration now)
+    // Mientras conecta, el original no corre ningún frame: el connect bloquea (Q-C85).
+    const auto connecting = [session]
     {
+        return session != nullptr && (session->State() == App::SessionState::ConnectingConnectServer ||
+                                      session->State() == App::SessionState::ConnectingGameServer);
+    };
+    // La captura de pantalla de Impr Pant (0x637700 en todas las escenas): sus globales y la lectura de GL.
+    Scenes::Screenshots screenshots;
+    Client::Render::Gl::GlScreenReader screenReader(window.Gl());
+    const auto afterSceneFrame = [&winMain, &winMainFrameCarry, &clothWorld, &startup, &world, &sceneManager,
+                                  &screenshots, &connecting](Core::Duration now)
+    {
+        // 0x63b0b7: la cola de 0x63945d apaga el Enter de los diálogos (0x5763588).
+        world.Runtime().ui.enterPressed = false;
         const int frames = winMainFrameCarry.FramesAt(now, Scenes::OriginalFramePaceOf(startup.config.pacing));
         const auto systemTime =
             static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(now).count());
@@ -752,20 +771,49 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
             Scenes::RunTheSlideTimer(world, clothWorld.random, systemTime, gameScene);
             Scenes::StepTheWinMainLoop(winMain, clothWorld.random);
         }
+        // Un frame retenido con la captura pedida corta en el paso o el dibujo que siguen (P-C110).
+        screenshots.FinishTheLoop(connecting());
     };
-    // 0x637cf3 y 0x637cf8: los relojes de los mensajes, detrás del paso de cualquier escena. Mientras conecta, el
-    // original no corre ningún paso (el connect bloquea, Q-C85).
-    const auto afterSceneStep = [&world, &frame, &window, session]() -> Core::Expected<void, std::string>
+    // 0x637cf3 y 0x637cf8: los relojes de los mensajes, y 0x637cfd: Impr Pant, detrás del paso de cualquier escena.
+    // Mientras conecta, el original no corre ningún paso.
+    const auto afterSceneStep = [&world, &frame, &window, &input, &screenshots,
+                                 &connecting]() -> Core::Expected<void, std::string>
     {
-        if (session != nullptr && (session->State() == App::SessionState::ConnectingConnectServer ||
-                                   session->State() == App::SessionState::ConnectingGameServer))
+        if (connecting())
         {
             return {};
         }
-        return Scenes::StepTheMessageClocks(world.Runtime(), frame.Value()->TextMeasure(), window.PixelSize());
+        if (auto clocks =
+                Scenes::StepTheMessageClocks(world.Runtime(), frame.Value()->TextMeasure(), window.PixelSize());
+            !clocks.HasValue())
+        {
+            return clocks;
+        }
+        return screenshots.StepTheKey(world.Runtime().ui, input);
     };
+    // 0x6381bb..0x63835a y 0x638586..0x6385da: la captura alrededor del dibujo de la escena. Shift es el
+    // GetAsyncKeyState(0x10) de 0x638303, la hora la de GetLocalTime y el archivo va a la carpeta de trabajo, como el
+    // nombre solo del fopen de 0x63b150.
+    const auto screenshotFrame = [&world, &frame, &window, &input, &scenes, session]
+    {
+        return Scenes::ScreenshotFrameContext{.world = world,
+                                              .measure = frame.Value()->TextMeasure(),
+                                              .screen = window.PixelSize(),
+                                              .shiftDown = input.IsDown(Client::Input::Key::Shift),
+                                              .localTime = Platform::ReadLocalTime,
+                                              .texts = scenes.data.text ? &*scenes.data.text : nullptr,
+                                              .chosenServer =
+                                                  session != nullptr ? session->ChosenServer() : std::nullopt,
+                                              .folder = {}};
+    };
+    const auto beforeSceneDraw = [&screenshots, &screenshotFrame]() -> Core::Expected<void, std::string>
+    { return screenshots.BeforeTheDraw(screenshotFrame()); };
+    const auto afterSceneDraw = [&screenshots, &screenshotFrame,
+                                 &screenReader](Scenes::SceneCanvas& canvas) -> Core::Expected<void, std::string>
+    { return screenshots.AfterTheDraw(screenshotFrame(), canvas, screenReader); };
     Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, models, session), *frame.Value(), clock,
-                                 pollNetwork, log, takeSceneOrder, beforeSceneFrame, afterSceneFrame, afterSceneStep);
+                                 pollNetwork, log, takeSceneOrder, beforeSceneFrame, afterSceneFrame, afterSceneStep,
+                                 beforeSceneDraw, afterSceneDraw);
     sceneManager = &manager;
     // La primera vuelta de WinMain, antes del primer frame: la escena entra adentro de él (0x63945d).
     Scenes::StepTheWinMainLoop(winMain, clothWorld.random);

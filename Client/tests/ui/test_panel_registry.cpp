@@ -300,7 +300,7 @@ TEST(PanelRegistryTest, TheDarkLordsPetRequestIsACut)
 
 TEST(PanelRegistryTest, PanelsOfOtherWavesCutWhenTheyOpen)
 {
-    for (const PanelId id : {FriendsPanel, PartyPanel, QuestPanel, GuildPanel, CommandsPanel})
+    for (const PanelId id : {FriendsPanel, QuestPanel, GuildPanel})
     {
         Tested tested;
         const auto opened = tested.panels.Open(id);
@@ -351,6 +351,114 @@ TEST(PanelRegistryTest, AnErrorOfTheCharacterHookStopsBeforeTheSounds)
     ASSERT_FALSE(opened.HasValue());
     EXPECT_EQ(opened.Error(), "gancho");
     EXPECT_TRUE(tested.sounds.empty());
+}
+
+// 0x659a82..0x659c44: la party cierra lo demás menos los amigos, pone la cuenta en 0 y pide la lista (el gancho) antes
+// de prenderse, y suena. Los únicos rand() son los de las consultas del comercio y de la tienda, en CanOpen y en lo
+// que cierra.
+TEST(PanelRegistryTest, OpeningThePartyAsksForTheListBeforeItsByte)
+{
+    Tested tested;
+    tested.state.overlayMode = MoveOverlayMode;
+    std::vector<std::uint8_t> partyWhenAsked;
+    tested.context.partyOpened = [&tested, &partyWhenAsked]() { partyWhenAsked.push_back(tested.state.party); };
+    const auto opened = tested.panels.Open(PartyPanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+    EXPECT_EQ(partyWhenAsked, (std::vector<std::uint8_t>{0}));
+    EXPECT_EQ(tested.state.party, 1);
+    EXPECT_EQ(tested.state.overlayMode, 0) << "la ventana /move se cierra";
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x19, 0x1c}));
+    EXPECT_TRUE(tested.panels.IsOpen(PartyPanel));
+    EXPECT_EQ(tested.panels.WorldWidth(), OnePanelWorldWidth);
+
+    // Abierta, Open no hace nada: ni pide la lista ni suena.
+    tested.sounds.clear();
+    const auto again = tested.panels.Open(PartyPanel);
+    ASSERT_TRUE(again.HasValue());
+    EXPECT_FALSE(again.Value());
+    EXPECT_EQ(partyWhenAsked.size(), 1u);
+    EXPECT_TRUE(tested.sounds.empty());
+
+    // Close(4) va por CloseByMask y suena.
+    const auto closed = tested.panels.Close(PartyPanel);
+    ASSERT_TRUE(closed.HasValue());
+    EXPECT_TRUE(closed.Value());
+    EXPECT_EQ(tested.state.party, 0);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x19, 0x1c}));
+    EXPECT_EQ(DrawsSince(tested.random), 4) << "las consultas del comercio y de la tienda de CanOpen y de CloseByMask";
+}
+
+// Sin el cable (el gancho), abrir la party corta donde el original arma el C1 03 42, sin prenderla.
+TEST(PanelRegistryTest, OpeningThePartyWithoutTheListRequestCuts)
+{
+    Tested tested;
+    const auto opened = tested.panels.Open(PartyPanel);
+    ASSERT_FALSE(opened.HasValue());
+    EXPECT_NE(opened.Error().find("0x659aa0"), std::string::npos) << opened.Error();
+    EXPECT_EQ(tested.state.party, 0);
+    EXPECT_TRUE(tested.sounds.empty());
+}
+
+// 0x65a91c..0x65a934: los comandos prenden +4 de [0x6e592c]; en Chaos Castle CanOpen no los deja.
+TEST(PanelRegistryTest, OpeningTheCommandsSetsTheirByte)
+{
+    Tested tested;
+    tested.state.party = 1;
+    const auto opened = tested.panels.Open(CommandsPanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+    EXPECT_EQ(tested.state.delegated.commands, 1);
+    EXPECT_EQ(tested.state.party, 0) << "cierra lo demás";
+    EXPECT_TRUE(tested.panels.IsOpen(CommandsPanel));
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x19, 0x1c}));
+
+    Tested chaosCastle;
+    chaosCastle.context.map = 20;
+    const auto refused = chaosCastle.panels.Open(CommandsPanel);
+    ASSERT_TRUE(refused.HasValue());
+    EXPECT_FALSE(refused.Value());
+    EXPECT_EQ(chaosCastle.state.delegated.commands, 0);
+}
+
+// 0x65897a..0x658999: cerrar los comandos (por Close, Esc o CloseAll) deja el objeto como lo deja la entrada al juego.
+TEST(PanelRegistryTest, ClosingTheCommandsResetsTheirObject)
+{
+    const auto arrange = [](Tested& tested)
+    {
+        DelegatedPanels& delegated = tested.state.delegated;
+        delegated.commands = 1;
+        delegated.commandsWindow.target = 7;
+        delegated.commandsWindow.chosen = 4;
+        delegated.commandsWindow.states[4] = 0;
+        delegated.commandsWindow.states[11] = 0xfe;
+    };
+    const auto expectReset = [](const Tested& tested)
+    {
+        const DelegatedPanels& delegated = tested.state.delegated;
+        EXPECT_EQ(delegated.commands, 0);
+        EXPECT_EQ(delegated.commandsWindow.target, -1);
+        EXPECT_EQ(delegated.commandsWindow.chosen, -1);
+        for (const std::uint8_t state : delegated.commandsWindow.states)
+            EXPECT_EQ(state, CommandReady);
+    };
+    Tested closed;
+    arrange(closed);
+    ASSERT_TRUE(closed.panels.Close(CommandsPanel).HasValue());
+    expectReset(closed);
+    EXPECT_EQ(closed.sounds, (std::vector<std::int32_t>{0x19, 0x1c}));
+
+    Tested escaped;
+    arrange(escaped);
+    const auto key = escaped.panels.PanelKey(0x1b);
+    ASSERT_TRUE(key.HasValue());
+    EXPECT_TRUE(key.Value());
+    expectReset(escaped);
+
+    Tested all;
+    arrange(all);
+    ASSERT_TRUE(all.panels.CloseAll().HasValue());
+    expectReset(all);
 }
 
 TEST(PanelRegistryTest, CloseByMaskQueriesOnlyWhatIsInTheMask)

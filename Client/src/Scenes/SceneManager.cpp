@@ -32,10 +32,13 @@ SceneManager::SceneManager(SceneFactory factory, IFrameTarget& frame, Core::IClo
                            std::function<std::optional<SceneId>()> takeSceneOrder,
                            std::function<void(Core::Duration)> beforeSceneFrame,
                            std::function<void(Core::Duration)> afterSceneFrame,
-                           std::function<Core::Expected<void, std::string>()> afterSceneStep)
+                           std::function<Core::Expected<void, std::string>()> afterSceneStep,
+                           std::function<Core::Expected<void, std::string>()> beforeSceneDraw,
+                           std::function<Core::Expected<void, std::string>(SceneCanvas&)> afterSceneDraw)
     : m_factory(std::move(factory)), m_frame(frame), m_clock(clock), m_pollNetwork(std::move(pollNetwork)), m_log(log),
       m_takeSceneOrder(std::move(takeSceneOrder)), m_beforeSceneFrame(std::move(beforeSceneFrame)),
-      m_afterSceneFrame(std::move(afterSceneFrame)), m_afterSceneStep(std::move(afterSceneStep))
+      m_afterSceneFrame(std::move(afterSceneFrame)), m_afterSceneStep(std::move(afterSceneStep)),
+      m_beforeSceneDraw(std::move(beforeSceneDraw)), m_afterSceneDraw(std::move(afterSceneDraw))
 {
 }
 
@@ -141,9 +144,17 @@ void SceneManager::Render(float alpha)
     }
     // Lo que el dibujo lee al empezar (IScene::PrepareFrame), si nadie preguntó antes en este frame.
     PrepareFrame();
+    if (m_beforeSceneDraw && TakeTheDrawFailure(m_beforeSceneDraw()))
+    {
+        return;
+    }
     SceneCanvas& canvas = m_frame.BeginFrame(m_clock.Now());
     m_scene->Render(canvas, alpha);
     if (TakeTheSceneFailure("dibujar"))
+    {
+        return;
+    }
+    if (m_afterSceneDraw && TakeTheDrawFailure(m_afterSceneDraw(canvas)))
     {
         return;
     }
@@ -245,6 +256,17 @@ bool SceneManager::TakeTheSceneFailure(const char* where)
     }
     m_failure = std::move(failure);
     m_log.Error("no se pudo {} la escena {}: {}", where, Describe(*m_current), *m_failure);
+    return true;
+}
+
+bool SceneManager::TakeTheDrawFailure(const Core::Expected<void, std::string>& done)
+{
+    if (done.HasValue())
+    {
+        return false;
+    }
+    m_failure = done.Error();
+    m_log.Error("no se pudo terminar el dibujo de la escena {}: {}", Describe(*m_current), *m_failure);
     return true;
 }
 

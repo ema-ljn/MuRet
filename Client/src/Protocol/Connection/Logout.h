@@ -22,12 +22,18 @@ inline constexpr std::uint8_t LogoutQuitsTheGame = 0;
 // pide la lista (0x4c3626..0x4c390f); sin cifrar solo avisa con el F1 03 00 F1 (06, "La vuelta a la
 // selección").
 inline constexpr std::uint8_t LogoutReturnsToSelection = 1;
+// El que vuelve a la lista de servidores: lo pide el 1 de la ventana de Esc (0x647e28) y el GS lo
+// contesta con el mismo (Q-C79).
+inline constexpr std::uint8_t LogoutReturnsToServerList = 2;
 
 // La respuesta F1 02: C1 05 F1 02 y el resultado. El GS la manda como C3, y llega acá ya
 // descifrada como C1 (Q-C10). WrongPacket si no es un C1 F1 02, y TooShort si no trae el
 // resultado: el original lee pkt[4] igual, lo que haya en su buffer.
 [[nodiscard]] Core::Expected<std::uint8_t, ProtocolError> ReadLogoutResult(const Network::Packet& packet);
 
+// F1 02: C1 05 F1 02 y el tipo, con el XOR32 y para cifrar (0x647f60: lo arma con la clave de 0x648025 y
+// lo manda como C3). El GS contesta con la respuesta F1 02 del mismo tipo (CL8, hito 8).
+[[nodiscard]] Outgoing WriteLogoutRequest(std::uint8_t kind);
 // F1 03: C1 06 F1 03 00 F1, con el XOR32 y para cifrar. Lo manda el F1 02 con 1 o con 2 que llega sin
 // cifrar, en vez de cambiar de escena (0x4c2f64..0x4c35dd con 1, 0x4c2787..0x4c2ef2 con 2; estático):
 // la misma forma que el aviso del F3 03 en claro, con el F1 del paquete en el último byte.

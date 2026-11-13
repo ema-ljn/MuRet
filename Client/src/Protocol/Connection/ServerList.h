@@ -23,6 +23,10 @@ namespace Client::Protocol::Connection
 // F4 02: C1 04 F4 02, en claro.
 [[nodiscard]] Outgoing WriteServerListRequest();
 
+// C1 04 F4 06, en claro, sin rand(): lo arman el botón de los créditos del login (0x641203) y su cierre
+// (0x63f9a0). Qué contesta el CS no está leído (08, P-C78).
+[[nodiscard]] Outgoing WriteCreditsNotice();
+
 // Una entrada de la lista.
 struct ServerEntry
 {

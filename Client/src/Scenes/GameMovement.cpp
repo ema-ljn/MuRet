@@ -620,7 +620,8 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
                                                    .worldTime = context.input.worldTime,
                                                    .controlDown = context.input.controlDown,
                                                    .pickTerrainPoint = context.pickTerrainPoint,
-                                                   .send = context.sendSkill});
+                                                   .send = context.sendSkill,
+                                                   .playerKey = context.playerKey});
         !used.HasValue())
         return used;
     PublishHeroLayer(hero, runtime, context.world.Map().terrain);

@@ -188,6 +188,16 @@ Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key)
                            .PutU8(static_cast<std::uint8_t>(key & 0xffu)));
 }
 
+Outgoing WriteTeleportMagic(std::uint8_t x, std::uint8_t y)
+{
+    return EncryptedC1(Network::PacketWriter::C1(TeleportMagicOpcode).PutU8(0).PutU8(x).PutU8(y));
+}
+
+Outgoing WriteTargetTeleport(std::uint16_t key, std::uint8_t x, std::uint8_t y)
+{
+    return EncryptedC1(Network::PacketWriter::C1(TargetTeleportOpcode).PutU16Le(key).PutU8(x).PutU8(y));
+}
+
 Outgoing WriteDurationMagic(const DurationMagicSend& send)
 {
     return EncryptedC1(Network::PacketWriter::C1(DurationMagicOpcode)
@@ -199,6 +209,6 @@ Outgoing WriteDurationMagic(const DurationMagicSend& send)
                            .PutU8(send.back)
                            .PutU8(static_cast<std::uint8_t>(send.key >> 8))
                            .PutU8(static_cast<std::uint8_t>(send.key & 0xffu))
-                           .PutU8(0));
+                           .PutU8(send.magicKey));
 }
 } // namespace Client::Protocol::Skill

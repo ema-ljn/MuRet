@@ -125,7 +125,10 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         return std::optional{m_picking.hit};
     };
     if (m_session)
+    {
         context.sendSkill = [session = m_session](Protocol::Outgoing packet) { session->SendChat(std::move(packet)); };
+        context.playerKey = m_session->PlayerIndex();
+    }
     context.texts = m_texts;
     const InventoryServices inventory = InventoryContext();
     context.inventory = &inventory;

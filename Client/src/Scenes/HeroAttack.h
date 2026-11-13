@@ -33,7 +33,8 @@ struct ActorState;
 // rand().
 [[nodiscard]] Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker,
                                                                     bool controlDown);
-// 0x558eb0(c, `chosen`): lo mismo con otro elegido, como lo llama el elfo con 0x7758588 (0x562a7f, 0x563ea3).
+// 0x558eb0(c, `chosen`): lo mismo con otro elegido, como lo llama el elfo con 0x7758588 (0x562a7f, 0x563ea3) y las
+// ramas del caballero (CL9 hito 4, fase 2c-C).
 [[nodiscard]] Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker,
                                                                     std::int32_t chosen, bool controlDown);
 

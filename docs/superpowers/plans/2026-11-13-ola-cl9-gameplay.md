@@ -324,6 +324,9 @@ el viewport. **Desbloquea:** 4 y 11.
       la cola del elfo de `0x561f60` (`0x562024`), en `Scenes/HeroSkillCasts`; cortan la poción (hito 5) y, todavía,
       la rama del elfo, `0x55faa0` y el caso 5 de `0x5650c0` (P-C269). En la fase 2c-A2, el brillo `0x5fe` de
       `0x55be23` en el pool de partículas (`0x542bff`, `0x546d54`, `0x53fdb0` y el billboard común).
+      En la fase 2c-B, la rama del Wizard (`0x5897aa..0x593874`, `Scenes/HeroSkillsWizard`) y `0x55cbc0`
+      (`Scenes/Skill55cbc0`), con el `1E`, el `1C` y el `B0`; cortan la party (hito 7), la poción y `0x5808da`
+      (08, P-C222).
 - [x] **Lo que llega:** el `0x19` (`0x4cc530`, 6,5 KB, con las acciones `0x94`, `0x51` y `0x5b` de
       `0x50f828`), el `0x1E` (`0x4ce000`), el `0x1B` (`0x4cbe90`), el `0x07` (los estados de un personaje,
       `GCSend_07` del GS: `0x4cbe00`, con `0x4e6910`), el `0x48`, el `0x69`, el `0x73` (`0x4d5b10`),

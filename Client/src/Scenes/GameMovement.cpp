@@ -609,13 +609,17 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
     if (input.Value() == MoveHeroEnd::Leave)
         return {};
     // 0x59e255: 0x57cfc0, usar la skill (CL9 hito 4).
-    if (auto used = UseTheHeroSkill(hero, HeroSkillContext{.world = context.world,
-                                                           .random = context.random,
-                                                           .skills = context.skills,
-                                                           .worldTime = context.input.worldTime,
-                                                           .controlDown = context.input.controlDown,
-                                                           .pickTerrainPoint = context.pickTerrainPoint,
-                                                           .send = context.sendSkill});
+    if (auto used =
+            UseTheHeroSkill(hero, HeroSkillContext{.world = context.world,
+                                                   .random = context.random,
+                                                   .skills = context.skills,
+                                                   .worldTime = context.input.worldTime,
+                                                   .controlDown = context.input.controlDown,
+                                                   .pickTerrainPoint = context.pickTerrainPoint,
+                                                   .send = context.sendSkill,
+                                                   .playerKey = context.playerKey,
+                                                   .tickCount = [ticks = context.input.ticksMs] { return ticks; },
+                                                   .playerSkeleton = context.playerSkeleton});
         !used.HasValue())
         return used;
     PublishHeroLayer(hero, runtime, context.world.Map().terrain);

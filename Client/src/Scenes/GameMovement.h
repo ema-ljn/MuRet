@@ -79,6 +79,8 @@ struct HeroMovementContext
     std::function<Core::Expected<std::optional<glm::vec3>, std::string>()> pickTerrainPoint{};
     // Lo que manda 0x57cfc0 (las skills, el cuervo y la poción de maná). Vacío, no sale.
     std::function<void(Protocol::Outgoing)> sendSkill{};
+    // La clave del jugador del F1 00 ([0x57678bc]), que las skills mandan en el C1 19 (CL9 hito 4, fase 2c).
+    std::uint16_t playerKey = 0;
 };
 [[nodiscard]] Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& context);
 } // namespace Client::Scenes

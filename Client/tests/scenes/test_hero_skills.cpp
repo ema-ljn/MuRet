@@ -10,6 +10,7 @@
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameMovementState.h"
@@ -20,6 +21,7 @@
 #include "UI/GameUiState.h"
 #include "World/ItemState.h"
 
+#include "support/PlayerActors.h"
 #include "support/TableFiles.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -37,7 +39,8 @@
 #include <vector>
 
 // La cabeza de 0x57cfc0 (CL9 hito 4, fase 2b; 06 § Usar una skill): el héroe en el lugar 0, un elegido en el 5 y un
-// Skill.bmd inventado. Las ramas de las clases todavía cortan con su dirección.
+// Skill.bmd inventado. La rama de las clases 1, 3 y 4 (HeroSkillsKnight, con sus tests) termina sin arma derecha con
+// las skills que no son de su lista; las otras ramas todavía cortan con su dirección.
 namespace
 {
 using Client::Render::Models::CrtRandom;
@@ -53,6 +56,9 @@ constexpr int HeadDraws = OwnDraws + EntryDraws;
 constexpr int PartyDraws = HeadDraws + EntryDraws;
 // Más las dos celdas lógicas (0x57d4d6, 0x57d4f4).
 constexpr int AimDraws = PartyDraws + 2 * CellDraws;
+// La rama de las clases 1, 3 y 4 (HeroSkillsKnight) sin arma derecha y con una skill fuera de su lista: el maná y la
+// stamina de 0x551c70 y el cierre del registro propio, abierto desde 0x581894.
+constexpr int KnightBranchDraws = EntryDraws + OwnDraws;
 constexpr std::size_t ChosenSlot = 5;
 
 CrtRandom Advanced(CrtRandom random, int count)
@@ -132,7 +138,12 @@ struct SkillHero
     }
     HeroSkillContext Context()
     {
-        return HeroSkillContext{.world = world, .random = random, .skills = &skills, .worldTime = worldTime};
+        return HeroSkillContext{.world = world,
+                                .random = random,
+                                .skills = &skills,
+                                .worldTime = worldTime,
+                                .tickCount = [] { return 10'000u; },
+                                .playerSkeleton = &skeleton};
     }
     Client::Core::Expected<void, std::string> Use()
     {
@@ -142,6 +153,7 @@ struct SkillHero
     Client::Scenes::WorldState world;
     CrtRandom random;
     float worldTime = 5000.0f;
+    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Data::Tables::SkillTable skills = SkillsWith({{0x11, 3},
                                                           {0x13, 4},
                                                           {0x16, 6},
@@ -539,6 +551,7 @@ TEST(HeroSkillsTest, TheWizardGoesStraightToItsBranch)
 
 // 0x57ce80 y 0x57d532..0x57d61b: el caballero apunta al elegido (su celda y su posición) y, por cada mano sin la opción
 // de la skill, pide la del arma con el lugar y el elegido; el registro abierto en cada mano cierra con 3.848 rand().
+// Sin arma derecha, la rama (0x581894) termina sin la 0x13; el Magic Gladiator sigue en la del Wizard (0x5897b7).
 TEST(HeroSkillsTest, AKnightAimsAtTheChosenAndAsksForTheWeaponSkill)
 {
     for (const std::uint8_t heroClass : {Knight, Gladiator, Lord})
@@ -548,10 +561,17 @@ TEST(HeroSkillsTest, AKnightAimsAtTheChosenAndAsksForTheWeaponSkill)
             SCOPED_TRACE(heroClass);
             SCOPED_TRACE(map);
             const auto tested = AHeroClicking(0x13, heroClass, map);
-            const CrtRandom expected = Advanced(tested->random, AimDraws + 2 * OwnDraws);
+            const CrtRandom expected = Advanced(tested->random, AimDraws + 2 * OwnDraws + KnightBranchDraws);
             const auto result = tested->Use();
-            ASSERT_FALSE(result.HasValue());
-            EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+            if (heroClass == Gladiator)
+            {
+                ASSERT_FALSE(result.HasValue());
+                EXPECT_TRUE(Contains(result.Error(), "0x5897b7")) << result.Error();
+            }
+            else
+            {
+                ASSERT_TRUE(result.HasValue()) << result.Error();
+            }
             EXPECT_EQ(tested->random.State(), expected.State());
             const auto& movement = tested->Movement();
             EXPECT_EQ(movement.targetX, 184u);
@@ -571,27 +591,27 @@ TEST(HeroSkillsTest, AKnightAimsAtTheChosenAndAsksForTheWeaponSkill)
 }
 
 // 0x57d564..0x57d57b: montado, la tabla 0x599d70 saltea las armas con las skills que no deja (la 0x30) y las mira con
-// las demás (la 0x2f).
+// las demás (la 0x2f). La 0x30 sigue sin arma derecha: la rama la paga (0x551c70, 0x552c50 y 0x551f40), saca los dos
+// rand() del C3 sin la sesión y hace la 0x3f.
 TEST(HeroSkillsTest, AMountedHeroSkipsTheWeaponsForSomeSkills)
 {
     {
         const auto tested = AHeroClicking(0x30, Knight);
         tested->Hero().pet.model = 0x1c14;
-        const CrtRandom expected = Advanced(tested->random, AimDraws);
+        const CrtRandom expected = Advanced(tested->random, AimDraws + 3 * EntryDraws + 2 + OwnDraws);
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(tested->random.State(), expected.State());
         EXPECT_EQ(tested->Movement().weaponSkill.active, 0u);
+        EXPECT_EQ(tested->Hero().animation.action, 0x3f);
     }
     {
         // 0x5599f2..0x559ad3: con la 0x2f montado y sin arma derecha, 0x559890 da 0 antes de las opciones.
         const auto tested = AHeroClicking(0x2f, Lord);
         tested->Hero().pet.model = 0x1c37;
-        const CrtRandom expected = Advanced(tested->random, AimDraws + 2 * OwnDraws);
+        const CrtRandom expected = Advanced(tested->random, AimDraws + 2 * OwnDraws + KnightBranchDraws);
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(tested->random.State(), expected.State());
         EXPECT_EQ(tested->Movement().weaponSkill.active, 1u);
     }
@@ -618,13 +638,13 @@ TEST(HeroSkillsTest, TheWeaponSkillsThatSendCut)
         EXPECT_TRUE(Contains(result.Error(), "0x559afc")) << result.Error();
     }
     {
-        // 0x559ad5..0x559afa: la 0x2b con un arma derecha de 0xc12 a 0xe11 da 0 y sigue a la rama.
+        // 0x559ad5..0x559afa: la 0x2b con un arma derecha de 0xc12 a 0xe11 da 0 y sigue a la rama, que con el escudo
+        // termina.
         const auto tested = AHeroClicking(0x13, Knight);
         tested->world.OwnCharacter().SetSkillAt(0, 0x2b);
         tested->Hero().hands[0].model = 0xd00;
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
     }
     {
         // 0x55a340..0x55a362: la segunda mano con la opción de la skill.
@@ -671,10 +691,9 @@ TEST(HeroSkillsTest, AWallBeforeTheTargetClearsTheWeaponSkill)
     const auto tested = AHeroClicking(0x13, Knight);
     tested->world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(183, 116)] = 4;
     tested->Movement().weaponSkill = {.active = 1, .slot = 3, .target = 7};
-    const CrtRandom expected = Advanced(tested->random, AimDraws);
+    const CrtRandom expected = Advanced(tested->random, AimDraws + KnightBranchDraws);
     const auto result = tested->Use();
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+    ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(tested->random.State(), expected.State());
     EXPECT_EQ(tested->Movement().weaponSkill.active, 0u);
     EXPECT_EQ(tested->Movement().weaponSkill.slot, 0u);
@@ -691,8 +710,7 @@ TEST(HeroSkillsTest, WithoutAChosenTheSkillAimsAtTheTerrain)
         context.pickTerrainPoint = []() -> Client::Core::Expected<std::optional<glm::vec3>, std::string>
         { return std::optional<glm::vec3>(glm::vec3(18399.0f, 11401.0f, 30.0f)); };
         const auto result = UseTheHeroSkill(tested->Hero(), context);
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(tested->Movement().targetX, 183u);
         EXPECT_EQ(tested->Movement().targetY, 114u);
         EXPECT_EQ(tested->Hero().attackPosition, glm::vec3(18399.0f, 11401.0f, 30.0f));
@@ -707,8 +725,7 @@ TEST(HeroSkillsTest, WithoutAChosenTheSkillAimsAtTheTerrain)
         context.pickTerrainPoint = []() -> Client::Core::Expected<std::optional<glm::vec3>, std::string>
         { return std::optional<glm::vec3>(); };
         const auto result = UseTheHeroSkill(tested->Hero(), context);
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(tested->Movement().targetX, 182u);
     }
     {
@@ -851,8 +868,7 @@ TEST(HeroSkillsTest, WithoutTheRavenOrTheButtonTheSkillGoesOn)
             raven.tested->Ui().rightDown = false;
         raven.tested->Ui().rightReleased = false;
         const auto result = raven.Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_TRUE(raven.sent.empty());
     }
 }

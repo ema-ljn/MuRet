@@ -17,9 +17,9 @@ struct GameUiContext;
 // 0x40a450, desde 0x5ee140 con ECX = [0x6e592c]: con +4 en 1, el mouse sobre la ventana (de la esquina que dejó el
 // dibujo, 0xbe × 0x1b1) es de la UI (0x775857c); 0x406050 pone los doce estados en 1 y, con un comando elegido y un
 // personaje elegido, lee las cuatro celdas, elige el destino y los estados del comando y, con el clic derecho, lo corre
-// (con Text.bmd y el cable de `chat`; sin ellos, el comando corta); el clic sobre los botones del 1 al 11 (108 × 20, de 28 en 28, sin los bordes) lo gasta,
-// suelta el botón (0x7d36874) y elige el comando (+0x20); el clic en el botón de cerrar la cierra sin Close: los dos
-// sonidos, 0x77f3b10 en 0, 0x6c8dcc en 6 y ResetTheCommands. No saca rand().
+// (con Text.bmd y el cable de `chat`; sin ellos, el comando corta); el clic sobre los botones del 1 al 11 (108 × 20, de
+// 28 en 28, sin los bordes) lo gasta, suelta el botón (0x7d36874) y elige el comando (+0x20); el clic en el botón de
+// cerrar la cierra sin Close: los dos sonidos, 0x77f3b10 en 0, 0x6c8dcc en 6 y ResetTheCommands. No saca rand().
 [[nodiscard]] Core::Expected<void, std::string> StepTheCommandsWindow(const GameUiContext& context);
 
 // 0x40a650, desde 0x5f7440 (0x5f75fa): con +4 en 1, la esquina en (0x1c2, 0), el fondo (0x5ee220), el título (texto

@@ -361,10 +361,11 @@ byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada v
         `0x5eb020`), `/personalshop` (`0x5766ce`), el `28` desde el `0x4c` y las ramas de la tienda de `0x5be150`.
   - [x] Fase 5 (2026-11-13): el paso de la ventana (`0x5ea290`, `0x5e4ee2`, la grilla `0x5e58ea`), la caja `0x9c`
         (`0x4716e0`, `0x471930` y `0x623750`), `0x5c5110`, `0x5c5242`, `0x5dec19` (`0x5d5046`), `0x5cc2cf` y las
-        respuestas de `0x5d8d50` con el precio (`0x5dea3f`); 07 Q-C965 y Q-C966 (08 P-C208 b, P-C313).
+        respuestas de `0x5d8d50` con el precio (`0x5dea3f`), y `/purchase` (`0x574bd6`); 07 Q-C965, Q-C966 y Q-C967
+        (08 P-C208 b, P-C313).
   - [ ] El dibujo de las ventanas (`0x5f3030`, `0x5f7821`, `0x5f7af9`, `0x6304e1` y el precio de la ayuda
-        `0x5b2f53`), `/purchase` (`0x574bd6`), el paso del `0x91` (`0x6260f6`, con el EDIT del hito 6, 08 P-C312) y
-        el dibujo de los carteles (08 P-C208).
+        `0x5b2f53`), el paso del `0x91` (`0x6260f6`, con el EDIT del hito 6, 08 P-C312) y el dibujo de los carteles
+        (08 P-C208).
 - [ ] **La party:** `0x40`..`0x44` (`0x4d67e0`), la vida de la party (`0x5a89b0`), la ventana `0x5f0be0`,
       echar a alguien (`0x5e3d03`, `C1 04 43`), la cantidad del grupo (`0x78aba48`, que lee el dibujo en
       `0x59e680`).

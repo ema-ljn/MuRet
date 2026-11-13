@@ -960,7 +960,8 @@ clave es el primero vivo de los 400 con ella (`0x5110d0`, que da 400 sin ninguno
 | `13` | `C2 <tamaño:2> 3F 13 <resultado> <?:0x30> <n> n × (<lugar> <ítem:7> <precio:4 LE>)` | `0x4dbb40` | con 1 y `0x6c931c` en 2: la grilla de la tienda vacía, el mapa `0x7245e0` vacío y cada entrada en su lugar con su precio, sin mirar el precio; si no, el log `0x6c85b0` (fase 4) |
 
 Del cliente: el `3F 05` (`C1 10 3F 05 <clave BE> <nombre:10>`, C3), el comando 2 de la ventana de comandos sobre el
-elegido (`0x406b02`, 06 § "El comando sobre el elegido"; `Protocol::PersonalShop::WriteShopItemsRequest`); el `3F 07`
+elegido (`0x406b02`, 06 § "El comando sobre el elegido"; `Protocol::PersonalShop::WriteShopItemsRequest`) y `/purchase`
+(`0x574ceb..`, `0x575570..` y `0x575e90..`, 06 § Las tiendas personales; `Scenes::RequestTheShopItems`); el `3F 07`
 (`C1 10 3F 07 <clave BE> <nombre:10>`, C3), que manda `0x5eb020` al cerrar la tienda de otro con la clave del dueño
 (`0x78a6514`) distinta de 0 (`WriteViewClosed`); y el `C1 04 F3 10` en C3 (`WriteInventoryRequest`), que mandan el `01`
 de arriba y abrir una tienda (`0x65ac87` y `0x65b359`) con `0x6c931c` distinto de −1. Los de la ventana propia (fase 5,
@@ -982,7 +983,7 @@ que el paquete los traiga) y los aplica en `Scenes::SocialEvents` (`ApplyShopTit
 botones están en `Scenes::GameSocialSteps` (comercio y duelo), `GamePartyWindow` (echar) y `GameDialogSteps` (sí y no
 de `0x77` y `0x78`); `/trade`, `/duelstart` y `/duelend`, en `UI::ChatCommands`, hasta donde necesitan un
 personaje elegido. La entrada a la selección porta la cola de `0x5bbe10` (`Scenes::ClearTheTradeForSelection`). Lo
-que queda de las tiendas personales (su dibujo, `/purchase` y los carteles) lo dice 08 P-C208; levantar y soltar en
+que queda de las tiendas personales (su dibujo y los carteles) lo dice 08 P-C208; levantar y soltar en
 las grillas del comercio está portado (06
 § Lo social en pantalla, "Las grillas del comercio"), con el clic derecho sobre la propia (fase 5, 08 P-C235). Los tests (`TradePartyDuelTest`, `SocialEventsTest`, `GameSocialStepsTest` y los
 de los diálogos, la party, los comandos y el registro de las ventanas) usan nombres inventados.

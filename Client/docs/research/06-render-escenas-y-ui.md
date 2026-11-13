@@ -10274,6 +10274,18 @@ casillas de 8 columnas). `0x6c931c` dice cuál se mira (−1 en la `.data`, 1 la
   entrenador (`0x8000`) el 1121 y 0; si no, el nivel del registro propio (`+0xe`, con su acceso): desde 6,
   `Open(0x800)` y 1; si no, `sprintf` del 1123 con el 6 en los 0x30 bytes de `EBP − 0xf0` y 1, con el tipo 1. La S y el
   botón del pie del inventario (`0x5e545f..0x5e5717`) abren y cierran la propia.
+- `/purchase` (`0x574bd6..0x57694d`, el texto 1118 o el literal, con `strstr`: en cualquier lugar del texto; fase 5):
+  en Chaos Castle el aviso 1150 y 0. Con la tienda de NPC (`0x10000`), el almacén (`0x40`), el comercio (`0x20`), la
+  caja del caos (`0x100`) o el entrenador (`0x8000`) abiertos, en ese orden y hasta el primero (las de `0x10000` y `0x20`
+  con su `rand()`), el 1121 con el 1 y 0. Si no, `sscanf(texto, "%s %s", EBP − 0x108, EBP − 0xc0)` y: con el elegido
+  (`0x6c8e30`), si es un jugador (`+0x88` en 1), no es el héroe y es del tipo `0x20a` o tiene `+0x3e3`, el `3F 05` con
+  su clave y su nombre en C3, sin mirar si está vivo ni al lado; con o sin él, 1. Sin elegido, con el segundo buffer no
+  vacío, el `3F 05` a cada uno de los 400 vivo cuyo `+0x1d9` sea igual (`strcmp`), sin mirar el tipo ni si es el héroe,
+  y 1; vacío, al primero de los 400 vivo, jugador, que no sea el héroe y que mire al héroe (las direcciones de `+0x24`
+  a 4), sin mirar si está al lado, y 1. Sin una segunda palabra, `sscanf` no llena el segundo buffer y lo que leen
+  `strlen` y `strcmp` es la pila sin inicializar (07 Q-C967). MuRet: `UI::ChatCommands` (Chaos Castle y `sscanf`) y
+  `Scenes::RequestTheShopItems`; con el buffer sin llenar, el error. Tests: `PurchaseScansTheNameForTheRequest` y los
+  cuatro `Purchase...` de `SocialRequestsTest` (Lorencia y Devias).
 - Los `3F` `01`, `05`, `06` y `0x13` (04 § Las tiendas personales) llenan la grilla con `0x5bc740(0x78a9bb0, 8, 8,
   lugar, ítem, 0)` y los precios en `0x7245e0`. El `28` (`0x4c5ec0`) con un lugar desde el `0x4c`: con `0x6c931c` en 2,
   `0x5bd750` sobre la copia (`0x78a6768`, desde el lugar − 0x4c); si no, con el ítem del cursor levantado de esa casilla
@@ -10287,7 +10299,8 @@ casillas de 8 columnas). `0x6c931c` dice cuál se mira (−1 en la `.data`, 1 la
 y los cuatro `3F`), `UI::ChatCommands` (`/personalshop`) y `Scenes::InventoryMoves` (el `28` y las ramas de `0x5be150`,
 con `CursorGrid::OwnTrade` y `CursorGrid::PersonalShop`). Los mapas son `PersonalShopState::ownPrices` y
 `otherPrices`, con `pricesBuilt` por los punteros en 0. El paso de la ventana y lo de las grillas están en la fase 5
-(abajo); cortan con su dirección el dibujo (`0x5f3030`) y `/purchase` (`0x574bd6`), 08 P-C208. Tests:
+(abajo), como `/purchase` (`0x574bd6`, `Scenes::RequestTheShopItems`); corta con su dirección el dibujo
+(`0x5f3030`), 08 P-C208. Tests:
 `PersonalShopListsTest` (abrir la propia, el precio que falla, mirar la de otro, comprar, renovar y cerrar, byte a byte
 y con los `rand()` de las consultas de `0x20` y `0x10000` y de los C3; en Lorencia y Devias), `TheItemListsReadTheirEntries`
 y `PersonalShopNeedsTheLevel`.

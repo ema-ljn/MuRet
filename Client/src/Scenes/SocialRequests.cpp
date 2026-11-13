@@ -4,6 +4,7 @@
 #include "Protocol/Duel.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Party.h"
+#include "Protocol/PersonalShop.h"
 #include "Protocol/Trade.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
@@ -120,6 +121,15 @@ Core::Expected<UI::ChatCommandNotice, std::string> NamedNotice(const SocialReque
 UI::ChatCommandOutcome Handled(std::vector<UI::ChatCommandNotice> notices = {})
 {
     return UI::ChatCommandOutcome{.handled = true, .notices = std::move(notices)};
+}
+
+// 0x574ceb..0x57538b, 0x575570..0x575d96 y 0x575e90..0x576696: el C1 10 3F 05 con la clave (+0x1f4) y los diez bytes
+// del nombre (+0x1d9) del personaje, en C3.
+Core::Expected<void, std::string> SendTheShopRequest(const SocialRequestContext& context, std::size_t index,
+                                                     std::string_view where)
+{
+    const ActorState& actor = context.world.Actors()[index];
+    return SendInC3(context, Protocol::PersonalShop::WriteShopItemsRequest(actor.key, actor.name), where);
 }
 
 // El nombre de un lugar de 0x77f3cd0 o del héroe hasta su primer 0, para strcmp.
@@ -330,6 +340,60 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RequestAParty(const SocialRe
             return Core::Unexpected(faces.Error());
         if (faces.Value())
             return SendAPartyRequest(context, index, "0x570652");
+    }
+    return Handled();
+}
+Core::Expected<UI::ChatCommandOutcome, std::string> RequestTheShopItems(const SocialRequestContext& context,
+                                                                        std::optional<std::string_view> name)
+{
+    // 0x574c0c..0x574c78.
+    GamePanels panels(context.world, context.random);
+    UI::PanelRegistry& registry = panels.Registry();
+    if (registry.IsOpen(UI::NpcShopPanel) || registry.IsOpen(UI::WarehousePanel) || registry.IsOpen(UI::TradePanel) ||
+        registry.IsOpen(UI::ChaosBoxPanel) || registry.IsOpen(UI::TrainerPanel))
+        return UI::ChatCommandOutcome{.handled = false,
+                                      .notices = {{.text = UI::ShopTrainerText, .type = UI::SystemMessage}}};
+    // 0x574c97..0x574ce5: el elegido, sin mirar si está vivo ni al lado.
+    auto chosen = TheChosen(context.world, "0x574c97");
+    if (!chosen.HasValue())
+        return Core::Unexpected(chosen.Error());
+    if (const auto index = chosen.Value())
+    {
+        if (!CanBeAsked(context.world, *index))
+            return Handled();
+        if (auto sent = SendTheShopRequest(context, *index, "0x574ceb"); !sent.HasValue())
+            return Core::Unexpected(sent.Error());
+        return Handled();
+    }
+    if (!name)
+        return Core::Unexpected(std::string("0x575519: /purchase sin elegido ni segunda palabra: strlen lee el buffer "
+                                            "EBP − 0xc0, que sscanf no llenó (la pila sin inicializar, 07 Q-C967)"));
+    const auto actors = context.world.Actors();
+    if (!name->empty())
+    {
+        // 0x575529..0x575e77: a cada uno de los 400 vivo con ese nombre, uno por uno (07 Q-C967).
+        for (std::size_t index = 0; index < SearchedActors; ++index)
+        {
+            if (!actors[index].alive || ChatNameOf(actors[index]) != *name)
+                continue;
+            if (auto sent = SendTheShopRequest(context, index, "0x575570"); !sent.HasValue())
+                return Core::Unexpected(sent.Error());
+        }
+        return Handled();
+    }
+    // 0x575daf..0x575e66: el primero de los 400 vivo, alguien a quien pedirle y enfrente, sin mirar si está al lado.
+    for (std::size_t index = 0; index < SearchedActors; ++index)
+    {
+        if (!actors[index].alive || !CanBeAsked(context.world, index))
+            continue;
+        auto faces = FacesTheHero(context.world, index);
+        if (!faces.HasValue())
+            return Core::Unexpected(std::format("0x575dfe (/purchase): {}", faces.Error()));
+        if (!faces.Value())
+            continue;
+        if (auto sent = SendTheShopRequest(context, index, "0x575e90"); !sent.HasValue())
+            return Core::Unexpected(sent.Error());
+        return Handled();
     }
     return Handled();
 }

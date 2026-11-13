@@ -8,11 +8,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 
-// Los pedidos a otro jugador de los comandos del chat (CL9 hito 7, fase 2; 06 § Lo social en pantalla): /trade
-// (0x56c68b..0x56d623), /duelstart sin duelo (0x56d823..0x56e9ec) y /party (0x56f13f..0x570d47) de 0x56c440. Cada uno
+// Los pedidos a otro jugador de los comandos del chat (CL9 hito 7, fases 2 y 5; 06 § Lo social en pantalla): /trade
+// (0x56c68b..0x56d623), /duelstart sin duelo (0x56d823..0x56e9ec), /party (0x56f13f..0x570d47) y /purchase
+// (0x574c0c..0x57694d) de 0x56c440. Cada uno
 // busca al otro: el elegido (0x6c8e30) o, sin él, el primero de los 400 que está enfrente del héroe. Cada celda que
 // compara abre y cierra su entrada protegida (0x40b570 y 0x40b800, o lo mismo en línea), con los cuatro rand() de su
 // cierre; el paquete va en C3, con los dos del relleno y del serial. *Estático*.
@@ -103,4 +105,14 @@ struct CellDistance
 // /trade pero sin la tienda ni 0x5af560; con el mundo cargado, 0x78aba4c = su clave (MOVSX), el C1 05 40 y el aviso
 // 476. Devuelve 1 siempre.
 [[nodiscard]] Core::Expected<UI::ChatCommandOutcome, std::string> RequestAParty(const SocialRequestContext& context);
+
+// 0x574c0c..0x57694d (/purchase fuera de Chaos Castle): con la tienda de NPC (0x10000), el almacén (0x40), el comercio
+// (0x20), la caja del caos (0x100) o el entrenador (0x8000) abiertos (en ese orden, hasta el primero; 0x10000 y 0x20
+// con su rand()), el aviso 1121 con el 1 y 0. Si no, el elegido (0x6c8e30): si se le puede pedir, sin mirar si está
+// vivo ni al lado, el C1 10 3F 05 con su clave y su nombre en C3; con o sin él, 1. Sin elegido, `name` es lo que
+// strlen y strcmp leen en el segundo buffer de sscanf: no vacío, el 3F 05 a cada uno de los 400 vivo con ese nombre
+// (strcmp con +0x1d9, sin mirar el tipo ni si es el héroe) y 1; vacío, al primero de los 400 vivo, alguien a quien
+// pedirle y enfrente (sin mirar si está al lado), y 1. Sin valor (la pila sin inicializar, 07 Q-C967), el error.
+[[nodiscard]] Core::Expected<UI::ChatCommandOutcome, std::string>
+RequestTheShopItems(const SocialRequestContext& context, std::optional<std::string_view> name);
 } // namespace Client::Scenes

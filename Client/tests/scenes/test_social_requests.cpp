@@ -56,6 +56,7 @@
 #include <initializer_list>
 #include <map>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -355,6 +356,126 @@ TEST_P(SocialRequestsTest, TheDuelChallengesWithTheName)
     Near().angles.z = Front;
     ASSERT_TRUE(Client::Scenes::RequestADuel(Context()).HasValue());
     EXPECT_EQ(m_sent.size(), 2U);
+}
+
+// /purchase (0x574c0c..0x57694d): las consultas de 0x10000 y de 0x20 sacan un rand() cada una (las de 0x40, 0x100 y
+// 0x8000, ninguno) y el pedido no lee celdas.
+constexpr int PurchasePanelRandoms = 2;
+
+// 0x574c97..0x57538b: el elegido recibe el C1 10 3F 05 con su clave y su nombre aunque esté lejos o muerto; el héroe
+// elegido no. Con o sin pedido, 1 y sin aviso.
+TEST_P(SocialRequestsTest, PurchaseAsksTheChosenWithoutTheCells)
+{
+    Choose(2);
+    Far().alive = false;
+    auto outcome = Client::Scenes::RequestTheShopItems(Context(), std::nullopt);
+    ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
+    EXPECT_TRUE(outcome.Value().handled);
+    EXPECT_TRUE(outcome.Value().notices.empty());
+    ASSERT_EQ(m_sent.size(), 1U);
+    ExpectSent(0, {0xc1, 0x10, 0x3f, 0x05, 0x04, 0x57, 'Z', 'o', 'r', 'z', 'a', 'l', 0, 0, 0, 0});
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, PurchasePanelRandoms + C3Randoms).State());
+    EXPECT_EQ(Far().cellXAccesses, 0);
+
+    Choose(0);
+    m_random = CrtRandom(Seed);
+    outcome = Client::Scenes::RequestTheShopItems(Context(), "Tejon");
+    ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
+    EXPECT_TRUE(outcome.Value().handled);
+    EXPECT_EQ(m_sent.size(), 1U);
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, PurchasePanelRandoms).State());
+}
+
+// 0x574c0c..0x574c78 y 0x5766a7: la tienda de NPC, el almacén, el comercio, la caja del caos o el entrenador abiertos
+// dan el aviso 1121 y sale como chat. Las consultas paran en la primera abierta.
+TEST_P(SocialRequestsTest, PurchaseStopsWithAnOpenPanel)
+{
+    Choose(1);
+    auto& panels = game->world.Runtime().panels;
+    const auto blocked = [&](std::uint8_t& open, int randoms)
+    {
+        open = 1;
+        m_random = CrtRandom(Seed);
+        const auto outcome = Client::Scenes::RequestTheShopItems(Context(), "Brezal");
+        open = 0;
+        ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
+        EXPECT_FALSE(outcome.Value().handled);
+        EXPECT_EQ(outcome.Value().notices, (std::vector<Client::UI::ChatCommandNotice>{
+                                               {Client::UI::ShopTrainerText, Client::UI::SystemMessage}}));
+        EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, randoms).State());
+    };
+    blocked(panels.npcShop, 1);
+    blocked(panels.warehouse, 1);
+    blocked(panels.trade, 2);
+    blocked(panels.chaosBox, 2);
+    panels.delegated.trainer = 1;
+    m_random = CrtRandom(Seed);
+    const auto trainer = Client::Scenes::RequestTheShopItems(Context(), "Brezal");
+    ASSERT_TRUE(trainer.HasValue()) << trainer.Error();
+    EXPECT_FALSE(trainer.Value().handled);
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, PurchasePanelRandoms).State());
+    EXPECT_TRUE(m_sent.empty());
+}
+
+// 0x575501..0x575e7f: sin elegido, el 3F 05 va a cada uno vivo con el nombre escrito (el héroe también) y el muerto
+// no lo recibe (07 Q-C967).
+TEST_P(SocialRequestsTest, PurchaseAsksEveryoneWithTheName)
+{
+    Choose(-1);
+    Name(Near().name, "Zorzal");
+    auto outcome = Client::Scenes::RequestTheShopItems(Context(), "Zorzal");
+    ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
+    EXPECT_TRUE(outcome.Value().handled);
+    ASSERT_EQ(m_sent.size(), 2U);
+    ExpectSent(0, {0xc1, 0x10, 0x3f, 0x05, 0x04, 0x56, 'Z', 'o', 'r', 'z', 'a', 'l', 0, 0, 0, 0});
+    ExpectSent(1, {0xc1, 0x10, 0x3f, 0x05, 0x04, 0x57, 'Z', 'o', 'r', 'z', 'a', 'l', 0, 0, 0, 0});
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, PurchasePanelRandoms + 2 * C3Randoms).State());
+
+    Near().alive = false;
+    m_sent.clear();
+    outcome = Client::Scenes::RequestTheShopItems(Context(), "Zorzal");
+    ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
+    ASSERT_EQ(m_sent.size(), 1U);
+    ExpectSent(0, {0xc1, 0x10, 0x3f, 0x05, 0x04, 0x57, 'Z', 'o', 'r', 'z', 'a', 'l', 0, 0, 0, 0});
+
+    m_sent.clear();
+    outcome = Client::Scenes::RequestTheShopItems(Context(), "Tejon");
+    ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
+    ASSERT_EQ(m_sent.size(), 1U);
+    ExpectSent(0, {0xc1, 0x10, 0x3f, 0x05, 0x00, 0x21, 'T', 'e', 'j', 'o', 'n', 0, 0, 0, 0, 0});
+
+    m_sent.clear();
+    m_random = CrtRandom(Seed);
+    outcome = Client::Scenes::RequestTheShopItems(Context(), "Nadie");
+    ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
+    EXPECT_TRUE(outcome.Value().handled);
+    EXPECT_TRUE(m_sent.empty());
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, PurchasePanelRandoms).State());
+}
+
+// 0x575daf..0x575e66: con el buffer vacío, el primero vivo que mira al héroe, aunque esté lejos. Sin valor (sscanf no
+// lo llenó), el error.
+TEST_P(SocialRequestsTest, PurchaseWithAnEmptyNameAsksTheOneInFront)
+{
+    Choose(-1);
+    Near().angles.z = Front;
+    auto outcome = Client::Scenes::RequestTheShopItems(Context(), "");
+    ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
+    EXPECT_TRUE(outcome.Value().handled);
+    ASSERT_EQ(m_sent.size(), 1U);
+    ExpectSent(0, {0xc1, 0x10, 0x3f, 0x05, 0x04, 0x57, 'Z', 'o', 'r', 'z', 'a', 'l', 0, 0, 0, 0});
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, PurchasePanelRandoms + C3Randoms).State());
+
+    Far().angles.z = Front;
+    m_random = CrtRandom(Seed);
+    outcome = Client::Scenes::RequestTheShopItems(Context(), "");
+    ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
+    EXPECT_EQ(m_sent.size(), 1U);
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, PurchasePanelRandoms).State());
+
+    const auto unknown = Client::Scenes::RequestTheShopItems(Context(), std::nullopt);
+    ASSERT_FALSE(unknown.HasValue());
+    EXPECT_NE(unknown.Error().find("Q-C967"), std::string::npos) << unknown.Error();
 }
 
 class LetterMeasure final : public Client::Render::Text::ITextMeasure

@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -105,6 +106,54 @@ Core::Expected<ChatCommandOutcome, std::string> PersonalShopCommand(const ChatCo
     return ChatCommandOutcome{
         .handled = true,
         .notices = {ChatCommandNotice{.text = ShopLevelText, .type = SystemMessage, .formatted = std::move(text)}}};
+}
+
+// 0x574c8c: sscanf(texto, "%s %s", EBP − 0x108, EBP − 0xc0). Cada %s salta los blancos (isspace del locale "C") y lee
+// hasta el siguiente, y el espacio del formato salta los que haya: lo que importa es la segunda palabra, el nombre.
+// Sin ella, el segundo buffer queda con lo que había en la pila (sin valor). Una primera palabra de 0x48 bytes o más
+// pisa el segundo buffer y una segunda de 0x90 o más llega a EBP − 0x30, que 0x575503 pisa: MuRet no lo modela (el
+// campo del chat tiene 0x32 bytes) y devuelve el error.
+Core::Expected<std::optional<std::string_view>, std::string> ScanTheName(std::string_view text)
+{
+    constexpr std::size_t FirstWordBuffer = 0x48;
+    constexpr std::size_t NameBuffer = 0x90;
+    const auto blank = [](char letter) { return letter == ' ' || (letter >= '\t' && letter <= '\r'); };
+    text = text.substr(0, text.find('\0'));
+    std::size_t at = 0;
+    const auto word = [&]()
+    {
+        while (at < text.size() && blank(text[at]))
+            ++at;
+        const std::size_t start = at;
+        while (at < text.size() && !blank(text[at]))
+            ++at;
+        return text.substr(start, at - start);
+    };
+    const std::string_view first = word();
+    const std::string_view second = word();
+    if (first.size() >= FirstWordBuffer || second.size() >= NameBuffer)
+        return Core::Unexpected(
+            std::format("0x574c92: /purchase con una palabra que pasa su buffer de la pila ({} y {} "
+                        "bytes)",
+                        first.size(), second.size()));
+    if (second.empty())
+        return std::optional<std::string_view>{};
+    return std::optional<std::string_view>{second};
+}
+
+// 0x574bd6..0x57694d: /purchase. En Chaos Castle, el aviso 1150 y 0; si no, lo demás (los paneles, el elegido, el
+// nombre que sscanf leyó o el que está enfrente) es del pedido de la escena.
+Core::Expected<ChatCommandOutcome, std::string> PurchaseCommand(const ChatCommandContext& context,
+                                                                std::string_view text)
+{
+    if (InChaosCastle(context))
+        return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
+    auto name = ScanTheName(text);
+    if (!name.HasValue())
+        return Core::Unexpected(std::move(name).Error());
+    if (!context.requestShopItems)
+        return Core::Unexpected(std::string("0x574c0c: /purchase sin el pedido"));
+    return context.requestShopItems(name.Value());
 }
 
 // 0x56c54d..0x56c690: /trade. Fuera de Chaos Castle, el nivel del registro propio contra 0x6c8dc8: sin alcanzarlo, el
@@ -211,7 +260,7 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
     if (text == TextAt(texts, ShopCommandText) || EqualsIgnoringCase(text, "/personalshop"))
         return PersonalShopCommand(context);
     if (ContainsLikeTheOriginal(text, TextAt(texts, BuyCommandText)) || ContainsLikeTheOriginal(text, "/purchase"))
-        return SocialCommand(context, "0x574bd6", "comprar en una tienda personal", "el hito 7 (08 P-C208 b)");
+        return PurchaseCommand(context, text);
     if (text == TextAt(texts, ShopViewOnCommandText) || text == TextAt(texts, ShopViewOffCommandText))
         return Core::Unexpected(
             std::string("0x56d722: ver las tiendas personales (0x4516a0 y 0x4516b0) es de la CL9.4"));

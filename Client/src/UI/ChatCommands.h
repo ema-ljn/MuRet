@@ -125,6 +125,11 @@ struct ChatCommandContext
     // 0x576815..0x576822 (/personalshop con el nivel): 0x6599a0(0x800, 0), con lo que abrir la tienda hace
     // (Scenes::OpenThePersonalShop). Sin él, ese caso corta.
     std::function<Core::Expected<void, std::string>()> openThePersonalShop{};
+    // 0x574c0c..0x57694d (/purchase fuera de Chaos Castle): los paneles que lo traban, el elegido, el nombre o el que
+    // está enfrente y el C1 10 3F 05 (Scenes::RequestTheShopItems). Recibe lo que strlen y strcmp leen en el segundo
+    // buffer de sscanf (EBP − 0xc0): la segunda palabra, o sin valor si sscanf no la llenó; lo que devuelve es la
+    // salida del comando. Sin él, ese caso corta.
+    std::function<Core::Expected<ChatCommandOutcome, std::string>(std::optional<std::string_view>)> requestShopItems{};
 };
 
 // 0x56c440(texto, desde una macro).

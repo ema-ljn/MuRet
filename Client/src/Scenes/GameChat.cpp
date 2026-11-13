@@ -196,7 +196,9 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
             if (!opened.HasValue())
                 return Core::Unexpected(std::move(opened).Error());
             return {};
-        }};
+        },
+        .requestShopItems = [&context](std::optional<std::string_view> name)
+        { return RequestTheShopItems(SocialRequestsOf(context), name); }};
     auto outcome = UI::RunTheChatCommand(commands, text, fromMacro);
     if (!outcome.HasValue())
         return outcome;

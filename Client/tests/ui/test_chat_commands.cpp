@@ -20,6 +20,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -200,6 +201,44 @@ TEST_F(Commands, PersonalShopNeedsTheLevel)
     EXPECT_TRUE(enough.Value().notices.empty());
     EXPECT_EQ(opened, 1);
     EXPECT_EQ(reads, 3);
+}
+
+// 0x574bd6..0x57694d: /purchase (o el 1118) en cualquier lugar del texto. En Chaos Castle, el aviso 1150 y sale como
+// chat; fuera, sscanf("%s %s") y el pedido recibe la segunda palabra, o nada si no la hay (la pila sin inicializar).
+TEST_F(Commands, PurchaseScansTheNameForTheRequest)
+{
+    std::vector<std::optional<std::string>> names;
+    ChatCommandContext context = Context();
+    const auto unwired = Client::UI::RunTheChatCommand(context, "/purchase", false);
+    ASSERT_FALSE(unwired.HasValue());
+    EXPECT_NE(unwired.Error().find("0x574c0c"), std::string::npos);
+    context.requestShopItems = [&names](std::optional<std::string_view> name)
+        -> Client::Core::Expected<Client::UI::ChatCommandOutcome, std::string>
+    {
+        names.emplace_back(name ? std::optional<std::string>(*name) : std::nullopt);
+        return Client::UI::ChatCommandOutcome{.handled = true, .notices = {}};
+    };
+    for (const std::string_view command :
+         {"/purchase", "/adquirir Brezal", "  /purchase\t Zorzal  extra", "mira /adquirir", "/adquirir \t "})
+    {
+        const auto outcome = Client::UI::RunTheChatCommand(context, command, false);
+        ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
+        EXPECT_TRUE(outcome.Value().handled);
+    }
+    EXPECT_EQ(names,
+              (std::vector<std::optional<std::string>>{std::nullopt, "Brezal", "Zorzal", "/adquirir", std::nullopt}));
+    // Una primera palabra de 0x48 bytes pisa el buffer del nombre: MuRet no lo modela.
+    const auto overflow = Client::UI::RunTheChatCommand(context, std::string(0x48, 'a') + "/purchase", false);
+    ASSERT_FALSE(overflow.HasValue());
+    EXPECT_NE(overflow.Error().find("0x574c92"), std::string::npos);
+    EXPECT_EQ(names.size(), 5U);
+    context.map = 23;
+    const auto inside = Client::UI::RunTheChatCommand(context, "/purchase Brezal", false);
+    ASSERT_TRUE(inside.HasValue()) << inside.Error();
+    EXPECT_FALSE(inside.Value().handled);
+    EXPECT_EQ(inside.Value().notices,
+              (std::vector<ChatCommandNotice>{{Client::UI::ChaosCastleCommandText, Client::UI::SystemMessage}}));
+    EXPECT_EQ(names.size(), 5U);
 }
 
 // 0x56f109..0x56f13f: /party (o /pt) en Chaos Castle avisa 1150 y sale como chat; fuera, el pedido da la salida.

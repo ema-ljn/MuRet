@@ -29,7 +29,8 @@ inline constexpr std::size_t ActorTextSize = 25;
 // 0x5141e0 con la cola 0x5140c0: el creador de evento o el caso del switch (MonsterCreationOf con el mapa de
 // WorldRuntime::map) corre sus pasos en orden, con cada rand() en su lugar entre los del alta (0x511290 y sus celdas):
 // - LoadMonster mira que esté Monster\Monster{n}.bmd: sin él, el original cierra (0x612dd6..0x612de1, Q-C23) y MuRet
-//   corta. Ni ese ni LoadNpc cargan el modelo (08, P-C176).
+//   corta. Ni ese ni LoadNpc cargan el modelo (08, P-C176); LoadMonster escribe su tabla de sonidos
+//   (WorldRuntime::modelSounds, MonsterSounds.h).
 // - Create es CreateActor con la clave, el modelo, la celda y el ángulo del paso; Write, Name, Dress (0x512930), Box
 //   (0x5133b0), Ground, Lower y CopyHeight escriben el personaje; MeshFlag y ModelByte quedan en
 //   WorldRuntime::modelPatches; BoneName en WorldRuntime::namedBones (0x401000); Sound en WorldRuntime::lastSoundId

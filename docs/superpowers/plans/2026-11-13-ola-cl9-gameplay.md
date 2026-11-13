@@ -295,8 +295,12 @@ Lorencia, Devias y un mapa de evento; el `0x1F` con un tipo `0x98..0x9e`; el cor
       queda como `SetActorAttack` para que el hito 1a lo llame desde `0x4cb750`; los cortes, en P-C250, y el
       cableado con los actores del `12` y del `13`, en P-C251. Fase 2a hecha (2026-11-13), sobre el hito 1: el
       `0x78`/`0x79` del `18` llama a `SetActorAttack` (`0x4cb820..0x4cb852`); los sonidos de la tabla del modelo
-      van a `lastSoundId` (P-C253); morirse, `0x4fb9e0` (P-C255). Fase 2c (con el hito 2): los ayudantes de
-      monstruos de `0x4f4a10` y de `0x4f5b70` (`0x4f5c0f`), las tablas de sonidos y el `0x192`.
+      van a `lastSoundId` (P-C253); morirse, `0x4fb9e0` (P-C255). Fase 2c hecha (2026-11-13, sobre el hito 2,
+      `5137d84`): los cinco ayudantes de monstruos de `0x4f4a10` (`0x43a2f0`, `0x42dcb0`, `0x443750`, `0x429270` y
+      `0x437580` con `0x4f92f0` y `MonsterSkill.bmd`, `0x54a440`), las tablas de sonidos del alta (`0x612d90` con
+      `0x612c80`, `WorldRuntime::modelSounds`), el `0x192` con `+0x60` en el que se muere y el `D7`, el `16` y el
+      `17` sobre los monstruos del `13`; los casos de monstruo de `0x4f5b70` cortan cada uno en su dirección
+      (P-C257 f) y, con monstruos reales, antes `0x4ea030` sin su esqueleto (P-C176).
 
 **Pruebas:** el `D7`/`A4` que sale al pegar; la muerte de un monstruo y la de otro jugador; la experiencia del
 `0x16` y del `0x9C` contra el struct del GS (`GCKillPlayerExpSend`); los `rand()` del paso con un monstruo en

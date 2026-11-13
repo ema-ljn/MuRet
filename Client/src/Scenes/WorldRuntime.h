@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Data/Tables/MonsterSkillTable.h"
 #include "Data/Text/DialogTable.h"
 #include "Data/Text/MoveRequirements.h"
 #include "GameLogic/MovementSpeed.h"
@@ -13,6 +14,7 @@
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/ItemHelpLevels.h"
+#include "Scenes/MonsterSounds.h"
 #include "Scenes/QuestState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/TooltipLines.h"
@@ -393,6 +395,13 @@ struct WorldRuntime
     // [0x6c88ac] (.data, 15): desde cuántos pasos de +0x381 corre la habilidad de 0x4fd5f0 (0x4fdbe5, con signo). Lo
     // escribe solo 0x4f97b0: 15 en 0x4f987d, antes de su switch, y 5 en 0x4f9ee2, un caso de habilidad (hito 4).
     std::int32_t skillThreshold = 15;
+    // +0xaa..+0xbc de los modelos de [0x5769ad8]: lo que 0x612c80 escribió desde el alta de cada monstruo (0x612d90,
+    // MonsterSounds.h), que leen 0x4f4a10 y 0x4f5660 (CL9 hito 3, fase 2c). No se vacía: nadie más escribe esas WORD,
+    // y un modelo que se suelta conserva las suyas.
+    ModelSoundTable modelSounds{};
+    // [0x7437670]: las skills de los monstruos de MonsterSkill.bmd (0x54a440), que main.cpp copia de
+    // GameData::monsterSkills y lee 0x4f92f0 (CL9 hito 3, fase 2c). Sin el archivo, la .bss.
+    Data::Tables::MonsterSkillTable monsterSkills{};
     // [0x6e5640]: los huesos con nombre de los personajes (0x401000). 0x4011c0 saca el del mismo personaje y nombre
     // antes de agregar el nuevo; 0x401410 (desde 0x401040, en 0x512870, 0x510ff0 y 0x510f70) saca todos los de un
     // personaje. En qué orden los recorre quien los lee, sin leer (CL11).

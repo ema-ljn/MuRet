@@ -6,6 +6,7 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/MonsterSounds.h"
 #include "Scenes/PlayerActionSpeeds.h"
 #include "Scenes/WorldRuntime.h"
 
@@ -283,11 +284,21 @@ Core::Expected<ActorWalkResult, std::string> StepSound(const ActorState& actor, 
     }
     const int mask = context.hero ? 63 : 15;
     const bool selected = (random.Next() & mask) == 0;
-    if (selected && (actor.type != Data::Models::PlayerSkeletonModel || (actor.subtype >= 209 && actor.subtype <= 211)))
+    const bool modelSound = actor.subtype >= 209 && actor.subtype <= 211;
+    if (!selected || (actor.type == Data::Models::PlayerSkeletonModel && !modelSound))
     {
-        return Core::Unexpected(std::string("0x4f3f0f: falta la tabla de sonidos del modelo para el subtipo 209..211"));
+        return ActorWalkResult{};
     }
-    return ActorWalkResult{};
+    // 0x4f3edc..0x4f3f6c: los subtipos 209 a 211 piden el 0x7b, y después todos la WORD 0 o la 1 de la tabla del modelo
+    // (DrawModelSound, la que escribió el alta: un 0x20a no la tiene). El último sonido es el que queda.
+    ActorWalkResult result;
+    if (modelSound)
+        result.sound = 0x7b;
+    constexpr std::size_t FirstWalkSound = 0;
+    if (const auto drawn = DrawModelSound(WrittenSounds(context.stop.runtime.modelSounds, actor.type), FirstWalkSound,
+                                          actor.subtype, random))
+        result.sound = drawn;
+    return result;
 }
 } // namespace
 

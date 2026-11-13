@@ -130,6 +130,21 @@ struct AttackWorld
         return striker;
     }
 
+    // Un monstruo del alta (byte88 en 2) en `slot` con el tipo y el +0x376, en la 3 y con +0x381 en 1.
+    ActorState& Monster(std::size_t slot, std::uint16_t type, std::uint16_t kind, std::size_t target)
+    {
+        ActorState& monster = world.Actors()[slot];
+        monster = ActorState{};
+        monster.alive = true;
+        monster.type = type;
+        monster.word376 = kind;
+        monster.byte88 = 2;
+        monster.animation.action = 3;
+        monster.byte381 = 1;
+        monster.attackTarget = static_cast<std::uint16_t>(target);
+        return monster;
+    }
+
     CharacterStepContext Context()
     {
         return CharacterStepContext{.world = world,
@@ -222,6 +237,86 @@ TEST(AttackStepTest, TheStrikeFrameEndsTheCount)
     }
 }
 
+// Un monstruo sin caso en 0x4f5b70 (el +0x376 3 en Lorencia) cuenta y pega como un jugador: los ayudantes de los
+// mapas no lo miran, su +0x376 va a 0x4f80e0 y 0x4f97b0 lo deja pegar en la 3 o la 4 desde el frame 5. El sonido es el
+// de las manos del registro propio (Q-C1168).
+TEST(AttackStepTest, AnOrdinaryMonsterCountsAndStrikesLikeAPlayer)
+{
+    AttackWorld tested;
+    ActorState& monster = tested.Monster(OtherSlot, 0x155, 3, HeroSlot);
+    for (int step = 1; step < 4; ++step)
+    {
+        const auto counted = tested.Attack(monster, OtherSlot);
+        ASSERT_TRUE(counted.HasValue()) << counted.Error();
+        EXPECT_EQ(monster.byte381, step + 1);
+    }
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 3 * CountingStep);
+
+    monster.animation.frame = 5.0f;
+    const auto struck = tested.Attack(monster, OtherSlot);
+
+    ASSERT_TRUE(struck.HasValue()) << struck.Error();
+    EXPECT_EQ(monster.byte381, 0);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 3 * CountingStep + StrikingStep + SkillWithTarget);
+    EXPECT_EQ(tested.sounds.size(), 1u);
+
+    // En la 5 no es un ataque de monstruo para 0x4f97b0: sigue contando.
+    ActorState& other = tested.Monster(VictimSlot + 1, 0x155, 3, HeroSlot);
+    other.animation.action = 5;
+    other.animation.frame = 5.0f;
+    ASSERT_TRUE(tested.Attack(other, VictimSlot + 1).HasValue());
+    EXPECT_EQ(other.byte381, 2);
+}
+
+// Los ayudantes de 0x4f5b70, cada uno en sus mapas: 0x4436f0 hace salir (AL en 1) después del rand() de 0x4f5b97; los
+// demás cortan en su caso. Los de 0x42fce0 y 0x4324c0 miran el tipo y +0x381.
+TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
+{
+    struct Case
+    {
+        std::string_view name;
+        std::int32_t map;
+        std::uint16_t type;
+        std::uint16_t kind;
+        std::uint8_t counter;
+        std::string_view cut;
+    };
+    const std::array cases{Case{"Kalima 1", 0x18, 0x160, 0x91, 1, "0x43a872"},
+                           Case{"Kalima 7", 0x24, 0x160, 0x113, 1, "0x43b5e4"},
+                           Case{"Kalima fuera de Kalima", 0, 0x160, 0x91, 1, ""},
+                           Case{"el 31", 0x1f, 0x160, 0x123, 1, "sale"},
+                           Case{"el 31 con otro", 0x1f, 0x160, 0x126, 1, ""},
+                           Case{"el asedio", 0x1e, 0x160, 0x120, 1, "0x42dd23"},
+                           Case{"el 54", 0x36, 0x160, 0x134, 1, "0x4291b1"},
+                           Case{"el 35 en 14", 0x23, 0x1b2, 3, 14, "0x42fd04"},
+                           Case{"el 35 en 2", 0x23, 0x1b2, 3, 2, ""},
+                           Case{"Crywolf 0x17c", 0x22, 0x17c, 3, 1, "0x43258b"},
+                           Case{"Crywolf 0x1ad en 2", 0x22, 0x1ad, 3, 2, ""},
+                           Case{"un caso de +0x376", 0, 0x160, 0x4d, 1, "0x4f7bc8"}};
+    for (const Case& probe : cases)
+    {
+        SCOPED_TRACE(probe.name);
+        AttackWorld tested;
+        tested.world.Runtime().map = probe.map;
+        ActorState& monster = tested.Monster(OtherSlot, probe.type, probe.kind, HeroSlot);
+        monster.byte381 = probe.counter;
+
+        const auto stepped = tested.Attack(monster, OtherSlot);
+
+        if (probe.cut.empty() || probe.cut == "sale")
+        {
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(monster.byte381, probe.counter + 1);
+            EXPECT_EQ(DrawsSince(Seed, tested.random), probe.cut.empty() ? CountingStep : SkillRead + 1);
+        }
+        else
+        {
+            EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
+            EXPECT_EQ(DrawsSince(Seed, tested.random), SkillRead + 1);
+        }
+    }
+}
+
 // Sin blanco (+0x3a4 en −1), 0x4f5b70 sale después de su rand() (0x4f80ea) y la habilidad no suena.
 TEST(AttackStepTest, WithoutATargetThereIsNoSound)
 {
@@ -283,9 +378,9 @@ TEST(AttackStepTest, TheStrikeSoundFollowsTheOwnHands)
 }
 
 // Lo que corta, en su orden y con los rand() de antes: las habilidades del hito 4 (0x4f9899, 0x4f8a39, 0x4fdeeb,
-// 0x504372), los monstruos de la fase 2c (0x4f5c0f), el arco 0x815 del registro propio (0x4fb0d1), la flecha con y sin
-// blanco (0x504048, 0x50376a), las partículas del blanco con daño (0x50419c), 0x52e740 (0x5042ce) y los joints de
-// +0x380 en 2 (0x505169).
+// 0x504372), los casos de los monstruos de 0x4f5b70 (0x4f6fea), el arco 0x815 del registro propio (0x4fb0d1), la flecha
+// con y sin blanco (0x504048, 0x50376a), las partículas del blanco con daño (0x50419c), 0x52e740 (0x5042ce) y los
+// joints de +0x380 en 2 (0x505169).
 TEST(AttackStepTest, TheCutsAfterTheirDraws)
 {
     struct Case
@@ -312,7 +407,8 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
                  hero.byte381 = 14;
              },
              "0x504372", CountingStep + 2 * SkillRead},
-        Case{"un monstruo", [](AttackWorld&, ActorState& hero) { hero.word376 = 0x10; }, "0x4f5c0f", SkillRead + 1},
+        Case{"el caso 0x23 de +0x376", [](AttackWorld&, ActorState& hero) { hero.word376 = 0x23; }, "0x4f6fea",
+             SkillRead + 1},
         Case{"el 0x815",
              [](AttackWorld& tested, ActorState& hero)
              {

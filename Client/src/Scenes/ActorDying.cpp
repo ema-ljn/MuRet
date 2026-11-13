@@ -27,6 +27,9 @@ constexpr std::int32_t FastDyingMap = 7;
 constexpr float FastDyingStep = 0.05f;
 constexpr float DyingStep = 0.02f;
 constexpr std::uint16_t SlowDyingType = 0x192;
+// 0x4fba6d..0x4fba7b: con +0x60 del objeto en 100 o más (con signo), 0,01 (0x6b88d4); si no, 0,02.
+constexpr std::int32_t SlowDyingLevel = 100;
+constexpr float SlowDyingStep = 0.01f;
 // 0x4fba95..0x4fbad6: el uno (0x6b87d4), el alpha más bajo que sigue (0x6b88d4) y lo que se hunde (0x6b87b4).
 constexpr float FadeStart = 1.0f;
 constexpr float LowestAlpha = 0.01f;
@@ -108,11 +111,11 @@ Core::Expected<void, std::string> StepActorDying(ActorState& actor, std::size_t 
     // 0x4fb9fa..0x4fba43: cada bandera se resta si está.
     actor.flags78 &= ~(FrozenFlag | Flag4000 | LockedFlag);
     // 0x4fba46..0x4fba8f.
-    if (actor.type == SlowDyingType)
-        return Core::Unexpected(std::format("0x4fba6d: el 0x192 del lugar {} se muere más lento con +0x60 del objeto "
-                                            "en 100 o más, que MuRet no tiene (hito 2)",
-                                            slot));
-    const float step = actor.type == FastDyingType && context.map == FastDyingMap ? FastDyingStep : DyingStep;
+    float step = DyingStep;
+    if (actor.type == FastDyingType && context.map == FastDyingMap)
+        step = FastDyingStep;
+    else if (actor.type == SlowDyingType && actor.dword60 >= SlowDyingLevel)
+        step = SlowDyingStep;
     actor.dyingTime = Sum(actor.dyingTime, step);
     // 0x4fba95..0x4fbb0d: con +0x3c8 en 1 o más (sin orden, no), el alpha es 1 − (+0x3c8 − 1) en la x87, guardado en
     // float pero comparado entero con 0,01: sin bajar de ahí la Z baja 0,4; debajo (o sin orden), el que no es el

@@ -30,6 +30,7 @@
 #include "Scenes/ReturnToSelection.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/ViewportPacketRing.h"
 #include "Scenes/ViewportPlayers.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -37,6 +38,7 @@
 #include "Scenes/WorldTransitions.h"
 #include "World/LeafWeather.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -162,6 +164,11 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
     if (auto viewport = ApplyViewport(event))
         return *viewport;
     return ApplyWorldContent(event, session);
+}
+
+void SessionEventApplier::CopyToPacketRing(std::span<const std::byte> packet)
+{
+    StoreViewportPacket(m_resources.world.Runtime().viewportPackets, packet);
 }
 
 std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplyViewport(const App::WorldEvent& event)

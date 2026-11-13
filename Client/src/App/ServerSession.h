@@ -3,7 +3,6 @@
 #include "App/Credentials.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
-#include "App/TeleportHistory.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/IntervalTimer.h"
@@ -247,10 +246,6 @@ public:
     // el original no manda con el socket en −1.
     void SendCreditsNotice();
 
-    // 0x4e3e98: las diez últimas recepciones 1C crudas, antes de admisión y aplicación.
-    // Proyección de MuRet para los 1C: pertenece a la sesión y sobrevive Start.
-    [[nodiscard]] std::span<const std::vector<std::byte>> Teleports() const;
-
     // Cuántas veces se llamó a Start: lo que elige o manda alguien de afuera (el AutoLogin) es de
     // una vuelta, y con un Start empieza otra.
     [[nodiscard]] std::uint32_t StartCount() const;
@@ -410,7 +405,6 @@ private:
     // "ConnectServer" o "GameServer", para el log, según con cuál habla el estado.
     [[nodiscard]] std::string_view ServerName() const;
 
-    TeleportHistory m_teleports;
     Network::Connection& m_connection;
     Core::IClock& m_clock;
     Core::Log& m_log;

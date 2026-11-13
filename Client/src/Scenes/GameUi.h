@@ -2,6 +2,7 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Data/Tables/SkillTable.h"
 #include "Protocol/OptionData.h"
 #include "UI/OldWindows.h"
 
@@ -99,6 +100,9 @@ struct GameUiContext
     // ItemSetType.bmd e ItemSetOption.bmd (0x40c600), que lee 0x550d10 con el Item.bmd de `inventory` cuando la C o el
     // botón del HUD abren el personaje (0x65ca1e). nullptr si no se cargaron: abrirlo corta en 0x40e1b0.
     const Data::Tables::ItemSetTables* itemSetTables = nullptr;
+    // Skill.bmd (0x76bd1d8): el +0x31 de cada skill de la lista de la barra (0x5a07a3). nullptr: la lista abierta
+    // corta.
+    const Data::Tables::SkillTable* skills = nullptr;
 };
 
 // El WndProc: 0x7d366d4 (el flanco del clic, que apagan quien lo usa y el botón suelto) y 0x7d36874 (el botón

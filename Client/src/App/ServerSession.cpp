@@ -37,6 +37,7 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/Party.h"
 #include "Protocol/Pet/PetInfo.h"
+#include "Protocol/Skill.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
 
@@ -266,6 +267,29 @@ void ServerSession::RegisterGameServerHandlers()
         m_gameServer.On(Protocol::Connection::MainCheckOpcode,
                         [this](const Network::Packet& packet) { OnMainCheck(packet); });
     assert(registered && "los handlers del GameServer se registran una vez");
+    RegisterSkillHandlers();
+}
+
+// CL9 hito 4: las skills que llegan (04 § Las skills). Los C3 del 19 y el 1E llegan descifrados con el opcode de la
+// tabla (0xa5 → 0x19 y 0xa6 → 0x1e), como los demás.
+void ServerSession::RegisterSkillHandlers()
+{
+    using Protocol::Character::CharacterOpcode;
+    namespace Skill = Protocol::Skill;
+    [[maybe_unused]] const bool registered =
+        m_gameServer.On(Skill::MagicAttackOpcode, [this](const Network::Packet& packet) { OnMagicAttack(packet); }) &&
+        m_gameServer.On(Skill::DurationMagicOpcode,
+                        [this](const Network::Packet& packet) { OnDurationMagic(packet); }) &&
+        m_gameServer.On(Skill::MagicCancelOpcode, [this](const Network::Packet& packet) { OnMagicCancel(packet); }) &&
+        m_gameServer.On(Skill::ActorStateOpcode, [this](const Network::Packet& packet) { OnActorState(packet); }) &&
+        m_gameServer.On(Skill::ActorEffectOpcode, [this](const Network::Packet& packet) { OnActorEffect(packet); }) &&
+        m_gameServer.On(Skill::SkillTargetOpcode, [this](const Network::Packet& packet) { OnSkillTarget(packet); }) &&
+        m_gameServer.On(Skill::Report73Opcode, [this](const Network::Packet& packet) { OnReport73(packet); }) &&
+        m_gameServer.On(CharacterOpcode, Skill::SkillListSubcode,
+                        [this](const Network::Packet& packet) { OnSkillList(packet); }) &&
+        m_gameServer.On(CharacterOpcode, Skill::SummonLifeSubcode,
+                        [this](const Network::Packet& packet) { OnSummonLife(packet); });
+    assert(registered && "los handlers de las skills se registran una vez");
 }
 
 void ServerSession::Start()
@@ -1242,6 +1266,120 @@ void ServerSession::OnDamage(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(damage.Value(), *this)));
+}
+
+// 0x4cc530: sin el cifrado, el F1 03 con 0x19 y nada más.
+void ServerSession::OnMagicAttack(const Network::Packet& packet)
+{
+    if (!packet.WasDecrypted())
+    {
+        m_log.Warning("la skill (19) no llegó cifrada: se le avisa al GameServer (F1 03)");
+        Protocol::Outgoing report = Protocol::Skill::WriteClearSkillReport(Protocol::Skill::MagicAttackOpcode);
+        m_connection.Send(std::move(report.packet), report.delivery);
+        return;
+    }
+    const auto attack = Protocol::Skill::ReadMagicAttack(packet);
+    if (!attack.HasValue())
+    {
+        m_log.Warning("se ignora la skill (19): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(attack.Value(), *this)));
+}
+
+// 0x4ce000: lo mismo con el 1E.
+void ServerSession::OnDurationMagic(const Network::Packet& packet)
+{
+    if (!packet.WasDecrypted())
+    {
+        m_log.Warning("la skill con duración (1E) no llegó cifrada: se le avisa al GameServer (F1 03)");
+        Protocol::Outgoing report = Protocol::Skill::WriteClearSkillReport(Protocol::Skill::DurationMagicOpcode);
+        m_connection.Send(std::move(report.packet), report.delivery);
+        return;
+    }
+    const auto magic = Protocol::Skill::ReadDurationMagic(packet);
+    if (!magic.HasValue())
+    {
+        m_log.Warning("se ignora la skill con duración (1E): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(magic.Value(), *this)));
+}
+
+void ServerSession::OnMagicCancel(const Network::Packet& packet)
+{
+    const auto cancel = Protocol::Skill::ReadMagicCancel(packet);
+    if (!cancel.HasValue())
+    {
+        m_log.Warning("se ignora el fin de la skill (1B): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(cancel.Value(), *this)));
+}
+
+void ServerSession::OnActorState(const Network::Packet& packet)
+{
+    const auto state = Protocol::Skill::ReadActorState(packet);
+    if (!state.HasValue())
+    {
+        m_log.Warning("se ignora el estado del personaje (07): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(state.Value(), *this)));
+}
+
+void ServerSession::OnActorEffect(const Network::Packet& packet)
+{
+    const auto effect = Protocol::Skill::ReadActorEffect(packet);
+    if (!effect.HasValue())
+    {
+        m_log.Warning("se ignora el efecto del personaje (48): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(effect.Value(), *this)));
+}
+
+void ServerSession::OnSkillTarget(const Network::Packet& packet)
+{
+    const auto target = Protocol::Skill::ReadSkillTarget(packet);
+    if (!target.HasValue())
+    {
+        m_log.Warning("se ignora el blanco de la skill (69): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(target.Value(), *this)));
+}
+
+// 0x4d5b10: cifrado no hace nada; sin el cifrado, el F1 03 con 0xf1 (*estático*, 08, P-C263).
+void ServerSession::OnReport73(const Network::Packet& packet)
+{
+    if (packet.WasDecrypted())
+        return;
+    m_log.Warning("el 73 no llegó cifrado: se le avisa al GameServer (F1 03)");
+    Protocol::Outgoing report = Protocol::Skill::WriteClearSkillReport(Protocol::Skill::Report73Head);
+    m_connection.Send(std::move(report.packet), report.delivery);
+}
+
+void ServerSession::OnSkillList(const Network::Packet& packet)
+{
+    const auto list = Protocol::Skill::ReadSkillList(packet);
+    if (!list.HasValue())
+    {
+        m_log.Warning("se ignora la lista de skills (F3 11): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(list.Value(), *this)));
+}
+
+void ServerSession::OnSummonLife(const Network::Packet& packet)
+{
+    const auto summon = Protocol::Skill::ReadSummonLife(packet);
+    if (!summon.HasValue())
+    {
+        m_log.Warning("se ignora la vida del invocado (F3 20): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(summon.Value(), *this)));
 }
 
 // P-C33: 0x4c6e32 prueba el flag antes de leer los campos; cero manda el F1 03.

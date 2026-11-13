@@ -213,8 +213,32 @@ struct ActorState
     std::uint8_t byte38eAccesses = 0;
     // +0x38e: el valor lógico. Con ')' (0x29) el lazo de las manos de 0x50ba30 saltea la derecha en la
     // acción 0x3d, y con '4' (0x34) 0x509340 pone el frame de lo que cuelga en 3,2 en las acciones 0x22 a
-    // 0x97. Lo escriben 0x4cc530 y 0x4f5b70, sin portar: queda en 0.
+    // 0x97. Lo escriben 0x4cc530 (la skill del 0x19, SkillReplies) y 0x4f5b70, sin portar.
     std::uint8_t byte38e = 0;
+    // Lo que escriben las skills que llegan (CL9 hito 4, Scenes/SkillReplies.h). Qué pone 0x511290 en cada uno, sin
+    // leer: quedan en 0 hasta que llega la primera.
+    // +0x110: el estado del monstruo. 0x439d40 (el 1B con 0xc9 o 0xca) lo pone en 0x21 o 0x22 si no es un 0x20a.
+    std::uint8_t state110 = 0;
+    // +0x38d: si salió la última skill de este personaje: el bit 15 del blanco del 19 (0x4cc530) y del 69 (0x4cc290).
+    // Lo miran las ramas 0x33, 0x37 y 0x44 a 0x48 de 0x4cc530. El A8 lo pone en 0 en el objeto del cuervo, no acá.
+    std::uint8_t skillSucceeded = 0;
+    // +0x38f: la cuenta que alterna las acciones de 0x4f5290 (de a tres) y de la skill 0x17 de 0x4cc530 (par o impar).
+    std::uint8_t hitCount = 0;
+    // +0x3a4: el lugar del pool del blanco de la skill (0x4cc530 y 0x4cc290). El 1E lo pone en 0xffff (0x4ce000).
+    std::uint16_t skillTarget = 0;
+    // +0x434: el lugar del blanco de la skill 0x4c (0x4ccef1).
+    std::int32_t skillTarget4c = 0;
+    // +0x39c y +0x39d: la celda de la skill con duración (el 1E, 0x4ce000).
+    std::uint8_t skillCellX = 0;
+    std::uint8_t skillCellY = 0;
+    // +0x380: el 1E lo pone en 0 (0x4ce000).
+    std::uint8_t byte380 = 0;
+    // +0x1bc: la skill 0x3a de 0x4cc530 lo pone en 0 (0x4cde26).
+    std::uint8_t byte1bc = 0;
+    // +0x42e, protegido como +0x38e (el cierre que lo deja sin accesos gasta un rand(), 0x40b3f0): la skill del 69
+    // (0x4cc290). Nadie lo lee en MuRet.
+    std::uint8_t byte42e = 0;
+    std::uint8_t byte42eAccesses = 0;
     // +0x390: 0x511290 lo pone en 0 (0x51186b), y lo ponen en 1 el estado de las misiones (0x418e20 y 0x418ee0, con la
     // misión 3 terminada, CL9.1), sin portar: queda en 0. Con 1, el tooltip de la skill del Dark Knight de nivel 220
     // o más escribe el "Combo" (0x5b99d1).

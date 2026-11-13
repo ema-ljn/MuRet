@@ -214,7 +214,8 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .requests = &requests,
                                        .systemTime = systemTime,
                                        .inventory = &inventory,
-                                       .itemSetTables = m_chatTables.itemSetTables});
+                                       .itemSetTables = m_chatTables.itemSetTables,
+                                       .skills = m_skills});
 }
 
 GameChatContext GameScene::ChatContext()

@@ -809,6 +809,34 @@ solo con `0xfe` y `0xff`); `App::ServerSession` los pasa al mundo y `Scenes::App
 escriben el registro propio que leen los orbes y el AG del HUD (06). Un lugar fuera de la grilla corta con
 `0x4d35f6` o `0x4d3917` (08, P-C150). Los tests usan valores inventados.
 
+### Las skills que llegan: `19`, `1E`, `1B`, `07`, `48`, `69`, `73`, `F3 11` y `F3 20`
+
+(CL9 hito 4, 2026-11-13, *estático*, contra `gs_protocol.h` y `protocol.cpp` del GameServer reconstruido.) Lo que
+hacen con el mundo está en [06](06-render-escenas-y-ui.md#las-skills-que-llegan). Las claves son índices de
+`0x5110d0`, que compara con `MOVSX`: una clave desde `0x8000` nunca está, y sin el personaje es el 400.
+
+| Paquete | Handler | Layout que lee el cliente | GameServer 0.97 |
+| --- | --- | --- | --- |
+| `19` | `0x4cc530` | `C3 08 19 <skill> <fuente H L> <blanco H L>`; el bit 15 del blanco es el éxito (`+0x38d`) y el blanco se busca con los 15 de abajo | `PMSG_MAGICATTACK_RESULT` (`GCMagicAttackNumberSend`, `0x426200`), igual. El FoxAnti lo pasa como `A5` cifrado (`EncryptedRemaps`) |
+| `1E` | `0x4ce000` | `C3 09 1E <skill> <clave H L> <x> <y> <rumbo>` | del mismo largo; el emisor no está nombrado en el reconstruido. `A6` cifrado |
+| `1B` | `0x4cbe90` | `C1 06 1B <skill> <clave H L>` | `PMSG_MAGICCANCEL` (`0x4262f0`), igual |
+| `07` | `0x4cbe00` | `C1 0A 07 <tipo> <máscara: 4, little endian> <clave H L>` | `GCSend_07` (`0x4263a0`) arma 8 bytes y nadie lo llama (P-C260) |
+| `48` | `0x4dbf50` | `C1 06 48 <clave H L> <tipo>` | no lo manda (P-C262) |
+| `69` | `0x4cc290` | `C1 08 69 <skill> <fuente: 2> <blanco: 2>`, los dos WORD en little endian y sin máscara | no lo manda (P-C262) |
+| `73` | `0x4d5b10` | cifrado no lee nada; sin cifrar, avisa | no lo manda (P-C262) |
+| `F3 11` | `0x4c5070` | `C1 .. F3 11 <cantidad> <lista>` y desde `pkt[6]`: con `0xff`, el lugar a vaciar; con `0xfe`, el lugar y la skill; con la lista en 2, el lugar a vaciar; si no, `cantidad` entradas de 3 bytes (lugar, skill y uno que no lee) | `PMSG_MAGICLISTCOUNT` mide 5 bytes y las entradas (`PMSG_MAGICLIST`, con `(nivel << 3) \| (skill & 7)` de tercero) van desde `pkt[5]`: el byte de la lista lo mete el FoxAnti del repack (P-C261) |
+| `F3 20` | `0x4e31e1` | `C1 05 F3 20 <vida>` (la del invocado, `0x5767960`) | — |
+
+Los avisos: el `19` (`0x4cc562..0x4cce21`) y el `1E` (`0x4ce032`) que no llegaron cifrados no se leen y mandan
+`C1 06 F1 03 00 <opcode>` con el XOR32 y para cifrar como C3, como el `F3 03`; el `73` sin cifrar manda el mismo con
+`0xf1` (`0x4d5d8c`, P-C263) y cifrado no hace nada. Los demás no miran el cifrado.
+
+**MuRet**: `Protocol::Skill` lee los nueve (WrongPacket con otro tipo u opcode, TooShort si faltan campos) y escribe
+el aviso (`WriteClearSkillReport`); `App::ServerSession` los registra juntos (`RegisterSkillHandlers`) y los pasa al
+mundo, donde `Scenes::SessionEventApplier::ApplySkillEvent` los manda a `Scenes/SkillReplies`. El `B7` y los C→S de
+las skills (`19`, `1E`, `D3`, `DF` y `26` de las cuatro funciones por clase) son de la fase 2 (08, P-C264). Los tests
+usan claves inventadas.
+
 ## Qué implica para MuRet
 
 | Original | MuRet | Ola |

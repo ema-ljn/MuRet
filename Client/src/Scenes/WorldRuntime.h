@@ -308,6 +308,9 @@ struct WorldRuntime
     // lo escribe nadie más: en una segunda respuesta, hasta ahí es el héroe anterior, y después de la vuelta
     // a la selección sigue en el lugar del juego (Q-C213).
     std::size_t hero = 0;
+    // 0x5767964: el lugar del pool de la fuente del último 19 (0x4cce7d) o 69 (0x4cc2e1), el 400 si no está. Quién lo
+    // lee, sin leer (CL9 hito 4).
+    std::int32_t skillSource = 0;
     // [0x743a178] y [0x743a17c], lo que dejó el último 0x505820 (06, "El conjunto completo de 0x505820"): en
     // la .bss, 0 al arrancar. Lo escriben 0x512a30 con el héroe publicado y el dibujo de los personajes
     // (0x50ba30 en 0x50c91e), el del login y el de la selección (ScanTheDrawnCharacter). nullopt después de un

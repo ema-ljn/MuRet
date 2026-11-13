@@ -7,6 +7,7 @@
 #include "Protocol/OptionData.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
+#include "Protocol/Skill.h"
 
 #include <variant>
 
@@ -34,5 +35,7 @@ using WorldEvent =
                  Protocol::Messages::WhisperResult, Protocol::Messages::Notice, Protocol::OptionData::OptionData,
                  Protocol::Inventory::ItemMoveResult, Protocol::Inventory::ItemDelete, Protocol::Inventory::Durability,
                  Protocol::Inventory::EquipmentChange, Protocol::Inventory::ItemPut, Protocol::Inventory::LifeRefill,
-                 Protocol::Inventory::ManaRefill>;
+                 Protocol::Inventory::ManaRefill, Protocol::Skill::MagicAttack, Protocol::Skill::DurationMagic,
+                 Protocol::Skill::MagicCancel, Protocol::Skill::ActorState, Protocol::Skill::ActorEffect,
+                 Protocol::Skill::SkillTarget, Protocol::Skill::SkillList, Protocol::Skill::SummonLife>;
 } // namespace Client::App

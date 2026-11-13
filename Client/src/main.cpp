@@ -690,7 +690,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         .screen = [&window] { return window.PixelSize(); },
         .scene = [&sceneManager]() -> std::optional<Scenes::SceneId>
         { return sceneManager != nullptr ? sceneManager->Current() : std::nullopt; },
-        .texts = scenes.data.text ? &*scenes.data.text : nullptr};
+        .texts = scenes.data.text ? &*scenes.data.text : nullptr,
+        .skills = scenes.data.skills ? &*scenes.data.skills : nullptr};
     Scenes::SessionEventApplier eventApplier(worldEntry);
     std::optional<Online> online;
     if (startup.server)

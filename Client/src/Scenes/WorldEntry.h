@@ -3,6 +3,7 @@
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Tables/SkillTable.h"
 #include "Scenes/SceneId.h"
 
 #include <cstdint>
@@ -94,6 +95,9 @@ struct WorldEntryResources
     std::function<std::optional<SceneId>()> scene{};
     // Text.bmd: el 482 del 0C y el 483 del 0D con 2. nullptr si no se cargó: esos mensajes cortan con error.
     const Data::Text::TextTable* texts = nullptr;
+    // Skill.bmd (0x76bd1d8): el +0x31 de cada skill de la lista que llega (F3 11, 0x4c5070). nullptr si no se cargó:
+    // el F3 11 corta con error. Al final, para no correr los que se inicializan por posición.
+    const Data::Tables::SkillTable* skills = nullptr;
 };
 
 // Lo que la entrada pide afuera y MuRet todavía no hace (sin audio hasta la CL10): los sonidos de

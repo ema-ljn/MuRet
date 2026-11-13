@@ -964,8 +964,8 @@ cola de Esc y F5/F6 de `0x490490` (las dos teclas cortaban hasta el hito 7), las
 con su dirección; con el personaje cerrado, `0x424230` pone `0x723911` en 0), y de `0x59ff10` la salida del
 recorrido de cámara, PgUp/PgDn (cortan, hito 3), los latches de arriba y abajo, los seis botones del HUD
 (`0x5a03c3..0x5a05e5`: gremio, party, personaje, inventario, amigos y comandos, cada uno con su rectángulo y
-abierto → `Close`, si no → `Open`), la barra de skills con su botón (`0x5a066c..0x5a06f9`; la lista corta, CL9.2),
-los números y Alt con un número (cortan, CL9.2 y hito 3), el clic derecho en las tres ranuras rápidas
+abierto → `Close`, si no → `Open`), la barra de skills con su botón (`0x5a066c..0x5a06f9`; la lista, desde la CL9 hito 4, en [Las skills que llegan](#las-skills-que-llegan)),
+los números (`0x59f810`, CL9 hito 4) y Alt con un número (corta, hito 3), el clic derecho en las tres ranuras rápidas
 (`0x5a2b47..0x5a32dd`: x `0xd0 + 0x1f·i`, 20 × 20 en y `0x1c4`; corta, hito 2 y CL9.3), la cadena de Q/W/E
 (Q-C459; la tecla corta), las letras de los paneles, B y R (la reparación es de la CL8.4), la cola `IsOpen(0)` y,
 sin ningún panel abierto, el panel del asedio de la clase 0 (`0x40f6d0`: Tab con el latch lo muestra u oculta, el
@@ -1095,6 +1095,8 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | la barra de skills de `0x59ff10`, aunque no haya skills | registro propio abierto en `0x5a05e5`, cerrado en `0x5a10e2` | 3.848 | **por paso** (Q-C458) |
 | la cadena de Q, W y E sin campo de texto | `0x5a343e..0x5a3587`: `IsOpen(0x20)`, `IsOpen(0x40)`, `IsOpen(0x10000)` y lo que sigue, con cortocircuito | 2 con todo cerrado (sale en la consulta del diálogo si hay uno, después de las dos) | **por paso** (Q-C459) |
 | `IsOpen(0)` con nada abierto debajo de `0x20` | `0x5a5511` (cola de `0x59ff10`) | 2 | **por paso**: `0x59ff10` corre en cada paso (`0x636ee6`) y solo sale antes en `0x59ff3f` |
+| la lista de skills abierta (CL9 hito 4) | `0x5a07a3..0x5a0823`: la entrada de Skill.bmd de cada skill de los 64 lugares que no es 0 ni de `0x43` a `0x48`, abierta y cerrada | 60 cada una | por paso, con la lista abierta y `+0x6a` distinto de 0 |
+| un número sin Alt (CL9 hito 4) | `0x59f810`: el registro propio, abierto fuera de la barra | 3.848 | por número abajo |
 | **el paso del juego quieto, con todo cerrado** | `0x59ff10`: la barra, Q/W/E y la cola | **3.852** | por paso (hito 1 de la CL8, `GameUi.cpp`) |
 | R apretada con todo cerrado | `0x5a4f34..0x5a54e6`: el registro propio (cerrado en `0x5a53d8`), `IsOpen(0x10000)`, `IsOpen(0x20)` e `IsOpen(0x10000)` otra vez antes del inventario | 3.851 | por paso, con la tecla |
 | B apretada con todo cerrado | `0x5a4ec2..0x5a4f2e`: `IsOpen(0x10000)` | 1 | por paso, con la tecla |
@@ -9672,6 +9674,111 @@ no se reconstruyen, salvo el nivel de cámara puesto en 0 por 4c250e. `ReturnToS
 regresiones del sink observan esos datos retenidos y el recorrido juego→selección→juego, además
 del orden de los tres paquetes. Esto no implementa la UI pendiente ni la descarga nativa de
 modelos/sonidos, y no sustituye la observación nativa pendiente de P-C45.
+
+### Las skills que llegan
+
+(CL9 hito 4, 2026-11-13, *estático* salvo donde se dice.) Los paquetes están en
+[04](04-protocolo.md#las-skills-que-llegan-19-1e-1b-07-48-69-73-f3-11-y-f3-20). Las acciones son las del esqueleto
+del personaje (`0x4ea030`); los sonidos van a `WorldRuntime::lastSoundId` (CL10) y los efectos de `0x518cf0` y los
+joints de `0x530860`, de la CL11, cortan con su dirección después de lo que el original hace antes.
+
+**`0x4cc530`, el `19`.** Fuente y blanco por `0x5110d0`; sin el blanco, nada. La fuente queda en `0x5767964`. Salvo la
+`0x3b`: si la fuente no es el héroe, la skill no es la 6 ni la `0xf` y el blanco se ve (`+0x16c`), el rumbo de la fuente
+(`+0x24`) hacia el blanco (`0x4e93f0`); el blanco en `+0x3a4` (y en `+0x434` con la `0x4c`), el éxito en `+0x38d` y la
+skill en `+0x38e`, que es una entrada de un byte de la tabla de protección (un `rand()` al cerrarla en 0). Después,
+la rama de la skill:
+
+| Skill | Qué hace |
+| --- | --- |
+| `0xc8`, `0xc9`, `0xca` | `0xc9` prende `0x100` y `0xca` `8` en `+0x78`, `+0x381` en 1; las tres van a `0x4f4a10` (hito 3) |
+| `0x1a`..`0x24` (sin `0x1d`) | el sonido `0x6f` si `+0x376` no es `0x4d`; sigue como la `0x10` |
+| `0x10` | fuera del héroe, `0x4f5290` y el frame en 0 |
+| `0x3` | el sonido `0x50` salvo el tipo `0x1a5`; para al blanco (`0x4f2250`) en las acciones `0xcb`, `0xcc`, `0xc5` y `0xc7`; sigue como la 1 |
+| `0x1`, `0x2`, `0x4`, `0x7`, `0xb`, `0x11` | fuera del héroe: un jugador `0x4f5290` y el frame en 0; otro, `0x4f4a10` (hito 3) |
+| `0xf` | el blanco se va (`0x53d8d0`) y la fuente llega (`0x53d930`), cada uno con la acción `0x93`, el destello `0x5c6` y el sonido `0x76`; en el héroe, `0x576794c` en 0; el sonido `0x83` |
+| `0x6` | la fuente se va (`0x53d8d0`) |
+| `0x13`..`0x16`, `0x38`, `0x39`, `0x2c` | la acción (`0x38`..`0x3b`, `0x8d`, `0x84`, `0x85`) y su sonido |
+| `0x17` | `0x3c` o `0x29` alternadas con `+0x38f` |
+| `0x3c`, `0x3d`, `0x4a` | `0x4e` con un pegaso (en la `0x4a`, solo el Dark Horse), `0x58` con Fenrir, si no `0x4c` |
+| `0x18`, `0x34`, `0x36`, `0x33`, `0x2e` | la acción por las manos (`0x4cc110`, y `0x4cc1d0` en la `0x2e`); la `0x33` salida apaga el `0xc1/1` del blanco y crea otro (CL11, `0x4cd6ff`) |
+| `0x37` | salida: apaga el `0x628/0` del blanco y crea otro (CL11, `0x4cd664`); si no, un monstruo va a `0x4f4a10` |
+| `0x43`..`0x48` | la acción por la montura (Dark Horse `0x52`, Uniria `0x40`, Dinorant `0x41`, Fenrir `0x5d`; si no `0x3f` o `0x87`); salidas, la `0x44` baja el `0x1000` del blanco, la `0x46` le prende `0x4000` (si no es la fuente), la `0x47` le baja `0x4000`, la `0x48` le baja seis y la `0x45` prende `0x2000` en la fuente y crea su `0x138` (CL11, `0x4cdb72`) |
+| `0x4b`, `0x40` | `0x200` (`0x800` con `0x4f3f80` antes) en el blanco; la acción del Dark Horse, Fenrir o `0x8e` |
+| `0x35`, `0x30` | sin `0x400` (`0x10`) en el blanco, apaga y crea su `0x5ac/2` (`0x5ac/1`) (CL11, `0x4cdc88`, `0x4cdd84`); con él, sigue |
+| `0x31` | `0x41` en Atlans (8) y en el cielo (10), `0x40` en los demás |
+| `0x3b` | el efecto `0x112` en la fuente (CL11, `0x4cddfa`) |
+| `0x3a` | `0x44`, el sonido `0x92` y `+0x1bc` en 0 |
+| `0x28` | `0x45`; en el héroe suelta el clic derecho (`0x7d36880`, `0x7d3685c`; `0x7d36840` y `0x7d368a4` no los tiene MuRet) |
+
+`0x4f5290`, en un jugador, abre los stats propios (`0x4f3f80`, 3.848 `rand()`) y elige `0x97` (Uniria o Dinorant),
+`0x5d` (Fenrir), `0x92` (elfo) o `0x8e + rand() % 2`; en otro, 3 y 4 de a tres con `+0x38f`.
+
+**`0x4ce000`, el `1E`.** Sobre el personaje de la clave (el 400 si no está): la skill en `+0x38e`, el rumbo
+(`rumbo · 1/255 · 360`, en double, Q-C1201), y un monstruo va a `0x4f4a10` (hito 3). Otro jugador hace la acción de la
+tabla de `0x4ced44` (las `0x18`, `0x34` y `0x36` van a `0x4f4a10`; `0xc` `0x94`, `0xa` `0x96`, `0xe` `0x95`, `0x41`
+`0x94` o `0x5b` con Fenrir, `0x3e` `0x53` y el sonido `0x1ce`, `0x2a` `0x3e`, `0x2f` `0x42` o `0x5f`, `0x29` y `0x37`
+`0x3d`, `0x38` `0x8d`, `0x2b` `0x43`, `0x43` y `0x46` `0x3f`, `0x4c` por las dos manos de `0x4e9c50`, las demás
+`0x4f5290`) con el frame en 0. Después, todos: la celda en `+0x39c`/`+0x39d`, `+0x381` en 1, `+0x3a4` en `0xffff` y
+`+0x380` en 0.
+
+**`0x4cbe90`, el `1B`, y `0x4e6910`.** La skill elige la bandera que baja `0x4e6910` (`0x1`/`0x26` → 1, `0x7`/`0x27` →
+2, `0x1c` → 4, `0x1b` → 8, `0x30` → `0x10`, `0x33` → `0x20`, `0x37` → `0x40`, `0x10` → `0x100`, `0x4b` → `0x200`,
+`0x35` → `0x400`, `0x40` → `0x800`, `0x43` → `0x1000`, `0x45` → `0x2000`, `0x46` → `0x4000`); las `0xc9` (8) y
+`0xca` (`0x100`) pasan antes por `0x439d40`, que en un personaje que no es un jugador baja `0x100` (o `8`) y pone
+`+0x110` en `0x21` (o `0x22`). `0x4e6910` resta el bit si está y apaga lo que lo acompaña: `8` y `0x2000000` los
+joints `0x10f/4` y `0x10f/9` aunque no estuviera; `0x10` el efecto `0x5ac/1`; `0x40` el `0x628/0`; `0x100` el joint
+`0x10f/0` en un jugador; `0x400` el `0x5ac/2`; `0x1000` el `0x628/5`; `0x10000`, con el bit, en los tipos `0x204` a
+`0x208` lo resta de `+0x7c` (lo tenga o no); `0x20000` a `0x80000` y `0x10000000` (con `0x20000`) son de `+0x7c`;
+`0x100000` baja el suyo, trece de `+0x78` y apaga todo lo anterior. Los efectos se buscan por su dueño
+(`0x518ac0`, Q-C1200) y los joints por `+0x54` (`0x534f90`).
+
+**`0x4cbe00`, el `07`.** Con el tipo 1: sin la máscara prendida entera en `+0x78`, `0x4e6380` (hito 1, corta en
+`0x4cbe47`); con ella, `+0x7c` queda en `0x200000` si lo tenía y en 0 si no (el `NEG`/`SBB` de `0x4cbe52`, Q-C1202).
+Con otro tipo y la máscara prendida, `0x4e6910`.
+
+**`0x4cc290`, el `69`.** Sin el blanco, nada (con el bit 15 no lo encuentra). La fuente en `0x5767964`, la skill en
+`+0x42e` (protegido como `+0x38e`, un `rand()`), el blanco en `+0x3a4` y su bit 15 en `+0x38d` (siempre 0 cuando
+llega acá); con las skills 1 a `0xd`, `0x4f4a10` (hito 3, `0x4cc50a`).
+
+**`0x4dbf50`, el `48`.** Con un personaje de la clave que es un jugador (`+0x88` en 1) y el tipo `0x10`, quince joints
+`0x60f/2`, el efecto `0x61e` y el sonido `0x98`: corta en `0x4dbfc5` (CL11).
+
+**`0x4c5070`, el `F3 11`.** Abre el registro propio y escribe las skills (`+0x6c + lugar`, los 256): con `0xff` vacía el
+lugar, con `0xfe` lo pone; con la lista en 2 vacía el lugar (`cantidad` veces); si no, con la lista en 0 vacía los
+256, pone las entradas y, con un Dark Lord (`+0x1d4 & 7` en 4), las órdenes del cuervo `0x78` a `0x7b` en sus lugares.
+Lo cierra (3.848 `rand()`) y lo vuelve a abrir para contar los 64 primeros: `+0x6a` las que hay y `+0x6b` las que tienen
+el `+0x31` de Skill.bmd en 1 (cada entrada abierta y cerrada con `0x4e7c40`: 60 `rand()`). Arregla `+0x425` del
+héroe (a 0 si pasa de `+0x6a`, si `+0x6a` es 1 o si su lugar está vacío, y saltea las `0x43` a `0x48`, hasta 256
+veces con el byte que envuelve) y lo cierra (3.848). El **`F3 20`** (`0x4e31e1`) deja la vida del invocado en
+`0x5767960`.
+
+**La espera de las skills** (`+0x76c` del registro propio, un int por lugar de la barra). `0x5521f0` da el requisito
+(el WORD `+0x2e` de la entrada de Skill.bmd, abierta y cerrada). `0x552990(lugar)` y `0x552c50(lugar)` leen la skill
+del lugar (con el registro abierto y cerrado) y su espera (`+0x28`, con la entrada abierta y cerrada); sin espera
+vuelven (`0x552c50` dice que se puede); si no, con el registro abierto: con la espera del lugar corriendo vuelven
+(`0x552c50`: no se puede); si el requisito pasa de `+0x36 + +0x20` (el liderazgo), igual; si no, la ponen, salvo
+`0x552c50` con la skill `0x4c` (`0x552ee3`). `0x552f10(transcurrido)`, con el registro abierto, baja las de los
+`+0x6a + 2` primeros lugares (hasta 256) que están corriendo, sin pasar de 0; con `+0x6a` desde `0xfe` el lugar 255
+sería el equipo de `+0xb68` y MuRet corta (`0x5530bb`). La llama `0x4eb620` con los milisegundos del frame (sin
+portar, fase 2).
+
+**La lista de la barra** (`0x5a070e..0x5a1098`, con el registro propio que abrió la barra). Por cada lugar de los 64 con
+una skill que no es de `0x43` a `0x48`, la entrada de Skill.bmd abierta y cerrada; con el `+0x31` en 1 no se ve. Las
+que se ven van de a 32 desde `x = (columna + 10) · 32 − ancho · 32 / 2` (el ancho es `min(+0x6a − +0x6b, 20)`, con
+`CDQ`/`SAR`), en y `0x172` y, desde la vigésima, `0x34` más arriba; 32 × 42. Bajo el mouse: el tooltip (`0x6c9320`,
+`0x78a9bac` y `0x78a9ba8` con `x + 0x10`), el mouse en la UI y, con el clic, la skill del héroe, la lista cerrada, el
+sonido `0x19` y el reloj del mouse a 0 y 6; con Ctrl y un número del 1 al 9 o el 0, esa tecla para la skill en las
+64 teclas del lugar del elegido (`+0x26c + 0x100 · 0x6d5edc`), que deja la que la tenía (`0xff`). Después, con el
+cuervo (`+0x430`), los cuatro botones de sus órdenes (`0x420e90`: las skills `0x78` a `0x7b`, de a `0x20` desde x
+`0x100`, en y `0x14a` a `0x16e`). Fuera de la barra, con el foco en el juego, sin Alt y sin las órdenes de Shift con
+1 a 4 del Dark Lord (`0x420e30`), cada número abajo va a `0x59f810`: con el registro abierto, la primera de las 64 con
+esa tecla que no es de `0x43` a `0x48`; si no hay, la primera orden del cuervo con la tecla. En cada lugar que no
+elige, con el ataque automático fuera de los mapas 6 y 18 a 23 y la skill del héroe en 6 o `0xf`, los blancos
+`0x6c8e30` y `0x6c8e38` vuelven a −1.
+
+**MuRet**: `Scenes/SkillReplies` (los nueve), `Scenes/ActorFlags` (`0x4e6910`, `0x439d40`, `0x518ac0`, `0x534f90`),
+`Scenes/SkillDelays` y la lista y los números en `Scenes/GameUi.cpp`. Las cuatro funciones por clase que usan una
+skill (`0x559890`, `0x55b6f0`, `0x55cbc0`, `0x55faa0`) y quien llama a `0x552f10` son de la fase 2 (08, P-C264).
 
 ### La tabla de protección
 

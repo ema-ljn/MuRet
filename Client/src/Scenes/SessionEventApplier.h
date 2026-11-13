@@ -6,6 +6,7 @@
 #include "Core/Expected.h"
 #include "Scenes/WorldEntry.h"
 
+#include <optional>
 #include <string>
 
 namespace Client::App
@@ -31,6 +32,7 @@ public:
 
 private:
     Core::Expected<void, std::string> ApplyWorldContent(const App::WorldEvent& event, App::ServerSession& session);
+    std::optional<Core::Expected<void, std::string>> ApplySkillEvent(const App::WorldEvent& event);
     WorldEntryResources m_resources;
 };
 } // namespace Client::Scenes

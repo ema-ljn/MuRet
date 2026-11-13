@@ -911,6 +911,191 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
     return StepThePetButton(context, panels);
 }
 
+// La skill `index` del tooltip y del clic de la lista (0x5a08a1..0x5a08f3) y de los botones de las órdenes del
+// cuervo (0x420ee4..0x420f4a): el tooltip, el mouse en la UI y, con el clic, la skill del héroe, la lista cerrada, el
+// sonido 0x19 y el reloj del mouse.
+void PointAtTheSkill(const GameUiContext& context, std::uint8_t index, std::int32_t tooltipX, std::int32_t tooltipY)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::GameUiState& ui = runtime.ui;
+    ui.skillTooltipX = tooltipX;
+    ui.skillTooltip = index;
+    ui.skillTooltipY = tooltipY;
+    ui.mouseOnUi = 1;
+    if (!runtime.movement.pendingClick)
+        return;
+    runtime.movement.pendingClick = false;
+    context.world.Actors()[runtime.hero].skillIndex = index;
+    ui.skillListOpen = 0;
+    runtime.lastSoundId = ButtonSound;
+    runtime.movement.mouseUpdateTime = 0;
+    runtime.movement.mouseUpdateTimeMax = 6;
+}
+
+// 0x420e90: con el cuervo (+0x430), los cuatro botones de sus órdenes (las skills 0x78 a 0x7b), de 0x20 desde x 0x100,
+// con y de 0x14a a 0x16e.
+void StepThePetOrderButtons(const GameUiContext& context)
+{
+    const ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
+    if (!hero.darkSpirit)
+        return;
+    constexpr std::uint8_t FirstOrder = 0x78;
+    constexpr std::uint8_t OrderCount = 4;
+    constexpr std::int32_t Width = 0x20;
+    for (std::uint8_t order = 0; order < OrderCount; ++order)
+    {
+        const std::int32_t x = 0x100 + Width * order;
+        if (InRect(context, x, 0x14a, x + Width, 0x16e))
+            PointAtTheSkill(context, static_cast<std::uint8_t>(FirstOrder + order), x + 0x10, 0x14a);
+    }
+}
+
+// Las teclas de Ctrl + número sobre la skill `index` de la lista (0x5a08fd..0x5a106e): por cada número abajo, del 1 al
+// 9 y el 0, con el registro propio abierto, saca ese número de las 64 teclas del lugar del elegido (0x6d5edc) y se lo
+// da a la skill.
+void StepTheSkillKeys(const GameUiContext& context, std::uint8_t index)
+{
+    const Input::InputState& input = context.input;
+    if (!input.IsDown(Key::Ctrl))
+        return;
+    WorldRuntime& runtime = context.world.Runtime();
+    OwnCharacterRecord& own = context.world.OwnCharacter();
+    const std::size_t place = context.chosenSlot.value_or(std::uint8_t{0});
+    constexpr std::size_t KeyedSlots = 0x40;
+    constexpr std::uint8_t NoKey = 0xff;
+    for (int digit = 1; digit <= 10; ++digit)
+    {
+        const auto number = static_cast<std::uint8_t>(digit % 10);
+        if (!input.IsDown(Digit(number).key) || place >= own.skillKeys.size())
+            continue;
+        const Render::Models::LogicalAccess access(runtime.ownRecordDepth, context.random,
+                                                   Render::Models::OwnRecordCloseRandoms);
+        auto& keys = own.skillKeys[place];
+        for (std::size_t slot = 0; slot < KeyedSlots; ++slot)
+        {
+            if (keys[slot] == number)
+                keys[slot] = NoKey;
+        }
+        keys[index] = number;
+    }
+}
+
+// 0x5a070e..0x5a1098: la lista abierta. Por cada una de las 64 skills que hay, salvo las 0x43 a 0x48 y las que tienen
+// el +0x31 de Skill.bmd en 1 (con su entrada abierta y cerrada: 60 rand() si la cierra en 0), un ícono de 32 × 42 en
+// filas de hasta 20 centradas en x 320 desde y 0x172, la segunda 0x34 más arriba. Bajo el mouse, su tooltip y su clic
+// (PointAtTheSkill) y las teclas (StepTheSkillKeys). Después, los botones de las órdenes del cuervo (0x420e90).
+Core::Expected<void, std::string> StepTheSkillList(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    const OwnCharacterRecord& own = context.world.OwnCharacter();
+    constexpr std::int32_t RowSize = 0x14;
+    const std::int32_t width =
+        std::min(static_cast<std::int32_t>(own.byte6a) - static_cast<std::int32_t>(own.byte6b), RowSize);
+    std::int32_t shown = 0;
+    std::int32_t column = 0;
+    std::int32_t y = 0x172;
+    constexpr std::uint8_t ListedSlots = 0x40;
+    for (std::uint8_t index = 0; index < ListedSlots; ++index)
+    {
+        const std::uint8_t skill = OwnSkillByte(own, index);
+        if (skill == 0 || (skill >= 0x43 && skill <= 0x48))
+            continue;
+        if (context.skills == nullptr)
+            return Core::Unexpected(std::string("0x5a07a3: la lista de skills lee Skill.bmd y MuRet no lo cargó"));
+        const auto record = context.skills->Record(skill);
+        if (!record)
+            return Core::Unexpected(std::format("0x5a07a3: Skill.bmd no tiene la skill {}", skill));
+        std::uint8_t hidden = 0;
+        {
+            const Render::Models::LogicalAccess entry(runtime.movement.skillDepths[skill], context.random,
+                                                      static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+            constexpr std::size_t HiddenOffset = 0x31;
+            hidden = std::to_integer<std::uint8_t>((*record)[HiddenOffset]);
+        }
+        if (hidden == 1)
+            continue;
+        if (shown == RowSize)
+        {
+            y -= 0x34;
+            column = 0;
+        }
+        // 0x5a084f..0x5a085f: el CDQ/SAR divide hacia el 0.
+        const std::int32_t x = (column + 10) * 32 - width * 32 / 2;
+        ++shown;
+        ++column;
+        if (!InRect(context, x, y, x + 0x20, y + 0x2a))
+            continue;
+        PointAtTheSkill(context, index, x + 0x10, y);
+        StepTheSkillKeys(context, index);
+    }
+    StepThePetOrderButtons(context);
+    return {};
+}
+
+// 0x420e30: el Dark Lord con Shift y el 1 al 4 elige la orden del cuervo (las skills 0x78 a 0x7b), con el primero
+// abajo. Dice si eligió.
+bool StepThePetOrderKeys(const GameUiContext& context)
+{
+    ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
+    if ((hero.characterClass & 7u) != DarkLordClass || !context.input.IsDown(Key::Shift))
+        return false;
+    for (int order = 0; order < 4; ++order)
+    {
+        if (context.input.IsDown(Digit(order + 1).key))
+        {
+            hero.skillIndex = static_cast<std::uint8_t>(0x78 + order);
+            return true;
+        }
+    }
+    return false;
+}
+
+// 0x59f810(número): con el registro propio abierto, la primera de las 64 skills con esa tecla en el lugar del elegido
+// que no sea de las 0x43 a 0x48 pasa a ser la del héroe; si no hay, la primera de las órdenes del cuervo (0x78 a 0x7b)
+// con la tecla. En cada vuelta sin elegir, con el ataque automático fuera de los mapas 6 y 18 a 23 y la skill del héroe
+// en 6 o 0xf, los elegidos 0x6c8e30 y 0x6c8e38 vuelven a −1. Dice si eligió.
+bool ChooseTheSkillByKey(const GameUiContext& context, std::uint8_t number)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    const OwnCharacterRecord& own = context.world.OwnCharacter();
+    ActorState& hero = context.world.Actors()[runtime.hero];
+    const Render::Models::LogicalAccess access(runtime.ownRecordDepth, context.random,
+                                               Render::Models::OwnRecordCloseRandoms);
+    const std::size_t place = context.chosenSlot.value_or(std::uint8_t{0});
+    if (place >= own.skillKeys.size())
+        return false;
+    const auto& keys = own.skillKeys[place];
+    constexpr std::uint8_t KeyedSlots = 0x40;
+    for (std::uint8_t slot = 0; slot < KeyedSlots; ++slot)
+    {
+        const std::uint8_t skill = OwnSkillByte(own, slot);
+        if (skill != 0 && keys[slot] == number && (skill < 0x43 || skill > 0x48))
+        {
+            hero.skillIndex = slot;
+            return true;
+        }
+        const std::int32_t map = runtime.map;
+        if (runtime.ui.autoAttack && map != 6 && !(map >= 0x12 && map <= 0x17))
+        {
+            const std::uint8_t chosen = OwnSkillByte(own, hero.skillIndex);
+            if (chosen == 6 || chosen == 0xf)
+            {
+                runtime.selectedTargets[2] = -1;
+                runtime.selectedTargets[4] = -1;
+            }
+        }
+    }
+    for (std::uint8_t slot = 0x78; slot < 0x7c; ++slot)
+    {
+        if (keys[slot] == number)
+        {
+            hero.skillIndex = slot;
+            return true;
+        }
+    }
+    return false;
+}
+
 // 0x5a05e5..0x5a10e2: la barra de skills. Abre el registro propio aunque no haya skills y lo cierra al final.
 Core::Expected<void, std::string> StepTheSkillBar(const GameUiContext& context)
 {
@@ -939,7 +1124,7 @@ Core::Expected<void, std::string> StepTheSkillBar(const GameUiContext& context)
     if (runtime.siegeActive)
         return Core::Unexpected(std::string("0x652330: la skill del asedio en la barra es de la CL9.5"));
     if (ui.skillListOpen != 0)
-        return Core::Unexpected(std::string("0x5a070e: la lista de skills es de la CL9.2"));
+        return StepTheSkillList(context);
     return {};
 }
 
@@ -1165,25 +1350,17 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
     if (auto bar = StepTheSkillBar(context); !bar.HasValue())
         return bar;
     // 0x5a10e7..0x5a116f: los números eligen la skill (0x59f810), con el foco en el juego, sin campos de texto,
-    // sin Alt y sin las órdenes de la mascota del Dark Lord (0x420e30, Shift con 1 a 4). 0x7d368a4 no lo escribe
-    // MuRet, y el diálogo 0x73 (con el que no se mira el foco) es del hito 6.
+    // sin las órdenes del cuervo (0x420e30, Shift con 1 a 4) y sin Alt. 0x7d368a4 no lo escribe MuRet, y el diálogo
+    // 0x73 (con el que no se mira el foco) es del hito 6.
     if (runtime.chat.input.focus == UI::ChatFocus::Game && !ui.chatOpen && !runtime.chat.input.otherInput)
     {
-        if ((hero.characterClass & 7u) == DarkLordClass && input.IsDown(Key::Shift))
+        if (!StepThePetOrderKeys(context) && !input.IsDown(Key::Alt))
         {
-            for (int digit = 1; digit <= 4; ++digit)
-            {
-                if (input.IsDown(Digit(digit).key))
-                    return Core::Unexpected(std::string("0x420e30: las órdenes de la mascota del Dark Lord son de la "
-                                                        "CL9.2"));
-            }
-        }
-        if (!input.IsDown(Key::Alt))
-        {
+            // 0x5a1139..0x5a116a: del 1 al 9 y después el 0, cada uno que esté abajo.
             for (int digit = 1; digit <= 10; ++digit)
             {
                 if (input.IsDown(Digit(digit % 10).key))
-                    return Core::Unexpected(std::string("0x59f810: elegir la skill con los números es de la CL9.2"));
+                    static_cast<void>(ChooseTheSkillByKey(context, static_cast<std::uint8_t>(digit % 10)));
             }
         }
     }

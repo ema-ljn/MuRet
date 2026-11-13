@@ -30,6 +30,7 @@
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Skill.h"
 #include "Protocol/World.h"
 #include "Protocol/Character/CharacterCreate.h"
 #include "Protocol/Character/CharacterDelete.h"
@@ -1026,6 +1027,81 @@ TEST(ServerSessionTest, AClearWorldEntryReplyIsReportedWithF103)
     EXPECT_TRUE(SameBytes(Xor32Decode(received.packets.back()).Bytes(), Bytes({0xC1, 0x06, 0xF1, 0x03, 0x00, 0xF3})));
     EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+}
+
+// CL9 hito 4: las skills que llegan cifradas entran al mundo, cada una con su tipo.
+TEST(ServerSessionTest, TheEncryptedSkillsReachTheWorld)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {Join({
+        FromTheGameServer(Bytes({0xC1, 0x08, 0x19, 0x0D, 0x12, 0x34, 0x80, 0x56}), tested.gameServerSends),
+        FromTheGameServer(Bytes({0xC1, 0x09, 0x1E, 0x0E, 0x12, 0x34, 0x80, 0x81, 0x40}), tested.gameServerSends),
+        FromTheGameServer(Bytes({0xC1, 0x06, 0x1B, 0x1B, 0x12, 0x34}), tested.gameServerSends),
+        FromTheGameServer(Bytes({0xC1, 0x0A, 0x07, 0x01, 0x10, 0x00, 0x00, 0x00, 0x12, 0x34}), tested.gameServerSends),
+        FromTheGameServer(Bytes({0xC1, 0x06, 0x48, 0x12, 0x34, 0x10}), tested.gameServerSends),
+        FromTheGameServer(Bytes({0xC1, 0x08, 0x69, 0x03, 0x34, 0x12, 0x56, 0x00}), tested.gameServerSends),
+        FromTheGameServer(Bytes({0xC1, 0x08, 0xF3, 0x11, 0xFE, 0x00, 0x02, 0x11}), tested.gameServerSends),
+        FromTheGameServer(Bytes({0xC1, 0x05, 0xF3, 0x20, 0x42}), tested.gameServerSends),
+        FromTheGameServer(Bytes({0xC1, 0x04, 0x73, 0x00}), tested.gameServerSends),
+    })};
+    const std::size_t sentBefore = tested.GameServerReads().packets.size();
+    static_cast<void>(tested.session.Poll());
+    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 8u);
+    const auto* attack = std::get_if<Client::Protocol::Skill::MagicAttack>(&events[0]);
+    ASSERT_NE(attack, nullptr);
+    EXPECT_EQ(attack->source, 0x1234);
+    EXPECT_EQ(attack->target, 0x0056);
+    EXPECT_TRUE(attack->succeeded);
+    EXPECT_NE(std::get_if<Client::Protocol::Skill::DurationMagic>(&events[1]), nullptr);
+    EXPECT_NE(std::get_if<Client::Protocol::Skill::MagicCancel>(&events[2]), nullptr);
+    EXPECT_NE(std::get_if<Client::Protocol::Skill::ActorState>(&events[3]), nullptr);
+    EXPECT_NE(std::get_if<Client::Protocol::Skill::ActorEffect>(&events[4]), nullptr);
+    EXPECT_NE(std::get_if<Client::Protocol::Skill::SkillTarget>(&events[5]), nullptr);
+    const auto* list = std::get_if<Client::Protocol::Skill::SkillList>(&events[6]);
+    ASSERT_NE(list, nullptr);
+    EXPECT_EQ(list->slot, 2);
+    EXPECT_EQ(list->skill, 0x11);
+    const auto* summon = std::get_if<Client::Protocol::Skill::SummonLife>(&events[7]);
+    ASSERT_NE(summon, nullptr);
+    EXPECT_EQ(summon->life, 0x42);
+    // El 73 cifrado no hace nada (0x4d5b10).
+    EXPECT_EQ(tested.GameServerReads().packets.size(), sentBefore);
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+}
+
+// 0x4cc562, 0x4ce032 y 0x4d5d8c: el 19, el 1E y el 73 sin cifrar no entran y avisan con el F1 03 00 [cabeza].
+TEST(ServerSessionTest, TheClearSkillsAreReportedWithF103)
+{
+    for (const auto& [packet, head] : {std::pair{Bytes({0xC1, 0x08, 0x19, 0x0D, 0x12, 0x34, 0x80, 0x56}), 0x19},
+                                       std::pair{Bytes({0xC1, 0x09, 0x1E, 0x0E, 0x12, 0x34, 0x80, 0x81, 0x40}), 0x1E},
+                                       std::pair{Bytes({0xC1, 0x04, 0x73, 0x00}), 0xF1}})
+    {
+        Harness tested(IdentityObfuscation::Shared());
+        ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+        const std::size_t sentBefore = tested.GameServerReads().packets.size();
+        tested.socket.reads = {packet};
+        static_cast<void>(tested.session.Poll());
+        const GameServerReceived received = tested.GameServerReads();
+        ASSERT_EQ(received.packets.size(), sentBefore + 1) << head;
+        EXPECT_TRUE(
+            SameBytes(Xor32Decode(received.packets.back()).Bytes(), Bytes({0xC1, 0x06, 0xF1, 0x03, 0x00, head})));
+        EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
+        EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+    }
+}
+
+// Los demás no miran el cifrado (0x4cbe90, 0x4cbe00, 0x4dbf50, 0x4cc290 y 0x4c5070).
+TEST(ServerSessionTest, TheOtherClearSkillsReachTheWorld)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {
+        Join({Bytes({0xC1, 0x06, 0x1B, 0x1B, 0x12, 0x34}), Bytes({0xC1, 0x08, 0x69, 0x03, 0x34, 0x12, 0x56, 0x00}),
+              Bytes({0xC1, 0x07, 0xF3, 0x11, 0xFF, 0x00, 0x02})})};
+    static_cast<void>(tested.session.Poll());
+    EXPECT_EQ(tested.eventSink.TakeWorldEvents().size(), 3u);
 }
 
 // 0x4c1ec0: el F1 00 aceptado deja la clave del jugador (pkt[5..6], big endian) para el F3 03.

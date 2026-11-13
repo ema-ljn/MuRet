@@ -1,4 +1,5 @@
 #include "Core/Expected.h"
+#include "Data/Tables/SkillTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -22,10 +23,14 @@
 
 #include "support/ChatTexts.h"
 #include "support/SceneDataFiles.h"
+#include "support/TableFiles.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -74,8 +79,9 @@ class SteppingUi
 public:
     Client::Core::Expected<void, std::string> Step(std::int32_t x = 0, std::int32_t y = 0)
     {
-        return Client::Scenes::StepTheGameUi(
-            GameUiContext{.world = world, .random = random, .input = input, .mouseX = x, .mouseY = y});
+        GameUiContext context{.world = world, .random = random, .input = input, .mouseX = x, .mouseY = y};
+        context.skills = skills;
+        return Client::Scenes::StepTheGameUi(context);
     }
     Client::Core::Expected<void, std::string> Dialogs(std::int32_t x = 0, std::int32_t y = 0)
     {
@@ -98,6 +104,7 @@ public:
     WorldState world;
     CrtRandom random;
     InputState input;
+    const Client::Data::Tables::SkillTable* skills = nullptr;
 };
 
 TEST(GameUiTest, TheBaseStepDrawsTheSkillBarTheSlotGatesAndTheAnyPanelTail)
@@ -322,19 +329,227 @@ TEST(GameUiTest, ADialogClosesTheSlotGateAfterItsTwoQueries)
     EXPECT_EQ(tested.Panels().inventory, 0);
 }
 
-TEST(GameUiTest, TheSkillBarButtonTogglesTheListAndItsListIsACut)
+TEST(GameUiTest, TheSkillBarButtonTogglesTheList)
 {
     SteppingUi tested;
     tested.world.OwnCharacter().byte6a = 1;
     tested.Click();
+    const CrtRandom expected = Advanced(tested.random, BaseStepRandoms);
     const auto stepped = tested.Step(0x140, 0x1c0);
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x5a070e"), std::string::npos) << stepped.Error();
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    // Sin skills en el registro, la lista no lee Skill.bmd.
+    EXPECT_EQ(tested.random.State(), expected.State());
     EXPECT_EQ(tested.Ui().skillListOpen, 1);
     EXPECT_EQ(tested.Ui().skillTooltipX, 0x140);
     EXPECT_EQ(tested.Ui().skillTooltipY, 0x1bc);
     EXPECT_FALSE(tested.world.Runtime().movement.pendingClick);
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
+}
+
+// Skill.bmd inventado: las skills de `hidden` con el +0x31 en 1 (las que la lista no muestra).
+Client::Data::Tables::SkillTable SkillsHiding(std::initializer_list<std::uint8_t> hidden)
+{
+    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
+    for (const std::uint8_t skill : hidden)
+        plain[std::size_t{skill} * Client::Data::Tables::SkillRecordSize + 0x31] = std::byte{1};
+    const std::vector<std::byte> encrypted =
+        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
+    return Client::Data::Tables::SkillTable(std::span<const std::byte>(encrypted));
+}
+
+// La entrada de Skill.bmd que la lista abre y cierra en 0 (0x40f600).
+constexpr int SkillEntryRandoms = 60;
+// El registro propio que 0x59f810 abre y cierra fuera de la barra.
+constexpr int ChooseByKeyRandoms = 3848;
+
+// 0x5a070e..0x5a1098: la lista abierta lee el +0x31 de cada skill que hay (salvo las 0x43 a 0x48), y las que no lo
+// tienen en 1 van en una fila centrada: con +0x6a 3 y +0x6b 1, de dos, desde x 288.
+TEST(GameUiTest, TheOpenSkillListReadsEachSkillAndCentersTheShownOnes)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    const auto skills = SkillsHiding({9});
+    tested->skills = &skills;
+    auto& own = tested->world.OwnCharacter();
+    own.byte6a = 3;
+    own.byte6b = 1;
+    own.SetSkillAt(0, 5);
+    own.SetSkillAt(1, 0x44); // 0x43 a 0x48: ni la abre
+    own.SetSkillAt(2, 9);    // escondida
+    own.SetSkillAt(3, 0x11);
+    tested->Ui().skillListOpen = 1;
+    const CrtRandom expected = Advanced(tested->random, BaseStepRandoms + 3 * SkillEntryRandoms);
+    // La segunda que se ve, la 0x11 del lugar 3: x 288 + 32 = 320.
+    const auto stepped = tested->Step(320 + 5, 0x172 + 5);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested->random.State(), expected.State());
+    EXPECT_EQ(tested->Ui().skillTooltip, 3);
+    EXPECT_EQ(tested->Ui().skillTooltipX, 320 + 0x10);
+    EXPECT_EQ(tested->Ui().skillTooltipY, 0x172);
+    EXPECT_EQ(tested->Ui().mouseOnUi, 1);
+    EXPECT_EQ(tested->Ui().skillListOpen, 1);
+    EXPECT_EQ(tested->world.Runtime().ownRecordDepth, 0);
+}
+
+TEST(GameUiTest, TheOpenSkillListWithoutSkillBmdIsACut)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    tested->world.OwnCharacter().byte6a = 1;
+    tested->world.OwnCharacter().SetSkillAt(0, 5);
+    tested->Ui().skillListOpen = 1;
+    const auto stepped = tested->Step();
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x5a07a3"), std::string::npos) << stepped.Error();
+}
+
+// 0x5a08c2..0x5a08f3: el clic sobre una skill de la lista se la da al héroe y cierra la lista con el 0x19.
+TEST(GameUiTest, TheClickOnTheListChoosesTheSkillAndClosesIt)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    const auto skills = SkillsHiding({});
+    tested->skills = &skills;
+    auto& own = tested->world.OwnCharacter();
+    own.byte6a = 1;
+    own.SetSkillAt(4, 0x11);
+    tested->Ui().skillListOpen = 1;
+    tested->Click();
+    // Una sola: x 320 − 16 = 304.
+    const auto stepped = tested->Step(304, 0x172);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested->world.Actors()[0].skillIndex, 4);
+    EXPECT_EQ(tested->Ui().skillListOpen, 0);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x19);
+    EXPECT_FALSE(tested->world.Runtime().movement.pendingClick);
+    EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTimeMax, 6);
+}
+
+// 0x5a08fd..0x5a106e: Ctrl y un número sobre una skill de la lista le dan esa tecla, que deja la que la tenía. Con el
+// registro ya abierto por la barra, su acceso no cierra; el número también elige la skill (0x59f810).
+TEST(GameUiTest, CtrlAndADigitOverTheListGiveTheSkillThatKey)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    const auto skills = SkillsHiding({});
+    tested->skills = &skills;
+    auto& own = tested->world.OwnCharacter();
+    own.byte6a = 1;
+    own.SetSkillAt(2, 0x11);
+    auto& keys = own.skillKeys[0];
+    keys.fill(0xff);
+    keys[7] = 3;
+    tested->Ui().skillListOpen = 1;
+    Press(tested->input, Key::CtrlLeft);
+    Press(tested->input, Key::Digit3);
+    const CrtRandom expected = Advanced(tested->random, BaseStepRandoms + SkillEntryRandoms + ChooseByKeyRandoms);
+    const auto stepped = tested->Step(304, 0x172);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested->random.State(), expected.State());
+    EXPECT_EQ(keys[2], 3);
+    EXPECT_EQ(keys[7], 0xff);
+    EXPECT_EQ(tested->world.Actors()[0].skillIndex, 2);
+}
+
+// 0x420e90 (desde 0x5a1084, con la lista abierta y alguna skill): con el cuervo, los cuatro botones de sus órdenes.
+TEST(GameUiTest, TheRavenOrderButtonsSitUnderTheList)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    tested->world.Actors()[0].darkSpirit.emplace();
+    tested->world.OwnCharacter().byte6a = 1;
+    tested->Ui().skillListOpen = 1;
+    tested->Click();
+    ASSERT_TRUE(tested->Step(0x120 + 3, 0x14a + 3).HasValue());
+    EXPECT_EQ(tested->Ui().skillTooltip, 0x79);
+    EXPECT_EQ(tested->Ui().skillTooltipX, 0x130);
+    EXPECT_EQ(tested->Ui().skillTooltipY, 0x14a);
+    EXPECT_EQ(tested->world.Actors()[0].skillIndex, 0x79);
+    EXPECT_EQ(tested->Ui().skillListOpen, 0);
+}
+
+TEST(GameUiTest, WithoutTheRavenTheOrderButtonsAreNotThere)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    tested->world.OwnCharacter().byte6a = 1;
+    tested->Ui().skillListOpen = 1;
+    ASSERT_TRUE(tested->Step(0x120 + 3, 0x14a + 3).HasValue());
+    EXPECT_EQ(tested->Ui().skillTooltip, -1);
+}
+
+// 0x59f810: el número elige la primera de las 64 skills con esa tecla en el lugar del elegido, con el registro
+// abierto y cerrado.
+TEST(GameUiTest, TheDigitsChooseTheSkillWithThatKey)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    auto& own = tested->world.OwnCharacter();
+    own.SetSkillAt(1, 0x45); // de las 0x43 a 0x48: no
+    own.SetSkillAt(3, 0x11);
+    auto& keys = own.skillKeys[2];
+    keys.fill(0xff);
+    keys[1] = 2;
+    keys[3] = 2;
+    keys[5] = 2; // sin skill
+    Press(tested->input, Key::Digit2);
+    const CrtRandom expected = Advanced(tested->random, BaseStepRandoms + ChooseByKeyRandoms);
+    GameUiContext context{
+        .world = tested->world, .random = tested->random, .input = tested->input, .mouseX = 320, .mouseY = 100};
+    context.chosenSlot = std::uint8_t{2};
+    const auto stepped = Client::Scenes::StepTheGameUi(context);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested->random.State(), expected.State());
+    EXPECT_EQ(tested->world.Actors()[0].skillIndex, 3);
+}
+
+// 0x59f9c3: sin skill con la tecla, la primera orden del cuervo (0x78 a 0x7b) que la tenga.
+TEST(GameUiTest, WithoutASkillTheDigitChoosesTheRavenOrder)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    auto& keys = tested->world.OwnCharacter().skillKeys[0];
+    keys.fill(0xff);
+    keys[0x7a] = 0;
+    Press(tested->input, Key::Digit0);
+    ASSERT_TRUE(tested->Step(320, 100).HasValue());
+    EXPECT_EQ(tested->world.Actors()[0].skillIndex, 0x7a);
+}
+
+// 0x59f91e..0x59f958: en cada lugar sin elegir, con el ataque automático y la skill del héroe 6 o 0xf, los blancos
+// 0x6c8e30 y 0x6c8e38 vuelven a −1, salvo en los mapas 6 y 18 a 23.
+TEST(GameUiTest, TheDigitsDropTheAutoTargetsOutsideTheArenaMaps)
+{
+    for (const auto& [map, dropped] : {std::pair{0, true}, std::pair{2, true}, std::pair{6, false},
+                                       std::pair{0x12, false}, std::pair{0x17, false}, std::pair{0x18, true}})
+    {
+        auto tested = std::make_unique<SteppingUi>();
+        auto& runtime = tested->world.Runtime();
+        runtime.map = map;
+        tested->Ui().autoAttack = true;
+        tested->world.OwnCharacter().SetSkillAt(0, 6);
+        tested->world.OwnCharacter().skillKeys[0].fill(0xff);
+        runtime.selectedTargets = {1, 2, 3, 4, 5};
+        Press(tested->input, Key::Digit4);
+        ASSERT_TRUE(tested->Step(320, 100).HasValue()) << map;
+        EXPECT_EQ(runtime.selectedTargets[2], dropped ? -1 : 3) << map;
+        EXPECT_EQ(runtime.selectedTargets[4], dropped ? -1 : 5) << map;
+        EXPECT_EQ(runtime.selectedTargets[0], 1) << map;
+    }
+}
+
+// 0x420e30: el Dark Lord con Shift y el 1 al 4 elige la orden del cuervo, y entonces los números no eligen skill.
+TEST(GameUiTest, TheDarkLordShiftDigitsChooseTheRavenOrder)
+{
+    auto tested = std::make_unique<SteppingUi>();
+    tested->world.Actors()[0].characterClass = 4;
+    Press(tested->input, Key::ShiftLeft);
+    Press(tested->input, Key::Digit3);
+    const CrtRandom expected = Advanced(tested->random, BaseStepRandoms);
+    ASSERT_TRUE(tested->Step(320, 100).HasValue());
+    EXPECT_EQ(tested->random.State(), expected.State());
+    EXPECT_EQ(tested->world.Actors()[0].skillIndex, 0x7a);
+
+    // Otra clase: el Shift no cuenta y el 3 va a 0x59f810.
+    auto other = std::make_unique<SteppingUi>();
+    other->world.Actors()[0].characterClass = 1;
+    Press(other->input, Key::ShiftLeft);
+    Press(other->input, Key::Digit3);
+    const CrtRandom chosen = Advanced(other->random, BaseStepRandoms + ChooseByKeyRandoms);
+    ASSERT_TRUE(other->Step(320, 100).HasValue());
+    EXPECT_EQ(other->random.State(), chosen.State());
 }
 
 TEST(GameUiTest, TheSiegePanelTogglesWithTabAndTakesTheMouse)

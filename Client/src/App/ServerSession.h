@@ -372,6 +372,17 @@ private:
     void OnItemPut(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
     void OnMainCheck(const Network::Packet& packet);
+    // CL9 hito 4: las skills (04 § Las skills).
+    void RegisterSkillHandlers();
+    void OnMagicAttack(const Network::Packet& packet);
+    void OnDurationMagic(const Network::Packet& packet);
+    void OnMagicCancel(const Network::Packet& packet);
+    void OnActorState(const Network::Packet& packet);
+    void OnActorEffect(const Network::Packet& packet);
+    void OnSkillTarget(const Network::Packet& packet);
+    void OnReport73(const Network::Packet& packet);
+    void OnSkillList(const Network::Packet& packet);
+    void OnSummonLife(const Network::Packet& packet);
     // El F1 02 con 1, con `encrypted` en el flag del paquete.
     void ReturnToSelection(bool encrypted);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.

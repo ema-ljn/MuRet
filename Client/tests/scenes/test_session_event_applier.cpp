@@ -11,6 +11,7 @@
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
+#include "Protocol/Skill.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/LoginModels.h"
@@ -31,6 +32,7 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -171,6 +173,25 @@ TEST(SessionEventApplierTest, WalkAndDamageReachTheirAppliersWithoutFallingThrou
     const Client::App::WorldEvent damage = Client::Protocol::Movement::Damage{42, false, 50, 0, false};
     EXPECT_TRUE(tested.applier.ApplyWorld(walk, online.session).HasValue());
     EXPECT_TRUE(tested.applier.ApplyWorld(damage, online.session).HasValue());
+}
+// CL9 hito 4: las skills van a SkillReplies, sin caer en el F3 03.
+TEST(SessionEventApplierTest, TheSkillsReachTheirAppliers)
+{
+    auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online;
+    const Client::App::WorldEvent summon = Client::Protocol::Skill::SummonLife{0x42};
+    const Client::App::WorldEvent cancel = Client::Protocol::Skill::MagicCancel{0x1b, 0x0777};
+    const Client::App::WorldEvent attack = Client::Protocol::Skill::MagicAttack{0x13, 0x0777, 0x0888, false};
+    EXPECT_TRUE(tested->applier.ApplyWorld(summon, online.session).HasValue());
+    EXPECT_EQ(tested->world.Runtime().hud.summonLife, 0x42);
+    EXPECT_TRUE(tested->applier.ApplyWorld(cancel, online.session).HasValue());
+    EXPECT_TRUE(tested->applier.ApplyWorld(attack, online.session).HasValue());
+    // F3 11 sin Skill.bmd corta en la cuenta.
+    const Client::App::WorldEvent list =
+        Client::Protocol::Skill::SkillList{.count = 0xfe, .list = 0, .slot = 0, .skill = 0x11, .entries = {}};
+    const auto counted = tested->applier.ApplyWorld(list, online.session);
+    ASSERT_FALSE(counted.HasValue());
+    EXPECT_NE(counted.Error().find("0x4c54ed"), std::string::npos) << counted.Error();
 }
 // 0x4c6098: en la escena 2, el 00 pide la lista por el GameServer sin mirar el paquete (CL8 hito 3).
 TEST(SessionEventApplierTest, The00InTheLoginAsksForTheListThroughTheGameServer)

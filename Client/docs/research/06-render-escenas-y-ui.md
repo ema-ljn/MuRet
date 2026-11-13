@@ -6876,7 +6876,10 @@ vértices en `+0xe8`, la luz en `+0xf4`, la caja del picking en `+0x13c` y "a la
   usar) y por Q, W y E (`0x5a35e0..`, que siguen con la tecla siguiente), y el clic derecho en la grilla
   (`0x5c5895..0x5c9b0b`: el pergamino del portal sin un pedido de gate, la caja de la suerte de nivel 14 y las
   pociones). Con el almacén, `0x80` o el comercio abiertos, el aviso 474; con `0x5767954` en más de 0, nada; si no,
-  `0x5767954` en 10, el `26` y el sonido. Las entradas a los eventos (el `91`, hito 11) cortan.
+  `0x5767954` en 10, el `26` y el sonido por el tipo de la casilla lugar − 12 (fuera de la grilla el original lee la
+  memoria de al lado: MuRet no registra sonido). Las entradas a los eventos (el `91`, hito 11) cortan; el `0x1a1d`
+  antes mira la tienda de NPC, el almacén, el comercio, `0x1000` y `0x4000` (`0x5c67f3..0x5c685f`, con cortocircuito
+  y el `rand()` de `0x10000` y de `0x20`) y con una abierta no hace nada (`0x5c9b0b`).
 - **El clic derecho desde `0x5c7bc6`** (fase 2). La casilla es la de arriba a la izquierda (`+0x43` · 8 + `+0x42`,
   en `esi` y `[ebp + 0x1c]`, `0x5c58aa`); el ítem, el de la casilla bajo el mouse (`ebx`), que es una copia.
   - *Los libros y las esferas* (`0x1e00..0x1fff`, `0x1807..0x180e` y `0x1810..0x1818`, en comparaciones con signo;

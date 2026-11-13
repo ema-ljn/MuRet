@@ -419,6 +419,12 @@ Core::Expected<void, std::string> ApplyPickUpResult(const Protocol::FloorItems::
     return {};
 }
 
+void ApplyShortPickUpResult(WorldState& world)
+{
+    // 0x4d10b9.
+    world.Runtime().floor.pendingPickUp = -1;
+}
+
 Core::Expected<void, std::string> ApplyStatFruit(const Protocol::FloorItems::StatFruit& fruit, WorldState& world,
                                                  Render::Models::CrtRandom& random, const Data::Text::TextTable* texts)
 {
@@ -463,5 +469,11 @@ Core::Expected<void, std::string> ApplyStatFruit(const Protocol::FloorItems::Sta
     // 0x4de7e4, 0x4de802, 0x4de838, 0x4dea4c, 0x4dea6a, 0x4deaa0 y 0x4deb0e: la espera, en todos los caminos.
     world.Runtime().ui.field5767954 = 0;
     return shown;
+}
+
+void ApplyShortStatFruit(WorldState& world)
+{
+    // 0x4de7e4, 0x4de802, 0x4de838, 0x4dea4c, 0x4dea6a, 0x4deaa0 y 0x4deb0e.
+    world.Runtime().ui.field5767954 = 0;
 }
 } // namespace Client::Scenes

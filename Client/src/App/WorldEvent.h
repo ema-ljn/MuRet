@@ -37,6 +37,8 @@ using WorldEvent = std::variant<
     Protocol::Inventory::Durability, Protocol::Inventory::EquipmentChange, Protocol::Inventory::ItemPut,
     Protocol::Inventory::LifeRefill, Protocol::Inventory::ManaRefill, Protocol::FloorItems::FloorItemsCreate,
     Protocol::FloorItems::FloorItemsDelete, Protocol::FloorItems::PickUpResult, Protocol::FloorItems::DropResult,
-    Protocol::FloorItems::StatFruit, Protocol::Movement::Action, Protocol::Viewport::Players, Protocol::Viewport::Leave,
-    Protocol::Viewport::Transformed, Protocol::Viewport::EquipmentShown, Protocol::Viewport::Position>;
+    Protocol::FloorItems::StatFruit, Protocol::FloorItems::ShortPickUpResult, Protocol::FloorItems::ShortDropResult,
+    Protocol::FloorItems::ShortStatFruit, Protocol::Movement::Action, Protocol::Viewport::Players,
+    Protocol::Viewport::Leave, Protocol::Viewport::Transformed, Protocol::Viewport::EquipmentShown,
+    Protocol::Viewport::Position>;
 } // namespace Client::App

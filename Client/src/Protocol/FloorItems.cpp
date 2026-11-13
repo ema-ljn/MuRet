@@ -113,10 +113,21 @@ Core::Expected<DropResult, ProtocolError> ReadDropResult(const Network::Packet& 
         return Core::Unexpected(fields.Error());
     Core::ByteReader& reader = fields.Value();
     const auto result = reader.ReadU8();
-    const auto slot = reader.ReadU8();
-    if (!result || !slot)
+    if (!result)
         return Core::Unexpected(ProtocolError::TooShort);
-    return DropResult{.result = *result, .slot = *slot};
+    // 0x4d10d9..0x4d10e4: pkt[4] solo con pkt[3] distinto de 0.
+    const auto slot = reader.ReadU8();
+    if (!slot && *result != DropRejected)
+        return Core::Unexpected(ProtocolError::TooShort);
+    return DropResult{.result = *result, .slot = slot.value_or(0)};
+}
+
+Core::Expected<ShortDropResult, ProtocolError> ReadShortDropResult(const Network::Packet& packet)
+{
+    auto fields = FieldsOf(packet, Network::PacketType::C1, DropOpcode);
+    if (!fields.HasValue())
+        return Core::Unexpected(fields.Error());
+    return ShortDropResult{.result = fields.Value().ReadU8()};
 }
 
 Core::Expected<StatFruit, ProtocolError> ReadStatFruit(const Network::Packet& packet)

@@ -73,10 +73,18 @@ void ApplyFloorItemsDelete(const Protocol::FloorItems::FloorItemsDelete& deleted
 [[nodiscard]] Core::Expected<void, std::string> ApplyPickUpResult(const Protocol::FloorItems::PickUpResult& result,
                                                                   const WorldEntryResources& resources);
 
+// Un 22 corto (07 Q-C1240): de 0x4d0cc0, solo el pedido (0x6c82e8) en −1, que 0x4d10b9 escribe en todos los caminos.
+// Sin él, RequestThePickUp (0x5667d7, 0x566e90) no vuelve a pedir nada.
+void ApplyShortPickUpResult(WorldState& world);
+
 // 0x4de500, el 2C: con 0 y un stat de 0 a 4, el stat del registro propio y +0x44 suben los puntos; con 3, el stat baja
 // y +0x68 y +0x48 suben; cada uno con su aviso (0x632e30) armado con los textos 379, el del stat y 1412 o 1903. Los
 // resultados 1, 2, 4, 5, 0x10, 0x21, 0x25 y 0x26 abren su aviso. Siempre, 0x5767954 en 0.
 [[nodiscard]] Core::Expected<void, std::string> ApplyStatFruit(const Protocol::FloorItems::StatFruit& fruit,
                                                                WorldState& world, Render::Models::CrtRandom& random,
                                                                const Data::Text::TextTable* texts);
+
+// Un 2C corto (07 Q-C1240): de 0x4de500, solo la espera del uso (0x5767954) en 0, que escribe en todos los caminos.
+// Sin ella, el JG de 0x5c5920 y 0x5a2bea no deja usar otro ítem.
+void ApplyShortStatFruit(WorldState& world);
 } // namespace Client::Scenes

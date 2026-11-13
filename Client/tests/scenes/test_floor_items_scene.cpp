@@ -540,6 +540,39 @@ TEST(FloorItemsSceneTest, TheStatFruitChangesTheStatAndWarns)
     EXPECT_EQ(stage->world.Runtime().ui.field5767954, 0);
 }
 
+// 07 Q-C1240: de un 22, un 23 o un 2C cortos, solo lo que el original escribe en todos sus caminos. 0x4d10b9 suelta el
+// pedido; 0x4d13d1 y 0x4d13e5, el lugar tirado, y con pkt[3] distinto de 0, 0x4d13c7 vacía el cursor; 0x4deb0e y las
+// otras salidas de 0x4de500, la espera del uso. Sin ellos, no se vuelve a levantar ni a usar nada.
+TEST(FloorItemsSceneTest, TheShortRepliesReleaseOnlyTheirWaits)
+{
+    auto stage = StageIn(0);
+    Scenes::WorldRuntime& runtime = stage->world.Runtime();
+    runtime.floor.pendingPickUp = 5;
+    runtime.ui.field5767954 = 10;
+    Scenes::ApplyShortPickUpResult(stage->world);
+    EXPECT_EQ(runtime.floor.pendingPickUp, -1);
+    EXPECT_EQ(runtime.ui.field5767954, 10);
+    Scenes::ApplyShortStatFruit(stage->world);
+    EXPECT_EQ(runtime.ui.field5767954, 0);
+
+    for (const std::optional<std::uint8_t> result :
+         {std::optional<std::uint8_t>{}, std::optional<std::uint8_t>{std::uint8_t{0}}})
+    {
+        runtime.cursorItemCount = 1;
+        runtime.cursorItem.occupied = 1;
+        runtime.floor.pendingDrop = 22;
+        Scenes::ApplyShortDropResult({.result = result}, stage->world);
+        EXPECT_EQ(runtime.floor.pendingDrop, -1);
+        EXPECT_EQ(runtime.cursorItemCount, 1);
+        EXPECT_EQ(runtime.cursorItem.occupied, 1u);
+    }
+    runtime.floor.pendingDrop = 22;
+    Scenes::ApplyShortDropResult({.result = std::uint8_t{1}}, stage->world);
+    EXPECT_EQ(runtime.floor.pendingDrop, -1);
+    EXPECT_EQ(runtime.cursorItemCount, 0);
+    EXPECT_EQ(runtime.cursorItem.occupied, 0u);
+}
+
 // 0x4c24cf: la vuelta a la selección suelta el pedido del C1 22 y 0x4c24c9 la espera del uso.
 TEST(FloorItemsSceneTest, TheReturnToSelectionClearsThePickUpRequest)
 {

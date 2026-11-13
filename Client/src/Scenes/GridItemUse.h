@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 
 namespace Client::UI
@@ -33,4 +34,12 @@ struct InventoryMoveContext;
 //   el cursor vuelve a quedar en ceros.
 [[nodiscard]] Core::Expected<void, std::string> UseTheLaterGridItem(const InventoryMoveContext& context,
                                                                     UI::PanelRegistry& panels, std::size_t index);
+
+// Las entradas a los eventos, antes de las pociones (0x5c67e9, 0x5c6c36 y 0x5c7010): el 0x1a1d, el 0x1c13 y el 0x1a12.
+[[nodiscard]] bool IsAnEventTicket(std::int32_t type);
+
+// El 0x1a1d mira la tienda de NPC, el almacén, el comercio, 0x1000 y 0x4000 (0x5c67f3..0x5c685f), en ese orden y hasta
+// la primera abierta, con el rand() de la tienda y del comercio; con una abierta no hace nada (0x5c9b0b). Si no, y con
+// los otros dos, el C1 .. 91 corta (0x5c6865, 0x5c6c36 y 0x5c7010, hito 11).
+[[nodiscard]] Core::Expected<void, std::string> UseTheEventTicket(UI::PanelRegistry& panels, std::int32_t type);
 } // namespace Client::Scenes

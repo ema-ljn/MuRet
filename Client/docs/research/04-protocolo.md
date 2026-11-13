@@ -892,7 +892,8 @@ del piso es la de `0x220` bytes de `0x77f46c8` (1000), con el objeto en `+0x4c`.
   con el XOR32 y en C3. Es `PMSG_ITEMTHROW`, de 6 bytes.
 - **`23` del GameServer** (`0x4d10d0`): `C1 05 23 <resultado> <lugar>` (`PMSG_ITEMTHROW_RESULT`). Con 0, `0x5be150`
   vuelve el ítem del cursor; si no, el lugar sale del equipo (0 a 11, con el registro abierto) o de la grilla
-  (`0x5bd750`), y la cuenta del cursor queda en 0. Las dos ramas dejan `0x6c82ec` en −1.
+  (`0x5bd750`), y la cuenta del cursor queda en 0. Las dos ramas dejan `0x6c82ec` en −1. Con 0 no lee `pkt[4]`
+  (`0x4d10de`).
 - **`26` del cliente** (`0x5a2c01..`, `0x5a3623..`, `0x5a3da8..`, `0x5a452f..` y `0x5c5937..`): `C1 06 26 <lugar>
   <destino> <[0x78abb26]>`, el lugar + 12 de la casilla, 0 y el byte que ponen dos diálogos de `0x623e70`; con el
   XOR32 y en C3. `PMSG_USEITEM` del GameServer 0.97 es de 5 bytes, sin el tercero (07 Q-C1241). Lo mismo mandan los
@@ -906,7 +907,9 @@ del piso es la de `0x220` bytes de `0x77f46c8` (1000), con el objeto en `+0x4c`.
 
 **MuRet** (CL9 hito 5): `Protocol::FloorItems` lee los cinco que llegan y escribe los tres que salen;
 `App::ServerSession` los registra en un bloque y manda el `22`, el `23` y el `26` (`SendPickUp`, `SendDrop` y
-`SendUseItem`). Lo que hace el mundo con cada uno, en [06](06-render-escenas-y-ui.md#los-ítems-del-piso). Los tests
+`SendUseItem`). Un `22`, un `23` o un `2C` más cortos de lo que lee el cliente no llegan al mundo, salvo lo que el
+original escribe en todos sus caminos (`ShortPickUpResult`, `ShortDropResult` con `pkt[3]` si llegó, y
+`ShortStatFruit`; 07 Q-C1240). Un `20` corto no escribe nada fijo y se ignora entero. Lo que hace el mundo con cada uno, en [06](06-render-escenas-y-ui.md#los-ítems-del-piso). Los tests
 usan ítems inventados.
 
 ### Los otros jugadores: `12`, `14`, `45`, `25` y `DF`

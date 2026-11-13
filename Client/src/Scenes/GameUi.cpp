@@ -103,15 +103,12 @@ constexpr std::int32_t PetButtonBottom = 0x1a3;
 constexpr std::uint8_t PetWindowOpen = 2;
 // 0x5aca1b..0x5aca24: F1 da la vuelta por 0, 1 y 2 (idiv por 3).
 constexpr std::int32_t FunctionHelpModes = 3;
-// CL9 hito 5, el clic derecho de la grilla (0x5c58b0..0x5c740c): el pergamino del portal, la caja de la suerte de
-// nivel 14 (+4 & 0x78 en 0x70) y los tres que mandan el C1 .. 91.
+// CL9 hito 5, el clic derecho de la grilla (0x5c58b0..0x5c740c): el pergamino del portal y la caja de la suerte de
+// nivel 14 (+4 & 0x78 en 0x70). Los tres que mandan el C1 .. 91, en GridItemUse.
 constexpr std::int32_t TownPortalScroll = 0x1c0a;
 constexpr std::int32_t BoxOfLuck = 0x1c0b;
 constexpr std::uint32_t UsedLevelBits = 0x78;
 constexpr std::uint32_t UsedBoxLevelBits = 0x70;
-constexpr std::int32_t EventTicket1a1d = 0x1a1d;
-constexpr std::int32_t EventTicket1c13 = 0x1c13;
-constexpr std::int32_t EventTicket1a12 = 0x1a12;
 // 0x636e11: desde esta y, el mouse está sobre la barra.
 constexpr std::int32_t HudTop = 0x1b0;
 // 0x5a1181..0x5a1189: Chaos Castle.
@@ -422,8 +419,9 @@ enum class GridHover : std::uint8_t
 // 0x5c5895..0x5c9b0b (CL9 hito 5): el clic derecho sobre el ítem de la casilla `index`, consumido, con la casilla de
 // arriba a la izquierda del ítem. Los que solo mandan el C1 06 26 (UseInventoryItem): el 0x1c0a sin 0x576794c
 // (0x5c58bd), el 0x1c0b de nivel 14 (0x5c608c) y las pociones (0x1c00..0x1c06, 0x1c08, 0x1c09, el 0x1c14 de nivel 0 y
-// el 0x1c07, 0x5c73ea). Las entradas a los eventos cortan con su dirección (0x5c67e9, 0x5c6c36 y 0x5c7010). Desde
-// 0x5c7bc6, los libros y las esferas de skills, la fruta, el 0x1a0b y el resto: UseTheLaterGridItem.
+// el 0x1c07, 0x5c73ea). Las entradas a los eventos cortan con su dirección (0x5c6865, después de las ventanas que
+// mira el 0x1a1d; 0x5c6c36 y 0x5c7010). Desde 0x5c7bc6, los libros y las esferas de skills, la fruta, el 0x1a0b y el
+// resto: UseTheLaterGridItem.
 Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, UI::PanelRegistry& panels,
                                                  std::size_t index)
 {
@@ -443,16 +441,8 @@ Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, U
     }
     if (type == BoxOfLuck && levelBits == UsedBoxLevelBits)
         return use();
-    if (type == EventTicket1a1d || type == EventTicket1c13 || type == EventTicket1a12)
-    {
-        const std::uint32_t branch = type == EventTicket1a1d   ? 0x5c67e9u
-                                     : type == EventTicket1c13 ? 0x5c6c36u
-                                                               : 0x5c7010u;
-        return Core::Unexpected(
-            std::format("{:#x}: usar el {:#x} de la grilla manda el C1 .. 91, la entrada a un evento, "
-                        "del hito 11",
-                        branch, type));
-    }
+    if (IsAnEventTicket(type))
+        return UseTheEventTicket(panels, type);
     const bool potion = (type >= 0x1c00 && type <= 0x1c06) || type == 0x1c08 || type == 0x1c09 ||
                         (type == 0x1c14 && levelBits == 0) || type == 0x1c07;
     if (potion)

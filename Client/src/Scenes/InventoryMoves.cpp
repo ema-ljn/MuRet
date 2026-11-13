@@ -586,11 +586,14 @@ Core::Expected<void, std::string> UseInventoryItemOn(const InventoryMoveContext&
                                                .kind = runtime.ui.field78abb26};
     if (auto sent = context.services.sendUseItem(packet); !sent.HasValue())
         return sent;
-    // 0x5a3296..0x5a32c9 (y 0x5c6030, 0x5d8c9a): el tipo de la casilla lugar − 12 después del envío.
-    auto used = CellAt(context.world.Inventory().cells, use.slot - FirstGridSlot, "0x5a329c");
-    if (!used.HasValue())
-        return Core::Unexpected(used.Error());
-    const std::int32_t type = Signed(used.Value()->id);
+    // 0x5a3296..0x5a32c9 (y 0x5c6030, 0x5d8c9a): el tipo de la casilla lugar − 12 después del envío. Con un lugar
+    // fuera de la grilla, el original solo lee la memoria de al lado (0x78a9bb0 + 0x48 · (lugar − 12)) y el paquete ya
+    // salió: MuRet no la inventa y no registra sonido.
+    const std::span<const ItemState> cells(context.world.Inventory().cells);
+    const std::int32_t cell = use.slot - FirstGridSlot;
+    if (cell < 0 || cell >= static_cast<std::int32_t>(cells.size()))
+        return {};
+    const std::int32_t type = Signed(cells[static_cast<std::size_t>(cell)].id);
     if (type == FirstPotion)
         runtime.lastSoundId = FirstPotionSound;
     else if (type > FirstPotion && type <= LastSoundedPotion)
@@ -1555,6 +1558,19 @@ Core::Expected<void, std::string> ApplyDropResult(const Protocol::FloorItems::Dr
     runtime.cursorItem.occupied = 0;
     runtime.floor.pendingDrop = -1;
     return {};
+}
+
+void ApplyShortDropResult(const Protocol::FloorItems::ShortDropResult& result, WorldState& world)
+{
+    WorldRuntime& runtime = world.Runtime();
+    if (result.result && *result.result != Protocol::FloorItems::DropRejected)
+    {
+        // 0x4d13c7.
+        runtime.cursorItemCount = 0;
+        runtime.cursorItem.occupied = 0;
+    }
+    // 0x4d13d1 y 0x4d13e5.
+    runtime.floor.pendingDrop = -1;
 }
 
 Core::Expected<void, std::string> ApplyEquipmentChange(const Protocol::Inventory::EquipmentChange& change,

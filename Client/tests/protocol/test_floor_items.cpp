@@ -13,6 +13,8 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <cstdint>
+#include <optional>
 
 namespace
 {
@@ -94,6 +96,17 @@ TEST(FloorItemsProtocolTest, ReadsTheDropResultAndTheStatFruit)
     ASSERT_TRUE(drop.HasValue());
     EXPECT_EQ(drop.Value().result, 1);
     EXPECT_EQ(drop.Value().slot, 0x14);
+    // 0x4d10de: con 0 no lee pkt[4]; con otro, sin pkt[4] no alcanza, y queda pkt[3] para lo que se suelta igual.
+    const auto rejected = FloorItems::ReadDropResult(PacketOf(Bytes({0xc1, 0x04, 0x23, 0})));
+    ASSERT_TRUE(rejected.HasValue());
+    EXPECT_EQ(rejected.Value().result, FloorItems::DropRejected);
+    EXPECT_EQ(ErrorOf(FloorItems::ReadDropResult(PacketOf(Bytes({0xc1, 0x04, 0x23, 1})))), ProtocolError::TooShort);
+    const auto shortDrop = FloorItems::ReadShortDropResult(PacketOf(Bytes({0xc1, 0x04, 0x23, 1})));
+    ASSERT_TRUE(shortDrop.HasValue());
+    EXPECT_EQ(shortDrop.Value().result, std::optional<std::uint8_t>{std::uint8_t{1}});
+    const auto bare = FloorItems::ReadShortDropResult(PacketOf(Bytes({0xc1, 0x03, 0x23})));
+    ASSERT_TRUE(bare.HasValue());
+    EXPECT_FALSE(bare.Value().result.has_value());
     const auto fruit = FloorItems::ReadStatFruit(PacketOf(Bytes({0xc1, 0x06, 0x2c, 0, 3, 1})));
     ASSERT_TRUE(fruit.HasValue());
     EXPECT_EQ(fruit.Value().result, 0);

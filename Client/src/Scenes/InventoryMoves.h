@@ -260,6 +260,9 @@ PlaceMovedItem(std::uint8_t slot, const Protocol::Inventory::ItemData& item, con
 // del cursor en 0. Siempre, 0x6c82ec en −1.
 [[nodiscard]] Core::Expected<void, std::string> ApplyDropResult(const Protocol::FloorItems::DropResult& result,
                                                                 const WorldEntryResources& resources);
+// Un 23 corto (07 Q-C1240): de 0x4d10d0, el lugar tirado (0x6c82ec) en −1, que escribe en todos los caminos, y con
+// pkt[3] distinto de 0 el cursor vacío (0x7879fbc en 0, 0x4d13c7), también en todos los que leen pkt[4].
+void ApplyShortDropResult(const Protocol::FloorItems::ShortDropResult& result, WorldState& world);
 // 0x4e316e, el F3 13: el personaje de la clave (0x5110d0) y, si es un jugador, su equipo (0x5139f0, CL9.2): corta.
 // Si no lo es, o sin ninguno, nada.
 [[nodiscard]] Core::Expected<void, std::string> ApplyEquipmentChange(const Protocol::Inventory::EquipmentChange& change,

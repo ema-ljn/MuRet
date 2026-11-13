@@ -37,6 +37,7 @@
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Party.h"
+#include "Protocol/ProtocolError.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/Viewport.h"
 #include "Protocol/World.h"
@@ -1195,6 +1196,10 @@ void ServerSession::OnPickUpResult(const Network::Packet& packet)
     if (!result.HasValue())
     {
         m_log.Warning("se ignora lo levantado del piso (22): {}", Unreadable);
+        // 07 Q-C1240: 0x4d0cc0 no mira el largo y suelta el pedido (0x4d10b9) en todos sus caminos.
+        if (result.Error() == Protocol::ProtocolError::TooShort)
+            static_cast<void>(
+                CheckApplication(m_eventSink.ApplyWorld(Protocol::FloorItems::ShortPickUpResult{}, *this)));
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
@@ -1206,6 +1211,10 @@ void ServerSession::OnDropResult(const Network::Packet& packet)
     if (!result.HasValue())
     {
         m_log.Warning("se ignora lo tirado al piso (23): {}", Unreadable);
+        // 07 Q-C1240: 0x4d10d0 suelta el lugar tirado (0x4d13d1 y 0x4d13e5) en todos sus caminos.
+        const auto unread = Protocol::FloorItems::ReadShortDropResult(packet);
+        if (result.Error() == Protocol::ProtocolError::TooShort && unread.HasValue())
+            static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(unread.Value(), *this)));
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
@@ -1217,6 +1226,9 @@ void ServerSession::OnStatFruit(const Network::Packet& packet)
     if (!fruit.HasValue())
     {
         m_log.Warning("se ignora la fruta de stats (2C): {}", Unreadable);
+        // 07 Q-C1240: 0x4de500 no mira el largo y termina la espera del uso (0x4deb0e) en todos sus caminos.
+        if (fruit.Error() == Protocol::ProtocolError::TooShort)
+            static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(Protocol::FloorItems::ShortStatFruit{}, *this)));
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(fruit.Value(), *this)));

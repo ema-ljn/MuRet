@@ -406,6 +406,76 @@ TEST_F(GridItemUseTest, The1a0bOfLevelZeroOrOneIsUsed)
     use(2, 0, false);
 }
 
+// 0x5c67f3..0x5c685f: el 0x1a1d mira la tienda de NPC (con su rand()), el almacén, el comercio (con el suyo), 0x1000 y
+// 0x4000, y con la primera abierta no hace nada (0x5c9b0b). Con todas cerradas, y siempre con el 0x1c13 y el 0x1a12,
+// el 91 corta (hito 11).
+TEST_F(GridItemUseTest, TheTicket1a1dLooksAtTheShopFirst)
+{
+    Scenes::GamePanels panels(world, random);
+    Client::UI::PanelState& state = world.Runtime().panels;
+    const auto look = [&](std::uint8_t& open, int randoms)
+    {
+        open = 1;
+        const CrtRandom expected = Advanced(random, randoms);
+        const auto used = Scenes::UseTheEventTicket(panels.Registry(), 0x1a1d);
+        ASSERT_TRUE(used.HasValue()) << used.Error();
+        EXPECT_EQ(random.State(), expected.State());
+        open = 0;
+    };
+    {
+        SCOPED_TRACE("tienda");
+        look(state.npcShop, 1);
+    }
+    {
+        SCOPED_TRACE("almacén");
+        look(state.warehouse, 1);
+    }
+    {
+        SCOPED_TRACE("comercio");
+        look(state.trade, 2);
+    }
+    const CrtRandom expected = Advanced(random, 2);
+    const auto cut = Scenes::UseTheEventTicket(panels.Registry(), 0x1a1d);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x5c6865"), std::string::npos) << cut.Error();
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_TRUE(sent.empty());
+
+    state.npcShop = 1;
+    for (const auto& [type, address] : {std::pair{0x1c13, "0x5c6c36"}, std::pair{0x1a12, "0x5c7010"}})
+    {
+        const CrtRandom unchanged = random;
+        const auto other = Scenes::UseTheEventTicket(panels.Registry(), type);
+        ASSERT_FALSE(other.HasValue());
+        EXPECT_NE(other.Error().find(address), std::string::npos) << other.Error();
+        EXPECT_EQ(random.State(), unchanged.State());
+        EXPECT_TRUE(Scenes::IsAnEventTicket(type));
+    }
+    EXPECT_FALSE(Scenes::IsAnEventTicket(0x1a1e));
+}
+
+// 0x5a3296..0x5a32c9 y 0x5d8c9a: el sonido lee la casilla lugar − 12 después del envío. Con un lugar del equipo o más
+// allá de la grilla, el original lee la memoria de al lado; el paquete ya salió y MuRet no la lee: sin sonido ni corte.
+TEST_F(GridItemUseTest, AUseFromOutsideTheGridSendsWithoutTheSound)
+{
+    for (const std::int32_t slot : {3, 12 + static_cast<std::int32_t>(Scenes::InventoryCellCount)})
+    {
+        SCOPED_TRACE(slot);
+        sent.clear();
+        world.Runtime().ui.field5767954 = 0;
+        world.Runtime().lastSoundId.reset();
+        Scenes::GamePanels panels(world, random);
+        const CrtRandom expected = Advanced(random, 1 + SendRandoms);
+        const auto used = Scenes::UseInventoryItemOn(Moves(), panels.Registry(),
+                                                     Scenes::InventoryUse{.slot = slot, .target = 20, .where = "test"});
+        ASSERT_TRUE(used.HasValue()) << used.Error();
+        EXPECT_EQ(random.State(), expected.State());
+        ASSERT_EQ(sent.size(), 1u);
+        EXPECT_TRUE(SameBytes(SentBytes(0), Bytes({0xc1, 0x06, 0x26, static_cast<std::uint8_t>(slot), 20, Kind})));
+        EXPECT_FALSE(world.Runtime().lastSoundId.has_value());
+    }
+}
+
 // La joya del cursor sobre un ítem de la grilla (0x5ca250 → 0x5d82a8), con el clic y el inventario abierto.
 class JewelTest : public GridItemUseTest
 {

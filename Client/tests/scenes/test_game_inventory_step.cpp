@@ -220,11 +220,12 @@ protected:
 
     static constexpr std::uint16_t Potion = 0x1c00;
     static constexpr std::uint16_t Sword = 0x0001;
+    static constexpr std::uint16_t EventTicket = 0x1a1d;
     static constexpr std::size_t PotionCell = 2 * 8 + 1;
     static constexpr std::int32_t PotionX = WindowX + 15 + 20 + 5;
     static constexpr std::int32_t PotionY = 200 + 40 + 5;
-    Client::Data::Tables::ItemTable items =
-        Client::Tests::ItemTableOf({{Potion, 1, 1, 0xff}, {0x1c0d, 1, 1, 0xff}, {Sword, 1, 3, 0}});
+    Client::Data::Tables::ItemTable items = Client::Tests::ItemTableOf(
+        {{Potion, 1, 1, 0xff}, {0x1c0d, 1, 1, 0xff}, {Sword, 1, 3, 0}, {EventTicket, 1, 1, 0xff}});
     Client::Scenes::InventoryServices services;
     int dressed = 0;
     std::vector<std::size_t> messages;
@@ -306,6 +307,17 @@ TEST_F(InventoryMovesStepTest, TheRightClickOnASwordLeavesItInTheGrid)
     EXPECT_EQ(world.Runtime().cursorGrid, Client::Scenes::CursorGrid::Inventory);
     EXPECT_EQ(world.Inventory().cells[4 * 8 + 5].id, Sword);
     EXPECT_EQ(world.Inventory().cells[6 * 8 + 5].id, Sword);
+}
+
+// 0x5c67e9..0x5c685f: el clic derecho sobre el 0x1a1d con todas las ventanas cerradas llega al 91, que corta en
+// 0x5c6865 (hito 11). Con una de las que mira abierta, 0x5e4ce0 corta antes (0x5e4d2a y las que siguen): esa rama
+// está en GridItemUseTest.TheTicket1a1dLooksAtTheShopFirst.
+TEST_F(InventoryMovesStepTest, TheRightClickOnThe1a1dCutsAtTheEventEntry)
+{
+    world.Inventory().cells[PotionCell].id = EventTicket;
+    world.Runtime().ui.rightClick = true;
+    ExpectCut(Step(PotionX, PotionY, &services), "0x5c6865");
+    EXPECT_FALSE(world.Runtime().ui.rightClick);
 }
 
 // 0x5d8d50 con el ítem en el cursor y el clic fuera de las grillas: consume el clic (MouseUpdateTime en 0 y su máximo

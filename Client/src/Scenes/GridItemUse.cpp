@@ -64,6 +64,11 @@ constexpr std::int32_t FruitDialogText = 0x178;
 constexpr std::uint16_t Item1a0b = 0x1a0b;
 constexpr std::uint8_t GuildMaster = 0x80;
 
+// 0x5c67e9, 0x5c6c36 y 0x5c7010: los tres que mandan el C1 .. 91.
+constexpr std::int32_t EventTicket1a1d = 0x1a1d;
+constexpr std::int32_t EventTicket1c13 = 0x1c13;
+constexpr std::int32_t EventTicket1a12 = 0x1a12;
+
 bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
 {
     return value >= first && value <= last;
@@ -180,6 +185,28 @@ Core::Expected<void, std::string> CopyIntoTheCursor(const InventoryMoveContext& 
     return {};
 }
 } // namespace
+
+bool IsAnEventTicket(std::int32_t type)
+{
+    return type == EventTicket1a1d || type == EventTicket1c13 || type == EventTicket1a12;
+}
+
+Core::Expected<void, std::string> UseTheEventTicket(UI::PanelRegistry& panels, std::int32_t type)
+{
+    if (type == EventTicket1a1d)
+    {
+        // 0x5c67f3..0x5c685f: PUSH 0x10000, 0x40, 0x20, 0x1000 y 0x4000, cada uno con su JNZ a 0x5c9b0b.
+        for (const UI::PanelId panel :
+             {UI::NpcShopPanel, UI::WarehousePanel, UI::TradePanel, UI::EventNpcPanel, UI::SecondEventNpcPanel})
+        {
+            if (panels.IsOpen(panel))
+                return {};
+        }
+    }
+    const std::uint32_t branch = type == EventTicket1a1d ? 0x5c6865u : type == EventTicket1c13 ? 0x5c6c36u : 0x5c7010u;
+    return Core::Unexpected(std::format(
+        "{:#x}: usar el {:#x} de la grilla manda el C1 .. 91, la entrada a un evento, del hito 11", branch, type));
+}
 
 Core::Expected<void, std::string> UseTheLaterGridItem(const InventoryMoveContext& context, UI::PanelRegistry& panels,
                                                       std::size_t index)

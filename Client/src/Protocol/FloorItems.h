@@ -7,6 +7,7 @@
 #include "Protocol/ProtocolError.h"
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 // Los ítems del piso, levantar, tirar y usar (CL9 hito 5; 04 § Los ítems del piso): el 20 y el
@@ -64,7 +65,8 @@ struct PickUpResult
 
 [[nodiscard]] Core::Expected<PickUpResult, ProtocolError> ReadPickUpResult(const Network::Packet& packet);
 
-// El 23 que llega, C1 (0x4d10d0): pkt[3] el resultado (0 rechazado) y pkt[4] el lugar que se tiró.
+// El 23 que llega, C1 (0x4d10d0): pkt[3] el resultado (0 rechazado) y pkt[4] el lugar que se tiró. Con 0 no lee
+// pkt[4] (0x4d10de): el lugar queda en 0 si no llegó.
 struct DropResult
 {
     std::uint8_t result = 0;
@@ -83,6 +85,28 @@ struct StatFruit
 };
 
 [[nodiscard]] Core::Expected<StatFruit, ProtocolError> ReadStatFruit(const Network::Packet& packet);
+
+// Un 22, un 23 o un 2C más cortos de lo que lee el cliente (el GameServer 0.97, 07 Q-C1240): el original lee lo que
+// quedó en su buffer de recepción, que MuRet no inventa, pero hay escrituras que hace en todos sus caminos. 0x4d0cc0
+// deja el pedido de levantar (0x6c82e8) en −1 (0x4d10b9) y 0x4de500 la espera del uso (0x5767954) en 0 (0x4de7e4 y
+// las otras cinco salidas, 0x4deb0e).
+struct ShortPickUpResult
+{
+};
+
+struct ShortStatFruit
+{
+};
+
+// 0x4d10d0 deja el lugar tirado (0x6c82ec) en −1 en todos sus caminos (0x4d13d1 y 0x4d13e5) y, con pkt[3] distinto de
+// 0, el cursor vacío (0x7879fbc en 0, 0x4d13c7), también en todos. `result` es pkt[3], si llegó.
+struct ShortDropResult
+{
+    std::optional<std::uint8_t> result;
+};
+
+// El 23 que ReadDropResult rechaza por corto: solo pkt[3], si llegó.
+[[nodiscard]] Core::Expected<ShortDropResult, ProtocolError> ReadShortDropResult(const Network::Packet& packet);
 
 // El C1 05 22 (0x566755, el caso 1 de 0x5650c0): el índice del ítem del piso, el byte alto primero.
 [[nodiscard]] Outgoing WritePickUp(std::uint16_t index);

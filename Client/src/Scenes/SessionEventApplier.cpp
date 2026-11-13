@@ -229,6 +229,21 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         return ApplyDropResult(*dropped, m_resources);
     if (const auto* fruit = std::get_if<Protocol::FloorItems::StatFruit>(&event))
         return ApplyStatFruit(*fruit, m_resources.world, m_resources.cloth.random, m_resources.texts);
+    if (std::holds_alternative<Protocol::FloorItems::ShortPickUpResult>(event))
+    {
+        ApplyShortPickUpResult(m_resources.world);
+        return {};
+    }
+    if (const auto* dropped = std::get_if<Protocol::FloorItems::ShortDropResult>(&event))
+    {
+        ApplyShortDropResult(*dropped, m_resources.world);
+        return {};
+    }
+    if (std::holds_alternative<Protocol::FloorItems::ShortStatFruit>(event))
+    {
+        ApplyShortStatFruit(m_resources.world);
+        return {};
+    }
     if (const auto* inventory = std::get_if<Protocol::Character::InventoryList>(&event))
     {
         const auto applied = ApplyInventory(*inventory, m_resources);

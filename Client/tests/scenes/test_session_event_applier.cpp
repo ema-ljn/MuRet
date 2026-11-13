@@ -9,6 +9,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Messages.h"
 #include "Network/Crypto/Xor32.h"
 #include "Protocol/Movement.h"
@@ -180,6 +181,28 @@ TEST(SessionEventApplierTest, WalkAndDamageReachTheirAppliersWithoutFallingThrou
     EXPECT_TRUE(tested.applier.ApplyWorld(walk, online.session).HasValue());
     EXPECT_TRUE(tested.applier.ApplyWorld(damage, online.session).HasValue());
 }
+// 07 Q-C1240: el 22, el 23 y el 2C cortos llegan a lo que sueltan (0x4d10b9, 0x4d13e5 y 0x4deb0e), sin caer en el
+// F3 03.
+TEST(SessionEventApplierTest, TheShortFloorItemRepliesReachTheirReleases)
+{
+    namespace FloorItems = Client::Protocol::FloorItems;
+    const auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online;
+    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    runtime.floor.pendingPickUp = 5;
+    runtime.floor.pendingDrop = 22;
+    runtime.ui.field5767954 = 10;
+    const Client::App::WorldEvent picked = FloorItems::ShortPickUpResult{};
+    const Client::App::WorldEvent dropped = FloorItems::ShortDropResult{.result = std::uint8_t{0}};
+    const Client::App::WorldEvent fruit = FloorItems::ShortStatFruit{};
+    EXPECT_TRUE(tested->applier.ApplyWorld(picked, online.session).HasValue());
+    EXPECT_TRUE(tested->applier.ApplyWorld(dropped, online.session).HasValue());
+    EXPECT_TRUE(tested->applier.ApplyWorld(fruit, online.session).HasValue());
+    EXPECT_EQ(runtime.floor.pendingPickUp, -1);
+    EXPECT_EQ(runtime.floor.pendingDrop, -1);
+    EXPECT_EQ(runtime.ui.field5767954, 0);
+}
+
 // 0x4cb750: el 18 de otro llega a ApplyActionReply, y el C1 18 de sentarse que dispara (0x4f2250) sale por la sesión.
 TEST(SessionEventApplierTest, TheActionOfAnotherSitsThroughTheSession)
 {

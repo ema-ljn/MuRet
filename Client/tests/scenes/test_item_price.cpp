@@ -231,12 +231,21 @@ TEST_F(ItemPriceTest, JewelBundlesAndNamedTypesHaveTheirPrices)
     EXPECT_EQ(Price(Item(0x181e, 15), ShopGrid), 1'440'000'000u);
     EXPECT_EQ(Price(Item(0x181f, 2), Repair), 60'000'000u);
     // 0x54d2b1..0x54d63a.
-    const std::vector<std::pair<std::uint16_t, std::uint32_t>> constants{
-        {0x1c0d, 9'000'000},  {0x1c0e, 6'000'000},  {0x180f, 810'000},   {0x1c10, 45'000'000},
-        {0x1c16, 36'000'000}, {0x1a0f, 33'000'000}, {0x1c1c, 600'000},   {0x1a1d, 5'000},
-        {0x1c14, 900},        {0x1c0a, 750},        {0x1c1f, 60'000'000}};
-    for (const auto& [type, price] : constants)
-        EXPECT_EQ(Price(Item(type), ShopGrid), price) << type;
+    // Un struct y no un std::pair, que MSVC avisa (C4242) al armarlo con un int.
+    struct NamedPrice
+    {
+        std::uint16_t type = 0;
+        std::uint32_t price = 0;
+    };
+    const std::vector<NamedPrice> constants{
+        {.type = 0x1c0d, .price = 9'000'000},  {.type = 0x1c0e, .price = 6'000'000},
+        {.type = 0x180f, .price = 810'000},    {.type = 0x1c10, .price = 45'000'000},
+        {.type = 0x1c16, .price = 36'000'000}, {.type = 0x1a0f, .price = 33'000'000},
+        {.type = 0x1c1c, .price = 600'000},    {.type = 0x1a1d, .price = 5'000},
+        {.type = 0x1c14, .price = 900},        {.type = 0x1c0a, .price = 750},
+        {.type = 0x1c1f, .price = 60'000'000}};
+    for (const NamedPrice& named : constants)
+        EXPECT_EQ(Price(Item(named.type), ShopGrid), named.price) << named.type;
     EXPECT_EQ(Price(Item(0x1c0d), Repair), 3'000'000u);
     // Los de los niveles 0 y 1; con otro, 0.
     EXPECT_EQ(Price(Item(0x1a0e, 0), ShopGrid), 180'000u);
@@ -393,7 +402,7 @@ TEST_F(ItemPriceTest, ThePriceIsCappedAtThreeBillionBeforeTheMode)
     EXPECT_EQ(Price(Item(TallWing, 0, 0, {{.tag = 0x6e}}), Repair), 1'000'000'000u);
     // Con nueve opciones (0x6e y ocho 0x52 con 20: la novena etiqueta es el valor de la primera), 2^53 no se pasa.
     std::vector<std::uint8_t> bytes{0x6e, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52};
-    bytes.insert(bytes.end(), 8, 20);
+    bytes.insert(bytes.end(), 8, std::uint8_t{20});
     EXPECT_EQ(Price(RawItem(TallWing, 0, 9, bytes), ShopGrid), 3'000'000'000u);
     // Con diez, la décima etiqueta es el valor de la segunda (20, una 0x14) y multiplica un precio de más de 53 bits.
     EXPECT_NE(Cut(RawItem(TallWing, 0, 10, bytes), ShopGrid).find("0x54d862"), std::string::npos);
@@ -416,12 +425,12 @@ TEST_F(ItemPriceTest, TheSkillOptionAddsOnlyTheLowDword)
 TEST_F(ItemPriceTest, AnOptionReadBeyondTheItemCuts)
 {
     // 0x54d1dc: la etiqueta 17 es D+0x3c.
-    EXPECT_NE(Cut(RawItem(Armor, 0, 18, std::vector<std::uint8_t>(17, 0x19)), ShopGrid).find("0x54d1dc"),
+    EXPECT_NE(Cut(RawItem(Armor, 0, 18, std::vector<std::uint8_t>(17, std::uint8_t{0x19})), ShopGrid).find("0x54d1dc"),
               std::string::npos);
     // La décima etiqueta (el valor de la segunda) pide un valor en D+0x3c.
     const auto tenth = [](std::uint8_t tag)
     {
-        std::vector<std::uint8_t> bytes(17, 0);
+        std::vector<std::uint8_t> bytes(17, std::uint8_t{0});
         bytes[0] = 0x19;
         bytes[1] = 0x19;
         bytes[9] = tag;
@@ -470,8 +479,8 @@ TEST_F(ItemPriceTest, AZeroMaximumDurabilityDiscountsNothingOrCuts)
     // Del 0x1c00 en adelante no se descuenta: el pergamino no llega a la FIDIV.
     EXPECT_EQ(Price(Item(Scroll, 0, 5), Inventory), 360u);
     // Ocho 0x55 con 255: el precio por 256^8 es 0 en 64 bits, y −infinito · 0 es NaN.
-    std::vector<std::uint8_t> bytes(8, 0x55);
-    bytes.insert(bytes.end(), 8, 255);
+    std::vector<std::uint8_t> bytes(8, std::uint8_t{0x55});
+    bytes.insert(bytes.end(), 8, std::uint8_t{255});
     EXPECT_EQ(Price(RawItem(ZeroHelper, 5, 8, bytes), Inventory), 0u);
     EXPECT_EQ(Price(Item(ZeroHelper), Inventory), 5'200u);
     EXPECT_NE(Cut(Item(ZeroHelper, 0, 5), Inventory).find("0x54dc04"), std::string::npos);
@@ -488,13 +497,13 @@ TEST_F(ItemPriceTest, AHugeHelperPriceWrapsAndCutsInTheDiscount)
 {
     // Nueve 0x55 (la novena etiqueta es el valor de la primera, 0x55 = 85) y ocho valores 251: el producto en
     // 64 bits es negativo y no tiene tope.
-    std::vector<std::uint8_t> bytes(9, 0x55);
-    bytes.insert(bytes.end(), 8, 251);
+    std::vector<std::uint8_t> bytes(9, std::uint8_t{0x55});
+    bytes.insert(bytes.end(), 8, std::uint8_t{251});
     EXPECT_EQ(Price(RawItem(Helper, 100, 9, bytes), ShopGrid), 3'869'114'368u);
     EXPECT_NE(Cut(RawItem(Helper, 100, 9, bytes), Inventory).find("0x54dbf9"), std::string::npos);
     // Con 250, positivo: el tope, / 3 y el descuento.
     bytes.assign(9, 0x55);
-    bytes.insert(bytes.end(), 8, 250);
+    bytes.insert(bytes.end(), 8, std::uint8_t{250});
     EXPECT_EQ(Price(RawItem(Helper, 100, 9, bytes), ShopGrid), 3'000'000'000u);
     EXPECT_EQ(Price(RawItem(Helper, 100, 9, bytes), Inventory), 635'294'100u);
 }

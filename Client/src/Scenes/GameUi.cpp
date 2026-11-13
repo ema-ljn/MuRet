@@ -20,6 +20,7 @@
 #include "Scenes/HudItems.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/ItemSetState.h"
+#include "Scenes/NpcWindows.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
@@ -464,8 +465,15 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     {
         if (IsNotRepaired(hovered.id) || !runtime.movement.pendingClick)
             return GridHover::Stayed;
-        return Core::Unexpected(
-            std::format("0x5c4470: reparar el {:#x} de la grilla (el C1 .. 34) es de la CL9.3", hovered.id));
+        // 0x5c4472..0x5c4a89: el clic consumido y el C1 05 34 con el lugar de la esquina del ítem (fila · 8 + columna +
+        // 12) y 0x78abb10; después sigue con la casilla de al lado (0x5c4b3b).
+        runtime.movement.pendingClick = false;
+        const auto position = static_cast<std::uint8_t>((row * Columns + column + FirstGridSlot) & 0xff);
+        if (auto sent = SendRepair(context.random, context.sendNpcWindow, position,
+                                   static_cast<std::uint8_t>(runtime.field78abb10 & 0xff));
+            !sent.HasValue())
+            return Core::Unexpected(sent.Error());
+        return GridHover::Stayed;
     }
     // 0x5c4a8e..0x5c4a9f y 0x5c52b1..0x5c5894: levantarlo.
     if (runtime.movement.pendingClick && runtime.movement.gateRequestBlocked == 0)
@@ -1424,6 +1432,9 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
                           GamePanelTables{.items = context.inventory != nullptr ? context.inventory->items : nullptr,
                                           .itemSetTables = context.itemSetTables});
     gamePanels.LendThePartyList(context.world, context.requests);
+    gamePanels.LendTheNpcWindows(context.world, context.random,
+                                 context.inventory != nullptr ? *context.inventory : InventoryServices{},
+                                 context.sendNpcWindow);
     UI::PanelRegistry& panels = gamePanels.Registry();
     // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).
     if (panels.IsOpen(UI::MovePanel) && ui.capture == 0)

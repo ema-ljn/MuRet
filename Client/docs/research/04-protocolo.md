@@ -809,6 +809,65 @@ solo con `0xfe` y `0xff`); `App::ServerSession` los pasa al mundo y `Scenes::App
 escriben el registro propio que leen los orbes y el AG del HUD (06). Un lugar fuera de la grilla corta con
 `0x4d35f6` o `0x4d3917` (08, P-C150). Los tests usan valores inventados.
 
+### Las ventanas de los NPC: `30` a `34`, `81` a `83`, `86` y `87`
+
+(CL9 hito 6, 2026-11-13, *estático*, contra el GameServer 0.97 reconstruido: `PMSG_TALKRESULT`, `PMSG_SHOPITEMCOUNT`,
+`PMSG_BUYRESULT`, `PMSG_SELLRESULT`, `PMSG_ITEMDURREPAIR_RESULT`, `PMSG_WAREHOUSEMONEYINOUT_RESULT` y
+`PMSG_CHAOSMIXRESULT`.) Los handlers leen por posición, sin mirar si el paquete es C1 o C2; solo el `30` mira si llegó
+cifrado. Abrir y cerrar las ventanas son casos de `0x6599a0` y `0x657ab0` (06 § HUD y ventanas, "Los paneles").
+
+- **`30`** (`0x4d1e00`): sin cifrar, el aviso `C1 06 F1 03 00 30` con el XOR32 y en C3, sin leer nada más. Cifrado:
+  `0x657a90` (cierra todo) y `pkt[3]` por la tabla de `0x4d2914`: 2 el almacén (`0x40`), 3 la caja del caos (`0x100`,
+  y `pkt[4..9]` a los seis int de `0x6c9da8`), 4, 5 y 6 los NPC de evento (`0x1000`, `0x2000`, `0x4000`), 7 el
+  entrenador (`0x8000`), 9 el diálogo `0xa1` con `0x6e5798` en 0, 12 la lista de CS (`0x100000`, con `pkt[4] == 1` en
+  `[0x7d536fc] + 0x3d4`), 13 el `C1 04 B2 00`; los demás (0, 1, 8, 10, 11, 14..) la tienda (`0x10000`, `0x4d288e`).
+  Después, los sonidos `0x19` y `0x1c` y `SetCursorPos(((260 · mx / 640) · ancho) / 640, alto · my / 480)` con el
+  mouse en 640 × 480 (`0x7d3682c`, `0x7d36828`). El GameServer 0.97 lo manda en C3 de 8 bytes, con cuatro tasas: las
+  dos que faltan el original las lee de su buffer (07, Q-C920).
+- **Abrir** (`0x6599a0`, con lo demás cerrado por `0x657ab0`): el almacén (`0x659f66`) abre el inventario y pone
+  `0x7d5370d` en 1 y `0x6c932f` y `0x78abb20` en 0; la caja del caos (`0x65a93d`) pone `0x7d2dc9d` en 0, manda
+  `C1 04 BD 09` con el XOR32 en claro, abre el inventario, pone `0x7d5370e` en 1 y `0x7d2dc80` en 0 y abre el diálogo
+  `0x8e`; la tienda (`0x65ba46`) abre el inventario, escribe 1 en el byte protegido `0x7d53710` (un `rand()`) y pone
+  `0x78abb27` en 0.
+- **Cerrar** (`0x657ab0`): el almacén, con la traba del `24` (`0x78abb39`) no cierra (el resultado queda en 0 y sigue
+  con los demás); si no, vacía las 120 casillas de `0x78a7070` (tipo `0xffff`, `+0x3c` en 0), devuelve el ítem del
+  cursor (`0x5be150`), manda `C1 03 82` en claro y pone `0x7d5370d` y `0x6c932f` en 0. La caja del caos, con algo en
+  su grilla (`0x5e3c20`) o en el cursor, el texto 593 de error y 0; si no, `C1 03 87` en claro, sus 32 casillas
+  vacías, el diálogo `0x8e` en 0 y `0x7d5370e` en 0. La tienda escribe 0 en su byte (un `rand()`), manda `C1 03 31`
+  en claro y vacía `0x78a7070`.
+- **`31`** (`0x4c5f60`): `pkt[4]` la grilla y `pkt[5]` la cuenta, con entradas de 8 bytes desde `pkt[6]` (el lugar y
+  los siete del ítem). La 3 es la caja del caos (`0x7d2dc80` en 2, los sonidos `0x57` y `0x44`, la grilla vacía y
+  `0x5bc740(0x7d2d380, 8, 4, lugar, datos, 1)`), la 5 la caja del entrenador (el texto 1208, `0x449c40` y
+  `0x44ad70`), y otra la tienda o el almacén (`0x78a7070` vacía y `0x5bc150(lugar, datos)`: 8 por fila desde el lugar,
+  sin tope, y `0x54bf40` con B1 y B4 sin bits arriba y B3 con los del tipo). El GameServer 0.97 lo manda en C2 con
+  entradas de 5 bytes (08, P-C190).
+- **`32`** (`0x4e3c2a`): con `pkt[3]` distinto de `0xff`, `0x5bc740(0x78a9bb0, 8, 8, pkt[3], pkt + 4, 0)` y el sonido
+  `0x1d`; siempre, `0x5767950` en 0. **`33`** (`0x4e3c6e`): con 0, `0x5be150`; si no, el cursor vacío y el zen
+  (`pkt[4..7]`) en `+0xecc` del registro propio abierto, y el sonido `0x1d`. **`34`** (`0x4e3cd7`): con zen distinto
+  de 0, en `+0xecc` con el registro abierto, `0x550d10` y el sonido `0x25`.
+- **`81`** (`0x4e4692`): con `pkt[3]` distinto de 0, el zen del almacén (`pkt[4..7]`, `+0xed0`) y el del inventario
+  (`pkt[8..11]`, `+0xecc`). **`82`** y **`87`** (`0x4e4819`): el cursor vacío y, con el diálogo `0x73`, su cierre,
+  `0x553570(0)`, `0x6c8e78` en `0x2a`, los campos de Tab en 2 y `0x77f3b6a` y `0x6c8e68` en 0. **`83`** (`0x4e46df`,
+  las tablas de `0x4e60c0` y `0x4e60dc`): 0 y 1 escriben la traba (`0x6c932f`) y ponen `0x78abb1c` en 0; `0xa`, `0xb`
+  y `0xd` abren los diálogos `0x85`, `0x86` y `0x89`; `0xc`, con la traba y `0x78abb1c` en 0, manda lo que esperaba
+  (`0x78ab9bc` en −1: `0x4e6f80` con el tipo y el zen; si no, `0x449d80` con los cuatro) y deja los dos en 1.
+- **`86`** (`0x4da280`, las tablas de `0x4da38c` y `0x4da3a8`): 0 el texto 594 (error); 1 el texto 595, la caja vacía
+  y el ítem de `pkt[4..10]` en su lugar 0 (`0x5bc740(0x7d2d380, 8, 4, 0, pkt + 4, 1)`) con los sonidos `0x57` y `0x45`;
+  2 y `0xb` el texto 596 con `0x7d2dc80` en 0; 4 y 9 la caja `0x632e30` con los textos 649 y 689; 100 la caja del
+  entrenador (`0x449c40` y `0x44ad70`, sin tocar `0x7d2dc80`). Salvo 2, `0xb` y 100, todos dejan `0x7d2dc80` en 2,
+  también los que no tienen caso.
+- **Lo que manda el cliente**: comprar `C1 04 32 <lugar>` (`0x5c4bdc`, desde la grilla de la tienda), vender
+  `C1 04 33 <lugar>` (`0x5d8e1a`), reparar `C1 05 34 <lugar> <0x78abb10>` (`0x5c4485`, un ítem de la grilla; `0x5edaa7`,
+  todo con `0xff 00`), la contraseña del almacén `C1 10 83 <tipo> <contraseña:2> <número:10>` (`0x5e7e90`), todos con el
+  XOR32 y en C3; el zen del almacén `C1 08 81 <tipo> <zen:4>` (`0x4e6f80`) y la mezcla `C1 04 86 <0x7d2dc98>`
+  (`0x5d9362`, que el GameServer 0.97 no lee), con el XOR32 en claro.
+
+**MuRet**: `Protocol::NpcWindows` lee y escribe todos; `App::ServerSession` los registra (el `30` con su aviso) y
+`Scenes/NpcWindows.cpp` los aplica sobre `WorldRuntime::npcWindows` (las dos grillas y los globales). `UI::PanelRegistry`
+abre y cierra `0x40`, `0x100` y `0x10000` con los cables de la escena (`PanelContext::npcWindowOpened` y
+`npcWindowClosing`), con el `rand()` del byte protegido. Reparar un ítem desde la grilla del inventario manda su `34`
+(`0x5c4472`). Lo que sigue cortado, con su dirección, está en 08, P-C191. Los tests usan ítems y textos inventados.
+
 ## Qué implica para MuRet
 
 | Original | MuRet | Ola |

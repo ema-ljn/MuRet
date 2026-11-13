@@ -16,6 +16,7 @@
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Pass3D.h"
 #include "Scenes/IScene.h"
+#include "Scenes/NpcWindows.h"
 #include "Scenes/OriginalFramesOfTheSteps.h"
 #include "Scenes/GroundEffectFrame.h"
 #include "Scenes/CharacterCloth.h"
@@ -142,6 +143,8 @@ private:
     // Lo que levantar, soltar y equipar piden afuera: los de SceneContext::worldEntry y el envío del 24
     // (App::ServerSession::SendItemMove).
     [[nodiscard]] InventoryServices InventoryContext() const;
+    // El envío de las ventanas de los NPC por la sesión (App::ServerSession::SendNpcWindowPacket); sin ella, vacío.
+    [[nodiscard]] static NpcWindowSender NpcWindowSenderOf(App::ServerSession* session);
     // 0x636da3..0x63717f: el paso con el mundo cargado, hasta su primer corte.
     [[nodiscard]] Core::Expected<void, std::string> StepWorld(const Input::InputState& input);
     [[nodiscard]] Core::Expected<void, std::string> StepTheFloorItems(float worldClock);

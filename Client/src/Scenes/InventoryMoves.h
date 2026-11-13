@@ -100,6 +100,20 @@ struct InventoryMoveContext
 // en 0, 0x512a30 y el sonido 0x1d.
 [[nodiscard]] Core::Expected<void, std::string> ReturnTheCursorItem(const InventoryMoveContext& context);
 
+// 0x5bc740(0x78a9bb0, 8, 8, lugar, datos, 0), con el último argumento en 0 (0x5bcd0b.. y su cola): el ítem en su lugar
+// (PlaceInventoryItem) y, con el registro abierto, los ayudantes sin mascota, el cuervo sin el lugar 1 y la capa sin el
+// anillo de nivel 3. Con el tipo 0x1fff, nada. La usan el 24, el F3 14 y el 32 de la tienda.
+[[nodiscard]] Core::Expected<void, std::string>
+PlaceMovedItem(std::uint8_t slot, const Protocol::Inventory::ItemData& item, const WorldEntryResources& resources);
+
+// 0x5bc740(grilla, columnas, filas, lugar, datos, 0) con otra grilla (0x5bd307.. y la misma cola): el `24` con 2 (el
+// almacén, 0x78a7070) y con 3 (la caja del caos, 0x7d2d380).
+[[nodiscard]] Core::Expected<void, std::string> PlaceMovedItemInOtherGrid(std::span<World::ItemState> cells,
+                                                                          std::int32_t columns, std::uint8_t slot,
+                                                                          const Protocol::Inventory::ItemData& item,
+                                                                          const WorldEntryResources& resources,
+                                                                          std::string_view where);
+
 // El C1 0E 24 del ítem del cursor desde la grilla del inventario: la traba 0x78abb39 en 1, los dos rand() del envío
 // en C3 y el paquete, del lugar [0x78a6758] a `targetSlot`, con los bytes 0, +4, +0x1a, +0x1b, +0x1c, el tipo >> 5
 // & 0xf0 y 0.

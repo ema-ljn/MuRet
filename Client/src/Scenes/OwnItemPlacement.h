@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <span>
 #include <string>
+#include <string_view>
 
 // Un ítem del F3 10 en el inventario propio: 0x5bc740 con la grilla 0x78a9bb0, 8 columnas, 8 filas y el
 // último argumento en 1, como la llama 0x4c55a0 (0x4c5e7f..0x4c5e8c), y el tipo de 0x54b3a0. Contrato:
@@ -43,6 +44,20 @@ inline constexpr std::uint8_t FirstSecondGridSlot = 0x4c;
 // cierra igual. Devuelve lo que pidió 0x4f2250 dentro de 0x512a30, si corrió.
 [[nodiscard]] Core::Expected<ActorStopResult, std::string>
 PlaceInventoryItem(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntryResources& resources);
+
+// 0x5bc150(lugar, datos), desde el 31 con una grilla que no es la 3 ni la 5 (0x4c6033): el ítem en la grilla de la
+// tienda y del almacén (0x78a7070), de 8 por fila desde el lugar, sin tope, y 0x54bf40 en cada casilla de su huella.
+// No abre el registro propio. Con el tipo 0x1fff, nada.
+[[nodiscard]] Core::Expected<void, std::string> PlaceInTheNpcGrid(std::span<World::ItemState> cells, std::uint8_t slot,
+                                                                  InventoryItemBytes bytes,
+                                                                  const WorldEntryResources& resources);
+
+// 0x5bc740(grilla, columnas, filas, lugar, datos, 1) con una grilla que no es la del inventario (0x5bd307..0x5bd3f2):
+// la casilla es fila · columnas + lugar + columna; con el último argumento en 1 vuelve sin abrir el registro propio.
+// Con el tipo 0x1fff, nada.
+[[nodiscard]] Core::Expected<void, std::string>
+PlaceInOtherGrid(std::span<World::ItemState> cells, std::int32_t columns, std::uint8_t slot, InventoryItemBytes bytes,
+                 const WorldEntryResources& resources, std::string_view where);
 
 // 0x4225d0, la defensa del Dark Horse, que 0x54bf40 llama en 0x54cc5c con el 0x1a04: la opción 0x96 con
 // 5 + la agilidad del registro propio / 20 + 2 · WorldRuntime::darkHorseLevel, en un byte, calculada con el

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Data/Tables/ItemTable.h"
+#include "Scenes/InventoryMoves.h"
+#include "Scenes/NpcWindows.h"
 #include "UI/PanelRegistry.h"
 
 namespace Client::Data::Tables
@@ -49,6 +51,10 @@ public:
     // 0x659aa0..0x659c3d: con `requests`, abrir la party pone en 0 la cuenta de `world` (HudState::partyCount) y pide
     // la lista (C1 03 42). Lo presta el paso de la UI, el que abre la party; sin él, o con nullptr, abrirla corta.
     void LendThePartyList(WorldState& world, IGameUiRequests* requests);
+    // Los cables de las ventanas de los NPC (UI::PanelContext::npcWindowOpened y npcWindowClosing): Scenes/NpcWindows.h
+    // con el mundo, el rand(), los servicios del inventario y el envío.
+    void LendTheNpcWindows(WorldState& world, Render::Models::CrtRandom& random, InventoryServices services,
+                           NpcWindowSender send);
 
 private:
     UI::PanelContext m_context;

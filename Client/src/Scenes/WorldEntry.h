@@ -3,6 +3,7 @@
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "Protocol/Outgoing.h"
 #include "Scenes/SceneId.h"
 
 #include <cstdint>
@@ -86,6 +87,9 @@ struct WorldEntryResources
     // El B9 02 que 0x42a760 manda al cargar el 30 con el socket del GS abierto: SessionEventApplier lo ata a la
     // sesión que aplica la respuesta. Vacío, como el socket en −1, no sale nada.
     std::function<void()> requestCastleSiegeState{};
+    // Los paquetes de las ventanas de los NPC (CL9 hito 6, Scenes/NpcWindows.h): SessionEventApplier y la escena lo
+    // atan a la sesión (App::ServerSession::SendNpcWindowPacket). Vacío, lo que manda corta con error.
+    std::function<Core::Expected<void, std::string>(Protocol::Outgoing)> sendNpcWindowPacket{};
     // Lo que miden los mensajes que llegan (00, 01, 02, 0C, 0D) al entrar al chat (0x555190, 0x554610, 0x45bb20): el
     // medidor del frame y el tamaño de la ventana. Sin medidor, un mensaje corta con error.
     const Render::Text::ITextMeasure* textMeasure = nullptr;

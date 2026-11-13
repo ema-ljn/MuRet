@@ -183,6 +183,15 @@ struct PanelContext
     // +0x9304 a +0x9327 en 0, y con el registro propio abierto, 0x550d10 si un lugar del equipo tiene la durabilidad
     // en 0 (0x550cf0). Sin él, abrir el personaje corta.
     std::function<Core::Expected<void, std::string>()> characterOpened{};
+    // Lo que abrir y cerrar el almacén (0x40), la caja del caos (0x100) y la tienda de NPC (0x10000) hacen fuera de los
+    // paneles (CL9 hito 6): las grillas, el ítem del cursor, los envíos y los mensajes (Scenes/NpcWindows.h). Sin
+    // ellos, abrirlos y cerrarlos corta.
+    // Abrir, con lo demás cerrado y antes de abrir el inventario: lo de 0x40 (0x659f8d..0x659f94) y lo de 0x100
+    // (0x65a94f..0x65ac07 y 0x65ac28), que 0x6599a0(0x4000000) no lee.
+    std::function<Core::Expected<void, std::string>(PanelId)> npcWindowOpened{};
+    // Cerrar, desde 0x657ab0 con el panel abierto: false si no cierra (la traba del 24 en 0x40, la caja del caos con
+    // algo en 0x100), y el registro deja el byte como estaba.
+    std::function<Core::Expected<bool, std::string>(PanelId)> npcWindowClosing{};
 };
 
 class PanelRegistry
@@ -211,6 +220,10 @@ public:
 
 private:
     void PlayTheSounds() const;
+    // 0x6599a0 con 0x40, 0x100 y 0x10000: con lo demás cerrado, lo de afuera, el inventario y el byte del panel.
+    [[nodiscard]] Core::Expected<void, std::string> OpenTheNpcWindow(PanelId id, PanelId mask);
+    // 0x657ab0 con 0x40, 0x100 y 0x10000 abiertos: false si no cerró.
+    [[nodiscard]] Core::Expected<bool, std::string> CloseTheNpcWindow(PanelId id);
 
     PanelState& m_state;
     PanelContext& m_context;

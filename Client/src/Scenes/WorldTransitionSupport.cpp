@@ -12,6 +12,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/MapLoad.h"
+#include "Scenes/NpcWindows.h"
 #include "Scenes/OwnStatHelpers.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
@@ -155,6 +156,7 @@ void CreateTransitionArrival(ActorState& actor, const WorldEntryResources& resou
 Core::Expected<void, std::string> CloseTransitionWindows(const WorldEntryResources& resources)
 {
     GamePanels panels(resources.world, resources.cloth.random);
+    LendTheNpcWindows(panels, resources);
     return panels.Registry().CloseAll();
 }
 } // namespace Client::Scenes

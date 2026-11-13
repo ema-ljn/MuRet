@@ -3,10 +3,12 @@
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Outgoing.h"
 #include "UI/OldWindows.h"
 
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -99,6 +101,9 @@ struct GameUiContext
     // ItemSetType.bmd e ItemSetOption.bmd (0x40c600), que lee 0x550d10 con el Item.bmd de `inventory` cuando la C o el
     // botón del HUD abren el personaje (0x65ca1e). nullptr si no se cargaron: abrirlo corta en 0x40e1b0.
     const Data::Tables::ItemSetTables* itemSetTables = nullptr;
+    // El envío de los paquetes de las ventanas de los NPC (App::ServerSession::SendNpcWindowPacket, CL9 hito 6). Vacío
+    // (los tests que no los miran): lo que manda corta.
+    std::function<Core::Expected<void, std::string>(Protocol::Outgoing)> sendNpcWindow{};
 };
 
 // El WndProc: 0x7d366d4 (el flanco del clic, que apagan quien lo usa y el botón suelto) y 0x7d36874 (el botón

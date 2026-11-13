@@ -11,6 +11,7 @@
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/NpcWindowState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/OwnItemPlacement.h"
@@ -526,16 +527,12 @@ Core::Expected<void, std::string> ReturnToTheSlot(const InventoryMoveContext& co
     return {};
 }
 
-// 0x5bc740 con el último argumento en 0 (0x5bcd0b.. y su cola): el ítem en su lugar y, con el registro abierto, los
-// ayudantes sin mascota, el cuervo sin el lugar 1 y la capa sin el anillo de nivel 3.
-Core::Expected<void, std::string> PlaceMovedItem(std::uint8_t slot, const Protocol::Inventory::ItemData& item,
-                                                 const WorldEntryResources& resources)
+} // namespace
+
+// 0x5bd405..0x5bd706: la cola de 0x5bc740 con el último argumento en 0, en cualquier grilla: con el registro abierto,
+// los ayudantes sin mascota, el cuervo sin el lugar 1 y la capa sin el anillo de nivel 3.
+void FinishTheMovedItem(const WorldEntryResources& resources)
 {
-    const InventoryItemBytes bytes(item);
-    if (InventoryItemType(bytes) == NoInventoryItem)
-        return {};
-    if (auto placed = PlaceInventoryItem(slot, bytes, resources); !placed.HasValue())
-        return Core::Unexpected(placed.Error());
     WorldState& world = resources.world;
     WorldRuntime& runtime = world.Runtime();
     ActorState& hero = HeroOf(world);
@@ -553,9 +550,37 @@ Core::Expected<void, std::string> PlaceMovedItem(std::uint8_t slot, const Protoc
         if (hero.byte360 > LastRingLayer)
             hero.byte360 = 0;
     }
+}
+
+Core::Expected<void, std::string> PlaceMovedItem(std::uint8_t slot, const Protocol::Inventory::ItemData& item,
+                                                 const WorldEntryResources& resources)
+{
+    const InventoryItemBytes bytes(item);
+    if (InventoryItemType(bytes) == NoInventoryItem)
+        return {};
+    if (auto placed = PlaceInventoryItem(slot, bytes, resources); !placed.HasValue())
+        return Core::Unexpected(placed.Error());
+    FinishTheMovedItem(resources);
     return {};
 }
 
+Core::Expected<void, std::string> PlaceMovedItemInOtherGrid(std::span<World::ItemState> cells, std::int32_t columns,
+                                                            std::uint8_t slot,
+                                                            const Protocol::Inventory::ItemData& item,
+                                                            const WorldEntryResources& resources,
+                                                            std::string_view where)
+{
+    const InventoryItemBytes bytes(item);
+    if (InventoryItemType(bytes) == NoInventoryItem)
+        return {};
+    if (auto placed = PlaceInOtherGrid(cells, columns, slot, bytes, resources, where); !placed.HasValue())
+        return placed;
+    FinishTheMovedItem(resources);
+    return {};
+}
+
+namespace
+{
 // La copia del cursor y el lugar de origen en una pasada (0x5c52b1.. y 0x5c2d2b..).
 void TakeIntoTheCursor(WorldRuntime& runtime, const ItemState& item, std::int32_t slot)
 {
@@ -1150,10 +1175,19 @@ Core::Expected<void, std::string> ApplyItemMoveResult(const Protocol::Inventory:
     case 1:
         return Core::Unexpected(std::string("0x4d1ce0: 0x5bc740 en la grilla del comercio (0x78a92a8) es de la CL9.4"));
     case 2:
-        return Core::Unexpected(std::string("0x4d1d0a: 0x5bc740 en la grilla del almacén o la tienda (0x78a7070) es de "
-                                            "la CL9.3"));
+        // 0x4d1cf6..0x4d1d0a: 0x5bc740(0x78a7070, 8, 15, lugar, datos, 0), la grilla del almacén.
+        if (auto placed = PlaceMovedItemInOtherGrid(runtime.npcWindows.grid, NpcGridColumns, result.slot, result.item,
+                                                    resources, "0x4d1d0a, 0x5bc740(0x78a7070)");
+            !placed.HasValue())
+            return placed;
+        break;
     case 3:
-        return Core::Unexpected(std::string("0x4d1d34: 0x5bc740 en la caja del caos (0x7d2d380) es de la CL9.3"));
+        // 0x4d1d20..0x4d1d34: 0x5bc740(0x7d2d380, 8, 4, lugar, datos, 0), la caja del caos.
+        if (auto placed = PlaceMovedItemInOtherGrid(runtime.npcWindows.chaosBox, NpcGridColumns, result.slot,
+                                                    result.item, resources, "0x4d1d34, 0x5bc740(0x7d2d380)");
+            !placed.HasValue())
+            return placed;
+        break;
     case 5:
         return Core::Unexpected(std::string("0x4d1d55: 0x44ad70, la caja del entrenador, es de la CL9.3"));
     default:

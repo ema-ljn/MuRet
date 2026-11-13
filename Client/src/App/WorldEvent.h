@@ -4,6 +4,7 @@
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
+#include "Protocol/NpcWindows.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
@@ -34,5 +35,8 @@ using WorldEvent =
                  Protocol::Messages::WhisperResult, Protocol::Messages::Notice, Protocol::OptionData::OptionData,
                  Protocol::Inventory::ItemMoveResult, Protocol::Inventory::ItemDelete, Protocol::Inventory::Durability,
                  Protocol::Inventory::EquipmentChange, Protocol::Inventory::ItemPut, Protocol::Inventory::LifeRefill,
-                 Protocol::Inventory::ManaRefill>;
+                 Protocol::Inventory::ManaRefill, Protocol::NpcWindows::TalkResult, Protocol::NpcWindows::ItemList,
+                 Protocol::NpcWindows::BuyResult, Protocol::NpcWindows::SellResult, Protocol::NpcWindows::RepairResult,
+                 Protocol::NpcWindows::WarehouseMoney, Protocol::NpcWindows::NpcWindowClosed,
+                 Protocol::NpcWindows::WarehouseState, Protocol::NpcWindows::ChaosMixResult>;
 } // namespace Client::App

@@ -322,8 +322,9 @@ de Q/W/E; los `rand()` de la búsqueda del ítem del piso en el picking. **Desbl
 - [ ] **Las ventanas:** la tienda (`0x5f4720`), el almacén (`0x5f4e30`, `0x5e7bf0`, `0x5e9b10`, el teclado de
       `0x78abb20`), la caja del caos (`0x5febf0`, `0x5fe610`), reparar (`0x44b910`, la R de `0x59ff10`), el
       `BC` (`0x401f30`, `0x402500`) y los precios (`0x5b1200`, `0x5b2d23`).
-- [ ] **Los paquetes:** lo que falta de `31`..`34` (`0x4c5f60`, `0x5bc740` y `0x5be150` están en parte), `81`..`83`,
-      `86`/`87`.
+- [x] **Los paquetes:** lo que falta de `31`..`34` (`0x4c5f60`, `0x5bc740` y `0x5be150` están en parte), `81`..`83`,
+      `86`/`87`. (Fase 1, 2026-11-13: `Protocol::NpcWindows` y `Scenes/NpcWindows.cpp`; el `30` y abrir y cerrar
+      `0x40`, `0x100` y `0x10000` también. Lo que sigue cortado de las otras dos, en 08, P-C191.)
 
 **Pruebas:** comprar, vender, reparar, guardar y sacar del almacén, una mezcla, byte a byte; el `rand()` del
 byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada ventana. **Desbloquea:** —.

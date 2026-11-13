@@ -233,6 +233,9 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> SendItemMove(const Protocol::Inventory::ItemMove& move);
     // El C1 03 42 de 0x6599a0(4), al abrir la ventana de la party (Protocol::Party::WritePartyListRequest), en claro.
     void RequestPartyList();
+    // Los paquetes de las ventanas de los NPC (Protocol::NpcWindows, CL9 hito 6), como los demás de mundo. Los rand()
+    // del C3 los saca la escena antes.
+    [[nodiscard]] Core::Expected<void, std::string> SendNpcWindowPacket(Protocol::Outgoing packet);
     // 0x4c609f: el 00 con la escena 2 (el login) pide la lista de servidores, C1 04 F4 02, por el socket que esté
     // abierto, sin mirar cuál es. En el CS es el saludo (OnConnectHello); acá, el que llega por el GS (Q-C511).
     void ResendServerListRequest();
@@ -370,6 +373,9 @@ private:
     void OnDurability(const Network::Packet& packet);
     void OnEquipmentChange(const Network::Packet& packet);
     void OnItemPut(const Network::Packet& packet);
+    // 04 § Las ventanas de los NPC: el 30 (0x4d1e00) y los demás (31..34, 81..83, 86 y 87).
+    void OnTalkResult(const Network::Packet& packet);
+    void OnNpcWindow(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
     void OnMainCheck(const Network::Packet& packet);
     // El F1 02 con 1, con `encrypted` en el flag del paquete.

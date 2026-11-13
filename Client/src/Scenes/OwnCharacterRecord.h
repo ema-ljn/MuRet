@@ -135,6 +135,8 @@ struct OwnCharacterRecord
 
     // [0x7681eb4] + 0xecc: desde el login, el mismo bloque que [0x7681eb0] (0x4bafc9).
     std::uint32_t zen = 0;
+    // +0xed0: el zen del almacén, que escribe el 81 (0x4e46bd, CL9 hito 6).
+    std::uint32_t warehouseZen = 0;
 
     // +0xee2 a +0xf03, la cola de 0x550d10 (0x5512bf..0x5513b1): lee los primeros siete y escribe los
     // otros. Los ocho helpers de antes no escriben esos siete; quién, sin leer (08, P-C38). Qué son no

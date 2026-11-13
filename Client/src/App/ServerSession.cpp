@@ -33,10 +33,12 @@
 #include "Protocol/Dispatcher.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
+#include "Protocol/NpcWindows.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Party.h"
 #include "Protocol/Pet/PetInfo.h"
+#include "Protocol/ProtocolError.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
 
@@ -216,6 +218,7 @@ void ServerSession::RegisterGameServerHandlers()
     using Protocol::Connection::JoinOpcode;
     using Protocol::Connection::LoginSubcode;
     using Protocol::Connection::LogoutSubcode;
+    const auto npcWindow = [this](const Network::Packet& packet) { OnNpcWindow(packet); };
     [[maybe_unused]] const bool registered =
         m_gameServer.On(JoinOpcode, HelloSubcode, [this](const Network::Packet& packet) { OnGameHello(packet); }) &&
         m_gameServer.On(JoinOpcode, LoginSubcode, [this](const Network::Packet& packet) { OnLoginResult(packet); }) &&
@@ -262,6 +265,19 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnEquipmentChange(packet); }) &&
         m_gameServer.On(CharacterOpcode, Protocol::Inventory::ItemPutSubcode,
                         [this](const Network::Packet& packet) { OnItemPut(packet); }) &&
+        // CL9 hito 6: las ventanas de los NPC. El 30 (0x4d1e00) y los casos 31..34, 81..83, 86 y 87 del dispatcher
+        // 0x4e2b10.
+        m_gameServer.On(Protocol::NpcWindows::TalkOpcode,
+                        [this](const Network::Packet& packet) { OnTalkResult(packet); }) &&
+        m_gameServer.On(Protocol::NpcWindows::ItemListOpcode, npcWindow) &&
+        m_gameServer.On(Protocol::NpcWindows::BuyOpcode, npcWindow) &&
+        m_gameServer.On(Protocol::NpcWindows::SellOpcode, npcWindow) &&
+        m_gameServer.On(Protocol::NpcWindows::RepairOpcode, npcWindow) &&
+        m_gameServer.On(Protocol::NpcWindows::WarehouseMoneyOpcode, npcWindow) &&
+        m_gameServer.On(Protocol::NpcWindows::WarehouseCloseOpcode, npcWindow) &&
+        m_gameServer.On(Protocol::NpcWindows::WarehouseStateOpcode, npcWindow) &&
+        m_gameServer.On(Protocol::NpcWindows::ChaosMixOpcode, npcWindow) &&
+        m_gameServer.On(Protocol::NpcWindows::ChaosBoxCloseOpcode, npcWindow) &&
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); }) &&
         m_gameServer.On(Protocol::Connection::MainCheckOpcode,
                         [this](const Network::Packet& packet) { OnMainCheck(packet); });
@@ -1063,6 +1079,71 @@ void ServerSession::OnItemMove(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
 }
 
+// 04 § Las ventanas de los NPC. 0x4d1e00 mira si llegó cifrado, como el 24.
+void ServerSession::OnTalkResult(const Network::Packet& packet)
+{
+    if (!packet.WasDecrypted())
+    {
+        m_log.Warning("lo que abre el NPC (30) no llegó cifrado: se le avisa al GameServer (F1 03)");
+        Protocol::Outgoing report = Protocol::NpcWindows::WriteClearTalkReport();
+        m_connection.Send(std::move(report.packet), report.delivery);
+        return;
+    }
+    const auto talk = Protocol::NpcWindows::ReadTalkResult(packet);
+    if (!talk.HasValue())
+    {
+        m_log.Warning("se ignora lo que abre el NPC (30): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(talk.Value(), *this)));
+}
+
+namespace
+{
+template <typename Value> std::optional<WorldEvent> EventOf(const Core::Expected<Value, Protocol::ProtocolError>& read)
+{
+    if (!read.HasValue())
+        return std::nullopt;
+    return WorldEvent{read.Value()};
+}
+
+// El dispatcher 0x4e2b10 (0x4e3c2a..0x4e3d24 y 0x4e4692..0x4e4862) no mira si llegaron cifrados.
+std::optional<WorldEvent> ReadNpcWindowEvent(const Network::Packet& packet)
+{
+    namespace Npc = Protocol::NpcWindows;
+    switch (packet.Opcode().value_or(0))
+    {
+    case Npc::ItemListOpcode:
+        return EventOf(Npc::ReadItemList(packet));
+    case Npc::BuyOpcode:
+        return EventOf(Npc::ReadBuyResult(packet));
+    case Npc::SellOpcode:
+        return EventOf(Npc::ReadSellResult(packet));
+    case Npc::RepairOpcode:
+        return EventOf(Npc::ReadRepairResult(packet));
+    case Npc::WarehouseMoneyOpcode:
+        return EventOf(Npc::ReadWarehouseMoney(packet));
+    case Npc::WarehouseStateOpcode:
+        return EventOf(Npc::ReadWarehouseState(packet));
+    case Npc::ChaosMixOpcode:
+        return EventOf(Npc::ReadChaosMixResult(packet));
+    default:
+        return EventOf(Npc::ReadNpcWindowClosed(packet));
+    }
+}
+} // namespace
+
+void ServerSession::OnNpcWindow(const Network::Packet& packet)
+{
+    const std::optional<WorldEvent> event = ReadNpcWindowEvent(packet);
+    if (!event)
+    {
+        m_log.Warning("se ignora el {:02X} de las ventanas de los NPC: {}", packet.Opcode().value_or(0), Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(*event, *this)));
+}
+
 // 04 § La vida y el maná. Llegan en cualquier escena del GameServer, también antes de la respuesta del F3 03: 0x4d3510
 // y 0x4d3820 no miran cuál es.
 void ServerSession::OnLifeRefill(const Network::Packet& packet)
@@ -1209,6 +1290,11 @@ void ServerSession::SendChat(Protocol::Outgoing packet)
 void ServerSession::RequestCastleSiegeState()
 {
     static_cast<void>(SendWorldPacket(Protocol::World::WriteCastleSiegeState()));
+}
+
+Core::Expected<void, std::string> ServerSession::SendNpcWindowPacket(Protocol::Outgoing packet)
+{
+    return SendWorldPacket(std::move(packet));
 }
 
 void ServerSession::RequestPartyList()

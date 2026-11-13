@@ -325,14 +325,45 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
     return dressed.Value();
 }
 
-// Una de las dos grillas: la primera desde el lugar 12 (0x5bcc1a..0x5bcd05) y la segunda desde el 76
-// (0x5bcf99..0x5bd085). El origen es el lugar menos el primero de la grilla; la columna y la fila, las del
-// origen (% 8 y / 8 fijos, con signo). Cada casilla es fila · 8 + origen + columna, sin tope: un ítem que
-// pasa de la última columna sigue en la fila de abajo (Q-C201), y uno que pasa de la última casilla escribe
-// fuera de la grilla (Q-C200).
-Core::Expected<void, std::string> PlaceInGrid(std::span<ItemState> cells, std::int32_t origin, std::uint16_t type,
-                                              InventoryItemBytes bytes, const WorldEntryResources& resources,
-                                              std::string_view where)
+// Lo que cada camino deja en los 24 bits de arriba de B1, B3 y B4 de 0x54bf40: un registro que el original reusa.
+enum class GridScalars : std::uint8_t
+{
+    // 0x5bcc9c, 0x5bccd5 (las dos grillas del inventario): B1 y B3 con los de fila · 8 + origen, B4 con los del tipo.
+    Inventory,
+    // 0x5bc1ee..0x5bc223 (0x5bc150, la grilla de 0x78a7070): B1 y B4 con los de la fila del lugar, que no pasa de 31,
+    // y B3 con los del tipo.
+    NpcGrid,
+    // 0x5bd378..0x5bd3c7 (0x5bc740 fuera de 0x78a9bb0): B1 y B3 con los de casilla · 9, B4 con los del tipo.
+    Generic,
+};
+
+World::ItemInitializationScalars ScalarsOf(GridScalars kind, std::int32_t rowBase, std::int32_t cell,
+                                           std::uint16_t type, InventoryItemBytes bytes)
+{
+    const std::uint32_t typeUpper = type & UpperBits;
+    switch (kind)
+    {
+    case GridScalars::Inventory:
+    {
+        const auto upper = static_cast<std::uint32_t>(rowBase) & UpperBits;
+        return {.b1 = upper | Byte(bytes, 1), .b3 = upper | Byte(bytes, 3), .b4 = typeUpper | Byte(bytes, 4)};
+    }
+    case GridScalars::NpcGrid:
+        return {.b1 = Byte(bytes, 1), .b3 = typeUpper | Byte(bytes, 3), .b4 = Byte(bytes, 4)};
+    case GridScalars::Generic:
+        break;
+    }
+    const auto upper = (static_cast<std::uint32_t>(cell) * 9u) & UpperBits;
+    return {.b1 = upper | Byte(bytes, 1), .b3 = upper | Byte(bytes, 3), .b4 = typeUpper | Byte(bytes, 4)};
+}
+
+// Una grilla de `columns` por fila desde `origin`: la columna y la fila son las del origen (% 8 y / 8 fijos, con
+// signo, en los tres caminos). Cada casilla es fila · columnas + origen + columna, sin tope: un ítem que pasa de la
+// última columna sigue en la fila de abajo (Q-C201), y uno que pasa de la última casilla escribe fuera de la grilla
+// (Q-C200).
+Core::Expected<void, std::string> PlaceInGrid(std::span<ItemState> cells, std::int32_t columns, std::int32_t origin,
+                                              std::uint16_t type, InventoryItemBytes bytes, GridScalars kind,
+                                              const WorldEntryResources& resources, std::string_view where)
 {
     const auto record = ItemRecordOf(type, resources, where);
     if (!record.HasValue())
@@ -341,12 +372,12 @@ Core::Expected<void, std::string> PlaceInGrid(std::span<ItemState> cells, std::i
     }
     const auto width = std::to_integer<std::int32_t>(record.Value()[ItemWidthOffset]);
     const auto height = std::to_integer<std::int32_t>(record.Value()[ItemHeightOffset]);
-    constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
-    const auto column = static_cast<std::uint8_t>(origin % Columns);
-    const auto row = static_cast<std::uint8_t>(origin / Columns);
+    constexpr auto FixedColumns = static_cast<std::int32_t>(InventoryColumns);
+    const auto column = static_cast<std::uint8_t>(origin % FixedColumns);
+    const auto row = static_cast<std::uint8_t>(origin / FixedColumns);
     for (std::int32_t y = 0; y < height; ++y)
     {
-        const std::int32_t rowBase = y * Columns + origin;
+        const std::int32_t rowBase = y * columns + origin;
         for (std::int32_t x = 0; x < width; ++x)
         {
             const std::int32_t cell = rowBase + x;
@@ -365,10 +396,7 @@ Core::Expected<void, std::string> PlaceInGrid(std::span<ItemState> cells, std::i
             item.id = type;
             item.flags1b = static_cast<std::uint8_t>(Byte(bytes, 3));
             item.occupied = y == 0 && x == 0 ? 1u : 0u;
-            // B1 y B3 con los 24 bits de arriba de fila · 8 + origen, y B4 con los del tipo (0x5bcc9c, 0x5bccd5).
-            const auto upper = static_cast<std::uint32_t>(rowBase) & UpperBits;
-            const World::ItemInitializationScalars scalars{
-                .b1 = upper | Byte(bytes, 1), .b3 = upper | Byte(bytes, 3), .b4 = (type & UpperBits) | Byte(bytes, 4)};
+            const World::ItemInitializationScalars scalars = ScalarsOf(kind, rowBase, cell, type, bytes);
             if (auto initialized = InitializeInventoryItem(item, scalars, resources, where); !initialized.HasValue())
             {
                 return initialized;
@@ -429,10 +457,12 @@ Core::Expected<ActorStopResult, std::string> PlaceInventoryItem(std::uint8_t slo
     }
     OwnInventory& inventory = resources.world.Inventory();
     const bool first = slot < FirstSecondGridSlot;
-    const auto placed = first ? PlaceInGrid(inventory.cells, slot - FirstInventoryGridSlot, type, bytes, resources,
-                                            "0x5bc740, la grilla de 0x78a9bb0 (0x5bcc11)")
-                              : PlaceInGrid(inventory.secondCells, slot - FirstSecondGridSlot, type, bytes, resources,
-                                            "0x5bc740, la grilla de 0x78ab0b8 (0x5bcf99)");
+    constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
+    const auto placed =
+        first ? PlaceInGrid(inventory.cells, Columns, slot - FirstInventoryGridSlot, type, bytes,
+                            GridScalars::Inventory, resources, "0x5bc740, la grilla de 0x78a9bb0 (0x5bcc11)")
+              : PlaceInGrid(inventory.secondCells, Columns, slot - FirstSecondGridSlot, type, bytes,
+                            GridScalars::Inventory, resources, "0x5bc740, la grilla de 0x78ab0b8 (0x5bcf99)");
     if (!placed.HasValue())
     {
         return Core::Unexpected(placed.Error());
@@ -442,5 +472,24 @@ Core::Expected<ActorStopResult, std::string> PlaceInventoryItem(std::uint8_t slo
         return Core::Unexpected(speeds.Error());
     }
     return ActorStopResult{};
+}
+Core::Expected<void, std::string> PlaceInTheNpcGrid(std::span<World::ItemState> cells, std::uint8_t slot,
+                                                    InventoryItemBytes bytes, const WorldEntryResources& resources)
+{
+    const std::uint16_t type = InventoryItemType(bytes);
+    if (type == NoInventoryItem)
+        return {};
+    return PlaceInGrid(cells, static_cast<std::int32_t>(InventoryColumns), slot, type, bytes, GridScalars::NpcGrid,
+                       resources, "0x5bc150, la grilla de 0x78a7070");
+}
+
+Core::Expected<void, std::string> PlaceInOtherGrid(std::span<World::ItemState> cells, std::int32_t columns,
+                                                   std::uint8_t slot, InventoryItemBytes bytes,
+                                                   const WorldEntryResources& resources, std::string_view where)
+{
+    const std::uint16_t type = InventoryItemType(bytes);
+    if (type == NoInventoryItem)
+        return {};
+    return PlaceInGrid(cells, columns, slot, type, bytes, GridScalars::Generic, resources, where);
 }
 } // namespace Client::Scenes

@@ -12,7 +12,9 @@
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
+#include "Protocol/NpcWindows.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Outgoing.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/CharacterDrawing.h"
@@ -22,6 +24,7 @@
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/InventoryReply.h"
 #include "Scenes/MovementReplies.h"
+#include "Scenes/NpcWindows.h"
 #include "Scenes/ReturnToSelection.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
@@ -35,6 +38,8 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <variant>
 
 namespace Client::Scenes
@@ -54,12 +59,54 @@ void ApplyWeather(const Protocol::World::Weather& received, World::LeafWeather& 
         weather.target = static_cast<std::int32_t>(received.code & IntensityMask) * TargetPerIntensity;
 }
 
-// 0x42a760 manda el B9 02 por el socket del GS al cargar el 30: el de la sesión que aplica la respuesta.
+// 0x42a760 manda el B9 02 por el socket del GS al cargar el 30, y las ventanas de los NPC mandan los suyos (cerrarlas
+// al cambiar de mapa, CL9 hito 6): por la sesión que aplica el paquete.
 WorldEntryResources WithTheSiegeRequest(const WorldEntryResources& resources, App::ServerSession& session)
 {
     WorldEntryResources bound = resources;
     bound.requestCastleSiegeState = [&session] { session.RequestCastleSiegeState(); };
+    bound.sendNpcWindowPacket = [&session](Protocol::Outgoing packet)
+    { return session.SendNpcWindowPacket(std::move(packet)); };
     return bound;
+}
+
+// 04 § Las ventanas de los NPC (Scenes/NpcWindows.h).
+template <typename Event> constexpr bool IsNpcWindowEvent(const Event&)
+{
+    namespace Npc = Protocol::NpcWindows;
+    return std::is_same_v<Event, Npc::TalkResult> || std::is_same_v<Event, Npc::ItemList> ||
+           std::is_same_v<Event, Npc::BuyResult> || std::is_same_v<Event, Npc::SellResult> ||
+           std::is_same_v<Event, Npc::RepairResult> || std::is_same_v<Event, Npc::WarehouseMoney> ||
+           std::is_same_v<Event, Npc::NpcWindowClosed> || std::is_same_v<Event, Npc::WarehouseState> ||
+           std::is_same_v<Event, Npc::ChaosMixResult>;
+}
+
+std::optional<Core::Expected<void, std::string>>
+ApplyNpcWindowEvent(const App::WorldEvent& event, const WorldEntryResources& unbound, App::ServerSession& session)
+{
+    namespace Npc = Protocol::NpcWindows;
+    if (std::visit([](const auto& value) { return !IsNpcWindowEvent(value); }, event))
+        return std::nullopt;
+    const WorldEntryResources resources = WithTheSiegeRequest(unbound, session);
+    if (const auto* talk = std::get_if<Npc::TalkResult>(&event))
+        return ApplyTalkResult(*talk, resources);
+    if (const auto* list = std::get_if<Npc::ItemList>(&event))
+        return ApplyItemList(*list, resources);
+    if (const auto* bought = std::get_if<Npc::BuyResult>(&event))
+        return ApplyBuyResult(*bought, resources);
+    if (const auto* sold = std::get_if<Npc::SellResult>(&event))
+        return ApplySellResult(*sold, resources);
+    if (const auto* repaired = std::get_if<Npc::RepairResult>(&event))
+        return ApplyRepairResult(*repaired, resources);
+    if (const auto* money = std::get_if<Npc::WarehouseMoney>(&event))
+        return ApplyWarehouseMoney(*money, resources);
+    if (const auto* closed = std::get_if<Npc::NpcWindowClosed>(&event))
+        return ApplyNpcWindowClosed(*closed, resources);
+    if (const auto* state = std::get_if<Npc::WarehouseState>(&event))
+        return ApplyWarehouseState(*state, resources);
+    if (const auto* mixed = std::get_if<Npc::ChaosMixResult>(&event))
+        return ApplyChaosMixResult(*mixed, resources);
+    return std::nullopt;
 }
 
 // Lo que el chat que llega lee del juego y de la sesión: 0x6d5edc es el elegido de la lista.
@@ -166,6 +213,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         ApplyReturnToSelection(m_resources);
         return {};
     }
+    if (auto npc = ApplyNpcWindowEvent(event, m_resources, session))
+        return *std::move(npc);
     if (const auto* moved = std::get_if<Protocol::Inventory::ItemMoveResult>(&event))
         return ApplyItemMoveResult(*moved, m_resources);
     if (const auto* life = std::get_if<Protocol::Inventory::LifeRefill>(&event))

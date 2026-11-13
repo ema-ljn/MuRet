@@ -11,6 +11,7 @@
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/ItemHelpLevels.h"
+#include "Scenes/NpcWindowState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/WorldTexts.h"
@@ -200,6 +201,8 @@ struct WorldRuntime
     // 0x7d36a98, 0x7d368e4, 0x7d368b8 y 0x7d3a0f4..0x7d3a0f9: el texto y los botones de las cajas viejas (hito 6).
     UI::DialogBoxState dialogBox{};
     UI::GameUiState ui{};
+    // Las grillas y los globales de las ventanas de los NPC (CL9 hito 6).
+    NpcWindowState npcWindows{};
     // *(0x5763514), el administrador de las ventanas viejas, y la lista de ventanas de [0x5763524] (hito 7): los arma
     // WinMain y duran todo el juego.
     UI::OldWindowManager oldWindows{};

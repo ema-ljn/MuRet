@@ -3,6 +3,9 @@
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Network/Crypto/Xor32.h"
+#include "Network/Delivery.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/GameUi.h"
@@ -16,7 +19,9 @@
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
 
+#include "support/Bytes.h"
 #include "support/ItemFiles.h"
+#include "support/SameBytes.h"
 
 #include <gtest/gtest.h>
 
@@ -24,6 +29,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // El paso del inventario abierto (0x5ee1ac..0x5ee1ca, CL8 hito 4): 0x5e4ce0 con el equipo (0x5c3d20 → 0x5bec50) o
@@ -301,3 +307,42 @@ TEST_F(InventoryMovesStepTest, AClickOutsideTheGridsDropsTheCursorItem)
     EXPECT_EQ(world.Inventory().cells[PotionCell].id, 0x1c0d);
 }
 } // namespace
+
+// 0x5c4472..0x5c4a89, con el modo de reparar: el clic sobre un ítem que se repara manda el C1 05 34 con el lugar de su
+// esquina (fila · 8 + columna + 12) y 0x78abb10, con el XOR32 y en C3 (los dos rand() del envío), y gasta el clic. La
+// poción (0x1c00 en adelante) no se repara: no manda nada.
+TEST_F(InventoryMovesStepTest, RepairModeSendsTheItemsPlaceByteByByte)
+{
+    std::vector<Client::Protocol::Outgoing> sent;
+    const auto step = [this, &sent]
+    {
+        return Client::Scenes::StepTheGameUi(GameUiContext{.world = world,
+                                                           .random = random,
+                                                           .input = input,
+                                                           .mouseX = PotionX,
+                                                           .mouseY = PotionY,
+                                                           .inventory = &services,
+                                                           .sendNpcWindow = [&sent](Client::Protocol::Outgoing packet)
+                                                           {
+                                                               sent.push_back(std::move(packet));
+                                                               return Client::Core::Expected<void, std::string>{};
+                                                           }});
+    };
+    world.Runtime().panels.repairMode = 1;
+    Click();
+    ASSERT_TRUE(step().HasValue());
+    EXPECT_TRUE(sent.empty());
+
+    world.Inventory().cells[PotionCell].id = 0x0001;
+    world.Runtime().field78abb10 = 1;
+    world.Runtime().movement.pendingClick = true;
+    const CrtRandom expected = Advanced(random, BaseStepRandoms + InventoryStepRandoms + 2);
+    const auto stepped = step();
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_FALSE(world.Runtime().movement.pendingClick);
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_EQ(sent[0].delivery, Client::Network::Delivery::Encrypted);
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(sent[0].packet).Bytes(),
+                                         Client::Tests::Bytes({0xc1, 0x05, 0x34, 2 * 8 + 1 + 12, 0x01})));
+}

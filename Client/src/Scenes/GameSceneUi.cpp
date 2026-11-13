@@ -26,6 +26,7 @@
 #include "Scenes/GameTooltips.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/InventoryMoves.h"
+#include "Scenes/NpcWindows.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
@@ -214,7 +215,15 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .requests = &requests,
                                        .systemTime = systemTime,
                                        .inventory = &inventory,
-                                       .itemSetTables = m_chatTables.itemSetTables});
+                                       .itemSetTables = m_chatTables.itemSetTables,
+                                       .sendNpcWindow = NpcWindowSenderOf(m_session)});
+}
+
+NpcWindowSender GameScene::NpcWindowSenderOf(App::ServerSession* session)
+{
+    if (session == nullptr)
+        return {};
+    return [session](Protocol::Outgoing packet) { return session->SendNpcWindowPacket(std::move(packet)); };
 }
 
 GameChatContext GameScene::ChatContext()

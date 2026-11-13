@@ -345,7 +345,7 @@ Core::Expected<void, std::string> NameTheChosen(WorldState& world)
         return Core::Unexpected(
             std::string("0x59b003: el nombre del elegido en la ventana de la carta es del hito 10"));
     // 0x59b036..0x59b086: el chat abierto (0x6c8e68), el héroe en la zona segura (+0x3e2), un elegido, el derecho y
-    // +0x376 del elegido en 0xff (solo lo escribe 0x5140c0, el alta de los monstruos del hito 2).
+    // +0x376 del elegido en 0xff (solo lo escribe 0x5140c0, la cola del alta de un monstruo, con el tipo 255).
     const std::int32_t chosen = runtime.selectedTargets[2];
     const ActorState& hero = world.Actors()[runtime.hero];
     if (!runtime.ui.chatOpen || hero.safeZone == 0 || chosen == -1 || !runtime.ui.rightClick)

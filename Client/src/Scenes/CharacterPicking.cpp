@@ -91,6 +91,15 @@ bool OnTheHeroLayer(const ActorState& actor, const WorldState& world)
     return layer != upper || static_cast<std::int32_t>(layer) == runtime.heroCellLayer;
 }
 
+// 0x505de0 (0x505e15..0x505ebb): la caja de +0x13c es el piso de +0x124..+0x12c más la posición, con los lados
+// +0x130..+0x138 menos el piso, sin girar. MuRet la arma con la posición de ahora (*inferido*, como Q-C100): para el
+// 0x20a da PlayerBoxAt.
+Render::Models::Box BoxOf(const ActorState& actor)
+{
+    const glm::vec3 max{actor.boundsMaxX, actor.boundsMaxY, actor.boundsTop};
+    return {actor.position + actor.boundsMin, actor.position + max};
+}
+
 // 0x59e9ad..0x59e9dc: (dz² + dy²) + dx² en la pila del x87, con 80 bits; MuRet, en double (*inferido* que alcanza).
 double DistanceSquared(const glm::vec3& position, const glm::vec3& camera)
 {
@@ -126,7 +135,7 @@ std::int32_t PickTheCharacter(WorldState& world, std::uint8_t mask,
             continue;
         if (slot == hero || actor.byte42c == 0 || !Matches(actor, mask))
             continue;
-        if (!Render::Models::SegmentHitsBox(ray->origin, ray->end, Render::Models::PlayerBoxAt(actor.position)))
+        if (!Render::Models::SegmentHitsBox(ray->origin, ray->end, BoxOf(actor)))
             continue;
         // 0x7d36884: la posición de la cámara; MuRet usa el origen del segmento (0x7d36834), *inferido* el mismo punto.
         const double distance = DistanceSquared(actor.position, ray->origin);

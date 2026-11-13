@@ -39,5 +39,6 @@ using WorldEvent =
                  Protocol::Inventory::ManaRefill, Protocol::Quest::QuestFlag, Protocol::Quest::QuestList,
                  Protocol::Quest::QuestStateChange, Protocol::Quest::SetQuestResult, Protocol::Quest::QuestResult,
                  Protocol::Movement::Action, Protocol::Viewport::Players, Protocol::Viewport::Leave,
-                 Protocol::Viewport::Transformed, Protocol::Viewport::EquipmentShown, Protocol::Viewport::Position>;
+                 Protocol::Viewport::Transformed, Protocol::Viewport::EquipmentShown, Protocol::Viewport::Position,
+                 Protocol::Viewport::Monsters, Protocol::Viewport::Summons, Protocol::Viewport::Objects>;
 } // namespace Client::App

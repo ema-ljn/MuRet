@@ -24,6 +24,7 @@
 #include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/InventoryReply.h"
+#include "Scenes/MonsterViewport.h"
 #include "Scenes/MovementReplies.h"
 #include "Scenes/QuestReplies.h"
 #include "Scenes/ReturnToSelection.h"
@@ -182,6 +183,12 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplyViewp
         return ApplyEquipmentShown(*shown, m_resources);
     if (const auto* position = std::get_if<Protocol::Viewport::Position>(&event))
         return ApplyViewportPosition(*position, m_resources);
+    if (const auto* monsters = std::get_if<Protocol::Viewport::Monsters>(&event))
+        return ApplyViewportMonsters(*monsters, m_resources);
+    if (const auto* summons = std::get_if<Protocol::Viewport::Summons>(&event))
+        return ApplySummons(*summons, m_resources);
+    if (const auto* objects = std::get_if<Protocol::Viewport::Objects>(&event))
+        return ApplyViewportObjects(*objects, m_resources);
     return std::nullopt;
 }
 

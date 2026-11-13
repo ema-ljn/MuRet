@@ -176,6 +176,26 @@ enum class CursorGrid : std::uint8_t
     Inventory, // 0x78a9bb0
 };
 
+// Un nodo de la lista de huesos con nombre de [0x6e5640] (0x401000 → 0x4011c0): el personaje (el lugar del pool), el
+// nombre que le da el creador del monstruo y el hueso de su modelo. Lo leen los efectos (CL11).
+struct NamedBone
+{
+    std::size_t actor = 0;
+    std::string name{};
+    std::uint32_t bone = 0;
+};
+
+// Lo que un alta de monstruo escribe en la tabla de modelos (0x5769ad8, de a 0xe0 bytes por modelo): el byte `offset`
+// del modelo o, con `mesh`, el byte +0 de esa malla (06, "El alta de un monstruo"). Lo lee el dibujo de los monstruos,
+// sin portar (08, P-C176).
+struct ModelBytePatch
+{
+    std::uint16_t model = 0;
+    std::optional<std::uint16_t> mesh{};
+    std::uint16_t offset = 0;
+    std::uint8_t value = 0;
+};
+
 struct WorldRuntime
 {
     // Q-C180/Q-C27: primer aviso de datos que pidió WM_DESTROY. Durable incluso si Poll falla;
@@ -363,6 +383,12 @@ struct WorldRuntime
     // 0x75fdc38: meta del 0F. 0x75fdc3c es la cuenta actual, que ese paquete no cambia.
     // Estado durable de 0x530490 para el futuro binder de hojas; recibir 0F no crea lluvia.
     World::LeafWeather leafWeather{.firstWave = InitialLeafCount};
+    // [0x6e5640]: los huesos con nombre de los personajes (0x401000). 0x4011c0 saca el del mismo personaje y nombre
+    // antes de agregar el nuevo; 0x401410 (desde 0x401040, en 0x512870, 0x510ff0 y 0x510f70) saca todos los de un
+    // personaje. En qué orden los recorre quien los lee, sin leer (CL11).
+    std::vector<NamedBone> namedBones{};
+    // Lo que las altas escribieron en la tabla de modelos (ModelBytePatch), en orden.
+    std::vector<ModelBytePatch> modelPatches{};
 };
 
 // 0x63722e y 0x59afd6: con el contador en más de esto, el juego no dibuja ni mueve al héroe.

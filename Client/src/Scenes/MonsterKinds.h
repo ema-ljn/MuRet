@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -107,6 +108,22 @@ struct MonsterCreationContext
     std::int32_t world = 0;
     std::int32_t x = 0;
     bool siegeActive = false;
+};
+
+// La resolución paso a paso, para sacar cada rand() en su lugar entre los de la creación (0x511290 y sus celdas): el
+// r del último Random y el contexto. `Next` devuelve el paso como corre (el Random con su resto en value, plusRandom
+// con el r sumado) o nullopt si su condición no se cumple; corta en el Siege con el asedio prendido.
+class MonsterStepResolver
+{
+public:
+    explicit MonsterStepResolver(const MonsterCreationContext& context) noexcept : m_context(context) {}
+
+    [[nodiscard]] Core::Expected<std::optional<MonsterStep>, std::string> Next(MonsterStep step, std::int32_t type,
+                                                                               Render::Models::CrtRandom& random);
+
+private:
+    MonsterCreationContext m_context;
+    std::int32_t m_r = 0;
 };
 
 // Los pasos que corren con este contexto, en orden, con los rand() sacados en su lugar: cada Random saca uno (y queda

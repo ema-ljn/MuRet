@@ -18,7 +18,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <string>
 #include <utility>
 
 namespace
@@ -252,17 +251,66 @@ TEST_F(ActorConstructionTest, ReleasesTheBonesOfTheLastDraw)
     EXPECT_TRUE(actor.bodyPose.empty());
 }
 
-// Fuera del jugador y los NewFace, corta sin tocar el personaje ni gastar rand().
-TEST_F(ActorConstructionTest, UnknownTypesFailBeforeChangingTheRecord)
+// Otro tipo (CL9 hito 2): la acción 0, la clase en 0, la caja de la tabla de 0x512700 y los huesos de 0x512824.
+TEST_F(ActorConstructionTest, MonstersTakeTheirBoxAndHandBonesFromTheType)
 {
     ActorState actor;
+    actor.characterClass = 4;
 
-    const auto built = ConstructActor(actor, 0xad, ActorPlacement{133, 127, 0.0f}, Context(), cloth);
+    const auto built = ConstructActor(actor, 0x18e, ActorPlacement{133, 127, 0.0f}, Context(), cloth);
 
-    ASSERT_FALSE(built.HasValue());
-    EXPECT_NE(built.Error().find("0x511290"), std::string::npos);
-    EXPECT_FALSE(actor.alive);
-    EXPECT_EQ(actor.revision, 0u);
-    EXPECT_EQ(cloth.random.State(), Seed);
+    ASSERT_TRUE(built.HasValue()) << built.Error();
+    EXPECT_EQ(actor.type, 0x18eu);
+    EXPECT_EQ(actor.characterClass, 0u);
+    EXPECT_EQ(actor.animation.action, 0u);
+    EXPECT_EQ(actor.boundsMin, (glm::vec3{-90.0f, -50.0f, 0.0f}));
+    EXPECT_EQ(actor.boundsMaxX, 90.0f);
+    EXPECT_EQ(actor.boundsMaxY, 50.0f);
+    EXPECT_EQ(actor.boundsTop, 200.0f);
+    EXPECT_EQ(actor.hands[0].bone, 1u);
+    EXPECT_EQ(actor.hands[1].bone, 1u);
+    EXPECT_EQ(actor.dword58, -1);
+    EXPECT_EQ(actor.dword64, -1);
+    EXPECT_EQ(actor.float94, 1.2f);
+    EXPECT_EQ(actor.dword428, -0x80);
+    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 28).State());
+}
+
+// 0x51257f: el 0x17b solo escribe la mano derecha; la izquierda queda la del uso anterior.
+TEST_F(ActorConstructionTest, SomeTypesLeaveTheLeftHandBone)
+{
+    ActorState actor;
+    actor.hands[1].bone = 0x77;
+
+    ASSERT_TRUE(ConstructActor(actor, 0x17b, ActorPlacement{133, 127, 0.0f}, Context(), cloth).HasValue());
+
+    EXPECT_EQ(actor.hands[0].bone, 23u);
+    EXPECT_EQ(actor.hands[1].bone, 0x77u);
+}
+
+// 0x5126b2: 0x43a250 pone los huesos del 0x195; 0x42d7f0 la caja del 0x19b (sin huesos) y la del 0x1f8 (con 33 y 42).
+TEST_F(ActorConstructionTest, TheDefaultCaseAsksTheEventTables)
+{
+    ActorState first;
+    ASSERT_TRUE(ConstructActor(first, 0x195, ActorPlacement{133, 127, 0.0f}, Context(), cloth).HasValue());
+    EXPECT_EQ(first.hands[0].bone, 0x38u);
+    EXPECT_EQ(first.hands[1].bone, 0x2au);
+
+    ActorState gate;
+    gate.byte38f = 9;
+    gate.hands[0].bone = 0x77;
+    ASSERT_TRUE(ConstructActor(gate, 0x19b, ActorPlacement{133, 127, 0.0f}, Context(), cloth).HasValue());
+    EXPECT_EQ(gate.boundsMin, (glm::vec3{-140.0f, -140.0f, 0.0f}));
+    EXPECT_EQ(gate.boundsTop, 300.0f);
+    EXPECT_EQ(gate.byte38f, 0u);
+    EXPECT_EQ(gate.hands[0].bone, 0x77u);
+
+    ActorState statue;
+    ASSERT_TRUE(ConstructActor(statue, 0x1f8, ActorPlacement{133, 127, 0.0f}, Context(), cloth).HasValue());
+    EXPECT_EQ(statue.boundsMin, (glm::vec3{-200.0f, -50.0f, -100.0f}));
+    EXPECT_EQ(statue.boundsMaxX, 200.0f);
+    EXPECT_EQ(statue.boundsTop, 100.0f);
+    EXPECT_EQ(statue.hands[0].bone, 0x21u);
+    EXPECT_EQ(statue.hands[1].bone, 0x2au);
 }
 } // namespace

@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <format>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -51,30 +52,40 @@ MonsterCreation MonsterCreationOf(std::int32_t type, std::int32_t world) noexcep
     return {0x5141e0, DefaultMonsterKind()};
 }
 
+Core::Expected<std::optional<MonsterStep>, std::string> MonsterStepResolver::Next(MonsterStep step, std::int32_t type,
+                                                                                  Render::Models::CrtRandom& random)
+{
+    if (!Runs(step, m_context, m_r))
+        return std::optional<MonsterStep>{};
+    if (step.kind == MonsterStepKind::Random)
+    {
+        // AND 0x80000001 con el ajuste del signo: el rand() no es negativo y queda el bit 0.
+        m_r = random.Next() % 2;
+        step.value = static_cast<std::uint32_t>(m_r);
+    }
+    if (step.kind == MonsterStepKind::Siege && m_context.siegeActive)
+        return Core::Unexpected(std::format("{:#x}: con el asedio prendido (0x7239ec) el tipo {} sigue la rama "
+                                            "del asedio, de la CL9.5",
+                                            step.address, type));
+    if (step.plusRandom)
+        step.value += static_cast<std::uint32_t>(m_r);
+    return std::optional<MonsterStep>{step};
+}
+
 Core::Expected<std::vector<MonsterStep>, std::string> ResolveMonsterSteps(const MonsterCreation& creation,
                                                                           const MonsterCreationContext& context,
                                                                           Render::Models::CrtRandom& random)
 {
     std::vector<MonsterStep> steps;
     steps.reserve(creation.kind.steps.size());
-    std::int32_t r = 0;
-    for (MonsterStep step : creation.kind.steps)
+    MonsterStepResolver resolver(context);
+    for (const MonsterStep& step : creation.kind.steps)
     {
-        if (!Runs(step, context, r))
-            continue;
-        if (step.kind == MonsterStepKind::Random)
-        {
-            // AND 0x80000001 con el ajuste del signo: el rand() no es negativo y queda el bit 0.
-            r = random.Next() % 2;
-            step.value = static_cast<std::uint32_t>(r);
-        }
-        if (step.kind == MonsterStepKind::Siege && context.siegeActive)
-            return Core::Unexpected(std::format("{:#x}: con el asedio prendido (0x7239ec) el tipo {} sigue la rama "
-                                                "del asedio, de la CL9.5",
-                                                step.address, creation.kind.type));
-        if (step.plusRandom)
-            step.value += static_cast<std::uint32_t>(r);
-        steps.push_back(step);
+        auto resolved = resolver.Next(step, creation.kind.type, random);
+        if (!resolved.HasValue())
+            return Core::Unexpected(resolved.Error());
+        if (resolved.Value())
+            steps.push_back(*resolved.Value());
     }
     return steps;
 }

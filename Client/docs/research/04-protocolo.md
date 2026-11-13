@@ -910,16 +910,30 @@ con `Scenes::ApplyQuest*` (06, "Las misiones"). Un paquete corto se ignora con u
   `0x1b5`), las celdas protegidas `+0x41c`/`+0x420` y `+0x39a`/`+0x39b`, en Castle Siege el `0x115` con
   `0x4ea030` y `0x42a110`, y sin el bit 7 el camino de `0x4eac00` (`+0x378`) o, con él, `0x4c9790`. El GS 0.97 arma
   elementos de `0xc` (`Type` de un byte en `+2`, `ViewSkillState` de dos en `+4`): no es el cliente 1.02 (08, P-C172).
-- **`1F`** (`0x4ca0b0`): lo mismo con los invocados; los tipos `0x98..0x9e` van por `0x517400` con el nombre del
-  dueño (`+0xb`), los demás por `0x5141e0`, y el efecto de llegada `0xec` (`0x518cf0`, CL11).
-- **`68`** (`0x4e0980`): crea con `0x512870(clave, 0x20a, x, y)` (el modelo de jugador) y la clase de `+1`; es la
-  creación de un jugador con otra forma, del hito 1 (`FinishTheTransformed`).
+- **`1F`** (`0x4ca0b0`): `C2 xx xx 1F <n>` y `n` elementos de `0x18`: la clave como el `13`, el tipo entero en `+2` y
+  `+3` (el alto primero), los estados en `+4..+7`, la celda en `+8`/`+9`, el blanco en `+0xa`/`+0xb`, la dirección
+  (arriba) y el PK (abajo) en `+0xc` y el nombre del dueño en `+0xd..+0x16` (`0x4ca132` y `0x4ca547`). Los tipos
+  `0x98..0x9e` van por `0x517400` (el nivel, `tipo − 0x97`, y `wsprintfA` con el nombre del caso como formato y el
+  dueño), los demás por `0x5141e0` con el nombre del dueño, el Text 485 y el del monstruo; el recién llegado, con el
+  efecto `0xec` (`0x518cf0`) y el joint `0x5d5` (`0x53fe70`), CL11.
+- **`68`** (`0x4e0980`): `C2 xx xx 68 <n>` y `n` elementos de `0x1c`: `+0` el tipo de registro, `+1` la clase o el
+  tipo alto, `+2` el tipo bajo, `+3`/`+4` la clave (el alto primero, sin el bit 15), `+5`/`+6` la celda, `+7..+0x17`
+  el equipo (los 17 bytes de la lista) y `+0x18..+0x1b` los estados. Con 1 (`0x4e0c1d`), un jugador: `0x512870(clave,
+  0x20a, x, y, 0)` con la clase de `+1` y el equipo (`0x5139f0`); con 2 o 3 (`0x4e09ca`), el monstruo del tipo
+  `+1 << 8 | +2` por `0x5141e0`; con otro, nada. No tiene recién llegado ni camino: el ángulo es `rand() % 360`.
 - **`1A`** (`0x4cedd0`): no crea nada: es la skill que pega a varios (`PMSG_MAGICATTACK_COUNT_SEND`, `0x5110d0`, la
   acción `0x96`, `0x53d810`, el sonido `0x76` y el daño de cada blanco con `0x548e40`); va con el hito 3.
 
-Lo que cada uno necesita de la creación (fase 2): `CreateActor` (`0x512870`) para el alta de `0x5141e0`, `0x517400`
-y el `68`; `0x4e6380` (los estados) sobre el lugar creado; las celdas protegidas con `LogicalAccess`; `0x4c9790` y
-`0x4eac00` (el camino al blanco) del personaje creado.
+El dispatcher llama a los tres sin copiarlos a la cola de `0x77f27b4` ni mirar el flag de cifrado (`0x4e37d1`,
+`0x4e37e9` y `0x4e4643`). Lo que cada handler hace con el mundo, en
+[06](06-render-escenas-y-ui.md#los-monstruos-y-los-npc-en-el-viewport).
+
+**MuRet** (CL9 hito 2, fase 2): `Protocol::Viewport` lee los tres con los offsets del ASM (`ReadMonsters`,
+`ReadSummons` y `ReadObjects`; un registro corto es `TooShort`, hasta el último byte que lee el handler: `+0xc`,
+`+0x16` y `+0x1b`); `App::ServerSession` los registra después del `DF` y los pasa al mundo
+(`Scenes::ApplyViewportMonsters`, `ApplySummons` y `ApplyViewportObjects`). Los tests arman los paquetes con los
+structs del ASM (`support/ViewportPackets.h`). El `1A` queda para el hito 3.
+
 ### Los otros jugadores: `12`, `14`, `45`, `25` y `DF`
 
 (CL9 hito 1, 2026-11-13, *estático*; el cable queda para la VM, P-C160.) Los cinco llegan del GameServer cuando

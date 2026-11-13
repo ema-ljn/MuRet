@@ -112,4 +112,31 @@ TEST(LogicalAccessTest, TheDepthByteWraps)
     EXPECT_EQ(depth, 255);
     EXPECT_EQ(random.State(), StateAfter(SmallVariableRandoms));
 }
+
+// 0x4128e2..0x4128f9 (CL9 hito 2): el cierre que deja la cuenta en 0 pone en cada byte de la variable el rand() & 0xff
+// de su vuelta, el primero abajo; uno que no la deja en 0 la deja en claro.
+TEST(LogicalAccessTest, TheLastCloseLeavesItsRandomBytes)
+{
+    std::uint8_t depth = 0;
+    std::uint32_t left = 0x5a;
+    CrtRandom random(Seed);
+    {
+        const LogicalAccess access(depth, random, SmallLogicalCloseRandoms, left);
+        EXPECT_EQ(left, 0x5au);
+    }
+    CrtRandom expected(Seed);
+    std::uint32_t bytes = 0;
+    for (std::uint32_t index = 0; index < 4; ++index)
+        bytes |= (static_cast<std::uint32_t>(expected.Next()) & 0xffu) << (8u * index);
+    EXPECT_EQ(left, bytes);
+    EXPECT_EQ(random.State(), expected.State());
+
+    std::uint8_t alreadyOpen = 1;
+    std::uint32_t plain = 0x3e;
+    {
+        const LogicalAccess access(alreadyOpen, random, SmallLogicalCloseRandoms, plain);
+    }
+    EXPECT_EQ(plain, 0x3eu);
+    EXPECT_EQ(random.State(), expected.State());
+}
 } // namespace

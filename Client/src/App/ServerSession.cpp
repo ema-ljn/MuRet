@@ -246,6 +246,12 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnEquipmentShown(packet); }) &&
         m_gameServer.On(Protocol::Viewport::PositionOpcode,
                         [this](const Network::Packet& packet) { OnViewportPosition(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::MonstersOpcode,
+                        [this](const Network::Packet& packet) { OnViewportMonsters(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::SummonsOpcode,
+                        [this](const Network::Packet& packet) { OnSummons(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::ObjectsOpcode,
+                        [this](const Network::Packet& packet) { OnViewportObjects(packet); }) &&
         m_gameServer.On(Protocol::World::TeleportOpcode,
                         [this](const Network::Packet& packet) { OnTeleport(packet); }) &&
         m_gameServer.On(Protocol::World::WorldOpcode, Protocol::World::RegenSubcode,
@@ -1417,6 +1423,40 @@ void ServerSession::OnViewportPosition(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(position.Value(), *this)));
+}
+
+// 0x4e37d1, 0x4e37e9 y 0x4e4643: el 13, el 1F y el 68, sin guarda de escena ni del flag de cifrado (CL9 hito 2).
+void ServerSession::OnViewportMonsters(const Network::Packet& packet)
+{
+    const auto monsters = Protocol::Viewport::ReadMonsters(packet);
+    if (!monsters.HasValue())
+    {
+        m_log.Warning("se ignoran los monstruos del viewport (13): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(monsters.Value(), *this)));
+}
+
+void ServerSession::OnSummons(const Network::Packet& packet)
+{
+    const auto summons = Protocol::Viewport::ReadSummons(packet);
+    if (!summons.HasValue())
+    {
+        m_log.Warning("se ignoran los invocados del viewport (1F): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(summons.Value(), *this)));
+}
+
+void ServerSession::OnViewportObjects(const Network::Packet& packet)
+{
+    const auto objects = Protocol::Viewport::ReadObjects(packet);
+    if (!objects.HasValue())
+    {
+        m_log.Warning("se ignoran los objetos del viewport (68): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(objects.Value(), *this)));
 }
 
 // P-C33: 0x4c6e32 prueba el flag antes de leer los campos; cero manda el F1 03.

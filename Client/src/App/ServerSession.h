@@ -369,6 +369,9 @@ private:
     void OnTransformed(const Network::Packet& packet);
     void OnEquipmentShown(const Network::Packet& packet);
     void OnViewportPosition(const Network::Packet& packet);
+    void OnViewportMonsters(const Network::Packet& packet);
+    void OnSummons(const Network::Packet& packet);
+    void OnViewportObjects(const Network::Packet& packet);
     void OnTeleport(const Network::Packet& packet);
     void OnRegen(const Network::Packet& packet);
     void OnChat(const Network::Packet& packet);

@@ -4246,6 +4246,41 @@ TEST(ServerSessionTest, TheViewportPacketsReachTheSinkInWireOrder)
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 
+// 04 § Los monstruos y los NPC que entran: el 13, el 1F y el 68 llegan al mundo en el orden del cable, sin copia en la
+// cola (0x4e37d1, 0x4e37e9 y 0x4e4643); uno corto se ignora.
+TEST(ServerSessionTest, TheMonsterPacketsReachTheSinkInWireOrder)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    auto monsters = Bytes({0xc2, 0, 5 + 0x10, 0x13, 1, 0x80, 0x46, 0x01, 0x15});
+    monsters.resize(5 + 0x10);
+    auto summons = Bytes({0xc2, 0, 5 + 0x18, 0x1f, 1, 0x00, 0x47, 0x00, 0x98});
+    summons.resize(5 + 0x18);
+    auto objects = Bytes({0xc2, 0, 5 + 0x1c, 0x68, 1, 2, 0x00, 0x03, 0x00, 0x48});
+    objects.resize(5 + 0x1c);
+    const auto shortMonsters = Bytes({0xc2, 0, 6, 0x13, 1, 0x80});
+    tested.socket.reads = {Join({monsters, summons, objects, shortMonsters})};
+    EXPECT_TRUE(tested.session.Poll().HasValue());
+    ASSERT_EQ(tested.eventSink.world.size(), 3u);
+    const auto* arrived = std::get_if<Client::Protocol::Viewport::Monsters>(&tested.eventSink.world[0]);
+    ASSERT_NE(arrived, nullptr);
+    ASSERT_EQ(arrived->records.size(), 1u);
+    EXPECT_EQ(arrived->records[0].key, 0x46);
+    EXPECT_TRUE(arrived->records[0].isNew);
+    EXPECT_EQ(arrived->records[0].type, 0x115);
+    const auto* summoned = std::get_if<Client::Protocol::Viewport::Summons>(&tested.eventSink.world[1]);
+    ASSERT_NE(summoned, nullptr);
+    ASSERT_EQ(summoned->records.size(), 1u);
+    EXPECT_EQ(summoned->records[0].type, 0x98);
+    const auto* objected = std::get_if<Client::Protocol::Viewport::Objects>(&tested.eventSink.world[2]);
+    ASSERT_NE(objected, nullptr);
+    ASSERT_EQ(objected->records.size(), 1u);
+    EXPECT_EQ(objected->records[0].kind, 2);
+    EXPECT_EQ(objected->records[0].key, 0x48);
+    EXPECT_TRUE(tested.eventSink.packetCopies.empty());
+    EXPECT_NE(tested.session.State(), SessionState::Failed);
+}
+
 // 0x4e372e y 0x4e3ace: el dispatcher copia el 12 y el 2A antes de llamar al handler, también cuando el lector no los
 // puede leer.
 TEST(ServerSessionTest, AShortViewportPacketOrDurabilityStillTakesItsCopy)

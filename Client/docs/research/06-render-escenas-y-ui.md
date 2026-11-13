@@ -9718,13 +9718,14 @@ el mismo pool, así que mueven y lastiman a los que da de alta el `12`.
 **MuRet** (`Scenes/ActorCreation.h`, `Scenes/ViewportPlayers.h`, `Scenes/ActorCharacterSet.h` y
 `Scenes/ActorEffectFlags.h`). `CreateActor` y `RemoveActor` son `0x512870` y `0x510ff0`, para la hito 2 también:
 `CreateActor(mundo, clave, tipo, {X, Y, ángulo}, contexto de 0x511290, telas)` devuelve el lugar (el 400 con el pool
-lleno). `0x401040` y `0x4fb1a0` no tienen qué soltar en el mundo de MuRet (P-C161). El efecto `0x61f` va sin el
-dueño, como el de la entrada del héroe. Cortan con su dirección, después de lo que el original hace antes: Kalima en
-`0x4c91dc` (CL11), el alta del `45` en `0x4c934c` (la hito 2; lo que sigue está portado en
-`Scenes::FinishTheTransformed`, que corta en `0x4c965c` con el recién llegado, CL11), el tipo `0xf1` del `DF` en
-`0x4c6b80` (la hito 2 y la CL11), y las banderas que crean efectos (`0x4e644f`, `0x4e662d`, `0x4e6725`, `0x4e676e`,
-`0x4e67d6` y `0x4e6869`, CL11 y CL10; `0x4e68f5`, P-C163). Los sonidos (`0x76`, `0x84`) quedan en el último sonido,
-sin audio hasta la CL10 (08, P-C162). Tests: `ViewportPlayersTest`, `ViewportLeaveTest`, `ViewportTransformedTest`,
+lleno). `0x401040` saca los huesos con nombre (`WorldRuntime::namedBones`, desde la hito 2); `0x4fb1a0` no tiene qué
+soltar en el mundo de MuRet (P-C161). El efecto `0x61f` va sin el dueño, como el de la entrada del héroe. Cortan con su
+dirección, después de lo que el original hace antes: Kalima en `0x4c91dc` (CL11), el recién llegado del `45` en
+`0x4c965c` (CL11; el alta de `0x4c934c` es `CreateMonster` desde la hito 2, [Los monstruos y los NPC en el
+viewport](#los-monstruos-y-los-npc-en-el-viewport)), los joints del tipo `0xf1` del `DF` en `0x4c6c9d` (CL11; el empujón
+está portado desde la hito 2), y las banderas que crean efectos (`0x4e644f`, `0x4e662d`, `0x4e6725`, `0x4e676e`,
+`0x4e67d6` y `0x4e6869`, CL11 y CL10; `0x4e68f5`, P-C163). Los sonidos (`0x76`, `0x84`) quedan en el último sonido, sin
+audio hasta la CL10 (08, P-C162). Tests: `ViewportPlayersTest`, `ViewportLeaveTest`, `ViewportTransformedTest`,
 `ShownEquipmentTest` y `ViewportPacketRingTest`, en Lorencia y en Devias.
 
 ### El picking de los personajes del juego
@@ -9760,12 +9761,13 @@ primero gana los empates. Con jugadores en la party (`0x78aba48`), además escri
 `rand()`.
 
 **MuRet**: `Scenes::PickTheCharacter` es `0x59e700` y `Scenes::PickInTheFrame` (`GameUi.h`) es `0x59ec80`, con el
-segmento de `GameScene::MouseRay`. El dibujo de los personajes del juego toma el elegido (`0x6c8e30`) y el NPC
-(`0x6c8e2c`) del frame anterior. El ítem del piso y los objetos son de la CL9.3 (−1) y la party, de la hito 7 (vacía).
-`0x6c8e38` solo baja a −1 acá: lo suben el ataque (`0x59d3fd`) y las skills, de los hitos 3 y 4. Con el elegido de
-verdad, cada lector de `0x6c8e30` y `0x6c8e38` está portado, corta con su dirección o no se alcanza: la lista, en 08,
-P-C162 (d). La vuelta a la selección los deja en −1 (`0x4c2515..0x4c252d`). Lo *inferido* (la cámara, la caja y la
-doble precisión), en 08, P-C164. Tests: `CharacterPickingTest` y
+segmento de `GameScene::MouseRay` y, desde la hito 2, la caja de cada tipo (`+0x124..+0x138` de `0x511290` desde la
+posición, [El alta de un monstruo](#el-alta-de-un-monstruo)). El dibujo de los personajes del juego toma el elegido
+(`0x6c8e30`) y el NPC (`0x6c8e2c`) del frame anterior. El ítem del piso y los objetos son de la CL9.3 (−1) y la party,
+de la hito 7 (vacía). `0x6c8e38` solo baja a −1 acá: lo suben el ataque (`0x59d3fd`) y las skills, de los hitos 3 y 4.
+Con el elegido de verdad, cada lector de `0x6c8e30` y `0x6c8e38` está portado, corta con su dirección o no se alcanza:
+la lista, en 08, P-C162 (d). La vuelta a la selección los deja en −1 (`0x4c2515..0x4c252d`). Lo *inferido* (la cámara,
+la caja y la doble precisión), en 08, P-C164. Tests: `CharacterPickingTest` y
 `GameUiTest.ThePreviousMonsterStaysOutsideTheMapSix`.
 
 ### La vuelta a la selección
@@ -9899,8 +9901,97 @@ La cola `0x5140c0`: en los mapas 10 a 17 los tipos `0x54..0x8f` van con el nivel
 `+0x3a4` el word de `0x57678b0`, y la clase del objeto `+0x88`: 4 para los NPC (201 a 259), 8 para las trampas (100 a
 110) y 2 para el resto.
 
-MuRet: `Scenes::MonsterKinds` (las tablas en `MonsterKindTable.cpp`, `MonsterCreationOf`, `ResolveMonsterSteps` y
-`MonsterTailOf`). Los pasos que no son de esta ola cortan (08, P-C175).
+**`0x511290` con otro tipo** (fase 2). La construcción es la del jugador ([Los personajes de la
+lista](#los-personajes-de-la-lista); 28 `rand()` desde cero) con lo que cambia por tipo: la clase queda solo con los
+NewFace (`0xa8..0xac`); la acción 1 solo con el `0x20a`; la caja, con el piso en (−60, −60, 0) (`0x512270`) y, por la
+tabla de bytes de `0x512700` sobre la de saltos de `0x5126e4` con `tipo − 0x154` sin signo hasta `0xb6`, el techo
+(`+0x130..+0x138`): (40, 40, 120) para el `0x198..0x19a` y el `0x20a` (`0x5122d4`), (50, 50, 80) para el `0x154`,
+`0x158`, `0x15b`, `0x163`, `0x165` y `0x166` (`0x5122f4`), (70, 70, 250) para el `0x15d`, `0x171`, `0x179`, `0x17c` y
+`0x17e` (`0x512314`), (100, 100, 150) para el `0x177` (`0x512334`), (−120, −120, 0)..(100, 100, 300) para el `0x18f`
+(`0x51233b`), (−90, −50, 0)..(90, 50, 200) para el `0x18e` (`0x51236f`) y (50, 50, 150) para el resto (`0x5123a9`). Los
+huesos de las manos (`+0x2bd` y `+0x2dd`), por la tabla de `0x512824` sobre la de `0x5127b8` con `tipo − 0x152` hasta
+`0x48`: 25 casos con su par (el `0x17b` y el `0x17c` solo escriben la derecha); los demás van a `0x5126b2`, que prueba
+`0x43a250` (el `0x192` y el `0x194..0x197`, con sus pares), después `0x42d7f0` (el `0x19b`: la caja de (−140, −140, 0) a
+(140, 140, 300), `+0x38f` en 0 y sin huesos; el `0x1f8`: la caja de (−200, −50, −100) a (200, 50, 100) y sigue) y si
+ninguno devuelve 1 cuelga las manos del 33 y del 42. Además, para todos: `+0x58` y `+0x64` en −1, `+0x92` en 1, `+0x93`
+en `0xa`, `+0x94` en 1,2, `+0x98` en 0, `+0xe8` en 1, `+0xd8` en 0, `+0x38a` en 0, `+0x394` en 0 y `+0x428` en −0x80
+(`0x511be6..0x511d45` y `0x51248d`). `0x512870`, `0x510ff0` y `0x510f70` llaman a `0x401040`, que saca de la lista de
+`0x6e5640` los huesos con nombre del personaje; `0x401000` agrega uno y antes saca el del mismo personaje y nombre.
+
+**`0x5133b0`, la caja de los tipos 152 a 158** (`Box`): el techo (`+0x138`) más 70 (`0x6ba1b0`, en el x87), las alas
+en `0x1a15`, el cuerpo en `0x102a + 0x200 · i` con nivel 13, la escala en 1 y `+0x111` en 9, sin `0x4ea030`.
+
+MuRet: `Scenes::MonsterKinds` (las tablas en `MonsterKindTable.cpp`, `MonsterCreationOf`, `MonsterStepResolver`,
+`ResolveMonsterSteps` y `MonsterTailOf`) y `Scenes::CreateMonster` (`MonsterCreation.h`), que corre los pasos en orden
+con cada `rand()` en su lugar entre los del alta. `LoadMonster` mira que esté el `.bmd` (sin él corta, como el cierre
+del original, P-C173); ni ese ni `LoadNpc` cargan el modelo, y `Action` corta sin el esqueleto del modelo (08,
+P-C176). `MeshFlag` y `ModelByte` quedan en `WorldRuntime::modelPatches` y `BoneName` en `WorldRuntime::namedBones`;
+el sonido, en `WorldRuntime::lastSoundId` (CL10). Cortan los joints y la llegada (CL11) y el asedio prendido (CL9.5),
+08, P-C175. El nombre se guarda en `+0x1d9..+0x1f1` (el nombre, `+0x1e3` y `ActorState::nameSpill`); lo que pisaría
+`+0x1f2` corta (Q-C847). `ConstructActor` pone la caja y los huesos por tipo.
+
+### Los monstruos y los NPC en el viewport
+
+*Estático* (CL9 hito 2, fase 2, 2026-11-13); el cable con un GS real queda para la VM (08, P-C172). Los formatos, en
+[04](04-protocolo.md#los-monstruos-y-los-npc-que-entran-13-1f-68-y-1a). Cada acceso a una celda protegida saca 4
+`rand()`, como en [Los otros jugadores en el viewport](#los-otros-jugadores-en-el-viewport).
+
+**El `13`, `0x4c9c60`**, por cada registro:
+
+1. `0x5141e0(tipo, X, Y, clave)` ([El alta de un monstruo](#el-alta-de-un-monstruo)); un 0 corta el lazo.
+2. Los estados de `+4` con `0x4e6380`.
+3. El ángulo, `((+0xc >> 4) − 1) · paso`: el paso es 45 (`0x6b8848`) salvo con el modelo `0x1b5` (el 348 de
+   Crywolf), que compara los `DWORD` de `+0x420` y `+0x41c` **sin abrir sus entradas** (`0x4c9d01..0x4c9d36`): 0 con
+   la Y en `0x5a`, −135 con la X en `0x3e` y 90 con la X en `0xb7` (la X gana). Cerradas, tienen los cuatro
+   `rand() & 0xff` del último cierre de `0x511290`, que nunca dan esos valores: el paso es 45 y el 90 del creador en
+   las columnas 62 y 183 se pierde (Q-C849).
+4. La celda protegida y el blanco en X e Y (8 `rand()`), `+0x39a`/`+0x39b`; `+0x42d` con el bit 7 de `+2` y `+0x93`
+   con sus bits 4 a 6.
+5. En Castle Siege (30), con `+0x376` en `0x115` (la puerta) y `+0x78` con `0x20000` o en 0, `0x4ea030` y `0x42a110`
+   (`0x4c9f0f`).
+6. Recién llegado (el bit 15 de la clave), `0x4c9790`; si no, la Y, la X (8 `rand()`) y `0x4eac00` hasta el blanco,
+   con `+0x378` en 1 si hay camino.
+
+**`0x4c9790`, el recién llegado**, por `+0x376`: el `0x15` y el `0x2c`, la acción 1 (`0x4ea030`), `+0x112` en 1, el
+alpha en 1 y el sonido `0x13` o `0x14e`; el `0x35` y el `0x36`, `+0x3e5` en `0x3c` y el freno de 60 pasos con efectos y
+`rand()` de `0x505de0` (`0x4c982b`); el `0x55`, `0x5b`, `0x61`, `0x72`, `0x78` y `0x7e`, el sonido `0x173`; el
+`0x154`, `0x155`, `0x158` y `0x159`, lo que lee `[0x6e5904]` (P-C60 g) y los joints `0x615`, `0x614` y `0x5f6`
+(`0x4c9883`). El resto (`0x4c9acb`): con el modelo `0x20a`, la acción `0xc1`, `+0x112` en `0xc1` y el alpha en 1; si
+no, el alpha en 0.
+
+**El `1F`, `0x4ca0b0`**, por cada registro: los tipos `0x98..0x9e` (los de `0x514390`, el modelo `0xc5`) van por
+`0x517400(dueño, clave, tipo, X, Y, recién llegado)`: `0x5141e0`, el nivel (`+0x1d6`) en `tipo − 0x97`,
+`wsprintfA(local, +0x1d9, dueño)` (el formato es el nombre del caso, la cadena vacía de `0x6e57a4`), el sufijo en 1
+con el nivel 7 y los 24 bytes del local a `+0x1d9` (Q-C848); recién llegado, cuatro `rand()` y los joints `0x615`
+(`0x51747c`). Los demás, `0x5141e0`. Después, como el `13`: los estados, el ángulo por 45, las celdas; `+0x88` en 1,
+el PK (`+0xc & 0xf`) y, con 6 o más, el nivel en 1. Fuera de `0x98..0x9e`, el nombre: `+0x1e3` en 0, los diez bytes
+del dueño, el Text 485 (`0x76e0a38`) y el nombre que tenía (`strcat`, sin tope, Q-C847). Recién llegado,
+`0x4c9790` y el efecto `0xec` (`0x518cf0`) con el joint `0x5d5`/2 (`0x53fe70`), y con `0x98..0x9e` además el frame
+(`+0x114`) y `+0x118` en 0 y el sonido `0x61` (`0x4ca630..0x4ca642`); si no, el camino.
+
+**El `68`, `0x4e0980`**, por `+0`: con 1 (`0x4e0c1d`), `0x512870(clave, 0x20a, X, Y, 0)`, la clase de `+1` como el
+`12`, la piel y el PK en 0, `+0x88` en `0x80`, los estados, las celdas, un `rand()` (`+0x428` en `0x96` y el ángulo
+`r % 360`), el equipo de `+7` (`0x5139f0`) y el nombre `"   "` (`0x6c8648`) con `+0x1e3` en 0. Con 2 o 3
+(`0x4e09ca`), `0x5141e0` con el tipo `+1 << 8 | +2` (un 0 pasa al siguiente, `0x4e0a06`), los estados, las celdas, el
+`rand()` del ángulo y la puerta del asedio como el `13` (`0x4e0bd1`). Con otro, nada.
+
+**El `45` y el `DF` sobre los monstruos** (del hito 1, `0x4c934c` y `0x4c6b80`): el `45` da de alta con `0x5141e0`;
+el `DF` con el tipo `0xf1` empuja: `+0xe4` en 20, `+0xd0` en `(pkt[5] − X) · 400` y `+0xcc` en `(Y − pkt[6]) · 400`
+con la X y la Y de la celda protegida (8 `rand()`), el sonido `0x1b` y los 20 joints `0x5c5` de `0x51fe10` (dos
+`rand()` cada uno).
+
+**El picking** (`0x505de0`, `0x505e15..0x505ebb`): la caja de `+0x13c` es el piso de `+0x124..+0x12c` más la
+posición, con los lados `+0x130..+0x138` menos el piso (*inferido* que vale la posición de ahora, como Q-C100).
+
+**MuRet** (`Scenes/MonsterViewport.h`, `Scenes/MonsterCreation.h`): `ApplyViewportMonsters`, `ApplySummons` y
+`ApplyViewportObjects`, con `ArriveAsNew` (`0x4c9790`); `ApplyTransformed` da de alta con `CreateMonster` y el `DF`
+empuja al `0xf1`. Cortan con su dirección, después de lo que el original hace antes: la puerta del asedio (`0x4c9f0f` y
+`0x4e0bd1`, CL9.5), el freno del `0x35` (`0x4c982b`), la llegada del `0x154` (`0x4c9883`, CL11), la acción sin el
+esqueleto del modelo (P-C176), el invocado que llega (`0x51747c` y `0x4ca5f6`, CL11), los joints del `DF` (`0x4c6c9d`,
+CL11) y el nombre que pisaría `+0x1f2` (Q-C847). `CharacterPicking` usa la caja de cada tipo. Tests:
+`MonsterViewportTest` (Lorencia, Devias, Devil Square, Castle Siege y Crywolf),
+`ViewportPlayersTest.TheTransformedIsCreatedByItsType`, `ShownEquipmentTest`, `ActorConstructionTest`,
+`CharacterPickingTest.TheBoxComesFromTheConstructedType` y `ServerSessionTest.TheMonsterPacketsReachTheSinkInWireOrder`.
 
 ### La tabla de protección
 

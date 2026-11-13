@@ -432,7 +432,9 @@ está en [06](06-render-escenas-y-ui.md#la-escena-del-juego).
 Los 140 handlers tocan estas estructuras (`paso5-protocolo-handlers.md`, "Estructuras de datos
 recurrentes"): la tabla de jugadores (400 entradas de 0x438 bytes en `DAT_0743a16c`, id de 16 bits
 big-endian), el personaje propio (0xF08 bytes en `DAT_07681eb4`), la cola circular de 10 paquetes
-de 0x100 bytes, el historial de chat y la máquina de acciones diferidas.
+de 0x100 bytes (`0x77f27b4`: el dispatcher copia ahí el `0x0B`, el `0x12`, el `0x1C`, el `0x24` y el `0x2A` antes de
+su handler, sin mirar el cifrado; [06](06-render-escenas-y-ui.md#los-otros-jugadores-en-el-viewport)), el historial de
+chat y la máquina de acciones diferidas.
 
 ### La entrada al mundo: la respuesta del `F3 03` y el `F3 10`
 
@@ -643,7 +645,8 @@ desconocida se descarta, como el `D3`; el `0x78`/`0x79` corta con `0x4cb821` has
 
 - **El `1C` del servidor, el warp** (`0x4c6e10`): `C3 [C1 08 1C gate mapa x y dir]`, el
   `PMSG_TELEPORT_RESULT` del servidor (`GCTeleportSend`). `pkt[3]` es el gate (0, la habilidad
-  teleport en el mismo mapa), `pkt[4]` el mapa, `pkt[5..6]` la celda y `pkt[7]` la dirección. Con el
+  teleport en el mismo mapa), `pkt[4]` el mapa, `pkt[5..6]` la celda y `pkt[7]` la dirección. Antes, el
+  dispatcher lo copia a la cola de `0x77f27b4` (`0x4e3e98..0x4e3f1d`), cifrado o no. Con el
   cuarto argumento del dispatcher en 0 no lo atiende y manda `C1 06 F1 03 00 1C` en C3 (*inferido*:
   el aviso de FoxAnti). **Contradicción abierta:** [el dispatcher](#el-dispatcher-0x4e2b10) dice
   que el `0x1C` solo responde si ese argumento vale 0. No se elige ninguna de las dos: se resuelve
@@ -805,7 +808,8 @@ personal. Los siete bytes de un ítem son los del `F3 10`.
   (la grilla), `0x5bf294..` (el equipo) y `0x59bf1c` (MoveHero). El ítem va como `+0` (el tipo & 0xff), `+4`,
   `+0x1a`, `+0x1b`, `+0x1c`, `(tipo con signo >> 5) & 0xf0` y 0. Antes, la traba `0x78abb39` en 1: el paso del
   equipo, el de la grilla y el del ítem del cursor no hacen nada hasta la respuesta.
-- **`24` del GameServer** (`0x4d1400`): `C3 0C 24 <resultado> <lugar> <ítem:7>`. Si llegó en C1, sin pasar por
+- **`24` del GameServer** (`0x4d1400`): `C3 0C 24 <resultado> <lugar> <ítem:7>`. Antes, el dispatcher lo copia a la
+  cola de `0x77f27b4` (`0x4e38ca..0x4e394f`), también sin cifrar. Si llegó en C1, sin pasar por
   SimpleModulus, `0x4d166b..0x4d1690` manda `C1 06 F1 03 00 16` con el XOR32 y en C3 sin leerlo y sin soltar la
   traba. Cifrado, suelta la traba; con 0xff (rechazado), `0x5be150` vuelve el ítem del cursor a su lugar. Si no,
   arma las listas de la tienda personal (`0x4d14c6..0x4d1520`), deja la cuenta del cursor en 0 y pone el ítem con
@@ -815,7 +819,8 @@ personal. Los siete bytes de un ítem son los del `F3 10`.
 - **`28`** (`0x4c5ec0`): `C1 05 28 <lugar> <fin de la espera>`. Con el lugar distinto de 0xff, `0x5bd750(lugar)` lo
   saca (desde `0x4c` lee antes `0x6c931c` y la grilla de la tienda personal); con el segundo byte distinto de 0,
   `0x5767954` (la espera del uso de un ítem) en 0.
-- **`2A`** (`0x4d3cc0`): `C1 06 2A <lugar> <durabilidad> <fin de la espera>`. Del 0 al 11, `+0x1a` del lugar con el
+- **`2A`** (`0x4d3cc0`): `C1 06 2A <lugar> <durabilidad> <fin de la espera>`. Antes, el dispatcher lo copia a la cola
+  de `0x77f27b4` (`0x4e3ace..0x4e3b53`). Del 0 al 11, `+0x1a` del lugar con el
   registro propio abierto (3.848 `rand()` al cerrarlo); desde el 12, en toda la huella del tipo de esa casilla, desde
   la casilla misma (`0x4d3f4c..`). El tercer byte, como el del `28`.
 - **`F3 13`** (`0x4e316e`): `C1 18 F3 13 <clave:2, big-endian> <sin leer> <equipo:17>`. `0x5110d0` busca el personaje
@@ -942,7 +947,8 @@ con el alto primero; el bit 15 marca al recién llegado (el `12` y el `45`) y lo
 cada handler hace con el mundo, en [06](06-render-escenas-y-ui.md#los-otros-jugadores-en-el-viewport).
 
 - **`12`** (`0x4e372e` → `0x4c8860`): `C2 <largo:2> 12 <cuenta> <registro:0x2c>…`. El dispatcher copia antes el
-  paquete entero, con su largo, a una cola de diez (`0x77f27b4`; nadie la lee). Cada registro:
+  paquete entero, con su largo, a una cola de diez (`0x77f27b4`, la misma del `0B`, el `1C`, el `24` y el `2A`; nadie
+  la lee), aunque no se pueda leer. Cada registro:
 
   | offset | qué | lo lee |
   | --- | --- | --- |

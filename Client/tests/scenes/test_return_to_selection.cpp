@@ -34,9 +34,11 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -246,6 +248,17 @@ TEST(ReturnToSelectionWithoutDataTest, WithTheOwnRecordOpenTheReturnDrawsNoRand)
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 1);
     EXPECT_EQ(tested.world.OwnCharacter().word40, 0);
     EXPECT_EQ(tested.world.Runtime().orderedScene, Client::Scenes::SceneId::CharacterSelect);
+}
+
+// 0x4c2515..0x4c252d: la vuelta deja los cinco del picking en −1, también el personaje elegido y 0x6c8e38.
+TEST(ReturnToSelectionWithoutDataTest, TheReturnForgetsThePickedTargets)
+{
+    const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
+    tested->world.Runtime().selectedTargets = {3, 4, 5, 6, 1};
+
+    ApplyReturnToSelection(tested->Resources());
+
+    EXPECT_EQ(tested->world.Runtime().selectedTargets, (std::array<std::int32_t, 5>{-1, -1, -1, -1, -1}));
 }
 
 // 0x510f70 compara la clave con signo (movsx en 0x510f8a): con −1, la clave 0x7fff muere y la 0xffff no;

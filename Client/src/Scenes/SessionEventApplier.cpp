@@ -31,6 +31,7 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/SocialEvents.h"
+#include "Scenes/ViewportPacketRing.h"
 #include "Scenes/ViewportPlayers.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -38,6 +39,7 @@
 #include "Scenes/WorldTransitions.h"
 #include "World/LeafWeather.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -231,6 +233,11 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySocia
         return Core::Expected<void, std::string>{};
     }
     return std::nullopt;
+}
+
+void SessionEventApplier::CopyToPacketRing(std::span<const std::byte> packet)
+{
+    StoreViewportPacket(m_resources.world.Runtime().viewportPackets, packet);
 }
 
 std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplyViewport(const App::WorldEvent& event)

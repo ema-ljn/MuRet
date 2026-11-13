@@ -213,10 +213,8 @@ TEST_F(ViewportPlayersTest, ANewPlayerAppearsInTheCentreOfItsCell)
         EXPECT_TRUE(effect.alive);
         EXPECT_EQ(effect.type, Client::World::ArrivalEffect);
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, FreshRecordDraws).State());
-        const auto& ring = game->world.Runtime().viewportPackets;
-        EXPECT_EQ(ring.count, 1);
-        EXPECT_EQ(ring.sizes[0], 5 + 0x2c);
-        EXPECT_EQ(std::to_integer<std::uint8_t>(ring.slots[0][3]), 0x12);
+        // La copia del dispatcher (0x4e372e) la hace la sesión antes del lector; 0x4c8860 copia solo con el estado 1.
+        EXPECT_EQ(game->world.Runtime().viewportPackets.count, 0);
     }
 }
 
@@ -269,7 +267,7 @@ TEST_F(ViewportPlayersTest, AWebzenNameIsSkippedAfterThePacketIsStored)
     EXPECT_EQ(Client::Scenes::ActorWithKey(game->world, 0x0010), Client::Scenes::CreatedActorSearch);
     EXPECT_EQ(Client::Scenes::ActorWithKey(game->world, 0x0011), 1u);
     EXPECT_EQ(Client::Scenes::ActorWithKey(game->world, 0x0012), 2u);
-    EXPECT_EQ(game->world.Runtime().viewportPackets.count, 1);
+    EXPECT_EQ(game->world.Runtime().viewportPackets.count, 0);
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 2 * FreshRecordDraws).State());
 }
 
@@ -320,7 +318,11 @@ TEST_F(ViewportPlayersTest, TheTeleportStateKeepsWhatTheOldOneHad)
     const auto effects = game->world.Map().effects.Effects();
     EXPECT_EQ(effects[0].type, Client::World::TeleportEffect);
     EXPECT_EQ(effects[1].type, Client::World::ArrivalEffect);
-    EXPECT_EQ(game->world.Runtime().viewportPackets.count, 2);
+    // 0x4c8a43..0x4c8ad4: el estado 1 copia el paquete entero (Q-C801), además de la copia del dispatcher.
+    const auto& ring = game->world.Runtime().viewportPackets;
+    EXPECT_EQ(ring.count, 1);
+    EXPECT_EQ(ring.sizes[0], 5 + 0x2c);
+    EXPECT_EQ(std::to_integer<std::uint8_t>(ring.slots[0][3]), 0x12);
     EXPECT_EQ(game->cloth.random.State(),
               AfterDraws(Seed, FreshRecordDraws + Client::Render::Models::OwnRecordCloseRandoms).State());
 }
@@ -354,7 +356,7 @@ TEST_F(ViewportPlayersTest, TheStatesTwoToFourPutTheirActions)
         EXPECT_EQ(Actor(1).animation.action, tested.others);
         EXPECT_EQ(Actor(2).characterClass, 2);
         EXPECT_EQ(Actor(2).animation.action, tested.elf);
-        EXPECT_EQ(game->world.Runtime().viewportPackets.count, 1);
+        EXPECT_EQ(game->world.Runtime().viewportPackets.count, 0);
     }
 }
 
@@ -419,6 +421,26 @@ TEST(ViewportPacketRingTest, TheEleventhPacketShiftsTheSlots)
     EXPECT_EQ(ring.count, 9);
     EXPECT_EQ(std::to_integer<int>(ring.slots[0][5]), 2);
     EXPECT_EQ(std::to_integer<int>(ring.slots[8][5]), 10);
+    // El de 0x100 justo entra (JG): la cola vuelve a diez.
+    std::array<std::byte, 0x100> full{};
+    full.back() = std::byte{0xbb};
+    Client::Scenes::StoreViewportPacket(ring, full);
+    EXPECT_EQ(ring.count, 10);
+    EXPECT_EQ(ring.sizes[9], 0x100);
+    EXPECT_EQ(ring.slots[9].back(), std::byte{0xbb});
+}
+
+// 0x4e3778..0x4e377e: con lugar, uno de más de 0x100 no corre nada ni toca lo guardado.
+TEST(ViewportPacketRingTest, AnOversizedPacketDoesNotEraseAShorterRing)
+{
+    Client::Scenes::ViewportPacketRing ring;
+    const std::array<std::byte, 3> teleport{std::byte{0xc1}, std::byte{3}, std::byte{0x1c}};
+    Client::Scenes::StoreViewportPacket(ring, teleport);
+    const std::array<std::byte, 0x101> large{};
+    Client::Scenes::StoreViewportPacket(ring, large);
+    EXPECT_EQ(ring.count, 1);
+    EXPECT_EQ(ring.sizes[0], 3);
+    EXPECT_EQ(ring.slots[0][2], std::byte{0x1c});
 }
 
 // 0x4ca780: la clave entera 0x13d apaga +4..+6 de la info del asedio, cualquier otra +0x1f..+0x21 (Q-C802); la baja va

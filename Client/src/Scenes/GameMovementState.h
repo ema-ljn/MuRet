@@ -57,5 +57,12 @@ struct GameMovementState
     // usar una skill (0x57d294), el clic (0x59b8f3, 0x59b972) y otros paquetes (0x4d6977, 0x4e415e), sin portar.
     std::int32_t followTarget = -1;
     WeaponSkillRequest weaponSkill{};
+    // CL9 hito 4, la rama del Wizard de 0x57cfc0 (.bss 0). 0x5767948: la última skill con duración que mandó el héroe
+    // (el 1E), que leen 0x4fd5f0 y 0x53d9a0 (sin portar).
+    std::int32_t durationSkill = 0;
+    // 0x77f3bad: la clave mágica del 1E de la 8, la 9 y la 0x4c, que da la vuelta de 1 a 0x32 (0x58f830..0x58f847).
+    std::uint8_t magicKey = 0;
+    // 0x77f3ba4: lo pone en 0 el Aqua Beam (0x590afd). Quién más lo escribe y lo lee, sin leer.
+    std::int32_t dword77f3ba4 = 0;
 };
 } // namespace Client::Scenes

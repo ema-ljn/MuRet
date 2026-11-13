@@ -264,6 +264,9 @@ struct ActorState
     // Chaos Castle), que mueve 0x4fb9e0 con 0x51fd20 y 0x4fb2b0 (ActorDying.h): +0x1bc, +0xcc, +0xd0, +0xd4, +0xd8 y
     // +0xe4, el empuje de +0x1a4..+0x1ac y la posición de partida en +0x1b0..+0x1b8.
     std::uint8_t byte1bc = 0;
+    // +0x1bd: la clave mágica (0x77f3bad) del último 1E de la 8, la 9 o la 0x4c del héroe (0x58f847, 0x58e6fe; CL9
+    // hito 4). Quién lo lee y qué pone 0x511290, sin leer.
+    std::uint8_t byte1bd = 0;
     // +0x3c8: cuánto lleva muriéndose, que 0x4fb9e0 sube de a 0,02 (ActorDying.h). 0x511290 lo pone en 0 (0x51247a).
     float dyingTime = 0.0f;
     // +0xcc..+0xe4: floatCC, floatD0, floatD4, floatD8 y floatE4, más arriba.

@@ -187,7 +187,30 @@ struct OldEdit
     // dibujo del texto de MuRet.
     std::uint32_t textColor = 0xffffffffu;
     std::uint32_t backgroundColor = 0xff000000u;
-    // +0xac: el alto de "1" en píxeles (0x6c7af4), que 0x468320 mide la primera vez (0 hasta entonces).
+    // +0xac: el alto de "Q" en píxeles (0x6c7af4), que 0x468320 mide la primera vez (0 hasta entonces).
     float caretHeight = 0.0f;
+    // CL9 hito 10, el EDIT de varios renglones (UI/OldEditLines.h). +0xc4: 1 con ES_MULTILINE | ES_AUTOVSCROLL |
+    // WS_VSCROLL (0x4675e0, la vtable + 0x38, antes de crearlo: solo el cuerpo de la carta, 0x4980ef).
+    std::int32_t multiline = 0;
+    // +0xc8 y +0xcc: las cuentas de las flechas y de la pista de 0x468d50, como las de la lista.
+    std::int32_t arrowRepeat = 0;
+    std::int32_t trackRepeat = 0;
+    // +0xd0: los renglones que entran, ftol(h · ry / cy de "1") al crearlo (0x467fe0, con +0xc4 en 1; si no, 0).
+    std::int32_t visibleLines = 0;
+    // +0xd4..+0xe4: la barra de 0x468970 (el ancho, 13; la pista de y + 9 a y + h − 9; el alto y la y del cursor) y
+    // +0xe8, el mouse menos la y del cursor al agarrarlo (0x468d50).
+    float barWidth = 0.0f;
+    float barTop = 0.0f;
+    float barBottom = 0.0f;
+    float thumbHeight = 0.0f;
+    float thumbY = 0.0f;
+    float dragOffset = 0.0f;
+    // MuRet: lo que el EDIT de Windows guarda y el original le pide con mensajes. El primer renglón a la vista
+    // (GetScrollPos de SB_VERT, EM_SCROLL y EM_LINESCROLL), el ancho del área del texto en píxeles (el de la ventana
+    // de 0x467fe0 menos la barra de Windows, *inferido*) y si el último cambio del texto pide mostrar el cursor
+    // (ES_AUTOVSCROLL).
+    std::int32_t firstLine = 0;
+    std::int32_t textWidth = 0;
+    bool followCaret = false;
 };
 } // namespace Client::UI

@@ -6,6 +6,7 @@
 #include "UI/FriendWindows.h"
 #include "UI/LetterModel.h"
 #include "UI/OldControls.h"
+#include "UI/OldEditLines.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowSteps.h"
 #include "UI/OldWindows.h"
@@ -186,20 +187,6 @@ void FocusTheEdit(OldWindowManager& manager, OldEdit& edit, const OldWindowGloba
     globals.keyboardFocus = ChatFocus::OldWindow;
     manager.focusedEdit = edit.base.id;
     globals.focusedList = edit.base.id;
-}
-
-void StepTheEdit(OldWindowManager& manager, OldEdit& edit, std::int32_t arg, const OldWindowGlobals& globals,
-                 const OldWindowStepView& view)
-{
-    while (!edit.base.queue.empty())
-    {
-        edit.base.current = edit.base.queue.front();
-        edit.base.queue.pop_front();
-        Steps::PlaceAgainstTheParent(manager, edit.base);
-    }
-    if (arg == 1)
-        return;
-    static_cast<void>(Steps::ClaimTheMouse(manager, edit.base, globals, view));
 }
 
 // 0x45aa80 sobre una lista de una de estas ventanas: la cola y el mouse sobre ella. Los renglones (la vtable + 0x88)
@@ -956,8 +943,10 @@ Core::Expected<OldWindow, std::string> MakeTheLetterKind(OldWindowManager& manag
     letter.subject.base.width = 0xee;
     letter.subject.base.height = 0xe;
     PlaceTheBase(letter.subject.base, id, 0, toWidth, 0x12);
+    // 0x4980ef: la vtable + 0x38 con 1 (+0xc4) antes de 0xee × 0x87 y de crearlo (0x467fe0).
     letter.text.base.width = 0xee;
     letter.text.base.height = 0x87;
+    MakeTheEditMultiline(letter.text, measure.measure, measure.dcFont, measure.screen);
     PlaceTheBase(letter.text.base, id, 0, 5, 0x21);
     for (std::size_t at = 0; at < letter.buttons.size(); ++at)
         SetUpTheButton(letter.buttons[at], id, WriteButtonCommands[at], texts.At(WriteButtonTexts[at]), 2,
@@ -1029,7 +1018,7 @@ Core::Expected<void, std::string> StepTheLetterKindsChildren(OldWindowManager& m
         StepAList(manager, chat.lines, chat.lineRows.size(), arg, globals, view);
         StepAList(manager, chat.users, chat.members.size(), arg, globals, view);
         StepAList(manager, chat.invite, chat.invitable.size(), arg, globals, view);
-        StepTheEdit(manager, chat.edit, arg, globals, view);
+        Steps::StepTheEdit(manager, chat.edit, arg, globals, view);
         Steps::StepTheButton(manager, chat.sendButton, arg, globals, view);
         return {};
     }
@@ -1043,9 +1032,9 @@ Core::Expected<void, std::string> StepTheLetterKindsChildren(OldWindowManager& m
         return CallThePortrait(&view, letter.portrait, PortraitCallKind::Step, "0x49b180", arg);
     }
     // 0x499780: los tres EDIT, los dos primeros botones y, con +0xb0 en 1, los otros dos y el retrato.
-    StepTheEdit(manager, letter.to, arg, globals, view);
-    StepTheEdit(manager, letter.subject, arg, globals, view);
-    StepTheEdit(manager, letter.text, arg, globals, view);
+    Steps::StepTheEdit(manager, letter.to, arg, globals, view);
+    Steps::StepTheEdit(manager, letter.subject, arg, globals, view);
+    Steps::StepTheEdit(manager, letter.text, arg, globals, view);
     Steps::StepTheButton(manager, letter.buttons[0], arg, globals, view);
     Steps::StepTheButton(manager, letter.buttons[1], arg, globals, view);
     if (letter.withPortrait != 1)

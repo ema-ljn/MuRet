@@ -99,12 +99,22 @@ void DrawTheOldList(const OldWindowDrawContext& context, const OldList& list, st
 void DrawTheChosenRow(const OldWindowDrawContext& context, const OldList& list, std::size_t size, std::int32_t row,
                       std::int32_t focusedList);
 
-// 0x468320, la vtable + 0x14 del EDIT de una línea, con lo que MuRet tiene de él (P-C181): la caja del bitmap del EDIT
-// (el ancho del texto más +0xa8 + 1,5, hasta el del EDIT, y su alto) en el color de +0xa0, el texto en el de +0x9c con
-// la fuente normal, y el cursor: la columna que está más de GetCaretPos y menos de GetCaretPos + +0xa8 (0x468805..
-// 0x46881d: con 1,5, una sola) y las filas del alto de "1" (+0xac), al final del texto, prendido 12 de cada 24
-// dibujos con el foco de Windows; +0x80 cuenta los dibujos. Con +0x4c & 8, antes, el negro de su ancho y del alto de
-// "1". Sin la contraseña (+0xb0, con '*' y la fuente 0x5763558) ni los renglones (+0xc4), que la caja de agregar no
-// usa; el bitmap de más de 256 píxeles, que el original parte en dos texturas, es el mismo dibujo.
-void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool focused);
+// 0x468320, la vtable + 0x14 del EDIT, con lo que MuRet tiene de él (P-C181): la caja del bitmap del EDIT en el color
+// de +0xa0 (sin +0xc4, el ancho del texto más +0xa8 + 1,5, hasta el del EDIT, y su alto; con +0xc4, todo el ancho y,
+// con menos renglones que +0xd0, el alto de los renglones), el texto en el de +0x9c con la fuente normal (con +0xc4,
+// los renglones de UI/OldEditLines.h desde el primero a la vista), y el cursor: la columna que está más de
+// GetCaretPos y menos de GetCaretPos + +0xa8 (0x468805..0x46881d: con 1,5, una sola) y las filas del alto de "Q"
+// (+0xac), al final del texto, prendido 12 de cada 24 dibujos con el foco de Windows; con +0xc4 en 1, la barra
+// (0x468970) con el mouse de `view`; +0x80 cuenta los dibujos. Con +0x4c & 8, antes, el negro de su ancho y del alto
+// de "Q". Sin la contraseña (+0xb0, con '*' y la fuente 0x5763558), que ninguno de los de las ventanas viejas usa; el
+// bitmap de más de 256 píxeles, que el original parte en dos texturas, es el mismo dibujo.
+void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool focused,
+                    const OldWindowDrawView& view = {});
+
+// 0x468970: la barra del EDIT de varios renglones. Pone +0xd4..+0xe4 (13 de ancho, la pista de y + 9 a y + h − 9 y el
+// cursor de pista · min(+0xd0 / renglones, 1) en pista · min(GetScrollPos / renglones, 1)); las flechas de
+// win_scrollbar.jpg en x + w − 15, y − 4 e y + h − 9, dadas vuelta con el clic sobre ellas; con la mezcla normal, los
+// dos filos de la pista (el 2 de la paleta); y sin mezcla, el cursor en tres quads.
+void DrawTheEditBar(const OldWindowDrawContext& context, OldEdit& edit, std::int32_t lineCount,
+                    const OldWindowDrawView& view);
 } // namespace Client::UI::OldDraw

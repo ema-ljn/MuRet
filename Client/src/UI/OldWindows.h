@@ -425,6 +425,9 @@ struct OldWindowGlobals
     std::int32_t& wheel;
     bool& rightClick;
     bool& doubleClick;
+    // 0x77f3b10 y 0x6c8dcc (Scenes::GameMovementState): el clic sobre un EDIT los pone en 0 y en 6 (0x4690e0).
+    std::int32_t& mouseUpdateTime;
+    std::int32_t& mouseUpdateTimeMax;
 };
 
 // Lo que mandan las ventanas de amigos (Protocol/Friends; Scenes lo arma y lo manda por la sesión).

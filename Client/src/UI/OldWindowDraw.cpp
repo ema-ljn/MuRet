@@ -15,10 +15,12 @@
 #include "UI/ChatLogWindow.h"
 #include "UI/FriendWindowsDraw.h"
 #include "UI/OldControls.h"
+#include "UI/OldEditLines.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDrawParts.h"
 #include "UI/OldWindows.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -26,6 +28,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace Client::UI
 {
@@ -191,16 +194,24 @@ constexpr float BandAlpha = 0.3f;
 constexpr std::uint32_t ChosenRowTextColor = 0xff000000u;
 constexpr std::uint32_t RowTextColor = 0xffc8dce6u;
 // 0x468320: el cursor de 1,5 de ancho sin IME (+0xa8, 0x3fc00000) y la caja del bitmap 1,5 más ancha que el texto y
-// el cursor (0x6b8b94); el alto del cursor, el de "1" (0x6c7af4); prendido con el resto de 24 menor que 12, y sus
+// el cursor (0x6b8b94); el alto del cursor, el de "Q" (0x6c7af4); prendido con el resto de 24 menor que 12, y sus
 // píxeles en 0xffc8c8c8.
 constexpr double CaretWidth = 1.5;
 constexpr double BoxSlack = 1.5;
-constexpr std::string_view CaretSample = "1";
+constexpr std::string_view CaretSample = "Q";
 constexpr std::int32_t BlinkPeriod = 0x18;
 constexpr std::int32_t BlinkOn = 0xc;
 constexpr std::uint32_t CaretColor = 0xffc8c8c8u;
 // +0x4c & 8 del EDIT (el filtro de la subclase, que con 8 no filtra): el negro de antes (glColor3f(0, 0, 0)).
 constexpr std::int32_t EditBlackFlag = 0x8;
+// 0x468970: la barra del EDIT de varios renglones, de 13 de ancho (+0xd4, 0x41500000), con la pista de y + 9 a
+// y + h − 9, las flechas en x + w − 15 (0x6b87bc), en y − 4 (0x6b8a44) y en y + h − 9 (0x6b887c); los filos en
+// x + w − 13 − 2 y x + w − 3.
+constexpr float EditBarWidth = 13.0f;
+constexpr std::int32_t EditBarEnd = 9;
+constexpr double EditArrowInset = 15.0;
+constexpr std::int32_t EditArrowRise = 4;
+constexpr std::int32_t EditArrowDrop = 9;
 
 float F32(double value)
 {
@@ -674,7 +685,54 @@ void DrawTheChosenRow(const OldWindowDrawContext& context, const OldList& list, 
     context.textColors.background = 0;
 }
 
-void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool focused)
+void DrawTheEditBar(const OldWindowDrawContext& context, OldEdit& edit, std::int32_t lineCount,
+                    const OldWindowDrawView& view)
+{
+    Render::SpriteBatch& sprites = context.sprites;
+    const OldWindowBase& base = edit.base;
+    // GetScrollPos(SB_VERT) y EM_GETLINECOUNT, en la x87; +0xd0 / renglones, a un float.
+    const double position = static_cast<double>(edit.firstLine);
+    const double lines = static_cast<double>(lineCount);
+    const auto shown = static_cast<float>(static_cast<double>(edit.visibleLines) / lines);
+    edit.barWidth = EditBarWidth;
+    edit.barTop = ToFloat(base.y + EditBarEnd);
+    edit.barBottom = ToFloat(base.y + base.height - EditBarEnd);
+    const double track = static_cast<double>(edit.barBottom) - static_cast<double>(edit.barTop);
+    edit.thumbHeight = F32(track * std::min(static_cast<double>(shown), One));
+    edit.thumbY = F32(static_cast<double>(edit.barTop) + track * std::min(position / lines, One));
+    // FILD w, FIADD x: las flechas en x + w − 15, y − 4 e y + h − 9.
+    const double right = static_cast<double>(base.width) + static_cast<double>(base.x);
+    const float arrowX = F32(right - EditArrowInset);
+    const std::int32_t mouseArrowX = base.x + base.width - static_cast<std::int32_t>(EditArrowInset);
+    const bool up = view.leftClick && MouseIn(view, mouseArrowX, base.y - EditArrowRise, ArrowSize, ArrowSize);
+    Quad(sprites, ScrollbarSlot, arrowX, F32(static_cast<double>(base.y) - static_cast<double>(EditArrowRise)),
+         ArrowSide, ArrowSide, up ? ArrowDu : 0.0f, up ? PressedUpArrowV : UpArrowV, up ? -ArrowDu : ArrowDu,
+         up ? -ArrowDv : ArrowDv);
+    const bool down =
+        view.leftClick && MouseIn(view, mouseArrowX, base.y + base.height - EditArrowDrop, ArrowSize, ArrowSize);
+    Quad(sprites, ScrollbarSlot, arrowX,
+         F32(static_cast<double>(base.height) + static_cast<double>(base.y) - static_cast<double>(EditArrowDrop)),
+         ArrowSide, ArrowSide, down ? ArrowDu : 0.0f, DownArrowV, down ? -ArrowDu : ArrowDu, down ? -ArrowDv : ArrowDv);
+
+    sprites.SetBlend(Render::BlendMode::Alpha);
+    SetThePalette(sprites, TrackEdgeIndex, 1.0f);
+    const float trackHeight = F32(track);
+    const double inner = right - static_cast<double>(edit.barWidth);
+    sprites.ColorQuad(F32(inner - Two), edit.barTop, 1.0f, trackHeight);
+    sprites.ColorQuad(F32(right - Three), edit.barTop, 1.0f, trackHeight);
+    WhiteWithTexture(sprites);
+    sprites.SetBlend(Render::BlendMode::Opaque);
+    const float thumbX = F32(inner - One);
+    const float thumbWidth = F32(static_cast<double>(edit.barWidth) - Two);
+    Quad(sprites, ScrollbarSlot, thumbX, edit.thumbY, thumbWidth, edit.thumbHeight, 0.0f, ThumbMiddleV, ThumbDu,
+         ThumbDv);
+    Quad(sprites, ScrollbarSlot, thumbX, edit.thumbY, thumbWidth, 1.0f, 0.0f, 0.0f, ThumbDu, ThumbDv);
+    Quad(sprites, ScrollbarSlot, thumbX,
+         F32(static_cast<double>(edit.thumbY) + static_cast<double>(edit.thumbHeight) - One), thumbWidth, 1.0f, 0.0f,
+         ThumbBottomV, ThumbDu, ThumbDv);
+}
+
+void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool focused, const OldWindowDrawView& view)
 {
     // IsWindowVisible: la vtable + 4 (0x468260) la esconde con el estado 3.
     if (edit.base.state == HiddenWindow)
@@ -683,7 +741,7 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
     const App::PixelSize screen = sprites.Screen();
     const double rx = RatioX(screen);
     const double ry = RatioY(screen);
-    // 0x468444: GetTextExtentPointA de "1" en el DC, en píxeles, la primera vez.
+    // 0x468444: GetTextExtentPointA de "Q" en el DC, en píxeles, la primera vez.
     if (edit.caretHeight == 0.0f)
         edit.caretHeight = ToFloat(context.text.Measure(context.dcFont, CaretSample).height);
     const OldWindowBase& base = edit.base;
@@ -696,14 +754,34 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
     }
     // 0x4684bc..0x4684e4: GetFocus() es el EDIT y +0x80 % 0x18 < 0xc.
     const bool caretOn = focused && edit.draws % BlinkPeriod < BlinkOn;
-    // 0x4685ee..0x468622: el ancho del bitmap, ftol(+0xa8 + 1,5 + cx), hasta ftol(w · rx); el alto, ftol(h · ry).
-    const std::string_view text = edit.text.Value();
-    const std::int32_t textWidth = context.text.Measure(context.dcFont, text).width;
-    std::int32_t width = Truncate(CaretWidth + BoxSlack + static_cast<double>(textWidth));
-    const double edge = static_cast<double>(base.width) * rx;
-    if (static_cast<double>(width) > edge)
-        width = Truncate(edge);
-    const std::int32_t height = Truncate(static_cast<double>(base.height) * ry);
+    const Render::Text::TextStyle style{.font = Render::Text::FontKind::Normal,
+                                        .colors = Render::Text::TextColors{.text = edit.textColor, .background = 0}};
+    // Los renglones (uno sin +0xc4), el primero a la vista y el del cursor, que en MuRet es el último.
+    const std::vector<std::string_view> lines = EditLines(edit, context.text);
+    const auto lineCount = static_cast<std::int32_t>(lines.size());
+    FollowTheEditCaret(edit, lineCount);
+    std::int32_t width = 0;
+    std::int32_t height = 0;
+    if (edit.multiline == 0)
+    {
+        // 0x4685ee..0x468622: el ancho del bitmap, ftol(+0xa8 + 1,5 + cx), hasta ftol(w · rx); el alto, ftol(h · ry).
+        const std::int32_t textWidth = context.text.Measure(context.dcFont, lines.front()).width;
+        width = Truncate(CaretWidth + BoxSlack + static_cast<double>(textWidth));
+        const double edge = static_cast<double>(base.width) * rx;
+        if (static_cast<double>(width) > edge)
+            width = Truncate(edge);
+        height = Truncate(static_cast<double>(base.height) * ry);
+    }
+    else
+    {
+        // 0x468638..0x468687: con +0xc4, todo el ancho (ftol(w · rx), en una o dos texturas); con 1 y menos renglones
+        // que +0xd0, ftol(renglones · +0xac) de alto, y si no, ftol(h · ry).
+        width = Truncate(static_cast<double>(base.width) * rx);
+        if (edit.multiline == 1 && lineCount < edit.visibleLines)
+            height = Truncate(static_cast<double>(lineCount) * static_cast<double>(edit.caretHeight));
+        else
+            height = Truncate(static_cast<double>(base.height) * ry);
+    }
     // 0x4688d8..0x468915: 0x554000 en (ftol(x · rx), ftol(y · ry)), en píxeles.
     const std::int32_t left = Truncate(static_cast<double>(base.x) * rx);
     const std::int32_t top = Truncate(static_cast<double>(base.y) * ry);
@@ -711,24 +789,36 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
     sprites.ColorQuad(F32(static_cast<double>(left) / rx), F32(static_cast<double>(top) / ry),
                       F32(static_cast<double>(width) / rx), F32(static_cast<double>(height) / ry));
     WhiteWithTexture(sprites);
-    if (!text.empty())
-        context.text.Draw(
-            base.x, base.y, text,
-            Render::Text::TextStyle{.font = Render::Text::FontKind::Normal,
-                                    .colors = Render::Text::TextColors{.text = edit.textColor, .background = 0}});
-    // El cursor: la columna de GetCaretPos + 1 (0x468805..0x46881d: más que la x y menos que la x + 1,5), que con el
-    // texto que solo crece por el final es la de su ancho (*inferido*), en las filas de su y (0) al alto de "1".
-    const std::int32_t caretColumn = textWidth + 1;
-    if (caretOn && caretColumn < width)
+    // Lo que pinta el EDIT de Windows: los renglones enteros que entran en el alto desde el primero a la vista, cada
+    // uno con el alto de "Q" (*inferido*, P-C217).
+    const double lineHeight = static_cast<double>(edit.caretHeight);
+    std::int32_t caretRow = -1;
+    for (std::int32_t at = edit.firstLine, row = 0; at < lineCount; ++at, ++row)
     {
-        const double rows = static_cast<double>(edit.caretHeight) < static_cast<double>(height)
-                                ? static_cast<double>(edit.caretHeight)
-                                : static_cast<double>(height);
+        if (static_cast<double>(row + 1) * lineHeight > static_cast<double>(height) && edit.multiline != 0)
+            break;
+        if (at == lineCount - 1)
+            caretRow = row;
+        const std::string_view line = lines[static_cast<std::size_t>(at)];
+        if (!line.empty())
+            context.text.Draw(base.x, base.y + Truncate(static_cast<double>(row) * lineHeight / ry), line, style);
+    }
+    // El cursor: la columna de GetCaretPos + 1 (0x468805..0x46881d: más que la x y menos que la x + 1,5), que con el
+    // texto que solo crece por el final es la del ancho del último renglón (*inferido*), en las filas de su y al alto
+    // de "Q".
+    const std::int32_t caretColumn = context.text.Measure(context.dcFont, lines.back()).width + 1;
+    if (caretOn && caretRow >= 0 && caretColumn < width)
+    {
+        const double caretTop = static_cast<double>(caretRow) * lineHeight;
+        const double rows = std::min(lineHeight, static_cast<double>(height) - caretTop);
         sprites.SetColor(ColorOf(CaretColor));
-        sprites.ColorQuad(F32(static_cast<double>(left + caretColumn) / rx), F32(static_cast<double>(top) / ry),
-                          F32(1.0 / rx), F32(rows / ry));
+        sprites.ColorQuad(F32(static_cast<double>(left + caretColumn) / rx),
+                          F32((static_cast<double>(top) + caretTop) / ry), F32(1.0 / rx), F32(rows / ry));
         WhiteWithTexture(sprites);
     }
+    // 0x46894e: con +0xc4 en 1, la barra (0x468970).
+    if (edit.multiline == 1)
+        DrawTheEditBar(context, edit, lineCount, view);
     ++edit.draws;
 }
 } // namespace OldDraw

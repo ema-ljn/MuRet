@@ -5,6 +5,8 @@
 #include "UI/ChatLog.h"
 #include "UI/ChatLogWindow.h"
 #include "UI/LetterWindows.h"
+#include "UI/OldControls.h"
+#include "UI/OldEditLines.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDrawParts.h"
 #include "UI/OldWindowSteps.h"
@@ -56,6 +58,19 @@ constexpr std::int32_t ClientWidthCut = 10;
 constexpr std::int32_t ClientHeightCut = 0x1a;
 // 0x4930f0: estirada, la ventana va de y = 0 hasta la barra de abajo.
 constexpr std::int32_t StretchedHeight = 0x1b0;
+// 0x468d50: el mouse sobre el EDIT, 4 más arriba y 4 más abajo; las flechas de 13 × 13 en x + w − 0xf, y − 4 e
+// y + h − 9; la barra en x + w − 0xe; las cuentas corren solas después de 15 (como las de la lista); agarrado, el
+// estado en 2; el medio punto de la proporción (0x6b882c); 0x6c8dcc en 6.
+constexpr std::int32_t EditArrowRise = 4;
+constexpr std::int32_t EditMouseSlack = 8;
+constexpr std::int32_t EditArrowInset = 0xf;
+constexpr std::int32_t EditArrowDrop = 9;
+constexpr std::int32_t EditArrowSize = 13;
+constexpr std::int32_t EditBarInset = 0xe;
+constexpr std::int32_t EditRepeatSteps = 0xf;
+constexpr std::int32_t DraggedEdit = 2;
+constexpr double EditDragHalf = 0.5;
+constexpr std::int32_t EditMouseUpdateTimeMax = 6;
 // 0x48ee60: la cascada corre 20 cada vez; sin lugar, vuelve a (r + 1, r + 1) con r = y % 10, y con r = 9 no la arma.
 constexpr std::int32_t CascadeStep = 0x14;
 constexpr std::int32_t CascadeWrap = 10;
@@ -338,6 +353,132 @@ void StepTheButton(OldWindowManager& manager, OldButton& button, std::int32_t ar
     if (!ClaimTheMouse(manager, base, globals, view))
         return;
     StepTheButtonMouse(manager, button, globals, view);
+}
+
+// 0x468d50, la vtable + 0x20 del EDIT (de todos: el original no mira +0xc4). Con el mouse en (x, y − 4, w, h + 8)
+// y el clic con el EDIT quieto: las flechas de la barra (13 × 13 en x + w − 0xf, y − 4 e y + h − 9) corren un renglón,
+// con el 0x19 la primera vez, y con tantos renglones como +0xd0 o más, el cursor se agarra (el estado en 2) y la pista
+// pasa de a páginas, todo con las cuentas de la lista. En un EDIT de una línea, EM_SCROLL no hace nada pero el sonido
+// sale (Q-C1009); su cursor y su pista, sin 0x468970, son de 0 × 0. Después, el mouse es de la UI y el clic le da el
+// foco (la vtable + 0x30 con 1: EM_SETSEL(−2, −1), el cursor al final y nada elegido) y pone 0x77f3b10 en 0 y 0x6c8dcc
+// en 6. Agarrado, el mouse lleva el cursor: EM_LINESCROLL a 0 y al renglón de la proporción; sin el clic, lo suelta.
+void StepTheEditMouse(OldWindowManager& manager, OldEdit& edit, const OldWindowGlobals& globals,
+                      const OldWindowStepView& view)
+{
+    OldWindowBase& base = edit.base;
+    // EM_GETLINECOUNT. Sin la medida (los tests que no la dan), un renglón.
+    const auto lineCount = [&edit, &view]
+    { return view.measure != nullptr ? EditLineCount(edit, view.measure->measure) : 1; };
+    // 0x468e1c y 0x468ff7: sin padre, o con el dibujo hecho (+0x40 del administrador en 1), la cuenta sube.
+    const auto mayCount = [&manager, &base] { return base.parent == 0 || manager.drawn == 1; };
+    const auto repeat = [&](std::int32_t& counter, std::int32_t code, bool sound)
+    {
+        if (counter == 0)
+        {
+            ScrollTheEdit(edit, lineCount(), code);
+            if (sound)
+                globals.sound = ButtonSound;
+            counter = 1;
+        }
+        else if (counter > EditRepeatSteps)
+            ScrollTheEdit(edit, lineCount(), code);
+        else if (mayCount())
+            ++counter;
+    };
+    // 0x468f9d: la pista, sin padre o con el dibujo hecho.
+    const auto trackMayRun = [&manager, &base] { return base.parent == 0 || manager.drawn != 0; };
+    const std::int32_t barX = base.x + base.width - EditBarInset;
+    if (MouseIn(view, base.x, base.y - EditArrowRise, base.width, base.height + EditMouseSlack, TopLeftRect))
+    {
+        if (globals.leftClick && base.state == ShownWindow)
+        {
+            const std::int32_t arrowX = base.x + base.width - EditArrowInset;
+            if (MouseIn(view, arrowX, base.y - EditArrowRise, EditArrowSize, EditArrowSize, TopLeftRect))
+                repeat(edit.arrowRepeat, EditLineUp, true);
+            if (MouseIn(view, arrowX, base.y + base.height - EditArrowDrop, EditArrowSize, EditArrowSize, TopLeftRect))
+                repeat(edit.arrowRepeat, EditLineDown, true);
+            if (lineCount() >= edit.visibleLines)
+            {
+                const double thumbY = static_cast<double>(edit.thumbY);
+                const double thumbBottom = thumbY + static_cast<double>(edit.thumbHeight);
+                const std::int32_t barWidth = OldDraw::Truncate(static_cast<double>(edit.barWidth));
+                if (MouseIn(view, barX, OldDraw::Truncate(thumbY), barWidth,
+                            OldDraw::Truncate(static_cast<double>(edit.thumbHeight)), TopLeftRect))
+                {
+                    if (base.state == ShownWindow && globals.capture == 0)
+                    {
+                        globals.capture = base.id;
+                        base.state = DraggedEdit;
+                        edit.dragOffset = static_cast<float>(static_cast<double>(view.mouseY) - thumbY);
+                    }
+                }
+                else if (MouseIn(view, barX, OldDraw::Truncate(static_cast<double>(edit.barTop)), barWidth,
+                                 OldDraw::Truncate(thumbY - static_cast<double>(edit.barTop)), TopLeftRect))
+                {
+                    if (trackMayRun())
+                        repeat(edit.trackRepeat, EditPageUp, false);
+                }
+                else if (MouseIn(view, barX, OldDraw::Truncate(thumbBottom), barWidth,
+                                 OldDraw::Truncate(static_cast<double>(edit.barBottom) - thumbY -
+                                                   static_cast<double>(edit.thumbHeight)),
+                                 TopLeftRect))
+                {
+                    if (trackMayRun())
+                        repeat(edit.trackRepeat, EditPageDown, false);
+                }
+            }
+        }
+        else
+        {
+            edit.arrowRepeat = 0;
+            edit.trackRepeat = 0;
+        }
+        globals.mouseOnUi = 1;
+        if (globals.leftClick)
+        {
+            globals.keyboardFocus = ChatFocus::OldWindow;
+            manager.focusedEdit = base.id;
+            globals.focusedList = base.id;
+            edit.text.Deselect();
+            globals.mouseUpdateTime = 0;
+            globals.mouseUpdateTimeMax = EditMouseUpdateTimeMax;
+        }
+    }
+    if (base.state != DraggedEdit)
+        return;
+    if (!globals.leftClick)
+    {
+        base.state = ShownWindow;
+        if (globals.capture == base.id)
+            globals.capture = 0;
+        return;
+    }
+    globals.mouseOnUi = 1;
+    edit.thumbY = static_cast<float>(static_cast<double>(view.mouseY) - static_cast<double>(edit.dragOffset));
+    const std::int32_t lines = lineCount();
+    const double top = static_cast<double>(edit.barTop);
+    const std::int32_t line =
+        OldDraw::Truncate(static_cast<double>(lines) * ((static_cast<double>(edit.thumbY) - top + EditDragHalf) /
+                                                        (static_cast<double>(edit.barBottom) - top)));
+    edit.firstLine = 0;
+    ScrollTheEditLines(edit, lines, line);
+}
+
+// 0x45aa80 sobre un EDIT: la cola (0x45abc0), el mouse y 0x468d50.
+void StepTheEdit(OldWindowManager& manager, OldEdit& edit, std::int32_t arg, const OldWindowGlobals& globals,
+                 const OldWindowStepView& view)
+{
+    while (!edit.base.queue.empty())
+    {
+        edit.base.current = edit.base.queue.front();
+        edit.base.queue.pop_front();
+        PlaceAgainstTheParent(manager, edit.base);
+    }
+    if (arg == 1)
+        return;
+    if (!ClaimTheMouse(manager, edit.base, globals, view))
+        return;
+    StepTheEditMouse(manager, edit, globals, view);
 }
 
 // 0x45aa50 sobre un botón: el mensaje y su paso con 1 (0x45aa80), que atiende la cola y no llega al mouse.

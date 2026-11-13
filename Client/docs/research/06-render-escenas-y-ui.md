@@ -1103,7 +1103,27 @@ cursor van a un bitmap de `min(1,5 + 1,5 + cx, w · rx)` × `h · ry` píxeles e
 el texto (`0xff`) toma +`0x9c`, el fondo (0) +`0xa0` (0 en la caja de agregar: transparente, `0x4a365e`) y los grises
 del medio +`0xa4`, y adentro del cursor el texto toma el fondo y lo demás `0xffc8c8c8`; al final, +`0x80` suma uno. MuRet dibuja el
 bitmap como un quad del fondo, el texto con el dibujante de texto y el cursor como un quad de 1 × min(+`0xac`, alto)
-en la columna después del texto (*inferido*: el texto solo crece por el final; P-C181).
+en la columna después del texto (*inferido*: el texto solo crece por el final; P-C181). El alto del cursor es el de
+"Q" (`0x6c7af4`), no el de "1".
+
+El EDIT de varios renglones (CL9 hito 10, `UI/OldEditLines`; solo el cuerpo de la carta, `0x4980ef`): `0x4675e0(1)`
+pone +`0xc4` antes de crearlo, y `0x467fe0` lo crea con `ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL` y +`0xd0` =
+`ftol(h · ry / cy("1"))`, los renglones que entran. `0x468320` lo dibuja de todo el ancho (`ftol(w · rx)`, en una o
+dos texturas de 256) y, con menos renglones (`EM_GETLINECOUNT`) que +`0xd0`, de `ftol(renglones · +0xac)` de alto, si
+no de `ftol(h · ry)`; después, `0x468970`: +`0xd4` = 13, la pista de y + 9 a y + h − 9 (+`0xd8`, +`0xdc`), el cursor
+de pista · `min(+0xd0 / renglones, 1)` de alto (+`0xe0`) en +`0xd8` + pista · `min(GetScrollPos / renglones, 1)`
+(+`0xe4`); las flechas de `win_scrollbar.jpg` de 13 × 13 en (x + w − 15, y − 4) y (x + w − 15, y + h − 9), de (0,
+0,09375) y (0, 0,5) con 0,8125 × 0,40625, dadas vuelta con el clic y el mouse encima; con la mezcla normal, los
+filos del 2 en x + w − 15 y x + w − 3; y sin mezcla, el cursor en x + w − 14 de 11 de ancho con sus puntas. El paso
+de todos los EDIT (`0x468d50`, la vtable + `0x20`): con el mouse en (x, y − 4, w, h + 8) y el clic con el EDIT
+quieto, las flechas (`EM_SCROLL` de un renglón, con el `0x19` la primera vez) y, con tantos renglones como +`0xd0` o
+más, el cursor (lo agarra: estado 2, `0x5762eb4` y +`0xe8`) o la pista (de a páginas), con las cuentas +`0xc8` y
++`0xcc` de la lista; sin el clic, las cuentas en 0; después el mouse es de la UI y el clic le da el foco con
+`EM_SETSEL(−2, −1)` y pone `0x77f3b10` en 0 y `0x6c8dcc` en 6. Agarrado, el mouse lleva el cursor y el EDIT va a
+`ftol(renglones · ((+0xe4 − +0xd8 + 0,5) / pista))` (`EM_LINESCROLL` a 0 y a ese); sin el clic, lo suelta. No mira
++`0xc4`: en uno de una línea, el clic en su borde derecho suena (Q-C1009). La subclase (`0x467b10`) pone +`0x80` en 0
+con cada `WM_CHAR` y, con +`0xc4` en 1, le deja Enter al EDIT de Windows (un renglón nuevo). Lo que es de Windows
+(los cortes de los renglones, el ancho del texto, los topes del corrimiento) MuRet lo arma y es *inferido* (P-C217).
 
 **Las cartas y el chat con un amigo** (CL9 hito 10, `UI/LetterModel`, `UI/LetterWindows`, `Scenes/GameLetters`;
 *estático*; los paquetes, en [04](04-protocolo.md#las-cartas-y-el-chat-con-un-amigo-c5cb-y-la-conexión-de-la-sala)).

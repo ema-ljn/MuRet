@@ -1473,7 +1473,9 @@ UI::OldWindowGlobals OldWindowGlobalsOf(WorldRuntime& runtime)
                                 .focusedList = ui.focusedList,
                                 .wheel = ui.wheel,
                                 .rightClick = ui.rightClick,
-                                .doubleClick = ui.doubleClick};
+                                .doubleClick = ui.doubleClick,
+                                .mouseUpdateTime = movement.mouseUpdateTime,
+                                .mouseUpdateTimeMax = movement.mouseUpdateTimeMax};
 }
 
 Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context)

@@ -78,7 +78,9 @@ protected:
                                 .focusedList = m_focusedList,
                                 .wheel = m_wheel,
                                 .rightClick = m_rightClick,
-                                .doubleClick = m_doubleClick};
+                                .doubleClick = m_doubleClick,
+                                .mouseUpdateTime = m_mouseUpdateTime,
+                                .mouseUpdateTimeMax = m_mouseUpdateTimeMax};
     }
 
     OldWindowStepView View(std::int32_t x = 639, std::int32_t y = 479)
@@ -144,6 +146,8 @@ protected:
     std::int32_t m_wheel = 0;
     bool m_rightClick = false;
     bool m_doubleClick = false;
+    std::int32_t m_mouseUpdateTime = 0;
+    std::int32_t m_mouseUpdateTimeMax = 6;
     bool m_chatOpen = false;
     std::set<std::uint8_t> m_keys;
     std::vector<FriendSend> m_sent;

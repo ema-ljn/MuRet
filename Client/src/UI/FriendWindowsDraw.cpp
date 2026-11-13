@@ -344,7 +344,7 @@ void DrawTheAddFriendBox(OldWindowManager& manager, OldWindow& box, const OldWin
         DrawTheButton(context, button, view);
     context.sprites.SetBlend(Render::BlendMode::Alpha);
     OldEdit& edit = box.add.edit;
-    OldDraw::DrawTheOldEdit(context, edit, view.focusedEdit != 0 && view.focusedEdit == edit.base.id);
+    OldDraw::DrawTheOldEdit(context, edit, view.focusedEdit != 0 && view.focusedEdit == edit.base.id, view);
     context.sprites.SetBlend(Render::BlendMode::Opaque);
 }
 } // namespace Client::UI

@@ -7,6 +7,7 @@
 #include "UI/FriendModel.h"
 #include "UI/LetterModel.h"
 #include "UI/OldControls.h"
+#include "UI/OldEditLines.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowSteps.h"
 #include "UI/OldWindows.h"
@@ -423,22 +424,6 @@ void StepTheList(OldWindowManager& manager, OldWindow& tab, std::int32_t arg, co
                                        { return HoverTheRow(manager, tab, row, at, globals, view); }));
 }
 
-// 0x45aa80 sobre el EDIT: la cola, el mouse y 0x468d50, que es el cursor, la selección y las flechas de un EDIT de
-// varios renglones (P-C181).
-void StepTheEdit(OldWindowManager& manager, OldEdit& edit, std::int32_t arg, const OldWindowGlobals& globals,
-                 const OldWindowStepView& view)
-{
-    while (!edit.base.queue.empty())
-    {
-        edit.base.current = edit.base.queue.front();
-        edit.base.queue.pop_front();
-        Steps::PlaceAgainstTheParent(manager, edit.base);
-    }
-    if (arg == 1)
-        return;
-    static_cast<void>(Steps::ClaimTheMouse(manager, edit.base, globals, view));
-}
-
 // 0x4a37e0: el texto del EDIT (GetText de 0xff), el EDIT vacío y, con algo escrito, el 11 a la pestaña con el texto
 // (el buffer de 0x100 de malloc) y el 4 al administrador para cerrarla.
 void ConfirmTheName(OldWindowManager& manager, OldWindow& box)
@@ -824,7 +809,7 @@ Core::Expected<void, std::string> StepTheFriendsChildren(OldWindowManager& manag
         // 0x4a38a0: los dos botones y el EDIT.
         for (OldButton& button : window.add.buttons)
             StepTheButton(manager, button, arg, globals, view);
-        StepTheEdit(manager, window.add.edit, arg, globals, view);
+        Steps::StepTheEdit(manager, window.add.edit, arg, globals, view);
         return {};
     default:
         return {};
@@ -1191,23 +1176,29 @@ bool HasAnOldEditFocused(const OldWindowManager& manager, ChatFocus focus)
 void TypeInTheOldEdit(OldWindowManager& manager, std::string_view typed)
 {
     if (OldEdit* edit = FocusedEdit(manager); edit != nullptr)
-        edit->text.Type(typed);
+        TypeInTheEdit(*edit, typed);
 }
 
 void BackspaceInTheOldEdit(OldWindowManager& manager)
 {
     if (OldEdit* edit = FocusedEdit(manager); edit != nullptr)
-        edit->text.Backspace();
+        BackspaceInTheEdit(*edit);
 }
 
 void PressEnterInTheOldEdit(OldWindowManager& manager)
 {
-    // 0x467b10: con +0x150 de la lista de ventanas en 1 (F5), Enter es de ella.
-    if (manager.windowList.list.armed == 1)
-        return;
     OldEdit* edit = FocusedEdit(manager);
     if (edit == nullptr)
         return;
+    // 0x467b10: con +0x150 de la lista de ventanas en 1 (F5, que también lo lee) o con +0xc4 en 1 (0x467c8f), Enter va
+    // al EDIT de Windows: en el de varios renglones corta el renglón y en el de una línea no hace nada. Si no, el 7 al
+    // padre.
+    if (manager.windowList.list.armed == 1 || edit->multiline == 1)
+    {
+        BreakTheEditLine(*edit);
+        return;
+    }
+    edit->draws = 0;
     PostToTheWindow(manager, edit->base.parent, EnterMessage, 0, 0);
 }
 

@@ -150,7 +150,9 @@ protected:
                                 .focusedList = m_focusedList,
                                 .wheel = m_wheel,
                                 .rightClick = m_rightClick,
-                                .doubleClick = m_doubleClick};
+                                .doubleClick = m_doubleClick,
+                                .mouseUpdateTime = m_mouseUpdateTime,
+                                .mouseUpdateTimeMax = m_mouseUpdateTimeMax};
     }
 
     OldWindowStepView StepView()
@@ -265,6 +267,8 @@ protected:
     std::int32_t m_wheel = 0;
     bool m_rightClick = false;
     bool m_doubleClick = false;
+    std::int32_t m_mouseUpdateTime = 0;
+    std::int32_t m_mouseUpdateTimeMax = 6;
     std::int32_t m_focusedEdit = 0;
     FontKind m_dcFont = FontKind::Bold;
     TextColors m_colors{};

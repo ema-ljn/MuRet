@@ -94,6 +94,20 @@ void TextField::SetText(std::string_view raw)
     m_allSelected = false;
 }
 
+void TextField::Insert(std::string_view raw)
+{
+    if (!m_allSelected && m_value.size() + raw.size() > m_maxBytes)
+    {
+        return;
+    }
+    if (m_allSelected && raw.size() > m_maxBytes)
+    {
+        return;
+    }
+    ReplaceTheSelection();
+    m_value.append(raw);
+}
+
 void TextField::SelectAll()
 {
     m_allSelected = true;

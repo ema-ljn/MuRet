@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "UI/FriendModel.h"
+#include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 
@@ -40,6 +41,12 @@ void PlaceAgainstTheParent(OldWindowManager& manager, OldWindowBase& base);
 // 0x45aa80 desde la cola hasta el rectángulo (ver OldWindows.cpp).
 [[nodiscard]] bool ClaimTheMouse(OldWindowManager& manager, const OldWindowBase& base, const OldWindowGlobals& globals,
                                  const OldWindowStepView& view);
+
+// 0x468d50, la vtable + 0x20 del EDIT, y 0x45aa80 sobre un EDIT (ver OldWindows.cpp).
+void StepTheEditMouse(OldWindowManager& manager, OldEdit& edit, const OldWindowGlobals& globals,
+                      const OldWindowStepView& view);
+void StepTheEdit(OldWindowManager& manager, OldEdit& edit, std::int32_t arg, const OldWindowGlobals& globals,
+                 const OldWindowStepView& view);
 
 // 0x45aa80 sobre un botón y 0x45aa50 sobre un botón.
 void StepTheButton(OldWindowManager& manager, OldButton& button, std::int32_t arg, const OldWindowGlobals& globals,

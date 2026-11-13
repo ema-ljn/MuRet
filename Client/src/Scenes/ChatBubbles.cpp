@@ -5,6 +5,8 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GuildState.h"
+#include "Scenes/PersonalShopTitles.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -88,12 +90,15 @@ Core::Expected<std::string, std::string> GuildLine(char open, char close, std::s
     return line;
 }
 
-// 0x556dd0(entrada, personaje): sin tiendas (0x7245c8, CL9.4) el título vacío. Con gremio (+0x1f2 no negativo), la
-// alianza (+0x4 de la entrada) en +0x18 si tiene nombre, +0x65 = +0x374 y el gremio (+0xd) con el puesto en +0x36; sin
-// gremio, los dos vacíos y +0x65 en 0.
+// 0x556dd0(entrada, personaje): sin cartel de tienda (0x451810) el título vacío, y con él el título corto de 0x4518b0,
+// que corta. Con gremio (+0x1f2 no negativo), la alianza (+0x4 de la entrada) en +0x18 si tiene nombre, +0x65 = +0x374
+// y el gremio (+0xd) con el puesto en +0x36; sin gremio, los dos vacíos y +0x65 en 0.
 Core::Expected<void, std::string> FillTheGuild(ChatBubble& bubble, const ActorState& owner, const GuildState& guild,
-                                               const Data::Text::TextTable* texts)
+                                               const Data::Text::TextTable* texts, bool hasShop)
 {
+    if (hasShop)
+        return Core::Unexpected(std::string("0x556e26: el título corto de la tienda personal en el globo (0x4518b0) es "
+                                            "del hito 7 (08 P-C208 a)"));
     bubble.shopTitle.clear();
     const auto index = static_cast<std::int16_t>(owner.word1f2);
     if (index < 0)
@@ -217,7 +222,9 @@ Core::Expected<void, std::string> AddChatBubble(WorldState& world, const ChatBub
     }
     bubble->name = std::string(name);
     bubble->color = shown;
-    if (auto guild = FillTheGuild(*bubble, speaker, runtime.guild, measure.texts); !guild.HasValue())
+    if (auto guild = FillTheGuild(*bubble, speaker, runtime.guild, measure.texts,
+                                  HasShopTitle(world.Runtime().social.personalShop, owner));
+        !guild.HasValue())
         return guild;
     if (text.empty())
     {
@@ -290,7 +297,13 @@ Core::Expected<void, std::string> StepTheChatBubbles(WorldState& world, const Ch
             bubble.time1 = 0;
             bubble.time2 = 0;
         }
-        // 0x557701..0x557722: las tiendas personales (0x451720 y 0x4516d0) no tienen ninguna hasta la CL9.4.
+        // 0x5576a0..0x5576c9: con el globo a la vista (+time1 > 0) el cartel de la tienda del dueño se esconde
+        // (0x451720, que con el dueño en NULL no encuentra nada); con un dueño y +time1 en 0, se muestra (0x4516d0).
+        PersonalShopState& shops = runtime.social.personalShop;
+        if (bubble.time1 > 0 && bubble.owner)
+            HideShopTitle(shops, *bubble.owner);
+        if (bubble.owner && bubble.time1 == 0)
+            ShowShopTitle(shops, *bubble.owner);
         if (input.screen.width <= 0 || input.screen.height <= 0)
             continue;
         // 0x557722..0x557738: el ancho y el alto pasan a 640 × 480 con una división sin signo.

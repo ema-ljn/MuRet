@@ -118,6 +118,9 @@ Core::Expected<void, std::string> Body(FaunaDrawCarry& local, FloorItemState& it
 {
     if (!(item.alpha > VisibleAlpha))
         return {};
+    // 0x60cf70 → 0x4ebc80: la caja del picking (+0x13c) desde la posición de este cuerpo, que en el último (el del
+    // ítem, después del agua) es la que lee 0x59e2e0.
+    item.pickBox = {item.position + item.boundingMin, item.position + item.boundingMax};
     const auto* model = context.models.Find(object.model);
     if (!model)
         return Core::Unexpected(std::format("0x60cfc8: falta el modelo del ítem {:#x}", object.model));

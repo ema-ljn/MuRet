@@ -5,15 +5,27 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
+#include "Protocol/Duel.h"
+#include "Protocol/PersonalShop.h"
+#include "Render/Models/LogicalAccess.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbles.h"
+#include "Scenes/ChatReceive.h"
+#include "Scenes/GameChat.h"
 #include "Scenes/GameHud.h"
+#include "Scenes/GameMessages.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GameWindowDrawing.h"
+#include "Scenes/PersonalShopTitles.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/SocialRequests.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatCommands.h"
+#include "UI/ChatInput.h"
 #include "UI/GameText.h"
+#include "UI/MessageArea.h"
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
@@ -157,15 +169,300 @@ double ButtonsLeftOf(std::int32_t x)
     return static_cast<double>(x) + ButtonsRight - ButtonsBack;
 }
 
-// 0x406050 hasta 0x406097: los doce estados en 1 y, sin comando elegido o sin personaje elegido, nada más.
-Core::Expected<void, std::string> PrepareTheCommand(WorldRuntime& runtime)
+// 0x4061b7 y 0x4061c3: los estados que pone 0x406050 por comando antes del clic.
+constexpr std::size_t PartyCommand = 3;
+constexpr std::size_t WhisperCommand = 4;
+constexpr std::size_t GuildCommand = 5;
+constexpr std::size_t AllianceCommand = 6;
+constexpr std::size_t HostilityCommand = 7;
+constexpr std::size_t CancelHostilityCommand = 8;
+constexpr std::size_t FriendCommand = 9;
+constexpr std::size_t FollowCommand = 10;
+constexpr std::size_t TradeCommand = 1;
+constexpr std::size_t ShopCommand = 2;
+constexpr std::size_t DuelCommand = 11;
+// 0x4062bb: +0x368 en 0x80, el maestro del gremio.
+constexpr std::uint8_t GuildMaster = 0x80;
+// 0x406195 y 0x40619a: a lo sumo dos celdas en cada eje.
+constexpr std::int32_t CommandReach = 2;
+// Los textos 0x76e1398 y 0x76cff08 (el 478 y el 915, UI::ChatCommands).
+constexpr std::size_t PersonalShopText = 493;
+constexpr std::size_t NotTheLeaderText = 257;
+
+void ResetTheStates(UI::CommandsWindowState& window)
 {
-    UI::CommandsWindowState& window = runtime.panels.delegated.commandsWindow;
     window.states.fill(UI::CommandReady);
-    if (window.chosen == -1 || runtime.selectedTargets[2] < 0)
+}
+
+// 0x406af0..0x406afa y 0x4072ae..0x4072bb: la ventana se cierra (+4), sin destino (+8) ni comando (+0x20); después
+// 0x4072be pone los doce estados en 1.
+void CloseAfterTheCommand(UI::DelegatedPanels& delegated)
+{
+    delegated.commands = 0;
+    delegated.commandsWindow.target = -1;
+    delegated.commandsWindow.chosen = -1;
+    ResetTheStates(delegated.commandsWindow);
+}
+
+// 0x4061b7..0x406344: lo que puede el comando elegido con el personaje elegido, en su estado (+0x14 + comando): 1 se
+// puede, 0 no, 0xff el otro no es el maestro de un gremio, 0xfe el héroe tampoco. El 9 queda siempre en 0.
+Core::Expected<void, std::string> SetTheStates(const WorldState& world, UI::CommandsWindowState& window,
+                                               std::size_t index)
+{
+    const ActorState& target = world.Actors()[index];
+    const ActorState& hero = world.Actors()[world.Runtime().hero];
+    // 0x4061b7: el 9 (texto 947, amigos) en 0; su caso (0x40a0e1) no se alcanza.
+    window.states[FriendCommand] = 0;
+    auto& states = window.states;
+    switch (static_cast<std::size_t>(window.chosen))
+    {
+    case PartyCommand:
+    case FollowCommand:
+        // 0x4061d3..0x406275: invitarlo si no está en la party; seguirlo si está.
+        states[PartyCommand] = UI::CommandReady;
+        states[FollowCommand] = 0;
+        if (IsInTheParty(world, index))
+        {
+            states[PartyCommand] = 0;
+            states[FollowCommand] = UI::CommandReady;
+        }
         return {};
-    return Core::Unexpected(
-        std::format("0x406097: el comando {} sobre el personaje elegido es de la CL9 hito 7, fase 2", window.chosen));
+    case GuildCommand:
+        // 0x40627a..0x4062b1: el héroe sin gremio (+0x1f2 negativo) y el otro maestro del suyo.
+        states[GuildCommand] = UI::CommandReady;
+        if (static_cast<std::int16_t>(hero.word1f2) >= 0)
+            states[GuildCommand] = 0;
+        else if (static_cast<std::int16_t>(target.word1f2) < 0 || target.guildStatus != GuildMaster)
+            states[GuildCommand] = NotMasterState;
+        return {};
+    case AllianceCommand:
+        // 0x4062b6..0x4062f9: los dos maestros y, en la tabla de los gremios, el +4 del del héroe.
+        if (hero.guildStatus != GuildMaster)
+            states[AllianceCommand] = NotMemberState;
+        else if (target.guildStatus != GuildMaster)
+            states[AllianceCommand] = NotMasterState;
+        else
+            return Core::Unexpected(std::string(
+                "0x4062e4: el comando 6 con dos maestros lee la tabla de los gremios (0x787aa4c), que es del hito 8"));
+        return {};
+    case HostilityCommand:
+    case CancelHostilityCommand:
+    {
+        // 0x4062fb..0x406344: los dos maestros.
+        const std::size_t command = static_cast<std::size_t>(window.chosen);
+        if (hero.guildStatus != GuildMaster)
+            states[command] = NotMemberState;
+        else if (target.guildStatus != GuildMaster)
+            states[command] = NotMasterState;
+        else
+            states[command] = UI::CommandReady;
+        return {};
+    }
+    default:
+        // 0x4061c6: el 1, el 2, el 4, el 9 y el 11 no tocan nada.
+        return {};
+    }
+}
+
+// 0x555190("", texto, tipo) o el texto ya armado, en los mensajes, con la entrada del chat.
+Core::Expected<void, std::string> Notify(const GameChatContext& chat, const UI::ChatCommandNotice& notice,
+                                         std::string_view where)
+{
+    if (chat.measure == nullptr)
+        return Core::Unexpected(std::format("{}: 0x555190 sin el medidor de los textos", where));
+    std::string text;
+    if (notice.formatted)
+    {
+        text = *notice.formatted;
+    }
+    else
+    {
+        const auto found = UI::TextAt(chat.texts, notice.text);
+        if (!found)
+            return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, notice.text));
+        text = std::string(*found);
+    }
+    return AddGameMessage(chat.world.Runtime(), *chat.measure, chat.screen, "", text, notice.type);
+}
+
+Core::Expected<void, std::string> NotifyAll(const GameChatContext& chat, const UI::ChatCommandOutcome& outcome,
+                                            std::string_view where)
+{
+    for (const UI::ChatCommandNotice& notice : outcome.notices)
+    {
+        if (auto added = Notify(chat, notice, where); !added.HasValue())
+            return added;
+    }
+    return {};
+}
+
+// Un aviso de Text.bmd y el comando en −1 (+0x20): el nivel (0x40646a), la tienda (0x4064aa), la party (0x407326) y el
+// duelo (0x4085a5).
+Core::Expected<void, std::string> Refuse(const GameChatContext& chat, UI::CommandsWindowState& window, std::size_t text,
+                                         std::int32_t type, std::string_view where)
+{
+    if (auto added = Notify(chat, UI::ChatCommandNotice{.text = text, .type = type}, where); !added.HasValue())
+        return added;
+    window.chosen = -1;
+    return {};
+}
+
+// 0x40638d..0x406afd, el comando 1 (texto 943): el nivel del registro propio (+0xe, con su acceso) contra 0x6c8dc8;
+// el otro con tienda personal (0x451810); el 36 con su aviso; la ventana se cierra.
+Core::Expected<void, std::string> CommandATrade(const GameUiContext& context, const GameChatContext& chat,
+                                                std::size_t index)
+{
+    WorldState& world = context.world;
+    WorldRuntime& runtime = world.Runtime();
+    UI::DelegatedPanels& delegated = runtime.panels.delegated;
+    std::uint16_t level = 0;
+    {
+        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        level = world.OwnCharacter().level;
+    }
+    if (level < UI::DefaultTradeLevel)
+        return Refuse(chat, delegated.commandsWindow, UI::TradeLevelText, UI::SystemMessage, "0x406476");
+    if (HasShopTitle(runtime.social.personalShop, index))
+        return Refuse(chat, delegated.commandsWindow, PersonalShopText, UI::ErrorMessage, "0x4064b6");
+    const SocialRequestContext requests{
+        .world = world, .random = context.random, .texts = *chat.texts, .send = chat.send};
+    auto sent = SendATradeRequest(requests, index, "0x4064f0");
+    if (!sent.HasValue())
+        return Core::Unexpected(sent.Error());
+    if (auto added = NotifyAll(chat, sent.Value(), "0x406ae5"); !added.HasValue())
+        return added;
+    CloseAfterTheCommand(delegated);
+    return {};
+}
+
+// 0x406b02..0x4072be, el comando 2 (texto 1124): el C1 10 3F 05 con la clave y el nombre del otro, en C3, y la ventana
+// se cierra. Lo que contesta el servidor (el 3F 05 que llega) no tiene handler (08 P-C208 b).
+Core::Expected<void, std::string> CommandAShopView(const GameUiContext& context, const GameChatContext& chat,
+                                                   std::size_t index)
+{
+    const ActorState& target = context.world.Actors()[index];
+    const SocialRequestContext requests{
+        .world = context.world, .random = context.random, .texts = *chat.texts, .send = chat.send};
+    if (auto sent =
+            SendInC3(requests, Protocol::PersonalShop::WriteShopItemsRequest(target.key, target.name), "0x406b02");
+        !sent.HasValue())
+        return sent;
+    CloseAfterTheCommand(context.world.Runtime().panels.delegated);
+    return {};
+}
+
+// 0x4072df..0x4079a5, el comando 3 (texto 944): con otro líder, el aviso 257; si no, el 40 con su aviso. La ventana
+// queda.
+Core::Expected<void, std::string> CommandAParty(const GameUiContext& context, const GameChatContext& chat,
+                                                std::size_t index)
+{
+    UI::CommandsWindowState& window = context.world.Runtime().panels.delegated.commandsWindow;
+    if (AnotherLeadsTheParty(context.world))
+        return Refuse(chat, window, NotTheLeaderText, UI::SystemMessage, "0x407332");
+    const SocialRequestContext requests{
+        .world = context.world, .random = context.random, .texts = *chat.texts, .send = chat.send};
+    auto sent = SendAPartyRequest(requests, index, "0x40736b");
+    if (!sent.HasValue())
+        return Core::Unexpected(sent.Error());
+    return NotifyAll(chat, sent.Value(), "0x40798d");
+}
+
+// 0x40a04e..0x40a0e0, el comando 4 (texto 945): con 0x6c7b8c en 1 (.data), el nombre al EDIT del susurro
+// (0x4694c0(0, 0, 1, nombre)), el campo elegido en 0 (0x77f3b70), el foco al del mensaje (0x469370(0)) y
+// SendMessage(WM_CHAR, Enter) a la ventana del juego, que corre el Enter del WndProc en el acto. La ventana queda.
+Core::Expected<void, std::string> CommandAWhisper(const GameUiContext& context, const GameChatContext& chat,
+                                                  std::size_t index)
+{
+    UI::ChatInputState& input = context.world.Runtime().chat.input;
+    UI::SetTheChatFields(input, std::nullopt, ChatNameOf(context.world.Actors()[index]));
+    input.field = UI::MessageField;
+    UI::FocusTheChatField(input, UI::MessageField);
+    return PressEnterInTheGame(chat);
+}
+
+// 0x4079a6..0x4085d0, el comando 11 (texto 949): sin duelo, el AA con la clave y el nombre del otro; con el duelo (1) y
+// el otro de rival (strcmp con 0x78abae0), el AB; si no, el aviso 915 con el 2. La ventana queda.
+Core::Expected<void, std::string> CommandADuel(const GameUiContext& context, const GameChatContext& chat,
+                                               std::size_t index)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    const ActorState& target = context.world.Actors()[index];
+    const SocialRequestContext requests{
+        .world = context.world, .random = context.random, .texts = *chat.texts, .send = chat.send};
+    const std::uint8_t active = runtime.social.duel.active;
+    if (active == 0)
+        return SendInC3(requests, Protocol::Duel::WriteDuelStart(target.key, target.name), "0x4079b3");
+    if (active == 1 && IsTheDuelRival(context.world, index))
+        return SendInC3(requests, Protocol::Duel::WriteDuelEnd(), "0x408141");
+    return Refuse(chat, runtime.panels.delegated.commandsWindow, UI::DuelBusyText, UI::ErrorMessage, "0x4085b1");
+}
+
+// 0x406050 (desde 0x40a499, con ECX = [0x6e592c]), en cada paso con la ventana abierta: los doce estados en 1 y, con un
+// comando elegido y un personaje elegido (0x6c8e30), la distancia al héroe (sus cuatro accesos), el destino (+8) si es
+// un jugador al que se le puede pedir algo a dos celdas o menos, los estados del comando y, con el clic derecho
+// (0x7d36880) y un destino, el comando si su estado es 1.
+Core::Expected<void, std::string> RunTheCommand(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::CommandsWindowState& window = runtime.panels.delegated.commandsWindow;
+    ResetTheStates(window);
+    const std::int32_t chosen = runtime.selectedTargets[2];
+    if (window.chosen == -1 || chosen < 0)
+        return {};
+    if (static_cast<std::size_t>(chosen) >= context.world.Actors().size())
+        return Core::Unexpected(std::format("0x4060a4: el elegido {} lee fuera de los personajes", chosen));
+    const auto index = static_cast<std::size_t>(chosen);
+    window.target = -1;
+    const CellDistance distance = CellDistanceToTheHero(context.world, context.random, index);
+    if (CanBeAsked(context.world, index) && distance.x <= CommandReach && distance.y <= CommandReach)
+        window.target = chosen;
+    if (auto states = SetTheStates(context.world, window, index); !states.HasValue())
+        return states;
+    // 0x406348..0x406386: el clic derecho con un destino se gasta (con 0x7d3685c); el estado del comando, con signo.
+    if (!runtime.ui.rightClick || window.target < 0)
+        return {};
+    runtime.ui.rightClick = false;
+    runtime.ui.rightDown = false;
+    if (window.chosen < 0 || static_cast<std::size_t>(window.chosen) >= window.states.size())
+        return Core::Unexpected(std::format("0x406371: el comando {} lee fuera de los estados", window.chosen));
+    const auto command = static_cast<std::size_t>(window.chosen);
+    if (static_cast<std::int8_t>(window.states[command]) < 1)
+        return {};
+    const auto target = static_cast<std::size_t>(window.target);
+    if (command == FollowCommand)
+    {
+        // 0x40a3e0: 0x6c8e50 = el destino. La ventana queda.
+        runtime.social.party.followTarget = window.target;
+        return {};
+    }
+    if (command == GuildCommand || command == AllianceCommand || command == HostilityCommand ||
+        command == CancelHostilityCommand)
+        return Core::Unexpected(std::format("{}: el comando {} sobre el elegido es de los gremios, del hito 8",
+                                            command == GuildCommand       ? "0x4085d1"
+                                            : command == AllianceCommand  ? "0x408a24"
+                                            : command == HostilityCommand ? "0x409066"
+                                                                          : "0x409663",
+                                            command));
+    if (context.chat == nullptr || context.chat->texts == nullptr)
+        return Core::Unexpected(std::format("0x406386: el comando {} sin la entrada del chat ni Text.bmd", command));
+    const GameChatContext& chat = *context.chat;
+    switch (command)
+    {
+    case TradeCommand:
+        return CommandATrade(context, chat, target);
+    case ShopCommand:
+        return CommandAShopView(context, chat, target);
+    case PartyCommand:
+        return CommandAParty(context, chat, target);
+    case WhisperCommand:
+        return CommandAWhisper(context, chat, target);
+    case DuelCommand:
+        return CommandADuel(context, chat, target);
+    default:
+        // 0x406380: el 0 no se elige; el 9 tiene el estado en 0.
+        return {};
+    }
 }
 
 // 0x463090(x, y, marcada): el marco de la casilla con cuatro rectángulos sin textura, sin mezcla, y la marca con la
@@ -248,8 +545,8 @@ Core::Expected<void, std::string> StepTheCommandsWindow(const GameUiContext& con
     const std::int32_t mouseY = context.mouseY;
     if (mouseX >= x && mouseX < x + WindowWidth && mouseY >= y && mouseY < y + WindowHeight)
         runtime.ui.mouseOnUi = 1;
-    if (auto prepared = PrepareTheCommand(runtime); !prepared.HasValue())
-        return prepared;
+    if (auto commanded = RunTheCommand(context); !commanded.HasValue())
+        return commanded;
     // 0x40a49e..0x40a51d: el 0 no se elige; el clic se gasta en el primero que lo toma.
     const std::int32_t left = Truncate(ButtonsLeftOf(x));
     std::int32_t top = Truncate(static_cast<double>(y) + ButtonsTop);

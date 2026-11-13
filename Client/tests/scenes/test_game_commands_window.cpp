@@ -278,17 +278,20 @@ TEST_P(GameCommandsWindowTest, TheStepTakesTheMouseAndResetsTheStates)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x406097: con un comando y un personaje elegidos (0x6c8e30), lo que hace el comando es de la CL9 hito 7, fase 2. Sin
-// comando, el personaje elegido no corta.
-TEST_P(GameCommandsWindowTest, AChosenCommandOnAChosenCharacterCuts)
+// 0x406097..0x4061aa: con un comando y un personaje elegidos (0x6c8e30), 0x406050 lee las cuatro celdas (sus 16
+// rand()) y, con alguien que no es jugador, deja el destino (+8) en −1; sin el clic derecho no hace más. Sin comando,
+// ni las lee. El comando sobre un jugador está en SocialRequestsTest (CommandsWindowTest).
+TEST_P(GameCommandsWindowTest, AChosenCommandOnAChosenCharacterReadsTheCells)
 {
     OpenAndPlace();
     Runtime().selectedTargets[2] = 5;
     ASSERT_TRUE(Step(0, 0).HasValue());
+    EXPECT_EQ(m_random.State(), Seed);
     Window().chosen = 2;
     const auto stepped = Step(0, 0);
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x406097"), std::string::npos) << stepped.Error();
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(Window().target, -1);
+    EXPECT_NE(m_random.State(), Seed);
 }
 
 // 0x40a49e..0x40a51d: el clic estrictamente adentro de un botón (108 × 20 desde (495, 53 + 28 · c)) lo gasta, suelta

@@ -32,6 +32,7 @@
 #include "Scenes/OwnInventory.h"
 #include "Scenes/GuildWindow.h"
 #include "Scenes/SecondGuildWindow.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/UiItemDrawing.h"
 #include "Scenes/GuildDrawing.h"
@@ -1519,7 +1520,12 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
                                   .projecting = context.projecting};
     if (auto drawn = DrawTheChatBubbles(bubbles); !drawn.HasValue())
         return drawn;
-    // 13. 0x451d10 y 0x451c20: los carteles del singleton de 0x7245c8 (CL9.5).
+    // 13. 0x451d10 y 0x451c20: los carteles del singleton de 0x7245c8. Sin ninguno (+0xc en 0), nada; con alguno, su
+    // lugar (0x451d60), el reparto para que no se pisen (0x451e40), la cuenta de +0x10 y cada cartel (0x452a10), que
+    // cortan (08 P-C208 a).
+    if (!context.world.Runtime().social.personalShop.titles.empty())
+        return Core::Unexpected(std::string("0x451c32: los carteles de las tiendas personales (0x451d60, 0x451e40 y "
+                                            "0x452a10) son del hito 7 (08 P-C208 a)"));
     // 14. 0x5a6cc0: el marcador del duelo, con 0x78abad8, que prende el AA (CL9 hito 7).
     DrawTheDuelScore(context, frame.panels);
     // 15. 0x46b090: el cartel de Slide.bmd ([0x5763528]).

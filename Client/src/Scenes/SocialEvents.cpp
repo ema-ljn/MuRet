@@ -5,13 +5,17 @@
 #include "Protocol/Duel.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Party.h"
+#include "Protocol/PersonalShop.h"
 #include "Protocol/Trade.h"
 #include "Render/Models/Cloth.h"
+#include "Scenes/ActorState.h"
+#include "Scenes/ChatReceive.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnItemPlacement.h"
+#include "Scenes/PersonalShopTitles.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -77,6 +81,14 @@ constexpr std::uint8_t TradeNoRoom = 2;
 constexpr std::uint8_t TradeTime = 3;
 // 0x4d58da..0x4d58f5: lo que deja el cierre del diálogo 0x73.
 constexpr std::int32_t ClosedDialogFieldLimit = 0x2a;
+// 0x4dae80, 0x4dafe0 y 0x4e4ec2: el personaje de la clave, del 0 al 399 (0x5110d0 da 400 sin ninguno).
+constexpr std::size_t ShopKeysSearched = 400;
+// 0x4e4f8d: sprintf(EBP − 0x7c, Text[1122], nombre), con 0x70 bytes hasta el nombre (EBP − 0xc).
+constexpr std::size_t ShopNoticeText = 1122;
+constexpr std::size_t ShopNoticeBufferSize = 0x70;
+// 0x4e4fcc..0x4e5009: con 0x6c931c en 2, el texto 1126 (0x770f964) con el tipo 2.
+constexpr std::int32_t ViewingAnotherShop = 2;
+constexpr std::size_t ShopOwnerLeftText = 1126;
 // 0x4e41a9..0x4e41b6: los décimos del 44, hasta 10.
 constexpr std::uint8_t MaxLifeTenths = 10;
 // 0x4e4d58: el valor de 0x5767814 con que el AB pone 0x5767816 en 0.
@@ -736,6 +748,96 @@ void ApplyDuelRequest(const Protocol::Duel::DuelRequest& request, WorldState& wo
     duel.rivalName.back() = std::byte{0};
     runtime.ui.field78abad9 = 1;
     runtime.lastSoundId = DuelRequestSound;
+}
+
+void ApplyShopTitles(const Protocol::PersonalShop::ShopTitles& titles, WorldState& world)
+{
+    for (const Protocol::PersonalShop::ShopTitleEntry& entry : titles.entries)
+    {
+        const std::size_t index = ActorWithKey(world, entry.key);
+        if (index >= ShopKeysSearched)
+            continue;
+        AddShopTitle(world, entry.key, index, entry.title);
+    }
+}
+
+void ApplyShopCreated(const Protocol::PersonalShop::ShopCreated& created, WorldState& world)
+{
+    // 0x4db7ff: "Fault ReceiveCreatePersonalShop" al log con el resultado, nada más.
+    if (created.result != 1)
+        return;
+    WorldRuntime& runtime = world.Runtime();
+    PersonalShopState& shops = runtime.social.personalShop;
+    shops.ownOpen = 1;
+    const std::size_t hero = runtime.hero;
+    const std::string title = shops.ownTitle;
+    AddShopTitle(world, static_cast<std::int32_t>(static_cast<std::int16_t>(world.Actors()[hero].key)), hero, title);
+}
+
+void ApplyShopClosed(const Protocol::PersonalShop::ShopClosed& closed, WorldState& world)
+{
+    // 0x4e4f0e: el log 0x6c8504 con el resultado, nada más.
+    if (closed.result != 1)
+        return;
+    const std::size_t index = ActorWithKey(world, closed.key);
+    if (index >= ShopKeysSearched)
+        return;
+    WorldRuntime& runtime = world.Runtime();
+    if (index == runtime.hero)
+        runtime.social.personalShop.ownOpen = 0;
+    RemoveShopTitle(runtime.social.personalShop, index);
+}
+
+Core::Expected<void, std::string> ApplyShopNotice(const Protocol::PersonalShop::ShopNotice& notice,
+                                                  const WorldEntryResources& resources)
+{
+    auto format = TextOf(resources, ShopNoticeText, "0x4e4f8d");
+    if (!format.HasValue())
+        return Core::Unexpected(std::move(format).Error());
+    std::string name;
+    for (const std::byte letter : notice.name)
+    {
+        if (letter == std::byte{0})
+            break;
+        name.push_back(static_cast<char>(std::to_integer<std::uint8_t>(letter)));
+    }
+    const std::string text = UI::Sprintf(format.Value(), std::string_view(name));
+    if (text.size() >= ShopNoticeBufferSize)
+        return Core::Unexpected(std::format("0x4e4f93: el texto {} con el nombre no entra en los {} bytes de la pila",
+                                            ShopNoticeText, ShopNoticeBufferSize));
+    return MessageText(resources, text, UI::SystemMessage, "0x4e4fa3");
+}
+
+void ApplyOtherShopTitle(const Protocol::PersonalShop::ShopTitle& title, WorldState& world)
+{
+    const std::size_t index = ActorWithKey(world, title.key);
+    if (index >= ShopKeysSearched)
+        return;
+    const ActorState& actor = world.Actors()[index];
+    // 0x4db04b: strncmp(+0x1d9, pkt + 0x2a, 10).
+    for (std::size_t at = 0; at < title.name.size(); ++at)
+    {
+        if (actor.name[at] != title.name[at])
+            return;
+        if (actor.name[at] == std::byte{0})
+            break;
+    }
+    AddShopTitle(world, title.key, index, title.title);
+}
+
+Core::Expected<void, std::string> ApplyShopOwnerLeft(const WorldEntryResources& resources)
+{
+    WorldState& world = resources.world;
+    if (world.Runtime().social.personalShop.mode != ViewingAnotherShop)
+        return {};
+    GamePanels panels(world, resources.cloth.random);
+    for (const UI::PanelId id : {UI::PersonalShopPanel, UI::OtherShopPanel})
+    {
+        auto closed = panels.Registry().Close(id);
+        if (!closed.HasValue())
+            return Core::Unexpected(std::move(closed).Error());
+    }
+    return Message(resources, ShopOwnerLeftText, UI::ErrorMessage, "0x4e5009");
 }
 
 void ApplyDuelScore(const Protocol::Duel::DuelScore& score, WorldState& world)

@@ -7,6 +7,7 @@
 #include "Render/Models/Pose.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
 #include "Scenes/GameDrawTail.h"
@@ -20,6 +21,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/PersonalShopTitles.h"
 #include "Scenes/IcarusObjectStep.h"
 #include "Scenes/KalimaObjectStep.h"
 #include "World/GameModelEffects.h"
@@ -390,14 +392,15 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     {
         return helpers;
     }
-    // 0x6370f9: 0x557650, los globos. 0x6370fe..0x637105: 0x451c10, las tiendas personales (0x7245c8), que no
-    // tienen ninguna hasta la CL9.4.
+    // 0x6370f9: 0x557650, los globos.
     const UI::Point bubbleMouse = UI::MouseIn640x480(input, m_screen);
     if (auto bubbles = StepTheChatBubbles(
             *m_context.world,
             ChatBubbleStepInput{.mouseX = bubbleMouse.x, .mouseY = bubbleMouse.y, .screen = m_screen});
         !bubbles.HasValue())
         return bubbles;
+    // 0x6370fe..0x637105: 0x451c10, los carteles de las tiendas personales (0x7245c8) que cambiaron de clave o de tipo.
+    CheckTheShopKeys(*m_context.world);
     // 63710a: MoveHero sale con más de30, pero la lógica posterior sigue durante la espera.
     if (auto moved = StepTheHero(input); !moved.HasValue())
         return moved;
@@ -409,6 +412,8 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     // 0x63717f: 0x5ac8d0, las teclas de función.
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
     const GameChatContext chat = ChatContext();
+    // CL9 hito 5: la barra levanta el ítem del piso con el C1 05 22 (InventoryContext).
+    const InventoryServices inventory = InventoryContext();
     return StepTheFunctionKeys(GameUiContext{.world = *m_context.world,
                                              .random = m_context.cloth->random,
                                              .input = input,
@@ -416,7 +421,9 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
                                              .mouseY = mouse.y,
                                              .measure = m_context.textMeasure,
                                              .screen = m_screen,
-                                             .chat = &chat});
+                                             .chat = &chat,
+                                             .inventory = &inventory,
+                                             .fixedHeight = CameraState().fixedHeight});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheObjects()

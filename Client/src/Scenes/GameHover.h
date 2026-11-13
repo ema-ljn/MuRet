@@ -24,13 +24,14 @@ class CrtRandom;
 // El hover y Alt del juego (CL8 hito 6; 06 § HUD y ventanas, "La pasada 2D del juego"): 0x5bbbc0, lo segundo de la
 // pasada 2D (0x637650), entre los textos 3D (0x4383f0) y el HUD (0x5a7320). Pone el nombre del elegido bajo el mouse
 // (un NPC o un jugador en un globo con 0x557170, un monstruo arriba al medio con 0x623690) y, con Alt, los nombres
-// de los ítems del piso (0x5ba790, de la CL9.3). Lee lo que deja el picking del frame (0x59ec80): los personajes desde
-// la CL9 (hito 1); el ítem del piso y los objetos quedan en −1 hasta la CL9.3.
+// de los ítems del piso (0x5ba790, CL9 hito 5: Scenes/FloorItemNames.h). Lee lo que deja el picking del frame
+// (0x59ec80): los personajes desde la CL9 (hito 1) y el ítem del piso desde el hito 5; los objetos quedan en −1.
 namespace Client::Scenes
 {
 class ITextDrawer;
 class WorldState;
 struct GameDrawTailState;
+struct GameHudContext;
 struct HudState;
 
 struct GameHoverContext
@@ -58,6 +59,9 @@ struct GameHoverContext
     bool projecting = false;
     // Text.bmd: los puestos del gremio del globo (0x556dd0).
     const Data::Text::TextTable* texts = nullptr;
+    // Lo que lee el nombre de un ítem del piso (0x5ba790): Item.bmd, Text.bmd, Skill.bmd y los conjuntos, el mouse y el
+    // mismo `hud`, `sprites` y `text`. Sin él, un nombre corta.
+    GameHudContext* names = nullptr;
 };
 
 // 0x5bbbc0: en Chaos Castle (18 a 23), sin "webzen" en el nombre del héroe, con un NPC o un personaje elegido no hace
@@ -65,8 +69,8 @@ struct GameHoverContext
 // nombre solo en un globo (0x557170 con el texto vacío de 0x78abb3c, el modo 0 y sin color); si no, con un personaje
 // y 0x6c8e38 en −1, un monstruo (+0x88 en 2) va con su nombre centrado en la mitad del ancho del mundo y en y = 10
 // (0x623690, con la fuente del DC, el fondo 0xff000064 y el texto 0xffc8e6ff) y los demás, sin tienda personal en
-// 0x7245c8 (0x451770), en un globo como el NPC; si no, con un ítem del piso elegido, su nombre (0x5ba790, CL9.3,
-// corta). Después Alt: el flanco (0x553520(0x12)) invierte 0x78abb38, y con él prendido o Alt abajo, el nombre de
-// cada ítem del piso vivo y a la vista que no es el elegido (0x5ba790 con 1, CL9.3: corta).
+// 0x7245c8 (0x451770), en un globo como el NPC; si no, con un ítem del piso elegido, su nombre en el mouse
+// (0x5ba790 con 0). Después Alt: el flanco (0x553520(0x12)) invierte 0x78abb38, y con él prendido o Alt abajo, el
+// nombre de cada ítem del piso vivo y a la vista que no es el elegido, en su proyección (0x5ba790 con 1).
 [[nodiscard]] Core::Expected<void, std::string> DrawTheHover(GameHoverContext& context);
 } // namespace Client::Scenes

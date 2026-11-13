@@ -11,6 +11,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/PersonalShopTitles.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -62,11 +63,10 @@ std::int32_t ReadCell(std::uint8_t value, std::uint8_t& depth, Render::Models::C
     return value;
 }
 
-// 0x451d10 y 0x451810: el personaje tiene una tienda personal en el mapa de 0x7245c8, que solo llenan los 3F de las
-// tiendas (P-C204 a): sin ellos, no la tiene.
-bool HasAPersonalShop(const WorldState& /*world*/, std::size_t /*index*/)
+// 0x451d10 y 0x451810: el personaje tiene un cartel de tienda personal en el mapa de 0x7245c8.
+bool HasAPersonalShop(const WorldState& world, std::size_t index)
 {
-    return false;
+    return HasShopTitle(world.Runtime().social.personalShop, index);
 }
 
 // 0x5af560: ni la tienda personal propia (0x800) ni la ajena (0x20000) abiertas, sin rand().
@@ -106,16 +106,6 @@ bool CanBeAskedFromTheFront(const SocialRequestContext& context, std::size_t ind
            NextToTheHero(context.world, context.random, index);
 }
 
-Core::Expected<void, std::string> SendInC3(const SocialRequestContext& context, Protocol::Outgoing outgoing,
-                                           std::string_view where)
-{
-    if (!context.send)
-        return Core::Unexpected(std::format("{}: el pedido sin el cable", where));
-    context.random.Discard(C3Randoms);
-    context.send(std::move(outgoing));
-    return {};
-}
-
 // 0x69fd9b(buffer, texto, nombre) y 0x555190 con el 1: el aviso con el nombre del primero vivo con la clave.
 Core::Expected<UI::ChatCommandNotice, std::string> NamedNotice(const SocialRequestContext& context, std::size_t text,
                                                                std::uint16_t key, std::string_view where)
@@ -132,9 +122,26 @@ UI::ChatCommandOutcome Handled(std::vector<UI::ChatCommandNotice> notices = {})
     return UI::ChatCommandOutcome{.handled = true, .notices = std::move(notices)};
 }
 
-// 0x56c7c8..0x56cdfc (y 0x56cffe..0x56d60e): las ventanas y el mundo, el 36 y el aviso 475.
-Core::Expected<UI::ChatCommandOutcome, std::string> SendTheTrade(const SocialRequestContext& context, std::size_t index,
-                                                                 std::string_view where)
+// El nombre de un lugar de 0x77f3cd0 o del héroe hasta su primer 0, para strcmp.
+std::string_view NameUntilZero(std::span<const std::byte> name)
+{
+    const auto end = std::ranges::find(name, std::byte{0});
+    return {reinterpret_cast<const char*>(name.data()), static_cast<std::size_t>(end - name.begin())};
+}
+} // namespace
+
+Core::Expected<void, std::string> SendInC3(const SocialRequestContext& context, Protocol::Outgoing outgoing,
+                                           std::string_view where)
+{
+    if (!context.send)
+        return Core::Unexpected(std::format("{}: el pedido sin el cable", where));
+    context.random.Discard(C3Randoms);
+    context.send(std::move(outgoing));
+    return {};
+}
+
+Core::Expected<UI::ChatCommandOutcome, std::string> SendATradeRequest(const SocialRequestContext& context,
+                                                                      std::size_t index, std::string_view where)
 {
     if (!NoShopOpen(context) || !context.world.Runtime().drawingEnabled)
         return Handled();
@@ -147,9 +154,8 @@ Core::Expected<UI::ChatCommandOutcome, std::string> SendTheTrade(const SocialReq
     return Handled({std::move(notice).Value()});
 }
 
-// 0x56f6d1..0x56fd88 (y 0x570638..0x570d22): el mundo, 0x78aba4c, el 40 y el aviso 476.
-Core::Expected<UI::ChatCommandOutcome, std::string> SendTheParty(const SocialRequestContext& context, std::size_t index,
-                                                                 std::string_view where)
+Core::Expected<UI::ChatCommandOutcome, std::string> SendAPartyRequest(const SocialRequestContext& context,
+                                                                      std::size_t index, std::string_view where)
 {
     WorldRuntime& runtime = context.world.Runtime();
     if (!runtime.drawingEnabled)
@@ -164,13 +170,44 @@ Core::Expected<UI::ChatCommandOutcome, std::string> SendTheParty(const SocialReq
     return Handled({std::move(notice).Value()});
 }
 
-// El nombre de un lugar de 0x77f3cd0 o del héroe hasta su primer 0, para strcmp.
-std::string_view NameUntilZero(std::span<const std::byte> name)
+bool AnotherLeadsTheParty(const WorldState& world)
 {
-    const auto end = std::ranges::find(name, std::byte{0});
-    return {reinterpret_cast<const char*>(name.data()), static_cast<std::size_t>(end - name.begin())};
+    const WorldRuntime& runtime = world.Runtime();
+    return runtime.hud.partyCount > 0 &&
+           NameUntilZero(runtime.social.party.slots[0].name) != ChatNameOf(world.Actors()[runtime.hero]);
 }
-} // namespace
+
+bool IsInTheParty(const WorldState& world, std::size_t index)
+{
+    const WorldRuntime& runtime = world.Runtime();
+    const std::string name = ChatNameOf(world.Actors()[index]);
+    for (std::int32_t member = 0; member < runtime.hud.partyCount; ++member)
+    {
+        const auto slot = static_cast<std::size_t>(member);
+        if (slot >= runtime.social.party.slots.size())
+            break;
+        if (NameUntilZero(runtime.social.party.slots[slot].name) == name)
+            return true;
+    }
+    return false;
+}
+
+bool IsTheDuelRival(const WorldState& world, std::size_t index)
+{
+    return ChatNameOf(world.Actors()[index]) == NameUntilZero(world.Runtime().social.duel.rivalName);
+}
+
+CellDistance CellDistanceToTheHero(WorldState& world, Render::Models::CrtRandom& random, std::size_t index)
+{
+    const auto actors = world.Actors();
+    ActorState& other = actors[index];
+    ActorState& hero = actors[world.Runtime().hero];
+    const std::int32_t otherX = ReadCell(other.cellX, other.cellXAccesses, random);
+    const std::int32_t heroX = ReadCell(hero.cellX, hero.cellXAccesses, random);
+    const std::int32_t otherY = ReadCell(other.cellY, other.cellYAccesses, random);
+    const std::int32_t heroY = ReadCell(hero.cellY, hero.cellYAccesses, random);
+    return CellDistance{.x = std::abs(otherX - heroX), .y = std::abs(otherY - heroY)};
+}
 
 bool CanBeAsked(const WorldState& world, std::size_t index)
 {
@@ -216,7 +253,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RequestATrade(const SocialRe
             return Handled();
         if (HasAPersonalShop(context.world, *index))
             return Handled({UI::ChatCommandNotice{.text = PersonalShopText, .type = UI::ErrorMessage}});
-        return SendTheTrade(context, *index, "0x56c7e2");
+        return SendATradeRequest(context, *index, "0x56c7e2");
     }
     // 0x56ce17..0x56cfc6: el primero de los 400 al lado y enfrente.
     for (std::size_t index = 0; index < SearchedActors; ++index)
@@ -229,7 +266,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RequestATrade(const SocialRe
         if (!faces.HasValue())
             return Core::Unexpected(faces.Error());
         if (faces.Value())
-            return SendTheTrade(context, index, "0x56d018");
+            return SendATradeRequest(context, index, "0x56d018");
     }
     return Handled();
 }
@@ -281,7 +318,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RequestAParty(const SocialRe
     {
         if (!CanBeAsked(context.world, *index) || !NextToTheHero(context.world, context.random, *index))
             return Handled();
-        return SendTheParty(context, *index, "0x56f706");
+        return SendAPartyRequest(context, *index, "0x56f706");
     }
     // 0x56fda3..0x570625: el primero de los 400 al lado y enfrente.
     for (std::size_t index = 0; index < SearchedActors; ++index)
@@ -292,7 +329,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RequestAParty(const SocialRe
         if (!faces.HasValue())
             return Core::Unexpected(faces.Error());
         if (faces.Value())
-            return SendTheParty(context, index, "0x570652");
+            return SendAPartyRequest(context, index, "0x570652");
     }
     return Handled();
 }

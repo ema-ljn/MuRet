@@ -13,8 +13,16 @@
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Viewport.h"
+#include "Input/InputState.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
+#include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/GameChat.h"
+#include "Scenes/GameCommandsWindow.h"
+#include "Scenes/GameUi.h"
+#include "Scenes/PersonalShopTitles.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/SocialState.h"
@@ -23,6 +31,8 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatCommands.h"
+#include "UI/ChatInput.h"
+#include "UI/ChatLog.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
 #include "World/GameCamera.h"
@@ -44,8 +54,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <map>
 #include <memory>
 #include <span>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -345,5 +357,192 @@ TEST_P(SocialRequestsTest, TheDuelChallengesWithTheName)
     EXPECT_EQ(m_sent.size(), 2U);
 }
 
+class LetterMeasure final : public Client::Render::Text::ITextMeasure
+{
+public:
+    [[nodiscard]] Client::Render::Text::TextExtent Measure(Client::Render::Text::FontKind /*font*/,
+                                                           std::string_view text) const override
+    {
+        return {static_cast<int>(text.size()) * 6, 13};
+    }
+};
+
+// La ventana de comandos (0x406050 desde 0x40a499, CL9 hito 7, fase 3): el comando elegido sobre el personaje elegido
+// con el clic derecho, en el paso de la ventana abierta.
+class CommandsWindowTest : public SocialRequestsTest
+{
+protected:
+    void SetUp() override
+    {
+        SocialRequestsTest::SetUp();
+        if (HasFatalFailure())
+            return;
+        std::map<std::size_t, std::string> texts = Client::Tests::ChatTexts();
+        texts[Client::UI::TradeLevelText] = "nivel bajo";
+        texts[Client::UI::DuelBusyText] = "otro duelo";
+        m_texts = Client::Tests::MakeTextTable(texts);
+        game->world.OwnCharacter().level = 50;
+        game->world.Runtime().panels.delegated.commands = 1;
+    }
+
+    Client::Scenes::GameChatContext ChatContext()
+    {
+        return {.world = game->world,
+                .random = m_random,
+                .texts = &m_texts,
+                .measure = &m_letters,
+                .send = [this](Client::Protocol::Outgoing packet) { m_sent.push_back(std::move(packet)); }};
+    }
+
+    // El paso de la ventana con el mouse lejos de ella, el comando y el elegido, y el clic derecho.
+    Client::Core::Expected<void, std::string> RightClick(std::int32_t command, std::int32_t chosen)
+    {
+        Client::Scenes::WorldRuntime& runtime = game->world.Runtime();
+        runtime.panels.delegated.commandsWindow.chosen = command;
+        Choose(chosen);
+        runtime.ui.rightClick = true;
+        runtime.ui.rightDown = true;
+        const Client::Scenes::GameChatContext chat = ChatContext();
+        return Client::Scenes::StepTheCommandsWindow(Client::Scenes::GameUiContext{
+            .world = game->world, .random = m_random, .input = m_input, .mouseX = 10, .mouseY = 10, .chat = &chat});
+    }
+
+    Client::UI::CommandsWindowState& Window()
+    {
+        return game->world.Runtime().panels.delegated.commandsWindow;
+    }
+
+    [[nodiscard]] std::string LastMessage() const
+    {
+        const auto& entries = game->world.Runtime().chat.log.entries;
+        return entries.empty() ? std::string{} : entries.front().text;
+    }
+
+    LetterMeasure m_letters;
+    Client::Input::InputState m_input;
+};
+
+// 0x406097..0x4061aa: el destino (+8) es el elegido a dos celdas o menos (Brezal al lado; Zorzal a tres, no), después
+// de leer las cuatro celdas. 0x40638d..0x406afd (el 1): el nivel del registro propio con su acceso, el 36 en C3 con el
+// aviso 475, y la ventana cerrada con los estados en 1.
+TEST_P(CommandsWindowTest, TheTradeCommandAsksTheChosenAndClosesTheWindow)
+{
+    ASSERT_TRUE(RightClick(1, 2).HasValue());
+    EXPECT_EQ(Window().target, -1);
+    EXPECT_TRUE(game->world.Runtime().ui.rightClick) << "sin destino, el clic no se gasta";
+    EXPECT_TRUE(m_sent.empty());
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 4 * CellRandoms).State());
+
+    m_random = CrtRandom(Seed);
+    const auto stepped = RightClick(1, 1);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    ExpectSent(0, {0xc1, 0x05, 0x36, 0x04, 0x56});
+    EXPECT_EQ(LastMessage(), "pediste comerciar con Brezal");
+    EXPECT_FALSE(game->world.Runtime().ui.rightClick);
+    EXPECT_FALSE(game->world.Runtime().ui.rightDown);
+    EXPECT_EQ(game->world.Runtime().panels.delegated.commands, 0);
+    EXPECT_EQ(Window().chosen, -1);
+    EXPECT_EQ(Window().target, -1);
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(
+                                    Seed, 4 * CellRandoms + Client::Render::Models::OwnRecordCloseRandoms + C3Randoms)
+                                    .State());
+}
+
+// 0x40646a y 0x4064aa: sin el nivel de 0x6c8dc8, el aviso 478; con la tienda personal del otro, el 493 con el 2. Los
+// dos dejan el comando en −1 y la ventana abierta, sin paquete.
+TEST_P(CommandsWindowTest, TheTradeCommandRefusesALowLevelOrAShop)
+{
+    game->world.OwnCharacter().level = 5;
+    ASSERT_TRUE(RightClick(1, 1).HasValue());
+    EXPECT_EQ(LastMessage(), "nivel bajo");
+    EXPECT_EQ(Window().chosen, -1);
+    EXPECT_EQ(game->world.Runtime().panels.delegated.commands, 1);
+
+    game->world.OwnCharacter().level = 6;
+    Client::Scenes::AddShopTitle(game->world, NearKey, 1, "Arcos");
+    ASSERT_TRUE(RightClick(1, 1).HasValue());
+    EXPECT_EQ(game->world.Runtime().chat.log.entries.front().type, Client::UI::ErrorMessage);
+    EXPECT_EQ(Window().chosen, -1);
+    EXPECT_TRUE(m_sent.empty());
+}
+
+// 0x406b02 (el 2): el C1 10 3F 05 con la clave y el nombre, en C3, y la ventana cerrada.
+TEST_P(CommandsWindowTest, TheShopCommandAsksForTheItems)
+{
+    ASSERT_TRUE(RightClick(2, 1).HasValue());
+    ExpectSent(0, {0xc1, 0x10, 0x3f, 0x05, 0x04, 0x56, 'B', 'r', 'e', 'z', 'a', 'l', 0, 0, 0, 0});
+    EXPECT_EQ(game->world.Runtime().panels.delegated.commands, 0);
+}
+
+// 0x4061d3..0x406275 y 0x4072df (el 3 y el 10): fuera de la party, el 3 invita (el 40 y el aviso 476, la ventana
+// queda) y el 10 no se puede; en la party, al revés, y el 10 lo sigue (0x6c8e50).
+TEST_P(CommandsWindowTest, ThePartyCommandsInviteOrFollow)
+{
+    ASSERT_TRUE(RightClick(10, 1).HasValue());
+    EXPECT_EQ(Window().states[10], 0);
+    EXPECT_EQ(game->world.Runtime().social.party.followTarget, -1);
+    ASSERT_TRUE(RightClick(3, 1).HasValue());
+    ExpectSent(0, {0xc1, 0x05, 0x40, 0x04, 0x56});
+    EXPECT_EQ(LastMessage(), "invitaste a Brezal");
+    EXPECT_EQ(Window().chosen, 3);
+    EXPECT_EQ(game->world.Runtime().panels.delegated.commands, 1);
+
+    Client::Scenes::WorldRuntime& runtime = game->world.Runtime();
+    runtime.hud.partyCount = 2;
+    Name(runtime.social.party.slots[0].name, "Tejon");
+    Name(runtime.social.party.slots[1].name, "Brezal");
+    ASSERT_TRUE(RightClick(3, 1).HasValue());
+    EXPECT_EQ(Window().states[3], 0);
+    EXPECT_EQ(m_sent.size(), 1U);
+    ASSERT_TRUE(RightClick(10, 1).HasValue());
+    EXPECT_EQ(runtime.social.party.followTarget, 1);
+}
+
+// 0x40a04e (el 4): el nombre al EDIT del susurro y el Enter del WndProc, que abre el chat. 0x4079a6 (el 11): sin duelo
+// el AA; con el rival, el AB; con otro, el aviso 915.
+TEST_P(CommandsWindowTest, TheWhisperAndTheDuelCommands)
+{
+    ASSERT_TRUE(RightClick(4, 1).HasValue());
+    EXPECT_EQ(game->world.Runtime().chat.input.whisper.Value(), "Brezal");
+    EXPECT_TRUE(game->world.Runtime().ui.chatOpen);
+
+    ASSERT_TRUE(RightClick(11, 1).HasValue());
+    ExpectSent(0, {0xc1, 0x0f, 0xaa, 0x04, 0x56, 'B', 'r', 'e', 'z', 'a', 'l', 0, 0, 0, 0});
+    Client::Scenes::DuelState& duel = game->world.Runtime().social.duel;
+    duel.active = 1;
+    Name(duel.rivalName, "Brezal");
+    ASSERT_TRUE(RightClick(11, 1).HasValue());
+    ExpectSent(1, {0xc1, 0x03, 0xab});
+    Name(duel.rivalName, "Zorzal");
+    ASSERT_TRUE(RightClick(11, 1).HasValue());
+    EXPECT_EQ(LastMessage(), "otro duelo");
+    EXPECT_EQ(Window().chosen, -1);
+    EXPECT_EQ(m_sent.size(), 2U);
+}
+
+// 0x40627a..0x406344 (del 5 al 8): los estados del gremio; lo que hacen es del hito 8 y corta, y el 6 con dos maestros
+// lee la tabla de los gremios.
+TEST_P(CommandsWindowTest, TheGuildCommandsStopAtTheirHito)
+{
+    ActorState& hero = game->world.Actors()[0];
+    ASSERT_TRUE(RightClick(7, 1).HasValue());
+    EXPECT_EQ(Window().states[7], 0xfe);
+    ASSERT_TRUE(RightClick(5, 1).HasValue());
+    EXPECT_EQ(Window().states[5], 0xff);
+
+    Near().word1f2 = 3;
+    Near().guildStatus = 0x80;
+    const auto guild = RightClick(5, 1);
+    ASSERT_FALSE(guild.HasValue());
+    EXPECT_NE(guild.Error().find("0x4085d1"), std::string::npos) << guild.Error();
+
+    hero.guildStatus = 0x80;
+    game->world.Runtime().ui.rightClick = false;
+    const auto alliance = RightClick(6, 1);
+    ASSERT_FALSE(alliance.HasValue());
+    EXPECT_NE(alliance.Error().find("0x4062e4"), std::string::npos) << alliance.Error();
+}
+
 INSTANTIATE_TEST_SUITE_P(Maps, SocialRequestsTest, ::testing::Values(std::uint8_t{0}, std::uint8_t{2}));
+INSTANTIATE_TEST_SUITE_P(Maps, CommandsWindowTest, ::testing::Values(std::uint8_t{0}, std::uint8_t{2}));
 } // namespace

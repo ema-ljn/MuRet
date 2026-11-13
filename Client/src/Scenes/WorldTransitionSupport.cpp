@@ -15,6 +15,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/OwnStatHelpers.h"
+#include "Scenes/PersonalShopTitles.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
@@ -148,6 +149,8 @@ void ClearTransitionActorsAndItems(std::uint16_t playerKey, const WorldEntryReso
     for (auto& item : resources.world.DrawTail().floorItems)
         item.alive = false;
     KillOtherActors(resources.world, static_cast<std::int32_t>(playerKey));
+    // 0x4c4e86..0x4c4e8d y 0x4c77eb..0x4c77f2: 0x451590 deja solo el cartel de la tienda del héroe.
+    KeepTheHeroShopTitle(resources.world);
 }
 void CreateTransitionArrival(ActorState& actor, const WorldEntryResources& resources)
 {

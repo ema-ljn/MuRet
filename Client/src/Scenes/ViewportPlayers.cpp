@@ -24,6 +24,8 @@
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/PersonalShopTitles.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldTransitionSupport.h"
 #include "UI/NameChecks.h"
 #include "World/GameCamera.h"
@@ -436,7 +438,12 @@ void ApplyViewportLeave(const Protocol::Viewport::Leave& leave, WorldState& worl
                 (*siege)[offset] = 0;
         }
         // 0x4ca7e1..0x4ca7e8.
-        RemoveActor(world, static_cast<std::int32_t>(word & Protocol::Viewport::KeyMask));
+        const auto key = static_cast<std::int32_t>(word & Protocol::Viewport::KeyMask);
+        RemoveActor(world, key);
+        // 0x4ca7f0..0x4ca809: el cartel de la tienda con la clave, si hay (CL9 hito 7, fase 3).
+        PersonalShopState& shops = world.Runtime().social.personalShop;
+        if (const std::optional<std::size_t> owner = ShopTitleWithKey(shops, key))
+            RemoveShopTitle(shops, *owner);
     }
 }
 

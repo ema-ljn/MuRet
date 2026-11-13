@@ -7,8 +7,11 @@
 #include "Scenes/ActorName.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbles.h"
+#include "Scenes/FloorItemNames.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/PersonalShopTitles.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/HudText.h"
 #include "Scenes/ITextDrawer.h" // IWYU pragma: keep (ITextDrawer como ITextMeasure)
 #include "Scenes/WorldRuntime.h"
@@ -64,8 +67,9 @@ Core::Expected<void, std::string> CharacterName(GameHoverContext& context, std::
     const ActorState& actor = context.world.Actors()[static_cast<std::size_t>(index)];
     if (actor.byte88 != MonsterKind)
     {
-        // 0x5bbd06..0x5bbd15: 0x451d10 da el objeto de las tiendas personales (0x7245c8) y 0x451770 busca el
-        // personaje en su mapa, que solo llenan los paquetes de la CL9.4: no lo encuentra y da 0.
+        // 0x5bbd06..0x5bbd15: con el cartel de su tienda a la vista (0x451770), nada; si no, el globo del nombre.
+        if (ShopTitleShown(context.world.Runtime().social.personalShop, static_cast<std::size_t>(index)))
+            return {};
         return NameBubble(context, index);
     }
     // 0x5bbcbb..0x5bbcd4: GetTextExtentPointA del nombre, que no se usa.
@@ -75,6 +79,19 @@ Core::Expected<void, std::string> CharacterName(GameHoverContext& context, std::
     DrawHudCentered(context.text, context.sprites.Screen(), context.hud, worldWidth / 2, MonsterNameTop,
                     ChatNameOf(actor));
     return {};
+}
+
+// 0x5ba790 sobre la entrada `index` de 0x77f46c8.
+Core::Expected<void, std::string> FloorItemName(GameHoverContext& context, std::int32_t index, bool atTheItem,
+                                                std::string_view where)
+{
+    const auto& items = context.tail.floorItems;
+    if (index < 0 || static_cast<std::size_t>(index) >= items.size())
+        return Core::Unexpected(std::format("{}: el ítem del piso {} está fuera de la tabla 0x77f46c8", where, index));
+    if (context.names == nullptr)
+        return Core::Unexpected(
+            std::format("{}: el nombre del ítem {} del piso (0x5ba790) sin sus tablas", where, index));
+    return DrawTheFloorItemName(*context.names, items[static_cast<std::size_t>(index)], atTheItem);
 }
 
 // 0x5bbd6a..0x5bbde7: Alt.
@@ -91,8 +108,8 @@ Core::Expected<void, std::string> FloorItemNames(GameHoverContext& context)
         // elegido.
         if (!items[index].alive || !items[index].seen || static_cast<std::int32_t>(index) == context.targets[0])
             continue;
-        return Core::Unexpected(
-            std::format("0x5bbdd2: el nombre del ítem {} del piso con Alt (0x5ba790) es de la CL9.3", index));
+        if (auto named = FloorItemName(context, static_cast<std::int32_t>(index), true, "0x5bbdd2"); !named.HasValue())
+            return named;
     }
     return {};
 }
@@ -127,8 +144,9 @@ Core::Expected<void, std::string> DrawTheHover(GameHoverContext& context)
     }
     else if (floorItem != NoTarget)
     {
-        return Core::Unexpected(
-            std::format("0x5bbd62: el nombre del ítem {} del piso bajo el mouse (0x5ba790) es de la CL9.3", floorItem));
+        // 0x5bbd31..0x5bbd62: en el mouse.
+        if (auto named = FloorItemName(context, floorItem, false, "0x5bbd62"); !named.HasValue())
+            return named;
     }
     return FloorItemNames(context);
 }

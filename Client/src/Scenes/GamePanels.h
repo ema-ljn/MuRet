@@ -1,7 +1,10 @@
 #pragma once
 
 #include "Data/Tables/ItemTable.h"
+#include "Protocol/Outgoing.h"
 #include "UI/PanelRegistry.h"
+
+#include <functional>
 
 namespace Client::Data::Tables
 {
@@ -53,6 +56,12 @@ public:
     // 0x657fe1: con `requests`, cerrar el comercio con aux en 0 manda el C1 03 3D (SendGamePacket) después de sus dos
     // rand(). Lo presta el paso de la UI; sin él, ese cierre corta.
     void LendTheTradeCancel(WorldState& world, Render::Models::CrtRandom& random, IGameUiRequests* requests);
+
+    // 0x65ac87, 0x65b359 y 0x5eb17f: el C1 04 F3 10 al abrir una tienda con 0x6c931c distinto de −1 y el 3F 07 al
+    // cerrar la de otro con su dueño (Scenes::OpenThePersonalShop y CloseThePersonalShop), por `send`. Sin él, esos
+    // envíos cortan; lo demás de abrir y cerrar las tiendas no lo necesita.
+    void LendThePersonalShops(WorldState& world, Render::Models::CrtRandom& random,
+                              std::function<void(Protocol::Outgoing)> send);
 
 private:
     UI::PanelContext m_context;

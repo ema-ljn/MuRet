@@ -9,6 +9,7 @@
 #include "UI/MessageArea.h"
 #include "UI/NameChecks.h"
 #include "UI/PanelRegistry.h"
+#include "UI/SprintfFormat.h"
 
 #include <algorithm>
 #include <array>
@@ -75,6 +76,35 @@ SocialCommand(const ChatCommandContext& context, std::string_view address, std::
     if (InChaosCastle(context))
         return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
     return Core::Unexpected(std::format("{}: {} es de {}", address, what, wave));
+}
+
+// 0x5766ce..0x576890: /personalshop. En Chaos Castle, el aviso 1150 y 0; con el entrenador abierto, el 1121 y 0; si no,
+// el nivel del registro propio (+0xe, abriéndolo y cerrándolo): desde el 6, Open(0x800) y 1; si no, sprintf del texto
+// 1123 con el 6 en los 0x30 bytes de la pila (EBP − 0xf0, en ceros) y 1. Los avisos van con el tipo 1.
+Core::Expected<ChatCommandOutcome, std::string> PersonalShopCommand(const ChatCommandContext& context)
+{
+    constexpr std::size_t LevelTextBufferSize = 0x30;
+    if (InChaosCastle(context))
+        return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
+    if (context.trainerOpen)
+        return ChatCommandOutcome{.handled = false, .notices = {{ShopTrainerText, SystemMessage}}};
+    if (!context.ownLevel)
+        return Core::Unexpected(std::string("0x57673f: /personalshop sin el registro propio"));
+    if (context.ownLevel() >= ShopLevel)
+    {
+        if (!context.openThePersonalShop)
+            return Core::Unexpected(std::string("0x576822: /personalshop sin abrir la tienda"));
+        if (auto opened = context.openThePersonalShop(); !opened.HasValue())
+            return Core::Unexpected(std::move(opened).Error());
+        return ChatCommandOutcome{.handled = true, .notices = {}};
+    }
+    std::string text = Sprintf(TextAt(context.texts, ShopLevelText), static_cast<std::int32_t>(ShopLevel));
+    if (text.size() >= LevelTextBufferSize)
+        return Core::Unexpected(std::format("0x576866: el texto {} con el nivel pasa los {} bytes de la pila",
+                                            ShopLevelText, LevelTextBufferSize));
+    return ChatCommandOutcome{
+        .handled = true,
+        .notices = {ChatCommandNotice{.text = ShopLevelText, .type = SystemMessage, .formatted = std::move(text)}}};
 }
 
 // 0x56c54d..0x56c690: /trade. Fuera de Chaos Castle, el nivel del registro propio contra 0x6c8dc8: sin alcanzarlo, el
@@ -179,9 +209,9 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
     if (text == TextAt(texts, MoveCommandText) || EqualsIgnoringCase(text, "/move"))
         context.overlayMode = MoveOverlayMode;
     if (text == TextAt(texts, ShopCommandText) || EqualsIgnoringCase(text, "/personalshop"))
-        return SocialCommand(context, "0x5766ce", "la tienda personal", "la CL9 hito 7, fase 2");
+        return PersonalShopCommand(context);
     if (ContainsLikeTheOriginal(text, TextAt(texts, BuyCommandText)) || ContainsLikeTheOriginal(text, "/purchase"))
-        return SocialCommand(context, "0x574bd6", "comprar en una tienda personal", "la CL9 hito 7, fase 2");
+        return SocialCommand(context, "0x574bd6", "comprar en una tienda personal", "el hito 7 (08 P-C208 b)");
     if (text == TextAt(texts, ShopViewOnCommandText) || text == TextAt(texts, ShopViewOffCommandText))
         return Core::Unexpected(
             std::string("0x56d722: ver las tiendas personales (0x4516a0 y 0x4516b0) es de la CL9.4"));

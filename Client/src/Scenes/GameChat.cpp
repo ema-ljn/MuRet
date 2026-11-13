@@ -38,6 +38,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -184,7 +185,18 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
         },
         .requestATrade = [&context]() { return RequestATrade(SocialRequestsOf(context)); },
         .requestAParty = [&context]() { return RequestAParty(SocialRequestsOf(context)); },
-        .requestADuel = [&context]() { return RequestADuel(SocialRequestsOf(context)); }};
+        .requestADuel = [&context]() { return RequestADuel(SocialRequestsOf(context)); },
+        .trainerOpen = panels.Registry().IsOpen(UI::TrainerPanel),
+        .openThePersonalShop = [&context]() -> Core::Expected<void, std::string>
+        {
+            GamePanels shops(context.world, context.random);
+            if (context.send)
+                shops.LendThePersonalShops(context.world, context.random, context.send);
+            auto opened = shops.Registry().Open(UI::PersonalShopPanel);
+            if (!opened.HasValue())
+                return Core::Unexpected(std::move(opened).Error());
+            return {};
+        }};
     auto outcome = UI::RunTheChatCommand(commands, text, fromMacro);
     if (!outcome.HasValue())
         return outcome;

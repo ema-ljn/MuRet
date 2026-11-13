@@ -5,8 +5,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <string>
 #include <map>
+#include <string>
 
 // Los globales del comercio, la party y el duelo (CL9 hito 7, 04 § El comercio, § La party y § El duelo), en la .bss
 // salvo los que dicen otra cosa. Los escriben los paquetes (Scenes/SocialEvents) y los leen sus ventanas.
@@ -129,6 +129,15 @@ struct ShopTitle
     bool visible = true;
 };
 
+// 0x78a6768: la grilla de la tienda propia (0x78ab0b8, OwnInventory::secondCells) mientras se mira la de otro.
+inline constexpr std::size_t ShopGridCells = 0x20;
+// 0x78a64f9: el nombre del dueño de la tienda que se mira (+0x1d9 de su copia), 10 bytes.
+inline constexpr std::size_t ShopOwnerNameSize = 10;
+// 0x6c931c: sin tienda (la .data), la propia (Open(0x800)) y la de otro (Open(0x20000)).
+inline constexpr std::int32_t NoShopView = -1;
+inline constexpr std::int32_t OwnShopView = 1;
+inline constexpr std::int32_t OtherShopView = 2;
+
 struct PersonalShopState
 {
     // 0x7245c8 (0x451d10, un std::map por el puntero del personaje, que ordena como su índice): los carteles. Solo lo
@@ -136,11 +145,27 @@ struct PersonalShopState
     std::map<std::size_t, ShopTitle> titles;
     // 0x78aba50: la tienda propia abierta (el 3F 02 con 1; el 3F 03 del héroe la apaga).
     std::uint8_t ownOpen = 0;
-    // 0x78aba64: el título propio, que escribe el diálogo del título (0x623750, sin portar) y lee el 3F 02.
+    // 0x78aba64: el título de la ventana, que escribe el diálogo del título (0x623750, sin portar) y lee el 3F 02. El
+    // 3F 05 pone el de la tienda que se mira (strncpy de 0x24, 0x4db92b) y cerrarla vuelve al del cartel del héroe
+    // (0x5eb020).
     std::string ownTitle;
-    // 0x6c931c (.data −1): 1 y 2 los ponen las listas de ítems del 3F (0x4db890, 0x4dbcb0, sin portar); el 3F 12 mira
-    // el 2.
-    std::int32_t mode = -1;
+    // 0x6c931c (.data −1): Open(0x800) lo pone en 1 (0x65b21d) y Open(0x20000) en 2 (0x65ba37); 0x5eb020, al cerrar
+    // cualquiera de las dos, en −1. Lo miran las listas del 3F, el 28 y el 3F 12.
+    std::int32_t mode = NoShopView;
+    // 0x7245e4 y 0x7245e0: los std::map de 0x10 bytes que arman Open(0x800) y Open(0x20000) la primera vez
+    // (0x65b194.., 0x65b888..), del lugar al precio. El primero es el de la tienda propia (0x5dea3f, con 0x6c931c en 1;
+    // lo borra el 3F 01 que falla) y el segundo el de la de otro (los 3F 05, 06 y 0x13).
+    std::map<std::int32_t, std::int32_t> ownPrices;
+    std::map<std::int32_t, std::int32_t> otherPrices;
+    // Los dos punteros en otra cosa que 0: hasta el primer Open de una tienda nadie escribe en los mapas (las listas
+    // que llegan antes ponen los ítems sin los precios).
+    bool pricesBuilt = false;
+    // 0x78a6768, la copia que hace el 3F 05 si 0x20000 no estaba abierta y que 0x5eb020 devuelve.
+    std::array<World::ItemState, ShopGridCells> ownGridBackup{};
+    // 0x78a6320: la copia del registro del dueño de la tienda que se mira (0x438 bytes, 0x4dbaab), en ceros sin ella.
+    // Solo se leen su clave (+0x1f4, 0x78a6514) y su nombre (+0x1d9, 0x78a64f9), en 0x5eb020.
+    std::uint16_t ownerKey = 0;
+    std::array<std::byte, ShopOwnerNameSize> ownerName{};
 };
 
 struct SocialState

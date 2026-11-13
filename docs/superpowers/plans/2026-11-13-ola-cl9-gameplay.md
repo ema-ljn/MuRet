@@ -354,7 +354,10 @@ byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada v
   - [x] Fase 3 (2026-11-13): los `3F` de los carteles y los avisos (`0x4dae80`, `0x4db700`, `0x4dafe0` y los casos
         `3`, `8` y `0x12` de `0x4e2b10`) y el mapa de `0x7245c8` con sus lectores (el `14`, los globos, el nombre bajo
         el mouse, `/trade`, `0x451fe0` y `0x451590`). El GS 0.97 no tiene el `3F`: el oráculo es el ASM del cliente.
-  - [ ] Las listas (`01`, `05`, `06`, `0x13`), las ventanas, los comandos y el dibujo de los carteles (08 P-C208).
+  - [x] Fase 4 (2026-11-13): las listas (`01`, `05`, `06`, `0x13`), abrir y cerrar `0x800` y `0x20000` (con
+        `0x5eb020`), `/personalshop` (`0x5766ce`), el `28` desde el `0x4c` y las ramas de la tienda de `0x5be150`.
+  - [ ] El paso y el dibujo de las ventanas (`0x5ea290`, `0x5f3030`), el diálogo del título (`0x623750`),
+        `/purchase` (`0x574bd6`), `0x5c5110`, `0x5c5242`, `0x5dec19` y el dibujo de los carteles (08 P-C208).
 - [ ] **La party:** `0x40`..`0x44` (`0x4d67e0`), la vida de la party (`0x5a89b0`), la ventana `0x5f0be0`,
       echar a alguien (`0x5e3d03`, `C1 04 43`), la cantidad del grupo (`0x78aba48`, que lee el dibujo en
       `0x59e680`).

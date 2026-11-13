@@ -233,7 +233,9 @@ PlaceMovedItem(std::uint8_t slot, const Protocol::Inventory::ItemData& item, con
 // 0x5bc740 con el último argumento en 0 y el sonido 0x1d.
 [[nodiscard]] Core::Expected<void, std::string> ApplyItemMoveResult(const Protocol::Inventory::ItemMoveResult& result,
                                                                     const WorldEntryResources& resources);
-// 0x4c5ec0, el 28: 0x5bd750 con el lugar (los de la tienda personal cortan) y el fin de la espera.
+// 0x4c5ec0, el 28: 0x5bd750 con el lugar y el fin de la espera. Desde el 0x4c (la tienda personal), con 0x6c931c en 2
+// en la copia de la grilla propia (0x78a6768); si no, con el ítem del cursor levantado de esa casilla de 0x78ab0b8,
+// 0x5be150 antes.
 [[nodiscard]] Core::Expected<void, std::string> ApplyItemDelete(const Protocol::Inventory::ItemDelete& deleted,
                                                                 const WorldEntryResources& resources);
 // 0x4d3cc0, el 2A: la durabilidad del lugar del equipo, con el registro abierto, o de toda la huella en la grilla, y

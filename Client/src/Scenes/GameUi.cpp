@@ -1538,6 +1538,12 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
                                           .itemSetTables = context.itemSetTables});
     gamePanels.LendThePartyList(context.world, context.requests);
     gamePanels.LendTheTradeCancel(context.world, context.random, context.requests);
+    if (context.requests != nullptr)
+    {
+        gamePanels.LendThePersonalShops(context.world, context.random,
+                                        [requests = context.requests](Protocol::Outgoing outgoing)
+                                        { requests->SendGamePacket(std::move(outgoing)); });
+    }
     UI::PanelRegistry& panels = gamePanels.Registry();
     // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).
     if (panels.IsOpen(UI::MovePanel) && ui.capture == 0)

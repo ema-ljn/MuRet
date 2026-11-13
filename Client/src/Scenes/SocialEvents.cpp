@@ -825,12 +825,14 @@ void ApplyOtherShopTitle(const Protocol::PersonalShop::ShopTitle& title, WorldSt
     AddShopTitle(world, title.key, index, title.title);
 }
 
-Core::Expected<void, std::string> ApplyShopOwnerLeft(const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyShopOwnerLeft(const WorldEntryResources& resources, const GamePacketSender& send)
 {
     WorldState& world = resources.world;
     if (world.Runtime().social.personalShop.mode != ViewingAnotherShop)
         return {};
+    // El cierre pasa por 0x5eb020, que con la clave del dueño manda el 3F 07.
     GamePanels panels(world, resources.cloth.random);
+    panels.LendThePersonalShops(world, resources.cloth.random, send);
     for (const UI::PanelId id : {UI::PersonalShopPanel, UI::OtherShopPanel})
     {
         auto closed = panels.Registry().Close(id);
@@ -838,6 +840,12 @@ Core::Expected<void, std::string> ApplyShopOwnerLeft(const WorldEntryResources& 
             return Core::Unexpected(std::move(closed).Error());
     }
     return Message(resources, ShopOwnerLeftText, UI::ErrorMessage, "0x4e5009");
+}
+
+Core::Expected<void, std::string> AddSocialNotice(const WorldEntryResources& resources, std::size_t text,
+                                                  std::int32_t type, std::string_view where)
+{
+    return Message(resources, text, type, where);
 }
 
 void ApplyDuelScore(const Protocol::Duel::DuelScore& score, WorldState& world)

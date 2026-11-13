@@ -188,6 +188,14 @@ struct PanelContext
     // en 0 el C1 03 3D en C3 (dos rand()), y las dos grillas (0x78a92a8 y 0x78a5a20) vacías, con 0x5bbdf0 en cada
     // vuelta si 0x78abaa5 está en 1 (Scenes::CloseTheTradeGrids). Sin él, cerrar el comercio corta.
     std::function<Core::Expected<void, std::string>(bool aux)> tradeClosed{};
+    // 0x65ac65..0x65b21d y 0x65b33a..0x65ba37: lo que abrir una tienda personal (0x800 o 0x20000) hace si cerró lo
+    // demás, después del inventario y antes de prender 0x7d5370f: con 0x6c931c distinto de −1 el C1 04 F3 10 en C3 (dos
+    // rand()), los dos mapas de los precios (0x7245e4 y 0x7245e0) si no estaban y 0x6c931c en 1 o 2
+    // (Scenes::OpenThePersonalShop). Sin él, abrir una tienda corta.
+    std::function<Core::Expected<void, std::string>(PanelId id)> personalShopOpened{};
+    // 0x6589cb y 0x6589ef: 0x5eb020 al cerrar cualquiera de las dos, antes de apagar 0x7d5370f
+    // (Scenes::CloseThePersonalShop). Sin él, cerrar una tienda corta.
+    std::function<Core::Expected<void, std::string>()> personalShopClosed{};
 };
 
 class PanelRegistry

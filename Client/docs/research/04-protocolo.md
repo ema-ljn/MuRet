@@ -943,14 +943,21 @@ clave es el primero vivo de los 400 con ella (`0x5110d0`, que da 400 sin ninguno
 | `08` | `C1 0F 3F 08 <?> <nombre:10>` | `0x4e4f5d` | `strncpy` del nombre (`pkt + 5`, 10) y `sprintf` del texto 1122 con él en los 0x70 bytes de la pila; a los mensajes con el tipo 1 (`0x555190`, sin nombre). `pkt[4]` no se lee |
 | `10` | `C1 34 3F 10 <clave BE> <título:36> <nombre:10>` | `0x4dafe0` | con el personaje de la clave y su nombre igual (`strncmp` de 10 con `pkt + 0x2a`), su cartel |
 | `12` | `C1 04 3F 12` | `0x4e4fcc` | con `0x6c931c` en 2 (mirando la tienda de otro), cierra `0x800` y `0x20000` y el texto 1126 con el tipo 2 |
-| `01`, `05`, `06`, `13` | las listas de ítems | `0x4db120`, `0x4db890`, `0x4dbcb0`, `0x4dbb40` | sin portar: el `std::map` de `0x7245e0`, las grillas y las ventanas (08 P-C208 b) |
+| `01` | `C1 06 3F 01 <resultado> <lugar>` | `0x4db120` | con un resultado distinto de 1 y `0x6c931c` en 1 (la tienda propia): `0x5be150` con un ítem en el cursor, el lugar sale del mapa `0x7245e4` y el `C1 04 F3 10` en C3. Si no, nada; el log `0x6c84a0` siempre (fase 4) |
+| `05` | `C2 <tamaño:2> 3F 05 <resultado> <clave BE> <?:10> <título:36> <n> n × (<lugar> <ítem:7> <precio:4 LE>)` | `0x4db890` | con 1: `Close(0x40)` y `Close(0x4000000)` si están abiertas, la copia del dueño (`0x78a6320`) en ceros, la grilla propia a su copia (`0x78ab0b8` → `0x78a6768`) si `0x20000` no estaba abierta, el título (`strncpy` de 0x24 a `0x78aba64`, 07 Q-C962), la grilla de la tienda vacía, `Open(0x20000)` y el mapa `0x7245e0` vacío; por entrada, con un precio de 0 o menos `Close(0x800)` y `Close(0x20000)` y sale; si no, `0x5bc740(0x78a9bb0, 8, 8, lugar, ítem, 0)` y el precio en el mapa. Al final, la copia del registro del dueño si `0x5110d0` lo encuentra. Con 3, el texto 1120 con el tipo 2; con otro, el log `0x6c8578`. `pkt[8..0x11]` no se lee (fase 4) |
+| `06` | `C1 0F 3F 06 <resultado> <?:2> <ítem:7> <lugar>` | `0x4dbcb0` | con 1: mirando la de otro (`0x6c931c` en 2) el lugar de `0x78a6758` sale del mapa `0x7245e0` y de la grilla (`0x5bd750`), si no el mapa vacío; después lo comprado en su lugar (`0x5bc740` con el último argumento en 0). Con 6, el texto 1166 y `Close(0x800)` y `Close(0x20000)`; con 7, el 423; con 8, el 375 (los tres con el tipo 2); con 7, 8 u otro, `0x5be150` (fase 4) |
+| `13` | `C2 <tamaño:2> 3F 13 <resultado> <?:0x30> <n> n × (<lugar> <ítem:7> <precio:4 LE>)` | `0x4dbb40` | con 1 y `0x6c931c` en 2: la grilla de la tienda vacía, el mapa `0x7245e0` vacío y cada entrada en su lugar con su precio, sin mirar el precio; si no, el log `0x6c85b0` (fase 4) |
 
 Del cliente: el `3F 05` (`C1 10 3F 05 <clave BE> <nombre:10>`, C3), el comando 2 de la ventana de comandos sobre el
-elegido (`0x406b02`, 06 § "El comando sobre el elegido"; `Protocol::PersonalShop::WriteShopItemsRequest`). Los tamaños
-de los C1 que llegan son los que leen los lectores (no hay un servidor que los mande). MuRet los lee en
-`Protocol::PersonalShop` (que solo mide que el paquete los traiga) y los aplica en `Scenes::SocialEvents`
-(`ApplyShopTitles`, `ApplyShopCreated`, `ApplyShopClosed`, `ApplyShopNotice`, `ApplyOtherShopTitle` y
-`ApplyShopOwnerLeft`); los cuatro de las listas siguen sin handler.
+elegido (`0x406b02`, 06 § "El comando sobre el elegido"; `Protocol::PersonalShop::WriteShopItemsRequest`); el `3F 07`
+(`C1 10 3F 07 <clave BE> <nombre:10>`, C3), que manda `0x5eb020` al cerrar la tienda de otro con la clave del dueño
+(`0x78a6514`) distinta de 0 (`WriteViewClosed`); y el `C1 04 F3 10` en C3 (`WriteInventoryRequest`), que mandan el `01`
+de arriba y abrir una tienda (`0x65ac87` y `0x65b359`) con `0x6c931c` distinto de −1. Los tamaños de los que llegan son
+los que leen los lectores (no hay un servidor que los mande). MuRet los lee en `Protocol::PersonalShop` (que solo mide
+que el paquete los traiga) y los aplica en `Scenes::SocialEvents` (`ApplyShopTitles`, `ApplyShopCreated`,
+`ApplyShopClosed`, `ApplyShopNotice`, `ApplyOtherShopTitle` y `ApplyShopOwnerLeft`) y, los de las listas, en
+`Scenes::PersonalShopLists` (`ApplyPriceResult`, `ApplyShopItemList`, `ApplyShopPurchase` y `ApplyShopRefresh`, con
+`OpenThePersonalShop` y `CloseThePersonalShop`, 06 § Las tiendas personales). El `12` cierra ahora por `0x5eb020`.
 
 **MuRet**: `Protocol::Trade`, `Protocol::Party` y `Protocol::Duel` leen y escriben lo de arriba;
 `App::ServerSession::RegisterSocialHandlers` los pasa al mundo y `Scenes::SocialEvents` hace lo de cada caso. Los

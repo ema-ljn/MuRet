@@ -4,6 +4,7 @@
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
 #include "Protocol/Character/Opcodes.h"
+#include "Protocol/Inventory.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/ProtocolError.h"
 
@@ -12,6 +13,7 @@
 #include <cstdint>
 #include <span>
 #include <string>
+#include <utility>
 
 namespace Client::Protocol::PersonalShop
 {
@@ -31,6 +33,19 @@ constexpr std::size_t NoticeNameAt = 5;
 constexpr std::size_t TitleKeyAt = 4;
 constexpr std::size_t TitleAt = 6;
 constexpr std::size_t TitleNameAt = 0x2a;
+// 0x4db120: el resultado en pkt[4] y el lugar en pkt[5].
+constexpr std::size_t PriceSlotAt = 5;
+// 0x4db890 y 0x4dbb40.
+constexpr std::size_t ListResultAt = 5;
+constexpr std::size_t ListKeyAt = 6;
+constexpr std::size_t ListTitleAt = 0x12;
+constexpr std::size_t ListCountAt = 0x36;
+constexpr std::size_t FirstListEntryAt = 0x37;
+constexpr std::size_t ListEntrySize = 0xc;
+constexpr std::size_t ListEntryPriceAt = 8;
+// 0x4dbcb0: lea pkt + 7 (el ítem) y pkt[0xe] (el lugar).
+constexpr std::size_t PurchaseItemAt = 7;
+constexpr std::size_t PurchaseSlotAt = 0xe;
 
 Core::Expected<std::span<const std::byte>, ProtocolError> BytesOf(const Network::Packet& packet, std::size_t needed)
 {
@@ -71,6 +86,52 @@ Name NameAt(std::span<const std::byte> bytes, std::size_t at)
     Name name{};
     std::ranges::copy(bytes.subspan(at, name.size()), name.begin());
     return name;
+}
+
+Inventory::ItemData ItemAt(std::span<const std::byte> bytes, std::size_t at)
+{
+    Inventory::ItemData item{};
+    std::ranges::copy(bytes.subspan(at, item.size()), item.begin());
+    return item;
+}
+
+std::int32_t PriceAt(std::span<const std::byte> bytes, std::size_t at)
+{
+    const auto value = static_cast<std::uint32_t>(ByteAt(bytes, at)) |
+                       (static_cast<std::uint32_t>(ByteAt(bytes, at + 1)) << 8) |
+                       (static_cast<std::uint32_t>(ByteAt(bytes, at + 2)) << 16) |
+                       (static_cast<std::uint32_t>(ByteAt(bytes, at + 3)) << 24);
+    return static_cast<std::int32_t>(value);
+}
+
+// Lo común del 05 y el 0x13: con el resultado 1, la cuenta y las entradas; el 05 lee además la clave y el título.
+Core::Expected<ShopItemList, ProtocolError> ReadList(const Network::Packet& packet, bool withOwner)
+{
+    auto read = BytesOf(packet, ListResultAt + 1);
+    if (!read.HasValue())
+        return Core::Unexpected(read.Error());
+    const std::span<const std::byte> bytes = read.Value();
+    ShopItemList list{};
+    list.result = ByteAt(bytes, ListResultAt);
+    if (list.result != ListedResult)
+        return list;
+    if (bytes.size() < FirstListEntryAt)
+        return Core::Unexpected(ProtocolError::TooShort);
+    const std::size_t count = ByteAt(bytes, ListCountAt);
+    if (bytes.size() < FirstListEntryAt + count * ListEntrySize)
+        return Core::Unexpected(ProtocolError::TooShort);
+    if (withOwner)
+    {
+        list.key = KeyAt(bytes, ListKeyAt);
+        std::ranges::copy(bytes.subspan(ListTitleAt, list.title.size()), list.title.begin());
+    }
+    for (std::size_t entry = 0; entry < count; ++entry)
+    {
+        const std::size_t at = FirstListEntryAt + entry * ListEntrySize;
+        list.entries.push_back(ShopListEntry{
+            .slot = ByteAt(bytes, at), .item = ItemAt(bytes, at + 1), .price = PriceAt(bytes, at + ListEntryPriceAt)});
+    }
+    return list;
 }
 } // namespace
 
@@ -141,6 +202,54 @@ Core::Expected<ShopOwnerLeft, ProtocolError> ReadShopOwnerLeft(const Network::Pa
     if (!read.HasValue())
         return Core::Unexpected(read.Error());
     return ShopOwnerLeft{};
+}
+
+Core::Expected<PriceResult, ProtocolError> ReadPriceResult(const Network::Packet& packet)
+{
+    auto read = BytesOf(packet, PriceSlotAt + 1);
+    if (!read.HasValue())
+        return Core::Unexpected(read.Error());
+    return PriceResult{.result = ByteAt(read.Value(), ResultAt), .slot = ByteAt(read.Value(), PriceSlotAt)};
+}
+
+Core::Expected<ShopItemList, ProtocolError> ReadShopItemList(const Network::Packet& packet)
+{
+    return ReadList(packet, true);
+}
+
+Core::Expected<ShopRefresh, ProtocolError> ReadShopRefresh(const Network::Packet& packet)
+{
+    auto list = ReadList(packet, false);
+    if (!list.HasValue())
+        return Core::Unexpected(list.Error());
+    return ShopRefresh{.result = list.Value().result, .entries = std::move(list.Value().entries)};
+}
+
+Core::Expected<ShopPurchase, ProtocolError> ReadShopPurchase(const Network::Packet& packet)
+{
+    auto read = BytesOf(packet, ResultAt + 1);
+    if (!read.HasValue())
+        return Core::Unexpected(read.Error());
+    const std::span<const std::byte> bytes = read.Value();
+    ShopPurchase purchase{.result = ByteAt(bytes, ResultAt)};
+    // 0x4dbcbe: el ítem y el lugar solo con el 1.
+    if (purchase.result != 1)
+        return purchase;
+    if (bytes.size() < PurchaseSlotAt + 1)
+        return Core::Unexpected(ProtocolError::TooShort);
+    purchase.item = ItemAt(bytes, PurchaseItemAt);
+    purchase.slot = ByteAt(bytes, PurchaseSlotAt);
+    return purchase;
+}
+
+Outgoing WriteInventoryRequest()
+{
+    return EncryptedC1(Network::PacketWriter::C1(Character::CharacterOpcode).PutU8(Character::InventoryListSubcode));
+}
+
+Outgoing WriteViewClosed(std::uint16_t key, const Name& name)
+{
+    return EncryptedC1(Network::PacketWriter::C1(Opcode).PutU8(ViewClosedSubcode).PutU16Be(key).PutBytes(name));
 }
 
 Outgoing WriteShopItemsRequest(std::uint16_t key, const Name& name)

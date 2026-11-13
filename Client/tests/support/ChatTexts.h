@@ -45,6 +45,8 @@ inline std::map<std::size_t, std::string> ChatTexts()
         {UI::RivalCommandText, "/rivales"},
         {UI::RivalOffCommandText, "/sin rivales"},
         {UI::ChaosCastleCommandText, "aviso castillo"},
+        {UI::ShopTrainerText, "aviso entrenador"},
+        {UI::ShopLevelText, "desde el nivel %d"},
         {ChatFilteredText, "..."},
         {ChatWhisperOffCommandText, "/callar"},
         {ChatWhisperOnCommandText, "/escuchar"},

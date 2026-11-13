@@ -10216,6 +10216,44 @@ Cortan con su dirección el dibujo (`0x451c32`, desde `DrawTheHud`) y el título
 `AddChatBubble`), 08 P-C208 a. Tests: `PersonalShopsTest` (en Lorencia y Devias, con nombres y títulos inventados) y el
 caso `0x451c32` de `GameHudTest`.
 
+**Las dos ventanas y sus listas** (CL9 hito 7, fase 4, 2026-11-13, *estático*). `0x800` es la tienda propia y
+`0x20000` la de otro; comparten el byte `0x7d5370f` y la grilla de los lugares desde el `0x4c` (`0x78ab0b8`, 32
+casillas de 8 columnas). `0x6c931c` dice cuál se mira (−1 en la `.data`, 1 la propia, 2 la de otro).
+
+- `Open(0x800)` (`0x65ac3f..0x65b227`; `CanOpen` pide el inventario abierto) cierra todo menos ella, el inventario y
+  los amigos; `Open(0x20000)` (`0x65b319..0x65ba41`) cierra también el inventario. Con lo que cerró, las dos abren el
+  inventario (`0x6599a0(0x4000000, 0)`); con `0x6c931c` distinto de −1, el log `0x6d67dc` y el `C1 04 F3 10` en C3; si
+  `0x7245e4` y `0x7245e0` están en 0, los dos `std::map` de 0x10 bytes (del lugar al precio; nadie los suelta); el
+  byte en 1 y `0x6c931c` en 1 o 2. `CanOpen` no deja abrir una con la otra abierta (`0x6598a0`).
+- Cerrar cualquiera (`0x6589b6..0x6589f4`, también desde `Close(0x4000000)`, cuyo `0x11d9e0` tiene `0x800`) llama a
+  `0x5eb020` y apaga el byte. `0x5eb020`: con `0x6c931c` en 2, la grilla propia vuelve de su copia (`0x78a6768`), el
+  título de la ventana (`0x78aba64`) vuelve al del cartel del héroe (`0x451810` y `0x451860`, `strcpy`) o queda vacío, y
+  con la clave del dueño (`0x78a6514`, `+0x1f4` de la copia `0x78a6320`) distinta de 0 manda el `3F 07` en C3. Siempre:
+  con el diálogo `0x91`, o el `0x94` con `0x78abb14` en 5, el diálogo 0 (`0x6236f0`); `0x6c931c` en −1 y la copia del
+  dueño en ceros.
+- `/personalshop` (`0x5766ce..0x576890`, el texto 1117 o el literal): en Chaos Castle el aviso 1150 y 0; con el
+  entrenador (`0x8000`) el 1121 y 0; si no, el nivel del registro propio (`+0xe`, con su acceso): desde 6,
+  `Open(0x800)` y 1; si no, `sprintf` del 1123 con el 6 en los 0x30 bytes de `EBP − 0xf0` y 1, con el tipo 1. La S y el
+  botón del pie del inventario (`0x5e545f..0x5e5717`) abren y cierran la propia.
+- Los `3F` `01`, `05`, `06` y `0x13` (04 § Las tiendas personales) llenan la grilla con `0x5bc740(0x78a9bb0, 8, 8,
+  lugar, ítem, 0)` y los precios en `0x7245e0`. El `28` (`0x4c5ec0`) con un lugar desde el `0x4c`: con `0x6c931c` en 2,
+  `0x5bd750` sobre la copia (`0x78a6768`, desde el lugar − 0x4c); si no, con el ítem del cursor levantado de esa casilla
+  de `0x78ab0b8`, `0x5be150` antes, y `0x5bd750` sobre el inventario. `0x5be150` tiene ramas para la propia del comercio
+  (`0x78a92a8`, `0x5be191`), el almacén (`0x78a7070`), la caja del caos (`0x7d2d380`) y la tienda (`0x78ab0b8`, desde el
+  lugar − 0x4c): la copia del cursor en la huella desde la columna y la fila del lugar, con `+0x3c` en 1 solo en su
+  casilla; la del otro en el comercio (`0x78a5a20`) no tiene rama y sigue como el inventario.
+
+**MuRet**: `Scenes::PersonalShopLists` (`OpenThePersonalShop` y `CloseThePersonalShop`, los ganchos
+`personalShopOpened` y `personalShopClosed` de `UI::PanelContext`, con el cable de `GamePanels::LendThePersonalShops`;
+y los cuatro `3F`), `UI::ChatCommands` (`/personalshop`) y `Scenes::InventoryMoves` (el `28` y las ramas de `0x5be150`,
+con `CursorGrid::OwnTrade` y `CursorGrid::PersonalShop`). Los mapas son `PersonalShopState::ownPrices` y
+`otherPrices`, con `pricesBuilt` por los punteros en 0. Cortan con su dirección el paso y el dibujo de las ventanas
+(`0x5ea2bd`, `0x5e4ee2` y `0x5e58ea`), el diálogo del título (`0x623750`), poner y el clic derecho con la tienda abierta
+(`0x5c5110` y `0x5c5242`), soltar en su grilla (`0x5dec19`) y `/purchase` (`0x574bd6`), 08 P-C208 b. Tests:
+`PersonalShopListsTest` (abrir la propia, el precio que falla, mirar la de otro, comprar, renovar y cerrar, byte a byte
+y con los `rand()` de las consultas de `0x20` y `0x10000` y de los C3; en Lorencia y Devias), `TheItemListsReadTheirEntries`
+y `PersonalShopNeedsTheLevel`.
+
 ## Lo que no se sabe
 
 - **Modelos, en el binario** (P-C01, cerrado en la CL6.R): el skinning, la pose, el avance, la

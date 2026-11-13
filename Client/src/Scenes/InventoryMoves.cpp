@@ -16,6 +16,7 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/OwnItemPlacement.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -496,6 +497,28 @@ bool IsLevelThreeWizardsRing(const ItemState& item)
     return item.id == WizardsRing && (item.scalar1Low & LevelBitsMask) == LevelThreeBits;
 }
 
+// 0x5be1a1..0x5be258, 0x5be3f6..0x5be4af y 0x5beb16..0x5bebd7: la columna (origen % 8) y la fila (origen / 8) del
+// origen, con signo, y la copia del cursor en cada casilla de la huella, con +0x3c en 1 solo en la de su columna
+// (+0x42) y su fila (+0x43).
+Core::Expected<void, std::string> ReturnToAGrid(std::span<ItemState> cells, std::int32_t origin, ItemState cursor,
+                                                ItemFootprint footprint, std::string_view where)
+{
+    const std::int32_t column = origin % Columns;
+    const std::int32_t row = origin / Columns;
+    for (std::int32_t y = row; y < row + footprint.height; ++y)
+    {
+        for (std::int32_t x = column; x < column + footprint.width; ++x)
+        {
+            auto cell = CellAt(cells, y * Columns + x, where);
+            if (!cell.HasValue())
+                return Core::Unexpected(cell.Error());
+            *cell.Value() = cursor;
+            cell.Value()->occupied = y == cursor.gridRow && x == cursor.gridColumn ? 1u : 0u;
+        }
+    }
+    return {};
+}
+
 // 0x5be4e2..0x5bebd7: el ítem del cursor vuelve a [0x78a6758].
 Core::Expected<void, std::string> ReturnToTheSlot(const InventoryMoveContext& context, ItemFootprint footprint)
 {
@@ -504,24 +527,7 @@ Core::Expected<void, std::string> ReturnToTheSlot(const InventoryMoveContext& co
     const ItemState cursor = runtime.cursorItem;
     const std::int32_t slot = runtime.slot78a6758;
     if (slot >= FirstGridSlot)
-    {
-        // 0x5beb16..0x5bebd7: la columna y la fila del origen, con signo, y la copia en cada casilla de la huella.
-        const std::int32_t origin = slot - FirstGridSlot;
-        const std::int32_t column = origin % Columns;
-        const std::int32_t row = origin / Columns;
-        for (std::int32_t y = row; y < row + footprint.height; ++y)
-        {
-            for (std::int32_t x = column; x < column + footprint.width; ++x)
-            {
-                auto cell = CellAt(world.Inventory().cells, y * Columns + x, "0x5be150 (0x5beb7f)");
-                if (!cell.HasValue())
-                    return Core::Unexpected(cell.Error());
-                *cell.Value() = cursor;
-                cell.Value()->occupied = y == cursor.gridRow && x == cursor.gridColumn ? 1u : 0u;
-            }
-        }
-        return {};
-    }
+        return ReturnToAGrid(world.Inventory().cells, slot - FirstGridSlot, cursor, footprint, "0x5be150 (0x5beb7f)");
     if (slot < 0)
         return Core::Unexpected(std::format("0x5be150: el lugar {} de 0x78a6758 no es del equipo", slot));
     const auto place = static_cast<std::size_t>(slot);
@@ -992,12 +998,29 @@ Core::Expected<void, std::string> ReturnTheCursorItem(const InventoryMoveContext
     WorldRuntime& runtime = context.world.Runtime();
     if (runtime.cursorItemCount <= 0)
         return {};
-    // 0x5be166..0x5be18e: el ancho y el alto del tipo. Las otras grillas de 0x78ab9b8 (0x5be191..0x5be4b4) MuRet no
-    // las pone; con la del inventario o ninguna sigue en 0x5be4b4, donde 0x449c80 da 0 fuera de la caja del entrenador.
+    // 0x5be166..0x5be18e: el ancho y el alto del tipo. Desde 0x5be191, por la grilla de 0x78ab9b8: la propia del
+    // comercio y la de la tienda (desde el lugar − 0x4c) tienen su rama; el almacén (0x78a7070) y la caja del caos
+    // (0x7d2d380) MuRet no los pone. Con las demás (el inventario, la del otro en el comercio o ninguna) sigue en
+    // 0x5be4b4, donde 0x449c80 da 0 fuera de la caja del entrenador.
     const auto footprint = ItemFootprintOf(context.services.items, runtime.cursorItem.id, "0x5be150 (0x5be183)");
     if (!footprint.HasValue())
         return Core::Unexpected(footprint.Error());
-    if (auto returned = ReturnToTheSlot(context, footprint.Value()); !returned.HasValue())
+    WorldState& world = context.world;
+    const auto returned = [&]() -> Core::Expected<void, std::string>
+    {
+        switch (runtime.cursorGrid)
+        {
+        case CursorGrid::OwnTrade:
+            return ReturnToAGrid(runtime.social.trade.ownGrid, runtime.slot78a6758, runtime.cursorItem,
+                                 footprint.Value(), "0x5be150 (0x5be205)");
+        case CursorGrid::PersonalShop:
+            return ReturnToAGrid(world.Inventory().secondCells, runtime.slot78a6758 - FirstSecondSlot,
+                                 runtime.cursorItem, footprint.Value(), "0x5be150 (0x5be459)");
+        default:
+            return ReturnToTheSlot(context, footprint.Value());
+        }
+    }();
+    if (!returned.HasValue())
         return returned;
     runtime.cursorItemCount = 0;
     runtime.cursorItem.occupied = 0;
@@ -1408,16 +1431,34 @@ Core::Expected<void, std::string> ApplyItemDelete(const Protocol::Inventory::Ite
 {
     if (deleted.slot != Protocol::Inventory::NoItemToDelete)
     {
-        if (deleted.slot >= FirstSecondGridSlot)
-            return Core::Unexpected(std::format("0x4c5ece: borrar el lugar {} lee 0x6c931c y la grilla de la tienda "
-                                                "personal, de la CL9.4",
-                                                deleted.slot));
+        WorldRuntime& runtime = resources.world.Runtime();
         const InventoryServices services = InventoryServicesOf(resources);
-        if (auto removed = RemoveInventoryItem(
-                InventoryMoveContext{.world = resources.world, .random = resources.cloth.random, .services = services},
-                deleted.slot);
-            !removed.HasValue())
-            return removed;
+        const InventoryMoveContext context{
+            .world = resources.world, .random = resources.cloth.random, .services = services};
+        if (deleted.slot >= FirstSecondGridSlot && runtime.social.personalShop.mode == OtherShopView)
+        {
+            // 0x4c5ee3: mirando la tienda de otro, 0x5bd750 con la copia de la propia (0x78a6768, desde el lugar −
+            // 0x4c).
+            if (auto removed = RemoveFromTheGrid(context, runtime.social.personalShop.ownGridBackup,
+                                                 deleted.slot - FirstSecondSlot, "0x5bd750, la grilla de 0x78a6768");
+                !removed.HasValue())
+                return removed;
+        }
+        else
+        {
+            // 0x4c5eea..0x4c5f1d: si no, con el ítem del cursor levantado de esa casilla de la tienda (su columna y su
+            // fila + 0x4c), 0x5be150 antes.
+            const ItemState& cursor = runtime.cursorItem;
+            if (deleted.slot >= FirstSecondGridSlot && runtime.cursorItemCount > 0 &&
+                runtime.cursorGrid == CursorGrid::PersonalShop &&
+                deleted.slot == cursor.gridColumn + cursor.gridRow * Columns + FirstSecondSlot)
+            {
+                if (auto returned = ReturnTheCursorItem(context); !returned.HasValue())
+                    return returned;
+            }
+            if (auto removed = RemoveInventoryItem(context, deleted.slot); !removed.HasValue())
+                return removed;
+        }
     }
     if (deleted.endsTheWait != 0)
         resources.world.Runtime().ui.field5767954 = 0;

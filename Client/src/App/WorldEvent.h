@@ -49,7 +49,8 @@ using WorldEvent = std::variant<
     Protocol::Party::PartyList, Protocol::Party::PartyLeft, Protocol::Party::PartyLife, Protocol::Duel::DuelStart,
     Protocol::Duel::DuelEnd, Protocol::Duel::DuelRequest, Protocol::Duel::DuelScore, Protocol::PersonalShop::ShopTitles,
     Protocol::PersonalShop::ShopCreated, Protocol::PersonalShop::ShopClosed, Protocol::PersonalShop::ShopNotice,
-    Protocol::PersonalShop::ShopTitle, Protocol::PersonalShop::ShopOwnerLeft, Protocol::Movement::Action,
-    Protocol::Viewport::Players, Protocol::Viewport::Leave, Protocol::Viewport::Transformed,
+    Protocol::PersonalShop::ShopTitle, Protocol::PersonalShop::ShopOwnerLeft, Protocol::PersonalShop::PriceResult,
+    Protocol::PersonalShop::ShopItemList, Protocol::PersonalShop::ShopPurchase, Protocol::PersonalShop::ShopRefresh,
+    Protocol::Movement::Action, Protocol::Viewport::Players, Protocol::Viewport::Leave, Protocol::Viewport::Transformed,
     Protocol::Viewport::EquipmentShown, Protocol::Viewport::Position>;
 } // namespace Client::App

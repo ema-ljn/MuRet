@@ -70,8 +70,6 @@ const char* WaveOf(PanelId id)
         return "el administrador viejo (hito 7) y la CL9.4";
     case GuildPanel:
     case TradePanel:
-    case PersonalShopPanel:
-    case OtherShopPanel:
     case SecondGuildPanel:
         return "la CL9.4";
     case WarehousePanel:
@@ -273,19 +271,40 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
         }
         break;
     }
+    case PersonalShopPanel:
+    case OtherShopPanel:
+    {
+        // 0x65ac3f..0x65b227 (0x800, que deja el inventario abierto) y 0x65b319..0x65ba41 (0x20000, que lo cierra con
+        // lo demás): con lo que cerró, el inventario (0x6599a0(0x4000000, 0)), lo de la tienda y 0x7d5370f en 1.
+        if (id == PersonalShopPanel)
+            mask ^= InventoryPanel;
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            auto inventory = Open(InventoryPanel);
+            if (!inventory.HasValue())
+                return inventory;
+            if (!m_context.personalShopOpened)
+                return Core::Unexpected(std::format("{:#x}: abrir la tienda personal sin sus mapas", id));
+            if (auto opened = m_context.personalShopOpened(id); !opened.HasValue())
+                return Core::Unexpected(std::move(opened).Error());
+            m_state.personalShop = 1;
+        }
+        break;
+    }
     case FriendsPanel:
     case QuestPanel:
     case GuildPanel:
     case WarehousePanel:
     case ChaosBoxPanel:
     case PetPanel:
-    case PersonalShopPanel:
     case EventNpcPanel:
     case Panel2000:
     case SecondEventNpcPanel:
     case TrainerPanel:
     case NpcShopPanel:
-    case OtherShopPanel:
     case SecondGuildPanel:
     case CastleSiegePanel:
     case CastleSiegeListPanel:
@@ -430,6 +449,17 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
         case CommandsPanel:
             ResetTheCommands(m_state.delegated);
             break;
+        case PersonalShopPanel:
+        case OtherShopPanel:
+        {
+            // 0x6589b6..0x6589f4: 0x5eb020 y 0x7d5370f en 0. Las dos comparten el byte: la segunda ya no está abierta.
+            if (!m_context.personalShopClosed)
+                return Core::Unexpected(std::string("0x6589cb: cerrar la tienda personal sin 0x5eb020"));
+            if (auto closed = m_context.personalShopClosed(); !closed.HasValue())
+                return Core::Unexpected(std::move(closed).Error());
+            m_state.personalShop = 0;
+            break;
+        }
         case InventoryPanel:
             // 0x659250..0x65926a.
             m_state.inventory = 0;

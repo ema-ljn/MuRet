@@ -171,12 +171,17 @@ struct HudState
 };
 
 // 0x78ab9b8, la grilla del ítem del cursor: un puntero en la .bss (0 al arrancar). Lo escriben levantar de una grilla
-// (0x5c52e2, con la que sea) y del equipo y MoveHero (0x5c2d37 y 0x59bf32, con 0x78a9bb0). MuRet solo levanta del
-// inventario: las otras grillas (0x78a92a8, 0x78a7070, 0x7d2d380, 0x78ab0b8 y 0x723c80) cortan antes.
+// (0x5c52e2, con la que sea) y del equipo y MoveHero (0x5c2d37 y 0x59bf32, con 0x78a9bb0). MuRet levanta del
+// inventario y, desde la fase 4 del hito 7, de las grillas del comercio (0x5c4110); las demás (0x78a7070, 0x7d2d380 y
+// 0x723c80) cortan antes. 0x5be150 vuelve el ítem a la propia del comercio y a la de la tienda (0x5be191 y 0x5be3eb);
+// la del otro (0x78a5a20) no tiene rama y sigue como la del inventario.
 enum class CursorGrid : std::uint8_t
 {
-    None,      // 0
-    Inventory, // 0x78a9bb0
+    None,         // 0
+    Inventory,    // 0x78a9bb0
+    OwnTrade,     // 0x78a92a8
+    OtherTrade,   // 0x78a5a20
+    PersonalShop, // 0x78ab0b8
 };
 
 // Los globales de los ítems del piso (CL9 hito 5; 06 § Los ítems del piso).

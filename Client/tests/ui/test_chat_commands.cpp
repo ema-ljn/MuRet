@@ -158,6 +158,50 @@ TEST_F(Commands, TradeNeedsTheLevel)
     EXPECT_EQ(reads, 3);
 }
 
+// 0x5766ce..0x576890: /personalshop. Con el entrenador abierto, el aviso 1121 y sale como chat; por debajo del 6, el
+// 1123 armado con el 6 y 1; desde el 6, Open(0x800) y 1. Cada vez que llega al nivel lo lee una vez.
+TEST_F(Commands, PersonalShopNeedsTheLevel)
+{
+    std::uint16_t level = 5;
+    int reads = 0;
+    int opened = 0;
+    ChatCommandContext context = Context();
+    context.ownLevel = [&level, &reads]()
+    {
+        ++reads;
+        return level;
+    };
+    context.trainerOpen = true;
+    const auto trainer = Client::UI::RunTheChatCommand(context, "/personalshop", false);
+    ASSERT_TRUE(trainer.HasValue()) << trainer.Error();
+    EXPECT_FALSE(trainer.Value().handled);
+    EXPECT_EQ(trainer.Value().notices,
+              (std::vector<ChatCommandNotice>{{Client::UI::ShopTrainerText, Client::UI::SystemMessage}}));
+    EXPECT_EQ(reads, 0);
+    context.trainerOpen = false;
+    const auto low = Client::UI::RunTheChatCommand(context, "/puesto", false);
+    ASSERT_TRUE(low.HasValue()) << low.Error();
+    EXPECT_TRUE(low.Value().handled);
+    EXPECT_EQ(low.Value().notices, (std::vector<ChatCommandNotice>{{.text = Client::UI::ShopLevelText,
+                                                                    .type = Client::UI::SystemMessage,
+                                                                    .formatted = "desde el nivel 6"}}));
+    level = 6;
+    const auto unwired = Client::UI::RunTheChatCommand(context, "/PersonalShop", false);
+    ASSERT_FALSE(unwired.HasValue());
+    EXPECT_NE(unwired.Error().find("0x576822"), std::string::npos);
+    context.openThePersonalShop = [&opened]() -> Client::Core::Expected<void, std::string>
+    {
+        ++opened;
+        return {};
+    };
+    const auto enough = Client::UI::RunTheChatCommand(context, "/puesto", false);
+    ASSERT_TRUE(enough.HasValue()) << enough.Error();
+    EXPECT_TRUE(enough.Value().handled);
+    EXPECT_TRUE(enough.Value().notices.empty());
+    EXPECT_EQ(opened, 1);
+    EXPECT_EQ(reads, 3);
+}
+
 // 0x56f109..0x56f13f: /party (o /pt) en Chaos Castle avisa 1150 y sale como chat; fuera, el pedido da la salida.
 TEST_F(Commands, PartyAsksOutsideChaosCastle)
 {

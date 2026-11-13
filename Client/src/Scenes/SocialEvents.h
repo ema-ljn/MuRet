@@ -7,10 +7,12 @@
 #include "Protocol/PersonalShop.h"
 #include "Protocol/Trade.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <optional>
 #include <string>
+#include <string_view>
 
 // Lo que hacen el comercio, la party y el duelo que llegan (CL9 hito 7; 04 § El comercio, § La party y § El duelo):
 // los casos del dispatcher 0x4e2b10 y sus funciones, sobre los globales de SocialState. Lo que corta lo dice con la
@@ -143,5 +145,11 @@ void ApplyShopClosed(const Protocol::PersonalShop::ShopClosed& closed, WorldStat
 void ApplyOtherShopTitle(const Protocol::PersonalShop::ShopTitle& title, WorldState& world);
 
 // 0x4e4fcc (3F 12): con 0x6c931c en 2, Close(0x800, 0), Close(0x20000, 0) y el texto 1126 con el tipo 2.
-[[nodiscard]] Core::Expected<void, std::string> ApplyShopOwnerLeft(const WorldEntryResources& resources);
+[[nodiscard]] Core::Expected<void, std::string> ApplyShopOwnerLeft(const WorldEntryResources& resources,
+                                                                   const GamePacketSender& send);
+
+// 0x555190("", el texto `text` de Text.bmd, `type`): los avisos de los paquetes sociales, con el buffer vacío de la
+// .bss como nombre (08 P-C72).
+[[nodiscard]] Core::Expected<void, std::string> AddSocialNotice(const WorldEntryResources& resources, std::size_t text,
+                                                                std::int32_t type, std::string_view where);
 } // namespace Client::Scenes

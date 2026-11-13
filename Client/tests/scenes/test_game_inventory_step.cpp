@@ -158,8 +158,8 @@ TEST_F(InventoryStepTest, TheRepairButtonWorksFromLevelFifty)
 }
 
 // Lo que es de otras olas, o lo que pide Item.bmd sin tenerlo, corta con su dirección: un ítem de la grilla bajo el
-// mouse (0x5c420a) y el ítem del cursor sobre un lugar del equipo (0x5bed9e) sin Item.bmd, la tienda personal que abre
-// la S (Open de 0x800, CL9.4) y el comercio abierto.
+// mouse (0x5c420a) y el ítem del cursor sobre un lugar del equipo (0x5bed9e) sin Item.bmd, la grilla de la tienda
+// personal que abre la S (0x5e58ea) y el comercio abierto.
 TEST_F(InventoryStepTest, WhatIsStillCutStopsWithItsAddress)
 {
     world.Inventory().cells[0].id = 0x1c00;
@@ -174,7 +174,12 @@ TEST_F(InventoryStepTest, WhatIsStillCutStopsWithItsAddress)
 
     world.OwnCharacter().level = 6;
     input.Apply(InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::S});
-    ExpectCut(Step(100, 300), "0x6599a0(0x800)");
+    // La S abre la tienda propia (hito 7, fase 4) y el mismo paso corta en su grilla (0x5e58ea).
+    ExpectCut(Step(100, 300), "0x5e58ea");
+    EXPECT_EQ(world.Runtime().panels.personalShop, 1);
+    EXPECT_EQ(world.Runtime().social.personalShop.mode, Client::Scenes::OwnShopView);
+    world.Runtime().panels.personalShop = 0;
+    world.Runtime().social.personalShop.mode = Client::Scenes::NoShopView;
 
     // El comercio abierto (CL9 hito 7): el mouse sobre su ventana (desde 0x78a5a1c y 0x78a5a18, en 0 antes del
     // dibujo) es de la UI; un ítem de sus grillas bajo el mouse corta (0x5c41f4). Las grillas, vacías como las deja la

@@ -345,8 +345,7 @@ void ServerSession::RegisterSocialHandlers()
                         { ApplyWorldPacket(packet, Duel::ReadDuelRequest, "el pedido de duelo (AC)"); }) &&
         m_gameServer.On(Duel::ScoreOpcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Duel::ReadDuelScore, "los puntos del duelo (AD)"); }) &&
-        // Las tiendas personales (hito 7, fase 3): los carteles y los avisos del 3F. El 1, el 5, el 6 y el 0x13 (las
-        // listas de ítems) siguen sin handler (08 P-C204 a).
+        // Las tiendas personales (hito 7, fases 3 y 4): los carteles, los avisos y las listas de ítems del 3F.
         m_gameServer.On(Shop::Opcode, Shop::TitlesSubcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Shop::ReadShopTitles, "los carteles de las tiendas (3F 00)"); }) &&
         m_gameServer.On(Shop::Opcode, Shop::CreatedSubcode, [this](const Packet& packet)
@@ -360,7 +359,17 @@ void ServerSession::RegisterSocialHandlers()
         m_gameServer.On(Shop::Opcode, Shop::OwnerLeftSubcode,
                         [this](const Packet& packet) {
                             ApplyWorldPacket(packet, Shop::ReadShopOwnerLeft, "la tienda ajena que se cierra (3F 12)");
-                        });
+                        }) &&
+        m_gameServer.On(Shop::Opcode, Shop::PriceResultSubcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Shop::ReadPriceResult, "el precio que no se puso (3F 01)"); }) &&
+        m_gameServer.On(Shop::Opcode, Shop::ItemListSubcode,
+                        [this](const Packet& packet) {
+                            ApplyWorldPacket(packet, Shop::ReadShopItemList, "la lista de la tienda de otro (3F 05)");
+                        }) &&
+        m_gameServer.On(Shop::Opcode, Shop::PurchaseSubcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Shop::ReadShopPurchase, "la compra en una tienda (3F 06)"); }) &&
+        m_gameServer.On(Shop::Opcode, Shop::RefreshSubcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Shop::ReadShopRefresh, "la lista que se renueva (3F 13)"); });
     assert(registered && "los handlers del comercio, la party, el duelo y las tiendas se registran una vez");
 }
 

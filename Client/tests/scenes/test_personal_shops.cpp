@@ -177,6 +177,60 @@ TEST_P(PersonalShopsTest, TheTitlesListReadsItsEntries)
     EXPECT_FALSE(Shop::ReadShopTitles(PacketOf(bytes)).HasValue());
 }
 
+// Las listas (fase 4): 0x4db890 lee el resultado en pkt[5], la clave en pkt[6..7] (BE), el título en pkt[0x12..0x35],
+// la cuenta en pkt[0x36] y las entradas de 0xc bytes desde pkt[0x37] (el lugar, el ítem y el precio LE con signo); el
+// 0x13 (0x4dbb40) lo mismo sin la clave ni el título. 0x4db120 lee pkt[4] y pkt[5]; 0x4dbcb0, pkt[4] y con 1 el ítem de
+// pkt[7..0xd] y el lugar de pkt[0xe]. Sin el resultado 1, las listas solo leen pkt[5].
+TEST_P(PersonalShopsTest, TheItemListsReadTheirEntries)
+{
+    std::vector<std::byte> bytes = Bytes({0xc2, 0x00, 0x00, 0x3f, 0x05, 0x01, 0x02, 0x34});
+    Append(bytes, "", 0x12 - 8);
+    Append(bytes, "Cosas baratas", Shop::TitleSize);
+    bytes.push_back(std::byte{2});
+    for (const auto& [slot, price] : {std::pair<int, std::uint32_t>{0x55, 1500}, {0x4f, 0xfffffffe}})
+    {
+        bytes.push_back(static_cast<std::byte>(slot));
+        Append(bytes, "\x03\x08\x14", 7);
+        for (int shift = 0; shift < 32; shift += 8)
+            bytes.push_back(static_cast<std::byte>((price >> shift) & 0xff));
+    }
+    const auto list = Shop::ReadShopItemList(PacketOf(bytes));
+    ASSERT_TRUE(list.HasValue());
+    EXPECT_EQ(list.Value().result, 1);
+    EXPECT_EQ(list.Value().key, SellerKey);
+    EXPECT_EQ(list.Value().title[0], std::byte{'C'});
+    ASSERT_EQ(list.Value().entries.size(), 2u);
+    EXPECT_EQ(list.Value().entries[0].slot, 0x55);
+    EXPECT_EQ(list.Value().entries[0].item[1], std::byte{0x08});
+    EXPECT_EQ(list.Value().entries[0].price, 1500);
+    EXPECT_EQ(list.Value().entries[1].slot, 0x4f);
+    EXPECT_EQ(list.Value().entries[1].price, -2);
+    bytes[4] = std::byte{0x13};
+    const auto refresh = Shop::ReadShopRefresh(PacketOf(bytes));
+    ASSERT_TRUE(refresh.HasValue());
+    EXPECT_EQ(refresh.Value().entries.size(), 2u);
+    bytes.resize(bytes.size() - 1);
+    EXPECT_FALSE(Shop::ReadShopItemList(PacketOf(bytes)).HasValue());
+    const auto refused = Shop::ReadShopItemList(PacketOf(Bytes({0xc2, 0x00, 0x00, 0x3f, 0x05, 0x03})));
+    ASSERT_TRUE(refused.HasValue());
+    EXPECT_EQ(refused.Value().result, 3);
+
+    const auto price = Shop::ReadPriceResult(PacketOf(Bytes({0xc1, 0x00, 0x3f, 0x01, 0x00, 0x4d})));
+    ASSERT_TRUE(price.HasValue());
+    EXPECT_EQ(price.Value().result, 0);
+    EXPECT_EQ(price.Value().slot, 0x4d);
+    const auto bought = Shop::ReadShopPurchase(
+        PacketOf(Bytes({0xc1, 0x00, 0x3f, 0x06, 0x01, 0x02, 0x34, 0x03, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x11})));
+    ASSERT_TRUE(bought.HasValue());
+    EXPECT_EQ(bought.Value().result, 1);
+    EXPECT_EQ(bought.Value().item[0], std::byte{0x03});
+    EXPECT_EQ(bought.Value().item[2], std::byte{0x14});
+    EXPECT_EQ(bought.Value().slot, 0x11);
+    const auto failed = Shop::ReadShopPurchase(PacketOf(Bytes({0xc1, 0x00, 0x3f, 0x06, 0x07})));
+    ASSERT_TRUE(failed.HasValue());
+    EXPECT_EQ(failed.Value().result, 7);
+}
+
 // 0x4dae80 y 0x4511f0: un cartel por jugador de la clave (el monstruo, +0x88 en 2, solo va al log; una clave sin nadie,
 // nada), con el nombre de +0x1d9; el DC queda en la negrita (0x452540). 0x451810 lo ve; 0x451770 también, a la vista.
 TEST_P(PersonalShopsTest, TheTitlesGoToThePlayersOfTheirKeys)
@@ -320,10 +374,10 @@ TEST_P(PersonalShopsTest, TheNoticesGoToTheMessages)
     EXPECT_EQ(entries.front().type, Client::UI::SystemMessage);
 
     const std::size_t before = entries.size();
-    ASSERT_TRUE(Client::Scenes::ApplyShopOwnerLeft(Resources()).HasValue());
+    ASSERT_TRUE(Client::Scenes::ApplyShopOwnerLeft(Resources(), {}).HasValue());
     EXPECT_EQ(entries.size(), before);
     Shops().mode = 2;
-    ASSERT_TRUE(Client::Scenes::ApplyShopOwnerLeft(Resources()).HasValue());
+    ASSERT_TRUE(Client::Scenes::ApplyShopOwnerLeft(Resources(), {}).HasValue());
     EXPECT_EQ(entries.front().text, "la tienda se cerro");
     EXPECT_EQ(entries.front().type, Client::UI::ErrorMessage);
 }

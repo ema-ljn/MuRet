@@ -899,7 +899,7 @@ TEST_F(InventoryReplyTest, TheItemMoveResultPlacesTheItemOrPutsItBack)
     EXPECT_EQ(refused.Cell(1).occupied, 1u);
 }
 
-// 0x4c5ec0 (28): 0x5bd750 con el lugar y, con pkt[4], el fin de la espera; desde el 0x4c, la tienda personal corta.
+// 0x4c5ec0 (28): 0x5bd750 con el lugar y, con pkt[4], el fin de la espera; desde el 0x4c, la grilla de la tienda.
 // 0x4d3cc0 (2A): la durabilidad del lugar del equipo, con su acceso al registro, o de toda la huella de la grilla.
 TEST_F(InventoryReplyTest, TheDeleteAndTheDurabilityTouchTheirPlace)
 {
@@ -935,10 +935,12 @@ TEST_F(InventoryReplyTest, TheDeleteAndTheDurabilityTouchTheirPlace)
     EXPECT_EQ(tested.Cell(6).id, EmptyOwnItemId);
     EXPECT_EQ(runtime.ui.field5767954, 0);
 
+    // Desde el 0x4c, sin mirar la tienda de otro (0x6c931c en −1): la grilla de la tienda (0x78ab0b8).
+    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(0x4c + 1, ItemBytes(Apple), tested.Resources()).HasValue());
     const auto shop = Client::Scenes::ApplyItemDelete(
-        Client::Protocol::Inventory::ItemDelete{.slot = 0x4c, .endsTheWait = 0}, tested.Resources());
-    ASSERT_FALSE(shop.HasValue());
-    EXPECT_TRUE(shop.Error().starts_with("0x4c5ece:")) << shop.Error();
+        Client::Protocol::Inventory::ItemDelete{.slot = 0x4c + 1, .endsTheWait = 0}, tested.Resources());
+    ASSERT_TRUE(shop.HasValue()) << shop.Error();
+    EXPECT_EQ(tested.world.Inventory().secondCells[1].id, EmptyOwnItemId);
 }
 
 // 0x4d3510 (26): cada uno con el registro propio abierto, 3.848 rand() al cerrarlo; 0xfe la vida máxima, 0xff la vida,

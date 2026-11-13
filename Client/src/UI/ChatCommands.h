@@ -48,6 +48,12 @@ inline constexpr std::size_t ChaosCastleCommandText = 1150;
 inline constexpr std::size_t TradeLevelText = 478;
 // 0x56e9f3: ya hay un duelo (0x7700220).
 inline constexpr std::size_t DuelBusyText = 915;
+// 0x576718: /personalshop con el entrenador abierto (0x770f388), con el tipo 1.
+inline constexpr std::size_t ShopTrainerText = 1121;
+// 0x576860: /personalshop sin el nivel (0x770f5e0), un formato con el nivel, con el tipo 1.
+inline constexpr std::size_t ShopLevelText = 1123;
+// 0x576810: el nivel para abrir la tienda propia.
+inline constexpr std::uint16_t ShopLevel = 6;
 
 // Un aviso de 0x555190 con el nombre vacío: el texto `text` de Text.bmd y su tipo.
 // 0x6c8dc8: su valor de la .data.
@@ -114,6 +120,11 @@ struct ChatCommandContext
     // 0x56d823..0x56e9ec (/duelstart sin duelo): el AA al elegido o al de enfrente, y la cadena sigue
     // (Scenes::RequestADuel). Sin él, ese caso corta.
     std::function<Core::Expected<void, std::string>()> requestADuel{};
+    // IsOpen(0x8000), el entrenador (sin rand()): /personalshop no abre la tienda.
+    bool trainerOpen = false;
+    // 0x576815..0x576822 (/personalshop con el nivel): 0x6599a0(0x800, 0), con lo que abrir la tienda hace
+    // (Scenes::OpenThePersonalShop). Sin él, ese caso corta.
+    std::function<Core::Expected<void, std::string>()> openThePersonalShop{};
 };
 
 // 0x56c440(texto, desde una macro).

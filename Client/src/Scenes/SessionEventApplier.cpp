@@ -30,6 +30,7 @@
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/InventoryReply.h"
 #include "Scenes/MovementReplies.h"
+#include "Scenes/PersonalShopLists.h"
 #include "Scenes/ReturnToSelection.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
@@ -258,8 +259,19 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySocia
         ApplyOtherShopTitle(*title, world);
         return Core::Expected<void, std::string>{};
     }
+    // Las listas de ítems (fase 4): abrir y cerrar las tiendas manda por la sesión (el F3 10 y el 3F 07).
+    const GamePacketSender send = [&session](Protocol::Outgoing outgoing)
+    { session.SendGamePacket(std::move(outgoing)); };
     if (std::holds_alternative<Protocol::PersonalShop::ShopOwnerLeft>(event))
-        return ApplyShopOwnerLeft(m_resources);
+        return ApplyShopOwnerLeft(m_resources, send);
+    if (const auto* price = std::get_if<Protocol::PersonalShop::PriceResult>(&event))
+        return ApplyPriceResult(*price, m_resources, send);
+    if (const auto* list = std::get_if<Protocol::PersonalShop::ShopItemList>(&event))
+        return ApplyShopItemList(*list, m_resources, send);
+    if (const auto* purchase = std::get_if<Protocol::PersonalShop::ShopPurchase>(&event))
+        return ApplyShopPurchase(*purchase, m_resources, send);
+    if (const auto* refresh = std::get_if<Protocol::PersonalShop::ShopRefresh>(&event))
+        return ApplyShopRefresh(*refresh, m_resources);
     return std::nullopt;
 }
 

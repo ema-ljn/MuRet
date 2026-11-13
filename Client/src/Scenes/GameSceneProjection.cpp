@@ -39,6 +39,7 @@ void GameScene::PrepareDrawProjection(int frames)
     m_projection->hud = world.Runtime().hud;
     m_projection->crywolfSandOverlay = world.Runtime().crywolf.sandOverlay;
     m_projection->sound.reset();
+    m_projection->oldWindows = world.Runtime().oldWindows;
 }
 GameDrawTailState& GameScene::FrameTail()
 {

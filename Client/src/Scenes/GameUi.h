@@ -2,6 +2,7 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "UI/OldWindows.h"
 
 #include <array>
 #include <cstdint>
@@ -32,6 +33,7 @@ namespace Client::Scenes
 class WorldState;
 struct GameChatContext;
 struct GameMovementState;
+struct WorldRuntime;
 
 struct GameUiContext
 {
@@ -58,6 +60,17 @@ struct GameUiContext
 // abajo), antes de cualquier lógica del paso. GameScene lo llama al empezar cada paso; MoveHero también, para sus
 // pruebas.
 void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down);
+
+// El WndProc y el soltado del izquierdo: WM_LBUTTONUP prende 0x7d366ec con el mouse de ese momento (0x4b3cea, en
+// 0x576358c y 0x5763590), WM_LBUTTONDOWN lo apaga (0x4b3947) y cualquier mensaje con el mouse en otro lugar también
+// (0x4b344d). MuRet ve los mensajes del paso juntos, con el mouse del paso (*inferido*, P-C96). Va antes de
+// LatchTheLeftButton, con el mouse en 640 × 480.
+void LatchTheLeftRelease(GameMovementState& state, bool pressed, bool released, bool down, std::int32_t mouseX,
+                         std::int32_t mouseY);
+
+// Los globales de las ventanas viejas sobre los del juego: los del mouse, los de la UI, el foco del teclado (el de la
+// entrada del chat) y el último sonido.
+[[nodiscard]] UI::OldWindowGlobals OldWindowGlobalsOf(WorldRuntime& runtime);
 
 // 0x637c4a..0x637c5c → 0x623e70: Esc y el diálogo abierto, en cada paso de la escena 5 antes de su lógica.
 [[nodiscard]] Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context);

@@ -207,6 +207,8 @@ constexpr std::size_t WingSlot = 7;
 
 // 0x449c00: la caja del entrenador.
 constexpr std::int32_t TrainerWithBox = 3;
+// 0x44acd0: lo único que va a la caja del entrenador, la joya del caos, las de la mezcla y 0x1a1f.
+constexpr std::array<std::uint16_t, 6> TrainerBoxItems{0x180f, 0x1c0d, 0x1c0e, 0x1c10, 0x1c16, 0x1a1f};
 
 bool InChaosCastle(std::int32_t map)
 {
@@ -475,8 +477,20 @@ bool IsLevelThreeWizardsRing(const ItemState& item)
     return item.id == WizardsRing && (item.scalar1Low & LevelBitsMask) == LevelThreeBits;
 }
 
-// 0x5be268..0x5be31f (y 0x5be32f.. con la caja del caos): la copia del cursor en su huella de la grilla de 8
-// columnas, desde [0x78a6758] % 8 y / 8 con signo, con +0x3c en 1 solo en la casilla de su columna y su fila.
+// Las casillas de una grilla de 8 columnas que no es la del inventario: la de la tienda y del almacén (0x78a7070), la
+// caja del caos (0x7d2d380) o la del entrenador (0x723c80).
+std::span<ItemState> OtherGridCells(NpcWindowState& npc, CursorGrid grid)
+{
+    if (grid == CursorGrid::ChaosBox)
+        return npc.chaosBox;
+    if (grid == CursorGrid::TrainerBox)
+        return npc.trainerBox;
+    return npc.grid;
+}
+
+// 0x5be268..0x5be31f (y 0x5be32f.. con la caja del caos, 0x449c80 con la del entrenador): la copia del cursor en su
+// huella de la grilla de 8 columnas, desde [0x78a6758] % 8 y / 8 con signo, con +0x3c en 1 solo en la casilla de su
+// columna y su fila.
 Core::Expected<void, std::string> ReturnToOtherGrid(const WorldRuntime& runtime, std::span<ItemState> cells,
                                                     ItemFootprint footprint)
 {
@@ -862,16 +876,14 @@ Core::Expected<void, std::string> ReturnTheCursorItem(const InventoryMoveContext
         return {};
     // 0x5be166..0x5be18e: el ancho y el alto del tipo. Con la grilla de la tienda y del almacén o la caja del caos
     // (0x5be25d.. y 0x5be324..), la copia vuelve a su huella desde [0x78a6758] (columna y fila con signo, de a 8);
-    // con la del inventario o ninguna sigue en 0x5be4b4, donde 0x449c80 da 0 fuera de la caja del entrenador.
+    // con otra sigue en 0x5be4b4, donde 0x449c80 hace lo mismo con la caja del entrenador y da 0 con las demás.
     const auto footprint = ItemFootprintOf(context.services.items, runtime.cursorItem.id, "0x5be150 (0x5be183)");
     if (!footprint.HasValue())
         return Core::Unexpected(footprint.Error());
-    if (runtime.cursorGrid == CursorGrid::NpcGrid || runtime.cursorGrid == CursorGrid::ChaosBox)
+    if (runtime.cursorGrid == CursorGrid::NpcGrid || runtime.cursorGrid == CursorGrid::ChaosBox ||
+        runtime.cursorGrid == CursorGrid::TrainerBox)
     {
-        NpcWindowState& npc = runtime.npcWindows;
-        const std::span<ItemState> cells = runtime.cursorGrid == CursorGrid::NpcGrid
-                                               ? std::span<ItemState>(npc.grid)
-                                               : std::span<ItemState>(npc.chaosBox);
+        const std::span<ItemState> cells = OtherGridCells(runtime.npcWindows, runtime.cursorGrid);
         if (auto returned = ReturnToOtherGrid(runtime, cells, footprint.Value()); !returned.HasValue())
             return returned;
     }
@@ -950,9 +962,7 @@ Core::Expected<void, std::string> PickUpFromOtherGrid(const InventoryMoveContext
                                                       std::size_t cell)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    NpcWindowState& npc = runtime.npcWindows;
-    const std::span<ItemState> cells =
-        grid == CursorGrid::NpcGrid ? std::span<ItemState>(npc.grid) : std::span<ItemState>(npc.chaosBox);
+    const std::span<ItemState> cells = OtherGridCells(runtime.npcWindows, grid);
     runtime.movement.pendingClick = false;
     const ItemState& hovered = cells[cell];
     const std::int32_t topLeft = hovered.gridRow * Columns + hovered.gridColumn;
@@ -1125,8 +1135,7 @@ Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveCont
     const GridCell cell = CellUnderTheMouse(drop.mouseX, drop.mouseY, drop.left, drop.top, footprint.Value());
     if (cell.column < 0 || cell.row < 0)
         return false;
-    if (runtime.panels.delegated.trainer == TrainerWithBox)
-        return Core::Unexpected(std::string("0x5ca357: 0x44acd0, la caja del entrenador, es de la CL9.3"));
+    // 0x5ca339..0x5ca364: con 0x724580 en 3, 0x44acd0 deja pasar cualquier grilla que no sea la del entrenador.
     std::span<ItemState> cells(world.Inventory().cells);
     const bool fits = ItemFitsInTheGrid(cursor, cells, Columns, Rows, cell, footprint.Value());
     // 0x5ca385..0x5ca453: las marcas de la huella dentro de la grilla.
@@ -1198,6 +1207,16 @@ Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveCont
             return Core::Unexpected(sent.Error());
         return true;
     }
+    if (runtime.cursorGrid == CursorGrid::TrainerBox)
+    {
+        // 0x5ce4fe..0x5ce516: 0x449d50, el 24 de la caja del entrenador al inventario (0x449d80(5, lugar, 0, destino)).
+        if (auto sent = SendTheCursorItemBetween(context, TrainerBoxMoveGrid,
+                                                 static_cast<std::uint8_t>(runtime.slot78a6758 & 0xff),
+                                                 InventoryMoveGrid, static_cast<std::uint8_t>(target & 0xff));
+            !sent.HasValue())
+            return Core::Unexpected(sent.Error());
+        return true;
+    }
     if (runtime.cursorGrid != CursorGrid::Inventory)
         return Core::Unexpected(std::string("0x5cc2cf: el ítem de la tienda personal o del comercio al inventario es "
                                             "de la CL9.4"));
@@ -1236,9 +1255,11 @@ Core::Expected<bool, std::string> DropOnOtherGrid(const InventoryMoveContext& co
     WorldRuntime& runtime = world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
     const bool chaosBox = drop.grid == CursorGrid::ChaosBox;
-    const std::span<ItemState> cells = chaosBox ? std::span<ItemState>(npc.chaosBox) : std::span<ItemState>(npc.grid);
-    const std::int32_t rows = chaosBox ? ChaosBoxRows : static_cast<std::int32_t>(NpcGridCellCount) / NpcGridColumns;
-    const std::uint8_t kind = chaosBox ? ChaosBoxMoveGrid : WarehouseMoveGrid;
+    const bool trainerBox = drop.grid == CursorGrid::TrainerBox;
+    const std::span<ItemState> cells = OtherGridCells(npc, drop.grid);
+    const std::int32_t rows =
+        chaosBox || trainerBox ? ChaosBoxRows : static_cast<std::int32_t>(NpcGridCellCount) / NpcGridColumns;
+    const std::uint8_t kind = chaosBox ? ChaosBoxMoveGrid : (trainerBox ? TrainerBoxMoveGrid : WarehouseMoveGrid);
     const ItemState& cursor = runtime.cursorItem;
     const auto footprint = ItemFootprintOf(context.services.items, cursor.id, "0x5ca250 (0x5ca295)");
     if (!footprint.HasValue())
@@ -1246,16 +1267,17 @@ Core::Expected<bool, std::string> DropOnOtherGrid(const InventoryMoveContext& co
     const GridCell cell = CellUnderTheMouse(drop.mouseX, drop.mouseY, drop.left, drop.top, footprint.Value());
     if (cell.column < 0 || cell.row < 0)
         return false;
-    // 0x5ca314..0x5ca364.
+    // 0x5ca314..0x5ca364: con 0x724580 en 3, 0x44acd0 con otra grilla que la caja del caos; si no deja, sin 0x5c9b40.
+    bool allowed = true;
     if (chaosBox)
     {
         if (npc.chaosMixState != 0 && runtime.panels.delegated.castleSiegeList == 0)
             return Core::Unexpected(std::string("0x5ca337: con la mezcla fuera de 0, 0x5ca250 no llama a 0x5c9b40 y "
                                                 "lee [ebp − 0x2d] sin escribir (Q-C921)"));
     }
-    else if (runtime.panels.delegated.trainer == TrainerWithBox)
-        return Core::Unexpected(std::string("0x5ca357: 0x44acd0, la caja del entrenador, es de la CL9.3"));
-    const bool fits = ItemFitsInTheGrid(cursor, cells, NpcGridColumns, rows, cell, footprint.Value());
+    else if (runtime.panels.delegated.trainer == TrainerWithBox && trainerBox)
+        allowed = std::ranges::find(TrainerBoxItems, cursor.id) != TrainerBoxItems.end();
+    const bool fits = allowed && ItemFitsInTheGrid(cursor, cells, NpcGridColumns, rows, cell, footprint.Value());
     // 0x5ca385..0x5ca453: las marcas de la huella dentro de la grilla.
     const bool jewel = cursor.id == JewelOfBless || cursor.id == JewelOfSoul || cursor.id == JewelOfLife ||
                        cursor.id == JewelOfCreation;

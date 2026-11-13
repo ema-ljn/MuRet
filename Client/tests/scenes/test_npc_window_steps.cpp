@@ -601,6 +601,54 @@ TEST_F(NpcWindowStepsTest, TakingAnItemFromTheWarehouseSendsTheMoveOrWaitsForThe
     }
 }
 
+// La caja del entrenador con 0x724580 en 3 y el inventario abierto: el mouse sobre la joya (0x44ad10, 0x5c4110 en
+// (0x113, 0x6e)) la anota como el ítem bajo el mouse con la ayuda en el lugar 4 (0x5aed40 con 0x449c30); el clic la
+// levanta (el lugar 17, sin el 12) y soltarla en la columna 4 y la fila 3 del inventario manda 0x449d80(5, 17, 0, 40).
+// Los rand() de cada movimiento están en test_cursor_item.cpp. En Lorencia y Devias.
+TEST_F(NpcWindowStepsTest, TheTrainerBoxGridLiftsAndSendsToTheInventory)
+{
+    constexpr std::int32_t TrainerLeft = 0x113;
+    constexpr std::int32_t TrainerTop = 0x6e;
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        SetUp();
+        sent.clear();
+        auto& runtime = world.Runtime();
+        runtime.map = map;
+        runtime.ui.field78abb39 = 0;
+        runtime.cursorItemCount = 0;
+        runtime.panels.delegated.trainer = 3;
+        Npc().trainerBox = Client::Scenes::EmptyTrainerBox();
+        Place(Npc().trainerBox, ItemState{.id = Jewel, .durability = 7}, 1, 2, 1, 1);
+        const std::int32_t x = TrainerLeft + 20 + 5;
+        const std::int32_t y = TrainerTop + 2 * 20 + 5;
+        const auto hovered = Step(x, y);
+        ASSERT_TRUE(hovered.HasValue()) << hovered.Error();
+        EXPECT_EQ(runtime.ui.hoveredItem.place, Client::UI::HoveredItem::Place::TrainerBoxCell);
+        EXPECT_EQ(runtime.ui.hoveredItem.index, 17u);
+        EXPECT_EQ(runtime.ui.field78abb28, 4);
+        EXPECT_EQ(runtime.ui.field78abb2c, 17);
+
+        Click();
+        const auto picked = Step(x, y);
+        ASSERT_TRUE(picked.HasValue()) << picked.Error();
+        ASSERT_EQ(runtime.cursorItemCount, 1);
+        EXPECT_EQ(runtime.cursorGrid, Client::Scenes::CursorGrid::TrainerBox);
+        EXPECT_EQ(runtime.slot78a6758, 17);
+        EXPECT_EQ(Npc().trainerBox[17].id, EmptyOwnItemId);
+        EXPECT_EQ(runtime.lastSoundId, 0x1d);
+
+        Click();
+        const auto dropped = Step(InventoryX + 15 + 4 * 20 + 5, 200 + 3 * 20 + 5);
+        ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+        ASSERT_EQ(sent.size(), 1u);
+        EXPECT_TRUE(SameBytes(Plain(0).Bytes(),
+                              Bytes({0xc1, 0x0e, 0x24, 0x05, 17, 0x0d, 0x00, 7, 0x00, 0x00, 0xe0, 0x00, 0x00, 40})));
+        EXPECT_EQ(runtime.ui.field78abb39, 1);
+    }
+}
+
 // 0x5ea060: meter (el botón de x + 0x1a) abre el 0x73 con la entrada numérica; su OK con Enter (0x6270ed) manda
 // C1 08 81 00 y el zen, con el XOR32 y en claro, con el registro propio abierto. Más zen que el del inventario abre
 // el 0x74; más de 100.000.000, el 0x75.

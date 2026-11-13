@@ -283,8 +283,10 @@ Core::Expected<void, std::string> StepTheOldWindows(const GameUiContext& context
 
 // La lista del asedio en el modo 3, que con 0x6689d0 se suma a las ventanas con grilla.
 constexpr std::int32_t SiegeListWithInventory = 3;
-// 0x449c00: la caja del entrenador.
+// 0x449c00: la caja del entrenador, y su grilla fija de 0x44ad10 y 0x44aca0.
 constexpr std::int32_t TrainerWithBox = 3;
+constexpr std::int32_t TrainerBoxLeft = 0x113;
+constexpr std::int32_t TrainerBoxTop = 0x6e;
 constexpr std::uint16_t RepairButtonLevel = 0x32;
 constexpr std::uint16_t PersonalShopLevel = 6;
 // 0x41ed10(0x1d, 0, 0): el sonido de levantar de la grilla (0x5c587a).
@@ -577,13 +579,13 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     if (ui.rightClick)
         return cut("0x5c5895: usar el ítem de la grilla (el C1 .. 26) es de la CL9.3");
     // 0x5c4ab7: 0x5aed40(grilla, casilla): el inventario con el 12, el almacén (con 0x40 abierto, sin rand()) y la caja
-    // del caos sin él.
+    // del caos y la del entrenador (0x449c30) sin él.
     if (grid.place == UI::HoveredItem::Place::InventoryCell)
     {
         ui.field78abb28 = 0;
         ui.field78abb2c = cell + FirstGridSlot;
     }
-    else if (grid.grid == CursorGrid::ChaosBox)
+    else if (grid.grid == CursorGrid::ChaosBox || grid.grid == CursorGrid::TrainerBox)
     {
         ui.field78abb28 = ChaosBoxHelpPlace;
         ui.field78abb2c = cell;
@@ -856,8 +858,18 @@ Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context
         return cut("0x5e582b: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
         return cut("0x5e58ea: la grilla de la tienda personal (0x78ab0b8) es de la CL9.4");
+    // 0x5e58f2: 0x44ad10, con 0x724580 en 3, 0x5c4110(0x113, 0x6e, 0x723c80, 8, 4, 0).
     if (state.delegated.trainer == TrainerWithBox)
-        return cut("0x44ad10: la grilla de la caja del entrenador (0x723c80) es de la CL9.3");
+    {
+        const GridView trainer{.cells = npc.trainerBox,
+                               .columns = NpcGridColumns,
+                               .rows = ChaosBoxRows,
+                               .kind = 0,
+                               .place = UI::HoveredItem::Place::TrainerBoxCell,
+                               .grid = CursorGrid::TrainerBox};
+        if (auto hovered = StepTheGrid(context, panels, trainer, TrainerBoxLeft, TrainerBoxTop); !hovered.HasValue())
+            return hovered;
+    }
     // 0x40e6c0: el mouse sobre el cartel, sin mirar el clic (Q-C472), prende la ventana del set (+0x9304), que dibujan
     // los tooltips (0x40e850), y gasta el flanco del clic.
     const std::int32_t x = runtime.hud.inventoryX;
@@ -915,7 +927,7 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
     }
     // 0x5e512f..0x5e5202: lo mismo en las grillas: el inventario, la de la tienda y del almacén (0x78a70b4..) y la
     // caja del caos (0x7d2d3c4..). Del comercio (que conserva el 99), 0x78a92a8 y la tienda personal MuRet no tiene
-    // nada todavía (CL9.4); 0x449c60 hace lo mismo con la caja del entrenador (0x723c80, CL9.3).
+    // nada todavía (CL9.4); 0x449c60 (0x5e5207) hace lo mismo con la caja del entrenador (0x723c80).
     const auto warn = [](std::span<World::ItemState> cells)
     {
         for (World::ItemState& cell : cells)
@@ -924,6 +936,7 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
     warn(world.Inventory().cells);
     warn(runtime.npcWindows.grid);
     warn(runtime.npcWindows.chaosBox);
+    warn(runtime.npcWindows.trainerBox);
     runtime.ui.field78abaac = 0;
     // 0x5e520c..0x5e5256: arriba de y + 200 (_ftol de y + 200f), el equipo; si no, la grilla.
     if (context.mouseY < y + 200)
@@ -970,8 +983,8 @@ Core::Expected<void, std::string> StepTheInventorySiblings(const GameUiContext& 
 // tipo de la mezcla (0x5d8db6, Scenes::ScanTheChaosBox); la lista del asedio con el inventario corta al principio
 // (sin rand()); con la traba de C3 24, nada. Después, lo
 // que espera el diálogo del ítem del cursor (0x78abb14, Scenes::StepTheCursorChoice) y, con un ítem, soltarlo en la
-// grilla del inventario (0x5ca250), en la del almacén o en la caja del caos y, con el clic fuera de ellas, venderlo
-// en la tienda de NPC o tirarlo al piso. 0x78aba60 en 2 (0x5dc791, CL9.4) nadie lo escribe en MuRet.
+// grilla del inventario (0x5ca250), en la del almacén, en la caja del caos o en la del entrenador y, con el clic fuera
+// de ellas, venderlo en la tienda de NPC o tirarlo al piso. 0x78aba60 en 2 (0x5dc791, CL9.4) nadie lo escribe en MuRet.
 Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context, UI::PanelRegistry& panels)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -1040,9 +1053,18 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
         return cut("0x5debbc: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
         return cut("0x5dec19: soltar el ítem del cursor en la tienda personal (0x78ab0b8) es de la CL9.4");
-    // 0x5dec41: 0x44aca0, la caja del entrenador.
+    // 0x5dec41: 0x44aca0, con 0x724580 en 3, 0x5ca250(0x113, 0x6e, 0x723c80, 8, 4, 5).
     if (state.delegated.trainer == TrainerWithBox)
-        return cut("0x44aca9: soltar el ítem del cursor en la caja del entrenador (0x723c80) es de la CL9.3");
+    {
+        const auto dropped = DropOnOtherGrid(moves, OtherGridDrop{.mouseX = context.mouseX,
+                                                                  .mouseY = context.mouseY,
+                                                                  .left = TrainerBoxLeft,
+                                                                  .top = TrainerBoxTop,
+                                                                  .grid = CursorGrid::TrainerBox});
+        if (!dropped.HasValue())
+            return Core::Unexpected(dropped.Error());
+        inOtherGrid = inOtherGrid || dropped.Value();
+    }
     // 0x5dec46..0x5deca1: el clic, consumido, y nada más si quedó en una grilla.
     if (!runtime.movement.pendingClick)
         return {};

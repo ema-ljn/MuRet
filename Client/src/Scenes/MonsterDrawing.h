@@ -40,8 +40,10 @@ struct GameCharacterPass;
 [[nodiscard]] glm::vec3 HangingLightOf(const ActorState& actor, const glm::vec3& terrainLight, std::int32_t map);
 
 // 0x50ba30 con un monstruo o un NPC (el tipo no es el 0x20a) en el lugar `slot`, en el orden del ASM:
-// - la tela sobre la malla corta (0x50bae7, P-C22 f);
-// - 0x602e90(objeto, 1, contorno, +0x376 de la lista de 0x50bd05 o 0): 0x5ffdf0 baja 0,15f el alpha en Chaos Castle con
+// - con un +0x376 de WearsClothOnTheMesh (0x50bae7), 0x5ffdf0, la tela sobre la malla de pass.cloths[slot]
+//   (MonsterMeshCloth, también si 0x5ffdf0 no dibuja) y 0x6002e0, con el cuarto argumento en 0;
+// - si no, 0x602e90(objeto, 1, contorno, +0x376 de la lista de 0x50bd05 o 0): 0x5ffdf0 baja 0,15f el alpha en Chaos
+// Castle con
 //   +0x1a1 del héroe, por debajo de 0,01 no posa ni dibuja; posa en los huesos propios (+0x120, actor.bodyPose) con los
 //   ángulos de la cabeza, con el contorno (los dos pases de 0x60cd60 con los colores y las escalas de 0x5fffbd..
 //   0x600135) y el cuerpo de 0x6002e0: el color del modelo de 0x5ffce0, los de los mapas 9 y 10, el del 0x16d y los de

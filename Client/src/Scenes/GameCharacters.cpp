@@ -155,14 +155,16 @@ DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, const GameCh
     return character;
 }
 
-// 0x50ba9e..0x50bae0: un 0x20a con un +0x376 de la tabla de 0x510adc va con la tela sobre la malla (0x50bae7); con
-// otro, por 0x6001b0 como un jugador (0x50bbe4), con sus casos por +0x376 más adelante.
+// 0x50ba9e..0x50bae0: un 0x20a con un +0x376 de la tabla de 0x510adc va con la tela sobre la malla (0x50bae7), por
+// 0x5ffdf0 y 0x6002e0 y con [ebp+0xf] en 0: la sombra del jugador (0x50bc33) y después la de los monstruos. Ninguna
+// alta lo crea (los de esa tabla son el 0x190): corta. Con otro, por 0x6001b0 como un jugador (0x50bbe4), con sus
+// casos por +0x376 más adelante.
 Core::Expected<void, std::string> CheckTheEarlyBranches(const ActorState& actor)
 {
     if (WearsClothOnTheMesh(actor.word376))
         return Core::Unexpected(
-            std::format("0x50bae7: la tela sobre la malla del +0x376 {:#x} (0x6a0210, 0x455190 y 0x4fb1a0) no está "
-                        "portada",
+            std::format("0x50bae7: el 0x20a con la tela sobre la malla del +0x376 {:#x} (0x5ffdf0 y 0x6002e0 en vez "
+                        "de 0x6001b0) no está portado",
                         actor.word376));
     return {};
 }

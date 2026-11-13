@@ -5,6 +5,7 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ClothCarry.h"
+#include "Scenes/MonsterCloth.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -95,6 +96,13 @@ public:
     {
         return m_count;
     }
+    // objeto + 0x190 de un monstruo con la tela sobre la malla (la vtable 0x6b8d04, 0x50bae7): la que arma y
+    // simula DrawGameMonster. Con el mismo +0x376 no lleva la de arriba.
+    [[nodiscard]] MonsterMeshCloth& OnTheMesh()
+    {
+        return m_onTheMesh;
+    }
+
     // Los sprites del brillo del último frame (Effect\flare01.jpg, 0x5491e0). DrawCharacter los pide en
     // la tabla del frame (DrawnCharacter::sprites), que dibuja 0x549440 → 0x549290.
     [[nodiscard]] std::span<const Render::Models::ClothFlare> Flares() const
@@ -122,5 +130,6 @@ private:
     std::vector<Render::Models::ClothFlare> m_flares;
     Render::ModelBlend m_lastBlend = Render::ModelBlend::Opaque;
     Render::Models::OriginalFrameCarry m_frames;
+    MonsterMeshCloth m_onTheMesh;
 };
 } // namespace Client::Scenes

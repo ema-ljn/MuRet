@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Models/Cloth.h"
@@ -12,11 +13,13 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/Models/Skinning.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterCloth.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/GameHanging.h"
+#include "Scenes/MonsterCloth.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -305,15 +308,54 @@ struct MonsterFrame
     bool originalFrame = true;
 };
 
-// 0x5ffdf0 (con su 0x5ffce0) y 0x6002e0 sin casos: la pose en los huesos propios, el contorno y el cuerpo.
+// 0x50bae7..0x50bbca: la tela sobre la malla (MonsterCloth.h) entre 0x5ffdf0 y 0x6002e0, sobre `meshes` (lo que dejó
+// 0x4ebc80 en 0x5786f9c) con los huesos `bones` y la posición del modelo. Entre frames del original, la de antes.
+Result StepTheMeshCloth(MonsterFrame& frame, std::span<Render::Models::SkinnedMesh> meshes,
+                        std::span<const BoneTransform> bones, const glm::vec3& position)
+{
+    const ActorState& actor = frame.actor;
+    if (frame.slot >= frame.pass.cloths.size())
+        return Core::Unexpected<std::string>("0x50bb96: falta la tela persistente del lugar del personaje");
+    // objeto + 0x190: la del lugar, en sus telas.
+    CharacterCloth& worn = frame.pass.cloths[frame.slot];
+    MonsterMeshCloth& cloth = worn.OnTheMesh();
+    const Render::Models::ClothBody body{
+        .bones = bones, .angles = actor.angles, .scale = actor.scale, .position = position};
+    if (!frame.originalFrame)
+    {
+        cloth.DrawCurrent(meshes, body);
+        return {};
+    }
+    const Data::Models::Model* model = frame.fauna.Find(actor.type);
+    if (model == nullptr)
+        return Core::Unexpected(std::format("0x455ea0: falta el modelo {:#x} de la tela sobre la malla", actor.type));
+    return cloth.Frame(*model, actor.type, meshes, body, *frame.pass.clothWorld, static_cast<std::uint8_t>(frame.map));
+}
+
+// 0x5ffdf0 (con su 0x5ffce0) y 0x6002e0 sin casos: la pose en los huesos propios, el contorno y el cuerpo. Con la tela
+// sobre la malla (0x50bae7), 0x5ffdf0 y 0x6002e0 van separados y la tela entre los dos, con el cuarto argumento en 0.
 Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton, std::uint16_t special)
 {
     ActorState& actor = frame.actor;
+    const bool cloth = WearsClothOnTheMesh(actor.word376);
     // 0x5ffdf0: en Chaos Castle, con +0x1a1 del héroe, el alpha guardado baja 0,15f.
     if (InChaosCastle(frame.map) && frame.world.Actors()[frame.world.Runtime().hero].byte1a1 != 0)
         actor.alpha = F32(D(actor.alpha) - D(ChaosCastleFade));
     if (actor.alpha < DrawnAlpha)
-        return {};
+    {
+        if (!cloth)
+            return {};
+        // 0x50bafd: sin dibujo, la tela se arma y se simula igual, con lo que el último 0x4ebc80 dejó en 0x5786f9c, de
+        // otro modelo; MuRet usa la pose guardada de este (Q-C862, *inferido*).
+        if (actor.bodyPose.empty())
+            return Core::Unexpected<std::string>(
+                "0x50bb3b: la tela sobre la malla de un monstruo que no se dibujó lee 0x5786f9c de otro modelo");
+        DrawnObject stale;
+        stale.model = actor.type;
+        stale.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
+        std::vector<Render::Models::SkinnedMesh> meshes = SkinObjectMeshes(frame.fauna, stale, actor.bodyPose);
+        return StepTheMeshCloth(frame, meshes, actor.bodyPose, actor.position);
+    }
     // 0x5ffe9d..0x5ffeef: el 0x18f y el 0x18e van 60 y 120 más allá en y (0x6b86cc y 0x6b86c8).
     Render::Models::ObjectTransform transform{.position = actor.position, .angles = actor.angles, .scale = actor.scale};
     if (actor.type == 0x18f)
@@ -360,6 +402,13 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
         const auto passes = OutlinePassesOf(actor, frame.map);
         DrawObjectOutline(frame.batch, frame.fauna, object, frame.pass.frameClock, bones, passes);
     }
+    // 0x600177: el último 0x4ebc80 de 0x5ffdf0, con la escala en 1, deja las mallas en 0x5786f9c.
+    std::vector<Render::Models::SkinnedMesh> meshes = SkinObjectMeshes(frame.fauna, object, bones);
+    if (cloth)
+    {
+        if (auto stepped = StepTheMeshCloth(frame, meshes, bones, transform.position); !stepped.HasValue())
+            return stepped;
+    }
     // 0x6002e0: con +0x58 en −2 (sin el modo editor, 0x77f3b18) no dibuja nada.
     if (actor.dword58 == -2)
         return {};
@@ -374,7 +423,6 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
     }
     if (auto common = CheckTheBodyCases(actor, frame.map, special); !common.HasValue())
         return common;
-    const std::vector<Render::Models::SkinnedMesh> meshes = SkinObjectMeshes(frame.fauna, object, bones);
     // 0x60235e: RenderBody(2, alpha, +0x64, +0x68, +0x6c, +0x70, +0x58, −1).
     DrawObjectFromMeshes(frame.batch, frame.fauna, object, frame.pass.frameClock, meshes);
     // 0x602365: con +0x78 & 2, RenderBody(2, alpha, −2, 1, +0x6c, +0x70, +0x58, −1) con el mismo color.
@@ -751,12 +799,6 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
                                                   bool originalFrame)
 {
     ActorState& stored = world.Actors()[slot];
-    // 0x50bae7: la tela sobre la malla (0x6a0210 con la clase de 0x455e30, la vtable 0x6b8d04; P-C22 f).
-    if (WearsClothOnTheMesh(stored.word376))
-        return Core::Unexpected(
-            std::format("0x50bae7: la tela sobre la malla del +0x376 {:#x} (0x6a0210, 0x455190 y 0x4fb1a0) no está "
-                        "portada",
-                        stored.word376));
     if (pass.clothWorld == nullptr)
         return Core::Unexpected<std::string>("0x50db57: falta el flujo global de rand del dibujo de los personajes");
     const IModelLibrary& fauna = world.FaunaResources();
@@ -781,7 +823,8 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
                        .worldClock =
                            static_cast<float>(std::chrono::duration<double, std::milli>(pass.frameClock).count()),
                        .originalFrame = originalFrame};
-    if (auto body = DrawTheBody(frame, *skeleton, SpecialOf(actor.word376)); !body.HasValue())
+    const std::uint16_t special = WearsClothOnTheMesh(actor.word376) ? 0 : SpecialOf(actor.word376);
+    if (auto body = DrawTheBody(frame, *skeleton, special); !body.HasValue())
         return body;
     if (auto shadow = DrawTheShadow(frame); !shadow.HasValue())
         return shadow;

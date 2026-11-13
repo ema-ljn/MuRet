@@ -10273,9 +10273,11 @@ la 3, con sus `rand()`, y el `0x1f5` que elige su acción), `ActorWalkTest.Anoth
 (CL9 hito 2, fase 5a, 2026-11-13, *estático*.) `0x50ba30` con un tipo que no es el `0x20a` (`[ebp+0xf]` en 1) dibuja
 con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en este orden:
 
-1. **La tela sobre la malla** (`0x50ba9e..0x50bae7`): con el `+0x376` en `0x59`, `0x5f`, `0x70`, `0x76`, `0x7c`,
-   `0x82` o `0x8f` (la tabla de `0x510adc` sobre `0x510ad4`), con cualquier tipo, la tela de la vtable `0x6b8d04`
-   (`0x6a0210`, `0x455190`, `0x4fb1a0`; 08 P-C22 f).
+1. **La tela sobre la malla** (`0x50ba9e..0x50bbca`): con el `+0x376` en `0x59`, `0x5f`, `0x70`, `0x76`, `0x7c`,
+   `0x82` o `0x8f` (la tabla de `0x510adc` sobre `0x510ad4`; los Magic Skeleton de Blood Castle, el modelo `0x190`),
+   con cualquier tipo, `0x5ffdf0(objeto, 1, contorno, 0)`, la tela de la vtable `0x6b8d04` en `+0x190` y, si
+   `0x5ffdf0` dibujó, `0x6002e0(objeto, 1, contorno, 0)`, en vez de `0x602e90`, con `[ebp+0xf]` en 0
+   ([La tela sobre la malla](#la-tela-sobre-la-malla)).
 2. **`0x602e90(objeto, 1, contorno, especial)`**, con el cuarto argumento en el `+0x376` si está en la lista de
    `0x50bd05` (`0x43`, `0x4a`, `0x4b`, `0x87..0x89`, `0x12c..0x12f`, `0x13a..0x13f`) y si no en 0; el contorno es el 1
    de `0x510ea1` con el lugar en `0x6c8e30` o `0x6c8e2c`. `0x5ffdf0`: en Chaos Castle (18 a 23), con `+0x1a1` del héroe,
@@ -10321,13 +10323,60 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
 MuRet: `Scenes::DrawGameMonster` (`MonsterDrawing.cpp`), llamado desde `DrawGameCharacters` con el modelo de
 `WorldState::FaunaResources()`; el cuerpo con `Scenes::SkinObjectMeshes`, `DrawObjectOutline` y `DrawObjectFromMeshes`,
 y la sombra con `DrawObjectShadow` (`CharacterDrawing.h`); lo que cuelga con `DrawGameHanging`, que ya no corta con
-otro tipo. Entre frames del original, todo sobre una copia del personaje y del `rand()`. Cortan con su dirección: la
-tela sobre la malla (`0x50bae7`), los casos de `0x6002e0` y de su cadena, el calco del `0xe8` y el `0xe9`
-(`0x50bed8`), lo de `0x50bf45`, las partes, el Angel, el gremio y la tela del `0x37`, el joint `0x618/6` en
-`CreateFaunaJoint` (`0x530c18`), el `0x16e`, los helpers de `0x510a1e`, `0x510f4d` y el cuervo; 08, P-C179. Tests:
+otro tipo. Entre frames del original, todo sobre una copia del personaje y del `rand()`. Cortan con su dirección: los
+casos de `0x6002e0` y de su cadena, el calco del `0xe8` y el `0xe9` (`0x50bed8`), lo de `0x50bf45`, las partes, el
+Angel, el gremio y la tela del `0x37`, el joint `0x618/6` en `CreateFaunaJoint` (`0x530c18`), el `0x16e`, los helpers
+de `0x510a1e`, `0x510f4d` y el cuervo; 08, P-C179. Tests:
 `MonsterDrawingTest`, `MonsterHangingLight` y `MonsterDecorations` (`test_monster_drawing.cpp`: un Spider de Lorencia,
 un Yeti de Devias, la sombra por mapa, el contorno de un monstruo y de un NPC, el hada del NPC 237, el caso del
 `0x176` y los cortes), `GameHangingTest.AMonsterSkipsTheBackTheLayerAndTheEventWeapon`.
+
+#### La tela sobre la malla
+
+(CL9 hito 2, 2026-11-13, *estático*.) La otra clase de tela (P-C22 f): la vtable `0x6b8d04` sobre la de la grilla
+(`0x6b8cd8`, [La tela de la clase 4](#la-tela-de-la-clase-4)), con el mismo `0x4551d0` y cuatro entradas propias.
+`0x50bae7..0x50bbca`:
+
+- `0x5ffdf0(objeto, 1, contorno, 0)` posa, dibuja el contorno y termina con `0x4ebc80` con Translate en 1 (`0x600177`,
+  la escala de `0x6c881c` en 1): cada malla queda en `0x5786f9c + (malla · 15.000 + vértice) · 12` en el mundo, con la
+  escala y el origen del modelo. Por debajo de 0,01f de alpha vuelve antes de posar y el buffer queda con lo del
+  último `0x4ebc80`, de cualquier modelo (Q-C862).
+- Con `+0x190` en 0 (`0x50bb0b..0x50bb8f`): `new(0x70)`, `0x6a0210` con el constructor `0x455e30` (la vtable
+  `0x6b8d04` sobre `0x454a00`) y el `+0x24` (`0x455ea0`) con (objeto, 2, `0x12`, `0x400`, −1); después `0x455cd0` dos
+  veces, en el hueso `0x12`: (0, 0, 0) de radio 50 (`0x42480000`) y (0, −20, 0) de radio 30 (`0x41f00000`). `+0x190`
+  queda en la tela y `+0x18c` en 1.
+- **El armado** (`0x455ea0`): las banderas con OR (`0x400`: la gravedad fuerte, sin viento propio); sin la malla 2
+  del modelo, nada (`0x455f06`). Una partícula por vértice, en su posición de `0x5786f9c`, anclada si el vértice es del
+  hueso `0x12`; las columnas y las filas en 0. Por cada triángulo y cada lado (a, b), con c el tercero: un resorte
+  (a, b) de largo L = f(|a − b|) y mínimo f(L · 0,5), con las banderas 3 si |a.x − b.x| (la resta de la x87, sin
+  redondear) pasa del double 10 (`0x6b8d30`) y 6 si no; un lado de dos triángulos va dos veces, una por sentido.
+  Después `0x4563c0` busca el primer triángulo con el lado (b, a) y un tercero d distinto de c (−1 si no hay); si
+  d > 0 (`0x456101`, `JLE`: el vértice 0 nunca, Q-C861), |c − d| (sin redondear) es menor que L · 1,2f (`0x6b8bb0`)
+  y `0x456470` no encuentra un resorte (c, d) (solo en ese sentido), agrega (c, d) de largo f(|c − d|) con las
+  banderas del lado. Reserva seis por triángulo.
+- **El paso** (`0x455190(0,005f, 5)`, `0x50bba0`): cinco `0x4551d0` con el viento, `0x4555d0`, las esferas, la
+  relajación y la restricción de la grilla; las esferas con `0x4ec110` (Translate en 1) sobre los huesos `+0x120` y con
+  la escala y el origen del modelo, en el mismo mundo que `0x5786f9c`. Lo propio: las fuerzas `+0x14` (`0x4565f0`:
+  las 4 `rand()` de la protección del contador de pasos `0x7d3a0f0` si no queda un acceso abierto; el centro
+  `i32(u32(V / 10) · 101) % N`, con V el contador en claro y N las partículas, y para **todas** las sueltas la misma
+  distancia |centro % 10| en el empuje de la grilla, `0x454240`) y el anclaje `+0xc` (`0x4564c0`: la partícula de
+  cada vértice del hueso `0x12` a su vértice de `0x5786f9c`). Sin la protección abierta, 20 `rand()` por frame.
+- Si un paso la rompe (un resorte a más de 20 veces su largo), `0x4fb1a0(personaje, objeto, 0)` la suelta y el frame
+  siguiente la arma de nuevo; la malla queda como la dejó `0x4ebc80`. Si no, el `+0x18` (`0x4568f0(0, 0)`) copia
+  cada partícula a su vértice de `0x5786f9c`, que dibuja el `RenderBody` de `0x6002e0`. La sombra (`0x60cf70`) vuelve a
+  llamar a `0x4ebc80`: va sin la tela.
+
+MuRet: el modo de la malla de `Render::Models::Cloth` (`BuildOnTheMesh`, `WriteTheMesh` y `Mesh`, con
+`ClothBody::meshVertices` por `0x5786f9c`) y `Scenes::MonsterMeshCloth` (`MonsterCloth.h`), una por lugar en el
+`CharacterCloth` de `GameCharacterPass::cloths` (`OnTheMesh`, el `+0x190`). `DrawGameMonster` la corre entre
+`SkinObjectMeshes` y el cuerpo, sobre las mallas que dibuja; sin `cloths`, corta en `0x50bb96`. Sin dibujo, MuRet la
+ancla a la pose guardada del monstruo (Q-C862), y sin pose, corta en `0x50bb3b`. Entre frames del original no la arma
+ni la simula: `DrawCurrent` lleva sus partículas con el hueso `0x12` del cuerpo de su última simulación al de ahora,
+como las de la clase 4 (#307). El `0x190` sigue cortando en `0x600654` después de la tela (P-C179 b), y el `0x20a` con
+ese `+0x376`, que ninguna alta crea, en `0x50bae7`. Tests: `MeshClothTest` (`test_mesh_cloth.cpp`: el armado, el
+vecino, el paso y el dibujo) y `MonsterClothTest` (`test_monster_cloth.cpp`: Lorencia, Devias y Blood Castle, contra
+la clase de render con las constantes del ASM, 20 `rand()` por frame, la que se rompe, la que no se dibuja y entre
+frames). Lo que queda para la VM: 08 P-C330.
 
 ### La tabla de protección
 

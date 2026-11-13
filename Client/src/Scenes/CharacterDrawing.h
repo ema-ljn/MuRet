@@ -117,6 +117,10 @@ struct DrawnCharacter
     // false entre frames del original: dibuja la tela actual sin crearla ni simularla.
     bool advanceCloth = true;
     std::uint8_t map = 0;
+    // bVar23 y el color de 0x50ba30 (0x50c929..0x50cc29) cuando el dibujo los sabe (el juego, con el duelo); sin
+    // ellos, WearsACloth con la clase y el mapa, en blanco.
+    std::optional<bool> wearsCloth{};
+    glm::vec3 clothColor = PlainClothColor;
     // La tabla de los sprites del frame (0x5491e0, World/Sprites.h): los 30 destellos de la tela, al
     // dibujarla, y los cinco del cetro (0x509340, caso 0x620, World/ScepterGlow.h) con el rand() de
     // `clothWorld`, en ese orden. Sin ella, no se piden.

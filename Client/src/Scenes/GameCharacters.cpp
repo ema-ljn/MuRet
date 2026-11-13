@@ -16,10 +16,12 @@
 #include "Scenes/ActorAppearance.h"
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/ChatBubbles.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameCharacterEffects.h"
 #include "Scenes/GameHanging.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -39,6 +41,7 @@
 #include <ratio>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -155,6 +158,46 @@ DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, const GameCh
     return character;
 }
 
+// 0x50c929..0x50cc29, bVar23 y el color de la tela de un jugador 0x20a: la clase 3 o 4 con +0x3e3 en 0 (el monstruo
+// 0x37 no llega acá), salvo en los mapas 0x12 a 0x17. Con +0x1f2 distinto de −1, las guerras de gremios
+// (0x50c99b..0x50cb5c: 0x576796d y 0x576796f, que solo escriben los paquetes del hito 8 y empiezan en 0) no la prenden
+// (08 P-C207 b). Con el duelo en curso (0x78abad8), el rival (MOVSX de +0x1f4 igual a 0x78abadc y strcmp de +0x1d9
+// con 0x78abae0) la lleva en (1; 0,2; 0) y el héroe publicado (el WORD de +0x1f4 y strcmp de los nombres), en
+// (0; 0,2; 1), aunque sea de otra clase o esté en esos mapas.
+struct ClothLook
+{
+    bool wears = false;
+    glm::vec3 color = PlainClothColor;
+};
+
+ClothLook LookOfTheCloth(const WorldState& world, const ActorState& actor, std::int32_t map)
+{
+    constexpr std::uint8_t MagicGladiator = 3;
+    constexpr std::uint8_t DarkLord = 4;
+    constexpr std::int32_t FirstClothlessMap = 0x12;
+    constexpr std::int32_t LastClothlessMap = 0x17;
+    constexpr glm::vec3 RivalColor{1.0f, 0.2f, 0.0f};
+    constexpr glm::vec3 HeroColor{0.0f, 0.2f, 1.0f};
+    ClothLook look;
+    const auto base = static_cast<std::uint8_t>(actor.characterClass & 7u);
+    look.wears = (base == MagicGladiator || base == DarkLord) && actor.byte3e3 == 0;
+    if (map >= FirstClothlessMap && map <= LastClothlessMap)
+        look.wears = false;
+    const DuelState& duel = world.Runtime().social.duel;
+    if (duel.active == 0)
+        return look;
+    const std::string name = ChatNameOf(actor);
+    const auto rivalEnd = std::ranges::find(duel.rivalName, std::byte{0});
+    const std::string_view rival(reinterpret_cast<const char*>(duel.rivalName.data()),
+                                 static_cast<std::size_t>(rivalEnd - duel.rivalName.begin()));
+    if (static_cast<std::int32_t>(static_cast<std::int16_t>(actor.key)) == duel.rivalKey && name == rival)
+        look = {.wears = true, .color = RivalColor};
+    const ActorState& hero = world.Actors()[world.Runtime().hero];
+    if (actor.key == hero.key && name == ChatNameOf(hero))
+        look = {.wears = true, .color = HeroColor};
+    return look;
+}
+
 Core::Expected<void, std::string> CheckTheEarlyBranches(const ActorState& actor)
 {
     if (actor.word376 != NoMonster)
@@ -235,7 +278,7 @@ Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const I
         if (auto marked = CheckTheGuildMark(actor, character.map); !marked.HasValue())
             return marked;
     }
-    if (WearsACloth(actor.characterClass, character.map) && character.cloth == nullptr)
+    if (character.wearsCloth.value_or(WearsACloth(actor.characterClass, character.map)) && character.cloth == nullptr)
         return Core::Unexpected<std::string>("0x50d58b: falta la tela persistente del lugar del personaje");
     DrawCharacter(batch, models, character, pass.frameClock, CharacterDrawPass::Cloth);
     return {};
@@ -333,6 +376,9 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
     const std::int32_t map = world.Runtime().map;
     DrawnCharacter character = CharacterToDraw(actor, slot, pass, map);
     character.advanceCloth = originalFrame;
+    const ClothLook look = LookOfTheCloth(world, actor, map);
+    character.wearsCloth = look.wears;
+    character.clothColor = look.color;
     // Al buffer global (0x68b181c) sólo va lo que cuelga (0x509340); el cuerpo queda en el propio (DrawTheTail).
     if ((originalFrame || pass.publishProjectedPose) && pass.onPose)
         character.onPose = [global = pass.onPose](std::uint16_t model,

@@ -18,6 +18,7 @@
 #include "Scenes/IScene.h"
 #include "Scenes/OriginalFramesOfTheSteps.h"
 #include "Scenes/GroundEffectFrame.h"
+#include "Scenes/GuildMarks.h"
 #include "Scenes/CharacterCloth.h"
 #include "World/Sprites.h"
 #include "World/ModelEffects.h"
@@ -220,6 +221,8 @@ private:
     // Las texturas de la escena: los cursores 2 y 3 con las ventanas, y las arenas del HUD.
     SceneTextures m_windowTextures;
     SceneTextures m_sandTextures;
+    // Las marcas de los gremios (0x5f16a0), cada una en su slot de la tabla de la escena.
+    GuildMarkTextures m_guildMarks;
     bool m_sent = false;
     bool m_firstStep = true;
     bool m_holdFrame = true;

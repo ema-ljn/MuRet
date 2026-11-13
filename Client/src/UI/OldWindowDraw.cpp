@@ -452,6 +452,11 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
 }
 } // namespace
 
+void DrawTheOldButton(const OldWindowDrawContext& context, const OldButton& button, const OldWindowDrawView& view)
+{
+    DrawTheButton(context, button, view);
+}
+
 std::optional<Render::Color> OldWindowPalette(std::int32_t index, float alpha)
 {
     if (index < 0 || index >= static_cast<std::int32_t>(Palette.size()))

@@ -2482,7 +2482,7 @@ Devias, el Dark Lord, el Wizard y la clase 3, con los `rand()` contados y los sp
 
 ### El gremio, la alianza y la guerra
 
-(CL9 hito 8, 2026-11-13, *estático* salvo donde se dice; los paquetes en [04](04-protocolo.md#el-gremio-la-alianza-y-la-guerra-50-66-y-e1-eb).)
+(CL9 hito 8, 2026-11-13, *estático* salvo donde se dice; los paquetes en [04](04-protocolo.md#el-gremio-la-alianza-y-la-guerra-50-67-y-e1-eb).)
 
 **Los globales.** La tabla de los gremios (`[0x723c58]`, entradas de `0x58` bytes en `0x787aa48`, 2.000 lugares,
 la cuenta en `0x723c5c`): `+0` la clave, `+4` el nombre de la alianza (8 y su cero), `+0xd` el del gremio, `+0x16` la
@@ -2575,14 +2575,67 @@ ventana 2): la cierra; el héroe con el gremio 1999 (el que `0x4e34a0` pone al a
 `0x1c`; `0x7d536e4`, `0x7d536ec` y `0x77f3b68` en 0; cancela el diálogo si es `+0x2a0` o `+0x2a4` (`0x654f50`) y
 manda `C1 04 54 00`.
 
+**El gremio de cada personaje** (fase 2). El `65` (`0x4d9260`), por cada entrada: el personaje de la clave
+(`0x5110d0`), su puesto (`+0x368`), `+0x369` y la relación (`+0x370`); si la tabla tiene la clave del gremio
+(`0x447b30`, otra vez `0x447b00`), su índice en `+0x1f2`; si no, el `C1 08 66` que lo pide y `0x447b50`, que lo
+agrega en la entrada de la cuenta (−1 con la tabla llena; no limpia la entrada: los nombres y la marca quedan hasta el
+`66`). Con el personaje vivo, `+0x374` en 0, en 1 con el gremio del héroe (si tiene) y, en guerra, en 2 con el del
+rival: sin índice del rival (`0x6c82f0` en −1) y con su nombre, lo busca de la entrada 0 a la 1998 y deja el que
+encuentra o −1 (el `62` deja el que había). Con la entrada del héroe, `0x412120` copia `+0x1f2` y `+0x368` a
+`0x6c6498` y `0x6c649a` (los lee `0x412140`, el panel del mapa 30). El `67` (`0x4e44aa`): el nombre de la alianza en
+`+4..+0xc` de la entrada de su gremio (con −1, el miembro 74: Q-C1284) y la relación en `+0x370` del personaje.
+
+**La marca** (`0x5f16a0(índice, fondo)`): la paleta de 16 DWORD en `0x77f3d84` (`0xAABBGGRR`; el 0 negro con alfa
+`0x80`, o transparente con el fondo distinto de 0; 1 negro, 2 gris, 3 blanco, 4 rojo, 5 naranja, 6 amarillo, 7
+`0x80ff00`, 8 verde, 9 `0x00ff80`, 10 cian, 11 `0x0080ff`, 12 azul, 13 `0x8000ff`, 14 magenta y 15 `0xff0080`, en
+R, G, B) pinta los 64 nibbles de la entrada (`+0x16`) en el buffer de `Interface\guild.tga` (el slot `0x22`, de 8 × 8 y
+32 bits, que `0x61b33c` sube con `GL_NEAREST` y `GL_CLAMP`) y lo vuelve a subir con `glTexImage2D`. Quien la llama
+dibuja enseguida con el slot `0x22`.
+
+**La marca sobre el personaje** (`0x50d4fb..0x50d588`, después de las partes, sin `+0x3e3`): fuera de Chaos Castle
+(`0x12..0x17`), con `+0x1f2` desde 0, el `0x20a`, el alpha distinto de 0 y, salvo el gremio `0x7cf` (el que se
+crea), la clave de su entrada en la tabla (`0x447b30`, que mira hasta la cuenta); sin la bandera `0x4000` de `+0x78`:
+`0x5f16a0(+0x1f2, 1)` y `0x5091e0(personaje, armadura de +0x238)`: `0x620a00(1)`, el culling, `glColor3f(1, 1, 1)`,
+el slot `0x22`, `AngleMatrix(+0x1c + (80, 45, 135))` con la traslación `(20, −5, −10)` (`−18` con la armadura
+`0x1226`) concatenada al hueso 26 de `+0x120` (`+0x4e0`), `glTranslatef(+0x10)` y el quad de `0x621320(5, 7)`:
+`(−5, −5, −7)`, `(5, 5, −7)`, `(5, 5, 7)` y `(−5, −5, 7)` con uv `(0, 1)`, `(1, 1)`, `(1, 0)` y `(0, 0)`; el
+culling se apaga (`0x6208f0`). Sin la escala del cuerpo. Sin `rand()`.
+
+**El marcador de la guerra** (`0x5a7640`, el 2.º hijo del HUD): siempre `0x620980` y el fondo de los textos
+(`0x6c8e64`) en `0x80000000`. Con la guerra y el héroe con gremio: `0x620a00(1)`, x = `0x5bb8d0` · 0,5 − 20 (una sola
+llamada, con sus consultas), la negrita (`0x5763558`), el texto en `0xff003cff` (con el equipo, `0xffff9600`), la marca
+del héroe (`0x5f16a0(+0x1f2, 1)`) de 8 × 8 en `(x, 4)`, su puntaje (`"%d"`, `0x57678b4`) en `(_ftol(x) + 13, 4)` y el
+nombre de su gremio en `(_ftol(x) + 30, 4)` (`0x465950` con el modo 1, y la medida en `0x77f31b8`); el otro color, la
+marca del rival (la primera entrada de 0 a 1998 con su nombre; sin ninguna, la 0: Q-C1285) en `(x, 19)`, su puntaje
+(`0x57678b8`) en `(_ftol(x) + 13, 19)` y su nombre (`0x5542f0` con el modo 1) en `(_ftol(x) + 30, 19)`. Después, el
+segundo marcador con `0x576796f` (el `F3 23`, `0x4d9f00`, del hito 11; P-C284).
+
+**El dibujo del diálogo** (`0x660830`, el último de `0x6579e0`): sin `+0x10`, nada; con `+0xc` (el dibujo de quien
+lo abrió, que solo `0x660090` escribe, en 0), ese. Si no, la caja de `0x6576a0(alto, −1 o 10)`: `0x620c10` (la mezcla
+de `0x620a00` sin el alpha test), `glColor4f(1, 1, 1, 0,8)`, `Message_box2` (`0xfc`) de 213 × 5 en `(214, y)`, una
+fila de `Message_box1` (`0xfb`) de 213 × 40 por cada 40 de `alto − 10` (desde `y + 5`), el resto con `(resto · 0,025) ·
+40` de alto y `dv = (resto · 0,025) · 0,625`, y otra vez la `0xfc`, todas con `du = 0,83203125`; después el blanco y
+`0x620980`. Después `SelectObject` con la fuente normal (`0x5763554`), `0x620a00(1)` y los colores −1 y 0; cada renglón
+en `(0x140 − (cx / rx) / 2, y + 0x14 + 15 · i)` con `0x5542f0(…, 0, 1, 0)`, que no dibuja uno vacío ni mide. Con el
+campo (`0x10`), `+7`, la caja `0x10f` de `+0xe28` × 18 centrada en `0x140`, el `EDIT` (`[0x5763504]`, con `0x6c7b8c`
+en 1) o el chat de `0x553ae0` (en 0) y `+10`. Con el reloj (8), `+7`, el segundo en `+0x1060` (nadie lo lee), la barra
+`0x667` de 150 × 12 en `(245, y)`, `0x620a90` y la `0x668` de `150 · t` × 12 en `(241, y)` con `du = 150 · t / 256`
+(`t` lo que pasó del reloj), `0x620980` y `+10`. Los botones (`0x45a9d0` y `0x45b2e0`) en `y + 9`: Aceptar en `0x127`,
+o Sí y No, o Confirmar y Cancelar en `0x104` y `0x14a`, con los textos 228, 229, 1037 y 1038 que `0x65feb0` les copia
+al armarse. Sin `rand()`.
+
 **MuRet** (`Scenes::ApplyGuildPacket`, `Scenes/GuildPanels`, `UI::PanelDialog`, `WorldRuntime::guild`): todo lo de
 arriba menos lo que es de la fase 2 (P-C281): el dibujo y el paso de las dos ventanas, sus pestañas y las clases de
 las listas (`0x46b800`..`0x46d630`; MuRet guarda lo que se les agrega), el alta (`0x6552b0`, `0x655d70` y el `01` del
-Guild Master, `0x4e3450`), las ventanas de la alianza que mandan (`0x64e600`, `0x64def0`, `0x650c10`, `0x650830`), el
-dibujo del diálogo (`0x660830`, salvo la parte que ubica los botones) y el marcador (`0x5a7640`, con las marcas de
-`0x5f16a0`). El gesto es `Scenes::PlayTheEmote` (hito 1). Los handlers no sacan `rand()` propios: solo el registro
-de los paneles, y abrir el gremio o la ventana 2 (el `54`) saca los cuatro de `CanOpen` y `CloseByMask` (las
-consultas del comercio y de la tienda); cerrarlos, ninguno.
+Guild Master, `0x4e3450`) y las ventanas de la alianza que mandan (`0x64e600`, `0x64def0`, `0x650c10`, `0x650830`). La
+fase 2 suma el `65` y el `67`, el dibujo del diálogo (`Scenes::DrawThePanelDialog`; la caja de `0x6576a0` con
+`SpriteBatch::SetBlendWithoutAlphaTest`, que es `0x620c10`; el campo de texto y el reloj cortan, P-C285), la marca
+(`Scenes::PaintTheGuildMark` y `GuildMarkTextures`: cada (índice, fondo) en su slot de la tabla de la escena, desde
+`Render::FirstGuildMarkTextureSlot`, porque MuRet dibuja los lotes después de armarlos y no puede volver a subir el
+`0x22` entre quad y quad), la marca sobre el personaje (`DrawGameCharacters`, con los huesos que posa el dibujo de
+este frame) y el marcador (`Scenes::DrawTheWarScore`). El gesto es `Scenes::PlayTheEmote` (hito 1). Los handlers no
+sacan `rand()` propios: solo el registro de los paneles, y abrir el gremio o la ventana 2 (el `54`) saca los cuatro de
+`CanOpen` y `CloseByMask` (las consultas del comercio y de la tienda); cerrarlos, ninguno.
 
 ## La escena de carga y la de login
 

@@ -9,19 +9,25 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/ModelVertex.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorAppearance.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FullSetScan.h"
+#include "Scenes/GuildMarks.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldTerrain.h"
 
+#include "support/FakeTextureStore.h"
 #include "support/PlayerActors.h"
 
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
@@ -30,6 +36,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <vector>
@@ -150,6 +157,12 @@ public:
     {
         m_skeleton.bones[0].dummy = true;
     }
+    // Más huesos como el primero, hasta `count`: el 26 es el de la marca del gremio (0x5091e0).
+    void GrowTo(std::size_t count)
+    {
+        while (m_skeleton.bones.size() < count)
+            m_skeleton.bones.push_back(m_skeleton.bones.front());
+    }
 
 private:
     Client::Data::Models::Model m_model;
@@ -201,6 +214,115 @@ protected:
     Client::Render::Models::ClothWorld m_cloth;
     Client::Render::ModelBatch m_batch;
 };
+
+// Los vértices de los tramos dibujados con `slot`.
+std::vector<Client::Render::ModelVertex> VerticesWith(const Client::Render::ModelBatch& batch,
+                                                      Client::Render::TextureSlot slot)
+{
+    std::vector<Client::Render::ModelVertex> found;
+    const auto vertices = batch.Vertices();
+    for (const Client::Render::ModelDrawCommand& command : batch.Commands())
+    {
+        if (command.operation != Client::Render::ModelStateOperation::Draw || command.state.texture != slot)
+            continue;
+        for (std::size_t i = 0; i < command.vertexCount; ++i)
+            found.push_back(vertices[command.firstVertex + i]);
+        EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Alpha);
+        EXPECT_EQ(command.state.cullEnabled, std::optional<bool>(true));
+    }
+    return found;
+}
+
+// 0x50d4fb..0x50d588 y 0x5091e0: otro jugador con gremio lleva la marca (0x5f16a0 con el fondo transparente) en el
+// hueso 26: el quad de 0x621320(5, 7) por R_ConcatTransforms(hueso, AngleMatrix(giro + (80, 45, 135)) con (20, −5,
+// −10)) más la posición, uv (0, 1), (1, 1), (1, 0), (0, 0). Con la armadura 0x1226, z en −18. Sin rand() propios. En
+// Lorencia, en Devias y en Chaos Castle (18), donde no va; tampoco con la bandera 0x4000 de +0x78, ni con un índice
+// cuya clave la tabla no encuentra hasta la cuenta (0x447b30), salvo el 0x7cf, que no la busca.
+TEST_F(UnarmedGameCharacterTest, AnotherPlayerWithAGuildWearsItsMarkOnBoneTwentySix)
+{
+    m_models.GrowTo(27);
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::GuildMarkTextures marks(store);
+    Client::Scenes::GuildState& guild = m_world->Runtime().guild;
+    guild.tableCount = 4;
+    guild.table[3].key = 77;
+    guild.table[3].mark.fill(4);
+    const Client::Render::TextureSlot slot = Client::Scenes::GuildMarkTextures::SlotOf(3, true);
+    const auto draw = [&](std::int32_t map, Client::Render::TextureSlot drawn)
+    {
+        m_world->Runtime().map = map;
+        m_cloth.random = Client::Render::Models::CrtRandom(1);
+        m_batch.Begin({});
+        auto pass = Pass();
+        pass.guildMarks = &marks;
+        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+        EXPECT_TRUE(result.HasValue()) << result.Error();
+        return VerticesWith(m_batch, drawn);
+    };
+    const auto expectedQuad = [&](float lowZ)
+    {
+        const Client::Render::Models::OriginalMatrix local = [&]
+        {
+            auto turn = Client::Render::Models::OriginalAngleMatrix(
+                {Actor().angles.x + 80.0f, Actor().angles.y + 45.0f, Actor().angles.z + 135.0f});
+            turn[3] = 20.0f;
+            turn[7] = -5.0f;
+            turn[11] = lowZ;
+            return turn;
+        }();
+        const auto matrix = Client::Render::Models::OriginalConcatTransforms(
+            Client::Render::Models::OriginalMatrixOf(Actor().bodyPose.at(26)), local);
+        const std::array<glm::vec3, 4> corners{{{-5, -5, -7}, {5, 5, -7}, {5, 5, 7}, {-5, -5, 7}}};
+        std::array<glm::vec3, 4> points{};
+        for (std::size_t i = 0; i < corners.size(); ++i)
+            points[i] = Actor().position + Client::Render::Models::OriginalVectorTransform(corners[i], matrix);
+        return points;
+    };
+    Actor().word1f2 = 3;
+    Actor().angles = {0.0f, 0.0f, 90.0f};
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        const auto vertices = draw(map, slot);
+        ASSERT_EQ(vertices.size(), 6u);
+        EXPECT_EQ(m_cloth.random.State(), 0x18be873au);
+        const auto points = expectedQuad(-10.0f);
+        // Las dos mitades del quad: (0, 1, 2) y (0, 2, 3).
+        const std::array<std::size_t, 6> order{0, 1, 2, 0, 2, 3};
+        const std::array<glm::vec2, 4> uv{{{0, 1}, {1, 1}, {1, 0}, {0, 0}}};
+        for (std::size_t i = 0; i < order.size(); ++i)
+        {
+            SCOPED_TRACE(i);
+            EXPECT_EQ(vertices[i].position, points[order[i]]);
+            EXPECT_EQ(vertices[i].uv, uv[order[i]]);
+        }
+    }
+    ASSERT_TRUE(store.Find(slot).has_value());
+
+    Actor().body[1].model = 0x1226;
+    auto low = draw(2, slot);
+    ASSERT_EQ(low.size(), 6u);
+    EXPECT_EQ(low[0].position, expectedQuad(-18.0f)[0]);
+    Actor().body[1].model = Client::Scenes::NoItemModel;
+
+    Actor().flags78 |= 0x4000;
+    EXPECT_TRUE(draw(2, slot).empty());
+    Actor().flags78 &= ~0x4000u;
+    // En Chaos Castle, sin el Angel (+0x88 distinto de 1), el cuerpo de siempre y ninguna marca.
+    const std::uint8_t kind = Actor().byte88;
+    Actor().byte88 = 0;
+    EXPECT_TRUE(draw(18, slot).empty());
+    Actor().byte88 = kind;
+    // La entrada 10 está después de la cuenta (4): 0x447b00 no encuentra su clave.
+    Actor().word1f2 = 10;
+    guild.table[10].key = 99;
+    const Client::Render::TextureSlot tenth = Client::Scenes::GuildMarkTextures::SlotOf(10, true);
+    EXPECT_TRUE(draw(2, tenth).empty());
+    EXPECT_FALSE(store.Find(tenth).has_value());
+    Actor().word1f2 = 1999;
+    guild.table[1999].mark.fill(2);
+    EXPECT_EQ(draw(2, Client::Scenes::GuildMarkTextures::SlotOf(1999, true)).size(), 6u);
+}
 
 // 50e298 abre +38e; 50e503 lee; 50e68a cierra con un rand; 50e746 prueba NoItem después.
 // El lazo repite para ambas manos (50e9ea..f4), aunque las dos estén vacías.

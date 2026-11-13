@@ -297,7 +297,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
         .mouse = UI::MouseIn640x480(input, canvas.screen),
         .leftDown = input.IsDown(Input::MouseButton::Left),
-        .chosenServer = m_session != nullptr ? m_session->ChosenServer() : std::nullopt};
+        .chosenServer = m_session != nullptr ? m_session->ChosenServer() : std::nullopt,
+        .guildMarks = &m_guildMarks};
     // 0x5ac120: el pase 3D de los ítems de la UI, con los modelos de los ítems, el buffer global de la pose y los
     // contextos de 0x60b3d0 del frame (o sus copias en un dibujo intermedio). Sin la biblioteca, sin dibujo.
     ItemSpecialDrawContext itemSpecial;

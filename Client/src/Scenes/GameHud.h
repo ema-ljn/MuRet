@@ -25,6 +25,7 @@ class CrtRandom;
 
 namespace Client::Scenes
 {
+class IGuildMarks;
 class WorldState;
 struct GameProjection;
 struct HudState;
@@ -74,6 +75,8 @@ struct GameHudContext
     // Lo que el tramo 3D de 0x5ac120 necesita para dibujar los modelos de los ítems de la UI. Sin él (una escena sin
     // la biblioteca de los modelos, como las de las pruebas), cada ítem saca sus rand() sin dibujar.
     UiItemResources* uiItems = nullptr;
+    // Las marcas de los gremios (0x5f16a0) del marcador de la guerra (0x5a7640); sin ellas, la guerra corta.
+    IGuildMarks* guildMarks = nullptr;
 };
 
 // 0x5a7320(1): los 31 hijos del HUD en su orden (06 § HUD y ventanas, "El HUD hijo por hijo"). En el estado base

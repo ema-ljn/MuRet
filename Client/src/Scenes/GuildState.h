@@ -114,6 +114,11 @@ struct GuildState
     std::int32_t theirScore = 0;
     // 0x6c82f0 (.data −1): el índice del rival en la tabla.
     std::int32_t rivalIndex = -1;
+    // 0x6c6498 (WORD, .data −1) y 0x6c649a (.data 0xff): el índice del gremio y el puesto del héroe, que el 65 copia de
+    // +0x1f2 y +0x368 cuando la entrada es la del héroe (0x412120). *Estático*: los lee solo 0x412140, el panel del
+    // mapa 30 (el asedio, CL9.5).
+    std::int16_t heroGuildIndex = -1;
+    std::uint8_t heroGuildStatus = 0xff;
 
     // El pedido de alianza del E5 (0x6565e0): 0x7d536e0 la relación, 0x7d536ea el pedido, 0x7d536e8 y 0x7d536e9 la
     // clave.
@@ -144,5 +149,18 @@ struct GuildState
             return static_cast<std::int32_t>(index);
     }
     return -1;
+}
+
+// 0x447b50(clave): con la cuenta en 2.000 o más, −1; si no, la clave en la entrada de la cuenta, que sube. La entrada
+// no se limpia: los nombres y la marca son los que había (ceros, en la .bss) hasta que llega su 66. Nadie baja la
+// cuenta (0x723c5c solo lo escribe esta función).
+[[nodiscard]] inline std::int32_t AddGuild(GuildState& guild, std::int32_t key)
+{
+    if (guild.tableCount >= GuildTableSize)
+        return -1;
+    const std::uint32_t index = guild.tableCount;
+    guild.table[index].key = key;
+    ++guild.tableCount;
+    return static_cast<std::int32_t>(index);
 }
 } // namespace Client::Scenes

@@ -27,6 +27,14 @@ constexpr std::size_t MemberEntrySize = 0xd;
 // 0x4e42c7: la clave en pkt[4] y los nombres en pkt[9] y pkt[0x11], la marca en pkt[0x19].
 constexpr std::size_t GuildInfoKeyOffset = 4;
 constexpr std::size_t GuildInfoNameOffset = 9;
+// 0x4d9294 y 0x4e44ba: las entradas del 65 y del 67 desde pkt[5], de 0xc y de 0x14 bytes; los bytes que se leen de
+// cada una (hasta +8 y hasta +0x10).
+constexpr std::size_t FirstViewportEntryOffset = 5;
+constexpr std::size_t ViewportGuildEntrySize = 0xc;
+constexpr std::size_t ViewportUnionEntrySize = 0x14;
+constexpr std::size_t ViewportUnionGuildKey = 4;
+// 0x4d92a2: el bit 7 de la clave alta del 65 no es de la clave.
+constexpr std::uint8_t ViewportKeyMask = 0x7f;
 // 0x4d9e50: las entradas desde pkt[8], de 0x29 bytes.
 constexpr std::size_t FirstUnionOffset = 8;
 // EB: solo pkt[3] == 1 lee pkt[4].
@@ -260,6 +268,72 @@ Core::Expected<GuildPacket, ProtocolError> ReadUnionListRefresh(const Network::P
     return GuildPacket{refresh};
 }
 
+// La cuenta de pkt[4] de un C2 (0x4d9289 y 0x4e44af).
+std::optional<std::uint8_t> CountOf(const Network::Packet& packet)
+{
+    auto head = At(packet, Network::MinPacketSize(Network::PacketType::C2));
+    if (!head)
+        return std::nullopt;
+    return head->ReadU8();
+}
+
+Core::Expected<GuildPacket, ProtocolError> ReadViewportGuild(const Network::Packet& packet)
+{
+    const auto count = CountOf(packet);
+    if (!count)
+        return Core::Unexpected(ProtocolError::TooShort);
+    ViewportGuild guild;
+    for (std::size_t i = 0; i < *count; ++i)
+    {
+        auto entry = At(packet, FirstViewportEntryOffset + i * ViewportGuildEntrySize);
+        if (!entry)
+            return Core::Unexpected(ProtocolError::TooShort);
+        const auto guildKey = entry->ReadU32Le();
+        const auto status = entry->ReadU8();
+        const auto byte369 = entry->ReadU8();
+        const auto relation = entry->ReadU8();
+        const auto high = entry->ReadU8();
+        const auto low = entry->ReadU8();
+        if (!guildKey || !status || !byte369 || !relation || !high || !low)
+            return Core::Unexpected(ProtocolError::TooShort);
+        guild.entries.push_back(ViewportGuildEntry{
+            .guildKey = static_cast<std::int32_t>(*guildKey),
+            .status = *status,
+            .byte369 = *byte369,
+            .relation = *relation,
+            .key = static_cast<std::uint16_t>(((*high & ViewportKeyMask) << 8) | *low),
+        });
+    }
+    return GuildPacket{std::move(guild)};
+}
+
+Core::Expected<GuildPacket, ProtocolError> ReadViewportUnion(const Network::Packet& packet)
+{
+    const auto count = CountOf(packet);
+    if (!count)
+        return Core::Unexpected(ProtocolError::TooShort);
+    ViewportUnion list;
+    for (std::size_t i = 0; i < *count; ++i)
+    {
+        const std::size_t offset = FirstViewportEntryOffset + i * ViewportUnionEntrySize;
+        auto key = At(packet, offset);
+        auto rest = At(packet, offset + ViewportUnionGuildKey);
+        if (!key || !rest)
+            return Core::Unexpected(ProtocolError::TooShort);
+        const auto value = key->ReadU16Be();
+        const auto guildKey = rest->ReadU32Le();
+        const auto relation = rest->ReadU8();
+        ViewportUnionEntry entry;
+        if (!value || !guildKey || !relation || !CopyTo(*rest, entry.unionName))
+            return Core::Unexpected(ProtocolError::TooShort);
+        entry.key = *value;
+        entry.guildKey = static_cast<std::int32_t>(*guildKey);
+        entry.relation = *relation;
+        list.entries.push_back(entry);
+    }
+    return GuildPacket{std::move(list)};
+}
+
 Core::Expected<GuildPacket, ProtocolError> ReadC1(const Network::Packet& packet, std::uint8_t opcode)
 {
     switch (opcode)
@@ -313,6 +387,10 @@ Core::Expected<GuildPacket, ProtocolError> ReadGuildPacket(const Network::Packet
             return ReadMemberList(packet);
         if (*opcode == UnionListOpcode)
             return ReadUnionList(packet);
+        if (*opcode == ViewportGuildOpcode)
+            return ReadViewportGuild(packet);
+        if (*opcode == ViewportUnionOpcode)
+            return ReadViewportUnion(packet);
         return Core::Unexpected(ProtocolError::WrongPacket);
     }
     if (packet.Type() != Network::PacketType::C1)
@@ -357,5 +435,10 @@ Outgoing WriteRelationshipAnswer(std::uint8_t relation, std::uint8_t request, st
 Outgoing WriteUnionListRequest()
 {
     return ClearC1(Network::PacketWriter::C1(UnionListOpcode));
+}
+
+Outgoing WriteGuildInfoRequest(std::int32_t guildKey)
+{
+    return Xor32C1(Network::PacketWriter::C1(GuildInfoOpcode).PutU8(0).PutU32Le(static_cast<std::uint32_t>(guildKey)));
 }
 } // namespace Client::Protocol::Guild

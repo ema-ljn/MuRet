@@ -283,16 +283,31 @@ void ServerSession::RegisterGameServerHandlers()
     assert(registered && "los handlers del GameServer se registran una vez");
 }
 
-// CL9 hito 8: el gremio, la alianza y la guerra (0x4e2b10 con 50..54, 56, 5D, 60..64, 66, E1, E5, E6, E9 y EB). El
-// 55 y el 5C caen en el default del original: no se registran.
+// CL9 hito 8: el gremio, la alianza y la guerra (0x4e2b10 con 50..54, 56, 5D, 60..67, E1, E5, E6, E9 y EB). El 55 y
+// el 5C caen en el default del original: no se registran.
 bool ServerSession::RegisterGuildHandlers()
 {
     using namespace Protocol::Guild;
-    for (const std::uint8_t opcode :
-         {JoinRequestOpcode, JoinResultOpcode, MemberListOpcode, LeaveResultOpcode, MasterQuestionOpcode,
-          CreateResultOpcode, ViewportGuildDeleteOpcode, WarRequestResultOpcode, WarRequestOpcode, WarStartOpcode,
-          WarEndOpcode, WarScoreOpcode, GuildInfoOpcode, AssignResultOpcode, RelationshipRequestOpcode,
-          RelationshipResultOpcode, UnionListOpcode, UnionListRefreshOpcode})
+    for (const std::uint8_t opcode : {JoinRequestOpcode,
+                                      JoinResultOpcode,
+                                      MemberListOpcode,
+                                      LeaveResultOpcode,
+                                      MasterQuestionOpcode,
+                                      CreateResultOpcode,
+                                      ViewportGuildDeleteOpcode,
+                                      WarRequestResultOpcode,
+                                      WarRequestOpcode,
+                                      WarStartOpcode,
+                                      WarEndOpcode,
+                                      WarScoreOpcode,
+                                      ViewportGuildOpcode,
+                                      GuildInfoOpcode,
+                                      ViewportUnionOpcode,
+                                      AssignResultOpcode,
+                                      RelationshipRequestOpcode,
+                                      RelationshipResultOpcode,
+                                      UnionListOpcode,
+                                      UnionListRefreshOpcode})
     {
         if (!m_gameServer.On(opcode, [this](const Network::Packet& packet) { OnGuild(packet); }))
             return false;

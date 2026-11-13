@@ -269,4 +269,56 @@ TEST(GuildProtocolTest, TheCreateCarriesTheNameAndTheMark)
         expected.push_back(std::byte{value});
     EXPECT_TRUE(SameBytes(PlainOf(Guild::WriteCreate(name, mark)), expected));
 }
+// 0x4d9260: el 65 es un C2 con la cuenta en pkt[4] y entradas de 0xc bytes desde pkt[5]: el DWORD del gremio, el
+// puesto, +0x369, la relación y la clave sin el bit 7. Los tres bytes del final no se leen.
+TEST(GuildProtocolTest, TheViewportGuildReadsEntriesOfTwelveBytes)
+{
+    const auto read = ReadAs<Guild::ViewportGuild>(Bytes({0xc2, 0x00, 0x1a, 0x65, 0x02,                         //
+                                                          0x78, 0x56, 0x34, 0x12, 0x80, 0x01, 0x02, 0x81, 0x23, //
+                                                          0xaa, 0xbb, 0xcc,                                     //
+                                                          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05}));
+    ASSERT_EQ(read.entries.size(), 2u);
+    EXPECT_EQ(read.entries[0].guildKey, 0x12345678);
+    EXPECT_EQ(read.entries[0].status, 0x80);
+    EXPECT_EQ(read.entries[0].byte369, 0x01);
+    EXPECT_EQ(read.entries[0].relation, 0x02);
+    EXPECT_EQ(read.entries[0].key, 0x0123);
+    EXPECT_EQ(read.entries[1].guildKey, 1);
+    EXPECT_EQ(read.entries[1].key, 0x0005);
+    // La última entrada sin su clave baja, y el 65 como C1: no se leen.
+    EXPECT_EQ(ErrorOf(Guild::ReadGuildPacket(
+                  PacketOf(Bytes({0xc2, 0x00, 0x0d, 0x65, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})))),
+              ProtocolError::TooShort);
+    EXPECT_EQ(ErrorOf(Guild::ReadGuildPacket(PacketOf(Bytes({0xc1, 0x05, 0x65, 0x00, 0x00})))),
+              ProtocolError::WrongPacket);
+}
+
+// 0x4e44aa: el 67, un C2 con entradas de 0x14 bytes: la clave entera (sin sacar el bit 7), el DWORD del gremio en +4,
+// la relación en +8 y el nombre de la alianza en +9.
+TEST(GuildProtocolTest, TheViewportUnionReadsEntriesOfTwentyBytes)
+{
+    std::vector<std::byte> bytes =
+        Bytes({0xc2, 0x00, 0x19, 0x67, 0x01, 0x81, 0x23, 0xee, 0xee, 0x02, 0x00, 0x00, 0x00, 0x01});
+    Append(bytes, "Teros", 8);
+    AppendFilled(bytes, 3, 0xee);
+    const auto read = ReadAs<Guild::ViewportUnion>(bytes);
+    ASSERT_EQ(read.entries.size(), 1u);
+    EXPECT_EQ(read.entries[0].key, 0x8123);
+    EXPECT_EQ(read.entries[0].guildKey, 2);
+    EXPECT_EQ(read.entries[0].relation, 1);
+    EXPECT_EQ(TextOf(read.entries[0].unionName), "Teros");
+    // Sin el último byte del nombre (+0x10), no se lee.
+    bytes.resize(bytes.size() - 4);
+    bytes[2] = static_cast<std::byte>(bytes.size());
+    EXPECT_EQ(ErrorOf(Guild::ReadGuildPacket(PacketOf(bytes))), ProtocolError::TooShort);
+}
+
+// 0x4d930f..0x4d9555: C1 08 66 [0] [clave], con el XOR32 desde pkt[3].
+TEST(GuildProtocolTest, TheGuildInfoRequestPadsBeforeTheKey)
+{
+    const auto sent = Guild::WriteGuildInfoRequest(0x12345678);
+    EXPECT_EQ(sent.delivery, Delivery::Clear);
+    EXPECT_TRUE(SameBytes(PlainOf(sent), Bytes({0xc1, 0x08, 0x66, 0x00, 0x78, 0x56, 0x34, 0x12})));
+    EXPECT_NE(sent.packet.Bytes()[3], std::byte{0x00});
+}
 } // namespace

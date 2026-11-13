@@ -40,6 +40,7 @@ struct WorldTerrain;
 namespace Client::Scenes
 {
 class CharacterCloth;
+class IGuildMarks;
 class IModelLibrary;
 class WorldState;
 struct DrawnCharacter;
@@ -85,6 +86,9 @@ struct GameCharacterPass
     float fixedHeight = 1200.0f;
     // El terreno de esa altura; sin él, el del mapa del mundo (WorldState::Map). La selección tiene el suyo.
     const World::WorldTerrain* terrain = nullptr;
+    // Las marcas de los gremios (0x5f16a0) que dibuja 0x50d533 sobre los jugadores con gremio; sin ellas, uno con la
+    // marca corta.
+    IGuildMarks* guildMarks = nullptr;
 };
 
 // El cuerpo del jugador ordinario, su luz del terreno y el override del héroe, reutilizando

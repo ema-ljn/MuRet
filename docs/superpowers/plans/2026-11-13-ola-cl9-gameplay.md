@@ -349,7 +349,7 @@ tienda personal y ver la de otro; armar una party y echar a alguien; un duelo; c
 
 ### Hito 8: el gremio, la alianza y la guerra de gremios (CL9.4, ~78 KB)
 
-- [ ] **Los paquetes del gremio:** `0x50`..`0x56` (`0x4d74b0`, `0x4d6b60`, `0x4d7a20`, `0x4d7b60`,
+- [x] **Los paquetes del gremio:** `0x50`..`0x56` (`0x4d74b0`, `0x4d6b60`, `0x4d7a20`, `0x4d7b60`,
       `0x4d7c30`), la marca en el viewport (`0x5C`, `0x5D`, `0x50d533`), `0x66` (`0x447b90`), las burbujas
       (`0x556dd0`).
 - [ ] **La ventana del gremio** (el panel `0x10`, `0x64f3e0`, con sus tres pestañas `0x64fdf0`, `0x6507d0` y
@@ -371,6 +371,12 @@ el registro, y el diálogo de los paneles (`0x65feb0`..`0x6605b0` y dónde queda
 (08, P-C281): el dibujo y el paso de las ventanas, las listas, el alta (`0x6552b0`, `0x655d70`, `0x4e3450`), las
 ventanas de la alianza que mandan, el dibujo del diálogo, el marcador (`0x5a7640`), la marca en el viewport y el
 color de la tela.
+
+**Fase 2 (2026-11-13):** el `65` y el `67` (el gremio y la alianza de cada personaje; el `5C` del GS no lo atiende el
+1.02), la marca (`0x5f16a0`, cada una en su slot), la marca sobre el personaje (`0x50d533`), el marcador de la guerra
+(`0x5a7640`) y el dibujo del diálogo de los paneles (`0x660830`; el campo y el reloj, P-C285). Queda (08, P-C281): el
+dibujo y el paso de las ventanas con sus pestañas, las listas con `0x480e00` y `0x4824d0`, el alta, las ventanas de la
+alianza que mandan y el color de la tela en la guerra, que espera la parte del duelo del hito 7.
 
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 

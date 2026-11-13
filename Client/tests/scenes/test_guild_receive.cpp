@@ -524,6 +524,99 @@ TEST_F(GuildReceiveTest, TheGuildInfoWritesTheEntryOfItsKey)
     EXPECT_EQ(TextOf(GuildOf().table[2].guildName), "");
 }
 
+// 0x4d9260: cada entrada del 65 pone el puesto, +0x369 y la relación; con el gremio en la tabla, su índice; sin él,
+// el C1 08 66 que lo pide y 0x447b50, que lo agrega al final. +0x374: 1 con el gremio del héroe. Con la entrada del
+// héroe, 0x412120 copia su gremio y su puesto. En Lorencia, en Devias y en Arena (6, la del fútbol de la guerra).
+TEST_F(GuildReceiveTest, TheViewportGuildGivesEachActorItsIndexAndAsksForTheUnknownOnes)
+{
+    for (const std::int32_t map : {0, 2, 6})
+    {
+        SCOPED_TRACE(map);
+        Reset(map);
+        GuildOf().tableCount = 2;
+        NameTheGuild(0, 70, "Horneros");
+        NameTheGuild(1, 71, "Teros");
+        ActorState& other = Actor(9, "Zorzal", 0x0077);
+        Guild::ViewportGuild viewport;
+        viewport.entries.push_back({.guildKey = 71, .status = 0x80, .byte369 = 1, .relation = 2, .key = 0x0042});
+        viewport.entries.push_back({.guildKey = 71, .status = 0x20, .byte369 = 0, .relation = 0, .key = 0x0077});
+        viewport.entries.push_back({.guildKey = 99, .status = 0, .byte369 = 0, .relation = 1, .key = 0x0077});
+        ASSERT_TRUE(Apply(viewport).HasValue());
+        const ActorState& hero = m_world->Actors()[0];
+        EXPECT_EQ(hero.word1f2, 1);
+        EXPECT_EQ(hero.guildStatus, 0x80);
+        EXPECT_EQ(hero.byte369, 1);
+        EXPECT_EQ(hero.byte370, 2);
+        EXPECT_EQ(hero.byte374, 1);
+        EXPECT_EQ(GuildOf().heroGuildIndex, 1);
+        EXPECT_EQ(GuildOf().heroGuildStatus, 0x80);
+        // La tercera entrada pisa a la segunda: el gremio 99 no estaba, se pide y queda en la entrada 2.
+        EXPECT_EQ(other.word1f2, 2);
+        EXPECT_EQ(other.byte370, 1);
+        EXPECT_EQ(other.byte374, 0);
+        EXPECT_EQ(GuildOf().tableCount, 3u);
+        EXPECT_EQ(GuildOf().table[2].key, 99);
+        ASSERT_EQ(m_sent.size(), 1u);
+        EXPECT_EQ(m_sent[0], (std::vector<std::uint8_t>{0xc1, 0x08, 0x66, 0x00, 99, 0x00, 0x00, 0x00}));
+        EXPECT_EQ(DrawsSince(), 0);
+    }
+}
+
+// 0x4d96eb..0x4d976b: en guerra y sin el índice del rival, el 65 lo busca por el nombre y deja −1 si no está; con el
+// rival, +0x374 en 2. La tabla llena da −1 sin pedir nada más que el 66. Sin el personaje, corta.
+TEST_F(GuildReceiveTest, TheViewportGuildMarksTheRivalInAWar)
+{
+    GuildOf().tableCount = 2;
+    NameTheGuild(0, 70, "Horneros");
+    NameTheGuild(1, 71, "Teros");
+    GuildOf().warOn = 1;
+    Fill(GuildOf().rival, "Teros");
+    ActorState& other = Actor(9, "Zorzal", 0x0077);
+    Guild::ViewportGuild viewport;
+    viewport.entries.push_back({.guildKey = 71, .status = 0, .byte369 = 0, .relation = 0, .key = 0x0077});
+    ASSERT_TRUE(Apply(viewport).HasValue());
+    EXPECT_EQ(GuildOf().rivalIndex, 1);
+    EXPECT_EQ(other.byte374, 2);
+
+    Fill(GuildOf().rival, "Benteveos");
+    GuildOf().rivalIndex = -1;
+    ASSERT_TRUE(Apply(viewport).HasValue());
+    EXPECT_EQ(GuildOf().rivalIndex, -1);
+    EXPECT_EQ(other.byte374, 0);
+
+    // Con la tabla llena, 0x447b00 leería la entrada 2.000 (Q-C1280): corta antes de 0x447b50. Sin el personaje,
+    // también.
+    GuildOf().tableCount = 2000;
+    viewport.entries[0].guildKey = 5000;
+    EXPECT_FALSE(Apply(viewport).HasValue());
+    EXPECT_TRUE(m_sent.empty());
+    GuildOf().tableCount = 2;
+    viewport.entries[0].guildKey = 71;
+    viewport.entries[0].key = 0x0078;
+    EXPECT_FALSE(Apply(viewport).HasValue());
+}
+
+// 0x4e44aa: el 67 pone el nombre de la alianza en la entrada del gremio y la relación en el personaje; un gremio que
+// la tabla no tiene escribe en el miembro 74 (Q-C1284). La clave no pierde el bit 7, como en el 65: con él, nadie.
+TEST_F(GuildReceiveTest, TheViewportUnionNamesTheAllianceAndTheRelation)
+{
+    GuildOf().tableCount = 1;
+    NameTheGuild(1, 71, "Teros", "Viejos");
+    ActorState& other = Actor(9, "Zorzal", 0x0077);
+    Guild::ViewportUnion viewport;
+    viewport.entries.push_back({.key = 0x0077, .guildKey = 71, .relation = 1, .unionName = GuildNameOf("Ceibos")});
+    ASSERT_TRUE(Apply(viewport).HasValue());
+    EXPECT_EQ(TextOf(GuildOf().table[1].unionName), "Ceibos");
+    EXPECT_EQ(other.byte370, 1);
+
+    viewport.entries[0].guildKey = 72;
+    viewport.entries[0].unionName = GuildNameOf("Talas");
+    ASSERT_TRUE(Apply(viewport).HasValue());
+    EXPECT_EQ(std::string(GuildOf().members[74].name.data()), "Talas");
+    viewport.entries[0].key = 0x8077;
+    EXPECT_FALSE(Apply(viewport).HasValue());
+}
+
 // 0x6565e0: la alianza pide con el nombre de quien la propone; Confirmar (0x653c00 con 8) manda C1 08 E6 con 1. Con el
 // diálogo ocupado, el 0 sin preguntar.
 TEST_F(GuildReceiveTest, AnAllianceRequestAsksAndTheAnswerGoesBack)

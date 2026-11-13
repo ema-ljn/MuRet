@@ -579,6 +579,106 @@ Core::Expected<void, std::string> ApplyGuildInfo(const GuildInfo& info, const Gu
     return {};
 }
 
+// 0x4d96f4..0x4d976b: con la guerra (0x576796c) y sin el índice del rival (0x6c82f0 en −1), el 65 lo busca con el
+// nombre (0x5767804), si hay, de la entrada 0 a la 1998, y deja el que encuentra o −1, como no hace el 62. Devuelve el
+// índice con el que marca, o nada sin nombre.
+std::optional<std::int32_t> RivalForTheViewport(GuildState& guild)
+{
+    if (guild.rivalIndex == -1)
+    {
+        if (guild.rival[0] == '\0')
+            return std::nullopt;
+        const std::string_view name = NameOf(guild.rival);
+        for (std::size_t index = 0; index < RivalSearched; ++index)
+        {
+            if (NameOf(guild.table[index].guildName) == name)
+            {
+                guild.rivalIndex = static_cast<std::int32_t>(index);
+                break;
+            }
+        }
+    }
+    return guild.rivalIndex;
+}
+
+Core::Expected<void, std::string> ApplyViewportGuild(const ViewportGuild& viewport, const GuildReceiveContext& context)
+{
+    WorldState& world = context.world;
+    GuildState& guild = world.Runtime().guild;
+    for (const ViewportGuildEntry& entry : viewport.entries)
+    {
+        const std::size_t index = ActorWithKey(world, entry.key);
+        if (index >= ActorCount)
+            return Core::Unexpected(std::string("0x4d92b2: sin el personaje, 0x5110d0 da 400 y el 65 escribe fuera de "
+                                                "los 400 registros"));
+        ActorState& actor = world.Actors()[index];
+        actor.guildStatus = entry.status;
+        actor.byte369 = entry.byte369;
+        actor.byte370 = entry.relation;
+        // 0x4d92ef: 0x447b30 (0x447b00 distinto de −1) y 0x447b00 otra vez; sin el gremio, el C1 08 66 que lo pide y
+        // 0x447b50, que lo agrega (−1 con la tabla llena).
+        const auto found = FindGuild(guild, entry.guildKey);
+        if (!found)
+            return Core::Unexpected(std::string("0x447b00: la búsqueda pasa de las 2.000 entradas de la tabla"));
+        std::int32_t guildIndex = *found;
+        if (guildIndex == -1)
+        {
+            if (auto sent = Send(context, WriteGuildInfoRequest(entry.guildKey), "0x4d95c6"); !sent.HasValue())
+                return sent;
+            guildIndex = AddGuild(guild, entry.guildKey);
+        }
+        actor.word1f2 = static_cast<std::uint16_t>(static_cast<std::int16_t>(guildIndex));
+        // 0x4d96b9: con el personaje vivo (siempre: 0x5110d0 solo encuentra a los vivos), +0x374 en 0; 1 con el gremio
+        // del héroe (leído otra vez de 0x743a170); 2 con el del rival, en guerra.
+        if (actor.alive)
+        {
+            actor.byte374 = OtherGuild;
+            const std::int16_t heroGuild = GuildIndexOf(HeroOf(context));
+            if (heroGuild != NoGuildIndex && GuildIndexOf(actor) == heroGuild)
+                actor.byte374 = HeroGuild;
+            if (guild.warOn != 0)
+            {
+                const std::optional<std::int32_t> rival = RivalForTheViewport(guild);
+                if (rival && *rival >= 0 && static_cast<std::int32_t>(GuildIndexOf(actor)) == *rival)
+                    actor.byte374 = RivalGuild;
+            }
+        }
+        // 0x4d9772: el del héroe, 0x412120(+0x1f2, +0x368).
+        if (index == world.Runtime().hero)
+        {
+            guild.heroGuildIndex = GuildIndexOf(actor);
+            guild.heroGuildStatus = actor.guildStatus;
+        }
+    }
+    return {};
+}
+
+Core::Expected<void, std::string> ApplyViewportUnion(const ViewportUnion& viewport, const GuildReceiveContext& context)
+{
+    WorldState& world = context.world;
+    GuildState& guild = world.Runtime().guild;
+    for (const ViewportUnionEntry& entry : viewport.entries)
+    {
+        // 0x4e44c6..0x4e44e5: el nombre de la alianza en +4..+0xc de la entrada de 0x447b00, aunque sea −1: entonces
+        // va a los bytes 0 a 8 del nombre del miembro 74 (Q-C1281, Q-C1284).
+        const auto found = FindGuild(guild, entry.guildKey);
+        if (!found)
+            return Core::Unexpected(std::string("0x447b00: la búsqueda pasa de las 2.000 entradas de la tabla"));
+        std::span<char> target = *found == -1
+                                     ? std::span<char>(guild.members[MemberBeforeTheTable].name)
+                                     : std::span<char>(guild.table[static_cast<std::size_t>(*found)].unionName);
+        for (std::size_t i = 0; i < GuildNameSize; ++i)
+            target[i] = std::to_integer<char>(entry.unionName[i]);
+        target[GuildNameSize] = '\0';
+        const std::size_t index = ActorWithKey(world, entry.key);
+        if (index >= ActorCount)
+            return Core::Unexpected(std::string("0x4e44f5: sin el personaje, 0x5110d0 da 400 y el 67 escribe fuera de "
+                                                "los 400 registros"));
+        world.Actors()[index].byte370 = entry.relation;
+    }
+    return {};
+}
+
 Core::Expected<void, std::string> ApplyAssignResult(const AssignResult& result, const GuildReceiveContext& context)
 {
     std::optional<std::size_t> index;
@@ -685,19 +785,20 @@ Core::Expected<void, std::string> ApplyRelationshipResult(const RelationshipResu
     else
     {
         // 0x4d9a04: el switch de pkt[5].
-        constexpr std::array<std::pair<std::uint8_t, std::size_t>, 13> Results{{{0x10, 1637},
-                                                                                {0x11, 1386},
-                                                                                {0x15, 1250},
-                                                                                {0x16, 1251},
-                                                                                {0x17, 1252},
-                                                                                {0x18, 1253},
-                                                                                {0x19, 1254},
-                                                                                {0x1a, 1255},
-                                                                                {0x1b, 1333},
-                                                                                {0x1c, 1329},
-                                                                                {0x1d, 1331},
-                                                                                {0x1e, 1287},
-                                                                                {0x20, 1268}}};
+        constexpr std::array<std::pair<std::uint8_t, std::size_t>, 13> Results{
+            {{std::uint8_t{0x10}, std::size_t{1637}},
+             {std::uint8_t{0x11}, std::size_t{1386}},
+             {std::uint8_t{0x15}, std::size_t{1250}},
+             {std::uint8_t{0x16}, std::size_t{1251}},
+             {std::uint8_t{0x17}, std::size_t{1252}},
+             {std::uint8_t{0x18}, std::size_t{1253}},
+             {std::uint8_t{0x19}, std::size_t{1254}},
+             {std::uint8_t{0x1a}, std::size_t{1255}},
+             {std::uint8_t{0x1b}, std::size_t{1333}},
+             {std::uint8_t{0x1c}, std::size_t{1329}},
+             {std::uint8_t{0x1d}, std::size_t{1331}},
+             {std::uint8_t{0x1e}, std::size_t{1287}},
+             {std::uint8_t{0x20}, std::size_t{1268}}}};
         for (const auto& [code, text] : Results)
         {
             if (code == result.result)
@@ -817,6 +918,10 @@ Core::Expected<void, std::string> ApplyGuildPacket(const GuildPacket& packet, co
                 return ApplyRelationshipResult(received, context);
             else if constexpr (std::is_same_v<Received, UnionList>)
                 return ApplyUnionList(received, context);
+            else if constexpr (std::is_same_v<Received, ViewportGuild>)
+                return ApplyViewportGuild(received, context);
+            else if constexpr (std::is_same_v<Received, ViewportUnion>)
+                return ApplyViewportUnion(received, context);
             else
                 return ApplyUnionListRefresh(received, context);
         },

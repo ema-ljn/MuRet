@@ -28,6 +28,15 @@ static_assert(OriginalTextureSlotCount * 0x38 == 0x64e6 * 4, "el memset de 0x622
 // uno de estos: con 256, 8 MiB de texturas.
 inline constexpr std::size_t TextTextureSlotCount = 256;
 inline constexpr TextureSlot FirstTextTextureSlot{static_cast<std::uint16_t>(OriginalTextureSlotCount)};
-// Todos los slots de una tabla de MuRet: los del original y los del texto.
-inline constexpr std::size_t TextureSlotCount = OriginalTextureSlotCount + TextTextureSlotCount;
+
+// Las marcas de los gremios de MuRet (CL9 hito 8), después de las del texto. El original pinta cada marca en el slot
+// 0x22 (Interface\guild.tga) con glTexImage2D justo antes de su quad (0x5f16a0); MuRet arma los lotes del frame y los
+// dibuja después, así que cada marca tiene su slot: uno por entrada de la tabla de los gremios (2.000, 0x447b50) y por
+// fondo (el segundo argumento de 0x5f16a0), Scenes::GuildMarkTextures.
+inline constexpr std::size_t GuildMarkTextureSlotCount = 4000;
+inline constexpr TextureSlot FirstGuildMarkTextureSlot{
+    static_cast<std::uint16_t>(OriginalTextureSlotCount + TextTextureSlotCount)};
+// Todos los slots de una tabla de MuRet: los del original, los del texto y los de las marcas.
+inline constexpr std::size_t TextureSlotCount =
+    OriginalTextureSlotCount + TextTextureSlotCount + GuildMarkTextureSlotCount;
 } // namespace Client::Render

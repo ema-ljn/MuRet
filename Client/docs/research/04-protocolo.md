@@ -911,7 +911,7 @@ lee el handler); `App::ServerSession` los registra juntos después del `D7` y lo
 `ApplyViewportPosition`). Los tests arman los paquetes con los structs del ASM y nombres inventados
 (`support/ViewportPackets.h`).
 
-### El gremio, la alianza y la guerra: `50`..`66` y `E1`..`EB`
+### El gremio, la alianza y la guerra: `50`..`67` y `E1`..`EB`
 
 (CL9 hito 8, 2026-11-13, *estático*, contra el GameServer 0.97 reconstruido; la alianza, `E1`..`EB`, no la tiene:
 el ASM del cliente es el oráculo.) `0x4e2b10` los reparte sin mirar la escena ni el flag de cifrado. El `55` y el
@@ -929,7 +929,9 @@ funciones de cada uno y lo que hacen están en [06](06-render-escenas-y-ui.md#el
 | `62` | `0x4d8260` | `C1 0D 62 <gremio:8> <tipo> <equipo>` |
 | `63` | `0x4d8870` | `C1 0C 63 <resultado> <gremio:8>`; el nombre no se lee |
 | `64` | `0x4e4400` | `C1 06 64 <nuestro> <suyo> <x>`; `pkt[5]` no se lee |
+| `65` | `0x4e42af` → `0x4d9260` | C2 (*inferido*: lee la cuenta de `pkt[4]`): entradas de `0xc` bytes desde `pkt[5]`: `<gremio:4 LE> <puesto> <+0x369> <relación> <clave:2>`, el byte alto `& 0x7f`; `+9..+0xb` no se leen (fase 2) |
 | `66` | `0x4e42c7` → `0x447b90` | `C1 39 66 x <clave:4 LE> x <alianza:8> <gremio:8> <marca:32>` |
+| `67` | `0x4e44aa` (en línea) | C2 como el `65`: entradas de `0x14` bytes desde `pkt[5]`: `<clave:2>` entera (sin `& 0x7f`), `x x`, `<gremio:4 LE> <relación> <alianza:8>`; `+0x11..+0x13` no se leen (fase 2) |
 | `E1` | `0x4d9810` | `C1 05 E1 <tipo> <resultado>` |
 | `E5` | `0x4e4444` → `0x6565e0` | `C1 07 E5 <relación> <pedido> <clave alta> <clave baja>` |
 | `E6` | `0x4d9940` | `C1 08 E6 <relación> <pedido> <resultado> <clave:2 BE>` |
@@ -947,12 +949,16 @@ Lo que manda el cliente, por el socket del GameServer (`0x6c82a0`) sin la capa d
 - `C1 08 E6 <relación> <pedido> <resultado> <clave alta> <clave baja>` con el XOR32 (`0x653c00`, y `0x656616` con el
   diálogo ocupado: el 0).
 - `C1 03 E9`, sin campos (`0x4d9bc8`).
+- `C1 08 66 0 <gremio:4 LE>` con el XOR32 desde `pkt[3]` (`0x4d930f..0x4d9690`): el `65` pide el `66` de cada gremio
+  que la tabla no tiene, antes de agregarlo con `0x447b50` (fase 2). El 0 es el relleno hasta el DWORD, como el
+  `pkt[3]` del `66`.
 
 Contra el GS 0.97 (08, P-C283): el `52` tiene la cabecera de `0x10` bytes y entradas de `0xc` (`PMSG_GUILDLIST`, sin
 el puesto), y el 1.02 lee una de `0x18` y entradas de `0xd`; el `5C` no tiene handler; la alianza (`E1`..`EB`) no
-existe.
+existe, y tampoco el `65`, el `66` ni el `67` (el GS 0.97 manda el `5C`, que el cliente ignora): el ASM es el oráculo
+de sus formatos, y que sean C2, *inferido* de dónde leen la cuenta.
 
-**MuRet**: `Protocol::Guild::ReadGuildPacket` lee los 18 (el `52` y el `E9` solo en C2) y sus `Write*` arman lo que
+**MuRet**: `Protocol::Guild::ReadGuildPacket` lee los 20 (el `52`, el `65`, el `67` y el `E9` solo en C2) y sus `Write*` arman lo que
 manda; `App::ServerSession` los registra en un bloque (`RegisterGuildHandlers`) y `Scenes::ApplyGuildPacket` los
 aplica (06). Los tests usan nombres inventados.
 

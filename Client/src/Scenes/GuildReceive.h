@@ -46,7 +46,7 @@ struct GuildReceiveContext
     std::uint16_t playerKey = 0;
     // GetTickCount(): con lo que se abre el diálogo de los paneles (0x6600d0).
     std::uint32_t now = 0;
-    // El GameServer: los C1 que mandan el 50, el 53, el 62, el 63, el E5 y el EB, y las ventanas al cerrarse.
+    // El GameServer: los C1 que mandan el 50, el 53, el 62, el 63, el 65, el E5 y el EB, y las ventanas al cerrarse.
     GuildSender send{};
     // Las acciones de los modelos (0x4ea030) para el gesto de la guerra: el 62 y el 63 llaman a 0x576a60 con el héroe
     // (Scenes::PlayTheEmote, hito 1 de la CL9) antes de su C1 18. Sin ellos, cortan antes del gesto.
@@ -54,8 +54,8 @@ struct GuildReceiveContext
 };
 
 // 0x4e2b10 con un paquete del gremio: 50 (0x4d74b0), 51 (0x4d7a20), 52 (0x4d7b60), 53 (0x4d7c30), 54 (0x4e4279), 56
-// (0x4d7ff0), 5D (0x4e42f0), 60 (0x4d8150), 61 (0x4e4382), 62 (0x4d8260), 63 (0x4d8870), 64 (0x4e4400), 66 (0x4e42c7 →
-// 0x447b90), E1 (0x4d9810), E5 (0x6565e0), E6 (0x4d9940), E9 (0x4d9e50) y EB (0x4d9b80).
+// (0x4d7ff0), 5D (0x4e42f0), 60 (0x4d8150), 61 (0x4e4382), 62 (0x4d8260), 63 (0x4d8870), 64 (0x4e4400), 65 (0x4d9260),
+// 66 (0x4e42c7 → 0x447b90), 67 (0x4e44aa), E1 (0x4d9810), E5 (0x6565e0), E6 (0x4d9940), E9 (0x4d9e50) y EB (0x4d9b80).
 [[nodiscard]] Core::Expected<void, std::string> ApplyGuildPacket(const Protocol::Guild::GuildPacket& packet,
                                                                  const GuildReceiveContext& context);
 } // namespace Client::Scenes

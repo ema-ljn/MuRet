@@ -141,8 +141,8 @@ TEST_F(TextureTableTest, TheLastSlotIsInTheTable)
     EXPECT_EQ(table.Find(TextureSlot{last}), nullptr);
 }
 
-// Los slots del texto van después de los del original: el 1.845 (0x735) es el primero y el 2.100,
-// el último.
+// Los slots del texto van después de los del original: el 1.845 (0x735) es el primero. El último de la
+// tabla, el 6.100, es el de la última marca de los gremios (CL9 hito 8).
 TEST_F(TextureTableTest, TheTextSlotsComeAfterTheOriginal)
 {
     TextureTable table(Gl());

@@ -195,7 +195,7 @@ GameScene::GameScene(const SceneContext& context, App::ServerSession* session, c
                      const Data::Text::TextTable* texts, GameChatTables chat)
     : m_context(context), m_session(session), m_models(models), m_items(items), m_gameSlots(gameSlots), m_gates(gates),
       m_skills(skills), m_texts(texts), m_chatTables(chat), m_windowTextures(context.textures, WindowTextureSet),
-      m_sandTextures(context.textures, SandTextureSet), m_tiles(context.textures)
+      m_sandTextures(context.textures, SandTextureSet), m_guildMarks(context.textures), m_tiles(context.textures)
 {
 }
 
@@ -1088,7 +1088,8 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                           { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); },
                           .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
                           .polygon = &polygon,
-                          .fixedHeight = CameraState().fixedHeight});
+                          .fixedHeight = CameraState().fixedHeight,
+                          .guildMarks = &m_guildMarks});
     if (poseFailure)
         return Core::Unexpected(*poseFailure);
     return drawn;

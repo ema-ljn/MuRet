@@ -446,6 +446,11 @@ el cartel del conjunto en `0x6376c6` es el del hito 5 (`Scenes::DrawTheSetLabel`
 (`0x40ebd0`, Q-C594, que trae Q-C614). La ayuda del ítem se abre (el modo 3) y corta en su dibujo, desde `0x5b09a8`
 (P-C105, que trae P-C102). El texto de la caja de los tooltips todavía no pasa por `CenterInBox` (P-C145).
 
+**El texto de la caja de los tooltips, hecho** (2026-11-13, cierra P-C145): cada renglón de `0x5af090` va por
+`ITextDrawer::DrawColumns` con la caja de `(ancho − 2) · rx` columnas desde `x + 1`, como `0x467060`: el modo 2 con
+`Render::Text::CenterInBox` y el 3 contra el borde derecho, con el fondo en toda la caja (06 § Los tooltips, "La
+caja"). Probado en 640 × 480 y 800 × 600 (`GameTooltipsTest`, `GameHelpsTest`).
+
 ### Hito 7: las ventanas viejas (CL8.3, ~41 KB, de los que ~11 son STL)
 
 - [x] **El administrador** (`0x48e470`, la fábrica `0x48ee60` sin los casos de amigos y correo, `0x490390`,

@@ -23,7 +23,9 @@ struct TooltipLines;
 //     medio y cy es el del último medido;
 //   - con el marco en 1, los cuatro bordes negros de 1 y el fondo negro con 0,8 de alfa (0x621aa0);
 //   - cada renglón con su color (el glColor3f y el fondo de 0x6c8e5c y 0x6c8e64), con el modo de 0x467060 en una caja
-//     de (ancho − 2) · rx píxeles desde x + 1; uno con '\n' o " " solo baja medio o un renglón, sin dibujar.
+//     de (ancho − 2) · rx píxeles desde x + 1, con el fondo en toda ella (ITextDrawer::DrawColumns): el 2 centra el
+//     texto (Render::Text::CenterInBox) y el 3 lo pone contra el borde derecho; uno con '\n' o " " solo baja medio o
+//     un renglón, sin dibujar.
 // Cada renglón baja (cy / ry) · 1,1. Termina con el color blanco y sin mezcla. Los modos que no son 2 ni 3 cortan.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheTooltipBox(GameHudContext& context, std::int32_t x,
                                                                   std::int32_t y, std::int32_t count,

@@ -1732,8 +1732,21 @@ texto `0x7d3a0f4 + página`. Enter o un botón elegido cierran.
 
 **El OK genérico** (`0x6263df`): lee y apaga Enter (`0x5763588`, que prende el WndProc en `0x4b50ff` y apaga la cola
 del frame en `0x63b0b7`); salvo el `0x73`, el clic en `[0x11c, 0x162) × [0x62, 0x77)` también. Con uno de los dos,
-el `0x70`, el `0x6f`, el `0x1a` y el `0x1c` cierran el juego (`SendMessageA(WM_DESTROY)`, `0x62828e`); el `0x73` y
-el `0x8f` son de otras olas; los demás pasan el que espera.
+el `0x70`, el `0x6f`, el `0x1a` y el `0x1c` cierran el juego (`SendMessageA(WM_DESTROY)`, `0x62828e`); el `0x8f` es
+de otra ola; los demás pasan el que espera.
+
+El OK del `0x73`, solo con Enter (`0x626460..0x6270ed`, *estático*; CL9 hito 7, fase 2). Con el zen escrito
+(`0x77f3b6c`) por encima de 100.000.000 (`0x5f5e100`, con signo), el `0x75` en su lugar: `0x6236f0(0)` y
+`0x6236f0(0x75)` en línea, sin `rand()`. Si no, `0x659290(0x20)` (el `rand()` del byte protegido) y, con el comercio
+abierto, el registro propio abierto (`0x6264b3..0x626784`): si el zen escrito, sin signo, pasa el propio (`+0xecc`)
+más el que ya está en el comercio (`0x78abab8`), el `0x74` en su lugar (`0x626ed8`); si no, el OK propio (`0x78abac1`),
+si estaba, se apaga y va el `C1 04 3C 00` en C3 (`0x626598`, el relleno y el serial), con `0x78abab8` mayor que 0
+(con signo) la espera `0x78abac8` va a `0x96`, el zen a `0x57678ac` y en el `C1 08 3A 00 <zen LE>` con el XOR32 y en
+claro (`0x626b2a..0x626eaf`, sin `rand()`), y el `0x73` pasa al que espera. El registro propio se cierra después
+(`0x626f06..0x62820a`, los 3.848 `rand()` si la cuenta vuelve a 0). Sin el comercio, `0x6270ed` mira `0x78abacc` y
+manda el `81` del almacén (CL9 hito 6, corta). Todos terminan en `0x628215`: `0x553570(0)`, `0x6c8e78 = 0x2a`,
+`0x6c8e6c = 2`, `0x77f3b6a = 0`, `0x6c8e68 = 0` y el botón (`0x6282af`: `0x77f3b10 = 0`, `0x6c8dcc = 6` y el
+sonido `0x19`). MuRet: `StepTheMoneyOk` en `GameDialogSteps.cpp`.
 
 **El dibujo** (`0x62db60`, en `0x637696` con la escena 5). Siempre deja `0x620980`, el blanco, la fuente normal en el
 DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos van con `0x554180` centrados en

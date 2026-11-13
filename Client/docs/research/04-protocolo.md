@@ -877,8 +877,8 @@ Del GS al cliente (los tamaños son los que lee el cliente):
 | `3D` | `C1 04 3D <resultado>` | `0x4d57f0` | Con la traba del `24` (`0x78abb39`) se guarda el primero (`0x5767968`, `0x57635bc`) para `0x4d1400`. Si no: 0 el texto 494 y la copia de cada ítem del otro; 2 el 495; 3 el 496 y el diálogo 0. Después la cuenta del cursor en 0, el cierre del diálogo `0x73` y `Close(0x20, 1)`, que no manda el `3D` |
 
 Del cliente: el `36` (`C1 05 36 <clave BE>`, C3; `0x406050` y `0x56c440`), el `37` (`C1 04 37 <resp>`, XOR32 en claro;
-el sí y el no del diálogo `0x78`, `0x62c20a` y `0x62d4a2`), el `3A` (`C1 08 3A 00 <zen LE>`, en claro; el OK del
-diálogo `0x73`, `0x626460`), el `3C` (`C1 04 3C <OK>`, C3; `0x5ecde0`) y el `3D` (`C1 03 3D`, C3; el botón de
+el sí y el no del diálogo `0x78`, `0x62c20a` y `0x62d4a2`), el `3A` (`C1 08 3A 00 <zen LE>`, XOR32 en claro; el OK
+del diálogo `0x73`, `0x626b2a..0x626eaf`), el `3C` (`C1 04 3C <OK>`, C3; `0x5ecde0`) y el `3D` (`C1 03 3D`, C3; el botón de
 cancelar de `0x5ecde0` y `0x657fe1` al cerrar la ventana a mano).
 
 Contra el GameServer 0.97 coinciden todos los tamaños menos uno: el `39` del GS lleva el `ItemInfo` de 8 bytes

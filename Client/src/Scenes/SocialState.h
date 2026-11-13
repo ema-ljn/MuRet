@@ -49,7 +49,8 @@ struct TradeState
     std::int32_t okWait = 0;
     // 0x78abaa5: algo cambió en la grilla del otro (0x5bc470) o se apretó el OK (0x5ecf95).
     std::uint8_t changed = 0;
-    // 0x78abacc: el botón del zen la pone en 2 (0x5ece9a); quién la lee queda para la VM (08 P-C203).
+    // 0x78abacc: el botón del zen la pone en 2 (0x5ece9a); la lee el OK del 0x73 sin el comercio abierto (0x6270ed,
+    // el zen del almacén, hito 6). Los demás lectores quedan para la VM (08 P-C203).
     std::int32_t field78abacc = 0;
     // 0x78abb14 y 0x6c932e (.data): el aviso del OK con la grilla del otro cambiada (0x5ecf67), que pide 0x633300(4,
     // 0x173, 0x94).

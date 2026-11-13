@@ -34,6 +34,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -512,6 +513,140 @@ TEST(GameDialogStepsTest, NoToTheTradeRequestSendsTheRefusalInClear)
     ASSERT_TRUE(tested.Click(0xea + 0x46, 0x62).HasValue());
     EXPECT_EQ(tested.requests.requests.size(), 3u);
 }
+
+// El OK del 0x73 (0x626460), con Enter: el zen escrito para el comercio. Cada caso arranca de Seed en Lorencia y en
+// Devias, con el comercio abierto (el byte de 0x20, un rand() en IsOpen) y 1.000 de zen propio.
+class MoneyOkTest : public ::testing::TestWithParam<std::int32_t>
+{
+protected:
+    static constexpr std::uint32_t Seed = 0x0c0ffee5u;
+    // 0x40b4d0: el registro propio, al cerrarse.
+    static constexpr int OwnRecordRandoms = 3848;
+
+    MoneyOkTest() : m_tested(std::make_unique<SteppingDialogs>(GetParam()))
+    {
+        m_tested->random = CrtRandom(Seed);
+        Client::Scenes::WorldRuntime& runtime = Runtime();
+        runtime.dialogs.current = 0x73;
+        runtime.panels.trade = 1;
+        runtime.social.dialogFieldLimit = 8;
+        runtime.social.moneyField = 1;
+        runtime.chat.input.fieldCount = 1;
+        m_tested->world.OwnCharacter().zen = 1000;
+    }
+
+    Client::Scenes::WorldRuntime& Runtime()
+    {
+        return m_tested->world.Runtime();
+    }
+
+    Client::Core::Expected<void, std::string> Enter(std::int32_t typed)
+    {
+        Runtime().social.typedMoney = typed;
+        Runtime().ui.enterPressed = true;
+        return m_tested->Dialogs(0, 0);
+    }
+
+    // 0x628215..0x6282c3: lo que deja el OK en todos los casos.
+    void ExpectTheDialogFieldsReset()
+    {
+        Client::Scenes::WorldRuntime& runtime = Runtime();
+        EXPECT_FALSE(runtime.ui.enterPressed);
+        EXPECT_EQ(runtime.social.dialogFieldLimit, 0x2a);
+        EXPECT_EQ(runtime.chat.input.fieldCount, 2);
+        EXPECT_EQ(runtime.social.moneyField, 0);
+        EXPECT_FALSE(runtime.ui.chatOpen);
+        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+        EXPECT_EQ(runtime.lastSoundId, 0x19);
+    }
+
+    std::vector<Request>& Sent()
+    {
+        return m_tested->requests.requests;
+    }
+
+    std::unique_ptr<SteppingDialogs> m_tested;
+};
+
+// Más de 100.000.000 (con signo): el 0x75 en su lugar, sin mirar el comercio ni sacar rand().
+TEST_P(MoneyOkTest, TooMuchMoneyOpensTheWarning)
+{
+    ASSERT_TRUE(Enter(100'000'001).HasValue());
+    EXPECT_EQ(Runtime().dialogs.current, 0x75);
+    EXPECT_EQ(Runtime().dialogs.pending, 0);
+    EXPECT_TRUE(Sent().empty());
+    EXPECT_EQ(m_tested->random.State(), CrtRandom(Seed).State());
+    ExpectTheDialogFieldsReset();
+}
+
+// Más que el zen propio más el que ya está en el comercio (sin signo, así que también un negativo): el 0x74. El
+// registro propio se abre y se cierra (3.848 rand() después del de IsOpen).
+TEST_P(MoneyOkTest, MoreThanTheOwnMoneyOpensTheOtherWarning)
+{
+    Runtime().social.trade.ownMoney = 200;
+    for (const std::int32_t typed : {1201, -1})
+    {
+        SCOPED_TRACE(typed);
+        Runtime().dialogs.current = 0x73;
+        const CrtRandom expected = Advanced(m_tested->random, 1 + OwnRecordRandoms);
+        ASSERT_TRUE(Enter(typed).HasValue());
+        EXPECT_EQ(Runtime().dialogs.current, 0x74);
+        EXPECT_TRUE(Sent().empty());
+        EXPECT_EQ(m_tested->random.State(), expected.State());
+        ExpectTheDialogFieldsReset();
+    }
+}
+
+// Con el zen: el OK propio se apaga con el C1 04 3C 00 en C3 (dos rand() antes del cierre del registro), 0x78abac8
+// en 0x96 con zen ya puesto, el zen en 0x57678ac y en el C1 08 3A 00 con el XOR32 y en claro, y el 0x73 se cierra
+// hacia el que espera.
+TEST_P(MoneyOkTest, TheMoneyGoesInTheThreeA)
+{
+    Client::Scenes::TradeState& trade = Runtime().social.trade;
+    trade.ownOk = 1;
+    trade.ownMoney = 200;
+    Runtime().dialogs.pending = 0x77;
+    const CrtRandom expected = Advanced(m_tested->random, 1 + 2 + OwnRecordRandoms);
+    ASSERT_TRUE(Enter(1200).HasValue());
+    ASSERT_EQ(Sent().size(), 2u);
+    EXPECT_EQ(Sent()[0].kind, "C3");
+    EXPECT_EQ(Sent()[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x3c, 0x00}));
+    EXPECT_EQ(Sent()[1].kind, "C1");
+    EXPECT_EQ(Sent()[1].bytes, (std::vector<std::uint8_t>{0xc1, 0x08, 0x3a, 0x00, 0xb0, 0x04, 0x00, 0x00}));
+    EXPECT_EQ(m_tested->random.State(), expected.State());
+    EXPECT_EQ(trade.ownOk, 0);
+    EXPECT_EQ(trade.okWait, 0x96);
+    EXPECT_EQ(trade.sentMoney, 1200u);
+    EXPECT_EQ(Runtime().dialogs.current, 0x77);
+    EXPECT_EQ(Runtime().dialogs.pending, 0);
+    ExpectTheDialogFieldsReset();
+
+    // Sin OK propio ni zen puesto: solo el 3A, y la espera queda.
+    trade.ownMoney = 0;
+    trade.okWait = 3;
+    Runtime().dialogs.current = 0x73;
+    const CrtRandom again = Advanced(m_tested->random, 1 + OwnRecordRandoms);
+    ASSERT_TRUE(Enter(0).HasValue());
+    ASSERT_EQ(Sent().size(), 3u);
+    EXPECT_EQ(Sent()[2].bytes, (std::vector<std::uint8_t>{0xc1, 0x08, 0x3a, 0x00, 0x00, 0x00, 0x00, 0x00}));
+    EXPECT_EQ(m_tested->random.State(), again.State());
+    EXPECT_EQ(trade.okWait, 3);
+    EXPECT_EQ(trade.sentMoney, 0u);
+    EXPECT_EQ(Runtime().dialogs.current, 0);
+}
+
+// Sin el comercio, el zen del almacén (0x6270ed, el 81) es del hito 6: corta después del rand() de IsOpen.
+TEST_P(MoneyOkTest, WithoutTheTradeTheWarehouseMoneyCuts)
+{
+    Runtime().panels.trade = 0;
+    const auto stepped = Enter(10);
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x6270ed"), std::string::npos) << stepped.Error();
+    EXPECT_NE(stepped.Error().find("hito 6"), std::string::npos) << stepped.Error();
+    EXPECT_TRUE(Sent().empty());
+}
+
+INSTANTIATE_TEST_SUITE_P(TwoMaps, MoneyOkTest, ::testing::Values(Lorencia, Devias));
 
 // Los tramos de otras olas cortan con su dirección; un id que no está en la tabla va al OK genérico.
 TEST(GameDialogStepsTest, TheOtherWavesDialogsAreCut)

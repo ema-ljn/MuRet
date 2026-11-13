@@ -118,6 +118,15 @@ constexpr std::int32_t YesNoBottom = 0x77;
 constexpr std::array<std::int32_t, 5> OtherNoCases{0x71, 0x76, 0x7d, 0x7f, 0x95};
 // El relleno y el serial del C1 05 41 en C3.
 constexpr std::uint32_t C3Randoms = 2;
+// 0x626460: el zen escrito, con signo, hasta 100.000.000 (0x5f5e100); con más, el diálogo 0x75. Sin el zen (el propio
+// más el que ya está en el comercio, sin signo), el 0x74.
+constexpr std::int32_t MaxTypedMoney = 100'000'000;
+constexpr std::int32_t TooMuchMoneyDialog = 0x75;
+constexpr std::int32_t NotEnoughMoneyDialog = 0x74;
+// 0x626b20: la espera del OK propio con zen ya puesto en el comercio.
+constexpr std::int32_t TradeOkWait = 0x96;
+// 0x62821f..0x62823a: lo que deja el cierre del 0x73: el largo del campo, los dos campos de Tab y el modo del zen.
+constexpr std::int32_t ClosedDialogFieldLimit = 0x2a;
 
 // 0x61c2b6..0x61c2c3: los lugares de las teclas que recorre (de 0 a 0x71).
 constexpr std::size_t OptionKeyPlaces = 0x72;
@@ -482,6 +491,73 @@ Core::Expected<void, std::string> StepTheButtons(const GameUiContext& context)
     return {};
 }
 
+// 0x62649e..0x626f06, con el comercio abierto (0x659290(0x20), un rand()): el zen escrito contra el propio (+0xecc del
+// registro propio, abierto en 0x6264b3..0x626784 y cerrado en 0x626f06..0x62820a) más el que ya está en el comercio
+// (0x78abab8), sin signo. Sin él, el 0x74 en lugar del 0x73. Con él: el OK propio, si estaba, se apaga y va el C1 04 3C
+// con 0 en C3 (0x626598..0x626b07, el relleno y el serial); con zen en el comercio (con signo), 0x78abac8 en 0x96; el
+// zen va a 0x57678ac y en el C1 08 3A con el XOR32, sin C3 (0x626b2a..0x626eaf); y el 0x73 se cierra.
+Core::Expected<void, std::string> OfferTheTypedMoney(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    TradeState& trade = runtime.social.trade;
+    const auto typed = static_cast<std::uint32_t>(runtime.social.typedMoney);
+    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                            Render::Models::OwnRecordCloseRandoms);
+    if (typed > context.world.OwnCharacter().zen + trade.ownMoney)
+    {
+        UI::PushDialog(runtime.dialogs, 0);
+        UI::PushDialog(runtime.dialogs, NotEnoughMoneyDialog);
+        return {};
+    }
+    auto requests = RequestsOf(context, "0x626b07");
+    if (!requests.HasValue())
+        return Core::Unexpected(std::move(requests).Error());
+    if (trade.ownOk != 0)
+    {
+        trade.ownOk = 0;
+        context.random.Discard(C3Randoms);
+        requests.Value()->SendGamePacket(Protocol::Trade::WriteTradeOkButton(0));
+    }
+    if (static_cast<std::int32_t>(trade.ownMoney) > 0)
+        trade.okWait = TradeOkWait;
+    trade.sentMoney = typed;
+    requests.Value()->SendGamePacket(Protocol::Trade::WriteTradeMoney(typed));
+    UI::PushDialog(runtime.dialogs, 0);
+    return {};
+}
+
+// 0x626460..0x6270ed y 0x628215..0x6282c8: el OK del 0x73 (el zen del comercio), solo con Enter. Con más de
+// 100.000.000, el 0x75 en su lugar (el 0x6236f0(0) y el 0x6236f0(0x75) en línea); si no, con el comercio abierto, el
+// zen; sin el comercio, el del almacén (0x6270ed, el 81 según 0x78abacc), que corta. Al final, los campos de texto
+// vacíos (0x553570(0)), el largo 0x2a, dos campos de Tab, el modo del zen y el campo del chat en 0, y el botón.
+Core::Expected<void, std::string> StepTheMoneyOk(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    SocialState& social = runtime.social;
+    if (social.typedMoney > MaxTypedMoney)
+    {
+        UI::PushDialog(runtime.dialogs, 0);
+        UI::PushDialog(runtime.dialogs, TooMuchMoneyDialog);
+    }
+    else
+    {
+        GamePanels panels(context.world, context.random);
+        if (!panels.Registry().IsOpen(UI::TradePanel))
+            return Core::Unexpected(std::format(
+                "0x6270ed: el zen del almacén (el 81, con 0x78abacc en {}) desde el diálogo 0x73 es de la CL9 hito 6",
+                social.trade.field78abacc));
+        if (auto offered = OfferTheTypedMoney(context); !offered.HasValue())
+            return offered;
+    }
+    UI::ResetTheTextBuffers(runtime.chat.input, false);
+    social.dialogFieldLimit = ClosedDialogFieldLimit;
+    runtime.chat.input.fieldCount = UI::ChatFieldCount;
+    social.moneyField = 0;
+    runtime.ui.chatOpen = false;
+    PressTheButton(runtime);
+    return {};
+}
+
 // 0x6263df..0x62645a y 0x62825c..0x6282c8: el OK genérico.
 Core::Expected<void, std::string> StepTheGenericOk(const GameUiContext& context)
 {
@@ -502,7 +578,7 @@ Core::Expected<void, std::string> StepTheGenericOk(const GameUiContext& context)
         return {};
     }
     if (id == EnterOnlyDialog)
-        return Core::Unexpected(std::string("0x626460: el OK del diálogo 0x73 es de la CL9 hito 7, fase 2"));
+        return StepTheMoneyOk(context);
     if (id == ReopeningDialog)
         return Core::Unexpected(std::string("0x628276: el OK del diálogo 0x8f (0x5e7aa0(6)) es de la CL9.3"));
     CloseTheDialog(runtime);

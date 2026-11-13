@@ -5,11 +5,14 @@
 #include "Core/IClock.h"
 #include "Data/Models/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
+#include "Render/ModelBatch.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Pass3D.h"
 #include "Render/ScreenScale.h"
+#include "Render/SpriteBatch.h"
+#include "Render/SpriteVertex.h"
 #include "Scenes/ActionReply.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorCharacterSet.h"
@@ -20,13 +23,18 @@
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/DarkSpirit.h"
+#include "Scenes/GameCharacters.h"
+#include "Scenes/GameHud.h"
+#include "Scenes/GameTooltips.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/TooltipLines.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/OldWindowBase.h"
+#include "UI/OldWindowDrawParts.h"
 #include "UI/OldWindows.h"
 #include "World/GameCamera.h"
 #include "World/ItemState.h"
@@ -39,6 +47,7 @@
 #include <glm/trigonometric.hpp>
 
 #include <array>
+#include <bit>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -395,6 +404,23 @@ CharacterStepContext StepContextOf(const WorldEntryResources& resources)
                                 .soundRequest = [&runtime](std::int32_t sound) { runtime.lastSoundId = sound; }};
 }
 
+// 0x495796: el paso del ayudante con lo del mundo de `resources`.
+HelperStepContext HelperStepContextOf(const WorldEntryResources& resources)
+{
+    const float worldClock =
+        resources.clock != nullptr
+            ? static_cast<float>(std::chrono::duration<double, std::milli>(resources.clock->Now()).count())
+            : 0.0f;
+    return HelperStepContext{.world = resources.world,
+                             .models = &resources.models,
+                             .random = resources.cloth.random,
+                             .worldClock = worldClock,
+                             .scene = SceneId::Game,
+                             .terrain = nullptr,
+                             .logicSteps = resources.cloth.logicSteps,
+                             .cameraShake = &resources.cameraInput.shake};
+}
+
 bool RidesTheHelper(const HelperState& helper)
 {
     if (!helper.alive)
@@ -550,9 +576,9 @@ Core::Expected<std::int32_t, std::string> ShowThePortraitAction(LetterPortrait& 
     else if (chosen == StrikeAction)
     {
         return Core::Unexpected(std::string(
-            "0x495b0b: la acción 0x78 del retrato de las cartas va a 0x4f4a10 con el mundo en 0 (sin leer, con sus "
-            "rand()), que es del hito 3 de la CL9; después pone +0x381 en 1, el frame (+0x114) en 0 y +0x3a4 en "
-            "0xffff"));
+            "0x495b0b: la acción 0x78 del retrato de las cartas va a SetActorAttack (0x4f4a10) con el mundo en 0 (sin "
+            "leer, con sus rand()), que es del hito 3 de la CL9; después pone +0x381 en 1, el frame (+0x114) en 0 y "
+            "+0x3a4 en 0xffff"));
     }
     else if (chosen == WalkAction)
     {
@@ -630,6 +656,29 @@ Render::Pass3D PortraitPass(App::PixelSize screen, const UI::OldWindowBase& base
     return pass;
 }
 
+Render::Pass3D PlaceThePortrait(LetterPortrait& portrait, const UI::OldPortraitPart& part, App::PixelSize screen)
+{
+    ActorState& actor = portrait.actor;
+    // 0x4957a4..0x4958c6.
+    Render::Pass3D pass = PortraitPass(screen, part.base, actor);
+    // 0x495849: 0x620370 guarda la modelview en la identidad en 0x7d366f0, la cámara de las billboards, y nadie la
+    // vuelve a poner hasta el pase del mundo siguiente. En MuRet cada dibujo de billboards lee la vista de su pase, y
+    // el retrato no dibuja ninguna.
+    // 0x4958cc..0x4958df.
+    actor.angles = {0.0f, 0.0f, part.angle};
+    // 0x49594f..0x49596f: la del ayudante, que 0x445260 pisa con su segundo argumento en 1 (Q-C1010).
+    actor.scale = static_cast<float>(static_cast<double>(part.zoom) * static_cast<double>(HelperScaleFactor));
+    portrait.helper.scale =
+        static_cast<float>(static_cast<double>(portrait.helperScale) * static_cast<double>(part.zoom));
+    // 0x495975..0x495993: las luces (+0xf4..+0xfc) del personaje y del ayudante en 1.
+    actor.light = glm::vec3(1.0f);
+    portrait.helper.light = glm::vec3(1.0f);
+    // 0x4959a1..0x4959bf.
+    actor.byte3e4 = 1;
+    actor.safeZone = actor.wings.model != NoItemModel && part.action > LastGroundAction ? 1 : 0;
+    return pass;
+}
+
 Core::Expected<Render::Pass3D, std::string> PrepareThePortraitDraw(LetterPortrait& portrait, UI::OldPortraitPart& part,
                                                                    App::PixelSize screen,
                                                                    const WorldEntryResources& resources)
@@ -666,29 +715,170 @@ Core::Expected<Render::Pass3D, std::string> PrepareThePortraitDraw(LetterPortrai
         const MapAtZero map(resources.world.Runtime());
         if (auto stepped = StepTheBodyAndEffects(actor, StepContextOf(resources)); !stepped.HasValue())
             return Core::Unexpected(stepped.Error());
-        if (portrait.helper.alive)
-            return Core::Unexpected(std::format("0x495796: el paso del ayudante {:#x} del retrato (0x444010) con su "
-                                                "jinete fuera del pool no está portado (P-C310)",
-                                                portrait.helper.type));
+        // 0x495796: 0x444010(ayudante, 1), vivo o no.
+        auto helped = StepTheHelperOutsideTheTable(portrait.helper, actor, HelperStepContextOf(resources));
+        if (!helped.HasValue())
+            return Core::Unexpected(helped.Error());
     }
-    Render::Pass3D pass = PortraitPass(screen, part.base, actor);
-    // 0x4958cc..0x4958df.
-    actor.angles = {0.0f, 0.0f, part.angle};
-    // 0x49594f..0x4959bf: +0x3e4 en 1, que MuRet no tiene.
-    actor.scale = static_cast<float>(static_cast<double>(part.zoom) * static_cast<double>(HelperScaleFactor));
-    portrait.helper.scale =
-        static_cast<float>(static_cast<double>(portrait.helperScale) * static_cast<double>(part.zoom));
-    actor.light = glm::vec3(1.0f);
-    portrait.helper.light = glm::vec3(1.0f);
-    actor.safeZone = actor.wings.model != NoItemModel && part.action > LastGroundAction ? 1 : 0;
-    return pass;
+    return PlaceThePortrait(portrait, part, screen);
 }
 
-Core::Expected<void, std::string> DrawThePortraitModel(const LetterPortrait& portrait)
+Core::Expected<void, std::string> DrawThePortraitModel(LetterPortrait& portrait, const Render::Pass3D& pass,
+                                                       const LetterPortraitDraw& draw,
+                                                       const WorldEntryResources& resources)
 {
-    return Core::Unexpected(std::format("0x4959cc: el dibujo del ayudante (0x445260) y del personaje (0x50ba30, clase "
-                                        "{:#x}) del retrato de las cartas, fuera del pool, no está portado (P-C310)",
-                                        portrait.actor.characterClass));
+    if (draw.characters.clothWorld == nullptr)
+        return Core::Unexpected(std::string("0x4959cc: falta el flujo global de rand del dibujo del retrato"));
+    if (draw.helperModels == nullptr)
+        return Core::Unexpected(std::string("0x4959cc: faltan los modelos de los ayudantes del dibujo del retrato"));
+    // 0x4958e2..0x495949: el 2D de antes queda debajo; el material de 0x620db0 y la profundidad borrada.
+    if (draw.flushSprites)
+        draw.flushSprites();
+    Render::Pass3D cleared = pass;
+    cleared.clearDepth = true;
+    draw.batch.Begin(cleared, true);
+    const GameCharacterPass& characters = draw.characters;
+    const float worldClock =
+        static_cast<float>(std::chrono::duration<double, std::milli>(characters.frameClock).count());
+    const HelperDrawContext helpers{.batch = draw.batch,
+                                    .models = *draw.helperModels,
+                                    .world = resources.world,
+                                    .random = characters.clothWorld->random,
+                                    .frameClock = characters.frameClock,
+                                    .stepAlpha = 0.0f,
+                                    .originalFrame = draw.originalFrame,
+                                    .onPose = draw.onHelperPose,
+                                    .publishProjectedPose = true,
+                                    .posedMeshes = draw.posedMeshes,
+                                    .scene = SceneId::Game,
+                                    .lighting = characters.dynamicLighting,
+                                    .sprites = characters.sprites,
+                                    .worldClock = worldClock,
+                                    .effects = characters.effects,
+                                    .particles = characters.particles,
+                                    .systemTime = draw.systemTime,
+                                    .globalPose = draw.globalPose};
+    // 0x4959cc: 0x445260(ayudante, 1); 0x4959d5: 0x50ba30(personaje, personaje, 0).
+    auto drawn = DrawTheHelperOutsideTheTable(portrait.helper, portrait.actor, helpers);
+    if (drawn.HasValue())
+        drawn = DrawCharacterOutsideThePool(draw.batch, resources.models, resources.world, portrait.actor,
+                                            portrait.cloth, characters, draw.originalFrame);
+    // 0x4959dd..0x495a0c: las matrices y el viewport de la pantalla (0x620d10(0, 0, W, H)), que el lote 2D pone solo.
+    if (draw.flushModels)
+        draw.flushModels();
+    return drawn;
+}
+
+namespace
+{
+// 0x497c22..0x497ca2: el cuadro negro y el logo.
+void DrawTheBlankPortrait(Render::SpriteBatch& sprites, const UI::OldWindowBase& base)
+{
+    constexpr float BlankWidth = 119.0f;  // 0x42ee0000
+    constexpr float BlankHeight = 141.0f; // 0x430d0000
+    constexpr std::uint16_t LogoSlot = 0x653;
+    constexpr std::int32_t LogoX = 0x14;
+    constexpr std::int32_t LogoY = 0x26;
+    constexpr float LogoWidth = 80.0f;    // 0x42a00000
+    constexpr float LogoHeight = 62.0f;   // 0x42780000
+    constexpr float LogoDv = 0.76171875f; // 0x3f430000
+    sprites.SetColor(Render::Color{.red = 0.0f, .green = 0.0f, .blue = 0.0f, .alpha = 1.0f});
+    sprites.ColorQuad(static_cast<float>(base.x), static_cast<float>(base.y), BlankWidth, BlankHeight);
+    UI::OldDraw::WhiteWithTexture(sprites);
+    UI::OldDraw::Quad(sprites, LogoSlot, static_cast<float>(base.x + LogoX), static_cast<float>(base.y + LogoY),
+                      LogoWidth, LogoHeight, 0.0f, 0.0f, 1.0f, LogoDv);
+}
+
+// 0x497d56..0x497f44: con +0x4c & 1, el ícono de la ayuda y, con la ayuda a la vista, sus tres renglones.
+Core::Expected<void, std::string> DrawThePortraitHelp(const UI::OldPortraitPart& part, GameHudContext& hud)
+{
+    const UI::OldWindowBase& base = part.base;
+    if ((base.flags & 1) == 0)
+        return {};
+    constexpr std::uint16_t HelpSlot = 0x651;
+    Render::SpriteBatch& sprites = hud.sprites;
+    sprites.SetColor(Render::Color{});
+    // 0x620980.
+    sprites.SetBlend(Render::BlendMode::Opaque);
+    if (part.help == 0)
+    {
+        // 0x497d89..0x497dcb.
+        constexpr float IconSize = 16.0f; // 0x41800000
+        constexpr std::int32_t IconRise = 0x11;
+        UI::OldDraw::Quad(sprites, HelpSlot, static_cast<float>(base.x + 1),
+                          static_cast<float>(base.y + base.height - IconRise), IconSize, IconSize, 0.0f, 0.0f, 1.0f,
+                          1.0f);
+        return {};
+    }
+    // 0x497dda..0x497e50: gris (0x3f19999a) y de vuelta en blanco.
+    constexpr float PressedGray = std::bit_cast<float>(0x3f19999au);
+    constexpr float PressedSize = 15.0f; // 0x41700000
+    constexpr float PressedUv = 0.9375f; // 0x3f700000
+    constexpr std::int32_t PressedRise = 0x10;
+    UI::OldDraw::Gray(sprites, PressedGray);
+    UI::OldDraw::Quad(sprites, HelpSlot, static_cast<float>(base.x + 2),
+                      static_cast<float>(base.y + base.height - PressedRise), PressedSize, PressedSize, 0.0f, 0.0f,
+                      PressedUv, PressedUv);
+    sprites.SetColor(Render::Color{});
+    // 0x497e52..0x497eec: los textos 997, 998 y 999 (0x7706238, 0x7706364 y 0x7706490) con el color 0 y sin negrita.
+    if (hud.texts == nullptr)
+        return Core::Unexpected(std::string("0x497e62: la ayuda del retrato sin Text.bmd"));
+    constexpr std::array<std::size_t, 3> HelpTexts{997, 998, 999};
+    TooltipLines& lines = hud.hud.tooltip;
+    lines.next = 0;
+    for (const std::size_t index : HelpTexts)
+    {
+        const std::optional<std::string_view> text = hud.texts->Text(index);
+        if (!text)
+            return Core::Unexpected(std::format("0x497e62: el texto {} de Text.bmd", index));
+        const auto line = static_cast<std::size_t>(lines.next);
+        lines.text[line] = std::string(*text);
+        lines.colors[line] = 0;
+        lines.bold[line] = 0;
+        ++lines.next;
+    }
+    // 0x497ef1..0x497f3f: GetTextExtentPoint32A con "Z" (0x6c7af8) y la fuente del DC, cy / ry truncado.
+    const double ry = static_cast<double>(Render::ScaleY(1.0f, sprites.Screen()));
+    const auto rowHeight =
+        static_cast<std::int32_t>(static_cast<double>(hud.text.Measure(hud.hud.dcFont, "Z").height) / ry);
+    constexpr std::int32_t RowGap = 2;
+    const std::int32_t y = base.y + base.height - (rowHeight + RowGap) * lines.next;
+    const std::int32_t x = base.x + base.width / 2;
+    constexpr std::int32_t LeftAligned = 1;
+    return DrawTheTooltipBox(hud, x, y, lines.next, 0, LeftAligned, 1);
+}
+} // namespace
+
+Core::Expected<void, std::string> DrawTheLetterPortrait(UI::OldPortraitPart& part, const LetterPortraitDraw& draw,
+                                                        const WorldEntryResources& resources)
+{
+    // 0x497c1b.
+    if (part.blank == 1)
+    {
+        DrawTheBlankPortrait(draw.hud.sprites, part.base);
+        return {};
+    }
+    if (!part.actor)
+        return Core::Unexpected(std::string("0x497c10: el retrato sin su personaje (Scenes::LetterPortrait)"));
+    LetterPortrait& durable = *std::static_pointer_cast<LetterPortrait>(part.actor);
+    std::optional<LetterPortrait> projected;
+    LetterPortrait& portrait = draw.originalFrame ? durable : projected.emplace(durable);
+    const App::PixelSize screen = draw.hud.sprites.Screen();
+    Render::Pass3D pass;
+    if (draw.originalFrame)
+    {
+        auto prepared = PrepareThePortraitDraw(portrait, part, screen, resources);
+        if (!prepared.HasValue())
+            return Core::Unexpected(prepared.Error());
+        pass = prepared.Value();
+    }
+    else
+    {
+        pass = PlaceThePortrait(portrait, part, screen);
+    }
+    if (auto drawn = DrawThePortraitModel(portrait, pass, draw, resources); !drawn.HasValue())
+        return drawn;
+    return DrawThePortraitHelp(part, draw.hud);
 }
 
 UI::OldPortraitHook LetterPortraitHook(const WorldEntryResources& resources)

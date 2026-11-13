@@ -46,6 +46,9 @@ struct Pass3D
     glm::mat4 view{1.0f};
     // El de la cámara, sin el × 1,4.
     float farPlane = 0.0f;
+    // glClear(GL_DEPTH_BUFFER_BIT) al empezar el pase con el material (ModelBatch::Begin con initializeMaterial):
+    // solo el del retrato de las cartas (0x495949), que borra la profundidad del mundo antes de su modelo.
+    bool clearDepth = false;
 
     // El segmento del mouse de 0x620480: de la posición de la cámara al punto del píxel (x, y) de la
     // pantalla, con la y desde arriba, que está a farPlane delante de la cámara, sobre su eje.

@@ -56,6 +56,7 @@ constexpr double TextBoxMargin = 2.0;
 // 0x3f4ccccd: el alfa del fondo de la caja.
 constexpr float BackgroundAlpha = 0.8f;
 // 0x5af36f: el modo de 0x467060 que usan todos los cuerpos, centrado en la caja, y el de 0x5af9b0, contra el borde.
+constexpr std::int32_t LeftAlignedMode = 1;
 constexpr std::int32_t CenteredMode = 2;
 constexpr std::int32_t RightAlignedMode = 3;
 // 0x40e850: la ventana del set, con 0x78 de ancho, en (x + 0x5f, y + 0x28) del inventario, con el fondo 0x64.
@@ -199,7 +200,8 @@ Render::Text::TextColors LineColors(std::int32_t color)
 
 // 0x465950(x, y, texto, caja, 0, modo, 0, 0x280) → 0x467060: una caja de `boxPixels` columnas que empieza en
 // _ftol(x · rx), con el fondo (0x6c8e64) en toda ella (ITextDrawer::DrawColumns, como el título del inventario,
-// Q-C710). El modo 2 (0x46711b..0x467132) pone el texto en la columna (caja − cx) / 2, con la caja de
+// Q-C710). El modo 1 (0x467102..0x467119) pone el texto en la columna 0 de una caja de `boxPixels` justas: contra su
+// borde izquierdo; el 2 (0x46711b..0x467132), en la columna (caja − cx) / 2, con la caja de
 // Render::Text::CenterInBox; el 3 (0x467134..0x467144), en la columna caja − cx de una caja de `boxPixels` justas:
 // contra su borde derecho. Devuelve lo que baja: cy / ry, la mitad si empieza con '\n'.
 double DrawLine(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t boxPixels,
@@ -208,7 +210,11 @@ double DrawLine(GameHudContext& context, std::int32_t x, std::int32_t y, std::st
     const App::PixelSize screen = context.sprites.Screen();
     const Render::Text::TextExtent extent = context.text.Measure(context.hud.dcFont, text);
     const Render::Text::TextStyle style{.font = context.hud.dcFont, .colors = context.hud.textColors};
-    if (mode == CenteredMode)
+    if (mode == LeftAlignedMode)
+    {
+        context.text.DrawColumns(x, y, text, style, 0, boxPixels);
+    }
+    else if (mode == CenteredMode)
     {
         const Render::Text::CenteredInBox placed = Render::Text::CenterInBox(boxPixels, extent.width);
         context.text.DrawColumns(x, y, text, style, -placed.textColumn, placed.width);
@@ -329,7 +335,7 @@ Core::Expected<void, std::string> DrawTheTooltipBox(GameHudContext& context, std
                                                     std::int32_t count, std::int32_t widthOverride,
                                                     std::int32_t textMode, std::int32_t frame)
 {
-    if (textMode != CenteredMode && textMode != RightAlignedMode)
+    if (textMode != LeftAlignedMode && textMode != CenteredMode && textMode != RightAlignedMode)
         return Core::Unexpected(std::format("0x5af471: la caja de los tooltips con el modo {} de 0x467060", textMode));
     if (count > static_cast<std::int32_t>(TooltipLineCount))
         return Core::Unexpected(

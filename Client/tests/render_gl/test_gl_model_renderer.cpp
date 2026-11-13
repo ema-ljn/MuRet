@@ -165,6 +165,25 @@ TEST_F(GlModelRendererTest, DrawsATriangleWithDepth)
     }
 }
 
+// El pase del retrato de las cartas (0x495949) borra la profundidad al empezar: el verde a 20 de su lote tapa al rojo a
+// 5 que dejó el lote de antes.
+TEST_F(GlModelRendererTest, APassThatClearsTheDepthDrawsOverTheOneBefore)
+{
+    AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 5.0f, RedColor);
+    DrawBatch();
+    auto pass = TestPass(Screen);
+    pass.clearDepth = true;
+    m_batch.Begin(pass);
+    AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 20.0f, GreenColor);
+
+    DrawBatch();
+
+    for (int cell = 0; cell < 4; ++cell)
+    {
+        ExpectNear(Cell(cell), Green);
+    }
+}
+
 // La bandera 0x2000: sin depth test, lo que va después tapa.
 TEST_F(GlModelRendererTest, TheDepthTestCanBeOff)
 {

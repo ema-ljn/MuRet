@@ -22,6 +22,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -285,7 +286,8 @@ protected:
                                      .texts = &m_texts,
                                      .focusedList = m_focusedList,
                                      .focusedEdit = m_focusedEdit,
-                                     .chatPlacement = m_placement};
+                                     .chatPlacement = m_placement,
+                                     .portrait = m_portrait};
         return Client::UI::DrawTheOldWindows(m_manager, Context(), view);
     }
 
@@ -354,6 +356,8 @@ protected:
     std::int32_t m_mouseUpdateTimeMax = 6;
     std::int32_t m_focusedEdit = 0;
     std::int32_t m_placement = 0;
+    // La vtable + 0x14 del retrato que da el juego; vacía, el retrato a la vista corta.
+    std::function<Client::Core::Expected<void, std::string>(OldPortraitPart&)> m_portrait;
     FontKind m_dcFont = FontKind::Bold;
     TextColors m_colors{};
 };
@@ -608,7 +612,7 @@ TEST_F(LetterWindowsDrawTest, TheDraggedChatPlacesItsChildrenBeforeTheDraw)
 // primero), en x + 10 y en 0xffc8dce6; sin mezcla después de ellos (0x465770 la saca), la raya del costado del retrato
 // (0x78 antes del borde derecho), la de los botones y su negro hasta él, la raya y el negro de arriba y el 1014 con los
 // colores del último renglón; los cinco botones. Al final del marco, la vtable + 0x54 (0x49a1d0) corta en el dibujo
-// del retrato.
+// del retrato sin el juego.
 TEST_F(LetterWindowsDrawTest, TheReadWindowDrawsItsBodyItsBarsAndItsButtonsUntilThePortrait)
 {
     OldWindow& read = OpenALetter("linea uno\nlinea dos\nlinea tres");
@@ -626,7 +630,7 @@ TEST_F(LetterWindowsDrawTest, TheReadWindowDrawsItsBodyItsBarsAndItsButtonsUntil
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x49a1d0"), std::string::npos);
     EXPECT_NE(drawn.Error().find("0x497c10"), std::string::npos);
-    EXPECT_NE(drawn.Error().find("P-C212"), std::string::npos);
+    EXPECT_NE(drawn.Error().find("sin el juego"), std::string::npos);
 
     std::vector<ExpectedCommand> expected{
         {std::nullopt, BlendMode::Alpha, 1},    {ScrollbarSlot, BlendMode::Alpha, 2},
@@ -690,7 +694,39 @@ TEST_F(LetterWindowsDrawTest, WithoutThePortraitModeTheBarsAreWholeAndNothingIsC
     });
     ExpectBox(QuadOf(4, 0), 105.0f, 237.0f, 465.0f, 238.0f);
     ExpectBox(QuadOf(4, 1), 105.0f, 238.0f, 465.0f, 256.0f);
-    EXPECT_EQ(Client::UI::DrawTheLetterPortrait(read).HasValue(), true);
+    EXPECT_EQ(Client::UI::DrawTheLetterPortrait(read, OldWindowDrawView{}).HasValue(), true);
+}
+
+// Con el juego, la vtable + 0x54 de las dos le pasa su retrato (+0xb0 la de leer, +0xb4 la de escribir) a la vtable
+// + 0x14 (0x497c10) al final del marco, después de los botones, y su error es el del dibujo.
+TEST_F(LetterWindowsDrawTest, WithTheGameBothLetterWindowsDrawTheirPortraitLast)
+{
+    OldWindow& read = OpenALetter("hola");
+    std::vector<OldPortraitPart*> drawnParts;
+    std::size_t commandsBefore = 0;
+    m_portrait = [&](OldPortraitPart& part) -> Client::Core::Expected<void, std::string>
+    {
+        drawnParts.push_back(&part);
+        commandsBefore = m_sprites.Commands().size();
+        return {};
+    };
+    ASSERT_TRUE(Draw().HasValue());
+    ASSERT_EQ(drawnParts.size(), 1u);
+    EXPECT_EQ(drawnParts[0], &read.letter.portrait);
+    EXPECT_EQ(commandsBefore, m_sprites.Commands().size());
+
+    OldWindow& write = OpenAWrite();
+    drawnParts.clear();
+    m_portrait = [&](OldPortraitPart& part) -> Client::Core::Expected<void, std::string>
+    {
+        drawnParts.push_back(&part);
+        return Client::Core::Unexpected(std::string("el modelo"));
+    };
+    const auto drawn = Draw();
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_EQ(drawn.Error(), "el modelo");
+    ASSERT_EQ(drawnParts.size(), 1u);
+    EXPECT_TRUE(drawnParts[0] == &read.letter.portrait || drawnParts[0] == &write.letter.portrait);
 }
 
 // Arrastrada y cambiando de tamaño, 0x499d60 vuelve a ubicar la lista, los botones y el retrato (el 8) y a medir la
@@ -718,7 +754,7 @@ TEST_F(LetterWindowsDrawTest, TheDraggedReadWindowPlacesItsChildren)
 // La de escribir con el retrato (+0xb0 en 1): con la mezcla normal, arriba el negro de 29 con las rayas en y + 0xe y
 // y + 0x1d, abajo el negro de 19 y su raya; el 1000 y el 1005 alineados a la derecha en el ancho del 1000, en
 // 0xffc8dce6 con el fondo que había; los tres EDIT (el del cuerpo con su barra, que termina sin mezcla) y los cuatro
-// botones. Al final del marco, la vtable + 0x54 (0x498800) corta en el dibujo del retrato.
+// botones. Al final del marco, la vtable + 0x54 (0x498800) corta en el dibujo del retrato sin el juego.
 TEST_F(LetterWindowsDrawTest, TheWriteWindowDrawsItsBarsItsLabelsItsEditsAndItsButtonsUntilThePortrait)
 {
     OldWindow& write = OpenAWrite();
@@ -733,7 +769,7 @@ TEST_F(LetterWindowsDrawTest, TheWriteWindowDrawsItsBarsItsLabelsItsEditsAndItsB
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x498800"), std::string::npos);
     EXPECT_NE(drawn.Error().find("0x497c10"), std::string::npos);
-    EXPECT_NE(drawn.Error().find("P-C212"), std::string::npos);
+    EXPECT_NE(drawn.Error().find("sin el juego"), std::string::npos);
 
     std::vector<ExpectedCommand> expected{
         {std::nullopt, BlendMode::Alpha, 6},   // la sombra, los negros y las rayas

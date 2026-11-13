@@ -2,12 +2,21 @@
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
+#include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Terrain/TerrainGrid.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Protocol/Character/Opcodes.h"
+#include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/Skeleton.h"
+#include "Render/SpriteBatch.h"
+#include "Render/SpriteVertex.h"
+#include "Render/TextureSlot.h"
 #include "App/WindowState.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Letters.h"
@@ -16,7 +25,10 @@
 #include "Render/Pass3D.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/DarkHorse.h"
+#include "Scenes/GameCharacters.h"
 #include "Scenes/GameFriends.h"
+#include "Scenes/GameHud.h"
 #include "Scenes/GameLetters.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/SceneId.h"
@@ -24,6 +36,7 @@
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/TooltipLines.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -31,12 +44,15 @@
 #include "UI/LetterModel.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
+#include "World/Sprites.h"
+#include "World/TerrainLighting.h"
 #include "World/WorldTerrain.h"
 
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
+#include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
 
 #include <gtest/gtest.h>
@@ -46,10 +62,14 @@
 #include <glm/ext/vector_int4.hpp>
 
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
+#include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -104,6 +124,60 @@ int DrawsBetween(CrtRandom from, const CrtRandom& to)
     return -1;
 }
 
+// Lo que dibuja el retrato: Player.bmd con un hueso y una key en cada acción, el caballo oscuro (0xbf) con sus siete
+// acciones de 10 keys en un hueso, y un triángulo para el caballo, la sombra (0x20b) y la armadura del Dark Knight.
+class PortraitModels final : public Client::Scenes::IModelLibrary
+{
+public:
+    PortraitModels()
+    {
+        Client::Render::Models::SkeletonBone body;
+        body.actions.assign(Client::Tests::PlayerActionCount, {Client::Render::Models::BoneKey{}});
+        m_player.bones.push_back(body);
+        m_player.actions.assign(Client::Tests::PlayerActionCount, {.keyCount = 1});
+        constexpr std::size_t HorseActions = 7;
+        constexpr std::int16_t HorseKeys = 10;
+        Client::Render::Models::SkeletonBone horse;
+        Client::Render::Models::BoneKey still;
+        still.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+        horse.actions.assign(HorseActions,
+                             std::vector<Client::Render::Models::BoneKey>(static_cast<std::size_t>(HorseKeys), still));
+        m_horse.bones.push_back(horse);
+        m_horse.actions.assign(HorseActions, {.repeats = true, .speed = 0.0f, .keyCount = HorseKeys});
+        Client::Data::Models::Mesh mesh;
+        mesh.vertices = {{0, {0, 0, 0}}, {0, {1, 0, 0}}, {0, {0, 1, 0}}};
+        mesh.normals = {{0, {0, 0, 1}, 0}};
+        mesh.texCoords = {{0, 0}};
+        mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
+        mesh.textureName = "retrato.jpg";
+        m_triangle.meshes.push_back(mesh);
+    }
+
+    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t model) const override
+    {
+        const bool drawn = model == Client::Scenes::DarkHorseModel ||
+                           model == Client::Data::Models::PlayerShadowModel ||
+                           model == ClassPartModel(BodyPart::Armor, DarkKnight);
+        return drawn ? &m_triangle : nullptr;
+    }
+    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    {
+        if (model == PlayerSkeletonModel)
+            return &m_player;
+        return model == Client::Scenes::DarkHorseModel ? &m_horse : nullptr;
+    }
+    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+    {
+        return m_textures;
+    }
+
+private:
+    Client::Render::Models::Skeleton m_player;
+    Client::Render::Models::Skeleton m_horse;
+    Client::Data::Models::Model m_triangle;
+    std::array<Client::Render::TextureSlot, 1> m_textures{Client::Render::TextureSlot{0x300}};
+};
+
 // El mundo del juego, en el heap: WorldState pesa unos 350 KB.
 struct Game
 {
@@ -131,7 +205,8 @@ struct Game
                 .cloth = cloth,
                 .camera = camera,
                 .cameraInput = input,
-                .models = models,
+                .models = drawable ? static_cast<const Client::Scenes::IModelLibrary&>(drawn)
+                                   : static_cast<const Client::Scenes::IModelLibrary&>(models),
                 .items = &items,
                 .itemSetTables = &sets,
                 .log = log};
@@ -146,6 +221,9 @@ struct Game
     Client::World::GameCameraInput input;
     Client::Render::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
+    // Con `drawable`, los modelos de lo que dibuja el retrato en vez de los de arriba.
+    bool drawable = false;
+    PortraitModels drawn;
     Client::Data::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     Client::Data::Tables::ItemSetTables sets =
         Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize),
@@ -176,6 +254,23 @@ protected:
         const auto resources = game->Resources();
         const auto built = Client::Scenes::BuildThePortrait(game->portrait, resources);
         EXPECT_TRUE(built.HasValue()) << built.Error();
+        return game;
+    }
+
+    // El retrato armado con los modelos que dibuja (PortraitModels) y el caballo del héroe (0x1c16): 0x496530 le arma
+    // el caballo oscuro vivo (0x497810).
+    std::unique_ptr<Game> Riding(std::uint8_t map)
+    {
+        auto game = Load(map);
+        game->drawable = true;
+        const auto resources = game->Resources();
+        const auto built = Client::Scenes::BuildThePortrait(game->portrait, resources);
+        EXPECT_TRUE(built.HasValue()) << built.Error();
+        game->Hero().pet.model = 0x1c16;
+        std::int32_t action = 0;
+        const auto copied = Client::Scenes::CopyTheHeroToThePortrait(game->portrait, action, resources);
+        EXPECT_TRUE(copied.HasValue()) << copied.Error();
+        EXPECT_TRUE(game->portrait.helper.alive);
         return game;
     }
 };
@@ -472,8 +567,7 @@ TEST_F(LetterPortraitTest, ThePortraitPassLooksAtTheCharacterFromAfar)
 }
 
 // 0x497c10 y 0x495760 antes del dibujo: con el frame por debajo de +0x6a8 y quieto, una acción fuera de 0x7a..0x82
-// vuelve a la 0x7a sin sacar el rand() % 4; el pase pone los ángulos, la escala por el zoom y las luces. El dibujo
-// del ayudante y del personaje corta (P-C310).
+// vuelve a la 0x7a sin sacar el rand() % 4; el pase pone los ángulos, la escala por el zoom, las luces y +0x3e4.
 TEST_F(LetterPortraitTest, PreparingTheDrawStepsTheCharacter)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -500,18 +594,362 @@ TEST_F(LetterPortraitTest, PreparingTheDrawStepsTheCharacter)
         EXPECT_EQ(portrait.actor.scale, static_cast<float>(0.9 * static_cast<double>(0.7f)));
         EXPECT_EQ(portrait.actor.light, glm::vec3(1.0f));
         EXPECT_EQ(portrait.actor.safeZone, 0);
-        EXPECT_FALSE(Client::Scenes::DrawThePortraitModel(portrait).HasValue());
+        EXPECT_EQ(portrait.actor.byte3e4, 1);
 
         // Sin pasar la marca, +0x6a8 sigue al frame.
         portrait.actor.animation.frame = 7.5f;
         ASSERT_TRUE(Client::Scenes::PrepareThePortraitDraw(portrait, part, {640, 480}, resources).HasValue());
         EXPECT_EQ(portrait.frameMark, 7);
+    }
+}
 
-        portrait.helper.alive = true;
-        const auto riding = Client::Scenes::PrepareThePortraitDraw(portrait, part, {640, 480}, resources);
-        ASSERT_FALSE(riding.HasValue());
-        EXPECT_NE(riding.Error().find("0x444010"), std::string::npos);
+// 0x495796: 0x444010(ayudante, 1) después de 0x4fd5f0 y 0x505de0, con el mundo en 0: el caballo sigue al personaje
+// aunque su celda (la de (−300, −300) por 0,01, con el byte bajo) sea segura, con sus rand() después de los del
+// personaje. Es lo mismo que el paso sin el caballo y 0x444010(ayudante, 1) a mano después.
+TEST_F(LetterPortraitTest, PreparingTheDrawStepsTheLiveHelperAfterTheCharacter)
+{
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(map);
+        auto game = Riding(map);
+        auto twin = Riding(map);
+        ASSERT_FALSE(HasFatalFailure());
+        for (Game* each : {game.get(), twin.get()})
+        {
+            const auto& position = each->portrait.actor.position;
+            const auto cell = Client::Data::Terrain::CellIndex(
+                static_cast<std::uint8_t>(static_cast<std::int32_t>(position.x * 0.01f)),
+                static_cast<std::uint8_t>(static_cast<std::int32_t>(position.y * 0.01f)));
+            each->world.Map().terrain.attributes->cells[cell] |= 1;
+        }
+        Client::UI::OldPortraitPart part;
+        part.action = 0x7a;
+        part.zoom = 1.0f;
+        game->portrait.actor.animation.frame = 1.0f;
+        twin->portrait.actor.animation.frame = 1.0f;
+
+        const auto resources = game->Resources();
+        ASSERT_TRUE(Client::Scenes::PrepareThePortraitDraw(game->portrait, part, {640, 480}, resources).HasValue());
+
+        const auto twinResources = twin->Resources();
+        twin->portrait.helper.alive = false;
+        ASSERT_TRUE(Client::Scenes::PrepareThePortraitDraw(twin->portrait, part, {640, 480}, twinResources).HasValue());
+        twin->portrait.helper.alive = true;
+        twin->world.Runtime().map = 0;
+        const auto stepped = Client::Scenes::StepTheHelperOutsideTheTable(
+            twin->portrait.helper, twin->portrait.actor,
+            Client::Scenes::HelperStepContext{.world = twin->world,
+                                              .models = &twin->drawn,
+                                              .random = twin->cloth.random,
+                                              .worldClock = 0.0f,
+                                              .scene = Client::Scenes::SceneId::Game,
+                                              .terrain = nullptr,
+                                              .logicSteps = twin->cloth.logicSteps,
+                                              .cameraShake = &twin->input.shake});
+        twin->world.Runtime().map = map;
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+
+        const auto& helper = game->portrait.helper;
+        EXPECT_TRUE(helper.alive);
+        EXPECT_EQ(helper.position, game->portrait.actor.position);
+        EXPECT_GT(helper.horse.alpha, 0.0f);
+        EXPECT_EQ(helper.horse.alpha, twin->portrait.helper.horse.alpha);
+        EXPECT_EQ(helper.horse.animation.action, twin->portrait.helper.horse.animation.action);
+        EXPECT_EQ(helper.horse.animation.frame, twin->portrait.helper.horse.animation.frame);
+        EXPECT_EQ(game->cloth.random.State(), twin->cloth.random.State());
         EXPECT_EQ(game->world.Runtime().map, map);
+    }
+}
+
+// Lo que el dibujo del juego le presta al retrato (LetterPortraitDraw): el lote 2D en 640 × 480 con el texto falso (6
+// columnas por letra, 13 de alto) y los textos 997 a 999 inventados, el lote de los modelos, la luz del terreno en
+// (0,25; 0,5; 0,75) y los sprites del frame. Anota los cierres de los dos lotes, con los vértices del de los modelos.
+class PortraitDrawing
+{
+public:
+    explicit PortraitDrawing(Game& game) : m_game(game)
+    {
+        sprites.Begin(Client::App::PixelSize{640, 480});
+        lighting->cells.fill({0.25f, 0.5f, 0.75f});
+    }
+
+    PortraitDrawing(const PortraitDrawing&) = delete;
+    PortraitDrawing& operator=(const PortraitDrawing&) = delete;
+    PortraitDrawing(PortraitDrawing&&) = delete;
+    PortraitDrawing& operator=(PortraitDrawing&&) = delete;
+    ~PortraitDrawing() = default;
+
+    // Con `cloth` de rand() del frame: el del juego o, entre frames, su copia.
+    Client::Scenes::LetterPortraitDraw Draw(Client::Render::Models::ClothWorld& cloth, bool originalFrame)
+    {
+        Client::Scenes::WorldRuntime& runtime = m_game.world.Runtime();
+        ActorState& hero = m_game.Hero();
+        m_hud.emplace(Client::Scenes::GameHudContext{.world = m_game.world,
+                                                     .random = cloth.random,
+                                                     .ownRecordDepth = runtime.ownRecordDepth,
+                                                     .cellXDepth = hero.cellXAccesses,
+                                                     .cellYDepth = hero.cellYAccesses,
+                                                     .hud = runtime.hud,
+                                                     .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                                                     .sound = sound,
+                                                     .sprites = sprites,
+                                                     .text = text,
+                                                     .texts = &texts});
+        Client::Scenes::LetterPortraitDraw draw{.hud = *m_hud, .batch = models};
+        draw.flushSprites = [this]() { flushes.emplace_back("2d", models.Vertices().size()); };
+        draw.flushModels = [this]() { flushes.emplace_back("3d", models.Vertices().size()); };
+        draw.characters.dynamicLighting = lighting.get();
+        draw.characters.clothWorld = &cloth;
+        draw.characters.sprites = &frameSprites;
+        draw.characters.particles = &m_game.world.Particles();
+        draw.characters.effects = &m_game.world.Map().effects;
+        draw.helperModels = &m_game.drawn;
+        draw.originalFrame = originalFrame;
+        return draw;
+    }
+
+    Client::Render::SpriteBatch sprites;
+    Client::Tests::RecordingTextDrawer text{sprites};
+    Client::Data::Text::TextTable texts =
+        Client::Tests::MakeTextTable({{997, "Arrastrar gira"}, {998, "Rueda acerca"}, {999, "Clic vuelve"}});
+    std::optional<std::int32_t> sound;
+    Client::Render::ModelBatch models;
+    std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
+    Client::World::FrameSprites frameSprites;
+    std::vector<std::pair<std::string, std::size_t>> flushes;
+
+private:
+    Game& m_game;
+    std::optional<Client::Scenes::GameHudContext> m_hud;
+};
+
+struct SpriteQuad
+{
+    Client::Render::Color color{};
+    float left = 0.0f;
+    float top = 0.0f;
+    float right = 0.0f;
+    float bottom = 0.0f;
+    float u = 0.0f;
+    float v = 0.0f;
+};
+
+// Los quads del lote 2D con `slot` (o sin textura), en 640 × 480 con la y hacia abajo y con la u y la v de su esquina
+// de abajo a la derecha.
+std::vector<SpriteQuad> QuadsOf(const Client::Render::SpriteBatch& sprites,
+                                std::optional<Client::Render::TextureSlot> slot)
+{
+    std::vector<SpriteQuad> quads;
+    const auto vertices = sprites.Vertices();
+    for (const Client::Render::DrawCommand& command : sprites.Commands())
+    {
+        if (command.texture != slot)
+            continue;
+        for (std::size_t quad = 0; quad < command.vertexCount / 6; ++quad)
+        {
+            const std::size_t first = command.firstVertex + quad * 6;
+            quads.push_back(SpriteQuad{.color = vertices[first].color,
+                                       .left = vertices[first].x,
+                                       .top = 480.0f - vertices[first].y,
+                                       .right = vertices[first + 2].x,
+                                       .bottom = 480.0f - vertices[first + 2].y,
+                                       .u = vertices[first + 2].u,
+                                       .v = vertices[first + 2].v});
+        }
+    }
+    return quads;
+}
+
+// 0x4958e2..0x495a0c: cierra el 2D, empieza el pase del retrato con la profundidad borrada, dibuja el caballo
+// (0x445260(ayudante, 1): visto, con la escala 0x3f3ae148 y su rand() % 30 + 70) y después el personaje (0x50ba30, sin
+// la sombra), y cierra el pase. Los rand(), los de 0x445260 y después los de 0x50ba30.
+TEST_F(LetterPortraitTest, ThePortraitModelDrawsTheHelperAndThenTheCharacterOverACleanDepth)
+{
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(map);
+        auto game = Riding(map);
+        auto twin = Riding(map);
+        ASSERT_FALSE(HasFatalFailure());
+        Client::UI::OldPortraitPart part;
+        part.base.x = 100;
+        part.base.y = 50;
+        part.base.width = 0x77;
+        part.action = 0x7a;
+        part.angle = 30.0f;
+        part.zoom = 1.0f;
+        const auto resources = game->Resources();
+        const auto pass = Client::Scenes::PrepareThePortraitDraw(game->portrait, part, {640, 480}, resources);
+        ASSERT_TRUE(pass.HasValue()) << pass.Error();
+        const auto twinResources = twin->Resources();
+        const auto twinPass = Client::Scenes::PrepareThePortraitDraw(twin->portrait, part, {640, 480}, twinResources);
+        ASSERT_TRUE(twinPass.HasValue()) << twinPass.Error();
+        ASSERT_EQ(game->cloth.random.State(), twin->cloth.random.State());
+
+        PortraitDrawing drawing(*game);
+        const auto drawn = Client::Scenes::DrawThePortraitModel(game->portrait, pass.Value(),
+                                                                drawing.Draw(game->cloth, true), resources);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        ASSERT_EQ(drawing.flushes.size(), 2u);
+        EXPECT_EQ(drawing.flushes[0], std::make_pair(std::string("2d"), std::size_t{0}));
+        EXPECT_EQ(drawing.flushes[1].first, "3d");
+        EXPECT_GT(drawing.flushes[1].second, 0u);
+        EXPECT_TRUE(drawing.models.Pass().clearDepth);
+        EXPECT_EQ(drawing.models.Pass().viewport, pass.Value().viewport);
+        EXPECT_TRUE(game->portrait.helper.seen);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(game->portrait.helper.scale), 0x3f3ae148u);
+
+        // A mano: 0x445260(ayudante, 1) saca uno; 0x50ba30, los suyos.
+        PortraitDrawing manual(*twin);
+        const Client::Scenes::LetterPortraitDraw draw = manual.Draw(twin->cloth, true);
+        manual.models.Begin(pass.Value());
+        const CrtRandom beforeHelper = twin->cloth.random;
+        ASSERT_TRUE(Client::Scenes::DrawTheHelperOutsideTheTable(
+                        twin->portrait.helper, twin->portrait.actor,
+                        Client::Scenes::HelperDrawContext{.batch = manual.models,
+                                                          .models = twin->drawn,
+                                                          .world = twin->world,
+                                                          .random = twin->cloth.random,
+                                                          .lighting = manual.lighting.get(),
+                                                          .sprites = &manual.frameSprites})
+                        .HasValue());
+        EXPECT_EQ(DrawsBetween(beforeHelper, twin->cloth.random), 1);
+        ASSERT_TRUE(Client::Scenes::DrawCharacterOutsideThePool(manual.models, twin->drawn, twin->world,
+                                                                twin->portrait.actor, twin->portrait.cloth,
+                                                                draw.characters, true)
+                        .HasValue());
+        EXPECT_EQ(game->cloth.random.State(), twin->cloth.random.State());
+        EXPECT_EQ(drawing.models.Vertices().size(), manual.models.Vertices().size());
+    }
+}
+
+// 0x497c1b..0x497ca2: el retrato en blanco (+0x6c0 en 1, la carta de "webzen"), el cuadro negro de 119 × 141 y el logo
+// (0x653) de 80 × 62 en (x + 0x14; y + 0x26) con la v en 0,76171875. Sin el personaje, sin pase y sin rand().
+TEST_F(LetterPortraitTest, ABlankPortraitIsABlackBoxWithTheLogo)
+{
+    auto game = Load(0);
+    Client::UI::OldPortraitPart part;
+    part.base.x = 100;
+    part.base.y = 50;
+    part.blank = 1;
+    PortraitDrawing drawing(*game);
+    const CrtRandom before = game->cloth.random;
+    const auto resources = game->Resources();
+    ASSERT_TRUE(Client::Scenes::DrawTheLetterPortrait(part, drawing.Draw(game->cloth, true), resources).HasValue());
+    const std::vector<SpriteQuad> black = QuadsOf(drawing.sprites, std::nullopt);
+    ASSERT_EQ(black.size(), 1u);
+    EXPECT_EQ(black[0].color, (Client::Render::Color{.red = 0.0f, .green = 0.0f, .blue = 0.0f, .alpha = 1.0f}));
+    EXPECT_FLOAT_EQ(black[0].left, 100.0f);
+    EXPECT_FLOAT_EQ(black[0].top, 50.0f);
+    EXPECT_FLOAT_EQ(black[0].right, 219.0f);
+    EXPECT_FLOAT_EQ(black[0].bottom, 191.0f);
+    const std::vector<SpriteQuad> logo = QuadsOf(drawing.sprites, Client::Render::TextureSlot{0x653});
+    ASSERT_EQ(logo.size(), 1u);
+    EXPECT_EQ(logo[0].color, Client::Render::Color{});
+    EXPECT_FLOAT_EQ(logo[0].left, 120.0f);
+    EXPECT_FLOAT_EQ(logo[0].top, 88.0f);
+    EXPECT_FLOAT_EQ(logo[0].right, 200.0f);
+    EXPECT_FLOAT_EQ(logo[0].bottom, 150.0f);
+    EXPECT_FLOAT_EQ(logo[0].u, 1.0f);
+    EXPECT_FLOAT_EQ(logo[0].v, 0.76171875f);
+    EXPECT_TRUE(drawing.flushes.empty());
+    EXPECT_EQ(game->cloth.random.State(), before.State());
+}
+
+// 0x497c10 entera en Lorencia y Devias: el paso (PrepareThePortraitDraw), el modelo y, con +0x4c & 1, el ícono de la
+// ayuda (0x651) de 16 × 16 en (x + 1; y + alto − 0x11); con la ayuda a la vista, gris (0,6) de 15 × 15 en
+// (x + 2; y + alto − 0x10) con la u y la v en 0,9375 y los textos 997 a 999 en la caja de 0x5af090 con el modo 1:
+// centrada en x + ancho / 2, desde y + alto − (13 + 2) · 3 y cada uno contra el borde izquierdo.
+TEST_F(LetterPortraitTest, TheWholePortraitDrawsTheModelAndThenItsHelp)
+{
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        for (const std::int32_t help : {0, 1})
+        {
+            SCOPED_TRACE(testing::Message() << static_cast<int>(map) << " " << help);
+            auto game = Riding(map);
+            ASSERT_FALSE(HasFatalFailure());
+            auto part = std::make_unique<Client::UI::OldPortraitPart>();
+            part->base.x = 100;
+            part->base.y = 50;
+            part->base.width = 0x77;
+            part->base.height = 0x8d;
+            part->base.flags = 1;
+            part->help = help;
+            part->action = 0x7a;
+            part->zoom = 1.0f;
+            part->actor = std::shared_ptr<void>(&game->portrait, [](void*) {});
+            PortraitDrawing drawing(*game);
+            const auto resources = game->Resources();
+            const auto drawn = Client::Scenes::DrawTheLetterPortrait(*part, drawing.Draw(game->cloth, true), resources);
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+            ASSERT_EQ(drawing.flushes.size(), 2u);
+            EXPECT_GT(drawing.models.Vertices().size(), 0u);
+            EXPECT_TRUE(game->portrait.helper.seen);
+            const std::vector<SpriteQuad> icon = QuadsOf(drawing.sprites, Client::Render::TextureSlot{0x651});
+            ASSERT_EQ(icon.size(), 1u);
+            if (help == 0)
+            {
+                EXPECT_EQ(icon[0].color, Client::Render::Color{});
+                EXPECT_FLOAT_EQ(icon[0].left, 101.0f);
+                EXPECT_FLOAT_EQ(icon[0].top, 50.0f + 0x8d - 0x11);
+                EXPECT_FLOAT_EQ(icon[0].right, 117.0f);
+                EXPECT_FLOAT_EQ(icon[0].u, 1.0f);
+                EXPECT_TRUE(drawing.text.texts.empty());
+                continue;
+            }
+            EXPECT_FLOAT_EQ(icon[0].color.red, 0.6f);
+            EXPECT_FLOAT_EQ(icon[0].left, 102.0f);
+            EXPECT_FLOAT_EQ(icon[0].top, 50.0f + 0x8d - 0x10);
+            EXPECT_FLOAT_EQ(icon[0].right, 117.0f);
+            EXPECT_FLOAT_EQ(icon[0].u, 0.9375f);
+            EXPECT_FLOAT_EQ(icon[0].v, 0.9375f);
+            const auto& texts = drawing.text.texts;
+            ASSERT_EQ(texts.size(), 3u);
+            EXPECT_EQ(texts[0].text, "Arrastrar gira");
+            EXPECT_EQ(texts[1].text, "Rueda acerca");
+            EXPECT_EQ(texts[2].text, "Clic vuelve");
+            // La caja: 14 letras · 6 + 4 = 88 de ancho, centrada en 100 + 59: desde 115, y el texto desde 116.
+            EXPECT_EQ(texts[0].x, 116);
+            EXPECT_EQ(texts[0].y, 50 + 0x8d - (13 + 2) * 3);
+            for (const auto& text : texts)
+            {
+                EXPECT_EQ(text.firstColumn, 0);
+                EXPECT_EQ(text.columns, 86);
+            }
+            EXPECT_EQ(game->world.Runtime().hud.tooltip.next, 3);
+        }
+    }
+}
+
+// Un dibujo intermedio de MuRet dibuja una copia del retrato con la copia del rand() del frame: el personaje, el
+// caballo y su marca quedan como los dejó el último frame del original, y el rand() del juego no se mueve.
+TEST_F(LetterPortraitTest, AnIntermediateDrawLeavesThePortraitAsTheLastFrameLeftIt)
+{
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(map);
+        auto game = Riding(map);
+        ASSERT_FALSE(HasFatalFailure());
+        Client::UI::OldPortraitPart part;
+        part.action = 0x7a;
+        part.zoom = 1.0f;
+        part.actor = std::shared_ptr<void>(&game->portrait, [](void*) {});
+        game->portrait.actor.animation.frame = 3.0f;
+        const LetterPortrait before = game->portrait;
+        const CrtRandom random = game->cloth.random;
+        Client::Render::Models::ClothWorld projected = game->cloth;
+        PortraitDrawing drawing(*game);
+        const auto resources = game->Resources();
+        ASSERT_TRUE(Client::Scenes::DrawTheLetterPortrait(part, drawing.Draw(projected, false), resources).HasValue());
+        EXPECT_GT(drawing.models.Vertices().size(), 0u);
+        EXPECT_EQ(game->cloth.random.State(), random.State());
+        EXPECT_EQ(game->portrait.frameMark, before.frameMark);
+        EXPECT_EQ(game->portrait.actor.animation.frame, before.actor.animation.frame);
+        EXPECT_EQ(game->portrait.actor.byte3e4, before.actor.byte3e4);
+        EXPECT_EQ(game->portrait.helper.seen, before.helper.seen);
+        EXPECT_EQ(game->portrait.helper.scale, before.helper.scale);
+        EXPECT_EQ(game->portrait.helper.position, before.helper.position);
     }
 }
 

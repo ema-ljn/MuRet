@@ -12,6 +12,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorAppearance.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterCloth.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/WorldMap.h"
@@ -395,6 +396,38 @@ TEST_F(UnarmedGameCharacterTest, TheBodyLeavesItsScaleAndPositionInThePlayerMode
     Actor().alpha = 0.009f;
     ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
     EXPECT_EQ(m_world->PlayerModel().scale, 0.0f);
+}
+
+// 0x4959d5: 0x50ba30(personaje, personaje, 0) con el personaje del retrato de las cartas, fuera del pool y con su tela
+// propia. Con +0x3e4 en 1 (0x4959a1) no hay sombra (0x50bc16) ni 0x505820 (0x50c913): el cuerpo sin los 3 vértices de
+// la sombra, con los mismos rand() (el del cuerpo y los dos cierres de las manos). El pool no se toca.
+TEST_F(UnarmedGameCharacterTest, OutsideThePoolTheLetterPortraitDrawsWithoutItsShadow)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        m_world->Runtime().map = map;
+        const ActorState pooled = Actor();
+        for (const std::uint8_t portrait : {std::uint8_t{0}, std::uint8_t{1}})
+        {
+            SCOPED_TRACE(static_cast<int>(portrait));
+            ActorState outside = pooled;
+            outside.byte3e4 = portrait;
+            Client::Scenes::CharacterCloth cloth;
+            m_cloth.random = Client::Render::Models::CrtRandom(1);
+            m_batch.Begin({});
+
+            const auto drawn =
+                Client::Scenes::DrawCharacterOutsideThePool(m_batch, m_models, *m_world, outside, cloth, Pass(), true);
+
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+            EXPECT_EQ(m_batch.Vertices().size(), portrait != 0 ? 3u : 6u);
+            EXPECT_EQ(m_cloth.random.State(), 0x18be873au);
+            EXPECT_EQ(outside.drawnLight, glm::vec3(0.2f, 0.4f, 0.6f) + outside.light);
+            EXPECT_EQ(Actor().drawnLight, pooled.drawnLight);
+            EXPECT_EQ(Actor().animation.frame, pooled.animation.frame);
+        }
+    }
 }
 
 TEST_F(UnarmedGameCharacterTest, TheUnportedPeriodicStatusEffectStopsBeforeTheHandByteReads)

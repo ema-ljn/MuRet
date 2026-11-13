@@ -46,7 +46,7 @@ void DrawTheWriteWindow(OldWindowManager& manager, OldWindow& write, const OldWi
                                                                       const OldWindowDrawView& view);
 
 // La vtable + 0x54 de las de una carta, al final del marco: 0x49a1d0 (la de leer, con +0x774 en 2 o más) y 0x498800
-// (la de escribir, con +0xb0 en 1) dibujan el retrato (su vtable + 0x14, 0x497c10), que es de Scenes y corta
-// (P-C212). Sin el retrato, nada.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheLetterPortrait(const OldWindow& window);
+// (la de escribir, con +0xb0 en 1) dibujan el retrato (su vtable + 0x14, 0x497c10) con OldWindowDrawView::portrait,
+// que da el juego (Scenes::DrawTheLetterPortrait); sin él, corta. Sin el retrato, nada.
+[[nodiscard]] Core::Expected<void, std::string> DrawTheLetterPortrait(OldWindow& window, const OldWindowDrawView& view);
 } // namespace Client::UI

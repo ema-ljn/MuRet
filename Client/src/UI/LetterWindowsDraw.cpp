@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -546,16 +547,19 @@ Core::Expected<void, std::string> DrawTheChatsInTheList(OldWindowManager& manage
     return DrawTheChatRowsOfTheList(manager, window, context, view);
 }
 
-Core::Expected<void, std::string> DrawTheLetterPortrait(const OldWindow& window)
+Core::Expected<void, std::string> DrawTheLetterPortrait(OldWindow& window, const OldWindowDrawView& view)
 {
+    std::string_view where;
     if (window.kind == OldWindowKind::LetterReadWindow && window.letter.portraitMode >= ReadPortraitShown)
-        return Core::Unexpected(
-            std::string("0x49a1d0: el dibujo del retrato de las cartas (su vtable + 0x14, 0x497c10) "
-                        "es de Scenes (P-C212)"));
-    if (window.kind == OldWindowKind::LetterWriteWindow && window.letter.withPortrait == 1)
-        return Core::Unexpected(
-            std::string("0x498800: el dibujo del retrato de las cartas (su vtable + 0x14, 0x497c10) "
-                        "es de Scenes (P-C212)"));
-    return {};
+        where = "0x49a1d0";
+    else if (window.kind == OldWindowKind::LetterWriteWindow && window.letter.withPortrait == 1)
+        where = "0x498800";
+    else
+        return {};
+    if (!view.portrait)
+        return Core::Unexpected(std::format("{}: el dibujo del retrato de las cartas (su vtable + 0x14, 0x497c10) sin "
+                                            "el juego",
+                                            where));
+    return view.portrait(window.letter.portrait);
 }
 } // namespace Client::UI

@@ -99,6 +99,10 @@ glm::vec3 HeroBodyColor(WorldState& world, Render::Models::CrtRandom& random, bo
 FullSetScan ScanTheActor(WorldState& world, const ActorState& actor, Render::Models::CrtRandom& random,
                          bool originalFrame)
 {
+    // 0x50c913: con +0x3e4 (el retrato de las cartas), sin 0x505820 ni conjunto: los globales quedan los del último y
+    // la cola no los lee sin el conjunto.
+    if (actor.byte3e4 != 0)
+        return FullSetScan{};
     if (originalFrame)
     {
         FullSetScan scan =
@@ -118,11 +122,13 @@ bool CastsShadow(const ActorState& actor, std::int32_t map)
     constexpr std::int32_t FirstKalimaMap = 24;
     constexpr std::int32_t LastKalimaMap = 29;
     constexpr std::int32_t SeventhKalimaMap = 36;
-    return actor.alpha >= ShadowAlphaThreshold && map != NoShadowMap &&
+    // 0x50bc16: con +0x3e4 (el retrato de las cartas), sin sombra.
+    return actor.alpha >= ShadowAlphaThreshold && actor.byte3e4 == 0 && map != NoShadowMap &&
            !(map >= FirstKalimaMap && map <= LastKalimaMap) && map != SeventhKalimaMap;
 }
 
-DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, const GameCharacterPass& pass, std::int32_t map)
+DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, CharacterCloth* cloth,
+                               const GameCharacterPass& pass, std::int32_t map)
 {
     DrawnCharacter character;
     character.appearance = AppearanceOfActor(actor);
@@ -138,7 +144,7 @@ DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, const GameCh
         static_cast<std::int32_t>(slot) == pass.hovered || static_cast<std::int32_t>(slot) == pass.targeted;
     character.kind = actor.byte88;
     character.map = static_cast<std::uint8_t>(map);
-    character.cloth = slot < pass.cloths.size() ? &pass.cloths[slot] : nullptr;
+    character.cloth = cloth;
     character.clothWorld = pass.clothWorld;
     character.sprites = pass.sprites;
     character.originalRandom = pass.clothWorld != nullptr ? &pass.clothWorld->random : nullptr;
@@ -194,12 +200,11 @@ Core::Expected<void, std::string> CheckTheGuildMark(const ActorState& actor, std
         "0x50d533: la marca del gremio (0x447b30, 0x5f16a0 y 0x5091e0) no está portada");
 }
 
-Core::Expected<glm::vec3, std::string> LightTheBody(WorldState& world, std::size_t slot, const GameCharacterPass& pass,
-                                                    bool originalFrame)
+Core::Expected<glm::vec3, std::string> LightTheBody(WorldState& world, ActorState& actor, std::size_t slot,
+                                                    const GameCharacterPass& pass, bool originalFrame)
 {
     if (pass.dynamicLighting == nullptr)
         return Core::Unexpected<std::string>("0x50cc55: falta el buffer dinámico de luz del terreno para 0x50ba30");
-    ActorState& actor = world.Actors()[slot];
     const glm::vec3 terrainLight = World::LightAt(*pass.dynamicLighting, actor.position.x, actor.position.y);
     actor.drawnLight = terrainLight + actor.light;
     if (slot == world.Runtime().hero)
@@ -319,10 +324,11 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                               .originalFrame = originalFrame});
 }
 
+// `slot` es su lugar en el pool, o ActorPoolSize fuera de él; `cloth`, su tela.
 Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,
-                                          std::size_t slot, const GameCharacterPass& pass, bool originalFrame)
+                                          ActorState& actor, std::size_t slot, CharacterCloth* cloth,
+                                          const GameCharacterPass& pass, bool originalFrame)
 {
-    ActorState& actor = world.Actors()[slot];
     if ((actor.flags7c & HiddenCharacterFlag) != 0)
         return {};
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(actor.type);
@@ -331,7 +337,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
     if (auto supported = CheckTheEarlyBranches(actor); !supported.HasValue())
         return supported;
     const std::int32_t map = world.Runtime().map;
-    DrawnCharacter character = CharacterToDraw(actor, slot, pass, map);
+    DrawnCharacter character = CharacterToDraw(actor, slot, cloth, pass, map);
     character.advanceCloth = originalFrame;
     // Al buffer global (0x68b181c) sólo va lo que cuelga (0x509340); el cuerpo queda en el propio (DrawTheTail).
     if ((originalFrame || pass.publishProjectedPose) && pass.onPose)
@@ -346,7 +352,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
     if (pass.clothWorld == nullptr)
         return Core::Unexpected<std::string>("0x50c91e: falta el flujo global de rand del scan de los personajes");
     const FullSetScan scan = ScanTheActor(world, actor, pass.clothWorld->random, originalFrame);
-    const auto terrainLight = LightTheBody(world, slot, pass, originalFrame);
+    const auto terrainLight = LightTheBody(world, actor, slot, pass, originalFrame);
     if (!terrainLight.HasValue())
         return Core::Unexpected(terrainLight.Error());
     character.light = actor.drawnLight;
@@ -367,7 +373,8 @@ Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const I
         ActorState& actor = world.Actors()[slot];
         if (SuppressTheHero(actor, slot == hero) || !actor.alive || !actor.seen)
             continue;
-        if (auto drawn = DrawOne(batch, models, world, slot, pass, originalFrame); !drawn.HasValue())
+        CharacterCloth* cloth = slot < pass.cloths.size() ? &pass.cloths[slot] : nullptr;
+        if (auto drawn = DrawOne(batch, models, world, actor, slot, cloth, pass, originalFrame); !drawn.HasValue())
             return Core::Unexpected(std::format("{}, en el personaje {}", drawn.Error(), slot));
         // 0x510ea9..0x510eb3: con el 0x20a, 0x42afe0, que solo en el 30, con el asedio y con +0x16c llama a
         // 0x42ddb0(personaje, 380); sin el asedio no hace nada.
@@ -422,6 +429,14 @@ Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch, 
         }
     }
     return {};
+}
+
+Core::Expected<void, std::string> DrawCharacterOutsideThePool(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                              WorldState& world, ActorState& actor,
+                                                              CharacterCloth& cloth, const GameCharacterPass& pass,
+                                                              bool originalFrame)
+{
+    return DrawOne(batch, models, world, actor, ActorPoolSize, &cloth, pass, originalFrame);
 }
 
 Core::Expected<void, std::string> DrawCharacterTail(Render::ModelBatch& batch, const IModelLibrary& models,

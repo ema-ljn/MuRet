@@ -11,8 +11,13 @@
 #include "Protocol/Inventory.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
+#include "Render/Models/Animation.h"
+#include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/Pose.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FaunaDrawing.h"
+#include "Scenes/GameCharacters.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameDialogDrawing.h"
@@ -27,7 +32,9 @@
 #include "Scenes/GameTooltips.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/InventoryMoves.h"
+#include "Scenes/LetterPortrait.h"
 #include "Scenes/SceneCanvas.h"
+#include "Scenes/SceneContext.h"
 #include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -46,9 +53,11 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <functional>
 #include <ios>
 #include <optional>
 #include <ratio>
+#include <span>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -365,6 +374,66 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     // chat (0x6c7a88).
     const UI::OldWindowTexts friendTexts = OldWindowTextsOf(m_texts);
     const bool editFocused = runtime.chat.input.focus == UI::ChatFocus::OldWindow;
+    // 0x49a1d0 y 0x498800 → 0x497c10: el retrato de las cartas, con el juego de SceneContext::worldEntry, los modelos
+    // (los del personaje y, para el ayudante, los del mundo) y lo del frame, o sus copias en un dibujo intermedio. Sin
+    // el juego o sin los modelos, el retrato a la vista corta.
+    std::optional<std::string> portraitPoseFailure;
+    std::optional<LetterPortraitDraw> portraitDraw;
+    if (m_models != nullptr && m_context.worldEntry != nullptr)
+    {
+        const bool originalFrame = !m_projectingFrame;
+        portraitDraw.emplace(LetterPortraitDraw{
+            .hud = hud,
+            .batch = canvas.models,
+            .flushSprites = canvas.flushSprites,
+            .flushModels = canvas.flushModels,
+            .characters =
+                GameCharacterPass{.dynamicLighting = &FrameLighting(),
+                                  .clothWorld = &FrameCloth(),
+                                  .frameClock = canvas.frameClock,
+                                  .originalFrames = originalFrame ? 1 : 0,
+                                  .sprites = &FrameSpritesForDraw(),
+                                  .poseCarry = &FramePoseCarry(),
+                                  .joints = FrameTail().joints,
+                                  .particles = &FrameParticles(),
+                                  .effects = &FrameEffects(),
+                                  .itemContext = &itemContext,
+                                  .pace = originalFrame ? Render::Models::OriginalFramePace::OncePerDraw
+                                                        : OriginalFramePaceOf(m_context.pacing),
+                                  .onPose =
+                                      [&](std::uint16_t model, std::span<const Render::Models::BoneTransform> bones,
+                                          const Render::Models::ObjectTransform& transform, bool translated)
+                                  {
+                                      const auto published = PublishFaunaPoseRaw(FramePoseCarry(), *m_models, model,
+                                                                                 bones, transform, translated);
+                                      if (!published.HasValue() && !portraitPoseFailure)
+                                          portraitPoseFailure = published.Error();
+                                  },
+                                  .publishProjectedPose = true,
+                                  .poseBones = [&](std::uint16_t)
+                                  { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); },
+                                  .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
+                                  .fixedHeight = CameraState().fixedHeight},
+            .helperModels = &m_worldModels,
+            .onHelperPose = [&](const DrawnObject& object)
+            { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); },
+            .posedMeshes = [&]() { return std::span<const Render::Models::SkinnedMesh>(FramePoseCarry().meshes); },
+            // timeGetTime (0x6b8544), del calco 0x14e de los Fenrir: el reloj del dibujo en ms.
+            .systemTime = [systemTime = static_cast<std::uint32_t>(
+                               std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
+            { return systemTime; },
+            .globalPose = [&]() { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); },
+            .originalFrame = originalFrame});
+    }
+    std::function<Core::Expected<void, std::string>(UI::OldPortraitPart&)> drawThePortrait;
+    if (portraitDraw)
+        drawThePortrait = [&](UI::OldPortraitPart& part) -> Core::Expected<void, std::string>
+        {
+            auto drawn = DrawTheLetterPortrait(part, *portraitDraw, *m_context.worldEntry);
+            if (drawn.HasValue() && portraitPoseFailure)
+                return Core::Unexpected(*portraitPoseFailure);
+            return drawn;
+        };
     const UI::OldWindowDrawView windowView{.mouseX = hud.mouse.x,
                                            .mouseY = hud.mouse.y,
                                            .leftClick = runtime.movement.pendingClick,
@@ -372,7 +441,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                                            .texts = &friendTexts,
                                            .focusedList = runtime.ui.focusedList,
                                            .focusedEdit = editFocused ? oldWindows.focusedEdit : 0,
-                                           .chatPlacement = runtime.ui.chatModes.placement};
+                                           .chatPlacement = runtime.ui.chatModes.placement,
+                                           .portrait = drawThePortrait};
     if (auto windows = UI::DrawTheOldWindows(oldWindows, windowContext, windowView); !windows.HasValue())
         return windows;
     if (auto list = UI::DrawTheWindowList(oldWindows, windowContext, windowView); !list.HasValue())

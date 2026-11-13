@@ -443,7 +443,7 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
         sprites.SetBlend(Render::BlendMode::Opaque);
     }
     // La vtable + 0x54: 0x48f900 (nada) en todas, salvo en las de una carta (0x49a1d0 y 0x498800, el retrato).
-    return DrawTheLetterPortrait(window);
+    return DrawTheLetterPortrait(window, view);
 }
 } // namespace
 

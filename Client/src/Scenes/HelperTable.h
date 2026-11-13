@@ -123,6 +123,9 @@ struct HelperStepContext
     std::int32_t logicSteps = 0;
     // 0x7d325c8, el temblor de la cámara que escribe 0x4453e0 (0x445577). nullptr: corta si la rama lo pide.
     float* cameraShake = nullptr;
+    // El segundo argumento de 0x444010, distinto de 0 desde el retrato de las cartas (StepTheHelperOutsideTheTable):
+    // la celda segura del jinete se lee igual, pero no esconde al ayudante (0x4440eb, 0x4447f9 y 0x444b25).
+    bool ignoresTheSafeCell = false;
 };
 
 // 0x445230: 0x444010(lugar, 0) en los 10, en la escena 5 (0x6370f4) y en la 4 (0x6342f4). En la 5, con el jinete
@@ -146,6 +149,12 @@ struct HelperStepContext
 // conserva, con una partícula, una piedra o una cinta que no se puede crear y sin el temblor de la cámara cuando el
 // terremoto lo pide; también sin el mapa cargado o sin el modelo del tipo. Lo que hizo antes del corte queda.
 [[nodiscard]] Core::Expected<void, std::string> StepHelpers(const HelperStepContext& context);
+
+// 0x444010(ayudante, 1) sobre un ayudante fuera de la tabla, con su jinete fuera del pool: el del retrato de las cartas
+// (0x495796, que lo llama siempre). Sin el byte vivo, nada (0x444021); si no, lo de StepHelpers con un lugar, con
+// `rider` de jinete y sin que la celda segura lo esconda.
+[[nodiscard]] Core::Expected<void, std::string> StepTheHelperOutsideTheTable(HelperState& helper, ActorState& rider,
+                                                                             const HelperStepContext& context);
 
 // Lo que el dibujo de los ayudantes lee y escribe fuera del mundo.
 struct HelperDrawContext
@@ -199,4 +208,11 @@ struct HelperDrawContext
 // rand() del Fenrir). Corta con error sin la luz del terreno o sin la tabla de los sprites cuando los pide, y con un
 // Fenrir sin los efectos, las partículas, timeGetTime() o el buffer global de la pose.
 [[nodiscard]] Core::Expected<void, std::string> DrawHelpers(const HelperDrawContext& context);
+
+// 0x445260(ayudante, 1) sobre un ayudante fuera de la tabla, con su jinete fuera del pool: el del retrato de las cartas
+// (0x4959cc). Sin el byte vivo, nada (0x44526b); si no, lo de DrawHelpers con un lugar, con `rider` de jinete, visto
+// sin el trapecio (0x4452a4) y con la escala en 0x3f3ae148 (0x4452d2, Q-C1010), en un frame del original o entre
+// frames según `context` (sin la copia de DrawHelpers: el caller dibuja una copia entre frames).
+[[nodiscard]] Core::Expected<void, std::string>
+DrawTheHelperOutsideTheTable(HelperState& helper, const ActorState& rider, const HelperDrawContext& context);
 } // namespace Client::Scenes

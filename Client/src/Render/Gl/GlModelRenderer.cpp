@@ -169,6 +169,9 @@ void GlModelRenderer::BeginPass(const ModelBatch& batch) const
         m_gl->depthFunc(GL_LEQUAL);
         m_gl->enable(GL_CULL_FACE);
         m_gl->depthMask(GL_TRUE);
+        // 0x495949: el retrato de las cartas borra la profundidad con la máscara ya prendida (0x620890).
+        if (pass.clearDepth)
+            m_gl->clear(GL_DEPTH_BUFFER_BIT);
     }
 }
 

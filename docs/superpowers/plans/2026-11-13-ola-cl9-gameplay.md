@@ -395,13 +395,18 @@ amigos. **Desbloquea:** 10.
       `0x468970` y el cursor y la selección de `0x468d50`; P-C217), el chat (`0x493fc0`, con sus listas `0x45f9c0`,
       `0x460550`, `0x491ba0` y las texturas `0x64b`, `0x64c` y `0x651`), la de leer (`0x499d60`), la de escribir
       (`0x498480`), la pestaña de las cartas (`0x4a0a30`, `0x4641f0`) y los renglones de los chats en F5 (`0x4a5490`
-      desde `0x4a5537`, `0x4a5750`). El dibujo del retrato (`0x49a1d0`, `0x498800` → `0x497c10`) sigue cortado
-      (P-C212), y los íconos de la barra (`0x4a5120`), con la CL8 (P-C63).
+      desde `0x4a5537`, `0x4a5750`). El dibujo del retrato (`0x49a1d0`, `0x498800` → `0x497c10`) y los íconos de
+      la barra (`0x4a5120`, P-C63), en la fase 4.
 - [x] **El retrato de las cartas** (fase 3b, P-C212): `Scenes/LetterPortrait` (`0x495e50`, `0x4961d0`, `0x4977d0`
       con `0x513100`, `0x497810` con `0x5139f0` sobre un objeto, `0x496530`, `0x495a20`, `0x497890`..`0x497910`),
       el paso `0x497970` en `UI/LetterWindows` y el gancho del juego (`LetterPortraitHook`): abrir la de escribir y
       el `C7` ya no cortan. Del dibujo, `0x497c10` y `0x495760` hasta el modelo; el modelo fuera del pool (P-C310),
       la acción `0x78` (P-C219) y lo de 2D (P-C311), cortados.
+- [x] **El dibujo del retrato** (fase 4, P-C310 y P-C311 cerrados): `0x497c10` entera desde `0x49a1d0` y `0x498800`
+      (`OldWindowDrawView::portrait`): el paso del ayudante vivo (`0x444010(ayudante, 1)`), `0x445260(ayudante, 1)` y
+      `0x50ba30` con el personaje fuera del pool (`+0x3e4`), el pase con la profundidad borrada, el retrato en blanco
+      (`0x653`) y la ayuda con la caja de `0x5af090` en el modo 1 (Q-C1010). La acción `0x78` sigue cortada en
+      `SetActorAttack` (`0x4f4a10`, hito 3, P-C219).
 
 **Pruebas:** abrir un chat con un amigo e invitar a otro; mandar, leer y borrar una carta, byte a byte.
 

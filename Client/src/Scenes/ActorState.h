@@ -230,6 +230,9 @@ struct ActorState
     std::uint8_t safeZone = 0;
     // +0x3e3: distinto de 0, 0x512a30 y 0x512930 no tocan la ropa. 0x511290 lo pone en 0 (0x511d68).
     std::uint8_t byte3e3 = 0;
+    // +0x3e4: 1 en el personaje del retrato de las cartas (0x4959a1), y en 0 los monstruos de 0x5141e0 (0x5143d1).
+    // Distinto de 0, 0x50ba30 no dibuja la sombra (0x50bc16) ni corre 0x505820 (0x50c913).
+    std::uint8_t byte3e4 = 0;
 };
 
 // 0x414340: con una capa en +0x364, la suelta y vuelve +0x360 a 0; sin ella, no toca nada.

@@ -97,6 +97,14 @@ struct GameCharacterPass
                                                                    const IModelLibrary& models, WorldState& world,
                                                                    const GameCharacterPass& pass);
 
+// 0x50ba30(personaje, personaje, 0) con un personaje fuera del pool, el del retrato de las cartas (0x4959d5): lo mismo
+// que DrawGameCharacters con un lugar, sin contorno, con `cloth` de tela, sin ser el héroe y con ActorPoolSize de dueño
+// de lo que crea. Con su +0x3e4, sin la sombra ni 0x505820. `originalFrame` como en DrawGameCharacters.
+[[nodiscard]] Core::Expected<void, std::string>
+DrawCharacterOutsideThePool(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,
+                            ActorState& actor, CharacterCloth& cloth, const GameCharacterPass& pass,
+                            bool originalFrame);
+
 // 0x50db57..0x510a7a sobre un 0x20a con el cuerpo, las partes y la tela ya dibujados (DrawCharacter con
 // CharacterDrawPass::Body), en el login (la escena 2) y en la selección (la 4), que corren el mismo 0x50ba30 que el
 // juego: el cuerpo en sus huesos propios y, con el alpha desde 0,01, la escala y la posición en el modelo

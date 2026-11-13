@@ -1215,8 +1215,9 @@ los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
   con él: un chat cerrado) cortado por `0x459c70` en `w − 8` y un renglón; si no, el 995. Con más de dos miembros, la
   marca de `win_mark.tga` (`0x64c`, 4 × 6) en `x + w − 7` con `glColor3f(255, 0, 0)`. La vtable
   + `0x54` del marco, al final, dibuja el retrato en la de leer con `+0x774` en 2 o más (`0x49a1d0`) y en la de
-  escribir con `+0xb0` en 1 (`0x498800`): corta (P-C212). Los renglones del original están partidos en el ancho de la
-  lista (P-C218).
+  escribir con `+0xb0` en 1 (`0x498800`): `0x497c10` con el gancho del juego (`OldWindowDrawView::portrait`,
+  [El retrato de las cartas](#el-retrato-de-las-cartas)); sin él, corta. Los renglones del original están partidos en
+  el ancho de la lista (P-C218).
 
 El paso y el ubicado de las tres ventanas siguen el orden del ASM. El retrato lo da el juego
 ([El retrato de las cartas](#el-retrato-de-las-cartas)); el `CA` arma el chat y abre la conexión de la sala
@@ -2211,14 +2212,16 @@ negros de 1 con `0x621aa0` y el fondo negro con alfa 0,8 (`0x3f4ccccd`), y vuelv
 (la tabla de `0x5af4f4`): `0x6c8e5c = −1` y un `glColor3f` por índice (0, 5, 7, 8 y 9 blanco; 1 `(0,5, 0,7, 1)`;
 2 `(1, 0,2, 0,1)`; 3 `(1, 0,8, 0,1)`; 4 `(0,1, 1, 0,5)`; 6 `(1, 0,1, 1)`; 10 gris 0,4; más de 10, ninguno) y el
 fondo `0x6c8e64` (5 `0xff0000a0`, 7 `0xffa00000`, 8 `0xff0066a0`, 9 `0xffc83c3c` con el texto `0xff00ff00`, los
-demás 0). Los dos modos de `0x467060` arman una caja de columnas desde `_ftol((x + 1) · rx)` con el fondo en toda
-ella: el 2 (`0x46711b..0x467132`) la hace de cx + 2 · ((caja − cx) / 2) columnas y pone el texto en la (caja − cx) / 2,
+demás 0). Los tres modos de `0x467060` arman una caja de columnas desde `_ftol((x + 1) · rx)` con el fondo en toda
+ella: el 1 (`0x467102..0x467119`) la hace de las `(ancho − 2) · rx` justas y pone el texto en la columna 0, contra el
+borde izquierdo (uno más ancho que la caja solo cambia cuánto borra del bitmap, `[EBP − 0x10]`); el 2 (`0x46711b..0x467132`) la hace de cx + 2 · ((caja − cx) / 2) columnas y pone el texto en la (caja − cx) / 2,
 como el título del inventario (Q-C710); el 3 (`0x467134..0x467144`) la hace de las `(ancho − 2) · rx` justas y pone el
 texto en la columna caja − cx, contra el borde derecho (uno más ancho que la caja empieza antes de ella y `TextOutA`
 corta la izquierda). MuRet: `Render::Text::CenterInBox` e `ITextDrawer::DrawColumns`, con la x de 640 × 480. Termina en
-blanco (`glColor4f(1, 1, 1, 1)`) con `0x620980`. Solo los modos 2 (centrado) y 3 (contra el borde) los usa alguien;
-los otros cortan en `0x5af471`. La usan los cuerpos, la ventana y el cartel del set, la ayuda de los íconos de
-estado y las dos ayudas de F1 (`0x5b0550`, § HUD y ventanas, "Las ayudas de F1").
+blanco (`glColor4f(1, 1, 1, 1)`) con `0x620980`. Solo los modos 1 (la ayuda del retrato de las cartas, `0x497f3f`), 2
+(centrado) y 3 (contra el borde) los usa alguien; los otros cortan en `0x5af471`. La usan los cuerpos, la ventana y el
+cartel del set, la ayuda de los íconos de estado, las dos ayudas de F1 (`0x5b0550`, § HUD y ventanas, "Las ayudas de
+F1") y el retrato de las cartas ([El retrato de las cartas](#el-retrato-de-las-cartas)).
 
 **El orden de `0x5f7bc0`** (`Scenes::DrawTheTooltips`):
 
@@ -10197,11 +10200,39 @@ en 0. Si no, `+0x6a8` con el frame truncado. Con `+0x360` por debajo de 4, `0x41
 
 Lo de 2D (en blanco, el cuadro negro y el bitmap `0x653`; el ícono de la ayuda y su caja) va antes y después.
 
-MuRet arma el pase (`Scenes::PortraitPass`, `PrepareThePortraitDraw`) y corta en el modelo (`DrawThePortraitModel`,
-P-C310): el dibujo de `Scenes/GameCharacters` y de `HelperTable` lee el jinete del pool. Con el ayudante vivo, el paso
-`0x444010` también corta (P-C310). La acción `0x78` corta en `0x4f4a10` (P-C219), y lo de 2D es del dibujo de las
-cartas (P-C311, P-C213). `UI::OldWindowStepView::portrait` es `Scenes::LetterPortraitHook` con los recursos del mundo
-(`GameUiContext::worldEntry`, `ChatReceiveContext::worldEntry`): el primer pedido crea el `LetterPortrait`.
+**Con el segundo argumento en 1.** `0x444010(ayudante, 1)` lee la celda segura del jinete igual, pero no esconde al
+ayudante (`0x4440eb` el caballo oscuro, `0x4447f9` el Uniria y el Dinorant, `0x444b25` los Fenrir): lo sigue aunque el
+personaje del retrato esté en (−300, −300, −300), cuya celda puede ser segura. El chequeo de la escena 5 (jinete vivo y
+`+0x88` en 1, `0x44402a`) queda, y el personaje del retrato lo cumple. `0x445260(ayudante, 1)` lo da por visto sin el
+trapecio (`0x4452a4`) y le pone la escala en `0x3f3ae148` (0,73, `0x4452d2`) con cualquier tipo y escena, después de
+mirar que el jinete sea un jugador: la de `+0x688` · zoom que escribe `0x49596f` no se lee nunca (Q-C1010). Después,
+como siempre, `0x602e90` y el `rand() % 30 + 70` de `0x445336`. En `0x50ba30`, `+0x3e4` distinto de 0 saltea la sombra
+(y el ajuste al terreno de los mapas 11 a 17, `0x50bc16..0x50bcfb`) y `0x505820` (`0x50c913`): ni el conjunto completo
+ni sus `rand()`; los globales de `0x505820` quedan los del último personaje, y la cola no los lee sin el conjunto.
+
+**Lo que queda del estado.** La cámara de las billboards (`0x7d366f0`) queda en la identidad hasta el pase del mundo
+siguiente; lo único que la lee antes es `0x633110` (P-C90), y el retrato no dibuja billboards. Las matrices y el
+viewport de la pantalla vuelven en `0x4959dd..0x495a0c`, pero la profundidad, `GL_LEQUAL` y el alpha de 0,25 quedan para
+el 2D que sigue (*inferido* sin efecto: el 2D no escribe la profundidad). Los bytes `+0x14` y los dwords `+0x18` y `+0x1c`
+de las seis partes que `0x496530` pone en 0 son las telas de cada parte, que suelta `0x4fb1a0`: MuRet las lleva en
+`LetterPortrait::cloth`. El destructor (`0x495ef0` → `0x495f20`, al cerrar la ventana) llama a `0x4fb1a0` y cierra las
+entradas de la celda lógica del personaje (`+0x41c` y `+0x420`) en la tabla protegida: en reposo están en 0 y no saca
+`rand()` (la cuenta de esas entradas fuera del pool, con P-C22 c, es de la VM). MuRet suelta el `LetterPortrait` con
+la ventana.
+
+MuRet: `Scenes::DrawTheLetterPortrait` es `0x497c10` entera, desde `UI::DrawTheLetterPortrait` (`0x49a1d0` y `0x498800`)
+con el gancho del juego (`UI::OldWindowDrawView::portrait`, que arma `GameScene` en el 2D después del HUD). En blanco,
+el cuadro y el logo (`Local\Webzenlogo.jpg` en `0x653`, `0x61d2ba`). Si no, `PrepareThePortraitDraw` (el frame, el
+`0x414340`, el paso con el mundo en 0: `StepTheBodyAndEffects` y `StepTheHelperOutsideTheTable`, y `PlaceThePortrait`)
+y `DrawThePortraitModel`: cierra el lote 2D, empieza el pase del retrato con el material de `0x620db0` y la
+profundidad borrada (`Render::Pass3D::clearDepth`), `DrawTheHelperOutsideTheTable` y `DrawCharacterOutsideThePool`
+(`0x50ba30` con el personaje fuera del pool: sin contorno, no es el héroe y es el dueño `ActorPoolSize` de lo que
+crea), y cierra el pase aunque corte. Después, la ayuda: el ícono y, con la ayuda a la vista, los textos 997 a 999 en
+la caja de `0x5af090` con el modo 1 de `0x467060` (contra el borde izquierdo, `0x467102..0x467119`). Un dibujo
+intermedio dibuja una copia del retrato con la copia del `rand()` del frame, sin el paso. La acción `0x78` corta en
+`SetActorAttack` (`0x4f4a10`, P-C219). `UI::OldWindowStepView::portrait` es `Scenes::LetterPortraitHook` con los
+recursos del mundo (`GameUiContext::worldEntry`, `ChatReceiveContext::worldEntry`): el primer pedido crea el
+`LetterPortrait`.
 
 ## Lo que no se sabe
 

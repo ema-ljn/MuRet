@@ -251,7 +251,8 @@ Core::Expected<void, std::string> StepRidingHelper(HelperState& helper, const Ac
     {
         return Core::Unexpected(safe.Error());
     }
-    if (safe.Value())
+    // 0x4447f9: con el segundo argumento distinto de 0 (el retrato de las cartas), la celda no lo esconde.
+    if (safe.Value() && !context.ignoresTheSafeCell)
     {
         helper.horse.alpha = 0.0f; // 0x444800: el EBX en 0.
         return {};
@@ -286,7 +287,8 @@ Core::Expected<void, std::string> StepFenrir(HelperState& helper, const ActorSta
     {
         return Core::Unexpected(safe.Error());
     }
-    if (safe.Value())
+    // 0x444b25: lo mismo.
+    if (safe.Value() && !context.ignoresTheSafeCell)
     {
         helper.horse.alpha = 0.0f; // 0x444b2c
         return {};

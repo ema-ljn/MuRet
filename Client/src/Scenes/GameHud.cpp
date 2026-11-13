@@ -26,6 +26,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/HeroAttack.h"
 #include "Scenes/GamePartyWindow.h"
+#include "Scenes/GamePetWindow.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -864,8 +865,9 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
         return cut("0x5f6550: la ventana de 0x78abb00 es de la CL9.5");
     if (state.delegated.quest == 1 || state.delegated.quest == 2)
         return cut("0x41ca40: la ventana de las misiones es de la CL9.1");
-    if (state.delegated.pet == 2)
-        return cut("0x424160: la ventana de la mascota es de la CL9.2");
+    // 0x5f75e7: 0x424160 con el héroe, siempre: el botón y la ventana de la mascota y el cartel del cuervo.
+    if (auto pet = DrawThePetWindow(frame.context, panels); !pet.HasValue())
+        return pet;
     if (panels.IsOpen(UI::Panel2000))
         return cut("0x5f7180: la ventana 0x2000 no tiene ola todavía");
     // 0x5f75fa: 0x40a650, que empieza con +4 de [0x6e592c].
@@ -1628,7 +1630,6 @@ Core::Expected<void, std::string> DrawTheGameCursor(GameHudContext& context)
             return Core::Unexpected(attackable.Error());
         if (attackable.Value() && runtime.ui.mouseOnUi == 0)
         {
-            constexpr std::int32_t CastleSiegeMap = 30;
             cursor(runtime.map == CastleSiegeMap ? 0x68d : 4);
             return {};
         }

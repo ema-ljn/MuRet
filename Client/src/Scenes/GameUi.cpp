@@ -669,9 +669,9 @@ Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& co
 }
 
 // 0x424759..0x424990, la ventana de la mascota abierta (CL9 hito 4): a la izquierda de 0x1c2, o de 0x104 con el
-// personaje abierto, 190 × 433 es de la UI (0x775857c). Las dos pestañas (el cuervo y el caballo, de a 45 desde 15, de
-// 49 de ancho): un clic en la que no está elegida, entre 67 y 83, la elige; en la elegida, entre 63 y 83, solo se
-// come el clic. El botón de cerrar (20, 395, de 24 × 24) cierra el panel 0x400. Todo en float, con los bordes
+// personaje abierto, 190 × 433 es de la UI (0x775857c). Las dos pestañas (la 0 el caballo y la 1 el cuervo, de a 45
+// desde 15, de 49 de ancho): un clic en la que no está elegida, entre 67 y 83, la elige; en la elegida, entre 63 y 83,
+// solo se come el clic. El botón de cerrar (20, 395, de 24 × 24) cierra el panel 0x400. Todo en float, con los bordes
 // incluidos salvo los de la UI y los del botón. Sin rand().
 Core::Expected<void, std::string> StepThePetWindow(const GameUiContext& context, UI::PanelRegistry& panels)
 {

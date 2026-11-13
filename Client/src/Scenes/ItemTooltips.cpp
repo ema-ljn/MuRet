@@ -12,6 +12,7 @@
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/ItemPrice.h"
 #include "Scenes/ItemTooltipParts.h"
+#include "Scenes/PetTooltip.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
 #include "Scenes/WorldState.h"
@@ -36,9 +37,6 @@ namespace
 {
 // 0x5b2aae: el ítem vacío.
 constexpr std::uint16_t NoItem = 0xffff;
-// 0x5b2b0d: 0x422990, el tooltip del ángel y el sátiro (y la A9), que devuelve 1 con estos dos.
-constexpr std::uint16_t FirstPet = 0x1a04;
-constexpr std::uint16_t SecondPet = 0x1a05;
 // 0x5b2b3b..0x5b2b54: el nivel, (D+4 >> 3) & 0xf.
 constexpr std::uint32_t LevelShift = 3;
 constexpr std::uint32_t LevelMask = 0xf;
@@ -242,10 +240,12 @@ Core::Expected<void, std::string> DrawTheItemTooltip(const ItemTooltipContext& c
     tooltip.halves = 0;
     tooltip.ClearColors();
     tooltip.ClearTexts();
-    if (item.id == FirstPet || item.id == SecondPet)
-        return Core::Unexpected(std::format("0x4229d4: el tooltip del {:#x} (0x422990) y la A9 que pide son de la CL9 "
-                                            "(P-C126)",
-                                            item.id));
+    // 0x5b2b0d..0x5b2b17: 0x422990, que con el 0x1a04 y el 0x1a05 es todo el tooltip.
+    auto pet = DrawThePetTooltip(context);
+    if (!pet.HasValue())
+        return Core::Unexpected(std::move(pet).Error());
+    if (pet.Value())
+        return {};
     const auto type = static_cast<std::int16_t>(item.id);
     if (hud.items == nullptr)
         return Core::Unexpected(std::string("0x5b2acc: el tooltip del ítem sin Item.bmd"));

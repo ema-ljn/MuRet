@@ -33,10 +33,21 @@ void SelectFont(GameHudContext& context, Render::Text::FontKind font);
 // texto vacío no se dibuja, pero se mide igual: su tamaño en 640 × 480 queda en 0x77f31b8 y 0x77f31bc.
 void DrawText(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text);
 
-// 0x554180(x, y, texto, 120 · W / 640, 1, 3), el título de una ventana: 0x467060 con el modo 2 centra el texto en una
-// caja de 120 · W / 640 píxeles (la división sin signo de 0x5f0cd6..0x5f0cef) que empieza en _ftol(x · rx), con el
-// fondo en toda la caja (Render::Text::CenterInBox e ITextDrawer::DrawColumns, Q-C710), y deja en 0x77f31b8 el ancho
-// recortado a la caja. Un texto vacío mide el "0" y dibuja solo el fondo.
+// El ancho de una caja de 0x554180 en píxeles: W · k / 640, la división sin signo de 0x5f0cd6..0x5f0cef.
+[[nodiscard]] std::int32_t BoxWidth(const GameHudContext& context, std::uint32_t designWidth);
+
+// 0x554180(x, y, texto, caja, 1, ·): 0x467060 con el modo 2 centra el texto en una caja de `box` píxeles que empieza
+// en _ftol(x · rx), con el fondo en toda la caja (Render::Text::CenterInBox e ITextDrawer::DrawColumns, Q-C710), y
+// deja en 0x77f31b8 el ancho recortado a la caja. Un texto vacío mide el "0" y dibuja solo el fondo; vacío y sin caja,
+// nada.
+void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t box);
+
+// 0x554180(x, y, texto, ancho, 0, ·): 0x467060 con el modo 1 y un ancho, la caja de ese ancho desde x (0x467102..
+// 0x467119); si el texto es más ancho, se ve desde la columna cx − ancho. Deja la medida recortada al ancho, como
+// DrawInBox.
+void DrawClipped(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t width);
+
+// 0x554180(x, y, texto, 120 · W / 640, 1, 3), el título de una ventana: DrawInBox con la caja de 120.
 void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text);
 
 // 0x623690(x, y, texto): x − (cx · 640 / W) / 2 y 0x554180(…, 0, 0, 0).

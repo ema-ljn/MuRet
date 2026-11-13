@@ -17,8 +17,14 @@ namespace Client::World
 struct ItemState;
 }
 
+namespace Client::Render::Models
+{
+class CrtRandom;
+}
+
 namespace Client::Scenes
 {
+class WorldState;
 struct WorldEntryResources;
 
 using InventoryItemBytes = std::span<const std::byte, Protocol::Character::InventoryItemDataSize>;
@@ -49,4 +55,11 @@ PlaceInventoryItem(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntry
 // el registro abierto (3.848 rand() al cerrarlo si queda sin accesos). Si ya tiene una 0x96 desde la segunda opción, le
 // reescribe el valor; si no, o si es la primera (Q-C415), la agrega al final.
 void AddTheDarkHorseOption(World::ItemState& item, const WorldEntryResources& resources);
+// Lo mismo con la cuenta de accesos del registro propio y el rand() dados: el tooltip de las mascotas (0x423b07) la
+// llama con el registro abierto alrededor (0x5f7bc0), o con las copias de un dibujo intermedio. No mira el tipo: quien
+// la llama ya sabe que es el 0x1a04 (0x4225dc).
+void AddTheDarkHorseOption(World::ItemState& item, const WorldState& world, std::uint8_t& ownRecordDepth,
+                           Render::Models::CrtRandom& random);
+// Dónde escribe 0x4225d0 su 0x96: el lugar de una 0x96 desde la segunda opción, o el que sigue a la última (Q-C415).
+[[nodiscard]] std::uint8_t DarkHorseOptionPlace(const World::ItemState& item);
 } // namespace Client::Scenes

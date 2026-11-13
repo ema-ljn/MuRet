@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Scenes/WorldRuntime.h"
 
+#include <array>
 #include <cstdint>
 #include <string>
 
@@ -23,7 +25,6 @@ namespace Client::Scenes
 class WorldState;
 struct DarkSpirit;
 struct WorldEntryResources;
-struct WorldRuntime;
 
 // 0x420cd0, desde 0x657670 en la vuelta a la selección: 0x723910 (la pestaña), 0x723911 (UI::DelegatedPanels::pet)
 // y los quince dwords de las tres mascotas en 0. Sin rand().
@@ -33,6 +34,11 @@ void ResetThePets(WorldRuntime& runtime);
 // (+0x18) y +0x2a; después, con el tipo 0 o 1, la experiencia que sigue y +0xc..+0x12 de esa mascota. Con otro tipo,
 // solo el acceso.
 void UpdatePetStats(std::uint8_t pet, WorldState& world, Render::Models::CrtRandom& random);
+// Lo mismo sobre `pets` (WorldRuntime::pets o una copia) y con la cuenta de accesos del registro propio dada: el
+// tooltip de las mascotas (0x422a35) lo llama con el registro abierto alrededor (0x5f7bc0), o con las copias de un
+// dibujo intermedio.
+void UpdatePetStats(std::uint8_t pet, const WorldState& world, std::array<PetStats, PetStatsCount>& pets,
+                    std::uint8_t& ownRecordDepth, Render::Models::CrtRandom& random);
 
 // 0x417f30(nivel, experiencia), la vtable + 8 del cuervo: dos accesos al registro propio (el liderazgo y la
 // durabilidad del lugar 1, +0xbce) y lo que sale de ellos en el cuervo (DarkSpirit::word1e2 a word45a).

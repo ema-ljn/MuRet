@@ -5,11 +5,13 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
+#include "Protocol/Outgoing.h"
 #include "Render/SpriteBatch.h"
 #include "Scenes/ITextDrawer.h"
 #include "UI/Widget.h"
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 
@@ -76,6 +78,9 @@ struct GameHudContext
     // Lo que el tramo 3D de 0x5ac120 necesita para dibujar los modelos de los ítems de la UI. Sin él (una escena sin
     // la biblioteca de los modelos, como las de las pruebas), cada ítem saca sus rand() sin dibujar.
     UiItemResources* uiItems = nullptr;
+    // El send() de la sesión, el del A9 que pide el tooltip de las mascotas (0x423c87..0x42403d). Sin él (una escena
+    // sin sesión, como las de las pruebas), el pedido no sale; un dibujo intermedio no lo llama.
+    std::function<void(Protocol::Outgoing)> send{};
 };
 
 // 0x5a7320(1): los 31 hijos del HUD en su orden (06 § HUD y ventanas, "El HUD hijo por hijo"). En el estado base

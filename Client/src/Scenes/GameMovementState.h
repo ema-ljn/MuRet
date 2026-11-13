@@ -38,5 +38,10 @@ struct GameMovementState
     std::uint32_t targetY = 0;
     float actionInputTime = 0.0f;
     float actionInputElapsed = 0.0f;
+    // CL9 hito 3. 0x6c8ebc (.data −1): el lugar del personaje que el héroe va a pegar al llegar, que 0x5650c0 lee con
+    // +0x379 en 3. Lo escribe el clic sobre un personaje atacable de MoveHero (0x59d3de, sin portar).
+    std::int32_t attackTarget = -1;
+    // 0x576791c (.bss 0): el GetTickCount del último envío que pasó el freno de 300 ms (PassesTheActionBrake).
+    std::uint32_t lastActionTick = 0;
 };
 } // namespace Client::Scenes

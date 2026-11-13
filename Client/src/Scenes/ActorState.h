@@ -192,6 +192,33 @@ struct ActorState
     std::uint8_t byte381 = 0;
     std::uint16_t word1f2 = 0;
     std::uint16_t damage = 0; // +0x384
+    // CL9 hito 3 (atacar, el daño y la muerte). +0x380 y +0x382: el 0x16 sin el bit 15 pone en el héroe 2 y el daño
+    // (0x4cf2f9). +0x3a4: el lugar del blanco, en WORD: lo escriben el 0x16 (en el héroe) y el ataque al llegar
+    // (0x5659ab); 0x505de0 lo mira con +0x380 en 2 (CharacterHead.h). +0x3a8..+0x3b0: la posición del blanco al pegar
+    // (0x5653ec). +0x38f: cuántas veces pegó, que 0x4f4a10 sube y usa para alternar la acción. +0x391: la skill que lo
+    // mató (0x4d0a7e) y +0x398, que el 0x17 de los empujes pone en 0. Quién más los escribe, sin leer.
+    std::uint8_t byte380 = 0;
+    std::uint16_t word382 = 0;
+    std::uint16_t attackTarget = 0;
+    glm::vec3 attackPosition{};
+    std::uint8_t attackCount = 0;
+    std::uint8_t deathSkill = 0;
+    std::uint8_t byte398 = 0;
+    // +0x110: 0x42dcb0 lo pone en 3 al pegar el 0x19e y el 0x19f. Qué es, sin leer.
+    std::uint8_t byte110 = 0;
+    // +0x30: el 0x17 de los empujes le copia el rumbo hacia quien mató (0x4d0b8f). Qué lo lee, sin leer.
+    float angle30 = 0.0f;
+    // El vuelo del que muere empujado (el 0x17 con 0x28 o 0x3b, 0x4d0ac1..0x4d0b38, y 0x4d07c0 en Blood Castle y
+    // Chaos Castle), que mueve 0x4fb9e0 con 0x51fd20 (sin portar): +0x1bc, +0xcc, +0xd0, +0xd4, +0xd8 y +0xe4, el
+    // empuje de +0x1a4..+0x1ac y la posición de partida en +0x1b0..+0x1b8.
+    std::uint8_t byte1bc = 0;
+    float floatCc = 0.0f;
+    float floatD0 = 0.0f;
+    float floatD4 = 0.0f;
+    float floatD8 = 0.0f;
+    float floatE4 = 0.0f;
+    glm::vec3 push{};
+    glm::vec3 pushOrigin{};
     std::uint8_t byte399 = 0;
     std::uint8_t skillIndex = 0;          // +0x425
     std::uint8_t firstFootstepSound = 0;  // +0x3e0, retenidos hasta terminar la animación

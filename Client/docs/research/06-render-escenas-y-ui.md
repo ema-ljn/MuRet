@@ -9412,6 +9412,68 @@ observación nativa en el borde del pueblo está pendiente ([08](08-pendientes.m
 (173, 128)) y de Devias (el del norte, (220, 76) y (220, 77)) en
 `GoldenCharacterStep.TheSafeZoneFollowsTheLogicalCellAhead`.
 
+### Pegar al llegar
+
+CL9 hito 3 (2026-11-13), *estático* salvo lo que se marca; los paquetes, en
+[04](04-protocolo.md#pegar-el-daño-y-la-muerte-d7-15-16-17-y-9c). MuRet: `Scenes/HeroAttack.cpp`,
+`Scenes/ActorCombat.cpp` y `Scenes/CombatReplies.cpp`.
+
+- **Si el elegido se puede atacar** (`0x558bb0`, el cursor 4 de la tabla de arriba y el clic de
+  `0x59d3de`): no con un ítem en el cursor (`[0x7879fbc] > 0`, con signo) ni sin elegido
+  (`0x6c8e30` en −1); en Chaos Castle (18 a 23), cualquiera que no sea el héroe. Un monstruo (`+0x88`
+  en 2) sí, salvo con `0x576796c` y sin `0x576796d` (la guerra de gremios). Un jugador (`+0x88` en
+  1): con el asedio (`0x4294b0`), los puestos de `+0x360` enfrentados (6 a 11 contra 12 y 13) o las
+  marcas de `+0x78` deciden por el escudo `0x4000` del elegido; si no, `+0x370` en 2 u 8; con
+  `0x576796c`, el PK de 6 o más y gremio compara los nombres de `0x787aa55` (hito 8, corta en
+  `0x558da4`); en el duelo (`0x78abad8`), solo la clave de `0x78abadc` con el nombre de `0x78abae0`
+  (`strcmp` contra `+0x1d9`); con `0x576796c`, `+0x374` en 2 y que no sea el héroe; el PK de 6 o más;
+  y si no, Ctrl abajo (`GetAsyncKeyState(0x11)`, `0x558e7f`) y que no sea el héroe.
+- **El freno de 300 ms** (`0x576791c`, `0x57f2d1..0x57f2f9`, y el mismo en `0x559890`, `0x55b6f0`,
+  `0x55cbc0` y `0x55faa0`): salvo la skill `0x28`, si `|GetTickCount() − [0x576791c]|` (resta de 32
+  bits con signo, `CDQ`/`XOR`/`SUB`) es 300 o menos, la skill no sale; si sale, guarda un
+  `GetTickCount()` nuevo (la segunda llamada). Lo usan las skills de `0x57cfc0` (hito 4).
+- **`0x5650c0(héroe, héroe, 0)`**, al final del camino (`0x59b2d2`), salta por `+0x379` (`MOVSX`)
+  menos 1 a la tabla `0x56ab20`: 1 levanta el ítem del piso (`0x566755`, hito 5), 2 habla con el NPC
+  (`0x5674c8`, hito 2), 3 pega, 4 usa el objeto del mapa (`0x5695b4`) y 5 (`0x56601f`); otro valor
+  no hace nada. **El caso 3** (`0x565107..0x56601e`):
+  1. El alcance, en celdas: 1,8; 2,2 con la derecha en `0x600..0x7ff`; 6 con las ballestas de la
+     derecha (`0x808..0x80e`, `0x810`, `0x812..0x9ff`) o los arcos de la izquierda (`0x800..0x806`,
+     `0x811`, `0x814`, `0x815`); 7 con `+0x376` en 9. Las armas son las del registro propio
+     (`+0xb6c` y `+0xbb4`, 3848 `rand()` al cerrarlo).
+  2. Sale sin blanco (`0x6c8ebc` en −1) y si el héroe ya pega: un jugador con la acción `0x8d` (de
+     `0x22` a `0x97` solo esa, Q-C1162), otro modelo con la 3 o la 4.
+  3. La celda del blanco, `ftol(posición · 0,01f)`, va a `0x77e1ba8` y `0x77e1bac`; en la zona
+     segura (`+0x3e2`) sale ahí.
+  4. La distancia del héroe al centro de esa celda, en la x87, contra el alcance · 100: menor, igual
+     o unordered está en alcance. Fuera, solo el elfo camina hasta el alcance (`0x566271`, sin
+     portar); los demás salen.
+  5. En alcance: `MouseUpdateTime = MouseUpdateTimeMax`, `0x4f4a10`, `+0x381 = 1`, la posición del
+     blanco en `+0x3a8` y el yaw hacia él (`0x4e93f0`); la celda del héroe publicado (`0x743a170`,
+     X e Y protegidas, 4 `rand()` cada una) sale en el `D3` de girar; `+0x378 = 0`, las celdas del que
+     pega se abren y se cierran (4 y 4), `+0x3a4` toma el blanco y, si el nombre del héroe publicado
+     no contiene `webzen` (`0x6c8ff0`, una búsqueda de subcadena), sale el `D7`.
+- **`0x4f4a10`, SetPlayerAttack.** Un jugador: primero `0x4f3f80` (las velocidades de `Player.bmd`
+  desde el registro propio, 3848 `rand()`); con Fenrir fuera de la zona segura, la acción por las
+  armas (`0x56` a `0x61`) y el Dark Lord la pisa con `0x59`; con el caballo oscuro, `0x50`; con
+  Uniria o Dinorant, `0x32` a `0x37`; a pie, por las armas, con la marca `+0x1e` de Item.bmd para las
+  de la derecha y `rand() & 1` donde el original sortea. Los monstruos: `0x27` y `0x33` crean efectos
+  (CL11); `0x28` la acción 1 y el sonido `0x10`; `0x172`, `rand() & 7` y, de 3 en adelante,
+  `rand() & 1 + 3`; los demás pasan por `0x43a2f0` (Kalima), `0x443750`, `0x429270`, `0x437580` y
+  `0x42dcb0` (el `0x19e` y el `0x19f`, `+0x110 = 3` y la acción 5), y si nadie atiende, 3 o 4 por
+  `+0x38f % 3`, con `+0x38f + 1`. Con el frame en 0 (`0x4ea030` lo vuelve a 0 al cambiar de acción),
+  el sonido: el del arma del jugador, o el de la tabla del modelo (`0x5769ad8 + tipo · 0xe0 + 0xae`,
+  CL10). Al final, `+0x38f + 1` siempre.
+- **`0x4f5660`, SetPlayerDie.** El héroe pone la vida propia (`+0x22`) en 0 con el registro abierto;
+  el jugador toma la `0xc3`, los modelos de efecto (`0x20a` con el subtipo `0xd1..0xd3`, `0x16b` y
+  `0x170`) crean partículas (CL11) y los demás la 6. Con el frame en 0, el sonido: en Chaos Castle
+  `rand() & 1 + 0x5e`; un jugador `0x6e` el elfo, `0x1c7` el Dark Lord y `0x6c` los demás, y con
+  Fenrir `0x278`; un monstruo, el de su tabla (`+0xb2`, CL10). Después, el frame en 0,001.
+- **El `17` en los castillos** (`0x4d07c0`, en los mapas 11 a 23): con el `TerrainWall` de la celda
+  del muerto en 8 y Chaos Castle, cae al vacío (dos `rand()`, el sonido `0x60`); con `0x20`, lo
+  empujan del puente hacia el lado de la celda vecina con el 8 (cinco `rand()`). El héroe devuelve
+  el objeto del evento a `0x40ba20`. Fuera de los castillos, la skill `0x28` o `0x3b` lo empuja (dos
+  `rand()`) y lo gira hacia quien lo mató. El vuelo lo mueve `0x4fb9e0` (`0x51fd20`), sin portar.
+
 ### Los cambios de mapa
 
 *Estático* salvo lo que se marca. Tres paquetes del servidor llaman a `0x61a560` ([La carga del

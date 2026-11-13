@@ -590,6 +590,41 @@ bit el cliente para a otro jugador una vez de cada dos, con un `rand() & 1` (las
 Q-C178). Este documento lo daba
 como posición y dirección: lo de caminar es solo esa parada.
 
+### Pegar, el daño y la muerte: `D7`, `15`, `16`, `17` y `9C`
+
+CL9 hito 3 (2026-11-13). Cada paquete, contra la función del GameServer reconstruido
+(`gameserver/src/reconstructed/win32-vc6`) que lo arma o lo lee (*estático* los dos lados); qué hace
+el cliente con ellos, en [06](06-render-escenas-y-ui.md#pegar-al-llegar). Lo que no coincide, en
+[08](08-pendientes.md) (P-C252).
+
+- **El `D7` del cliente** (`0x5650c0`, `0x565a49..0x56601e`): `C1 07 D7 idH idL 78 dir`, con el
+  XOR32 y por `send()` directo, sin `rand()`. `id` es `+0x1f4` del blanco, entero (el bit 15 viaja
+  si lo tiene); la acción es siempre `0x78`, y `dir`, `ftol((yaw + 22,5) · 0,0222 + 1) & 7` con el
+  yaw del héroe publicado ya girado hacia el blanco (`0x5659b8..0x5659e2`). La GS lo lee como
+  `PMSG_ATTACK` (`CGAttack`, `0x4254d0`: `NumberH NumberL AttackAction DirDis`, el número en 16 bits
+  y hasta `0x15df`) y contesta con el `18` de esa acción (`GCActionSend`): **coincide**. Antes sale
+  el `D3` de girar, `C1 06 D3 X Y dir<<4`, con la celda del héroe (`0x56548b..0x565954`).
+- **El `15` de la GS** (`GCDamageSend`, `0x425880`): `C1 07 15 idH|f idL dañoH|tipo dañoL`. El
+  cliente 1.02 **no tiene caso** para el `15`: el despacho cae en el default `0x4e5b4a`, que no
+  hace nada. El daño que lee es el `D7` de 8 bytes (`0x4caae0`, arriba), el que manda la GS del
+  laboratorio (*verificado*: 614 en el cable).
+- **El `16`, la experiencia de una muerte** (`0x4cf200`, desde `0x4e3a74` con el flag de
+  descifrado): `C3 [C1 09 16 idH|f idL expH expL dañoH dañoL]`, el `PMSG_KILLPLAYER_EXP` de
+  `GCKillPlayerExpSend` (`0x425a70`, `PHeadSetBE`): **coincide**, con el `MSBFlag` en el bit 15 de
+  la clave. Con el flag en 0 manda `C1 06 F1 03 00 16` en C3 y no lee nada (`0x4cf2aa`). El muerto
+  es `0x5110d0(id & 0x7fff)`.
+- **El `9C`, la experiencia de Blood Castle** (`0x4cfce0`, desde `0x4e3a93`, con el flag igual):
+  `C3 [C1 0C 9C idH|f idL — eH eL dañoH dañoL]`, donde `eH` y `eL` son dos WORD en little endian
+  en `pkt[6..9]` y `pkt[5]` es el relleno: la experiencia es `eH · 65536 + eL`. Es el
+  `PMSG_KILLPLAYER_EXT` de `CalcSendRewardEXP` (`0x49af90`), con `HIWORD` y `LOWORD` en WORD
+  nativos: **coincide**. Esa GS manda siempre `NumberH = NumberL = 0xFF` y el daño en 0: la clave
+  `0x7fff` con el bit 15, que no tiene nadie, cae en el lugar 400 (Q-C1160).
+- **El `17`, la muerte** (`0x4d0a30`, desde `0x4e3ab2`, sin flag): lee `pkt[3..4]` (la clave, sin
+  máscara), `pkt[5]` (la skill, a `+0x391`) y, con la skill `0x28` o `0x3b`, `pkt[6..7]` (quién lo
+  mató). La GS manda el `PMSG_DIEPLAYER` de **5 bytes** (`GCDiePlayerSend`, `0x425bb0`: solo
+  `NumberH NumberL`): la skill y el que mató salen de lo que quedó en el buffer de recepción
+  (Q-C1161).
+
 ### Los cambios de mapa: `1C`, `F3 04` y `F3 12`
 
 *Estático* salvo lo que se marca; qué hace el cliente, en

@@ -78,6 +78,10 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         context.requestGate = [&](std::uint8_t gate) { m_session->RequestGate(gate); };
     if (m_session)
         context.sendFacing = [&](std::uint8_t direction) { return m_session->SendFacing(direction); };
+    // El D7 de pegar al llegar (0x5650c0, CL9 hito 3).
+    if (m_session)
+        context.sendAttack = [&](std::uint16_t key, std::uint8_t action, std::uint8_t direction)
+        { return m_session->SendAttack(key, action, direction); };
     const InventoryServices inventory = InventoryContext();
     context.inventory = &inventory;
     return StepHeroMovement(context);

@@ -23,6 +23,7 @@
 #include "Scenes/GameHeroFacing.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/HeroAttack.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/WorldMap.h"
 #include "World/OriginalFtol.h"
@@ -306,10 +307,14 @@ Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMoveme
             return Core::Unexpected(std::string("0x59b2d2: ángulo de llegada fuera del perfil ftol"));
         runtime.movement.arrivalYaw = *yaw;
         runtime.movement.movementTarget = 0;
-        // 5650ef..565100: MovementType0 sale por la tabla, sin interacción ni RNG.
-        if (hero.movementType != 0)
-            return Core::Unexpected(std::string("0x5650c0: la interacción de llegada requiere CL9"));
-        return {};
+        // 0x5650c0(héroe, héroe, 0): con +0x379 en 0 sale por la tabla, sin interacción ni RNG; el 3 pega (CL9 hito 3).
+        return InteractOnArrival(hero, HeroArrivalContext{.combat = {.world = context.world,
+                                                                     .random = context.random,
+                                                                     .playerSkeleton = context.playerSkeleton,
+                                                                     .models = nullptr,
+                                                                     .items = context.items},
+                                                          .sendWalk = context.sendWalk,
+                                                          .sendAttack = context.sendAttack});
     }
     hero.flags7c &= ~std::uint32_t{0x200000};
     if (!terrain.heights || !terrain.attributes)

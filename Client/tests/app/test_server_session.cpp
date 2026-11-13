@@ -26,6 +26,7 @@
 #include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/Combat.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
@@ -4293,6 +4294,52 @@ TEST(ServerSessionTest, TheLifeAndTheManaReachTheWorldBeforeTheMap)
     ASSERT_NE(mana, nullptr);
     EXPECT_EQ(mana->place, 0x15);
     EXPECT_EQ(mana->mana, 0x5a);
+}
+
+// 04 § Pegar, el daño y la muerte (CL9 hito 3): el 16 y el 9C cifrados (como los arma la GS: GCKillPlayerExpSend y
+// la recompensa de Blood Castle) y el 17 de 5 bytes llegan al mundo en orden; el 15 de la GS (GCDamageSend) no tiene
+// caso; el 16 y el 9C sin cifrar se contestan con el F1 03 y su opcode, sin leerlos. Las claves son inventadas.
+TEST(ServerSessionTest, TheKillsAndTheDeathReachTheWorldAndTheClearOnesAreReported)
+{
+    namespace Combat = Client::Protocol::Combat;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto kill = Bytes({0xc1, 9, 0x16, 0x81, 0x2c, 0x03, 0xe8, 0x00, 0x2a});
+    const auto reward = Bytes({0xc1, 0x0c, 0x9c, 0xff, 0xff, 0xcc, 0x01, 0x00, 0x20, 0x4e, 0x00, 0x00});
+    tested.socket.reads = {Join({FromTheGameServer(kill, tested.gameServerSends), Bytes({0xc1, 7, 0x15, 0, 1, 0, 9}),
+                                 FromTheGameServer(reward, tested.gameServerSends), Bytes({0xc1, 5, 0x17, 0, 7})})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 3u);
+    const auto* killed = std::get_if<Combat::KillExperience>(&events[0]);
+    ASSERT_NE(killed, nullptr);
+    EXPECT_EQ(killed->key, 0x012c);
+    EXPECT_TRUE(killed->shock);
+    EXPECT_EQ(killed->amount, 1000u);
+    EXPECT_EQ(killed->damage, 42);
+    const auto* rewarded = std::get_if<Combat::KillExperience>(&events[1]);
+    ASSERT_NE(rewarded, nullptr);
+    EXPECT_EQ(rewarded->key, 0x7fff);
+    EXPECT_TRUE(rewarded->shock);
+    EXPECT_EQ(rewarded->amount, 0x10000u + 20000u);
+    const auto* died = std::get_if<Combat::Death>(&events[2]);
+    ASSERT_NE(died, nullptr);
+    EXPECT_EQ(died->key, 7);
+    EXPECT_EQ(died->skill, 0);
+    EXPECT_EQ(died->killer, 0);
+
+    for (const std::uint8_t opcode : {Combat::KillExperienceOpcode, Combat::ExtendedKillExperienceOpcode})
+    {
+        const auto before = tested.GameServerReads().packets.size();
+        tested.socket.reads = {Bytes({0xc1, 9, opcode, 0, 1, 0, 2, 0, 3})};
+        ASSERT_TRUE(tested.session.Poll().HasValue());
+        const auto reported = tested.GameServerReads();
+        ASSERT_EQ(reported.packets.size(), before + 1);
+        EXPECT_TRUE(SameBytes(Xor32Decode(reported.packets.back()).Bytes(), Bytes({0xc1, 6, 0xf1, 3, 0, opcode})));
+        EXPECT_TRUE(reported.packets.back().WasDecrypted());
+        EXPECT_TRUE(tested.eventSink.world.empty());
+    }
+    EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 
 // La conexión cifra sólo el gate: los tres C1 de mundo restantes salen con XOR32 sin C3.

@@ -58,6 +58,7 @@ std::optional<std::uint8_t> DirectionBetween(Cell from, Cell to)
     }
     return std::nullopt;
 }
+} // namespace
 
 Core::Expected<std::uint8_t, WalkWriteError> DirectionFromAngle(float angle)
 {
@@ -69,7 +70,6 @@ Core::Expected<std::uint8_t, WalkWriteError> DirectionFromAngle(float angle)
     const auto integer = static_cast<std::int64_t>(converted);
     return static_cast<std::uint8_t>(static_cast<std::uint64_t>(integer) & DirectionMask);
 }
-} // namespace
 
 Core::Expected<Outgoing, WalkWriteError> WriteWalk(std::span<const Cell> path, Cell target, float angle)
 {

@@ -4,6 +4,7 @@
 #include "GameLogic/MovementSpeed.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
+#include "Scenes/AttackRules.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/FullSetScan.h"
@@ -346,6 +347,8 @@ struct WorldRuntime
     // 0x75fdc38: meta del 0F. 0x75fdc3c es la cuenta actual, que ese paquete no cambia.
     // Estado durable de 0x530490 para el futuro binder de hojas; recibir 0F no crea lluvia.
     World::LeafWeather leafWeather{.firstWave = InitialLeafCount};
+    // CL9 hito 3: lo que mira 0x558bb0 para saber si el personaje elegido se puede atacar (AttackRules.h).
+    AttackRules attackRules{};
 };
 
 // 0x63722e y 0x59afd6: con el contador en más de esto, el juego no dibuja ni mueve al héroe.

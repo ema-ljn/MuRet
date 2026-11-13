@@ -68,6 +68,8 @@ struct GameHudContext
     UI::Point mouse{};
     // 0x7d36874: el botón izquierdo abajo.
     bool leftDown = false;
+    // GetAsyncKeyState(0x11) en el dibujo: Ctrl abajo, que 0x558bb0 mira para atacar a otro jugador (0x558e7f).
+    bool controlDown = false;
     // El código del servidor elegido (App::ServerSession::ChosenServer), de donde salen [0x6d5ec4] (el lugar del
     // grupo) y [0x6d5ecc] (el número) que lee la ventana del personaje; sin él, corta.
     std::optional<std::uint16_t> chosenServer{};

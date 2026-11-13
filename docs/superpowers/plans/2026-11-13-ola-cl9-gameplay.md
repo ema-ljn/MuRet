@@ -271,12 +271,16 @@ de cada alta; el `C1 30` y el `A2` byte a byte; el `A3` con sus tres resultados 
 
 ### Hito 3: atacar, el daño y la muerte (CL9.2, ~20 KB)
 
-- [ ] **Pegar:** la rama de ataque de `0x5650c0` (el `D7` del cliente en `0x565a79`, que FoxAnti manda como
-      `A4`) y de `0x57cfc0`, el freno de 300 ms (`0x576791c`), el cursor de ataque (`0x558bb0`).
-- [ ] **El daño y la muerte de otros:** las ramas de otros de `0x4caae0` (el `D7` que llega), el `0x17`
+- [x] **Pegar:** la rama de ataque de `0x5650c0` (el `D7` del cliente en `0x565a79`, que FoxAnti manda como
+      `A4`) y de `0x57cfc0`, el freno de 300 ms (`0x576791c`), el cursor de ataque (`0x558bb0`). Fase 1 hecha
+      (2026-11-13): el caso 3 de `0x5650c0`, `PassesTheActionBrake` para las skills de `0x57cfc0` (hito 4) y
+      `0x558bb0` en el cursor; el clic `0x59d3de` que deja `+0x379` en 3 queda para la fase 2 (P-C251).
+- [x] **El daño y la muerte de otros:** las ramas de otros de `0x4caae0` (el `D7` que llega), el `0x17`
       (`0x4d0a30`, morir, con los casos `0x28` y `0x3b`), el `0x16` (`0x4cf200`, la experiencia), el `0x9C`
       (`0x4cfce0`), `0x4f4a10` (las acciones `0x78`/`0x79` del `0x18`, sin leer) y los números de daño
-      (`0x548e40`, `0x548eb0`).
+      (`0x548e40`, `0x548eb0`). Fase 1 hecha (2026-11-13): el `D7` que llega ya estaba (CL7/CL8); `0x4f4a10`
+      queda como `SetActorAttack` para que el hito 1a lo llame desde `0x4cb750`; los cortes, en P-C250, y el
+      cableado con los actores del `12` y del `13`, en P-C251.
 
 **Pruebas:** el `D7`/`A4` que sale al pegar; la muerte de un monstruo y la de otro jugador; la experiencia del
 `0x16` y del `0x9C` contra el struct del GS (`GCKillPlayerExpSend`); los `rand()` del paso con un monstruo en

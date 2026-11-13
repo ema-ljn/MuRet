@@ -9996,6 +9996,38 @@ Cada paquete saca los 2 `rand()` del C3 (el relleno y el serial). El mapa de las
 `RequestAParty`, desde `UI::RunTheChatCommand` por `GameChat`; el aviso armado va en `ChatCommandNotice::formatted`).
 Tests: `SocialRequestsTest` (con los dos jugadores del `0x12`, en Lorencia y Devias), `Commands` y `GameChat`.
 
+**La ventana del comercio** (`0x5f3b40`, desde `0x5f2280` después del inventario). Con `IsOpen(0x20)` (su
+`rand()`, el único del dibujo), la esquina en (`0x104`, 0) (`0x78a5a1c` y `0x78a5a18`, que escribe el dibujo) y
+`0x5ee220(x, y, 1)`: el fondo de las ventanas (`0x104` y `0x105`) y `Interface\Trading_line.jpg` (`0x117`) de 190 × 10
+en y + 225 (du 0,7421875, dv 0,625). Las casillas de las dos grillas (`0x5e3660`, 8 × 4): la del otro (`0x78a5a20`) en
+(x + 15, y + 70) y la propia (`0x78a92a8`) en (x + 15, y + 270). Blanco y el lazo de las 2000 entradas de la tabla de
+los gremios (`0x787aa48`, de `0x58` B): la que tiene una clave distinta de −1 e igual a `0x6c9324` (el gremio del otro,
+del `37`) dibuja la marca (`0x5f16a0(índice, 0)` y la `0x22` de 32 × 32 en (x − 32, y + 40)) y el nombre (`+0xd`, en
+(x, y + 30)). `0x447ae0` pone todas las claves en −1 y solo `0x4d9260` (la lista del gremio, hito 8) las llena: hasta
+entonces el lazo no dibuja nada, ni con el gremio 0 que manda el GS sin gremio (08 P-C207 a). Blanco; en la negrita
+(`0x5763558`), con `0xffdcdcdc` sobre `0xff141414`, el título (texto 226) en (x + `0x23`, y + `0xc`) en la caja de
+120 · ancho / 640. Los botones de 24 × 24 con du = dv = 0,75 (`0x621b60`): el OK del otro en (x + 140, y + 185),
+`accept_box01` (`0x122`) con `0x78abac0` en 0 o `accept_box02` (`0x123`), en rojo con `0x78abac4` sobre 0; con
+`0xffffffff` sobre `0xff000000`, el zen (`Money_01`, `0x110`) en (x + 26, y + 390), el OK propio (`0x78abac1`) en
+(x + 97, y + 390), en rojo con la espera (`0x78abac8`) sobre 0, y cerrar (`0x118`) en (x + 137, y + 390). Con el mouse
+en [x, x + 24) × [y, y + 24) de cada uno, en la normal (`0x5763554`), su ayuda (227, 228 y 229) en (`_ftol(x)`,
+`_ftol(y)` − 13); el del zen, con el izquierdo abajo (`0x7d36874`), pone `Money_02` (`0x111`) encima antes. En la
+negrita, con `0xff96dcff` sobre `0x80282828`, las cajas del zen (`0x10f`, 113 × 18, du 0,8828125, dv 0,5625) en
+(x + 50, y + 160) y (x + 50, y + 360), cada una con "Zen" (224) 30 a la izquierda y 2 abajo y la cifra
+(`0x78abab4` y `0x78abab8`, con las comas y el color del inventario) 10 a la derecha. En la negrita grande
+(`0x576355c`), con `0xffffe6d2`, el nombre del otro (`0x78aba1c`) en (x + 20, y + 45). La flecha (`0x9`) de 15 × 24
+desde v 0,4 en (x + 140, sen(T · 0,01) + (y + 28)), en (1; 0,86; 0,58). El nivel del otro (`0x78abab0`, con signo) cae
+en su piso: 300 (`0xffff99ff`), 200 (`0xffffe6d2`), 100 (`0xff18c900`), 50 (`0xff0096ff`) o 10 (`0xff0000ff`); en la
+negrita, el texto 368 en (x + `0x8c`, y + `0x2d`) y `sprintf(369, piso)` en (x + `0x8c`, y + `0x37`). El nombre del
+héroe (`+0x1d9`) en `0xffffe6d2` en (x + 20, y + `0xfa`). El texto 370 en (x + 20, y + `0xb9`) con el alfa de
+`_ftol(min(sen(T · 0,005) · 200 + 275, 255))` sobre `0xd2`, y en `0xff96dcff` el 365 en (x + `0x2d`, y + `0xb9`), el
+366 en (x + 20, y + 200) y el 367 en (x + 20, y + `0xd7`). Después, en el pase 3D de `0x5f7610`, los ítems de las dos
+grillas (`0x5e3760` con 0, en las mismas esquinas) y, en `0x5f7840`, sus cifras (`0x5e3760` con 1).
+
+**MuRet**: `Scenes::DrawTheTradeWindow` (`GameInventoryHud`, desde `DrawTheWindows`), y las grillas del comercio en
+`DrawTheGridItems` y `DrawTheGridNumbers`. Tests: `GameTradeWindowTest` (con el otro del `0x12`, el `/trade`, el `37`,
+un ítem del `39` y el zen, en Lorencia y Devias).
+
 ## Lo que no se sabe
 
 - **Modelos, en el binario** (P-C01, cerrado en la CL6.R): el skinning, la pose, el avance, la

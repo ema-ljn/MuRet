@@ -335,8 +335,10 @@ byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada v
   - [x] Fase 1 (2026-11-13): los paquetes de los dos lados, el byte protegido (`Open` y `Close` del `0x20`, con el
         `3D` de `0x657fb5`), el anti-estafa (`0x5bc5e0`, `0x5bc470`, `0x5bc300`), el paso de la ventana (`0x5ecde0`),
         el `+0x44` de sus grillas en `0x5e4ce0` y la cola de `0x5bbe10` en la entrada a la selección.
-  - [ ] Fase 2: el dibujo `0x5f3b40`, levantar y soltar en sus grillas (`0x5c41f4`, `0x5deb1c`) y el OK del
-        diálogo `0x73` (`0x626460`) (08 P-C205).
+  - [x] Fase 2 (2026-11-13): el dibujo `0x5f3b40` con sus grillas (`0x5f76df`, `0x5f79b7`); la marca del gremio
+        espera la tabla del hito 8 (08 P-C207 a).
+  - [ ] Fase 2: levantar y soltar en sus grillas (`0x5c41f4`, `0x5deb1c`) y el OK del diálogo `0x73` (`0x626460`)
+        (08 P-C205).
 - [ ] **Las tiendas personales:** el `0x3F` y su segundo nivel (`0x4db120`, `0x4dae80`, `0x4dafe0`,
       `0x4db700`, `0x4db890`, `0x4dbcb0`), las ventanas `0x5f3030`, `0x5eb020` y `0x623750`, y los carteles
       `[LOJA]` sobre las cabezas (`0x451c20` y su familia). Fase 2: necesita los actores del hito 1 (08 P-C204).

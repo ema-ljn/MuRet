@@ -842,8 +842,9 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     // 0x5f2340, que empieza con su IsOpen.
     if (auto inventory = DrawTheInventory(frame.context, panels); !inventory.HasValue())
         return inventory;
-    if (panels.IsOpen(UI::TradePanel))
-        return cut("0x5f3b40: el dibujo del comercio es de la CL9 hito 7, fase 2");
+    // 0x5f3b40, que empieza con su IsOpen.
+    if (auto trade = DrawTheTradeWindow(frame.context, panels); !trade.HasValue())
+        return trade;
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
         return cut("0x5f3030: las tiendas personales son de la CL9 hito 7, fase 2");
     if (panels.IsOpen(UI::NpcShopPanel))

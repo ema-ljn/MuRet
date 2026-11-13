@@ -47,7 +47,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet
 // después de command.jpg (0x61aec8..0x61b1f2), de los hitos 4 y 6: el fondo de las ventanas, los casilleros del
 // equipo, la plata, la grilla, la línea del comercio y los botones, entre ellos el de cerrar (0x118). La 0x106 no la
 // sube nadie.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 81> HudTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 82> HudTextureSet{{
     {"Interface\\CursorAttack.tga", 0x04, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorGet.tga", 0x05, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorTalk.tga", 0x06, TextureSetsDetail::LinearClamp},
@@ -129,6 +129,8 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 81> HudTextureSet{{
     {"Interface\\repair_01.jpg", 0x11e, TextureSetsDetail::NearestClamp},
     {"Interface\\repair_02.jpg", 0x11f, TextureSetsDetail::NearestClamp},
     {"Interface\\level_01.jpg", 0x120, TextureSetsDetail::NearestClamp},
+    // 0x61ae60: el OK marcado del comercio (0x5f3b40). El 0x122 (accept_box01) lo sube el terreno (AcceptBoxTexture).
+    {"Interface\\accept_box02.jpg", 0x123, TextureSetsDetail::NearestClamp},
 }};
 
 // Las de los pases de brillo, que 0x61ccb0 sube en su avance 0 y nadie suelta: Shiny01 para el 0x8,

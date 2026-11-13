@@ -844,7 +844,7 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     if (panels.IsOpen(UI::TradePanel))
         return cut("0x5f3b40: el comercio es de la CL9.4");
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
-        return cut("0x5f3030: las tiendas personales son de la CL9.3");
+        return cut("0x5f3030: las tiendas personales son de la CL9.4");
     if (panels.IsOpen(UI::NpcShopPanel))
         return cut("0x5f4720: la tienda del NPC es de la CL9.3");
     if (panels.IsOpen(UI::ChaosBoxPanel))

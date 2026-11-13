@@ -394,9 +394,9 @@ tienda personal y ver la de otro; armar una party y echar a alguien; un duelo; c
       `0x651400`; el `0x40000`, `0x654900`), crear el gremio (`0x6552b0`, `0x655d70`, `54`/`55`), las clases de
       las listas (`0x46b800`..`0x46d630`) y el diálogo de los paneles (`0x65feb0`, `0x6600d0`, `0x660410`,
       `0x6605b0`, `0x660830`) que abren los paquetes.
-- [ ] **La alianza y los rivales:** `E1`, `E5`, `E6`, `E9` (`0x4d9810`, `0x6565e0`, `0x4d9940`, `0x4d9e50`),
+- [x] **La alianza y los rivales:** `E1`, `E5`, `E6`, `E9` (`0x4d9810`, `0x6565e0`, `0x4d9940`, `0x4d9e50`),
       con las ventanas `0x64e600`, `0x64def0`, `0x650c10`, `0x653c00` y `0x650830` (`EB`).
-- [ ] **La guerra de gremios:** `0x60`..`0x64` (`0x4d8150`, `0x4d8260`, `0x4d8870`, con `0x576a60` del hito
+- [x] **La guerra de gremios:** `0x60`..`0x64` (`0x4d8150`, `0x4d8260`, `0x4d8870`, con `0x576a60` del hito
       1), el marcador (`0x5a7640`) y el color de la tela en la guerra (P-C22 e, el resto que deje el hito 7).
 
 **Pruebas:** crear un gremio, sumar a alguien, salir; la marca de otro en el viewport; una alianza; una guerra
@@ -442,6 +442,12 @@ el `C1 05 18`), y el estado del 6 con los dos maestros, que lee el `+4` de la ta
 02`, echar a un gremio con `0x650830` y el `C1 0C EB 01`) y los tres dibujos (`0x64fdf0`, `0x6507d0`, `0x651400`) con
 las listas del aviso (`0x46b800`, desde el `0D` tipo 2 por `0x651680`) y de la alianza (`0x46d440`, `0x46d900`), su
 paso y su dibujo sobre `UI::OldList` y el `0x47a810` del hito 9, y los botones `+0x42c`, `+0x64c` y `+0x6d4`.
+Después, la ventana de los cargos (`0x64e600` y `0x64f1c0`, colgadas del diálogo de los paneles con `0x6602b0`; el
+`E1` tipo 1 o 2 y el `52`) que abre el botón `0x6504b6`, y el `EDIT` del alta dibujado con `0x468320` (P-C286, con
+la subclase `0x467b10` leída). El hito 11 (`cl9-h11`, sin mergear) no abre el reloj ni el campo del diálogo
+(P-C285). Queda (08 P-C287): el diálogo `0x7d` del juego (`0x62a810`, `0x62a878`, `0x62c567`, el dibujo
+`0x630af0..0x630cb8` y su cola `0x63140b`) con el segundo `EDIT` de los diálogos (`[0x5763508]`), que manda el
+`C1 53` de echar y de salir; por eso la ventana del gremio sigue sin tildar.
 
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 

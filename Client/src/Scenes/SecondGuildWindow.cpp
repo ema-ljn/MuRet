@@ -28,8 +28,10 @@
 #include "UI/GameText.h"
 #include "UI/GameUiState.h"
 #include "UI/NameChecks.h"
+#include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
+#include "UI/OldWindowDrawParts.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
@@ -155,8 +157,11 @@ constexpr double TextBox = 140.0;
 // Los colores de 0x6c8e5c y 0x6c8e64 del título (0x656f2e) y de las páginas (0x6563f6).
 constexpr Render::Text::TextColors TitleColors{.text = 0xffdcdcdcu, .background = 0xff141414u};
 constexpr Render::Text::TextColors PageColors{.text = 0xffe6e6e6u, .background = 0};
-// El texto del EDIT (0x468320): su color no está leído (P-C286); el fondo, 0 (+0x44(0, 0, 0, 0), 0x6551f9).
-constexpr Render::Text::TextColors FieldColors{.text = 0xffffffffu, .background = 0};
+// 0x6551e8..0x655223: el EDIT sin filtro (+0x4c en 0), el fondo en 0 (+0x44(0, 0, 0, 0)), de 0x46 × 0xe en
+// (x + 0x3f, y + 0x3c).
+constexpr std::int32_t FieldWidth = 0x46;
+constexpr std::int32_t FieldHeight = 0xe;
+constexpr std::int32_t FieldLeft = 0x26;
 // El héroe sin gremio en +0x368.
 constexpr std::uint8_t NoGuildStatus = 0xff;
 
@@ -319,7 +324,7 @@ void Notice(WorldRuntime& runtime, std::int32_t dialog)
 // MuRet no tiene) y oculto.
 void HideTheNameField(UI::ChatInputState& input)
 {
-    input.dialogField.SetText({});
+    input.dialogField.text.SetText({});
     UI::ShowTheDialogField(input, HiddenField);
 }
 
@@ -392,7 +397,7 @@ Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& cont
         // 0x654fb3..0x654fda: GetText(0x78a597d, 0xff) y GetText(0x7798bf8, 0xff). El nombre tiene 9 bytes hasta la
         // marca (+0x16): el EDIT, con EM_LIMITTEXT 8, no pasa de ahí.
         std::array<char, GuildTableEntry{}.guildName.size()>& name = guild.table[CreatingIndex].guildName;
-        const std::string_view typed = input.dialogField.Value();
+        const std::string_view typed = input.dialogField.text.Value();
         if (typed.size() >= name.size())
             return Core::Unexpected(std::format("0x654fc5: GetText del nombre del gremio ({} bytes) pisaría la marca "
                                                 "nueva (0x78a5986)",
@@ -682,13 +687,22 @@ Core::Expected<void, std::string> DrawTheName(GameHudContext& context, GuildStat
         return Core::Unexpected(std::move(name).Error());
     DrawText(context, x + PageLeft, y + PageTop, name.Value());
     UI::ChatInputState& input = context.world.Runtime().chat.input;
+    UI::OldEdit& field = input.dialogField;
     UI::ShowTheDialogField(input, ShownField);
-    input.dialogField.Limit(GuildNameLimit);
+    field.filter = 0;
+    field.backgroundColor = 0;
+    field.text.Limit(GuildNameLimit);
+    field.base.width = FieldWidth;
+    field.base.height = FieldHeight;
+    field.base.x = x + PageLeft + FieldLeft;
+    field.base.y = y + PageTop;
     UI::FocusTheDialogField(input);
-    // 0x468320: MuRet dibuja lo que tiene con la fuente normal en su esquina, como los EDIT del chat (P-C89 c).
-    if (const std::string_view typed = input.dialogField.Value(); !typed.empty())
-        context.text.Draw(x + PageLeft + 0x26, y + PageTop, typed,
-                          Render::Text::TextStyle{.font = FontKind::Normal, .colors = FieldColors});
+    // 0x65523d: la vtable + 0x14 del EDIT (0x468320), con el cursor si tiene el foco.
+    UI::OldDraw::DrawTheOldEdit(UI::OldWindowDrawContext{.sprites = context.sprites,
+                                                         .text = context.text,
+                                                         .dcFont = context.hud.dcFont,
+                                                         .textColors = context.hud.textColors},
+                                field, input.focus == UI::ChatFocus::DialogField);
     if (auto uploaded = UploadTheNewMark(context, guild); !uploaded.HasValue())
         return uploaded;
     if (auto editor = DrawTheMarkEditor(context, guild, x, y); !editor.HasValue())

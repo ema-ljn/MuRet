@@ -26,7 +26,7 @@ constexpr std::size_t SetTextLimit = 0x100;
 TextField& FieldOf(ChatInputState& input, ChatFocus focus)
 {
     if (focus == ChatFocus::DialogField)
-        return input.dialogField;
+        return input.dialogField.text;
     return focus == ChatFocus::Whisper ? input.whisper : input.message;
 }
 
@@ -83,7 +83,7 @@ void ResetTheTextBuffers(ChatInputState& input, bool second)
     input.field = MessageField;
     input.messageBuffer.fill('\0');
     input.messageLength = 0;
-    SetTextOf(input.dialogField, {});
+    SetTextOf(input.dialogField.text, {});
     if (!second)
         return;
     input.whisperBuffer.fill('\0');
@@ -126,6 +126,7 @@ void ShowTheChatFields(ChatInputState& input, std::int32_t state)
 
 void ShowTheDialogField(ChatInputState& input, std::int32_t state)
 {
+    input.dialogField.base.state = state;
     input.dialogFieldShown = state != HiddenState;
     if (!input.dialogFieldShown && input.focus == ChatFocus::DialogField)
         input.focus = ChatFocus::Game;
@@ -139,7 +140,7 @@ void FocusTheDialogField(ChatInputState& input)
 
 void ReadTheDialogField(const ChatInputState& input, ChatBuffer& buffer)
 {
-    GetTextInto(buffer, input.dialogField);
+    GetTextInto(buffer, input.dialogField.text);
 }
 
 void ResetTheChatInput(ChatInputState& input)

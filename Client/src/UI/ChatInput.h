@@ -1,5 +1,7 @@
 #pragma once
 
+#include "UI/OldControls.h"
+#include "UI/OldWindowBase.h"
 #include "UI/TextField.h"
 
 #include <array>
@@ -52,6 +54,16 @@ inline constexpr std::size_t DialogFieldLimit = 0xff;
 // 0x469790(10000): volver al más nuevo.
 inline constexpr std::int32_t NewestInTheHistory = 10000;
 
+// El EDIT de los diálogos con el tope de GetText, oculto como lo deja WinMain (+4(3) en 0x4bbabc); lo demás, como lo
+// deja 0x4674c0.
+[[nodiscard]] inline OldEdit DialogFieldEdit()
+{
+    OldEdit edit;
+    edit.base.state = HiddenWindow;
+    edit.text = TextField{DialogFieldLimit, false, TextField::Charset::Latin1};
+    return edit;
+}
+
 // Qué ventana tiene el foco del teclado (GetFocus()): la del juego ([0x5763544]) o uno de los dos EDIT.
 enum class ChatFocus : std::uint8_t
 {
@@ -96,10 +108,11 @@ struct ChatInputState
     // cierra y 0x5aa9a0 dibuja la caja. MuRet no lo prende.
     bool otherInput = false;
     // [0x5763504]: el EDIT de los diálogos (la clase 0x4674c0 que arma WinMain en 0x4bb344), que en el juego usa la
-    // ventana 2 del gremio para el nombre (0x655130 lo muestra, 0x654f80 lo lee y lo oculta). Latin-1 como los del
-    // chat; lo tecleado entra con el foco en ChatFocus::DialogField.
-    TextField dialogField{DialogFieldLimit, false, TextField::Charset::Latin1};
-    // +0x48 del EDIT de los diálogos: a la vista (0x468260 con otro que 3).
+    // ventana 2 del gremio para el nombre (0x655130 lo muestra, lo ubica y lo dibuja con 0x468320; 0x654f80 lo lee y
+    // lo oculta). Latin-1 como los del chat; lo tecleado entra con el foco en ChatFocus::DialogField. Lo que se ve de
+    // él (+0x4c, los colores, el lugar, los dibujos y el estado de +0x48) es el de las ventanas viejas (OldEdit).
+    OldEdit dialogField = DialogFieldEdit();
+    // +0x48 del EDIT de los diálogos a la vista (0x468260 con otro que 3), lo mismo que `dialogField.base.state`.
     bool dialogFieldShown = false;
     // 0x77f3b68: el campo del diálogo prendido (el 01 del Guild Master, 0x4e3450, y el botón Crear, 0x655d70; lo apaga
     // 0x6570b0). Con él, Enter no es del chat (0x4b5115) y no hay atajos de teclado (0x6578e0).

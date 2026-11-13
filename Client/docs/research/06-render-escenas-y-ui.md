@@ -2820,8 +2820,9 @@ que se arma `0x7d536e4` (1, un gremio; 2, la marca sola); el gremio nuevo es la 
 
 **MuRet** (`Scenes/SecondGuildWindow`, `UI::PanelContext::secondGuildStep`, `ChatInputState::dialogField` y
 `dialogFieldOn`, `Scenes::ApplyKeyChat`): todo lo de arriba. La ventana y sus botones tienen los ids −5..−9 (P-C280);
-el `EDIT` de los diálogos es `ChatInputState::dialogField` (Latin-1, como los del chat), que toma lo tecleado con el
-foco en `ChatFocus::DialogField`, y su dibujo va con la fuente normal en blanco (P-C286). Cada color del editor va a
+el `EDIT` de los diálogos es `ChatInputState::dialogField`, un `UI::OldEdit` (Latin-1, como los del chat), que toma
+lo tecleado con el foco en `ChatFocus::DialogField` (cada `WM_CHAR` le pone los dibujos en 0, `0x467b9d`) y se dibuja
+con `UI::OldDraw::DrawTheOldEdit` (`0x468320`: la caja en el fondo 0, el texto y el cursor; P-C286). Cada color del editor va a
 su slot (`Render::FirstGuildSwatchTextureSlot`). No saca `rand()` propios; el `01` del Guild Master saca los cuatro de
 abrir el panel.
 

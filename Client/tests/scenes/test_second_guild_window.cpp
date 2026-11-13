@@ -14,6 +14,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameHud.h"
+#include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GuildMarks.h"
 #include "Scenes/GuildPanels.h"
@@ -36,6 +37,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
 #include <map>
 #include <memory>
 #include <optional>
@@ -491,15 +493,28 @@ TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
     m_text.texts.clear();
     ASSERT_TRUE(Draw().HasValue());
     const std::vector<DrawnQuad> quads = QuadsOf(m_sprites);
-    ASSERT_EQ(quads.size(), 174u);
+    ASSERT_EQ(quads.size(), 176u);
     ExpectQuadAt(quads[3], 0x10f, Left + 0x3a, 56.0f, 110.0f, 18.0f);
-    // La grilla empieza en el 6: su marco y el cuadrado del 0 (el 9 es el 4).
-    ExpectQuadAt(quads[6], 0x116, Left + 50.0f, 100.0f, 15.0f, 15.0f);
-    ExpectQuadAt(quads[7], SwatchSlot(0), Left + 51.0f, 101.0f, 13.0f, 13.0f);
-    ExpectQuadAt(quads[6 + 2 * 9 + 1], SwatchSlot(4), Left + 51.0f + 15.0f, 101.0f + 15.0f, 13.0f, 13.0f);
-    ExpectQuadAt(quads[6 + 128 + 1], SwatchSlot(0), Left + 16.0f, 261.0f, 18.0f, 18.0f);
-    ExpectQuadAt(quads[6 + 128 + 2 * 15 + 1], SwatchSlot(15), Left + 16.0f + 140.0f, 281.0f, 18.0f, 18.0f);
-    ExpectQuadAt(quads[6 + 160 + 1], SwatchSlot(6), Left + 16.0f, 231.0f, 23.0f, 23.0f);
+    // 0x468320, después de "nombre" (4): la caja del EDIT en el fondo de +0xa0 (0), alta como el EDIT (0xe), el texto
+    // (6) y el cursor del segundo dibujo (+0x80 en 1), una columna al final del texto.
+    constexpr float Tolerance = 1e-3f;
+    EXPECT_EQ(quads[4].slot, Marker);
+    EXPECT_EQ(quads[5].slot, NoTexture);
+    EXPECT_NEAR(quads[5].first.x, Left + 0x3f, Tolerance);
+    EXPECT_NEAR(quads[5].first.y, 480.0f - 0x3c, Tolerance);
+    EXPECT_NEAR(quads[5].third.y, 480.0f - 0x3c - 0xe, Tolerance);
+    EXPECT_EQ(quads[6].slot, Marker);
+    EXPECT_EQ(quads[7].slot, NoTexture);
+    EXPECT_NEAR(quads[7].third.x - quads[7].first.x, 1.0f, Tolerance);
+    EXPECT_LT(quads[7].first.x, quads[5].third.x);
+    EXPECT_EQ(Input().dialogField.draws, 2);
+    // La grilla empieza en el 8: su marco y el cuadrado del 0 (el 9 es el 4).
+    ExpectQuadAt(quads[8], 0x116, Left + 50.0f, 100.0f, 15.0f, 15.0f);
+    ExpectQuadAt(quads[9], SwatchSlot(0), Left + 51.0f, 101.0f, 13.0f, 13.0f);
+    ExpectQuadAt(quads[8 + 2 * 9 + 1], SwatchSlot(4), Left + 51.0f + 15.0f, 101.0f + 15.0f, 13.0f, 13.0f);
+    ExpectQuadAt(quads[8 + 128 + 1], SwatchSlot(0), Left + 16.0f, 261.0f, 18.0f, 18.0f);
+    ExpectQuadAt(quads[8 + 128 + 2 * 15 + 1], SwatchSlot(15), Left + 16.0f + 140.0f, 281.0f, 18.0f, 18.0f);
+    ExpectQuadAt(quads[8 + 160 + 1], SwatchSlot(6), Left + 16.0f, 231.0f, 23.0f, 23.0f);
     const auto& texts = m_text.texts;
     ASSERT_EQ(texts.size(), 7u);
     EXPECT_EQ(texts[0].text, "Armar gremio");
@@ -508,6 +523,9 @@ TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
     EXPECT_EQ(texts[2].text, "Ceibo");
     EXPECT_EQ(texts[2].x, WindowX + 0x3f);
     EXPECT_EQ(texts[2].y, 0x3c);
+    EXPECT_EQ(texts[2].style.font, Client::Render::Text::FontKind::Normal);
+    EXPECT_EQ(texts[2].style.colors.text, 0xffffffffu);
+    EXPECT_EQ(texts[2].style.colors.background, 0u);
     EXPECT_EQ(texts[3].text, "Elegi un color");
     EXPECT_EQ(texts[3].x, WindowX + 0x32);
     EXPECT_EQ(texts[3].y, 0xe6);
@@ -542,13 +560,13 @@ TEST_P(SecondGuildWindowTest, TheNameChecksOpenTheirNotices)
     {
         SCOPED_TRACE(name);
         ASSERT_TRUE(Draw().HasValue());
-        Input().dialogField.SetText({});
+        Input().dialogField.text.SetText({});
         Client::UI::TypeInTheChat(Input(), name);
         Runtime().dialogs.current = 0;
         Click(Client::Scenes::SecondGuildNextButton);
         EXPECT_EQ(Runtime().dialogs.current, notice);
         EXPECT_EQ(Guild().createStep, 1);
-        EXPECT_TRUE(Input().dialogField.Value().empty());
+        EXPECT_TRUE(Input().dialogField.text.Value().empty());
     }
 }
 
@@ -662,9 +680,15 @@ TEST_P(SecondGuildWindowTest, CreatesAGuildFromTheQuestionToTheCreatePacket)
     ASSERT_EQ(m_sent.size(), 1u);
     EXPECT_EQ(Input().focus, Client::UI::ChatFocus::DialogField);
 
+    // Los cuadros de la página del nombre: el EDIT cuenta sus dibujos (0x468320) y el WM_CHAR los vuelve a 0
+    // (0x467b9d).
+    Frame();
+    Frame();
+    EXPECT_GE(Input().dialogField.draws, 2);
     Client::Scenes::GameChatContext chat{.world = *m_world, .random = m_random, .texts = &m_texts};
     ASSERT_TRUE(Client::Scenes::TypeInTheGameChat(chat, "Ceibo\r").HasValue());
-    EXPECT_EQ(Input().dialogField.Value(), "Ceibo");
+    EXPECT_EQ(Input().dialogField.draws, 0);
+    EXPECT_EQ(Input().dialogField.text.Value(), "Ceibo");
     EXPECT_TRUE(Runtime().ui.enterPressed);
     EXPECT_FALSE(Runtime().ui.chatOpen);
 

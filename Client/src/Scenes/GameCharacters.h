@@ -90,8 +90,10 @@ struct GameCharacterPass
 // El cuerpo del jugador ordinario, su luz del terreno y el override del héroe, reutilizando
 // DrawCharacter, después lo que cuelga con DrawGameHanging (0x50db57..0x50e9fa): el arma a la espalda,
 // las alas, Helper02 y las manos; los efectos del jugador con DrawGameCharacterEffects (0x50ea20..0x510ab6)
-// y el cuervo con DrawGameRaven (0x420df0). Lo aún no portado corta con su dirección: monstruos, los casos
-// de 0x509340 con joints o partículas y lo que crean los efectos. Entre frames del original, lo que cuelga y
+// y el cuervo con DrawGameRaven (0x420df0). Los monstruos y los NPC (otro tipo que el 0x20a) van por
+// DrawGameMonster (MonsterDrawing.h), con su modelo de WorldState::FaunaResources. Lo aún no portado corta con su
+// dirección: los casos por +0x376 y por tipo, los de 0x509340 con joints o partículas y lo que crean los
+// efectos. Entre frames del original, lo que cuelga y
 // los efectos se dibujan sobre una copia del personaje y del rand(): no avanza ni gasta nada.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch,
                                                                    const IModelLibrary& models, WorldState& world,

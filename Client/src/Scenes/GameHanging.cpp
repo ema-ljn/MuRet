@@ -1184,31 +1184,13 @@ Result DrawTheLayer(const Frame& frame)
     }
     return DrawMuSign(frame, *actor.layer);
 }
-} // namespace
 
-Core::Expected<void, std::string> DrawGameHanging(ActorState& actor, const GameHangingPass& pass)
+// 0x50dcce..0x50e05d, solo con un 0x20a: la espalda, el arma del evento de Blood Castle, la capa de los GM y, fuera de
+// Chaos Castle, las alas y Helper02.
+Result HangThePlayer(Frame& frame, bool back)
 {
-    // 0x50db57: el rand() de la luz de lo que cuelga, aun sin ningún ítem.
-    Frame frame{actor, pass, F32(D(static_cast<float>(Mod(pass.random, 30) + 70)) * D(0.01f))};
-    if (actor.type != Data::Models::PlayerSkeletonModel)
-        return Core::Unexpected<std::string>(
-            "0x50e060: lo que cuelga de lo que no es un jugador 0x20a no está portado");
-    if (SomethingHangs(actor) && (pass.carry == nullptr || pass.sprites == nullptr))
-        return Core::Unexpected<std::string>(
-            "0x509340: faltan el buffer global de la pose (0x68b181c) o la tabla de sprites (0x5491e0)");
-    if (!std::isfinite(pass.worldClock) || std::abs(pass.worldClock) >= 0x1p40f)
-        return Core::Unexpected<std::string>("0x5767b88: el reloj del mundo está fuera del dominio de FSIN");
-    // Los huesos del cuerpo de donde cuelgan las partes y salen sus sprites (BodyPoint no los mira).
-    if (SomethingHangs(actor))
-    {
-        for (const std::uint8_t bone : {actor.hands[0].bone, actor.hands[1].bone, WingsBone, PetBone})
-        {
-            if (bone >= pass.body.size())
-                return Core::Unexpected(
-                    std::format("0x509340: el hueso {:#x} del cuerpo no existe", static_cast<int>(bone)));
-        }
-    }
-    const bool back = WeaponsOnTheBack(actor, pass.map);
+    ActorState& actor = frame.actor;
+    const GameHangingPass& pass = frame.pass;
     std::uint8_t petExcellent = 0;
     if (auto hung = HangTheBack(frame, back, petExcellent); !hung.HasValue())
         return hung;
@@ -1227,10 +1209,47 @@ Core::Expected<void, std::string> DrawGameHanging(ActorState& actor, const GameH
         if (auto hung = HangWingsAndPet(frame, petExcellent); !hung.HasValue())
             return hung;
     }
+    return {};
+}
+} // namespace
+
+Core::Expected<void, std::string> DrawGameHanging(ActorState& actor, const GameHangingPass& pass)
+{
+    // 0x50db57: el rand() de la luz de lo que cuelga, aun sin ningún ítem.
+    Frame frame{actor, pass, F32(D(static_cast<float>(Mod(pass.random, 30) + 70)) * D(0.01f))};
+    // 0x50dcc2: lo que no es un jugador 0x20a salta a 0x50e060, sin la espalda, el arma del evento, la capa ni las
+    // alas.
+    const bool player = actor.type == Data::Models::PlayerSkeletonModel;
+    if (SomethingHangs(actor) && (pass.carry == nullptr || pass.sprites == nullptr))
+        return Core::Unexpected<std::string>(
+            "0x509340: faltan el buffer global de la pose (0x68b181c) o la tabla de sprites (0x5491e0)");
+    if (!std::isfinite(pass.worldClock) || std::abs(pass.worldClock) >= 0x1p40f)
+        return Core::Unexpected<std::string>("0x5767b88: el reloj del mundo está fuera del dominio de FSIN");
+    // Los huesos del cuerpo de donde cuelgan las partes y salen sus sprites (BodyPoint no los mira).
+    if (SomethingHangs(actor))
+    {
+        // Lo que no es un 0x20a no cuelga alas ni mascota: solo miran sus manos.
+        const std::array<std::uint8_t, 4> bones{actor.hands[0].bone, actor.hands[1].bone,
+                                                player ? WingsBone : actor.hands[0].bone,
+                                                player ? PetBone : actor.hands[0].bone};
+        for (const std::uint8_t bone : bones)
+        {
+            if (bone >= pass.body.size())
+                return Core::Unexpected(
+                    std::format("0x509340: el hueso {:#x} del cuerpo no existe", static_cast<int>(bone)));
+        }
+    }
+    const bool back = WeaponsOnTheBack(actor, pass.map);
+    if (player)
+    {
+        if (auto hung = HangThePlayer(frame, back); !hung.HasValue())
+            return hung;
+    }
     if (back)
         return {};
-    // 0x50e060..0x50e0c0: antes de las manos, salvo espalda y +0x4000, un efecto cada 30 pasos.
-    if (pass.originalFrame && (actor.flags78 & 0x4800u) == 0x800u && actor.byte88 == 1 && pass.logicSteps % 30 == 0)
+    // 0x50e060..0x50e0c0: antes de las manos, salvo espalda y +0x4000, un efecto de un 0x20a cada 30 pasos.
+    if (player && pass.originalFrame && (actor.flags78 & 0x4800u) == 0x800u && actor.byte88 == 1 &&
+        pass.logicSteps % 30 == 0)
         return Core::Unexpected<std::string>(
             "0x50e0c0: el efecto periódico de la bandera +0x78 & 0x800 no está portado");
     for (std::size_t index = 0; index < actor.hands.size(); ++index)

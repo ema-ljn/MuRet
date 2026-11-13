@@ -7056,7 +7056,8 @@ aun con sus bits de ajuste apagados. Cada máscara de color multiplica con store
 el literal0,9f del binario. Reutiliza `DrawCharacter` por fases Parts y Cloth, conserva el rand de
 `0x50db57` aun sin ítems y aplica después el color para los colgantes.
 
-Los índices de resaltado `0x6c8e30/0x6c8e2c` nacen en−1. Los monstruos, la ropa especial y los
+Los índices de resaltado `0x6c8e30/0x6c8e2c` nacen en−1. Los monstruos y los NPC van a `DrawGameMonster`
+([El dibujo de los monstruos y los NPC](#el-dibujo-de-los-monstruos-y-los-npc)); la ropa especial y los
 efectos pendientes cortan donde corresponde; lo que cuelga sigue abajo. Una tela ausente conserva sombra/scan/luz/partes
 anteriores, sin gastar todavía `0x50db57`. Un dibujo entre frames usa `DrawCurrent` sin crear ni
 simular telas ni consumir RNG; al recuperar varios frames se conserva la simulación y se descartan
@@ -10207,6 +10208,66 @@ el `0x1f5` (`0x4fce84`: MuRet no guarda el frame de la última pose de cada mode
 `+0x38a` en 0 (`0x4fcc3c`) y el subtipo 209 a 211 caminando (`0x4f3ef2`, dos sonidos); 08, P-C241. Tests:
 `ModelBodyTest` y `MonsterStep` (`test_model_body.cpp`: un Monster02 que avanza con su velocidad y descansa al terminar
 la 3, con sus `rand()`), `ActorWalkTest.AnotherModelSoundsFromItsModelTable`.
+
+### El dibujo de los monstruos y los NPC
+
+(CL9 hito 2, fase 5a, 2026-11-13, *estático*.) `0x50ba30` con un tipo que no es el `0x20a` (`[ebp+0xf]` en 1) dibuja
+con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en este orden:
+
+1. **La tela sobre la malla** (`0x50ba9e..0x50bae7`): con el `+0x376` en `0x59`, `0x5f`, `0x70`, `0x76`, `0x7c`,
+   `0x82` o `0x8f` (la tabla de `0x510adc` sobre `0x510ad4`), con cualquier tipo, la tela de la vtable `0x6b8d04`
+   (`0x6a0210`, `0x455190`, `0x4fb1a0`; 08 P-C22 f).
+2. **`0x602e90(objeto, 1, contorno, especial)`**, con el cuarto argumento en el `+0x376` si está en la lista de
+   `0x50bd05` (`0x43`, `0x4a`, `0x4b`, `0x87..0x89`, `0x12c..0x12f`, `0x13a..0x13f`) y si no en 0; el contorno es el 1
+   de `0x510ea1` con el lugar en `0x6c8e30` o `0x6c8e2c`. `0x5ffdf0`: en Chaos Castle (18 a 23), con `+0x1a1` del héroe,
+   el alpha guardado baja 0,15f por dibujo; por debajo de 0,01f no posa ni dibuja; `0x5ffce0` (el color del modelo:
+   el `0x189` en 0,6, el `0xe4` en `(sin(T · 0,003f) + 1) · 0,5f`, los demás la luz del terreno `0x5f99e0` más la propia
+   con `+0xe8`, o un décimo de ella sin, Q-C859); la posición del modelo, 60 más en y con el `0x18f` y 120 con el `0x18e`;
+   `0x4eb860` en los huesos propios (`+0x120`, Q-C410) con los ángulos de la cabeza; con el contorno, salvo con
+   `+0x78 & 0x4000`, los dos pases de `0x60cd60` (el NPC, `+0x88` en 4 fuera de Chaos Castle: (0,02; 0,1; 0) con
+   `+0x94` y (0,16; 0,7; 0) con el mayor de `+0x94 − 0,12` y 1,01; los demás: (0,1; 0,01; 0) con `0,1 / escala + 1`
+   y (0,7; 0,07; 0) con `0,04 / escala + 1`, el `0x172` con 1,2 y 1,08, y con `+0x94` distinto de 1,2 por sus bits,
+   Q-C94, `+0x94` y el mayor de `+0x94 − 0,04` y 1,01). `0x6002e0`: con `+0x58` en −2, nada; los colores del `0x171`
+   en el mapa 10, del `0x164` en el 9 y del `0x16d` con el especial; los casos por tipo y por mapa (`0x6004ed`,
+   `0x600a4a`), los de `+0x78 & 1` y `& 2` (`0x600e69`: (0,3; 1; 0,8), (0,3; 1; 0,5) y (0,3; 0,5; 1)), `+0x68` en 1
+   con el `0x175`, el `0x161`, el `0x184` y el `0x185` con el alpha en 1 y `+0x68` en 0,05; la cadena `0x438fe0`,
+   `0x42cc10`, `0x4403b0`, `0x42f170` (siempre 0: `0x42ee20` y `0x42fa20`), `0x425d90` y `0x4306a0`; los casos de
+   después (`0x600f74..`), y si ninguno, `RenderBody(2, alpha, +0x64, +0x68, +0x6c, +0x70, +0x58, −1)` (`0x601430`);
+   con `+0x78 & 2`, otro con `−2` y 1 (`0x602365`); después, lo del `0x177`, el `0x1f3`, el `0x1f4`, el `0x111`, el `0xed`
+   y el `0xee`.
+3. **La sombra** (`0x50bd89..0x50bf3e`): sin `+0x88` en 8, sin los `+0x376` `0x19`, `0x16`, `0x2a`, `0xf2`, `0x3b`,
+   `0x3f` y `0x98`, fuera del mapa 10 y con el alpha desde 0,3f. En Blood Castle, con `+0x1a1` y muriéndose (`+0x389`),
+   la z baja a la del terreno (`0x5f93c0`) si es menor. El `0xe8` y el `0xe9` ponen `+0x58` en 2. Salvo el `0x18e`,
+   el `0x18f` y del `0xa8` al `0xac`, `0x60cf70` con `+0x98` en 1 → `0x60b3d0` → `0x4eff40(+0x64, +0x58, −1, −1)`:
+   cada malla salvo la de `+0x58`, las sin triángulos y las de la textura `+0x64`, aplastada como la del jugador
+   (negra; en el 7, con alpha 0,2; sin sombra en Kalima). Después, el calco `0x61e` del `0xe8` y el `0xe9` (`0x5fb2f0`).
+4. **Lo de `0x50bf45` por el `+0x376`**, con cualquier tipo: los pases de brillo de `0x50c671` y los casos del `0x45`,
+   `0x46`, `0x47`, `0x49`, `0x4a`, `0x4b`, `0x4d`, `0x12d`, `0x35`, `0x36`, `0x2a`, `0x84..0x86` y `0x87`.
+5. **El gremio** (`0x50c972`, con `+0x1f2` distinto de `0xffff`, que en un monstruo nunca pasa), **la luz** (`0x50cc55`:
+   el terreno más la propia en `+0x3b4`, el `0x189` en 0,6), **las partes** (`0x50d363`: con `+0x3e3` en 0, el Angel de
+   Chaos Castle con `+0x88` en 1 y el lazo de las seis partes de `+0x1f8`) y la tela del `+0x376` `0x37`
+   (`0x50d599`).
+6. **`0x50db57`**: el `rand() % 30` y la luz de lo que cuelga; un monstruo salta a `0x50e060` sin la espalda, el arma
+   del evento, la capa ni las alas, y corre el lazo de las manos (Q-C860).
+7. **El caso del modelo** (`0x50e9fa`, la tabla de bytes `0x510b80` sobre `0x510b50`): sprites de `0x50b870` (el punto
+   de un hueso propio, la luz `sin(T · 0,002f) · 0,3f + 0,7f` por 1, 0,6 y 0,4) y de `0x50b920` (dos puntos y
+   `+0x2b0`) del `0x152` con `+0x1d6` en 1, el `0x170`, el `0x186`, el `0x177`, el `0x174`, el `0x176`, el `0x173`,
+   el `0x1d8` y el `0x1f2`; el `0x1d9` (`0x510763`: dos `0x5d5` que giran con `T · 0,02f`, y con `rand() % 30` en 0
+   tres `rand() % 100 − 50` y el joint `0x618/6` de ancho 20) y el `0x16e` (`0x5108b6`). Sin caso, la cadena de
+   `0x510a1e`: `0x43c150`, `0x42dfe0`, `0x441400`, `0x42fa30` (siempre 0), `0x434180` y `0x4271d0`.
+8. **`0x510a7a`**: en la escena 5, con `+0x88` en 1, fuera de los mapas 11 a 23 y del 30, `0x510ef0` con `+0x369`;
+   después el cuervo (`0x420df0`).
+
+MuRet: `Scenes::DrawGameMonster` (`MonsterDrawing.cpp`), llamado desde `DrawGameCharacters` con el modelo de
+`WorldState::FaunaResources()`; el cuerpo con `Scenes::SkinObjectMeshes`, `DrawObjectOutline` y `DrawObjectFromMeshes`,
+y la sombra con `DrawObjectShadow` (`CharacterDrawing.h`); lo que cuelga con `DrawGameHanging`, que ya no corta con
+otro tipo. Entre frames del original, todo sobre una copia del personaje y del `rand()`. Cortan con su dirección: la
+tela sobre la malla (`0x50bae7`), los casos de `0x6002e0` y de su cadena, el calco del `0xe8` y el `0xe9`
+(`0x50bed8`), lo de `0x50bf45`, las partes, el Angel, el gremio y la tela del `0x37`, el joint `0x618/6` en
+`CreateFaunaJoint` (`0x530c18`), el `0x16e`, los helpers de `0x510a1e`, `0x510f4d` y el cuervo; 08, P-C179. Tests:
+`MonsterDrawingTest`, `MonsterHangingLight` y `MonsterDecorations` (`test_monster_drawing.cpp`: un Spider de Lorencia,
+un Yeti de Devias, la sombra por mapa, el contorno de un monstruo y de un NPC, el hada del NPC 237, el caso del
+`0x176` y los cortes), `GameHangingTest.AMonsterSkipsTheBackTheLayerAndTheEventWeapon`.
 
 ### La tabla de protección
 

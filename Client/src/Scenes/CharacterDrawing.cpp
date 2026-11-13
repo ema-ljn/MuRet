@@ -456,15 +456,15 @@ bool IndicesInRange(const Data::Models::Mesh& mesh)
 // Un pase del contorno sobre una malla: sin textura, o la del blendMesh con la suya y por la luz
 // (0x4ecc30 con 0x40 pasa el blendMesh antes que lo demás). Una malla de cuatro componentes que no va
 // por esa rama no va (0x40 sin 0x2).
-void OutlineMesh(const CharacterFrame& frame, const OutlinePass& pass, const MeshDraw& draw,
-                 std::span<const BoneTransform> bones)
+void OutlineMeshAround(Render::ModelBatch& batch, const Render::Models::ObjectTransform& transform,
+                       const OutlinePass& pass, const MeshDraw& draw, std::span<const BoneTransform> bones)
 {
     if (!draw.blends && HasFourComponents(*draw.mesh))
     {
         return;
     }
     Render::Models::SkinnedMesh skinned;
-    if (!Render::Models::SkinMeshAroundBones(*draw.mesh, bones, frame.character.object, pass.boneScale, skinned))
+    if (!Render::Models::SkinMeshAroundBones(*draw.mesh, bones, transform, pass.boneScale, skinned))
     {
         return;
     }
@@ -472,7 +472,13 @@ void OutlineMesh(const CharacterFrame& frame, const OutlinePass& pass, const Mes
     around.skinned = &skinned;
     const Render::ModelDrawState state =
         draw.blends ? Render::ModelDrawState{draw.texture, Render::ModelBlend::Additive, true} : OutlineState;
-    Triangles(frame.batch, around, state, draw.blends ? Scaled(pass.color, draw.object->light) : pass.color, PassUv{});
+    Triangles(batch, around, state, draw.blends ? Scaled(pass.color, draw.object->light) : pass.color, PassUv{});
+}
+
+void OutlineMesh(const CharacterFrame& frame, const OutlinePass& pass, const MeshDraw& draw,
+                 std::span<const BoneTransform> bones)
+{
+    OutlineMeshAround(frame.batch, frame.character.object, pass, draw, bones);
 }
 
 // Los dos pases del contorno, cada uno sobre todas las mallas del modelo (0x60cd60 → 0x4ef0c0, con el
@@ -1274,6 +1280,73 @@ void DrawObjectFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models
         }
         else
             DrawShinePass(batch, draw, *shine, fade);
+    }
+}
+
+std::vector<Render::Models::SkinnedMesh> SkinObjectMeshes(const IModelLibrary& models, const DrawnObject& object,
+                                                          std::span<const BoneTransform> bones)
+{
+    const Data::Models::Model* model = models.Find(object.model);
+    if (model == nullptr)
+        return {};
+    std::vector<Render::Models::SkinnedMesh> skinned(model->meshes.size());
+    for (std::size_t index = 0; index < model->meshes.size(); ++index)
+    {
+        if (IndicesInRange(model->meshes[index]))
+            static_cast<void>(Render::Models::SkinMesh(model->meshes[index], bones, object.transform, skinned[index]));
+    }
+    return skinned;
+}
+
+void DrawObjectOutline(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                       Core::Duration frameClock, std::span<const BoneTransform> bones,
+                       std::span<const ObjectOutlinePass> passes)
+{
+    const Data::Models::Model* model = models.Find(object.model);
+    if (model == nullptr)
+        return;
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    const std::vector<MeshDraw> draws = MeshDrawsOf(models, object.model, *model, bones, object.transform, ObjectClass,
+                                                    Render::Color{object.color.x, object.color.y, object.color.z, 1.0f},
+                                                    object.state, frameClock, skinned);
+    for (const ObjectOutlinePass& pass : passes)
+    {
+        const OutlinePass around{pass.boneScale, pass.color};
+        for (const MeshDraw& draw : draws)
+        {
+            if (static_cast<std::int16_t>(draw.index) != object.state.hiddenMesh)
+                OutlineMeshAround(batch, object.transform, around, draw, bones);
+        }
+    }
+}
+
+void DrawObjectShadow(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                      std::span<const Render::Models::SkinnedMesh> meshes, std::int32_t map)
+{
+    const bool kalima =
+        (map >= DarkHorseFirstKalimaMap && map <= DarkHorseLastKalimaMap) || map == DarkHorseSeventhKalimaMap;
+    const Data::Models::Model* model = models.Find(object.model);
+    if (model == nullptr || map == DarkHorseNoShadowMap || kalima)
+        return;
+    const bool faint = map == DarkHorseFaintShadowMap;
+    Render::Color color = DarkSpiritShadowColor;
+    if (faint)
+        color.alpha = DarkHorseShadowAlphaOfMapSeven;
+    const float spread = Render::Models::ShadowSpreadOf(map);
+    for (std::size_t index = 0; index < model->meshes.size() && index < meshes.size(); ++index)
+    {
+        const Data::Models::Mesh& mesh = model->meshes[index];
+        if (static_cast<std::int16_t>(index) == object.state.hiddenMesh || mesh.triangles.empty() ||
+            mesh.texture == object.state.blendMesh || !IndicesInRange(mesh) ||
+            meshes[index].positions.size() < mesh.vertices.size())
+            continue;
+        Render::Models::SkinnedMesh flat = meshes[index];
+        for (glm::vec3& position : flat.positions)
+            position = Render::Models::FlattenOnTheGround(position, object.transform.position, spread);
+        MeshDraw draw;
+        draw.mesh = &mesh;
+        draw.skinned = &flat;
+        Triangles(batch, draw, faint ? BlendedShadowState : ShadowState, faint ? color : ShadowColor, PassUv{});
     }
 }
 

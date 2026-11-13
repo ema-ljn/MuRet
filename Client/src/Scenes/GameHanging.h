@@ -73,6 +73,8 @@ struct GameHangingPass
 // que crea y avanza en +0x360 y +0x364), las alas y Helper02 (fuera de los mapas 18 a 23), y fuera de la
 // espalda las dos manos, cada una con +0x38e abierto y cerrado antes. Escribe el
 // hueso, la acción, la velocidad y la animación de cada parte que cuelga, como el original, y +0x3b4 ya
-// tiene que tener la luz de lo que cuelga (0x50db94).
+// tiene que tener la luz de lo que cuelga (0x50db94). Con un monstruo o un NPC (0x50dcc2 salta a 0x50e060), solo el
+// rand(), la espalda (que corta lo que sigue) y las manos, sin el efecto de +0x78 & 0x800, que es del 0x20a; `body`
+// son sus huesos propios.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameHanging(ActorState& actor, const GameHangingPass& pass);
 } // namespace Client::Scenes

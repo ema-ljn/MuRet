@@ -567,14 +567,14 @@ TEST_F(GameCharacterRenderTest, TheSharedRandomAdvancesOnlyForThe607b60CasesThat
     }
 }
 
-TEST_F(GameCharacterRenderTest, AnUnportedMonsterBranchStopsBeforeThePlayerRecordAndItsRandoms)
+TEST_F(GameCharacterRenderTest, TheClothOnTheMeshStopsBeforeThePlayerRecordAndItsRandoms)
 {
     Player(0).word376 = 0x59;
 
     const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
 
     ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x50bad8"), std::string::npos) << result.Error();
+    EXPECT_NE(result.Error().find("0x50bae7"), std::string::npos) << result.Error();
     EXPECT_TRUE(m_batch.Vertices().empty());
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
 }

@@ -7,6 +7,7 @@
 #include "Render/Models/Pose.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/EventPackets.h"
+#include "Scenes/ObjectCollapse.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
@@ -505,18 +506,24 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
             return stepped;
         world.Runtime().objectSelectionCount = 0;
     }
-    // 0x6065bd y 0x6065da: 0x5ff960 con cada vivo (los vistos de un sector que pasó y todos los de uno que no). Con
-    // el derrumbe pedido para este mapa corta antes del paso (CL9 hito 11, fase 2); MuRet no tiene los sectores en
-    // el paso, así que mira todos los vivos.
-    if (std::ranges::any_of(objects, [](const World::WorldObject& object) { return object.alive; }))
-    {
-        if (auto collapse = CheckTheObjectCollapse(world.Runtime()); !collapse.HasValue())
-            return collapse;
-    }
-    // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no toca ninguno; la cuenta del
-    // derrumbe baja igual (0x606610).
+    // 0x6065bd y 0x6065da: el derrumbe (0x5ff960, Scenes/ObjectCollapse.h) con cada vivo del recorrido, los vistos de
+    // un sector que pasó después de su paso y todos los de uno que no pasó; la piedra de Chaos Castle sale con la z
+    // del héroe y el temblor es el de la cámara (0x7d325c8).
+    const ObjectCollapseContext collapseContext{.runtime = world.Runtime(),
+                                                .random = m_context.cloth->random,
+                                                .particles = &world.Particles(),
+                                                .worldClock = worldClock,
+                                                .heroZ = world.Actors()[world.Runtime().hero].position.z,
+                                                .cameraShake = &CameraInputState().shake,
+                                                .attributes = world.Map().terrain.attributes.get()};
+    const AfterObjectStep collapse = [&collapseContext](World::WorldObject& object)
+    { return CollapseTheObject(object, collapseContext); };
+    // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no le hace el paso a ninguno: queda
+    // el derrumbe con los vivos y la cuenta (0x606610).
     if (std::ranges::none_of(objects, [](const World::WorldObject& object) { return object.alive && object.seen; }))
     {
+        if (auto walked = WalkTheObjectSectors(objects, {}, collapse); !walked.HasValue())
+            return Core::Unexpected(walked.Error() + ", en el " + MapText(map));
         CountDownTheObjectCollapse(world.Runtime());
         return {};
     }
@@ -577,7 +584,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         after = [&](World::WorldObject& object)
         { return World::StepCastleSiegeSeenObject(object, world.Runtime().siegeActive, worldClock); };
     if (auto stepped = StepGameWorldObjects(objects, static_cast<std::uint8_t>(map), m_worldModels,
-                                            m_context.cloth->random, globals, after);
+                                            m_context.cloth->random, globals, after, collapse);
         !stepped.HasValue())
     {
         return Core::Unexpected(stepped.Error() + ", en el " + MapText(map));

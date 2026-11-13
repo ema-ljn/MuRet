@@ -28,7 +28,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <map>
 #include <memory>
 #include <optional>
@@ -1046,28 +1045,5 @@ TEST_F(EventPacketsTest, TheServerCommandsShowTheirNotices)
     Applied(Events::ServerCommand{.command = 4});
     Applied(Events::ServerCommand{.command = 0x32});
     EXPECT_EQ(Runtime().dialogs.current, 0);
-}
-
-// ----- El derrumbe de los objetos (0x5ff930, 0x5ff960 y 0x606610).
-
-// Corta solo con los tres enteros en 0 o más y el mapa en curso igual; la cuenta baja uno por paso, también desde
-// −1 (da la vuelta como un DEC de 32 bits).
-TEST_F(EventPacketsTest, TheObjectCollapseIsCutOnlyOnItsMap)
-{
-    Runtime().map = 11;
-    EXPECT_TRUE(Client::Scenes::CheckTheObjectCollapse(Runtime()).HasValue());
-    Runtime().events.objectCollapse = {.map = 11, .type = 0x24, .counter = 0, .delay = 1.0f};
-    const auto cut = Client::Scenes::CheckTheObjectCollapse(Runtime());
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x5ff960"), std::string::npos) << cut.Error();
-    Runtime().map = 0;
-    EXPECT_TRUE(Client::Scenes::CheckTheObjectCollapse(Runtime()).HasValue());
-    Runtime().map = 11;
-    Client::Scenes::CountDownTheObjectCollapse(Runtime());
-    EXPECT_EQ(Runtime().events.objectCollapse.counter, -1);
-    EXPECT_TRUE(Client::Scenes::CheckTheObjectCollapse(Runtime()).HasValue());
-    Runtime().events.objectCollapse.counter = std::numeric_limits<std::int32_t>::min();
-    Client::Scenes::CountDownTheObjectCollapse(Runtime());
-    EXPECT_EQ(Runtime().events.objectCollapse.counter, std::numeric_limits<std::int32_t>::max());
 }
 } // namespace

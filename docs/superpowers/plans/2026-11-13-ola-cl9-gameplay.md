@@ -409,6 +409,8 @@ amigos. **Desbloquea:** 10.
       (Fase 1: el arma de Blood Castle, Q-C1331 y Q-C1332; el `AF 02`; los derrumbes de los rectángulos de Chaos
       Castle del `9B` y la trampa armada; `0x42fe80` hasta la luz y el `.att`, que cortan en `0x42ff81`. El
       derrumbe de los objetos, `0x5ff960`, es de la fase 2; los monstruos de Kalima y de Crywolf, del hito 2.)
+      (Fase 3: el derrumbe de los objetos, `0x5ff960`, `0x405630` y los sectores de `0x606560`, *estático*; la piedra
+      `0x5f6` de Chaos Castle corta para la CL11. Q-C1338, Q-C1339, P-C297.)
 
 **Pruebas:** entrar a Blood Castle, Devil Square y Chaos Castle con vectores de cada paquete; las cuentas;
 los `rand()` de los contadores; Crywolf solo contra el ASM. **Desbloquea:** —.

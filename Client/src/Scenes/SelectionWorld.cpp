@@ -14,7 +14,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DynamicWorldLight.h"
-#include "Scenes/EventPackets.h"
+#include "Scenes/ObjectCollapse.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
@@ -43,6 +43,7 @@
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float2.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
@@ -191,22 +192,24 @@ Core::Expected<void, std::string> SelectionWorld::StepObjects(WorldState& world,
                                                               float worldClock)
 {
     std::span<World::WorldObject> objects = world.Map().objects;
-    // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no toca ninguno.
-    bool anySeen = false;
-    bool anyAlive = false;
-    for (const World::WorldObject& object : objects)
+    // 0x5ff960 con cada vivo del recorrido, también en la espera (Scenes/ObjectCollapse.h). La escena no tiene el
+    // temblor de la cámara del juego: la piedra de Chaos Castle corta antes, en el pool (0x4056e5, 0x4057bf y
+    // 0x405899).
+    const ObjectCollapseContext collapseContext{.runtime = world.Runtime(),
+                                                .random = random,
+                                                .particles = &world.Particles(),
+                                                .worldClock = worldClock,
+                                                .heroZ = world.Actors()[world.Runtime().hero].position.z,
+                                                .cameraShake = nullptr,
+                                                .attributes = world.Map().terrain.attributes.get()};
+    const AfterObjectStep collapse = [&collapseContext](World::WorldObject& object)
+    { return CollapseTheObject(object, collapseContext); };
+    // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no le hace el paso a ninguno: queda
+    // el derrumbe con los vivos y la cuenta (0x606610).
+    if (std::ranges::none_of(objects, [](const World::WorldObject& object) { return object.alive && object.seen; }))
     {
-        anySeen = anySeen || (object.alive && object.seen);
-        anyAlive = anyAlive || object.alive;
-    }
-    // 0x5ff960 con cada vivo y la cuenta del derrumbe al final (0x606610), también en la espera (CL9 hito 11).
-    if (anyAlive)
-    {
-        if (auto collapse = CheckTheObjectCollapse(world.Runtime()); !collapse.HasValue())
-            return collapse;
-    }
-    if (!anySeen)
-    {
+        if (auto walked = WalkTheObjectSectors(objects, {}, collapse); !walked.HasValue())
+            return Core::Unexpected(walked.Error() + ", en la selección");
         CountDownTheObjectCollapse(world.Runtime());
         return {};
     }
@@ -217,7 +220,7 @@ Core::Expected<void, std::string> SelectionWorld::StepObjects(WorldState& world,
                                            .particles = &world.Particles(),
                                            .sound = [&world](std::int32_t id) { world.Runtime().lastSoundId = id; },
                                            .modelState = &world.Runtime().objectModelState};
-    if (auto stepped = StepGameWorldObjects(objects, map, m_models, random, globals); !stepped.HasValue())
+    if (auto stepped = StepGameWorldObjects(objects, map, m_models, random, globals, {}, collapse); !stepped.HasValue())
     {
         return Core::Unexpected(stepped.Error() + ", en la selección");
     }

@@ -3,8 +3,6 @@
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
-#include "Data/Terrain/TerrainAttributes.h"
-#include "Data/Terrain/TerrainGrid.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Events.h"
 #include "Render/Models/Animation.h"
@@ -16,6 +14,7 @@
 #include "Scenes/FaunaState.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/TerrainMarks.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -170,17 +169,10 @@ constexpr std::int32_t HideTheChatFields = 3;
 constexpr std::uint8_t NoChaosCastleArea = 0xff;
 constexpr std::uint8_t ChaosCastleTrapArmed = 1;
 
-// Un rectángulo de 0x5f8750 con el atributo 8 de los derrumbes de Chaos Castle.
-struct CollapseArea
-{
-    std::int32_t x;
-    std::int32_t y;
-    std::int32_t width;
-    std::int32_t height;
-};
+// El atributo 8 de los derrumbes de Chaos Castle, en los rectángulos de 0x5f8750.
 constexpr std::uint8_t ChaosCastleCollapseAttribute = 8;
 // 0x404f41..0x404f83, 0x404fae..0x404fee y 0x405014..0x405054.
-constexpr std::array<std::array<CollapseArea, 4>, 3> ChaosCastleCollapses{{
+constexpr std::array<std::array<TerrainArea, 4>, 3> ChaosCastleCollapses{{
     {{{0x17, 0x4b, 0x16, 2}, {0x2b, 0x4d, 2, 0x20}, {0x17, 0x6b, 0x14, 2}, {0x17, 0x4d, 2, 0x1e}}},
     {{{0x19, 0x4d, 0x12, 2}, {0x29, 0x4f, 2, 0x1c}, {0x19, 0x69, 0x10, 2}, {0x19, 0x4f, 2, 0x1a}}},
     {{{0x1b, 0x4f, 0xe, 2}, {0x27, 0x51, 2, 0x18}, {0x1b, 0x67, 0xc, 2}, {0x1b, 0x51, 2, 0x16}}},
@@ -393,36 +385,13 @@ private:
     // 0x5f8710 (OR) y 0x5f8730 (AND con el complemento) sobre el WORD (y << 8) + x de 0x7d0d348.
     Applied MarkTheCell(std::int32_t x, std::int32_t y, std::uint8_t attribute, bool add, std::string_view where)
     {
-        auto* attributes = m_world.Map().terrain.attributes.get();
-        if (attributes == nullptr)
-            return Core::Unexpected(std::format("{}: el atributo de ({}, {}) va al .att del mapa (0x7d0d348), que no "
-                                                "está cargado",
-                                                where, x, y));
-        const std::int64_t index = (std::int64_t{y} << 8) + x;
-        if (index < 0 || index >= static_cast<std::int64_t>(Data::Terrain::TerrainCellCount))
-            return Core::Unexpected(
-                std::format("{}: ({}, {}) cae fuera de los 0x10000 WORD de 0x7d0d348", where, x, y));
-        std::uint16_t& cell = attributes->cells[static_cast<std::size_t>(index)];
-        if (add)
-            cell = static_cast<std::uint16_t>(cell | attribute);
-        else
-            cell = static_cast<std::uint16_t>(cell & ~std::uint16_t{attribute});
-        return {};
+        return MarkTheTerrainCell(m_world.Map().terrain.attributes.get(), x, y, attribute, add, where);
     }
 
-    // 0x5f8750(x, y, ancho, alto, atributo, agregar): fila por fila, de y a y + alto − 1, y en cada una de x a x +
-    // ancho − 1; con alto o ancho en 0 o menos, nada.
-    Applied MarkTheArea(const CollapseArea& area, std::uint8_t attribute, bool add, std::string_view where)
+    // 0x5f8750(x, y, ancho, alto, atributo, agregar).
+    Applied MarkTheArea(const TerrainArea& area, std::uint8_t attribute, bool add, std::string_view where)
     {
-        for (std::int32_t row = 0; row < area.height; ++row)
-        {
-            for (std::int32_t column = 0; column < area.width; ++column)
-            {
-                if (auto marked = MarkTheCell(area.x + column, area.y + row, attribute, add, where); !marked.HasValue())
-                    return marked;
-            }
-        }
-        return {};
+        return MarkTheTerrainArea(m_world.Map().terrain.attributes.get(), area, attribute, add, where);
     }
 
     // 0x5111a0(acción): cada uno de los 400 primeros vivo que es un jugador (0x20a) con los ángulos en (0, 0, 180) y
@@ -550,7 +519,7 @@ private:
         const bool add = static_cast<std::uint8_t>(1 - packet.mode) != 0;
         for (const Events::AttributeArea& area : packet.areas)
         {
-            const CollapseArea rectangle{
+            const TerrainArea rectangle{
                 .x = area.x1, .y = area.y1, .width = area.x2 - area.x1 + 1, .height = area.y2 - area.y1 + 1};
             if (auto marked = MarkTheArea(rectangle, packet.attribute, add, "0x4dac53"); !marked.HasValue())
                 return marked;
@@ -942,7 +911,7 @@ private:
             return {};
         m_runtime.chaosCastleArea = static_cast<std::uint8_t>(ChaosCastleCollapseAreas[step] + 1);
         RequestTheCollapse(m_runtime.map, ChaosCastleCollapseType, ChaosCastleCollapseCounter, CollapseDelay);
-        for (const CollapseArea& area : ChaosCastleCollapses[step])
+        for (const TerrainArea& area : ChaosCastleCollapses[step])
         {
             if (auto marked = MarkTheArea(area, ChaosCastleCollapseAttribute, true, "0x405056"); !marked.HasValue())
                 return marked;
@@ -1281,22 +1250,6 @@ EventCountdownText(EventMapObject& event, std::uint32_t tickCount, const Data::T
         return Core::Unexpected(std::format("0x40bb56: la cuenta ocupa {} bytes con su '\\0' y el buffer tiene {}",
                                             text.Value().size() + 1, PageStackBuffer));
     return std::optional<std::string>{std::move(text).Value()};
-}
-
-Core::Expected<void, std::string> CheckTheObjectCollapse(const WorldRuntime& runtime)
-{
-    const ObjectCollapse& collapse = runtime.events.objectCollapse;
-    if (collapse.map < 0 || collapse.type < 0 || collapse.counter < 0 || runtime.map != collapse.map)
-        return {};
-    return Core::Unexpected(std::format("0x5ff960: el derrumbe de los objetos {:#x} del mapa {} (la cuenta en {}, "
-                                        "0x405630 primero) es de la fase 2 del hito 11 de la CL9",
-                                        collapse.type, collapse.map, collapse.counter));
-}
-
-void CountDownTheObjectCollapse(WorldRuntime& runtime)
-{
-    std::int32_t& counter = runtime.events.objectCollapse.counter;
-    counter = static_cast<std::int32_t>(static_cast<std::uint32_t>(counter) - 1U);
 }
 
 void ResetTheCrywolfInterface(WorldRuntime& runtime)

@@ -68,14 +68,6 @@ ApplyEventPacket(const Protocol::Events::EventPacket& packet, const EventPacketC
 [[nodiscard]] Core::Expected<std::optional<std::string>, std::string>
 EventCountdownText(EventMapObject& event, std::uint32_t tickCount, const Data::Text::TextTable* texts, bool write);
 
-// 0x606560 → 0x5ff960: con el derrumbe pedido para el mapa en curso (los tres enteros en 0 o más), el paso de los
-// objetos corta (0x5ff960 y 0x405630 son de la fase 2 del hito 11). Va antes del paso de los objetos.
-[[nodiscard]] Core::Expected<void, std::string> CheckTheObjectCollapse(const WorldRuntime& runtime);
-
-// 0x606610..0x606618: la cuenta del derrumbe baja uno al final de cada paso de los objetos, también desde −1 (un
-// DEC de 32 bits, que da la vuelta).
-void CountDownTheObjectCollapse(WorldRuntime& runtime);
-
 // 0x42fdc0: los globales de la interfaz de Crywolf a su valor inicial, el estado y la etapa en 0 y el segundo de los
 // objetivos elegidos (0x6c8e2c) en −1. Lo llaman la vuelta a la selección (0x4c363a) y el BD 00 con la etapa 6.
 void ResetTheCrywolfInterface(WorldRuntime& runtime);

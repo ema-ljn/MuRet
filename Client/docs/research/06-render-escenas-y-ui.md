@@ -7337,8 +7337,9 @@ lo de cada tipo del 0, en [Lo propio de Lorencia](#lo-propio-de-lorencia). Leíd
 **El paso** (`0x606560`, también en la espera): sector por sector, como el dibujo. Los objetos de un
 sector que no pasó quedan con `+0x16c` en 0 sin avanzar, como en el login ([El mundo del
 login](#el-mundo-del-login)), y los vistos van a `0x604ab0`. `0x6061c0` al empezar, `0x6063d0` y
-`0x5ff960` con cada uno y el `0x6c9ddc--` del final no hacen nada en el 0 ni en el 2. En `0x604ab0`, en
-orden:
+el `0x6c9ddc--` del final no hacen nada en el 0 ni en el 2, y `0x5ff960` (con los vistos de un sector que pasó y
+con todos los vivos de uno que no) solo hace algo con un derrumbe pedido para el mapa en curso ([El derrumbe de los
+objetos](#el-derrumbe-de-los-objetos)). En `0x604ab0`, en orden:
 
 1. **Los techos**, antes del alpha. En el 0, el `0x7d` y el `0x7e` (`HouseWall05` y `06`) llevan la meta
    del alpha (`+0x170`) a 0 con la capa 1 de la celda del héroe (`0x77f36d0`) en 4, y a 1 si no
@@ -8049,6 +8050,66 @@ Al caminar, `0x4fbe10` guarda la celda del héroe y, si se queda 10 s en una cel
 se dispara en el primer 3 visto (`GameT16ChaosCastleWalk`). Tests: `ChaosCastleTest` y, del cuerpo,
 `GameCharacterRenderTest.InChaosCastleAPlayerWearsTheAngelAndOnlyTheHeroAddsItsChrome` y
 `TheChaosCastleOutlineScalesWithTheObjectAndHasItsOwnColors`.
+
+### El derrumbe de los objetos
+
+Leído en la fase 3 del hito 11 de la CL9 en el ASM de `c32bbd5f` (*estático*). Lo piden los paquetes de los eventos
+(04 § Los eventos) con `0x5ff930(mapa, tipo, cuenta, demora)`, que escribe `0x6c9dd8`, `0x6c9dd4`, `0x6c9ddc` y la
+demora como float en `0x6c9de0` (`.data` −1, −1, −1 y −1,0f; `0x5ff910` los vuelve a poner así): el `46` con el
+atributo 8 en Blood Castle (mapa, `0x24`, 0, 1), el `9B` de Blood Castle con 3 (mapa, `0x24`, 20, 1) y el `9B` de
+Chaos Castle (mapa, 1, 40, 1).
+
+**El recorrido** (`0x606560`, después de `0x6061c0` y de `0x7d365a0` en 0): los 256 sectores de `0x7d325d4` (16
+bytes cada uno: la lista de sus objetos en `+0` y en `+8` el byte que el dibujo `0x6046a0` deja con lo que dio el
+trapecio, `0x60470b`), y en cada uno su lista por `+0x1d0`. En un sector que pasó, cada objeto vivo con `+0x16c`
+va a `0x604ab0`, `0x6063d0(objeto, &selector, &0x7d365a0)` y `0x5ff960(objeto)`, y los demás quedan como estaban;
+en uno que no pasó, cada vivo va a `0x5ff960` y todos quedan con `+0x16c` en 0. Al final, `0x6c9ddc--` (un `DEC` de
+32 bits: desde −1 sigue bajando y da la vuelta). El pedido es uno solo para todo el recorrido: lo que un objeto hace
+con él lo ven los que siguen (la demora, Q-C1338, y el pedido borrado, Q-C1339).
+
+**`0x5ff960(objeto)`.** Nada si el mapa, el tipo o la cuenta pedidos son negativos o si el mapa pedido no es el
+de ahora (`0x6c9dd0`). Después `0x405630(objeto)`, y con 1 no sigue. Si no:
+
+- El 9 y el 10 (`0x5ff9c2..0x5ffa1e`), con cualquier tipo pedido (también con el 9 o el 10): con la cuenta en 0,
+  `+0x58` en −1 y la palabra `+0x8a` en 4; con otra cuenta, nada.
+- Otro tipo distinto del pedido: nada.
+- El del tipo pedido (la puerta de Blood Castle, `0x24`, `0x5ffa24..0x5ffb59`): con la cuenta en 20, `+0x1c` (el
+  giro en x) en 35, `+0x58` en −1 y el sonido `0x41ed10(0x89, 0, 0)`. Con la cuenta en 0 o más, `+0x1c` = demora +
+  `+0x1c` y la demora sube 1,5 (`0x6b8b94`). Si `+0x1c` queda en 90 (`0x6b8948`) o más (un `FCOMP` con C0: un NaN
+  no entra), le resta la cuenta, la demora queda en 2 y, si el resultado es 80 justo (los bits `0x42a00000`),
+  diez polvos `0x53fe70(0x5f3, local, &+0x1c, &+0xf4, 0, 1, 0)`: cada uno con x = (`rand() % 300` − 150) + x del
+  objeto y después y = y del objeto − (`rand() % 20` + 600), con la z del objeto. Con la cuenta en 0, `+0x58` en
+  −2 (oculto), `+0x1c` en 90, el pedido borrado (`0x5ff910`) y `0x5f8750(13, 70, 3, 6, 8, 0)`: el atributo 8 sale
+  de x 13..15 por y 70..75, el paso de la puerta.
+
+`World12` (los Blood Castle) tiene una sola puerta `0x24`, en la celda (14, 76), y en su sector (0, 4) también los
+dos 9 y los dos 10; `0x606660` agrega cada objeto al final de la lista de su sector, así que van antes que la puerta.
+Con el pedido del `46` (cuenta 0) los cuatro se abren y la puerta cae de golpe en el primer recorrido (`+0x1c` en 90 y oculta). Con el del
+`9B` gira 20 pasos: el giro pasa de 90 con la cuenta en 12, 10, 7, 5, 3, 2, 1 y 0 y, restada la cuenta, queda en 86,
+81,5, 85, 85,5, 88, 88, 89 y 91 (*simulado* en float): nunca da 80, así que la puerta de `World12` no levanta polvo.
+Con más de un objeto del tipo la demora es la misma para todos y sí puede dar 80 (Q-C1338).
+
+**`0x405630(objeto)`, Chaos Castle.** Fuera de los mapas 18 a 23 devuelve 0. En ellos devuelve 1 siempre, así que
+`0x5ff960` no sigue con ningún objeto (ni el 9, ni el 10, ni el tipo pedido). El tipo, sin signo hasta `0x23`,
+elige en `0x40592c` uno de los casos de `0x40591c`: el 0 (tipos 0 a 5 y 13 a 17) espera el área 1 de `0x6c634c` y deja
+la 2, el 1 (24 a 29) espera la 7 y deja la 8, el 2 (30 a 35) espera la 4 y deja la 5, y el 3 (los demás) no hace
+nada. Con el área esperada:
+
+- Cuenta en 30 o más: la piedra `0x53fe70(0x5f6, (x + `rand() % 300` − 150; y; z del héroe [`[0x743a170]` +
+  `0x18`]), &+0x1c, (1; 1; 1), 0, 1,5, 0)` y el temblor de la cámara (`0x7d325c8`) en (`rand() % 3` − 3) · 0,1f.
+- Cuenta en 0 o menos: `+0x58` en −2, el área siguiente y el pedido borrado.
+- Si no: z (`+0x18`) = `+0x184` − (30 − cuenta) · demora, y la demora sube 0,4f (`0x6b87b4`).
+
+**En MuRet.** `Scenes::CollapseTheObject` (`Scenes/ObjectCollapse`) con `ObjectCollapseContext`, desde el recorrido
+`Scenes::WalkTheObjectSectors` (`WorldObjectsDrawing`) en `GameScene::StepTheObjects` y en
+`SelectionWorld::StepObjects`; `Scenes::CountDownTheObjectCollapse` al final. El byte del sector va en cada objeto
+(`WorldObject::sectorPassed`, el mismo para todos los de un sector), escrito por los dos dibujos de los objetos.
+`0x5f8750`, `0x5f8710` y `0x5f8730` son `Scenes::MarkTheTerrainArea` y `MarkTheTerrainCell` (`Scenes/TerrainMarks`),
+que comparten con los paquetes. El sonido `0x89` queda en `WorldRuntime::lastSoundId` (CL10). La piedra `0x5f6/0` no
+está en el pool de MuRet: corta donde la crea cada caso (`0x405899`, `0x4056e5` y `0x4057bf`; la escena de la selección, sin el temblor, cortaría después en `0x4058bf`, `0x40570b` o `0x4057e5`);
+como el pedido de Chaos Castle empieza en 40, el derrumbe de Chaos Castle corta en su primer paso hasta que la CL11
+porte la partícula (P-C297). Tests: `ObjectCollapseTest`, en Lorencia, Devias, Blood Castle (11 y 14) y Chaos Castle
+(18, 20 y 23).
 
 ### Los objetos de Castle Siege
 

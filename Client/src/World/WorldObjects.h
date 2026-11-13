@@ -69,6 +69,9 @@ struct WorldObject
     Render::Models::AnimationState animation;      // +0x111 la acción, +0x114 el frame
     // +0x16c: se vio en el último dibujo; 0x606560 solo avanza los que tienen esto.
     bool seen = false;
+    // +8 de su sector (0x7d325d4 + 0x10 · (x · 16 + y), .bss 0): el sector pasó el trapecio del último dibujo
+    // (0x60470b). 0x606560 hace el derrumbe (0x5ff960) con los vivos de un sector que no pasó y apaga su +0x16c.
+    bool sectorPassed = false;
     // +0x1c8: el sector de 16 × 16 celdas donde lo guardó 0x606660, de la posición del archivo.
     int sectorX = 0;
     int sectorY = 0;

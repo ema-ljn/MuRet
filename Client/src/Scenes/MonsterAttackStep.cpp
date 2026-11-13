@@ -1,12 +1,15 @@
 #include "Scenes/MonsterAttackStep.h"
 
 #include "Core/Expected.h"
+#include "Data/Models/PlayerModels.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRotation.h"
+#include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -752,6 +755,32 @@ Core::Expected<void, std::string> StepTheBoneSkill(const ActorState& actor, cons
     }
 }
 
+// 0x4f8f5b..0x4f903c: la habilidad 3 sin caso de +0x376. El hueso de la mano derecha (+0x2bd) contra la cuenta de
+// huesos del modelo del tipo (+0x22 de [EBP − 4], MOVSX +2 · 0xe0): con la cuenta menor (JL con signo) sale, y el hueso
+// igual a la cuenta pasa (Q-C1093). Si no, 0x4ec110 con el hueso y (0; −130 si no es el 0x20a; 0), dos
+// 0x530860(0x614, punto, o+0x10, (−60; 0; o+0x24), 0, o, 50,0f y 10,0f, −1, 0, 0, −1) y 0x53fe70(0x5ca, punto,
+// o+0x1c, luz, 0, 1,0f, 0), sin rand().
+Core::Expected<void, std::string> StepTheHandBolts(const ActorState& actor, std::size_t slot,
+                                                   const CharacterStepContext& context)
+{
+    const Render::Models::Skeleton* skeleton = nullptr;
+    if (actor.type == Data::Models::PlayerSkeletonModel && context.playerSkeleton != nullptr)
+        skeleton = context.playerSkeleton;
+    else if (context.models != nullptr)
+        skeleton = context.models->SkeletonOf(actor.type);
+    if (skeleton == nullptr)
+    {
+        return Core::Unexpected(std::format("0x4f8f69: falta el esqueleto del modelo {:#x} del lugar {} (la habilidad "
+                                            "3 sin caso)",
+                                            actor.type, slot));
+    }
+    if (skeleton->bones.size() < actor.hands[0].bone)
+        return {};
+    // El punto del hueso no se ve hasta el joint: corta en el primero, sin nada escrito.
+    return CutAt(0x4f8fef, "los dos joints 0x614/0 desde el hueso de la mano y la partícula 0x5ca/0 (CL11)", actor,
+                 slot);
+}
+
 // 0x4f80e0..0x4f903c: la cola, con el blanco de +0x3a4 (MOVSX) en [0, 400).
 Core::Expected<void, std::string> StepTheTail(ActorState& actor, std::size_t slot, const CharacterStepContext& context)
 {
@@ -771,9 +800,7 @@ Core::Expected<void, std::string> StepTheTail(ActorState& actor, std::size_t slo
     {
         if (const KindCase* found = CaseOf(BoneSkillCases, actor.word376))
             return StepTheBoneSkill(actor, *found, slot, context);
-        return Core::Unexpected(std::format("0x4f8a39: la habilidad 3 de +0x38e en el lugar {} (0x4f5b70, 0x4f8f5b) "
-                                            "es del hito 4",
-                                            slot));
+        return StepTheHandBolts(actor, slot, context);
     }
     return {};
 }

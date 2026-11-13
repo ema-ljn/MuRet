@@ -415,9 +415,11 @@ TEST(AttackStepTest, TheStrikeSoundFollowsTheOwnHands)
     }
 }
 
-// Lo que corta, en su orden y con los rand() de antes: las habilidades del hito 4 (0x4f9899, 0x4f8a39, 0x4fdeeb,
-// 0x504372), los efectos de los casos de 0x4f5b70 (0x4f7050), 0x52e740 (0x5042ce) y, sin el pool de joints, los de
-// +0x380 en 2 (0x505169). La flecha (0x53e2b0) ya no corta: sus cortes están en test_arrow_effects.cpp.
+// Lo que corta, en su orden y con los rand() de antes: el efecto 0x621 de la 0x34 en 3 (0x4f9ecb, CL11), los joints
+// 0x614 de la 3 sin caso (0x4f8fef, CL11), las habilidades del hito 4 (0x4fdeeb, 0x504372), los efectos de los casos
+// de 0x4f5b70 (0x4f7050), 0x52e740 (0x5042ce) y, sin el pool de joints, los de +0x380 en 2 (0x505169). La flecha
+// (0x53e2b0) ya no corta: sus cortes están en test_arrow_effects.cpp. Los demás casos de 0x4f97b0, en
+// test_attack_frame_skills.cpp.
 TEST(AttackStepTest, TheCutsAfterTheirDraws)
 {
     struct Case
@@ -428,8 +430,14 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
         int draws;
     };
     const std::array cases{
-        Case{"la habilidad 0x28", [](AttackWorld&, ActorState& hero) { hero.byte38e = 0x28; }, "0x4f9899", SkillRead},
-        Case{"la habilidad 3", [](AttackWorld&, ActorState& hero) { hero.byte38e = 3; }, "0x4f8a39", CountingStep},
+        Case{"la habilidad 0x34 en 3",
+             [](AttackWorld&, ActorState& hero)
+             {
+                 hero.byte38e = 0x34;
+                 hero.byte381 = 3;
+             },
+             "0x4f9ecb", SkillRead},
+        Case{"la habilidad 3", [](AttackWorld&, ActorState& hero) { hero.byte38e = 3; }, "0x4f8fef", CountingStep},
         Case{"la habilidad 5",
              [](AttackWorld&, ActorState& hero)
              {

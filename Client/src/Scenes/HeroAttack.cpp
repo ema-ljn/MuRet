@@ -305,6 +305,7 @@ HeroSkillContext SkillContextOf(const HeroArrivalContext& context)
                             .skills = context.skills,
                             .playerSkeleton = context.combat.playerSkeleton,
                             .items = context.combat.items,
+                            .models = context.combat.models,
                             .tickCount = context.tickCount,
                             .inventory = context.inventory,
                             .controlDown = context.controlDown,

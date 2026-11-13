@@ -9641,8 +9641,9 @@ en línea, con un `rand()` si el cierre deja la cuenta en 0.
 1. `0x4f9780(o)` (1 con el `0x20a` en la `0x25` o la `0x26`; solo lo leen los casos), `+0x38e` en línea
    (`0x4f97cf..0x4f987a`) y `[0x6c88ac] = 15` (`0x4f987d`).
 2. El `switch` de `0x4f9899` (habilidad − `0x28`, tabla `0x4fb10c`): `0x28`, `0x2b`, `0x2c`, `0x2f` a `0x31`,
-   `0x34`, `0x35`, `0x37` a `0x39`, `0x3c` a `0x3f`, `0x41` y `0x43` a `0x4a`. Son del hito 4 (la `0x4f9ee2` pone
-   `[0x6c88ac]` en 5).
+   `0x34`, `0x35`, `0x37` a `0x39`, `0x3c` a `0x3f`, `0x41` y `0x43` a `0x4a`; cada caso sale de `0x4f97b0` (la
+   `0x4f9ee2` de la `0x34` pone `[0x6c88ac]` en 5). Portados en el hito 4, fase 6a: [Las habilidades de los frames
+   del ataque](#las-habilidades-de-los-frames-del-ataque).
 3. Los demás (`0x4fab5d`): desde el frame 1 (`0x6b87d4`, `FCOMP`: NaN no pasa), el `0x20a` en la `0x3e` termina
    (`+0x381 = 15`). Antes del frame 5 (`0x6b87f8`), o con NaN, sale. Sigue el `0x20a` con una acción de `0x22` a
    `0x97` o un tipo de `0x152` a `0x1c9` con la 3 o la 4: abre el registro propio en línea, lee la izquierda
@@ -9674,7 +9675,8 @@ sale; si no, lee `+0x38e` (`0x4f811b`): con `0x11`, un `switch` por `+0x376 − 
 `0x70`, `0x74`, `0x76`, `0x7a`, `0x7c`, `0x80`, `0x82`, `0x8d`, `0x8f` y `0xa3` a `0xad` impares) del que los
 demás salen; si no, otra vez (`0x4f8a2c`): con 3, un `switch` por `+0x376 − 0x22` (`0x4f8a56`, la tabla de
 `0x4f9274`: `0x22`, `0x25`, `0x27`, `0x30`, `0x4d`, `0x59`, `0x5f`, `0x70`, `0x76`, `0x7c`, `0x82` y `0x8f`) y los
-demás `0x4f8f5b` (el hueso de `+0x2bd` con `0x4ec110`, dos joints `0x614` y la partícula `0x5ca`).
+demás `0x4f8f5b` (el hueso de `+0x2bd` con `0x4ec110`, dos joints `0x614` y la partícula `0x5ca`; hito 4, fase 6a,
+en [Las habilidades de los frames del ataque](#las-habilidades-de-los-frames-del-ataque)).
 
 **La cabeza** (`0x4fdb9a..0x4fdbeb`). Con `+0x381` distinto de 0, las dos y `+0x381 += 1` (un byte). Si `+0x381`
 queda debajo de `[0x6c88ac]` (`JL`, con signo), salta a `0x50539e`.
@@ -9803,7 +9805,8 @@ dos `rand()` del giro de la cabeza, `0x5068fd`, descontados: uno en 32 por paso 
 
 | Dónde | Qué | Quién llega |
 | --- | --- | --- |
-| `0x4f9899`, `0x4f8a39`, `0x4fdeeb`, `0x504372` | los casos de habilidad | nadie: `+0x38e` lo escriben `0x4cc530` y los monstruos (hito 4) |
+| `0x4fdeeb`, `0x504372` | los casos de habilidad | nadie: `+0x38e` lo escriben `0x4cc530` y los monstruos (hito 4) |
+| los efectos, joints y partículas de los casos de `0x4f97b0` y de `0x4f8f5b` (fase 6a: cada uno en su dirección, en [Las habilidades de los frames del ataque](#las-habilidades-de-los-frames-del-ataque)) | `0x518cf0` y `0x530860` sin portar, con lo de antes hecho | las habilidades `0x2b`, `0x2f`, `0x34` (en 3), `0x37`, `0x38` y `0x39` y la 3 sin caso de `+0x376` (CL11, P-C344) |
 | los efectos, joints y partículas de los casos de `0x4f5b70` (fase 2e-B: cada uno en su dirección, en [Los casos de los monstruos](#los-casos-de-los-monstruos-0x4f5b70)) | `0x518cf0`, `0x530860`, `0x51fff0` y las partículas sin portar, con la lógica del caso hecha | los monstruos con caso, en sus mapas (CL11, P-C233); ningún jugador sin transformar |
 | `0x4fb0d1` | las veinte `0x5c6`/12 sin el pool de partículas | nadie en el juego (fase 2d) |
 | `0x558f29` | los nombres de gremio | el héroe en la guerra de gremios (hito 8) |
@@ -9812,6 +9815,89 @@ dos `rand()` del giro de la cabeza, `0x5068fd`, descontados: uno en 32 por paso 
 | `0x50428c` | `0x42ea00` | nadie: el mapa 30 corta antes (`0x412140`) |
 | `0x5042ce` | `0x52e740` | las acciones de skill `0x38` a `0x3c` (hito 4) |
 | `0x505169` | los joints `0x618`/0 y /1 sin el pool de joints | nadie en el juego (fase 2d) |
+
+### Las habilidades de los frames del ataque
+
+*Estático*, cotejado con el PE c32bbd5f (CL9 hito 4, fase 6a; `Scenes::StepTheFrameSkill`, `AttackFrameSkills.cpp`, y
+`0x4f8f5b` en `MonsterAttackStep.cpp`). `0x4f97b0(c, o)` lee `+0x38e`, pone `[0x6c88ac]` en 15 (`0x4f987d`) y salta
+por la tabla de `0x4fb10c` con la habilidad − `0x28` (`0x4f988d..0x4f9899`; fuera de 0 a `0x22`, a `0x4fab5d`). Las
+`0x29`, `0x2a`, `0x2d`, `0x2e`, `0x32`, `0x33`, `0x36`, `0x3a`, `0x3b`, `0x40` y `0x42` también van a `0x4fab5d`; los
+demás casos terminan en un `RET` (AL en 1) y no caen al de por defecto. c y o son el mismo registro (`0x4fd5f0`):
+`+0x381` se lee de c, y la acción (`+0x111`), el frame (`+0x114`) y el tipo, de o. Los frames se comparan con `FCOMP`:
+con `TEST AH,1` pasa el frame mayor o igual a la constante y con `TEST AH,0x41`, el mayor; NaN no pasa ninguno. La
+mano es la de `0x4f9780(o)`: la izquierda (`+0x2d8`) con el `0x20a` en la `0x25` o la `0x26`; si no, la derecha.
+
+**Los casos sin efectos**, sin `rand()`: `+0x381` en 15 cuando se cumple; si no, nada.
+
+| Habilidad | Dirección | Cuándo |
+| --- | --- | --- |
+| `0x28` | `0x4fa5d4` | desde el frame 14 (`0x6b881c`), el `0x20a` en la `0x45` |
+| `0x30` | `0x4fa617` | con `+0x381` en 10 o más (`JBE` con 9), el `0x20a` en la `0x3f` |
+| `0x31` | `0x4fa845` | desde el frame 5 (`0x6b87f8`), el `0x20a` en la `0x40` o la `0x41` |
+| `0x35` | `0x4fa650` | desde el frame 5, el `0x20a` de la `0x22` a la `0x97`, o un tipo (`WORD` con signo) de `0x152` a `0x1c9` en la 3 o la 4 |
+| `0x3c`, `0x3d`, `0x4a` | `0x4fa6c5`, `0x4fa708`, `0x4faacb` | desde el frame 3 (`0x6b86b8`), el `0x20a` en la `0x4c`, la `0x4e` o la `0x58` |
+| `0x3e` | `0x4fa7b5` | desde el frame 5, el `0x20a` en la `0x53` |
+| `0x3f` | `0x4fa7f8` | con `+0x381` en 6 o más, el `0x20a` en la `0x4d`, la `0x4f` o la `0x5a` |
+| `0x41` | `0x4fa75f` | desde el frame 5,5 (`0x6b8a40`), el `0x20a` en la `0x94`, la `0x51` o la `0x5b`; si no, `+0x381` en 10 (`0x4fa7a9`, Q-C1092) |
+| `0x44`, `0x46`, `0x47` | `0x4fb0dc`, `0x4fab4a` | siempre |
+| `0x48` | `0x4fa87f` | desde el frame 3,5 (`0x6b8ae4`), de cualquier tipo |
+| `0x49` | `0x4fab1a` | desde el frame 3, el `0x20a` en la `0x86` |
+| `0x43`, `0x45` | `0x4fb0e6` | nunca: salen sin tocar nada |
+
+**Los casos con efectos.** Lo que MuRet no tiene (CL11, P-C344) corta con lo de antes hecho y sus `rand()`:
+
+- `0x2b` (`0x4f98a0..0x4f9bcd`). El hueso `+0x2bd` de la mano en el modelo del tipo (`0x5769ad8` + `MOVSX +2` ·
+  `0xe0`; en MuRet, Player.bmd con el `0x20a` y si no la biblioteca de modelos; sin ella corta en `0x4f98e4`): con el
+  byte `+0x22` de su registro de `0x8c` (un dummy) o desde la cuenta de huesos (`+0x22` del modelo, `JGE` con signo)
+  sale (Q-C1090). En 8, el sonido `0x71` (`0x4f9910`). De 2 a 8, tres veces: la posición con z + 120 (`0x6b86c8`),
+  tres `rand() % 0x259 − 300` sumados, x menos el seno del rumbo · 1.400 (`0x6ba188`) e y más el coseno, y
+  `0x530860(0x10f, punto, punto, o+0x1c, 2, o, 40,0f, −1, 0, 0, −1)`: corta en el primero (`0x4f99fe`, después de
+  sus tres `rand()`). Hasta 8 (también en 1), `0x4ec110` con el hueso y `(0, 0, 0)` a `o+0x194`
+  (`ActorState::skillHandPoint`), más el seno del rumbo (`+0x24 · π/180`, `0x6b8cf8`) · 300 (`0x6b8900`) en x y menos
+  el coseno · 300 en y, en la x87 y guardado en `float` (`0x4f9a0d..0x4f9a80`); lo lee el paso de los joints `0x10f`
+  con ese dueño. De 6 a 12, `0x4ec110` con el hueso, el punto corrido (`+0x381` − 8) · 10 + 100 por el rumbo y dos
+  `0x518cf0(0x812, punto, o+0x1c, (1; 1; 1), 1, o, −1, 0, 0, 0, 0)`: corta en el primero (`0x4f9b49`); detrás, con el
+  blanco de `+0x3a4` vivo y `+0x381` desde 10, `+0x1a0` del blanco en `0x23`. Desde 12 (en 12, detrás del corte),
+  `+0x381` en el byte de `[0x6c88ac]` (`0x4f9ba9..0x4f9bc1`).
+- `0x2c` (`0x4fa895..0x4fa993`, portado entero). Pasado el frame 5, `+0x381` en 15. En cada paso (Q-C1091): la
+  posición con `rand() % 30 − 15` en x y en y (`0x6b87bc`) y z + 20 (`0x6b86d0`), y cuatro veces un `rand() % 60 +
+  150` en la x de los ángulos (la z, la de o), el joint `0x530860(0x617, punto, punto, ángulos, 0, sin dueño, 10,0f,
+  −1, 0, 0, −1)` (dos `rand()`, `Scenes::CreateFaunaJoint`) y el fuego `0x53fe70(0x5d9, punto, ángulos, o+0xf4, 2,
+  1,5f, 0)` (dos `rand()`): 22 por paso.
+- `0x2f` (`0x4f9bce..0x4f9e60`). En 10, el sonido `0x7d`; en 4, `0x4ec110` con el hueso de la mano y
+  `0x518cf0(0x813, punto, o+0x1c, (1; 1; 0,5), el modelo de la mano, o, −1, 0, 0, 0, 0)` (`0x4f9c8d`); en 8, dos
+  `0x518cf0(0x812, …, 0, o, …)` 50 por delante (`0x6b86b0`) y 110 más arriba (`0x6ba184`) (`0x4f9d1c`); en 13 y 14,
+  tres veces el punto 145 por delante (`0x6ba180`) y 110 más arriba con tres `rand() % 60 − 30` y `0x518cf0(0x10f,
+  punto, o+0x1c, (0,3; 0,3; 0,3), el modelo de la mano, o, …)`: corta en el primero (`0x4f9e49`, después de sus tres
+  `rand()`).
+- `0x34` (`0x4f9e61..0x4f9ef2`). El `0x20a` de la `0x22` a la `0x97`, desde el frame 5, vuelve al 5 (`+0x114`) con la
+  key anterior en 4 (`+0x118`, `4,0f`). En 3, `0x518cf0(0x621, o+0x10, o+0x1c, o+0xf4, 0, o, −1, 0, 0, 0, 0)` y el
+  sonido `0x81`: corta en el efecto (`0x4f9ecb`). Después, `[0x6c88ac]` en 5 (`0x4f9ee2`,
+  `WorldRuntime::skillThreshold`): la habilidad corre cuando `+0x381` llega a 5 y no a 15, y con ella el tiro de
+  `0x53e2b0` con la `0x34` (`0x50377d` sin blanco, `0x504060` con él; Q-C1094). Desde `+0x381` en 1, el paso corta en
+  3, antes del tiro (P-C345).
+- `0x37` (`0x4f9ef3..0x4fa490`), solo el `0x20a` en la `0x3d` (si no, `[0x6c88ac]` en 15, `0x4fa47e`): en 1 y 2,
+  `0x518cf0(0x621, …, 1, o, …)` (`0x4f9f3e`); antes del frame 3, o con NaN, sale con `[0x6c88ac]` en 15. Desde el 3:
+  `o+0x8a = 0x558eb0(c, [0x6c8e30])`, el sonido `0x72`, el lugar de la `0x37` en el registro propio (`0x59fb80`, 3.848
+  `rand()` al cerrarlo en 0) y `0x518cf0(0x5be, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a, lugar)`: corta (`0x4f9fae`).
+  Detrás, el registro propio abierto en línea para poner la velocidad de la acción `0x3d` de Player.bmd en `+0x4c` ·
+  0,004f + 0,54f (`0x6b89e8`, `0x6ba17c`; Q-C1106) y `+0x381` en 15.
+- `0x38` (`0x4fa4a8..0x4fa5d3`). El `0x20a` en la `0x8d`: cinco `0x518cf0(0xce, o+0x10, la z de los ángulos 40 menos
+  y 20 más cada vez, o+0xf4, 2, o, …)`, el sonido `0x72` y `+0x381` en 15: corta en el primero (`0x4fa4fa`). Después,
+  con la `0x8d` o sin ella, `[0x6c88ac]` en 15 (`0x4fa5c3`).
+- `0x39` (`0x4fa994..0x4faaca`), de cualquier tipo (Q-C1107). Pasado el frame 5, tres `0x530860(0x60f, o+0x10,
+  o+0x10, o+0x1c, 0x17, sin dueño, 40,0f, la clave 0, 1 y 4, 0, 0, −1)`, `+0x381` en 15 y el sonido `0x270`: corta en
+  el primero (`0x4fa9ca`); si no, pasado 2,3f (`0x6ba178`) y antes de 2,6f (`0x6ba174`), los de las claves 2 y 3 y el
+  sonido `0x270` (`0x4faa81`). Los dos siguen con `[0x6c88ac]` en 15, como el que no hace nada (`0x4faaba`).
+
+**`0x4f8f5b`, la 3 sin caso de `+0x376`** (la cola de `0x4f5b70`). El hueso de la derecha (`+0x2bd`) contra la cuenta
+de huesos del modelo del tipo (`[EBP − 4]`; en MuRet como en la `0x2b`, y sin esqueleto corta en `0x4f8f69`): con la
+cuenta menor (`JL` con signo) sale, y el hueso igual a la cuenta pasa (Q-C1093). Si no, `0x4ec110` con el hueso y
+`(0; −130 si no es el 0x20a; 0)`, dos `0x530860(0x614, punto, o+0x10, (−60; 0; o+0x24), 0, o, 50,0f y 10,0f, −1, 0,
+0, −1)` y `0x53fe70(0x5ca, punto, o+0x1c, luz, 0, 1,0f, 0)`, sin `rand()`: corta en el primer joint (`0x4f8fef`).
+
+Tests: `AttackFrameSkillsTest` (Lorencia y Devias), `AttackStepTest.TheCutsAfterTheirDraws`,
+`CharacterStepTest.TheBodyStopsWhereMuRetHasNothing` y `MonsterAttackCasesTest.TheSkill3CasesLeaveAfterTheirJoints`.
 
 ### La flecha
 
@@ -10019,8 +10105,8 @@ blanco](#el-paso-del-ataque)): 36 `rand()` por paso, en el pool del mundo. Sin e
 - `0x25` (`0x4f8837`): en 1, el sonido `0x75`; `rand() % 360`, el joint `0x61b`/0 y `0x5d9`/0 (`0x4f88d0`).
 - `0x42` (`0x4f890b`): en 1, el sonido `0x50`; joints `0x61b`/1 y `0x5d9`/0, sin `rand()` (`0x4f89df`).
 
-Si no es `0x11`, lee otra vez; con 3, el `switch` de `0x4f8a56` (sin caso, `0x4f8f5b`, que corta en `0x4f8a39`,
-hito 4):
+Si no es `0x11`, lee otra vez; con 3, el `switch` de `0x4f8a56` (sin caso, `0x4f8f5b`, en [Las habilidades de los
+frames del ataque](#las-habilidades-de-los-frames-del-ataque)):
 
 - `0x59`, `0x5f`, `0x70`, `0x76`, `0x7c`, `0x82`, `0x8f` (`0x4f8a5d`): en 1, el sonido `0x50`; joints `0x61b`/1
   (`0x4f8b31`).
@@ -10658,8 +10744,11 @@ suma las acciones de Player.bmd, Item.bmd, `GetTickCount` y los servicios del in
   (`0x561c50`) se terminan las opciones; fuera de alcance (la celda de `0x77e1ba8`, sin C0 ni C3), la siguiente; en
   alcance, el rumbo hacia `+0x3a8`, la clave de `0x558eb0` con `0x7758588` (`0xffff` sin él) y, sin "webzen" y sin
   freno, `0x5767948` en la skill y el `1E` (04); después `0x4f4a10` y, si c no es un jugador (en la `0x18`, tampoco
-  con 1 en `+0x88`), `+0x38e`, su lugar en el registro y la flecha de `0x53e2b0`, que corta (`0x564f2f`, P-C257 d).
-  Sigue con las demás opciones y da 1 si alguna tiró.
+  con 1 en `+0x88`), `+0x38e`, su lugar en el registro y la flecha `0x53e2b0(c, c, 0, lugar, bandera, 0)`
+  (`0x564f2f`; fase 6a, `Scenes::FireTheArrow`, [La flecha](#la-flecha)): la bandera es 1 en la `0x18` (`0x564f28`) y
+  `0x36 − 0x34` en la `0x36` (`0x563df1`), y con la skill 0 los tiros dejan `0x5767948` en 0 (Q-C1108). El
+  `0x4f4a10` de ese héroe transformado lee el esqueleto de su modelo (`HeroSkillContext::models`; sin él, corta en
+  `0x4ea030`). Sigue con las demás opciones y da 1 si alguna tiró.
 
 Los `C3` sacan sus dos `rand()` (el relleno y el serial `0x5767913`) también sin la sesión (`SendTheSkillPacket`); los
 `C1` (`D3` y `DF`) van por el socket sin `rand()`.

@@ -15,6 +15,8 @@
 #include "Render/Models/OriginalAngles.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ArrowEffects.h"
+#include "Scenes/CharacterStep.h"
 #include "Scenes/CombatActionSpeeds.h"
 #include "Scenes/GameParticles.h"
 #include "Scenes/GameMovementState.h"
@@ -181,19 +183,20 @@ Core::Expected<void, std::string> SetPlayerAction(ActorState& actor, std::uint8_
     return {};
 }
 
-// 0x4f4a10 con el contexto de las skills: sin la biblioteca de modelos, como el ataque al llegar.
+// 0x4f4a10 con el contexto de las skills.
 Core::Expected<void, std::string> AttackWith(ActorState& actor, const HeroSkillContext& context)
 {
     return SetActorAttack(actor, ActorCombatContext{.world = context.world,
                                                     .random = context.random,
                                                     .playerSkeleton = context.playerSkeleton,
-                                                    .models = nullptr,
+                                                    .models = context.models,
                                                     .items = context.items});
 }
 
 // 0x563b8f..0x564f37: 0x4f4a10 sobre c; un jugador (0x20a en +2) o, en la 0x18, uno con 1 en +0x88, nada más. Si
 // no, +0x38e (un rand() al cerrarlo), su lugar en las skills del registro propio (abierto por quien llama) y la
-// flecha de 0x53e2b0(c, c, 0, lugar, `count`, 0), sin portar (P-C257 d).
+// flecha de 0x53e2b0(c, c, 0, lugar, `count`, 0) (Scenes::FireTheArrow): 1 en la 0x18 (0x564f28) y 0x36 − 0x34 en la
+// 0x36 (0x563df1).
 Core::Expected<void, std::string> ShootTheArrow(ActorState& caster, std::uint8_t skill, std::uint8_t count,
                                                 const HeroSkillContext& context)
 {
@@ -218,9 +221,16 @@ Core::Expected<void, std::string> ShootTheArrow(ActorState& caster, std::uint8_t
             }
         }
     }
-    return Core::Unexpected(std::format("0x564f2f: la flecha de 0x53e2b0 (lugar {}, {}) de la skill {:#x} de un "
-                                        "personaje que no es un jugador está sin portar (P-C257 d)",
-                                        slot, count, skill));
+    // 0x564f2f (P-C269 c): 0x53e2b0(c, c, 0, lugar, `count`, 0), con los sonidos en WorldRuntime::lastSoundId (CL10).
+    WorldState& world = context.world;
+    const CharacterStepContext shot{.world = world,
+                                    .random = context.random,
+                                    .playerSkeleton = context.playerSkeleton,
+                                    .items = context.items,
+                                    .soundRequest = [&world](std::int32_t sound)
+                                    { world.Runtime().lastSoundId = sound; },
+                                    .controlDown = context.controlDown};
+    return FireTheArrow(caster, nullptr, SlotOf(world, caster), static_cast<std::int32_t>(slot), count, 0, shot);
 }
 
 // 0x55bd12..0x55bdd8: la acción de un jugador por la skill (la tabla 0x55cb78 por skill − 0x2b, a 0x55cb60).

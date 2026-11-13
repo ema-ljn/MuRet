@@ -199,6 +199,7 @@ protected:
         before = game->cloth.random.State();
         const Client::Scenes::CharacterStepContext context{.world = game->world,
                                                            .random = game->cloth.random,
+                                                           .models = &game->models,
                                                            .particles = withParticles ? &game->particles : nullptr,
                                                            .soundRequest = [this](std::int32_t sound)
                                                            { sounds.push_back(sound); }};
@@ -792,8 +793,9 @@ TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
     }
 }
 
-// La cola con 3 en +0x38e (0x4f8a56): los casos con sus sonidos en 1 y su rand() % 360 antes del joint; sin caso, la
-// habilidad del hito 4 (0x4f8a39).
+// La cola con 3 en +0x38e (0x4f8a56): los casos con sus sonidos en 1 y su rand() % 360 antes del joint; sin caso,
+// 0x4f8f5b: el hueso de la mano del alta pasa la cuenta del esqueleto de prueba (sin huesos) y sale, sin rand(). Sus
+// joints 0x614/0 (0x4f8fef), en test_attack_frame_skills.cpp.
 TEST_F(MonsterAttackCasesTest, TheSkill3CasesLeaveAfterTheirJoints)
 {
     const std::vector<Probe> probes{
@@ -817,7 +819,7 @@ TEST_F(MonsterAttackCasesTest, TheSkill3CasesLeaveAfterTheirJoints)
         {.name = "0x22", .type = 0x22, .step = 2, .skill = 3, .cut = "0x4f8d63", .draws = Tail + 1},
         {.name = "0x30", .type = 0x30, .step = 2, .skill = 3, .cut = "0x4f8e46", .draws = Tail + 1},
         {.name = "0x27", .type = 0x27, .step = 2, .skill = 3, .cut = "0x4f8f07", .draws = Tail},
-        {.name = "sin caso", .type = 3, .step = 2, .skill = 3, .cut = "0x4f8a39", .draws = Tail}};
+        {.name = "sin caso", .type = 3, .step = 2, .skill = 3, .draws = Tail}};
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
     {
         SCOPED_TRACE(map);

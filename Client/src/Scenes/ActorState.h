@@ -158,6 +158,10 @@ struct ActorState
     // Scenes::StepTheAttackCases); 0x511290 no la toca: queda la del uso anterior del registro (Q-C363). El joint
     // 0x610/4 de la espada 0x223 sigue de acá al personaje (0x537d55).
     glm::vec3 trailOrigin{};
+    // +0x194, +0x198 y +0x19c: el punto del hueso de la mano que la habilidad 0x2b de 0x4f97b0 deja con +0x381 hasta 8,
+    // corrido 300 por el rumbo (0x4f9a1e..0x4f9a80, Scenes::StepTheFrameSkill). Lo lee el paso de los joints con este
+    // dueño (0x535ea9; el 0x10f/2 de la misma habilidad, CL11). 0x511290 no lo escribe.
+    glm::vec3 skillHandPoint{};
     // +0x28 y +0x2c, los ángulos de la cabeza, y +0x34 y +0x38, hacia dónde gira: los mueve 0x505de0
     // (0x5068eb..0x5069ab, Scenes::StepCharacterHead) y los lee la pose (0x4eb860). 0x511290 no los escribe:
     // quedan los de WinMain o los del uso anterior del registro. Del héroe, el blanco lo escribe MoveHero con

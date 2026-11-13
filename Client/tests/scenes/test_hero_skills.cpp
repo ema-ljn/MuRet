@@ -1,6 +1,7 @@
 #include "Scenes/HeroSkills.h"
 
 #include "Core/Expected.h"
+#include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -11,7 +12,9 @@
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -52,6 +55,8 @@ using Client::Scenes::UseTheHeroSkill;
 constexpr int OwnDraws = 3848;
 constexpr int EntryDraws = 60;
 constexpr int CellDraws = 4;
+// Una lectura de +0x38e: un rand() al cerrarse en 0.
+constexpr int Byte38eDraws = 1;
 // El registro propio con la skill del lugar y la entrada del alcance (0x5526f0): lo que gasta toda vuelta con uso.
 constexpr int HeadDraws = OwnDraws + EntryDraws;
 // Más la entrada del +0x31 (0x57d2f1).
@@ -106,6 +111,26 @@ enum HeroClass : std::uint8_t
     Lord = 4,
 };
 
+// El esqueleto de Player.bmd para cualquier modelo: el 0x4f4a10 de un héroe transformado (0x4ea030) pide sus acciones.
+class AnyModels final : public Client::Scenes::IModelLibrary
+{
+public:
+    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
+    {
+        return nullptr;
+    }
+    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t /*model*/) const override
+    {
+        return &skeleton;
+    }
+    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+    {
+        return {};
+    }
+
+    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+};
+
 // Un héroe jugador en (182, 115) con la skill `skill` en su lugar 0 y la acción 1, que deja pasar 0x57d45d.
 struct SkillHero
 {
@@ -149,6 +174,7 @@ struct SkillHero
                                 .random = random,
                                 .skills = &skills,
                                 .playerSkeleton = &skeleton,
+                                .models = models,
                                 .tickCount = [this] { return ticks; },
                                 .worldTime = worldTime,
                                 .send = [this](Client::Protocol::Outgoing outgoing)
@@ -164,6 +190,8 @@ struct SkillHero
     float worldTime = 5000.0f;
     std::uint32_t ticks = 100000;
     Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    // nullptr: el 0x4f4a10 de un héroe transformado corta (0x4ea030).
+    const Client::Scenes::IModelLibrary* models = nullptr;
     std::vector<Client::Protocol::Outgoing> sent;
     Client::Data::Tables::SkillTable skills = SkillsWith({{0x11, 3},
                                                           {0x13, 4},
@@ -1226,6 +1254,57 @@ TEST(HeroSkillsTest, TheElfShotNeedsTheNameAndTheReach)
         EXPECT_TRUE(tested->sent.empty());
         EXPECT_EQ(tested->Hero().movement, 0);
     }
+}
+
+// 0x563b8f..0x564f37 con un héroe transformado (no es el 0x20a; +0x88 en 0): 0x4f4a10 por su modelo (la acción 1, el
+// sonido 0x10 del 0x28 y el rand() del sonido del modelo), +0x38e (un rand() al cerrarlo; el registro propio sigue
+// abierto desde 0x561f60) y la flecha de 0x53e2b0(c, c, 0, lugar, bandera, 0) (P-C269 c): con la 0x18 la bandera en 1,
+// tres tiros de 0x53d9a0 y la cuenta de la tanda; con la 0x36, la 2 (0x563df1) y un tiro. Los tiros dejan [0x5767948]
+// en la skill 0; sin arco en el registro propio, sin flecha. Sin la biblioteca de modelos, el 0x4f4a10 corta
+// (0x4ea030).
+TEST(HeroSkillsTest, TheTransformedElfShootsThroughTheArrowOf53e2b0)
+{
+    struct Case
+    {
+        std::uint8_t skill;
+        int extraCells;
+        std::uint8_t volleys;
+    };
+    constexpr std::uint16_t TransformedModel = 0x28;
+    // 0x4f51f1: el rand() % 2 del sonido de ataque del modelo (DrawModelSound), que el 0x20a no saca.
+    constexpr int ModelSoundDraws = 1;
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const Case& probe : {Case{0x18, 0, 1}, Case{0x36, 2, 0}})
+        {
+            SCOPED_TRACE(::testing::Message() << "mapa " << map << ", skill " << static_cast<int>(probe.skill));
+            const AnyModels library;
+            const auto tested = AnElfWithTheOption(probe.skill, map);
+            tested->models = &library;
+            tested->Hero().type = TransformedModel;
+            if (probe.skill == 0x36)
+                tested->Movement().weaponSkill.target = -1;
+            const CrtRandom expected = Advanced(tested->random, ElfShotDraws + (probe.extraCells * CellDraws) +
+                                                                    ModelSoundDraws + Byte38eDraws);
+
+            const auto result = tested->Use();
+
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            EXPECT_EQ(tested->random.State(), expected.State());
+            ASSERT_EQ(tested->sent.size(), 1u);
+            EXPECT_EQ(tested->Hero().animation.action, 1);
+            EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x10);
+            EXPECT_EQ(tested->Movement().lastShotSkill, 0u);
+            EXPECT_EQ(tested->world.OwnCharacter().bytef04, probe.volleys);
+            // Los tres tiros de la bandera en 1 giran el rumbo 15, −30 y 15: vuelve al de 0x5629b6.
+            EXPECT_EQ(tested->Hero().angles.z, 135.0f);
+        }
+    }
+    const auto cut = AnElfWithTheOption(0x36);
+    cut->Hero().type = TransformedModel;
+    const auto result = cut->Use();
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_TRUE(Contains(result.Error(), "0x4ea030")) << result.Error();
 }
 
 // 0x56205f..0x562092: sin maná y sin poción, la opción que sigue (y la rama de la clase, que sin maná ni poción no

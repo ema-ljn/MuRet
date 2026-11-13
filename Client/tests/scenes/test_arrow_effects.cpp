@@ -678,9 +678,10 @@ TEST(ArrowEffectsTest, TheFlaggedArrowSendsTheHits)
     }
 }
 
-// La skill 0x34 (que el paso del ataque no deja llegar: corta antes en 0x4f9899), por 0x53e2b0 directo, en Lorencia y
-// en Devias: el sonido 0x55, la flecha 0xdb con el subtipo 2 y, en su alta, la estela 0x105 con la flecha de dueño
-// (vida 100, escala 12, +0x64 en 0, la partida en la flecha), cuyo joint 0x610 corta (0x51a08a, CL11).
+// La skill 0x34 (que el paso del ataque deja llegar desde +0x381 en 4: en 3 corta antes en el efecto 0x621, 0x4f9ecb;
+// test_attack_frame_skills.cpp), por 0x53e2b0 directo, en Lorencia y en Devias: el sonido 0x55, la flecha 0xdb con el
+// subtipo 2 y, en su alta, la estela 0x105 con la flecha de dueño (vida 100, escala 12, +0x64 en 0, la partida en la
+// flecha), cuyo joint 0x610 corta (0x51a08a, CL11).
 TEST(ArrowEffectsTest, ThePiercingShotLeavesItsTrail)
 {
     for (const std::int32_t map : {0, 2})

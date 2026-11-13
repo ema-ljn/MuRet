@@ -6,6 +6,7 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
+#include "Scenes/AttackFrameSkills.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/HeroAttack.h"
@@ -44,10 +45,6 @@ constexpr std::uint16_t SkillCloseRandoms = 1;
 constexpr std::uint8_t AttackDone = 15;
 constexpr std::int16_t NoTarget = -1;
 
-// 0x4f9899: los casos del switch de 0x4f97b0 (habilidad − 0x28, la tabla de 0x4fb10c); los demás van a 0x4fab5d.
-constexpr std::array<std::uint8_t, 24> FrameSkills{0x28, 0x2b, 0x2c, 0x2f, 0x30, 0x31, 0x34, 0x35,
-                                                   0x37, 0x38, 0x39, 0x3c, 0x3d, 0x3e, 0x3f, 0x41,
-                                                   0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a};
 // 0x4fdeeb: los casos del switch de la cabeza (habilidad − 5, los índices de 0x505530); los demás van a 0x502aff.
 constexpr std::array<std::uint8_t, 36> HeadSkills{
     0x05, 0x08, 0x09, 0x0a, 0x0c, 0x0d, 0x0e, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x26, 0x27, 0x28, 0x29,
@@ -94,12 +91,12 @@ Core::Expected<void, std::string> StepTheAttackFrames(ActorState& actor, std::si
     const std::uint8_t skill = ReadTheSkill(actor, context.random);
     // 0x4f987d.
     runtime.skillThreshold = AttackDone;
-    if (IsOneOf(FrameSkills, skill))
-    {
-        return Core::Unexpected(std::format("0x4f9899: la habilidad {:#x} de +0x38e en el lugar {} (0x4f97b0) es del "
-                                            "hito 4",
-                                            skill, slot));
-    }
+    // 0x4f9899: los casos de la habilidad (la tabla de 0x4fb10c), que salen; los demás siguen en 0x4fab5d.
+    auto handled = StepTheFrameSkill(actor, skill, slot, context);
+    if (!handled.HasValue())
+        return Core::Unexpected(handled.Error());
+    if (handled.Value())
+        return {};
     // 0x4fab5d..0x4fab7f: pasado el frame 1 (0x6b87d4), el 0x20a con la 0x3e termina (FCOMP: NaN no pasa).
     constexpr float FirstFrame = 1.0f;
     constexpr float StrikeFrame = 5.0f;

@@ -19,6 +19,10 @@ inline constexpr std::uint8_t WalkOpcode = 0xd3;
 inline constexpr std::uint8_t DamageOpcode = 0xd7;
 // 59b333..59b83a: rumbo del héroe quieto, C1 05 18 direction 7A, XOR32.
 [[nodiscard]] Outgoing WriteFacing(std::uint8_t direction);
+// 0x4e11e1..0x4e1467, el BD 03 con el resultado 1 (CL9 hito 11): el mismo C1 05 18 direction acción con la acción 0x82
+// (sentarse en el altar de Crywolf), XOR32, por el send del paquete.
+inline constexpr std::uint8_t AltarContractAction = 0x82;
+[[nodiscard]] Outgoing WriteAction(std::uint8_t direction, std::uint8_t action);
 
 struct Cell
 {
@@ -58,6 +62,10 @@ struct Damage
 // MuRet rechaza no finitos y cuentas fuera de [-2^63,2^63): son errores de su API,
 // no una validación del original ni una afirmación sobre sus máscaras de excepción.
 [[nodiscard]] Core::Expected<Outgoing, WalkWriteError> WriteWalk(std::span<const Cell> path, Cell target, float angle);
+
+// El rumbo de `angle` como 0x56b0b7..0x56b0cc (y 0x4e1260..0x4e128a, que le suma un AND 0xff): (ángulo + 22,5) ·
+// 0x3cb60b61 + 1, el ftol y &7, con los mismos errores que WriteWalk.
+[[nodiscard]] Core::Expected<std::uint8_t, WalkWriteError> DirectionFromAngle(float angle);
 
 // 0x56ad1d..0x56ad4f: cantidad ORIGINAL (1..15), antes del límite wire de 14.
 [[nodiscard]] Core::Expected<std::uint32_t, WalkWriteError> WalkUpdateTimeMax(std::size_t pathNum);

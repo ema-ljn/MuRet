@@ -17,6 +17,7 @@
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Outgoing.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/CharacterDrawing.h"
@@ -41,6 +42,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <utility>
 #include <variant>
 
 namespace Client::Scenes
@@ -220,6 +222,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
             .tickCount = m_resources.clock != nullptr ? App::TickCountMs(m_resources.clock->Now()) : 0U,
             .playerSkeleton = m_resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel),
             .sendWindowClose = [&session] { session.SendWindowClose(); },
+            // SendChat manda cualquier paquete de mundo, como el de los demás pasos.
+            .send = [&session](Protocol::Outgoing outgoing) { session.SendChat(std::move(outgoing)); },
             .dataRoot = m_resources.dataRoot};
         const auto applied = ApplyEventPacket(*packet, context);
         if (!applied.HasValue())

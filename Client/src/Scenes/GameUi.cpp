@@ -10,6 +10,7 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CameraTour.h"
+#include "Scenes/CrywolfContract.h"
 #include "Scenes/EventChipWindow.h"
 #include "Scenes/EventNpcWindows.h"
 #include "Scenes/GameChat.h"
@@ -208,11 +209,10 @@ void StepTheUnownedClick(WorldRuntime& runtime)
 // 0x435bd0: el paso de la interfaz de Crywolf (06 § La interfaz de Crywolf), solo en el mapa 34 (0x4303c0). Con los
 // resultados (0x723bf9 en 1, del BD 08) y el izquierdo abajo (0x7d36874), sobre el botón (300, 354) × (300, 330), sin
 // los bordes, deja 0x723bdc en 5, que el dibujo lee para cerrarlos con el mouse todavía encima (Q-C1342); en cualquier
-// lugar apaga el botón y el flanco (0x435c4e): con los resultados a la vista, la UI se queda con todos los clics. La
-// ventana del contrato (0x723a44 en 1 o 2) la abre solo 0x435b00, desde el BD 03 (0x4e1010) y el clic en un altar
-// (0x567ba4), que cortan antes: con ella abierta corta.
-Core::Expected<void, std::string> StepTheCrywolfInterface(WorldRuntime& runtime, std::int32_t mouseX,
-                                                          std::int32_t mouseY)
+// lugar apaga el botón y el flanco (0x435c4e): con los resultados a la vista, la UI se queda con todos los clics.
+// Después, la ventana del contrato (0x723a44 en 1 o 2, 0x435c5c: Scenes/CrywolfContract), con la mascota del héroe
+// (+0x318) y el send() del paso para el Sí.
+Core::Expected<void, std::string> StepTheCrywolfInterface(const GameUiContext& context)
 {
     constexpr std::int32_t CrywolfMap = 0x22;
     constexpr std::int32_t ButtonLeft = 0x12c;
@@ -220,8 +220,11 @@ Core::Expected<void, std::string> StepTheCrywolfInterface(WorldRuntime& runtime,
     constexpr std::int32_t ButtonTop = 0x12c;
     constexpr std::int32_t ButtonBottom = 0x14a;
     constexpr std::int32_t ButtonPushed = 5;
+    WorldRuntime& runtime = context.world.Runtime();
     if (runtime.map != CrywolfMap)
         return {};
+    const std::int32_t mouseX = context.mouseX;
+    const std::int32_t mouseY = context.mouseY;
     CrywolfInterface& crywolf = runtime.crywolf.ui;
     GameMovementState& movement = runtime.movement;
     if (crywolf.byte723bf9 == 1 && movement.leftHeld)
@@ -231,11 +234,13 @@ Core::Expected<void, std::string> StepTheCrywolfInterface(WorldRuntime& runtime,
         movement.leftHeld = false;
         movement.pendingClick = false;
     }
-    if (crywolf.byte723a44 == 1 || crywolf.byte723a44 == 2)
-        return Core::Unexpected(std::format("0x435c5c: la ventana del contrato de Crywolf (0x723a44 en {}) no está "
-                                            "portada",
-                                            crywolf.byte723a44));
-    return {};
+    return StepTheContractWindow(
+        ContractWindowContext{.runtime = runtime,
+                              .texts = context.texts,
+                              .heroPet = context.world.Actors()[runtime.hero].pet.model,
+                              .mouseX = mouseX,
+                              .mouseY = mouseY,
+                              .send = context.chat != nullptr ? context.chat->send : ChatSender{}});
 }
 
 // 0x636f04..0x637056: la esquina del registro del chat (0x45a9d0). Fuera de su ventana, (−10, 0x65); en ella, 0x1a4 de
@@ -1589,7 +1594,7 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     StepTheUnownedClick(runtime);
     // 0x636ed6: 0x5ebca0, con 0x78abad9 en 0 no hace nada.
     // 0x636edb.
-    if (auto crywolf = StepTheCrywolfInterface(runtime, context.mouseX, context.mouseY); !crywolf.HasValue())
+    if (auto crywolf = StepTheCrywolfInterface(context); !crywolf.HasValue())
         return crywolf;
     if (auto stepped = StepThePanels(context, panels); !stepped.HasValue())
         return stepped;

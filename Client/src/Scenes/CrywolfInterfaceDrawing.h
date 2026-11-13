@@ -25,8 +25,9 @@ struct GameHudContext;
 [[nodiscard]] Core::Expected<void, std::string> DrawTheCrywolfInterface(GameHudContext& context);
 
 // 0x436240, el hijo 26 del HUD (0x5a74ed): con la etapa en 3 o 4 (0x435a00) en el mapa 34 (0x4303c0) deja el texto en
-// 0xff1594ff sobre 0 para lo que sigue del HUD, y con 0x723a44 en 1 o 2 dibuja la ventana del contrato de los altares.
-// Esa ventana la abre solo 0x435b00, desde el BD 03 (0x4e1010) y el clic en un altar (0x567ba4, dentro de 0x5650c0),
-// que cortan antes en MuRet: con 0x723a44 en 1 o 2 corta en 0x436274.
+// 0xff1594ff sobre 0 para lo que sigue del HUD, y con 0x723a44 en 1 o 2 dibuja la ventana del contrato de los altares
+// (0x436274..0x43656f, fase 4): el fondo 0x6cc, el No y el Sí (con 1) o el OK (con 2), que con el mouse encima y su
+// número en 0x723bdc (1, 2 o 3) cierran la ventana, y los dos renglones de 0x723a48 con 0x623690. La abre 0x435b00
+// (Scenes/CrywolfContract). Escribe en `context.crywolfInterface` (o en la de WorldRuntime). No saca rand().
 [[nodiscard]] Core::Expected<void, std::string> DrawTheCrywolfContract(GameHudContext& context);
 } // namespace Client::Scenes

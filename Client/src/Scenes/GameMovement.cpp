@@ -353,9 +353,12 @@ Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMoveme
             return Core::Unexpected(std::string("0x59b2d2: ángulo de llegada fuera del perfil ftol"));
         runtime.movement.arrivalYaw = *yaw;
         runtime.movement.movementTarget = 0;
-        // 5650ef..565100: MovementType0 sale por la tabla, sin interacción ni RNG.
+        // 5650ef..565100: MovementType0 sale por la tabla, sin interacción ni RNG. El clic en los altares de Crywolf
+        // (0x567b00..0x567c23) ya está en Scenes::ClickTheCrywolfAltar (CL9 hito 11, P-C249).
         if (hero.movementType != 0)
-            return Core::Unexpected(std::string("0x5650c0: la interacción de llegada requiere CL9"));
+            return Core::Unexpected(
+                std::string("0x5650c0: la interacción de llegada requiere CL9 (el clic en los altares "
+                            "de Crywolf, ClickTheCrywolfAltar, se cablea al juntarse con el hito 2)"));
         return {};
     }
     hero.flags7c &= ~std::uint32_t{0x200000};

@@ -7,7 +7,9 @@
 #include "Data/Terrain/TerrainLight.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Events.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -15,6 +17,7 @@
 #include "Scenes/EventGlobals.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/Dialogs.h"
@@ -23,7 +26,9 @@
 #include "UI/PanelRegistry.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldTerrain.h"
+#include "support/Bytes.h"
 #include "support/FileBytes.h"
+#include "support/SameBytes.h"
 
 #include "support/SceneDataFiles.h"
 
@@ -107,6 +112,11 @@ std::map<std::size_t, std::string> EventTexts()
         {1816, "para"},
         {1817, "faltan"},
         {1826, "aviso gremio"},
+        {1953, "contrato firmado"},
+        {1954, "altar tomado"},
+        {2004, "contrato fallido"},
+        {2005, "otra vez"},
+        {2008, "nivel alto"},
         {2020, "castillo cero"},
         {2021, "castillo uno"},
     };
@@ -134,8 +144,8 @@ protected:
     void SetUp() override
     {
         world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-        // 0x4ea030 con la acción 0xc0 de 0x5111a0: Player.bmd la tiene.
-        player.actions.resize(0xc1);
+        // 0x4ea030 con la acción 0xc0 de 0x5111a0 y la 0xca del BD 03: Player.bmd las tiene.
+        player.actions.resize(0xcb);
         for (auto& action : player.actions)
             action.keyCount = 4;
         Runtime().hero = 0;
@@ -163,6 +173,8 @@ protected:
                                   .screen = {640, 480},
                                   .tickCount = tickCount,
                                   .playerSkeleton = &player,
+                                  .send = [this](Client::Protocol::Outgoing packet)
+                                  { worldPackets.push_back(std::move(packet)); },
                                   .dataRoot = dataRoot};
     }
 
@@ -256,6 +268,8 @@ protected:
     LetterMeasure letters;
     Client::Render::Models::Skeleton player;
     std::uint32_t tickCount = 0;
+    // Lo que manda el send() de mundo (el C1 05 18 del BD 03).
+    std::vector<Client::Protocol::Outgoing> worldPackets;
 };
 
 // ----- 0B (0x4e3594).
@@ -1140,11 +1154,88 @@ TEST_F(EventPacketsTest, TheCrywolfTimerAndBossNeedTheDefenseInCrywolf)
     }
 }
 
-// BD 03 (0x4e1010) y BD 0C (0x430040, los efectos de la CL11) cortan con su dirección.
-TEST_F(EventPacketsTest, TheCrywolfContractAndEffectsAreCut)
+// BD 03 (0x4e1010) con 0: el héroe se para y, con el registro propio abierto (0xf08 rand() al cerrarlo), menos de 350
+// da 0x36 y 0x37 y 350 o más 0x3a, que solo se ven con la defensa en el 34. Con otro resultado que 0 y 1, nada.
+TEST_F(EventPacketsTest, TheFailedCrywolfContractStandsTheHeroUp)
 {
-    const std::string contract = Cut(Events::CrywolfUnported{.subcode = 3, .bytes = {}});
-    EXPECT_NE(contract.find("0x4e1010"), std::string::npos) << contract;
+    for (const std::int32_t map : {0, 2, 34})
+    {
+        for (const std::uint16_t level : {std::uint16_t{349}, std::uint16_t{350}})
+        {
+            SCOPED_TRACE(map);
+            SCOPED_TRACE(level);
+            Runtime() = WorldRuntime{};
+            Runtime().hero = 0;
+            Runtime().map = map;
+            Runtime().crywolf.stage = 3;
+            world.OwnCharacter().level = level;
+            Hero().flags7c = 0x200001;
+            const CrtRandom before = random;
+            Applied(Events::CrywolfContract{.result = 0, .value = 0x11, .key = 0x13c});
+            CrtRandom expected = before;
+            expected.Discard(Client::Render::Models::OwnRecordCloseRandoms);
+            EXPECT_EQ(random.State(), expected.State());
+            EXPECT_EQ(Runtime().ownRecordDepth, 0);
+            EXPECT_EQ(Hero().flags7c, 1u);
+            const auto& ui = Runtime().crywolf.ui;
+            const bool shown = map == 34;
+            EXPECT_EQ(ui.byte723a44, shown ? 2 : 0);
+            EXPECT_EQ(std::string(ui.contractLines[0].data()),
+                      !shown ? "" : (level < 350 ? "contrato fallido" : "nivel alto"));
+            EXPECT_EQ(std::string(ui.contractLines[1].data()), shown && level < 350 ? "otra vez" : "");
+            EXPECT_EQ(ui.altars, (std::array<std::uint8_t, 5>{2, 2, 2, 2, 2}));
+            EXPECT_TRUE(worldPackets.empty());
+        }
+    }
+    const CrtRandom before = random;
+    Hero().flags7c = 0x200000;
+    Applied(Events::CrywolfContract{.result = 2, .value = 0x11, .key = 0x13c});
+    EXPECT_EQ(random.State(), before.State());
+    EXPECT_EQ(Hero().flags7c, 0x200000u);
+    EXPECT_TRUE(worldPackets.empty());
+}
+
+// BD 03 con 1: 0x435b00(3) y (4), el altar de la clave − 0x13c (0x435ad0) solo con la defensa en el 34, y en cualquier
+// mapa el héroe sentado (0x200000 en +0x7c y la acción 0xca) y el C1 05 18 con el rumbo de +0x24 y 0x82, con el XOR32.
+// No saca rand(). Con la clave fuera de los cinco altares, en el 34 corta (Q-C1347).
+TEST_F(EventPacketsTest, TheSignedCrywolfContractSitsTheHero)
+{
+    for (const std::int32_t map : {0, 2, 34})
+    {
+        SCOPED_TRACE(map);
+        Runtime() = WorldRuntime{};
+        Runtime().hero = 0;
+        Runtime().map = map;
+        Runtime().crywolf.stage = 4;
+        Hero().flags7c = 1;
+        Hero().angles.z = 90.0f;
+        Hero().animation = {};
+        worldPackets.clear();
+        const CrtRandom before = random;
+        Applied(Events::CrywolfContract{.result = 1, .value = 0x13, .key = 0x140});
+        EXPECT_EQ(random.State(), before.State());
+        const auto& ui = Runtime().crywolf.ui;
+        const bool shown = map == 34;
+        EXPECT_EQ(ui.byte723a44, shown ? 2 : 0);
+        EXPECT_EQ(std::string(ui.contractLines[0].data()), shown ? "contrato firmado" : "");
+        EXPECT_EQ(std::string(ui.contractLines[1].data()), shown ? "altar tomado" : "");
+        EXPECT_EQ(ui.altars[4], shown ? 0x13 : 0x02);
+        EXPECT_EQ(Hero().flags7c, 0x200001u);
+        EXPECT_EQ(Hero().animation.action, 0xca);
+        ASSERT_EQ(worldPackets.size(), 1u);
+        EXPECT_TRUE(Client::Tests::SameBytes(worldPackets[0].packet.Bytes(),
+                                             Client::Tests::Bytes({0xC1, 0x05, 0x18, 0x92, 0xAC})));
+    }
+    Runtime().map = 34;
+    const std::string cut = Cut(Events::CrywolfContract{.result = 1, .value = 0x13, .key = 0x141});
+    EXPECT_NE(cut.find("0x435aeb"), std::string::npos) << cut;
+    Runtime().map = 0;
+    Applied(Events::CrywolfContract{.result = 1, .value = 0x13, .key = 0x141});
+}
+
+// BD 0C (0x430040, los efectos de la CL11) corta con su dirección.
+TEST_F(EventPacketsTest, TheCrywolfEffectsAreCut)
+{
     const std::string effects = Cut(Events::CrywolfUnported{.subcode = 0xc, .bytes = {}});
     EXPECT_NE(effects.find("0x430040"), std::string::npos) << effects;
 }

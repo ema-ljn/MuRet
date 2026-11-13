@@ -385,4 +385,22 @@ TEST(MovementTest, FacingKeepsTheRawDirectionAndTheOriginalTail)
         EXPECT_TRUE(SameBytes(Xor32Decode(sent.packet).Bytes(), Bytes({0xc1, 5, 0x18, direction, 0x7a})));
     }
 }
+
+// 0x4e11e1..0x4e1467: el BD 03 con 1 manda C1 05 18 rumbo 82 con el XOR32 en claro; con el rumbo 3: 03 ^ 89 ^ 18 = 92
+// y 82 ^ BC ^ 92 = AC. El rumbo de 0x4e1260..0x4e128a es el de 0x56b0b7: (ángulo + 22,5) / 45 + 1, &7.
+TEST(MovementTest, TheAltarActionUsesTheFacingOfTheAngle)
+{
+    const auto sent = Client::Protocol::Movement::WriteAction(3, Client::Protocol::Movement::AltarContractAction);
+    EXPECT_EQ(sent.delivery, Client::Network::Delivery::Clear);
+    EXPECT_TRUE(SameBytes(sent.packet.Bytes(), Bytes({0xc1, 5, 0x18, 0x92, 0xac})));
+    EXPECT_TRUE(SameBytes(Xor32Decode(sent.packet).Bytes(), Bytes({0xc1, 5, 0x18, 3, 0x82})));
+    for (const auto& [angle, direction] : {std::pair{0.0f, 1}, std::pair{90.0f, 3}, std::pair{180.0f, 5},
+                                           std::pair{-22.5f, 1}, std::pair{337.0f, 0}, std::pair{315.0f, 0}})
+    {
+        SCOPED_TRACE(angle);
+        const auto read = Client::Protocol::Movement::DirectionFromAngle(angle);
+        ASSERT_TRUE(read.HasValue());
+        EXPECT_EQ(read.Value(), direction);
+    }
+}
 } // namespace

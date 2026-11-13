@@ -1611,9 +1611,45 @@ El paso es `0x435bd0` (`0x636edc`, entre `0x5ebca0` y los paneles; `Scenes::Step
 Crywolf, con los resultados, la UI se queda con todos los clics**. Fuera del 34 nadie los cierra, y nadie más apaga
 `0x723bf9` (ni `0x42fdc0` ni la vuelta a la selección; Q-C1342). El hijo 26 del HUD (`0x436240`, `0x5a74ed`), con la
 etapa en 3 o 4 en el 34, deja `0xff1594ff` sobre 0 para lo que sigue del HUD y, con `0x723a44` en 1 o 2, dibuja la
-ventana del contrato de los altares; el paso la atiende en `0x435c5c`. Esa ventana la abre solo `0x435b00`, desde el
-`BD 03` (`0x4e1010`) y el clic en un altar (`0x567ba4`, en `0x5650c0`), que cortan antes en MuRet: con ella abierta, el
-paso corta en `0x435c5c` y el dibujo en `0x436274`.
+ventana del contrato de los altares; el paso la atiende en `0x435c5c`.
+
+**El contrato de los altares** (fase 4 del hito 11, `Scenes/CrywolfContract`; *estático*, GS 0.97 no tiene Crywolf).
+Una elfa que llega a un altar (los tipos `0x204..0x208` del viewport, el altar 0..4 por tipo − `0x204`) lo contrata:
+el `BD 03` del servidor la sienta.
+
+- **`0x435b00(n, renglón, valor, altar)`**, con la etapa 3 o 4 (`0x435a00`), en el 34 (`0x4303c0`) y sin la salida
+  pedida (`0x576793c`): con `n` = `0x38`, `wsprintfA` en el renglón del texto 2006 con el nibble bajo del altar (los
+  contratos que quedan) y la ventana 1; con otro, la ventana 2, `strcpy` del texto 1950 + `n` y, con `0x39`, la
+  ventana 1. Los renglones son `0x723a48` y `0x723b10`, de 200 bytes; **ni `strcpy` ni `wsprintfA` tienen tope** (un
+  texto de 200 bytes o más pisa el renglón 1 o `0x723bd8`; MuRet corta). Con el renglón 0 vacía el 1; al final,
+  `0x723be0` = valor. `0x435ad0(altar, valor)` escribe `0x6c73cc + altar` con la misma guarda, sin la salida.
+- **El clic en un altar** (`0x567b00..0x567c23`, dentro de la llegada `0x5650c0`, con la etapa 3 o 4 en el 34): sin
+  una elfa (`+0x1d4 & 7` distinto de 2), el `C1 30` de hablar de siempre (`0x567c2d`); con ella, el altar contratado
+  (`0x4365a0`: el nibble alto en 1) da `0x435b00(0x34)`; sin contratos (el bajo en 0), `0x35`; si no, `0x38` con la
+  clave `+0x1f4` del altar (con `MOVSX`) y el altar, y `0x39` en el renglón 1: la pregunta. Después sigue en
+  `0x569573`. MuRet lo tiene en `Scenes::ClickTheCrywolfAltar`, que nadie llama todavía: la llegada `0x5650c0` corta
+  en `GameMovement` y se cablea al juntarse con el hito 2 (08, P-C249).
+- **El paso** (`0x435c5c..0x436220`), con el izquierdo abajo y las cajas sin los bordes. La ventana 1: el No en
+  (`0x14a`, `0x180`) × (`0xfa`, `0x118`) deja `0x723bdc` en 1 y llama a `0x435b00(2)` (la ventana 2 con 1952);
+  después el Sí en (`0xfa`, `0x130`) × (`0xfa`, `0x118`): con la mascota `0x1c14`, `0x1c15` o `0x1c37` en `+0x318`
+  del héroe, `0x435b00(6)`; si no, `0x723bdc` en 2 y el `C1 06 BD 03` con la clave de `0x723be0` (04). Con el botón
+  abajo, en cualquier lugar, lo apaga con el flanco: **la ventana 1 se queda con todos los clics**. La ventana 2: el
+  OK en (`0x122`, `0x158`) × (`0xfa`, `0x118`) apaga el botón y el flanco y deja `0x723bdc` en 3; los demás clics
+  siguen.
+- **El dibujo** (`0x436274..0x43656f`): el fondo `0x6cc` (212, 206, 209, 80, UV 0,80859375 × 0,6015625) y los
+  botones de 54 × 30 en la y 250 con UV 0,84375 × 0,9375: con 1, el No (`0x6c3`; con el mouse en su caja, `0x6c4`, o
+  `0x6c5` con `0x723bdc` en 1) en 330 y el Sí (`0x6c9`, `0x6ca`, `0x6cb` con 2) en 250; con 2, el OK (`0x6c6`,
+  `0x6c7`, `0x6c8` con 3) en 290. El botón apretado bajo el mouse **cierra la ventana** (`0x723a44` y `0x723bdc` en
+  0) y el resto se dibuja igual. Los renglones, si no están vacíos, con `0x623690` en la x `0x13d`: el primero en la y
+  `0xe3` con segundo y `0xef` sin él; el segundo en `0xee`.
+- **El `BD 03`** (`0x4e1010`, 04): con 0, el héroe se para (`0x200000` de `+0x7c`) y, con el registro propio
+  abierto, menos de 350 de nivel da `0x36` y `0x37` y 350 o más `0x3a`; con 1, `3` y `4`, `0x435ad0(clave − 0x13c,
+  valor)` **sin tope** (Q-C1347), el héroe sentado (`0x200000` y la acción `0xca`) y el `C1 05 18 rumbo 82`. El
+  héroe, el `rand()` del registro y el `18` no miran el mapa.
+
+Así, un clic en el No pasa a la ventana 2 con `0x723bdc` en 1 (que el dibujo no lee con 2: la cierra el OK); el Sí
+deja 2, que el dibujo del mismo frame lee para cerrar la ventana si el mouse sigue encima, y la respuesta del `BD 03`
+la abre otra vez con la 2.
 
 `0x430180`, con la etapa 3: la fuente `0x5763558`, `glColor3f(1, 1, 1)`, el fondo `0xaa000000` y `0x63b0e3(10000)`
 (un reloj de `timeGetTime` en `0x7d3a0e4`/`0x7d3a0e8`, los dos en la `.bss`: vence cuando inicio + 10.000 ≤ ahora

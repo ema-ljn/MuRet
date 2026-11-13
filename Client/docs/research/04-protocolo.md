@@ -843,13 +843,13 @@ nombre del evento (un puntero a su registro, `0x76bd1dc + 300 · índice`) impri
 | `C1 05 BC 00/01 resultado` | `0x4e4547`, `0x4da540` | el texto de la mezcla (1801/1800 con 1816 y 868, o 1817, 1811, 1812, 1815) en `"%s%s %s"`, `0x6236f0(0)` y `0x6236f0(0xa6)`, y la ventana de la mezcla (`0x402e50`, corta) | no está |
 | `C1 06 BD 00 estado etapa` | `0x4e5965` | `0x42fe80(estado, etapa)` (la interfaz de Crywolf; con otro estado que el anterior, la luz y el `.att` del mapa en curso, `0x42ff81` y `0x42ffe8`, [06](06-render-escenas-y-ui.md#los-objetos-de-crywolf), Q-C1340) y `0x4033b0(etapa)` en el recorrido de la cámara | no está: el GameServer 0.97 no tiene Crywolf y el oráculo es el ASM del cliente |
 | `C1 0D BD 02 luz:4 a0 a1 a2 a3 a4` | `0x4e5990` → `0x4e0fe0` → `0x430000` | la luz a `0x723c08` y los cinco altares a `0x6c73cc..0x6c73d0` (`.data` en 2), en cualquier mapa | no está (Crywolf) |
-| `C1 BD 03 …` | `0x4e59a5` → `0x4e1010` | el resultado del contrato de los altares (415 líneas: `0x435b00` y la respuesta); MuRet corta | no está |
+| `C1 08 BD 03 resultado valor clave:2` | `0x4e59a5` → `0x4e1010` | el resultado del contrato de los altares, con la clave big-endian (`pkt[6]·256 + pkt[7]`), en cualquier mapa: con 0, el héroe sin `0x200000` en `+0x7c`, el nivel (`+0xe`) con el registro propio abierto (0xf08 `rand()` al cerrarlo) y `0x435b00(0x36)` + `(0x37)` con menos de 350 o `(0x3a)`; con 1, `0x435b00(3)` + `(4)`, `0x435ad0(clave − 0x13c, valor)` (sin tope, Q-C1347), `0x200000` en `+0x7c`, la acción `0xca` (`0x4ea030`) y el `C1 05 18 rumbo 82` de abajo; con otro, nada. `0x435b00` y `0x435ad0` solo hacen algo con la etapa 3 o 4 en el 34 (06 § La interfaz de Crywolf) | no está |
 | `C1 06 BD 04 a minutos` | `0x4e59ba` → `0x435a20` | con la etapa 4 (`0x4359f0`) en el 34 (`0x4303c0`): `0x723be4` = a, `0x723be8` = minutos, `0x7239f4` = `GetTickCount` y `0x723bf8` en 1 | no está |
 | `C1 09 BD 05 vida:4 n` | `0x4e59eb` → `0x435a70` | con la etapa 3 o 4 (`0x435a00`) en el 34: `0x723bd8` = n; la barra `0x723a3d` en 1 con la vida en más de 0 y en 0 con 0 o menos; `0x6c73d4` = vida (`0x436590`) | no está |
 | `C1 0C BD 07 rango … exp:4` | `0x4e5a09` → `0x437600` | `0x723bed` = `pkt[4]`, `0x723bf0` = el dword de `pkt+8` | no está |
 | `C1 BD 08 n registros de 0x14…` | `0x4e5a39` → `0x4e1680` → `0x437620` | por registro (desde `pkt+5`): los puntos (`+0xc`) a `0x6c73e4 + 4 · lugar`, la clase (`+0x10`) a `0x723a30 + lugar`, el nombre (`+1`, 10 bytes y el 0) a `0x7239f8 + 11 · lugar` y `0x723bf9` en 1. El lugar (`+0`) no tiene tope (Q-C1341) | no está |
 | `C1 05 BD 09 b` | `0x4e5a25` | `0x7d2dc9d` = b (lo lee la caja del caos, `0x5ff2f2`) | no está |
-| `C1 BD 0C … a b c d` | `0x4e59d6` → `0x4e15f0` → `0x430040` | los efectos por la clase (`0x518cf0` con `0xee`, CL11); MuRet corta | no está |
+| `C1 BD 0C … a b c d` | `0x4e59d6` → `0x4e15f0` → `0x430040` | un solo efecto `0xee` (`0x518cf0`, CL11) en (`pkt[8]` · 100, `pkt[9]` · 100, 100) con el héroe de dueño, el caso 2 con `pkt[6]` en `0x7a` o `0x74`, el 1 con `0xb7` y el 0 con otro, y un segundo punto corrido con z 800; no escribe estado ni saca `rand()` fuera de `0x518cf0` (leído entero en la fase 4); MuRet corta | no está |
 | `C1 F3 22 b w:2` | `0x4e31f8` | el byte de `pkt[4]` a `0x5767814` y la palabra de `pkt[6]` a `0x5767816` | `PMSG_F3_22` (`0x418330`, la guerra de gremios) mide 6: la palabra la lee fuera del paquete (Q-C1322) |
 | `C1 16 F3 23 nombre:8 p1 nombre:8 p2` | `0x4d9f00` | los nombres con su `'\0'`, los puntos, `0x576796f` = p1 ≠ `0xff`, y el efecto `0x60e` en la celda del héroe (`0x518cf0`, corta) | `PMSG_BATTLESOCCER_SCORE` (`0x16`): la palabra de `pkt[0x15]` toma `pkt[0x16]` (Q-C1323) |
 | `C1 07 F3 40 comando a b` | `0x4da070` | por la tabla `0x4da24c`: 0, el efecto `0x60e` en la celda (`0x518cf0`, corta); 1, el aviso 650 + a (810 + a desde `0x14`); 2, el sonido `0x5a`; 3, 710 + a; 5, el diálogo a de `0x632f70` (corta); 6, 449; 7, con a en 0 el texto 2020 en el diálogo `0xaa` y si no el aviso 2020 + a; `0xd`, 1826; `0x2f..0x31`, 1776 + comando | `PMSG_F3_40`, igual |
@@ -881,6 +881,13 @@ Lo que manda el cliente:
   MuRet: `Protocol::Events::WriteDevilSquareEntry` y `WriteBloodCastleEntry`.
 - **`C1 06 AF 02 x y`** (`0x4fbee8`, desde `0x4fbe10`), con el XOR32: en Chaos Castle, el héroe 10 s en la misma
   celda con el bit 8 del atributo. `MOV CL,0x2` en `0x4fbf6a`: no es el `AF 01` que decía 06.
+- **`C1 06 BD 03 alto bajo`** (`0x435d1c..0x4361a2`, el paso `0x435bd0`), con el XOR32 y en claro: el Sí de la
+  ventana del contrato de Crywolf (`0x723a44` en 1), sin la mascota `0x1c14`, `0x1c15` o `0x1c37` en `+0x318` del
+  héroe; los bytes son `SAR 8` y el bajo de `0x723be0`, la clave del altar con signo que dejó `0x435b00` (fase 4 del
+  hito 11; *estático*: GS 0.97 no tiene Crywolf). MuRet: `Protocol::Events::WriteCrywolfContract`.
+- **`C1 05 18 rumbo 82`** (`0x4e11e1..0x4e15bd`), con el XOR32 y en claro: el `BD 03` con el resultado 1, con el rumbo
+  de `+0x24` del héroe por las cuentas de `0x56b0b7` (`0x4e1260..0x4e128a`) y la acción `0x82`; es el mismo `18` del
+  héroe quieto (`0x59b333`, que manda `7A`). MuRet: `Protocol::Movement::WriteAction` y `DirectionFromAngle`.
 
 **MuRet**: `Protocol::Events` lee los 21 con `TooShort` cuando faltan los bytes que el original lee siempre (los que
 dependen de un campo se miran al aplicar) y escribe el `97` y el `AF 02`. `App::ServerSession::RegisterTheEventPackets`

@@ -59,14 +59,22 @@ struct CrywolfInterface
     float float723a40 = 0.0f;
     // 0x723a3d: la barra de 0x6b7 (con 0x723a40 en 21); la pone y la saca el BD 05 por el signo de su dword.
     std::uint8_t byte723a3d = 0;
+    // 0x723a44: la ventana del contrato de los altares (06 § La interfaz de Crywolf), 1 con Sí y No o 2 con OK. La
+    // abre 0x435b00 y la cierran el dibujo (0x436240, con el botón apretado bajo el mouse), el de los resultados
+    // (0x436b15) y 0x42fdc0.
     std::uint8_t byte723a44 = 0;
+    // 0x723a48 y 0x723b10: los dos renglones de 200 bytes de esa ventana, que llena 0x435b00 (strcpy de Text.bmd o
+    // wsprintfA) y dibuja 0x436240. 0x42fdc0 no los toca.
+    std::array<std::array<char, 200>, 2> contractLines{};
     std::uint8_t byte723ca0 = 0;
     std::uint8_t byte723bec = 0;
     // 0x723bd8: pkt[8] del BD 05 (0x435a8e): el número del texto 1948 y el ícono 0x6bb (o 0x6bc con 0).
     std::int32_t dword723bd8 = 0;
-    // 0x723bdc, 0x723be0, 0x723be4 y 0x723be8, en 0 en 0x42fdc0. El primero lo pone en 5 la UI (0x435bd0) y, con el
-    // mouse sobre el botón, el dibujo cierra los resultados (0x436ad8); el tercero y el cuarto son pkt[4] y pkt[5] del
-    // BD 04 (0x435a46, con la etapa 4 en el 34), el cuarto los minutos del reloj del estado.
+    // 0x723bdc, 0x723be0, 0x723be4 y 0x723be8, en 0 en 0x42fdc0. El primero es el botón apretado: 5 el de los
+    // resultados, que con el mouse encima el dibujo cierra (0x436ad8), y 1 (No), 2 (Sí) o 3 (OK) los del contrato
+    // (0x435c5c, 0x436274); el segundo, el valor de 0x435b00 (la clave del altar, que manda el Sí); el tercero y el
+    // cuarto son pkt[4] y pkt[5] del BD 04 (0x435a46, con la etapa 4 en el 34), el cuarto los minutos del reloj del
+    // estado.
     std::array<std::int32_t, 4> dwords723bdc{};
     // 0x7239f4: GetTickCount del BD 04 (0x435a51), desde donde cuenta el reloj del estado.
     std::int32_t dword7239f4 = 0;

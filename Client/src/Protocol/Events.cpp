@@ -299,6 +299,10 @@ Read ReadCrywolf(const Fields& fields, std::uint8_t subcode)
             return TooShort();
         return EventPacket{CrywolfChaosBox{fields.U8(4)}};
     case CrywolfContractSubcode:
+        if (!fields.Has(8))
+            return TooShort();
+        return EventPacket{CrywolfContract{fields.U8(4), fields.U8(5),
+                                           static_cast<std::uint16_t>((fields.U8(6) << 8u) | fields.U8(7))}};
     case CrywolfEffectSubcode:
     {
         const auto all = fields.From(0);
@@ -370,6 +374,15 @@ Outgoing WriteSerialNumber(const SerialPieces& pieces)
 Outgoing WriteChaosCastleReposition(std::uint8_t x, std::uint8_t y)
 {
     return Xor32C1(Network::PacketWriter::C1(ChaosCastleOpcode).PutU8(ChaosCastleRepositionSubcode).PutU8(x).PutU8(y));
+}
+
+Outgoing WriteCrywolfContract(std::int32_t key)
+{
+    constexpr unsigned HighShift = 8;
+    return Xor32C1(Network::PacketWriter::C1(CrywolfOpcode)
+                       .PutU8(CrywolfContractSubcode)
+                       .PutU8(static_cast<std::uint8_t>(key >> HighShift))
+                       .PutU8(static_cast<std::uint8_t>(key)));
 }
 
 Outgoing WriteDevilSquareEntry(std::uint8_t square, std::uint8_t itemPlace)

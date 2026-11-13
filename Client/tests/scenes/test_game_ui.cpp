@@ -231,7 +231,7 @@ TEST(GameUiTest, TheUnownedClickTakesTheArrowsFromTheChatLog)
 
 // 0x435bd0, solo en el 34: con los resultados de Crywolf (0x723bf9 en 1), el clic sobre el botón (300, 354) × (300,
 // 330), sin los bordes, deja 0x723bdc en 5, y cualquier clic queda apagado (el botón abajo y el flanco). En Lorencia y
-// en Devias el paso no hace nada y los resultados no se cierran (Q-C1342). Con la ventana del contrato corta.
+// en Devias el paso no hace nada y los resultados no se cierran (Q-C1342). Lo mismo con la ventana del contrato.
 TEST(GameUiTest, TheCrywolfResultsTakeEveryClickOnlyInCrywolf)
 {
     constexpr std::int32_t CrywolfMap = 34;
@@ -267,10 +267,16 @@ TEST(GameUiTest, TheCrywolfResultsTakeEveryClickOnlyInCrywolf)
     ASSERT_TRUE(tested.Step(320, 310).HasValue());
     EXPECT_TRUE(tested.world.Runtime().movement.leftHeld);
     EXPECT_EQ(tested.world.Runtime().crywolf.ui.dwords723bdc[0], 0);
+    // La ventana 1 del contrato (0x435c5c, Scenes/CrywolfContract) también se queda con el clic, solo en el 34.
     tested.world.Runtime().crywolf.ui.byte723a44 = 1;
-    const auto cut = tested.Step();
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x435c5c"), std::string::npos) << cut.Error();
+    tested.Click();
+    ASSERT_TRUE(tested.Step(320, 310).HasValue());
+    EXPECT_FALSE(tested.world.Runtime().movement.leftHeld);
+    EXPECT_EQ(tested.world.Runtime().crywolf.ui.byte723a44, 1);
+    tested.world.Runtime().map = 2;
+    tested.Click();
+    ASSERT_TRUE(tested.Step(320, 310).HasValue());
+    EXPECT_TRUE(tested.world.Runtime().movement.leftHeld);
 }
 
 TEST(GameUiTest, TheInventoryButtonOfTheHudTakesTheClick)

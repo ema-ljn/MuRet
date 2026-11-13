@@ -103,6 +103,35 @@ constexpr std::uint16_t ButtonHoverSlot = 0x6ca;
 constexpr std::uint16_t ButtonPushSlot = 0x6cb;
 constexpr std::int32_t ButtonPushed = 5;
 
+// 0x436274..0x43656f: la ventana del contrato (0x723a44 en 1 o 2), el fondo 0x6cc en (212, 206, 209, 80) y sus
+// botones de (54, 30) en la y 250, con el mouse dentro de (izquierda, derecha) × (0xfa, 0x118), sin los bordes: con
+// 1, el No (0x6c3..0x6c5 en 330, que cierra con 0x723bdc en 1) y el Sí (0x6c9..0x6cb en 250, con 2); con 2, el OK
+// (0x6c6..0x6c8 en 290, con 3). Los renglones van centrados en la x 0x13d: el primero en la y 0xe3 con segundo y en
+// 0xef sin él, y el segundo en 0xee.
+constexpr std::uint8_t QuestionWindow = 1;
+constexpr std::uint8_t NoticeWindow = 2;
+constexpr std::uint16_t ContractBoardSlot = 0x6cc;
+constexpr float ContractButtonY = 250.0f;
+constexpr int ContractButtonTop = 0xfa;
+constexpr int ContractButtonBottom = 0x118;
+struct ContractButton
+{
+    float x;
+    int left;
+    int right;
+    std::uint16_t slot;
+    std::uint16_t hoverSlot;
+    std::uint16_t pushSlot;
+    std::int32_t pushed;
+};
+constexpr std::array<ContractButton, 2> QuestionButtons{
+    {{330.0f, 0x14a, 0x180, 0x6c3, 0x6c4, 0x6c5, 1}, {250.0f, 0xfa, 0x130, 0x6c9, 0x6ca, 0x6cb, 2}}};
+constexpr std::array<ContractButton, 1> NoticeButtons{{{290.0f, 0x122, 0x158, 0x6c6, 0x6c7, 0x6c8, 3}}};
+constexpr int ContractTextX = 0x13d;
+constexpr int ContractFirstLineY = 0xe3;
+constexpr int ContractSingleLineY = 0xef;
+constexpr int ContractSecondLineY = 0xee;
+
 // 0x436b97..0x436bc3: con el aviso en 1, la cuenta sube y en 400 vuelve a 0 con el aviso en 0.
 constexpr std::int32_t NoticeFrames = 0x190;
 // 0x436bd3..0x436c0c: la ola del alfa, (2 · cuenta) % 140, con 70 de punta.
@@ -641,11 +670,39 @@ Core::Expected<void, std::string> DrawTheCrywolfContract(GameHudContext& context
         return {};
     // 0x436264..0x43626e: antes de mirar la ventana.
     context.hud.textColors = Render::Text::TextColors{.text = TitleColor, .background = 0};
-    const CrywolfInterface& ui = context.crywolfInterface != nullptr ? *context.crywolfInterface : runtime.crywolf.ui;
-    if (ui.byte723a44 == 1 || ui.byte723a44 == 2)
-        return Core::Unexpected(std::format("0x436274: la ventana del contrato de Crywolf (0x723a44 en {}) no está "
-                                            "portada",
-                                            ui.byte723a44));
+    CrywolfInterface& ui = context.crywolfInterface != nullptr ? *context.crywolfInterface : runtime.crywolf.ui;
+    if (ui.byte723a44 != QuestionWindow && ui.byte723a44 != NoticeWindow)
+        return {};
+    Render::SpriteBatch& sprites = context.sprites;
+    sprites.Quad(QuadOf(ContractBoardSlot, 212.0f, 206.0f, 209.0f, 80.0f, 0.80859375f, 0.6015625f));
+    const std::span<const ContractButton> buttons = ui.byte723a44 == QuestionWindow
+                                                        ? std::span<const ContractButton>(QuestionButtons)
+                                                        : std::span<const ContractButton>(NoticeButtons);
+    for (const ContractButton& button : buttons)
+    {
+        const UI::Point mouse = context.mouse;
+        const bool over = mouse.x > button.left && mouse.x < button.right && mouse.y > ContractButtonTop &&
+                          mouse.y < ContractButtonBottom;
+        std::uint16_t slot = button.slot;
+        if (over)
+            slot = ui.dwords723bdc[0] == button.pushed ? button.pushSlot : button.hoverSlot;
+        sprites.Quad(QuadOf(slot, button.x, ContractButtonY, ButtonWidth, ButtonHeight, 0.84375f, 0.9375f));
+        if (over && ui.dwords723bdc[0] == button.pushed)
+        {
+            // 0x43630e, 0x4363b7 y 0x4364da: el resto se dibuja igual.
+            ui.byte723a44 = 0;
+            ui.dwords723bdc[0] = 0;
+        }
+    }
+    // 0x4363fe..0x43656c: los renglones como textos C, el primero más arriba si hay segundo.
+    const auto lineOf = [](const std::array<char, 200>& line)
+    { return std::string_view(line.data(), std::char_traits<char>::length(line.data())); };
+    const std::string_view first = lineOf(ui.contractLines[0]);
+    const std::string_view second = lineOf(ui.contractLines[1]);
+    if (!first.empty())
+        DrawCentered(context, ContractTextX, second.empty() ? ContractSingleLineY : ContractFirstLineY, first);
+    if (!second.empty())
+        DrawCentered(context, ContractTextX, ContractSecondLineY, second);
     return {};
 }
 } // namespace Client::Scenes

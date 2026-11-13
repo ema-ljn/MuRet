@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Events.h"
+#include "Protocol/Outgoing.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -50,6 +51,8 @@ struct EventPacketContext
     // El C1 03 31 de cerrar el NPC de evento (0x658a18 y 0x658c0e) desde el 90 y los cierres de todos los paneles.
     // Vacío, cerrarlo corta.
     std::function<void()> sendWindowClose{};
+    // El send() de los paquetes de mundo: el C1 05 18 del BD 03 con el resultado 1 (0x4e11e1). Vacío, ese envío corta.
+    std::function<void(Protocol::Outgoing)> send{};
     // La carpeta Data, de donde el BD 00 vuelve a leer la luz y el .att con otro estado de Crywolf (0x42ff81 y
     // 0x42ffe8). Vacía, ese cambio corta.
     std::filesystem::path dataRoot{};

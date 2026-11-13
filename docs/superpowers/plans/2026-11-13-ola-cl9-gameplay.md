@@ -415,7 +415,11 @@ amigos. **Desbloquea:** 10.
       (Fase 4, *estática*: la ventana de `0x78abb00`, `0x5f6550`, su paso `0x5e6520` con el `C1 04 98 01`, el
       `C1 05 95`, el `C1 12 9D` y el `97` de la X, y sus ítems `0x5f70a0`; la entrada del número de serie,
       `0x4dd8ce..0x4dd920` y `0x56b6a9`, con el EDIT de `[0x5763504]` y los caminos del Enter que miran `0x77f3b6b`.
-      El título, el nombre del NPC 236 de `0x54e7f0`, corta para el hito 2. Q-C1344..Q-C1346, P-C247, P-C248.)
+      El título, el nombre del NPC 236 de `0x54e7f0`, corta para el hito 2. Q-C1344..Q-C1346, P-C247, P-C248.
+      El contrato de los altares de Crywolf: `0x435b00`, `0x435ad0`, el `BD 03` (`0x4e1010`, con el `C1 05 18 82`), el
+      paso `0x435c5c` con el `C1 06 BD 03` y el dibujo `0x436274`; el clic en un altar, `0x567b00`, es
+      `ClickTheCrywolfAltar` y se cablea en `0x5650c0` al juntarse con el hito 2. El `BD 0C`, leído entero, queda en la
+      CL11. Q-C1347, Q-C1348, P-C249.)
 - [ ] **Las reglas por mapa:** el arma de Blood Castle (`0x50de84`), las trampas de Chaos Castle (`0x405597`,
       `0x405d49`), el `AF 02` (`0x4fbee8`; decía `AF 01`), Kalima, y Crywolf (`BD`, `0x42fe80`, `0x42fe50`,
       `0x430a40`, `0x61a6f4`; P-C58).

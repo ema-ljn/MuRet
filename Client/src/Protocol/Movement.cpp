@@ -59,6 +59,8 @@ std::optional<std::uint8_t> DirectionBetween(Cell from, Cell to)
     return std::nullopt;
 }
 
+} // namespace
+
 Core::Expected<std::uint8_t, WalkWriteError> DirectionFromAngle(float angle)
 {
     if (!std::isfinite(angle))
@@ -69,7 +71,6 @@ Core::Expected<std::uint8_t, WalkWriteError> DirectionFromAngle(float angle)
     const auto integer = static_cast<std::int64_t>(converted);
     return static_cast<std::uint8_t>(static_cast<std::uint64_t>(integer) & DirectionMask);
 }
-} // namespace
 
 Core::Expected<Outgoing, WalkWriteError> WriteWalk(std::span<const Cell> path, Cell target, float angle)
 {
@@ -144,8 +145,13 @@ Core::Expected<Damage, ProtocolError> ReadDamage(const Network::Packet& packet)
 }
 Outgoing WriteFacing(std::uint8_t direction)
 {
-    constexpr std::uint8_t FacingOpcode = 0x18;
     constexpr std::uint8_t FacingTail = 0x7a;
-    return Xor32C1(Network::PacketWriter::C1(FacingOpcode).PutU8(direction).PutU8(FacingTail));
+    return WriteAction(direction, FacingTail);
+}
+
+Outgoing WriteAction(std::uint8_t direction, std::uint8_t action)
+{
+    constexpr std::uint8_t ActionOpcode = 0x18;
+    return Xor32C1(Network::PacketWriter::C1(ActionOpcode).PutU8(direction).PutU8(action));
 }
 } // namespace Client::Protocol::Movement

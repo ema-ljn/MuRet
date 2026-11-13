@@ -5,9 +5,12 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Events.h"
+#include "Protocol/Movement.h"
 #include "Render/Models/Animation.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/CrywolfContract.h"
 #include "Scenes/EventChipWindow.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/EventMapObject.h"
@@ -15,6 +18,7 @@
 #include "Scenes/FaunaState.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/TerrainMarks.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -210,6 +214,13 @@ constexpr std::int32_t CrywolfPeaceCounter = 0xb;
 constexpr std::int32_t CrywolfFightTime = 0x186;
 // 0x42ff3f..0x42ff75: los estados con su luz; otro deja el buffer sin escribir.
 constexpr std::uint8_t LastLitCrywolfState = 2;
+// 0x4e1010: los resultados del BD 03, el nivel desde el que el 0 da 0x3a (0x4e1144), la primera clave de los altares
+// (0x4e11b7) y la acción de sentarse (0x4e11cc).
+constexpr std::uint8_t ContractFailed = 0;
+constexpr std::uint8_t ContractSigned = 1;
+constexpr std::int32_t ContractLevel = 0x15e;
+constexpr std::int32_t FirstAltarKey = 0x13c;
+constexpr std::uint8_t SittingAction = 0xca;
 // 0x4359f0 (la etapa en 4), 0x435a00 (en 3 o 4) y 0x4303c0 (el mapa 0x22).
 constexpr std::uint8_t CrywolfDefenseStage = 3;
 constexpr std::int32_t CrywolfMap = 0x22;
@@ -1148,15 +1159,69 @@ private:
         return {};
     }
 
-    // ----- BD 03 (0x4e59a5 → 0x4e1010) y BD 0C (0x4e59d6 → 0x4e15f0 → 0x430040).
+    // ----- BD 03 (0x4e59a5 → 0x4e1010): el resultado del contrato, en cualquier mapa; lo de 0x435b00 y 0x435ad0
+    // mira la etapa y el mapa.
 
-    Applied On(const Events::CrywolfUnported& packet)
+    Applied On(const Events::CrywolfContract& packet)
     {
-        if (packet.subcode == Events::CrywolfContractSubcode)
-            return Core::Unexpected(std::string("0x4e1010: el resultado del contrato de los altares de Crywolf (los "
-                                                "personajes de 0x435b00 y la respuesta) no está portado"));
-        return Core::Unexpected(std::string("0x430040: los efectos de Crywolf por la clase (0x518cf0 con 0xee y sus "
-                                            "casos) son de la CL11"));
+        constexpr std::uint32_t SittingFlag = 0x200000;
+        ActorState& hero = m_world.Actors()[m_runtime.hero];
+        if (packet.result == ContractFailed)
+        {
+            // 0x4e1050..0x4e106e: el héroe se para.
+            hero.flags7c &= ~SittingFlag;
+            // 0x4e1071..0x4e1142: el nivel (+0xe) con el registro propio abierto.
+            std::int32_t level = 0;
+            {
+                const Render::Models::LogicalAccess own(m_runtime.ownRecordDepth, m_context.random,
+                                                        Render::Models::OwnRecordCloseRandoms);
+                level = m_world.OwnCharacter().level;
+            }
+            if (level >= ContractLevel)
+                return ShowTheContractMessage(m_runtime, m_context.texts, {.message = ContractLevelMessage});
+            if (auto shown = ShowTheContractMessage(m_runtime, m_context.texts, {.message = ContractFailedMessage});
+                !shown.HasValue())
+                return shown;
+            return ShowTheContractMessage(m_runtime, m_context.texts,
+                                          {.message = ContractFailedSecondMessage, .line = 1});
+        }
+        if (packet.result != ContractSigned)
+            return {};
+        // 0x4e119b..0x4e11d9: los dos renglones, el altar de la clave, el héroe sentado y su acción 0xca.
+        if (auto shown = ShowTheContractMessage(m_runtime, m_context.texts, {.message = ContractSignedMessage});
+            !shown.HasValue())
+            return shown;
+        if (auto shown =
+                ShowTheContractMessage(m_runtime, m_context.texts, {.message = ContractSignedSecondMessage, .line = 1});
+            !shown.HasValue())
+            return shown;
+        if (auto set = SetTheAltar(m_runtime, static_cast<std::int32_t>(packet.key) - FirstAltarKey, packet.value);
+            !set.HasValue())
+            return set;
+        hero.flags7c |= SittingFlag;
+        if (m_context.playerSkeleton == nullptr)
+            return Core::Unexpected(std::string("0x4e11d9: 0x4ea030 sienta al héroe (0xca) con el esqueleto de "
+                                                "Player.bmd, que no está cargado"));
+        Render::Models::SetAction(hero.animation, *m_context.playerSkeleton, SittingAction);
+        // 0x4e11e1..0x4e15bd: el C1 05 18 con el rumbo del héroe (+0x24) y 0x82.
+        const auto direction = Protocol::Movement::DirectionFromAngle(hero.angles.z);
+        if (!direction.HasValue())
+            return Core::Unexpected(std::string("0x4e1275: el ángulo del héroe está fuera del perfil de ftol"));
+        if (!m_context.send)
+            return Core::Unexpected(std::string("0x4e11e1: el C1 05 18 del contrato sin el send() de la sesión"));
+        m_context.send(Protocol::Movement::WriteAction(direction.Value(), Protocol::Movement::AltarContractAction));
+        return {};
+    }
+
+    // ----- BD 0C (0x4e59d6 → 0x4e15f0 → 0x430040).
+
+    Applied On(const Events::CrywolfUnported& /*packet*/)
+    {
+        // 0x430040 (fase 4: leído entero) no escribe estado ni saca rand() fuera de 0x518cf0: un solo 0xee en
+        // (pkt[8] · 100, pkt[9] · 100, 100) con el héroe de dueño, el caso 2 con pkt[6] en 0x7a o 0x74, el 1 con 0xb7
+        // y el 0 con cualquier otro, y un segundo punto corrido en x o y con z 800.
+        return Core::Unexpected(std::string("0x430040: el efecto 0xee de Crywolf (0x518cf0 con los casos 0, 1 y 2 "
+                                            "por pkt[6]) es de la CL11"));
     }
 
     // ----- BD 04 (0x4e59ba → 0x435a20): con la etapa 4 en el 34, pkt[4], los minutos y GetTickCount.

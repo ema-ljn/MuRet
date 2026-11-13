@@ -234,10 +234,16 @@ TEST(EventsProtocolTest, ReadsTheCrywolfInterfaceOnes)
     ranking[1] = static_cast<std::byte>(ranking.size());
     EXPECT_EQ(ErrorOf(Events::ReadEventPacket(PacketOf(ranking))), ProtocolError::TooShort);
     EXPECT_EQ(Read<Events::CrywolfChaosBox>(Bytes({0xC1, 0x05, 0xBD, 0x09, 0x01})).value, 1);
-    const auto contract = Read<Events::CrywolfUnported>(Bytes({0xC1, 0x05, 0xBD, 0x03, 0x00}));
-    EXPECT_EQ(contract.subcode, 3);
-    EXPECT_EQ(contract.bytes.size(), 5u);
-    EXPECT_EQ(Read<Events::CrywolfUnported>(Bytes({0xC1, 0x04, 0xBD, 0x0C})).subcode, 0xc);
+    // BD 03 (0x4e1034..0x4e1046): pkt[4], pkt[5] y la clave big-endian de pkt[6] y pkt[7], que lee siempre.
+    const auto contract = Read<Events::CrywolfContract>(Bytes({0xC1, 0x08, 0xBD, 0x03, 0x01, 0x12, 0x01, 0x3e}));
+    EXPECT_EQ(contract.result, 1);
+    EXPECT_EQ(contract.value, 0x12);
+    EXPECT_EQ(contract.key, 0x013e);
+    EXPECT_EQ(ErrorOf(Events::ReadEventPacket(PacketOf(Bytes({0xC1, 0x07, 0xBD, 0x03, 0x00, 0x00, 0x01})))),
+              ProtocolError::TooShort);
+    const auto effects = Read<Events::CrywolfUnported>(Bytes({0xC1, 0x05, 0xBD, 0x0C, 0x00}));
+    EXPECT_EQ(effects.subcode, 0xc);
+    EXPECT_EQ(effects.bytes.size(), 5u);
     for (const std::uint8_t nothing : {std::uint8_t{6}, std::uint8_t{0xa}, std::uint8_t{0xd}})
         EXPECT_EQ(ErrorOf(Events::ReadEventPacket(PacketOf(Bytes({0xC1, 0x06, 0xBD, nothing, 0x02, 0x05})))),
                   ProtocolError::WrongPacket);
@@ -308,6 +314,19 @@ TEST(EventsProtocolTest, WritesTheChipWindowRequestsWithTheXor32)
                                                         0xB7, 0x35, 0x7C, 0x64, 0x1B, 0x73, 0xCF, 0x04})));
     EXPECT_TRUE(SameBytes(Xor32Decode(number.packet).Bytes(), Bytes({0xC1, 0x12, 0x9D, 'A', 'B', '1', '2', 0, 'C', 'D',
                                                                      '3', '4', 0, 'E', 'F', '5', '6', 0})));
+}
+
+// 0x435d1c..0x4361a2: C1 06 BD 03 alto bajo de 0x723be0 (SAR 8 y el byte bajo), con el XOR32 en claro. Con 0x013d:
+// 03 ^ 89 ^ BD = 37, 01 ^ BC ^ 37 = 8A y 3D ^ B2 ^ 8A = 05; una clave negativa (MOVSX de 0x8140) da 81 y 40.
+TEST(EventsProtocolTest, WritesTheCrywolfContractWithTheXor32)
+{
+    const Client::Protocol::Outgoing contract = Events::WriteCrywolfContract(0x013d);
+    EXPECT_EQ(contract.delivery, Delivery::Clear);
+    EXPECT_TRUE(SameBytes(contract.packet.Bytes(), Bytes({0xC1, 0x06, 0xBD, 0x37, 0x8A, 0x05})));
+    EXPECT_TRUE(SameBytes(Xor32Decode(contract.packet).Bytes(), Bytes({0xC1, 0x06, 0xBD, 0x03, 0x01, 0x3D})));
+    const Client::Protocol::Outgoing negative = Events::WriteCrywolfContract(std::int16_t{-0x7ec0});
+    EXPECT_TRUE(SameBytes(negative.packet.Bytes(), Bytes({0xC1, 0x06, 0xBD, 0x37, 0x0A, 0xF8})));
+    EXPECT_TRUE(SameBytes(Xor32Decode(negative.packet).Bytes(), Bytes({0xC1, 0x06, 0xBD, 0x03, 0x81, 0x40})));
 }
 
 // 0x4fbeed..0x4fc231: C1 06 AF 02 x y con el XOR32 byte a byte desde el 02 (la clave en 3, 4 y 5: 0x89, 0xbc y

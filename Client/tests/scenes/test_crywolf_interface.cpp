@@ -526,7 +526,7 @@ TEST_F(CrywolfInterfaceTest, AProjectionWritesItsCopy)
 }
 
 // 0x436240 (el hijo 26 del HUD): con la etapa 3 o 4 en el 34 deja 0xff1594ff sobre 0 para lo que sigue, sin dibujar;
-// en Lorencia, en Devias o con otra etapa no toca el color. Con la ventana del contrato (0x723a44 en 1 o 2) corta.
+// en Lorencia, en Devias o con otra etapa no toca el color ni dibuja la ventana del contrato.
 TEST_F(CrywolfInterfaceTest, TheContractStepOnlyLeavesTheTitleColorInTheDefense)
 {
     const Client::Render::Text::TextColors before{.text = 0xff102030u, .background = 0xff405060u};
@@ -547,11 +547,116 @@ TEST_F(CrywolfInterfaceTest, TheContractStepOnlyLeavesTheTitleColorInTheDefense)
             EXPECT_EQ(world->Runtime().hud.textColors.background, defense ? 0u : before.background);
         }
     }
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        Enter(map, 3);
+        Ui().byte723a44 = 1;
+        sprites.Begin(Screen640);
+        GameHudContext context = Context();
+        ASSERT_TRUE(Client::Scenes::DrawTheCrywolfContract(context).HasValue());
+        EXPECT_TRUE(QuadsOf(sprites).empty());
+    }
+}
+
+// 0x436274..0x43643b: la ventana 1, el fondo 0x6cc, el No (0x6c3..0x6c5) y el Sí (0x6c9..0x6cb) con el mouse dentro de
+// su caja sin los bordes, y los renglones centrados en 0x13d: el primero en 0xe3 con segundo (y en 0xef sin él) y el
+// segundo en 0xee. Con el mouse sobre el botón apretado (0x723bdc en 1 o 2) la ventana se cierra y el resto se dibuja.
+TEST_F(CrywolfInterfaceTest, TheQuestionDrawsBothButtonsAndCloses)
+{
+    const auto draw = [this]
+    {
+        text.texts.clear();
+        sprites.Begin(Screen640);
+        GameHudContext context = Context();
+        const auto drawn = Client::Scenes::DrawTheCrywolfContract(context);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    };
+    const auto put = [](std::array<char, 200>& line, std::string_view value)
+    {
+        std::copy(value.begin(), value.end(), line.begin());
+        line[value.size()] = '\0';
+    };
+    Enter(CrywolfMap, 4);
+    Ui().byte723a44 = 1;
+    put(Ui().contractLines[0], "quedan 3");
+    put(Ui().contractLines[1], "firmas?");
+    mouse = {100, 100};
+    draw();
+    auto quads = QuadsOf(sprites);
+    ASSERT_EQ(quads.size(), 3u);
+    ExpectQuad(quads[0], 0x6cc, 212.0f, 206.0f, 209.0f, 80.0f);
+    ExpectQuad(quads[1], 0x6c3, 330.0f, 250.0f, 54.0f, 30.0f);
+    ExpectQuad(quads[2], 0x6c9, 250.0f, 250.0f, 54.0f, 30.0f);
+    ASSERT_EQ(text.texts.size(), 2u);
+    EXPECT_EQ(text.texts[0].text, "quedan 3");
+    EXPECT_EQ(text.texts[0].x, Centered(0x13d, "quedan 3"));
+    EXPECT_EQ(text.texts[0].y, 0xe3);
+    EXPECT_EQ(text.texts[1].text, "firmas?");
+    EXPECT_EQ(text.texts[1].y, 0xee);
+    EXPECT_EQ(world->Runtime().hud.textColors.text, 0xff1594ffu);
+
+    mouse = {0x14b, 0xfb};
+    draw();
+    EXPECT_EQ(SlotsOf(QuadsOf(sprites)), (std::vector<std::uint16_t>{0x6cc, 0x6c4, 0x6c9}));
+    mouse = {0x12f, 0x117};
+    draw();
+    EXPECT_EQ(SlotsOf(QuadsOf(sprites)), (std::vector<std::uint16_t>{0x6cc, 0x6c3, 0x6ca}));
+    EXPECT_EQ(Ui().byte723a44, 1);
+
+    Ui().dwords723bdc[0] = 2;
+    draw();
+    EXPECT_EQ(SlotsOf(QuadsOf(sprites)), (std::vector<std::uint16_t>{0x6cc, 0x6c3, 0x6cb}));
+    EXPECT_EQ(Ui().byte723a44, 0);
+    EXPECT_EQ(Ui().dwords723bdc[0], 0);
+    EXPECT_EQ(text.texts.size(), 2u);
+
+    Ui().byte723a44 = 1;
+    Ui().dwords723bdc[0] = 1;
+    mouse = {0x17f, 0x117};
+    Ui().contractLines[1][0] = '\0';
+    draw();
+    EXPECT_EQ(SlotsOf(QuadsOf(sprites)), (std::vector<std::uint16_t>{0x6cc, 0x6c5, 0x6c9}));
+    EXPECT_EQ(Ui().byte723a44, 0);
+    ASSERT_EQ(text.texts.size(), 1u);
+    EXPECT_EQ(text.texts[0].y, 0xef);
+}
+
+// 0x43643e..0x43656c: la ventana 2, el fondo y el OK (0x6c6..0x6c8) en 290, que cierra con 0x723bdc en 3. Un dibujo
+// intermedio escribe en su copia.
+TEST_F(CrywolfInterfaceTest, TheNoticeDrawsTheOk)
+{
     Enter(CrywolfMap, 3);
     Ui().byte723a44 = 2;
-    GameHudContext context = Context();
-    const auto cut = Client::Scenes::DrawTheCrywolfContract(context);
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x436274"), std::string::npos) << cut.Error();
+    Ui().contractLines[0][0] = 'a';
+    mouse = {0x121, 0x100};
+    text.texts.clear();
+    sprites.Begin(Screen640);
+    GameHudContext first = Context();
+    ASSERT_TRUE(Client::Scenes::DrawTheCrywolfContract(first).HasValue());
+    auto quads = QuadsOf(sprites);
+    ASSERT_EQ(quads.size(), 2u);
+    ExpectQuad(quads[1], 0x6c6, 290.0f, 250.0f, 54.0f, 30.0f);
+    ASSERT_EQ(text.texts.size(), 1u);
+    EXPECT_EQ(text.texts[0].text, "a");
+    EXPECT_EQ(text.texts[0].y, 0xef);
+
+    mouse = {0x123, 0x100};
+    Ui().dwords723bdc[0] = 3;
+    CrywolfInterface copy = Ui();
+    sprites.Begin(Screen640);
+    GameHudContext second = Context(&copy);
+    ASSERT_TRUE(Client::Scenes::DrawTheCrywolfContract(second).HasValue());
+    EXPECT_EQ(QuadsOf(sprites)[1].slot, 0x6c8);
+    EXPECT_EQ(copy.byte723a44, 0);
+    EXPECT_EQ(Ui().byte723a44, 2);
+    EXPECT_EQ(Ui().dwords723bdc[0], 3);
+
+    sprites.Begin(Screen640);
+    GameHudContext third = Context();
+    ASSERT_TRUE(Client::Scenes::DrawTheCrywolfContract(third).HasValue());
+    EXPECT_EQ(QuadsOf(sprites)[1].slot, 0x6c8);
+    EXPECT_EQ(Ui().byte723a44, 0);
+    EXPECT_EQ(Ui().dwords723bdc[0], 0);
 }
 } // namespace

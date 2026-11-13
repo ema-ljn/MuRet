@@ -263,7 +263,17 @@ struct CrywolfChaosBox
     std::uint8_t value = 0;
 };
 
-// 0x4e59a5 → 0x4e1010 (BD 03) y 0x4e59d6 → 0x4e15f0 (BD 0C): lo que MuRet no porta, con el paquete entero.
+// 0x4e59a5 → 0x4e1010 (BD 03), el contrato de los altares: el resultado de pkt[4] (0 o 1; otro no hace nada), el
+// valor del altar de pkt[5] (solo con 1) y la clave big-endian de pkt[6] y pkt[7] (0x4e1034..0x4e1046), la del altar
+// en el viewport (0x13c + altar).
+struct CrywolfContract
+{
+    std::uint8_t result = 0;
+    std::uint8_t value = 0;
+    std::uint16_t key = 0;
+};
+
+// 0x4e59d6 → 0x4e15f0 (BD 0C): lo que MuRet no porta (los efectos de 0x430040, CL11), con el paquete entero.
 struct CrywolfUnported
 {
     std::uint8_t subcode = 0;
@@ -298,8 +308,8 @@ using EventPacket =
     std::variant<EventState, MapAttributes, ItemAcquired, DevilSquareEntryResult, EventOpenTime, EventCountdown,
                  EventResult, EventChipInfo, EventChipCount, MutoNumbers, EventDialog, BloodCastleEntryResult,
                  EventPlayState, SerialResult, EventSound, ChaosCastleEntryResult, JewelMixResult, CrywolfState,
-                 CrywolfAltars, CrywolfTimer, CrywolfBoss, CrywolfRank, CrywolfRanking, CrywolfChaosBox,
-                 CrywolfUnported, EventTime, SoccerScore, ServerCommand>;
+                 CrywolfAltars, CrywolfContract, CrywolfTimer, CrywolfBoss, CrywolfRank, CrywolfRanking,
+                 CrywolfChaosBox, CrywolfUnported, EventTime, SoccerScore, ServerCommand>;
 
 // Uno de los paquetes de arriba por su opcode (y su subcódigo en AF, BC, BD y F3). Otro tipo que C1, otro opcode u
 // otro subcódigo → WrongPacket; sin los bytes que el original lee siempre → TooShort. Los bytes de más se ignoran.
@@ -325,6 +335,11 @@ using SerialPieces = std::array<std::array<std::uint8_t, SerialPieceBytes>, Seri
 
 // 0x4fbeed..0x4fc2c9: C1 06 AF 02 x y, con el XOR32 y en claro (el send del paso, sin C3).
 [[nodiscard]] Outgoing WriteChaosCastleReposition(std::uint8_t x, std::uint8_t y);
+
+// 0x435d1c..0x4361a2: C1 06 BD 03 alto bajo, el botón Sí de la ventana del contrato de Crywolf con 0x723be0 (la clave
+// del altar que dejó 0x435b00): el byte de SAR 8 y el bajo, con el XOR32 y en claro (el send del paso). GS 0.97 no
+// tiene Crywolf: el oráculo es el ASM.
+[[nodiscard]] Outgoing WriteCrywolfContract(std::int32_t key);
 
 // 0x5e5b2f..0x5e5d7e: C1 05 90 cuadrado lugar, el cuadrado de 0 a 5 y el lugar de la invitación (la casilla + 0x18),
 // con el XOR32 y en claro (PMSG_REQ_ENTER_DEVILSQUARE; el GS le resta 12 y toma pInventory, que empieza con el equipo).

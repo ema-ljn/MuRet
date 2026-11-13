@@ -120,4 +120,28 @@ struct SummonLife
 // *estático*.
 [[nodiscard]] Outgoing WriteClearSkillReport(std::uint8_t head);
 inline constexpr std::uint8_t Report73Head = 0xf1;
+
+// Lo que mandan las skills del héroe (CL9 hito 4, fase 2c; 04 § Las skills que se mandan). Las ramas de las clases de
+// 0x57cfc0 los arman en línea, con el XOR32 y para cifrar como C3 (el relleno y el serial, dos rand(), los saca quien
+// los manda), *estático*.
+
+// C1 06 19 [skill] [clave H L]: la skill sobre un personaje. El GS 0.97 lo lee como PMSG_MAGICATTACK (CGMagicAttack,
+// 0x425f60) sin el Dis.
+[[nodiscard]] Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key);
+
+// C1 0C 1E [skill] [x] [y] [rumbo] [byte7] [byte8] [clave H L] [byte11]: la skill sobre una celda. El GS 0.97 lee solo
+// los cuatro primeros (PMSG_DURATION_MAGIC_RECV, 0x427870); los otros cinco son los Dis, TargetPos, NumberH, NumberL y
+// MagicKey de la 1.02, y cada skill pone lo suyo en byte7 y byte8 (06 § Las skills del caballero).
+struct DurationMagicRequest
+{
+    std::uint8_t skill = 0;
+    std::uint8_t x = 0;
+    std::uint8_t y = 0;
+    std::uint8_t direction = 0;
+    std::uint8_t byte7 = 0;
+    std::uint8_t byte8 = 0;
+    std::uint16_t key = 0;
+    std::uint8_t byte11 = 0;
+};
+[[nodiscard]] Outgoing WriteDurationMagic(const DurationMagicRequest& request);
 } // namespace Client::Protocol::Skill

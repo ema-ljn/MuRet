@@ -339,10 +339,15 @@ Core::Expected<bool, std::string> IsAttackable(const WorldState& world, bool con
 
 Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker, bool controlDown)
 {
+    return ChosenKeyOf(world, attacker, world.Runtime().selectedTargets[2], controlDown);
+}
+
+Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker,
+                                                      std::int32_t chosen, bool controlDown)
+{
     constexpr std::int32_t NoKey = -1;
     const WorldRuntime& runtime = world.Runtime();
     // 0x558eb3..0x558ed8: el cursor (JG, con signo), el elegido y el héroe publicado.
-    const std::int32_t chosen = runtime.selectedTargets[2];
     if (runtime.cursorItemCount > 0 || chosen == -1 || attacker != runtime.hero)
         return NoKey;
     const auto actors = world.Actors();

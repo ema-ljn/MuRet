@@ -57,5 +57,10 @@ struct GameMovementState
     // usar una skill (0x57d294), el clic (0x59b8f3, 0x59b972) y otros paquetes (0x4d6977, 0x4e415e), sin portar.
     std::int32_t followTarget = -1;
     WeaponSkillRequest weaponSkill{};
+    // CL9 hito 4, fase 2c. 0x5767948 (.bss 0): la última skill que mandaron las ramas de 0x57cfc0 con el 1E (0x582446 y
+    // las demás, antes de armarlo). La lee la habilidad del héroe con la 0x31 (0x4febe1, sin portar).
+    std::int32_t sentSkill = 0;
+    // 0x77f3bad (.bss 0): el contador de la clave de las magias (0x57cf90, Skill57cf90.h), de 1 a 0x32.
+    std::uint8_t magicKeyCounter = 0;
 };
 } // namespace Client::Scenes

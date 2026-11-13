@@ -203,4 +203,28 @@ TEST(SkillProtocolTest, TheClearReportIsF103WithTheHead)
         EXPECT_TRUE(SameBytes(Xor32Decode(report.packet).Bytes(), Bytes({0xc1, 0x06, 0xf1, 0x03, 0x00, head})));
     }
 }
+
+// 0x584e09..0x5851b0: el 19 de las skills del héroe, C1 06 19 [skill] [clave H L], para cifrar.
+TEST(SkillProtocolTest, TheMagicAttackIs19WithTheKeyInBigEndian)
+{
+    const auto attack = Skill::WriteMagicAttack(0x30, 0x0a1b);
+    EXPECT_EQ(attack.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(attack.packet).Bytes(), Bytes({0xc1, 0x06, 0x19, 0x30, 0x0a, 0x1b})));
+}
+
+// 0x582439..0x582dd1: el 1E, C1 0C 1E con los nueve bytes en orden y la clave en big endian, para cifrar.
+TEST(SkillProtocolTest, TheDurationMagicIs1EWithNineBytes)
+{
+    const auto magic = Skill::WriteDurationMagic({.skill = 0x4c,
+                                                  .x = 0xb6,
+                                                  .y = 0x73,
+                                                  .direction = 0x9f,
+                                                  .byte7 = 0xaa,
+                                                  .byte8 = 0x77,
+                                                  .key = 0x0a1b,
+                                                  .byte11 = 5});
+    EXPECT_EQ(magic.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(magic.packet).Bytes(),
+                          Bytes({0xc1, 0x0c, 0x1e, 0x4c, 0xb6, 0x73, 0x9f, 0xaa, 0x77, 0x0a, 0x1b, 0x05})));
+}
 } // namespace

@@ -179,4 +179,22 @@ Outgoing WriteClearSkillReport(std::uint8_t head)
     return EncryptedC1(
         Network::PacketWriter::C1(Connection::JoinOpcode).PutU8(Connection::DecryptErrorSubcode).PutU8(0).PutU8(head));
 }
+
+Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key)
+{
+    return EncryptedC1(Network::PacketWriter::C1(MagicAttackOpcode).PutU8(skill).PutU16Be(key));
+}
+
+Outgoing WriteDurationMagic(const DurationMagicRequest& request)
+{
+    return EncryptedC1(Network::PacketWriter::C1(DurationMagicOpcode)
+                           .PutU8(request.skill)
+                           .PutU8(request.x)
+                           .PutU8(request.y)
+                           .PutU8(request.direction)
+                           .PutU8(request.byte7)
+                           .PutU8(request.byte8)
+                           .PutU16Be(request.key)
+                           .PutU8(request.byte11));
+}
 } // namespace Client::Protocol::Skill

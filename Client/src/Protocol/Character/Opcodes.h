@@ -14,6 +14,8 @@ inline constexpr std::uint8_t ListSubcode = 0x00;   // pedir la lista, y la list
 inline constexpr std::uint8_t CreateSubcode = 0x01; // crear, y su respuesta (CL6.5)
 inline constexpr std::uint8_t DeleteSubcode = 0x02; // borrar, y su respuesta (CL6.5)
 inline constexpr std::uint8_t SelectSubcode = 0x03; // entrar al mundo, y su respuesta (0x4c3940, CL7)
+// Un punto de los de subir de nivel a una estadística, desde la ventana del personaje (0x5e468e, CL8 hito 5).
+inline constexpr std::uint8_t LevelUpPointSubcode = 0x06;
 // 04-protocolo, "El F3 10, el inventario": la lista de ítems, no la apariencia de selección.
 inline constexpr std::uint8_t InventoryListSubcode = 0x10;
 

@@ -369,16 +369,48 @@ Lorencia y en Devias, en 640, 1.024 y 1.600 de ancho, y con la party abierta (`t
 
 ### Hito 5: los tooltips y la ventana del personaje (CL8.4, ~50 KB)
 
-- [ ] **El tooltip** `0x5f7bc0` y sus tres cuerpos (`0x5b2aa0`, `0x5b8150`, `0x5b90b0`) con sus helpers, el
+- [x] **El tooltip** `0x5f7bc0` y sus tres cuerpos (`0x5b2aa0`, `0x5b8150`, `0x5b90b0`) con sus helpers, el
       cartel del set (`0x40eca0`) y la info del ítem del modo 3 de las superposiciones (`0x5afc00`, `0x5af590`,
-      `0x5af9b0`).
-- [ ] **La ventana del personaje** (`0x2000000`): el dibujo `0x5ee2e0`, el paso `0x5e4510` (los botones de
+      `0x5af9b0`). El modo 3 solo lo abre `0x5ae360`, con F1 en el hito 6 (P-C102).
+- [x] **La ventana del personaje** (`0x2000000`): el dibujo `0x5ee2e0`, el paso `0x5e4510` (los botones de
       puntos con el registro propio, 3.848, y `F3 06`), las pestañas y el `A9 01 00 08` (`0x424130`/`0x424230`,
       Q-C16), y los cálculos que muestra (`0x54d0f0`, `0x5516e0` y vecinas).
 
 **Pruebas:** los renglones del tooltip por ítem (Item.bmd, los sets), sus colores y su orden contra el ASM; el
 cable (`A9 01 00 08` una vez por apertura, 10 en la sesión); los `rand()` con la C abierta. El orden fino del
 tooltip va a la VM (P-C60). **Desbloquea:** "inventario usable".
+
+**Hito 5, hecho en parte** (2026-11-12): `0x5f7bc0` con su orden, la caja `0x5af090`, la ventana y el cartel del set
+(`0x40e850`, `0x40eca0`, con `0x40e6c0` en el paso y `0x40ebd0` en el chat), el sprintf del CRT para los textos de
+formato (`UI/SprintfFormat`), la ayuda de los íconos de estado (`0x5a6600`); abrir el personaje con `0x550d10`, su
+paso `0x5e4510` con el `F3 06`, el botón de cerrar y el `A9 01 00 08` de `0x424230` una vez por apertura (06 § Los
+tooltips y § La ventana del personaje; Q-C590 a Q-C597, P-C100 a P-C104). Falta: los tres cuerpos del tooltip
+(P-C101) y el modo 3 de las ayudas, que solo abre `0x5ae360` del hito 6 (P-C102).
+
+**El dibujo de la ventana del personaje, hecho** (2026-11-12, cierra P-C100): `0x5ee2e0` entero y el botón de cerrar
+`0x118` con la ayuda del texto 222 de `0x5f7440` (`Scenes/GameCharacterHud`), el ataque `0x5b8b80` y la magia
+`0x5513d0` con `0x40d8c0` (`Scenes/OwnDamage`), y el texto con ancho de `0x467060` (`TextCache::DrawColumns`), con
+los accesos al registro propio en su orden (de 12 a 18 cierres por frame). Probado en Lorencia y en Devias con el
+Dark Knight y el Dark Lord, y con el Wizard y la clase 3 (06 § La ventana del personaje; Q-C670 a Q-C677, P-C120 a
+P-C124). Corta sin el servidor elegido (P-C120), con la división por 0 de las letras (P-C121) y con lo que MuRet no
+tiene del registro (P-C122); lo inferido va a la VM (P-C123).
+
+**El cuerpo del ítem, hecho** (2026-11-12): `0x5b2aa0` con `0x5af590` (las clases), `0x5b2320` (las opciones),
+`0x40dd80` (el stat del conjunto), `0x40eee0` (las opciones del conjunto), `0x5b1ba0` y `0x402b30`, sobre
+`Scenes::TooltipWriter` (06 § El cuerpo del ítem; Q-C690 a Q-C696; lo que corta, P-C125 y P-C126), y el de reparar
+`0x5b8150` (06 § El cuerpo de reparar). La skill y el precio de reparar, en los dos párrafos que siguen.
+
+**El cuerpo de la skill, hecho** (2026-11-12, cierra P-C101): `0x5b90b0` con la ayuda de los comandos del cuervo
+`0x421c10`, el daño de la skill `0x5516e0` (`Scenes/OwnDamage`), `0x5519f0`, `0x552470` y el acceso en línea de la
+entrada, sobre `Scenes::TooltipWriter` con su propio contador (`Scenes/SkillTooltip`). Probado con las clases 0 a 5,
+en 640 × 480 y 800 × 600, con sus `rand()` (06 § El cuerpo de la skill; Q-C720 a Q-C724). Lo que corta está en
+P-C135, y lo que deja a otras olas o a la VM, en P-C136.
+
+**El precio de un ítem, hecho** (2026-11-12, cierra P-C127): `0x54d0f0` entero, con sus tres modos, y `0x5b13e0`, en
+`Scenes/ItemPrice` como funciones de datos que la tienda de NPC de la CL9.3 reutiliza. El cuerpo de reparar escribe
+con ellos el precio de un ítem gastado (06 § El precio de un ítem; Q-C735 a Q-C737). Lo que no alcanza a leer corta
+con su dirección (P-C140), y el precio de la tienda de NPC sigue cortando en `0x5b2d23` (P-C125 (a)). Con esto, del
+tooltip queda solo el modo 3 de las ayudas, del hito 6 (P-C102), y el hito 5 queda completo.
 
 ### Hito 6: los diálogos, el menú de Esc, las teclas y la captura (CL8.1 y CL8.3, ~36 KB)
 
@@ -392,7 +424,8 @@ tooltip va a la VM (P-C60). **Desbloquea:** "inventario usable".
 - [x] **Las ventanas del paso que son marco:** la party (`0x5e3c80` sin el `43`), el botón del quest (`0x41b5a0`
       sin el contenido), la puerta de D (`0x40a450` sin `0x406050`) y los cortes sin `rand()` de las de la CL9.
       Hecho: la party vacía (`0x6599a0(4)` con el `C1 03 42`, `0x5e3c80`, `0x5f0be0`) y los comandos (`0x40a450`,
-      `0x40a650`, hasta `0x406097`), con Q-C650 a Q-C654; lo que queda, en 08 (P-C115 a P-C117).
+      `0x40a650`, hasta `0x406097`), con Q-C650 a Q-C654; lo que queda, en 08 (P-C116 y P-C117; el título
+      con su caja, P-C115, cerrado el 2026-11-13).
 - [x] **Las teclas y las superposiciones:** `0x5ac8d0` (F1..F4; SPACE como corte de la CL9.3), `0x5b0550` con las
       ayudas F1 (`0x5af090`, `0x5afb00`) y **la ventana /move** (el paso `0x5ecdc0` → `0x449850` → `0x448580` y el dibujo `0x5b0550` → `0x449860` →
       `0x448fa0`, con
@@ -406,6 +439,12 @@ tooltip va a la VM (P-C60). **Desbloquea:** "inventario usable".
 
 **Pruebas:** los bytes de `F1 02 xx` y `F3 30` y su orden; los `rand()` de salir (3.848 + 2); el nombre de la
 captura con un reloj falso; /move con `movereq.bmd`. **Desbloquea:** "teclas de la UI" y "captura".
+
+**Los hitos 5 y 6, juntos** (2026-11-13): lo que portaron los dos queda una sola vez. La caja de las ayudas de F1 es
+la de los tooltips (`0x5af090`, `Scenes::DrawTheTooltipBox` sobre `HudState::tooltip`), y `Scenes/TipBox` se borró;
+el cartel del conjunto en `0x6376c6` es el del hito 5 (`Scenes::DrawTheSetLabel`), abierto por la cola del chat
+(`0x40ebd0`, Q-C594, que trae Q-C614). La ayuda del ítem se abre (el modo 3) y corta en su dibujo, desde `0x5b09a8`
+(P-C105, que trae P-C102). El texto de la caja de los tooltips todavía no pasa por `CenterInBox` (P-C145).
 
 ### Hito 7: las ventanas viejas (CL8.3, ~41 KB, de los que ~11 son STL)
 

@@ -179,6 +179,10 @@ struct PanelContext
     std::function<void()> partyOpened{};
     // 0x41ed10(id, 0, 0): el sonido, gancho de la CL10.
     std::function<void(std::int32_t)> sound{};
+    // 0x65c966..0x65ca6d: lo que abrir el personaje hace fuera de los paneles, cierre o no lo demás: [0x6eed3c] de
+    // +0x9304 a +0x9327 en 0, y con el registro propio abierto, 0x550d10 si un lugar del equipo tiene la durabilidad
+    // en 0 (0x550cf0). Sin él, abrir el personaje corta.
+    std::function<Core::Expected<void, std::string>()> characterOpened{};
 };
 
 class PanelRegistry

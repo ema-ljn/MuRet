@@ -137,7 +137,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
                                           .macros = runtime.chat.input.macros,
                                           .overlayMode = runtime.panels.overlayMode,
                                           .helpItem = runtime.panels.helpItem,
-                                          .setHelp = context.world.ItemSets().setHelp};
+                                          .setLabel = &context.world.ItemSets().byte9305};
     auto outcome = UI::RunTheChatCommand(commands, text, fromMacro);
     if (!outcome.HasValue())
         return outcome;

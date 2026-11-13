@@ -492,6 +492,25 @@ TEST(GameUiTest, ThePickingAsksTheWorldWidthWithThePartyClosed)
     EXPECT_EQ(tested.random.State(), expected.State());
 }
 
+// 0x40e6c0: el mouse sobre el cartel del set del inventario prende la ventana del set (+0x9304) y gasta el clic, sin
+// mirarlo (Q-C472).
+TEST(GameUiTest, TheMouseOverTheSetLabelOpensTheSetWindow)
+{
+    SteppingUi tested;
+    tested.Panels().inventory = 1;
+    tested.world.Runtime().hud.inventoryX = 0x1c2;
+    tested.Click();
+    const auto stepped = tested.Step(0x1c2 + 0x20, 0x20);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested.world.ItemSets().byte9304, 1);
+    EXPECT_FALSE(tested.world.Runtime().movement.pendingClick);
+    EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTimeMax, 6);
+
+    tested.world.ItemSets().byte9304 = 0;
+    ASSERT_TRUE(tested.Step(0x1c2 + 0xb0, 0x20).HasValue());
+    EXPECT_EQ(tested.world.ItemSets().byte9304, 0);
+}
+
 // 0x5a00a1..0x5a0124: PgUp y PgDn corren el registro tantos renglones como muestra.
 TEST(GameUiTest, PageUpAndPageDownScrollTheChatLog)
 {
@@ -591,10 +610,10 @@ TEST(GameUiTest, TheF1KeyWalksTheHelps)
         Release(tested.input, Key::F1);
         return pressed && keys().HasValue();
     };
-    tested.world.ItemSets().setHelp = 5;
+    tested.world.ItemSets().byte9305 = 5;
     ASSERT_TRUE(f1());
     EXPECT_EQ(mode, 1);
-    EXPECT_EQ(tested.world.ItemSets().setHelp, 0);
+    EXPECT_EQ(tested.world.ItemSets().byte9305, 0);
     EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x19);
     ASSERT_TRUE(f1());
     EXPECT_EQ(mode, 2);

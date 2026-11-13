@@ -406,8 +406,12 @@ TEST_P(GameCommandsWindowTest, TheWindowDrawsItsButtonsAndNames)
 
     const auto& texts = m_text.texts;
     ASSERT_EQ(texts.size(), 12U);
+    // La caja de 120 desde 485, con el texto corrido (120 − 48) / 2.
     EXPECT_EQ(texts[0].text, "Comandos");
-    EXPECT_EQ(texts[0].x, 485 + (120 - 48) / 2);
+    EXPECT_EQ(texts[0].x, 485);
+    EXPECT_TRUE(texts[0].windowed);
+    EXPECT_EQ(texts[0].firstColumn, -36);
+    EXPECT_EQ(texts[0].columns, 120);
     EXPECT_EQ(texts[0].y, 12);
     EXPECT_EQ(texts[0].style.font, FontKind::Bold);
     EXPECT_EQ(texts[0].style.colors.text, 0xffffffffu);

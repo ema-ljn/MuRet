@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 namespace Client::Scenes
 {
@@ -18,6 +19,17 @@ void OwnCharacterRecord::ResetForSelection()
     {
         equipment[slot].scalar1Low = 0;
     }
+}
+
+std::optional<std::uint8_t> OwnCharacterRecord::SkillAt(std::size_t index) const
+{
+    constexpr std::size_t BytesPerWord = 4;
+    constexpr std::uint32_t BitsPerByte = 8;
+    if (index >= words6c.size() * BytesPerWord)
+        return std::nullopt;
+    const std::uint32_t word = words6c[index / BytesPerWord];
+    return static_cast<std::uint8_t>((word >> (static_cast<std::uint32_t>(index % BytesPerWord) * BitsPerByte)) &
+                                     0xffu);
 }
 
 void OwnCharacterRecord::ApplyStats(const Protocol::Character::CharacterSelectResult& reply, Core::Log& log)

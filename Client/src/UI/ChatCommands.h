@@ -73,12 +73,12 @@ struct ChatCommandContext
     ChatLogState& log;
     // 0x77f1db0.
     std::array<std::string, MacroCount>& macros;
-    // 0x77f3b08: /move lo pone en 4, la ayuda de un ítem en 3 y la de un conjunto en 0.
+    // 0x77f3b08: /move lo pone en 4, la ayuda de un ítem en 3 y el nombre de un conjunto en 0.
     std::int32_t& overlayMode;
     // 0x77f3b0c: el ítem de la ayuda.
     std::int32_t& helpItem;
-    // [0x6eed3c] + 0x9305: el cartel del conjunto.
-    std::uint8_t& setHelp;
+    // [0x6eed3c] + 0x9305, el cartel del set (0x40ebd0, y 0x5ae360 lo apaga); sin él, no lo escribe.
+    std::uint8_t* setLabel = nullptr;
 };
 
 struct ChatCommandOutcome

@@ -7,6 +7,7 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/InventoryMoves.h"
+#include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
@@ -153,8 +154,8 @@ TEST_F(InventoryStepTest, TheRepairButtonWorksFromLevelFifty)
 }
 
 // Lo que es de otras olas, o lo que pide Item.bmd sin tenerlo, corta con su dirección: un ítem de la grilla bajo el
-// mouse (0x5c420a) y el ítem del cursor sobre un lugar del equipo (0x5bed9e) sin Item.bmd, el cartel del set (los
-// tooltips), la tienda personal que abre la S (Open de 0x800, CL9.4) y el comercio abierto.
+// mouse (0x5c420a) y el ítem del cursor sobre un lugar del equipo (0x5bed9e) sin Item.bmd, la tienda personal que abre
+// la S (Open de 0x800, CL9.4) y el comercio abierto.
 TEST_F(InventoryStepTest, WhatIsStillCutStopsWithItsAddress)
 {
     world.Inventory().cells[0].id = 0x1c00;
@@ -162,7 +163,10 @@ TEST_F(InventoryStepTest, WhatIsStillCutStopsWithItsAddress)
     world.Runtime().cursorItemCount = 1;
     ExpectCut(Step(WindowX + 15 + 39, 89 + 59), "0x5bed9e");
     world.Runtime().cursorItemCount = 0;
-    ExpectCut(Step(WindowX + 0xe, 0x16), "0x40e6f5");
+    // El cartel del set ya no corta (hito 5): 0x40e6c0 prende la ventana del set.
+    const auto label = Step(WindowX + 0xe, 0x16);
+    ASSERT_TRUE(label.HasValue()) << label.Error();
+    EXPECT_EQ(world.ItemSets().byte9304, 1);
 
     world.OwnCharacter().level = 6;
     input.Apply(InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::S});

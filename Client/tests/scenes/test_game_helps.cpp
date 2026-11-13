@@ -9,7 +9,8 @@
 #include "Render/Text/FontSet.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameHud.h"
-#include "Scenes/TipBox.h"
+#include "Scenes/GameTooltips.h"
+#include "Scenes/TooltipLines.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/PanelRegistry.h"
@@ -27,8 +28,8 @@
 #include <vector>
 
 // Las ayudas de las superposiciones (CL8 hito 6; 06 § HUD y ventanas, "Las ayudas de F1"): los modos 1, 2 y 3 de
-// 0x5b0550 y la caja de ayuda, 0x5af090. El texto mide como el rasterizador falso: 6 columnas por letra y 13 filas
-// (también el '\n'). Los textos son inventados.
+// 0x5b0550, que dibujan con la caja de los tooltips (0x5af090, Scenes::DrawTheTooltipBox). El texto mide como el
+// rasterizador falso: 6 columnas por letra y 13 filas (también el '\n'). Los textos son inventados.
 namespace
 {
 using Client::Render::BlendMode;
@@ -150,23 +151,24 @@ protected:
     Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(HelpTexts());
 };
 
-// 0x5b0559..0x5b069d: la lista de la primera ayuda ("\n", el título, "\n", los 19 textos y "\n") y 0x77f3b66.
-TEST_F(GameHelpsTest, TheFirstHelpFillsTheTipList)
+// 0x5b0559..0x5b069d: los renglones de la primera ayuda ("\n", el título, "\n", los 19 textos y "\n"), 0x78abb30 en
+// 23 y 0x77f3b66.
+TEST_F(GameHelpsTest, TheFirstHelpFillsTheTooltipLines)
 {
     Mode() = Client::UI::FirstHelpMode;
     ASSERT_TRUE(Overlays().HasValue());
-    const Client::Scenes::TipList& tips = Hud().tips;
-    ASSERT_EQ(tips.count, 23);
-    EXPECT_EQ(tips.lines[0].text, "\n");
-    EXPECT_EQ(tips.lines[1].text, "Ayuda");
-    EXPECT_EQ(tips.lines[1].color, 1);
-    EXPECT_EQ(tips.lines[1].bold, 1);
-    EXPECT_EQ(tips.lines[2].text, "\n");
-    EXPECT_EQ(tips.lines[3].text, "linea 121");
-    EXPECT_EQ(tips.lines[3].color, 0);
-    EXPECT_EQ(tips.lines[3].bold, 0);
-    EXPECT_EQ(tips.lines[21].text, "linea 139");
-    EXPECT_EQ(tips.lines[22].text, "\n");
+    const Client::Scenes::TooltipLines& lines = Hud().tooltip;
+    ASSERT_EQ(lines.next, 23);
+    EXPECT_EQ(lines.text[0], "\n");
+    EXPECT_EQ(lines.text[1], "Ayuda");
+    EXPECT_EQ(lines.colors[1], Client::Scenes::TooltipBlue);
+    EXPECT_EQ(lines.bold[1], 1);
+    EXPECT_EQ(lines.text[2], "\n");
+    EXPECT_EQ(lines.text[3], "linea 121");
+    EXPECT_EQ(lines.colors[3], Client::Scenes::TooltipWhite);
+    EXPECT_EQ(lines.bold[3], 0);
+    EXPECT_EQ(lines.text[21], "linea 139");
+    EXPECT_EQ(lines.text[22], "\n");
     EXPECT_EQ(Hud().durabilityWarning, 1);
     EXPECT_EQ(Mode(), Client::UI::FirstHelpMode);
 }
@@ -220,11 +222,11 @@ TEST_F(GameHelpsTest, TheSecondHelpListsItsTexts)
 {
     Mode() = Client::UI::SecondHelpMode;
     ASSERT_TRUE(Overlays().HasValue());
-    const Client::Scenes::TipList& tips = Hud().tips;
-    ASSERT_EQ(tips.count, 20);
-    EXPECT_EQ(tips.lines[1].text, "B");
-    EXPECT_EQ(tips.lines[3].text, "otra 141");
-    EXPECT_EQ(tips.lines[18].text, "otra 156");
+    const Client::Scenes::TooltipLines& lines = Hud().tooltip;
+    ASSERT_EQ(lines.next, 20);
+    EXPECT_EQ(lines.text[1], "B");
+    EXPECT_EQ(lines.text[3], "otra 141");
+    EXPECT_EQ(lines.text[18], "otra 156");
     EXPECT_EQ(m_text.texts.size(), 17U);
 }
 
@@ -278,33 +280,34 @@ TEST_F(GameHelpsTest, TheItemHelpCutsWhereItDraws)
     EXPECT_NE(fifth.Error().find("0x5b09a8"), std::string::npos);
 }
 
-// 0x5af471 y 0x5af3e3: la caja corta con otro modo de 0x465950 y con un renglón con fondo.
-TEST_F(GameHelpsTest, TheTipBoxCutsWhatItCannotDraw)
+// 0x5af471 y 0x5af0c5: la caja corta con otro modo de 0x467060 que el 2 y el 3, y con más renglones que los 30.
+TEST_F(GameHelpsTest, TheBoxCutsWithAnotherModeAndPastItsLines)
 {
-    Client::Scenes::TipList& tips = Hud().tips;
-    tips.lines[0] = Client::Scenes::TipLine{.text = "algo", .color = 7, .bold = 0};
-    Client::Scenes::TipBoxContext box{.sprites = m_sprites, .text = m_text, .hud = Hud()};
-    const auto other = Client::Scenes::DrawTheTipBox(box, {.x = 1, .y = 1, .count = 1, .width = 0, .mode = 1});
+    Hud().tooltip.text[0] = "algo";
+    GameHudContext context = Context();
+    const auto other = Client::Scenes::DrawTheTooltipBox(context, 1, 1, 1, 0, 1, 1);
     ASSERT_FALSE(other.HasValue());
     EXPECT_NE(other.Error().find("0x5af471"), std::string::npos);
-    const auto shaded = Client::Scenes::DrawTheTipBox(box, {.x = 1, .y = 1, .count = 1, .width = 0, .mode = 2});
-    ASSERT_FALSE(shaded.HasValue());
-    EXPECT_NE(shaded.Error().find("0x5af3e3"), std::string::npos);
+    const auto past = Client::Scenes::DrawTheTooltipBox(
+        context, 1, 1, static_cast<std::int32_t>(Client::Scenes::TooltipLineCount) + 1, 0, 2, 1);
+    ASSERT_FALSE(past.HasValue());
+    EXPECT_NE(past.Error().find("0x5af0c5"), std::string::npos);
+    EXPECT_TRUE(m_text.texts.empty());
 }
 
-// 0x5af0c5..0x5af13d: la cuenta se corta en el primer renglón vacío; un espacio solo baja un renglón sin dibujarse.
-// Con ancho, la caja mide su doble más 4 y se centra en x.
-TEST_F(GameHelpsTest, TheTipBoxStopsAtTheFirstEmptyLine)
+// 0x5af0c5..0x5af13d con lo que las ayudas no usan: un espacio solo baja un renglón sin dibujarse y, con ancho, la
+// caja mide su doble más 4 y se centra en x.
+TEST_F(GameHelpsTest, ASpaceOnlyMovesDownAndAWidthSetsTheBox)
 {
-    Client::Scenes::TipList& tips = Hud().tips;
-    tips.lines[0] = Client::Scenes::TipLine{.text = " ", .color = 0, .bold = 0};
-    tips.lines[1] = Client::Scenes::TipLine{.text = "dos", .color = 4, .bold = 1};
-    tips.lines[2] = Client::Scenes::TipLine{};
-    tips.lines[3] = Client::Scenes::TipLine{.text = "nunca", .color = 0, .bold = 0};
-    Client::Scenes::TipBoxContext box{.sprites = m_sprites, .text = m_text, .hud = Hud()};
-    ASSERT_TRUE(
-        Client::Scenes::DrawTheTipBox(box, {.x = 320, .y = 50, .count = 4, .width = 50, .mode = 2, .frame = false})
-            .HasValue());
+    Client::Scenes::TooltipLines& lines = Hud().tooltip;
+    lines.text[0] = " ";
+    lines.text[1] = "dos";
+    lines.colors[1] = Client::Scenes::TooltipGreen;
+    lines.bold[1] = 1;
+    lines.text[2].clear();
+    lines.text[3] = "nunca";
+    GameHudContext context = Context();
+    ASSERT_TRUE(Client::Scenes::DrawTheTooltipBox(context, 320, 50, 4, 50, 2, 0).HasValue());
     ASSERT_EQ(m_text.texts.size(), 1U);
     EXPECT_EQ(m_text.texts[0].text, "dos");
     // La caja: 2 · 50 + 4 = 104 de ancho desde 320 − 52; el texto en sus 102 columnas desde 269.

@@ -72,7 +72,9 @@ Core::Expected<ChatCommandOutcome, std::string> SocialCommand(const ChatCommandC
     return Core::Unexpected(std::format("{}: {} es de la CL9.4", address, what));
 }
 
-// 0x576894..0x576922 y 0x40ebd0: "/" y el nombre de un ítem abre su ayuda; si no, el de un conjunto.
+// 0x576894..0x576922 y 0x40ebd0: "/" y el nombre de un ítem abre su ayuda; si no, 0x40ebd0 compara con "/" y el
+// nombre de cada conjunto usado (strncmp en los dos sentidos: iguales), y antes de cada comparación pone el cartel
+// (+0x9305) en 0. Con uno igual, 0x77f3b08 en 0 y el cartel en su índice + 1. Devuelve 0 (0x576912).
 Core::Expected<ChatCommandOutcome, std::string> TheNamesTail(const ChatCommandContext& context, std::string_view text,
                                                              ChatCommandOutcome outcome)
 {
@@ -86,7 +88,8 @@ Core::Expected<ChatCommandOutcome, std::string> TheNamesTail(const ChatCommandCo
             if (text != "/" + NameOf(*record))
                 continue;
             // 0x576923..0x576952: sin el cartel del conjunto (0x5ae360), la ayuda del ítem (el modo 3), el 0x19 y 1.
-            context.setHelp = 0;
+            if (context.setLabel != nullptr)
+                *context.setLabel = 0;
             context.overlayMode = ItemHelpMode;
             context.helpItem = static_cast<std::int32_t>(index);
             return ChatCommandOutcome{.handled = true, .notices = {}, .sound = true};
@@ -100,13 +103,13 @@ Core::Expected<ChatCommandOutcome, std::string> TheNamesTail(const ChatCommandCo
         const auto record = context.setOptions->Record(index);
         if (!record || (*record)[SetOptionUsedByte] == UnusedSetOption)
             continue;
-        // 0x40ec37: cada conjunto usado apaga el cartel antes de comparar (Q-C614).
-        context.setHelp = 0;
+        if (context.setLabel != nullptr)
+            *context.setLabel = 0;
         if (text == "/" + NameOf(*record))
         {
-            // 0x40ec7e..0x40ec90: el suyo, más 1, y ninguna superposición.
             context.overlayMode = 0;
-            context.setHelp = static_cast<std::uint8_t>(index + 1);
+            if (context.setLabel != nullptr)
+                *context.setLabel = static_cast<std::uint8_t>(index + 1);
             return outcome;
         }
     }

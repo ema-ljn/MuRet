@@ -76,6 +76,9 @@ struct GameChatTables
 {
     std::span<const std::string> filter{};
     const Data::Tables::ItemSetOptionTable* setOptions = nullptr;
+    // ItemSetType.bmd e ItemSetOption.bmd enteras (0x40c600): las lee 0x550d10 al abrir el personaje (0x65ca1e) desde
+    // el paso de la UI. nullptr si no se cargaron: 0x550d10 corta en 0x40e1b0.
+    const Data::Tables::ItemSetTables* itemSetTables = nullptr;
 };
 struct GameChatContext;
 struct InventoryServices;

@@ -18,15 +18,18 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbleDraw.h"
 #include "Scenes/EventMapObject.h"
+#include "Scenes/GameCharacterHud.h"
 #include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameHelps.h"
 #include "Scenes/GameInventoryHud.h"
 #include "Scenes/GameMoveWindow.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GamePartyWindow.h"
+#include "Scenes/GameTooltips.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/TooltipLines.h"
 #include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -38,6 +41,7 @@
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
+#include "UI/SprintfFormat.h"
 #include "UI/TextField.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
@@ -213,14 +217,6 @@ std::uint32_t LittleEndianAt(std::span<const std::byte, Data::Tables::SkillRecor
     return value;
 }
 
-// El byte `index` de las skills del registro propio (+0x6c + index): MuRet tiene las 64 de +0x6c a +0xab.
-std::optional<std::uint8_t> OwnSkillAt(const OwnCharacterRecord& own, std::uint32_t index)
-{
-    if (index >= own.words6c.size() * 4)
-        return std::nullopt;
-    return static_cast<std::uint8_t>((own.words6c[index / 4] >> ((index % 4) * 8u)) & 0xffu);
-}
-
 // 0x465950 con la fuente normal (0x5763554) y los colores de 0x6c8e5c y 0x6c8e64: el modo 1, que empieza en x, o
 // el 4, que termina en x (0x467060, Render::Text::EndingAt).
 void DrawHudText(Frame& frame, int x, int y, std::string_view text, bool endingAtX)
@@ -374,6 +370,86 @@ void DrawStatusIcon(Frame& frame, std::int32_t icon, int x, int y, int width, in
          F32(static_cast<double>((index / 8) * 36) * Texel), 0.125f, 0.13671875f);
 }
 
+// El nombre de un registro de Skill.bmd como lo copia strcpy (0x551e0c): hasta su '\0', dentro del registro.
+std::string SkillRecordName(std::span<const std::byte, Data::Tables::SkillRecordSize> record)
+{
+    std::string name;
+    for (const std::byte value : record)
+    {
+        if (value == std::byte{0})
+            break;
+        name.push_back(static_cast<char>(std::to_integer<unsigned char>(value)));
+    }
+    return name;
+}
+
+// 0x5a6600(x, y, ícono), desde 0x42a735 con el mouse sobre el ícono: su ayuda en la caja de los tooltips (0x5af090,
+// con el modo 2 y el marco). Con el registro propio abierto alrededor, el nombre de la entrada `icon` de Skill.bmd
+// (0x551c70, con el acceso de la entrada: 60 rand() al cerrarla en 0) va en azul y negrita en el renglón 1, entre dos
+// "\n", y el texto del ícono (la tabla de 0x5a69fc), en blanco en el 3; el 0xcc lleva tres, del 3 al 5. No limpia
+// los renglones: un ícono sin texto deja el 3 que había, y el 0xcc, los colores y las negritas del 3 y del 4
+// (Q-C597).
+Core::Expected<void, std::string> DrawTheStatusHelp(Frame& frame, std::int32_t x, std::int32_t y, std::int32_t icon)
+{
+    struct HelpText
+    {
+        std::int32_t icon = 0;
+        std::size_t text = 0;
+    };
+    constexpr std::array<HelpText, 6> Texts{
+        {{0x40, 1466}, {0x43, 1468}, {0x45, 1469}, {0x46, 1470}, {0x4b, 1467}, {0xcb, 1471}}};
+    // 0x5a6855..0x5a6888: los tres del 0xcc.
+    constexpr std::int32_t ThreeLinesIcon = 0xcc;
+    constexpr std::array<std::size_t, 3> ThreeLines{1638, 1639, 1472};
+    TooltipLines& lines = frame.context.hud.tooltip;
+    std::size_t last = 3;
+    {
+        const auto own = OwnAccess(frame);
+        const auto skill = static_cast<std::uint32_t>(icon);
+        auto record = SkillRecordOf(frame, skill, "0x551c70");
+        if (!record.HasValue())
+            return Core::Unexpected(record.Error());
+        std::string name;
+        {
+            const auto entry = SkillAccess(frame, skill);
+            name = SkillRecordName(record.Value());
+        }
+        lines.text[0] = "\n";
+        lines.text[1] = UI::Sprintf("%s", std::string_view(name));
+        lines.colors[1] = TooltipBlue;
+        lines.bold[1] = 1;
+        lines.text[2] = "\n";
+        const auto write = [&](std::size_t line, std::size_t index) -> Core::Expected<void, std::string>
+        {
+            const auto text = TextOf(frame, index, "0x5a6888");
+            if (!text.HasValue())
+                return Core::Unexpected(text.Error());
+            lines.text[line] = UI::Sprintf(text.Value());
+            return {};
+        };
+        if (icon == ThreeLinesIcon)
+        {
+            for (std::size_t i = 0; i < ThreeLines.size(); ++i)
+            {
+                if (auto written = write(3 + i, ThreeLines[i]); !written.HasValue())
+                    return written;
+            }
+            last = 5;
+        }
+        for (const HelpText& help : Texts)
+        {
+            if (help.icon != icon)
+                continue;
+            if (auto written = write(3, help.text); !written.HasValue())
+                return written;
+        }
+        lines.colors[last] = TooltipWhite;
+        lines.bold[last] = 0;
+        lines.text[last + 1] = "\n";
+    }
+    return DrawTheTooltipBox(frame.context, x, y, static_cast<std::int32_t>(last + 2), 0, 2, 1);
+}
+
 Core::Expected<void, std::string> DrawTheStatusIcons(Frame& frame)
 {
     struct StatusIcon
@@ -398,8 +474,10 @@ Core::Expected<void, std::string> DrawTheStatusIcons(Frame& frame)
         DrawStatusIcon(frame, icon.icon, x, 1, 20, 24);
         const UI::Point mouse = frame.context.mouse;
         if (x < mouse.x && mouse.x < x + 20 && 1 < mouse.y && mouse.y < 25)
-            return Core::Unexpected(
-                std::format("0x5a6600: la ayuda del ícono de estado 0x{:x} es del hito 5", icon.icon));
+        {
+            if (auto help = DrawTheStatusHelp(frame, x + 10, 0x1d, icon.icon); !help.HasValue())
+                return help;
+        }
         shown = static_cast<std::uint8_t>(shown + 1);
     }
     return {};
@@ -754,8 +832,12 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     // 0x5f7474: 0x5f0be0(0x1c2, 0), que empieza con su IsOpen.
     if (auto party = DrawThePartyWindow(frame.context, panels, PartyWindowLeft, 0); !party.HasValue())
         return party;
+    // 0x5f7487: 0x5ee2e0 y el botón de cerrar, con la ventana del personaje abierta.
     if (panels.IsOpen(UI::CharacterPanel))
-        return cut("0x5ee2e0: la ventana del personaje es del hito 5");
+    {
+        if (auto character = DrawTheCharacterWindow(frame.context); !character.HasValue())
+            return character;
+    }
     // 0x5f2340, que empieza con su IsOpen.
     if (auto inventory = DrawTheInventory(frame.context, panels); !inventory.HasValue())
         return inventory;
@@ -1048,7 +1130,7 @@ Core::Expected<void, std::string> DrawTheSkillDelay(Frame& frame, std::uint32_t 
     const std::int32_t delay = frame.own.skillDelays[index];
     if (delay <= 0)
         return {};
-    const std::optional<std::uint8_t> skill = OwnSkillAt(frame.own, index);
+    const std::optional<std::uint8_t> skill = frame.own.SkillAt(index);
     if (!skill)
         return Core::Unexpected(
             std::format("0x5532a3: la skill {} del registro propio (+0x6c + {}) no está en MuRet", index, index));
@@ -1091,7 +1173,7 @@ Core::Expected<void, std::string> DrawTheSkillIcon(Frame& frame, std::uint32_t i
     std::uint32_t skill = index;
     if (index <= 0x77)
     {
-        const std::optional<std::uint8_t> fromRecord = OwnSkillAt(frame.own, index);
+        const std::optional<std::uint8_t> fromRecord = frame.own.SkillAt(index);
         if (!fromRecord)
             return Core::Unexpected(
                 std::format("0x5a58c4: la skill {} del registro propio (+0x6c + {}) no está en MuRet", index, index));

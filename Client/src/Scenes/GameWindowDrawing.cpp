@@ -2,7 +2,6 @@
 
 #include "App/WindowState.h"
 #include "Render/OriginalQuad.h"
-#include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -129,18 +128,13 @@ void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::str
     const App::PixelSize screen = context.sprites.Screen();
     const auto box =
         static_cast<std::int32_t>(static_cast<std::uint32_t>(screen.width) * TitleBoxDesignWidth / DesignWidth);
-    if (!text.empty())
+    // 0x554180: 0x465950 con un texto o con caja. 0x467060 en el modo 2 (0x46711b..0x467132): la caja de
+    // cx + 2 · ((caja − cx) / 2) columnas desde _ftol(x · rx), con el fondo entero, y el texto corrido (caja − cx) / 2.
+    if (!text.empty() || box != 0)
     {
-        // 0x46711b..0x46712f: (caja − cx) / 2 con la división de C, desde la x de la caja en píxeles.
-        const Render::Text::TextExtent extent = context.text.Measure(hud.dcFont, text);
-        std::int32_t left = x;
-        if (screen.width > 0)
-        {
-            const std::int32_t pixelX =
-                Truncate(static_cast<double>(x) * static_cast<double>(Render::ScaleX(1.0f, screen)));
-            left = Render::Text::DesignX(pixelX + (box - extent.width) / 2, screen);
-        }
-        context.text.Draw(left, y, text, Render::Text::TextStyle{.font = hud.dcFont, .colors = hud.textColors});
+        const Render::Text::CenteredInBox placed = Render::Text::CenterInBox(context.text, hud.dcFont, text, box);
+        context.text.DrawColumns(x, y, text, Render::Text::TextStyle{.font = hud.dcFont, .colors = hud.textColors},
+                                 -placed.textColumn, placed.width);
     }
     KeepTheMeasure(context, text, box);
 }

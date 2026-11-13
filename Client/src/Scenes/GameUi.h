@@ -11,6 +11,11 @@
 #include <string>
 #include <string_view>
 
+namespace Client::Data::Tables
+{
+struct ItemSetTables;
+}
+
 namespace Client::Input
 {
 class InputState;
@@ -91,6 +96,9 @@ struct GameUiContext
     // Item.bmd, vestir al héroe, el cuervo, los mensajes y el envío del 24 para levantar, soltar y equipar
     // (Scenes/InventoryMoves). nullptr (los tests que no los miran): lo que los necesita corta.
     const InventoryServices* inventory = nullptr;
+    // ItemSetType.bmd e ItemSetOption.bmd (0x40c600), que lee 0x550d10 con el Item.bmd de `inventory` cuando la C o el
+    // botón del HUD abren el personaje (0x65ca1e). nullptr si no se cargaron: abrirlo corta en 0x40e1b0.
+    const Data::Tables::ItemSetTables* itemSetTables = nullptr;
 };
 
 // El WndProc: 0x7d366d4 (el flanco del clic, que apagan quien lo usa y el botón suelto) y 0x7d36874 (el botón

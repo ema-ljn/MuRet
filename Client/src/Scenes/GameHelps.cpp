@@ -4,7 +4,8 @@
 #include "Data/Text/TextTable.h"
 #include "Render/SpriteBatch.h"
 #include "Scenes/GameHud.h"
-#include "Scenes/TipBox.h"
+#include "Scenes/GameTooltips.h"
+#include "Scenes/TooltipLines.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/PanelRegistry.h"
@@ -96,43 +97,39 @@ Core::Expected<void, std::string> DrawTheFunctionHelp(GameHudContext& context, s
     if (context.texts == nullptr)
         return Core::Unexpected(std::format("0x5b0590: la ayuda {} de F1 sin Text.bmd", mode));
     const FunctionHelpTexts& help = mode == UI::FirstHelpMode ? FirstHelpTexts : SecondHelpTexts;
-    // 0x5b056c y 0x5b0571..0x5b0581: sin mezcla y la cuenta en 0.
+    // 0x5b056c y 0x5b0571..0x5b0581: sin mezcla y el renglón que sigue (0x78abb30) en 0.
     context.sprites.SetBlend(Render::BlendMode::Opaque);
-    TipList& tips = context.hud.tips;
-    std::size_t count = 0;
+    TooltipLines& lines = context.hud.tooltip;
+    lines.next = 0;
+    const auto next = [&lines]() { return static_cast<std::size_t>(lines.next++); };
     const auto add = [&](std::size_t index, std::int32_t color, std::int32_t bold) -> Core::Expected<void, std::string>
     {
         const std::optional<std::string_view> text = context.texts->Text(index);
         if (!text)
             return Core::Unexpected(std::format("0x5b0590: la ayuda {} de F1 sin el texto {}", mode, index));
-        if (text->size() >= TipLineSize)
+        if (text->size() >= TooltipLineBytes)
             return Core::Unexpected(
                 std::format("0x5b05bb: el texto {} ({} bytes) no entra en un renglón de la caja de ayuda (Q-C613)",
                             index, text->size()));
-        TipLine& line = tips.lines[count++];
-        line.text = std::string(*text);
-        line.color = color;
-        line.bold = bold;
+        const std::size_t line = next();
+        lines.text[line] = std::string(*text);
+        lines.colors[line] = color;
+        lines.bold[line] = bold;
         return {};
     };
-    tips.lines[count++].text = std::string(LineBreak);
+    lines.text[next()] = std::string(LineBreak);
     if (auto added = add(help.title, TitleColor, 1); !added.HasValue())
         return added;
-    tips.lines[count++].text = std::string(LineBreak);
+    lines.text[next()] = std::string(LineBreak);
     for (std::size_t index = help.first; index <= help.last; ++index)
     {
         if (auto added = add(index, 0, 0); !added.HasValue())
             return added;
     }
-    tips.lines[count++].text = std::string(LineBreak);
-    tips.count = static_cast<std::int32_t>(count);
-    // 0x5b0696 y 0x5b069d.
+    lines.text[next()] = std::string(LineBreak);
+    // 0x5b0696 y 0x5b069d: 0x77f3b66 y la caja de los tooltips, arriba a la izquierda y con marco.
     context.hud.durabilityWarning = 1;
-    TipBoxContext box{.sprites = context.sprites, .text = context.text, .hud = context.hud};
-    return DrawTheTipBox(
-        box,
-        TipBoxCall{
-            .x = HelpCorner, .y = HelpCorner, .count = tips.count, .width = 0, .mode = CenteredMode, .frame = true});
+    return DrawTheTooltipBox(context, HelpCorner, HelpCorner, lines.next, 0, CenteredMode, 1);
 }
 
 Core::Expected<void, std::string> DrawTheItemHelp(GameHudContext& context)
@@ -154,7 +151,8 @@ Core::Expected<void, std::string> DrawTheItemHelp(GameHudContext& context)
     if (kind->dividend != 0 && DivisorOf(screenWidth) == 0)
         return Core::Unexpected(std::format(
             "0x5b097b: la ayuda del ítem {} divide por 0 con una pantalla de {} de ancho (Q-C615)", item, screenWidth));
-    return Core::Unexpected(std::format(
-        "0x5b09a8: la ayuda del ítem {} (0x5afc00, 0x5af590, 0x5af9b0 y 0x5afb00) es del hito 5 (P-C105)", item));
+    return Core::Unexpected(std::format("0x5b09a8: el dibujo de la ayuda del ítem {} (0x5afc00, 0x5af590, 0x5af9b0 y "
+                                        "0x5afb00) no está portado (P-C105)",
+                                        item));
 }
 } // namespace Client::Scenes

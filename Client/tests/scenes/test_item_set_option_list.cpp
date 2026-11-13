@@ -149,4 +149,31 @@ TEST(ItemSetOptionListTest, AnEntryTakenByOneFunctionIsNotTakenByAnother)
     ASSERT_TRUE(Client::Scenes::ApplyItemSetOptionPercent(list, word, 0xa4).HasValue());
     EXPECT_EQ(word, 40);
 }
+
+// 0x40d8c0, el de la magia: el primer byte menos 0x1d contra el byte de abajo del selector, con el segundo distinto de
+// 0 y sin marca; la suma de 32 bits va entera al valor, y sin nada no lo toca. Con más de 16 entradas, error.
+TEST(ItemSetOptionListTest, TheMagicSumTakesTheFlaggedEntriesOfTheSelectorPlus0x1d)
+{
+    ItemSetOptionList list = ListOf({{0x20, 1, 70000}, {0x20, 0, 5}, {0x21, 1, 9}, {0x20, 3, -1}});
+    std::int32_t value = 12;
+
+    ASSERT_TRUE(Client::Scenes::AddSkillSetOptionValues(list, value, 0x103).HasValue());
+
+    EXPECT_EQ(value, 12 + 70000 - 1);
+    EXPECT_EQ(list.used, (std::array<std::uint8_t, 16>{1, 0, 0, 1}));
+    ASSERT_TRUE(Client::Scenes::AddSkillSetOptionValues(list, value, 3).HasValue());
+    EXPECT_EQ(value, 12 + 70000 - 1);
+
+    // Un byte menor que 0x1d no da el selector: la resta es de 32 bits (0x10 − 0x1d no es 0xf3).
+    list = ListOf({{0x10, 1, 4}});
+    value = 0;
+    ASSERT_TRUE(Client::Scenes::AddSkillSetOptionValues(list, value, 0xf3).HasValue());
+    EXPECT_EQ(value, 0);
+
+    list.count9348 = 10;
+    list.count9349 = 7;
+    const auto failed = Client::Scenes::AddSkillSetOptionValues(list, value, 3);
+    ASSERT_FALSE(failed.HasValue());
+    EXPECT_NE(failed.Error().find("0x40d8c0"), std::string::npos);
+}
 } // namespace

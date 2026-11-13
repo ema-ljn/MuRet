@@ -11,6 +11,7 @@
 #include "UI/PanelRegistry.h"
 
 #include "support/ChatTexts.h"
+#include "support/ItemSetFiles.h"
 #include "support/SceneDataFiles.h"
 
 #include <gtest/gtest.h>
@@ -47,7 +48,7 @@ protected:
                                   .macros = macros,
                                   .overlayMode = overlayMode,
                                   .helpItem = helpItem,
-                                  .setHelp = setHelp};
+                                  .setLabel = &setLabel};
     }
 
     const Client::Data::Tables::ItemTable* items = nullptr;
@@ -61,7 +62,7 @@ protected:
     std::array<std::string, MacroCount> macros{};
     std::int32_t overlayMode = 0;
     std::int32_t helpItem = 0;
-    std::uint8_t setHelp = 0;
+    std::uint8_t setLabel = 0;
 };
 
 // Una tabla de `count` registros de `Size` bytes con `name` en los lugares de `named` y `flag` en el byte `at` de
@@ -196,37 +197,59 @@ TEST_F(Commands, AnItemNameOpensItsHelp)
     const auto table =
         TableWith<Client::Data::Tables::ItemRecordSize>(16, Named, "Espadin", 0x24, std::byte{1}, std::byte{0});
     items = &table;
-    setHelp = 4;
+    setLabel = 4;
     const auto outcome = Client::UI::RunTheChatCommand(Context(), "/Espadin", false);
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     EXPECT_TRUE(outcome.Value().handled);
     EXPECT_TRUE(outcome.Value().sound);
     EXPECT_EQ(overlayMode, Client::UI::ItemHelpMode);
     EXPECT_EQ(helpItem, 7);
-    EXPECT_EQ(setHelp, 0);
+    EXPECT_EQ(setLabel, 0);
 }
 
-// 0x40ebd0: "/" y el nombre de un conjunto usado (+0x3c distinto de 0xff) deja su lugar más 1 en +0x9305 y apaga las
-// superposiciones, pero el texto sale como chat. Uno que no es ninguno igual apaga el cartel (Q-C614).
-TEST_F(Commands, ASetNameOpensItsCardAndStillGoesAsChat)
+// 0x40ebd0: "/" y el nombre de un conjunto usado prende su cartel (+0x9305 en su índice + 1) y pone 0x77f3b08 en 0;
+// otro texto con "/" lo apaga si hay algún conjunto usado, y uno sin "/" no lo toca. Nunca es un comando (0x576912).
+TEST(SetCommands, TheNameOfASetShowsItsLabel)
 {
-    constexpr std::array<std::size_t, 2> Named{2, 5};
-    const auto table = TableWith<Client::Data::Tables::ItemSetOptionRecordSize>(
-        Client::Data::Tables::ItemSetOptionCount, Named, "Bruma", 0x3c, std::byte{0}, std::byte{0xff});
-    setOptions = &table;
-    overlayMode = Client::UI::MoveOverlayMode;
-    const auto outcome = Client::UI::RunTheChatCommand(Context(), "/Bruma", false);
-    ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
-    EXPECT_FALSE(outcome.Value().handled);
-    EXPECT_FALSE(outcome.Value().sound);
-    EXPECT_EQ(setHelp, 3);
+    std::vector<std::byte> plain(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff});
+    const std::string_view name = "Delta";
+    const std::size_t offset = 2 * Client::Data::Tables::ItemSetOptionRecordSize;
+    for (std::size_t i = 0; i < name.size(); ++i)
+        plain[offset + i] = static_cast<std::byte>(name[i]);
+    plain[offset + name.size()] = std::byte{0};
+    plain[offset + 0x3c] = std::byte{4};
+    const Client::Data::Tables::ItemSetTables tables = Client::Tests::ItemSetTablesFrom(
+        std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0}), plain);
+    const Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
+    ChatLogState log;
+    std::array<std::string, MacroCount> macros{};
+    std::int32_t overlayMode = 3;
+    std::int32_t helpItem = 0;
+    std::uint8_t label = 9;
+    const ChatCommandContext context{.texts = texts,
+                                     .items = nullptr,
+                                     .setOptions = &tables.options,
+                                     .map = 0,
+                                     .logoutRequested = false,
+                                     .warehouseOpen = false,
+                                     .log = log,
+                                     .macros = macros,
+                                     .overlayMode = overlayMode,
+                                     .helpItem = helpItem,
+                                     .setLabel = &label};
+    const auto shown = Client::UI::RunTheChatCommand(context, "/Delta", false);
+    ASSERT_TRUE(shown.HasValue()) << shown.Error();
+    EXPECT_FALSE(shown.Value().handled);
+    EXPECT_FALSE(shown.Value().sound);
+    EXPECT_EQ(label, 3);
     EXPECT_EQ(overlayMode, 0);
 
-    overlayMode = 1;
-    const auto other = Client::UI::RunTheChatCommand(Context(), "/Niebla", false);
-    ASSERT_TRUE(other.HasValue()) << other.Error();
-    EXPECT_FALSE(other.Value().handled);
-    EXPECT_EQ(setHelp, 0);
-    EXPECT_EQ(overlayMode, 1);
+    overlayMode = 3;
+    ASSERT_TRUE(Client::UI::RunTheChatCommand(context, "/Delt", false).HasValue());
+    EXPECT_EQ(label, 0);
+    EXPECT_EQ(overlayMode, 3);
+    label = 5;
+    ASSERT_TRUE(Client::UI::RunTheChatCommand(context, "Delta", false).HasValue());
+    EXPECT_EQ(label, 5);
 }
 } // namespace

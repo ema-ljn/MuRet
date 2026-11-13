@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
@@ -56,12 +57,20 @@ struct GameHudContext
     const Data::Text::TextTable* texts = nullptr;
     const Data::Tables::ItemTable* items = nullptr;
     const Data::Tables::SkillTable* skills = nullptr;
+    // [0x6eed3c] + 0x8004, los 64 conjuntos de ItemSetOption.bmd que lee el cartel (0x40eca0); sin ellos, corta.
+    const Data::Tables::ItemSetOptionTable* setOptions = nullptr;
+    // [0x6eed3c] + 4, ItemSetType.bmd: el conjunto de cada tipo que leen el nombre y las opciones de un ítem en su
+    // tooltip (0x40cf30, 0x40eee0); sin ella, un ítem de conjunto corta.
+    const Data::Tables::ItemSetTypeTable* setTypes = nullptr;
     // 0x5767b88: el reloj del mundo, en ms.
     float worldClock = 0.0f;
     // 0x7d3682c y 0x7d36828: el mouse en 640 × 480 (UI::MouseIn640x480).
     UI::Point mouse{};
     // 0x7d36874: el botón izquierdo abajo.
     bool leftDown = false;
+    // El código del servidor elegido (App::ServerSession::ChosenServer), de donde salen [0x6d5ec4] (el lugar del
+    // grupo) y [0x6d5ecc] (el número) que lee la ventana del personaje; sin él, corta.
+    std::optional<std::uint16_t> chosenServer{};
     // Lo que el tramo 3D de 0x5ac120 necesita para dibujar los modelos de los ítems de la UI. Sin él (una escena sin
     // la biblioteca de los modelos, como las de las pruebas), cada ítem saca sus rand() sin dibujar.
     UiItemResources* uiItems = nullptr;

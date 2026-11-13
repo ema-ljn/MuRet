@@ -55,4 +55,10 @@ struct ItemSetOptionList
 // productos de 32 bits y la división con signo.
 [[nodiscard]] Core::Expected<void, std::string> AddItemSetOptionPercentOf(ItemSetOptionList& list, std::uint16_t& word,
                                                                           std::uint16_t base, std::uint32_t selector);
+
+// 0x40d8c0 (la magia de 0x5513d0): suma los valores de las entradas sin usar con el primer byte mayor que 0x17 y, menos
+// 0x1d, igual al byte de abajo de `selector`, y con el segundo distinto de 0; las marca, y suma la suma de 32 bits a
+// `value` si no es 0. Con más de 16 entradas, error sin tocar nada, como 0x40d690.
+[[nodiscard]] Core::Expected<void, std::string> AddSkillSetOptionValues(ItemSetOptionList& list, std::int32_t& value,
+                                                                        std::uint32_t selector);
 } // namespace Client::Scenes

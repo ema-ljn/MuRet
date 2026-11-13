@@ -23,9 +23,9 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"
+#include "Scenes/GameTooltips.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/InventoryMoves.h"
-#include "Scenes/ItemSetState.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
@@ -213,7 +213,8 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .chat = &chat,
                                        .requests = &requests,
                                        .systemTime = systemTime,
-                                       .inventory = &inventory});
+                                       .inventory = &inventory,
+                                       .itemSetTables = m_chatTables.itemSetTables});
 }
 
 GameChatContext GameScene::ChatContext()
@@ -279,9 +280,12 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .texts = m_texts,
         .items = m_items,
         .skills = m_skills,
+        .setOptions = m_chatTables.setOptions,
+        .setTypes = m_chatTables.itemSetTables != nullptr ? &m_chatTables.itemSetTables->types : nullptr,
         .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
         .mouse = UI::MouseIn640x480(input, canvas.screen),
-        .leftDown = input.IsDown(Input::MouseButton::Left)};
+        .leftDown = input.IsDown(Input::MouseButton::Left),
+        .chosenServer = m_session != nullptr ? m_session->ChosenServer() : std::nullopt};
     // 0x5ac120: el pase 3D de los ítems de la UI, con los modelos de los ítems, el buffer global de la pose y los
     // contextos de 0x60b3d0 del frame (o sus copias en un dibujo intermedio). Sin la biblioteca, sin dibujo.
     ItemSpecialDrawContext itemSpecial;
@@ -351,16 +355,17 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     // 0x637696: 0x62db60, los diálogos, en la escena 5.
     if (auto dialogs = DrawTheGameDialogs(hud); !dialogs.HasValue())
         return dialogs;
-    // 0x63769b: 0x5f7bc0, los tooltips (hito 4).
+    // 0x63769b: 0x5f7bc0, los tooltips.
+    if (auto tooltips = DrawTheTooltips(hud); !tooltips.HasValue())
+        return tooltips;
     // 0x6376a0..0x6376b6: los avisos y, con el registro del chat en su ventana, el área vieja.
     DrawTheMessages(*m_context.world, hud.hud, canvas.sprites, canvas.text, hud.mouse, true);
     // 0x6376bb: 0x5b0550, las superposiciones.
     if (auto overlays = DrawTheOverlays(hud); !overlays.HasValue())
         return overlays;
-    // 0x6376c6: 0x40eca0, el cartel del conjunto, con +0x9305 de [0x6eed3c] (lo abre el chat con su nombre).
-    if (const std::uint8_t setHelp = m_context.world->ItemSets().setHelp; setHelp != 0)
-        return Core::Unexpected(std::format(
-            "0x6376c6: el cartel del conjunto {} (0x40eca0, con 0x40d530 y 0x5af090) es del hito 5", setHelp));
+    // 0x6376c6: 0x40eca0, el cartel del set, con +0x9305 (lo abre el chat con su nombre).
+    if (auto label = DrawTheSetLabel(hud); !label.HasValue())
+        return label;
     // 0x6376cb: 0x65ee60 → 0x65fe00, la UI nueva (hito 6).
     // 0x6376d7: 0x5ac2d0, el cursor, 0x6376dc: 0x633110, el ítem 3D del diálogo (P-C90), y 0x6376e1: el cursor otra
     // vez, el mismo quad.

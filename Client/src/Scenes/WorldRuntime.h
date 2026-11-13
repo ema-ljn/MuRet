@@ -11,7 +11,7 @@
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/SceneId.h"
-#include "Scenes/TipBox.h"
+#include "Scenes/TooltipLines.h"
 #include "Scenes/WorldTexts.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
@@ -146,6 +146,10 @@ struct HudState
     // (0x5f7610) y las cifras (0x5f7840) del mismo frame (CL8 hito 4).
     std::int32_t inventoryX = 0;
     std::int32_t inventoryY = 0;
+    // 0x78aba14 y 0x78aba18: la esquina de la ventana del personaje, que pone su dibujo (0x5ee2e0) en cada frame, en
+    // (0x1c2, 0). Los leen su paso (0x5e4510) y su botón de cerrar (0x5f74b4), CL8 hito 5.
+    std::int32_t characterX = 0;
+    std::int32_t characterY = 0;
     // 0x78aadcc..0x78aadd4 (.bss, en 0): los ángulos con que 0x5e0720 posa cada ítem de la UI. Los escribe en cada
     // ítem y duran al siguiente y al frame siguiente: el 0x1e1e con un paso que no es 0, 1 ni 2 posa con los del
     // anterior (Q-C478).
@@ -153,9 +157,8 @@ struct HudState
     // [0x5763528]: el cartel de Slide.bmd (0x46aea0), que dibuja el 15 (0x46b090) y escribe al dibujar (la opacidad,
     // el corrimiento, el texto que pasa y 0x5762ee4). Lo llenan el timer 0x3eb y el 0D, y lo pasa el paso de la UI.
     UI::SlideBanner slides{};
-    // 0x78793c8, 0x787a560, 0x78a9230 y 0x78abb30: la lista de la caja de ayuda (0x5af090). Los renglones que una
-    // ayuda no vuelve a escribir quedan como los dejó la anterior.
-    TipList tips{};
+    // 0x78793c8, 0x787a560 y 0x78a9230: los renglones de los tooltips, sus colores y sus negritas (CL8 hito 5).
+    TooltipLines tooltip{};
 };
 
 // 0x78ab9b8, la grilla del ítem del cursor: un puntero en la .bss (0 al arrancar). Lo escriben levantar de una grilla

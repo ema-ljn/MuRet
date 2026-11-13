@@ -458,7 +458,18 @@ el dibujo (`0x630af0..0x630cb8`) y su cola (`0x63140b` por `0x632bf0` y `0x632b1
 vista y con el foco al cerrar (Q-C1295); `0x6d5e2c` en −1 corta (Q-C1296). Las marcas de la lista de la alianza van
 cada una al slot de su renglón (`Render::FirstGuildUnionMarkTextureSlot`, `IGuildMarks::UploadToTheUnionRow`; P-C289).
 Con eso, la ventana del gremio queda tildada; el campo y el reloj del diálogo de los paneles siguen en la CL9.5
-(P-C285) y abrir la ventana de los cargos con otro diálogo de los paneles abierto sigue cortando en `0x6600f9`.
+(P-C285) ~~y abrir la ventana de los cargos con otro diálogo de los paneles abierto sigue cortando en `0x6600f9`~~
+(portado en la fase 7).
+
+**Fase 7 (2026-11-13):** los arreglos de la revisión. Los paquetes que en el original leen o escriben fuera de sus
+tablas ya no cierran la sesión: se descartan enteros sin dejar nada a medio escribir, como Q-C174 y Q-C778 (el `50`,
+Q-C1297, con la pregunta del `m_IfState` del GS para la VM; el `5D`, Q-C1298; el `63` con más de 6, Q-C1301; el `E5`
+con otra relación, Q-C1302; el `52` con más de 80, Q-C1303), y el `65` y el `67` descartan la entrada y siguen
+(Q-C1299, Q-C1300). El `63` pone en 0 el WORD del duelo (`SocialState::duel.word5767816`, `0x4d8958`) en lugar de un
+byte propio. El diálogo de los paneles ya no recorta los renglones a `0xff`: uno de `0x100` o más corta con su
+dirección (Q-C1305). El aviso de `0x6600f9` (los bytes de `0x6d69a8`, tipo 1, y 0 para quien lo abría) está portado en
+`Scenes::PopUpThePanelDialog`, y el botón del cargo le pone los ganchos al diálogo abierto (Q-C1306). Con una flecha
+apretada, el cursor de los `EDIT` no parpadea (Q-C1304, P-C286).
 
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 

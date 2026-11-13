@@ -790,6 +790,85 @@ TEST_P(GuildWindowTest, TheAssignButtonOpensThePositionsWindow)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
+// 0x6600f9, el aviso del diálogo ocupado (0x6d69a8 en EUC-KR, los bytes de main.exe).
+std::string BusyNotice()
+{
+    constexpr std::array<std::uint8_t, 26> Binary{0xc0, 0xcc, 0xb9, 0xcc, 0x20, 0xc6, 0xcb, 0xbe, 0xf7,
+                                                  0xc3, 0xa2, 0xc0, 0xcc, 0x20, 0xb6, 0xb0, 0x20, 0xc0,
+                                                  0xd6, 0xbd, 0xc0, 0xb4, 0xcf, 0xb4, 0xd9, 0x2e};
+    std::string text;
+    for (const std::uint8_t byte : Binary)
+        text.push_back(static_cast<char>(byte));
+    return text;
+}
+
+// 0x657930 da el paso del diálogo y después el de la ventana: con el de quitar el cargo abierto, el clic en echar llega
+// a 0x6507ad, y 0x6600d0 (0x6600f7..0x66011d) da el aviso de 0x6d69a8 en el chat (0x555190 con el tipo 1), deja el
+// abierto como estaba y devuelve 0, que va a +0x428. Sin cortar y sin rand().
+TEST_P(GuildWindowTest, ASecondMasterButtonWithTheDialogOpenGetsTheBusyNotice)
+{
+    JoinTheGuild("");
+    Hero().guildStatus = MasterStatus;
+    AddMember("Sauce", BattleMasterStatus);
+    ASSERT_TRUE(Click(Client::Scenes::GuildDismissButton).HasValue());
+    const Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    ASSERT_EQ(dialog.owner, Client::UI::PanelDialogOwner::GuildDismiss);
+    ASSERT_EQ(Guild().window.dialog, Now);
+    ASSERT_TRUE(Runtime().chat.log.entries.empty());
+    Guild().kickIndex = 7;
+
+    // 0x6507ad: el lugar de 0x64faa0 va a 0x7d536c8 antes de 0x6600d0.
+    const auto clicked = Click(Client::Scenes::GuildKickButton);
+    ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
+    ASSERT_EQ(Runtime().chat.log.entries.size(), 1U);
+    EXPECT_EQ(Runtime().chat.log.entries.front().text, BusyNotice());
+    EXPECT_EQ(Runtime().chat.log.entries.front().type, Client::UI::SystemMessage);
+    EXPECT_EQ(Guild().window.dialog, 0U);
+    EXPECT_EQ(Guild().kickIndex, 0);
+    EXPECT_EQ(dialog.opened, Now);
+    EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::GuildDismiss);
+    EXPECT_EQ(dialog.lines[1], "pierde el cargo");
+    EXPECT_EQ(dialog.hooks, Client::UI::PanelDialogHooks::None);
+    EXPECT_TRUE(m_sent.empty());
+    EXPECT_EQ(Draws(m_random), 0);
+}
+
+// 0x6504b6..0x6504d4 con otro abierto: 0x6600d0 da el aviso y 0 (a +0x428), y 0x6602b0 le pone igual los ganchos de
+// la ventana de los cargos al abierto. Su paso y su dibujo pasan a ser los de los cargos (Aceptar manda el E1 y el 52)
+// y su cierre responde a quien lo abrió (0x64def0 con Cancelar, 0x10: nada).
+TEST_P(GuildWindowTest, TheAssignButtonHooksThePositionsOntoTheOpenDialog)
+{
+    JoinTheGuild("");
+    Hero().guildStatus = MasterStatus;
+    AddMember("Sauce", BattleMasterStatus);
+    ASSERT_TRUE(Click(Client::Scenes::GuildDismissButton).HasValue());
+    Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    ASSERT_EQ(dialog.owner, Client::UI::PanelDialogOwner::GuildDismiss);
+
+    const auto clicked = Click(Client::Scenes::GuildAssignButton);
+    ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
+    ASSERT_EQ(Runtime().chat.log.entries.size(), 1U);
+    EXPECT_EQ(Runtime().chat.log.entries.front().text, BusyNotice());
+    EXPECT_EQ(Guild().window.dialog, 0U);
+    EXPECT_EQ(Guild().chosenStatus, BattleMasterStatus);
+    EXPECT_EQ(dialog.opened, Now);
+    EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::GuildDismiss);
+    EXPECT_EQ(dialog.flags, Client::UI::PanelDialogConfirm);
+    EXPECT_EQ(dialog.hooks, Client::UI::PanelDialogHooks::GuildPositions);
+
+    ASSERT_TRUE(DrawTheDialog().HasValue());
+    Guild().positions.choice = Client::Scenes::AssistantChoice;
+    const auto accepted = ClickThePositionsButton(Client::Scenes::GuildPositionsOkButton);
+    ASSERT_TRUE(accepted.HasValue()) << accepted.Error();
+    ASSERT_EQ(m_sent.size(), 2U);
+    EXPECT_EQ(PlainOf(m_sent[0]), BytesOf({0xc1, 0x0f, 0xe1, 0x02, 0x40, 'S', 'a', 'u', 'c', 'e', 0, 0, 0, 0, 0}));
+    const auto list = m_sent[1].packet.Bytes();
+    EXPECT_EQ(std::vector<std::byte>(list.begin(), list.end()), BytesOf({0xc1, 0x03, 0x52}));
+    EXPECT_EQ(dialog.opened, 0U);
+    EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::None);
+    EXPECT_EQ(Draws(m_random), 0);
+}
+
 // 0x64f1c0: la caja de 0x96 en (0xd6, 0x37), que deja la esquina para el paso; las dos cajas de 170 × 20 en
 // (x + 0x14, y + 0x13) y (x + 0x14, y + 0x27), rellena (0x621aa0) la del cargo elegido; los textos centrados en 170
 // desde x + 0x14, con la fuente y los colores que había; y los dos botones en y + 0x75. Sin rand().

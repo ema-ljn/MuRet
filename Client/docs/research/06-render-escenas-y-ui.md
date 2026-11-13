@@ -2629,13 +2629,13 @@ guerra (1 del gremio del héroe, 2 del rival, 0 los demás).
 **Los paquetes.**
 
 - `50` (`0x4d74b0`): guarda la clave en `0x78aba40`; con el diálogo de los paneles ocupado (`0x660340` ≠ 0) manda el
-  `51` con 0 y nada más. Si no, busca al personaje (`0x5110d0`; sin él lee fuera de los 400: corta) y abre el diálogo
+  `51` con 0 y nada más. Si no, busca al personaje (`0x5110d0`; sin él lee fuera de los 400: MuRet descarta el `50` entero, Q-C1297) y abre el diálogo
   con dos renglones (`sprintf` de los textos 418, con el nombre, y 429 a buffers de `0x32`, Q-C1282), Confirmar y
   Cancelar (4) y `0x4d6b60`, que responde el `51` con 1 si el motivo es 8 y con 0 si no, y devuelve 1.
 - `51` (`0x4d7a20`): de 0 a 7, el texto 503 + resultado como error (`0x555190` tipo 2); siempre `0x6236f0(0)`.
 - `52` (`0x4d7b60`): la cuenta, el puntaje, el nombre en `+0x88` de la ventana (`0x651650`), las dos listas de la
   ventana vaciadas (`0x6517d0`, `0x651830`) y cada miembro copiado a `0x787a5e8` y agregado a la lista (`0x6517a0`).
-  Más de 80 pisan la tabla de los gremios: MuRet corta.
+  Más de 80 pisan la tabla de los gremios: MuRet descarta el `52` entero (Q-C1303).
 - `53` (`0x4d7c30`): de 0 a 4, el texto 511 + resultado; con 5, el 568 y el `C1 03 52`. Con 1 y con 4 (el `JZ`
   del 1 cae sobre un `CMP AL,4` y sigue): el 4 con gremio (`+0x1f2` ≠ −1) pone −1 y borra la entrada (la clave −1 y el
   primer byte de los dos nombres); los dos ponen `+0x368 = 0xff`, `+0x370 = 0`, `0x576796c = 0`,
@@ -2644,7 +2644,7 @@ guerra (1 del gremio del héroe, 2 del rival, 0 los demás).
 - `56` (`0x4d7ff0`): con 1, los diez primeros bytes del buffer del mensaje (`0x7798bf8`) y su largo en 0,
   `0x6c8e78 = 10`, cierra la ventana 2 (`0x65cae0(0x40000)`), `0x77f3b10 = 0` y `0x6c8dcc = 6`; con 0, 2..6, los
   textos 516, 517, 518, 940, 941 y 942 como error.
-- `5D` (`0x4e42f0`): `0x78aba38 = −1`; el personaje de la clave (sin él, escribe fuera: corta) queda con `+0x1f2 = −1`,
+- `5D` (`0x4e42f0`): `0x78aba38 = −1`; el personaje de la clave (sin él, escribe fuera: MuRet descarta el `5D` entero, Q-C1298) queda con `+0x1f2 = −1`,
   `+0x368 = 0xff`, `+0x369`, `+0x36c` y `+0x370` en 0, y cierra el gremio.
 - `60` (`0x4d8150`): de 0 a 6, el texto 519 + resultado; con un resultado que no es 1 y sin guerra, apaga la guerra,
   el índice del rival en −1, el nombre vacío, y vuelve a marcar `+0x374` de los vivos sin el rival.
@@ -2656,7 +2656,7 @@ guerra (1 del gremio del héroe, 2 del rival, 0 los demás).
   `C1 05 18` con `0x94` y la dirección de `+0x24` del héroe. Con el héroe parado, `0x576a60` anima y manda el suyo:
   salen dos `C1 18` iguales, como en un emote (Q-C776).
 - `63` (`0x4d8870`): el aviso resaltado (527..532 de 0 a 5, 480 con 6; con más, el buffer de la pila sin
-  inicializar: corta), `0x5767816 = 0`, la guerra apagada, el rival olvidado y `+0x374` remarcado; con 0, 3 y 5 el
+  inicializar: MuRet descarta el `63` entero, Q-C1301), `0x5767816 = 0` (el WORD del duelo, `SocialState::duel`), la guerra apagada, el rival olvidado y `+0x374` remarcado; con 0, 3 y 5 el
   gesto `(0xa7, 0x89)`, con 1, 2 y 4 `(0xad, 0x8d)`, con 6 ninguno; cada gesto con su `C1 18`.
 - `64` (`0x4e4400`): prende la guerra y guarda los dos puntajes.
 - `66` (`0x4e42c7` → `0x447b90`): la entrada de la clave (sin ella, nada) con los dos nombres y la marca abierta en
@@ -2666,7 +2666,7 @@ guerra (1 del gremio del héroe, 2 del rival, 0 los demás).
 - `E5` (`[0x7d536f4]→0x6565e0`): con el diálogo ocupado responde el `E6` con 0 sin guardar nada. Si no, guarda los
   cuatro bytes y, con el personaje de la clave, abre el diálogo con tres renglones de `0x40` (1280 con el nombre y
   1281/1282 con la alianza, 1284 y 1286/1285 con la rivalidad, y 1283; con otra relación, los buffers sin inicializar:
-  corta) y `0x653c00`, que responde con 1 a Confirmar y con 0 a Cancelar (lo demás, nada) y devuelve 1. El handle va a
+  MuRet descarta el `E5` entero, Q-C1302) y `0x653c00`, que responde con 1 a Confirmar y con 0 a Cancelar (lo demás, nada) y devuelve 1. El handle va a
   `+0x2a4` de la ventana 2.
 - `E6` (`0x4d9940`): mensaje del sistema según el resultado (1381/1382/1635 o el inválido con la alianza; 1383/1384
   con la rivalidad; 1328 con 0; la tabla de `0x10`..`0x20`; si no, `"Invalid GuildRelationShipResult"`); con la clave
@@ -2684,7 +2684,7 @@ guerra (1 del gremio del héroe, 2 del rival, 0 los demás).
 
 **El diálogo de los paneles** (`[0x7d53704]`, `0x65feb0`, `0x1064` bytes). `0x6600d0(renglones, cuenta, paso,
 banderas, función, arriba)`: con más de 10 renglones o con otro abierto (`+0x10` ≠ 0; con el aviso de `0x6d69a8`)
-devuelve 0; si no, `0x660090`, `+0xa24` = arriba, copia cada renglón no vacío (`strcpy` sin tope) y suma
+devuelve 0; si no, `0x660090`, `+0xa24` = arriba, copia cada renglón no vacío (`strcpy` sin tope a su lugar de `0x100`; uno de `0x100` o más corta en MuRet, Q-C1305) y suma
 `cy + 2` de `GetTextExtentPoint32A` con el DC; el alto es eso + `0x2b`, + `0x14` con botones (`& 7`), + `0x11` con el
 campo (`0x10`) y + `0x11` con el reloj (8); el ancho `0xd5`; `GetTickCount()` en `+0xe34` y `+0x10` (el handle que
 devuelve) y el final del reloj (`+0xe3c`, 5.000) en `+0xe38`. Los botones (`+0xe40`, `+0xec8`, `+0xf50`, `+0xfd8`):
@@ -2711,9 +2711,9 @@ manda `C1 04 54 00`.
 agrega en la entrada de la cuenta (−1 con la tabla llena; no limpia la entrada: los nombres y la marca quedan hasta el
 `66`). Con el personaje vivo, `+0x374` en 0, en 1 con el gremio del héroe (si tiene) y, en guerra, en 2 con el del
 rival: sin índice del rival (`0x6c82f0` en −1) y con su nombre, lo busca de la entrada 0 a la 1998 y deja el que
-encuentra o −1 (el `62` deja el que había). Con la entrada del héroe, `0x412120` copia `+0x1f2` y `+0x368` a
+encuentra o −1 (el `62` deja el que había). Sin el personaje (400), escribe en el registro de después de los 400: MuRet descarta la entrada y sigue (Q-C1299). Con la entrada del héroe, `0x412120` copia `+0x1f2` y `+0x368` a
 `0x6c6498` y `0x6c649a` (los lee `0x412140`, el panel del mapa 30). El `67` (`0x4e44aa`): el nombre de la alianza en
-`+4..+0xc` de la entrada de su gremio (con −1, el miembro 74: Q-C1284) y la relación en `+0x370` del personaje.
+`+4..+0xc` de la entrada de su gremio (con −1, el miembro 74: Q-C1284) y la relación en `+0x370` del personaje (sin él, el registro de después de los 400: MuRet descarta la entrada entera, nombre incluido, y sigue, Q-C1300).
 
 **La marca** (`0x5f16a0(índice, fondo)`): la paleta de 16 DWORD en `0x77f3d84` (`0xAABBGGRR`; el 0 negro con alfa
 `0x80`, o transparente con el fondo distinto de 0; 1 negro, 2 gris, 3 blanco, 4 rojo, 5 naranja, 6 amarillo, 7
@@ -2766,7 +2766,12 @@ fase 2 suma el `65` y el `67`, el dibujo del diálogo (`Scenes::DrawThePanelDial
 `0x22` entre quad y quad), la marca sobre el personaje (`DrawGameCharacters`, con los huesos que posa el dibujo de
 este frame) y el marcador (`Scenes::DrawTheWarScore`). El gesto es `Scenes::PlayTheEmote` (hito 1). Los handlers no
 sacan `rand()` propios: solo el registro de los paneles, y abrir el gremio o la ventana 2 (el `54`) saca los cuatro de
-`CanOpen` y `CloseByMask` (las consultas del comercio y de la tienda); cerrarlos, ninguno.
+`CanOpen` y `CloseByMask` (las consultas del comercio y de la tienda); cerrarlos, ninguno. La fase 7 (la revisión)
+porta el aviso de `0x6600f9` en `Scenes::PopUpThePanelDialog` (los bytes de `0x6d69a8` con `0x555190` tipo 1, y 0
+para quien lo abría: `+0x428`, `+0x2a0`), que usan el `50`, el `E5` y los botones de las dos ventanas, y descarta
+sin cerrar la sesión lo que en el original lee o escribe fuera de sus tablas (Q-C1297..Q-C1303). Tests:
+`GuildReceiveTest`, `GuildWindowTest.ASecondMasterButtonWithTheDialogOpenGetsTheBusyNotice`,
+`SecondGuildWindowTest.ASecondClickOnTheMarkGetsTheBusyNotice` y `PanelDialogBusyNoticeTest`.
 
 ### La ventana 2: el alta del gremio (fase 3)
 
@@ -2880,8 +2885,8 @@ portado en la fase 6 (§ El diálogo del número del gremio). Tests: `GuildWindo
 
 **La ventana de los cargos (`0x64e600` y `0x64f1c0`).** El botón `+0x4b4` abre el diálogo de los paneles sin renglones
 (`0x6600d0(0, 0, 0, 0, 0, 0)`: `0xd5` × `0x2b`, sin botones ni función), guarda lo que da en `+0x428` y le pone los
-ganchos con `0x6602b0(0x64e600, 0x64f1c0)` (`0x6504be`); con otro diálogo abierto, `0x6600d0` da 0 y los ganchos
-quedarían en el abierto (MuRet corta antes, en `0x6600f9`). Cerrar (`0x660350`) no los borra; el próximo `0x6600d0`
+ganchos con `0x6602b0(0x64e600, 0x64f1c0)` (`0x6504be`); con otro diálogo abierto, `0x6600d0` da el aviso de `0x6d69a8` y 0, y los
+ganchos quedan en el abierto (Q-C1306, portado en la fase 7). Cerrar (`0x660350`) no los borra; el próximo `0x6600d0`
 sí (`0x660090`). Los globales: dos botones de `0x32` × `0x12` armados antes de `WinMain` (`0x64e590` y `0x64e5d0` con
 `0x45ad80`), `0x7d535b8` (5, el 228) y `0x7d53640` (6, el 229), a los que `0x64f3e0` les pone el comando y el texto
 (`0x45b150`), el padre (`+0x44` con el `+0x40` de la ventana) y el tamaño; el cargo elegido `0x7d536d8` (0x40 en
@@ -2901,7 +2906,8 @@ los botones y el reloj): el mouse sobre `0xd5` × `0xfa` desde la esquina prende
 **MuRet** (fase 5): `UI::PanelDialogHooks` en `PanelDialogState` (`HookThePanelDialog`), el paso en
 `Scenes::StepTheGuildPositions` (desde `LendThePanelDialogStepTo`), el dibujo en `Scenes::DrawTheGuildPositions` (desde
 `DrawThePanelDialog`) y los globales en `GuildState::positions`, con los ids −20 y −21 (P-C280). Sin `rand()`. Tests:
-`GuildWindowTest` (abrir, dibujar, elegir y mandar el `E1` 01 y 02 byte a byte con el `52`, cancelar),
+`GuildWindowTest` (abrir, dibujar, elegir y mandar el `E1` 01 y 02 byte a byte con el `52`, cancelar; con otro
+diálogo abierto, el aviso y los ganchos en el abierto, fase 7: `TheAssignButtonHooksThePositionsOntoTheOpenDialog`),
 `PanelDialogTest.WithItsOwnStepItOnlyTakesTheMouse`.
 
 **Las listas del aviso y de la alianza.** `+0x1c8` (`0x46b800`, vtable final `0x6b95e8`) y `+0x2f8` (`0x46d440`,

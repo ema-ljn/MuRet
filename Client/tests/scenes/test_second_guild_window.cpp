@@ -23,7 +23,9 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
+#include "UI/ChatLog.h"
 #include "UI/Dialogs.h"
+#include "UI/MessageArea.h"
 #include "UI/OldWindowBase.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
@@ -219,6 +221,7 @@ protected:
                                                    .mouseX = m_mouseX,
                                                    .mouseY = m_mouseY,
                                                    .now = Now,
+                                                   .screen = Screen640,
                                                    .measure = &m_text,
                                                    .texts = &m_texts,
                                                    .filterName = m_filterName,
@@ -411,6 +414,36 @@ TEST_P(SecondGuildWindowTest, TheMarkButtonOpensTheNotEnabledDialog)
     ASSERT_NE(Client::UI::PanelDialogHandle(dialog), 0u);
     EXPECT_EQ(Guild().secondWindow.dialog2a0, Client::UI::PanelDialogHandle(dialog));
     EXPECT_EQ(Guild().createStep, 0);
+    EXPECT_TRUE(m_sent.empty());
+}
+
+// 0x6560b3 con el diálogo abierto (un segundo clic: 0x657930 da el paso del diálogo y después el de la ventana):
+// 0x6600d0 da el aviso de 0x6d69a8 en el chat (0x555190 con el tipo 1) y 0, que va a +0x2a0; el abierto sigue. Sin
+// cortar.
+TEST_P(SecondGuildWindowTest, ASecondClickOnTheMarkGetsTheBusyNotice)
+{
+    Hero().guildStatus = 0x80;
+    Hero().word1f2 = 4;
+    OpenIt();
+    ASSERT_TRUE(Draw().HasValue());
+    Click(Client::Scenes::SecondGuildMarkButton);
+    const Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    ASSERT_EQ(Guild().secondWindow.dialog2a0, Now);
+    ASSERT_TRUE(Runtime().chat.log.entries.empty());
+
+    Click(Client::Scenes::SecondGuildMarkButton);
+    constexpr std::array<std::uint8_t, 26> Binary{0xc0, 0xcc, 0xb9, 0xcc, 0x20, 0xc6, 0xcb, 0xbe, 0xf7,
+                                                  0xc3, 0xa2, 0xc0, 0xcc, 0x20, 0xb6, 0xb0, 0x20, 0xc0,
+                                                  0xd6, 0xbd, 0xc0, 0xb4, 0xcf, 0xb4, 0xd9, 0x2e};
+    std::string notice;
+    for (const std::uint8_t byte : Binary)
+        notice.push_back(static_cast<char>(byte));
+    ASSERT_EQ(Runtime().chat.log.entries.size(), 1U);
+    EXPECT_EQ(Runtime().chat.log.entries.front().text, notice);
+    EXPECT_EQ(Runtime().chat.log.entries.front().type, Client::UI::SystemMessage);
+    EXPECT_EQ(Guild().secondWindow.dialog2a0, 0U);
+    EXPECT_EQ(dialog.opened, Now);
+    EXPECT_EQ(dialog.lines[0], "Todavia no");
     EXPECT_TRUE(m_sent.empty());
 }
 

@@ -611,6 +611,43 @@ TEST_F(FriendWindowsDrawTest, TheEditCaretBlinksAndAHiddenEditDrawsNothing)
     EXPECT_EQ(edit.draws, 25);
 }
 
+// 0x46854d: el WM_GETTEXT de GetWindowTextA pasa por la subclase (0x467b10), que con una flecha abajo pone +0x80 en 0
+// después de que el dibujo eligió el cursor; el INC lo deja en 1, y el cursor queda prendido mientras siga abajo.
+// Oculto, el EDIT sale antes (IsWindowVisible) y no cuenta.
+TEST_F(FriendWindowsDrawTest, AHeldArrowKeepsTheEditCaretOn)
+{
+    OldEdit edit;
+    edit.base.x = 20;
+    edit.base.y = 40;
+    edit.base.width = 80;
+    edit.base.height = 14;
+    edit.text.Type("ab");
+    const auto quads = [this] { return m_sprites.Vertices().size() / 6; };
+    OldWindowDrawContext held = Context();
+    held.arrowHeld = true;
+
+    edit.draws = 13;
+    Client::UI::OldDraw::DrawTheOldEdit(held, edit, true);
+    // El bitmap y el texto: el cursor se eligió con 13.
+    EXPECT_EQ(quads(), 2u);
+    EXPECT_EQ(edit.draws, 1);
+
+    m_sprites.Begin(Screen640);
+    Client::UI::OldDraw::DrawTheOldEdit(held, edit, true);
+    EXPECT_EQ(quads(), 3u);
+    EXPECT_EQ(edit.draws, 1);
+
+    // Sin el foco el WM_GETTEXT llega igual.
+    edit.draws = 20;
+    Client::UI::OldDraw::DrawTheOldEdit(held, edit, false);
+    EXPECT_EQ(edit.draws, 1);
+
+    edit.draws = 20;
+    edit.base.state = Client::UI::HiddenWindow;
+    Client::UI::OldDraw::DrawTheOldEdit(held, edit, true);
+    EXPECT_EQ(edit.draws, 20);
+}
+
 // 0x468584..0x4685ec, el EDIT con ES_PASSWORD (el número del diálogo 0x7d, CL9 hito 8): el texto es un '*' por byte,
 // el bitmap mide los '*' en la negrita y el DC queda con la normal; el cursor, al final de los '*'.
 TEST_F(FriendWindowsDrawTest, AMaskedEditDrawsStarsAndLeavesTheNormalFont)

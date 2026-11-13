@@ -386,7 +386,7 @@ Core::Expected<void, std::string> StepTheMasterButtons(const GuildWindowStepCont
             // 0x6504b6: 0x6600d0 sin renglones ni botones (0xd5 × 0x2b) con lo que da en +0x428, y 0x6602b0 con el paso
             // y el dibujo de la ventana de los cargos. Con otro abierto, 0x6600d0 da 0 (con el aviso) y 0x6504d4 le
             // pone los ganchos igual al abierto: su paso y su dibujo pasan a ser los de los cargos, y su respuesta
-            // sigue.
+            // sigue (Q-C1306).
             if (auto opened = OpenTheGuildDialog(context, {}, 0, UI::PanelDialogOwner::None, "0x6504b6");
                 !opened.HasValue())
                 return opened;

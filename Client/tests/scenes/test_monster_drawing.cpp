@@ -375,7 +375,7 @@ TEST_F(MonsterDrawingTest, TheOutlineGoesBeforeTheBodyWithTheMonsterOrTheNpcColo
 }
 
 // 0x60cdd9: las puertas de Kalima (0xc5) llevan el contorno solo en la malla 0 (0x60ce4e); otro, en las dos. El cuerpo
-// del 0xc5 lo dibuja 0x438fe0 (las dos mallas) y después corta su helper, 0x43c150.
+// del 0xc5 lo dibuja 0x438fe0 (las dos mallas) y su helper, 0x43c150, quieto (acción 0) no agrega nada.
 TEST_F(MonsterDrawingTest, TheKalimaGateOutlinesOnlyItsFirstMesh)
 {
     constexpr std::uint16_t Gate = 0xc5;
@@ -392,8 +392,7 @@ TEST_F(MonsterDrawingTest, TheKalimaGateOutlinesOnlyItsFirstMesh)
 
         const auto gate = Draw(pass);
 
-        ASSERT_FALSE(gate.HasValue());
-        EXPECT_NE(gate.Error().find("0x43c150"), std::string::npos) << gate.Error();
+        ASSERT_TRUE(gate.HasValue()) << gate.Error();
         ASSERT_EQ(m_batch.Vertices().size(), 12u);
         ExpectColor(m_batch.Vertices()[0], 0.1f, 0.01f, 0.0f, 1.0f);
         ExpectColor(m_batch.Vertices()[3], 0.7f, 0.07f, 0.0f, 1.0f);
@@ -502,8 +501,7 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
     // lo que cuelga y de su rand() % 30, en el primer hueso con nombre que su alta no registró (0x427291); lo de
     // 0x50bf45, después de la sombra.
     constexpr std::array cases{Case{Spider, 0x59, "0x50bb96", 0, 0}, Case{HelperType, 0x20, "0x427291", 6, 4},
-                               Case{Spider, 0x26, "0x50c671", 6, 0}, Case{0x18e, 0x21, "0x4ee770", 0, 4},
-                               Case{0x16e, 0x22, "0x5108b6", 6, 3}};
+                               Case{Spider, 0x26, "0x50c671", 6, 0}, Case{0x18e, 0x21, "0x4ee770", 0, 4}};
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.address);
@@ -693,6 +691,52 @@ TEST_F(MonsterDrawingTest, AMonsterWithARavenDrawsItAfterItsTail)
     const auto drawn = Draw(pass);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_GT(m_batch.Vertices().size(), 6u);
+}
+
+// 0x5108b6..0x510a1c, el 0x16e: por cada hueso que no es dummy, fuera de los 15..20 y 27..32 (36 de los 48), el 0x5fd
+// de 2,5 con la mezcla 1 (+0x1d6 en 0) o el 0x61e de 0,8 verde, y un rand() & 3; con 0 en las acciones 3 y 4, la
+// partícula 0x5ca con la misma luz. Después salta la cadena de helpers.
+TEST_F(MonsterDrawingTest, TheBoneSparksOf0x16eGoOverEachBoneOutsideTheTwoGaps)
+{
+    ActorState& sparks = Monster(0, 0x16e, 0x22);
+
+    const auto plain = Draw(Pass());
+
+    ASSERT_TRUE(plain.HasValue()) << plain.Error();
+    auto sprites = LiveSprites();
+    ASSERT_EQ(sprites.size(), 36u);
+    for (const auto& sprite : sprites)
+    {
+        EXPECT_EQ(sprite.texture, 0x5fd);
+        EXPECT_FLOAT_EQ(sprite.scale, 2.5f);
+        EXPECT_EQ(sprite.blend, 1);
+        EXPECT_EQ(sprite.light, glm::vec3(1.0f));
+    }
+    // Los huesos 14 y 21 quedan a los lados del primer hueco, y el 26 y el 33 del segundo.
+    EXPECT_EQ(sprites[14].position, glm::vec3(150.0f, 150.0f, 24.0f));
+    EXPECT_EQ(sprites[15].position, glm::vec3(150.0f, 150.0f, 31.0f));
+    EXPECT_EQ(sprites[20].position, glm::vec3(150.0f, 150.0f, 36.0f));
+    EXPECT_EQ(sprites[21].position, glm::vec3(150.0f, 150.0f, 43.0f));
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3 + 36));
+
+    // Con nivel, el 0x61e verde; la acción 3 con un rand() & 3 en 0 pide la partícula 0x5ca, que necesita el pool.
+    for (auto& sprite : m_sprites.Sprites())
+        sprite.alive = false;
+    m_batch.Begin(Client::Render::Pass3D{});
+    sparks.level = 1;
+    sparks.animation.action = 3;
+    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+
+    const auto missing = Draw(Pass());
+
+    ASSERT_FALSE(missing.HasValue());
+    EXPECT_NE(missing.Error().find("0x5109f2"), std::string::npos) << missing.Error();
+    sprites = LiveSprites();
+    ASSERT_FALSE(sprites.empty());
+    EXPECT_EQ(sprites[0].texture, 0x61e);
+    EXPECT_FLOAT_EQ(sprites[0].scale, 0.8f);
+    EXPECT_EQ(sprites[0].blend, 0);
+    EXPECT_EQ(sprites[0].light, glm::vec3(0.2f, 0.7f, 0.1f));
 }
 
 TEST_F(MonsterDrawingTest, BetweenOriginalFramesNothingIsStored)

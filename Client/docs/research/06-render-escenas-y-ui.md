@@ -6272,8 +6272,9 @@ modelo compartido del tipo, `[0x5769ad8] + tipo · 0xe0` (`0x4fd6b0`). Leído en
 
 **La estructura**, en orden:
 
-1. `0x4fd603..0x4fd693`: con el tipo `0xc5`, arma con `[0x6b851c]` (`sprintf`) el nombre (`+0x1d9`) y `+0x1d6`, y
-   llama a `0x4381f0`.
+1. `0x4fd603..0x4fd693`: con el tipo `0xc5`, arma con `[0x6b851c]` (`sprintf`) `"%s ."` (`0x6c88bc`) con el nombre
+   (`+0x1d9`) y Text.bmd[1176] (`0x77133fc`) con `+0x1d6` sin signo, los pega con `strcat` en el buffer de 100 bytes
+   de la pila y llama a `0x4381f0` con la posición (`+0x10`).
 2. `0x4fd69b..0x4fd6ef`: copia la posición (`+0x10..+0x18`), la escala (`+0xc`) y la acción (`+0x111`) a `b`
    (`+0x6c..+0x74`, `+0x68` y `+0xa0`).
 3. Seis pasos sin condición en el que llama:
@@ -6401,10 +6402,10 @@ columnas son la dirección, los bytes, qué es y qué tiene MuRet.
 | `0x412810` | 114 | un acceso de la protección | no se porta (protección) |
 | `0x41fa40` | 49 | un aviso con formato (`0x6c637c`), cuando la tabla no tiene la entrada | no se porta (protección) |
 | `0x41ed10`, `0x41ee00` | 156, 65 | el sonido | — (CL10) |
-| `0x4381f0` | 500 | el nombre del `0xc5` | corta en `0x4fd603` |
+| `0x4381f0` | 500 | el nombre del `0xc5` | `Scenes::QueueWorldText`, desde `QueueTheGateName` (CL9 hito 2, fase 6c) |
 | `0x4fbe10` | 1.599 | la celda del héroe por la red, en los mapas 18 a 23 | corta |
 | `0x4fc450` | 819 | los WORD del registro propio | `StepTheOwnTimers` |
-| `0x4fb380` | 1.619 | `+0x398`, `+0x399` y el `0xf1` | el `0xf1` corta en `0x4fb910` |
+| `0x4fb380` | 1.619 | `+0x398`, `+0x399` y el `0xf1` | el `0xf1`, `Scenes::StepTheFallingBall` (`0x4fb910`, CL9 hito 2, fase 6c) |
 | `0x4fb9e0` | 1.058 | muriéndose | corta |
 | `0x4e9980` | 191 | el alpha | `World::StepObjectAlpha` |
 | `0x4fcd00` | 473 | la animación | `StepTheAnimation`, con el `0x20a`; corta en `0x4fcd0c` y `0x4fcda2` |
@@ -6412,10 +6413,10 @@ columnas son la dirección, los bytes, qué es y qué tiene MuRet.
 | `0x4ec110` | 120 | un punto de un hueso | `Render::Models::OriginalRotation`; acá no se llega |
 | `0x530860`, `0x53fe70`, `0x518cf0` | 17.516, 15.049, 27.599 | los joints, las partículas y los efectos | aparte, para el caballo y el login; acá cortan antes |
 | `0x4e93f0` | 195 | el rumbo de un punto a otro | `Render::Models::OriginalAngles`; acá no se llega |
-| `0x5f93c0` | 349 | la altura del terreno | `World::TerrainHeightAt`; acá no se llega |
+| `0x5f93c0` | 349 | la altura del terreno | `World::TerrainHeightAt`; la pide el `0xf1` (`0x4fb942`) |
 | `0x5588d0`, `0x558eb0` | 731, 327 | leen Ctrl (`Input/Key.h`), desde la habilidad | — |
 | `0x4f97b0`, `0x4f5b70`, `0x59fb80`, `0x53e2b0`, `0x5526f0`, `0x517630`, `0x42ea00`, `0x51fff0`, `0x52e740`, `0x534f90`, `0x534fd0`, `0x4f2230`, `0x4f5b10`, `0x437860`, `0x4e79a0` | 6.489, 13.523, 652, 1.667, 660, 494, 435, 382, 197, 62, 69, 32, 93, 43, 667 | sin leer: solo los llama la habilidad (punto 9) | — |
-| `0x52f360` | 482 | el `0xf1` (`0x505433`), sin leer | corta antes, en `0x4fb910` |
+| `0x52f360` | 482 | el fuego de la clase 0 del `0xf1` (`0x505425..0x505433`) | `World::EmitObjectFire` con los ángulos, la posición y la luz del personaje |
 | `0x511070` | 84 | con `+0x428` entre −127 y 0, sin leer | no se llega |
 | `0x42a2b0` | 542 | el `0x1a8` | con el `0x20a` no hace nada |
 | `0x4fcee0` | 1.806 | la estela del arma | `StepTheWeaponTrail`: sin estela; corta en `0x4fd236` |
@@ -6469,7 +6470,9 @@ se repite. Es el mismo en los dos mapas (`GoldenCharacterStep.TheHeroAtRestDraws
 - Los campos que este camino no alcanza no existen en `ActorState`: lo de arriba queda escrito en comentarios.
 - Corta con error, después de los `rand()` de antes:
   - en los mapas 18 a 23 (`0x4fbe10`);
-  - con el `0xc5` (`0x4fd603`) y el `0xf1` (`0x4fb910`);
+  - ~~con el `0xc5` (`0x4fd603`) y el `0xf1` (`0x4fb910`)~~ (CL9 hito 2, fase 6c: el nombre del `0xc5` va a la cola
+    de `0x4381f0` y corta solo sin Text.bmd, `0x4fd63b`, o si pasa de los 100 bytes, `0x4fd67c`; el `0xf1` cae,
+    rebota, gira y suelta su fuego, y corta solo sin la altura del terreno, `0x4fb942`; Q-C1095 y Q-C1096);
   - muriéndose (`0x4fb9e0`);
   - con `+0x88` en 4 (`0x4fcd0c`) y con el nombre de `0x6c88b0` (`0x4fcda2`);
   - con otro modelo o sin Player.bmd (`0x4f9580`), y con una acción fuera de él (`0x4f95c0`);
@@ -10214,10 +10217,40 @@ de `DrawTheHud`, con `WorldRuntime::healthBars` (un `std::deque<QueuedHealthBar>
 (`0x42a529`). El `0x1a8` corta todavía en `0x4f9580` (su modelo, P-C52 d), así que la cola se llena cuando el cuerpo
 de los monstruos esté portado. Tests: `HealthBarsTest` y `GameHudTest.TheFifthChildDrawsHalfTheHealthBars`.
 
-**Los objetos del asedio del mapa 30**: `0x42d890` (desde `0x4fcbb0`, al terminar la animación) y `0x42da90` (desde
-`0x508eed`, después de `0x505de0`) solo actúan en el mapa 30, con `+0x376` de los objetos del asedio (`0x42d890`, el
-221, 222, 277, 286 y 287; `0x42da90`, el 216, 277, 278, 283, 286 y 287, con `0x5f93c0` y `0x7239e4`). `0x42d890` está
-portado ([El cuerpo de los monstruos y los NPC](#el-cuerpo-de-los-monstruos-y-los-npc)); MuRet corta en `0x42dac4`.
+### Los objetos del mapa 30 en el paso (`0x42da90`)
+
+(CL9 hito 2, fase 6c, 2026-11-13, *estático*.) `0x42d890` (desde `0x4fcbb0`, al terminar la animación) y
+`0x42da90(c, c)` (desde `0x508eed`, después de `0x505de0`) solo actúan en el mapa 30, con el `+0x376` de los objetos
+del asedio. `0x42d890` (el 221, el 222, el 277, el 286 y el 287) está portado ([El cuerpo de los monstruos y los
+NPC](#el-cuerpo-de-los-monstruos-y-los-npc)). `0x42da90` (fuera del 30 sale en `0x42da9a`) va por `+0x376` y no saca
+`rand()`:
+
+| `+0x376` | Qué hace |
+| --- | --- |
+| 216 (`0xd8`, `0x42dacb`) | la z a la altura del terreno (`0x5f93c0`) más 200 (`0x6b8928`); `0x7239e4` = `+0x78`, y `+0x42c` en 1 con `+0x78` distinto de 0 o en 0 |
+| 277 (`0x115`, `0x42db0f`) | `0x7239d9` en 1: ese frame, `0x42da60` no abre las puertas |
+| 278 (`0x116`, `0x42dc29`) | con `+0x42d` en `0x80`, su x y su y a `0x7239dc` y `0x7239e0` |
+| 283 (`0x11b`, `0x42db1c`) | con el asedio (`0x4294b0`), `+0x58` en −1 y `+0x42c` en 1; sin él, −2 y 0 |
+| 286 y 287 (`0x11e` y `0x11f`, `0x42db4b..0x42dc28`) | las puertas. Con `+0x110` en 0: `+0x100` en 0 y, si `0x42a020(o, 1, 500)` ve un jugador enfrente o `0x7239d8` está en 2, la acción 4 (`0x4ea030`), `0x7239d8` en 2, `+0x110` en 1 y `+0x100` en 300 (`0x12c`). Después, fuera de la acción 5, con `+0x110` distinto de 0 y `+0x100` negativo o `0x7239d8` en 0: con el jugador enfrente, `+0x100` en 300 y `0x7239d8` en 2; sin él, la acción 0, `+0x110` y `0x7239d8` en 0. Al final, siempre, `+0x100` baja 1 (un `dec` de 32 bits) |
+
+**`0x42a020(objeto, modo, rango)`** recorre los 400 lugares del pool (`0x743a16c`) hasta un jugador (`+0x88` en 1, el
+tipo `0x20a` y `+0x16c`) cerca, con `dx` y `dy` el objeto menos el jugador: en el modo 0, `dx` debajo del rango y `dy`
+debajo de 100; en el 1, `|dx|` debajo de 1, `dy` mayor que 0 y debajo del rango (Q-C877); en el 2, la distancia en el
+plano debajo del rango. Los "debajo" miran solo C0 (`TEST AH, 1`): un NaN pasa.
+
+**`0x42da60`**, al final de `0x510d00` (`0x510eda`): `0x7239dc` y `0x7239e0` en 0, `0x42da40` (con `0x7239d9` en 0,
+`0x42a110(0, 0, 0, 1)`, las puertas de Q-C276) y `0x7239d9` en 0. Los globales (`.bss`, en 0): `0x7239d8` (la carga
+del 30 lo pone en 0, y en 2 `0x42d890` y las puertas de `0x42da90`); `0x7239d9`; `0x7239dc` y `0x7239e0`, que lee
+`0x42ddb0` (el dibujo del asedio sobre los personajes, que solo corre con el asedio); y `0x7239e4`, que comparan con
+`0x20000` `0x42c850` (`0x42c977`, con el asedio) y `0x42de90` (`0x42ded1`).
+
+MuRet: `Scenes::StepTheCastleObject` y `PlayerNear` (`MonsterStepCases.h`), desde `StepACharacter` después de los
+efectos, con `WorldState::Actors()` de pool, `WorldRuntime::castleByte7239d8`, `castleGatesClosed`, `castleMarkX`,
+`castleMarkY` y `castleFlags7239e4`; `FinishTheCastleFrame` (`GameCharacters.h`) al final de `DrawGameCharacters`. La
+acción va por `Render::Models::SetAction` con el modelo del personaje: sin él, el 286 y el 287 cortan cuando la cambian
+(`0x42db87`, `0x42dc00`); sin la altura del terreno, el 216 corta (`0x42dad6`). Tests: `MonsterStepCasesTest` y
+`CastleObjectTest` (`test_monster_step_cases.cpp`: nada fuera del 30, en Lorencia, Devias y Kalima; en el 30, cada
+caso, las puertas que se abren con un jugador enfrente y se cierran cuando se acaba el tiempo, y sus bordes).
 
 ### El cuerpo de los monstruos y los NPC
 
@@ -10392,8 +10425,9 @@ del mundo (sin ellas, corta en `0x5fb2f0`; sus tipos de verdad, el `0x1f3` y el 
 copia del personaje y del `rand()`. Del `0x45`, sus nueve sprites y los cuatro `rand()` de su primera partícula, que
 corta en `0x50c0db` (la `0x5c6/3` no está en `World::Particles`, CL11; entre frames del original no crea las
 partículas); del `0x46`, su sprite. Cortan con su dirección: los casos de `0x6002e0` y de su cadena, lo demás de `0x50bf45`, las partes (`0x50d3e3`), el Angel (`0x50d383`) y el gremio (`0x50c99b`), el joint `0x618/6` en
-`CreateFaunaJoint` (`0x530c18`), el `0x16e`, `0x43c150` y `0x42dfe0` y los efectos de los otros helpers de
-`0x510a1e` (`Scenes::DrawTheMonsterHelpers`, que sigue) y `0x510f4d` (`0x518cf0`, CL11); 08, P-C179.
+`CreateFaunaJoint` (`0x530c18`), los efectos de la CL11 del `0x16e`, de `0x43c150` y de `0x42dfe0` ([Los helpers
+de Kalima y del asedio](#los-helpers-de-kalima-y-del-asedio-0x43c150-y-0x42dfe0)) y de los otros helpers de `0x510a1e`
+(`Scenes::DrawTheMonsterHelpers`, que sigue) y `0x510f4d` (`0x518cf0`, CL11); 08, P-C179.
 Tests: `MonsterDrawingTest`, `MonsterHangingLight` y `MonsterDecorations` (`test_monster_drawing.cpp`: un Spider de
 Lorencia, un Yeti de Devias, la sombra por mapa, el contorno de un monstruo, de un NPC y de la puerta de Kalima, el
 calco del `0xe8` y el `0xe9` en Lorencia, Devias y Blood Castle, la tela del `0x37` en Lorencia, Devias y Chaos
@@ -10447,6 +10481,56 @@ ese `+0x376`, que ninguna alta crea, en `0x50bae7`. Tests: `MeshClothTest` (`tes
 vecino, el paso y el dibujo) y `MonsterClothTest` (`test_monster_cloth.cpp`: Lorencia, Devias y Blood Castle, contra
 la clase de render con las constantes del ASM, 20 `rand()` por frame, la que se rompe, la que no se dibuja y entre
 frames). Lo que queda para la VM: 08 P-C330.
+
+### Los helpers de Kalima y del asedio (`0x43c150` y `0x42dfe0`)
+
+(CL9 hito 2, fase 6c, 2026-11-13, *estático*.) Los dos primeros de la cadena de `0x510a1e` (`0x510a27` y `0x510a36`,
+con `c` y el objeto, el mismo registro) y el caso del `0x16e` del switch por modelo (`0x5108b6`). Los dos helpers
+devuelven 1 con un tipo suyo, y eso salta el resto de la cadena. Los sprites son de `0x5491e0` sin dueño, rotación 0 y
+mezcla 0 salvo donde se dice; los puntos, de `0x4ec110(hueso propio, offset, salida, 1)` con la escala y la posición
+del personaje; las luces de onda, `sin(T · k)` en la x87, guardadas en float donde el original hace `FSTP`. "Muerto" es
+la acción 6.
+
+**`0x43c150`** (la tabla de bytes `0x43ec3c` sobre la de saltos `0x43ec18`, desde el `0xc5`):
+
+| Tipo | Qué hace, en orden |
+| --- | --- |
+| `0xc5` (la puerta de Kalima) | en la acción 1: con `+0x60` en 0, la partícula `0x6ae/0` a 3 con (1; 0,1; 0,1) del hueso 8 (`0x43c20d`, Q-C878); `+0x60` sube 1 y desde 5 vuelve a 0 |
+| `0x191` | fuera de la 6, cinco vueltas por los huesos 74..78 y 62..66 (la luz sube 0,25 por vuelta y la escala baja 0,2 desde 1,5): dos `0x5ac` por hueso y `rand() & 1` en 0 da la partícula `0x607/1` (`0x43c332`, `0x43c3bf`); después, con `+0x68`, el `0x5ca` (0,2) y el `0x5fd` (1) del punto (2, 2, 0) del hueso 8 y de los huesos 22 y 15. Siempre, los `0x5ac` de los huesos 51..55 (2) y 29..33 (1,5) |
+| `0x192` (Kundun) | muerto, la mano izquierda sin ítem; si no, dos `0x5ca` rojos (huesos 8 y 9), el `0x62b` del hueso 100 (en la acción 5, también el `0x62d` con el pulso de `+0x8a` y `+0x89`, Q-C879) y `rand() & 1` en 0 da la partícula `0x5f2/13` (`0x43c9cb`). En la 5: con el frame debajo de 2 y `+0x60` distinto de 100, `+0x60` en 100 y el sonido `0x1db`; con `+0x60` en 100 pasado el 4, `+0x60` en `0x65` y, en Kalima, `0x437860` en su celda lógica (`+0x420` y después `+0x41c`, con sus `rand()`; radio 2 y 2.000); pasado el 3, el temblor `0x7d325c8 = ((rand() & 7) − 8) · 0,2`; en Kalima entre el 3 y el 14, dos efectos 9 (`0x518cf0`) a `rand() % 360` grados y `rand() % 600 + 200` de distancia, 800 más arriba. En la 3 y la 4 (`0x43cfb8..0x43dc81`), con `+0x60` de 100 a `0x67`: el efecto `0x128` (`0x43d051`, `0x43d0fd`), los 24 joints `0x6ee/14` (`0x43d19f`), `0x437860` en Kalima y, en la 4 pasado el 6, el temblor `((rand() & 15) − 16) · 0,1` |
+| `0x193` | fuera de la 6, los `0x5ca`, `0x5fd` y `0x5ac` de los huesos 6, 13, 19, 23, 25, 31 y 33 |
+| `0x194` | fuera de la 6, el `0x5ca` y el `0x5fd` de los huesos 9 y 10, y el `0x5ac` y el `0x5fd` girado `rand() % 360` de los huesos 3 y 4; en la 3, los joints `0x614/7` entre los huesos 10..16 y 31..37 de a pares (`0x43e368`, `0x43e3da`) |
+| `0x195` | muerto, las dos manos sin ítem; si no, el `0x62b` del hueso 0 (rojo con `+0x376` en `0x91`, y entonces `rand() & 1` en 0 da la partícula `0x5f2/13`, `0x43e4c0`) y los `0x5ac` de los huesos 28 y 29 |
+| `0x196` | fuera de la 6, los `0x5ac` de los huesos 9 y 10, dos `0x5ca` girados del hueso 60 y la neblina `0x5ac/0` (`0x43e7f0`), verdes en la acción 4; los `0x5ac` de los huesos 63..67 y, en las acciones 0 y 1, `rand() % 50` en 0 da el joint `0x610/5` hacia el hueso 60 con dos `rand() % 360` (`0x43e904`) |
+| `0x197` | muerto, las dos manos sin ítem; si no, el `0x5ca` y el `0x5fd` de los huesos 33 y 34, rojos con `+0x4` en 9 y azules con otro, y seis vueltas por los huesos 41 y 51 con las partículas `0x5da/1` o `0x5dc/12` (`0x43eb65`, `0x43ebb7`, `0x43ebd2`) |
+
+**`0x42dfe0`** (solo en el mapa 30; la tabla de bytes `0x42e354` sobre la de saltos `0x42e340`, desde el `0x19c`):
+
+| Tipo | Qué hace |
+| --- | --- |
+| `0x19c` | con el asedio, `0x42a1b0` aditivo de lado 9 con (0,3; 0,2; 0); sin él, el modo `0x80` de lado 5,5 con `+0xf4` (Q-C876) |
+| `0x1a8` | con `+0x93` desde 5, `+0x68` en `sin(T · 0,001f) · 0,3 + 0,3f` y el aditivo de lado 9; si no, un `0x5ac` (4) y un `0x5fd` (2,5, girado `rand() % 360`) dorados, 50 más arriba |
+| `0x1a1` | con el asedio, `+0x42c` en 1, el `0x5ac` y el `0x5fd` girado del hueso 1, `(sin(T · 0,001f) + 1) · 60` más arriba, el `0x5ac` del hueso 2 y el modo `0x80` con `+0xf4` (Q-C876); sin él, `+0x42c` en 0 y `+0x58` en −2 |
+| `0x1fd` | la z en `+0xd8` (con el asedio) o 100 más abajo (sin él), `+0x42c` en 1 o en 0 y `+0x68` en `sin(T · 0,001f) · 0,3f + 0,5` |
+
+**`0x42a1b0(0x61e, modo, x, y, lado, lado, luz)`**: con `v = sin(T · 0,0015f) · 0,3f + 0,7f`, en el modo `0x80`
+`0x620b10` y la luz en (v, v, v); en los demás, `0x620a90` y la luz por v. Después, dos calcos de `0x5fb2f0` girados
+`T · 0,01f` y `T · −0,01f`, y entre los dos, en el `0x80`, la luz por `1 − v`.
+
+**`0x5108b6`** (el `0x16e`): por cada hueso que no es dummy, salvo los 15..20 y 27..32, un `0x5fd` a 2,5 blanco con
+mezcla 1 (con `+0x1d6` en 0) o un `0x61e` a 0,8 verde (0,2; 0,7; 0,1) (con otro); un `rand() & 3` por hueso en todas
+las acciones (Q-C1097), y en 0 en la 3 y la 4, la partícula `0x5ca` con la misma luz (`0x5109f2`).
+
+MuRet: `Scenes::DrawKalimaSiegeHelpers`, `DrawTheBoneSparks` y `DrawCastleGlow` (`KalimaSiegeHelpers.h`), desde la
+cola de `DrawGameMonster` (los dos helpers, antes de los que siguen de la cadena; el `0x16e`, en su caso del switch),
+con el personaje o su copia, el `rand()` del dibujo, las tablas del frame, el mundo de Kalima
+(`GameCharacterPass::kalima`) y el temblor (`GameCharacterPass::cameraShake`); el sonido va a
+`WorldRuntime::lastSoundId` (CL10) solo en un frame del original. Los efectos con modelo, los joints y las partículas
+que MuRet no tiene cortan con su dirección si su tabla tiene lugar; llena, el original no crea nada y sigue (08,
+P-C334). En esta rama se llega a los de Kalima y del asedio solo con un dibujo directo: el cuerpo corta antes el `0xc5`
+(`0x438fe0`) y del `0x191` al `0x197` (`0x43ed20`), y en el 30 `0x42cc10` corta el `0x19c` y el `0x1a8` (P-C179 b).
+Tests: `KalimaSiegeHelperTest` (`test_kalima_siege_helpers.cpp`: cada tipo en Lorencia, Devias, Kalima o el 30, con sus
+`rand()` contados y el mundo de Kalima perturbado) y `MonsterDrawingTest.TheBoneSparksOf0x16eGoOverEachBoneOutsideTheTwoGaps`.
 
 ### Los helpers de los monstruos
 

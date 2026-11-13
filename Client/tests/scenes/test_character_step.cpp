@@ -1019,9 +1019,10 @@ TEST(CharacterStepTest, TheWeaponTrailDrawsFromFrameThree)
 }
 
 // Lo que el cuerpo (0x4fd5f0) no tiene corta, en su orden y después de los rand() de antes: los mapas 18 a 23 con
-// el héroe 10 s en una celda con el bit 8 (0x4fbe10 manda C1 06 AF 01, CL9.5), el 0xc5 (0x4fd603), el 0xf1 (0x4fb910),
-// muriéndose (0x4fb9e0), el nombre de 0x6c88b0 sin timeGetTime() (0x4fcd82), otro modelo, Player.bmd sin cargar o
-// una acción fuera de él (0x4f9580, 0x4f95c0) y la partícula de las 0x4d, 0x4f y 0x5a (0x4fdb70).
+// el héroe 10 s en una celda con el bit 8 (0x4fbe10 manda C1 06 AF 01, CL9.5), el 0xc5 sin Text.bmd (0x4fd63b), el
+// 0xf1 sin las alturas del terreno (0x4fb942), muriéndose (0x4fb9e0), el nombre de 0x6c88b0 sin timeGetTime()
+// (0x4fcd82), otro modelo, Player.bmd sin cargar o una acción fuera de él (0x4f9580, 0x4f95c0) y la partícula de las
+// 0x4d, 0x4f y 0x5a (0x4fdb70).
 TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
 {
     struct Case
@@ -1037,8 +1038,8 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
              WallDraws + HeroCellReads},
         Case{"mapa 23", [](GameWorld& tested) { tested.StandOnTheReportedCell(23); }, "0x4fbee8",
              WallDraws + HeroCellReads},
-        Case{"el 0xc5", [](GameWorld& tested) { tested.Hero().type = 0xc5; }, "0x4fd603", WallDraws},
-        Case{"el 0xf1", [](GameWorld& tested) { tested.Hero().type = 0xf1; }, "0x4fb910", AfterTheTimers},
+        Case{"el 0xc5", [](GameWorld& tested) { tested.Hero().type = 0xc5; }, "0x4fd63b", WallDraws},
+        Case{"el 0xf1", [](GameWorld& tested) { tested.Hero().type = 0xf1; }, "0x4fb942", AfterTheTimers},
         Case{"se muere", [](GameWorld& tested) { tested.Hero().dying = 1; }, "0x4fb9e0", OwnRecordDraws},
         Case{"el nombre",
              [](GameWorld& tested)

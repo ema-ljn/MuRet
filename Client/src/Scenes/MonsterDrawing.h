@@ -61,8 +61,10 @@ struct GameCharacterPass;
 // - 0x50db57: el rand() y la luz de lo que cuelga (HangingLightOf) y, fuera de la espalda, las manos (DrawGameHanging);
 // - el switch por modelo de 0x50e9fa: los sprites de 0x50b870 y 0x50b920 del 0x152 (con +0x1d6 en 1), el 0x170, el
 //   0x186, el 0x177, el 0x174, el 0x176, el 0x173, el 0x1d8 y el 0x1f2; los del 0x1d9 (0x510763) con su rand() % 30 y,
-//   si da 0, sus tres rand() % 100 y el joint 0x618/6 (que CreateFaunaJoint todavía no crea: corta); el 0x16e
-//   (0x5108b6) corta, y los demás van por la cadena de 0x510a1e, cuyos tipos cortan con la dirección de su helper;
+//   si da 0, sus tres rand() % 100 y el joint 0x618/6 (que CreateFaunaJoint todavía no crea: corta); el lazo de los
+//   huesos del 0x16e (0x5108b6, DrawTheBoneSparks), y los demás van por la cadena de 0x510a1e: 0x43c150 y 0x42dfe0
+//   (DrawKalimaSiegeHelpers, KalimaSiegeHelpers.h) y, si ninguno tiene el tipo, 0x441400, 0x434180 y 0x4271d0
+//   (DrawTheMonsterHelpers, MonsterHelpers.h), con sus efectos de la CL11 cortados;
 // - 0x510ef0 en la escena 5 con +0x88 en 1 y +0x369 (corta en 0x510f4d, CL11); después el cuervo de +0x430
 //   (DrawGameRaven, con pass.polygon).
 // `models` tiene los ítems y Player.bmd (las manos); el modelo del tipo sale de WorldState::FaunaResources. Entre

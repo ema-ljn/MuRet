@@ -28,6 +28,7 @@ struct ClothWorld;
 namespace Client::World
 {
 class FrameSprites;
+class KalimaWorld;
 class ModelEffects;
 class Particles;
 struct TerrainLighting;
@@ -42,6 +43,7 @@ namespace Client::Scenes
 class CharacterCloth;
 class IModelLibrary;
 class WorldState;
+struct WorldRuntime;
 struct DrawnCharacter;
 struct FaunaDrawCarry;
 struct FullSetScan;
@@ -85,6 +87,11 @@ struct GameCharacterPass
     float fixedHeight = 1200.0f;
     // El terreno de esa altura; sin él, el del mapa del mundo (WorldState::Map). La selección tiene el suyo.
     const World::WorldTerrain* terrain = nullptr;
+    // Lo que tocan los helpers de los monstruos (0x43c150, KalimaSiegeHelpers.h): el mundo de Kalima de este frame
+    // (0x723c48, que 0x437860 perturba; sin él, no hace nada) y el temblor de la cámara (0x7d325c8). En un dibujo
+    // intermedio, los de la proyección.
+    World::KalimaWorld* kalima = nullptr;
+    float* cameraShake = nullptr;
 };
 
 // El cuerpo del jugador ordinario, su luz del terreno y el override del héroe, reutilizando
@@ -122,8 +129,13 @@ inline constexpr std::uint8_t UndrawnHeroControlBit = 0x04;
 // (`hero`) con +0x1d8 & 4 no se dibuja: 0x510e57 le pone +0x13c en 1.000 y +0x148, +0x158 y +0x168 en 1.
 // Los demás, vivos y vistos (+0x16c), necesitan los recursos del overload anterior: corta ahí
 // (0x510ea1), con los de antes ya mirados. Al final,
-// 0x42da60: 0x7239dc y 0x7239e0 en 0 (MuRet no los tiene) y, con 0x7239d9 en 0 (solo el mapa 30 lo pone
-// en 1), World::OpenTheGates sobre `walls` (Q-C276).
+// 0x42da60 (FinishTheCastleFrame): 0x7239dc y 0x7239e0 en 0 y, con 0x7239d9 en 0 (solo el 277 del mapa 30 lo pone en
+// 1, 0x42db10), World::OpenTheGates sobre `walls` (Q-C276); después 0x7239d9 en 0. Sin `runtime`, como con los tres
+// en 0.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameCharacters(std::span<ActorState> actors, std::size_t hero,
-                                                                   Data::Terrain::TerrainLayer<std::uint16_t>& walls);
+                                                                   Data::Terrain::TerrainLayer<std::uint16_t>& walls,
+                                                                   WorldRuntime* runtime = nullptr);
+
+// 0x42da60, al final de 0x510d00.
+void FinishTheCastleFrame(WorldRuntime* runtime, Data::Terrain::TerrainLayer<std::uint16_t>& walls);
 } // namespace Client::Scenes

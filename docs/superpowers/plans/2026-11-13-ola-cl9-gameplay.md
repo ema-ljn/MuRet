@@ -264,9 +264,11 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
       contorno, la sombra, las manos y los sprites de los casos del modelo; 06, "El dibujo de los monstruos y los
       NPC"). Hechos los casos por tipo y por mapa de `0x6002e0` y su cadena para los tipos del alta (fase 6b:
       `0x6004ed`, `0x438fe0`, `0x42cc10`, `0x600f74..`, `0x602391`, `0x60243e`; 06, "El dibujo de los monstruos y los
-      NPC"). Hechos en la fase 6d `0x441400`, `0x434180`, `0x4271d0` y `0x432bd0`, salvo sus efectos de la CL11 (06,
-      "Los helpers de los monstruos"; 08, P-C336); quedan los efectos por tipo y los helpers, que cortan con su
-      dirección (08, P-C179, P-C241 y P-C332).
+      NPC"). Hechos en la fase 6c `0x43c150`, `0x42dfe0` y el `0x16e` (`0x5108b6`), salvo sus efectos de la CL11 (06,
+      "Los helpers de Kalima y del asedio"; 08, P-C334), y el `0xc5` y el `0xf1` de `0x4fd5f0` (`0x4fd603`, `0x4fb910`
+      y `0x505425`). Hechos en la fase 6d `0x441400`, `0x434180`, `0x4271d0` y `0x432bd0`, salvo sus efectos de la
+      CL11 (06, "Los helpers de los monstruos"; 08, P-C336); quedan los efectos por tipo y los helpers, que cortan con
+      su dirección (08, P-C179, P-C241 y P-C332).
 - [ ] **La tela sobre la malla** (P-C22 f, vtable `0x6b8d04`: los monstruos `0x59..0x8f`; los tres pantalones
       también la usan), y Q-C95 con el primer modelo que se desvanezca (§ Lo que dejó la CL6). Hecha la de los
       monstruos (`Cloth::BuildOnTheMesh`, `Scenes::MonsterMeshCloth`; 06, "La tela sobre la malla"; Q-C861, Q-C862 y,
@@ -276,8 +278,9 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
 - [x] **Lo que se ve sobre ellos:** las barras de vida (`0x42a4d0`, `0x42a2b0`) y los mensajes de monstruo
       (`0x4fc790`, `0x4fc8c0`, `0x4fcd00`, con el mensaje del nombre y su reloj; 06, "Lo que dicen los NPC" y "Las
       barras de vida del 0x1a8").
-- [ ] NewFace del mapa 30 (`0x42d890`, `0x42da90`, con los monstruos `0x11e` y `0x11f`): `0x42d890` hecho; queda
-      `0x42da90`, que corta en `0x42dac4` (P-C241 f).
+- [x] NewFace del mapa 30 (`0x42d890`, `0x42da90`, con los monstruos `0x11e` y `0x11f`): `0x42d890` hecho;
+      `0x42da90` en la fase 6c, con `0x42a020` y `0x42da60` (`Scenes::StepTheCastleObject`; 06, "Los objetos del mapa
+      30 en el paso"; P-C241 f).
 - [x] **Hablar con un NPC:** el `C1 30` desde la interacción de llegada (`0x5650c0`, el corte de
       `GameMovement.cpp`, solo su rama de NPC), el diálogo `0x8d` (`0x62d91d`, `0x632f70`, la lista
       `0x7d3a0fc`). Lo que abre cada NPC (tienda, almacén, caja del caos) es del hito 6. El escritor del `C1 30`

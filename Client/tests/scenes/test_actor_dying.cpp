@@ -101,7 +101,8 @@ TEST(ActorDyingTest, TheTimerFadesSinksAndRemovesAllButTheHero)
     EXPECT_EQ(random.State(), Seed);
 }
 
-// 0x4fba46..0x4fba8f: el 0x172 en el mapa 7 sube 0,05; el 0x192 corta (lee +0x60 del objeto) con las banderas ya fuera.
+// 0x4fba46..0x4fba8f: el 0x172 en el mapa 7 sube 0,05; el 0x192 sube 0,01 con +0x60 del objeto en 100 o más (con
+// signo) y 0,02 si no, con las banderas ya fuera.
 TEST(ActorDyingTest, TheFastOneAndTheSlowOne)
 {
     CrtRandom random(Seed);
@@ -114,13 +115,18 @@ TEST(ActorDyingTest, TheFastOneAndTheSlowOne)
             StepActorDying(fast, Slot, {.map = map, .scene = SceneId::CharacterSelect, .random = random}).HasValue());
         EXPECT_FLOAT_EQ(fast.dyingTime, map == 7 ? 0.05f : 0.02f);
     }
-    ActorState slow = Dying();
-    slow.type = 0x192;
-    slow.flags78 = 0x1000;
-    const auto cut = StepActorDying(slow, Slot, {.random = random});
-    EXPECT_TRUE(CutsAt(cut, "0x4fba6d")) << (cut.HasValue() ? "" : cut.Error());
-    EXPECT_EQ(slow.flags78, 0u);
-    EXPECT_EQ(slow.dyingTime, 0.0f);
+    for (const std::int32_t level : {100, 250, 99, -5})
+    {
+        SCOPED_TRACE(level);
+        ActorState slow = Dying();
+        slow.type = 0x192;
+        slow.flags78 = 0x1000;
+        slow.dword60 = level;
+        ASSERT_TRUE(StepActorDying(slow, Slot, {.random = random}).HasValue());
+        EXPECT_EQ(slow.flags78, 0u);
+        EXPECT_EQ(slow.dyingTime, level >= 100 ? 0.01f : 0.02f);
+    }
+    EXPECT_EQ(random.State(), Seed);
 }
 
 // 0x4fbb10..0x4fbb45 y 0x4fb2b0: en Blood Castle (11 a 17) con +0x1a1 vuela: (0, +0xd0, 0) girado por +0x1a4 desde

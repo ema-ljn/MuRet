@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Tables/MonsterSkillTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Text/TextTable.h"
@@ -20,6 +21,7 @@
 #include "Scenes/ChatReceive.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/MonsterSounds.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/MessageArea.h"
@@ -742,25 +744,145 @@ TEST_F(CombatRepliesTest, APlayerWithAModelSoundSubtypeDrawsTwice)
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
-// Los ayudantes de 0x4f5034 que no están portados cortan con su dirección; el 0x19e pone +0x110 en 3 y la acción 5.
-TEST_F(CombatRepliesTest, TheMonsterHelpersCutOrSetTheirAction)
+// 0x43a2f0, en cualquier mapa: los de Kalima que leen +0x38e cierran su entrada (un rand()) antes de elegir; los del
+// último grupo sacan rand() & 1. Ninguno suma +0x38f. Con la acción nueva el frame queda en 0 y 0x4f4a10 saca el
+// rand() del sonido de la tabla, que este modelo no tiene (P-C253).
+TEST_F(CombatRepliesTest, TheKalimaMonstersChooseByTheirSkillByte)
 {
-    ActorState& kalima = MonsterAt(12, 0x123);
-    kalima.word376 = 0x91;
-    EXPECT_TRUE(HasError(Client::Scenes::SetActorAttack(kalima, Combat()), "0x43a2f0"));
+    struct Case
+    {
+        std::uint16_t kind;
+        std::uint8_t skill;
+        // 0: ninguna; el monstruo sigue con la acción que tenía, la 0 (Q-C1172).
+        std::uint8_t action;
+    };
+    const std::array cases{Case{0x91, 0x37, 4}, Case{0x10d, 0, 3},    Case{0xc1, 0x11, 4}, Case{0x110, 2, 3},
+                           Case{0x95, 1, 4},    Case{0x111, 0x11, 3}, Case{0xbb, 2, 0}};
+    std::uint32_t draws = 0;
+    std::size_t slot = 12;
+    for (const Case& tested : cases)
+    {
+        SCOPED_TRACE(tested.kind);
+        ActorState& kalima = MonsterAt(slot++, 0x100);
+        kalima.word376 = tested.kind;
+        kalima.byte38e = tested.skill;
+        kalima.animation.frame = 1.0f;
+        ASSERT_TRUE(Client::Scenes::SetActorAttack(kalima, Combat()).HasValue());
+        EXPECT_EQ(kalima.animation.action, tested.action);
+        EXPECT_EQ(kalima.attackCount, 1);
+        draws += tested.action != 0 ? 2 : 1;
+        EXPECT_EQ(m_random.State(), After(draws));
+    }
 
-    Runtime().map = 0x22;
-    ActorState& crywolf = MonsterAt(13, 0x124);
-    crywolf.word376 = 0x154;
-    EXPECT_TRUE(HasError(Client::Scenes::SetActorAttack(crywolf, Combat()), "0x437580"));
+    CrtRandom expected = DrawnAfter(draws);
+    ActorState& drawing = MonsterAt(slot, 0x100);
+    drawing.word376 = 0x113;
+    drawing.animation.frame = 1.0f;
+    const std::uint8_t action = static_cast<std::uint8_t>((expected.Next() & 1) + 3);
+    static_cast<void>(expected.Next());
+    ASSERT_TRUE(Client::Scenes::SetActorAttack(drawing, Combat()).HasValue());
+    EXPECT_EQ(drawing.animation.action, action);
+    EXPECT_EQ(m_random.State(), expected.State());
+}
+
+// 0x443750: el 0x123 en el mapa 31 elige con +0x38e abierto ('2' la 3, otro la 4) y cierra después. Fuera del 31,
+// la 3 o la 4 de siempre, por +0x38f.
+TEST_F(CombatRepliesTest, TheTrialsMonsterChoosesWithItsSkillByteOpen)
+{
+    Runtime().map = 0x1f;
+    for (const std::uint8_t skill : {std::uint8_t{0x32}, std::uint8_t{0x11}})
+    {
+        SCOPED_TRACE(skill);
+        ActorState& trials = MonsterAt(12, 0x100);
+        trials.word376 = 0x123;
+        trials.byte38e = skill;
+        trials.attackCount = 0;
+        trials.animation.action = skill == 0x32 ? 3 : 4;
+        trials.animation.frame = 1.0f;
+        ASSERT_TRUE(Client::Scenes::SetActorAttack(trials, Combat()).HasValue());
+        EXPECT_EQ(trials.animation.action, skill == 0x32 ? 3 : 4);
+        EXPECT_EQ(trials.animation.frame, 1.0f);
+        EXPECT_EQ(trials.attackCount, 1);
+    }
+    EXPECT_EQ(m_random.State(), After(2));
 
     Runtime().map = 0;
-    ActorState& elsewhere = MonsterAt(14, 0x125);
-    elsewhere.word376 = 0x154;
+    ActorState& elsewhere = MonsterAt(13, 0x101);
+    elsewhere.word376 = 0x123;
     elsewhere.animation.action = 3;
     elsewhere.animation.frame = 1.0f;
-    EXPECT_TRUE(Client::Scenes::SetActorAttack(elsewhere, Combat()).HasValue());
+    ASSERT_TRUE(Client::Scenes::SetActorAttack(elsewhere, Combat()).HasValue());
+    EXPECT_EQ(elsewhere.attackCount, 2);
+    EXPECT_EQ(m_random.State(), After(2));
+}
 
+// 0x429270 y 0x437580 con 0x4f92f0: +0x42e (sin signo) buscado entre las cinco skills de MonsterSkill.bmd del +0x376;
+// en el lugar 0 a 4, las acciones 3, 4, 8, 9 y 0xb y el ayudante atiende. Encuentre o no, +0x42e queda en 0xff y su
+// entrada se cierra (un rand()). Sin encontrarla, la 3 o la 4 por +0x38f.
+TEST_F(CombatRepliesTest, TheSkillMonstersLookTheirSkillUpInTheTable)
+{
+    Client::Data::Tables::MonsterSkills crywolf;
+    crywolf.skills = {6, 7, 8, 0xc8, -1};
+    Runtime().monsterSkills.records[0x154] = crywolf;
+    Runtime().map = 0x22;
+    struct Case
+    {
+        std::uint8_t skill;
+        std::uint8_t action;
+    };
+    std::size_t slot = 12;
+    for (const Case tested : {Case{6, 3}, Case{7, 4}, Case{8, 8}, Case{0xc8, 9}})
+    {
+        SCOPED_TRACE(tested.skill);
+        ActorState& monster = MonsterAt(slot++, 0x100);
+        monster.word376 = 0x154;
+        monster.byte42e = tested.skill;
+        monster.animation.action = tested.action;
+        monster.animation.frame = 1.0f;
+        ASSERT_TRUE(Client::Scenes::SetActorAttack(monster, Combat()).HasValue());
+        EXPECT_EQ(monster.animation.action, tested.action);
+        EXPECT_EQ(monster.byte42e, 0xff);
+        EXPECT_EQ(monster.attackCount, 1);
+    }
+    EXPECT_EQ(m_random.State(), After(4));
+
+    // 0xff no es −1: no la encuentra, y el que vuelve a pegar ya la tiene en 0xff.
+    ActorState& again = MonsterAt(slot++, 0x100);
+    again.word376 = 0x154;
+    again.byte42e = 0xff;
+    again.animation.action = 3;
+    again.animation.frame = 1.0f;
+    ASSERT_TRUE(Client::Scenes::SetActorAttack(again, Combat()).HasValue());
+    EXPECT_EQ(again.attackCount, 2);
+    EXPECT_EQ(m_random.State(), After(5));
+
+    // Los mapas 0x21 y 0x36 con 0x130, 0x131 y 0x135 (0x429270); sin registro, la .bss en 0 encuentra el 0.
+    Runtime().map = 0x36;
+    ActorState& doppelganger = MonsterAt(slot++, 0x100);
+    doppelganger.word376 = 0x131;
+    doppelganger.animation.action = 3;
+    doppelganger.animation.frame = 1.0f;
+    ASSERT_TRUE(Client::Scenes::SetActorAttack(doppelganger, Combat()).HasValue());
+    EXPECT_EQ(doppelganger.attackCount, 1);
+    EXPECT_EQ(doppelganger.byte42e, 0xff);
+    EXPECT_EQ(m_random.State(), After(6));
+
+    // En otro mapa, ni lo mira.
+    Runtime().map = 0;
+    ActorState& elsewhere = MonsterAt(slot, 0x100);
+    elsewhere.word376 = 0x154;
+    elsewhere.byte42e = 6;
+    elsewhere.animation.action = 3;
+    elsewhere.animation.frame = 1.0f;
+    ASSERT_TRUE(Client::Scenes::SetActorAttack(elsewhere, Combat()).HasValue());
+    EXPECT_EQ(elsewhere.byte42e, 6);
+    EXPECT_EQ(elsewhere.attackCount, 2);
+    EXPECT_EQ(m_random.State(), After(6));
+}
+
+// El 0x19e pone +0x110 en 3 y la acción 5 (0x42dcb0) sin contar; el 0x27 corta en su efecto de la CL11.
+TEST_F(CombatRepliesTest, TheSpecialMonstersSetTheirActionOrCut)
+{
     ActorState& special = MonsterAt(15, 0x126);
     special.type = 0x19e;
     special.animation.action = 5;
@@ -773,5 +895,21 @@ TEST_F(CombatRepliesTest, TheMonsterHelpersCutOrSetTheirAction)
     ActorState& effect = MonsterAt(16, 0x127);
     effect.type = 0x27;
     EXPECT_TRUE(HasError(Client::Scenes::SetActorAttack(effect, Combat()), "0x4f4f5b"));
+}
+
+// La tabla de sonidos que escribió el alta (WorldRuntime::modelSounds) es la de 0x4f4a10 si el contexto no trae otra.
+TEST_F(CombatRepliesTest, TheModelSoundsComeFromTheRuntimeTable)
+{
+    Client::Scenes::ModelSounds sounds{};
+    sounds.fill(-1);
+    sounds[2] = 0x14;
+    sounds[3] = 0x15;
+    Runtime().modelSounds[Monster] = sounds;
+    CrtRandom expected = DrawnAfter(0);
+    const std::int32_t drawn = expected.Next() % 2;
+    ActorState& monster = MonsterAt(12, 0x100);
+    ASSERT_TRUE(Client::Scenes::SetActorAttack(monster, Combat()).HasValue());
+    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x14 + drawn + 0xd2));
+    EXPECT_EQ(m_random.State(), expected.State());
 }
 } // namespace

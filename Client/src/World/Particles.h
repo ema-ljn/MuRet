@@ -79,6 +79,11 @@ inline constexpr std::int32_t DustParticle = 0x5f3;
 // (0x521dfd): nace en 0x542a60 con vida 20 y su paso (0x5459a4) avanza el cuadro (+0x48) con la vida y prende la luz
 // dinámica. El alta termina con el sonido 0x41ed10(0x40, 0, 0), que Particles no hace: lo hace quien la crea.
 inline constexpr std::int32_t ExplosionParticle = 0x5ed;
+// La sangre 5e4 (Effect\blood.tga, 0x61d7c9) que suelta el golpe con daño del paso del ataque (0x50419c, diez sobre el
+// blanco): nace en 0x542b3b con cuatro rand() y la velocidad girada por los ángulos del que pega, su paso (0x546b04)
+// la frena y avanza el cuadro (+0x48), y 548550 la dibuja con los cuadros de dos por dos (0x5487b9). No lee el subtipo.
+// La 5e3 comparte su creación (sin la luz) y su paso, pero nadie la pide en MuRet.
+inline constexpr std::int32_t BloodParticle = 0x5e4;
 
 // Offsets nativos de procedencia; este DTO no promete layout binario de 0x78 bytes.
 struct Particle
@@ -152,7 +157,8 @@ class Particles
 public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
-    // rand(). Se aceptan5ca/0, 5f2/0,2,11,21,33, 5f3/0, 5ed/0, 5c6/1,5,9,11, 622/6,8,9,10, 5d9/0..3, 607/0, 67/0,
+    // rand(). Se aceptan5ca/0, 5e4 (cualquier subtipo), 5f2/0,2,11,21,33, 5f3/0, 5ed/0, 5c6/1,5,9,11, 622/6,8,9,10,
+    // 5d9/0..3, 607/0, 67/0,
     // 68/0, 698/0, 6ab/0,1 y 6ac/0; la órbita 60f/0,3,4,10 pide el overload con la trigonometría. Create es la
     // compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina consume cinco
     // rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().

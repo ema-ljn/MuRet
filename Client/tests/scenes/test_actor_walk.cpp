@@ -13,6 +13,7 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <optional>
 
 namespace
 {
@@ -228,6 +229,46 @@ TEST_F(ActorWalkTest, Type16dRequestsItsUnconditionalSoundWithoutDrawingRandom)
     ASSERT_TRUE(walked.Value().sound.has_value());
     EXPECT_EQ(*walked.Value().sound, 0x7c);
     EXPECT_EQ(m_random.State(), 1U);
+}
+
+// 0x4f3edc..0x4f3f6c: el que no es un jugador, con rand() & 15 en 0, pide la WORD 0 o la 1 de la tabla que escribió el
+// alta (rand() % 2, más 5 con el subtipo 9 y más 0xd2); con la WORD 0 en −1, ninguna y sin el segundo rand(); sin la
+// tabla, el rand() y ninguna (P-C253).
+TEST_F(ActorWalkTest, AMonsterChosenToSoundDrawsItsWalkWord)
+{
+    std::uint32_t seed = 1;
+    while ((Client::Render::Models::CrtRandom(seed).Next() & 15) != 0)
+        ++seed;
+    constexpr std::uint16_t Model = 0x15b;
+    const auto walk = [this, seed](std::int32_t subtype)
+    {
+        m_random = Client::Render::Models::CrtRandom(seed);
+        auto actor = Client::Tests::UnarmedPlayer(3);
+        actor.type = Model;
+        actor.subtype = subtype;
+        return Client::Scenes::SetActorWalk(
+            actor,
+            {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, false, &m_skeleton});
+    };
+
+    const auto unwritten = walk(0);
+    ASSERT_TRUE(unwritten.HasValue()) << (unwritten.HasValue() ? "" : unwritten.Error());
+    EXPECT_FALSE(unwritten.Value().sound.has_value());
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(seed, 2).State());
+
+    m_runtime.modelSounds[Model] = {0x30, 0x31, -1, -1, -1, -1, -1, -1, -1, -1};
+    const auto ninth = walk(9);
+    ASSERT_TRUE(ninth.HasValue()) << (ninth.HasValue() ? "" : ninth.Error());
+    auto expected = Client::Tests::AfterDraws(seed, 1);
+    const std::int32_t word = expected.Next() % 2;
+    EXPECT_EQ(ninth.Value().sound, std::optional<std::int32_t>(0x30 + word + 5 + 0xd2));
+    EXPECT_EQ(m_random.State(), expected.State());
+
+    m_runtime.modelSounds[Model][0] = -1;
+    const auto silent = walk(0);
+    ASSERT_TRUE(silent.HasValue()) << (silent.HasValue() ? "" : silent.Error());
+    EXPECT_FALSE(silent.Value().sound.has_value());
+    EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(seed, 1).State());
 }
 
 } // namespace

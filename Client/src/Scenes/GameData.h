@@ -4,6 +4,7 @@
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Tables/MonsterSkillTable.h"
 #include "Data/Tables/QuestTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/Credits.h"
@@ -48,6 +49,8 @@ inline constexpr std::string_view MoveRequirementsFile = "Local\\movereq.bmd";
 // Los diálogos y las misiones, como los pide 0x61ccb0 (0x61eb69 con 0x6d2a48 y 0x61eb7c con 0x6d2a30).
 inline constexpr std::string_view DialogTableFile = "Local\\Dialog.bmd";
 inline constexpr std::string_view QuestTableFile = "Local\\quest.bmd";
+// Las skills de los monstruos, como las pide 0x61ccb0 (0x61ecdf, con 0x6d29fc).
+inline constexpr std::string_view MonsterSkillTableFile = "Local\\MonsterSkill.bmd";
 
 struct GameData
 {
@@ -82,6 +85,9 @@ struct GameData
     // quest.bmd (CL9 hito 2): los 200 registros de [0x710148] + 0xc, que main.cpp copia a WorldRuntime::quest. Sin el
     // archivo, 200 en cero, como deja 0x418d10 los de la .bss.
     Data::Tables::QuestTable quests;
+    // MonsterSkill.bmd (CL9 hito 3, fase 2c): las skills de [0x7437670], que main.cpp copia a
+    // WorldRuntime::monsterSkills. Sin el archivo, la .bss (el original avisa y cierra la ventana, 0x54a500..0x54a549).
+    Data::Tables::MonsterSkillTable monsterSkills;
 };
 
 // Lo de WinMain antes de la escena 1: Text.bmd en 0x4b9b9f (0x61ee30 y 0x5495e0), antes de las
@@ -105,6 +111,8 @@ struct GameData
 // 0x61ccb0, también: sin él, la ventana /move queda sin destinos (0x448440 devuelve 0 y nadie lo mira);
 // uno que no se lee, corto o con un nombre sin terminar es un error que lo nombra. Antes de movereq.bmd, Dialog.bmd
 // y quest.bmd (0x61eb69 y 0x61eb7c): uno que no está queda con sus 200 registros vacíos; uno que no se lee, corto o
-// (Dialog.bmd) con más de 10 respuestas en un registro es un error que lo nombra.
+// (Dialog.bmd) con más de 10 respuestas en un registro es un error que lo nombra. Después de las tablas de los
+// conjuntos, MonsterSkill.bmd (0x61ecdf): uno que no está deja la tabla de la .bss (el original avisa y cierra la
+// ventana); uno que no se lee, corto o con un tipo fuera de [0, 0xffff] es un error que lo nombra.
 [[nodiscard]] Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot);
 } // namespace Client::Scenes

@@ -291,6 +291,45 @@ Core::Expected<void, ParticleError> StepTheDust(Particle& particle, const Partic
     return {};
 }
 
+// 0x542b3b..0x542bf3, la 5e4 después del prefijo: la vida 12, la escala ((rand() & 3) + 8) · 0,05f (0x6b8a48, en la
+// x87), que pisa la del argumento, el giro x rand() % 360 y la velocidad (0; −((rand() & 15) + 8); rand() % 6 − 3)
+// girada por AngleMatrix de los ángulos del pedido (0x5fc8f0 y 0x5fcbd0, entre el segundo rand() y el tercero, sin
+// sacar ninguno); con el tipo 0x5e4 (0x542bdb), la luz (0,1f; 0; 0). Cuatro rand(). El and con la corrección del signo
+// es el & simple.
+constexpr std::int32_t BloodLife = 12;
+void CreateTheBlood(Particle& particle, const glm::vec3& angles, Render::Models::CrtRandom& random)
+{
+    constexpr int ScaleMask = 3, ScaleBase = 8, FallMask = 15, FallBase = 8, SideSpan = 6, SideCenter = 3;
+    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
+    constexpr float Red = std::bit_cast<float>(0x3dcccccdu);
+    particle.life = BloodLife;
+    particle.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * ScaleStep);
+    particle.angles.x = static_cast<float>(random.Next() % FullTurn);
+    const auto matrix = Render::Models::OriginalAngleMatrix(angles);
+    const float fall = -static_cast<float>((random.Next() & FallMask) + FallBase);
+    const float side = static_cast<float>((random.Next() % SideSpan) - SideCenter);
+    particle.velocity = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, fall, side), matrix);
+    particle.light = glm::vec3(Red, 0.0f, 0.0f);
+}
+
+// 0x546b04..0x546b61, después de la vida y el movimiento comunes (también con la vida en 0): la velocidad por 0,95f
+// (0x6ba30c), el cuadro (+0x48) (12 − vida) / 3 (imul por 0x55555556, hacia 0) y la posición más la velocidad otra vez,
+// sin girar. La x suma el producto que quedó en la x87 después del fst (en 53 bits, exacto), la y y la z, el float
+// guardado.
+void StepTheBlood(Particle& particle)
+{
+    constexpr double Brake = static_cast<double>(std::bit_cast<float>(0x3f733333u));
+    constexpr std::int32_t BloodFrameSteps = 3;
+    const double x = static_cast<double>(particle.velocity.x) * Brake;
+    particle.velocity.x = F32(x);
+    particle.velocity.y = F32(static_cast<double>(particle.velocity.y) * Brake);
+    particle.velocity.z = F32(static_cast<double>(particle.velocity.z) * Brake);
+    particle.field48 = std::bit_cast<float>((BloodLife - particle.life) / BloodFrameSteps);
+    particle.position.x = F32(x + static_cast<double>(particle.position.x));
+    particle.position.y = F32(static_cast<double>(particle.velocity.y) + static_cast<double>(particle.position.y));
+    particle.position.z = F32(static_cast<double>(particle.velocity.z) + static_cast<double>(particle.position.z));
+}
+
 bool IsSpark(const Particle& particle)
 {
     return particle.type == SparkParticle && particle.subtype == RavenSparkSubtype;
@@ -559,6 +598,9 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     }
     if (type == BubbleParticle || type == DustParticle || type == ExplosionParticle)
         return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+    // 0x542b3b y 0x546b04: la 5e4 no lee el subtipo.
+    if (type == BloodParticle)
+        return std::nullopt;
     if (type == SparkParticle)
     {
         return subtype == TeleportSparkSubtype || subtype == RavenSparkSubtype || subtype == MapSparkSubtype ||
@@ -1412,6 +1454,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheExplosion(particle, scale);
             return std::optional(index);
         }
+        if (type == BloodParticle)
+        {
+            CreateTheBlood(particle, angles, random);
+            return std::optional(index);
+        }
         if (type == CloudParticle && subtype == 8)
         {
             CreateTheCloud8(particle, scale, random);
@@ -1661,6 +1708,10 @@ Core::Expected<void, ParticleError> StepParticlesImpl(
             const auto stepped = StepTheExplosion(particle, lighting);
             if (!stepped.HasValue())
                 return stepped;
+        }
+        else if (particle.type == BloodParticle)
+        {
+            StepTheBlood(particle);
         }
         else if (IsMapSpark(particle))
         {

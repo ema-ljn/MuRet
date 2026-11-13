@@ -3,13 +3,16 @@
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Tables/MonsterSkillTable.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CombatActionSpeeds.h"
+#include "Scenes/MonsterSounds.h"
 #include "Scenes/WorldEntry.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 
 #include <algorithm>
@@ -204,28 +207,138 @@ Core::Expected<void, std::string> PlayerAttack(ActorState& actor, const ActorCom
     return SetTheAction(actor, context, action.Value());
 }
 
-// Los +0x376 de los monstruos de Kalima que atiende 0x43a2f0 (las tablas 0x43a644 y 0x43a628 del binario).
-bool IsKalimaAttacker(std::uint16_t word376)
+// Una lectura de un byte protegido: abre su entrada, lee y la cierra, con el rand() del cierre que la deja sin accesos
+// (0x40b3f0: uno, el byte).
+constexpr std::uint16_t ByteCloseRandoms = 1;
+std::uint8_t ReadProtected(const std::uint8_t& value, std::uint8_t& accesses, Render::Models::CrtRandom& random)
 {
-    constexpr std::array<std::uint16_t, 36> Kalima{0x91, 0xaf,  0xb7,  0xbf, 0x105, 0x10d, 0x93,  0xb1,  0xb9,
-                                                   0xc1, 0x107, 0x10f, 0x94, 0xb2,  0xba,  0xc2,  0x108, 0x110,
-                                                   0x95, 0xb3,  0xbb,  0xc3, 0x109, 0x111, 0xa0,  0xa1,  0xb4,
-                                                   0xb5, 0xbc,  0xbd,  0xc4, 0xc5,  0x10a, 0x10b, 0x112, 0x113};
-    return std::ranges::find(Kalima, word376) != Kalima.end();
+    const Render::Models::LogicalAccess access(accesses, random, ByteCloseRandoms);
+    return value;
 }
 
-// 0x4f5034..0x4f50b2: los cinco ayudantes, en su orden (0x43a2f0, 0x42dcb0, 0x443750, 0x429270 y 0x437580, todos), y
-// la 3 o la 4 si ninguno atendió.
+template <typename T, std::size_t N> bool IsOneOf(const std::array<T, N>& values, T value)
+{
+    return std::ranges::find(values, value) != values.end();
+}
+
+// Los grupos de +0x376 de 0x43a2f0 (la tabla de bytes de 0x43a644 sobre +0x376 − 0x91 y sus saltos de 0x43a628).
+constexpr std::array<std::uint16_t, 6> KalimaFirstGroup{0x91, 0xaf, 0xb7, 0xbf, 0x105, 0x10d};
+constexpr std::array<std::uint16_t, 12> KalimaElevenGroups{0x93, 0xb1, 0xb9, 0xc1, 0x107, 0x10f,
+                                                           0x94, 0xb2, 0xba, 0xc2, 0x108, 0x110};
+constexpr std::array<std::uint16_t, 6> KalimaFourthGroup{0x95, 0xb3, 0xbb, 0xc3, 0x109, 0x111};
+constexpr std::array<std::uint16_t, 12> KalimaDrawingGroup{0xa0, 0xa1, 0xb4,  0xb5,  0xbc,  0xbd,
+                                                           0xc4, 0xc5, 0x10a, 0x10b, 0x112, 0x113};
+// 0x43a3c5: los valores de +0x38e − 1 que la tabla de 0x43a6d0 manda a la 4 (0x43a3d2).
+constexpr std::array<std::uint8_t, 6> KalimaSecondActionSkills{1, 0x11, 0x37, 0xc8, 0xc9, 0xca};
+constexpr std::uint8_t KalimaSkill = 0x11;
+constexpr std::uint8_t FirstKalimaSkill = 1;
+// Las dos acciones de pegar de los monstruos.
+constexpr std::uint8_t FirstAttack = 3;
+constexpr std::uint8_t SecondAttack = 4;
+
+// 0x43a2f0: los monstruos de Kalima, en cualquier mapa. Lee +0x38e (y cierra su entrada) antes de elegir la acción;
+// los del último grupo sacan rand() & 1 (0x43a5d4 y 0x43a5fb, con el AND con signo de un rand() que no es negativo).
+// Devuelve si atendió (AL en 1): todos los de la tabla, aunque no pongan acción (0x43a5ce).
+Core::Expected<bool, std::string> AttackOfKalima(ActorState& actor, const ActorCombatContext& context)
+{
+    const std::uint16_t kind = actor.word376;
+    std::optional<std::uint8_t> action;
+    if (IsOneOf(KalimaFirstGroup, kind))
+    {
+        // 0x43a322..0x43a3e6: el cierre en línea (0x43a385..0x43a3ab) y el switch de 0x43a3cb.
+        const std::uint8_t skill = ReadProtected(actor.byte38e, actor.byte38eAccesses, context.random);
+        action = IsOneOf(KalimaSecondActionSkills, skill) ? SecondAttack : FirstAttack;
+    }
+    else if (IsOneOf(KalimaElevenGroups, kind))
+    {
+        // 0x43a3fa..0x43a48b (cierra con 0x40b0a0) y 0x43a48c..0x43a533 (en línea): 0x11, la 4; si no, la 3.
+        const std::uint8_t skill = ReadProtected(actor.byte38e, actor.byte38eAccesses, context.random);
+        action = skill == KalimaSkill ? SecondAttack : FirstAttack;
+    }
+    else if (IsOneOf(KalimaFourthGroup, kind))
+    {
+        // 0x43a534..0x43a5ce: 1, la 4; 0x11, la 3; otro, ninguna.
+        const std::uint8_t skill = ReadProtected(actor.byte38e, actor.byte38eAccesses, context.random);
+        if (skill == FirstKalimaSkill)
+            action = SecondAttack;
+        else if (skill == KalimaSkill)
+            action = FirstAttack;
+    }
+    else if (IsOneOf(KalimaDrawingGroup, kind))
+    {
+        action = static_cast<std::uint8_t>((context.random.Next() & 1) + FirstAttack);
+    }
+    else
+    {
+        return false;
+    }
+    if (action)
+    {
+        if (auto set = SetTheAction(actor, context, *action); !set.HasValue())
+            return Core::Unexpected(set.Error());
+    }
+    return true;
+}
+
+// 0x443750: el 0x123 del mapa 0x1f (0x43ff10). Con +0x38e abierto, '2' (0x32) la 3 y otro la 4 (0x44382a..0x443897);
+// después cierra la entrada (0x443946..0x443974). Atiende siempre.
+Core::Expected<bool, std::string> AttackOfTheTrials(ActorState& actor, const ActorCombatContext& context)
+{
+    constexpr std::int32_t TrialsMap = 0x1f;
+    constexpr std::uint16_t TrialsKind = 0x123;
+    constexpr std::uint8_t FirstActionSkill = 0x32;
+    if (context.world.Runtime().map != TrialsMap || actor.word376 != TrialsKind)
+        return false;
+    const Render::Models::LogicalAccess access(actor.byte38eAccesses, context.random, ByteCloseRandoms);
+    if (auto set = SetTheAction(actor, context, actor.byte38e == FirstActionSkill ? FirstAttack : SecondAttack);
+        !set.HasValue())
+        return Core::Unexpected(set.Error());
+    return true;
+}
+
+// 0x4f92f0: con +0x42e abierto, busca su valor (sin signo) entre las cinco skills de +0x376 en MonsterSkill.bmd
+// (0x7437670 + +0x376 · 0x18); en el lugar 0 a 4, las acciones 3, 4, 8, 9 y 0xb (la tabla de 0x4f9564). Después deja
+// +0x42e en 0xff (0x4f9476) y cierra la entrada. Devuelve si la encontró.
+Core::Expected<bool, std::string> AttackFromTheSkillTable(ActorState& actor, const ActorCombatContext& context)
+{
+    constexpr std::array<std::uint8_t, Data::Tables::MonsterSkillCount> SkillActions{3, 4, 8, 9, 0xb};
+    constexpr std::uint8_t UsedSkill = 0xff;
+    const Render::Models::LogicalAccess access(actor.byte42eAccesses, context.random, ByteCloseRandoms);
+    const Data::Tables::MonsterSkills listed = context.world.Runtime().monsterSkills.Of(actor.word376);
+    const auto found = std::ranges::find(listed.skills, static_cast<std::int32_t>(actor.byte42e));
+    const bool matched = found != listed.skills.end();
+    if (matched)
+    {
+        const auto index = static_cast<std::size_t>(found - listed.skills.begin());
+        if (auto set = SetTheAction(actor, context, SkillActions[index]); !set.HasValue())
+            return Core::Unexpected(set.Error());
+    }
+    actor.byte42e = UsedSkill;
+    return matched;
+}
+
+// 0x429270 (0x425070: los mapas 0x21 y 0x36) con 0x130, 0x131 y 0x135, y 0x437580 (0x4303c0: el 0x22, Crywolf) con
+// 0x154, 0x155, 0x158, 0x159 y 0x15d (la tabla de 0x4375cc): los dos llaman a 0x4f92f0 y devuelven lo suyo.
+Core::Expected<bool, std::string> AttackOfTheSkillMaps(ActorState& actor, const ActorCombatContext& context)
+{
+    constexpr std::array<std::uint16_t, 3> DoppelgangerKinds{0x130, 0x131, 0x135};
+    constexpr std::array<std::uint16_t, 5> CrywolfKinds{0x154, 0x155, 0x158, 0x159, 0x15d};
+    const std::int32_t map = context.world.Runtime().map;
+    const bool doppelganger = (map == 0x21 || map == 0x36) && IsOneOf(DoppelgangerKinds, actor.word376);
+    const bool crywolf = map == 0x22 && IsOneOf(CrywolfKinds, actor.word376);
+    if (!doppelganger && !crywolf)
+        return false;
+    return AttackFromTheSkillTable(actor, context);
+}
+
+// 0x4f5034..0x4f50b2: los cinco ayudantes, en su orden y todos (0x43a2f0, 0x42dcb0, 0x443750, 0x429270 y 0x437580), y
+// la 3 o la 4 por +0x38f si ninguno atendió (BL en 1). 0x437580 en 1 salta directo a 0x4f50b8.
 Core::Expected<void, std::string> MonsterAttack(ActorState& actor, const ActorCombatContext& context)
 {
-    const std::int32_t map = context.world.Runtime().map;
-    const std::uint16_t kind = actor.word376;
-    // 0x43a2f0: lee el byte protegido +0x38e (sus cierres sacan rand()) y elige la 3 o la 4 según su valor.
-    if (IsKalimaAttacker(kind))
-        return Core::Unexpected(std::format("0x43a2f0: el ataque del monstruo {:#x} de Kalima (+0x38e protegido) no "
-                                            "está portado (CL9 hito 3, fase 2)",
-                                            kind));
-    // 0x42dcb0, el segundo: el 0x19e y el 0x19f ponen +0x110 en 3 y la acción 5. Los que siguen se llaman igual.
+    auto kalima = AttackOfKalima(actor, context);
+    if (!kalima.HasValue())
+        return Core::Unexpected(kalima.Error());
+    // 0x42dcb0, el segundo: el 0x19e y el 0x19f ponen +0x110 en 3 y la acción 5.
     const bool special = actor.type == 0x19e || actor.type == 0x19f;
     if (special)
     {
@@ -233,21 +346,14 @@ Core::Expected<void, std::string> MonsterAttack(ActorState& actor, const ActorCo
         if (auto set = SetTheAction(actor, context, 5); !set.HasValue())
             return set;
     }
-    // 0x443750 (el mapa 0x1f, Land of Trials), 0x429270 (0x425070: los mapas 0x21 y 0x36) y 0x437580 (0x4303c0: el
-    // 0x22, Crywolf) llaman a 0x4f92f0 con estos +0x376.
-    if (map == 0x1f && kind == 0x123)
-        return Core::Unexpected(std::string("0x443750: el ataque del 0x123 en el mapa 31 no está portado (CL9 hito 3, "
-                                            "fase 2)"));
-    if ((map == 0x21 || map == 0x36) && (kind == 0x130 || kind == 0x131 || kind == 0x135))
-        return Core::Unexpected(std::format("0x429270: el ataque del {:#x} (0x4f92f0) no está portado (CL9 hito 3, "
-                                            "fase 2)",
-                                            kind));
-    if (map == 0x22 && (kind == 0x154 || kind == 0x155 || kind == 0x158 || kind == 0x159 || kind == 0x15d))
-        return Core::Unexpected(std::format("0x437580: el ataque del {:#x} en Crywolf (0x4f92f0) no está portado (CL9 "
-                                            "hito 3, fase 2)",
-                                            kind));
-    // 0x4f5084: si alguno atendió (BL en 0), ni la acción ni la cuenta de 0x4f50b2.
-    if (special)
+    auto trials = AttackOfTheTrials(actor, context);
+    if (!trials.HasValue())
+        return Core::Unexpected(trials.Error());
+    // 0x429270 y 0x437580 no se pisan: sus mapas son otros.
+    auto skilled = AttackOfTheSkillMaps(actor, context);
+    if (!skilled.HasValue())
+        return Core::Unexpected(skilled.Error());
+    if (kalima.Value() || special || trials.Value() || skilled.Value())
         return {};
     if (auto set = SetTheAction(actor, context, actor.attackCount % 3 == 0 ? 3 : 4); !set.HasValue())
         return set;
@@ -273,18 +379,19 @@ void PlayerAttackSound(const ActorState& actor, const ActorCombatContext& contex
         sound = static_cast<std::int32_t>((context.random.Next() & 1) + 0x3c);
 }
 
-// 0x4f5210..0x4f5219 y 0x4f5acb..0x4f5ad8: con el subtipo 9, 5 más.
+// 0x4f5acb..0x4f5ad8: con el subtipo 9, 5 más (los otros sonidos de la tabla, en DrawModelSound).
 std::int32_t SubtypeOffset(const ActorState& actor)
 {
     constexpr std::int32_t NinthSubtype = 9;
     return actor.subtype == NinthSubtype ? 5 : 0;
 }
 
+// La tabla del modelo: la del contexto o, sin ella, la que escribió 0x612c80 (WorldRuntime::modelSounds).
 std::optional<ModelSounds> SoundsOf(const ActorState& actor, const ActorCombatContext& context)
 {
-    if (!context.modelSounds)
-        return std::nullopt;
-    return context.modelSounds(actor.type);
+    if (context.modelSounds)
+        return context.modelSounds(actor.type);
+    return WrittenSounds(context.world.Runtime().modelSounds, actor.type);
 }
 
 void AttackSound(const ActorState& actor, const ActorCombatContext& context)
@@ -300,18 +407,10 @@ void AttackSound(const ActorState& actor, const ActorCombatContext& context)
     // 0x4f51c0..0x4f51ee: los subtipos 0xd1 a 0xd3, rand() & 1 + 0x3c.
     if (HasModelSoundSubtype(actor))
         sound = static_cast<std::int32_t>((context.random.Next() & 1) + 0x3c);
-    // 0x4f51f1..0x4f5262: con la WORD 2 de la tabla del modelo en −1, nada; si no, rand() % 2 (con signo, de un rand()
-    // que no es negativo) elige la 2 o la 3, con signo, más 5 con el subtipo 9 y más 0xd2. Sin la tabla, el rand() sale
-    // igual y el sonido no se pide (*inferido*, P-C253).
-    const std::optional<ModelSounds> table = SoundsOf(actor, context);
+    // 0x4f51f1..0x4f5262: la WORD 2 o la 3 de la tabla del modelo (DrawModelSound).
     constexpr std::size_t FirstAttackSound = 2;
-    if (table && (*table)[FirstAttackSound] == -1)
-        return;
-    const auto drawn = static_cast<std::size_t>(context.random.Next() % 2);
-    if (!table)
-        return;
-    constexpr std::int32_t MonsterSoundBase = 0xd2;
-    sound = (*table)[FirstAttackSound + drawn] + SubtypeOffset(actor) + MonsterSoundBase;
+    if (const auto drawn = DrawModelSound(SoundsOf(actor, context), FirstAttackSound, actor.subtype, context.random))
+        sound = drawn;
 }
 
 // 0x4f5a09..0x4f5ae8: el sonido de morir con el frame en 0.

@@ -52,6 +52,18 @@ ParticleDrawParameters ParticleDrawParametersOf(const Particle& particle, glm::v
         result.uv.y = static_cast<float>(static_cast<double>(frame / AtlasColumns) * Quarter + DropInset);
         result.uvSize = glm::vec2(DropSize);
     }
+    if (kind == ParticleDrawKind::Blood)
+    {
+        // 0x5487b9..0x5487fb: sin giro, la u del resto con signo cuadro % 2 (and 0x80000001 con la corrección) y la v
+        // del cociente cuadro / 2 (cdq, sub y sar: hacia 0), cada una · 0,5f (0x6b882c) en la x87, y el tamaño
+        // (0,5f; 0,5f).
+        constexpr std::int32_t BloodColumns = 2;
+        constexpr double Half = 0.5;
+        const std::int32_t frame = std::bit_cast<std::int32_t>(particle.field48);
+        result.uv.x = static_cast<float>(static_cast<double>(frame % BloodColumns) * Half);
+        result.uv.y = static_cast<float>(static_cast<double>(frame / BloodColumns) * Half);
+        result.uvSize = glm::vec2(static_cast<float>(Half));
+    }
     if (kind == ParticleDrawKind::Drop)
     {
         const std::int32_t frame = std::bit_cast<std::int32_t>(particle.field48) % DropFrames;

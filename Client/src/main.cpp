@@ -660,6 +660,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // 0x61eb69 y 0x61eb7c: Dialog.bmd en 0x7688ac0 y quest.bmd en los registros de [0x710148], hasta el cierre.
     world.Runtime().dialogTable = scenes.data.dialogs;
     world.Runtime().quest.records = scenes.data.quests;
+    // 0x61ecdf: 0x54a440 deja MonsterSkill.bmd en [0x7437670], hasta el cierre.
+    world.Runtime().monsterSkills = scenes.data.monsterSkills;
     // 0x61ed18: 0x46b3b0 deja Slide.bmd en el cartel de [0x5763528], que dura hasta el cierre.
     if (scenes.data.slides)
     {

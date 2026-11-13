@@ -161,13 +161,15 @@ bool KeyEdge(UI::GameUiState& ui, const Input::InputState& input, GameKey key)
 }
 
 // 0x6578e0: hay un campo de texto con el foco (el chat 0x6c8e68, 0x77f3b68, el del diálogo de los paneles) o la
-// ventana del juego no lo tiene. MuRet tiene el del chat (hito 3), el del alta del gremio (0x77f3b68, CL9 hito 8) y el
-// EDIT de las ventanas viejas (CL9 hito 9, que toma el foco de Windows); el del diálogo es del hito 6, y su ventana es
-// la del juego.
+// ventana del juego no lo tiene (GetFocus() distinto de [0x5763544]). MuRet tiene el del chat (hito 3), el del alta
+// del gremio (0x77f3b68, CL9 hito 8) y, con el foco de Windows, el EDIT de las ventanas viejas (CL9 hito 9) y los dos
+// de los diálogos (CL9 hito 8: el del alta y el del número del 0x7d, que se quedan con el foco al cerrar, Q-C1291 y
+// Q-C1295); el del diálogo de los paneles es de la CL9.5 (P-C285), y su ventana es la del juego.
 bool TextInputBusy(const WorldRuntime& runtime)
 {
-    return runtime.ui.chatOpen || runtime.chat.input.dialogFieldOn ||
-           runtime.chat.input.focus == UI::ChatFocus::OldWindow;
+    const UI::ChatFocus focus = runtime.chat.input.focus;
+    return runtime.ui.chatOpen || runtime.chat.input.dialogFieldOn || focus == UI::ChatFocus::OldWindow ||
+           focus == UI::ChatFocus::DialogField || focus == UI::ChatFocus::NumberField;
 }
 
 // 0x636e51..0x636e5a: el registro del chat, 0x45aa80(0) por la vtable + 0x18 de 0x576350c.

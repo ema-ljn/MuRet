@@ -1095,6 +1095,13 @@ Lo que manda el cliente, por el socket del GameServer (`0x6c82a0`) sin la capa d
   la confirmación antes de cerrarla: el 0, dos seguidos, Q-C1289).
 - `C1 2C 55 00 <gremio:8> <marca:32>` con el XOR32 (`0x6552b0`, el alta: el byte en 0 lo escribe `0x6553bf`; la
   marca, los 64 nibbles de `0x78a5986` de a dos, el par primero arriba; Q-C1287).
+- `C1 17 53 <nombre:10> <número:10>` con el XOR32 (`0x62a878`, el sí del diálogo `0x7d`, CL9 hito 8, fase 6): los
+  diez bytes del lugar `0x6d5e2c` de `0x787a5e8` y los diez de `0x7798bf8`, donde GetText dejó lo escrito en
+  `[0x5763508]` (hasta 7 dígitos y el `'\0'`; detrás, lo que había en el buffer). Cotejado (CL9.R) con el GS 0.97:
+  `PMSG_GUILDDELUSER` (`0x17` bytes, `Name` en +3 y `JoominNumber` en `+0xd`, `CGGuildDelUser`, `0x420bf0`) copia los
+  10 del número a un buffer de 14 en cero y lo pasa a `gObjCheckPassword`; el maestro con su propio nombre disuelve
+  (`GDGuildDestroySend`), con otro lo echa, y el que no es maestro sale (`GDGuildMemberDel` con el nombre que llega).
+  Responde `C1 04 53 <resultado>` (3 sin `gGuildDestroy`, 0 con el número mal del maestro).
 - `C1 05 18 <dirección> <acción>` con el XOR32: la guerra (`0x4d8473` con `0x94`, `0x4d8a39` y `0x4d8e1b` con
   `0x8d` y `0x89`), después del de `0x576a60`, que manda el suyo si el héroe está parado (hito 1, `Scenes::PlayTheEmote`).
 - `C1 08 E6 <relación> <pedido> <resultado> <clave alta> <clave baja>` con el XOR32 (`0x653c00`, y `0x656616` con el

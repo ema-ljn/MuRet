@@ -1,5 +1,7 @@
 #include "UI/ChatInput.h"
 
+#include "UI/OldWindowBase.h"
+
 #include <gtest/gtest.h>
 
 #include <optional>
@@ -212,6 +214,61 @@ TEST(ChatInputTest, TheArrowsWalkTheWhisperNames)
     EXPECT_TRUE(StepTheWhisperName(input, 1));
     EXPECT_FALSE(StepTheWhisperName(input, 1));
     EXPECT_EQ(input.whisperNameAt, LastWhisperNameSlot);
+}
+
+// [0x5763508] (CL9 hito 8): oculto, con ES_PASSWORD y el tope 9 de WinMain (0x4bbad7); a la vista toma el foco y lo
+// tecleado pasa por el filtro de la subclase (0x467bd1): con el bit 0 (el 9 del diálogo 0x7d) solo los dígitos.
+// GetText llega al buffer y SetText(0) lo vacía; 0x553570 también (con o sin el segundo buffer).
+TEST(ChatInputTest, TheNumberFieldTakesOnlyDigits)
+{
+    ChatInputState input;
+    EXPECT_EQ(input.numberField.base.state, HiddenWindow);
+    EXPECT_EQ(input.numberField.base.id, NumberFieldId);
+    EXPECT_TRUE(input.numberField.text.Masked());
+    FocusTheNumberField(input);
+    EXPECT_EQ(input.focus, ChatFocus::Game);
+
+    ShowTheNumberField(input, 0);
+    FocusTheNumberField(input);
+    EXPECT_EQ(input.focus, ChatFocus::NumberField);
+    input.numberField.filter = 9;
+    TypeInTheChat(input, "12a-B 3456789");
+    EXPECT_EQ(input.numberField.text.Value(), "123456789");
+    EXPECT_EQ(input.numberField.text.Shown(), "*********");
+    BackspaceInTheChat(input);
+    EXPECT_EQ(input.numberField.text.Value(), "12345678");
+    EXPECT_EQ(input.message.Value(), "");
+
+    ReadTheNumberField(input, input.messageBuffer);
+    EXPECT_EQ(CStringOf(input.messageBuffer), "12345678");
+    ClearTheNumberField(input);
+    EXPECT_EQ(input.numberField.text.Value(), "");
+
+    TypeInTheChat(input, "77");
+    ResetTheTextBuffers(input, false);
+    EXPECT_EQ(input.numberField.text.Value(), "");
+
+    // 0x468260 con 3: oculto, el foco vuelve al juego.
+    ShowTheNumberField(input, 3);
+    EXPECT_EQ(input.focus, ChatFocus::Game);
+    TypeInTheChat(input, "5");
+    EXPECT_EQ(input.numberField.text.Value(), "");
+}
+
+// El filtro con el bit 1 (sin el 0): los dígitos y las letras, las minúsculas en mayúsculas; sin bits, todo pasa.
+TEST(ChatInputTest, TheLettersFilterRaisesTheLowercase)
+{
+    ChatInputState input;
+    ShowTheDialogField(input, 0);
+    FocusTheDialogField(input);
+    ASSERT_EQ(input.focus, ChatFocus::DialogField);
+    input.dialogField.filter = 2;
+    TypeInTheChat(input, "ab-C 9_z");
+    EXPECT_EQ(input.dialogField.text.Value(), "ABC9Z");
+    input.dialogField.filter = 0;
+    TypeInTheChat(input, "-x ");
+    EXPECT_EQ(input.dialogField.text.Value(), "ABC9Z-x ");
+    EXPECT_EQ(input.dialogField.base.id, DialogFieldId);
 }
 
 // 0x469320: el campo 0, los EDIT vacíos y el historial también.

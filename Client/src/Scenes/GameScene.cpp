@@ -1150,9 +1150,12 @@ bool GameScene::WantsTextInput() const
 {
     if (m_context.world == nullptr)
         return false;
-    // El chat abierto o el EDIT de una ventana vieja con el foco (CL9 hito 9).
+    // El chat abierto o el EDIT de una ventana vieja (CL9 hito 9) o uno de los dos de los diálogos (CL9 hito 8) con el
+    // foco: el que tiene el foco de Windows recibe los WM_CHAR.
     const WorldRuntime& runtime = m_context.world->Runtime();
-    return runtime.ui.chatOpen || runtime.chat.input.focus == UI::ChatFocus::OldWindow;
+    const UI::ChatFocus focus = runtime.chat.input.focus;
+    return runtime.ui.chatOpen || focus == UI::ChatFocus::OldWindow || focus == UI::ChatFocus::DialogField ||
+           focus == UI::ChatFocus::NumberField;
 }
 
 bool GameScene::HoldsTheLastFrame() const

@@ -18,6 +18,7 @@
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDrawParts.h"
 #include "UI/OldWindows.h"
+#include "UI/TextField.h"
 
 #include <array>
 #include <cstddef>
@@ -691,9 +692,25 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
     }
     // 0x4684bc..0x4684e4: GetFocus() es el EDIT y +0x80 % 0x18 < 0xc.
     const bool caretOn = focused && edit.draws % BlinkPeriod < BlinkOn;
+    // 0x468550..0x4685ec: cx del texto en el DC con la fuente que tenga; con ES_PASSWORD (+0xb0, TextField::Masked), el
+    // de tantos '*' como bytes en la negrita (SelectObject con 0x5763558), y el DC queda con la normal (0x5763554). El
+    // EDIT se pinta con su fuente (la normal de WinMain) y '*' por byte (*inferido*: el carácter de ES_PASSWORD de un
+    // EDIT sin el manifiesto de comctl32 6), y su cursor queda al final de eso.
+    const std::string text = edit.text.Shown();
+    std::int32_t textWidth = 0;
+    std::int32_t caretWidth = 0;
+    if (edit.text.Masked())
+    {
+        textWidth = context.text.Measure(Render::Text::FontKind::Bold, text).width;
+        context.dcFont = Render::Text::FontKind::Normal;
+        caretWidth = context.text.Measure(Render::Text::FontKind::Normal, text).width;
+    }
+    else
+    {
+        textWidth = context.text.Measure(context.dcFont, text).width;
+        caretWidth = textWidth;
+    }
     // 0x4685ee..0x468622: el ancho del bitmap, ftol(+0xa8 + 1,5 + cx), hasta ftol(w · rx); el alto, ftol(h · ry).
-    const std::string_view text = edit.text.Value();
-    const std::int32_t textWidth = context.text.Measure(context.dcFont, text).width;
     std::int32_t width = Truncate(CaretWidth + BoxSlack + static_cast<double>(textWidth));
     const double edge = static_cast<double>(base.width) * rx;
     if (static_cast<double>(width) > edge)
@@ -713,7 +730,7 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
                                     .colors = Render::Text::TextColors{.text = edit.textColor, .background = 0}});
     // El cursor: la columna de GetCaretPos + 1 (0x468805..0x46881d: más que la x y menos que la x + 1,5), que con el
     // texto que solo crece por el final es la de su ancho (*inferido*), en las filas de su y (0) al alto de "1".
-    const std::int32_t caretColumn = textWidth + 1;
+    const std::int32_t caretColumn = caretWidth + 1;
     if (caretOn && caretColumn < width)
     {
         const double rows = static_cast<double>(edit.caretHeight) < static_cast<double>(height)

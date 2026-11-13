@@ -19,11 +19,15 @@
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
 #include "UI/Dialogs.h"
 #include "UI/GameDialogs.h"
 #include "UI/GameText.h"
 #include "UI/GameUiState.h"
 #include "UI/HudPrimitives.h"
+#include "UI/OldControls.h"
+#include "UI/OldWindowDraw.h"
+#include "UI/OldWindowDrawParts.h"
 #include "UI/SprintfFormat.h"
 #include "UI/Widget.h"
 
@@ -231,6 +235,33 @@ constexpr int PartyRowStep = 6;
 constexpr int TradeRowStep = 0xb;
 // 0x5110d0: los 400 que recorre; sin ninguno, el 400.
 constexpr std::size_t KeySearched = 400;
+
+// 0x630af0..0x630cb8 (el 0x7d, CL9 hito 8; también el 0x71 y el 0x95, de otras olas): el EDIT del número
+// ([0x5763508]) a la vista (+4(0)) con +0x4c en 9 (el negro de 0x468477 y solo dígitos), el fondo en 0 (+0x44(0, 0,
+// 0, 0)), el tope 7 (+0x3c), de 0x46 × 0xe (+8) en (0xf3, 0x62) (0x45a9d0) y con el foco (+0x30(0)); el sí, 0xf1
+// (0xf2 con el mouse en [0x143, 0x16b) × [0x62, 0x77)) en x 323, y el no, 0xf3 (0xf4 en [0x175, 0x19d)) en x 373, de
+// 40 × 21 con las UV del OK.
+constexpr std::int32_t NumberDialog = 0x7d;
+constexpr std::int32_t ShownField = 0;
+constexpr std::int32_t NumberFieldFilter = 9;
+constexpr std::size_t NumberFieldLimit = 7;
+constexpr std::int32_t NumberFieldWidth = 0x46;
+constexpr std::int32_t NumberFieldHeight = 0xe;
+constexpr std::int32_t NumberFieldX = 0xf3;
+constexpr std::int32_t NumberFieldY = 0x62;
+constexpr float NarrowYesX = 323.0f;
+constexpr float NarrowNoX = 373.0f;
+constexpr float NarrowWidth = 40.0f;
+constexpr int NarrowYesLeft = 0x143;
+constexpr int NarrowYesRight = 0x16a;
+constexpr int NarrowNoLeft = 0x175;
+constexpr int NarrowNoRight = 0x19c;
+// 0x631f36..0x631fbd: el texto en rojo (0x6c8e5c = 0xff0000ff, que queda así) y el 427 y el 428 centrados en
+// 0x4b − 6 y 0x4b + 6.
+constexpr std::uint32_t NumberTextColor = 0xff0000ffu;
+constexpr std::size_t NumberFirstText = 427;
+constexpr std::size_t NumberSecondText = 428;
+constexpr int NumberRowStep = 6;
 
 struct Frame
 {
@@ -520,6 +551,42 @@ void DrawTheYesNoBox(Frame& frame)
     Quad(frame, no, NoX, OkY, OkWidth, OkHeight, OkDu, OkDv);
 }
 
+// 0x630818..0x63084c y 0x630af0..0x630cb8: el marco del OK genérico, el EDIT del número con la mezcla normal
+// (0x620a00(1) y 0x620980 alrededor de su dibujo, 0x468320) y el sí y el no angostos. Lo que el original le pone al
+// EDIT en cada cuadro se escribe también en un dibujo intermedio (son los mismos valores); sus dibujos (+0x80, el
+// parpadeo del cursor) solo cuentan los del original, y 0x5762ec0 queda con su id (0x4682a0).
+void DrawTheNumberBox(Frame& frame)
+{
+    Quad(frame, MessageBoxSlot, BoxLeft, BoxTop, BoxWidth, GenericBoxHeight, MessageBoxDu, 1.0f);
+    UI::ChatInputState& input = frame.runtime.chat.input;
+    UI::OldEdit& field = input.numberField;
+    UI::ShowTheNumberField(input, ShownField);
+    field.filter = NumberFieldFilter;
+    field.backgroundColor = 0;
+    field.text.Limit(NumberFieldLimit);
+    field.base.width = NumberFieldWidth;
+    field.base.height = NumberFieldHeight;
+    field.base.x = NumberFieldX;
+    field.base.y = NumberFieldY;
+    UI::FocusTheNumberField(input);
+    if (input.focus == UI::ChatFocus::NumberField)
+        frame.runtime.ui.focusedList = field.base.id;
+    Render::SpriteBatch& sprites = frame.context.sprites;
+    sprites.SetBlend(BlendMode::Alpha);
+    UI::OldEdit projected = field;
+    UI::OldDraw::DrawTheOldEdit(UI::OldWindowDrawContext{.sprites = sprites,
+                                                         .text = frame.context.text,
+                                                         .dcFont = frame.context.hud.dcFont,
+                                                         .textColors = frame.context.hud.textColors},
+                                frame.context.projecting ? projected : field,
+                                input.focus == UI::ChatFocus::NumberField);
+    sprites.SetBlend(BlendMode::Opaque);
+    const std::uint16_t yes = MouseIn(frame, NarrowYesLeft, OkTop, NarrowYesRight, OkBottom) ? OkHoverSlot : OkSlot;
+    Quad(frame, yes, NarrowYesX, OkY, NarrowWidth, OkHeight, OkDu, OkDv);
+    const std::uint16_t no = MouseIn(frame, NarrowNoLeft, OkTop, NarrowNoRight, OkBottom) ? NoHoverSlot : NoSlot;
+    Quad(frame, no, NarrowNoX, OkY, NarrowWidth, OkHeight, OkDu, OkDv);
+}
+
 // 0x5110d0([0x78aba4c]): el primero de los 400 vivo cuyo +0x1f4 (MOVSX) es la clave guardada, que /party pone con
 // MOVSX y el 40 sin signo; sin ninguno, el 400.
 std::size_t InviterOf(const WorldState& world, std::int32_t key)
@@ -619,6 +686,8 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
         DrawTheGenericBox(frame);
     else if (id == PartyInviteDialog || id == TradeInviteDialog)
         DrawTheYesNoBox(frame);
+    else if (id == NumberDialog)
+        DrawTheNumberBox(frame);
     else if (id != 0)
         return CutTheDialog(id);
     // 0x63140b: la mezcla normal y los textos de la cola.
@@ -634,6 +703,13 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
     }
     else if (id == PartyInviteDialog || id == TradeInviteDialog)
         return DrawTheInvitation(frame, id);
+    else if (id == NumberDialog)
+    {
+        context.hud.textColors.text = NumberTextColor;
+        if (auto drawn = DrawCenteredText(frame, InvitationRowY - NumberRowStep, NumberFirstText); !drawn.HasValue())
+            return drawn;
+        return DrawCenteredText(frame, InvitationRowY + NumberRowStep, NumberSecondText);
+    }
     else if (generic)
     {
         if (!generic->second)

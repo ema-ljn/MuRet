@@ -390,10 +390,11 @@ tienda personal y ver la de otro; armar una party y echar a alguien; un duelo; c
 - [x] **Los paquetes del gremio:** `0x50`..`0x56` (`0x4d74b0`, `0x4d6b60`, `0x4d7a20`, `0x4d7b60`,
       `0x4d7c30`), la marca en el viewport (`0x5C`, `0x5D`, `0x50d533`), `0x66` (`0x447b90`), las burbujas
       (`0x556dd0`).
-- [ ] **La ventana del gremio** (el panel `0x10`, `0x64f3e0`, con sus tres pestañas `0x64fdf0`, `0x6507d0` y
+- [x] **La ventana del gremio** (el panel `0x10`, `0x64f3e0`, con sus tres pestañas `0x64fdf0`, `0x6507d0` y
       `0x651400`; el `0x40000`, `0x654900`), crear el gremio (`0x6552b0`, `0x655d70`, `54`/`55`), las clases de
       las listas (`0x46b800`..`0x46d630`) y el diálogo de los paneles (`0x65feb0`, `0x6600d0`, `0x660410`,
-      `0x6605b0`, `0x660830`) que abren los paquetes.
+      `0x6605b0`, `0x660830`) que abren los paquetes. El campo y el reloj del diálogo de los paneles quedan para la
+      CL9.5 (08 P-C285), que es la que los abre.
 - [x] **La alianza y los rivales:** `E1`, `E5`, `E6`, `E9` (`0x4d9810`, `0x6565e0`, `0x4d9940`, `0x4d9e50`),
       con las ventanas `0x64e600`, `0x64def0`, `0x650c10`, `0x653c00` y `0x650830` (`EB`).
 - [x] **La guerra de gremios:** `0x60`..`0x64` (`0x4d8150`, `0x4d8260`, `0x4d8870`, con `0x576a60` del hito
@@ -448,6 +449,16 @@ la subclase `0x467b10` leída). El hito 11 (`cl9-h11`, sin mergear) no abre el r
 (P-C285). Queda (08 P-C287): el diálogo `0x7d` del juego (`0x62a810`, `0x62a878`, `0x62c567`, el dibujo
 `0x630af0..0x630cb8` y su cola `0x63140b`) con el segundo `EDIT` de los diálogos (`[0x5763508]`), que manda el
 `C1 53` de echar y de salir; por eso la ventana del gremio sigue sin tildar.
+
+**Fase 6 (2026-11-13):** el diálogo `0x7d` del juego con el segundo `EDIT` de los diálogos (`[0x5763508]`,
+`UI::ChatInputState::numberField`: oculto, tope 9 y `ES_PASSWORD` desde WinMain, el filtro de la subclase
+`0x467bd1..0x467c64` y los `*` de `0x468584`): el paso (`0x62a810`; el sí `0x62a878` lee el número y manda el
+`C1 17 53` con el nombre del lugar `0x6d5e2c`, cotejado con `CGGuildDelUser` del GS, `0x420bf0`; el no `0x62c567`),
+el dibujo (`0x630af0..0x630cb8`) y su cola (`0x63140b` por `0x632bf0` y `0x632b14` a `0x631f36`). El `EDIT` queda a la
+vista y con el foco al cerrar (Q-C1295); `0x6d5e2c` en −1 corta (Q-C1296). Las marcas de la lista de la alianza van
+cada una al slot de su renglón (`Render::FirstGuildUnionMarkTextureSlot`, `IGuildMarks::UploadToTheUnionRow`; P-C289).
+Con eso, la ventana del gremio queda tildada; el campo y el reloj del diálogo de los paneles siguen en la CL9.5
+(P-C285) y abrir la ventana de los cargos con otro diálogo de los paneles abierto sigue cortando en `0x6600f9`.
 
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 

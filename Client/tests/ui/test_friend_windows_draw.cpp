@@ -610,4 +610,35 @@ TEST_F(FriendWindowsDrawTest, TheEditCaretBlinksAndAHiddenEditDrawsNothing)
     EXPECT_EQ(quads(), 0u);
     EXPECT_EQ(edit.draws, 25);
 }
+
+// 0x468584..0x4685ec, el EDIT con ES_PASSWORD (el número del diálogo 0x7d, CL9 hito 8): el texto es un '*' por byte,
+// el bitmap mide los '*' en la negrita y el DC queda con la normal; el cursor, al final de los '*'.
+TEST_F(FriendWindowsDrawTest, AMaskedEditDrawsStarsAndLeavesTheNormalFont)
+{
+    OldEdit edit = Client::UI::NumberFieldEdit();
+    edit.base.state = 0;
+    edit.base.x = 0xf3;
+    edit.base.y = 0x62;
+    edit.base.width = 0x46;
+    edit.base.height = 0xe;
+    edit.text.Type("4321");
+    m_dcFont = FontKind::Bold;
+
+    Client::UI::OldDraw::DrawTheOldEdit(Context(), edit, true);
+
+    EXPECT_EQ(m_dcFont, FontKind::Normal);
+    ASSERT_EQ(m_text.texts.size(), 1u);
+    EXPECT_EQ(m_text.texts[0].text, "****");
+    EXPECT_EQ(m_text.texts[0].x, 0xf3);
+    EXPECT_EQ(m_text.texts[0].style.font, FontKind::Normal);
+    EXPECT_EQ(edit.text.Value(), "4321");
+    // El bitmap (ftol(1,5 + 1,5 + 24) = 27 de ancho), el texto y el cursor en x + 24 + 1.
+    const std::span<const SpriteVertex> vertices = m_sprites.Vertices();
+    ASSERT_EQ(vertices.size(), 3u * 6u);
+    EXPECT_FLOAT_EQ(vertices[0].x, 243.0f);
+    const float right = std::max({vertices[0].x, vertices[1].x, vertices[2].x, vertices[3].x});
+    EXPECT_FLOAT_EQ(right, 243.0f + 27.0f);
+    EXPECT_FLOAT_EQ(vertices[12].x, 243.0f + 25.0f);
+    EXPECT_EQ(edit.draws, 1);
+}
 } // namespace

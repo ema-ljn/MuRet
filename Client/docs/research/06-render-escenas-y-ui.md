@@ -1867,6 +1867,7 @@ DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos
 | `0x8a`, `0x8c`, `0x9b` / `0x8b`, `0x97` | `0xfc` de 213 × 5 en (213, 60), 4 / 7 filas de `0xfb` de 213 × 40 y otra `0xfc`; cada botón con estado, `0xf0 + estado` en `(x + 213, y + 60, w, h − 1)` con las UV `(0, 0, w / 128, h / 32)`; en el `0x8c`, las flechas (`CursorSitDown` girada 270 y 90 grados, 25 × 16, en (253, 210) y (383, 210)): gris en su tope, 0,7 con el mouse y 0,5 con el clic, que apaga (Q-C553); los renglones del `0x8a` y el `0x8c` desde `((7 − renglones) · 0x12) / 2 + 0x4c`; los del `0x8b`, el `0x97` y el `0x9b`, el objeto del evento (`0x632a2b`) |
 | OK genérico | `0xf0` de 213 × 64 en (213, 60) y el OK, `0xf1` (`0xf2` con el mouse en `[0x11c, 0x161] × [0x62, 0x76]`) de 70 × 21 en (284, 98); su texto en y = `0x4b`, o en `0x45` y `0x51` los de dos renglones: el `0x70` el 402, el `0x6f` y el `0x1a` el 405 y el 406, el `0x1c` el 409 y el `0x8f` el 401 |
 | `0x77`, `0x78` (CL9 hito 7, fase 2) | el mismo marco (`0x630818`); el sí (`0x6309d4`), `0xf1` (`0xf2` con el mouse en `[0xea, 0x130) × [0x62, 0x77)`) en (234, 98), y el no, `0xf3` (`0xf4` en `[0x14e, 0x194)`) en (334, 98), de 70 × 21 con las UV del OK (también los del `0x7f` y el `0x76`, de otras olas). El `0x77` (`0x631e29`): `sprintf(418, nombre)` con el `+0x1d9` del primero vivo de los 400 con la clave de `0x78aba4c` (`0x5110d0`, `MOVSX`; sin ninguno, el 400) en la fuente del DC en y = 75 − 6 y `sprintf(425)` en 75 + 6. El `0x78` (`0x631bb0`): `sprintf(418, 0x78aba1c)` en la negrita grande (`0x576355c`) en 75 − 11 y `sprintf(419)` en la normal en 75 + 11 |
+| `0x7d` (CL9 hito 8, fase 6) | el mismo marco; el `EDIT` del número (`[0x5763508]`, `0x630af0`) en (`0xf3`, `0x62`) con `+0x4c` en 9, tope 7, el foco y sus `*`; el sí angosto, `0xf1` (`0xf2` en `[0x143, 0x16b)`) en (323, 98), y el no, `0xf3` (`0xf4` en `[0x175, 0x19d)`) en (373, 98), de 40 × 21; el 427 y el 428 en rojo (`0x631f36`) en 75 − 6 y 75 + 6 (§ El diálogo del número del gremio) |
 
 `0x61ccb0` sube `Message_box` (`0xf0`), `ok`, `ok2`, `cancel`, `cancel2` (`0xf1` a
 `0xf4`), `Message_box1` (`0xfb`) y `Message_box2` (`0xfc`); el `bar.jpg` de `0xfd` es de `0x5e9b10`, la caja de la
@@ -2873,8 +2874,8 @@ diálogo de los paneles con dos renglones (`sprintf` con el 1367 y el nombre; el
 `0x64e550` (con 8, el diálogo `0x7d` del juego, `0x7d3a10c`, con el lugar de `0x64faa0` de `0x7d536c8` en
 `0x6d5e2c`). El diálogo `0x7d` pide el número y manda `C1 53` con el nombre de `0x787a5e8` y diez bytes de
 `0x7798bf8` (`0x62a878`). **MuRet** (fase 4): `AddTheGuildMember`, `ClearTheGuildMembers` y la pestaña en
-`StepTheGuildWindow`; los botones abren con `GuildDismiss` y `GuildKick` (`AnswerThePanelDialog`). Corta el diálogo
-`0x7d` (`0x62a810`). Tests: `GuildWindowTest` (la lista, PgUp y PgDn, el clic en un renglón, quitar el cargo con el
+`StepTheGuildWindow`; los botones abren con `GuildDismiss` y `GuildKick` (`AnswerThePanelDialog`). El diálogo `0x7d`,
+portado en la fase 6 (§ El diálogo del número del gremio). Tests: `GuildWindowTest` (la lista, PgUp y PgDn, el clic en un renglón, quitar el cargo con el
 `E1` byte a byte, echar y el cargo).
 
 **La ventana de los cargos (`0x64e600` y `0x64f1c0`).** El botón `+0x4b4` abre el diálogo de los paneles sin renglones
@@ -2927,6 +2928,32 @@ el diálogo `0x7d` (`0x7d3a10c`) con `0x553570(0)`, `0x6c8e68` en 0, `0x6c8e6c` 
 (`0x6c8e78`, `0x77f31c0`). Sin ser maestro, lo mismo que `0x64de90` pero con el lugar del héroe en `0x787a5e8`
 (`0x64faa0` con `+0x1d9`) en `0x6d5e2c`: sale del gremio con el `C1 53` del diálogo `0x7d`.
 
+**El diálogo del número del gremio, `0x7d` del juego** (CL9 hito 8, fase 6, *estático*). Lo abren `0x64e550` (echar,
+sin vaciar nada), `0x64de90` (disolver, con `0x6d5e2c` en 0) y `0x64fdb0` (salir, con el lugar del héroe); los dos
+últimos con `0x553570(0)`, que también hace SetText(0) en `[0x5763508]`. Ese es el segundo `EDIT` de los diálogos (la
+clase `0x4674c0`, `0x4bb395`): WinMain lo arma con `+0x2c([0x5763544], 9, 1)` (`0x4bbad7`: EM_LIMITTEXT 9 y
+`ES_PASSWORD` con `+0xb0` en 1, `0x468005`), oculto (`0x4bbae9`) y con la fuente normal (`0x4bbb59`).
+- **El dibujo** (`0x630818` y `0x630af0..0x630cb8`, compartido con el `0x71` y el `0x95`): el marco del OK genérico;
+  con `0x6c7b8c` en 1, el `EDIT` a la vista (`+4(0)`), `+0x4c` en 9 (el cuadro negro de `0x468477` y solo dígitos),
+  `+0x44(0, 0, 0, 0)`, `+0x3c(7)`, `+8(0x46, 0xe)`, `0x45a9d0(0xf3, 0x62)` y `+0x30(0)` (`0x4682a0`: SetFocus y
+  `0x5762ec0` con su `+0x40`), y su dibujo (`+0x14`, `0x468320`) entre `0x620a00(1)` y `0x620980`. Con `+0xb0`,
+  `0x468584..0x4685ec` mide tantos `*` como bytes en la negrita (`0x5763558`) y deja el DC con la normal. El sí, `0xf1`
+  (`0xf2` con el mouse en `[0x143, 0x16b) × [0x62, 0x77)`) en (323, 98), y el no, `0xf3` (`0xf4` en `[0x175, 0x19d)`)
+  en (373, 98), de 40 × 21 con las UV del OK. La cola (`0x63140b`, las tablas `0x632bf0` y `0x632b14`: el `0x7d` va a
+  `0x631f36`): `0x6c8e5c` en `0xff0000ff` (rojo, que queda) y el 427 y el 428 centrados en 75 − 6 y 75 + 6.
+- **El paso** (`0x62a7f7..0x62d745`): el sí angosto (`0x62a810`, `0x28` × `0x15` desde (`0x143`, `0x62`)) va por la
+  tabla `0x62daf4` a `0x62a878`: con `0x6c7b8c` en 1, GetText de `[0x5763508]` a `0x7798bf8` (hasta `0xff`; detrás del
+  `'\0'` queda lo que había) y SetText(0); el `C1 17 53 <nombre:10> <número:10>` con los diez bytes del lugar
+  `0x6d5e2c` de `0x787a5e8` (de `0xe`) y los de `0x7798bf8`, con el XOR32 y en claro, sin `rand()`; los diez bytes y
+  `0x7758590` en 0 (`0x62b372`) y el cierre (`0x62c4ac`, el sonido `0x19`). El no (el angosto de `0x175`, o Esc) va
+  por `0x62db38` a `0x62c567`: los diez bytes y el largo en 0, sin tocar el `EDIT`, y el cierre (`0x62da7a`). Nadie
+  oculta el `EDIT` ni le saca el foco (Q-C1295; el sí del `0x71`, `0x622fb0`, sí lo oculta).
+- **MuRet**: `UI::ChatInputState::numberField` (con `ChatFocus::NumberField` y el filtro de la subclase en
+  `TypeInTheChat`), `DrawTheNumberBox` en `GameDialogDrawing.cpp`, `SendTheLeave` en `GameDialogSteps.cpp` y el `*` en
+  `UI::OldDraw::DrawTheOldEdit`. Con `0x6d5e2c` fuera de los 80 lugares corta (`0x62a91c`, Q-C1296). Tests:
+  `LeaveNumberTest` y `TheLeaveNumberDrawsItsEditAndTheNarrowButtons` en Lorencia y en Devias,
+  `ChatInputTest.TheNumberFieldTakesOnlyDigits` y `FriendWindowsDrawTest.AMaskedEditDrawsStarsAndLeavesTheNormalFont`.
+
 **La pestaña 0, el dibujo (`0x64fdf0`).** El marco de 53 (`0x471520(x + 0x45, y + 0x68, 53, 53, 0)`), la marca de 48
 del gremio del héroe (`0x5f16a0(+0x1f2, 1)` y el `0x22` en (x + `0x48`, y + `0x6b`)), el marco de 140 × 62 en
 (x + `0x19`, y + `0xaa`) y, en x + `0x1e` de a `0xd` desde y + `0xb2`, con `0x5542f0` en el modo 1 en cajas de
@@ -2964,7 +2991,8 @@ con el modo 4 a la derecha de x + `0x8e`). Con el héroe maestro: con su gremio 
 `+0x6d4` prendido (`+4(0)`) y los dos dibujados; si no, `+0x64c` con el 1325, `+0x6d4` apagado (6) y solo `+0x64c`.
 **MuRet** (fase 5): las listas sobre `UI::OldList` con su dibujo (`UI::OldDraw::DrawTheOldList`), los pasos en
 `StepTheGuildWindow` (`GuildDisband` y `UnionKick` en `AnswerThePanelDialog`) y los dibujos en `DrawTheGuildTab`. La
-marca de cada renglón de la alianza sube al mismo slot y el lote las dibuja después (P-C289). Tests: `GuildWindowTest`,
+marca de cada renglón de la alianza va al slot de su renglón (`IGuildMarks::UploadToTheUnionRow`, fase 6, P-C289): el
+original la dibuja enseguida y MuRet dibuja el lote después. Tests: `GuildWindowTest`,
 `GuildReceiveTest.TheUnionListAndItsRefresh`, `ChatReceiveTest.TheGuildNoticeGoesToTheAreaAndToTheGuildWindow`.
 
 ## La escena de carga y la de login

@@ -360,10 +360,12 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
         // le pasa el Enter a su padre; el Tab no lo mira (P-C181).
         const bool oldEdit = UI::HasAnOldEditFocused(runtime.oldWindows, input.focus);
         // 0x467b9d: con el WM_CHAR, la subclase pone en 0 los dibujos del EDIT (+0x80, el cursor prendido). MuRet lo
-        // hace con el campo del alta del gremio (CL9 hito 8, P-C286), el único de la escena que se dibuja con 0x468320
-        // y no es de una ventana vieja.
+        // hace con los dos EDIT de los diálogos (CL9 hito 8, P-C286: el del alta del gremio y el del número del 0x7d),
+        // los de la escena que se dibujan con 0x468320 y no son de una ventana vieja.
         if (input.focus == UI::ChatFocus::DialogField)
             input.dialogField.draws = 0;
+        else if (input.focus == UI::ChatFocus::NumberField)
+            input.numberField.draws = 0;
         if (const std::string_view run = rest.substr(0, key); !run.empty())
         {
             if (oldEdit)

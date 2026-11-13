@@ -104,7 +104,8 @@ void DrawTheChosenRow(const OldWindowDrawContext& context, const OldList& list, 
 // la fuente normal, y el cursor: la columna que está más de GetCaretPos y menos de GetCaretPos + +0xa8 (0x468805..
 // 0x46881d: con 1,5, una sola) y las filas del alto de "1" (+0xac), al final del texto, prendido 12 de cada 24
 // dibujos con el foco de Windows; +0x80 cuenta los dibujos. Con +0x4c & 8, antes, el negro de su ancho y del alto de
-// "1". Sin la contraseña (+0xb0, con '*' y la fuente 0x5763558) ni los renglones (+0xc4), que la caja de agregar no
+// "1". Con la contraseña (+0xb0, TextField::Masked: el segundo EDIT de los diálogos, CL9 hito 8), un '*' por byte, el
+// ancho medido en la negrita (0x5763558) y el DC con la normal después. Sin los renglones (+0xc4), que nadie de MuRet
 // usa; el bitmap de más de 256 píxeles, que el original parte en dos texturas, es el mismo dibujo.
 void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool focused);
 } // namespace Client::UI::OldDraw

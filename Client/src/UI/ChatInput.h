@@ -48,19 +48,38 @@ inline constexpr std::int32_t MessageField = 0;
 inline constexpr std::int32_t WhisperField = 1;
 // 0x6c8e6c: cuántos campos recorre Tab, 2 desde el primer paso del juego y al abrir.
 inline constexpr std::int32_t ChatFieldCount = 2;
-// [0x5763504]: el tope del EDIT de los diálogos antes de que alguien le ponga uno (*inferido*: lo que lee GetText,
-// 0xff; la ventana 2 le pone 8 en cada dibujo de la página 1, 0x655202).
-inline constexpr std::size_t DialogFieldLimit = 0xff;
+// [0x5763504] y [0x5763508]: los topes de los dos EDIT de los diálogos antes de que alguien les ponga otro: WinMain los
+// arma con +0x2c([0x5763544], 0x32, 0) (0x4bbaaa) y +0x2c([0x5763544], 9, 1) (0x4bbad7), y 0x467fe0 le pasa el segundo
+// argumento a la vtable + 0x3c (EM_LIMITTEXT, 0x46811e) y con el tercero en 1 prende ES_PASSWORD y +0xb0 (0x468005).
+// La ventana 2 del gremio le pone 8 al primero en cada dibujo de la página 1 (0x655202) y el diálogo 0x7d, 7 al
+// segundo (0x630b2b). *Estático*.
+inline constexpr std::size_t DialogFieldLimit = 0x32;
+inline constexpr std::size_t NumberFieldLimit = 9;
+// +0x40 de los dos (el contador 0x5762eb0, 0x459ef0): WinMain arma antes los seis EDIT de [0x57634f8], [0x57634fc] y
+// [0x5763500], que se llevan del 1 al 6, y después el registro del chat (UI::ChatLogId, 9). *Inferido*, como ese.
+inline constexpr std::int32_t DialogFieldId = 7;
+inline constexpr std::int32_t NumberFieldId = 8;
 // 0x469790(10000): volver al más nuevo.
 inline constexpr std::int32_t NewestInTheHistory = 10000;
 
-// El EDIT de los diálogos con el tope de GetText, oculto como lo deja WinMain (+4(3) en 0x4bbabc); lo demás, como lo
-// deja 0x4674c0.
+// El EDIT de los diálogos, oculto como lo deja WinMain (+4(3) en 0x4bbabc); lo demás, como lo deja 0x4674c0.
 [[nodiscard]] inline OldEdit DialogFieldEdit()
 {
     OldEdit edit;
+    edit.base.id = DialogFieldId;
     edit.base.state = HiddenWindow;
     edit.text = TextField{DialogFieldLimit, false, TextField::Charset::Latin1};
+    return edit;
+}
+
+// El segundo EDIT de los diálogos, con ES_PASSWORD (TextField::Masked, +0xb0) y oculto (+4(3) en 0x4bbae9); lo demás,
+// como lo deja 0x4674c0. WinMain les pone a los dos la fuente normal (+0x34 con [0x5763554], 0x4bbb42 y 0x4bbb59).
+[[nodiscard]] inline OldEdit NumberFieldEdit()
+{
+    OldEdit edit;
+    edit.base.id = NumberFieldId;
+    edit.base.state = HiddenWindow;
+    edit.text = TextField{NumberFieldLimit, true, TextField::Charset::Latin1};
     return edit;
 }
 
@@ -74,6 +93,8 @@ enum class ChatFocus : std::uint8_t
     OldWindow,
     // El EDIT de los diálogos, [0x5763504] (el nombre del gremio nuevo de la ventana 2, CL9 hito 8).
     DialogField,
+    // El segundo, [0x5763508] (el número del diálogo 0x7d del juego, CL9 hito 8).
+    NumberField,
 };
 
 using ChatBuffer = std::array<char, ChatBufferSize>;
@@ -114,6 +135,11 @@ struct ChatInputState
     OldEdit dialogField = DialogFieldEdit();
     // +0x48 del EDIT de los diálogos a la vista (0x468260 con otro que 3), lo mismo que `dialogField.base.state`.
     bool dialogFieldShown = false;
+    // [0x5763508]: el segundo EDIT de los diálogos (la clase 0x4674c0 que arma WinMain en 0x4bb395), con ES_PASSWORD y
+    // el filtro que le pone su dibujo. En el juego lo usa el diálogo 0x7d (0x630af0 lo muestra, lo ubica, le da el foco
+    // y lo dibuja; el sí de 0x62a878 lo lee y lo vacía, y nadie lo oculta: Q-C1295). Lo tecleado entra con el foco en
+    // ChatFocus::NumberField; a la vista, con su +0x48 (`numberField.base.state`).
+    OldEdit numberField = NumberFieldEdit();
     // 0x77f3b68: el campo del diálogo prendido (el 01 del Guild Master, 0x4e3450, y el botón Crear, 0x655d70; lo apaga
     // 0x6570b0). Con él, Enter no es del chat (0x4b5115) y no hay atajos de teclado (0x6578e0).
     bool dialogFieldOn = false;
@@ -133,8 +159,8 @@ struct ChatInputState
 void CopyIntoTheBuffer(ChatBuffer& buffer, std::string_view text);
 
 // 0x553570(segundo): el campo elegido en 0, los buffers 0 y, con `second`, 1 en ceros y sus largos en 0, y SetText(0)
-// en el EDIT de los diálogos ([0x5763504]). Los otros ocho buffers, sus largos, las marcas de 0x77f31c0, 0x6c8e74 y el
-// EDIT de [0x5763508] (el otro campo de los diálogos, hito 6) no los tiene MuRet.
+// en los dos EDIT de los diálogos ([0x5763504] y [0x5763508]). Los otros ocho buffers, sus largos, las marcas de
+// 0x77f31c0 y 0x6c8e74 no los tiene MuRet.
 void ResetTheTextBuffers(ChatInputState& input, bool second);
 
 // 0x469420: SetText(0) en los dos EDIT.
@@ -194,8 +220,19 @@ void FocusTheDialogField(ChatInputState& input);
 // 0x467ec0(buffer, 0xff) sobre el EDIT de los diálogos (la vtable + 0x50): GetText, hasta 0xff bytes y el '\0'.
 void ReadTheDialogField(const ChatInputState& input, ChatBuffer& buffer);
 
+// Lo mismo sobre el segundo EDIT de los diálogos ([0x5763508]): 0x468260 (+4), 0x4682a0(0) (+0x30) y 0x467ec0(buffer,
+// 0xff) (+0x50), y 0x467ee0(0) (+0x4c, SetText con nada).
+void ShowTheNumberField(ChatInputState& input, std::int32_t state);
+void FocusTheNumberField(ChatInputState& input);
+void ReadTheNumberField(const ChatInputState& input, ChatBuffer& buffer);
+void ClearTheNumberField(ChatInputState& input);
+
 // Lo tecleado al EDIT con el foco, como los WM_CHAR que Windows le da: los bytes van al final (o reemplazan lo
-// elegido) y BackspaceChar borra. Sin un EDIT con el foco, la ventana del juego los descarta (0x4b88ee).
+// elegido) y BackspaceChar borra. Sin un EDIT con el foco, la ventana del juego los descarta (0x4b88ee). En los dos
+// EDIT de los diálogos pasa antes por el filtro de su subclase (0x467bd1..0x467c64, OldEdit::filter): con el bit 0,
+// solo los dígitos; si no, con el bit 1, los dígitos y las letras, las minúsculas en mayúsculas. Lo demás se lo traga
+// (devuelve 0 sin llamar al WndProc del EDIT). Los de control que el filtro 1 deja (3, 0x16 y 0x18: copiar, pegar con
+// 0x467a90 y cortar) no llegan como texto a MuRet.
 void TypeInTheChat(ChatInputState& input, std::string_view typed);
 void BackspaceInTheChat(ChatInputState& input);
 

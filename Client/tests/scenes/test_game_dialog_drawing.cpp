@@ -15,9 +15,11 @@
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
 #include "UI/Dialogs.h"
 #include "UI/GameDialogs.h"
 #include "UI/GameUiState.h"
+#include "UI/OldControls.h"
 #include "UI/Widget.h"
 
 #include "support/RecordingTextDrawer.h"
@@ -158,6 +160,8 @@ public:
         {418, "de %s"},
         {419, "comerciar?"},
         {425, "entrar a la party?"},
+        {427, "nro"},
+        {428, "seguro?"},
         {919, "carteles"},
         {1840, "brillo"},
     });
@@ -459,6 +463,89 @@ TEST(GameDialogDrawingTest, TheTradeRequestNamesTheOther)
         EXPECT_EQ(tested->text.texts[1].y, 75 + 11);
         EXPECT_EQ(tested->text.texts[1].style.font, Client::Render::Text::FontKind::Normal);
         EXPECT_EQ(runtime.hud.dcFont, Client::Render::Text::FontKind::Normal);
+    }
+}
+
+// 0x630818 y 0x630af0..0x630cb8 (el 0x7d, CL9 hito 8): el marco del OK genérico; el EDIT del número ([0x5763508]) a la
+// vista con +0x4c en 9, el fondo en 0, el tope 7, de 0x46 × 0xe en (0xf3, 0x62) y con el foco (0x4682a0: 0x5762ec0 con
+// su id); en la mezcla normal, el cuadro negro de +0x4c, el bitmap, los '*' y el cursor; en la opaca, el sí (0xf1, o
+// 0xf2 con el mouse en [0x143, 0x16b) × [0x62, 0x77)) en 323 y el no (0xf3, o 0xf4 en [0x175, 0x19d)) en 373, de
+// 40 × 21. En la cola (0x631f36), el 427 y el 428 centrados en 75 − 6 y 75 + 6, en rojo, que queda. Sin rand().
+TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0x7d;
+        runtime.ui.focusedList = -3;
+        Client::UI::ChatInputState& input = runtime.chat.input;
+        input.numberField.text.Type("12");
+        tested->mouse = {0x16a, 0x76};
+
+        ASSERT_TRUE(tested->Draw().HasValue());
+        const Client::UI::OldEdit& field = input.numberField;
+        EXPECT_EQ(field.base.state, 0);
+        EXPECT_EQ(field.filter, 9);
+        EXPECT_EQ(field.backgroundColor, 0u);
+        EXPECT_EQ(field.base.x, 0xf3);
+        EXPECT_EQ(field.base.y, 0x62);
+        EXPECT_EQ(field.base.width, 0x46);
+        EXPECT_EQ(field.base.height, 0xe);
+        EXPECT_EQ(input.focus, Client::UI::ChatFocus::NumberField);
+        EXPECT_EQ(runtime.ui.focusedList, Client::UI::NumberFieldId);
+        EXPECT_EQ(field.draws, 1);
+
+        const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 6u);
+        EXPECT_EQ(quads[0].slot, 0xf0);
+        EXPECT_EQ(quads[0].x, 213.0f);
+        EXPECT_EQ(quads[0].y, 60.0f);
+        EXPECT_FALSE(quads[1].slot.has_value());
+        EXPECT_EQ(quads[1].x, 243.0f);
+        EXPECT_EQ(quads[1].y, 98.0f);
+        EXPECT_EQ(quads[1].blend, BlendMode::Alpha);
+        EXPECT_EQ(quads[1].color, (Color{.red = 0.0f, .green = 0.0f, .blue = 0.0f, .alpha = 1.0f}));
+        EXPECT_FALSE(quads[2].slot.has_value());
+        EXPECT_EQ(quads[2].color.alpha, 0.0f);
+        // El cursor, después de los dos '*' (12 columnas) más 1.
+        EXPECT_FALSE(quads[3].slot.has_value());
+        EXPECT_EQ(quads[3].x, 243.0f + 13.0f);
+        EXPECT_EQ(quads[4].slot, 0xf2);
+        EXPECT_EQ(quads[4].x, 323.0f);
+        EXPECT_EQ(quads[4].y, 98.0f);
+        EXPECT_EQ(quads[4].blend, BlendMode::Opaque);
+        EXPECT_EQ(quads[5].slot, 0xf3);
+        EXPECT_EQ(quads[5].x, 373.0f);
+
+        EXPECT_EQ(tested->Texts(), (std::vector<std::string>{"**", "nro", "seguro?"}));
+        EXPECT_EQ(tested->text.texts[0].x, 0xf3);
+        EXPECT_EQ(tested->text.texts[1].x, CenteredX("nro"));
+        EXPECT_EQ(tested->text.texts[1].y, 75 - 6);
+        EXPECT_EQ(tested->text.texts[1].style.colors.text, 0xff0000ffu);
+        EXPECT_EQ(tested->text.texts[2].x, CenteredX("seguro?"));
+        EXPECT_EQ(tested->text.texts[2].y, 75 + 6);
+        EXPECT_EQ(runtime.hud.textColors.text, 0xff0000ffu);
+        EXPECT_EQ(tested->sprites.Blend(), BlendMode::Alpha);
+
+        // El tope 7 (EM_LIMITTEXT) frena lo que se teclea desde ahora.
+        Client::UI::TypeInTheChat(input, "345678");
+        EXPECT_EQ(input.numberField.text.Value(), "1234567");
+
+        // Un dibujo intermedio no cuenta el parpadeo; fuera del sí (x 0x16b) y en el no, 0xf1 y 0xf4.
+        tested->sprites.Begin(Screen640);
+        tested->text.texts.clear();
+        tested->mouse = {0x16b, 0x62};
+        ASSERT_TRUE(tested->Draw(true).HasValue());
+        EXPECT_EQ(input.numberField.draws, 1);
+        EXPECT_EQ(QuadsOf(tested->sprites)[4].slot, 0xf1);
+        tested->sprites.Begin(Screen640);
+        tested->mouse = {0x175, 0x62};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        EXPECT_EQ(input.numberField.draws, 2);
+        EXPECT_EQ(QuadsOf(tested->sprites)[5].slot, 0xf4);
+        EXPECT_EQ(tested->random.State(), Client::Render::Models::CrtRandom{}.State());
     }
 }
 

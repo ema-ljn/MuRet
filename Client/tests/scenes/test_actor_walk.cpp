@@ -235,7 +235,7 @@ TEST_F(ActorWalkTest, Type16dRequestsItsUnconditionalSoundWithoutDrawingRandom)
 
 // 0x4f3edc..0x4f3f6c: el que no es un jugador, con rand() & 15 en 0, pide la WORD 0 o la 1 de la tabla que escribió el
 // alta (rand() % 2, más 5 con el subtipo 9 y más 0xd2); con la WORD 0 en −1, ninguna y sin el segundo rand(); sin la
-// tabla, el rand() y ninguna (P-C253).
+// tabla, las WORD en 0 de 0x60dc80: el rand() y el 0xd2.
 TEST_F(ActorWalkTest, AMonsterChosenToSoundDrawsItsWalkWord)
 {
     std::uint32_t seed = 1;
@@ -255,7 +255,7 @@ TEST_F(ActorWalkTest, AMonsterChosenToSoundDrawsItsWalkWord)
 
     const auto unwritten = walk(0);
     ASSERT_TRUE(unwritten.HasValue()) << (unwritten.HasValue() ? "" : unwritten.Error());
-    EXPECT_FALSE(unwritten.Value().sound.has_value());
+    EXPECT_EQ(unwritten.Value().sound, std::optional<std::int32_t>(0xd2));
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(seed, 2).State());
 
     m_runtime.modelSounds[Model] = {0x30, 0x31, -1, -1, -1, -1, -1, -1, -1, -1};
@@ -343,7 +343,7 @@ TEST(ActorFootstepTest, MapLayerAndSafeZoneChooseTheNativeSound)
 
 // 0x4f3efa..0x4f3f67: otro modelo que el 0x20a, sorteado con rand() & 15, suena con la tabla de su modelo (+0xaa, la de
 // 0x612c80): una de las dos primeras por rand() & 1, más 0xd2 (y 5 con el subtipo 9). Con la primera en −1, nada; sin
-// la tabla ni la de WorldRuntime::modelSounds, el rand() y ninguno (P-C253).
+// la tabla ni la de WorldRuntime::modelSounds, las WORD en 0 de 0x60dc80: el rand() y el 0xd2 (0xd7 con el 9).
 TEST_F(ActorWalkTest, AnotherModelSoundsFromItsModelTable)
 {
     const std::array<std::int16_t, 10> table{0x10, 0x11, 0x12, 0x13, 0x14, -1, -1, -1, -1, -1};
@@ -390,7 +390,11 @@ TEST_F(ActorWalkTest, AnotherModelSoundsFromItsModelTable)
                         false,
                         &m_skeleton});
             ASSERT_TRUE(unknown.HasValue()) << unknown.Error();
-            EXPECT_FALSE(unknown.Value().sound.has_value());
+            EXPECT_EQ(unknown.Value().sound.has_value(), walked.Value().sound.has_value());
+            if (unknown.Value().sound.has_value())
+            {
+                EXPECT_EQ(*unknown.Value().sound, subtype == 9 ? 0xd2 + 5 : 0xd2);
+            }
             if (walked.Value().sound.has_value())
             {
                 ++drawnTwice;

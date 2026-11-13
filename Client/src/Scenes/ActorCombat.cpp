@@ -426,13 +426,13 @@ void DeathSound(const ActorState& actor, const ActorCombatContext& context)
     if (actor.type != Data::Models::PlayerSkeletonModel || HasModelSoundSubtype(actor))
     {
         // 0x4f5aa8..0x4f5ae8: la WORD 4 de la tabla del modelo; 0xffff, nada; si no, con signo, más 5 con el subtipo 9
-        // y más 0xd2. Sin la tabla, no se pide (P-C253). No saca rand().
-        const std::optional<ModelSounds> table = SoundsOf(actor, context);
+        // y más 0xd2. Sin la tabla, la WORD en 0 de 0x60dc80 (SoundsOrZeros): el 0xd2. No saca rand().
+        const ModelSounds table = SoundsOrZeros(SoundsOf(actor, context));
         constexpr std::size_t DeathSoundWord = 4;
-        if (!table || (*table)[DeathSoundWord] == -1)
+        if (table[DeathSoundWord] == -1)
             return;
         constexpr std::int32_t MonsterSoundBase = 0xd2;
-        sound = (*table)[DeathSoundWord] + SubtypeOffset(actor) + MonsterSoundBase;
+        sound = table[DeathSoundWord] + SubtypeOffset(actor) + MonsterSoundBase;
         return;
     }
     const auto characterClass = actor.characterClass & ClassMask;

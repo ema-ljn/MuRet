@@ -35,9 +35,8 @@ struct ActorCombatContext
     const Render::Models::Skeleton* playerSkeleton = nullptr;
     const IModelLibrary* models = nullptr;
     const Data::Tables::ItemTable* items = nullptr;
-    // La tabla de sonidos del modelo (ModelSounds); vacía, la de WorldRuntime::modelSounds. Sin la del modelo, el
-    // sonido de la tabla no se pide y 0x4f4a10 saca igual su rand(), como si la WORD 2 no fuera −1 (*inferido*, 08
-    // P-C253).
+    // La tabla de sonidos del modelo (ModelSounds); vacía, la de WorldRuntime::modelSounds. Sin ninguna de las dos, las
+    // diez WORD en 0 de 0x60dc80 (SoundsOrZeros): 0x4f4a10 saca su rand() y pide el 0xd2 (08, P-C253).
     ModelSoundLookup modelSounds{};
 };
 [[nodiscard]] ActorCombatContext CombatContextOf(const WorldEntryResources& resources);

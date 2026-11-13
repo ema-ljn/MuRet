@@ -218,15 +218,24 @@ Core::Expected<void, std::string> HitTheTarget(ActorState& hero, std::int32_t ta
 // +0x3e8, 0) con el alcance de distancia (0x4eac00, sin bClearGoal): las celdas a menos del alcance del blanco son la
 // meta. Con camino, +0x378 en 1 y nada más: sin SendMove, el servidor no ve el camino hasta el D3 de girar al llegar
 // (07). Sin camino, nada.
-Core::Expected<void, std::string> WalkIntoRange(ActorState& hero, GameLogic::PathCell target, float range,
-                                                const HeroArrivalContext& context)
+Core::Expected<void, std::string> WalkIntoRange(ActorState& hero, std::int32_t targetX, std::int32_t targetY,
+                                                float range, const HeroArrivalContext& context)
 {
     auto& random = context.combat.random;
     const std::uint8_t y = ReadTheCell(hero.cellYAccesses, hero.cellY, random);
     const std::uint8_t x = ReadTheCell(hero.cellXAccesses, hero.cellX, random);
+    // 0x566272: PathFinding2 mira primero el altar de Crywolf.
+    if (auto altar = CheckTheCrywolfAltar(context.combat.world, "0x566272"); !altar.HasValue())
+        return altar;
+    // La celda del blanco fuera de la grilla, que el A* toma como índice lineal (la fila de al lado, o fuera de los
+    // 65.536 WORD): MuRet descarta el acercamiento, con los dos rand() de las lecturas (07, Q-C1179).
+    constexpr std::int32_t LastCell = 0xff;
+    if (targetX < 0 || targetX > LastCell || targetY < 0 || targetY > LastCell)
+        return {};
     World::WorldTerrain& terrain = context.combat.world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x566272: falta TerrainWall para que el elfo se acerque"));
+    const GameLogic::PathCell target{static_cast<std::uint8_t>(targetX), static_cast<std::uint8_t>(targetY)};
     const auto path = GameLogic::PathFinder(terrain.attributes->cells).Find({x, y}, target, false, range);
     if (!path)
         return {};
@@ -281,13 +290,7 @@ Core::Expected<void, std::string> AttackOnArrival(ActorState& hero, const HeroAr
         // 0x565349..0x5653b6: fuera de alcance sólo el elfo se acerca, con el camino hasta el alcance (0x566271).
         if ((hero.characterClass & ClassMask) != ElfClass)
             return {};
-        constexpr std::int32_t LastCell = 0xff;
-        if (*cellX < 0 || *cellX > LastCell || *cellY < 0 || *cellY > LastCell)
-            return Core::Unexpected(std::format("0x566272: la celda del blanco ({}, {}) fuera de la grilla, que "
-                                                "PathFinding2 toma como índice lineal",
-                                                *cellX, *cellY));
-        return WalkIntoRange(hero, {static_cast<std::uint8_t>(*cellX), static_cast<std::uint8_t>(*cellY)}, range,
-                             context);
+        return WalkIntoRange(hero, *cellX, *cellY, range, context);
     }
     return HitTheTarget(hero, target, context);
 }
@@ -322,9 +325,10 @@ Core::Expected<bool, std::string> IsAttackable(const WorldState& world, bool con
     // 0x558d6e..0x558e9b.
     if (target.byte370 == 2 || target.byte370 == 8)
         return true;
+    // 0x558da4..0x558df3: en la guerra de gremios, el nombre del gremio del elegido (0x787aa55 + 0x58 · +0x1f2) contra
+    // el del héroe: iguales, falso; distintos, sigue. Sin los nombres hasta el hito 8, falso (08, P-C250 f).
     if (rules.byte576796c != 0 && target.pk >= MinimumOutlawPk && target.word1f2 != NoGuild)
-        return Core::Unexpected(std::string("0x558da4: comparar los nombres de gremio de 0x787aa55 en la guerra de "
-                                            "gremios es del hito 8"));
+        return false;
     if (rules.duelActive)
     {
         const bool rival = static_cast<std::int32_t>(static_cast<std::int16_t>(target.key)) == rules.duelKey;
@@ -356,9 +360,10 @@ Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, s
         return key;
     const AttackRules& rules = runtime.attackRules;
     // 0x558f09..0x558f7c.
+    // 0x558f29..0x558f7c: los nombres de gremio, como en 0x558da4; iguales, −1. Sin los nombres hasta el hito 8, −1
+    // (08, P-C250 f; Q-C1170).
     if (rules.byte576796c != 0 && target.pk >= MinimumOutlawPk && target.word1f2 != NoGuild)
-        return Core::Unexpected(std::string("0x558f29: comparar los nombres de gremio de 0x787aa55 en la guerra de "
-                                            "gremios es del hito 8"));
+        return NoKey;
     // 0x558f84..0x558fed.
     if (rules.duelActive)
         return key == rules.duelKey ? key : NoKey;
@@ -369,6 +374,32 @@ Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, s
     if (target.pk >= MinimumOutlawPk)
         return key;
     return controlDown && !isHero ? key : NoKey;
+}
+
+Core::Expected<void, std::string> CheckTheCrywolfAltar(const WorldState& world, std::string_view caller)
+{
+    // 0x4eac0a..0x4eac1a: 0x435a00 (la etapa 3 o 4) y 0x4303c0 (el mapa 34).
+    constexpr std::int32_t CrywolfMap = 34;
+    constexpr std::uint8_t ThirdStage = 3;
+    constexpr std::uint8_t FourthStage = 4;
+    const WorldRuntime& runtime = world.Runtime();
+    const bool crywolf =
+        (runtime.crywolf.stage == ThirdStage || runtime.crywolf.stage == FourthStage) && runtime.map == CrywolfMap;
+    if (!crywolf)
+        return {};
+    // 0x4eac1c..0x4eac3f: [0x743a16c] + 0x438 · [0x6c8e54] + 2, comparado en 16 bits con signo.
+    const std::int32_t chosen = runtime.movement.chosenNpc;
+    const auto actors = world.Actors();
+    if (chosen < 0 || static_cast<std::size_t>(chosen) >= actors.size())
+        return {};
+    constexpr std::int16_t FirstAltar = 0x204;
+    constexpr std::int16_t LastAltar = 0x208;
+    const auto model = static_cast<std::int16_t>(actors[static_cast<std::size_t>(chosen)].type);
+    if (model < FirstAltar || model > LastAltar)
+        return {};
+    return Core::Unexpected(std::format("0x4eac41: el camino de {} con un altar de Crywolf elegido (la bandera del A* "
+                                        "de 0x4ead70) es del hito 11",
+                                        caller));
 }
 
 bool PassesTheActionBrake(std::uint32_t& last, std::int32_t skill, const std::function<std::uint32_t()>& tickCount)

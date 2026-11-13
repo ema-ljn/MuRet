@@ -286,6 +286,48 @@ TEST_F(HeroAttackTest, OutOfRangeOnlyTheElfWalksIntoRange)
     EXPECT_EQ(m_random.State(), After(OwnRecordDraws + 2 * CellDraws));
 }
 
+// El elfo fuera de alcance con el blanco en la columna 256, que PathFinding2 (0x566272) toma como índice lineal: MuRet
+// descarta el acercamiento después de leer la Y y la X (07, Q-C1179). Con Crywolf en la etapa 3, en el mapa 34 y un
+// altar (0x206) en 0x6c8e54, PathFinding2 corta en 0x4eac41 (hito 11) después de las mismas lecturas; en Lorencia y en
+// Devias el altar no cuenta y el elfo se acerca.
+TEST_F(HeroAttackTest, TheElfDiscardsATargetOffTheGridAndCutsAtACrywolfAltar)
+{
+    constexpr std::size_t AltarIndex = 30;
+    for (const std::int32_t map : {0, 2, 34})
+    {
+        for (const bool offTheGrid : {true, false})
+        {
+            SCOPED_TRACE(::testing::Message() << "mapa " << map << (offTheGrid ? ", la columna 256" : ", el altar"));
+            Reset(map);
+            m_world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+            Hero().characterClass = 2;
+            Hero().movement = 0;
+            Hero().path = {};
+            Target().position = {offTheGrid ? 25650.0f : 19250.0f, 11550.0f, 0.0f};
+            Runtime().crywolf.stage = 3;
+            m_world->Actors()[AltarIndex].type = 0x206;
+            Runtime().movement.chosenNpc = offTheGrid ? -1 : static_cast<std::int32_t>(AltarIndex);
+
+            const auto arrived = Client::Scenes::InteractOnArrival(Hero(), Arrival());
+
+            EXPECT_EQ(m_random.State(), After(OwnRecordDraws + 2 * CellDraws));
+            EXPECT_TRUE(m_sent.empty());
+            if (!offTheGrid && map == 34)
+            {
+                ASSERT_FALSE(arrived.HasValue());
+                EXPECT_NE(arrived.Error().find("0x4eac41"), std::string::npos) << arrived.Error();
+                EXPECT_NE(arrived.Error().find("0x566272"), std::string::npos) << arrived.Error();
+                EXPECT_EQ(Hero().movement, 0);
+                continue;
+            }
+            ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
+            EXPECT_EQ(Runtime().movement.targetX, offTheGrid ? 256u : 192u);
+            EXPECT_EQ(Hero().movement, offTheGrid ? 0 : 1);
+            EXPECT_EQ(Hero().path.count, offTheGrid ? 0u : 10u);
+        }
+    }
+}
+
 // Las salidas antes de pegar: sin blanco (0x6c8ebc en −1) después del alcance, el héroe pegando ya (0x8d, o 3 y 4 si
 // no es un jugador) y la zona segura (después de anotar la celda del blanco).
 TEST_F(HeroAttackTest, TheEarlyExitsDoNotHit)
@@ -451,7 +493,8 @@ TEST_F(HeroAttackTest, MonstersAndPlayersFollowTheRules)
     EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
 }
 
-// En la guerra de gremios cuenta +0x374 en 2; con el PK de 6 y gremio, comparar los nombres de 0x787aa55 es del hito 8.
+// En la guerra de gremios cuenta +0x374 en 2; con el PK de 6 y gremio, comparar los nombres de 0x787aa55 es del hito 8:
+// hasta entonces no es atacable (0x558da4, P-C250 f), sin cerrar la sesión, aunque tenga el control o la marca.
 TEST_F(HeroAttackTest, TheGuildWarLooksAtTheEnemyMark)
 {
     Runtime().attackRules.byte576796c = 1;
@@ -463,9 +506,12 @@ TEST_F(HeroAttackTest, TheGuildWarLooksAtTheEnemyMark)
     EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
     player.pk = 6;
     player.word1f2 = 3;
-    const auto cut = Client::Scenes::IsAttackable(*m_world, false);
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x558da4"), std::string::npos);
+    for (const bool controlDown : {false, true})
+    {
+        const auto attackable = Client::Scenes::IsAttackable(*m_world, controlDown);
+        ASSERT_TRUE(attackable.HasValue()) << attackable.Error();
+        EXPECT_FALSE(attackable.Value());
+    }
 }
 
 // En el duelo (0x78abad8), sólo el rival: la clave de 0x78abadc y el nombre de 0x78abae0.

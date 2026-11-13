@@ -25,9 +25,12 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -189,7 +192,25 @@ struct ArrowWorld
                                 .particles = &particles,
                                 .sprites = &sprites,
                                 .lighting = lighting.get(),
-                                .worldClock = 0.0f};
+                                .worldClock = 0.0f,
+                                .terrainHeight = ground.has_value()
+                                                     ? std::function<double(float, float)>(
+                                                           [this](float, float) { return ground.value_or(0.0); })
+                                                     : std::function<double(float, float)>{}};
+    }
+
+    // Llena los 3.000 lugares del pool con fuegos 0x5d9/0 (rand() aparte): las partículas que siguen no se crean ni
+    // sacan rand(), como en 0x53fe70 con el pool lleno.
+    void FillTheParticles()
+    {
+        CrtRandom scratch(Seed);
+        for (std::size_t made = 0; made <= Client::World::ParticleCount; ++made)
+        {
+            const auto created = particles.CreateChecked(Client::World::FireParticle, glm::vec3(0.0f), glm::vec3(0.0f),
+                                                         glm::vec3(1.0f), 0, 1.0f, 0.0f, scratch);
+            if (!created.HasValue() || !created.Value().has_value())
+                return;
+        }
     }
 
     std::vector<ModelEffect*> Arrows()
@@ -226,6 +247,8 @@ struct ArrowWorld
     Client::World::FrameSprites sprites;
     std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
     std::vector<std::int32_t> sounds;
+    // La altura del terreno de 0x5f93c0 en cualquier punto; sin valor, el contexto va sin ella.
+    std::optional<double> ground = 0.0;
 };
 
 // El elfo con el arco corto (la 0xdb, por la izquierda del registro propio) o la ballesta (la 0xdc, por la derecha)
@@ -454,10 +477,91 @@ TEST(ArrowEffectsTest, TheArrowsOfUnportedEffectsCut)
     }
 }
 
-// Las skills de tiro (0x34, 0x33 y 0x2e, 0x53e741) y la bandera de la 0x18 sin blanco (0x53e2e0) son del hito 4: cortan
-// en 0x53e2b0 antes de crear nada (la 0x34 no llega: corta antes en 0x4f9899). Con la 0xa25 en +0x2b8 del héroe y otra
-// arma en el registro propio, el brillo de la mano corta en 0x53e642 después de la flecha.
-TEST(ArrowEffectsTest, TheSkillShotsAndTheReignSparkleCut)
+// La caída de la flecha 0xe2 (4/14, 0x52435d..0x52443f), con el pool de partículas lleno para que sus burbujas 0x607/1
+// (CL11) no se creen: el paso saca el rand() de la luz y los tres del punto de cada una de las cuatro burbujas. La z
+// suma +0xe4 (−10 en el alta) y +0xe4 pierde 1; con el terreno (0x5f93c0) por encima de la z, la z al terreno, +0xe4
+// por −0,4f y la y de la velocidad por 0,4f; con el terreno igual a la z no rebota. En la última vida suelta las
+// chispas de 0x51fe10 (40 rand() con el pool lleno) y, con el héroe de dueño y sin el subtipo 0x63, corta en 0x517a20
+// (0x524405, hito 4); sin la altura del terreno corta en 0x524382. En Lorencia, en Devias y en Icarus (10).
+TEST(ArrowEffectsTest, TheAquagoldArrowFallsAndBounces)
+{
+    constexpr int Bubbles = 4;
+    constexpr int StepDraws = 1 + Bubbles * 3;
+    constexpr int BurstDraws = 20 * 2;
+    constexpr float FirstZ = 135.0f;
+    constexpr float FallenZ = 125.0f;
+    struct Case
+    {
+        std::string_view name;
+        std::optional<double> ground;
+        std::int32_t life;
+        std::int32_t subtype;
+        bool ownedByTheHero;
+        std::string_view cut;
+    };
+    const std::array cases{Case{"el terreno abajo", 0.0, 40, 0, true, ""},
+                           Case{"el terreno arriba", 200.0, 40, 0, true, ""},
+                           Case{"el terreno en la z", 125.0, 40, 0, true, ""},
+                           Case{"la última vida del héroe", 0.0, 1, 0, true, "0x524405"},
+                           Case{"la última vida con el subtipo 0x63", 0.0, 1, 0x63, true, ""},
+                           Case{"la última vida de otro", 0.0, 1, 0, false, ""},
+                           Case{"sin el terreno", std::nullopt, 40, 0, true, "0x524382"}};
+    const Weapon aquagold{"4/14", 0x80e, 0xffff, 0x2e, 0xe2};
+    const auto times = [](float value, std::uint32_t factor)
+    { return static_cast<float>(static_cast<double>(value) * static_cast<double>(std::bit_cast<float>(factor))); };
+    for (const std::int32_t map : {0, 2, 10})
+    {
+        for (const Case& probe : cases)
+        {
+            SCOPED_TRACE(::testing::Message() << "mapa " << map << ", " << probe.name);
+            ArrowWorld tested(map);
+            ActorState& hero = tested.Archer(aquagold, aquagold.action, NoTarget);
+            ASSERT_TRUE(StepTheAttack(hero, HeroSlot, tested.Context()).HasValue());
+            const auto arrows = tested.Arrows();
+            ASSERT_EQ(arrows.size(), 1u);
+            ModelEffect& arrow = *arrows.front();
+            ASSERT_EQ(arrow.type, aquagold.arrow);
+            EXPECT_EQ(arrow.transform.position.z, FirstZ);
+            EXPECT_EQ(arrow.turnDirection, -10.0f);
+            EXPECT_EQ(arrow.velocity.y, -30.0f);
+            arrow.life = probe.life;
+            arrow.subtype = probe.subtype;
+            if (!probe.ownedByTheHero)
+                arrow.ownerContext = &tested.world.Actors()[OtherSlot];
+            tested.ground = probe.ground;
+            tested.FillTheParticles();
+            const CrtRandom before = tested.random;
+
+            const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
+
+            const bool last = probe.life == 1;
+            const bool fell = probe.ground.has_value();
+            EXPECT_EQ(DrawsSince(before.State(), tested.random), StepDraws + (last && fell ? BurstDraws : 0));
+            if (!probe.cut.empty())
+            {
+                EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
+                continue;
+            }
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            const bool bounces = probe.ground.value_or(0.0) > static_cast<double>(FallenZ);
+            EXPECT_EQ(arrow.transform.position.z, bounces ? 200.0f : FallenZ);
+            EXPECT_EQ(arrow.turnDirection, bounces ? times(-11.0f, 0xbecccccdu) : -11.0f);
+            EXPECT_EQ(arrow.velocity.y, bounces ? times(-30.0f, 0x3ecccccdu) : -30.0f);
+            EXPECT_EQ(arrow.life, probe.life - 1);
+            EXPECT_EQ(arrow.alive, !last);
+        }
+    }
+}
+
+// Las skills de tiro (0x34, 0x33 y 0x2e) van a 0x53e741: el tiro de 0x53d9a0 (el registro propio del héroe, la skill en
+// [0x5767948], el sonido 0x82 de la 0x33 y una flecha con su alta, que abre y cierra el registro propio otra vez) y
+// cortan en el registro propio de 0x53e75b (hito 4); la 0x2e corta antes, en el efecto 0x13a de 0x53df2a (hito 4), y la
+// 0x34 no llega: corta en 0x4f9899. La bandera de la 0x18 sin blanco tira el abanico de 0x53e2e0: tres flechas con la z
+// de los ángulos del héroe en 0, 15 y −15, que vuelve a 0, y corta en 0x53e365; con la 0xa24 o la 0xa25 en +0x2b8,
+// cuatro en 5, 15, −5 y −15, que queda en 15 (Q-C1181), y corta en 0x53e4dd. Cada tiro saca los 3.848 rand() del
+// registro propio de 0x53d9a0 y otros tantos en la salida del alta. Con la 0xa25 en +0x2b8 sin skill, el brillo de la
+// mano corta en 0x53e642 después de la flecha. En Lorencia, en Devias y en Icarus (10).
+TEST(ArrowEffectsTest, TheSkillShotsAndTheFanCutAfterShooting)
 {
     struct Case
     {
@@ -466,26 +570,76 @@ TEST(ArrowEffectsTest, TheSkillShotsAndTheReignSparkleCut)
         std::uint16_t target;
         std::uint16_t rightHand;
         std::string_view cut;
-        std::size_t arrows;
+        std::vector<float> yaws;
+        float yawAfter;
     };
-    const std::array cases{Case{"la 0x2e", 0x2e, VictimSlot, 0xffff, "0x53e2be", 0},
-                           Case{"la 0x33", 0x33, NoTarget, 0xffff, "0x53e2be", 0},
-                           Case{"la 0x18 sin blanco", 0x18, NoTarget, 0xffff, "0x53e2da", 0},
-                           Case{"la 0xa25 en la mano", 0, VictimSlot, 0xa25, "0x53e642", 1}};
-    for (const Case& probe : cases)
+    // Antes de la flecha: con blanco, la cabeza, la lectura de la habilidad y los dos de 0x59fb80; sin blanco, la
+    // cabeza, la lectura de 0x502b12 (la bandera) y los mismos.
+    const int withTarget = CountingWithTarget + SkillRead + ShotReads;
+    const int withoutTarget = CountingWithoutTarget + 2 * SkillRead + ShotReads;
+    const std::array cases{
+        Case{"la 0x2e", 0x2e, VictimSlot, 0xffff, "0x53df2a", {}, 0.0f},
+        Case{"la 0x33", 0x33, NoTarget, 0xffff, "0x53e75b", {0.0f}, 0.0f},
+        Case{"la 0x18 sin blanco", 0x18, NoTarget, 0xffff, "0x53e365", {0.0f, 15.0f, -15.0f}, 0.0f},
+        Case{"la 0x18 con la 0xa24", 0x18, NoTarget, 0xa24, "0x53e4dd", {5.0f, 15.0f, -5.0f, -15.0f}, 15.0f},
+        Case{"la 0x18 con la 0xa25", 0x18, NoTarget, 0xa25, "0x53e4dd", {5.0f, 15.0f, -5.0f, -15.0f}, 15.0f},
+        Case{"la 0xa25 en la mano", 0, VictimSlot, 0xa25, "0x53e642", {0.0f}, 0.0f}};
+    for (const std::int32_t map : {0, 2, 10})
     {
-        SCOPED_TRACE(probe.name);
-        ArrowWorld tested(2);
-        tested.Target(VictimSlot, true, 400.0f);
-        ActorState& hero = tested.Archer(ShortBow, ShortBow.action, probe.target);
-        hero.byte38e = probe.skill;
-        hero.hands[0].model = probe.rightHand;
+        for (const Case& probe : cases)
+        {
+            SCOPED_TRACE(::testing::Message() << "mapa " << map << ", " << probe.name);
+            ArrowWorld tested(map);
+            tested.Target(VictimSlot, true, 400.0f);
+            ActorState& hero = tested.Archer(ShortBow, ShortBow.action, probe.target);
+            hero.byte38e = probe.skill;
+            hero.hands[0].model = probe.rightHand;
 
-        const auto struck = StepTheAttack(hero, HeroSlot, tested.Context());
+            const auto struck = StepTheAttack(hero, HeroSlot, tested.Context());
 
-        EXPECT_TRUE(HasError(struck, probe.cut)) << ErrorOf(struck);
-        EXPECT_EQ(tested.Arrows().size(), probe.arrows);
+            EXPECT_TRUE(HasError(struck, probe.cut)) << ErrorOf(struck);
+            const int before = probe.target == NoTarget ? withoutTarget : withTarget;
+            const auto shots = static_cast<int>(std::max<std::size_t>(probe.yaws.size(), 1));
+            const int arrows = static_cast<int>(probe.yaws.size());
+            EXPECT_EQ(DrawsSince(Seed, tested.random), before + shots * OwnRecord + arrows * ArrowCreation);
+            const auto found = tested.Arrows();
+            ASSERT_EQ(found.size(), probe.yaws.size());
+            for (std::size_t arrow = 0; arrow < found.size(); ++arrow)
+            {
+                EXPECT_EQ(found[arrow]->type, 0xdb);
+                EXPECT_EQ(found[arrow]->transform.angles.z, probe.yaws[arrow]) << arrow;
+                EXPECT_EQ(found[arrow]->state, probe.skill == 0x18 ? 1 : 0) << arrow;
+            }
+            EXPECT_EQ(hero.angles.z, probe.yawAfter);
+            EXPECT_EQ(tested.world.Runtime().lastShotSkill, probe.skill);
+            EXPECT_EQ(tested.sounds,
+                      probe.skill == 0x33 ? std::vector<std::int32_t>{0x82} : std::vector<std::int32_t>{});
+        }
     }
+}
+
+// El abanico de la 0x18 con la z de los ángulos del héroe en 100,3f: cada corrimiento se suma en la x87 y se guarda en
+// float (0x53e31b..0x53e362), así que la z de cada flecha es la suma redondeada a float de la anterior.
+TEST(ArrowEffectsTest, TheFanTurnsTheYawInFloatSteps)
+{
+    ArrowWorld tested(0);
+    ActorState& hero = tested.Archer(ShortBow, ShortBow.action, NoTarget);
+    hero.byte38e = 0x18;
+    constexpr float Start = 100.3f;
+    hero.angles.z = Start;
+
+    const auto struck = StepTheAttack(hero, HeroSlot, tested.Context());
+
+    EXPECT_TRUE(HasError(struck, "0x53e365")) << ErrorOf(struck);
+    const auto step = [](float yaw, double offset) { return static_cast<float>(static_cast<double>(yaw) + offset); };
+    const float second = step(Start, 15.0);
+    const float third = step(second, -30.0);
+    const auto found = tested.Arrows();
+    ASSERT_EQ(found.size(), 3u);
+    EXPECT_EQ(found[0]->transform.angles.z, Start);
+    EXPECT_EQ(found[1]->transform.angles.z, second);
+    EXPECT_EQ(found[2]->transform.angles.z, third);
+    EXPECT_EQ(hero.angles.z, step(third, 15.0));
 }
 
 // El choque lee la skill del lugar +0x89 en el registro propio (0x5205cd..0x5207d1): con la 0x33 la flecha 0xdb se

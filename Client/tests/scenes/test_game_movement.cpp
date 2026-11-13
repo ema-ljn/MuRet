@@ -505,6 +505,98 @@ TEST(GameMovementTest, AWallBetweenStopsTheAttackAfterRememberingTheTarget)
     }
 }
 
+// El clic de ataque con el elegido fuera de la grilla: en la fila −1 la línea de 0x558800 sale de TerrainWall
+// (0x55886d) y en la columna 256 la ve (el índice lineal cae en la fila de al lado) pero PathFinding2 (0x59d653) la
+// toma como índice lineal; MuRet descarta el clic como el de una pared, con las lecturas de antes (07, Q-C1179). Con
+// Crywolf en la etapa 3 o 4, en el mapa 34 y un altar (0x204..0x208) en 0x6c8e54, PathFinding2 corta en 0x4eac41 (hito
+// 11) después de las cuatro lecturas; en Lorencia y en Devias el mismo altar no cuenta y el camino sale.
+TEST(GameMovementTest, AChosenOffTheGridDiscardsTheClickAndACrywolfAltarCuts)
+{
+    constexpr std::size_t AltarSlot = 9;
+    struct Case
+    {
+        std::string_view name;
+        std::int32_t map;
+        glm::vec2 position;
+        std::uint8_t stage;
+        std::uint16_t altar;
+        std::string_view cut;
+        int draws;
+        int walks;
+    };
+    const glm::vec2 near{18550.0f, 11550.0f};
+    const std::array cases{
+        Case{"la fila −1", 0, {18250.0f, -150.0f}, 0, 0, "", BeforeTheClick + 2 * CellDraws + OwnDraws + 60, 0},
+        Case{"la fila −1 en Devias",
+             2,
+             {18250.0f, -150.0f},
+             0,
+             0,
+             "",
+             BeforeTheClick + 2 * CellDraws + OwnDraws + 60,
+             0},
+        Case{"la columna 256", 0, {25650.0f, 11550.0f}, 0, 0, "", BeforeTheClick + 4 * CellDraws + OwnDraws + 60, 0},
+        Case{"la columna 256 en Devias",
+             2,
+             {25650.0f, 11550.0f},
+             0,
+             0,
+             "",
+             BeforeTheClick + 4 * CellDraws + OwnDraws + 60,
+             0},
+        Case{"un altar en Crywolf", 34, near, 3, 0x204, "0x4eac41", BeforeTheClick + 4 * CellDraws, 0},
+        Case{"el último altar en la etapa 4", 34, near, 4, 0x208, "0x4eac41", BeforeTheClick + 4 * CellDraws, 0},
+        Case{"otro NPC en Crywolf", 34, near, 3, 0x209, "", -1, 1},
+        Case{"un altar en la etapa 2", 34, near, 2, 0x204, "", -1, 1},
+        Case{"un altar en Lorencia", 0, near, 3, 0x204, "", -1, 1},
+        Case{"un altar en Devias", 2, near, 3, 0x204, "", -1, 1}};
+    for (const Case& probe : cases)
+    {
+        SCOPED_TRACE(probe.name);
+        const auto tested = AHeroClickingAPlayer(185);
+        auto& runtime = tested->world.Runtime();
+        runtime.map = probe.map;
+        runtime.crywolf.stage = probe.stage;
+        tested->world.Actors()[ChosenSlot].position = {probe.position.x, probe.position.y, 0.0f};
+        if (probe.altar != 0)
+        {
+            tested->world.Actors()[AltarSlot].type = probe.altar;
+            runtime.movement.chosenNpc = static_cast<std::int32_t>(AltarSlot);
+        }
+        auto context = tested->Context();
+        context.input.leftPressed = true;
+        context.input.leftDown = true;
+        context.input.controlDown = true;
+        int walks = 0;
+        context.sendWalk = [&](std::span<const Client::Protocol::Movement::Cell>, Client::Protocol::Movement::Cell,
+                               float) -> Client::Core::Expected<void, std::string>
+        {
+            ++walks;
+            return {};
+        };
+        const CrtRandom start = tested->random;
+
+        const auto result = StepHeroMovement(context);
+
+        EXPECT_EQ(walks, probe.walks);
+        EXPECT_EQ(runtime.movement.attackTarget, static_cast<std::int32_t>(ChosenSlot));
+        if (!probe.cut.empty())
+        {
+            ASSERT_FALSE(result.HasValue());
+            EXPECT_NE(result.Error().find(probe.cut), std::string::npos) << result.Error();
+            EXPECT_NE(result.Error().find("0x59d653"), std::string::npos) << result.Error();
+        }
+        else
+        {
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+        }
+        if (probe.draws >= 0)
+        {
+            EXPECT_EQ(tested->random.State(), Advanced(start, probe.draws).State());
+        }
+    }
+}
+
 // 0x59d856..0x59d8bb y 0x561c50: con el arco en la izquierda el camino no se manda; sin flechas en la derecha,
 // 0x561840 las busca (el texto 251, tipo 2, sin ninguna) y MoveHero sale (0x59e2c0) sin sumar el contador ni
 // pasar por 0x57cfc0.

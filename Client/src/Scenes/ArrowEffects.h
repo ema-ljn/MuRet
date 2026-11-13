@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <string>
 
 // CL9 hito 3, fase 2e: la flecha del elfo con arco o ballesta y de los arcos en Uniria, Dinorant y Fenrir. El tiro
@@ -33,18 +34,20 @@ class WorldState;
 [[nodiscard]] bool IsArrowEffect(std::int16_t type);
 
 // 0x53e2b0(c, o, blanco, lugar, bandera, skill), como lo llama el paso del ataque (0x50377d, 0x5037d0, 0x504060 y
-// 0x5040a9). Con la skill 0x34, 0x33 o 0x2e (0x53e741) y con la bandera en 1 (la skill 0x18 sin blanco, 0x53e2e0)
-// corta: son del hito 4. Si no, 0x53d9a0: las armas (con el héroe, las del registro propio, que abre y cierra; con
-// otro, las de +0x2b8 y +0x2d8), la skill en [0x5767948] (WorldRuntime::lastShotSkill) y una flecha por mano con arco
-// o ballesta, cada una con su alta. Después, con 0xa25 en +0x2b8, corta (0x53e642). El blanco no lo lee nadie
-// portado: no se pasa. Lo que hizo antes de un corte queda, con sus rand().
+// 0x5040a9). 0x53d9a0 es el tiro: las armas (con el héroe, las del registro propio, que abre y cierra; con otro, las de
+// +0x2b8 y +0x2d8), la skill en [0x5767948] (WorldRuntime::lastShotSkill) y una flecha por mano con arco o ballesta,
+// cada una con su alta. Con la skill 0x34, 0x33 o 0x2e, un tiro y corta en el registro propio de 0x53e75b (hito 4); con
+// la bandera en 1 (la skill 0x18 sin blanco), el abanico de tres tiros (o cuatro con 0xa24 o 0xa25 en +0x2b8) con la z
+// de los ángulos corrida, y corta en el registro propio de 0x53e365 (o 0x53e4dd), del hito 4; si no, un tiro y, con
+// 0xa25 en +0x2b8, corta en el brillo de la mano (0x53e642, CL11). El blanco no lo lee nadie portado: no se pasa. Lo
+// que hizo antes de un corte queda, con sus rand().
 [[nodiscard]] Core::Expected<void, std::string> FireTheArrow(ActorState& actor, std::size_t slot,
                                                              std::int32_t skillIndex, std::uint8_t flag,
                                                              std::uint8_t skill, const CharacterStepContext& context);
 
 // Lo que el paso de una flecha lee y escribe afuera de su lugar: el pool de personajes, el registro propio y el
-// héroe (0x520170), las partículas (0x53fe70), los sprites del frame (0x5491e0), la luz dinámica (0x5f9780) y el
-// reloj del mundo (0x5767b88).
+// héroe (0x520170), las partículas (0x53fe70), los sprites del frame (0x5491e0), la luz dinámica (0x5f9780), el
+// reloj del mundo (0x5767b88) y la altura del terreno (0x5f93c0, la caída de la 0xe2).
 struct ArrowStepContext
 {
     WorldState& world;
@@ -53,6 +56,7 @@ struct ArrowStepContext
     World::FrameSprites* sprites = nullptr;
     World::TerrainLighting* lighting = nullptr;
     float worldClock = 0.0f;
+    std::function<double(float, float)> terrainHeight{};
 };
 
 // 0x5208a0 sobre una flecha viva: el rand() de la luz local (0x5208c5), el caso de su tipo, el choque (0x520170) y la

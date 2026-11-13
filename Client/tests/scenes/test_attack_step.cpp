@@ -483,7 +483,7 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
 
 // 0x558eb0: la clave del elegido solo con el héroe que pega. −1 con otro, con un ítem en el cursor o sin elegido; el
 // PK de 6 o más, Ctrl con otro y +0x370 en 2 dan la clave; Chaos Castle, también la del héroe; el duelo, solo la del
-// rival; la guerra de gremios con un PK de 6 corta.
+// rival; en la guerra de gremios con un PK de 6, −1 hasta el hito 8.
 TEST(AttackStepTest, TheChosenKeyIsTheHerosOnly)
 {
     struct Case
@@ -544,9 +544,14 @@ TEST(AttackStepTest, TheChosenKeyIsTheHerosOnly)
     guild.world.Runtime().attackRules.byte576796c = 1;
     guild.Victim().pk = 6;
     guild.Victim().word1f2 = 2;
-    const auto cut = ChosenKeyOf(guild.world, HeroSlot, false);
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x558f29"), std::string::npos);
+    guild.Victim().key = Key;
+    // Comparar los nombres de gremio (0x558f29) es del hito 8: hasta entonces, −1 sin cerrar la sesión (P-C250 f).
+    for (const bool controlDown : {false, true})
+    {
+        const auto discarded = ChosenKeyOf(guild.world, HeroSlot, controlDown);
+        ASSERT_TRUE(discarded.HasValue()) << discarded.Error();
+        EXPECT_EQ(discarded.Value(), -1);
+    }
 
     // En el paso de la habilidad, la clave va a o+0x8a.
     AttackWorld stepped;

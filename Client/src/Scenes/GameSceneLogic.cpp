@@ -166,7 +166,8 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                                           .particles = &m_context.world->Particles(),
                                           .sprites = &m_sprites,
                                           .lighting = &m_context.world->DynamicLighting().Lighting(),
-                                          .worldClock = worldClock};
+                                          .worldClock = worldClock,
+                                          .terrainHeight = terrainHeight};
             if (auto stepped = StepArrow(effect, skeleton, arrows); !stepped.HasValue())
                 return stepped;
             continue;

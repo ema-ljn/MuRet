@@ -361,7 +361,9 @@ Core::Expected<Helped, std::string> StepCrywolf(ActorState& actor, const KindCas
         if (actor.byte381 == FirstStep)
             RequestTheSound(context, RoarSound);
         // 0x432acc: el mismo offset sin escribir, ahora para el punto de las cuatro 0x5d9/0 (Q-C1050).
-        return CutAt(0x432acc, "0x4ec110 con el offset sin escribir de [EBP − 0x30] (Q-C1050), antes de las 0x5d9/0",
+        return CutAt(0x432acc,
+                     "0x4ec110 con el offset sin escribir de [EBP − 0x30], antes de las 0x5d9/0 (CL9 con el offset que "
+                     "mida la VM, Q-C1050)",
                      actor, slot);
     }
     default:

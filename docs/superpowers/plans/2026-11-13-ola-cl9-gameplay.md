@@ -330,6 +330,14 @@ Lorencia, Devias y un mapa de evento; el `0x1F` con un tipo `0x98..0x9e`; el cor
       en `0x61d7aa` para `0x549130`), los diez pedazos de hielo `0xca` del `0x161` (`0x518cf0` en `0x51b659`, su paso
       en `0x523974` con el aliento `0x5f2`/0) y el modelo compartido por tipo de `0x505ec6` (Q-C1178); lo que queda,
       en P-C323.
+      Revisión contra el ASM (2026-11-13): un modelo sin tabla de sonidos suena con diez WORD en 0 (el `REP STOSD`
+      de `0x60dc80`, P-C253 a); el altar de Crywolf de `0x4eac00` también en el clic de ataque (`0x59d653`) y en el
+      elfo que se acerca (`0x566272`), que cortan en `0x4eac41` (hito 11, P-C250 h); las celdas fuera de la grilla
+      (`0x55886d`, `0x59d653`, `0x566272`) y el puente de Blood Castle en el borde (`0x4d0949`) descartan sin cerrar
+      la sesión (Q-C1179, Q-C1180), y los nombres de gremio (`0x558da4`, `0x558f29`) descartan hasta el hito 8
+      (P-C250 f); las skills de tiro y el abanico de la `0x18` tiran antes de cortar en el registro propio
+      (`0x53e75b`, `0x53e365`, `0x53e4dd`, hito 4; Q-C1181); la caída del `0xe2` (`0x52435d`, P-C230); cada corte
+      con su ola o su hito.
 
 **Pruebas:** el `D7`/`A4` que sale al pegar; la muerte de un monstruo y la de otro jugador; la experiencia del
 `0x16` y del `0x9C` contra el struct del GS (`GCKillPlayerExpSend`); los `rand()` del paso con un monstruo en

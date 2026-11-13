@@ -246,6 +246,8 @@ Core::Expected<void, std::string> ShootTheArrows(ActorState& actor, std::size_t 
                                                  const CharacterStepContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
+    if (runtime.hero >= context.world.Actors().size())
+        return Core::Unexpected(std::string("0x53d9cf: el héroe publicado ([0x743a170]) no está en el pool"));
     // 0x53d9ac..0x53d9cf: las de +0x2b8 y +0x2d8 (MOVSX); con el héroe ([0x743a170]), 0x53d9d5..0x53de8a: las del
     // registro propio (+0xb6c y +0xbb4, MOVSX) más 0x212, con el registro abierto y cerrado en línea.
     std::int32_t right = ToInt16(actor.hands[0].model);
@@ -305,12 +307,11 @@ Core::Expected<void, std::string> ShootTheArrows(ActorState& actor, std::size_t 
 // 0x517850(efecto, radio, _, clase): el primero de los 400 vivos, que no sea de la clase (+0x88; 0 no excluye), ni el
 // dueño (+0x108), que se vea (+0x16c), que no sea el héroe salvo con la clase 2 y que no se esté muriendo (+0x389), a
 // `radius` o menos en el plano (la raíz en la x87 con PC53, guardada en float; NaN choca).
-bool HitsSomeone(const World::ModelEffect& effect, WorldState& world, float radius, std::uint8_t kind)
+bool HitsSomeone(const World::ModelEffect& effect, WorldState& world, const ActorState& hero, float radius,
+                 std::uint8_t kind)
 {
     constexpr std::uint8_t HeroKind = 2;
-    const auto actors = world.Actors();
-    const ActorState* hero = &actors[world.Runtime().hero];
-    for (const ActorState& actor : actors)
+    for (const ActorState& actor : world.Actors())
     {
         if (!actor.alive)
             continue;
@@ -323,7 +324,7 @@ bool HitsSomeone(const World::ModelEffect& effect, WorldState& world, float radi
         const float distance = F32(std::sqrt((dx * dx) + (dy * dy)));
         if (!actor.seen)
             continue;
-        if (&actor == hero && kind != HeroKind)
+        if (&actor == &hero && kind != HeroKind)
             continue;
         if (actor.dying != 0)
             continue;
@@ -386,7 +387,9 @@ Core::Expected<void, std::string> HitWithTheArrow(World::ModelEffect& effect, co
     }
     // 0x5205ae..0x5205c7: 0x517850(efecto, 100, +0x8a, 0).
     constexpr float HitRadius = 100.0f;
-    if (!HitsSomeone(effect, context.world, HitRadius, 0))
+    if (runtime.hero >= context.world.Actors().size())
+        return Core::Unexpected(std::string("0x517850: el héroe publicado ([0x743a170]) no está en el pool"));
+    if (!HitsSomeone(effect, context.world, context.world.Actors()[runtime.hero], HitRadius, 0))
         return {};
     // 0x5205cd..0x5207d1: el registro propio abierto y cerrado en línea para leer la skill del lugar +0x89.
     std::uint8_t skill = 0;
@@ -465,7 +468,7 @@ glm::vec3 ScatteredPoint(const glm::vec3& position, CrtRandom& random, std::arra
     return point;
 }
 
-// 0x5f9780(x, y, (luz · 0,6f; luz · 0,8f; luz · 0,8f), 2, 0x7b4ccc4), la de las flechas 0xe1 y 0xe3.
+// 0x5f9780(x, y, (luz · 0,6f; luz · 0,8f; luz · 0,8f), 2, 0x7b4ccc4), la de las flechas 0xe1, 0xe2 y 0xe3.
 Core::Expected<void, std::string> GreenLight(const World::ModelEffect& effect, float luminosity,
                                              const ArrowStepContext& context, std::string_view address)
 {
@@ -580,8 +583,9 @@ Core::Expected<void, std::string> StepBluewingArrow(World::ModelEffect& effect, 
     return HitWithTheArrow(effect, context);
 }
 
-// 0x524237..0x524356: la flecha 0xe2, hasta el final de sus chispas.
-Core::Expected<void, std::string> StepAquagoldArrow(World::ModelEffect& effect, const ArrowStepContext& context)
+// 0x524237..0x52443f: la flecha 0xe2.
+Core::Expected<void, std::string> StepAquagoldArrow(World::ModelEffect& effect, float luminosity,
+                                                    const ArrowStepContext& context)
 {
     constexpr std::uint16_t Glow = 0x5ac;
     const glm::vec3 light{1.0f, std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3ecccccdu)};
@@ -600,8 +604,43 @@ Core::Expected<void, std::string> StepAquagoldArrow(World::ModelEffect& effect, 
             return Core::Unexpected(std::format("0x52434e: la 0x607/1 de la flecha 0xe2 falla con error {} (CL11)",
                                                 static_cast<unsigned>(created.Error())));
     }
-    // 0x52435d..0x524448: la caída sobre el terreno (0x5f93c0), 0x51fe10 y 0x517a20 en la última vida y la luz.
-    return Core::Unexpected(std::string("0x52435d: la caída de la flecha 0xe2 sobre el terreno, sin portar"));
+    // 0x52435d..0x5243bd: la caída. La z más +0xe4 y +0xe4 menos 1 (0x6b87d4), cada uno en la x87 y guardado en
+    // float; con el terreno (0x5f93c0) por encima de la z (el FCOM sin C0 ni C3: ni menor, ni igual, ni NaN), la z al
+    // terreno, +0xe4 por −0,4f (0x6ba18c) y la y de la velocidad (+0xd0) por 0,4f (0x6b87b4): rebota.
+    if (!context.terrainHeight)
+        return Core::Unexpected(
+            std::string("0x524382: la caída de la flecha 0xe2 pide la altura del terreno (0x5f93c0)"));
+    glm::vec3& position = effect.transform.position;
+    position.z = F32(D(position.z) + D(effect.turnDirection));
+    constexpr double Fall = 1.0; // 0x6b87d4
+    effect.turnDirection = F32(D(effect.turnDirection) - Fall);
+    const double ground = context.terrainHeight(position.x, position.y);
+    if (ground > D(position.z))
+    {
+        constexpr double Bounce = static_cast<double>(std::bit_cast<float>(0xbecccccdu)); // 0x6ba18c
+        constexpr double Brake = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));  // 0x6b87b4
+        position.z = F32(ground);
+        effect.turnDirection = F32(D(effect.turnDirection) * Bounce);
+        effect.velocity.y = F32(D(effect.velocity.y) * Brake);
+    }
+    // 0x5243bf..0x52440a: en la última vida, 0x51fe10(posición, 1) y, con el héroe ([0x743a170]) de dueño (+0x108) y
+    // sin el subtipo 0x63, 0x517a20(+0x89, posición, 100, +0x8c, +0x8a, 0), del hito 4.
+    if (effect.life == 1)
+    {
+        if (auto burst = BurstAt(position, context); !burst.HasValue())
+            return burst;
+        WorldRuntime& runtime = context.world.Runtime();
+        if (runtime.hero >= context.world.Actors().size())
+            return Core::Unexpected(std::string("0x5243d3: el héroe publicado ([0x743a170]) no está en el pool"));
+        constexpr std::int32_t MarkedSubtype = 0x63;
+        if (effect.ownerContext == &context.world.Actors()[runtime.hero] && effect.subtype != MarkedSubtype)
+            return Core::Unexpected(std::string("0x524405: 0x517a20 en la última vida de la flecha 0xe2 del héroe, del "
+                                                "hito 4"));
+    }
+    // 0x52440d..0x52443f: la luz (luz · 0,6f; · 0,8f; · 0,8f) y el choque.
+    if (auto lit = GreenLight(effect, luminosity, context, "0x52443a"); !lit.HasValue())
+        return lit;
+    return HitWithTheArrow(effect, context);
 }
 
 // 0x526aef..0x526c51: la flecha 0x11c (su alta corta antes, en 0x51c713).
@@ -614,7 +653,44 @@ Core::Expected<void, std::string> StepTwentiethArrow(World::ModelEffect& effect,
         static_cast<void>(ScatteredPoint(effect.transform.position, context.random, {31, 63, 31}, {16, 32, 16}));
         return Core::Unexpected(std::string("0x526bc2: la 0x60f/5 de la flecha 0x11c (0x53fe70), sin portar (CL11)"));
     }
-    return Core::Unexpected(std::string("0x526c05: el efecto 0x114 de la flecha 0x11c (0x518cf0), sin portar"));
+    return Core::Unexpected(std::string("0x526c05: el efecto 0x114 de la flecha 0x11c (0x518cf0), sin portar (CL11)"));
+}
+
+// 0x53e2e0..0x53e4da: la bandera en 1. Cada tiro es 0x53d9a0(c, o, blanco, lugar, 1, skill) y entre uno y otro +0x24
+// de o (la z de los ángulos) se corre en la x87 y se guarda en float. Con 0xa24 o 0xa25 en +0x2b8 de c, cuatro tiros
+// con 5 (0x6b87f8), 10 (0x6b87a8), −20 (0x6b86d0) y −10 antes de cada uno, y 30 (0x6b8858) al final: la z queda 15 más
+// (0x53e445..0x53e4da, Q-C1181). Con otra, tres tiros, el primero sin correrla, con 15 (0x6b87bc) y −30 antes de los
+// otros dos y 15 al final (0x53e300..0x53e362). Después, el registro propio con +0xf04 sumado (0x53e365 y 0x53e4dd),
+// del hito 4.
+Core::Expected<void, std::string> FireTheFan(ActorState& actor, std::size_t slot, std::int32_t skillIndex,
+                                             std::uint8_t skill, const CharacterStepContext& context)
+{
+    constexpr std::uint8_t FanFlag = 1;
+    constexpr std::array<std::uint16_t, 2> WideCrossbows{0xa24, 0xa25};
+    const bool wide = std::ranges::find(WideCrossbows, actor.hands[0].model) != WideCrossbows.end();
+    struct Fan
+    {
+        std::array<double, 4> before;
+        std::size_t shots;
+        double after;
+        std::string_view address;
+    };
+    const Fan fan =
+        wide ? Fan{{5.0, 10.0, -20.0, -10.0}, 4, 30.0, "0x53e4dd"} : Fan{{0.0, 15.0, -30.0, 0.0}, 3, 15.0, "0x53e365"};
+    float& yaw = actor.angles.z;
+    for (std::size_t shot = 0; shot < fan.shots; ++shot)
+    {
+        // El primero de los tres no toca la z (0x53e309..0x53e310).
+        if (wide || shot > 0)
+            yaw = F32(D(yaw) + fan.before[shot]);
+        if (auto fired = ShootTheArrows(actor, slot, skillIndex, FanFlag, skill, context); !fired.HasValue())
+            return fired;
+    }
+    yaw = F32(D(yaw) + fan.after);
+    return Core::Unexpected(
+        std::format("{}: el registro propio con +0xf04 después de los {} tiros de la skill 0x18 del "
+                    "lugar {}, del hito 4",
+                    fan.address, fan.shots, slot));
 }
 } // namespace
 
@@ -628,21 +704,20 @@ Core::Expected<void, std::string> FireTheArrow(ActorState& actor, std::size_t sl
                                                std::uint8_t flag, std::uint8_t skill,
                                                const CharacterStepContext& context)
 {
-    // 0x53e2bb..0x53e2ce: las skills 0x34, 0x33 y 0x2e van a 0x53e741.
+    // 0x53e2bb..0x53e2ce: las skills 0x34, 0x33 y 0x2e van a 0x53e741: 0x53d9a0 con los mismos argumentos
+    // (0x53e741..0x53e756) y después el registro propio con +0xf04 sumado (0x53e75b..0x53e92c), del hito 4.
     constexpr std::array<std::uint8_t, 3> SkillShots{0x34, 0x33, 0x2e};
     if (std::ranges::find(SkillShots, skill) != SkillShots.end())
     {
-        return Core::Unexpected(std::format("0x53e2be: el tiro de la skill {:#x} del lugar {} (0x53e741, con +0xf08 "
-                                            "del registro propio), del hito 4",
+        if (auto shot = ShootTheArrows(actor, slot, skillIndex, flag, skill, context); !shot.HasValue())
+            return shot;
+        return Core::Unexpected(std::format("0x53e75b: el registro propio con +0xf04 después del tiro de la skill "
+                                            "{:#x} del lugar {}, del hito 4",
                                             skill, slot));
     }
-    // 0x53e2d4..0x53e2da: con la bandera en 1 (la skill 0x18 de 0x502b12), las flechas de +0x2b8 0xa24 y 0xa25 o tres
-    // con +0x24 corrido (0x53e2e0..0x53e611).
+    // 0x53e2d4..0x53e2da: con la bandera en 1 (la skill 0x18 de 0x502b12), el abanico.
     if (flag == 1)
-    {
-        return Core::Unexpected(
-            std::format("0x53e2da: el tiro de la skill 0x18 sin blanco del lugar {}, del hito 4", slot));
-    }
+        return FireTheFan(actor, slot, skillIndex, skill, context);
     // 0x53e616..0x53e62d.
     if (auto shot = ShootTheArrows(actor, slot, skillIndex, flag, skill, context); !shot.HasValue())
         return shot;
@@ -652,7 +727,7 @@ Core::Expected<void, std::string> FireTheArrow(ActorState& actor, std::size_t sl
     if (actor.hands[0].model == ReignCrossbow)
     {
         return Core::Unexpected(std::format("0x53e642: el brillo de la 0xa25 del lugar {} (el hueso de la mano con "
-                                            "0x4ec110, quince 0x617/3 y 0x5c5/0), sin portar",
+                                            "0x4ec110, quince 0x617/3 y 0x5c5/0), sin portar (CL11)",
                                             slot));
     }
     return {};
@@ -682,23 +757,25 @@ Core::Expected<void, std::string> StepArrow(World::ModelEffect& effect, const Re
         stepped = HitWithTheArrow(effect, context);
         break;
     case NatureArrow:
+        // 0x5267dc: la 0xe1/1 la crean los casos de monstruo (0x42fd37 y 0x432532, CL11) y su alta corta antes, en el
+        // joint de 0x51c713; su paso (los sprites, la luz y las 0x60f/5) va con ellos.
         if (effect.subtype == 1)
-            return Core::Unexpected(std::string("0x5267dc: el paso de la flecha 0xe1/1, del hito 4"));
+            return Core::Unexpected(std::string("0x5267dc: el paso de la flecha 0xe1/1, sin portar (CL11)"));
         stepped = StepNatureArrow(effect, luminosity, context);
         break;
     case BluewingArrow:
         stepped = StepBluewingArrow(effect, luminosity, context);
         break;
     case AquagoldArrow:
-        stepped = StepAquagoldArrow(effect, context);
+        stepped = StepAquagoldArrow(effect, luminosity, context);
         break;
     case TwentiethArrow:
         stepped = StepTwentiethArrow(effect, context);
         break;
     default:
         // 0x523ed1 (0xf7), 0x523f33 (0xf8), 0x5241f6 (0xf9), 0x523de1 (0x10e) y 0x52593c (0x111): sus altas cortan.
-        return Core::Unexpected(std::format("0x5208a0: el paso de la flecha {:#x}, sin portar (su alta corta en el "
-                                            "joint)",
+        return Core::Unexpected(std::format("0x5208a0: el paso de la flecha {:#x}, sin portar (CL11: su alta corta en "
+                                            "el joint)",
                                             effect.type));
     }
     if (!stepped.HasValue())

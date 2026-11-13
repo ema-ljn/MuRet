@@ -9545,8 +9545,9 @@ CL9 hito 3 (2026-11-13), *estático* salvo lo que se marca; los paquetes, en
   de `+0xaa`): con la WORD 2 en −1, ninguno; si no, `rand() % 2` (`0x4f5222`) elige la 2 o la 3, más 5 con el
   subtipo 9 y más `0xd2` (`0x4f51f1..0x4f5262`). Los subtipos `0xd1` a `0xd3` piden antes `rand() & 1 + 0x3c` y
   siguen. Al final, `+0x38f + 1` siempre. El sonido queda en `WorldRuntime::lastSoundId` (CL10), como los demás.
-  La tabla la escribe el alta de cada monstruo ([Los sonidos del modelo](#los-sonidos-del-modelo)); de un modelo
-  que nadie escribió, el `rand()` sale igual y no se pide ninguno (P-C253).
+  La tabla la escribe el alta de cada monstruo ([Los sonidos del modelo](#los-sonidos-del-modelo)); un modelo
+  que nadie escribió tiene las diez WORD en 0 (el `REP STOSD` de `0x60dc80`): suena `0xd2` (`0xd7` con el
+  subtipo 9) con el mismo `rand()` (P-C253 a).
 - **Los ayudantes de los monstruos** (`0x4f5034..0x4f50b2`, CL9 hito 3, fase 2c; MuRet: `MonsterAttack` en
   `ActorCombat.cpp`). Cada uno devuelve AL en 1 si atendió, y con alguno en 1 no hay acción por `+0x38f` ni
   `+0x38f + 1` (`0x437580` en 1 salta directo a `0x4f50b8`):
@@ -9808,10 +9809,10 @@ dos `rand()` del giro de la cabeza, `0x5068fd`, descontados: uno en 32 por paso 
 | `0x4f9899`, `0x4f8a39`, `0x4fdeeb`, `0x504372` | los casos de habilidad | nadie: `+0x38e` lo escriben `0x4cc530` y los monstruos (hito 4) |
 | los efectos, joints y partículas de los casos de `0x4f5b70` (fase 2e-B: cada uno en su dirección, en [Los casos de los monstruos](#los-casos-de-los-monstruos-0x4f5b70)) | `0x518cf0`, `0x530860`, `0x51fff0` y las partículas sin portar, con la lógica del caso hecha | los monstruos con caso, en sus mapas (CL11, P-C233); ningún jugador sin transformar |
 | `0x4fb0d1` | las veinte `0x5c6`/12 sin el pool de partículas | nadie en el juego (fase 2d) |
-| `0x558f29` | los nombres de gremio | el héroe en la guerra de gremios (hito 8) |
+| `0x558f29` | los nombres de gremio: desde la revisión no corta, da −1 como con los nombres iguales (Q-C1170) | el héroe en la guerra de gremios (hito 8) |
 | los cortes de [La flecha](#la-flecha) | las skills de tiro, los joints de las flechas y sus partículas sin portar | el elfo con esas armas o skills (fase 2e) |
 | `0x50419c` | la partícula `0x5e4` sin el pool de partículas | nadie en el juego: `GameScene` pasa el del mundo (fase 2d) |
-| `0x50428c` | `0x42ea00` | nadie: el mapa 30 corta antes (`0x412140`) |
+| `0x50428c` | `0x42ea00` (el mapa 30, Castle Siege) | nadie: el mapa 30 corta antes (`0x412140`; hito 13) |
 | `0x5042ce` | `0x52e740` | las acciones de skill `0x38` a `0x3c` (hito 4) |
 | `0x505169` | los joints `0x618`/0 y /1 sin el pool de joints | nadie en el juego (fase 2d) |
 
@@ -9824,11 +9825,16 @@ segunda y la bandera es 1 si la lectura de `0x502b12` dio `0x18`) y `0x5037d0` (
 y `0x180`, todo en 0); con blanco, `0x504060` (igual, con la bandera en 0) y `0x5040a9` (los tres primeros tipos).
 Después sigue el paso del ataque.
 
-**El tiro** (`0x53e2b0(c, o, blanco, lugar, bandera, skill)`). Con la skill `0x34`, `0x33` o `0x2e` va a `0x53e741`
-(con `+0xf08` del registro propio) y con la bandera en 1 a `0x53e2e0` (las flechas de `0xa24`/`0xa25` o tres con
-`+0x24` corrido): son del hito 4 y MuRet corta en `0x53e2be` y `0x53e2da`. Si no, `0x53d9a0` y, con `0xa25` en
+**El tiro** (`0x53e2b0(c, o, blanco, lugar, bandera, skill)`). Con la skill `0x34`, `0x33` o `0x2e` va a `0x53e741`:
+`0x53d9a0` y el registro propio con `+0xf04` sumado (`0x53e75b`, hito 4: MuRet corta ahí, después del tiro). Con la
+bandera en 1, `0x53e2e0`, el abanico: cada tiro es `0x53d9a0(c, o, blanco, lugar, 1, skill)` y entre uno y otro la z
+de los ángulos de o (`+0x24`) se corre en la x87 y se guarda en `float`. Con `0xa24` o `0xa25` en `+0x2b8` de c,
+cuatro tiros con 5, 10, −20 y −10 antes de cada uno y 30 al final (`0x53e445..0x53e4da`: queda 15 más, Q-C1181); con
+otra, tres, el primero sin correrla, con 15 (`0x6b87bc`) y −30 antes de los otros dos y 15 al final
+(`0x53e300..0x53e362`). Después, el registro propio con `+0xf04` sumado (`0x53e365` y `0x53e4dd`, hito 4: MuRet corta
+ahí). Si no, `0x53d9a0` y, con `0xa25` en
 `+0x2b8`, el brillo de la mano (`0x53e630`: el hueso de `+0x2bd` con `0x4ec110`, quince giros `rand() % 360`, el joint
-`0x617`/3 con un `rand()` par y la `0x5c5`/0), que corta en `0x53e642`.
+`0x617`/3 con un `rand()` par y la `0x5c5`/0), que corta en `0x53e642` (CL11).
 
 **Las armas** (`0x53d9a0`). Las de `+0x2b8` y `+0x2d8` (MOVSX); con el héroe (`[0x743a170]`), el registro propio
 abierto y cerrado en línea (3.848 `rand()`) y los tipos de `+0xb6c` y `+0xbb4` más `0x212` (salvo el −1). La skill
@@ -9861,14 +9867,20 @@ menos), que no mira el byte vivo: corre también si el choque la apagó.
   subtipo 3 o 4, hito 4 (`0x5240b0`); con el 5, el fuego lleva (luz · 0,1f; luz · 0,6f; luz · 0,3f); el fuego
   `0x53fe70(0x5d9, posición, ángulos, color, 0, 1,0f, 0)` y el choque.
 - `0xdc`, `0xdd`, `0xde`, `0xdf` y `0xe0` (`0x5267c7` → `0x526dc2`): solo el choque.
-- `0xe1` (`0x52697e`; el subtipo 1, `0x5267dc`, hito 4): dos sprites `0x5d5` (`0x5491e0`, escalas 0,5 y 1, la luz
+- `0xe1` (`0x52697e`; el subtipo 1, `0x5267dc`, lo crean los casos de monstruo `0x42fd37` y `0x432532`: CL11): dos sprites `0x5d5` (`0x5491e0`, escalas 0,5 y 1, la luz
   `+0xf4`, el giro ±`ftol(reloj)` · 0,1f), cuatro veces tres `rand()` del punto ((& 31) − 16; (& 63) − 32;
   (& 31) − 16) y `0x608 + rand() % 3` (corta en `0x526a8b`, CL11), la y de los ángulos + 30, la luz (luz · 0,6f;
   · 0,8f; · 0,8f) y el choque.
 - `0xe3` (`0x526c56`): los dos sprites, cuatro veces el punto (& 15) − 8 y la `0x607`/1 (corta en `0x526d5f`,
   CL11), la `0x5f2`/0, la luz verde y el choque.
 - `0xe2` (`0x524237`): dos sprites `0x5ac` con (1; 0,6f; 0,4f) y escalas 1 y 2, cuatro veces el punto y la
-  `0x607`/1 (`0x52434e`); después cae sobre el terreno (`0x52435d`, sin portar).
+  `0x607`/1 (`0x52434e`, CL11; con el pool lleno no se crea ni saca `rand()`). Después cae (`0x52435d..0x5243bd`): la
+  z más `+0xe4` y `+0xe4` menos 1, cada uno en la x87 y guardado en `float`; con el terreno (`0x5f93c0`) por encima
+  de la z (el FCOM sin C0 ni C3: ni menor, ni igual, ni NaN), la z al terreno, `+0xe4` por −0,4f (`0x6ba18c`) y la
+  y de la velocidad por 0,4f (`0x6b87b4`). En la última vida, `0x51fe10(posición, 1)` y, con el héroe
+  (`[0x743a170]`) de dueño y sin el subtipo `0x63`, `0x517a20` (`0x524405`, hito 4). Al final, la luz (luz · 0,6f;
+  · 0,8f; · 0,8f) y el choque (`StepAquagoldArrow`, `ArrowStepContext::terrainHeight`;
+  `ArrowEffectsTest.TheAquagoldArrowFallsAndBounces`).
 - `0x11c` (`0x526aef`): la y de los ángulos + 60; con vida par, la `0x60f`/5 (`0x526bc2`), con impar, el `0x114`
   (`0x526c05`). Los pasos del `0xf7`, `0xf8`, `0xf9`, `0x10e` y `0x111` no se alcanzan: su alta corta.
 
@@ -10517,7 +10529,8 @@ esa tabla; los tres sorteos, `Scenes::DrawModelSound`. La escribe `FaunaModels::
 lancero `0x4d` del 30 (`0x42aa6b`), en `GameScene` después de `WorldModels::Load`. El modelo cargado tiene su copia en
 `FaunaModels::SoundActions` ([Los modelos de los monstruos y los NPC](#los-modelos-de-los-monstruos-y-los-npc)), que
 lee el paso de caminar (`ActorWalkContext::modelSounds`) antes que esta tabla. Un modelo que nadie escribió queda fuera
-de `WorldRuntime::modelSounds` (P-C253; en el original, en 0 por `0x60dc80`, ver abajo).
+de `WorldRuntime::modelSounds` y los sorteos lo leen como diez WORD en 0, como el original (en 0 por `0x60dc80`, ver
+abajo): caminar, pegar, el golpe y morir suenan `0xd2` más la WORD (`Scenes::SoundsOrZeros`, P-C253 a).
 
 ### Los modelos de los monstruos y los NPC
 

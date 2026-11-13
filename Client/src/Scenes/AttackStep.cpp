@@ -324,7 +324,8 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
         // 0x50428c: 0x42ea00(blanco) solo actúa en el mapa 30 con los tipos 0x19b y 0x19c.
         constexpr std::int32_t CastleMap = 30;
         if (runtime.map == CastleMap && (victim.type == 0x19b || victim.type == 0x19c))
-            return Core::Unexpected(std::format("0x50428c: 0x42ea00 con el blanco {:#x}, sin portar", victim.type));
+            return Core::Unexpected(
+                std::format("0x50428c: 0x42ea00 con el blanco {:#x}, sin portar (hito 13)", victim.type));
     }
     // 0x50429f..0x5042ce: las acciones 0x38 a 0x3c, 0x52e740.
     if (actor.animation.action > 0x37 && actor.animation.action < 0x3d)

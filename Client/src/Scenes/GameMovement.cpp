@@ -315,18 +315,21 @@ Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(ActorState& hero, const
     // 0x59d439..0x59d531: la Y y la X, cada una en su acceso.
     const auto fromY = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
     const auto fromX = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
+    // Una línea que sale de TerrainWall (0x55886d lee la memoria de al lado, 0x7d0d348 + 2 · índice): MuRet descarta
+    // el clic como si no se viera, con los rand() de las dos lecturas (07, Q-C1179).
     const auto seen = World::CanSeeTheCell(terrain.attributes->cells, fromX, fromY, *targetX, *targetY);
-    if (!seen)
-        return Core::Unexpected(std::string("0x55886d: la línea hasta el elegido sale de TerrainWall"));
-    if (!*seen)
+    if (!seen || !*seen)
         return MoveHeroEnd::Continue;
     const auto startY = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
     const auto startX = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
+    // 0x59d653: PathFinding2 mira primero el altar de Crywolf (0x4eac0a..0x4eac41, hito 11).
+    if (auto altar = CheckTheCrywolfAltar(context.world, "0x59d653"); !altar.HasValue())
+        return Core::Unexpected(altar.Error());
+    // La celda del elegido fuera de la grilla, que el A* toma como índice lineal (la fila de al lado, o fuera de los
+    // 65.536 WORD): MuRet descarta el clic, con los rand() de las cuatro lecturas (07, Q-C1179).
     constexpr std::int32_t LastCell = 0xff;
     if (*targetX < 0 || *targetX > LastCell || *targetY < 0 || *targetY > LastCell)
-        return Core::Unexpected(std::format("0x59d653: la celda del elegido ({}, {}) fuera de la grilla, que "
-                                            "PathFinding2 toma como índice lineal",
-                                            *targetX, *targetY));
+        return MoveHeroEnd::Continue;
     const GameLogic::PathCell target{static_cast<std::uint8_t>(*targetX), static_cast<std::uint8_t>(*targetY)};
     const auto path = GameLogic::PathFinder(terrain.attributes->cells).Find({startX, startY}, target);
     if (path)

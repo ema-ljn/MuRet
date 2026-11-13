@@ -9,6 +9,7 @@
 #include <functional>
 #include <span>
 #include <string>
+#include <string_view>
 
 // CL9 hito 3: pegar. Si el personaje elegido se puede atacar (0x558bb0), el freno de 300 ms entre acciones
 // (0x576791c) y lo que hace el héroe al llegar al final del camino (0x5650c0), con el ataque del caso 3.
@@ -21,7 +22,8 @@ struct ActorState;
 // ([0x7879fbc] > 0, con signo) o sin elegido; verdadero en Chaos Castle (18 a 23) con otro que el héroe. Un monstruo
 // (+0x88 en 2), salvo en la guerra de gremios; un jugador (+0x88 en 1) por el asedio (0x4294b0), +0x370, la guerra
 // de gremios, el duelo, el PK de 6 o más o, si no, con Ctrl abajo (GetAsyncKeyState(0x11) en 0x558e7f, `controlDown`)
-// y que no sea el héroe. Corta donde compara los nombres de gremio (0x787aa55, del hito 8).
+// y que no sea el héroe. Donde compara los nombres de gremio (0x558da4, 0x787aa55) MuRet no los tiene hasta el hito 8:
+// da falso, como con los dos nombres iguales (08, P-C250 f).
 [[nodiscard]] Core::Expected<bool, std::string> IsAttackable(const WorldState& world, bool controlDown);
 
 // 0x558eb0(c, [0x6c8e30]), la hermana de 0x558bb0 que el paso de la habilidad deja en o+0x8a (0x4fdc10): la clave
@@ -29,8 +31,8 @@ struct ActorState;
 // `attacker` (el lugar de c) no es el héroe publicado ([0x743a170]). En Chaos Castle (18 a 23), la clave, también la
 // del héroe. Después, como 0x558bb0 sin el asedio ni el tipo del objeto: +0x370 en 2 u 8; fuera de la guerra de
 // gremios, el PK de 6 o más o Ctrl abajo (0x558fd6) con otro que el héroe; en ella, +0x374 en 2 con otro; en el duelo,
-// la clave del rival, sin comparar el nombre. Corta donde compara los nombres de gremio (0x558f29, hito 8). No saca
-// rand().
+// la clave del rival, sin comparar el nombre. Donde compara los nombres de gremio (0x558f29) MuRet no los tiene hasta
+// el hito 8: da −1, como con los dos nombres iguales (08, P-C250 f). No saca rand().
 [[nodiscard]] Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker,
                                                                     bool controlDown);
 
@@ -39,6 +41,12 @@ struct ActorState;
 // pasa, anota en `last` un GetTickCount nuevo (el original lo llama dos veces).
 [[nodiscard]] bool PassesTheActionBrake(std::uint32_t& last, std::int32_t skill,
                                         const std::function<std::uint32_t()>& tickCount);
+
+// 0x4eac0a..0x4eac41, al entrar a PathFinding2 (0x4eac00), que `caller` llama: con Crywolf activo (0x435a00 y el mapa
+// 34) y un altar (0x204..0x208) en el NPC elegido de [0x6c8e54] (GameMovementState::chosenNpc), el A* (0x4ead70) va con
+// una bandera que MuRet no tiene: corta en 0x4eac41, del hito 11. Con el NPC elegido fuera del pool (el −1 que dejan
+// 0x567ae5 y 0x56959b) el original lee fuera de la tabla; MuRet lo toma como sin altar (07, Q-C1182). No saca rand().
+[[nodiscard]] Core::Expected<void, std::string> CheckTheCrywolfAltar(const WorldState& world, std::string_view caller);
 
 // Lo que 0x5650c0 necesita además del mundo: los envíos del D3 de girar (C1 06 D3 X Y rumbo, como el SendMove de un
 // paso) y del D7 de pegar. Vacíos, no manda nada (el original los manda por el socket, que puede estar cerrado).

@@ -2,6 +2,7 @@
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
+#include "Scenes/HandShine.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameRibbonCreation.h"
 #include "Scenes/FaunaJointCreation.h"
@@ -171,7 +172,8 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     if (auto particles = StepGameParticles(
             m_context.world->Particles(), m_context.cloth->random, runtime.map, terrainHeight, worldClock,
             ParticleOwnersAmong(m_context.world->Map().objects), ParticleActorActionsAmong(m_context.world->Actors()),
-            ParticleTextureHeightsOf(m_worldModels), &m_context.world->DynamicLighting().Lighting());
+            ParticleTextureHeightsOf(m_worldModels), &m_context.world->DynamicLighting().Lighting(),
+            ParticleActorHandsAmong(m_context.world->Actors(), runtime.hero));
         !particles.HasValue())
     {
         return particles;

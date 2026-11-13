@@ -10023,6 +10023,36 @@ CL11) y el nombre que pisaría `+0x1f2` (Q-C847). `CharacterPicking` usa la caja
 `ViewportPlayersTest.TheTransformedIsCreatedByItsType`, `ShownEquipmentTest`, `ActorConstructionTest`,
 `CharacterPickingTest.TheBoxComesFromTheConstructedType` y `ServerSessionTest.TheMonsterPacketsReachTheSinkInWireOrder`.
 
+### La skill que pega a varios
+
+*Estático* (CL9 hito 2, 2026-11-13); el formato del `1A`, en
+[04](04-protocolo.md#los-monstruos-y-los-npc-que-entran-13-1f-68-y-1a). **`0x4cedd0`**, en orden:
+
+1. `0x5110d0` con la clave entera de `pkt[3..4]` (sin nadie, el 400 fantasma, Q-C778), que queda en `[0x5767964]`.
+2. `0x53d810(el que pega, 0)`: el punto `(0, 0, 0)` del hueso de su mano derecha (`+0x2bd`) con `0x4ec110` (Translate
+   en 1, sus huesos propios de `+0x120`; la escala `+0x68` y el origen `+0x6c` son los que dejó en el modelo el último
+   que lo usó, Q-C853) y, desde ahí, dos `0x53fe70(0x5fd, punto, +0x1c, (1; 0,5; 0,2), subtipo, 0, el que pega)`, la
+   `/0` y la `/2`. La 5fd (`Effect\Shiny02.jpg`) nace en `0x542b0e` con vida 36 y el ángulo x en 45 y, si no es la
+   `/0x63`, va a `0x53fdb0`: copia la posición del dueño al `+0x6c` de su modelo y la pone en el `(0, 0, 0)` del hueso
+   de la mano `subtipo % 2` **del héroe** (`[0x743a170] + 0x2bd`) sobre los huesos del dueño (Q-C854). Su paso
+   (`0x546cd4`): la escala es `sin(vida · 5°) · 5` (`0x6ba368`, `0x6b87f8`, con `fsin`); de la `/2` en adelante, ese
+   valor de la pila por 0,75 (`0x6ba36c`) y la rotación 12 menos (`0x6b8864`); después, otra vez `0x53fdb0`. El
+   dibujo (`0x5488f6`, el byte 8 de `0x548cf7`) es el billboard común de `0x54889a`. Ningún `rand()`.
+3. El sonido `0x76` (`0x41ed10`) y la acción `0x96` (`0x4ea030`, si el modelo la tiene).
+4. `pkt[5]` en el `+0x38e` del que pega, con su entrada de la tabla abierta (un `rand()` al cerrarse) y `+0x381` en 1.
+5. Por cada una de las `pkt[8]` claves desde `pkt[9]` (enteras, el alto primero): `0x5110d0`; `rand()` par, el golpe
+   de `0x4f53a0` con su `+0x384`; con `+0x384` distinto de 0, el número de `0x548e40(+0x10, +0x384, (1; 0,6; 0), 15,
+   1)` (con z + 140) y, si la clave es la del jugador (`[0x57678bc]`), la vida (`+0x22`) del registro propio baja
+   `+0x384`, hasta 0 (abierto y cerrado: 3.848 `rand()`).
+
+**MuRet** (`Scenes/MagicAttackCount.h`, `Scenes/HandShine.h`, `Scenes/DamageNumbers.h`): `ApplyMagicAttackCount`
+desde `SessionEventApplier`, con `RaiseTheHandShine` (`0x53d810`), `HandShinePoint` (`0x53fdb0`) y
+`CreateDamageNumber` (`0x548e40`, el mismo del hito 3); la 5fd está en `World::Particles` (su alta en
+`CreateOwnedChecked` con el dueño personaje, su paso con `ParticleActorHands` y su dibujo en el billboard común). La
+escala y el origen del modelo son los del dueño (Q-C853). Corta sin las acciones del modelo del que pega (`0x4cee23`,
+por ejemplo con el fantasma) y con un golpe que corta (`0x4f53a0`: el monstruo sin tabla de sonidos, `0x4f5552`).
+Tests: `MagicAttackCountTest`, `HandShineTest` y `ViewportTest.MagicAttackCountReadsTheCasterTheSkillAndTheTargets`.
+
 ### La tabla de protección
 
 Algunas variables del juego viven cifradas en la tabla de `0x57630c8` y están en claro solo mientras

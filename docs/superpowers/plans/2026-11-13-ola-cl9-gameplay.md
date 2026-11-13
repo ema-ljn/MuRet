@@ -249,8 +249,11 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
 - [x] **El alta de un monstruo o un NPC por tipo** (`0x5141e0`, 11,6 KB, con los `Monster*.bmd` y la pose de
       los NPC de Q-C108): el `0x13` (`0x4c9c60`), el `0x1F` (`0x4ca0b0`, con los tipos `0x98..0x9e` por
       `0x517400`) y el `0x68` (`0x4e0980`); `0x511290` con la caja y las manos de cada tipo; el `0x45` y el `0xDF`
-      del hito 1 dan de alta y empujan. El `0x1A` (`0x4cedd0`) no crea nada: es la skill que pega a varios y va
-      con el hito 3 (04). El tipo 68 (el caso `0x3a`) corta con su dirección (`Monster50` no está, P-C173).
+      del hito 1 dan de alta y empujan. El tipo 68 (el caso `0x3a`) corta con su dirección (`Monster50` no está,
+      P-C173).
+- [x] **El `0x1A`** (`0x4cedd0`), la skill que pega a varios: no crea nada; el brillo de la mano (`0x53d810`, la
+      partícula 5fd con su paso y su dibujo), la acción `0x96`, el `+0x38e`, el golpe y el número de cada blanco
+      (`0x4f53a0`, `0x548e40`) y la vida del jugador (06, "La skill que pega a varios").
 - [ ] Las partes de monstruo de `0x50ba30` y `0x4fd5f0` que la CL7 dejó cortadas, y los monstruos que la revisión
       de la CL.M dejó en la CL7 por `0x50ba30` (`0x4271d0`, `0x441400`, `0x434180`): necesitan los modelos de los
       monstruos, que el alta no carga (08, P-C176 y P-C178).

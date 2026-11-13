@@ -923,8 +923,11 @@ con `Scenes::ApplyQuest*` (06, "Las misiones"); el `A0` y el `30` de la llegada,
   el equipo (los 17 bytes de la lista) y `+0x18..+0x1b` los estados. Con 1 (`0x4e0c1d`), un jugador: `0x512870(clave,
   0x20a, x, y, 0)` con la clase de `+1` y el equipo (`0x5139f0`); con 2 o 3 (`0x4e09ca`), el monstruo del tipo
   `+1 << 8 | +2` por `0x5141e0`; con otro, nada. No tiene recién llegado ni camino: el ángulo es `rand() % 360`.
-- **`1A`** (`0x4cedd0`): no crea nada: es la skill que pega a varios (`PMSG_MAGICATTACK_COUNT_SEND`, `0x5110d0`, la
-  acción `0x96`, `0x53d810`, el sonido `0x76` y el daño de cada blanco con `0x548e40`); va con el hito 3.
+- **`1A`** (`0x4cedd0`): no crea nada: es la skill que pega a varios (`PMSG_MAGICATTACK_COUNT_SEND`). `C1 xx 1A`, la
+  clave del que pega en `pkt[3..4]` (el alto primero, entera), la skill en `pkt[5]` (va al `+0x38e`), la celda en
+  `pkt[6]` y `pkt[7]` (que nadie lee), la cuenta en `pkt[8]` y las claves de los blancos desde `pkt[9]`, de a dos
+  bytes con el alto primero (`PMSG_MAGICATTACK_COUNT_INFO`). Lo que hace con el mundo, en
+  [06](06-render-escenas-y-ui.md#la-skill-que-pega-a-varios).
 
 El dispatcher llama a los tres sin copiarlos a la cola de `0x77f27b4` ni mirar el flag de cifrado (`0x4e37d1`,
 `0x4e37e9` y `0x4e4643`). Lo que cada handler hace con el mundo, en
@@ -934,7 +937,9 @@ El dispatcher llama a los tres sin copiarlos a la cola de `0x77f27b4` ni mirar e
 `ReadSummons` y `ReadObjects`; un registro corto es `TooShort`, hasta el último byte que lee el handler: `+0xc`,
 `+0x16` y `+0x1b`); `App::ServerSession` los registra después del `DF` y los pasa al mundo
 (`Scenes::ApplyViewportMonsters`, `ApplySummons` y `ApplyViewportObjects`). Los tests arman los paquetes con los
-structs del ASM (`support/ViewportPackets.h`). El `1A` queda para el hito 3.
+structs del ASM (`support/ViewportPackets.h`). El `1A` lo lee `ReadMagicAttackCount` (`TooShort` sin la cuenta o
+sin el último byte de la última clave), lo registra `App::ServerSession` y lo aplica `Scenes::ApplyMagicAttackCount`
+con la clave del jugador.
 
 ### Los otros jugadores: `12`, `14`, `45`, `25` y `DF`
 

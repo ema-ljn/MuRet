@@ -263,7 +263,7 @@ struct ActorState
     std::uint8_t byte38eAccesses = 0;
     // +0x38e: el valor lógico. Con ')' (0x29) el lazo de las manos de 0x50ba30 saltea la derecha en la
     // acción 0x3d, y con '4' (0x34) 0x509340 pone el frame de lo que cuelga en 3,2 en las acciones 0x22 a
-    // 0x97. Lo escriben 0x4cc530 y 0x4f5b70, sin portar: queda en 0.
+    // 0x97. Lo escriben 0x4cc530 y 0x4f5b70, sin portar, y el 1A (0x4ceee4, Scenes::ApplyMagicAttackCount).
     std::uint8_t byte38e = 0;
     // +0x390: 0x511290 lo pone en 0 (0x51186b), y lo ponen en 1 el estado de las misiones (0x418e20 y 0x418ee0, con la
     // misión 3 terminada, CL9.1), sin portar: queda en 0. Con 1, el tooltip de la skill del Dark Knight de nivel 220

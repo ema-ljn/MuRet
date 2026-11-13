@@ -371,6 +371,8 @@ private:
     void OnViewportPosition(const Network::Packet& packet);
     void OnViewportMonsters(const Network::Packet& packet);
     void OnSummons(const Network::Packet& packet);
+    // El 1A (0x4cedd0): la skill que pega a varios.
+    void OnMagicAttackCount(const Network::Packet& packet);
     void OnViewportObjects(const Network::Packet& packet);
     void OnTeleport(const Network::Packet& packet);
     void OnRegen(const Network::Packet& packet);

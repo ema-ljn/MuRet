@@ -40,5 +40,6 @@ using WorldEvent =
                  Protocol::Quest::QuestStateChange, Protocol::Quest::SetQuestResult, Protocol::Quest::QuestResult,
                  Protocol::Movement::Action, Protocol::Viewport::Players, Protocol::Viewport::Leave,
                  Protocol::Viewport::Transformed, Protocol::Viewport::EquipmentShown, Protocol::Viewport::Position,
-                 Protocol::Viewport::Monsters, Protocol::Viewport::Summons, Protocol::Viewport::Objects>;
+                 Protocol::Viewport::Monsters, Protocol::Viewport::Summons, Protocol::Viewport::Objects,
+                 Protocol::Viewport::MagicAttackCount>;
 } // namespace Client::App

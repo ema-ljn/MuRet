@@ -252,6 +252,8 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnSummons(packet); }) &&
         m_gameServer.On(Protocol::Viewport::ObjectsOpcode,
                         [this](const Network::Packet& packet) { OnViewportObjects(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::MagicAttackCountOpcode,
+                        [this](const Network::Packet& packet) { OnMagicAttackCount(packet); }) &&
         m_gameServer.On(Protocol::World::TeleportOpcode,
                         [this](const Network::Packet& packet) { OnTeleport(packet); }) &&
         m_gameServer.On(Protocol::World::WorldOpcode, Protocol::World::RegenSubcode,
@@ -1446,6 +1448,17 @@ void ServerSession::OnSummons(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(summons.Value(), *this)));
+}
+
+void ServerSession::OnMagicAttackCount(const Network::Packet& packet)
+{
+    const auto attack = Protocol::Viewport::ReadMagicAttackCount(packet);
+    if (!attack.HasValue())
+    {
+        m_log.Warning("se ignora la skill que pega a varios (1A): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(attack.Value(), *this)));
 }
 
 void ServerSession::OnViewportObjects(const Network::Packet& packet)

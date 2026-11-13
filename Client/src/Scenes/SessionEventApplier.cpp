@@ -24,6 +24,7 @@
 #include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/InventoryReply.h"
+#include "Scenes/MagicAttackCount.h"
 #include "Scenes/MonsterViewport.h"
 #include "Scenes/MovementReplies.h"
 #include "Scenes/QuestReplies.h"
@@ -128,6 +129,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
         return ApplyWalkReply(*walk, session.PlayerIndex(), m_resources);
     if (const auto* damage = std::get_if<Protocol::Movement::Damage>(&event))
         return ApplyDamageReply(*damage, session.PlayerIndex(), m_resources);
+    if (const auto* attack = std::get_if<Protocol::Viewport::MagicAttackCount>(&event))
+        return ApplyMagicAttackCount(*attack, session.PlayerIndex(), m_resources);
     if (const auto* action = std::get_if<Protocol::Movement::Action>(&event))
         return ApplyActionReply(*action, m_resources, [&session](std::uint8_t direction, std::uint8_t sent)
                                 { session.SendAction(direction, sent); });

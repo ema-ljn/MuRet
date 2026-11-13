@@ -1173,7 +1173,7 @@ primero que haya de:
 | Elegido | Qué hace | MuRet |
 |---|---|---|
 | NPC | `0x557170(+0x1d9, 0x78abb3c, personaje, 0, −1)`: su nombre solo en un globo (el texto vacío de la `.bss`, el modo 0 y sin color) | `AddChatBubble` |
-| personaje, con `0x6c8e38` en −1 | un monstruo (`+0x88` en 2): `0x6c8e64 = 0xff000064`, `0x6c8e5c = 0xffc8e6ff` y `0x623690(0x5bb8d0() / 2, 10, nombre)` (la mitad con `CDQ` y `SAR`, hacia el 0; el `GetTextExtentPointA` de antes no se usa). Los demás, sin tienda personal (`0x451d10` da el objeto `0x7245c8` y `0x451770` busca el personaje en su mapa, que llenan los paquetes de la CL9.4), en un globo como el NPC con `0x78abb40` | portado; la tienda da siempre 0 |
+| personaje, con `0x6c8e38` en −1 | un monstruo (`+0x88` en 2): `0x6c8e64 = 0xff000064`, `0x6c8e5c = 0xffc8e6ff` y `0x623690(0x5bb8d0() / 2, 10, nombre)` (la mitad con `CDQ` y `SAR`, hacia el 0; el `GetTextExtentPointA` de antes no se usa). Los demás, sin tienda personal (`0x451d10` da el objeto `0x7245c8` y `0x451770` busca el personaje en su mapa, que llenan los `3F`), en un globo como el NPC con `0x78abb40` | portado (la tienda, desde la fase 3 del hito 7) |
 | ítem del piso (`0x6c8e28`) | `0x5ba790(i, +0x44, +0, +0x17, +0x18, 0)` de la entrada de `0x220` bytes en `0x77f46d0`: su nombre | corta con `0x5bbd62` (CL9.3) |
 
 Después Alt: el flanco (`0x553520(0x12)`, `0x5bbd6c`) invierte `0x78abb38`, que nadie más lee ni escribe; con él
@@ -1378,7 +1378,7 @@ Las texturas nuevas del HUD: `0x104` a `0x120` (sin `0x106`, que no se sube), `0
 | 10 | macro | 'Macro Time' y `0x5a6af0(x, 404, 50, 2, …)` | `0x77f3b74 > 0` | nada |
 | 11 | `glColor3f(1,1,1)`; `0x40bab0(this = 0x723c60)` + vfunc +4 | cuenta de DS/BC/CC: `0x40bab0` solo dibuja con +8 en 1..14; la vfunc +4 es un `ret` en DS (`0x40bdb0`) y en BC (`0x40c2d0`) y CC (`0x405090`) dibuja solo con +0x10 ≠ 0 y el mapa en 11..17 o 18..23 | objeto activo | nada (MuRet corta solo cuando dibujaría: CL9.5) |
 | 12 | `0x5a9050` | globos y nombres sobre las cabezas (`0x77e1be0`) | entradas vivas | nada |
-| 13 | `0x451d10`/`0x451c20` | carteles [LOJA] | singleton `0x7245c8` | nada |
+| 13 | `0x451d10`/`0x451c20` | carteles [LOJA] | singleton `0x7245c8` | nada sin carteles; con alguno, corta en `0x451c32` (08 P-C208 a) |
 | 14 | `0x5a6cc0` | marcador de duelo | `0x78abad8` | nada |
 | 15 | `0x46b090(this = [0x5763528])` | caja sin leer | | nada |
 | 16 | `0x413ca0` | Castle Siege (mapa 30) | `0x4294b0` | nada |
@@ -9709,7 +9709,7 @@ sesión hace la copia (`ISessionEventSink::CopyToPacketRing`) y la cola es `Worl
 **El `14`, `0x4ca780`**, por cada clave: con la información de Castle Siege (`0x5767924`, que crea el `B2 20`), la
 clave entera `0x13d` pone sus bytes 4 a 6 en 0 y cualquier otra los `0x1f` a `0x21` (Q-C802); `0x510ff0` con la clave
 sin el bit 15, y `0x451630` busca la tienda personal de la clave en el mapa de `0x7245c8`, que solo llena el `3F`:
-sin entradas no llega a `0x451430`.
+con una, `0x451430` la saca (portado en la fase 3 del hito 7, § Las tiendas personales).
 
 **El `45`, `0x4c92a0`**: el transformado. El nombre y `"webzen"` como en el `12`; después lee la clase del héroe
 publicado (`0x4c9328`) y llama a `0x5141e0`, el alta del monstruo o del transformado del tipo de `+4` (la hito 2).
@@ -10017,7 +10017,7 @@ por 8, como el emote) del otro y del héroe: a 4, se miran; si no, sigue con el 
 | `/party` | 1 | con party (`0x78aba48 > 0`) y otro líder (`strcmp` con el primer lugar de `0x77f3cd0`), el aviso 257 con el 1, antes de buscar; el mundo sin cargar: 1 | `C1 05 40` y la clave; `0x78aba4c` = la clave (`MOVSX`) | el aviso 476 con el nombre, y 1 |
 
 Cada paquete saca los 2 `rand()` del C3 (el relleno y el serial). El mapa de las tiendas de `0x7245c8` lo llenan los
-`3F`: hasta portarlos, nadie tiene tienda. **MuRet**: `Scenes::SocialRequests` (`RequestATrade`, `RequestADuel` y
+`3F` (portados en la fase 3 del hito 7, § Las tiendas personales). **MuRet**: `Scenes::SocialRequests` (`RequestATrade`, `RequestADuel` y
 `RequestAParty`, desde `UI::RunTheChatCommand` por `GameChat`; el aviso armado va en `ChatCommandNotice::formatted`).
 Tests: `SocialRequestsTest` (con los dos jugadores del `0x12`, en Lorencia y Devias), `Commands` y `GameChat`.
 
@@ -10052,6 +10052,38 @@ grillas (`0x5e3760` con 0, en las mismas esquinas) y, en `0x5f7840`, sus cifras 
 **MuRet**: `Scenes::DrawTheTradeWindow` (`GameInventoryHud`, desde `DrawTheWindows`), y las grillas del comercio en
 `DrawTheGridItems` y `DrawTheGridNumbers`. Tests: `GameTradeWindowTest` (con el otro del `0x12`, el `/trade`, el `37`,
 un ítem del `39` y el zen, en Lorencia y Devias).
+
+#### Las tiendas personales
+
+(CL9 hito 7, fase 3, 2026-11-13, *estático*; sin cable ni traza, 08 P-C200 y P-C208.) Los carteles viven en el objeto
+`0x7245c8` (el singleton de `0x451d10`, armado por `0x450f20`): un `std::map` del puntero del personaje (ordena como su
+índice) a un cartel de 100 bytes (`0x4521d0` con `0x4524e0`): la clave (`+0x40`), el nombre (`+0x1d9` del personaje),
+el título de 36 bytes, a la vista (`+0x44`, en 1 al crearse con `0x4529b0`) y lo que mide para el dibujo (las dos
+líneas `+0x20` y `+0x30` y el tamaño `+0x50`, con el texto 1104 y la negrita).
+
+- `0x4511f0` (*AddShopTitle*, clave, personaje, título): con `+0x88` distinto de 1, solo el log `0x6c7938`; sin
+  cartel, uno nuevo; con uno de la misma clave, el nombre y el título nuevos (`0x452540`) y su lugar (`0x4527d0`); con
+  otra clave, solo el log `0x6c7900`. Las dos ramas que escriben miden con la negrita (`SelectObject` del DC con
+  `0x5763558` en `0x452540` y `0x4531b0`), y el DC queda con ella.
+- `0x451430` saca; `0x451810` lo tiene; `0x451770` lo tiene y a la vista; `0x451630(clave)` da el primer cartel con
+  esa clave en el orden del mapa (el `14`, `0x4ca7f0..0x4ca809`, lo saca así); `0x4516d0` y `0x451720` muestran y
+  esconden, desde el paso de los globos (`0x5576a0..0x5576c9`: con `+time1 > 0` esconde el del dueño; con dueño y
+  `+time1` en 0, muestra).
+- `0x451c10` → `0x451fe0` (*CheckKeyIntegrity*, en cada paso del juego en `0x6370fe`): saca el cartel cuyo personaje
+  cambió de clave (`MOVSX` de `+0x1f4` contra `+0x40`) o dejó de ser jugador, con su log. `0x451590`, detrás de cada
+  `0x510f70` de la clave del jugador (la carga del mapa en `0x61a5b5`, también en la selección; el `F3 04` en
+  `0x4c4e86`; el `1C` en `0x4c77eb`), deja solo el que tiene la clave del héroe publicado.
+- Lo leen el nombre bajo el mouse (`0x5bbd06..0x5bbd15`: con cartel a la vista, sin el globo del nombre), el globo de
+  chat (`0x556dd0`: con cartel, el título corto de `0x4518b0` en `+0x54`) y `/trade` (`0x451810`, el aviso 493).
+- El dibujo (`0x451c20`, el hijo 13 del HUD) sale enseguida con el mapa vacío (`+0xc` en 0); con alguno, el lugar de
+  cada cartel (`0x451d60`), el reparto para que no se pisen (`0x451e40`), la cuenta de `+0x10` y cada cartel
+  (`0x452a10`), sin leer todavía.
+
+**MuRet**: el mapa es `SocialState::personalShop` (`PersonalShopState::titles`, por índice del personaje) y los métodos
+están en `Scenes::PersonalShopTitles`; los paquetes del `3F` (04 § Las tiendas personales), en `Scenes::SocialEvents`.
+Cortan con su dirección el dibujo (`0x451c32`, desde `DrawTheHud`) y el título corto del globo (`0x556e26`, desde
+`AddChatBubble`), 08 P-C208 a. Tests: `PersonalShopsTest` (en Lorencia y Devias, con nombres y títulos inventados) y el
+caso `0x451c32` de `GameHudTest`.
 
 ## Lo que no se sabe
 

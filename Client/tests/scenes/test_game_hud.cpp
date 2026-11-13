@@ -19,6 +19,7 @@
 #include "Scenes/HudItems.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -831,7 +832,7 @@ TEST_F(GameHudTest, ThePiecesOfOtherWavesStopWithTheirAddress)
         std::string_view address;
         void (*arrange)(WorldState&);
     };
-    const std::array<Case, 5> cases{{
+    const std::array<Case, 6> cases{{
         {"0x5f7180", [](WorldState& state) { state.Runtime().panels.panel2000 = 1; }},
         {"0x40bab0",
          [](WorldState& state) { state.Runtime().eventObject = Client::Scenes::EventMapObject{.field08 = 5}; }},
@@ -849,6 +850,13 @@ TEST_F(GameHudTest, ThePiecesOfOtherWavesStopWithTheirAddress)
              state.Runtime().siegePanelKind = std::uint8_t{0};
          }},
         {"0x5e9b10", [](WorldState& state) { state.Runtime().ui.field78abb20 = 1; }},
+        // 13. 0x451c20 con un cartel (CL9 hito 7): el dibujo de los carteles corta (08 P-C208 a).
+        {"0x451c32",
+         [](WorldState& state)
+         {
+             state.Runtime().social.personalShop.titles.emplace(
+                 4, Client::Scenes::ShopTitle{.key = 0x234, .name = "Brezal", .title = "Arcos"});
+         }},
     }};
     for (const Case& probe : cases)
     {

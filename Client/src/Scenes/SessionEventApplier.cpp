@@ -15,6 +15,7 @@
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Party.h"
+#include "Protocol/PersonalShop.h"
 #include "Protocol/Trade.h"
 #include "Protocol/Viewport.h"
 #include "Protocol/World.h"
@@ -232,6 +233,31 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySocia
         ApplyDuelScore(*score, world);
         return Core::Expected<void, std::string>{};
     }
+    // Las tiendas personales (CL9 hito 7, fase 3): los carteles y los avisos del 3F.
+    if (const auto* titles = std::get_if<Protocol::PersonalShop::ShopTitles>(&event))
+    {
+        ApplyShopTitles(*titles, world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* created = std::get_if<Protocol::PersonalShop::ShopCreated>(&event))
+    {
+        ApplyShopCreated(*created, world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* closed = std::get_if<Protocol::PersonalShop::ShopClosed>(&event))
+    {
+        ApplyShopClosed(*closed, world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* notice = std::get_if<Protocol::PersonalShop::ShopNotice>(&event))
+        return ApplyShopNotice(*notice, m_resources);
+    if (const auto* title = std::get_if<Protocol::PersonalShop::ShopTitle>(&event))
+    {
+        ApplyOtherShopTitle(*title, world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (std::holds_alternative<Protocol::PersonalShop::ShopOwnerLeft>(event))
+        return ApplyShopOwnerLeft(m_resources);
     return std::nullopt;
 }
 

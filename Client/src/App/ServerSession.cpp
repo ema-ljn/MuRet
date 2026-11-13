@@ -32,6 +32,7 @@
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
 #include "Protocol/Duel.h"
+#include "Protocol/PersonalShop.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
@@ -290,6 +291,7 @@ void ServerSession::RegisterSocialHandlers()
     namespace Trade = Protocol::Trade;
     namespace Party = Protocol::Party;
     namespace Duel = Protocol::Duel;
+    namespace Shop = Protocol::PersonalShop;
     using Network::Packet;
     [[maybe_unused]] const bool registered =
         m_gameServer.On(Trade::RequestOpcode, [this](const Packet& packet) { OnTradeRequest(packet); }) &&
@@ -328,8 +330,24 @@ void ServerSession::RegisterSocialHandlers()
         m_gameServer.On(Duel::RequestOpcode, [this](const Packet& packet)
                         { ApplyWorldPacket(packet, Duel::ReadDuelRequest, "el pedido de duelo (AC)"); }) &&
         m_gameServer.On(Duel::ScoreOpcode, [this](const Packet& packet)
-                        { ApplyWorldPacket(packet, Duel::ReadDuelScore, "los puntos del duelo (AD)"); });
-    assert(registered && "los handlers del comercio, la party y el duelo se registran una vez");
+                        { ApplyWorldPacket(packet, Duel::ReadDuelScore, "los puntos del duelo (AD)"); }) &&
+        // Las tiendas personales (hito 7, fase 3): los carteles y los avisos del 3F. El 1, el 5, el 6 y el 0x13 (las
+        // listas de ítems) siguen sin handler (08 P-C204 a).
+        m_gameServer.On(Shop::Opcode, Shop::TitlesSubcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Shop::ReadShopTitles, "los carteles de las tiendas (3F 00)"); }) &&
+        m_gameServer.On(Shop::Opcode, Shop::CreatedSubcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Shop::ReadShopCreated, "la tienda propia abierta (3F 02)"); }) &&
+        m_gameServer.On(Shop::Opcode, Shop::ClosedSubcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Shop::ReadShopClosed, "la tienda cerrada (3F 03)"); }) &&
+        m_gameServer.On(Shop::Opcode, Shop::NoticeSubcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Shop::ReadShopNotice, "el aviso de la tienda (3F 08)"); }) &&
+        m_gameServer.On(Shop::Opcode, Shop::TitleSubcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Shop::ReadShopTitle, "el cartel de otro (3F 10)"); }) &&
+        m_gameServer.On(Shop::Opcode, Shop::OwnerLeftSubcode,
+                        [this](const Packet& packet) {
+                            ApplyWorldPacket(packet, Shop::ReadShopOwnerLeft, "la tienda ajena que se cierra (3F 12)");
+                        });
+    assert(registered && "los handlers del comercio, la party, el duelo y las tiendas se registran una vez");
 }
 
 template <typename Read>

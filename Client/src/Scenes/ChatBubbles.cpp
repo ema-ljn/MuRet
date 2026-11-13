@@ -4,6 +4,8 @@
 #include "Core/Expected.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/PersonalShopTitles.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -40,10 +42,13 @@ std::string_view CString(std::string_view text)
     return end == std::string_view::npos ? text : text.substr(0, end);
 }
 
-// 0x556dd0(entrada, personaje): sin tiendas (0x7245c8, CL9.4) el título vacío; sin gremio (+0x1f2 negativo) el gremio,
-// el puesto y +0x65 en 0.
-Core::Expected<void, std::string> FillTheGuild(ChatBubble& bubble, const ActorState& owner)
+// 0x556dd0(entrada, personaje): sin cartel de tienda (0x451810) el título vacío, y con él el título corto de 0x4518b0,
+// que corta; sin gremio (+0x1f2 negativo) el gremio, el puesto y +0x65 en 0.
+Core::Expected<void, std::string> FillTheGuild(ChatBubble& bubble, const ActorState& owner, bool hasShop)
 {
+    if (hasShop)
+        return Core::Unexpected(std::string("0x556e26: el título corto de la tienda personal en el globo (0x4518b0) es "
+                                            "del hito 7 (08 P-C208 a)"));
     bubble.shopTitle.clear();
     if (static_cast<std::int16_t>(owner.word1f2) >= 0)
         return Core::Unexpected(std::string("0x556e95: el gremio del globo lee la tabla de los gremios (0x787aa4c), "
@@ -121,7 +126,8 @@ Core::Expected<void, std::string> AddChatBubble(WorldState& world, const ChatBub
     }
     bubble->name = std::string(name);
     bubble->color = shown;
-    if (auto guild = FillTheGuild(*bubble, speaker); !guild.HasValue())
+    if (auto guild = FillTheGuild(*bubble, speaker, HasShopTitle(world.Runtime().social.personalShop, owner));
+        !guild.HasValue())
         return guild;
     if (text.empty())
     {
@@ -194,7 +200,13 @@ Core::Expected<void, std::string> StepTheChatBubbles(WorldState& world, const Ch
             bubble.time1 = 0;
             bubble.time2 = 0;
         }
-        // 0x557701..0x557722: las tiendas personales (0x451720 y 0x4516d0) no tienen ninguna hasta la CL9.4.
+        // 0x5576a0..0x5576c9: con el globo a la vista (+time1 > 0) el cartel de la tienda del dueño se esconde
+        // (0x451720, que con el dueño en NULL no encuentra nada); con un dueño y +time1 en 0, se muestra (0x4516d0).
+        PersonalShopState& shops = runtime.social.personalShop;
+        if (bubble.time1 > 0 && bubble.owner)
+            HideShopTitle(shops, *bubble.owner);
+        if (bubble.owner && bubble.time1 == 0)
+            ShowShopTitle(shops, *bubble.owner);
         if (input.screen.width <= 0 || input.screen.height <= 0)
             continue;
         // 0x557722..0x557738: el ancho y el alto pasan a 640 × 480 con una división sin signo.

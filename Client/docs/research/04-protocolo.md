@@ -925,18 +925,34 @@ Del cliente: el `AA` (`C1 0F AA <clave BE> <nombre>`, C3), el `AB` (`C1 03 AB`, 
 
 ### Las tiendas personales: `3F`
 
-El GameServer 0.97 tampoco las tiene. `0x4e2b10` despacha el `3F` por su segundo byte: `0x4dae80` (0, los carteles
-del viewport), `0x4db700` (2, abrir la propia), `0x4dbcb0` (6, la tienda ajena y sus avisos), `0x4dafe0` (`0x10`, el
-título de otro), `0x4dbb40` (`0x13`, la lista con el `std::map` de `0x7245e0`), `0x4db120` y `0x4db890`. Todo es de la
-fase 2 del hito 7: los carteles (`0x451c20`) y la tienda ajena necesitan los actores (08 P-C204).
+(CL9 hito 7, fase 3, 2026-11-13, *estático*.) El GameServer 0.97 tampoco las tiene: el oráculo es el ASM del cliente,
+sin cable (08 P-C200). `0x4e2b10` despacha el `3F` por el byte que sigue al opcode (`0x4e4e3a`: `pkt[3]` en un C1,
+`pkt[4]` en un C2), y cada caso lee sus campos en lugares fijos del paquete, sin mirar el tipo. El personaje de una
+clave es el primero vivo de los 400 con ella (`0x5110d0`, que da 400 sin ninguno); los carteles, el mapa de `0x7245c8`
+(06 § Las tiendas personales).
+
+| Sub | Forma | Lector | Qué hace |
+|---|---|---|---|
+| `00` | `C2 <tamaño:2> 3F 00 <n> n × (<clave BE> <título:36>)` | `0x4dae80` | por entrada, con el personaje de la clave, su cartel (`0x4511f0`); el título va hasta el primer 0 de sus 36 bytes (el 0 de la pila en el 37) |
+| `02` | `C1 05 3F 02 <resultado>` | `0x4db700` | con 1, `0x78aba50` en 1 y el cartel del héroe (`MOVSX` de `+0x1f4`) con el título propio (`0x78aba64`); si no, el log "Fault ReceiveCreatePersonalShop" |
+| `03` | `C1 07 3F 03 <resultado> <clave BE>` | `0x4e4ea5` | con 1 y el personaje de la clave: si es el héroe, `0x78aba50` en 0; su cartel sale (`0x451430`). Si no, el log `0x6c8504` |
+| `08` | `C1 0F 3F 08 <?> <nombre:10>` | `0x4e4f5d` | `strncpy` del nombre (`pkt + 5`, 10) y `sprintf` del texto 1122 con él en los 0x70 bytes de la pila; a los mensajes con el tipo 1 (`0x555190`, sin nombre). `pkt[4]` no se lee |
+| `10` | `C1 34 3F 10 <clave BE> <título:36> <nombre:10>` | `0x4dafe0` | con el personaje de la clave y su nombre igual (`strncmp` de 10 con `pkt + 0x2a`), su cartel |
+| `12` | `C1 04 3F 12` | `0x4e4fcc` | con `0x6c931c` en 2 (mirando la tienda de otro), cierra `0x800` y `0x20000` y el texto 1126 con el tipo 2 |
+| `01`, `05`, `06`, `13` | las listas de ítems | `0x4db120`, `0x4db890`, `0x4dbcb0`, `0x4dbb40` | sin portar: el `std::map` de `0x7245e0`, las grillas y las ventanas (08 P-C208 b) |
+
+Los tamaños de los C1 son los que leen los lectores (no hay un servidor que los mande). MuRet los lee en
+`Protocol::PersonalShop` (que solo mide que el paquete los traiga) y los aplica en `Scenes::SocialEvents`
+(`ApplyShopTitles`, `ApplyShopCreated`, `ApplyShopClosed`, `ApplyShopNotice`, `ApplyOtherShopTitle` y
+`ApplyShopOwnerLeft`); los cuatro de las listas siguen sin handler.
 
 **MuRet**: `Protocol::Trade`, `Protocol::Party` y `Protocol::Duel` leen y escriben lo de arriba;
 `App::ServerSession::RegisterSocialHandlers` los pasa al mundo y `Scenes::SocialEvents` hace lo de cada caso. Los
 botones están en `Scenes::GameSocialSteps` (comercio y duelo), `GamePartyWindow` (echar) y `GameDialogSteps` (sí y no
 de `0x77` y `0x78`); `/trade`, `/duelstart` y `/duelend`, en `UI::ChatCommands`, hasta donde necesitan un
 personaje elegido. La entrada a la selección porta la cola de `0x5bbe10` (`Scenes::ClearTheTradeForSelection`). Lo
-que queda (los dibujos, levantar y soltar en las grillas del comercio, las tiendas personales y lo que busca un
-actor) lo dice 08 P-C204 y P-C205. Los tests (`TradePartyDuelTest`, `SocialEventsTest`, `GameSocialStepsTest` y los
+que queda (levantar y soltar en las grillas del comercio y lo que falta de las tiendas personales) lo dicen 08
+P-C205 y P-C208. Los tests (`TradePartyDuelTest`, `SocialEventsTest`, `GameSocialStepsTest` y los
 de los diálogos, la party, los comandos y el registro de las ventanas) usan nombres inventados.
 
 ### Los otros jugadores: `12`, `14`, `45`, `25` y `DF`

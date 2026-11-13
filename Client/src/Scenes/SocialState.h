@@ -5,6 +5,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <string>
+#include <map>
 
 // Los globales del comercio, la party y el duelo (CL9 hito 7, 04 § El comercio, § La party y § El duelo), en la .bss
 // salvo los que dicen otra cosa. Los escriben los paquetes (Scenes/SocialEvents) y los leen sus ventanas.
@@ -113,11 +115,40 @@ struct DuelState
     std::uint16_t word5767816 = 0;
 };
 
+// Un cartel del mapa de 0x7245c8 (el objeto de 100 bytes de 0x4521d0, que arma 0x4524e0): la clave (+0x40), el nombre
+// del personaje (+0, de +0x1d9) y el título (+0x10). Las dos líneas del título (+0x20 y +0x30, 0x452f80), las medidas
+// (+0x50, 0x4531b0, y +0x58, el texto 1104), el lugar (0x4527d0) y +0x60 son del dibujo de los carteles (0x451c20),
+// que corta (08 P-C208 a): salen de estos dos textos con la negrita, sin otro estado.
+struct ShopTitle
+{
+    std::int32_t key = 0;
+    std::string name;
+    std::string title;
+    // +0x44: a la vista. Lo prende el alta (0x4524e0 → 0x4529b0) y 0x4516d0, y lo apaga 0x451720: los dos desde los
+    // globos (0x5576a0..0x5576c9).
+    bool visible = true;
+};
+
+struct PersonalShopState
+{
+    // 0x7245c8 (0x451d10, un std::map por el puntero del personaje, que ordena como su índice): los carteles. Solo lo
+    // llenan los 3F 00, 02 y 10.
+    std::map<std::size_t, ShopTitle> titles;
+    // 0x78aba50: la tienda propia abierta (el 3F 02 con 1; el 3F 03 del héroe la apaga).
+    std::uint8_t ownOpen = 0;
+    // 0x78aba64: el título propio, que escribe el diálogo del título (0x623750, sin portar) y lee el 3F 02.
+    std::string ownTitle;
+    // 0x6c931c (.data −1): 1 y 2 los ponen las listas de ítems del 3F (0x4db890, 0x4dbcb0, sin portar); el 3F 12 mira
+    // el 2.
+    std::int32_t mode = -1;
+};
+
 struct SocialState
 {
     TradeState trade{};
     PartyState party{};
     DuelState duel{};
+    PersonalShopState personalShop{};
     // 0x6c8e78 (.data 10), 0x77f3b6a y 0x77f3b6c: el largo del campo del diálogo, el modo del zen y el zen escrito
     // (0x5ece58 abre el 0x73 con 8, 1 y 0; 0x4d58da lo cierra con 0x2a y 0).
     std::int32_t dialogFieldLimit = 10;

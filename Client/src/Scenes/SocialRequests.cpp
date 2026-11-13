@@ -11,6 +11,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/PersonalShopTitles.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -62,11 +63,10 @@ std::int32_t ReadCell(std::uint8_t value, std::uint8_t& depth, Render::Models::C
     return value;
 }
 
-// 0x451d10 y 0x451810: el personaje tiene una tienda personal en el mapa de 0x7245c8, que solo llenan los 3F de las
-// tiendas (P-C204 a): sin ellos, no la tiene.
-bool HasAPersonalShop(const WorldState& /*world*/, std::size_t /*index*/)
+// 0x451d10 y 0x451810: el personaje tiene un cartel de tienda personal en el mapa de 0x7245c8.
+bool HasAPersonalShop(const WorldState& world, std::size_t index)
 {
-    return false;
+    return HasShopTitle(world.Runtime().social.personalShop, index);
 }
 
 // 0x5af560: ni la tienda personal propia (0x800) ni la ajena (0x20000) abiertas, sin rand().

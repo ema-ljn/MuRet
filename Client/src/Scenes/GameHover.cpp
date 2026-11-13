@@ -9,6 +9,8 @@
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/PersonalShopTitles.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/HudText.h"
 #include "Scenes/ITextDrawer.h" // IWYU pragma: keep (ITextDrawer como ITextMeasure)
 #include "Scenes/WorldRuntime.h"
@@ -62,8 +64,9 @@ Core::Expected<void, std::string> CharacterName(GameHoverContext& context, std::
     const ActorState& actor = context.world.Actors()[static_cast<std::size_t>(index)];
     if (actor.byte88 != MonsterKind)
     {
-        // 0x5bbd06..0x5bbd15: 0x451d10 da el objeto de las tiendas personales (0x7245c8) y 0x451770 busca el
-        // personaje en su mapa, que solo llenan los paquetes de la CL9.4: no lo encuentra y da 0.
+        // 0x5bbd06..0x5bbd15: con el cartel de su tienda a la vista (0x451770), nada; si no, el globo del nombre.
+        if (ShopTitleShown(context.world.Runtime().social.personalShop, static_cast<std::size_t>(index)))
+            return {};
         return NameBubble(context, index);
     }
     // 0x5bbcbb..0x5bbcd4: GetTextExtentPointA del nombre, que no se usa.

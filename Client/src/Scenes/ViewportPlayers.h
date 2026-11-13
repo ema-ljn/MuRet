@@ -43,9 +43,8 @@ struct WorldEntryResources;
                                                                      const WorldEntryResources& resources);
 
 // 0x4ca780: por cada clave, con la información del asedio (0x5767924), la entera 0x13d pone sus bytes 4..6 en 0 y
-// cualquier otra los 0x1f..0x21 (Q-C802); 0x510ff0 (RemoveActor) con la clave sin el bit 15; y 0x451630 busca la
-// tienda personal de esa clave en el mapa de 0x7245c8, que solo llena el 0x3F (hito 7): vacío en MuRet, nunca llega a
-// 0x451430.
+// cualquier otra los 0x1f..0x21 (Q-C802); 0x510ff0 (RemoveActor) con la clave sin el bit 15; y 0x451630 busca el
+// cartel de la tienda personal de esa clave en el mapa de 0x7245c8 (el primero en su orden) y 0x451430 lo saca.
 void ApplyViewportLeave(const Protocol::Viewport::Leave& leave, WorldState& world);
 
 // 0x4c92a0: con "webzen" en el nombre, el registro no hace nada; el primero que no lo tiene corta en 0x4c934c, el alta

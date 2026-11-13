@@ -20,6 +20,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/PersonalShopTitles.h"
 #include "Scenes/IcarusObjectStep.h"
 #include "Scenes/KalimaObjectStep.h"
 #include "World/GameModelEffects.h"
@@ -380,14 +381,15 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     {
         return helpers;
     }
-    // 0x6370f9: 0x557650, los globos. 0x6370fe..0x637105: 0x451c10, las tiendas personales (0x7245c8), que no
-    // tienen ninguna hasta la CL9.4.
+    // 0x6370f9: 0x557650, los globos.
     const UI::Point bubbleMouse = UI::MouseIn640x480(input, m_screen);
     if (auto bubbles = StepTheChatBubbles(
             *m_context.world,
             ChatBubbleStepInput{.mouseX = bubbleMouse.x, .mouseY = bubbleMouse.y, .screen = m_screen});
         !bubbles.HasValue())
         return bubbles;
+    // 0x6370fe..0x637105: 0x451c10, los carteles de las tiendas personales (0x7245c8) que cambiaron de clave o de tipo.
+    CheckTheShopKeys(*m_context.world);
     // 63710a: MoveHero sale con más de30, pero la lógica posterior sigue durante la espera.
     if (auto moved = StepTheHero(input); !moved.HasValue())
         return moved;

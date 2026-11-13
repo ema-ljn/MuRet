@@ -87,7 +87,8 @@ struct ChatBubbleMeasure
 // él, el PK, o 0 con +0x88 en 4) y el gremio y la tienda (0x556dd0). Con el texto vacío solo prende el nombre. En la
 // entrada suya, el renglón vivo sube al de arriba. Con 20 bytes o más, el texto se corta en dos (0x5549a0): la cabeza
 // arriba y la cola abajo, con el mismo tiempo. El modo 1 lo agrega también al registro (0x45bb20 con el tipo 3) y el
-// sonido que pida queda en WorldRuntime::lastSoundId. Un personaje con gremio corta: la tabla es de la CL9.4.
+// sonido que pida queda en WorldRuntime::lastSoundId. Un personaje con gremio corta (la tabla es de la CL9.4), y uno
+// con cartel de tienda también (el título corto de 0x4518b0, 08 P-C208 a).
 [[nodiscard]] Core::Expected<void, std::string> AddChatBubble(WorldState& world, const ChatBubbleMeasure& measure,
                                                               std::string_view name, std::string_view text,
                                                               std::size_t owner, ChatBubbleMode mode,

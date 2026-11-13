@@ -4,6 +4,7 @@
 #include "Protocol/Duel.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Party.h"
+#include "Protocol/PersonalShop.h"
 #include "Protocol/Trade.h"
 
 #include <cstdint>
@@ -120,4 +121,28 @@ void ApplyDuelRequest(const Protocol::Duel::DuelRequest& request, WorldState& wo
 
 // 0x4e4dd1: los puntos según cuál de las dos claves es la del rival; con ninguna, nada.
 void ApplyDuelScore(const Protocol::Duel::DuelScore& score, WorldState& world);
+
+// 0x4dae80 (3F 00): por cada entrada, el personaje de la clave (0x5110d0); del 0 al 399, AddShopTitle con la clave, el
+// personaje y el título.
+void ApplyShopTitles(const Protocol::PersonalShop::ShopTitles& titles, WorldState& world);
+
+// 0x4db700 (3F 02): con 1, 0x78aba50 en 1 y AddShopTitle del héroe publicado (0x743a170) con su clave (MOVSX de +0x1f4)
+// y el título propio (0x78aba64); si no, solo el log "Fault ReceiveCreatePersonalShop" (0x6c84d0).
+void ApplyShopCreated(const Protocol::PersonalShop::ShopCreated& created, WorldState& world);
+
+// 0x4e4ea5 (3F 03): con 1, el personaje de la clave; del 0 al 399, si es el héroe publicado 0x78aba50 en 0, y su cartel
+// sale del mapa (0x451430). Con otro resultado, solo el log (0x6c8504).
+void ApplyShopClosed(const Protocol::PersonalShop::ShopClosed& closed, WorldState& world);
+
+// 0x4e4f5d (3F 08): el nombre en 10 bytes terminados en el 11 y sprintf(Text[1122], nombre) con el tipo 1 y el nombre
+// vacío de 0x5767a8c. MuRet no usa el texto como formato más allá de un %s: con 0x70 bytes o más, corta.
+[[nodiscard]] Core::Expected<void, std::string> ApplyShopNotice(const Protocol::PersonalShop::ShopNotice& notice,
+                                                                const WorldEntryResources& resources);
+
+// 0x4dafe0 (3F 10): el personaje de la clave; del 0 al 399 y con el nombre igual (strncmp de 10 con +0x1d9),
+// AddShopTitle con el título.
+void ApplyOtherShopTitle(const Protocol::PersonalShop::ShopTitle& title, WorldState& world);
+
+// 0x4e4fcc (3F 12): con 0x6c931c en 2, Close(0x800, 0), Close(0x20000, 0) y el texto 1126 con el tipo 2.
+[[nodiscard]] Core::Expected<void, std::string> ApplyShopOwnerLeft(const WorldEntryResources& resources);
 } // namespace Client::Scenes

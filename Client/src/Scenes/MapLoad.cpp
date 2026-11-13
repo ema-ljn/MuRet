@@ -11,6 +11,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/MapModelEffectServices.h"
+#include "Scenes/PersonalShopTitles.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -253,6 +254,8 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
         // El DWORD 0x57678bc lleva la clave sin signo.
         KillOtherActors(context.world, static_cast<std::int32_t>(context.playerKey));
     }
+    // 0x61a5b5..0x61a5bc, también en la selección: 0x451590 deja solo el cartel de la tienda del héroe.
+    KeepTheHeroShopTitle(context.world);
     if (map == LoginMap)
     {
         return Core::Unexpected(std::string("0x616ec0: los especiales del mapa 55 (0x6188ae) no están leídos"));

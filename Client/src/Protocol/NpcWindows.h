@@ -26,6 +26,7 @@ inline constexpr std::uint8_t WarehouseCloseOpcode = 0x82;
 inline constexpr std::uint8_t WarehouseStateOpcode = 0x83;
 inline constexpr std::uint8_t ChaosMixOpcode = 0x86;
 inline constexpr std::uint8_t ChaosBoxCloseOpcode = 0x87;
+inline constexpr std::uint8_t PersonalNumberOpcode = 0x99;
 // 0x65a986..0x65a9d5: abrir la caja del caos manda C1 04 BD 09 (el opcode de Crywolf, Protocol::World).
 inline constexpr std::uint8_t ChaosRateSubcode = 0x09;
 
@@ -165,6 +166,10 @@ using WarehouseNumber = std::array<std::byte, WarehouseNumberSize>;
 // 0x5e7e90..0x5e82e0: la contraseña del almacén, C1 10 83 con el tipo, la contraseña (0x78abb24) y el número, con el
 // XOR32 y en C3.
 [[nodiscard]] Outgoing WriteWarehousePassword(std::uint8_t type, std::uint16_t password, const WarehouseNumber& number);
+
+// 0x5e8706..0x5e8bfd: el OK de la caja de la contraseña en el modo 6 (el del 0x8f), C1 0D 99 con los diez bytes de lo
+// tecleado (0x78ab9fc), con el XOR32 y en C3. El GameServer 0.97 lee el 99 como otro pedido (04, Q-C925).
+[[nodiscard]] Outgoing WritePersonalNumber(const WarehouseNumber& number);
 
 // 0x5d9362..0x5d9527: mezclar, C1 04 86 con el tipo de mezcla (0x7d2dc98), con el XOR32 y en claro.
 [[nodiscard]] Outgoing WriteChaosMix(std::uint8_t kind);

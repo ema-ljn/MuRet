@@ -3,6 +3,11 @@
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Data/Text/TextTable.h"
+#include "Input/InputState.h"
+#include "Network/Crypto/Xor32.h"
+#include "Network/Delivery.h"
+#include "Network/Packet.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -10,30 +15,43 @@
 #include "Render/Text/TextStyle.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameHud.h"
+#include "Scenes/GamePanels.h"
+#include "Scenes/GameUi.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/NpcWindowState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameUiState.h"
+#include "UI/PanelRegistry.h"
+#include "support/Bytes.h"
 #include "support/RecordingTextDrawer.h"
+#include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <utility>
 #include <vector>
 
-// La caja de la contraseña del almacén (CL9 hito 6, fase 3; 06 § Los dibujos de las ventanas de los NPC): lo que hay
-// bajo el mouse (0x5e7b50) y el dibujo (0x5e9b10), en 640 × 480. Los textos y los números son inventados y los textos
-// miden 6 columnas por letra. Cada test corre en Lorencia, Devias y Noria.
+// La caja de la contraseña del almacén (CL9 hito 6, fase 3; 06 § Los dibujos de las ventanas de los NPC y 04 § Las
+// ventanas de los NPC): lo que hay bajo el mouse (0x5e7b50), el paso (0x5e7bf0, con el 83 y el 99 byte a byte y sus
+// rand()) y el dibujo (0x5e9b10), en 640 × 480. Los textos, los números y el chat son inventados y los textos miden 6
+// columnas por letra. Cada test corre en Lorencia, Devias y Noria.
 namespace
 {
+using Client::Network::Delivery;
+using Client::Network::Crypto::Xor32Decode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
@@ -42,6 +60,8 @@ using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::KeypadKeyAt;
 using Client::Scenes::WorldState;
+using Client::Tests::Bytes;
+using Client::Tests::SameBytes;
 
 constexpr Client::App::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x2b7e1516u;
@@ -54,6 +74,19 @@ constexpr Color Key{0.85f, 0.85f, 0.65f, 1.0f};
 constexpr int NoTexture = -1;
 // El marco (6), la barra (1), dos por tecla (22) y el OK y cancelar (2).
 constexpr std::size_t KeypadQuads = 6 + 1 + 22 + 2;
+// El rand() del relleno y el del serial de un C1 en C3; las consultas del comercio (0x20) y de la tienda (0x10000) de
+// 0x657a90.
+constexpr std::uint32_t C3 = 2;
+constexpr std::uint32_t CloseAllRandoms = 2;
+constexpr int EraseKey = 10;
+constexpr int OkKey = 11;
+constexpr int CancelKey = 12;
+
+CrtRandom Advanced(CrtRandom random, std::uint32_t count)
+{
+    random.Discard(count);
+    return random;
+}
 
 std::map<std::size_t, std::string> KeypadTexts()
 {
@@ -150,6 +183,56 @@ protected:
             Runtime().npcWindows.typedNumber[i] = static_cast<std::uint8_t>(digits[i]);
     }
 
+    // 0x5e7bf0 con el mouse en (x, y), con los cables de las ventanas de los NPC como los presta el paso de la UI.
+    Client::Core::Expected<bool, std::string> Step(std::int32_t x, std::int32_t y)
+    {
+        Client::Scenes::GamePanels panels(*m_world, m_random);
+        const auto send = [this](Client::Protocol::Outgoing packet)
+        {
+            m_sent.push_back(std::move(packet));
+            return Client::Core::Expected<void, std::string>{};
+        };
+        panels.LendTheNpcWindows(*m_world, m_random, Client::Scenes::InventoryServices{}, send);
+        const Client::Scenes::GameUiContext context{
+            .world = *m_world, .random = m_random, .input = m_input, .mouseX = x, .mouseY = y, .sendNpcWindow = send};
+        return Client::Scenes::StepTheKeypad(context, panels.Registry());
+    }
+
+    // El clic sobre la tecla `key` (0 a 12), adentro de lo que toca 0x5e7b50.
+    Client::Core::Expected<bool, std::string> Press(int key)
+    {
+        Client::Scenes::LatchTheLeftButton(Runtime().movement, true, true);
+        if (key == OkKey || key == CancelKey)
+            return Step(0x109 + 0x4e * (key - OkKey) + 5, 0xeb + 5);
+        return Step((key % 5) * 40 + 0xdf + 5, (key / 5) * 40 + 0x96 + 5);
+    }
+
+    // Las teclas con las cifras de `digits`, por lo que dice el teclado barajado.
+    void PressDigits(std::string_view digits)
+    {
+        for (const char digit : digits)
+        {
+            const auto& keys = Runtime().npcWindows.keypad;
+            const auto found = std::ranges::find(keys, static_cast<std::uint16_t>(digit - '0'));
+            ASSERT_NE(found, keys.end()) << digit;
+            const auto pressed = Press(static_cast<int>(std::distance(keys.begin(), found)));
+            ASSERT_TRUE(pressed.HasValue()) << pressed.Error();
+            ASSERT_TRUE(pressed.Value());
+        }
+    }
+
+    [[nodiscard]] std::string Typed()
+    {
+        const auto& typed = Runtime().npcWindows.typedNumber;
+        return {typed.begin(), std::ranges::find(typed, std::uint8_t{0})};
+    }
+
+    // El C1 del paquete `index` sin el XOR32.
+    [[nodiscard]] Client::Network::Packet Plain(std::size_t index) const
+    {
+        return Xor32Decode(m_sent.at(index).packet);
+    }
+
     std::unique_ptr<WorldState> m_world;
     CrtRandom m_random{Seed};
     std::optional<std::int32_t> m_sound{};
@@ -157,6 +240,8 @@ protected:
     Client::Tests::RecordingTextDrawer m_text;
     Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(KeypadTexts());
     const Client::Data::Text::TextTable* m_drawnTexts = &m_texts;
+    Client::Input::InputState m_input;
+    std::vector<Client::Protocol::Outgoing> m_sent;
 };
 
 // 0x5e7b50: las once teclas de 32 desde (0xdf, 0x96) de a 40, y el OK y cancelar de 0x46 × 0x15 desde (0x109, 0xeb)
@@ -345,6 +430,216 @@ TEST_P(WarehouseKeypadTest, AMissingTextStopsWithItsAddress)
 
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x5e9c63"), std::string::npos) << drawn.Error();
+}
+
+// 0x5e7c12..0x5e7c19: con el modo en 0 devuelve 0 sin tocar el clic, y 0x5ee140 sigue.
+TEST_P(WarehouseKeypadTest, ClosedTheStepLetsTheClickThrough)
+{
+    Client::Scenes::LatchTheLeftButton(Runtime().movement, true, true);
+
+    const auto stepped = Step(0xdf + 5, 0x96 + 5);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_FALSE(stepped.Value());
+    EXPECT_TRUE(Runtime().movement.pendingClick);
+    EXPECT_TRUE(Runtime().movement.leftHeld);
+    EXPECT_EQ(Runtime().npcWindows.keypadPressed, 0);
+    EXPECT_FALSE(Runtime().lastSoundId.has_value());
+}
+
+// 0x5e7c2b..0x5e7ce5 y 0x5e9aad..0x5e9ae1: la cifra de la tecla se agrega con el sonido 0x19 hasta las cuatro del
+// modo 1; la tecla queda apretada (0x78abb3a) y el clic y el botón abajo en 0. Borrar saca la última; sin clic el paso
+// también devuelve 1, y el botón suelto suelta la tecla. Sin rand().
+TEST_P(WarehouseKeypadTest, TheKeysTypeEraseAndPress)
+{
+    Runtime().ui.field78abb20 = 1;
+
+    PressDigits("90");
+    EXPECT_EQ(Typed(), "90");
+    EXPECT_EQ(Runtime().lastSoundId, 0x19);
+    EXPECT_EQ(Runtime().npcWindows.keypadPressed, 1);
+    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_FALSE(Runtime().movement.leftHeld);
+
+    PressDigits("123");
+    EXPECT_EQ(Typed(), "9012");
+    ASSERT_TRUE(Press(EraseKey).HasValue());
+    EXPECT_EQ(Typed(), "901");
+    ASSERT_TRUE(Press(EraseKey).HasValue());
+    ASSERT_TRUE(Press(EraseKey).HasValue());
+    ASSERT_TRUE(Press(EraseKey).HasValue());
+    ASSERT_TRUE(Press(EraseKey).HasValue());
+    EXPECT_EQ(Typed(), "");
+
+    Runtime().movement.releasedClick = true;
+    const auto released = Step(0, 0);
+    ASSERT_TRUE(released.HasValue()) << released.Error();
+    EXPECT_TRUE(released.Value());
+    EXPECT_EQ(Runtime().npcWindows.keypadPressed, 0);
+    EXPECT_EQ(Runtime().ui.field78abb20, 1);
+
+    // El clic fuera de las teclas también la aprieta y se gasta.
+    Runtime().movement.releasedClick = false;
+    Client::Scenes::LatchTheLeftButton(Runtime().movement, true, true);
+    ASSERT_TRUE(Step(0, 0).HasValue());
+    EXPECT_EQ(Runtime().npcWindows.keypadPressed, 1);
+    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_EQ(m_random.State(), Seed);
+    EXPECT_TRUE(m_sent.empty());
+}
+
+// 0x5e7cf9..0x5e7d0a y 0x5e7cea: el OK con menos cifras no hace nada; cancelar pone el modo en 0 y deja lo tecleado.
+TEST_P(WarehouseKeypadTest, OkWaitsForEveryDigitAndCancelCloses)
+{
+    Runtime().ui.field78abb20 = 2;
+    PressDigits("123456");
+    ASSERT_TRUE(Press(OkKey).HasValue());
+    EXPECT_EQ(Runtime().ui.field78abb20, 2);
+    EXPECT_TRUE(m_sent.empty());
+
+    ASSERT_TRUE(Press(CancelKey).HasValue());
+    EXPECT_EQ(Runtime().ui.field78abb20, 0);
+    EXPECT_EQ(Typed(), "123456");
+    EXPECT_TRUE(m_sent.empty());
+    EXPECT_EQ(m_random.State(), Seed);
+}
+
+// 0x5e931c..0x5e9a88 (Q-C924): el OK del modo 1 manda C1 10 83 00, el atoi de lo tecleado y los diez primeros bytes
+// del buffer del mensaje del chat (0x7798bf8), con el XOR32 y en C3 (sus 2 rand()), y deja el modo en 0.
+TEST_P(WarehouseKeypadTest, UnlockingSends83WithTheChatBuffer)
+{
+    Runtime().ui.field78abb20 = 1;
+    constexpr std::string_view Chat = "hola mundo, chau";
+    std::ranges::copy(Chat, Runtime().chat.input.messageBuffer.begin());
+    PressDigits("4821");
+    const CrtRandom expected = Advanced(m_random, C3);
+
+    ASSERT_TRUE(Press(OkKey).HasValue());
+
+    EXPECT_EQ(m_random.State(), expected.State());
+    EXPECT_EQ(Runtime().ui.field78abb20, 0);
+    ASSERT_EQ(m_sent.size(), 1U);
+    EXPECT_EQ(m_sent[0].delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Plain(0).Bytes(), Bytes({0xc1, 0x10, 0x83, 0x00, 0xd5, 0x12, 'h', 'o', 'l', 'a', ' ', 'm',
+                                                   'u', 'n', 'd', 'o'})));
+    EXPECT_EQ(Typed(), "4821");
+}
+
+// 0x5e7d10..0x5e7d5b: con cuatro cifras, cuatro iguales vacían lo tecleado y abren el 0x87 sin cerrar el teclado; con
+// las siete del número personal, no se miran.
+TEST_P(WarehouseKeypadTest, FourEqualDigitsOpenTheDialog)
+{
+    Runtime().ui.field78abb20 = 4;
+    PressDigits("5555");
+    ASSERT_TRUE(Press(OkKey).HasValue());
+    EXPECT_EQ(Runtime().dialogs.current, 0x87);
+    EXPECT_EQ(Runtime().ui.field78abb20, 4);
+    EXPECT_EQ(Typed(), "");
+    EXPECT_EQ(m_random.State(), Seed);
+
+    Runtime().dialogs.current = 0;
+    Runtime().ui.field78abb20 = 3;
+    PressDigits("5555555");
+    ASSERT_TRUE(Press(OkKey).HasValue());
+    EXPECT_EQ(Runtime().dialogs.current, 0);
+    ASSERT_EQ(m_sent.size(), 1U);
+}
+
+// 0x5e7d80..0x5e7e8b y 0x5e7e90..0x5e854d: el modo 4 guarda la contraseña (0x78aba07) y baraja otra vez (40 rand())
+// en 5; la misma pasa su atoi a 0x78abb24 y sigue en 2 sin barajar; el número personal manda C1 10 83 01 con la
+// contraseña y los diez bytes de lo tecleado, con el XOR32 y en C3.
+TEST_P(WarehouseKeypadTest, SettingAPasswordSends83WithOne)
+{
+    Runtime().ui.field78abb20 = 4;
+    PressDigits("2580");
+    CrtRandom keys = m_random;
+    std::array<std::uint16_t, Client::Scenes::WarehouseKeyCount> keypad{};
+    Client::Scenes::ShuffleTheKeypad(keys, keypad);
+
+    ASSERT_TRUE(Press(OkKey).HasValue());
+    EXPECT_EQ(m_random.State(), keys.State());
+    EXPECT_EQ(Runtime().npcWindows.keypad, keypad);
+    EXPECT_EQ(Runtime().ui.field78abb20, 5);
+    EXPECT_EQ(Typed(), "");
+    EXPECT_EQ(Runtime().npcWindows.newPassword, (std::array<std::uint8_t, 4>{'2', '5', '8', '0'}));
+
+    PressDigits("2580");
+    ASSERT_TRUE(Press(OkKey).HasValue());
+    EXPECT_EQ(m_random.State(), keys.State());
+    EXPECT_EQ(Runtime().npcWindows.keypad, keypad);
+    EXPECT_EQ(Runtime().ui.field78abb20, 2);
+    EXPECT_EQ(Runtime().npcWindows.warehousePassword, 2580);
+    EXPECT_EQ(Typed(), "");
+
+    PressDigits("1234567");
+    const CrtRandom expected = Advanced(m_random, C3);
+    ASSERT_TRUE(Press(OkKey).HasValue());
+    EXPECT_EQ(m_random.State(), expected.State());
+    EXPECT_EQ(Runtime().ui.field78abb20, 0);
+    ASSERT_EQ(m_sent.size(), 1U);
+    EXPECT_EQ(m_sent[0].delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Plain(0).Bytes(), Bytes({0xc1, 0x10, 0x83, 0x01, 0x14, 0x0a, '1', '2', '3', '4', '5', '6',
+                                                   '7', 0x00, 0x00, 0x00})));
+}
+
+// 0x5e7e7e..0x5e7e8b: la contraseña repetida distinta abre el 0x88 con el teclado ya cerrado.
+TEST_P(WarehouseKeypadTest, ADifferentRepeatOpensTheDialog)
+{
+    Runtime().ui.field78abb20 = 5;
+    Runtime().npcWindows.newPassword = {'2', '5', '8', '0'};
+    PressDigits("2581");
+
+    ASSERT_TRUE(Press(OkKey).HasValue());
+
+    EXPECT_EQ(Runtime().dialogs.current, 0x88);
+    EXPECT_EQ(Runtime().ui.field78abb20, 0);
+    EXPECT_EQ(Runtime().npcWindows.warehousePassword, 0);
+    EXPECT_EQ(Typed(), "2581");
+    EXPECT_TRUE(m_sent.empty());
+    EXPECT_EQ(m_random.State(), Seed);
+}
+
+// 0x5e8c02..0x5e931a: el modo 3 (la traba) manda C1 10 83 02 con la contraseña en 0 y lo tecleado.
+TEST_P(WarehouseKeypadTest, RemovingThePasswordSends83WithTwo)
+{
+    Runtime().ui.field78abb20 = 3;
+    Runtime().npcWindows.warehousePassword = 2580;
+    PressDigits("7654321");
+    const CrtRandom expected = Advanced(m_random, C3);
+
+    ASSERT_TRUE(Press(OkKey).HasValue());
+
+    EXPECT_EQ(m_random.State(), expected.State());
+    ASSERT_EQ(m_sent.size(), 1U);
+    EXPECT_EQ(m_sent[0].delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Plain(0).Bytes(), Bytes({0xc1, 0x10, 0x83, 0x02, 0x00, 0x00, '7', '6', '5', '4', '3', '2',
+                                                   '1', 0x00, 0x00, 0x00})));
+}
+
+// 0x5e8552..0x5e8bfd (Q-C925): el modo 6 manda el C1 03 31 en claro, cierra todo (0x657a90: el almacén manda su C1 03
+// 82) y manda C1 0D 99 con lo tecleado, con el XOR32 y en C3.
+TEST_P(WarehouseKeypadTest, ThePersonalNumberClosesEverythingAndSends99)
+{
+    Runtime().ui.field78abb20 = 6;
+    Runtime().panels.warehouse = 1;
+    Runtime().panels.inventory = 1;
+    PressDigits("1112223");
+    const CrtRandom expected = Advanced(m_random, CloseAllRandoms + C3);
+
+    const auto pressed = Press(OkKey);
+
+    ASSERT_TRUE(pressed.HasValue()) << pressed.Error();
+    EXPECT_EQ(m_random.State(), expected.State());
+    EXPECT_EQ(Runtime().ui.field78abb20, 0);
+    EXPECT_EQ(Runtime().panels.warehouse, 0);
+    EXPECT_EQ(Runtime().panels.inventory, 0);
+    ASSERT_EQ(m_sent.size(), 3U);
+    EXPECT_EQ(m_sent[0].delivery, Delivery::Clear);
+    EXPECT_TRUE(SameBytes(m_sent[0].packet.Bytes(), Bytes({0xc1, 0x03, 0x31})));
+    EXPECT_TRUE(SameBytes(m_sent[1].packet.Bytes(), Bytes({0xc1, 0x03, 0x82})));
+    EXPECT_EQ(m_sent[2].delivery, Delivery::Encrypted);
+    EXPECT_TRUE(
+        SameBytes(Plain(2).Bytes(), Bytes({0xc1, 0x0d, 0x99, '1', '1', '1', '2', '2', '2', '3', 0x00, 0x00, 0x00})));
 }
 
 INSTANTIATE_TEST_SUITE_P(Maps, WarehouseKeypadTest, ::testing::Values(Lorencia, Devias, Noria));

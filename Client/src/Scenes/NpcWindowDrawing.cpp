@@ -13,6 +13,7 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/ZenText.h"
 #include "UI/GameText.h"
 #include "UI/GameUiState.h"
 #include "UI/HudPrimitives.h"

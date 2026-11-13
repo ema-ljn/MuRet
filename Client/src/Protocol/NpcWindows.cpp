@@ -237,6 +237,11 @@ Outgoing WriteWarehousePassword(std::uint8_t type, std::uint16_t password, const
     return EncryptedC1(Network::PacketWriter::C1(WarehouseStateOpcode).PutU8(type).PutU16Le(password).PutBytes(number));
 }
 
+Outgoing WritePersonalNumber(const WarehouseNumber& number)
+{
+    return EncryptedC1(Network::PacketWriter::C1(PersonalNumberOpcode).PutBytes(number));
+}
+
 Outgoing WriteChaosMix(std::uint8_t kind)
 {
     return Xor32C1(Network::PacketWriter::C1(ChaosMixOpcode).PutU8(kind));

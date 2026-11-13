@@ -190,7 +190,9 @@ constexpr int GenericTextY = GenericTextTop + 0xf;
 constexpr int GenericFirstRowY = GenericTextTop + 9;
 constexpr int GenericSecondRowY = GenericTextTop + 0x15;
 
-// 0x63140b..0x631d66: los textos de Text.bmd de los del OK genérico que llegan a la CL8, uno o dos renglones.
+// 0x63140b..0x631d66: los textos de Text.bmd de los del OK genérico que llegan a la CL8, uno o dos renglones. El 0x87 y
+// el 0x88 los abre la caja de la contraseña del almacén (0x5e7d53, 0x5e7e83; CL9 hito 6): la tabla 0x632bf0 los lleva a
+// 0x632290 y 0x6322c1, un renglón cada uno.
 struct GenericText
 {
     std::int32_t id = 0;
@@ -202,6 +204,8 @@ constexpr auto GenericTexts = std::to_array<GenericText>({
     {0x6f, 405, 406},
     {0x1a, 405, 406},
     {0x1c, 409, std::nullopt},
+    {0x87, 442, std::nullopt},
+    {0x88, 445, std::nullopt},
     {0x8f, 401, std::nullopt},
 });
 

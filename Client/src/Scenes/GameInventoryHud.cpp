@@ -23,6 +23,7 @@
 #include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/ZenText.h"
 #include "UI/GameText.h"
 #include "UI/HudPrimitives.h"
 #include "UI/PanelRegistry.h"
@@ -356,33 +357,6 @@ void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<
     }
 }
 
-// 0x5f26a7..0x5f2751: el zen con comas cada tres cifras.
-std::string FormatZen(std::uint32_t zen)
-{
-    const std::uint32_t units = zen % 1000u;
-    const std::uint32_t thousands = zen % 1000000u / 1000u;
-    const std::uint32_t millions = zen % 1000000000u / 1000000u;
-    if (zen >= 1000000000u)
-        return std::format("{},{:03},{:03},{:03}", zen / 1000000000u, millions, thousands, units);
-    if (zen >= 1000000u)
-        return std::format("{},{:03},{:03}", millions, thousands, units);
-    if (zen >= 1000u)
-        return std::format("{},{:03}", thousands, units);
-    return std::format("{}", units);
-}
-
-// 0x5f2771..0x5f27ef: el color del zen por cuánto es.
-std::uint32_t ZenColor(std::uint32_t zen)
-{
-    if (zen >= 10000000u)
-        return 0xff0000ffu;
-    if (zen >= 1000000u)
-        return 0xff0096ffu;
-    if (zen >= 100000u)
-        return 0xff18c900u;
-    return 0xff96dcffu;
-}
-
 namespace
 {
 // Un botón de 24 × 24 al pie de la ventana y su ayuda con el mouse encima, en (_ftol(x), _ftol(y) − arriba).
@@ -465,6 +439,7 @@ Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, UI::
         const auto own = OwnAccess(context);
         zen = world.OwnCharacter().zen;
     }
+    // 0x5f26a7..0x5f2751 y 0x5f2771..0x5f27ef: la misma cuenta que 0x5b1130 y 0x5b10f0, copiada.
     const std::string amount = FormatZen(zen);
     hud.textColors = Render::Text::TextColors{.text = 0xff96dcffu, .background = 0xff282828u};
     const std::int32_t textY = Truncate(zenY) + 3;

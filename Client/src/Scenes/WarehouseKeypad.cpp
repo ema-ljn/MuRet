@@ -1,17 +1,26 @@
 #include "Scenes/WarehouseKeypad.h"
 
 #include "Core/Expected.h"
+#include "Protocol/Connection/Logout.h"
+#include "Protocol/NpcWindows.h"
+#include "Protocol/Outgoing.h"
+#include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Scenes/GameHud.h"
+#include "Scenes/GameMovementState.h"
+#include "Scenes/GameUi.h"
 #include "Scenes/GameWindowDrawing.h"
 #include "Scenes/NpcWindowState.h"
+#include "Scenes/NpcWindowSteps.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/Dialogs.h"
 #include "UI/GameText.h"
 #include "UI/GameUiState.h"
+#include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
 #include "World/OriginalFtol.h"
 
@@ -21,8 +30,10 @@
 #include <cstdint>
 #include <format>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -34,7 +45,24 @@ using WindowDrawing::DrawText;
 using WindowDrawing::Quad;
 using WindowDrawing::SelectFont;
 
+namespace Npc = Protocol::NpcWindows;
+
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
+
+// 0x5e7c6d: 0x41ed10(0x19, 0, 0), el sonido de las teclas.
+constexpr std::int32_t KeySound = 0x19;
+// 0x5e7d39 y 0x5e7e7e: los diálogos de cuatro cifras iguales y de la contraseña repetida distinta.
+constexpr std::int32_t SameDigitsDialog = 0x87;
+constexpr std::int32_t WrongRepeatDialog = 0x88;
+// 0x5e7dfb y 0x5e7e62: los modos que siguen al 4 y al 5.
+constexpr std::int32_t RepeatPasswordMode = 5;
+constexpr std::int32_t SetPasswordMode = 2;
+// Los tipos del 83 de los modos 2 y 3 (el modo menos 1, 0x5e7f0b y 0x5e8c80): CGWarehouseCheckPass pone la contraseña
+// con 1 y la saca con 2, los dos con el número personal.
+constexpr std::uint8_t SetPasswordType = 1;
+constexpr std::uint8_t RemovePasswordType = 2;
+// El rand() del relleno y el del serial de un C1 en C3.
+constexpr std::uint32_t C3SendRandoms = 2;
 
 // 0x5e7b50: las teclas de 32 (0x20) desde (0xdf, 0x96), de a 40 (0x28) en las dos direcciones, cinco por fila.
 constexpr std::int32_t KeyColumns = 5;
@@ -177,6 +205,155 @@ std::size_t TypedLength(const std::array<std::uint8_t, 11>& typed)
 {
     return static_cast<std::size_t>(std::ranges::find(typed, std::uint8_t{0}) - typed.begin());
 }
+
+// 0x6a0c01, el atoi de la CRT, sobre lo tecleado: solo cifras de las teclas (0x7879fc8 va de 0 a 9 desde que se
+// baraja), así que no hay espacios ni signo; para en el 0.
+std::int32_t TypedValue(const std::array<std::uint8_t, 11>& typed)
+{
+    std::int32_t value = 0;
+    for (const std::uint8_t digit : typed)
+    {
+        if (digit < '0' || digit > '9')
+            break;
+        value = value * 10 + (digit - '0');
+    }
+    return value;
+}
+
+Protocol::NpcWindows::WarehouseNumber NumberOf(std::span<const std::uint8_t> bytes)
+{
+    Protocol::NpcWindows::WarehouseNumber number{};
+    for (std::size_t at = 0; at < number.size(); ++at)
+        number[at] = static_cast<std::byte>(bytes[at]);
+    return number;
+}
+
+Core::Expected<void, std::string> Send(const GameUiContext& context, Protocol::Outgoing packet, std::string_view what)
+{
+    if (!context.sendNpcWindow)
+        return Core::Unexpected(std::format("{} sin la sesión", what));
+    return context.sendNpcWindow(std::move(packet));
+}
+
+// Un C1 con el XOR32 en C3: el rand() del relleno (0x69fd70) y el del serial (0x40b0a0, o en línea 0x40b3f0), antes
+// del envío.
+Core::Expected<void, std::string> SendInC3(const GameUiContext& context, Protocol::Outgoing packet,
+                                           std::string_view what)
+{
+    context.random.Discard(C3SendRandoms);
+    return Send(context, std::move(packet), what);
+}
+
+// 0x5e7d80..0x5e9a88: el OK con todas las cifras y sin cuatro iguales, por el modo que tenía (ya en 0).
+Core::Expected<void, std::string> Confirm(const GameUiContext& context, UI::PanelRegistry& panels, std::int32_t mode)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    NpcWindowState& npc = runtime.npcWindows;
+    const auto typed = NumberOf(npc.typedNumber);
+    switch (mode)
+    {
+    case 2:
+        // 0x5e7e90..0x5e854d.
+        return SendInC3(context, Npc::WriteWarehousePassword(SetPasswordType, npc.warehousePassword, typed),
+                        "0x5e7e90: el C1 10 83 01");
+    case 3:
+        // 0x5e8c02..0x5e931a: el tipo es el modo menos 1 (0x5e8c80) y la contraseña, 0 (0x5e8d78).
+        return SendInC3(context, Npc::WriteWarehousePassword(RemovePasswordType, 0, typed), "0x5e8c02: el C1 10 83 02");
+    case 4:
+        // 0x5e7d80..0x5e7e1e: lo tecleado a 0x78aba07, el teclado barajado como en 0x5e7aa0 y el modo en 5.
+        std::ranges::copy_n(npc.typedNumber.begin(), static_cast<std::ptrdiff_t>(npc.newPassword.size()),
+                            npc.newPassword.begin());
+        OpenTheKeypad(runtime, context.random, RepeatPasswordMode);
+        return {};
+    case 5:
+        // 0x5e7e23..0x5e7e8b: memcmp de cuatro bytes; la misma, su atoi en 0x78abb24, lo tecleado en 0 y el modo en
+        // 2, sin barajar.
+        if (!std::ranges::equal(std::span(npc.typedNumber).first(npc.newPassword.size()), npc.newPassword))
+        {
+            UI::PushDialog(runtime.dialogs, WrongRepeatDialog);
+            return {};
+        }
+        npc.warehousePassword = static_cast<std::uint16_t>(TypedValue(npc.typedNumber) & 0xffff);
+        npc.typedNumber.fill(0);
+        runtime.ui.field78abb20 = SetPasswordMode;
+        return {};
+    case 6:
+    {
+        // 0x5e8552..0x5e86ee: C1 03 31 en claro, sin rand(); 0x5e86f4..0x5e8701: 0x657a90; 0x5e8706..: el 99.
+        if (auto sent = Send(context, Protocol::Connection::WriteWindowClose(), "0x5e8552: el C1 03 31");
+            !sent.HasValue())
+            return sent;
+        if (auto closed = panels.CloseAll(); !closed.HasValue())
+            return closed;
+        return SendInC3(context, Npc::WritePersonalNumber(typed), "0x5e8706: el C1 0D 99");
+    }
+    default:
+    {
+        // 0x5e931c..0x5e9a88 (el 1 y los modos fuera de 2..6): el tipo es el modo menos 1 (0x5e939a), la contraseña
+        // el atoi de lo tecleado (0x5e9491) y el número, los diez primeros bytes del buffer del mensaje del chat
+        // (0x7798bf8, 0x5e95b1..0x5e95d2; Q-C924).
+        const auto chat = std::as_bytes(std::span(runtime.chat.input.messageBuffer));
+        Protocol::NpcWindows::WarehouseNumber number{};
+        std::ranges::copy_n(chat.begin(), static_cast<std::ptrdiff_t>(number.size()), number.begin());
+        const auto type = static_cast<std::uint8_t>((mode - 1) & 0xff);
+        const auto password = static_cast<std::uint16_t>(TypedValue(npc.typedNumber) & 0xffff);
+        return SendInC3(context, Npc::WriteWarehousePassword(type, password, number), "0x5e931c: el C1 10 83");
+    }
+    }
+}
+
+// 0x5e7c69..0x5e9a88: la tecla con el clic.
+Core::Expected<void, std::string> PressTheKey(const GameUiContext& context, UI::PanelRegistry& panels, std::int32_t key)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    NpcWindowState& npc = runtime.npcWindows;
+    auto& typed = npc.typedNumber;
+    const std::int32_t mode = runtime.ui.field78abb20;
+    const auto digits = static_cast<std::size_t>(DigitsOf(mode));
+    // 0x41ed10(0x19, 0, 0) (CL10).
+    runtime.lastSoundId = KeySound;
+    const std::size_t length = TypedLength(typed);
+    switch (key)
+    {
+    case KeypadEraseKey:
+        // 0x5e9a8a..0x5e9aa7: el último byte en 0.
+        if (length != 0)
+            typed[length - 1] = 0;
+        return {};
+    case KeypadCancelKey:
+        // 0x5e7cea.
+        runtime.ui.field78abb20 = 0;
+        return {};
+    case KeypadOkKey:
+    {
+        // 0x5e7cf9..0x5e7d0a: con otro largo, nada.
+        if (length != digits)
+            return {};
+        // 0x5e7d10..0x5e7d5b: cuatro cifras iguales, solo donde se piden cuatro.
+        if (digits == PasswordDigits && typed[0] == typed[1] && typed[2] == typed[3] && typed[1] == typed[2])
+        {
+            typed.fill(0);
+            UI::PushDialog(runtime.dialogs, SameDigitsDialog);
+            return {};
+        }
+        // 0x5e7d60..0x5e7d79: el modo en 0 antes de la tabla.
+        runtime.ui.field78abb20 = 0;
+        return Confirm(context, panels, mode);
+    }
+    default:
+        break;
+    }
+    // 0x5e7c88..0x5e7ce5: con menos cifras que las del modo, wsprintfA("%d") de la word con signo y strcat.
+    if (length >= digits)
+        return {};
+    const std::string number = std::format("{}", static_cast<std::int16_t>(npc.keypad[static_cast<std::size_t>(key)]));
+    if (length + number.size() >= typed.size())
+        return Core::Unexpected(
+            std::format("0x5e7cdc: el strcat de \"{}\" pasa los {} bytes de 0x78ab9fc", number, typed.size()));
+    std::ranges::copy(number, typed.begin() + static_cast<std::ptrdiff_t>(length));
+    typed[length + number.size()] = 0;
+    return {};
+}
 } // namespace
 
 std::int32_t KeypadKeyAt(std::int32_t mouseX, std::int32_t mouseY)
@@ -195,6 +372,32 @@ std::int32_t KeypadKeyAt(std::int32_t mouseX, std::int32_t mouseY)
             return KeypadOkKey + button;
     }
     return NoKeypadKey;
+}
+
+Core::Expected<bool, std::string> StepTheKeypad(const GameUiContext& context, UI::PanelRegistry& panels)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    if (runtime.ui.field78abb20 == 0)
+        return false;
+    GameMovementState& movement = runtime.movement;
+    const std::int32_t key = KeypadKeyAt(context.mouseX, context.mouseY);
+    if (movement.pendingClick)
+    {
+        if (key >= 0)
+        {
+            if (auto pressed = PressTheKey(context, panels, key); !pressed.HasValue())
+                return Core::Unexpected(std::move(pressed).Error());
+        }
+        // 0x5e9aad..0x5e9ab8: vuelve a leer el clic.
+        if (movement.pendingClick)
+            runtime.npcWindows.keypadPressed = 1;
+    }
+    // 0x5e9abf..0x5e9ae1.
+    if (movement.releasedClick)
+        runtime.npcWindows.keypadPressed = 0;
+    movement.pendingClick = false;
+    movement.leftHeld = false;
+    return true;
 }
 
 Core::Expected<void, std::string> DrawTheKeypad(GameHudContext& context)

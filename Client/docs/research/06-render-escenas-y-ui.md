@@ -1887,6 +1887,28 @@ en `(x + 0xc, y + 6)`, un punto más arriba apretada; la 10, borrar, sin número
 (`0xff`) con el mouse o `back3` (`0x100`) apretada. Al final, el blanco y el OK (`0xf1`, `0xf2` con el mouse) y
 cancelar (`0xf3`, `0xf4`) de 70 × 21 en `(0x109 + 0x4e · j, 239)`, con du = 0,546875 y dv = 0,65625. Sin `rand()`.
 
+*Su paso* (`0x5e7bf0`, lo primero de `0x5ee140` después del menú de Esc; en MuRet `Scenes::StepTheKeypad`, *estático*).
+Con `0x78abb20` en 0 devuelve 0 sin tocar nada. Si no, devuelve 1 y `0x5ee140` no sigue: la caja se queda con el clic
+aunque no toque ninguna tecla. Con el clic (`0x7d366d4`) y una tecla de `0x5e7b50`, el sonido `0x19` y: una cifra
+(`wsprintfA("%d")` de `0x7879fc8` y `strcat`) si lo tecleado tiene menos cifras que el modo; borrar (10) pone en 0 el
+último byte; cancelar (12) pone el modo en 0 y deja lo tecleado; el OK (11), solo con todas las cifras: con cuatro y
+las cuatro iguales vacía lo tecleado y abre el `0x87` (442) sin cerrar el teclado; si no, el modo en 0 y por el que
+tenía (la tabla de `0x5e9af0`):
+
+| Modo | Lo que hace |
+| --- | --- |
+| 1 y los de fuera de 2..6 (`0x5e931c`) | el `83` con el modo − 1, el `atoi` de lo tecleado y los diez primeros bytes del buffer del mensaje del chat (`0x7798bf8`, 07 Q-C924), con el XOR32 y en C3 |
+| 2 (`0x5e7e90`) | el `83` con 1, la contraseña de `0x78abb24` y los diez bytes de lo tecleado, con el XOR32 y en C3 |
+| 3 (`0x5e8c02`) | el `83` con 2, la contraseña en 0 y lo tecleado, con el XOR32 y en C3 |
+| 4 (`0x5e7d80`) | copia el dword de lo tecleado a `0x78aba07`, baraja el teclado como `0x5e7aa0` (40 `rand()`), el modo en 5 y lo tecleado en 0 |
+| 5 (`0x5e7e23`) | `memcmp` de cuatro bytes con `0x78aba07`: igual, el `atoi` a `0x78abb24`, lo tecleado en 0 y el modo en 2, sin barajar; distinto, el `0x88` (445) con el teclado ya cerrado |
+| 6 (`0x5e8552`) | el `C1 03 31` en claro, `0x657a90` (cierra todo: el almacén manda su `C1 03 82`) y el `C1 0D 99` con los diez bytes de lo tecleado, con el XOR32 y en C3 (07 Q-C925) |
+
+Al final (`0x5e9aad..0x5e9ae1`), si el clic sigue prendido `0x78abb3a` en 1, con el botón suelto (`0x7d366ec`) en 0, y
+el clic y el botón abajo (`0x7d36874`) en 0. Los C3 sacan sus dos `rand()` (el relleno y el serial); `0x657a90`, los de
+sus consultas. El `0x87` y el `0x88` son del OK genérico de `0x62db60`, con el texto 442 (`0x632290`) y el 445
+(`0x6322c1`).
+
 **El mundo angosto** (`0x6371a0`). `0x5bb8d0` da 640 sin ventanas, 450 con una y 260 con dos. `0x63733e` lo pide para
 `0x620db0(0, 0, w, 48)` (solo la modelview) y `0x5fbb00(w · 0,0015625f, &p)`, que achica los cinco planos y el rango
 de bloques (`FrustumPointsOf`, el medio ancho por el factor) y pasa w al trapecio (`0x5fb570`). `0x63738a` lo vuelve a

@@ -42,14 +42,6 @@ struct UiItemBox;
 void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<const World::ItemState> cells,
                       std::size_t columns, std::size_t rows);
 
-// 0x5f26a7..0x5f2751 (y sus copias en 0x5f4cb2 y 0x5f51d2): el zen con comas cada tres cifras, "%d", "%d,%03d",
-// "%d,%03d,%03d" o "%d,%03d,%03d,%03d" (0x6c9844..0x6c9870).
-[[nodiscard]] std::string FormatZen(std::uint32_t zen);
-
-// 0x5f2771..0x5f27ef (y sus copias en 0x5f4dc5 y 0x5f52d1): el color del zen por cuánto es, sin signo: desde
-// 10.000.000 0xff0000ff, desde 1.000.000 0xff0096ff, desde 100.000 0xff18c900 y si no 0xff96dcff.
-[[nodiscard]] std::uint32_t ZenColor(std::uint32_t zen);
-
 // 0x5f2340: con el inventario abierto, la ventana en (0x1c2, 0), o en (0x104, 0) con el personaje o la party
 // abiertos: el fondo, los lugares del equipo con el color de su aviso, la grilla de 8 × 8, el título, el zen, los
 // botones de cerrar, reparar y la tienda personal con su ayuda, y el cartel del set. Saca 3.848 rand() por cada

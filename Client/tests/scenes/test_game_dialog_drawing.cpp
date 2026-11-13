@@ -49,6 +49,7 @@ using Client::Scenes::WorldState;
 constexpr Client::App::PixelSize Screen640{640, 480};
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;
+constexpr std::int32_t Noria = 3;
 // RecordingTextDrawer: 6 columnas por letra.
 constexpr int LetterWidth = Client::Tests::RecordingTextDrawer::LetterWidth;
 
@@ -148,6 +149,8 @@ public:
         {405, "primero"},
         {406, "segundo"},
         {409, "fin"},
+        {442, "iguales"},
+        {445, "distinta"},
         {919, "carteles"},
         {1840, "brillo"},
     });
@@ -366,6 +369,30 @@ TEST(GameDialogDrawingTest, TheGenericOkDrawsItsTexts)
         EXPECT_EQ(tested.text.texts[0].y, 0x45);
         EXPECT_EQ(tested.text.texts[1].text, "segundo");
         EXPECT_EQ(tested.text.texts[1].y, 0x51);
+    }
+}
+
+// 0x632290 y 0x6322c1: el 0x87 y el 0x88 de la caja de la contraseña del almacén (0x5e7bf0) son del OK genérico, con
+// el 442 y el 445 en un renglón.
+TEST(GameDialogDrawingTest, TheKeypadDialogsAreGenericOks)
+{
+    for (const std::int32_t map : {Lorencia, Devias, Noria})
+    {
+        for (const auto& [id, expected] : {std::pair{0x87, "iguales"}, std::pair{0x88, "distinta"}})
+        {
+            SCOPED_TRACE(id);
+            DrawingDialogs tested(map);
+            tested.world.Runtime().dialogs.current = id;
+
+            ASSERT_TRUE(tested.Draw().HasValue());
+            const std::vector<DrawnQuad> quads = QuadsOf(tested.sprites);
+            ASSERT_EQ(quads.size(), 2u);
+            EXPECT_EQ(quads[0].slot, 0xf0);
+            EXPECT_EQ(quads[1].slot, 0xf1);
+            ASSERT_EQ(tested.text.texts.size(), 1u);
+            EXPECT_EQ(tested.text.texts[0].text, expected);
+            EXPECT_EQ(tested.text.texts[0].y, 0x4b);
+        }
     }
 }
 

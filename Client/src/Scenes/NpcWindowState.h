@@ -73,6 +73,12 @@ struct NpcWindowState
     // 0x78ab9fc..0x78aba06: lo que se tecleó, en 0 al barajar (0x5cb43c..0x5cb44f y 0x5ea22d..). El 83 de la
     // contraseña (0x5e7e90) manda los diez primeros.
     std::array<std::uint8_t, 11> typedNumber{};
+    // 0x78aba07..0x78aba0a: la contraseña nueva del modo 4, que el OK copia (un dword de lo tecleado, 0x5e7d8b) para
+    // compararla en el 5 (0x5e7e34). Nadie más la lee ni la escribe.
+    std::array<std::uint8_t, 4> newPassword{};
+    // 0x78abb24: la contraseña que el modo 5 aceptó (el atoi de lo tecleado, 0x5e7e56) y que el 2 manda en el 83 con
+    // 1 (0x5e7ffc). Nadie más la lee ni la escribe.
+    std::uint16_t warehousePassword = 0;
     // 0x78abb3a: la tecla de la caja de la contraseña apretada. La prende el clic en el paso del teclado (0x5e9ab8) y
     // la apaga soltarlo (0x5e9ac9); el dibujo (0x5e9e25) baja un punto el número de la tecla del mouse.
     std::uint8_t keypadPressed = 0;

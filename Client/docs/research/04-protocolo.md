@@ -1081,17 +1081,27 @@ ASM del cliente):
   `C1 04 86 <0x7d2dc98>` con el XOR32 en claro. `CGChaosBoxItemMixButtonClick` no lee el tipo: el byte sale como lo
   arma el cliente (el ASM es el oráculo) y lo arma `0x5fd4f0`, que sigue cortado con el botón de mezclar
   (`0x5fe690`, 08 P-C192).
-- **`83`** la contraseña (`C1 10 83`, `0x5e7e90`, `PMSG_WAREHOUSEPASSSEND` de `0x10` bytes): la manda el paso del
-  teclado (`0x5e7bf0`), que sigue cortado.
+- **`83`** la contraseña (`C1 10 83 <tipo> <contraseña:2> <número:10>`, `PMSG_WAREHOUSEPASSSEND` de `0x10` bytes,
+  con el XOR32 y en C3): la manda el OK de la caja de la contraseña (`0x5e7bf0`, 06 § Los dibujos de las ventanas de
+  los NPC) según su modo. El 1 (abrir la traba, `0x5e931c`) con 0, el `atoi` de las cuatro cifras y los diez primeros
+  bytes del buffer del mensaje del chat (`0x7798bf8`, Q-C924); el 2 (`0x5e7e90`, después de la contraseña nueva dos
+  veces en el 4 y el 5) con 1, esa contraseña (`0x78abb24`) y las siete cifras del número personal; el 3 (`0x5e8c02`,
+  sacar la traba) con 2, 0 y el número. `CGWarehouseCheckPass` hace lo mismo con los tres: 0 compara `Pass` con la
+  contraseña y no mira el número; 1 y 2 comparan el número con `gObjCheckPassword2` y ponen o sacan la contraseña.
+- **`99`** el número personal (`C1 0D 99 <número:10>`, con el XOR32 y en C3): lo manda el modo 6 de la misma caja
+  (el que abre el OK del `0x8f`, `0x628276`), después de un `C1 03 31` en claro y de cerrar todo (`0x657a90`,
+  `0x5e8552..0x5e8bfd`). El GameServer 0.97 despacha el `99` a `CGAttributeMixRequest` (`PMSG_REQ_ATTRMIX`), que no
+  es esto (Q-C925): quién lo atiende en el servidor del 1.02 queda para la VM.
 
 Los `rand()`: con la tienda abierta, cada `IsOpen(0x10000)` saca uno (también el de `0x5decc1` al vender); con el
 almacén abierto, la cadena de Q, W y E (`0x5a343e`) e `IsOpen(0)` (`0x5a5511`) se paran en `0x40` antes de la tienda:
 uno menos cada una. **MuRet**: `Scenes/NpcWindowSteps.cpp` (los pasos de `0x5ed960`, `0x5b1570`, `0x5ea060`,
-`0x5fe610`, `0x5d8d50` con `0x78abb14` en 1 y 2, vender, el OK del `0x73` y `0x5e7aa0`), las grillas de la tienda, del
-almacén y de la caja del caos en `Scenes/GameUi.cpp` y los de sí y no (`0x6282dc`) en `Scenes/GameDialogSteps.cpp`.
-Tests: `NpcWindowStepsTest` (comprar en Lorencia, Devias y Noria, vender, reparar, guardar, sacar, el zen y la mezcla,
-byte a byte con sus `rand()`) y `NpcWindowRepliesTest.TakingAnItemSends24WhenThePasswordIsAccepted`. Lo que queda,
-en 08, P-C192.
+`0x5fe610`, `0x5d8d50` con `0x78abb14` en 1 y 2, vender, el OK del `0x73` y `0x5e7aa0`), `Scenes/WarehouseKeypad.cpp`
+(`0x5e7bf0`, el `83` y el `99`), las grillas de la tienda, del almacén y de la caja del caos en `Scenes/GameUi.cpp` y
+los de sí y no (`0x6282dc`) en `Scenes/GameDialogSteps.cpp`. Tests: `NpcWindowStepsTest` (comprar en Lorencia, Devias
+y Noria, vender, reparar, guardar, sacar, el zen y la mezcla, byte a byte con sus `rand()`), `WarehouseKeypadTest`
+(los modos de la caja, el `83` y el `99` byte a byte con sus `rand()`) y
+`NpcWindowRepliesTest.TakingAnItemSends24WhenThePasswordIsAccepted`. Lo que queda, en 08, P-C192 y P-C194.
 
 ## Qué implica para MuRet
 

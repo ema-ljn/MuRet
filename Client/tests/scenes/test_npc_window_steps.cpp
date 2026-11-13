@@ -530,10 +530,17 @@ TEST_F(NpcWindowStepsTest, TakingAnItemFromTheWarehouseSendsTheMoveOrWaitsForThe
         EXPECT_EQ(Npc().pendingMove.second, 73);
         EXPECT_EQ(Npc().pendingMove.third, 0);
         EXPECT_EQ(Npc().pendingMove.fourth, 32);
-        // 0x5e7bf0, el paso del teclado, sigue cortado.
-        const auto keypadStep = Step(0, 0);
-        ASSERT_FALSE(keypadStep.HasValue());
-        EXPECT_NE(keypadStep.Error().find("0x5e7bf0"), std::string::npos) << keypadStep.Error();
+        // 0x5e7bf0: la caja de la contraseña se queda con el clic (0x5ee140 no sigue): la tecla de abajo a la
+        // izquierda (0x5e7b50) agrega su cifra y el almacén no ve el clic.
+        Click();
+        const auto keypadStep = Step(0xdf + 5, 0x96 + 5);
+        ASSERT_TRUE(keypadStep.HasValue()) << keypadStep.Error();
+        EXPECT_EQ(Npc().typedNumber[0], '0' + keypad[0]);
+        EXPECT_EQ(Npc().typedNumber[1], 0);
+        EXPECT_EQ(Npc().keypadPressed, 1);
+        EXPECT_EQ(runtime.ui.field78abb20, 1);
+        EXPECT_FALSE(runtime.movement.pendingClick);
+        EXPECT_TRUE(sent.empty());
     }
 }
 

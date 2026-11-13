@@ -87,6 +87,18 @@ TEST(NpcWindowsProtocolTest, TheWarehousePasswordIsAnEncryptedC1OfSixteenBytes)
                                                                        '2', '3', '4', '5', '6', '7', '8', '9'})));
 }
 
+// 0x5e8706..: C1 0D 99 con los diez bytes del número personal, cifrado.
+TEST(NpcWindowsProtocolTest, ThePersonalNumberIsAnEncryptedC1OfThirteenBytes)
+{
+    NpcWindows::WarehouseNumber number{};
+    for (std::size_t i = 0; i < 7; ++i)
+        number[i] = static_cast<std::byte>('3' + i % 3);
+    const auto personal = NpcWindows::WritePersonalNumber(number);
+    EXPECT_EQ(personal.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(personal.packet).Bytes(),
+                          Bytes({0xc1, 0x0d, 0x99, '3', '4', '5', '3', '4', '5', '3', 0x00, 0x00, 0x00})));
+}
+
 // 0x5d9362..: C1 04 86 con el tipo de la mezcla, con el XOR32 y en claro; y 0x65a956..: C1 04 BD 09.
 TEST(NpcWindowsProtocolTest, TheMixAndTheRateRequestAreClearXor32C1s)
 {

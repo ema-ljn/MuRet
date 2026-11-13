@@ -38,6 +38,7 @@
 #include "UI/ChatLogDraw.h"
 #include "UI/GameText.h"
 #include "UI/HudPrimitives.h"
+#include "UI/LetterWindowsDraw.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
@@ -1366,10 +1367,11 @@ Core::Expected<void, std::string> DrawTheMainBar(Frame& frame)
         if (panels.IsOpen(button.panel))
             Quad(sprites, button.slot, static_cast<float>(button.left), 452.0f, 24.0f, 24.0f, 0.0f, 0.0f, 0.75f, 0.75f);
     }
-    // 0x5a9b3e..0x5a9c4c: con el mouse sobre el botón de los amigos, la ayuda de tres renglones (los textos 1043 a
+    // 0x5a9c98..0x5a9dd3: con el mouse sobre el botón de los amigos, la ayuda de tres renglones (los textos 1043 a
     // 1045) que arma 0x78793c8 y dibuja 0x5af090, la de los tooltips del hito 4; solo dibuja.
-    // 0x5a9c51: 0x4a5120, los íconos de los amigos y las cartas de la UI vieja (hito 7); solo dibuja.
-    // 0x5a9c56: 0x40a5b0, el botón de los comandos.
+    // 0x5a9ddb: 0x4a5120, los íconos de los amigos y las cartas de la UI vieja (CL9 hito 10), con la lista de ventanas.
+    UI::DrawTheFriendBarIcons(frame.runtime.oldWindows, sprites);
+    // 0x5a9de6: 0x40a5b0, el botón de los comandos.
     if (MouseIn(frame, 6, 435, 59, 454))
     {
         if (auto help = HelpWithText(frame, 6, 420, CommandsHelpText, "0x40a5f6"); !help.HasValue())

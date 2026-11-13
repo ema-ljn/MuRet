@@ -10,6 +10,7 @@
 #include "Render/TextureSlot.h"
 #include "UI/ChatInput.h"
 #include "UI/FriendModel.h"
+#include "UI/FriendWindows.h"
 #include "UI/LetterModel.h"
 #include "UI/LetterWindows.h"
 #include "UI/OldControls.h"
@@ -1083,5 +1084,106 @@ TEST_F(LetterWindowsDrawTest, TheWindowListWithoutChatsToShowDrawsNothing)
     ASSERT_TRUE(Client::UI::DrawTheWindowList(m_manager, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
     EXPECT_TRUE(m_sprites.Commands().empty());
     EXPECT_TRUE(m_text.texts.empty());
+}
+// 0x4a5120 sin la de amigos: con un chat que espera, una carta nueva y una sin leer, el hombre en (0x246 + 4, 0x1b3 +
+// 2) de 25 × 14 y la carta en (0x246 + 0x21, 0x1b3 + 5) de 15 × 9, los dos en los 12 primeros dibujos de cada 24. La
+// carta nueva parpadea en el 11 de cada 24: el sexto parpadeo (el dibujo 131) la apaga; después la carta queda fija
+// mientras haya una sin leer. Sin rand().
+TEST_F(LetterWindowsDrawTest, TheBarIconsBlinkTheWaitingChatAndTheNewLetterUntilTheSixthBlink)
+{
+    Client::UI::OldWindowListPart& list = m_manager.windowList.list;
+    list.waiting.push_back(7);
+    list.newLetter = 1;
+    Client::UI::AddALetter(m_manager.letterModel, 3, "Tordo", "Asado", "2026/11/13", "21:30", 0);
+
+    Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+
+    ExpectCommands({{TextureSlot{0x64e}, BlendMode::Alpha, 1}, {TextureSlot{0x64d}, BlendMode::Alpha, 1}});
+    EXPECT_EQ(m_sprites.Commands().size(), 2u);
+    ExpectBox(QuadOf(0), 586.0f, 437.0f, 611.0f, 451.0f);
+    EXPECT_FLOAT_EQ(VertexOf(0, 0, 0).v, 0.0f);
+    EXPECT_FLOAT_EQ(VertexOf(0, 0, 2).u, 0.78125f);
+    EXPECT_FLOAT_EQ(VertexOf(0, 0, 2).v, 0.4375f);
+    ExpectBox(QuadOf(1), 615.0f, 440.0f, 630.0f, 449.0f);
+    EXPECT_FLOAT_EQ(VertexOf(1, 0, 2).u, 0.9375f);
+    EXPECT_FLOAT_EQ(VertexOf(1, 0, 2).v, 0.5625f);
+    EXPECT_EQ(list.barBlink, 1);
+    EXPECT_EQ(list.letterBlinks, 0);
+
+    // Los dibujos 1..130: cinco parpadeos (en el 11, 35, 59, 83 y 107), y la carta nueva sigue.
+    for (int draw = 1; draw < 131; ++draw)
+        Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+    EXPECT_EQ(list.barBlink, 131);
+    EXPECT_EQ(list.letterBlinks, 5);
+    EXPECT_EQ(list.newLetter, 1);
+    // El 131 (131 % 24 = 11): el sexto la apaga y vuelve a 0.
+    Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+    EXPECT_EQ(list.barBlink, 132);
+    EXPECT_EQ(list.letterBlinks, 0);
+    EXPECT_EQ(list.newLetter, 0);
+
+    // Apagado (el 12 de cada 24): sin el hombre, y la carta fija por la que no se leyó.
+    list.barBlink = 12;
+    m_sprites.Begin(Screen640);
+    Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+    ExpectCommands({{TextureSlot{0x64d}, BlendMode::Alpha, 1}});
+    EXPECT_EQ(m_sprites.Commands().size(), 1u);
+    ExpectBox(QuadOf(0), 615.0f, 440.0f, 630.0f, 449.0f);
+    EXPECT_EQ(list.barBlink, 13);
+
+    // Leída, nada; con la carta nueva y apagado, tampoco.
+    m_manager.letterModel.letters.front().type = 1;
+    m_sprites.Begin(Screen640);
+    Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+    list.newLetter = 1;
+    Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+    EXPECT_TRUE(m_sprites.Commands().empty());
+    EXPECT_EQ(list.barBlink, 15);
+    EXPECT_EQ(list.newLetter, 1);
+    EXPECT_EQ(list.letterBlinks, 0);
+}
+
+// 0x4a5120 con la de amigos abierta: el botón apretado (win_push.jpg) en (0x246, 0x1b3) de 0x34 × 0x12 con w / 64 y
+// h / 32, el hombre en (x + 7, y + 3) desde v = 0,4375 y la carta en (x + 0x24, y + 7). Sin ninguna sin leer, la carta
+// nueva se apaga (0x4a6420(0)) y la carta se dibuja igual en ese dibujo; en el siguiente, solo con una sin leer.
+TEST_F(LetterWindowsDrawTest, WithTheFriendsWindowTheBarIconsGoOverThePushedButton)
+{
+    const auto opened = Client::UI::OpenTheFriendsWindow(m_manager, Client::UI::FriendsWindowX,
+                                                         Client::UI::FriendsWindowY, Globals(), StepView());
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    Client::UI::OldWindowListPart& list = m_manager.windowList.list;
+    list.waiting.push_back(7);
+    list.newLetter = 1;
+    m_sprites.Begin(Screen640);
+
+    Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+
+    ExpectCommands({{TextureSlot{0x64f}, BlendMode::Alpha, 1},
+                    {TextureSlot{0x64e}, BlendMode::Alpha, 1},
+                    {TextureSlot{0x64d}, BlendMode::Alpha, 1}});
+    EXPECT_EQ(m_sprites.Commands().size(), 3u);
+    ExpectBox(QuadOf(0), 582.0f, 435.0f, 634.0f, 453.0f);
+    EXPECT_FLOAT_EQ(VertexOf(0, 0, 2).u, 0.8125f);
+    EXPECT_FLOAT_EQ(VertexOf(0, 0, 2).v, 0.5625f);
+    ExpectBox(QuadOf(1), 589.0f, 438.0f, 614.0f, 452.0f);
+    EXPECT_FLOAT_EQ(VertexOf(1, 0, 0).v, 0.4375f);
+    EXPECT_FLOAT_EQ(VertexOf(1, 0, 2).v, 0.875f);
+    ExpectBox(QuadOf(2), 618.0f, 442.0f, 633.0f, 451.0f);
+    EXPECT_EQ(list.newLetter, 0);
+    EXPECT_EQ(list.barBlink, 1);
+
+    // Sin carta nueva: sin ninguna sin leer, solo el botón y el hombre; con una, también la carta.
+    m_sprites.Begin(Screen640);
+    Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+    ExpectCommands({{TextureSlot{0x64f}, BlendMode::Alpha, 1}, {TextureSlot{0x64e}, BlendMode::Alpha, 1}});
+    EXPECT_EQ(m_sprites.Commands().size(), 2u);
+    Client::UI::AddALetter(m_manager.letterModel, 4, "Zorzal", "Mate", "2026/11/13", "22:00", 0);
+    list.barBlink = 23;
+    m_sprites.Begin(Screen640);
+    Client::UI::DrawTheFriendBarIcons(m_manager, m_sprites);
+    ExpectCommands({{TextureSlot{0x64f}, BlendMode::Alpha, 1}, {TextureSlot{0x64d}, BlendMode::Alpha, 1}});
+    EXPECT_EQ(m_sprites.Commands().size(), 2u);
+    ExpectBox(QuadOf(1), 618.0f, 442.0f, 633.0f, 451.0f);
+    EXPECT_EQ(list.barBlink, 24);
 }
 } // namespace

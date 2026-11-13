@@ -1234,6 +1234,23 @@ los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
   segundo deque desde el corrimiento: el más nuevo abajo. MuRet guarda el primero al revés (`lineRows`, el más nuevo
   al final) y el segundo como el original (`wrappedRows`); durante el dibujo, el 9 mide con el DC del dibujo.
 
+**Los íconos de amigos y cartas de la barra** (`0x4a5120`, CL9 hito 10; cierra el hueco de P-C63; *estático*, sin
+`rand()`). La barra principal (`0x5a9630`) la llama en `0x5a9ddb` con la lista de ventanas (`[0x5763524]`), después de
+la ayuda del botón de los amigos (`0x5a9c98`..`0x5a9dd3`) y antes del botón de los comandos (`0x40a5b0`), en todos los
+mapas. Usa la x (`+0x50`, `0x246`) y el ancho (`+0x58`, `0x34`) de la lista, su borde de abajo (`+0x104`, `0x1b3`) y el
+alto del renglón (`+0x108`, `0x12`). Prendido es `+0x148 % 24 < 12` (`IDIV` con signo); `+0x148` suma 1 en cada
+salida. Con la de amigos abierta (`0x490a00` de `[0x5763514] + 0x48`): `win_push.jpg` (`0x64f`) en (x, y) de w × h con
+`w · 1/64` y `h · 1/32` (`0x6ba064`, `0x6b8880`); con chats que esperan (`0x4a6410`: el tamaño de `+0x118`) y
+prendido, `win_man.jpg` (`0x64e`) en (x + 7, y + 3) de 25 × 14, desde v = 0,4375 con 0,78125 × 0,4375; la carta
+(`win_letter.jpg`, `0x64d`, 15 × 9 con 0,9375 × 0,5625) en (x + `0x24`, y + 7). Sin ella, sin el botón, el hombre en
+(x + 4, y + 2) desde v = 0 y la carta en (x + `0x21`, y + 5). Sin carta nueva (`+0x144` en 0), la carta fija si
+alguna está sin leer (`0x4a0310`: alguna con `+0x134` en 0; recorre las cartas con el iterador de `+0x34` del
+modelo, que MuRet no guarda). Con carta nueva, con la de amigos abierta y ninguna sin leer, `0x4a6420(0)` la apaga
+pero el dibujo sigue; apagado, nada más; prendido, la carta y, en el 11 de cada 24, un parpadeo más (`+0x14c`): con
+más de 5, `+0x14c` en 0 y `0x4a6420(0)`. `0x4a48b0` pone `+0x144`..`+0x150` en 0. Sin color ni mezcla propios
+(`0x621b60` con su escala). MuRet: `UI::DrawTheFriendBarIcons` (`barBlink`, `letterBlinks`) desde
+`DrawTheMainBar`.
+
 El paso y el ubicado de las tres ventanas siguen el orden del ASM. El retrato lo da el juego
 ([El retrato de las cartas](#el-retrato-de-las-cartas)); el `CA` arma el chat y abre la conexión de la sala
 (`App::IChatRoomLinks`; 04).

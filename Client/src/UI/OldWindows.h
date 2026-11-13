@@ -137,8 +137,13 @@ struct OldWindowListPart
     float blinkStep = 0.0f;
     // +0x150: F5 la mostró con 1 (Enter elige; 0x4a4e20).
     std::int32_t armed = 0;
-    // +0x144: llegó una carta nueva (0x4a6420). Al abrir la de amigos, la abre en la pestaña de las cartas.
+    // +0x144: llegó una carta nueva (0x4a6420). Al abrir la de amigos, la abre en la pestaña de las cartas. Los íconos
+    // de la barra (0x4a5120) la apagan después de seis parpadeos o, con la de amigos abierta, sin cartas sin leer.
     std::int32_t newLetter = 0;
+    // +0x148 y +0x14c: los dibujos de los íconos de la barra (0x4a5120, uno más por dibujo: prendidos los 12 primeros
+    // de cada 24) y los parpadeos de la carta nueva (uno más en el 11 de cada 24). 0x4a48b0 los pone en 0.
+    std::int32_t barBlink = 0;
+    std::int32_t letterBlinks = 0;
     // +0xb4: los chats con un amigo, en el orden en que se armaron (0x4a4990); los busca 0x4a6430 por el amigo. Las
     // std::deque<int> de MSVC6 de +0xb4 y +0x118 (0x4a6f40 0x4a7b90 0x4a9630 0x4a96c0 0x4a9810 0x4aaa40 0x4aab90
     // 0x4aac10 0x4aac80 0x4aafa0 0x4ab030 0x4ab220 0x4ab290 0x4ab380; P-C215, P-C216) son las de MuRet.

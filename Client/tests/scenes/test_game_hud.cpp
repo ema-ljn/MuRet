@@ -24,6 +24,8 @@
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
 #include "UI/GameText.h"
+#include "UI/LetterModel.h"
+#include "UI/OldWindows.h"
 #include "UI/SprintfFormat.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
@@ -1078,5 +1080,43 @@ TEST_F(GameHudTest, AStatusIconWithoutTextKeepsTheThirdLine)
     // El nombre de la entrada 0x35 de Skill.bmd está vacío: la caja mide hasta el renglón 1 y no escribe nada.
     EXPECT_EQ(lines.text[1], "");
     EXPECT_TRUE(text.texts.empty());
+}
+// 0x5a9ddb: la barra de abajo dibuja los íconos de amigos y cartas (0x4a5120) con la lista de ventanas, después de las
+// ranuras y antes del botón de los comandos. Con un chat que espera, una carta nueva y una sin leer, sin la de amigos:
+// el hombre en (586, 437) y la carta en (615, 440), en el primer dibujo (prendidos). Sin rand(). En Lorencia y en
+// Devias.
+TEST_F(GameHudTest, TheMainBarDrawsTheFriendAndLetterIcons)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime().map = map;
+        Client::UI::OldWindowManager& windows = world.Runtime().oldWindows;
+        windows.windowList.list.waiting.push_back(7);
+        windows.windowList.list.newLetter = 1;
+        Client::UI::AddALetter(windows.letterModel, 3, "Tordo", "Asado", "2026/11/13", "21:30", 0);
+        sprites.Begin(Screen640);
+        const CrtRandom expected = Advanced(random, HudBaseDraws);
+
+        const auto drawn = Hud();
+
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(random.State(), expected.State());
+        const std::vector<DrawnQuad> quads = QuadsOf(sprites);
+        const auto man = std::ranges::find(quads, std::optional<std::uint16_t>{std::uint16_t{0x64e}}, &DrawnQuad::slot);
+        const auto letter =
+            std::ranges::find(quads, std::optional<std::uint16_t>{std::uint16_t{0x64d}}, &DrawnQuad::slot);
+        ASSERT_NE(man, quads.end());
+        ASSERT_NE(letter, quads.end());
+        EXPECT_EQ(std::next(man), letter);
+        EXPECT_FLOAT_EQ(man->first.x, 586.0f);
+        // La y de GL (H − y escalada) con el margen del float.
+        EXPECT_NEAR(man->first.y, 480.0f - 437.0f, 1e-3f);
+        EXPECT_FLOAT_EQ(letter->first.x, 615.0f);
+        EXPECT_NEAR(letter->first.y, 480.0f - 440.0f, 1e-3f);
+        EXPECT_EQ(std::ranges::count(quads, std::optional<std::uint16_t>{std::uint16_t{0x64f}}, &DrawnQuad::slot), 0);
+        EXPECT_EQ(windows.windowList.list.barBlink, 1);
+    }
 }
 } // namespace

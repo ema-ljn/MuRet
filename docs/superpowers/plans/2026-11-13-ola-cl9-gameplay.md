@@ -411,6 +411,10 @@ amigos. **Desbloquea:** 10.
       una carta (`0x45f6f0`, `0x45fea0`, `0x460130`; `0x464ae0`, `0x465270`, `0x465450`), las marcas de `0x45f240` y
       `0x464620`, la cola que parte antes del 9 (`0x479240`, `0x47c150`) y el dibujo por `wrappedRows[at]`. Los
       pedazos de más (`0x460308`, `0x4654af`), cortados.
+- [x] **Los íconos de la barra** (fase 4, el hueco de P-C63): `0x4a5120` desde `0x5a9ddb` (`DrawTheMainBar`), con
+      `0x4a0310` (alguna carta sin leer) y `0x4a6410` (chats que esperan): el botón apretado con la de amigos
+      abierta, el hombre y la carta prendidos 12 de cada 24 dibujos (`+0x148`) y los seis parpadeos de la carta nueva
+      (`+0x14c`, `0x4a6420(0)`).
 
 **Pruebas:** abrir un chat con un amigo e invitar a otro; mandar, leer y borrar una carta, byte a byte.
 

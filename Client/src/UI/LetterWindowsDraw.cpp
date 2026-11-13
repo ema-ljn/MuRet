@@ -111,6 +111,26 @@ constexpr std::string_view EmptyTextMeasure = "0";
 // 0x4a5490 y 0x4a5750: los índices de 0x491960 del fondo (la sombra, con su 179), del borde, del elegido y de los que
 // esperan; el margen del renglón (0x6b8a44), su franja (1 más abajo, de 3 más, 0x6b86b8, desde x + 1 y 2 menos ancha)
 // y el texto en x + 2 y 3 más abajo; el alfa del texto, ftol(parpadeo · 255) (0x6b9f98), sobre 0xc8dce6 o sobre negro.
+// 0x4a5120: los íconos de la barra. win_letter.jpg (0x64d) de 15 × 9 con 0,9375 × 0,5625; win_man.jpg (0x64e) de
+// 25 × 14 con 0,78125 × 0,4375 (con la de amigos, desde v = 0,4375); win_push.jpg (0x64f) con w · 1/64 y h · 1/32
+// (0x6ba064 y 0x6b8880).
+constexpr std::uint16_t LetterSlot = 0x64d;
+constexpr std::uint16_t ManSlot = 0x64e;
+constexpr std::uint16_t PushSlot = 0x64f;
+constexpr float LetterWidth = 15.0f;
+constexpr float LetterHeight = 9.0f;
+constexpr float LetterDu = 0.9375f;
+constexpr float LetterDv = 0.5625f;
+constexpr float ManWidth = 25.0f;
+constexpr float ManHeight = 14.0f;
+constexpr float ManDu = 0.78125f;
+constexpr float ManDv = 0.4375f;
+constexpr float PushDu = 0.015625f;
+constexpr float PushDv = 0.03125f;
+constexpr std::int32_t BarBlinkPeriod = 0x18;
+constexpr std::int32_t BarBlinkLit = 0xc;
+constexpr std::int32_t LetterBlinkStep = 0xb;
+constexpr std::int32_t LetterBlinks = 5;
 constexpr std::int32_t ListBackIndex = 3;
 constexpr std::int32_t ListEdgeIndex = 15;
 constexpr std::int32_t ChosenChatIndex = 0x10;
@@ -525,6 +545,82 @@ Core::Expected<void, std::string> DrawTheWriteWindow(OldWindowManager& manager, 
     DrawTheButton(context, letter.buttons[2], view);
     DrawTheButton(context, letter.buttons[3], view);
     return {};
+}
+
+void DrawTheFriendBarIcons(OldWindowManager& manager, Render::SpriteBatch& sprites)
+{
+    OldWindow& windowList = manager.windowList;
+    OldWindowListPart& list = windowList.list;
+    // 0x4a512f..0x4a5146: IDIV con signo y SETL.
+    const bool lit = list.barBlink % BarBlinkPeriod < BarBlinkLit;
+    // El += de +0x148 en todas las salidas; en 32 bits, como el original.
+    const auto nextDraw = [&list]
+    { list.barBlink = static_cast<std::int32_t>(static_cast<std::uint32_t>(list.barBlink) + 1u); };
+    const std::int32_t x = windowList.base.x;
+    const std::int32_t y = list.bottom;
+    const bool waiting = !list.waiting.empty();
+    const auto unread = [&manager]
+    {
+        return std::ranges::any_of(manager.letterModel.letters,
+                                   [](const LetterEntry& letter) { return letter.type == 0; });
+    };
+    std::int32_t letterX = 0;
+    std::int32_t letterY = 0;
+    if (FindTheOldWindow(manager, manager.friends) != nullptr)
+    {
+        // FILD y FMUL de los float: w / 64 y h / 32, exactos.
+        const float width = ToFloat(windowList.base.width);
+        const float height = ToFloat(list.rowStep);
+        OldDraw::Quad(sprites, PushSlot, ToFloat(x), ToFloat(y), width, height, 0.0f, 0.0f, width * PushDu,
+                      height * PushDv);
+        if (waiting && lit)
+            OldDraw::Quad(sprites, ManSlot, ToFloat(x + 7), ToFloat(y + 3), ManWidth, ManHeight, 0.0f, ManDv, ManDu,
+                          ManDv);
+        letterX = x + 0x24;
+        letterY = y + 7;
+        if (list.newLetter == 0)
+        {
+            if (unread())
+                OldDraw::Quad(sprites, LetterSlot, ToFloat(letterX), ToFloat(letterY), LetterWidth, LetterHeight, 0.0f,
+                              0.0f, LetterDu, LetterDv);
+            nextDraw();
+            return;
+        }
+        // 0x4a5230: sin ninguna sin leer, 0x4a6420(0); dibuja igual.
+        if (!unread())
+            list.newLetter = 0;
+    }
+    else
+    {
+        if (waiting && lit)
+            OldDraw::Quad(sprites, ManSlot, ToFloat(x + 4), ToFloat(y + 2), ManWidth, ManHeight, 0.0f, 0.0f, ManDu,
+                          ManDv);
+        letterX = x + 0x21;
+        letterY = y + 5;
+        if (list.newLetter == 0)
+        {
+            if (unread())
+                OldDraw::Quad(sprites, LetterSlot, ToFloat(letterX), ToFloat(letterY), LetterWidth, LetterHeight, 0.0f,
+                              0.0f, LetterDu, LetterDv);
+            nextDraw();
+            return;
+        }
+    }
+    if (!lit)
+    {
+        nextDraw();
+        return;
+    }
+    OldDraw::Quad(sprites, LetterSlot, ToFloat(letterX), ToFloat(letterY), LetterWidth, LetterHeight, 0.0f, 0.0f,
+                  LetterDu, LetterDv);
+    if (list.barBlink % BarBlinkPeriod == LetterBlinkStep)
+        ++list.letterBlinks;
+    if (list.letterBlinks > LetterBlinks)
+    {
+        list.letterBlinks = 0;
+        list.newLetter = 0;
+    }
+    nextDraw();
 }
 
 Core::Expected<void, std::string> DrawTheChatsInTheList(OldWindowManager& manager, const OldWindow& window,

@@ -50,6 +50,15 @@ namespace Client::UI
                                                                       const OldWindowDrawContext& context,
                                                                       const OldWindowDrawView& view);
 
+// 0x4a5120, desde el dibujo de la barra de abajo (0x5a9ddb) con la lista de ventanas: los íconos del botón de los
+// amigos (en +0x50 y +0x104 de la lista, con +0x58 × +0x108). Prendidos los 12 primeros dibujos de cada 24 (+0x148).
+// Con la de amigos abierta, el botón apretado (win_push.jpg, 0x64f) y los íconos en (x + 7, y + 3) y (x + 0x24, y + 7);
+// sin ella, en (x + 4, y + 2) y (x + 0x21, y + 5). Con chats que esperan (+0x140, 0x4a6410), win_man.jpg (0x64e)
+// prendido (con la de amigos, su mitad de abajo). La carta (win_letter.jpg, 0x64d): sin carta nueva (+0x144), fija con
+// alguna sin leer (0x4a0310: +0x134 en 0); con carta nueva, prendida, y la apagan seis parpadeos (+0x14c, uno en el 11
+// de cada 24) o, con la de amigos, no tener ninguna sin leer. Sin mezcla ni color propios: los de la barra.
+void DrawTheFriendBarIcons(OldWindowManager& manager, Render::SpriteBatch& sprites);
+
 // La vtable + 0x54 de las de una carta, al final del marco: 0x49a1d0 (la de leer, con +0x774 en 2 o más) y 0x498800
 // (la de escribir, con +0xb0 en 1) dibujan el retrato (su vtable + 0x14, 0x497c10) con OldWindowDrawView::portrait,
 // que da el juego (Scenes::DrawTheLetterPortrait); sin él, corta. Sin el retrato, nada.

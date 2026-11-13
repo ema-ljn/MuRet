@@ -9622,8 +9622,9 @@ en línea, con un `rand()` si el cierre deja la cuenta en 0.
    `+0x381 = 15`. El registro es el del héroe aunque pegue otro (Q-C1168).
 
 **`0x4f5b70(c)`, los ayudantes.** Un `rand()` sin condición en `0x4f5b97`, que no lee nadie (Q-C1169). Después,
-seis ayudantes, cada uno en sus mapas; el que devuelve 1 hace salir a `0x4f5b70` (`0x4f903c`). Ninguno saca
-`rand()` antes de actuar (fase 2c, *estático*):
+seis ayudantes, cada uno en sus mapas; el que devuelve 1 hace salir a `0x4f5b70` (`0x4f903c`). Lo que hace cada
+caso, con sus lecturas de `+0x38e` y sus `rand()`, en [Los casos de los monstruos](#los-casos-de-los-monstruos-0x4f5b70)
+(fase 2e-B):
 
 | Ayudante | Dónde | Quién actúa (su caso) |
 | --- | --- | --- |
@@ -9759,16 +9760,128 @@ dos `rand()` del giro de la cabeza, `0x5068fd`, descontados: uno en 32 por paso 
 | Dónde | Qué | Quién llega |
 | --- | --- | --- |
 | `0x4f9899`, `0x4f8a39`, `0x4fdeeb`, `0x504372` | los casos de habilidad | nadie: `+0x38e` lo escriben `0x4cc530` y los monstruos (hito 4) |
-| los casos de la tabla de arriba (`0x43a7fe`..`0x43b5e4`, `0x42dd23`, `0x42dd56`, `0x4291b1`.., `0x42fd04`, `0x42fd43`, `0x4324fb`.., `0x4f5cb6`..`0x4f804e`, `0x4f814e`..`0x4f890b`, `0x4f8a5d`..`0x4f8e85`) | los ayudantes y los casos de `0x4f5b70` | los monstruos con caso, en sus mapas (hito 2 y CL11); ningún jugador sin transformar |
+| los efectos, joints y partículas de los casos de `0x4f5b70` (fase 2e-B: cada uno en su dirección, en [Los casos de los monstruos](#los-casos-de-los-monstruos-0x4f5b70)) | `0x518cf0`, `0x530860`, `0x51fff0` y las partículas sin portar, con la lógica del caso hecha | los monstruos con caso, en sus mapas (CL11, P-C233); ningún jugador sin transformar |
 | `0x4fb0d1` | las veinte `0x5c6`/12 sin el pool de partículas | nadie en el juego (fase 2d) |
 | `0x558f29` | los nombres de gremio | el héroe en la guerra de gremios (hito 8) |
 | `0x50377d`, `0x504060` | la flecha (`0x53e2b0`, después de `0x59fb80`) | el elfo con arco o ballesta, y cualquiera con arco en Uniria, Dinorant o Fenrir |
-| `0x5037d0`, `0x5040a9` | `0x53e2b0` de los tipos `0x168`, `0x175`, `0x17a`, `0x180` | monstruos (fase 2c) |
+| `0x5037d0`, `0x5040a9` | `0x53e2b0` de los tipos `0x168`, `0x175`, `0x17a`, `0x180`, que va a `0x53d9a0` como la flecha | esos monstruos (la fase de la flecha, P-C234) |
 | `0x50419c` | la partícula `0x5e4` sin el pool de partículas | nadie en el juego: `GameScene` pasa el del mundo (fase 2d) |
 | `0x504267` | el efecto `0x10b` | el que pega al `0x18e` con daño, con un `rand() & 1` en 0 de los cinco |
 | `0x50428c` | `0x42ea00` | nadie: el mapa 30 corta antes (`0x412140`) |
 | `0x5042ce` | `0x52e740` | las acciones de skill `0x38` a `0x3c` (hito 4) |
 | `0x505169` | los joints `0x618`/0 y /1 sin el pool de joints | nadie en el juego (fase 2d) |
+
+### Los casos de los monstruos (0x4f5b70)
+
+*Estático*, cotejado con el PE c32bbd5f (CL9 hito 3, fase 2e-B; `Scenes::StepTheAttackCases`,
+`MonsterAttackStep.cpp`). Es lo que corre en cada paso de `+0x381` después de `0x4f97b0` y del `rand()` de
+`0x4f5b97` (que queda en `StepTheAttack`): los seis ayudantes de [El paso del ataque](#el-paso-del-ataque), el
+`switch` por `+0x376` y la cola. Cada lectura de `+0x38e` es un acceso, con un `rand()` si el cierre deja la cuenta
+en 0: las de `0x517630`, las copias en línea y las que cierran con `0x40b3f0`. Lo portado son las condiciones, los
+`rand()` en su orden, lo que escriben en el monstruo (`+0x78`, `+0x381`, `+0x17c`), los sonidos (`lastSoundId`, CL10)
+y las partículas que MuRet ya crea; los efectos (`0x518cf0`), los joints (`0x530860`), las piedras de `0x51fff0`
+(`0x51fe10`) y las partículas sin portar cortan en su dirección, con lo de antes hecho (CL11, P-C233). `'2'` es
+`0x32` en `+0x38e`.
+
+**Los ayudantes** (el que devuelve 1 sale sin la cola):
+
+- `0x43a7a0`, Kalima (los mapas 24 a 29 y 36), por `+0x376` (la tabla de `0x43b8fc`); todos devuelven 1:
+  - `0x43a7fe` y `0x43ab7a`: en 14, la partícula `0x600`/1 sobre el blanco o el héroe (`0x43a861`, `0x43abd9`).
+  - `0x43a872`, `0x43b279` y `0x43b5e4`: leen `+0x38e` y, con `+0x381` desde 13 (sin signo), la habilidad (las
+    tablas de `0x43b9a0`, `0x43ba84` y `0x43bb68`): con 1, `rand() % 360` y cinco `0xc2`/8 de `0x439bd0`
+    (`0x439ca6`); con `0x37`, tres `0x11b`/1 de `0x439b20` (`0x439ba5`); con `0xc8`, `0xcb`/3 y `0xcc`/4 de
+    `0x439cd0` (`0x439d09`); con `0xc9` y `0xca`, `+0x78 |= 0x100` o `0x8`, `+0x381 = 15` y el sonido `0x1e1`
+    (`0x43aabf..0x43aaf7`, portado). Después, el `0x43a872` en la 4 y en 14 corta en el terremoto `0xfa` y el
+    `0x615` (`0x43ab42`); el `0x43b279` en la 3, en 7 en el terremoto (`0x43b570`) y desde 13 en `0xf6`/0 y
+    `0x5de`/1 (`0x43b5ac`).
+  - `0x43abea`: en la 4 y en 14, `0x11a` (`0x43ac29`).
+  - `0x43ac3a`: lee `+0x38e`; con `0x11` y en 14, el terremoto `0xfa`/1 (`0x43ae45`).
+  - `0x43ae56`: lee `+0x38e`; en 14, con 1, dos `rand() % 200` y el primero de tres `0xc2`/7 alrededor del héroe
+    (`0x43b1f4`), y con `0x11` y el blanco en `[0, 400)`, tres joints `0x610`/6 (`0x43b0ed`).
+  - `0x43b208`: en la 3 y desde 13, `0xf6`/5 y `0x5de`/2 (`0x43b241`).
+- `0x4436f0`, el 31: el `0x123` a `0x125`, el `0x127` y el `0x12f` devuelven 1 sin nada más.
+- `0x42dcf0`, el 30: el `0x120`, `0x61c` siempre (`0x42dd48`); el `0x68`, en 5, `0x19f` (`0x42dd9c`); los dos
+  devuelven 1.
+- `0x429110`, el 33 y el 54, solo en 10 (devuelven 1 siempre): el `0x135` en la 3, cinco `0xcf`/3 (`0x42919a`); el
+  `0x134` en la 4, `0x141` (`0x429202`); el `0x130` en la 4, `0x61c`/1 (`0x42925a`).
+- `0x42fce0`, el 35, por el tipo (`+2`): en 14, el `0x1b2` (`0xe1`/1, `0x42fd37`) y el `0x1ad` (`0xf8`/1,
+  `0x42fd76`), con la key de `+0x8a`; si no, AL en 0. En el alta del 35, el `0x136` es el `0x1ad` y el `0x13c` el
+  `0x1b2`; en el 34, el `0x138` es el `0x1b2`, el `0x13c` el `0x1ad` y el `0x15c` el `0x1b5`.
+- `0x4324c0`, Crywolf (el 34), por el tipo (la tabla de `0x432b8c`); salvo los efectos, AL en 0:
+  - en 14, el `0x1b2` (`0xe1`/1, `0x432532`) y el `0x1ad` (`0xf8`/1, `0x43257a`); en 15, el `0x1b5` (`0xed`/1,
+    `0x432b63`);
+  - el `0x17c`: en 1, `0x51fff0` (`0x43259e`); en 14 con el `+0x376` `0x3b`, lee `+0x38e` y con `'2'` dieciocho
+    `0xc1a` (`0x4329db`);
+  - el `0x17e`: seis veces `0x4ec110` con el hueso de una mano (`+0x2bd`) y un offset (`[EBP − 0x30]`) que nadie
+    escribe, y `rand() % 360`, sin leer el punto; en 1, el sonido `0x75`; corta en el segundo `0x4ec110`, cuyo punto
+    es el de las cuatro `0x5d9`/0 (`0x432acc`, Q-C1050).
+
+**El `switch` por `+0x376`** (`0x4f5c7e` y `0x4f7598`; siguen a la cola salvo que corten):
+
+| `+0x376` | Caso | Qué hace |
+| --- | --- | --- |
+| `0x46` | `0x4f5cb6` | en 5, con `+0x3a4` distinto de `0xffff` (sin mirar el rango), veinte `0x625` sobre el blanco (`0x4f5d13`) |
+| `0x3d` | `0x4f5d23` | en 1, `0xf6` (`0x4f6145`) |
+| `0x3f` | `0x4f5d23` | en 1, `0x51fff0` y `0xf6` (`0x4f5d3c`); si no, lee y con `'2'` dos `rand() % 800` y `0xf5` (`0x4f609d`) |
+| `0x42` | `0x4f6152` | lee; con `'2'` y en 1, `0xf6`/1 (`0x4f6422`) |
+| `0x35`, `0x3a`, `0x3b` | `0x4f6442` | en 1, `0x51fff0` (`0x4f6450`); en 14 y con el `0x3b`, lee y con `'2'` dieciocho `0xc1a` (`0x4f6780`) |
+| `0x31` | `0x4f67ad` | con `+0x381 % 5` en 1, el `0x5e9` del hueso 63 (`0x4f67fb`); después lee y con `'2'` en 1 el `0x5e8` (`0x4f6b51`, que en MuRet no llega: en 1 corta antes el `0x5e9`) |
+| `0x2a` | `0x4f6b78` | lee; con `'2'`, en 1 tres `0xc2`/2 del hueso 11 (`0x4f6ec5`), si no dos `rand() & 0x3ff` y `0xc2` (`0x4f6fc5`) |
+| `0x23` | `0x4f6fea` | lee; con `'2'` y en 1, dieciocho `0xc2`/1 (`0x4f7050`) |
+| `0x26`, `0x43` | `0x4f7074` | lee; con `'2'`, en 1 `0xcb` y `0xcc` (`0x4f70b8`), si no dos `rand() & 0x3ff` y `0xc2` (`0x4f80cf`) |
+| `0x2d` | `0x4f715a` | portado: las gotas (abajo) |
+| `0x48` | `0x4f7223` | lee; con `'2'` y en 14, tres `rand() % 360` y el primero de 36 joints `0x613`/1 (`0x4f756a`) |
+| `0x59`, `0x5f`, `0x70`, `0x76`, `0x7c`, `0x82`, `0x8f` | `0x4f75b5` | lee; con `'2'`, `rand() & 1`: con 1, dos `rand() & 0x3ff` y `0xc2` (`0x4f7930`); con 0 y en 1, `0xf6`/1 (`0x4f789b`) |
+| `0x47`, `0x4a`, `0x12d` | `0x4f793e` | en la 3 o la 4 y en 5, `0x51fff0` (`0x4f7962`) |
+| `0x49`, `0x4b` | `0x4f798d` | en la 3 y en 11, `0x51fff0` (`0x4f79af`); fuera de la 3 y en 13, el punto (−50, 100, 0) del hueso 11 va a `+0x17c` (portado, `ActorState::trailOrigin`) antes del `0x106`/1 (`0x4f80cf`, la llamada que comparten con los `0xc2` y que sigue con el sonido `0x42`) |
+| `0x4d` | `0x4f7bc8` | lee; con `'2'` en 2 o 6, tres `rand() % 360` y el primero de 40 joints `0x613`/3 (`0x4f7f3c`) |
+| `0x36`, `0x39`, `0x97` | `0x4f7f67` | en 1, el `0xe2` de la mano derecha (`0x4f7fd2`) |
+| `0x67` | `0x4f804e` | lee; con `'2'`, dos `rand() & 0x3ff` y `0xc2` (`0x4f80cf`) |
+
+**Las gotas del `0x2d`** (`0x4f715a..0x4f721e`, portado). Cuatro veces: tres `rand() & 31` − 16 (el offset),
+`0x4ec110` con el hueso 2 de los huesos propios (sin ellos, la matriz en cero: la posición, Q-C318) y
+`0x53fe70(0x607, punto, o+0x1c, (1; 1; 1), 0, 1,0f, 0)` (dos `rand()`) y la `0x5e4` igual (cuatro, la [sangre del
+blanco](#el-paso-del-ataque)): 36 `rand()` por paso, en el pool del mundo. Sin el pool corta en la primera
+(`0x4f71ed`), después de las tres del offset.
+
+**La cola** (`0x4f80e0`). Con `+0x3a4` (`MOVSX`) fuera de `[0, 400)` sale. Si no, lee `+0x38e`; con `0x11`, el
+`switch` de `0x4f8147`, del que todos salen (sin caso, sin nada):
+
+- `0xa3` a `0xad` impares (`0x4f814e`): el alta (`0x51443f`) les pone en la derecha (`+0x2b8`) el `0xa25` o el
+  `0xc17` con un `rand()`. Con el `0xa25`, en 8, la flecha `0x53e2b0(c, c, c, 0, 0, 0)` (`0x4f816f`, la fase de la
+  flecha). Sin él, en la 3 y en 15, `0x5e8` delante del que pega (`0x4f81cc`); en la 4 y en 8, `rand() & 1`: con 0,
+  dos `0xf5` (`0x4f8227`), y con 1, dos `0xc2`/6 (`0x4f8287`).
+- `0x59`, `0x5f`, `0x70`, `0x76`, `0x7c`, `0x82`, `0x8f` (`0x4f82b4`): en 14, el `0x106`/1 del hueso 33 y el joint
+  `0x614`/2 (`0x4f8326`).
+- `0x57`, `0x5d`, `0x63`, `0x74`, `0x7a`, `0x80`, `0x8d` (`0x4f835b`): en 13, el `0xc2`/5 del hueso 6 (`0x4f83e5`).
+- `0x4d` (`0x4f83f4`): en 14, el `0x106`/1 y el joint `0x614`/2 (`0x4f845e`).
+- `0x49`, `0x4b` (`0x4f8493`): en la 4 y en 13, el `0x106`/1 del hueso 11 (`0x4f852d`); en MuRet no llega, porque
+  su caso de `+0x376` corta antes.
+- `0x45` (`0x4f8562`): en 1, ocho joints `0x60f`/7 (`0x4f8592`).
+- `0x3d` (`0x4f85ca`): `rand() % 360` y doce joints `0x614`/2 de las manos (`0x4f8654`).
+- `0x2e` (`0x4f876e`): en 1, el sonido `0x75`; ocho joints `0x5bc`/1 (`0x4f87f8`).
+- `0x25` (`0x4f8837`): en 1, el sonido `0x75`; `rand() % 360`, el joint `0x61b`/0 y `0x5d9`/0 (`0x4f88d0`).
+- `0x42` (`0x4f890b`): en 1, el sonido `0x50`; joints `0x61b`/1 y `0x5d9`/0, sin `rand()` (`0x4f89df`).
+
+Si no es `0x11`, lee otra vez; con 3, el `switch` de `0x4f8a56` (sin caso, `0x4f8f5b`, que corta en `0x4f8a39`,
+hito 4):
+
+- `0x59`, `0x5f`, `0x70`, `0x76`, `0x7c`, `0x82`, `0x8f` (`0x4f8a5d`): en 1, el sonido `0x50`; joints `0x61b`/1
+  (`0x4f8b31`).
+- `0x4d` (`0x4f8b78`): desde 8 (`JC`), `rand() % 360` y el joint `0x614`/0 (`0x4f8bfb`); antes, sale.
+- `0x25` (`0x4f8c0d`): en 1, el sonido `0x75`; `rand() % 360` y el joint `0x61b`/0 (`0x4f8ca6`).
+- `0x22` (`0x4f8ce1`): `rand() % 360` y joints `0x614`/0 (`0x4f8d63`).
+- `0x30` (`0x4f8dc4`): `rand() % 360` y joints `0x614`/2 (`0x4f8e46`).
+- `0x27` (`0x4f8e85`): joints `0x614`/0 y la partícula `0x5ca`/0, sin `rand()` (`0x4f8f07`).
+
+**Los misiles de los monstruos** (`0x5037d0`, `0x5040a9`). `0x53e2b0(c, o, 0, 0, 0, 0)` no tiene rama para los
+tipos `0x168`, `0x175`, `0x17a` y `0x180`: va a `0x53d9a0`, el ataque común de la flecha, que es de la fase de la
+flecha. Siguen cortando ahí (P-C234).
+
+Con monstruos reales, antes corta `0x4ea030` sin su esqueleto (P-C176); el alta de los tipos `0x35` a `0x3f` (los
+joints `0x618`, CL11) y la de los que llevan el modelo `0x17c` o `0x17e` (`0x3a`, `0x3b`, `0x3e`, `0x52`, `0x53` y
+`0x12c`) cortan antes. `MonsterAttackCasesTest` arma cada caso con `CreateMonster` y pone `+0x376` y el tipo a mano
+donde el alta corta, en su mapa y en Lorencia y Devias (donde, sin el ayudante, van a la cola).
 
 ### Los cambios de mapa
 

@@ -49,6 +49,8 @@ struct HeroSkillContext
     // Lo que las skills mandan por send() (el XOR32 en línea; los C3 con su relleno y su serial ya sacados). Vacío, sin
     // la sesión: no sale, como el original con el socket en −1.
     std::function<void(Protocol::Outgoing)> send{};
+    // DAT_057678bc, la clave del jugador del F1 00, que mandan la 0x3a y la 0x28 sin blanco.
+    std::uint16_t playerKey = 0;
 };
 
 // 0x57cfc0(héroe): con el modo del editor (0x77f3b18), el mouse de la UI (0x775857c) o 0x1000 en +0x78, nada. Si no:
@@ -58,7 +60,8 @@ struct HeroSkillContext
 // los 3.600 s (con el movimiento trabado, 0x77f3bac, el clic izquierdo). Después: 0x6c8e50 en −1, las órdenes del
 // cuervo (0x420f70), las skills del asedio (0x5a5540), Skill.bmd +0x31 en 2 con 0x200, +0x389, la zona segura (solo
 // en Blood Castle y Chaos Castle, y las skills de la lista), 0x6c8e38 por la clase, la acción del héroe, y, salvo el
-// Wizard, el blanco (0x57ce80), la línea de vista (0x558800) y la skill de cada mano (0x559890 o 0x561f60). Las ramas
-// por clase (0x57d790, 0x581894, 0x5897b7) y las skills 0x43..0x48 (0x5808da) cortan con su dirección.
+// Wizard, el blanco (0x57ce80), la línea de vista (0x558800) y la skill de cada mano (0x559890 o 0x561f60). La rama
+// del Wizard (0x5897b7) es UseTheWizardSkill (HeroSkillsWizard.h); las de 0x57d790 y 0x581894 y las skills 0x43..0x48
+// (0x5808da) cortan con su dirección.
 [[nodiscard]] Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSkillContext& context);
 } // namespace Client::Scenes

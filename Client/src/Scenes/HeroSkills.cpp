@@ -9,6 +9,7 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/HeroAttack.h"
 #include "Scenes/HeroSkillCasts.h"
+#include "Scenes/HeroSkillsWizard.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -397,8 +398,6 @@ Core::Expected<void, std::string> UseTheClassSkill(std::uint8_t heroClass, std::
     if (heroClass == KnightClass || heroClass == GladiatorClass || heroClass == LordClass)
         return Core::Unexpected(
             std::format("0x581894: la skill {:#x} de la clase {} (1, 3 o 4) es de la fase 2c", skill, heroClass));
-    if (heroClass == WizardClass)
-        return Core::Unexpected(std::format("0x5897b7: la skill {:#x} del Wizard es de la fase 2c", skill));
     // 0x5808da..0x5808e9: fuera de 0x43 a 0x48, nada.
     if (!InRange(skill, 0x43, 0x48))
         return {};
@@ -579,6 +578,9 @@ Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSk
             state.weaponSkill = WeaponSkillRequest{.active = 0, .slot = 0, .target = -1};
         }
     }
+    // 0x58187c..0x58188e: el Wizard (y las demás que no son 1 a 4), a 0x5897aa (HeroSkillsWizard).
+    if (heroClass == WizardClass)
+        return UseTheWizardSkill(hero, skill, context);
     return UseTheClassSkill(heroClass, skill);
 }
 } // namespace Client::Scenes

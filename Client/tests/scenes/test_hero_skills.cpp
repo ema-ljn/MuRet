@@ -55,6 +55,9 @@ constexpr int HeadDraws = OwnDraws + EntryDraws;
 constexpr int PartyDraws = HeadDraws + EntryDraws;
 // Más las dos celdas lógicas (0x57d4d6, 0x57d4f4).
 constexpr int AimDraws = PartyDraws + 2 * CellDraws;
+// La cabeza de la rama del Wizard (0x5897b7..0x58a08a) sin espera: el registro propio y, con él abierto, las entradas
+// del costo, de la energía y de la espera.
+constexpr int WizardHeadDraws = OwnDraws + 3 * EntryDraws;
 constexpr std::size_t ChosenSlot = 5;
 
 CrtRandom Advanced(CrtRandom random, int count)
@@ -187,6 +190,13 @@ bool Contains(const std::string& text, const char* part)
     return text.find(part) != std::string::npos;
 }
 
+// La rama del Wizard apuntó (0x58a118) al elegido del lugar 5, en la celda (184, 117).
+void ExpectTheWizardAimed(SkillHero& tested)
+{
+    EXPECT_EQ(tested.Movement().targetX, 184u);
+    EXPECT_EQ(tested.Movement().targetY, 117u);
+}
+
 // 0x57cfe2..0x57d00f: con el modo del editor, el mouse en la UI o 0x1000 en +0x78, nada, ni rand().
 TEST(HeroSkillsTest, TheGuardsDoNothing)
 {
@@ -267,8 +277,10 @@ TEST(HeroSkillsTest, TheRightClickChargesTheSkill28As3a)
         tested->Hero().byte80 = 3;
         tested->Ui().autoAttack = true;
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x5897b7")) << result.Error();
+        // La rama del Wizard la suelta en el mismo paso: el 19 de la 0x3a (0x58a141).
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(tested->sent.size(), 1u);
+        EXPECT_EQ(std::to_integer<int>(tested->sent[0].packet.Bytes()[2]), 0x19);
         EXPECT_FALSE(tested->Ui().rightClick);
         EXPECT_EQ(tested->Ui().rightHoldFrames, 1);
         EXPECT_EQ(tested->Hero().byte1bc, 0);
@@ -304,8 +316,8 @@ TEST(HeroSkillsTest, WhileChargingTheFramesCountUntilTheRelease)
     tested->Ui().rightReleased = true;
     tested->Ui().rightDown = true;
     const auto released = tested->Use();
-    ASSERT_FALSE(released.HasValue());
-    EXPECT_TRUE(Contains(released.Error(), "0x5897b7")) << released.Error();
+    ASSERT_TRUE(released.HasValue()) << released.Error();
+    EXPECT_EQ(tested->sent.size(), 1u);
     EXPECT_FALSE(tested->Ui().rightReleased);
     EXPECT_FALSE(tested->Ui().rightClick);
     EXPECT_FALSE(tested->Ui().rightDown);
@@ -327,14 +339,15 @@ TEST(HeroSkillsTest, TheAutoAttackUsesTheSkillWithTheOtherChosenInTwo)
         targets[4] = 2;
         const auto result = tested->Use();
         const bool here = map != 6 && map != 18 && map != 23;
-        EXPECT_EQ(result.HasValue(), !here);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         if (here)
         {
-            EXPECT_TRUE(Contains(result.Error(), "0x5897b7")) << result.Error();
+            ExpectTheWizardAimed(*tested);
         }
         else
         {
             EXPECT_FLOAT_EQ(tested->Movement().actionInputTime, 5000.0f);
+            EXPECT_EQ(tested->Movement().targetX, 0u);
         }
     }
     {
@@ -366,8 +379,8 @@ TEST(HeroSkillsTest, AfterAnHourTheRightButtonIsLetGo)
         tested->Movement().followTarget = 7;
         tested->worldTime = 3599000.0f;
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x5897b7")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ExpectTheWizardAimed(*tested);
         EXPECT_NEAR(tested->Movement().actionInputElapsed, 3599.0f, 1e-3f);
         EXPECT_EQ(tested->Movement().followTarget, -1);
     }
@@ -394,8 +407,9 @@ TEST(HeroSkillsTest, ABlockedHeroUsesTheSkillWithTheLeftButton)
         tested->Movement().pendingClick = click;
         tested->Movement().leftHeld = !click;
         const auto result = tested->Use();
+        // Sin elegido, la rama del Wizard apunta al terreno (0x57ceea), que el contexto no trae.
         ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x5897b7")) << result.Error();
+        EXPECT_TRUE(Contains(result.Error(), "0x57ceea")) << result.Error();
         EXPECT_FALSE(tested->Movement().pendingClick);
     }
 }
@@ -416,8 +430,10 @@ TEST(HeroSkillsTest, TheSiegeSkillsNeedTheSiege)
     const auto tested = AHeroClicking(0x2c, Wizard, 30);
     tested->world.Runtime().siegeActive = true;
     const auto result = tested->Use();
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_TRUE(Contains(result.Error(), "0x5897b7")) << result.Error();
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ExpectTheWizardAimed(*tested);
+    // 0x58c16e: la 0x2c va por el alcance y pide la skill del arma con el elegido.
+    EXPECT_EQ(tested->Movement().weaponSkill.active, 1u);
 }
 
 // 0x57d30c..0x57d31e: con el +0x31 en 2, la skill pide 0x200 en +0x78 del héroe.
@@ -433,8 +449,8 @@ TEST(HeroSkillsTest, APartySkillNeedsThe200Flag)
     const auto tested = AHeroClicking(0x1d, Wizard);
     tested->Hero().flags78 = 0x200;
     const auto result = tested->Use();
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_TRUE(Contains(result.Error(), "0x5897b7")) << result.Error();
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ExpectTheWizardAimed(*tested);
 }
 
 // 0x57d324..0x57d337: con +0x389, nada después de la entrada.
@@ -467,10 +483,15 @@ TEST(HeroSkillsTest, TheSafeZoneOnlyLetsTheListInTheEventMaps)
         tested->Hero().safeZone = 1;
         const CrtRandom expected = Advanced(tested->random, PartyDraws);
         const auto result = tested->Use();
-        EXPECT_EQ(result.HasValue(), !tried.goesOn);
-        if (!tried.goesOn)
+        if (tried.goesOn)
         {
+            ExpectTheWizardAimed(*tested);
+        }
+        else
+        {
+            ASSERT_TRUE(result.HasValue()) << result.Error();
             EXPECT_EQ(tested->random.State(), expected.State());
+            EXPECT_EQ(tested->Movement().targetX, 0u);
         }
     }
 }
@@ -534,23 +555,24 @@ TEST(HeroSkillsTest, TheActionOfTheHeroGatesTheUse)
         const auto tested = AHeroClicking(0x13, Wizard);
         tested->Hero().animation.action = action;
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x5897b7")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ExpectTheWizardAimed(*tested);
     }
 }
 
-// 0x57d4b6: el Wizard no apunta ni mira las armas: va directo a su rama, con el blanco como estaba.
+// 0x57d4b6: el Wizard no apunta ni mira las armas: va directo a su rama (HeroSkillsWizard), que apunta después de su
+// cabeza; la 0x13 no hace nada más (0x58a13a).
 TEST(HeroSkillsTest, TheWizardGoesStraightToItsBranch)
 {
     const auto tested = AHeroClicking(0x13, Wizard);
     tested->Movement().targetX = 9;
-    const CrtRandom expected = Advanced(tested->random, PartyDraws);
+    const CrtRandom expected = Advanced(tested->random, PartyDraws + WizardHeadDraws);
     const auto result = tested->Use();
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_TRUE(Contains(result.Error(), "0x5897b7")) << result.Error();
+    ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(tested->random.State(), expected.State());
-    EXPECT_EQ(tested->Movement().targetX, 9u);
+    ExpectTheWizardAimed(*tested);
     EXPECT_EQ(tested->Movement().weaponSkill.active, 0u);
+    EXPECT_TRUE(tested->sent.empty());
 }
 
 // 0x57ce80 y 0x57d532..0x57d61b: el caballero apunta al elegido (su celda y su posición) y, por cada mano sin la opción

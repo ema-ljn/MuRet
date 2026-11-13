@@ -302,10 +302,7 @@ std::optional<ModelTrailCut> ModelTrailCutOf(const ActorState& actor)
         return ModelTrailCut{.address = 0x441260, .beforeTheRandom = true};
     if (type == 0x1b1 || type == 0x1b3)
         return ModelTrailCut{.address = 0x42fa40, .beforeTheRandom = true};
-    constexpr std::array<std::uint16_t, 7> ActingOn432bd0{0x1ab, 0x1ae, 0x1af, 0x1b0, 0x1b1, 0x1b3, 0x1b4};
-    for (const std::uint16_t model : ActingOn432bd0)
-        if (type == model)
-            return ModelTrailCut{.address = 0x432bd0, .beforeTheRandom = false};
+    // 0x432bd0 está portado (Scenes::StepTheSwingsOf1abTo1b4).
     if (Within(type, 0x1b8, 0x1ba))
         return ModelTrailCut{.address = 0x426d90, .beforeTheRandom = false};
     return std::nullopt;

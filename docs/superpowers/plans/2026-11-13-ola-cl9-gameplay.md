@@ -262,7 +262,9 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
       paso del cuerpo (`0x4f9580`, `0x4fcbb0`, `0x4ea190`/`0x4ea0e0` y el sonido al caminar; 06, "El cuerpo de los
       monstruos y los NPC"). Hecho el dibujo (fase 5a: `0x50ba30` con otro tipo, el cuerpo común de `0x6002e0`, el
       contorno, la sombra, las manos y los sprites de los casos del modelo; 06, "El dibujo de los monstruos y los
-      NPC"); quedan los efectos por tipo y los helpers, que cortan con su dirección (08, P-C179 y P-C241).
+      NPC"); quedan los efectos por tipo y los helpers, que cortan con su dirección (08, P-C179 y P-C241). Hechos
+      en la fase 6d `0x441400`, `0x434180`, `0x4271d0` y `0x432bd0`, salvo sus efectos de la CL11 (06, "Los helpers
+      de los monstruos"; 08, P-C336).
 - [ ] **La tela sobre la malla** (P-C22 f, vtable `0x6b8d04`: los monstruos `0x59..0x8f`; los tres pantalones
       también la usan), y Q-C95 con el primer modelo que se desvanezca (§ Lo que dejó la CL6).
 - [x] El picking de NPC y monstruos en `0x59ec80`, con la caja de cada tipo.

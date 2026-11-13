@@ -288,8 +288,8 @@ TEST(ModelBodyTest, TheTrailOfTheOtherModelsCutsByType)
     EXPECT_EQ(ModelTrailCutOf(knight)->address, 0x4fd233u);
     EXPECT_EQ(ModelTrailCutOf(Monster(0x1a7, 0))->address, 0x441260u);
     EXPECT_TRUE(ModelTrailCutOf(Monster(0x1b3, 0))->beforeTheRandom);
-    EXPECT_EQ(ModelTrailCutOf(Monster(0x1ab, 0))->address, 0x432bd0u);
-    EXPECT_FALSE(ModelTrailCutOf(Monster(0x1ab, 0))->beforeTheRandom);
+    // 0x432bd0 está portado: el 0x1ab no corta acá (StepTheSwingsOf1abTo1b4).
+    EXPECT_FALSE(ModelTrailCutOf(Monster(0x1ab, 3)).has_value());
     EXPECT_FALSE(ModelTrailCutOf(Monster(0x1ac, 0)).has_value());
     EXPECT_EQ(ModelTrailCutOf(Monster(0x1b9, 0))->address, 0x426d90u);
 }
@@ -439,7 +439,9 @@ TEST_F(MonsterStep, TheModelsWithTheirOwnEffectsCutAfterTheirRandom)
 class TraderLibrary final : public Client::Scenes::IModelLibrary
 {
 public:
-    explicit TraderLibrary(const Skeleton& skeleton) : m_skeleton(skeleton) {}
+    explicit TraderLibrary(const Skeleton& skeleton, std::uint16_t model = 0x1f5) : m_skeleton(skeleton), m_model(model)
+    {
+    }
 
     [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
@@ -447,7 +449,7 @@ public:
     }
     [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
     {
-        return model == 0x1f5 ? &m_skeleton : nullptr;
+        return model == m_model ? &m_skeleton : nullptr;
     }
     [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
     {
@@ -456,6 +458,7 @@ public:
 
 private:
     const Skeleton& m_skeleton;
+    std::uint16_t m_model;
 };
 
 // 0x4fce7a..0x4fced1: el 0x1f5 mira la key que dejó la última pose en su modelo (+0xa8, FaunaModels::PoseKey): con la
@@ -499,6 +502,37 @@ TEST_F(MonsterStep, TheTraderPicksItsNextActionWhenItsModelEndedTheLastPose)
     }
     EXPECT_GT(rests, others);
     EXPECT_GT(others, 0);
+    m_world->FaunaResources().Bind(nullptr);
+}
+
+// 0x4fd5d7: desde el frame 3, 0x432bd0 con el 0x1b0 en la 4 fuera de (5, 7) saca su rand() de 0x432bf1 y los dos de
+// cada una de sus diez poses (Scenes::StepTheSwingsOf1abTo1b4), entre el % 6 del cuerpo y la celda de 0x505de0;
+// después, 0x505de0 corta en el helper 0x431470. El esqueleto de Monster02 con diez keys por acción.
+TEST_F(MonsterStep, TheSwingOfThe1b0DrawsItsRandomsBeforeItsEffects)
+{
+    Skeleton swinging = Model();
+    for (auto& action : swinging.actions)
+        action.keyCount = 10;
+    for (auto& bone : swinging.bones)
+        for (auto& keys : bone.actions)
+            if (!keys.empty())
+                keys.resize(10, keys.front());
+    TraderLibrary library(swinging, 0x1b0);
+    m_world->FaunaResources().Bind(&library);
+    m_actor.type = 0x1b0;
+    m_actor.animation.action = 4;
+    m_actor.animation.frame = 3.0f;
+    CrtRandom random(Seed);
+    const auto stepped = Step(random);
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x431470"), std::string::npos) << stepped.Error();
+    ASSERT_EQ(m_actor.animation.action, 4);
+    ASSERT_GE(m_actor.animation.frame, 3.0f);
+    ASSERT_LE(m_actor.animation.frame, 5.0f);
+    CrtRandom expected = Client::Tests::AfterDraws(Seed, 8 + 1 + 1 + 20 + 8);
+    DrawTheHeadAndTheEffects(expected);
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(m_world->PoseCarry().models.count(0x1b0), 1u);
     m_world->FaunaResources().Bind(nullptr);
 }
 } // namespace

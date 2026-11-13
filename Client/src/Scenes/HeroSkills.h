@@ -63,8 +63,9 @@ struct HeroSkillContext
 // los 3.600 s (con el movimiento trabado, 0x77f3bac, el clic izquierdo). Después: 0x6c8e50 en −1, las órdenes del
 // cuervo (0x420f70), las skills del asedio (0x5a5540), Skill.bmd +0x31 en 2 con 0x200, +0x389, la zona segura (solo
 // en Blood Castle y Chaos Castle, y las skills de la lista), 0x6c8e38 por la clase, la acción del héroe, y, salvo el
-// Wizard, el blanco (0x57ce80), la línea de vista (0x558800) y la skill de cada mano (0x559890 o 0x561f60). La rama
-// del Wizard (0x5897b7) es UseTheWizardSkill (HeroSkillsWizard.h); las de 0x57d790 y 0x581894 y las skills 0x43..0x48
+// Wizard, el blanco (0x57ce80), la línea de vista (0x558800) y la skill de cada mano (0x559890 o 0x561f60). La rama de
+// las clases 1, 3 y 4 (0x581894) está en HeroSkillsKnight.h y la del Wizard (0x5897b7, también la del Magic Gladiator
+// después de la suya) es UseTheWizardSkill (HeroSkillsWizard.h); la del elfo (0x57d790) y las skills 0x43..0x48
 // (0x5808da) cortan con su dirección.
 [[nodiscard]] Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSkillContext& context);
 } // namespace Client::Scenes

@@ -327,6 +327,11 @@ el viewport. **Desbloquea:** 4 y 11.
       En la fase 2c-B, la rama del Wizard (`0x5897aa..0x593874`, `Scenes/HeroSkillsWizard`) y `0x55cbc0`
       (`Scenes/Skill55cbc0`), con el `1E`, el `1C` y el `B0`; cortan la party (hito 7), la poción y `0x5808da`
       (08, P-C222).
+      En la fase 2c-C, la rama de las clases 1, 3 y 4 (`0x581894..0x5897a7`, `Scenes/HeroSkillsKnight`: los `19` y
+      `1E` de las `0x29`, `0x2a`, `0x30`, `0x37`, `0x38`, `0x3e`, `0x3f`, `0x40`, `0x41`, `0x4b` y `0x4c`, con
+      `0x551f40`, `0x4e9920`, `0x4e9c50` y `0x57cf90`, y el costo y la poción de `Scenes/HeroSkillCasts`); corta
+      la poción con una en el inventario (`0x581b9e`, hito 5), y el Magic Gladiator sigue en la rama del Wizard
+      (`0x5897b7`) (08, P-C223).
 - [x] **Lo que llega:** el `0x19` (`0x4cc530`, 6,5 KB, con las acciones `0x94`, `0x51` y `0x5b` de
       `0x50f828`), el `0x1E` (`0x4ce000`), el `0x1B` (`0x4cbe90`), el `0x07` (los estados de un personaje,
       `GCSend_07` del GS: `0x4cbe00`, con `0x4e6910`), el `0x48`, el `0x69`, el `0x73` (`0x4d5b10`),

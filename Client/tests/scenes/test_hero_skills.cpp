@@ -41,7 +41,8 @@
 #include <vector>
 
 // La cabeza de 0x57cfc0 (CL9 hito 4, fase 2b; 06 § Usar una skill): el héroe en el lugar 0, un elegido en el 5 y un
-// Skill.bmd inventado. Las ramas de las clases todavía cortan con su dirección.
+// Skill.bmd inventado. La rama de las clases 1, 3 y 4 (HeroSkillsKnight, con sus tests) termina sin arma derecha con
+// las skills que no son de su lista; las otras ramas todavía cortan con su dirección.
 namespace
 {
 using Client::Render::Models::CrtRandom;
@@ -57,6 +58,9 @@ constexpr int HeadDraws = OwnDraws + EntryDraws;
 constexpr int PartyDraws = HeadDraws + EntryDraws;
 // Más las dos celdas lógicas (0x57d4d6, 0x57d4f4).
 constexpr int AimDraws = PartyDraws + 2 * CellDraws;
+// La rama de las clases 1, 3 y 4 (HeroSkillsKnight) sin arma derecha y con una skill fuera de su lista: el maná y la
+// stamina de 0x551c70 y el cierre del registro propio, abierto desde 0x581894.
+constexpr int KnightBranchDraws = EntryDraws + OwnDraws;
 constexpr std::size_t ChosenSlot = 5;
 // La cabeza de la rama del Wizard (0x5897b7..0x58a08a) sin espera: el registro propio y, con él abierto, las entradas
 // del costo, de la energía y de la espera.
@@ -589,6 +593,8 @@ TEST(HeroSkillsTest, TheWizardGoesStraightToItsBranch)
 
 // 0x57ce80 y 0x57d532..0x57d61b: el caballero apunta al elegido (su celda y su posición) y, por cada mano sin la opción
 // de la skill, pide la del arma con el lugar y el elegido; el registro abierto en cada mano cierra con 3.848 rand().
+// Sin arma derecha, la rama (0x581894) termina sin la 0x13; el Magic Gladiator sigue en la del Wizard (0x5897b7), que
+// con la 0x13 no hace nada después de su cabeza.
 TEST(HeroSkillsTest, AKnightAimsAtTheChosenAndAsksForTheWeaponSkill)
 {
     for (const std::uint8_t heroClass : {Knight, Gladiator, Lord})
@@ -598,10 +604,10 @@ TEST(HeroSkillsTest, AKnightAimsAtTheChosenAndAsksForTheWeaponSkill)
             SCOPED_TRACE(heroClass);
             SCOPED_TRACE(map);
             const auto tested = AHeroClicking(0x13, heroClass, map);
-            const CrtRandom expected = Advanced(tested->random, AimDraws + 2 * OwnDraws);
+            const int wizard = heroClass == Gladiator ? WizardHeadDraws : 0;
+            const CrtRandom expected = Advanced(tested->random, AimDraws + 2 * OwnDraws + KnightBranchDraws + wizard);
             const auto result = tested->Use();
-            ASSERT_FALSE(result.HasValue());
-            EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+            ASSERT_TRUE(result.HasValue()) << result.Error();
             EXPECT_EQ(tested->random.State(), expected.State());
             const auto& movement = tested->Movement();
             EXPECT_EQ(movement.targetX, 184u);
@@ -620,28 +626,65 @@ TEST(HeroSkillsTest, AKnightAimsAtTheChosenAndAsksForTheWeaponSkill)
     EXPECT_EQ(tested->Movement().weaponSkill.target, -1);
 }
 
+// 0x5897a7..0x5897b1: el Magic Gladiator pasa por la rama de las clases 1, 3 y 4 (sin arma derecha, la 0xa no es de su
+// lista) y sigue en la del Wizard: Hellfire (0x58c1b6) manda el 1E con su celda lógica (la Y y la X), el rumbo y la
+// clave 0xffff, y pone la acción 0x96. El caballero y el Dark Lord terminan en 0x5808da sin nada.
+TEST(HeroSkillsTest, TheMagicGladiatorGoesOnThroughTheKnightIntoTheWizardBranch)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        const auto tested = AHeroClicking(0xa, Gladiator, map);
+        tested->skills = SkillsWith({{0xa}});
+        tested->Hero().movement = 1;
+        constexpr int SendDraws = 2;
+        // 0x4f3f80 (las velocidades) abre y cierra el registro propio.
+        const CrtRandom expected = Advanced(tested->random, AimDraws + 2 * OwnDraws + KnightBranchDraws +
+                                                                WizardHeadDraws + 2 * CellDraws + SendDraws + OwnDraws);
+        const auto result = tested->Use();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(tested->random.State(), expected.State());
+        ASSERT_EQ(tested->sent.size(), 1u);
+        EXPECT_EQ(ClearBytesOf(tested->sent[0]),
+                  (std::vector<std::uint8_t>{0xc1, 0x0c, 0x1e, 0x0a, 182, 115, 0, 0, 0, 0xff, 0xff, 0}));
+        EXPECT_EQ(tested->Movement().lastShotSkill, 0xau);
+        EXPECT_EQ(tested->Hero().animation.action, 0x96);
+        EXPECT_EQ(tested->Hero().movement, 0);
+    }
+    for (const std::uint8_t heroClass : {Knight, Lord})
+    {
+        SCOPED_TRACE(heroClass);
+        const auto tested = AHeroClicking(0xa, heroClass);
+        tested->skills = SkillsWith({{0xa}});
+        const CrtRandom expected = Advanced(tested->random, AimDraws + 2 * OwnDraws + KnightBranchDraws);
+        ASSERT_TRUE(tested->Use().HasValue());
+        EXPECT_EQ(tested->random.State(), expected.State());
+        EXPECT_TRUE(tested->sent.empty());
+    }
+}
+
 // 0x57d564..0x57d57b: montado, la tabla 0x599d70 saltea las armas con las skills que no deja (la 0x30) y las mira con
-// las demás (la 0x2f).
+// las demás (la 0x2f). La 0x30 sigue sin arma derecha: la rama la paga (0x551c70, 0x552c50 y 0x551f40), saca los dos
+// rand() del C3 sin la sesión y hace la 0x3f.
 TEST(HeroSkillsTest, AMountedHeroSkipsTheWeaponsForSomeSkills)
 {
     {
         const auto tested = AHeroClicking(0x30, Knight);
         tested->Hero().pet.model = 0x1c14;
-        const CrtRandom expected = Advanced(tested->random, AimDraws);
+        const CrtRandom expected = Advanced(tested->random, AimDraws + 3 * EntryDraws + 2 + OwnDraws);
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(tested->random.State(), expected.State());
         EXPECT_EQ(tested->Movement().weaponSkill.active, 0u);
+        EXPECT_EQ(tested->Hero().animation.action, 0x3f);
     }
     {
         // 0x5599f2..0x559ad3: con la 0x2f montado y sin arma derecha, 0x559890 da 0 antes de las opciones.
         const auto tested = AHeroClicking(0x2f, Lord);
         tested->Hero().pet.model = 0x1c37;
-        const CrtRandom expected = Advanced(tested->random, AimDraws + 2 * OwnDraws);
+        const CrtRandom expected = Advanced(tested->random, AimDraws + 2 * OwnDraws + KnightBranchDraws);
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(tested->random.State(), expected.State());
         EXPECT_EQ(tested->Movement().weaponSkill.active, 1u);
     }
@@ -670,13 +713,13 @@ TEST(HeroSkillsTest, TheWeaponSkillsGoToTheirTails)
         EXPECT_EQ(tested->Hero().movement, 1);
     }
     {
-        // 0x559ad5..0x559afa: la 0x2b con un arma derecha de 0xc12 a 0xe11 da 0 y sigue a la rama.
+        // 0x559ad5..0x559afa: la 0x2b con un arma derecha de 0xc12 a 0xe11 da 0 y sigue a la rama, que con el escudo
+        // termina.
         const auto tested = AHeroClicking(0x13, Knight);
         tested->world.OwnCharacter().SetSkillAt(0, 0x2b);
         tested->Hero().hands[0].model = 0xd00;
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
     }
     {
         // 0x55a340..0x55a362: la segunda mano con la opción de la skill, que 0x559510 lanza sobre el elegido.
@@ -728,10 +771,9 @@ TEST(HeroSkillsTest, AWallBeforeTheTargetClearsTheWeaponSkill)
     const auto tested = AHeroClicking(0x13, Knight);
     tested->world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(183, 116)] = 4;
     tested->Movement().weaponSkill = {.active = 1, .slot = 3, .target = 7};
-    const CrtRandom expected = Advanced(tested->random, AimDraws);
+    const CrtRandom expected = Advanced(tested->random, AimDraws + KnightBranchDraws);
     const auto result = tested->Use();
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+    ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(tested->random.State(), expected.State());
     EXPECT_EQ(tested->Movement().weaponSkill.active, 0u);
     EXPECT_EQ(tested->Movement().weaponSkill.slot, 0u);
@@ -748,8 +790,7 @@ TEST(HeroSkillsTest, WithoutAChosenTheSkillAimsAtTheTerrain)
         context.pickTerrainPoint = []() -> Client::Core::Expected<std::optional<glm::vec3>, std::string>
         { return std::optional<glm::vec3>(glm::vec3(18399.0f, 11401.0f, 30.0f)); };
         const auto result = UseTheHeroSkill(tested->Hero(), context);
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(tested->Movement().targetX, 183u);
         EXPECT_EQ(tested->Movement().targetY, 114u);
         EXPECT_EQ(tested->Hero().attackPosition, glm::vec3(18399.0f, 11401.0f, 30.0f));
@@ -764,8 +805,7 @@ TEST(HeroSkillsTest, WithoutAChosenTheSkillAimsAtTheTerrain)
         context.pickTerrainPoint = []() -> Client::Core::Expected<std::optional<glm::vec3>, std::string>
         { return std::optional<glm::vec3>(); };
         const auto result = UseTheHeroSkill(tested->Hero(), context);
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(tested->Movement().targetX, 182u);
     }
     {
@@ -899,8 +939,7 @@ TEST(HeroSkillsTest, WithoutTheRavenOrTheButtonTheSkillGoesOn)
             raven.tested->Ui().rightDown = false;
         raven.tested->Ui().rightReleased = false;
         const auto result = raven.Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_TRUE(raven.sent.empty());
     }
 }
@@ -1005,9 +1044,9 @@ TEST(HeroSkillsTest, WithoutManaTheListedSkillLooksForAPotion)
     {
         SCOPED_TRACE(map);
         const auto tested = AHeroClicking(0x3d, Knight, map);
+        // La rama del caballero (0x581894) termina: sin arma derecha, la 0x3d no sigue.
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_TRUE(tested->sent.empty());
         auto& potion = tested->world.Inventory().cells[12];
         potion.id = 0x1c05;
@@ -1086,9 +1125,9 @@ TEST(HeroSkillsTest, TheOption12CastsOnTheHeroItself)
     }
     const auto tested = AHeroClicking(0x3c, Knight);
     tested->world.Actors()[ChosenSlot].byte88 = 0;
+    // Después, la rama del caballero (0x581894), que sin arma derecha termina sin la 0x3c.
     const auto result = tested->Use();
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+    ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(tested->sent.empty());
 }
 

@@ -254,4 +254,21 @@ TEST(SkillProtocolTest, TheDurationMagicGoesOutWithTwelveBytes)
     EXPECT_TRUE(SameBytes(Xor32Decode(shot.packet).Bytes(),
                           Bytes({0xc1, 0x0c, 0x1e, 0x36, 0xb6, 0x73, 0x5f, 0xaa, 0xdf, 0x8a, 0x1b, 0x00})));
 }
+
+// 0x582439..0x582dd1: el 1E de las ramas del caballero, C1 0C 1E con los bytes 7, 8 y 11 por su lugar y la clave en big
+// endian, para cifrar.
+TEST(SkillProtocolTest, TheDurationMagicIs1EWithNineBytes)
+{
+    const auto magic = Skill::WriteDurationMagic({.skill = 0x4c,
+                                                  .x = 0xb6,
+                                                  .y = 0x73,
+                                                  .direction = 0x9f,
+                                                  .towards = 0xaa,
+                                                  .back = 0x77,
+                                                  .key = 0x0a1b,
+                                                  .magicKey = 5});
+    EXPECT_EQ(magic.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(magic.packet).Bytes(),
+                          Bytes({0xc1, 0x0c, 0x1e, 0x4c, 0xb6, 0x73, 0x9f, 0xaa, 0x77, 0x0a, 0x1b, 0x05})));
+}
 } // namespace

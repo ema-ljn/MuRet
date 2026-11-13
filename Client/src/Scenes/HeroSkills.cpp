@@ -9,6 +9,7 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/HeroAttack.h"
 #include "Scenes/HeroSkillCasts.h"
+#include "Scenes/HeroSkillsKnight.h"
 #include "Scenes/HeroSkillsWizard.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
@@ -382,8 +383,13 @@ Core::Expected<void, std::string> UseTheClassSkill(ActorState& hero, std::uint8_
     if (heroClass == ElfClass)
         return Core::Unexpected(std::format("0x57d790: la skill {:#x} del elfo es de la fase 2c", skill));
     if (heroClass == KnightClass || heroClass == GladiatorClass || heroClass == LordClass)
-        return Core::Unexpected(
-            std::format("0x581894: la skill {:#x} de la clase {} (1, 3 o 4) es de la fase 2c", skill, heroClass));
+    {
+        if (auto used = UseTheKnightSkill(hero, heroClass, skill, context); !used.HasValue())
+            return used;
+        // 0x5897a7..0x5897b1: el Magic Gladiator sigue en la rama del Wizard, que repite la prueba de la clase.
+        if (heroClass == GladiatorClass)
+            return UseTheWizardSkill(hero, skill, context);
+    }
     if (heroClass == WizardClass)
         return UseTheWizardSkill(hero, skill, context);
     // 0x5808da..0x5808e9: fuera de 0x43 a 0x48, nada.

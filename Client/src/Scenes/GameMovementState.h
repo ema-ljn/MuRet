@@ -53,9 +53,9 @@ struct GameMovementState
     std::int32_t attackTarget = -1;
     // 0x576791c (.bss 0): el GetTickCount del último envío que pasó el freno de 300 ms (PassesTheActionBrake).
     std::uint32_t lastActionTick = 0;
-    // 0x5767948 (.bss 0): la skill del último 1E del elfo (0x562b0b, 0x563f2f; 0x34 en 0x57e2c8, y 0x53d9a0), de la
-    // rama del Wizard de 0x57cfc0 (de 0x58c23b a 0x5918f9) y de 0x55cbc0 (0x55e71c), que el paso del ataque lee para
-    // la flecha (0x4febe1, sin portar).
+    // 0x5767948 (.bss 0): la skill del último 1E del elfo (0x562b0b, 0x563f2f; 0x34 en 0x57e2c8, y 0x53d9a0), de las
+    // ramas del caballero (0x582446 y las demás, antes de armarlo) y del Wizard de 0x57cfc0 (de 0x58c23b a 0x5918f9) y
+    // de 0x55cbc0 (0x55e71c), que el paso del ataque lee para la flecha (0x4febe1, sin portar).
     std::uint32_t lastShotSkill = 0;
     // CL9 hito 4. 0x77f3ba4 (.bss 0): lo pone en 0 el Aqua Beam del Wizard (0x590afd). Quién más lo escribe y lo lee,
     // sin leer.

@@ -300,8 +300,9 @@ TEST(AttackStepTest, AnOrdinaryMonsterCountsAndStrikesLikeAPlayer)
     EXPECT_EQ(other.byte381, 2);
 }
 
-// Los ayudantes de 0x4f5b70, cada uno en sus mapas: 0x4436f0 hace salir (AL en 1) después del rand() de 0x4f5b97; los
-// demás cortan en su caso. Los de 0x42fce0 y 0x4324c0 miran el tipo y +0x381.
+// Los ayudantes de 0x4f5b70, cada uno en sus mapas, después del rand() de 0x4f5b97: los que devuelven 1 salen sin la
+// cola (0x4436f0, los de Kalima y los del 33 y el 54 fuera de su efecto); 0x42fce0 y 0x4324c0 miran el tipo y +0x381 y
+// siguen; los efectos cortan. Los casos uno por uno, en test_monster_attack_cases.cpp.
 TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
 {
     struct Case
@@ -312,19 +313,22 @@ TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
         std::uint16_t kind;
         std::uint8_t counter;
         std::string_view cut;
+        int draws;
     };
-    const std::array cases{Case{"Kalima 1", 0x18, 0x160, 0x91, 1, "0x43a872"},
-                           Case{"Kalima 7", 0x24, 0x160, 0x113, 1, "0x43b5e4"},
-                           Case{"Kalima fuera de Kalima", 0, 0x160, 0x91, 1, ""},
-                           Case{"el 31", 0x1f, 0x160, 0x123, 1, "sale"},
-                           Case{"el 31 con otro", 0x1f, 0x160, 0x126, 1, ""},
-                           Case{"el asedio", 0x1e, 0x160, 0x120, 1, "0x42dd23"},
-                           Case{"el 54", 0x36, 0x160, 0x134, 1, "0x4291b1"},
-                           Case{"el 35 en 14", 0x23, 0x1b2, 3, 14, "0x42fd04"},
-                           Case{"el 35 en 2", 0x23, 0x1b2, 3, 2, ""},
-                           Case{"Crywolf 0x17c", 0x22, 0x17c, 3, 1, "0x43258b"},
-                           Case{"Crywolf 0x1ad en 2", 0x22, 0x1ad, 3, 2, ""},
-                           Case{"un caso de +0x376", 0, 0x160, 0x4d, 1, "0x4f7bc8"}};
+    // La lectura de 0x4f97b0 y el rand() de 0x4f5b97.
+    constexpr int Helper = SkillRead + 1;
+    const std::array cases{Case{"Kalima 1", 0x18, 0x160, 0x91, 1, "", Helper + SkillRead},
+                           Case{"Kalima 7", 0x24, 0x160, 0x113, 1, "", Helper + SkillRead},
+                           Case{"Kalima fuera de Kalima", 0, 0x160, 0x91, 1, "", CountingStep},
+                           Case{"el 31", 0x1f, 0x160, 0x123, 1, "", Helper},
+                           Case{"el 31 con otro", 0x1f, 0x160, 0x126, 1, "", CountingStep},
+                           Case{"el asedio", 0x1e, 0x160, 0x120, 1, "0x42dd48", Helper},
+                           Case{"el 54", 0x36, 0x160, 0x134, 1, "", Helper},
+                           Case{"el 35 en 14", 0x23, 0x1b2, 3, 14, "0x42fd37", Helper},
+                           Case{"el 35 en 2", 0x23, 0x1b2, 3, 2, "", CountingStep},
+                           Case{"Crywolf 0x17c", 0x22, 0x17c, 3, 1, "0x43259e", Helper},
+                           Case{"Crywolf 0x1ad en 2", 0x22, 0x1ad, 3, 2, "", CountingStep},
+                           Case{"un caso de +0x376", 0, 0x160, 0x4d, 1, "", CountingStep + SkillRead}};
     for (const Case& probe : cases)
     {
         SCOPED_TRACE(probe.name);
@@ -335,17 +339,16 @@ TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
 
         const auto stepped = tested.Attack(monster, OtherSlot);
 
-        if (probe.cut.empty() || probe.cut == "sale")
+        if (probe.cut.empty())
         {
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
             EXPECT_EQ(monster.byte381, probe.counter + 1);
-            EXPECT_EQ(DrawsSince(Seed, tested.random), probe.cut.empty() ? CountingStep : SkillRead + 1);
         }
         else
         {
             EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
-            EXPECT_EQ(DrawsSince(Seed, tested.random), SkillRead + 1);
         }
+        EXPECT_EQ(DrawsSince(Seed, tested.random), probe.draws);
     }
 }
 
@@ -410,7 +413,7 @@ TEST(AttackStepTest, TheStrikeSoundFollowsTheOwnHands)
 }
 
 // Lo que corta, en su orden y con los rand() de antes: las habilidades del hito 4 (0x4f9899, 0x4f8a39, 0x4fdeeb,
-// 0x504372), los casos de los monstruos de 0x4f5b70 (0x4f6fea), la flecha con y sin blanco (0x53e2b0 en 0x504060 y
+// 0x504372), los efectos de los casos de 0x4f5b70 (0x4f7050), la flecha con y sin blanco (0x53e2b0 en 0x504060 y
 // 0x50377d, después de 0x59fb80 con el registro propio),
 // 0x52e740 (0x5042ce) y, sin el pool de joints, los de +0x380 en 2 (0x505169).
 TEST(AttackStepTest, TheCutsAfterTheirDraws)
@@ -439,8 +442,13 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
                  hero.byte381 = 14;
              },
              "0x504372", CountingStep + 2 * SkillRead},
-        Case{"el caso 0x23 de +0x376", [](AttackWorld&, ActorState& hero) { hero.word376 = 0x23; }, "0x4f6fea",
-             SkillRead + 1},
+        Case{"el caso 0x23 de +0x376",
+             [](AttackWorld&, ActorState& hero)
+             {
+                 hero.word376 = 0x23;
+                 hero.byte38e = 0x32;
+             },
+             "0x4f7050", SkillRead + 1 + SkillRead},
         Case{"el arco",
              [](AttackWorld&, ActorState& hero)
              {

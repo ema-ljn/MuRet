@@ -14,6 +14,7 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainMapping.h"
+#include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Network/PacketSerials.h"
 #include "Render/ModelBatch.h"
@@ -799,7 +800,8 @@ protected:
                                                Client::Scenes::SelectionCamera().angles.z);
     }
 
-    [[nodiscard]] GameScene Scene()
+    // Con `texts`, el Text.bmd de la Data (sin él, lo que lo lee corta).
+    [[nodiscard]] GameScene Scene(const Client::Data::Text::TextTable* texts = nullptr)
     {
         return GameScene(SceneContext{.dataRoot = m_dataRoot,
                                       .textures = store,
@@ -809,7 +811,7 @@ protected:
                                       .cameraInput = &cameraInput,
                                       .world = &world},
                          nullptr, &playerModels, &data.items->table, &playerModels.TextureSlots(), &*data.gates,
-                         &*data.skills);
+                         &*data.skills, texts);
     }
 
     static constexpr std::size_t HeroSlot = 42;
@@ -1201,9 +1203,10 @@ TEST_F(GameSceneDrawTest, TheFrameDrawsTheChatBubblesWithTheWorldProjection)
     scene.Leave();
 }
 
-// 0x5a7eb0 (0x637668): con la palabra del F3 22 (0x5767816) en 1 o más y hasta 10 minutos (659 s), el tiempo es de la
-// fase 2 del hito 11 de la CL9 y corta después del HUD; con 11 minutos (660 s) o en 0, sale sin dibujar.
-TEST_F(GameSceneDrawTest, TheEventTimeOfTheF322CutsUpToTenMinutes)
+// 0x5a7eb0 (0x637668): con la palabra del F3 22 (0x5767816) en 1 o más y hasta 10 minutos (659 s), el tiempo sale
+// después del HUD con los textos 1390 y 1391 del Text.bmd de la Data (test_event_drawing mira el dibujo); con 11
+// minutos (660 s) o en 0, sale sin dibujar. En ningún caso corta.
+TEST_F(GameSceneDrawTest, TheEventTimeOfTheF322DrawsUpToTenMinutes)
 {
     struct Case
     {
@@ -1219,20 +1222,14 @@ TEST_F(GameSceneDrawTest, TheEventTimeOfTheF322CutsUpToTenMinutes)
         {
             SCOPED_TRACE(time);
             world.Runtime().events.timeValue = time;
-            GameScene scene = Scene();
+            GameScene scene = Scene(&*data.text);
             ASSERT_TRUE(scene.Enter().HasValue());
             Client::Tests::RecordingFrameTarget target;
 
             scene.PrepareFrame();
             scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
 
-            if (time != 0 && time < 660)
-            {
-                ASSERT_TRUE(scene.Failure().has_value());
-                EXPECT_NE(scene.Failure()->find("0x5a7f1c"), std::string::npos) << *scene.Failure();
-            }
-            else
-                EXPECT_FALSE(scene.Failure().has_value()) << *scene.Failure();
+            EXPECT_FALSE(scene.Failure().has_value()) << *scene.Failure();
             scene.Leave();
         }
     }

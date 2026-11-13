@@ -1132,7 +1132,7 @@ mapa 30 y `0x637641` corre el picking (`0x59ec80`).
 | `0x63764b` | `0x4383f0` textos 3D | siempre | `glColor3f(1, 1, 1)` (traza 124242+); con textos, mezcla normal |
 | `0x637650` | `0x5bbbc0` hover y ALT | siempre | **opaca** (`0x620980`) y blanco; `0x77f3b66 = 1` |
 | `0x637660` | `0x5a7320(1)` el HUD | `0x7d36899 == 0` (sin vista de arriba); el argumento no se usa | termina con `0x5a9630`, que hace `0x621a90`: **sale del 2D por la pila** (traza 126848..126849) |
-| `0x637668` | `0x5a7eb0` cuenta y resultados de evento | siempre | mezcla y color de lo que dibuje |
+| `0x637668` | `0x5a7eb0` el tiempo del `F3 22` ([Los dibujos de los eventos](#los-dibujos-de-los-eventos)) y la guerra de gremios (`0x5a800e`, hito 8) | siempre | la fuente normal y el texto blanco si dibujó el tiempo |
 | `0x637673` | `0x490390(this = [0x5763514])` ventanas con clase | siempre | dibuja con vfunc +0x14 las de estado ≠ 3 y ≠ 5; después **PROJECTION con identidad y `gluOrtho2D` sin push** ni vuelta a MODELVIEW (traza 126850..126852) |
 | `0x637680` | `[[0x5763524]]+0x14` = `0x492500` (vtable `0x6ba074`) | siempre | la lista de ventanas, aunque esté oculta: sin quads, pero con la mezcla, el color y la textura de `0x492500` y `0x4a5490` (*estático*; esta tabla decía "en la traza, nada", P-C98) |
 | `0x637683` | `0x5f37f0` pedido de duelo | adentro, `0x78abad9` | |
@@ -1371,7 +1371,7 @@ Las texturas nuevas del HUD: `0x104` a `0x120` (sin `0x106`, que no se sube), `0
 | 8 | `0x5ab210(…)` | ayudante (`+0x318` ∈ `0x1c12..0x1c16`, `0x1c37`: Text 354/355/1187/1916, o el nombre de `Item.bmd` en los demás) con `0x5a6af0(ancho − 65, y + 12, 50, 2, durabilidad · 50 / 255)` y **un acceso al registro** (`0x5ab26c`), y vida del invocado (`0x5767960`, Text 356) en (ancho − 200, 16) | por equipo y paquete | nada; la traza tiene un ayudante `0x1c12` (el 13/0 de `Item.bmd`): su nombre (124259) y su barra (124268..124304), con 3.848 r más |
 | 9 | `0x5aac20` | avisos de durabilidad: IsOpen(`0x20`); si no, 12 ranuras de equipo (`0..0x360` de a `0x48`), '%s (%d/%d)' con la máxima de `0x5b1ba0`, y el aviso en D+0x44 (3: sin la fuerza; 7 a 8: gastado o roto) | siempre | 1 + 12 × 3.848 r |
 | 10 | macro | 'Macro Time' y `0x5a6af0(x, 404, 50, 2, …)` | `0x77f3b74 > 0` | nada |
-| 11 | `glColor3f(1,1,1)`; `0x40bab0(this = 0x723c60)` + vfunc +4 | cuenta de DS/BC/CC: `0x40bab0` solo dibuja con +8 en 1..14; la vfunc +4 es un `ret` en DS (`0x40bdb0`) y en BC (`0x40c2d0`) y CC (`0x405090`) dibuja solo con +0x10 ≠ 0 y el mapa en 11..17 o 18..23 | objeto activo | nada (MuRet corta solo cuando dibujaría: CL9.5) |
+| 11 | `glColor3f(1,1,1)`; `0x40bab0(this = 0x723c60)` + vfunc +4 | cuenta de DS/BC/CC: `0x40bab0` solo dibuja con +8 en 1..14; la vfunc +4 es un `ret` en DS (`0x40bdb0`) y en BC (`0x40c2d0`) y CC (`0x405090`) dibuja solo con +0x10 ≠ 0 y el mapa en 11..17 o 18..23 ([Los dibujos de los eventos](#los-dibujos-de-los-eventos)) | objeto activo | nada (CL9 hito 11, *estático*) |
 | 12 | `0x5a9050` | globos y nombres sobre las cabezas (`0x77e1be0`) | entradas vivas | nada |
 | 13 | `0x451d10`/`0x451c20` | carteles [LOJA] | singleton `0x7245c8` | nada |
 | 14 | `0x5a6cc0` | marcador de duelo | `0x78abad8` | nada |
@@ -1437,6 +1437,46 @@ registro del chat (`0x45d8c0`, `0x45a9d0`). **La captura** (PrintScreen, flanco 
 `Screen(%02d_%02d-%02d_%02d)-%04d.jpg` (mes, día, hora, minuto; contador `0x7d368ac` módulo 10.000) y el Text 459;
 después del dibujo de la escena, `0x6202e0` hace `glReadPixels` en RGB y `0x63b150` escribe un JPEG de calidad 100;
 el mensaje va al área de mensajes. No saca `rand()`.
+
+### Los dibujos de los eventos
+
+CL9 hito 11, fase 2 (`Scenes/EventDrawing`). **Todo *estático***: no hay traza de GL de ninguno; lo que la VM tiene
+que confirmar está en 08 (P-C294). `0x554180` es `DrawHudLine` y `0x623690` es `DrawHudCentered` (06 § Texto);
+`[0x6c8e5c]` y `[0x6c8e64]` son los colores del texto y del fondo, y la fuente es la del `SelectObject` de antes.
+
+- **El tiempo del `F3 22`, `0x5a7eb0`** (después del HUD, `0x637668`). Con la palabra `0x5767816` en 1 o más y
+  hasta 10 minutos (`IDIV` por 60 y `JG 10`: hasta 659 s), la fuente `0x576355c`, el texto en `0xff0a0aff` sobre 0
+  y `sprintf` a 28 bytes de la pila: con el tipo `0x5767814` en 3, 1392 con los segundos en `0xff0affff`; si no,
+  1390 (`%d:0%d`, con menos de 10 segundos) o 1391 (`%d:%d`) con minutos y segundos, en `0xff0affff` con menos de
+  60 s. La x es `ftol(float(0x5bb8d0() · 0,5f))`, el ancho del mundo con sus `rand()`: el texto centrado en
+  (x, 350) y otra vez en blanco en (`ftol(x + 1f)`, 351), encima. Termina con la fuente `0x5763554` y el texto
+  blanco. La otra mitad (`0x5a800e`, la guerra de gremios) compara un byte de `0x57678ed` con `0x77f3cc0`: es del
+  hito 8; MuRet no escribe `0x57678ed` y no la alcanza.
+- **El tiempo y los puntos de los castillos**, el método +4 del objeto del evento: `0x40c2d0` (Blood Castle, mapas
+  11 a 17) y `0x405090` (Chaos Castle, 18 a 23), con `+0x10` distinto de 0. En su mapa, **antes de mirar el
+  estado**, `0x620980`, `0x620a00(0)`, `glColor3f(1, 1, 1)` y los colores `0xff0096ff` sobre 0. Después, con
+  `+0x10` en 1, 2 o 5 (BC) o de 6 a 8 (CC) y `+0x18` (el tiempo) en 1 o más: si `+0x1c` no es `0xffff`, los puntos
+  (`wsprintfA` de 864, 866 con el 5, o 1161, con `+0x20` y `+0x1c`) con la fuente `0x5763558`, centrados en
+  (570, 345), y la fila baja a 357; 865 en (570, fila); y `0x40bbf0(570f, fila + 10f, +0x18)`: `" %.2d :"` con los
+  minutos, `" %.2d"` con los segundos (si la resta no da negativa), en `0xff2020ff` con menos de 5 minutos, `": %.2d"`
+  con `ftol(0x5767b88) % 60` con menos de 15, todo con la fuente `0x576355c` y centrado. Chaos Castle, al final,
+  elige el área de la trampa `0x6c634c` por `+0x20`: (40, 46] → 0, (30, 36] → 3, (20, 26] → 6 (Q-C1335). Devil
+  Square (`0x40bdb0`) es un `ret`.
+- **El texto de las cajas de los resultados**, `0x632a2b`: con la caja `0x8b`, `0x97` o `0x9b` y el objeto, su método
+  +0x10 por el tipo del objeto (no por la caja):
+  - Devil Square, `0x40bdd0`: `glColor3f(0,5, 1, 0,5)`, 647 en (`0xe5`, `0x46`) y 648 con el nombre del héroe (`+0x1d9`)
+    en (`0xe5`, `0x56`); `glColor3f(0,5, 0,5, 1)` y los títulos 680, 682, 683 y 684 en la y `0x6e` (el 681 se saltea;
+    el 682 va 10 a la derecha de su columna); las columnas son `0xdb`, `0xeb`, `0x11f`, `0x159` y `0x17f`. En blanco,
+    las filas desde `0x7e` de a 16, con `+0x24` filas: el registro `(fila + 1) % +0x24` de los de 24 bytes de `+0x2c`
+    (Q-C1333), con el puesto (`%2d`) y el nombre (10 bytes) en blanco y `+0xc` (`%10d`, `0xffffd2d2`), `+0x10` (`%6d`,
+    `0xffd2ffd2`) y `+0x14` (`%6d`, `0xffd2d2ff`). La última fila es la propia: `glColor3f(0,9, 0,9, 0)`, 685 en
+    (`0xdb`, `0x11e`), la fila en `0x12e` y el puesto de `+0x28`.
+  - Blood Castle, `0x40c440`: `glColor3f(0,5, 1, 0,5)`, centrados en `0x140`: 857 y 858 si `+0x24` (ganó), 859 y 860
+    si no, en `0x46` y `0x56`. Después, blanco, la fuente `0x5763558` y 861 con `+0x3c` (`0xffd2ffd2`) en `0x6a`, 862 con
+    `+0x40` (`0xffd2d2ff`) en `0x82` solo si ganó, y 863 con `+0x38` (`0xffffd2d2`) en `0x9a` (o `0x82`).
+  - Chaos Castle, `0x405220`: si ganó, 1151 en `0x50` y `"%s %s"` con 1152 y 858 en `0x60`; si no, `"%s %s"` con 1152
+    y 860 en `0x50` y 1153 en `0x60`. Después, blanco, la fuente `0x5763558` y `0xffd2ffd2`: 861 con `+0x3c`, 1162 con
+    `+0x38` y 1163 con `+0x40` en `0x7e`, `0x92` y `0xa6`.
 
 ### La captura de pantalla
 

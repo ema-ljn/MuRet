@@ -10,6 +10,7 @@
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/EventDrawing.h"
 #include "Scenes/GameDialogSteps.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMovementState.h"
@@ -533,10 +534,10 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
         DrawTheBoxRows(frame);
     else if (box)
     {
-        // 0x632a2b: [0x723c60] + 0x10, el texto de la caja del objeto del evento (0x40bdd0, 0x40c440 o 0x405220).
-        // Sin el objeto, nada.
+        // 0x632a2b: [0x723c60] + 0x10, el texto de la caja del objeto del evento (0x40bdd0, 0x40c440 o 0x405220),
+        // por su tipo (CL9 hito 11, Scenes/EventDrawing). Sin el objeto, nada.
         if (frame.runtime.eventObject)
-            return Core::Unexpected(std::format("0x632a2b: el texto de la caja {:#x} del evento es de la CL9.5", id));
+            return DrawTheEventBoxText(frame.context, *frame.runtime.eventObject);
     }
     else if (generic)
     {

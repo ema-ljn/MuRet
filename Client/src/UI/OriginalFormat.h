@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -26,8 +27,16 @@ struct TextArgument
     std::string_view text;
 };
 
+// Otro texto por puntero (el nombre del héroe, +0x1d9 de [0x743a170]): su dirección, si MuRet la sabe. Un "%d" o un
+// "%c" que lo toma sin ella corta.
+struct StringArgument
+{
+    std::string_view text;
+    std::optional<std::uint32_t> address{};
+};
+
 // Un número por valor (un DWORD en la pila) o un texto por puntero.
-using FormatArgument = std::variant<std::int32_t, TextArgument>;
+using FormatArgument = std::variant<std::int32_t, TextArgument, StringArgument>;
 
 enum class FormatFunction : std::uint8_t
 {

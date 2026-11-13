@@ -834,23 +834,9 @@ TEST_F(GameHudTest, ThePiecesOfOtherWavesStopWithTheirAddress)
         std::string_view address;
         void (*arrange)(WorldState&);
     };
-    const std::array<Case, 6> cases{{
+    const std::array<Case, 4> cases{{
         {"0x5a89b0", [](WorldState& state) { state.Runtime().hud.partyCount = 2; }},
         {"0x5f7180", [](WorldState& state) { state.Runtime().panels.panel2000 = 1; }},
-        {"0x405090",
-         [](WorldState& state)
-         {
-             state.Runtime().map = 23;
-             state.Runtime().eventObject =
-                 Client::Scenes::EventMapObject{.kind = Client::Scenes::EventMapKind::ChaosCastle, .field10 = 7};
-         }},
-        {"0x40c2d0",
-         [](WorldState& state)
-         {
-             state.Runtime().map = 11;
-             state.Runtime().eventObject =
-                 Client::Scenes::EventMapObject{.kind = Client::Scenes::EventMapKind::BloodCastle, .field10 = 1};
-         }},
         {"0x4125b0",
          [](WorldState& state)
          {
@@ -922,6 +908,60 @@ TEST_F(GameHudTest, TheEventObjectsWithoutTheirPacketsDrawNothing)
         world.Runtime().eventObject = Client::Scenes::EventMapObject{.kind = kind};
         const auto drawn = Hud();
         EXPECT_TRUE(drawn.HasValue()) << drawn.Error();
+    }
+}
+
+// CL9 hito 11, el método +4 (0x40c2d0, 0x405090) en el HUD, con el Text.bmd de la Data: los puntos (864 o 1161), 865
+// y el tiempo en la columna 570. Chaos Castle elige el área de la trampa (0x6c634c) por +0x20; un dibujo intermedio
+// no la escribe. Fuera de sus mapas (Lorencia, Devias) no dibuja.
+TEST_F(GameHudTest, TheCastleObjectsDrawTheirPointsAndTime)
+{
+    struct Case
+    {
+        std::int32_t map;
+        Client::Scenes::EventMapKind kind;
+        std::uint8_t state;
+        std::size_t points;
+        bool draws;
+    };
+    for (const Case& probe : {Case{11, Client::Scenes::EventMapKind::BloodCastle, 1, 864, true},
+                              Case{23, Client::Scenes::EventMapKind::ChaosCastle, 7, 1161, true},
+                              Case{0, Client::Scenes::EventMapKind::BloodCastle, 1, 864, false},
+                              Case{2, Client::Scenes::EventMapKind::ChaosCastle, 7, 1161, false}})
+    {
+        SCOPED_TRACE(probe.map);
+        const std::optional<std::string_view> format = Client::UI::TextAt(&*data.text, probe.points);
+        ASSERT_TRUE(format.has_value());
+        const auto points = Client::UI::FormatOriginal(Client::UI::FormatFunction::Wsprintf, *format,
+                                                       std::vector<Client::UI::FormatArgument>{42, 70}, "test");
+        ASSERT_TRUE(points.HasValue()) << points.Error();
+        for (const bool projecting : {true, false})
+        {
+            SCOPED_TRACE(projecting);
+            world.Runtime() = Client::Scenes::WorldRuntime{};
+            world.Runtime().map = probe.map;
+            world.Runtime().eventObject = Client::Scenes::EventMapObject{
+                .kind = probe.kind, .field10 = probe.state, .field14 = {900, 1000, 70, 42}};
+            text.texts.clear();
+            const auto drawn = Hud(projecting);
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+            const auto line = std::ranges::find(text.texts, points.Value(), &Client::Tests::RecordedText::text);
+            const auto time =
+                std::ranges::find(text.texts, std::string(" 16 : 40"), &Client::Tests::RecordedText::text);
+            if (!probe.draws)
+            {
+                EXPECT_EQ(line, text.texts.end());
+                EXPECT_EQ(time, text.texts.end());
+                EXPECT_EQ(world.Runtime().chaosCastleArea, 0xff);
+                continue;
+            }
+            ASSERT_NE(line, text.texts.end());
+            EXPECT_EQ(line->y, 345);
+            ASSERT_NE(time, text.texts.end());
+            EXPECT_EQ(time->y, 367);
+            const bool writes = probe.kind == Client::Scenes::EventMapKind::ChaosCastle && !projecting;
+            EXPECT_EQ(world.Runtime().chaosCastleArea, writes ? 0 : 0xff);
+        }
     }
 }
 

@@ -27,12 +27,13 @@ struct Spec
     std::optional<std::size_t> precision{};
 };
 
-std::uint32_t RawValue(const FormatArgument& argument)
+std::optional<std::uint32_t> RawValue(const FormatArgument& argument)
 {
     if (const auto* number = std::get_if<std::int32_t>(&argument))
         return static_cast<std::uint32_t>(*number);
-    const auto& text = std::get<TextArgument>(argument);
-    return TextTableAddress + static_cast<std::uint32_t>(text.index) * TextRecordBytes;
+    if (const auto* text = std::get_if<TextArgument>(&argument))
+        return TextTableAddress + static_cast<std::uint32_t>(text->index) * TextRecordBytes;
+    return std::get<StringArgument>(argument).address;
 }
 
 std::string Pad(std::string body, const Spec& spec, std::string_view sign = {})
@@ -177,12 +178,15 @@ Core::Expected<std::string, std::string> FormatOriginal(FormatFunction function,
         const FormatArgument& argument = arguments[next++];
         if (conversion == 's')
         {
-            const auto* text = std::get_if<TextArgument>(&argument);
-            if (text == nullptr)
+            std::string_view body;
+            if (const auto* text = std::get_if<TextArgument>(&argument))
+                body = text->text;
+            else if (const auto* string = std::get_if<StringArgument>(&argument))
+                body = string->text;
+            else
                 return Core::Unexpected(std::format("{}: \"{}\" pasa un número ({}) a un %s y el original lo leería "
                                                     "como puntero",
                                                     where, format, std::get<std::int32_t>(argument)));
-            std::string_view body = text->text;
             if (spec.precision && body.size() > *spec.precision)
                 body = body.substr(0, *spec.precision);
             Spec padding = spec;
@@ -190,14 +194,18 @@ Core::Expected<std::string, std::string> FormatOriginal(FormatFunction function,
             out += Pad(std::string(body), padding);
             continue;
         }
+        const std::optional<std::uint32_t> value = RawValue(argument);
+        if (!value)
+            return Core::Unexpected(std::format("{}: \"{}\" imprime con %{} la dirección de \"{}\", que MuRet no sabe",
+                                                where, format, conversion, std::get<StringArgument>(argument).text));
         if (conversion == 'c')
         {
             Spec padding = spec;
             padding.zero = false;
-            out += Pad(std::string(1, static_cast<char>(RawValue(argument) & 0xffu)), padding);
+            out += Pad(std::string(1, static_cast<char>(*value & 0xffu)), padding);
             continue;
         }
-        out += Integer(RawValue(argument), conversion, spec, function);
+        out += Integer(*value, conversion, spec, function);
     }
     return out;
 }

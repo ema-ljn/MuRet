@@ -14,6 +14,7 @@
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/EventDrawing.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameDialogDrawing.h"
@@ -337,15 +338,9 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     // 0x637660: 0x5a7320(1), el HUD, con 0x7d36899 en 0.
     if (auto drawn = DrawTheHud(hud); !drawn.HasValue())
         return drawn;
-    // 0x637668: 0x5a7eb0. Con la palabra del F3 22 (0x5767816) distinta de 0 y a lo sumo 10 minutos (0x5a7ee2..
-    // 0x5a7f16), el tiempo que escribe en rojo o amarillo es de la fase 2 del hito 11; la otra mitad (0x5a800e, con
-    // 0x57678ed distinto de 0x77f3cc0) es la guerra de gremios del hito 8.
-    constexpr std::uint16_t SecondsPerMinute = 60;
-    constexpr std::uint16_t MaxEventTimeMinutes = 10;
-    if (const std::uint16_t time = runtime.events.timeValue;
-        time != 0 && time / SecondsPerMinute <= MaxEventTimeMinutes)
-        return Core::Unexpected(
-            std::format("0x5a7f1c: el tiempo del F3 22 ({} s) es de la fase 2 del hito 11 de la CL9", time));
+    // 0x637668: 0x5a7eb0, el tiempo del F3 22 (Scenes/EventDrawing).
+    if (auto drawn = DrawTheEventTime(hud); !drawn.HasValue())
+        return drawn;
     // 0x637673: 0x490390, las ventanas viejas, y 0x637680: la lista de ventanas, siempre. Un dibujo intermedio de MuRet
     // las dibuja sobre su copia.
     UI::OldWindowManager& oldWindows = m_projectingFrame ? m_projection->oldWindows : runtime.oldWindows;

@@ -130,22 +130,17 @@ public:
     Client::Tests::RecordingTextDrawer text{sprites};
     Client::UI::Point mouse{};
     Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({
-        {381, "salir"},
-        {382, "otro servidor"},
-        {383, "otro personaje"},
-        {384, "cerrar"},
-        {385, "opciones"},
-        {386, "ataque"},
-        {387, "aviso"},
-        {388, "listo"},
-        {389, "volumen"},
-        {401, "uno"},
-        {402, "sin conexion"},
-        {405, "primero"},
-        {406, "segundo"},
-        {409, "fin"},
-        {919, "carteles"},
-        {1840, "brillo"},
+        {381, "salir"},          {382, "otro servidor"},
+        {383, "otro personaje"}, {384, "cerrar"},
+        {385, "opciones"},       {386, "ataque"},
+        {387, "aviso"},          {388, "listo"},
+        {389, "volumen"},        {401, "uno"},
+        {402, "sin conexion"},   {405, "primero"},
+        {406, "segundo"},        {409, "fin"},
+        {857, "ganaste"},        {858, "mision cumplida"},
+        {859, "perdiste"},       {860, "mision sin cumplir"},
+        {861, "exp %d"},         {863, "puntos %d"},
+        {919, "carteles"},       {1840, "brillo"},
     });
 };
 
@@ -316,20 +311,27 @@ TEST(GameDialogDrawingTest, ThePagedArrowsTakeTheClick)
     EXPECT_FLOAT_EQ(QuadsOf(tested.sprites).back().color.red, 0.7f);
 }
 
-// 0x632a2b: las cajas 0x8b, 0x97 y 0x9b sin el objeto del evento no tienen texto; con él, cortan.
-TEST(GameDialogDrawingTest, TheEventBoxesCutWithTheEventObject)
+// 0x632a2b: las cajas 0x8b, 0x97 y 0x9b sin el objeto del evento no tienen texto; con él, el de su método +0x10 por
+// el tipo del objeto y no por la caja (test_event_drawing mira cada uno), en Lorencia y en Devias.
+TEST(GameDialogDrawingTest, TheEventBoxesDrawTheTextOfTheEventObject)
 {
-    DrawingDialogs tested(Devias);
-    Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
-    runtime.dialogs.current = 0x97;
-    ASSERT_TRUE(tested.Draw().HasValue());
-    EXPECT_EQ(QuadsOf(tested.sprites).size(), 9u);
-    EXPECT_TRUE(tested.text.texts.empty());
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        DrawingDialogs tested(map);
+        Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+        runtime.dialogs.current = 0x97;
+        ASSERT_TRUE(tested.Draw().HasValue());
+        EXPECT_EQ(QuadsOf(tested.sprites).size(), 9u);
+        EXPECT_TRUE(tested.text.texts.empty());
 
-    runtime.eventObject = Client::Scenes::EventMapObject{};
-    const auto drawn = tested.Draw();
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x632a2b"), std::string::npos) << drawn.Error();
+        runtime.eventObject = Client::Scenes::EventMapObject{.kind = Client::Scenes::EventMapKind::BloodCastle};
+        tested.sprites.Begin(Screen640);
+        const auto drawn = tested.Draw();
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(QuadsOf(tested.sprites).size(), 9u);
+        EXPECT_EQ(tested.Texts(), (std::vector<std::string>{"perdiste", "mision sin cumplir", "exp 0", "puntos 0"}));
+    }
 }
 
 // 0x630c51: el OK genérico, con su botón (0xf2 con el mouse) y sus textos de uno o dos renglones.

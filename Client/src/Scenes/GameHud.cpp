@@ -18,6 +18,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbleDraw.h"
 #include "Scenes/EventMapObject.h"
+#include "Scenes/EventDrawing.h"
 #include "Scenes/EventPackets.h"
 #include "Scenes/GameCharacterHud.h"
 #include "Scenes/GameCommandsWindow.h"
@@ -57,6 +58,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -806,7 +808,6 @@ Core::Expected<void, std::string> DrawTheEventObject(Frame& frame)
     if (!frame.runtime.eventObject)
         return {};
     EventMapObject& event = *frame.runtime.eventObject;
-    const std::int32_t map = frame.runtime.map;
     // 0x40bab0: la cuenta de 30 segundos con +8 de 1 a 14 (GetTickCount contra +0xc y los textos de la entrada). Un
     // dibujo intermedio no apaga la cuenta vencida: el frame siguiente del original lo vuelve a hacer.
     auto countdown = EventCountdownText(event, frame.context.tickCount, frame.context.texts, !frame.context.projecting);
@@ -821,16 +822,9 @@ Core::Expected<void, std::string> DrawTheEventObject(Frame& frame)
             Render::Text::TextColors{.text = EventCountdownTextColor, .background = EventCountdownBackground};
         DrawHudText(frame, EventCountdownLeft, EventCountdownTop, *countdown.Value(), false);
     }
-    // El método +4: el de Blood Castle (0x40c2d0) con +0x10 en los mapas 11 a 17, el de Chaos Castle (0x405090) con
-    // +0x10 en los 18 a 23 y el de Devil Square (0x40bdb0), un ret. Los dos campos los escribe el 9B (CL9 hito 11);
-    // el dibujo es de la fase 2.
-    const bool bloodCastle = event.kind == EventMapKind::BloodCastle && map > 10 && map < 0x12;
-    const bool chaosCastle = event.kind == EventMapKind::ChaosCastle && map > 0x11 && map < 0x18;
-    if (event.field10 != 0 && (bloodCastle || chaosCastle))
-        return Core::Unexpected(std::format("{}: el tiempo y los puntos del evento son de la fase 2 del hito 11 de la "
-                                            "CL9",
-                                            bloodCastle ? "0x40c2d0" : "0x405090"));
-    return {};
+    // El método +4: el de Blood Castle (0x40c2d0), el de Chaos Castle (0x405090) y el de Devil Square (0x40bdb0), un
+    // ret. Los campos los escribe el 9B (CL9 hito 11). Un dibujo intermedio no elige el área de la trampa.
+    return DrawTheCastleTimeAndPoints(frame.context, event, !frame.context.projecting);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -1480,7 +1474,12 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     hud.textColors.text = 0xffffffffu;
     // 1. 0x5a7520.
     DrawTheSands(frame);
-    // 2. 0x5a7640: la guerra de gremios, con 0x576796c (CL9.4): nada.
+    // 2. 0x5a7640: la guerra de gremios, con 0x576796c (CL9.4): nada. Con el tanteador de Battle Soccer que deja el
+    // F3 23 (0x576796f, CL9 hito 11), su dibujo (0x5a7a0e) busca los nombres en la lista de gremios de 0x787aa55, del
+    // hito 8.
+    if (runtime.events.soccer.active)
+        return Core::Unexpected(std::string("0x5a7a0e: el tanteador de Battle Soccer, con la lista de los gremios "
+                                            "(0x787aa55), es del hito 8 de la CL9"));
     // 3. 0x5a89b0: las barras de la party.
     if (hud.partyCount > 0)
         return Core::Unexpected(std::string("0x5a89b0: las barras de vida de la party son de la CL9.4"));

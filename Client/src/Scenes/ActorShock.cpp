@@ -6,9 +6,12 @@
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/MonsterSounds.h"
 #include "Scenes/WorldEntry.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 
@@ -60,25 +63,31 @@ void PlayerHitSound(const ActorState& actor, const WorldEntryResources& resource
     }
     sound = 0x69 + random.Next() % 3;
 }
-Core::Expected<void, std::string> HitSound(const ActorState& actor, const WorldEntryResources& resources)
+void HitSound(const ActorState& actor, const WorldEntryResources& resources)
 {
     // 0x4f5496 mira C3: unordered también entra en el sonido.
     if (actor.animation.frame < 0.0f || actor.animation.frame > 0.0f)
-        return {};
+        return;
+    auto& sound = resources.world.Runtime().lastSoundId;
     if (actor.subtype >= 209 && actor.subtype <= 211)
     {
-        resources.world.Runtime().lastSoundId = 0x7b;
-        return {};
+        sound = 0x7b;
+        return;
     }
     if (actor.type == Data::Models::PlayerSkeletonModel)
     {
         PlayerHitSound(actor, resources);
-        return {};
+        return;
     }
     constexpr std::uint16_t SilentMonster = 0x160;
     if (actor.type == SilentMonster)
-        return {};
-    return Core::Unexpected(std::string("0x4f5552: el golpe necesita la tabla de sonidos del monstruo"));
+        return;
+    // 0x4f553d..0x4f55ac: la WORD 2 o la 3 de la tabla del modelo, la que escribió el alta (WorldRuntime::modelSounds).
+    constexpr std::size_t FirstHitSound = 2;
+    const auto drawn = DrawModelSound(WrittenSounds(resources.world.Runtime().modelSounds, actor.type), FirstHitSound,
+                                      actor.subtype, resources.cloth.random);
+    if (drawn)
+        sound = drawn;
 }
 } // namespace
 Core::Expected<void, std::string> SetActorShock(ActorState& actor, std::uint16_t damage,
@@ -102,8 +111,7 @@ Core::Expected<void, std::string> SetActorShock(ActorState& actor, std::uint16_t
             resources.world.Runtime().lastSoundId = 0x27b + (resources.cloth.random.Next() & 1);
         actor.movement = 0;
     }
-    if (auto sounded = HitSound(actor, resources); !sounded.HasValue())
-        return sounded;
+    HitSound(actor, resources);
     constexpr std::uint16_t SparkMonster = 0x18f;
     if (actor.type == SparkMonster)
         return Core::Unexpected(std::string("0x4f55bb: las cinco chispas del monstruo no están portadas"));

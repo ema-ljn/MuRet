@@ -27,6 +27,7 @@ using Client::Protocol::ProtocolError;
 using Client::Protocol::Connection::ReadServerAddress;
 using Client::Protocol::Connection::ReadServerList;
 using Client::Protocol::Connection::ServerEntry;
+using Client::Protocol::Connection::WriteCreditsNotice;
 using Client::Protocol::Connection::WriteServerListRequest;
 using Client::Protocol::Connection::WriteServerSelect;
 using Client::Tests::Bytes;
@@ -64,6 +65,16 @@ TEST(ServerListTest, RequestsTheListInClear)
 
     EXPECT_TRUE(SameBytes(request.packet.Bytes(), Bytes({0xC1, 0x04, 0xF4, 0x02})));
     EXPECT_EQ(request.delivery, Delivery::Clear);
+}
+
+// El de los créditos (0x641203 y 0x63f9a0): C1 04 F4 06, en claro, armado a mano (sin el motor de envío ni
+// rand()).
+TEST(ServerListTest, TheCreditsSendF406InClear)
+{
+    const auto notice = WriteCreditsNotice();
+
+    EXPECT_TRUE(SameBytes(notice.packet.Bytes(), Bytes({0xC1, 0x04, 0xF4, 0x06})));
+    EXPECT_EQ(notice.delivery, Delivery::Clear);
 }
 
 // La lista del cable del laboratorio, como la deja FoxAnti: un servidor, el código 400 y carga 0.

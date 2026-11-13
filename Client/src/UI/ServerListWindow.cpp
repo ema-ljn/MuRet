@@ -14,6 +14,7 @@
 #include "Scenes/SceneTextures.h"
 #include "UI/Button.h"
 #include "UI/GameText.h"
+#include "UI/NewUi.h"
 #include "UI/ServerListModel.h"
 #include "UI/Widget.h"
 
@@ -323,14 +324,32 @@ const std::vector<std::string>& ServerListWindow::Description() const
     return m_description;
 }
 
-std::optional<ServerClick> ServerListWindow::Step(const Input::InputState& input, App::PixelSize screen)
+Rect ServerListWindow::Bounds(App::PixelSize screen) const
+{
+    return LayoutServerList(screen, DescriptionHeight(m_sizes(DescriptionLineSlot)), ShownServers()).window;
+}
+
+std::optional<ServerClick> ServerListWindow::Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn)
 {
     if (!m_open)
     {
         return std::nullopt;
     }
     Place(screen);
-    const Point mouse = MouseInPixels(input, screen);
+    const std::optional<Point> mouse = MouseOfTheTurn(turn, input, screen);
+    if (!turn.logic)
+    {
+        // Sin el foco, 0x669f40 atiende los botones y no corre 0x645e10.
+        for (Button& button : m_groupButtons)
+        {
+            static_cast<void>(button.Step(input, mouse));
+        }
+        for (std::size_t i = 0; i < ShownServers(); ++i)
+        {
+            static_cast<void>(m_serverButtons[i].Step(input, mouse));
+        }
+        return std::nullopt;
+    }
 
     // 0x645e10: el primer grupo con clic, entre los 21.
     std::optional<std::size_t> clickedGroup;

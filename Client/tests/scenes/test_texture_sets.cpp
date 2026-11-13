@@ -70,21 +70,28 @@ TEST(TextureSetsTest, TheLoginSetIsTheOneOf0x61c7c0)
     EXPECT_EQ(CountWith(LoginTextureSet, {Filter::Nearest, Wrap::Repeat}), 2u);
 }
 
-// Las seis de 0x61ccb0 que usan el login y la selección: los dos cursores (los slots 2 y 3, con filtro y
-// sin repetir, 0x61ccf9 y 0x61cd12) y las cuatro de las ventanas (CL5.5 y CL6.5), sin filtro y sin
-// repetir. Ninguna en un slot de las dos escenas: cada una sube los dos juegos a la vez. La última es la
-// caja del código del borrado (0x728).
+// Las de 0x61ccb0 que usan el login y la selección: los dos cursores (los slots 2 y 3, con filtro y sin
+// repetir, 0x61ccf9 y 0x61cd12), las cuatro de las ventanas (CL5.5 y CL6.5), sin filtro y sin repetir, y
+// las del hito 8 de la CL8, sin filtro: el cerrar de los créditos (0x726), las seis de la ventana de Esc,
+// con la piedra y los dos lados repetidos, y las cinco de las opciones, con el relleno del deslizador
+// repetido. Ninguna en un slot de las dos escenas: cada una sube los dos juegos a la vez. La séptima es
+// la caja del código del borrado (0x728), la decimotercera los botones de la de Esc (0x72f) y la última
+// la barra del deslizador (0x734).
 TEST(TextureSetsTest, TheWindowSetIsTheOneOf0x61ccb0)
 {
     ExpectAValidSet(WindowTextureSet);
-    ASSERT_EQ(WindowTextureSet.size(), 6u);
+    ASSERT_EQ(WindowTextureSet.size(), 18u);
     EXPECT_EQ(WindowTextureSet[0].path, "Interface\\Cursor.tga");
     EXPECT_EQ(WindowTextureSet[0].slot, 0x02);
     EXPECT_EQ(WindowTextureSet[1].path, "Interface\\CursorPush.tga");
     EXPECT_EQ(WindowTextureSet[1].slot, 0x03);
-    EXPECT_EQ(WindowTextureSet[5].slot, 0x728);
+    EXPECT_EQ(WindowTextureSet[4].slot, 0x726);
+    EXPECT_EQ(WindowTextureSet[6].slot, 0x728);
+    EXPECT_EQ(WindowTextureSet[12].slot, 0x72f);
+    EXPECT_EQ(WindowTextureSet[17].slot, 0x734);
     EXPECT_EQ(CountWith(WindowTextureSet, {Filter::Linear, Wrap::Clamp}), 2u);
-    EXPECT_EQ(CountWith(WindowTextureSet, {Filter::Nearest, Wrap::Clamp}), 4u);
+    EXPECT_EQ(CountWith(WindowTextureSet, {Filter::Nearest, Wrap::Clamp}), 12u);
+    EXPECT_EQ(CountWith(WindowTextureSet, {Filter::Nearest, Wrap::Repeat}), 4u);
     for (const TextureSetEntry& window : WindowTextureSet)
     {
         for (const TextureSetEntry& scene : LoginTextureSet)

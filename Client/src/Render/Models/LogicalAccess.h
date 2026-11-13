@@ -17,6 +17,8 @@ class CrtRandom;
 
 // 0x412890, y en línea en 0x40b570 y 0x40b800: una variable de 4 bytes, un rand() por byte (Q-C125).
 inline constexpr std::uint16_t SmallLogicalCloseRandoms = 4;
+// 0x647f60: el serial de los C3 (0x5767913), de un byte, un rand() (CL8, hito 8).
+inline constexpr std::uint16_t SerialCloseRandoms = 1;
 // 0x40b4d0: el registro propio de 0x7681eb4, de 0xf08 bytes, un rand() por byte: 3.848 (Q-C183).
 inline constexpr std::uint16_t OwnRecordCloseRandoms = 0xf08;
 

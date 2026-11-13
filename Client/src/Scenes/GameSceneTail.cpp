@@ -26,6 +26,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldObjectsDrawing.h"
+#include "UI/GameUiState.h"
 #include "World/WorldTerrain.h"
 #include "World/Sprites.h"
 
@@ -119,6 +120,8 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
         floor.lighting = &FrameLighting();
         floor.frameClock = canvas.frameClock;
         floor.map = runtime.map;
+        // 0x6c9dcc: el brillo de las opciones (0x62589b), que 0x60b3d0 lee.
+        floor.glowDetail = runtime.ui.glowDetail;
         floor.project = [&](const glm::vec3& point) { return ProjectGamePoint(projection.Value(), point); };
         floor.onPose = [&](const DrawnObject& object)
         { return PublishFaunaFloorPose(FramePoseCarry(), *m_models, object); };

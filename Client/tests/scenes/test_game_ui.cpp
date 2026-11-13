@@ -9,6 +9,7 @@
 #include "Scenes/GameChat.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/ItemSetState.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -16,6 +17,7 @@
 #include "UI/ChatLog.h"
 #include "UI/Dialogs.h"
 #include "UI/GameUiState.h"
+#include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 
 #include "support/ChatTexts.h"
@@ -172,16 +174,6 @@ TEST(GameUiTest, TheLastMenuButtonGoesBackToTheGame)
     EXPECT_EQ(runtime.movement.mouseUpdateTime, 0);
     EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
     EXPECT_EQ(runtime.lastSoundId, 0x19);
-}
-
-TEST(GameUiTest, TheOtherMenuButtonsAreOfMilestoneSix)
-{
-    SteppingUi tested;
-    tested.world.Runtime().dialogs.current = Client::UI::EscapeMenuDialog;
-    tested.Click();
-    const auto stepped = tested.Dialogs(0x110, 65);
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x62402f"), std::string::npos) << stepped.Error();
 }
 
 TEST(GameUiTest, TheLetterIOpensTheInventory)
@@ -425,6 +417,29 @@ TEST(GameUiTest, TheReleasedButtonDropsTheEdge)
     EXPECT_FALSE(state.leftHeld);
 }
 
+// 0x7d366ec: WM_LBUTTONUP lo prende con el mouse de ese momento y dura mientras el mouse no se mueva; WM_LBUTTONDOWN
+// lo apaga (0x4b3cea, 0x4b344d y 0x4b3947).
+TEST(GameUiTest, TheReleaseLatchLastsWhileTheMouseStaysStill)
+{
+    Client::Scenes::GameMovementState state;
+    // Apretado y soltado en el mismo paso: el último mensaje es el soltado.
+    Client::Scenes::LatchTheLeftRelease(state, true, true, false, 10, 20);
+    EXPECT_TRUE(state.releasedClick);
+    EXPECT_EQ(state.releaseX, 10);
+    EXPECT_EQ(state.releaseY, 20);
+    Client::Scenes::LatchTheLeftRelease(state, false, false, false, 10, 20);
+    EXPECT_TRUE(state.releasedClick);
+    Client::Scenes::LatchTheLeftRelease(state, false, false, false, 11, 20);
+    EXPECT_FALSE(state.releasedClick);
+    Client::Scenes::LatchTheLeftRelease(state, false, true, false, 5, 5);
+    EXPECT_TRUE(state.releasedClick);
+    Client::Scenes::LatchTheLeftRelease(state, true, false, true, 5, 5);
+    EXPECT_FALSE(state.releasedClick);
+    // Soltado y vuelto a apretar: el último es el apretón.
+    Client::Scenes::LatchTheLeftRelease(state, true, true, true, 5, 5);
+    EXPECT_FALSE(state.releasedClick);
+}
+
 class PickingFrame
 {
 public:
@@ -526,8 +541,8 @@ TEST(GameUiTest, TheDigitsWithTheChatOpenDoNotPickASkill)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
 }
 
-// 0x5ac8d0: F1 es del hito 6; F2 cambia el chat normal del registro, F3 el modo del susurro y F4 el tamaño del
-// registro y su esquina, cada una con el 0x19.
+// 0x5ac8d0: F2 cambia el chat normal del registro, F3 el modo del susurro y F4 el tamaño del registro y su esquina,
+// cada una con el 0x19.
 TEST(GameUiTest, TheFunctionKeysChangeTheChatModes)
 {
     SteppingUi tested;
@@ -556,11 +571,58 @@ TEST(GameUiTest, TheFunctionKeysChangeTheChatModes)
     EXPECT_EQ(tested.world.Runtime().chat.log.rows, 3);
     EXPECT_EQ(tested.world.Runtime().hud.chatFrame.x, 0xba);
     EXPECT_EQ(tested.world.Runtime().hud.chatFrame.y, 0x1a4);
+}
+
+// 0x5ac9ce..0x5aca42: F1 pasa de 0 a 1, a 2 y otra vez a 0, y de 3 (la ayuda del ítem) o 4 (la ventana /move) a 0;
+// apaga el cartel del conjunto (+0x9305) y pide el 0x19. Abajo no vuelve a pasar.
+TEST(GameUiTest, TheF1KeyWalksTheHelps)
+{
+    SteppingUi tested;
+    std::int32_t& mode = tested.world.Runtime().panels.overlayMode;
+    const auto keys = [&tested]
+    {
+        return Client::Scenes::StepTheFunctionKeys(GameUiContext{
+            .world = tested.world, .random = tested.random, .input = tested.input, .mouseX = 320, .mouseY = 100});
+    };
+    const auto f1 = [&]
+    {
+        Press(tested.input, Key::F1);
+        const bool pressed = keys().HasValue();
+        Release(tested.input, Key::F1);
+        return pressed && keys().HasValue();
+    };
+    tested.world.ItemSets().setHelp = 5;
+    ASSERT_TRUE(f1());
+    EXPECT_EQ(mode, 1);
+    EXPECT_EQ(tested.world.ItemSets().setHelp, 0);
+    EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x19);
+    ASSERT_TRUE(f1());
+    EXPECT_EQ(mode, 2);
+    ASSERT_TRUE(f1());
+    EXPECT_EQ(mode, 0);
+    mode = 3;
+    ASSERT_TRUE(f1());
+    EXPECT_EQ(mode, 0);
+    mode = 4;
+    ASSERT_TRUE(f1());
+    EXPECT_EQ(mode, 0);
 
     Press(tested.input, Key::F1);
-    const auto help = keys();
-    ASSERT_FALSE(help.HasValue());
-    EXPECT_NE(help.Error().find("0x5ac9ce"), std::string::npos);
+    ASSERT_TRUE(keys().HasValue());
+    ASSERT_TRUE(keys().HasValue());
+    EXPECT_EQ(mode, 1);
+}
+
+// 0x637cff: Impr Pant no es de las teclas del juego, sino de lo que corre detrás del paso de cualquier escena
+// (Scenes::Screenshots): las teclas de función no tocan su latch.
+TEST(GameUiTest, TheFunctionKeysLeaveThePrintScreenKey)
+{
+    SteppingUi tested;
+    Press(tested.input, Key::PrintScreen);
+    const auto keys = Client::Scenes::StepTheFunctionKeys(GameUiContext{
+        .world = tested.world, .random = tested.random, .input = tested.input, .mouseX = 320, .mouseY = 100});
+    ASSERT_TRUE(keys.HasValue()) << keys.Error();
+    EXPECT_EQ(tested.Ui().keyLatches[0x2c], 0);
 }
 
 class TypedLetters final : public Client::Render::Text::ITextMeasure
@@ -609,6 +671,116 @@ TEST(GameUiTest, AltAndADigitSayTheMacro)
     EXPECT_EQ(tested.world.Runtime().hud.macroTime, Client::UI::MacroLockSteps);
     ASSERT_TRUE(step().HasValue());
     EXPECT_EQ(sent.size(), 1u);
+}
+
+// Una caja de mensaje (0x48ee60 caso 9) en el administrador del juego, abierta a mano: en la CL8 no la abre nadie.
+std::int32_t OpenABox(WorldState& world, std::int32_t x, std::int32_t y)
+{
+    const TypedLetters letters;
+    const auto opened = Client::UI::CreateTheOldWindow(
+        world.Runtime().oldWindows,
+        Client::UI::OldWindowRequest{.kind = Client::UI::QuestionCase,
+                                     .x = x,
+                                     .y = y,
+                                     .data = "Seguro?",
+                                     .aux = 0,
+                                     .flags = Client::UI::KeepPlaceFlag},
+        Client::UI::OldWindowTexts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No"},
+        Client::UI::OldWindowMeasure{
+            .measure = letters, .dcFont = Client::Render::Text::FontKind::Normal, .screen = {640, 480}});
+    EXPECT_TRUE(opened.HasValue()) << opened.Error();
+    return opened.HasValue() ? opened.Value() : 0;
+}
+
+// 0x636e3c..0x636e5a: la lista de ventanas y las ventanas viejas toman el mouse antes que el registro del chat; sobre
+// una caja, el clic no es del juego (0x636e5d) y el foco del administrador queda.
+TEST(GameUiTest, TheOldWindowsTakeTheMouseBeforeTheChatLog)
+{
+    SteppingUi tested;
+    auto& runtime = tested.world.Runtime();
+    // El primer paso deja el registro en su esquina (0x45a9d0(−10, 0x65)).
+    ASSERT_TRUE(tested.Step(320, 240).HasValue());
+    ASSERT_TRUE(tested.Step(2, 30).HasValue());
+    ASSERT_EQ(tested.Ui().hovered, Client::UI::ChatLogId);
+
+    const std::int32_t box = OpenABox(tested.world, 0, 0);
+    tested.Click();
+    ASSERT_TRUE(tested.Step(2, 30).HasValue());
+    EXPECT_EQ(tested.Ui().hovered, box);
+    EXPECT_EQ(tested.Ui().mouseOnUi, 1);
+    EXPECT_EQ(runtime.oldWindows.focus, box);
+}
+
+// Fuera de las ventanas, el clic les saca el foco y, con el chat cerrado, le da el teclado al juego
+// (0x636e87..0x636ed1).
+TEST(GameUiTest, TheUnownedClickTakesTheFocusFromTheOldWindows)
+{
+    SteppingUi tested;
+    auto& runtime = tested.world.Runtime();
+    const std::int32_t box = OpenABox(tested.world, 0, 0);
+    runtime.oldWindows.focus = box;
+    runtime.chat.input.focus = Client::UI::ChatFocus::Message;
+    tested.Click();
+    ASSERT_TRUE(tested.Step(320, 240).HasValue());
+    EXPECT_EQ(runtime.oldWindows.focus, 0);
+    EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Game);
+}
+
+// Q-C446: Esc lo lee 0x623e70 con la ventana de amigos (el panel 1) cerrada, y abre el menú; con ella abierta, llega a
+// 0x490490 y cierra la caja de arriba.
+TEST(GameUiTest, EscapeReachesTheOldWindowsOnlyWithTheFriendsWindowOpen)
+{
+    for (const bool friendsOpen : {false, true})
+    {
+        SCOPED_TRACE(friendsOpen);
+        SteppingUi tested;
+        auto& runtime = tested.world.Runtime();
+        runtime.panels.delegated.friends = friendsOpen ? std::uint8_t{1} : std::uint8_t{0};
+        const std::int32_t box = OpenABox(tested.world, 300, 0);
+        Press(tested.input, Key::Escape);
+        const auto dialogs = tested.Dialogs(639, 300);
+        ASSERT_TRUE(dialogs.HasValue()) << dialogs.Error();
+        const auto stepped = tested.Step(639, 300);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(runtime.oldWindows.windows.contains(box), !friendsOpen);
+        EXPECT_EQ(runtime.dialogs.current == Client::UI::EscapeMenuDialog, !friendsOpen);
+        EXPECT_EQ(runtime.lastSoundId, 0x19);
+    }
+}
+
+// 0x4904eb: F5 solo se lee con el teclado en la ventana del juego.
+TEST(GameUiTest, F5IsReadOnlyWithTheKeyboardInTheGame)
+{
+    SteppingUi tested;
+    auto& runtime = tested.world.Runtime();
+    Press(tested.input, Key::F5);
+    runtime.chat.input.focus = Client::UI::ChatFocus::Message;
+    ASSERT_TRUE(tested.Step(320, 100).HasValue());
+    EXPECT_EQ(tested.Ui().keyLatches[0x74], 0);
+    runtime.chat.input.focus = Client::UI::ChatFocus::Game;
+    ASSERT_TRUE(tested.Step(320, 100).HasValue());
+    EXPECT_EQ(tested.Ui().keyLatches[0x74], 1);
+}
+
+// Q-C573: en el juego de la CL8 no hay ventanas viejas, y el primer F6 deja 0x490490 sin F6 para siempre; tampoco
+// esconde una caja que se abre después.
+TEST(GameUiTest, TheFirstF6LeavesF6Stuck)
+{
+    SteppingUi tested;
+    auto& runtime = tested.world.Runtime();
+    const CrtRandom expected = Advanced(tested.random, BaseStepRandoms);
+    Press(tested.input, Key::F6);
+    ASSERT_TRUE(tested.Step(320, 100).HasValue());
+    EXPECT_EQ(tested.random.State(), expected.State());
+    EXPECT_EQ(runtime.oldWindows.hiddenByF6, 1);
+    Release(tested.input, Key::F6);
+    ASSERT_TRUE(tested.Step(320, 100).HasValue());
+
+    const std::int32_t box = OpenABox(tested.world, 300, 0);
+    Press(tested.input, Key::F6);
+    ASSERT_TRUE(tested.Step(320, 100).HasValue());
+    EXPECT_EQ(runtime.oldWindows.windows.at(box).base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(tested.Ui().keyLatches[0x75], 1);
 }
 
 TEST(GameUiTest, FollowingThePreviousTargetIsACut)

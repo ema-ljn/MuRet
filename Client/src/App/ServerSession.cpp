@@ -35,6 +35,7 @@
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/Party.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
@@ -571,6 +572,18 @@ void ServerSession::DeleteCharacter(std::span<const std::byte, Protocol::Charact
     SetState(SessionState::WaitingDeleteResult);
 }
 
+void ServerSession::RequestLogout(std::uint8_t kind)
+{
+    if (m_state != SessionState::ChoosingCharacter && m_state != SessionState::InWorld)
+    {
+        m_log.Warning("se ignora el pedido de salida (F1 02 con {}): no hay un GameServer que lo espere", kind);
+        return;
+    }
+    m_log.Info("se pide la salida al GameServer (F1 02 con {})", kind);
+    Protocol::Outgoing request = Protocol::Connection::WriteLogoutRequest(kind);
+    m_connection.Send(std::move(request.packet), request.delivery);
+}
+
 std::optional<std::uint8_t> ServerSession::DeleteResult() const
 {
     return m_deleteResult;
@@ -1101,6 +1114,18 @@ void ServerSession::ResendServerListRequest()
     static_cast<void>(SendWorldPacket(Protocol::Connection::WriteServerListRequest()));
 }
 
+void ServerSession::SendCreditsNotice()
+{
+    if (m_connection.State() != Network::LinkState::Open)
+    {
+        m_log.Warning("no se manda el F4 06 de los créditos: no hay un socket abierto");
+        return;
+    }
+    m_log.Info("los créditos mandan el F4 06 al {}", ServerName());
+    Protocol::Outgoing notice = Protocol::Connection::WriteCreditsNotice();
+    m_connection.Send(std::move(notice.packet), notice.delivery);
+}
+
 Core::Expected<void, std::string> ServerSession::SendWorldPacket(Protocol::Outgoing outgoing)
 {
     if (WithConnectServer() || m_connection.State() != Network::LinkState::Open)
@@ -1128,6 +1153,11 @@ Core::Expected<void, std::string> ServerSession::SendFacing(std::uint8_t directi
     return SendWorldPacket(Protocol::Movement::WriteFacing(direction));
 }
 
+Core::Expected<void, std::string> ServerSession::SendOptionData(const Protocol::OptionData::OptionBody& body)
+{
+    return SendWorldPacket(Protocol::OptionData::WriteOptionData(body));
+}
+
 void ServerSession::RequestGate(std::uint8_t gate)
 {
     static_cast<void>(SendWorldPacket(Protocol::World::WriteGateRequest(gate)));
@@ -1151,6 +1181,11 @@ void ServerSession::SendChat(Protocol::Outgoing packet)
 void ServerSession::RequestCastleSiegeState()
 {
     static_cast<void>(SendWorldPacket(Protocol::World::WriteCastleSiegeState()));
+}
+
+void ServerSession::RequestPartyList()
+{
+    static_cast<void>(SendWorldPacket(Protocol::Party::WritePartyListRequest()));
 }
 
 std::span<const std::vector<std::byte>> ServerSession::Teleports() const

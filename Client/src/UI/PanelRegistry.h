@@ -3,6 +3,8 @@
 #include "Core/Expected.h"
 #include "UI/Dialogs.h"
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -56,6 +58,32 @@ inline constexpr PanelId AllPanels = 0xffffffffu;
 
 // 0x659290 con 2: la ventana /move es el modo 4 de las superposiciones.
 inline constexpr std::int32_t MoveOverlayMode = 4;
+// 0x5b0550: las ayudas de F1 (1 y 2) y la del ítem del chat (3).
+inline constexpr std::int32_t FirstHelpMode = 1;
+inline constexpr std::int32_t SecondHelpMode = 2;
+inline constexpr std::int32_t ItemHelpMode = 3;
+
+// 0x40a450 y 0x40a650: los doce comandos de la D, de los que el 0 no se elige ni se dibuja.
+inline constexpr std::size_t CommandCount = 12;
+// +0x14..+0x1f de [0x6e592c]: el estado de un comando que 0x406050 pone en cada paso y que la entrada al login y a la
+// selección dejan así.
+inline constexpr std::uint8_t CommandReady = 1;
+
+// [0x6e592c] (0x40acd0 lo arma en la .data con +8 y +0x20 en −1): lo que la ventana de los comandos guarda además del
+// +4 (DelegatedPanels::commands). La esquina (+0xc y +0x10) va en Scenes::HudState, como las de las otras ventanas.
+struct CommandsWindowState
+{
+    // +8: a quién va el comando. Lo pone el comando de 0x406050 (0x406097.., CL9.4); MuRet lo deja en −1.
+    std::int32_t target = -1;
+    // +0x14..+0x1f: 0x406050 los pone en 1 en cada paso, antes de mirar el comando elegido. El dibujo (0x40abe5) da un
+    // aviso con 0, 0xff o 0xfe. *Inferido*: arrancan en 1, porque la entrada al login (0x634bf0) y a la selección
+    // (0x634271) los ponen así antes del primer paso del juego; el constructor no los toca.
+    std::array<std::uint8_t, CommandCount> states{CommandReady, CommandReady, CommandReady, CommandReady,
+                                                  CommandReady, CommandReady, CommandReady, CommandReady,
+                                                  CommandReady, CommandReady, CommandReady, CommandReady};
+    // +0x20: el comando elegido con el clic (0x40a50a), −1 sin ninguno.
+    std::int32_t chosen = -1;
+};
 
 // Los ids cuyo estado vive en otro objeto. MuRet no tiene a sus dueños: quedan en 0, cerrados, hasta su ola.
 struct DelegatedPanels
@@ -66,8 +94,11 @@ struct DelegatedPanels
     std::uint8_t quest = 0;
     // 0x10: 0x6522e0, el gremio ([0x7d536f0], CL9.4).
     std::uint8_t guild = 0;
-    // 0x200: *(0x6e592c+4), los comandos (CL9.4).
+    // 0x200: +4 de [0x6e592c], la ventana de los comandos (D, CL8 hito 6). La abre Open y la cierran CloseByMask y su
+    // botón de cerrar (0x40a58a).
     std::uint8_t commands = 0;
+    // Lo demás de [0x6e592c] que leen el paso (0x40a450) y el dibujo (0x40a650) de los comandos.
+    CommandsWindowState commandsWindow{};
     // 0x400: 0x420cc0, 0x723911 en 2 (la mascota). 0x424230 lo vuelve a 0 en cada paso con el personaje cerrado.
     std::uint8_t pet = 0;
     // 0x8000: 0x449bf0, 0x724580 > 0. Con 3 (0x449c00), abrir el inventario no lo cierra.
@@ -86,7 +117,8 @@ struct DelegatedPanels
     std::uint8_t siegeGate = 0;
     // 0x661b90 sin ítem en el cursor: algún lugar de la grilla de la caja del caos (0x7d2d380) ocupado (CL9.3).
     bool chaosBoxHasItem = false;
-    // [0x7d53704]+0x10: el diálogo de los paneles (0x65feb0, hito 6). 0x657880 le da la tecla primero.
+    // [0x7d53704]+0x10: el diálogo de los paneles (0x65feb0; lo abre 0x6600d0 desde los paquetes, CL9.4, P-C90).
+    // 0x657880 le da la tecla primero.
     std::uint8_t panelDialog = 0;
 };
 
@@ -110,6 +142,9 @@ struct PanelState
     std::uint8_t panel2000 = 0;    // 0x7d53718
     // 0x77f3b08, el modo de las superposiciones de 0x5b0550.
     std::int32_t overlayMode = 0;
+    // 0x77f3b0c: el ítem de la ayuda del modo 3, como lugar de Item.bmd. Lo escribe la ayuda del ítem del chat
+    // (0x576939).
+    std::int32_t helpItem = 0;
     // 0x78abb00: CanOpen no abre nada con otro valor que 0, el ancho del mundo lo cuenta como panel y SendMove
     // manda C1 03 97 (CL9.5). Los demás los pone en 0 cerrar el inventario (0x659250..0x65926a).
     std::int32_t field78abb00 = 0;
@@ -139,6 +174,9 @@ struct PanelContext
     bool logoutRequested = false;
     // 0x6689d0, el héroe con +0x1f2 ≥ 0 y +0x368 en 0x80: solo lo lee el ancho del mundo con la lista de CS abierta.
     bool heroSiegeMark = false;
+    // 0x659aa0..0x659c3d: lo que abrir la party hace si cerró lo demás, antes de prenderla: 0x78aba48 (la cuenta de la
+    // party) en 0 y el pedido de la lista, C1 03 42. Sin él, abrir la party corta.
+    std::function<void()> partyOpened{};
     // 0x41ed10(id, 0, 0): el sonido, gancho de la CL10.
     std::function<void(std::int32_t)> sound{};
 };
@@ -173,6 +211,11 @@ private:
     PanelState& m_state;
     PanelContext& m_context;
 };
+
+// Lo que el original repite en cinco lugares sobre [0x6e592c]: +4 en 0, +8 y +0x20 en −1 y los doce estados en 1.
+// CloseByMask (0x65897a..0x658999), el botón de cerrar (0x40a58a..0x40a5a1) y las entradas a la selección (0x634271)
+// y al login (0x634bf0); el quinto, el cambio de mapa de Chaos Castle (0x4c7b34), corta antes en MuRet (0x4906a0).
+void ResetTheCommands(DelegatedPanels& delegated);
 
 // 0x5bb8d0: los tres anchos del mundo.
 inline constexpr std::int32_t FullWorldWidth = 0x280;

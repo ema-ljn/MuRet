@@ -65,7 +65,7 @@ inline std::string_view TeleportBoundary(int map)
     if (map == 35)
         return "Data\\World36\\EncTerrain36.att no está";
     if (map >= 18 && map <= 23)
-        return "0x4906a0";
+        return "0x4c7b34";
     return {};
 }
 

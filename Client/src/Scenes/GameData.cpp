@@ -8,7 +8,9 @@
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
+#include "Data/Text/Credits.h"
 #include "Data/Text/FilterWords.h"
+#include "Data/Text/MoveRequirements.h"
 #include "Data/Text/SlideTable.h"
 #include "Data/Text/TextTable.h"
 #include "UI/MacroFile.h"
@@ -167,6 +169,34 @@ Core::Expected<std::vector<std::string>, std::string> LoadFilter(const std::file
     return std::move(words).Value();
 }
 
+// 0x63ff30: sin el archivo, el original avisa con un MessageBox y cierra el juego (WM_DESTROY); MuRet sigue con
+// la tabla vacía, y los créditos se cierran al abrirlos (P-C78).
+Core::Expected<std::vector<Data::Text::CreditEntry>, std::string> LoadCreditsFile(const std::filesystem::path& dataRoot)
+{
+    std::error_code error;
+    const auto path = Data::ResolveDataPath(dataRoot, CreditsFile, error);
+    if (error)
+    {
+        return Core::Unexpected(
+            std::format("no se pudo buscar {} en {}: {}", CreditsFile, Core::PathText(dataRoot), error.message()));
+    }
+    if (!path)
+    {
+        return std::vector<Data::Text::CreditEntry>{};
+    }
+    const auto file = Data::ReadDataFile(*path, MaxFilterFileBytes);
+    if (!file.HasValue())
+    {
+        return Core::Unexpected(std::format("no se pudo leer {}: {}", CreditsFile, file.Error().message()));
+    }
+    auto credits = Data::Text::LoadCredits(std::as_bytes(std::span(file.Value())));
+    if (!credits.HasValue())
+    {
+        return Core::Unexpected(std::format("{}: {}", CreditsFile, Data::DescribeDataError(credits.Error())));
+    }
+    return std::move(credits).Value();
+}
+
 // 0x61c1c0: sin el archivo, o sin poder leerlo, las macros quedan vacías.
 Core::Expected<UI::Macros, std::string> LoadMacros(const std::filesystem::path& dataRoot)
 {
@@ -202,6 +232,29 @@ Core::Expected<std::optional<Data::Text::SlideTable>, std::string> LoadSlides(co
     if (!table.HasValue())
         return Core::Unexpected(std::format("{}: {}", SlideTableFile, Data::DescribeDataError(table.Error())));
     return std::optional<Data::Text::SlideTable>(std::move(table).Value());
+}
+// 0x448440 lee la cuenta y cuenta · 0x50 bytes sin tope; MuRet lee hasta 1 MiB (13.107 destinos).
+constexpr std::size_t MaxMoveRequirementsBytes = 1024u * 1024u;
+
+// 0x448440: sin el archivo, la lista vacía y nada más.
+Core::Expected<std::vector<Data::Text::MoveRequirement>, std::string> LoadMoves(const std::filesystem::path& dataRoot)
+{
+    std::error_code error;
+    const auto path = Data::ResolveDataPath(dataRoot, MoveRequirementsFile, error);
+    if (error)
+    {
+        return Core::Unexpected(std::format("no se pudo buscar {} en {}: {}", MoveRequirementsFile,
+                                            Core::PathText(dataRoot), error.message()));
+    }
+    if (!path)
+        return std::vector<Data::Text::MoveRequirement>{};
+    const auto file = Data::ReadDataFilePrefix(*path, MaxMoveRequirementsBytes);
+    if (!file.HasValue())
+        return Core::Unexpected(std::format("no se pudo leer {}: {}", MoveRequirementsFile, file.Error().message()));
+    auto moves = Data::Text::LoadMoveRequirements(std::as_bytes(std::span(file.Value())));
+    if (!moves.HasValue())
+        return Core::Unexpected(std::format("{}: {}", MoveRequirementsFile, Data::DescribeDataError(moves.Error())));
+    return std::move(moves).Value();
 }
 } // namespace
 
@@ -260,6 +313,12 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(items).Error());
     }
     data.items.emplace(std::move(items).Value());
+    auto moves = LoadMoves(dataRoot);
+    if (!moves.HasValue())
+    {
+        return Core::Unexpected(std::move(moves).Error());
+    }
+    data.moves = std::move(moves).Value();
     auto itemSets = LoadItemSets(dataRoot);
     if (!itemSets.HasValue())
     {
@@ -273,6 +332,12 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(skills).Error());
     }
     data.skills.emplace(std::move(skills).Value());
+    auto credits = LoadCreditsFile(dataRoot);
+    if (!credits.HasValue())
+    {
+        return Core::Unexpected(std::move(credits).Error());
+    }
+    data.credits = std::move(credits).Value();
     auto slides = LoadSlides(dataRoot);
     if (!slides.HasValue())
     {

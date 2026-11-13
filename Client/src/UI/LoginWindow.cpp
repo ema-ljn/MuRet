@@ -13,6 +13,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ITextDrawer.h"
 #include "UI/GameText.h"
+#include "UI/NewUi.h"
 #include "UI/Widget.h"
 
 #include <cstddef>
@@ -121,21 +122,26 @@ const TextField& LoginWindow::Password() const
     return m_password;
 }
 
-std::optional<LoginRequest> LoginWindow::Step(const Input::InputState& input, App::PixelSize screen)
+Rect LoginWindow::Bounds(App::PixelSize screen) const
+{
+    return LayoutLogin(screen).window;
+}
+
+std::optional<LoginRequest> LoginWindow::Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn)
 {
     if (!m_open)
     {
         return std::nullopt;
     }
     Place(screen);
-    const Point mouse = MouseInPixels(input, screen);
-    if (input.WasPressed(Input::MouseButton::Left))
+    const std::optional<Point> mouse = MouseOfTheTurn(turn, input, screen);
+    if (turn.logic && mouse && input.WasPressed(Input::MouseButton::Left))
     {
-        if (m_layout.account.Contains(mouse))
+        if (m_layout.account.Contains(*mouse))
         {
             m_focus = LoginFocus::Account;
         }
-        else if (m_layout.password.Contains(mouse))
+        else if (m_layout.password.Contains(*mouse))
         {
             m_focus = LoginFocus::Password;
         }
@@ -144,6 +150,10 @@ std::optional<LoginRequest> LoginWindow::Step(const Input::InputState& input, Ap
 
     const bool ok = m_ok.Step(input, mouse);
     const bool cancel = m_cancel.Step(input, mouse);
+    if (!turn.logic)
+    {
+        return std::nullopt;
+    }
     if (ok)
     {
         return Send();
@@ -154,11 +164,11 @@ std::optional<LoginRequest> LoginWindow::Step(const Input::InputState& input, Ap
     }
     // 0x6418b0: Enter y Esc, si el byte +0x31 del mouse (0x640850) está en 0. Solo lo escribe su
     // init, en 0 (0x640926): valen también con un botón del mouse abajo.
-    if (input.WasPressed(Input::Key::Enter))
+    if (input.TakePress(Input::Key::Enter))
     {
         return Send();
     }
-    if (input.WasPressed(Input::Key::Escape))
+    if (input.TakePress(Input::Key::Escape))
     {
         return Cancel();
     }

@@ -10,12 +10,14 @@
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CombatActionSpeeds.h"
+#include "Scenes/GameUi.h"
 #include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldTransitionSupport.h"
+#include "UI/OldWindows.h"
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
 #include "World/TerrainCulling.h"
@@ -76,9 +78,17 @@ Core::Expected<void, std::string> ChangeTeleportMap(std::uint8_t map, std::uint1
         publisher.RequestCrywolfState();
     if (IsChaosCastle(oldMap) || IsChaosCastle(loadedMap))
     {
-        // 4c7af1..4c7b2f: el mismo prefijo corre al entrar y al salir, antes de 512a30.
-        resources.world.Runtime().lastSoundId = 0x9e;
-        return Core::Unexpected(std::string("0x4906a0: la transición de Chaos Castle requiere su UI y 0x4914e0"));
+        // 4c7af1..4c7b2f: el mismo prefijo corre al entrar y al salir, antes de 512a30: el sonido, las ventanas viejas
+        // escondidas sin anotarlas (0x4906a0 con 1 y 0, Q-C572) y la de amigos suelta (0x4914e0).
+        WorldRuntime& runtime = resources.world.Runtime();
+        runtime.lastSoundId = 0x9e;
+        if (auto hidden = UI::HideTheOldWindows(runtime.oldWindows, 1, 0, OldWindowGlobalsOf(runtime));
+            !hidden.HasValue())
+            return hidden;
+        if (auto dropped = UI::DropTheFriendsWindow(runtime.oldWindows); !dropped.HasValue())
+            return dropped;
+        return Core::Unexpected(std::string("0x4c7b34: rearmar el objeto de los comandos (0x6e592c) en la transición "
+                                            "de Chaos Castle es de la CL9.4"));
     }
     resources.world.Runtime().lastSoundId = 0x9e;
     ArmEventMapObject(loadedMap, resources.world.Runtime());

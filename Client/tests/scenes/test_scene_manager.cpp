@@ -232,24 +232,43 @@ private:
 struct Harness
 {
     Harness()
-        : log(sink, LogLevel::Debug), manager(
-                                          Factory(), stage.target, clock,
-                                          [this]() -> Expected<void, std::string>
-                                          {
-                                              ++polls;
-                                              if (pollFailure)
-                                                  return Unexpected(*pollFailure);
-                                              return {};
-                                          },
-                                          log, [this]() { return std::exchange(order, std::nullopt); }, {},
-                                          [this](Duration now) { afterFrames.push_back(now); },
-                                          [this]() -> Expected<void, std::string>
-                                          {
-                                              afterSteps.push_back(stage.journal.size());
-                                              if (afterStepFailure)
-                                                  return Unexpected(*afterStepFailure);
-                                              return {};
-                                          })
+        : log(sink, LogLevel::Debug),
+          manager(
+              Factory(), stage.target, clock,
+              [this]() -> Expected<void, std::string>
+              {
+                  ++polls;
+                  if (pollFailure)
+                      return Unexpected(*pollFailure);
+                  return {};
+              },
+              log, [this]() { return std::exchange(order, std::nullopt); }, {},
+              [this](Duration now) { afterFrames.push_back(now); },
+              [this]() -> Expected<void, std::string>
+              {
+                  afterSteps.push_back(stage.journal.size());
+                  if (afterStepFailure)
+                      return Unexpected(*afterStepFailure);
+                  return {};
+              },
+              [this]() -> Expected<void, std::string>
+              {
+                  drawHooks.push_back(
+                      DrawHook{.after = false, .frameOpen = stage.target.FrameOpen(), .journal = stage.journal.size()});
+                  if (beforeDrawFailure)
+                      return Unexpected(*beforeDrawFailure);
+                  return {};
+              },
+              [this](SceneCanvas& canvas) -> Expected<void, std::string>
+              {
+                  drawHooks.push_back(DrawHook{.after = true,
+                                               .frameOpen = stage.target.FrameOpen(),
+                                               .journal = stage.journal.size(),
+                                               .screen = canvas.screen});
+                  if (afterDrawFailure)
+                      return Unexpected(*afterDrawFailure);
+                  return {};
+              })
     {
     }
 
@@ -293,6 +312,18 @@ struct Harness
     // Cuántas líneas tenía el diario en cada afterSceneStep (los relojes de los mensajes en main.cpp), y su error.
     std::vector<std::size_t> afterSteps;
     std::optional<std::string> afterStepFailure;
+    // Cada beforeSceneDraw y afterSceneDraw (la captura de pantalla en main.cpp): cuál, si el frame estaba abierto,
+    // cuántas líneas tenía el diario y, el de después, la pantalla del lienzo; y sus errores.
+    struct DrawHook
+    {
+        bool after = false;
+        bool frameOpen = false;
+        std::size_t journal = 0;
+        Client::App::PixelSize screen{};
+    };
+    std::vector<DrawHook> drawHooks;
+    std::optional<std::string> beforeDrawFailure;
+    std::optional<std::string> afterDrawFailure;
     SceneManager manager;
     InputState input;
 };
@@ -667,6 +698,51 @@ TEST(SceneManagerTest, AfterTheStepRunsBeforeTheRequestAndItsFailureStopsTheScen
     EXPECT_EQ(tested.manager.Failure(), std::optional<std::string>("0x45bb20: falta algo"));
     tested.manager.Step(tested.input);
     EXPECT_EQ(tested.afterSteps.size(), 2u);
+}
+
+// Lo de 0x637700 alrededor del dibujo: beforeSceneDraw antes de BeginFrame y afterSceneDraw después del dibujo de la
+// escena, con su lienzo y el frame abierto, antes del Present.
+TEST(SceneManagerTest, TheDrawHooksRunAroundTheSceneDraw)
+{
+    Harness tested;
+    ASSERT_TRUE(tested.manager.Start(FirstScene).HasValue());
+    tested.manager.Render(0.0f);
+
+    ASSERT_EQ(tested.drawHooks.size(), 2u);
+    EXPECT_FALSE(tested.drawHooks[0].after);
+    EXPECT_FALSE(tested.drawHooks[0].frameOpen);
+    EXPECT_EQ(tested.drawHooks[0].journal, 1u) << "antes de render Loading";
+    EXPECT_TRUE(tested.drawHooks[1].after);
+    EXPECT_TRUE(tested.drawHooks[1].frameOpen);
+    EXPECT_EQ(tested.stage.journal[tested.drawHooks[1].journal - 1], "render Loading");
+    EXPECT_EQ(tested.drawHooks[1].screen.width, 640);
+    ASSERT_EQ(tested.stage.target.frames.size(), 1u);
+    EXPECT_TRUE(tested.stage.target.frames[0].presented);
+}
+
+// Sus errores cortan como el del dibujo: el de antes, sin abrir el frame ni dibujar la escena; el de después, sin
+// presentarlo. Después nada vuelve a correr.
+TEST(SceneManagerTest, ADrawHookFailureStopsTheSceneWithoutPresenting)
+{
+    {
+        Harness tested;
+        ASSERT_TRUE(tested.manager.Start(FirstScene).HasValue());
+        tested.beforeDrawFailure = "0x6381c7: sin hora";
+        tested.manager.Render(0.0f);
+        EXPECT_EQ(tested.manager.Failure(), std::optional<std::string>("0x6381c7: sin hora"));
+        EXPECT_TRUE(tested.stage.target.frames.empty());
+        EXPECT_EQ(tested.stage.journal, (std::vector<std::string>{"enter Loading"}));
+        EXPECT_EQ(tested.Lines(LogLevel::Error).size(), 1u);
+    }
+    Harness tested;
+    ASSERT_TRUE(tested.manager.Start(FirstScene).HasValue());
+    tested.afterDrawFailure = "0x63b150: sin disco";
+    tested.manager.Render(0.0f);
+    EXPECT_EQ(tested.manager.Failure(), std::optional<std::string>("0x63b150: sin disco"));
+    ASSERT_EQ(tested.stage.target.frames.size(), 1u);
+    EXPECT_FALSE(tested.stage.target.frames[0].presented);
+    tested.manager.Render(0.0f);
+    EXPECT_EQ(tested.drawHooks.size(), 2u);
 }
 
 // Un error de Enter no corta la sesión independiente mientras el host decide reintentar.

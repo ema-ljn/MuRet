@@ -35,15 +35,18 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet
 // Las del HUD del juego que sube 0x61ccb0 (0x61cce0..0x61e5f0, CL8 hito 2), en su orden y con su sampling: los
 // cursores del juego (0x63bd00 con GL_LINEAR y GL_CLAMP), la barra de abajo (GL_NEAREST y GL_CLAMP), el AG, el
 // botón de los comandos, los de la UI vieja que dibuja 0x4a5120, la caja de la entrada del chat (0xef, 0xf8 y 0xf9,
-// que dibuja 0x5aa9a0), el registro del chat (hito 3), el cursor de identificar, el de atacar en el asedio y los
-// íconos de estado; y las de las skills, que sube 0x61ae60 desde 0x61ccb0. Las sube GameModels con los modelos, y
-// quedan. El 2 y el 3, Cursor y CursorPush, no: son de WindowTextureSet, que cada escena sube y suelta, y el juego
-// también. La pista del registro, nis_back en 0x640, la pisa Skill\SwordEff.jpg con GL_LINEAR más adelante en la
-// misma función (0x61ccb0, Q-C463): queda la de la skill. Las del inventario (hito 4): setitem, btn_pshop y
-// btn_pshop2 en 0x652, 0x657 y 0x658 (0x61d319..0x61d354), y las de 0x104 a 0x120 que 0x61ae60 sube después de
-// command.jpg (0x61aec8..0x61b1f2): el fondo, los casilleros del equipo, la plata, la grilla, la línea del comercio
-// y los botones. La 0x106 no la sube nadie.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 72> HudTextureSet{{
+// que dibuja 0x5aa9a0), los diálogos que dibuja 0x62db60 (0xf0 a 0xf4 y 0xfb, hito 6), el registro del chat (hito 3),
+// el cursor de identificar, el de atacar en el asedio y los íconos de estado; y las de las skills, que sube 0x61ae60
+// desde 0x61ccb0. Las sube GameModels con los modelos, y quedan. El 2 y el 3, Cursor y CursorPush, no: son de
+// WindowTextureSet, que cada escena sube y suelta, y el juego también. La pista del registro, nis_back en 0x640, la
+// pisa Skill\SwordEff.jpg con GL_LINEAR más adelante en la misma función (0x61ccb0, Q-C463): queda la de la skill.
+// Las de las ventanas del paso que son marco (hito 6): win_check en 0x64a (0x61d1f0, con 0x63bd00), la casilla de los
+// comandos; CursorID_Wnd en 0x65b (0x61d3ab), el cartel del personaje elegido. Las del inventario (hito 4): setitem,
+// btn_pshop y btn_pshop2 en 0x652, 0x657 y 0x658 (0x61d319..0x61d354). Y las de 0x104 a 0x120 que 0x61ae60 sube
+// después de command.jpg (0x61aec8..0x61b1f2), de los hitos 4 y 6: el fondo de las ventanas, los casilleros del
+// equipo, la plata, la grilla, la línea del comercio y los botones, entre ellos el de cerrar (0x118). La 0x106 no la
+// sube nadie.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 80> HudTextureSet{{
     {"Interface\\CursorAttack.tga", 0x04, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorGet.tga", 0x05, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorTalk.tga", 0x06, TextureSetsDetail::LinearClamp},
@@ -61,10 +64,16 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 72> HudTextureSet{{
     {"Interface\\Menu_Character.jpg", 0xed, TextureSetsDetail::NearestClamp},
     {"Interface\\Menu_Inventory.jpg", 0xee, TextureSetsDetail::NearestClamp},
     {"Interface\\dialogue2_1.jpg", 0xef, TextureSetsDetail::NearestClamp},
+    {"Interface\\Message_box.jpg", 0xf0, TextureSetsDetail::NearestClamp},
+    {"Interface\\ok.jpg", 0xf1, TextureSetsDetail::NearestClamp},
+    {"Interface\\ok2.jpg", 0xf2, TextureSetsDetail::NearestClamp},
+    {"Interface\\cancel.jpg", 0xf3, TextureSetsDetail::NearestClamp},
+    {"Interface\\cancel2.jpg", 0xf4, TextureSetsDetail::NearestClamp},
     {"Interface\\Menu_Green.jpg", 0xf7, TextureSetsDetail::NearestClamp},
     {"Interface\\dialogue1.jpg", 0xf8, TextureSetsDetail::NearestClamp},
     {"Interface\\dialogue2.jpg", 0xf9, TextureSetsDetail::NearestClamp},
     {"Interface\\Guild.jpg", 0xfa, TextureSetsDetail::NearestClamp},
+    {"Interface\\Message_box1.jpg", 0xfb, TextureSetsDetail::NearestClamp},
     {"Interface\\Message_box2.jpg", 0xfc, TextureSetsDetail::NearestClamp},
     {"Interface\\nis_rsframe.tga", 0x63d, TextureSetsDetail::NearestClamp},
     {"Interface\\nis_vframe.jpg", 0x63e, TextureSetsDetail::NearestClamp},
@@ -73,6 +82,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 72> HudTextureSet{{
     {"Interface\\nis_btnchat.jpg", 0x642, TextureSetsDetail::NearestClamp},
     {"Interface\\nis_btnsize.jpg", 0x643, TextureSetsDetail::NearestClamp},
     {"Interface\\nis_btnalpha.jpg", 0x644, TextureSetsDetail::NearestClamp},
+    {"Interface\\win_check.tga", 0x64a, TextureSetsDetail::NearestClamp},
     {"Interface\\win_letter.jpg", 0x64d, TextureSetsDetail::NearestClamp},
     {"Interface\\win_man.jpg", 0x64e, TextureSetsDetail::NearestClamp},
     {"Interface\\win_push.jpg", 0x64f, TextureSetsDetail::NearestClamp},
@@ -80,6 +90,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 72> HudTextureSet{{
     {"Interface\\btn_pshop.jpg", 0x657, TextureSetsDetail::NearestClamp},
     {"Interface\\btn_pshop2.jpg", 0x658, TextureSetsDetail::NearestClamp},
     {"Interface\\CursorID.tga", 0x65a, TextureSetsDetail::NearestClamp},
+    {"Interface\\CursorID_Wnd.jpg", 0x65b, TextureSetsDetail::NearestClamp},
     {"Interface\\menu01_new2.jpg", 0x65c, TextureSetsDetail::NearestClamp},
     {"Interface\\Menu03_new_AG.jpg", 0x101, TextureSetsDetail::NearestClamp},
     {"Skill\\SwordEff.jpg", 0x640, TextureSetsDetail::LinearClamp},
@@ -252,20 +263,57 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 18> LoginTextureSet
     {"Interface\\cr_mu_lo.tga", 0x1a, TextureSetsDetail::LinearClamp},
 }};
 
-// Las seis de 0x61ccb0 que usan el login, la selección y el juego: los dos cursores (0x61ccf9 y 0x61cd12,
+// Las de 0x61ccb0 que usan el login, la selección y el juego: los dos cursores (0x61ccf9 y 0x61cd12,
 // con filtro, UI/GameCursor.h), y lo de las ventanas (CL5.5 y CL6.5): el OK y el cancelar de la cuenta y
 // del aviso, la caja del aviso y la del código del borrado, sin filtro y sin repetir (0x2600 y
 // 0x2900). El original las sube con los datos del juego, en la carga, y no las suelta; acá las sube
 // cada escena con las suyas y las suelta al salir. Los otros cursores, de 4 a 0xa, son del HUD
-// (HudTextureSet); el cerrar, 0x726, no lo usa ninguna.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 6> WindowTextureSet{{
+// (HudTextureSet). Y las del hito 8 de la CL8: el cerrar (0x726), que usan los créditos
+// (UI/CreditsWindow.h); las seis de la ventana de Esc (UI/EscapeWindow.h), el marco de 0x66a1c0 (la
+// piedra, op1_back3 y op1_back4 repetidas) y los botones; y las cinco de las opciones
+// (UI/OptionsWindow.h), el borde de arriba, las casillas y el deslizador, con el relleno repetido.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 18> WindowTextureSet{{
     {"Interface\\Cursor.tga", 0x02, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorPush.tga", 0x03, TextureSetsDetail::LinearClamp},
     {"Interface\\message_ok_b_all.tga", 0x724, TextureSetsDetail::NearestClamp},
     {"Interface\\loding_cancel_b_all.tga", 0x725, TextureSetsDetail::NearestClamp},
+    {"Interface\\message_close_b_all.tga", 0x726, TextureSetsDetail::NearestClamp},
     {"Interface\\message_back.tga", 0x727, TextureSetsDetail::NearestClamp},
     {"Interface\\delete_secret_number.tga", 0x728, TextureSetsDetail::NearestClamp},
+    {"Interface\\op1_stone.jpg", 0x72a, TextureSetsDetail::NearestRepeat},
+    {"Interface\\op1_back1.tga", 0x72b, TextureSetsDetail::NearestClamp},
+    {"Interface\\op1_back2.tga", 0x72c, TextureSetsDetail::NearestClamp},
+    {"Interface\\op1_back3.jpg", 0x72d, TextureSetsDetail::NearestRepeat},
+    {"Interface\\op1_back4.jpg", 0x72e, TextureSetsDetail::NearestRepeat},
+    {"Interface\\op1_b_all.tga", 0x72f, TextureSetsDetail::NearestClamp},
+    {"Interface\\op2_back1.tga", 0x730, TextureSetsDetail::NearestClamp},
+    {"Interface\\op2_ch.tga", 0x731, TextureSetsDetail::NearestClamp},
+    {"Interface\\op2_volume3.tga", 0x732, TextureSetsDetail::NearestClamp},
+    {"Interface\\op2_volume2.jpg", 0x733, TextureSetsDetail::NearestRepeat},
+    {"Interface\\op2_volume1.tga", 0x734, TextureSetsDetail::NearestClamp},
 }};
+
+// Las ilustraciones de los créditos (0x63fc50, CL8 hito 8; UI/CreditsWindow.h): el par +0x5c8 en 0x6f8
+// y 0x6f9, con filtro y sin repetir (0x63b870 con 0x2601 y 0x2900), de los nombres de +0x5cc. El original
+// las sube cuando los créditos empiezan o pasan al par siguiente, encima de las que había; el login de
+// MuRet suelta el par anterior y sube el nuevo.
+inline constexpr std::array<std::array<Data::Textures::TextureSetEntry, 2>, 8> CreditIllustrationSets{
+    {{{{"Interface\\im1_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
+       {"Interface\\im1_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}},
+     {{{"Interface\\im2_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
+       {"Interface\\im2_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}},
+     {{{"Interface\\im3_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
+       {"Interface\\im3_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}},
+     {{{"Interface\\im4_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
+       {"Interface\\im4_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}},
+     {{{"Interface\\im5_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
+       {"Interface\\im5_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}},
+     {{{"Interface\\im6_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
+       {"Interface\\im6_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}},
+     {{{"Interface\\im7_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
+       {"Interface\\im7_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}},
+     {{{"Interface\\im8_1.jpg", 0x6f8, TextureSetsDetail::LinearClamp},
+       {"Interface\\im8_2.jpg", 0x6f9, TextureSetsDetail::LinearClamp}}}}};
 
 // Las arenas de Tarkan y el humo de Crywolf y del asedio que dibuja el HUD del juego (0x5a7520): 0x61c7c0, el
 // login, las sube con GL_LINEAR y GL_REPEAT y no las suelta, y el juego las usa así. MuRet las suelta con el

@@ -14,6 +14,7 @@
 #include "Render/UiImage.h"
 #include "Scenes/ITextDrawer.h"
 #include "UI/GameText.h"
+#include "UI/NewUi.h"
 #include "UI/Notices.h"
 #include "UI/TextField.h"
 #include "UI/Widget.h"
@@ -122,7 +123,12 @@ std::optional<NoticeId> NoticeWindow::Notice() const
     return m_notice;
 }
 
-std::optional<NoticeId> NoticeWindow::Step(const Input::InputState& input, App::PixelSize screen)
+Rect NoticeWindow::Bounds(App::PixelSize screen) const
+{
+    return Rect{.x = 0, .y = 0, .width = screen.width, .height = screen.height};
+}
+
+std::optional<NoticeId> NoticeWindow::Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn)
 {
     if (!m_notice)
     {
@@ -148,12 +154,16 @@ std::optional<NoticeId> NoticeWindow::Step(const Input::InputState& input, App::
             }
         }
     }
-    const Point mouse = MouseInPixels(input, screen);
+    const std::optional<Point> mouse = MouseOfTheTurn(turn, input, screen);
     const bool ok = m_ok.Step(input, mouse);
     const bool withCancel = kind == NoticeKind::OkCancel || kind == NoticeKind::Code;
     const bool cancel = withCancel && m_cancel.Step(input, mouse);
-    const bool escape = input.WasPressed(Input::Key::Escape);
-    if (ok || input.WasPressed(Input::Key::Enter) || (escape && !withCancel))
+    if (!turn.logic)
+    {
+        return std::nullopt;
+    }
+    const bool escape = input.TakePress(Input::Key::Escape);
+    if (ok || input.TakePress(Input::Key::Enter) || (escape && !withCancel))
     {
         const NoticeId closed = *m_notice;
         Close();

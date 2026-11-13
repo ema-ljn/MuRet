@@ -24,8 +24,10 @@ using Client::Protocol::Outgoing;
 using Client::Protocol::ProtocolError;
 using Client::Protocol::Connection::LogoutQuitsTheGame;
 using Client::Protocol::Connection::LogoutReturnsToSelection;
+using Client::Protocol::Connection::LogoutReturnsToServerList;
 using Client::Protocol::Connection::ReadLogoutResult;
 using Client::Protocol::Connection::WriteClearLogoutReport;
+using Client::Protocol::Connection::WriteLogoutRequest;
 using Client::Protocol::Connection::WriteWindowClose;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
@@ -74,6 +76,16 @@ TEST(LogoutTest, WritesTheClearLogoutReport)
     EXPECT_EQ(report.delivery, Delivery::Encrypted);
     const Client::Network::Packet clear = Client::Network::Crypto::Xor32Decode(report.packet);
     EXPECT_TRUE(SameBytes(clear.Bytes(), Bytes({0xC1, 0x06, 0xF1, 0x03, 0x00, 0xF1})));
+}
+
+// 0x647f60: el pedido de la ventana de Esc, C1 05 F1 02 y el tipo, con el XOR32 y para cifrar (CL8, hito 8).
+TEST(LogoutTest, WritesTheLogoutRequest)
+{
+    const Outgoing request = WriteLogoutRequest(LogoutReturnsToServerList);
+
+    EXPECT_EQ(request.delivery, Delivery::Encrypted);
+    const Client::Network::Packet clear = Client::Network::Crypto::Xor32Decode(request.packet);
+    EXPECT_TRUE(SameBytes(clear.Bytes(), Bytes({0xC1, 0x05, 0xF1, 0x02, 0x02})));
 }
 
 // 0x419900 y 0x4499b0: tres bytes en claro, sin nada que lleve el XOR32 (Q-C214).

@@ -6,6 +6,7 @@
 #include "Render/SpriteBatch.h"
 #include "Scenes/ITextDrawer.h"
 #include "UI/Button.h"
+#include "UI/NewUi.h"
 #include "UI/Notices.h"
 #include "UI/TextField.h"
 #include "UI/Widget.h"
@@ -44,7 +45,7 @@ struct NoticeControls
     std::optional<Rect> codeBox;
 };
 
-class NoticeWindow
+class NoticeWindow final : public NewUiWindow
 {
 public:
     // `texts` puede ser nullptr (la caja sin texto) y tiene que vivir lo que la ventana.
@@ -54,14 +55,17 @@ public:
     // del 0x5e, el único que 0x6431b0 arma con sprintf (el nombre del elegido); los otros no lo usan.
     // El código se vacía.
     void Open(NoticeId notice, std::string_view argument = {});
-    void Close();
-    [[nodiscard]] bool IsOpen() const;
+    void Close() override;
+    [[nodiscard]] bool IsOpen() const override;
+    // De toda la pantalla: 0x6429b0 lo arma de W × H, y su vtable + 8 mueve solo la caja.
+    [[nodiscard]] Rect Bounds(App::PixelSize screen) const override;
     [[nodiscard]] std::optional<NoticeId> Notice() const;
 
     // 0x642e30 en el paso: con OK o Enter (y Esc en el tipo 2) se cierra y da el aviso que se cerró,
     // para lo que sigue (FollowUpOf); con cancelar o Esc en los tipos 3 y 4 se cierra sin darlo; el
-    // tipo 0 no se cierra. En el 4, lo que se escribe va al campo del código: solo dígitos.
-    std::optional<NoticeId> Step(const Input::InputState& input, App::PixelSize screen);
+    // tipo 0 no se cierra. En el 4, lo que se escribe va al campo del código: solo dígitos. Los
+    // botones, Enter y Esc, con el foco.
+    std::optional<NoticeId> Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn = {});
 
     // Lo del aviso abierto, en la pantalla del último paso o dibujo.
     [[nodiscard]] const NoticeControls& Layout() const;

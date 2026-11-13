@@ -7,6 +7,7 @@
 #include "Input/InputState.h"
 #include "Scenes/IFrameTarget.h"
 #include "Scenes/IScene.h"
+#include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneId.h"
 
 #include <functional>
@@ -46,13 +47,18 @@ public:
     // 0x63945d y el principio de la vuelta siguiente de WinMain (P-C61). afterSceneStep corre después de cada paso de
     // la escena que salió bien, antes de su pedido de otra: lo que 0x637700 hace en todas las escenas detrás de su
     // lógica, como los relojes de los mensajes (0x637cf3 y 0x637cf8). Su error queda en Failure, como el de un
-    // paso. La fábrica, el frame, el reloj y el log viven más.
+    // paso. beforeSceneDraw corre en cada Render antes de BeginFrame, y afterSceneDraw después del dibujo de la
+    // escena y antes de Present, con su lienzo: lo que 0x637700 hace en todas las escenas alrededor del dibujo (la
+    // captura de pantalla, 0x6381bb..0x63835a y 0x638586..0x6385da). Sus errores quedan en Failure y el frame no se
+    // presenta. La fábrica, el frame, el reloj y el log viven más.
     SceneManager(SceneFactory factory, IFrameTarget& frame, Core::IClock& clock,
                  std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log,
                  std::function<std::optional<SceneId>()> takeSceneOrder = {},
                  std::function<void(Core::Duration)> beforeSceneFrame = {},
                  std::function<void(Core::Duration)> afterSceneFrame = {},
-                 std::function<Core::Expected<void, std::string>()> afterSceneStep = {});
+                 std::function<Core::Expected<void, std::string>()> afterSceneStep = {},
+                 std::function<Core::Expected<void, std::string>()> beforeSceneDraw = {},
+                 std::function<Core::Expected<void, std::string>(SceneCanvas&)> afterSceneDraw = {});
     ~SceneManager() override;
 
     SceneManager(const SceneManager&) = delete;
@@ -71,9 +77,9 @@ public:
     // de un pedido rechazado: si vuelve, se avisa otra vez. Si la escena falló (IScene::Failure), su
     // error queda en Failure y no pide nada.
     void Step(const Input::InputState& input) override;
-    // BeginFrame con el reloj, el Render de la escena y Present. Sin escena, nada. Antes, el
-    // IScene::PrepareFrame del frame si nadie lo corrió. No mira HoldsTheLastFrame: el GameLoop no lo
-    // llama con el frame retenido. Si el dibujo falló (IScene::Failure), su error queda en Failure y
+    // BeginFrame con el reloj, el Render de la escena y Present, entre beforeSceneDraw y afterSceneDraw. Sin
+    // escena, nada. Antes, el IScene::PrepareFrame del frame si nadie lo corrió. No mira HoldsTheLastFrame: el
+    // GameLoop no lo llama con el frame retenido. Si el dibujo falló (IScene::Failure), su error queda en Failure y
     // el frame no se presenta.
     void Render(float alpha) override;
 
@@ -108,6 +114,8 @@ private:
     void PrepareFrame() const;
     // Si la escena falló en `where` (IScene::Failure): guarda el error, lo anota y devuelve true.
     bool TakeTheSceneFailure(const char* where);
+    // Si `done` es un error de lo que corre alrededor del dibujo: lo guarda, lo anota y devuelve true.
+    bool TakeTheDrawFailure(const Core::Expected<void, std::string>& done);
 
     SceneFactory m_factory;
     IFrameTarget& m_frame;
@@ -121,6 +129,9 @@ private:
     std::function<void(Core::Duration)> m_afterSceneFrame;
     // Lo de 0x637700 detrás del paso de cualquier escena.
     std::function<Core::Expected<void, std::string>()> m_afterSceneStep;
+    // Lo de 0x637700 antes y después del dibujo de cualquier escena.
+    std::function<Core::Expected<void, std::string>()> m_beforeSceneDraw;
+    std::function<Core::Expected<void, std::string>(SceneCanvas&)> m_afterSceneDraw;
     // La escena que ordenó la red y todavía no entró: la toma el próximo Step.
     std::optional<SceneId> m_networkOrder;
     std::unique_ptr<IScene> m_scene;

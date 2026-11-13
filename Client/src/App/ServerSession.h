@@ -17,6 +17,7 @@
 #include "Protocol/Dispatcher.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Movement.h"
+#include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 
 #include <chrono>
@@ -216,6 +217,9 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> SendWalk(std::span<const Protocol::Movement::Cell> path,
                                                              Protocol::Movement::Cell target, float angle);
     [[nodiscard]] Core::Expected<void, std::string> SendFacing(std::uint8_t direction);
+    // 0x61c210: el C1 1C F3 30 con las opciones (Protocol::OptionData::WriteOptionData), en claro. Lo piden el menú
+    // de Esc (0x624036, 0x6247ee y 0x624eec) y la entrada a los mapas 30 y 31.
+    [[nodiscard]] Core::Expected<void, std::string> SendOptionData(const Protocol::OptionData::OptionBody& body);
     void RequestGate(std::uint8_t gate);
     void ConfirmTeleport();
     void RequestCrywolfState();
@@ -227,9 +231,15 @@ public:
     // El 24 del ítem del cursor (Protocol::Inventory::WriteItemMove), en C3. Los dos rand() del envío los saca la
     // escena antes.
     [[nodiscard]] Core::Expected<void, std::string> SendItemMove(const Protocol::Inventory::ItemMove& move);
+    // El C1 03 42 de 0x6599a0(4), al abrir la ventana de la party (Protocol::Party::WritePartyListRequest), en claro.
+    void RequestPartyList();
     // 0x4c609f: el 00 con la escena 2 (el login) pide la lista de servidores, C1 04 F4 02, por el socket que esté
     // abierto, sin mirar cuál es. En el CS es el saludo (OnConnectHello); acá, el que llega por el GS (Q-C511).
     void ResendServerListRequest();
+    // 0x641203 y 0x63f9a0, al abrir y al cerrar los créditos: C1 04 F4 06 en claro por el socket que esté
+    // abierto (0x6c82a0, el del ConnectServer mientras se ve la lista), sin mirar cuál es. Cerrado, nada:
+    // el original no manda con el socket en −1.
+    void SendCreditsNotice();
 
     // 0x4e3e98: las diez últimas recepciones 1C crudas, antes de admisión y aplicación.
     // Proyección de MuRet para los 1C: pertenece a la sesión y sobrevive Start.
@@ -308,6 +318,11 @@ public:
     // ventana de borrar (0x643740), y espera la respuesta. El código no va al log. Sin elegido, o en
     // otro estado, un aviso y nada.
     void DeleteCharacter(std::span<const std::byte, Protocol::Character::DeleteCodeSize> code);
+
+    // En ChoosingCharacter o InWorld, manda el pedido de salida F1 02 con `kind` (0x647f60, el C3 que arma
+    // la ventana de Esc) y sigue en el mismo estado: lo que cambia es la respuesta (OnLogoutResult). Los
+    // rand() de la CRT de 0x647f60 los saca quien lo pide. En otro estado, un aviso y nada.
+    void RequestLogout(std::uint8_t kind);
 
     // El pkt[4] de la última respuesta del F3 02 (Protocol::Character::CharacterDeleted, o el de un
     // aviso), desde que llega hasta el próximo DeleteCharacter o Start. std::nullopt antes.

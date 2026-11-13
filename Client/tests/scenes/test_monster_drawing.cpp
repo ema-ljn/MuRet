@@ -22,6 +22,7 @@
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainLighting.h"
@@ -584,6 +585,62 @@ TEST_F(MonsterDrawingTest, TheMonster0x37WearsItsClothOutsideChaosCastle)
     const auto unsupplied = Draw(Pass());
     ASSERT_FALSE(unsupplied.HasValue());
     EXPECT_NE(unsupplied.Error().find("0x50d58b"), std::string::npos) << unsupplied.Error();
+}
+
+// 0x50bf98: el +0x376 0x45 saca su rand() % 30, pone nueve flare01 de 0,6 con su luz y, antes de cada una de sus tres
+// partículas 0x5c6/3, cuatro rand(); la 0x5c6/3 no está en Particles (CL11) y corta en la primera.
+TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndCutsAtItsFirstSpark)
+{
+    // 0x51483f: el monstruo 69 (el +0x376 0x45) con el modelo 0x184, que no tiene caso en 0x6002e0.
+    constexpr std::uint16_t ModelOf69 = 0x184;
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        m_world = std::make_unique<Client::Scenes::WorldState>();
+        SetUp();
+        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_sprites.Clear();
+        m_world->Runtime().map = map;
+        Monster(3, ModelOf69, 0x45);
+        auto particles = std::make_unique<Client::World::Particles>();
+        GameCharacterPass pass = Pass();
+        pass.particles = particles.get();
+
+        const auto result = Draw(pass);
+
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_NE(result.Error().find("0x50c0db"), std::string::npos) << result.Error();
+        // El cuerpo y la sombra antes.
+        EXPECT_EQ(m_batch.Vertices().size(), 6u);
+        Client::Render::Models::CrtRandom random{1};
+        const double x =
+            static_cast<double>(random.Next() % 30 + 70) * static_cast<double>(std::bit_cast<float>(0x3c23d70au));
+        const auto sprites = LiveSprites();
+        ASSERT_EQ(sprites.size(), 9u);
+        EXPECT_EQ(sprites[0].texture, 0x5ac);
+        EXPECT_FLOAT_EQ(sprites[0].scale, 0.6f);
+        EXPECT_EQ(sprites[0].light.x, static_cast<float>(x * static_cast<double>(std::bit_cast<float>(0x3f4ccccdu))));
+        EXPECT_EQ(sprites[0].light.y, static_cast<float>(x * static_cast<double>(std::bit_cast<float>(0x3f666666u))));
+        EXPECT_EQ(sprites[0].light.z, static_cast<float>(x));
+        // El hueso 10 en (0, 0, 10), más la posición.
+        EXPECT_EQ(sprites[0].position, glm::vec3(150.0f, 150.0f, 20.0f));
+        EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(5));
+        TearDown();
+    }
+    // Entre frames del original, los nueve flare01 sin las partículas, sobre una copia del rand().
+    m_world = std::make_unique<Client::Scenes::WorldState>();
+    SetUp();
+    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    m_sprites.Clear();
+    Monster(3, ModelOf69, 0x45);
+    auto particles = std::make_unique<Client::World::Particles>();
+    GameCharacterPass between = Pass();
+    between.particles = particles.get();
+    between.originalFrames = 0;
+    const auto drawn = Draw(between);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(LiveSprites().size(), 9u);
+    EXPECT_EQ(m_clothWorld.random.State(), 1u);
 }
 
 // 0x510abd: el cuervo de +0x430 va con cualquier tipo (0x420df0), con el trapecio del dibujo.

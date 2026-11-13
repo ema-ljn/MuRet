@@ -27,6 +27,7 @@
 #include "Scenes/WorldState.h"
 #include "World/ChaosCastle.h"
 #include "World/OriginalFtol.h"
+#include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/TerrainDecal.h"
 #include "World/TerrainHeight.h"
@@ -489,6 +490,69 @@ Result DrawTheFloorMark(MonsterFrame& frame)
     return drawn;
 }
 
+// 0x50bf98..0x50c0f0, el +0x376 0x45: x = (rand() % 30 + 70) · 0,01f en la x87; nueve flare01 (0x5ac) de 0,6f con la
+// luz (x · 0,8f; x · 0,9f; x) en los huesos de la tabla de 0x6c88a0, y tres 0x53fe70(0x5c6, punto, ángulos, luz, 3, 1,
+// 0) con la luz (v · 0,6f; v · 0,7f; x · 0,8f), v = f(x), cada una en un hueso al azar del modelo (rand() % +0x22)
+// corrido (rand() % 20 − 10) en x, y y z: cuatro rand() antes de cada una. El corrimiento queda en [ebp−0x50], que un
+// monstruo no vuelve a leer antes de 0x50ea23. Entre frames del original no crea las partículas.
+Result DrawTheSparksOf0x45(MonsterFrame& frame)
+{
+    constexpr std::array<std::size_t, 9> Bones{10, 18, 37, 38, 51, 52, 58, 59, 66};
+    constexpr std::uint16_t Flare = 0x5ac;
+    constexpr float FlareScale = std::bit_cast<float>(0x3f19999au); // 0,6
+    constexpr std::int32_t Spark = 0x5c6;
+    constexpr std::int32_t SparkSubtype = 3;
+    constexpr int Sparks = 3;
+    const ActorState& actor = frame.actor;
+    const auto point = [&actor](std::size_t bone, const glm::vec3& offset)
+    {
+        const BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : BoneTransform(0.0f);
+        return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, actor.scale,
+                                                         actor.position);
+    };
+    if (frame.pass.sprites == nullptr)
+        return Core::Unexpected<std::string>("0x50c014: falta la tabla de los sprites del frame (0x5491e0)");
+    const double x = static_cast<double>(frame.random.Next() % 30 + 70) * D(std::bit_cast<float>(0x3c23d70au));
+    const float v = F32(x);
+    const float red = F32(x * D(std::bit_cast<float>(0x3f4ccccdu)));
+    const glm::vec3 flareLight{red, F32(x * D(std::bit_cast<float>(0x3f666666u))), v};
+    for (const std::size_t bone : Bones)
+        static_cast<void>(
+            frame.pass.sprites->Create(Flare, point(bone, glm::vec3(0.0f)), FlareScale, flareLight, 0.0f, 0));
+    const glm::vec3 sparkLight{F32(D(v) * D(std::bit_cast<float>(0x3f19999au))),
+                               F32(D(v) * D(std::bit_cast<float>(0x3f333333u))), red};
+    const Render::Models::Skeleton* skeleton = frame.fauna.SkeletonOf(actor.type);
+    const auto bones = static_cast<std::int16_t>(skeleton != nullptr ? skeleton->bones.size() : 0);
+    for (int spark = 0; spark < Sparks; ++spark)
+    {
+        glm::vec3 offset{};
+        for (int axis = 0; axis < 3; ++axis)
+            offset[axis] = static_cast<float>(static_cast<std::int32_t>(frame.random.Next() % 20) - 10);
+        const std::int32_t drawn = frame.random.Next();
+        if (bones <= 0)
+            return Cut("0x50c0a9", "el hueso al azar de un modelo sin huesos (IDIV por 0) del +0x376 0x45", actor.type);
+        const auto bone = static_cast<std::size_t>(drawn % bones);
+        if (!frame.originalFrame)
+            continue;
+        if (frame.pass.particles == nullptr)
+            return Core::Unexpected<std::string>("0x50c0db: falta el arreglo de las partículas (0x53fe70)");
+        const auto created = frame.pass.particles->CreateChecked(Spark, point(bone, offset), actor.angles, sparkLight,
+                                                                 SparkSubtype, 1.0f, frame.worldClock, frame.random);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("0x50c0db: la partícula {:#x}/{} del +0x376 0x45 falla con el error {}",
+                                                Spark, SparkSubtype, static_cast<int>(created.Error())));
+    }
+    return {};
+}
+
+// 0x50bf45..0x50c904: lo que se agrega por el +0x376. El 0x45, hasta sus partículas; los demás cortan.
+Result DrawTheDecorations(MonsterFrame& frame)
+{
+    if (frame.actor.word376 == 0x45)
+        return DrawTheSparksOf0x45(frame);
+    return CheckMonsterDecorations(frame.actor.word376);
+}
+
 // 0x50bd89..0x50bf3e: la sombra de los monstruos.
 Result DrawTheShadow(MonsterFrame& frame)
 {
@@ -926,7 +990,7 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
         return body;
     if (auto shadow = DrawTheShadow(frame); !shadow.HasValue())
         return shadow;
-    if (auto decorated = CheckMonsterDecorations(actor.word376); !decorated.HasValue())
+    if (auto decorated = DrawTheDecorations(frame); !decorated.HasValue())
         return decorated;
     if (auto guild = CheckTheGuild(actor); !guild.HasValue())
         return guild;

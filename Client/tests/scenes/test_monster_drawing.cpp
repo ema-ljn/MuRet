@@ -806,6 +806,75 @@ TEST_F(MonsterDrawingTest, ThePhoenixDrawsItsWiderBodiesItsSecondModelAndItsClot
     }
 }
 
+// 0x50c59f: el +0x376 0x47 (con la textura 0x253), el 0x4a y el 0x12d (con la 0x255), con cualquier tipo, arman en su
+// lugar una tela de la grilla en el hueso 0x13 (5 · 15, sin esferas) sobre la pose guardada, la simulan y la dibujan
+// después de la sombra, como CharacterCloth. En Lorencia, en Devias y en Icarus (el 10, sin sombra), igual.
+TEST_F(MonsterDrawingTest, TheCrustsWearTheirGridClothWithTheirTexture)
+{
+    struct Case
+    {
+        std::uint16_t monster;
+        std::uint16_t texture;
+    };
+    constexpr std::array cases{Case{0x47, 0x253}, Case{0x4a, 0x255}, Case{0x12d, 0x255}};
+    for (const std::int32_t map : {0, 2, 10})
+    {
+        for (const Case& value : cases)
+        {
+            SCOPED_TRACE(testing::Message() << "mapa " << map << ", +0x376 " << value.monster);
+            m_world = std::make_unique<Client::Scenes::WorldState>();
+            SetUp();
+            m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+            m_world->Runtime().map = map;
+            ActorState& crust = Monster(5, Spider, value.monster);
+            std::vector<Client::Scenes::CharacterCloth> cloths(6);
+            GameCharacterPass pass = Pass();
+            pass.cloths = cloths;
+            Client::Render::Models::ClothWorld expectedWorld = m_clothWorld;
+
+            const auto result = Draw(pass);
+
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            ASSERT_EQ(cloths[5].Cloths().size(), 1u);
+            EXPECT_EQ(cloths[5].Count(), 1);
+            const auto& cloth = cloths[5].Cloths()[0];
+            EXPECT_EQ(cloth.Front().value, value.texture);
+            EXPECT_EQ(cloth.Back().value, value.texture);
+            EXPECT_EQ(cloth.Bone(), 0x13);
+            EXPECT_EQ(cloth.Columns(), 5);
+            EXPECT_EQ(cloth.Rows(), 15);
+            EXPECT_TRUE(cloth.Spheres().empty());
+            Client::Scenes::CharacterCloth expected;
+            Client::Render::ModelBatch expectedBatch;
+            expectedBatch.Begin(Client::Render::Pass3D{});
+            const Client::Render::Models::ClothBody body{
+                .bones = crust.bodyPose, .angles = crust.angles, .scale = crust.scale, .position = crust.position};
+            expected.FrameTheMonsterCloth(expectedBatch, value.monster, body, expectedWorld,
+                                          static_cast<std::uint8_t>(map), 0.0f);
+            const auto particles = cloth.Particles();
+            const auto reference = expected.Cloths()[0].Particles();
+            ASSERT_EQ(particles.size(), reference.size());
+            for (std::size_t index = 0; index < particles.size(); ++index)
+                EXPECT_EQ(particles[index].position, reference[index].position) << index;
+            const std::size_t first = map == 10 ? 3u : 6u;
+            ASSERT_EQ(m_batch.Vertices().size(), first + expectedBatch.Vertices().size());
+            for (std::size_t index = 0; index < expectedBatch.Vertices().size(); ++index)
+                EXPECT_EQ(m_batch.Vertices()[first + index].position, expectedBatch.Vertices()[index].position)
+                    << index;
+            for (std::size_t call = 0; call < 3; ++call)
+                static_cast<void>(expectedWorld.random.Next());
+            EXPECT_EQ(m_clothWorld.random.State(), expectedWorld.random.State());
+            TearDown();
+        }
+    }
+    m_world = std::make_unique<Client::Scenes::WorldState>();
+    SetUp();
+    Monster(5, Spider, 0x47);
+    const auto unsupplied = Draw(Pass());
+    ASSERT_FALSE(unsupplied.HasValue());
+    EXPECT_NE(unsupplied.Error().find("0x50c59f"), std::string::npos) << unsupplied.Error();
+}
+
 // Entre frames del original el 0x4d dibuja lo mismo sobre la copia: no guarda +0x64, +0x68, el tipo ni los huesos,
 // no arma la tela ni saca rand(); sin la tela persistente del lugar, corta en 0x50c283.
 TEST_F(MonsterDrawingTest, ThePhoenixBetweenOriginalFramesStoresNothing)

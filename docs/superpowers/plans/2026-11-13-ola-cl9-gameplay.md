@@ -271,9 +271,8 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
       CL11 (06, "Los helpers de los monstruos"; 08, P-C336); quedan los efectos por tipo y los helpers, que cortan con
       su dirección (08, P-C179, P-C241 y P-C332). Fase 7: la primera marca del piso del `0x204` al `0x208`
       (`0x43436c`), los pases de brillo de `0x50c671`, `0x50c71b` y `0x50c8ce` (Q-C863), y `0x42e3d0` pasa al hito 13
-      (solo corre en la batalla de Castle Siege). Fase 8: `0x50c177` (el `0x4d`, con el `0x18a` y su tela, Q-C864).
-      Quedan, con su dirección: `0x50c59f` (la
-      tela `0x64`), `0x50c762` y `0x50c83b` (lo que cuelga con `0x509340` desde `+0x2f8`, con el `0xef` de
+      (solo corre en la batalla de Castle Siege). Fase 8: `0x50c177` (el `0x4d`, con el `0x18a` y su tela, Q-C864) y
+      `0x50c59f` (las telas de la grilla del `0x47`, el `0x4a` y el `0x12d`). Quedan, con su dirección: `0x50c762` y `0x50c83b` (lo que cuelga con `0x509340` desde `+0x2f8`, con el `0xef` de
       `0x5096ac`), `0x43ed20`, `0x442e10`, `0x433b2f` (la U de `+0x6c` y el `+0x88` del modelo), `0x6011f1` y
       `0x4ed775`.
 - [ ] **La tela sobre la malla** (P-C22 f, vtable `0x6b8d04`: los monstruos `0x59..0x8f`; los tres pantalones

@@ -598,6 +598,25 @@ Result DrawTheShines(MonsterFrame& frame)
     return DrawTheShinePass(frame, model, monster == 0x43 ? 0x144 : Chrome, factor, OwnTexture);
 }
 
+// La tela de la grilla de un +0x376 de WearsAGridClothOfItsOwn (0x50c283..0x50c35c y 0x50c59f..0x50c669): la del lugar
+// (pass.cloths[slot]), armada, simulada y dibujada sobre la pose guardada (+0x120) con CharacterCloth, y entre frames
+// del original dibujada como quedó. Sin la tela del lugar, corta con `address`.
+Result RunTheGridCloth(MonsterFrame& frame, std::string_view address)
+{
+    const ActorState& actor = frame.actor;
+    if (frame.slot >= frame.pass.cloths.size())
+        return Core::Unexpected(std::format("{}: falta la tela persistente del lugar del personaje", address));
+    CharacterCloth& cloth = frame.pass.cloths[frame.slot];
+    const Render::Models::ClothBody body{
+        .bones = actor.bodyPose, .angles = actor.angles, .scale = actor.scale, .position = actor.position};
+    if (frame.originalFrame)
+        cloth.FrameTheMonsterCloth(frame.batch, actor.word376, body, *frame.pass.clothWorld,
+                                   static_cast<std::uint8_t>(frame.map), frame.worldClock);
+    else
+        cloth.DrawTheMonsterCloth(frame.batch, body, frame.worldClock);
+    return {};
+}
+
 // 0x50c24d..0x50c366 con el tipo + 1 (el 0x18a): 0x602e90(objeto, 1, contorno, 0); los huesos 23 y 14 de su pose a
 // 0x743748c y 0x74374bc (solo en el frame del original); y la tela del 0x4d sobre esa pose, la del lugar
 // (pass.cloths[slot]), que entre frames del original se dibuja como quedó.
@@ -618,17 +637,7 @@ Result DrawTheSecondPhoenixModel(MonsterFrame& frame)
         frame.world.Runtime().phoenixBones[0] = actor.bodyPose[FirstBone];
         frame.world.Runtime().phoenixBones[1] = actor.bodyPose[SecondBone];
     }
-    if (frame.slot >= frame.pass.cloths.size())
-        return Core::Unexpected<std::string>("0x50c283: falta la tela persistente del lugar del personaje");
-    CharacterCloth& cloth = frame.pass.cloths[frame.slot];
-    const Render::Models::ClothBody body{
-        .bones = actor.bodyPose, .angles = actor.angles, .scale = actor.scale, .position = actor.position};
-    if (frame.originalFrame)
-        cloth.FrameTheMonsterCloth(frame.batch, actor.word376, body, *frame.pass.clothWorld,
-                                   static_cast<std::uint8_t>(frame.map), frame.worldClock);
-    else
-        cloth.DrawTheMonsterCloth(frame.batch, body, frame.worldClock);
-    return {};
+    return RunTheGridCloth(frame, "0x50c283");
 }
 
 // 0x50c177..0x50c366, el +0x376 0x4d (el monstruo 77: el tipo 0x189, que el alta carga con su segundo modelo, el
@@ -689,16 +698,20 @@ Result DrawThePhoenix(MonsterFrame& frame)
     return second;
 }
 
-// 0x50bf45..0x50c904: lo que se agrega por el +0x376. El 0x45, hasta sus partículas, el 0x46, el 0x4d y los pases de
-// brillo (MonsterShines); los demás cortan.
+// 0x50bf45..0x50c904: lo que se agrega por el +0x376. El 0x45, hasta sus partículas, el 0x46, el 0x4d, las telas del
+// 0x47, el 0x4a y el 0x12d (0x50c59f, con cualquier tipo: los tres son del 0x186) y los pases de brillo
+// (MonsterShines); los demás cortan.
 Result DrawTheDecorations(MonsterFrame& frame)
 {
-    if (frame.actor.word376 == 0x45)
+    const std::uint16_t monster = frame.actor.word376;
+    if (monster == 0x45)
         return DrawTheSparksOf0x45(frame);
-    if (frame.actor.word376 == 0x46)
+    if (monster == 0x46)
         return DrawTheFlareOf0x46(frame);
-    if (frame.actor.word376 == 0x4d)
+    if (monster == 0x4d)
         return DrawThePhoenix(frame);
+    if (monster == 0x47 || monster == 0x4a || monster == 0x12d)
+        return RunTheGridCloth(frame, "0x50c59f");
     if (MonsterShines(frame.actor.word376))
         return DrawTheShines(frame);
     return CheckMonsterDecorations(frame.actor.word376);

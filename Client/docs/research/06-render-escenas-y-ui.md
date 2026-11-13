@@ -10425,7 +10425,12 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    `+0x78`, y si se rompe `0x4fb1a0(personaje, objeto, 0)`; si no, su `+0x18` (`0x455930`) con el color nulo, que es
    `glColor3f(1, 1, 1)`; y `DEC` de `+0x2`. La tela se simula con el tipo en `0x18a` y sobre su pose. No saca `rand()`
    propios: los de la tela (su viento y su contador) y los de cada `0x6002e0`. Lo que queda en `+0x120`, `+0x64` y
-   `+0x68`, Q-C864.
+   `+0x68`, Q-C864. El `0x47`, el `0x4a` y el `0x12d` (fase 8, `0x50c59f..0x50c66c`, los monstruos 71, 74 y 301, los tres
+   con el modelo `0x186`): con `+0x190` en 0, `new(0x64)` de una tela de la grilla armada por `0x454a50` con
+   (personaje, `0x13`, 0, 10, 0, 5, 15, 30, 300, textura, textura, `0x1100`), la textura `0x253` con el `0x47` y `0x255`
+   con los otros dos (`SUB 0x47`, `NEG`, `SBB` y `AND 2` sobre `0x253`: `Monster\iui02.tga` e `iui03.tga`, que carga el
+   caso de Monster53), sin esferas, y `+0x18c` en 1; después, como la del `0x4d`: `0x455190(0,005f, 5)`, `0x4fb1a0` si se
+   rompe y si no su `+0x18` con el color nulo.
 5. **El gremio** (`0x50c972`, con `+0x1f2` distinto de `0xffff`, que en un monstruo nunca pasa), **la luz** (`0x50cc55`:
    el terreno más la propia en `+0x3b4`, el `0x189` en 0,6), **las partes** (`0x50d363`: con `+0x3e3` en 0, el Angel de
    Chaos Castle con `+0x88` en 1 y el lazo de las seis partes de `+0x1f8`) y **las telas** (`0x50d58b`): bVar23
@@ -10457,7 +10462,8 @@ corta en `0x50c0db` (la `0x5c6/3` no está en `World::Particles`, CL11; entre fr
 partículas); del `0x46`, su sprite; del `0x4d`, todo (`DrawGameMonster` con el modo de `0x5ffdf0`, que da la escala de
 `SkinObjectMeshes`; los huesos en `WorldRuntime::phoenixBones`, en el frame del original; la tela con
 `CharacterCloth::FrameTheMonsterCloth` del lugar, y entre frames del original `DrawTheMonsterCloth`, que la dibuja como
-quedó; sin `GameCharacterPass::cloths`, corta en `0x50c283`). Cortan con su dirección: los casos de `0x6002e0` y de su cadena, lo demás de `0x50bf45`, las partes (`0x50d3e3`), el Angel (`0x50d383`) y el gremio (`0x50c99b`), el joint `0x618/6` en
+quedó; sin `GameCharacterPass::cloths`, corta en `0x50c283`); del `0x47`, el `0x4a` y el `0x12d`, su tela, igual (sin
+`GameCharacterPass::cloths`, corta en `0x50c59f`). Cortan con su dirección: los casos de `0x6002e0` y de su cadena, lo demás de `0x50bf45`, las partes (`0x50d3e3`), el Angel (`0x50d383`) y el gremio (`0x50c99b`), el joint `0x618/6` en
 `CreateFaunaJoint` (`0x530c18`), los efectos de la CL11 del `0x16e`, de `0x43c150` y de `0x42dfe0` ([Los helpers
 de Kalima y del asedio](#los-helpers-de-kalima-y-del-asedio-0x43c150-y-0x42dfe0)) y de los otros helpers de `0x510a1e`
 (`Scenes::DrawTheMonsterHelpers`, que sigue) y `0x510f4d` (`0x518cf0`, CL11); 08, P-C179.

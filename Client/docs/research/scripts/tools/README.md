@@ -41,3 +41,17 @@ python -I Client/docs/research/scripts/tools/regen_cache.py
 El grafo es aproximado (ver `cg.py`): solo sigue los `call` directos, y una función sin marco y sin
 `call` directo queda pegada a la anterior. Lo que dice `reach.py` que no se alcanza puede alcanzarse
 por una tabla o un puntero.
+
+## La cobertura del roadmap (CL.M)
+
+Tres scripts aparte, que no usan la caché ni `capstone`: solo la biblioteca estándar. Arman y
+verifican la matriz de [10](../../10-cobertura-roadmap.md), una fila por función del `main.exe` con
+su ola. El método está en ese informe.
+
+| Herramienta | Qué hace | Ejemplo |
+| --- | --- | --- |
+| `build_roadmap_matrix.py` | lee el clon del research (el inventario, el grafo, los exports y el exe de `original/`) y MuRet en un commit, y escribe la matriz; con `--summary`, un JSON con los conteos y el avance | `build_roadmap_matrix.py --research "$RESEARCH" --repo . --ref origin/main --out Client/docs/research/coverage/mainexe-roadmap.tsv` |
+| `check_roadmap_coverage.py` | el verificador del plan de CL.M: el inventario fijado, cada VA una vez con sus columnas originales, olas, estados y evidencia válidos; con `--require-complete`, sin pendientes | `check_roadmap_coverage.py --inventory "$INV" --mapping Client/docs/research/coverage/mainexe-roadmap.tsv --require-complete` |
+| `test_check_roadmap_coverage.py` | sus controles negativos, sobre copias de la matriz del repo; el inventario va en `MURET_MAINEXE_INVENTORY` | `MURET_MAINEXE_INVENTORY="$INV" python3 -I test_check_roadmap_coverage.py` |
+
+`$INV` es `$RESEARCH/client-research/mainexe-vmxp-c32bbd5f/decompiled/inventory.tsv`.

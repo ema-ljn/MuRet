@@ -11,6 +11,7 @@ GL, de los volcados de memoria y del cable.
 | los cargadores de modelos | `emulate_model_loaders.py` | CL6.1 |
 | el barrido del login: el mundo 55, el dragón, el cuervo, el recorte del terreno | [`login/`](login/README.md) | CL7.R |
 | las herramientas del binario: desensamblar, el grafo de llamadas, constantes, tablas de saltos | [`tools/`](tools/README.md) | todas |
+| la matriz que asigna cada función del `main.exe` a una ola, su verificador y sus controles | [`tools/`](tools/README.md#la-cobertura-del-roadmap-clm) | CL.M |
 | el barrido de Lorencia: la cámara, la tabla de protección, los objetos, caminar, el cable, los mapas | [`game/`](game/README.md) | CL7 |
 | los paquetes de Python | [`requirements.txt`](requirements.txt) | todas |
 
@@ -127,6 +128,7 @@ salidas del barrido de Lorencia, que quedaron fuera de Git (lo que vale de ellos
 | `MURET_C3C4_REFERENCE` | la ruta de `c3c4_reference.py` | `game/wire/` (solo los C3 y C4) |
 | `MURET_RESEARCH_CACHE` | la carpeta de la caché del binario; sin ella, `.research-cache/` en la raíz | `tools/`, `game/maps/mapcmp.py`, `map0.py` |
 | `MURET_CLOTH_CASES` | adónde escribe `run_cloth_cases.py` sus casos; sin ella, `cloth-cases/` en la carpeta actual | `run_cloth_cases.py` |
+| `MURET_MAINEXE_INVENTORY` | el `inventory.tsv` del decompilado, en `$RESEARCH/client-research/mainexe-vmxp-c32bbd5f/decompiled/` | `tools/test_check_roadmap_coverage.py` |
 
 Las de los tests del cliente (`MURET_CLIENT_GOLDEN_DIR`, `MURET_CLIENT_FONT_FILE`,
 `MURET_CLIENT_REQUIRE_GL`, y las mismas de las trazas, el cable y los volcados) están en

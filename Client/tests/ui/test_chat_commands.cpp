@@ -179,16 +179,6 @@ TEST_F(Commands, TheFilterCommandSetsTheWordsAndWarns)
     EXPECT_EQ(log.filter[0], "uno");
 }
 
-// 0x576eb0: un texto de un emote en lo dicho corta (CL9.1); sin ninguno, nada.
-TEST_F(Commands, AnEmoteIsCut)
-{
-    EXPECT_TRUE(Client::UI::CheckTheEmotes(texts, "hola").HasValue());
-    const auto emote = Client::UI::CheckTheEmotes(texts, "ja #e300 ja");
-    ASSERT_FALSE(emote.HasValue());
-    EXPECT_NE(emote.Error().find("CL9.1"), std::string::npos);
-    EXPECT_FALSE(Client::UI::CheckTheEmotes(texts, "#e783").HasValue());
-}
-
 // 0x576894..0x576952: "/" y el nombre de un ítem (con +0x24) apaga el cartel del conjunto, abre la ayuda del ítem (el
 // modo 3 con el ítem en 0x77f3b0c), suena y no manda nada.
 TEST_F(Commands, AnItemNameOpensItsHelp)

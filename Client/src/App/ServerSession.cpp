@@ -39,6 +39,8 @@
 #include "Protocol/Party.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/ProtocolError.h"
+#include "Protocol/Quest.h"
+#include "Protocol/Viewport.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
 
@@ -235,6 +237,24 @@ void ServerSession::RegisterGameServerHandlers()
         m_gameServer.On(Protocol::Movement::WalkOpcode, [this](const Network::Packet& packet) { OnWalk(packet); }) &&
         m_gameServer.On(Protocol::Movement::DamageOpcode,
                         [this](const Network::Packet& packet) { OnDamage(packet); }) &&
+        m_gameServer.On(Protocol::Movement::ActionOpcode,
+                        [this](const Network::Packet& packet) { OnAction(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::PlayersOpcode,
+                        [this](const Network::Packet& packet) { OnViewportPlayers(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::LeaveOpcode,
+                        [this](const Network::Packet& packet) { OnViewportLeave(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::TransformedOpcode,
+                        [this](const Network::Packet& packet) { OnTransformed(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::EquipmentShownOpcode,
+                        [this](const Network::Packet& packet) { OnEquipmentShown(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::PositionOpcode,
+                        [this](const Network::Packet& packet) { OnViewportPosition(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::MonstersOpcode,
+                        [this](const Network::Packet& packet) { OnViewportMonsters(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::SummonsOpcode,
+                        [this](const Network::Packet& packet) { OnSummons(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::ObjectsOpcode,
+                        [this](const Network::Packet& packet) { OnViewportObjects(packet); }) &&
         m_gameServer.On(Protocol::World::TeleportOpcode,
                         [this](const Network::Packet& packet) { OnTeleport(packet); }) &&
         m_gameServer.On(Protocol::World::WorldOpcode, Protocol::World::RegenSubcode,
@@ -280,7 +300,18 @@ void ServerSession::RegisterGameServerHandlers()
         m_gameServer.On(Protocol::NpcWindows::ChaosBoxCloseOpcode, npcWindow) &&
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); }) &&
         m_gameServer.On(Protocol::Connection::MainCheckOpcode,
-                        [this](const Network::Packet& packet) { OnMainCheck(packet); });
+                        [this](const Network::Packet& packet) { OnMainCheck(packet); }) &&
+        // Las misiones (CL9 hito 2): 0x4e4b3a, 0x4e4b6d, 0x4e4b9f, 0x4e4ba9 y 0x4e4bf2 del dispatcher.
+        m_gameServer.On(Protocol::Quest::QuestFlagOpcode,
+                        [this](const Network::Packet& packet) { OnQuestFlag(packet); }) &&
+        m_gameServer.On(Protocol::Quest::QuestListOpcode,
+                        [this](const Network::Packet& packet) { OnQuestList(packet); }) &&
+        m_gameServer.On(Protocol::Quest::QuestStateOpcode,
+                        [this](const Network::Packet& packet) { OnQuestState(packet); }) &&
+        m_gameServer.On(Protocol::Quest::SetQuestOpcode,
+                        [this](const Network::Packet& packet) { OnSetQuestResult(packet); }) &&
+        m_gameServer.On(Protocol::Quest::QuestResultOpcode,
+                        [this](const Network::Packet& packet) { OnQuestResult(packet); });
     assert(registered && "los handlers del GameServer se registran una vez");
 }
 
@@ -1063,6 +1094,8 @@ void ServerSession::OnOptionData(const Network::Packet& packet)
 // traba (0x4d1432..0x4d1970). Sus dos rand() (el relleno y el serial) no salen del de la CRT, como los del F3 10.
 void ServerSession::OnItemMove(const Network::Packet& packet)
 {
+    // 0x4e38ca..0x4e394f: la copia en la cola, antes del flag y del lector, incluso si se rechaza o está corto.
+    m_eventSink.CopyToPacketRing(packet.Bytes());
     if (!packet.WasDecrypted())
     {
         m_log.Warning("el movimiento de ítem (24) no llegó cifrado: se le avisa al GameServer (F1 03)");
@@ -1181,6 +1214,8 @@ void ServerSession::OnItemDelete(const Network::Packet& packet)
 
 void ServerSession::OnDurability(const Network::Packet& packet)
 {
+    // 0x4e3ace..0x4e3b53: la copia en la cola, antes del lector, incluso si está corto.
+    m_eventSink.CopyToPacketRing(packet.Bytes());
     const auto durability = Protocol::Inventory::ReadDurability(packet);
     if (!durability.HasValue())
     {
@@ -1259,7 +1294,12 @@ Core::Expected<void, std::string> ServerSession::SendWalk(std::span<const Protoc
 
 Core::Expected<void, std::string> ServerSession::SendFacing(std::uint8_t direction)
 {
-    return SendWorldPacket(Protocol::Movement::WriteFacing(direction));
+    return SendWorldPacket(Protocol::Movement::WriteAction(direction, Protocol::Movement::FacingAction));
+}
+
+void ServerSession::SendAction(std::uint8_t direction, std::uint8_t action)
+{
+    static_cast<void>(SendWorldPacket(Protocol::Movement::WriteAction(direction, action)));
 }
 
 Core::Expected<void, std::string> ServerSession::SendOptionData(const Protocol::OptionData::OptionBody& body)
@@ -1302,9 +1342,80 @@ void ServerSession::RequestPartyList()
     static_cast<void>(SendWorldPacket(Protocol::Party::WritePartyListRequest()));
 }
 
-std::span<const std::vector<std::byte>> ServerSession::Teleports() const
+void ServerSession::RequestQuestList()
 {
-    return m_teleports.Entries();
+    static_cast<void>(SendWorldPacket(Protocol::Quest::WriteQuestListRequest()));
+}
+
+void ServerSession::SendSetQuest(std::uint8_t quest, std::uint8_t state)
+{
+    static_cast<void>(SendWorldPacket(Protocol::Quest::WriteSetQuest(quest, state)));
+}
+
+void ServerSession::SendTalk(std::int16_t key)
+{
+    static_cast<void>(SendWorldPacket(Protocol::Quest::WriteTalk(key)));
+}
+
+void ServerSession::SendWindowClose()
+{
+    static_cast<void>(SendWorldPacket(Protocol::Connection::WriteWindowClose()));
+}
+
+// 0x4e4b3a..0x4e4bf2: las misiones, sin guarda de escena ni del flag de cifrado (CL9 hito 2).
+void ServerSession::OnQuestFlag(const Network::Packet& packet)
+{
+    const auto flag = Protocol::Quest::ReadQuestFlag(packet);
+    if (!flag.HasValue())
+    {
+        m_log.Warning("se ignora el 9F de las misiones: {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(flag.Value(), *this)));
+}
+
+void ServerSession::OnQuestList(const Network::Packet& packet)
+{
+    auto list = Protocol::Quest::ReadQuestList(packet);
+    if (!list.HasValue())
+    {
+        m_log.Warning("se ignora la lista de las misiones (A0): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(list).Value(), *this)));
+}
+
+void ServerSession::OnQuestState(const Network::Packet& packet)
+{
+    const auto state = Protocol::Quest::ReadQuestState(packet);
+    if (!state.HasValue())
+    {
+        m_log.Warning("se ignora el estado de una misión (A1): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(state.Value(), *this)));
+}
+
+void ServerSession::OnSetQuestResult(const Network::Packet& packet)
+{
+    const auto result = Protocol::Quest::ReadSetQuestResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora la respuesta del A2: {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
+}
+
+void ServerSession::OnQuestResult(const Network::Packet& packet)
+{
+    const auto result = Protocol::Quest::ReadQuestResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora el premio de una misión (A3): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
 }
 
 // 06 § Caminar: los ecos y el daño se aplican sin guarda de escena ni del flag de cifrado.
@@ -1330,11 +1441,115 @@ void ServerSession::OnDamage(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(damage.Value(), *this)));
 }
 
+// 0x4cb750 (desde 0x4e39ab): la acción de otro, sin guarda de escena ni del flag de cifrado.
+void ServerSession::OnAction(const Network::Packet& packet)
+{
+    const auto action = Protocol::Movement::ReadAction(packet);
+    if (!action.HasValue())
+    {
+        m_log.Warning("se ignora la acción (18): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(action.Value(), *this)));
+}
+
+// 0x4e372e, 0x4e3819, 0x4e3b2c, 0x4e36c5 y 0x4e3716: el dispatcher no mira la escena ni el flag de cifrado.
+void ServerSession::OnViewportPlayers(const Network::Packet& packet)
+{
+    // 0x4e372e..0x4e37b8: la copia en la cola, antes del lector, incluso si está corto.
+    m_eventSink.CopyToPacketRing(packet.Bytes());
+    const auto players = Protocol::Viewport::ReadPlayers(packet);
+    if (!players.HasValue())
+    {
+        m_log.Warning("se ignoran los jugadores del viewport (12): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(players.Value(), *this)));
+}
+
+void ServerSession::OnViewportLeave(const Network::Packet& packet)
+{
+    const auto leave = Protocol::Viewport::ReadLeave(packet);
+    if (!leave.HasValue())
+    {
+        m_log.Warning("se ignoran las bajas del viewport (14): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(leave.Value(), *this)));
+}
+
+void ServerSession::OnTransformed(const Network::Packet& packet)
+{
+    const auto transformed = Protocol::Viewport::ReadTransformed(packet);
+    if (!transformed.HasValue())
+    {
+        m_log.Warning("se ignoran los transformados del viewport (45): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(transformed.Value(), *this)));
+}
+
+void ServerSession::OnEquipmentShown(const Network::Packet& packet)
+{
+    const auto shown = Protocol::Viewport::ReadEquipmentShown(packet);
+    if (!shown.HasValue())
+    {
+        m_log.Warning("se ignora el equipo de otro (25): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(shown.Value(), *this)));
+}
+
+void ServerSession::OnViewportPosition(const Network::Packet& packet)
+{
+    const auto position = Protocol::Viewport::ReadPosition(packet);
+    if (!position.HasValue())
+    {
+        m_log.Warning("se ignora la posición de otro (DF): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(position.Value(), *this)));
+}
+
+// 0x4e37d1, 0x4e37e9 y 0x4e4643: el 13, el 1F y el 68, sin guarda de escena ni del flag de cifrado (CL9 hito 2).
+void ServerSession::OnViewportMonsters(const Network::Packet& packet)
+{
+    const auto monsters = Protocol::Viewport::ReadMonsters(packet);
+    if (!monsters.HasValue())
+    {
+        m_log.Warning("se ignoran los monstruos del viewport (13): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(monsters.Value(), *this)));
+}
+
+void ServerSession::OnSummons(const Network::Packet& packet)
+{
+    const auto summons = Protocol::Viewport::ReadSummons(packet);
+    if (!summons.HasValue())
+    {
+        m_log.Warning("se ignoran los invocados del viewport (1F): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(summons.Value(), *this)));
+}
+
+void ServerSession::OnViewportObjects(const Network::Packet& packet)
+{
+    const auto objects = Protocol::Viewport::ReadObjects(packet);
+    if (!objects.HasValue())
+    {
+        m_log.Warning("se ignoran los objetos del viewport (68): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(objects.Value(), *this)));
+}
+
 // P-C33: 0x4c6e32 prueba el flag antes de leer los campos; cero manda el F1 03.
 void ServerSession::OnTeleport(const Network::Packet& packet)
 {
-    // 0x4e3e98..0x4e3f1d, antes del flag y del lector, incluso si se rechaza o está corto.
-    m_teleports.Record(packet.Bytes());
+    // 0x4e3e98..0x4e3f1d: la copia en la cola, antes del flag y del lector, incluso si se rechaza o está corto.
+    m_eventSink.CopyToPacketRing(packet.Bytes());
     if (!packet.WasDecrypted())
     {
         m_log.Warning("el warp (1C) no llegó cifrado: se le avisa al GameServer (F1 03)");

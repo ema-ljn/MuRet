@@ -15,25 +15,33 @@
 #include "Protocol/NpcWindows.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/Quest.h"
+#include "Protocol/Viewport.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
+#include "Scenes/ActionReply.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/InventoryReply.h"
+#include "Scenes/MonsterViewport.h"
 #include "Scenes/MovementReplies.h"
 #include "Scenes/NpcWindows.h"
+#include "Scenes/QuestReplies.h"
 #include "Scenes/ReturnToSelection.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/ViewportPacketRing.h"
+#include "Scenes/ViewportPlayers.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldTransitions.h"
 #include "World/LeafWeather.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -59,14 +67,16 @@ void ApplyWeather(const Protocol::World::Weather& received, World::LeafWeather& 
         weather.target = static_cast<std::int32_t>(received.code & IntensityMask) * TargetPerIntensity;
 }
 
-// 0x42a760 manda el B9 02 por el socket del GS al cargar el 30, y las ventanas de los NPC mandan los suyos (cerrarlas
-// al cambiar de mapa, CL9 hito 6): por la sesión que aplica el paquete.
+// 0x42a760 manda el B9 02 por el socket del GS al cargar el 30: el de la sesión que aplica la respuesta. Y 0x419900,
+// al cerrar las misiones, el C1 03 31 por la misma sesión, y las ventanas de los NPC los suyos (cerrarlas al cambiar
+// de mapa, CL9 hito 6).
 WorldEntryResources WithTheSiegeRequest(const WorldEntryResources& resources, App::ServerSession& session)
 {
     WorldEntryResources bound = resources;
     bound.requestCastleSiegeState = [&session] { session.RequestCastleSiegeState(); };
     bound.sendNpcWindowPacket = [&session](Protocol::Outgoing packet)
     { return session.SendNpcWindowPacket(std::move(packet)); };
+    bound.sendWindowClose = [&session] { session.SendWindowClose(); };
     return bound;
 }
 
@@ -165,6 +175,9 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
         return ApplyWalkReply(*walk, session.PlayerIndex(), m_resources);
     if (const auto* damage = std::get_if<Protocol::Movement::Damage>(&event))
         return ApplyDamageReply(*damage, session.PlayerIndex(), m_resources);
+    if (const auto* action = std::get_if<Protocol::Movement::Action>(&event))
+        return ApplyActionReply(*action, m_resources, [&session](std::uint8_t direction, std::uint8_t sent)
+                                { session.SendAction(direction, sent); });
     if (const auto* teleport = std::get_if<Protocol::World::Teleport>(&event))
     {
         SessionPublisher publisher(session);
@@ -192,7 +205,38 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
         return ApplyNotice(*notice, ChatContextOf(m_resources, session));
     if (const auto* options = std::get_if<Protocol::OptionData::OptionData>(&event))
         return ApplyOptionData(*options, ChatContextOf(m_resources, session));
+    if (auto viewport = ApplyViewport(event))
+        return *viewport;
     return ApplyWorldContent(event, session);
+}
+
+void SessionEventApplier::CopyToPacketRing(std::span<const std::byte> packet)
+{
+    StoreViewportPacket(m_resources.world.Runtime().viewportPackets, packet);
+}
+
+std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplyViewport(const App::WorldEvent& event)
+{
+    if (const auto* players = std::get_if<Protocol::Viewport::Players>(&event))
+        return ApplyViewportPlayers(*players, m_resources);
+    if (const auto* leave = std::get_if<Protocol::Viewport::Leave>(&event))
+    {
+        ApplyViewportLeave(*leave, m_resources.world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* transformed = std::get_if<Protocol::Viewport::Transformed>(&event))
+        return ApplyTransformed(*transformed, m_resources);
+    if (const auto* shown = std::get_if<Protocol::Viewport::EquipmentShown>(&event))
+        return ApplyEquipmentShown(*shown, m_resources);
+    if (const auto* position = std::get_if<Protocol::Viewport::Position>(&event))
+        return ApplyViewportPosition(*position, m_resources);
+    if (const auto* monsters = std::get_if<Protocol::Viewport::Monsters>(&event))
+        return ApplyViewportMonsters(*monsters, m_resources);
+    if (const auto* summons = std::get_if<Protocol::Viewport::Summons>(&event))
+        return ApplySummons(*summons, m_resources);
+    if (const auto* objects = std::get_if<Protocol::Viewport::Objects>(&event))
+        return ApplyViewportObjects(*objects, m_resources);
+    return std::nullopt;
 }
 
 Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const App::WorldEvent& event,
@@ -229,6 +273,20 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         return ApplyEquipmentChange(*change, m_resources);
     if (const auto* put = std::get_if<Protocol::Inventory::ItemPut>(&event))
         return ApplyItemPut(*put, m_resources);
+    // Las misiones (CL9 hito 2).
+    if (const auto* flag = std::get_if<Protocol::Quest::QuestFlag>(&event))
+    {
+        ApplyQuestFlag(*flag, m_resources.world);
+        return {};
+    }
+    if (const auto* list = std::get_if<Protocol::Quest::QuestList>(&event))
+        return ApplyQuestList(*list, m_resources.world);
+    if (const auto* state = std::get_if<Protocol::Quest::QuestStateChange>(&event))
+        return ApplyQuestState(*state, WithTheSiegeRequest(m_resources, session));
+    if (const auto* set = std::get_if<Protocol::Quest::SetQuestResult>(&event))
+        return ApplySetQuestResult(*set, WithTheSiegeRequest(m_resources, session));
+    if (const auto* result = std::get_if<Protocol::Quest::QuestResult>(&event))
+        return ApplyQuestResult(*result, m_resources);
     if (const auto* inventory = std::get_if<Protocol::Character::InventoryList>(&event))
     {
         const auto applied = ApplyInventory(*inventory, m_resources);

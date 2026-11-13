@@ -214,26 +214,26 @@ portar y las ramas que el hito llena en funciones de otras olas. El detalle por 
 
 ### Hito 1: el emote y los otros jugadores (CL9.1, ~35 KB)
 
-- [ ] **El emote entero** (§ Lo que encontró el barrido): `UI::CheckTheEmotes` pasa a `FindTheEmote`, que
+- [x] **El emote entero** (§ Lo que encontró el barrido): `UI::CheckTheEmotes` pasa a `FindTheEmote`, que
       devuelve el caso con los 95 textos en el orden del original (incluidos los 15 literales, comparados con
       `0x576960` sobre los bytes CP949 tal cual); `0x576a60` con su compuerta (`+0x111` en 1..12 o `0x8a`), el +1
       del elfo y `0x4ea030`; los dos `C1 05 18`, con `Protocol::Movement::WriteAction(dir, acción)` (el
       `WriteFacing` de hoy pasa a ser `WriteAction(dir, 0x7a)`); y la compuerta de la CL8 (montado fuera de la
       zona segura, nada) queda como está. Se va el corte de `ChatCommands.cpp` y P-C87 se cierra.
-- [ ] **Sentarse** (`0x4f2250`, tramo `0x4f2416..0x4f2bea`): el `C1 18` que hoy corta en `ActorActions.cpp`.
-- [ ] **Los otros jugadores entran y salen:** el `0x12` (`0x4c8860` con su cola de 10 ranuras de `0x100` B,
+- [x] **Sentarse** (`0x4f2250`, tramo `0x4f2416..0x4f2bea`): el `C1 18` que hoy corta en `ActorActions.cpp`.
+- [x] **Los otros jugadores entran y salen:** el `0x12` (`0x4c8860` con su cola de 10 ranuras de `0x100` B,
       `0x77f3ba0`), el alta (`0x512870`, `0x5139f0` con la apariencia, el nombre en `+0x1d9`, el GM por
       "webzen", las banderas de `+0x78` con `0x4e6380` y `0x42ab40`, el `+0x360` del `0x4c89e1`), el `0x14`
       (`0x4ca780`, con el caso `0x13d`, `0x510ff0` y la limpieza de `0x451430`/`0x451630`), el `0x45`
       (`0x4c92a0`, los transformados, *inferido*), el `0x25` (el equipo de otro, `0x4c8380`) y el `0xDF` (la
       posición, `0x4c6b40` y `0x51fe10`).
-- [ ] **La acción de otro** (`0x18`, `0x4cb750`): la tabla acción → animación con sus variantes de elfo, los
+- [x] **La acción de otro** (`0x18`, `0x4cb750`): la tabla acción → animación con sus variantes de elfo, los
       casos `0x12` (sonido `0x6f`, CL10), `0x78`/`0x79` (`0x4f4a10`, es del hito 3: corta), `0x7a`/`0x7b`
       (`0x4f2250`) y `0x7e`; el modelo `0x1c16` no se toca.
-- [ ] **Lo que el héroe ya hace con otros:** el `D3` y el `D7` de otros (hoy portados) los encuentran; el
+- [x] **Lo que el héroe ya hace con otros:** el `D3` y el `D7` de otros (hoy portados) los encuentran; el
       picking de personajes de `0x59ec80` (el corte de la CL8 que deja −1) y el elegido (`0x59ee0b`), con sus
       `rand()`; las búsquedas muertas `0x5132d0`, `0x5178f0` y `0x517920` se anotan.
-- [ ] Lo que cada alta llama de la CL11 (el efecto de llegada `0x518cf0` ya portado en parte, los joints
+- [x] Lo que cada alta llama de la CL11 (el efecto de llegada `0x518cf0` ya portado en parte, los joints
       `0x530860`) se llama hasta donde está portado y corta con su dirección donde no.
 
 **Pruebas:** los 95 textos contra su caso (un test por fila de la tabla, y el orden: un texto que contiene dos
@@ -246,27 +246,33 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
 
 ### Hito 2: los monstruos, los NPC y las misiones (CL9.1, ~40 KB)
 
-- [ ] **El alta de un monstruo o un NPC por tipo** (`0x5141e0`, 11,6 KB, con los `Monster*.bmd` y la pose de
+- [x] **El alta de un monstruo o un NPC por tipo** (`0x5141e0`, 11,6 KB, con los `Monster*.bmd` y la pose de
       los NPC de Q-C108): el `0x13` (`0x4c9c60`), el `0x1F` (`0x4ca0b0`, con los tipos `0x98..0x9e` por
-      `0x517400`), el `0x68` (`0x4e0980`) y el `0x1A` (`0x4cedd0`). El tipo 58 corta con su dirección
-      (`Monster50` no está). Las partes de monstruo de `0x50ba30` y `0x4fd5f0` que la CL7 dejó cortadas, y los
-      monstruos que la revisión de la CL.M dejó en la CL7 por `0x50ba30` (`0x4271d0`, `0x441400`, `0x434180`).
+      `0x517400`) y el `0x68` (`0x4e0980`); `0x511290` con la caja y las manos de cada tipo; el `0x45` y el `0xDF`
+      del hito 1 dan de alta y empujan. El `0x1A` (`0x4cedd0`) no crea nada: es la skill que pega a varios y va
+      con el hito 3 (04). El tipo 68 (el caso `0x3a`) corta con su dirección (`Monster50` no está, P-C173).
+- [ ] Las partes de monstruo de `0x50ba30` y `0x4fd5f0` que la CL7 dejó cortadas, y los monstruos que la revisión
+      de la CL.M dejó en la CL7 por `0x50ba30` (`0x4271d0`, `0x441400`, `0x434180`): necesitan los modelos de los
+      monstruos, que el alta no carga (08, P-C176 y P-C178).
 - [ ] **La tela sobre la malla** (P-C22 f, vtable `0x6b8d04`: los monstruos `0x59..0x8f`; los tres pantalones
       también la usan), y Q-C95 con el primer modelo que se desvanezca (§ Lo que dejó la CL6).
+- [x] El picking de NPC y monstruos en `0x59ec80`, con la caja de cada tipo.
 - [ ] **Lo que se ve sobre ellos:** las barras de vida (`0x42a4d0`, `0x42a2b0`), NewFace (`0x42d890`,
-      `0x42da90`, con los monstruos `0x11e` y `0x11f`), los mensajes de monstruo (`0x4fc790`, `0x4fc8c0`,
-      `0x4fcd00`) y el picking de NPC y monstruos en `0x59ec80`.
-- [ ] **Hablar con un NPC:** el `C1 30` desde la interacción de llegada (`0x5650c0`, el corte de
+      `0x42da90`, con los monstruos `0x11e` y `0x11f`) y los mensajes de monstruo (`0x4fc790`, `0x4fc8c0`,
+      `0x4fcd00`).
+- [x] **Hablar con un NPC:** el `C1 30` desde la interacción de llegada (`0x5650c0`, el corte de
       `GameMovement.cpp`, solo su rama de NPC), el diálogo `0x8d` (`0x62d91d`, `0x632f70`, la lista
-      `0x7d3a0fc`). Lo que abre cada NPC (tienda, almacén, caja del caos) es del hito 6.
-- [ ] **Las misiones:** `A0`..`A3` (`0x418e20`, `0x418ee0`, `0x4198b0`, `0x4ddb80`), el `9F`, el objeto
-      `[0x710148]`, la ventana del quest (`0x41ca40`, `0x41ba20`, `0x41c600`, `0x41b5a0`, `0x41b9e0`) y sus pasos
-      (`0x418fb0..0x41b170`, `0x419bd0` y `0x41a9e0`, que mandan `A2`, y `0x41b170`, que manda `9F`), con
-      `Quest.bmd`.
+      `0x7d3a0fc`). Lo que abre cada NPC (tienda, almacén, caja del caos) es del hito 6. El escritor del `C1 30`
+      ya está. (Los altares de Crywolf, `0x4eac41` y `0x567b6d`, cortan: hito 11.)
+- [x] **Las misiones, sin la ventana:** `A0`..`A3` (`0x418e20`, `0x418ee0`, `0x4198b0`, `0x4ddb80`), el `9F`, el
+      objeto `[0x710148]` y las funciones que no dibujan, con `Quest.bmd` y `Dialog.bmd`.
+- [ ] **La ventana del quest** (`0x41ca40`, `0x41ba20`, `0x41c600`, `0x41b5a0`, `0x41b9e0`) y sus pasos que mandan
+      (`0x419bd0` y `0x41a9e0`, el `A2`, y `0x41b170`, el `9F`).
 
 **Pruebas:** el alta de un monstruo de cada familia de `0x5141e0` (un caso por rama de la tabla de tipos), en
-Lorencia, Devias y un mapa de evento; el `0x1F` con un tipo `0x98..0x9e`; el corte del tipo 58; los `rand()`
-de cada alta; el `C1 30` y el `A2` byte a byte; el `A3` con sus tres resultados (`0xc8`, `0xc9`, `0xca`).
+Lorencia, Devias y un mapa de evento; el `0x1F` con un tipo `0x98..0x9e`; el corte del tipo 68 (el caso
+`0x3a`); los `rand()` de cada alta; el `C1 30` y el `A2` byte a byte; el `A3` con sus tres resultados (`0xc8`,
+`0xc9`, `0xca`).
 **Desbloquea:** 3, 5, 6 y 11.
 
 ### Hito 3: atacar, el daño y la muerte (CL9.2, ~20 KB)

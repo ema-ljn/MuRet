@@ -1,6 +1,7 @@
 #include "Scenes/GameDialogSteps.h"
 
 #include "Core/Expected.h"
+#include "Data/Text/DialogTable.h"
 #include "Input/InputState.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/OptionData.h"
@@ -25,6 +26,10 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <utility>
+#include <array>
+#include <memory>
+#include <format>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -96,6 +101,14 @@ public:
     void RequestPartyList() override
     {
         requests.push_back({"42", {}, {}});
+    }
+    void SendWindowClose() override
+    {
+        requests.push_back({"31", {}, {}});
+    }
+    void SendSetQuest(std::uint8_t quest, std::uint8_t state) override
+    {
+        requests.push_back({"A2", {quest, state}, {}});
     }
     Client::Core::Expected<void, std::string> SaveMacros(std::string_view content) override
     {
@@ -440,6 +453,92 @@ TEST(GameDialogStepsTest, TheBoxesCloseWithAButtonOrEnter)
     ASSERT_TRUE(tested.Dialogs(0, 0).HasValue());
     EXPECT_EQ(runtime.dialogs.current, 0);
     EXPECT_FALSE(runtime.ui.enterPressed);
+}
+
+// Dialog.bmd con el diálogo 3 (un renglón y dos respuestas: la primera lleva al 5 y la segunda a ninguno) y el 5, sin
+// respuestas, que lleva al 3.
+Client::Data::Text::DialogTable AnswersTable()
+{
+    Client::Data::Text::DialogTable table(Client::Data::Text::DialogCount);
+    const auto write = [](auto& field, std::string_view text) { std::ranges::copy(text, field.begin()); };
+    write(table[3].text, "hola viajero");
+    table[3].answerCount = 2;
+    table[3].next = {5, -1};
+    write(table[3].answers[0], "seguir");
+    write(table[3].answers[1], "chau");
+    write(table[5].text, "nada por ahora");
+    table[5].next = {3};
+    return table;
+}
+
+// 0x62d91d..0x62da57: con el texto del 3 en y = ((7 − 2 − 1) · 0x12) / 2 + 0x4c = 112, la primera respuesta va de 130 a
+// 147 y la segunda de 148 a 165, a no más de 0x6a de x = 0x13f. El clic en una pasa el que espera a abierto y, con un
+// diálogo siguiente, lo muestra; Enter no cierra el 0x8d.
+TEST(GameDialogStepsTest, TheAnswersLeadToTheirNextDialog)
+{
+    const auto tested = std::make_unique<SteppingDialogs>(Lorencia);
+    auto& runtime = tested->world.Runtime();
+    runtime.dialogTable = AnswersTable();
+    tested->texts = Client::Tests::MakeTextTable({{Client::UI::NoAnswersText, "nada mas"}});
+    runtime.dialogs.current = 0;
+    ASSERT_TRUE(
+        Client::UI::OpenTheAnswersDialog(runtime.dialogBox, runtime.dialogs, &runtime.dialogTable, &tested->texts, 3)
+            .HasValue());
+    ASSERT_EQ(runtime.dialogs.current, Client::UI::AnswersDialog);
+    ASSERT_EQ(runtime.dialogBox.lineCount, 1);
+    ASSERT_EQ(runtime.dialogBox.answerCount, 2);
+
+    runtime.ui.enterPressed = true;
+    for (const auto& [x, y] : std::to_array<std::pair<std::int32_t, std::int32_t>>(
+             {{0x13f, 129}, {0x13f, 166}, {0x13f + 0x6b, 140}, {0x13f - 0x6b, 140}}))
+    {
+        SCOPED_TRACE(std::format("{} {}", x, y));
+        ASSERT_TRUE(tested->Click(x, y).HasValue());
+        EXPECT_EQ(runtime.dialogs.current, Client::UI::AnswersDialog);
+        EXPECT_EQ(runtime.dialogBox.dialogIndex, 3);
+        EXPECT_TRUE(runtime.movement.pendingClick);
+        runtime.movement.pendingClick = false;
+    }
+    EXPECT_TRUE(runtime.ui.enterPressed);
+    EXPECT_FALSE(runtime.lastSoundId.has_value());
+
+    // La primera, en el borde de la derecha: el 5, sin respuestas ("1) " y el 609), queda abierto.
+    runtime.movement.mouseUpdateTime = 4;
+    runtime.movement.mouseUpdateTimeMax = 12;
+    ASSERT_TRUE(tested->Click(0x13f + 0x6a, 147).HasValue());
+    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_EQ(runtime.lastSoundId, 0x19);
+    EXPECT_EQ(runtime.movement.mouseUpdateTime, 0);
+    EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+    EXPECT_EQ(runtime.dialogs.current, Client::UI::AnswersDialog);
+    EXPECT_EQ(runtime.dialogBox.dialogIndex, 5);
+    EXPECT_EQ(Client::UI::DialogAnswer(runtime.dialogBox, 0), "1) nada mas");
+
+    // La cuenta 0 de Dialog.bmd deja elegir la primera (máx(0, 1)), que vuelve al 3; con otro esperando, el 3 espera.
+    runtime.dialogs.pending = Client::UI::MessageBoxDialog;
+    ASSERT_TRUE(tested->Click(0x13f, 131 + 9).HasValue());
+    EXPECT_EQ(runtime.dialogs.current, Client::UI::MessageBoxDialog);
+    EXPECT_EQ(runtime.dialogs.pending, Client::UI::AnswersDialog);
+    EXPECT_EQ(runtime.dialogBox.dialogIndex, 3);
+
+    // La segunda del 3 no lleva a ninguno: cierra.
+    runtime.dialogs.current = Client::UI::AnswersDialog;
+    runtime.dialogs.pending = 0;
+    ASSERT_TRUE(tested->Click(0x13f, 150).HasValue());
+    EXPECT_EQ(runtime.dialogs.current, 0);
+    EXPECT_EQ(runtime.dialogs.pending, 0);
+}
+
+// 0x62d9b8: una respuesta elegida sin el registro de Dialog.bmd corta.
+TEST(GameDialogStepsTest, AnAnswerWithoutItsDialogIsCut)
+{
+    const auto tested = std::make_unique<SteppingDialogs>(Lorencia);
+    auto& runtime = tested->world.Runtime();
+    runtime.dialogs.current = Client::UI::AnswersDialog;
+    runtime.dialogBox.answerCount = 1;
+    const auto stepped = tested->Click(0x13f, ((7 - 1) * 0x12) / 2 + 0x4c);
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x62d9b8"), std::string::npos) << stepped.Error();
 }
 
 // Los tramos de otras olas cortan con su dirección; un id que no está en la tabla va al OK genérico.

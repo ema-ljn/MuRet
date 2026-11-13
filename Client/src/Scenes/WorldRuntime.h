@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Data/Text/DialogTable.h"
 #include "Data/Text/MoveRequirements.h"
 #include "GameLogic/MovementSpeed.h"
 #include "Render/Text/FontSet.h"
@@ -12,8 +13,10 @@
 #include "Scenes/HudItems.h"
 #include "Scenes/ItemHelpLevels.h"
 #include "Scenes/NpcWindowState.h"
+#include "Scenes/QuestState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/TooltipLines.h"
+#include "Scenes/ViewportPacketRing.h"
 #include "Scenes/WorldTexts.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
@@ -174,6 +177,26 @@ enum class CursorGrid : std::uint8_t
     Inventory, // 0x78a9bb0
 };
 
+// Un nodo de la lista de huesos con nombre de [0x6e5640] (0x401000 → 0x4011c0): el personaje (el lugar del pool), el
+// nombre que le da el creador del monstruo y el hueso de su modelo. Lo leen los efectos (CL11).
+struct NamedBone
+{
+    std::size_t actor = 0;
+    std::string name{};
+    std::uint32_t bone = 0;
+};
+
+// Lo que un alta de monstruo escribe en la tabla de modelos (0x5769ad8, de a 0xe0 bytes por modelo): el byte `offset`
+// del modelo o, con `mesh`, el byte +0 de esa malla (06, "El alta de un monstruo"). Lo lee el dibujo de los monstruos,
+// sin portar (08, P-C176).
+struct ModelBytePatch
+{
+    std::uint16_t model = 0;
+    std::optional<std::uint16_t> mesh{};
+    std::uint16_t offset = 0;
+    std::uint8_t value = 0;
+};
+
 struct WorldRuntime
 {
     // Q-C180/Q-C27: primer aviso de datos que pidió WM_DESTROY. Durable incluso si Poll falla;
@@ -193,6 +216,12 @@ struct WorldRuntime
     std::optional<std::uint8_t> siegePanelKind{};
     // El de la clase 0: 0x412195 lo arma de nuevo cada vez que no había panel o era de otra clase.
     UI::SiegePanelState siegePanel{};
+    // [0x5767924]: el objeto de 0x36 bytes de la info de Castle Siege, dos mitades de 0x1b (la de la clave 0x13d en
+    // +0 y la otra en +0x1b). Lo crea y lo llena el B2 20 (0x4e04e0, hito 12) y lo suelta 0x4e05f0; sin ese paquete
+    // queda en nullptr. El 0x14 apaga +4..+6 o +0x1f..+0x21 (0x4ca799..0x4ca7cd).
+    std::optional<std::array<std::uint8_t, 0x36>> castleSiegeInfo{};
+    // 0x77f3ba0, 0x77e1bb0 y 0x77f27b4: la cola de los últimos 0x0B, 0x12, 0x1C, 0x24 y 0x2A (ViewportPacketRing.h).
+    ViewportPacketRing viewportPackets{};
     // Los bytes de los paneles (0x7d53708..0x7d53718 y los globales que escriben sus funciones), los diálogos
     // (0x7d3a10c, 0x7d3a110) y lo demás de la UI del juego (CL8 hito 1): la .bss, que nadie vacía al cambiar de
     // escena.
@@ -217,6 +246,14 @@ struct WorldRuntime
     // 0x723c68 (+8, la lista; +0xc, la cuenta): los destinos de movereq.bmd que 0x448440 lee en la carga (0x61ccb0) y
     // que la ventana /move recorre en su paso (0x448580) y en su dibujo (0x448fa0). main.cpp los copia de GameData.
     std::vector<Data::Text::MoveRequirement> moves{};
+    // [0x710148]: el objeto de las misiones (CL9 hito 2). main.cpp copia los registros de quest.bmd (GameData::quests).
+    QuestState quest{};
+    // 0x7688ac0: los 200 diálogos de Dialog.bmd, que main.cpp copia de GameData::dialogs. Vacío: el que muestra uno
+    // corta.
+    Data::Text::DialogTable dialogTable{};
+    // 0x6eeda8: el A0 lo pone en 0 y la llegada a un NPC (0x569593) en 1 si es el 0xe5. Lo lee el dibujo del diálogo de
+    // las misiones (0x41ba20) con la clase 3 o 4.
+    std::uint8_t byte6eeda8 = 0;
     // 0x7879f80: el ítem del cursor, un ItemState de 0x48 bytes en la .bss. Lo dibuja 0x5f7b10 (CL8 hito 4).
     World::ItemState cursorItem{};
     // 0x7879fbc, el +0x3c (occupied) de cursorItem: mayor que 0 con un ítem en el cursor. MuRet lo guarda aparte, y
@@ -349,6 +386,12 @@ struct WorldRuntime
     // 0x75fdc38: meta del 0F. 0x75fdc3c es la cuenta actual, que ese paquete no cambia.
     // Estado durable de 0x530490 para el futuro binder de hojas; recibir 0F no crea lluvia.
     World::LeafWeather leafWeather{.firstWave = InitialLeafCount};
+    // [0x6e5640]: los huesos con nombre de los personajes (0x401000). 0x4011c0 saca el del mismo personaje y nombre
+    // antes de agregar el nuevo; 0x401410 (desde 0x401040, en 0x512870, 0x510ff0 y 0x510f70) saca todos los de un
+    // personaje. En qué orden los recorre quien los lee, sin leer (CL11).
+    std::vector<NamedBone> namedBones{};
+    // Lo que las altas escribieron en la tabla de modelos (ModelBytePatch), en orden.
+    std::vector<ModelBytePatch> modelPatches{};
 };
 
 // 0x63722e y 0x59afd6: con el contador en más de esto, el juego no dibuja ni mueve al héroe.

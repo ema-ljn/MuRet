@@ -52,7 +52,7 @@ struct MapLoadContext
 [[nodiscard]] Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoadContext& context);
 
 // 0x510f70(clave): mata al vivo del pool del mundo cuya clave, con signo (movsx en 0x510f8a), no es
-// `key`: +0 en 0, 0x401040 y apaga los ayudantes que lo llevan (+0x108, 0x510fa1..0x510fc0, como
+// `key`: +0 en 0, 0x401040 (ForgetNamedBones) y apaga los ayudantes que lo llevan (+0x108, 0x510fa1..0x510fc0, como
 // 0x443d40). Recorre 400 registros, uno menos que el pool. El muerto y el de la misma clave saltan los dos
 // a 0x510fc2: con los 400, también con el que sobrevive, suelta el cuervo (0x421d60, +0x430), las telas
 // (0x4fb1a0) y +0x364 (0x414340) (Q-C194). MuRet no tiene eso en el mundo: ni cuervos ni telas de los

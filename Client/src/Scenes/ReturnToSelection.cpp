@@ -5,6 +5,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/Quests.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -43,6 +44,8 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
     // Crywolf (0x42fe32) y su etapa (0x723c05). 0x723c08, que también pone en 0, solo lo escriben paquetes (CL9.5).
     runtime.crywolf.state = 0;
     runtime.crywolf.stage = 0;
+    // 0x42fdf8: el NPC elegido de la llegada (0x6c8e54) en −1.
+    runtime.movement.chosenNpc = -1;
     // 0x4c363f: la escena 4.
     runtime.orderedScene = SceneId::CharacterSelect;
     // 0x4c3649..0x4c38e4: el estado 0x32 y el F3 00, de la sesión. 0x4c38eb y 0x4c38f2: las banderas de la
@@ -50,7 +53,9 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
     // nueva (SelectionState::BeginSelection y GameScene::Enter).
     runtime.drawingEnabled = false; // 0x4c38f9
     // 0x4c3900: el estado 0 (la sesión espera la lista). 0x4c390a: 0x4c2480.
-    resources.camera.level = 0;   // 0x4c250e, el word 0x7d3a0ec
+    resources.camera.level = 0; // 0x4c250e, el word 0x7d3a0ec
+    // 0x4c2515..0x4c252d: los cinco del picking (0x6c8e28..0x6c8e38) en −1, también el personaje elegido.
+    runtime.selectedTargets.fill(-1);
     runtime.ui.autoAttack = true; // 0x4c2533, 0x6c8e3c
     runtime.map = NoMap;          // 0x4c2540
     // 0x4c2546: 0x419900 manda el C1 03 31 (la sesión). 0x4c2575..0x4c25ea: abre el registro propio por la
@@ -70,8 +75,11 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
     // (el próximo lugar, 0x77f3b9c, queda).
     runtime.chat.noticeSound = false;
     UI::ClearTheWhisperSenders(runtime.chat.whisperSenders);
-    // 0x4c2650..0x4c26fd: globales y objetos que MuRet no tiene, el byte del A0 ([0x710148] + 4 en 0xff,
-    // Q-C215) y 0x657670, cuyo 0x4499b0 manda el segundo C1 03 31 (la sesión, Q-C214).
+    // 0x4c268a..0x4c26d2: el objeto de las misiones, con +4 en 0xff para que la próxima entrada vuelva a pedir el A0
+    // (Q-C215).
+    ResetTheQuests(runtime.quest, runtime.panels.delegated.quest);
+    // 0x4c2650..0x4c26fd: lo demás son globales y objetos que MuRet no tiene, y 0x657670, cuyo 0x4499b0 manda el
+    // segundo C1 03 31 (la sesión, Q-C214).
     // MuRet: la cámara copia la posición del héroe publicado, que la selección lee desde acá (Q-C213).
     resources.cameraInput.hero = world.Actors()[runtime.hero].position;
 }

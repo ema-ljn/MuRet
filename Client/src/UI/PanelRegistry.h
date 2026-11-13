@@ -192,6 +192,12 @@ struct PanelContext
     // Cerrar, desde 0x657ab0 con el panel abierto: false si no cierra (la traba del 24 en 0x40, la caja del caos con
     // algo en 0x100), y el registro deja el byte como estaba.
     std::function<Core::Expected<bool, std::string>(PanelId)> npcWindowClosing{};
+    // 0x659c68..0x659c70: abrir las misiones, si cerró lo demás, es 0x419840(−1) sobre [0x710148] (la lista, con su
+    // diálogo). Sin él, abrir las misiones corta.
+    std::function<Core::Expected<void, std::string>()> questOpened{};
+    // 0x657b2b..0x657b31: cerrar las misiones es 0x419900, que pone la ventana en 0 (lo hace el registro) y manda el
+    // C1 03 31 en claro. Sin él, cerrar las misiones corta.
+    std::function<void()> questClosed{};
 };
 
 class PanelRegistry

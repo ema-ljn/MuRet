@@ -4,10 +4,12 @@
 #include "Data/Tables/ItemTable.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
+#include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
 #include "support/PlayerActors.h"
+#include "support/SentActions.h"
 
 #include <gtest/gtest.h>
 
@@ -41,11 +43,15 @@ protected:
     // 0x4f2250 sobre `actor`, en el mapa y la escena de la prueba, con la semilla de m_random.
     Client::Core::Expected<Client::Scenes::ActorStopResult, std::string> Stop(ActorState& actor)
     {
+        Client::Scenes::ActionSender send{};
+        if (m_withSender)
+            send = Client::Tests::RecordingActions(m_sent);
         const ActorStopContext context{.runtime = m_runtime,
                                        .scene = m_scene,
                                        .playerSkeleton = m_skeleton,
                                        .items = m_withItems ? &m_items : nullptr,
-                                       .random = m_random};
+                                       .random = m_random,
+                                       .sendAction = send};
         return Client::Scenes::SetActorStop(actor, context);
     }
 
@@ -65,6 +71,9 @@ protected:
         Client::Tests::ItemsMarking({0x213, 0x227, 0x229, 0x231, 0x811, 0x815, 0xc12, 0xe11});
     bool m_withItems = true;
     CrtRandom m_random{QuietSeed()};
+    // Los C1 18 que manda sentarse, con la dirección y la acción. Sin m_withSender, nadie los manda.
+    bool m_withSender = true;
+    std::vector<Client::Tests::SentAction> m_sent;
 };
 
 ActorState Armed(std::uint16_t right, std::uint16_t left = NoItemModel, std::uint8_t characterClass = 0)
@@ -284,28 +293,50 @@ TEST_F(ActorStopTest, FlyingMapsOfTheGameSceneAreAFrontier)
     }
 }
 
-// 0x4f23e3..0x4f2bea y 0x4f2801..0x4f2bea: con +0x7c & 0x200000, ya sentado no cambia nada; si no,
-// pone la 0xca y arma un C1 .. 18 con el XOR32 en línea que MuRet no manda (CL9): error.
-TEST_F(ActorStopTest, SittingIsAnExplicitFrontier)
+// 0x4f23e3..0x4f2bea y 0x4f2801..0x4f2bea: con +0x7c & 0x200000, ya sentado no cambia nada; si no, pone la 0xca y
+// manda el C1 05 18 con la dirección de su propio ángulo (+0x24) y 0x82, por las dos copias (volando y por el piso),
+// y sigue al sufijo, que saca su rand().
+TEST_F(ActorStopTest, SittingSendsTheActionWithItsOwnAngle)
 {
+    using Sent = std::vector<Client::Tests::SentAction>;
+    const std::uint32_t quiet = QuietSeed();
     ActorState sitting = Armed(0x212);
     sitting.flags7c = 0x200000;
+    sitting.angles.z = 100.0f;
     const auto stopped = Stop(sitting);
-    ASSERT_FALSE(stopped.HasValue());
-    EXPECT_NE(stopped.Error().find("C1 .. 18"), std::string::npos);
+    ASSERT_TRUE(stopped.HasValue()) << stopped.Error();
     EXPECT_EQ(sitting.animation.action, 0xca);
+    EXPECT_EQ(m_sent, (Sent{{3, 0x82}}));
+    EXPECT_EQ(m_random.State(), AfterDraws(quiet, 1).State());
 
+    m_sent.clear();
     ActorState winged = UnarmedPlayer();
     winged.wings.model = 0x1a12;
     winged.flags7c = 0x200000;
-    EXPECT_FALSE(Stop(winged).HasValue());
+    winged.angles.z = -30.0f;
+    EXPECT_EQ(StandOf(winged), 0xca);
+    EXPECT_EQ(m_sent, (Sent{{0, 0x82}}));
 
+    m_sent.clear();
     ActorState seated = UnarmedPlayer();
     seated.flags7c = 0x200000;
     seated.animation.action = 0xca;
     seated.animation.frame = 4.5f;
     EXPECT_EQ(StandOf(seated), 0xca);
     EXPECT_EQ(seated.animation.frame, 4.5f);
+    EXPECT_TRUE(m_sent.empty());
+}
+
+// Sin quien mande el C1 18 (una llamada que todavía no lo ata), sentarse corta con su dirección después de la 0xca.
+TEST_F(ActorStopTest, SittingWithoutASenderIsAnExplicitError)
+{
+    m_withSender = false;
+    ActorState sitting = Armed(0x212);
+    sitting.flags7c = 0x200000;
+    const auto stopped = Stop(sitting);
+    ASSERT_FALSE(stopped.HasValue());
+    EXPECT_NE(stopped.Error().find("0x4f2416"), std::string::npos);
+    EXPECT_EQ(sitting.animation.action, 0xca);
 }
 
 // 0x4f36be..0x4f37a5: un rand() siempre; con rand() % 16 en 0 y Fenrir, otro % 3 y, si da 0, el sonido

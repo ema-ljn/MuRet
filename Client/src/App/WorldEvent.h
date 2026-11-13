@@ -6,8 +6,10 @@
 #include "Protocol/Messages.h"
 #include "Protocol/NpcWindows.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Quest.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
+#include "Protocol/Viewport.h"
 
 #include <variant>
 
@@ -38,5 +40,10 @@ using WorldEvent =
                  Protocol::Inventory::ManaRefill, Protocol::NpcWindows::TalkResult, Protocol::NpcWindows::ItemList,
                  Protocol::NpcWindows::BuyResult, Protocol::NpcWindows::SellResult, Protocol::NpcWindows::RepairResult,
                  Protocol::NpcWindows::WarehouseMoney, Protocol::NpcWindows::NpcWindowClosed,
-                 Protocol::NpcWindows::WarehouseState, Protocol::NpcWindows::ChaosMixResult>;
+                 Protocol::NpcWindows::WarehouseState, Protocol::NpcWindows::ChaosMixResult,
+                 Protocol::Quest::QuestFlag, Protocol::Quest::QuestList,
+                 Protocol::Quest::QuestStateChange, Protocol::Quest::SetQuestResult, Protocol::Quest::QuestResult,
+                 Protocol::Movement::Action, Protocol::Viewport::Players, Protocol::Viewport::Leave,
+                 Protocol::Viewport::Transformed, Protocol::Viewport::EquipmentShown, Protocol::Viewport::Position,
+                 Protocol::Viewport::Monsters, Protocol::Viewport::Summons, Protocol::Viewport::Objects>;
 } // namespace Client::App

@@ -90,6 +90,9 @@ struct WorldEntryResources
     // Los paquetes de las ventanas de los NPC (CL9 hito 6, Scenes/NpcWindows.h): SessionEventApplier y la escena lo
     // atan a la sesión (App::ServerSession::SendNpcWindowPacket). Vacío, lo que manda corta con error.
     std::function<Core::Expected<void, std::string>(Protocol::Outgoing)> sendNpcWindowPacket{};
+    // 0x419900, el C1 03 31 en claro que manda cerrar las misiones (0x657a90 desde el A1, el A2 y los cambios de mapa).
+    // Lo presta el sink con la sesión; sin él, cerrar las misiones abiertas corta.
+    std::function<void()> sendWindowClose{};
     // Lo que miden los mensajes que llegan (00, 01, 02, 0C, 0D) al entrar al chat (0x555190, 0x554610, 0x45bb20): el
     // medidor del frame y el tamaño de la ventana. Sin medidor, un mensaje corta con error.
     const Render::Text::ITextMeasure* textMeasure = nullptr;

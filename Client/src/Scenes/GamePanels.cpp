@@ -1,6 +1,7 @@
 #include "Scenes/GamePanels.h"
 
 #include "Core/Expected.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameUi.h"
@@ -10,6 +11,7 @@
 #include "Scenes/OwnDerivedStats.h"
 #include "Scenes/OwnStatHelpers.h"
 #include "Scenes/SecondGuildWindow.h"
+#include "Scenes/SocialEvents.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/OldWindows.h"
@@ -70,6 +72,8 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
     UI::OldWindowManager& oldWindows = runtime.oldWindows;
     context.friendsShown = [&oldWindows]() { return UI::FindTheOldWindow(oldWindows, oldWindows.friends) != nullptr; };
     context.friendsClosed = [&oldWindows]() { return UI::DropTheFriendsWindow(oldWindows); };
+    // Sin el cable, el cierre con aux en 0 (el que manda el 3D) corta; el 3D del GS cierra con 1 (0x4d5906).
+    context.tradeClosed = [&world, &random](bool aux) { return CloseTheTradeGrids(world, random, aux, {}); };
     return context;
 }
 } // namespace
@@ -77,6 +81,17 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
 GamePanels::GamePanels(WorldState& world, Render::Models::CrtRandom& random, GamePanelTables tables)
     : m_context(ContextOf(world, random, tables)), m_registry(world.Runtime().panels, m_context)
 {
+}
+
+void GamePanels::LendTheTradeCancel(WorldState& world, Render::Models::CrtRandom& random, IGameUiRequests* requests)
+{
+    if (requests == nullptr)
+        return;
+    m_context.tradeClosed = [&world, &random, requests](bool aux)
+    {
+        return CloseTheTradeGrids(world, random, aux, [requests](Protocol::Outgoing outgoing)
+                                  { requests->SendGamePacket(std::move(outgoing)); });
+    };
 }
 
 void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)

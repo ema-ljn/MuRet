@@ -1369,8 +1369,13 @@ con la normal y el blanco o, el elegido y el que tiene el mouse encima (estricta
 negrita y `(1; 0,8; 0,2)`, o `(0,5; 0,5; 0,5)` con el clic; y su casilla (`0x463090` en `(_ftol(x) − 0x14, _ftol(y) +
 8)`: sin mezcla, el marco `0x92 0x86 0x79` de 9 × 9 con cuatro `0x621aa0`, el blanco, la textura, la mezcla normal y,
 el elegido, la marca: `Interface\win_check.tga`, `0x64a`, de 5 × 5 en `(x + 2, y + 2)` con uv 0,625). Al final, el
-blanco, la fuente grande (`0x576355c`), con un personaje elegido su nombre en un cartel junto al mouse
-(`Interface\CursorID_Wnd.jpg`, `0x65b`; `0x40aa8d`, CL9.4), el negro y el aviso del elegido según su estado: con 0,
+blanco, la fuente grande (`0x576355c`) y, con un personaje elegido (`0x6c8e30`) que es un jugador (`+0x88` en 1), no
+es el héroe y es del tipo `0x20a` o tiene `+0x3e3` (`0x40aa80..0x40aad0`; *estático*, portado en la CL9 hito 7,
+fase 2), su cartel: `Interface\CursorID_Wnd.jpg` (`0x65b`) de 128 × 32 en el mouse + 5 (`0x6b87f8`, sumado en la
+x87 y guardado en float), `0x620a00(1)`, su nombre (`+0x1d9`) como título en `(x + 0x23, y + 0x2d)` en
+`0xff67bfdf` sobre `0x141414` y otra vez centrado (`0x623690`) en `(mouse x + 0x45, mouse y + 0xc)` en blanco sobre
+`0x141414`, con `glColor3f(1, 1, 1)` si el comando elegido es para él (`+8`) y su estado es 1 o `(1; 0,2; 0,2)` si
+no; después, el negro y el aviso del elegido según su estado: con 0,
 el 255 del 5, el 1313 del 6, el 937 del 10 y el 257 del 3; con `0xff`, el 507; con `0xfe`, el 1320; en negrita,
 `0x6c8e64 = 0`, centrado en `(x + 0x5f, y + 0x44)`. Termina con el blanco y `0x620980`.
 
@@ -1753,8 +1758,21 @@ texto `0x7d3a0f4 + página`. Enter o un botón elegido cierran.
 
 **El OK genérico** (`0x6263df`): lee y apaga Enter (`0x5763588`, que prende el WndProc en `0x4b50ff` y apaga la cola
 del frame en `0x63b0b7`); salvo el `0x73`, el clic en `[0x11c, 0x162) × [0x62, 0x77)` también. Con uno de los dos,
-el `0x70`, el `0x6f`, el `0x1a` y el `0x1c` cierran el juego (`SendMessageA(WM_DESTROY)`, `0x62828e`); el `0x73` y
-el `0x8f` son de otras olas; los demás pasan el que espera.
+el `0x70`, el `0x6f`, el `0x1a` y el `0x1c` cierran el juego (`SendMessageA(WM_DESTROY)`, `0x62828e`); el `0x8f` es
+de otra ola; los demás pasan el que espera.
+
+El OK del `0x73`, solo con Enter (`0x626460..0x6270ed`, *estático*; CL9 hito 7, fase 2). Con el zen escrito
+(`0x77f3b6c`) por encima de 100.000.000 (`0x5f5e100`, con signo), el `0x75` en su lugar: `0x6236f0(0)` y
+`0x6236f0(0x75)` en línea, sin `rand()`. Si no, `0x659290(0x20)` (el `rand()` del byte protegido) y, con el comercio
+abierto, el registro propio abierto (`0x6264b3..0x626784`): si el zen escrito, sin signo, pasa el propio (`+0xecc`)
+más el que ya está en el comercio (`0x78abab8`), el `0x74` en su lugar (`0x626ed8`); si no, el OK propio (`0x78abac1`),
+si estaba, se apaga y va el `C1 04 3C 00` en C3 (`0x626598`, el relleno y el serial), con `0x78abab8` mayor que 0
+(con signo) la espera `0x78abac8` va a `0x96`, el zen a `0x57678ac` y en el `C1 08 3A 00 <zen LE>` con el XOR32 y en
+claro (`0x626b2a..0x626eaf`, sin `rand()`), y el `0x73` pasa al que espera. El registro propio se cierra después
+(`0x626f06..0x62820a`, los 3.848 `rand()` si la cuenta vuelve a 0). Sin el comercio, `0x6270ed` mira `0x78abacc` y
+manda el `81` del almacén (CL9 hito 6, corta). Todos terminan en `0x628215`: `0x553570(0)`, `0x6c8e78 = 0x2a`,
+`0x6c8e6c = 2`, `0x77f3b6a = 0`, `0x6c8e68 = 0` y el botón (`0x6282af`: `0x77f3b10 = 0`, `0x6c8dcc = 6` y el
+sonido `0x19`). MuRet: `StepTheMoneyOk` en `GameDialogSteps.cpp`.
 
 **El dibujo** (`0x62db60`, en `0x637696` con la escena 5). Siempre deja `0x620980`, el blanco, la fuente normal en el
 DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos van con `0x554180` centrados en
@@ -1766,6 +1784,7 @@ DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos
 | `0x93` | 7 filas (la 5 de 44, la 6 en y = 232); 385 en `0x23`; `"%s  On"`/`"%s  Off"` con 386 (`0x41`), 387 (`0x5f`) y 919 (`0x9b`); 389 en `x = 0x140 − (cx + 0x36) / 2` (`0x7d`) y la barra en `(x + 0x144 + cx, 0x7f)`: gris 0,2 de 50 × 8, negro de 48 × 6 y blanco de `(v + 1) · 4,8` × 6; el marco del brillo (gris `(268, 198, 102, 22)`, negro `(269, 199, 100, 20)`), 5 casillas de 18 en y = 200 (`(0,8; 0,6; 0,3)` hasta `0x6c9dcc`, negras después) y las cifras 5, 7, 9, 11 y 13 de 12 × 12 en y = 202 con los colores al revés; 1840 en `0xb9` (Q-C555) y 388 en `0xed` |
 | `0x8a`, `0x8c`, `0x9b` / `0x8b`, `0x97` | `0xfc` de 213 × 5 en (213, 60), 4 / 7 filas de `0xfb` de 213 × 40 y otra `0xfc`; cada botón con estado, `0xf0 + estado` en `(x + 213, y + 60, w, h − 1)` con las UV `(0, 0, w / 128, h / 32)`; en el `0x8c`, las flechas (`CursorSitDown` girada 270 y 90 grados, 25 × 16, en (253, 210) y (383, 210)): gris en su tope, 0,7 con el mouse y 0,5 con el clic, que apaga (Q-C553); los renglones del `0x8a` y el `0x8c` desde `((7 − renglones) · 0x12) / 2 + 0x4c`; los del `0x8b`, el `0x97` y el `0x9b`, el objeto del evento (`0x632a2b`) |
 | OK genérico | `0xf0` de 213 × 64 en (213, 60) y el OK, `0xf1` (`0xf2` con el mouse en `[0x11c, 0x161] × [0x62, 0x76]`) de 70 × 21 en (284, 98); su texto en y = `0x4b`, o en `0x45` y `0x51` los de dos renglones: el `0x70` el 402, el `0x6f` y el `0x1a` el 405 y el 406, el `0x1c` el 409 y el `0x8f` el 401 |
+| `0x77`, `0x78` (CL9 hito 7, fase 2) | el mismo marco (`0x630818`); el sí (`0x6309d4`), `0xf1` (`0xf2` con el mouse en `[0xea, 0x130) × [0x62, 0x77)`) en (234, 98), y el no, `0xf3` (`0xf4` en `[0x14e, 0x194)`) en (334, 98), de 70 × 21 con las UV del OK (también los del `0x7f` y el `0x76`, de otras olas). El `0x77` (`0x631e29`): `sprintf(418, nombre)` con el `+0x1d9` del primero vivo de los 400 con la clave de `0x78aba4c` (`0x5110d0`, `MOVSX`; sin ninguno, el 400) en la fuente del DC en y = 75 − 6 y `sprintf(425)` en 75 + 6. El `0x78` (`0x631bb0`): `sprintf(418, 0x78aba1c)` en la negrita grande (`0x576355c`) en 75 − 11 y `sprintf(419)` en la normal en 75 + 11 |
 
 `0x61ccb0` sube `Message_box` (`0xf0`), `ok`, `ok2`, `cancel`, `cancel2` (`0xf1` a
 `0xf4`), `Message_box1` (`0xfb`) y `Message_box2` (`0xfc`); el `bar.jpg` de `0xfd` es de `0x5e9b10`, la caja de la
@@ -3353,8 +3372,14 @@ dibujo (`0x637791..0x6381a5`), y por debajo de 21,33 FPS cada dibujo es un frame
 
 **Cuándo hay.** bVar23: la clase 3 o 4, el modelo `0x20a` y `+0x3e3` en 0, o el monstruo `0x37`;
 nunca en los mapas `0x12` a `0x17`, salvo con los nombres de un duelo o de una guerra de guild, que
-la prenden en cualquier clase con el color (1; 0,2; 0) o (0; 0,2; 1) (`0x50c929..0x50cc29`; qué son
-esos nombres, abierto). El color, si no, es (1, 1, 1).
+la prenden en cualquier clase con el color (1; 0,2; 0) o (0; 0,2; 1) (`0x50c929..0x50cc29`). El color, si no, es
+(1, 1, 1). Leído en la CL9 (hito 7, fase 2, *estático*): con `+0x1f2` distinto de −1, las guerras de gremios
+(`0x50c99b..0x50cb5c`, con `0x576796d`, `0x576796e` y `0x576796f` y los nombres de la tabla `0x787aa48` + `0xd`,
+`0x5767804`, `0x57678d0` y `0x57678d9`) son del hito 8. Con el duelo en curso (`0x78abad8`), el rival (`MOVSX` de
+`+0x1f4` igual a `0x78abadc` y `strcmp` de `+0x1d9` con `0x78abae0`) la lleva en (1; 0,2; 0) y después el héroe
+publicado (el WORD de `+0x1f4` igual y `strcmp` de los dos `+0x1d9`) en (0; 0,2; 1). **MuRet**: `GameCharacters`
+arma `DrawnCharacter::wearsCloth` y `clothColor` con `+0x3e3` y el duelo; el login y la selección siguen con
+`WearsACloth` (clase y mapa). Test: `GameCharacterRenderTest.TheDuelDressesTheRivalInRedAndTheHeroInBlue`.
 
 **El armado** (con `objeto + 0x190` en 0). La clase 4: `new` de cuatro telas (`0x6a0210(…, 0x60, 4,
 0x4548b0, 0x454980)`) y `+0x18c` = 3:
@@ -10144,6 +10169,130 @@ los contratos de sus llamadas y de los dos cierres del contador. El análisis de
 exportadas (7.471 bytes) coincide con el PE de hash
 `c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a`, sin ejecución ni nueva
 emulación. CL7.P permanece abierta; no se reconstruyen las transformaciones de protección.
+
+### Lo social en pantalla
+
+(CL9 hito 7, fase 2, 2026-11-13, *estático*; el cable y las trazas de GL quedan para la VM, 08 P-C206.) Los dibujos
+del comercio, la party y el duelo, y lo que necesita a los otros jugadores del viewport (hito 1). Los globales son los
+de 04 § El comercio, § La party y § El duelo.
+
+**El marcador del duelo** (`0x5a6cc0`, hijo 14 del HUD). Con `0x78abad8` en 0, nada. Si no, el centro es la mitad
+del ancho del mundo (`0x5bb8d0`, que hace sus consultas de `IsOpen` y sus `rand()`; [3.6](#36-los-rand-de-abrir-y-cerrar-estático)) y se
+vuelve a pedir para cada x: ocho llamadas por frame. Con la mezcla normal, `glColor4f(0, 0, 0, 0,5)` y la franja de
+300 × 40 en (centro − 150, 20); `glColor4f(0,65; 0,53; 0,34; 1)` y su marco de 1. En la negrita grande
+(`0x576355c`), el fondo en 0: el nombre del héroe (`+0x1d9`) con sombra negra en (centro − 79, `0x1f`) y en
+`0xffff9600` en (centro − 80, `0x1e`), "vs" (`0x6c9284`) en `0xff0096ff` en el centro, y el nombre del rival
+(`0x78abae0`) con sombra en centro + 81 y en `0xff1919ff` en centro + 80. En la normal (`0x5763554`), los puntos
+(`%d`): los propios (`0x78abaf8`) en `0xffff9600` en (centro − 80, `0x30`) y los del rival (`0x78abafc`) en
+`0xff1919ff` en (centro + 80, `0x30`). Todos con `0x623690` (centrado). Sale con la mezcla opaca. Los mismos tres
+globales los lee el cursor de ataque (`0x558bb0`, hito 3).
+
+**El pedido de duelo** (`0x5f37f0`, desde `0x637683`). Con `0x78abad9` en 0, nada. Con la mezcla normal y el
+blanco, la caja de `0x5f3ac0`: Message_box2 (`0xfc`) en (213, 110, 213, 5), Message_box1 (`0xfb`) cuatro veces de 40
+desde y 115 y `0xfc` en y 275, con du 0,83203125 y dv 0,625. Con la mezcla sumada, `Interface\DuelWindow.jpg`
+(`0x650`, la sube `0x61ccb0` en `0x61d2d6`) en (256, 120, 128, 128). Con la opaca, los botones de 70 × 21 en y 250:
+el sí (`0xf1`, o `0xf2` con el mouse en `0xed..0x133` × `0xfa..0x10f`) en x 237 y el no (`0xf3` o `0xf4`, x
+`0x14c..0x192`) en x 332, con du 0,546875 y dv 0,65625. Con la mezcla normal y el fondo en 0: "[%s]" (`0x6c9d40`) con
+el nombre de `0x78abae0` en la negrita grande, sombra negra en (`0x140`, `0x8d`) y en `0xff18cfff` en (`0x13f`,
+`0x8c`); en la negrita, los textos 910 y 911 con sombra en (`0x140`, `0xb5`/`0xc9`) y en `0xffdcdcdc` en (`0x13f`,
+`0xb4`/`0xc8`). Sale con la mezcla opaca. Sin `rand()`.
+
+**MuRet**: `Scenes::DrawTheDuelScore` y `DrawTheDuelRequest` (`GameSocialDrawing`); `GameSocialDrawingTest` en
+Lorencia y Devias.
+
+**Los miembros de la party en el viewport.** Cada lugar de `0x77f3cd0` (0x24 B) guarda en `+0x1c` el personaje con
+su nombre y en `+0x20` el `+0x78` de ese personaje. La `.bss` empieza en 0 y el `42` no los toca. En cada frame, el
+picking (`0x59ec80`) los escribe así:
+
+| Quién | Cuándo | Qué hace |
+| --- | --- | --- |
+| `0x5e4140` (`0x59f48d`) | sin Alt y con la party cerrada (`IsOpen(4)`), después de elegir el orden de las búsquedas | la lista de la derecha: x = `0x5bb8d0` − 50 (con sus consultas), renglones de 19 desde y 5. Un lugar con personaje ocupa su renglón y, con el Dark Wizard o el Elf (`+0x1d4 & 7` en 0 o 2), abre y cierra el registro propio para leer la skill de su lugar (`+0x425`; 3.848 `rand()` si la cuenta vuelve a 0); con `0xf`, `0x10` o `0x1a..0x1c` y el mouse en [x − 3, x + 50] × [y, y + 19], `0x6c8e30` = ese personaje y devuelve 1. Uno en −1 ocupa su renglón; −2 y −3 no. Todos quedan en −2 |
+| `0x59e700(máscara)` | cada búsqueda de personajes | dentro del lazo de los 400, para cada uno vivo, a la vista, con alpha, sin morirse, sin `+0x7c & 0x10000000` y con `+0x88` en 1 (el héroe también), antes del resto de las condiciones: el primer lugar en −2 con su nombre (strncmp con el mayor de los largos, por lo menos 1) toma el índice y `+0x78`; cada lugar en −2 que compara pone antes `+0x20` en 0. Al final, cada lugar negativo: `+0x20` en 0 y −3 si es el nombre del héroe publicado, −1 si no |
+| `0x59e3b0` (`0x59f52a`) | con el mouse en la UI, cuando `0x5e4140` eligió, o con un elegido y `0x6c8e38` puesto (`0x59f522`) | lo mismo, entre los de tipo `0x20a` y `+0x88` en 1, sin mirar `+0x7c` |
+
+Con la party abierta, `0x5e4140` no corre: los lugares encontrados se quedan con su índice aunque el personaje se vaya.
+Un dibujo intermedio de MuRet los escribe en el mundo, no en una copia: con los mismos personajes, el resultado es el
+mismo (*inferido*).
+
+**Las barras de la party** (`0x5a89b0`, hijo 3 del HUD). Con `0x78aba48` en 1 o más, cada lugar con `+0x1c` en 0 o
+más proyecta (`0x6205b0`) la cabeza (`+0x138` + z + 100) y resta 19 a la x. Con el mouse en [x, x + 38) × [y − 2,
+y + 6), "HP : %d0%" (`0x6c92ec`, con `+0x18`) en (x, y − 6) con la fuente y los colores que haya (`0x465950` en el modo
+1; antes pone `0x6c8e60` en `0xffd2e6ff`, que solo leen las columnas del prefijo de un globo). Después, con la mezcla
+normal, la sombra (0, 0, 0, 0,5) de 42 × 5 en (x + 1, y + 1); sumados (`0x620a90`), el borde (0,2; 0; 0) de 42 × 5 en
+(x, y), el fondo (50/255, 10/255, 0) de 38 × 1 en (x + 2, y + 2) y los décimos (250/255, 10/255, 0) de 3 × 2 en
+(x + 2 + 4i, y + 2), hasta 10; opaca. Al final, opaca y blanco. Sin `rand()`.
+
+**La ventana de la party con miembros** (`0x5f0be0`). Cerrada, después del ancho y los colores −1 y 0, la lista de la
+derecha (`0x5f130a`) desde (ancho − 50, 5): por miembro, con la mezcla normal, el fondo de 50 × 19 en x − 3 (0,1; 0,1;
+0,1; 0,7, o 0,5; 0,5; 0,5; 0,8 con el mouse en [x − 3, x + 50] × [y, y + 19]; ninguno en −1), la barra (50/255, 10/255,
+0) de 43 × 4 en (x − 2, y + 12), los décimos de 3 × 2 en (x + 4i, y + 13), el rojo (0,3; 0; 0; 0,5) encima si está en
+−1 o el verde (0,2; 1; 0,2; 0,2) con `+0x20 & 8`, y el nombre en la normal en (x, y + 2). Después, Message_box2
+(`0xfc`) de 54 × 3 en (x − 5, 2) y (x − 5, y final), y los costados (184/255, 151/255, 97/255, 0,5) de 1 ×
+(19 · cuenta) en x − 4 y x + 47. Abierta, por miembro de a `0x23`: el nombre en negrita (el primero con fondo
+`0xff962828` y texto blanco; los demás, `0xffffe6d2`), el mapa (`0x5f0b40`: el texto 30 + mapa, salvo 10 → 55,
+11..17 → 56, 18..23 → 57, 24..29 y 36 → 58, 30 → 669, 31 → 59, 32 → 39, 33 → 1850 y 34 → 1851) y "%d,%d" de la
+celda en `0xffd2e6ff`, la barra (0,2; 0; 0) de 92 × 5 en (x + 0x13, y + 0x45), la vida (225/255, 15/255, 0) de
+(la menor con signo de `+0x10` y `+0x14`) / `+0x14` · 90 × 3 en (x + 0x14, y + 0x46), "( %d / %d )" en (x + 0x38,
+y + 0x4b) y, si el héroe es el primero o este, el botón de echar (`0x118`, o `0x119` con el izquierdo abajo) en
+(x + 140, y + 55) con su ayuda (texto 189) 13 arriba.
+
+**MuRet**: `Scenes::PartyActors` (`MatchThePartyMembers`, `MarkTheMissingMembers`, `FindThePartyInTheViewport` y
+`PickFromThePartyList`, desde `PickTheCharacter` y `PickInTheFrame`), `DrawThePartyLife` y `DrawThePartyWindow`
+(`GamePartyWindow`). Tests: `CharacterPickingTest` (la búsqueda y la lista, con sus `rand()`), `GamePartyWindowTest`
+(la lista y los miembros) y `PartyLifeTest` (con dos jugadores del `0x12` en Lorencia y Devias).
+
+**Los pedidos a otro desde el chat** (`0x56c440`: `/trade` en `0x56c68b..0x56d623`, `/duelstart` sin duelo en
+`0x56d823..0x56e9ec` y `/party` en `0x56f13f..0x570d47`). Los tres buscan al otro igual: el elegido (`0x6c8e30`), si
+no es −1, o el primero de los 400 que está enfrente. El elegido tiene que ser un jugador (`+0x88` en 1), no el héroe
+publicado y del tipo `0x20a` o con `+0x3e3`; el de enfrente, además, vivo (el byte de `+0`). Después, las celdas
+lógicas: la x del otro (`+0x41c`), la del héroe, la y del otro (`+0x420`) y la del héroe, cada una con su acceso a la
+tabla de protección (`0x40b570` y `0x40b800`, o lo mismo en línea con `0x40b240`, `0x40b2f0` y `0x412890`; con una
+entrada nueva, `0x40ad90`), así que cada lectura que cierra su entrada saca 4 `rand()`; con la x a más de 1 no lee
+las y. El de enfrente, además, mira las direcciones de `+0x24` (el `_ftol` de (ángulo + 22,5) / 45 + 1, `& 0xff` y
+por 8, como el emote) del otro y del héroe: a 4, se miran; si no, sigue con el próximo.
+
+| comando | si no se puede | antes del paquete | paquete (C3) | después |
+|---|---|---|---|---|
+| `/trade` | 1 | la tienda personal del otro (`0x451810`): el aviso 493 con el 2; las tiendas abiertas (`0x5af560`, `0x800` y `0x20000`) o el mundo sin cargar (`0x7d3a101`): 1 | `C1 05 36` y la clave (alta primero) | el aviso 475 (`sprintf` con el nombre del primero vivo con esa clave, `0x5110d0`) con el 1, y 1 |
+| `/duelstart` | sigue la cadena | — | `C1 0F AA`, la clave y los 10 bytes de `+0x1d9` | sigue la cadena (`/duelend`, `0x56e07c`) |
+| `/party` | 1 | con party (`0x78aba48 > 0`) y otro líder (`strcmp` con el primer lugar de `0x77f3cd0`), el aviso 257 con el 1, antes de buscar; el mundo sin cargar: 1 | `C1 05 40` y la clave; `0x78aba4c` = la clave (`MOVSX`) | el aviso 476 con el nombre, y 1 |
+
+Cada paquete saca los 2 `rand()` del C3 (el relleno y el serial). El mapa de las tiendas de `0x7245c8` lo llenan los
+`3F`: hasta portarlos, nadie tiene tienda. **MuRet**: `Scenes::SocialRequests` (`RequestATrade`, `RequestADuel` y
+`RequestAParty`, desde `UI::RunTheChatCommand` por `GameChat`; el aviso armado va en `ChatCommandNotice::formatted`).
+Tests: `SocialRequestsTest` (con los dos jugadores del `0x12`, en Lorencia y Devias), `Commands` y `GameChat`.
+
+**La ventana del comercio** (`0x5f3b40`, desde `0x5f2280` después del inventario). Con `IsOpen(0x20)` (su
+`rand()`, el único del dibujo), la esquina en (`0x104`, 0) (`0x78a5a1c` y `0x78a5a18`, que escribe el dibujo) y
+`0x5ee220(x, y, 1)`: el fondo de las ventanas (`0x104` y `0x105`) y `Interface\Trading_line.jpg` (`0x117`) de 190 × 10
+en y + 225 (du 0,7421875, dv 0,625). Las casillas de las dos grillas (`0x5e3660`, 8 × 4): la del otro (`0x78a5a20`) en
+(x + 15, y + 70) y la propia (`0x78a92a8`) en (x + 15, y + 270). Blanco y el lazo de las 2000 entradas de la tabla de
+los gremios (`0x787aa48`, de `0x58` B): la que tiene una clave distinta de −1 e igual a `0x6c9324` (el gremio del otro,
+del `37`) dibuja la marca (`0x5f16a0(índice, 0)` y la `0x22` de 32 × 32 en (x − 32, y + 40)) y el nombre (`+0xd`, en
+(x, y + 30)). `0x447ae0` pone todas las claves en −1 y solo `0x4d9260` (la lista del gremio, hito 8) las llena: hasta
+entonces el lazo no dibuja nada, ni con el gremio 0 que manda el GS sin gremio (08 P-C207 a). Blanco; en la negrita
+(`0x5763558`), con `0xffdcdcdc` sobre `0xff141414`, el título (texto 226) en (x + `0x23`, y + `0xc`) en la caja de
+120 · ancho / 640. Los botones de 24 × 24 con du = dv = 0,75 (`0x621b60`): el OK del otro en (x + 140, y + 185),
+`accept_box01` (`0x122`) con `0x78abac0` en 0 o `accept_box02` (`0x123`), en rojo con `0x78abac4` sobre 0; con
+`0xffffffff` sobre `0xff000000`, el zen (`Money_01`, `0x110`) en (x + 26, y + 390), el OK propio (`0x78abac1`) en
+(x + 97, y + 390), en rojo con la espera (`0x78abac8`) sobre 0, y cerrar (`0x118`) en (x + 137, y + 390). Con el mouse
+en [x, x + 24) × [y, y + 24) de cada uno, en la normal (`0x5763554`), su ayuda (227, 228 y 229) en (`_ftol(x)`,
+`_ftol(y)` − 13); el del zen, con el izquierdo abajo (`0x7d36874`), pone `Money_02` (`0x111`) encima antes. En la
+negrita, con `0xff96dcff` sobre `0x80282828`, las cajas del zen (`0x10f`, 113 × 18, du 0,8828125, dv 0,5625) en
+(x + 50, y + 160) y (x + 50, y + 360), cada una con "Zen" (224) 30 a la izquierda y 2 abajo y la cifra
+(`0x78abab4` y `0x78abab8`, con las comas y el color del inventario) 10 a la derecha. En la negrita grande
+(`0x576355c`), con `0xffffe6d2`, el nombre del otro (`0x78aba1c`) en (x + 20, y + 45). La flecha (`0x9`) de 15 × 24
+desde v 0,4 en (x + 140, sen(T · 0,01) + (y + 28)), en (1; 0,86; 0,58). El nivel del otro (`0x78abab0`, con signo) cae
+en su piso: 300 (`0xffff99ff`), 200 (`0xffffe6d2`), 100 (`0xff18c900`), 50 (`0xff0096ff`) o 10 (`0xff0000ff`); en la
+negrita, el texto 368 en (x + `0x8c`, y + `0x2d`) y `sprintf(369, piso)` en (x + `0x8c`, y + `0x37`). El nombre del
+héroe (`+0x1d9`) en `0xffffe6d2` en (x + 20, y + `0xfa`). El texto 370 en (x + 20, y + `0xb9`) con el alfa de
+`_ftol(min(sen(T · 0,005) · 200 + 275, 255))` sobre `0xd2`, y en `0xff96dcff` el 365 en (x + `0x2d`, y + `0xb9`), el
+366 en (x + 20, y + 200) y el 367 en (x + 20, y + `0xd7`). Después, en el pase 3D de `0x5f7610`, los ítems de las dos
+grillas (`0x5e3760` con 0, en las mismas esquinas) y, en `0x5f7840`, sus cifras (`0x5e3760` con 1).
+
+**MuRet**: `Scenes::DrawTheTradeWindow` (`GameInventoryHud`, desde `DrawTheWindows`), y las grillas del comercio en
+`DrawTheGridItems` y `DrawTheGridNumbers`. Tests: `GameTradeWindowTest` (con el otro del `0x12`, el `/trade`, el `37`,
+un ítem del `39` y el zen, en Lorencia y Devias).
 
 ## Lo que no se sabe
 

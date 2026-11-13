@@ -1,5 +1,6 @@
 #include "UI/ChatCommands.h"
 
+#include "Core/Expected.h"
 #include "Core/Xor3.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
@@ -114,12 +115,116 @@ TEST_F(Commands, TheSocialCommandsStopInChaosCastle)
     map = 0;
     const auto trade = Client::UI::RunTheChatCommand(Context(), "/comerciar", false);
     ASSERT_FALSE(trade.HasValue());
-    EXPECT_NE(trade.Error().find("0x56c54d"), std::string::npos);
+    EXPECT_NE(trade.Error().find("0x56c5d0"), std::string::npos);
     // Con el almacén abierto, el comercio no se mira.
     warehouseOpen = true;
     const auto skipped = Client::UI::RunTheChatCommand(Context(), "/comerciar", false);
     ASSERT_TRUE(skipped.HasValue());
     EXPECT_FALSE(skipped.Value().handled);
+}
+
+// 0x56c5d0..0x56c690: /trade lee el nivel del registro propio; por debajo de 0x6c8dc8 (6), el aviso 478 y 1. Con él,
+// el pedido (Scenes::RequestATrade) da la salida; sin pedido, corta.
+TEST_F(Commands, TradeNeedsTheLevel)
+{
+    std::uint16_t level = 5;
+    int reads = 0;
+    ChatCommandContext context = Context();
+    context.ownLevel = [&level, &reads]()
+    {
+        ++reads;
+        return level;
+    };
+    const auto low = Client::UI::RunTheChatCommand(context, "/trade", false);
+    ASSERT_TRUE(low.HasValue()) << low.Error();
+    EXPECT_TRUE(low.Value().handled);
+    EXPECT_EQ(low.Value().notices,
+              (std::vector<ChatCommandNotice>{{Client::UI::TradeLevelText, Client::UI::SystemMessage}}));
+    EXPECT_EQ(reads, 1);
+    level = 6;
+    const auto unwired = Client::UI::RunTheChatCommand(context, "/comerciar", false);
+    ASSERT_FALSE(unwired.HasValue());
+    EXPECT_NE(unwired.Error().find("0x56c68b"), std::string::npos);
+    int asked = 0;
+    context.requestATrade = [&asked]() -> Client::Core::Expected<Client::UI::ChatCommandOutcome, std::string>
+    {
+        ++asked;
+        return Client::UI::ChatCommandOutcome{.handled = true, .notices = {}};
+    };
+    const auto enough = Client::UI::RunTheChatCommand(context, "/comerciar", false);
+    ASSERT_TRUE(enough.HasValue()) << enough.Error();
+    EXPECT_TRUE(enough.Value().handled);
+    EXPECT_EQ(asked, 1);
+    EXPECT_EQ(reads, 3);
+}
+
+// 0x56f109..0x56f13f: /party (o /pt) en Chaos Castle avisa 1150 y sale como chat; fuera, el pedido da la salida.
+TEST_F(Commands, PartyAsksOutsideChaosCastle)
+{
+    int asked = 0;
+    ChatCommandContext context = Context();
+    context.requestAParty = [&asked]() -> Client::Core::Expected<Client::UI::ChatCommandOutcome, std::string>
+    {
+        ++asked;
+        return Client::UI::ChatCommandOutcome{.handled = true, .notices = {}};
+    };
+    const auto outside = Client::UI::RunTheChatCommand(context, "/PT", false);
+    ASSERT_TRUE(outside.HasValue()) << outside.Error();
+    EXPECT_TRUE(outside.Value().handled);
+    EXPECT_EQ(asked, 1);
+    map = 18;
+    const auto inside = Client::UI::RunTheChatCommand(Context(), "/grupo", false);
+    ASSERT_TRUE(inside.HasValue()) << inside.Error();
+    EXPECT_FALSE(inside.Value().handled);
+    EXPECT_EQ(inside.Value().notices,
+              (std::vector<ChatCommandNotice>{{Client::UI::ChaosCastleCommandText, Client::UI::SystemMessage}}));
+}
+
+// 0x56d816 y 0x56ea5f: con el duelo en curso, /duelstart avisa 915 y sigue la cadena; /duelend manda el AB y sigue.
+// Sin duelo, /duelend solo sigue y /duelstart pide el duelo (Scenes::RequestADuel) y también sigue.
+TEST_F(Commands, TheDuelCommandsGoOnAsChat)
+{
+    int ended = 0;
+    ChatCommandContext context = Context();
+    context.duelActive = true;
+    context.endTheDuel = [&ended]() -> Client::Core::Expected<void, std::string>
+    {
+        ++ended;
+        return {};
+    };
+    const auto busy = Client::UI::RunTheChatCommand(context, "/retar", false);
+    ASSERT_TRUE(busy.HasValue()) << busy.Error();
+    EXPECT_FALSE(busy.Value().handled);
+    EXPECT_EQ(busy.Value().notices,
+              (std::vector<ChatCommandNotice>{{Client::UI::DuelBusyText, Client::UI::ErrorMessage}}));
+    EXPECT_EQ(ended, 0);
+    const auto end = Client::UI::RunTheChatCommand(context, "/DUELEND", false);
+    ASSERT_TRUE(end.HasValue()) << end.Error();
+    EXPECT_FALSE(end.Value().handled);
+    EXPECT_EQ(ended, 1);
+    ASSERT_TRUE(Client::UI::RunTheChatCommand(context, "/noretar", false).HasValue());
+    EXPECT_EQ(ended, 2);
+
+    context.duelActive = false;
+    ASSERT_TRUE(Client::UI::RunTheChatCommand(context, "/noretar", false).HasValue());
+    EXPECT_EQ(ended, 2);
+    const auto unwired = Client::UI::RunTheChatCommand(context, "/duelstart", false);
+    ASSERT_FALSE(unwired.HasValue());
+    EXPECT_NE(unwired.Error().find("0x56d823"), std::string::npos);
+    int asked = 0;
+    context.requestADuel = [&asked]() -> Client::Core::Expected<void, std::string>
+    {
+        ++asked;
+        return {};
+    };
+    const auto start = Client::UI::RunTheChatCommand(context, "/duelstart", false);
+    ASSERT_TRUE(start.HasValue()) << start.Error();
+    EXPECT_FALSE(start.Value().handled);
+    EXPECT_TRUE(start.Value().notices.empty());
+    EXPECT_EQ(asked, 1);
+    const auto guild = Client::UI::RunTheChatCommand(context, "/guild", false);
+    ASSERT_FALSE(guild.HasValue());
+    EXPECT_NE(guild.Error().find("hito 8"), std::string::npos);
 }
 
 // 0x56d624: /move abre la ventana y sigue como chat.

@@ -373,6 +373,27 @@ TEST_F(GameChat, AHandledCommandOnlyClosesTheField)
     EXPECT_EQ(world.Runtime().lastSoundId, Client::UI::ChatButtonSound);
 }
 
+// 0x56c68b..0x56cdfc desde el chat: /trade con el elegido al lado manda el C1 05 36 y el aviso 475 sale armado con su
+// nombre (0x69fd9b) en el registro.
+TEST_F(GameChat, TradeWithTheChosenSaysWhoWasAsked)
+{
+    auto& runtime = world.Runtime();
+    runtime.drawingEnabled = true;
+    auto& other = world.Actors()[runtime.hero + 1];
+    other.alive = true;
+    other.byte88 = 1;
+    other.type = 0x20a;
+    other.key = 0x0456;
+    for (std::size_t i = 0; i < 6; ++i)
+        other.name[i] = static_cast<std::byte>("Brezal"[i]);
+    other.cellX = 1;
+    runtime.selectedTargets[2] = static_cast<std::int32_t>(runtime.hero + 1);
+    ASSERT_TRUE(Type("\r/comerciar\r").HasValue());
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_EQ(Client::Network::Crypto::Xor32Decode(sent[0].packet).Bytes()[2], std::byte{0x36});
+    EXPECT_EQ(runtime.chat.log.entries.front().text, "pediste comerciar con Brezal");
+}
+
 // 0x5a119f..0x5a2b47: cada macro apretada sale como chat y deja el freno de las macros en 0x64, aunque el freno del
 // chat la pare.
 TEST_F(GameChat, TheMacrosSayTheirTextAndLock)

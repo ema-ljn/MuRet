@@ -7,20 +7,26 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/Widget.h"
 #include "World/TerrainPickingSegment.h"
 
 #include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <initializer_list>
 #include <optional>
+#include <span>
 #include <string>
+#include <string_view>
 
 // El picking de los personajes del juego (0x59e700) y lo que 0x59ec80 hace con él. Los mundos van en el heap.
 namespace
@@ -164,10 +170,12 @@ struct Frame
                                                .ownRecordDepth = world->Runtime().ownRecordDepth,
                                                .targets = world->Runtime().selectedTargets,
                                                .altDown = alt,
-                                               .ray = Ray});
+                                               .ray = Ray,
+                                               .mouse = mouse});
     }
     std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
     CrtRandom random;
+    Client::UI::Point mouse{};
 };
 
 CrtRandom Advanced(CrtRandom random, int count)
@@ -175,6 +183,141 @@ CrtRandom Advanced(CrtRandom random, int count)
     for (int draw = 0; draw < count; ++draw)
         static_cast<void>(random.Next());
     return random;
+}
+
+// Un nombre inventado en los bytes de un personaje o de un lugar de la party.
+void Name(std::span<std::byte> name, std::string_view text)
+{
+    std::ranges::fill(name, std::byte{0});
+    for (std::size_t at = 0; at < text.size(); ++at)
+        name[at] = static_cast<std::byte>(text[at]);
+}
+
+// La party de 0x77f3cd0 con estos nombres, cada uno con +0x1c en `index`.
+void Party(WorldState& world, std::initializer_list<std::string_view> names, std::int32_t index)
+{
+    Client::Scenes::PartyState& party = world.Runtime().social.party;
+    std::size_t at = 0;
+    for (const std::string_view name : names)
+    {
+        Name(party.slots[at].name, name);
+        party.slots[at].actorIndex = index;
+        party.slots[at].actorFlags = 0x55;
+        ++at;
+    }
+    world.Runtime().hud.partyCount = static_cast<std::int32_t>(names.size());
+}
+
+std::array<std::int32_t, 4> Indices(const WorldState& world)
+{
+    const auto& slots = world.Runtime().social.party.slots;
+    return {slots[0].actorIndex, slots[1].actorIndex, slots[2].actorIndex, slots[3].actorIndex};
+}
+
+// 0x59e86a..0x59e948 y 0x59ea9b..0x59eb66: cada jugador (+0x88 en 1) que pasa las primeras condiciones busca su lugar
+// en −2 de la party, aun sin segmento, con su +0x78; el héroe también. Al final, el héroe que no se ve queda en −3 y
+// los demás sin personaje en −1, con +0x20 en 0.
+TEST(CharacterPickingTest, ThePlayersFindTheirPartySlotsWhilePicking)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        Picking tested;
+        WorldState& world = *tested.world;
+        world.Runtime().map = map;
+        Name(world.Actors()[0].name, "Tejon");
+        Place(world, 3, 2000.0f, Players);
+        Name(world.Actors()[3].name, "Brezal");
+        world.Actors()[3].flags78 = 0x48;
+        Place(world, 4, 2500.0f, 2);
+        Name(world.Actors()[4].name, "Zorzal");
+        Party(world, {"Brezal", "Tejon", "Zorzal", "Mirlo"}, -2);
+        EXPECT_EQ(PickTheCharacter(world, Npcs, std::nullopt), NoPick);
+        EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{3, 0, -1, -1}));
+        const auto& slots = world.Runtime().social.party.slots;
+        EXPECT_EQ(slots[0].actorFlags, 0x48U);
+        EXPECT_EQ(slots[2].actorFlags, 0U);
+        // Lo encontrado se queda: solo se busca en −2.
+        Name(world.Actors()[3].name, "Otro");
+        EXPECT_EQ(PickTheCharacter(world, Players, Ray), 3);
+        EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{3, 0, -1, -1}));
+
+        // El héroe que no se ve.
+        Party(world, {"Brezal", "Tejon", "Zorzal", "Mirlo"}, -2);
+        world.Actors()[0].seen = false;
+        static_cast<void>(PickTheCharacter(world, Players, Ray));
+        EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{-1, -3, -1, -1}));
+        EXPECT_EQ(slots[1].actorFlags, 0U);
+    }
+}
+
+// 0x59ef2f → 0x59e3b0: con el mouse en la UI solo busca a la party, entre los de tipo 0x20a.
+TEST(CharacterPickingTest, OverTheUiOnlyThePartyIsLookedFor)
+{
+    Frame tested;
+    WorldState& world = *tested.world;
+    world.Runtime().map = 2;
+    world.Runtime().ui.mouseOnUi = 1;
+    Name(world.Actors()[0].name, "Tejon");
+    Place(world, 3, 2000.0f, Players);
+    Name(world.Actors()[3].name, "Brezal");
+    world.Actors()[3].type = 0x20a;
+    Place(world, 4, 2500.0f, Players);
+    Name(world.Actors()[4].name, "Zorzal");
+    Party(world, {"Brezal", "Tejon", "Zorzal"}, -2);
+    ASSERT_TRUE(tested.Pick().HasValue());
+    EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{3, -3, -1, 0}));
+    EXPECT_EQ(world.Runtime().selectedTargets, (std::array<std::int32_t, 5>{-1, -1, -1, -1, -1}));
+    EXPECT_EQ(tested.random.State(), CrtRandom().State());
+}
+
+// 0x5e4140: con la party cerrada, la lista de la derecha (640 − 50, de a 19 desde 5). Con la skill 0x1a, el Elf abre el
+// registro propio por cada miembro con personaje y elige al del renglón del mouse; después 0x59e3b0 los vuelve a
+// buscar. Un miembro en −1 ocupa su renglón y uno en −3, no. El Dark Knight no abre nada.
+TEST(CharacterPickingTest, TheListOnTheRightPicksAMember)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        Frame tested;
+        WorldState& world = *tested.world;
+        world.Runtime().map = map;
+        world.Actors()[0].characterClass = 2;
+        world.Actors()[0].type = 0x20a;
+        world.OwnCharacter().words6c[0] = 0x1a;
+        Name(world.Actors()[0].name, "Tejon");
+        Place(world, 3, 2000.0f, Players);
+        world.Actors()[3].type = 0x20a;
+        world.Actors()[3].position.y = 5000.0f;
+        Name(world.Actors()[3].name, "Brezal");
+        Party(world, {"Mirlo", "Tejon", "Zorzal", "Brezal"}, -1);
+        auto& slots = world.Runtime().social.party.slots;
+        slots[0].actorIndex = -3;
+        slots[1].actorIndex = 0;
+        slots[3].actorIndex = 3;
+        // Tejon en [5, 24], Zorzal en [24, 43] y Brezal en [43, 62].
+        tested.mouse = {.x = 587, .y = 62};
+        const CrtRandom expected = Advanced(tested.random, 3 * Client::Render::Models::OwnRecordCloseRandoms);
+        ASSERT_TRUE(tested.Pick().HasValue());
+        EXPECT_EQ(world.Runtime().selectedTargets[2], 3);
+        EXPECT_EQ(tested.random.State(), expected.State());
+        EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{-1, 0, -1, 3}));
+
+        // Fuera de la lista (x + 50 cuenta, x + 51 no), busca como siempre: sin nadie en el segmento.
+        tested.mouse = {.x = 641, .y = 62};
+        world.Runtime().selectedTargets = {-1, -1, -1, -1, -1};
+        ASSERT_TRUE(tested.Pick().HasValue());
+        EXPECT_EQ(world.Runtime().selectedTargets[2], -1);
+
+        // El Dark Knight no abre el registro ni elige desde la lista.
+        world.Actors()[0].characterClass = 1;
+        Party(world, {"Mirlo", "Tejon", "Zorzal", "Brezal"}, 3);
+        tested.mouse = {.x = 600, .y = 10};
+        const CrtRandom before = tested.random;
+        ASSERT_TRUE(tested.Pick().HasValue());
+        EXPECT_EQ(world.Runtime().selectedTargets[2], -1);
+        EXPECT_EQ(tested.random.State(), before.State());
+    }
 }
 
 // 0x59efb9..0x59f509: el Dark Wizard abre el registro propio por su skill (los 3.848 rand() del cierre) y elige al

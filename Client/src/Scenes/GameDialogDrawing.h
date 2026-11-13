@@ -23,7 +23,10 @@ struct GameHudContext;
 //     centrados; los del 0x8b, el 0x97 y el 0x9b los dibuja el objeto del evento ([0x723c60] + 0x10, CL9.5): sin él,
 //     nada, y con él corta;
 //   - los del OK genérico con texto (0x70, 0x6f, 0x1a, 0x1c y 0x8f): el marco 0xf0, el OK (0xf1, o 0xf2 con el mouse)
-//     y sus textos de Text.bmd.
+//     y sus textos de Text.bmd;
+//   - la invitación a la party (0x77) y el pedido de comercio (0x78) (CL9 hito 7, fase 2): el marco 0xf0, el sí (0xf1
+//     o 0xf2) y el no (0xf3 o 0xf4), el texto 418 con el nombre (el del primero vivo con la clave de 0x78aba4c,
+//     0x5110d0, o el del otro del comercio, 0x78aba1c, en la negrita grande) y la pregunta (425 o 419).
 // Los demás cortan con la ola que los trae, como su paso. En un dibujo intermedio de MuRet, la esquina de la barra y
 // el clic no se escriben. Sin Text.bmd, o sin uno de sus textos, corta.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context);

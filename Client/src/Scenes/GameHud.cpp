@@ -25,6 +25,7 @@
 #include "Scenes/GameMoveWindow.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GamePartyWindow.h"
+#include "Scenes/GameSocialDrawing.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -843,10 +844,11 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     // 0x5f2340, que empieza con su IsOpen.
     if (auto inventory = DrawTheInventory(frame.context, panels); !inventory.HasValue())
         return inventory;
-    if (panels.IsOpen(UI::TradePanel))
-        return cut("0x5f3b40: el comercio es de la CL9.4");
+    // 0x5f3b40, que empieza con su IsOpen.
+    if (auto trade = DrawTheTradeWindow(frame.context, panels); !trade.HasValue())
+        return trade;
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
-        return cut("0x5f3030: las tiendas personales son de la CL9.4");
+        return cut("0x5f3030: las tiendas personales son de la CL9 hito 7, fase 2");
     if (panels.IsOpen(UI::NpcShopPanel))
         return cut("0x5f4720: la tienda del NPC es de la CL9.3");
     if (panels.IsOpen(UI::ChaosBoxPanel))
@@ -1472,8 +1474,8 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     if (auto war = DrawTheWarScore(context, frame.panels); !war.HasValue())
         return war;
     // 3. 0x5a89b0: las barras de la party.
-    if (hud.partyCount > 0)
-        return Core::Unexpected(std::string("0x5a89b0: las barras de vida de la party son de la CL9.4"));
+    if (auto life = DrawThePartyLife(context); !life.HasValue())
+        return life;
     // 4. 0x5a6fc0: la info de Castle Siege, con el objeto de 0x5767924 (CL9.5): nada.
     // 5. 0x42a4d0: las barras de la cola de 0x7239ac, vacía hasta la CL9.5: nada.
     // 6. 0x42a660.
@@ -1511,7 +1513,8 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     if (auto drawn = DrawTheChatBubbles(bubbles); !drawn.HasValue())
         return drawn;
     // 13. 0x451d10 y 0x451c20: los carteles del singleton de 0x7245c8 (CL9.5).
-    // 14. 0x5a6cc0: el marcador del duelo, con 0x78abad8 (CL9.4, P-C59).
+    // 14. 0x5a6cc0: el marcador del duelo, con 0x78abad8, que prende el AA (CL9 hito 7).
+    DrawTheDuelScore(context, frame.panels);
     // 15. 0x46b090: el cartel de Slide.bmd ([0x5763528]).
     if (auto slides = UI::DrawTheSlides(hud.slides, UI::SlideDrawContext{.sprites = context.sprites,
                                                                          .text = context.text,

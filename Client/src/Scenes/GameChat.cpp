@@ -3,7 +3,9 @@
 #include "Core/Expected.h"
 #include "Input/InputEvent.h"
 #include "Protocol/Chat/ChatSend.h"
+#include "Protocol/Duel.h"
 #include "Protocol/Movement.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
@@ -12,6 +14,8 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SocialRequests.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatCommands.h"
@@ -136,6 +140,13 @@ Core::Expected<void, std::string> DoTheEmotes(const GameChatContext& context, st
     return DoTheEmote(*emote, EmoteContext{.hero = hero, .models = *context.models, .send = send});
 }
 
+// Los pedidos a otro de 0x56c440 (RunTheCommand ya miró Text.bmd).
+SocialRequestContext SocialRequestsOf(const GameChatContext& context)
+{
+    return SocialRequestContext{
+        .world = context.world, .random = context.random, .texts = *context.texts, .send = context.send};
+}
+
 // Lo que 0x56c440 lee y escribe.
 Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChatContext& context, std::string_view text,
                                                                   bool fromMacro)
@@ -144,23 +155,46 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
         return Core::Unexpected(std::string("0x56c440: los comandos sin Text.bmd"));
     WorldRuntime& runtime = context.world.Runtime();
     GamePanels panels(context.world, context.random);
-    const UI::ChatCommandContext commands{.texts = *context.texts,
-                                          .items = context.items,
-                                          .setOptions = context.setOptions,
-                                          .map = runtime.map,
-                                          .logoutRequested = runtime.ui.logoutRequested,
-                                          .warehouseOpen = panels.Registry().IsOpen(UI::WarehousePanel),
-                                          .log = runtime.chat.log,
-                                          .macros = runtime.chat.input.macros,
-                                          .overlayMode = runtime.panels.overlayMode,
-                                          .helpItem = runtime.panels.helpItem,
-                                          .setLabel = &context.world.ItemSets().byte9305};
+    const UI::ChatCommandContext commands{
+        .texts = *context.texts,
+        .items = context.items,
+        .setOptions = context.setOptions,
+        .map = runtime.map,
+        .logoutRequested = runtime.ui.logoutRequested,
+        .warehouseOpen = panels.Registry().IsOpen(UI::WarehousePanel),
+        .log = runtime.chat.log,
+        .macros = runtime.chat.input.macros,
+        .overlayMode = runtime.panels.overlayMode,
+        .helpItem = runtime.panels.helpItem,
+        .setLabel = &context.world.ItemSets().byte9305,
+        .ownLevel = [&context]() -> std::uint16_t
+        {
+            WorldRuntime& own = context.world.Runtime();
+            const Render::Models::LogicalAccess access(own.ownRecordDepth, context.random,
+                                                       Render::Models::OwnRecordCloseRandoms);
+            return context.world.OwnCharacter().level;
+        },
+        .duelActive = runtime.social.duel.active != 0,
+        .endTheDuel = [&context]() -> Core::Expected<void, std::string>
+        {
+            if (!context.send)
+                return Core::Unexpected(std::string("0x56ea6c: /duelend sin el cable"));
+            // El relleno y el serial del C3.
+            context.random.Discard(2);
+            context.send(Protocol::Duel::WriteDuelEnd());
+            return {};
+        },
+        .requestATrade = [&context]() { return RequestATrade(SocialRequestsOf(context)); },
+        .requestAParty = [&context]() { return RequestAParty(SocialRequestsOf(context)); },
+        .requestADuel = [&context]() { return RequestADuel(SocialRequestsOf(context)); }};
     auto outcome = UI::RunTheChatCommand(commands, text, fromMacro);
     if (!outcome.HasValue())
         return outcome;
     for (const UI::ChatCommandNotice& notice : outcome.Value().notices)
     {
-        if (auto added = AddNotice(context, notice.text, notice.type, "0x56c440"); !added.HasValue())
+        auto added = notice.formatted ? AddMessage(context, "", *notice.formatted, notice.type, "0x56c440")
+                                      : AddNotice(context, notice.text, notice.type, "0x56c440");
+        if (!added.HasValue())
             return Core::Unexpected(added.Error());
     }
     if (outcome.Value().sound)

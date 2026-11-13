@@ -37,6 +37,9 @@ public:
 
 private:
     Core::Expected<void, std::string> ApplyWorldContent(const App::WorldEvent& event, App::ServerSession& session);
+    // El comercio, la party y el duelo (CL9 hito 7, Scenes/SocialEvents); nullopt si `event` es de otro.
+    std::optional<Core::Expected<void, std::string>> ApplySocial(const App::WorldEvent& event,
+                                                                 App::ServerSession& session);
     // Los otros jugadores en el viewport (ViewportPlayers.h). nullopt si `event` no es uno de ellos.
     std::optional<Core::Expected<void, std::string>> ApplyViewport(const App::WorldEvent& event);
     WorldEntryResources m_resources;

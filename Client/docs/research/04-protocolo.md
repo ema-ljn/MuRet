@@ -860,6 +860,85 @@ solo con `0xfe` y `0xff`); `App::ServerSession` los pasa al mundo y `Scenes::App
 escriben el registro propio que leen los orbes y el AG del HUD (06). Un lugar fuera de la grilla corta con
 `0x4d35f6` o `0x4d3917` (08, P-C150). Los tests usan valores inventados.
 
+### El comercio: `36` a `3D`
+
+(CL9 hito 7, 2026-11-13, *estático*, contra los handlers del GameServer 0.97 reconstruido y los casos de `0x4e2b10`.)
+Del GS al cliente (los tamaños son los que lee el cliente):
+
+| Op | Bytes | Quién | Qué hace |
+| --- | --- | --- | --- |
+| `36` | `C1 0D 36 <nombre:10>` | `0x4d4af0` | Sin cifrar (`[EBP+0xc]` en 0), solo el aviso `C1 06 F1 03 00 36` en C3 (2 `rand()`). Cifrado: con la tienda personal propia o ajena abiertas (`0x800`, `0x20000`, sin `rand()`), el `C1 04 37 00` con el XOR32 en claro y nada más; si no, el nombre en `0x78aba1c` (con su 0 en `0x78aba26`), el diálogo `0x78` y, con un ítem en el cursor, `0x5be150` |
+| `37` | `C1 14 37 <resp> <nombre:10> <nivel:2 LE> <gremio:4 LE>` | `0x4d5570` | 0: texto 492; 2: texto 493 (los dos tipo 2). 1: `Open(0x20)`, el pedido de `SetCursorPos` (08 P-C202), el zen y los OK en 0, `0x5bbdf0` si `0x78abaa5` está en 0 y el nombre cambió (`strcmp`), y el nombre, el gremio (`0x6c9324`) y el nivel (`0x78abab0`) |
+| `38` | `C1 04 38 <lugar>` | `0x4e3d6a` | `0x5bd750(lugar, 0x78a5a20, 8)`: la copia (`0x5bc5e0`), la huella vacía y `0x5bc470`; el sonido `0x1d` |
+| `39` | `C1 0B 39 <lugar> <ítem:7>` | `0x4e3d99` | `0x5bc740(0x78a5a20, 8, 4, lugar, ítem, 1)` y `0x5bc470`; el sonido `0x1d` |
+| `3A` | `C1 04 3A <sí>` | `0x4e3dd0` | `0x78abab8` con el zen mandado (`0x57678ac`) si es 1, o 0 |
+| `3B` | `C1 08 3B 00 <zen:4 LE>` | `0x4e3df3` | el zen del otro en `0x78abab4` |
+| `3C` | `C1 04 3C <estado>` | `0x4e3e0a` | 0 apaga el OK del otro, 1 lo prende, 2 apaga el propio; siempre el sonido `0x19` |
+| `3D` | `C1 04 3D <resultado>` | `0x4d57f0` | Con la traba del `24` (`0x78abb39`) se guarda el primero (`0x5767968`, `0x57635bc`) para `0x4d1400`. Si no: 0 el texto 494 y la copia de cada ítem del otro; 2 el 495; 3 el 496 y el diálogo 0. Después la cuenta del cursor en 0, el cierre del diálogo `0x73` y `Close(0x20, 1)`, que no manda el `3D` |
+
+Del cliente: el `36` (`C1 05 36 <clave BE>`, C3; `0x406050` y `0x56c440`), el `37` (`C1 04 37 <resp>`, XOR32 en claro;
+el sí y el no del diálogo `0x78`, `0x62c20a` y `0x62d4a2`), el `3A` (`C1 08 3A 00 <zen LE>`, XOR32 en claro; el OK
+del diálogo `0x73`, `0x626b2a..0x626eaf`), el `3C` (`C1 04 3C <OK>`, C3; `0x5ecde0`) y el `3D` (`C1 03 3D`, C3; el botón de
+cancelar de `0x5ecde0` y `0x657fe1` al cerrar la ventana a mano).
+
+Contra el GameServer 0.97 coinciden todos los tamaños menos uno: el `39` del GS lleva el `ItemInfo` de 8 bytes
+(`PMSG_TRADE_OTHER_ADD`, `C1 0C 39`) y el cliente lee 7 desde `pkt + 4` (08 P-C200). La ventana es la grilla de
+`0x78a5a20` (la del otro, 8 × 4 de `0x48`) y la de `0x78a92a8` (la propia); `0x77f3dc8` guarda 32 copias de lo que el
+otro sacó o tenía al cancelar, que `0x5bc470` compara (`0x5bc300`) para marcar con 99 lo que volvió peor (el
+"anti-estafa"). Las dos grillas y la copia arrancan vacías: `0x5bbe10`, desde `0x633f20` al entrar a la selección,
+pone `0x78abaa5` en 0 y las 96 entradas con el tipo en −1 y `+0x3c` en 0 (`0x5bc107..0x5bc13f`); después solo las
+vacían `0x5bbdf0` (la copia) y el cierre de la ventana (`0x657fb5`, las grillas). El paso del inventario
+(`0x5e513a..0x5e5205`) pone `+0x44` en cada casilla de las dos grillas (0 vacía, 1 con un ítem) y en la del otro
+conserva el 99 (`0x5e5172`). Con la ventana abierta, el paso del comercio (`0x5ecde0`) mira los tres botones del pie
+(el zen en `x + 0x1a`, el OK en `x + 0x61` y cancelar en `x + 0x89`, de `0x18` × `0x18` en `y + 0x186`): el OK con la
+grilla del otro cambiada y el propio apagado abre el aviso `0x633300(4, 0x173, 0x94)` en vez de mandar el `3C`.
+
+### La party: `40` a `44`
+
+| Op | Bytes | Quién | Qué hace |
+| --- | --- | --- | --- |
+| `40` | `C1 05 40 <clave BE>` | `0x4e3f41` | la clave en `0x78aba4c` y el diálogo `0x77` |
+| `41` | `C1 04 41 <resultado>` | `0x4e3f6f` | 0 a 5: los textos 497 a 501 y 535 (tipo 2); el diálogo 0 siempre |
+| `42` | `C1 xx 42 <resultado> <cuenta> <miembro:0x18>…` | `0x4d67e0` | la cuenta en `0x78aba48` y cada miembro (nombre, número, mapa, x, y, dos bytes que no lee, vida y vida máxima LE) en su lugar de `0x77f3cd0`, de `0x24`, con 0 en `+0xa` |
+| `43` | `C1 03 43` | `0x4e409b` | la cuenta en 0, el texto 502 y `0x6c8e50` en −1 si estaba en 0 o más |
+| `44` | `C1 xx 44 <cuenta> <byte>…` | `0x4d6850` | por byte, `+0x18` del lugar del nibble alto con el bajo, hasta 10 |
+
+Del cliente: el `40` (`C1 05 40 <clave BE>`, C3; `0x406050` desde `0x40739b` y `0x56c440`), el `41` (`C1 06 41 <sí>
+<clave BE>`, C3; el diálogo `0x77`, `0x62bb1d` y `0x62cd52`), el `42` (`C1 03 42`, en claro, al abrir la ventana) y
+el `43` (`C1 04 43 <número>`, XOR32 en claro; el botón de echar de `0x5e3c80`). Los tamaños coinciden con
+`PMSG_PARTYLIST` y `PMSG_PARTYLIFEALL` del GS 0.97. Ni el `42` ni el `44` ponen tope: más de cinco miembros o un
+nibble de 5 o más escriben pasados los cinco lugares (07 Q-C960).
+
+### El duelo: `AA` a `AD`
+
+El GameServer 0.97 no los tiene (08 P-C200): el oráculo es el ASM del cliente.
+
+| Op | Bytes | Quién | Qué hace |
+| --- | --- | --- | --- |
+| `AA` | `C1 10 AA <resultado> <clave BE> <nombre:10>` | `0x4dac90` | Con el resultado: el duelo en curso (`0x78abad8`), la clave (`0x78abadc`), el nombre (`0x78abae0`), el texto 912 con el nombre y el sonido `0x8d`; sin él, el nombre y el texto 913 |
+| `AB` | `C1 0F AB <clave BE> <nombre:10>` | `0x4e4d10` | el duelo terminado, la clave, el nombre, el texto 914 y, con `0x5767814` en 2, `0x5767816` en 0 (08 P-C201) |
+| `AC` | `C1 0F AC <clave BE> <nombre:10>` | `0x4e4d75` | con el diálogo `0x9a`, nada; si no, la clave, el nombre, el pedido (`0x78abad9`) y el sonido `0x8c` |
+| `AD` | `C1 09 AD <clave1 BE> <clave2 BE> <p1> <p2>` | `0x4e4dd1` | los puntos (`0x78abaf8` el propio, `0x78abafc` el del rival) según cuál clave es la del rival |
+
+Del cliente: el `AA` (`C1 0F AA <clave BE> <nombre>`, C3), el `AB` (`C1 03 AB`, C3; `/duelend` con el duelo en curso,
+`0x56ea6c`) y el `AC` (`C1 10 AC <sí> <clave BE> <nombre>`, C3; `0x5ebca0`).
+
+### Las tiendas personales: `3F`
+
+El GameServer 0.97 tampoco las tiene. `0x4e2b10` despacha el `3F` por su segundo byte: `0x4dae80` (0, los carteles
+del viewport), `0x4db700` (2, abrir la propia), `0x4dbcb0` (6, la tienda ajena y sus avisos), `0x4dafe0` (`0x10`, el
+título de otro), `0x4dbb40` (`0x13`, la lista con el `std::map` de `0x7245e0`), `0x4db120` y `0x4db890`. Todo es de la
+fase 2 del hito 7: los carteles (`0x451c20`) y la tienda ajena necesitan los actores (08 P-C204).
+
+**MuRet**: `Protocol::Trade`, `Protocol::Party` y `Protocol::Duel` leen y escriben lo de arriba;
+`App::ServerSession::RegisterSocialHandlers` los pasa al mundo y `Scenes::SocialEvents` hace lo de cada caso. Los
+botones están en `Scenes::GameSocialSteps` (comercio y duelo), `GamePartyWindow` (echar) y `GameDialogSteps` (sí y no
+de `0x77` y `0x78`); `/trade`, `/duelstart` y `/duelend`, en `UI::ChatCommands`, hasta donde necesitan un
+personaje elegido. La entrada a la selección porta la cola de `0x5bbe10` (`Scenes::ClearTheTradeForSelection`). Lo
+que queda (los dibujos, levantar y soltar en las grillas del comercio, las tiendas personales y lo que busca un
+actor) lo dice 08 P-C204 y P-C205. Los tests (`TradePartyDuelTest`, `SocialEventsTest`, `GameSocialStepsTest` y los
+de los diálogos, la party, los comandos y el registro de las ventanas) usan nombres inventados.
+
 ### Los otros jugadores: `12`, `14`, `45`, `25` y `DF`
 
 (CL9 hito 1, 2026-11-13, *estático*; el cable queda para la VM, P-C160.) Los cinco llegan del GameServer cuando

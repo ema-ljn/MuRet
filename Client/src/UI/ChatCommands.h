@@ -10,6 +10,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -42,14 +44,33 @@ inline constexpr std::size_t RivalCommandText = 1356;
 inline constexpr std::size_t RivalOffCommandText = 1357;
 // "No se puede en Chaos Castle", con el tipo 1.
 inline constexpr std::size_t ChaosCastleCommandText = 1150;
+// 0x56c666: el nivel no alcanza para comerciar (0x76e0204).
+inline constexpr std::size_t TradeLevelText = 478;
+// 0x56e9f3: ya hay un duelo (0x7700220).
+inline constexpr std::size_t DuelBusyText = 915;
 
 // Un aviso de 0x555190 con el nombre vacío: el texto `text` de Text.bmd y su tipo.
+// 0x6c8dc8: su valor de la .data.
+inline constexpr std::uint8_t DefaultTradeLevel = 6;
+
 struct ChatCommandNotice
 {
     std::size_t text = 0;
     std::int32_t type = 0;
+    // El texto ya armado por sprintf con el texto `text` de formato (los pedidos de 0x56cde9 y 0x56fd75); vacío, el
+    // texto tal cual.
+    std::optional<std::string> formatted{};
 
     friend bool operator==(const ChatCommandNotice&, const ChatCommandNotice&) = default;
+};
+
+struct ChatCommandOutcome
+{
+    // Lo que devuelve: con true el WndProc no manda nada.
+    bool handled = false;
+    std::vector<ChatCommandNotice> notices;
+    // 0x57693f: el 0x19 (una macro guardada o la ayuda de un ítem).
+    bool sound = false;
 };
 
 // Lo que el despacho lee y escribe.
@@ -75,15 +96,24 @@ struct ChatCommandContext
     std::int32_t& helpItem;
     // [0x6eed3c] + 0x9305, el cartel del set (0x40ebd0, y 0x5ae360 lo apaga); sin él, no lo escribe.
     std::uint8_t* setLabel = nullptr;
-};
-
-struct ChatCommandOutcome
-{
-    // Lo que devuelve: con true el WndProc no manda nada.
-    bool handled = false;
-    std::vector<ChatCommandNotice> notices;
-    // 0x57693f: el 0x19 (una macro guardada o la ayuda de un ítem).
-    bool sound = false;
+    // 0x56c5d0..0x56c652 (/trade): el nivel del registro propio (+0xe), abriéndolo y cerrándolo (sus rand()). Sin él,
+    // /trade corta ahí.
+    std::function<std::uint16_t()> ownLevel{};
+    // 0x6c8dc8 (.data 6): el nivel mínimo para comerciar.
+    std::uint8_t tradeLevel = DefaultTradeLevel;
+    // 0x78abad8: el duelo en curso.
+    bool duelActive = false;
+    // 0x56ea6c..0x56ee2c (/duelend con el duelo en curso): el C1 03 AB en C3, con sus dos rand(). Sin él, ese caso
+    // corta.
+    std::function<Core::Expected<void, std::string>()> endTheDuel{};
+    // 0x56c68b..0x56d623 (/trade con el nivel) y 0x56f13f..0x570d47 (/party fuera de Chaos Castle): a quién pedirle
+    // (el elegido 0x6c8e30 o el que está enfrente), su paquete y su aviso (Scenes::RequestATrade y RequestAParty); lo
+    // que devuelven es la salida del comando. Sin ellos, esos casos cortan.
+    std::function<Core::Expected<ChatCommandOutcome, std::string>()> requestATrade{};
+    std::function<Core::Expected<ChatCommandOutcome, std::string>()> requestAParty{};
+    // 0x56d823..0x56e9ec (/duelstart sin duelo): el AA al elegido o al de enfrente, y la cadena sigue
+    // (Scenes::RequestADuel). Sin él, ese caso corta.
+    std::function<Core::Expected<void, std::string>()> requestADuel{};
 };
 
 // 0x56c440(texto, desde una macro).

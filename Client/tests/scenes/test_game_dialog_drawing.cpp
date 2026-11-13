@@ -8,9 +8,11 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/Dialogs.h"
@@ -24,8 +26,10 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -78,6 +82,13 @@ std::vector<DrawnQuad> QuadsOf(const SpriteBatch& sprites)
         }
     }
     return quads;
+}
+
+template <std::size_t Size> void Name(std::array<std::byte, Size>& name, std::string_view text)
+{
+    name = {};
+    for (std::size_t at = 0; at < text.size() && at < Size; ++at)
+        name[at] = static_cast<std::byte>(text[at]);
 }
 
 // x = 0x140 − (cx / 2) de un texto centrado en 640 × 480.
@@ -144,6 +155,9 @@ public:
         {405, "primero"},
         {406, "segundo"},
         {409, "fin"},
+        {418, "de %s"},
+        {419, "comerciar?"},
+        {425, "entrar a la party?"},
         {919, "carteles"},
         {1840, "brillo"},
     });
@@ -365,12 +379,95 @@ TEST(GameDialogDrawingTest, TheGenericOkDrawsItsTexts)
     }
 }
 
+// 0x77 (CL9 hito 7, fase 2): el marco del OK genérico, el sí y el no (0x6309d4), y en la fuente del DC "de %s" con el
+// nombre del primero vivo de los 400 con la clave de 0x78aba4c (0x5110d0, con MOVSX) en 75 − 6 y la pregunta en 75 + 6.
+// Sin nadie con la clave, el 400 (sin nombre).
+TEST(GameDialogDrawingTest, ThePartyInvitationNamesWhoInvites)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0x77;
+        Client::Scenes::ActorState& dead = tested->world.Actors()[3];
+        dead.key = 0x8456;
+        Name(dead.name, "Zorzal");
+        Client::Scenes::ActorState& inviter = tested->world.Actors()[7];
+        inviter.alive = true;
+        inviter.key = 0x8456;
+        Name(inviter.name, "Brezal");
+        runtime.social.party.requestKey = static_cast<std::int16_t>(0x8456);
+        tested->mouse = {0x12f, 0x76};
+
+        ASSERT_TRUE(tested->Draw().HasValue());
+        const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 3u);
+        EXPECT_EQ(quads[0].slot, 0xf0);
+        EXPECT_EQ(quads[0].x, 213.0f);
+        EXPECT_EQ(quads[0].y, 60.0f);
+        EXPECT_EQ(quads[1].slot, 0xf2);
+        EXPECT_EQ(quads[1].x, 234.0f);
+        EXPECT_EQ(quads[1].y, 98.0f);
+        EXPECT_EQ(quads[1].blend, BlendMode::Opaque);
+        EXPECT_EQ(quads[2].slot, 0xf3);
+        EXPECT_EQ(quads[2].x, 334.0f);
+        EXPECT_EQ(tested->Texts(), (std::vector<std::string>{"de Brezal", "entrar a la party?"}));
+        EXPECT_EQ(tested->text.texts[0].x, CenteredX("de Brezal"));
+        EXPECT_EQ(tested->text.texts[0].y, 75 - 6);
+        EXPECT_EQ(tested->text.texts[0].style.font, Client::Render::Text::FontKind::Normal);
+        EXPECT_EQ(tested->text.texts[1].y, 75 + 6);
+        EXPECT_EQ(tested->text.texts[1].style.colors.text, 0xffffffffu);
+        EXPECT_EQ(tested->sprites.Blend(), BlendMode::Alpha);
+
+        // La clave del 40 sin signo (0x8456) no es la de nadie: el 400, sin nombre.
+        runtime.social.party.requestKey = 0x8456;
+        tested->sprites.Begin(Screen640);
+        tested->text.texts.clear();
+        tested->mouse = {0x130, 0x76};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        EXPECT_EQ(QuadsOf(tested->sprites)[1].slot, 0xf1);
+        EXPECT_EQ(tested->Texts(), (std::vector<std::string>{"de ", "entrar a la party?"}));
+        EXPECT_EQ(tested->random.State(), Client::Render::Models::CrtRandom{}.State());
+    }
+}
+
+// 0x78: "de %s" con el otro del comercio (0x78aba1c) en la negrita grande en 75 − 11 y la pregunta en la normal en
+// 75 + 11; el no con el mouse en [0x14e, 0x194) × [0x62, 0x77).
+TEST(GameDialogDrawingTest, TheTradeRequestNamesTheOther)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0x78;
+        Name(runtime.social.trade.otherName, "Brezal");
+        tested->mouse = {0x193, 0x62};
+
+        ASSERT_TRUE(tested->Draw().HasValue());
+        const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 3u);
+        EXPECT_EQ(quads[1].slot, 0xf1);
+        EXPECT_EQ(quads[2].slot, 0xf4);
+        ASSERT_EQ(tested->text.texts.size(), 2u);
+        EXPECT_EQ(tested->text.texts[0].text, "de Brezal");
+        EXPECT_EQ(tested->text.texts[0].y, 75 - 11);
+        EXPECT_EQ(tested->text.texts[0].style.font, Client::Render::Text::FontKind::BigBold);
+        EXPECT_EQ(tested->text.texts[1].text, "comerciar?");
+        EXPECT_EQ(tested->text.texts[1].x, CenteredX("comerciar?"));
+        EXPECT_EQ(tested->text.texts[1].y, 75 + 11);
+        EXPECT_EQ(tested->text.texts[1].style.font, Client::Render::Text::FontKind::Normal);
+        EXPECT_EQ(runtime.hud.dcFont, Client::Render::Text::FontKind::Normal);
+    }
+}
+
 // Los diálogos que no son de la CL8 cortan con la ola de su paso.
 TEST(GameDialogDrawingTest, TheOtherDialogsAreCut)
 {
     DrawingDialogs tested(Lorencia);
     for (const auto& [id, wave] : std::to_array<std::pair<std::int32_t, std::string>>(
-             {{0x8d, "CL9.1"}, {0x73, "CL9.4"}, {0x8e, "CL9.3"}, {0x15, "CL9"}}))
+             {{0x8d, "CL9.1"}, {0x73, "CL9 hito 7"}, {0x76, "CL9.4"}, {0x8e, "CL9.3"}, {0x15, "CL9"}}))
     {
         tested.world.Runtime().dialogs.current = id;
         const auto drawn = tested.Draw();

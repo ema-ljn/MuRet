@@ -240,6 +240,9 @@ public:
     void SendGuildPacket(Protocol::Outgoing packet);
     // El C0 y los C1..C4 que mandan la ventana de amigos y sus cajas (Protocol::Friends), como los demás de mundo.
     void SendFriendPacket(Protocol::Outgoing packet);
+    // Los paquetes de mundo que arman los pasos de la UI para el comercio, la party y el duelo (CL9 hito 7), como los
+    // demás de mundo: sin un GameServer abierto, un aviso y nada.
+    void SendGamePacket(Protocol::Outgoing packet);
     // 0x4c609f: el 00 con la escena 2 (el login) pide la lista de servidores, C1 04 F4 02, por el socket que esté
     // abierto, sin mirar cuál es. En el CS es el saludo (OnConnectHello); acá, el que llega por el GS (Q-C511).
     void ResendServerListRequest();
@@ -335,6 +338,11 @@ private:
     void RegisterConnectServerHandlers();
     void RegisterGameServerHandlers();
     [[nodiscard]] bool RegisterGuildHandlers();
+    // El comercio, la party y el duelo (CL9 hito 7), aparte para que cada ola sume los suyos sin tocar la cadena.
+    void RegisterSocialHandlers();
+    // Un paquete de mundo que se lee con `read` y se aplica tal cual; `what` es lo que dice el aviso si no se lee.
+    template <typename Read> void ApplyWorldPacket(const Network::Packet& packet, Read read, std::string_view what);
+    void OnTradeRequest(const Network::Packet& packet);
 
     // Los eventos de la conexión, en orden, hasta que un handler cambie o cierre la conexión.
     void HandleEvents();

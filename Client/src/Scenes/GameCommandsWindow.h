@@ -5,9 +5,9 @@
 #include <string>
 
 // La ventana de los comandos (D, CL8 hito 6, 08 P-C92): el objeto [0x6e592c], con su paso (0x40a450) y su dibujo
-// (0x40a650). Elegir un comando, el aviso que da y cerrarla se portan; lo que hace el comando elegido sobre el
-// personaje elegido (0x406050 desde 0x406097, y el nombre de 0x40aa8d) necesita un personaje elegido (0x6c8e30, que
-// deja el picking desde el hito 1 de la CL9): corta con su dirección (hito 7, CL9.4).
+// (0x40a650). Elegir un comando, el aviso que da, cerrarla y el cartel del personaje elegido (0x6c8e30, que deja el
+// picking desde el hito 1 de la CL9; 0x40aa80..0x40abd8) se portan; lo que hace el comando elegido sobre él (0x406050
+// desde 0x406097) corta con su dirección (CL9 hito 7, fase 2).
 namespace Client::Scenes
 {
 struct GameHudContext;
@@ -22,7 +22,7 @@ struct GameUiContext;
 
 // 0x40a650, desde 0x5f7440 (0x5f75fa): con +4 en 1, la esquina en (0x1c2, 0), el fondo (0x5ee220), el título (texto
 // 938), los once botones (Message_box, el elegido en gris), el botón de cerrar con su ayuda (el texto 927 con "D"), los
-// nombres de los comandos centrados con su casilla (0x463090), la fuente grande, el aviso del comando elegido según
-// su estado y la mezcla sin alfa al final.
+// nombres de los comandos centrados con su casilla (0x463090), la fuente grande, el cartel del jugador elegido con su
+// nombre (0x40aa80..0x40abd8), el aviso del comando elegido según su estado y la mezcla sin alfa al final.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context);
 } // namespace Client::Scenes

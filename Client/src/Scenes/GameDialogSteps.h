@@ -33,6 +33,9 @@ enum class DialogStep : std::uint8_t
     Buttons,
     // 0x6263df: Enter o el botón (0x11c, 0x62, 0x46, 0x15) cierran.
     GenericOk,
+    // 0x62a7f7: sí (0xea, 0x62, 0x46 × 0x15) y no (0x14e) o Esc, de la invitación a la party (0x77, el C1 05 41 en C3)
+    // y del pedido de comercio (0x78, el C1 04 37 en claro).
+    YesNo,
     // Un tramo de otra ola: corta con `address` y `wave`.
     Cut,
 };
@@ -53,8 +56,9 @@ struct DialogRoute
 // El tramo de `id`.
 [[nodiscard]] DialogRoute DialogRouteOf(std::int32_t id);
 
-// 0x623f78: con un diálogo abierto, su tramo. Sin ninguno, nada.
-[[nodiscard]] Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context);
+// 0x623f78: con un diálogo abierto, su tramo. Sin ninguno, nada. `escape` es [EBP−0x7d] de 0x623e70: Esc leído
+// (0x553520(0x1b)) con la ventana de amigos cerrada, que el no de 0x62c50e también mira.
+[[nodiscard]] Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context, bool escape);
 
 // 0x61c210 hasta el paquete: los 24 bytes de su pila. Abre y cierra el registro propio (0xf08 rand() de la tabla de
 // protección, 0x61c26a..0x61c34f) y, para cada lugar `at` de 0 a 0x71 con tecla (+0x26c + elegido · 0x100 + at no es

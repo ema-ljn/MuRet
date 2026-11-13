@@ -5,6 +5,7 @@
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "UI/OldWindows.h"
+#include "UI/Widget.h"
 #include "World/TerrainPickingSegment.h"
 
 #include <array>
@@ -67,6 +68,9 @@ public:
     virtual void SendGuildPacket(Protocol::Outgoing packet) = 0;
     // CL9 hito 9: lo que mandan la ventana de amigos y sus cajas (Protocol::Friends, por Scenes::FriendPacketOf).
     virtual void SendFriendPacket(Protocol::Outgoing packet) = 0;
+    // Un paquete de mundo que arma Protocol (el comercio, la party y el duelo de la CL9 hito 7: 37, 3A, 3C, 3D, 41, 43
+    // y AC), como sale. Los dos rand() de un C3 los saca el paso antes.
+    virtual void SendGamePacket(Protocol::Outgoing outgoing) = 0;
     // 0x61c170("Data\\Macro.txt"): `content` (UI::WrittenMacros) en el archivo.
     [[nodiscard]] virtual Core::Expected<void, std::string> SaveMacros(std::string_view content) = 0;
     // 0x41fa40 sobre el log del original (0x57630f0).
@@ -142,6 +146,8 @@ struct FramePickingContext
     bool altDown = false;
     // El segmento del mouse del dibujo (GameScene::MouseRay): la cámara (0x7d36834) y el punto lejano (0x7d366c0).
     std::optional<World::TerrainPickingSegment> ray{};
+    // 0x7d3682c y 0x7d36828: el mouse en 640 × 480, que lee la lista de la party (0x5e4140).
+    UI::Point mouse{};
 };
 
 // 0x63717f → 0x5ac8d0: las teclas de función, al final de la lógica del paso con el mundo cargado. La barra (levantar
@@ -155,6 +161,9 @@ struct FramePickingContext
 // personajes de las máscaras 0x22 y 1 (al revés con la skill 0x1a a 0x1c del Dark Wizard o del Elf, que abre el
 // registro propio) en 0x6c8e30 y, sin ninguno, los de la 4 (los NPC) en 0x6c8e2c (PickTheCharacter, 0x59e700); con
 // Alt, la 4 primero y después 0x22 y 1. El ítem del piso (0x59e2e0) y los objetos (0x59eb90) son de la CL9.3: −1.
-// Al final, sin elegido, 0x6c8e38 en −1 (salvo cuando el segundo intento de personajes acierta: vuelve antes).
+// La party (CL9 hito 7, PartyActors.h): sin Alt, antes de buscar, la lista de la derecha (0x5e4140), que puede elegir
+// a un miembro; con el mouse en la UI, con lo que eligió la lista o con un elegido y 0x6c8e38 puesto, 0x59e3b0 busca a
+// los miembros en el viewport. Al final, sin elegido, 0x6c8e38 en −1 (salvo cuando el segundo intento de personajes
+// acierta: vuelve antes).
 [[nodiscard]] Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& context);
 } // namespace Client::Scenes

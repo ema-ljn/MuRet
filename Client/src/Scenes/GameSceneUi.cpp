@@ -23,6 +23,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"
+#include "Scenes/GameSocialDrawing.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/InventoryMoves.h"
@@ -126,6 +127,16 @@ public:
             return;
         }
         m_session->SendFriendPacket(std::move(packet));
+    }
+
+    void SendGamePacket(Protocol::Outgoing outgoing) override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no sale el paquete del comercio, la party o el duelo: no hay servidor");
+            return;
+        }
+        m_session->SendGamePacket(std::move(outgoing));
     }
 
     // 0x61c170: fopen("wt") crea el archivo o lo vacía. Lo que guardan las macros no va al log.
@@ -281,7 +292,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                             .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
                             .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
                             .altDown = input.IsDown(Input::Key::Alt),
-                            .ray = m_mouseRay});
+                            .ray = m_mouseRay,
+                            .mouse = UI::MouseIn640x480(input, canvas.screen)});
     if (!picked.HasValue())
         return picked;
     // 0x637646..0x6376e6: la pasada 2D, en este orden (06 § El dibujo del juego). Un dibujo intermedio de MuRet dibuja
@@ -376,7 +388,9 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         return windows;
     if (auto list = UI::DrawTheWindowList(oldWindows, windowContext, windowView); !list.HasValue())
         return list;
-    // 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9 (CL9.4, P-C59).
+    // 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9, que prende el AC (CL9 hito 7).
+    if (auto duel = DrawTheDuelRequest(hud); !duel.HasValue())
+        return duel;
     // 0x637696: 0x62db60, los diálogos, en la escena 5.
     if (auto dialogs = DrawTheGameDialogs(hud); !dialogs.HasValue())
         return dialogs;

@@ -10,6 +10,7 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Duel.h"
 #include "Protocol/Guild.h"
 #include "Protocol/Friends.h"
 #include "Protocol/Inventory.h"
@@ -17,6 +18,8 @@
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/Party.h"
+#include "Protocol/Trade.h"
 #include "Protocol/Viewport.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
@@ -33,6 +36,7 @@
 #include "Scenes/ReturnToSelection.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/SocialEvents.h"
 #include "Scenes/ViewportPacketRing.h"
 #include "Scenes/ViewportPlayers.h"
 #include "Scenes/WorldEntry.h"
@@ -204,6 +208,78 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
     return ApplyWorldContent(event, session);
 }
 
+std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySocial(const App::WorldEvent& event,
+                                                                                  App::ServerSession& session)
+{
+    WorldState& world = m_resources.world;
+    if (const auto* request = std::get_if<Protocol::Trade::TradeRequest>(&event))
+    {
+        auto reply = ApplyTradeRequest(*request, m_resources);
+        if (!reply.HasValue())
+            return Core::Expected<void, std::string>(Core::Unexpected(std::move(reply).Error()));
+        // 0x4d52bc..0x4d5553: con una tienda personal abierta, el C1 04 37 00 con el XOR32, en claro.
+        if (reply.Value())
+            session.SendGamePacket(std::move(*reply.Value()));
+        return Core::Expected<void, std::string>{};
+    }
+    if (std::holds_alternative<Protocol::Trade::ClearTradeRequest>(event))
+    {
+        session.SendGamePacket(ApplyClearTradeRequest(m_resources.cloth.random));
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* response = std::get_if<Protocol::Trade::TradeResponse>(&event))
+        return ApplyTradeResponse(*response, m_resources);
+    if (const auto* removed = std::get_if<Protocol::Trade::TradeItemRemoved>(&event))
+        return ApplyTradeItemRemoved(*removed, m_resources);
+    if (const auto* added = std::get_if<Protocol::Trade::TradeItemAdded>(&event))
+        return ApplyTradeItemAdded(*added, m_resources);
+    if (const auto* money = std::get_if<Protocol::Trade::TradeMoneyResult>(&event))
+    {
+        ApplyTradeMoneyResult(*money, world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* other = std::get_if<Protocol::Trade::TradeOtherMoney>(&event))
+    {
+        ApplyTradeOtherMoney(*other, world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* ok = std::get_if<Protocol::Trade::TradeOkState>(&event))
+    {
+        ApplyTradeOkState(*ok, world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* result = std::get_if<Protocol::Trade::TradeResult>(&event))
+        return ApplyTradeResult(*result, m_resources);
+    if (const auto* invite = std::get_if<Protocol::Party::PartyRequest>(&event))
+    {
+        ApplyPartyRequest(*invite, world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* answer = std::get_if<Protocol::Party::PartyRequestResult>(&event))
+        return ApplyPartyRequestResult(*answer, m_resources);
+    if (const auto* list = std::get_if<Protocol::Party::PartyList>(&event))
+        return ApplyPartyList(*list, world);
+    if (std::holds_alternative<Protocol::Party::PartyLeft>(event))
+        return ApplyPartyLeft(m_resources);
+    if (const auto* life = std::get_if<Protocol::Party::PartyLife>(&event))
+        return ApplyPartyLife(*life, world);
+    if (const auto* start = std::get_if<Protocol::Duel::DuelStart>(&event))
+        return ApplyDuelStart(*start, m_resources);
+    if (const auto* end = std::get_if<Protocol::Duel::DuelEnd>(&event))
+        return ApplyDuelEnd(*end, m_resources);
+    if (const auto* duel = std::get_if<Protocol::Duel::DuelRequest>(&event))
+    {
+        ApplyDuelRequest(*duel, world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* score = std::get_if<Protocol::Duel::DuelScore>(&event))
+    {
+        ApplyDuelScore(*score, world);
+        return Core::Expected<void, std::string>{};
+    }
+    return std::nullopt;
+}
+
 void SessionEventApplier::CopyToPacketRing(std::span<const std::byte> packet)
 {
     StoreViewportPacket(m_resources.world.Runtime().viewportPackets, packet);
@@ -259,6 +335,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         return ApplyEquipmentChange(*change, m_resources);
     if (const auto* put = std::get_if<Protocol::Inventory::ItemPut>(&event))
         return ApplyItemPut(*put, m_resources);
+    if (auto social = ApplySocial(event, session))
+        return *social;
     if (const auto* inventory = std::get_if<Protocol::Character::InventoryList>(&event))
     {
         const auto applied = ApplyInventory(*inventory, m_resources);

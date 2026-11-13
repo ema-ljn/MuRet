@@ -42,11 +42,12 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet
 // pisa Skill\SwordEff.jpg con GL_LINEAR más adelante en la misma función (0x61ccb0, Q-C463): queda la de la skill.
 // Las de las ventanas del paso que son marco (hito 6): win_check en 0x64a (0x61d1f0, con 0x63bd00), la casilla de los
 // comandos; CursorID_Wnd en 0x65b (0x61d3ab), el cartel del personaje elegido. Las del inventario (hito 4): setitem,
-// btn_pshop y btn_pshop2 en 0x652, 0x657 y 0x658 (0x61d319..0x61d354). Y las de 0x104 a 0x120 que 0x61ae60 sube
+// btn_pshop y btn_pshop2 en 0x652, 0x657 y 0x658 (0x61d319..0x61d354). La del duelo (CL9 hito 7): DuelWindow en 0x650
+// (0x61d2d6), que dibuja 0x5f37f0. Y las de 0x104 a 0x120 que 0x61ae60 sube
 // después de command.jpg (0x61aec8..0x61b1f2), de los hitos 4 y 6: el fondo de las ventanas, los casilleros del
 // equipo, la plata, la grilla, la línea del comercio y los botones, entre ellos el de cerrar (0x118). La 0x106 no la
 // sube nadie.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 80> HudTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 82> HudTextureSet{{
     {"Interface\\CursorAttack.tga", 0x04, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorGet.tga", 0x05, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorTalk.tga", 0x06, TextureSetsDetail::LinearClamp},
@@ -86,6 +87,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 80> HudTextureSet{{
     {"Interface\\win_letter.jpg", 0x64d, TextureSetsDetail::NearestClamp},
     {"Interface\\win_man.jpg", 0x64e, TextureSetsDetail::NearestClamp},
     {"Interface\\win_push.jpg", 0x64f, TextureSetsDetail::NearestClamp},
+    {"Interface\\DuelWindow.jpg", 0x650, TextureSetsDetail::NearestClamp},
     {"Interface\\setitem.jpg", 0x652, TextureSetsDetail::NearestClamp},
     {"Interface\\btn_pshop.jpg", 0x657, TextureSetsDetail::NearestClamp},
     {"Interface\\btn_pshop2.jpg", 0x658, TextureSetsDetail::NearestClamp},
@@ -127,6 +129,8 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 80> HudTextureSet{{
     {"Interface\\repair_01.jpg", 0x11e, TextureSetsDetail::NearestClamp},
     {"Interface\\repair_02.jpg", 0x11f, TextureSetsDetail::NearestClamp},
     {"Interface\\level_01.jpg", 0x120, TextureSetsDetail::NearestClamp},
+    // 0x61ae60: el OK marcado del comercio (0x5f3b40). El 0x122 (accept_box01) lo sube el terreno (AcceptBoxTexture).
+    {"Interface\\accept_box02.jpg", 0x123, TextureSetsDetail::NearestClamp},
 }};
 
 // Las de los pases de brillo, que 0x61ccb0 sube en su avance 0 y nadie suelta: Shiny01 para el 0x8,

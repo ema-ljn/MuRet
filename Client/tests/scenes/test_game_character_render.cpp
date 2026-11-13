@@ -20,6 +20,7 @@
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -641,6 +642,81 @@ TEST_F(GameCharacterRenderTest, AnUnselectedLeftSwordIsNotDrawnInTheSafeZone)
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
     EXPECT_EQ(m_clothWorld.random.State(), 0x46d18088u);
+}
+
+// Los vértices de la tela con el color `color` (0x455930 pone el de 0x50ba30 en cada uno).
+std::size_t ClothVerticesIn(const Client::Render::ModelBatch& batch, const glm::vec3& color)
+{
+    std::size_t count = 0;
+    for (const Client::Render::ModelVertex& vertex : batch.Vertices())
+    {
+        if (vertex.color.red == color.r && vertex.color.green == color.g && vertex.color.blue == color.b &&
+            vertex.color.alpha == 1.0f)
+            ++count;
+    }
+    return count;
+}
+
+// 0x50c929..0x50cc29 (CL9 hito 7, fase 2): sin duelo, la clase 1 no lleva tela y la 3 con +0x3e3 tampoco. Con el
+// duelo en curso, el rival (su clave y su nombre en 0x78abadc y 0x78abae0) la lleva en (1; 0,2; 0) aunque sea de la
+// clase 1 y esté en Chaos Castle (0x12), y el héroe publicado, en (0; 0,2; 1). En Lorencia y Devias.
+TEST_F(GameCharacterRenderTest, TheDuelDressesTheRivalInRedAndTheHeroInBlue)
+{
+    constexpr glm::vec3 Rival{1.0f, 0.2f, 0.0f};
+    constexpr glm::vec3 Hero{0.0f, 0.2f, 1.0f};
+    for (const std::int32_t map : {0, 2, 0x12})
+    {
+        SCOPED_TRACE(map);
+        m_world->Runtime().map = map;
+        ActorState& player = Player(0);
+        player.characterClass = 1;
+        player.key = 0x0456;
+        for (std::size_t at = 0; at < player.name.size(); ++at)
+            player.name[at] = at < 6 ? static_cast<std::byte>("Brezal"[at]) : std::byte{0};
+        // El héroe publicado es otro (sin dibujar).
+        m_world->Runtime().hero = 5;
+        m_world->Actors()[5].key = 0x0021;
+        Client::Scenes::DuelState& duel = m_world->Runtime().social.duel;
+        duel = {};
+        auto cloths = std::make_unique<std::array<Client::Scenes::CharacterCloth, 401>>();
+        GameCharacterPass pass = Pass();
+        pass.cloths = *cloths;
+        m_batch.Begin(Client::Render::Pass3D{});
+        ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
+        EXPECT_TRUE((*cloths)[0].Cloths().empty());
+
+        player.characterClass = 3;
+        player.byte3e3 = 1;
+        m_batch.Begin(Client::Render::Pass3D{});
+        ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
+        EXPECT_TRUE((*cloths)[0].Cloths().empty());
+
+        player.characterClass = 1;
+        player.byte3e3 = 0;
+        duel.active = 1;
+        duel.rivalKey = 0x0456;
+        for (std::size_t at = 0; at < 6; ++at)
+            duel.rivalName[at] = static_cast<std::byte>("Brezal"[at]);
+        m_batch.Begin(Client::Render::Pass3D{});
+        ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
+        ASSERT_EQ((*cloths)[0].Cloths().size(), 1u);
+        EXPECT_GT(ClothVerticesIn(m_batch, Rival), 0u);
+        EXPECT_EQ(ClothVerticesIn(m_batch, Hero), 0u);
+
+        // El mismo, publicado: la segunda comparación gana.
+        m_world->Runtime().hero = 0;
+        m_batch.Begin(Client::Render::Pass3D{});
+        ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
+        EXPECT_EQ(ClothVerticesIn(m_batch, Rival), 0u);
+        EXPECT_GT(ClothVerticesIn(m_batch, Hero), 0u);
+
+        // Otro nombre con la misma clave no es el rival.
+        m_world->Runtime().hero = 5;
+        duel.rivalName[0] = std::byte{'Z'};
+        m_batch.Begin(Client::Render::Pass3D{});
+        ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
+        EXPECT_EQ(ClothVerticesIn(m_batch, Rival), 0u);
+    }
 }
 
 TEST_F(GameCharacterRenderTest, ZeroOriginalFramesDoNotCreateFirstUseClassThreeOrFourCloths)

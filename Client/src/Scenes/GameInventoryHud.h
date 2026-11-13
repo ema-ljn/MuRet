@@ -9,7 +9,8 @@
 // 0x5e3660 y el cartel del set 0x40e720), los ítems 3D de las grillas (0x5f7610 → 0x5e2fc0 y 0x5e3760), las cifras
 // (0x5f7840) y el ítem del cursor (0x5f7b10). En 640 × 480, con el estado de GL que dejan, y con los rand() de la
 // tabla de protección y del dibujo de cada ítem en su orden. Las grillas de las otras ventanas (la tienda, el
-// comercio, el almacén, la caja del caos, las tiendas personales y la caja del entrenador) cortan con su dirección.
+// almacén, la caja del caos, las tiendas personales y la caja del entrenador) cortan con su dirección; las del comercio
+// van con su ventana (0x5f3b40).
 //
 // El modelo de un ítem de la UI (0x5e1480 → 0x5e0720) va en el pase 3D de 0x5ac120 (Scenes/UiItemDrawing.h).
 namespace Client::UI
@@ -37,6 +38,15 @@ struct UiItemBox;
 // cierre del registro propio que lo deja sin accesos (los lugares, el zen y el nivel) y uno por cada consulta del
 // comercio y de la tienda.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, UI::PanelRegistry& panels);
+
+// 0x5f3b40: con el comercio abierto (IsOpen(0x20), su rand()), la ventana en (0x104, 0) (0x78a5a1c y 0x78a5a18): el
+// fondo con la línea (0x5ee220 con 1), las cajas de las dos grillas (0x5e3660: la del otro en y + 70, la propia en
+// y + 270), la marca del gremio del otro (nada: la tabla de los gremios es del hito 8), el título (226), el OK del
+// otro (accept_box 0x122 o 0x123, en rojo con 0x78abac4 > 0), los botones del zen (Money_01/02), del OK propio (en rojo
+// con la espera 0x78abac8) y de cerrar, con su ayuda (227 a 229), el zen de los dos (0x10f, "%d,%03d" y el color por
+// cuánto es), el nombre del otro, la flecha que sube y baja (9), su nivel por piso (368 y 369), el nombre del héroe y
+// los renglones 370 (que late), 365, 366 y 367. Sin más rand().
+[[nodiscard]] Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, UI::PanelRegistry& panels);
 
 // 0x5f7610: los ítems 3D de las grillas abiertas, en su orden. Del inventario, el equipo (0x5e2fc0, con el registro
 // propio abierto alrededor, cada lugar en su caja) y la grilla (0x5e3760 con 0, con el tamaño de Item.bmd); los de las

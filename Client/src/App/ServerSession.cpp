@@ -31,6 +31,7 @@
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
+#include "Protocol/Duel.h"
 #include "Protocol/Friends.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
@@ -39,6 +40,7 @@
 #include "Protocol/Guild.h"
 #include "Protocol/Party.h"
 #include "Protocol/Pet/PetInfo.h"
+#include "Protocol/Trade.h"
 #include "Protocol/Viewport.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
@@ -185,6 +187,7 @@ ServerSession::ServerSession(Network::Connection& connection, Core::IClock& cloc
 {
     RegisterConnectServerHandlers();
     RegisterGameServerHandlers();
+    RegisterSocialHandlers();
     // El timer global no depende de abrir una conexión ni de autenticar (04 § El flujo de conexión).
     m_keepalive.Start(m_clock.Now());
 }
@@ -325,6 +328,84 @@ bool ServerSession::RegisterGuildHandlers()
             return false;
     }
     return true;
+}
+
+// 04 § El comercio, § La party y § El duelo (CL9 hito 7): los casos de 0x4e2b10 que los leen, sin mirar la escena.
+void ServerSession::RegisterSocialHandlers()
+{
+    namespace Trade = Protocol::Trade;
+    namespace Party = Protocol::Party;
+    namespace Duel = Protocol::Duel;
+    using Network::Packet;
+    [[maybe_unused]] const bool registered =
+        m_gameServer.On(Trade::RequestOpcode, [this](const Packet& packet) { OnTradeRequest(packet); }) &&
+        m_gameServer.On(Trade::ResponseOpcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Trade::ReadTradeResponse, "la respuesta del comercio (37)"); }) &&
+        m_gameServer.On(Trade::ItemRemovedOpcode,
+                        [this](const Packet& packet) {
+                            ApplyWorldPacket(packet, Trade::ReadTradeItemRemoved, "el ítem que sale del comercio (38)");
+                        }) &&
+        m_gameServer.On(Trade::ItemAddedOpcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Trade::ReadTradeItemAdded, "el ítem del comercio (39)"); }) &&
+        m_gameServer.On(Trade::MoneyOpcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Trade::ReadTradeMoneyResult, "el zen del comercio (3A)"); }) &&
+        m_gameServer.On(Trade::OtherMoneyOpcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Trade::ReadTradeOtherMoney, "el zen del otro (3B)"); }) &&
+        m_gameServer.On(Trade::OkButtonOpcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Trade::ReadTradeOkState, "el OK del comercio (3C)"); }) &&
+        m_gameServer.On(Trade::ResultOpcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Trade::ReadTradeResult, "el resultado del comercio (3D)"); }) &&
+        m_gameServer.On(Party::RequestOpcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Party::ReadPartyRequest, "la invitación a la party (40)"); }) &&
+        m_gameServer.On(Party::RequestResultOpcode,
+                        [this](const Packet& packet) {
+                            ApplyWorldPacket(packet, Party::ReadPartyRequestResult, "la respuesta de la party (41)");
+                        }) &&
+        m_gameServer.On(Party::PartyListOpcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Party::ReadPartyList, "la lista de la party (42)"); }) &&
+        m_gameServer.On(Party::LeaveOpcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Party::ReadPartyLeft, "la salida de la party (43)"); }) &&
+        m_gameServer.On(Party::LifeOpcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Party::ReadPartyLife, "la vida de la party (44)"); }) &&
+        m_gameServer.On(Duel::StartOpcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Duel::ReadDuelStart, "el comienzo del duelo (AA)"); }) &&
+        m_gameServer.On(Duel::EndOpcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Duel::ReadDuelEnd, "el fin del duelo (AB)"); }) &&
+        m_gameServer.On(Duel::RequestOpcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Duel::ReadDuelRequest, "el pedido de duelo (AC)"); }) &&
+        m_gameServer.On(Duel::ScoreOpcode, [this](const Packet& packet)
+                        { ApplyWorldPacket(packet, Duel::ReadDuelScore, "los puntos del duelo (AD)"); });
+    assert(registered && "los handlers del comercio, la party y el duelo se registran una vez");
+}
+
+template <typename Read>
+void ServerSession::ApplyWorldPacket(const Network::Packet& packet, Read read, std::string_view what)
+{
+    const auto event = read(packet);
+    if (!event.HasValue())
+    {
+        m_log.Warning("se ignora {}: {}", what, Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(event.Value(), *this)));
+}
+
+// 0x4d4af0: sin cifrar, el aviso C1 06 F1 03 00 36 en C3 y nada más; los dos, al sink.
+void ServerSession::OnTradeRequest(const Network::Packet& packet)
+{
+    if (!packet.WasDecrypted())
+    {
+        // El aviso C3 saca sus dos rand() de la CRT del mundo: lo manda el sink (Scenes::ApplyClearTradeRequest).
+        m_log.Warning("el pedido de comercio (36) no llegó cifrado: se le avisa al GameServer (F1 03)");
+        static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(Protocol::Trade::ClearTradeRequest{}, *this)));
+        return;
+    }
+    ApplyWorldPacket(packet, Protocol::Trade::ReadTradeRequest, "el pedido de comercio (36)");
+}
+
+void ServerSession::SendGamePacket(Protocol::Outgoing packet)
+{
+    static_cast<void>(SendWorldPacket(std::move(packet)));
 }
 
 void ServerSession::Start()

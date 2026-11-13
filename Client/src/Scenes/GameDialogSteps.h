@@ -36,6 +36,9 @@ enum class DialogStep : std::uint8_t
     // 0x62a7f7: sí (0xea, 0x62, 0x46 × 0x15) y no (0x14e) o Esc, de la invitación a la party (0x77, el C1 05 41 en C3)
     // y del pedido de comercio (0x78, el C1 04 37 en claro).
     YesNo,
+    // 0x6260d1 (CL9 hito 7): la caja de confirmación 0x9c, 0x471930 sobre 0x575d9d0 (0x471e80, que la construye la
+    // primera vez).
+    ConfirmBox,
     // Un tramo de otra ola: corta con `address` y `wave`.
     Cut,
 };

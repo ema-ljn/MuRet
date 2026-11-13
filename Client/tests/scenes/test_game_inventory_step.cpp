@@ -158,8 +158,8 @@ TEST_F(InventoryStepTest, TheRepairButtonWorksFromLevelFifty)
 }
 
 // Lo que es de otras olas, o lo que pide Item.bmd sin tenerlo, corta con su dirección: un ítem de la grilla bajo el
-// mouse (0x5c420a) y el ítem del cursor sobre un lugar del equipo (0x5bed9e) sin Item.bmd, la grilla de la tienda
-// personal que abre la S (0x5e58ea) y el comercio abierto.
+// mouse (0x5c420a) y el ítem del cursor sobre un lugar del equipo (0x5bed9e) sin Item.bmd. La S abre la tienda
+// personal (que ya no corta) y el comercio abierto.
 TEST_F(InventoryStepTest, WhatIsStillCutStopsWithItsAddress)
 {
     world.Inventory().cells[0].id = 0x1c00;
@@ -174,8 +174,12 @@ TEST_F(InventoryStepTest, WhatIsStillCutStopsWithItsAddress)
 
     world.OwnCharacter().level = 6;
     input.Apply(InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::S});
-    // La S abre la tienda propia (hito 7, fase 4) y el mismo paso corta en su grilla (0x5e58ea).
-    ExpectCut(Step(100, 300), "0x5e58ea");
+    // La S abre la tienda propia (hito 7, fase 4); el mismo paso sigue con su grilla (0x5e58ea, sin nada bajo el mouse)
+    // y su ventana (0x5ea290, fase 5), que pone su esquina en (0x104, 0).
+    const auto opened = Step(100, 300);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_EQ(world.Runtime().social.personalShop.windowX, 0x104);
+    EXPECT_EQ(world.Runtime().social.personalShop.windowY, 0);
     EXPECT_EQ(world.Runtime().panels.personalShop, 1);
     EXPECT_EQ(world.Runtime().social.personalShop.mode, Client::Scenes::OwnShopView);
     world.Runtime().panels.personalShop = 0;

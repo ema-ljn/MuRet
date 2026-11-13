@@ -10286,12 +10286,80 @@ casillas de 8 columnas). `0x6c931c` dice cuál se mira (−1 en la `.data`, 1 la
 `personalShopOpened` y `personalShopClosed` de `UI::PanelContext`, con el cable de `GamePanels::LendThePersonalShops`;
 y los cuatro `3F`), `UI::ChatCommands` (`/personalshop`) y `Scenes::InventoryMoves` (el `28` y las ramas de `0x5be150`,
 con `CursorGrid::OwnTrade` y `CursorGrid::PersonalShop`). Los mapas son `PersonalShopState::ownPrices` y
-`otherPrices`, con `pricesBuilt` por los punteros en 0. Cortan con su dirección el paso y el dibujo de las ventanas
-(`0x5ea2bd`, `0x5e4ee2` y `0x5e58ea`), el diálogo del título (`0x623750`), poner y el clic derecho con la tienda abierta
-(`0x5c5110` y `0x5c5242`), soltar en su grilla (`0x5dec19`) y `/purchase` (`0x574bd6`), 08 P-C208 b. Tests:
+`otherPrices`, con `pricesBuilt` por los punteros en 0. El paso de la ventana y lo de las grillas están en la fase 5
+(abajo); cortan con su dirección el dibujo (`0x5f3030`) y `/purchase` (`0x574bd6`), 08 P-C208. Tests:
 `PersonalShopListsTest` (abrir la propia, el precio que falla, mirar la de otro, comprar, renovar y cerrar, byte a byte
 y con los `rand()` de las consultas de `0x20` y `0x10000` y de los C3; en Lorencia y Devias), `TheItemListsReadTheirEntries`
 y `PersonalShopNeedsTheLevel`.
+
+**La ventana propia** (CL9 hito 7, fase 5, 2026-11-13, *estático*; 08 P-C208 b). `0x78aba58` y `0x78aba5c` son la
+esquina de las dos ventanas (las escriben en (0x104, 0) el paso, solo con la propia, y el dibujo `0x5f306e`, siempre);
+`0x78aba60` el modo del diálogo `0x91` que abrió `0x5eba70` (1 el título, 2 el precio).
+
+- `0x5ea290` (desde `0x5ee1b1`, con `0x800` o `0x20000` y `0x6c931c` en 1): con `0x78aba60` en 1 y `0x6c932e` en 1 o
+  2, los dos en 0 y `0xff`; la esquina; el botón de abrir (x de `0x122` a `0x15a`, y de `0x18c` a `0x1a4`, sin los
+  bordes de la derecha y de abajo, con el clic, que gasta): cada ítem de la grilla (tipo con signo de 0 o más) necesita
+  un precio de más de 0 en el mapa del modo (`0x5f8110`, en columna + fila · 8 + `0x4c`), y tiene que haber alguno y un
+  título (`strlen`); si no, el aviso 1119 con el tipo 2 (`0x555190`, con el nombre de `0x78abb7c`, que nadie escribe).
+  Con todo, con la tienda abierta (`0x78aba50`) el `3F 02` y `0x65cae0(0x4000000)`; cerrada, la caja `0x9c` con el
+  1000, el texto 1131 y dos botones (`0x4716e0`, lo que devuelve no se mira). El de cerrar (x de x + `0x69` a x +
+  `0xa1`, la misma y, con el clic, que gasta): con la tienda abierta, el `3F 03`. El del título (x de x + `0x14` a x +
+  `0xaa`, y de y + `0x41` a y + `0x59`, con el clic, que **no** gasta): `0x5eba70(1)`. Sin `rand()` propios.
+- `0x5eba70(modo)`: con 1 o 2, el diálogo `0x91` (`0x6236f0`), `0x78aba60` en el modo, el campo del chat cerrado
+  (`0x6c8e68`), el modo del zen (`0x77f3b6a`) en 0 o 1, los campos de texto vacíos (`0x553570(0)`) y el largo del campo
+  (`0x6c8e78`) en `0x1c` o 8. Con `0x6c7b8c` en 1 (la `.data`) arma además el EDIT de `[0x5763504]`, del hito 6. El
+  paso del `0x91` (`0x6260f6`) lee ese EDIT: con el modo 1 copia el título a `0x78aba64` si `0x5ebbd0` lo valida (si
+  no, el mensaje `0x770fe14`); con el 2, `atoi` al zen escrito (`0x77f3b6c`); el OK (`[0x14a, 0x17e] × [0xa0, 0xb0]` o
+  Enter) deja `0x6c932e` en 1 con un título o un precio de más de 0, si no en 2; cancelar, en 2. Corta (08 P-C312).
+- La caja `0x9c` es el objeto `0x575d9d0` (`0x471e80` lo arma la primera vez con `0x471650`): +0 el id, +4 los botones
+  (1 o 2), +8 los renglones (un `std::vector<std::string>`). `0x4716e0(id, texto, tipo)`: con el `0x9c` abierto
+  (`0x7d3a10c`), falso; si no, el `0x9c` por `0x6236f0` (con otro abierto, esperando) y, con el tipo fuera de 1..2,
+  falso con el diálogo ya pedido. Si no, el id, el tipo y los renglones: el texto en pedazos que se cortan al pasar de
+  24 bytes (uno de `0x80` o más cuenta 2, con el que lo sigue) o en el final justo; el pedazo que termina con un byte
+  alto pasado del final se pierde (07 Q-C966). Su paso (`0x6260d1` → `0x471930`): con el clic, los botones en y de h +
+  140 a h + 156 con los bordes (h: los renglones por el paso de la letra (`0x7758568`) + 2, comparados en la x87); con
+  dos, el de x de `0xff` a `0x133` responde 1 y el de `0x14a` a `0x17e` responde 2 (sin volver a mirar el clic); con
+  uno, el de `0x127` a `0x15b` responde 1. Cada uno gasta el clic y llama a `0x623750(id, respuesta)`: con el 1000 y el
+  1, el `3F 02`, todos los paneles cerrados (`0x657a90`) y el diálogo que espera abierto (`0x7d3a110` a `0x7d3a10c`);
+  con el 1000 y el 2, solo esto último; con otro id, nada. Su dibujo (`0x6304e1` → `0x471ae0`) corta.
+- Con una tienda abierta, `0x5c4110` (las grillas bajo el mouse): `0x78abaa4` en 0 al entrar (después de sus tres
+  salidas) y en 1 con la grilla `0x78ab0b8`; `0x78abb28` en 0 y `0x78abb2c` en la casilla + `0x4c`. El clic sin reparar
+  (`0x5c5110`): el clic gastado, la grilla en `0x78ab9b8` y `0x78a6758` en −1. Mirando la de otro, su ítem va a
+  `0x78a59c8` con su lugar (+ `0x4c`) y `0x633300(1, 1100, 0x94)` espera el aviso 5 (`0x78abb14`) sin respuesta; uno
+  del inventario se levanta (+ 12). Con la propia se levanta el de las dos grillas (+ `0x4c` o + 12; `0x5bd750` con el
+  inventario elige la grilla por el lugar). Al final `0x78abaa8` en 0; ni sonido, ni `0x787a518`, ni el comercio de
+  `0x5c5361`. El clic derecho sin reparar (`0x5c5242`): gastado, la grilla en `0x78ab9b8`, el ítem en `0x78a59c8` y su
+  casilla + `0x4c` en `0x78a6758` con **cualquier** grilla; con la propia y su grilla, `0x5eba70(2)`. `0x5aed40` (sin
+  clic) da 5 y la casilla + `0x4c` mirando la de otro, y nada con la propia.
+- `0x5e4ce0`: con `0x800` o `0x20000`, el mouse sobre la ventana (`0xbe × 0x1b1` desde la esquina) es de la UI
+  (`0x5e4ee2`); las marcas `+0x44` de `0x78ab0b8` van con las de las otras grillas, siempre (`0x5e51e7`); su grilla es
+  `0x5c4110(x + 15, y + 0x6e, 0x78ab0b8, 8, 4, 0)` (`0x5e58ea`).
+- `0x5d8d50` (el ítem del cursor), después de la traba: `0x78abb14` de 1 a 6 en ese orden o, si no, `0x78aba60` en 2,
+  con la respuesta de `0x6c932e`: con 1 o 2 la atiende y la borra; con otra termina el paso (el aviso sigue). El 3 (el
+  OK del comercio, `0x5d966b`) con el sí da vuelta el OK propio, `0x78abaa5` en 1 y el `C1 04 3C` con el nuevo; el 5
+  (la compra, `0x5d9c82`) con el sí y la clave del dueño, el `3F 06`; el 6 (el precio menor que el valor, `0x5dc7e9`)
+  con el sí pone el precio y con el no `0x5eba70(2)`; el 1, el 2 y el 4 son de las ventanas de NPC (CL9.3). El diálogo
+  del precio (`0x5dc79e`): con el sí, el precio escrito (sin signo) contra el valor del ítem de `0x78a59c8`
+  (`0x54d0f0` con el modo 2): menor, `0x633300(2, 1132, 0x99)` y el aviso 6; si no, el precio. Con el no, `0x5be150`.
+  El precio (`0x5dc807..` y `0x5da5ac..`): con la tienda abierta, el `3F 03`; con un ítem en el cursor, el `3F 01` con
+  `[0x78a6758]`, el `24` de la grilla 0 a la 4 (con la traba suelta) y el precio en el mapa en `0x77f3cc8`; sin ítem, el
+  `3F 01` y el precio en `[0x78a6758]` (`0x5f7f90`). Al final `0x77f3b6c` en 0.
+- Soltar (`0x5dec19`, con `0x800` o `0x20000`): `0x5ca250(x + 15, y + 0x6e, 0x78ab0b8, 8, 4, 4)` con lo que devuelve en
+  `bl`. Como el comercio: sin apilar, las marcas, y con el clic y sin entrar, falso; lo que no se comercia
+  (`0x5cf3c9..0x5cf40b`) se queda. Si no (`0x5d5046`), el destino (fila · 8 + columna + `0x4c`) en `0x77f3cc8` y: desde
+  el inventario, con la propia, el ítem del cursor en `0x78a59c8` y `0x5eba70(2)`; desde otra grilla, al mismo lugar
+  `0x5be150`, si no, con la tienda abierta el `3F 03` y, con la traba suelta, el `24` de la 4 a la 4. De la tienda al
+  inventario (`0x5cc2cf`): solo con la propia; con la tienda abierta el `3F 03` y, con la traba suelta, el `24` de la 4
+  a la 0.
+
+**MuRet**: `Scenes::PersonalShopWindow` (`OpenTheShopDialog`, `OpenTheConfirmBox`, `StepTheConfirmBox`,
+`AnswerTheConfirmBox`, `StepThePersonalShopWindow` y `StepTheWarningAnswers`, con `PersonalShopState::windowX`,
+`windowY` y `dialogMode` y `SocialState::confirmBox`); `Scenes::GameUi` (la grilla `0x78ab0b8` con
+`HoveredItem::Place::ShopCell` y `GameUiState::shopGridHovered`, `0x5c5110`, `0x5c5242` y el paso del ítem del
+cursor); `Scenes::InventoryMoves` (`PickUpForTheShop`, `DropOnTheShopGrid` y la rama de `0x5cc2cf`); el `0x9c` en
+`Scenes::GameDialogSteps` (`DialogStep::ConfirmBox`). El paso del `0x91` y el `0x94` (`0x6282dc`) siguen cortando:
+los tests dejan su respuesta a mano. Tests: `PersonalShopWindowTest` (en Lorencia y Devias, byte a byte y con los
+`rand()`) y `ConfirmBoxTest`.
 
 ## Lo que no se sabe
 

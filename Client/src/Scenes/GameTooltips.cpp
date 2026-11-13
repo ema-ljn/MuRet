@@ -308,7 +308,8 @@ Core::Expected<void, std::string> DrawTheSetWindow(GameHudContext& context, std:
     return {};
 }
 
-// El ítem de 0x78abaa8: la casilla de la grilla (la del inventario o las del comercio) o el lugar del equipo.
+// El ítem de 0x78abaa8: la casilla de la grilla (la del inventario, las del comercio o la de las tiendas personales)
+// o el lugar del equipo.
 const World::ItemState* HoveredItemOf(WorldState& world)
 {
     const UI::HoveredItem& hovered = world.Runtime().ui.hoveredItem;
@@ -326,6 +327,9 @@ const World::ItemState* HoveredItemOf(WorldState& world)
         auto& cells = hovered.place == UI::HoveredItem::Place::OwnTradeCell ? trade.ownGrid : trade.otherGrid;
         return hovered.index < cells.size() ? &cells[hovered.index] : nullptr;
     }
+    case UI::HoveredItem::Place::ShopCell:
+        return hovered.index < world.Inventory().secondCells.size() ? &world.Inventory().secondCells[hovered.index]
+                                                                    : nullptr;
     case UI::HoveredItem::Place::None:
         return nullptr;
     }

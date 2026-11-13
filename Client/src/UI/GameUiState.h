@@ -45,6 +45,7 @@ struct HoveredItem
         Equipment,      // [0x7681eb4] + 0xb6c + lugar · 0x48
         OwnTradeCell,   // 0x78a92a8 + índice · 0x48 (CL9 hito 7)
         OtherTradeCell, // 0x78a5a20 + índice · 0x48
+        ShopCell,       // 0x78ab0b8 + índice · 0x48, la grilla de las tiendas personales (CL9 hito 7, fase 5)
     };
     Place place = Place::None;
     std::size_t index = 0;
@@ -66,6 +67,10 @@ struct GameUiState
     HoveredItem hoveredItem{};
     // 0x78aba27: el último argumento de 0x5c4110 o 0 desde el equipo (0x5c4298, 0x5c3ab3).
     std::uint8_t field78aba27 = 0;
+    // 0x78abaa4: el ítem bajo el mouse es de la grilla de las tiendas personales. Solo lo escribe 0x5c4110: 0 al entrar
+    // (0x5c4163, pasadas sus tres salidas) y 1 con el mouse sobre un ítem de 0x78ab0b8 (0x5c4324). Lo lee el precio
+    // del cartel (0x5b2f7f).
+    std::uint8_t shopGridHovered = 0;
     // 0x78abb28 y 0x78abb2c: de qué ventana y qué lugar es el ítem del cartel (0x5aed40): 0 y el lugar del inventario
     // (la casilla + 12, o el del equipo) desde el inventario; 2 y 3 con la casilla desde la grilla propia y la del otro
     // del comercio.

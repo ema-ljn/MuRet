@@ -7,6 +7,7 @@
 #include "GameLogic/PathCell.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
+#include "Protocol/PersonalShop.h"
 #include "Protocol/Trade.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
@@ -17,6 +18,7 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/OwnItemPlacement.h"
+#include "Scenes/PersonalShopWindow.h"
 #include "Scenes/SocialEvents.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldEntry.h"
@@ -63,6 +65,9 @@ constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
 constexpr auto Rows = static_cast<std::int32_t>(InventoryCellCount / InventoryColumns);
 constexpr auto FirstGridSlot = static_cast<std::int32_t>(FirstInventoryGridSlot);
 constexpr auto FirstSecondSlot = static_cast<std::int32_t>(FirstSecondGridSlot);
+// 0x5dec19: la grilla de la tienda personal (0x78ab0b8), de 8 × 4.
+constexpr std::int32_t ShopGridColumns = 8;
+constexpr std::int32_t ShopGridRows = 4;
 // 0x6b8ad0 (0.05f) y 0x6b882c (0.5f): la casilla de 20 píxeles y el medio del ítem.
 constexpr double CellScale = static_cast<double>(0.05f);
 constexpr double Half = static_cast<double>(0.5f);
@@ -1123,6 +1128,23 @@ Core::Expected<void, std::string> PickUpFromTheTradeGrid(const InventoryMoveCont
     return {};
 }
 
+Core::Expected<void, std::string> PickUpForTheShop(const InventoryMoveContext& context, std::int32_t slot,
+                                                   CursorGrid grid)
+{
+    WorldState& world = context.world;
+    WorldRuntime& runtime = world.Runtime();
+    runtime.movement.pendingClick = false;
+    // 0x5c5200..0x5c5213: la copia de la casilla de la grilla de 0x5c4110 (la de la tienda o la del inventario).
+    auto source = slot >= FirstSecondSlot
+                      ? CellAt(world.Inventory().secondCells, slot - FirstSecondSlot, "0x5c5110 (0x5c520b)")
+                      : CellAt(world.Inventory().cells, slot - FirstGridSlot, "0x5c5110 (0x5c51c9)");
+    if (!source.HasValue())
+        return Core::Unexpected(source.Error());
+    TakeIntoTheCursor(runtime, *source.Value(), slot, grid);
+    // 0x5c5219..0x5c521f: 0x5bd750(lugar, 0x78a9bb0, columnas), que elige la grilla por el lugar.
+    return RemoveInventoryItem(context, slot);
+}
+
 Core::Expected<void, std::string> PickUpFromTheEquipment(const InventoryMoveContext& context, std::size_t slot)
 {
     WorldState& world = context.world;
@@ -1312,6 +1334,16 @@ Core::Expected<void, std::string> UseTheJewel(const InventoryMoveContext& contex
 
 namespace
 {
+// El C1 04 3F 03 de la tienda propia abierta, con los dos rand() del C3 antes (0x5cc2f7, 0x5d50b3).
+Core::Expected<void, std::string> CloseTheOwnShop(const InventoryMoveContext& context, std::string_view where)
+{
+    context.random.Discard(2);
+    if (!context.services.sendGamePacket)
+        return Core::Unexpected(std::format("{}: el C1 04 3F 03 sin la sesión", where));
+    context.services.sendGamePacket(Protocol::PersonalShop::WriteCloseShop());
+    return {};
+}
+
 // 0x5ce4fe..0x5cf3a0: del comercio (0x78ab9b8 en 0x78a92a8) al lugar `target` del inventario. 0x449d50 solo hace algo
 // con la caja del entrenador (0x723c80). Con la traba suelta, el 24 desde la grilla 1; después, con el OK propio en
 // 0, la espera del OK (0x5cf379..0x5cf396).
@@ -1327,6 +1359,28 @@ Core::Expected<bool, std::string> FromTheTradeGrid(const InventoryMoveContext& c
     }
     if (runtime.social.trade.ownOk == 0)
         runtime.social.trade.okWait = TradeOkWait;
+    return true;
+}
+
+// 0x5cc2cf..0x5cd67f: de la tienda personal (0x78ab0b8) al lugar `target` del inventario. Fuera de la propia, nada; con
+// ella abierta, el C1 04 3F 03 en C3 (0x5cc2f7); con la traba suelta, el 24 de la grilla 4 a la 0 (0x5cc818).
+Core::Expected<bool, std::string> FromTheShopGrid(const InventoryMoveContext& context, std::int32_t target)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    const PersonalShopState& shops = runtime.social.personalShop;
+    if (shops.mode != OwnShopView)
+        return true;
+    if (shops.ownOpen != 0)
+    {
+        if (auto closed = CloseTheOwnShop(context, "0x5cc2f7"); !closed.HasValue())
+            return Core::Unexpected(closed.Error());
+    }
+    if (runtime.ui.field78abb39 != 0)
+        return true;
+    if (auto sent =
+            SendTheCursorItem(context, static_cast<std::uint8_t>(target & 0xff), ShopGridFlag, InventoryGridFlag);
+        !sent.HasValue())
+        return Core::Unexpected(sent.Error());
     return true;
 }
 
@@ -1401,8 +1455,7 @@ Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveCont
     if (runtime.cursorGrid == CursorGrid::OwnTrade)
         return FromTheTradeGrid(context, target);
     if (runtime.cursorGrid == CursorGrid::PersonalShop)
-        return Core::Unexpected(std::string("0x5cc2cf: el ítem de la grilla de la tienda personal al inventario (el 3F "
-                                            "02 o el 24) es del hito 7 (08 P-C208 b)"));
+        return FromTheShopGrid(context, target);
     if (runtime.cursorGrid != CursorGrid::Inventory)
         return Core::Unexpected(std::string("0x5cb37a: el ítem del almacén o de la caja del caos al inventario es de "
                                             "la CL9.3"));
@@ -1487,6 +1540,68 @@ Core::Expected<bool, std::string> DropOnTheTradeGrid(const InventoryMoveContext&
     if (runtime.ui.field78abb39 != 0)
         return true;
     if (auto sent = SendTheCursorItem(context, targetSlot, TradeGridFlag, TradeGridFlag); !sent.HasValue())
+        return Core::Unexpected(sent.Error());
+    return true;
+}
+
+Core::Expected<bool, std::string> DropOnTheShopGrid(const InventoryMoveContext& context, const GridDrop& drop)
+{
+    WorldState& world = context.world;
+    WorldRuntime& runtime = world.Runtime();
+    const ItemState& cursor = runtime.cursorItem;
+    const auto footprint = ItemFootprintOf(context.services.items, cursor.id, "0x5ca250 (0x5ca295)");
+    if (!footprint.HasValue())
+        return Core::Unexpected(footprint.Error());
+    const GridCell cell = CellUnderTheMouse(drop.mouseX, drop.mouseY, drop.left, drop.top, footprint.Value());
+    if (cell.column < 0 || cell.row < 0)
+        return false;
+    if (runtime.panels.delegated.trainer == TrainerWithBox)
+        return Core::Unexpected(std::string("0x5ca357: 0x44acd0, la caja del entrenador, es de la CL9.3"));
+    // 0x5c9b40 con 0x78ab0b8: sin apilar.
+    const std::span<ItemState> cells(world.Inventory().secondCells);
+    const bool fits = TheFootprintIsEmpty(cells, ShopGridColumns, ShopGridRows, cell, footprint.Value());
+    static_cast<void>(MarkTheFootprint(cursor, cells, ShopGridRows, cell, footprint.Value(), fits));
+    if (!runtime.movement.pendingClick)
+        return fits;
+    // 0x5d825b: la joya sobre un ítem es solo del inventario; 0x5d8cd7 da falso.
+    if (!fits)
+        return false;
+    // 0x5cf3a5..0x5cf40b, como en el comercio (07 Q-C963).
+    const std::int32_t type = Signed(cursor.id);
+    if (InRange(type, FirstUntradable, LastUntradable) || cursor.id == Untradable1a13 || cursor.id == WizardsRing)
+        return true;
+    if (cursor.id == Untradable1c0b && (cursor.scalar1Low & UntradableLevelBits) == UntradableLevel)
+        return true;
+    // 0x5d504f..0x5d5063: el destino, desde 0x4c.
+    const std::int32_t target = cell.row * ShopGridColumns + cell.column + FirstSecondSlot;
+    runtime.itemMoveTarget = target;
+    PersonalShopState& shops = runtime.social.personalShop;
+    if (runtime.cursorGrid == CursorGrid::Inventory)
+    {
+        // 0x5d506b..0x5d5093: con la propia, el ítem del cursor al de los diálogos y el diálogo del precio.
+        if (shops.mode != OwnShopView)
+            return true;
+        runtime.dialogItem = cursor;
+        OpenTheShopDialog(runtime, ShopPriceMode);
+        return true;
+    }
+    // 0x5d5098..0x5d509e y 0x5d64c3: al mismo lugar, 0x5be150.
+    if (runtime.slot78a6758 == target)
+    {
+        if (auto returned = ReturnTheCursorItem(context); !returned.HasValue())
+            return Core::Unexpected(returned.Error());
+        return true;
+    }
+    if (shops.ownOpen != 0)
+    {
+        if (auto closed = CloseTheOwnShop(context, "0x5d50b3"); !closed.HasValue())
+            return Core::Unexpected(closed.Error());
+    }
+    // 0x5d5608..: con la traba suelta, el 24 de la grilla 4 a la 4.
+    if (runtime.ui.field78abb39 != 0)
+        return true;
+    if (auto sent = SendTheCursorItem(context, static_cast<std::uint8_t>(target & 0xff), ShopGridFlag, ShopGridFlag);
+        !sent.HasValue())
         return Core::Unexpected(sent.Error());
     return true;
 }

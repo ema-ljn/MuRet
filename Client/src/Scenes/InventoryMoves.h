@@ -44,6 +44,7 @@ namespace Client::Scenes
 {
 class WorldState;
 struct WorldEntryResources;
+enum class CursorGrid : std::uint8_t;
 
 // Lo que los pasos de la UI y MoveHero piden afuera para mover ítems. Vacío o nullptr: lo que lo necesita corta.
 struct InventoryServices
@@ -132,6 +133,8 @@ struct InventoryMoveContext
 // comercio (0x78a92a8; 0x5ce5af, 0x5d02a0 y 0x5d0898).
 inline constexpr std::uint8_t InventoryGridFlag = 0;
 inline constexpr std::uint8_t TradeGridFlag = 1;
+// La grilla de la tienda personal (0x78ab0b8; 0x5cc818.., 0x5d5608.. y 0x5dcd4b.., CL9 hito 7).
+inline constexpr std::uint8_t ShopGridFlag = 4;
 
 // El C1 0E 24 del ítem del cursor: la traba 0x78abb39 en 1, los dos rand() del envío en C3 y el paquete, de la grilla
 // `sourceFlag` y el lugar [0x78a6758] a la grilla `targetFlag` y `targetSlot`, con los bytes 0, +4, +0x1a, +0x1b,
@@ -151,6 +154,13 @@ inline constexpr std::uint8_t TradeGridFlag = 1;
 // arriba a la izquierda, sin el 12 (0x5c531b..0x5c5345), y 0x5bd750 vacía su huella en esa grilla (0x5be08c..).
 [[nodiscard]] Core::Expected<void, std::string> PickUpFromTheTradeGrid(const InventoryMoveContext& context,
                                                                        std::size_t cell);
+
+// 0x5c5112..0x5c5224, desde 0x5c4110 con una tienda personal abierta y el clic (CL9 hito 7, 08 P-C208 b): el clic
+// consumido y, con el ítem de arriba a la izquierda de la grilla del lugar `slot` (desde 0x4c la de la tienda, desde 12
+// la del inventario), la copia al cursor, la grilla de origen `grid`, el lugar y 0x5bd750. A diferencia de levantar
+// (0x5c52b1), no borra la copia del ítem bajo el mouse (0x787a518) ni 0x78abb28 y no pide sonido.
+[[nodiscard]] Core::Expected<void, std::string> PickUpForTheShop(const InventoryMoveContext& context, std::int32_t slot,
+                                                                 CursorGrid grid);
 
 // 0x5c2c65..0x5c2dd0, desde 0x5bec50 sin ítem en el cursor y con el clic: con 0x576794c, nada; con 0x78abb0c,
 // reparar (corta); si no, consume el clic y, salvo lo que el mapa 10 o Chaos Castle no dejan sacar, pasa el ítem del
@@ -208,6 +218,15 @@ struct GridDrop
 // (*inferido*). `inventoryOpen` y `panels` no se usan.
 [[nodiscard]] Core::Expected<bool, std::string> DropOnTheTradeGrid(const InventoryMoveContext& context,
                                                                    const GridDrop& drop);
+
+// 0x5ca250(x + 15, y + 0x6e, 0x78ab0b8, 8, 4, 4), desde 0x5dec19 con una tienda personal abierta (CL9 hito 7, 08 P-C208
+// b): la casilla, si entra (0x5c9b40 sin apilar) y las marcas, como en el comercio. Con el clic y sin entrar, falso; si
+// entra, nada con los que no se comercian (0x5cf3c9..0x5cf40b) y si no (0x5d5046), el destino (fila · 8 + columna +
+// 0x4c) en 0x77f3cc8 y: desde el inventario, con la tienda propia, el ítem del cursor en 0x78a59c8 y el diálogo del
+// precio (0x5eba70(2)); desde otra grilla, al mismo lugar 0x5be150 y si no, con la tienda abierta, el C1 04 3F 03 en C3
+// y, con la traba suelta, el 24 de la grilla 4 a la 4. `inventoryOpen` y `panels` no se usan.
+[[nodiscard]] Core::Expected<bool, std::string> DropOnTheShopGrid(const InventoryMoveContext& context,
+                                                                  const GridDrop& drop);
 
 // 0x5df449..0x5e070e, desde 0x5d8d50 con el clic fuera de las ventanas: lo que no se tira al piso (el aviso 269 y
 // 0x5be150), las cajas de 0x1a20 a 0x1a25 (el aviso 1915 y 0x5be150) y los paquetes de joyas y el Jewel of Guardian

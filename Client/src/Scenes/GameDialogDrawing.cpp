@@ -581,6 +581,9 @@ Core::Unexpected<std::string> CutTheDialog(std::int32_t id)
     // 0x630862: el 0x73 dibuja el EDIT de su campo (0x5763504), como corta su paso.
     if (id == 0x73)
         wave = "CL9 hito 7, fase 2";
+    // 0x6304e1: la caja de confirmación 0x9c (0x471ae0 sobre 0x575d9d0); su paso está portado.
+    if (id == 0x9c)
+        wave = "CL9 hito 7 (0x6304e1, 08 P-C208)";
     return Core::Unexpected(std::format("0x62db60: el dibujo del diálogo {:#x} es de la {}", id, wave));
 }
 } // namespace

@@ -159,6 +159,29 @@ struct ShopPurchase
 // 0x6c931c distinto de −1 y el 3F 01 que falla (0x4db1a2).
 [[nodiscard]] Outgoing WriteInventoryRequest();
 
+// Los que manda la ventana de la tienda propia (fase 5): abrirla con el título (0x5ea290 y la caja 0x9c, 0x623750),
+// cerrarla (0x5ea290, 0x5cc2cf, 0x5d5046 y 0x5da5ac), el precio de un lugar (0x5d8d50) y la compra en la de otro
+// (0x5d9c9e).
+inline constexpr std::uint8_t SetPriceSubcode = 0x01;
+inline constexpr std::uint8_t OpenShopSubcode = 0x02;
+inline constexpr std::uint8_t CloseShopSubcode = 0x03;
+inline constexpr std::uint8_t BuySubcode = 0x06;
+
+// El 3F 01 (0x5dab08.. y 0x5dc05f..): C1 09 3F 01, el lugar ([0x78a6758], el byte bajo) y el precio (0x77f3b6c, un
+// DWORD LE), con el XOR32 y en C3.
+[[nodiscard]] Outgoing WriteSetPrice(std::uint8_t slot, std::uint32_t price);
+
+// El 3F 02 (0x5ea407.. y 0x62378b..): C1 28 3F 02 y los 36 bytes del título (0x78aba64, MOVSD × 9: lo que haya detrás
+// del terminador va también), con el XOR32 y en C3.
+[[nodiscard]] Outgoing WriteOpenShop(const std::array<std::byte, TitleSize>& title);
+
+// El 3F 03 (0x5eaab1.., 0x5cc2f7.., 0x5d50b3.. y 0x5da5d2..): C1 04 3F 03, con el XOR32 y en C3.
+[[nodiscard]] Outgoing WriteCloseShop();
+
+// El 3F 06 (0x5d9c9e..): C1 11 3F 06, la clave del dueño (0x78a6514) en big-endian, su nombre (0x78a64f9, 10 bytes) y
+// el lugar ([0x78a6758], el byte bajo), con el XOR32 y en C3.
+[[nodiscard]] Outgoing WriteBuyItem(std::uint16_t key, const Name& name, std::uint8_t slot);
+
 // El 3F 07 de 0x5eb020, al cerrar la tienda de otro con su clave (0x78a6514) distinta de 0: C1 10 3F 07, la clave en
 // big-endian y el nombre (0x78a64f9, 10 bytes), con el XOR32 y en C3.
 [[nodiscard]] Outgoing WriteViewClosed(std::uint16_t key, const Name& name);

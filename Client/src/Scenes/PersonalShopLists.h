@@ -10,9 +10,9 @@
 // Las listas de ítems de las tiendas personales (CL9 hito 7, fase 4; 04 § Las tiendas personales y 06 § Lo social en
 // pantalla, "Las tiendas personales"): abrir y cerrar las dos ventanas (0x800, la propia, y 0x20000, la de otro), los
 // mapas de los precios (0x7245e4 y 0x7245e0, del lugar al precio) y los 3F 01, 05, 06 y 0x13 que llegan. El GameServer
-// 0.97 no tiene el 3F: el oráculo es el ASM del cliente (*estático*). Las ventanas mismas (su paso 0x5ea290, su dibujo
-// 0x5f3030 y el diálogo del título 0x623750) y lo que se hace con el mouse sobre la grilla (0x5c5110, 0x5c5242 y
-// 0x5dec19) cortan con su dirección (08 P-C208 b).
+// 0.97 no tiene el 3F: el oráculo es el ASM del cliente (*estático*). El paso de la ventana (0x5ea290), lo que se hace
+// con el mouse sobre las grillas (0x5c5110, 0x5c5242 y 0x5dec19) y las respuestas de sus avisos están en
+// Scenes/PersonalShopWindow (fase 5); su dibujo (0x5f3030) corta con su dirección (08 P-C208).
 namespace Client::Render::Models
 {
 class CrtRandom;

@@ -9,6 +9,7 @@
 #include "Protocol/ProtocolError.h"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -255,5 +256,25 @@ Outgoing WriteViewClosed(std::uint16_t key, const Name& name)
 Outgoing WriteShopItemsRequest(std::uint16_t key, const Name& name)
 {
     return EncryptedC1(Network::PacketWriter::C1(Opcode).PutU8(ItemsRequestSubcode).PutU16Be(key).PutBytes(name));
+}
+
+Outgoing WriteSetPrice(std::uint8_t slot, std::uint32_t price)
+{
+    return EncryptedC1(Network::PacketWriter::C1(Opcode).PutU8(SetPriceSubcode).PutU8(slot).PutU32Le(price));
+}
+
+Outgoing WriteOpenShop(const std::array<std::byte, TitleSize>& title)
+{
+    return EncryptedC1(Network::PacketWriter::C1(Opcode).PutU8(OpenShopSubcode).PutBytes(title));
+}
+
+Outgoing WriteCloseShop()
+{
+    return EncryptedC1(Network::PacketWriter::C1(Opcode).PutU8(CloseShopSubcode));
+}
+
+Outgoing WriteBuyItem(std::uint16_t key, const Name& name, std::uint8_t slot)
+{
+    return EncryptedC1(Network::PacketWriter::C1(Opcode).PutU8(BuySubcode).PutU16Be(key).PutBytes(name).PutU8(slot));
 }
 } // namespace Client::Protocol::PersonalShop

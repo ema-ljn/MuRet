@@ -12,6 +12,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/PersonalShopWindow.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -154,7 +155,7 @@ constexpr auto Routes = std::to_array<DialogRoute>({
     {0xa4, DialogStep::Cut, "0x625cf4", "CL9.3"},
     {0xa6, DialogStep::Cut, "0x625f98", "CL9.3"},
     {0xa7, DialogStep::Cut, "0x62601e", "CL9.4"},
-    {0x9c, DialogStep::Cut, "0x6260d1", "CL9.4"},
+    {0x9c, DialogStep::ConfirmBox, "0x6260d1", ""},
     {0x91, DialogStep::Cut, "0x6260f6", "CL9.3"},
     {UI::MessageBoxDialog, DialogStep::Buttons, "0x62d756", ""},
     {0x8d, DialogStep::Cut, "0x62d91d", "CL9.1"},
@@ -668,6 +669,8 @@ Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context
         return StepTheGenericOk(context);
     case DialogStep::YesNo:
         return StepTheYesNo(context, escape);
+    case DialogStep::ConfirmBox:
+        return StepTheConfirmBox(context);
     case DialogStep::Cut:
         break;
     }

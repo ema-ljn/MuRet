@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <vector>
 
 // Los globales del comercio, la party y el duelo (CL9 hito 7, 04 § El comercio, § La party y § El duelo), en la .bss
 // salvo los que dicen otra cosa. Los escriben los paquetes (Scenes/SocialEvents) y los leen sus ventanas.
@@ -58,10 +59,12 @@ struct TradeState
     // 0x78abacc: el botón del zen la pone en 2 (0x5ece9a); la lee el OK del 0x73 sin el comercio abierto (0x6270ed,
     // el zen del almacén, hito 6). Los demás lectores quedan para la VM (08 P-C203).
     std::int32_t field78abacc = 0;
-    // 0x78abb14 y 0x6c932e (.data): el aviso del OK con la grilla del otro cambiada (0x5ecf67), que pide 0x633300(4,
-    // 0x173, 0x94).
+    // 0x78abb14 y 0x6c932e (.data 0xff): el aviso que espera su respuesta y la respuesta (1, sí; 2, no; 0xff, ninguna).
+    // El OK con la grilla del otro cambiada (0x5ecf67) pone el 3 con 0x633300(4, 0x173, 0x94); comprar en la tienda
+    // de otro (0x5c5181), el 5 con el 0x94; el precio menor que el valor (0x5dc7e9), el 6 con el 0x99. Las respuestas
+    // las escriben los pasos de esos diálogos (0x6282dc, CL9.3) y las lee 0x5d8d50 (0x5d8dee..).
     std::int32_t warningKind = 0;
-    std::uint8_t warningByte = 0;
+    std::uint8_t warningByte = 0xff;
     std::array<World::ItemState, TradeGridCells> otherGrid{};
     std::array<World::ItemState, TradeGridCells> ownGrid{};
     std::array<World::ItemState, TradeGridCells> backup{};
@@ -149,9 +152,9 @@ struct PersonalShopState
     std::map<std::size_t, ShopTitle> titles;
     // 0x78aba50: la tienda propia abierta (el 3F 02 con 1; el 3F 03 del héroe la apaga).
     std::uint8_t ownOpen = 0;
-    // 0x78aba64: el título de la ventana, que escribe el diálogo del título (0x623750, sin portar) y lee el 3F 02. El
-    // 3F 05 pone el de la tienda que se mira (strncpy de 0x24, 0x4db92b) y cerrarla vuelve al del cartel del héroe
-    // (0x5eb020).
+    // 0x78aba64: el título de la ventana, que escribe el paso del diálogo 0x91 (0x6260f6, que corta: su campo es el
+    // EDIT del hito 6) y lee el 3F 02 (0x5ea407 y 0x62378b). El 3F 05 pone el de la tienda que se mira (strncpy de
+    // 0x24, 0x4db92b) y cerrarla vuelve al del cartel del héroe (0x5eb020).
     std::string ownTitle;
     // 0x6c931c (.data −1): Open(0x800) lo pone en 1 (0x65b21d) y Open(0x20000) en 2 (0x65ba37); 0x5eb020, al cerrar
     // cualquiera de las dos, en −1. Lo miran las listas del 3F, el 28 y el 3F 12.
@@ -170,6 +173,23 @@ struct PersonalShopState
     // Solo se leen su clave (+0x1f4, 0x78a6514) y su nombre (+0x1d9, 0x78a64f9), en 0x5eb020.
     std::uint16_t ownerKey = 0;
     std::array<std::byte, ShopOwnerNameSize> ownerName{};
+    // 0x78aba58 y 0x78aba5c (.bss 0): la esquina de las dos ventanas, que 0x5ea290 pone en (0x104, 0) en cada paso con
+    // la propia abierta.
+    std::int32_t windowX = 0;
+    std::int32_t windowY = 0;
+    // 0x78aba60 (.bss 0): el diálogo 0x91 que abrió 0x5eba70: 1 el del título, 2 el del precio. Lo vuelven a 0 la
+    // respuesta del precio (0x5dc7b2) y el título respondido (0x5ea30a).
+    std::int32_t dialogMode = 0;
+};
+
+// 0x575d9d0 (0x471e80, el objeto de 0x471650): la caja de confirmación del diálogo 0x9c. La abre 0x4716e0 (solo desde
+// 0x5ea290, con el 1000 y el texto 1131) y la atiende 0x471930: +0 el id que recibe 0x623750, +4 la cantidad de botones
+// (1 o 2) y +8 los renglones (un std::vector de std::string).
+struct ConfirmBoxState
+{
+    std::int32_t id = 0;
+    std::int32_t type = 0;
+    std::vector<std::string> lines;
 };
 
 struct SocialState
@@ -178,6 +198,7 @@ struct SocialState
     PartyState party{};
     DuelState duel{};
     PersonalShopState personalShop{};
+    ConfirmBoxState confirmBox{};
     // 0x6c8e78 (.data 10), 0x77f3b6a y 0x77f3b6c: el largo del campo del diálogo, el modo del zen y el zen escrito
     // (0x5ece58 abre el 0x73 con 8, 1 y 0; 0x4d58da lo cierra con 0x2a y 0).
     std::int32_t dialogFieldLimit = 10;

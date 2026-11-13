@@ -963,7 +963,14 @@ Del cliente: el `3F 05` (`C1 10 3F 05 <clave BE> <nombre:10>`, C3), el comando 2
 elegido (`0x406b02`, 06 § "El comando sobre el elegido"; `Protocol::PersonalShop::WriteShopItemsRequest`); el `3F 07`
 (`C1 10 3F 07 <clave BE> <nombre:10>`, C3), que manda `0x5eb020` al cerrar la tienda de otro con la clave del dueño
 (`0x78a6514`) distinta de 0 (`WriteViewClosed`); y el `C1 04 F3 10` en C3 (`WriteInventoryRequest`), que mandan el `01`
-de arriba y abrir una tienda (`0x65ac87` y `0x65b359`) con `0x6c931c` distinto de −1. Los tamaños de los que llegan son
+de arriba y abrir una tienda (`0x65ac87` y `0x65b359`) con `0x6c931c` distinto de −1. Los de la ventana propia (fase 5,
+06 § Las tiendas personales, "La ventana propia"), todos con el XOR32 desde el byte 3 y en C3: el `3F 01`
+(`C1 09 3F 01 <lugar> <precio:4 LE>`, el byte bajo de `0x78a6758` y `0x77f3b6c`; `0x5dab08..` y `0x5dc05f..`,
+`WriteSetPrice`), el `3F 02` (`C1 28 3F 02 <título:36>`, los 36 bytes de `0x78aba64` con un `MOVSD` × 9, lo que haya
+detrás del terminador incluido, 07 Q-C965; `0x5ea407..` y `0x62378b..`, `WriteOpenShop`), el `3F 03` (`C1 04 3F 03`;
+`0x5eaab1..`, `0x5cc2f7..`, `0x5d50b3..` y `0x5dc81c..`, `WriteCloseShop`) y el `3F 06` (`C1 11 3F 06 <clave BE>
+<nombre:10> <lugar>`, la clave de `0x78a6514`, el nombre de `0x78a64f9` y el byte bajo de `0x78a6758`; `0x5d9c9e..`,
+`WriteBuyItem`). Los tamaños de los que llegan son
 los que leen los lectores (no hay un servidor que los mande). MuRet los lee en `Protocol::PersonalShop` (que solo mide
 que el paquete los traiga) y los aplica en `Scenes::SocialEvents` (`ApplyShopTitles`, `ApplyShopCreated`,
 `ApplyShopClosed`, `ApplyShopNotice`, `ApplyOtherShopTitle` y `ApplyShopOwnerLeft`) y, los de las listas, en
@@ -975,7 +982,8 @@ que el paquete los traiga) y los aplica en `Scenes::SocialEvents` (`ApplyShopTit
 botones están en `Scenes::GameSocialSteps` (comercio y duelo), `GamePartyWindow` (echar) y `GameDialogSteps` (sí y no
 de `0x77` y `0x78`); `/trade`, `/duelstart` y `/duelend`, en `UI::ChatCommands`, hasta donde necesitan un
 personaje elegido. La entrada a la selección porta la cola de `0x5bbe10` (`Scenes::ClearTheTradeForSelection`). Lo
-que queda de las tiendas personales lo dice 08 P-C208; levantar y soltar en las grillas del comercio está portado (06
+que queda de las tiendas personales (su dibujo, `/purchase` y los carteles) lo dice 08 P-C208; levantar y soltar en
+las grillas del comercio está portado (06
 § Lo social en pantalla, "Las grillas del comercio"), con el clic derecho sobre la propia (fase 5, 08 P-C235). Los tests (`TradePartyDuelTest`, `SocialEventsTest`, `GameSocialStepsTest` y los
 de los diálogos, la party, los comandos y el registro de las ventanas) usan nombres inventados.
 

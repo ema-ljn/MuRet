@@ -28,6 +28,10 @@ public:
     // debajo de 21,33 FPS cada dibujo es un frame, con más pasos, como el original en una máquina lenta.
     [[nodiscard]] int FramesAtDraw(Render::Models::OriginalFramePace pace);
 
+    // Lo que daría FramesAtDraw ahora, sin contar el dibujo: si el próximo es un frame del original. Lo pregunta el
+    // PrepareFrame del juego antes del dibujo, para olvidar solo en un frame del original lo que ese frame reescribe.
+    [[nodiscard]] bool NextDrawIsAnOriginalFrame(Render::Models::OriginalFramePace pace) const;
+
 private:
     std::uint64_t m_steps = 0;
     std::uint64_t m_stepsAtTheLastDraw = 0;

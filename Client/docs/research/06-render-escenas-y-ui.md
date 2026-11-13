@@ -5318,9 +5318,12 @@ llena). Los dos globales son `WorldRuntime::fullSetScan`, que arranca en 0 y 0 y
 Lo escriben `ApplyActorEquipment` con el héroe publicado y el dibujo del login y de la selección
 (`ScanTheDrawnCharacter`), con cada personaje en el orden del pool, antes de `DrawCharacter`, una vez
 por frame del original (`OriginalFrameCarry`, como la tela) y solo si están las acciones de
-`Player.bmd`. En el juego, `GameScene::PrepareFrame`, en un frame que llega a `0x510d00`, lo deja sin valor
-(`nullopt`) hasta que un jugador llega a `0x50c91e` y publica el suyo (`ScanTheActor`), y `0x550990` corta con
-un error si lo lee antes de otro `0x505820` (P-C40). El bloque del dibujo que decide lo que devuelve corre en la
+`Player.bmd`. En el juego, `GameScene::PrepareFrame`, en un frame del original que llega a `0x510d00`, lo deja
+sin valor (`nullopt`) hasta que un jugador llega a `0x50c91e` y publica el suyo (`ScanTheActor`), y `0x550990`
+corta con un error si lo lee antes de otro `0x505820` (P-C40). Un dibujo intermedio del modo desacoplado
+(`OriginalFramesOfTheSteps::NextDrawIsAnOriginalFrame` en falso) no es un frame del original: no lo borra ni lo
+publica, y lo que leen los pasos que siguen, como la C (`0x65ca1e` → `0x550d10`), es lo del último frame
+(`GameSceneDrawTest.AnIntermediateDrawKeepsTheScanOfTheLastFrame`). El bloque del dibujo que decide lo que devuelve corre en la
 cola de los tres (`DrawGameCharacterEffects`): desde el cierre de la CL7, el login y la selección con el
 `FullSetScan` que devuelve `ScanTheDrawnCharacter` (el del último frame del original; entre frames, uno sobre
 copias que no publica).
@@ -5457,8 +5460,8 @@ no, sigue con los ocho helpers en su orden ([abajo](#los-ocho-helpers-de-los-sta
 `0x5058fb` y `0x505ac3`; *estático*), desde `0x512a30` y desde el dibujo de los personajes ([El
 conjunto completo de `0x505820`](#el-conjunto-completo-de-0x505820)): `0x550990` lee lo que dejó la
 última llamada. `ApplyActorEquipment` le pasa `WorldRuntime::fullSetScan`, después de escribirlo si
-viste al héroe publicado. Sin valor (un frame del juego en el medio, que MuRet no dibuja),
-`RecalculateOwnStats` corta en `0x550990` (`0x5512ac`), con los cinco helpers de antes hechos; con un
+viste al héroe publicado. Sin valor (un frame del original del juego en el que ningún jugador llegó a
+`0x50c91e`), `RecalculateOwnStats` corta en `0x550990` (`0x5512ac`), con los cinco helpers de antes hechos; con un
 valor, llega al final de la cola. En la entrada al mundo, con las tablas de los conjuntos cargadas,
 `0x512a30` vuelve entero.
 

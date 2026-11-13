@@ -604,7 +604,13 @@ void GameScene::PrepareFrame()
     // P-C40: se conserva la invalidación preventiva mientras el frame original tiene etapas y ramas
     // sin portar. El jugador que alcanza 0x50c91e publica después su scan real; si el dibujo corta
     // antes, el valor queda desconocido. No representa una escritura del original en PrepareFrame.
-    runtime.fullSetScan = std::nullopt;
+    // Solo antes de un frame del original: un dibujo intermedio no llega a 0x510d00 ni publica
+    // (ScanTheActor), y [0x743a178] y [0x743a17c] siguen con lo del último frame. Si los borrara, la C
+    // (0x65ca1e → 0x550d10) cortaría en 0x550990 después de casi cualquier dibujo a más de 21,33 FPS.
+    if (m_cameraFrames.NextDrawIsAnOriginalFrame(OriginalFramePaceOf(m_context.pacing)))
+    {
+        runtime.fullSetScan = std::nullopt;
+    }
 }
 
 void GameScene::Render(SceneCanvas& canvas, float /*alpha*/)

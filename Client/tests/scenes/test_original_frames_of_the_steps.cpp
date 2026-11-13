@@ -152,6 +152,46 @@ TEST(OriginalFramesOfTheStepsTest, WithoutStepsTheDrawsAreIntermediate)
     EXPECT_EQ(frames.FramesAtDraw(OriginalFramePace::ByTheClock), 1) << "80 ms de pasos: un frame de 46,875";
 }
 
+// El PrepareFrame del juego pregunta antes del dibujo si va a ser un frame del original, para olvidar el scan de
+// 0x505820 solo entonces: la respuesta es la del FramesAtDraw que sigue, a cualquier FPS y en los dos modos, y
+// preguntar no cuenta el dibujo. A más de 25 FPS en el desacoplado hay dibujos intermedios; en el fiel, ninguno.
+TEST(OriginalFramesOfTheStepsTest, TheQuestionBeforeTheDrawIsWhatTheDrawCounts)
+{
+    for (const OriginalFramePace pace : {OriginalFramePace::ByTheClock, OriginalFramePace::OncePerDraw})
+    {
+        for (const double fps : {10.0, 21.33, 25.0, 60.0, 144.0})
+        {
+            OriginalFramesOfTheSteps frames;
+            const auto drawTime =
+                std::chrono::duration_cast<Client::Core::Duration>(std::chrono::duration<double>(1.0 / fps));
+            Client::Core::Duration owed{};
+            int intermediate = 0;
+            for (int draw = 0; draw < static_cast<int>(fps * 10.0); ++draw)
+            {
+                owed += drawTime;
+                while (owed >= Client::App::LogicStep)
+                {
+                    owed -= Client::App::LogicStep;
+                    frames.Step();
+                }
+                const bool asked = frames.NextDrawIsAnOriginalFrame(pace);
+                ASSERT_EQ(frames.NextDrawIsAnOriginalFrame(pace), asked) << fps << " FPS, dibujo " << draw;
+                const int counted = frames.FramesAtDraw(pace);
+                ASSERT_EQ(asked, counted > 0) << fps << " FPS, dibujo " << draw;
+                intermediate += counted == 0 ? 1 : 0;
+            }
+            if (pace == OriginalFramePace::OncePerDraw)
+            {
+                EXPECT_EQ(intermediate, 0) << fps << " FPS";
+            }
+            else if (fps > 25.0)
+            {
+                EXPECT_GT(intermediate, 0) << fps << " FPS";
+            }
+        }
+    }
+}
+
 // En el modo fiel, uno por dibujo, como antes: el dibujo fiel ya viene después de sus pasos.
 TEST(OriginalFramesOfTheStepsTest, InTheFaithfulModeEachDrawIsOneOriginalFrame)
 {

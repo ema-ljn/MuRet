@@ -62,8 +62,9 @@ struct OwnStatsContext
     // bytes a 0x7879f80, CL8 hito 4) y los 24 y F3 14 que llegan (0x4d1c89 y 0x4d29cb).
     OwnEquipmentOverride held{};
     // [0x743a178] y [0x743a17c], que lee 0x550990: lo que dejó el último 0x505820 (WorldRuntime::fullSetScan).
-    // Desde 0x512a30 con el héroe publicado, el de esa misma llamada; si no, el del último dibujo de los
-    // personajes (0x50ba30, en 0x50c91e). nullopt si MuRet no sabe qué dejó: 0x550990 corta con error.
+    // Desde 0x512a30 con el héroe publicado, el de esa misma llamada; si no, el del último frame del original que
+    // dibujó a los personajes (0x50ba30, en 0x50c91e): un dibujo intermedio no lo cambia. nullopt si MuRet no sabe
+    // qué dejó: 0x550990 corta con error.
     std::optional<Scan505820> scan505820 = std::nullopt;
 };
 

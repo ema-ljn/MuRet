@@ -302,7 +302,19 @@ Lorencia, Devias y un mapa de evento; el `0x1F` con un tipo `0x98..0x9e`; el cor
       `17` sobre los monstruos del `13`; los casos de monstruo de `0x4f5b70` cortan cada uno en su dirección
       (P-C257 f) y, con monstruos reales, antes `0x4ea030` sin su esqueleto (P-C176). Fase 2d (2026-11-13), por
       la regla 4e y la decisión 5: la sangre `0x5e4` del blanco con daño (`0x53fe70` en `0x542b3b`, `0x5446e0` en
-      `0x546b04` y su dibujo, `0x5487b9`) en el pool del mundo (P-C257 a).
+      `0x546b04` y su dibujo, `0x5487b9`) en el pool del mundo (P-C257 a); las veinte `0x5c6`/12 del `0x815`
+      (`0x540a04`, `0x545397`) y los joints `0x618`/0 y /1 del que mató (`0x532125`, `0x538313`) con el rayo `0x5d5`
+      (P-C257 b y c). Fase 2e (2026-11-13): la flecha del elfo con arco o ballesta y de los arcos montados
+      (`0x53e2b0`, `0x53d9a0`, el alta `0x51c43b`/`0x51a41e`, el paso `0x5208a0` y el choque `0x520170` con
+      `0x517850`; `Scenes::FireTheArrow`, P-C257 d); sus cortes, para la CL11 y el hito 4, en P-C230 y P-C231; y las
+      piedras `0x10b` de las estatuas de Blood Castle (`0x504267`, el alta `0x51bafb` y el paso `0x52531d`, P-C257 e),
+      que corta en el polvo de Q-C1176, un local sin escribir (`0x5252e6`, P-C232 para la VM).
+      Fase 2e-B (2026-11-13): la lógica de los casos de monstruo de `0x4f5b70`
+      (`Scenes::StepTheAttackCases`, `MonsterAttackStep.cpp`): los seis ayudantes (Kalima `0x43a7a0`, el 31, el 30,
+      el 33 y el 54, el 35 y Crywolf), el `switch` por `+0x376` y los de la cola con `0x11` y con 3, con sus lecturas
+      de `+0x38e`, sus `rand()`, lo que escriben (`+0x78`, `+0x381`, `+0x17c`), sus sonidos y las gotas del `0x2d`
+      (`0x607` y `0x5e4`); los efectos cortan en su dirección (P-C233, CL11), el `0x17e` en `0x432acc` (Q-C1050) y
+      los misiles de monstruo van con la flecha (P-C234, cerrado con la fase 2e).
 
 **Pruebas:** el `D7`/`A4` que sale al pegar; la muerte de un monstruo y la de otro jugador; la experiencia del
 `0x16` y del `0x9C` contra el struct del GS (`GCKillPlayerExpSend`); los `rand()` del paso con un monstruo en

@@ -5,12 +5,18 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ArrowEffects.h"
 #include "Scenes/CharacterStep.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/HeroAttack.h"
+#include "Scenes/MonsterAttackStep.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/IFishStepServices.h"
 #include "World/ItemState.h"
+#include "World/ModelEffects.h"
 #include "World/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -36,8 +42,6 @@ constexpr std::uint16_t PlayerType = Data::Models::PlayerSkeletonModel;
 constexpr std::uint16_t SkillCloseRandoms = 1;
 // 0x4fdbf1: el valor al que vuelve +0x381 cuando corre la habilidad, y el 15 de 0x4f97b0 (0x4fb0df).
 constexpr std::uint8_t AttackDone = 15;
-// 0x4f80e0..0x4f80f4: los lugares del pool que 0x4f5b70 acepta como blanco.
-constexpr std::int16_t PoolSlots = 400;
 constexpr std::int16_t NoTarget = -1;
 
 // 0x4f9899: los casos del switch de 0x4f97b0 (habilidad − 0x28, la tabla de 0x4fb10c); los demás van a 0x4fab5d.
@@ -63,74 +67,9 @@ constexpr std::array<std::uint8_t, 8> RangedActions{0x2e, 0x2f, 0x30, 0x31, 0x36
 constexpr std::array<std::uint16_t, 3> MissileTypes{0x168, 0x175, 0x17a};
 constexpr std::uint16_t MissileTypeWithoutTarget = 0x180;
 
-// Un caso de un switch de 0x4f5b70 o de sus ayudantes: el +0x376 (o el tipo) y dónde arranca.
-struct KindCase
-{
-    std::uint16_t kind = 0;
-    std::uint32_t address = 0;
-};
-
-// 0x43a7a0 (la tabla de bytes de 0x43b8fc sobre +0x376 − 0x90 y sus saltos de 0x43b8d4): los monstruos de Kalima; los
-// demás van a 0x43b8cb (AL en 0).
-constexpr std::array KalimaCases{
-    KindCase{0x90, 0x43a7fe},  KindCase{0xae, 0x43a7fe},  KindCase{0xb6, 0x43a7fe},  KindCase{0xbe, 0x43a7fe},
-    KindCase{0x104, 0x43a7fe}, KindCase{0x10c, 0x43a7fe}, KindCase{0x114, 0x43a7fe}, KindCase{0x91, 0x43a872},
-    KindCase{0xaf, 0x43a872},  KindCase{0xb7, 0x43a872},  KindCase{0xbf, 0x43a872},  KindCase{0x105, 0x43a872},
-    KindCase{0x10d, 0x43a872}, KindCase{0x115, 0x43a872}, KindCase{0x92, 0x43ab7a},  KindCase{0xb0, 0x43ab7a},
-    KindCase{0xb8, 0x43ab7a},  KindCase{0xc0, 0x43ab7a},  KindCase{0x106, 0x43ab7a}, KindCase{0x10e, 0x43ab7a},
-    KindCase{0x116, 0x43ab7a}, KindCase{0x93, 0x43abea},  KindCase{0xb1, 0x43abea},  KindCase{0xb9, 0x43abea},
-    KindCase{0xc1, 0x43abea},  KindCase{0x107, 0x43abea}, KindCase{0x10f, 0x43abea}, KindCase{0x117, 0x43abea},
-    KindCase{0x94, 0x43ac3a},  KindCase{0xb2, 0x43ac3a},  KindCase{0xba, 0x43ac3a},  KindCase{0xc2, 0x43ac3a},
-    KindCase{0x108, 0x43ac3a}, KindCase{0x110, 0x43ac3a}, KindCase{0x118, 0x43ac3a}, KindCase{0x95, 0x43ae56},
-    KindCase{0xb3, 0x43ae56},  KindCase{0xbb, 0x43ae56},  KindCase{0xc3, 0x43ae56},  KindCase{0x109, 0x43ae56},
-    KindCase{0x111, 0x43ae56}, KindCase{0x119, 0x43ae56}, KindCase{0xa0, 0x43b208},  KindCase{0xb4, 0x43b208},
-    KindCase{0xbc, 0x43b208},  KindCase{0xc4, 0x43b208},  KindCase{0x10a, 0x43b208}, KindCase{0x112, 0x43b208},
-    KindCase{0xa1, 0x43b279},  KindCase{0xb5, 0x43b279},  KindCase{0xbd, 0x43b279},  KindCase{0xc5, 0x43b279},
-    KindCase{0x10b, 0x43b279}, KindCase{0x113, 0x43b5e4}};
-// 0x4436f0 (la tabla de 0x443734 sobre +0x376 − 0x123): los que devuelven 1 (0x443721) sin hacer nada más.
-constexpr std::array<std::uint16_t, 5> TrialsQuietKinds{0x123, 0x124, 0x125, 0x127, 0x12f};
-// 0x42dcf0 (0x42dd11..0x42dd1b) y 0x429110 (0x429131..0x429142).
-constexpr std::array SiegeCases{KindCase{0x68, 0x42dd56}, KindCase{0x120, 0x42dd23}};
-constexpr std::array DoppelgangerCases{KindCase{0x130, 0x429211}, KindCase{0x134, 0x4291b1}, KindCase{0x135, 0x42914b}};
-// 0x4324c0 (la tabla de 0x432b8c sobre el tipo − 0x17c): con +0x381 en 14 (0x1b2 y 0x1ad) o en 15 (0x1b5), o siempre
-// (0x17c y 0x17e, que miran +0x381 adentro).
-constexpr std::array CrywolfCases{KindCase{0x1b2, 0x4324fb}, KindCase{0x1ad, 0x432543}, KindCase{0x17c, 0x43258b},
-                                  KindCase{0x17e, 0x432a0c}, KindCase{0x1b5, 0x432b30}};
-// 0x4f5c7e..0x4f75ae: los casos por +0x376 (las tablas de 0x4f9074 sobre +0x376 − 0x23 y de 0x4f90b8 sobre
-// +0x376 − 0x49, y el 0x48 de 0x4f5c95); los demás, y el 0xffff de los jugadores, van a 0x4f80e0.
-constexpr std::array AttackKindCases{
-    KindCase{0x23, 0x4f6fea}, KindCase{0x26, 0x4f7074}, KindCase{0x2a, 0x4f6b78}, KindCase{0x2d, 0x4f715a},
-    KindCase{0x31, 0x4f67ad}, KindCase{0x35, 0x4f6442}, KindCase{0x36, 0x4f7f67}, KindCase{0x39, 0x4f7f67},
-    KindCase{0x3a, 0x4f6442}, KindCase{0x3b, 0x4f6442}, KindCase{0x3d, 0x4f5d23}, KindCase{0x3f, 0x4f5d23},
-    KindCase{0x42, 0x4f6152}, KindCase{0x43, 0x4f7074}, KindCase{0x46, 0x4f5cb6}, KindCase{0x47, 0x4f793e},
-    KindCase{0x48, 0x4f7223}, KindCase{0x49, 0x4f798d}, KindCase{0x4a, 0x4f793e}, KindCase{0x4b, 0x4f798d},
-    KindCase{0x4d, 0x4f7bc8}, KindCase{0x59, 0x4f75b5}, KindCase{0x5f, 0x4f75b5}, KindCase{0x67, 0x4f804e},
-    KindCase{0x70, 0x4f75b5}, KindCase{0x76, 0x4f75b5}, KindCase{0x7c, 0x4f75b5}, KindCase{0x82, 0x4f75b5},
-    KindCase{0x8f, 0x4f75b5}, KindCase{0x97, 0x4f7f67}, KindCase{0x12d, 0x4f793e}};
-// 0x4f8147: los casos con la habilidad 0x11 (la tabla de 0x4f91cc sobre +0x376 − 0x25); los demás salen (0x4f903c).
-constexpr std::array KindSkillCases{
-    KindCase{0x25, 0x4f8837}, KindCase{0x2e, 0x4f876e}, KindCase{0x3d, 0x4f85ca}, KindCase{0x42, 0x4f890b},
-    KindCase{0x45, 0x4f8562}, KindCase{0x49, 0x4f8493}, KindCase{0x4b, 0x4f8493}, KindCase{0x4d, 0x4f83f4},
-    KindCase{0x57, 0x4f835b}, KindCase{0x5d, 0x4f835b}, KindCase{0x63, 0x4f835b}, KindCase{0x74, 0x4f835b},
-    KindCase{0x7a, 0x4f835b}, KindCase{0x80, 0x4f835b}, KindCase{0x8d, 0x4f835b}, KindCase{0x59, 0x4f82b4},
-    KindCase{0x5f, 0x4f82b4}, KindCase{0x70, 0x4f82b4}, KindCase{0x76, 0x4f82b4}, KindCase{0x7c, 0x4f82b4},
-    KindCase{0x82, 0x4f82b4}, KindCase{0x8f, 0x4f82b4}, KindCase{0xa3, 0x4f814e}, KindCase{0xa5, 0x4f814e},
-    KindCase{0xa7, 0x4f814e}, KindCase{0xa9, 0x4f814e}, KindCase{0xab, 0x4f814e}, KindCase{0xad, 0x4f814e}};
-// 0x4f8a56: los casos con la habilidad 3 (la tabla de 0x4f9274 sobre +0x376 − 0x22); los demás van a 0x4f8f5b.
-constexpr std::array BoneSkillCases{KindCase{0x22, 0x4f8ce1}, KindCase{0x25, 0x4f8c0d}, KindCase{0x27, 0x4f8e85},
-                                    KindCase{0x30, 0x4f8dc4}, KindCase{0x4d, 0x4f8b78}, KindCase{0x59, 0x4f8a5d},
-                                    KindCase{0x5f, 0x4f8a5d}, KindCase{0x70, 0x4f8a5d}, KindCase{0x76, 0x4f8a5d},
-                                    KindCase{0x7c, 0x4f8a5d}, KindCase{0x82, 0x4f8a5d}, KindCase{0x8f, 0x4f8a5d}};
-
 template <typename T, std::size_t N> bool IsOneOf(const std::array<T, N>& values, T value)
 {
     return std::ranges::find(values, value) != values.end();
-}
-
-template <std::size_t N> const KindCase* CaseOf(const std::array<KindCase, N>& cases, std::uint16_t kind)
-{
-    const auto found = std::ranges::find(cases, kind, &KindCase::kind);
-    return found != cases.end() ? &*found : nullptr;
 }
 
 // 0x517630 (thiscall sobre 0x57630c8) y sus copias en línea: abre +0x38e, lo lee y lo cierra.
@@ -187,76 +126,28 @@ Core::Expected<void, std::string> StepTheAttackFrames(ActorState& actor, std::si
         const LogicalAccess own(runtime.ownRecordDepth, context.random, Render::Models::OwnRecordCloseRandoms);
         left = TypeOf(context.world.OwnCharacter().equipment[1]);
     }
-    // 0x4fb08c..0x4fb0da: el arco 0x815 en la izquierda del registro propio, sea quien sea el que pega.
+    // 0x4fb08c..0x4fb0da: el arco 0x815 en la izquierda del registro propio, sea quien sea el que pega: veinte
+    // 0x53fe70(0x5c6, o+0x10, o+0x1c, o+0xf4, 12, 2,0f, 0), con seis rand() cada una (ninguno con el pool lleno).
     constexpr std::int32_t SparkBow = 0x815;
+    constexpr int BowSparks = 20;
+    constexpr float BowSparkScale = 2.0f;
     if (actor.byte381 >= 1 && left == SparkBow && actor.type == PlayerType)
     {
-        return Core::Unexpected(std::format("0x4fb0d1: el 0x815 del registro propio pide veinte partículas 0x5c6/12 "
-                                            "(0x53fe70) sobre el lugar {}, sin portar",
-                                            slot));
+        if (context.particles == nullptr)
+            return Core::Unexpected(
+                std::format("0x4fb0d1: falta el pool de partículas de las veinte 0x5c6/12 del lugar {}", slot));
+        for (int spark = 0; spark < BowSparks; ++spark)
+        {
+            const auto created = context.particles->CreateChecked(World::SparkParticle, actor.position, actor.angles,
+                                                                  actor.light, World::BowSparkSubtype, BowSparkScale,
+                                                                  context.worldClock, context.random);
+            if (!created.HasValue())
+                return Core::Unexpected(std::format("0x4fb0d1: la 0x5c6/12 del lugar {} falla con error {}", slot,
+                                                    static_cast<unsigned>(created.Error())));
+        }
     }
     actor.byte381 = AttackDone;
     return {};
-}
-
-// Un caso de 0x4f5b70 o de un ayudante que no está portado: los de los monstruos (sus efectos, de la CL11, y lo demás
-// del hito 2).
-Core::Unexpected<std::string> CutAtTheCase(const KindCase& found, std::uint32_t caller, const ActorState& actor,
-                                           std::size_t slot)
-{
-    return Core::Unexpected(std::format("{:#x}: el caso de {:#x} (tipo {:#x}, +0x376 en {:#x}, lugar {}) de 0x4f5b70 "
-                                        "no está portado (los monstruos: hito 2 y CL11)",
-                                        found.address, caller, actor.type, actor.word376, slot));
-}
-
-// 0x4f5ba3..0x4f5c78: los seis ayudantes, cada uno en sus mapas; el que devuelve 1 hace salir a 0x4f5b70 (0x4f903c).
-// Los que actúan cortan en su caso; 0x4436f0 solo devuelve 1. Devuelve si alguno salió.
-Core::Expected<bool, std::string> TheMapHelpersAct(const ActorState& actor, std::size_t slot, std::int32_t map)
-{
-    constexpr std::uint8_t FourteenthStep = 14;
-    constexpr std::uint8_t FifteenthStep = 15;
-    // 0x4f5ba3..0x4f5bda: 0x43a7a0, solo en los mapas 24 a 29 y 36 (0x4f5c0f).
-    if ((map >= 0x18 && map <= 0x1d) || map == 0x24)
-    {
-        if (const KindCase* found = CaseOf(KalimaCases, actor.word376))
-            return CutAtTheCase(*found, 0x43a7a0, actor, slot);
-    }
-    // 0x4436f0 (0x4f5c22): en el 31 (0x43ff10).
-    if (map == 0x1f && IsOneOf(TrialsQuietKinds, actor.word376))
-        return true;
-    // 0x42dcf0 (0x4f5c35): en el 30.
-    if (map == 0x1e)
-    {
-        if (const KindCase* found = CaseOf(SiegeCases, actor.word376))
-            return CutAtTheCase(*found, 0x42dcf0, actor, slot);
-    }
-    // 0x429110 (0x4f5c48): en el 33 y el 54 (0x425070).
-    if (map == 0x21 || map == 0x36)
-    {
-        if (const KindCase* found = CaseOf(DoppelgangerCases, actor.word376))
-            return CutAtTheCase(*found, 0x429110, actor, slot);
-    }
-    // 0x42fce0 (0x4f5c5b): en el 35 (0x42ee20), el tipo 0x1ad (0x42fd43) o 0x1b2 (0x42fd04) con +0x381 en 14; si no,
-    // AL en 0 (0x42fd82).
-    constexpr std::array FortressCases{KindCase{0x1ad, 0x42fd43}, KindCase{0x1b2, 0x42fd04}};
-    if (map == 0x23 && actor.byte381 == FourteenthStep)
-    {
-        if (const KindCase* found = CaseOf(FortressCases, actor.type))
-            return CutAtTheCase(*found, 0x42fce0, actor, slot);
-    }
-    // 0x4324c0 (0x4f5c6e): en el 34 (0x4303c0).
-    if (map == 0x22)
-    {
-        if (const KindCase* found = CaseOf(CrywolfCases, actor.type))
-        {
-            const bool acts = found->kind == 0x1b5                           ? actor.byte381 == FifteenthStep
-                              : found->kind == 0x1b2 || found->kind == 0x1ad ? actor.byte381 == FourteenthStep
-                                                                             : true;
-            if (acts)
-                return CutAtTheCase(*found, 0x4324c0, actor, slot);
-        }
-    }
-    return false;
 }
 
 // 0x4f5b70: lo del ataque que corre mientras sube +0x381.
@@ -265,61 +156,47 @@ Core::Expected<void, std::string> StepTheAttackHelpers(ActorState& actor, std::s
 {
     // 0x4f5b97: un rand() sin condición, que no lee nadie.
     static_cast<void>(context.random.Next());
-    auto helped = TheMapHelpersAct(actor, slot, context.world.Runtime().map);
-    if (!helped.HasValue())
-        return Core::Unexpected(helped.Error());
-    if (helped.Value())
-        return {};
-    // 0x4f5c7e..0x4f75ae: los casos por +0x376.
-    if (const KindCase* found = CaseOf(AttackKindCases, actor.word376))
-        return CutAtTheCase(*found, 0x4f5b70, actor, slot);
-    // 0x4f80e0..0x4f80f4: con +0x3a4 fuera de [0, 400), sale.
-    const auto target = std::bit_cast<std::int16_t>(actor.attackTarget);
-    if (target < 0 || target >= PoolSlots)
-        return {};
-    // 0x4f811b: con 0x11, el switch por +0x376 − 0x25 (0x4f8147); los que no tienen caso, y el 0xffff, salen.
-    constexpr std::uint8_t KindSkill = 0x11;
-    if (ReadTheSkill(actor, context.random) == KindSkill)
+    // Los ayudantes de los mapas, el switch por +0x376 y la cola (MonsterAttackStep.h).
+    return StepTheAttackCases(actor, slot, context);
+}
+
+// 0x59fb80(skill): abre el registro propio ([0x7681eb4], 0x40ad90), busca `skill` entre los 64 bytes de +0x6c de
+// [0x7681eb0] y lo cierra (0x40b4d0: 3.848 rand() si queda en 0). Devuelve su lugar, o 0 si no está. Los otros dos
+// argumentos que le empuja el caller quedan en la pila para 0x53e2b0.
+std::int32_t OwnSkillIndex(const CharacterStepContext& context, std::uint8_t skill)
+{
+    constexpr std::size_t OwnSkills = 64;
+    WorldRuntime& runtime = context.world.Runtime();
+    const LogicalAccess own(runtime.ownRecordDepth, context.random, Render::Models::OwnRecordCloseRandoms);
+    for (std::size_t index = 0; index < OwnSkills; ++index)
     {
-        if (const KindCase* found = CaseOf(KindSkillCases, actor.word376))
-            return CutAtTheCase(*found, 0x4f8147, actor, slot);
-        return {};
+        if (context.world.OwnCharacter().SkillAt(index) == skill)
+            return static_cast<std::int32_t>(index);
     }
-    // 0x4f8a2c: con 3, el switch por +0x376 − 0x22 (0x4f8a56); sin caso, y el 0xffff, 0x4f8f5b (el hueso de +0x2bd con
-    // 0x4ec110, dos joints 0x614 y la partícula 0x5ca).
-    constexpr std::uint8_t BoneSkill = 3;
-    if (ReadTheSkill(actor, context.random) == BoneSkill)
-    {
-        if (const KindCase* found = CaseOf(BoneSkillCases, actor.word376))
-            return CutAtTheCase(*found, 0x4f8a56, actor, slot);
-        return Core::Unexpected(std::format("0x4f8a39: la habilidad 3 de +0x38e en el lugar {} (0x4f5b70, 0x4f8f5b) "
-                                            "es del hito 4",
-                                            slot));
-    }
-    return {};
+    return 0;
 }
 
 // 0x502b12..0x5037d5: sin blanco (+0x3a4 en −1).
 Core::Expected<void, std::string> StrikeNothing(ActorState& actor, std::size_t slot,
                                                 const CharacterStepContext& context)
 {
-    // 0x502b12..0x502ef9: +0x38e; con 0x18, el segundo argumento de 0x59fb80.
-    static_cast<void>(ReadTheSkill(actor, context.random));
+    // 0x502b12..0x502ef9: +0x38e; con 0x18, la bandera (el quinto argumento de 0x53e2b0) en 1.
+    constexpr std::uint8_t FlaggedSkill = 0x18;
+    const std::uint8_t flag = ReadTheSkill(actor, context.random) == FlaggedSkill ? 1 : 0;
     const bool shoots = actor.type == PlayerType ? IsOneOf(RangedActions, actor.animation.action) : actor.byte88 == 1;
     if (shoots)
     {
-        // 0x502fbe..0x503760: dos lecturas más, para 0x59fb80.
-        static_cast<void>(ReadTheSkill(actor, context.random));
-        static_cast<void>(ReadTheSkill(actor, context.random));
-        return Core::Unexpected(std::format("0x50376a: la flecha sin blanco del lugar {} (acción {:#x}): 0x59fb80 y "
-                                            "0x53e2b0, sin portar",
-                                            slot, actor.animation.action));
+        // 0x502fbe..0x503760: dos lecturas más; la primera es la skill de 0x53e2b0 (0x5031e4) y la segunda va a
+        // 0x59fb80 (0x50376a), que da el lugar. 0x50377d: 0x53e2b0(c, o, 0, lugar, bandera, skill).
+        const std::uint8_t skill = ReadTheSkill(actor, context.random);
+        const std::uint8_t second = ReadTheSkill(actor, context.random);
+        const std::int32_t index = OwnSkillIndex(context, second);
+        if (auto fired = FireTheArrow(actor, slot, index, flag, skill, context); !fired.HasValue())
+            return fired;
     }
+    // 0x503785..0x5037d0: los tipos que tiran, 0x53e2b0(c, o, 0, 0, 0, 0).
     if (IsOneOf(MissileTypes, actor.type) || actor.type == MissileTypeWithoutTarget)
-    {
-        return Core::Unexpected(
-            std::format("0x5037d0: 0x53e2b0 del tipo {:#x} (lugar {}), sin portar (fase 2c)", actor.type, slot));
-    }
+        return FireTheArrow(actor, slot, 0, 0, 0, context);
     return {};
 }
 
@@ -397,17 +274,19 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
     const ActorState& victim = actors[static_cast<std::size_t>(target)];
     if (actor.type == PlayerType && IsOneOf(RangedActions, actor.animation.action))
     {
-        // 0x5038a1..0x504043: dos lecturas de +0x38e, para 0x59fb80.
-        static_cast<void>(ReadTheSkill(actor, context.random));
-        static_cast<void>(ReadTheSkill(actor, context.random));
-        return Core::Unexpected(std::format("0x504048: la flecha del lugar {} (acción {:#x}) hacia el {}: 0x59fb80 y "
-                                            "0x53e2b0, sin portar",
-                                            slot, actor.animation.action, target));
+        // 0x5038a1..0x504043: dos lecturas de +0x38e; la primera es la skill de 0x53e2b0 (0x503ac7) y la segunda va a
+        // 0x59fb80 (0x504048), que da el lugar. 0x504060: 0x53e2b0(c, o, el blanco, lugar, 0, skill), y sigue.
+        const std::uint8_t skill = ReadTheSkill(actor, context.random);
+        const std::uint8_t second = ReadTheSkill(actor, context.random);
+        const std::int32_t index = OwnSkillIndex(context, second);
+        if (auto fired = FireTheArrow(actor, slot, index, 0, skill, context); !fired.HasValue())
+            return fired;
     }
+    // 0x504068..0x5040a9: los tipos que tiran con blanco, 0x53e2b0(c, o, el blanco, 0, 0, 0).
     if (IsOneOf(MissileTypes, actor.type))
     {
-        return Core::Unexpected(
-            std::format("0x5040a9: 0x53e2b0 del tipo {:#x} (lugar {}), sin portar (fase 2c)", actor.type, slot));
+        if (auto fired = FireTheArrow(actor, slot, 0, 0, 0, context); !fired.HasValue())
+            return fired;
     }
     // 0x5040b9: el blanco con daño (+0x384, el del último 0x15).
     if (victim.damage != 0)
@@ -421,17 +300,21 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
         }
         if (victim.type == SmokeType)
         {
-            // 0x5041db..0x504267: cinco rand() & 1; con 0, rand() % 30 y el efecto 0x10b.
+            // 0x5041bf..0x50426f: cinco rand() & 1; con 0, el punto del blanco con la z en (z + 50) + rand() % 30 y
+            // 0x518cf0(0x10b, punto, o+0x1c, o+0xf4, 0, sin dueño, −1, 0, 0, 0, 0) (0x504267, la piedra; 0x51bafb).
             constexpr int Puffs = 5;
+            constexpr int HeightSpan = 30;
+            constexpr double Lift = 50.0; // 0x6b86b0
             for (int i = 0; i < Puffs; ++i)
             {
-                if ((context.random.Next() & 1) == 0)
-                {
-                    static_cast<void>(context.random.Next());
-                    return Core::Unexpected(std::format("0x504267: el efecto 0x10b (0x518cf0) sobre el blanco {}, sin "
-                                                        "portar",
-                                                        target));
-                }
+                if ((context.random.Next() & 1) != 0)
+                    continue;
+                const float lifted = static_cast<float>(static_cast<double>(victim.position.z) + Lift);
+                const int rise = context.random.Next() % HeightSpan;
+                const glm::vec3 point{victim.position.x, victim.position.y,
+                                      static_cast<float>(static_cast<double>(rise) + static_cast<double>(lifted))};
+                static_cast<void>(context.world.Map().effects.CreateDebris(World::DebrisEffect, point, actor.angles,
+                                                                           actor.light, context.random));
             }
             // 0x50427d: 0x41ed10(0x88, 0, 0).
             constexpr std::int32_t SmokeSound = 0x88;
@@ -457,13 +340,37 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
                                             "hito 4",
                                             first, slot));
     }
-    // 0x505069..0x505107: el punto del blanco, la bandera de la 0x25 y la 0x26 y la luz, para los joints.
+    // 0x505069..0x505107: el punto del blanco, la bandera de la 0x25 y la 0x26 y la luz, que leen los casos de
+    // habilidad. Con +0x380 en 2 (el 16 del héroe, mató), 0x530860(0x618, blanco+0x10, blanco+0x10, o+0x1c, 0 y 1, o,
+    // 20,0f, −1, 0, 0, −1) (0x505169, 0x5051a4), sin rand().
     constexpr std::uint8_t KillerOnRecord = 2;
     if (actor.byte380 == KillerOnRecord)
     {
-        return Core::Unexpected(std::format("0x505169: los joints 0x618/0 y 0x618/1 (0x530860) del lugar {} hacia el "
-                                            "blanco {}, sin portar",
-                                            slot, target));
+        if (context.joints.empty())
+        {
+            return Core::Unexpected(
+                std::format("0x505169: faltan los joints de los 0x618 del lugar {} hacia el blanco {}", slot, target));
+        }
+        constexpr float KillBeamWidth = 20.0f;
+        glm::vec3 from = victim.position;
+        glm::vec3 to = victim.position;
+        glm::vec3 angles = actor.angles;
+        for (const std::int32_t subtype : {0, 1})
+        {
+            const World::FishEffectRequest request{.type = KillBeamJoint,
+                                                   .firstPosition = from,
+                                                   .secondPosition = to,
+                                                   .angles = angles,
+                                                   .subtype = subtype,
+                                                   .ownerContext = &actor,
+                                                   .scale = KillBeamWidth,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
+            if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
+                return Core::Unexpected(std::format("{:#x}: {}", subtype == 0 ? 0x505169 : 0x5051a4, created.Error()));
+        }
     }
     // 0x5051bb: los casos de QuietSkills no suenan; los demás, salvo +0x376 de 0x44 a 0x4b.
     const std::uint8_t second = ReadTheSkill(actor, context.random);

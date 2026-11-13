@@ -117,7 +117,8 @@ struct ActorState
     std::uint32_t flags7c = 0;
     // +0x78: 0x511290 lo pone en 0 (0x511d51). Del jinete lo leen el paso del caballo (con 0x4000, sin
     // polvo ni aliento: 0x444414 y 0x44455a), su dibujo (con 0x4000, 0x602e90 con 10: 0x445310) y 0x5ffdf0
-    // (con 0x1000, el frame del caballo en 0: 0x5ffefc). Quién más lo escribe en el personaje, sin leer.
+    // (con 0x1000, el frame del caballo en 0: 0x5ffefc). Las guardias de Kalima prenden 0x100 o 0x8 (0x43aabf,
+    // Scenes::StepTheAttackCases). Quién más lo escribe en el personaje, sin leer.
     std::uint32_t flags78 = 0;
     // +8: con 1, el paso del caballo oscuro de este jinete saca doce 60f/0 (0x44468d) y lo vuelve a 0 (0x444758),
     // sea cual sea. 0x511290 no lo escribe y 0x5140c0 lo pone en 0. Sólo lo pone en 1 la respuesta del A9 de las
@@ -153,8 +154,9 @@ struct ActorState
     // queda el del uso anterior del registro (Q-C363).
     glm::vec3 effectOrigin{};
     // +0x17c, +0x180 y +0x184: la posición que 0x4fcee0 copia antes del frame 3 y fuera de la acción 0x8d
-    // (0x4fcf06..0x4fcf1b). La escribe también la habilidad (0x4f5b70), sin portar; 0x511290 no la toca: queda la
-    // del uso anterior del registro (Q-C363). El joint 0x610/4 de la espada 0x223 sigue de acá al personaje (0x537d55).
+    // (0x4fcf06..0x4fcf1b). La escribe también el 0x49 y el 0x4b de 0x4f5b70 en 13 (0x4f7ab9,
+    // Scenes::StepTheAttackCases); 0x511290 no la toca: queda la del uso anterior del registro (Q-C363). El joint
+    // 0x610/4 de la espada 0x223 sigue de acá al personaje (0x537d55).
     glm::vec3 trailOrigin{};
     // +0x28 y +0x2c, los ángulos de la cabeza, y +0x34 y +0x38, hacia dónde gira: los mueve 0x505de0
     // (0x5068eb..0x5069ab, Scenes::StepCharacterHead) y los lee la pose (0x4eb860). 0x511290 no los escribe:

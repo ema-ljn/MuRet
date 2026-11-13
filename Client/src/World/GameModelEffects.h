@@ -42,6 +42,10 @@ struct ModelEffectStepServices
     // MuRet todavía no tiene audio (CL10): la escena pasa uno que no hace nada.
     std::function<void(std::int32_t)> sound{};
 };
+// 0x5208c5..0x52091a: la luz local del paso, del primer rand(): ((r & 3) + 7) · 0,1f (0x6b87b8); con menos de 5 de
+// vida, menos (5 − vida) · 0,2f (0x6b8854), guardada en float y comparada sin redondear con 0.
+[[nodiscard]] float StepLuminosity(int draw, std::int32_t life);
+
 // 0x5208a0: CRT común, llegada/teleport, torre de Noria, 9/0 de Kalima con el owner de ondas, la mariposa
 // 0xae (sus rand() del vuelo, la luz del subtipo, las chispas 5c5/7 del /3 y el sprite 0x5ac) y los del
 // Dungeon y Lost Tower: la piedra 0xda que rebota (0x52444d), el chorro 0x5de/0 (0x52ad21: seis llamas
@@ -64,7 +68,9 @@ struct ModelEffectStepServices
 // de cinco pares 0x101/0x102, el sonido 0x97 y la vida en 0; en las demás, se hamaca con +0x28. Con el estado 0 (la
 // habilidad del Dark Lord) corta donde sale de lo portado. Salta la animación y 0x51fc80 de la cola (0x52cbb0). Las
 // grietas 0xfb..0x102 (0x52276a..0x522bd2) se apagan y se hunden; la 0xfb tiembla la cámara, las 0xfc y 0xff sueltan
-// a veces piedritas 0xc8/0xc9 y, con la 0x102, prenden la luz dinámica según el tipo de su dueño.
+// a veces piedritas 0xc8/0xc9 y, con la 0x102, prenden la luz dinámica según el tipo de su dueño. Las piedras 0x10a y
+// 0x10b de las estatuas de Blood Castle (0x52531d) saltan, caen sobre el terreno y se inclinan; uno de cada diez pasos
+// corta en 0x5252e6, donde el polvo 5f3/0 va en un local sin escribir (Q-C1176).
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton, Particles& particles,
                     float worldClock, Render::Models::CrtRandom& random, KalimaWorld* kalima = nullptr,

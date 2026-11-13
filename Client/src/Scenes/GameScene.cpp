@@ -1,4 +1,5 @@
 #include "Scenes/GameScene.h"
+#include "Scenes/MonsterSounds.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/SkillTable.h"
@@ -56,6 +57,7 @@
 #include "Scenes/TerrainPolygonFrame.h"
 #include "Scenes/TerrainTiles.h"
 #include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldModels.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/GroundEffectDrawing.h"
 #include "Scenes/WorldState.h"
@@ -789,6 +791,10 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
     {
         return Core::Unexpected("0x616ec0: los modelos de los objetos del " + MapText(map) + ": " + loaded.Error());
     }
+    // 0x42aa6b: el lancero del 30 (0x612d90(0x4d)) escribe su tabla de sonidos (0x612c80) si cargó con mallas.
+    constexpr std::int32_t SpearmanMonster = 0x4d;
+    if (const auto* spearman = m_worldModels.Find(SpearmanModel); spearman != nullptr && !spearman->meshes.empty())
+        WriteMonsterSounds(SpearmanMonster, m_context.world->Runtime().modelSounds);
     m_worldModelsMap = map;
     World::SeedTarkanModelState(static_cast<std::uint8_t>(map), m_context.world->Runtime().objectModelState);
     if (m_projectingFrame)

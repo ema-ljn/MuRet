@@ -5,6 +5,7 @@
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorCooldownServices.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/SceneId.h"
 #include "World/TerrainCulling.h"
 
@@ -12,6 +13,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <span>
 #include <string>
 
 namespace Client::Render::Models
@@ -77,6 +79,9 @@ struct CharacterStepContext
     const World::WorldTerrain* terrain = nullptr;
     const Render::Models::Skeleton* darkSpiritSkeleton = nullptr;
     World::Particles* particles = nullptr;
+    // Los joints del juego (0x74a8d78, GameDrawTailState::joints), para el 0x618/0 y /1 del que mató (0x505169). Vacío,
+    // el paso del ataque corta ahí.
+    std::span<JointState> joints{};
     float worldClock = 0.0f;
     std::int32_t counter = 0;
     // El objeto suelto de 0x7437050 (NewFace 0xa8..0xac), fuera de los 400 del pool.

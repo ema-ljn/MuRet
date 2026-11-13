@@ -47,6 +47,15 @@ inline constexpr std::uint16_t SparkParticle = 0x5c6;
 inline constexpr std::int32_t TeleportSparkSubtype = 1;
 inline constexpr std::int32_t RavenSparkSubtype = 5;
 inline constexpr std::int32_t MapSparkSubtype = 9;
+// Las veinte chispas del 0x815 en la izquierda del registro propio, que pide el paso del ataque (0x4fb0d1): nacen en
+// 0x540a04 con la textura 0x5fc, seis rand() y +0x38 en 1,0f, y su paso (0x545397) saca un rand() para la luz.
+inline constexpr std::int32_t BowSparkSubtype = 12;
+// El rayo 0x5d5 (Effect\lightning2.jpg) que deja el joint 0x618/0 o /1 del que mató (0x53867e, la /0 en cada paso, y
+// 0x538577, la /1 al llegar). Nacen sin rand() (0x540bbe y 0x540bfe) y su paso (0x545419) gira con el reloj y pide la
+// luz dinámica; 548550 los dibuja con el billboard común.
+inline constexpr std::int32_t LightningParticle = 0x5d5;
+inline constexpr std::int32_t LightningTrailSubtype = 0;
+inline constexpr std::int32_t LightningHitSubtype = 1;
 inline constexpr std::uint16_t CloudParticle = 0x622;
 inline constexpr std::int32_t LoginCloudSubtype = 10;
 // Los dos tipos que comparten creación y paso; la 68 además corre la posición al nacer.

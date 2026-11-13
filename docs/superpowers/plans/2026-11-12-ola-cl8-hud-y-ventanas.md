@@ -398,15 +398,19 @@ tiene del registro (P-C122); lo inferido va a la VM (P-C123).
 **El cuerpo del ítem, hecho** (2026-11-12): `0x5b2aa0` con `0x5af590` (las clases), `0x5b2320` (las opciones),
 `0x40dd80` (el stat del conjunto), `0x40eee0` (las opciones del conjunto), `0x5b1ba0` y `0x402b30`, sobre
 `Scenes::TooltipWriter` (06 § El cuerpo del ítem; Q-C690 a Q-C696; lo que corta, P-C125 y P-C126), y el de reparar
-`0x5b8150` salvo el precio de un ítem gastado (06 § El cuerpo de reparar; P-C127). El de la skill, en el párrafo que
-sigue.
+`0x5b8150` (06 § El cuerpo de reparar). La skill y el precio de reparar, en los dos párrafos que siguen.
 
 **El cuerpo de la skill, hecho** (2026-11-12, cierra P-C101): `0x5b90b0` con la ayuda de los comandos del cuervo
 `0x421c10`, el daño de la skill `0x5516e0` (`Scenes/OwnDamage`), `0x5519f0`, `0x552470` y el acceso en línea de la
 entrada, sobre `Scenes::TooltipWriter` con su propio contador (`Scenes/SkillTooltip`). Probado con las clases 0 a 5,
 en 640 × 480 y 800 × 600, con sus `rand()` (06 § El cuerpo de la skill; Q-C720 a Q-C724). Lo que corta está en
-P-C135, y lo que deja a otras olas o a la VM, en P-C136. Con esto, del tooltip faltan el precio de reparar (P-C127)
-y el modo 3 de las ayudas, del hito 6 (P-C102).
+P-C135, y lo que deja a otras olas o a la VM, en P-C136.
+
+**El precio de un ítem, hecho** (2026-11-12, cierra P-C127): `0x54d0f0` entero, con sus tres modos, y `0x5b13e0`, en
+`Scenes/ItemPrice` como funciones de datos que la tienda de NPC de la CL9.3 reutiliza. El cuerpo de reparar escribe
+con ellos el precio de un ítem gastado (06 § El precio de un ítem; Q-C735 a Q-C737). Lo que no alcanza a leer corta
+con su dirección (P-C140), y el precio de la tienda de NPC sigue cortando en `0x5b2d23` (P-C125 (a)). Con esto, del
+tooltip queda solo el modo 3 de las ayudas, del hito 6 (P-C102).
 
 ### Hito 6: los diálogos, el menú de Esc, las teclas y la captura (CL8.1 y CL8.3, ~36 KB)
 

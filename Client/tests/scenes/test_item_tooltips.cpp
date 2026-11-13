@@ -251,6 +251,7 @@ protected:
                               .hud = runtime.hud,
                               .crywolfSandOverlay = runtime.crywolf.sandOverlay,
                               .sound = sound,
+                              .projecting = projecting,
                               .sprites = sprites,
                               .text = text,
                               .texts = &texts,
@@ -329,6 +330,7 @@ protected:
     Client::Data::Tables::SkillTable skills = Skills();
     Client::Data::Tables::ItemSetTables sets = Sets();
     bool withSets = true;
+    bool projecting = false;
     Client::UI::Point mouse{};
 };
 
@@ -681,12 +683,46 @@ TEST_F(ItemTooltipsTest, TheRepairTooltipOfAFullWeaponHasNoPrice)
     EXPECT_EQ(text.texts[0].y, 300 - 65 + 7);
 }
 
-TEST_F(ItemTooltipsTest, TheRepairPriceOfADamagedItemCuts)
+TEST_F(ItemTooltipsTest, TheRepairTooltipOfADamagedWeaponHasItsPrice)
 {
+    const CrtRandom expected = Advanced(random, OwnRecordCloseRandoms);
+
     const auto drawn = Repair(ExcellentWeapon());
 
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x5b838d"), std::string::npos) << drawn.Error();
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    // 0x5b838d: 0x54d0f0(ítem, 2) da 229.300, y 0x5b13e0 cobra 3 · 229.300^(3/4) · (1 − 25 / 51) + 1 = 16.055,
+    // redondeado a 100.
+    ExpectLines({{"\n", 0, StaleBold},
+                 {"Reparar: 16,000", 4, 1},
+                 {"\n", 0, StaleBold},
+                 {"Brillante Hoja Gris +9", 4, 1},
+                 {"\n", 0, StaleBold},
+                 {"Vida util 25/51", 0, 0},
+                 {"\n", 0, StaleBold}},
+                4);
+    EXPECT_EQ(world.Runtime().panels.repairMode, 2);
+    EXPECT_EQ(random.State(), expected.State());
+}
+
+TEST_F(ItemTooltipsTest, TheRepairPriceOfADamagedWeaponReadsTheSelfRepairFlag)
+{
+    // Con el byte bajo de [0x78abb10] en 1, 0x5b13e0 suma 0,05f · 16.055.
+    world.Runtime().field78abb10 = 0x101;
+
+    ASSERT_TRUE(Repair(ExcellentWeapon()).HasValue());
+
+    EXPECT_EQ(Lines().text[1], "Reparar: 16,800");
+}
+
+TEST_F(ItemTooltipsTest, AProjectedRepairTooltipLeavesTheRepairModeAlone)
+{
+    projecting = true;
+    world.Runtime().panels.repairMode = 0;
+
+    ASSERT_TRUE(Repair(ExcellentWeapon()).HasValue());
+
+    EXPECT_EQ(Lines().text[1], "Reparar: 16,000");
+    EXPECT_EQ(world.Runtime().panels.repairMode, 0);
 }
 
 TEST_F(ItemTooltipsTest, SomeItemsHaveNoRepairTooltip)

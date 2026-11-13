@@ -14,6 +14,7 @@
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
@@ -631,13 +632,15 @@ TEST(AttackStepTest, TheTargetWithDamageBleedsTenTimes)
 // 0x5041bf..0x50426f: el blanco 0x18e (las estatuas de Blood Castle) con daño, después de la sangre, tira cinco veces
 // rand() & 1; con 0, rand() % 30 para la z (z + 50 + el rand()) y la piedra 0x10b (0x51bafb, nueve rand(): con el
 // subtipo 0 pasa al 1), con los ángulos y la luz del que pega y sin dueño. Después, el sonido 0x88 y el resto. En
-// Lorencia, en Devias y en Blood Castle 1 (el 11).
+// Lorencia, en Devias y en Blood Castle 1 (el 11). Cada piedra da pasos hasta morir o hasta el corte de 0x5252e6.
 TEST(AttackStepTest, TheStatueWithDamageThrowsStones)
 {
     constexpr int Bleeding = 10 * (3 + 4);
     constexpr int Flips = 5;
     constexpr int StoneDraws = 1 + 9;
     const glm::vec3 victimAt{12800.0f, 6400.0f, 150.0f};
+    int cuts = 0;
+    int steps = 0;
     for (const std::int32_t map : {0, 2, 11})
     {
         SCOPED_TRACE(map);
@@ -669,8 +672,8 @@ TEST(AttackStepTest, TheStatueWithDamageThrowsStones)
         EXPECT_EQ(DrawsSince(Seed, tested.random),
                   CountingStep + SkillWithTarget + Bleeding + Flips + static_cast<int>(rises.size()) * StoneDraws);
         EXPECT_NE(std::ranges::find(tested.sounds, 0x88), tested.sounds.end());
-        std::vector<const Client::World::ModelEffect*> stones;
-        for (const Client::World::ModelEffect& effect : tested.world.Map().effects.Effects())
+        std::vector<Client::World::ModelEffect*> stones;
+        for (Client::World::ModelEffect& effect : tested.world.Map().effects.Effects())
         {
             if (effect.alive && effect.type == Client::World::DebrisEffect)
                 stones.push_back(&effect);
@@ -689,7 +692,39 @@ TEST(AttackStepTest, TheStatueWithDamageThrowsStones)
             EXPECT_GE(stone.life, 32);
             EXPECT_LE(stone.life, 47);
         }
+        // Los pasos de cada piedra (0x5208a0 → 0x52531d), dos rand() cada uno: la luz local y el de 0x5252e6. Con
+        // rand() % 10 en 0 corta ahí (el polvo en un local sin escribir, Q-C1176); si no, la cola resta la vida.
+        // Con la misma semilla las tres piedras darían el mismo primer paso: cada mapa corre la CRT `map` lugares para
+        // pasar por las dos ramas.
+        Client::World::ModelEffectStepServices services;
+        services.terrainHeight = [](float, float) { return 0.0; };
+        tested.random.Discard(static_cast<std::uint32_t>(map));
+        for (Client::World::ModelEffect* stone : stones)
+        {
+            while (stone->alive)
+            {
+                CrtRandom probe = tested.random;
+                static_cast<void>(probe.Next());
+                const bool dusty = probe.Next() % 10 == 0;
+                const std::int32_t life = stone->life;
+                const CrtRandom before = tested.random;
+                const auto moved = Client::World::StepGameModelEffect(*stone, nullptr, tested.particles, 0.0f,
+                                                                      tested.random, nullptr, services);
+                EXPECT_EQ(DrawsSince(before.State(), tested.random), 2);
+                if (dusty)
+                {
+                    EXPECT_TRUE(HasError(moved, "0x5252e6")) << ErrorOf(moved);
+                    ++cuts;
+                    break;
+                }
+                ASSERT_TRUE(moved.HasValue()) << moved.Error();
+                EXPECT_LT(stone->life, life);
+                ++steps;
+            }
+        }
     }
+    EXPECT_GT(cuts, 0);
+    EXPECT_GT(steps, 0);
 }
 
 // 0x4fb08c..0x4fb0da: con el 0x815 en la izquierda del registro propio, el frame 5 de cualquiera que pegue pide veinte

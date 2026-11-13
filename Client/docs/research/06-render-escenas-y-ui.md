@@ -9720,10 +9720,11 @@ de los ángulos en `rand() % 360` para girar el empuje (`0x5fc8f0`, `0x5fcbd0`) 
 local: la posición más la velocidad sin girar, la velocidad por 0,9f (y por 1,1f con el subtipo 1), la z más la caída
 y la caída menos 3; con la altura del terreno (`0x5f93c0`) por encima de la z, la z queda en ella, la caída por
 −0,2f, cinco vidas menos y la x de los ángulos menos escala · 128; si no, menos escala · 16; `+0x174` = vida · 0,1f.
-Termina en `0x5252e6`: `rand() % 10` y, con 0, el polvo `0x5f3`/0 en un punto que nadie escribe (Q-C1176; MuRet pone
-la posición de la piedra, P-C232). La cola común la mueve otra vez, con la velocidad girada (Q-C1177). MuRet la crea
+Termina en `0x5252e6`: `rand() % 10` y, con 0, el polvo `0x5f3`/0 en `[EBP − 0x28]`, un local que nadie escribe
+(Q-C1176): MuRet corta ahí, después de ese `rand()` (P-C232, para la VM); en los otros nueve de cada diez pasos, la
+cola común la mueve otra vez, con la velocidad girada (Q-C1177). MuRet la crea
 (`ModelEffects::CreateDebris`) y la mueve (`World::StepGameModelEffect`); su dibujo, con el modelo, es de la CL11
-(`AttackStepTest.TheStatueWithDamageThrowsStones`, `GameModelEffectsTest.TheStatueStonesJumpFallTiltAndSometimesRaiseDust`).
+(`AttackStepTest.TheStatueWithDamageThrowsStones`, `GameModelEffectsTest.TheStatueStonesJumpFallTiltAndCutAtTheDust`).
 
 **Las chispas del `0x815`** (`0x4fb0d1`, *estático*). En `0x4f97b0`, con `+0x381` en 1 o más, el `0x815` en la
 izquierda del registro propio y el `0x20a`, veinte `0x53fe70(0x5c6, o+0x10, o+0x1c, o+0xf4, 12, 2,0f, 0)`. La

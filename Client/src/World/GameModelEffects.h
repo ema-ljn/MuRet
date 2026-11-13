@@ -69,8 +69,8 @@ struct ModelEffectStepServices
 // habilidad del Dark Lord) corta donde sale de lo portado. Salta la animación y 0x51fc80 de la cola (0x52cbb0). Las
 // grietas 0xfb..0x102 (0x52276a..0x522bd2) se apagan y se hunden; la 0xfb tiembla la cámara, las 0xfc y 0xff sueltan
 // a veces piedritas 0xc8/0xc9 y, con la 0x102, prenden la luz dinámica según el tipo de su dueño. Las piedras 0x10a y
-// 0x10b de las estatuas de Blood Castle (0x52531d) saltan, caen sobre el terreno, se inclinan y a veces sueltan el
-// polvo 5f3/0 (con la posición del efecto: Q-C1176).
+// 0x10b de las estatuas de Blood Castle (0x52531d) saltan, caen sobre el terreno y se inclinan; uno de cada diez pasos
+// corta en 0x5252e6, donde el polvo 5f3/0 va en un local sin escribir (Q-C1176).
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton, Particles& particles,
                     float worldClock, Render::Models::CrtRandom& random, KalimaWorld* kalima = nullptr,

@@ -1051,10 +1051,10 @@ Core::Expected<void, std::string> StepEarthquakeCrack(ModelEffect& effect, float
 // caída menos 3. Con la altura del terreno (0x5f93c0) por encima de la z (FCOM: igual o NaN no), la z queda en ella,
 // la caída por −0,2f (0x6b8d3c), cinco vidas menos y la x de los ángulos menos escala · 128; si no, menos escala · 16.
 // +0x174 = vida · 0,1f. En 0x5252e6, rand() % 10 y, con 0, 0x53fe70(0x5f3, [EBP − 0x28], ángulos, (1; 1; 1), 0,
-// 1,0f, 0): ese punto es un local que ningún camino escribe (Q-C1176); MuRet pone la posición del efecto (*emulado*,
-// P-C232). La partícula no cambia nada del efecto ni de sus rand().
-Core::Expected<void, std::string> StepDebris(ModelEffect& effect, Particles& particles, float worldClock,
-                                             Render::Models::CrtRandom& random, const ModelEffectStepServices& services)
+// 1,0f, 0): ese punto es un local de 0x5208a0 que ningún camino escribe (Q-C1176), así que corta ahí, después de ese
+// rand() y antes del polvo y de la cola (P-C232, para la VM).
+Core::Expected<void, std::string> StepDebris(ModelEffect& effect, Render::Models::CrtRandom& random,
+                                             const ModelEffectStepServices& services)
 {
     glm::vec3& position = effect.transform.position;
     for (int axis = 0; axis < 3; ++axis)
@@ -1095,12 +1095,9 @@ Core::Expected<void, std::string> StepDebris(ModelEffect& effect, Particles& par
     constexpr int DustChance = 10;
     if (random.Next() % DustChance != 0)
         return {};
-    const auto dust = particles.CreateChecked(DustParticle, position, effect.transform.angles, glm::vec3(1.0f), 0, 1.0f,
-                                              worldClock, random);
-    if (!dust.HasValue())
-        return Core::Unexpected(std::format("0x525310: el polvo 0x5f3/0 de la piedra 0x10b falla con error {}",
-                                            static_cast<unsigned>(dust.Error())));
-    return {};
+    return Core::Unexpected(std::format("0x5252e6: el polvo 0x5f3/0 de la piedra {:#x} va en [EBP − 0x28] de "
+                                        "0x5208a0, un local que ningún camino escribe (Q-C1176; la VM, P-C232)",
+                                        effect.type));
 }
 } // namespace
 Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
@@ -1210,7 +1207,7 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     else if (effect.type == FirstDebrisEffect || effect.type == DebrisEffect)
     {
         wholeStep = true;
-        if (auto stepped = StepDebris(effect, particles, worldClock, random, services); !stepped.HasValue())
+        if (auto stepped = StepDebris(effect, random, services); !stepped.HasValue())
             return stepped;
     }
     else if (effect.type >= FirstEarthquakeCrack && effect.type <= LastEarthquakeCrack)

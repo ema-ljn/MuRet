@@ -359,9 +359,9 @@ TEST(GameModelEffectsTest, TheFallingStoneFallsAndBouncesOnTheGround)
 // La piedra 0x10b del ataque a las estatuas de Blood Castle. El alta (0x51bafb): nueve rand() con el 0x10b, que pasa al
 // subtipo 1, y ocho con el 0x10a; la z 50 más, sin dueño. El paso (0x52531d): la velocidad sin girar se suma y queda
 // por 0,9f (por 1,1f más con el subtipo 1), la caída suma y pierde 3; en el aire se inclina escala · 16 y en el suelo
-// se apoya, la caída por −0,2f, pierde 5 de vida y se inclina escala · 128; +0x174 = vida · 0,1f. Después, rand() % 10
-// y, con 0, el polvo 0x5f3/0 (cuatro rand(); su punto es Q-C1176); la cola común resta la vida.
-TEST(GameModelEffectsTest, TheStatueStonesJumpFallTiltAndSometimesRaiseDust)
+// se apoya, la caída por −0,2f, pierde 5 de vida y se inclina escala · 128; +0x174 = vida · 0,1f. Después, rand() % 10:
+// con 0 corta en 0x5252e6 (el polvo 0x5f3/0 va en un local sin escribir, Q-C1176); si no, la cola común resta la vida.
+TEST(GameModelEffectsTest, TheStatueStonesJumpFallTiltAndCutAtTheDust)
 {
     {
         Client::World::ModelEffects effects;
@@ -427,14 +427,21 @@ TEST(GameModelEffectsTest, TheStatueStonesJumpFallTiltAndSometimesRaiseDust)
         EXPECT_EQ(landing.life, 34);
     }
     {
+        // El paso en que rand() % 10 da 0: corta en 0x5252e6 después de sus dos rand(), sin el polvo ni la cola.
         const std::uint32_t dusty = SeedWhereDraw(1, [](int draw) { return draw % 10 == 0; });
         Client::World::ModelEffect raising = stone();
         services.terrainHeight = [](float, float) { return 0.0; };
         Client::Render::Models::CrtRandom random(dusty);
-        ASSERT_TRUE(Client::World::StepGameModelEffect(raising, nullptr, particles, 0.0f, random, nullptr, services)
-                        .HasValue());
-        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(dusty, 2 + 4).State());
-        EXPECT_TRUE(particles.Any());
+        const auto cut =
+            Client::World::StepGameModelEffect(raising, nullptr, particles, 0.0f, random, nullptr, services);
+        ASSERT_FALSE(cut.HasValue());
+        EXPECT_NE(cut.Error().find("0x5252e6"), std::string::npos) << cut.Error();
+        EXPECT_NE(cut.Error().find("P-C232"), std::string::npos) << cut.Error();
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(dusty, 2).State());
+        EXPECT_EQ(raising.transform.angles.x, -16.0f);
+        EXPECT_EQ(raising.alpha, times(40.0, std::bit_cast<float>(0x3dcccccdu)));
+        EXPECT_EQ(raising.life, 40);
+        EXPECT_FALSE(particles.Any());
     }
     services.terrainHeight = {};
     Client::World::ModelEffect blind = stone();

@@ -336,7 +336,8 @@ de Q/W/E; los `rand()` de la búsqueda del ítem del piso en el picking. **Desbl
       sacar y el zen del almacén, `Scenes/NpcWindowSteps.cpp`; los dibujos, el teclado, la mezcla y los precios de la
       ayuda siguen cortados, en 08, P-C192. Fase 3, 2026-11-13: la caja del caos entera, con lo que vale, el tipo de
       la mezcla, el botón de mezclar y el dibujo, `Scenes/ChaosMix.cpp` y `Scenes/ChaosBoxDrawing.cpp`; el 2 desde
-      el nivel 8 corta, P-C197. Fase 3b: el `BC`, `Protocol::JewelMix`; sus respuestas, P-C199.)
+      el nivel 8 corta, P-C197. Fase 3b: el `BC`, `Protocol::JewelMix`; sus respuestas, P-C199; el entrenador con
+      `0x724580` en 2, `0x44b910` con su `34`, `Scenes/PetTrainer`; sus modos 1 y 3 y su dibujo, P-C198.)
 - [x] **Los paquetes:** lo que falta de `31`..`34` (`0x4c5f60`, `0x5bc740` y `0x5be150` están en parte), `81`..`83`,
       `86`/`87`. (Fase 1, 2026-11-13: `Protocol::NpcWindows` y `Scenes/NpcWindows.cpp`; el `30` y abrir y cerrar
       `0x40`, `0x100` y `0x10000` también. Lo que sigue cortado de las otras dos, en 08, P-C191.)

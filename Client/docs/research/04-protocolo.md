@@ -240,7 +240,8 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   mandarlo, y `0x4499b0` sale sin mandar si la caja de `0x723c80` tiene algo (`0x449c10`) y, si no,
   pone en 0 `0x724580` y `0x724584`. En el GS reconstruido es `CGCloseWindow`
   (`protocol.cpp:443`, `0x42ab20`): MuRet lo llama `WindowClose`. Los llaman también otros lugares de la interfaz (`0x44b5da`,
-  `0x44b9ce`, `0x44c62e` y `0x658dfd` a `0x4499b0`), que MuRet no tiene.
+  `0x44b9ce`, `0x44c62e` y `0x658dfd` a `0x4499b0`): MuRet tiene los dos del entrenador con `0x724580` en 2
+  (`0x44b9ce` y `0x44c62e`, CL9 hito 6, `Scenes/PetTrainer`).
 - **La suma del ejecutable (`03`)**, S->C y C->S (`0x4e2b10` → `0x4e16c0`; *estático*, ASM
   c32bbd5f, y del lado del GS la reconstrucción del research del servidor). Al entrar al mundo
   (`gObjSetCharacter`, con el `F3 03`) el GS manda `C1 06 03 00 <clave:2>` (`GCCheckMainExeKeySend`):
@@ -1062,6 +1063,9 @@ ASM del cliente):
   mandan `C1 05 34 <lugar> <0x78abb10>`; el botón de reparar todo de la tienda (`0x5edaa7`, con `0x78abb09`)
   `C1 05 34 FF 00` sin gastar el clic. `PMSG_ITEMDURREPAIR` (`Position`, `Requestpos`): `0xff` repara todo y
   `Requestpos` 1 pide nivel 50; el 0.97 no mira si llegó cifrado, el cliente lo manda en C3.
+  El entrenador con `0x724580` en 2 (`0x44b910`, fase 3b) manda `C1 05 34 08 <precio>` (el caballo oscuro, `0x1a04`,
+  en el lugar 8) o `C1 05 34 01 <precio>` (el cuervo, `0x1a05`, en la mano izquierda), con el byte bajo del precio de
+  `0x44b190` como `Requestpos` (07, Q-C948), en C3, y detrás el `C1 03 31` de `0x4499b0` en claro.
 - **`24`** guardar y sacar (`0x5ca250` desde `0x5deb57` y desde la grilla del inventario): `0x449d80` con la grilla
   del cursor (0 el inventario, 2 el almacén, 3 la caja del caos) y el lugar de destino, en C3. Sacar del almacén con
   la traba (`0x6c932f`) y sin `0x78abb1c` no manda nada: guarda los cuatro valores en `0x78ab9bc..` y abre el

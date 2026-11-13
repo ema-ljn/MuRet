@@ -1051,7 +1051,7 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | `0x800` | tienda personal propia (S) | `0x7d5370f` | CL9.4 |
 | `0x1000`, `0x4000` | ventanas con inventario de NPC de evento (`0x7d53712` con `0x7d53714` en 0 o 1; el paso las atiende en `0x5e5920`, que manda `90`/`9A`) *inferido* | | CL9.5 |
 | `0x2000` | sin identificar | `0x7d53718` | — |
-| `0x8000` | NPC con la caja `0x723c80` | `0x449bf0()` | CL9.3 |
+| `0x8000` | el entrenador de las mascotas (`0x724580`, con la caja `0x723c80`; abajo, "El entrenador") | `0x449bf0()` | CL9 hito 6 (el modo 2) |
 | `0x10000` | tienda de NPC (la abre el `30`, `0x4d1e00` en `0x4d288e`) | **byte protegido `0x7d53710`: 1 `rand()`** | CL9.3 |
 | `0x20000` | tienda personal ajena | `0x7d5370f` | CL9.4 |
 | `0x40000` | gremio 2 (paquetes `54`, `56`) | `0x6570a0()` | CL9.4 |
@@ -1083,6 +1083,31 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 - Teclas del juego (`0x59ff10`, `0x5a4c25..0x5a5504`): guarda
   `!0x6578e0() && 0x7d3a10c == 0 && !*(0x7d536fc+4)`; G → `0x10`, P → 4, T → 8, C → `0x2000000`, I/V →
   `0x4000000`, F → 1, M → 2, D → `0x200`, por la cola común `0x5a4ea6` (abierto → `Close`, si no → `Open`).
+
+**El entrenador** (CL9 hito 6, fase 3b, 2026-11-13, *estático*; en MuRet `Scenes/PetTrainer`). El `30` con 7 abre
+el `0x8000` (`0x65be8b`: `0x449940`, que deja el modo en `0x724580` y vacía la caja de `0x723c80`); el paso de los
+paneles llama a `0x44b4e0`, que con el modo en 1, 2 o 3 sigue en `0x44b540`, `0x44b910` o `0x44d010`, y el dibujo a
+`0x44b510` (`0x44b610`, `0x44c850` o `0x44d680`). Los textos 1212 a 1232 de `Text.bmd` (resurrección, el caballo
+oscuro y el cuervo, "recuperar la vida") dicen que es el entrenador de las mascotas del Dark Lord (*inferido*). El
+modo 1 elige con sus botones el 2 (`0x449960`) o el 3 (`0x449970`, que abre el inventario). El modo 2, `0x44b910`:
+
+- el mouse en `[0xd5, 0x1aa) × [0x5a, 0x122)` es de la UI (`0x775857c`);
+- con el clic, los botones `[0x103, 0x17b) × [0x96 + 0x3c · i, +0x16)` (`i` 0 o 1) apagan el clic y el botón y llaman
+  a `0x44b190(i + 1)`: `0x78abb10` en 0 y, con el registro propio abierto, la mascota del botón (el `0x1a04` en el
+  lugar 8, `+0xdac`, o el `0x1a05` en el 1, `+0xbb4`). Sin ella, −1. Con ella, `0x5b13e0` sobre `0x54d0f0` en el
+  modo 2 si la durabilidad está debajo de la máxima (`0x5b1ba0`), o 0; el doble con la durabilidad en 0. Cierra el
+  registro y, con un precio, lo vuelve a abrir para su texto (Q-C949). Después, con el registro abierto hasta el
+  final, si el zen (`+0xecc`, sin signo) alcanza y el precio no es −1, manda `C1 05 34 <8 o 1> <el byte bajo del
+  precio>` en C3 (04, Q-C948), cierra el entrenador (`0x4499b0`: con la caja vacía, `0x724580` y `0x724584` en 0 y
+  el `C1 03 31` en claro; con algo, el texto 1211 de error y sigue abierto) y vacía `0x723918..0x72395f`
+  (`0x421d90`, la caché del tooltip de las mascotas de `0x422990`);
+- sin botón, el de cerrar `[0x189, 0x1a1) × [0x109, 0x121)` con el clic apaga los dos y llama a `0x4499b0`.
+
+Los `rand()`: los 3.848 de cada cierre del registro que lo deja en 0 (dos en `0x44b190` con un precio, uno sin él o
+con 0, y el del paso) y los dos del C3 (el relleno y el serial, `0x40b3f0` o `0x40b0a0`). En MuRet la caja de
+`0x723c80` está siempre vacía: la vacían `0x5bbe10` (al entrar a la selección, `0x633f91`) y `0x449940`, y lo que la
+llena (el `31` con la grilla 5, el `86` con 100 y soltar en ella, `0x44aca9`) corta antes. Los modos 1 y 3 y el
+dibujo cortan con su dirección (08, P-C198).
 
 **Los `rand()` de abrir y cerrar.**
 

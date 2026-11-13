@@ -852,7 +852,8 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     if (auto chaos = DrawTheChaosBox(frame.context, panels); !chaos.HasValue())
         return chaos;
     if (state.delegated.trainer != 0 && state.delegated.trainer != 4)
-        return cut("0x44b510: la ventana del entrenador es de la CL9.3");
+        return cut("0x44b510: el dibujo del entrenador (0x44b610, 0x44c850 y 0x44d680) es de la fase 3 del hito 6 (08 "
+                   "P-C198)");
     if (state.delegated.siegeWeapon != 0)
         return cut("0x44ea60: el arma del asedio es de la CL9.5");
     if (state.delegated.siegeGate != 0)

@@ -30,6 +30,7 @@
 #include "Scenes/NpcWindows.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/PetTrainer.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -1088,9 +1089,9 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
         if (auto siblings = StepTheInventorySiblings(context, panels); !siblings.HasValue())
             return siblings;
     }
-    // 0x44b4e0: el NPC de la caja con 0x724580 fuera de 0 y 4.
-    if (delegated.trainer != 0 && delegated.trainer != 4)
-        return Core::Unexpected(std::string("0x44b4e0: el paso del NPC de la caja 0x723c80 es de la CL9.3"));
+    // 0x44b4e0: el entrenador, por 0x724580.
+    if (auto trainer = StepTheTrainer(context); !trainer.HasValue())
+        return trainer;
     // 0x44dd50 y 0x44f810: el arma de asedio y la puerta.
     if (delegated.siegeWeapon != 0 || delegated.siegeGate != 0)
         return Core::Unexpected(std::string("0x44dd50: el paso del arma y de la puerta del asedio es de la CL9.5"));

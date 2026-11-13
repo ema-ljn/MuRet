@@ -103,6 +103,9 @@ struct DelegatedPanels
     std::uint8_t pet = 0;
     // 0x8000: 0x449bf0, 0x724580 > 0. Con 3 (0x449c00), abrir el inventario no lo cierra.
     std::int32_t trainer = 0;
+    // 0x724584 (byte): lo escribe 0x44ae10 y lo leen el modo 3 del entrenador (0x44d010) y su dibujo (0x44d680), que
+    // cortan; cerrar el entrenador (0x4499b0) lo pone en 0.
+    std::uint8_t field724584 = 0;
     // 0x40000: 0x6570a0, el gremio 2 ([0x7d536f4]).
     std::uint8_t secondGuild = 0;
     // 0x80000, 0x100000 y 0x200000: [0x7d536f8]+4, [0x7d536fc]+4 y [0x7d53700]+0x14 (Castle Siege, CL9.5).

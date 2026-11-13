@@ -277,8 +277,9 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
       ya está. (Los altares de Crywolf, `0x4eac41` y `0x567b6d`, cortan: hito 11.)
 - [x] **Las misiones, sin la ventana:** `A0`..`A3` (`0x418e20`, `0x418ee0`, `0x4198b0`, `0x4ddb80`), el `9F`, el
       objeto `[0x710148]` y las funciones que no dibujan, con `Quest.bmd` y `Dialog.bmd`.
-- [ ] **La ventana del quest** (`0x41ca40`, `0x41ba20`, `0x41c600`, `0x41b5a0`, `0x41b9e0`) y sus pasos que mandan
-      (`0x419bd0` y `0x41a9e0`, el `A2`, y `0x41b170`, el `9F`).
+- [x] **La ventana del quest** (`0x41ca40`, `0x41ba20`, `0x41c600`, `0x41b5a0`, `0x41b9e0`) y sus pasos que mandan
+      (`0x419bd0` y `0x41a9e0`, el `A2`, y `0x41b170`, el `9F`, que no se alcanza). Lo que corta, P-C243; lo que
+      falta mirar en la VM, P-C244.
 
 **Pruebas:** el alta de un monstruo de cada familia de `0x5141e0` (un caso por rama de la tabla de tipos), en
 Lorencia, Devias y un mapa de evento; el `0x1F` con un tipo `0x98..0x9e`; el corte del tipo 68 (el caso

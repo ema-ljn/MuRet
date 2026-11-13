@@ -12,6 +12,7 @@
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/ItemHelpLevels.h"
+#include "Scenes/NpcNames.h"
 #include "Scenes/QuestState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/TooltipLines.h"
@@ -261,6 +262,9 @@ struct WorldRuntime
     // 0x7688ac0: los 200 diálogos de Dialog.bmd, que main.cpp copia de GameData::dialogs. Vacío: el que muestra uno
     // corta.
     Data::Text::DialogTable dialogTable{};
+    // 0x7681eb8 (CL9 hito 2): los 512 nombres de NpcName(%s).txt que busca 0x54ebb0 (el título de la ventana de las
+    // misiones, 0x41be2c). Nadie los carga todavía (08, P-C174): quedan en 0.
+    NpcNameTable npcNames = NpcNameTable(NpcNameCount);
     // 0x6eeda8: el A0 lo pone en 0 y la llegada a un NPC (0x569593) en 1 si es el 0xe5. Lo lee el dibujo del diálogo de
     // las misiones (0x41ba20) con la clase 3 o 4.
     std::uint8_t byte6eeda8 = 0;

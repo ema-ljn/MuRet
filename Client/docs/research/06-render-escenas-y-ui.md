@@ -9890,7 +9890,7 @@ Un registro lleva su nombre (`0x20` bytes) y su cabecera, 16 pedidos de `0x14` d
 condiciones; `+7..+0xb` las marcas de clase; `+0xc..+0x13` los cuatro diálogos) y 16 condiciones de `0x14` desde
 `+0x168` (misión pedida, nivel mínimo y máximo, zen y su diálogo), con dos bytes de relleno en `+0x166`. La marca de
 la clase se lee como `+7 + clase` desde el pedido, y con una clase alta cae en el relleno (0) o en las condiciones
-(`Scenes::ClassFlagOf`).
+(`Scenes::QuestClassFlagOf`, que también lee `0x41b8b9`).
 
 - **El estado** (`0x4195c0`, `0x419560`): el byte `i / 4` corrido `2 · ((i − i / 4) & 0xf)` bits (Q-C841).
 - **El `A0`** (`0x418e20`), **el `A1` y el `A2`** (`0x418ee0`) y **el `A3`** (`0x4ddb80`): 04, "Las misiones y los
@@ -9900,11 +9900,67 @@ la clase se lee como `+7 + clase` desde el pedido, y con una clase alta cae en e
   el nivel con el registro propio abierto y cerrado (cada cierre a 0 saca 3.848 `rand()`) y el zen. **Los ítems**
   (`0x4194c0` con `0x558410`). **El diálogo** (`0x418f40`, `0x419600`, `0x419710`): el texto `%d) %s` de cada
   respuesta va a un buffer de `0x48` bytes en la pila (más largo corta), y sin respuestas el texto 609.
-- **La ventana** (`0x41ca40` el dibujo, `0x41ba20` y `0x41c600` sus dos vistas, `0x41b5a0` el paso, `0x41b9e0` el
-  ítem, `0x419bd0` y `0x41a9e0` los pasos que mandan `A2`, `0x41b170` la pestaña): sin portar; cortan con su
-  dirección (`GameHud.cpp`, `GameUi.cpp`).
+- **La ventana** (CL9 hito 2, fase 5b, *estático*; `Scenes/QuestWindow.h`). La esquina `+0x21390`/`+0x21394` la pone
+  el paso en cada vuelta: `(0x104, 0)` con el personaje (`0x2000000`) abierto y `(0x1c2, 0)` sin él. `+0x21383` en 1
+  es el diálogo con el NPC y en 2 la lista. Las y de la ventana que siguen son absolutas (la de la esquina siempre es
+  0, Q-C872).
+  - **El paso** (`0x41b5a0`, desde `0x5ee20d`, después de los comandos): con el personaje abierto, el clic en el botón
+    de las misiones (`[0x1f9, 0x211) × [0x18b, 0x1a3)`) se gasta (`0x7d366d4`, `0x77f3b10` en 0 y `0x6c8dcc` en 6) y
+    cierra (`Close(8)`) o abre (`Open(8)`, la lista) la ventana; después, con 1, `0x41a9e0`, y con 2, `0x41b170`.
+  - **El diálogo** (`0x41a9e0`): el mouse sobre `0xbe × 0x1b1` es de la UI; las respuestas (`0x419bd0`); con
+    `0x419b10` (la misión en curso con sus ítems), el clic en el botón de terminar (`[x + 0x23, + 0x78) × [0x163,
+    0x17b)`) manda el `A2` con la misión y 1, gasta el clic, suelta el botón (`0x7d36874`) y suena (`0x1c`), sin tocar
+    `0x77f3b10` ni `0x6c8dcc`; el de cerrar (`[x + 0x19, + 0x18) × [y + 0x18b, + 0x18)`) gasta el clic y cierra con
+    `0x419900` (la ventana en 0 y el `C1 03 31`, sin sonido); al final apaga el soltado (`0x7d366ec`).
+  - **Las respuestas** (`0x419bd0`): empiezan en `((7 − respuestas − renglones) · 0x12) / 2 + renglones · 0x12 +
+    0x42` (en `0xfa` con el estado distinto de 1 y la ventana en 1), de `0x12` cada una. El clic con `y ≥ 0`, por
+    encima del final de la última y a no más de `0x6a` de `x = 0x236` (Q-C871) se gasta y suelta el botón **antes** de
+    mirar la fila, `(y − arriba) / 0x12` con la división de C, que sale si es negativa (Q-C870). La acción de la
+    respuesta en `Dialog.bmd` (`+0x158`): 1 mira las condiciones de la misión en curso con el zen (`0x418fb0(…, 1)`) y,
+    si no se cumplen, muestra el diálogo que dejaron (`+0x21384`, `0x419710`) y no sigue al de la respuesta; si se
+    cumplen, el `A2`. 2 gasta el clic otra vez y cierra con `0x419900`; 3 lo gasta y manda el `A2`. Con cualquiera
+    suena `0x1c` y, si la respuesta lleva a un diálogo (`+0x130`, mayor que 0, releído con el diálogo de ese momento),
+    `0x419710` lo muestra. El `A2` (C1 05 A2, misión y 1, en C3) saca el `rand()` del relleno y abre y cierra el serial
+    `0x5767913` (otro `rand()`).
+  - **La lista** (`0x41b170`): el mouse sobre la ventana; las tres pestañas de `0x31` cada `0x33` desde `x + 0x14`, la
+    elegida en `[0xeb, 0xfb)` y las otras en `[0xed, 0xfb)`; el primer clic en una corta la vuelta: la 0 lo gasta y
+    queda elegida, la 1 y la 2 no hacen nada y el clic sigue. El `C1 9F` que le sigue no se alcanza (Q-C845, Q-C875).
+    El botón de cerrar gasta el clic y llama a `Close(8)`, que suena y manda el `C1 03 31`.
+  - **El dibujo** (`0x41ca40`, desde `0x5f75db`): con 1, `0x41ba20`; con 2, `0x41c600`. Después, con el personaje
+    abierto, el botón de las misiones (`0x103` con la ventana abierta, `0x102` cerrada) de 24 × 24 en `(505, y +
+    0x18b)` y, con el mouse en `[0x1f9, 0x211) × [y + 0x18b, + 0x18)`, la ayuda `"%s(%s)"` con el texto 1140 y `"T"`
+    en `(0x1f9, y + 0x18b − 0xd)`.
+  - **El diálogo con el NPC** (`0x41ba20`): el fondo con la línea de `y + 225` (`0x5ee220(x, y, 1)`). Con el estado 1,
+    la línea de `y + 325`, los ítems pedidos con nombre (`0x41b810(1, 1)`: en negrita, `"%s x %d"` en `(0x1fe, 240 +
+    25 · i)`, en `0xff67bfdf` si están y en `0xff1e1eff` si falta alguno) y el botón de terminar (`0xf0`, 120 × 24 en
+    `(x + 35, 355)`), gris 0,3 si falta alguno y 0,4 con el clic encima; con el soltado (`0x7d366ec`) el dibujo gasta
+    el clic y suelta el botón (Q-C873). Encima, el 699 centrado en `(x + 95, 0x168)`. Con el estado 3, el fondo del
+    zen (`0x10f`, 113 × 18 en `(x + 50, y + 367,7)`), el 198 y el zen pedido (`0x5b1130` con el color de `0x5b10f0`,
+    las cuentas del zen del inventario). El botón de cerrar con la ayuda 1002. El título es el nombre del NPC de la
+    misión en curso en la tabla de `0x7681eb8` (`0x54ebb0`: el primer registro con ese tipo; sin él, `0x554180` con
+    `NULL` no dibuja), en la caja de 120 · W / 640; con el héroe de clase (el byte entero) 3 o 4 y `0x6eeda8`, el NPC
+    de la misión 2 y sin el nombre de la misión. El nombre de la misión, en `0xffffdcc8`, en la caja de 150 · W / 640
+    en `(x + 0x16, y + 0x16)`. Al final, el texto y las respuestas (`0x41b680(1)`): los renglones centrados en
+    `x + 0x64`, las respuestas en negrita, salteando las vacías, y en rojo la de la fila del mouse a no más de `0x6a`
+    de `x + 0x6a` (Q-C870, Q-C871).
+  - **La lista** (`0x41c600`): el fondo con la línea, la línea de `y + 250`, el marco de abajo (dos tiras de `0x117`
+    en 260 y 380 y dos columnas de `0x104` en `x + 10` y `x + 180`), las tres pestañas (`0x646`, 49 de ancho cada 51
+    desde `x + 20`; la elegida de 16 en 235 y en `0xff67bfdf`, las otras de 14 en 237; la 1 y la 2 con el color
+    `(1, 0,3, 0,2)`) con los textos 1140 a 1142, el botón de cerrar con la ayuda (el formato 927 con `"T"`) y la
+    pestaña elegida. La 0 (`0x41c2a0`): el título `"Quest"`, el nombre de la misión más alta (`+0x2137f`), el texto del
+    diálogo sin respuestas y el estado de la en curso en la negrita grande (930 con 0, 3 y 5; 931 con 1; 932 con 2)
+    en `(x + 0x5f, y + 0x131)`. La 1 (`0x41c420`, el título 1145) y la 2 (`0x41c4a0`, el 1146 y la cuenta de `+6 +
+    pestaña` del `9F`) no se alcanzan (Q-C875) y van como el original.
+  - **Los ítems en 3D** (`0x41b9e0`, lo primero de `0x5ac120`): con el diálogo, los ítems pedidos de la misión en curso
+    con el estado 1 (`0x41b810(1, 0)`: `0x5e1480` en `(480, 235 + 25 · i)` de 20 × 20 con el nivel `<< 3`); con la
+    lista y `+0x21380` (que nadie prende), los del estado 1 o 2 según `+0x21381`.
+  - El nombre de los ítems pedidos (`0x5b1c70`) está portado solo para los cuatro de misión (`0x1c17..0x1c1a`; el
+    `0x1c17` y el `0x1c18` con nivel 1 son los textos 906 y 907); los demás cortan hacia el hito 11 y un nivel distinto
+    de 0 y 1 corta (Q-C874). Lo que corta la ventana: 08, P-C243.
 
-MuRet: `Protocol::Quest`, `Scenes::Quests`, `Scenes::QuestReplies` y los diálogos de `UI::GameDialogs`.
+MuRet: `Protocol::Quest`, `Scenes::Quests`, `Scenes::QuestReplies`, los diálogos de `UI::GameDialogs`, la ventana
+(`Scenes::StepTheQuestWindow`, `DrawTheQuestWindow` y `DrawTheQuestItems`), `Scenes::NpcNameOf` (`0x54ebb0`, sobre
+`WorldRuntime::npcNames`) y `Scenes::FormatZen`/`ZenColor` (`0x5b1130`, `0x5b10f0`).
 
 ### El alta de un monstruo
 

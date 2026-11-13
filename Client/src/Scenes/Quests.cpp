@@ -135,25 +135,6 @@ std::uint8_t ConditionByteOf(const Data::Tables::QuestCondition& condition, std:
     }
 }
 
-// +0x2d + clase + 0x14 · pedido del registro (0x418f58, 0x418fe3, 0x4194ef y 0x419b68): la marca de la clase & 7 de
-// +4, que no se recorta. Una clase 5, 6 o 7 lee los diálogos del mismo pedido, y la 0xff de antes del primer A0
-// (0x41cb60 y 0x4c2480) lee 0xff bytes después de la primera marca: otro pedido o una condición (*estático*). Los dos
-// bytes de relleno de +0x166, que MuRet no guarda, no se alcanzan con ninguna clase (0x14 · pedido + 7 + clase no da
-// 0x140 ni 0x141).
-std::uint8_t ClassFlagOf(const Data::Tables::QuestRecord& quest, std::size_t entry, std::uint8_t characterClass)
-{
-    constexpr std::size_t PartSize = 0x14;
-    constexpr std::size_t EntriesSize = Data::Tables::QuestEntryCount * PartSize;
-    constexpr std::size_t PaddingSize = 2;
-    const std::size_t offset = entry * PartSize + 7 + characterClass;
-    if (offset < EntriesSize)
-        return EntryByteOf(quest.entries[offset / PartSize], offset % PartSize);
-    if (offset < EntriesSize + PaddingSize)
-        return 0;
-    const std::size_t inConditions = offset - EntriesSize - PaddingSize;
-    return ConditionByteOf(quest.conditions[inConditions / PartSize], inConditions % PartSize);
-}
-
 // Los pedidos de `quest` que mira el original: los primeros entryCount (con signo; más de 16 seguiría en las
 // condiciones, que MuRet no lee: corta).
 // Desde +0x2134c, los 64 bytes que alcanza un índice de un byte (0x419560 con +0x2137e): los 50 de estado y los campos
@@ -206,6 +187,20 @@ Core::Expected<void, std::string> ShowTheDialog(const QuestContext& context, std
     return UI::ShowTheQuestDialog(runtime.dialogBox, runtime.dialogs, &runtime.dialogTable, context.texts, dialog);
 }
 } // namespace
+
+std::uint8_t QuestClassFlagOf(const Data::Tables::QuestRecord& quest, std::size_t entry, std::uint8_t characterClass)
+{
+    constexpr std::size_t PartSize = 0x14;
+    constexpr std::size_t EntriesSize = Data::Tables::QuestEntryCount * PartSize;
+    constexpr std::size_t PaddingSize = 2;
+    const std::size_t offset = entry * PartSize + 7 + characterClass;
+    if (offset < EntriesSize)
+        return EntryByteOf(quest.entries[offset / PartSize], offset % PartSize);
+    if (offset < EntriesSize + PaddingSize)
+        return 0;
+    const std::size_t inConditions = offset - EntriesSize - PaddingSize;
+    return ConditionByteOf(quest.conditions[inConditions / PartSize], inConditions % PartSize);
+}
 
 std::uint8_t QuestStateOf(const QuestState& quest, std::int32_t index)
 {
@@ -304,7 +299,7 @@ Core::Expected<std::int16_t, std::string> QuestDialogOf(const QuestContext& cont
         return Core::Unexpected(count.Error());
     for (std::size_t e = 0; e < count.Value(); ++e)
     {
-        if (ClassFlagOf(current, e, quest.characterClass) != 0)
+        if (QuestClassFlagOf(current, e, quest.characterClass) != 0)
             return current.entries[e].dialogs[slot];
     }
     // 0x418f7a..0x418f93: la anterior (un byte: 0 − 1 es 255) y otra vez 0x419600(0xff).
@@ -328,7 +323,7 @@ Core::Expected<bool, std::string> HasTheQuestItems(const QuestContext& context, 
     for (std::size_t e = 0; e < count.Value(); ++e)
     {
         const Data::Tables::QuestEntry& entry = current.entries[e];
-        if (ClassFlagOf(current, e, quest.characterClass) == 0 || entry.kind != ItemEntry)
+        if (QuestClassFlagOf(current, e, quest.characterClass) == 0 || entry.kind != ItemEntry)
             continue;
         const std::int32_t type = entry.itemIndex + entry.itemGroup * ItemGroupSize;
         if (MissingQuestItems(context.world.Inventory(), type, entry.itemCount, entry.itemLevel) == 0)
@@ -366,7 +361,7 @@ Core::Expected<bool, std::string> CheckTheQuestConditions(const QuestContext& co
     for (std::size_t e = 0; e < entries.Value(); ++e)
     {
         const Data::Tables::QuestEntry& entry = current.entries[e];
-        if (ClassFlagOf(current, e, quest.characterClass) == 0)
+        if (QuestClassFlagOf(current, e, quest.characterClass) == 0)
             continue;
         for (std::int16_t c = 0; c < current.conditionCount; ++c)
         {
@@ -502,7 +497,7 @@ Core::Expected<bool, std::string> CanCompleteTheQuest(const WorldState& world)
     for (std::size_t e = 0; e < entries.Value(); ++e)
     {
         const Data::Tables::QuestEntry& entry = current.entries[e];
-        if (ClassFlagOf(current, e, quest.characterClass) == 0 || entry.kind != ItemEntry)
+        if (QuestClassFlagOf(current, e, quest.characterClass) == 0 || entry.kind != ItemEntry)
             continue;
         any = true;
         const std::int32_t type = entry.itemIndex + entry.itemGroup * ItemGroupSize;

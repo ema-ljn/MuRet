@@ -17,7 +17,6 @@
 namespace Client::Render::Models
 {
 class CrtRandom;
-struct Skeleton;
 } // namespace Client::Render::Models
 
 namespace Client::Render::Text
@@ -32,6 +31,7 @@ class ITextMeasure;
 // *Estático*.
 namespace Client::Scenes
 {
+class IModelLibrary;
 class WorldState;
 
 // Quien manda los paquetes del chat (App::ServerSession::SendChat). Vacío, no se manda nada.
@@ -53,9 +53,9 @@ struct GameChatContext
     const Render::Text::ITextMeasure* measure = nullptr;
     App::PixelSize screen{640, 480};
     ChatSender send{};
-    // Las acciones de Player.bmd, que 0x4ea030 mira al animar el emote del héroe (0x576a60). Sin ellas, un emote es el
-    // error.
-    const Render::Models::Skeleton* playerSkeleton = nullptr;
+    // Los modelos: 0x4ea030 mira las acciones del modelo del tipo del héroe al animar su emote (0x576a60). Sin ellos,
+    // un emote es el error.
+    const IModelLibrary* models = nullptr;
 };
 
 // Los WM_CHAR del paso, en su orden: Tab (TabChar) al WndProc (0x4b4f12), Enter (EnterChar) al WndProc

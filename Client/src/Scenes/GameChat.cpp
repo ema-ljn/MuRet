@@ -124,14 +124,14 @@ Core::Expected<void, std::string> DoTheEmotes(const GameChatContext& context, st
     const std::optional<UI::EmoteCase> emote = UI::FindTheEmote(*context.texts, said);
     if (!emote)
         return {};
-    if (context.playerSkeleton == nullptr)
-        return Core::Unexpected(std::string("0x576a60: el emote sin las acciones de Player.bmd (0x4ea030)"));
+    if (context.models == nullptr)
+        return Core::Unexpected(std::string("0x576a60: el emote sin los modelos (0x4ea030)"));
     const ActionSender send = [&context](std::uint8_t direction, std::uint8_t action)
     {
         if (context.send)
             context.send(Protocol::Movement::WriteAction(direction, action));
     };
-    return DoTheEmote(*emote, EmoteContext{.hero = hero, .skeleton = *context.playerSkeleton, .send = send});
+    return DoTheEmote(*emote, EmoteContext{.hero = hero, .models = *context.models, .send = send});
 }
 
 // Lo que 0x56c440 lee y escribe.

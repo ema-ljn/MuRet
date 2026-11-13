@@ -1,12 +1,13 @@
 #include "Scenes/ActionSend.h"
 
+#include "support/SentActions.h"
+
 #include <gtest/gtest.h>
 
 #include <cstdint>
 #include <limits>
 #include <optional>
 #include <string>
-#include <utility>
 #include <vector>
 
 // Scenes::ActionDirection y SendTheAction: la dirección del C1 18 (0x576b44, 0x4f248a, 0x59b456) y quién lo manda.
@@ -16,6 +17,7 @@ namespace
 using Client::Scenes::ActionDirection;
 using Client::Scenes::ActionSender;
 using Client::Scenes::SendTheAction;
+using Client::Tests::SentAction;
 
 struct Edge
 {
@@ -54,12 +56,11 @@ TEST(ActionSendTest, NegativeAnglesTruncateTowardZero)
 
 TEST(ActionSendTest, SendTheActionGivesTheDirectionAndTheAction)
 {
-    std::vector<std::pair<std::uint8_t, std::uint8_t>> sent;
-    const ActionSender send = [&sent](std::uint8_t direction, std::uint8_t action)
-    { sent.emplace_back(direction, action); };
+    std::vector<SentAction> sent;
+    const ActionSender send = Client::Tests::RecordingActions(sent);
     ASSERT_TRUE(SendTheAction(100.0f, 0x82, send, "0x4f2416").HasValue());
     ASSERT_TRUE(SendTheAction(-130.0f, 0x8e, send, "0x576b3e").HasValue());
-    EXPECT_EQ(sent, (std::vector<std::pair<std::uint8_t, std::uint8_t>>{{3, 0x82}, {7, 0x8e}}));
+    EXPECT_EQ(sent, (std::vector<SentAction>{{3, 0x82}, {7, 0x8e}}));
 }
 
 // Sin quien mande o con un ángulo fuera del _ftol portable, el error con la dirección de quien llama y nada sale.

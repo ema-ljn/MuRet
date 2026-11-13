@@ -1646,7 +1646,8 @@ sin cursor en el medio ni IME. Los ids de los dos EDIT (1 y 2, los dos primeros 
   CP949), y al final, cada uno solo, el 291, el 317 y el 348. El primero que está decide uno de 22 casos; sin ninguno,
   nada. Cada caso llama a `0x576a60(héroe, héroe, animación, acción)` y después manda su propio `C1 05 18` con la
   acción y la dirección del ángulo del héroe ([04](04-protocolo.md#la-acción-18)). `0x576a60`, con la acción de ahora
-  (`+0x111`) de 1 a 12 o `0x8a` (las de parado de `0x4f2250`), pone la animación con `0x4ea030` (con el elfo,
+  (`+0x111`) de 1 a 12 o `0x8a` (las de parado de `0x4f2250`), pone la animación con `0x4ea030`
+  (con las acciones del modelo del tipo del personaje, `+2`: un transformado no usa las de `Player.bmd`; con el elfo,
   `+0x1d4 & 7 == 2`, la siguiente, salvo de `0xb7` a `0xc0`) y manda el mismo `C1 18`: con el héroe parado salen dos
   iguales (Q-C776); caminando (`0x0d..0x21`), pegando o en otra acción, solo el del caso, sin animarse. La dirección
   de los dos sale del héroe aunque `0x576a60` reciba otro personaje (la guerra de gremios, `0x4d8473`, `0x4d8a39` y

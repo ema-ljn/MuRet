@@ -4,9 +4,11 @@
 #include "Render/Models/Animation.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
 #include "UI/Emotes.h"
 
 #include <cstdint>
+#include <format>
 #include <string>
 
 namespace Client::Scenes
@@ -40,7 +42,12 @@ Core::Expected<bool, std::string> PlayTheEmote(ActorState& actor, UI::EmoteCase 
 {
     if (!IsStanding(actor.animation.action))
         return false;
-    Render::Models::SetAction(actor.animation, context.skeleton, AnimationFor(actor, emote.animation));
+    // 0x576abf: 0x4ea030 con el modelo del tipo del personaje (+2), no siempre el de Player.bmd.
+    const auto* skeleton = context.models.SkeletonOf(actor.type);
+    if (skeleton == nullptr)
+        return Core::Unexpected(
+            std::format("0x576abf: el emote sin las acciones del modelo {:#x} del personaje (0x4ea030)", actor.type));
+    Render::Models::SetAction(actor.animation, *skeleton, AnimationFor(actor, emote.animation));
     // 0x576ac7..0x576e97: C1 05 18 con la dirección de [0x743a170] + 0x24 y la acción, XOR32 en línea.
     if (auto sent = SendTheAction(context.hero.angles.z, emote.action, context.send, "0x576b3e"); !sent.HasValue())
         return Core::Unexpected(sent.Error());

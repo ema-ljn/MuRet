@@ -1,11 +1,15 @@
 #include "Scenes/Emote.h"
 
+#include "Data/Models/Model.h"
+#include "Data/Models/PlayerModels.h"
 #include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Protocol/Movement.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
 #include "UI/Emotes.h"
 
 #include "support/Bytes.h"
@@ -17,6 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -31,6 +36,30 @@ using Client::Tests::SameBytes;
 using Client::UI::EmoteCase;
 
 constexpr std::uint8_t ElfClass = 2;
+// Un tipo que no es jugador, como el de un transformado (0x45), con sus acciones.
+constexpr std::uint16_t TransformedModel = 0x30;
+
+// Player.bmd con 205 acciones y el modelo de un transformado, con las que diga el test; ninguno más.
+class EmoteModels final : public Client::Scenes::IModelLibrary
+{
+public:
+    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    {
+        return nullptr;
+    }
+    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    {
+        if (model == Client::Data::Models::PlayerSkeletonModel)
+            return &player;
+        return model == TransformedModel ? &transformed : nullptr;
+    }
+    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return {};
+    }
+    Client::Render::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
+    Client::Render::Models::Skeleton transformed;
+};
 
 class EmoteTest : public ::testing::Test
 {
@@ -38,7 +67,7 @@ protected:
     EmoteContext Context()
     {
         return EmoteContext{
-            .hero = *m_hero, .skeleton = m_skeleton, .send = [this](std::uint8_t direction, std::uint8_t action) {
+            .hero = *m_hero, .models = m_models, .send = [this](std::uint8_t direction, std::uint8_t action) {
                 m_sent.push_back(Client::Protocol::Movement::WriteAction(direction, action));
             }};
     }
@@ -56,7 +85,7 @@ protected:
     }
 
     std::unique_ptr<ActorState> m_hero = std::make_unique<ActorState>(Client::Tests::UnarmedPlayer());
-    Client::Render::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
+    EmoteModels m_models;
     std::vector<Client::Protocol::Outgoing> m_sent;
 };
 
@@ -132,7 +161,7 @@ TEST_F(EmoteTest, TheElfTakesTheNextAnimationOutsideTheSharedOnes)
 // 0x4ea030 no pone una animación que el modelo no tiene, pero 0x576a60 manda igual su C1 18.
 TEST_F(EmoteTest, AnAnimationTheModelDoesNotHaveStillSends)
 {
-    m_skeleton.actions.resize(0x99);
+    m_models.player.actions.resize(0x99);
     m_hero->animation.action = 2;
     ASSERT_TRUE(Client::Scenes::DoTheEmote(EmoteCase{0x99, 0x83}, Context()).HasValue());
     EXPECT_EQ(m_hero->animation.action, 2);
@@ -169,9 +198,35 @@ TEST_F(EmoteTest, WithoutASenderTheEmoteIsAnError)
 {
     m_hero->animation.action = 1;
     const auto done = Client::Scenes::DoTheEmote(EmoteCase{0x99, 0x83},
-                                                 EmoteContext{.hero = *m_hero, .skeleton = m_skeleton, .send = {}});
+                                                 EmoteContext{.hero = *m_hero, .models = m_models, .send = {}});
     ASSERT_FALSE(done.HasValue());
     EXPECT_NE(done.Error().find("0x576b3e"), std::string::npos);
     EXPECT_EQ(m_hero->animation.action, 0x99);
+}
+
+// 0x4ea036..0x4ea054: 0x4ea030 mira las acciones del modelo del tipo del personaje (+2). Un héroe transformado anima
+// con las de su modelo, no con las de Player.bmd; sin el modelo, el error. Los C1 18 salen igual.
+TEST_F(EmoteTest, TheAnimationUsesTheModelOfTheActorType)
+{
+    m_hero->type = TransformedModel;
+    m_hero->animation.action = 1;
+    m_models.transformed.actions.resize(0x99);
+    ASSERT_TRUE(Client::Scenes::DoTheEmote(EmoteCase{0x99, 0x83}, Context()).HasValue());
+    EXPECT_EQ(m_hero->animation.action, 1);
+    ExpectSent(2, 1, 0x83);
+
+    m_sent.clear();
+    m_models.transformed.actions.resize(0x9a);
+    ASSERT_TRUE(Client::Scenes::DoTheEmote(EmoteCase{0x99, 0x83}, Context()).HasValue());
+    EXPECT_EQ(m_hero->animation.action, 0x99);
+    ExpectSent(2, 1, 0x83);
+
+    m_sent.clear();
+    m_hero->type = 0x31;
+    m_hero->animation.action = 1;
+    const auto missing = Client::Scenes::DoTheEmote(EmoteCase{0x99, 0x83}, Context());
+    ASSERT_FALSE(missing.HasValue());
+    EXPECT_NE(missing.Error().find("0x4ea030"), std::string::npos);
+    EXPECT_TRUE(m_sent.empty());
 }
 } // namespace

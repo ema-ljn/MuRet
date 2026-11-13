@@ -1,14 +1,15 @@
 #include "Scenes/GameChat.h"
 
 #include "Core/Expected.h"
+#include "Data/Models/PlayerModels.h"
 #include "Data/Text/TextTable.h"
 #include "Network/Crypto/Xor32.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
-#include "Render/Models/Skeleton.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/LoginModels.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -91,6 +92,8 @@ protected:
     {
         SetTheHeroName("Heroe");
         world.OwnCharacter().level = 10;
+        world.Actors()[world.Runtime().hero].type = Client::Data::Models::PlayerSkeletonModel;
+        models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
     }
 
     void SetTheHeroName(std::string_view name)
@@ -112,7 +115,7 @@ protected:
                                .measure = &letters,
                                .screen = {640, 480},
                                .send = [this](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); },
-                               .playerSkeleton = &skeleton};
+                               .models = &models};
     }
 
     Client::Core::Expected<void, std::string> Type(std::string_view typed)
@@ -131,7 +134,7 @@ protected:
     std::vector<std::string> filter;
     LetterMeasure letters;
     std::vector<Client::Protocol::Outgoing> sent;
-    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Scenes::SingleModelLibrary models;
 };
 
 // Un C1 05 18 [direction] [action] en claro, con el XOR32.

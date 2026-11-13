@@ -16,22 +16,24 @@
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/Emotes.h"
 #include "World/GameCamera.h"
 
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
+#include "support/SentActions.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
-#include <map>
 #include <memory>
 #include <optional>
 #include <span>
 #include <string>
-#include <utility>
 #include <vector>
 
 // Scenes::ApplyActionReply: el 18 de otro personaje (0x4cb750; 04 § La acción, 18). Las claves, las clases y las
@@ -72,19 +74,22 @@ public:
     Client::Render::Models::Skeleton small;
 };
 
-// 0x4cb871..0x4cbcc8, por acción: la animación de las otras clases y la del elfo.
-const std::map<std::uint8_t, std::pair<std::uint8_t, std::uint8_t>>& TableAnimations()
+// 0x4cb871..0x4cbcc8: la animación de cada acción para las otras clases y para el elfo.
+struct TableRow
 {
-    static const std::map<std::uint8_t, std::pair<std::uint8_t, std::uint8_t>> table = {
-        {0x80, {0xc5, 0xc7}}, {0x81, {0xcb, 0xcc}}, {0x82, {0xc9, 0xca}}, {0x83, {0x99, 0x9a}}, {0x84, {0x9b, 0x9c}},
-        {0x85, {0x9d, 0x9e}}, {0x86, {0xa3, 0xa4}}, {0x87, {0xa1, 0xa2}}, {0x88, {0xa5, 0xa6}}, {0x89, {0xa7, 0xa8}},
-        {0x8a, {0x9f, 0xa0}}, {0x8b, {0xa9, 0xaa}}, {0x8c, {0xab, 0xac}}, {0x8d, {0xad, 0xae}}, {0x8e, {0xaf, 0xb0}},
-        {0x8f, {0xb1, 0xb2}}, {0x90, {0xb3, 0xb4}}, {0x91, {0xb5, 0xb6}}, {0x92, {0xb7, 0xb7}}, {0x93, {0xb8, 0xb8}},
-        {0x94, {0xc0, 0xc0}}, {0x95, {0xb9, 0xb9}}, {0x96, {0xba, 0xba}}, {0x97, {0xbb, 0xbb}}, {0x98, {0xbc, 0xbc}},
-        {0x99, {0xbd, 0xbd}}, {0x9a, {0xbe, 0xbe}}, {0x9b, {0xbf, 0xbf}},
-    };
-    return table;
-}
+    std::uint8_t action;
+    std::uint8_t other;
+    std::uint8_t elf;
+};
+
+constexpr std::array<TableRow, 28> TableAnimations{{
+    {0x80, 0xc5, 0xc7}, {0x81, 0xcb, 0xcc}, {0x82, 0xc9, 0xca}, {0x83, 0x99, 0x9a}, {0x84, 0x9b, 0x9c},
+    {0x85, 0x9d, 0x9e}, {0x86, 0xa3, 0xa4}, {0x87, 0xa1, 0xa2}, {0x88, 0xa5, 0xa6}, {0x89, 0xa7, 0xa8},
+    {0x8a, 0x9f, 0xa0}, {0x8b, 0xa9, 0xaa}, {0x8c, 0xab, 0xac}, {0x8d, 0xad, 0xae}, {0x8e, 0xaf, 0xb0},
+    {0x8f, 0xb1, 0xb2}, {0x90, 0xb3, 0xb4}, {0x91, 0xb5, 0xb6}, {0x92, 0xb7, 0xb7}, {0x93, 0xb8, 0xb8},
+    {0x94, 0xc0, 0xc0}, {0x95, 0xb9, 0xb9}, {0x96, 0xba, 0xba}, {0x97, 0xbb, 0xbb}, {0x98, 0xbc, 0xbc},
+    {0x99, 0xbd, 0xbd}, {0x9a, 0xbe, 0xbe}, {0x9b, 0xbf, 0xbf},
+}};
 
 // La animación que 0x4cb750 le pide a 0x4ea030 para `action`.
 std::uint8_t ExpectedAnimation(std::uint8_t action, std::uint8_t characterClass)
@@ -93,10 +98,10 @@ std::uint8_t ExpectedAnimation(std::uint8_t action, std::uint8_t characterClass)
         return 0x98;
     if (action == 0x7e)
         return 5;
-    const auto found = TableAnimations().find(action);
-    if (found == TableAnimations().end())
+    const auto found = std::ranges::find(TableAnimations, action, &TableRow::action);
+    if (found == TableAnimations.end())
         return action;
-    return (characterClass & 7) == ElfClass ? found->second.second : found->second.first;
+    return (characterClass & 7) == ElfClass ? found->elf : found->other;
 }
 
 class ActionReplyTest : public ::testing::Test
@@ -138,8 +143,7 @@ protected:
     {
         Client::Scenes::ActionSender send{};
         if (m_withSender)
-            send = [this](std::uint8_t sentDirection, std::uint8_t sentAction)
-            { m_sent.emplace_back(sentDirection, sentAction); };
+            send = Client::Tests::RecordingActions(m_sent);
         return Client::Scenes::ApplyActionReply(
             Client::Protocol::Movement::Action{.key = key, .direction = direction, .action = action}, Resources(),
             send);
@@ -154,7 +158,7 @@ protected:
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
     bool m_withSender = true;
-    std::vector<std::pair<std::uint8_t, std::uint8_t>> m_sent;
+    std::vector<Client::Tests::SentAction> m_sent;
 };
 
 // 0x4cb7fd..0x4cbcdb: cada acción que no va a 0x4f2250 ni a 0x4f4a10, con cada clase: la animación de su bloque (las
@@ -192,7 +196,7 @@ TEST_F(ActionReplyTest, EveryActionWithEveryClass)
 // +1 del elfo salvo de 0xb7 a 0xc0), en los 22 casos de 0x576eb0.
 TEST_F(ActionReplyTest, TheEmoteLooksTheSameFromOutside)
 {
-    const std::vector<std::pair<std::uint8_t, std::uint8_t>> cases = {
+    const std::vector<Client::UI::EmoteCase> cases = {
         {0x99, 0x83}, {0x9b, 0x84}, {0x9d, 0x85}, {0xa3, 0x86}, {0xa1, 0x87}, {0xa5, 0x88}, {0xa9, 0x8b}, {0xa7, 0x89},
         {0xab, 0x8c}, {0xaf, 0x8e}, {0x9f, 0x8a}, {0xad, 0x8d}, {0xb1, 0x8f}, {0xb3, 0x90}, {0xb5, 0x91}, {0xb7, 0x92},
         {0xb8, 0x93}, {0xc0, 0x94}, {0xbc, 0x98}, {0xbd, 0x99}, {0xbf, 0x9b}, {0xbe, 0x9a},
@@ -216,8 +220,12 @@ TEST_F(ActionReplyTest, TheEmoteLooksTheSameFromOutside)
 // (+0x39a y +0x39b), no a la lógica, para cualquier acción (Q-C779). La Z y las celdas no se tocan.
 TEST_F(ActionReplyTest, TheAngleComesFromTheDirectionAndThePositionSnapsToTheTarget)
 {
-    const std::vector<std::pair<std::uint8_t, float>> angles = {{0, -45.0f}, {1, 0.0f},   {3, 90.0f},
-                                                                {8, 315.0f}, {9, 360.0f}, {0xff, 11430.0f}};
+    struct Turn
+    {
+        std::uint8_t direction;
+        float angle;
+    };
+    const std::vector<Turn> angles = {{0, -45.0f}, {1, 0.0f}, {3, 90.0f}, {8, 315.0f}, {9, 360.0f}, {0xff, 11430.0f}};
     for (const auto& [direction, angle] : angles)
     {
         SCOPED_TRACE(int{direction});
@@ -338,7 +346,7 @@ TEST_F(ActionReplyTest, ASittingActorSendsTheSitAction)
         Other().animation.action = 1;
         ASSERT_TRUE(Apply(3, 0x7a).HasValue());
         EXPECT_EQ(Other().animation.action, 0xca);
-        EXPECT_EQ(m_sent, (std::vector<std::pair<std::uint8_t, std::uint8_t>>{{3, 0x82}}));
+        EXPECT_EQ(m_sent, (std::vector<Client::Tests::SentAction>{{3, 0x82}}));
     }
 
     m_withSender = false;

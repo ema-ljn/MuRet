@@ -622,7 +622,9 @@ del cable con un emote ni sentado.
 | `0x92` a `0x9b` | `0xb7`, `0xb8`, `0xc0`, `0xb9`, `0xba`, `0xbb`, `0xbc`, `0xbd`, `0xbe` y `0xbf`, sin mirar la clase |
 | cualquier otra | ella misma |
 
-  No saca `rand()`, salvo `0x4f2250`. Lo que los demás ven de un emote es la animación que se puso el que lo hizo.
+  No saca `rand()` salvo en `0x4f2250` (el sufijo) y en `0x4f4a10` (el `0x78` y el `0x79`: ocho llamadas a `_rand`,
+  `0x69fd70`, una en la rama del jugador en `0x4f4db9`, después de `CMP AX,0x20a` en `0x4f4a20`; las cuenta el
+  hito 3). Lo que los demás ven de un emote es la animación que se puso el que lo hizo.
 - **El GameServer** (`CGActionRecv`): guarda la dirección y la acción sin validarlas y reenvía el `C1 07 18` con la
   clave del que la hizo a los jugadores de su viewport (`VpPlayer2`), no a él: el emote propio se ve por `0x576a60` y
   el de los demás por `0x4cb750`. Las acciones de descanso que mira son `0x6c`, `0x6d` y `0x6e` (`m_ViewState` 2 a 4

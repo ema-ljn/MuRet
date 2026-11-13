@@ -9,13 +9,13 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
 #include "support/PlayerActors.h"
+#include "support/SentActions.h"
 
 #include <gtest/gtest.h>
 
 #include <cstdint>
 #include <optional>
 #include <string>
-#include <utility>
 #include <vector>
 
 // Client::Scenes::SetActorStop: 0x4f2250, la acción de parado (06, "Caminar"; P-C14 c). Los valores
@@ -45,7 +45,7 @@ protected:
     {
         Client::Scenes::ActionSender send{};
         if (m_withSender)
-            send = [this](std::uint8_t direction, std::uint8_t action) { m_sent.emplace_back(direction, action); };
+            send = Client::Tests::RecordingActions(m_sent);
         const ActorStopContext context{.runtime = m_runtime,
                                        .scene = m_scene,
                                        .playerSkeleton = m_skeleton,
@@ -73,7 +73,7 @@ protected:
     CrtRandom m_random{QuietSeed()};
     // Los C1 18 que manda sentarse, con la dirección y la acción. Sin m_withSender, nadie los manda.
     bool m_withSender = true;
-    std::vector<std::pair<std::uint8_t, std::uint8_t>> m_sent;
+    std::vector<Client::Tests::SentAction> m_sent;
 };
 
 ActorState Armed(std::uint16_t right, std::uint16_t left = NoItemModel, std::uint8_t characterClass = 0)
@@ -298,7 +298,7 @@ TEST_F(ActorStopTest, FlyingMapsOfTheGameSceneAreAFrontier)
 // y sigue al sufijo, que saca su rand().
 TEST_F(ActorStopTest, SittingSendsTheActionWithItsOwnAngle)
 {
-    using Sent = std::vector<std::pair<std::uint8_t, std::uint8_t>>;
+    using Sent = std::vector<Client::Tests::SentAction>;
     const std::uint32_t quiet = QuietSeed();
     ActorState sitting = Armed(0x212);
     sitting.flags7c = 0x200000;

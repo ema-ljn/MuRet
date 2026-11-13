@@ -155,8 +155,9 @@ Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Act
         return StopTheActor(actor, resources, sendAction);
     if (action >= FirstStrikeAction && action <= LastStrikeAction)
         return Core::Unexpected(std::format(
-            "0x4cb821: la acción {:#x} de otro va a 0x4f4a10 (sin leer), que es del hito 3 de la CL9; después pone "
-            "+0x381 en 1, el frame (+0x114) en 0, +0x3a4 con [0x57678b0] y [0x5767964] con el índice {}",
+            "0x4cb821: la acción {:#x} de otro va a 0x4f4a10 (sin leer, con sus rand(): ocho llamadas a 0x69fd70, una "
+            "en la rama del jugador en 0x4f4db9), que es del hito 3 de la CL9; después pone +0x381 en 1, el frame "
+            "(+0x114) en 0, +0x3a4 con [0x57678b0] y [0x5767964] con el índice {}",
             action, index));
     const auto* skeleton = resources.models.SkeletonOf(actor.type);
     if (skeleton == nullptr)

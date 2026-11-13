@@ -82,6 +82,9 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
     if (m_session)
         context.sendAttack = [&](std::uint16_t key, std::uint8_t action, std::uint8_t direction)
         { return m_session->SendAttack(key, action, direction); };
+    if (m_session)
+        context.sendAction = [&](std::uint8_t direction, std::uint8_t action)
+        { m_session->SendAction(direction, action); };
     const InventoryServices inventory = InventoryContext();
     context.inventory = &inventory;
     return StepHeroMovement(context);

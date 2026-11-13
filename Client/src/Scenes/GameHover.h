@@ -19,8 +19,8 @@ class CrtRandom;
 // El hover y Alt del juego (CL8 hito 6; 06 § HUD y ventanas, "La pasada 2D del juego"): 0x5bbbc0, lo segundo de la
 // pasada 2D (0x637650), entre los textos 3D (0x4383f0) y el HUD (0x5a7320). Pone el nombre del elegido bajo el mouse
 // (un NPC o un jugador en un globo con 0x557170, un monstruo arriba al medio con 0x623690) y, con Alt, los nombres
-// de los ítems del piso (0x5ba790, de la CL9.3). Lo que lee el picking del frame (0x59ec80) MuRet lo deja en −1
-// (las búsquedas son de la CL9.1 y la CL9.3): en el juego de hoy solo queda lo que el original hace siempre.
+// de los ítems del piso (0x5ba790, de la CL9.3). Lee lo que deja el picking del frame (0x59ec80): los personajes desde
+// la CL9 (hito 1); el ítem del piso y los objetos quedan en −1 hasta la CL9.3.
 namespace Client::Scenes
 {
 class ITextDrawer;

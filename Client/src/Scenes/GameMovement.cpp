@@ -278,8 +278,9 @@ Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMoveme
     if (!context.playerSkeleton)
         return Core::Unexpected(std::string("0x4f37c0: falta Player.bmd"));
     const ActorStopContext stop{
-        runtime,       SceneId::Game,  *context.playerSkeleton,
-        context.items, context.random, terrain.attributes ? &terrain.attributes->cells : nullptr};
+        runtime,           SceneId::Game,  *context.playerSkeleton,
+        context.items,     context.random, terrain.attributes ? &terrain.attributes->cells : nullptr,
+        context.sendAction};
     if ((hero.flags78 & MovementLockedFlag) != 0)
     {
         const auto stopped = SetActorStop(hero, stop);
@@ -381,7 +382,7 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
         const auto& terrain = context.world.Map().terrain;
         const auto stopped =
             SetActorStop(hero, {runtime, SceneId::Game, *context.playerSkeleton, context.items, context.random,
-                                terrain.attributes ? &terrain.attributes->cells : nullptr});
+                                terrain.attributes ? &terrain.attributes->cells : nullptr, context.sendAction});
         if (!stopped.HasValue())
             return Core::Unexpected(stopped.Error());
         if (stopped.Value().sound)

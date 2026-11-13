@@ -13,6 +13,7 @@
 #include "Render/Models/Skinning.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FaunaModels.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/GameHanging.h"
@@ -20,6 +21,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ChaosCastle.h"
+#include "World/OriginalFtol.h"
 #include "World/Sprites.h"
 #include "World/TerrainHeight.h"
 #include "World/TerrainLighting.h"
@@ -269,6 +271,24 @@ std::optional<double> GroundHeight(const WorldState& world, const GameCharacterP
     return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, pass.fixedHeight);
 }
 
+// 0x4eb860 (0x4eb86d..0x4eb94c): la key que deja en +0xa8 del modelo, el frame (+0x114) por 0x69fd3c en un short, en 0
+// si es negativa o si llega a las keys de la acción del modelo (+0xa0, en 0 si el modelo no la tiene). Sin acciones no
+// la toca; con un frame infinito, el original no está observado: tampoco.
+std::optional<std::int16_t> PoseKeyOf(const Render::Models::Skeleton& skeleton,
+                                      const Render::Models::AnimationState& animation)
+{
+    const auto truncated = World::OriginalFtolLow(D(animation.frame));
+    if (skeleton.actions.empty() || !truncated)
+        return std::nullopt;
+    auto key = static_cast<std::int16_t>(*truncated);
+    if (key < 0)
+        key = 0;
+    const std::size_t action = animation.action < skeleton.actions.size() ? animation.action : 0;
+    if (key >= skeleton.actions[action].keyCount)
+        key = 0;
+    return key;
+}
+
 // Lo que dibuja un monstruo en un frame: el personaje (el registro o su copia), el rand() y los recursos.
 struct MonsterFrame
 {
@@ -309,6 +329,13 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
     if (!Render::Models::PoseSkeleton(skeleton, actor.animation, transform, actor.headTurn.angles, bones))
         return Core::Unexpected(std::format("0x4eb860: la pose del modelo {:#x} falló", actor.type));
     actor.bodyPose = bones;
+    // 0x4eb8cd..0x4eb94c: la key en +0xa8 del modelo compartido, que lee el paso del 0x1f5 (0x4fce92). Entre frames del
+    // original no se guarda.
+    if (frame.originalFrame)
+    {
+        if (const auto key = PoseKeyOf(skeleton, actor.animation))
+            frame.world.FaunaResources().RecordPoseKey(actor.type, *key);
+    }
     if (frame.pass.dynamicLighting == nullptr)
         return Core::Unexpected<std::string>("0x5ffce0: falta el buffer dinámico de luz del terreno");
     const ModelLight light = ModelLightOf(actor, *frame.pass.dynamicLighting, frame.worldClock);

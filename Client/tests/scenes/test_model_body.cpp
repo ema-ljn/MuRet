@@ -4,10 +4,13 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Models/Model.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
+#include "Render/TextureSlot.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterHead.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaModels.h"
@@ -28,6 +31,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -429,5 +433,72 @@ TEST_F(MonsterStep, TheModelsWithTheirOwnEffectsCutAfterTheirRandom)
     ASSERT_FALSE(missing.HasValue());
     EXPECT_NE(missing.Error().find("0x4f9580"), std::string::npos) << missing.Error();
     EXPECT_EQ(other.State(), Client::Tests::AfterDraws(Seed, 8).State());
+}
+
+// La biblioteca del mapa detrás de FaunaResources con el 0x1f5 (un NPC) en el esqueleto de Monster02.
+class TraderLibrary final : public Client::Scenes::IModelLibrary
+{
+public:
+    explicit TraderLibrary(const Skeleton& skeleton) : m_skeleton(skeleton) {}
+
+    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t) const override
+    {
+        return nullptr;
+    }
+    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
+    {
+        return model == 0x1f5 ? &m_skeleton : nullptr;
+    }
+    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return {};
+    }
+
+private:
+    const Skeleton& m_skeleton;
+};
+
+// 0x4fce7a..0x4fced1: el 0x1f5 mira la key que dejó la última pose en su modelo (+0xa8, FaunaModels::PoseKey): con la
+// última de su acción, rand() % 32 en 0 le pone la acción 1 y si no la 0 (0x4ea030); con otra, nada. Después sigue
+// hasta el caso de su modelo en 0x505de0 (0x508093), que corta.
+TEST_F(MonsterStep, TheTraderPicksItsNextActionWhenItsModelEndedTheLastPose)
+{
+    TraderLibrary trader(Model());
+    m_world->FaunaResources().Bind(&trader);
+    m_actor.type = 0x1f5;
+    const std::int16_t last = static_cast<std::int16_t>(Model().actions[2].keyCount - 1);
+    const auto stepFrom = [this](std::int16_t key, std::uint32_t seed)
+    {
+        m_actor.animation.action = 2;
+        m_actor.animation.frame = 0.0f;
+        m_world->FaunaResources().RecordPoseKey(0x1f5, key);
+        CrtRandom random(seed);
+        return Step(random);
+    };
+
+    const auto other = stepFrom(static_cast<std::int16_t>(last + 1), Seed);
+    ASSERT_FALSE(other.HasValue());
+    EXPECT_NE(other.Error().find("0x508093"), std::string::npos) << other.Error();
+    EXPECT_EQ(m_actor.animation.action, 2);
+
+    int rests = 0;
+    int others = 0;
+    for (std::uint32_t seed = 1; seed < 300; ++seed)
+    {
+        SCOPED_TRACE(seed);
+        const auto stepped = stepFrom(last, seed);
+        ASSERT_FALSE(stepped.HasValue());
+        EXPECT_NE(stepped.Error().find("0x508093"), std::string::npos) << stepped.Error();
+        if (m_actor.animation.action == 0)
+            ++rests;
+        else if (m_actor.animation.action == 1)
+            ++others;
+        else
+            ADD_FAILURE() << static_cast<int>(m_actor.animation.action);
+        EXPECT_EQ(m_actor.animation.frame, 0.0f);
+    }
+    EXPECT_GT(rests, others);
+    EXPECT_GT(others, 0);
+    m_world->FaunaResources().Bind(nullptr);
 }
 } // namespace

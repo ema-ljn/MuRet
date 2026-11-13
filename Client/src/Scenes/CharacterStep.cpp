@@ -474,14 +474,24 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
             actor.animation.frame = NamedFrame;
         }
     }
-    // 0x4fce7a..0x4fced1: el 0x1f5 compara el frame que dejó en su modelo el último que lo posó (+0xa8 de
-    // 0x5769ad8 + 0x1f5 · 0xe0) con la última key de la acción y, si es esa, rand() % 32 elige la acción 1 o la 0.
+    // 0x4fce7a..0x4fced1: el 0x1f5 compara la key que dejó en su modelo la última pose (+0xa8 de 0x5769ad8 + 0x1f5 ·
+    // 0xe0, FaunaModels::PoseKey, que guarda el dibujo de los monstruos) con la última key de su acción (+0x111, sin
+    // mirar si el modelo la tiene) y, si es esa, rand() % 32 en 0 le pone la acción 1 con 0x4ea030 y si no la 0.
     constexpr std::uint16_t TraderModel = 0x1f5;
     if (actor.type == TraderModel)
     {
-        return Core::Unexpected(std::format("0x4fce84: el 0x1f5 del lugar {} lee el frame de su modelo compartido "
-                                            "(+0xa8), que deja la pose del último que lo dibujó",
-                                            slot));
+        const Render::Models::Skeleton& skeleton = *ModelSkeletonOf(actor, context);
+        const std::uint8_t action = actor.animation.action;
+        if (action >= skeleton.actions.size())
+            return Core::Unexpected(std::format("0x4fce9c: la acción {} del 0x1f5 del lugar {} está fuera de su modelo",
+                                                static_cast<int>(action), slot));
+        const std::int32_t lastKey = skeleton.actions[action].keyCount - 1;
+        if (context.world.FaunaResources().PoseKey(TraderModel) == lastKey)
+        {
+            constexpr int OddsOfTheOtherAction = 32;
+            const std::uint8_t next = context.random.Next() % OddsOfTheOtherAction == 0 ? 1 : 0;
+            Render::Models::SetAction(actor.animation, skeleton, next);
+        }
     }
     return {};
 }

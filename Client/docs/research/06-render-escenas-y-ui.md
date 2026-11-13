@@ -10203,11 +10203,14 @@ NewFace suelto o el que cargó el alta ([Los modelos de los monstruos y los NPC]
 MuRet: `Scenes::ModelBody` (`ModelSpeedOf`, `FinishTheModelAction` con `0x42d890`, `SetTheModelHeadTarget` y
 `LookAtTheTarget`, `ModelTrailCutOf` y `ModelEffectsCutOf`), llamado desde `CharacterStep` con el modelo de
 `WorldState::FaunaResources()` (con la biblioteca del mapa detrás); el sonido al caminar con
-`ActorWalkContext::modelSounds` (`FaunaModels::SoundActions`). Cortan con su dirección los efectos por tipo (3 y 4, CL11),
-el `0x1f5` (`0x4fce84`: MuRet no guarda el frame de la última pose de cada modelo), la acción 6 que termina con
-`+0x38a` en 0 (`0x4fcc3c`) y el subtipo 209 a 211 caminando (`0x4f3ef2`, dos sonidos); 08, P-C241. Tests:
+`ActorWalkContext::modelSounds` (`FaunaModels::SoundActions`); con el subtipo 209 a 211, antes el `0x7b` (`0x4f3ef2`, que
+la tabla pisa en `lastSoundId` si suena). El `0x1f5` lee la key de la última pose de su modelo en
+`FaunaModels::PoseKey`, que guarda el dibujo ([El dibujo de los monstruos y los NPC](#el-dibujo-de-los-monstruos-y-los-npc)).
+Cortan con su dirección los efectos por tipo (3 y 4, CL11) y la acción 6 que termina con `+0x38a` en 0 (`0x4fcc3c`);
+08, P-C241. Tests:
 `ModelBodyTest` y `MonsterStep` (`test_model_body.cpp`: un Monster02 que avanza con su velocidad y descansa al terminar
-la 3, con sus `rand()`), `ActorWalkTest.AnotherModelSoundsFromItsModelTable`.
+la 3, con sus `rand()`, y el `0x1f5` que elige su acción), `ActorWalkTest.AnotherModelSoundsFromItsModelTable` y
+`ActorWalkTest.TheSubtypes209To211AskForTheirLeadSoundBeforeTheTable`.
 
 ### El dibujo de los monstruos y los NPC
 
@@ -10223,7 +10226,8 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    el alpha guardado baja 0,15f por dibujo; por debajo de 0,01f no posa ni dibuja; `0x5ffce0` (el color del modelo:
    el `0x189` en 0,6, el `0xe4` en `(sin(T · 0,003f) + 1) · 0,5f`, los demás la luz del terreno `0x5f99e0` más la propia
    con `+0xe8`, o un décimo de ella sin, Q-C859); la posición del modelo, 60 más en y con el `0x18f` y 120 con el `0x18e`;
-   `0x4eb860` en los huesos propios (`+0x120`, Q-C410) con los ángulos de la cabeza; con el contorno, salvo con
+   `0x4eb860` en los huesos propios (`+0x120`, Q-C410) con los ángulos de la cabeza, que deja en `+0xa8` del modelo la
+   key del frame (truncado, en 0 si es negativa o si llega a las keys de la acción; la lee el paso del `0x1f5`); con el contorno, salvo con
    `+0x78 & 0x4000`, los dos pases de `0x60cd60` (el NPC, `+0x88` en 4 fuera de Chaos Castle: (0,02; 0,1; 0) con
    `+0x94` y (0,16; 0,7; 0) con el mayor de `+0x94 − 0,12` y 1,01; los demás: (0,1; 0,01; 0) con `0,1 / escala + 1`
    y (0,7; 0,07; 0) con `0,04 / escala + 1`, el `0x172` con 1,2 y 1,08, y con `+0x94` distinto de 1,2 por sus bits,

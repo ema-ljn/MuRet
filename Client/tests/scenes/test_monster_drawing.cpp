@@ -202,10 +202,13 @@ void ExpectColor(const Client::Render::ModelVertex& vertex, float red, float gre
 TEST_F(MonsterDrawingTest, ALorenciaSpiderDrawsItsBodyThenItsShadowWithTheOneAttachmentRandom)
 {
     ActorState& spider = Monster(7, Spider, 3);
+    m_world->FaunaResources().RecordPoseKey(Spider, 7);
 
     const auto result = Draw(Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
+    // 0x4eb8cd..0x4eb94c: la key de la pose en +0xa8 del modelo; la acción tiene una sola, la 0.
+    EXPECT_EQ(m_world->FaunaResources().PoseKey(Spider), 0);
     // 0x6002e0 y después la sombra de 0x50bd89.
     ASSERT_EQ(m_batch.Vertices().size(), 6u);
     ASSERT_EQ(m_batch.Commands().size(), 2u);
@@ -405,12 +408,14 @@ TEST_F(MonsterDrawingTest, BetweenOriginalFramesNothingIsStored)
     m_world->Runtime().map = 20;
     m_world->Actors()[42].byte1a1 = 1;
     ActorState& spider = Monster(2, Spider, 3);
+    m_world->FaunaResources().RecordPoseKey(Spider, 7);
     GameCharacterPass pass = Pass();
     pass.originalFrames = 0;
 
     const auto result = Draw(pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(m_world->FaunaResources().PoseKey(Spider), 7);
     EXPECT_FLOAT_EQ(spider.alpha, 1.0f);
     EXPECT_TRUE(spider.bodyPose.empty());
     EXPECT_EQ(m_clothWorld.random.State(), 1u);

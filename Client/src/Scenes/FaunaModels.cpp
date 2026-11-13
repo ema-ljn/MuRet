@@ -418,4 +418,15 @@ std::span<const std::int16_t, 10> FaunaModels::SoundActions(std::uint16_t model)
     return found != m_models.end() ? std::span<const std::int16_t, 10>(found->second.sounds)
                                    : std::span<const std::int16_t, 10>(NoSounds);
 }
+
+std::int16_t FaunaModels::PoseKey(std::uint16_t model) const
+{
+    const auto found = m_poseKeys.find(model);
+    return found != m_poseKeys.end() ? found->second : std::int16_t{0};
+}
+
+void FaunaModels::RecordPoseKey(std::uint16_t model, std::int16_t key)
+{
+    m_poseKeys[model] = key;
+}
 } // namespace Client::Scenes

@@ -31,6 +31,7 @@
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Viewport.h"
 #include "Protocol/World.h"
 #include "Protocol/Character/CharacterCreate.h"
 #include "Protocol/Character/CharacterDelete.h"
@@ -4205,6 +4206,43 @@ TEST(ServerSessionTest, WalkDamageTeleportAndRegenReachTheSinkInWireOrder)
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 
+// 04 § Los otros jugadores: el 12, el 14, el 45, el 25 y el DF llegan al mundo en el orden del cable.
+TEST(ServerSessionTest, TheViewportPacketsReachTheSinkInWireOrder)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    auto players = Bytes({0xc2, 0, 5 + 0x2c, 0x12, 1, 0x80, 0x45, 130, 125, 0x20});
+    players.resize(5 + 0x2c);
+    auto transformed = Bytes({0xc2, 0, 5 + 0x1c, 0x45, 1, 0x00, 0x46, 70, 80, 0x01, 0x23});
+    transformed.resize(5 + 0x1c);
+    const auto leave = Bytes({0xc1, 6, 0x14, 1, 0x80, 0x45});
+    const auto shown = Bytes({0xc1, 12, 0x25, 0x00, 0x45, 1, 0x80, 0, 0, 0, 0xd0, 0});
+    const auto position = Bytes({0xc1, 7, 0xdf, 0x00, 0x45, 140, 141});
+    tested.socket.reads = {Join({players, transformed, shown, position, leave})};
+    EXPECT_TRUE(tested.session.Poll().HasValue());
+    ASSERT_EQ(tested.eventSink.world.size(), 5u);
+    const auto* arrived = std::get_if<Client::Protocol::Viewport::Players>(&tested.eventSink.world[0]);
+    ASSERT_NE(arrived, nullptr);
+    ASSERT_EQ(arrived->records.size(), 1u);
+    EXPECT_EQ(arrived->records[0].key, 0x45);
+    EXPECT_TRUE(arrived->records[0].isNew);
+    EXPECT_EQ(arrived->packet.size(), 5u + 0x2c);
+    const auto* changed = std::get_if<Client::Protocol::Viewport::Transformed>(&tested.eventSink.world[1]);
+    ASSERT_NE(changed, nullptr);
+    ASSERT_EQ(changed->records.size(), 1u);
+    EXPECT_EQ(changed->records[0].type, 0x0123);
+    const auto* equipped = std::get_if<Client::Protocol::Viewport::EquipmentShown>(&tested.eventSink.world[2]);
+    ASSERT_NE(equipped, nullptr);
+    EXPECT_EQ(equipped->key, 0x45);
+    const auto* moved = std::get_if<Client::Protocol::Viewport::Position>(&tested.eventSink.world[3]);
+    ASSERT_NE(moved, nullptr);
+    EXPECT_EQ(moved->x, 140);
+    const auto* left = std::get_if<Client::Protocol::Viewport::Leave>(&tested.eventSink.world[4]);
+    ASSERT_NE(left, nullptr);
+    EXPECT_EQ(left->keys, (std::vector<std::uint16_t>{0x8045}));
+    EXPECT_NE(tested.session.State(), SessionState::Failed);
+}
+
 // P-C33: incluso un 1C sin campos pasa por el rechazo antes del lector semántico.
 TEST(ServerSessionTest, UnencryptedTeleportIsAnsweredWithF103BeforeReadingItsFields)
 {
@@ -4474,6 +4512,40 @@ TEST(ServerSessionTest, FacingUsesTheWorldConnectionAndXorDelivery)
     ASSERT_EQ(received.packets.size(), before + 1);
     EXPECT_TRUE(SameBytes(Xor32Decode(received.packets.back()).Bytes(), Bytes({0xc1, 5, 0x18, 0xf7, 0x7a})));
     EXPECT_FALSE(received.packets.back().WasDecrypted());
+}
+
+// 0x4f2416 y 0x576a60: el C1 05 18 de sentarse y del emote, con el XOR32 por el GS; sin el GS abierto, nada.
+TEST(ServerSessionTest, TheActionUsesTheWorldConnectionAndXorDelivery)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingServer());
+    const auto beforeChoosing = tested.socket.sent.size();
+    tested.session.SendAction(3, 0x82);
+    EXPECT_EQ(tested.socket.sent.size(), beforeChoosing);
+
+    Harness inWorld(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(inWorld.ReachLoggedIn());
+    const auto before = inWorld.GameServerReads().packets.size();
+    inWorld.session.SendAction(0xf7, 0x82);
+    const auto received = inWorld.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 1);
+    EXPECT_TRUE(SameBytes(Xor32Decode(received.packets.back()).Bytes(), Bytes({0xc1, 5, 0x18, 0xf7, 0x82})));
+    EXPECT_FALSE(received.packets.back().WasDecrypted());
+}
+
+// 0x4e39ab: el 18 va a 0x4cb750 sin guarda; la sesión lo lee y lo pasa al sink. Corto, un aviso y nada.
+TEST(ServerSessionTest, TheActionOfAnotherReachesTheSink)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {Join({Bytes({0xc1, 6, 0x18, 0x12, 0x34, 3}), Bytes({0xc1, 7, 0x18, 0x92, 0x34, 3, 0x83})})};
+    EXPECT_TRUE(tested.session.Poll().HasValue());
+    ASSERT_EQ(tested.eventSink.world.size(), 1u);
+    const auto* action = std::get_if<Client::Protocol::Movement::Action>(&tested.eventSink.world[0]);
+    ASSERT_NE(action, nullptr);
+    EXPECT_EQ(action->key, 0x9234);
+    EXPECT_EQ(action->direction, 3);
+    EXPECT_EQ(action->action, 0x83);
 }
 
 // 0x61c210 manda el F3 30 en claro con el XOR32, por el GS: no pasa por el cifrado del C3.

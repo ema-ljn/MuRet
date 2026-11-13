@@ -16,8 +16,10 @@
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
+#include "Protocol/Viewport.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
+#include "Scenes/ActionReply.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GuildReceive.h"
@@ -29,6 +31,7 @@
 #include "Scenes/ReturnToSelection.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/ViewportPlayers.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -144,6 +147,9 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
         return ApplyWalkReply(*walk, session.PlayerIndex(), m_resources);
     if (const auto* damage = std::get_if<Protocol::Movement::Damage>(&event))
         return ApplyDamageReply(*damage, session.PlayerIndex(), m_resources);
+    if (const auto* action = std::get_if<Protocol::Movement::Action>(&event))
+        return ApplyActionReply(*action, m_resources, [&session](std::uint8_t direction, std::uint8_t sent)
+                                { session.SendAction(direction, sent); });
     if (const auto* teleport = std::get_if<Protocol::World::Teleport>(&event))
     {
         SessionPublisher publisher(session);
@@ -173,7 +179,27 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
         return ApplyOptionData(*options, ChatContextOf(m_resources, session));
     if (const auto* guild = std::get_if<Protocol::Guild::GuildPacket>(&event))
         return ApplyGuildPacket(*guild, GuildContextOf(m_resources, session));
+    if (auto viewport = ApplyViewport(event))
+        return *viewport;
     return ApplyWorldContent(event, session);
+}
+
+std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplyViewport(const App::WorldEvent& event)
+{
+    if (const auto* players = std::get_if<Protocol::Viewport::Players>(&event))
+        return ApplyViewportPlayers(*players, m_resources);
+    if (const auto* leave = std::get_if<Protocol::Viewport::Leave>(&event))
+    {
+        ApplyViewportLeave(*leave, m_resources.world);
+        return Core::Expected<void, std::string>{};
+    }
+    if (const auto* transformed = std::get_if<Protocol::Viewport::Transformed>(&event))
+        return ApplyTransformed(*transformed, m_resources);
+    if (const auto* shown = std::get_if<Protocol::Viewport::EquipmentShown>(&event))
+        return ApplyEquipmentShown(*shown, m_resources);
+    if (const auto* position = std::get_if<Protocol::Viewport::Position>(&event))
+        return ApplyViewportPosition(*position, m_resources);
+    return std::nullopt;
 }
 
 Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const App::WorldEvent& event,

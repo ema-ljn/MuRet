@@ -82,6 +82,7 @@ constexpr float OuterSpan = std::bit_cast<float>(0x3dcccccdu);         // 0,1 (0
 constexpr float PulseRate = std::bit_cast<float>(0x3b03126fu);
 constexpr float PulseSpan = std::bit_cast<float>(0x3e99999au);
 constexpr std::uint16_t WideOutlineType = 0x172;
+constexpr std::uint16_t KalimaGate = 0xc5; // los monstruos 152 a 158 (0x514390)
 constexpr std::uint32_t RiderFlag = 0x4000;
 
 float F32(double value)
@@ -397,10 +398,14 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
     const auto slot = static_cast<std::int32_t>(frame.slot);
     if ((slot == frame.pass.hovered || slot == frame.pass.targeted) && (actor.flags78 & RiderFlag) == 0)
     {
-        if (actor.type == 0xc5)
-            return Cut("0x60cdd9", "el contorno de 0x60cd60 con el 0xc5", actor.type);
         const auto passes = OutlinePassesOf(actor, frame.map);
-        DrawObjectOutline(frame.batch, frame.fauna, object, frame.pass.frameClock, bones, passes);
+        // 0x60cdd9: el 0xc5 (las puertas de Kalima) solo con su malla 0, y con el +0x58 de textura (0x60ce4e).
+        if (actor.type == KalimaGate && actor.dword58 != -1)
+            return Cut("0x60ce4e", "la textura +0x58 del contorno del 0xc5", actor.type);
+        if (actor.type == KalimaGate)
+            DrawObjectOutlineOfTheFirstMesh(frame.batch, frame.fauna, object, frame.pass.frameClock, bones, passes);
+        else
+            DrawObjectOutline(frame.batch, frame.fauna, object, frame.pass.frameClock, bones, passes);
     }
     // 0x600177: el último 0x4ebc80 de 0x5ffdf0, con la escala en 1, deja las mallas en 0x5786f9c.
     std::vector<Render::Models::SkinnedMesh> meshes = SkinObjectMeshes(frame.fauna, object, bones);

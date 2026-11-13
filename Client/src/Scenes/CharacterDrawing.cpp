@@ -1320,6 +1320,38 @@ void DrawObjectOutline(Render::ModelBatch& batch, const IModelLibrary& models, c
     }
 }
 
+void DrawObjectOutlineOfTheFirstMesh(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                                     Core::Duration frameClock, std::span<const BoneTransform> bones,
+                                     std::span<const ObjectOutlinePass> passes)
+{
+    const Data::Models::Model* model = models.Find(object.model);
+    if (model == nullptr || model->meshes.empty())
+        return;
+    // 0x60ce4e: 0x4ecc30(0, …) sin 0x4ef0c0, que es el que mira el script de la malla (oculta o su propio blendMesh).
+    const Data::Models::Mesh& mesh = model->meshes.front();
+    MeshRole role = RoleOf(object.model, mesh, 0);
+    role.hidden = false;
+    role.blendScript = false;
+    const MeshTexture texture = TextureOf(mesh, models.MeshTextures(object.model), 0, ObjectClass);
+    Render::Models::SkinnedMesh skinned;
+    if (!texture.drawn || !IndicesInRange(mesh) || !Render::Models::SkinMesh(mesh, bones, object.transform, skinned))
+        return;
+    const std::int16_t blendMesh = BlendMeshOf(role, 0, object.state);
+    const MeshDraw draw{object.model,
+                        0,
+                        &mesh,
+                        &skinned,
+                        role,
+                        texture.slot,
+                        Render::Color{object.color.x, object.color.y, object.color.z, 1.0f},
+                        Blends(mesh, blendMesh),
+                        blendMesh == 0 || role.scrollScript,
+                        &object.state,
+                        frameClock};
+    for (const ObjectOutlinePass& pass : passes)
+        OutlineMeshAround(batch, object.transform, OutlinePass{pass.boneScale, pass.color}, draw, bones);
+}
+
 void DrawObjectShadow(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
                       std::span<const Render::Models::SkinnedMesh> meshes, std::int32_t map)
 {

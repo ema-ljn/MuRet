@@ -268,6 +268,13 @@ void DrawObjectOutline(Render::ModelBatch& batch, const IModelLibrary& models, c
                        Core::Duration frameClock, std::span<const Render::Models::BoneTransform> bones,
                        std::span<const ObjectOutlinePass> passes);
 
+// El contorno del 0xc5 (0x60cdd9..0x60ce55): como DrawObjectOutline, pero solo la malla 0 con 0x4ecc30 (0x60ce4e), sin
+// el script de su textura (oculta, o su propio blendMesh, que mira 0x4ef0c0) y sin la malla oculta: el +0x58 va de
+// textura, que el contorno no usa salvo en la rama del blendMesh. El caller corta con +0x58 distinto de −1.
+void DrawObjectOutlineOfTheFirstMesh(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                                     Core::Duration frameClock, std::span<const Render::Models::BoneTransform> bones,
+                                     std::span<const ObjectOutlinePass> passes);
+
 // La sombra de 0x60b3d0 con +0x98 en 1 (0x60b41a..0x60ccee), sobre `meshes` (SkinObjectMeshes): sin sombra en los
 // mapas 10, 24 a 29 y 36; en el 7, 0x620a00(1) y glColor4f(0, 0, 0, 0,2), y en los demás 0x620980 y glColor3f(0, 0,
 // 0). 0x4eff40(+0x64, +0x58, −1, −1): sin la malla oculta, las que no tienen triángulos y las que tienen la textura

@@ -10289,7 +10289,11 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    `+0x78 & 0x4000`, los dos pases de `0x60cd60` (el NPC, `+0x88` en 4 fuera de Chaos Castle: (0,02; 0,1; 0) con
    `+0x94` y (0,16; 0,7; 0) con el mayor de `+0x94 − 0,12` y 1,01; los demás: (0,1; 0,01; 0) con `0,1 / escala + 1`
    y (0,7; 0,07; 0) con `0,04 / escala + 1`, el `0x172` con 1,2 y 1,08, y con `+0x94` distinto de 1,2 por sus bits,
-   Q-C94, `+0x94` y el mayor de `+0x94 − 0,04` y 1,01). `0x6002e0`: con `+0x58` en −2, nada; los colores del `0x171`
+   Q-C94, `+0x94` y el mayor de `+0x94 − 0,04` y 1,01); cada pase, `RenderBody(0x40)` (`0x4ef0c0`), salvo el `0xc5`
+   (las puertas de Kalima, `0x60cdd9..0x60ce55`): `0x4ecc10`, el color del pase como `0x4ef0c0` (`glColor3fv`, o
+   `glColor4f` con el alpha por debajo de 0,99f) y solo `0x4ecc30(0, 0x40, alpha, +0x64, +0x68, +0x6c, +0x70, +0x58)`, la
+   malla 0 sin el script de su textura (oculta o su propio blendMesh, que mira `0x4ef0c0`), sin la malla oculta y con
+   el `+0x58` de textura. `0x6002e0`: con `+0x58` en −2, nada; los colores del `0x171`
    en el mapa 10, del `0x164` en el 9 y del `0x16d` con el especial; los casos por tipo y por mapa (`0x6004ed`,
    `0x600a4a`), los de `+0x78 & 1` y `& 2` (`0x600e69`: (0,3; 1; 0,8), (0,3; 1; 0,5) y (0,3; 0,5; 1)), `+0x68` en 1
    con el `0x175`, el `0x161`, el `0x184` y el `0x185` con el alpha en 1 y `+0x68` en 0,05; la cadena `0x438fe0`,
@@ -10323,13 +10327,14 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
 MuRet: `Scenes::DrawGameMonster` (`MonsterDrawing.cpp`), llamado desde `DrawGameCharacters` con el modelo de
 `WorldState::FaunaResources()`; el cuerpo con `Scenes::SkinObjectMeshes`, `DrawObjectOutline` y `DrawObjectFromMeshes`,
 y la sombra con `DrawObjectShadow` (`CharacterDrawing.h`); lo que cuelga con `DrawGameHanging`, que ya no corta con
-otro tipo. Entre frames del original, todo sobre una copia del personaje y del `rand()`. Cortan con su dirección: los
-casos de `0x6002e0` y de su cadena, el calco del `0xe8` y el `0xe9` (`0x50bed8`), lo de `0x50bf45`, las partes, el
+otro tipo; el contorno del `0xc5` con `DrawObjectOutlineOfTheFirstMesh`, que corta en `0x60ce4e` con el `+0x58`
+distinto de −1. Entre frames del original, todo sobre una copia del personaje y del `rand()`. Cortan con su dirección:
+los casos de `0x6002e0` y de su cadena, el calco del `0xe8` y el `0xe9` (`0x50bed8`), lo de `0x50bf45`, las partes, el
 Angel, el gremio y la tela del `0x37`, el joint `0x618/6` en `CreateFaunaJoint` (`0x530c18`), el `0x16e`, los helpers
 de `0x510a1e`, `0x510f4d` y el cuervo; 08, P-C179. Tests:
 `MonsterDrawingTest`, `MonsterHangingLight` y `MonsterDecorations` (`test_monster_drawing.cpp`: un Spider de Lorencia,
-un Yeti de Devias, la sombra por mapa, el contorno de un monstruo y de un NPC, el hada del NPC 237, el caso del
-`0x176` y los cortes), `GameHangingTest.AMonsterSkipsTheBackTheLayerAndTheEventWeapon`.
+un Yeti de Devias, la sombra por mapa, el contorno de un monstruo, de un NPC y de la puerta de Kalima, el hada del NPC
+237, el caso del `0x176` y los cortes), `GameHangingTest.AMonsterSkipsTheBackTheLayerAndTheEventWeapon`.
 
 #### La tela sobre la malla
 

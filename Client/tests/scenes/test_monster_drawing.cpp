@@ -83,6 +83,13 @@ public:
         m_model.meshes = {mesh};
     }
 
+    // Una segunda malla igual a la primera, con su textura.
+    void AddMesh()
+    {
+        m_model.meshes.push_back(m_model.meshes.front());
+        m_texture.push_back(Client::Render::TextureSlot{0x301});
+    }
+
     [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t model) const override
     {
         return model == 0x20a ? nullptr : &m_model;
@@ -99,7 +106,7 @@ public:
 private:
     Client::Render::Models::Skeleton m_skeleton;
     Client::Data::Models::Model m_model;
-    std::array<Client::Render::TextureSlot, 1> m_texture{Client::Render::TextureSlot{0x300}};
+    std::vector<Client::Render::TextureSlot> m_texture{Client::Render::TextureSlot{0x300}};
 };
 
 class MonsterDrawingTest : public testing::Test
@@ -303,6 +310,53 @@ TEST_F(MonsterDrawingTest, TheOutlineGoesBeforeTheBodyWithTheMonsterOrTheNpcColo
     // El monstruo con +0x94 en 1,2: 0,1 / escala + 1. El NPC: +0x94, el vértice (1, 0, 0) a 1,2.
     EXPECT_FLOAT_EQ(m_batch.Vertices()[1].position.x, 151.1f);
     EXPECT_FLOAT_EQ(m_batch.Vertices()[13].position.x, 151.2f);
+}
+
+// 0x60cdd9: las puertas de Kalima (0xc5) llevan el contorno solo en la malla 0 (0x60ce4e); otro, en las dos. El cuerpo
+// del 0xc5 corta después en 0x438fe0.
+TEST_F(MonsterDrawingTest, TheKalimaGateOutlinesOnlyItsFirstMesh)
+{
+    constexpr std::uint16_t Gate = 0xc5;
+    m_models.AddMesh();
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        m_world = std::make_unique<Client::Scenes::WorldState>();
+        SetUp();
+        m_world->Runtime().map = map;
+        Monster(4, Gate, 152);
+        GameCharacterPass pass = Pass();
+        pass.hovered = 4;
+
+        const auto gate = Draw(pass);
+
+        ASSERT_FALSE(gate.HasValue());
+        EXPECT_NE(gate.Error().find("0x438fe0"), std::string::npos) << gate.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), 6u);
+        ExpectColor(m_batch.Vertices()[0], 0.1f, 0.01f, 0.0f, 1.0f);
+        ExpectColor(m_batch.Vertices()[3], 0.7f, 0.07f, 0.0f, 1.0f);
+        TearDown();
+
+        m_world = std::make_unique<Client::Scenes::WorldState>();
+        SetUp();
+        m_world->Runtime().map = map;
+        Monster(4, Spider, 3);
+        const auto spider = Draw(pass);
+        ASSERT_TRUE(spider.HasValue()) << spider.Error();
+        // Dos pases por las dos mallas, el cuerpo y la sombra.
+        EXPECT_EQ(m_batch.Vertices().size(), 24u);
+        TearDown();
+    }
+    m_world = std::make_unique<Client::Scenes::WorldState>();
+    SetUp();
+    ActorState& gate = Monster(4, Gate, 152);
+    gate.dword58 = 0;
+    GameCharacterPass pass = Pass();
+    pass.hovered = 4;
+    const auto textured = Draw(pass);
+    ASSERT_FALSE(textured.HasValue());
+    EXPECT_NE(textured.Error().find("0x60ce4e"), std::string::npos) << textured.Error();
+    EXPECT_EQ(m_batch.Vertices().size(), 0u);
 }
 
 TEST_F(MonsterDrawingTest, TheFrozenFlagPaintsTheBodyAndAddsAPassWithoutTheBlendMesh)

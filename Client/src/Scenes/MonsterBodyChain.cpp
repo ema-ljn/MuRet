@@ -148,9 +148,10 @@ Chained DrawTheCastleCase(MonsterBodyFrame& frame)
         return Core::Unexpected(siege.Error());
     if (siege.Value())
         return true;
+    // 0x42e3d0: los monstruos del asedio (solo en el 30, la batalla de Castle Siege): del hito 13 de la CL9.
     constexpr std::array<std::uint16_t, 5> Monsters{0x19b, 0x19c, 0x1a8, 0x1f8, 0x1ff};
     if (OneOf(actor.type, Monsters))
-        return Cut("0x42e3d0", "el caso del monstruo del 30 de la cadena de 0x6002e0", actor.type);
+        return Cut("0x42e3d0", "el caso del monstruo del 30 de la cadena de 0x6002e0 (hito 13)", actor.type);
     return false;
 }
 

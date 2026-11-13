@@ -269,7 +269,12 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
       "Los helpers de Kalima y del asedio"; 08, P-C334), y el `0xc5` y el `0xf1` de `0x4fd5f0` (`0x4fd603`, `0x4fb910`
       y `0x505425`). Hechos en la fase 6d `0x441400`, `0x434180`, `0x4271d0` y `0x432bd0`, salvo sus efectos de la
       CL11 (06, "Los helpers de los monstruos"; 08, P-C336); quedan los efectos por tipo y los helpers, que cortan con
-      su dirección (08, P-C179, P-C241 y P-C332).
+      su dirección (08, P-C179, P-C241 y P-C332). Fase 7: la primera marca del piso del `0x204` al `0x208`
+      (`0x43436c`), los pases de brillo de `0x50c671`, `0x50c71b` y `0x50c8ce` (Q-C863), y `0x42e3d0` pasa al hito 13
+      (solo corre en la batalla de Castle Siege). Quedan, con su dirección: `0x50c177` (el `0x4d`), `0x50c59f` (la
+      tela `0x64`), `0x50c762` y `0x50c83b` (lo que cuelga con `0x509340` desde `+0x2f8`, con el `0xef` de
+      `0x5096ac`), `0x43ed20`, `0x442e10`, `0x433b2f` (la U de `+0x6c` y el `+0x88` del modelo), `0x6011f1` y
+      `0x4ed775`.
 - [ ] **La tela sobre la malla** (P-C22 f, vtable `0x6b8d04`: los monstruos `0x59..0x8f`; los tres pantalones
       también la usan), y Q-C95 con el primer modelo que se desvanezca (§ Lo que dejó la CL6). Hecha la de los
       monstruos (`Cloth::BuildOnTheMesh`, `Scenes::MonsterMeshCloth`; 06, "La tela sobre la malla"; Q-C861, Q-C862 y,

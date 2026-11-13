@@ -10195,8 +10195,9 @@ solo se mira: el clic no la levanta. En la propia, con el clic (`0x5c52b1`): la 
 izquierda al cursor, la grilla (`0x78ab9b8`), el lugar de origen sin el 12 (`0x78a6758`), `0x5bd750` con sus 8
 columnas, el ítem del cartel en nada y, con `IsOpen(0x20)` (1 `rand()`), el OK propio (`0x78abac1`) prendido y la
 grilla propia, el OK en 0 y el `C1 04 3C 00` en C3 (`0x5c5396`, 2 `rand()`); después el sonido `0x1d`, como desde el
-inventario. El clic derecho sobre la propia entra en la rama del hito 5 (`0x5c5895`) con la casilla de esta grilla:
-corta (08 P-C235).
+inventario. El clic derecho sobre la propia entra en la rama del hito 5 (`0x5c5895`) con la casilla de esta grilla
+(fase 5, 08 P-C235): con el comercio abierto, lo que usa el ítem da el aviso 474 sin mandar nada, la fruta mira la
+casilla del inventario (07 Q-C964) y los demás pasan al cursor con la grilla del comercio y vuelven a ceros.
 
 Soltar (`0x5d8d50` → `0x5deb1c`): con `IsOpen(0x20)` (1 `rand()`), `0x5ca250(x + 15, y + 0x10e, 0x78a92a8, 8, 4, 1)`,
 sin apilar (`0x5c9b40`), marca la huella con 2, 4 o 3; sin el clic devuelve si entra, y con el clic, si no entra, da

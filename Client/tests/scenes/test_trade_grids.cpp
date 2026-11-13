@@ -21,6 +21,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/LoginModels.h"
+#include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/SocialEvents.h"
 #include "Scenes/SocialRequests.h"
@@ -437,7 +438,7 @@ TEST_P(TradeGridsTest, PutAnItemInTheTradeAndTakeItOut)
 }
 
 // La grilla del otro (0x78a5a20) solo se mira: la marca sin pisar el 99, el ítem del cartel y 0x5aed40 con 3 y la
-// casilla; el clic no la levanta y sigue a la grilla propia. El clic derecho sobre la propia corta (P-C235).
+// casilla; el clic no la levanta y sigue a la grilla propia.
 TEST_P(TradeGridsTest, TheOtherGridIsOnlyLookedAt)
 {
     Client::Scenes::WorldRuntime& runtime = game->world.Runtime();
@@ -458,14 +459,53 @@ TEST_P(TradeGridsTest, TheOtherGridIsOnlyLookedAt)
     EXPECT_EQ(runtime.cursorItemCount, 0);
     EXPECT_EQ(trade.otherGrid[9].id, SwordType);
     EXPECT_TRUE(sent.empty());
+}
 
+// El clic derecho sobre la grilla propia (0x5c4aa5 → 0x5c5895 con 0x78a92a8, 08 P-C235): la rama del inventario con
+// la casilla de esta grilla. La poción llega a UseInventoryItem, que con el comercio abierto (su rand()) solo da el
+// aviso 474 del tipo 2, sin el 26. La espada (de los demás, 0x5c8e37) pasa al cursor con la grilla del comercio, sin
+// 0x78abb28 (0x5c8ef8) y, sin el almacén, el cursor vuelve a quedar en ceros.
+TEST_P(TradeGridsTest, TheRightClickOnTheOwnGridIsTheInventoryBranch)
+{
+    Client::Scenes::WorldRuntime& runtime = game->world.Runtime();
+    Client::Scenes::TradeState& trade = runtime.social.trade;
+    std::vector<std::pair<std::size_t, std::int32_t>> notices;
+    services.systemMessage = [&notices](std::size_t index, std::int32_t type)
+    {
+        notices.emplace_back(index, type);
+        return Client::Core::Expected<void, std::string>{};
+    };
     ASSERT_TRUE(Client::Scenes::ApplyItemMoveResult({1, 4, ItemBytes(SwordType, 0)}, game->Resources()).HasValue());
+    ASSERT_TRUE(Client::Scenes::ApplyItemMoveResult({1, 6, ItemBytes(0x1c00, 0)}, game->Resources()).HasValue());
+    ASSERT_EQ(trade.ownGrid[6].id, 0x1c00);
     // El botón izquierdo suelto (WM_LBUTTONUP): el clic de antes ya no queda.
     Client::Scenes::LatchTheLeftButton(runtime.movement, false, false);
+
     runtime.ui.rightClick = true;
-    const auto cut = Step(TradeGridLeft + 4 * Cell + 5, TradeGridTop + 5, false);
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x5c5895"), std::string::npos) << cut.Error();
+    CrtRandom expected = Advanced(Random(), QuietStepRandoms + TradeQueryRandoms);
+    auto stepped = Step(TradeGridLeft + 6 * Cell + 5, TradeGridTop + 5, false);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(Random().State(), expected.State());
+    EXPECT_FALSE(runtime.ui.rightClick);
+    ASSERT_EQ(notices.size(), 1U);
+    EXPECT_EQ(notices[0], (std::pair<std::size_t, std::int32_t>{474, 2}));
+    EXPECT_TRUE(sent.empty());
+    EXPECT_EQ(trade.ownGrid[6].id, 0x1c00);
+
+    // La espada, desde la casilla de abajo (12): la de arriba a la izquierda es la 4.
+    runtime.ui.rightClick = true;
+    runtime.ui.field78abb28 = 0;
+    expected = Advanced(Random(), QuietStepRandoms);
+    stepped = Step(TradeGridLeft + 4 * Cell + 5, TradeGridTop + Cell + 5, false);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(Random().State(), expected.State());
+    EXPECT_EQ(runtime.cursorGrid, Client::Scenes::CursorGrid::OwnTrade);
+    EXPECT_EQ(runtime.ui.field78abb28, 0);
+    EXPECT_EQ(runtime.cursorItem.id, 0);
+    EXPECT_EQ(runtime.cursorItemCount, 0);
+    EXPECT_EQ(trade.ownGrid[4].id, SwordType);
+    EXPECT_EQ(notices.size(), 1U);
+    EXPECT_TRUE(sent.empty());
 }
 
 // Lo que no va a la grilla del comercio (0x5cf3c9..0x5cf40b) queda en el cursor sin mandar nada, y el clic queda en

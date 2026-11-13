@@ -976,7 +976,7 @@ botones están en `Scenes::GameSocialSteps` (comercio y duelo), `GamePartyWindow
 de `0x77` y `0x78`); `/trade`, `/duelstart` y `/duelend`, en `UI::ChatCommands`, hasta donde necesitan un
 personaje elegido. La entrada a la selección porta la cola de `0x5bbe10` (`Scenes::ClearTheTradeForSelection`). Lo
 que queda de las tiendas personales lo dice 08 P-C208; levantar y soltar en las grillas del comercio está portado (06
-§ Lo social en pantalla, "Las grillas del comercio"), salvo el clic derecho sobre la propia (08 P-C235). Los tests (`TradePartyDuelTest`, `SocialEventsTest`, `GameSocialStepsTest` y los
+§ Lo social en pantalla, "Las grillas del comercio"), con el clic derecho sobre la propia (fase 5, 08 P-C235). Los tests (`TradePartyDuelTest`, `SocialEventsTest`, `GameSocialStepsTest` y los
 de los diálogos, la party, los comandos y el registro de las ventanas) usan nombres inventados.
 
 ### Los ítems del piso: `20`, `21`, `22`, `23`, `26` y `2C`

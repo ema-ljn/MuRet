@@ -423,16 +423,25 @@ enum class GridHover : std::uint8_t
     RightClicked,
 };
 
-// 0x5c5895..0x5c9b0b (CL9 hito 5): el clic derecho sobre el ítem de la casilla `index`, consumido, con la casilla de
-// arriba a la izquierda del ítem. Los que solo mandan el C1 06 26 (UseInventoryItem): el 0x1c0a sin 0x576794c
-// (0x5c58bd), el 0x1c0b de nivel 14 (0x5c608c) y las pociones (0x1c00..0x1c06, 0x1c08, 0x1c09, el 0x1c14 de nivel 0 y
-// el 0x1c07, 0x5c73ea). Las entradas a los eventos cortan con su dirección (0x5c6865, después de las ventanas que
-// mira el 0x1a1d; 0x5c6c36 y 0x5c7010). Desde 0x5c7bc6, los libros y las esferas de skills, la fruta, el 0x1a0b y el
-// resto: UseTheLaterGridItem.
-Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, UI::PanelRegistry& panels,
-                                                 std::size_t index)
+// La grilla de 0x5c4110: la del inventario (0x78a9bb0, 8 × 8) o las del comercio (0x78a92a8 y 0x78a5a20, 8 × 4).
+struct HoverGrid
 {
-    const World::ItemState& hovered = context.world.Inventory().cells[index];
+    std::span<World::ItemState> cells;
+    UI::HoveredItem::Place place = UI::HoveredItem::Place::InventoryCell;
+};
+
+// 0x5c5895..0x5c9b0b (CL9 hito 5): el clic derecho sobre el ítem de la casilla `index` de la grilla, consumido, con la
+// casilla de arriba a la izquierda del ítem (con el ancho de la grilla, sin el 12). Los que solo mandan el C1 06 26
+// (UseInventoryItem): el 0x1c0a sin 0x576794c (0x5c58bd), el 0x1c0b de nivel 14 (0x5c608c) y las pociones (0x1c00..
+// 0x1c06, 0x1c08, 0x1c09, el 0x1c14 de nivel 0 y el 0x1c07, 0x5c73ea). Las entradas a los eventos cortan con su
+// dirección (0x5c6865, después de las ventanas que mira el 0x1a1d; 0x5c6c36 y 0x5c7010). Desde 0x5c7bc6, los libros y
+// las esferas de skills, la fruta, el 0x1a0b y el resto: UseTheLaterGridItem. Con la grilla propia del comercio
+// (0x5c4aa5 con 0x78a92a8, CL9 hito 7, 08 P-C235) la rama es la misma: lo que llega a UseInventoryItem da el aviso 474,
+// porque el comercio está abierto, y los demás siguen en UseTheLaterGridItem con esa grilla.
+Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, UI::PanelRegistry& panels,
+                                                 const HoverGrid& grid, std::size_t index)
+{
+    const World::ItemState& hovered = grid.cells[index];
     WorldRuntime& runtime = context.world.Runtime();
     runtime.ui.rightClick = false;
     constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
@@ -454,15 +463,10 @@ Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, U
                         (type == 0x1c14 && levelBits == 0) || type == 0x1c07;
     if (potion)
         return use();
-    return UseTheLaterGridItem(MovesOf(context), panels, index);
+    const CursorGrid used =
+        grid.place == UI::HoveredItem::Place::OwnTradeCell ? CursorGrid::OwnTrade : CursorGrid::Inventory;
+    return UseTheLaterGridItem(MovesOf(context), panels, UsedGrid{.cells = grid.cells, .grid = used}, index);
 }
-
-// La grilla de 0x5c4110: la del inventario (0x78a9bb0, 8 × 8) o las del comercio (0x78a92a8 y 0x78a5a20, 8 × 4).
-struct HoverGrid
-{
-    std::span<World::ItemState> cells;
-    UI::HoveredItem::Place place = UI::HoveredItem::Place::InventoryCell;
-};
 
 // 0x5c5361..0x5c5876, después de levantar: IsOpen(0x20), con su rand(); con el comercio abierto, el OK propio puesto
 // y el ítem de la grilla propia, el OK en 0 y el C1 04 3C 00 en C3. Después el sonido 0x1d.
@@ -574,11 +578,7 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     // 0x5c4aa5..0x5c4aac.
     if (ui.rightClick)
     {
-        if (ownTrade)
-            return Core::Unexpected(std::format("0x5c5895: el clic derecho sobre el {:#x} de la grilla propia del "
-                                                "comercio usa su casilla como del inventario (08 P-C235)",
-                                                hovered.id));
-        if (auto used = UseTheGridItem(context, panels, index); !used.HasValue())
+        if (auto used = UseTheGridItem(context, panels, grid, index); !used.HasValue())
             return Core::Unexpected(used.Error());
         return GridHover::RightClicked;
     }

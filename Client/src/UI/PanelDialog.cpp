@@ -56,14 +56,17 @@ constexpr std::int32_t EnterKey = 0xd;
 constexpr std::int32_t TopLeftRect = 1;
 constexpr std::int32_t ButtonSound = 0x19;
 
-// Hasta el primer '\0', como lo copia strcpy, recortado al buffer de 0x100.
-std::string LineOf(std::string_view text)
+// Hasta el primer '\0', como lo copia strcpy.
+std::string_view LineOf(std::string_view text)
 {
     const std::size_t end = text.find('\0');
-    std::string_view line = end == std::string_view::npos ? text : text.substr(0, end);
-    if (line.size() >= PanelDialogLineBytes)
-        line = line.substr(0, PanelDialogLineBytes - 1);
-    return std::string(line);
+    return end == std::string_view::npos ? text : text.substr(0, end);
+}
+
+// 0x660163..0x66017b: strcpy a un lugar de 0x100 bytes; con 0x100 o más (y su '\0') sigue en el de al lado (Q-C1305).
+bool FitsInItsLine(std::string_view text)
+{
+    return LineOf(text).size() < PanelDialogLineBytes;
 }
 
 // Lo común de 0x6603c0, 0x660410 y 0x6605b0 con un motivo: sin función, se cierra; con ella, se cierra si no devuelve
@@ -152,11 +155,13 @@ PanelDialogOpening OpenThePanelDialog(PanelDialogState& dialog, const PanelDialo
         return PanelDialogOpening::TooManyLines;
     if (dialog.opened != 0)
         return PanelDialogOpening::Busy;
+    if (!std::ranges::all_of(request.lines, FitsInItsLine))
+        return PanelDialogOpening::LineTooLong;
     ResetThePanelDialog(dialog);
     std::int32_t height = 0;
     for (std::size_t i = 0; i < request.lines.size(); ++i)
     {
-        dialog.lines[i] = LineOf(request.lines[i]);
+        dialog.lines[i] = std::string(LineOf(request.lines[i]));
         if (dialog.lines[i].empty())
             continue;
         height += measure.Measure(dcFont, dialog.lines[i]).height + LineGap;

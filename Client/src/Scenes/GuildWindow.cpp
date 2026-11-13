@@ -316,7 +316,9 @@ void ChooseTheMember(GuildState& guild, std::string_view name)
     guild.chosenName[index] = '\0';
 }
 
-// 0x6600d0(renglones, cuántos, paso, banderas, función, 0) con lo que da en +0x428.
+// 0x6600d0(renglones, cuántos, paso, banderas, función, 0) con lo que da en +0x428. Con otro abierto (0x657930 da el
+// paso del diálogo y después el de la ventana: un clic en otro botón del maestro llega igual), el aviso de 0x6d69a8 y
+// +0x428 en 0.
 Core::Expected<void, std::string> OpenTheGuildDialog(const GuildWindowStepContext& context,
                                                      std::span<const std::string> lines, std::uint32_t flags,
                                                      UI::PanelDialogOwner owner, std::string_view where)
@@ -324,14 +326,12 @@ Core::Expected<void, std::string> OpenTheGuildDialog(const GuildWindowStepContex
     if (context.measure == nullptr)
         return Core::Unexpected(std::format("{}: el diálogo de los paneles (0x6600d0) sin medidor", where));
     WorldRuntime& runtime = context.world.Runtime();
-    UI::PanelDialogState& dialog = runtime.panels.delegated.panelDialog;
-    const auto opened = UI::OpenThePanelDialog(
-        dialog, UI::PanelDialogRequest{.lines = lines, .flags = flags, .owner = owner, .placed = 0}, *context.measure,
-        runtime.hud.dcFont, context.now);
-    if (opened == UI::PanelDialogOpening::Busy)
-        return Core::Unexpected(std::string("0x6600f9: el aviso del diálogo ocupado (0x6d69a8, en EUC-KR) no está en "
-                                            "Text.bmd"));
-    runtime.guild.window.dialog = opened == UI::PanelDialogOpening::Opened ? UI::PanelDialogHandle(dialog) : 0U;
+    auto opened = PopUpThePanelDialog(
+        runtime, UI::PanelDialogRequest{.lines = lines, .flags = flags, .owner = owner, .placed = 0}, *context.measure,
+        context.screen, context.now);
+    if (!opened.HasValue())
+        return Core::Unexpected(std::move(opened).Error());
+    runtime.guild.window.dialog = opened.Value();
     return {};
 }
 
@@ -384,8 +384,9 @@ Core::Expected<void, std::string> StepTheMasterButtons(const GuildWindowStepCont
             guild.chosenStatus = member->status;
             ChooseTheMember(guild, GuildTextOf(member->name));
             // 0x6504b6: 0x6600d0 sin renglones ni botones (0xd5 × 0x2b) con lo que da en +0x428, y 0x6602b0 con el paso
-            // y el dibujo de la ventana de los cargos. Con otro abierto, 0x6600f9 corta antes (el original le pondría
-            // los ganchos al abierto).
+            // y el dibujo de la ventana de los cargos. Con otro abierto, 0x6600d0 da 0 (con el aviso) y 0x6504d4 le
+            // pone los ganchos igual al abierto: su paso y su dibujo pasan a ser los de los cargos, y su respuesta
+            // sigue.
             if (auto opened = OpenTheGuildDialog(context, {}, 0, UI::PanelDialogOwner::None, "0x6504b6");
                 !opened.HasValue())
                 return opened;

@@ -110,7 +110,7 @@ struct DuelState
     std::int32_t ownScore = 0;
     std::int32_t rivalScore = 0;
     // 0x5767814 y 0x5767816: el AB, con el primero en 2, pone el WORD en 0 (*estático*; qué son queda para la VM,
-    // 08 P-C201).
+    // 08 P-C201). El 63 de la guerra también pone el WORD en 0 (0x4d8958, CL9 hito 8), y lo leen 0x5a7ed9 y 0x5a7f6c.
     std::uint8_t byte5767814 = 0;
     std::uint16_t word5767816 = 0;
 };

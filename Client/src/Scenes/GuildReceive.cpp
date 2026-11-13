@@ -14,6 +14,7 @@
 #include "Scenes/GuildPanels.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/GuildWindow.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/Dialogs.h"
@@ -283,37 +284,34 @@ Core::Expected<void, std::string> Gesture(const GuildReceiveContext& context, st
     return SendTheAction(hero.angles.z, action, send, where);
 }
 
-// 0x6600d0 con los renglones; ocupado, OutputDebugStringA y el aviso de 0x6d69a8 (tipo 1).
+// 0x6600d0 con los renglones (ocupado, el aviso de 0x6d69a8 y 0: el 50 y el E5 miran 0x660340 antes y no llegan).
 Core::Expected<std::uint32_t, std::string> OpenTheDialog(const GuildReceiveContext& context,
                                                          std::span<const std::string> lines, UI::PanelDialogOwner owner)
 {
     auto measure = MeasureOf(context, "0x6600d0");
     if (!measure.HasValue())
         return Core::Unexpected(measure.Error());
-    WorldRuntime& runtime = context.world.Runtime();
-    const auto opened = UI::OpenThePanelDialog(
-        runtime.panels.delegated.panelDialog,
+    return PopUpThePanelDialog(
+        context.world.Runtime(),
         UI::PanelDialogRequest{.lines = lines, .flags = UI::PanelDialogConfirm, .owner = owner, .placed = 0},
-        *measure.Value(), runtime.hud.dcFont, context.now);
-    if (opened == UI::PanelDialogOpening::Busy)
-        return Core::Unexpected(std::string("0x6600f9: el aviso del diálogo ocupado (0x6d69a8, en EUC-KR) no está en "
-                                            "Text.bmd"));
-    if (opened != UI::PanelDialogOpening::Opened)
-        return 0U;
-    return UI::PanelDialogHandle(runtime.panels.delegated.panelDialog);
+        *measure.Value(), context.screen, context.now);
 }
 
 Core::Expected<void, std::string> ApplyJoinRequest(const JoinRequest& request, const GuildReceiveContext& context)
 {
     GuildState& guild = context.world.Runtime().guild;
-    guild.requester = request.key;
-    // 0x4d74ec: 0x660340 distinto de 0, el diálogo ocupado: no.
+    // 0x4d74e2: la clave a 0x78aba40 y, con el diálogo ocupado (0x4d74ec: 0x660340 distinto de 0), no.
     if (UI::PanelDialogHandle(context.world.Runtime().panels.delegated.panelDialog) != 0)
+    {
+        guild.requester = request.key;
         return Send(context, WriteJoinAnswer(false, request.key), "0x4d754d");
+    }
+    // 0x4d74f8: sin el personaje, 0x5110d0 da 400 y el original abre el diálogo con el nombre que lee después de los
+    // 400 registros (Q-C1297). MuRet descarta el 50 entero, sin guardar la clave, como el 18 (Q-C778).
     const std::size_t index = ActorWithKey(context.world, request.key);
     if (index >= ActorCount)
-        return Core::Unexpected(std::string("0x4d74f8: sin el personaje, 0x5110d0 da 400 y sprintf lee el nombre fuera "
-                                            "de los 400 registros"));
+        return {};
+    guild.requester = request.key;
     auto first =
         Formatted(context, JoinRequestText, HeroNameOf(context.world.Actors()[index]), JoinLineBytes, "0x4d7514");
     if (!first.HasValue())
@@ -343,8 +341,10 @@ Core::Expected<void, std::string> ApplyJoinResult(const JoinResult& result, cons
 
 Core::Expected<void, std::string> ApplyMemberList(const MemberList& list, const GuildReceiveContext& context)
 {
+    // 0x4d7bc2..0x4d7c1f: el miembro 80 en adelante cae sobre la tabla de los gremios (0x787aa48, Q-C1303). MuRet
+    // descarta el 52 entero.
     if (list.members.size() > GuildMemberSlots)
-        return Core::Unexpected(std::string("0x4d7b60: más de 80 miembros pisan la tabla de los gremios (0x787aa48)"));
+        return {};
     GuildState& guild = context.world.Runtime().guild;
     guild.memberCount = list.count;
     guild.score = std::max(list.score, 0);
@@ -438,10 +438,11 @@ Core::Expected<void, std::string> ApplyCreateResult(const CreateResult& result, 
 Core::Expected<void, std::string> ApplyViewportGuildDelete(const ViewportGuildDelete& deleted,
                                                            const GuildReceiveContext& context)
 {
+    // 0x4e4306: sin el personaje, 0x5110d0 da 400 y el original escribe después de los 400 registros (Q-C1298). MuRet
+    // descarta el 5D entero: tampoco toca la cuenta de los miembros ni cierra el gremio.
     const std::size_t index = ActorWithKey(context.world, deleted.key);
     if (index >= ActorCount)
-        return Core::Unexpected(std::string("0x4e4306: sin el personaje, 0x5110d0 da 400 y el 5D escribe fuera de los "
-                                            "400 registros"));
+        return {};
     context.world.Runtime().guild.memberCount = -1;
     ActorState& actor = context.world.Actors()[index];
     actor.word1f2 = static_cast<std::uint16_t>(NoGuildIndex);
@@ -519,9 +520,10 @@ Core::Expected<void, std::string> ApplyWarStart(const WarStart& start, const Gui
 
 Core::Expected<void, std::string> ApplyWarEnd(const WarEnd& end, const GuildReceiveContext& context)
 {
+    // 0x4d889a: con un resultado mayor que 6, 0x554610 muestra el buffer de la pila sin inicializar (0x4d894f,
+    // Q-C1301). MuRet descarta el 63 entero: la guerra sigue.
     if (end.result >= std::size(WarEndTexts))
-        return Core::Unexpected(std::string("0x4d894f: con un resultado mayor que 6, 0x554610 muestra el buffer de la "
-                                            "pila sin inicializar"));
+        return {};
     auto text = TextOf(context, WarEndTexts[end.result]);
     if (!text.HasValue())
         return Core::Unexpected(text.Error());
@@ -532,8 +534,10 @@ Core::Expected<void, std::string> ApplyWarEnd(const WarEnd& end, const GuildRece
         gesture = LostGesture;
     else if (end.result == 6)
         gesture = NoGesture;
-    GuildState& guild = context.world.Runtime().guild;
-    guild.byte5767816 = 0;
+    WorldRuntime& runtime = context.world.Runtime();
+    GuildState& guild = runtime.guild;
+    // 0x4d8958: MOV word ptr [0x5767816],BX con BX en 0, el WORD que el AB del duelo también pone en 0 (0x4e4d60).
+    runtime.social.duel.word5767816 = 0;
     if (auto noticed = AddHighlightedNotice(context, line); !noticed.HasValue())
         return noticed;
     guild.warOn = 0;
@@ -609,10 +613,11 @@ Core::Expected<void, std::string> ApplyViewportGuild(const ViewportGuild& viewpo
     GuildState& guild = world.Runtime().guild;
     for (const ViewportGuildEntry& entry : viewport.entries)
     {
+        // 0x4d92b2: sin el personaje, 0x5110d0 da 400 y el original escribe después de los 400 registros (Q-C1299).
+        // MuRet descarta la entrada entera (sin el 66 ni 0x447b50) y sigue con la próxima.
         const std::size_t index = ActorWithKey(world, entry.key);
         if (index >= ActorCount)
-            return Core::Unexpected(std::string("0x4d92b2: sin el personaje, 0x5110d0 da 400 y el 65 escribe fuera de "
-                                                "los 400 registros"));
+            continue;
         ActorState& actor = world.Actors()[index];
         actor.guildStatus = entry.status;
         actor.byte369 = entry.byte369;
@@ -661,6 +666,12 @@ Core::Expected<void, std::string> ApplyViewportUnion(const ViewportUnion& viewpo
     GuildState& guild = world.Runtime().guild;
     for (const ViewportUnionEntry& entry : viewport.entries)
     {
+        // 0x4e44f5: sin el personaje, 0x5110d0 da 400 y el original escribe la relación después de los 400 registros
+        // (Q-C1300). MuRet descarta la entrada entera, también el nombre de la alianza que el original escribe antes, y
+        // sigue con la próxima.
+        const std::size_t index = ActorWithKey(world, entry.key);
+        if (index >= ActorCount)
+            continue;
         // 0x4e44c6..0x4e44e5: el nombre de la alianza en +4..+0xc de la entrada de 0x447b00, aunque sea −1: entonces
         // va a los bytes 0 a 8 del nombre del miembro 74 (Q-C1281, Q-C1284).
         const auto found = FindGuild(guild, entry.guildKey);
@@ -672,10 +683,6 @@ Core::Expected<void, std::string> ApplyViewportUnion(const ViewportUnion& viewpo
         for (std::size_t i = 0; i < GuildNameSize; ++i)
             target[i] = std::to_integer<char>(entry.unionName[i]);
         target[GuildNameSize] = '\0';
-        const std::size_t index = ActorWithKey(world, entry.key);
-        if (index >= ActorCount)
-            return Core::Unexpected(std::string("0x4e44f5: sin el personaje, 0x5110d0 da 400 y el 67 escribe fuera de "
-                                                "los 400 registros"));
         world.Actors()[index].byte370 = entry.relation;
     }
     return {};
@@ -725,17 +732,20 @@ Core::Expected<void, std::string> ApplyRelationshipRequest(const RelationshipReq
         return Send(context,
                     WriteRelationshipAnswer(request.relation, request.request, 0, request.keyHigh, request.keyLow),
                     "0x656616");
+    const auto key = static_cast<std::uint16_t>((request.keyHigh << 8) | request.keyLow);
+    const std::size_t index = ActorWithKey(context.world, key);
+    // 0x656d44..0x656db1: con el personaje y una relación que no es 1 ni 2, 0x6600d0 abre el diálogo con los buffers de
+    // la pila sin inicializar (Q-C1302). MuRet descarta el E5 entero, sin guardar los cuatro bytes.
+    const bool related = request.relation == UnionRelation || request.relation == RivalRelation;
+    if (index < ActorCount && !related)
+        return {};
+    // 0x656c95..0x656cba: los cuatro bytes, y sin el personaje (0x656ccb..0x656cd6), nada más.
     guild.relationRequest = request.request;
     guild.relation = request.relation;
     guild.relationKeyHigh = request.keyHigh;
     guild.relationKeyLow = request.keyLow;
-    const auto key = static_cast<std::uint16_t>((request.keyHigh << 8) | request.keyLow);
-    const std::size_t index = ActorWithKey(context.world, key);
     if (index >= ActorCount)
         return {};
-    if (request.relation != UnionRelation && request.relation != RivalRelation)
-        return Core::Unexpected(std::string("0x656db1: con una relación que no es 1 ni 2, 0x6600d0 abre el diálogo con "
-                                            "los buffers de la pila sin inicializar"));
     const bool isUnion = request.relation == UnionRelation;
     const std::size_t asked = isUnion ? UnionRequestText : RivalRequestText;
     std::size_t detail = 0;

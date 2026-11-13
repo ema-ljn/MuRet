@@ -692,6 +692,11 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
     }
     // 0x4684bc..0x4684e4: GetFocus() es el EDIT y +0x80 % 0x18 < 0xc.
     const bool caretOn = focused && edit.draws % BlinkPeriod < BlinkOn;
+    // 0x46854d: GetWindowTextA (la vtable + 0x50, 0x467ec0) le manda WM_GETTEXT al EDIT, que pasa por su subclase
+    // (0x467b10): con una flecha abajo (0x467b35..0x467b69), +0x80 en 0. El INC del final lo deja en 1: con una flecha
+    // apretada, el cursor queda prendido.
+    if (context.arrowHeld)
+        edit.draws = 0;
     // 0x468550..0x4685ec: cx del texto en el DC con la fuente que tenga; con ES_PASSWORD (+0xb0, TextField::Masked), el
     // de tantos '*' como bytes en la negrita (SelectObject con 0x5763558), y el DC queda con la normal (0x5763554). El
     // EDIT se pinta con su fuente (la normal de WinMain) y '*' por byte (*inferido*: el carácter de ES_PASSWORD de un

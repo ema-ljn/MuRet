@@ -345,8 +345,7 @@ struct GuildState
     std::uint8_t warTeam = 0;
     // 0x5767804..0x576780c: el nombre del rival (8 bytes y su cero).
     std::array<char, 9> rival{};
-    // 0x5767816: el 63 lo pone en 0 (0x4d8956); *estático*: nadie de este hito lo lee.
-    std::uint8_t byte5767816 = 0;
+    // 0x5767816 (el WORD que el 63 pone en 0, 0x4d8958) es SocialState::duel.word5767816.
     // 0x57678b4 y 0x57678b8: los puntajes del 64.
     std::int32_t ourScore = 0;
     std::int32_t theirScore = 0;

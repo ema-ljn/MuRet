@@ -1666,6 +1666,7 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
         .mouseX = context.mouseX,
         .mouseY = context.mouseY,
         .now = context.systemTime,
+        .screen = context.screen,
         .measure = context.measure,
         .texts = context.texts,
         .filterName = context.chat != nullptr ? context.chat->filterName : std::span<const std::string>{},

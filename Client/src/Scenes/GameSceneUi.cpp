@@ -71,6 +71,14 @@ void LatchTheRightButton(UI::GameUiState& ui, const Input::InputState& input)
     ui.rightDown = down && (ui.rightDown || pressed);
 }
 
+// 0x467b35..0x467b67: GetAsyncKeyState de 0x26, 0x28, 0x25 y 0x27 (el byte alto en 0x80), que la subclase de los EDIT
+// mira con cada mensaje.
+bool AnArrowIsDown(const Input::InputState& input)
+{
+    return input.IsDown(Input::Key::Up) || input.IsDown(Input::Key::Down) || input.IsDown(Input::Key::Left) ||
+           input.IsDown(Input::Key::Right);
+}
+
 // Lo que piden los diálogos del juego: el F3 30 y el F1 02 por la sesión (sin servidor, un aviso al log),
 // Data\Macro.txt y el log.
 class SceneUiRequests final : public IGameUiRequests
@@ -335,6 +343,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
         .mouse = UI::MouseIn640x480(input, canvas.screen),
         .leftDown = input.IsDown(Input::MouseButton::Left),
+        .arrowHeld = AnArrowIsDown(input),
         .chosenServer = m_session != nullptr ? m_session->ChosenServer() : std::nullopt,
         .guildMarks = &m_guildMarks};
     // 0x5ac120: el pase 3D de los ítems de la UI, con los modelos de los ítems, el buffer global de la pose y los
@@ -392,8 +401,11 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     // 0x637673: 0x490390, las ventanas viejas, y 0x637680: la lista de ventanas, siempre. Un dibujo intermedio de MuRet
     // las dibuja sobre su copia.
     UI::OldWindowManager& oldWindows = m_projectingFrame ? m_projection->oldWindows : runtime.oldWindows;
-    const UI::OldWindowDrawContext windowContext{
-        .sprites = canvas.sprites, .text = canvas.text, .dcFont = hud.hud.dcFont, .textColors = hud.hud.textColors};
+    const UI::OldWindowDrawContext windowContext{.sprites = canvas.sprites,
+                                                 .text = canvas.text,
+                                                 .dcFont = hud.hud.dcFont,
+                                                 .textColors = hud.hud.textColors,
+                                                 .arrowHeld = hud.arrowHeld};
     // 0x659290(1) no saca rand(): se puede mirar antes de la ventana que la pregunta.
     GamePanels panels(*m_context.world, FrameCloth().random);
     // Los textos de la ventana de amigos, la lista con las flechas del teclado (0x5762ec0) y el EDIT con el foco de

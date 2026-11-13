@@ -69,6 +69,9 @@ struct GameHudContext
     UI::Point mouse{};
     // 0x7d36874: el botón izquierdo abajo.
     bool leftDown = false;
+    // GetAsyncKeyState de las flechas (0x25..0x28) en el momento del dibujo: la subclase de los EDIT (0x467b10) las
+    // mira con el WM_GETTEXT de 0x468320 (UI::OldWindowDrawContext::arrowHeld).
+    bool arrowHeld = false;
     // El código del servidor elegido (App::ServerSession::ChosenServer), de donde salen [0x6d5ec4] (el lugar del
     // grupo) y [0x6d5ecc] (el número) que lee la ventana del personaje; sin él, corta.
     std::optional<std::uint16_t> chosenServer{};

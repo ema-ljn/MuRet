@@ -577,7 +577,8 @@ void DrawTheNumberBox(Frame& frame)
     UI::OldDraw::DrawTheOldEdit(UI::OldWindowDrawContext{.sprites = sprites,
                                                          .text = frame.context.text,
                                                          .dcFont = frame.context.hud.dcFont,
-                                                         .textColors = frame.context.hud.textColors},
+                                                         .textColors = frame.context.hud.textColors,
+                                                         .arrowHeld = frame.context.arrowHeld},
                                 frame.context.projecting ? projected : field,
                                 input.focus == UI::ChatFocus::NumberField);
     sprites.SetBlend(BlendMode::Opaque);

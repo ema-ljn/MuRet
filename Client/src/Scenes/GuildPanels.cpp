@@ -3,7 +3,10 @@
 #include "Core/Expected.h"
 #include "Protocol/Guild.h"
 #include "Protocol/Outgoing.h"
+#include "App/WindowState.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/GameMessages.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/GuildWindow.h"
@@ -54,6 +57,35 @@ UI::PanelDialogAnswer AnswerOf(WorldState& world, const GuildSender& send)
     { return AnswerThePanelDialog(world, send, owner, reason); };
 }
 } // namespace
+
+Core::Expected<std::uint32_t, std::string> PopUpThePanelDialog(WorldRuntime& runtime,
+                                                               const UI::PanelDialogRequest& request,
+                                                               const Render::Text::ITextMeasure& measure,
+                                                               App::PixelSize screen, std::uint32_t now)
+{
+    UI::PanelDialogState& dialog = runtime.panels.delegated.panelDialog;
+    switch (UI::OpenThePanelDialog(dialog, request, measure, runtime.hud.dcFont, now))
+    {
+    case UI::PanelDialogOpening::Opened:
+        return UI::PanelDialogHandle(dialog);
+    case UI::PanelDialogOpening::TooManyLines:
+        return 0U;
+    case UI::PanelDialogOpening::Busy:
+    {
+        // 0x660109..0x660115: 0x555190(0x6e57a4, 0x6d69a8, 1); OutputDebugStringA (0x660103) no deja nada.
+        auto added =
+            AddGameMessage(runtime, measure, screen, {}, UI::PanelDialogBusyNotice, UI::PanelDialogBusyNoticeType);
+        if (!added.HasValue())
+            return Core::Unexpected(std::move(added).Error());
+        return 0U;
+    }
+    case UI::PanelDialogOpening::LineTooLong:
+        break;
+    }
+    return Core::Unexpected(
+        std::string("0x660163: un renglón de 0x100 bytes o más, que strcpy derrama sobre el lugar de "
+                    "al lado del diálogo de los paneles (Q-C1305)"));
+}
 
 Core::Expected<bool, std::string> AnswerThePanelDialog(WorldState& world, const GuildSender& send,
                                                        UI::PanelDialogOwner owner, std::uint32_t reason)

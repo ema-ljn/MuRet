@@ -354,17 +354,17 @@ Core::Expected<void, std::string> StepTheQuestion(const SecondGuildStepContext& 
             return Core::Unexpected(std::move(text).Error());
         if (context.measure == nullptr)
             return Core::Unexpected(std::string("0x6560b3: el diálogo de los paneles (0x6600d0) sin medidor"));
+        // 0x6560b3: lo que da, a +0x2a0; con otro abierto (el mismo, con un segundo clic: 0x657930 da el paso del
+        // diálogo y después el de la ventana), el aviso de 0x6d69a8 y 0.
         const std::array<std::string, 1> lines{std::string(text.Value())};
-        const auto opened = UI::OpenThePanelDialog(
-            runtime.panels.delegated.panelDialog,
+        auto opened = PopUpThePanelDialog(
+            runtime,
             UI::PanelDialogRequest{
                 .lines = lines, .flags = UI::PanelDialogOk, .owner = UI::PanelDialogOwner::None, .placed = 0},
-            *context.measure, runtime.hud.dcFont, context.now);
-        if (opened == UI::PanelDialogOpening::Busy)
-            return Core::Unexpected(std::string("0x6600f9: el aviso del diálogo ocupado (0x6d69a8, en EUC-KR) no está "
-                                                "en Text.bmd"));
-        window.dialog2a0 =
-            opened == UI::PanelDialogOpening::Opened ? UI::PanelDialogHandle(runtime.panels.delegated.panelDialog) : 0U;
+            *context.measure, context.screen, context.now);
+        if (!opened.HasValue())
+            return Core::Unexpected(std::move(opened).Error());
+        window.dialog2a0 = opened.Value();
     }
     const UI::OldWindowBase& base = window.base;
     if (!runtime.movement.pendingClick || !UI::MouseInRect(context.mouseX, context.mouseY, base.x + CloseLeft,
@@ -701,7 +701,8 @@ Core::Expected<void, std::string> DrawTheName(GameHudContext& context, GuildStat
     UI::OldDraw::DrawTheOldEdit(UI::OldWindowDrawContext{.sprites = context.sprites,
                                                          .text = context.text,
                                                          .dcFont = context.hud.dcFont,
-                                                         .textColors = context.hud.textColors},
+                                                         .textColors = context.hud.textColors,
+                                                         .arrowHeld = context.arrowHeld},
                                 field, input.focus == UI::ChatFocus::DialogField);
     if (auto uploaded = UploadTheNewMark(context, guild); !uploaded.HasValue())
         return uploaded;

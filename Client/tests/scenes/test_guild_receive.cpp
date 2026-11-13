@@ -18,6 +18,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/GuildPanels.h"
 #include "Scenes/GuildState.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/MessageArea.h"
@@ -368,12 +369,30 @@ TEST_F(GuildReceiveTest, AJoinRequestAsksAndTheAnswerCarriesTheKey)
     }
 }
 
-// 0x4d74f8: sin el personaje de la clave, el original lee el nombre fuera de los 400: corta.
-TEST_F(GuildReceiveTest, AJoinRequestFromNobodyIsCut)
+// 0x4d74f8: sin el personaje de la clave, el original abre el diálogo con el nombre que lee después de los 400
+// (Q-C1297); MuRet descarta el 50 sin cortar (la sesión sigue): ni la clave, ni el diálogo, ni el no. Con el diálogo
+// ocupado, el no sale igual, que no busca a nadie. En Lorencia y en Devias.
+TEST_F(GuildReceiveTest, AJoinRequestFromSomeoneOutOfSightIsDiscarded)
 {
-    const auto applied = Apply(Guild::JoinRequest{0x0999});
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x4d74f8"), std::string::npos);
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        Reset(map);
+        GuildOf().requester = 0x0777;
+        const auto applied = Apply(Guild::JoinRequest{0x0999});
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(GuildOf().requester, 0x0777);
+        EXPECT_EQ(Dialog().opened, 0u);
+        EXPECT_EQ(Dialog().owner, Client::UI::PanelDialogOwner::None);
+        EXPECT_TRUE(m_sent.empty());
+        EXPECT_TRUE(Messages().empty());
+        EXPECT_EQ(DrawsSince(), 0);
+
+        Dialog().opened = Now;
+        ASSERT_TRUE(Apply(Guild::JoinRequest{0x0999}).HasValue());
+        EXPECT_EQ(GuildOf().requester, 0x0999);
+        EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{{0xc1, 0x06, 0x51, 0x00, 0x09, 0x99}}));
+    }
 }
 
 // 0x4d7a20: el resultado de 0 a 7 es un mensaje de error y siempre 0x6236f0(0).
@@ -413,6 +432,34 @@ TEST_F(GuildReceiveTest, TheMemberListFillsTheSlotsAndTheWindow)
     EXPECT_EQ(GuildOf().members[1].status, 0);
     EXPECT_EQ(GuildOf().window.members.size(), 2u);
     EXPECT_TRUE(GuildOf().window.unions.empty());
+}
+
+// 0x4d7bc2..0x4d7c1f: el miembro 80 en adelante cae sobre la tabla de los gremios (Q-C1303); MuRet descarta el 52
+// entero sin cortar: la cuenta, el puntaje, el nombre, los miembros y las dos listas de la ventana quedan como estaban.
+TEST_F(GuildReceiveTest, AMemberListOfMoreThanEightyIsDiscarded)
+{
+    GuildOf().memberCount = 3;
+    GuildOf().score = 9;
+    Fill(GuildOf().window.name88, "Talas");
+    Fill(GuildOf().members[0].name, "Ombu");
+    GuildOf().window.unions.push_back({});
+    NameTheGuild(0, 70, "Horneros");
+    Guild::MemberList list{.count = 81, .score = 5, .name = GuildNameOf("Ceibos"), .members = {}};
+    Guild::MemberEntry entry;
+    entry.name[0] = std::byte{'Z'};
+    entry.server = 0x81;
+    list.members.assign(81, entry);
+    const auto applied = Apply(list);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(GuildOf().memberCount, 3);
+    EXPECT_EQ(GuildOf().score, 9);
+    EXPECT_EQ(TextOf(GuildOf().window.name88), "Talas");
+    EXPECT_EQ(TextOf(GuildOf().members[0].name), "Ombu");
+    EXPECT_EQ(TextOf(GuildOf().members[79].name), "");
+    EXPECT_TRUE(GuildOf().window.members.empty());
+    EXPECT_EQ(GuildOf().window.unions.size(), 1u);
+    EXPECT_EQ(TextOf(GuildOf().table[0].guildName), "Horneros");
+    EXPECT_TRUE(m_sent.empty());
 }
 
 // 0x4d7c30: el 4 saca al héroe del gremio y borra la entrada; el 1 y el 4 cierran el gremio (0x6522f0); el 5 pide la
@@ -497,7 +544,31 @@ TEST_F(GuildReceiveTest, TheViewportGuildDeleteClearsTheActor)
     EXPECT_EQ(other.dword36c, 0u);
     EXPECT_EQ(other.byte370, 0);
     EXPECT_EQ(GuildOf().memberCount, -1);
-    EXPECT_FALSE(Apply(Guild::ViewportGuildDelete{0x0078}).HasValue());
+}
+
+// 0x4e4306: sin el personaje, el original escribe después de los 400 (Q-C1298); MuRet descarta el 5D entero sin cortar:
+// ni la cuenta, ni el personaje, ni el gremio cerrado (ni sus rand()). En Lorencia y en Devias.
+TEST_F(GuildReceiveTest, AViewportGuildDeleteOfSomeoneOutOfSightIsDiscarded)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        Reset(map);
+        ActorState& other = Actor(9, "Zorzal", 0x0077);
+        other.word1f2 = 4;
+        other.guildStatus = 0x20;
+        GuildOf().memberCount = 3;
+        Runtime().panels.delegated.guild = 1;
+        const auto applied = Apply(Guild::ViewportGuildDelete{0x0078});
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(GuildOf().memberCount, 3);
+        EXPECT_EQ(other.word1f2, 4);
+        EXPECT_EQ(other.guildStatus, 0x20);
+        EXPECT_EQ(Runtime().panels.delegated.guild, 1);
+        EXPECT_FALSE(Runtime().lastSoundId.has_value());
+        EXPECT_EQ(DrawsSince(), 0);
+        EXPECT_TRUE(m_sent.empty());
+    }
 }
 
 // 0x447b90: el 66 escribe la entrada de la clave (0x447b00 mira hasta la cuenta inclusive) con los nombres y la marca
@@ -584,16 +655,36 @@ TEST_F(GuildReceiveTest, TheViewportGuildMarksTheRivalInAWar)
     EXPECT_EQ(GuildOf().rivalIndex, -1);
     EXPECT_EQ(other.byte374, 0);
 
-    // Con la tabla llena, 0x447b00 leería la entrada 2.000 (Q-C1280): corta antes de 0x447b50. Sin el personaje,
-    // también.
+    // Con la tabla llena, 0x447b00 leería la entrada 2.000 (Q-C1280): corta antes de 0x447b50.
     GuildOf().tableCount = 2000;
     viewport.entries[0].guildKey = 5000;
     EXPECT_FALSE(Apply(viewport).HasValue());
     EXPECT_TRUE(m_sent.empty());
-    GuildOf().tableCount = 2;
-    viewport.entries[0].guildKey = 71;
-    viewport.entries[0].key = 0x0078;
-    EXPECT_FALSE(Apply(viewport).HasValue());
+}
+
+// 0x4d92b2: una entrada sin su personaje, que el original escribe después de los 400 (Q-C1299), se descarta entera
+// (sin el 66 que pediría su gremio ni 0x447b50) y las demás siguen; la sesión sigue. En Lorencia y en Devias.
+TEST_F(GuildReceiveTest, AViewportGuildEntryOfSomeoneOutOfSightIsDiscarded)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        Reset(map);
+        GuildOf().tableCount = 1;
+        NameTheGuild(0, 70, "Horneros");
+        ActorState& other = Actor(9, "Zorzal", 0x0077);
+        Guild::ViewportGuild viewport;
+        viewport.entries.push_back({.guildKey = 99, .status = 0x20, .byte369 = 1, .relation = 2, .key = 0x0078});
+        viewport.entries.push_back({.guildKey = 70, .status = 0x40, .byte369 = 0, .relation = 1, .key = 0x0077});
+        const auto applied = Apply(viewport);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(other.word1f2, 0);
+        EXPECT_EQ(other.guildStatus, 0x40);
+        EXPECT_EQ(other.byte370, 1);
+        EXPECT_EQ(GuildOf().tableCount, 1u);
+        EXPECT_TRUE(m_sent.empty());
+        EXPECT_EQ(DrawsSince(), 0);
+    }
 }
 
 // 0x4e44aa: el 67 pone el nombre de la alianza en la entrada del gremio y la relación en el personaje; un gremio que
@@ -613,8 +704,17 @@ TEST_F(GuildReceiveTest, TheViewportUnionNamesTheAllianceAndTheRelation)
     viewport.entries[0].unionName = GuildNameOf("Talas");
     ASSERT_TRUE(Apply(viewport).HasValue());
     EXPECT_EQ(std::string(GuildOf().members[74].name.data()), "Talas");
+
+    // 0x4e44f5: con la clave 0x8077 no hay nadie y el original escribe la relación después de los 400 (Q-C1300): MuRet
+    // descarta la entrada entera, también el nombre de la alianza, y la sesión sigue.
     viewport.entries[0].key = 0x8077;
-    EXPECT_FALSE(Apply(viewport).HasValue());
+    viewport.entries[0].guildKey = 71;
+    viewport.entries[0].relation = 2;
+    viewport.entries[0].unionName = GuildNameOf("Espinillo");
+    const auto applied = Apply(viewport);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(TextOf(GuildOf().table[1].unionName), "Ceibos");
+    EXPECT_EQ(other.byte370, 1);
 }
 
 // 0x6565e0: la alianza pide con el nombre de quien la propone; Confirmar (0x653c00 con 8) manda C1 08 E6 con 1. Con el
@@ -649,6 +749,39 @@ TEST_F(GuildReceiveTest, AnAllianceRequestAsksAndTheAnswerGoesBack)
         ASSERT_TRUE(Client::Scenes::AnswerThePanelDialog(*m_world, Context().send,
                                                          Client::UI::PanelDialogOwner::Relationship, 0x50)
                         .HasValue());
+        EXPECT_TRUE(m_sent.empty());
+    }
+}
+
+// 0x656d44..0x656db1: con el personaje y una relación que no es 1 ni 2, el original abre el diálogo con la pila sin
+// inicializar (Q-C1302); MuRet descarta el E5 entero sin cortar. Sin el personaje (0x656ccb), guarda los cuatro bytes y
+// nada más, como el original. En Lorencia y en Devias.
+TEST_F(GuildReceiveTest, ARelationshipRequestOfAnotherRelationIsDiscarded)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        Reset(map);
+        Actor(5, "Benteveo", 0x0123);
+        GuildOf().relation = 1;
+        GuildOf().relationRequest = 1;
+        const auto applied =
+            Apply(Guild::RelationshipRequest{.relation = 3, .request = 2, .keyHigh = 0x01, .keyLow = 0x23});
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(GuildOf().relation, 1);
+        EXPECT_EQ(GuildOf().relationRequest, 1);
+        EXPECT_EQ(GuildOf().relationKeyLow, 0);
+        EXPECT_EQ(Dialog().opened, 0u);
+        EXPECT_EQ(GuildOf().secondWindow.dialog2a4, 0u);
+        EXPECT_TRUE(m_sent.empty());
+
+        ASSERT_TRUE(
+            Apply(Guild::RelationshipRequest{.relation = 3, .request = 2, .keyHigh = 0x04, .keyLow = 0x56}).HasValue());
+        EXPECT_EQ(GuildOf().relation, 3);
+        EXPECT_EQ(GuildOf().relationRequest, 2);
+        EXPECT_EQ(GuildOf().relationKeyHigh, 0x04);
+        EXPECT_EQ(GuildOf().relationKeyLow, 0x56);
+        EXPECT_EQ(Dialog().opened, 0u);
         EXPECT_TRUE(m_sent.empty());
     }
 }
@@ -777,9 +910,12 @@ TEST_F(GuildReceiveTest, AWarStartsScoresAndEndsWithTwoActions)
         EXPECT_EQ(GuildOf().ourScore, 3);
         EXPECT_EQ(GuildOf().theirScore, 1);
 
-        // La animación del gesto terminó: el héroe está parado otra vez.
+        // La animación del gesto terminó: el héroe está parado otra vez. 0x4d8958 pone en 0 el WORD 0x5767816, el del
+        // duelo (0x4e4d60).
         hero.animation.action = Standing;
+        Runtime().social.duel.word5767816 = 0x1234;
         ASSERT_TRUE(Apply(Guild::WarEnd{0}).HasValue());
+        EXPECT_EQ(Runtime().social.duel.word5767816, 0);
         EXPECT_EQ(LastNotice(), "fin 527");
         EXPECT_EQ(GuildOf().warOn, 0);
         EXPECT_EQ(GuildOf().rivalIndex, -1);
@@ -794,7 +930,8 @@ TEST_F(GuildReceiveTest, AWarStartsScoresAndEndsWithTwoActions)
 }
 
 // 0x4d8870: perder (1, 2 y 4) es el otro gesto (0xad, 0x8d; el elfo anima la siguiente, 0x576a9d); el 6 no tiene;
-// más de 6 lee la pila sin inicializar: corta. Caminando, 0x576a60 no anima ni manda: queda solo el C1 18 propio.
+// más de 6 muestra la pila sin inicializar (Q-C1301): MuRet descarta el 63 sin cortar y la guerra sigue. Caminando,
+// 0x576a60 no anima ni manda: queda solo el C1 18 propio.
 TEST_F(GuildReceiveTest, TheWarEndGestureDependsOnTheResult)
 {
     ActorState& hero = m_world->Actors()[0];
@@ -813,7 +950,20 @@ TEST_F(GuildReceiveTest, TheWarEndGestureDependsOnTheResult)
     ASSERT_TRUE(Apply(Guild::WarEnd{4}).HasValue());
     EXPECT_EQ(hero.animation.action, Walking);
     EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{lost, lost, lost}));
-    EXPECT_FALSE(Apply(Guild::WarEnd{7}).HasValue());
+
+    GuildOf().warOn = 1;
+    GuildOf().rivalIndex = 2;
+    Fill(GuildOf().rival, "Teros");
+    Runtime().social.duel.word5767816 = 0x1234;
+    const std::string notice = LastNotice();
+    const auto applied = Apply(Guild::WarEnd{7});
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(GuildOf().warOn, 1);
+    EXPECT_EQ(GuildOf().rivalIndex, 2);
+    EXPECT_EQ(TextOf(GuildOf().rival), "Teros");
+    EXPECT_EQ(Runtime().social.duel.word5767816, 0x1234);
+    EXPECT_EQ(LastNotice(), notice);
+    EXPECT_EQ(m_sent.size(), 3u);
 }
 
 // Sin los modelos de 0x4ea030, el 62 corta después de marcar a los personajes y antes del gesto y de los C1 18.

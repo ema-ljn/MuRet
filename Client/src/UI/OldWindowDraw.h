@@ -40,6 +40,9 @@ struct OldWindowDrawContext
     Render::Text::FontKind& dcFont;
     // 0x6c8e5c y 0x6c8e64.
     Render::Text::TextColors& textColors;
+    // GetAsyncKeyState de las flechas (0x25..0x28) en el momento del dibujo: lo mira la subclase de los EDIT (0x467b10)
+    // con el WM_GETTEXT que les manda 0x468320.
+    bool arrowHeld = false;
 };
 
 // Lo que el dibujo lee del juego.

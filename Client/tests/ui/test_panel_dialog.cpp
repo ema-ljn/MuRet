@@ -128,6 +128,40 @@ TEST_F(PanelDialogTest, ItDoesNotOpenWithTooManyLinesOrWhenBusy)
     EXPECT_EQ(m_dialog.owner, PanelDialogOwner::GuildJoin);
 }
 
+// 0x660163..0x66017b: strcpy hasta el '\0' a un lugar de 0x100 bytes. 0xff entran enteros (lo de después del '\0' no
+// se copia); con 0x100 o más el original sigue en el lugar de al lado (Q-C1305): MuRet no lo abre ni lo toca.
+TEST_F(PanelDialogTest, ALineOfTheWholeSlotOrMoreIsNotOpened)
+{
+    const std::string fits(0xff, 'a');
+    ASSERT_EQ(Open(Client::UI::PanelDialogOk, {fits + std::string(1, '\0') + "resto", "b"}),
+              PanelDialogOpening::Opened);
+    EXPECT_EQ(m_dialog.lines[0], fits);
+    EXPECT_EQ(m_dialog.lines[1], "b");
+
+    m_dialog.opened = 0;
+    EXPECT_EQ(
+        Open(Client::UI::PanelDialogConfirm, {"otro", std::string(0x100, 'c')}, PanelDialogOwner::Relationship, 99),
+        PanelDialogOpening::LineTooLong);
+    EXPECT_EQ(m_dialog.opened, 0u);
+    EXPECT_EQ(m_dialog.owner, PanelDialogOwner::GuildJoin);
+    EXPECT_EQ(m_dialog.lines[0], fits);
+    EXPECT_EQ(m_dialog.flags, Client::UI::PanelDialogOk);
+}
+
+// 0x6d69a8: el aviso del diálogo ocupado, los bytes de main.exe hasta su '\0'.
+TEST(PanelDialogBusyNoticeTest, IsTheEucKrTextOfTheBinary)
+{
+    constexpr std::array<std::uint8_t, 25> Binary{0xc0, 0xcc, 0xb9, 0xcc, 0x20, 0xc6, 0xcb, 0xbe, 0xf7,
+                                                  0xc3, 0xa2, 0xc0, 0xcc, 0x20, 0xb6, 0xb0, 0x20, 0xc0,
+                                                  0xd6, 0xbd, 0xc0, 0xb4, 0xcf, 0xb4, 0xd9};
+    std::string expected;
+    for (const std::uint8_t byte : Binary)
+        expected.push_back(static_cast<char>(byte));
+    expected.push_back('.');
+    EXPECT_EQ(Client::UI::PanelDialogBusyNotice, expected);
+    EXPECT_EQ(Client::UI::PanelDialogBusyNoticeType, 1);
+}
+
 // 0x660410: Esc responde según los botones (0x50 con Confirmar) y se cierra; Enter sin el campo no es suyo; con la
 // función en 0 queda abierto.
 TEST_F(PanelDialogTest, TheKeysAnswerByTheButtons)

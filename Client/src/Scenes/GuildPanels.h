@@ -1,5 +1,6 @@
 #pragma once
 
+#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Protocol/Outgoing.h"
 #include "UI/PanelDialog.h"
@@ -9,15 +10,30 @@
 #include <functional>
 #include <string>
 
+namespace Client::Render::Text
+{
+class ITextMeasure;
+}
+
 // Las dos ventanas del gremio y el diálogo de los paneles en el registro (CL9 hito 8; 06 § El gremio): lo que hacen al
 // cerrarse (0x6522f0 y 0x6570b0) y las dos funciones que responden al diálogo (0x4d6b60 y 0x653c00). Lo que mandan va
 // por `send` (el GameServer de la sesión, en claro).
 namespace Client::Scenes
 {
 class WorldState;
+struct WorldRuntime;
 
 // El envío de los paquetes del gremio (la sesión, o lo que la UI le pide).
 using GuildSender = std::function<void(Protocol::Outgoing)>;
+
+// 0x6600d0 (CUIPopup::SetPopup, por sus OutputDebugStringA de 0x6d69c4 y 0x6d69f4) desde el juego: abre el diálogo de
+// los paneles y devuelve lo que da, el GetTickCount() de la apertura (+0x10), o 0 sin abrirlo. Con más de diez
+// renglones, 0. Con otro abierto (0x6600f7..0x66011d), el aviso de 0x6d69a8 al chat (0x555190("", aviso, 1)) y 0, sin
+// tocar el abierto. Un renglón de 0x100 bytes o más corta (Q-C1305).
+[[nodiscard]] Core::Expected<std::uint32_t, std::string> PopUpThePanelDialog(WorldRuntime& runtime,
+                                                                             const UI::PanelDialogRequest& request,
+                                                                             const Render::Text::ITextMeasure& measure,
+                                                                             App::PixelSize screen, std::uint32_t now);
 
 // 0x4d6b60 (el 50: con 8 acepta, C1 06 51 01; con cualquier otro motivo, 00) y 0x653c00 (el E5: con 8, C1 08 E6 con 1;
 // con 0x10, con 0; con los demás, nada). Las dos devuelven 1: el diálogo se cierra. Sin `send`, corta.

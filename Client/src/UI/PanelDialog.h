@@ -12,6 +12,7 @@
 #include <functional>
 #include <span>
 #include <string>
+#include <string_view>
 
 namespace Client::Render::Text
 {
@@ -118,7 +119,16 @@ enum class PanelDialogOpening : std::uint8_t
     Opened,
     TooManyLines, // 0x6600d6: más de diez renglones, OutputDebugStringA y 0
     Busy,         // 0x6600f9: ya hay uno abierto: OutputDebugStringA, el aviso (0x6d69a8) y 0
+    // 0x660163..0x66017b: un renglón de 0x100 bytes o más, que el strcpy derramaría sobre el lugar de al lado
+    // (Q-C1305). No es del original: MuRet no lo abre y quien llama corta con la dirección.
+    LineTooLong,
 };
+
+// 0x6d69a8: el aviso de 0x6600f9 con otro diálogo abierto, en EUC-KR ("이미 팝업창이 떠 있습니다."), sin su '\0'. Lo
+// manda 0x555190 con el nombre vacío (0x6e57a4) y el tipo 1.
+inline constexpr std::string_view PanelDialogBusyNotice =
+    "\xc0\xcc\xb9\xcc \xc6\xcb\xbe\xf7\xc3\xa2\xc0\xcc \xb6\xb0 \xc0\xd6\xbd\xc0\xb4\xcf\xb4\xd9.";
+inline constexpr std::int32_t PanelDialogBusyNoticeType = 1;
 
 struct PanelDialogRequest
 {
@@ -128,9 +138,10 @@ struct PanelDialogRequest
     std::int32_t placed = 0;
 };
 
-// 0x6600d0(renglones, cuenta, paso, banderas, función, arriba): copia los renglones (hasta su '\0', recortados a 0xff),
-// suma el alto de cada uno que no esté vacío (GetTextExtentPoint32A con la fuente del DC, cy + 2) y lo demás, y lo abre
-// con el reloj de `now` (GetTickCount()).
+// 0x6600d0(renglones, cuenta, paso, banderas, función, arriba): copia los renglones con strcpy (hasta su '\0') a los
+// lugares de 0x100 bytes, suma el alto de cada uno que no esté vacío (GetTextExtentPoint32A con la fuente del DC,
+// cy + 2) y lo demás, y lo abre con el reloj de `now` (GetTickCount()). Con un renglón de 0x100 bytes o más no toca el
+// diálogo (LineTooLong, Q-C1305).
 [[nodiscard]] PanelDialogOpening OpenThePanelDialog(PanelDialogState& dialog, const PanelDialogRequest& request,
                                                     const Render::Text::ITextMeasure& measure,
                                                     Render::Text::FontKind dcFont, std::uint32_t now);

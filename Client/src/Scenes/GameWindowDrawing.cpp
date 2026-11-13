@@ -44,7 +44,7 @@ constexpr float CloseUv = 0.75f;
 constexpr std::int32_t HelpAbove = 0xd;
 // 0x6c8e5c y 0x6c8e64 de la ayuda del botón de cerrar (0x5f1296, 0x40a861).
 constexpr Render::Text::TextColors CloseHelpColors{.text = 0xffffffffu, .background = 0xff000000u};
-// 0x5f0cd6..0x5f0cef: el ancho de la caja del título, 120 · W / 640 sin signo.
+// 0x5f0cd6..0x5f0cef: el ancho de la caja del título, 120 · W / 640 sin signo (k · W / 640 en las demás cajas).
 constexpr std::uint32_t TitleBoxDesignWidth = 120;
 constexpr std::uint32_t DesignWidth = 640;
 
@@ -124,10 +124,15 @@ void DrawText(GameHudContext& context, std::int32_t x, std::int32_t y, std::stri
 
 void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
 {
+    DrawCenteredInBox(context, x, y, text, TitleBoxDesignWidth);
+}
+
+void DrawCenteredInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+                       std::uint32_t designWidth)
+{
     HudState& hud = context.hud;
     const App::PixelSize screen = context.sprites.Screen();
-    const auto box =
-        static_cast<std::int32_t>(static_cast<std::uint32_t>(screen.width) * TitleBoxDesignWidth / DesignWidth);
+    const auto box = static_cast<std::int32_t>(static_cast<std::uint32_t>(screen.width) * designWidth / DesignWidth);
     // 0x554180: 0x465950 con un texto o con caja. 0x467060 en el modo 2 (0x46711b..0x467132): la caja de
     // cx + 2 · ((caja − cx) / 2) columnas desde _ftol(x · rx), con el fondo entero, y el texto corrido (caja − cx) / 2.
     if (!text.empty() || box != 0)

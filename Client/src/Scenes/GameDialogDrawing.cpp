@@ -191,6 +191,35 @@ constexpr int GenericTextY = GenericTextTop + 0xf;
 constexpr int GenericFirstRowY = GenericTextTop + 9;
 constexpr int GenericSecondRowY = GenericTextTop + 0x15;
 
+// 0x6304da..0x6304ed y 0x471ae0 (CL9 hito 7): la caja de confirmación 0x9c. El marco, 0xfc de 213 × 5 en (213, 120),
+// 0xfb de 213 × (h + 40) en (213, 125) y otra vez 0xfc en (213, h + 40 + 125) (0x6b9bf0), con h = (paso de la letra +
+// 2) · renglones y las UV de las cajas. Los botones, de 52 × 16 con las UV del OK en y = h + 140 (0x6b86c8 y 0x6b86d0;
+// 0x6b8ca8 en el sí que no tiene el mouse con un botón), con el mouse encima de y = h + 140 a h + 156 (0x6b885c),
+// comparados en la x87 con los bordes: con dos, el sí en x 255 (de 0xff a 0x133) y el no en 330 (de 0x14a a 0x17e); con
+// uno, el sí en 295 (de 0x127 a 0x15b). Los renglones, centrados (0x623690) desde y = 0x87 de (paso + 2) en (paso + 2).
+constexpr std::int32_t ConfirmDialog = 0x9c;
+constexpr std::int32_t ConfirmLineGap = 2;
+constexpr float ConfirmEdgeTop = 120.0f;
+constexpr float ConfirmRowsTop = 125.0f;
+constexpr std::int32_t ConfirmRowsExtra = 0x28;
+constexpr double ConfirmBoxTop = 120.0;
+constexpr double ConfirmButtonTop = 20.0;
+constexpr double ConfirmButtonBottom = 36.0;
+constexpr float ConfirmButtonWidth = 52.0f;
+constexpr float ConfirmButtonHeight = 16.0f;
+constexpr float ConfirmYesX = 255.0f;
+constexpr float ConfirmNoX = 330.0f;
+constexpr float ConfirmOkX = 295.0f;
+constexpr int ConfirmYesLeft = 0xff;
+constexpr int ConfirmYesRight = 0x133;
+constexpr int ConfirmNoLeft = 0x14a;
+constexpr int ConfirmNoRight = 0x17e;
+constexpr int ConfirmOkLeft = 0x127;
+constexpr int ConfirmOkRight = 0x15b;
+constexpr std::int32_t ConfirmTwoButtons = 2;
+constexpr std::int32_t ConfirmOneButton = 1;
+constexpr int ConfirmTextTop = 0x87;
+
 // 0x63140b..0x631d66: los textos de Text.bmd de los del OK genérico que llegan a la CL8, uno o dos renglones.
 struct GenericText
 {
@@ -520,6 +549,48 @@ void DrawTheYesNoBox(Frame& frame)
     Quad(frame, no, NoX, OkY, OkWidth, OkHeight, OkDu, OkDv);
 }
 
+// 0x471ae0 sobre 0x575d9d0 (0x471e80): vuelve a poner 0x7d3a10c en 0x9c, el marco, los botones según el tipo (+4; con
+// otro que 1 o 2, ninguno) y los renglones (+8), cada uno copiado con strcpy a un buffer de 0x80 bytes de la pila
+// (0x4716e0 los corta en 24). Todo sin mezcla: la normal la pone después 0x63140b, cuyo switch no tiene el 0x9c.
+void DrawTheConfirmBox(Frame& frame)
+{
+    frame.runtime.dialogs.current = ConfirmDialog;
+    const ConfirmBoxState& box = frame.runtime.social.confirmBox;
+    const std::int32_t step = Render::Text::FontStepFor(frame.context.sprites.Screen().width) + ConfirmLineGap;
+    const std::int32_t height = step * static_cast<std::int32_t>(box.lines.size());
+    const auto rows = static_cast<float>(height + ConfirmRowsExtra);
+    Quad(frame, BoxEdgeSlot, BoxLeft, ConfirmEdgeTop, BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
+    Quad(frame, BoxRowSlot, BoxLeft, ConfirmRowsTop, BoxWidth, rows, MessageBoxDu, BoxDv);
+    Quad(frame, BoxEdgeSlot, BoxLeft, rows + ConfirmRowsTop, BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
+    // 0x471bea..0x471c2b: h + 120 queda en un float (FST) y de ahí sale el borde de abajo; el de arriba es h + 140.
+    const double rowTop = static_cast<double>(height) + ConfirmBoxTop + ConfirmButtonTop;
+    const double rowBottom =
+        static_cast<double>(static_cast<float>(static_cast<double>(height) + ConfirmBoxTop)) + ConfirmButtonBottom;
+    const auto mouseY = static_cast<double>(frame.context.mouse.y);
+    const bool inRow = rowTop <= mouseY && mouseY <= rowBottom;
+    const auto button = [&](std::uint16_t slot, std::uint16_t hoverSlot, float x, int left, int right)
+    {
+        const int mouseX = frame.context.mouse.x;
+        const bool hovered = mouseX >= left && inRow && mouseX <= right;
+        Quad(frame, hovered ? hoverSlot : slot, x, static_cast<float>(rowTop), ConfirmButtonWidth, ConfirmButtonHeight,
+             OkDu, OkDv);
+    };
+    if (box.type == ConfirmTwoButtons)
+    {
+        button(OkSlot, OkHoverSlot, ConfirmYesX, ConfirmYesLeft, ConfirmYesRight);
+        button(NoSlot, NoHoverSlot, ConfirmNoX, ConfirmNoLeft, ConfirmNoRight);
+    }
+    else if (box.type == ConfirmOneButton)
+        button(OkSlot, OkHoverSlot, ConfirmOkX, ConfirmOkLeft, ConfirmOkRight);
+    // 0x471dfa..0x471e74: 0x623690(0x140, (paso + 2) · i + 0x87, renglón).
+    int y = ConfirmTextTop;
+    for (const std::string& line : box.lines)
+    {
+        DrawCentered(frame, y, line);
+        y += step;
+    }
+}
+
 // 0x5110d0([0x78aba4c]): el primero de los 400 vivo cuyo +0x1f4 (MOVSX) es la clave guardada, que /party pone con
 // MOVSX y el 40 sin signo; sin ninguno, el 400.
 std::size_t InviterOf(const WorldState& world, std::int32_t key)
@@ -581,9 +652,6 @@ Core::Unexpected<std::string> CutTheDialog(std::int32_t id)
     // 0x630862: el 0x73 dibuja el EDIT de su campo (0x5763504), como corta su paso.
     if (id == 0x73)
         wave = "CL9 hito 7, fase 2";
-    // 0x6304e1: la caja de confirmación 0x9c (0x471ae0 sobre 0x575d9d0); su paso está portado.
-    if (id == 0x9c)
-        wave = "CL9 hito 7 (0x6304e1, 08 P-C208)";
     return Core::Unexpected(std::format("0x62db60: el dibujo del diálogo {:#x} es de la {}", id, wave));
 }
 } // namespace
@@ -622,6 +690,8 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
         DrawTheGenericBox(frame);
     else if (id == PartyInviteDialog || id == TradeInviteDialog)
         DrawTheYesNoBox(frame);
+    else if (id == ConfirmDialog)
+        DrawTheConfirmBox(frame);
     else if (id != 0)
         return CutTheDialog(id);
     // 0x63140b: la mezcla normal y los textos de la cola.

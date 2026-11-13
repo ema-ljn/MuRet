@@ -73,6 +73,12 @@ constexpr double OtherGridTop = 70.0;
 constexpr double OwnGridTop = 270.0;
 constexpr std::size_t TradeColumns = 8;
 constexpr std::size_t TradeRows = 4;
+// Las tiendas personales (0x5f3030, 0x5f7610 y 0x5f7840): la grilla 0x78ab0b8 en la esquina más 15 y 110 (0x6ba184),
+// de 8 × 4.
+constexpr double ShopGridLeft = 15.0;
+constexpr double ShopGridTop = 110.0;
+constexpr std::size_t ShopColumns = 8;
+constexpr std::size_t ShopRows = 4;
 
 // 0x449c00: la caja del entrenador ([0x724580]) en 3.
 constexpr std::int32_t TrainerWithBox = 3;
@@ -282,6 +288,21 @@ Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, const UiIt
     return DrawUiItemModel(resources, context.random, placement.Value(), excellent, set);
 }
 
+// 0x5f26a7..0x5f2751 (Scenes/ZenText.h en la CL9 hito 6).
+std::string FormatZen(std::uint32_t zen)
+{
+    const std::uint32_t units = zen % 1000u;
+    const std::uint32_t thousands = zen % 1000000u / 1000u;
+    const std::uint32_t millions = zen % 1000000000u / 1000000u;
+    if (zen >= 1000000000u)
+        return std::format("{},{:03},{:03},{:03}", zen / 1000000000u, millions, thousands, units);
+    if (zen >= 1000000u)
+        return std::format("{},{:03},{:03}", millions, thousands, units);
+    if (zen >= 1000u)
+        return std::format("{},{:03}", thousands, units);
+    return std::format("{}", units);
+}
+
 namespace
 {
 // ---------------------------------------------------------------------------------------------------------------
@@ -369,21 +390,6 @@ void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<
                 Quad(sprites, 0x116, left, top, 20.0f, 20.0f, 0.625f, 0.6666667f);
         }
     }
-}
-
-// 0x5f26a7..0x5f2751: el zen con comas cada tres cifras.
-std::string FormatZen(std::uint32_t zen)
-{
-    const std::uint32_t units = zen % 1000u;
-    const std::uint32_t thousands = zen % 1000000u / 1000u;
-    const std::uint32_t millions = zen % 1000000000u / 1000000u;
-    if (zen >= 1000000000u)
-        return std::format("{},{:03},{:03},{:03}", zen / 1000000000u, millions, thousands, units);
-    if (zen >= 1000000u)
-        return std::format("{},{:03},{:03}", millions, thousands, units);
-    if (zen >= 1000u)
-        return std::format("{},{:03}", thousands, units);
-    return std::format("{}", units);
 }
 
 // 0x5f2771..0x5f27ef: el color del zen por cuánto es.
@@ -693,7 +699,16 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::
     if (panels.IsOpen(UI::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory)
         return Core::Unexpected(std::string("0x5f7792: 0x6689d0, la marca del asedio del héroe, es de la CL9.5"));
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
-        return Core::Unexpected(std::string("0x5f7821: los ítems de la tienda personal (0x78ab0b8) son de la CL9.4"));
+    {
+        // 0x5f77f6..0x5f7821: la grilla de las tiendas personales (0x78ab0b8) en la esquina (0x78aba58 y 0x78aba5c) más
+        // 15 y 110.
+        const PersonalShopState& shops = runtime.social.personalShop;
+        if (auto shop = DrawTheGridModels(context, F32(static_cast<double>(shops.windowX) + ShopGridLeft),
+                                          F32(static_cast<double>(shops.windowY) + ShopGridTop),
+                                          world.Inventory().secondCells, ShopColumns, ShopRows);
+            !shop.HasValue())
+            return shop;
+    }
     // 0x44ad40(0).
     if (delegated.trainer == TrainerWithBox)
         return Core::Unexpected(
@@ -738,7 +753,13 @@ Core::Expected<void, std::string> DrawTheGridNumbers(GameHudContext& context, UI
     if (panels.IsOpen(UI::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory)
         return Core::Unexpected(std::string("0x5f7a6a: 0x6689d0, la marca del asedio del héroe, es de la CL9.5"));
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
-        return Core::Unexpected(std::string("0x5f7af9: las cifras de la tienda personal (0x78ab0b8) son de la CL9.4"));
+    {
+        // 0x5f7ace..0x5f7af9: la grilla de las tiendas personales, como sus ítems.
+        const PersonalShopState& shops = world.Runtime().social.personalShop;
+        DrawTheGridCounts(context.sprites, F32(static_cast<double>(shops.windowX) + ShopGridLeft),
+                          F32(static_cast<double>(shops.windowY) + ShopGridTop), world.Inventory().secondCells,
+                          ShopColumns, ShopRows);
+    }
     // 0x44ad40(1).
     if (delegated.trainer == TrainerWithBox)
         return Core::Unexpected(
@@ -824,6 +845,17 @@ constexpr std::uint32_t WarningRed = 0xd2;
 
 using Render::Text::FontKind;
 using Render::Text::TextColors;
+
+// El color del aviso que late (0x5f4623..0x5f465c y 0x5f34fe..0x5f3543): el seno del reloj por 0,005 en la x87, por
+// 200 y más 275, recortado a 255, con _ftol en el alfa y 0xd2 de rojo.
+std::uint32_t WarningPulseColor(float worldClock)
+{
+    double alpha =
+        std::sin(static_cast<double>(worldClock) * static_cast<double>(WarningPulse)) * WarningSwing + WarningBase;
+    if (WarningMost < alpha)
+        alpha = WarningMost;
+    return (static_cast<std::uint32_t>(Truncate(alpha)) << 24u) + WarningRed;
+}
 
 void TradeQuad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y)
 {
@@ -1002,12 +1034,7 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, UI
     const ActorState& hero = context.world.Actors()[runtime.hero];
     DrawText(context, x + 0x14, y + 0xfa, HeroNameOf(hero));
     // 0x5f4623..0x5f470b: el aviso que late y los tres renglones.
-    double alpha =
-        std::sin(static_cast<double>(context.worldClock) * static_cast<double>(WarningPulse)) * WarningSwing +
-        WarningBase;
-    if (WarningMost < alpha)
-        alpha = WarningMost;
-    hud.textColors.text = (static_cast<std::uint32_t>(Truncate(alpha)) << 24u) + WarningRed;
+    hud.textColors.text = WarningPulseColor(context.worldClock);
     for (const auto& [text, left, top, where] :
          {std::tuple{TradeWarningText, 0x14, 0xb9, "0x5f4682"}, std::tuple{TradeFirstLineText, 0x2d, 0xb9, "0x5f46a8"},
           std::tuple{TradeSecondLineText, 0x14, 200, "0x5f46d9"},
@@ -1020,5 +1047,256 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, UI
         hud.textColors.text = 0xff96dcffu;
     }
     return {};
+}
+
+namespace
+{
+// ---------------------------------------------------------------------------------------------------------------
+// La ventana de las tiendas personales (0x5f3030).
+
+// Los textos: 0x770dd44 (el título), 0x770de70 y 0x76e621c (la propia abierta o cerrada), 0x770e0c8 (sin título),
+// 0x770e1f4, 0x770e320 y 0x770e44c (los botones), 0x770e578 y 0x770e6a4..0x770edac (los renglones de la propia y de la
+// de otro) y 0x77102c4 y 0x77103f0 (los dos que laten). El aviso que late es el del comercio (370).
+constexpr std::size_t ShopTitleText = 1102;
+constexpr std::size_t ShopOpenText = 1103;
+constexpr std::size_t ShopClosedText = 560;
+constexpr std::size_t ShopNoTitleText = 1105;
+constexpr std::size_t ShopApplyText = 1106;
+constexpr std::size_t ShopOpenButtonText = 1107;
+constexpr std::size_t ShopCloseButtonText = 1108;
+constexpr std::size_t ShopSoldOutText = 1134;
+constexpr std::size_t ShopZenOnlyText = 1135;
+// 0x5f306e: la esquina, que el dibujo pone siempre.
+constexpr std::int32_t ShopWindowX = 0x104;
+constexpr std::int32_t ShopWindowY = 0;
+// 0x5f30c5..0x5f30cf: el título, blanco grisáceo sobre casi negro; 0x5f32be, el del título de la tienda.
+constexpr TextColors ShopTitleColors{.text = 0xffdcdcdcu, .background = 0xff141414u};
+constexpr std::uint32_t ShopNameColor = 0xff0de90du;
+// 0x5f310f..0x5f318a: la franja de la propia, sin textura (0x621aa0), de 150 (0x43160000) de ancho en (x + 0x14,
+// y + 0x30) y del paso de la letra en 640 × 480 más 2 de alto: glColor4f(0,1; 0,8; 0,1; 0,6) con la tienda abierta y
+// (0,6; 0; 0; 0,8) si no. Su texto va 2 más abajo, en 0xbe000000 o en blanco.
+constexpr std::int32_t StatusLeft = 0x14;
+constexpr std::int32_t StatusTop = 0x30;
+constexpr std::int32_t StatusTextTop = 0x32;
+constexpr float StatusWidth = 150.0f;
+constexpr std::int32_t StatusGap = 2;
+constexpr std::uint32_t DesignWidth = 640;
+constexpr Color OpenStatusColor{0.1f, 0.8f, 0.1f, 0.6f};
+constexpr Color ClosedStatusColor{0.6f, 0.0f, 0.0f, 0.8f};
+constexpr std::uint32_t OpenStatusText = 0xbe000000u;
+constexpr std::uint32_t ClosedStatusText = 0xffffffffu;
+// Las cajas de 0x554180: 150 · W / 640 la franja y el título, 52 · W / 640 los botones.
+constexpr std::uint32_t StatusBox = 150;
+constexpr std::uint32_t ButtonBox = 52;
+// 0x5f3238..0x5f3278: Item_Money (0x10f) de 150 × 24 en (x + 20, y + 65) (0x6b86d0 y 0x6b8944), con du = 0,8828125 y
+// dv = 0,5625; el título de la tienda, en (x + 0x14, y + 0x48).
+constexpr double ShopNameBoxLeft = 20.0;
+constexpr double ShopNameBoxTop = 65.0;
+constexpr std::int32_t ShopNameLeft = 0x14;
+constexpr std::int32_t ShopNameTop = 0x48;
+// 0x5f33ac..0x5f34f6: los botones, text_button (0x659) de 56 × 24 con du = 0,875 y dv = 0,75 en (x + 0x1e, y + 0x18c)
+// y (x + 0x69, y + 0x18c), con su texto 2 a la derecha y 7 abajo; 0xff19ccff, o gris el de cerrar con la tienda
+// cerrada (el neg y sbb de 0x5f34be..0x5f34cd).
+constexpr std::uint16_t TextButtonSlot = 0x659;
+constexpr float TextButtonWidth = 56.0f;
+constexpr float TextButtonHeight = 24.0f;
+constexpr float TextButtonDu = 0.875f;
+constexpr float TextButtonDv = 0.75f;
+constexpr std::int32_t OpenButtonLeft = 0x1e;
+constexpr std::int32_t CloseButtonLeft = 0x69;
+constexpr std::int32_t ButtonTop = 0x18c;
+constexpr std::int32_t ButtonTextRight = 2;
+constexpr std::int32_t ButtonTextDown = 7;
+constexpr std::uint32_t ButtonTextColor = 0xff19ccffu;
+constexpr std::uint32_t DisabledButtonColor = 0xffaaaaaau;
+// 0x5f34fe..0x5f37df: el aviso que late en (x + 0x1e, y + 0xe6), sobre 0xff141414, y los renglones en x + 0x1e, en
+// 0xff96dcff: cinco de la propia o de la de otro y los dos últimos latiendo.
+constexpr std::int32_t LinesLeft = 0x1e;
+constexpr std::int32_t WarningTop = 0xe6;
+constexpr std::uint32_t LinesBackground = 0xff141414u;
+constexpr std::uint32_t LinesColor = 0xff96dcffu;
+
+struct ShopLine
+{
+    std::size_t text = 0;
+    std::int32_t top = 0;
+    std::string_view where;
+};
+constexpr std::array<ShopLine, 5> OwnShopLines{{{1109, 0xf5, "0x5f35b1"},
+                                                {1111, 0x104, "0x5f35d6"},
+                                                {1112, 0x113, "0x5f35fc"},
+                                                {1113, 0x122, "0x5f3626"},
+                                                {1115, 0x131, "0x5f364b"}}};
+constexpr std::array<ShopLine, 5> OtherShopLines{{{1110, 0xf5, "0x5f36e4"},
+                                                  {1111, 0x104, "0x5f370a"},
+                                                  {1112, 0x113, "0x5f3731"},
+                                                  {1114, 0x122, "0x5f3759"},
+                                                  {1116, 0x131, "0x5f377f"}}};
+constexpr std::array<ShopLine, 2> PulsingShopLines{
+    {{ShopSoldOutText, 0x14a, "0x5f367d"}, {ShopZenOnlyText, 0x159, "0x5f36a7"}}};
+
+// 0x554180(x, y, texto, 0, 0, 0) con el texto `index`.
+Core::Expected<void, std::string> DrawShopText(GameHudContext& context, std::int32_t x, std::int32_t y,
+                                               std::size_t index, std::string_view where)
+{
+    auto text = TextOf(context, index, where);
+    if (!text.HasValue())
+        return Core::Unexpected(text.Error());
+    WindowDrawing::DrawText(context, x, y, text.Value());
+    return {};
+}
+
+// 0x554180(x, y, texto, k · W / 640, 1, ·) con el texto `index`.
+Core::Expected<void, std::string> DrawShopBoxText(GameHudContext& context, std::int32_t x, std::int32_t y,
+                                                  std::size_t index, std::uint32_t box, std::string_view where)
+{
+    auto text = TextOf(context, index, where);
+    if (!text.HasValue())
+        return Core::Unexpected(text.Error());
+    WindowDrawing::DrawCenteredInBox(context, x, y, text.Value(), box);
+    return {};
+}
+
+// 0x5f310f..0x5f3233, con la propia: la franja y, en la mezcla normal y sobre un fondo en 0, el 1103 o el 560 centrado
+// en 150 · W / 640. Termina sin mezcla.
+Core::Expected<void, std::string> DrawTheShopStatus(GameHudContext& context, std::int32_t x, std::int32_t y, bool open)
+{
+    Render::SpriteBatch& sprites = context.sprites;
+    const auto screenWidth = static_cast<std::uint32_t>(sprites.Screen().width);
+    if (screenWidth == 0)
+        return Core::Unexpected(std::string("0x5f314e: el alto de la franja de la tienda sin pantalla (DIV por 0)"));
+    sprites.SetColor(open ? OpenStatusColor : ClosedStatusColor);
+    const auto step = static_cast<std::uint32_t>(Render::Text::FontStepFor(sprites.Screen().width));
+    const auto height = static_cast<std::int32_t>(step * DesignWidth / screenWidth) + StatusGap;
+    sprites.ColorQuad(static_cast<float>(x + StatusLeft), static_cast<float>(y + StatusTop), StatusWidth,
+                      static_cast<float>(height));
+    sprites.SetColor(White);
+    sprites.SetBlend(BlendMode::Alpha);
+    context.hud.textColors = TextColors{.text = open ? OpenStatusText : ClosedStatusText, .background = 0};
+    if (auto status = DrawShopBoxText(context, x + StatusLeft, y + StatusTextTop, open ? ShopOpenText : ShopClosedText,
+                                      StatusBox, "0x5f322b");
+        !status.HasValue())
+        return status;
+    sprites.SetBlend(BlendMode::Opaque);
+    return {};
+}
+
+// 0x5f3238..0x5f3351: Item_Money y, en la mezcla normal, sobre un fondo en 0 y en verde, el título centrado en
+// 150 · W / 640. El texto va a un buffer de 48 bytes de la pila: el 1105 y encima, con strcpy, el de 0x78aba64 si tiene
+// algo o si se mira la de otro (vacío, entonces). MuRet guarda hasta 36 bytes (07 Q-C962): no pasa de los 48. Termina
+// sin mezcla.
+Core::Expected<void, std::string> DrawTheShopName(GameHudContext& context, std::int32_t x, std::int32_t y,
+                                                  const PersonalShopState& shops)
+{
+    Render::SpriteBatch& sprites = context.sprites;
+    Quad(sprites, MoneyBoxSlot, F32(static_cast<double>(x) + ShopNameBoxLeft),
+         F32(static_cast<double>(y) + ShopNameBoxTop), 150.0f, 24.0f, 0.8828125f, 0.5625f);
+    sprites.SetBlend(BlendMode::Alpha);
+    context.hud.textColors = TextColors{.text = ShopNameColor, .background = 0};
+    auto placeholder = TextOf(context, ShopNoTitleText, "0x5f329f");
+    if (!placeholder.HasValue())
+        return Core::Unexpected(placeholder.Error());
+    std::string_view name = placeholder.Value();
+    if (!shops.ownTitle.empty() || shops.mode == OtherShopView)
+        name = shops.ownTitle;
+    WindowDrawing::DrawCenteredInBox(context, x + ShopNameLeft, y + ShopNameTop, name, StatusBox);
+    sprites.SetBlend(BlendMode::Opaque);
+    return {};
+}
+
+// 0x5f33ac..0x5f34f6, con la propia: los dos botones, sobre un fondo en 0: abrir (1107) o aplicar con la tienda abierta
+// (1106), y cerrar (1108), gris con la tienda cerrada. Sin mouse: no se iluminan.
+Core::Expected<void, std::string> DrawTheShopButtons(GameHudContext& context, std::int32_t x, std::int32_t y, bool open)
+{
+    Render::SpriteBatch& sprites = context.sprites;
+    context.hud.textColors = TextColors{.text = ButtonTextColor, .background = 0};
+    const auto top = static_cast<float>(y + ButtonTop);
+    Quad(sprites, TextButtonSlot, static_cast<float>(x + OpenButtonLeft), top, TextButtonWidth, TextButtonHeight,
+         TextButtonDu, TextButtonDv);
+    const std::int32_t textTop = y + ButtonTop + ButtonTextDown;
+    if (auto first = DrawShopBoxText(context, x + OpenButtonLeft + ButtonTextRight, textTop,
+                                     open ? ShopApplyText : ShopOpenButtonText, ButtonBox, "0x5f3470");
+        !first.HasValue())
+        return first;
+    Quad(sprites, TextButtonSlot, static_cast<float>(x + CloseButtonLeft), top, TextButtonWidth, TextButtonHeight,
+         TextButtonDu, TextButtonDv);
+    context.hud.textColors.text = open ? ButtonTextColor : DisabledButtonColor;
+    return DrawShopBoxText(context, x + CloseButtonLeft + ButtonTextRight, textTop, ShopCloseButtonText, ButtonBox,
+                           "0x5f34f6");
+}
+
+// 0x5f34fe..0x5f37e2: el aviso que late, los cinco renglones de la propia o de la de otro (con otro 0x6c931c, ninguno)
+// y los dos últimos latiendo. Termina sin mezcla.
+Core::Expected<void, std::string> DrawTheShopLines(GameHudContext& context, std::int32_t x, std::int32_t y,
+                                                   std::int32_t mode)
+{
+    HudState& hud = context.hud;
+    const std::uint32_t pulse = WarningPulseColor(context.worldClock);
+    hud.textColors = TextColors{.text = pulse, .background = LinesBackground};
+    if (auto warning = DrawShopText(context, x + LinesLeft, y + WarningTop, TradeWarningText, "0x5f356f");
+        !warning.HasValue())
+        return warning;
+    hud.textColors.text = LinesColor;
+    if (mode == OwnShopView || mode == OtherShopView)
+    {
+        for (const ShopLine& line : mode == OwnShopView ? OwnShopLines : OtherShopLines)
+        {
+            if (auto drawn = DrawShopText(context, x + LinesLeft, y + line.top, line.text, line.where);
+                !drawn.HasValue())
+                return drawn;
+        }
+        hud.textColors = TextColors{.text = pulse, .background = LinesBackground};
+        for (const ShopLine& line : PulsingShopLines)
+        {
+            if (auto drawn = DrawShopText(context, x + LinesLeft, y + line.top, line.text, line.where);
+                !drawn.HasValue())
+                return drawn;
+        }
+    }
+    context.sprites.SetBlend(BlendMode::Opaque);
+    return {};
+}
+} // namespace
+
+Core::Expected<void, std::string> DrawThePersonalShopWindow(GameHudContext& context, UI::PanelRegistry& panels)
+{
+    if (!panels.IsOpen(UI::PersonalShopPanel) && !panels.IsOpen(UI::OtherShopPanel))
+        return {};
+    Render::SpriteBatch& sprites = context.sprites;
+    WorldState& world = context.world;
+    PersonalShopState& shops = world.Runtime().social.personalShop;
+    shops.windowX = ShopWindowX;
+    shops.windowY = ShopWindowY;
+    const std::int32_t x = shops.windowX;
+    const std::int32_t y = shops.windowY;
+    // 0x5f307e..0x5f30f9: 0x5ee220(x, y, 0), en blanco, la negrita y el título centrado en 120 · W / 640.
+    DrawWindowBack(sprites, x, y, false);
+    sprites.SetColor(White);
+    SelectFont(context, FontKind::Bold);
+    context.hud.textColors = ShopTitleColors;
+    auto title = TextOf(context, ShopTitleText, "0x5f30f9");
+    if (!title.HasValue())
+        return Core::Unexpected(title.Error());
+    WindowDrawing::DrawTitle(context, x + 0x23, y + 0xc, title.Value());
+    const bool own = shops.mode == OwnShopView;
+    const bool open = shops.ownOpen != 0;
+    if (own)
+    {
+        if (auto status = DrawTheShopStatus(context, x, y, open); !status.HasValue())
+            return status;
+    }
+    if (auto name = DrawTheShopName(context, x, y, shops); !name.HasValue())
+        return name;
+    // 0x5f3356..0x5f339d: las casillas de la grilla (0x5e3660) y, en la mezcla normal, en blanco.
+    DrawTheGridBoxes(sprites, F32(static_cast<double>(x) + ShopGridLeft), F32(static_cast<double>(y) + ShopGridTop),
+                     world.Inventory().secondCells, ShopColumns, ShopRows);
+    sprites.SetBlend(BlendMode::Alpha);
+    sprites.SetColor(White);
+    if (own)
+    {
+        if (auto buttons = DrawTheShopButtons(context, x, y, open); !buttons.HasValue())
+            return buttons;
+    }
+    return DrawTheShopLines(context, x, y, shops.mode);
 }
 } // namespace Client::Scenes

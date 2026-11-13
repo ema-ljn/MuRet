@@ -39,6 +39,11 @@ void DrawText(GameHudContext& context, std::int32_t x, std::int32_t y, std::stri
 // recortado a la caja. Un texto vacío mide el "0" y dibuja solo el fondo.
 void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text);
 
+// Lo mismo con una caja de `designWidth` · W / 640 píxeles: 0x554180(x, y, texto, k · W / 640, 1, ·), que no lee el
+// último argumento (las tiendas personales, 0x5f3030, con 150 y 52).
+void DrawCenteredInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+                       std::uint32_t designWidth);
+
 // 0x623690(x, y, texto): x − (cx · 640 / W) / 2 y 0x554180(…, 0, 0, 0).
 void DrawCenteredText(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text);
 

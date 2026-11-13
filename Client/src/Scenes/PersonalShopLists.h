@@ -12,7 +12,7 @@
 // mapas de los precios (0x7245e4 y 0x7245e0, del lugar al precio) y los 3F 01, 05, 06 y 0x13 que llegan. El GameServer
 // 0.97 no tiene el 3F: el oráculo es el ASM del cliente (*estático*). El paso de la ventana (0x5ea290), lo que se hace
 // con el mouse sobre las grillas (0x5c5110, 0x5c5242 y 0x5dec19) y las respuestas de sus avisos están en
-// Scenes/PersonalShopWindow (fase 5); su dibujo (0x5f3030) corta con su dirección (08 P-C208).
+// Scenes/PersonalShopWindow (fase 5); su dibujo (0x5f3030), en Scenes/GameInventoryHud (fase 6a).
 namespace Client::Render::Models
 {
 class CrtRandom;

@@ -117,10 +117,9 @@ std::int32_t NameColorOf(const World::ItemState& item, std::int32_t level)
 
 // 0x5b2cad..0x5b3716: el precio. Con la tienda de NPC abierta (0x10000, 1 rand()), salvo la caja de la suerte y el
 // ticket de 1 a 5, va el precio de 0x54d0f0 y 0x5b1200, de la CL9.3. Con la tienda personal propia (0x800) o la
-// ajena (0x20000), el de 0x78abaa4, que solo pone en 1 0x5c4110 con la grilla de la tienda personal (0x78ab0b8, la
-// CL9.4): MuRet no la tiene, así que queda en 0 y no hay precio.
-Core::Expected<void, std::string> CheckTheShops(GameHudContext& context, const World::ItemState& item,
-                                                std::int32_t level)
+// ajena (0x20000), sin rand(), el de la grilla de la tienda personal (WriteThePersonalShopPrice, CL9 hito 7).
+Core::Expected<void, std::string> CheckTheShops(GameHudContext& context, TooltipWriter& lines,
+                                                const World::ItemState& item, std::int32_t level)
 {
     const std::uint16_t id = item.id;
     if (id == Scroll || (id >= FirstQuestScroll && id <= LastQuestScroll) ||
@@ -133,9 +132,9 @@ Core::Expected<void, std::string> CheckTheShops(GameHudContext& context, const W
         return Core::Unexpected(std::format("0x5b2d23: el precio del {:#x} en la tienda de NPC (0x54d0f0 y 0x5b1200) "
                                             "es de la CL9.3",
                                             id));
-    if (!registry.IsOpen(UI::PersonalShopPanel))
-        static_cast<void>(registry.IsOpen(UI::OtherShopPanel));
-    return {};
+    if (!registry.IsOpen(UI::PersonalShopPanel) && !registry.IsOpen(UI::OtherShopPanel))
+        return {};
+    return WriteThePersonalShopPrice(context, lines, item);
 }
 
 // 0x5b8160..0x5b821b: los tipos sin tooltip de reparar: salen sin tocar los renglones.
@@ -254,7 +253,7 @@ Core::Expected<void, std::string> DrawTheItemTooltip(const ItemTooltipContext& c
     lines.At("0x5b2b22");
     lines.NewLine();
     const auto level = static_cast<std::int32_t>((item.scalar1Low >> LevelShift) & LevelMask);
-    if (auto checked = CheckTheShops(hud, item, level); !checked.HasValue())
+    if (auto checked = CheckTheShops(hud, lines, item, level); !checked.HasValue())
         return checked;
     ItemTooltipFrame frame{.context = hud,
                            .lines = lines,

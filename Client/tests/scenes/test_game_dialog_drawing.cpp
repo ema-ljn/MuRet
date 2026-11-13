@@ -462,6 +462,118 @@ TEST(GameDialogDrawingTest, TheTradeRequestNamesTheOther)
     }
 }
 
+// 0x6304e1 → 0x471ae0 (CL9 hito 7): la caja de confirmación 0x9c con dos renglones, de (12 + 2) de alto en 640: el
+// marco (0xfc en y 120, 0xfb desde 125 con h + 40 de alto y 0xfc en h + 165), el sí en (255, h + 140) con el mouse en
+// el borde de abajo y la x del borde derecho (0xf2), el no sin él (0xf3), y los renglones centrados desde 0x87 de 14 en
+// 14. Todo sin mezcla, y la normal al final.
+TEST(GameDialogDrawingTest, TheConfirmBoxDrawsItsTwoButtonsAndItsRows)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0x9c;
+        runtime.social.confirmBox = {.id = 1000, .type = 2, .lines = {"abrir la tienda con", "estos precios"}};
+        constexpr int Height = 2 * (12 + 2);
+        tested->mouse = {0x133, Height + 156};
+
+        ASSERT_TRUE(tested->Draw().HasValue());
+        const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 5u);
+        EXPECT_EQ(quads[0].slot, 0xfc);
+        EXPECT_FLOAT_EQ(quads[0].x, 213.0f);
+        EXPECT_FLOAT_EQ(quads[0].y, 120.0f);
+        EXPECT_EQ(quads[1].slot, 0xfb);
+        EXPECT_FLOAT_EQ(quads[1].y, 125.0f);
+        EXPECT_EQ(quads[2].slot, 0xfc);
+        EXPECT_FLOAT_EQ(quads[2].y, static_cast<float>(Height + 40 + 125));
+        EXPECT_EQ(quads[3].slot, 0xf2);
+        EXPECT_FLOAT_EQ(quads[3].x, 255.0f);
+        EXPECT_FLOAT_EQ(quads[3].y, static_cast<float>(Height + 140));
+        EXPECT_EQ(quads[4].slot, 0xf3);
+        EXPECT_FLOAT_EQ(quads[4].x, 330.0f);
+        EXPECT_FLOAT_EQ(quads[4].y, static_cast<float>(Height + 140));
+        for (const DrawnQuad& quad : quads)
+            EXPECT_EQ(quad.blend, BlendMode::Opaque);
+
+        ASSERT_EQ(tested->Texts(), (std::vector<std::string>{"abrir la tienda con", "estos precios"}));
+        EXPECT_EQ(tested->text.texts[0].x, CenteredX("abrir la tienda con"));
+        EXPECT_EQ(tested->text.texts[0].y, 0x87);
+        EXPECT_EQ(tested->text.texts[1].x, CenteredX("estos precios"));
+        EXPECT_EQ(tested->text.texts[1].y, 0x87 + 14);
+        EXPECT_EQ(tested->text.texts[1].style.font, Client::Render::Text::FontKind::Normal);
+        EXPECT_EQ(tested->text.texts[1].style.colors.text, 0xffffffffu);
+        EXPECT_EQ(tested->sprites.Blend(), BlendMode::Alpha);
+        EXPECT_EQ(runtime.dialogs.current, 0x9c);
+    }
+}
+
+// Los bordes del mouse: el no con la x de 0x17e y la y de h + 140; un píxel más abajo, ninguno.
+TEST(GameDialogDrawingTest, TheConfirmBoxLightsTheButtonUnderTheMouse)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0x9c;
+        runtime.social.confirmBox = {.id = 1000, .type = 2, .lines = {"una"}};
+        constexpr int Height = 12 + 2;
+        tested->mouse = {0x17e, Height + 140};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 5u);
+        EXPECT_EQ(quads[3].slot, 0xf1);
+        EXPECT_EQ(quads[4].slot, 0xf4);
+
+        tested->sprites.Begin(Screen640);
+        tested->mouse = {0x17e, Height + 157};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 5u);
+        EXPECT_EQ(quads[3].slot, 0xf1);
+        EXPECT_EQ(quads[4].slot, 0xf3);
+    }
+}
+
+// Con un botón, el sí en (295, h + 140), con el mouse de 0x127 a 0x15b; con otro tipo, ninguno.
+TEST(GameDialogDrawingTest, TheConfirmBoxWithOneButtonOrNone)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        runtime.dialogs.current = 0x9c;
+        runtime.social.confirmBox = {.id = 7, .type = 1, .lines = {"una"}};
+        constexpr int Height = 12 + 2;
+        tested->mouse = {0x127, Height + 150};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 4u);
+        EXPECT_EQ(quads[3].slot, 0xf2);
+        EXPECT_FLOAT_EQ(quads[3].x, 295.0f);
+        EXPECT_FLOAT_EQ(quads[3].y, static_cast<float>(Height + 140));
+
+        tested->sprites.Begin(Screen640);
+        tested->mouse = {0x126, Height + 150};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 4u);
+        EXPECT_EQ(quads[3].slot, 0xf1);
+
+        tested->sprites.Begin(Screen640);
+        tested->text.texts.clear();
+        runtime.social.confirmBox = {.id = 7, .type = 0, .lines = {}};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 3u);
+        EXPECT_FLOAT_EQ(quads[2].y, 165.0f);
+        EXPECT_TRUE(tested->text.texts.empty());
+    }
+}
+
 // Los diálogos que no son de la CL8 cortan con la ola de su paso.
 TEST(GameDialogDrawingTest, TheOtherDialogsAreCut)
 {

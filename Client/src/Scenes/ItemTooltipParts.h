@@ -91,6 +91,15 @@ ItemSetNameOf(const GameHudContext& context, std::uint16_t type, std::uint8_t pi
 void WriteTheItemClasses(const GameHudContext& context, TooltipWriter& lines,
                          std::span<const std::byte, Data::Tables::ItemRecordSize> record);
 
+// 0x5b2f7f..0x5b3716 (CL9 hito 7), con la tienda personal propia o la de otro abiertas: con el ítem de su grilla bajo
+// el mouse (0x78abaa4), su precio, del mapa del modo (0x6c931c) por el lugar (columna + fila · 8 + 0x4c). Con precio:
+// el 63 con el precio sin signo y comas (0x5b1130), en rojo desde diez millones, dorado desde un millón y verde desde
+// cien mil (con signo), en negrita, y un "\n"; después el zen del registro propio (+0xecc) con su acceso abierto y
+// cerrado y, mirando la de otro con menos zen (sin signo), el 423 en rojo y en negrita y otro "\n". Sin precio, con la
+// propia, el 1101 en rojo y en negrita y un "\n". Sin rand() salvo los del acceso.
+[[nodiscard]] Core::Expected<void, std::string> WriteThePersonalShopPrice(GameHudContext& context, TooltipWriter& lines,
+                                                                          const World::ItemState& item);
+
 // 0x5b79bd..0x5b801a: las clases (0x5af590), lo que suma cada tipo, el stat del conjunto (0x40dd80), las opciones
 // (0x5b2320), las cajas 0x1a20 a 0x1a25 y las opciones del conjunto (0x40eee0).
 [[nodiscard]] Core::Expected<void, std::string> WriteTheOptions(ItemTooltipFrame& frame);

@@ -115,6 +115,8 @@ struct GameRavenPass
     // +0x1a1 del héroe, que 0x5ffdf0 lee en los mapas 18 a 23.
     std::uint8_t heroByte1a1 = 0;
     bool originalFrame = true;
+    // El rand() de la CRT, para 0x418920 (los estados 5 y 6). Sin él, esos estados cortan.
+    Render::Models::CrtRandom* random = nullptr;
 };
 
 // 0x420df0: con un cuervo en +0x430, 0x4182f0. Sin pasar el trapecio (su (x, y) por 0,01f, con −20),
@@ -122,7 +124,8 @@ struct GameRavenPass
 // la luz del terreno) y 0x6002e0 (las mallas 3 y 2, y la sombra salvo en los mapas 10, 24 a 29 y 36); con
 // +0x78 & 0x4000 del dueño, 0x6002e0 recibe 10 y va por 0x60033c: DrawChromeShell, sin la sombra ni la altura del
 // terreno (el +0x108 del cuervo queda en 0 desde 0x415c1e, así que el lazo del asedio de 0x600343 no lo encuentra en
-// el pool). Después 0x418920, que sólo hace algo en los estados 5 y 6 (los que pone el A8). Se dibuja como lo dejó el
-// paso, como el personaje. En un frame del original le quedan los huesos de la pose para la chispa del paso.
+// el pool). Después, en los frames del original, 0x418920, que sólo hace algo en los estados 5 y 6 (los que pone el
+// A8): sus efectos son de la CL11 y cortan con su dirección (DrawTheRavenAttack). Se dibuja como lo dejó el paso, como
+// el personaje. En un frame del original le quedan los huesos de la pose para la chispa del paso.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRavenPass& pass);
 } // namespace Client::Scenes

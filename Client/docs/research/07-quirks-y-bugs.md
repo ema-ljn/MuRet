@@ -525,6 +525,7 @@ dos clases y la regla cambia según cuál:
 | Q-C1203 | `0x552f10`, el lazo de `0x5530bb` | baja las esperas de los `+0x6a + 2` primeros lugares, hasta 256, pero `+0x76c` tiene 255 ints: con `+0x6a` desde `0xfe` el último es el primer int del equipo (`+0xb68`). Con los 64 lugares que cuenta el `F3 11` no pasa de 66 | bug | corta con la dirección (`SkillDelaysTest.TheCountDownPastTheDelaysIsACut`) | CL9 |
 | Q-C1204 | el `1E` y el `1B` sin el personaje | `0x4ce000` y `0x4cbe90` no miran si `0x5110d0` lo encontró: escriben en el 400, el lugar de más del pool. *Estático* | contrato | se porta igual (`SkillRepliesTest.TheDurationMagicWithoutTheKeyWritesTheLastActor`) | CL9 |
 | Q-C1205 | el `69`, `0x4cc2a9` | guarda el bit 15 del blanco en `+0x38d`, pero un blanco con el bit 15 no lo encuentra `0x5110d0` y el handler ya volvió: `+0x38d` queda siempre en 0. *Estático* | contrato | se porta igual (`SkillRepliesTest.TheSkillTargetKeepsTheSkillAndTheTarget`) | CL9 |
+| Q-C1206 | el aviso del cuervo, `0x4170a4..0x4170d4` y `0x4176ba..0x4176e6` | después del `A7` pone el estado 3 y compara la distancia al dueño con 50: más lejos, el 4; más cerca, mira si el estado (ya 3) es 4 o pasa de 3 y, como no, también el 4. Siempre baja (4, con la velocidad en 3), y fuera de la zona segura `0x4176f0` lo vuelve al 0 en el mismo paso. *Estático* | contrato | se porta igual (`RavenAttackTest.AHiddenOwnerStopsTheAttack`) | CL9 |
 
 ## Fuera de alcance
 

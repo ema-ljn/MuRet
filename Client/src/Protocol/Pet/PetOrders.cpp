@@ -3,6 +3,8 @@
 #include "Core/ByteReader.h"
 #include "Core/Expected.h"
 #include "Network/Packet.h"
+#include "Network/PacketWriter.h"
+#include "Protocol/Outgoing.h"
 #include "Protocol/ProtocolError.h"
 
 #include <cstdint>
@@ -48,5 +50,11 @@ Core::Expected<PetAttack, ProtocolError> ReadPetAttack(const Network::Packet& pa
     if (!kind || !owner || !target)
         return Core::Unexpected(ProtocolError::TooShort);
     return PetAttack{*kind, *owner, *target};
+}
+
+Outgoing WritePetCommand(const PetCommand& command)
+{
+    return Xor32C1(
+        Network::PacketWriter::C1(PetOrderOpcode).PutU8(command.pet).PutU8(command.command).PutU16Be(command.key));
 }
 } // namespace Client::Protocol::Pet

@@ -10,7 +10,8 @@ struct PetAttack;
 
 // Las órdenes del cuervo que llegan (CL9 hito 4): el A7 y el A8 sobre el objeto del cuervo del Dark Lord (+0x430,
 // Scenes/DarkSpirit.h). Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Las órdenes del cuervo". Lo que el
-// paso del cuervo hace con ellas (los estados 2, 5 y 6 de 0x416a20) queda sin portar (08, P-C266).
+// paso del cuervo hace con ellas (los estados 2, 5 y 6 de 0x416a20) está en Scenes/DarkSpirit (06, "El ataque del
+// cuervo").
 namespace Client::Scenes
 {
 class WorldState;

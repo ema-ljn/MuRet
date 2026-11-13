@@ -98,6 +98,29 @@ constexpr double PerchTurn = 120.0;
 constexpr std::size_t LandingBone = 42;
 constexpr double LandingAcceleration = 1.0;
 constexpr double PerchReach = 50.0;
+// Los estados del ataque (CL9 hito 4): el 2 vuelve, el 5 ataca y el 6 grita (0x416ae3, 0x417833).
+constexpr std::uint8_t ReturningState = 2;
+constexpr std::uint8_t AttackingState = 5;
+constexpr std::uint8_t ShoutingState = 6;
+// 0x416b1d: +0x3b0 en 0xffff después del aviso; el 6 no gira con él (0x41784e).
+constexpr std::uint16_t NoAttackTarget = 0xffff;
+// 0x417a59: el destino del ataque, 50 (0x6b86b0) más arriba; a menos de 20 (0x6b86d0) o con la lejanía en más de 20
+// vuelve (0x417a84), con el cabeceo en −45 (0xc2340000); la orden 3 deja +0x1ad (0x417a9d).
+constexpr double AttackLift = 50.0;
+constexpr double AttackReach = 20.0;
+constexpr std::int32_t AttackSteps = 20;
+constexpr float ReturnPitch = -45.0f;
+constexpr std::uint8_t FollowTargetOrder = 3;
+// 0x417acf: +0xf0 sube 0,2 (0x6b8854) por paso; 0x417b17: volviendo frena 1 (0x6b87d4); a 250² (0x6b893c) del
+// destino, el estado 0.
+constexpr double AttackAccelerationStep = static_cast<double>(0.2f);
+constexpr double ReturnBrake = 1.0;
+constexpr double ReturnedSquared = 62500.0;
+constexpr std::uint8_t AttackAction = 3;
+// 0x41788b: el 6 gira 40 (0x42200000) hacia el personaje de +0x3b0.
+constexpr float ShoutTurn = 40.0f;
+// 0x417e33: +0x38d sube en los estados 5 y 6 hasta 15.
+constexpr std::uint8_t AttackCounterTop = 15;
 
 float F32(double value)
 {
@@ -182,13 +205,15 @@ void Land(DarkSpirit& spirit, const DarkSpiritOwner& owner)
     }
 }
 
-// 0x4177eb..0x417e10: los estados 0 y 1, el vuelo libre.
-void Fly(DarkSpirit& spirit, const DarkSpiritOwner& owner, std::uint8_t map, World::Particles& particles,
-         float worldClock, Render::Models::CrtRandom& random)
+// 0x417b33..0x417e10: los estados 0 y 1, el vuelo libre hacia `destination` (el dueño o, con +0x1ad en 1, el blanco
+// de +8). +0x1ad en 0; la chispa mira las banderas del dueño y la altura, su mascota.
+void Fly(DarkSpirit& spirit, const DarkSpiritOwner& owner, const glm::vec3& destination, std::uint8_t map,
+         World::Particles& particles, float worldClock, Render::Models::CrtRandom& random)
 {
+    spirit.byte1ad = 0;
     const glm::vec3 start = spirit.position;
-    const float dx = F32(static_cast<double>(owner.position.x) - static_cast<double>(start.x));
-    const float dy = F32(static_cast<double>(owner.position.y) - static_cast<double>(start.y));
+    const float dx = F32(static_cast<double>(destination.x) - static_cast<double>(start.x));
+    const float dy = F32(static_cast<double>(destination.y) - static_cast<double>(start.y));
     // 0x417b75: la chispa, desde la traslación de un hueso de la pose del último dibujo (0x4ec110 sin
     // trasladar). Antes del primero, el original lee memoria sin iniciar: MuRet, la posición (Q-C133).
     if ((owner.flags & OwnerHidesSparks) == 0)
@@ -206,7 +231,7 @@ void Fly(DarkSpirit& spirit, const DarkSpiritOwner& owner, std::uint8_t map, Wor
     const float distanceFloat = F32(distance);
     if (distance >= NearSquared)
     {
-        const float target = F32(Render::Models::CreateAngle(start.x, start.y, owner.position.x, owner.position.y));
+        const float target = F32(Render::Models::CreateAngle(start.x, start.y, destination.x, destination.y));
         const int turn = random.Next() % TurnSpan;
         spirit.angles.z =
             F32(Render::Models::TurnAngle(spirit.angles.z, target, F32(static_cast<double>(turn) + TurnBase)));
@@ -218,7 +243,7 @@ void Fly(DarkSpirit& spirit, const DarkSpiritOwner& owner, std::uint8_t map, Wor
     const double z = static_cast<double>(move.z) + static_cast<double>(spirit.position.z);
     spirit.position.z = F32(z);
     const double flight =
-        ((owner.pet == HorseIndex || map == LoginMap) ? LoginFlight : Flight) + static_cast<double>(owner.position.z);
+        ((owner.pet == HorseIndex || map == LoginMap) ? LoginFlight : Flight) + static_cast<double>(destination.z);
     int draw = CruiseDraw;
     if (z < flight)
     {
@@ -258,6 +283,83 @@ void Fly(DarkSpirit& spirit, const DarkSpiritOwner& owner, std::uint8_t map, Wor
         spirit.direction.z = F32(static_cast<double>((random.Next() % ClimbSpan) - ClimbCenter) * Tenth);
     }
     SetStateOf(spirit, spirit.direction.y < FastBelow ? FastState : SlowState);
+}
+
+// 0x416a88..0x4176e6: con el blanco de +0x3b0 entre los 400 y con 0x4000 (0x416ab6), o con el dueño con 0x4000
+// (0x416ac5, 0x4170d9), en los estados 5, 2 y 6, +0x3b0 en 0xffff y el A7 (las dos copias, 0x416b05 y 0x417113, arman
+// el mismo). Después 0x4164f0(3) y, a más de 50 del dueño (0x4170a9, 0x4176bf) o con el estado ya en 3, que no es 4
+// ni pasa de 3, 0x4164f0(4) con la velocidad en 3: siempre el 4 (Q-C1206). La distancia no saca rand().
+bool StopTheHiddenAttack(DarkSpirit& spirit, const DarkSpiritOwner& owner, const DarkSpiritTargets& targets)
+{
+    const bool targetHides = targets.attackInPool && (targets.attackFlags & OwnerHidesSparks) == OwnerHidesSparks;
+    const bool ownerHides = (owner.flags & OwnerHidesSparks) == OwnerHidesSparks;
+    const bool attacking =
+        spirit.state == AttackingState || spirit.state == ReturningState || spirit.state == ShoutingState;
+    if (!(targetHides || ownerHides) || !attacking)
+    {
+        return false;
+    }
+    spirit.target3b0 = NoAttackTarget;
+    SetState(spirit, PerchedState);
+    SetState(spirit, LandingState);
+    spirit.speed = LandingSpeed;
+    return true;
+}
+
+// 0x4179ef..0x417b2e: el 5 y el 2. La matriz de los ángulos (0x5fc8f0) y el avance de (0, −velocidad, 0) girado, sin
+// mirar si la velocidad es 0. `dx` y `dy` son los del destino antes de avanzar (0x417814).
+void Charge(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton, glm::vec3 destination, float dx, float dy)
+{
+    const Render::Models::OriginalMatrix matrix = Render::Models::OriginalAngleMatrix(spirit.angles);
+    const glm::vec3 move = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, -spirit.speed, 0.0f), matrix);
+    spirit.position.x = F32(static_cast<double>(move.x) + static_cast<double>(spirit.position.x));
+    spirit.position.y = F32(static_cast<double>(move.y) + static_cast<double>(spirit.position.y));
+    spirit.position.z = F32(static_cast<double>(move.z) + static_cast<double>(spirit.position.z));
+    if (spirit.state == AttackingState)
+    {
+        // 0x417a56..0x417aa6: fcomp con 20 y C0 (menor o unordered).
+        destination.z = F32(static_cast<double>(destination.z) + AttackLift);
+        const double distance = Render::Models::MoveToward(spirit.position, spirit.angles, destination, spirit.speed);
+        if (!(distance >= AttackReach) || spirit.far > AttackSteps)
+        {
+            SetState(spirit, ReturningState);
+            spirit.angles.x = ReturnPitch;
+            if (spirit.order != FollowTargetOrder)
+            {
+                spirit.byte1ad = 0;
+            }
+        }
+        // 0x417aad..0x417ad5: la velocidad suma el +0xf0 de antes.
+        ++spirit.far;
+        spirit.speed = F32(static_cast<double>(spirit.speed) + static_cast<double>(spirit.floatF0));
+        spirit.floatF0 = F32(static_cast<double>(spirit.floatF0) + AttackAccelerationStep);
+    }
+    else
+    {
+        // 0x417aec..0x417b1d: fcomp con 250² y C0: con la suma en 250² o más (no unordered), 0x4164f0(0).
+        const double squared =
+            (static_cast<double>(dy) * static_cast<double>(dy)) + (static_cast<double>(dx) * static_cast<double>(dx));
+        if (!(squared < ReturnedSquared || std::isnan(squared)))
+        {
+            SetState(spirit, FastState);
+        }
+        spirit.speed = F32(static_cast<double>(spirit.speed) - ReturnBrake);
+    }
+    // 0x417adb y 0x417b26: 0x4ea030(3).
+    Render::Models::SetAction(spirit.animation, skeleton, AttackAction);
+}
+
+// 0x417847..0x41789d: el 6, con +0x3b0 distinto de 0xffff, gira 40 hacia ese personaje (0x4e93f0 desde su posición
+// de antes del paso y 0x4e9560).
+void Shout(DarkSpirit& spirit, const DarkSpiritTargets& targets)
+{
+    if (spirit.target3b0 == NoAttackTarget)
+    {
+        return;
+    }
+    const float angle = F32(Render::Models::CreateAngle(spirit.position.x, spirit.position.y, targets.attackPosition.x,
+                                                        targets.attackPosition.y));
+    spirit.angles.z = F32(Render::Models::TurnAngle(spirit.angles.z, angle, ShoutTurn));
 }
 } // namespace
 
@@ -325,15 +427,19 @@ DrawnObject DrawnDarkSpirit(const DarkSpirit& spirit, const Render::Models::Skel
     return drawn;
 }
 
-bool StepDarkSpirit(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton, const DarkSpiritOwner& owner,
-                    std::uint8_t map, World::Particles& particles, float worldClock, Render::Models::CrtRandom& random,
-                    std::int32_t counter)
+DarkSpiritStepped StepDarkSpirit(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton,
+                                 const DarkSpiritOwner& owner, std::uint8_t map, World::Particles& particles,
+                                 float worldClock, Render::Models::CrtRandom& random, std::int32_t counter,
+                                 const DarkSpiritTargets& targets)
 {
     spirit.previousPosition = spirit.position;
+    DarkSpiritStepped stepped;
     if ((owner.flags & OwnerStops) != 0)
     {
-        return false;
+        return stepped;
     }
+    // 0x416a82..0x416a8b: el byte +0x1d6 del CHARACTER del cuervo va a +0x8e; MuRet no tiene ninguno de los dos.
+    stepped.stopsTheAttack = StopTheHiddenAttack(spirit, owner, targets);
     FollowTheSafeZone(spirit, owner);
     if (spirit.animation.action < skeleton.actions.size() &&
         Render::Models::AdvanceAnimation(spirit.animation, skeleton.actions[spirit.animation.action], FrameStep,
@@ -343,7 +449,24 @@ bool StepDarkSpirit(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton
         Render::Models::SetAction(spirit.animation, skeleton,
                                   spirit.state < ActionOfState.size() ? ActionOfState[spirit.state] : 0);
     }
-    if (spirit.state == PerchedState)
+    // 0x4177b1..0x417822: el destino, el blanco de +8 con +0x1ad en 1 o el dueño, y la distancia en float antes de
+    // moverse.
+    const glm::vec3 destination = spirit.byte1ad == 1 ? targets.target : owner.position;
+    const float dx = F32(static_cast<double>(destination.x) - static_cast<double>(spirit.position.x));
+    const float dy = F32(static_cast<double>(destination.y) - static_cast<double>(spirit.position.y));
+    if (spirit.state == FastState || spirit.state == SlowState)
+    {
+        Fly(spirit, owner, destination, map, particles, worldClock, random);
+    }
+    else if (spirit.state == AttackingState || spirit.state == ReturningState)
+    {
+        Charge(spirit, skeleton, destination, dx, dy);
+    }
+    else if (spirit.state == ShoutingState)
+    {
+        Shout(spirit, targets);
+    }
+    else if (spirit.state == PerchedState)
     {
         Perch(spirit, owner);
     }
@@ -351,12 +474,17 @@ bool StepDarkSpirit(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton
     {
         Land(spirit, owner);
     }
-    else if (spirit.state == FastState || spirit.state == SlowState)
+    // 0x417e15..0x417e37: en el 5 y el 6, +0x38d sube (con la vuelta del byte) y se queda en 15.
+    if (spirit.state == AttackingState || spirit.state == ShoutingState)
     {
-        Fly(spirit, owner, map, particles, worldClock, random);
+        ++spirit.byte38d;
+        if (spirit.byte38d >= AttackCounterTop)
+        {
+            spirit.byte38d = AttackCounterTop;
+        }
     }
-    // 0x417e15: el grito, con rand() % 100 y el contador que lee de 0x7d3a0f0, con signo.
-    const bool shouts = random.Next() % ShoutSpan == 0 && counter % ShoutCounter == 0;
+    // 0x417e3e: el grito, con rand() % 100 y el contador que lee de 0x7d3a0f0, con signo.
+    stepped.shouts = random.Next() % ShoutSpan == 0 && counter % ShoutCounter == 0;
     const double farX = static_cast<double>(owner.position.x) - static_cast<double>(spirit.position.x);
     const double farY = static_cast<double>(owner.position.y) - static_cast<double>(spirit.position.y);
     if (static_cast<double>(owner.position.z) - Below > static_cast<double>(spirit.position.z) ||
@@ -371,6 +499,6 @@ bool StepDarkSpirit(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton
         spirit.previousPosition = spirit.position;
         spirit.far = 0;
     }
-    return shouts;
+    return stepped;
 }
 } // namespace Client::Scenes

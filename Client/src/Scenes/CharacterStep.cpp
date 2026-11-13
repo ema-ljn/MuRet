@@ -1,4 +1,5 @@
 #include "Scenes/CharacterStep.h"
+#include "Protocol/Pet/PetOrders.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/Particles.h"
 
@@ -573,6 +574,41 @@ Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& 
 
 // 0x4fd5f0(c, c) desde 0x508edf, por el camino del 0x20a quieto (06, "El cuerpo de los personajes
 // (0x4fd5f0)"). `hero` es c == [0x743a170].
+// 0x417e62: el grito del cuervo.
+constexpr std::int32_t RavenShoutSound = 0x1d1;
+
+// Lo que el paso del cuervo lee del pool (DarkSpiritTargets): el personaje de +8 y el de +0x3b0, con signo. Entre 0 y
+// 399 mira sus banderas (0x416a8b..0x416ab9); el 6 lee su posición con cualquier valor distinto de 0xffff (0x417858):
+// los lugares que escriben el A8 (0 a 400) están en el pool de MuRet, y otro valor corta.
+Core::Expected<DarkSpiritTargets, std::string> RavenTargetsOf(const DarkSpirit& spirit, WorldState& world,
+                                                              std::size_t slot)
+{
+    constexpr std::int16_t PoolActors = 400;
+    constexpr std::uint16_t NoAttackTarget = 0xffff;
+    const auto actors = world.Actors();
+    DarkSpiritTargets targets;
+    if (spirit.target < actors.size())
+    {
+        targets.target = actors[spirit.target].position;
+    }
+    const auto attack = static_cast<std::int16_t>(spirit.target3b0);
+    if (attack >= 0 && attack < PoolActors)
+    {
+        targets.attackInPool = true;
+        targets.attackFlags = actors[static_cast<std::size_t>(attack)].flags78;
+    }
+    if (spirit.target3b0 != NoAttackTarget)
+    {
+        if (attack < 0 || static_cast<std::size_t>(attack) >= actors.size())
+        {
+            return Core::Unexpected(
+                std::format("0x417869: el +0x3b0 del cuervo del lugar {} ({}) cae fuera del pool", slot, attack));
+        }
+        targets.attackPosition = actors[static_cast<std::size_t>(attack)].position;
+    }
+    return targets;
+}
+
 Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slot, bool hero,
                                               const CharacterStepContext& context)
 {
@@ -649,33 +685,41 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     {
         return {};
     }
-    // 0x416add..0x4176e6 y 0x417801..0x41789d: los estados 2, 5 y 6 los pone el A8 (Scenes/PetOrders, 0x416570);
-    // su paso (con el C1 que manda 0x416a20 y el blanco de +0x3b0) es de la fase 2 (08, P-C266).
-    constexpr std::uint8_t LastRestingState = 4;
-    const std::uint8_t ravenState = actor.darkSpirit->state;
-    if (ravenState == 2 || ravenState > LastRestingState)
-    {
-        return Core::Unexpected(
-            std::format("0x416add: el estado {} del cuervo del lugar {} es del ataque del A8, sin portar (fase 2)",
-                        ravenState, slot));
-    }
     if (context.darkSpiritSkeleton == nullptr || context.particles == nullptr)
     {
         return Core::Unexpected(
             std::format("0x416a20: faltan el modelo o las partículas del cuervo del lugar {}", slot));
     }
+    auto targets = RavenTargetsOf(*actor.darkSpirit, context.world, slot);
+    if (!targets.HasValue())
+    {
+        return Core::Unexpected(targets.Error());
+    }
     const SharedModelPlacement& player = context.world.PlayerModel();
-    static_cast<void>(StepDarkSpirit(*actor.darkSpirit, *context.darkSpiritSkeleton,
-                                     {.position = actor.position,
-                                      .flags = actor.flags78,
-                                      .angles = actor.angles,
-                                      .pet = actor.pet.model,
-                                      .safeZone = actor.safeZone,
-                                      .pose = actor.bodyPose,
-                                      .modelScale = player.scale,
-                                      .modelOrigin = player.origin},
-                                     static_cast<std::uint8_t>(runtime.map), *context.particles, context.worldClock,
-                                     context.random, context.counter));
+    const DarkSpiritStepped stepped =
+        StepDarkSpirit(*actor.darkSpirit, *context.darkSpiritSkeleton,
+                       {.position = actor.position,
+                        .flags = actor.flags78,
+                        .angles = actor.angles,
+                        .pet = actor.pet.model,
+                        .safeZone = actor.safeZone,
+                        .pose = actor.bodyPose,
+                        .modelScale = player.scale,
+                        .modelOrigin = player.origin},
+                       static_cast<std::uint8_t>(runtime.map), *context.particles, context.worldClock, context.random,
+                       context.counter, targets.Value());
+    // 0x416fc8 y 0x4175de: el A7 que corta el ataque, por send(); sin la sesión, no sale.
+    if (stepped.stopsTheAttack && context.send)
+    {
+        context.send(Protocol::Pet::WritePetCommand({.pet = Protocol::Pet::RavenPet,
+                                                     .command = Protocol::Pet::StopTheAttackCommand,
+                                                     .key = Protocol::Pet::NoTargetKey}));
+    }
+    // 0x417e67: 0x41ed10(0x1d1) (CL10).
+    if (stepped.shouts && context.soundRequest)
+    {
+        context.soundRequest(RavenShoutSound);
+    }
     return {};
 }
 

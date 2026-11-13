@@ -144,6 +144,19 @@ constexpr std::uint32_t RiderFlag = 0x4000;
 // 0x418951: 0x418920 sólo hace algo en los estados 5 y 6.
 constexpr std::uint8_t FirstOrderState = 5;
 constexpr std::uint8_t SecondOrderState = 6;
+// 0x418aae: las juntas del ataque, con +0x38d hasta 2, de rand() % 40 + 20; 0x418b85: el efecto 0x113, con +0x38d
+// impar desde 4 y el cuervo 100 (0x6b86b4) más arriba que el dueño.
+constexpr std::uint8_t LastJointStep = 2;
+constexpr int JointSpan = 40;
+constexpr int JointBase = 20;
+constexpr std::uint8_t LastQuietStep = 3;
+constexpr double AboveTheOwner = 100.0;
+// 0x41896d: el grito, con +0x38d hasta 14, una partícula 0x5ac por hueso de a dos desde rand() & 1, de los 66 primeros;
+// con 15, 0x4ee770 sobre el personaje de +0x3b0.
+constexpr std::uint8_t LastShoutStep = 14;
+constexpr std::uint8_t ShoutEnd = 15;
+constexpr std::size_t ShoutBones = 66;
+constexpr std::uint16_t NoAttackTarget = 0xffff;
 
 float F32(double value)
 {
@@ -624,6 +637,64 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
     return {};
 }
 
+// 0x418920(CHARACTER, CHARACTER), desde 0x41835a después de 0x602e90, con el cuervo en el trapecio: en el 5 y el 6, los
+// efectos del ataque. Son de la CL11 (0x530860, 0x518cf0, 0x53fe70 con la 0x5ac y 0x4ee770): corta con su dirección
+// después de los rand() que saca antes. Sin la pose (+0x120 en 0 hasta el primer dibujo), el 6 no hace nada.
+Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const ActorState& owner,
+                                                     const Render::Models::Skeleton* skeleton,
+                                                     Render::Models::CrtRandom& random)
+{
+    if (spirit.state == FirstOrderState)
+    {
+        // 0x418aab..0x418b08: con el blanco de +8, que el A8 puso antes del estado 5.
+        if (spirit.byte38d <= LastJointStep)
+        {
+            const int length = (random.Next() % JointSpan) + JointBase;
+            return Core::Unexpected(
+                std::format("0x418aff: las juntas 0x5ac del ataque del cuervo (0x530860, la primera "
+                            "de largo {}) son de la CL11",
+                            length));
+        }
+        // 0x418b7c..0x418c0a: la posición del hueso 6 con (50, 0, 0) no saca rand().
+        if (spirit.byte38d > LastQuietStep && (spirit.byte38d & 1u) != 0 &&
+            static_cast<double>(owner.position.z) + AboveTheOwner < static_cast<double>(spirit.position.z))
+        {
+            return Core::Unexpected(std::string("0x418c0a: el efecto 0x113 del ataque del cuervo (0x518cf0) es de la "
+                                                "CL11"));
+        }
+        return {};
+    }
+    if (spirit.byte38d <= LastShoutStep)
+    {
+        if (spirit.pose.empty())
+            return {};
+        if (skeleton == nullptr)
+            return Core::Unexpected(std::string("0x4189e2: falta el modelo 0xc0 del cuervo para el grito"));
+        // 0x4189ad..0x418a46: rand() & 1 con signo (rand() no es negativo), y los huesos de a dos que no son dummy ni
+        // pasan de los del modelo.
+        const auto first = static_cast<std::size_t>(random.Next() & 1);
+        for (std::size_t bone = first; bone < ShoutBones; bone += 2)
+        {
+            if (bone < skeleton->bones.size() && !skeleton->bones[bone].dummy)
+                return Core::Unexpected(std::format("0x418a26: la partícula 0x5ac/6 del hueso {} del cuervo (0x53fe70) "
+                                                    "es de la CL11",
+                                                    bone));
+        }
+        return {};
+    }
+    if (spirit.byte38d == ShoutEnd)
+    {
+        // 0x418a59..0x418a9b: después de 0x4ee770, 0x4164f0(0); sin el personaje, sólo +0x38d en 0.
+        if (spirit.target3b0 != NoAttackTarget)
+            return Core::Unexpected(
+                std::format("0x418a8c: 0x4ee770 sobre el personaje {} del grito del cuervo es de la "
+                            "CL11",
+                            static_cast<std::int16_t>(spirit.target3b0)));
+        spirit.byte38d = 0;
+    }
+    return {};
+}
+
 Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRavenPass& pass)
 {
     if (!owner.darkSpirit)
@@ -680,10 +751,13 @@ Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRav
                                                             ground};
         }
     }
-    // 0x41835a: 0x418920 con los estados 5 y 6 que pone el A8 (Scenes/PetOrders), sin portar: fase 2 (08, P-C266).
-    if (spirit.state == FirstOrderState || spirit.state == SecondOrderState)
-        return Core::Unexpected(
-            std::format("0x418957: el estado {} del cuervo (el ataque del A8) no está portado", spirit.state));
+    // 0x41835a: 0x418920, en los frames del original.
+    if (pass.originalFrame && (spirit.state == FirstOrderState || spirit.state == SecondOrderState))
+    {
+        if (pass.random == nullptr)
+            return Core::Unexpected(std::string("0x41835a: falta el rand() para el ataque del cuervo"));
+        return DrawTheRavenAttack(spirit, owner, pass.models.SkeletonOf(DarkSpiritModel), *pass.random);
+    }
     return {};
 }
 } // namespace Client::Scenes

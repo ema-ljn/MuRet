@@ -11,8 +11,10 @@
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 
+#include "App/ServerSession.h"
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/CharacterDrawing.h"
@@ -39,6 +41,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -64,20 +67,24 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock)
     auto& runtime = m_context.world->Runtime();
     const Render::Models::Skeleton* player =
         m_models != nullptr ? m_models->SkeletonOf(Data::Models::PlayerSkeletonModel) : nullptr;
-    if (auto stepped = StepCharacters(
-            CharacterStepContext{.world = *m_context.world,
-                                 .random = m_context.cloth->random,
-                                 .scene = SceneId::Game,
-                                 .playerSkeleton = player,
-                                 .items = m_items,
-                                 .terrain = &StepTerrain(),
-                                 .darkSpiritSkeleton = m_models ? m_models->SkeletonOf(DarkSpiritModel) : nullptr,
-                                 .particles = &m_context.world->Particles(),
-                                 .worldClock = worldClock,
-                                 .counter = m_context.cloth->logicSteps,
-                                 .actionSpeeds = &m_context.world->ActionSpeeds(),
-                                 .fixedHeight = CameraState().fixedHeight,
-                                 .soundRequest = [&](std::int32_t sound) { runtime.lastSoundId = sound; }});
+    if (auto stepped = StepCharacters(CharacterStepContext{
+            .world = *m_context.world,
+            .random = m_context.cloth->random,
+            .scene = SceneId::Game,
+            .playerSkeleton = player,
+            .items = m_items,
+            .terrain = &StepTerrain(),
+            .darkSpiritSkeleton = m_models ? m_models->SkeletonOf(DarkSpiritModel) : nullptr,
+            .particles = &m_context.world->Particles(),
+            .worldClock = worldClock,
+            .counter = m_context.cloth->logicSteps,
+            .actionSpeeds = &m_context.world->ActionSpeeds(),
+            .fixedHeight = CameraState().fixedHeight,
+            .soundRequest = [&](std::int32_t sound) { runtime.lastSoundId = sound; },
+            .send = m_session != nullptr
+                        ? std::function<void(Protocol::Outgoing)>([session = m_session](Protocol::Outgoing packet)
+                                                                  { session->SendChat(std::move(packet)); })
+                        : std::function<void(Protocol::Outgoing)>{}});
         !stepped.HasValue())
     {
         return stepped;

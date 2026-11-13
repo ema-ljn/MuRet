@@ -6,6 +6,9 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Network/Crypto/Xor32.h"
+#include "Network/Delivery.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
@@ -29,7 +32,9 @@
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
+#include "support/Bytes.h"
 #include "support/PlayerActors.h"
+#include "support/SameBytes.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -397,28 +402,96 @@ TEST(CharacterStepTest, ThePerchedRavenUsesTheSharedModelOfThePreviousPlayer)
     EXPECT_EQ(tested.world.PlayerModel().origin, owner.position);
 }
 
-// 0x416add: los estados 2, 5 y 6, que pone el A8, cortan antes de tocar el cuervo (fase 2, P-C266).
-TEST(CharacterStepTest, TheRavenOrdersOfThePacketsCut)
+// 0x416a88..0x4176e6: en los estados 2, 5 y 6, con el personaje de +0x3b0 escondido (0x4000), el cuervo manda el A7
+// que corta el ataque (C1 07 A7 00 78 FF FF, con el XOR32) y deja +0x3b0 en 0xffff. Sin 0x4000, no manda nada.
+TEST(CharacterStepTest, AHiddenRavenTargetSendsTheA7ThatStopsTheAttack)
 {
-    for (const std::uint8_t state : {std::uint8_t{2}, std::uint8_t{5}, std::uint8_t{6}})
+    for (const std::int32_t map : {0, 2, std::int32_t{LoginMap}})
     {
-        GameWorld tested(LoginMap);
-        tested.Hero().alive = false;
-        ActorState& actor = tested.Other(2, 0, 0);
-        actor.darkSpirit.emplace();
-        actor.darkSpirit->state = state;
-        Skeleton raven;
-        raven.actions.resize(4);
-        Client::World::Particles particles;
-        tested.world.Runtime().terrainPolygon = Everything;
-        const auto stepped = StepCharacters({.world = tested.world,
-                                             .random = tested.random,
-                                             .scene = SceneId::Login,
-                                             .playerSkeleton = tested.player,
-                                             .darkSpiritSkeleton = &raven,
-                                             .particles = &particles});
-        EXPECT_TRUE(HasError(stepped, "0x416add")) << static_cast<int>(state) << ": " << ErrorOf(stepped);
+        for (const std::uint8_t state : {std::uint8_t{2}, std::uint8_t{5}, std::uint8_t{6}})
+        {
+            for (const std::uint32_t flags : {0u, 0x4000u})
+            {
+                SCOPED_TRACE(testing::Message() << map << " " << int{state} << " " << flags);
+                GameWorld tested(map);
+                tested.Hero().alive = false;
+                ActorState& actor = tested.Other(2, 0, 0);
+                ActorState& target = tested.Other(7, 1, 1);
+                target.flags78 = flags;
+                target.position = {300.0f, 400.0f, 0.0f};
+                actor.darkSpirit.emplace();
+                actor.darkSpirit->state = state;
+                actor.darkSpirit->target3b0 = 7;
+                Skeleton raven;
+                raven.actions.resize(4);
+                Client::World::Particles particles;
+                tested.world.Runtime().terrainPolygon = Everything;
+                std::vector<Client::Protocol::Outgoing> sent;
+                const auto stepped = StepCharacters(
+                    {.world = tested.world,
+                     .random = tested.random,
+                     .scene = SceneId::Login,
+                     .playerSkeleton = tested.player,
+                     .darkSpiritSkeleton = &raven,
+                     .particles = &particles,
+                     .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); }});
+                ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+                if (flags == 0)
+                {
+                    EXPECT_TRUE(sent.empty());
+                    EXPECT_EQ(actor.darkSpirit->target3b0, 7);
+                    continue;
+                }
+                ASSERT_EQ(sent.size(), 1u);
+                EXPECT_EQ(sent[0].delivery, Client::Network::Delivery::Clear);
+                EXPECT_EQ(Client::Network::Crypto::Xor32Decode(sent[0].packet).Bytes().size(), 7u);
+                EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(sent[0].packet).Bytes(),
+                                                     Client::Tests::Bytes({0xc1, 7, 0xa7, 0, 0x78, 0xff, 0xff})));
+                EXPECT_EQ(actor.darkSpirit->target3b0, 0xffff);
+            }
+        }
     }
+}
+
+// 0x416a8b: +0x3b0 entre 0 y 399 mira las banderas de ese personaje; fuera (el 400 de una clave que no estaba), solo
+// las del dueño.
+TEST(CharacterStepTest, TheRavenLooksAtTheAttackTargetOnlyInsideTheFourHundred)
+{
+    GameWorld tested(LoginMap);
+    tested.Hero().alive = false;
+    ActorState& actor = tested.Other(2, 0, 0);
+    tested.world.Actors()[400].flags78 = 0x4000;
+    actor.darkSpirit.emplace();
+    actor.darkSpirit->state = 6;
+    actor.darkSpirit->target3b0 = 400;
+    Skeleton raven;
+    raven.actions.resize(4);
+    Client::World::Particles particles;
+    tested.world.Runtime().terrainPolygon = Everything;
+    std::vector<Client::Protocol::Outgoing> sent;
+    const auto stepped =
+        StepCharacters({.world = tested.world,
+                        .random = tested.random,
+                        .scene = SceneId::Login,
+                        .playerSkeleton = tested.player,
+                        .darkSpiritSkeleton = &raven,
+                        .particles = &particles,
+                        .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); }});
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_TRUE(sent.empty());
+    EXPECT_EQ(actor.darkSpirit->state, 6);
+
+    actor.flags78 = 0x4000;
+    const auto hidden =
+        StepCharacters({.world = tested.world,
+                        .random = tested.random,
+                        .scene = SceneId::Login,
+                        .playerSkeleton = tested.player,
+                        .darkSpiritSkeleton = &raven,
+                        .particles = &particles,
+                        .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); }});
+    ASSERT_TRUE(hidden.HasValue()) << hidden.Error();
+    EXPECT_EQ(sent.size(), 1u);
 }
 
 TEST(CharacterStepTest, AMissingRavenResourceCutsAfterTheBodyRandoms)

@@ -9795,11 +9795,49 @@ CHARACTER en `+0xc`: abajo, los offsets del objeto y, entre paréntesis, los del
   el sonido `0x1d0`. El tipo + 5 envuelve en el byte: `0xfd` es el estado 2.
 - **`0x4164f0(estado)`**: `+0x6c` (la lejanía, `+0x60`) en 0 y el estado.
 
-Los estados 2, 5 y 6 los mueve `0x416a20` (`0x416add..0x4176e6` y `0x417801..0x41789d`): con el blanco de `+0x3a4`
-en el pool y `0x4000` en el blanco o en el dueño, la distancia, `+0x3a4` en `0xffff` y un C1 al GameServer; la orden
-de `+0x45c` la mira `0x417a9d`. Eso, `0x418920` (desde el dibujo, `0x41835a`), el `A9` (`0x421db0`, `0x4225d0`,
-`0x422930`), la ventana de la mascota (`0x424160`), su tooltip (`0x422990`), `0x420cd0` y los íconos de estado
-(`0x42a660`) quedan sin portar (08, P-C266): el paso del cuervo corta en `0x416add` con esos estados.
+### El ataque del cuervo
+
+(CL9 hito 4, fase 2, 2026-11-13, *estático*: el código real emulado de `tests/vectors/world55/raven.txt` solo pasa por
+los estados 0, 1, 3 y 4.) `0x416a20` mueve también los estados 2 (volviendo), 5 (el ataque) y 6 (el grito). Offsets
+del CHARACTER (`Scenes::DarkSpirit`):
+
+1. **El aviso** (`0x416a73..0x4176e6`). Lee `+0x3a4` con signo: entre 0 y 399 mira `+0x78 & 0x4000` de ese personaje
+   y, si no, el del dueño; fuera, solo el del dueño (`0x4170d9`). Con alguno escondido y el estado en 5, 2 o 6:
+   `+0x3a4` en `0xffff`, el `A7` `C1 07 A7 00 78 FF FF` ([04](04-protocolo.md#las-órdenes-del-cuervo-a7-y-a8)),
+   `0x4164f0(3)` y, con la distancia al dueño en el plano mayor que 50 o con el estado (ya 3) que no es 4 ni pasa de
+   3, `0x4164f0(4)` con la velocidad en 3: siempre el 4 (Q-C1206). Las dos ramas (`0x416b05` y `0x417113`) arman el
+   mismo paquete. Antes, en cada paso, el byte `+0x1d6` del CHARACTER va a `+0x8e` (MuRet no tiene ninguno).
+2. La zona segura y la animación, como en [El cuervo](#el-cuervo). La acción de 2 y 5 al dar la vuelta es la 3; la
+   del 6, la 0.
+3. **El destino** (`0x4177b1..0x417822`): con `+0x1a1` en 1, la posición del personaje de `+8`; si no, la del dueño.
+   `dx` y `dy` se guardan en float antes de moverse. Los estados 0 y 1 ponen `+0x1a1` en 0 (`0x417b33`) y vuelan
+   hacia el destino (el giro, el cabeceo sobre su altura); la chispa y la altura de 350 siguen mirando al dueño.
+4. **El 5 y el 2** (`0x4179ef..0x417b2e`): la matriz de los ángulos y el avance de `(0, −velocidad, 0)` girado. En
+   el 5, el destino sube 50, `0x4e9810` gira hacia él y, con la distancia menor que 20 (o unordered) o la lejanía
+   (`+0x60`) en más de 20, `0x4164f0(2)`, el cabeceo en −45 y, salvo con la orden 3 (`+0x45c`, `0x417a9d`),
+   `+0x1a1` en 0; después la lejanía sube 1, la velocidad suma `+0xe4` y `+0xe4` suma 0,2. En el 2, con `dx² + dy²`
+   en 250² o más, `0x4164f0(0)`, y la velocidad baja 1. En los dos, `0x4ea030(3)`.
+5. **El 6** (`0x417847..0x41789d`): con `+0x3a4` distinto de `0xffff`, gira 40 (`0x4e9560`) hacia el rumbo
+   (`0x4e93f0`) de ese personaje. No se mueve.
+6. Del 7 en adelante (el tipo del `A8` que envuelve) no hace nada más que el grito y la lejanía.
+7. **`+0x381`** (`0x417e15`): en el 5 y el 6 sube 1 y se queda en 15.
+
+**`0x418920`**, desde el dibujo (`0x41835a`, después de `0x602e90` con el cuervo en el trapecio), en el 5 y el 6:
+
+- 5: con `+0x381` hasta 2 (y el blanco de `+8`), diez juntas `0x5ac` (`0x530860`) desde su posición, cada una de
+  `rand() % 40 + 20`, y con `+0x381` en 1 el efecto `0x117` (`0x518cf0`, con `rand() % 180 − 90`). Con `+0x381`
+  impar desde 5 y el cuervo más de 100 por encima del dueño, el efecto `0x113` desde el hueso 6 con (50, 0, 0).
+- 6: con `+0x381` hasta 14 y la pose (`+0x120`), `rand() & 1` elige el primer hueso y, de a dos hasta el 65, cada
+  hueso del modelo que no es dummy saca la partícula `0x5ac` subtipo 6 con escala 1,3. Con 15: si `+0x3a4` no es
+  `0xffff`, `0x4ee770(1, 0x5ac, 1, ángulos, personaje)` y `0x4164f0(0)`; `+0x381` en 0.
+
+**MuRet**: `Scenes::StepDarkSpirit` porta el paso con `DarkSpiritTargets` (lo que lee del pool, que arma
+`CharacterStep`) y devuelve el aviso (`DarkSpiritStepped::stopsTheAttack`), que `CharacterStep` manda por
+`CharacterStepContext::send` (el `A7`, `Protocol::Pet::WritePetCommand`) y el grito, que va a
+`WorldRuntime::lastSoundId` (CL10). `DrawGameRaven` corre `0x418920` en los frames del original: las juntas, los
+efectos y las partículas son de la CL11 y cortan con su dirección (`0x418aff`, `0x418c0a`, `0x418a26`, `0x418a8c`)
+después de los `rand()` que sacan antes (`test_raven_attack.cpp`, `test_character_step.cpp`,
+`test_game_character_effects.cpp`).
 
 ### La tabla de protección
 

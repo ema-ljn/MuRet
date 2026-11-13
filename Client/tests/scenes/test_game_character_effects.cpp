@@ -1004,10 +1004,12 @@ protected:
                 .frameClock = Client::Core::Duration{},
                 .map = map,
                 .heroByte1a1 = 0,
-                .originalFrame = true};
+                .originalFrame = true,
+                .random = &m_random};
     }
 
     ActorState m_owner;
+    Client::Render::Models::CrtRandom m_random;
     RavenModels m_models;
     Client::World::WorldTerrain m_terrain;
     std::unique_ptr<Client::World::TerrainLighting> m_lighting;
@@ -1169,25 +1171,93 @@ TEST_F(GameRavenTest, TheOwnersFlag4000DrawsTheRavenAsAChromeShellWithoutShadow)
     EXPECT_EQ(carry.models.at(Client::Scenes::DarkSpiritModel).position, glm::vec3(1050.0f, 1060.0f, 300.0f));
 }
 
-// 0x41835a: 0x418920 corta en los estados 5 y 6 (los del A8) después del dibujo, con el 0x4000 o sin él.
-TEST_F(GameRavenTest, TheOrderStatesCutAfterTheDraw)
+// 0x418aab: en el 5, con +0x38d hasta 2, las juntas 0x5ac (0x530860, CL11) cortan después del dibujo y del rand() de
+// la primera, con el 0x4000 o sin él.
+TEST_F(GameRavenTest, TheAttackJointsCutAfterTheDrawAndTheirRandom)
 {
     for (const std::uint32_t flags : {0u, 0x4000u})
     {
-        for (const std::uint8_t state : {std::uint8_t{5}, std::uint8_t{6}})
-        {
-            SCOPED_TRACE(testing::Message() << flags << " " << int{state});
-            m_owner.flags78 = flags;
-            m_owner.darkSpirit->state = state;
-            m_batch.Begin(Client::Render::Pass3D{});
+        SCOPED_TRACE(flags);
+        m_owner.flags78 = flags;
+        m_owner.darkSpirit->state = 5;
+        m_owner.darkSpirit->byte38d = 1;
+        m_batch.Begin(Client::Render::Pass3D{});
+        Client::Render::Models::CrtRandom expected = m_random;
+        static_cast<void>(expected.Next());
 
-            const auto order = Client::Scenes::DrawGameRaven(m_owner, Pass());
+        const auto order = Client::Scenes::DrawGameRaven(m_owner, Pass());
 
-            ASSERT_FALSE(order.HasValue());
-            EXPECT_NE(order.Error().find("0x418957"), std::string::npos) << order.Error();
-            EXPECT_EQ(m_batch.Vertices().size(), flags == 0 ? 21u : 15u);
-        }
+        ASSERT_FALSE(order.HasValue());
+        EXPECT_NE(order.Error().find("0x418aff"), std::string::npos) << order.Error();
+        EXPECT_EQ(m_batch.Vertices().size(), flags == 0 ? 21u : 15u);
+        EXPECT_EQ(m_random.State(), expected.State());
     }
+}
+
+// 0x418b7c: en el 5, con +0x38d en 3 nada; impar desde 4 y más de 100 por encima del dueño, el efecto 0x113 (CL11).
+TEST_F(GameRavenTest, TheAttackEffectNeedsAnOddCounterAndHeight)
+{
+    m_owner.darkSpirit->state = 5;
+    for (const std::uint8_t counter : {std::uint8_t{3}, std::uint8_t{4}, std::uint8_t{6}})
+    {
+        m_owner.darkSpirit->byte38d = counter;
+        const auto quiet = Client::Scenes::DrawGameRaven(m_owner, Pass());
+        ASSERT_TRUE(quiet.HasValue()) << quiet.Error();
+    }
+    m_owner.darkSpirit->byte38d = 5;
+    const auto high = Client::Scenes::DrawGameRaven(m_owner, Pass());
+    ASSERT_FALSE(high.HasValue());
+    EXPECT_NE(high.Error().find("0x418c0a"), std::string::npos) << high.Error();
+    // 300 no pasa de 200 + 100.
+    m_owner.position.z = 200.0f;
+    const auto low = Client::Scenes::DrawGameRaven(m_owner, Pass());
+    EXPECT_TRUE(low.HasValue()) << low.Error();
+    EXPECT_EQ(m_random.State(), Client::Render::Models::CrtRandom{}.State());
+}
+
+// 0x41896d: en el 6, con la pose del dibujo, rand() & 1 elige el primer hueso; el del modelo de prueba (el 0) saca la
+// partícula 0x5ac/6 (CL11). Desde el 1 no hay más huesos.
+TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
+{
+    m_owner.darkSpirit->state = 6;
+    Client::Render::Models::CrtRandom expected = m_random;
+    const int first = expected.Next() & 1;
+
+    const auto shout = Client::Scenes::DrawGameRaven(m_owner, Pass());
+
+    EXPECT_EQ(m_random.State(), expected.State());
+    if (first == 0)
+    {
+        ASSERT_FALSE(shout.HasValue());
+        EXPECT_NE(shout.Error().find("0x418a26"), std::string::npos) << shout.Error();
+    }
+    else
+    {
+        EXPECT_TRUE(shout.HasValue()) << shout.Error();
+    }
+}
+
+// 0x418a51: con +0x38d en 15, sin personaje en +0x3b0 solo vuelve el contador a 0; con uno, 0x4ee770 (CL11). Fuera de
+// los frames del original, 0x418920 no corre.
+TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
+{
+    m_owner.darkSpirit->state = 6;
+    m_owner.darkSpirit->byte38d = 15;
+    m_owner.darkSpirit->target3b0 = 0xffff;
+    ASSERT_TRUE(Client::Scenes::DrawGameRaven(m_owner, Pass()).HasValue());
+    EXPECT_EQ(m_owner.darkSpirit->byte38d, 0);
+    EXPECT_EQ(m_owner.darkSpirit->state, 6);
+
+    m_owner.darkSpirit->byte38d = 15;
+    m_owner.darkSpirit->target3b0 = 3;
+    GameRavenPass projected = Pass();
+    projected.originalFrame = false;
+    ASSERT_TRUE(Client::Scenes::DrawGameRaven(m_owner, projected).HasValue());
+    EXPECT_EQ(m_owner.darkSpirit->byte38d, 15);
+    const auto end = Client::Scenes::DrawGameRaven(m_owner, Pass());
+    ASSERT_FALSE(end.HasValue());
+    EXPECT_NE(end.Error().find("0x418a8c"), std::string::npos) << end.Error();
+    EXPECT_EQ(m_random.State(), Client::Render::Models::CrtRandom{}.State());
 }
 
 TEST_F(GameRavenTest, AnOwnerWithoutRavenDrawsNothing)

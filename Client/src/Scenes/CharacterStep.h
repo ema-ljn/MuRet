@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorCooldownServices.h"
 #include "Scenes/SceneId.h"
@@ -81,6 +82,8 @@ struct CharacterStepContext
     ActorCooldownServices cooldown{};
     // Solicitudes de sonido: el consumidor CL10 decide cómo reproducirlas.
     std::function<void(std::int32_t)> soundRequest{};
+    // Lo que el paso manda por send() (el A7 del cuervo, 0x416a20). Vacío, sin la sesión: no sale.
+    std::function<void(Protocol::Outgoing)> send{};
 };
 
 // 0x508f00. Corta con error, en el orden del original, en el mapa 30 (0x412140), sin el mapa cargado

@@ -844,6 +844,11 @@ el cliente. Lo que hacen está en [06](06-render-escenas-y-ui.md#las-órdenes-de
 
 - **`A7`** (`0x4e4c0a` → `0x421b50`): `C1 07 A7 <?> <orden> <clave H L>`. `pkt[3]` no lo lee nadie.
 - **`A8`** (`0x4e4c42` → `0x421b70`): `C1 09 A8 <?> <tipo> <dueño H L> <blanco H L>`. `pkt[3]`, igual.
+- **`A7` que sale**: `C1 07 A7 <mascota> <orden> <clave H L>`, con el XOR32 desde `pkt[3]` y por `send()` directo
+  (sin cifrar como C3). El paso del cuervo (`0x416a20`, en `0x416b05..0x417095` y una copia en `0x417113..0x4176a9`)
+  lo arma cuando el blanco de `+0x3b0` o el dueño se esconden en un ataque: `C1 07 A7 00 78 FF FF` (la mascota es el
+  `+0x444` del cuervo, que `0x4167b0` pone en 0; la orden `0x78`, la primera skill del cuervo; sin blanco). El
+  GameServer 0.97 no lo lee. **MuRet**: `Protocol::Pet::WritePetCommand`.
 
 Ninguno mira el largo. **MuRet**: `Protocol::Pet::ReadPetOrder` y `ReadPetAttack` (TooShort si faltan campos),
 registrados con las skills; `Scenes/PetOrders` los aplica. El `A9` de respuesta (`0x421db0`) sigue sin leerse (08,

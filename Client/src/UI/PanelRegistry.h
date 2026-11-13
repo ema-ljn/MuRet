@@ -174,6 +174,15 @@ struct PanelContext
     bool logoutRequested = false;
     // 0x6689d0, el héroe con +0x1f2 ≥ 0 y +0x368 en 0x80: solo lo lee el ancho del mundo con la lista de CS abierta.
     bool heroSiegeMark = false;
+    // Los paneles con objeto del castillo (CL9 hito 12), 0x80000, 0x100000 y 0x200000: lo que hace su objeto al
+    // abrirse (0x64ae10, 0x661310 y 0x6487c0, después de CloseByMask), al cerrarse en CloseByMask (0x64b200, 0x661bc0
+    // y 0x6487d0) y su paso en 0x657930 (0x64d350, 0x6691c0 y 0x648a30). Sin ellos, cortan.
+    std::function<Core::Expected<void, std::string>(PanelId)> objectOpened{};
+    std::function<Core::Expected<void, std::string>(PanelId)> objectClosed{};
+    std::function<Core::Expected<void, std::string>(PanelId)> objectStep{};
+    // 0x555190("", Text.bmd[texto], tipo): el aviso de cerrar la lista de CS con un ítem en el cursor o en la caja del
+    // caos (0x65cb95). Sin él, corta.
+    std::function<Core::Expected<void, std::string>(std::size_t, std::int32_t)> message{};
     // 0x659aa0..0x659c3d: lo que abrir la party hace si cerró lo demás, antes de prenderla: 0x78aba48 (la cuenta de la
     // party) en 0 y el pedido de la lista, C1 03 42. Sin él, abrir la party corta.
     std::function<void()> partyOpened{};

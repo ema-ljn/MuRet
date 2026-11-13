@@ -30,6 +30,7 @@
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/PetTrainerDrawing.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
@@ -851,9 +852,9 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     // 0x5f75b2: 0x5febf0, que empieza con su IsOpen.
     if (auto chaos = DrawTheChaosBox(frame.context, panels); !chaos.HasValue())
         return chaos;
-    if (state.delegated.trainer != 0 && state.delegated.trainer != 4)
-        return cut("0x44b510: el dibujo del entrenador (0x44b610, 0x44c850 y 0x44d680) es de la fase 3 del hito 6 (08 "
-                   "P-C198)");
+    // 0x5f75b7: 0x44b510, que mira el modo.
+    if (auto trainer = DrawTheTrainer(frame.context); !trainer.HasValue())
+        return trainer;
     if (state.delegated.siegeWeapon != 0)
         return cut("0x44ea60: el arma del asedio es de la CL9.5");
     if (state.delegated.siegeGate != 0)

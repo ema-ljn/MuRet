@@ -456,21 +456,14 @@ Core::Expected<void, std::string> AttackOnArrival(ActorState& hero, const HeroAr
     }
     return HitTheTarget(hero, target, context);
 }
-} // namespace
 
-Core::Expected<bool, std::string> IsAttackable(const WorldState& world, bool controlDown)
+// 0x558bb0 desde el chequeo del cursor con el elegido y 0x5588d0 con su argumento: el mismo código. `guildCompare` es
+// donde cada una compara los nombres de gremio (0x558da4 y 0x558aa9).
+Core::Expected<bool, std::string> AttackableTarget(const WorldState& world, const ActorState& target, bool controlDown,
+                                                   std::uint32_t guildCompare)
 {
     const WorldRuntime& runtime = world.Runtime();
-    if (runtime.cursorItemCount > 0)
-        return false;
-    const std::int32_t chosen = runtime.selectedTargets[2];
-    if (chosen == -1)
-        return false;
-    const auto actors = world.Actors();
-    if (chosen < 0 || static_cast<std::size_t>(chosen) >= actors.size())
-        return Core::Unexpected(std::format("0x558bce: el elegido {} está fuera del pool", chosen));
-    const ActorState& target = actors[static_cast<std::size_t>(chosen)];
-    const ActorState& hero = actors[runtime.hero];
+    const ActorState& hero = world.Actors()[runtime.hero];
     const bool isHero = &target == &hero;
     const AttackRules& rules = runtime.attackRules;
     if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap && !isHero)
@@ -484,12 +477,13 @@ Core::Expected<bool, std::string> IsAttackable(const WorldState& world, bool con
         if (const auto decided = SiegeDecides(hero, target))
             return *decided;
     }
-    // 0x558d6e..0x558e9b.
+    // 0x558d6e..0x558e9b (0x558a73..0x558ba3 en 0x5588d0).
     if (target.byte370 == 2 || target.byte370 == 8)
         return true;
     if (rules.byte576796c != 0 && target.pk >= MinimumOutlawPk && target.word1f2 != NoGuild)
-        return Core::Unexpected(std::string("0x558da4: comparar los nombres de gremio de 0x787aa55 en la guerra de "
-                                            "gremios es del hito 8"));
+        return Core::Unexpected(std::format("{:#x}: comparar los nombres de gremio de 0x787aa55 en la guerra de "
+                                            "gremios es del hito 8",
+                                            guildCompare));
     if (rules.duelActive)
     {
         const bool rival = static_cast<std::int32_t>(static_cast<std::int16_t>(target.key)) == rules.duelKey;
@@ -500,6 +494,30 @@ Core::Expected<bool, std::string> IsAttackable(const WorldState& world, bool con
     if (target.pk >= MinimumOutlawPk)
         return true;
     return controlDown && !isHero;
+}
+} // namespace
+
+Core::Expected<bool, std::string> IsAttackable(const WorldState& world, bool controlDown)
+{
+    const WorldRuntime& runtime = world.Runtime();
+    if (runtime.cursorItemCount > 0)
+        return false;
+    const std::int32_t chosen = runtime.selectedTargets[2];
+    if (chosen == -1)
+        return false;
+    const auto actors = world.Actors();
+    if (chosen < 0 || static_cast<std::size_t>(chosen) >= actors.size())
+        return Core::Unexpected(std::format("0x558bce: el elegido {} está fuera del pool", chosen));
+    constexpr std::uint32_t ChosenGuildCompare = 0x558da4;
+    return AttackableTarget(world, actors[static_cast<std::size_t>(chosen)], controlDown, ChosenGuildCompare);
+}
+
+Core::Expected<bool, std::string> IsAttackableActor(const WorldState& world, const ActorState& target, bool controlDown)
+{
+    if (world.Runtime().cursorItemCount > 0)
+        return false;
+    constexpr std::uint32_t ActorGuildCompare = 0x558aa9;
+    return AttackableTarget(world, target, controlDown, ActorGuildCompare);
 }
 
 Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker, bool controlDown)

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Tables/SkillTable.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorCooldownServices.h"
@@ -72,6 +73,9 @@ struct CharacterStepContext
     // *[0x7758550], Item.bmd en memoria: lo leen los helpers de 0x4fc450 y la acción de parado (0x4f2250)
     // con un arma o un ítem puesto. nullptr si no se cargó: cortan donde lo leen.
     const Data::Tables::ItemTable* items = nullptr;
+    // *[0x76bd1d8], Skill.bmd en memoria: el alcance (0x5526f0) del lazo de la skill 0x4c del paso del ataque
+    // (0x50243d, CL9 hito 4). nullptr: corta ahí con un blanco que mirar.
+    const Data::Tables::SkillTable* skills = nullptr;
     // Los esqueletos de los demás modelos, para 0x4f5660 (SetActorDie) con el que se muere desde el paso 15 (CL9 hito
     // 3). nullptr: un modelo que no es el 0x20a corta ahí.
     const IModelLibrary* models = nullptr;

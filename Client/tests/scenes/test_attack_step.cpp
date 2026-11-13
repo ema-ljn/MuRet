@@ -436,14 +436,14 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
                  hero.byte38e = 5;
                  hero.byte381 = 14;
              },
-             "0x4fdeeb", CountingStep + SkillRead},
-        Case{"la habilidad 0x18",
+             "0x500531", CountingStep + SkillRead + OwnRecord},
+        Case{"la habilidad 7",
              [](AttackWorld&, ActorState& hero)
              {
-                 hero.byte38e = 0x18;
+                 hero.byte38e = 7;
                  hero.byte381 = 14;
              },
-             "0x504372", CountingStep + 2 * SkillRead},
+             "0x504768", CountingStep + 2 * SkillRead},
         Case{"el caso 0x23 de +0x376",
              [](AttackWorld&, ActorState& hero)
              {
@@ -457,7 +457,7 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
                  hero.animation.action = 0x39;
                  hero.byte381 = 14;
              },
-             "0x5042ce", CountingStep + SkillRead},
+             "0x52e77b", CountingStep + SkillRead},
         Case{"mató, sin los joints",
              [](AttackWorld& tested, ActorState& hero)
              {
@@ -973,9 +973,9 @@ TEST(AttackStepTest, AKillOfEachClassSendsTheBeamsBackWithoutACut)
 
 // El elfo con el arco (0x2e, el 4/0 en la izquierda del registro propio) o la ballesta (0x2f, el 4/8 en la derecha) y
 // la skill 0x18 en el lugar 3 de +0x6c tira en el paso del frame 5 (0x504060): 0x59fb80 da el lugar, 0x53e2b0 crea la
-// flecha con el lugar en +0x89 y deja la skill en [0x5767948]; después corta en el switch de las skills con blanco
-// (0x504372, hito 4), con la flecha viva.
-TEST(AttackStepTest, TheElfBowShootsAndStopsAtTheSkill)
+// flecha con el lugar en +0x89 y deja la skill en [0x5767948]; después, el caso 0x18 de las skills con blanco
+// (0x504379) tira la tanda de tres y sigue en el de la 0x34, que tira una más: cinco flechas, sin corte.
+TEST(AttackStepTest, TheElfBowShootsAndThenTheSkillVolley)
 {
     struct Case
     {
@@ -996,20 +996,25 @@ TEST(AttackStepTest, TheElfBowShootsAndStopsAtTheSkill)
         tested.world.OwnCharacter().equipment[1].id = probe.left;
         ActorState& hero = tested.Striker(HeroSlot, probe.action, VictimSlot);
         hero.byte38e = 0x18;
-        Client::Core::Expected<void, std::string> stepped;
-        int step = 0;
-        for (; step < 20 && stepped.HasValue(); ++step)
-            stepped = StepCharacters(tested.Context());
+        for (int step = 1; step <= 10; ++step)
+        {
+            SCOPED_TRACE(step);
+            const auto stepped = StepCharacters(tested.Context());
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        }
 
-        EXPECT_TRUE(HasError(stepped, "0x504372")) << ErrorOf(stepped);
-        EXPECT_EQ(step, 10);
+        EXPECT_EQ(hero.byte381, 0);
         EXPECT_EQ(tested.world.Runtime().movement.lastShotSkill, 0x18u);
         const auto& effects = tested.world.Map().effects.Effects();
-        const auto arrow = std::ranges::find_if(effects, [](const auto& effect) { return effect.alive; });
-        ASSERT_NE(arrow, effects.end());
-        EXPECT_EQ(arrow->type, probe.arrow);
-        EXPECT_EQ(arrow->byte89, 3);
-        EXPECT_EQ(arrow->ownerContext, &hero);
+        EXPECT_EQ(std::ranges::count_if(effects, [](const auto& effect) { return effect.alive; }), 5);
+        for (const auto& arrow : effects)
+        {
+            if (!arrow.alive)
+                continue;
+            EXPECT_EQ(arrow.type, probe.arrow);
+            EXPECT_EQ(arrow.byte89, 3);
+            EXPECT_EQ(arrow.ownerContext, &hero);
+        }
     }
 }
 } // namespace

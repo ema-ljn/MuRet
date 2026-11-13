@@ -251,8 +251,14 @@ struct ActorState
     std::uint8_t byte380 = 0;
     std::uint16_t word382 = 0;
     // o+0x8a: la clave del elegido que deja 0x558eb0 (−1 sin él) en cada paso de la habilidad (0x4fdc10, CL9 hito 3,
-    // fase 2b). La leen los casos de habilidad de 0x4fd5f0 (el 5 la pasa a 0x518cf0 en 0x4fdf6b), del hito 4.
+    // fase 2b). La leen los casos de habilidad de 0x4fd5f0 (la 0x2a la pasa a 0x518cf0 en 0x4fdf6b y la 5 en 0x500509,
+    // CL9 hito 4).
     std::uint16_t word8a = 0;
+    // o+0x8c y o+0x8e: el arma de la derecha (+0x2b8, MOVSX) − 0x212 y su nivel (+0x2ba), que dejan las skills 0x29,
+    // 0x2a, 0x37 y 0x38 del paso del ataque (0x4fdf2b, 0x4fdfb3, 0x4fdfe4 y 0x4fec30, CL9 hito 4) para los efectos que
+    // las leen por su dueño (ModelEffect::itemType e itemLevel: el 0xfa de la 0x2a, 0x52d43a).
+    std::int16_t word8c = 0;
+    std::uint8_t byte8e = 0;
     std::uint16_t attackTarget = 0;
     glm::vec3 attackPosition{};
     std::uint8_t attackCount = 0;

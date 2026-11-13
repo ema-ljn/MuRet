@@ -356,6 +356,10 @@ el viewport. **Desbloquea:** 4 y 11.
       `0x53e2e0`, el `0x13a`, el `0x105`, la `0xdb`/3 y /4 y la `0xe1`/1) y el choque de `0x5201ed` con `0x517a20` y
       el C1 10 (`Scenes/ArrowEffects`, `Scenes/SkillHits`, `Protocol::Skill::WriteSkillHits`); lo que dibujan corta
       en CL11 (P-C326) y el asedio sigue en CL9.5 (P-C327).
+      En la fase 6b, los casos de habilidad del paso del ataque que el hito 3 dejó (P-C258): la cabeza (`0x4fdeeb`),
+      los de con blanco (`0x504372`) y `0x52e740` (`0x5042ce`), con la `0x4c` entera (`0x5588d0`, el alcance de
+      `0x5526f0` sin dueño) (`Scenes/AttackSkillCases`); los efectos, joints y partículas que crean cortan en CL11
+      (08, P-C346).
 - [x] **Lo que llega:** el `0x19` (`0x4cc530`, 6,5 KB, con las acciones `0x94`, `0x51` y `0x5b` de
       `0x50f828`), el `0x1E` (`0x4ce000`), el `0x1B` (`0x4cbe90`), el `0x07` (los estados de un personaje,
       `GCSend_07` del GS: `0x4cbe00`, con `0x4e6910`), el `0x48`, el `0x69`, el `0x73` (`0x4d5b10`),

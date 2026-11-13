@@ -9687,11 +9687,34 @@ queda debajo de `[0x6c88ac]` (`JL`, con signo), salta a `0x50539e`.
      rand() & 3, o, 0)` (`0x5052fd`) y si no `0x46 +` (`0x505322`); lo cierra (`0x40f370`, `0x50534a`).
 5. `0x40ae60`, `+0x38e = 0` y `0x40b0a0` (una escritura: un `rand()` en 0), `+0x382 = 0` y `+0x380 = 0`.
 
+**La sangre `0x5e4`** (CL9 hito 3, fase 2d; *estático*, con la textura `Effect\blood.tga` en el slot `0x5e4`, que
+carga `0x61d7c9` con `0x63bd00` lineal y `CLAMP`). Los diez puntos de `0x5040df..0x5041a4` suman a la x, la y y la
+z del blanco en la x87 (`fild` y `fadd`) y piden `0x53fe70(0x5e4, punto, o+0x1c, [EBP − 0x30], 0, 1,0f, 0)`:
+
+- **La creación** (`0x53fe70`, la tabla de bytes de `0x54446c` por tipo − `0x5de` y la de saltos de `0x544440`;
+  el caso de `0x542b3b`, que comparte con la `0x5e3`): la vida en 12; la escala, `((rand() & 3) + 8) · 0,05f`
+  (`0x6b8a48`), que pisa la del pedido; `ángulos.x = rand() % 360`; la matriz de los ángulos del pedido
+  (`0x5fc8f0`) gira `(0; −((rand() & 15) + 8); rand() % 6 − 3)` (`0x5fcbd0`) a la velocidad; con la `0x5e4`, la
+  luz en (0,1f; 0; 0) (`0x542bdb`, `0x542be9`), que pisa la del pedido. Cuatro `rand()`; no lee el subtipo. Con el
+  pool lleno no saca nada, y los tres `rand()` del punto salen igual.
+- **El paso** (`0x5446e0`, la tabla de `0x5482d4` y la de `0x5482a8`; el caso de `0x546b04`), después de la vida
+  y del movimiento común (la velocidad girada por los ángulos, `0x4e98d0`): la velocidad por 0,95f (`0x6ba30c`),
+  el cuadro `+0x48` en `(12 − vida) / 3` y la posición más la velocidad sin girar, la x con el producto sin
+  redondear a `float`. Muere en el paso 12, con el cuadro 4. No saca `rand()`.
+- **El dibujo** (`0x548550`, la tabla de `0x548c9c` y la de `0x548c78`; la `0x5e4` en `0x5487b9`, la `0x5e3` en el
+  billboard común): la mezcla del material, sin giro, la celda del cuadro en un atlas de 2 × 2 (la u, `cuadro % 2 ·
+  0,5`; la v, `cuadro / 2 · 0,5`) y el tamaño (0,5; 0,5).
+
+MuRet la crea, la mueve y la dibuja en el pool de partículas del mundo (`World::BloodParticle`, el mismo que usa
+la escena y el paso de los personajes; `BloodParticlesTest`, `AttackStepTest.TheTargetWithDamageBleedsTenTimes`).
+
 **Los `rand()` de un ataque sin habilidad**, con las cuentas en 0: antes del frame 5, cuatro por paso (la lectura
 de `0x4f97b0`, el de `0x4f5b97` y las dos de la cola de `0x4f5b70`; con `+0x3a4` fuera del pool, dos); en el
 paso del frame 5, además, los 3.848 de `0x4f97b0`; en el de la habilidad, con blanco, tres lecturas, el del
-sonido, 3.848 y la escritura (3.853), y sin blanco tres. Con 0,5 keys por paso, el frame 5 llega en el paso 10 y
-la habilidad corre ahí; sin llegar, en el 14 (`AttackStepTest.AMeleeAttackOfEachClassRunsItsSteps`).
+sonido, 3.848 y la escritura (3.853), y sin blanco tres. Con el daño del último `15` en el blanco, además setenta:
+tres por punto y cuatro por sangre. Con 0,5 keys por paso, el frame 5 llega en el paso 10 y la habilidad corre ahí;
+sin llegar, en el 14 (`AttackStepTest.AMeleeAttackOfEachClassRunsItsSteps`, con el paso de las partículas y los
+dos `rand()` del giro de la cabeza, `0x5068fd`, descontados: uno en 32 por paso y personaje que no es el héroe).
 
 **Lo que MuRet corta** (con lo de antes y sus `rand()`), y quién llega con un ataque sin habilidad:
 
@@ -9703,8 +9726,8 @@ la habilidad corre ahí; sin llegar, en el 14 (`AttackStepTest.AMeleeAttackOfEac
 | `0x558f29` | los nombres de gremio | el héroe en la guerra de gremios (hito 8) |
 | `0x50376a`, `0x504048` | la flecha (`0x59fb80` y `0x53e2b0`) | el elfo con arco o ballesta, y cualquiera con arco en Uniria, Dinorant o Fenrir |
 | `0x5037d0`, `0x5040a9` | `0x53e2b0` de los tipos `0x168`, `0x175`, `0x17a`, `0x180` | monstruos (fase 2c) |
-| `0x50419c` | la partícula `0x5e4` | **todas las clases**, con un blanco que no sea el `0x159` y con el daño del último `15` distinto de 0 |
-| `0x504267` | el efecto `0x10b` | nadie: el `0x18e` corta antes en `0x50419c` |
+| `0x50419c` | la partícula `0x5e4` sin el pool de partículas | nadie en el juego: `GameScene` pasa el del mundo (fase 2d) |
+| `0x504267` | el efecto `0x10b` | el que pega al `0x18e` con daño, con un `rand() & 1` en 0 de los cinco |
 | `0x50428c` | `0x42ea00` | nadie: el mapa 30 corta antes (`0x412140`) |
 | `0x5042ce` | `0x52e740` | las acciones de skill `0x38` a `0x3c` (hito 4) |
 | `0x505169` | los joints `0x618`/0 y /1 | el héroe de cualquier clase después del `16` (mató), en la habilidad que sigue |

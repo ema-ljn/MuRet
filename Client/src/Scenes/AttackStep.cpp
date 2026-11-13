@@ -11,6 +11,9 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ItemState.h"
+#include "World/Particles.h"
+
+#include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
 #include <array>
@@ -347,6 +350,38 @@ void PlayTheStrikeSound(const CharacterStepContext& context)
         context.soundRequest(sound);
 }
 
+// 0x5040df..0x5041a4: diez veces, tres rand() & 63 (la x y la y del blanco − 32 y su z + 0x5a, cada suma del fild en la
+// x87) y 0x53fe70(0x5e4, punto, o+0x1c, [EBP − 0x30], 0, 1,0f, 0). La luz del local la pisa la creación de la 5e4
+// (0x542be9); con el pool lleno, la 5e4 no saca sus cuatro rand() y las tres del punto salen igual.
+Core::Expected<void, std::string> BleedOnTheTarget(const ActorState& actor, const ActorState& victim,
+                                                   std::int16_t target, const CharacterStepContext& context)
+{
+    constexpr int Drops = 10;
+    constexpr int Spread = 63;
+    constexpr int Center = 32;
+    constexpr int Height = 0x5a;
+    const auto add = [](int offset, float base)
+    { return static_cast<float>(static_cast<double>(offset) + static_cast<double>(base)); };
+    for (int drop = 0; drop < Drops; ++drop)
+    {
+        const int x = (context.random.Next() & Spread) - Center;
+        const int y = (context.random.Next() & Spread) - Center;
+        const int z = (context.random.Next() & Spread) + Height;
+        const glm::vec3 point{add(x, victim.position.x), add(y, victim.position.y), add(z, victim.position.z)};
+        if (context.particles == nullptr)
+            return Core::Unexpected(
+                std::format("0x50419c: falta el pool de partículas de la sangre del blanco {}", target));
+        const auto created = context.particles->CreateChecked(
+            World::BloodParticle, point, actor.angles, glm::vec3(1.0f), 0, 1.0f, context.worldClock, context.random, 0);
+        if (!created.HasValue())
+        {
+            return Core::Unexpected(std::format("0x50419c: la sangre 0x5e4 del blanco {} falla con error {}", target,
+                                                static_cast<unsigned>(created.Error())));
+        }
+    }
+    return {};
+}
+
 // 0x5037dd..0x50534a: con blanco.
 Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t slot, std::int16_t target,
                                                   const CharacterStepContext& context)
@@ -381,12 +416,8 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
         constexpr std::uint16_t SmokeType = 0x18e;
         if (victim.type != NoSparksType)
         {
-            // 0x5040fb, 0x504127 y 0x504153: rand() & 63 para la x, la y y la z (+ 0x5a) del primero de diez.
-            for (int i = 0; i < 3; ++i)
-                static_cast<void>(context.random.Next());
-            return Core::Unexpected(std::format("0x50419c: la partícula 0x5e4 (0x53fe70), diez sobre el blanco {} con "
-                                                "daño {}, sin portar",
-                                                target, victim.damage));
+            if (auto bled = BleedOnTheTarget(actor, victim, target, context); !bled.HasValue())
+                return bled;
         }
         if (victim.type == SmokeType)
         {

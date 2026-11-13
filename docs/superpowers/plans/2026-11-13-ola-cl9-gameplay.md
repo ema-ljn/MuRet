@@ -300,7 +300,9 @@ Lorencia, Devias y un mapa de evento; el `0x1F` con un tipo `0x98..0x9e`; el cor
       `0x437580` con `0x4f92f0` y `MonsterSkill.bmd`, `0x54a440`), las tablas de sonidos del alta (`0x612d90` con
       `0x612c80`, `WorldRuntime::modelSounds`), el `0x192` con `+0x60` en el que se muere y el `D7`, el `16` y el
       `17` sobre los monstruos del `13`; los casos de monstruo de `0x4f5b70` cortan cada uno en su dirección
-      (P-C257 f) y, con monstruos reales, antes `0x4ea030` sin su esqueleto (P-C176).
+      (P-C257 f) y, con monstruos reales, antes `0x4ea030` sin su esqueleto (P-C176). Fase 2d (2026-11-13), por
+      la regla 4e y la decisión 5: la sangre `0x5e4` del blanco con daño (`0x53fe70` en `0x542b3b`, `0x5446e0` en
+      `0x546b04` y su dibujo, `0x5487b9`) en el pool del mundo (P-C257 a).
 
 **Pruebas:** el `D7`/`A4` que sale al pegar; la muerte de un monstruo y la de otro jugador; la experiencia del
 `0x16` y del `0x9C` contra el struct del GS (`GCKillPlayerExpSend`); los `rand()` del paso con un monstruo en

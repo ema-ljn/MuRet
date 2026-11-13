@@ -11,18 +11,26 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/Particles.h"
+#include "World/PortableParticleTrigonometry.h"
 
 #include "support/PlayerActors.h"
 
+#include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
+
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // Client::Scenes::StepTheAttack: 0x4fdb9a..0x50539e con 0x4f97b0 y 0x4f5b70, y ChosenKeyOf (0x558eb0). 06, "El paso
@@ -150,6 +158,7 @@ struct AttackWorld
         return CharacterStepContext{.world = world,
                                     .random = random,
                                     .playerSkeleton = &skeleton,
+                                    .particles = withParticles ? &particles : nullptr,
                                     .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); },
                                     .controlDown = controlDown};
     }
@@ -165,7 +174,21 @@ struct AttackWorld
     Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     std::vector<std::int32_t> sounds;
     bool controlDown = false;
+    Client::World::Particles particles;
+    bool withParticles = true;
 };
+
+// Las partículas vivas de `type`.
+std::vector<const Client::World::Particle*> AliveOf(const Client::World::Particles& particles, std::int32_t type)
+{
+    std::vector<const Client::World::Particle*> found;
+    for (const Client::World::Particle& particle : particles.All())
+    {
+        if (particle.alive && particle.type == type)
+            found.push_back(&particle);
+    }
+    return found;
+}
 
 // Antes del frame 5, cada paso lee +0x38e en 0x4f97b0, saca el rand() de 0x4f5b70 y lee +0x38e dos veces (el blanco
 // está en el pool) y sube +0x381; el que lo deja en 15 corre la habilidad: o+0x8a en −1 (sin elegido), la cabeza, los
@@ -379,8 +402,7 @@ TEST(AttackStepTest, TheStrikeSoundFollowsTheOwnHands)
 
 // Lo que corta, en su orden y con los rand() de antes: las habilidades del hito 4 (0x4f9899, 0x4f8a39, 0x4fdeeb,
 // 0x504372), los casos de los monstruos de 0x4f5b70 (0x4f6fea), el arco 0x815 del registro propio (0x4fb0d1), la flecha
-// con y sin blanco (0x504048, 0x50376a), las partículas del blanco con daño (0x50419c), 0x52e740 (0x5042ce) y los
-// joints de +0x380 en 2 (0x505169).
+// con y sin blanco (0x504048, 0x50376a), 0x52e740 (0x5042ce) y los joints de +0x380 en 2 (0x505169).
 TEST(AttackStepTest, TheCutsAfterTheirDraws)
 {
     struct Case
@@ -431,13 +453,6 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
                  hero.byte381 = 14;
              },
              "0x50376a", SkillRead + 1 + 4 * SkillRead},
-        Case{"el blanco con daño",
-             [](AttackWorld& tested, ActorState& hero)
-             {
-                 tested.Victim().damage = 12;
-                 hero.byte381 = 14;
-             },
-             "0x50419c", CountingStep + SkillRead + 3},
         Case{"la 0x39",
              [](AttackWorld&, ActorState& hero)
              {
@@ -545,11 +560,83 @@ TEST(AttackStepTest, TheChosenKeyIsTheHerosOnly)
     EXPECT_EQ(hero.word8a, Key);
 }
 
+// 0x5040b9..0x5041a4: con el daño del último 15 en el blanco (+0x384) y otro tipo que el 0x159, diez veces tres
+// rand() & 63 (el punto: la x y la y del blanco − 32, su z + 0x5a) y la sangre 0x5e4 (0x53fe70, con cuatro rand() y los
+// ángulos del que pega); después sigue la habilidad hasta el sonido. Sin el pool, corta después del primer punto; con
+// el pool lleno, solo los tres rand() de cada punto. El 0x159 no sangra.
+TEST(AttackStepTest, TheTargetWithDamageBleedsTenTimes)
+{
+    constexpr int Bleeding = 10 * (3 + 4);
+    const glm::vec3 victimAt{12800.0f, 6400.0f, 150.0f};
+    const auto prepare = [&victimAt](AttackWorld& tested)
+    {
+        tested.Victim().alive = true;
+        tested.Victim().damage = 12;
+        tested.Victim().position = victimAt;
+        ActorState& hero = tested.Striker(HeroSlot, 0x23, VictimSlot);
+        hero.byte381 = 14;
+        hero.angles = {0.0f, 0.0f, 135.0f};
+        return &hero;
+    };
+    {
+        AttackWorld tested;
+        ActorState* hero = prepare(tested);
+        const auto stepped = tested.Attack(*hero, HeroSlot);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(DrawsSince(Seed, tested.random), CountingStep + SkillWithTarget + Bleeding);
+        EXPECT_EQ(tested.sounds.size(), 1u);
+        const auto blood = AliveOf(tested.particles, Client::World::BloodParticle);
+        ASSERT_EQ(blood.size(), 10u);
+        CrtRandom expected(Seed);
+        for (int draw = 0; draw < CountingStep + SkillRead; ++draw)
+            static_cast<void>(expected.Next());
+        for (const Client::World::Particle* drop : blood)
+        {
+            const int x = (expected.Next() & 63) - 32;
+            const int y = (expected.Next() & 63) - 32;
+            const int z = (expected.Next() & 63) + 0x5a;
+            EXPECT_EQ(drop->start, (glm::vec3{victimAt.x + static_cast<float>(x), victimAt.y + static_cast<float>(y),
+                                              victimAt.z + static_cast<float>(z)}));
+            EXPECT_EQ(drop->angles.y, 0.0f);
+            EXPECT_EQ(drop->angles.z, 135.0f);
+            EXPECT_EQ(drop->life, 12);
+            for (int draw = 0; draw < 4; ++draw)
+                static_cast<void>(expected.Next());
+        }
+    }
+    {
+        AttackWorld tested;
+        tested.withParticles = false;
+        ActorState* hero = prepare(tested);
+        const auto stepped = tested.Attack(*hero, HeroSlot);
+        EXPECT_TRUE(HasError(stepped, "0x50419c")) << ErrorOf(stepped);
+        EXPECT_EQ(DrawsSince(Seed, tested.random), CountingStep + SkillRead + 3);
+    }
+    {
+        AttackWorld tested;
+        for (Client::World::Particle& particle : tested.particles.All())
+            particle.alive = true;
+        ActorState* hero = prepare(tested);
+        ASSERT_TRUE(tested.Attack(*hero, HeroSlot).HasValue());
+        EXPECT_EQ(DrawsSince(Seed, tested.random), CountingStep + SkillWithTarget + 10 * 3);
+    }
+    {
+        AttackWorld tested;
+        ActorState* hero = prepare(tested);
+        tested.Victim().type = 0x159;
+        ASSERT_TRUE(tested.Attack(*hero, HeroSlot).HasValue());
+        EXPECT_EQ(DrawsSince(Seed, tested.random), CountingStep + SkillWithTarget);
+        EXPECT_TRUE(AliveOf(tested.particles, Client::World::BloodParticle).empty());
+    }
+}
+
 // El ataque cuerpo a cuerpo de cada clase, del héroe (a un blanco del pool) y de otro jugador (al héroe, como lo deja
-// el 18), por el paso entero de los personajes (0x508f00): veinte pasos sin cortar, con la acción a 0,5 keys por paso
-// (el frame 5 en el décimo). Lo que saca de más contra el mismo mundo sin +0x381: 4 rand() en cada uno de los nueve
-// primeros pasos y, en el décimo, el registro propio de 0x4f97b0, las lecturas de 0x4f5b70 y la habilidad con el
-// sonido. Después, +0x381 en 0. El arco del elfo corta en la flecha (0x504048) en el décimo paso.
+// el 18), por el paso entero de los personajes (0x508f00) y el de las partículas (0x5446e0): veintidós pasos sin
+// cortar, con la acción a 0,5 keys por paso (el frame 5 en el décimo). Lo que saca de más contra el mismo mundo sin
+// +0x381: 4 rand() en cada uno de los nueve primeros pasos y, en el décimo, el registro propio de 0x4f97b0, las
+// lecturas de 0x4f5b70 y la habilidad con el sonido. Después, +0x381 en 0. Con el daño del último 15 en el blanco,
+// además las diez sangres 0x5e4 con sus rand(), que viven sus 12 pasos. Los dos rand() del giro de la cabeza (0x5068fd,
+// uno en 32 por paso en los que no son el héroe) dependen de la semilla: se descuentan los de cada blanco que cambió.
 TEST(AttackStepTest, AMeleeAttackOfEachClassRunsItsSteps)
 {
     struct Case
@@ -560,19 +647,23 @@ TEST(AttackStepTest, AMeleeAttackOfEachClassRunsItsSteps)
         std::uint16_t right;
         std::uint16_t left;
     };
-    constexpr int Steps = 20;
+    constexpr int Steps = 22;
     constexpr int AttackDraws = 9 * CountingStep + StrikingStep + SkillWithTarget;
+    constexpr int HeadSortDraws = 2;
+    constexpr int Bleeding = 10 * (3 + 4);
     const std::array cases{Case{"el mago con el bastón", 0, 0x2b, 0xa00, 0xffff},
                            Case{"el caballero con la espada", 1, 0x23, 0x000, 0xffff},
                            Case{"el elfo sin armas", 2, 0x22, 0xffff, 0xffff},
                            Case{"el gladiador con dos espadas", 3, 0x25, 0x000, 0x001},
                            Case{"el Dark Lord con el cetro", 4, 0x24, 0x400, 0xffff},
                            Case{"el Dark Lord en Fenrir", 4, 0x59, 0x400, 0xffff}};
-    for (const bool heroStrikes : {true, false})
+    for (const auto& [heroStrikes, hurt] :
+         {std::pair{true, false}, std::pair{false, false}, std::pair{true, true}, std::pair{false, true}})
     {
         for (const Case& probe : cases)
         {
-            SCOPED_TRACE(::testing::Message() << probe.name << (heroStrikes ? ", el héroe" : ", otro"));
+            SCOPED_TRACE(::testing::Message()
+                         << probe.name << (heroStrikes ? ", el héroe" : ", otro") << (hurt ? ", con daño" : ""));
             const auto run = [&](bool attacking, int& draws)
             {
                 AttackWorld tested;
@@ -587,15 +678,44 @@ TEST(AttackStepTest, AMeleeAttackOfEachClassRunsItsSteps)
                 striker.characterClass = probe.characterClass;
                 if (!attacking)
                     striker.byte381 = 0;
+                if (hurt)
+                    tested.world.Actors()[heroStrikes ? VictimSlot : HeroSlot].damage = 12;
+                Client::World::PortableParticleTrigonometry trigonometry;
+                const float clock = 0.0f;
+                const std::int32_t map = 0;
+                const auto heads = [&tested]
+                {
+                    std::vector<glm::vec2> targets;
+                    for (const ActorState& actor : tested.world.Actors())
+                        targets.push_back(actor.headTurn.target);
+                    return targets;
+                };
+                int headDraws = 0;
                 for (int step = 0; step < Steps; ++step)
                 {
+                    const std::vector<glm::vec2> before = heads();
                     const auto stepped = StepCharacters(tested.Context());
                     if (!stepped.HasValue())
                         return stepped;
+                    const std::vector<glm::vec2> after = heads();
+                    for (std::size_t k = 0; k < before.size(); ++k)
+                    {
+                        if (before[k] != after[k])
+                            headDraws += HeadSortDraws;
+                    }
+                    if (!Client::World::StepParticlesChecked(tested.particles, tested.random, std::cref(clock), &map,
+                                                             trigonometry)
+                             .HasValue())
+                        return Client::Core::Expected<void, std::string>(
+                            Client::Core::Unexpected(std::string("0x5446e0: el paso de las partículas")));
                 }
                 EXPECT_EQ(striker.byte381, 0);
                 EXPECT_EQ(tested.sounds.size(), attacking ? 1u : 0u);
-                draws = DrawsSince(Seed, tested.random);
+                const auto created = std::ranges::count(tested.particles.All(), Client::World::BloodParticle,
+                                                        &Client::World::Particle::type);
+                EXPECT_EQ(created, attacking && hurt ? 10 : 0);
+                EXPECT_TRUE(AliveOf(tested.particles, Client::World::BloodParticle).empty());
+                draws = DrawsSince(Seed, tested.random) - headDraws;
                 return Client::Core::Expected<void, std::string>{};
             };
             int attackDraws = 0;
@@ -605,7 +725,7 @@ TEST(AttackStepTest, AMeleeAttackOfEachClassRunsItsSteps)
 
             ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
             ASSERT_TRUE(quiet.HasValue()) << quiet.Error();
-            EXPECT_EQ(attackDraws - quietDraws, AttackDraws);
+            EXPECT_EQ(attackDraws - quietDraws, AttackDraws + (hurt ? Bleeding : 0));
         }
     }
 }

@@ -120,16 +120,11 @@ struct SummonLife
 
 inline constexpr std::uint8_t Report73Head = 0xf1;
 
-// El 19 que manda el cliente (0x55b6f0, 0x559890, 0x55cbc0, 0x55faa0 y las ramas de 0x57cfc0): C1 06 19 [skill]
-// [clave H] [clave L], con el XOR32 sobre los bytes 3 a 5 y en C3 (sus dos rand(), el relleno y el serial, los saca
-// quien lo manda). La clave es +0x1f4 del blanco, entera. Es el PMSG_MAGICATTACK del GameServer (CGMagicAttack).
-[[nodiscard]] Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key);
-
 // Lo que mandan las skills del héroe (CL9 hito 4, fase 2c; 04 § Las skills que salen). Las arman 0x57cfc0, las
 // funciones por clase y 0x55cbc0 en línea, con el XOR32 desde pkt[3] y cifradas como C3: el rand() del relleno y el
 // serial (0x5767913) los saca quien manda, antes de send(). La rama del Wizard (0x58c1b6 y los demás) y 0x55cbc0
-// también mandan el 1E de abajo: [hacia] en 0, [espalda] en 0 salvo con la 0x4c (la celda de 0x4e9920, como el
-// caballero) y la clave de la magia (0x77f3bad) en la 8, la 9 y la 0x4c (08, P-C221).
+// también mandan el 1E (DurationMagicSend, abajo): [hacia] en 0, [espalda] en 0 salvo con la 0x4c (la celda de
+// 0x4e9920, como el caballero) y la clave de la magia (0x77f3bad) en la 8, la 9 y la 0x4c (08, P-C221).
 inline constexpr std::uint8_t TeleportMagicOpcode = 0x1c;
 inline constexpr std::uint8_t TargetTeleportOpcode = 0xb0;
 // La clave que va sin blanco (0xffff en 0x58c8f0, 0x591865 y 0x55e683).
@@ -142,6 +137,11 @@ inline constexpr std::uint16_t NoSkillTargetKey = 0xffff;
 // C1 07 B0 [clave L H] [x] [y] (0x59293b..0x592d1b): el Teleport Ally (0xf) del elegido a una celda, con la clave en
 // little endian (el WORD de +0x1f4 tal cual), como la lee el GS 0.97 (CGTargetTeleportRecv, 0x426870).
 [[nodiscard]] Outgoing WriteTargetTeleport(std::uint16_t key, std::uint8_t x, std::uint8_t y);
+
+// El 19 que manda el cliente (0x55b6f0, 0x559890, 0x55cbc0, 0x55faa0 y las ramas de 0x57cfc0): C1 06 19 [skill]
+// [clave H] [clave L], con el XOR32 sobre los bytes 3 a 5 y en C3 (sus dos rand(), el relleno y el serial, los saca
+// quien lo manda). La clave es +0x1f4 del blanco, entera. Es el PMSG_MAGICATTACK del GameServer (CGMagicAttack).
+[[nodiscard]] Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key);
 
 // El 1E que manda el cliente (el elfo, 0x561f60 en 0x562b36 y 0x563f5a, y las ramas del caballero, 0x582439..0x5896a3):
 // C1 0C 1E [skill] [X] [Y] [rumbo] [hacia] [espalda] [clave H] [clave L] [clave de la magia], con el XOR32 sobre los

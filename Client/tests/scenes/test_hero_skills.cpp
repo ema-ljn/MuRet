@@ -57,10 +57,10 @@ constexpr int HeadDraws = OwnDraws + EntryDraws;
 constexpr int PartyDraws = HeadDraws + EntryDraws;
 // Más las dos celdas lógicas (0x57d4d6, 0x57d4f4).
 constexpr int AimDraws = PartyDraws + 2 * CellDraws;
+constexpr std::size_t ChosenSlot = 5;
 // La cabeza de la rama del Wizard (0x5897b7..0x58a08a) sin espera: el registro propio y, con él abierto, las entradas
 // del costo, de la energía y de la espera.
 constexpr int WizardHeadDraws = OwnDraws + 3 * EntryDraws;
-constexpr std::size_t ChosenSlot = 5;
 
 CrtRandom Advanced(CrtRandom random, int count)
 {

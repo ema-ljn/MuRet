@@ -8800,9 +8800,57 @@ son el constructor y el destructor, `0x4c2480` (la vuelta a la selección: `0x40
 `+0x154` en 3 para unos monstruos), `0x59adf0`, `0x59ff10`, `0x623e70`, `0x635ae0`, `0x6371a0` (leen `0x4033d0`) y
 `0x636290` (el paso)). MuRet pide el estado de Crywolf al entrar al 34 y lee el `BD 00`, así que el arranque es
 alcanzable con un servidor que tenga Crywolf (GS 0.97 no lo tiene): MuRet porta `0x403590`, `0x4033f0`, `0x4033d0`,
-`0x404c90`, `0x403300`, `0x403d60` (sin personajes, nada; con `+0x14c` en más de 10000, corta) y Esc (`0x623ec8`:
-`+0x158` en 1 y `0x403d60`), y **corta en `0x4035da`, donde empieza el guion** (P-C299). Los que leen `0x4033d0` lo
-llaman en vivo; como el guion corta en el paso en que empieza, en MuRet ninguno lo ve verdadero.
+`0x404c90`, `0x403300`, `0x403d60` y Esc (`0x623ec8`: `+0x158` en 1 y `0x403d60`).
+
+**El guion** (fase 5, con el hito 2 juntado; `Scenes/CameraTour`, *estático*). Los campos del objeto, en orden: `+4`
+la posición de la cámara, `+0x10` la salida del tramo, `+0x1c` el destino, `+0x28` el rumbo, `+0x34` el tramo nuevo,
+`+0x35` en camino, `+0x36` llegó, `+0x37` el reloj, `+0x38` (50 bytes) si cada personaje todavía gira, `+0x6a` la
+espera, `+0x6c` lo andado, `+0x70` el largo, `+0x74` lo que anda por paso (100), `+0x78` (50 dwords) las veces que
+cambió la acción de cada personaje, `+0x140` el paso del guion (que es también la cuenta del reloj), `+0x144` la etapa
+del guion, `+0x148` el comienzo del reloj, `+0x14c` la clave siguiente, `+0x150` lo que sube `0x403d40` hasta 4.
+
+- **La cámara.** `0x403d90(x, y, z, velocidad)` pone el destino en el centro de la celda (`· 100 + 50`, en float),
+  `+0x140` en 0, `+0x34` y `+0x35` en 1 y suma la etapa. `0x4034e0`, con `+0x35`: `0x403430` (con `+0x34`: en la
+  etapa 0 sale del héroe, `[0x743a170] + 0x10`, y pasa a la 1; el rumbo destino − salida y el largo `((x² + y²) + z²)`
+  en la x87), apaga `+0x34`, normaliza el rumbo (`0x5fc800`: la suma desde 0, la raíz y, si no es 0 ni NaN, cada
+  componente dividido), la posición en `andado · rumbo + salida` y `+0x6c += +0x74`; con la norma de lo andado (el
+  de antes, `(z² + y²) + x²`) en el largo o más (`FCOMP` sin C0), llega: la posición y la salida en el destino,
+  `+0x36` en 1, `+0x35` y lo andado en 0. Mientras anda, el guion no corre. La etapa 0 (`0x403e00`) es solo el primer
+  tramo, al (`0x71`, `0xe8`) a 300: `0x403d90` y la etapa otra vez en 0, para que `0x403430` salga del héroe.
+- **Las etapas** (`0x4035f0` por `+0x144`, la tabla `0x403644`). Con `+0x36` en 0 cada una sale al tramo siguiente:
+  la 1 al (`0x72`, `0xdc`) a 40, la 2 al (`0x72`, `0xa0`) a 300, la 3 al (`0x79`, `0x4b`) a 300, la 4 al (`0x79`,
+  `0x57`) a 40; la 5, en cambio, borra los personajes (`0x403d60`) y pone `+0x158` en 1: el fin. Con `+0x36` en 1,
+  el guion por `+0x140`, y pasado el último paso, `+0x36` en 0. La 1 (`0x403e30`, 32 pasos): la barrera (349) y dos
+  guardias (340) en la fila `0xee`, con chispas y la velocidad de la acción 2 de su modelo; esperas de 1.000 y `0x294`
+  ms; los tres caminan; los 345, 344 y 341 de a uno (los 341 con `0x403d40`), después de que dos de los guardias
+  terminen la acción 8. La 2 (`0x4042c0`): trece altas en las filas `0xf0`..`0xf4` (la última con chispas), los 28
+  caminan a las filas `0xd9`..`0xe7` y avanza cuando llegan todos; el 10000 hace la 8 y la 9. La 3 (`0x404830`):
+  borra a todos, vuelve a la clave 10000 y da de alta los 27 de los altares, sin chispas; dos avanzan, así que
+  `+0x140` pasa de 1 a 3. La 4 (`0x404b70`): espera 3.000 ms. La 5 (`0x404bb0`): los dos últimos (`0x2729` y
+  `0x272a`) hacen la acción 3 con el efecto `0xed`.
+- **Las altas** (`0x4039f0(tipo, x, y, ángulo, avanza, chispas, velocidad)`): `0x5141e0` con la clave `+0x14c`, que
+  sube; la clave en `+0x1f4` (word), las manos (`+0x2b8`, `+0x2d8`) en `0xffff`, el ángulo en `+0x24`, `+0x174` en 0.
+  Con la velocidad en 0 o más, la escribe en la acción 2 (`+0x30 → +0x24`) del modelo de la tabla `0x403d10` (340 →
+  `0x1ae`, 341 → `0x1b0`, 344 → `0x1ad`, 345 → `0x1af`, 348 → `0x1b5`, 349 → `0x1ab`; los demás tipos usan como
+  modelo el dword de las chispas, `0x403a93`, que ningún guion alcanza). **El modelo es el del caso del 34** (el
+  creador de evento `0x430c90`): fuera del 34 el alta es la del default de `0x5141e0` y el original escribe en un
+  modelo que puede no estar cargado, con el arreglo de acciones vacío; MuRet corta ahí (`0x403abe`). Con las chispas,
+  el sonido `0x243` y once creaciones con un `rand()` antes de cada joint `0x615`: **cortan** en `0x403b09` (P-C299).
+  Con avanza, `+0x140` uno más.
+- **Los caminos** (`0x403760(clave, x, y, ángulo, velocidad)`): en la celda (`ftol(ftol(x) · 0,01f)` y lo mismo con
+  la y), el centro de la celda, `+0x38` en 1, `0x4ea030(0)` y verdadero. Si no, mientras gira: el ángulo a la celda
+  (`0x4036d0`: posición − centro, con la x del centro sin redondear y la y en float, normalizado, `acos(y) ·
+  57,2958279` y, con la x positiva, 360 − eso; el ángulo pedido no se lee) y el de `+0x24`, truncados; con la resta
+  (ángulo − pedido) por encima de 180, 360 menos; con 3 o menos de diferencia deja de girar. Girando, `+0x24 ± 3`
+  (más con la diferencia en (3, 180]) y `0x4ea030(0)`; si no, `+0x386` con la velocidad, `0x4ea030(2)` y `0x508a80`.
+- **Las acciones** (`0x403900(clave, acción, veces, efecto, avanza)`): mientras `+0x78` no llega a las veces, con otra
+  acción en `+0x111`, la pone (`+0x114` en 0) y cuenta; con el efecto, el `0xed` (`0x518cf0`, CL11: corta en
+  `0x4039a0`). Con las veces, avanza vuelve la cuenta a 0 y suma `+0x140`; verdadero con `+0x114` en 8 o más.
+  `0x403900` y `0x403760` buscan la clave entre los 400 vivos y, sin ella, **siguen con el registro 399** (Q-C1349).
+
+Lo que todavía corta (P-C299): las chispas de `0x4039f0` y el `0xed`; en el 34 la primera alta, la barrera 349,
+corta antes, en el joint `0x618` de su caso (`0x43114d`, hito 2). Tampoco está la cámara del juego leyendo el recorrido
+(`0x635ead`: la posición de `0x4034b0` y `+0x150` en `0x7d3a0ec`; `0x637324`, el centro del mundo).
 
 ### La cámara del juego
 

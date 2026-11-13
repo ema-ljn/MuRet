@@ -1513,7 +1513,8 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
         if (CameraTourRunning(runtime.events.cameraTour))
         {
             runtime.events.cameraTour.skipped = true;
-            return RemoveTheCameraTourActors(runtime.events.cameraTour);
+            RemoveTheCameraTourActors(context.world, runtime.events.cameraTour);
+            return {};
         }
         if (ui.field78abb39 == 0)
         {

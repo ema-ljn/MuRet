@@ -436,7 +436,12 @@ amigos. **Desbloquea:** 10.
       `ClickTheCrywolfAltar` y se cablea en `0x5650c0` al juntarse con el hito 2. El `BD 0C`, leído entero, queda en la
       CL11. Q-C1347, Q-C1348, P-C249.)
       (Fase 5: juntado el hito 2 en `f2dd89b`; `0x5650c0` llama a `ClickTheCrywolfAltar` en `0x567b00`, antes del
-      `C1 30`. El camino hasta un altar, la bandera del A* de `0x4eac41`, sigue cortando. P-C249.)
+      `C1 30`. El camino hasta un altar, la bandera del A* de `0x4eac41`, sigue cortando. P-C249.
+      El guion del recorrido de la cámara: `0x403390`, `0x4035f0` y sus etapas `0x403e00`..`0x404bb0`, la cámara
+      `0x403d90`, `0x4034e0`, `0x403430`, `0x5fc800`, los personajes `0x4039f0` (sobre `0x5141e0`), `0x403760`,
+      `0x4036d0`, `0x403900`, `0x403d40` y `0x403d60`. Cortan las chispas de `0x4039f0` (`0x403b09`: los joints
+      `0x615/7` y `0x614/0x11` y la partícula `0x5f6/1`), el `0xed` (`0x4039a0`, CL11) y la cámara del juego que lo
+      lee (`0x635ead`, `0x637324`). Q-C1349, P-C299.)
 - [ ] **Las reglas por mapa:** el arma de Blood Castle (`0x50de84`), las trampas de Chaos Castle (`0x405597`,
       `0x405d49`), el `AF 02` (`0x4fbee8`; decía `AF 01`), Kalima, y Crywolf (`BD`, `0x42fe80`, `0x42fe50`,
       `0x430a40`, `0x61a6f4`; P-C58).

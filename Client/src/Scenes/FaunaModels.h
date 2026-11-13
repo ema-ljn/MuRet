@@ -89,6 +89,11 @@ public:
     // ligó el juego (GameScene::Enter); sin backend, nullopt.
     [[nodiscard]] std::optional<FaunaModelLoadContext> LoadContextOf(const std::filesystem::path& dataRoot,
                                                                      Core::Log& log);
+    // La velocidad (+4) de la acción `action` de un modelo propio, la que escribe el guion del recorrido de la cámara
+    // (0x403a96..0x403abe, CL9 hito 11) después del alta. Un modelo que no está acá (el de la biblioteca prestada, que
+    // MuRet no deja escribir) o una acción fuera de su arreglo (el original escribe afuera) cortan con `address`.
+    [[nodiscard]] Core::Expected<void, std::string> SetActionSpeed(std::uint16_t model, std::uint8_t action,
+                                                                   float speed, std::string_view address);
     // El byte `offset` de un modelo que escribió 0x612d90 (el 0x88 del 0x16d, 0x613f97), si lo escribió.
     [[nodiscard]] std::optional<std::uint8_t> ModelByte(std::uint16_t model, std::uint8_t offset) const;
     void Release();

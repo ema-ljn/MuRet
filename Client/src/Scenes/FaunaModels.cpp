@@ -369,6 +369,26 @@ const Data::Models::Model* FaunaModels::Find(std::uint16_t model) const
     const auto found = m_models.find(model);
     return found != m_models.end() ? &found->second.model : m_base != nullptr ? m_base->Find(model) : nullptr;
 }
+Core::Expected<void, std::string> FaunaModels::SetActionSpeed(std::uint16_t model, std::uint8_t action, float speed,
+                                                              std::string_view address)
+{
+    const auto found = m_models.find(model);
+    if (found == m_models.end())
+        return Core::Unexpected(
+            std::format("{}: la velocidad de la acción {} del modelo {:#x}, que no está entre los de "
+                        "la fauna (sin cargar, el original escribe con su arreglo de acciones, "
+                        "+0x30, vacío)",
+                        address, action, model));
+    Render::Models::Skeleton& skeleton = found->second.skeleton;
+    if (action >= skeleton.actions.size())
+        return Core::Unexpected(
+            std::format("{}: la velocidad de la acción {} del modelo {:#x}, que tiene {}: el original "
+                        "escribe fuera de su arreglo",
+                        address, action, model, skeleton.actions.size()));
+    skeleton.actions[action].speed = speed;
+    return {};
+}
+
 const Render::Models::Skeleton* FaunaModels::SkeletonOf(std::uint16_t model) const
 {
     const auto found = m_models.find(model);

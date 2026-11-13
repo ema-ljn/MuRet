@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include <glm/ext/vector_float3.hpp>
+
 // Los globales que escriben los paquetes de los eventos (CL9 hito 11, 04 § Los eventos) y que no son del objeto de
 // [0x723c60] (EventMapObject) ni de Crywolf (CrywolfGlobals). Arrancan como la .data y la .bss del original.
 namespace Client::Scenes
@@ -37,22 +39,59 @@ struct SoccerScoreGlobals
 
 // El recorrido de la cámara (CCameraMove, el objeto de 0x6e57a8 en [0x6e5904]) que arma 0x403250 entre los
 // inicializadores estáticos, con los valores de 0x403300 (que también le dan la vuelta a la selección, 0x4c26f2, y la
-// etapa 3). Solo lo que mira su arranque: el guion (la cámara, +4..+0x150, y los personajes del 0x4039f0) no está.
+// etapa 3). Los campos van en el orden del objeto (Scenes/CameraTour.h).
 struct CameraTour
 {
-    // +0x154: la etapa de Crywolf que deja el BD 00 con 0x4033b0 (pkt[5]) después de 0x42fe80.
-    std::int32_t stage = 0;
+    // +0x4: dónde está la cámara del recorrido (0x4034e0), la que mira la cámara del juego con el recorrido andando
+    // (0x4034b0, desde 0x635ead).
+    glm::vec3 position{};
+    // +0x10: de dónde sale el tramo: el héroe en el primero (0x403430) y después el destino del anterior (0x40357c).
+    glm::vec3 start{};
+    // +0x1c: adónde va (0x403d90, el centro de la celda: · 100 + 50).
+    glm::vec3 target{};
+    // +0x28: el rumbo, destino − salida, que 0x4034e0 normaliza (0x5fc800) en cada paso.
+    glm::vec3 direction{};
+    // +0x34 (1): el tramo nuevo, que mide 0x403430 y apaga 0x4034e0.
+    bool begin = true;
+    // +0x35: la cámara en camino (0x403d90); mientras tanto, el guion no corre.
+    bool moving = false;
+    // +0x36 (1): llegó; el guion de la etapa corre con esto y lo apaga al terminar (y 0x403d90 sale al tramo
+    // siguiente).
+    bool arrived = true;
+    // +0x37 (1), +0x148 y +0x140: el reloj de 0x404c90 (vuelve a empezar en la llamada que sigue a la que vence).
+    // +0x140 es también el paso del guion de la etapa: 0x404c90 lo avanza al vencer, 0x4039f0 y 0x403900 con su bandera
+    // y el guion al terminar un tramo; 0x403d90 lo vuelve a 0.
+    bool timerRestart = true;
+    // +0x38: por personaje del guion (clave − 10000), si todavía gira hacia su celda (0x403760); 0x403300 los pone
+    // en 1.
+    std::array<bool, 50> turning = []
+    {
+        std::array<bool, 50> all{};
+        all.fill(true);
+        return all;
+    }();
     // +0x6a (1): la espera antes de empezar, que 0x4033f0 apaga a los 5.000 ms de timeGetTime con la etapa 2.
     bool waiting = true;
-    // +0x158: el recorrido cortado (Esc, 0x623edc) o terminado (0x404bc6).
-    bool skipped = false;
-    // +0x37 (1), +0x148 y +0x140: el reloj de 0x404c90 (vuelve a empezar en la llamada que sigue a la que vence) y las
-    // veces que venció.
-    bool timerRestart = true;
+    // +0x6c: lo que la cámara lleva andado en el tramo, de a +0x74 por paso; +0x70: el largo del tramo.
+    float travelled = 0.0f;
+    float distance = 0.0f;
+    // +0x74 (100): lo que anda por paso, del 0x403d90.
+    float speed = 100.0f;
+    // +0x78: por personaje del guion (clave − 10000), cuántas veces 0x403900 le cambió la acción.
+    std::array<std::int32_t, 50> actionCounts{};
+    std::int32_t step = 0;
+    // +0x144: la etapa del guion (0x4035f0: 0 a 5), que suma 0x403d90.
+    std::int32_t scriptStage = 0;
     std::uint32_t timerStart = 0;
-    std::int32_t timerCount = 0;
     // +0x14c (10000): la clave del próximo personaje del guion; 0x403d60 borra de 10000 a esta − 1 (0x510ff0).
     std::int32_t nextActorKey = 10000;
+    // +0x150: lo que suma 0x403d40 hasta 4 (la etapa 1 del guion); la cámara del juego lo copia en 0x7d3a0ec
+    // (0x635ed8).
+    std::int32_t level = 0;
+    // +0x154: la etapa de Crywolf que deja el BD 00 con 0x4033b0 (pkt[5]) después de 0x42fe80.
+    std::int32_t stage = 0;
+    // +0x158: el recorrido cortado (Esc, 0x623edc) o terminado (0x404bc6).
+    bool skipped = false;
 };
 
 struct EventGlobals

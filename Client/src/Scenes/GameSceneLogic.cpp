@@ -21,6 +21,8 @@
 #include "Scenes/CameraTour.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
+#include "Scenes/GamePanels.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/HelperTable.h"
@@ -211,7 +213,30 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
                          ? static_cast<std::uint32_t>(
                                std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
                          : 0U;
-    return StepTheCameraTour(runtime, now);
+    // 0x403390, en cada paso del recorrido: el ítem del cursor vuelve a su lugar (0x5be150) y los paneles se cierran
+    // como con Esc (0x657880(0x1b)).
+    const InventoryServices inventory = InventoryContext();
+    const auto releaseTheUi = [&]() -> Core::Expected<void, std::string>
+    {
+        WorldState& world = *m_context.world;
+        if (auto returned = ReturnTheCursorItem(
+                InventoryMoveContext{.world = world, .random = m_context.cloth->random, .services = inventory});
+            !returned.HasValue())
+            return returned;
+        GamePanels panels(world, m_context.cloth->random, GamePanelTables{.items = m_items, .texts = m_texts});
+        if (m_session != nullptr)
+            panels.LendTheWindowClose([this]() { m_session->SendWindowClose(); });
+        auto closed = panels.Registry().PanelKey(0x1b);
+        if (!closed.HasValue())
+            return Core::Unexpected(std::move(closed).Error());
+        return {};
+    };
+    return StepTheCameraTour(CameraTourContext{.world = *m_context.world,
+                                               .random = m_context.cloth->random,
+                                               .now = now,
+                                               .resources = m_context.worldEntry,
+                                               .height = terrainHeight,
+                                               .releaseTheUi = releaseTheUi});
 }
 
 } // namespace Client::Scenes

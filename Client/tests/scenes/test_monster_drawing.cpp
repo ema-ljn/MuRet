@@ -386,7 +386,7 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
     // después de la sombra.
     constexpr std::array cases{Case{Spider, 0x59, "0x50bae7", 0, 0}, Case{HelperType, 0x20, "0x4271d0", 6, 3},
                                Case{Spider, 0x26, "0x50c671", 6, 0}, Case{0x18e, 0x21, "0x600654", 0, 0},
-                               Case{Spider, 0x37, "0x50d599", 6, 0}, Case{0x16e, 0x22, "0x5108b6", 6, 3}};
+                               Case{Spider, 0x37, "0x50d599", 6, 0}};
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.address);
@@ -401,6 +401,52 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
         EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(value.randoms));
         TearDown();
     }
+}
+
+// 0x5108b6..0x510a1c, el 0x16e: por cada hueso que no es dummy, fuera de los 15..20 y 27..32 (36 de los 48), el 0x5fd
+// de 2,5 con la mezcla 1 (+0x1d6 en 0) o el 0x61e de 0,8 verde, y un rand() & 3; con 0 en las acciones 3 y 4, la
+// partícula 0x5ca con la misma luz. Después salta la cadena de helpers.
+TEST_F(MonsterDrawingTest, TheBoneSparksOf0x16eGoOverEachBoneOutsideTheTwoGaps)
+{
+    ActorState& sparks = Monster(0, 0x16e, 0x22);
+
+    const auto plain = Draw(Pass());
+
+    ASSERT_TRUE(plain.HasValue()) << plain.Error();
+    auto sprites = LiveSprites();
+    ASSERT_EQ(sprites.size(), 36u);
+    for (const auto& sprite : sprites)
+    {
+        EXPECT_EQ(sprite.texture, 0x5fd);
+        EXPECT_FLOAT_EQ(sprite.scale, 2.5f);
+        EXPECT_EQ(sprite.blend, 1);
+        EXPECT_EQ(sprite.light, glm::vec3(1.0f));
+    }
+    // Los huesos 14 y 21 quedan a los lados del primer hueco, y el 26 y el 33 del segundo.
+    EXPECT_EQ(sprites[14].position, glm::vec3(150.0f, 150.0f, 24.0f));
+    EXPECT_EQ(sprites[15].position, glm::vec3(150.0f, 150.0f, 31.0f));
+    EXPECT_EQ(sprites[20].position, glm::vec3(150.0f, 150.0f, 36.0f));
+    EXPECT_EQ(sprites[21].position, glm::vec3(150.0f, 150.0f, 43.0f));
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3 + 36));
+
+    // Con nivel, el 0x61e verde; la acción 3 con un rand() & 3 en 0 pide la partícula 0x5ca, que necesita el pool.
+    for (auto& sprite : m_sprites.Sprites())
+        sprite.alive = false;
+    m_batch.Begin(Client::Render::Pass3D{});
+    sparks.level = 1;
+    sparks.animation.action = 3;
+    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+
+    const auto missing = Draw(Pass());
+
+    ASSERT_FALSE(missing.HasValue());
+    EXPECT_NE(missing.Error().find("0x5109f2"), std::string::npos) << missing.Error();
+    sprites = LiveSprites();
+    ASSERT_FALSE(sprites.empty());
+    EXPECT_EQ(sprites[0].texture, 0x61e);
+    EXPECT_FLOAT_EQ(sprites[0].scale, 0.8f);
+    EXPECT_EQ(sprites[0].blend, 0);
+    EXPECT_EQ(sprites[0].light, glm::vec3(0.2f, 0.7f, 0.1f));
 }
 
 TEST_F(MonsterDrawingTest, BetweenOriginalFramesNothingIsStored)

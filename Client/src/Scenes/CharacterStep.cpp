@@ -25,6 +25,7 @@
 #include "Scenes/HealthBars.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/ModelBody.h"
+#include "Scenes/MonsterStepCases.h"
 #include "Scenes/NpcChatter.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnStatHelpers.h"
@@ -38,6 +39,7 @@
 #include "World/TerrainHeight.h"
 #include "World/TerrainWalls.h"
 #include "World/WorldObjectStepServices.h"
+#include "World/WorldObjects.h"
 #include "World/WorldTerrain.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -48,6 +50,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -60,10 +63,8 @@ namespace
 constexpr std::size_t SteppedCharacters = 400;
 // 0x412162: en el mapa 30 (0x1e), 0x412140 arma el panel del asedio.
 constexpr std::int32_t CastleMap = 30;
-// 0x42daae..0x42dac4: los casos del switch de 0x42da90 sobre +0x376 − 0xd8 (las tablas 0x42dc4c y 0x42dc64).
-constexpr std::array<std::uint16_t, 6> SiegeObjectClasses{216, 277, 278, 283, 286, 287};
 
-// 0x4fd603: el tipo que pasa su nombre a 0x4381f0.
+// 0x4fd603: el tipo que pasa su nombre y su nivel a 0x4381f0.
 constexpr std::uint16_t NamedType = 0xc5;
 // 0x4fbe2e..0x4fbe41: 0x4fbe10 corre solo en los mapas 18 a 23.
 constexpr std::int32_t FirstCellReportMap = 18;
@@ -194,6 +195,17 @@ const Render::Models::Skeleton* ModelSkeletonOf(const ActorState& actor, const C
     if (IsNewFace(actor.type))
         return context.newFaceSkeleton;
     return context.world.FaunaResources().SkeletonOf(actor.type);
+}
+
+// 0x5f93c0(x, y) sobre el terreno del paso, con la altura fija de context; vacía sin las alturas o sin el
+// TerrainWall.
+std::function<double(float, float)> TerrainHeightOf(const CharacterStepContext& context)
+{
+    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    if (!terrain.heights || !terrain.attributes)
+        return {};
+    return [&terrain, fixedHeight = context.fixedHeight](float x, float y)
+    { return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, fixedHeight); };
 }
 
 // 0x508ba0(c, c) desde 0x508ed8 con otro que el héroe publicado ([0x743a170]; con él sale en 0x508bad).
@@ -614,13 +626,12 @@ Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& 
 Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slot, bool hero,
                                               const CharacterStepContext& context)
 {
-    const WorldRuntime& runtime = context.world.Runtime();
-    // 0x4fd603..0x4fd693: el 0xc5 pasa su nombre y +0x1d6 a 0x4381f0.
+    WorldRuntime& runtime = context.world.Runtime();
+    // 0x4fd603..0x4fd698: el 0xc5 pasa su nombre y +0x1d6 a 0x4381f0 (MonsterStepCases.h).
     if (actor.type == NamedType)
     {
-        return Core::Unexpected(std::format("0x4fd603: el 0xc5 del lugar {} pasa su nombre a 0x4381f0, que no está "
-                                            "portado",
-                                            slot));
+        if (auto queued = QueueTheGateName(actor, context.texts, runtime.worldTexts); !queued.HasValue())
+            return queued;
     }
     // 0x4fd69b..0x4fd6ef: la posición, la escala y la acción al modelo compartido (+0x6c, +0x68 y +0xa0), que
     // MuRet no tiene: 0x4f9580 y 0x4ec200 leen la acción del personaje.
@@ -642,8 +653,13 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     // 0x511d3e; lo suben los mismos paquetes): no gira ni se corre (*estático*). El 0xf1 cae (0x4fb910).
     if (actor.type == FallingType)
     {
-        return Core::Unexpected(
-            std::format("0x4fb910: el 0xf1 del lugar {} cae con 0x5f93c0 y gira, sin portar", slot));
+        const std::function<double(float, float)> height = TerrainHeightOf(context);
+        if (!height)
+        {
+            return Core::Unexpected(
+                std::format("0x4fb942: falta la altura del terreno (0x5f93c0) para el 0xf1 del lugar {}", slot));
+        }
+        StepTheFallingBall(actor, height);
     }
     // 0x4fd722: 0x4fb9e0, muriéndose (+0x389).
     if (actor.dying != 0)
@@ -682,6 +698,20 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     if (auto trailed = StepTheWeaponTrail(actor, slot, context.random); !trailed.HasValue())
     {
         return trailed;
+    }
+    // 0x505425..0x505444: el 0xf1 echa el fuego de la clase 0 de 0x52f360 sin offset, con sus ángulos, su posición
+    // y su luz.
+    if (actor.type == FallingType)
+    {
+        const World::ObjectStepGlobals globals{.worldClock = context.worldClock,
+                                               .dynamicLighting = &context.world.DynamicLighting().Lighting(),
+                                               .particles = context.particles};
+        if (auto fire = World::EmitObjectFire(0, actor.angles, actor.position, actor.light, glm::vec3(0.0f),
+                                              context.random, globals);
+            !fire.HasValue())
+        {
+            return Core::Unexpected(std::format("{} (el 0xf1 del lugar {})", fire.Error(), slot));
+        }
     }
     // 0x50544b: 0x420dd0, después de la estela y antes de 0x505de0, también fuera del trapecio.
     if (!actor.darkSpirit || (actor.flags78 & FrozenFlag) != 0)
@@ -989,7 +1019,23 @@ Core::Expected<void, std::string> StepACharacter(ActorState& actor, std::size_t 
         return body;
     }
     const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
-    return StepTheEffects(actor, slot, hero, context, terrain.attributes ? &terrain.attributes->cells : nullptr);
+    if (auto effects =
+            StepTheEffects(actor, slot, hero, context, terrain.attributes ? &terrain.attributes->cells : nullptr);
+        !effects.HasValue())
+    {
+        return effects;
+    }
+    // 0x508eed: 0x42da90, que fuera del mapa 30 devuelve 0 (0x42da9a); en el 30 mueve, por +0x376, los objetos del
+    // asedio (MonsterStepCases.h).
+    const CastleObjectStep castle{.runtime = context.world.Runtime(),
+                                  .pool = context.world.Actors(),
+                                  .height = TerrainHeightOf(context),
+                                  .skeleton = ModelSkeletonOf(actor, context)};
+    if (auto stepped = StepTheCastleObject(actor, castle); !stepped.HasValue())
+    {
+        return Core::Unexpected(std::format("{} (lugar {})", stepped.Error(), slot));
+    }
+    return {};
 }
 } // namespace
 
@@ -1080,15 +1126,6 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
         if (auto stepped = StepACharacter(actor, slot, hero, context); !stepped.HasValue())
         {
             return stepped;
-        }
-        // 0x508eed: 0x42da90, que fuera del mapa 30 devuelve 0 (0x42da9a). En el 30 mueve, por +0x376, los objetos
-        // del asedio (0x42dac4): corta.
-        if (actor.alive && runtime.map == CastleMap &&
-            std::ranges::find(SiegeObjectClasses, actor.word376) != SiegeObjectClasses.end())
-        {
-            return Core::Unexpected(std::format("0x42dac4: el objeto del asedio {} del lugar {} (0x42da90) no está "
-                                                "portado",
-                                                actor.word376, slot));
         }
     }
     // Frontera (08 P-C44): 0x52e500 (0x5091d0), el paso de las estelas de 0x75e9870, sin rand(). Las

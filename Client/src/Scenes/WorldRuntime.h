@@ -217,8 +217,19 @@ struct WorldRuntime
     // ponen en 0 la carga del 30 (0x42a795) y 0x4294c0 (los paquetes del asedio, CL9.5).
     float siegeMusicTime = 0.0f;
     // 0x7239d8 (.bss 0): lo pone en 0 la carga del 30 (0x42a78e) y en 2 0x42d890 cuando el 286 o el 287 terminan la
-    // acción 5 (0x42d8f6); lo lee 0x42da90 (0x42db7b), sin portar.
+    // acción 5 (0x42d8f6); lo leen y lo escriben los 286 y 287 en 0x42da90 (0x42db7b..0x42dc0f).
     std::uint8_t castleByte7239d8 = 0;
+    // 0x7239d9 (.bss 0): el 277 del mapa 30 lo pone en 1 en cada paso (0x42db10); 0x42da60, al final del dibujo de los
+    // personajes, no abre las puertas con él en 1 y lo vuelve a 0.
+    std::uint8_t castleGatesClosed = 0;
+    // 0x7239dc y 0x7239e0 (.bss 0): la x y la y del 278 del mapa 30 con +0x42d en 0x80 (0x42dc38); 0x42da60 los pone
+    // en 0 al final del dibujo de los personajes. Los lee 0x42ddb0 (0x42ddf8), el dibujo del asedio sobre los
+    // personajes, que solo corre con el asedio y corta en 0x42b00b.
+    float castleMarkX = 0.0f;
+    float castleMarkY = 0.0f;
+    // 0x7239e4 (.bss 0): el +0x78 del 216 del mapa 30 (0x42daea). Lo comparan con 0x20000 0x42c850 (0x42c977, con el
+    // asedio, que corta) y 0x42de90 (0x42ded1, el helper del 30 de 0x5085db, que corta).
+    std::uint32_t castleFlags7239e4 = 0;
     // 0x6c649a (.data 0xff): el puesto del héroe en su gremio, que solo copia 0x412120 desde 0x4d9260 (el
     // paquete del gremio, CL9). Sin ese paquete queda en 0xff, sin gremio.
     std::uint8_t heroGuildPost = 0xff;
@@ -251,7 +262,7 @@ struct WorldRuntime
     // Los cinco selectores del mouse arrancan en -1 en la .data.
     std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};
     // 0x723c18: la cola de los textos 3D (WorldTexts.h). La llena 0x4381f0 desde el cuerpo de los personajes
-    // (0x4fd603, que MuRet corta: CL9.5) y la vacía su dibujo (0x4383f0) en cada frame del juego.
+    // (0x4fd603, el 0xc5) y la vacía su dibujo (0x4383f0) en cada frame del juego.
     WorldTextQueue worldTexts{};
     // 0x723c68 (+8, la lista; +0xc, la cuenta): los destinos de movereq.bmd que 0x448440 lee en la carga (0x61ccb0) y
     // que la ventana /move recorre en su paso (0x448580) y en su dibujo (0x448fa0). main.cpp los copia de GameData.

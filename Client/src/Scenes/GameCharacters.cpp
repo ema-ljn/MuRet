@@ -385,10 +385,25 @@ Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const I
     }
     if (!world.Map().terrain.attributes)
         return Core::Unexpected<std::string>("0x42da60: falta el TerrainWall que abre las puertas");
-    World::OpenTheGates(world.Map().terrain.attributes->cells);
+    FinishTheCastleFrame(&world.Runtime(), world.Map().terrain.attributes->cells);
     return {};
 }
 } // namespace
+
+void FinishTheCastleFrame(WorldRuntime* runtime, Data::Terrain::TerrainLayer<std::uint16_t>& walls)
+{
+    // 0x42da60..0x42da79: 0x42da40 abre las puertas (0x42a110(0, 0, 0, 1)) solo con 0x7239d9 en 0.
+    if (runtime == nullptr)
+    {
+        World::OpenTheGates(walls);
+        return;
+    }
+    runtime->castleMarkX = 0.0f;
+    runtime->castleMarkY = 0.0f;
+    if (runtime->castleGatesClosed == 0)
+        World::OpenTheGates(walls);
+    runtime->castleGatesClosed = 0;
+}
 
 Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch, const IModelLibrary& models,
                                                      WorldState& world, const GameCharacterPass& pass)
@@ -442,7 +457,8 @@ Core::Expected<void, std::string> DrawCharacterTail(Render::ModelBatch& batch, c
 }
 
 Core::Expected<void, std::string> DrawGameCharacters(std::span<ActorState> actors, std::size_t hero,
-                                                     Data::Terrain::TerrainLayer<std::uint16_t>& walls)
+                                                     Data::Terrain::TerrainLayer<std::uint16_t>& walls,
+                                                     WorldRuntime* runtime)
 {
     for (std::size_t slot = 0; slot < std::min(actors.size(), DrawnActorCount); ++slot)
     {
@@ -461,7 +477,7 @@ Core::Expected<void, std::string> DrawGameCharacters(std::span<ActorState> actor
                                             "recursos del dibujo del juego (modelos, luz dinámica y rand global)",
                                             slot));
     }
-    World::OpenTheGates(walls);
+    FinishTheCastleFrame(runtime, walls);
     return {};
 }
 } // namespace Client::Scenes

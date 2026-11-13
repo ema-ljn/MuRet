@@ -17,6 +17,7 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/GameHanging.h"
+#include "Scenes/KalimaSiegeHelpers.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -547,6 +548,28 @@ Result DrawTheFairy(MonsterFrame& frame)
     return {};
 }
 
+// Lo que leen los helpers de KalimaSiegeHelpers.h: el pase del frame y, en el 0x42a1b0, las alturas del terreno del
+// pase (sin él, las del mapa del mundo). El sonido, solo en el frame del original.
+KalimaSiegeHelperPass HelperPassOf(MonsterFrame& frame)
+{
+    const World::WorldTerrain& terrain =
+        frame.pass.terrain != nullptr ? *frame.pass.terrain : frame.world.Map().terrain;
+    return {.batch = frame.batch,
+            .actor = frame.actor,
+            .random = frame.random,
+            .sprites = frame.pass.sprites,
+            .particles = frame.pass.particles,
+            .joints = frame.pass.joints,
+            .effects = frame.pass.effects,
+            .kalima = frame.pass.kalima,
+            .cameraShake = frame.pass.cameraShake,
+            .heights = terrain.heights.get(),
+            .sound = frame.originalFrame ? &frame.world.Runtime().lastSoundId : nullptr,
+            .worldClock = frame.worldClock,
+            .map = frame.map,
+            .siegeActive = frame.world.Runtime().siegeActive};
+}
+
 // 0x50e9fa..0x510a1e: el switch por modelo (la tabla de 0x510b80 sobre 0x510b50). Devuelve true si el tipo tiene su
 // caso, que salta la cadena de 0x510a1e.
 Core::Expected<bool, std::string> DrawTheModelCase(MonsterFrame& frame)
@@ -557,9 +580,15 @@ Core::Expected<bool, std::string> DrawTheModelCase(MonsterFrame& frame)
     if (!OneOf(type, Cased))
         return false;
     if (type == 0x16e)
-        return Core::Unexpected(std::format("0x5108b6: el lazo de los huesos con sus sprites y la partícula 0x5ca de "
-                                            "rand() & 3 (0x53fe70) del tipo {:#x} no está portado",
-                                            type));
+    {
+        // 0x5108b6 (KalimaSiegeHelpers.h), con los huesos del modelo.
+        const Render::Models::Skeleton* skeleton = frame.fauna.SkeletonOf(type);
+        if (skeleton == nullptr)
+            return Core::Unexpected(std::format("0x5108b6: falta el modelo {:#x}", type));
+        if (auto sparks = DrawTheBoneSparks(HelperPassOf(frame), *skeleton); !sparks.HasValue())
+            return Core::Unexpected(sparks.Error());
+        return true;
+    }
     if (frame.pass.sprites == nullptr)
         return Core::Unexpected<std::string>("0x5491e0: falta la tabla de sprites del frame");
     constexpr std::uint16_t Flare = 0x5d5, Shine = 0x5fe, Spark = 0x5c5, Star = 0x5ac;
@@ -625,15 +654,10 @@ Core::Expected<bool, std::string> DrawTheModelCase(MonsterFrame& frame)
     return true;
 }
 
-// 0x510a1e..0x510a77: la cadena de helpers por tipo, en su orden. Cada uno devuelve 0 con un tipo que no es suyo sin
-// hacer nada: 0x42fa30 siempre.
+// 0x510a45..0x510a77: la cadena de helpers por tipo después de 0x43c150 y 0x42dfe0 (DrawKalimaSiegeHelpers), en su
+// orden. Cada uno devuelve 0 con un tipo que no es suyo sin hacer nada: 0x42fa30 siempre.
 Result CheckTheHelpers(std::uint16_t type, std::int32_t map)
 {
-    if (type == 0xc5 || Within(type, 0x191, 0x197))
-        return Cut("0x43c150", "el helper de efectos por tipo de 0x510a1e", type);
-    constexpr std::array<std::uint16_t, 4> CastleTypes{0x19c, 0x1a1, 0x1a8, 0x1fd};
-    if (map == CastleMap && OneOf(type, CastleTypes))
-        return Cut("0x42dfe0", "el helper de efectos del asedio de 0x510a1e", type);
     if (Within(type, 0x1a3, 0x1a7) || type == 0x1a9)
         return Cut("0x441400", "el helper de efectos por tipo de 0x510a1e", type);
     // 0x434180: solo con 0x4303c0 (el mapa 34); del 0x204 al 0x208, la marca 0x69b y las partículas 0x729.
@@ -675,8 +699,15 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
         return Core::Unexpected(cased.Error());
     if (!cased.Value())
     {
-        if (auto helpers = CheckTheHelpers(actor.type, frame.map); !helpers.HasValue())
-            return helpers;
+        // 0x510a27 y 0x510a36: 0x43c150 y 0x42dfe0 (KalimaSiegeHelpers.h); el primero que tiene el tipo salta el resto.
+        const auto helped = DrawKalimaSiegeHelpers(HelperPassOf(frame));
+        if (!helped.HasValue())
+            return Core::Unexpected(helped.Error());
+        if (!helped.Value())
+        {
+            if (auto helpers = CheckTheHelpers(actor.type, frame.map); !helpers.HasValue())
+                return helpers;
+        }
     }
     // 0x510a7a: en la escena 5, con +0x88 en 1, fuera de Blood Castle, Chaos Castle y el 30, 0x510ef0 con +0x369 (y
     // +0x36c en 0 en MuRet, Q-C352).

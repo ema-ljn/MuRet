@@ -83,7 +83,9 @@ struct ActorState
     // +0x138, el techo de la caja. 0x5133b0 le suma 70. Lo lee también el globo (0x5a9050), que va 60 más arriba.
     float boundsTop = 0.0f;
     // +0x58, +0x60 y +0x64: 0x511290 pone el primero y el último en −1 (0x511d45, 0x51248d) y no toca el del medio;
-    // los casos de 0x5141e0 los escriben por el tipo. Qué son y quién los lee, sin leer.
+    // los casos de 0x5141e0 los escriben por el tipo. +0x58 en −2 no se dibuja (0x42da90 y 0x42dfe0 lo escriben en el
+    // mapa 30); +0x60 es el contador de la partícula del 0xc5 y el estado de los ataques de Kundun en 0x43c150
+    // (KalimaSiegeHelpers.h). Quién lee los otros, sin leer.
     std::int32_t dword58 = 0;
     std::int32_t dword60 = 0;
     std::int32_t dword64 = 0;
@@ -100,6 +102,9 @@ struct ActorState
     // (0x42d23e). Quién los lee, sin leer.
     float floatCC = 0.0f;
     float floatD0 = 0.0f;
+    // +0xd4: el tercer giro del 0xf1, que 0x4fb910 suma al yaw y achica a 0,8f. Ningún camino del personaje del pool lo
+    // escribe (0x511290 tampoco: queda el del uso anterior del lugar, en MuRet 0; *estático*).
+    float floatD4 = 0.0f;
     float floatD8 = 0.0f;
     float floatE4 = 0.0f;
     // +0x38a (0, 0x511c0c), +0x38f (0x42d7f0 lo pone en 0 con el 0x19b), +0x394 (0, 0x511ceb), +0x3e4 y +0x42d (el bit
@@ -110,7 +115,8 @@ struct ActorState
     std::uint8_t byte3e4 = 0;
     std::uint8_t byte42d = 0;
     // +0x110 (0x511290 lo pone en 0, 0x511c69) y +0x100: 0x42d890 los pone en 1 y en 0x12c cuando el 286 o el 287 del
-    // mapa 30 terminan la acción 5 (0x42d8fd y 0x42d904); los lee 0x42da90, sin portar.
+    // mapa 30 terminan la acción 5 (0x42d8fd y 0x42d904); 0x42da90 los lee y los escribe: abiertas y el tiempo que les
+    // queda, que baja 1 en cada paso (StepTheCastleObject, MonsterStepCases.h).
     std::uint8_t byte110 = 0;
     std::int32_t dword100 = 0;
     // +0x3a4: la cola 0x5140c0 le copia el WORD de [0x57678b0] (WorldRuntime::heroSlot).
@@ -210,6 +216,11 @@ struct ActorState
     // 0x508f00 no lo pone en el TerrainWall (0x508f60). 0x60cf70 contornea el 4 con otros colores y 0x50d374
     // viste al 1 con el Angel en Chaos Castle.
     std::uint8_t byte88 = 0;
+    // +0x89 y +0x8a (un short): el pulso del 0x62d de Kundun (0x192) en la acción 5 (0x43c7bb..0x43c8e3), que fuera de
+    // ella pone el +0x8a en 0. 0x511290 no los toca; los otros que escriben +0x8a (0x4f9f6f, 0x4fdc10, 0x5ff9ec) son
+    // caminos que MuRet no corre con un monstruo (*estático*).
+    std::uint8_t byte89 = 0;
+    std::int16_t word8a = 0;
     std::uint8_t controlCode = 0; // +0x1d8, el CtlCode de la respuesta del F3 03
     // +0x1d9: el nombre. La respuesta del F3 03 copia ahí los diez bytes del registro propio (0x4c47a2).
     std::array<std::byte, Protocol::Character::NameSize> name{};
@@ -235,8 +246,8 @@ struct ActorState
     // 0x4c89ed). Qué es y quién más lo lee, sin leer.
     std::uint8_t byte372 = 0;
     std::uint8_t byte374 = 0;
-    // +0x42c: 0x511290 lo pone en 1 (0x511c92); sin él, el picking de 0x59e700 no lo elige (0x59e95e). Quién lo
-    // apaga, sin leer.
+    // +0x42c: 0x511290 lo pone en 1 (0x511c92); sin él, el picking de 0x59e700 no lo elige (0x59e95e). En el mapa 30
+    // lo apagan y lo prenden 0x42d890, 0x42da90 y 0x42dfe0 en los objetos del asedio.
     std::uint8_t byte42c = 0;
     // +0x381: la habilidad activa inhibe la orientación quieta (59b3e4). Retenido por 511290.
     std::uint8_t byte381 = 0;

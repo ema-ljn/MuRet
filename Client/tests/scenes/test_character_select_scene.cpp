@@ -1206,7 +1206,9 @@ TEST(CharacterSelectSceneTest, TheCommonStepVisitsLivingActorsOutsideTheListAndS
     tested.Step();
 
     ASSERT_TRUE(tested.scene->Failure().has_value());
-    EXPECT_NE(tested.scene->Failure()->find("0x4fb910"), std::string::npos) << *tested.scene->Failure();
+    // El 0xf1 cae (0x4fb910, sin rand(): el piso del login lo sube y +0xe4 rebota) y corta en su modelo, sin cargar.
+    EXPECT_NE(tested.scene->Failure()->find("0x4f9580"), std::string::npos) << *tested.scene->Failure();
+    EXPECT_EQ(other.floatE4, static_cast<float>(-6.0 * static_cast<double>(-0.4f)));
     EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 16).State());
     EXPECT_EQ(cloth.logicSteps, 77);
     EXPECT_EQ(cloth.wind, wind);

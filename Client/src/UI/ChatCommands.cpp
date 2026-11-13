@@ -244,18 +244,4 @@ bool IsAForbiddenMacro(const Data::Text::TextTable& texts, std::string_view text
            macro == TextAt(texts, GuildWarCommandText) || EqualsIgnoringCase(macro, "/GuildWar") ||
            macro == TextAt(texts, SoccerCommandText) || EqualsIgnoringCase(macro, "/BattleSoccer");
 }
-
-Core::Expected<void, std::string> CheckTheEmotes(const Data::Text::TextTable& texts, std::string_view text)
-{
-    const auto found = [&](std::size_t index) { return ContainsLikeTheOriginal(text, TextAt(texts, index)); };
-    for (std::size_t index = FirstEmoteText; index <= LastEmoteText; ++index)
-    {
-        if (found(index))
-            return Core::Unexpected(std::format("0x576a60: el emote del texto {} (y su C1 18) es de la CL9.1", index));
-    }
-    if (found(LastEmoteExtraText))
-        return Core::Unexpected(
-            std::format("0x576a60: el emote del texto {} (y su C1 18) es de la CL9.1", LastEmoteExtraText));
-    return {};
-}
 } // namespace Client::UI

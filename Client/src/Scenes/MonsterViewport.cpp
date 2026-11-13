@@ -39,18 +39,6 @@ constexpr std::int32_t CastleSiegeMap = 30;
 constexpr std::uint16_t SiegeGateKind = 0x115;
 constexpr std::uint32_t GateOpenFlag = 0x20000;
 
-// 0x4ea030 sobre un monstruo: la cuenta de acciones de su modelo, que MuRet solo tiene del jugador.
-Core::Expected<void, std::string> SetMonsterAction(ActorState& actor, std::uint8_t action, std::uint32_t address,
-                                                   const WorldEntryResources& resources)
-{
-    const auto* skeleton = resources.models.SkeletonOf(actor.type);
-    if (skeleton == nullptr)
-        return Core::Unexpected(
-            std::format("{:#x}: 0x4ea030 necesita el modelo {:#x}, que MuRet no carga (P-C176)", address, actor.type));
-    Render::Models::SetAction(actor.animation, *skeleton, action);
-    return {};
-}
-
 // 0x4c9790, los casos con la acción 1, +0x112 en 1, el alpha en 1 y, si hay, el sonido.
 Core::Expected<void, std::string> RiseWithActionOne(ActorState& actor, std::uint32_t address,
                                                     std::optional<std::int32_t> sound,

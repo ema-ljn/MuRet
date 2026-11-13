@@ -9953,12 +9953,63 @@ en `0x1a15`, el cuerpo en `0x102a + 0x200 · i` con nivel 13, la escala en 1 y `
 
 MuRet: `Scenes::MonsterKinds` (las tablas en `MonsterKindTable.cpp`, `MonsterCreationOf`, `MonsterStepResolver`,
 `ResolveMonsterSteps` y `MonsterTailOf`) y `Scenes::CreateMonster` (`MonsterCreation.h`), que corre los pasos en orden
-con cada `rand()` en su lugar entre los del alta. `LoadMonster` mira que esté el `.bmd` (sin él corta, como el cierre
-del original, P-C173); ni ese ni `LoadNpc` cargan el modelo, y `Action` corta sin el esqueleto del modelo (08,
-P-C176). `MeshFlag` y `ModelByte` quedan en `WorldRuntime::modelPatches` y `BoneName` en `WorldRuntime::namedBones`;
+con cada `rand()` en su lugar entre los del alta. `LoadMonster` y `LoadNpc` cargan el modelo ([Los modelos de los
+monstruos y los NPC](#los-modelos-de-los-monstruos-y-los-npc); sin el `Monster*.bmd` corta, como el cierre del
+original, P-C173) y `Action` usa sus acciones (`Scenes::SetMonsterAction`). `MeshFlag` y `ModelByte` quedan en `WorldRuntime::modelPatches` y `BoneName` en `WorldRuntime::namedBones`;
 el sonido, en `WorldRuntime::lastSoundId` (CL10). Cortan los joints y la llegada (CL11) y el asedio prendido (CL9.5),
 08, P-C175. El nombre se guarda en `+0x1d9..+0x1f1` (el nombre, `+0x1e3` y `ActorState::nameSpill`); lo que pisaría
 `+0x1f2` corta (Q-C847). `ConstructActor` pone la caja y los huesos por tipo.
+
+### Los modelos de los monstruos y los NPC
+
+(CL9 hito 2, 2026-11-13, *estático*: las tablas están leídas del listado caso por caso; *verificado* con el `Data` del
+laboratorio que cada modelo que piden los casos carga con las acciones que escriben.) Con `[0x6c9e0c]` en 1, que es
+como corre el juego, los dos cargadores salen sin hacer nada si el modelo ya está: `0x612d90(n)` si el `0x152 + n`
+tiene acciones o mallas (`0x612dbc` y `0x612dc7`) y `0x612270(modelo)` solo si tiene acciones (`0x61229a`). El arreglo
+de `0x5769ad8` lo pone en 0 `0x60dbe0` (`0x60dc7a..0x60dc80`): los sonidos de un modelo que no pasa por `0x612c80` quedan
+en 0, no en −1.
+
+**`0x612d90(n)`.** `0x60da30(0x152 + n, "Data\\Monster\\", "Monster", n + 1)`: sin el archivo cierra (Q-C23). Sin
+mallas sale (`0x612dee`). Con ellas, las texturas con `0x60d5f0(modelo, carpeta, GL_NEAREST, GL_REPEAT, 1)`, con la
+carpeta de `0x612df4..0x612e4e`: `Npc\` para el 0x46 al 0x48 en los mapas 18 a 23 (Chaos Castle), `Object31\` para el
+0x4a en el 30 y `Monster\` para el resto. Después, en orden:
+
+1. las siete velocidades (`+4` de la acción) de todo monstruo, `0x612e5a..0x612e9f`: 0,25; 0,2; 0,34; 0,33; 0,33; 0,5
+   y 0,55 a las acciones 0 a 6, y la acción 6 sin repetir (`+0x60` en 1);
+2. el factor de las acciones 0 a 5 (`0x612ea3..0x612efb`, multiplicado en el x87 y guardado en `float`): 1,2 el 3
+   (`0x6b8bb0`), 0,7 el 5 y el 0x19 (`0x6b8a5c`) y 0,4 el 0x25 y el 0x2a (`0x6b87b4`);
+3. el primer switch (`n − 2` sin signo hasta `0x67`, la tabla de bytes `0x6152b4` sobre la de saltos `0x615240`): 32
+   casos con velocidades sueltas (el 0x42 y el 0x45 comparten `0x613044`);
+4. el segundo (`0x615324` sobre `0x61531c`): el 0xe, el 0x1f, el 0x27 y el 0x28 dejan la acción 1 sin repetir
+   (`0x613120`);
+5. el tercero (`n` hasta `0x56`, la tabla `0x615340`), 74 casos: los `.wav` (`0x41eac0(id, ruta, 2, 1)`), los diez
+   `WORD` de los sonidos de las acciones (`0x612c80`, `+0xaa..+0xbc`), el hueso de la cabeza (`+0x54`), más
+   velocidades, el byte `+0x88` del 0x1b (`0x613f97`) y las texturas fijas del 0x2a (`Monster\bv01_2.jpg` y
+   `bv02_2.jpg` en `0x6f5` y `0x6f6`, `0x63b870`, lineal y repetida) y del 0x34 (`Monster\iui02.tga` e `iui03.tga` en
+   `0x253` y `0x255`, `0x63bd00`, sin filtro y cortada). El 0xc y el 0xd comparten `0x613a2f`, que escribe los dos
+   modelos (Q-C858).
+
+**`0x612270(modelo)`.** El caso sale de `modelo − 0x1cb` sin signo hasta `0x3d` (la tabla de bytes `0x612c2c` sobre la
+de saltos `0x612b9c`); fuera de ella, el default `0x612b4f`. Los casos leen de `Data\Npc\` (el 0x1cb al 0x1cd con sus
+partes `0x1da..0x1f0`, de a dos por número; del 0x1ce al 0x1d9 uno cada uno, con `nBlackSmith.wav` y `nHarp.wav` en
+`0xa0` y `nMix.wav` en `0xa1`, `0x41eac0(id, ruta, 1, 0)`; `Sevina`, los dos `BloodCastle`, `DeviasTrader`, `Breeder` y los del asedio, `0x1f2..0x200`)
+o de `Data\Object35\` (`0x203` y `0x204..0x208`), cada uno con `0x60d5f0(…, "Npc\\" u "Object35\\", GL_NEAREST,
+GL_REPEAT, 1)`. Un `.bmd` que falta no cierra: `0x60da30` solo cierra con `Monster`, `Player` y `PlayerTest`. La cola
+(`0x612b4f..0x612b8b`) pone todas las acciones del modelo en 0,25 (`0x3e800000`) y, con mallas, vuelve a llamar a
+`0x60d5f0(modelo, "Npc\\", …)`: los casos que ya lo hicieron suman otra referencia a cada textura (Q-C857). El tipo
+220 del mapa 30 (`0x42d2bf`) pide `0x612270(0x4d)` en vez de `0x612d90(0x4d)` (Q-C856).
+
+MuRet: `Scenes::MonsterModelTable` (las tablas: `CommonMonsterSpeeds`, `MonsterSpeedFactorOf`, `EarlyMonsterSpeedsOf`,
+`MonsterFirstActionStops`, `MonsterModelCaseOf`, `MonsterTextureFolderOf` y `NpcModelCaseOf`) y
+`FaunaModels::LoadMonster` y `LoadNpc`, que cargan en `WorldState::FaunaResources()`, el dueño que dura más que los
+mapas, con la biblioteca del mapa detrás para las guardas (el `0x19f` que carga el mapa 30, `WorldModels::LoadTheSpearman`,
+no se vuelve a leer). Las texturas suben por la tabla propia de `FaunaModels`, con el backend que le liga
+`GameScene::Enter` (sin él, el alta corta). Los `.wav` quedan en `FaunaModels::SoundFiles` y las tablas de `0x612c80`
+en `SoundActions` (el audio es de la CL10). Una velocidad que caería fuera de las acciones del modelo corta (el
+original escribiría fuera de su arreglo; con el `Data` del laboratorio no pasa). `NPC\BloodCastle01.bmd` (el
+`0x1f3`) corta: cuelga huesos de uno que va después (Q-C108, 08, P-C240). Tests: `GoldenMonsterModels` (cada
+`LoadMonster` y cada `LoadNpc` de los casos) y `MonsterViewportTest.TheCreationLoadsTheModelsOfItsCase` (Lorencia,
+Devias, Chaos Castle y el mapa 30, con la carpeta y la segunda alta que no recarga).
 
 ### Los monstruos y los NPC en el viewport
 

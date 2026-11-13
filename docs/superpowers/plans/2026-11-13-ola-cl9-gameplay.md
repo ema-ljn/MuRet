@@ -254,9 +254,11 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
 - [x] **El `0x1A`** (`0x4cedd0`), la skill que pega a varios: no crea nada; el brillo de la mano (`0x53d810`, la
       partícula 5fd con su paso y su dibujo), la acción `0x96`, el `+0x38e`, el golpe y el número de cada blanco
       (`0x4f53a0`, `0x548e40`) y la vida del jugador (06, "La skill que pega a varios").
+- [x] **Los modelos de los monstruos y los NPC** (`0x612d90` y `0x612270`, 08 P-C176): el alta los carga en
+      `WorldState::FaunaResources()` con sus tablas (velocidades, sonidos, hueso de la cabeza, texturas fijas) y la
+      acción `0x4ea030` ya no corta; el `0x1f3` (`BloodCastle01`, Q-C108) corta (P-C240).
 - [ ] Las partes de monstruo de `0x50ba30` y `0x4fd5f0` que la CL7 dejó cortadas, y los monstruos que la revisión
-      de la CL.M dejó en la CL7 por `0x50ba30` (`0x4271d0`, `0x441400`, `0x434180`): necesitan los modelos de los
-      monstruos, que el alta no carga (08, P-C176 y P-C178).
+      de la CL.M dejó en la CL7 por `0x50ba30` (`0x4271d0`, `0x441400`, `0x434180`) (08, P-C176 y P-C178).
 - [ ] **La tela sobre la malla** (P-C22 f, vtable `0x6b8d04`: los monstruos `0x59..0x8f`; los tres pantalones
       también la usan), y Q-C95 con el primer modelo que se desvanezca (§ Lo que dejó la CL6).
 - [x] El picking de NPC y monstruos en `0x59ec80`, con la caja de cada tipo.

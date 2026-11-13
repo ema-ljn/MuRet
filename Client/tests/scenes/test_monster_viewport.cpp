@@ -13,6 +13,7 @@
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/FaunaModels.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/MonsterKinds.h"
@@ -23,6 +24,7 @@
 #include "World/GameCamera.h"
 #include "World/WorldTerrain.h"
 
+#include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
@@ -75,6 +77,8 @@ struct Game
 {
     Game()
     {
+        // 0x612d90 y 0x612270 suben las texturas de los modelos que cargan por la tabla que liga el juego.
+        world.FaunaResources().TextureTable().Bind(store);
         models.Set(PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         ActorState& hero = world.Actors()[0];
         hero = Client::Tests::UnarmedPlayer();
@@ -97,6 +101,8 @@ struct Game
                 .log = log,
                 .texts = texts};
     }
+    // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
+    Client::Tests::FakeTextureStore store;
     Client::Scenes::WorldState world;
     std::filesystem::path dataRoot;
     Client::Scenes::SelectionState selection{world};
@@ -445,6 +451,94 @@ TEST_F(MonsterViewportTest, TheCrywolfAltarReadsItsClosedCell)
     }
 }
 
+// 0x612d90 y 0x612270 desde el alta (P-C176): en Lorencia el tipo 3 carga Monster10.bmd en el 0x15b con la acción 2 en
+// 1,2 (0x612f4a); en Devias el 19, Monster13.bmd en el 0x15e con el hueso de la cabeza en 0x14 y sus sonidos
+// (0x6133f4); el herrero (251) Smith01.bmd en el 0x1ce con sus acciones a 0,25; en Chaos Castle (18) el 162 lee las
+// texturas de Monster71.bmd de la carpeta Npc (0x612e0d) y en Castle Siege (30) el 283 las de Monster75.bmd de la
+// Object31 (0x612e2a), antes de cortar en su llegada (CL11). Cargar no saca rand() ni vuelve a leer lo que ya está.
+TEST_F(MonsterViewportTest, TheCreationLoadsTheModelsOfItsCase)
+{
+    struct Case
+    {
+        std::uint8_t map;
+        std::uint16_t type;
+        std::uint16_t model;
+        const char* folder;
+        bool cuts;
+    };
+    const std::array<Case, 5> cases{{
+        {0, 3, 0x15b, "Monster\\", false},
+        {2, 19, 0x15e, "Monster\\", false},
+        {0, 251, 0x1ce, "Npc\\", false},
+        {18, 162, 0x198, "Npc\\", false},
+        {30, 283, 0x19c, "Object31\\", true},
+    }};
+    for (const Case& tested : cases)
+    {
+        SCOPED_TRACE(tested.type);
+        Load(tested.map);
+        const Cell cell = FreeRow();
+        const std::array<MonsterRecordBytes, 1> records{{{.key = 0x0123,
+                                                          .typeHigh = Byte(tested.type >> 8),
+                                                          .typeLow = Byte(tested.type),
+                                                          .x = cell.x,
+                                                          .y = cell.y,
+                                                          .targetX = cell.x,
+                                                          .targetY = cell.y}}};
+        const auto applied = Monsters(records);
+        ASSERT_EQ(applied.HasValue(), !tested.cuts) << (applied.HasValue() ? "" : applied.Error());
+        auto& models = game->world.FaunaResources();
+        const auto* model = models.Find(tested.model);
+        ASSERT_NE(model, nullptr);
+        ASSERT_FALSE(model->meshes.empty());
+        EXPECT_EQ(models.MeshTextures(tested.model).size(), model->meshes.size());
+        const auto requests = models.TextureTable().Slots().ToLoad();
+        ASSERT_FALSE(requests.empty());
+        EXPECT_TRUE(requests.front().path.starts_with(tested.folder)) << requests.front().path;
+        EXPECT_GT(game->store.loadCalls, 0);
+        if (!tested.cuts)
+        {
+            EXPECT_EQ(Actor(1).type, tested.model);
+        }
+        if (tested.model == 0x198)
+        {
+            // El 0x46 va por 0x613053: las acciones 3 y 4 en 0,5 y la 2 en 0,3; el hueso de la cabeza, 0x14.
+            const auto* skeleton = models.SkeletonOf(0x198);
+            ASSERT_NE(skeleton, nullptr);
+            EXPECT_EQ(skeleton->actions[3].speed, 0.5f);
+            EXPECT_EQ(skeleton->actions[2].speed, Real(0x3e99999a));
+            EXPECT_EQ(skeleton->headBone, 0x14);
+        }
+    }
+
+    Load(2);
+    const Cell cell = FreeRow();
+    std::array<MonsterRecordBytes, 1> records{
+        {{.key = 0x0124, .typeLow = 19, .x = cell.x, .y = cell.y, .targetX = cell.x, .targetY = cell.y}}};
+    ASSERT_TRUE(Monsters(records).HasValue());
+    const auto& devias = game->world.FaunaResources();
+    EXPECT_EQ(devias.SkeletonOf(0x15e)->actions[2].speed, Real(0x3e99999a));
+    EXPECT_EQ(devias.SkeletonOf(0x15e)->headBone, 0x14);
+    EXPECT_EQ(devias.SoundActions(0x15e)[0], 0x44);
+    const int loads = game->store.loadCalls;
+    records[0].key = 0x0125;
+    ASSERT_TRUE(Monsters(records).HasValue());
+    EXPECT_EQ(game->store.loadCalls, loads);
+    EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 2 * WalkingRecordDraws).State());
+
+    Load(0);
+    const Cell lorencia = FreeRow();
+    records[0] = {
+        .key = 0x0126, .typeLow = 3, .x = lorencia.x, .y = lorencia.y, .targetX = lorencia.x, .targetY = lorencia.y};
+    ASSERT_TRUE(Monsters(records).HasValue());
+    EXPECT_EQ(game->world.FaunaResources().SkeletonOf(0x15b)->actions[2].speed, Real(0x3f99999a));
+    records[0] = {
+        .key = 0x0127, .typeLow = 251, .x = lorencia.x, .y = lorencia.y, .targetX = lorencia.x, .targetY = lorencia.y};
+    ASSERT_TRUE(Monsters(records).HasValue());
+    for (const auto& action : game->world.FaunaResources().SkeletonOf(0x1ce)->actions)
+        EXPECT_EQ(action.speed, 0.25f);
+}
+
 // 0x51481a: el 68 pide Monster50.bmd, que el Data del laboratorio no trae; el original cierra (Q-C23) y MuRet corta
 // antes del alta, sin rand().
 TEST_F(MonsterViewportTest, TheMissingMonsterFileCutsBeforeTheCreation)
@@ -459,8 +553,8 @@ TEST_F(MonsterViewportTest, TheMissingMonsterFileCutsBeforeTheCreation)
     EXPECT_EQ(game->cloth.random.State(), CrtRandom(Seed).State());
 }
 
-// 0x4c9790: el 85 pide el sonido 0x173; el 21 la acción 1 con el esqueleto de su modelo (sin él corta en 0x4c97ff) y
-// el sonido 0x13. El 0x35 y el 0x154 cortan en 0x4c982b y 0x4c9883.
+// 0x4c9790: el 85 pide el sonido 0x173; el 21 la acción 1 (0x4c97ff) con las acciones de Monster15.bmd, que su caso
+// cargó en el modelo 0x160 (0x612d90(0xe), P-C176), y el sonido 0x13. El 0x35 y el 0x154 cortan en 0x4c982b y 0x4c9883.
 TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
 {
     Load(0);
@@ -477,18 +571,15 @@ TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
 
     records[0] = {.key = 0x0801, .isNew = true, .typeLow = 21, .x = cell.x, .y = cell.y};
     applied = Monsters(records);
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x4c97ff"), std::string::npos) << applied.Error();
-    EXPECT_EQ(Actor(2).type, 0x160);
-
-    game->models.Set(0x160, {}, Client::Tests::PlayerActionsSkeleton(), {});
-    records[0].key = 0x0802;
-    applied = Monsters(records);
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
-    EXPECT_EQ(Actor(3).animation.action, 1);
-    EXPECT_EQ(Actor(3).animation.previousAction, 1);
-    EXPECT_EQ(Actor(3).alpha, 1.0f);
+    EXPECT_EQ(Actor(2).type, 0x160);
+    ASSERT_NE(game->world.FaunaResources().SkeletonOf(0x160), nullptr);
+    EXPECT_EQ(Actor(2).animation.action, 1);
+    EXPECT_EQ(Actor(2).animation.previousAction, 1);
+    EXPECT_EQ(Actor(2).alpha, 1.0f);
     EXPECT_EQ(game->world.Runtime().lastSoundId, 0x13);
+    // Cargar no saca rand(): el alta y las celdas, como el 85.
+    EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 2 * ArrivingRecordDraws).State());
 
     ActorState arriving = Actor(1);
     arriving.word376 = 0x35;

@@ -27,6 +27,7 @@
 #include "Scenes/GamePartyWindow.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/HudItems.h"
+#include "Scenes/NpcWindowDrawing.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/TooltipLines.h"
@@ -845,8 +846,9 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
         return cut("0x5f3b40: el comercio es de la CL9.4");
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
         return cut("0x5f3030: las tiendas personales son de la CL9.4");
-    if (panels.IsOpen(UI::NpcShopPanel))
-        return cut("0x5f4720: el dibujo de la tienda del NPC es de la fase 3 del hito 6 (08 P-C192)");
+    // 0x5f4720, que empieza con su IsOpen (el byte protegido, 1 rand()).
+    if (auto shop = DrawTheNpcShop(frame.context, panels); !shop.HasValue())
+        return shop;
     if (panels.IsOpen(UI::ChaosBoxPanel))
         return cut("0x5febf0: el dibujo de la caja del caos es de la fase 3 del hito 6 (08 P-C192)");
     if (state.delegated.trainer != 0 && state.delegated.trainer != 4)

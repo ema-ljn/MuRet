@@ -1824,8 +1824,33 @@ almacén y `(4, casilla)` en la caja. Después del inventario, las hermanas: la 
 (`0x5ea060`: meter y sacar zen con el `0x73`, el teclado y cerrar) y la tienda (`0x5ed960`, con su `rand()`: los
 botones del modo de reparar y reparar todo con `0x78abb09`, y `0x5b1570`, lo que cuesta reparar todo, con el
 registro propio abierto). Con el almacén abierto, la cadena de Q, W y E y la cola `IsOpen(0)` se paran en `0x40`
-antes de consultar la tienda: un `rand()` menos cada una que con todo cerrado. Los dibujos de las tres ventanas siguen
-cortados (08, P-C192).
+antes de consultar la tienda: un `rand()` menos cada una que con todo cerrado. Los dibujos van abajo; el de la caja
+del caos (`0x5febf0`) sigue cortado (08, P-C194).
+
+**Los dibujos de las ventanas de los NPC** (CL9 hito 6, fase 3, 2026-11-13, *estático*; en MuRet
+`Scenes/NpcWindowDrawing.cpp`, con los tests de `test_npc_window_drawing.cpp` en Lorencia, Devias y Noria). Van en
+`0x5f7440` después del inventario, cada uno con su `IsOpen`, y escriben la esquina `(0x104, 0)` en `0x78aba28` y
+`0x78aba2c`, de donde la leen en el mismo frame los ítems 3D de su grilla (`0x5f769b` y `0x5f7756`: `0x5e3760(x + 15,
+y + 50, 0x78a7070, 8, 15, 0)`) y sus cifras (`0x5f7973` y `0x5f7a2e`, con 1), y en el frame siguiente los pasos. Los
+quads son `0x621b60(slot, x, y, w, h, 0, 0, du, dv, 1, 1, 0)`; las x y las y de los botones, `fild` de la esquina,
+`fadd` del float de la tabla y `fstp`.
+
+*La tienda* (`0x5f4720`; `IsOpen(0x10000)`, el byte protegido: 1 `rand()`, el único del dibujo). El fondo
+(`0x5ee220(x, y, 0)`), las casillas de la grilla (`0x5e3660(x + 15, y + 50, 0x78a7070, 8, 15)`: `0x115` con el tipo
+en `0xffff`, `0x116` con otro, también el 0 de la `.bss` antes del primer `31`) y el blanco; con la fuente gruesa y
+`0xffdcdcdc` sobre `0xff141414`, el título (texto 230) en `(x + 0x23, y + 8)` y el impuesto (`sprintf` del texto
+1623 con `0x78aba30`, que escribe el `B2 1A` con `+4` en 2, CL9.5) en `(x + 0x23, y + 0x14)`, los dos con
+`0x554180(…, W · 120 / 640, 1, 3)`. Los botones, de 24 × 24 con du = dv = 0,75 en `y + 365`: comprar en `x + 25`
+(`0x11b`, o `0x11a` con `0x78abb27` distinto de 0) y vender en `x + 55` (`0x11d` con `0x78abb27` en 1, si no
+`0x11c`); sin `0x78abb09` termina ahí. Con él, reparar en `x + 85` (`0x11e`, u `0x11f` con `0x78abb0c`) y reparar
+todo en `x + 115`, con `glColor3f(0,5; 0,7; 1)` y `0x11e`: con el mouse encima y el clic pendiente (`0x7d366d4`) lo
+apaga y dibuja `0x11f` encima. Con el mouse en `[x, x + 24) × [y, y + 24)` de un botón, la fuente normal y la ayuda
+(`0x554340`) en `(_ftol(x), _ftol(y) − 12)`: 231, 232, 233 y 237. Al final, el blanco, el fondo `0x10f` de 113 × 18
+(du 0,8828125, dv 0,5625) en `(x − 60, y + 30)` del botón de reparar todo, y con la fuente gruesa y `0xff96dcff`
+sobre `0xff282828` el texto 239 en `(_ftol(px) − 0x23, _ftol(py) + 3)` y lo que cuesta reparar todo (`0x78ababc`,
+sin signo) con comas en `(_ftol(px) + 10, ·)`, en el color de su monto (los cortes del zen del inventario). La
+ayuda no depende de los colores de antes: `0x554340` pone los suyos. El precio de cada ítem no lo dibuja la ventana:
+va en su ayuda (`0x5b2d23`).
 
 **El mundo angosto** (`0x6371a0`). `0x5bb8d0` da 640 sin ventanas, 450 con una y 260 con dos. `0x63733e` lo pide para
 `0x620db0(0, 0, w, 48)` (solo la modelview) y `0x5fbb00(w · 0,0015625f, &p)`, que achica los cinco planos y el rango

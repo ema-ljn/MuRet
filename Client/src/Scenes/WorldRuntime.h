@@ -156,9 +156,10 @@ struct HudState
     std::int32_t characterX = 0;
     std::int32_t characterY = 0;
     // 0x78aba28 y 0x78aba2c: la esquina de la ventana del NPC abierta, que ponen sus dibujos en cada frame en (0x104,
-    // 0): la tienda (0x5f4720), el almacén (0x5f4e30) y la caja del caos (0x5febf0), que siguen cortados (08 P-C192).
-    // Los leen los pasos de esas ventanas (0x5ed960, 0x5ea060 y 0x5fe610), sus grillas en el inventario (0x5e571c) y
-    // el ítem del cursor (0x5d8d50). Hasta que haya dibujo, el 0 de la .bss.
+    // 0): la tienda (0x5f4720), el almacén (0x5f4e30) y la caja del caos (0x5febf0, cortada: 08 P-C194). Los leen los
+    // ítems 3D y las cifras de sus grillas en el mismo frame (0x5f7610, 0x5f7840), los pasos de esas ventanas
+    // (0x5ed960, 0x5ea060 y 0x5fe610), sus grillas en el inventario (0x5e571c) y el ítem del cursor (0x5d8d50). Hasta
+    // el primer dibujo, el 0 de la .bss.
     std::int32_t npcWindowX = 0;
     std::int32_t npcWindowY = 0;
     // 0x78aadcc..0x78aadd4 (.bss, en 0): los ángulos con que 0x5e0720 posa cada ítem de la UI. Los escribe en cada

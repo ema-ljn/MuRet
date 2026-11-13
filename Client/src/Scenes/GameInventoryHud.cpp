@@ -17,6 +17,7 @@
 #include "Scenes/GameProjection.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/ItemSetState.h"
+#include "Scenes/NpcWindowState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/UiItemDrawing.h"
@@ -332,6 +333,7 @@ void DrawTheEquipmentSlots(GameHudContext& context, std::int32_t x, std::int32_t
     SetWarningColor(sprites, equipment[11]);
     Quad(sprites, 0x10e, column115, row152, 20.0f, 20.0f, 0.625f, 0.625f);
 }
+} // namespace
 
 // 0x5e3660(x, y, grilla, columnas, filas): una casilla de 20 × 20 por lugar, con el color del aviso de lo que haya
 // (también de las vacías): Item_box (0x115) vacía, InventoryBox2 (0x116) con un tipo.
@@ -381,6 +383,8 @@ std::uint32_t ZenColor(std::uint32_t zen)
     return 0xff96dcffu;
 }
 
+namespace
+{
 // Un botón de 24 × 24 al pie de la ventana y su ayuda con el mouse encima, en (_ftol(x), _ftol(y) − arriba).
 Core::Expected<void, std::string> DrawFootButton(GameHudContext& context, std::uint16_t slot, float x, float y,
                                                  std::size_t help, int above, std::string_view where)
@@ -555,6 +559,21 @@ constexpr std::array<EquipmentBox, 12> EquipmentBoxes{{
     {.slot = 11, .x = 115.0f, .y = 152.0f, .width = 20.0f, .height = 20.0f},
 }};
 
+// La grilla de la tienda y del almacén (0x78a7070): 8 × 15 desde la esquina de la ventana del NPC más 15 (0x6b87bc) y
+// 50 (0x6b86b0), con el fild, el fadd y el fstp.
+constexpr std::size_t NpcWindowGridColumns = 8;
+constexpr std::size_t NpcWindowGridRows = 15;
+
+float NpcGridLeft(const GameHudContext& context)
+{
+    return F32(static_cast<double>(context.hud.npcWindowX) + 15.0);
+}
+
+float NpcGridTop(const GameHudContext& context)
+{
+    return F32(static_cast<double>(context.hud.npcWindowY) + 50.0);
+}
+
 // 0x5e3760(x, y, grilla, columnas, filas, 0): el ítem de cada casilla de arriba a la izquierda (+0x3c > 0), en la
 // casilla ((float)(20 · columna) + x, (float)(20 · fila) + y) con el fstp y del tamaño de Item.bmd.
 Core::Expected<void, std::string> DrawTheGridModels(GameHudContext& context, float x, float y,
@@ -653,12 +672,24 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::
             !grid.HasValue())
             return grid;
     }
+    // 0x5f769b y 0x5f7756: la tienda (con su rand()) y el almacén, 0x5e3760(x + 15, y + 50, 0x78a7070, 8, 15, 0) desde
+    // la esquina que dejó su dibujo (0x78aba28 y 0x78aba2c).
     if (panels.IsOpen(UI::NpcShopPanel))
-        return Core::Unexpected(std::string("0x5f769b: los ítems de la tienda (0x78a7070) son de la CL9.3"));
+    {
+        if (auto shop = DrawTheGridModels(context, NpcGridLeft(context), NpcGridTop(context), runtime.npcWindows.grid,
+                                          NpcWindowGridColumns, NpcWindowGridRows);
+            !shop.HasValue())
+            return shop;
+    }
     if (panels.IsOpen(UI::TradePanel))
         return Core::Unexpected(std::string("0x5f76df: los ítems del comercio (0x78a5a20) son de la CL9.4"));
     if (panels.IsOpen(UI::WarehousePanel))
-        return Core::Unexpected(std::string("0x5f7756: los ítems del almacén (0x78a7070) son de la CL9.3"));
+    {
+        if (auto warehouse = DrawTheGridModels(context, NpcGridLeft(context), NpcGridTop(context),
+                                               runtime.npcWindows.grid, NpcWindowGridColumns, NpcWindowGridRows);
+            !warehouse.HasValue())
+            return warehouse;
+    }
     if (panels.IsOpen(UI::ChaosBoxPanel))
         return Core::Unexpected(std::string("0x5f77c6: los ítems de la caja del caos (0x7d2d380) son de la CL9.3"));
     if (panels.IsOpen(UI::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory)
@@ -690,12 +721,15 @@ Core::Expected<void, std::string> DrawTheGridNumbers(GameHudContext& context, UI
         DrawTheGridCounts(context.sprites, F32(static_cast<double>(context.hud.inventoryX) + 15.0),
                           F32(static_cast<double>(context.hud.inventoryY) + 200.0), world.Inventory().cells,
                           InventoryColumns, InventoryColumns);
+    // 0x5f7973 y 0x5f7a2e: la tienda y el almacén, 0x5e3760(x + 15, y + 50, 0x78a7070, 8, 15, 1).
     if (panels.IsOpen(UI::NpcShopPanel))
-        return Core::Unexpected(std::string("0x5f7973: las cifras de la tienda (0x78a7070) son de la CL9.3"));
+        DrawTheGridCounts(context.sprites, NpcGridLeft(context), NpcGridTop(context), world.Runtime().npcWindows.grid,
+                          NpcWindowGridColumns, NpcWindowGridRows);
     if (panels.IsOpen(UI::TradePanel))
         return Core::Unexpected(std::string("0x5f79b7: las cifras del comercio (0x78a5a20) son de la CL9.4"));
     if (panels.IsOpen(UI::WarehousePanel))
-        return Core::Unexpected(std::string("0x5f7a2e: las cifras del almacén (0x78a7070) son de la CL9.3"));
+        DrawTheGridCounts(context.sprites, NpcGridLeft(context), NpcGridTop(context), world.Runtime().npcWindows.grid,
+                          NpcWindowGridColumns, NpcWindowGridRows);
     if (panels.IsOpen(UI::ChaosBoxPanel))
         return Core::Unexpected(std::string("0x5f7a9e: las cifras de la caja del caos (0x7d2d380) son de la CL9.3"));
     if (panels.IsOpen(UI::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory)

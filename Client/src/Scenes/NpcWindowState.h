@@ -64,6 +64,10 @@ struct NpcWindowState
     // 0x78ababc: lo que cuesta reparar todo. 0x5b1570 lo cuenta en cada paso de la tienda con 0x78abb09 y lo dibuja
     // 0x5f4720.
     std::int32_t repairAllPrice = 0;
+    // 0x78aba30: el impuesto de la tienda, en por ciento. Lo escribe el B2 1A con +4 en 2 (0x4e5521, el byte de +5;
+    // CL9.5): hasta entonces, el 0 de la .bss. Lo leen el título de la tienda (0x5f4813) y el precio del tooltip
+    // (0x5b1203).
+    std::int32_t taxRate = 0;
     // 0x7879fc8: el teclado del almacén.
     std::array<std::uint16_t, WarehouseKeyCount> keypad{};
     // 0x78ab9fc..0x78aba06: lo que se tecleó, en 0 al barajar (0x5cb43c..0x5cb44f y 0x5ea22d..). El 83 de la

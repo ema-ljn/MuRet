@@ -332,7 +332,8 @@ de Q/W/E; los `rand()` de la búsqueda del ítem del piso en el picking. **Desbl
       `BC` (`0x401f30`, `0x402500`) y los precios (`0x5b1200`, `0x5b2d23`). (Fase 2, 2026-11-13: los pasos de la
       tienda con reparar todo y `0x5b1570`, del almacén y de la caja del caos, sus grillas, comprar, vender, guardar,
       sacar y el zen del almacén, `Scenes/NpcWindowSteps.cpp`; los dibujos, el teclado, la mezcla y los precios de la
-      ayuda siguen cortados, en 08, P-C192.)
+      ayuda siguen cortados, en 08, P-C192. Fase 3: el dibujo de la tienda y las grillas de la tienda y del almacén,
+      `Scenes/NpcWindowDrawing.cpp`; lo que queda, en 08, P-C194.)
 - [x] **Los paquetes:** lo que falta de `31`..`34` (`0x4c5f60`, `0x5bc740` y `0x5be150` están en parte), `81`..`83`,
       `86`/`87`. (Fase 1, 2026-11-13: `Protocol::NpcWindows` y `Scenes/NpcWindows.cpp`; el `30` y abrir y cerrar
       `0x40`, `0x100` y `0x10000` también. Lo que sigue cortado de las otras dos, en 08, P-C191.)

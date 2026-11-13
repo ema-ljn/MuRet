@@ -45,8 +45,8 @@
 
 // Los pasos de las ventanas de los NPC (CL9 hito 6, fase 2; 04 § Las ventanas de los NPC): comprar, vender, reparar,
 // guardar y sacar del almacén, el zen del almacén, la mezcla y los diálogos de sí y no, byte a byte y con los rand()
-// del paso. La esquina de la ventana del NPC (0x78aba28) la pone su dibujo, que sigue cortado: los tests la dejan en
-// (0x104, 0), donde la pone el original. Los ítems y los textos son inventados.
+// del paso. La esquina de la ventana del NPC (0x78aba28) la pone su dibujo (Scenes/NpcWindowDrawing), que no corre en
+// estos tests: la dejan en (0x104, 0), donde la pone el original. Los ítems y los textos son inventados.
 namespace
 {
 using Client::Input::InputEvent;

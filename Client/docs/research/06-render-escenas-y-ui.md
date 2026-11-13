@@ -993,8 +993,9 @@ como datos (`OldWindowKind`) y despacha con una función por método.
   `0x14c`; sin el bit 0 de las banderas corre la cascada (de a 20; sin lugar, (r + 1, r + 1) con r = y % 10, y con
   r = 9 no la arma; Q-C571). Va arriba de la lista y corre su vtable + `0x30` (`0x4a3a50`, que ubica los botones). Cada
   ventana y cada botón toman el id que sigue de `0x5762eb0` (sumado antes de usarlo); el valor de partida, el que
-  sigue al de la lista de ventanas, es *inferido* (P-C97). Los casos 1 a 4, 6 y 7 (amigos, su chat y las cartas) son
-  de la CL9.4.
+  sigue al de la lista de ventanas, es *inferido* (P-C97). El 3 (la ventana de amigos) y el 4 (la caja de agregar un
+  amigo) son del hito 9 de la CL9 ("Los amigos", abajo); el 1 y el 2 (el chat con un amigo) y el 6 y el 7 (las
+  cartas), del hito 10 (P-C183).
 - **El paso.** La lista de ventanas (`0x636e43`) y `0x490490`: la modal que ya no está; Esc (`0x4904bc`, Q-C446) le
   pide al administrador que cierre la del final si está a la vista; F5, con el foco del teclado en la ventana del
   juego, va a `0x4a5be0(1)` sobre la lista de ventanas, que sin entradas no hace nada; F6 alterna `+0xa8` y llama a
@@ -1024,9 +1025,85 @@ como datos (`OldWindowKind`) y despacha con una función por método.
 - **Chaos Castle** (`0x4c7b17..0x4c7b2f`): `0x4906a0(1, 0)` esconde las ventanas sin anotarlas (Q-C572), y `0x4914e0`
   suelta la de amigos; `0x4c7b34` sigue con el objeto de los comandos (CL9.4, P-C99).
 
-En la CL8 nadie arma una ventana vieja (los que llaman a la fábrica son de la CL9.4): el administrador queda vacío y
-la lista de ventanas, oculta; del paso quedan Esc (sin nada que cerrar), F5 (sin entradas) y F6 (Q-C573), y del
-dibujo, el de la lista oculta. Los tests abren una caja a mano. Lo que no se porta corta con su dirección (P-C95).
+En la CL8 nadie arma una ventana vieja (los que llaman a la fábrica son de la CL9: los amigos, abajo): el
+administrador queda vacío y la lista de ventanas, oculta; del paso quedan Esc (sin nada que cerrar), F5 (sin entradas)
+y F6 (Q-C573), y del dibujo, el de la lista oculta. Los tests abren una caja a mano. Lo que no se porta corta con su
+dirección (P-C95).
+
+**Los amigos** (CL9 hito 9, `UI/FriendModel`, `UI/FriendWindows`, `Scenes/GameFriends` y los controles de
+`UI/OldControls`; *estático*; los paquetes, en [04](04-protocolo.md#los-amigos-c0c4)). El panel 1 (`0x491080`, desde
+`0x6599a0` del registro de paneles y desde `0x4906a0`) abre la ventana: primero olvida lo que escondió F6
+(`0x490830`); con `0x6c7b8c` en 0 diría el 992, pero está en 1. Lee el nivel del héroe (`+0xe`) con el registro propio
+abierto: los 3.848 `rand()` del cierre (Q-C183). Debajo del 6, el 1067 al chat (`0x555190`, con el nombre vacío de
+`0x6e57a4`) si no está entre los últimos (`0x45db70`). Si la ventana ya está: oculta (3), a la vista con los sonidos
+`0x19` y `0x1c`; a la vista (0), se suelta (`0x4914e0`); con otro estado, nada. Si no, la arma la fábrica con el
+título de `+0xec` (990 o 1066) en (`0x186`, `0x106`) la primera vez (el ancho `+0xcc` en 0) o donde quedó y con el
+tamaño de antes (`0x45a9f0`), con la pestaña de antes (`+0xe4`) y el `C1 03 C0` si `+0xe8` está en 0; y si las dos
+colas del cartel (`0x46b7d0`) no tienen nada, el 1244 en la normal (`0x46b720(1, 0, 1244, 2, 2,5, 0xffc8dce6)`). La
+ventana (vtable `0x6b9d6c`) tiene tres pestañas: los amigos (`0x6b9e24`, una lista de dos columnas y cuatro botones:
+agregar, borrar, chat y carta), las ventanas (`0x6b9edc`, las cajas y los chats abiertos, con su id y su título;
+`0x49e6e0` y `0x49e710`) y las cartas (`0x6b9f38`, hito 10). La pestaña de amigos copia el `std::deque` de
+`[0x5763518]` a su lista (`0x49bd60`, Q-C885) y la ordena por nombre o por estado con los encabezados de las columnas
+(`0x49dcf0`; la de estado ordena por nombre primero). Los dos órdenes son los de `0x49c190` (nombre, de la Z a la A
+con `char` con signo) y `0x49c240` (el estado más alto primero) con el `std::sort` de MSVC6 (Q-C881). Agregar abre la
+caja `0x4a3700` (caso 4, modal, con su EDIT de `0x4674c0`); borrar, la pregunta modal del nombre con el 1024
+(`0x48ee60(5, …)`) que vuelve a la pestaña como el 12, y a las dos les manda el 8 y el 9 con su paso (`0x49dc37`,
+`0x490a00` y `0x45aa50`); el botón del estado (`0x4a3030`) pregunta "¿salir de línea?" o
+manda el `C4 01`. La F, con el chat cerrado, la cierra si es la de arriba (`0x4a2f70`). F5 y F6 ya estaban (CL8); con
+F6 la de amigos oculta se suelta (`0x4905a2`) y `0x4906a0` la vuelve a abrir al mostrar (Q-C448). El primer paso del
+juego suelta todas las ventanas (`0x48ea50`) y vacía la lista de amigos (`0x6368f9..0x636915`). El dibujo, abajo; el
+chat con un amigo, las cartas y la lista de ventanas de F5 con sus renglones son del hito 10 (P-C183).
+
+**El dibujo de los amigos** (CL9 hito 9, `UI/FriendWindowsDraw` y las piezas de `UI/OldWindowDrawParts`; *estático*,
+P-C186). Es la vtable + `0x50` de la ventana, que el marco (`0x492500`) llama con la fuente normal después de la
+sombra y antes de la barra del título; todo en 640 × 480 y con los colores de `0x491960`. `0x4a2620`: arrastrada o
+cambiando de tamaño, ubica las pestañas y lo de la de la vista (Q-C888); la vtable + `0x14` de la pestaña a la vista
+(`0x49cc20`, `0x49e7f0`; la de las cartas, `0x4a0a30`, corta: hito 10); con la mezcla normal, la franja del 7 de 20
+de alto arriba del área de adentro, los encabezados (`0x4a2460(x, y + 2, 0x35, 0x13, 3, vista)`: el de la vista con
+los filos del 2 arriba, a la izquierda (x − 1) y a la derecha y el relleno del 5 desde y + 1; los otros, 1 más abajo,
+con los filos de arriba, la derecha y abajo y el relleno del 6 desde y + 2, de alto h − 3) y la raya del 2 desde x +
+`0x9f`, `0x12` debajo de ellos. Después, el blanco con textura y los títulos de las tres pestañas, centrados con
+`((52 − cx / rx) + 0,5) · 0,5` desde x + 0, `0x36` y `0x6b` (Q-C890) y `((24 − cy / ry) + 0,5) · 0,5` desde y, en
+blanco el de la vista o el del mouse (`+0xb4`) y si no en `0xffc8dce6`; el 1035 en `0xffc8dce6` a 2 del borde
+derecho, y la casilla `0x463090` 14 y 1 a su izquierda y 1 más arriba, marcada con `+0xe0` del administrador en 1.
+`0x463090(x, y, marcada)`: sin mezcla, el marco de 9 × 9 del 0 (cuatro rayas de 1, las de enfrente en + 8), el
+blanco con textura, la mezcla normal y, marcada, `win_check.tga` (`0x64a`) de 5 × 5 en (x + 2, y + 2) con 0,625 de
+la textura; deja la mezcla normal (Q-C891). La pestaña de amigos (`0x49cc20`): con la mezcla normal, el 7 desde 0x12
+debajo del alto de la lista hasta el borde de abajo; sin mezcla, la lista y sus cuatro botones (`0x45b2e0`); con la
+mezcla normal, la raya del 2 en y + `0x10`, la franja del 5 de 16 arriba, la raya del 2 sobre los botones (0x11
+debajo del alto de la lista), la raya del medio en x + el ancho de la columna del nombre (`+0x134`) desde y + `0x11`
+con 22 + 17 menos de alto y su marca del 14 de 10 en y + 3; los títulos 1021 y 1022 en (x + 4, y + 3) y 4 + el ancho
+del nombre, en blanco el del orden (`+0` del modelo) o el que tiene el mouse encima (de `0x13` de alto, y el ancho
+de su columna), que después deja el color en `0xffc8dce6`, y si no con el color que haya; termina sin mezcla. La de
+las ventanas (`0x49e7f0`) es igual con un botón, sin la raya del medio ni su marca y sin volver a la opaca después del
+negro (Q-C889), y el título 1026 en (x + 8, y + 3) en `0xffc8dce6`.
+
+La lista es la plantilla de `0x47a810` (`0x47d730` en la de ventanas y `0x47eed0` en la de las cartas, iguales salvo
+el tamaño del elemento): la barra (+`0x7c`), el primero que se ve (+`0x74`), `glColor3f(1, 1, 1)`, la fuente normal y
+un renglón por vuelta (+`0x80`) hasta los renglones (+`0x104`, que lee en cada vuelta) o el final: un negativo saltea
+renglones, 0 repite el renglón y un positivo sigue; +`0x84` es un `ret`. La barra de las listas de amigos y de
+ventanas (`0x461890` = `0x462620`): ubicarla (`0x47b9c0`); las flechas de `win_scrollbar.jpg` (`0x649`) de 13 × 13 en
+(x + w − 12, y − h − 1) y (x + w − 12, y − 12), de (0, 0,09375) y (0, 0,5) con 0,8125 × 0,40625 de la textura, dadas
+vuelta (desde (0,8125, 0,90625) y (0,8125, 0,5) con los lados negativos) con el clic y el mouse encima; los filos de
+la pista del 2 en x + w − ancho del cursor + 1 y en x + w; el blanco con textura y el cursor en x + w − ancho + 2 de
+ancho − 2, el medio de (0, 0,03125) y las puntas de 1 de (0, 0) y (0, 0,0625), con 0,6875 × 0,03125; con menos
+elementos que renglones, el cursor es toda la pista. El renglón de la de amigos (`0x461cd0`): con la mezcla normal; el
+elegido (+`0xc4` = corrimiento + renglón + 1) con una franja blanca de alfa 0,7 si la lista tiene las flechas del
+teclado (`0x5762ec0`) y 0,3 si no, en (x, y del renglón − 3) de w − ancho del cursor + 1 × 13, y su texto en negro;
+los demás en `0xffc8dce6`; el nombre en x + 3 y, con +`0x130` en 1, el lugar 4 después de la columna: el 1039 con
+`0xff`, `0xfe` y `0xfc`, el 1041 con `0xfd`, y si no el 1042 con el servidor + 1; termina sin mezcla. El de la de
+ventanas (`0x462a60`), igual con el título en x + 8. Los renglones van de abajo hacia arriba (`0x461c70`): el primero
+del deque queda abajo.
+
+La caja de agregar (`0x4a3750`): arrastrada, ubica a sus hijas; los dos botones, y con la mezcla normal el EDIT
+(`0x468320`); termina sin mezcla. El EDIT, si se ve (`IsWindowVisible`): el ancho del cursor (+`0xa8`, 1,5 sin IME) y
+el alto de "1" (+`0xac`, en píxeles, la primera vez); con +`0x4c` & 8 (el filtro de la caja de agregar), el negro de
+(x, y, w, +`0xac`) (Q-C892); el cursor se ve con el foco de Windows en el EDIT y +`0x80` % 24 < 12; el texto y el
+cursor van a un bitmap de `min(1,5 + 1,5 + cx, w · rx)` × `h · ry` píxeles en (x · rx, y · ry) (`0x554000`), donde
+el texto (`0xff`) toma +`0x9c`, el fondo (0) +`0xa0` (0 en la caja de agregar: transparente, `0x4a365e`) y los grises
+del medio +`0xa4`, y adentro del cursor el texto toma el fondo y lo demás `0xffc8c8c8`; al final, +`0x80` suma uno. MuRet dibuja el
+bitmap como un quad del fondo, el texto con el dibujante de texto y el cursor como un quad de 1 × min(+`0xac`, alto)
+en la columna después del texto (*inferido*: el texto solo crece por el final; P-C181).
 
 **Los paneles.**
 
@@ -1113,7 +1190,7 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | abrir la tienda personal (`0x800`) o la ajena (`0x20000`) | C3 `F3 10`: relleno (`0x65ae52`/`0x65b521`) + serial (`0x40b3f0`) | +2 | evento (CL9.4) |
 | abrir la tienda de NPC (`0x10000`) | cierre de su byte (`0x65be36`) | +1 | evento (CL9.3) |
 | cerrar el trade abierto | C3 `3D` (`0x6580b7` + serial) + su byte | +3 | evento (CL9.4) |
-| F6 para mostrar, si una de las ocultas ya no existe (la de amigos: `0x490490` la destruye al verla oculta) | `0x4906a0` → `0x491080` | 3.850 | evento |
+| F6 para mostrar, si una de las ocultas ya no existe (la de amigos: `0x490490` la destruye al verla oculta) | `0x4906a0` → `0x491080`, sin `CanOpen` (CL9 hito 9) | 3.848 | evento |
 | dibujo del marco viejo | `IsOpen(1)` | 0 | frame |
 | dibujo de CS `0x200000` | `0x64a060` (`0x64a9f0`) | 1+ | **frame**, solo con ese panel (CL9.5) |
 | dibujo del retrato de la carta | `0x497c10` (`0x497cce`) | 1+ | frame, solo con esa ventana (CL9.4) |

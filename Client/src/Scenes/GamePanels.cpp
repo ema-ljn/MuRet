@@ -10,6 +10,7 @@
 #include "Scenes/OwnStatHelpers.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
 
@@ -63,6 +64,10 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
     context.heroSiegeMark = false;
     context.sound = [&runtime](std::int32_t id) { runtime.lastSoundId = id; };
     context.characterOpened = [&world, &random, tables]() { return OpenTheCharacter(world, random, tables); };
+    // El panel 1, la de amigos (CL9 hito 9): 0x490a00(+0x48) y 0x4914e0 sobre el administrador viejo.
+    UI::OldWindowManager& oldWindows = runtime.oldWindows;
+    context.friendsShown = [&oldWindows]() { return UI::FindTheOldWindow(oldWindows, oldWindows.friends) != nullptr; };
+    context.friendsClosed = [&oldWindows]() { return UI::DropTheFriendsWindow(oldWindows); };
     return context;
 }
 } // namespace
@@ -87,5 +92,10 @@ void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)
 void GamePanels::LendTheWindowClose(std::function<void()> sendWindowClose)
 {
     m_context.eventNpcClosed = std::move(sendWindowClose);
+}
+
+void GamePanels::LendTheFriends(std::function<Core::Expected<void, std::string>()> opened)
+{
+    m_context.friendsOpened = std::move(opened);
 }
 } // namespace Client::Scenes

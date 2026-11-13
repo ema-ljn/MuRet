@@ -1,9 +1,11 @@
 #pragma once
 
+#include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "UI/PanelRegistry.h"
 
 #include <functional>
+#include <string>
 
 namespace Client::Data::Tables
 {
@@ -54,6 +56,9 @@ public:
     // 0x658a18 y 0x658c0e: lo que manda el C1 03 31 al cerrar un NPC de evento (0x1000 o 0x4000). Lo prestan el paso de
     // la UI y los cierres de la entrada al mundo, del teleport y del regen; vacío, cerrarlos corta.
     void LendTheWindowClose(std::function<void()> sendWindowClose);
+    // 0x659f3d: abrir el panel 1 llama a 0x491080(0x186, 0x106) (Scenes::OpenTheFriends), con lo que lee del paso (la
+    // vista y los globales de las ventanas viejas). Lo presta el paso de la UI; sin él, abrirlo corta.
+    void LendTheFriends(std::function<Core::Expected<void, std::string>()> opened);
 
 private:
     UI::PanelContext m_context;

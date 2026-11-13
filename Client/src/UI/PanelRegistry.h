@@ -88,7 +88,8 @@ struct CommandsWindowState
 // Los ids cuyo estado vive en otro objeto. MuRet no tiene a sus dueños: quedan en 0, cerrados, hasta su ola.
 struct DelegatedPanels
 {
-    // 1: 0x490a00(*(0x5763514)+0x48), la de amigos del administrador viejo (hito 7, CL9.4).
+    // 1: 0x490a00(*(0x5763514)+0x48), la de amigos del administrador viejo. En el juego la mira
+    // PanelContext::friendsShown (CL9 hito 9); sin él, este byte.
     std::uint8_t friends = 0;
     // 8: *(0x710148)+0x21383. IsOpen lo mira distinto de 0 y CanOpen no abre nada con 1.
     std::uint8_t quest = 0;
@@ -186,6 +187,12 @@ struct PanelContext
     // +0x9304 a +0x9327 en 0, y con el registro propio abierto, 0x550d10 si un lugar del equipo tiene la durabilidad
     // en 0 (0x550cf0). Sin él, abrir el personaje corta.
     std::function<Core::Expected<void, std::string>()> characterOpened{};
+    // El panel 1, la ventana de amigos del administrador viejo: 0x490a00(+0x48) para saber si está (sin él,
+    // DelegatedPanels::friends), 0x491080(0x186, 0x106) al abrirlo (0x659f3d; sin él, abrirlo corta) y 0x4914e0 al
+    // cerrarlo (0x6584e5; sin él, cerrarlo corta).
+    std::function<bool()> friendsShown{};
+    std::function<Core::Expected<void, std::string>()> friendsOpened{};
+    std::function<Core::Expected<void, std::string>()> friendsClosed{};
 };
 
 class PanelRegistry

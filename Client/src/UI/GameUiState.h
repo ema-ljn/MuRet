@@ -113,6 +113,9 @@ struct GameUiState
     // 0x7d36880: el flanco del clic derecho. Lo prende WM_RBUTTONDOWN si el botón no estaba abajo, lo apaga
     // WM_RBUTTONUP (02, la tabla del WndProc) y lo apaga quien lo usa.
     bool rightClick = false;
+    // 0x7d36849: el doble clic izquierdo (WM_LBUTTONDBLCLK). MuRet no lo prende en el juego (P-C182): en la CL9 solo
+    // lo lee la lista de amigos (0x461f00), que con él abre el chat con un amigo del hito 10.
+    bool doubleClick = false;
     // 0x7d3685c: el derecho abajo. Lo prende WM_RBUTTONDOWN, lo apaga WM_RBUTTONUP y lo apaga quien lo usa (el
     // registro del chat, 0x45d760).
     bool rightDown = false;

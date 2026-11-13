@@ -7,6 +7,7 @@
 #include "Data/Terrain/TerrainHeights.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
+#include "Render/Models/Attachment.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Skeleton.h"
@@ -88,6 +89,23 @@ public:
         mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
         mesh.textureName = "monster.jpg";
         m_model.meshes = {mesh};
+    }
+
+    // `count` huesos en vez de 48, como los arma el constructor.
+    void SetBoneCount(std::size_t count)
+    {
+        const auto bone = m_skeleton.bones.front();
+        m_skeleton.bones.assign(count, bone);
+        for (std::size_t index = 0; index < m_skeleton.bones.size(); ++index)
+            m_skeleton.bones[index].actions[0][0].position = {0.0f, 0.0f, static_cast<float>(index)};
+    }
+
+    // `count` acciones iguales a la primera.
+    void SetActionCount(std::size_t count)
+    {
+        m_skeleton.actions.assign(count, m_skeleton.actions.front());
+        for (auto& bone : m_skeleton.bones)
+            bone.actions.assign(count, bone.actions.front());
     }
 
     // Una segunda malla igual a la primera, con su textura.
@@ -897,6 +915,176 @@ TEST_F(MonsterDrawingTest, ThePhoenixBetweenOriginalFramesStoresNothing)
     const auto unsupplied = Draw(Pass());
     ASSERT_FALSE(unsupplied.HasValue());
     EXPECT_NE(unsupplied.Error().find("0x50c283"), std::string::npos) << unsupplied.Error();
+}
+
+// 0x50c762: el +0x376 0x2a cuelga del lugar de las alas el 0xef del hueso 9 con (0, 0, −40) y el 0xf0 del 0x3d con
+// (0, −40, 45), este a 0,9f con la luz en 1; la escala y la luz vuelven. El origen de cada uno es el desplazamiento
+// girado por su hueso y escalado como el cuerpo (0x4ec190), más la posición; el vértice del hueso 0, ese hueso por la
+// escala del modelo que cuelga más el origen; el color del 0xef es la luz de lo que cuelga que quedó del frame
+// anterior. Cada 0x509340 saca el cierre de +0x38e y el rand() de 0x509a92. En Lorencia, en Devias y en el mapa 5, el
+// de los dos modelos; el 0x2a no tiene sombra (0x50bd89).
+TEST_F(MonsterDrawingTest, The0x2aCarriesTheHeadAndThePrincessFromTheWingsSlot)
+{
+    for (const std::int32_t map : {0, 2, 5})
+    {
+        SCOPED_TRACE(map);
+        m_world = std::make_unique<Client::Scenes::WorldState>();
+        SetUp();
+        m_models.SetBoneCount(64);
+        m_models.SetActionCount(2);
+        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_world->Runtime().map = map;
+        ActorState& carrier = Monster(4, Spider, 0x2a);
+        carrier.scale = 1.25f;
+        carrier.drawnLight = {0.5f, 0.25f, 0.125f};
+
+        const auto result = Draw(Pass());
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(carrier.scale, 1.25f);
+        EXPECT_EQ(carrier.wings.model, 0xf0);
+        EXPECT_EQ(carrier.wings.bone, 0x3d);
+        EXPECT_EQ(carrier.wings.animation.action, 1);
+        EXPECT_EQ(carrier.wings.animation.previousAction, 1);
+        EXPECT_EQ(carrier.wings.speed, std::bit_cast<float>(0x3e4ccccdu));
+        ASSERT_EQ(carrier.bodyPose.size(), 64u);
+        const auto& vertices = m_batch.Vertices();
+        // El cuerpo, el 0xef y el 0xf0.
+        ASSERT_EQ(vertices.size(), 9u);
+        // El 0xef: (150, 150, 10) + (0, 0, −40) · 1,25, más el hueso 9 por 1,25.
+        EXPECT_FLOAT_EQ(vertices[3].position.x, 150.0f);
+        EXPECT_FLOAT_EQ(vertices[3].position.y, 150.0f);
+        EXPECT_FLOAT_EQ(vertices[3].position.z, -40.0f + 9.0f * 1.25f);
+        EXPECT_FLOAT_EQ(vertices[4].position.x, 151.25f);
+        ExpectColor(vertices[3], 0.5f, 0.25f, 0.125f, 1.0f);
+        // El 0xf0: (150, 150, 10) + (0, −40, 45) · 1,25, más el hueso 0x3d por 0,9, con la luz en 1.
+        EXPECT_FLOAT_EQ(vertices[6].position.x, 150.0f);
+        EXPECT_FLOAT_EQ(vertices[6].position.y, 100.0f);
+        EXPECT_FLOAT_EQ(vertices[6].position.z, 66.25f + 61.0f * std::bit_cast<float>(0x3f666666u));
+        EXPECT_FLOAT_EQ(vertices[7].position.x, 150.0f + std::bit_cast<float>(0x3f666666u));
+        ExpectColor(vertices[6], 1.0f, 1.0f, 1.0f, 1.0f);
+        // Los dos de cada 0x509340 y los tres de la cola.
+        EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(7));
+        TearDown();
+    }
+}
+
+// 0x50c83b: las estatuas de Blood Castle (+0x376 de 0x84 a 0x86) cuelgan del hueso 1, por el lugar de 0x5093f3, el
+// 0xc1c y el 0x225 a 0,7f con (90, 0, 90) y (0, 80, 120), y el 0xa24 a 0,9f con (10, 0, 0) y (0, 110, 80), desde la
+// posición del personaje. Los sprites del 0xc1c y del 0x225 sacan sus rand(); el 0x225, uno más con la acción 0. En
+// Lorencia, en Devias y en Blood Castle (el 11).
+TEST_F(MonsterDrawingTest, TheBloodCastleStatuesHoldTheirWeaponInPlace)
+{
+    struct Case
+    {
+        std::uint16_t monster;
+        std::uint16_t model;
+        float scale;
+        glm::vec3 angles;
+        glm::vec3 translation;
+    };
+    const std::array cases{
+        Case{0x84, 0xc1c, std::bit_cast<float>(0x3f333333u), {90.0f, 0.0f, 90.0f}, {0.0f, 80.0f, 120.0f}},
+        Case{0x85, 0x225, std::bit_cast<float>(0x3f333333u), {90.0f, 0.0f, 90.0f}, {0.0f, 80.0f, 120.0f}},
+        Case{0x86, 0xa24, std::bit_cast<float>(0x3f666666u), {10.0f, 0.0f, 0.0f}, {0.0f, 110.0f, 80.0f}}};
+    for (const std::int32_t map : {0, 2, 11})
+    {
+        for (const Case& value : cases)
+        {
+            SCOPED_TRACE(testing::Message() << "mapa " << map << ", +0x376 " << value.monster);
+            m_world = std::make_unique<Client::Scenes::WorldState>();
+            SetUp();
+            m_models.SetActionCount(2);
+            m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+            m_world->Runtime().map = map;
+            ActorState& statue = Monster(6, Spider, value.monster);
+            const std::size_t before = LiveSprites().size();
+
+            const auto result = Draw(Pass());
+
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            EXPECT_EQ(statue.scale, 1.0f);
+            EXPECT_EQ(statue.wings.model, value.model);
+            EXPECT_EQ(statue.wings.bone, 1);
+            EXPECT_EQ(statue.wings.animation.action, 1);
+            EXPECT_EQ(statue.wings.speed, std::bit_cast<float>(0x3e4ccccdu));
+            const auto& vertices = m_batch.Vertices();
+            // El cuerpo, la sombra (sin ella en el 11, como Spider) y los pases del arma (0x60b3d0).
+            ASSERT_GE(vertices.size(), 9u);
+            // El hueso 0 de lo que cuelga es la raíz: el hueso 1 del cuerpo por el lugar, a la escala del modelo.
+            const Client::Render::Models::BoneTransform root = Client::Render::Models::PlacedRoot(
+                statue.bodyPose[1], Client::Render::Models::HangingPlacement{value.angles, value.translation});
+            const glm::vec3 expected = root[3] * value.scale + statue.position;
+            EXPECT_NEAR(vertices[6].position.x, expected.x, 1e-3f);
+            EXPECT_NEAR(vertices[6].position.y, expected.y, 1e-3f);
+            EXPECT_NEAR(vertices[6].position.z, expected.z, 1e-3f);
+            EXPECT_NEAR(root[3].y, value.translation.y, 1e-3f);
+            // El cierre de +0x38e, el de 0x509a92 y los de los sprites del modelo; después, los tres de la cola.
+            Client::Render::Models::CrtRandom expectedRandom{1};
+            static_cast<void>(expectedRandom.Next());
+            static_cast<void>(expectedRandom.Next());
+            std::size_t sprites = 0;
+            const int points = value.model == 0xc1c ? 10 : value.model == 0x225 ? 7 : 0;
+            for (int point = 0; point < points; ++point)
+            {
+                if (expectedRandom.Next() % 3 == 0)
+                {
+                    static_cast<void>(expectedRandom.Next());
+                    ++sprites;
+                }
+                ++sprites;
+            }
+            if (value.model == 0x225)
+                static_cast<void>(expectedRandom.Next());
+            for (std::size_t call = 0; call < 3; ++call)
+                static_cast<void>(expectedRandom.Next());
+            EXPECT_EQ(m_clothWorld.random.State(), expectedRandom.State());
+            EXPECT_EQ(LiveSprites().size() - before, sprites);
+            TearDown();
+        }
+    }
+}
+
+// Q-C1119: Staff11 (0xc1c) y Sword20 (0x225) tienen una sola acción, y la estatua los cuelga con la 1: 0x4ec200 la lee
+// fuera del arreglo y MuRet corta, después del cierre de +0x38e. Bow19 (0xa24) no avanza (un arma de 0xa12 a 0xc11 con
+// la bandera) y 0x4eb860 lleva la acción a la 0: se dibuja.
+TEST_F(MonsterDrawingTest, TheStatueStaffAndSwordReadAnActionTheirModelLacks)
+{
+    Monster(6, Spider, 0x84);
+    const auto staff = Draw(Pass());
+    ASSERT_FALSE(staff.HasValue());
+    EXPECT_NE(staff.Error().find("0x4ec200: el modelo 0xc1c no tiene la acción 1"), std::string::npos) << staff.Error();
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(1));
+
+    m_world = std::make_unique<Client::Scenes::WorldState>();
+    SetUp();
+    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    Monster(6, Spider, 0x86);
+    const auto bow = Draw(Pass());
+    ASSERT_TRUE(bow.HasValue()) << bow.Error();
+    EXPECT_GE(m_batch.Vertices().size(), 9u);
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(5));
+}
+
+// Entre frames del original el 0x2a cuelga lo mismo sobre la copia: no guarda el lugar de las alas ni saca rand(); con
+// menos huesos que el 0x3d del 0xf0, corta en 0x509340.
+TEST_F(MonsterDrawingTest, The0x2aBetweenOriginalFramesStoresNothing)
+{
+    m_models.SetBoneCount(64);
+    m_models.SetActionCount(2);
+    ActorState& carrier = Monster(4, Spider, 0x2a);
+    GameCharacterPass pass = Pass();
+    pass.originalFrames = 0;
+
+    const auto result = Draw(pass);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(carrier.wings.model, 0xffff);
+    EXPECT_EQ(m_clothWorld.random.State(), 1u);
+    m_models.SetBoneCount(48);
+    const auto shortened = Draw(Pass());
+    ASSERT_FALSE(shortened.HasValue());
+    EXPECT_NE(shortened.Error().find("0x509340: el hueso 0x3d"), std::string::npos) << shortened.Error();
 }
 
 // 0x50bf98: el +0x376 0x45 saca su rand() % 30, pone nueve flare01 de 0,6 con su luz y, antes de cada una de sus tres

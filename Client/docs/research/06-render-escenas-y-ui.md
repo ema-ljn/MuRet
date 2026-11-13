@@ -7140,9 +7140,11 @@ entrar a Devias armado). `Scenes::DrawGameHanging` corre, sobre el cuerpo ya dib
     `0x5403eb`) y, de 0 a −180, un destello en tres de cada cuatro `rand()`.
 
 Entre frames del original, lo que cuelga se dibuja con una copia del personaje y del `rand()`, sin
-avanzar; sus joints y partículas van a la copia de la cola, que no avanza. Cortan con su dirección: el
-origen del `0xef` (`0x5096ac`; solo lo cuelga el monstruo con `+0x376` en `0x2a`, `0x50c79a`, CL9.1), el
-lugar de los monstruos `0x84` a `0x86` (`0x5093f3`), las capas del 6 al 13 (`0x4140d5`), la de los GM en
+avanzar; sus joints y partículas van a la copia de la cola, que no avanza. El origen y el giro del `0xef` (`0x5096ac`)
+y el lugar de los monstruos `0x84` a `0x86` (`0x5093f3`) están portados con lo que cuelgan esos monstruos (CL9 hito 2,
+fase 8, [El dibujo de los monstruos y los NPC](#el-dibujo-de-los-monstruos-y-los-npc)); con otro modelo en ese lugar,
+la matriz sin iniciar de `0x5095e0` corta. Un modelo cuya acción no está corta en `0x4ec200` si `0x509340` lo avanza
+(Q-C1119). Cortan con su dirección: las capas del 6 al 13 (`0x4140d5`), la de los GM en
 Chaos Castle (`0x5ffe09`), el arma del evento de Blood Castle (`0x50de84`) y el efecto cada 30 pasos de
 `+0x78 & 0x800` (`0x50e0c0`). `GameHangingTest` y `GameCharacterRenderTest` cubren la espalda (hueso 47 y
 su lugar), la mano (hueso 33), las saetas, Helper02, los sprites de `0x21d` y `0xc19`, los joints y las
@@ -10431,6 +10433,27 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    con los otros dos (`SUB 0x47`, `NEG`, `SBB` y `AND 2` sobre `0x253`: `Monster\iui02.tga` e `iui03.tga`, que carga el
    caso de Monster53), sin esferas, y `+0x18c` en 1; después, como la del `0x4d`: `0x455190(0,005f, 5)`, `0x4fb1a0` si se
    rompe y si no su `+0x18` con el color nulo.
+   El `0x2a` (fase 8, `0x50c762..0x50c82c`, el monstruo 42, el tipo `0x171`, sin sombra): en el lugar de las alas
+   (`+0x2f8`) el modelo `0xef`, el hueso 9, la acción y la anterior en 1 y la velocidad en 0,2f, y `0x509340(0, 0, −40,
+   personaje, +0x2f8, 0xef, 0, 0, 0, 1, 0)`; después el `0xf0` y el hueso `0x3d` (las acciones y la velocidad, como las
+   dejó el `0xef`), con la luz de lo que cuelga (`+0x3b4`) en 1 y la escala (`+0xc`) en 0,9f (`0x3f666666`), y
+   `0x509340(0, −40, 45, …, 0xf0, …)`; las dos vuelven después. `0xef` y `0xf0` son `BossHead01` y `Princess01`, los
+   especiales del mapa 5 (`0x617325`, `Object6`): en otro mapa la tabla tiene en esos lugares lo que haya cargado el
+   mapa, y sin nada solo saca los `rand()` de `0x509340` (Q-C102). `0x509340` saca el desplazamiento por el `+0x68` del
+   modelo del tipo (`0x4ec190`), la escala con que se posó el cuerpo, y no por la de 0,9f, que es la del `0xf0`
+   (`0x509397`). Con el `0xef` (`0x50968c..0x5096f1`): los ángulos del objeto local en 0, el origen más
+   `0x743a160..0x743a168` (tres floats de la `.bss` que ningún código escribe: 0, *inferido*, P-C353), el hueso de la
+   cabeza del modelo (`+0x54`) en 0 y la z de los ángulos con los bits del reloj del mundo (`0x5767b88`). Los ángulos
+   van a `+0x78` del modelo (`0x4eb860`) y no cambian la pose (la raíz es la de `0x68c4a1c`); la cabeza resta los
+   ángulos x e y del objeto, que son 0, así que el hueso 0 queda con el cuaternión de su key. Las estatuas de Blood
+   Castle (`0x50c83b..0x50c8c6`, los monstruos 132 a 134, el tipo `0x18e`): el hueso 1, la acción y la anterior en 1, la
+   velocidad en 0,2f, la escala en 0,7f (`0x3f333333`) y el modelo `0xc1c`, `0x225` o `0xa24` (este a 0,9f), y
+   `0x509340(0, 0, 0, …, 0, 0, 1, 1, 0)`: con la bandera y el `+0x376` de `0x84` a `0x86` (`0x5093f3..0x50947c`), el
+   `0xc1c` y el `0x225` van con los ángulos (90, 0, 90) y la traslación (0, 80, 120), y el `0xa24` con (10, 0, 0) y
+   (0, 110, 80), desde la posición del personaje (los ceros de los ángulos, de `0x6b86a0`); con otro modelo
+   (`0x5095e0`) la matriz queda como estaba en la pila, sin iniciar, y no se alcanza. Staff11 (`0xc1c`) y Sword20
+   (`0x225`) tienen una sola acción: `0x4ec200` lee la 1 fuera de su arreglo (Q-C1119). Bow19 (`0xa24`), con la
+   bandera y entre `0xa12` y `0xc11`, no avanza, y `0x4eb860` lleva su acción a la 0.
 5. **El gremio** (`0x50c972`, con `+0x1f2` distinto de `0xffff`, que en un monstruo nunca pasa), **la luz** (`0x50cc55`:
    el terreno más la propia en `+0x3b4`, el `0x189` en 0,6), **las partes** (`0x50d363`: con `+0x3e3` en 0, el Angel de
    Chaos Castle con `+0x88` en 1 y el lazo de las seis partes de `+0x1f8`) y **las telas** (`0x50d58b`): bVar23
@@ -10463,7 +10486,9 @@ partículas); del `0x46`, su sprite; del `0x4d`, todo (`DrawGameMonster` con el 
 `SkinObjectMeshes`; los huesos en `WorldRuntime::phoenixBones`, en el frame del original; la tela con
 `CharacterCloth::FrameTheMonsterCloth` del lugar, y entre frames del original `DrawTheMonsterCloth`, que la dibuja como
 quedó; sin `GameCharacterPass::cloths`, corta en `0x50c283`); del `0x47`, el `0x4a` y el `0x12d`, su tela, igual (sin
-`GameCharacterPass::cloths`, corta en `0x50c59f`). Cortan con su dirección: los casos de `0x6002e0` y de su cadena, lo demás de `0x50bf45`, las partes (`0x50d3e3`), el Angel (`0x50d383`) y el gremio (`0x50c99b`), el joint `0x618/6` en
+`GameCharacterPass::cloths`, corta en `0x50c59f`); del `0x2a` y de las estatuas, lo que cuelgan, con
+`Scenes::HangFromTheWingsSlot` (`GameHanging.h`) y la biblioteca de la fauna, que sigue con la del mapa y la global como
+la tabla única del original (el `0xc1c` y el `0x225` cortan en `0x4ec200`, Q-C1119). Cortan con su dirección: los casos de `0x6002e0` y de su cadena, lo demás de `0x50bf45`, las partes (`0x50d3e3`), el Angel (`0x50d383`) y el gremio (`0x50c99b`), el joint `0x618/6` en
 `CreateFaunaJoint` (`0x530c18`), los efectos de la CL11 del `0x16e`, de `0x43c150` y de `0x42dfe0` ([Los helpers
 de Kalima y del asedio](#los-helpers-de-kalima-y-del-asedio-0x43c150-y-0x42dfe0)) y de los otros helpers de `0x510a1e`
 (`Scenes::DrawTheMonsterHelpers`, que sigue) y `0x510f4d` (`0x518cf0`, CL11); 08, P-C179.

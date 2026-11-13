@@ -698,9 +698,83 @@ Result DrawThePhoenix(MonsterFrame& frame)
     return second;
 }
 
+// Lo que 0x509340 lee del frame de 0x50ba30, con la biblioteca `models`.
+GameHangingPass HangingPassOf(MonsterFrame& frame, const IModelLibrary& models)
+{
+    const GameCharacterPass& pass = frame.pass;
+    return GameHangingPass{.batch = frame.batch,
+                           .models = models,
+                           .body = frame.actor.bodyPose,
+                           .random = frame.random,
+                           .carry = pass.poseCarry,
+                           .sprites = pass.sprites,
+                           .joints = pass.joints,
+                           .particles = pass.particles,
+                           .itemContext = pass.itemContext,
+                           .frameClock = pass.frameClock,
+                           .worldClock = frame.worldClock,
+                           .map = frame.map,
+                           .heroByte1a1 = frame.world.Actors()[frame.world.Runtime().hero].byte1a1,
+                           .siegeActive = frame.world.Runtime().siegeActive,
+                           .logicSteps = pass.clothWorld->logicSteps,
+                           .originalFrame = frame.originalFrame};
+}
+
+// 0x50c762..0x50c826 y 0x50c845..0x50c857: el lugar de las alas (+0x2f8) con el modelo, el hueso, la acción y la
+// anterior en 1 y la velocidad en 0,2f (0x3e4ccccd).
+void ArmTheWingsSlot(ActorState& actor, std::uint16_t model, std::uint8_t bone)
+{
+    ActorItemPart& wings = actor.wings;
+    wings.model = model;
+    wings.bone = bone;
+    wings.animation.action = 1;
+    wings.animation.previousAction = 1;
+    wings.speed = std::bit_cast<float>(0x3e4ccccdu);
+}
+
+// 0x50c762..0x50c82c: el +0x376 0x2a cuelga del lugar de las alas el 0xef (BossHead01) del hueso 9 con (0, 0, −40) y
+// el 0xf0 (Princess01) del 0x3d con (0, −40, 45), este con la luz de lo que cuelga (+0x3b4) en 1 y la escala en 0,9f
+// (0x3f666666), que vuelven después. Los dos son objetos del mapa 5 (Object6, 0x617325): en otro mapa, lo que haya
+// en esos lugares de la tabla, y sin nada, solo los rand() de 0x509340 (Q-C102). Van con la biblioteca de la fauna,
+// que sigue con la del mapa y la global, como la tabla única del original.
+Result HangTheCarriedModels(MonsterFrame& frame)
+{
+    ActorState& actor = frame.actor;
+    const float scale = actor.scale;
+    ArmTheWingsSlot(actor, 0xef, 9);
+    if (auto hung = HangFromTheWingsSlot(actor, HangingPassOf(frame, frame.fauna), {0.0f, 0.0f, -40.0f}, false, scale);
+        !hung.HasValue())
+        return hung;
+    // 0x50c79f: el modelo y el hueso; las acciones y la velocidad quedan como las dejó el 0xef.
+    actor.wings.model = 0xf0;
+    actor.wings.bone = 0x3d;
+    const glm::vec3 light = actor.drawnLight;
+    actor.drawnLight = glm::vec3(1.0f);
+    actor.scale = std::bit_cast<float>(0x3f666666u);
+    auto hung = HangFromTheWingsSlot(actor, HangingPassOf(frame, frame.fauna), {0.0f, -40.0f, 45.0f}, false, scale);
+    actor.drawnLight = light;
+    actor.scale = scale;
+    return hung;
+}
+
+// 0x50c83b..0x50c8c6: las estatuas de Blood Castle (+0x376 de 0x84 a 0x86) cuelgan del hueso 1, con la bandera
+// (PlacementOf de 0x509340), el 0xc1c, el 0x225 o el 0xa24 a la escala 0,7f (0x3f333333; el 0xa24, 0,9f), que
+// vuelve después.
+Result HangTheStatueWeapon(MonsterFrame& frame)
+{
+    ActorState& actor = frame.actor;
+    const float scale = actor.scale;
+    constexpr std::array<std::uint16_t, 3> Weapons{0xc1c, 0x225, 0xa24};
+    ArmTheWingsSlot(actor, Weapons[static_cast<std::size_t>(actor.word376 - 0x84)], 1);
+    actor.scale = actor.word376 == 0x86 ? std::bit_cast<float>(0x3f666666u) : std::bit_cast<float>(0x3f333333u);
+    auto hung = HangFromTheWingsSlot(actor, HangingPassOf(frame, frame.fauna), {}, true, scale);
+    actor.scale = scale;
+    return hung;
+}
+
 // 0x50bf45..0x50c904: lo que se agrega por el +0x376. El 0x45, hasta sus partículas, el 0x46, el 0x4d, las telas del
-// 0x47, el 0x4a y el 0x12d (0x50c59f, con cualquier tipo: los tres son del 0x186) y los pases de brillo
-// (MonsterShines); los demás cortan.
+// 0x47, el 0x4a y el 0x12d (0x50c59f, con cualquier tipo: los tres son del 0x186), los pases de brillo
+// (MonsterShines) y lo que cuelgan el 0x2a y las estatuas 0x84 a 0x86; los demás cortan.
 Result DrawTheDecorations(MonsterFrame& frame)
 {
     const std::uint16_t monster = frame.actor.word376;
@@ -714,6 +788,10 @@ Result DrawTheDecorations(MonsterFrame& frame)
         return RunTheGridCloth(frame, "0x50c59f");
     if (MonsterShines(frame.actor.word376))
         return DrawTheShines(frame);
+    if (monster == 0x2a)
+        return HangTheCarriedModels(frame);
+    if (Within(monster, 0x84, 0x86))
+        return HangTheStatueWeapon(frame);
     return CheckMonsterDecorations(frame.actor.word376);
 }
 
@@ -1022,23 +1100,7 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
     // 0x50db94: la luz de lo que cuelga; el rand() de 0x50db57 y los dos cierres de +0x38e de las manos los saca
     // DrawGameHanging (Q-C860).
     actor.drawnLight = HangingLightOf(actor, terrainLight, frame.map);
-    const GameHangingPass hangingPass{.batch = frame.batch,
-                                      .models = frame.items,
-                                      .body = actor.bodyPose,
-                                      .random = frame.random,
-                                      .carry = pass.poseCarry,
-                                      .sprites = pass.sprites,
-                                      .joints = pass.joints,
-                                      .particles = pass.particles,
-                                      .itemContext = pass.itemContext,
-                                      .frameClock = pass.frameClock,
-                                      .worldClock = frame.worldClock,
-                                      .map = frame.map,
-                                      .heroByte1a1 = frame.world.Actors()[frame.world.Runtime().hero].byte1a1,
-                                      .siegeActive = frame.world.Runtime().siegeActive,
-                                      .logicSteps = pass.clothWorld->logicSteps,
-                                      .originalFrame = frame.originalFrame};
-    if (auto hung = DrawGameHanging(actor, hangingPass); !hung.HasValue())
+    if (auto hung = DrawGameHanging(actor, HangingPassOf(frame, frame.items)); !hung.HasValue())
         return hung;
     const auto cased = DrawTheModelCase(frame);
     if (!cased.HasValue())

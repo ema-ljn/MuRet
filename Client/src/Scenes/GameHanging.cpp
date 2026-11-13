@@ -69,6 +69,11 @@ constexpr std::uint32_t FrozenAnimationFlag = 0x1000;
 // Un rand() por cada byte de +0x38e al cerrarse (0x5098e5 y el lazo de 0x50e298).
 constexpr std::uint16_t Byte38eCloseRandoms = 1;
 constexpr std::uint8_t WingsBone = 0x2f;
+// 0x5096ac: el modelo al que 0x509340 le corre el origen y le gira la z (BossHead01, del mapa 5).
+constexpr std::int32_t CarriedHead = 0xef;
+// 0x743a160..0x743a168: lo que 0x5096ac suma al origen del 0xef. Ningún código los escribe y están en la .bss (la
+// imagen inicializada termina en 0x6e6000): 0 (*inferido*, P-C353).
+constexpr glm::vec3 CarriedHeadShift{0.0f, 0.0f, 0.0f};
 constexpr std::uint8_t PetBone = 0x22;
 // 0x6b8a44: en la acción 0x3e la mano derecha no cuelga nada hasta pasar el frame 4.
 constexpr float LateSwingFrame = 4.0f;
@@ -131,6 +136,9 @@ struct Frame
     const GameHangingPass& pass;
     // [ebp+0xc] de 0x50ba30: (rand() % 30 + 70) · 0,01 del rand de 0x50db57.
     float lum = 0.0f;
+    // +0x68 del modelo del tipo del personaje, con que 0x4ec190 escala el desplazamiento: la escala con que se posó el
+    // cuerpo, aunque quien llama a 0x509340 haya cambiado la del personaje (0x50c7dd).
+    float bodyScale = 0.0f;
 
     // 0x4ec110 con el jugador (escala y posición del personaje) sobre el hueso `bone` de su pose propia.
     // DrawGameHanging comprueba antes que los huesos de las partes existen.
@@ -190,11 +198,23 @@ struct Frame
     }
 };
 
-// El lugar de lo que cuelga por el camino de la bandera (0x5093d2..0x5095e2).
+// El lugar de lo que cuelga por el camino de la bandera (0x5093d2..0x5095e2). El 0 de los ángulos es el de 0x6b86a0.
 Core::Expected<Render::Models::HangingPlacement, std::string> PlacementOf(const ActorState& actor, std::int32_t model)
 {
+    // 0x5093f3..0x50947c: con el +0x376 de 0x84 a 0x86 (las estatuas de Blood Castle, 0x50c83b), el 0xc1c y el 0x225
+    // en (90, 0, 90) y (0, 80, 120), y el 0xa24 en (10, 0, 0) y (0, 110, 80). Con otro modelo (0x5095e0), la matriz
+    // del lugar queda como estaba en la pila: 0x50ba30 solo les cuelga esos tres, y ningún alta le da ese +0x376 a un
+    // 0x20a.
     if (actor.word376 >= 0x84 && actor.word376 <= 0x86)
-        return Core::Unexpected(std::string("0x5093f3: el lugar de las armas de los monstruos 0x84 a 0x86"));
+    {
+        if (model == 0xc1c || model == 0x225)
+            return Render::Models::HangingPlacement{{90.0f, 0.0f, 90.0f}, {0.0f, 80.0f, 120.0f}};
+        if (model == 0xa24)
+            return Render::Models::HangingPlacement{{10.0f, 0.0f, 0.0f}, {0.0f, 110.0f, 80.0f}};
+        return Core::Unexpected(std::format("0x5095e0: el lugar del modelo {:#x} con el +0x376 {:#x} es la matriz sin "
+                                            "iniciar de la pila de 0x509340",
+                                            model, actor.word376));
+    }
     const bool crossbow = (model >= 0xa1a && model < Arrows) || model == 0xa22 || (model >= 0xa24 && model < 0xa26);
     if (crossbow)
         return Render::Models::HangingPlacement{{0.0f, 20.0f, 180.0f}, {-10.0f, 8.0f, 40.0f}};
@@ -207,13 +227,13 @@ Core::Expected<Render::Models::HangingPlacement, std::string> PlacementOf(const 
     return Render::Models::HangingPlacement{{70.0f, 0.0f, 90.0f}, {-20.0f, 5.0f, 40.0f}};
 }
 
-// 0x4ec190 y 0x50966b: el origen de lo que cuelga sin la bandera.
-glm::vec3 OriginOf(const BoneTransform& parent, const glm::vec3& offset, const ActorState& actor)
+// 0x4ec190 y 0x50966b: el origen de lo que cuelga sin la bandera, con la escala `scale` del modelo del tipo.
+glm::vec3 OriginOf(const BoneTransform& parent, const glm::vec3& offset, const ActorState& actor, float scale)
 {
     const glm::vec3 turned = Render::Models::OriginalVectorRotate(offset, Render::Models::OriginalMatrixOf(parent));
     glm::vec3 origin{};
     for (int k = 0; k < 3; ++k)
-        origin[k] = F32(D(F32(D(actor.scale) * D(turned[k]))) + D(actor.position[k]));
+        origin[k] = F32(D(F32(D(scale) * D(turned[k]))) + D(actor.position[k]));
     return origin;
 }
 
@@ -612,14 +632,20 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, ActorItemPart& part
     }
     else
     {
-        origin = OriginOf(parent, offset, actor);
+        origin = OriginOf(parent, offset, actor, frame.bodyScale);
     }
-    // 0x5096ac..0x5096f1: el 0xef suma 0x743a160..0x743a168 al origen, pone +0x54 del modelo en 0 y gira la z con
-    // los bits del reloj del mundo. Solo lo cuelga el dibujo de los monstruos con +0x376 en 0x2a (0x50c79a, CL9.1):
-    // las partes de un jugador son ítems, desde el 0x212.
-    if (model == 0xef)
-        return Core::Unexpected(std::string("0x5096ac: el origen y el giro del modelo 0xef (el monstruo 0x2a, "
-                                            "0x50c79a) no están portados"));
+    // 0x50968c..0x5096f1: los ángulos del objeto en 0; el 0xef (solo lo cuelga el +0x376 0x2a, 0x50c79a) suma
+    // 0x743a160..0x743a168 al origen, pone en 0 el hueso de la cabeza de su modelo (+0x54) y lleva a la z los bits del
+    // reloj del mundo (0x5767b88). Los ángulos van a +0x78 del modelo (0x4eb860), y la pose no los lee: su raíz es la
+    // de 0x68c4a1c. La cabeza resta los ángulos x e y del objeto, que son 0, y deja el cuaternión de la key: sin
+    // efecto, el +0x54 no se guarda.
+    glm::vec3 angles{};
+    if (model == CarriedHead)
+    {
+        for (int k = 0; k < 3; ++k)
+            origin[k] = F32(D(CarriedHeadShift[k]) + D(origin[k]));
+        angles.z = pass.worldClock;
+    }
     std::uint8_t value = 0;
     {
         const Render::Models::LogicalAccess access(actor.byte38eAccesses, pass.random, Byte38eCloseRandoms);
@@ -643,13 +669,19 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, ActorItemPart& part
     // 0x5093a3 y 0x50997e: la acción del modelo es la de la parte, salvo 0x1a18 en la zona segura (con el
     // modelo de la parte, no con el que dibuja).
     const std::uint8_t action = part.model == 0x1a18 && actor.safeZone != 0 ? 1 : part.animation.action;
-    if (action >= skeleton->actions.size())
-        return Core::Unexpected(
-            std::format("0x4ec200: el modelo {:#x} no tiene la acción {}", model, static_cast<int>(action)));
+    // 0x5099a2..0x5099ed: 0x4ec200 avanza la animación salvo con la bandera en un arma de 0xa12 a 0xc11 o con
+    // +0x78 & 0x1000, y sin acciones (+0x26) no hace nada. Lee la acción de +0xa0 sin mirar cuántas tiene el modelo:
+    // con una de más, lee el heap después de su arreglo (Q-C1119), y corta. 0x4eb860 la lleva a la 0 (ChooseKeys).
+    const bool still = placed && model >= 0xa12 && model < 0xc12;
+    const bool advances =
+        !still && (actor.flags78 & FrozenAnimationFlag) != FrozenAnimationFlag && !skeleton->actions.empty();
+    if (advances && action >= skeleton->actions.size())
+        return Core::Unexpected(std::format("0x4ec200: el modelo {:#x} no tiene la acción {}, que lee fuera de su "
+                                            "arreglo (Q-C1119)",
+                                            model, static_cast<int>(action)));
     Render::Models::AnimationState animation = part.animation;
     animation.action = action;
-    const bool still = placed && model >= 0xa12 && model < 0xc12;
-    if (pass.originalFrame && !still && (actor.flags78 & FrozenAnimationFlag) != FrozenAnimationFlag)
+    if (pass.originalFrame && advances)
     {
         static_cast<void>(Render::Models::AdvanceAnimation(animation, skeleton->actions[action], part.speed,
                                                            Render::Models::AnimationScene::Other));
@@ -667,7 +699,7 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, ActorItemPart& part
     DrawnObject object;
     object.model = type;
     object.animation = animation;
-    object.transform = {.position = origin, .angles = {}, .scale = actor.scale};
+    object.transform = {.position = origin, .angles = angles, .scale = actor.scale};
     object.state = state;
     object.color = actor.drawnLight;
     object.alpha = actor.alpha;
@@ -1216,7 +1248,7 @@ Result HangThePlayer(Frame& frame, bool back)
 Core::Expected<void, std::string> DrawGameHanging(ActorState& actor, const GameHangingPass& pass)
 {
     // 0x50db57: el rand() de la luz de lo que cuelga, aun sin ningún ítem.
-    Frame frame{actor, pass, F32(D(static_cast<float>(Mod(pass.random, 30) + 70)) * D(0.01f))};
+    Frame frame{actor, pass, F32(D(static_cast<float>(Mod(pass.random, 30) + 70)) * D(0.01f)), actor.scale};
     // 0x50dcc2: lo que no es un jugador 0x20a salta a 0x50e060, sin la espalda, el arma del evento, la capa ni las
     // alas.
     const bool player = actor.type == Data::Models::PlayerSkeletonModel;
@@ -1258,5 +1290,19 @@ Core::Expected<void, std::string> DrawGameHanging(ActorState& actor, const GameH
             return hung;
     }
     return {};
+}
+
+Core::Expected<void, std::string> HangFromTheWingsSlot(ActorState& actor, const GameHangingPass& pass,
+                                                       const glm::vec3& offset, bool placed, float bodyScale)
+{
+    if (pass.carry == nullptr || pass.sprites == nullptr)
+        return Core::Unexpected<std::string>(
+            "0x509340: faltan el buffer global de la pose (0x68b181c) o la tabla de sprites (0x5491e0)");
+    if (!std::isfinite(pass.worldClock) || std::abs(pass.worldClock) >= 0x1p40f)
+        return Core::Unexpected<std::string>("0x5767b88: el reloj del mundo está fuera del dominio de FSIN");
+    const Frame frame{actor, pass, 0.0f, bodyScale};
+    // 0x50c7e4 y 0x50c8a2: el modelo es el del lugar, con signo (MOVSX); 0x509340 con el nivel, el excelente y el
+    // undécimo argumento en 0 y el décimo en 1, como en las otras llamadas de 0x50ba30.
+    return HangItem(frame, offset, actor.wings, static_cast<std::int16_t>(actor.wings.model), 0, 0, placed);
 }
 } // namespace Client::Scenes

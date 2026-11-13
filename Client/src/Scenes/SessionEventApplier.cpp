@@ -27,6 +27,7 @@
 #include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/InventoryReply.h"
+#include "Scenes/MagicAttackCount.h"
 #include "Scenes/MonsterViewport.h"
 #include "Scenes/MovementReplies.h"
 #include "Scenes/QuestReplies.h"
@@ -131,6 +132,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
         return ApplyWalkReply(*walk, session.PlayerIndex(), m_resources);
     if (const auto* damage = std::get_if<Protocol::Movement::Damage>(&event))
         return ApplyDamageReply(*damage, session.PlayerIndex(), m_resources);
+    if (const auto* attack = std::get_if<Protocol::Viewport::MagicAttackCount>(&event))
+        return ApplyMagicAttackCount(*attack, session.PlayerIndex(), m_resources);
     // CL9 hito 3: el 0x16 y el 0x9C (0x4cf200, 0x4cfce0) y el 0x17 (0x4d0a30).
     if (const auto* experience = std::get_if<Protocol::Combat::KillExperience>(&event))
         return ApplyKillExperience(*experience, CombatContextOf(m_resources), ChatContextOf(m_resources, session));

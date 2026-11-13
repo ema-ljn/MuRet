@@ -299,4 +299,27 @@ inline Network::Packet PositionPacket(std::uint16_t key, std::uint8_t x, std::ui
                                  std::byte{y}};
     return ViewportDetail::Built(std::move(bytes));
 }
+
+// El 1A como lo arma PMSG_MAGICATTACK_COUNT_SEND: la cabecera C1, NumberH/NumberL, MagicNumber, X, Y, Count y las
+// claves de PMSG_MAGICATTACK_COUNT_INFO (NumberH/NumberL).
+inline Network::Packet MagicAttackCountPacket(std::uint16_t key, std::uint8_t magic, std::uint8_t x, std::uint8_t y,
+                                              std::span<const std::uint16_t> targets)
+{
+    std::vector<std::byte> bytes(9 + targets.size() * 2);
+    bytes[0] = std::byte{0xc1};
+    bytes[1] = std::byte{static_cast<std::uint8_t>(bytes.size())};
+    bytes[2] = std::byte{0x1a};
+    bytes[3] = std::byte{static_cast<std::uint8_t>(key >> 8)};
+    bytes[4] = std::byte{static_cast<std::uint8_t>(key & 0xff)};
+    bytes[5] = std::byte{magic};
+    bytes[6] = std::byte{x};
+    bytes[7] = std::byte{y};
+    bytes[8] = std::byte{static_cast<std::uint8_t>(targets.size())};
+    for (std::size_t index = 0; index < targets.size(); ++index)
+    {
+        bytes[9 + index * 2] = std::byte{static_cast<std::uint8_t>(targets[index] >> 8)};
+        bytes[10 + index * 2] = std::byte{static_cast<std::uint8_t>(targets[index] & 0xff)};
+    }
+    return ViewportDetail::Built(std::move(bytes));
+}
 } // namespace Client::Tests

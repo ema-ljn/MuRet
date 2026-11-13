@@ -44,6 +44,8 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
     // Crywolf (0x42fe32) y su etapa (0x723c05). 0x723c08, que también pone en 0, solo lo escriben paquetes (CL9.5).
     runtime.crywolf.state = 0;
     runtime.crywolf.stage = 0;
+    // 0x42fdf8: el NPC elegido de la llegada (0x6c8e54) en −1.
+    runtime.movement.chosenNpc = -1;
     // 0x4c363f: la escena 4.
     runtime.orderedScene = SceneId::CharacterSelect;
     // 0x4c3649..0x4c38e4: el estado 0x32 y el F3 00, de la sesión. 0x4c38eb y 0x4c38f2: las banderas de la

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "Scenes/ActorState.h"
@@ -20,6 +21,14 @@ namespace Client::Render::Models
 class CrtRandom;
 struct Skeleton;
 } // namespace Client::Render::Models
+namespace Client::Render::Text
+{
+class ITextMeasure;
+}
+namespace Client::Data::Text
+{
+class TextTable;
+}
 
 namespace Client::World
 {
@@ -94,6 +103,14 @@ struct CharacterStepContext
     // GetAsyncKeyState(0x11) con 0x80 en el byte de arriba: Ctrl abajo, que 0x558eb0 lee en la habilidad del héroe
     // (0x558fd6, CL9 hito 3).
     bool controlDown = false;
+    // Lo que dicen los NPC (0x4fc790, 0x4fc8c0 y 0x4fcda2): los textos de Text.bmd y el medidor y la pantalla del globo
+    // (0x557170). Sin ellos, el que tiene que hablar corta.
+    const Data::Text::TextTable* texts = nullptr;
+    const Render::Text::ITextMeasure* textMeasure = nullptr;
+    App::PixelSize screen{640, 480};
+    // timeGetTime() (0x6b8144), en ms, que lee el mensaje del nombre de 0x6c88b0 (0x4fcd82 y 0x4fcd8e). Vacío, el que
+    // tiene ese nombre corta.
+    std::function<std::uint32_t()> systemTime{};
 };
 
 // 0x508f00. Corta con error, en el orden del original, en el mapa 30 (0x412140), sin el mapa cargado

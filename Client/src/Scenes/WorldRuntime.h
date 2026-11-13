@@ -41,6 +41,7 @@
 #include <cstddef>
 #include <array>
 #include <cstdint>
+#include <deque>
 #include <optional>
 #include <string>
 #include <vector>
@@ -52,6 +53,15 @@
 // (CL7.P, P-C22 c).
 namespace Client::Scenes
 {
+// Una entrada de la cola de las barras de vida (0x7239a8, de 0x10 bytes): la posición del personaje con la z sobre el
+// techo de su caja (+0x18 + +0x138 + 100) y su +0x93, el byte bajo del cuarto DWORD (los otros tres son lo que había en
+// la pila, que 0x42a53d descarta).
+struct QueuedHealthBar
+{
+    glm::vec3 position{};
+    std::uint8_t fill = 0;
+};
+
 // .data[0x6c8c5c] = 1e 00 00 00; los otros cuatro campos del clima están en .bss.
 inline constexpr std::int32_t InitialLeafCount = 30;
 
@@ -209,6 +219,9 @@ struct WorldRuntime
     // 0x7239f0 (.bss 0): cuándo 0x42b540 eligió la música del mapa 30, en ms de timeGetTime guardados en float. Lo
     // ponen en 0 la carga del 30 (0x42a795) y 0x4294c0 (los paquetes del asedio, CL9.5).
     float siegeMusicTime = 0.0f;
+    // 0x7239d8 (.bss 0): lo pone en 0 la carga del 30 (0x42a78e) y en 2 0x42d890 cuando el 286 o el 287 terminan la
+    // acción 5 (0x42d8f6); lo lee 0x42da90 (0x42db7b), sin portar.
+    std::uint8_t castleByte7239d8 = 0;
     // 0x6c649a (.data 0xff): el puesto del héroe en su gremio, que solo copia 0x412120 desde 0x4d9260 (el
     // paquete del gremio, CL9). Sin ese paquete queda en 0xff, sin gremio.
     std::uint8_t heroGuildPost = 0xff;
@@ -389,8 +402,9 @@ struct WorldRuntime
     // CL9 hito 3: lo que mira 0x558bb0 para saber si el personaje elegido se puede atacar (AttackRules.h).
     AttackRules attackRules{};
     // [0x5767964] (.bss, 0): el lugar del último que pegó. Lo escriben el 18 con las acciones 0x78 y 0x79 (0x4cb849),
-    // el 0x19 (0x4cce7d), el 0x69 (0x4cc2e1) y el 0x1A (0x4cedf7), y lo lee el D7 que llega con el efecto defensivo
-    // (0x4cb32f, que corta). MuRet escribe el del 18 (CL9 hito 3, fase 2a).
+    // el 0x19 (0x4cce7d), el 0x69 (0x4cc2e1) y el 0x1A (0x4cedf7, también con el 400 fantasma), y lo lee el D7 que
+    // llega con el efecto defensivo (0x4cb32f, que corta). MuRet escribe el del 18 (CL9 hito 3, fase 2a) y el del 1A
+    // (CL9 hito 2).
     std::int32_t lastAttacker = 0;
     // [0x6c88ac] (.data, 15): desde cuántos pasos de +0x381 corre la habilidad de 0x4fd5f0 (0x4fdbe5, con signo). Lo
     // escribe solo 0x4f97b0: 15 en 0x4f987d, antes de su switch, y 5 en 0x4f9ee2, un caso de habilidad (hito 4).
@@ -405,6 +419,16 @@ struct WorldRuntime
     // [0x7437670]: las skills de los monstruos de MonsterSkill.bmd (0x54a440), que main.cpp copia de
     // GameData::monsterSkills y lee 0x4f92f0 (CL9 hito 3, fase 2c). Sin el archivo, la .bss.
     Data::Tables::MonsterSkillTable monsterSkills{};
+    // 0x7239a8: la cola de las barras de vida, un std::deque de bloques de 0x1000 bytes que 0x42a2b0 llena desde el
+    // paso de los personajes (el 0x1a8 con +0x93 debajo de 5) y 0x42a4d0 vacía de a la mitad en el HUD
+    // (Scenes/HealthBars.h). Solo la tocan esas dos y su constructor estático (0x4293d0): no se vacía al cambiar de
+    // mapa.
+    std::deque<QueuedHealthBar> healthBars{};
+    // 0x7437488, con el bit 0 de 0x743a174 de guarda (.bss): el timeGetTime() del último mensaje del nombre de 0x6c88b0
+    // (0x4fcd65..0x4fce15). El primer paso de un personaje lo pone en ahora − 5.000; vacío antes. Nadie lo vuelve a 0.
+    std::optional<std::uint32_t> namedLineTime{};
+    // 0x743a190 (.bss, 0): con 1 el próximo mensaje del nombre es el Text 1167 y con 0 el 1168; cambia con cada uno.
+    bool namedLineFirst = false;
     // [0x6e5640]: los huesos con nombre de los personajes (0x401000). 0x4011c0 saca el del mismo personaje y nombre
     // antes de agregar el nuevo; 0x401410 (desde 0x401040, en 0x512870, 0x510ff0 y 0x510f70) saca todos los de un
     // personaje. En qué orden los recorre quien los lee, sin leer (CL11).

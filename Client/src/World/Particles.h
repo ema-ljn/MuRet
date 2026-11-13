@@ -93,6 +93,12 @@ inline constexpr std::int32_t ExplosionParticle = 0x5ed;
 // la frena y avanza el cuadro (+0x48), y 548550 la dibuja con los cuadros de dos por dos (0x5487b9). No lee el subtipo.
 // La 5e3 comparte su creación (sin la luz) y su paso, pero nadie la pide en MuRet.
 inline constexpr std::int32_t BloodParticle = 0x5e4;
+// El brillo de la mano 5fd (Effect\Shiny02.jpg) de la skill que pega a varios (0x53d810, del 1A): la /0 y la /2 nacen
+// en 0x542b0e con vida 36 y el ángulo x en 45, y 0x53fdb0 las pone en la mano de su dueño, un personaje (lo hace quien
+// las crea: Scenes::RaiseTheHandShine). Su paso (0x546cd4) late la escala con el seno de la vida, gira la /2 y las
+// vuelve a poner en la mano; 548550 las dibuja con el billboard común (0x5488f6 → 0x54889a).
+inline constexpr std::int32_t HandShineParticle = 0x5fd;
+inline constexpr std::int32_t HandShineSecondSubtype = 2;
 
 // Offsets nativos de procedencia; este DTO no promete layout binario de 0x78 bytes.
 struct Particle
@@ -160,6 +166,9 @@ using ParticleObjectOwners = std::function<WorldObject*(std::uint64_t)>;
 // La acción (+0x111) del personaje de una identidad (ParticleOwnerKind::Actor, el lugar del pool): lo que el paso de
 // la órbita 60f/0 lee por el puntero +0x40 (0x54735f). nullopt si no está.
 using ParticleActorActions = std::function<std::optional<std::uint8_t>(std::uint64_t)>;
+// 0x53fdb0 en el paso de la 5fd (0x546d37 y 0x546d47): el punto de la mano del personaje dueño
+// (ParticleOwnerKind::Actor, el lugar del pool) para el subtipo. nullopt si no está.
+using ParticleActorHands = std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>;
 
 class Particles
 {
@@ -193,7 +202,8 @@ public:
                         std::int32_t scene, ParticleOwner owner = {});
     // CreateKalimaChecked agrega5ac/6,7,6ed/0,6f0..4/0, 6f1/3 y6f4/1; escena prestada para6f1.
     // Las familias con dueño tipado: las de Kalima y las de la selección (SelectionParticleKernels.h:
-    // 622/1, 5de/7 y 729/0,1), más 6f0/2, 6f1/2 y 6f2,6f3/4 de los objetos del 54 y del 33.
+    // 622/1, 5de/7 y 729/0,1), más 6f0/2, 6f1/2 y 6f2,6f3/4 de los objetos del 54 y del 33, y la 5fd/0 y /2 de la
+    // mano (que no lee el reloj ni la escena, ni saca rand()).
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateOwnedChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                        std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,
@@ -240,11 +250,13 @@ std::optional<ParticleError> StepParticles(Particles& particles, Render::Models:
 // la órbita 60f/0 (0x54735c); sin él, una 60f/0 viva falla con MissingOwner. La 5f3 pide la altura del terreno y el
 // alto de su textura
 // (`textureHeight`): sin ellos corta después de mover, frenar y agrandar. La 5ed pide la luz dinámica (`lighting`,
-// 0x7b4ccc4): sin ella corta con MissingDynamicLight después de su cuadro.
+// 0x7b4ccc4): sin ella corta con MissingDynamicLight después de su cuadro. La 5fd pide la mano de su dueño
+// (`actorHands`, 0x53fdb0): sin ella corta con MissingOwner después de la escala y la rotación.
 [[nodiscard]] Core::Expected<void, ParticleError>
 StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
                      std::reference_wrapper<const float> worldClock, const std::int32_t* map,
                      IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight = {},
                      const ParticleObjectOwners& owners = {}, const ParticleActorActions& actorActions = {},
-                     const ParticleTextureHeight& textureHeight = {}, TerrainLighting* lighting = nullptr);
+                     const ParticleTextureHeight& textureHeight = {}, TerrainLighting* lighting = nullptr,
+                     const ParticleActorHands& actorHands = {});
 } // namespace Client::World

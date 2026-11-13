@@ -29,7 +29,7 @@ enum class DialogStep : std::uint8_t
     EscapeMenu,
     // 0x62556f: las opciones (0x93).
     Options,
-    // 0x62d756: los dos botones de 0x7d368b8 (y las flechas del 0x8c).
+    // 0x62d756: los dos botones de 0x7d368b8 (y las flechas del 0x8c, y las respuestas del 0x8d).
     Buttons,
     // 0x6263df: Enter o el botón (0x11c, 0x62, 0x46, 0x15) cierran.
     GenericOk,

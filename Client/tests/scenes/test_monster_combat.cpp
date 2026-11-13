@@ -32,6 +32,7 @@
 #include "World/GameCamera.h"
 #include "World/WorldTerrain.h"
 
+#include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
@@ -54,8 +55,8 @@
 // Los monstruos del 0x13 en combate (CL9 hito 3, fase 2c): el alta escribe la tabla de sonidos de su modelo (0x612d90),
 // el 0x18 con la 0x78 los hace pegar (0x4f4a10 con sus ayudantes) y contar en el paso (0x4fd5f0 con 0x4f97b0 y
 // 0x4f5b70), y el D7, el 0x16 y el 0x17 los lastiman y los matan (0x4f5660 y 0x4fb9e0). Con el Data del laboratorio
-// (Lorencia y Devias); las claves son inventadas y el esqueleto del monstruo es el del 0x20a (MuRet no carga los
-// modelos de los monstruos, P-C176).
+// (Lorencia y Devias); las claves son inventadas y el alta carga el modelo del monstruo (0x612d90, CL9 hito 2) con una
+// tabla de texturas falsa.
 namespace
 {
 using Client::Data::Models::PlayerSkeletonModel;
@@ -85,7 +86,7 @@ int DrawsSince(std::uint32_t state, const CrtRandom& random)
     return draws;
 }
 
-// Los esqueletos de 0x4ea030: el de Player.bmd también para los monstruos.
+// La biblioteca del mapa, detrás de FaunaResources: Player.bmd, también en el modelo del monstruo de Lorencia.
 class MonsterModels final : public Client::Scenes::IModelLibrary
 {
 public:
@@ -110,6 +111,8 @@ struct Game
 {
     Game()
     {
+        // 0x612d90 sube las texturas de los modelos que carga por la tabla que liga el juego (CL9 hito 2).
+        world.FaunaResources().TextureTable().Bind(store);
         ActorState& hero = world.Actors()[0];
         hero = Client::Tests::UnarmedPlayer();
         hero.alive = true;
@@ -134,6 +137,8 @@ struct Game
     {
         return {.world = world, .random = cloth.random, .playerSkeleton = &models.skeleton, .models = &models};
     }
+    // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
+    Client::Tests::FakeTextureStore store;
     Client::Scenes::WorldState world;
     std::filesystem::path dataRoot;
     Client::Scenes::SelectionState selection{world};

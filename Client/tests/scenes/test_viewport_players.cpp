@@ -21,6 +21,7 @@
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/FaunaModels.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/MovementReplies.h"
 #include "Scenes/SelectionState.h"
@@ -33,6 +34,7 @@
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
 
+#include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
@@ -76,6 +78,8 @@ struct Game
 {
     Game()
     {
+        // 0x612d90 y 0x612270 suben las texturas de los modelos que cargan por la tabla que liga el juego.
+        world.FaunaResources().TextureTable().Bind(store);
         models.Set(PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         ActorState& hero = world.Actors()[0];
         hero = Client::Tests::UnarmedPlayer();
@@ -96,6 +100,8 @@ struct Game
                 .itemSetTables = &sets,
                 .log = log};
     }
+    // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
+    Client::Tests::FakeTextureStore store;
     Client::Scenes::WorldState world;
     // El Data\ del laboratorio, para los Monster*.bmd que mira el alta de 0x5141e0; vacío fuera de los tests con datos.
     std::filesystem::path dataRoot;

@@ -27,6 +27,7 @@
 #include "Scenes/HeroAttack.h"
 #include "Scenes/GamePartyWindow.h"
 #include "Scenes/GameTooltips.h"
+#include "Scenes/HealthBars.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
@@ -52,6 +53,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <format>
 #include <optional>
 #include <span>
@@ -1467,7 +1469,16 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     if (hud.partyCount > 0)
         return Core::Unexpected(std::string("0x5a89b0: las barras de vida de la party son de la CL9.4"));
     // 4. 0x5a6fc0: la info de Castle Siege, con el objeto de 0x5767924 (CL9.5): nada.
-    // 5. 0x42a4d0: las barras de la cola de 0x7239ac, vacía hasta la CL9.5: nada.
+    // 5. 0x42a4d0: las barras de vida de la cola de 0x7239a8 (Scenes/HealthBars). Un dibujo intermedio vacía una copia.
+    {
+        std::deque<QueuedHealthBar> scratch;
+        if (context.projecting)
+            scratch = runtime.healthBars;
+        if (auto bars = DrawTheHealthBars(context.projecting ? scratch : runtime.healthBars, context.projection,
+                                          context.sprites);
+            !bars.HasValue())
+            return bars;
+    }
     // 6. 0x42a660.
     if (auto icons = DrawTheStatusIcons(frame); !icons.HasValue())
         return icons;

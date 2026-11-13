@@ -148,6 +148,7 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
     case BloodParticle: // 0x548644 → 0x5487b9, sin leer el subtipo.
         return DrawSelection{ParticleDrawKind::Blood, false};
     case TorchSparkParticle: // 0x5488f6: la 6ab va al default, 0x54889a.
+    case HandShineParticle:  // 0x5488f6: la 5fd también (el byte 8 de 0x548cf7), sin leer el subtipo.
         return DrawSelection{ParticleDrawKind::Common, false};
     case DustParticle:
     {

@@ -22,6 +22,7 @@
 #include "World/Particles.h"
 #include "World/WorldTerrain.h"
 
+#include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
@@ -45,7 +46,8 @@
 // Client::Scenes::StepTheAttackCases: los casos de los monstruos de 0x4f5b70 (CL9 hito 3, fase 2e-B) sobre monstruos
 // del alta (0x5141e0) con el Data del repo: los ayudantes de Kalima (24 y 36), del asedio (30), del 33 y el 54, del 35
 // y de Crywolf (34), el switch por +0x376 y los dos de la cola (0x11 y 3), con los mismos tipos en Lorencia (0) y
-// Devias (2). Las claves son inventadas y el esqueleto de todos los modelos es el del 0x20a (P-C176). 06, "Los casos de
+// Devias (2). Las claves son inventadas; el alta carga los modelos del Data del repo (0x612d90, CL9 hito 2) con una
+// tabla de texturas falsa, y los que no carga toman el esqueleto del 0x20a de la biblioteca del mapa. 06, "Los casos de
 // los monstruos (0x4f5b70)".
 namespace
 {
@@ -75,7 +77,7 @@ int DrawsSince(std::uint32_t state, const CrtRandom& random)
     return draws;
 }
 
-// El esqueleto del 0x20a para todos los modelos: 0x4ea030 del alta pide sus acciones.
+// El esqueleto del 0x20a para los modelos que el alta no carga (la biblioteca del mapa, detrás de FaunaResources).
 class AnyModels final : public Client::Scenes::IModelLibrary
 {
 public:
@@ -98,6 +100,11 @@ public:
 // El mundo del juego, en el heap: WorldState pesa unos 350 KB.
 struct Game
 {
+    // 0x612d90 sube las texturas de los modelos que carga por la tabla que liga el juego (CL9 hito 2).
+    Game()
+    {
+        world.FaunaResources().TextureTable().Bind(store);
+    }
     Client::Scenes::WorldEntryResources Resources()
     {
         return {.world = world,
@@ -111,6 +118,8 @@ struct Game
                 .itemSetTables = &sets,
                 .log = log};
     }
+    // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
+    Client::Tests::FakeTextureStore store;
     Client::Scenes::WorldState world;
     std::filesystem::path dataRoot;
     Client::Scenes::SelectionState selection{world};

@@ -26,6 +26,7 @@
 #include "Scenes/GameUi.h"
 #include "Scenes/HeroAttack.h"
 #include "Scenes/InventoryMoves.h"
+#include "Scenes/NpcTalk.h"
 #include "Scenes/WorldMap.h"
 #include "World/OriginalFtol.h"
 #include "World/TerrainWalls.h"
@@ -359,6 +360,68 @@ Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(ActorState& hero, const
     return MoveHeroEnd::Continue;
 }
 
+// 0x5650c0(héroe, héroe, n), la llegada: por +0x379 (MOVSX, del 1 al 5 por la tabla 0x56ab20; con otro, nada en
+// 0x5650fa). El 2 le habla al NPC elegido (NpcTalk.h, hito 2), que necesita el contexto de MoveHero; los demás van por
+// InteractOnArrival (HeroAttack.h): el 3 pega (hito 3) y el 1, el 4 y el 5 cortan.
+Core::Expected<void, std::string> ArriveAtTheTarget(ActorState& hero, const HeroMovementContext& context)
+{
+    if (static_cast<std::int8_t>(hero.movementType) == static_cast<std::int8_t>(NpcTalkMovement))
+        return TalkToTheNpc(hero, context);
+    return InteractOnArrival(hero, ArrivalContextOf(context));
+}
+
+// 0x59daaf..0x59dc59 (CL9 hito 2): +0x379 en 2 salvo con el bit 0x10000000 de +0x7c; el NPC en 0x6c8ebc, su celda
+// como destino (0x77e1ba8 y 0x77e1bac, la posición · 0,01 con ftol), el NPC, su tipo y su ángulo en 0x6c8e54,
+// 0x7798bf0 y 0x77f36cc; las celdas del héroe (y después x) y el camino (0x4eac00): con él, 0x56acd0; sin él, la
+// llegada en el lugar (0x5650c0(héroe, héroe, 1)).
+Core::Expected<void, std::string> WalkToTheNpc(ActorState& hero, const HeroMovementContext& context, std::int32_t npc)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    GameMovementState& state = runtime.movement;
+    if (npc < 0 || static_cast<std::size_t>(npc) >= context.world.Actors().size())
+        return Core::Unexpected(std::format("0x59dad9: el NPC elegido {} está fuera de la tabla de personajes", npc));
+    if ((hero.flags7c & NpcTalkBlockedFlag) != NpcTalkBlockedFlag)
+        hero.movementType = NpcTalkMovement;
+    state.attackTarget = npc;
+    const ActorState& target = context.world.Actors()[static_cast<std::size_t>(npc)];
+    const auto x = World::OriginalFtolLow(static_cast<double>(target.position.x) * CellReciprocal);
+    const auto y = World::OriginalFtolLow(static_cast<double>(target.position.y) * CellReciprocal);
+    if (!x || !y)
+        return Core::Unexpected(std::string("0x59daef: la posición del NPC fuera del perfil ftol"));
+    state.targetX = std::bit_cast<std::uint32_t>(*x);
+    state.targetY = std::bit_cast<std::uint32_t>(*y);
+    state.chosenNpc = npc;
+    state.chosenNpcType = static_cast<std::int16_t>(target.type);
+    state.chosenNpcAngle = std::bit_cast<std::uint32_t>(target.angles.z);
+    World::WorldTerrain& terrain = context.world.Map().terrain;
+    if (!terrain.attributes)
+        return Core::Unexpected(std::string("0x4eac00: falta TerrainWall para caminar"));
+    const auto startY = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
+    const auto startX = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
+    // 0x4eac0a..0x4eac41: con Crywolf activo (0x435a00 y el mapa 34) y un altar en 0x6c8e54 (0x204..0x208), el A*
+    // (0x4ead70) va con una bandera que MuRet no tiene.
+    constexpr std::int32_t CrywolfMap = 34;
+    constexpr std::uint8_t ThirdStage = 3;
+    constexpr std::uint8_t FourthStage = 4;
+    constexpr std::int16_t FirstAltar = 0x204;
+    constexpr std::int16_t LastAltar = 0x208;
+    const bool crywolf =
+        (runtime.crywolf.stage == ThirdStage || runtime.crywolf.stage == FourthStage) && runtime.map == CrywolfMap;
+    const auto model = static_cast<std::int16_t>(target.type);
+    if (crywolf && model >= FirstAltar && model <= LastAltar)
+        return Core::Unexpected(std::string("0x4eac41: el camino a un altar de Crywolf (la bandera del A* de 0x4ead70) "
+                                            "es del hito 11"));
+    const GameLogic::PathCell goal{static_cast<std::uint8_t>(*x & 0xff), static_cast<std::uint8_t>(*y & 0xff)};
+    if (*x != goal.x || *y != goal.y)
+        return Core::Unexpected(std::format("0x59dc32: el destino ({}, {}) del NPC sale del mapa", *x, *y));
+    if (const auto path = GameLogic::PathFinder(terrain.attributes->cells).Find({startX, startY}, goal))
+    {
+        hero.path = *path;
+        return SendThePath(hero, goal, context);
+    }
+    return ArriveAtTheTarget(hero, context);
+}
+
 Core::Expected<MoveHeroEnd, std::string> ProcessInput(ActorState& hero, const HeroMovementContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -405,6 +468,15 @@ Core::Expected<MoveHeroEnd, std::string> ProcessInput(ActorState& hero, const He
                         return Core::Unexpected(attackable.Error());
                     attacks = attackable.Value();
                 }
+                // 0x59da75..0x59daa9: sin atacar, el NPC elegido (0x6c8e2c), sin la tienda de NPC (un rand() del byte
+                // protegido) ni el almacén abiertos, va a hablarle y sigue en 0x59e248; si no, sigue en el terreno.
+                bool toTheNpc = false;
+                if (!attacks && runtime.selectedTargets[1] != -1)
+                {
+                    GamePanels panels(context.world, context.random);
+                    toTheNpc =
+                        !panels.Registry().IsOpen(UI::NpcShopPanel) && !panels.Registry().IsOpen(UI::WarehousePanel);
+                }
                 if (attacks)
                 {
                     const auto attacked = AttackTheChosen(hero, context);
@@ -412,6 +484,11 @@ Core::Expected<MoveHeroEnd, std::string> ProcessInput(ActorState& hero, const He
                         return Core::Unexpected(attacked.Error());
                     if (attacked.Value() == MoveHeroEnd::Leave)
                         return MoveHeroEnd::Leave;
+                }
+                else if (toTheNpc)
+                {
+                    if (const auto walked = WalkToTheNpc(hero, context, runtime.selectedTargets[1]); !walked.HasValue())
+                        return Core::Unexpected(walked.Error());
                 }
                 else if (const auto walked = UseGroundClick(hero, context); !walked.HasValue())
                 {
@@ -486,8 +563,9 @@ Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMoveme
             return Core::Unexpected(std::string("0x59b2d2: ángulo de llegada fuera del perfil ftol"));
         runtime.movement.arrivalYaw = *yaw;
         runtime.movement.movementTarget = 0;
-        // 0x5650c0(héroe, héroe, 0): con +0x379 en 0 sale por la tabla, sin interacción ni RNG; el 3 pega (CL9 hito 3).
-        return InteractOnArrival(hero, ArrivalContextOf(context));
+        // 0x59b2f7: 0x5650c0(héroe, héroe, 0). Con +0x379 en 0 sale por la tabla, sin interacción ni RNG; el 2 le habla
+        // al NPC (CL9 hito 2) y el 3 pega (CL9 hito 3).
+        return ArriveAtTheTarget(hero, context);
     }
     hero.flags7c &= ~std::uint32_t{0x200000};
     if (!terrain.heights || !terrain.attributes)

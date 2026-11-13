@@ -1026,7 +1026,7 @@ TEST(CharacterStepTest, TheWeaponTrailDrawsFromFrameThree)
 
 // Lo que el cuerpo (0x4fd5f0) no tiene corta, en su orden y después de los rand() de antes: los mapas 18 a 23 con
 // el héroe 10 s en una celda con el bit 8 (0x4fbe10 manda C1 06 AF 01, CL9.5), el 0xc5 (0x4fd603), el 0xf1 (0x4fb910),
-// +0x88 en 4 (0x4fcd0c), el nombre de 0x6c88b0 (0x4fcda2), otro modelo, Player.bmd sin cargar o una acción fuera de él
+// el nombre de 0x6c88b0 sin timeGetTime() (0x4fcd82), otro modelo, Player.bmd sin cargar o una acción fuera de él
 // (0x4f9580, 0x4f95c0), la partícula de las 0x4d, 0x4f y 0x5a (0x4fdb70) y, después de pegar, una habilidad de +0x38e
 // en 0x4f97b0 (0x4f9899, después de leerla; también muriéndose: el paso de morirse, 0x4fb9e0, y el de 0x4fd787 ya
 // pasaron).
@@ -1062,7 +1062,6 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
                  tested.Hero().byte38e = FrameSkill;
              },
              "0x4f9899", AfterTheTimers + BodyDraws + SkillReadDraws},
-        Case{"+0x88 en 4", [](GameWorld& tested) { tested.Hero().byte88 = 4; }, "0x4fcd0c", AfterTheTimers},
         Case{"el nombre",
              [](GameWorld& tested)
              {
@@ -1074,7 +1073,7 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
                  }
                  tested.Hero().byte1e3 = Name[10];
              },
-             "0x4fcda2", AfterTheTimers},
+             "0x4fcd82", AfterTheTimers},
         Case{"otro modelo", [](GameWorld& tested) { tested.Hero().type = 0x100; }, "0x4f9580", AfterTheTimers},
         Case{"sin Player.bmd", [](GameWorld& tested) { tested.player = nullptr; }, "0x4f9580", AfterTheTimers},
         Case{"una acción fuera",
@@ -1130,6 +1129,22 @@ TEST(CharacterStepTest, TheBordersOfTheBodyCutsGoOn)
     const auto atTheBorder = particle.Step(Everything);
     EXPECT_TRUE(atTheBorder.HasValue()) << atTheBorder.Error();
     EXPECT_EQ(particle.random.State(), RandomAfter(SeenHeroDraws + TrailDraws).State());
+}
+
+// 0x4fcd00 con +0x88 en 4 y el 0x20a de subtipo 0xd2 (el tipo 236) en Lorencia: gira a 90 y 0x4fc790 saca su rand()
+// después de los relojes; sin +0x376 en 0x101 no dice nada. El resto es el camino del héroe quieto, con uno más.
+TEST(CharacterStepTest, TheTurnedNpcTurnsAndDrawsItsLine)
+{
+    GameWorld tested;
+    tested.Hero().byte88 = 4;
+    tested.Hero().subtype = 0xd2;
+    tested.Hero().angles = {1.0f, 2.0f, 3.0f};
+
+    const auto stepped = tested.Step(Everything);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(tested.Hero().angles, glm::vec3(0.0f, 0.0f, 90.0f));
+    EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + 1).State());
 }
 
 // 0x4fbe10 en los mapas 18 a 23, sin mandar nada: con otra celda guarda la del héroe y el reloj del mundo, y

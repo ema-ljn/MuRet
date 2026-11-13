@@ -24,7 +24,11 @@
 #include "Scenes/CharacterHead.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/DynamicWorldLight.h"
+#include "Scenes/FaunaModels.h"
+#include "Scenes/HealthBars.h"
 #include "Scenes/ItemSetOptionList.h"
+#include "Scenes/ModelBody.h"
+#include "Scenes/NpcChatter.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnStatHelpers.h"
 #include "Scenes/SceneId.h"
@@ -48,6 +52,7 @@
 #include <cstdint>
 #include <format>
 #include <optional>
+#include <span>
 #include <string>
 
 namespace Client::Scenes
@@ -58,6 +63,8 @@ namespace
 constexpr std::size_t SteppedCharacters = 400;
 // 0x412162: en el mapa 30 (0x1e), 0x412140 arma el panel del asedio.
 constexpr std::int32_t CastleMap = 30;
+// 0x42daae..0x42dac4: los casos del switch de 0x42da90 sobre +0x376 − 0xd8 (las tablas 0x42dc4c y 0x42dc64).
+constexpr std::array<std::uint16_t, 6> SiegeObjectClasses{216, 277, 278, 283, 286, 287};
 
 // 0x4fd603: el tipo que pasa su nombre a 0x4381f0.
 constexpr std::uint16_t NamedType = 0xc5;
@@ -66,10 +73,6 @@ constexpr std::int32_t FirstCellReportMap = 18;
 constexpr std::int32_t LastCellReportMap = 23;
 // 0x4fb910 y 0x505425: el tipo que cae y gira en 0x4fb380 y que después sigue 0x52f360.
 constexpr std::uint16_t FallingType = 0xf1;
-// 0x4fcd0c y 0x4fc797: con +0x88 en 4, 0x4fcd00 gira a unos 0x20a y 0x4fc790 sortea un mensaje.
-constexpr std::uint8_t MessageKind = 4;
-// 0x6c88b0: los 11 bytes EUC-KR que 0x4fcda2 compara con el nombre (+0x1d9), con strcmp.
-constexpr std::array<std::uint8_t, 11> MessageName{0xc8, 0xb2, 0xb1, 0xdd, 0xc0, 0xc7, 0x20, 0xb1, 0xc3, 0xbc, 0xf6};
 // 0x4f9580 con el 0x20a: por 1,5 (0x6b8b94) en las acciones 3 y 4 con +0x3e3; por 0,5 (0x6b882c) en la 0x3f
 // pasado el frame 6 (0x6b87f4) y en la 0x44; por 0,1f (0x6b8a34) en las 0x4d, 0x4f y 0x5a pasado el 5,5
 // (0x6b8a40); en la clase 4, las 0x94, 0x51 y 0x5b entre el frame 1 (0x6b87d4) y el 3 (0x6b86b8) llaman a
@@ -185,11 +188,24 @@ void ClearBit(std::uint8_t& bits, std::uint8_t bit)
     bits = static_cast<std::uint8_t>(bits & ~bit);
 }
 
+// El modelo de 0x5769ad8 + tipo · 0xe0 que leen 0x4f9580, 0x4fcbb0 y 0x505de0: Player.bmd, el NewFace suelto o el de
+// los monstruos y los NPC (WorldState::FaunaResources, con la biblioteca del mapa detrás; 08, P-C176).
+const Render::Models::Skeleton* ModelSkeletonOf(const ActorState& actor, const CharacterStepContext& context)
+{
+    if (actor.type == Data::Models::PlayerSkeletonModel)
+        return context.playerSkeleton;
+    if (IsNewFace(actor.type))
+        return context.newFaceSkeleton;
+    return context.world.FaunaResources().SkeletonOf(actor.type);
+}
+
 // 0x508ba0(c, c) desde 0x508ed8 con otro que el héroe publicado ([0x743a170]; con él sale en 0x508bad).
 Core::Expected<void, std::string> StepOtherCharacter(ActorState& actor, std::size_t slot,
                                                      const CharacterStepContext& context)
 {
-    if (actor.movement != 0 && (IsNewFace(actor.type) ? context.newFaceSkeleton : context.playerSkeleton) == nullptr)
+    const bool player = actor.type == Data::Models::PlayerSkeletonModel;
+    const Render::Models::Skeleton* own = ModelSkeletonOf(actor, context);
+    if (actor.movement != 0 && own == nullptr)
     {
         return Core::Unexpected(std::format("0x4f37c0: falta el esqueleto del personaje del lugar {}", slot));
     }
@@ -205,7 +221,10 @@ Core::Expected<void, std::string> StepOtherCharacter(ActorState& actor, std::siz
         {context.world.Runtime(), context.scene, skeleton, context.items, context.random, &terrain.attributes->cells},
         speeds,
         false,
-        IsNewFace(actor.type) ? context.newFaceSkeleton : nullptr};
+        player ? nullptr : own,
+        // Los sonidos de los modelos que cargó el alta (0x612c80); los del NewFace, que carga 0x60dbe0, sin leer.
+        player || IsNewFace(actor.type) ? std::span<const std::int16_t>{}
+                                        : context.world.FaunaResources().SoundActions(actor.type)};
     ActorMotionContext motion{context.world.Runtime(), context.random, {}};
     if (terrain.heights)
     {
@@ -279,38 +298,20 @@ Core::Expected<void, std::string> StepTheOwnTimers(const CharacterStepContext& c
     return {};
 }
 
-// strcmp(+0x1d9, 0x6c88b0) en 0x4fcda2: los 10 bytes del nombre y +0x1e3 contra los 11 primeros. Con los
-// 11 iguales el resultado depende de +0x1e4, que MuRet no tiene: cuenta como igual.
-bool HasTheMessageName(const ActorState& actor)
-{
-    for (std::size_t i = 0; i < actor.name.size(); ++i)
-    {
-        if (std::to_integer<std::uint8_t>(actor.name[i]) != MessageName[i])
-        {
-            return false;
-        }
-    }
-    return actor.byte1e3 == MessageName[actor.name.size()];
-}
-
 // 0x4f9580(c, c): la velocidad de la acción, sus factores y 0x4ec200. Devuelve si terminó, lo que 0x4f9580
 // devuelve en 0.
 Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t slot,
                                                  const CharacterStepContext& context)
 {
-    // 0x4f958e..0x4f95a5: el modelo compartido del tipo. MuRet tiene solo Player.bmd.
+    // 0x4f958e..0x4f95a5: el modelo compartido del tipo.
+    const bool player = actor.type == Data::Models::PlayerSkeletonModel;
     const bool newFace = IsNewFace(actor.type);
-    if (actor.type != Data::Models::PlayerSkeletonModel && !newFace)
-    {
-        return Core::Unexpected(std::format("0x4f9580: el modelo {:#x} del lugar {} (0x5769ad8 + tipo · 0xe0) no está "
-                                            "leído, solo Player.bmd (0x20a)",
-                                            actor.type, slot));
-    }
-    const Render::Models::Skeleton* skeleton = newFace ? context.newFaceSkeleton : context.playerSkeleton;
+    const Render::Models::Skeleton* skeleton = ModelSkeletonOf(actor, context);
     if (skeleton == nullptr)
     {
-        return Core::Unexpected(
-            std::format("0x4f9580: el modelo {:#x} del lugar {} no está cargado", actor.type, slot));
+        return Core::Unexpected(std::format("0x4f9580: el modelo {:#x} del lugar {} (0x5769ad8 + tipo · 0xe0) no está "
+                                            "cargado",
+                                            actor.type, slot));
     }
     const bool frozen = (actor.flags78 & FrozenFlag) == FrozenFlag;
     // 0x4f95a7: sin acciones (+0x26 en 0) la velocidad queda en 0 y 0x4ec200 sale sin avanzar (0x4ec214).
@@ -322,26 +323,16 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
     const std::uint8_t action = animation.action;
     if (action >= skeleton->actions.size())
     {
-        return Core::Unexpected(std::format("0x4f95c0: la acción {:#x} del lugar {} lee fuera de las {} de "
-                                            "Player.bmd",
-                                            action, slot, skeleton->actions.size()));
+        return Core::Unexpected(std::format("0x4f95c0: la acción {:#x} del lugar {} lee fuera de las {} del modelo "
+                                            "{:#x}",
+                                            action, slot, skeleton->actions.size(), actor.type));
     }
     const Render::Models::ActionInfo& info = skeleton->actions[action];
-    // 0x4f95c0..0x4f95d4: una velocidad negativa o NaN cuenta 0.
+    // 0x4f95c0..0x4f95d4: una velocidad negativa o NaN cuenta 0. La de Player.bmd, con la de cada personaje.
     const PlayerActionSpeeds& speeds =
         context.actionSpeeds != nullptr ? *context.actionSpeeds : context.world.ActionSpeeds();
-    const float sharedSpeed = newFace ? info.speed : speeds.Speed(action, info.speed);
+    const float sharedSpeed = player ? speeds.Speed(action, info.speed) : info.speed;
     float speed = sharedSpeed >= 0.0f ? sharedSpeed : 0.0f;
-    if (newFace)
-    {
-        constexpr float NewFaceSpeedFactor = 2.0f; // 0x4f971a
-        if (frozen)
-        {
-            return true;
-        }
-        return Render::Models::AdvanceAnimation(animation, info, speed * NewFaceSpeedFactor,
-                                                Render::Models::AnimationScene::CharacterSelect);
-    }
     if (actor.byte3e3 != 0 && action >= FirstFasterAction && action <= LastFasterAction)
     {
         speed *= FasterFactor;
@@ -372,13 +363,16 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
     {
         speed *= HalfFactor;
     }
-    // 0x4f96d4..0x4f9737: los otros tipos. 0x4f973a: con +0x78 & 0x1000 devuelve 0 sin avanzar.
+    // 0x4f96d4..0x4f9737: los otros tipos (el NewFace, el 0x192 y el 0x1a9).
+    speed = ModelSpeedOf(actor.type, action, frame, speed);
+    // 0x4f973a: con +0x78 & 0x1000 devuelve 0 sin avanzar.
     if (frozen)
     {
         return true;
     }
-    // 0x4f9774: 0x4ec200, que devuelve 0 al terminar; en la escena 4 lo decide el frame + 2 (Q-C21).
-    const Render::Models::AnimationScene scene = context.scene == SceneId::CharacterSelect
+    // 0x4f9774: 0x4ec200, que devuelve 0 al terminar; en la escena 4 lo decide el frame + 2 (Q-C21). El NewFace es el
+    // objeto suelto de la selección.
+    const Render::Models::AnimationScene scene = context.scene == SceneId::CharacterSelect || newFace
                                                      ? Render::Models::AnimationScene::CharacterSelect
                                                      : Render::Models::AnimationScene::Other;
     return Render::Models::AdvanceAnimation(animation, info, speed, scene);
@@ -432,23 +426,17 @@ Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, std::size_t sl
 Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_t slot,
                                                    const CharacterStepContext& context)
 {
-    // 0x4fcd0c..0x4fcd55 y 0x4fc790: con +0x88 en 4 (lo ponen paquetes que MuRet no aplica), en los mapas 0 y 2
-    // los 0x20a de subtipo 0xd1 a 0xd3 giran y, al terminar, van a 0x4fc8c0; y 0x4fc790 sortea con rand() & 1
-    // un mensaje por tipo (0x557170).
-    if (actor.byte88 == MessageKind)
+    // 0x4fcd0c..0x4fcd55: con +0x88 en 4, en los mapas 0 y 2, el 0x20a de subtipo 0xd1 a 0xd3 (el tipo 236) gira.
+    const bool turned = TurnTheNpc(actor, context.world.Runtime().map);
+    // 0x4fcd60: 0x4fc790, el mensaje del NPC.
+    if (auto said = SayTheNpcLine(actor, slot, context); !said.HasValue())
     {
-        return Core::Unexpected(std::format("0x4fcd0c: con +0x88 en 4, el giro de 0x4fcd00 y el mensaje de 0x4fc790 "
-                                            "del lugar {} no están portados",
-                                            slot));
+        return said;
     }
-    // 0x4fcd65..0x4fce15: una vez cada más de 4.000 ms (timeGetTime; la primera, con 0x7437488 = ahora − 5.000),
-    // con el nombre de 0x6c88b0, el mensaje de 0x557170. MuRet no tiene ese reloj: corta con el nombre, sin
-    // mirarlo (Q-C248).
-    if (HasTheMessageName(actor))
+    // 0x4fcd65..0x4fce15: el mensaje del nombre de 0x6c88b0, con su reloj.
+    if (auto named = SayTheNamedLine(actor, slot, context); !named.HasValue())
     {
-        return Core::Unexpected(std::format("0x4fcda2: el nombre del lugar {} es el de 0x6c88b0, y el mensaje de "
-                                            "0x557170 y su reloj (0x7437488) no están portados",
-                                            slot));
+        return named;
     }
     // 0x4fce1d: 0x4f9580.
     const auto finished = AdvanceTheBody(actor, slot, context);
@@ -456,24 +444,49 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
     {
         return Core::Unexpected(finished.Error());
     }
-    if (!finished.Value())
+    // 0x4fce27: sin terminar, solo lo del 0x1f5 (0x4fce7a).
+    if (finished.Value())
     {
-        return {};
-    }
-    // 0x4fce33/39: los dos sonidos se habilitan otra vez al terminar la animación.
-    actor.firstFootstepSound = 0;
-    actor.secondFootstepSound = 0;
-    // 0x4fce3f..0x4fce57: el 0x20a sin el giro de +0x88 va a 0x4fcb10. 0x4fce68 y 0x4fce7a: el 0xc5 y el 0x1f5.
-    if (IsNewFace(actor.type))
-    {
-        // 0x4fce68 → 0x4fcbb0: fuera del mapa 30, el 0xa8..0xac vuelve sin SetAction ni rand().
-        if (context.world.Runtime().map == CastleMap)
+        // 0x4fce33/39: los dos sonidos se habilitan otra vez al terminar la animación.
+        actor.firstFootstepSound = 0;
+        actor.secondFootstepSound = 0;
+        // 0x4fce3f..0x4fce57: el 0x20a que giró va a 0x4fc8c0 y el otro a 0x4fcb10.
+        if (actor.type == Data::Models::PlayerSkeletonModel)
         {
-            return Core::Unexpected(std::string("0x42d890: la animación NewFace del mapa 30 no está portada"));
+            return turned ? FinishTheTurnedNpc(actor, slot, context) : StopAtTheEnd(actor, slot, context);
         }
-        return {};
+        // 0x4fce5e: los otros modelos, a 0x4fcbb0. AdvanceTheBody ya encontró el modelo.
+        const Render::Models::Skeleton& skeleton = *ModelSkeletonOf(actor, context);
+        const auto end = FinishTheModelAction(actor, slot, skeleton, context.world.Runtime(), context.random);
+        if (!end.HasValue())
+        {
+            return Core::Unexpected(end.Error());
+        }
+        // 0x4fcbe3: con 0x42d890 en 1, 0x4f9580 otra vez; lo que devuelve no se mira.
+        if (end.Value() == ModelActionEnd::AdvanceAgain)
+        {
+            if (auto again = AdvanceTheBody(actor, slot, context); !again.HasValue())
+            {
+                return Core::Unexpected(again.Error());
+            }
+        }
+        // 0x4fce68..0x4fce70: el 0xc5, con el frame en 8.
+        if (actor.type == NamedType)
+        {
+            constexpr float NamedFrame = 8.0f; // 0x41000000
+            actor.animation.frame = NamedFrame;
+        }
     }
-    return StopAtTheEnd(actor, slot, context);
+    // 0x4fce7a..0x4fced1: el 0x1f5 compara el frame que dejó en su modelo el último que lo posó (+0xa8 de
+    // 0x5769ad8 + 0x1f5 · 0xe0) con la última key de la acción y, si es esa, rand() % 32 elige la acción 1 o la 0.
+    constexpr std::uint16_t TraderModel = 0x1f5;
+    if (actor.type == TraderModel)
+    {
+        return Core::Unexpected(std::format("0x4fce84: el 0x1f5 del lugar {} lee el frame de su modelo compartido "
+                                            "(+0xa8), que deja la pose del último que lo dibujó",
+                                            slot));
+    }
+    return {};
 }
 
 // 0x4fcf26..0x4fd106: con el 0x20a, si la acción y el modelo del arma (con signo) dejan estela.
@@ -518,9 +531,24 @@ Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::siz
                                             "(0x52e470) no está portada",
                                             action, slot, hand.model));
     }
+    // 0x4fd10b..0x4fd5df con los otros modelos: la estela por tipo y los helpers de algunos (Scenes::ModelTrailCutOf).
+    const auto cut =
+        actor.type == Data::Models::PlayerSkeletonModel ? std::optional<ModelTrailCut>{} : ModelTrailCutOf(actor);
+    if (cut.has_value() && cut->beforeTheRandom)
+    {
+        return Core::Unexpected(std::format("{:#x}: el modelo {:#x} del lugar {} en la acción {:#x} desde el frame 3 "
+                                            "(0x4fcee0): su estela o sus efectos son de la CL11",
+                                            cut->address, actor.type, slot, action));
+    }
     // 0x4fd5c1..0x4fd5df: 0x441260 (solo el 0x1a7), 0x42fa40 (el 0x1b1 y el 0x1b3), 0x432bd0 y 0x426d90 (los
     // 0x1b8 a 0x1ba). 0x432bf1: rand() sin condición, antes de mirar el tipo (0x1ab a 0x1b4).
     static_cast<void>(random.Next());
+    if (cut.has_value())
+    {
+        return Core::Unexpected(std::format("{:#x}: el modelo {:#x} del lugar {} en la acción {:#x} desde el frame 3 "
+                                            "(0x4fcee0): sus efectos son de la CL11",
+                                            cut->address, actor.type, slot, action));
+    }
     return {};
 }
 
@@ -684,7 +712,8 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
         return attacked;
     }
     // 0x5053a2..0x5053f0: +0x428 en −128 (0x511290, 0x511c77; los paquetes lo ponen en 0x96): nada.
-    // 0x5053fc: 0x42a2b0, solo el 0x1a8.
+    // 0x5053fc: 0x42a2b0, la barra de vida del 0x1a8.
+    QueueTheHealthBar(actor, context.world.Runtime().healthBars);
     // 0x505410: 0x4fcee0.
     if (auto trailed = StepTheWeaponTrail(actor, slot, context.random); !trailed.HasValue())
     {
@@ -743,40 +772,6 @@ Core::Expected<void, std::string> StepTheRaven(ActorState& actor, std::size_t sl
 bool IsKalima(std::int32_t map)
 {
     return (map >= FirstKalimaMap && map <= LastKalimaMap) || map == SeventhKalimaMap;
-}
-
-// 0x4ea190 antes del sorteo común de 0x5068fd: la acción 0 sortea además con % 48 para Y.
-void SetTheNewFaceHeadTarget(ActorState& actor, Render::Models::CrtRandom& random)
-{
-    constexpr std::uint8_t KeptHeadAction = 6;
-    if (actor.animation.action == KeptHeadAction)
-    {
-        return;
-    }
-    if (actor.animation.action != 0)
-    {
-        actor.headTurn.target = {};
-        return;
-    }
-    constexpr int OneIn = 32;
-    if (random.Next() % OneIn != 0)
-    {
-        return;
-    }
-    constexpr int TurnSpan = 128;
-    constexpr int TurnCentre = 64;
-    constexpr int NodSpan = 48;
-    constexpr int NodCentre = 16;
-    constexpr float FullTurn = 360.0f;
-    actor.headTurn.target.x = static_cast<float>((random.Next() % TurnSpan) - TurnCentre);
-    actor.headTurn.target.y = static_cast<float>((random.Next() % NodSpan) - NodCentre);
-    for (int axis = 0; axis < 2; ++axis)
-    {
-        if (actor.headTurn.target[axis] < 0.0f)
-        {
-            actor.headTurn.target[axis] += FullTurn;
-        }
-    }
 }
 
 // 0x4ec110(modelo, huesos propios + hueso · 0x30, offset, punto, 1) con la escala y la posición que 0x505ec6
@@ -857,24 +852,24 @@ Core::Expected<void, std::string> DropTheDevilSquareRain(const ActorState& actor
     return {};
 }
 
-// 0x505de0(c, c) desde 0x508ee6, con el 0x20a, hasta su final (06, "Los efectos de los personajes
-// (0x505de0)"). `hero` es c == [0x743a170].
+// 0x505de0(c, c) desde 0x508ee6, hasta su final (06, "Los efectos de los personajes (0x505de0)" y "El cuerpo de los
+// monstruos y los NPC"). `hero` es c == [0x743a170].
 Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t slot, bool hero,
                                                  const CharacterStepContext& context,
                                                  const Data::Terrain::TerrainLayer<std::uint16_t>* walls)
 {
-    // 0x505e0b: un modelo sin acciones (+0x26 de 0x5769ad8 + tipo · 0xe0) va a la caja de 0x505e15. El
-    // 0x20a, Player.bmd, las tiene; los demás cortan antes, en 0x4f9580.
-    const bool newFace = IsNewFace(actor.type);
-    if (actor.type != Data::Models::PlayerSkeletonModel && !newFace)
+    // 0x505e0b: un modelo sin acciones (+0x26 de 0x5769ad8 + tipo · 0xe0) va a la caja de 0x505e15.
+    const bool player = actor.type == Data::Models::PlayerSkeletonModel;
+    const Render::Models::Skeleton* skeleton = ModelSkeletonOf(actor, context);
+    if (skeleton == nullptr)
     {
-        return Core::Unexpected(std::format("0x505e0b: el modelo {:#x} del lugar {} no está leído en 0x505de0, solo el "
-                                            "0x20a",
-                                            actor.type, slot));
+        return Core::Unexpected(
+            std::format("0x505e0b: el modelo {:#x} del lugar {} no está cargado", actor.type, slot));
     }
-    if (newFace && context.newFaceSkeleton != nullptr && context.newFaceSkeleton->actions.empty())
+    if (skeleton->actions.empty())
     {
-        return Core::Unexpected(std::string("0x505e15: la caja del NewFace sin acciones no está portada"));
+        return Core::Unexpected(std::format(
+            "0x505e15: la caja del modelo {:#x} sin acciones (lugar {}) no está portada", actor.type, slot));
     }
     // 0x505ec6..0x505ee4: la posición, la escala y la acción van al modelo compartido (+0x6c, +0x68 y
     // +0xa0), que leen los 0x4ec110 de más abajo y que el dibujo vuelve a escribir antes de posar. MuRet
@@ -902,14 +897,13 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     // que MoveHero escribe con el mouse (0x59b1c2..0x59b287, CL7.4), que MuRet todavía no escribe.
     if ((actor.flags78 & StillHeadFlag) == 0 && (actor.flags78 & FrozenFlag) == 0)
     {
-        if (newFace)
+        // 0x5068da..0x5068e8: con otro modelo, antes 0x4ea190.
+        if (!player)
         {
-            constexpr std::uint8_t TrackingAction = 2;
-            if (actor.animation.action == TrackingAction)
+            if (auto target = SetTheModelHeadTarget(actor, context.world.Actors(), context.random); !target.HasValue())
             {
-                return Core::Unexpected(std::string("0x4ea229: falta el blanco +0x3a4 del NewFace (0x4ea0e0)"));
+                return Core::Unexpected(std::format("{} (lugar {})", target.Error(), slot));
             }
-            SetTheNewFaceHeadTarget(actor, context.random);
         }
         StepCharacterHead(actor.headTurn, !hero && actor.dying == 0, context.random);
     }
@@ -947,15 +941,14 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     // 0x506ccc..0x506cf1: el caso del tipo − 0x152; el 0x20a cae en 0x506cf8, que mira el mapa 7 solo en la
     // escena 5.
     const std::int32_t map = context.world.Runtime().map;
-    if (newFace)
+    if (!player)
     {
-        // 0x5085db: los seis helpers genéricos salen para estos tipos, salvo sus mapas 30 y 35.
-        constexpr std::int32_t GenericEffectMap = 35;
-        if (map == CastleMap || map == GenericEffectMap)
+        // El caso del modelo o los helpers de 0x5085db (Scenes::ModelEffectsCutOf); 0x50862f..0x508801 son del 0x20a.
+        if (const auto cut = ModelEffectsCutOf(actor.type, map))
         {
-            return Core::Unexpected(std::format("0x5085db: los efectos genéricos del NewFace en el mapa {} no "
-                                                "están portados",
-                                                map));
+            return Core::Unexpected(std::format("{:#x}: los efectos del modelo {:#x} (lugar {}) en 0x505de0 son de la "
+                                                "CL11",
+                                                *cut, actor.type, slot));
         }
         return {};
     }
@@ -1140,7 +1133,15 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
         {
             return stepped;
         }
-        // 0x508eed: 0x42da90 fuera del mapa 30 devuelve 0 (0x42da9a).
+        // 0x508eed: 0x42da90, que fuera del mapa 30 devuelve 0 (0x42da9a). En el 30 mueve, por +0x376, los objetos
+        // del asedio (0x42dac4): corta.
+        if (actor.alive && runtime.map == CastleMap &&
+            std::ranges::find(SiegeObjectClasses, actor.word376) != SiegeObjectClasses.end())
+        {
+            return Core::Unexpected(std::format("0x42dac4: el objeto del asedio {} del lugar {} (0x42da90) no está "
+                                                "portado",
+                                                actor.word376, slot));
+        }
     }
     // Frontera (08 P-C44): 0x52e500 (0x5091d0), el paso de las estelas de 0x75e9870, sin rand(). Las
     // crea 0x52e470 desde las habilidades, los efectos y la acción 3 del caballo (0x444671); MuRet no

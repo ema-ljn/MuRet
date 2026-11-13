@@ -145,6 +145,14 @@ constexpr double ExplosionRed = static_cast<double>(std::bit_cast<float>(0x3f000
 constexpr double ExplosionGreen = static_cast<double>(std::bit_cast<float>(0x3e99999au));
 constexpr double ExplosionBlue = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
 constexpr std::int32_t ExplosionLightRadius = 4;
+// 0x542b11 y 0x542b1b: la vida de la 5fd y su ángulo x (0x42340000). 0x546d08..0x546d2e: el paso del seno, 5° en float
+// (0x6ba368), su factor (0x6b87f8), el de la /2 en adelante (0x6ba36c) y lo que gira esa (0x6b8864).
+constexpr std::int32_t HandShineLife = 0x24;
+constexpr float HandShineTilt = std::bit_cast<float>(0x42340000u);
+constexpr float HandShinePulseStep = std::bit_cast<float>(0x3db2b8c2u);
+constexpr float HandShinePulse = std::bit_cast<float>(0x40a00000u);
+constexpr double HandShineSecondScale = static_cast<double>(std::bit_cast<float>(0x3f400000u));
+constexpr double HandShineTurn = static_cast<double>(std::bit_cast<float>(0x41400000u));
 // 0x5446e0: el cambio del viento, (rand() % 2001 − 1000) · 0,0006 (0x6b8a50), entre ±0,6 (0x6b8a20 y
 // 0x6b8b8c), y el viento, entre ±1,7 (0x6ba3f0 y 0x6ba3ec).
 constexpr int WindSpan = 2001;
@@ -653,6 +661,38 @@ void StepTheBubble(Particle& particle)
     particle.field48 = std::bit_cast<float>(static_cast<std::int32_t>((BubbleLife - particle.life) / BubbleFrameSteps));
 }
 
+bool IsHandShine(std::int32_t type, std::int32_t subtype)
+{
+    return type == HandShineParticle && (subtype == 0 || subtype == HandShineSecondSubtype);
+}
+
+// 0x546cd4..0x546d4f, la 5fd que no es la /0x63: la escala es sin(vida · 5°) · 5 (FST); de la /2 en adelante, ese
+// mismo valor de la pila por 0,75 (FSTP) y la rotación 12 menos. Después, 0x53fdb0 la vuelve a poner en la mano del
+// dueño (`hands`).
+Core::Expected<void, ParticleError> StepTheHandShine(Particle& particle, IParticleTrigonometry* trigonometry,
+                                                     const ParticleActorHands& hands)
+{
+    if (trigonometry == nullptr)
+        return Core::Unexpected(ParticleError::UnsupportedType);
+    const double argument = static_cast<double>(particle.life) * static_cast<double>(HandShinePulseStep);
+    const auto pulse = trigonometry->SineProductPC53(argument, HandShinePulse);
+    if (!pulse.HasValue())
+        return Core::Unexpected(pulse.Error());
+    particle.scale = F32(pulse.Value());
+    if (particle.subtype >= HandShineSecondSubtype)
+    {
+        particle.scale = F32(pulse.Value() * HandShineSecondScale);
+        particle.rotation = F32(static_cast<double>(particle.rotation) - HandShineTurn);
+    }
+    if (particle.typedOwner.kind != ParticleOwnerKind::Actor || !hands)
+        return Core::Unexpected(ParticleError::MissingOwner);
+    const std::optional<glm::vec3> hand = hands(particle.typedOwner.identity, particle.subtype);
+    if (!hand)
+        return Core::Unexpected(ParticleError::MissingOwner);
+    particle.position = *hand;
+    return {};
+}
+
 bool IsMapSpark(const Particle& particle)
 {
     return particle.type == SparkParticle && particle.subtype == MapSparkSubtype;
@@ -700,6 +740,8 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
                    ? std::nullopt
                    : std::optional(ParticleError::UnsupportedSubtype);
     }
+    if (type == HandShineParticle)
+        return IsHandShine(type, subtype) ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == SparkParticle)
     {
         return subtype == TeleportSparkSubtype || subtype == RavenSparkSubtype || subtype == MapSparkSubtype ||
@@ -1403,7 +1445,8 @@ Particles::CreateOwnedChecked(std::int32_t type, const glm::vec3& position, cons
                               const glm::vec3& light, std::int32_t subtype, float scale, float worldClock,
                               Render::Models::CrtRandom& random, std::int32_t scene, ParticleOwner owner)
 {
-    if (!IsKalimaParticle(type, subtype) && !IsSelectionParticle(type, subtype) && !IsTrialsParticle(type, subtype))
+    if (!IsKalimaParticle(type, subtype) && !IsSelectionParticle(type, subtype) && !IsTrialsParticle(type, subtype) &&
+        !IsHandShine(type, subtype))
         return Core::Unexpected(ParticleError::UnsupportedSubtype);
     return CreateImpl(type, position, angles, light, subtype, scale, worldClock, nullptr, random, 0, nullptr, scene,
                       owner);
@@ -1430,6 +1473,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         if (orbit && !IsOrbitSubtype(subtype))
         {
             return Core::Unexpected(ParticleError::UnsupportedSubtype);
+        }
+        // La 5fd sin un personaje de dueño: el paso no tendría de dónde sacar la mano (0x53fdb0).
+        if (type == HandShineParticle && typedOwner.kind != ParticleOwnerKind::Actor)
+        {
+            return Core::Unexpected(ParticleError::MissingOwner);
         }
         if (!kalima && !selection && !trials && !bloodCastle && !orbit &&
             !(worldClock != nullptr && IsMap8Smoke(type, subtype)))
@@ -1463,6 +1511,15 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         if (bloodCastle)
         {
             CreateBloodCastleParticle(particle, random);
+            return std::optional(index);
+        }
+        if (type == HandShineParticle)
+        {
+            // 0x542b0e..0x542b28: sin rand() ni reloj. La posición de 0x53fdb0 la pone quien la crea, que tiene los
+            // personajes.
+            particle.typedOwner = typedOwner;
+            particle.life = HandShineLife;
+            particle.angles.x = HandShineTilt;
             return std::optional(index);
         }
         if (type == ThunderParticle)
@@ -1668,10 +1725,12 @@ const ParticleWind& Particles::Wind() const
 
 namespace
 {
-Core::Expected<void, ParticleError> StepParticlesImpl(
-    Particles& particles, Render::Models::CrtRandom& random, const float* worldClock, const std::int32_t* map,
-    IParticleTrigonometry* trigonometry, const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
-    const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight, TerrainLighting* lighting)
+Core::Expected<void, ParticleError>
+StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const float* worldClock,
+                  const std::int32_t* map, IParticleTrigonometry* trigonometry,
+                  const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
+                  const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight,
+                  TerrainLighting* lighting, const ParticleActorHands& actorHands)
 {
     // Los punteros privados distinguen exclusivamente legacy de la API pública requerida.
     // El overload vivo siempre proporciona reloj y evaluador; no hay servicio opcional público.
@@ -1822,6 +1881,12 @@ Core::Expected<void, ParticleError> StepParticlesImpl(
         {
             StepTheBlood(particle);
         }
+        else if (particle.type == HandShineParticle)
+        {
+            const auto stepped = StepTheHandShine(particle, trigonometry, actorHands);
+            if (!stepped.HasValue())
+                return stepped;
+        }
         else if (IsMapSpark(particle))
         {
             StepTheMapSpark(particle);
@@ -1872,18 +1937,17 @@ Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, R
                                                          const std::int32_t* map,
                                                          const ParticleTerrainHeight& terrainHeight)
 {
-    return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight, {}, {}, {}, nullptr);
+    return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight, {}, {}, {}, nullptr, {});
 }
 
-Core::Expected<void, ParticleError>
-StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
-                     std::reference_wrapper<const float> worldClock, const std::int32_t* map,
-                     IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
-                     const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
-                     const ParticleTextureHeight& textureHeight, TerrainLighting* lighting)
+Core::Expected<void, ParticleError> StepParticlesChecked(
+    Particles& particles, Render::Models::CrtRandom& random, std::reference_wrapper<const float> worldClock,
+    const std::int32_t* map, IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
+    const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
+    const ParticleTextureHeight& textureHeight, TerrainLighting* lighting, const ParticleActorHands& actorHands)
 {
     return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners,
-                             actorActions, textureHeight, lighting);
+                             actorActions, textureHeight, lighting, actorHands);
 }
 
 std::optional<ParticleError> StepParticles(Particles& particles, Render::Models::CrtRandom& random)

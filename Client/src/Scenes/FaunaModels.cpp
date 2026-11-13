@@ -13,16 +13,22 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ConstructedBmdPrefix.h"
+#include "Scenes/ModelTextureTable.h"
+#include "Scenes/MonsterModelTable.h"
 #include "Scenes/TextureMetadata.h"
 
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <bit>
 #include <cstdint>
+#include <filesystem>
+#include <format>
 #include <glm/ext/vector_float2.hpp>
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -32,25 +38,35 @@ namespace
 {
 constexpr std::int32_t IcarusMonster = 0x1f;
 constexpr std::int32_t KalimaMonster = 0x21;
-constexpr std::uint16_t MonsterModelBase = 0x152;
-constexpr std::array<float, 7> CommonSpeeds{.25f, .2f, .34f, .33f, .33f, .5f, .55f};
-constexpr std::array<std::int16_t, 10> IcarusSounds{0x7b, 0x7b, 0x7c, 0x7c, 0x7d, -1, -1, -1, -1, -1};
-constexpr std::array<std::int16_t, 10> KalimaSounds{0x82, 0x82, 0x83, 0x83, 0x82, -1, -1, -1, -1, -1};
 constexpr std::array<std::int16_t, 10> NoSounds{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
 constexpr Data::Textures::Sampling MonsterSampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Repeat};
-Core::Expected<void, std::string> Configure(Render::Models::Skeleton& skeleton, bool icarus)
+// El slot que el destructor del BMD no suelta (0x4f07b0..0x4f07c3).
+constexpr std::uint16_t KeptSlot = 0x12e;
+// NPC\BloodCastle01.bmd, con los huesos 43 y 44 colgados del 45 (Q-C108).
+constexpr std::uint16_t BloodCastleNpc = 0x1f3;
+
+Data::Textures::Sampling SamplingOf(std::uint32_t filter, std::uint32_t wrap)
 {
-    // 612e5a..612e9f: siete stores de velocidad antes del flag de acción6.
-    for (std::size_t i = 0; i < CommonSpeeds.size(); ++i)
-    {
-        if (i >= skeleton.actions.size())
-            return Core::Unexpected(std::string("612e5a: acciones comunes de monstruo ausentes"));
-        skeleton.actions[i].speed = CommonSpeeds[i];
-    }
-    skeleton.actions[6].repeats = false;
-    if (!icarus)
-        return {};
-    skeleton.actions[1].repeats = false; // 613120, tabla615324 del monstruo1f.
+    constexpr std::uint32_t GlLinear = 0x2601;
+    constexpr std::uint32_t GlRepeat = 0x2901;
+    return {filter == GlLinear ? Data::Textures::Filter::Linear : Data::Textures::Filter::Nearest,
+            wrap == GlRepeat ? Data::Textures::Wrap::Repeat : Data::Textures::Wrap::Clamp};
+}
+
+// Un pedido de 0x41eac0 como lo guarda MuRet.
+FaunaResourceSound SoundOf(const ModelSoundFile& sound)
+{
+    return {sound.id, sound.path, sound.buffers, sound.flags};
+}
+
+Core::Expected<void, std::string> SetSpeed(Render::Models::Skeleton& skeleton, std::uint8_t action, float speed,
+                                           std::uint16_t model, std::string_view address)
+{
+    if (action >= skeleton.actions.size())
+        return Core::Unexpected(std::format("{}: 0x612d90 escribe la velocidad de la acción {} del modelo {:#x}, que "
+                                            "tiene {}: el original escribe fuera de su arreglo",
+                                            address, action, model, skeleton.actions.size()));
+    skeleton.actions[action].speed = speed;
     return {};
 }
 } // namespace
@@ -78,28 +94,28 @@ Core::Expected<void, std::string> FaunaModels::Prepare(std::int32_t monster, Fau
 {
     if (monster != IcarusMonster && monster != KalimaMonster)
         return Core::Unexpected(std::string("612d90: familia de recurso de fauna no admitida"));
-    const auto type = static_cast<std::uint16_t>(monster + MonsterModelBase);
-    const auto found = m_models.find(type);
-    // .data6c9e0c=1: reutiliza sólo si hay acciones o mallas (612dbc/612dc7).
-    if (found != m_models.end() && (!found->second.model.meshes.empty() || !found->second.skeleton.actions.empty()))
-        return {};
-    auto loaded = Data::Models::LoadModelFile(context.dataRoot, {type, "Monster\\", "Monster", monster + 1});
-    if (!loaded.HasValue())
-        return Core::Unexpected("612de1: no se pudo leer " + loaded.Error().path);
-    auto skeleton = Render::Models::MakeSkeleton(loaded.Value());
-    if (!skeleton.HasValue())
-        return Core::Unexpected(std::string("612de1: esqueleto de fauna inválido"));
-    auto& entry = m_models[type];
-    entry.model = std::move(loaded).Value();
-    entry.skeleton = std::move(skeleton).Value();
-    if (entry.model.meshes.empty())
-        return {}; // 612de9: sin mallas, no pide texturas ni toca acciones.
-    // 0x613127: el caso del switch de `monster` con su tabla de sonidos (0x612c80; el 0x1f y el 0x21 la escriben). Las
-    // texturas, que van antes, no la cambian.
-    if (context.sounds != nullptr)
-        WriteMonsterSounds(monster, *context.sounds);
+    // La carpeta de las texturas solo cambia con el 0x46..0x48 y el 0x4a: la del 0x1f y el 0x21 es la de los monstruos
+    // en todo mapa.
+    constexpr std::int32_t AnyMap = 0;
+    return LoadMonster(monster, AnyMap, context);
+}
+
+bool FaunaModels::HasActions(std::uint16_t model) const
+{
+    const auto* skeleton = SkeletonOf(model);
+    return skeleton != nullptr && !skeleton->actions.empty();
+}
+
+bool FaunaModels::HasMeshes(std::uint16_t model) const
+{
+    const auto* found = Find(model);
+    return found != nullptr && !found->meshes.empty();
+}
+
+void FaunaModels::AssignTextures(Entry& entry, std::string_view folder, FaunaModelLoadContext& context)
+{
     const auto first = context.slots.ToLoad().size();
-    entry.textures = context.slots.Assign(entry.model, "Monster\\", MonsterSampling);
+    entry.textures = context.slots.Assign(entry.model, folder, MonsterSampling);
     m_store = &context.textures;
     m_sharedTextures = context.sharedTextures;
     if (m_sharedTextures != nullptr)
@@ -110,20 +126,21 @@ Core::Expected<void, std::string> FaunaModels::Prepare(std::int32_t monster, Fau
         auto texture = Data::Textures::LoadTextureSet(context.dataRoot, std::span(&request, 1));
         if (!texture.HasValue())
         {
-            context.log.Warning("una textura de fauna se saltea: {}", Data::Textures::Describe(texture.Error()));
+            context.log.Warning("una textura de un monstruo se saltea: {}", Data::Textures::Describe(texture.Error()));
             continue;
         }
         auto uploaded = m_sharedTextures != nullptr ? m_sharedTextures->Upload(texture.Value().front())
                                                     : context.textures.Load(texture.Value());
         if (!uploaded.HasValue())
         {
-            context.log.Warning("una textura de fauna no sube: {}", uploaded.Error());
+            context.log.Warning("una textura de un monstruo no sube: {}", uploaded.Error());
             continue;
         }
         m_uploaded.push_back(Render::TextureSlot{request.slot});
         uploadedHere.push_back(Render::TextureSlot{request.slot});
         m_metadata.insert_or_assign(request.slot, TextureMetadata(texture.Value().front().texture));
     }
+    // 0x60d645: una coincidencia por nombre suma una referencia.
     if (m_sharedTextures != nullptr)
         for (const auto slot : entry.textures)
         {
@@ -133,41 +150,210 @@ Core::Expected<void, std::string> FaunaModels::Prepare(std::int32_t monster, Fau
             else
                 m_sharedTextures->Acquire(slot);
         }
-    if (auto configured = Configure(entry.skeleton, monster == IcarusMonster); !configured.HasValue())
-        return configured;
-    // Los pedidos de audio quedan explícitos para el consumidor lógico (el cliente aún no reproduce WAV).
-    if (monster == IcarusMonster)
+}
+
+Core::Expected<void, std::string> FaunaModels::LoadFixedTexture(const Data::Textures::TextureSetEntry& texture,
+                                                                FaunaModelLoadContext& context)
+{
+    auto loaded = Data::Textures::LoadTextureSet(context.dataRoot, std::span(&texture, 1));
+    if (!loaded.HasValue())
+        return Core::Unexpected(std::format("0x612d90: {} (el original cierra con un archivo que falta, Q-C23)",
+                                            Data::Textures::Describe(loaded.Error())));
+    auto uploaded = m_sharedTextures != nullptr ? m_sharedTextures->Upload(loaded.Value().front())
+                                                : context.textures.Load(loaded.Value());
+    if (!uploaded.HasValue())
+        return Core::Unexpected(uploaded.Error());
+    m_uploaded.push_back(Render::TextureSlot{texture.slot});
+    m_metadata.insert_or_assign(texture.slot, TextureMetadata(loaded.Value().front().texture));
+    return {};
+}
+
+Core::Expected<void, std::string> FaunaModels::ApplyMonsterTables(std::int32_t number, Entry& entry,
+                                                                  FaunaModelLoadContext& context)
+{
+    Render::Models::Skeleton& skeleton = entry.skeleton;
+    const auto model = static_cast<std::uint16_t>(FirstMonsterModel + number);
+    // 0x612e5a..0x612e9f.
+    for (const ActionSpeedStore& store : CommonMonsterSpeeds())
+        if (auto set = SetSpeed(skeleton, store.action, std::bit_cast<float>(store.bits), model, "0x612e5a");
+            !set.HasValue())
+            return set;
+    constexpr std::size_t NotRepeatedAction = 6;
+    skeleton.actions[NotRepeatedAction].repeats = false;
+    // 0x612ea3..0x612efb: las acciones 0 a 5 (0x10 · 6 = 0x60).
+    constexpr std::size_t ScaledActions = 6;
+    if (const auto factor = MonsterSpeedFactorOf(number))
+        for (std::size_t action = 0; action < ScaledActions; ++action)
+            skeleton.actions[action].speed *= *factor;
+    // 0x612efd..0x613103.
+    for (const ActionSpeedStore& store : EarlyMonsterSpeedsOf(number))
+        if (auto set = SetSpeed(skeleton, store.action, std::bit_cast<float>(store.bits), model, "0x612f16");
+            !set.HasValue())
+            return set;
+    // 0x613109..0x613123.
+    if (MonsterFirstActionStops(number))
+        skeleton.actions[1].repeats = false;
+    // 0x613127: el tercer switch. Lo que escribe en otro modelo (el 0xc y el 0xd escriben los dos) solo vale si ese ya
+    // está: su propio caso escribe lo mismo cuando se carga.
+    for (const MonsterModelOp& op : MonsterModelCaseOf(number).ops)
     {
-        m_sounds.push_back({0x14d, "Sound\\mYeti1.wav"});
-        m_sounds.push_back({0x14e, "Sound\\mBullAttack1.wav"});
-        m_sounds.push_back({0x14f, "Sound\\mYetiDie.wav"});
-        entry.sounds = IcarusSounds;
-    }
-    else
-    {
-        m_sounds.push_back({0x154, "Sound\\mBahamut1.wav"});
-        m_sounds.push_back({0x155, "Sound\\mYeti1.wav"});
-        entry.sounds = KalimaSounds;
-    }
-    if (monster == IcarusMonster)
-    {
-        // 6140ac..6140c9: estos stores vienen DESPUÉS de los tres pedidos de audio y 612c80.
-        entry.skeleton.actions[3].speed = .5f;
-        entry.skeleton.actions[4].speed = .7f;
-        entry.skeleton.actions[1].speed = .8f;
-        if (entry.skeleton.actions.size() <= 7)
-            return Core::Unexpected(std::string("6140c9: falta acción7 de Monster32"));
-        entry.skeleton.actions[7].speed = .8f;
+        Entry* target = &entry;
+        if (op.model != 0 && op.model != model)
+        {
+            const auto other = m_models.find(op.model);
+            if (other == m_models.end())
+                continue;
+            target = &other->second;
+        }
+        switch (op.kind)
+        {
+        case MonsterModelOpKind::Sound:
+            m_sounds.push_back(SoundOf({static_cast<std::int32_t>(op.value), op.path}));
+            break;
+        case MonsterModelOpKind::SoundTable:
+            target->sounds = op.sounds;
+            break;
+        case MonsterModelOpKind::Speed:
+            if (auto set = SetSpeed(target->skeleton, op.index, std::bit_cast<float>(op.value), model, "0x613130");
+                !set.HasValue())
+                return set;
+            break;
+        case MonsterModelOpKind::HeadBone:
+            target->skeleton.headBone = static_cast<std::int16_t>(op.value);
+            break;
+        case MonsterModelOpKind::ModelByte:
+            target->bytes.insert_or_assign(op.index, static_cast<std::uint8_t>(op.value));
+            break;
+        case MonsterModelOpKind::JpegTexture:
+        case MonsterModelOpKind::TgaTexture:
+        {
+            const Data::Textures::TextureSetEntry texture{op.path, static_cast<std::uint16_t>(op.value),
+                                                          SamplingOf(op.filter, op.wrap)};
+            if (auto loaded = LoadFixedTexture(texture, context); !loaded.HasValue())
+                return loaded;
+            break;
+        }
+        }
     }
     return {};
 }
+
+Core::Expected<void, std::string> FaunaModels::LoadMonster(std::int32_t number, std::int32_t map,
+                                                           FaunaModelLoadContext& context)
+{
+    const auto model = static_cast<std::uint16_t>(FirstMonsterModel + number);
+    // 0x612dbc/0x612dc7: con [0x6c9e0c] en 1, acciones o mallas ya presentes.
+    if (HasActions(model) || HasMeshes(model))
+        return {};
+    // 0x612de1: 0x60da30(0x152 + n, "Data\Monster\", "Monster", n + 1).
+    auto loaded = Data::Models::LoadModelFile(context.dataRoot, {model, "Monster\\", "Monster", number + 1});
+    if (!loaded.HasValue())
+        return Core::Unexpected(std::format("0x612d90 no encuentra {} y el original cierra (0x612dd6..0x612de1, "
+                                            "Q-C23, P-C173)",
+                                            loaded.Error().path));
+    auto skeleton = Render::Models::MakeSkeleton(loaded.Value());
+    if (!skeleton.HasValue())
+        return Core::Unexpected(std::format("0x612de1: el hueso {} de Monster\\{} cuelga de uno de después (Q-C108)",
+                                            skeleton.Error().bone, Data::Models::ModelFileName("Monster", number + 1)));
+    auto& entry = m_models[model];
+    entry.model = std::move(loaded).Value();
+    entry.skeleton = std::move(skeleton).Value();
+    // 0x612dee: sin mallas, ni texturas ni acciones.
+    if (entry.model.meshes.empty())
+        return {};
+    AssignTextures(entry, MonsterTextureFolderOf(number, map), context);
+    if (auto applied = ApplyMonsterTables(number, entry, context); !applied.HasValue())
+        return applied;
+    // 0x613127: el caso del switch de `number` con su tabla de sonidos (0x612c80) también en la tabla de los pasos del
+    // ataque (WorldRuntime::modelSounds, CL9 hito 3).
+    if (context.sounds != nullptr)
+        WriteMonsterSounds(number, *context.sounds);
+    return {};
+}
+
+Core::Expected<void, std::string> FaunaModels::LoadNpc(std::uint16_t model, FaunaModelLoadContext& context)
+{
+    // 0x61228d..0x61229f: con [0x6c9e0c] en 1, solo las acciones.
+    if (HasActions(model))
+        return {};
+    for (const NpcModelOp& op : NpcModelCaseOf(model).ops)
+    {
+        switch (op.kind)
+        {
+        case NpcModelOpKind::Load:
+        {
+            auto loaded = Data::Models::LoadModelFile(context.dataRoot, {op.model, op.folder, op.name, op.number});
+            if (!loaded.HasValue())
+            {
+                // 0x60da30 solo cierra con Monster, Player y PlayerTest: los demás se saltean (Q-C23).
+                if (loaded.Error().kind != Data::Models::ModelLoadErrorKind::Missing)
+                    context.log.Warning("un modelo de NPC no se puede leer y no se dibuja: {}", loaded.Error().path);
+                break;
+            }
+            if (op.model == BloodCastleNpc)
+                return Core::Unexpected(std::string("0x6127a4: NPC\\BloodCastle01.bmd cuelga los huesos 43 y 44 "
+                                                    "del 45, que va después (Q-C108): la pose de MuRet no lo admite "
+                                                    "(P-C240)"));
+            auto skeleton = Render::Models::MakeSkeleton(loaded.Value());
+            if (!skeleton.HasValue())
+                return Core::Unexpected(std::format("0x612270: el hueso {} de {} cuelga de uno de después (Q-C108)",
+                                                    skeleton.Error().bone,
+                                                    Data::Models::ModelFileName(op.name, op.number)));
+            auto& entry = m_models[op.model];
+            entry.model = std::move(loaded).Value();
+            entry.skeleton = std::move(skeleton).Value();
+            entry.textures.clear();
+            break;
+        }
+        case NpcModelOpKind::Textures:
+        {
+            // 0x60d5f0 sobre un modelo sin mallas no pide nada.
+            const auto found = m_models.find(op.model);
+            if (found != m_models.end() && !found->second.model.meshes.empty())
+                AssignTextures(found->second, op.folder, context);
+            break;
+        }
+        case NpcModelOpKind::Sound:
+            m_sounds.push_back(SoundOf(op.sound));
+            break;
+        }
+    }
+    // 0x612b4f..0x612b8b. Un modelo de la biblioteca prestada (un objeto del mapa) sin acciones con mallas solo
+    // volvería a encontrar sus nombres en la tabla: MuRet no lo toca.
+    const auto found = m_models.find(model);
+    if (found == m_models.end())
+        return {};
+    for (Render::Models::ActionInfo& action : found->second.skeleton.actions)
+        action.speed = NpcActionSpeed;
+    if (!found->second.model.meshes.empty())
+        AssignTextures(found->second, NpcTextureFolder, context);
+    return {};
+}
+
+std::optional<FaunaModelLoadContext> FaunaModels::LoadContextOf(const std::filesystem::path& dataRoot, Core::Log& log)
+{
+    Render::ITextureStore* store = m_textureTable.Store();
+    if (store == nullptr)
+        return std::nullopt;
+    return FaunaModelLoadContext{dataRoot, *store, log, m_textureTable.Slots(), &m_textureTable};
+}
+
+std::optional<std::uint8_t> FaunaModels::ModelByte(std::uint16_t model, std::uint8_t offset) const
+{
+    const auto found = m_models.find(model);
+    if (found == m_models.end())
+        return std::nullopt;
+    const auto byte = found->second.bytes.find(offset);
+    return byte != found->second.bytes.end() ? std::optional(byte->second) : std::nullopt;
+}
+
 void FaunaModels::Release()
 {
     if (m_sharedTextures != nullptr)
     {
         for (const auto& [model, entry] : m_models)
             for (const auto slot : entry.textures)
-                if (slot.value != 0x12e)
+                if (slot.value != KeptSlot)
                     m_sharedTextures->Release(slot);
     }
     else if (m_store != nullptr)

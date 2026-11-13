@@ -249,21 +249,30 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
 - [x] **El alta de un monstruo o un NPC por tipo** (`0x5141e0`, 11,6 KB, con los `Monster*.bmd` y la pose de
       los NPC de Q-C108): el `0x13` (`0x4c9c60`), el `0x1F` (`0x4ca0b0`, con los tipos `0x98..0x9e` por
       `0x517400`) y el `0x68` (`0x4e0980`); `0x511290` con la caja y las manos de cada tipo; el `0x45` y el `0xDF`
-      del hito 1 dan de alta y empujan. El `0x1A` (`0x4cedd0`) no crea nada: es la skill que pega a varios y va
-      con el hito 3 (04). El tipo 68 (el caso `0x3a`) corta con su dirección (`Monster50` no está, P-C173).
+      del hito 1 dan de alta y empujan. El tipo 68 (el caso `0x3a`) corta con su dirección (`Monster50` no está,
+      P-C173).
+- [x] **El `0x1A`** (`0x4cedd0`), la skill que pega a varios: no crea nada; el brillo de la mano (`0x53d810`, la
+      partícula 5fd con su paso y su dibujo), la acción `0x96`, el `+0x38e`, el golpe y el número de cada blanco
+      (`0x4f53a0`, `0x548e40`) y la vida del jugador (06, "La skill que pega a varios").
+- [x] **Los modelos de los monstruos y los NPC** (`0x612d90` y `0x612270`, 08 P-C176): el alta los carga en
+      `WorldState::FaunaResources()` con sus tablas (velocidades, sonidos, hueso de la cabeza, texturas fijas) y la
+      acción `0x4ea030` ya no corta; el `0x1f3` (`BloodCastle01`, Q-C108) corta (P-C240).
 - [ ] Las partes de monstruo de `0x50ba30` y `0x4fd5f0` que la CL7 dejó cortadas, y los monstruos que la revisión
-      de la CL.M dejó en la CL7 por `0x50ba30` (`0x4271d0`, `0x441400`, `0x434180`): necesitan los modelos de los
-      monstruos, que el alta no carga (08, P-C176 y P-C178).
+      de la CL.M dejó en la CL7 por `0x50ba30` (`0x4271d0`, `0x441400`, `0x434180`) (08, P-C176 y P-C178). Hecho el
+      paso del cuerpo (`0x4f9580`, `0x4fcbb0`, `0x4ea190`/`0x4ea0e0` y el sonido al caminar; 06, "El cuerpo de los
+      monstruos y los NPC"); quedan el dibujo y los efectos por tipo (08, P-C241).
 - [ ] **La tela sobre la malla** (P-C22 f, vtable `0x6b8d04`: los monstruos `0x59..0x8f`; los tres pantalones
       también la usan), y Q-C95 con el primer modelo que se desvanezca (§ Lo que dejó la CL6).
 - [x] El picking de NPC y monstruos en `0x59ec80`, con la caja de cada tipo.
-- [ ] **Lo que se ve sobre ellos:** las barras de vida (`0x42a4d0`, `0x42a2b0`), NewFace (`0x42d890`,
-      `0x42da90`, con los monstruos `0x11e` y `0x11f`) y los mensajes de monstruo (`0x4fc790`, `0x4fc8c0`,
-      `0x4fcd00`).
-- [ ] **Hablar con un NPC:** el `C1 30` desde la interacción de llegada (`0x5650c0`, el corte de
+- [x] **Lo que se ve sobre ellos:** las barras de vida (`0x42a4d0`, `0x42a2b0`) y los mensajes de monstruo
+      (`0x4fc790`, `0x4fc8c0`, `0x4fcd00`, con el mensaje del nombre y su reloj; 06, "Lo que dicen los NPC" y "Las
+      barras de vida del 0x1a8").
+- [ ] NewFace del mapa 30 (`0x42d890`, `0x42da90`, con los monstruos `0x11e` y `0x11f`): `0x42d890` hecho; queda
+      `0x42da90`, que corta en `0x42dac4` (P-C241 f).
+- [x] **Hablar con un NPC:** el `C1 30` desde la interacción de llegada (`0x5650c0`, el corte de
       `GameMovement.cpp`, solo su rama de NPC), el diálogo `0x8d` (`0x62d91d`, `0x632f70`, la lista
       `0x7d3a0fc`). Lo que abre cada NPC (tienda, almacén, caja del caos) es del hito 6. El escritor del `C1 30`
-      ya está.
+      ya está. (Los altares de Crywolf, `0x4eac41` y `0x567b6d`, cortan: hito 11.)
 - [x] **Las misiones, sin la ventana:** `A0`..`A3` (`0x418e20`, `0x418ee0`, `0x4198b0`, `0x4ddb80`), el `9F`, el
       objeto `[0x710148]` y las funciones que no dibujan, con `Quest.bmd` y `Dialog.bmd`.
 - [ ] **La ventana del quest** (`0x41ca40`, `0x41ba20`, `0x41c600`, `0x41b5a0`, `0x41b9e0`) y sus pasos que mandan

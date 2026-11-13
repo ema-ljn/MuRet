@@ -193,6 +193,19 @@ struct Objects
     std::vector<ObjectRecord> records;
 };
 
+// La skill que pega a varios (CL9 hito 2): el C1 0x1A (0x4cedd0, PMSG_MAGICATTACK_COUNT_SEND). La clave del que pega en
+// pkt[3..4] (el alto primero, entera), la skill en pkt[5], la celda en pkt[6] y pkt[7] (que 0x4cedd0 no lee), la cuenta
+// en pkt[8] y las claves de los blancos desde pkt[9], de a dos bytes con el alto primero (0x4ceff6..0x4cf009).
+inline constexpr std::uint8_t MagicAttackCountOpcode = 0x1a;
+
+struct MagicAttackCount
+{
+    std::uint16_t key = 0;
+    // pkt[5]: lo que queda en el +0x38e del que pega (0x4ceee4).
+    std::uint8_t magic = 0;
+    std::vector<std::uint16_t> targets;
+};
+
 [[nodiscard]] Core::Expected<Players, ProtocolError> ReadPlayers(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<Leave, ProtocolError> ReadLeave(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<Transformed, ProtocolError> ReadTransformed(const Network::Packet& packet);
@@ -201,4 +214,6 @@ struct Objects
 [[nodiscard]] Core::Expected<Monsters, ProtocolError> ReadMonsters(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<Summons, ProtocolError> ReadSummons(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<Objects, ProtocolError> ReadObjects(const Network::Packet& packet);
+// TooShort sin la cuenta o sin el último byte de la última clave (pkt[8 + 2 · cuenta]).
+[[nodiscard]] Core::Expected<MagicAttackCount, ProtocolError> ReadMagicAttackCount(const Network::Packet& packet);
 } // namespace Client::Protocol::Viewport

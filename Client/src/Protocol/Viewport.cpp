@@ -333,4 +333,30 @@ Core::Expected<Objects, ProtocolError> ReadObjects(const Network::Packet& packet
         return Core::Unexpected(records.Error());
     return Objects{std::move(records).Value()};
 }
+
+Core::Expected<MagicAttackCount, ProtocolError> ReadMagicAttackCount(const Network::Packet& packet)
+{
+    auto fields = FieldsOf(packet, Network::PacketType::C1, MagicAttackCountOpcode);
+    if (!fields.HasValue())
+        return Core::Unexpected(fields.Error());
+    Core::ByteReader& reader = fields.Value();
+    const auto key = reader.ReadU16Be();
+    const auto magic = reader.ReadU8();
+    // pkt[6] y pkt[7], la celda.
+    constexpr std::size_t CellBytes = 2;
+    const auto cell = reader.ReadBytes(CellBytes);
+    const auto count = reader.ReadU8();
+    if (!key || !magic || !cell || !count)
+        return Core::Unexpected(ProtocolError::TooShort);
+    MagicAttackCount attack{.key = *key, .magic = *magic, .targets = {}};
+    attack.targets.reserve(*count);
+    for (std::size_t index = 0; index < *count; ++index)
+    {
+        const auto target = reader.ReadU16Be();
+        if (!target)
+            return Core::Unexpected(ProtocolError::TooShort);
+        attack.targets.push_back(*target);
+    }
+    return attack;
+}
 } // namespace Client::Protocol::Viewport

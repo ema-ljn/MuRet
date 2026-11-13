@@ -935,12 +935,14 @@ cifrado, y no miran el largo.
   >> 1` en `+0x1d4` del personaje y, si es el héroe, en `+0xb` del registro; `0xcb` solo el efecto. Los cuatro
   siguen con quince joints `0x60f` (`0x530860`), el `0x61e` de `0x518cf0` y, salvo `0xc8`, `0x513100` y la acción
   `0xb8`. Otro tipo: solo el sonido.
-- **`30`** (C→S, `0x567c2d..0x567db5`): `C1 05 30 <claveH> <claveL>` con la clave `+0x1f4` del NPC, C3. El GS
-  contesta con el `C3 30` (`PMSG_TALKRESULT`) que abre la ventana del NPC (hito 6).
+- **`30`** (C→S, `0x567c2d..0x567db5`, y las copias de `0x568288`, `0x568908` y `0x568f54`): `C1 05 30 <claveH>
+  <claveL>` con la clave `+0x1f4` del NPC (MOVSX, el alto con SAR), C3. Lo manda la llegada al NPC elegido
+  (`0x5650c0` con `+0x379` en 2; 06, "Hablar con un NPC"): cada uno saca el `rand()` del relleno y el del serial.
+  El GS contesta con el `C3 30` (`PMSG_TALKRESULT`) que abre la ventana del NPC (hito 6).
 - **`31`** (C→S, `0x419900`): `C1 03 31` en claro, al cerrar la ventana de las misiones (`CGCloseWindow`).
 
 **MuRet**: `Protocol::Quest` (lectores y escritores), `App::ServerSession` los registra juntos y el sink los aplica
-con `Scenes::ApplyQuest*` (06, "Las misiones"). Un paquete corto se ignora con un aviso. Los joints del `A3` cortan
+con `Scenes::ApplyQuest*` (06, "Las misiones"); el `A0` y el `30` de la llegada, `Scenes::TalkToTheNpc`. Un paquete corto se ignora con un aviso. Los joints del `A3` cortan
 (CL11).
 
 ### Los monstruos y los NPC que entran: `13`, `1F`, `68` y `1A`
@@ -967,8 +969,11 @@ con `Scenes::ApplyQuest*` (06, "Las misiones"). Un paquete corto se ignora con u
   el equipo (los 17 bytes de la lista) y `+0x18..+0x1b` los estados. Con 1 (`0x4e0c1d`), un jugador: `0x512870(clave,
   0x20a, x, y, 0)` con la clase de `+1` y el equipo (`0x5139f0`); con 2 o 3 (`0x4e09ca`), el monstruo del tipo
   `+1 << 8 | +2` por `0x5141e0`; con otro, nada. No tiene recién llegado ni camino: el ángulo es `rand() % 360`.
-- **`1A`** (`0x4cedd0`): no crea nada: es la skill que pega a varios (`PMSG_MAGICATTACK_COUNT_SEND`, `0x5110d0`, la
-  acción `0x96`, `0x53d810`, el sonido `0x76` y el daño de cada blanco con `0x548e40`); va con el hito 3.
+- **`1A`** (`0x4cedd0`): no crea nada: es la skill que pega a varios (`PMSG_MAGICATTACK_COUNT_SEND`). `C1 xx 1A`, la
+  clave del que pega en `pkt[3..4]` (el alto primero, entera), la skill en `pkt[5]` (va al `+0x38e`), la celda en
+  `pkt[6]` y `pkt[7]` (que nadie lee), la cuenta en `pkt[8]` y las claves de los blancos desde `pkt[9]`, de a dos
+  bytes con el alto primero (`PMSG_MAGICATTACK_COUNT_INFO`). Lo que hace con el mundo, en
+  [06](06-render-escenas-y-ui.md#la-skill-que-pega-a-varios).
 
 El dispatcher llama a los tres sin copiarlos a la cola de `0x77f27b4` ni mirar el flag de cifrado (`0x4e37d1`,
 `0x4e37e9` y `0x4e4643`). Lo que cada handler hace con el mundo, en
@@ -978,7 +983,9 @@ El dispatcher llama a los tres sin copiarlos a la cola de `0x77f27b4` ni mirar e
 `ReadSummons` y `ReadObjects`; un registro corto es `TooShort`, hasta el último byte que lee el handler: `+0xc`,
 `+0x16` y `+0x1b`); `App::ServerSession` los registra después del `DF` y los pasa al mundo
 (`Scenes::ApplyViewportMonsters`, `ApplySummons` y `ApplyViewportObjects`). Los tests arman los paquetes con los
-structs del ASM (`support/ViewportPackets.h`). El `1A` queda para el hito 3.
+structs del ASM (`support/ViewportPackets.h`). El `1A` lo lee `ReadMagicAttackCount` (`TooShort` sin la cuenta o
+sin el último byte de la última clave), lo registra `App::ServerSession` y lo aplica `Scenes::ApplyMagicAttackCount`
+con la clave del jugador.
 
 ### Los otros jugadores: `12`, `14`, `45`, `25` y `DF`
 

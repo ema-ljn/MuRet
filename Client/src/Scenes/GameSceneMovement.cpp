@@ -93,6 +93,8 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         { m_session->SendAction(direction, action); };
     }
     context.texts = m_texts;
+    context.measure = m_context.textMeasure;
+    context.screen = m_screen;
     const InventoryServices inventory = InventoryContext();
     context.inventory = &inventory;
     return StepHeroMovement(context);

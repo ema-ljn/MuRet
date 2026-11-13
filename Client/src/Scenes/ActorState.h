@@ -89,7 +89,8 @@ struct ActorState
     std::int32_t dword60 = 0;
     std::int32_t dword64 = 0;
     // +0x92 (1), +0x93 (0xa), +0x94 (1,2f), +0x98 (0) y +0xe8 (1) desde 0x511290 (0x511c70..0x511c88, 0x511bfe y
-    // 0x511be6). El 13 pone en +0x93 los bits 4..6 del tipo alto (0x4c9ee9). Quién los lee, sin leer.
+    // 0x511be6). El 13 pone en +0x93 los bits 4..6 del tipo alto (0x4c9ee9), que la barra de vida del 0x1a8 lee
+    // (0x42a2c5, Scenes/HealthBars). Quién lee los otros, sin leer.
     std::uint8_t byte92 = 0;
     std::uint8_t byte93 = 0;
     float float94 = 0.0f;
@@ -110,6 +111,11 @@ struct ActorState
     std::int32_t dword394 = 0;
     std::uint8_t byte3e4 = 0;
     std::uint8_t byte42d = 0;
+    // +0x110 (0x511290 lo pone en 0, 0x511c69) y +0x100: 0x42d890 los pone en 1 y en 0x12c cuando el 286 o el 287 del
+    // mapa 30 terminan la acción 5 (0x42d8fd y 0x42d904); los lee 0x42da90, sin portar. 0x42dcb0 pone +0x110 en 3 al
+    // pegar el 0x19e y el 0x19f (CL9 hito 3).
+    std::uint8_t byte110 = 0;
+    std::int32_t dword100 = 0;
     // +0x3a4: la cola 0x5140c0 le copia el WORD de [0x57678b0] (WorldRuntime::heroSlot).
     std::uint16_t word3a4 = 0;
     // +0x428: −0x80 desde 0x511290 (0x511c77); el 68 lo pone en 0x96 (0x4e0b8a). Quién lo lee, sin leer.
@@ -256,8 +262,6 @@ struct ActorState
     std::uint8_t attackCount = 0;
     std::uint8_t deathSkill = 0;
     std::uint8_t byte398 = 0;
-    // +0x110: 0x42dcb0 lo pone en 3 al pegar el 0x19e y el 0x19f. Qué es, sin leer.
-    std::uint8_t byte110 = 0;
     // +0x30: el 0x17 de los empujes le copia el rumbo hacia quien mató (0x4d0b8f). Qué lo lee, sin leer.
     float angle30 = 0.0f;
     // El vuelo del que muere empujado (el 0x17 con 0x28 o 0x3b, 0x4d0ac1..0x4d0b38, y 0x4d07c0 en Blood Castle y
@@ -295,7 +299,7 @@ struct ActorState
     std::uint8_t byte38eAccesses = 0;
     // +0x38e: el valor lógico. Con ')' (0x29) el lazo de las manos de 0x50ba30 saltea la derecha en la
     // acción 0x3d, y con '4' (0x34) 0x509340 pone el frame de lo que cuelga en 3,2 en las acciones 0x22 a
-    // 0x97. Lo escriben 0x4cc530 y 0x4f5b70, sin portar: queda en 0.
+    // 0x97. Lo escriben 0x4cc530 y 0x4f5b70, sin portar, y el 1A (0x4ceee4, Scenes::ApplyMagicAttackCount).
     std::uint8_t byte38e = 0;
     // +0x42e, otro byte protegido: la skill del monstruo que manda el 0x69 (0x4cc290, sin portar), que 0x4f92f0 busca
     // en MonsterSkill.bmd y deja en 0xff. 0x511290 no lo toca: un lugar nuevo del pool lo tiene en 0 y uno usado, lo

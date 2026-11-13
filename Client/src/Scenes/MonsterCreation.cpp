@@ -1,8 +1,6 @@
 #include "Scenes/MonsterCreation.h"
 
 #include "Core/Expected.h"
-#include "Data/DataPath.h"
-#include "Data/Models/ModelFiles.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorConstruction.h"
@@ -10,8 +8,8 @@
 #include "Scenes/ActorEquipment.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FaunaModels.h"
 #include "Scenes/MonsterKinds.h"
-#include "Scenes/MonsterSounds.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -27,7 +25,6 @@
 #include <optional>
 #include <span>
 #include <string>
-#include <system_error>
 #include <vector>
 
 namespace Client::Scenes
@@ -244,17 +241,31 @@ void PutOnTheBoxArmour(ActorState& actor)
     actor.animation.action = BoxAction;
 }
 
-// 0x612d90 → 0x60da30: si falta el .bmd del monstruo, el original cierra (0x612dd6..0x612de1, Q-C23).
-Core::Expected<void, std::string> CheckTheMonsterFile(const MonsterStep& step, const WorldEntryResources& resources)
+// 0x612d90(n) y 0x612270(modelo) sobre los modelos del juego que no se sueltan (WorldState::FaunaResources), con el
+// mapa en curso y la tabla de texturas que liga el juego.
+Core::Expected<void, std::string> LoadTheModel(const MonsterStep& step, const WorldEntryResources& resources)
 {
-    const std::string relative = "Monster\\" + Data::Models::ModelFileName("Monster", static_cast<int>(step.value) + 1);
-    std::error_code error;
-    if (Data::ResolveDataPath(resources.dataRoot, relative, error))
+    FaunaModels& models = resources.world.FaunaResources();
+    auto context = models.LoadContextOf(resources.dataRoot, resources.log);
+    if (!context)
+        return Core::Unexpected(std::format("{:#x}: {} sin el backend de las texturas que liga el juego "
+                                            "(GameScene::Enter)",
+                                            step.address,
+                                            step.kind == MonsterStepKind::LoadMonster ? "0x612d90" : "0x612270"));
+    if (step.kind == MonsterStepKind::LoadMonster)
+    {
+        // 0x613127..0x615232: la tabla de sonidos del modelo (0x612c80, CL9 hito 3, fase 2c) va a
+        // WorldRuntime::modelSounds, que leen los pasos del ataque.
+        context->sounds = &resources.world.Runtime().modelSounds;
+        if (auto loaded =
+                models.LoadMonster(static_cast<std::int32_t>(step.value), resources.world.Runtime().map, *context);
+            !loaded.HasValue())
+            return Core::Unexpected(std::format("{:#x}: {}", step.address, loaded.Error()));
         return {};
-    return Core::Unexpected(
-        std::format("{:#x}: 0x612d90 no encuentra Data\\{} y el original cierra (0x612dd6..0x612de1,"
-                    " Q-C23, P-C173)",
-                    step.address, relative));
+    }
+    if (auto loaded = models.LoadNpc(static_cast<std::uint16_t>(step.value), *context); !loaded.HasValue())
+        return Core::Unexpected(std::format("{:#x}: {}", step.address, loaded.Error()));
+    return {};
 }
 
 // 0x5f93c0 en la escena del juego: la altura del terreno en la X y la Y del personaje.
@@ -310,12 +321,8 @@ private:
         switch (step.kind)
         {
         case MonsterStepKind::LoadMonster:
-            if (auto checked = CheckTheMonsterFile(step, m_resources); !checked.HasValue())
-                return checked;
-            // 0x613127..0x615232: la tabla de sonidos del modelo (CL9 hito 3, fase 2c).
-            WriteMonsterSounds(static_cast<std::int32_t>(step.value), m_resources.world.Runtime().modelSounds);
-            return {};
         case MonsterStepKind::LoadNpc:
+            return LoadTheModel(step, m_resources);
         case MonsterStepKind::Random:
         case MonsterStepKind::Siege:
             return {};
@@ -418,16 +425,10 @@ private:
         }
     }
 
-    // 0x4ea030(personaje, acción): necesita la cuenta de acciones del modelo, que MuRet no carga para los monstruos.
+    // 0x4ea030(personaje, acción) con la cuenta de acciones del modelo del tipo.
     Core::Expected<void, std::string> SetTheAction(ActorState& actor, const MonsterStep& step)
     {
-        const auto* skeleton = m_resources.models.SkeletonOf(actor.type);
-        if (skeleton == nullptr)
-            return Core::Unexpected(std::format("{:#x}: 0x4ea030 necesita el modelo {:#x}, que MuRet no carga "
-                                                "(0x612270, P-C176)",
-                                                step.address, actor.type));
-        Render::Models::SetAction(actor.animation, *skeleton, static_cast<std::uint8_t>(step.value));
-        return {};
+        return SetMonsterAction(actor, static_cast<std::uint8_t>(step.value), step.address, m_resources);
     }
 
     // 0x5140c0, sin el nombre de 0x7681eb8 (P-C174).
@@ -455,6 +456,24 @@ private:
     std::optional<std::size_t> m_index;
 };
 } // namespace
+
+const Render::Models::Skeleton* MonsterSkeletonOf(const WorldEntryResources& resources, std::uint16_t model)
+{
+    if (const auto* skeleton = resources.world.FaunaResources().SkeletonOf(model))
+        return skeleton;
+    return resources.models.SkeletonOf(model);
+}
+
+Core::Expected<void, std::string> SetMonsterAction(ActorState& actor, std::uint8_t action, std::uint32_t address,
+                                                   const WorldEntryResources& resources)
+{
+    const auto* skeleton = MonsterSkeletonOf(resources, actor.type);
+    if (skeleton == nullptr)
+        return Core::Unexpected(
+            std::format("{:#x}: 0x4ea030 lee las acciones del modelo {:#x}, que no está cargado", address, actor.type));
+    Render::Models::SetAction(actor.animation, *skeleton, action);
+    return {};
+}
 
 Core::Expected<void, std::string> PutActorText(ActorState& actor, std::span<const std::byte> bytes,
                                                std::uint32_t address, std::size_t offset)

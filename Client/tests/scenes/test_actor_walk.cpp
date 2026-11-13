@@ -12,8 +12,10 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstdint>
 #include <optional>
+#include <string>
 
 namespace
 {
@@ -337,4 +339,65 @@ TEST(ActorFootstepTest, MapLayerAndSafeZoneChooseTheNativeSound)
         EXPECT_EQ(sounds[0], sample.sound);
         EXPECT_EQ(sounds[1], sample.sound);
     }
+}
+
+// 0x4f3efa..0x4f3f67: otro modelo que el 0x20a, sorteado con rand() & 15, suena con la tabla de su modelo (+0xaa, la de
+// 0x612c80): una de las dos primeras por rand() & 1, más 0xd2 (y 5 con el subtipo 9). Con la primera en −1, nada; sin
+// la tabla ni la de WorldRuntime::modelSounds, el rand() y ninguno (P-C253).
+TEST_F(ActorWalkTest, AnotherModelSoundsFromItsModelTable)
+{
+    const std::array<std::int16_t, 10> table{0x10, 0x11, 0x12, 0x13, 0x14, -1, -1, -1, -1, -1};
+    const std::array<std::int16_t, 10> silent{-1, 0x11, 0x12, 0x13, 0x14, -1, -1, -1, -1, -1};
+    int sounded = 0;
+    int drawnTwice = 0;
+    for (std::uint32_t seed = 1; seed < 200; ++seed)
+    {
+        SCOPED_TRACE(seed);
+        for (const std::int32_t subtype : {0, 9})
+        {
+            auto actor = Client::Tests::UnarmedPlayer(3);
+            actor.type = 0x153;
+            actor.subtype = subtype;
+            Client::Render::Models::CrtRandom random(seed);
+            const auto walked = Client::Scenes::SetActorWalk(
+                actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, random},
+                        m_speeds,
+                        false,
+                        &m_skeleton,
+                        table});
+            ASSERT_TRUE(walked.HasValue()) << walked.Error();
+            if (walked.Value().sound.has_value())
+            {
+                ++sounded;
+                const std::int32_t base = subtype == 9 ? 0xd2 + 5 : 0xd2;
+                EXPECT_TRUE(*walked.Value().sound == base + 0x10 || *walked.Value().sound == base + 0x11);
+            }
+
+            Client::Render::Models::CrtRandom quiet(seed);
+            const auto muted = Client::Scenes::SetActorWalk(
+                actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, quiet},
+                        m_speeds,
+                        false,
+                        &m_skeleton,
+                        silent});
+            ASSERT_TRUE(muted.HasValue()) << muted.Error();
+            EXPECT_FALSE(muted.Value().sound.has_value());
+
+            Client::Render::Models::CrtRandom missing(seed);
+            const auto unknown = Client::Scenes::SetActorWalk(
+                actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, missing},
+                        m_speeds,
+                        false,
+                        &m_skeleton});
+            ASSERT_TRUE(unknown.HasValue()) << unknown.Error();
+            EXPECT_FALSE(unknown.Value().sound.has_value());
+            if (walked.Value().sound.has_value())
+            {
+                ++drawnTwice;
+                EXPECT_EQ(missing.State(), random.State());
+            }
+        }
+    }
+    EXPECT_GT(sounded, 0);
+    EXPECT_EQ(drawnTwice, sounded);
 }

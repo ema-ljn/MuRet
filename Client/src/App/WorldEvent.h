@@ -42,5 +42,5 @@ using WorldEvent =
                  Protocol::Movement::Action, Protocol::Viewport::Players, Protocol::Viewport::Leave,
                  Protocol::Viewport::Transformed, Protocol::Viewport::EquipmentShown, Protocol::Viewport::Position,
                  Protocol::Viewport::Monsters, Protocol::Viewport::Summons, Protocol::Viewport::Objects,
-                 Protocol::Combat::KillExperience, Protocol::Combat::Death>;
+                 Protocol::Viewport::MagicAttackCount, Protocol::Combat::KillExperience, Protocol::Combat::Death>;
 } // namespace Client::App

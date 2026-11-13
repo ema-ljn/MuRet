@@ -24,6 +24,7 @@
 #include "UI/HudPrimitives.h"
 #include "UI/SprintfFormat.h"
 #include "UI/Widget.h"
+#include "World/ItemState.h"
 
 #include <algorithm>
 #include <array>
@@ -266,7 +267,6 @@ constexpr Color BlessRowColor{1.0f, 1.0f, 0.0f, 1.0f};
 // 0xf8 (872, 873 y 1923 en y = 150, 160 y 170; 870 y 871 en 240 y 250).
 constexpr int MixModeTop = 120;
 constexpr int MixModeRows = 5;
-constexpr int MixModeFirstRowY = 125;
 constexpr int MixModeButtons = 2;
 constexpr int MixModeButtonLeft = 245;
 constexpr int MixModeButtonRight = 395;
@@ -293,6 +293,116 @@ constexpr int MixModeTitleY = MixModeTop + 0xf;
 // La cola de 0x62db60 (0x632323, 0x632372, ..) lleva los títulos de los diálogos de la CL9.3; los que no son de esta
 // fase cortan en su dibujo.
 constexpr std::int32_t ChaosMixModeDialog = 0x8e;
+
+// La mezcla de joyas (CL9 hito 6, fase 4a): el menú (0xa1, 0x62e92e..0x62ed05), la joya y el paquete (0xa2,
+// 0x62ed0a..0x62f36c), deshacer (0xa4, 0x62f371..0x62fae6), la espera del BC (0xa5, 0x62faeb..0x62fc1a) y el
+// resultado (0xa6, 0x62fc1f..0x62febe). Todos con [EBP − 0x20] en 0x78: el marco desde y = 120, como el 0x8e.
+constexpr std::int32_t JewelMenuDialog = 0xa1;
+constexpr std::int32_t JewelChoiceDialog = 0xa2;
+constexpr std::int32_t JewelUnmixDialog = 0xa4;
+constexpr std::int32_t JewelWaitDialog = 0xa5;
+constexpr std::int32_t JewelResultDialog = 0xa6;
+constexpr int JewelMenuRows = 6;
+constexpr int JewelChoiceRows = 7;
+constexpr int JewelUnmixShortRows = 3;
+constexpr int JewelUnmixRows = 7;
+constexpr int JewelNoteRows = 2;
+// Los colores de los botones: con el mouse, blanco; si no, 0,7 (0,8 en el cancelar del 0xa1 y en el OK del 0xa6);
+// la joya elegida, (1; 1; 0,2), y sin elegir, 0,5.
+constexpr Color JewelIdle = MixModeIdle;
+constexpr Color JewelLightIdle{0.8f, 0.8f, 0.8f, 1.0f};
+constexpr Color JewelChosen{1.0f, 1.0f, 0.2f, 1.0f};
+constexpr Color JewelDisabled{0.5f, 0.5f, 0.5f, 1.0f};
+constexpr std::uint32_t JewelButtonTextColor = MixModeTitleColor;
+// El cancelar, centrado en x = 0x13f: el 1002 de Text.bmd.
+constexpr int JewelCancelCenterX = 0x13f;
+constexpr std::size_t JewelCancelText = 1002;
+constexpr float JewelButtonHeight = 25.0f;
+// 0x62ea12..0x62ebd1: los dos botones del 0xa1, de 150 × 35 en x = 245, desde y = 190 y de a 65; el 1801 (juntar)
+// y el 1800 (deshacer) en y + 12; y antes del primero, el 1802 y el 1803 en x = 0xf8.
+constexpr std::size_t MixText = 1801;
+constexpr std::size_t UnmixText = 1800;
+constexpr float JewelMenuButtonTop = 190.0f;
+constexpr float JewelMenuButtonStep = 65.0f;
+constexpr float JewelMenuTextDrop = 12.0f;
+constexpr int JewelMenuNotesX = 0xf8;
+constexpr std::array<MixModeNote, 2> JewelMenuNotes{{{0x96, 1802}, {0xa0, 1803}}};
+// 0x62ebd7..0x62ecf2: el cancelar del 0xa1, de 81 × 25 en (279, 320), su texto en y = 0x148.
+constexpr int JewelCancelLeft = 279;
+constexpr int JewelCancelRight = 360;
+constexpr float JewelCancelWidth = 81.0f;
+constexpr int JewelMenuCancelTop = 320;
+constexpr int JewelMenuCancelTextY = 0x148;
+// 0x62edee..0x62f08f: las dos joyas del 0xa2 (1806 y 1807), de 80 × 25 en x = 235 + ftol(90 · k), y = 185, con el
+// texto centrado en ftol(x + 275) y en y + 8; antes, el 1804 y el 1805 en x = 0xee.
+constexpr float JewelChoiceTop = 185.0f;
+constexpr float JewelKindStep = 90.0f;
+constexpr int JewelKindLeft = 235;
+constexpr float JewelKindWidth = 80.0f;
+constexpr int JewelKindCenter = 275;
+constexpr float JewelKindTextDrop = 8.0f;
+constexpr std::size_t FirstJewelKindText = 1806;
+constexpr int JewelChoiceNotesX = 0xee;
+constexpr std::array<MixModeNote, 2> JewelChoiceNotes{{{0x9b, 1804}, {0xa5, 1805}}};
+constexpr float JewelKindRowStep = 40.0f;
+// 0x62f0bd..0x62f271: los tres paquetes, de 170 × 35 en x = 235 y de a 45, con el 1808 escrito con 10 · i joyas y
+// 500.000 · i de zen en un buffer de 0x800 bytes, centrado en y + 12.
+constexpr int JewelBundles = 3;
+constexpr int JewelBundleLeft = 235;
+constexpr int JewelBundleRight = 405;
+constexpr float JewelBundleWidth = 170.0f;
+constexpr float JewelBundleHeight = 35.0f;
+constexpr float JewelBundleStep = 45.0f;
+constexpr std::size_t JewelBundleText = 1808;
+constexpr std::int32_t JewelsPerBundle = 10;
+constexpr std::int32_t ZenPerBundle = 500000;
+constexpr std::size_t JewelBundleRoom = 0x800;
+// 0x62f27e..0x62f36c: el cancelar del 0xa2 en (279, 365), su texto en y = 0x175.
+constexpr int JewelChoiceCancelTop = 365;
+constexpr int JewelChoiceCancelTextY = 0x175;
+// 0x62f4ae..0x62f689: las dos joyas del 0xa4, de 80 × 25 desde x = 235 y de a 80, en y = 160, con el texto en
+// ftol(x + 40) e y = 0xa8.
+constexpr float JewelUnmixKindLeft = 235.0f;
+constexpr int JewelUnmixKindTop = 160;
+constexpr float JewelUnmixKindStep = 80.0f;
+constexpr float JewelUnmixKindCenter = 40.0f;
+constexpr int JewelUnmixKindTextY = 0xa8;
+// 0x62f9c6..0x62fae6: sin joya, el cancelar de 80 × 25 en (279,5; 200), su texto en y = 0xd0.
+constexpr float JewelUnmixCancelLeft = 279.5f;
+constexpr float JewelUnmixCancelRight = 359.5f;
+constexpr int JewelUnmixCancelTop = 200;
+constexpr int JewelUnmixCancelTextY = 0xd0;
+// 0x62f69c..0x62f715: con la joya, el 1821 con las casillas vacías (0x402de0) en un buffer de 300 bytes y el 1822,
+// en x = 0xe4 con 0xc8c8c8c8.
+constexpr std::size_t FreeCellsText = 1821;
+constexpr std::size_t FreeCellsRoom = 300;
+constexpr std::size_t UnmixListText = 1822;
+constexpr int UnmixNotesX = 0xe4;
+constexpr int FreeCellsY = 0xc5;
+constexpr int UnmixListTextY = 0xd4;
+constexpr std::uint32_t UnmixNotesColor = 0xc8c8c8c8u;
+constexpr std::uint16_t EmptyCell = 0xffff;
+// 0x62fbc9..0x62fc12: el 471 del 0xa5, en y = 0xa5.
+constexpr std::size_t JewelWaitText = 471;
+constexpr int JewelWaitTextY = 0xa5;
+// 0x62fd09..0x62febe: el 0xa6. "%s%s %s" (0x6d62c8 y 0x6d62d0, iguales) con el 1801 o el 1800 según 0x6e5794, el
+// 1816 y el 858 en un buffer de 256 bytes, en negrita en y = 0x91; el OK de 65 × 25 en (287, 170) con el 228 en
+// y = 0xb2.
+constexpr std::size_t JewelResultText = 1816;
+constexpr std::size_t JewelResultTail = 858;
+constexpr std::size_t JewelResultRoom = 256;
+constexpr int JewelResultTextY = 0x91;
+constexpr int JewelResultLeft = 287;
+constexpr int JewelResultRight = 352;
+constexpr int JewelResultTop = 170;
+constexpr int JewelResultBottom = 195;
+constexpr float JewelResultWidth = 65.0f;
+constexpr std::size_t JewelResultOkText = 228;
+constexpr int JewelResultOkTextY = 0xb2;
+// 0x6304f2..0x6305b7: el marco del 0x91 ([EBP − 0x20] en 0x64): 0xfc en y = 100, 2 filas y 0xfc.
+constexpr std::int32_t TypedTextDialog = 0x91;
+constexpr int TypedTextTop = 100;
+constexpr int TypedTextRows = 2;
 
 // 0x63140b..0x631d66: los textos de Text.bmd de los del OK genérico que llegan a la CL8, uno o dos renglones. El 0x87 y
 // el 0x88 los abre la caja de la contraseña del almacén (0x5e7d53, 0x5e7e83; CL9 hito 6): la tabla 0x632bf0 los lleva a
@@ -389,6 +499,15 @@ Core::Expected<void, std::string> DrawCenteredText(Frame& frame, int y, std::siz
         return Core::Unexpected(std::move(text).Error());
     DrawCentered(frame, y, text.Value());
     return {};
+}
+
+// Un sprintf a un buffer de la pila de 0x62db60: lo que no entra la pisa, y corta.
+Core::Expected<std::string, std::string> Fits(std::string text, std::size_t room, std::string_view where)
+{
+    if (text.size() >= room)
+        return Core::Unexpected(std::format("{}: el sprintf escribe {} bytes en un buffer de {} y pisa la pila", where,
+                                            text.size() + 1, room));
+    return text;
 }
 
 // Un botón del menú o una fila de las opciones, y con el mouse encima, otra vez en aditiva y con color.
@@ -621,17 +740,24 @@ Core::Expected<void, std::string> DrawTheBoxText(Frame& frame, std::int32_t id)
     return {};
 }
 
+// El marco de los diálogos de la caja del caos, de la mezcla de joyas y del 0x91: 0xfc de 213 × 5 en (213, top), las
+// filas de 0xfb de 213 × 40 desde top + 5 y otra vez 0xfc, con las UV (0, 0, 0,83203125, 0,625).
+void DrawTheFrame(Frame& frame, int top, int rows)
+{
+    Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(top), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
+    int y = top + static_cast<int>(BoxEdgeHeight);
+    for (int row = 0; row < rows; ++row, y += BoxRowStep)
+        Quad(frame, BoxRowSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxRowHeight, MessageBoxDu, BoxDv);
+    Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
+}
+
 // 0x62e65c..0x62e929: el modo de la caja del caos, sin el título de la cola.
 Core::Expected<void, std::string> DrawTheMixModes(Frame& frame)
 {
     Render::SpriteBatch& sprites = frame.context.sprites;
     HudState& hud = frame.context.hud;
     sprites.SetColor(White);
-    Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(MixModeTop), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
-    int y = MixModeFirstRowY;
-    for (int row = 0; row < MixModeRows; ++row, y += BoxRowStep)
-        Quad(frame, BoxRowSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxRowHeight, MessageBoxDu, BoxDv);
-    Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
+    DrawTheFrame(frame, MixModeTop, MixModeRows);
     int top = MixModeButtonTop;
     for (int button = 0; button < MixModeButtons; ++button, top += MixModeButtonStep)
     {
@@ -661,13 +787,306 @@ Core::Expected<void, std::string> DrawTheMixModes(Frame& frame)
     return {};
 }
 
-// 0x632323..0x63236d: el título del 0x8e, que deja la negrita y su color.
-Core::Expected<void, std::string> DrawTheMixModeTitle(Frame& frame)
+// 0x632323..0x63236d (el 734 del 0x8e), 0x632372..0x6323bc (el 1801 del 0xa1 y del 0xa2) y 0x6323c1..0x63240b (el
+// 1800 del 0xa4): el título en negrita con 0xff0080ff, centrado en y = 0x78 + 0xf, que deja la negrita y su color.
+Core::Expected<void, std::string> DrawTheHeadTitle(Frame& frame, std::size_t index)
 {
     HudState& hud = frame.context.hud;
     hud.dcFont = Render::Text::FontKind::Bold;
     hud.textColors.text = MixModeHeadColor;
-    return DrawCenteredText(frame, MixModeTitleY, MixModeTitle);
+    return DrawCenteredText(frame, MixModeTitleY, index);
+}
+
+// x en [left, right] e y en [top, bottom], con los bordes: los FCOM de los floats con el mouse entero.
+bool MouseWithin(const Frame& frame, float left, float top, float right, float bottom)
+{
+    const auto x = static_cast<float>(frame.context.mouse.x);
+    const auto y = static_cast<float>(frame.context.mouse.y);
+    return left <= x && x <= right && top <= y && y <= bottom;
+}
+
+// Un botón de la mezcla de joyas: el glColor3f y 0xf0 con las UV (0, 0, 0,83203125, 1).
+void DrawTheJewelButton(Frame& frame, Color color, float x, float y, float width, float height)
+{
+    frame.context.sprites.SetColor(color);
+    Quad(frame, MessageBoxSlot, x, y, width, height, MessageBoxDu, 1.0f);
+}
+
+// Los textos de Text.bmd en la fuente de ahora, en x fija.
+Core::Expected<void, std::string> DrawTheNotes(Frame& frame, int x, std::span<const MixModeNote> notes)
+{
+    for (const MixModeNote& note : notes)
+    {
+        auto text = TextOf(frame, note.text);
+        if (!text.HasValue())
+            return Core::Unexpected(std::move(text).Error());
+        DrawText(frame, x, note.y, text.Value());
+    }
+    return {};
+}
+
+// El texto de un cancelar o de un OK de la mezcla de joyas: en negrita con 0xfffff0c8, centrado en `centerX`, y la
+// normal después (el color queda).
+Core::Expected<void, std::string> DrawTheJewelButtonText(Frame& frame, int centerX, int y, std::size_t index)
+{
+    HudState& hud = frame.context.hud;
+    auto text = TextOf(frame, index);
+    if (!text.HasValue())
+        return Core::Unexpected(std::move(text).Error());
+    hud.dcFont = Render::Text::FontKind::Bold;
+    hud.textColors.text = JewelButtonTextColor;
+    DrawCenteredAt(frame, centerX, y, text.Value());
+    hud.dcFont = Render::Text::FontKind::Normal;
+    return {};
+}
+
+// 0x62e92e..0x62ed05: el menú de la mezcla de joyas (0xa1). Deja el texto en 0xfffff0c8 y el blanco.
+Core::Expected<void, std::string> DrawTheJewelMenu(Frame& frame)
+{
+    Render::SpriteBatch& sprites = frame.context.sprites;
+    HudState& hud = frame.context.hud;
+    sprites.SetColor(White);
+    DrawTheFrame(frame, MixModeTop, JewelMenuRows);
+    float y = JewelMenuButtonTop;
+    for (int button = 0; button < MixModeButtons; ++button)
+    {
+        if (button == 0)
+        {
+            if (auto drawn = DrawTheNotes(frame, JewelMenuNotesX, JewelMenuNotes); !drawn.HasValue())
+                return drawn;
+        }
+        const bool hovered = MouseWithin(frame, static_cast<float>(MixModeButtonLeft), y,
+                                         static_cast<float>(MixModeButtonRight), y + MixModeButtonHeight);
+        DrawTheJewelButton(frame, hovered ? White : JewelIdle, static_cast<float>(MixModeButtonLeft), y,
+                           MixModeButtonWidth, static_cast<float>(MixModeButtonHeight));
+        auto text = TextOf(frame, button == 0 ? MixText : UnmixText);
+        if (!text.HasValue())
+            return Core::Unexpected(std::move(text).Error());
+        hud.dcFont = Render::Text::FontKind::Bold;
+        hud.textColors.text = JewelButtonTextColor;
+        DrawCentered(frame, static_cast<int>(y + JewelMenuTextDrop), text.Value());
+        y += JewelMenuButtonStep;
+        hud.dcFont = Render::Text::FontKind::Normal;
+        hud.textColors.text = DialogTextColors.text;
+    }
+    const bool hovered = MouseIn(frame, JewelCancelLeft, JewelMenuCancelTop, JewelCancelRight,
+                                 JewelMenuCancelTop + static_cast<int>(JewelButtonHeight));
+    DrawTheJewelButton(frame, hovered ? White : JewelLightIdle, static_cast<float>(JewelCancelLeft),
+                       static_cast<float>(JewelMenuCancelTop), JewelCancelWidth, JewelButtonHeight);
+    if (auto drawn = DrawTheJewelButtonText(frame, JewelCancelCenterX, JewelMenuCancelTextY, JewelCancelText);
+        !drawn.HasValue())
+        return drawn;
+    sprites.SetColor(White);
+    return {};
+}
+
+// 0x62ee33..0x62f089 y 0x62f4bc..0x62f689: una joya del 0xa2 o del 0xa4. La elegida (0x6c62e0 igual a la suya) va en
+// negrita, en (1; 1; 0,2) y con 0xfffff0c8; si no, con el mouse en blanco y con 0xfffff0c8, y si no en 0,5. Ni la
+// fuente ni el color del texto vuelven entre las dos (Q-C950).
+void PaintTheJewelKind(Frame& frame, int kind, bool hovered)
+{
+    HudState& hud = frame.context.hud;
+    if (frame.runtime.npcWindows.jewels.kind == kind)
+    {
+        hud.dcFont = Render::Text::FontKind::Bold;
+        frame.context.sprites.SetColor(JewelChosen);
+        hud.textColors.text = JewelButtonTextColor;
+        return;
+    }
+    if (hovered)
+    {
+        frame.context.sprites.SetColor(White);
+        hud.textColors.text = JewelButtonTextColor;
+        return;
+    }
+    frame.context.sprites.SetColor(JewelDisabled);
+}
+
+// 0x62ed0a..0x62f36c: la joya y el paquete del 0xa2. Deja el texto en 0xfffff0c8 y el blanco.
+Core::Expected<void, std::string> DrawTheJewelChoice(Frame& frame)
+{
+    Render::SpriteBatch& sprites = frame.context.sprites;
+    HudState& hud = frame.context.hud;
+    const std::uint8_t chosen = frame.runtime.npcWindows.jewels.kind;
+    sprites.SetColor(White);
+    DrawTheFrame(frame, MixModeTop, JewelChoiceRows);
+    float y = JewelChoiceTop;
+    if (auto drawn = DrawTheNotes(frame, JewelChoiceNotesX, JewelChoiceNotes); !drawn.HasValue())
+        return drawn;
+    for (int kind = 0; kind < 2; ++kind)
+    {
+        // 0x62ee33..0x62ee41: ftol(k · 90), entero, y de vuelta a float para la x.
+        const int offset = static_cast<int>(static_cast<float>(kind) * JewelKindStep);
+        const float x = static_cast<float>(offset) + static_cast<float>(JewelKindLeft);
+        PaintTheJewelKind(frame, kind, MouseWithin(frame, x, y, x + JewelKindWidth, y + JewelButtonHeight));
+        Quad(frame, MessageBoxSlot, x, y, JewelKindWidth, JewelButtonHeight, MessageBoxDu, 1.0f);
+        auto text = TextOf(frame, FirstJewelKindText + static_cast<std::size_t>(kind));
+        if (!text.HasValue())
+            return Core::Unexpected(std::move(text).Error());
+        DrawCenteredAt(frame, static_cast<int>(static_cast<float>(offset) + static_cast<float>(JewelKindCenter)),
+                       static_cast<int>(y + JewelKindTextDrop), text.Value());
+    }
+    hud.dcFont = Render::Text::FontKind::Normal;
+    y += JewelKindRowStep;
+    hud.textColors.text = DialogTextColors.text;
+    auto format = TextOf(frame, JewelBundleText);
+    if (!format.HasValue())
+        return Core::Unexpected(std::move(format).Error());
+    for (int bundle = 1; bundle <= JewelBundles; ++bundle)
+    {
+        // 0x62f0bd..0x62f15c: sin joya, solo el gris; con una, el mouse y la negrita con 0xfffff0c8.
+        if (chosen == NoDialogItem)
+            sprites.SetColor(JewelDisabled);
+        else
+        {
+            const bool hovered = MouseWithin(frame, static_cast<float>(JewelBundleLeft), y,
+                                             static_cast<float>(JewelBundleRight), y + JewelBundleHeight);
+            sprites.SetColor(hovered ? White : JewelIdle);
+            hud.dcFont = Render::Text::FontKind::Bold;
+            hud.textColors.text = JewelButtonTextColor;
+        }
+        Quad(frame, MessageBoxSlot, static_cast<float>(JewelBundleLeft), y, JewelBundleWidth, JewelBundleHeight,
+             MessageBoxDu, 1.0f);
+        auto written = Fits(UI::Sprintf(format.Value(), bundle * JewelsPerBundle, bundle * ZenPerBundle),
+                            JewelBundleRoom, "0x62f1dc");
+        if (!written.HasValue())
+            return Core::Unexpected(std::move(written).Error());
+        DrawCentered(frame, static_cast<int>(y + JewelMenuTextDrop), written.Value());
+        hud.dcFont = Render::Text::FontKind::Normal;
+        y += JewelBundleStep;
+        hud.textColors.text = DialogTextColors.text;
+    }
+    const bool hovered = MouseIn(frame, JewelCancelLeft, JewelChoiceCancelTop, JewelCancelRight,
+                                 JewelChoiceCancelTop + static_cast<int>(JewelButtonHeight));
+    DrawTheJewelButton(frame, hovered ? White : JewelIdle, static_cast<float>(JewelCancelLeft),
+                       static_cast<float>(JewelChoiceCancelTop), JewelCancelWidth, JewelButtonHeight);
+    if (auto drawn = DrawTheJewelButtonText(frame, JewelCancelCenterX, JewelChoiceCancelTextY, JewelCancelText);
+        !drawn.HasValue())
+        return drawn;
+    sprites.SetColor(White);
+    return {};
+}
+
+// 0x402de0: las casillas vacías (tipo −1) de las 64 del inventario.
+std::int32_t FreeCellsOf(const WorldState& world)
+{
+    return static_cast<std::int32_t>(std::ranges::count_if(world.Inventory().cells, [](const World::ItemState& cell)
+                                                           { return cell.id == EmptyCell; }));
+}
+
+// 0x62f371..0x62fae6: deshacer un paquete (0xa4). Sin joya, las dos joyas y el cancelar, y el texto en blanco al
+// final; con una, las joyas, el 1821 y el 1822, y la lista de 0x6e5660 corta.
+Core::Expected<void, std::string> DrawTheJewelUnmix(Frame& frame)
+{
+    Render::SpriteBatch& sprites = frame.context.sprites;
+    HudState& hud = frame.context.hud;
+    const std::uint8_t chosen = frame.runtime.npcWindows.jewels.kind;
+    sprites.SetColor(White);
+    DrawTheFrame(frame, MixModeTop, chosen == NoDialogItem ? JewelUnmixShortRows : JewelUnmixRows);
+    float x = JewelUnmixKindLeft;
+    for (int kind = 0; kind < 2; ++kind)
+    {
+        PaintTheJewelKind(frame, kind,
+                          MouseWithin(frame, x, static_cast<float>(JewelUnmixKindTop), x + JewelKindWidth,
+                                      static_cast<float>(JewelUnmixKindTop) + JewelButtonHeight));
+        Quad(frame, MessageBoxSlot, x, static_cast<float>(JewelUnmixKindTop), JewelKindWidth, JewelButtonHeight,
+             MessageBoxDu, 1.0f);
+        auto text = TextOf(frame, FirstJewelKindText + static_cast<std::size_t>(kind));
+        if (!text.HasValue())
+            return Core::Unexpected(std::move(text).Error());
+        DrawCenteredAt(frame, static_cast<int>(x + JewelUnmixKindCenter), JewelUnmixKindTextY, text.Value());
+        x += JewelUnmixKindStep;
+    }
+    if (chosen == NoDialogItem)
+    {
+        const bool hovered =
+            MouseWithin(frame, JewelUnmixCancelLeft, static_cast<float>(JewelUnmixCancelTop), JewelUnmixCancelRight,
+                        static_cast<float>(JewelUnmixCancelTop) + JewelButtonHeight);
+        DrawTheJewelButton(frame, hovered ? White : JewelIdle, JewelUnmixCancelLeft,
+                           static_cast<float>(JewelUnmixCancelTop), JewelKindWidth, JewelButtonHeight);
+        if (auto drawn = DrawTheJewelButtonText(frame, JewelCancelCenterX, JewelUnmixCancelTextY, JewelCancelText);
+            !drawn.HasValue())
+            return drawn;
+        hud.textColors.text = DialogTextColors.text;
+        // 0x62e914: el blanco.
+        sprites.SetColor(White);
+        return {};
+    }
+    auto format = TextOf(frame, FreeCellsText);
+    if (!format.HasValue())
+        return Core::Unexpected(std::move(format).Error());
+    auto written = Fits(UI::Sprintf(format.Value(), FreeCellsOf(frame.context.world)), FreeCellsRoom, "0x62f6bd");
+    if (!written.HasValue())
+        return Core::Unexpected(std::move(written).Error());
+    hud.textColors.text = UnmixNotesColor;
+    sprites.SetColor(White);
+    DrawText(frame, UnmixNotesX, FreeCellsY, written.Value());
+    auto list = TextOf(frame, UnmixListText);
+    if (!list.HasValue())
+        return Core::Unexpected(std::move(list).Error());
+    DrawText(frame, UnmixNotesX, UnmixListTextY, list.Value());
+    // 0x62f71a..0x62f9c1: la esquina de la lista (0x45a9d0 en (0xe4, [0x6e56bc] + 0xf0)), su dibujo, el OK con el
+    // elegido de la vtable + 0x64 y el cancelar.
+    return Core::Unexpected(std::string("0x62f739: el dibujo de la lista de 0x6e5660 (0x402b20 → 0x4832e0, la vtable "
+                                        "0x6b85f8) y el OK con su elegido (+0x64) son del hito 6 y no están "
+                                        "(08 P-C338)"));
+}
+
+// 0x62faeb..0x62fc1a: la espera del BC (0xa5), el 471 centrado en x = 0x13f.
+Core::Expected<void, std::string> DrawTheJewelWait(Frame& frame)
+{
+    frame.context.sprites.SetColor(White);
+    DrawTheFrame(frame, MixModeTop, JewelNoteRows);
+    auto text = TextOf(frame, JewelWaitText);
+    if (!text.HasValue())
+        return Core::Unexpected(std::move(text).Error());
+    DrawCenteredAt(frame, JewelCancelCenterX, JewelWaitTextY, text.Value());
+    return {};
+}
+
+// 0x62fc1f..0x62febe y 0x6313fa: el resultado (0xa6). Deja el texto en 0xfffff0c8 y el blanco.
+Core::Expected<void, std::string> DrawTheJewelResult(Frame& frame)
+{
+    Render::SpriteBatch& sprites = frame.context.sprites;
+    HudState& hud = frame.context.hud;
+    sprites.SetColor(White);
+    DrawTheFrame(frame, MixModeTop, JewelNoteRows);
+    auto title = TextOf(frame, frame.runtime.npcWindows.jewels.mode == 0 ? MixText : UnmixText);
+    if (!title.HasValue())
+        return Core::Unexpected(std::move(title).Error());
+    auto result = TextOf(frame, JewelResultText);
+    if (!result.HasValue())
+        return Core::Unexpected(std::move(result).Error());
+    auto tail = TextOf(frame, JewelResultTail);
+    if (!tail.HasValue())
+        return Core::Unexpected(std::move(tail).Error());
+    auto written =
+        Fits(UI::Sprintf("%s%s %s", title.Value(), result.Value(), tail.Value()), JewelResultRoom, "0x62fd43");
+    if (!written.HasValue())
+        return Core::Unexpected(std::move(written).Error());
+    hud.dcFont = Render::Text::FontKind::Bold;
+    DrawCenteredAt(frame, JewelCancelCenterX, JewelResultTextY, written.Value());
+    const bool hovered = MouseIn(frame, JewelResultLeft, JewelResultTop, JewelResultRight, JewelResultBottom);
+    DrawTheJewelButton(frame, hovered ? White : JewelLightIdle, static_cast<float>(JewelResultLeft),
+                       static_cast<float>(JewelResultTop), JewelResultWidth, JewelButtonHeight);
+    auto ok = TextOf(frame, JewelResultOkText);
+    if (!ok.HasValue())
+        return Core::Unexpected(std::move(ok).Error());
+    hud.textColors.text = JewelButtonTextColor;
+    DrawCenteredAt(frame, JewelCancelCenterX, JewelResultOkTextY, ok.Value());
+    hud.dcFont = Render::Text::FontKind::Normal;
+    sprites.SetColor(White);
+    return {};
+}
+
+// 0x6304f2..0x6305c7: el marco del 0x91. Con 0x6c7b8c en 1 (la .data, que nadie escribe) dibuja el EDIT del
+// diálogo, que es de la CL9.4, y corta; detrás quedan el OK (0xf1 o 0xf2 en (255, 160)) y el cancelar (0xf3 o 0xf4
+// en (330, 160)) de 0x6306ee..0x630813, y en la cola (0x631d2f) el 1128 o el 1129 según 0x78aba60.
+Core::Unexpected<std::string> DrawTheTypedText(Frame& frame)
+{
+    DrawTheFrame(frame, TypedTextTop, TypedTextRows);
+    return Core::Unexpected(std::string("0x6305c9: el dibujo del 0x91 sigue con el EDIT del diálogo ([0x5763504], "
+                                        "la vtable + 0x30 con 0 y + 0x14), que es de la CL9.4"));
 }
 
 // 0x630c51..0x630d4c: el marco del OK genérico y su botón.
@@ -682,15 +1101,6 @@ void DrawTheGenericBox(Frame& frame)
 int YesNoTopOf(std::int32_t id)
 {
     return id == UI::ServerTimeDialog ? ServerTimeBoxTop : YesNoBoxTop;
-}
-
-// Un sprintf a un buffer de la pila de 0x62db60: lo que no entra la pisa, y corta.
-Core::Expected<std::string, std::string> Fits(std::string text, std::size_t room, std::string_view where)
-{
-    if (text.size() >= room)
-        return Core::Unexpected(std::format("{}: el sprintf escribe {} bytes en un buffer de {} y pisa la pila", where,
-                                            text.size() + 1, room));
-    return text;
 }
 
 // 0x630e1f..0x630f50 y 0x630fdb..0x6310d0: un botón del 0xa8, su texto y la vuelta del color y de la mezcla.
@@ -914,21 +1324,26 @@ void DrawTheBlessRows(Frame& frame)
     frame.context.hud.dcFont = Render::Text::FontKind::Normal;
 }
 
-// Los tramos de 0x62db60 de los diálogos de la fase 3 del hito 6 que no se dibujan todavía: la mezcla de joyas (el
-// 0xa1, el 0xa2, el 0xa4, el 0xa5 que espera el BC y el 0xa6) y el 0x91 con su EDIT.
-struct CutDrawing
+// Los dibujos de la mezcla de joyas, por diálogo.
+using JewelDrawing = Core::Expected<void, std::string> (*)(Frame&);
+std::optional<JewelDrawing> JewelDrawingOf(std::int32_t id)
 {
-    std::int32_t id = 0;
-    std::string_view address{};
-};
-constexpr auto CutDrawings = std::to_array<CutDrawing>({
-    {0xa1, "0x62e92e"},
-    {0xa2, "0x62ed0a"},
-    {0xa4, "0x62f371"},
-    {0xa5, "0x62faeb"},
-    {0xa6, "0x62fc1f"},
-    {0x91, "0x6304f2"},
-});
+    switch (id)
+    {
+    case JewelMenuDialog:
+        return &DrawTheJewelMenu;
+    case JewelChoiceDialog:
+        return &DrawTheJewelChoice;
+    case JewelUnmixDialog:
+        return &DrawTheJewelUnmix;
+    case JewelWaitDialog:
+        return &DrawTheJewelWait;
+    case JewelResultDialog:
+        return &DrawTheJewelResult;
+    default:
+        return std::nullopt;
+    }
+}
 
 // El corte de un diálogo que no es de la CL8, con la ola de su paso.
 Core::Unexpected<std::string> CutTheDialog(std::int32_t id)
@@ -940,13 +1355,6 @@ Core::Unexpected<std::string> CutTheDialog(std::int32_t id)
     // 0x630c7b: el 0x73 dibuja el EDIT de su campo (0x5763504), como corta su paso.
     if (id == 0x73)
         wave = "CL9.4";
-    // Los de la mezcla de joyas y el 0x91, con la dirección de su tramo de 0x62db60.
-    for (const auto& [jewel, address] : CutDrawings)
-    {
-        if (jewel == id)
-            return Core::Unexpected(
-                std::format("{}: el dibujo del diálogo {:#x} es de la fase 3 del hito 6 (08 P-C198)", address, id));
-    }
     return Core::Unexpected(std::format("0x62db60: el dibujo del diálogo {:#x} es de la {}", id, wave));
 }
 } // namespace
@@ -987,6 +1395,13 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
         if (auto drawn = DrawTheMixModes(frame); !drawn.HasValue())
             return drawn;
     }
+    else if (const auto jewel = JewelDrawingOf(id))
+    {
+        if (auto drawn = (*jewel)(frame); !drawn.HasValue())
+            return drawn;
+    }
+    else if (id == TypedTextDialog)
+        return DrawTheTypedText(frame);
     else if (box)
         DrawTheBox(frame, id);
     else if (yesNo)
@@ -1003,7 +1418,12 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
     // 0x631432: la tabla 0x632bf0 lleva el 0x8e a 0x632323, el 0x8a, el 0x8c, el 0x8d y el 0xaa a 0x632472, y las otras
     // cajas a 0x632a2b.
     if (id == ChaosMixModeDialog)
-        return DrawTheMixModeTitle(frame);
+        return DrawTheHeadTitle(frame, MixModeTitle);
+    // 0x632372 y 0x6323c1; el 0xa5 y el 0xa6 van a 0x632aec, sin nada.
+    if (id == JewelMenuDialog || id == JewelChoiceDialog)
+        return DrawTheHeadTitle(frame, MixText);
+    if (id == JewelUnmixDialog)
+        return DrawTheHeadTitle(frame, UnmixText);
     if (id == UI::MessageBoxDialog || id == UI::PagedDialog || id == UI::AnswersDialog ||
         id == UI::NoticeQuestionDialog)
         return DrawTheBoxText(frame, id);

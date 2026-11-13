@@ -212,4 +212,34 @@ TEST(SkillProtocolTest, TheMagicAttackGoesOutWithTheBigEndianKey)
     EXPECT_EQ(attack.delivery, Delivery::Encrypted);
     EXPECT_TRUE(SameBytes(Xor32Decode(attack.packet).Bytes(), Bytes({0xc1, 0x06, 0x19, 0x3c, 0x8a, 0x1b})));
 }
+
+// 0x58c1b6.. (la rama del Wizard): el 1E, C1 0C 1E [skill] [x] [y] [rumbo] [0] [posición] [clave H L] [clave mágica],
+// para cifrar; sin blanco, la clave 0xffff.
+TEST(SkillProtocolTest, TheDurationMagicGoesOutWithNineBytes)
+{
+    const auto plain = Skill::WriteDurationMagic({.skill = 0xa, .x = 0xb6, .y = 0x73, .direction = 0x40});
+    EXPECT_EQ(plain.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(plain.packet).Bytes(),
+                          Bytes({0xc1, 0x0c, 0x1e, 0x0a, 0xb6, 0x73, 0x40, 0x00, 0x00, 0xff, 0xff, 0x00})));
+    const auto keyed = Skill::WriteDurationMagic(
+        {.skill = 0x4c, .x = 1, .y = 2, .direction = 3, .targetPosition = 0x86, .key = 0x8a1b, .magicKey = 0x32});
+    EXPECT_TRUE(SameBytes(Xor32Decode(keyed.packet).Bytes(),
+                          Bytes({0xc1, 0x0c, 0x1e, 0x4c, 0x01, 0x02, 0x03, 0x00, 0x86, 0x8a, 0x1b, 0x32})));
+}
+
+// 0x593151..0x59350e: el Teleport, C1 06 1C 00 [x] [y], para cifrar.
+TEST(SkillProtocolTest, TheTeleportGoesOutWithAZero)
+{
+    const auto teleport = Skill::WriteTeleportMagic(0xb8, 0x75);
+    EXPECT_EQ(teleport.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(teleport.packet).Bytes(), Bytes({0xc1, 0x06, 0x1c, 0x00, 0xb8, 0x75})));
+}
+
+// 0x59293b..0x592d1b: el Teleport Ally, C1 07 B0 [clave L H] [x] [y], para cifrar: la clave en little endian.
+TEST(SkillProtocolTest, TheTargetTeleportGoesOutWithTheLittleEndianKey)
+{
+    const auto ally = Skill::WriteTargetTeleport(0x8a1b, 0xb5, 0x72);
+    EXPECT_EQ(ally.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(ally.packet).Bytes(), Bytes({0xc1, 0x07, 0xb0, 0x1b, 0x8a, 0xb5, 0x72})));
+}
 } // namespace

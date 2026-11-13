@@ -124,4 +124,36 @@ inline constexpr std::uint8_t Report73Head = 0xf1;
 // [clave H] [clave L], con el XOR32 sobre los bytes 3 a 5 y en C3 (sus dos rand(), el relleno y el serial, los saca
 // quien lo manda). La clave es +0x1f4 del blanco, entera. Es el PMSG_MAGICATTACK del GameServer (CGMagicAttack).
 [[nodiscard]] Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key);
+
+// Lo que mandan las skills del héroe (CL9 hito 4, fase 2c; 04 § Las skills que salen). Las arma 0x57cfc0 en línea
+// (y 0x55cbc0), con el XOR32 desde pkt[3] y cifradas como C3: el rand() del relleno y el serial (0x5767913) los saca
+// quien manda, antes de send().
+inline constexpr std::uint8_t TeleportMagicOpcode = 0x1c;
+inline constexpr std::uint8_t TargetTeleportOpcode = 0xb0;
+// La clave que va sin blanco (0xffff en 0x58c8f0, 0x591865 y 0x55e683).
+inline constexpr std::uint16_t NoSkillTargetKey = 0xffff;
+
+// C1 0C 1E [skill] [x] [y] [rumbo] [0] [posición] [clave H L] [clave mágica] (0x58c1b6 y los demás): la skill con
+// duración sobre una celda. El rumbo es ftol(ángulo · 0,7111) (0x6ba440); la posición, la de 0x4e9920 con la 0x4c; la
+// clave mágica, la de 0x77f3bad con la 8, la 9 y la 0x4c. El GS 0.97 (CGDurationMagicRecv, 0x427870) lee los cuatro
+// primeros (08, P-C221).
+struct DurationMagicRequest
+{
+    std::uint8_t skill = 0;
+    std::uint8_t x = 0;
+    std::uint8_t y = 0;
+    std::uint8_t direction = 0;
+    std::uint8_t targetPosition = 0;
+    std::uint16_t key = NoSkillTargetKey;
+    std::uint8_t magicKey = 0;
+};
+[[nodiscard]] Outgoing WriteDurationMagic(const DurationMagicRequest& request);
+
+// C1 06 1C 00 [x] [y] (0x593151..0x59350e): el Teleport (la skill 6) a una celda. El GS 0.97 (CGTeleportMagicRecv,
+// 0x426450) toma el 0 como la skill 6.
+[[nodiscard]] Outgoing WriteTeleportMagic(std::uint8_t x, std::uint8_t y);
+
+// C1 07 B0 [clave L H] [x] [y] (0x59293b..0x592d1b): el Teleport Ally (0xf) del elegido a una celda, con la clave en
+// little endian (el WORD de +0x1f4 tal cual), como la lee el GS 0.97 (CGTargetTeleportRecv, 0x426870).
+[[nodiscard]] Outgoing WriteTargetTeleport(std::uint16_t key, std::uint8_t x, std::uint8_t y);
 } // namespace Client::Protocol::Skill

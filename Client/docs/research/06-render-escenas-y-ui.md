@@ -9878,6 +9878,36 @@ exportadas (7.471 bytes) coincide con el PE de hash
 `c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a`, sin ejecución ni nueva
 emulación. CL7.P permanece abierta; no se reconstruyen las transformaciones de protección.
 
+### Lo social en pantalla
+
+(CL9 hito 7, fase 2, 2026-11-13, *estático*; el cable y las trazas de GL quedan para la VM, 08 P-C206.) Los dibujos
+del comercio, la party y el duelo, y lo que necesita a los otros jugadores del viewport (hito 1). Los globales son los
+de 04 § El comercio, § La party y § El duelo.
+
+**El marcador del duelo** (`0x5a6cc0`, hijo 14 del HUD). Con `0x78abad8` en 0, nada. Si no, el centro es la mitad
+del ancho del mundo (`0x5bb8d0`, que hace sus consultas de `IsOpen` y sus `rand()`; [3.6](#36-los-rand-de-abrir-y-cerrar-estático)) y se
+vuelve a pedir para cada x: ocho llamadas por frame. Con la mezcla normal, `glColor4f(0, 0, 0, 0,5)` y la franja de
+300 × 40 en (centro − 150, 20); `glColor4f(0,65; 0,53; 0,34; 1)` y su marco de 1. En la negrita grande
+(`0x576355c`), el fondo en 0: el nombre del héroe (`+0x1d9`) con sombra negra en (centro − 79, `0x1f`) y en
+`0xffff9600` en (centro − 80, `0x1e`), "vs" (`0x6c9284`) en `0xff0096ff` en el centro, y el nombre del rival
+(`0x78abae0`) con sombra en centro + 81 y en `0xff1919ff` en centro + 80. En la normal (`0x5763554`), los puntos
+(`%d`): los propios (`0x78abaf8`) en `0xffff9600` en (centro − 80, `0x30`) y los del rival (`0x78abafc`) en
+`0xff1919ff` en (centro + 80, `0x30`). Todos con `0x623690` (centrado). Sale con la mezcla opaca. Los mismos tres
+globales los lee el cursor de ataque (`0x558bb0`, hito 3).
+
+**El pedido de duelo** (`0x5f37f0`, desde `0x637683`). Con `0x78abad9` en 0, nada. Con la mezcla normal y el
+blanco, la caja de `0x5f3ac0`: Message_box2 (`0xfc`) en (213, 110, 213, 5), Message_box1 (`0xfb`) cuatro veces de 40
+desde y 115 y `0xfc` en y 275, con du 0,83203125 y dv 0,625. Con la mezcla sumada, `Interface\DuelWindow.jpg`
+(`0x650`, la sube `0x61ccb0` en `0x61d2d6`) en (256, 120, 128, 128). Con la opaca, los botones de 70 × 21 en y 250:
+el sí (`0xf1`, o `0xf2` con el mouse en `0xed..0x133` × `0xfa..0x10f`) en x 237 y el no (`0xf3` o `0xf4`, x
+`0x14c..0x192`) en x 332, con du 0,546875 y dv 0,65625. Con la mezcla normal y el fondo en 0: "[%s]" (`0x6c9d40`) con
+el nombre de `0x78abae0` en la negrita grande, sombra negra en (`0x140`, `0x8d`) y en `0xff18cfff` en (`0x13f`,
+`0x8c`); en la negrita, los textos 910 y 911 con sombra en (`0x140`, `0xb5`/`0xc9`) y en `0xffdcdcdc` en (`0x13f`,
+`0xb4`/`0xc8`). Sale con la mezcla opaca. Sin `rand()`.
+
+**MuRet**: `Scenes::DrawTheDuelScore` y `DrawTheDuelRequest` (`GameSocialDrawing`); `GameSocialDrawingTest` en
+Lorencia y Devias.
+
 ## Lo que no se sabe
 
 - **Modelos, en el binario** (P-C01, cerrado en la CL6.R): el skinning, la pose, el avance, la

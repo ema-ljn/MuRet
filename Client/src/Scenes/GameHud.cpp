@@ -25,6 +25,7 @@
 #include "Scenes/GameMoveWindow.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GamePartyWindow.h"
+#include "Scenes/GameSocialDrawing.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -1503,8 +1504,7 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
         return drawn;
     // 13. 0x451d10 y 0x451c20: los carteles del singleton de 0x7245c8 (CL9.5).
     // 14. 0x5a6cc0: el marcador del duelo, con 0x78abad8, que prende el AA (CL9 hito 7).
-    if (runtime.social.duel.active != 0)
-        return Core::Unexpected(std::string("0x5a6cc0: el marcador del duelo es de la CL9 hito 7, fase 2"));
+    DrawTheDuelScore(context, frame.panels);
     // 15. 0x46b090: el cartel de Slide.bmd ([0x5763528]).
     if (auto slides = UI::DrawTheSlides(hud.slides, UI::SlideDrawContext{.sprites = context.sprites,
                                                                          .text = context.text,

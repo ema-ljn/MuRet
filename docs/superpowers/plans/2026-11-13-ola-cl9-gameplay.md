@@ -350,7 +350,8 @@ byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada v
 - [ ] **El duelo:** `AA`..`AD` (`0x4dac90`), el marcador (`0x5a6cc0`, `0x5f37f0`, `0x78abad9`) y el color de
       la tela con el nombre del rival (P-C22 e, `0x50c929..0x50cc29`, y qué es `+0x3e3`).
   - [x] Fase 1 (2026-11-13): los paquetes de los dos lados, los puntos y el paso del pedido (`0x5ebca0`).
-  - [ ] Fase 2: los dibujos `0x5a6cc0` y `0x5f37f0`, que cortan con su estado, y el color de la tela.
+  - [x] Fase 2 (2026-11-13): los dibujos `0x5a6cc0` y `0x5f37f0` (06 § Lo social en pantalla).
+  - [ ] Fase 2: el color de la tela con el nombre del rival.
 - [ ] **Los comandos sobre otro:** la ventana de comandos (`0x406050`, desde `0x406097`; `0x40a650`) y los
       comandos sociales de `0x56c440` (`/trade`, `/party`, `/guild`, `/GuildWar`, `/BattleSoccer`, que hoy cortan
       con su dirección).

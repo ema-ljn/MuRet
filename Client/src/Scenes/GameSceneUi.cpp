@@ -23,6 +23,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"
+#include "Scenes/GameSocialDrawing.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/InventoryMoves.h"
@@ -364,8 +365,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     if (auto list = UI::DrawTheWindowList(oldWindows, windowContext, windowView); !list.HasValue())
         return list;
     // 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9, que prende el AC (CL9 hito 7).
-    if (runtime.ui.field78abad9 != 0)
-        return Core::Unexpected(std::string("0x5f37f0: el dibujo del pedido de duelo es de la CL9 hito 7, fase 2"));
+    if (auto duel = DrawTheDuelRequest(hud); !duel.HasValue())
+        return duel;
     // 0x637696: 0x62db60, los diálogos, en la escena 5.
     if (auto dialogs = DrawTheGameDialogs(hud); !dialogs.HasValue())
         return dialogs;

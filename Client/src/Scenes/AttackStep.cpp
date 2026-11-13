@@ -6,10 +6,12 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterStep.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/HeroAttack.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/IFishStepServices.h"
 #include "World/ItemState.h"
 #include "World/Particles.h"
 
@@ -187,13 +189,25 @@ Core::Expected<void, std::string> StepTheAttackFrames(ActorState& actor, std::si
         const LogicalAccess own(runtime.ownRecordDepth, context.random, Render::Models::OwnRecordCloseRandoms);
         left = TypeOf(context.world.OwnCharacter().equipment[1]);
     }
-    // 0x4fb08c..0x4fb0da: el arco 0x815 en la izquierda del registro propio, sea quien sea el que pega.
+    // 0x4fb08c..0x4fb0da: el arco 0x815 en la izquierda del registro propio, sea quien sea el que pega: veinte
+    // 0x53fe70(0x5c6, o+0x10, o+0x1c, o+0xf4, 12, 2,0f, 0), con seis rand() cada una (ninguno con el pool lleno).
     constexpr std::int32_t SparkBow = 0x815;
+    constexpr int BowSparks = 20;
+    constexpr float BowSparkScale = 2.0f;
     if (actor.byte381 >= 1 && left == SparkBow && actor.type == PlayerType)
     {
-        return Core::Unexpected(std::format("0x4fb0d1: el 0x815 del registro propio pide veinte partículas 0x5c6/12 "
-                                            "(0x53fe70) sobre el lugar {}, sin portar",
-                                            slot));
+        if (context.particles == nullptr)
+            return Core::Unexpected(
+                std::format("0x4fb0d1: falta el pool de partículas de las veinte 0x5c6/12 del lugar {}", slot));
+        for (int spark = 0; spark < BowSparks; ++spark)
+        {
+            const auto created = context.particles->CreateChecked(World::SparkParticle, actor.position, actor.angles,
+                                                                  actor.light, World::BowSparkSubtype, BowSparkScale,
+                                                                  context.worldClock, context.random);
+            if (!created.HasValue())
+                return Core::Unexpected(std::format("0x4fb0d1: la 0x5c6/12 del lugar {} falla con error {}", slot,
+                                                    static_cast<unsigned>(created.Error())));
+        }
     }
     actor.byte381 = AttackDone;
     return {};
@@ -457,13 +471,37 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
                                             "hito 4",
                                             first, slot));
     }
-    // 0x505069..0x505107: el punto del blanco, la bandera de la 0x25 y la 0x26 y la luz, para los joints.
+    // 0x505069..0x505107: el punto del blanco, la bandera de la 0x25 y la 0x26 y la luz, que leen los casos de
+    // habilidad. Con +0x380 en 2 (el 16 del héroe, mató), 0x530860(0x618, blanco+0x10, blanco+0x10, o+0x1c, 0 y 1, o,
+    // 20,0f, −1, 0, 0, −1) (0x505169, 0x5051a4), sin rand().
     constexpr std::uint8_t KillerOnRecord = 2;
     if (actor.byte380 == KillerOnRecord)
     {
-        return Core::Unexpected(std::format("0x505169: los joints 0x618/0 y 0x618/1 (0x530860) del lugar {} hacia el "
-                                            "blanco {}, sin portar",
-                                            slot, target));
+        if (context.joints.empty())
+        {
+            return Core::Unexpected(
+                std::format("0x505169: faltan los joints de los 0x618 del lugar {} hacia el blanco {}", slot, target));
+        }
+        constexpr float KillBeamWidth = 20.0f;
+        glm::vec3 from = victim.position;
+        glm::vec3 to = victim.position;
+        glm::vec3 angles = actor.angles;
+        for (const std::int32_t subtype : {0, 1})
+        {
+            const World::FishEffectRequest request{.type = KillBeamJoint,
+                                                   .firstPosition = from,
+                                                   .secondPosition = to,
+                                                   .angles = angles,
+                                                   .subtype = subtype,
+                                                   .ownerContext = &actor,
+                                                   .scale = KillBeamWidth,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
+            if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
+                return Core::Unexpected(std::format("{:#x}: {}", subtype == 0 ? 0x505169 : 0x5051a4, created.Error()));
+        }
     }
     // 0x5051bb: los casos de QuietSkills no suenan; los demás, salvo +0x376 de 0x44 a 0x4b.
     const std::uint8_t second = ReadTheSkill(actor, context.random);

@@ -8,11 +8,14 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/HeroAttack.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
+#include "World/TerrainLighting.h"
 
 #include "support/PlayerActors.h"
 
@@ -28,6 +31,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -42,6 +46,7 @@ using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::CharacterStepContext;
 using Client::Scenes::ChosenKeyOf;
+using Client::Scenes::JointState;
 using Client::Scenes::StepCharacters;
 using Client::Scenes::StepTheAttack;
 using Client::Scenes::WorldState;
@@ -159,6 +164,7 @@ struct AttackWorld
                                     .random = random,
                                     .playerSkeleton = &skeleton,
                                     .particles = withParticles ? &particles : nullptr,
+                                    .joints = withJoints ? std::span<JointState>(joints) : std::span<JointState>{},
                                     .soundRequest = [this](std::int32_t sound) { sounds.push_back(sound); },
                                     .controlDown = controlDown};
     }
@@ -176,6 +182,9 @@ struct AttackWorld
     bool controlDown = false;
     Client::World::Particles particles;
     bool withParticles = true;
+    // Un pool corto: los dos 0x618 del que mató son los únicos joints de estas pruebas.
+    std::vector<JointState> joints = std::vector<JointState>(16);
+    bool withJoints = true;
 };
 
 // Las partículas vivas de `type`.
@@ -401,8 +410,8 @@ TEST(AttackStepTest, TheStrikeSoundFollowsTheOwnHands)
 }
 
 // Lo que corta, en su orden y con los rand() de antes: las habilidades del hito 4 (0x4f9899, 0x4f8a39, 0x4fdeeb,
-// 0x504372), los casos de los monstruos de 0x4f5b70 (0x4f6fea), el arco 0x815 del registro propio (0x4fb0d1), la flecha
-// con y sin blanco (0x504048, 0x50376a), 0x52e740 (0x5042ce) y los joints de +0x380 en 2 (0x505169).
+// 0x504372), los casos de los monstruos de 0x4f5b70 (0x4f6fea), la flecha con y sin blanco (0x504048, 0x50376a),
+// 0x52e740 (0x5042ce) y, sin el pool de joints, los de +0x380 en 2 (0x505169).
 TEST(AttackStepTest, TheCutsAfterTheirDraws)
 {
     struct Case
@@ -431,13 +440,6 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
              "0x504372", CountingStep + 2 * SkillRead},
         Case{"el caso 0x23 de +0x376", [](AttackWorld&, ActorState& hero) { hero.word376 = 0x23; }, "0x4f6fea",
              SkillRead + 1},
-        Case{"el 0x815",
-             [](AttackWorld& tested, ActorState& hero)
-             {
-                 tested.world.OwnCharacter().equipment[1].id = 0x815;
-                 hero.animation.frame = 5.0f;
-             },
-             "0x4fb0d1", SkillRead + OwnRecord},
         Case{"el arco",
              [](AttackWorld&, ActorState& hero)
              {
@@ -460,9 +462,10 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
                  hero.byte381 = 14;
              },
              "0x5042ce", CountingStep + SkillRead},
-        Case{"mató",
-             [](AttackWorld&, ActorState& hero)
+        Case{"mató, sin los joints",
+             [](AttackWorld& tested, ActorState& hero)
              {
+                 tested.withJoints = false;
                  hero.byte380 = 2;
                  hero.byte381 = 14;
              },
@@ -630,6 +633,99 @@ TEST(AttackStepTest, TheTargetWithDamageBleedsTenTimes)
     }
 }
 
+// 0x4fb08c..0x4fb0da: con el 0x815 en la izquierda del registro propio, el frame 5 de cualquiera que pegue pide veinte
+// chispas 0x5c6/12 sobre él, con su luz (+0xf4), escala 2 y seis rand() cada una, y el ataque sigue hasta el sonido.
+// Sin el pool corta después del registro; con el pool lleno no saca nada más.
+TEST(AttackStepTest, TheBowInTheOwnLeftHandSparksTwentyTimes)
+{
+    constexpr int Sparks = 20;
+    constexpr int SparkDraws = 6;
+    // Después de 0x4f97b0, los tres de 0x4f5b70 y, con +0x381 en 16, la habilidad con blanco.
+    constexpr int AfterTheFrames = CountingStep - SkillRead + SkillWithTarget;
+    const auto prepare = [](AttackWorld& tested)
+    {
+        tested.world.OwnCharacter().equipment[1].id = 0x815;
+        ActorState& hero = tested.Striker(HeroSlot, 0x23, VictimSlot);
+        hero.animation.frame = 5.0f;
+        hero.position = {1000.0f, 2000.0f, 50.0f};
+        hero.angles = {0.0f, 0.0f, 90.0f};
+        hero.light = {0.5f, 0.25f, 1.0f};
+        return &hero;
+    };
+    {
+        AttackWorld tested;
+        ActorState* hero = prepare(tested);
+        ASSERT_TRUE(tested.Attack(*hero, HeroSlot).HasValue());
+        EXPECT_EQ(DrawsSince(Seed, tested.random), SkillRead + OwnRecord + Sparks * SparkDraws + AfterTheFrames);
+        EXPECT_EQ(hero->byte381, 0);
+        int found = 0;
+        for (const Client::World::Particle& spark : tested.particles.All())
+        {
+            if (!spark.alive)
+                continue;
+            ++found;
+            EXPECT_EQ(spark.type, Client::World::SparkParticle);
+            EXPECT_EQ(spark.subtype, Client::World::BowSparkSubtype);
+            EXPECT_EQ(spark.texture, 0x5fc);
+            EXPECT_EQ(spark.life, 40);
+            EXPECT_EQ(spark.angles, hero->angles);
+            EXPECT_EQ(spark.light, hero->light);
+        }
+        EXPECT_EQ(found, Sparks);
+    }
+    {
+        AttackWorld tested;
+        tested.withParticles = false;
+        ActorState* hero = prepare(tested);
+        EXPECT_TRUE(HasError(tested.Attack(*hero, HeroSlot), "0x4fb0d1"));
+        EXPECT_EQ(DrawsSince(Seed, tested.random), SkillRead + OwnRecord);
+    }
+    {
+        AttackWorld tested;
+        for (Client::World::Particle& particle : tested.particles.All())
+            particle.alive = true;
+        ActorState* hero = prepare(tested);
+        ASSERT_TRUE(tested.Attack(*hero, HeroSlot).HasValue());
+        EXPECT_EQ(DrawsSince(Seed, tested.random), SkillRead + OwnRecord + AfterTheFrames);
+    }
+}
+
+// 0x505069..0x5051a4: con +0x380 en 2 (el 16 del héroe: mató), la habilidad lanza el 0x618/0 y el 0x618/1 desde el
+// blanco, con el que pega de dueño, el ancho 20 y los ángulos del que pega, sin rand(), y sigue hasta el sonido.
+TEST(AttackStepTest, TheKillerLaunchesTwoBeamsFromTheTarget)
+{
+    AttackWorld tested;
+    tested.Victim().alive = true;
+    tested.Victim().position = {3000.0f, 4000.0f, 100.0f};
+    ActorState& hero = tested.Striker(HeroSlot, 0x23, VictimSlot);
+    hero.byte380 = 2;
+    hero.byte381 = 14;
+    hero.angles = {0.0f, 0.0f, 45.0f};
+
+    ASSERT_TRUE(tested.Attack(hero, HeroSlot).HasValue());
+
+    EXPECT_EQ(DrawsSince(Seed, tested.random), CountingStep + SkillWithTarget);
+    EXPECT_EQ(hero.byte380, 0);
+    EXPECT_EQ(tested.sounds.size(), 1u);
+    for (const std::int32_t subtype : {0, 1})
+    {
+        SCOPED_TRACE(subtype);
+        const JointState& beam = tested.joints[static_cast<std::size_t>(subtype)];
+        EXPECT_TRUE(beam.alive);
+        EXPECT_EQ(beam.type, Client::Scenes::KillBeamJoint);
+        EXPECT_EQ(beam.subtype, subtype);
+        EXPECT_EQ(beam.ownerContext, &hero);
+        EXPECT_EQ(beam.position, tested.Victim().position);
+        EXPECT_EQ(beam.angles, hero.angles);
+        EXPECT_EQ(beam.width, 20.0f);
+        EXPECT_EQ(beam.speed, 3.0f);
+        EXPECT_EQ(beam.life, 120);
+        EXPECT_EQ(beam.maximumCount, 8);
+        EXPECT_EQ(beam.key, -1);
+    }
+    EXPECT_FALSE(tested.joints[2].alive);
+}
+
 // El ataque cuerpo a cuerpo de cada clase, del héroe (a un blanco del pool) y de otro jugador (al héroe, como lo deja
 // el 18), por el paso entero de los personajes (0x508f00) y el de las partículas (0x5446e0): veintidós pasos sin
 // cortar, con la acción a 0,5 keys por paso (el frame 5 en el décimo). Lo que saca de más contra el mismo mundo sin
@@ -726,6 +822,57 @@ TEST(AttackStepTest, AMeleeAttackOfEachClassRunsItsSteps)
             ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
             ASSERT_TRUE(quiet.HasValue()) << quiet.Error();
             EXPECT_EQ(attackDraws - quietDraws, AttackDraws + (hurt ? Bleeding : 0));
+        }
+    }
+}
+
+// Una muerte de cada clase, en Lorencia y en Devias: el héroe con +0x380 en 2 pega a un blanco con daño y el paso
+// entero de los personajes (0x508f00), el de los joints (0x535840) y el de las partículas (0x5446e0) corren sin cortar
+// hasta que los dos 0x618 vuelven al héroe con su sonido 0x23 (además del del golpe) y se apagan, con sus 0x5d5 y las
+// sangres.
+TEST(AttackStepTest, AKillOfEachClassSendsTheBeamsBackWithoutACut)
+{
+    constexpr int Steps = 120;
+    constexpr std::int32_t HitSound = 0x23;
+    const std::array cases{std::pair{0, 0x2b}, std::pair{1, 0x23}, std::pair{2, 0x22}, std::pair{3, 0x25},
+                           std::pair{4, 0x24}};
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const auto& [characterClass, action] : cases)
+        {
+            SCOPED_TRACE(::testing::Message() << "mapa " << map << ", clase " << characterClass);
+            AttackWorld tested;
+            tested.world.Runtime().map = map;
+            tested.skeleton.actions[static_cast<std::size_t>(action)] =
+                ActionInfo{.repeats = false, .speed = 0.5f, .keyCount = 30, .lockPositions = false};
+            tested.Hero().characterClass = static_cast<std::uint8_t>(characterClass);
+            ActorState& hero = tested.Striker(HeroSlot, static_cast<std::uint8_t>(action), VictimSlot);
+            hero.byte380 = 2;
+            tested.Victim().alive = true;
+            tested.Victim().position = {hero.position.x + 300.0f, hero.position.y, hero.position.z};
+            tested.Victim().damage = 12;
+            Client::World::PortableParticleTrigonometry trigonometry;
+            auto lighting = std::make_unique<Client::World::TerrainLighting>();
+            const float clock = 0.0f;
+            const auto sound = [&tested](std::int32_t played) { tested.sounds.push_back(played); };
+            int step = 0;
+            for (; step < Steps; ++step)
+            {
+                SCOPED_TRACE(step);
+                const auto stepped = StepCharacters(tested.Context());
+                ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+                ASSERT_TRUE(Client::Scenes::StepJoints(tested.joints, tested.random, nullptr, &tested.particles, clock,
+                                                       nullptr, lighting.get(), sound)
+                                .HasValue());
+                ASSERT_TRUE(Client::World::StepParticlesChecked(tested.particles, tested.random, std::cref(clock), &map,
+                                                                trigonometry, {}, {}, {}, {}, lighting.get())
+                                .HasValue());
+                if (step > 10 && !tested.particles.Any() && std::ranges::none_of(tested.joints, &JointState::alive))
+                    break;
+            }
+            EXPECT_LT(step, Steps);
+            EXPECT_EQ(std::ranges::count(tested.sounds, HitSound), 2);
+            EXPECT_EQ(hero.byte380, 0);
         }
     }
 }

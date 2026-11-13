@@ -174,7 +174,8 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
             return Core::Unexpected(blended.Error());
         return DrawSelection{ParticleDrawKind::Common, false, added};
     }
-    case ThunderParticle: // 548ca1→54889a: billboard común sin lectura del subtipo.
+    case ThunderParticle:   // 548ca1→54889a: billboard común sin lectura del subtipo.
+    case LightningParticle: // 0x548644: el índice 8 de 0x548c9c, al mismo 0x54889a.
     case SparkParticle:
     case Particle67:
     case Particle68:

@@ -5,6 +5,8 @@
 #include "World/IFishStepServices.h"
 
 #include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -19,6 +21,7 @@ namespace Client::World
 {
 class FrameSprites;
 class Particles;
+struct TerrainLighting;
 } // namespace Client::World
 
 // 530860: ownerContext es FaunaObject durable salvo613/4, 614/10 y614/14, donde permanece opaco, y el 618/0x11 y el
@@ -29,6 +32,11 @@ class Particles;
 // Se escribe sobre el primer muerto sin reconstruirlo; pool lleno no lee los argumentos ni RNG.
 namespace Client::Scenes
 {
+// El 618/0 y el 618/1 que el que mató lanza desde el blanco (0x505169, 0x5051a4): con el ActorState del que pega como
+// dueño, giran 20 pasos y después vuelven hacia él (0x538313), con la luz dinámica, el rayo 0x5d5/0 de cada paso y, al
+// llegar, el 0x5d5/1 y el sonido 0x23.
+inline constexpr std::int32_t KillBeamJoint = 0x618;
+
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& request,
                  Render::Models::CrtRandom& random, JointOwnerKind ownerKind = JointOwnerKind::ByType);
@@ -43,7 +51,9 @@ CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& r
 // El overload sin RNG conserva la frontera535f18 tras movimiento y comprobación del dueño. El 615/2 de Chaos
 // Castle pide los sprites del frame (0x5491e0) y las partículas.
 [[nodiscard]] Core::Expected<void, std::string> StepJoints(std::span<JointState> joints);
+// El 618/0 y /1 piden además la luz dinámica (`lighting`, 0x7b4ccc4) y el sonido 0x23 (0x41ed10) al llegar.
 [[nodiscard]] Core::Expected<void, std::string>
 StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random, Render::Models::ClothWorld* cloth = nullptr,
-           World::Particles* particles = nullptr, float worldClock = 0, World::FrameSprites* sprites = nullptr);
+           World::Particles* particles = nullptr, float worldClock = 0, World::FrameSprites* sprites = nullptr,
+           World::TerrainLighting* lighting = nullptr, const std::function<void(std::int32_t)>& soundRequest = {});
 } // namespace Client::Scenes

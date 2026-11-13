@@ -9708,6 +9708,36 @@ z del blanco en la x87 (`fild` y `fadd`) y piden `0x53fe70(0x5e4, punto, o+0x1c,
 MuRet la crea, la mueve y la dibuja en el pool de partículas del mundo (`World::BloodParticle`, el mismo que usa
 la escena y el paso de los personajes; `BloodParticlesTest`, `AttackStepTest.TheTargetWithDamageBleedsTenTimes`).
 
+**Las chispas del `0x815`** (`0x4fb0d1`, *estático*). En `0x4f97b0`, con `+0x381` en 1 o más, el `0x815` en la
+izquierda del registro propio y el `0x20a`, veinte `0x53fe70(0x5c6, o+0x10, o+0x1c, o+0xf4, 12, 2,0f, 0)`. La
+creación (`0x540a04`, la tabla de `0x5443c0` por subtipo − 1) pone la textura `0x5fc`, `+0x38` en 1,0f, la
+posición más (0; −100; 0) girado por los ángulos (`0x5fc8f0`, `0x5fcbd0`) y después `(rand() & 15) − 8` en x e y
+y 150 en z; la velocidad `((rand() % 20) · 0,1f − 1; igual; −(rand() % 3) − 3)`, la vida 40 y la escala `2 −
+(rand() % 15) · 0,1f`: seis `rand()`. El paso (`0x545397`, la tabla de `0x548204`) saca `rand() & 1` para la luz
+(menos 0,6f en rojo y verde, menos 0,8f en azul), resta 0,04f a la escala y 0,001f a `+0x38` (muere en 0 o
+menos); el dibujo es el billboard común con la textura `0x5fc`. Con el pool lleno no saca nada
+(`AttackStepTest.TheBowInTheOwnLeftHandSparksTwentyTimes`, `AttackParticlesTest`).
+
+**Los rayos del que mató** (`0x505169`, `0x5051a4`, *estático*). Con `+0x380` en 2, dos `0x530860(0x618, blanco+0x10,
+blanco+0x10, o+0x1c, 0 y 1, o, 20,0f, −1, 0, 0, −1)`. La creación (`0x532125`, `0x53214b`, y `0x5322df` o
+`0x5322f8`): el ancho, velocidad 3, vida 120, 8 puntos y la luz (0,4; 0,3; 0,2) o (0,1; 0,1; 0,5), sin `rand()`;
+con dueño, el destino (`+0x58`) queda el del uso anterior. El paso (`0x535840`, el `0x618` por la tabla de
+`0x53c4bc`/`0x53c48c` y el subtipo por `0x53c5a0`/`0x53c594`, `0x538313`), después del movimiento común:
+
+- con la vida en 100 o más, la /0 suma 10 al rumbo y 6 a la z; la /1 resta 10 y suma 5;
+- con menos, la velocidad + 5 hasta 30, el destino en el dueño (su posición y la z + 120) y `0x4e9810` hacia él con
+  la velocidad; a 35 o menos (o NaN) muere, pide `0x53fe70(0x5d5, …, 1, 1,0f, 0)` y el sonido `0x23`; de 35 a 70,
+  con el rumbo girado más de 20 y la velocidad en 20 o más, la velocidad − 10;
+- siempre: `v = ((rand() & 3) + 8) · 0,03f`, la luz dinámica de radio 2 (v · 0,4f; v; v · 0,8f) (`0x53861c`) y
+  `0x53fe70(0x5d5, …, 0, 1,0f, 0)` con la luz del joint (`0x538695`); después, la cola y la vida.
+
+El rayo `0x5d5` (`Effect\lightning2.jpg`): la /0 con la vida del prefijo (2) y la escala 0,15f, la /1 con vida 10 y
+escala 0, las dos con la luz del pedido + 0,5 (`0x540bbe`, `0x540bfe`); su paso (`0x545419`) gira con
+`(ftol(reloj) % 1000) · 0,001f` y pide la luz dinámica de radio 3 (v · 0,5f; v; v · 0,8f) con v = vida · 0,1f; el
+dibujo, el billboard común (`0x54889a`). MuRet los guarda en los joints del juego (`GameDrawTailState::joints`,
+`CharacterStepContext::joints`) y los mueve en `StepJoints` con la luz dinámica del mundo y el sonido
+(`KillBeamJointsTest`, `AttackStepTest.AKillOfEachClassSendsTheBeamsBackWithoutACut`).
+
 **Los `rand()` de un ataque sin habilidad**, con las cuentas en 0: antes del frame 5, cuatro por paso (la lectura
 de `0x4f97b0`, el de `0x4f5b97` y las dos de la cola de `0x4f5b70`; con `+0x3a4` fuera del pool, dos); en el
 paso del frame 5, además, los 3.848 de `0x4f97b0`; en el de la habilidad, con blanco, tres lecturas, el del
@@ -9722,7 +9752,7 @@ dos `rand()` del giro de la cabeza, `0x5068fd`, descontados: uno en 32 por paso 
 | --- | --- | --- |
 | `0x4f9899`, `0x4f8a39`, `0x4fdeeb`, `0x504372` | los casos de habilidad | nadie: `+0x38e` lo escriben `0x4cc530` y los monstruos (hito 4) |
 | los casos de la tabla de arriba (`0x43a7fe`..`0x43b5e4`, `0x42dd23`, `0x42dd56`, `0x4291b1`.., `0x42fd04`, `0x42fd43`, `0x4324fb`.., `0x4f5cb6`..`0x4f804e`, `0x4f814e`..`0x4f890b`, `0x4f8a5d`..`0x4f8e85`) | los ayudantes y los casos de `0x4f5b70` | los monstruos con caso, en sus mapas (hito 2 y CL11); ningún jugador sin transformar |
-| `0x4fb0d1` | las veinte `0x5c6`/12 | cualquiera que pegue, con el arco `0x815` en la izquierda del héroe (el elfo) |
+| `0x4fb0d1` | las veinte `0x5c6`/12 sin el pool de partículas | nadie en el juego (fase 2d) |
 | `0x558f29` | los nombres de gremio | el héroe en la guerra de gremios (hito 8) |
 | `0x50376a`, `0x504048` | la flecha (`0x59fb80` y `0x53e2b0`) | el elfo con arco o ballesta, y cualquiera con arco en Uniria, Dinorant o Fenrir |
 | `0x5037d0`, `0x5040a9` | `0x53e2b0` de los tipos `0x168`, `0x175`, `0x17a`, `0x180` | monstruos (fase 2c) |
@@ -9730,7 +9760,7 @@ dos `rand()` del giro de la cabeza, `0x5068fd`, descontados: uno en 32 por paso 
 | `0x504267` | el efecto `0x10b` | el que pega al `0x18e` con daño, con un `rand() & 1` en 0 de los cinco |
 | `0x50428c` | `0x42ea00` | nadie: el mapa 30 corta antes (`0x412140`) |
 | `0x5042ce` | `0x52e740` | las acciones de skill `0x38` a `0x3c` (hito 4) |
-| `0x505169` | los joints `0x618`/0 y /1 | el héroe de cualquier clase después del `16` (mató), en la habilidad que sigue |
+| `0x505169` | los joints `0x618`/0 y /1 sin el pool de joints | nadie en el juego (fase 2d) |
 
 ### Los cambios de mapa
 

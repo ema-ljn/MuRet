@@ -74,6 +74,7 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
                                  .terrain = &StepTerrain(),
                                  .darkSpiritSkeleton = m_models ? m_models->SkeletonOf(DarkSpiritModel) : nullptr,
                                  .particles = &m_context.world->Particles(),
+                                 .joints = m_context.world->DrawTail().joints,
                                  .worldClock = worldClock,
                                  .counter = m_context.cloth->logicSteps,
                                  .actionSpeeds = &m_context.world->ActionSpeeds(),
@@ -165,7 +166,9 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     if (auto stepped = StepTheModelEffects(worldClock, terrainHeight); !stepped.HasValue())
         return stepped;
     if (auto stepped = StepJoints(m_context.world->DrawTail().joints, m_context.cloth->random, m_context.cloth,
-                                  &m_context.world->Particles(), worldClock, &m_sprites);
+                                  &m_context.world->Particles(), worldClock, &m_sprites,
+                                  &m_context.world->DynamicLighting().Lighting(),
+                                  [&](std::int32_t sound) { runtime.lastSoundId = sound; });
         !stepped.HasValue())
         return stepped;
     // 0x63712d: 0x549090, las marcas del suelo, sin rand(). En la espera también corre, y acá no: la tabla

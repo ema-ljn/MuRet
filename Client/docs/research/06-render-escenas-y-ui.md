@@ -993,8 +993,9 @@ como datos (`OldWindowKind`) y despacha con una función por método.
   `0x14c`; sin el bit 0 de las banderas corre la cascada (de a 20; sin lugar, (r + 1, r + 1) con r = y % 10, y con
   r = 9 no la arma; Q-C571). Va arriba de la lista y corre su vtable + `0x30` (`0x4a3a50`, que ubica los botones). Cada
   ventana y cada botón toman el id que sigue de `0x5762eb0` (sumado antes de usarlo); el valor de partida, el que
-  sigue al de la lista de ventanas, es *inferido* (P-C97). Los casos 1 a 4, 6 y 7 (amigos, su chat y las cartas) son
-  de la CL9.4.
+  sigue al de la lista de ventanas, es *inferido* (P-C97). El 3 (la ventana de amigos) y el 4 (la caja de agregar un
+  amigo) son del hito 9 de la CL9 ("Los amigos", abajo); el 1 y el 2 (el chat con un amigo) y el 6 y el 7 (las
+  cartas), del hito 10 (P-C183).
 - **El paso.** La lista de ventanas (`0x636e43`) y `0x490490`: la modal que ya no está; Esc (`0x4904bc`, Q-C446) le
   pide al administrador que cierre la del final si está a la vista; F5, con el foco del teclado en la ventana del
   juego, va a `0x4a5be0(1)` sobre la lista de ventanas, que sin entradas no hace nada; F6 alterna `+0xa8` y llama a
@@ -1024,9 +1025,34 @@ como datos (`OldWindowKind`) y despacha con una función por método.
 - **Chaos Castle** (`0x4c7b17..0x4c7b2f`): `0x4906a0(1, 0)` esconde las ventanas sin anotarlas (Q-C572), y `0x4914e0`
   suelta la de amigos; `0x4c7b34` sigue con el objeto de los comandos (CL9.4, P-C99).
 
-En la CL8 nadie arma una ventana vieja (los que llaman a la fábrica son de la CL9.4): el administrador queda vacío y
-la lista de ventanas, oculta; del paso quedan Esc (sin nada que cerrar), F5 (sin entradas) y F6 (Q-C573), y del
-dibujo, el de la lista oculta. Los tests abren una caja a mano. Lo que no se porta corta con su dirección (P-C95).
+En la CL8 nadie arma una ventana vieja (los que llaman a la fábrica son de la CL9: los amigos, abajo): el
+administrador queda vacío y la lista de ventanas, oculta; del paso quedan Esc (sin nada que cerrar), F5 (sin entradas)
+y F6 (Q-C573), y del dibujo, el de la lista oculta. Los tests abren una caja a mano. Lo que no se porta corta con su
+dirección (P-C95).
+
+**Los amigos** (CL9 hito 9, `UI/FriendModel`, `UI/FriendWindows`, `Scenes/GameFriends` y los controles de
+`UI/OldControls`; *estático*; los paquetes, en [04](04-protocolo.md#los-amigos-c0c4)). El panel 1 (`0x491080`, desde
+`0x6599a0` del registro de paneles y desde `0x4906a0`) abre la ventana: primero olvida lo que escondió F6
+(`0x490830`); con `0x6c7b8c` en 0 diría el 992, pero está en 1. Lee el nivel del héroe (`+0xe`) con el registro propio
+abierto: los 3.848 `rand()` del cierre (Q-C183). Debajo del 6, el 1067 al chat (`0x555190`, con el nombre vacío de
+`0x6e57a4`) si no está entre los últimos (`0x45db70`). Si la ventana ya está: oculta (3), a la vista con los sonidos
+`0x19` y `0x1c`; a la vista (0), se suelta (`0x4914e0`); con otro estado, nada. Si no, la arma la fábrica con el
+título de `+0xec` (990 o 1066) en (`0x186`, `0x106`) la primera vez (el ancho `+0xcc` en 0) o donde quedó y con el
+tamaño de antes (`0x45a9f0`), con la pestaña de antes (`+0xe4`) y el `C1 03 C0` si `+0xe8` está en 0; y si las dos
+colas del cartel (`0x46b7d0`) no tienen nada, el 1244 en la normal (`0x46b720(1, 0, 1244, 2, 2,5, 0xffc8dce6)`). La
+ventana (vtable `0x6b9d6c`) tiene tres pestañas: los amigos (`0x6b9e24`, una lista de dos columnas y cuatro botones:
+agregar, borrar, chat y carta), las ventanas (`0x6b9edc`, las cajas y los chats abiertos, con su id y su título;
+`0x49e6e0` y `0x49e710`) y las cartas (`0x6b9f38`, hito 10). La pestaña de amigos copia el `std::deque` de
+`[0x5763518]` a su lista (`0x49bd60`, Q-C885) y la ordena por nombre o por estado con los encabezados de las columnas
+(`0x49dcf0`; la de estado ordena por nombre primero). Los dos órdenes son los de `0x49c190` (nombre, de la Z a la A
+con `char` con signo) y `0x49c240` (el estado más alto primero) con el `std::sort` de MSVC6 (Q-C881). Agregar abre la
+caja `0x4a3700` (caso 4, modal, con su EDIT de `0x4674c0`); borrar, la pregunta modal del nombre con el 1024
+(`0x48ee60(5, …)`) que vuelve a la pestaña como el 12; el botón del estado (`0x4a3030`) pregunta "¿salir de línea?" o
+manda el `C4 01`. La F, con el chat cerrado, la cierra si es la de arriba (`0x4a2f70`). F5 y F6 ya estaban (CL8); con
+F6 la de amigos oculta se suelta (`0x4905a2`) y `0x4906a0` la vuelve a abrir al mostrar (Q-C448). El primer paso del
+juego suelta todas las ventanas (`0x48ea50`) y vacía la lista de amigos (`0x6368f9..0x636915`). El dibujo de la
+ventana, sus pestañas y sus listas no está portado (P-C180); el chat con un amigo, las cartas y la lista de ventanas
+de F5 con sus renglones son del hito 10 (P-C183).
 
 **Los paneles.**
 
@@ -1113,7 +1139,7 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | abrir la tienda personal (`0x800`) o la ajena (`0x20000`) | C3 `F3 10`: relleno (`0x65ae52`/`0x65b521`) + serial (`0x40b3f0`) | +2 | evento (CL9.4) |
 | abrir la tienda de NPC (`0x10000`) | cierre de su byte (`0x65be36`) | +1 | evento (CL9.3) |
 | cerrar el trade abierto | C3 `3D` (`0x6580b7` + serial) + su byte | +3 | evento (CL9.4) |
-| F6 para mostrar, si una de las ocultas ya no existe (la de amigos: `0x490490` la destruye al verla oculta) | `0x4906a0` → `0x491080` | 3.850 | evento |
+| F6 para mostrar, si una de las ocultas ya no existe (la de amigos: `0x490490` la destruye al verla oculta) | `0x4906a0` → `0x491080`, sin `CanOpen` (CL9 hito 9) | 3.848 | evento |
 | dibujo del marco viejo | `IsOpen(1)` | 0 | frame |
 | dibujo de CS `0x200000` | `0x64a060` (`0x64a9f0`) | 1+ | **frame**, solo con ese panel (CL9.5) |
 | dibujo del retrato de la carta | `0x497c10` (`0x497cce`) | 1+ | frame, solo con esa ventana (CL9.4) |

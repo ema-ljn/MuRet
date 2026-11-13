@@ -108,6 +108,16 @@ public:
         m_session->RequestPartyList();
     }
 
+    void SendFriendPacket(Protocol::Outgoing packet) override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no se manda el paquete de los amigos: no hay servidor");
+            return;
+        }
+        m_session->SendFriendPacket(std::move(packet));
+    }
+
     // 0x61c170: fopen("wt") crea el archivo o lo vacía. Lo que guardan las macros no va al log.
     Core::Expected<void, std::string> SaveMacros(std::string_view content) override
     {

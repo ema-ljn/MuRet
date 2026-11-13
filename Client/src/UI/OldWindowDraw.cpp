@@ -13,6 +13,8 @@
 #include "Scenes/ITextDrawer.h"
 #include "UI/ChatLog.h"
 #include "UI/ChatLogWindow.h"
+#include "UI/FriendWindows.h"
+#include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 
 #include <array>
@@ -321,7 +323,7 @@ void DrawTheBox(OldWindowManager& manager, OldWindow& window, const OldWindowDra
 }
 
 // 0x4a5490, la vtable + 0x50 de la lista: mide el renglón la primera vez, corre el parpadeo y, con entradas y a la
-// vista, las dibuja (CL9.4).
+// vista, las dibuja (los chats con un amigo, hito 10).
 Core::Expected<void, std::string> DrawTheListRows(OldWindow& window, const OldWindowDrawContext& context)
 {
     OldWindowListPart& list = window.list;
@@ -343,7 +345,7 @@ Core::Expected<void, std::string> DrawTheListRows(OldWindow& window, const OldWi
         list.blink = 1.0f;
     }
     context.sprites.SetBlend(Render::BlendMode::Alpha);
-    // 0x4a5537: sin entradas (+0xdc, que solo llena la CL9.4), nada más.
+    // 0x4a5537: sin entradas (+0xdc, que solo llenan los chats con un amigo del hito 10), nada más.
     context.sprites.SetBlend(Render::BlendMode::Opaque);
     return {};
 }
@@ -367,6 +369,20 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
     // La vtable + 0x50: 0x48fb00 (nada) en el marco.
     if (window.kind == OldWindowKind::MessageBox)
         DrawTheBox(manager, window, context, view);
+    else if (window.kind == OldWindowKind::AddFriendBox)
+    {
+        // 0x4a3750: arrastrada, vuelve a ubicar a sus hijas; los dos botones y el EDIT (0x468320, P-C181).
+        SettleTheFriendsForTheDraw(manager, window);
+        for (const OldButton& button : window.add.buttons)
+            DrawTheButton(context, button, view);
+    }
+    else if (window.kind == OldWindowKind::FriendsWindow)
+    {
+        // 0x4a2620: arrastrada o cambiando de tamaño, vuelve a ubicar las pestañas y lo de la de la vista. Los
+        // encabezados, el botón del estado, la pestaña (0x49cc20 o 0x49e7f0 con las listas de 0x47a810, 0x461890,
+        // 0x461cd0 y 0x47d730) y sus botones no están portados (P-C180).
+        SettleTheFriendsForTheDraw(manager, window);
+    }
     else if (window.kind == OldWindowKind::WindowList)
     {
         if (auto rows = DrawTheListRows(window, context); !rows.HasValue())

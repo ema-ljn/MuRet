@@ -82,7 +82,11 @@ protected:
                                 .capture = m_capture,
                                 .pressedButton = m_pressedButton,
                                 .keyboardFocus = m_focus,
-                                .sound = m_sound};
+                                .sound = m_sound,
+                                .focusedList = m_focusedList,
+                                .wheel = m_wheel,
+                                .rightClick = m_rightClick,
+                                .doubleClick = m_doubleClick};
     }
 
     std::int32_t Open(std::int32_t kind, std::string_view text, std::int32_t x = -1, std::int32_t y = -1,
@@ -149,6 +153,10 @@ protected:
     std::int32_t m_pressedButton = 0;
     ChatFocus m_focus = ChatFocus::Game;
     std::optional<std::int32_t> m_sound;
+    std::int32_t m_focusedList = 0;
+    std::int32_t m_wheel = 0;
+    bool m_rightClick = false;
+    bool m_doubleClick = false;
     std::set<std::uint8_t> m_keys;
     FontKind m_dcFont = FontKind::Bold;
     TextColors m_colors{};
@@ -465,6 +473,25 @@ TEST_F(OldWindowsTest, ASecondF6WithAWindowGoneOpensTheFriendsWindow)
 
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x491080"), std::string::npos);
+}
+
+// Con el juego (CL9 hito 9), el segundo F6 abre la de amigos con 0x491080 en vez de mostrar la que ya no está
+// (Q-C448).
+TEST_F(OldWindowsTest, ShowingAgainWithAWindowGoneRunsTheFriendsOpening)
+{
+    int opened = 0;
+    OldWindowStepView view{.mouseX = 639, .mouseY = 479};
+    view.openFriends = [&opened]() -> Client::Core::Expected<void, std::string>
+    {
+        ++opened;
+        return {};
+    };
+    const std::int32_t id = Open(Client::UI::QuestionCase, "Hola");
+    ASSERT_TRUE(Client::UI::HideTheOldWindows(m_manager, 1, 1, Globals(), &view).HasValue());
+    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, id).HasValue());
+    ASSERT_TRUE(Client::UI::HideTheOldWindows(m_manager, 0, 1, Globals(), &view).HasValue());
+    EXPECT_EQ(opened, 1);
+    EXPECT_TRUE(m_manager.hidden.empty());
 }
 
 // 0x4906a0(1, 0), el de Chaos Castle: las esconde sin anotarlas, y F6 ya no las vuelve a mostrar (Q-C572); la modal

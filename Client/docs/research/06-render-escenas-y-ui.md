@@ -10311,9 +10311,49 @@ abierto; con una igual, `0x55a368` mira el maná y la poción y, si no alcanza, 
 (`GameSceneMovement.cpp`: `World::PickTerrain` y `PickTerrainTarget`, *inferido*) y el envío de la sesión. Los nuevos
 globales: `0x7d36840` y `0x7d368a4` en `UI::GameUiState` (`rightReleased`, `rightHoldFrames`; el soltado lo prende
 `LatchTheRightButton`), `0x6c8e50` y `0x7758580..0x7758588` en `GameMovementState` (`followTarget`, `weaponSkill`).
-Cortan con su dirección (P-C268): las ramas de las clases (`0x57d790`, `0x581894`, `0x5897b7`, `0x5808ef`), lo que
-manda `0x559890` (`0x559afc`, `0x55a368`) y `0x561f60` (`0x562024`). Las órdenes del cuervo (`0x420f70`) están
-portadas, con `Protocol::Pet::WritePetCommand`.
+Cortan con su dirección (P-C268): las ramas de las clases (`0x57d790`, `0x581894`, `0x5897b7`, `0x5808ef`). Las
+órdenes del cuervo (`0x420f70`) están portadas, con `Protocol::Pet::WritePetCommand`.
+
+#### Lo que mandan las skills de las armas (fase 2c)
+
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*.) `Scenes/HeroSkillCasts`, con el contexto de `UseTheHeroSkill`, que
+suma las acciones de Player.bmd, Item.bmd, `GetTickCount` y los servicios del inventario:
+
+- **El costo y la poción.** `0x551c70(skill, 1, 0, &maná, 0, &stamina)` lee los WORD `+0x22` y `+0x24` de la entrada
+  de Skill.bmd (60 `rand()` al cerrarla en 0, `SkillCostOf`). Con el maná del registro propio (`+0x24`) debajo,
+  `0x558110(3)` busca una poción de maná (`0x1c04` a `0x1c06`; con 4, las de vida `0x1c00` a `0x1c03`) en la grilla
+  del inventario, sin `rand()` (`FindQuickSlotItem`). Sin ella, nada; con ella, `0x5af520` y el `C1 26` son del
+  hito 5 y cortan con la dirección del que llama (`UseAManaPotion`, P-C269).
+- **`0x559afc`** (`UseTheListedWeaponSkill`): el costo, sin maná la poción y 0; con la stamina de más que `+0x38`, 0;
+  sin `0x552c50`, 0; si `0x558bb0` no deja atacar, las opciones; si deja, `0x559510(héroe, héroe, ítem, skill)`.
+- **`0x55a368`** (`UseTheWeaponOptions`): por cada opción igual a la skill del lugar, el costo (sin maná, la poción o
+  la siguiente) y la espera (sin ella, la siguiente); la `0x12` pone la acción `0x98` (`0x4f4a10` si no es jugador) y
+  manda el `19` con la clave del héroe publicado; las `0x13` a `0x17` y la `0x31`, si `0x558bb0` deja, `0x559510`.
+- **`0x559510`** (`UseTheSkillOnTheChosen`): la celda del elegido (`ftol(posición · 0,01)`) en
+  `0x77e1ba8`/`0x77e1bac`, `0x7758580..0x7758588` en `{0, skill, elegido}` y, con la entrada abierta, el alcance
+  (`0x5526f0 · 1,2`; 1,8 en Blood Castle con las `0x13` a `0x17`) contra la distancia al centro de la celda. En
+  alcance, `0x55b6f0`; fuera, las celdas lógicas de c (la Y antes que la X), PathFinding2 hasta el alcance y la
+  llegada del caso 5 (`+0x378` en 1, `+0x379` en 5).
+- **`0x55b6f0`** (`CastTheSkillAtTheTarget`): el `D3` de girar con la celda lógica del héroe publicado (X antes que Y);
+  `+0x378` en 0; con un jugador, `0x4f3f80` y la acción de la tabla `0x55cb60` por la skill − `0x2b` (la `0x2b`,
+  `0x43`; la `0x2c`, `0x85`; la `0x2f`, `0x5f` con el caballo y si no `0x42`; la `0x31`, `0x41` en los mapas 8 y 10 y
+  si no `0x40`; las `0x3c`, `0x3d` y `0x4a`, ninguna; las demás, `0x5d` con el caballo fuera de la zona segura y si
+  no `[0x7758584] + 0x25`, Q-C1210); si no, `0x4f4a10`. Salvo las `0x3c`, `0x3d` y `0x4a`, la partícula `0x5fe`
+  (`0x55be23`, CL11, P-C269). Después, el blanco en `+0x3a8`, el rumbo hacia él, el `19` (sin "webzen" y con el freno
+  de 300 ms), `+0x381` en 1 y, salvo con `0x20` en `+0x78` o el `0x1c16`, el `DF` con la celda del blanco (corrida un
+  paso por el rumbo, la tabla `0x55cb98`, en Blood Castle, con las `0x3c`, `0x39` y `0x2c` o con los monstruos `0x115`,
+  `0x11b`, `0x116` y `0x120`), si no es pared (4 u 8) ni una de las skills del arma.
+- **`0x562024`** (`UseTheElfWeaponOptions`, la cola de `0x561f60`): por cada opción igual a la skill del lugar, el
+  costo (sin maná, la poción de `0x562075` o la siguiente); con la stamina de más o sin la espera, 0 enseguida
+  (`0x56500b`), aunque otra opción haya tirado. El alcance (`0x5526f0`) y, con la `0x18` o la `0x36`: sin flechas
+  (`0x561c50`) se terminan las opciones; fuera de alcance (la celda de `0x77e1ba8`, sin C0 ni C3), la siguiente; en
+  alcance, el rumbo hacia `+0x3a8`, la clave de `0x558eb0` con `0x7758588` (`0xffff` sin él) y, sin "webzen" y sin
+  freno, `0x5767948` en la skill y el `1E` (04); después `0x4f4a10` y, si c no es un jugador (en la `0x18`, tampoco
+  con 1 en `+0x88`), `+0x38e`, su lugar en el registro y la flecha de `0x53e2b0`, que corta (`0x564f2f`, P-C257 d).
+  Sigue con las demás opciones y da 1 si alguna tiró.
+
+Los `C3` sacan sus dos `rand()` (el relleno y el serial `0x5767913`) también sin la sesión (`SendTheSkillPacket`); los
+`C1` (`D3` y `DF`) van por el socket sin `rand()`.
 
 ### Las órdenes del cuervo
 

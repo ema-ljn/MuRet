@@ -934,6 +934,16 @@ mundo, donde `Scenes::SessionEventApplier::ApplySkillEvent` los manda a `Scenes/
 las skills (`19`, `1E`, `D3`, `DF` y `26` de las cuatro funciones por clase) son de la fase 2 (08, P-C264). Los tests
 usan claves inventadas.
 
+**Lo que mandan las skills** (CL9 hito 4, fase 2c, 2026-11-13, *estático*, [06](06-render-escenas-y-ui.md#usar-una-skill)).
+Los dos con el XOR32 en línea desde el byte 3 y en `C3` (el relleno y el serial, dos `rand()`):
+
+| Paquete | Quién | Layout que manda el cliente | GameServer 0.97 |
+| --- | --- | --- | --- |
+| `19` | `0x55b6f0` (`0x55bf36..0x55c622`), `0x55a368` (la opción `0x12`) | `C1 06 19 <skill> <clave H L>`: la clave entera del blanco (`+0x1f4`) | `PMSG_MAGICATTACK` (`CGMagicAttack`, `0x425f60`) lee 7 bytes, con un `Dis` que el cliente no manda; el repack lo espera como `A5`. *Estático* |
+| `1E` | `0x561f60` (`0x562b36` y `0x563f5a`) | `C1 0C 1E <skill> <X> <Y> <rumbo> <hacia> <espalda> <clave H L> 00`: la celda lógica de c (la Y se lee antes); la `0x18`, el rumbo · 256/360 y dos ceros; la `0x36`, el rumbo · 255/360, la celda hacia el blanco (`((dx + 8) << 4) \| ((dy − 8) & 0xf)`, cada eje entre −8 y 7) y el rumbo + 180°. La clave es la de `0x558eb0` con `0x7758588`, o `0xffff` | `PMSG_DURATION_MAGIC_RECV` (`CGDurationMagicRecv`, `0x427870`) lee 7: los cinco de después son del cliente (Q-C1211). *Estático* |
+
+**MuRet**: `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic`.
+
 ### Las órdenes del cuervo: `A7` y `A8`
 
 (CL9 hito 4, 2026-11-13, *estático*.) El GameServer 0.97 no tiene el Dark Lord y no los manda (P-C262): el oráculo es

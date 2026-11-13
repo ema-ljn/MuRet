@@ -2157,7 +2157,8 @@ tienda de NPC (`0x659290(0x10000)`, un byte protegido: 1 `rand()`). Abierta, sal
 nivel 1 a 5, escribe el precio de `0x54d0f0` y `0x5b1200`: es de la CL9.3 y MuRet corta en `0x5b2d23`, aunque
 el cálculo de `0x54d0f0` ya está portado (§ El precio de un ítem). Después
 pregunta por las tiendas personales (`0x800` y `0x20000`, sin `rand()`), pero el precio solo sale con `0x78abaa4`
-en 1, que pone `0x5c4110` con la grilla de la tienda personal (`0x78ab0b8`, CL9.4): en MuRet queda en 0 (Q-C695).
+en 1, que pone `0x5c4110` con la grilla de la tienda personal (`0x78ab0b8`, Q-C695): portado en la CL9 hito 7 (§ Las
+tiendas personales, "El dibujo").
 
 **Los tramos**, en orden:
 
@@ -10299,8 +10300,8 @@ casillas de 8 columnas). `0x6c931c` dice cuál se mira (−1 en la `.data`, 1 la
 y los cuatro `3F`), `UI::ChatCommands` (`/personalshop`) y `Scenes::InventoryMoves` (el `28` y las ramas de `0x5be150`,
 con `CursorGrid::OwnTrade` y `CursorGrid::PersonalShop`). Los mapas son `PersonalShopState::ownPrices` y
 `otherPrices`, con `pricesBuilt` por los punteros en 0. El paso de la ventana y lo de las grillas están en la fase 5
-(abajo), como `/purchase` (`0x574bd6`, `Scenes::RequestTheShopItems`); corta con su dirección el dibujo
-(`0x5f3030`), 08 P-C208. Tests:
+(abajo), como `/purchase` (`0x574bd6`, `Scenes::RequestTheShopItems`), y el dibujo en la fase 6a ("El dibujo",
+abajo). Tests:
 `PersonalShopListsTest` (abrir la propia, el precio que falla, mirar la de otro, comprar, renovar y cerrar, byte a byte
 y con los `rand()` de las consultas de `0x20` y `0x10000` y de los C3; en Lorencia y Devias), `TheItemListsReadTheirEntries`
 y `PersonalShopNeedsTheLevel`.
@@ -10334,7 +10335,7 @@ esquina de las dos ventanas (las escriben en (0x104, 0) el paso, solo con la pro
   dos, el de x de `0xff` a `0x133` responde 1 y el de `0x14a` a `0x17e` responde 2 (sin volver a mirar el clic); con
   uno, el de `0x127` a `0x15b` responde 1. Cada uno gasta el clic y llama a `0x623750(id, respuesta)`: con el 1000 y el
   1, el `3F 02`, todos los paneles cerrados (`0x657a90`) y el diálogo que espera abierto (`0x7d3a110` a `0x7d3a10c`);
-  con el 1000 y el 2, solo esto último; con otro id, nada. Su dibujo (`0x6304e1` → `0x471ae0`) corta.
+  con el 1000 y el 2, solo esto último; con otro id, nada. Su dibujo (`0x6304e1` → `0x471ae0`), en "El dibujo".
 - Con una tienda abierta, `0x5c4110` (las grillas bajo el mouse): `0x78abaa4` en 0 al entrar (después de sus tres
   salidas) y en 1 con la grilla `0x78ab0b8`; `0x78abb28` en 0 y `0x78abb2c` en la casilla + `0x4c`. El clic sin reparar
   (`0x5c5110`): el clic gastado, la grilla en `0x78ab9b8` y `0x78a6758` en −1. Mirando la de otro, su ítem va a
@@ -10373,6 +10374,54 @@ cursor); `Scenes::InventoryMoves` (`PickUpForTheShop`, `DropOnTheShopGrid` y la 
 `Scenes::GameDialogSteps` (`DialogStep::ConfirmBox`). El paso del `0x91` y el `0x94` (`0x6282dc`) siguen cortando:
 los tests dejan su respuesta a mano. Tests: `PersonalShopWindowTest` (en Lorencia y Devias, byte a byte y con los
 `rand()`) y `ConfirmBoxTest`.
+
+**El dibujo** (CL9 hito 7, fase 6a, 2026-11-13, *estático*; sin traza de GL, 08 P-C208).
+
+- `0x5f3030` (desde `0x5f7440`, después del comercio): sale sin `0x800` ni `0x20000` (el byte, sin `rand()`). Si no, la
+  esquina en (0x104, 0) (`0x5f306e`, también mirando la de otro), el fondo `0x5ee220(x, y, 0)`, el blanco, la negrita
+  (`0x5763558`) y el título 1102 en (x + `0x23`, y + `0xc`) centrado en 120 · W / 640, en `0xffdcdcdc` sobre
+  `0xff141414`. Con la propia (`0x6c931c` en 1): la franja sin textura (`0x621aa0`) de 150 × (paso de la letra · 640 /
+  W + 2) en (x + `0x14`, y + `0x30`), en `glColor4f(0,1; 0,8; 0,1; 0,6)` con la tienda abierta (`0x78aba50`) o (0,6; 0;
+  0; 0,8); en blanco y en la mezcla normal, el 1103 en `0xbe000000` o el 560 en blanco, sobre 0, centrado en 150 · W /
+  640 en (x + `0x14`, y + `0x32`); sin mezcla. Siempre: Item_Money (`0x10f`) de 150 × 24 en (x + 20, y + 65) con las UV
+  (0,8828125; 0,5625); en la normal y en `0xff0de90d` sobre 0, el título en un buffer de 48 bytes de la pila (el 1105, y
+  encima con `strcpy` el de `0x78aba64` si tiene algo o si se mira la de otro, vacío o no) centrado en 150 · W / 640 en
+  (x + `0x14`, y + `0x48`); sin mezcla, las casillas (`0x5e3660(x + 15, y + 110, 0x78ab0b8, 8, 4)`) y, en la normal, el
+  blanco. Con la propia, sobre 0, los botones text_button (`0x659`, que sube `0x61d370`) de 56 × 24 con las UV (0,875;
+  0,75) en (x + `0x1e`, y + `0x18c`) y (x + `0x69`, ·), con el 1106 (abierta) o el 1107 y el 1108 en `0xff19ccff`, el
+  1108 en `0xffaaaaaa` con la tienda cerrada, 2 a la derecha y 7 abajo, centrados en 52 · W / 640. Después, sobre
+  `0xff141414`, el aviso 370 que late (el del comercio: el seno del reloj por 0,005, por 200, más 275, recortado a 255,
+  en el alfa, y `0xd2`) en (x + `0x1e`, y + `0xe6`); en `0xff96dcff`, la propia 1109, 1111, 1112, 1113 y 1115 y la de
+  otro 1110, 1111, 1112, 1114 y 1116, en y + `0xf5` de 15 en 15; y latiendo, el 1134 y el 1135 en y + `0x14a` y
+  `0x159`. Con otro modo, ningún renglón. Termina sin mezcla. Los textos miden en `0x77f31b8` (0x554180). Sin `rand()`.
+- `0x5f7821` y `0x5f7af9` (en `0x5f7610` y `0x5f7840`, con `0x800` o `0x20000`): `0x5e3760(x + 15, y + 110,
+  0x78ab0b8, 8, 4, 0 o 1)`, los ítems con sus `rand()` y las cifras, como las otras grillas. Las cifras salen solo si
+  alguna de las grillas del principio (el inventario, la tienda de NPC, el almacén, la caja del caos o el comercio) está
+  abierta, como las demás: con una tienda personal, el inventario lo está.
+- `0x6304e1` → `0x471ae0` (el `0x9c`, antes de la cola `0x63140b`, cuyo `switch` no lo tiene): `0x7d3a10c` otra vez en
+  `0x9c`; con h = (paso de la letra + 2) · renglones, el marco `0xfc` de 213 × 5 en (213, 120), `0xfb` de 213 × (h +
+  40) en (213, 125) y `0xfc` en (213, h + 40 + 125), con las UV (0,83203125; 0,625); los botones de 52 × 16 con las UV
+  (0,546875; 0,65625) en y = h + 140, con el mouse encima de y = h + 140 a h + 156 y las x de su paso, con los bordes:
+  con dos, el sí (`0xf1`, `0xf2`) en x 255 y el no (`0xf3`, `0xf4`) en 330; con uno, el sí en 295; con otro tipo,
+  ninguno. Los renglones, copiados a un buffer de `0x80` bytes de la pila (`0x4716e0` los corta en 24), centrados
+  (`0x623690`) desde y = `0x87` de (paso + 2) en (paso + 2), en la normal del diálogo, en blanco sobre 0 y sin mezcla:
+  la normal la pone después `0x63140b`.
+- El precio de la ayuda del ítem (`0x5b2f53..0x5b3716`): con `0x800` o `0x20000` y `0x78abaa4` en 1, el lugar columna
+  (`+0x42`) + fila (`+0x43`) · 8 + `0x4c` en el mapa del modo (`0x7245e4` con 1, `0x7245e0` con 2; `0x5f8260`, el
+  `lower_bound`). Con el precio: el 63 con el precio sin signo con comas (los formatos de `0x5b1130`), en rojo (2) desde
+  diez millones, dorado (3) desde un millón y verde (4) desde cien mil, comparado **con** signo (07 Q-C968), en
+  negrita, y un `\n` con su medio renglón; el zen del registro propio (`+0xecc`) con su acceso abierto y cerrado (los
+  3.848 `rand()` si su cuenta vuelve a 0) y, mirando la de otro con menos zen (sin signo), el 423 en rojo y en negrita y
+  otro `\n`. Sin el mapa, sin el modo o sin el precio: con la propia, el 1101 en rojo y en negrita y un `\n`; si no,
+  nada.
+
+**MuRet**: `Scenes::DrawThePersonalShopWindow` (en `GameInventoryHud`, con `WindowDrawing::DrawCenteredInBox` para la
+caja de `0x554180`), la grilla en `DrawTheGridItems` y `DrawTheGridNumbers`, el `0x9c` en `DrawTheGameDialogs` y el
+precio en `WriteThePersonalShopPrice` (`ItemTooltipShopPrice.cpp`, desde la ayuda del ítem); el zen con comas es
+`FormatZen` de `GameInventoryHud` (el de `0x5b1130` es la misma cuenta). Tests: `GamePersonalShopWindowTest` (la propia
+cerrada y abierta, la de otro, sin modo, sin `Text.bmd` y la grilla con sus `rand()`), los tres `ConfirmBox` de
+`GameDialogDrawingTest` y `PersonalShopPriceTest` (los colores, el 423, el 1101, el precio negativo y el acceso del
+registro propio), en Lorencia y Devias.
 
 ## Lo que no se sabe
 

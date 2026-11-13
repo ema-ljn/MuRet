@@ -31,7 +31,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <string_view>
 #include <vector>
 
 // La ventana de las tiendas personales (0x5f3030) y su grilla en las de los ítems y las cifras (0x5f7821 y 0x5f7af9;
@@ -57,12 +56,11 @@ constexpr int StaffRandoms = 2;
 // La poción (0x1c00) con 2 o más muestra la durabilidad.
 constexpr std::uint16_t PotionType = 0x1c00;
 constexpr std::uint16_t DigitSlot = 1;
-// El fondo de la ventana (0x5ee220), Item_Money, las casillas vacía y llena y text_button.
+// El fondo de la ventana (0x5ee220), Item_Money, la casilla vacía y text_button.
 constexpr std::uint16_t BackTop = 0x104;
 constexpr std::uint16_t BackBottom = 0x105;
 constexpr std::uint16_t MoneyBox = 0x10f;
 constexpr std::uint16_t EmptyBox = 0x115;
-constexpr std::uint16_t FullBox = 0x116;
 constexpr std::uint16_t TextButton = 0x659;
 
 std::uint32_t Drawn(CrtRandom from, const CrtRandom& to)

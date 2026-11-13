@@ -639,7 +639,7 @@ Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, const Kind
         if (actor.hands[0].model == MonsterBow)
         {
             if (step == EighthStep)
-                return FireTheArrow(actor, slot, 0, 0, 0, context);
+                return FireTheArrow(actor, &actor, slot, 0, 0, 0, context);
             return {};
         }
         // En la 3 y en 15, 0x4f5b10 (el punto (−20, −90, 100) de c) y 0x518cf0(0x5e8, dueño c).

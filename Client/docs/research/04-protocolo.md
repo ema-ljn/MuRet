@@ -986,8 +986,10 @@ antes de `send()`, sin "webzen" en el nombre del héroe publicado, y el `19` con
 | `1E` | la `0x34` (`0x57e2c8..0x57ef4e`) y la `0x4c` (`0x580af3..0x5817a5`) | `C1 0C 1E <skill> <x> <y> <rumbo> 00 <espalda> <clave H L> <clave de la magia>`, como el de la rama del Wizard: la `0x34` deja la espalda y la clave de la magia en 0 y manda la clave de `0x558eb0` con `0x7758588` (o `0xffff`); la `0x4c`, la celda de `0x4e9920` y la clave de `0x57cf90` | `CGDurationMagicRecv` (`0x427870`) lee la skill, X, Y y el rumbo (Q-C1211) |
 | `D3` | `0x55faa0` (`0x55fac2..0x55ffcf`) | el giro de un paso de `0x55cbc0`, con la celda lógica del héroe publicado (la X antes que la Y) y su ángulo de antes de girar (Q-C1214) | como el de `0x55cbc0` |
 
-**MuRet**: `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic` con `Scenes::SendTheSkillPacket`, y el `D3` con
-`SendTheTurn`, el de la rama del Wizard.
+| `10` (FoxAnti: `1D`) | `0x517a20` (`0x517c74..0x5184c7`), desde el choque de las flechas de skill (`0x520497`) | `C1 [8 + 3n] 10 <skill> <x> <y> <tanda> <n>` y, por blanco, `<clave H> <clave L> <extra>`: la skill del lugar, la celda del punto (`ftol(· 0,01f)`, el byte bajo), `+0x8c` de la flecha, hasta cinco claves (`+0x1f4`) y el sexto argumento (0 desde la flecha). CL9 hito 4 | `CGBeattackRecv` (`0x426db0`) pide el `1D` (`PMSG_BEATTACK_COUNT`: la skill, x, y, el serial y la cuenta, con la cuenta en 5 como mucho) pero lee entradas de dos bytes (`PMSG_BEATTACK`): desde el segundo blanco toma otra clave (07, Q-C1219). *Estático* |
+
+**MuRet**: `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic` con `Scenes::SendTheSkillPacket`, el `D3` con
+`SendTheTurn`, el de la rama del Wizard, y el `10` con `WriteSkillHits` desde `Scenes::HitTheTargetsAround`.
 
 ### Las órdenes del cuervo: `A7` y `A8`
 

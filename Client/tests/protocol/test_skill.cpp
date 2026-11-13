@@ -213,6 +213,23 @@ TEST(SkillProtocolTest, TheMagicAttackGoesOutWithTheBigEndianKey)
     EXPECT_TRUE(SameBytes(Xor32Decode(attack.packet).Bytes(), Bytes({0xc1, 0x06, 0x19, 0x3c, 0x8a, 0x1b})));
 }
 
+// 0x517c74..0x5184c7: el 10 de los blancos de una skill, C1 [8 + 3n] 10 [skill] [x] [y] [tanda] [n] y, por blanco,
+// [clave H] [clave L] [extra], para cifrar. Con más de cinco en la cuenta, solo cinco.
+TEST(SkillProtocolTest, TheSkillHitsCarryThreeBytesPerTarget)
+{
+    Skill::SkillHitsSend hits{.skill = 0x34, .x = 0x87, .y = 0x9a, .volley = 0x0c, .hits = 2, .extra = 0x55};
+    hits.keys[0] = 0x8a1b;
+    hits.keys[1] = 0x0203;
+    const auto two = Skill::WriteSkillHits(hits);
+    EXPECT_EQ(two.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(two.packet).Bytes(),
+                          Bytes({0xc1, 0x0e, 0x10, 0x34, 0x87, 0x9a, 0x0c, 0x02, 0x8a, 0x1b, 0x55, 0x02, 0x03, 0x55})));
+    const auto none = Skill::WriteSkillHits({.skill = 0x18});
+    EXPECT_TRUE(SameBytes(Xor32Decode(none.packet).Bytes(), Bytes({0xc1, 0x08, 0x10, 0x18, 0x00, 0x00, 0x00, 0x00})));
+    hits.hits = 7;
+    EXPECT_EQ(Xor32Decode(Skill::WriteSkillHits(hits).packet).Bytes().size(), 8u + (3u * Skill::MaxSkillHits));
+}
+
 // 0x58c1b6.. y 0x58dcc4.. (la rama del Wizard): el 1E con pkt[7] en 0, la posición relativa de la 0x4c en pkt[8], la
 // clave 0xffff sin blanco y la clave mágica al final.
 TEST(SkillProtocolTest, TheWizardDurationMagicCarriesTheMagicKey)

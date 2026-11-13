@@ -146,15 +146,24 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
             continue;
         }
         // 0x5208a0 sobre las flechas de 0x53d9a0 (CL9 hito 3, fase 2e): su choque lee el pool de personajes y el
-        // registro propio, fuera de World.
+        // registro propio, fuera de World. CL9 hito 4: la flecha 0xdb del asedio lee la celda y la altura del terreno,
+        // y el choque de las de skill pide un sonido (CL10, en WorldRuntime::lastSoundId) y manda el C1 10 (0x517a20).
         if (IsArrowEffect(effect.type))
         {
-            const ArrowStepContext arrows{.world = *m_context.world,
-                                          .random = m_context.cloth->random,
-                                          .particles = &m_context.world->Particles(),
-                                          .sprites = &m_sprites,
-                                          .lighting = &m_context.world->DynamicLighting().Lighting(),
-                                          .worldClock = worldClock};
+            const ArrowStepContext arrows{
+                .world = *m_context.world,
+                .random = m_context.cloth->random,
+                .particles = &m_context.world->Particles(),
+                .sprites = &m_sprites,
+                .lighting = &m_context.world->DynamicLighting().Lighting(),
+                .worldClock = worldClock,
+                .terrain = &StepTerrain(),
+                .terrainHeight = terrainHeight,
+                .soundRequest = [this](std::int32_t id) { m_context.world->Runtime().lastSoundId = id; },
+                .send = m_session != nullptr
+                            ? std::function<void(Protocol::Outgoing)>([session = m_session](Protocol::Outgoing packet)
+                                                                      { session->SendChat(std::move(packet)); })
+                            : std::function<void(Protocol::Outgoing)>{}};
             if (auto stepped = StepArrow(effect, skeleton, arrows); !stepped.HasValue())
                 return stepped;
             continue;

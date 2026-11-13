@@ -191,12 +191,12 @@ Core::Expected<void, std::string> StrikeNothing(ActorState& actor, std::size_t s
         const std::uint8_t skill = ReadTheSkill(actor, context.random);
         const std::uint8_t second = ReadTheSkill(actor, context.random);
         const std::int32_t index = OwnSkillIndex(context, second);
-        if (auto fired = FireTheArrow(actor, slot, index, flag, skill, context); !fired.HasValue())
+        if (auto fired = FireTheArrow(actor, nullptr, slot, index, flag, skill, context); !fired.HasValue())
             return fired;
     }
     // 0x503785..0x5037d0: los tipos que tiran, 0x53e2b0(c, o, 0, 0, 0, 0).
     if (IsOneOf(MissileTypes, actor.type) || actor.type == MissileTypeWithoutTarget)
-        return FireTheArrow(actor, slot, 0, 0, 0, context);
+        return FireTheArrow(actor, nullptr, slot, 0, 0, 0, context);
     return {};
 }
 
@@ -271,7 +271,7 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
         return Core::Unexpected(
             std::format("0x5037e0: el blanco {} de +0x3a4 del lugar {} está fuera del pool", target, slot));
     }
-    const ActorState& victim = actors[static_cast<std::size_t>(target)];
+    ActorState& victim = actors[static_cast<std::size_t>(target)];
     if (actor.type == PlayerType && IsOneOf(RangedActions, actor.animation.action))
     {
         // 0x5038a1..0x504043: dos lecturas de +0x38e; la primera es la skill de 0x53e2b0 (0x503ac7) y la segunda va a
@@ -279,13 +279,13 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
         const std::uint8_t skill = ReadTheSkill(actor, context.random);
         const std::uint8_t second = ReadTheSkill(actor, context.random);
         const std::int32_t index = OwnSkillIndex(context, second);
-        if (auto fired = FireTheArrow(actor, slot, index, 0, skill, context); !fired.HasValue())
+        if (auto fired = FireTheArrow(actor, &victim, slot, index, 0, skill, context); !fired.HasValue())
             return fired;
     }
     // 0x504068..0x5040a9: los tipos que tiran con blanco, 0x53e2b0(c, o, el blanco, 0, 0, 0).
     if (IsOneOf(MissileTypes, actor.type))
     {
-        if (auto fired = FireTheArrow(actor, slot, 0, 0, 0, context); !fired.HasValue())
+        if (auto fired = FireTheArrow(actor, &victim, slot, 0, 0, 0, context); !fired.HasValue())
             return fired;
     }
     // 0x5040b9: el blanco con daño (+0x384, el del último 0x15).

@@ -5,6 +5,8 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/ProtocolError.h"
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -142,6 +144,29 @@ inline constexpr std::uint16_t NoSkillTargetKey = 0xffff;
 // [clave H] [clave L], con el XOR32 sobre los bytes 3 a 5 y en C3 (sus dos rand(), el relleno y el serial, los saca
 // quien lo manda). La clave es +0x1f4 del blanco, entera. Es el PMSG_MAGICATTACK del GameServer (CGMagicAttack).
 [[nodiscard]] Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key);
+
+// El 10 de 0x517a20 (los blancos de una skill alrededor de un punto; lo llama el choque de las flechas de skill,
+// 0x520497): C1 [8 + 3n] 10 [skill] [x] [y] [tanda] [n] y, por blanco, [clave H] [clave L] [extra], con el XOR32 desde
+// pkt[3] y en C3 como el 19. FoxAnti lo manda como 1D (03, "La capa de FoxAnti"). El GameServer 0.97
+// (CGBeattackRecv, 0x426db0) lee la cabecera igual (PMSG_BEATTACK_COUNT: la skill, x, y, el serial y la cuenta) pero
+// entradas de dos bytes: desde el segundo blanco lee otra clave (07, Q-C1219).
+inline constexpr std::uint8_t SkillHitsOpcode = 0x10;
+inline constexpr std::size_t MaxSkillHits = 5;
+struct SkillHitsSend
+{
+    std::uint8_t skill = 0;
+    // ftol(posición · 0,01) & 0xff, la celda del punto.
+    std::uint8_t x = 0;
+    std::uint8_t y = 0;
+    // +0x8c de la flecha: la cuenta +0xf04 del registro propio de su tanda.
+    std::uint8_t volley = 0;
+    // Las claves (+0x1f4) de los blancos, `hits` de ellas (hasta MaxSkillHits).
+    std::array<std::uint16_t, MaxSkillHits> keys{};
+    std::uint8_t hits = 0;
+    // El sexto argumento de 0x517a20, detrás de cada clave (0 desde la flecha).
+    std::uint8_t extra = 0;
+};
+[[nodiscard]] Outgoing WriteSkillHits(const SkillHitsSend& send);
 
 // El 1E que manda el cliente (el elfo, 0x561f60 en 0x562b36 y 0x563f5a, y las ramas del caballero, 0x582439..0x5896a3):
 // C1 0C 1E [skill] [X] [Y] [rumbo] [hacia] [espalda] [clave H] [clave L] [clave de la magia], con el XOR32 sobre los

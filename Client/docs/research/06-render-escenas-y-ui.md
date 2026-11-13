@@ -9822,17 +9822,23 @@ segunda y la bandera es 1 si la lectura de `0x502b12` dio `0x18`) y `0x5037d0` (
 y `0x180`, todo en 0); con blanco, `0x504060` (igual, con la bandera en 0) y `0x5040a9` (los tres primeros tipos).
 Después sigue el paso del ataque.
 
-**El tiro** (`0x53e2b0(c, o, blanco, lugar, bandera, skill)`). Con la skill `0x34`, `0x33` o `0x2e` va a `0x53e741`
-(con `+0xf08` del registro propio) y con la bandera en 1 a `0x53e2e0` (las flechas de `0xa24`/`0xa25` o tres con
-`+0x24` corrido): son del hito 4 y MuRet corta en `0x53e2be` y `0x53e2da`. Si no, `0x53d9a0` y, con `0xa25` en
-`+0x2b8`, el brillo de la mano (`0x53e630`: el hueso de `+0x2bd` con `0x4ec110`, quince giros `rand() % 360`, el joint
-`0x617`/3 con un `rand()` par y la `0x5c5`/0), que corta en `0x53e642`.
+**El tiro** (`0x53e2b0(c, o, blanco, lugar, bandera, skill)`). Con la skill `0x34`, `0x33` o `0x2e` (`0x53e741`, CL9
+hito 4): un `0x53d9a0` con los mismos argumentos y la cuenta de la tanda (el registro propio abierto en línea con
+`+0xf08`, `+0xf04` uno más y cerrado: 3.848 `rand()` si la cuenta queda en 0), y sale sin el brillo de la `0xa25`. Con
+la bandera en 1 (`0x53e2e0`, la skill `0x18` sin blanco), los tiros con `+0x24` de o corrido (cada corrimiento con
+`fld`/`fadd` o `fsub`/`fstp` en `float`) y la misma cuenta: con `0xa24` o `0xa25` en `+0x2b8` de c, cuatro en a + 5
+(`0x6b87f8`), + 10 (`0x6b87a8`), − 20 (`0x6b86d0`) y − 10, y + 30 (`0x6b8858`), con lo que `+0x24` queda en a + 15
+(Q-C1218); si no, tres en a, + 15 (`0x6b87bc`) y − 30, y + 15 vuelve a a. Si no, un `0x53d9a0`. Después de la bandera
+en 1 o del tiro común, con `0xa25` en `+0x2b8`, el brillo de la mano (`0x53e630`: el hueso de `+0x2bd` con `0x4ec110`,
+quince giros `rand() % 360`, el joint `0x617`/3 con un `rand()` par y la `0x5c5`/0), que corta en `0x53e642`. El
+blanco solo lo lee el `0x13a` de la skill `0x2e`; el caso `0x4f816f` de los monstruos lo llama con c de blanco.
 
 **Las armas** (`0x53d9a0`). Las de `+0x2b8` y `+0x2d8` (MOVSX); con el héroe (`[0x743a170]`), el registro propio
 abierto y cerrado en línea (3.848 `rand()`) y los tipos de `+0xb6c` y `+0xbb4` más `0x212` (salvo el −1). La skill
 `0x34` deja el subtipo en 2 y pide el sonido `0x55`; la skill va a `[0x5767948]`; la `0x33` pide el `0x82` (los dos
 con `0x41ed10(id, o, 0)`, CL10: MuRet los manda a `soundRequest`); la bandera en 2 deja el subtipo en `0x63`; la
-skill `0x2e` crea solo el `0x13a` y sale (`0x53df2a`, hito 4). La derecha menos `0xa1a` (0..0xb, `0x53e240`) da
+skill `0x2e` crea solo el `0x13a` (`0x53df2a`: `0x518cf0(0x13a, o+0x10, o+0x1c, o+0xf4, 0, el blanco, o+0x8a,
+lugar, bandera, 0, 0)`) y sale. La derecha menos `0xa1a` (0..0xb, `0x53e240`) da
 `0xdc`, `0xdc`, `0xe0`, `0xde`, `0xdd`, `0xe3`, `0xe2`, nada, `0xf7`, nada, `0x10e` y `0x111`; la izquierda menos
 `0xa12` (0..0x15, `0x53e28c`/`0x53e270`), `0xdb`, `0xdb`, `0xdf`, `0xdb`, `0xdb`, `0xdb`, `0xe1`, nada × 10, `0xf8`,
 nada, nada, `0x11c` y `0xf9`. Cada una es `0x518cf0(tipo, o+0x10, o+0x1c, o+0xf4, subtipo, o, o+0x8a, lugar, bandera,
@@ -9843,8 +9849,15 @@ nada, nada, `0x11c` y `0xf9`. Cada una es `0x518cf0(tipo, o+0x10, o+0x1c, o+0xf4
 `0xdb`, −2 con el `0xe1` y 0 con el `0xdd`, el `0xde`, el `0xdf` y el `0xe3`; `+0xd8` en 1, vida 30 y la boca
 (−10; −60; 135) girada por los ángulos (`0x5fc8f0`, `0x5fcbd0`) y sumada a la posición; el `0xe3`, escala 1,8f, la
 y de la velocidad en −50 y `+0xe4` en −10; el `0xf9`, escala 1 y −70 y el joint `0x610`/0xe (`0x51c56c`); los
-demás, escala 0,8f y −70. Con el subtipo 2, el efecto `0x105` (`0x51c5a9`, hito 4); el `0xe1`/1, el joint
-`0x610`/0xd; el `0xdb` con el subtipo 3 o 4, vida 40 y tres `rand()` (`0x51c601`, hito 4); el `0x11c`, `+0x64` en 1,
+demás, escala 0,8f y −70. Con el subtipo 2 (la skill `0x34`, `0x51c58a`), la estela `0x518cf0(0x105, la posición
+de la flecha, sus ángulos, su luz, 0, la flecha, −1, 0, 0, 0, 0)` y, se haya creado o no, `+0x100` en 0 y `+0x88` en
+1; el caso `0x105` con el subtipo 0 (`0x519fc9`): vida 100, `+0x64` en 0, `+0x68` en 1, `+0xe4` en 0, escala 12 y la
+partida en la posición del dueño, y el joint `0x610` (`0x51a08a`, CL11). El `0xe1`/1, el joint `0x610`/0xd. El `0xdb`
+con el subtipo 3 o 4 (`0x51c601`, la del asedio): vida 40, escala 1,5, `+0xe4` en (`rand() % 100` + 50) ·
+`0x3d888889`, la partida en la posición del héroe y, con el 3, la y de la velocidad en −(`rand() % 30` + 50) y la x de
+los ángulos en −(`rand() % 20` + 45); con el 4, −(`rand() % 15` + 55) y −10 (cada fild más la constante y el `fchs` en
+la x87); después, la salida. La crean solo los objetos del asedio (`0x42b540`: `0x42c319` y `0x42c4e0`, CL9.5). El
+`0x11c`, `+0x64` en 1,
 la y de los ángulos en `rand() % 360` y el joint `0x610`/0xc (`0x51c713`). La salida `0x51a1b6` abre el registro
 propio, copia su `+0xf04` a `+0x8c` y lo cierra (3.848 `rand()`). El `0xe2` (`0x51a41e`): igual hasta la boca,
 `+0x64` en 0, escala 1, −30, `+0xe4` en −10, vida 40, con el subtipo 2 `+0x100` en 0 y `+0x88` en 1, y la misma
@@ -9856,10 +9869,18 @@ subtipo que no es 0 ni 2 sale con el prefijo) piden joints antes de sacar `rand(
 menos), que no mira el byte vivo: corre también si el choque la apagó.
 
 - `0xdb` (`0x52406c`): la luz dinámica de radio 2 (luz · 0,8f; luz · 0,5; luz · 0,2f) (`0x5240a5`); con el
-  subtipo 3 o 4, hito 4 (`0x5240b0`); con el 5, el fuego lleva (luz · 0,1f; luz · 0,6f; luz · 0,3f); el fuego
-  `0x53fe70(0x5d9, posición, ángulos, color, 0, 1,0f, 0)` y el choque.
+  subtipo 3 o 4 (`0x52413a`), con el 3 `+0xe4` sumado a la x de los ángulos, la x en 50 como mucho (`0x6b86b0`; NaN
+  queda), la celda (`ftol(x · 0,01f)`, `ftol(y · 0,01f)`, `0x5f82a0`) y, sin el `0x08` en el byte bajo de su atributo,
+  con el terreno (`0x5f93c0`) más alto que la z, la z en la altura + 10 y la velocidad en 0; después,
+  `0x53fe70(0x5d9, posición, ángulos, el color de la luz, 5, 1,0f, 0)` (corta en `0x5241e9`, CL11) y sin el choque.
+  Con el 5, el fuego lleva (luz · 0,1f; luz · 0,6f; luz · 0,3f); el fuego `0x53fe70(0x5d9, posición, ángulos, color,
+  0, 1,0f, 0)` y el choque.
 - `0xdc`, `0xdd`, `0xde`, `0xdf` y `0xe0` (`0x5267c7` → `0x526dc2`): solo el choque.
-- `0xe1` (`0x52697e`; el subtipo 1, `0x5267dc`, hito 4): dos sprites `0x5d5` (`0x5491e0`, escalas 0,5 y 1, la luz
+- `0xe1`/1 (`0x5267dc`, la de la fortaleza y Crywolf, cuyas altas cortan): dos sprites `0x5d5` con la luz (0,1f;
+  0,4f; 0,1f) y escalas 0,3f y 0,7f, la luz dinámica (luz · 0,2f; · 0,8f; · 0,2f), la y de los ángulos + 60 y, con
+  más de 25 de vida y par, dos veces el punto ((& 31) − 16; (& 63) − 32; (& 31) − 16) y `0x53fe70(0x60f, punto,
+  ángulos, (0,4f; 1; 0,2f), 5, 0,2f, 0)` (corta en la primera, `0x526961`, CL11); después, el choque.
+- `0xe1` (`0x52697e`): dos sprites `0x5d5` (`0x5491e0`, escalas 0,5 y 1, la luz
   `+0xf4`, el giro ±`ftol(reloj)` · 0,1f), cuatro veces tres `rand()` del punto ((& 31) − 16; (& 63) − 32;
   (& 31) − 16) y `0x608 + rand() % 3` (corta en `0x526a8b`, CL11), la y de los ángulos + 30, la luz (luz · 0,6f;
   · 0,8f; · 0,8f) y el choque.
@@ -9870,8 +9891,15 @@ menos), que no mira el byte vivo: corre también si el choque la apagó.
 - `0x11c` (`0x526aef`): la y de los ángulos + 60; con vida par, la `0x60f`/5 (`0x526bc2`), con impar, el `0x114`
   (`0x526c05`). Los pasos del `0xf7`, `0xf8`, `0xf9`, `0x10e` y `0x111` no se alcanzan: su alta corta.
 
-**El choque** (`0x520170`). Con el asedio (`0x4294b0`) y el bit `0x100` de la celda, la frena (`0x52018d`, CL9.5);
-con `+0x88` distinto de 0 y sin el subtipo `0x63`, `0x517a20` (`0x5201ed`, hito 4). Si no, `0x517850(efecto, 100,
+**El choque** (`0x520170`). Con el asedio (`0x4294b0`) y el bit `0x100` de la celda, la frena (`0x52018d`, CL9.5).
+Con `+0x88` distinto de 0 y sin el subtipo `0x63` (`0x5201ed`, CL9 hito 4): con `rand() & 1` en 1, nada; solo con el
+héroe de dueño, la skill del lugar `+0x89` con el registro propio abierto y cerrado; con la `0x34`, el `0xe2` a más de
+500 (`0x6b8a98`) del héroe en el plano no choca (la raíz en la x87; NaN sigue) y con `+0x100` positivo resta uno y
+nada; después, `0x517a20(+0x89, la posición, 100, el byte +0x8c, +0x8a, 0)`; sin blancos, nada. Con alguno: la
+`0x33` la apaga (y `0x51fe10` con el `0xe2` y el `0xf8`); la `0x34` con el subtipo 2 la deja viva con `+0x100` en 5
+(el `0xf8` con más de 14 de vida y el `0xe2`) o 2 y el joint `0x60f`/6 (`0x52055f`, CL11); con otro subtipo la apaga
+con `0x51fe10`; otra skill la apaga, pide el sonido `rand() % 4 + 0x4b` (`0x41ed10(sonido, efecto, 0)`, CL10) y
+`0x51fe10` con el `0xe2` y el `0xf8`. Sin `+0x88`, `0x517850(efecto, 100,
 +0x8a, 0)`: el primero de los 400 vivos que no sea el dueño, que se vea (`+0x16c`), que no sea el héroe (salvo con la
 clase 2) y que no se esté muriendo, a 100 o menos en el plano (la raíz en la x87, guardada en `float`; NaN choca).
 Con uno, abre y cierra el registro propio (3.848 `rand()`) para leer la skill del lugar `+0x89`: con la `0x33` la
@@ -9881,10 +9909,23 @@ CL11), y si no la apaga con `0x51fe10`; con otra, la apaga (`0x51fe10` con el `0
 `0x5ed`/0 con la luz 0,7f; MuRet corta en la primera `0x5c5`/2 (`0x51fe9e`, CL11) después de sus dos `rand()`. La
 flecha de otro elfo no choca con el héroe (la clase 0).
 
+**Los blancos de la skill** (`0x517a20(lugar, punto, radio, tanda, clave, extra)`, CL9 hito 4, `Scenes::
+HitTheTargetsAround`). La skill del lugar con el registro propio abierto y cerrado. En el mapa 30 con el asedio, el
+bit `0x100` del atributo de la celda del punto (`0x5f82c0`) sale con 0 y, sin él, cualquier jugador entra (MuRet
+corta en `0x517b1e`, CL9.5). Después, de los 400 en orden: la distancia en el plano primero (la raíz en la x87,
+guardada en `float`), y entran los vivos, vistos, que no son el héroe ni se están muriendo, a `radio` o menos (NaN
+entra) y que son monstruos (`+0x88` en 2) o el jugador (en 1) con `+0x1f4` igual a la clave; con la skill 8 o 9, cada
+uno con `+0x394` en 0 queda con `+0x398` en 10; hasta cinco. Sin ninguno, 0. Con `"webzen"` (`0x6c8c40`) en el nombre
+del héroe, 1 sin mandar nada. Si no, el C1 10 ([04](04-protocolo.md)) con la celda del punto (`ftol(x · 0,01f)` y
+`ftol(y · 0,01f)`, el byte bajo), cifrado en línea byte a byte con el XOR32, y en C3 con sus dos `rand()`
+(`0x518515..0x518606`), y 1. Lo llama solo el choque de las flechas (`0x520497`).
+
 MuRet dibuja las flechas con el modelo de su tipo cuando lo hay (CL11). Los `rand()` de un tiro del héroe con el
 arco corto: las dos lecturas de `+0x38e`, 3.848 de `0x59fb80`, 3.848 de las armas y 3.848 de la salida del alta; por
 paso de la flecha, uno de la luz (y los del fuego con el `0xdb`) y, al chocar, 3.848
-(`ArrowEffectsTest`, `AttackStepTest.TheElfBowShootsAndStopsAtTheSkill`).
+(`ArrowEffectsTest`, `AttackStepTest.TheElfBowShootsAndStopsAtTheSkill`). Las skills de tiro suman la cuenta de la
+tanda (3.848) y cada tiro de la bandera los suyos; el choque de una flecha de skill, el de `& 1`, 3.848 de la skill,
+3.848 de `0x517a20`, dos del C3 y, con otra skill que la `0x33` y la `0x34`, el del sonido (`SkillHitsTest`).
 
 ### Los casos de los monstruos (0x4f5b70)
 

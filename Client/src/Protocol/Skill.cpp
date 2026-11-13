@@ -10,6 +10,7 @@
 #include "Protocol/PacketFields.h"
 #include "Protocol/ProtocolError.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -186,6 +187,21 @@ Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key)
                            .PutU8(skill)
                            .PutU8(static_cast<std::uint8_t>(key >> 8))
                            .PutU8(static_cast<std::uint8_t>(key & 0xffu)));
+}
+
+Outgoing WriteSkillHits(const SkillHitsSend& send)
+{
+    auto writer = Network::PacketWriter::C1(SkillHitsOpcode);
+    const std::size_t hits = std::min<std::size_t>(send.hits, MaxSkillHits);
+    writer.PutU8(send.skill).PutU8(send.x).PutU8(send.y).PutU8(send.volley).PutU8(static_cast<std::uint8_t>(hits));
+    for (std::size_t hit = 0; hit < hits; ++hit)
+    {
+        const std::uint16_t key = send.keys[hit];
+        writer.PutU8(static_cast<std::uint8_t>(key >> 8))
+            .PutU8(static_cast<std::uint8_t>(key & 0xffu))
+            .PutU8(send.extra);
+    }
+    return EncryptedC1(writer);
 }
 
 Outgoing WriteTeleportMagic(std::uint8_t x, std::uint8_t y)

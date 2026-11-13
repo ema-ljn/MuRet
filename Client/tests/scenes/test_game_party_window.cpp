@@ -33,6 +33,7 @@
 
 #include <format>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <map>
@@ -76,8 +77,9 @@ constexpr int Marker = -2;
 
 std::map<std::size_t, std::string> PartyTexts()
 {
-    return {{190, "Grupo"},       {191, "linea uno"},  {192, "linea dos"},   {193, "linea tres"},    {194, ""},
-            {195, "linea cinco"}, {196, "linea seis"}, {197, "linea siete"}, {221, "Cerrar ventana"}};
+    return {{190, "Grupo"},       {191, "linea uno"},  {192, "linea dos"},   {193, "linea tres"},     {194, ""},
+            {195, "linea cinco"}, {196, "linea seis"}, {197, "linea siete"}, {221, "Cerrar ventana"}, {30, "Lorencia"},
+            {32, "Devias"},       {55, "Tierra"},      {189, "Echar"}};
 }
 
 // Un quad del lote: el slot (NoTexture sin textura, Marker si es la marca de un texto), la mezcla, el color y las
@@ -211,9 +213,52 @@ protected:
                                .sprites = m_sprites,
                                .text = m_text,
                                .texts = m_drawnTexts,
-                               .mouse = {.x = x, .y = y}};
+                               .mouse = {.x = x, .y = y},
+                               .leftDown = m_leftDown};
         Client::Scenes::GamePanels panels(*m_world, m_random);
         return Client::Scenes::DrawThePartyWindow(context, panels.Registry(), Left, Top);
+    }
+
+    // Tres miembros con nombres inventados: el héroe de jefe, uno fuera del viewport y uno con +0x78 & 8.
+    void ThreeMembers()
+    {
+        const auto setName = [](auto& name, std::string_view text)
+        {
+            name = {};
+            for (std::size_t at = 0; at < text.size(); ++at)
+                name[at] = static_cast<std::byte>(text[at]);
+        };
+        Client::Scenes::PartyState& party = Runtime().social.party;
+        setName(m_world->Actors()[Runtime().hero].name, "Tejon");
+        setName(party.slots[0].name, "Tejon");
+        party.slots[0] = {.name = party.slots[0].name,
+                          .map = 0,
+                          .x = 130,
+                          .y = 120,
+                          .life = 50,
+                          .maxLife = 100,
+                          .tenths = 5,
+                          .actorIndex = 0};
+        setName(party.slots[1].name, "Brezal");
+        party.slots[1] = {.name = party.slots[1].name,
+                          .map = 2,
+                          .x = 5,
+                          .y = 7,
+                          .life = 300,
+                          .maxLife = 200,
+                          .tenths = 12,
+                          .actorIndex = -1};
+        setName(party.slots[2].name, "Zorzal");
+        party.slots[2] = {.name = party.slots[2].name,
+                          .map = 10,
+                          .x = 200,
+                          .y = 9,
+                          .life = 1,
+                          .maxLife = 3,
+                          .tenths = 0,
+                          .actorIndex = 4,
+                          .actorFlags = 8};
+        Runtime().hud.partyCount = 3;
     }
 
     void Click()
@@ -242,6 +287,7 @@ protected:
     Client::Tests::RecordingTextDrawer m_text;
     Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(PartyTexts());
     const Client::Data::Text::TextTable* m_drawnTexts = &m_texts;
+    bool m_leftDown = false;
 };
 
 // 0x5a4c6e..0x5a4ea6: la P abre la party, que cierra lo demás, pone la cuenta en 0 y pide la lista (C1 03 42); el
@@ -420,11 +466,78 @@ TEST_P(GamePartyWindowTest, TheClosedPartyOnlyAsksTheWorldWidth)
     EXPECT_EQ(m_random.State(), expected.State());
     EXPECT_TRUE(QuadsOf(m_sprites).empty());
     EXPECT_EQ(Runtime().hud.partyX, 0) << "cerrada no pone la esquina";
+}
 
-    Runtime().hud.partyCount = 1;
-    const auto drawn = Draw(0, 0);
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x5f130a"), std::string::npos) << drawn.Error();
+// 0x5f130a..0x5f168a: cerrada y con miembros, la lista de la derecha desde (640 − 50, 5): el fondo (ninguno con +0x1c
+// en −1), la barra, los décimos, el rojo del que no está o el verde de +0x20 & 8, el nombre, y los bordes y los
+// costados.
+TEST_P(GamePartyWindowTest, TheClosedPartyListsItsMembersOnTheRight)
+{
+    ThreeMembers();
+    ASSERT_TRUE(Draw(0, 0).HasValue());
+    const std::vector<DrawnQuad> quads = QuadsOf(m_sprites);
+    ASSERT_EQ(quads.size(), 8U + 13U + 4U + 4U);
+    // El primero: el fondo oscuro, la barra, cinco décimos y el nombre.
+    ExpectQuadAt(quads[0], NoTexture, 587.0f, 5.0f, 50.0f, 19.0f);
+    EXPECT_EQ(quads[0].color, (Color{0.1f, 0.1f, 0.1f, 0.7f}));
+    EXPECT_EQ(quads[0].blend, BlendMode::Alpha);
+    ExpectQuadAt(quads[1], NoTexture, 588.0f, 17.0f, 43.0f, 4.0f);
+    for (std::size_t tenth = 0; tenth < 5; ++tenth)
+        ExpectQuadAt(quads[2 + tenth], NoTexture, 590.0f + 4.0f * static_cast<float>(tenth), 18.0f, 3.0f, 2.0f);
+    EXPECT_EQ(quads[7].slot, Marker);
+    // El segundo, fuera del viewport: sin fondo, diez décimos (tenía 12) y el rojo encima.
+    ExpectQuadAt(quads[8], NoTexture, 588.0f, 36.0f, 43.0f, 4.0f);
+    ExpectQuadAt(quads[18], NoTexture, 626.0f, 37.0f, 3.0f, 2.0f);
+    ExpectQuadAt(quads[19], NoTexture, 587.0f, 24.0f, 50.0f, 19.0f);
+    EXPECT_EQ(quads[19].color, (Color{0.3f, 0.0f, 0.0f, 0.5f}));
+    // El tercero, con +0x78 & 8: el fondo, la barra sin décimos y el verde.
+    ExpectQuadAt(quads[21], NoTexture, 587.0f, 43.0f, 50.0f, 19.0f);
+    ExpectQuadAt(quads[22], NoTexture, 588.0f, 55.0f, 43.0f, 4.0f);
+    ExpectQuadAt(quads[23], NoTexture, 587.0f, 43.0f, 50.0f, 19.0f);
+    EXPECT_EQ(quads[23].color, (Color{0.2f, 1.0f, 0.2f, 0.2f}));
+    // Message_box2 arriba y abajo, y los costados de 3 · 19.
+    ExpectQuadAt(quads[25], 0xfc, 585.0f, 2.0f, 54.0f, 3.0f);
+    ExpectQuadAt(quads[26], 0xfc, 585.0f, 62.0f, 54.0f, 3.0f);
+    ExpectQuadAt(quads[27], NoTexture, 586.0f, 5.0f, 1.0f, 57.0f);
+    ExpectQuadAt(quads[28], NoTexture, 637.0f, 5.0f, 1.0f, 57.0f);
+    EXPECT_EQ(m_sprites.Blend(), BlendMode::Alpha);
+    const auto& texts = m_text.texts;
+    ASSERT_EQ(texts.size(), 3U);
+    EXPECT_EQ(texts[0].text, "Tejon");
+    EXPECT_EQ(texts[0].x, 590);
+    EXPECT_EQ(texts[0].y, 7);
+    EXPECT_EQ(texts[1].y, 26);
+    EXPECT_EQ(texts[2].text, "Zorzal");
+    EXPECT_EQ(texts[2].style.font, FontKind::Normal);
+    EXPECT_EQ(texts[2].style.colors.text, 0xffffffffu);
+    EXPECT_EQ(m_random.State(), Seed);
+}
+
+// 0x5f1343..0x5f13eb: el fondo de un miembro con personaje se aclara con el mouse en [x − 3, x + 50] × [y, y + 19];
+// con el inventario abierto, el ancho del mundo es 450 y saca sus dos rand().
+TEST_P(GamePartyWindowTest, TheListLightsUnderTheMouseAndFollowsTheWorldWidth)
+{
+    ThreeMembers();
+    ASSERT_TRUE(Draw(637, 24).HasValue());
+    std::vector<DrawnQuad> quads = QuadsOf(m_sprites);
+    EXPECT_EQ(quads[0].color, (Color{0.5f, 0.5f, 0.5f, 0.8f})) << "y + 19 cuenta";
+    EXPECT_EQ(quads[21].color, (Color{0.1f, 0.1f, 0.1f, 0.7f}));
+
+    m_sprites.Begin(Screen640);
+    m_text.texts.clear();
+    Runtime().panels.inventory = 1;
+    ASSERT_TRUE(Draw(0, 0).HasValue());
+    quads = QuadsOf(m_sprites);
+    ExpectQuadAt(quads[0], NoTexture, 397.0f, 5.0f, 50.0f, 19.0f);
+    EXPECT_EQ(m_text.texts[0].x, 400);
+    CrtRandom expected(Seed);
+    expected.Discard(2);
+    EXPECT_EQ(m_random.State(), expected.State());
+
+    Runtime().hud.partyCount = 6;
+    const auto cut = Draw(0, 0);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x5f130a"), std::string::npos) << cut.Error();
 }
 
 // 0x5f0c01..0x5f11c2: abierta y vacía, la esquina, el fondo sin mezcla (0x104 y 0x105), el título centrado en la caja
@@ -521,17 +634,89 @@ TEST_P(GamePartyWindowTest, TheCloseButtonShowsItsHelpUnderTheMouse)
     EXPECT_EQ(m_sprites.Blend(), BlendMode::Alpha);
 }
 
-// 0x5f0dde..0x5f0df0: con miembros, el dibujo abierto corta después del título; sin Text.bmd, corta en el título.
-TEST_P(GamePartyWindowTest, TheMembersAndAMissingTableCut)
+// 0x5f0df0..0x5f11ad: abierta, cada miembro de a 0x23: el nombre en negrita (el jefe con fondo rojo), el mapa
+// (0x5f0b40: el 2 es el texto 32 y el 10, el 55) y la celda, la barra de 92 × 5 y la vida (la menor sobre la máxima,
+// · 90) con sus números, y el botón de echar en cada uno porque el héroe es el jefe.
+TEST_P(GamePartyWindowTest, TheOpenPartyDrawsItsMembers)
 {
     Runtime().panels.party = 1;
-    Runtime().hud.partyCount = 3;
-    const auto members = Draw(0, 0);
-    ASSERT_FALSE(members.HasValue());
-    EXPECT_NE(members.Error().find("0x5f0df0"), std::string::npos) << members.Error();
-    EXPECT_EQ(m_text.texts.size(), 1U);
+    ThreeMembers();
+    ASSERT_TRUE(Draw(0, 0).HasValue());
+    const auto& texts = m_text.texts;
+    ASSERT_EQ(texts.size(), 1U + 3U * 4U);
+    EXPECT_EQ(texts[1].text, "Tejon");
+    EXPECT_EQ(texts[1].x, Left + 0x14);
+    EXPECT_EQ(texts[1].y, 0x34);
+    EXPECT_EQ(texts[1].style.font, FontKind::Bold);
+    EXPECT_EQ(texts[1].style.colors.background, 0xff962828u);
+    EXPECT_EQ(texts[2].text, "Lorencia");
+    EXPECT_EQ(texts[2].style.font, FontKind::Normal);
+    EXPECT_EQ(texts[2].style.colors.text, 0xffd2e6ffu);
+    EXPECT_EQ(texts[3].text, "130,120");
+    EXPECT_EQ(texts[3].x, Left + 0x5a);
+    EXPECT_EQ(texts[3].y, 0x3c);
+    EXPECT_EQ(texts[4].text, "( 50 / 100 )");
+    EXPECT_EQ(texts[4].x, Left + 0x38);
+    EXPECT_EQ(texts[4].y, 0x4b);
+    EXPECT_EQ(texts[5].text, "Brezal");
+    EXPECT_EQ(texts[5].y, 0x34 + 0x23);
+    EXPECT_EQ(texts[5].style.colors.text, 0xffffe6d2u);
+    EXPECT_EQ(texts[5].style.colors.background, 0U);
+    EXPECT_EQ(texts[6].text, "Devias");
+    EXPECT_EQ(texts[8].text, "( 300 / 200 )");
+    EXPECT_EQ(texts[10].text, "Tierra");
 
-    Runtime().hud.partyCount = 0;
+    std::vector<DrawnQuad> bars;
+    std::vector<DrawnQuad> kicks;
+    for (const DrawnQuad& quad : QuadsOf(m_sprites))
+    {
+        if (quad.slot == NoTexture && quad.third.y - quad.first.y == -3.0f)
+            bars.push_back(quad);
+        if (quad.slot == 0x118 || quad.slot == 0x119)
+            kicks.push_back(quad);
+    }
+    ASSERT_EQ(bars.size(), 3U);
+    ExpectQuadAt(bars[0], NoTexture, Left + 0x14, 0x46, 45.0f, 3.0f);
+    ExpectQuadAt(bars[1], NoTexture, Left + 0x14, 0x46 + 0x23, 90.0f, 3.0f);
+    ExpectQuadAt(bars[2], NoTexture, Left + 0x14, 0x46 + 0x46, 30.0f, 3.0f);
+    EXPECT_EQ(bars[0].color, (Color{225.0f / 255.0f, 15.0f / 255.0f, 0.0f, 1.0f}));
+    // Los tres botones de echar y el de cerrar.
+    ASSERT_EQ(kicks.size(), 4U);
+    ExpectQuadAt(kicks[1], 0x118, Left + 140.0f, 55.0f + 0x23, 24.0f, 24.0f);
+    EXPECT_EQ(m_random.State(), Seed);
+}
+
+// 0x5f1137..0x5f11a1: con el mouse en el botón de echar y el izquierdo abajo, exit_02 (0x119) encima y la ayuda (189)
+// 13 arriba; sin ser el jefe, solo el propio. Sin Text.bmd, corta en el título.
+TEST_P(GamePartyWindowTest, TheKickButtonPressesAndShowsItsHelp)
+{
+    Runtime().panels.party = 1;
+    ThreeMembers();
+    m_leftDown = true;
+    ASSERT_TRUE(Draw(Left + 140 + 23, 55 + 0x23).HasValue());
+    std::vector<int> slots;
+    for (const DrawnQuad& quad : QuadsOf(m_sprites))
+        if (quad.slot == 0x118 || quad.slot == 0x119)
+            slots.push_back(quad.slot);
+    EXPECT_EQ(slots, (std::vector<int>{0x118, 0x118, 0x119, 0x118, 0x118}));
+    const auto help = std::ranges::find(m_text.texts, std::string("Echar"), &Client::Tests::RecordedText::text);
+    ASSERT_NE(help, m_text.texts.end());
+    EXPECT_EQ(help->x, Left + 140);
+    EXPECT_EQ(help->y, 55 + 0x23 - 13);
+    EXPECT_EQ(help->style.colors.background, 0xff000000u);
+
+    m_sprites.Begin(Screen640);
+    m_text.texts.clear();
+    Client::Scenes::PartyState& party = Runtime().social.party;
+    auto& heroName = m_world->Actors()[Runtime().hero].name;
+    std::copy_n(party.slots[1].name.begin(), heroName.size(), heroName.begin());
+    ASSERT_TRUE(Draw(0, 0).HasValue());
+    slots.clear();
+    for (const DrawnQuad& quad : QuadsOf(m_sprites))
+        if (quad.slot == 0x118)
+            slots.push_back(quad.slot);
+    EXPECT_EQ(slots.size(), 2U) << "el propio y el de cerrar";
+
     m_drawnTexts = nullptr;
     const auto missing = Draw(0, 0);
     ASSERT_FALSE(missing.HasValue());

@@ -4,6 +4,7 @@
 #include "Data/Terrain/TerrainMapping.h"
 #include "Render/Models/RayPicking.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/PartyActors.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/TerrainPickingSegment.h"
@@ -112,17 +113,22 @@ std::int32_t PickTheCharacter(WorldState& world, std::uint8_t mask,
         if (Matches(actor, mask) && Visible(actor))
             Tint(actor);
     }
-    if (!ray)
-        return NoPick;
     // 0x59e7fc..0x59ea95. 0x5368d4a5: el mejor de arranque, ~1e12.
     std::int32_t picked = NoPick;
     float best = std::bit_cast<float>(0x5368d4a5u);
     const std::size_t hero = world.Runtime().hero;
     constexpr std::uint32_t Hidden = 0x10000000;
+    constexpr std::uint8_t PlayerKind = 1;
     for (std::size_t slot = 0; slot < PickedActors; ++slot)
     {
         const ActorState& actor = actors[slot];
         if (!Visible(actor) || actor.dying != 0 || (actor.flags7c & Hidden) == Hidden)
+            continue;
+        // 0x59e86a..0x59e948: un jugador busca su lugar en la party antes de las demás condiciones (CL9 hito 7).
+        if (actor.byte88 == PlayerKind)
+            MatchThePartyMembers(world, slot);
+        // Sin segmento (antes del primer dibujo) no hay caja que tocar.
+        if (!ray)
             continue;
         if (slot == hero || actor.byte42c == 0 || !Matches(actor, mask))
             continue;
@@ -135,6 +141,8 @@ std::int32_t PickTheCharacter(WorldState& world, std::uint8_t mask,
         best = static_cast<float>(distance);
         picked = static_cast<std::int32_t>(slot);
     }
+    // 0x59ea9b..0x59eb66.
+    MarkTheMissingMembers(world);
     return picked;
 }
 } // namespace Client::Scenes

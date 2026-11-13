@@ -1464,8 +1464,8 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     DrawTheSands(frame);
     // 2. 0x5a7640: la guerra de gremios, con 0x576796c (CL9.4): nada.
     // 3. 0x5a89b0: las barras de la party.
-    if (hud.partyCount > 0)
-        return Core::Unexpected(std::string("0x5a89b0: las barras de vida de la party son de la CL9 hito 7, fase 2"));
+    if (auto life = DrawThePartyLife(context); !life.HasValue())
+        return life;
     // 4. 0x5a6fc0: la info de Castle Siege, con el objeto de 0x5767924 (CL9.5): nada.
     // 5. 0x42a4d0: las barras de la cola de 0x7239ac, vacía hasta la CL9.5: nada.
     // 6. 0x42a660.

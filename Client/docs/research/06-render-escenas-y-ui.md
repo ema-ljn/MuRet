@@ -9908,6 +9908,47 @@ el nombre de `0x78abae0` en la negrita grande, sombra negra en (`0x140`, `0x8d`)
 **MuRet**: `Scenes::DrawTheDuelScore` y `DrawTheDuelRequest` (`GameSocialDrawing`); `GameSocialDrawingTest` en
 Lorencia y Devias.
 
+**Los miembros de la party en el viewport.** Cada lugar de `0x77f3cd0` (0x24 B) guarda en `+0x1c` el personaje con
+su nombre y en `+0x20` el `+0x78` de ese personaje. La `.bss` empieza en 0 y el `42` no los toca. En cada frame, el
+picking (`0x59ec80`) los escribe así:
+
+| Quién | Cuándo | Qué hace |
+| --- | --- | --- |
+| `0x5e4140` (`0x59f48d`) | sin Alt y con la party cerrada (`IsOpen(4)`), después de elegir el orden de las búsquedas | la lista de la derecha: x = `0x5bb8d0` − 50 (con sus consultas), renglones de 19 desde y 5. Un lugar con personaje ocupa su renglón y, con el Dark Wizard o el Elf (`+0x1d4 & 7` en 0 o 2), abre y cierra el registro propio para leer la skill de su lugar (`+0x425`; 3.848 `rand()` si la cuenta vuelve a 0); con `0xf`, `0x10` o `0x1a..0x1c` y el mouse en [x − 3, x + 50] × [y, y + 19], `0x6c8e30` = ese personaje y devuelve 1. Uno en −1 ocupa su renglón; −2 y −3 no. Todos quedan en −2 |
+| `0x59e700(máscara)` | cada búsqueda de personajes | dentro del lazo de los 400, para cada uno vivo, a la vista, con alpha, sin morirse, sin `+0x7c & 0x10000000` y con `+0x88` en 1 (el héroe también), antes del resto de las condiciones: el primer lugar en −2 con su nombre (strncmp con el mayor de los largos, por lo menos 1) toma el índice y `+0x78`; cada lugar en −2 que compara pone antes `+0x20` en 0. Al final, cada lugar negativo: `+0x20` en 0 y −3 si es el nombre del héroe publicado, −1 si no |
+| `0x59e3b0` (`0x59f52a`) | con el mouse en la UI, cuando `0x5e4140` eligió, o con un elegido y `0x6c8e38` puesto (`0x59f522`) | lo mismo, entre los de tipo `0x20a` y `+0x88` en 1, sin mirar `+0x7c` |
+
+Con la party abierta, `0x5e4140` no corre: los lugares encontrados se quedan con su índice aunque el personaje se vaya.
+Un dibujo intermedio de MuRet los escribe en el mundo, no en una copia: con los mismos personajes, el resultado es el
+mismo (*inferido*).
+
+**Las barras de la party** (`0x5a89b0`, hijo 3 del HUD). Con `0x78aba48` en 1 o más, cada lugar con `+0x1c` en 0 o
+más proyecta (`0x6205b0`) la cabeza (`+0x138` + z + 100) y resta 19 a la x. Con el mouse en [x, x + 38) × [y − 2,
+y + 6), "HP : %d0%" (`0x6c92ec`, con `+0x18`) en (x, y − 6) con la fuente y los colores que haya (`0x465950` en el modo
+1; antes pone `0x6c8e60` en `0xffd2e6ff`, que solo leen las columnas del prefijo de un globo). Después, con la mezcla
+normal, la sombra (0, 0, 0, 0,5) de 42 × 5 en (x + 1, y + 1); sumados (`0x620a90`), el borde (0,2; 0; 0) de 42 × 5 en
+(x, y), el fondo (50/255, 10/255, 0) de 38 × 1 en (x + 2, y + 2) y los décimos (250/255, 10/255, 0) de 3 × 2 en
+(x + 2 + 4i, y + 2), hasta 10; opaca. Al final, opaca y blanco. Sin `rand()`.
+
+**La ventana de la party con miembros** (`0x5f0be0`). Cerrada, después del ancho y los colores −1 y 0, la lista de la
+derecha (`0x5f130a`) desde (ancho − 50, 5): por miembro, con la mezcla normal, el fondo de 50 × 19 en x − 3 (0,1; 0,1;
+0,1; 0,7, o 0,5; 0,5; 0,5; 0,8 con el mouse en [x − 3, x + 50] × [y, y + 19]; ninguno en −1), la barra (50/255, 10/255,
+0) de 43 × 4 en (x − 2, y + 12), los décimos de 3 × 2 en (x + 4i, y + 13), el rojo (0,3; 0; 0; 0,5) encima si está en
+−1 o el verde (0,2; 1; 0,2; 0,2) con `+0x20 & 8`, y el nombre en la normal en (x, y + 2). Después, Message_box2
+(`0xfc`) de 54 × 3 en (x − 5, 2) y (x − 5, y final), y los costados (184/255, 151/255, 97/255, 0,5) de 1 ×
+(19 · cuenta) en x − 4 y x + 47. Abierta, por miembro de a `0x23`: el nombre en negrita (el primero con fondo
+`0xff962828` y texto blanco; los demás, `0xffffe6d2`), el mapa (`0x5f0b40`: el texto 30 + mapa, salvo 10 → 55,
+11..17 → 56, 18..23 → 57, 24..29 y 36 → 58, 30 → 669, 31 → 59, 32 → 39, 33 → 1850 y 34 → 1851) y "%d,%d" de la
+celda en `0xffd2e6ff`, la barra (0,2; 0; 0) de 92 × 5 en (x + 0x13, y + 0x45), la vida (225/255, 15/255, 0) de
+(la menor con signo de `+0x10` y `+0x14`) / `+0x14` · 90 × 3 en (x + 0x14, y + 0x46), "( %d / %d )" en (x + 0x38,
+y + 0x4b) y, si el héroe es el primero o este, el botón de echar (`0x118`, o `0x119` con el izquierdo abajo) en
+(x + 140, y + 55) con su ayuda (texto 189) 13 arriba.
+
+**MuRet**: `Scenes::PartyActors` (`MatchThePartyMembers`, `MarkTheMissingMembers`, `FindThePartyInTheViewport` y
+`PickFromThePartyList`, desde `PickTheCharacter` y `PickInTheFrame`), `DrawThePartyLife` y `DrawThePartyWindow`
+(`GamePartyWindow`). Tests: `CharacterPickingTest` (la búsqueda y la lista, con sus `rand()`), `GamePartyWindowTest`
+(la lista y los miembros) y `PartyLifeTest` (con dos jugadores del `0x12` en Lorencia y Devias).
+
 ## Lo que no se sabe
 
 - **Modelos, en el binario** (P-C01, cerrado en la CL6.R): el skinning, la pose, el avance, la

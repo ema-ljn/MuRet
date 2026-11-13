@@ -345,8 +345,8 @@ byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada v
       `0x59e680`).
   - [x] Fase 1 (2026-11-13): los paquetes de los dos lados, el diálogo `0x77` (sí y no, `0x62bb1d` y `0x62cd52`),
         echar (`0x5e3d03`) y la cantidad `0x78aba48`.
-  - [ ] Fase 2: los dibujos `0x5a89b0` y `0x5f0be0` y el índice del actor de cada miembro (`0x59e3b0`, `0x59e700`)
-        (08 P-C204 y P-C205).
+  - [x] Fase 2 (2026-11-13): los dibujos `0x5a89b0` y `0x5f0be0` (con `0x5f0df0` y `0x5f130a`) y el índice del actor
+        de cada miembro (`0x59e3b0`, `0x59e700`, `0x5e4140`).
 - [ ] **El duelo:** `AA`..`AD` (`0x4dac90`), el marcador (`0x5a6cc0`, `0x5f37f0`, `0x78abad9`) y el color de
       la tela con el nombre del rival (P-C22 e, `0x50c929..0x50cc29`, y qué es `+0x3e3`).
   - [x] Fase 1 (2026-11-13): los paquetes de los dos lados, los puntos y el paso del pedido (`0x5ebca0`).

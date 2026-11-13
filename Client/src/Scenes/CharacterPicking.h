@@ -22,9 +22,10 @@ class WorldState;
 // muere (+0x389), sin +0x7c & 0x10000000, sin el héroe publicado y con +0x42c, el de menor distancia² entre su
 // posición y la cámara (0x7d36884) cuya caja toca el segmento del mouse (0x622900, de 0x7d36834 a 0x7d366c0): la del
 // 0x20a desde su posición (Q-C100). En Lorencia (0) un candidato sobre la capa 4 del .map, y en Devias (2) sobre la 3,
-// cuenta solo si es la capa de la celda del héroe (0x77f36d0). El primero gana los empates. −1 si ninguno. La party
-// (0x78aba48) está vacía en MuRet (hito 7): sus dos recorridos no hacen nada. Sin segmento (antes del primer dibujo),
-// solo tiñe. Sin rand().
+// cuenta solo si es la capa de la celda del héroe (0x77f36d0). El primero gana los empates. −1 si ninguno. Cada
+// jugador (+0x88 en 1) que pasa las primeras condiciones busca antes su lugar en la party (MatchThePartyMembers) y, al
+// final, los lugares sin personaje quedan en −1 o −3 (MarkTheMissingMembers, CL9 hito 7). Sin segmento (antes del
+// primer dibujo), tiñe y busca la party, sin elegir. Sin rand().
 [[nodiscard]] std::int32_t PickTheCharacter(WorldState& world, std::uint8_t mask,
                                             const std::optional<World::TerrainPickingSegment>& ray);
 } // namespace Client::Scenes

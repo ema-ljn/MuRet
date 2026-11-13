@@ -271,7 +271,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                             .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
                             .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
                             .altDown = input.IsDown(Input::Key::Alt),
-                            .ray = m_mouseRay});
+                            .ray = m_mouseRay,
+                            .mouse = UI::MouseIn640x480(input, canvas.screen)});
     if (!picked.HasValue())
         return picked;
     // 0x637646..0x6376e6: la pasada 2D, en este orden (06 § El dibujo del juego). Un dibujo intermedio de MuRet dibuja

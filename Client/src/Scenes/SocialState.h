@@ -75,6 +75,13 @@ struct PartySlot
     std::uint32_t life = 0;
     std::uint32_t maxLife = 0;
     std::uint8_t tenths = 0;
+    // +0x1c: el personaje del viewport con su nombre, o −1 (no está), −2 (sin buscar: lo deja 0x5e4140) o −3 (el
+    // héroe publicado no se ve). Lo escriben 0x59e3b0 y 0x59e700 en cada frame (PartyActors.h); la .bss empieza en 0 y
+    // el 42 no lo toca.
+    std::int32_t actorIndex = 0;
+    // +0x20: el +0x78 de ese personaje cuando lo encontró, o 0. Con 8, la lista de la derecha lo tiñe de verde
+    // (0x5f14c1).
+    std::uint32_t actorFlags = 0;
 };
 
 struct PartyState

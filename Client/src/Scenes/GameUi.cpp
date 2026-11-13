@@ -23,6 +23,7 @@
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/PartyActors.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
@@ -1675,11 +1676,11 @@ Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& cont
     targets[0] = NoTarget;
     targets[1] = NoTarget;
     targets[3] = NoTarget;
-    // 0x59e3b0 (0x59f52a), con el mouse en la UI y en los saltos de abajo, solo recorre la party (0x78aba48), que está
-    // vacía en MuRet (hito 7): no hace nada. 0x59e2e0 (el ítem del piso, sin ítem en el cursor, 0x7879fbc) y 0x59eb90
-    // (los objetos) son de la CL9.3: dejan −1.
+    // 0x59ef2f → 0x59f52a: con el mouse en la UI, 0x59e3b0 (la party en el viewport). 0x59e2e0 (el ítem del piso, sin
+    // ítem en el cursor, 0x7879fbc) y 0x59eb90 (los objetos) son de la CL9.3: dejan −1.
     if (runtime.ui.mouseOnUi != 0)
     {
+        FindThePartyInTheViewport(context.world);
         ForgetTheOther(targets);
         return {};
     }
@@ -1700,10 +1701,14 @@ Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& cont
         return {};
     }
     const std::array<std::uint8_t, 2> order = CharacterSearchOrder(context);
-    // 0x59f48d → 0x5e4140: con la party cerrada, el ancho del mundo (0x5bb8d0) y la party (0x78aba48), vacía: da 0.
+    // 0x59f48d → 0x5e4140: con la party cerrada, la lista de la derecha; si elige, 0x59e3b0 (0x59f494 → 0x59f52a).
     GamePanels panels(context.world, context.random);
-    if (!panels.Registry().IsOpen(UI::PartyPanel))
-        static_cast<void>(panels.Registry().WorldWidth());
+    if (PickFromThePartyList(context, panels.Registry()))
+    {
+        FindThePartyInTheViewport(context.world);
+        ForgetTheOther(targets);
+        return {};
+    }
     // 0x59f49a..0x59f509.
     if (targets[2] == NoTarget)
     {
@@ -1714,8 +1719,13 @@ Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& cont
             if (targets[2] != NoTarget)
                 return {};
             targets[1] = pick(4);
+            ForgetTheOther(targets);
+            return {};
         }
     }
+    // 0x59f522..0x59f52a: con un elegido y 0x6c8e38 puesto, 0x59e3b0.
+    if (targets[4] != NoTarget)
+        FindThePartyInTheViewport(context.world);
     ForgetTheOther(targets);
     return {};
 }

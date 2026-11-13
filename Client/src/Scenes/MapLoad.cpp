@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainObjects.h"
+#include "Data/WorldFolder.h"
 #include "Data/WorldLoadIdentity.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
@@ -28,8 +29,10 @@
 #include <format>
 #include <memory>
 #include <new>
+#include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -170,12 +173,22 @@ Core::Expected<void, std::string> PrepareTheCastleSiege(WorldMap& loaded, std::i
     return CreateTheObjects(spearmen, "los lanceros de 0x42a760", loaded, map, context);
 }
 
+// El .att y la luz que pide la carga (0x61a6d0..0x61a74d y 0x61a8c0..0x61a910): los del mundo, salvo en el 34 con el
+// estado de Crywolf en 1 o 2 (EncTerrain351/352.att y TerrainLight1/2).
+struct TerrainFileNames
+{
+    std::optional<std::int32_t> attributesNumber;
+    std::string_view lightName = "TerrainLight";
+};
+
 // Lo que no depende de un mapa de frontera: el terreno, el .obj y sus objetos.
-Core::Expected<void, std::string> LoadTheFiles(const MapLoadContext& context, WorldMap& loaded, std::int32_t map)
+Core::Expected<void, std::string> LoadTheFiles(const MapLoadContext& context, WorldMap& loaded, std::int32_t map,
+                                               const TerrainFileNames& names)
 {
     const auto folderMap = static_cast<std::uint8_t>(map);
     auto& fatalMessage = context.world.Runtime().fatalDataMessage;
-    auto terrain = World::LoadWorldTerrainLayout(context.dataRoot, folderMap, loaded.terrain, fatalMessage);
+    auto terrain = World::LoadWorldTerrainLayout(context.dataRoot, folderMap, loaded.terrain, fatalMessage,
+                                                 names.attributesNumber);
     if (!terrain.HasValue())
     {
         return Core::Unexpected(terrain.Error());
@@ -189,7 +202,7 @@ Core::Expected<void, std::string> LoadTheFiles(const MapLoadContext& context, Wo
     if (auto created = CreateTheObjects(loaded.objectRecords, "EncTerrain.obj", loaded, map, context);
         !created.HasValue())
         return created;
-    return World::LoadWorldTerrainSurface(context.dataRoot, folderMap, loaded.terrain, fatalMessage);
+    return World::LoadWorldTerrainSurface(context.dataRoot, folderMap, loaded.terrain, fatalMessage, names.lightName);
 }
 } // namespace
 
@@ -270,13 +283,23 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
     }
     FillTheGrassOffsets(loaded.grassOffsets, context.random);
     // 0x61a6d0: 0x42fe50 lee el estado de Crywolf después del .map. Con 0 (el de la .bss, Q-C340) el 34 carga
-    // EncTerrain35.att y TerrainLight como los demás; con 1 y 2, EncTerrain351/352.att y TerrainLight1/2, y con 3
-    // o más el .att con la ruta del .map (Q-C181). Solo un paquete lo cambia (0x42fe80, CL9.5).
-    if (map == CrywolfMap && context.world.Runtime().crywolf.state != 0)
+    // EncTerrain35.att y TerrainLight como los demás; con 1 y 2, que pone el BD 00 (0x42fe80), EncTerrain351/352.att
+    // (el mundo · 10 + estado, 0x61a706 y 0x61a710) y TerrainLight1/2 (0x61a8d2 y 0x61a8dd). Con 3 o más, el .att con
+    // la ruta del .map y la luz con la de TerrainHeight.bmp, que sombrea la luz anterior con las alturas nuevas
+    // (Q-C181): MuRet no guarda la luz sin sombrear.
+    TerrainFileNames names;
+    if (map == CrywolfMap)
     {
-        return Core::Unexpected(std::format("0x61a6f4: el .att y la luz del mapa 34 con el estado de Crywolf {} no "
-                                            "están portados",
-                                            static_cast<int>(context.world.Runtime().crywolf.state)));
+        const std::uint8_t state = context.world.Runtime().crywolf.state;
+        if (state > 2)
+            return Core::Unexpected(std::format("0x61a74d: el .att y la luz del mapa 34 con el estado de Crywolf {} "
+                                                "son los archivos anteriores (Q-C181)",
+                                                static_cast<int>(state)));
+        if (state != 0)
+        {
+            names.attributesNumber = static_cast<std::int32_t>(Data::WorldFolderNumber(CrywolfMap)) * 10 + state;
+            names.lightName = state == 1 ? "TerrainLight1" : "TerrainLight2";
+        }
     }
     // 0x61a6e1 y 0x61a8a8: en el 30, 0x4294b0 elige el .att y la luz. Con 0x7239ec en 0, el de siempre
     // (EncTerrain31.att y TerrainLight.jpg); prendido, que solo lo dejan los paquetes de 0x4294c0 (CL9.5), no.
@@ -285,7 +308,7 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
         return Core::Unexpected(std::string("0x61a6ea: el .att 312 y TerrainLight2 del asedio (0x7239ec) no están "
                                             "portados"));
     }
-    if (auto files = LoadTheFiles(context, loaded, map); !files.HasValue())
+    if (auto files = LoadTheFiles(context, loaded, map, names); !files.HasValue())
     {
         return files;
     }

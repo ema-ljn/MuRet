@@ -5200,8 +5200,7 @@ un error que nombra la dirección, nunca en silencio:
   pasto ([Creación de objetos](#los-objetos-del-juego)). Cortan: el 5 por el archivo que falta
   en `World6`, el 35 por el ATT ausente de `World36`, el 30 con el asedio prendido en `0x61a6ea` (sin él,
   `0x42a760` carga los lanceros, [Los objetos de Castle Siege](#los-objetos-de-castle-siege)), el 34 con el estado de
-  Crywolf en 1 o más en `0x61a6f4` (el `.att` y la luz según `0x42fe50`, antes del `BD`, que por eso no
-  sale) y el 55 en `0x6188ae`. Sin
+  Crywolf en 3 o más en `0x61a74d` (Q-C181; con 1 y 2 carga `EncTerrain351/352.att` y `TerrainLight1/2`) y el 55 en `0x6188ae`. Sin
   `TerrainHeight.OZB`, el error nombra el archivo, con el pasto ya sacado (Q-C180).
 - **Aviso y cierre por datos fatales (CL7b, Q-C180).** MAP/ATT y OBJ se procesan antes de
   alturas/luz, conservando los owners publicados antes del fallo. Un MAP que no abre permite
@@ -8246,7 +8245,18 @@ MuRet porta ese estado (Q-C340). Lo leen la carga y el dibujo:
 
 - **La carga** (`0x61a6d0`, `0x42fe50` después del `.map`): con 0, `EncTerrain35.att` y `TerrainLight` como los
   demás mapas; con 1 y 2, `EncTerrain351.att`/`EncTerrain352.att` y `TerrainLight1`/`TerrainLight2`; con 3 o más,
-  el `.att` con la ruta del `.map` y la luz de Q-C181. MuRet carga el 0 y corta los otros en `0x61a6f4`.
+  el `.att` con la ruta del `.map` y la luz de Q-C181. MuRet carga el 0, el 1 y el 2 (`TerrainFileNames` en
+  `Scenes/MapLoad`) y corta el 3 o más en `0x61a74d`: la luz de Q-C181 es la anterior sin sombrear, que MuRet no
+  guarda.
+- **El `BD 00` con otro estado** (`0x42ff16..0x42ffe8`, CL9 hito 11, fase 3): vuelve a leer la luz (`0x5f8f40`) y el
+  `.att` (`0x5f8390`) **del mapa en curso, sea cual sea** (Q-C1340), con la carpeta `"World%d"` del mapa + 1 (sin la
+  guarda de `0x61a560`): `TerrainLight`, `TerrainLight1` o `TerrainLight2` por el estado y `EncTerrain<mapa + 1>.att`,
+  `<mapa · 10 + 0xb>` o `<mapa · 10 + 0xc>`. No mira lo que devuelve ninguno de los dos: un archivo que falta deja el
+  aviso fatal (`" - File not exist."` o `" file not found."`) y lo que había; el `.att` no se compara con el mundo.
+  Con 3 o más, la luz es el buffer sin escribir (Q-C1328). MuRet: `World::ReloadWorldTerrainLight` y
+  `ReloadWorldTerrainAttributes` (`World/WorldTerrain`) desde `ApplyEventPacket`, con la carpeta Data de la sesión
+  (`EventPacketContext::dataRoot`). Tests: `EventPacketsTest.TheCrywolfStateReloadsTheLightAndTheAttributes` (34) y
+  `TheCrywolfStateReloadsTheCurrentMapToo` (Lorencia y Devias), `MapLoadTest.CrywolfTakesTheAttributesAndTheLightOfItsState`.
 - **El dibujo**: los sorteos del `0x38` solo con 0; el humo del `0x54` y del `0x4a`, con 1; el `0x51`, con 2.
 
 `0x723c05` y `0x723c08`, que también vuelven a 0 en `0x42fdc0`, solo los escriben paquetes: eligen la música
@@ -8332,7 +8342,7 @@ cuentan con cada frame del original. El paso: `World::StepCrywolfObject` (`World
 `World::ModelEffects::CreateFadingDecal` y su paso en `StepGameModelEffect`. Las burbujas:
 `World::StepCrywolfWaterCell` (`CrywolfWater`), que `GameScene` le pasa a `World::DrawTerrain` como el gancho de la
 celda. El humo `5f2/33` del `0x48`: `World::CrywolfRisingSmokeSubtype` en `Particles`. Corta, con la dirección: la
-carga con el estado en 1 o más (`0x61a6f4`), el `0x51` con el estado en 2 (`0x430a40`) y los casos de monstruos de
+carga con el estado en 3 o más (`0x61a74d`), el `0x51` con el estado en 2 (`0x430a40`) y los casos de monstruos de
 `0x4339d0`. Con la Data del repo, el 34 llega a un cuadro completo y camina (`GameT16SceneMatrix`; `GameT16MapWalk`,
 en (128, 30): suelo libre de `EncTerrain35.att` en la zona segura del fuerte, con tres `0x29`, cuatro `0x38`, el
 `0x49`, el `0x4a` y los `0x52` vistos). `EncTerrain35.obj` no trae ningún `0x48` (*simulado*): su humo no sale en la

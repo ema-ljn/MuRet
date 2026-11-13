@@ -1109,9 +1109,30 @@ private:
             return Core::Unexpected(std::format("0x42ff81: con el estado {} de Crywolf, 0x5f8f40 lee el buffer de la "
                                                 "luz sin escribir (Q-C1328)",
                                                 static_cast<int>(state)));
-        return Core::Unexpected(std::format("0x42ff81: la luz (0x5f8f40) y el .att (0x5f8390) de World{} con el estado "
-                                            "{} de Crywolf son de la fase 2 del hito 11 de la CL9",
-                                            m_runtime.map + 1, static_cast<int>(state)));
+        return ReloadTheCrywolfTerrain(state);
+    }
+
+    // 0x42ff16..0x42ffe8: la luz y el .att del mapa en curso, sea cual sea (Q-C1340), con la carpeta "World%d" del
+    // mapa + 1 (0x6c7330, sin la guarda de 0x61a560): TerrainLight, TerrainLight1 o TerrainLight2 por el estado
+    // (0x6c72e8, 0x6c73fc y 0x6c72fc) y EncTerrain<mapa + 1>.att, <mapa · 10 + 0xb> o <mapa · 10 + 0xc> (0x6c7314).
+    // Ninguno de los dos mira lo que devuelve el cargador: un archivo que falta deja el aviso fatal y lo anterior.
+    Applied ReloadTheCrywolfTerrain(std::uint8_t state)
+    {
+        if (m_context.dataRoot.empty())
+            return Core::Unexpected(std::format("0x42ff81: la luz y el .att de World{} con el estado {} de Crywolf "
+                                                "se leen de la carpeta Data, que no llegó",
+                                                m_runtime.map + 1, static_cast<int>(state)));
+        static constexpr std::array<std::string_view, 3> LightNames{"TerrainLight", "TerrainLight1", "TerrainLight2"};
+        const std::int32_t map = m_runtime.map;
+        const std::string folder = std::format("World{}", map + 1);
+        World::WorldTerrain& terrain = m_world.Map().terrain;
+        std::optional<std::string>& fatal = m_runtime.fatalDataMessage;
+        if (auto light = World::ReloadWorldTerrainLight(m_context.dataRoot, folder, LightNames[state],
+                                                        static_cast<std::uint8_t>(map), terrain, fatal);
+            !light.HasValue())
+            return light;
+        const std::int32_t number = state == 0 ? map + 1 : map * 10 + 0xa + state;
+        return World::ReloadWorldTerrainAttributes(m_context.dataRoot, folder, number, terrain, fatal);
     }
 
     // ----- F3 22 (0x4e31f8).

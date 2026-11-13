@@ -6,6 +6,7 @@
 #include "Protocol/Events.h"
 
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <optional>
 #include <string>
@@ -49,6 +50,9 @@ struct EventPacketContext
     // El C1 03 31 de cerrar el NPC de evento (0x658a18 y 0x658c0e) desde el 90 y los cierres de todos los paneles.
     // Vacío, cerrarlo corta.
     std::function<void()> sendWindowClose{};
+    // La carpeta Data, de donde el BD 00 vuelve a leer la luz y el .att con otro estado de Crywolf (0x42ff81 y
+    // 0x42ffe8). Vacía, ese cambio corta.
+    std::filesystem::path dataRoot{};
 };
 
 // Los sonidos que pidió, en orden: 0x41ed10 (los que suenan) y 0x41ee00 (los que se apagan). El último que suena

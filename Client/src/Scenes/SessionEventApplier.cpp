@@ -207,7 +207,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
             .screen = m_resources.screen ? m_resources.screen() : App::PixelSize{640, 480},
             .tickCount = m_resources.clock != nullptr ? App::TickCountMs(m_resources.clock->Now()) : 0U,
             .playerSkeleton = m_resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel),
-            .sendWindowClose = [&session] { session.SendWindowClose(); }};
+            .sendWindowClose = [&session] { session.SendWindowClose(); },
+            .dataRoot = m_resources.dataRoot};
         const auto applied = ApplyEventPacket(*packet, context);
         if (!applied.HasValue())
             return Core::Unexpected(applied.Error());

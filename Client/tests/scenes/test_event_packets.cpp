@@ -4,6 +4,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Data/Terrain/TerrainLight.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Events.h"
 #include "Render/Models/Cloth.h"
@@ -20,6 +21,9 @@
 #include "UI/GameDialogs.h"
 #include "UI/OriginalFormat.h"
 #include "UI/PanelRegistry.h"
+#include "World/TerrainLighting.h"
+#include "World/WorldTerrain.h"
+#include "support/FileBytes.h"
 
 #include "support/SceneDataFiles.h"
 
@@ -28,9 +32,11 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <map>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -156,7 +162,8 @@ protected:
                                   .measure = &letters,
                                   .screen = {640, 480},
                                   .tickCount = tickCount,
-                                  .playerSkeleton = &player};
+                                  .playerSkeleton = &player,
+                                  .dataRoot = dataRoot};
     }
 
     Client::Core::Expected<EventPacketResult, std::string> Apply(const Events::EventPacket& packet)
@@ -210,9 +217,40 @@ protected:
         return world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(x, y)];
     }
 
+    // El terreno del mapa con la Data del repo, como lo deja la carga (0x61a560).
+    void LoadTheTerrain(std::uint8_t map)
+    {
+        world.Map().terrain = {};
+        std::optional<std::string> fatal;
+        const auto layout = Client::World::LoadWorldTerrainLayout(dataRoot, map, world.Map().terrain, fatal);
+        ASSERT_TRUE(layout.HasValue()) << layout.Error();
+        const auto surface = Client::World::LoadWorldTerrainSurface(dataRoot, map, world.Map().terrain, fatal);
+        ASSERT_TRUE(surface.HasValue()) << surface.Error();
+    }
+
+    auto AttributesOf(const std::string& relative) const
+    {
+        const auto bytes = Client::Tests::ReadFileBytes(dataRoot / relative);
+        EXPECT_TRUE(bytes.has_value()) << relative;
+        auto loaded = Client::Data::Terrain::LoadTerrainAttributes(std::as_bytes(std::span(*bytes)), 35);
+        EXPECT_TRUE(loaded.HasValue()) << relative;
+        return loaded.Value()->cells;
+    }
+
+    // La luz de `relative` sombreada con las alturas cargadas del 34.
+    auto Shaded(const std::string& relative) const
+    {
+        const auto bytes = Client::Tests::ReadFileBytes(dataRoot / relative);
+        EXPECT_TRUE(bytes.has_value()) << relative;
+        const auto light = Client::Data::Terrain::LoadTerrainLight(std::as_bytes(std::span(*bytes)));
+        EXPECT_TRUE(light.HasValue()) << relative;
+        return Client::World::ShadeTerrainLight(*light.Value(), *world.Map().terrain.heights, 34)->cells;
+    }
+
     // En el heap: el WorldState pasa de 340 KB (el stack de Windows es de 1 MB).
     std::unique_ptr<WorldState> ownedWorld = std::make_unique<WorldState>();
     WorldState& world = *ownedWorld;
+    std::filesystem::path dataRoot{MURET_CLIENT_REPO_DATA_DIR};
     CrtRandom random{1};
     Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(EventTexts());
     LetterMeasure letters;
@@ -943,22 +981,69 @@ TEST_F(EventPacketsTest, TheCrywolfStageUpdatesTheInterface)
     EXPECT_EQ(Runtime().events.cameraMoveStage, 6);
 }
 
-// Con otro estado, 0x42ff81 recarga la luz y el .att (fase 2) y corta, después de lo de la etapa; con el estado 2 la
-// 5 no pone el aviso; con más de 2, el buffer de la luz sin escribir (Q-C1328).
-TEST_F(EventPacketsTest, TheCrywolfStateChangeIsCut)
+// Con otro estado, 0x42ff81 y 0x42ffe8 vuelven a leer la luz y el .att de la carpeta del mapa + 1, después de lo de la
+// etapa: en Crywolf, TerrainLight1/2 y EncTerrain351/352; con el 0 otra vez, los de siempre. Con el estado 2 la 5 no
+// pone el aviso; con más de 2, el buffer de la luz sin escribir (Q-C1328).
+TEST_F(EventPacketsTest, TheCrywolfStateReloadsTheLightAndTheAttributes)
 {
     Runtime().map = 34;
+    LoadTheTerrain(34);
+    const auto plain = AttributesOf("world35/EncTerrain35.att");
+    ASSERT_EQ(world.Map().terrain.attributes->cells, plain);
     Client::Scenes::CrywolfInterface& ui = Runtime().crywolf.ui;
     ui.message = -1;
-    const std::string lost = Cut(Events::CrywolfState{.state = 2, .stage = 5});
-    EXPECT_NE(lost.find("0x42ff81"), std::string::npos) << lost;
+    const auto first = Shaded("world35/TerrainLight1.OZJ");
+    Applied(Events::CrywolfState{.state = 1, .stage = 1});
+    EXPECT_EQ(Runtime().crywolf.state, 1);
+    EXPECT_EQ(world.Map().terrain.lighting->cells, first);
+    EXPECT_EQ(world.Map().terrain.attributes->cells, AttributesOf("world35/EncTerrain351.att"));
+    EXPECT_EQ(Runtime().events.cameraMoveStage, 1);
+
+    Applied(Events::CrywolfState{.state = 2, .stage = 5});
     EXPECT_EQ(Runtime().crywolf.state, 2);
     EXPECT_EQ(Runtime().crywolf.stage, 5);
     EXPECT_EQ(ui.message, -1);
-    EXPECT_FALSE(Runtime().events.cameraMoveStage.has_value());
+    EXPECT_EQ(world.Map().terrain.lighting->cells, Shaded("world35/TerrainLight2.OZJ"));
+    EXPECT_EQ(world.Map().terrain.attributes->cells, AttributesOf("world35/EncTerrain352.att"));
+
+    Applied(Events::CrywolfState{.state = 0, .stage = 5});
+    EXPECT_EQ(world.Map().terrain.lighting->cells, Shaded("world35/TerrainLight.OZJ"));
+    EXPECT_EQ(world.Map().terrain.attributes->cells, plain);
+    EXPECT_FALSE(Runtime().fatalDataMessage.has_value());
 
     const std::string broken = Cut(Events::CrywolfState{.state = 3, .stage = 5});
     EXPECT_NE(broken.find("Q-C1328"), std::string::npos) << broken;
+}
+
+// En Lorencia y en Devias el BD 00 también recarga, de World1 y World3 (Q-C1340): TerrainLight1 no está y deja el aviso
+// fatal; el .att 11 o 31 tampoco. Lo cargado queda como estaba. Con el 0 otra vez vuelve a leer los suyos.
+TEST_F(EventPacketsTest, TheCrywolfStateReloadsTheCurrentMapToo)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        Runtime().map = map;
+        Runtime().crywolf.state = 0;
+        Runtime().fatalDataMessage.reset();
+        LoadTheTerrain(static_cast<std::uint8_t>(map));
+        const auto lighting = world.Map().terrain.lighting->cells;
+        const auto attributes = world.Map().terrain.attributes->cells;
+        Applied(Events::CrywolfState{.state = 1, .stage = 0});
+        const std::string folder = map == 0 ? "World1" : "World3";
+        ASSERT_TRUE(Runtime().fatalDataMessage.has_value());
+        EXPECT_EQ(*Runtime().fatalDataMessage, "Data\\" + folder + "\\TerrainLight1.OZJ - File not exist.");
+        EXPECT_EQ(world.Map().terrain.lighting->cells, lighting);
+        EXPECT_EQ(world.Map().terrain.attributes->cells, attributes);
+
+        world.Map().terrain.attributes->cells[0] = 0x55;
+        Applied(Events::CrywolfState{.state = 0, .stage = 0});
+        EXPECT_EQ(world.Map().terrain.attributes->cells, attributes);
+    }
+    // Sin la carpeta Data, corta.
+    Runtime().crywolf.state = 0;
+    dataRoot.clear();
+    const std::string cut = Cut(Events::CrywolfState{.state = 1, .stage = 0});
+    EXPECT_NE(cut.find("0x42ff81"), std::string::npos) << cut;
 }
 
 // 0x42fdc0 (también la vuelta a la selección): los globales de la interfaz a su valor inicial.

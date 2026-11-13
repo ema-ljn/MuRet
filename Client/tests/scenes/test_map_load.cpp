@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Data/Terrain/TerrainLight.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/EventMapObject.h"
@@ -12,6 +13,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GroundMarks.h"
+#include "World/TerrainLighting.h"
 #include "World/WorldObjectRegistrations.h"
 #include "World/WorldTerrain.h"
 
@@ -399,8 +401,9 @@ TEST_F(MapLoadTest, CastleSiegeWithTheSiegeOnStopsAtItsAttributes)
 }
 
 // 0x61a6d0 → 0x42fe50: con el estado de Crywolf de la .bss (0) el 34 toma EncTerrain35.att, el mismo que lee el
-// cargador del repo, y no EncTerrain351.att. Con 1, 2 o 3, que solo pone un paquete, corta en 0x61a6f4 (Q-C340).
-TEST_F(MapLoadTest, CrywolfTakesItsPlainAttributesOnlyWithTheStartingState)
+// cargador del repo, y no EncTerrain351.att. Con 1 y 2, que pone el BD 00, EncTerrain351/352.att y TerrainLight1/2;
+// con 3, los archivos anteriores (Q-C181): corta en 0x61a74d.
+TEST_F(MapLoadTest, CrywolfTakesTheAttributesAndTheLightOfItsState)
 {
     ASSERT_EQ(world.Runtime().crywolf.state, 0);
     ASSERT_TRUE(Load(34).HasValue());
@@ -413,16 +416,33 @@ TEST_F(MapLoadTest, CrywolfTakesItsPlainAttributesOnlyWithTheStartingState)
     ASSERT_NE(expected.Value()->cells, other.Value()->cells);
     ASSERT_TRUE(world.Map().terrain.attributes);
     EXPECT_EQ(world.Map().terrain.attributes->cells, expected.Value()->cells);
-    for (const std::uint8_t state : {std::uint8_t{1}, std::uint8_t{2}, std::uint8_t{3}})
+    const auto plainLight = world.Map().terrain.lighting->cells;
+    for (const std::uint8_t state : {std::uint8_t{1}, std::uint8_t{2}})
     {
         SCOPED_TRACE(static_cast<int>(state));
         world.Runtime().crywolf.state = state;
         const auto loaded = Load(34);
-        ASSERT_FALSE(loaded.HasValue());
-        EXPECT_NE(loaded.Error().find("0x61a6f4"), std::string::npos) << loaded.Error();
-        EXPECT_NE(loaded.Error().find("estado de Crywolf " + std::to_string(state)), std::string::npos)
-            << loaded.Error();
+        ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+        const auto file =
+            Client::Tests::ReadFileBytes(m_dataRoot / "world35" / ("EncTerrain35" + std::to_string(state) + ".att"));
+        ASSERT_TRUE(file.has_value());
+        const auto attributes = Client::Data::Terrain::LoadTerrainAttributes(std::as_bytes(std::span(*file)), 35);
+        ASSERT_TRUE(attributes.HasValue());
+        EXPECT_EQ(world.Map().terrain.attributes->cells, attributes.Value()->cells);
+        const auto light =
+            Client::Tests::ReadFileBytes(m_dataRoot / "world35" / ("TerrainLight" + std::to_string(state) + ".OZJ"));
+        ASSERT_TRUE(light.has_value());
+        const auto decoded = Client::Data::Terrain::LoadTerrainLight(std::as_bytes(std::span(*light)));
+        ASSERT_TRUE(decoded.HasValue());
+        EXPECT_EQ(world.Map().terrain.lighting->cells,
+                  Client::World::ShadeTerrainLight(*decoded.Value(), *world.Map().terrain.heights, 34)->cells);
+        EXPECT_NE(world.Map().terrain.lighting->cells, plainLight);
     }
+    world.Runtime().crywolf.state = 3;
+    const auto loaded = Load(34);
+    ASSERT_FALSE(loaded.HasValue());
+    EXPECT_NE(loaded.Error().find("0x61a74d"), std::string::npos) << loaded.Error();
+    EXPECT_NE(loaded.Error().find("Q-C181"), std::string::npos) << loaded.Error();
 }
 
 // Los mapas con datos en la Data del repo: los que carga y, en los demás, dónde corta.

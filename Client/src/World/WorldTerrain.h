@@ -13,6 +13,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // Lo que 0x61a560 lee de un mundo para el terreno (CL7.1): el mapeo, los atributos y las alturas de
@@ -36,12 +37,32 @@ struct WorldTerrain
 // Carga por etapas para respetar MAP/ATT → OBJ → alturas/luz (61a751..61a910).
 // Publican cada tabla ya leída y el primer aviso fatal, sin UI. Un error sigue siendo error;
 // el MAP ausente sólo difiere su diagnóstico hasta comprobar el ATT (Q-C27/Q-C180).
-[[nodiscard]] Core::Expected<void, std::string> LoadWorldTerrainLayout(const std::filesystem::path& dataRoot,
-                                                                       std::uint8_t map, WorldTerrain& terrain,
-                                                                       std::optional<std::string>& fatalMessage);
+// `attributesNumber` es el número de EncTerrain<N>.att (el del mundo si falta: Crywolf pide 351 o 352, 0x61a710) y
+// `lightName` el de la luz (TerrainLight1 o TerrainLight2 en Crywolf, 0x61a8dd); la cabecera del .att se compara
+// igual con el mundo.
+[[nodiscard]] Core::Expected<void, std::string>
+LoadWorldTerrainLayout(const std::filesystem::path& dataRoot, std::uint8_t map, WorldTerrain& terrain,
+                       std::optional<std::string>& fatalMessage, std::optional<std::int32_t> attributesNumber = {});
 [[nodiscard]] Core::Expected<void, std::string> LoadWorldTerrainSurface(const std::filesystem::path& dataRoot,
                                                                         std::uint8_t map, WorldTerrain& terrain,
-                                                                        std::optional<std::string>& fatalMessage);
+                                                                        std::optional<std::string>& fatalMessage,
+                                                                        std::string_view lightName = "TerrainLight");
+
+// 0x5f8f40 con una luz de `folder` (la carpeta como la arma quien llama, "World%d"), fuera de la carga: el BD 00 de
+// Crywolf (0x42ff81). Lee <folder>\<lightName>.OZJ y la sombrea con las alturas cargadas y el mapa `map`. Sin
+// abrirla, el aviso " - File not exist." (fatal) y la luz como estaba; si no se lee, la luz como estaba (Q-C32): el
+// original sombrea otra vez la luz anterior con las mismas alturas. Sin alturas corta.
+[[nodiscard]] Core::Expected<void, std::string>
+ReloadWorldTerrainLight(const std::filesystem::path& dataRoot, const std::string& folder, std::string_view lightName,
+                        std::uint8_t map, WorldTerrain& terrain, std::optional<std::string>& fatalMessage);
+
+// 0x5f8390 fuera de la carga (0x42ffe8): Data\<folder>\EncTerrain<number>.att, sin comparar el mundo de la
+// cabecera. Sin abrirlo, el aviso " file not found." (fatal); con otro tamaño, nada (Q-C25); con la cabecera o un
+// atributo mal, el aviso "Data error" (fatal). En los tres casos los atributos quedan como estaban.
+[[nodiscard]] Core::Expected<void, std::string> ReloadWorldTerrainAttributes(const std::filesystem::path& dataRoot,
+                                                                             const std::string& folder,
+                                                                             std::int32_t number, WorldTerrain& terrain,
+                                                                             std::optional<std::string>& fatalMessage);
 
 // Los objetos de EncTerrain<N>.obj del mapa `map` (0x607370), en el orden del archivo (CL7.2). El
 // error nombra el archivo como lo pide el original.

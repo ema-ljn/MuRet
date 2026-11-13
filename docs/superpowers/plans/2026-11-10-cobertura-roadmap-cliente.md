@@ -52,7 +52,12 @@ del último campo vacío en la última fila; al restaurar ese tab coincide con e
 Esto no altera los conteos. Al ejecutar, usar una copia fiel del TSV y registrar su procedencia,
 sin depender de que esa ruta temporal exista en otra sesión.
 
-**Estado:** este plan deja pendiente la clasificación y asignación fila por fila. El inventario no
+**Estado (2026-11-13):** la matriz está completa: 5.648 filas, 0 pendientes, el verificador y sus
+controles en verde. El resultado y el método están en
+[10](../../../Client/docs/research/10-cobertura-roadmap.md). Falta la revisión independiente del paso
+4; hasta entonces CL.M no se da por cerrada.
+
+**Estado al escribir el plan:** este plan deja pendiente la clasificación y asignación fila por fila. El inventario no
 contiene etiquetas de juego/biblioteca ni olas; 4.403 nombres `FUN_*` no equivale a 4.403 funciones
 de juego sin ola. Los 821 KB y el 36 % del traspaso se reproducirán o corregirán al publicar el
 denominador de juego. La suma de tamaños se informa como métrica del inventario, no como bytes
@@ -72,7 +77,7 @@ denominador de juego. La suma de tamaños se informa como métrica del inventari
 - Produce: una matriz ordenada por VA, el informe reproducible y el comando `python3 -I Client/docs/research/scripts/tools/check_roadmap_coverage.py --inventory RUTA --mapping Client/docs/research/coverage/mainexe-roadmap.tsv [--require-complete]`.
 - El comando devuelve 0 con datos válidos; devuelve un valor distinto de 0 con errores. Sin `--require-complete` permite publicar avances con filas pendientes explícitas; con él exige que no quede ninguna.
 
-- [ ] **Step 1: Fijar el inventario y comprobar la reconciliación inicial.**
+- [x] **Step 1: Fijar el inventario y comprobar la reconciliación inicial.**
 
   Obtener el TSV fuente sin modificarlo, verificar hash, columnas y conteos de la tabla anterior y
   registrar el commit del checkout de MuRet. Crear la matriz copiando todas las columnas originales
@@ -92,7 +97,7 @@ denominador de juego. La suma de tamaños se informa como métrica del inventari
   y `validation=none`; la matriz inicial aún no es un mapeo terminado. Preservar vacíos los
   campos originales que estén vacíos, sin inventar firmas ni convenciones.
 
-- [ ] **Step 2: Implementar el verificador con controles negativos.**
+- [x] **Step 2: Implementar el verificador con controles negativos.**
 
   Validar igualdad del conjunto de VAs y de cada columna original contra el TSV fuente, además de
   su hash. Rechazar VAs repetidas, faltantes o ajenas, tamaños o nombres alterados, olas inválidas,
@@ -110,7 +115,7 @@ denominador de juego. La suma de tamaños se informa como métrica del inventari
   pasar únicamente sin `--require-complete`. Verificar también un thunk de biblioteca sin ola y
   una función `game` con dos consumidores: deben pasar si están justificados.
 
-- [ ] **Step 3: Clasificar cada VA y asignar las funciones de juego.**
+- [x] **Step 3: Clasificar cada VA y asignar las funciones de juego.**
 
   Revisar las 5.648 filas, no solo las 4.403 `FUN_*`. Partir de los callers conocidos y las
   referencias del research; abrir el ASM de cada asignación dudosa, incluidas llamadas indirectas,

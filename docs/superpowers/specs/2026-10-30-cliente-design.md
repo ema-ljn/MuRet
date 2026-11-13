@@ -270,20 +270,25 @@ estiman aparte; una suite en verde no acredita equivalencia visual completa.
 
 ### Mapeo completo del decompilado a las olas
 
-**Tarea pendiente CL.M:** ejecutar el [plan de cobertura](../plans/2026-11-10-cobertura-roadmap-cliente.md)
-antes de afirmar que el roadmap cubre todo el `main.exe`. El resultado será una fila por VA del
-inventario, una ola responsable para cada función de juego en alcance —incluidas todas las que
-todavía se llaman `FUN_*`— y una justificación para cada biblioteca, thunk o exclusión existente.
-Las funciones compartidas tendrán una sola ola responsable y sus otras olas consumidoras; los
-casos repartidos entre olas quedarán identificados en la evidencia de esa fila.
+**CL.M, la matriz completa (2026-11-13), con la revisión independiente pendiente.** El
+[plan de cobertura](../plans/2026-11-10-cobertura-roadmap-cliente.md) dejó una fila por VA del
+inventario en [`mainexe-roadmap.tsv`](../../../Client/docs/research/coverage/mainexe-roadmap.tsv): una
+ola responsable para cada función de juego en alcance —todas se llaman `FUN_*`— y una justificación
+para cada biblioteca, thunk o exclusión. Las funciones compartidas tienen una sola ola responsable y
+sus otras olas consumidoras. El método, los conteos y el avance están en
+[10](../../../Client/docs/research/10-cobertura-roadmap.md): 3.594 funciones de juego (2.329.285
+bytes; la CL7 el 30,8 %, la CL8 el 37,0 %, la CL9 el 20,6 %), 1.887 de bibliotecas, 129 excluidas y
+38 thunks, sin pendientes. La exclusión del anticheat del propio `main.exe` alcanza también a
+GameGuard, enlazado en el exe (72 funciones, 29 KB), que hasta ahora no se había identificado.
 
 El [inventario fuente](https://github.com/EmaNLJN/mu-server-repack-research-102i/blob/91359b2ceffa4ce085ea19bc7bf11762fc2034a5/client-research/mainexe-vmxp-c32bbd5f/decompiled/inventory.tsv)
 contiene **5.648 funciones internas, incluidas 4.403 con nombre `FUN_*` y 38 thunks**. Los
 `FUN_*` de este inventario no son thunks. La suma
 de `size_bytes` es 2.494.367 bytes; 2.477.342 corresponden a `FUN_*`. Esto cuenta registros y
 tamaños del inventario, no funciones de juego pendientes de portar. El TSV no distingue juego de
-CRT/bibliotecas ni trae olas. Los unos 821 KB y el 36 % del traspaso son una estimación de huecos,
-pendiente de reproducir con esa clasificación y su denominador.
+CRT/bibliotecas ni trae olas. Los unos 821 KB y el 36 % del traspaso se reproducen con la matriz:
+807 KB, el 35,5 % del código de juego, es lo que tiene ola solo por las reglas de CL.M o por el
+barrido de la CL8, posterior al traspaso ([10](../../../Client/docs/research/10-cobertura-roadmap.md#los-821-kb-y-el-36--del-traspaso)).
 
 CL.M cierra cuando las 5.648 VAs estén reconciliadas, no quede ninguna clasificación o asignación
 pendiente y el informe reproduzca los conteos y tamaños por ola, bibliotecas y exclusiones. Asignar
@@ -435,7 +440,8 @@ y cambió la forma de la ola:
 
 ## Fuera de alcance
 
-- El anticheat de FoxAnti y del propio `main.exe`.
+- El anticheat de FoxAnti y del propio `main.exe` (ResourceGuard, el hash anti-tamper y GameGuard:
+  [10](../../../Client/docs/research/10-cobertura-roadmap.md#bibliotecas-thunks-y-exclusiones)).
 - El launcher (`mu.exe`) y lo suyo: el auto-update, `mumsg.dll` y `message.wtf`, el paso de
   `WinMain` que termina la actualización (`0x4b96b0`,
   [05](../../../Client/docs/research/05-formatos-de-datos.md#el-pipeline-de-las-dlls)) y el

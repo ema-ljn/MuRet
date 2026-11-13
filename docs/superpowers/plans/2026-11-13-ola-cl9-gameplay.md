@@ -324,6 +324,12 @@ Lorencia, Devias y un mapa de evento; el `0x1F` con un tipo `0x98..0x9e`; el cor
       de `+0x38e`, sus `rand()`, lo que escriben (`+0x78`, `+0x381`, `+0x17c`), sus sonidos y las gotas del `0x2d`
       (`0x607` y `0x5e4`); los efectos cortan en su dirección (P-C233, CL11), el `0x17e` en `0x432acc` (Q-C1050) y
       los misiles de monstruo van con la flecha (P-C234, cerrado con la fase 2e).
+      Fase 7 (2026-11-13, con el merge de `cl9-h2` en `f2dd89b`): el final de la muerte, `0x52e810` desde `0x4fcb87`
+      (el `0x20a` con la `0xc3` o la `0xc4`) y `0x4fcc3c` (la 6 de un monstruo), con `+0x38a`
+      (`Scenes::LeaveTheRemains`): las dos marcas de sangre `0x5e3` (`0x548fe0`; el juego sube `Effect\blood01.tga`
+      en `0x61d7aa` para `0x549130`), los diez pedazos de hielo `0xca` del `0x161` (`0x518cf0` en `0x51b659`, su paso
+      en `0x523974` con el aliento `0x5f2`/0) y el modelo compartido por tipo de `0x505ec6` (Q-C1178); lo que queda,
+      en P-C323.
 
 **Pruebas:** el `D7`/`A4` que sale al pegar; la muerte de un monstruo y la de otro jugador; la experiencia del
 `0x16` y del `0x9C` contra el struct del GS (`GCKillPlayerExpSend`); los `rand()` del paso con un monstruo en

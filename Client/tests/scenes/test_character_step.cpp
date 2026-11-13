@@ -904,7 +904,8 @@ TEST(CharacterStepTest, TheSpeedOfTheActionGoesThroughItsFactors)
 // 0x4fcd00 con la acción que terminó (+0x78 & 0x1000: 0x4f9580 devuelve 0 sin avanzar, en cada paso) va a
 // 0x4fcb10: las de antes de la 0x0d, las 0xbd a 0xbf, las 0x54 y 0x55 y, de la 0x22 a la 0xc2, las que no
 // están en la lista vuelven a la de parado (0x4f2250: la 1 del jugador sin armas, con el rand() de su sufijo);
-// las demás quedan; la 0x44 vuelve al frame 0; las 0xc3 y 0xc4 cortan en 0x52e810.
+// las demás quedan; la 0x44 vuelve al frame 0; las 0xc3 y 0xc4 quedan y ponen +0x38a en 1 (0x52e810, que con el
+// esqueleto de test, sin el hueso +0x54, no deja nada).
 TEST(CharacterStepTest, AnEndedActionGoesBackToStanding)
 {
     struct Case
@@ -920,9 +921,8 @@ TEST(CharacterStepTest, AnEndedActionGoesBackToStanding)
           Case{0x54, 1, "", Stopped}, Case{0x55, 1, "", Stopped}, Case{0x22, 1, "", Stopped},
           Case{0xc2, 1, "", Stopped}, Case{0x0d, 0x0d, "", SeenHeroDraws}, Case{0x8c, 0x8c, "", SeenHeroDraws},
           Case{0x46, 0x46, "", SeenHeroDraws}, Case{0x6a, 0x6a, "", SeenHeroDraws}, Case{0x75, 0x75, "", SeenHeroDraws},
-          Case{0x76, 1, "", Stopped}, Case{0xc5, 0xc5, "", SeenHeroDraws},
-          Case{0xc3, 0xc3, "0x4fcb87", WallDraws + OwnRecordDraws},
-          Case{0xc4, 0xc4, "0x4fcb87", WallDraws + OwnRecordDraws}})
+          Case{0x76, 1, "", Stopped}, Case{0xc5, 0xc5, "", SeenHeroDraws}, Case{0xc3, 0xc3, "", SeenHeroDraws},
+          Case{0xc4, 0xc4, "", SeenHeroDraws}})
     {
         SCOPED_TRACE(::testing::Message() << "acción " << static_cast<int>(probe.action));
         GameWorld tested;
@@ -946,7 +946,71 @@ TEST(CharacterStepTest, AnEndedActionGoesBackToStanding)
         EXPECT_EQ(hero.animation.action, probe.after);
         EXPECT_EQ(hero.run, probe.draws == Stopped ? 0 : 1);
         EXPECT_EQ(hero.animation.frame, probe.after != probe.action ? 0.0f : 2.5f);
+        EXPECT_EQ(hero.byte38a, probe.action == 0xc3 || probe.action == 0xc4 ? 1 : 0);
         EXPECT_EQ(tested.random.State(), RandomAfter(probe.draws).State());
+    }
+}
+
+// 0x4fcb87..0x4fcba6: el jugador que termina la 0xc3 o la 0xc4 con +0x38a en 0 lo pone en 1 y deja sus restos
+// (0x52e810): con el hueso 20 de Player.bmd posado en sus huesos propios, dos marcas 0x5e3 alrededor de él, por la
+// escala y más la posición que el último 0x505ec6 de un 0x20a dejó en el modelo compartido (Q-C1178), y sus diez
+// rand() entre el registro propio y el cuerpo. Con +0x38a en 1, nada. En Lorencia y en Devias.
+TEST(CharacterStepTest, TheEndOfTheMarkActionsLeavesTheBloodOnce)
+{
+    constexpr int RemainsDraws = 2 * 5;
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const std::uint8_t action : {std::uint8_t{0xc3}, std::uint8_t{0xc4}})
+        {
+            SCOPED_TRACE(::testing::Message() << "mapa " << map << ", acción " << static_cast<int>(action));
+            GameWorld tested(map);
+            tested.skeleton.headBone = 20;
+            ActorState& hero = tested.Hero();
+            hero.flags78 = 0x1000;
+            hero.animation.action = action;
+            hero.animation.frame = 2.5f;
+            hero.light = {0.5f, 0.25f, 0.125f};
+            hero.bodyPose.assign(21, Client::Render::Models::BoneTransform(1.0f));
+            hero.bodyPose[20][3] = {0.0f, 0.0f, 40.0f};
+            tested.Cell(0, 0) = 1;
+            tested.world.PlayerModel() = {.scale = 1.5f, .origin = {3000.0f, 4000.0f, 10.0f}};
+
+            const auto stepped = tested.Step(Everything);
+
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(hero.animation.action, action);
+            EXPECT_EQ(hero.byte38a, 1);
+            const auto& marks = tested.world.Runtime().groundMarks;
+            CrtRandom draws = RandomAfter(WallDraws + OwnRecordDraws);
+            for (std::size_t slot = 0; slot < 2; ++slot)
+            {
+                SCOPED_TRACE(slot);
+                const int x = draws.Next() % 100 - 50;
+                const int y = draws.Next() % 100 - 50;
+                const auto size =
+                    static_cast<float>(static_cast<double>((draws.Next() & 3) + 8) * static_cast<double>(0.1f));
+                const auto angle = static_cast<float>(draws.Next() % 360);
+                const std::int32_t life = draws.Next() % 32 + 50;
+                ASSERT_TRUE(marks[slot].live);
+                EXPECT_EQ(marks[slot].type, 0x5e3);
+                EXPECT_EQ(marks[slot].position, (glm::vec3{static_cast<float>(x) * 1.5f + 3000.0f,
+                                                           static_cast<float>(y) * 1.5f + 4000.0f, 70.0f}));
+                EXPECT_EQ(marks[slot].size, size);
+                EXPECT_EQ(marks[slot].angle, angle);
+                EXPECT_EQ(marks[slot].color, hero.light);
+                EXPECT_EQ(marks[slot].life, life);
+            }
+            EXPECT_FALSE(marks[2].live);
+            EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + RemainsDraws).State());
+
+            const CrtRandom before = tested.random;
+            ASSERT_TRUE(tested.Step(Everything).HasValue());
+            EXPECT_FALSE(marks[2].live);
+            CrtRandom again = before;
+            for (int draw = 0; draw < SeenHeroDraws; ++draw)
+                static_cast<void>(again.Next());
+            EXPECT_EQ(tested.random.State(), again.State());
+        }
     }
 }
 

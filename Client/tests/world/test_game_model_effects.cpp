@@ -504,6 +504,55 @@ TEST(GameModelEffectsTest, TheStoneChipsDragTiltBounceAndSometimesBurn)
     EXPECT_NE(cut.Error().find("0x5238be"), std::string::npos) << cut.Error();
 }
 
+// El pedazo de hielo 0xca de 0x52e810 entra en 0x523974 con el subtipo 0: el mismo paso que la piedrita (se arrastra,
+// cae, rebota y se inclina) y, con rand() % 10 en 0, el aliento 5f2/0 con su luz y escala 1 en lugar del fuego, sin el
+// rand() de su subtipo (0x523af4 y 0x523b47): el prefijo, el % 10 y los dos de la creación de 0x54184b. Otro subtipo
+// corta en 0x523974.
+TEST(GameModelEffectsTest, TheIceShardStepsLikeAChipAndSometimesBreathes)
+{
+    const std::uint32_t breathes = SeedWhereDraw(1, [](int value) { return value % 10 == 0; });
+    const std::uint32_t cold = SeedWhereDraw(1, [](int value) { return value % 10 != 0; });
+    Client::World::ModelEffectStepServices services;
+    services.terrainHeight = [](float, float) { return 200.0; };
+    {
+        Client::World::ModelEffect shard = DungeonEffect(Client::World::IceShardEffect, 40);
+        shard.velocity = {10.0f, 0.0f, 0.0f};
+        shard.turnDirection = 5.0f;
+        auto particles = std::make_unique<Client::World::Particles>();
+        Client::Render::Models::CrtRandom random(breathes);
+        ASSERT_TRUE(
+            Client::World::StepGameModelEffect(shard, nullptr, *particles, 0.0f, random, nullptr, services).HasValue());
+        EXPECT_EQ(shard.velocity.x, static_cast<float>(10.0 * static_cast<double>(std::bit_cast<float>(0x3f666666u))));
+        EXPECT_EQ(shard.turnDirection, -1.0f);
+        EXPECT_EQ(shard.transform.angles.x, -128.0f);
+        EXPECT_EQ(shard.life, 35);
+        const auto& breath = particles->All()[0];
+        ASSERT_TRUE(breath.alive);
+        EXPECT_EQ(breath.type, 0x5f2);
+        EXPECT_EQ(breath.subtype, 0);
+        // Donde quedó antes de 0x51fc80, que después le suma la velocidad girada.
+        EXPECT_EQ(breath.position, glm::vec3(1010.0f, 1000.0f, 200.0f));
+        EXPECT_FALSE(particles->All()[1].alive);
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(breathes, 2 + 2).State());
+    }
+    {
+        Client::World::ModelEffect shard = DungeonEffect(Client::World::IceShardEffect, 40);
+        auto particles = std::make_unique<Client::World::Particles>();
+        Client::Render::Models::CrtRandom random(cold);
+        ASSERT_TRUE(
+            Client::World::StepGameModelEffect(shard, nullptr, *particles, 0.0f, random, nullptr, services).HasValue());
+        EXPECT_FALSE(particles->Any());
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(cold, 2).State());
+    }
+    Client::World::ModelEffect owned = DungeonEffect(Client::World::IceShardEffect, 40);
+    owned.subtype = 5;
+    auto particles = std::make_unique<Client::World::Particles>();
+    Client::Render::Models::CrtRandom random(1);
+    const auto cut = Client::World::StepGameModelEffect(owned, nullptr, *particles, 0.0f, random, nullptr, services);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x523974"), std::string::npos) << cut.Error();
+}
+
 // 0x52ad21..0x52ae25 con el subtipo 0: seis llamas 5de/0 a ±25 en x e y (sus dos sorteos antes de cada
 // creación), con rand() & 7 en 0 la piedrita 0xc8 + (rand() & 1), y la luz dinámica (L; L · 0,4f; 0) de radio
 // 3 con L = ((primer rand() & 3) + 7) · 0,1f. Lo mismo con las mismas llamadas en otro orden daría otros

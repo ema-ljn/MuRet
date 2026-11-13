@@ -52,6 +52,9 @@ inline constexpr std::int16_t FirstDebrisEffect = 0x10a;
 inline constexpr std::int16_t DebrisEffect = 0x10b;
 inline constexpr std::int16_t FirstStoneChipEffect = 0xc8;
 inline constexpr std::int16_t SecondStoneChipEffect = 0xc9;
+// El pedazo de hielo 0xca (Data\Skill\Ice02.bmd, 0x615d36): diez los suelta el monstruo de hielo 0x161 al terminar de
+// morir (0x52e810, CL9 hito 3). Su paso es el de las piedritas (0x523974).
+inline constexpr std::int16_t IceShardEffect = 0xca;
 // Los de Icarus (0x605d70 y 0x6061c0): la nube 0xbb (Object11\cloud) sobre el héroe y el 0x5ac, sin modelo,
 // que sube soltando partículas 5ac/1.
 inline constexpr std::int16_t IcarusCloudEffect = 0xbb;
@@ -314,6 +317,14 @@ public:
     std::optional<std::size_t> CreateGroundStoneChip(std::int16_t type, const glm::vec3& position,
                                                      const glm::vec3& angles, const glm::vec3& light,
                                                      Render::Models::CrtRandom& random);
+    // 0x518cf0(0xca, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51b659, el pedazo de hielo de 0x52e810: el
+    // prefijo común (+0x8a en −1, sin dueño, escala 0,9) y el caso, que comparten el 0xea y el 0xeb (la guarda del 0xe5
+    // y el 0xe6 de 0x51b65d no corre con ellos): +0x64 (el blendMesh) en 0 y +0x68 (su luz) en 0,3f; el empuje
+    // ((rand() & 255) + 64) · 0,1f en y; la z 50 más; la vida (rand() & 15) + 32; la escala ((rand() & 3) + 8) · 0,1f;
+    // el yaw rand() % 360 y la velocidad, el empuje girado por los ángulos con ese yaw (0x5fc8f0 y 0x5fcbd0); y +0xe4
+    // (la caída) en (rand() & 15) + 8. Cinco rand(). La tabla llena, ninguno y sin rand().
+    std::optional<std::size_t> CreateIceShard(const glm::vec3& position, const glm::vec3& angles,
+                                              const glm::vec3& light, Render::Models::CrtRandom& random);
     // 0x518cf0(0x6eb, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51f4ad con el subtipo 0, la onda del pisotón:
     // el prefijo común (+0x8a en −1, sin dueño), vida 30 y escala 20, sin rand(). Lleno, ninguna.
     std::optional<std::size_t> CreateStompShockWave(const glm::vec3& position, const glm::vec3& angles,

@@ -6479,7 +6479,8 @@ se repite. Es el mismo en los dos mapas (`GoldenCharacterStep.TheHeroAtRestDraws
   - con `+0x88` en 4 (`0x4fcd0c`) y con el nombre de `0x6c88b0` (`0x4fcda2`);
   - con otro modelo o sin Player.bmd (`0x4f9580`), y con una acción fuera de él (`0x4f95c0`);
   - en las acciones `0x94`, `0x51` y `0x5b` de la clase 4 (`0x4f969d`);
-  - en las `0xc3` y `0xc4` que terminan (`0x4fcb87`);
+  - ~~en las `0xc3` y `0xc4` que terminan (`0x4fcb87`)~~: dejan los restos ([Los restos](#los-restos-0x52e810), CL9
+    hito 3, fase 7);
   - en la partícula de las `0x4d`, `0x4f` y `0x5a` (`0x4fdb70`);
   - en la estela (`0x4fd236`).
 - Sin Item.bmd, `0x54efe0` corta con equipo que no sea el vacío de la respuesta del F3 03 (Q-C246).
@@ -8362,15 +8363,16 @@ lado, el color y el alfa del último paso del juego, quietas (Q-C233).
 - **La tabla.** `WorldRuntime::groundMarks` (`World::GroundMarkTable`): 100 `GroundMark` apagadas al
   arrancar, como la .bss, que `LoadMap` no toca.
 - **`0x548fe0`.** `World::AddGroundMark`, con el `rand()` de `CrtRandom`. Si la tabla está llena y
-  ninguna vida baja de 9.999, corta con error en `0x54900c`. No lo llama nadie: los dos creadores están en
-  ramas que MuRet no corre. El modelo `0x182` corta antes en `0x505e0b`, y `0x52e810`, desde `0x4fd5f0`,
-  es frontera (P-C44, P-C49 b).
+  ninguna vida baja de 9.999, corta con error en `0x54900c`. La llama `0x52e810` (`Scenes::LeaveTheRemains`,
+  CL9 hito 3, [Los restos](#los-restos-0x52e810)); el modelo `0x182` corta antes, en su caso de `0x505de0`
+  (`0x507414`, P-C241 a).
 - **`0x549090`.** `World::StepGroundMarks`, desde `GameScene::StepWorld` después de la espera, en
   `0x63712d`.
 - **`0x549130` y `0x5fb2f0`.** `World::DrawGroundMarks` y `World::DrawTerrainDecal`, en `0x5fc365`, entre
-  el estado de `0x5fc35b..0x5fc360` y el depth test de `0x5fc36a`. El juego de MuRet no sube `blood01` ni
-  sabe los componentes de su slot: con la tabla vacía no dibuja nada, y con una marca prendida corta en
-  `0x549152` (P-C49 b). La selección y el login no dibujan las marcas (P-C49 c).
+  el estado de `0x5fc35b..0x5fc360` y el depth test de `0x5fc36a`. El juego sube `Effect\blood01.tga` al
+  `0x5e3` con las texturas de efectos (`0x61d7aa`, `EffectTextureSet`, CL9 hito 3) y el byte `+0x28` sale de
+  los componentes que guardó `GameModels`; un slot que no subió corta en `0x549152`. La selección no lo sube y
+  el login no dibuja las marcas (P-C49 c).
 
 Tests: `GroundMarksTest` y `TerrainDecalTest`;
 `GameSceneDrawTest.TheReferenceMapsDrawTheTerrainTheGrassTheGroundMarksAndTheObjects`,
@@ -10760,10 +10762,61 @@ MuRet: `Scenes::ModelBody` (`ModelSpeedOf`, `FinishTheModelAction` con `0x42d890
 `LookAtTheTarget`, `ModelTrailCutOf` y `ModelEffectsCutOf`), llamado desde `CharacterStep` con el modelo de
 `WorldState::FaunaResources()` (con la biblioteca del mapa detrás); el sonido al caminar con
 `ActorWalkContext::modelSounds` (`FaunaModels::SoundActions`). Cortan con su dirección los efectos por tipo (3 y 4, CL11),
-el `0x1f5` (`0x4fce84`: MuRet no guarda el frame de la última pose de cada modelo), la acción 6 que termina con
-`+0x38a` en 0 (`0x4fcc3c`) y el subtipo 209 a 211 caminando (`0x4f3ef2`, dos sonidos); 08, P-C241. Tests:
+el `0x1f5` (`0x4fce84`: MuRet no guarda el frame de la última pose de cada modelo) y el subtipo 209 a 211 caminando
+(`0x4f3ef2`, dos sonidos); 08, P-C241. La acción 6 que termina con `+0x38a` en 0 deja los restos
+(`ModelActionEnd::LeaveRemains`, [Los restos](#los-restos-0x52e810), CL9 hito 3). Tests:
 `ModelBodyTest` y `MonsterStep` (`test_model_body.cpp`: un Monster02 que avanza con su velocidad y descansa al terminar
 la 3, con sus `rand()`), `ActorWalkTest.AnotherModelSoundsFromItsModelTable`.
+
+### Los restos (0x52e810)
+
+(CL9 hito 3, fase 7, 2026-11-13, *estático*, ASM c32bbd5f.) Lo llaman `0x4fcb10` (`0x4fcb87..0x4fcba6`: el `0x20a` que
+termina la `0xc3` o la `0xc4`) y `0x4fcbb0` (`0x4fcc1d..0x4fcc3c`: un monstruo de `0x152` a `0x1c9` que termina la 6),
+los dos desde `0x4fcd00`, el paso del cuerpo, y solo con `+0x38a` en 0, que ponen en 1 antes de llamar. Con `+0x38a` en
+1 no hacen nada. En los dos casos salen después: el `0x20a` no vuelve a la de parado y el monstruo no pasa a la 0.
+
+`0x52e810(c)`:
+
+1. `0x52e81c..0x52e83b`: lee el DWORD `+0x54` del modelo del tipo (`0x5769ad8 + tipo · 0xe0`, con el tipo por `MOVSX`
+   del WORD `+2`), el hueso de la cabeza: 20 en Player.bmd; el de cada monstruo lo escribe su alta (`0x612d90`). Con −1
+   sale.
+2. `0x52e841..0x52e889`: el `0x161` (Monster16, el monstruo de hielo de Devias) pone el byte vivo de c en 0 y llama
+   diez veces a `0x518cf0(0xca, +0x10, +0x1c, +0xf4, 0, 0, −1, 0, 0, 0, 0)`, el pedazo de hielo
+   (`Data\Skill\Ice02.bmd`, `0x615d36`). Nadie borra el registro de otra manera: `0x508ea0` no vuelve a mirar el byte y
+   el resto del paso (`0x505de0`, `0x42da90`) corre con él en 0.
+3. `0x52e88a..0x52e8a5`: el `0x159`, el `0x160` y el `0x164` salen sin nada.
+4. Los demás, dos vueltas (`0x52e8ab..0x52e975`): `rand() % 100 − 50` para la x y otro para la y de un corrimiento con
+   la z en 0; `0x4ec110(modelo, [c + 0x120] + hueso · 0x30, &corrimiento, &punto, 1)`, el hueso de los huesos propios
+   (los del último dibujo, Q-C318) por la escala (`+0x68`) y más la posición (`+0x6c`) del modelo compartido, que son
+   las del último que las copió (Q-C1178); el lado `((rand() & 3) + 8) · 0,1f` (`FILD` y `FMUL` de `0x6b87b8`); el giro
+   `rand() % 360`; y `0x548fe0(0x5e3, &punto, giro, +0xf4, lado)`, la marca de sangre
+   ([Las marcas del suelo](#las-marcas-del-suelo)), que saca la vida si hay lugar. Son 5 `rand()` por vuelta, o 4 con
+   la tabla llena.
+
+**El pedazo de hielo.** `0x518cf0` con el `0xca` va a `0x51b659..0x51b809`, el caso que comparte con el `0xea` y el
+`0xeb`. La guarda de `0x51b65d` (el WORD `+2` del efecto en `0xe5` o `0xe6`, con tres `rand()`) no corre con el `0xca`.
+Pone el blendMesh (`+0x64`) en 0 (el ESI de `0x518d08`) y su luz (`+0x68`) en 0,3f, el empuje
+`((rand() & 255) + 64) · 0,1f` en y y la z 50 más arriba (`0x6b86b0`); desde `0x51b76f` sigue lo de las piedritas: la
+vida `(rand() & 15) + 32`, la escala `((rand() & 3) + 8) · 0,1f`, el yaw `rand() % 360`, la velocidad (el empuje girado
+por los ángulos, `0x5fc8f0` y `0x5fcbd0`) y la caída (`+0xe4`) en `(rand() & 15) + 8`. Cinco `rand()`. Su paso
+(`0x5208a0`, la tabla `0x52cef4` sobre `0x52ce14`) entra directo en `0x523974`: con el subtipo 0 es el de las piedritas
+(la velocidad sin girar, el arrastre por 0,9f, la caída, el rebote en el suelo y la inclinación) y, con `rand() % 10` en
+0 (`0x523adb`), el `0xca`, el `0xea` y el `0xeb` sueltan el aliento `0x53fe70(0x5f2, +0x10, +0x1c, +0xf4, 0, 1, 0)`
+(`0x523b47`) donde el `0xc8` y el `0xc9` sueltan el fuego con el `rand()` de su subtipo. Está entre los BMD de
+`[0xad, 0x151)`, que avanzan la animación común.
+
+**MuRet.** `Scenes::LeaveTheRemains` (`ActorRemains.h`), desde `CharacterStep`: `StopAtTheEnd` con el `0x20a` y
+`ModelActionEnd::LeaveRemains` de `FinishTheModelAction` con los monstruos. Toma el esqueleto del tipo, la tabla
+`WorldMap::effects`, `WorldRuntime::groundMarks` y la escala y la posición de `WorldState::ModelPlacement`, las del
+último `0x505ec6` de ese tipo (`WorldState::PlaceModel`). El pedazo, `ModelEffects::CreateIceShard`, y su paso,
+`StepStoneChip` con el aliento. El juego sube `Effect\blood01.tga` al `0x5e3` (`0x61d7aa`) para dibujar las marcas.
+Cortan el modelo sin cargar (`0x52e834`) y un hueso fuera de los huesos propios posados (`0x52e91c`, donde el original
+lee otra memoria). Sin huesos propios (los monstruos: su dibujo no está portado, P-C241 g) va la matriz en cero, y las
+marcas caen en la posición del modelo compartido. Lo que queda, en 08, P-C323. Tests: `ActorRemainsTest`,
+`MonsterStep.AMonsterThatEndsDyingBleedsOnceWhereTheLastOfItsTypeWas` (Lorencia) y
+`MonsterStep.TheIceMonsterOfDeviasBreaksIntoShards`, `CharacterStepTest.TheEndOfTheMarkActionsLeavesTheBloodOnce`
+(Lorencia y Devias), `ModelEffectsTest.TheIceShardRisesFiftyAndIsPushedAlongItsDrawnYaw` y
+`GameModelEffectsTest.TheIceShardStepsLikeAChipAndSometimesBreathes`.
 
 ### La tabla de protección
 

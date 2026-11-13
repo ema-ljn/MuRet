@@ -22,6 +22,7 @@
 #include "World/Particles.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <span>
 
 namespace Client::Scenes
@@ -158,6 +159,22 @@ void WorldState::PlacePlayerModel(const ActorState& actor)
     }
     m_playerModel.scale = actor.scale;
     m_playerModel.origin = actor.position;
+}
+
+void WorldState::PlaceModel(const ActorState& actor)
+{
+    SharedModelPlacement& placement =
+        actor.type == Data::Models::PlayerSkeletonModel ? m_playerModel : m_modelPlacements[actor.type];
+    placement.scale = actor.scale;
+    placement.origin = actor.position;
+}
+
+SharedModelPlacement WorldState::ModelPlacement(std::uint16_t type) const
+{
+    if (type == Data::Models::PlayerSkeletonModel)
+        return m_playerModel;
+    const auto found = m_modelPlacements.find(type);
+    return found != m_modelPlacements.end() ? found->second : SharedModelPlacement{};
 }
 
 FaunaDrawCarry& WorldState::PoseCarry()

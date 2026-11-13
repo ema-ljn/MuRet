@@ -14,6 +14,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorMotion.h"
+#include "Scenes/ActorRemains.h"
 #include "Scenes/ActorWalk.h"
 #include "Scenes/PlayerActionSpeeds.h"
 #include "Scenes/ActorCombat.h"
@@ -380,16 +381,31 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
 
 bool IsKalima(std::int32_t map);
 
+// 0x52e810(c) desde 0x4fcb9c y 0x4fcc3c: los restos, con el modelo del tipo de c y la escala y la posición que le dejó
+// el último 0x505ec6 de ese tipo (Q-C1178).
+Core::Expected<void, std::string> LeaveTheRemainsOf(ActorState& actor, const CharacterStepContext& context)
+{
+    const SharedModelPlacement placement = context.world.ModelPlacement(actor.type);
+    return LeaveTheRemains(actor, ActorRemainsContext{.skeleton = ModelSkeletonOf(actor, context),
+                                                      .modelScale = placement.scale,
+                                                      .modelOrigin = placement.origin,
+                                                      .effects = context.world.Map().effects,
+                                                      .marks = context.world.Runtime().groundMarks,
+                                                      .random = context.random});
+}
+
 // 0x4fcb10(c, c) desde 0x4fce57, con la acción que terminó.
-Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, std::size_t slot, const CharacterStepContext& context)
+Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, const CharacterStepContext& context)
 {
     const std::uint8_t action = actor.animation.action;
-    // 0x4fcb17..0x4fcb23 y 0x4fcb87..0x4fcb9c: con +0x38a en 0, 0x52e810 una vez.
+    // 0x4fcb17..0x4fcb23 y 0x4fcb87..0x4fcba6: con +0x38a en 0, lo pone en 1 y corre 0x52e810 una vez; con o sin él,
+    // sale sin volver a la de parado.
     if (action == FirstMarkAction || action == SecondMarkAction)
     {
-        return Core::Unexpected(std::format("0x4fcb87: la acción {:#x} del lugar {} terminó; +0x38a y 0x52e810 no "
-                                            "están portados",
-                                            action, slot));
+        if (actor.byte38a != 0)
+            return {};
+        actor.byte38a = 1;
+        return LeaveTheRemainsOf(actor, context);
     }
     // 0x4fcb25..0x4fcb63: vuelven a la de parado (0x4f2250) las de antes de la 0x0d, las 0xbd a 0xbf, las 0x54
     // y 0x55 y, de la 0x22 a la 0xc2, las que no son 0x8b, 0x8c, 0x46, 0x47, 0x44, 0x49, 0x4b ni de la 0x6a a la
@@ -453,14 +469,22 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
         // 0x4fce3f..0x4fce57: el 0x20a que giró va a 0x4fc8c0 y el otro a 0x4fcb10.
         if (actor.type == Data::Models::PlayerSkeletonModel)
         {
-            return turned ? FinishTheTurnedNpc(actor, slot, context) : StopAtTheEnd(actor, slot, context);
+            return turned ? FinishTheTurnedNpc(actor, slot, context) : StopAtTheEnd(actor, context);
         }
         // 0x4fce5e: los otros modelos, a 0x4fcbb0. AdvanceTheBody ya encontró el modelo.
         const Render::Models::Skeleton& skeleton = *ModelSkeletonOf(actor, context);
-        const auto end = FinishTheModelAction(actor, slot, skeleton, context.world.Runtime(), context.random);
+        const auto end = FinishTheModelAction(actor, skeleton, context.world.Runtime(), context.random);
         if (!end.HasValue())
         {
             return Core::Unexpected(end.Error());
+        }
+        // 0x4fcc35..0x4fcc3c: el monstruo que terminó de morir deja sus restos.
+        if (end.Value() == ModelActionEnd::LeaveRemains)
+        {
+            if (auto left = LeaveTheRemainsOf(actor, context); !left.HasValue())
+            {
+                return left;
+            }
         }
         // 0x4fcbe3: con 0x42d890 en 1, 0x4f9580 otra vez; lo que devuelve no se mira.
         if (end.Value() == ModelActionEnd::AdvanceAgain)
@@ -873,9 +897,10 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     }
     // 0x505ec6..0x505ee4: la posición, la escala y la acción van al modelo compartido (+0x6c, +0x68 y
     // +0xa0), que leen los 0x4ec110 de más abajo y que el dibujo vuelve a escribir antes de posar. MuRet
-    // guarda la escala y la posición del de Player.bmd, que el cuervo lee en la zona segura antes de este
-    // punto de su dueño (Q-C412); los de abajo leen las del propio personaje (OwnBonePoint).
-    context.world.PlacePlayerModel(actor);
+    // guarda la escala y la posición de cada tipo: la de Player.bmd la lee el cuervo en la zona segura antes de
+    // este punto de su dueño (Q-C412), y las de todos, los restos de 0x52e810 en el paso del cuerpo, que va antes
+    // (Q-C1178); los de abajo leen las del propio personaje (OwnBonePoint).
+    context.world.PlaceModel(actor);
     // 0x505ef2: sin verse, nada más.
     if (!actor.seen)
     {

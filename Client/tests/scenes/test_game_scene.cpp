@@ -1201,18 +1201,20 @@ TEST_F(GameSceneDrawTest, TheFrameDrawsTheChatBubblesWithTheWorldProjection)
     scene.Leave();
 }
 
-// 0x5fc365 con una marca prendida (como la dejarían 0x505de0 o 0x52e810, que MuRet no corre): 0x549130 lee el
-// byte +0x28 del slot 0x5e3, Effect\blood01.tga, que el juego de MuRet no sube (0x61d7aa). Corta ahí, con el
-// terreno y el pasto dibujados, los 4 + 8 rand() de siempre y sin un vértice del calco (08 P-C49).
-TEST_F(GameSceneDrawTest, ALiveGroundMarkStopsWhereMuRetDoesNotKnowItsTexture)
+// 0x5fc365 con una marca de sangre prendida (como la dejan 0x52e810 y 0x505de0): 0x549130 lee el byte +0x28 del slot
+// 0x5e3, Effect\blood01.tga, que el juego sube con las texturas de efectos (0x61d7aa): 32 bits, cuatro componentes,
+// así que va con la mezcla de alfa y su calco (0x5fb2f0) sale con esa textura. No saca rand(): el cuadro termina con
+// los mismos rand() que sin marcas (08 P-C49).
+TEST_F(GameSceneDrawTest, ALiveBloodMarkIsDrawnWithBlood01)
 {
     struct Case
     {
         std::uint8_t map;
         std::uint8_t x;
         std::uint8_t y;
+        int objectDraws;
     };
-    for (const Case& probe : {Case{0, 143, 120}, Case{2, 220, 30}})
+    for (const Case& probe : {Case{0, 143, 120, 83 + 1}, Case{2, 220, 30, 54}})
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
@@ -1231,17 +1233,20 @@ TEST_F(GameSceneDrawTest, ALiveGroundMarkStopsWhereMuRetDoesNotKnowItsTexture)
         scene.PrepareFrame();
         scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
 
-        ASSERT_TRUE(scene.Failure().has_value());
-        EXPECT_NE(scene.Failure()->find("0x549152"), std::string::npos) << *scene.Failure();
-        EXPECT_NE(scene.Failure()->find("mapa " + std::to_string(probe.map)), std::string::npos) << *scene.Failure();
+        ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
         const Client::Tests::FrameEvent* models = ModelsOf(target.frames.at(0));
         ASSERT_NE(models, nullptr);
-        EXPECT_FALSE(models->modelVertices.empty());
+        std::size_t decalVertices = 0;
         for (const Client::Render::ModelDrawCommand& command : models->modelCommands)
         {
-            EXPECT_NE(command.state.texture, Client::Render::TextureSlot{0x5e3});
+            if (command.state.texture != Client::Render::TextureSlot{0x5e3})
+                continue;
+            EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Alpha);
+            decalVertices += command.vertexCount;
         }
-        EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8).State());
+        EXPECT_GT(decalVertices, 0u);
+        EXPECT_EQ(cloth.random.State(),
+                  RandomAfter(4 + 8 + probe.objectDraws + FramePickingDraws + HudBaseDraws).State());
         scene.Leave();
     }
     world.Runtime().groundMarks = {};
@@ -1565,12 +1570,12 @@ TEST_F(GameSceneDrawTest, WithoutPlayerBmdTheStepStopsAtTheBody)
 }
 
 // Un dibujo cortado deja la escena en Failure: el paso que sigue no corre, aunque el dibujo haya dejado su
-// trapecio. La marca de sangre usa el selector nativo 0x5e3, cuya metadata sigue ausente.
+// trapecio. La marca es del tipo 0x606, un slot que el juego de MuRet no sube: 0x549130 corta en 0x549152.
 TEST_F(GameSceneDrawTest, AStepAfterACutDrawDoesNothing)
 {
     ASSERT_NO_FATAL_FAILURE(Prepare(0, 143, 120));
     world.Runtime().groundMarks[0] = Client::World::GroundMark{.live = true,
-                                                               .type = 0x5e3,
+                                                               .type = 0x606,
                                                                .size = 1.0f,
                                                                .position = world.Actors()[HeroSlot].position,
                                                                .color = glm::vec3(1.0f),

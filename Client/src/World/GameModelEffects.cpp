@@ -227,13 +227,16 @@ Core::Expected<void, std::string> StepFallingStone(ModelEffect& effect, const Mo
 // que pierde 3; en el suelo se apoya, rebota a −0,5, pierde 4 de vida y se inclina escala · 128 (si no, ·
 // 32); con el subtipo 0 y rand() % 10 en 0, un fuego 5d9 con el subtipo rand() % 3 + 1. El 10 (el de la piedra
 // 0x118/0x119) sale en 0x523ad5 sin ese rand(). El 5 sigue a su dueño (y salta la cola) y el resto no está portado.
+// El pedazo de hielo 0xca (CL9 hito 3, de 0x52e810) entra directo en 0x523974 y da el mismo paso; con el rand() % 10
+// en 0 suelta, en lugar del fuego y sin otro rand(), el aliento 5f2/0 con escala 1 (0x523af4 y 0x523b47).
 Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& particles, float worldClock,
                                                 Render::Models::CrtRandom& random,
                                                 const ModelEffectStepServices& services)
 {
     if (effect.subtype != 0 && effect.subtype != GroundStoneChipSubtype)
-        return Core::Unexpected(std::format("0x5238be: el paso de la piedrita {:#x} con el subtipo {} no está portado",
-                                            effect.type, effect.subtype));
+        return Core::Unexpected(std::format("{}: el paso de la piedrita {:#x} con el subtipo {} no está portado",
+                                            effect.type == IceShardEffect ? "0x523974" : "0x5238be", effect.type,
+                                            effect.subtype));
     constexpr double Drag = static_cast<double>(std::bit_cast<float>(0x3f666666u));
     constexpr double Fall = 3.0, Bounce = -0.5, GroundTilt = 128.0, AirTilt = 32.0;
     constexpr std::int32_t BounceLife = 4;
@@ -259,6 +262,16 @@ Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& 
     effect.transform.angles.x = F32(static_cast<double>(effect.transform.angles.x) - tilt);
     if (effect.subtype == GroundStoneChipSubtype || random.Next() % FireChance != 0)
         return {};
+    if (effect.type == IceShardEffect)
+    {
+        constexpr std::int32_t BreathSubtype = 0;
+        const auto breath = particles.CreateChecked(BreathParticle, position, effect.transform.angles, effect.light,
+                                                    BreathSubtype, 1.0f, worldClock, random);
+        if (!breath.HasValue())
+            return Core::Unexpected(std::format("0x523b5e: no se pudo crear el aliento 5f2/0 del pedazo de hielo ({})",
+                                                static_cast<int>(breath.Error())));
+        return {};
+    }
     const int subtype = random.Next() % FireSubtypes + 1;
     const auto created = particles.CreateChecked(FireParticle, position, effect.transform.angles, effect.light, subtype,
                                                  1.0f, worldClock, random);
@@ -1140,7 +1153,8 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
         if (auto stepped = StepFallingStone(effect, services); !stepped.HasValue())
             return stepped;
     }
-    else if (effect.type == FirstStoneChipEffect || effect.type == SecondStoneChipEffect)
+    else if (effect.type == FirstStoneChipEffect || effect.type == SecondStoneChipEffect ||
+             effect.type == IceShardEffect)
     {
         wholeStep = true;
         if (auto stepped = StepStoneChip(effect, particles, worldClock, random, services); !stepped.HasValue())

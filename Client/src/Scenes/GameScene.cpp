@@ -161,12 +161,6 @@ std::string MapText(std::int32_t map)
     return "mapa " + std::to_string(map);
 }
 
-// Los componentes de un slot en el juego de MuRet: no sube las texturas de 0x61ccb0 que no son de los sprites.
-std::optional<std::uint8_t> NoSlotComponents(std::int32_t /*slot*/)
-{
-    return std::nullopt;
-}
-
 // 0x63741d..0x637466 y 0x6375ea..0x63763a: el mapa 30 (0x6c9dd0) y el héroe publicado (0x743a170) en el rectángulo de
 // World::InTheCastleSiegeFog. Cada lectura relee las dos cosas.
 bool HeroInTheCastleSiegeFog(const WorldState& world)
@@ -924,11 +918,18 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         marksState.depthTest = false;
         marksState.cullEnabled = true;
         canvas.models.SetState(marksState);
-        // 0x5fc365: 0x549130, las marcas del suelo de WorldRuntime, que la carga del mapa no vacía (Q-C228). MuRet
-        // no sube Effect\blood01.tga (0x61d7aa), la del 0x5e3 de sus dos creadores, y no sabe sus componentes:
-        // con una marca prendida, corta (08 P-C49).
+        // 0x5fc365: 0x549130, las marcas del suelo de WorldRuntime, que la carga del mapa no vacía (Q-C228). El byte
+        // +0x28 del slot, de la tabla de texturas compartida (0x7d3a198, sembrada en Enter con lo que subió
+        // GameModels): Effect\blood01.tga en el 0x5e3 (0x61d7aa, EffectTextureSet). Un slot que no subió (otro tipo,
+        // o el archivo que falta) corta (08 P-C49).
+        const ModelTextureTable& textureTable = m_context.world->FaunaResources().TextureTable();
+        const auto components = [&textureTable](std::int32_t slot) -> std::optional<std::uint8_t>
+        {
+            const auto metadata = textureTable.Metadata(static_cast<std::uint32_t>(slot));
+            return metadata ? std::optional(metadata->components) : std::nullopt;
+        };
         if (auto marked = World::DrawGroundMarks(canvas.models, m_context.world->Runtime().groundMarks,
-                                                 *terrain.heights, NoSlotComponents);
+                                                 *terrain.heights, components);
             !marked.HasValue())
         {
             return Core::Unexpected(marked.Error() + ", en el " + MapText(map));

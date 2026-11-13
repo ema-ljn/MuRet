@@ -733,6 +733,38 @@ std::optional<std::size_t> ModelEffects::CreateGroundStoneChip(std::int16_t type
     return std::nullopt;
 }
 
+std::optional<std::size_t> ModelEffects::CreateIceShard(const glm::vec3& position, const glm::vec3& angles,
+                                                        const glm::vec3& light, Render::Models::CrtRandom& random)
+{
+    constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 8;
+    constexpr int Degrees = 360, FallMask = 15, FallBase = 8;
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8: 0,1f.
+    constexpr double Rise = 50.0;                                                    // 0x6b86b0
+    constexpr std::int16_t ShardBlendMesh = 0;                                       // 0x51b6e0: ESI, en 0 (0x518d08)
+    constexpr float ShardBlendLight = std::bit_cast<float>(0x3e99999au);             // 0x51b6e3: 0,3f
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, IceShardEffect, position, angles, light);
+        effect.objectState.blendMesh = ShardBlendMesh;
+        effect.objectState.light = ShardBlendLight;
+        const glm::vec3 push{0.0f, F32(static_cast<double>((random.Next() & PushMask) + PushBase) * Tenth), 0.0f};
+        glm::vec3& at = effect.transform.position;
+        at.z = F32(static_cast<double>(at.z) + Rise);
+        effect.previousPosition = at;
+        effect.life = (random.Next() & LifeMask) + LifeBase;
+        effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * Tenth);
+        effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
+        effect.velocity =
+            Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+        effect.turnDirection = static_cast<float>((random.Next() & FallMask) + FallBase);
+        return slot;
+    }
+    return std::nullopt;
+}
+
 std::optional<std::size_t> ModelEffects::CreateIcarusEffect(std::int16_t type, const glm::vec3& position,
                                                             const glm::vec3& angles, const glm::vec3& light,
                                                             Render::Models::CrtRandom& random)

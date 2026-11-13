@@ -579,6 +579,37 @@ TEST_F(GameCharacterRenderTest, TheClothOnTheMeshStopsBeforeThePlayerRecordAndIt
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
 }
 
+// 0x50c951: el monstruo 55 es un 0x20a con el +0x376 0x37; sin la clase 3 ni la 4, bVar23 lo prende y 0x50d812 arma
+// la tela de ClothMonster (10 por 10, la textura 0x252), salvo en los mapas 0x12 a 0x17.
+TEST_F(GameCharacterRenderTest, TheMonster55WearsTheClothOfThe0x37)
+{
+    for (const std::int32_t map : {0, 2, 0x12})
+    {
+        SCOPED_TRACE(map);
+        m_world->Runtime().map = map;
+        Player(0).word376 = 0x37;
+        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        std::array<Client::Scenes::CharacterCloth, 401> cloths;
+        GameCharacterPass pass = Pass();
+        pass.cloths = cloths;
+        m_batch.Begin(Client::Render::Pass3D{});
+
+        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        if (map == 0x12)
+        {
+            EXPECT_TRUE(cloths[0].Cloths().empty());
+            continue;
+        }
+        ASSERT_EQ(cloths[0].Cloths().size(), 1u);
+        EXPECT_EQ(cloths[0].Count(), 1);
+        EXPECT_EQ(cloths[0].Cloths()[0].Particles().size(), 100u);
+        EXPECT_EQ(cloths[0].Cloths()[0].Front(), Client::Render::TextureSlot{0x252});
+        EXPECT_GT(m_batch.Vertices().size(), 6u);
+    }
+}
+
 TEST_F(GameCharacterRenderTest, TheHiddenClothFlagDoesNotRunTheClothSimulationBeforeItsBoundary)
 {
     ActorState& hero = Player(0);

@@ -115,6 +115,9 @@ struct DrawnCharacter
     // tela.
     CharacterCloth* cloth = nullptr;
     Render::Models::ClothWorld* clothWorld = nullptr;
+    // +0x376: el número de monstruo (0xffff en un jugador). Con el 0x37, la tela de ese monstruo (0x50c951,
+    // WearsTheMonsterCloth).
+    std::optional<std::uint16_t> monster;
     // false entre frames del original: dibuja la tela actual sin crearla ni simularla.
     bool advanceCloth = true;
     std::uint8_t map = 0;

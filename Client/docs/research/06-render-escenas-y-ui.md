@@ -10315,8 +10315,9 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    `0x46`, `0x47`, `0x49`, `0x4a`, `0x4b`, `0x4d`, `0x12d`, `0x35`, `0x36`, `0x2a`, `0x84..0x86` y `0x87`.
 5. **El gremio** (`0x50c972`, con `+0x1f2` distinto de `0xffff`, que en un monstruo nunca pasa), **la luz** (`0x50cc55`:
    el terreno más la propia en `+0x3b4`, el `0x189` en 0,6), **las partes** (`0x50d363`: con `+0x3e3` en 0, el Angel de
-   Chaos Castle con `+0x88` en 1 y el lazo de las seis partes de `+0x1f8`) y la tela del `+0x376` `0x37`
-   (`0x50d599`).
+   Chaos Castle con `+0x88` en 1 y el lazo de las seis partes de `+0x1f8`) y **las telas** (`0x50d58b`): bVar23
+   (`0x50c929..0x50c96e`) en un personaje que no es el `0x20a` es solo el `+0x376` `0x37` fuera de los mapas `0x12` a
+   `0x17` ([La tela de la clase 4](#la-tela-de-la-clase-4)).
 6. **`0x50db57`**: el `rand() % 30` y la luz de lo que cuelga; un monstruo salta a `0x50e060` sin la espalda, el arma
    del evento, la capa ni las alas, y corre el lazo de las manos (Q-C860).
 7. **El caso del modelo** (`0x50e9fa`, la tabla de bytes `0x510b80` sobre `0x510b50`): sprites de `0x50b870` (el punto
@@ -10333,14 +10334,19 @@ MuRet: `Scenes::DrawGameMonster` (`MonsterDrawing.cpp`), llamado desde `DrawGame
 y la sombra con `DrawObjectShadow` (`CharacterDrawing.h`); lo que cuelga con `DrawGameHanging`, que ya no corta con
 otro tipo; el contorno del `0xc5` con `DrawObjectOutlineOfTheFirstMesh`, que corta en `0x60ce4e` con el `+0x58`
 distinto de −1; el calco del `0xe8` y el `0xe9` con `World::DrawTerrainDecal` sobre las alturas del terreno del pase o
-del mundo (sin ellas, corta en `0x5fb2f0`). Con sus tipos de verdad no se llega: el `0x1f3` y el `0x1f4` cortan antes
-en `0x60243e` (P-C179 b, P-C240). Entre frames del original, todo sobre una copia del personaje y del `rand()`. Cortan con su dirección:
-los casos de `0x6002e0` y de su cadena, el calco del `0xe8` y el `0xe9` (`0x50bed8`), lo de `0x50bf45`, las partes, el
-Angel, el gremio y la tela del `0x37`, el joint `0x618/6` en `CreateFaunaJoint` (`0x530c18`), el `0x16e`, los helpers
-de `0x510a1e`, `0x510f4d` y el cuervo; 08, P-C179. Tests:
-`MonsterDrawingTest`, `MonsterHangingLight` y `MonsterDecorations` (`test_monster_drawing.cpp`: un Spider de Lorencia,
-un Yeti de Devias, la sombra por mapa, el contorno de un monstruo, de un NPC y de la puerta de Kalima, el calco del
-`0xe8` y el `0xe9` en Lorencia, Devias y Blood Castle, el hada del NPC 237, el caso del `0x176` y los cortes), `GameHangingTest.AMonsterSkipsTheBackTheLayerAndTheEventWeapon`.
+del mundo (sin ellas, corta en `0x5fb2f0`; con sus tipos de verdad no se llega: el `0x1f3` y el `0x1f4` cortan antes en
+`0x60243e`, P-C179 b y P-C240); la tela del `0x37` con el `CharacterCloth` del lugar (`WearsTheMonsterCloth`; sin
+`GameCharacterPass::cloths`, corta en `0x50d58b`), como la del monstruo 55, que es un `0x20a` y va por
+`DrawGameCharacters`; el cuervo con `DrawGameRaven`, como el de un jugador. Entre frames del original, todo sobre una
+copia del personaje y del `rand()`. Cortan con su dirección: los casos de `0x6002e0` y de su cadena, lo de
+`0x50bf45`, las partes (`0x50d3e3`), el Angel (`0x50d383`) y el gremio (`0x50c99b`), el joint `0x618/6` en
+`CreateFaunaJoint` (`0x530c18`), el `0x16e`, los helpers de `0x510a1e` y `0x510f4d` (`0x518cf0`, CL11); 08, P-C179.
+Tests: `MonsterDrawingTest`, `MonsterHangingLight` y `MonsterDecorations` (`test_monster_drawing.cpp`: un Spider de
+Lorencia, un Yeti de Devias, la sombra por mapa, el contorno de un monstruo, de un NPC y de la puerta de Kalima, el
+calco del `0xe8` y el `0xe9` en Lorencia, Devias y Blood Castle, la tela del `0x37` en Lorencia, Devias y Chaos
+Castle, el cuervo, el hada del NPC 237, el caso del `0x176` y los cortes),
+`GameCharacterRenderTest.TheMonster55WearsTheClothOfThe0x37` y
+`GameHangingTest.AMonsterSkipsTheBackTheLayerAndTheEventWeapon`.
 
 #### La tela sobre la malla
 

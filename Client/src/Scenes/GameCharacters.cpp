@@ -139,6 +139,7 @@ DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, const GameCh
     character.kind = actor.byte88;
     character.map = static_cast<std::uint8_t>(map);
     character.cloth = slot < pass.cloths.size() ? &pass.cloths[slot] : nullptr;
+    character.monster = actor.word376;
     character.clothWorld = pass.clothWorld;
     character.sprites = pass.sprites;
     character.originalRandom = pass.clothWorld != nullptr ? &pass.clothWorld->random : nullptr;
@@ -233,10 +234,11 @@ Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const I
         if (auto marked = CheckTheGuildMark(actor, character.map); !marked.HasValue())
             return marked;
     }
-    // 0x50c951: la tela propia del +0x376 0x37 (0x50d599), fuera de Chaos Castle.
-    if (actor.word376 == 0x37 && !InChaosCastle(character.map))
-        return Core::Unexpected<std::string>("0x50d599: la tela del +0x376 0x37 no está portada");
-    if (WearsACloth(actor.characterClass, character.map) && character.cloth == nullptr)
+    // 0x50c929..0x50c96e: bVar23, la clase 3 o 4 o el +0x376 0x37 (el monstruo 55, que es un 0x20a), fuera de
+    // Chaos Castle.
+    const bool wears =
+        WearsACloth(actor.characterClass, character.map) || WearsTheMonsterCloth(actor.word376, character.map);
+    if (wears && character.cloth == nullptr)
         return Core::Unexpected<std::string>("0x50d58b: falta la tela persistente del lugar del personaje");
     DrawCharacter(batch, models, character, pass.frameClock, CharacterDrawPass::Cloth);
     return {};

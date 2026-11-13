@@ -53,14 +53,16 @@ struct GameCharacterPass;
 //   mueren; el calco 0x61e del 0xe8 y el 0xe9 (0x5fb2f0, World::DrawTerrainDecal), aditivo, con las alturas del
 //   terreno de `pass` o del mundo (sin ellas, corta);
 // - lo de 0x50bf45 por el +0x376 (CheckMonsterDecorations);
-// - las partes (0x50d3e3), el Angel (0x50d383), la marca del gremio (0x50c99b) y la tela del 0x37 (0x50d599) cortan si
-//   el registro las tiene;
+// - las partes (0x50d3e3), el Angel (0x50d383) y la marca del gremio (0x50c99b) cortan si el registro las tiene;
+// - las telas (0x50d58b): con el +0x376 0x37 fuera de los mapas 0x12 a 0x17 (WearsTheMonsterCloth), el CharacterCloth
+//   de pass.cloths[slot] sobre los huesos propios (sin él, corta), con sus destellos en pass.sprites;
 // - 0x50db57: el rand() y la luz de lo que cuelga (HangingLightOf) y, fuera de la espalda, las manos (DrawGameHanging);
 // - el switch por modelo de 0x50e9fa: los sprites de 0x50b870 y 0x50b920 del 0x152 (con +0x1d6 en 1), el 0x170, el
 //   0x186, el 0x177, el 0x174, el 0x176, el 0x173, el 0x1d8 y el 0x1f2; los del 0x1d9 (0x510763) con su rand() % 30 y,
 //   si da 0, sus tres rand() % 100 y el joint 0x618/6 (que CreateFaunaJoint todavía no crea: corta); el 0x16e
 //   (0x5108b6) corta, y los demás van por la cadena de 0x510a1e, cuyos tipos cortan con la dirección de su helper;
-// - 0x510ef0 en la escena 5 con +0x88 en 1 y +0x369.
+// - 0x510ef0 en la escena 5 con +0x88 en 1 y +0x369 (corta en 0x510f4d, CL11); después el cuervo de +0x430
+//   (DrawGameRaven, con pass.polygon).
 // `models` tiene los ítems y Player.bmd (las manos); el modelo del tipo sale de WorldState::FaunaResources. Entre
 // frames del original, todo sobre una copia del personaje y del rand().
 [[nodiscard]] Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, const IModelLibrary& models,

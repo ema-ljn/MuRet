@@ -40,6 +40,10 @@ struct ClothWearer
 // no está en MuRet.
 [[nodiscard]] bool WearsACloth(std::uint8_t characterClass, std::uint8_t map);
 
+// La otra mitad de bVar23 (0x50c951..0x50c96e), con cualquier tipo: el +0x376 0x37, salvo en los mapas 0x12 a 0x17.
+// Arma la tela de ClothMonster, o las del Dark Lord si +0x1d4 dice la clase 4 (0x50d5a7 no mira el tipo).
+[[nodiscard]] bool WearsTheMonsterCloth(std::uint16_t monster, std::uint8_t map);
+
 // El color de 0x50ba30 sin duelo ni guerra: blanco.
 inline constexpr glm::vec3 PlainClothColor{1.0f, 1.0f, 1.0f};
 

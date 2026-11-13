@@ -157,6 +157,11 @@ bool WearsACloth(std::uint8_t characterClass, std::uint8_t map)
     return (base == MagicGladiator || base == DarkLord) && !(map >= FirstClothlessMap && map <= LastClothlessMap);
 }
 
+bool WearsTheMonsterCloth(std::uint16_t monster, std::uint8_t map)
+{
+    return monster == ClothMonster && !(map >= FirstClothlessMap && map <= LastClothlessMap);
+}
+
 void CharacterCloth::Build(const ClothWearer& wearer, const Render::Models::ClothBody& body)
 {
     if ((wearer.characterClass & ClassMask) == DarkLord)

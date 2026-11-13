@@ -919,11 +919,13 @@ void DrawTheCloth(const CharacterFrame& frame, std::span<const BoneTransform> bo
     wearer.armor = appearance.bodyParts[static_cast<std::size_t>(GameLogic::BodyPart::Armor)].model;
     wearer.wings = appearance.wings;
     wearer.objectFlags = character.objectFlags;
+    wearer.monster = character.monster;
     const Render::Models::ClothBody clothBody{.bones = body,
                                               .angles = character.object.angles,
                                               .scale = character.object.scale,
                                               .position = character.object.position};
-    const bool wears = WearsACloth(appearance.characterClass, character.map);
+    const bool wears = WearsACloth(appearance.characterClass, character.map) ||
+                       (character.monster && WearsTheMonsterCloth(*character.monster, character.map));
     if (character.advanceCloth)
     {
         character.cloth->Advance(frame.batch, wearer, clothBody, *character.clothWorld, character.map, frame.clock,

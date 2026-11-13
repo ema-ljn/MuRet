@@ -13,6 +13,7 @@
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterCloth.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaModels.h"
@@ -22,6 +23,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/Sprites.h"
+#include "World/TerrainCulling.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldTerrain.h"
 
@@ -499,7 +501,7 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
     // de lo que cuelga; lo de 0x50bf45, después de la sombra.
     constexpr std::array cases{Case{Spider, 0x59, "0x50bb96", 0, 0}, Case{HelperType, 0x20, "0x4271d0", 6, 3},
                                Case{Spider, 0x26, "0x50c671", 6, 0}, Case{0x18e, 0x21, "0x600654", 0, 0},
-                               Case{Spider, 0x37, "0x50d599", 6, 0}, Case{0x16e, 0x22, "0x5108b6", 6, 3}};
+                               Case{0x16e, 0x22, "0x5108b6", 6, 3}};
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.address);
@@ -514,6 +516,97 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
         EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(value.randoms));
         TearDown();
     }
+}
+
+// 0x50c951 y 0x50d58b: el +0x376 0x37, con cualquier tipo, arma y simula la tela de ClothMonster (bVar23) fuera de los
+// mapas 0x12 a 0x17, sobre los huesos propios, antes de lo que cuelga; la escena hace lo mismo que CharacterCloth.
+TEST_F(MonsterDrawingTest, TheMonster0x37WearsItsClothOutsideChaosCastle)
+{
+    struct Case
+    {
+        std::int32_t map;
+        bool wears;
+    };
+    constexpr std::array cases{Case{0, true}, Case{2, true}, Case{0x12, false}};
+    for (const Case& value : cases)
+    {
+        SCOPED_TRACE(value.map);
+        m_world = std::make_unique<Client::Scenes::WorldState>();
+        SetUp();
+        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_world->Runtime().map = value.map;
+        ActorState& monster = Monster(3, Spider, 0x37);
+        std::vector<Client::Scenes::CharacterCloth> cloths(4);
+        GameCharacterPass pass = Pass();
+        pass.cloths = cloths;
+        Client::Render::Models::ClothWorld expectedWorld = m_clothWorld;
+
+        const auto result = Draw(pass);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        if (!value.wears)
+        {
+            EXPECT_TRUE(cloths[3].Cloths().empty());
+            EXPECT_EQ(m_batch.Vertices().size(), 6u);
+            EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
+            TearDown();
+            continue;
+        }
+        ASSERT_EQ(cloths[3].Cloths().size(), 1u);
+        EXPECT_EQ(cloths[3].Count(), 1);
+        Client::Scenes::CharacterCloth expected;
+        Client::Render::ModelBatch expectedBatch;
+        expectedBatch.Begin(Client::Render::Pass3D{});
+        Client::Scenes::ClothWearer wearer;
+        wearer.monster = std::uint16_t{0x37};
+        const Client::Render::Models::ClothBody body{
+            .bones = monster.bodyPose, .angles = monster.angles, .scale = monster.scale, .position = monster.position};
+        expected.Frame(expectedBatch, wearer, body, expectedWorld, static_cast<std::uint8_t>(value.map), 0.0f, true);
+        ASSERT_EQ(expected.Cloths().size(), 1u);
+        const auto particles = cloths[3].Cloths()[0].Particles();
+        const auto reference = expected.Cloths()[0].Particles();
+        ASSERT_EQ(particles.size(), reference.size());
+        for (std::size_t index = 0; index < particles.size(); ++index)
+            EXPECT_EQ(particles[index].position, reference[index].position) << index;
+        // El cuerpo, la sombra y después la tela, como la dibuja CharacterCloth.
+        ASSERT_EQ(m_batch.Vertices().size(), 6u + expectedBatch.Vertices().size());
+        for (std::size_t index = 0; index < expectedBatch.Vertices().size(); ++index)
+            EXPECT_EQ(m_batch.Vertices()[6 + index].position, expectedBatch.Vertices()[index].position) << index;
+        for (std::size_t call = 0; call < 3; ++call)
+            static_cast<void>(expectedWorld.random.Next());
+        EXPECT_EQ(m_clothWorld.random.State(), expectedWorld.random.State());
+        EXPECT_NE(m_clothWorld.random.State(), AfterRandoms(3));
+        TearDown();
+    }
+    m_world = std::make_unique<Client::Scenes::WorldState>();
+    SetUp();
+    Monster(3, Spider, 0x37);
+    const auto unsupplied = Draw(Pass());
+    ASSERT_FALSE(unsupplied.HasValue());
+    EXPECT_NE(unsupplied.Error().find("0x50d58b"), std::string::npos) << unsupplied.Error();
+}
+
+// 0x510abd: el cuervo de +0x430 va con cualquier tipo (0x420df0), con el trapecio del dibujo.
+TEST_F(MonsterDrawingTest, AMonsterWithARavenDrawsItAfterItsTail)
+{
+    Monster(3, Spider, 3).darkSpirit.emplace();
+    const auto without = Draw(Pass());
+    ASSERT_FALSE(without.HasValue());
+    EXPECT_NE(without.Error().find("0x418320"), std::string::npos) << without.Error();
+    EXPECT_EQ(m_batch.Vertices().size(), 6u);
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
+
+    m_world = std::make_unique<Client::Scenes::WorldState>();
+    SetUp();
+    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    Monster(3, Spider, 3).darkSpirit.emplace();
+    const Client::World::TerrainPolygon everything{.everything = true};
+    GameCharacterPass pass = Pass();
+    pass.polygon = &everything;
+    const auto drawn = Draw(pass);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_GT(m_batch.Vertices().size(), 6u);
 }
 
 TEST_F(MonsterDrawingTest, BetweenOriginalFramesNothingIsStored)

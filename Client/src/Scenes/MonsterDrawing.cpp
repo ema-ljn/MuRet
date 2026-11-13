@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Data/Models/Model.h"
+#include "GameLogic/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Models/Cloth.h"
@@ -16,6 +17,7 @@
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaModels.h"
+#include "Scenes/GameCharacterEffects.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/GameHanging.h"
@@ -83,7 +85,8 @@ constexpr float OuterSpan = std::bit_cast<float>(0x3dcccccdu);         // 0,1 (0
 constexpr float PulseRate = std::bit_cast<float>(0x3b03126fu);
 constexpr float PulseSpan = std::bit_cast<float>(0x3e99999au);
 constexpr std::uint16_t WideOutlineType = 0x172;
-constexpr std::uint16_t KalimaGate = 0xc5; // los monstruos 152 a 158 (0x514390)
+constexpr std::uint16_t KalimaGate = 0xc5;                                       // los monstruos 152 a 158 (0x514390)
+constexpr auto ArmorPart = static_cast<std::size_t>(GameLogic::BodyPart::Armor); // +0x238
 constexpr std::uint32_t RiderFlag = 0x4000;
 
 float F32(double value)
@@ -545,9 +548,41 @@ Result CheckTheParts(const ActorState& actor, std::int32_t map)
         if (dressed)
             return Cut("0x50d3e3", "el lazo de las partes (0x60cf70) en un personaje que no es un jugador", actor.type);
     }
-    // 0x50c951: la tela del 0x37 (fuera de Chaos Castle), con su 0x64 propia (0x50d599).
-    if (actor.word376 == 0x37 && !InChaosCastle(map))
-        return Cut("0x50d599", "la tela del +0x376 0x37", actor.type);
+    return {};
+}
+
+// 0x50c929..0x50c96e y 0x50d58b..0x50db57: en un personaje que no es el 0x20a, bVar23 es solo el +0x376 0x37 fuera de
+// los mapas 0x12 a 0x17; con él, el bloque de las telas de CharacterCloth sobre los huesos propios (+0x120) con el
+// blanco de 0x50c979 (+0x1f2 en 0xffff). Entre frames del original, las de antes.
+Result RunTheCloth(MonsterFrame& frame)
+{
+    constexpr std::uint16_t ClothFlare = 0x5ac; // flare01, aditivo (0x5491e0 con 0)
+    const ActorState& actor = frame.actor;
+    const auto map = static_cast<std::uint8_t>(frame.map);
+    const bool wears = WearsTheMonsterCloth(actor.word376, map);
+    if (!wears)
+        return {};
+    if (frame.slot >= frame.pass.cloths.size())
+        return Core::Unexpected<std::string>("0x50d58b: falta la tela persistente del lugar del personaje");
+    CharacterCloth& cloth = frame.pass.cloths[frame.slot];
+    const ClothWearer wearer{
+        .characterClass = actor.characterClass,
+        .armor = actor.body[ArmorPart].model,
+        .wings = actor.wings.model == NoItemModel ? std::nullopt : std::optional<std::uint16_t>(actor.wings.model),
+        .monster = actor.word376,
+        .objectFlags = actor.flags78};
+    const Render::Models::ClothBody body{
+        .bones = actor.bodyPose, .angles = actor.angles, .scale = actor.scale, .position = actor.position};
+    if (frame.originalFrame)
+        cloth.Frame(frame.batch, wearer, body, *frame.pass.clothWorld, map, frame.worldClock, wears);
+    else
+        cloth.DrawCurrent(frame.batch, wearer, body, frame.pass.frameClock, wears);
+    if (frame.pass.sprites != nullptr)
+    {
+        for (const Render::Models::ClothFlare& flare : cloth.Flares())
+            static_cast<void>(
+                frame.pass.sprites->Create(ClothFlare, flare.position, flare.scale, glm::vec3(flare.light), 0.0f, 0));
+    }
     return {};
 }
 
@@ -781,10 +816,23 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
     if (actor.byte88 == PlayerKind && !InBloodCastle(frame.map) && !InChaosCastle(frame.map) &&
         frame.map != CastleMap && actor.byte369 == 1 && frame.originalFrame)
         return Core::Unexpected<std::string>("0x510f4d: el efecto 0x140 de +0x369 no está portado");
-    // 0x510abd: 0x420df0, el cuervo de +0x430.
-    if (actor.darkSpirit)
-        return Cut("0x420df0", "el cuervo de un personaje que no es un jugador", actor.type);
-    return {};
+    // 0x510abd: 0x420df0, el cuervo de +0x430, con cualquier tipo.
+    if (!actor.darkSpirit)
+        return {};
+    if (pass.polygon == nullptr)
+        return Core::Unexpected<std::string>("0x418320: falta el trapecio del dibujo para el cuervo");
+    return DrawGameRaven(actor,
+                         GameRavenPass{.batch = frame.batch,
+                                       .models = frame.items,
+                                       .polygon = *pass.polygon,
+                                       .lighting = pass.dynamicLighting,
+                                       .terrain = pass.terrain != nullptr ? *pass.terrain : frame.world.Map().terrain,
+                                       .fixedHeight = pass.fixedHeight,
+                                       .carry = pass.poseCarry,
+                                       .frameClock = pass.frameClock,
+                                       .map = frame.map,
+                                       .heroByte1a1 = frame.world.Actors()[frame.world.Runtime().hero].byte1a1,
+                                       .originalFrame = frame.originalFrame});
 }
 } // namespace
 
@@ -891,6 +939,8 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
         actor.drawnLight = glm::vec3(std::bit_cast<float>(0x3f19999au));
     if (auto parts = CheckTheParts(actor, frame.map); !parts.HasValue())
         return parts;
+    if (auto clothed = RunTheCloth(frame); !clothed.HasValue())
+        return clothed;
     return DrawTheTail(frame, terrainLight);
 }
 } // namespace Client::Scenes

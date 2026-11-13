@@ -773,5 +773,16 @@ TEST_F(OldWindowsTest, F5ShowsTheChatsAndChoosesOne)
     ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, first).HasValue());
     EXPECT_EQ(list.list.chats.size(), 1u);
     EXPECT_EQ(list.list.cursor, 1u);
+
+    // Con el foco en la entrada del chat, F5 no se lee; en el EDIT de una ventana vieja, sí (0x467d3b).
+    m_focus = ChatFocus::Message;
+    m_keys.insert(F5Key);
+    ASSERT_TRUE(Step(0, 0).HasValue());
+    EXPECT_EQ(list.list.armed, 0);
+    Release();
+    m_focus = ChatFocus::OldWindow;
+    m_keys.insert(F5Key);
+    ASSERT_TRUE(Step(0, 0).HasValue());
+    EXPECT_EQ(list.list.armed, 1);
 }
 } // namespace

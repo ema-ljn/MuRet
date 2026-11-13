@@ -1152,9 +1152,11 @@ Core::Expected<void, std::string> StepTheOldWindows(OldWindowManager& manager, c
         }
     }
     // 0x490538..0x49055c: F5 con el foco en la ventana del juego, 0x4a5be0(1) sobre la lista de ventanas. Con el foco
-    // en un EDIT (los del chat, los de una ventana vieja), su subclase lo lee igual (0x467d3b) con cada mensaje que le
-    // llega, antes del paso (*inferido*: acá, en el lugar del de la ventana del juego).
-    if (view.keyEdge && view.keyEdge(F5Key))
+    // en el EDIT de una ventana vieja, su subclase (0x467b10) lo lee igual con cada mensaje que le llega, menos WM_CHAR
+    // y los del IME (0x467d3b), antes del paso (*inferido*: acá, en el lugar del de la ventana del juego). Los dos EDIT
+    // de la entrada del chat tienen otra subclase, que no lo lee.
+    if ((globals.keyboardFocus == ChatFocus::Game || globals.keyboardFocus == ChatFocus::OldWindow) && view.keyEdge &&
+        view.keyEdge(F5Key))
         ShowTheWindowList(manager, 1);
     // 0x490561..0x4905a2: F6 esconde las ventanas, o las vuelve a mostrar si escondió alguna.
     if (view.keyEdge && view.keyEdge(F6Key) && (manager.hiddenByF6 == 0 || !manager.hidden.empty()))

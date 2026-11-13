@@ -124,4 +124,21 @@ inline constexpr std::uint8_t Report73Head = 0xf1;
 // [clave H] [clave L], con el XOR32 sobre los bytes 3 a 5 y en C3 (sus dos rand(), el relleno y el serial, los saca
 // quien lo manda). La clave es +0x1f4 del blanco, entera. Es el PMSG_MAGICATTACK del GameServer (CGMagicAttack).
 [[nodiscard]] Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key);
+
+// El 1E que manda el elfo (0x561f60, 0x562b36 y 0x563f5a): C1 0C 1E [skill] [X] [Y] [rumbo] [hacia] [espalda]
+// [clave H] [clave L] 00, con el XOR32 sobre los bytes 3 a 11 y en C3 como el 19. El GameServer lee solo los 7
+// primeros (PMSG_DURATION_MAGIC_RECV, CGDurationMagicRecv 0x427870).
+struct DurationMagicSend
+{
+    std::uint8_t skill = 0;
+    std::uint8_t x = 0;
+    std::uint8_t y = 0;
+    std::uint8_t direction = 0;
+    // ((dx + 8) << 4) | ((dy − 8) & 0xf), con la distancia de la celda lógica al blanco entre −8 y 7.
+    std::uint8_t towards = 0;
+    // El rumbo dado vuelta (+180°) en la misma escala de 0 a 255.
+    std::uint8_t back = 0;
+    std::uint16_t key = 0;
+};
+[[nodiscard]] Outgoing WriteDurationMagic(const DurationMagicSend& send);
 } // namespace Client::Protocol::Skill

@@ -332,21 +332,6 @@ Core::Expected<bool, std::string> UseTheWeaponSkill(ActorState& hero, const Worl
     return UseTheWeaponOptions(hero, item, context);
 }
 
-// 0x561f60(héroe, ítem): lo mismo para el elfo, sin la lista: las opciones del arma contra la skill del lugar.
-Core::Expected<bool, std::string> UseTheElfWeaponSkill(const World::ItemState& item, const HeroSkillContext& context)
-{
-    const auto own = OwnAccess(context);
-    const ActorState& published = context.world.Actors()[context.world.Runtime().hero];
-    const std::uint8_t used = OwnSkillByte(context.world.OwnCharacter(), published.skillIndex);
-    for (std::uint8_t option = 0; option < item.optionCount; ++option)
-    {
-        if (item.OptionTag(option) == used)
-            return Core::Unexpected(std::format(
-                "0x562024: la skill {:#x} de la opción del arma del elfo (0x561f60) es de la fase 2c", used));
-    }
-    return false;
-}
-
 // 0x57d532..0x57d758: por cada mano (+0xb6c y +0xbb4), la skill de su arma. La tabla 0x599d70 (por la skill − 0x2b)
 // deja montado solo las 0x2b, 0x2f, 0x31, 0x3c a 0x3e, 0x41, 0x4a y 0x4c. True: la usó (0x57df46, el registro cerrado
 // y nada más).
@@ -381,7 +366,7 @@ Core::Expected<bool, std::string> UseTheWeaponSkills(ActorState& hero, std::uint
         if (heroClass == ElfClass)
         {
             const auto own = OwnAccess(context);
-            const auto used = UseTheElfWeaponSkill(context.world.OwnCharacter().equipment[hand], context);
+            const auto used = UseTheElfWeaponOptions(hero, context.world.OwnCharacter().equipment[hand], context);
             if (!used.HasValue() || used.Value())
                 return used;
         }

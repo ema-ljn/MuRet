@@ -167,6 +167,7 @@ struct SkillHero
                                                           {0x30, 2},
                                                           {0x31, 3},
                                                           {0x3a, 7},
+                                                          {0x36, 3},
                                                           {0x3c, 3},
                                                           {0x3d, 3, 0, 0x40},
                                                           {0x43, 3},
@@ -656,14 +657,15 @@ TEST(HeroSkillsTest, TheWeaponSkillsGoToTheirTails)
         EXPECT_TRUE(Contains(result.Error(), "0x55be23")) << result.Error();
     }
     {
-        // 0x561f60: la del elfo, sin la lista.
+        // 0x561f60: la del elfo, sin la lista; fuera de la 0x18 y la 0x36 no tira y sigue a la rama de la clase.
         const auto tested = AHeroClicking(0x13, Elf);
         auto& item = tested->world.OwnCharacter().equipment[0];
         item.optionCount = 1;
         item.optionBytes[0] = 0x13;
         const auto result = tested->Use();
         ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x562024")) << result.Error();
+        EXPECT_TRUE(Contains(result.Error(), "0x57d790")) << result.Error();
+        EXPECT_TRUE(tested->sent.empty());
     }
 }
 
@@ -1026,4 +1028,111 @@ TEST(HeroSkillsTest, TheOption12CastsOnTheHeroItself)
     ASSERT_FALSE(result.HasValue());
     EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
     EXPECT_TRUE(tested->sent.empty());
+}
+
+namespace
+{
+// Un elfo con la opción `skill` en el arma de la derecha, el elegido de 0x7758588 en ChosenSlot y su clave.
+std::unique_ptr<SkillHero> AnElfWithTheOption(std::uint8_t skill, std::int32_t map = 0)
+{
+    auto tested = AHeroClicking(skill, Elf, map);
+    auto& item = tested->world.OwnCharacter().equipment[0];
+    item.optionCount = 1;
+    item.optionBytes[0] = skill;
+    tested->Movement().weaponSkill.target = static_cast<std::int32_t>(ChosenSlot);
+    auto& chosen = tested->world.Actors()[ChosenSlot];
+    chosen.key = 0x0a1b;
+    chosen.byte370 = 2;
+    return tested;
+}
+
+// El costo, la espera y el alcance (una entrada cada uno), la celda lógica del 1E y el C3; el registro de la mano.
+constexpr int ElfShotDraws = AimDraws + 3 * EntryDraws + 2 * CellDraws + 2 + OwnDraws;
+} // namespace
+
+// 0x563df6..0x564f37: la 0x18 en alcance gira al héroe hacia +0x3a8 y manda el 1E con la celda lógica, el rumbo ·
+// 256/360, dos ceros y la clave de 0x558eb0 con 0x7758588; 0x5767948 queda en la skill y la usó (0x57df46).
+TEST(HeroSkillsTest, TheElfTripleShotSendsA1E)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        const auto tested = AnElfWithTheOption(0x18, map);
+        const CrtRandom expected = Advanced(tested->random, ElfShotDraws);
+        const auto result = tested->Use();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(tested->random.State(), expected.State());
+        ASSERT_EQ(tested->sent.size(), 1u);
+        EXPECT_EQ(tested->sent[0].delivery, Client::Network::Delivery::Encrypted);
+        EXPECT_EQ(ClearBytesOf(tested->sent[0]),
+                  (std::vector<std::uint8_t>{0xc1, 0x0c, 0x1e, 0x18, 182, 115, 0x60, 0, 0, 0x0a, 0x1b, 0}));
+        EXPECT_FLOAT_EQ(tested->Hero().angles.z, 135.0f);
+        EXPECT_EQ(tested->Movement().lastShotSkill, 0x18u);
+    }
+}
+
+// 0x56291f..0x563b8f: la 0x36 suma la celda lógica hacia el blanco (2 y 2: 0xaa) y la espalda (315 · 255/360); el
+// rumbo es · 255/360. Sin elegido en 0x7758588, la clave es 0xffff.
+TEST(HeroSkillsTest, TheElfPenetrationSendsWhereTheTargetIs)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        const auto tested = AnElfWithTheOption(0x36, map);
+        tested->Movement().weaponSkill.target = -1;
+        const CrtRandom expected = Advanced(tested->random, ElfShotDraws + 2 * CellDraws);
+        const auto result = tested->Use();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(tested->random.State(), expected.State());
+        ASSERT_EQ(tested->sent.size(), 1u);
+        EXPECT_EQ(ClearBytesOf(tested->sent[0]),
+                  (std::vector<std::uint8_t>{0xc1, 0x0c, 0x1e, 0x36, 182, 115, 0x5f, 0xaa, 0xdf, 0xff, 0xff, 0}));
+    }
+}
+
+// 0x562a8a y 0x563eae: con "webzen" en el nombre no sale el 1E (y no hay freno), pero la usó; fuera de alcance
+// (0x56298f, 0x563e66), ni el 1E ni el rumbo, y sigue a la rama de la clase.
+TEST(HeroSkillsTest, TheElfShotNeedsTheNameAndTheReach)
+{
+    {
+        const auto tested = AnElfWithTheOption(0x18);
+        const char name[] = "webzen";
+        for (std::size_t i = 0; i + 1 < sizeof(name); ++i)
+            tested->Hero().name[i] = static_cast<std::byte>(name[i]);
+        const CrtRandom expected = Advanced(tested->random, ElfShotDraws - 2 * CellDraws - 2);
+        ASSERT_TRUE(tested->Use().HasValue());
+        EXPECT_EQ(tested->random.State(), expected.State());
+        EXPECT_TRUE(tested->sent.empty());
+        EXPECT_EQ(tested->Movement().lastShotSkill, 0u);
+    }
+    {
+        const auto tested = AnElfWithTheOption(0x36, 2);
+        tested->world.Actors()[ChosenSlot].position = {18850.0f, 11550.0f, 0.0f};
+        const auto result = tested->Use();
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_TRUE(Contains(result.Error(), "0x57d790")) << result.Error();
+        EXPECT_TRUE(tested->sent.empty());
+    }
+}
+
+// 0x56205f..0x562092: sin maná y sin poción, la opción que sigue (y la rama de la clase); con una, 0x5af520 (hito 5).
+TEST(HeroSkillsTest, TheElfShotWithoutMana)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        const auto tested = AnElfWithTheOption(0x18, map);
+        tested->skills = SkillsWith({{0x18, 6, 0, 0x10}});
+        const auto result = tested->Use();
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_TRUE(Contains(result.Error(), "0x57d790")) << result.Error();
+        auto& potion = tested->world.Inventory().cells[30];
+        potion.id = 0x1c04;
+        potion.occupied = 1;
+        tested->Ui().rightClick = true;
+        const auto again = tested->Use();
+        ASSERT_FALSE(again.HasValue());
+        EXPECT_TRUE(Contains(again.Error(), "0x562075")) << again.Error();
+        EXPECT_TRUE(tested->sent.empty());
+    }
 }

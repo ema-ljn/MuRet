@@ -33,6 +33,9 @@ struct ActorState;
 // rand().
 [[nodiscard]] Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker,
                                                                     bool controlDown);
+// 0x558eb0(c, `chosen`): lo mismo con otro elegido, como lo llama el elfo con 0x7758588 (0x562a7f, 0x563ea3).
+[[nodiscard]] Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker,
+                                                                    std::int32_t chosen, bool controlDown);
 
 // El freno de 300 ms (0x57f2d1..0x57f2f9, y el mismo en 0x559890, 0x55b6f0, 0x55cbc0 y 0x55faa0): salvo con la skill
 // 0x28, si |GetTickCount() − [0x576791c]| (resta de 32 bits con signo, CDQ/XOR/SUB) es 300 o menos, no pasa; si

@@ -25,6 +25,7 @@ namespace Client::Scenes
 {
 class WorldState;
 struct ActorState;
+struct InventoryServices;
 
 struct HeroSkillContext
 {
@@ -39,6 +40,8 @@ struct HeroSkillContext
     // GetTickCount (0x6b8144), que leen el freno de 300 ms de los envíos (0x576791c, PassesTheActionBrake). Vacío: el
     // envío que lo mira corta.
     std::function<std::uint32_t()> tickCount{};
+    // Lo que 0x561c50 (CheckTheArrows) pide para equipar las flechas del inventario. nullptr: sin servicios.
+    const InventoryServices* inventory = nullptr;
     // [0x5767b88], el reloj del mundo en ms.
     float worldTime = 0.0f;
     // GetAsyncKeyState(0x11), que 0x558bb0 mira para atacar a otro jugador.

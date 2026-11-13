@@ -187,4 +187,18 @@ Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key)
                            .PutU8(static_cast<std::uint8_t>(key >> 8))
                            .PutU8(static_cast<std::uint8_t>(key & 0xffu)));
 }
+
+Outgoing WriteDurationMagic(const DurationMagicSend& send)
+{
+    return EncryptedC1(Network::PacketWriter::C1(DurationMagicOpcode)
+                           .PutU8(send.skill)
+                           .PutU8(send.x)
+                           .PutU8(send.y)
+                           .PutU8(send.direction)
+                           .PutU8(send.towards)
+                           .PutU8(send.back)
+                           .PutU8(static_cast<std::uint8_t>(send.key >> 8))
+                           .PutU8(static_cast<std::uint8_t>(send.key & 0xffu))
+                           .PutU8(0));
+}
 } // namespace Client::Protocol::Skill

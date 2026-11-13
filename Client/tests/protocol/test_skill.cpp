@@ -212,4 +212,15 @@ TEST(SkillProtocolTest, TheMagicAttackGoesOutWithTheBigEndianKey)
     EXPECT_EQ(attack.delivery, Delivery::Encrypted);
     EXPECT_TRUE(SameBytes(Xor32Decode(attack.packet).Bytes(), Bytes({0xc1, 0x06, 0x19, 0x3c, 0x8a, 0x1b})));
 }
+
+// 0x562af5..0x563b78 (0x561f60): el 1E del elfo, C1 0C 1E [skill] [X] [Y] [rumbo] [hacia] [espalda] [clave H] [clave L]
+// 00, para cifrar.
+TEST(SkillProtocolTest, TheDurationMagicGoesOutWithTwelveBytes)
+{
+    const auto shot = Skill::WriteDurationMagic(
+        {.skill = 0x36, .x = 0xb6, .y = 0x73, .direction = 0x5f, .towards = 0xaa, .back = 0xdf, .key = 0x8a1b});
+    EXPECT_EQ(shot.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(shot.packet).Bytes(),
+                          Bytes({0xc1, 0x0c, 0x1e, 0x36, 0xb6, 0x73, 0x5f, 0xaa, 0xdf, 0x8a, 0x1b, 0x00})));
+}
 } // namespace

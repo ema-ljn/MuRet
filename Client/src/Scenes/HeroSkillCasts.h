@@ -88,4 +88,14 @@ UseTheSkillOnTheChosen(ActorState& caster, ActorState& hero, std::uint8_t skill,
 // las demás opciones; el resultado es el de la última que lo puso.
 [[nodiscard]] Core::Expected<bool, std::string> UseTheWeaponOptions(ActorState& hero, const World::ItemState& item,
                                                                     const HeroSkillContext& context);
+
+// 0x561f60(héroe, ítem) desde 0x562024: con el registro propio abierto, cada opción del arma igual a la skill del lugar
+// +0x425 del héroe publicado: su costo; sin maná, la poción (0x562075) o la que sigue; con la stamina de más que +0x38
+// o sin la espera (0x552c50), 0 enseguida. El alcance (0x5526f0) y, con la 0x18 o la 0x36: sin flechas (0x561c50) se
+// terminan las opciones; con la celda del elegido (0x77e1ba8) en alcance, el rumbo de c hacia +0x3a8, la clave de
+// 0x558eb0 con 0x7758588 y, con el nombre sin "webzen" (sin el freno), 0x5767948 y el 1E (la 0x36 con la celda lógica
+// de c hacia el blanco y la espalda); después 0x4f4a10 y, si c no es un jugador, la flecha (ShootTheArrow, sin portar).
+// Sigue con las demás opciones; da 1 si alguna tiró.
+[[nodiscard]] Core::Expected<bool, std::string> UseTheElfWeaponOptions(ActorState& hero, const World::ItemState& item,
+                                                                       const HeroSkillContext& context);
 } // namespace Client::Scenes

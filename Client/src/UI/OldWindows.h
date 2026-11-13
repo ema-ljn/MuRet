@@ -5,6 +5,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "UI/ChatInput.h"
+#include "UI/OldWindowBase.h"
 
 #include <array>
 #include <cstddef>
@@ -29,15 +30,6 @@
 // abren una caja de mensaje a mano.
 namespace Client::UI
 {
-// +0x48 (0x45a9b0 y 0x45a9c0): a la vista, cambiando de tamaño, oculta, arrastrada, minimizada (nadie la pone en la
-// CL8) y apagado (el botón, 0x45b200; nadie lo pone en la CL8).
-inline constexpr std::int32_t ShownWindow = 0;
-inline constexpr std::int32_t ResizedWindow = 1;
-inline constexpr std::int32_t HiddenWindow = 3;
-inline constexpr std::int32_t DraggedWindow = 4;
-inline constexpr std::int32_t MinimizedWindow = 5;
-inline constexpr std::int32_t DisabledWindow = 6;
-
 // +0x4c del marco (0x492500 y 0x492ac0): la barra del título con la cruz, el borde, la esquina para el tamaño, el
 // arrastre por la barra y los dos botones de la barra (el de minimizar, que manda el 2, y el de estirar, el 3).
 // 0x491ca0 pone todas (0x3f); la caja de mensaje, 0xb (0x4a38f0); la lista de ventanas, ninguna (0x4a48b0).
@@ -47,20 +39,6 @@ inline constexpr std::int32_t ResizeFlag = 0x4;
 inline constexpr std::int32_t DragFlag = 0x8;
 inline constexpr std::int32_t MinimizeFlag = 0x10;
 inline constexpr std::int32_t StretchFlag = 0x20;
-
-// Los mensajes del administrador (0x490b70) y de las ventanas (0x45abc0, 0x4a3b80): subir y dar el foco, minimizar,
-// estirar (la vtable + 0x38, 0x4930f0), cerrar y mandar al fondo; ubicar y medir contra el padre; el comando de un
-// botón, y el aviso al dueño de una caja de mensaje. El 6 se lo manda el administrador a la que sube; nadie lo atiende.
-inline constexpr std::int32_t RaiseMessage = 1;
-inline constexpr std::int32_t MinimizeMessage = 2;
-inline constexpr std::int32_t StretchMessage = 3;
-inline constexpr std::int32_t CloseMessage = 4;
-inline constexpr std::int32_t SendBackMessage = 5;
-inline constexpr std::int32_t RaisedMessage = 6;
-inline constexpr std::int32_t PlaceMessage = 8;
-inline constexpr std::int32_t SizeMessage = 9;
-inline constexpr std::int32_t CommandMessage = 10;
-inline constexpr std::int32_t AnswerMessage = 12;
 
 // 0x48ee60: los casos de la fábrica. El 0 es un marco solo; el 5 y el 8 son cajas modales (0x5762ebc), el 9 y el 10
 // no (van a la lista de +0xb8); el 5 y el 9 tienen dos botones, el 8 y el 10 uno. Los demás (1 y 2, el chat con un
@@ -76,60 +54,6 @@ inline constexpr std::int32_t KeepPlaceFlag = 0x1;
 // +0x40 de [0x5763524]: el id de la lista de ventanas. *Inferido*, como el del registro del chat (el 9): el que sigue
 // a él en WinMain (0x4bb786). Solo importan el orden y que sean distintos (P-C97).
 inline constexpr std::int32_t WindowListId = 10;
-
-// 0x459f70: un mensaje de 12 bytes (el tipo y dos argumentos) al final de la cola (+0x08..+0x30, un std::deque);
-// 0x45a140 saca el primero a +0x34..+0x3c.
-struct OldMessage
-{
-    std::int32_t type = 0;
-    std::int32_t a = 0;
-    std::int32_t b = 0;
-
-    friend bool operator==(const OldMessage&, const OldMessage&) = default;
-};
-
-// La ventana base, 0x45a210: lo que comparten todas.
-struct OldWindowBase
-{
-    // +0x40: del contador 0x5762eb0 (0x459ef0), que suma antes de dar.
-    std::int32_t id = 0;
-    // +0x44: la ventana de la que cuelga (0, ninguna).
-    std::int32_t parent = 0;
-    // +0x48.
-    std::int32_t state = ShownWindow;
-    // +0x4c.
-    std::int32_t flags = 0;
-    // +0x50..+0x5c, en 640 × 480. 0x45a210 la deja en (0, 0) de 100 × 100.
-    std::int32_t x = 0;
-    std::int32_t y = 0;
-    std::int32_t width = 100;
-    std::int32_t height = 100;
-    // +0x60, +0x68 y +0x6c (0x45aa10): cómo la ubica el mensaje 8 contra el área de adentro del padre (0, desde
-    // arriba a la izquierda; 1, 2 y 3, desde la derecha, desde abajo o desde los dos).
-    std::int32_t placeMode = 0;
-    std::int32_t placeX = 0;
-    std::int32_t placeY = 0;
-    // +0x64, +0x70 y +0x74 (0x45aa30): lo mismo para el tamaño con el mensaje 9.
-    std::int32_t sizeMode = 0;
-    std::int32_t sizeX = 0;
-    std::int32_t sizeY = 0;
-    // +0x78: el modo de 0x459f00 para el mouse (1, desde arriba a la izquierda).
-    std::int32_t rectMode = 1;
-    std::deque<OldMessage> queue;
-    OldMessage current;
-};
-
-// El botón, 0x45ad80 (vtable 0x6b8d9c): 0x46 × 0x14 con win_button.tga.
-struct OldButton
-{
-    OldWindowBase base;
-    // +0x7c: el comando que le manda al padre (0x45b150).
-    std::int32_t command = 0;
-    // +0x80: el texto (strdup de 0x45b170), o ninguno.
-    std::optional<std::string> label;
-    // +0x84: apretado (el clic empezó sobre él).
-    std::int32_t pressed = 0;
-};
 
 // Lo que agrega el marco de 0x491ca0 (vtable 0x6b9f9c).
 struct OldFrame

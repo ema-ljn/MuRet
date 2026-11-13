@@ -4,6 +4,7 @@
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/ChatLogWindow.h"
+#include "UI/OldWindowBase.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -325,7 +326,7 @@ void StepTheButton(OldWindowManager& manager, OldButton& button, std::int32_t ar
 // 0x45aa50 sobre un botón: el mensaje y su paso con 1 (0x45aa80), que atiende la cola y no llega al mouse.
 void PostAndSettle(OldWindowManager& manager, OldButton& button, std::int32_t type)
 {
-    button.base.queue.push_back(OldMessage{.type = type, .a = 0, .b = 0});
+    button.base.queue.push_back(OldMessage{.type = type, .a = 0, .b = 0, .text = {}});
     while (!button.base.queue.empty())
     {
         button.base.current = button.base.queue.front();
@@ -392,7 +393,7 @@ void BeforeTheMouse(OldWindowManager& manager, OldWindow& window, std::int32_t a
     if (window.kind == OldWindowKind::MessageBox)
     {
         if (LastOldWindow(manager) == window.base.id && view.keyEdge && view.keyEdge(EnterKey))
-            window.base.queue.push_back(OldMessage{.type = CommandMessage, .a = YesCommand, .b = 0});
+            window.base.queue.push_back(OldMessage{.type = CommandMessage, .a = YesCommand, .b = 0, .text = {}});
         for (OldButton& button : window.box.buttons)
             StepTheButton(manager, button, arg, globals, view);
         return;
@@ -761,13 +762,13 @@ std::int32_t LastOldWindow(const OldWindowManager& manager)
 
 void PostToTheManager(OldWindowManager& manager, std::int32_t type, std::int32_t a, std::int32_t b)
 {
-    manager.queue.push_back(OldMessage{.type = type, .a = a, .b = b});
+    manager.queue.push_back(OldMessage{.type = type, .a = a, .b = b, .text = {}});
 }
 
 void PostToTheWindow(OldWindowManager& manager, std::int32_t id, std::int32_t type, std::int32_t a, std::int32_t b)
 {
     if (OldWindow* window = FindTheOldWindow(manager, id); window != nullptr)
-        window->base.queue.push_back(OldMessage{.type = type, .a = a, .b = b});
+        window->base.queue.push_back(OldMessage{.type = type, .a = a, .b = b, .text = {}});
 }
 
 Core::Expected<std::int32_t, std::string> CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request,

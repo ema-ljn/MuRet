@@ -9,6 +9,7 @@
 #include "Render/TextureSlot.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
+#include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
 #include "support/RecordingTextDrawer.h"
 
@@ -277,7 +278,7 @@ TEST_F(OldWindowsTest, ClickingYesAnswersTheOwnerAndClosesTheBoxOneStepLater)
     Release();
     ASSERT_TRUE(Step(x, y).HasValue());
     EXPECT_EQ(m_sound, ButtonSound);
-    EXPECT_EQ(Window(id).base.queue.front(), (OldMessage{.type = 10, .a = 1, .b = 0}));
+    EXPECT_EQ(Window(id).base.queue.front(), (OldMessage{.type = 10, .a = 1, .b = 0, .text = {}}));
 
     m_sound.reset();
     ASSERT_TRUE(Step(x, y).HasValue());
@@ -286,9 +287,9 @@ TEST_F(OldWindowsTest, ClickingYesAnswersTheOwnerAndClosesTheBoxOneStepLater)
     EXPECT_TRUE(m_manager.boxes.empty());
     EXPECT_EQ(m_sound, ButtonSound);
     // El dueño, más abajo en la lista, corre su paso después de la caja: atiende el 12 en el mismo paso.
-    EXPECT_EQ(Window(owner).base.current, (OldMessage{.type = 12, .a = id, .b = 1}));
+    EXPECT_EQ(Window(owner).base.current, (OldMessage{.type = 12, .a = id, .b = 1, .text = {}}));
     // 0x490b70 con el 4: la nueva del final de la lista recibe el 6.
-    EXPECT_EQ(Window(owner).base.queue.front(), (OldMessage{.type = 6, .a = 0, .b = 0}));
+    EXPECT_EQ(Window(owner).base.queue.front(), (OldMessage{.type = 6, .a = 0, .b = 0, .text = {}}));
 }
 
 // "No" avisa con 0.
@@ -305,7 +306,7 @@ TEST_F(OldWindowsTest, ClickingNoAnswersZero)
     ASSERT_TRUE(Step(no.x + 1, no.y + 1).HasValue());
 
     EXPECT_FALSE(m_manager.windows.contains(id));
-    EXPECT_EQ(Window(owner).base.current, (OldMessage{.type = 12, .a = id, .b = 0}));
+    EXPECT_EQ(Window(owner).base.current, (OldMessage{.type = 12, .a = id, .b = 0, .text = {}}));
 }
 
 // Soltado fuera del botón: 0x45b200 suelta todo, el izquierdo y los dos flancos.
@@ -334,7 +335,7 @@ TEST_F(OldWindowsTest, EnterAnswersOnlyTheBoxOnTop)
     m_keys = {EnterKey};
 
     ASSERT_TRUE(Step(639, 479).HasValue());
-    EXPECT_EQ(Window(top).base.queue.front(), (OldMessage{.type = 10, .a = 1, .b = 0}));
+    EXPECT_EQ(Window(top).base.queue.front(), (OldMessage{.type = 10, .a = 1, .b = 0, .text = {}}));
     EXPECT_TRUE(Window(below).base.queue.empty());
     EXPECT_TRUE(m_keys.empty());
 
@@ -408,7 +409,7 @@ TEST_F(OldWindowsTest, EscapeClosesTheLastWindow)
     EXPECT_FALSE(m_manager.windows.contains(top));
     EXPECT_EQ(m_manager.order, (std::list<std::int32_t>{below}));
     EXPECT_EQ(m_sound, ButtonSound);
-    EXPECT_EQ(Window(below).base.queue.front(), (OldMessage{.type = 6, .a = 0, .b = 0}));
+    EXPECT_EQ(Window(below).base.queue.front(), (OldMessage{.type = 6, .a = 0, .b = 0, .text = {}}));
 }
 
 // F6 (0x490561): el primero esconde las que están a la vista y las anota; el segundo las muestra, le pide al

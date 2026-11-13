@@ -385,7 +385,7 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
     // La tela sobre la malla corta antes de todo; un helper de la cadena, después de lo que cuelga; lo de 0x50bf45,
     // después de la sombra.
     constexpr std::array cases{Case{Spider, 0x59, "0x50bae7", 0, 0}, Case{HelperType, 0x20, "0x4271d0", 6, 3},
-                               Case{Spider, 0x26, "0x50c671", 6, 0}, Case{0x18e, 0x21, "0x600654", 0, 0},
+                               Case{Spider, 0x26, "0x50c671", 6, 0}, Case{0x18e, 0x21, "0x4ee770", 0, 4},
                                Case{Spider, 0x37, "0x50d599", 6, 0}, Case{0x16e, 0x22, "0x5108b6", 6, 3}};
     for (const Case& value : cases)
     {

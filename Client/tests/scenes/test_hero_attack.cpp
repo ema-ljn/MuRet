@@ -315,8 +315,8 @@ TEST_F(HeroAttackTest, OnlyAction8DStopsAPlayerThatIsAlreadyHitting)
     EXPECT_EQ(m_sent.size(), 2u);
 }
 
-// 0x5650ef..0x565100: la tabla por +0x379 − 1. El 0 y los de afuera de 1 a 5 no hacen nada ni sacan rand(); los otros
-// casos cortan con la dirección de su hito.
+// 0x5650ef..0x565100: la tabla por +0x379 − 1. El 0 y los de afuera de 1 a 5 no hacen nada ni sacan rand(); el 1, el 2
+// y el 4 cortan con la dirección de su hito (el 5, en test_hero_arrival_skill.cpp).
 TEST_F(HeroAttackTest, TheOtherArrivalCasesCutWithTheirAddress)
 {
     for (const std::uint8_t type : {std::uint8_t{0}, std::uint8_t{6}, std::uint8_t{0xff}})
@@ -330,7 +330,7 @@ TEST_F(HeroAttackTest, TheOtherArrivalCasesCutWithTheirAddress)
         std::uint8_t type;
         std::string_view address;
     };
-    for (const Case probe : {Case{1, "0x566755"}, Case{2, "0x5674c8"}, Case{4, "0x5695b4"}, Case{5, "0x56601f"}})
+    for (const Case probe : {Case{1, "0x566755"}, Case{2, "0x5674c8"}, Case{4, "0x5695b4"}})
     {
         Hero().movementType = probe.type;
         const auto cut = Client::Scenes::InteractOnArrival(Hero(), Arrival());

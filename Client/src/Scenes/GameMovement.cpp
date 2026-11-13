@@ -238,6 +238,7 @@ bool AutoAttacksHere(const WorldRuntime& runtime)
 }
 
 // Lo que necesita 0x5650c0 desde MoveHero (0x59b2d2 y 0x59d670): el héroe es un jugador, sin la biblioteca de modelos.
+// El caso 5 lleva lo de las skills, como UseTheHeroSkill (el GetTickCount del frame).
 HeroArrivalContext ArrivalContextOf(const HeroMovementContext& context)
 {
     return HeroArrivalContext{.combat = {.world = context.world,
@@ -246,7 +247,12 @@ HeroArrivalContext ArrivalContextOf(const HeroMovementContext& context)
                                          .models = nullptr,
                                          .items = context.items},
                               .sendWalk = context.sendWalk,
-                              .sendAttack = context.sendAttack};
+                              .sendAttack = context.sendAttack,
+                              .skills = context.skills,
+                              .tickCount = [ticks = context.input.ticksMs] { return ticks; },
+                              .inventory = context.inventory,
+                              .controlDown = context.input.controlDown,
+                              .sendSkill = context.sendSkill};
 }
 
 // Las manos del registro propio (+0xb6c y +0xbb4, MOVSX), en un acceso.

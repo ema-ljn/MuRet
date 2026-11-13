@@ -335,7 +335,8 @@ el viewport. **Desbloquea:** 4 y 11.
       En la fase 2c-A2, la rama del elfo (`0x57d790..0x58187c`, `Scenes/HeroSkillsElf`: los `19` de las
       invocaciones, de las `0x1a` a `0x1c` y de la `0x35`, y los `1E` de la `0x34` y la `0x4c`) y `0x55faa0`
       (`Scenes/Skill55faa0`, con el `D3`, sus `19` y `0x4f48e0`); cortan la poción (`0x57d837`, hito 5) y
-      `0x5808da` (08, P-C220).
+      `0x5808da` (08, P-C220). También el caso 5 de `0x5650c0` (`0x56601f`, `UseTheSkillOnArrival` en
+      `Scenes/HeroAttack.cpp`), que llega a `0x55b6f0`, `0x55cbc0` y `0x55faa0` con la skill pendiente.
 - [x] **Lo que llega:** el `0x19` (`0x4cc530`, 6,5 KB, con las acciones `0x94`, `0x51` y `0x5b` de
       `0x50f828`), el `0x1E` (`0x4ce000`), el `0x1B` (`0x4cbe90`), el `0x07` (los estados de un personaje,
       `GCSend_07` del GS: `0x4cbe00`, con `0x4e6910`), el `0x48`, el `0x69`, el `0x73` (`0x4d5b10`),

@@ -9485,8 +9485,8 @@ CL9 hito 3 (2026-11-13), *estático* salvo lo que se marca; los paquetes, en
   `GetTickCount()` nuevo (la segunda llamada). Lo usan las skills de `0x57cfc0` (hito 4).
 - **`0x5650c0(héroe, héroe, 0)`**, al final del camino (`0x59b2d2`), salta por `+0x379` (`MOVSX`)
   menos 1 a la tabla `0x56ab20`: 1 levanta el ítem del piso (`0x566755`, hito 5), 2 habla con el NPC
-  (`0x5674c8`, hito 2), 3 pega, 4 usa el objeto del mapa (`0x5695b4`) y 5 (`0x56601f`); otro valor
-  no hace nada. **El caso 3** (`0x565107..0x56601e`):
+  (`0x5674c8`, hito 2), 3 pega, 4 usa el objeto del mapa (`0x5695b4`) y 5 usa la skill del arma pendiente
+  (`0x56601f`, abajo); otro valor no hace nada. **El caso 3** (`0x565107..0x56601e`):
   1. El alcance, en celdas: 1,8; 2,2 con la derecha en `0x600..0x7ff`; 6 con las ballestas de la
      derecha (`0x808..0x80e`, `0x810`, `0x812..0x9ff`) o los arcos de la izquierda (`0x800..0x806`,
      `0x811`, `0x814`, `0x815`); 7 con `+0x376` en 9. Las armas son las del registro propio
@@ -9504,6 +9504,32 @@ CL9 hito 3 (2026-11-13), *estático* salvo lo que se marca; los paquetes, en
      X e Y protegidas, 4 `rand()` cada una) sale en el `D3` de girar; `+0x378 = 0`, las celdas del que
      pega se abren y se cierran (4 y 4), `+0x3a4` toma el blanco y, si el nombre del héroe publicado
      no contiene `webzen` (`0x6c8ff0`, una búsqueda de subcadena), sale el `D7`.
+- **El caso 5** (`0x56601f..0x566754`, CL9 hito 4, fase 2c-A2, *estático*): la skill que el héroe dejó pendiente
+  (`0x7758580..0x7758588`, las que escriben `0x559510` y las ramas de `0x57cfc0`).
+  1. Con el registro propio abierto (3848 `rand()` al cerrarlo, siempre): con el byte de `0x7758580`, el lugar
+     `0x7758584` del registro (`+0x6c`); sin él, `0x7758584` entero es la skill. `0x5526f0(skill, héroe)` da el
+     alcance (la entrada de Skill.bmd, 60 `rand()`), que queda en un float.
+  2. La skill − 1 por las tablas `0x56ab4c` y `0x56ab34`: **1 a 4, 7, `0xb`, `0x11`, `0x2d` y `0x49`** (`0x56629a`),
+     `0x55cbc0`; **`0x13` a `0x17`, `0x2b`, `0x2c`, `0x31`, `0x39`, `0x3c`, `0x3d` y `0x4a`** (`0x566143`), `0x55b6f0`;
+     la **`0x2f`** (`0x56612e`), como estas con el héroe publicado en Uniria (`+0x318` en `0x1c14`) y si no nada; la
+     **`0x2e` y la `0x33`** (`0x56642c`) y las **`0x1a` a `0x1c`** (`0x5665c3`), `0x55faa0`; las demás (y la 0), nada.
+  3. El blanco `0x7758588`: muriéndose (`+0x389`, que lee antes de mirar el −1) o en −1 o menos, nada (Q-C1216). Su
+     celda, `ftol(posición · 0,01)`, en `0x77e1ba8`/`0x77e1bac`, y la distancia del héroe al centro contra el alcance ·
+     100 (`· [0x6ba448]`, 120,0000076, con `0x55b6f0`), en la x87 con `TEST AH, 1`: igual está en alcance, desordenado
+     no (Q-C1216).
+  4. En alcance y fuera de la zona segura (`+0x3e2`): con `0x55b6f0`, `0x55b6f0(héroe, héroe)` (`0x5661f4`) sin mirar
+     las paredes; con las otras, la celda lógica del héroe (la Y y la X, 4 `rand()` cada una) y `0x558800`: sin la
+     línea de vista, nada; con ella, `0x55cbc0(héroe, héroe)` (`0x5663b2`) o `0x55faa0(héroe, héroe)` (`0x56654a`,
+     `0x5666db`).
+  5. Si no (también en alcance dentro de la zona segura, Q-C1217): la celda lógica del héroe (la Y y la X) y
+     `0x4eac00` hasta la celda del blanco con el alcance de distancia (· 1,2 en un float con `0x55b6f0`); con camino,
+     `+0x378` en 1, sin `SendMove` (como el caso 3, Q-C1164) y con `+0x379` todavía en 5.
+
+  **MuRet**: `UseTheSkillOnArrival` en `Scenes/HeroAttack.cpp`, desde `InteractOnArrival`; `HeroArrivalContext` lleva
+  Skill.bmd, el `GetTickCount` del frame, los servicios del inventario, Ctrl y el envío de las skills
+  (`ArrivalContextOf`, `GameMovement.cpp`), y arma con ellos el `HeroSkillContext` de `0x5526f0`, `0x55b6f0`
+  (`CastTheSkillAtTheTarget`), `0x55cbc0` (`UseTheSkillOnItsTarget`) y `0x55faa0` (`UseTheElfSkillOnItsTarget`). El
+  camino es `WalkIntoRange`, el del caso 3.
 - **`0x4f4a10`, SetPlayerAttack.** Un jugador: primero `0x4f3f80` (las velocidades de `Player.bmd`
   desde el registro propio, 3848 `rand()`); con Fenrir fuera de la zona segura, la acción por las
   armas (`0x56` a `0x61`) y el Dark Lord la pisa con `0x59`; con el caballo oscuro, `0x50`; con

@@ -312,8 +312,8 @@ el viewport. **Desbloquea:** 4 y 11.
       (`Scenes/GameUi.cpp`); en la fase 2, `0x4eb620` (`GameScene::Step`, P-C267) y, con los hitos 1 y 3
       integrados, `0x4f4a10` y `0x4e6380` en lo que llega (`SetActorAttack`, `ApplyEffectFlags`). En la fase 2b,
       la cabeza de `0x57cfc0` (`Scenes/HeroSkills`: el derecho, el ataque automático, el reloj, la zona segura, el
-      blanco `0x57ce80` y el lazo de las manos), desde MoveHero (`0x59e255`). Las ramas de cada clase, lo que mandan
-      las cuatro funciones y `0x420f70` quedan cortados con su dirección (08, P-C268).
+      blanco `0x57ce80` y el lazo de las manos), desde MoveHero (`0x59e255`), y las órdenes del cuervo (`0x420f70`).
+      Las ramas de cada clase y lo que mandan las cuatro funciones quedan cortados con su dirección (08, P-C268).
 - [x] **Lo que llega:** el `0x19` (`0x4cc530`, 6,5 KB, con las acciones `0x94`, `0x51` y `0x5b` de
       `0x50f828`), el `0x1E` (`0x4ce000`), el `0x1B` (`0x4cbe90`), el `0x07` (los estados de un personaje,
       `GCSend_07` del GS: `0x4cbe00`, con `0x4e6910`), el `0x48`, el `0x69`, el `0x73` (`0x4d5b10`),
@@ -326,8 +326,8 @@ el viewport. **Desbloquea:** 4 y 11.
       (`0x42a660`). *Hecho en parte (2026-11-13):* el `A7` y el `A8` (`Protocol/Pet/PetOrders`,
       `Scenes/PetOrders`); en la fase 2, los estados 2, 5 y 6 del paso, `0x418920` (con sus efectos cortados, CL11), el
       `A9` (`Scenes/PetStats`), `0x420cd0`, abrir y cerrar el panel `0x400` y el paso de la ventana (`0x424759`); los
-      íconos ya estaban. Quedan el dibujo de la ventana (`0x424160`) y el tooltip (`0x422990`) para una sub-ola del
-      cuervo (08, P-C266).
+      íconos ya estaban; en la fase 2b, las órdenes del derecho (`0x420f70`, `Scenes/HeroSkills`). Quedan el dibujo
+      de la ventana (`0x424160`) y el tooltip (`0x422990`) para una sub-ola del cuervo (08, P-C266).
 
 **Pruebas:** cada skill de cada clase manda sus bytes; el `0x19` y el `0x1E` sobre el héroe y sobre otro; las
 demoras; los `rand()` de la barra con skills (hoy se sacan sin ninguna); el cuervo con cada orden.

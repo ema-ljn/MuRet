@@ -10207,7 +10207,10 @@ salvo cuando el clic de ataque sale sin flechas (`0x59d666`, `MoveHeroEnd::Leave
    `0x77f3b4c`) · 0,001 (`0x6ba128`) y, desde 3.600 (`0x6ba43c`), el clic y el botón en 0 y se va.
 5. `0x6c8e50` en −1. Si el publicado no tiene `0x4000` en `+0x78`, las órdenes del cuervo, `0x420f70(héroe, +0x425)`:
    con el cuervo (`+0x430`), el clic o el botón (el clic ya se gastó: en la práctica, el botón abajo) y el lugar de
-   `0x78` a `0x7b`; si da 1, se va.
+   `0x78` a `0x7b`, el `A7` ([04](04-protocolo.md#las-órdenes-del-cuervo-a7-y-a8)): con `0x78` a `0x7a`, la orden del
+   lugar − `0x78` sin blanco; con `0x7b`, la 3 con la clave del elegido si `0x558bb0` lo deja atacar y es un jugador o
+   un monstruo (`+0x88` en 1 o 2), y si no, nada sale. Con el `A7` o sin él, el soltado, el clic, el botón y los frames
+   del derecho en 0, y se va (`0x421aff`). Sin `rand()`.
 6. `0x5a5540`: las del asedio (`0x2c`, `0x2d`, `0x2e`, `0x39`, `0x49` y `0x4a`) solo en el mapa 30 con el asedio
    (`0x4294b0`). Con `+0x31` de la entrada en 2 (`0x5aea30`, `0x4e7c40`: otros 60 `rand()`), pide `0x200` en `+0x78`.
    Sin uso (no pasa) o con `+0x389`, nada.
@@ -10245,7 +10248,8 @@ abierto; con una igual, `0x55a368` mira el maná y la poción y, si no alcanza, 
 globales: `0x7d36840` y `0x7d368a4` en `UI::GameUiState` (`rightReleased`, `rightHoldFrames`; el soltado lo prende
 `LatchTheRightButton`), `0x6c8e50` y `0x7758580..0x7758588` en `GameMovementState` (`followTarget`, `weaponSkill`).
 Cortan con su dirección (P-C268): las ramas de las clases (`0x57d790`, `0x581894`, `0x5897b7`, `0x5808ef`), lo que
-manda `0x559890` (`0x559afc`, `0x55a368`) y `0x561f60` (`0x562024`) y las órdenes del cuervo (`0x420fcb`).
+manda `0x559890` (`0x559afc`, `0x55a368`) y `0x561f60` (`0x562024`). Las órdenes del cuervo (`0x420f70`) están
+portadas, con `Protocol::Pet::WritePetCommand`.
 
 ### Las órdenes del cuervo
 

@@ -5,6 +5,10 @@
 #include "Data/Tables/SkillTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Network/Crypto/Xor32.h"
+#include "Network/Delivery.h"
+#include "Network/Packet.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkSpirit.h"
@@ -733,46 +737,123 @@ TEST(HeroSkillsTest, TheOtherClassesOnlyGoOnWith43To48)
     EXPECT_TRUE(Contains(result.Error(), "0x5808ef")) << result.Error();
 }
 
-// 0x57d29e..0x57d2c3: con el cuervo y el derecho, los lugares 0x78 a 0x7b son órdenes (0x420f70); con 0x4000 en el
-// publicado, no se miran. El clic ya se gastó en 0x57d1b1: la orden sale con el botón abajo (0x7d3685c).
-TEST(HeroSkillsTest, TheRavenOrdersComeBeforeTheSkill)
+// Un Dark Lord con el cuervo, el botón derecho abajo y el lugar `slot` elegido, que guarda lo que manda.
+struct RavenHero
+{
+    explicit RavenHero(std::uint8_t slot, std::int32_t map = 0) : tested(AHeroClicking(0x13, Lord, map))
+    {
+        tested->Ui().rightDown = true;
+        tested->Ui().rightReleased = true;
+        tested->Hero().darkSpirit.emplace();
+        tested->Hero().skillIndex = slot;
+        tested->world.OwnCharacter().SetSkillAt(slot, 0x13);
+        tested->world.Actors()[ChosenSlot].key = 0x0a1b;
+    }
+    Client::Core::Expected<void, std::string> Use()
+    {
+        auto context = tested->Context();
+        context.send = [this](Client::Protocol::Outgoing outgoing) { sent.push_back(std::move(outgoing)); };
+        return UseTheHeroSkill(tested->Hero(), context);
+    }
+    std::unique_ptr<SkillHero> tested;
+    std::vector<Client::Protocol::Outgoing> sent;
+};
+
+std::vector<std::uint8_t> ClearBytesOf(const Client::Protocol::Outgoing& outgoing)
+{
+    const Client::Network::Packet clear = Client::Network::Crypto::Xor32Decode(outgoing.packet);
+    std::vector<std::uint8_t> bytes;
+    for (const std::byte value : clear.Bytes())
+        bytes.push_back(std::to_integer<std::uint8_t>(value));
+    return bytes;
+}
+
+// 0x420f70 (0x421599..0x421b20): los lugares 0x78 a 0x7a mandan el A7 con la orden del lugar y la clave 0xffff, por
+// send() con el XOR32; el derecho queda suelto y la skill no sigue (ni la entrada del +0x31). En Lorencia y en Devias.
+TEST(HeroSkillsTest, TheRavenOrdersSendTheirA7)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const std::uint8_t slot : {std::uint8_t{0x78}, std::uint8_t{0x79}, std::uint8_t{0x7a}})
+        {
+            SCOPED_TRACE(map);
+            SCOPED_TRACE(slot);
+            RavenHero raven(slot, map);
+            raven.tested->Ui().rightHoldFrames = 0;
+            const CrtRandom expected = Advanced(raven.tested->random, HeadDraws);
+            const auto result = raven.Use();
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            EXPECT_EQ(raven.tested->random.State(), expected.State());
+            ASSERT_EQ(raven.sent.size(), 1u);
+            EXPECT_EQ(raven.sent[0].delivery, Client::Network::Delivery::Clear);
+            const std::vector<std::uint8_t> bytes{0xc1, 0x07, 0xa7, 0x00, static_cast<std::uint8_t>(slot - 0x78),
+                                                  0xff, 0xff};
+            EXPECT_EQ(ClearBytesOf(raven.sent[0]), bytes);
+            const auto& ui = raven.tested->Ui();
+            EXPECT_FALSE(ui.rightReleased);
+            EXPECT_FALSE(ui.rightClick);
+            EXPECT_FALSE(ui.rightDown);
+            EXPECT_EQ(ui.rightHoldFrames, 0);
+            EXPECT_EQ(raven.tested->Movement().followTarget, -1);
+            EXPECT_EQ(raven.tested->Movement().targetX, 0u);
+        }
+    }
+}
+
+// 0x420fd6..0x421594: el 0x7b ataca al elegido si 0x558bb0 lo deja y es un monstruo o un jugador: la orden 3 con su
+// clave. Si no, nada sale, pero el derecho queda suelto igual y la skill no sigue.
+TEST(HeroSkillsTest, TheRavenAttackOrderNeedsAnAttackableChosen)
 {
     {
+        RavenHero raven(0x7b);
+        const auto result = raven.Use();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_EQ(raven.sent.size(), 1u);
+        EXPECT_EQ(ClearBytesOf(raven.sent[0]), (std::vector<std::uint8_t>{0xc1, 0x07, 0xa7, 0x00, 0x03, 0x0a, 0x1b}));
+    }
+    for (const std::int32_t chosen : {static_cast<std::int32_t>(ChosenSlot), -1})
+    {
+        SCOPED_TRACE(chosen);
+        RavenHero raven(0x7b);
+        raven.tested->world.Actors()[ChosenSlot].byte88 = 4;
+        raven.tested->world.Runtime().selectedTargets[2] = chosen;
+        const auto result = raven.Use();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_TRUE(raven.sent.empty());
+        EXPECT_FALSE(raven.tested->Ui().rightDown);
+    }
+    {
+        // Sin la sesión (el socket en −1), tampoco sale y el derecho se suelta.
         const auto tested = AHeroClicking(0x13, Lord);
         tested->Ui().rightDown = true;
         tested->Hero().darkSpirit.emplace();
-        tested->Hero().skillIndex = 0x79;
-        tested->world.OwnCharacter().SetSkillAt(0x79, 0x13);
+        tested->Hero().skillIndex = 0x7b;
+        tested->world.OwnCharacter().SetSkillAt(0x7b, 0x13);
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x420fcb")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_FALSE(tested->Ui().rightDown);
     }
+}
+
+// 0x57d29e..0x57d2c3 y 0x420f9a..0x420fc5: sin el cuervo, con 0x4000 en el publicado, con un lugar fuera de 0x78 a 0x7b
+// o con solo el clic (ya gastado en 0x57d1b1), no hay orden y la skill sigue a la rama de la clase.
+TEST(HeroSkillsTest, WithoutTheRavenOrTheButtonTheSkillGoesOn)
+{
+    for (int variant = 0; variant < 4; ++variant)
     {
-        const auto tested = AHeroClicking(0x13, Lord);
-        tested->Hero().darkSpirit.emplace();
-        tested->Ui().rightDown = true;
-        tested->Hero().skillIndex = 0x79;
-        tested->Hero().flags78 = 0x4000;
-        tested->world.OwnCharacter().SetSkillAt(0x79, 0x13);
-        const auto result = tested->Use();
+        SCOPED_TRACE(variant);
+        RavenHero raven(variant == 2 ? std::uint8_t{0x7c} : std::uint8_t{0x79});
+        if (variant == 0)
+            raven.tested->Hero().darkSpirit.reset();
+        else if (variant == 1)
+            raven.tested->Hero().flags78 = 0x4000;
+        else if (variant == 3)
+            raven.tested->Ui().rightDown = false;
+        raven.tested->Ui().rightReleased = false;
+        const auto result = raven.Use();
         ASSERT_FALSE(result.HasValue());
         EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
-    }
-    for (const bool down : {true, false})
-    {
-        // Con el lugar 0, o con el 0x79 y solo el clic, no hay orden.
-        SCOPED_TRACE(down);
-        const auto tested = AHeroClicking(0x13, Lord);
-        tested->Ui().rightDown = down;
-        tested->Hero().darkSpirit.emplace();
-        if (!down)
-        {
-            tested->Hero().skillIndex = 0x79;
-            tested->world.OwnCharacter().SetSkillAt(0x79, 0x13);
-        }
-        const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+        EXPECT_TRUE(raven.sent.empty());
     }
 }
 } // namespace

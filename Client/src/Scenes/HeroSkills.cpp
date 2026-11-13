@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Tables/SkillTable.h"
+#include "Protocol/Pet/PetOrders.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
@@ -205,15 +206,52 @@ bool UsableOnThisMap(std::uint8_t skill, const WorldRuntime& runtime)
     return !siegeSkill || (runtime.map == CastleSiegeMap && runtime.siegeActive);
 }
 
-// 0x420f70(héroe, lugar): las órdenes del cuervo. Sin cuervo (+0x430), sin el derecho o con un lugar fuera de 0x78 a
-// 0x7b, 0. Lo demás manda el A7 de la orden (la pieza 4).
+// 0x420f70(héroe, lugar): las órdenes del cuervo. Sin cuervo (+0x430), sin el clic ni el botón derecho o con un lugar
+// fuera de 0x78 a 0x7b, 0. Con el 0x7b (0x420fd6..0x42100f), si 0x558bb0 deja atacar al elegido y es un jugador (1) o
+// un monstruo (2) en +0x88, el A7 con la orden 3 y su clave (+0x1f4); con los otros, el A7 con el lugar − 0x78 y la
+// clave 0xffff (0x421599..0x4219cd). La mascota es el +0x444 del cuervo, siempre 0 (Protocol::Pet::RavenPet). Por
+// send() en línea; sin el socket (+0xc de 0x6c82a0 en −1), no sale. Después, con el A7 o sin él, el soltado, el clic,
+// el botón y los frames del derecho en 0 y 1 (0x421aff..0x421b20). Sin rand().
 Core::Expected<bool, std::string> UseTheRavenOrder(const ActorState& hero, std::uint8_t slot,
                                                    const HeroSkillContext& context)
 {
-    const UI::GameUiState& ui = context.world.Runtime().ui;
-    if (!hero.darkSpirit || (!ui.rightClick && !ui.rightDown) || !InRange(slot, 0x78, 0x7b))
+    constexpr std::uint8_t FirstOrderSlot = 0x78;
+    constexpr std::uint8_t AttackOrderSlot = 0x7b;
+    constexpr std::uint8_t AttackCommand = 3;
+    constexpr std::uint8_t PlayerObject = 1;
+    constexpr std::uint8_t MonsterObject = 2;
+    WorldRuntime& runtime = context.world.Runtime();
+    UI::GameUiState& ui = runtime.ui;
+    if (!hero.darkSpirit || (!ui.rightClick && !ui.rightDown) || !InRange(slot, FirstOrderSlot, AttackOrderSlot))
         return false;
-    return Core::Unexpected(std::format("0x420fcb: la orden {:#x} del cuervo (0x420f70) es de la pieza 4", slot));
+    std::optional<Protocol::Pet::PetCommand> command;
+    if (slot == AttackOrderSlot)
+    {
+        const auto attackable = IsAttackable(context.world, context.controlDown);
+        if (!attackable.HasValue())
+            return Core::Unexpected(attackable.Error());
+        // 0x558bb0 ya miró el −1 y el lugar del elegido.
+        if (attackable.Value())
+        {
+            const ActorState& chosen = context.world.Actors()[static_cast<std::size_t>(runtime.selectedTargets[2])];
+            if (chosen.byte88 == MonsterObject || chosen.byte88 == PlayerObject)
+                command = Protocol::Pet::PetCommand{
+                    .pet = Protocol::Pet::RavenPet, .command = AttackCommand, .key = chosen.key};
+        }
+    }
+    else
+    {
+        command = Protocol::Pet::PetCommand{.pet = Protocol::Pet::RavenPet,
+                                            .command = static_cast<std::uint8_t>(slot - FirstOrderSlot),
+                                            .key = Protocol::Pet::NoTargetKey};
+    }
+    if (command && context.send)
+        context.send(Protocol::Pet::WritePetCommand(*command));
+    ui.rightReleased = false;
+    ui.rightClick = false;
+    ui.rightDown = false;
+    ui.rightHoldFrames = 0;
+    return true;
 }
 
 // 0x57ce80(héroe): con un elegido (0x6c8e30), su celda (ftol de la posición · 0,01) en 0x77e1ba8/0x77e1bac y su

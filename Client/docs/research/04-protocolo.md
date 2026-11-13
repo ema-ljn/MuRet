@@ -946,6 +946,11 @@ el cliente. Lo que hacen está en [06](06-render-escenas-y-ui.md#las-órdenes-de
   lo arma cuando el blanco de `+0x3b0` o el dueño se esconden en un ataque: `C1 07 A7 00 78 FF FF` (la mascota es el
   `+0x444` del cuervo, que `0x4167b0` pone en 0; la orden `0x78`, la primera skill del cuervo; sin blanco). El
   GameServer 0.97 no lo lee. **MuRet**: `Protocol::Pet::WritePetCommand`.
+- **`A7` de las órdenes** (`0x420f70`, desde `0x57cfc0` con el derecho y el lugar de `0x78` a `0x7b`, fase 2b): con
+  `0x78` a `0x7a`, `C1 07 A7 00 <lugar − 0x78> FF FF`; con `0x7b`, si `0x558bb0` deja atacar al elegido y es un jugador
+  o un monstruo, `C1 07 A7 00 03 <clave H L>` con la clave del elegido (`+0x1f4`). Las órdenes van de 0 a 3, como las
+  que el `A7` que llega le pasa a `0x416510`; la del paso (`0x78`) no es una de ellas (Q-C1209). **MuRet**:
+  `Scenes::UseTheHeroSkill` ([06](06-render-escenas-y-ui.md#usar-una-skill)).
 
 Ninguno mira el largo. **MuRet**: `Protocol::Pet::ReadPetOrder` y `ReadPetAttack` (TooShort si faltan campos),
 registrados con las skills; `Scenes/PetOrders` los aplica. El `A9` de respuesta (`0x4e4ca1` → `0x421db0`): `C1 0C A9

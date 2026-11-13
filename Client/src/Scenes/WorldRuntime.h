@@ -13,6 +13,7 @@
 #include "Scenes/ItemHelpLevels.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/TooltipLines.h"
+#include "Scenes/ViewportPacketRing.h"
 #include "Scenes/WorldTexts.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
@@ -209,6 +210,12 @@ struct WorldRuntime
     std::optional<std::uint8_t> siegePanelKind{};
     // El de la clase 0: 0x412195 lo arma de nuevo cada vez que no había panel o era de otra clase.
     UI::SiegePanelState siegePanel{};
+    // [0x5767924]: el objeto de 0x36 bytes de la info de Castle Siege, dos mitades de 0x1b (la de la clave 0x13d en
+    // +0 y la otra en +0x1b). Lo crea y lo llena el B2 20 (0x4e04e0, hito 12) y lo suelta 0x4e05f0; sin ese paquete
+    // queda en nullptr. El 0x14 apaga +4..+6 o +0x1f..+0x21 (0x4ca799..0x4ca7cd).
+    std::optional<std::array<std::uint8_t, 0x36>> castleSiegeInfo{};
+    // 0x77f3ba0, 0x77e1bb0 y 0x77f27b4: la cola de los últimos 0x0B, 0x12, 0x1C, 0x24 y 0x2A (ViewportPacketRing.h).
+    ViewportPacketRing viewportPackets{};
     // Los bytes de los paneles (0x7d53708..0x7d53718 y los globales que escriben sus funciones), los diálogos
     // (0x7d3a10c, 0x7d3a110) y lo demás de la UI del juego (CL8 hito 1): la .bss, que nadie vacía al cambiar de
     // escena.

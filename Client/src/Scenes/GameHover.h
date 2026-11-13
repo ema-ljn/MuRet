@@ -19,7 +19,8 @@ class CrtRandom;
 // El hover y Alt del juego (CL8 hito 6; 06 § HUD y ventanas, "La pasada 2D del juego"): 0x5bbbc0, lo segundo de la
 // pasada 2D (0x637650), entre los textos 3D (0x4383f0) y el HUD (0x5a7320). Pone el nombre del elegido bajo el mouse
 // (un NPC o un jugador en un globo con 0x557170, un monstruo arriba al medio con 0x623690) y, con Alt, los nombres
-// de los ítems del piso (0x5ba790, CL9 hito 5: Scenes/FloorItemNames.h).
+// de los ítems del piso (0x5ba790, CL9 hito 5: Scenes/FloorItemNames.h). Lee lo que deja el picking del frame
+// (0x59ec80): los personajes desde la CL9 (hito 1) y el ítem del piso desde el hito 5; los objetos quedan en −1.
 namespace Client::Scenes
 {
 class ITextDrawer;

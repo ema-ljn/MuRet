@@ -6,11 +6,11 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorActions.h"
+#include "Scenes/ActorCharacterSet.h"
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/DarkSpirit.h"
-#include "Scenes/DarkHorse.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldState.h"
@@ -72,85 +72,6 @@ void PutAppearance(ActorState& actor, const GameLogic::CharacterAppearance& appe
     actor.previousHad1c15 = actor.pet.model == HeightOffsetPet;
 }
 
-struct PetAndHelper
-{
-    std::uint16_t pet = NoItemModel;
-    std::uint16_t helper = NoItemModel;
-};
-
-PetAndHelper BasePet(const Protocol::Character::CharacterEntry& entry)
-{
-    constexpr std::uint16_t Guardian = 0x1c12;
-    constexpr std::uint16_t Imp = 0x1c13;
-    constexpr std::uint16_t Unilia = 0x1c14;
-    constexpr std::uint16_t UniliaHelper = 0xc6;
-    constexpr std::uint16_t DinorantHelper = 0x110;
-    const auto value = std::to_integer<std::uint8_t>(entry.equipment[4]) & 3;
-    switch (value)
-    {
-    case 0:
-        return {Guardian, Guardian};
-    case 1:
-        return {Imp, NoItemModel}; // 0x513bc0..0x513bc6 no tiene caso 1.
-    case 2:
-        return {Unilia, UniliaHelper};
-    default:
-        return (std::to_integer<std::uint8_t>(entry.equipment[9]) & 1) != 0
-                   ? PetAndHelper{HeightOffsetPet, DinorantHelper}
-                   : PetAndHelper{};
-    }
-}
-
-Core::Expected<void, std::string> CreatePet(WorldState& world, std::size_t slot, PetAndHelper pet,
-                                            Render::Models::CrtRandom& random)
-{
-    ActorState& actor = world.Actors()[slot];
-    actor.pet.model = pet.pet;
-    actor.previousHad1c15 = pet.pet == HeightOffsetPet;
-    if (pet.pet == NoItemModel)
-    {
-        actor.pet.flags1b = 0;
-        actor.pet.flags1c = 0;
-    }
-    if (pet.helper == NoItemModel)
-    {
-        return {};
-    }
-    auto created = CreateHelper(world, pet.helper, actor.position, slot, &random);
-    return created.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(created.Error());
-}
-
-Core::Expected<void, std::string> CreatePets(WorldState& world, std::size_t slot,
-                                             const Protocol::Character::CharacterEntry& entry,
-                                             Render::Models::CrtRandom& random)
-{
-    if (auto base = CreatePet(world, slot, BasePet(entry), random); !base.HasValue())
-    {
-        return base;
-    }
-    const auto flags = std::to_integer<std::uint8_t>(entry.equipment[11]);
-    constexpr std::uint16_t DarkHorse = 0x1c16;
-    if ((flags & 1) != 0)
-    {
-        if (auto horse = CreatePet(world, slot, {DarkHorse, DarkHorseModel}, random); !horse.HasValue())
-        {
-            return horse;
-        }
-    }
-    constexpr std::uint16_t Fenrir = 0x1c37;
-    if ((flags & 4) != 0)
-    {
-        auto& part = world.Actors()[slot].pet;
-        part.flags1b = static_cast<std::uint8_t>(std::to_integer<std::uint8_t>(entry.equipment[15]) & 3);
-        constexpr std::uint16_t RedFenrir = 0x14a;
-        constexpr std::uint16_t BlueFenrir = 0x14c;
-        constexpr std::uint16_t OtherFenrir = 0x14b;
-        const auto helper = part.flags1b == 1 ? RedFenrir : part.flags1b == 2 ? BlueFenrir : OtherFenrir;
-        return CreatePet(world, slot, {Fenrir, helper}, random);
-    }
-    return {};
-}
-
 Core::Expected<void, std::string> EquipSelectionActor(WorldState& world, ActorState& actor,
                                                       const Protocol::Character::CharacterEntry& entry,
                                                       Render::Models::ClothWorld& cloth,
@@ -178,7 +99,7 @@ Core::Expected<void, std::string> EquipSelectionActor(WorldState& world, ActorSt
         actor.wings.flags1c = 0;
     }
     TurnOffHelpersOf(world.Helpers(), entry.slot);
-    if (auto pets = CreatePets(world, entry.slot, entry, cloth.random); !pets.HasValue())
+    if (auto pets = CreateCharacterSetPets(world, entry.slot, entry.equipment, cloth.random); !pets.HasValue())
     {
         return pets;
     }

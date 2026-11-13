@@ -115,8 +115,9 @@ struct GameUiState
     // registro del chat, 0x45d760).
     bool rightDown = false;
     // 0x6c8e3c (.data 1): el ataque automático. Lo escriben el F3 30 (el bit 0x01, 0x4dd7d7), el menú de Esc
-    // (0x625632) y la vuelta a la selección (0x4c2533, en 1). Sus lectores de MuRet (MoveHero en 0x59b22f y 0x59b89e y
-    // el picking en 0x59ee4b) lo piden junto con un elegido (0x6c8e30, 0x6c8e38), que MuRet deja en −1.
+    // (0x625632) y la vuelta a la selección (0x4c2533, en 1). Sus lectores de MuRet: el picking (0x59ee4b), con el
+    // elegido de antes (0x6c8e30), y MoveHero (0x59b22f y 0x59b89e) y 0x57cfc0 (0x57d1bc), con 0x6c8e38 distinto de −1,
+    // que en MuRet nadie escribe todavía: el ataque (0x59d3fd) y las skills son de los hitos 3 y 4 (P-C162).
     bool autoAttack = true;
     // 0x7d3a118: el volumen. WinMain lo lee del registro (VolumeLevel, 0x4bad33..0x4bad55) y, fuera de 0 a 9,
     // pone 5; después 0x632d80 (el DirectSound de 0x41eed0, de la CL10). MuRet no tiene registro: 5. Lo

@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Protocol/OptionData.h"
 #include "UI/OldWindows.h"
+#include "World/TerrainPickingSegment.h"
 
 #include <array>
 #include <cstdint>
@@ -144,10 +145,11 @@ struct FramePickingContext
     std::array<std::int32_t, 5>& targets;
     // GetAsyncKeyState(0x12) en 0x59ef37.
     bool altDown = false;
-    // CL9 hito 5: los ítems del piso del dibujo (0x77f46c8, o su copia en un dibujo intermedio) y el segmento del mouse
-    // de este frame (0x7d36834 y 0x7d366c0) para 0x59e2e0. nullptr antes del primer dibujo: no busca.
+    // El segmento del mouse del dibujo (GameScene::MouseRay): la cámara (0x7d36834) y el punto lejano (0x7d366c0).
+    std::optional<World::TerrainPickingSegment> ray{};
+    // CL9 hito 5: los ítems del piso del dibujo (0x77f46c8, o su copia en un dibujo intermedio) para 0x59e2e0, con el
+    // mismo segmento; sin él (antes del primer dibujo) no busca.
     std::span<FloorItemState> floorItems{};
-    const World::TerrainPickingSegment* mouseRay = nullptr;
 };
 
 // 0x63717f → 0x5ac8d0: las teclas de función, al final de la lógica del paso con el mundo cargado. La barra levanta
@@ -157,7 +159,12 @@ struct FramePickingContext
 // (Scenes::Screenshots).
 [[nodiscard]] Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& context);
 
-// 0x637641 → 0x59ec80: el picking del frame, primero del 2D. La búsqueda del ítem del piso (0x59e2e0, CL9 hito 5) va
-// en sus dos lugares; las del NPC, del personaje y del objeto son de la CL9.1 y dejan −1, como en la traza.
+// 0x637641 → 0x59ec80: el picking del frame, primero del 2D. El elegido de antes (0x6c8e30) sigue si es un monstruo
+// (+0x88 en 2) con el ataque automático y sin botones; los demás lugares vuelven a −1. Fuera de la UI, sin Alt: los
+// personajes de las máscaras 0x22 y 1 (al revés con la skill 0x1a a 0x1c del Dark Wizard o del Elf, que abre el
+// registro propio) en 0x6c8e30, sin ninguno los de la 4 (los NPC) en 0x6c8e2c (PickTheCharacter, 0x59e700) y, sin
+// NPC, el ítem del piso (0x59e2e0, CL9 hito 5); con Alt, el ítem del piso primero y después la 4, 0x22 y 1. Los
+// objetos (0x59eb90) dejan −1. Al final, sin elegido, 0x6c8e38 en −1 (salvo cuando el segundo intento de personajes
+// acierta: vuelve antes).
 [[nodiscard]] Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& context);
 } // namespace Client::Scenes

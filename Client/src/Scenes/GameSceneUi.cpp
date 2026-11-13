@@ -231,7 +231,8 @@ GameChatContext GameScene::ChatContext()
                            .screen = m_screen,
                            .send = session != nullptr ? ChatSender([session](Protocol::Outgoing packet)
                                                                    { session->SendChat(std::move(packet)); })
-                                                      : ChatSender{}};
+                                                      : ChatSender{},
+                           .models = m_models};
 }
 
 InventoryServices GameScene::InventoryContext()
@@ -271,8 +272,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                             .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
                             .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
                             .altDown = input.IsDown(Input::Key::Alt),
-                            .floorItems = FrameTail().floorItems,
-                            .mouseRay = m_mouseRay ? &*m_mouseRay : nullptr});
+                            .ray = m_mouseRay,
+                            .floorItems = FrameTail().floorItems});
     if (!picked.HasValue())
         return picked;
     // 0x637646..0x6376e6: la pasada 2D, en este orden (06 § El dibujo del juego). Un dibujo intermedio de MuRet dibuja

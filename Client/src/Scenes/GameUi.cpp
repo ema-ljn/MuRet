@@ -8,6 +8,7 @@
 #include "Protocol/Pet/PetInfo.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterPicking.h"
 #include "Scenes/FloorItemActions.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameCommandsWindow.h"
@@ -1591,63 +1592,141 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& conte
     return {};
 }
 
+namespace
+{
+constexpr std::int32_t NoTarget = -1;
+
+// 0x59ee4b..0x59ef10: el elegido de antes (0x6c8e30) sigue solo con el ataque automático (0x6c8e3c), fuera del mapa 6
+// y de Chaos Castle, entre 0 y 400, y si es un monstruo (+0x88 en 2) que no se muere (+0x389). Si sigue, con el otro
+// elegido (0x6c8e38) en −1, un botón del mouse (0x7d36874, 0x7d366d4, 0x7d3685c o 0x7d36880) o el héroe muriéndose,
+// suelta solo 0x6c8e30.
+void KeepTheChosen(const FramePickingContext& context)
+{
+    const WorldRuntime& runtime = context.world.Runtime();
+    std::array<std::int32_t, 5>& targets = context.targets;
+    constexpr std::int32_t LastRecord = 400;
+    constexpr std::int32_t SpectatorMap = 6;
+    const bool chaosCastle = runtime.map >= 18 && runtime.map <= 23;
+    if (!runtime.ui.autoAttack || runtime.map == SpectatorMap || chaosCastle || targets[2] < 0 ||
+        targets[2] > LastRecord)
+    {
+        targets[2] = NoTarget;
+        targets[4] = NoTarget;
+        return;
+    }
+    const auto actors = context.world.Actors();
+    const ActorState& chosen = actors[static_cast<std::size_t>(targets[2])];
+    constexpr std::uint8_t MonsterKind = 2;
+    if (chosen.dying != 0 || chosen.byte88 != MonsterKind)
+    {
+        targets[4] = NoTarget;
+        targets[2] = NoTarget;
+        return;
+    }
+    const bool mouse =
+        runtime.movement.leftHeld || runtime.movement.pendingClick || runtime.ui.rightDown || runtime.ui.rightClick;
+    if (targets[4] == NoTarget || mouse || actors[runtime.hero].dying != 0)
+        targets[2] = NoTarget;
+}
+
+// 0x59efb9..0x59f48d: el orden de las dos búsquedas de personajes sin Alt. El Dark Wizard y el Elf leen la skill de su
+// lugar (+0x425 del héroe) en el registro propio, abierto; con 0x1a a 0x1c, primero los de la máscara 1.
+std::array<std::uint8_t, 2> CharacterSearchOrder(const FramePickingContext& context)
+{
+    constexpr std::uint8_t Monsters = 0x22;
+    constexpr std::uint8_t Players = 1;
+    const WorldRuntime& runtime = context.world.Runtime();
+    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const std::uint8_t heroClass = static_cast<std::uint8_t>(hero.characterClass & 7u);
+    if (heroClass != 0 && heroClass != 2)
+        return {Monsters, Players};
+    std::uint8_t skill = 0;
+    {
+        const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        skill = OwnSkillByte(context.world.OwnCharacter(), hero.skillIndex);
+    }
+    constexpr std::uint8_t FirstPlayersFirst = 0x1a;
+    constexpr std::uint8_t LastPlayersFirst = 0x1c;
+    if (skill >= FirstPlayersFirst && skill <= LastPlayersFirst)
+        return {Players, Monsters};
+    return {Monsters, Players};
+}
+
+// 0x59f52f.
+void ForgetTheOther(std::array<std::int32_t, 5>& targets)
+{
+    if (targets[2] == NoTarget)
+        targets[4] = NoTarget;
+}
+} // namespace
+
 Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
     std::array<std::int32_t, 5>& targets = context.targets;
-    // 0x59ec97..0x59eda4: los modos del editor (0x77f3b18) no los prende nadie.
-    // 0x59edb4..0x59ee66: el elegido de antes (0x6c8e30), con 0x6c8e3c en 1 (.data).
-    constexpr std::int32_t Pool = 400;
-    const bool chaosCastle = runtime.map >= 18 && runtime.map <= 23;
-    if (runtime.map == 6 || chaosCastle || targets[2] < 0 || targets[2] > Pool)
+    const auto pick = [&context](std::uint8_t mask) { return PickTheCharacter(context.world, mask, context.ray); };
+    // 0x59ec97..0x59ee48: los modos del editor (0x77f3b18) no los prende nadie.
+    KeepTheChosen(context);
+    // 0x59ef16..0x59ef29.
+    targets[0] = NoTarget;
+    targets[1] = NoTarget;
+    targets[3] = NoTarget;
+    // 0x59e3b0 (0x59f52a), con el mouse en la UI y en los saltos de abajo, solo recorre la party (0x78aba48), que está
+    // vacía en MuRet (hito 7): no hace nada. 0x59eb90 (los objetos) no está portado: deja −1.
+    if (runtime.ui.mouseOnUi != 0)
     {
-        targets[2] = -1;
-        targets[4] = -1;
+        ForgetTheOther(targets);
+        return {};
     }
-    else
-        return Core::Unexpected(std::string("0x59ee0b: seguir al elegido de antes es de la CL9.1"));
-    targets[0] = -1;
-    targets[1] = -1;
-    targets[3] = -1;
-    // 0x59e2e0, la búsqueda del ítem del piso (CL9 hito 5), sin ítem en el cursor (0x59ef46 y 0x59f4e3).
+    // 0x59e2e0, la búsqueda del ítem del piso (CL9 hito 5), sin ítem en el cursor (0x7879fbc: 0x59ef46 y 0x59f4e3).
     const auto pickTheFloorItem = [&context, &runtime, &targets]
     {
-        if (runtime.cursorItemCount == 0 && context.mouseRay != nullptr)
-            targets[0] = PickTheFloorItem(context.floorItems, *context.mouseRay);
+        if (runtime.cursorItemCount == 0 && context.ray)
+            targets[0] = PickTheFloorItem(context.floorItems, *context.ray);
     };
-    if (runtime.ui.mouseOnUi == 0)
+    if (context.altDown)
     {
-        // 0x59ef37..0x59efb4: con Alt, primero el ítem del piso; con uno, nada más. Las de los personajes (0x59e700) y
-        // los objetos (0x59eb90) que siguen son de la CL9.1 y dejan −1.
-        if (context.altDown)
-            pickTheFloorItem();
-        if (!context.altDown)
+        // 0x59ef46..0x59efb4: el ítem del piso; sin él, los de la máscara 4, los de 0x22 y 1, y los objetos (0x59eb90,
+        // que dejan −1).
+        pickTheFloorItem();
+        if (targets[0] == NoTarget)
         {
-            const ActorState& hero = context.world.Actors()[runtime.hero];
-            const std::uint8_t heroClass = static_cast<std::uint8_t>(hero.characterClass & 7u);
-            // 0x59efda..0x59f46e: el Dark Wizard y el Elf leen su skill del registro propio para el orden de las
-            // búsquedas, que son de sus olas.
-            if (heroClass == 0 || heroClass == 2)
+            targets[1] = pick(4);
+            if (targets[1] == NoTarget)
             {
-                const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
-                                                        Render::Models::OwnRecordCloseRandoms);
+                targets[2] = pick(0x22);
+                if (targets[2] != NoTarget)
+                    return {};
+                targets[2] = pick(1);
+                if (targets[2] != NoTarget)
+                    return {};
             }
-            // 0x59f48d → 0x5e4140: sin la party abierta, el ancho del mundo y los de la party (0x78aba48), que
-            // MuRet no tiene.
-            GamePanels panels(context.world, context.random);
-            if (!panels.Registry().IsOpen(UI::PartyPanel))
-                static_cast<void>(panels.Registry().WorldWidth());
         }
-        // Las búsquedas: 0x59e700 (los personajes con 0x22, 1 y 4, en 0x6c8e30 y 0x6c8e2c), que son de la CL9.1 y dejan
-        // −1; con los dos en −1 (0x59f49a..0x59f4e1), 0x59e2e0 (0x59f4e3..0x59f4f1) y, sin ítem, 0x59eb90 (los
-        // objetos, CL9.1).
-        if (!context.altDown && targets[1] == -1 && targets[2] == -1)
-            pickTheFloorItem();
+        ForgetTheOther(targets);
+        return {};
     }
-    // Con el mouse en la UI, 0x59e3b0 (0x59f52a), sin rand(), del elegido.
-    // 0x59f52f.
-    if (targets[2] == -1)
-        targets[4] = -1;
+    const std::array<std::uint8_t, 2> order = CharacterSearchOrder(context);
+    // 0x59f48d → 0x5e4140: con la party cerrada, el ancho del mundo (0x5bb8d0) y la party (0x78aba48), vacía: da 0.
+    GamePanels panels(context.world, context.random);
+    if (!panels.Registry().IsOpen(UI::PartyPanel))
+        static_cast<void>(panels.Registry().WorldWidth());
+    // 0x59f49a..0x59f509.
+    if (targets[2] == NoTarget)
+    {
+        targets[2] = pick(order[0]);
+        if (targets[2] == NoTarget)
+        {
+            targets[2] = pick(order[1]);
+            if (targets[2] != NoTarget)
+                return {};
+            targets[1] = pick(4);
+            // 0x59f4e3..0x59f509: sin NPC, el ítem del piso y, sin ítem, los objetos (0x59eb90), que dejan −1.
+            if (targets[1] == NoTarget)
+                pickTheFloorItem();
+        }
+    }
+    ForgetTheOther(targets);
     return {};
 }
 } // namespace Client::Scenes

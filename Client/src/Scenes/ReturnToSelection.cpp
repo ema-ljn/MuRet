@@ -53,8 +53,10 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
     runtime.ui.field5767954 = 0;      // 0x4c24c9
     runtime.floor.pendingPickUp = -1; // 0x4c24cf, 0x6c82e8
     resources.camera.level = 0;       // 0x4c250e, el word 0x7d3a0ec
-    runtime.ui.autoAttack = true;     // 0x4c2533, 0x6c8e3c
-    runtime.map = NoMap;              // 0x4c2540
+    // 0x4c2515..0x4c252d: los cinco del picking (0x6c8e28..0x6c8e38) en −1, también el personaje elegido.
+    runtime.selectedTargets.fill(-1);
+    runtime.ui.autoAttack = true; // 0x4c2533, 0x6c8e3c
+    runtime.map = NoMap;          // 0x4c2540
     // 0x4c2546: 0x419900 manda el C1 03 31 (la sesión). 0x4c2575..0x4c25ea: abre el registro propio por la
     // tabla de protección (o lo da de alta con la cuenta en 1, que es lo mismo para MuRet); 0x4c2600..
     // 0x4c260b escribe; 0x4c260f..0x4c264b lo cierra, y el cierre que lo deja en 0 lo vuelve a cifrar

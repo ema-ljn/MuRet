@@ -2,12 +2,14 @@
 
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorEquipment.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/CombatActionSpeeds.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GamePanels.h"
@@ -151,6 +153,23 @@ void CreateTransitionArrival(ActorState& actor, const WorldEntryResources& resou
 {
     static_cast<void>(
         resources.world.Map().effects.Create(World::ArrivalEffect, actor.position, actor.angles, actor.light, 0.0f));
+}
+Core::Expected<void, std::string> StartTheTeleportAction(ActorState& actor, const WorldEntryResources& resources)
+{
+    RefreshCombatActionSpeeds(resources);
+    const auto stop = TransitionStopContext(resources);
+    if (!stop.HasValue())
+        return Core::Unexpected(stop.Error());
+    constexpr std::uint8_t TeleportAction = 0x93;
+    Render::Models::SetAction(actor.animation, stop.Value().playerSkeleton, TeleportAction);
+    actor.animation.frame = 5.0f;
+    actor.byte80 = 3;
+    actor.alphaTarget = 1.0f;
+    static_cast<void>(
+        resources.world.Map().effects.Create(World::TeleportEffect, actor.position, actor.angles, actor.light, 0.0f));
+    constexpr std::int32_t TeleportSound = 0x76;
+    resources.world.Runtime().lastSoundId = TeleportSound;
+    return {};
 }
 Core::Expected<void, std::string> CloseTransitionWindows(const WorldEntryResources& resources)
 {

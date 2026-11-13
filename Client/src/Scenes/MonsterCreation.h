@@ -50,9 +50,10 @@ inline constexpr std::size_t ActorTextSize = 25;
 //   (CL10).
 // - Cortan, con su dirección, lo de las otras CL: el Siege con el asedio prendido (0x4294b0, CL9.5), los Joint
 //   (0x530860) y los Arrival (0x518cf0) de la CL11. El Action (0x4ea030) usa las acciones del modelo cargado.
-// Después, la cola (MonsterTailOf): el nivel y la escala en los mapas 10 a 17, +0x376 con el tipo, +8 en 0, +0x3a4 con
-// WorldRuntime::heroSlot y la clase del objeto. El nombre de la tabla de 0x7681eb8 no está (08, P-C174). Devuelve el
-// lugar del pool: con los 400 vivos, el 400, que el original escribe igual.
+// Después, la cola (MonsterTailOf): el nivel y la escala en los mapas 10 a 17, el nombre del tipo en
+// WorldRuntime::npcNames (0x7681eb8) a +0x1d9 si hay uno (uno que no entra en los 25 bytes corta, Q-C847), +0x376 con
+// el tipo, +8 en 0, +0x3a4 con WorldRuntime::heroSlot y la clase del objeto. Devuelve el lugar del pool: con los 400
+// vivos, el 400, que el original escribe igual.
 [[nodiscard]] Core::Expected<std::size_t, std::string> CreateMonster(std::int32_t type, std::uint8_t x, std::uint8_t y,
                                                                      std::int32_t key,
                                                                      const WorldEntryResources& resources);

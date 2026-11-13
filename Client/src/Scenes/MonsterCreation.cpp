@@ -10,6 +10,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/MonsterKinds.h"
+#include "Scenes/NpcNames.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -25,6 +26,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace Client::Scenes
@@ -303,7 +305,8 @@ public:
         if (!m_index)
             return Core::Unexpected(
                 std::format("{:#x}: el caso del tipo {} no llamó a 0x512870", creation.kind.address, m_type));
-        ApplyTheTail();
+        if (auto tail = ApplyTheTail(); !tail.HasValue())
+            return Core::Unexpected(tail.Error());
         return *m_index;
     }
 
@@ -428,8 +431,8 @@ private:
         return SetMonsterAction(actor, static_cast<std::uint8_t>(step.value), step.address, m_resources);
     }
 
-    // 0x5140c0, sin el nombre de 0x7681eb8 (P-C174).
-    void ApplyTheTail()
+    // 0x5140c0.
+    Core::Expected<void, std::string> ApplyTheTail()
     {
         ActorState& actor = Actor();
         const WorldRuntime& runtime = m_resources.world.Runtime();
@@ -439,10 +442,23 @@ private:
             actor.level = 0;
             actor.scale = AddTailScale(actor.scale, tail.scaleSteps);
         }
+        // 0x51411f..0x51416b: el strcpy a +0x1d9 del nombre del primer registro de 0x7681eb8 con el tipo (el word
+        // contra el dword), si hay uno. Los de LoadNpcNames terminan en su registro; uno de más de 24 letras (tres en
+        // el NpcName(%s).txt del laboratorio) pisaría +0x1f2 y la clave, y corta (Q-C847, P-C352).
+        if (const std::optional<std::string_view> name = NpcNameOf(runtime.npcNames, m_type))
+        {
+            std::vector<std::byte> bytes(std::as_bytes(std::span(*name)).begin(),
+                                         std::as_bytes(std::span(*name)).end());
+            bytes.push_back(std::byte{0});
+            constexpr std::uint32_t TheCopy = 0x514164;
+            if (auto put = PutActorText(actor, bytes, TheCopy); !put.HasValue())
+                return put;
+        }
         actor.word376 = static_cast<std::uint16_t>(m_type);
         actor.byte8 = 0;
         actor.word3a4 = static_cast<std::uint16_t>(runtime.heroSlot);
         actor.byte88 = tail.objectClass;
+        return {};
     }
 
     std::int32_t m_type;

@@ -1,11 +1,20 @@
 #include "Scenes/NpcNames.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string_view>
 
 namespace Client::Scenes
 {
+NpcNameTable NpcNameTableOf(std::span<const NpcName> loaded)
+{
+    NpcNameTable table(NpcNameCount);
+    std::ranges::copy(loaded.first(std::min(loaded.size(), table.size())), table.begin());
+    return table;
+}
+
 std::optional<std::string_view> NpcNameOf(const NpcNameTable& table, std::int32_t type)
 {
     // 0x54ebbe..0x54ebd0: MOV SI con ESI en 0 y CMP ESI,EDX.

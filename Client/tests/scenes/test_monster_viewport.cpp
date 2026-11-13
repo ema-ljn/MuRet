@@ -17,6 +17,7 @@
 #include "Scenes/LoginModels.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/MonsterKinds.h"
+#include "Scenes/NpcNames.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -36,6 +37,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
@@ -44,6 +46,7 @@
 #include <memory>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -271,6 +274,64 @@ TEST_F(MonsterViewportTest, TheMonstersOfLorenciaAndDeviasComeFromTheirCase)
         EXPECT_EQ(actor.movement, 1);
         EXPECT_EQ(actor.alpha, 1.0f);
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, WalkingRecordDraws).State());
+    }
+}
+
+// 0x51411f..0x51416b: con NpcName(%s).txt cargado, la cola copia a +0x1d9 el nombre del primer registro con el tipo
+// (con su '\0': lo que queda del nombre del caso no se ve). Un tipo sin registro se queda con el del caso, y uno que no
+// entra en los 25 bytes corta antes de +0x376 (Q-C847, P-C352). Los nombres son inventados.
+TEST_F(MonsterViewportTest, TheTailCopiesTheNameOfTheTable)
+{
+    const auto put = [](Client::Scenes::NpcName& record, std::uint16_t type, std::string_view name)
+    {
+        record.type = type;
+        record.name = {};
+        std::ranges::copy(name, record.name.begin());
+    };
+    struct Case
+    {
+        std::uint8_t map;
+        std::uint8_t type;
+        const char* caseName;
+    };
+    for (const Case& tested : {Case{0, 3, "\xb0\xc5\xb9\xcc"}, Case{2, 19, "\xbc\xb3\xc0\xce"}})
+    {
+        SCOPED_TRACE(tested.map);
+        Load(tested.map);
+        auto& names = game->world.Runtime().npcNames;
+        // El 0x54ebb0 de la cola compara el word sin signo con el dword del tipo: gana el primero.
+        put(names[4], tested.type, "Bicho");
+        put(names[9], tested.type, "Otro bicho");
+        const Cell cell = FreeRow();
+        std::array<MonsterRecordBytes, 1> records{
+            {{.key = 0x0123, .typeLow = tested.type, .x = cell.x, .y = cell.y, .targetX = cell.x, .targetY = cell.y}}};
+        auto applied = Monsters(records);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(Client::Scenes::ActorText(Actor(1)), "Bicho");
+        EXPECT_EQ(Actor(1).word376, tested.type);
+
+        names[4].type = 0;
+        names[9].type = 0;
+        records[0].key = 0x0124;
+        applied = Monsters(records);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(Client::Scenes::ActorText(Actor(2)), tested.caseName);
+
+        // 24 letras y el '\0' llegan a +0x1f1; una más pisaría el word de +0x1f2.
+        put(names[4], tested.type, "Bicho de veinticuatro le");
+        records[0].key = 0x0125;
+        applied = Monsters(records);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(Client::Scenes::ActorText(Actor(3)), "Bicho de veinticuatro le");
+
+        put(names[4], tested.type, "Bicho de veinticinco letr");
+        records[0].key = 0x0126;
+        applied = Monsters(records);
+        ASSERT_FALSE(applied.HasValue());
+        EXPECT_NE(applied.Error().find("0x514164"), std::string::npos) << applied.Error();
+        EXPECT_NE(applied.Error().find("Q-C847"), std::string::npos) << applied.Error();
+        // +0x376 sigue con el 0xffff de 0x511290.
+        EXPECT_EQ(Actor(4).word376, 0xffff);
     }
 }
 

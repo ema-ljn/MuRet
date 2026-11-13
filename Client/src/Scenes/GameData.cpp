@@ -13,6 +13,7 @@
 #include "Data/Text/DialogTable.h"
 #include "Data/Text/FilterWords.h"
 #include "Data/Text/MoveRequirements.h"
+#include "Data/Text/NpcNames.h"
 #include "Data/Text/SlideTable.h"
 #include "Data/Text/TextTable.h"
 #include "UI/MacroFile.h"
@@ -281,6 +282,31 @@ Core::Expected<std::vector<Data::Text::MoveRequirement>, std::string> LoadMoves(
         return Core::Unexpected(std::format("{}: {}", MoveRequirementsFile, Data::DescribeDataError(moves.Error())));
     return std::move(moves).Value();
 }
+
+// 0x54e7f0 lee con getc hasta el final sin tope; MuRet lee hasta 1 MiB (el del laboratorio tiene 10 KB).
+constexpr std::uintmax_t MaxNpcNameFileBytes = 1024u * 1024u;
+
+// 0x54e7f0: sin el archivo (fopen en NULL), la tabla queda como estaba.
+Core::Expected<std::vector<Data::Text::NpcNameRecord>, std::string>
+LoadNpcNameFile(const std::filesystem::path& dataRoot)
+{
+    std::error_code error;
+    const auto path = Data::ResolveDataPath(dataRoot, NpcNameFile, error);
+    if (error)
+    {
+        return Core::Unexpected(
+            std::format("no se pudo buscar {} en {}: {}", NpcNameFile, Core::PathText(dataRoot), error.message()));
+    }
+    if (!path)
+        return std::vector<Data::Text::NpcNameRecord>{};
+    const auto file = Data::ReadDataFile(*path, MaxNpcNameFileBytes);
+    if (!file.HasValue())
+        return Core::Unexpected(std::format("no se pudo leer {}: {}", NpcNameFile, file.Error().message()));
+    auto names = Data::Text::LoadNpcNames(std::as_bytes(std::span(file.Value())));
+    if (!names.HasValue())
+        return Core::Unexpected(std::format("{}: {}", NpcNameFile, Data::DescribeDataError(names.Error())));
+    return std::move(names).Value();
+}
 } // namespace
 
 Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot)
@@ -364,6 +390,12 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(itemSets).Error());
     }
     data.itemSets.emplace(std::move(itemSets).Value());
+    auto npcNames = LoadNpcNameFile(dataRoot);
+    if (!npcNames.HasValue())
+    {
+        return Core::Unexpected(std::move(npcNames).Error());
+    }
+    data.npcNames = std::move(npcNames).Value();
     auto skills = LoadCheckedTable<Data::Tables::SkillTable>(dataRoot, SkillTableFile, Data::Tables::SkillTableSize,
                                                              Data::Tables::LoadSkillTable);
     if (!skills.HasValue())

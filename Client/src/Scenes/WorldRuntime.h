@@ -274,7 +274,8 @@ struct WorldRuntime
     // corta.
     Data::Text::DialogTable dialogTable{};
     // 0x7681eb8 (CL9 hito 2): los 512 nombres de NpcName(%s).txt que busca 0x54ebb0 (el título de la ventana de las
-    // misiones, 0x41be2c). Nadie los carga todavía (08, P-C174): quedan en 0.
+    // misiones, 0x41be2c) y que la cola del alta (0x5140c0) copia al nombre. main.cpp les copia GameData::npcNames
+    // (0x61ed05); sin el archivo quedan en 0.
     NpcNameTable npcNames = NpcNameTable(NpcNameCount);
     // 0x6eeda8: el A0 lo pone en 0 y la llegada a un NPC (0x569593) en 1 si es el 0xe5. Lo lee el dibujo del diálogo de
     // las misiones (0x41ba20) con la clase 3 o 4.

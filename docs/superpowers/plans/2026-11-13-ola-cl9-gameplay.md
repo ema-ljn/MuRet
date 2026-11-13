@@ -250,7 +250,8 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
       los NPC de Q-C108): el `0x13` (`0x4c9c60`), el `0x1F` (`0x4ca0b0`, con los tipos `0x98..0x9e` por
       `0x517400`) y el `0x68` (`0x4e0980`); `0x511290` con la caja y las manos de cada tipo; el `0x45` y el `0xDF`
       del hito 1 dan de alta y empujan. El tipo 68 (el caso `0x3a`) corta con su dirección (`Monster50` no está,
-      P-C173).
+      P-C173). En la fase 7, el nombre de la cola `0x5140c0` con la tabla de `NpcName(%s).txt` (`0x54e7f0` y
+      `0x54e8d0`, P-C174 cerrado; el idioma y los tres nombres largos, P-C352).
 - [x] **El `0x1A`** (`0x4cedd0`), la skill que pega a varios: no crea nada; el brillo de la mano (`0x53d810`, la
       partícula 5fd con su paso y su dibujo), la acción `0x96`, el `+0x38e`, el golpe y el número de cada blanco
       (`0x4f53a0`, `0x548e40`) y la vida del jugador (06, "La skill que pega a varios").

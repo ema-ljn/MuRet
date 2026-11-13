@@ -590,6 +590,52 @@ bit el cliente para a otro jugador una vez de cada dos, con un `rand() & 1` (las
 Q-C178). Este documento lo daba
 como posición y dirección: lo de caminar es solo esa parada.
 
+### La acción: `18`
+
+CL9 hito 1 (2026-11-13). *Estático*, con el ASM de `0x4cb750`, `0x576a60`, `0x576eb0`, `0x4f2250` y `0x59b456`,
+cotejado con `CGActionRecv` (`0x425cd0`) y `GCActionSend` (`0x425c50`) del GameServer del laboratorio; sin captura
+del cable con un emote ni sentado.
+
+- **C→S `C1 05 18 [dir] [acción]`**, con el XOR32 en línea (`Protocol::Movement::WriteAction`). `dir` sale del
+  ángulo `+0x24` de un personaje: `_ftol((ángulo + 22,5f) · 0,0222f + 1) & 0xff` y el resto con signo por 8, que es
+  `& 7` (Q-C777). Lo mandan el héroe quieto que gira (`0x59b456`, con `0x7a`); sentarse (`0x4f2416` volando y
+  `0x4f2834` por el piso, en `0x4f2250`), con `0x82` y el ángulo del que se sienta; y el emote (`0x576a60` y cada
+  caso de `0x576eb0`, [06](06-render-escenas-y-ui.md#el-chat)), con la acción del caso y siempre el ángulo del héroe
+  (`[0x743a170] + 0x24`): con el héroe parado salen dos iguales (Q-C776). Sin portar: `0x56c440`, `0x406050` (la
+  ventana de comandos, CL9.4), `0x4295f0` dos veces (Fenrir) y `0x4e1010` (las misiones: el único que prende
+  `0x200000` en `+0x7c`, solo en el héroe, pone la `0xca` y manda `0x82`).
+- **S→C `C1 07 18 [clave:2, big-endian] [dir] [acción]`** (`0x4cb750`, desde `0x4e39ab` sin guarda de escena ni
+  del flag): `0x5110d0` busca la clave (MOVSX: desde `0x8000` no la tiene nadie; sin nadie, el 400, Q-C778). Con el
+  caballo oscuro (`+0x318` en `0x1c16`) no hace nada. Si no, `+0x24` = (dir − 1) · 45 (`0x6b87d4` y `0x6b8848`),
+  `+0x378` (Movement) en 0 y la X y la Y en el centro de la celda blanco (`+0x39a`/`+0x39b` · 100 + 50, Q-C779), y
+  según la acción (`acción − 0x12` contra `0x89`, las tablas `0x4cbd70` y `0x4cbcec`), con `0x4ea030`, que no pone
+  la que el modelo no tiene ni repite la de ahora:
+
+| Acción | Qué hace |
+| --- | --- |
+| `0x12` | la `0x98` y el sonido `0x41ed10(0x6f, 0, 0)` (CL10) |
+| `0x78`, `0x79` | `0x4f4a10` (sin leer, hito 3), `+0x381` en 1, `+0x114` en 0, `+0x3a4` con `[0x57678b0]` y `[0x5767964]` con el índice |
+| `0x7a`, `0x7b` | `0x4f2250`, la de parado: sentado, la `0xca` y el `C1 18` de `0x82`; después su `rand()` |
+| `0x7e` | la 5 |
+| `0x80`, `0x81`, `0x82` | `0xc5`, `0xcb` y `0xc9`; con el elfo (`+0x1d4 & 7 == 2`), `0xc7`, `0xcc` y `0xca` |
+| `0x83` a `0x91` | `0x99`, `0x9b`, `0x9d`, `0xa3`, `0xa1`, `0xa5`, `0xa7`, `0x9f`, `0xa9`, `0xab`, `0xad`, `0xaf`, `0xb1`, `0xb3` y `0xb5`, la del emote de esa acción; con el elfo, la siguiente |
+| `0x92` a `0x9b` | `0xb7`, `0xb8`, `0xc0`, `0xb9`, `0xba`, `0xbb`, `0xbc`, `0xbd`, `0xbe` y `0xbf`, sin mirar la clase |
+| cualquier otra | ella misma |
+
+  No saca `rand()` salvo en `0x4f2250` (el sufijo) y en `0x4f4a10` (el `0x78` y el `0x79`: ocho llamadas a `_rand`,
+  `0x69fd70`, una en la rama del jugador en `0x4f4db9`, después de `CMP AX,0x20a` en `0x4f4a20`; las cuenta el
+  hito 3). Lo que los demás ven de un emote es la animación que se puso el que lo hizo.
+- **El GameServer** (`CGActionRecv`): guarda la dirección y la acción sin validarlas y reenvía el `C1 07 18` con la
+  clave del que la hizo a los jugadores de su viewport (`VpPlayer2`), no a él: el emote propio se ve por `0x576a60` y
+  el de los demás por `0x4cb750`. Las acciones de descanso que mira son `0x6c`, `0x6d` y `0x6e` (`m_ViewState` 2 a 4
+  y `m_Rest`): el `0x82` de sentarse del 1.02 no las prende (08, P-C152). `GCActionSend` (`MsgSendV2`) la manda de un
+  ataque con `0x78` (`CGAttack`) y del escudo (la skill 18) con `0x12`; caminando en Blood Castle, `CGMoveRecv` le
+  manda al propio jugador la `0x66`, que el cliente pone tal cual.
+
+En MuRet: `Protocol::Movement::ReadAction`, `ServerSession::OnAction` y `Scenes::ApplyActionReply` (una clave
+desconocida se descarta, como el `D3`; el `0x78`/`0x79` corta con `0x4cb821` hasta el hito 3); los que mandan,
+`Scenes::SendTheAction` con `ServerSession::SendAction` (sin el GameServer abierto, un aviso y nada).
+
 ### Los cambios de mapa: `1C`, `F3 04` y `F3 12`
 
 *Estático* salvo lo que se marca; qué hace el cliente, en
@@ -869,6 +915,55 @@ con `Scenes::ApplyQuest*` (06, "Las misiones"). Un paquete corto se ignora con u
 Lo que cada uno necesita de la creación (fase 2): `CreateActor` (`0x512870`) para el alta de `0x5141e0`, `0x517400`
 y el `68`; `0x4e6380` (los estados) sobre el lugar creado; las celdas protegidas con `LogicalAccess`; `0x4c9790` y
 `0x4eac00` (el camino al blanco) del personaje creado.
+### Los otros jugadores: `12`, `14`, `45`, `25` y `DF`
+
+(CL9 hito 1, 2026-11-13, *estático*; el cable queda para la VM, P-C160.) Los cinco llegan del GameServer cuando
+otros jugadores entran, salen o cambian a la vista del héroe. La clave es la del objeto en el GameServer, en dos bytes
+con el alto primero; el bit 15 marca al recién llegado (el `12` y el `45`) y los otros tres la leen entera. Lo que
+cada handler hace con el mundo, en [06](06-render-escenas-y-ui.md#los-otros-jugadores-en-el-viewport).
+
+- **`12`** (`0x4e372e` → `0x4c8860`): `C2 <largo:2> 12 <cuenta> <registro:0x2c>…`. El dispatcher copia antes el
+  paquete entero, con su largo, a una cola de diez (`0x77f27b4`; nadie la lee). Cada registro:
+
+  | offset | qué | lo lee |
+  | --- | --- | --- |
+  | `+0`, `+1` | la clave, el alto primero; el bit 15, recién llegado | `0x4c8886..0x4c88ad` |
+  | `+2`, `+3` | la celda X e Y | `0x4c8973..0x4c8986` |
+  | `+4` | el estado (1 a 4) en el nibble de abajo; la clase, `((b & 0x10) \| (b >> 4)) >> 1` | `0x4c89f3` |
+  | `+5..+0x15` | el equipo, los 17 bytes de la lista de personajes | `0x5139f0` (`0x4c91e9`) |
+  | `+0x16`, `+0x17` | nadie | — |
+  | `+0x18` | las banderas de efectos, 32 bits, el bajo primero | `0x4e6380` y `0x42ab40` |
+  | `+0x1c..+0x25` | el nombre, sin terminador si lo llena | `0x4c88b0` y `0x4c9212` |
+  | `+0x26`, `+0x27` | adónde camina | `0x4eac00` |
+  | `+0x28` | la dirección (nibble alto) y el PK (bajo) | `0x4c8a1a`, `0x4c8f21` |
+  | `+0x29..+0x2b` | nadie | — |
+
+- **`14`** (`0x4ca780`): `C1 <largo> 14 <cuenta> <clave:2>…`. Las claves van enteras: `0x4ca7a2` compara la
+  palabra con `0x13d` y `0x4ca7e1` le saca el bit 15 para la baja.
+- **`45`** (`0x4c92a0`): `C2 <largo:2> 45 <cuenta> <registro:0x1c>…`, el jugador transformado: la clave y la celda como
+  el `12`, el tipo en `+4..+5` (el alto primero), `+6` y `+7` sin leer, las banderas en `+8` (32 bits), el nombre en
+  `+0xc..+0x15`, adónde camina en `+0x16` y `+0x17` y la dirección y el PK en `+0x18`; `+0x19..+0x1b` sin leer.
+- **`25`** (`0x4c8380`): `C1 0C 25 <clave:2> <ítem:7>`, el equipo que se ve de otro. La clave entera (`0x5110d0` con
+  el bit 15 no encuentra a nadie); del ítem, el byte 1 (el lugar arriba, el nivel abajo), el 3 (el excelente,
+  `& 0x3f`) y el 4 (el set), y `0x54b3a0` el tipo del 0, el 3 y el 5. El último que se lee es `pkt[10]`; el byte 6
+  (`pkt[11]`) no lo lee nadie.
+- **`DF`** (`0x4c6b40`): `C1 07 DF <clave:2> <X> <Y>`, la celda nueva de otro sin camino: la clave entera.
+
+**Contra el GameServer 0.97 reconstruido** (CL9.R, `gs_protocol.h`). Solo el `14` coincide: `PMSG_VIEWPORTDESTROY`
+son los dos bytes de la clave. `PMSG_VIEWPORTCREATE` (el `12`) mide `0x20`: `CharSet[11]` desde `+4` y un `WORD
+ViewSkillState` en `+0x10`, con el nombre en `+0x12`; el cliente 1.02 lee registros de `0x2c`, con 18 bytes desde `+4` y
+las banderas de 32 bits en `+0x18`. `PMSG_VIEWPORTCREATE_CHANGE` (el `45`) mide `0x16`, con un `Skin` de un byte en
+`+4` y el `WORD` en `+6`; el cliente lee `0x1c`, con el tipo de dos bytes y las banderas de cuatro en `+8`.
+`PMSG_USEREQUIPMENTCHANGED` (el `25`) mide 9, con `ItemInfo[4]`; el cliente lee hasta `pkt[10]`. El `DF` no tiene
+constructor en el GameServer 0.97. MuRet sigue el ASM del cliente; lo que mande un GameServer 1.02 real queda para la
+VM (08, P-C160).
+
+**MuRet** (CL9 hito 1): `Protocol::Viewport` lee los cinco con los offsets del ASM (`ReadPlayers`, `ReadLeave`,
+`ReadTransformed`, `ReadEquipmentShown` y `ReadPosition`; un registro corto es `TooShort`, hasta el último byte que
+lee el handler); `App::ServerSession` los registra juntos después del `D7` y los pasa al mundo
+(`Scenes::ApplyViewportPlayers`, `ApplyViewportLeave`, `ApplyTransformed`, `ApplyEquipmentShown` y
+`ApplyViewportPosition`). Los tests arman los paquetes con los structs del ASM y nombres inventados
+(`support/ViewportPackets.h`).
 
 ## Qué implica para MuRet
 

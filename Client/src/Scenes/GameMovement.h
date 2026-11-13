@@ -7,6 +7,7 @@
 #include "Data/Text/TextTable.h"
 #include "GameLogic/PathCell.h"
 #include "Protocol/Movement.h"
+#include "Scenes/ActionSend.h"
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -50,6 +51,8 @@ struct HeroMovementContext
     std::function<void(std::uint8_t)> requestGate{};
     float fixedHeight = 1200.0f;
     std::function<Core::Expected<void, std::string>(std::uint8_t)> sendFacing{};
+    // El C1 18 de sentarse del héroe (0x4f2250, 0x4f2416..0x4f2bea). Vacío: sentarse corta con error.
+    ActionSender sendAction{};
     // Vestir al héroe y el envío del 24, para pasar el arma de la izquierda a la derecha (0x59bd3e). nullptr: corta
     // donde los pide.
     const InventoryServices* inventory = nullptr;

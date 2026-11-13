@@ -1406,7 +1406,7 @@ Las texturas nuevas del HUD: `0x104` a `0x120` (sin `0x106`, que no se sube), `0
 | 10 | macro | 'Macro Time' y `0x5a6af0(x, 404, 50, 2, …)` | `0x77f3b74 > 0` | nada |
 | 11 | `glColor3f(1,1,1)`; `0x40bab0(this = 0x723c60)` + vfunc +4 | cuenta de DS/BC/CC: `0x40bab0` solo dibuja con +8 en 1..14; la vfunc +4 es un `ret` en DS (`0x40bdb0`) y en BC (`0x40c2d0`) y CC (`0x405090`) dibuja solo con +0x10 ≠ 0 y el mapa en 11..17 o 18..23 | objeto activo | nada (MuRet corta solo cuando dibujaría: CL9.5) |
 | 12 | `0x5a9050` | globos y nombres sobre las cabezas (`0x77e1be0`) | entradas vivas | nada |
-| 13 | `0x451d10`/`0x451c20` | carteles [LOJA] | singleton `0x7245c8` | nada sin carteles; con alguno, corta en `0x451c32` (08 P-C208 a) |
+| 13 | `0x451d10`/`0x451c20` | carteles de las tiendas personales (§ Las tiendas personales) | singleton `0x7245c8` | nada sin carteles; con alguno, los de `0x5bb8d0` (2 con el inventario) |
 | 14 | `0x5a6cc0` | marcador de duelo | `0x78abad8` | nada |
 | 15 | `0x46b090(this = [0x5763528])` | caja sin leer | | nada |
 | 16 | `0x413ca0` | Castle Siege (mapa 30) | `0x4294b0` | nada |
@@ -1545,13 +1545,18 @@ la sesión (Q-C632) y el frame retenido con el pedido, que corta (P-C110). Los t
   `0x555840` y lo deja centrado en la x (la mitad del ancho pasado a 640 con `IDIV`) y 0x24 más arriba. `0x555840` mide
   con la normal: el ancho es el mayor del nombre más 3, el gremio, el puesto y los renglones con tiempo (los dos si el
   de arriba tiene; si no, el de abajo si tiene), y el alto, el paso de la letra por las cinco medidas (Q-C520); con el
-  título de una tienda personal mide también el título (CL9.4). La segunda pasada, para cada par que se pisa en
+  título corto de una tienda (`+0x54`, `0x5559c2..0x555a62`), el ancho es al menos el del título más el del texto 1104,
+  los dos en negrita, y el alto suma un paso. La segunda pasada, para cada par que se pisa en
   640 × 480, sube el primero arriba del otro si su y está antes de la mitad del otro, y si no lo baja debajo. La tercera
   corre cada uno contra los bordes (Q-C522) y llama a `0x555b00`. `0x555b00`, con `TextOut` distinto de 1: no dibuja
   si el dueño tiene el bit `0x10000000` de `+0x7c`, o si en el asedio (`0x7239ec`) un dueño ajeno con el bit `0x4000`
   de `+0x78` es de otro bando que el héroe (`+0x360`: 9 y 6, 10 y 7, 11 y 8, 13 y 12). Pone la mezcla 1 y el blanco,
   deja el tamaño en `0x77f31b8` y `0x77f31bc`, prende `0x77f3b66` (08, P-C83) y lleva el paso de la letra a 32 como
-  mucho (en `0x7758568`) y el ancho a 1.280. El nombre va con el color de `+0x64` (seis colores, y `0xff0000ff` para
+  mucho (en `0x7758568`) y el ancho a 1.280. Si el dueño tiene cartel (`0x451810`, no `+0x54`; `0x5563a4..0x5565ef`),
+  con los colores del título (`0x451af0` el texto, `0x451b50` el de adelante y `0x451bb0` el fondo: los del cartel con
+  su `+0x60` y con `+0x370` en 2 u 8 como el PK 6) y la negrita, la y sube dos pasos: el texto 1104 como lo de adelante
+  de una caja de su ancho, y el título corto a su derecha con el ancho del globo menos ese; después la normal y la y
+  baja un paso, así que los demás renglones van uno más arriba que sin tienda (Q-C978). El nombre va con el color de `+0x64` (seis colores, y `0xff0000ff` para
   los demás); el color de adelante (`0x6c8e60`) y el fondo son los del globo propio (`0xff00ffc8` y `0x9600643c`) o los
   de `0x513270` y `0x5132a0` con 1 si el `+0x1f2` del dueño es el del héroe (también los dos sin gremio) y con su
   `+0x370` si no (0: `0xffffe6e6` y `0x96321e0a`; 2 u 8: `0xff001eff` y `0x96000000`; otro: `0xff00ffc8` y
@@ -10234,7 +10239,7 @@ líneas `+0x20` y `+0x30` y el tamaño `+0x50`, con el texto 1104 y la negrita).
 - `0x4511f0` (*AddShopTitle*, clave, personaje, título): con `+0x88` distinto de 1, solo el log `0x6c7938`; sin
   cartel, uno nuevo; con uno de la misma clave, el nombre y el título nuevos (`0x452540`) y su lugar (`0x4527d0`); con
   otra clave, solo el log `0x6c7900`. Las dos ramas que escriben miden con la negrita (`SelectObject` del DC con
-  `0x5763558` en `0x452540` y `0x4531b0`), y el DC queda con ella.
+  `0x5763558` en `0x452540` y `0x4531b0`) y las líneas con la normal, y el DC queda en la normal (`0x4531f7`).
 - `0x451430` saca; `0x451810` lo tiene; `0x451770` lo tiene y a la vista; `0x451630(clave)` da el primer cartel con
   esa clave en el orden del mapa (el `14`, `0x4ca7f0..0x4ca809`, lo saca así); `0x4516d0` y `0x451720` muestran y
   esconden, desde el paso de los globos (`0x5576a0..0x5576c9`: con `+time1 > 0` esconde el del dueño; con dueño y
@@ -10247,13 +10252,49 @@ líneas `+0x20` y `+0x30` y el tamaño `+0x50`, con el texto 1104 y la negrita).
   chat (`0x556dd0`: con cartel, el título corto de `0x4518b0` en `+0x54`) y `/trade` (`0x451810`, el aviso 493).
 - El dibujo (`0x451c20`, el hijo 13 del HUD) sale enseguida con el mapa vacío (`+0xc` en 0); con alguno, el lugar de
   cada cartel (`0x451d60`), el reparto para que no se pisen (`0x451e40`), la cuenta de `+0x10` y cada cartel
-  (`0x452a10`), sin leer todavía.
+  (`0x452a10`); abajo, "Los carteles".
+
+**Los carteles** (CL9 hito 7, fase 6b, 2026-11-13, *estático*; 08 P-C342).
+
+- La medida (`0x452540`, al poner el cartel): el ancho del texto 1104 (`0x770df9c`) en negrita (`+0x58`), las dos
+  líneas (`0x452f80`: con 20 bytes o menos, el título entero y la segunda vacía; si no, la primera hasta el primer corte
+  desde `largo >> 1` que no parte una letra de dos bytes, con un byte de `0x80` o más contando 2, y la segunda con el
+  resto) y el tamaño (`0x4531b0`): el ancho es el mayor del texto 1104 más el nombre (negrita) y de las líneas que hay
+  (normal), y el alto, el paso de la letra (`0x7758568`) por 1, 2 o 3 renglones.
+- `0x451d60`: `0x5bb8d0` (el ancho del mundo, con sus `rand()`), `0x621a90`, `0x620db0(0, 0, ancho, 432 o 480)` y, por
+  cada cartel en el orden del mapa, `0x452110`: el punto (x, y, techo + z + 60) del dueño, como el globo, proyectado
+  con `0x6205b0` a 640 × 480 y pasado a píxeles con `IMUL` y la división con signo; la x menos la mitad del ancho y la
+  y menos `36 · H / 480`. Al final, `0x620fc0` y `0x6219b0`.
+- `0x451e40`: para cada par distinto que se pisa (comparaciones con signo, el primero con su lugar ya corrido), el
+  primero sube hasta que su borde de abajo toque el de arriba del otro si ese borde está antes de la mitad del otro
+  (`CDQ`, `SUB`, `SAR`), y si no baja al borde de abajo del otro; la x no cambia. Después, contra los bordes en
+  píxeles: la x negativa en 0 y, desde `W − ancho` (sin signo), en `W − ancho − 4`; la y negativa en 0 y, desde
+  `H − alto` (sin signo), en `H − alto`.
+- `0x451c20` cuenta `+0x10` de 0 a 7 y, para cada cartel: con un elegido (`0x6c8e30` distinto de −1), `+0x10` menor
+  que 3, la ventana de los comandos abierta (`IsOpen(0x200)`, sin `rand()`) y su comando 2 (`[0x6e592c] + 0x20`), el
+  del elegido prende `+0x60` (`0x4529e0`) y los demás no se tocan (Q-C977); si no, `+0x60` en 0 (`0x4529f0`). Con
+  `+0x44` y `+0x14` del mapa ("/ver puestos", `0x4516c0`), `0x452a10` con el PK (`+0x375`) del dueño.
+- `0x452a10`: con el PK 4, 5 o 6, el texto 1104 y el nombre en `0xff00b4e6`, `0xff006ee6` o `0xff0014f0` y el fondo en
+  `0x8029396c` (`0x80527ab6` con `+0x60`); con otro, el nombre en `0xff00e6e6` (`0xffffe6e6`), el texto 1104 en
+  `0xff0096fa` (`0xff29396c`) y el fondo en `0x8029396c` (`0x800096fa`). En negrita, el texto 1104 en `(x, y)` con su
+  ancho y el nombre en `(x + cx, y)` con el ancho del cartel más 4 menos `cx`; en la normal, blanco sobre `0xc829396c`,
+  las dos líneas debajo (o la primera, si la segunda está vacía) con el ancho más 4. Cada renglón es una caja
+  (`0x452d50`, con su `SelectObject`) y un quad (`0x452e50`) que corre la x contra W y la y contra
+  `H − H · 47 / 480`, quedando en ese tope (Q-C976).
+- El globo lee `+0x60` (`0x4517c0`) en el frame siguiente: el hijo 12 va antes que el 13.
+
+**MuRet**: `Scenes::ShopSigns` (`DrawTheShopSigns`, desde el hijo 13 de `DrawTheHud`, con la proyección del pase del
+mundo, *inferido*; un dibujo intermedio escribe `+0x10` y los `+0x60` en una copia), `ShortShopTitle` (desde
+`AddChatBubble`) y el título del globo en `MeasureTheChatBubble` y el dibujo de `Scenes::ChatBubbleDraw`. `+0x10`,
+`+0x14` y `+0x60` son `PersonalShopState::signBlink`, `signsShown` y `ShopTitle::hovered`. MuRet mide el cartel en
+cada dibujo y no al ponerlo (las fuentes no cambian en el juego, *inferido*). Tests: `ShopSignsTest` (Lorencia y
+Devias), los cuatro de la tienda de `ChatBubbleDrawTest`, `TheBubbleOfAShopOwnerTakesTheShortTitle` y
+`TheThirteenthChildDrawsTheShopSigns`.
 
 **MuRet**: el mapa es `SocialState::personalShop` (`PersonalShopState::titles`, por índice del personaje) y los métodos
 están en `Scenes::PersonalShopTitles`; los paquetes del `3F` (04 § Las tiendas personales), en `Scenes::SocialEvents`.
-Cortan con su dirección el dibujo (`0x451c32`, desde `DrawTheHud`) y el título corto del globo (`0x556e26`, desde
-`AddChatBubble`), 08 P-C208 a. Tests: `PersonalShopsTest` (en Lorencia y Devias, con nombres y títulos inventados) y el
-caso `0x451c32` de `GameHudTest`.
+El dibujo y el título corto del globo, en "Los carteles". Tests: `PersonalShopsTest` (en Lorencia y Devias, con
+nombres y títulos inventados).
 
 **Las dos ventanas y sus listas** (CL9 hito 7, fase 4, 2026-11-13, *estático*). `0x800` es la tienda propia y
 `0x20000` la de otro; comparten el byte `0x7d5370f` y la grilla de los lugares desde el `0x4c` (`0x78ab0b8`, 32

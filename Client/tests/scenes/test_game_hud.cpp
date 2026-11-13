@@ -832,7 +832,7 @@ TEST_F(GameHudTest, ThePiecesOfOtherWavesStopWithTheirAddress)
         std::string_view address;
         void (*arrange)(WorldState&);
     };
-    const std::array<Case, 6> cases{{
+    const std::array<Case, 5> cases{{
         {"0x5f7180", [](WorldState& state) { state.Runtime().panels.panel2000 = 1; }},
         {"0x40bab0",
          [](WorldState& state) { state.Runtime().eventObject = Client::Scenes::EventMapObject{.field08 = 5}; }},
@@ -850,13 +850,6 @@ TEST_F(GameHudTest, ThePiecesOfOtherWavesStopWithTheirAddress)
              state.Runtime().siegePanelKind = std::uint8_t{0};
          }},
         {"0x5e9b10", [](WorldState& state) { state.Runtime().ui.field78abb20 = 1; }},
-        // 13. 0x451c20 con un cartel (CL9 hito 7): el dibujo de los carteles corta (08 P-C208 a).
-        {"0x451c32",
-         [](WorldState& state)
-         {
-             state.Runtime().social.personalShop.titles.emplace(
-                 4, Client::Scenes::ShopTitle{.key = 0x234, .name = "Brezal", .title = "Arcos"});
-         }},
     }};
     for (const Case& probe : cases)
     {
@@ -906,6 +899,58 @@ TEST_F(GameHudTest, TheTwelfthChildDrawsTheChatBubbles)
     EXPECT_EQ(bubble.x, 320 - 27 / 2);
     EXPECT_EQ(bubble.y, 240 - 0x24);
     EXPECT_EQ(world.Runtime().hud.durabilityWarning, 0);
+}
+
+// 13. 0x451c20: los carteles de las tiendas personales, después de los globos y con la misma proyección (sin ella, un
+// cartel corta). Sin el inventario, 0x5bb8d0 no saca rand(): la cuenta es la del estado base. En Lorencia y Devias.
+TEST_F(GameHudTest, TheThirteenthChildDrawsTheShopSigns)
+{
+    const std::optional<std::string_view> header = data.text->Text(1104);
+    ASSERT_TRUE(header.has_value());
+    const int headerWidth = static_cast<int>(header->size()) * 6;
+    Client::Scenes::GameProjection flat;
+    flat.view = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+    flat.horizontalScale = 1.0f;
+    flat.verticalScale = 1.0f;
+    flat.centerX = 320;
+    flat.centerY = 240;
+    flat.screenWidth = 640;
+    flat.screenHeight = 480;
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime().map = map;
+        Client::Scenes::ActorState& owner = world.Actors()[4];
+        owner.alive = true;
+        owner.seen = true;
+        owner.boundsTop = 120.0f;
+        world.Runtime().social.personalShop.titles.emplace(
+            4, Client::Scenes::ShopTitle{.key = 0x234, .name = "Brezal", .title = "Arcos"});
+        projection = nullptr;
+        const auto cut = Hud();
+        ASSERT_FALSE(cut.HasValue());
+        EXPECT_NE(cut.Error().find("0x452146"), std::string::npos) << cut.Error();
+
+        projection = &flat;
+        text.texts.clear();
+        CrtRandom before = random;
+        const auto drawn = Hud();
+
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(random.State(), Advanced(before, HudBaseDraws).State());
+        ASSERT_EQ(text.texts.size(), 3u);
+        // El ancho es el del texto 1104 más el nombre; 36 filas sobre el punto proyectado.
+        const int x = 320 - (headerWidth + 36) / 2;
+        EXPECT_EQ(text.texts[0].text, *header);
+        EXPECT_EQ(text.texts[0].x, x);
+        EXPECT_EQ(text.texts[0].y, 240 - 36);
+        EXPECT_EQ(text.texts[1].text, "Brezal");
+        EXPECT_EQ(text.texts[1].x, x + headerWidth);
+        EXPECT_EQ(text.texts[2].text, "Arcos");
+        EXPECT_EQ(text.texts[2].y, 240 - 36 + 12);
+        EXPECT_EQ(world.Runtime().social.personalShop.signBlink, 1);
+    }
 }
 
 // Devil Square tiene su objeto de evento, pero su método +4 es un ret (0x40bdb0) y la cuenta (0x40bab0) sale con +8

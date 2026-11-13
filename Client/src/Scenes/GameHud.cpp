@@ -31,7 +31,6 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/ShopSigns.h"
-#include "Scenes/SocialState.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"

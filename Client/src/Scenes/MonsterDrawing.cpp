@@ -24,6 +24,7 @@
 #include "Scenes/MonsterBody.h"
 #include "Scenes/MonsterBodyPasses.h"
 #include "Scenes/MonsterCloth.h"
+#include "Scenes/MonsterHelpers.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -754,7 +755,7 @@ Core::Expected<bool, std::string> DrawTheModelCase(MonsterFrame& frame)
 }
 
 // 0x510a1e..0x510a77: la cadena de helpers por tipo, en su orden. Cada uno devuelve 0 con un tipo que no es suyo sin
-// hacer nada: 0x42fa30 siempre.
+// hacer nada: 0x42fa30 siempre. Los dos primeros; desde 0x441400, DrawTheMonsterHelpers (MonsterHelpers.h).
 Result CheckTheHelpers(std::uint16_t type, std::int32_t map)
 {
     if (type == 0xc5 || Within(type, 0x191, 0x197))
@@ -762,13 +763,6 @@ Result CheckTheHelpers(std::uint16_t type, std::int32_t map)
     constexpr std::array<std::uint16_t, 4> CastleTypes{0x19c, 0x1a1, 0x1a8, 0x1fd};
     if (map == CastleMap && OneOf(type, CastleTypes))
         return Cut("0x42dfe0", "el helper de efectos del asedio de 0x510a1e", type);
-    if (Within(type, 0x1a3, 0x1a7) || type == 0x1a9)
-        return Cut("0x441400", "el helper de efectos por tipo de 0x510a1e", type);
-    // 0x434180: solo con 0x4303c0 (el mapa 34); del 0x204 al 0x208, la marca 0x69b y las partículas 0x729.
-    if (map == 0x22 && (Within(type, 0x1ab, 0x1b5) || Within(type, 0x204, 0x208)))
-        return Cut("0x434180", "el helper de efectos del mapa 34 de 0x510a1e", type);
-    if (Within(type, 0x1b6, 0x1bb))
-        return Cut("0x4271d0", "el helper de efectos por tipo de 0x510a1e", type);
     return {};
 }
 
@@ -804,6 +798,17 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
     if (!cased.Value())
     {
         if (auto helpers = CheckTheHelpers(actor.type, frame.map); !helpers.HasValue())
+            return helpers;
+        // 0x510a42..0x510a72: 0x441400, 0x42fa30, 0x434180 y 0x4271d0.
+        MonsterHelperPass helperPass{.actor = actor,
+                                     .slot = frame.slot,
+                                     .world = frame.world,
+                                     .random = frame.random,
+                                     .sprites = pass.sprites,
+                                     .worldClock = frame.worldClock,
+                                     .map = frame.map,
+                                     .originalFrame = frame.originalFrame};
+        if (auto helpers = DrawTheMonsterHelpers(helperPass); !helpers.HasValue())
             return helpers;
     }
     // 0x510a7a: en la escena 5, con +0x88 en 1, fuera de Blood Castle, Chaos Castle y el 30, 0x510ef0 con +0x369 (y

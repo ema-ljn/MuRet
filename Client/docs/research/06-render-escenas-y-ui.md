@@ -6379,7 +6379,7 @@ Los de las llamadas, por función:
 | `0x4fcd00` | 1 (`0x4fcea6`) | el `0x1f5` |
 | `0x4f2250`, desde `0x4fcb10` | 1, el de su sufijo | al volver a la de parado; en la escena 4, con el frame + 2 (Q-C21) |
 | `0x432bd0`, desde `0x4fcee0` | 1 (`0x432bf1`), sin condición | cuando la acción pasa del frame 3 sin dejar estela |
-| `0x432bd0`, desde `0x4fcee0` | 2 más (`0x432d6f` y `0x432d74`) | con los tipos `0x1ab` a `0x1b4` |
+| `0x432bd0`, desde `0x4fcee0` | 20 más (`0x432d6f` y `0x432d74`, dos por cada una de diez poses) | el `0x1b0` en la acción 4 con el frame fuera de (5, 7); los otros tipos de `0x1ab` a `0x1b4` cortan antes en su estela o su efecto ([Los helpers de los monstruos](#los-helpers-de-los-monstruos)) |
 | `0x4f5660` | 1 | muriéndose |
 | `0x52f360` | 8 | el `0xf1` |
 | `0x4f97b0` y `0x4f5b70` | 11 y 36 sitios | la habilidad |
@@ -10241,8 +10241,8 @@ NewFace suelto o el que cargó el alta ([Los modelos de los monstruos y los NPC]
 3. **`0x4fcee0`** desde el frame 3 (`0x4fd10b..0x4fd5df`): deja estela (`0x52e470`) con `+0x376` en `0x47`, `0x4a` o
    `0x12d` en las acciones 3 y 4, el `0x194` en la 3, el `0x195` y el `0x197` en la 3 y la 4, y cualquier otro con una
    espada (`0x212..0x411`) en la derecha en la 3 y la 4; después los helpers `0x441260` (el `0x1a7`), `0x42fa40` (el
-   `0x1b1` y el `0x1b3`), `0x432bd0` (su `rand()` y el `0x1ab`, del `0x1ae` al `0x1b1`, el `0x1b3` y el `0x1b4`) y
-   `0x426d90` (del `0x1b8` al `0x1ba`).
+   `0x1b1` y el `0x1b3`), `0x432bd0` (su `rand()` y el `0x1ab`, del `0x1ae` al `0x1b1`, el `0x1b3` y el `0x1b4`:
+   [Los helpers de los monstruos](#los-helpers-de-los-monstruos)) y `0x426d90` (del `0x1b8` al `0x1ba`).
 4. **`0x505de0`**: sin acciones va a la caja de `0x505e15`; la cabeza pasa antes por `0x4ea190` (`0x5068e3`): la acción
    6 no toca el blanco, la 0 sortea uno (`rand() % 32` en 0: `rand() % 128 − 64` y `rand() % 48 − 16`), la 2 con
    `+0x3a4` distinto de −1 mira a ese personaje del pool con `0x4ea0e0` (el rumbo de `0x4e93f0` a menos de 90 grados
@@ -10375,7 +10375,8 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    `+0x2b0`) del `0x152` con `+0x1d6` en 1, el `0x170`, el `0x186`, el `0x177`, el `0x174`, el `0x176`, el `0x173`,
    el `0x1d8` y el `0x1f2`; el `0x1d9` (`0x510763`: dos `0x5d5` que giran con `T · 0,02f`, y con `rand() % 30` en 0
    tres `rand() % 100 − 50` y el joint `0x618/6` de ancho 20) y el `0x16e` (`0x5108b6`). Sin caso, la cadena de
-   `0x510a1e`: `0x43c150`, `0x42dfe0`, `0x441400`, `0x42fa30` (siempre 0), `0x434180` y `0x4271d0`.
+   `0x510a1e`: `0x43c150`, `0x42dfe0`, `0x441400`, `0x42fa30` (siempre 0), `0x434180` y `0x4271d0`, hasta el primero
+   que devuelve distinto de 0 ([Los helpers de los monstruos](#los-helpers-de-los-monstruos)).
 8. **`0x510a7a`**: en la escena 5, con `+0x88` en 1, fuera de los mapas 11 a 23 y del 30, `0x510ef0` con `+0x369`;
    después el cuervo (`0x420df0`).
 
@@ -10391,7 +10392,8 @@ del mundo (sin ellas, corta en `0x5fb2f0`; sus tipos de verdad, el `0x1f3` y el 
 copia del personaje y del `rand()`. Del `0x45`, sus nueve sprites y los cuatro `rand()` de su primera partícula, que
 corta en `0x50c0db` (la `0x5c6/3` no está en `World::Particles`, CL11; entre frames del original no crea las
 partículas); del `0x46`, su sprite. Cortan con su dirección: los casos de `0x6002e0` y de su cadena, lo demás de `0x50bf45`, las partes (`0x50d3e3`), el Angel (`0x50d383`) y el gremio (`0x50c99b`), el joint `0x618/6` en
-`CreateFaunaJoint` (`0x530c18`), el `0x16e`, los helpers de `0x510a1e` y `0x510f4d` (`0x518cf0`, CL11); 08, P-C179.
+`CreateFaunaJoint` (`0x530c18`), el `0x16e`, `0x43c150` y `0x42dfe0` y los efectos de los otros helpers de
+`0x510a1e` (`Scenes::DrawTheMonsterHelpers`, que sigue) y `0x510f4d` (`0x518cf0`, CL11); 08, P-C179.
 Tests: `MonsterDrawingTest`, `MonsterHangingLight` y `MonsterDecorations` (`test_monster_drawing.cpp`: un Spider de
 Lorencia, un Yeti de Devias, la sombra por mapa, el contorno de un monstruo, de un NPC y de la puerta de Kalima, el
 calco del `0xe8` y el `0xe9` en Lorencia, Devias y Blood Castle, la tela del `0x37` en Lorencia, Devias y Chaos
@@ -10445,6 +10447,92 @@ ese `+0x376`, que ninguna alta crea, en `0x50bae7`. Tests: `MeshClothTest` (`tes
 vecino, el paso y el dibujo) y `MonsterClothTest` (`test_monster_cloth.cpp`: Lorencia, Devias y Blood Castle, contra
 la clase de render con las constantes del ASM, 20 `rand()` por frame, la que se rompe, la que no se dibuja y entre
 frames). Lo que queda para la VM: 08 P-C330.
+
+### Los helpers de los monstruos
+
+(CL9 hito 2, fase 6d, 2026-11-13, *estático*.) Cuatro funciones por tipo que el grafo había dejado en la CL7: tres de
+la cadena del dibujo (`0x510a42..0x510a72`, con `c`, el objeto y el modelo; `c` y el objeto son el mismo registro) y
+una del paso desde el frame 3 (`0x4fd5d7`). Lo que es estado, sonido o `rand()` está portado; los efectos
+(`0x518cf0`), las partículas (`0x53fe70`), los joints (`0x530860`), la estela (`0x52e470`), `0x4ee770` (un `rand()`
+por vértice y sus efectos) y las marcas del piso (`0x5fb2f0`) cortan con la dirección de la llamada (08, P-C336). Los
+sprites son de `0x5491e0` sin dueño, rotación 0 y mezcla 0 salvo donde se dice. Los sonidos son `0x41ed10(id, 0, 0)`
+(CL10). El `+4` del objeto (el subtipo, Q-C1098) hace de "ya sonó": con `+4` en 0, `+4 = 1` y el sonido, y al final
+`+4 = 0` en las acciones 0 y 1. "Ocioso" es la acción 2 o la 10.
+
+Los puntos salen de los huesos con nombre que registró el alta (`0x401000`): `0x4010b0(objeto, nombre, punto)` y
+`0x4010d0(objeto, nombre, desplazamiento, punto)` buscan con `0x4016c0` el objeto y el nombre exactos, y
+`0x401550`/`0x4015f0` toman el hueso propio (`+0x120`) con `0x4ec110` sin trasladar, por la escala y más la posición
+(el redondeo de `OriginalTransformPosition`). Sin el nombre, devuelven 0 y el punto queda como estaba en la pila
+(Q-C1101).
+
+**`0x441400`** (la tabla de `0x442de8`, del `0x1a3` al `0x1a9`; devuelve 0 siempre). El `0x1a8` sale sin tocar `+4`.
+
+| Tipo | Qué hace, en orden |
+| --- | --- |
+| `0x1a3` (Monster81) | `0x5ac` a 0,5 con (0,9; 0,2; 0,1) en `EyeRight` y en `EyeLeft`; ocioso, `rand() % 15` en 0: `0x1f5 + rand() % 2`; en la 3 y la 4, una vez, `0x1f7 + rand() % 2`; en la 6, una vez, `0x1f9` |
+| `0x1a4` (Monster82) | en la 6, `0x4ee770` (`0x441696`); si no, el punto (5, 10, 5) de `LHand` y las partículas `0x6ec` y `0x5f2` (`0x441774`) |
+| `0x1a5` (Monster83) | una vez, ocioso `0x200 + rand() % 2` (sin el `% 15`), en la 3 y la 4 `0x202 + rand() % 2` y en la 6 `0x1f4`; en la 4, tres `rand() % 12 − 6` (x, y, z) desplazan el punto de `Tail`: un `0x5fd` a 2,5 con mezcla 1 y un `0x61e` a 0,8, los dos con la luz propia (`+0xf4`), y las partículas `0x5ca` (`0x441f7f`) |
+| `0x1a6` (Monster84) | `timeGetTime()` sin usar; ocioso, una vez, `0x1fa + rand() % 2`; en la 6, `0x4ee770` (`0x442165`); en la 3, una vez `0x1fe`, y `rand() % 2` en 1 es el efecto `0x12e` (`0x442397`); en 0, otro `rand() % 2` elige `PoisonRight` (0) o `PoisonLeft`, `rand() % 32 + 50` es la escala y corta en la partícula (`0x442370`); en la 4 con el frame de 3,5 a 4,2, una vez `0x1fc + rand() % 2`, `RightHand`, `rand() % 32` y la partícula (`0x4424d7`); en las demás, tres `rand() % 10` (`PoisonTop`, `PoisonRight`, `PoisonLeft`): el primero en 0 corta en su partícula (`0x44267f`, `0x44274b`, `0x442817`) |
+| `0x1a7` (Monster85) | `0x5ac` a 0,7 rojo en `LeftEye` y `RightEye`; ocioso, `rand() % 10` en 0 es la partícula `0x5f3` (`0x4429d8`, y después `0x1f0 + rand() % 2`); en la 3 y la 4, una vez, `0x1f2 + rand() % 2`; en la 6, una vez, `0x1f4` |
+| `0x1a9` (Monster87) | dos `0x5ac` a 0,5 rojos en el punto (0, −2, 0) de `LeftEye` y dos en el de `RightEye`; en la 3, una vez, `0x20b + rand() % 2`; en la 6, una vez, `0x20e`; en la 4, con `+4` en 0, `+4 = 1` y el efecto `0x13f` (`0x442cb9`, y después `0x20d`); si no, el punto (0, 0, −10) de `LeftHand` y sus partículas (`0x442da1`) |
+
+**`0x434180`** (solo en el mapa 34, `0x4303c0`; la tabla de bytes `0x43559c` sobre la de saltos `0x43556c`). Los
+sonidos van por un solo `if`/`else`: ocioso, `rand() % 15` en 0 pide el primero más `rand() % 2`; si no, la acción
+de la lista pide el suyo una vez. Devuelve 1 (corta la cadena) con el `0x1ad` y del `0x1af` al `0x1b4`.
+
+| Tipo | Ocioso; 3, 4, 6 (y 8, 9) | Además |
+| --- | --- | --- |
+| `0x1ab` | `0x22e`; `0x230`, `0x231`, `0x232`, `0x233`, `0x234` | devuelve 0 |
+| `0x1ae` | `0x235`; `0x237`, `0x238`, `0x239`, `0x23a`, `0x23b` | devuelve 0 |
+| `0x1ad` | `0x229`; `0x22b`, `0x22c`, `0x22d` | |
+| `0x1af` | `0x23c`; `0x23e`, `0x23f`, `0x240` | después de los sonidos, `a = rand() % 14 · 0,01f` y el giro `rand() % 360`; en `Monster94_zx` un `0x699` a 1,5 blanco, tres `0x5ac` a `a · 5 + 3,5` y un `0x69a` a `a + 0,8` girado, los cuatro con (0,3; 0,3; 0,7); en `zx01` un `0x5fd` a 0,8 (0,1; 0; 0,6) girado y, con `rand() % 2` en 0, otro (0,7; 0,7; 1) con `360 − giro`; y un `0x5ac` a 1,5 azul |
+| `0x1b0` | `0x224`; `0x226`, `0x227`, `0x228` | |
+| `0x1b1` | `0x210`; `0x212`, `0x213`, `0x214` | antes, fuera de la 6, un `0x5ac` a 3,5 rojo en `Monster95_Head`; ocioso, `rand() % 10` en 0 es la partícula `0x5f3` (`0x434d84`) |
+| `0x1b2` | `0x21f`; `0x221`, `0x222`, `0x223` | antes, el giro `rand() % 360` y `l = sin(T · 0,0012f) · 0,8f + 1,3f`; un `0x5ac` del tamaño (1, o 0,5 en la 3 y la 4) con (0; `l · 0,5`; `l · 0,1f`) en `Monster96_Center`; en `Top` y `Bottom`, dos `0x5fd` de la mitad del tamaño con (0,5; 0,5; 0,5), con el giro y con `360 − giro` |
+| `0x1b3` | `0x21a`; `0x21c`, `0x21d`, `0x21e` | antes, en la 4 con el frame de 4 a 6, el efecto `0x115` (`0x434ecf`) |
+| `0x1b4` | `0x215`; `0x217`, `0x218`, `0x219` | |
+| `0x1b5` | — ; `0x241` (3 y 4), `0x242` (6) | sin la regla de la 0 y la 1: en la 3 y la 6 deja `+4`, en las demás lo pone en 0 (Q-C1099); devuelve 0 |
+| `0x204..0x208` | — | `0x620a90`; con `+0x7c & 0x40000`, la luz propia en (0,09; 0,09; 0,04) y dos partículas `0x729` (`0x434281`); después, con o sin ellas, las dos marcas `0x69b` del piso (`0x43436c` y `0x43439a`, Q-C1100) y `0x620980`; devuelve 0 |
+
+**`0x4271d0`** (`c` y el objeto; la tabla de `0x428dd4`, del `0x1b6` al `0x1bb`; devuelve 0 siempre).
+
+| Tipo | Qué hace, en orden |
+| --- | --- |
+| `0x1b6` (Monster100) | `v = rand() % 30 · 0,01f + 0,6f` (en la x87) y la luz (`v + 0,5`; `v − 0,05f`; `v + 0,5`); `0x5ad` en `L_Hand` (0,8), `z02` (1,1), `z03` (1), `z04` (1,7) y `z05` (0,8); el punto (0, 0, −65) de `Footstepst` y la partícula `0x5ad` (`0x42769f`) |
+| `0x1b7` (Monster101) | el punto de `L_Arm` y las partículas `0x6f1` (`0x427b8b`) |
+| `0x1b8` (Monster102) | `rand() % 10`, un `0x5ad` a 3 con (0; `r · 0,01f + 0,2f`; 0) en el punto (60, −30, 0) de `Head` y la partícula `0x5c6` (`0x428164`); sus sonidos van después |
+| `0x1b9` | solo sonidos: ocioso `0x256`; `0x258`, `0x259`, `0x25a` |
+| `0x1ba` (Monster104) | sonidos (ocioso `0x251`; `0x253`, `0x254`, `0x255`); seis cuernos (`Monster104_Horn%d`): `rand() % 10`, un `0x5ad` a 0,4 con (0,4; `r · 0,01f + 0,8f`; 0,5) y la partícula `0x5c6` (`0x42849c`, en el primero) |
+| `0x1bb` (Monster105) | `rand() % 8`, la luz (`r · 0,1f + 0,6f`; 0; 0); `0x5ad` en `R_Eye` y `L_Eye` (0,3) y `L_Arm00` a `L_Arm02` (1); sonidos (ocioso `0x25b`; 3 `0x25f`, 4 `0x25e`, 8 `0x25d`, 6 `0x260`); la partícula `0x6ec` de `L_Hand` (`0x428adc` en la 4, `0x428c52` en las demás) |
+
+**`0x432bd0`** (desde `0x4fcee0`, con cualquier tipo, `c`, el objeto y el modelo). Primero un `rand()` sin condición
+(`0x432bf1`); después, por tipo (la tabla de `0x4339a8`, del `0x1ab` al `0x1b4`; el `0x1ac`, el `0x1ad` y el `0x1b2`
+nada). Cada estela posa diez veces en el buffer global (`0x4eb860(modelo, 0x68b181c, f, +0x118, +0x112, +0x1c,
++0x28, 0, 1)`, trasladado al mundo y con la key en `+0xa8` del modelo), desde `f = frame − v` con `v` la velocidad de
+la acción del modelo (`+0x30 + a · 0x10 + 4`) y pasos de `v · 0,1f`, y con `0x4ec110` saca los puntos de un hueso
+para la estela `0x52e470`, que corta en la primera vuelta:
+
+| Tipo | Acción (velocidad) | Qué hace |
+| --- | --- | --- |
+| `0x1ab` | 3 (3) | con el frame en (3,5; 4,5), la partícula `0x640` después de posar (`0x433056`); si no, la estela (`0x433086`) |
+| `0x1ae` | 8 | el punto de `Left_Hand` y las partículas `0x5f2` y `0x5ad` (`0x433248`) |
+| `0x1ae` | 3 y 4 (la suya) | en la 4 con el frame en (4,5; 5), el efecto `0x145` antes de posar (`0x433339`); si no, la estela (`0x433410`) |
+| `0x1af` | 3 y 4 (la suya) | la estela (`0x433557`) |
+| `0x1b0` | 4 (4) | diez vueltas: la pose, el punto (0, 100, −150) del hueso 16; con el frame del objeto en (5, 7), la partícula `0x5d9` (`0x432d07`); el punto (0, −150, 0) girado por los ángulos (`0x5fc8f0`, `0x5fcbd0`), que nadie lee; la z de los ángulos menos 18; dos `rand()` (`0x432d6f`, `0x432d74`, Q-C1103). Al final, los ángulos vuelven a los de antes |
+| `0x1b1` | 4 (4) | la estela (`0x4337cf`) |
+| `0x1b3` | 3 (3) | la estela (`0x43397d`) |
+| `0x1b4` | 3 (3) | la estela (`0x432ea3`) |
+
+En MuRet, el `0x1a7`, el `0x1b1` y el `0x1b3` cortan antes, en `0x441260` y `0x42fa40`.
+
+MuRet: `Scenes::DrawTheMonsterHelpers` (`MonsterHelpers.h`), desde la cola de `DrawGameMonster` después de `0x43c150` y
+`0x42dfe0`, con el personaje o su copia, el `rand()` del dibujo y los sprites del frame; los sonidos en
+`WorldRuntime::lastSoundId`, solo en un frame del original. `Scenes::StepTheSwingsOf1abTo1b4`, desde
+`StepTheWeaponTrail` (`CharacterStep`): las poses van a `WorldState::PoseCarry` con `PublishFaunaPoseRaw` (sin mallas)
+y la key a `FaunaModels::RecordPoseKey`; la acción, la escala y la posición del modelo son las del personaje
+(Q-C1102). Un hueso con nombre que falta corta en su llamada. Tests: `MonsterHelpersTest` (`test_monster_helpers.cpp`:
+cada tipo en Lorencia, Devias o Crywolf, con sus `rand()` contados) y
+`MonsterStep.TheSwingOfThe1b0DrawsItsRandomsBeforeItsEffects` (`test_model_body.cpp`).
 
 ### La tabla de protección
 

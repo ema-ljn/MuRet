@@ -57,8 +57,8 @@ void LookAtTheTarget(ActorState& actor, const ActorState& target);
 // 0x4fd10b..0x4fd5df, desde el frame 3 de otro modelo que el 0x20a: la dirección donde corta lo que hace según el
 // tipo. La estela (0x52e470, desde 0x4fd233) con +0x376 de c en 0x47, 0x4a o 0x12d y las acciones 3 y 4, el 0x194 en la
 // 3, el 0x195 y el 0x197 en la 3 y la 4, o con una espada (0x212..0x411) en la derecha en la 3 y la 4; y los helpers
-// 0x441260 (el 0x1a7), 0x42fa40 (el 0x1b1 y el 0x1b3), 0x432bd0 (el 0x1ab, del 0x1ae al 0x1b1, el 0x1b3 y el 0x1b4,
-// después de su rand()) y 0x426d90 (del 0x1b8 al 0x1ba). `beforeTheRandom` dice si corta antes del rand() de 0x432bf1.
+// 0x441260 (el 0x1a7), 0x42fa40 (el 0x1b1 y el 0x1b3) y 0x426d90 (del 0x1b8 al 0x1ba). `beforeTheRandom` dice si corta
+// antes de 0x432bd0 (Scenes::StepTheSwingsOf1abTo1b4, con su rand() de 0x432bf1) o después.
 struct ModelTrailCut
 {
     std::uint32_t address = 0;

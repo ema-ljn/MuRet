@@ -25,6 +25,7 @@
 #include "Scenes/HealthBars.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/ModelBody.h"
+#include "Scenes/MonsterHelpers.h"
 #include "Scenes/NpcChatter.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnStatHelpers.h"
@@ -519,7 +520,7 @@ bool LeavesATrail(std::uint8_t action, int model)
 }
 
 // 0x4fcee0(c, c, b) desde 0x505410, con el 0x20a.
-Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::size_t slot,
+Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::size_t slot, WorldState& world,
                                                      Render::Models::CrtRandom& random)
 {
     const std::uint8_t action = actor.animation.action;
@@ -548,8 +549,9 @@ Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::siz
                                             cut->address, actor.type, slot, action));
     }
     // 0x4fd5c1..0x4fd5df: 0x441260 (solo el 0x1a7), 0x42fa40 (el 0x1b1 y el 0x1b3), 0x432bd0 y 0x426d90 (los
-    // 0x1b8 a 0x1ba). 0x432bf1: rand() sin condición, antes de mirar el tipo (0x1ab a 0x1b4).
-    static_cast<void>(random.Next());
+    // 0x1b8 a 0x1ba). 0x4fd5d7: 0x432bd0, con su rand() de 0x432bf1 sin condición (Scenes::StepTheSwingsOf1abTo1b4).
+    if (auto swung = StepTheSwingsOf1abTo1b4(actor, slot, world, random); !swung.HasValue())
+        return swung;
     if (cut.has_value())
     {
         return Core::Unexpected(std::format("{:#x}: el modelo {:#x} del lugar {} en la acción {:#x} desde el frame 3 "
@@ -679,7 +681,7 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     // 0x5053fc: 0x42a2b0, la barra de vida del 0x1a8.
     QueueTheHealthBar(actor, context.world.Runtime().healthBars);
     // 0x505410: 0x4fcee0.
-    if (auto trailed = StepTheWeaponTrail(actor, slot, context.random); !trailed.HasValue())
+    if (auto trailed = StepTheWeaponTrail(actor, slot, context.world, context.random); !trailed.HasValue())
     {
         return trailed;
     }

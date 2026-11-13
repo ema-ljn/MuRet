@@ -264,7 +264,9 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
       contorno, la sombra, las manos y los sprites de los casos del modelo; 06, "El dibujo de los monstruos y los
       NPC"). Hechos los casos por tipo y por mapa de `0x6002e0` y su cadena para los tipos del alta (fase 6b:
       `0x6004ed`, `0x438fe0`, `0x42cc10`, `0x600f74..`, `0x602391`, `0x60243e`; 06, "El dibujo de los monstruos y los
-      NPC"); quedan los efectos por tipo y los helpers, que cortan con su dirección (08, P-C179, P-C241 y P-C332).
+      NPC"). Hechos en la fase 6d `0x441400`, `0x434180`, `0x4271d0` y `0x432bd0`, salvo sus efectos de la CL11 (06,
+      "Los helpers de los monstruos"; 08, P-C336); quedan los efectos por tipo y los helpers, que cortan con su
+      dirección (08, P-C179, P-C241 y P-C332).
 - [ ] **La tela sobre la malla** (P-C22 f, vtable `0x6b8d04`: los monstruos `0x59..0x8f`; los tres pantalones
       también la usan), y Q-C95 con el primer modelo que se desvanezca (§ Lo que dejó la CL6). Hecha la de los
       monstruos (`Cloth::BuildOnTheMesh`, `Scenes::MonsterMeshCloth`; 06, "La tela sobre la malla"; Q-C861, Q-C862 y,

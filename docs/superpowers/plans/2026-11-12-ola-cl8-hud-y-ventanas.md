@@ -114,7 +114,7 @@ héroe gira (`18 .. 7A`) con el mouse sobre la barra y el original no.
   cierra en `0x5a10e2` aunque no haya skills (3.848, Q-C458), y la cola `IsOpen(0)` de `0x5a5511` saca 2. Las
   teclas del chat (`0x59ff45..0x5a03c3`) no están contadas todavía: es un piso. MuRet hoy no saca ninguno.
 - **El HUD saca decenas de miles de `rand()` por frame** por el registro propio (`0x7681eb4`, 3.848 por cierre):
-  en el estado base, como mínimo 73.189 (`0x5ab810`, `0x5aac20` con sus 12 ranuras, `0x5a9290`, `0x5abcd0`,
+  en el estado base, como mínimo 73.129 (`0x5ab810`, `0x5aac20` con sus 12 ranuras, `0x5a9290`, `0x5abcd0`,
   `0x5a8cc0`, `0x5a9630` y los `IsOpen`). Van después de los del 3D del mismo frame.
 - El picking del frame (`0x59ec80`) saca 3.848 por frame con el mouse en el mundo y el héroe de clase 0 o 2,
   y 0 con el mouse en la UI. MuRet no lo porta todavía.
@@ -394,7 +394,8 @@ y la cuenta de la UI sin modelos comparten `Render::Models::SetPulseAt` y `SetPu
 
 - [x] **El tooltip** `0x5f7bc0` y sus tres cuerpos (`0x5b2aa0`, `0x5b8150`, `0x5b90b0`) con sus helpers, el
       cartel del set (`0x40eca0`) y la info del ítem del modo 3 de las superposiciones (`0x5afc00`, `0x5af590`,
-      `0x5af9b0`). El modo 3 solo lo abre `0x5ae360`, con F1 en el hito 6 (P-C102).
+      `0x5af9b0`). El modo 3 solo lo abre `0x5ae360`, que llama solo el chat (`0x57692a`, en `0x56c440`: `/` y el
+      nombre de un ítem), no F1 (P-C105, que trae P-C102).
 - [x] **La ventana del personaje** (`0x2000000`): el dibujo `0x5ee2e0`, el paso `0x5e4510` (los botones de
       puntos con el registro propio, 3.848, y `F3 06`), las pestañas y el `A9 01 00 08` (`0x424130`/`0x424230`,
       Q-C16), y los cálculos que muestra (`0x54d0f0`, `0x5516e0` y vecinas).
@@ -408,7 +409,7 @@ tooltip va a la VM (P-C60). **Desbloquea:** "inventario usable".
 formato (`UI/SprintfFormat`), la ayuda de los íconos de estado (`0x5a6600`); abrir el personaje con `0x550d10`, su
 paso `0x5e4510` con el `F3 06`, el botón de cerrar y el `A9 01 00 08` de `0x424230` una vez por apertura (06 § Los
 tooltips y § La ventana del personaje; Q-C590 a Q-C597, P-C100 a P-C104). Falta: los tres cuerpos del tooltip
-(P-C101) y el modo 3 de las ayudas, que solo abre `0x5ae360` del hito 6 (P-C102).
+(P-C101) y el modo 3 de las ayudas, que solo abre `0x5ae360` desde el chat (P-C105, que trae P-C102).
 
 **El dibujo de la ventana del personaje, hecho** (2026-11-12, cierra P-C100): `0x5ee2e0` entero y el botón de cerrar
 `0x118` con la ayuda del texto 222 de `0x5f7440` (`Scenes/GameCharacterHud`), el ataque `0x5b8b80` y la magia
@@ -433,17 +434,19 @@ P-C135, y lo que deja a otras olas o a la VM, en P-C136.
 `Scenes/ItemPrice` como funciones de datos que la tienda de NPC de la CL9.3 reutiliza. El cuerpo de reparar escribe
 con ellos el precio de un ítem gastado (06 § El precio de un ítem; Q-C735 a Q-C737). Lo que no alcanza a leer corta
 con su dirección (P-C140), y el precio de la tienda de NPC sigue cortando en `0x5b2d23` (P-C125 (a)). Con esto, del
-tooltip queda solo el modo 3 de las ayudas, del hito 6 (P-C102), y el hito 5 queda completo.
+tooltip queda solo el modo 3 de las ayudas, del hito 6 (P-C105, que trae P-C102), y el hito 5 queda completo.
 
 ### Hito 6: los diálogos, el menú de Esc, las teclas y la captura (CL8.1 y CL8.3, ~36 KB)
 
-- [ ] **Los diálogos:** `0x633300`, `0x632e30`, el despacho por id de `0x623e70` con sus tramos de la CL8 (los
+- [x] **Los diálogos:** `0x633300`, `0x632e30`, el despacho por id de `0x623e70` con sus tramos de la CL8 (los
       cierres, el OK genérico, el `0x6e` y el `0x93`; 06 lista los tramos) y su dibujo en `0x62db60`; cada ola de
-      la CL9 registra sus ids en el mismo despacho.
-- [ ] **El menú de Esc** (el `0x6e`: salir con `0x61c210` `F3 30` y 3.848, `Macro.txt`, `C3 F1 02 xx`; Q-C455) y
+      la CL9 registra sus ids en el mismo despacho. Hecho en el hito 6 (P-C90).
+- [x] **El menú de Esc** (el `0x6e`: salir con `0x61c210` `F3 30` y 3.848, `Macro.txt`, `C3 F1 02 xx`; Q-C455) y
       **las opciones** (el `0x93`: auto-ataque `0x6c8e3c`, aviso de susurro `0x77f3b78`, volumen `0x7d3a118` como
       gancho de la CL10, brillo `0x6c9dcc` que ya lee `ItemGlow`); el diálogo de los paneles (`0x65feb0`,
-      `0x6605b0`, `0x660830`, `0x660410`, `0x660350`, `0x6576a0`).
+      `0x6605b0`, `0x660830`, `0x660410`, `0x660350`, `0x6576a0`). Hecho en el hito 6, salvo el diálogo de los
+      paneles, que pasó a la CL9.4 (P-C90): solo lo abren los paquetes de la CL9.4 y la UI nueva de los amigos, y
+      `0x660350` y `0x6576a0` se alcanzan solo por detrás de `0x660410` y `0x6605b0`, que cortan.
 - [x] **Las ventanas del paso que son marco:** la party (`0x5e3c80` sin el `43`), el botón del quest (`0x41b5a0`
       sin el contenido), la puerta de D (`0x40a450` sin `0x406050`) y los cortes sin `rand()` de las de la CL9.
       Hecho: la party vacía (`0x6599a0(4)` con el `C1 03 42`, `0x5e3c80`, `0x5f0be0`) y los comandos (`0x40a450`,
@@ -522,6 +525,12 @@ Cada uno queda en el código con su dirección y en el 08 (P-C59). Los principal
 | CL10 | Sonidos de la UI | `0x41ed10` (`0x19`, `0x1c`, `0x22`, `0x26`), el volumen `0x41eed0` |
 | CL11 | Joints de evento | `0x530860` (desde `0x5a7d70`, muerto: Q-C456) |
 
+**Las etiquetas, corregidas** (2026-11-13, rama `cl8-gaps`): cuatro cortes decían "hito 4" y no lo eran. `0x5e7bf0` y
+`0x5e9b10` esperan a `0x78abb20`, que saca de 0 solo el teclado del almacén (CL9.3); el duelo (`0x5a6cc0`, `0x5f37f0`
+y `0x78abad9`) es de la CL9.4; y la ventana `0x2000` (`0x5f7180`) no tiene ola todavía y no se alcanza, porque
+`Open(0x2000)` corta antes. Los comentarios de `0x490490` llevan ahora sus direcciones: F5 en `0x490538`, F6 en
+`0x490561`, la de amigos en `0x4905a2` y el bucle desde `0x4905c4`.
+
 ## Los datos
 
 - **Texturas:** las 256 rutas `Interface\…` del binario están en `Client/assets/Data/Interface`. El HUD usa los
@@ -586,7 +595,7 @@ el orden fino del tooltip; qué abre F4 (`0x45a9d0`) y qué son `[0x5763530]` (`
 
 ## Lo que cambió con la revisión adversarial
 
-Una revisión independiente contra el ASM (2026-11-12) confirmó los `rand()` de `IsOpen`, el piso de 73.189 del
+Una revisión independiente contra el ASM (2026-11-12) confirmó los `rand()` de `IsOpen`, el piso de 73.129 del
 HUD por frame, los 3.848 del picking, los 2 de Esc, los 4 de abrir el inventario, el `rand()` del foco por
 mensaje, la bandera del clic, el cursor doble y el orden de la pasada 2D. Corrigió tres cuentas y cuatro
 detalles, ya aplicados arriba:

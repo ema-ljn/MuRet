@@ -94,13 +94,16 @@ struct GameUiState
     // cifrado (0x4d1400).
     std::uint8_t field78abb39 = 0;
     // 0x5767954: con más de 0, el paso del equipo (0x5bec50) y de las grillas (0x5c4110) sale sin hacer nada. Lo
-    // ponen en 10 el uso de un ítem (0x59ff10, CL9.3) y las respuestas de los ítems; MuRet todavía no lo escribe.
+    // ponen en 10 el uso de un ítem (0x59ff10, CL9.3) y las respuestas de los ítems. MuRet solo lo vuelve a 0: el 26
+    // con 0xfd (0x4d35dc), el 28 (0x4c5ec0) y el 2A (0x4d3cc0).
     std::int32_t field5767954 = 0;
-    // 0x78abad9: con 1, 0x5ee140 no corre sus hijas (0x5ee181) y 0x5ebca0 no hace nada. Hito 4.
+    // 0x78abad9: con 1, 0x5ee140 no corre sus hijas (0x5ee181) y 0x5ebca0 no hace nada. Es el duelo (CL9.4, P-C59).
     std::uint8_t field78abad9 = 0;
-    // 0x78abaac: con 1, 0x5ee140 no llama a 0x5d8d50 (0x5ee1de). Hito 4.
+    // 0x78abaac: con 1, 0x5ee140 no llama a 0x5d8d50 (0x5ee1de). Hito 4: lo ponen en 1 0x5bf1fb y 0x5c2c56 (en
+    // 0x5bec50) y en 0 0x5e5212.
     std::uint8_t field78abaac = 0;
-    // 0x78abb20: con 0, 0x5e7bf0 devuelve 0 y 0x5ee140 sigue. Hito 4.
+    // 0x78abb20: con 0, 0x5e7bf0 devuelve 0 y 0x5ee140 sigue. Lo saca de 0 solo código de la CL9.3: el teclado
+    // del almacén (0x5c0139, 0x5cb432, 0x5d9c19 y 0x5ea227) y 0x5e7aa0.
     std::int32_t field78abb20 = 0;
     // 0x7d36880: el flanco del clic derecho. Lo prende WM_RBUTTONDOWN si el botón no estaba abajo, lo apaga
     // WM_RBUTTONUP (02, la tabla del WndProc) y lo apaga quien lo usa.

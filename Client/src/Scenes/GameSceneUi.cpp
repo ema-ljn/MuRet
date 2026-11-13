@@ -351,7 +351,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         return windows;
     if (auto list = UI::DrawTheWindowList(oldWindows, windowContext, windowView); !list.HasValue())
         return list;
-    // 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9 (hito 4).
+    // 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9 (CL9.4, P-C59).
     // 0x637696: 0x62db60, los diálogos, en la escena 5.
     if (auto dialogs = DrawTheGameDialogs(hud); !dialogs.HasValue())
         return dialogs;

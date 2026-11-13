@@ -866,7 +866,7 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     if (state.delegated.pet == 2)
         return cut("0x424160: la ventana de la mascota es de la CL9.2");
     if (panels.IsOpen(UI::Panel2000))
-        return cut("0x5f7180: la ventana 0x2000 es del hito 4");
+        return cut("0x5f7180: la ventana 0x2000 no tiene ola todavía");
     // 0x5f75fa: 0x40a650, que empieza con +4 de [0x6e592c].
     if (auto commands = DrawTheCommandsWindow(frame.context); !commands.HasValue())
         return commands;
@@ -1502,7 +1502,7 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     if (auto drawn = DrawTheChatBubbles(bubbles); !drawn.HasValue())
         return drawn;
     // 13. 0x451d10 y 0x451c20: los carteles del singleton de 0x7245c8 (CL9.5).
-    // 14. 0x5a6cc0: el marcador del duelo, con 0x78abad8 (hito 4).
+    // 14. 0x5a6cc0: el marcador del duelo, con 0x78abad8 (CL9.4, P-C59).
     // 15. 0x46b090: el cartel de Slide.bmd ([0x5763528]).
     if (auto slides = UI::DrawTheSlides(hud.slides, UI::SlideDrawContext{.sprites = context.sprites,
                                                                          .text = context.text,
@@ -1557,7 +1557,7 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
         return bar;
     // 30. 0x5e9b10.
     if (runtime.ui.field78abb20 != 0)
-        return Core::Unexpected(std::string("0x5e9b10: la caja de la contraseña es del hito 4"));
+        return Core::Unexpected(std::string("0x5e9b10: la caja de la contraseña es del almacén, de la CL9.3"));
     // 31. Sin ninguna ventana, 0x4125b0.
     return DrawTheSiegePanel(frame);
 }

@@ -264,6 +264,8 @@ InventoryServices GameScene::InventoryContext()
         services.sendPickUp = [session](std::uint16_t index) { return session->SendPickUp(index); };
         services.sendUseItem = [session](const Protocol::FloorItems::UseItem& use)
         { return session->SendUseItem(use); };
+        // CL9 hito 7: el 3C del comercio que mandan levantar y soltar en su grilla.
+        services.sendGamePacket = [session](Protocol::Outgoing packet) { session->SendGamePacket(std::move(packet)); };
     }
     services.pickTheGround = [this] { return GroundUnderTheMouse(); };
     return services;

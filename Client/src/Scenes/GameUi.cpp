@@ -6,6 +6,7 @@
 #include "Protocol/Character/LevelUpPoint.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
+#include "Protocol/Trade.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterPicking.h"
@@ -300,6 +301,9 @@ constexpr std::uint32_t LevelShift = 3;
 constexpr std::uint32_t LevelMask = 0xf;
 constexpr std::int32_t CellSize = 20;
 constexpr std::uint8_t HoveredMark = 2;
+// 0x5aed40: 0x78abb28 en 2 con la grilla propia del comercio (0x78a92a8) y en 3 con la del otro (0x78a5a20).
+constexpr std::int32_t OwnTradeTooltip = 2;
+constexpr std::int32_t OtherTradeTooltip = 3;
 
 // 0x5c43f4..0x5c445d: lo que la reparación no mira (las mascotas de 0x1a00 a 0x1a04, 0x1a0a, las flechas, lo de
 // 0x1c00 en adelante, las alas de 0x1807 a 0x1813, de 0x1a0e a 0x1a13, 0x1c15 y el Wizard's Ring), con signo.
@@ -453,16 +457,47 @@ Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, U
     return UseTheLaterGridItem(MovesOf(context), panels, index);
 }
 
-// 0x5c41f4..0x5c4b3b y 0x5c52b1..0x5c5894: el ítem de la casilla `index` bajo el mouse. La marca 2 en su huella, el
-// ítem del cartel (0x78abaa8, su copia en 0x787a518 y su lugar), la esquina de su ayuda y, según las tiendas
+// La grilla de 0x5c4110: la del inventario (0x78a9bb0, 8 × 8) o las del comercio (0x78a92a8 y 0x78a5a20, 8 × 4).
+struct HoverGrid
+{
+    std::span<World::ItemState> cells;
+    UI::HoveredItem::Place place = UI::HoveredItem::Place::InventoryCell;
+};
+
+// 0x5c5361..0x5c5876, después de levantar: IsOpen(0x20), con su rand(); con el comercio abierto, el OK propio puesto
+// y el ítem de la grilla propia, el OK en 0 y el C1 04 3C 00 en C3. Después el sonido 0x1d.
+Core::Expected<void, std::string> AfterThePickUp(const GameUiContext& context, UI::PanelRegistry& panels,
+                                                 const HoverGrid& grid)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    TradeState& trade = runtime.social.trade;
+    if (panels.IsOpen(UI::TradePanel) && trade.ownOk != 0 && grid.place == UI::HoveredItem::Place::OwnTradeCell)
+    {
+        trade.ownOk = 0;
+        context.random.Discard(2);
+        const InventoryServices& services = ServicesOf(context);
+        if (!services.sendGamePacket)
+            return Core::Unexpected(std::string("0x5c5396: el C1 04 3C sin la sesión"));
+        services.sendGamePacket(Protocol::Trade::WriteTradeOkButton(0));
+    }
+    runtime.lastSoundId = ItemMoveSound;
+    return {};
+}
+
+// 0x5c41f4..0x5c4b3b y 0x5c52b1..0x5c5894: el ítem de la casilla `index` de `grid` bajo el mouse. La marca 2 en su
+// huella (en la del otro del comercio, sin pisar el 99), el ítem del cartel (0x78abaa8, su copia en 0x787a518 y su
+// lugar) y la esquina de su ayuda. Con la grilla del otro, solo 0x5aed40 (0x5c4b2b). Si no, según las tiendas
 // personales, la reparación y los clics, levantarlo, usarlo, 0x5aed40 y Ctrl con Q, W o E.
 Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& context, UI::PanelRegistry& panels,
-                                                        std::size_t index, std::int32_t left, std::int32_t top)
+                                                        const HoverGrid& grid, std::size_t index, std::int32_t left,
+                                                        std::int32_t top)
 {
     WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
-    const std::span<World::ItemState, InventoryCellCount> cells(context.world.Inventory().cells);
+    const std::span<World::ItemState> cells = grid.cells;
     const World::ItemState& hovered = cells[index];
+    const bool ownTrade = grid.place == UI::HoveredItem::Place::OwnTradeCell;
+    const bool otherTrade = grid.place == UI::HoveredItem::Place::OtherTradeCell;
     const auto cut = [](std::string_view what) { return Core::Unexpected(std::string(what)); };
     // 0x5c41f4..0x5c4284: el ancho y el alto de Item.bmd, y la marca desde la columna y la fila del ítem, sin mirar los
     // bordes: un ítem puesto entra entero.
@@ -472,6 +507,7 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     const std::int32_t column = hovered.gridColumn;
     const std::int32_t row = hovered.gridRow;
     constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
+    static_assert(Columns == TradeGridColumns);
     for (std::int32_t y = row; y < row + footprint.Value().height; ++y)
     {
         for (std::int32_t x = column; x < column + footprint.Value().width; ++x)
@@ -481,17 +517,28 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
                 return Core::Unexpected(std::format("0x5c425e: la marca de la casilla {} cae fuera de la grilla "
                                                     "(Q-C200)",
                                                     marked));
-            cells[static_cast<std::size_t>(marked)].warning = HoveredMark;
+            World::ItemState& marking = cells[static_cast<std::size_t>(marked)];
+            // 0x5c4243..0x5c4256: en la grilla del otro, el 99 de la copia (0x5bc470) queda.
+            if (otherTrade && marking.warning == ChangedFromTheCopy)
+                continue;
+            marking.warning = HoveredMark;
         }
     }
     // 0x5c4286..0x5c4302.
     const auto cell = static_cast<std::int32_t>(index);
     ui.field78aba27 = 0;
-    ui.hoveredItem = UI::HoveredItem{.place = UI::HoveredItem::Place::InventoryCell, .index = index};
+    ui.hoveredItem = UI::HoveredItem{.place = grid.place, .index = index};
     runtime.hoveredItemCopy = hovered;
     ui.field78abb2c = cell + FirstGridSlot;
     ui.skillTooltipX = left + footprint.Value().width * CellSize / 2 + column * CellSize;
     ui.skillTooltipY = top + row * CellSize;
+    // 0x5c42fd..0x5c4308 → 0x5c4b2b: la del otro del comercio, 0x5aed40 con 3 y la casilla, y la casilla siguiente.
+    if (otherTrade)
+    {
+        ui.field78abb28 = OtherTradeTooltip;
+        ui.field78abb2c = cell;
+        return GridHover::Stayed;
+    }
     // 0x5c432b..0x5c43ee: las tiendas personales (0x800 y 0x20000), sin rand(), y la reparación (0x78abb0c).
     const auto shopOpen = [&panels]
     { return panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel); };
@@ -502,9 +549,10 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     }
     const bool repairing = runtime.panels.repairMode != 0;
     if (shopOpen() && runtime.movement.pendingClick && !repairing)
-        return cut("0x5c5110: poner el ítem de la grilla en la tienda personal es de la CL9.4");
+        return cut("0x5c5110: poner el ítem de la grilla en la tienda personal es del hito 7 (08 P-C208 b)");
     if (shopOpen() && ui.rightClick && !repairing)
-        return cut("0x5c5242: el clic derecho sobre el ítem con la tienda personal abierta es de la CL9.4");
+        return cut(
+            "0x5c5242: el clic derecho sobre el ítem con la tienda personal abierta es del hito 7 (08 P-C208 b)");
     if (repairing)
     {
         if (IsNotRepaired(hovered.id) || !runtime.movement.pendingClick)
@@ -515,23 +563,29 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     // 0x5c4a8e..0x5c4a9f y 0x5c52b1..0x5c5894: levantarlo.
     if (runtime.movement.pendingClick && runtime.movement.gateRequestBlocked == 0)
     {
-        if (auto picked = PickUpFromTheGrid(MovesOf(context), index); !picked.HasValue())
+        auto picked =
+            ownTrade ? PickUpFromTheTradeGrid(MovesOf(context), index) : PickUpFromTheGrid(MovesOf(context), index);
+        if (!picked.HasValue())
             return Core::Unexpected(picked.Error());
-        // 0x5c5361..0x5c5390: el comercio solo mira la grilla de 0x78a92a8, pero IsOpen(0x20) saca su rand().
-        static_cast<void>(panels.IsOpen(UI::TradePanel));
-        runtime.lastSoundId = ItemMoveSound;
+        if (auto after = AfterThePickUp(context, panels, grid); !after.HasValue())
+            return Core::Unexpected(after.Error());
         return GridHover::PickedUp;
     }
     // 0x5c4aa5..0x5c4aac.
     if (ui.rightClick)
     {
+        if (ownTrade)
+            return Core::Unexpected(std::format("0x5c5895: el clic derecho sobre el {:#x} de la grilla propia del "
+                                                "comercio usa su casilla como del inventario (08 P-C235)",
+                                                hovered.id));
         if (auto used = UseTheGridItem(context, panels, index); !used.HasValue())
             return Core::Unexpected(used.Error());
         return GridHover::RightClicked;
     }
-    // 0x5c4ab7: 0x5aed40 con la grilla del inventario.
-    ui.field78abb28 = 0;
-    ui.field78abb2c = cell + FirstGridSlot;
+    // 0x5c4ab7: 0x5aed40 con la grilla: la del inventario con 0 y la casilla + 12, la propia del comercio con 2 y la
+    // casilla.
+    ui.field78abb28 = ownTrade ? OwnTradeTooltip : 0;
+    ui.field78abb2c = ownTrade ? cell : cell + FirstGridSlot;
     // 0x5c4abf..0x5c4b29: GetAsyncKeyState(0x11) y 0x553520 de Q, W y E, en ese orden; la primera gana.
     if (!context.input.IsDown(CtrlKey.key))
         return GridHover::Stayed;
@@ -565,7 +619,10 @@ Core::Expected<void, std::string> StepTheInventoryGrid(const GameUiContext& cont
             if (context.mouseX < cellLeft || context.mouseX >= cellLeft + CellSize || context.mouseY < cellTop ||
                 context.mouseY >= cellTop + CellSize || context.world.Inventory().cells[index].id == EmptyOwnItemId)
                 continue;
-            const auto hovered = HoverTheGridItem(context, panels, index, left, top);
+            const auto hovered = HoverTheGridItem(
+                context, panels,
+                HoverGrid{.cells = context.world.Inventory().cells, .place = UI::HoveredItem::Place::InventoryCell},
+                index, left, top);
             if (!hovered.HasValue())
                 return Core::Unexpected(hovered.Error());
             if (hovered.Value() != GridHover::Stayed)
@@ -734,17 +791,17 @@ Core::Expected<void, std::string> StepThePetButton(const GameUiContext& context,
 }
 
 // 0x5e5728..0x5e5767: 0x5c4110 con las dos grillas del comercio (0x78a5a20 en y + 0x46 y 0x78a92a8 en y + 0x10e, 8 × 4,
-// desde x + 15). Sale como con el inventario (la espera, la traba de C3 24 o un ítem en el cursor); sin un ítem bajo
-// el mouse no hace nada. Con uno, lo de ese ítem (la marca, el cartel y levantarlo de la propia) corta.
-Core::Expected<void, std::string> StepTheTradeGrids(const GameUiContext& context)
+// desde x + 15, con el último argumento en 0). Cada una sale como con el inventario (la espera, la traba de C3 24 o un
+// ítem en el cursor) y recorre sus casillas por filas: con el mouse sobre una con un tipo, lo de ese ítem
+// (HoverTheGridItem). Levantar o el clic derecho terminan la de la grilla propia; la del otro sigue.
+Core::Expected<void, std::string> StepTheTradeGrids(const GameUiContext& context, UI::PanelRegistry& panels)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    if (runtime.ui.field5767954 > 0 || runtime.ui.field78abb39 != 0 || runtime.cursorItemCount > 0)
-        return {};
-    const TradeState& trade = runtime.social.trade;
-    const auto scan = [&](std::span<const World::ItemState> cells,
-                          std::int32_t top) -> Core::Expected<void, std::string>
+    TradeState& trade = runtime.social.trade;
+    const auto scan = [&](const HoverGrid& grid, std::int32_t top) -> Core::Expected<void, std::string>
     {
+        if (runtime.ui.field5767954 > 0 || runtime.ui.field78abb39 != 0 || runtime.cursorItemCount > 0)
+            return {};
         const std::int32_t left = runtime.hud.tradeX + 15;
         for (std::int32_t row = 0; row < TradeGridRows; ++row)
         {
@@ -754,19 +811,23 @@ Core::Expected<void, std::string> StepTheTradeGrids(const GameUiContext& context
                 const std::int32_t cellTop = top + row * CellSize;
                 const auto index = static_cast<std::size_t>(row * TradeGridColumns + column);
                 if (context.mouseX < cellLeft || context.mouseX >= cellLeft + CellSize || context.mouseY < cellTop ||
-                    context.mouseY >= cellTop + CellSize || cells[index].id == EmptyOwnItemId)
+                    context.mouseY >= cellTop + CellSize || grid.cells[index].id == EmptyOwnItemId)
                     continue;
-                return Core::Unexpected(std::format("0x5c41f4: el ítem {:#x} de la grilla del comercio bajo el mouse "
-                                                    "(su marca, su cartel y levantarlo, 0x5c4110) es del hito 7 "
-                                                    "(08 P-C205 a)",
-                                                    cells[index].id));
+                const auto hovered = HoverTheGridItem(context, panels, grid, index, left, top);
+                if (!hovered.HasValue())
+                    return Core::Unexpected(hovered.Error());
+                if (hovered.Value() != GridHover::Stayed)
+                    return {};
             }
         }
         return {};
     };
-    if (auto other = scan(trade.otherGrid, runtime.hud.tradeY + 0x46); !other.HasValue())
+    if (auto other = scan(HoverGrid{.cells = trade.otherGrid, .place = UI::HoveredItem::Place::OtherTradeCell},
+                          runtime.hud.tradeY + 0x46);
+        !other.HasValue())
         return other;
-    return scan(trade.ownGrid, runtime.hud.tradeY + 0x10e);
+    return scan(HoverGrid{.cells = trade.ownGrid, .place = UI::HoveredItem::Place::OwnTradeCell},
+                runtime.hud.tradeY + 0x10e);
 }
 
 // 0x5e571c..0x5e5910: las grillas de las otras ventanas, la caja del entrenador (0x44ad10) y el cartel del set
@@ -778,7 +839,7 @@ Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context
     const auto cut = [](std::string_view what) { return Core::Unexpected(std::string(what)); };
     if (panels.IsOpen(UI::TradePanel))
     {
-        if (auto trade = StepTheTradeGrids(context); !trade.HasValue())
+        if (auto trade = StepTheTradeGrids(context, panels); !trade.HasValue())
             return trade;
     }
     if (panels.IsOpen(UI::NpcShopPanel))
@@ -933,9 +994,20 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
     if (!inGrid.HasValue())
         return Core::Unexpected(inGrid.Error());
     // 0x5deb11..0x5dec41: las otras grillas. La caja del caos y la lista del asedio ya cortaron arriba.
+    bool inAGrid = inGrid.Value();
     if (panels.IsOpen(UI::TradePanel))
-        return cut("0x5deb1c: soltar el ítem del cursor en la grilla propia del comercio (0x5ca250 con 0x78a92a8) es "
-                   "del hito 7 (08 P-C205 a)");
+    {
+        // 0x5deb1c..0x5deb43: 0x5ca250(x + 15, y + 0x10e, 0x78a92a8, 8, 4, 1), con edi en 1 desde 0x5d8df3.
+        const auto inTrade = DropOnTheTradeGrid(moves, GridDrop{.mouseX = context.mouseX,
+                                                                .mouseY = context.mouseY,
+                                                                .left = runtime.hud.tradeX + 15,
+                                                                .top = runtime.hud.tradeY + 0x10e,
+                                                                .inventoryOpen = false,
+                                                                .panels = nullptr});
+        if (!inTrade.HasValue())
+            return Core::Unexpected(inTrade.Error());
+        inAGrid = inAGrid || inTrade.Value();
+    }
     if (panels.IsOpen(UI::WarehousePanel))
         return cut("0x5deb57: soltar el ítem del cursor en el almacén (0x78a7070) es de la CL9.3");
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
@@ -949,7 +1021,7 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
     runtime.movement.pendingClick = false;
     runtime.movement.mouseUpdateTime = 0;
     runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
-    if (inGrid.Value())
+    if (inAGrid)
         return {};
     // 0x5deca7..0x5decc8: la tienda de NPC, con su rand(); con el mouse en ella, vender.
     if (panels.IsOpen(UI::NpcShopPanel))

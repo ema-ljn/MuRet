@@ -5,6 +5,7 @@
 #include "GameLogic/PathCell.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
+#include "Protocol/Outgoing.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -70,6 +71,9 @@ struct InventoryServices
     // 0x5fc260(1) y 0x5fac90 con el rayo del mouse, como MoveHero (0x59de04..0x59de78): la celda del terreno bajo el
     // mouse (0x7d366e0 y 0x7d366e4 · 0,01) o nada.
     std::function<Core::Expected<std::optional<GameLogic::PathCell>, std::string>()> pickTheGround{};
+    // CL9 hito 7. Otro paquete del juego por la sesión, sin rand() (los dos del C3 los saca quien lo arma): el C1 04 3C
+    // 00 del comercio que manda soltar un ítem del inventario en su grilla (0x5cf438).
+    std::function<void(Protocol::Outgoing)> sendGamePacket{};
 };
 
 // Los servicios de `resources`, sin el envío: Item.bmd, 0x512a30 con Player.bmd, el cuervo y los mensajes.
@@ -124,17 +128,29 @@ struct InventoryMoveContext
 // en 0, 0x512a30 y el sonido 0x1d.
 [[nodiscard]] Core::Expected<void, std::string> ReturnTheCursorItem(const InventoryMoveContext& context);
 
-// El C1 0E 24 del ítem del cursor desde la grilla del inventario: la traba 0x78abb39 en 1, los dos rand() del envío
-// en C3 y el paquete, del lugar [0x78a6758] a `targetSlot`, con los bytes 0, +4, +0x1a, +0x1b, +0x1c, el tipo >> 5
-// & 0xf0 y 0.
+// pkt[3] y pkt[0xc] del 24 del cliente: la grilla de origen y la de destino, 0 el inventario y 1 la propia del
+// comercio (0x78a92a8; 0x5ce5af, 0x5d02a0 y 0x5d0898).
+inline constexpr std::uint8_t InventoryGridFlag = 0;
+inline constexpr std::uint8_t TradeGridFlag = 1;
+
+// El C1 0E 24 del ítem del cursor: la traba 0x78abb39 en 1, los dos rand() del envío en C3 y el paquete, de la grilla
+// `sourceFlag` y el lugar [0x78a6758] a la grilla `targetFlag` y `targetSlot`, con los bytes 0, +4, +0x1a, +0x1b,
+// +0x1c, el tipo >> 5 & 0xf0 y 0.
 [[nodiscard]] Core::Expected<void, std::string> SendTheCursorItem(const InventoryMoveContext& context,
-                                                                  std::uint8_t targetSlot);
+                                                                  std::uint8_t targetSlot,
+                                                                  std::uint8_t sourceFlag = InventoryGridFlag,
+                                                                  std::uint8_t targetFlag = InventoryGridFlag);
 
 // 0x5c52b1..0x5c5320, desde 0x5c4110: levanta el ítem de la casilla `cell` de la grilla (la de su columna y su
 // fila): el clic consumido, la copia al cursor desde la de arriba a la izquierda, la grilla de origen, el lugar,
 // 0x5bd750 y el ítem bajo el mouse en nada. Lo que sigue (0x6599a0 del comercio y el sonido) es de la UI.
 [[nodiscard]] Core::Expected<void, std::string> PickUpFromTheGrid(const InventoryMoveContext& context,
                                                                   std::size_t cell);
+
+// Lo mismo desde la grilla propia del comercio (0x78a92a8, 8 × 4; CL9 hito 7, 08 P-C205 a): el lugar es la casilla de
+// arriba a la izquierda, sin el 12 (0x5c531b..0x5c5345), y 0x5bd750 vacía su huella en esa grilla (0x5be08c..).
+[[nodiscard]] Core::Expected<void, std::string> PickUpFromTheTradeGrid(const InventoryMoveContext& context,
+                                                                       std::size_t cell);
 
 // 0x5c2c65..0x5c2dd0, desde 0x5bec50 sin ítem en el cursor y con el clic: con 0x576794c, nada; con 0x78abb0c,
 // reparar (corta); si no, consume el clic y, salvo lo que el mapa 10 o Chaos Castle no dejan sacar, pasa el ítem del
@@ -165,8 +181,9 @@ void HoverTheEquipment(const InventoryMoveContext& context, std::size_t slot, st
 // marcas de su huella dentro de la grilla y, con el clic, el 24 al lugar de esa casilla, la vuelta a su lugar o
 // nada. Si no entra, con el inventario abierto, una joya de bendición, del alma o de la vida va sobre el ítem de esa
 // casilla (0x5d82a8, CL9 hito 5): con su tipo, su nivel y las consultas, el C1 06 26 con el lugar de la joya y el del
-// ítem; la de bendición sobre el 0x1a25, el diálogo 0xa9. Devuelve lo que devuelve el original: verdadero si el clic
-// quedó en la grilla.
+// ítem; la de bendición sobre el 0x1a25, el diálogo 0xa9. Con el ítem levantado de la grilla propia del comercio
+// (0x5ce4fe..0x5cf3a0, CL9 hito 7): con la traba suelta, el 24 desde la grilla 1; con o sin ella, sin el OK propio,
+// 0x78abac8 en 0x96. Devuelve lo que devuelve el original: verdadero si el clic quedó en la grilla.
 struct GridDrop
 {
     std::int32_t mouseX = 0;
@@ -181,6 +198,16 @@ struct GridDrop
 
 [[nodiscard]] Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveContext& context,
                                                                        const GridDrop& drop);
+
+// 0x5ca250(x + 15, y + 0x10e, 0x78a92a8, 8, 4, 1), desde 0x5deb1c con el comercio abierto (CL9 hito 7, 08 P-C205 a):
+// la casilla, si entra (0x5c9b40 sin apilar: solo la huella vacía) y las marcas, como en el inventario. Con el clic y
+// sin entrar, falso. Si entra, el clic no hace nada con 0x1c17..0x1c1a, 0x1a13, 0x1a14 y el 0x1c0b de nivel 13
+// (0x5cf3c9..0x5cf40b); si no, el destino (fila · 8 + columna) en 0x77f3cc8 y, desde el inventario, el OK propio en 0
+// y el C1 04 3C 00 en C3 (0x5cf438) antes de mirar la traba; desde la misma grilla, solo la traba (0x5d07fa). Con
+// la traba suelta, el 24 a la grilla 1. Del resto de las grillas de origen, el original no tiene rama: no llegan
+// (*inferido*). `inventoryOpen` y `panels` no se usan.
+[[nodiscard]] Core::Expected<bool, std::string> DropOnTheTradeGrid(const InventoryMoveContext& context,
+                                                                   const GridDrop& drop);
 
 // 0x5df449..0x5e070e, desde 0x5d8d50 con el clic fuera de las ventanas: lo que no se tira al piso (el aviso 269 y
 // 0x5be150), las cajas de 0x1a20 a 0x1a25 (el aviso 1915 y 0x5be150) y los paquetes de joyas y el Jewel of Guardian
@@ -229,8 +256,9 @@ struct InventoryUse
 [[nodiscard]] Core::Expected<void, std::string>
 PlaceMovedItem(std::uint8_t slot, const Protocol::Inventory::ItemData& item, const WorldEntryResources& resources);
 
-// 0x4d1400, el 24 cifrado: suelta la traba; con 0xff, 0x5be150; si no, la cuenta en 0 y, en el inventario,
-// 0x5bc740 con el último argumento en 0 y el sonido 0x1d.
+// 0x4d1400, el 24 cifrado: suelta la traba; con 0xff, 0x5be150; si no, los precios de las tiendas personales
+// (0x4d1b76..0x4d1c7d), la cuenta en 0 y, en el inventario (0) o en la grilla propia del comercio (1, CL9 hito 7),
+// 0x5bc740 con el último argumento en 0 y el sonido 0x1d. Al final, el 3D que guardó la traba (0x4d1d70).
 [[nodiscard]] Core::Expected<void, std::string> ApplyItemMoveResult(const Protocol::Inventory::ItemMoveResult& result,
                                                                     const WorldEntryResources& resources);
 // 0x4c5ec0, el 28: 0x5bd750 con el lugar y el fin de la espera. Desde el 0x4c (la tienda personal), con 0x6c931c en 2

@@ -41,8 +41,10 @@ struct HoveredItem
     enum class Place : std::uint8_t
     {
         None,
-        InventoryCell, // 0x78a9bb0 + índice · 0x48
-        Equipment,     // [0x7681eb4] + 0xb6c + lugar · 0x48
+        InventoryCell,  // 0x78a9bb0 + índice · 0x48
+        Equipment,      // [0x7681eb4] + 0xb6c + lugar · 0x48
+        OwnTradeCell,   // 0x78a92a8 + índice · 0x48 (CL9 hito 7)
+        OtherTradeCell, // 0x78a5a20 + índice · 0x48
     };
     Place place = Place::None;
     std::size_t index = 0;
@@ -58,14 +60,15 @@ struct GameUiState
     // 0x78a9bac y 0x78a9ba8: dónde va ese tooltip (0x5a06a4, 0x5a06ba).
     std::int32_t skillTooltipX = 0;
     std::int32_t skillTooltipY = 0;
-    // 0x78abaa8: el ítem bajo el mouse, un puntero del original. 0x636df2 lo pone en 0 en cada paso, la grilla del
-    // inventario (0x5c429e) lo apunta a la casilla y el equipo (0x5c3aad) al lugar; levantar lo vuelve a 0. Lo leen
-    // Ctrl+Q/W/E (0x5c4b09) y el cartel.
+    // 0x78abaa8: el ítem bajo el mouse, un puntero del original. 0x636df2 lo pone en 0 en cada paso, las grillas del
+    // inventario y del comercio (0x5c429e) lo apuntan a la casilla y el equipo (0x5c3aad) al lugar; levantar lo vuelve
+    // a 0. Lo leen Ctrl+Q/W/E (0x5c4b09) y el cartel.
     HoveredItem hoveredItem{};
     // 0x78aba27: el último argumento de 0x5c4110 o 0 desde el equipo (0x5c4298, 0x5c3ab3).
     std::uint8_t field78aba27 = 0;
     // 0x78abb28 y 0x78abb2c: de qué ventana y qué lugar es el ítem del cartel (0x5aed40): 0 y el lugar del inventario
-    // (la casilla + 12, o el del equipo) desde el inventario.
+    // (la casilla + 12, o el del equipo) desde el inventario; 2 y 3 con la casilla desde la grilla propia y la del otro
+    // del comercio.
     std::int32_t field78abb28 = 0;
     std::int32_t field78abb2c = 0;
     // 0x5762eb8: la ventana bajo el mouse. 0x636e2f lo pone en 0 en cada paso, el registro del chat (0x45aa80) lo

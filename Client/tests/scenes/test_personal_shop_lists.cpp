@@ -357,6 +357,20 @@ TEST_P(PersonalShopListsTest, ABadListClosesTheShopOrSaysIt)
     EXPECT_EQ(entries.front().type, Client::UI::ErrorMessage);
 }
 
+// 07 Q-C962: strncpy(0x78aba64, pkt + 0x12, 0x24) no termina un título de 36 bytes sin un 0, y el original lo sigue
+// con lo que haya en la .bss desde 0x78aba88. MuRet se queda con los 36.
+TEST_P(PersonalShopListsTest, AFullTitleKeepsItsThirtySixBytes)
+{
+    Shop::ShopItemList list{};
+    list.result = Shop::ListedResult;
+    list.key = SellerKey;
+    list.title.fill(std::byte{'x'});
+    list.entries = {{.slot = FirstShopSlot, .item = ItemBytes(SmallType), .price = 100}};
+    const auto viewed = Client::Scenes::ApplyShopItemList(list, Resources(), Sender());
+    ASSERT_TRUE(viewed.HasValue()) << viewed.Error();
+    EXPECT_EQ(Shops().ownTitle, std::string(Shop::TitleSize, 'x'));
+}
+
 // 0x4dbcb0: 6 avisa y cierra; 7 y 8 avisan y vuelven el ítem del cursor; otro solo lo vuelve.
 TEST_P(PersonalShopListsTest, TheFailedPurchasesSayWhy)
 {

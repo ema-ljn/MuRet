@@ -123,8 +123,6 @@ constexpr std::uint32_t C3Randoms = 2;
 constexpr std::int32_t MaxTypedMoney = 100'000'000;
 constexpr std::int32_t TooMuchMoneyDialog = 0x75;
 constexpr std::int32_t NotEnoughMoneyDialog = 0x74;
-// 0x626b20: la espera del OK propio con zen ya puesto en el comercio.
-constexpr std::int32_t TradeOkWait = 0x96;
 // 0x62821f..0x62823a: lo que deja el cierre del 0x73: el largo del campo, los dos campos de Tab y el modo del zen.
 constexpr std::int32_t ClosedDialogFieldLimit = 0x2a;
 

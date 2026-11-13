@@ -2001,8 +2001,9 @@ de bendición, del alma o de la vida con la marca 4 y el inventario abierto, que
 (`0x5d82a8`, CL9 hito 5: ver [Los ítems del piso](#los-ítems-del-piso), "La joya sobre un ítem"); con el inventario
 cerrado, nada más; si entra, el destino y, a otro lugar o
 al mismo con algo que se apila, el `24` sin la traba, o si no `0x5be150`. Después, las grillas de las otras ventanas
-(`IsOpen(0x20)` con su `rand()`; el comercio `0x5deb1c`, el almacén `0x5deb57`, la tienda personal `0x5dec19` y la
-caja del entrenador `0x44aca9` cortan). Sin el clic, sale; si no, lo consume (`0x77f3b10` en 0 y `0x6c8dcc` en 6) y
+(`IsOpen(0x20)` con su `rand()`; el comercio `0x5deb1c` en [Lo social en pantalla](#lo-social-en-pantalla), "Las
+grillas del comercio"; el almacén `0x5deb57`, la tienda personal `0x5dec19` y la caja del entrenador `0x44aca9`
+cortan). Sin el clic, sale; si no, lo consume (`0x77f3b10` en 0 y `0x6c8dcc` en 6) y
 sale si la grilla lo tomó. La tienda de NPC (`IsOpen(0x10000)`, 1 `rand()`) vende (`0x5decce`, CL9.3). Si no, el
 piso (`0x5df449`): lo que no se tira (las mascotas, las joyas, las alas, Dark Horse, Dark Raven, la Cape of Lord,
 `+0x1c % 4` en 1 o 2, ocho tipos sueltos, más de nivel 4 debajo de las alas y `+0x1b & 0x3f`) vuelve con el aviso
@@ -10183,6 +10184,43 @@ grillas (`0x5e3760` con 0, en las mismas esquinas) y, en `0x5f7840`, sus cifras 
 **MuRet**: `Scenes::DrawTheTradeWindow` (`GameInventoryHud`, desde `DrawTheWindows`), y las grillas del comercio en
 `DrawTheGridItems` y `DrawTheGridNumbers`. Tests: `GameTradeWindowTest` (con el otro del `0x12`, el `/trade`, el `37`,
 un ítem del `39` y el zen, en Lorencia y Devias).
+
+**Las grillas del comercio** (CL9 hito 7, fase 4, 2026-11-13, *estático*; sin traza, 08 P-C205 a). El paso del
+inventario (`0x5e4ce0`), con `IsOpen(0x20)`, recorre las dos con `0x5c4110` (8 × 4) desde la esquina de la ventana
+(`0x104`, 0): la del otro (`0x78a5a20`) en (x + 15, y + `0x46`) y la propia (`0x78a92a8`) en (x + 15, y + `0x10e`).
+Cada una sale con la espera (`0x5767954`), la traba o un ítem en el cursor. La casilla con un tipo bajo el mouse marca
+con 2 la huella de su ítem (en la del otro, sin pisar el 99 de lo cambiado), deja el ítem del cartel y `0x5aed40` con
+3 y la casilla (la del otro) o con 2 y la casilla (la propia; el inventario va con 0 y la casilla + 12). La del otro
+solo se mira: el clic no la levanta. En la propia, con el clic (`0x5c52b1`): la copia de la casilla de arriba a la
+izquierda al cursor, la grilla (`0x78ab9b8`), el lugar de origen sin el 12 (`0x78a6758`), `0x5bd750` con sus 8
+columnas, el ítem del cartel en nada y, con `IsOpen(0x20)` (1 `rand()`), el OK propio (`0x78abac1`) prendido y la
+grilla propia, el OK en 0 y el `C1 04 3C 00` en C3 (`0x5c5396`, 2 `rand()`); después el sonido `0x1d`, como desde el
+inventario. El clic derecho sobre la propia entra en la rama del hito 5 (`0x5c5895`) con la casilla de esta grilla:
+corta (08 P-C235).
+
+Soltar (`0x5d8d50` → `0x5deb1c`): con `IsOpen(0x20)` (1 `rand()`), `0x5ca250(x + 15, y + 0x10e, 0x78a92a8, 8, 4, 1)`,
+sin apilar (`0x5c9b40`), marca la huella con 2, 4 o 3; sin el clic devuelve si entra, y con el clic, si no entra, da
+falso (la joya sobre un ítem es del último argumento en 0, `0x5d825b`). Si entra, lo que no se comercia queda en el
+cursor sin mandar nada y la grilla toma el clic (`0x5cf3c9..0x5cf40b`: `0x1c17` a `0x1c1a`, `0x1a13`, `0x1a14` y el
+`0x1c0b` con `+4 & 0x78` en `0x68`; el `JMP` de `0x5cf3b5` salta la comparación con `0x1c15`, que pasa). El destino
+(fila · 8 + columna, sin el 12) va a `0x77f3cc8`. Desde el inventario, el OK propio en 0 y el `C1 04 3C 00` en C3 antes
+de mirar la traba (`0x5cf438`) y, con la traba suelta, el `24` de la grilla 0 a la 1; desde la propia, solo la traba y
+el `24` de la 1 a la 1 (`0x5d07fa`). Al revés, del comercio al inventario (`0x5ce4fe..0x5cf3a0`, en el `0x5ca250` del
+inventario): `0x449d50` solo hace algo con la caja del entrenador; con la traba suelta, el `24` de la 1 a la 0, y
+después, con el OK propio en 0, la espera del OK (`0x78abac8`) en `0x96`. La respuesta del `24` con 1 pone el ítem en
+la propia (`0x4d1ccc`, [04](04-protocolo.md#mover-y-equipar-ítems-24-28-2a-f3-13-y-f3-14)).
+
+**Los `rand()`** (medidos en los tests, con el registro propio abierto). Con el inventario y el comercio abiertos, el
+paso quieto saca 9: los 12 del inventario solo menos 3, porque el `0x20` abierto corta tres búsquedas en su primera
+consulta (la de cualquier panel de `0x5a5511`, la de Q, W y E y la de los botones del pie). Levantar del inventario
+saca 2 más (`0x5c5361` y `0x5deb11`); soltar en el comercio, 1 + 4 (dos C3); levantar del comercio con el OK prendido,
+1 + 1 + 2, y soltar en el inventario, 1 + 2.
+
+**MuRet**: `Scenes::StepTheTradeGrids` y `HoverTheGridItem` (`GameUi`), `PickUpFromTheTradeGrid`, `DropOnTheTradeGrid`
+y las ramas de la grilla 1 de `DropOnTheInventoryGrid` y de `ApplyItemMoveResult` (`InventoryMoves`); el cartel, con
+`UI::HoveredItem::Place::OwnTradeCell` y `OtherTradeCell` (`GameTooltips`). El `3C` sale por
+`InventoryServices::sendGamePacket`. Tests: `TradeGridsTest` (con el otro del `0x12`: poner un ítem y sacarlo, con los
+bytes del `3C` y de los `24` y los `rand()`, en Lorencia y Devias) e `ItemMoveReplyTest`.
 
 #### Las tiendas personales
 

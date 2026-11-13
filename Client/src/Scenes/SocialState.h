@@ -16,6 +16,9 @@ namespace Client::Scenes
 inline constexpr std::size_t TradeGridCells = 0x20;
 inline constexpr std::int32_t TradeGridColumns = 8;
 inline constexpr std::int32_t TradeGridRows = 4;
+// 0x78abac8 en 0x96: la espera del OK propio que ponen el zen (0x626b20) y el ítem que sale de la grilla propia sin el
+// OK puesto (0x5cf396).
+inline constexpr std::int32_t TradeOkWait = 0x96;
 // 0x78aba1c..0x78aba26: el nombre del otro (10 bytes) y su terminador.
 inline constexpr std::size_t TradeNameSize = 11;
 // +0x44 de una casilla de 0x78a5a20 que vuelve peor que su copia (0x5bc470); el paso del inventario no la pisa
@@ -47,7 +50,8 @@ struct TradeState
     // 0x4d55bd..0x4d562b: el 37 con 1 llama a SetCursorPos(mouse x · 260 / 640 · ancho / 640, mouse y · alto / 480)
     // con el mouse y la pantalla del momento. MuRet lo deja pedido acá y no mueve el cursor (08 P-C202).
     std::uint8_t cursorMoveRequested = 0;
-    // 0x78abac8: la espera del botón de OK, que pone en 0x96 el zen (0x626b20) y baja el paso.
+    // 0x78abac8: la espera del botón de OK, que ponen en 0x96 el zen (0x626b20) y el ítem que sale de la grilla propia
+    // (0x5cf396), y baja el paso.
     std::int32_t okWait = 0;
     // 0x78abaa5: algo cambió en la grilla del otro (0x5bc470) o se apretó el OK (0x5ecf95).
     std::uint8_t changed = 0;

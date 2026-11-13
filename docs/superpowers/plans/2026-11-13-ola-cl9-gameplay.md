@@ -347,7 +347,8 @@ byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada v
         espera la tabla del hito 8 (08 P-C207 a).
   - [x] Fase 2 (2026-11-13): el OK del diálogo `0x73` (`0x626460`, el `3A`); el del almacén (`0x6270ed`) es del
         hito 6 (08 P-C207 c).
-  - [ ] Fase 2: levantar y soltar en sus grillas (`0x5c41f4`, `0x5deb1c`) (08 P-C205).
+  - [x] Fase 4 (2026-11-13): levantar y soltar en sus grillas (`0x5c41f4`, `0x5deb1c`, la rama del comercio de
+        `0x5ca250` y la respuesta `0x4d1ce0`) (08 P-C205 a); el clic derecho sobre la propia corta (08 P-C235).
 - [ ] **Las tiendas personales:** el `0x3F` y su segundo nivel (`0x4db120`, `0x4dae80`, `0x4dafe0`,
       `0x4db700`, `0x4db890`, `0x4dbcb0`), las ventanas `0x5f3030`, `0x5eb020` y `0x623750`, y los carteles
       `[LOJA]` sobre las cabezas (`0x451c20` y su familia). Fase 2: necesita los actores del hito 1 (08 P-C204).

@@ -807,19 +807,28 @@ dos. El chat no saca `rand()`; el susurro, los 3.848 del registro propio de `0x5
 los del `F3 10`: 0 a 11 el equipo y 12 + fila · 8 + columna las 64 casillas del inventario; desde `0x4c`, la tienda
 personal. Los siete bytes de un ítem son los del `F3 10`.
 
-- **`24` del cliente**: `C1 0E 24 <0> <lugar de origen> <ítem:7> <0> <lugar de destino>`, con el XOR32 desde el
-  byte 3 y en C3: 2 `rand()` (el relleno y el serial, `0x40b0a0`). Lo arman `0x449d80` y, en línea, `0x5ca46c..`
-  (la grilla), `0x5bf294..` (el equipo) y `0x59bf1c` (MoveHero). El ítem va como `+0` (el tipo & 0xff), `+4`,
-  `+0x1a`, `+0x1b`, `+0x1c`, `(tipo con signo >> 5) & 0xf0` y 0. Antes, la traba `0x78abb39` en 1: el paso del
-  equipo, el de la grilla y el del ítem del cursor no hacen nada hasta la respuesta.
+- **`24` del cliente**: `C1 0E 24 <grilla de origen> <lugar de origen> <ítem:7> <grilla de destino> <lugar de
+  destino>`, con el XOR32 desde el byte 3 y en C3: 2 `rand()` (el relleno y el serial, `0x40b0a0`). Las grillas: 0 el
+  inventario (y el equipo), 1 la propia del comercio (`0x78a92a8`, CL9 hito 7, fase 4), con el lugar sin el 12. Lo
+  arman `0x449d80` y, en línea, `0x5ca46c..` (la grilla), `0x5bf294..` (el equipo), `0x59bf1c` (MoveHero) y, en
+  `0x5ca250`, `0x5ce4fe..` (del comercio al inventario, de la 1 a la 0), `0x5cf438..` (del inventario al comercio, de
+  la 0 a la 1) y `0x5d07fa..` (de la 1 a la 1). El ítem va como `+0` (el tipo & 0xff), `+4`, `+0x1a`, `+0x1b`,
+  `+0x1c`, `(tipo con signo >> 5) & 0xf0` y 0. Antes, la traba `0x78abb39` en 1: el paso del equipo, el de la grilla
+  y el del ítem del cursor no hacen nada hasta la respuesta. Del inventario al comercio, antes de mirar la traba, el OK
+  propio (`0x78abac1`) en 0 y el `C1 04 3C 00` en C3 (`0x5cf438`); del comercio al inventario, después, con el OK
+  propio en 0, la espera del OK (`0x78abac8`) en `0x96` (`0x5cf379..0x5cf396`, [06](06-render-escenas-y-ui.md#lo-social-en-pantalla),
+  "Las grillas del comercio").
 - **`24` del GameServer** (`0x4d1400`): `C3 0C 24 <resultado> <lugar> <ítem:7>`. Antes, el dispatcher lo copia a la
   cola de `0x77f27b4` (`0x4e38ca..0x4e394f`), también sin cifrar. Si llegó en C1, sin pasar por
   SimpleModulus, `0x4d166b..0x4d1690` manda `C1 06 F1 03 00 16` con el XOR32 y en C3 sin leerlo y sin soltar la
   traba. Cifrado, suelta la traba; con 0xff (rechazado), `0x5be150` vuelve el ítem del cursor a su lugar. Si no,
-  arma las listas de la tienda personal (`0x4d14c6..0x4d1520`), deja la cuenta del cursor en 0 y pone el ítem con
-  `0x5bc740(lugar, ítem, …, 0)` según la grilla del resultado: 0 el inventario, 1 el comercio (`0x78a92a8`), 2 el
-  almacén o la tienda (`0x78a7070`), 3 la caja del caos y 5 la caja del entrenador (`0x44ad70`). Después, el sonido
-  `0x1d`.
+  con el lugar de origen (`0x78a6758`) desde `0x4c`, mueve su precio en el mapa de la tienda que se mira (`0x7245e4`
+  con `0x6c931c` en 1, `0x7245e0` con 2, si está armado): lo saca y, con el lugar del resultado desde `0x4c`, lo pone
+  ahí en lugar del que hubiera (`0x4d1b76..0x4d1c7d`); deja la cuenta del cursor en 0 y pone el ítem con
+  `0x5bc740(lugar, ítem, …, 0)` según la grilla del resultado: 0 el inventario, 1 el comercio (`0x78a92a8`, 8 × 4,
+  `0x4d1ccc`), 2 el almacén o la tienda (`0x78a7070`), 3 la caja del caos y 5 la caja del entrenador (`0x44ad70`).
+  Después, el sonido `0x1d`. Por último, con o sin rechazo, el `3D` que llegó con la traba puesta (`0x5767968`, su
+  cabeza en `0x57635bc`) se aplica con `0x4d57f0` y la marca vuelve a 0 (`0x4d1d70..0x4d1d85`).
 - **`28`** (`0x4c5ec0`): `C1 05 28 <lugar> <fin de la espera>`. Con el lugar distinto de 0xff, `0x5bd750(lugar)` lo
   saca (desde `0x4c` lee antes `0x6c931c` y la grilla de la tienda personal); con el segundo byte distinto de 0,
   `0x5767954` (la espera del uso de un ítem) en 0.
@@ -836,9 +845,11 @@ personal. Los siete bytes de un ítem son los del `F3 10`.
 **MuRet** (CL8 hito 4): `Protocol::Inventory` escribe el `24` y el aviso del `24` en claro y lee los otros cinco;
 `App::ServerSession` manda el `24` (`SendItemMove`), contesta el `24` en claro sin leerlo y sin sacar sus 2
 `rand()` (P-C72) y pasa los demás al mundo (`Scenes::ApplyItemMoveResult`, `ApplyItemDelete`, `ApplyDurability`,
-`ApplyItemPut` y `ApplyEquipmentChange`). Cortan con su dirección las grillas de otras olas del `24` (`0x4d1ce0`,
-`0x4d1d0a` y `0x4d1d34`, CL9.3 y CL9.4; `0x4d1d55`, CL9.3), el `28` de la tienda personal (`0x4c5ece`, CL9.4) y el
-equipo de un jugador del `F3 13` (`0x513a1e`, CL9.2). Los tests usan ítems inventados.
+`ApplyItemPut` y `ApplyEquipmentChange`). El hito 7 de la CL9 suma la grilla 1 (los tres `24` del comercio, el `3C`
+por `InventoryServices::sendGamePacket`, la respuesta con 1, el precio que sigue al ítem y el `3D` diferido; tests
+`TradeGridsTest` e `ItemMoveReplyTest`). Cortan con su dirección las grillas de otras olas del `24` (`0x4d1d0a` y
+`0x4d1d34`, CL9.3; `0x4d1d55`, CL9.3) y el equipo de un jugador del `F3 13` (`0x513a1e`, CL9.2); el `28` de la tienda
+personal (`0x4c5ece`) es del hito 7, fase 4. Los tests usan ítems inventados.
 
 ### La vida y el maná: `26` y `27`
 
@@ -964,8 +975,8 @@ que el paquete los traiga) y los aplica en `Scenes::SocialEvents` (`ApplyShopTit
 botones están en `Scenes::GameSocialSteps` (comercio y duelo), `GamePartyWindow` (echar) y `GameDialogSteps` (sí y no
 de `0x77` y `0x78`); `/trade`, `/duelstart` y `/duelend`, en `UI::ChatCommands`, hasta donde necesitan un
 personaje elegido. La entrada a la selección porta la cola de `0x5bbe10` (`Scenes::ClearTheTradeForSelection`). Lo
-que queda (levantar y soltar en las grillas del comercio y lo que falta de las tiendas personales) lo dicen 08
-P-C205 y P-C208. Los tests (`TradePartyDuelTest`, `SocialEventsTest`, `GameSocialStepsTest` y los
+que queda de las tiendas personales lo dice 08 P-C208; levantar y soltar en las grillas del comercio está portado (06
+§ Lo social en pantalla, "Las grillas del comercio"), salvo el clic derecho sobre la propia (08 P-C235). Los tests (`TradePartyDuelTest`, `SocialEventsTest`, `GameSocialStepsTest` y los
 de los diálogos, la party, los comandos y el registro de las ventanas) usan nombres inventados.
 
 ### Los ítems del piso: `20`, `21`, `22`, `23`, `26` y `2C`

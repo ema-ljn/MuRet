@@ -246,6 +246,10 @@ struct WorldRuntime
     FloorItemGlobals floor{};
     // 0x78ab9b8: la grilla de donde salió el ítem del cursor (CL8 hito 4).
     CursorGrid cursorGrid = CursorGrid::None;
+    // 0x78a59c8: el ítem de los diálogos (0x633110 lo dibuja, 0x63330f lo nombra, 0x623e70 lo usa), con la casilla de
+    // la grilla en el byte +9 (0x78a59d1), que en el ItemState es relleno. Lo escribe la fruta (0x5c8083, CL9 hito 5).
+    World::ItemState dialogItem{};
+    std::uint8_t dialogItemCell = 0;
     // 0x77f3cc8: el lugar adonde va el C1 .. 24 que sale (0x5ca4b0, 0x5bf209, 0x59bf46).
     std::int32_t itemMoveTarget = 0;
     // 0x787a518: la copia del ítem bajo el mouse que lee el cartel (0x5c42a7 y 0x5c3aba). Levantar un ítem le pone el

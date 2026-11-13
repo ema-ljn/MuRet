@@ -163,7 +163,10 @@ void HoverTheEquipment(const InventoryMoveContext& context, std::size_t slot, st
 
 // 0x5ca250(x, y, 0x78a9bb0, 8, 8, 0), el tramo del inventario: la casilla bajo el mouse, si entra (0x5c9b40), las
 // marcas de su huella dentro de la grilla y, con el clic, el 24 al lugar de esa casilla, la vuelta a su lugar o
-// nada. Devuelve lo que devuelve el original: verdadero si el clic quedó en la grilla.
+// nada. Si no entra, con el inventario abierto, una joya de bendición, del alma o de la vida va sobre el ítem de esa
+// casilla (0x5d82a8, CL9 hito 5): con su tipo, su nivel y las consultas, el C1 06 26 con el lugar de la joya y el del
+// ítem; la de bendición sobre el 0x1a25, el diálogo 0xa9. Devuelve lo que devuelve el original: verdadero si el clic
+// quedó en la grilla.
 struct GridDrop
 {
     std::int32_t mouseX = 0;
@@ -172,6 +175,8 @@ struct GridDrop
     std::int32_t top = 0;
     // IsOpen(0x4000000), que no saca rand().
     bool inventoryOpen = false;
+    // Las consultas de 0x659290 de la joya (0x5d838c..0x5d83c2). Sin él, la joya que llega a ellas corta.
+    UI::PanelRegistry* panels = nullptr;
 };
 
 [[nodiscard]] Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveContext& context,
@@ -204,6 +209,20 @@ struct GroundDrop
 // [0x78abb26], y el sonido por el tipo de la casilla (0x21 la 0x1c00 y 0x20 las 0x1c01..0x1c09).
 [[nodiscard]] Core::Expected<void, std::string> UseInventoryItem(const InventoryMoveContext& context,
                                                                  UI::PanelRegistry& panels, std::int32_t cell);
+
+// Lo mismo con el lugar y el destino del 26 que se pasan, como el clic derecho de 0x5c4110 sobre los libros, las
+// esferas y el 0x1a0b (lugar = casilla + 12, destino 0) y la joya sobre un ítem de 0x5ca250 (el lugar de la joya,
+// [0x78a6758], y el del ítem). Del lugar y del destino salen sus bytes de abajo. `where` es la dirección de las tres
+// consultas, la que lleva el aviso 474.
+struct InventoryUse
+{
+    std::int32_t slot = 0;
+    std::int32_t target = 0;
+    std::string_view where;
+};
+
+[[nodiscard]] Core::Expected<void, std::string> UseInventoryItemOn(const InventoryMoveContext& context,
+                                                                   UI::PanelRegistry& panels, const InventoryUse& use);
 
 // 0x5bc740(0x78a9bb0, 8, 8, lugar, ítem, 0) (0x5bcd0b.. y su cola): el ítem en su lugar y, con el registro abierto,
 // los ayudantes sin mascota, el cuervo sin el lugar 1 y la capa sin el anillo de nivel 3. Un tipo 0x1fff no pone nada.

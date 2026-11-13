@@ -895,7 +895,10 @@ del piso es la de `0x220` bytes de `0x77f46c8` (1000), con el objeto en `+0x4c`.
   (`0x5bd750`), y la cuenta del cursor queda en 0. Las dos ramas dejan `0x6c82ec` en −1.
 - **`26` del cliente** (`0x5a2c01..`, `0x5a3623..`, `0x5a3da8..`, `0x5a452f..` y `0x5c5937..`): `C1 06 26 <lugar>
   <destino> <[0x78abb26]>`, el lugar + 12 de la casilla, 0 y el byte que ponen dos diálogos de `0x623e70`; con el
-  XOR32 y en C3. `PMSG_USEITEM` del GameServer 0.97 es de 5 bytes, sin el tercero (07 Q-C1241).
+  XOR32 y en C3. `PMSG_USEITEM` del GameServer 0.97 es de 5 bytes, sin el tercero (07 Q-C1241). Lo mismo mandan los
+  libros y las esferas (`0x5c91a3..`) y el `0x1a0b` (`0x5c84e1..`) desde la grilla. La joya sobre un ítem
+  (`0x5d83ee..`, CL9 hito 5, fase 2) lleva un destino: `C1 06 26 <[0x78a6758]> <[0x77f3cc8]> <[0x78abb26]>`, el lugar
+  de la joya y el del origen del ítem, + 12; con los mismos dos `rand()` del envío.
 - **`2C`** (`0x4de500`): `C1 06 2C <resultado> <puntos> <stat>`. Con 0 o 3 y un stat de 0 a 4 (la energía, la
   vitalidad, la agilidad, la fuerza y el comando), suma o resta los puntos con el registro abierto; otros resultados
   abren un aviso. El GameServer 0.97 manda `C1 04 2C <resultado>` (`PMSG_USE_STAT_FRUIT`): sin los puntos ni el stat,

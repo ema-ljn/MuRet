@@ -219,10 +219,12 @@ protected:
     }
 
     static constexpr std::uint16_t Potion = 0x1c00;
+    static constexpr std::uint16_t Sword = 0x0001;
     static constexpr std::size_t PotionCell = 2 * 8 + 1;
     static constexpr std::int32_t PotionX = WindowX + 15 + 20 + 5;
     static constexpr std::int32_t PotionY = 200 + 40 + 5;
-    Client::Data::Tables::ItemTable items = Client::Tests::ItemTableOf({{Potion, 1, 1, 0xff}, {0x1c0d, 1, 1, 0xff}});
+    Client::Data::Tables::ItemTable items =
+        Client::Tests::ItemTableOf({{Potion, 1, 1, 0xff}, {0x1c0d, 1, 1, 0xff}, {Sword, 1, 3, 0}});
     Client::Scenes::InventoryServices services;
     int dressed = 0;
     std::vector<std::size_t> messages;
@@ -279,6 +281,31 @@ TEST_F(InventoryMovesStepTest, AClickPicksTheItemUpAndEscapePutsItBack)
     EXPECT_EQ(world.Inventory().cells[PotionCell].id, Potion);
     EXPECT_EQ(world.Inventory().cells[PotionCell].occupied, 1u);
     EXPECT_EQ(dressed, 1);
+}
+
+// CL9 hito 5, fase 2: el clic derecho sobre la casilla de abajo de una espada (0x5c8e37) ya no corta. La copia va
+// al cursor y, sin el almacén ni 0x7d368a1, el cursor queda en ceros: la espada sigue en la grilla, sin rand() de más.
+TEST_F(InventoryMovesStepTest, TheRightClickOnASwordLeavesItInTheGrid)
+{
+    for (std::size_t row = 4; row < 7; ++row)
+    {
+        Client::World::ItemState& part = world.Inventory().cells[row * 8 + 5];
+        part.id = Sword;
+        part.gridColumn = 5;
+        part.gridRow = 4;
+        part.occupied = row == 4 ? 1u : 0u;
+    }
+    world.Runtime().ui.rightClick = true;
+    const CrtRandom expected = Advanced(random, BaseStepRandoms + InventoryStepRandoms);
+    const auto stepped = Step(WindowX + 15 + 5 * 20 + 5, 200 + 6 * 20 + 5, &services);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_FALSE(world.Runtime().ui.rightClick);
+    EXPECT_EQ(world.Runtime().cursorItemCount, 0);
+    EXPECT_EQ(world.Runtime().cursorItem.id, 0);
+    EXPECT_EQ(world.Runtime().cursorGrid, Client::Scenes::CursorGrid::Inventory);
+    EXPECT_EQ(world.Inventory().cells[4 * 8 + 5].id, Sword);
+    EXPECT_EQ(world.Inventory().cells[6 * 8 + 5].id, Sword);
 }
 
 // 0x5d8d50 con el ítem en el cursor y el clic fuera de las grillas: consume el clic (MouseUpdateTime en 0 y su máximo

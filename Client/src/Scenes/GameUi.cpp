@@ -18,6 +18,7 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GamePartyWindow.h"
+#include "Scenes/GridItemUse.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/ItemSetState.h"
@@ -418,15 +419,15 @@ enum class GridHover : std::uint8_t
     RightClicked,
 };
 
-// 0x5c5895..0x5c9b0b (CL9 hito 5): el clic derecho sobre el ítem de la grilla, consumido, con la casilla de arriba a
-// la izquierda del ítem. Los que solo mandan el C1 06 26 (UseInventoryItem): el 0x1c0a sin 0x576794c (0x5c58bd), el
-// 0x1c0b de nivel 14 (0x5c608c) y las pociones (0x1c00..0x1c06, 0x1c08, 0x1c09, el 0x1c14 de nivel 0 y el 0x1c07,
-// 0x5c73ea). Los demás cortan con su dirección: las entradas a los eventos (0x5c67e9, 0x5c6c36 y 0x5c7010) y, desde
-// 0x5c7bc6, los libros y las esferas de skills, la fruta, el 0x1a0b y el resto, que 0x5c8e37 copia al cursor y, con el
-// almacén abierto, pasa a su grilla.
+// 0x5c5895..0x5c9b0b (CL9 hito 5): el clic derecho sobre el ítem de la casilla `index`, consumido, con la casilla de
+// arriba a la izquierda del ítem. Los que solo mandan el C1 06 26 (UseInventoryItem): el 0x1c0a sin 0x576794c
+// (0x5c58bd), el 0x1c0b de nivel 14 (0x5c608c) y las pociones (0x1c00..0x1c06, 0x1c08, 0x1c09, el 0x1c14 de nivel 0 y
+// el 0x1c07, 0x5c73ea). Las entradas a los eventos cortan con su dirección (0x5c67e9, 0x5c6c36 y 0x5c7010). Desde
+// 0x5c7bc6, los libros y las esferas de skills, la fruta, el 0x1a0b y el resto: UseTheLaterGridItem.
 Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, UI::PanelRegistry& panels,
-                                                 const World::ItemState& hovered)
+                                                 std::size_t index)
 {
+    const World::ItemState& hovered = context.world.Inventory().cells[index];
     WorldRuntime& runtime = context.world.Runtime();
     runtime.ui.rightClick = false;
     constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
@@ -456,11 +457,7 @@ Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, U
                         (type == 0x1c14 && levelBits == 0) || type == 0x1c07;
     if (potion)
         return use();
-    return Core::Unexpected(
-        std::format("0x5c7bc6: el clic derecho sobre el {:#x} de la grilla (los libros y las esferas "
-                    "de skills, 0x5c8fb9; la fruta, 0x5c7c10; el 0x1a0b, 0x5c8448, y los demás, "
-                    "0x5c8e37) es de la fase 2 del hito 5 (08 P-C272)",
-                    type));
+    return UseTheLaterGridItem(MovesOf(context), panels, index);
 }
 
 // 0x5c41f4..0x5c4b3b y 0x5c52b1..0x5c5894: el ítem de la casilla `index` bajo el mouse. La marca 2 en su huella, el
@@ -535,7 +532,7 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     // 0x5c4aa5..0x5c4aac.
     if (ui.rightClick)
     {
-        if (auto used = UseTheGridItem(context, panels, hovered); !used.HasValue())
+        if (auto used = UseTheGridItem(context, panels, index); !used.HasValue())
             return Core::Unexpected(used.Error());
         return GridHover::RightClicked;
     }
@@ -886,7 +883,8 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
                                                                .mouseY = context.mouseY,
                                                                .left = runtime.hud.inventoryX + 15,
                                                                .top = runtime.hud.inventoryY + 200,
-                                                               .inventoryOpen = panels.IsOpen(UI::InventoryPanel)});
+                                                               .inventoryOpen = panels.IsOpen(UI::InventoryPanel),
+                                                               .panels = &panels});
     if (!inGrid.HasValue())
         return Core::Unexpected(inGrid.Error());
     // 0x5deb11..0x5dec41: las otras grillas. La caja del caos y la lista del asedio ya cortaron arriba.

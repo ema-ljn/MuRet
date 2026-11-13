@@ -20,6 +20,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldTransitionSupport.h"
+#include "UI/GameDialogs.h"
 #include "UI/GameText.h"
 #include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
@@ -124,6 +125,17 @@ constexpr std::uint16_t JewelOfBless = 0x1c0d;
 constexpr std::uint16_t JewelOfSoul = 0x1c0e;
 constexpr std::uint16_t JewelOfLife = 0x1c10;
 constexpr std::uint16_t JewelOfCreation = 0x1c16;
+// 0x5d82d4..0x5d82fb: la joya va sobre los tipos hasta 0x1806 y el 0x1a1e, salvo los virotes y las flechas.
+constexpr std::int32_t LastJeweledType = 0x1806;
+constexpr std::int32_t JeweledType1a1e = 0x1a1e;
+// 0x5d8305 y 0x5d8313: la de bendición hasta el nivel 5; la del alma, hasta el 8.
+constexpr std::uint32_t BlessLevelEnd = 6;
+constexpr std::uint32_t SoulLevelEnd = 9;
+// 0x5d8324..0x5d8366: la de bendición sobre el 0x1a25 sin la durabilidad 0xff abre el diálogo 0xa9 con el texto 1865.
+constexpr std::int32_t BlessDialogType = 0x1a25;
+constexpr std::uint8_t BlessDialogDurability = 0xff;
+constexpr std::int32_t BlessDialogText = 0x749;
+constexpr std::int32_t BlessDialog = 0xa9;
 
 // 0x5bee04..0x5bf2a0, la prueba del equipo.
 constexpr std::uint8_t ElfClass = 2;
@@ -553,23 +565,29 @@ Core::Expected<void, std::string> ReturnToTheSlot(const InventoryMoveContext& co
 Core::Expected<void, std::string> UseInventoryItem(const InventoryMoveContext& context, UI::PanelRegistry& panels,
                                                    std::int32_t cell)
 {
+    return UseInventoryItemOn(context, panels, InventoryUse{.slot = cell + FirstGridSlot, .where = "0x5af520"});
+}
+
+Core::Expected<void, std::string> UseInventoryItemOn(const InventoryMoveContext& context, UI::PanelRegistry& panels,
+                                                     const InventoryUse& use)
+{
     WorldRuntime& runtime = context.world.Runtime();
-    // 0x5af520: !IsOpen(0x40) && !IsOpen(0x80) && !IsOpen(0x20), en ese orden.
+    // 0x5af520 (o en línea): !IsOpen(0x40) && !IsOpen(0x80) && !IsOpen(0x20), en ese orden.
     if (panels.IsOpen(UI::WarehousePanel) || panels.IsOpen(UI::ClosedPanel) || panels.IsOpen(UI::TradePanel))
-        return Message(context.services, UseRefusedText, UI::ErrorMessage, "0x5af520");
+        return Message(context.services, UseRefusedText, UI::ErrorMessage, use.where);
     if (runtime.ui.field5767954 > 0)
         return {};
     runtime.ui.field5767954 = UseWait;
     context.random.Discard(2);
     if (!context.services.sendUseItem)
-        return Core::Unexpected(
-            std::string("0x5a30dc: el C1 06 26 (o el de las otras ranuras y la grilla, como 0x5c5e4a) sin la sesión"));
-    const Protocol::FloorItems::UseItem use{
-        .slot = static_cast<std::uint8_t>((cell + FirstGridSlot) & 0xff), .target = 0, .kind = runtime.ui.field78abb26};
-    if (auto sent = context.services.sendUseItem(use); !sent.HasValue())
+        return Core::Unexpected(std::format("{}: el C1 06 26 (como 0x5a30dc y 0x5c5e4a) sin la sesión", use.where));
+    const Protocol::FloorItems::UseItem packet{.slot = static_cast<std::uint8_t>(use.slot & 0xff),
+                                               .target = static_cast<std::uint8_t>(use.target & 0xff),
+                                               .kind = runtime.ui.field78abb26};
+    if (auto sent = context.services.sendUseItem(packet); !sent.HasValue())
         return sent;
-    // 0x5a3296..0x5a32c9: el tipo de la casilla después del envío.
-    auto used = CellAt(context.world.Inventory().cells, cell, "0x5a329c");
+    // 0x5a3296..0x5a32c9 (y 0x5c6030, 0x5d8c9a): el tipo de la casilla lugar − 12 después del envío.
+    auto used = CellAt(context.world.Inventory().cells, use.slot - FirstGridSlot, "0x5a329c");
     if (!used.HasValue())
         return Core::Unexpected(used.Error());
     const std::int32_t type = Signed(used.Value()->id);
@@ -1168,6 +1186,48 @@ Core::Expected<void, std::string> DropOnTheEquipment(const InventoryMoveContext&
     return SendTheCursorItem(context, static_cast<std::uint8_t>(runtime.itemMoveTarget & 0xff));
 }
 
+namespace
+{
+// 0x5d82a8..0x5d8cd3: la joya del cursor sobre `under`, el ítem de la casilla bajo el mouse (una copia, con la columna
+// y la fila de su origen). El destino es su origen + 12; el lugar de la joya, [0x78a6758].
+Core::Expected<void, std::string> UseTheJewel(const InventoryMoveContext& context, const GridDrop& drop,
+                                              const ItemState& under)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    const std::uint16_t jewel = runtime.cursorItem.id;
+    const std::int32_t type = Signed(under.id);
+    // 0x5d82ce: SAR y AND 0xf del dword de +4, lo mismo que el corrimiento sin signo.
+    const std::uint32_t level = LevelOf(under);
+    const std::int32_t target = under.gridRow * Columns + under.gridColumn + FirstGridSlot;
+    bool accepted = type <= LastJeweledType || type == JeweledType1a1e;
+    if (type == Bolts || type == Arrows)
+        accepted = false;
+    if (jewel == JewelOfBless)
+    {
+        if (level >= BlessLevelEnd)
+            accepted = false;
+        if (type == BlessDialogType && under.durability != BlessDialogDurability)
+        {
+            // 0x5d8335..0x5d8372: la casilla de la joya y el destino para el diálogo, que es de la CL9.3 (0x6282dc).
+            runtime.dialogBox.jewelCell = runtime.slot78a6758 - FirstGridSlot;
+            runtime.dialogBox.jewelTarget = target;
+            return UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.services.texts, 1, BlessDialogText,
+                                      BlessDialog);
+        }
+    }
+    else if (jewel == JewelOfSoul && level >= SoulLevelEnd)
+        accepted = false;
+    if (!accepted)
+        return {};
+    // 0x5d837f..0x5d8398: el destino queda en 0x77f3cc8 antes de las consultas.
+    runtime.itemMoveTarget = target;
+    if (drop.panels == nullptr)
+        return Core::Unexpected(std::string("0x5d838c: las consultas de 0x659290 sin las ventanas"));
+    return UseInventoryItemOn(context, *drop.panels,
+                              InventoryUse{.slot = runtime.slot78a6758, .target = target, .where = "0x5d83d7"});
+}
+} // namespace
+
 Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveContext& context, const GridDrop& drop)
 {
     WorldState& world = context.world;
@@ -1210,11 +1270,18 @@ Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveCont
         return fits;
     if (!fits)
     {
-        if (jewelMark && drop.inventoryOpen && cursor.id != JewelOfCreation)
-            return Core::Unexpected(std::format("0x5d82a8: la joya {:#x} sobre otro ítem (0x5d7f50 y el C1 .. 26) es "
-                                                "de la fase 2 del hito 5 de la CL9 (08 P-C272)",
-                                                cursor.id));
-        return false;
+        // 0x5d825b..0x5d82a2: con la marca de la joya, la grilla del inventario (el último argumento en 0), el
+        // inventario abierto y la de bendición, la del alma o la de la vida, va sobre el ítem; si no, 0x5d8cd7 da
+        // falso. Desde 0x5d8cd3 (con 0x7d368a1 en 0) da verdadero.
+        if (!jewelMark || !drop.inventoryOpen ||
+            (cursor.id != JewelOfBless && cursor.id != JewelOfSoul && cursor.id != JewelOfLife))
+            return false;
+        auto under = CellAt(cells, cell.row * Columns + cell.column, "0x5d82b8");
+        if (!under.HasValue())
+            return Core::Unexpected(under.Error());
+        if (auto jeweled = UseTheJewel(context, drop, *under.Value()); !jeweled.HasValue())
+            return Core::Unexpected(jeweled.Error());
+        return true;
     }
     if (!drop.inventoryOpen)
         return true;

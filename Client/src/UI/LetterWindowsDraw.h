@@ -8,8 +8,9 @@
 
 // El dibujo del chat con un amigo y de las ventanas de una carta (CL9 hito 10; 06 § HUD y ventanas, "Las cartas y el
 // chat con un amigo"): su vtable + 0x50, que el marco (0x492500) llama con la fuente normal en el DC después de la
-// sombra y antes de la barra del título. Las piezas que comparten con las demás ventanas viejas están en
-// UI/OldWindowDrawParts, y las listas de amigos (los miembros y los que se pueden invitar), en UI/FriendWindowsDraw.
+// sombra y antes de la barra del título, y los renglones de los chats en la lista de ventanas de F5. Las piezas que
+// comparten con las demás ventanas viejas están en UI/OldWindowDrawParts, y las listas de amigos (los miembros y los
+// que se pueden invitar) y la pestaña de las cartas, en UI/FriendWindowsDraw.
 namespace Client::UI
 {
 // 0x493fc0: con la mezcla normal, arrastrado o cambiando de tamaño ubica a sus hijas
@@ -33,6 +34,16 @@ void DrawTheReadWindow(OldWindowManager& manager, OldWindow& read, const OldWind
 // botones +0xa44 y +0xacc y, con +0xb0 en 1, +0xb54 y +0xbdc.
 void DrawTheWriteWindow(OldWindowManager& manager, OldWindow& write, const OldWindowDrawContext& context,
                         const OldWindowDrawView& view);
+
+// 0x4a5537..0x4a5739, desde 0x4a5490 con la mezcla normal: con chats en +0xb4 y la lista a la vista, los que no están
+// minimizados; con alguno, el fondo (el 3) y el borde (el 15) con el parpadeo, de (renglón + 4) · cuántos de alto sobre
+// +0x104, y sus renglones (0x4a5750): el elegido y los que esperan con su franja (el 0x10 y el 0x11), el amigo del
+// título (strtok y 0x459c70) y, con más de dos miembros, la marca de win_mark.tga (0x64c) en rojo. El error es el de
+// 0x459c70.
+[[nodiscard]] Core::Expected<void, std::string> DrawTheChatsInTheList(OldWindowManager& manager,
+                                                                      const OldWindow& window,
+                                                                      const OldWindowDrawContext& context,
+                                                                      const OldWindowDrawView& view);
 
 // La vtable + 0x54 de las de una carta, al final del marco: 0x49a1d0 (la de leer, con +0x774 en 2 o más) y 0x498800
 // (la de escribir, con +0xb0 en 1) dibujan el retrato (su vtable + 0x14, 0x497c10), que es de Scenes y corta

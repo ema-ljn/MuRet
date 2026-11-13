@@ -1018,7 +1018,7 @@ como datos (`OldWindowKind`) y despacha con una función por método.
   179, en x, y + 5, w × h − 10 con el borde); `0x459ec0` (`glColor4f(1, 1, 1, 1)` y `glEnable(GL_TEXTURE_2D)`); la
   vtable + `0x50` (la caja, `0x4a3a90`: el texto en blanco en (x + 10, y + `0x1d`) y los botones, `0x45b2e0`, que
   dejan la mezcla opaca para la barra del título y los filos, sin diferencia a la vista; la lista, `0x4a5490`: mide
-  el renglón con "0" la primera vez y corre el parpadeo);
+  el renglón con "0" la primera vez, corre el parpadeo y dibuja los chats con un amigo, del hito 10);
   el gris 0,5 salvo la del final con la ventana de amigos abierta (Q-C574); la barra del título (`0x645`), sus filos
   (8 a 13; 10 en lugar de 8 y 9 en gris), el borde (`0x492180`), la raya, el título en negrita (`0xffc8dce6`, o
   `0xff646e73` en gris), los botones de la barra (`0x647`) y la esquina del tamaño (`0x648`).
@@ -1202,13 +1202,22 @@ los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
   su casilla (`+0` en 1) en `(x + 1, y − 1)`, el sobre (el de una leída, `+0x134` en 1, de 13 × 10 desde 0,28125 en
   `y − 2`), y con `0x465950` directo el nombre en `x + 0x19 + 4`, en una caja de `ftol(ancho · rx − 4)` píxeles (el
   modo 5 de `0x467060`: desde la columna 0 del texto, cortado a la derecha), la fecha sin sus dos primeros caracteres
-  (`+0x115`) centrada en la suya (el modo 2) y el asunto 4 después, en lo que queda hasta la barra. La vtable
+  (`+0x115`) centrada en la suya (el modo 2) y el asunto 4 después, en lo que queda hasta la barra. **Los chats en la
+  lista de ventanas de F5** (`0x4a5537..0x4a5739`, en `DrawTheChatsInTheList` desde `0x4a5490`, con la mezcla
+  normal): con chats (`+0xdc`) y la lista a la vista, los que no están minimizados; con alguno, el fondo (el 3, con el
+  alfa · 179 de la sombra) y el borde (el 15) con el parpadeo (`+0x10c`) de `ftol((renglón + 4) · cuántos)` de alto
+  sobre `+0x104`, y los renglones (`0x4a5750`) de abajo hacia arriba, el n en `+0x104 − (renglón + 4) · n` (uno
+  minimizado no cuenta): el elegido (`+0xf0`) o uno que espera (`+0x118`) con su franja (el `0x10` o el `0x11`, desde
+  `x + 1` y 1 más abajo, de `w − 2` × renglón + 3) y el texto en negro con el alfa del parpadeo (`ftol(parpadeo ·
+  255) << 24`); los demás en `0xc8dce6` con ese alfa. El texto (en `x + 2`, 3 más abajo) sale del título de la ventana:
+  `strtok(",")` (`0x6a075e`), y si el primer pedazo es más largo que el 994, lo que sigue al 994 (y al 995 si empieza
+  con él: un chat cerrado) cortado por `0x459c70` en `w − 8` y un renglón; si no, el 995. Con más de dos miembros, la
+  marca de `win_mark.tga` (`0x64c`, 4 × 6) en `x + w − 7` con `glColor3f(255, 0, 0)`. La vtable
   + `0x54` del marco, al final, dibuja el retrato en la de leer con `+0x774` en 2 o más (`0x49a1d0`) y en la de
   escribir con `+0xb0` en 1 (`0x498800`): corta (P-C212). Los renglones del original están partidos en el ancho de la
   lista (P-C218).
 
-El paso y el ubicado de las tres ventanas siguen el orden del ASM. Los renglones de los chats en la lista de ventanas de F5
-(`+0xdc`), también (P-C215). Con el retrato del juego sin portar, abrir una carta o la de
+El paso y el ubicado de las tres ventanas siguen el orden del ASM. Con el retrato del juego sin portar, abrir una carta o la de
 escribir corta (P-C212); el `CA` arma el chat y abre la conexión de la sala (`App::IChatRoomLinks`; 04).
 
 **Los paneles.**

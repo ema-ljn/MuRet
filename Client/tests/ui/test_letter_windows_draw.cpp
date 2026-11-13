@@ -871,4 +871,96 @@ TEST_F(LetterWindowsDrawTest, TheDraggedWriteWindowPlacesItsChildrenWithoutSizin
     EXPECT_EQ(letter.portrait.base.x, 115 + 360 - 0x77);
     EXPECT_EQ(letter.portrait.base.height, portraitHeight);
 }
+
+// F5 con tres chats: el primero espera un mensaje, el segundo (con tres miembros) es el elegido y el tercero está
+// minimizado. 0x4a5490: el fondo del 3 y el borde del 15 con el parpadeo, de 17 · 2 sobre el borde de abajo (0x1b3);
+// 0x4a5750, de abajo hacia arriba: la franja del 0x11 o del 0x10, el amigo del título en negro con el alfa del
+// parpadeo y, con más de dos miembros, la marca de win_mark.tga en rojo.
+TEST_F(LetterWindowsDrawTest, TheWindowListDrawsTheChatsWithTheirBandsAndTheirMarks)
+{
+    const std::int32_t first = OpenAChat({{"Tordo", 1}}, {}).base.id;
+    const std::int32_t second = OpenAChat({{"Zorzal", 1}, {"Mirlo", 2}}, {}).base.id;
+    OldWindow& third = OpenAChat({{"Hornero", 1}}, {});
+    third.base.state = Client::UI::MinimizedWindow;
+    OldWindow& list = m_manager.windowList;
+    ASSERT_EQ(list.list.chats.size(), 3u);
+    ASSERT_EQ(list.list.chats[0], first);
+    ASSERT_EQ(list.list.chats[1], second);
+    list.base.state = Client::UI::ShownWindow;
+    list.list.blink = 1.0f;
+    list.list.cursor = 1;
+    list.list.waiting.push_back(first);
+
+    ASSERT_TRUE(Client::UI::DrawTheWindowList(m_manager, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
+
+    const TextureSlot mark{0x64c};
+    ExpectCommands({
+        {std::nullopt, BlendMode::Alpha, 6},   // el fondo, los cuatro bordes y la franja del primero
+        {TextMarkerSlot, BlendMode::Alpha, 1}, // "Tordo"
+        {std::nullopt, BlendMode::Alpha, 1},   // la franja del elegido
+        {TextMarkerSlot, BlendMode::Alpha, 1}, // "Mirlo"
+        {mark, BlendMode::Alpha, 1},
+    });
+    // El renglón mide 13 ("0"), y con el margen 17: 34 de alto desde 0x1b3 − 34, en x = 0x246 de 0x34.
+    ExpectBox(QuadOf(0, 0), 582.0f, 401.0f, 634.0f, 435.0f);
+    // El 3 es el de la sombra: su alfa es el parpadeo · 179.
+    EXPECT_EQ(VertexOf(0, 0).color, PaletteOf(3));
+    EXPECT_LT(VertexOf(0, 0).color.alpha, 1.0f);
+    ExpectBox(QuadOf(0, 1), 582.0f, 401.0f, 634.0f, 402.0f);
+    EXPECT_EQ(VertexOf(0, 1).color, PaletteOf(15));
+    ExpectBox(QuadOf(0, 2), 582.0f, 401.0f, 583.0f, 435.0f);
+    ExpectBox(QuadOf(0, 3), 633.0f, 401.0f, 634.0f, 435.0f);
+    ExpectBox(QuadOf(0, 4), 582.0f, 435.0f, 634.0f, 436.0f);
+    // La franja: x + 1, 1 más abajo que el renglón, de w − 2 × (13 + 3).
+    ExpectBox(QuadOf(0, 5), 583.0f, 419.0f, 633.0f, 435.0f);
+    EXPECT_EQ(VertexOf(0, 5).color, PaletteOf(0x11));
+    ExpectBox(QuadOf(2), 583.0f, 402.0f, 633.0f, 418.0f);
+    EXPECT_EQ(VertexOf(2).color, PaletteOf(0x10));
+    // La marca, de 4 × 6 en x + w − 7 y 5 más abajo que el renglón, en rojo.
+    ExpectBox(QuadOf(4), 627.0f, 406.0f, 631.0f, 412.0f);
+    EXPECT_EQ(VertexOf(4).color, (Color{.red = 1.0f, .green = 0.0f, .blue = 0.0f, .alpha = 1.0f}));
+    EXPECT_FLOAT_EQ(VertexOf(4, 0, 2).u, 0.5f);
+    EXPECT_FLOAT_EQ(VertexOf(4, 0, 2).v, 0.75f);
+
+    // strtok(",") del título: "t994" y los amigos de atrás para adelante; lo que sigue al 994, en x + 2 y 3 más abajo.
+    const TextColors black{.text = 0xff000000u, .background = 0};
+    ExpectTexts(0, {{"Tordo", 584, 421, black}, {"Mirlo", 584, 404, black}});
+    EXPECT_EQ(m_text.texts.size(), 2u);
+}
+
+// Sin elegido ni esperando, el texto en 0xc8dce6 con el alfa del parpadeo (ftol(0,5 · 255)); un chat cerrado (el 995
+// adelante) muestra al amigo igual, y uno sin amigos en el título, el 995.
+TEST_F(LetterWindowsDrawTest, TheWindowListShowsTheClosedChatsAndTheEmptyOnes)
+{
+    OldWindow& closed = OpenAChat({{"Tordo", 1}}, {});
+    Client::UI::CloseTheChat(closed, 1, m_texts);
+    ASSERT_EQ(closed.frame.title, std::optional<std::string>("t995t994Tordo"));
+    OpenAChat({}, {});
+    OldWindow& list = m_manager.windowList;
+    list.base.state = Client::UI::ShownWindow;
+    list.list.blink = 0.5f;
+    list.list.cursor = list.list.chats.size();
+
+    ASSERT_TRUE(Client::UI::DrawTheWindowList(m_manager, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
+
+    const TextColors faded{.text = 0x7fc8dce6u, .background = 0};
+    ExpectTexts(0, {{"Tordo", 584, 421, faded}, {"t995", 584, 404, faded}});
+    // El fondo y el borde con el alfa del parpadeo.
+    EXPECT_EQ(VertexOf(0, 1).color, *Client::UI::OldWindowPalette(15, 0.5f));
+}
+
+// Oculta, o con todos los chats minimizados, la lista no dibuja nada más que lo del marco.
+TEST_F(LetterWindowsDrawTest, TheWindowListWithoutChatsToShowDrawsNothing)
+{
+    OldWindow& chat = OpenAChat({{"Tordo", 1}}, {});
+    OldWindow& list = m_manager.windowList;
+    ASSERT_TRUE(Client::UI::DrawTheWindowList(m_manager, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
+    EXPECT_TRUE(m_sprites.Commands().empty());
+
+    list.base.state = Client::UI::ShownWindow;
+    chat.base.state = Client::UI::MinimizedWindow;
+    ASSERT_TRUE(Client::UI::DrawTheWindowList(m_manager, Context(), OldWindowDrawView{.texts = &m_texts}).HasValue());
+    EXPECT_TRUE(m_sprites.Commands().empty());
+    EXPECT_TRUE(m_text.texts.empty());
+}
 } // namespace

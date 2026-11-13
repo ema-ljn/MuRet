@@ -246,10 +246,10 @@ void DrawCenteredInABox(const OldWindowDrawContext& context, std::int32_t x, std
                              -placed.textColumn, placed.width);
 }
 
-// 0x4641f0, la vtable + 0x80 de la lista de las cartas (0x463190, CL9 hito 10): el renglón (DrawTheChosenRow), su
-// casilla (0x463090, marcada con +0 en 1), el sobre, el nombre (strncpy de 0xff) en la caja de su columna (+0x134), la
-// fecha centrada en la suya (+0x138) y el asunto (+0x13) en lo que queda hasta la barra, con 0x465950 directo: las
-// cajas en píxeles (ftol(ancho · rx)). Termina sin mezcla; da 1.
+// 0x4641f0, la vtable + 0x80 de la lista de las cartas (0x463190, CL9 hito 10), en su y (la + 0x9c, 0x464190, igual a
+// 0x461c70): el renglón (DrawTheChosenRow), su casilla (0x463090, marcada con +0 en 1), el sobre, el nombre (strncpy de
+// 0xff) en la caja de su columna (+0x134), la fecha centrada en la suya (+0x138) y el asunto (+0x13) en lo que queda
+// hasta la barra, con 0x465950 directo: las cajas en píxeles (ftol(ancho · rx)). Termina sin mezcla; da 1.
 std::int32_t DrawTheLetterRow(const OldWindowDrawContext& context, const OldWindow& tab, std::int32_t row,
                               std::size_t at, const OldWindowDrawView& view)
 {

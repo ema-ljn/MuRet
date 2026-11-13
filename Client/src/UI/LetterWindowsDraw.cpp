@@ -2,9 +2,11 @@
 
 #include "Core/Expected.h"
 #include "Render/SpriteBatch.h"
+#include "Render/SpriteVertex.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextStyle.h"
 #include "Scenes/ITextDrawer.h"
+#include "UI/ChatLog.h"
 #include "UI/FriendWindowsDraw.h"
 #include "UI/LetterModel.h"
 #include "UI/LetterWindows.h"
@@ -16,10 +18,12 @@
 #include "UI/OldWindows.h"
 #include "UI/SprintfFormat.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Client::UI
 {
@@ -102,6 +106,40 @@ constexpr std::int32_t WithThePortrait = 1;
 constexpr std::size_t WriteButtonCount = 4;
 // 0x4670ba..0x4670d0: un texto vacío mide el "0" de 0x6c7ae4.
 constexpr std::string_view EmptyTextMeasure = "0";
+
+// 0x4a5490 y 0x4a5750: los índices de 0x491960 del fondo (la sombra, con su 179), del borde, del elegido y de los que
+// esperan; el margen del renglón (0x6b8a44), su franja (1 más abajo, de 3 más, 0x6b86b8, desde x + 1 y 2 menos ancha)
+// y el texto en x + 2 y 3 más abajo; el alfa del texto, ftol(parpadeo · 255) (0x6b9f98), sobre 0xc8dce6 o sobre negro.
+constexpr std::int32_t ListBackIndex = 3;
+constexpr std::int32_t ListEdgeIndex = 15;
+constexpr std::int32_t ChosenChatIndex = 0x10;
+constexpr std::int32_t WaitingChatIndex = 0x11;
+constexpr double ChatRowMargin = 4.0;
+constexpr double ChatBandDrop = 1.0;
+constexpr double ChatBandExtra = 3.0;
+constexpr std::int32_t ChatBandX = 1;
+constexpr std::int32_t ChatBandCut = 2;
+constexpr std::int32_t ChatTextX = 2;
+constexpr double ChatTextDrop = 3.0;
+constexpr double TextAlphaScale = 255.0;
+constexpr std::uint32_t ChatRowColor = 0xc8dce6u;
+constexpr std::uint32_t AlphaShift = 24;
+constexpr std::uint32_t ByteMask = 0xffu;
+// 0x4a5943..0x4a5a68: strncpy de 0x100 del título, strtok con "," (0x6c7b88) y el resto en w − 8, un renglón.
+constexpr std::size_t ChatTitleCopy = 0x100;
+constexpr char TitleDelimiter = ',';
+constexpr std::int32_t ChatTextCut = 8;
+// 0x4a5ac2..0x4a5b5a: con más de dos miembros, win_mark.tga de 4 × 6 (0, 0, 0,5, 0,75) en x + w − 7 (0x6b8878) y 5
+// más abajo (0x6b87f8) que el renglón, con glColor3f(255, 0, 0) y después glColor3f(255, 255, 255).
+constexpr std::int32_t ManyMembers = 2;
+constexpr std::uint16_t MarkSlot = 0x64c;
+constexpr double MarkInset = 7.0;
+constexpr double MarkDrop = 5.0;
+constexpr float MarkWidth = 4.0f;
+constexpr float MarkHeight = 6.0f;
+constexpr float MarkDu = 0.5f;
+constexpr float MarkDv = 0.75f;
+constexpr float FullColor = 255.0f;
 
 float F32(double value)
 {
@@ -218,6 +256,97 @@ float FromTheBottom(const OldWindow& window, double rise)
 std::string TextAt(const OldWindowDrawView& view, std::size_t index)
 {
     return view.texts != nullptr ? view.texts->At(index) : std::string();
+}
+
+// La ventana `id` de la lista minimizada (0x490a00 y 0x45a9c0 con 5). Una que no está, que el original no ve (lee la
+// de 0), no.
+bool IsMinimized(OldWindowManager& manager, std::int32_t id)
+{
+    const OldWindow* window = FindTheOldWindow(manager, id);
+    return window != nullptr && window->base.state == MinimizedWindow;
+}
+
+// 0x4a5943..0x4a5a68: el texto del renglón de un chat, del título de su ventana (+0x98, strncpy de 0x100): strtok(","),
+// el primer pedazo sin las comas de adelante; si es más largo que el 994, lo que sigue al 994 (y al 995 si empieza
+// con él) cortado por 0x459c70 en w − 8 y un renglón (de 0x40 bytes: los títulos de MuRet no llegan); si no, el 995.
+// Sin pedazo (un título de comas, que el original no ve: strlen de NULL) o pasando el final del pedazo, MuRet no lee
+// nada (*inferido*).
+Core::Expected<std::string, std::string> TextOfTheChatRow(const OldWindow* chat, const OldWindow& window,
+                                                          const OldWindowDrawContext& context,
+                                                          const OldWindowDrawView& view)
+{
+    std::string title = chat != nullptr ? chat->frame.title.value_or(std::string()) : std::string();
+    title = title.substr(0, std::min(title.find('\0'), ChatTitleCopy));
+    const std::size_t from = std::min(title.find_first_not_of(TitleDelimiter), title.size());
+    const std::string_view token = std::string_view(title).substr(from, title.find(TitleDelimiter, from) - from);
+    const std::string chatting = TextAt(view, ChatTitleText);
+    const std::string closed = TextAt(view, ChatClosedText);
+    if (token.size() <= chatting.size())
+        return closed;
+    const std::size_t skip = token.starts_with(closed) ? closed.size() + chatting.size() : chatting.size();
+    auto wrapped = WrapByWidth(token.substr(std::min(skip, token.size())), context.text, context.dcFont,
+                               context.sprites.Screen(), window.base.width - ChatTextCut, 1, 0);
+    if (!wrapped.HasValue())
+        return Core::Unexpected(std::move(wrapped).Error());
+    return wrapped.Value().lines.empty() ? std::string() : wrapped.Value().lines.front();
+}
+
+// 0x4a5750, desde 0x4a5490 con el blanco con textura: los renglones de los chats de abajo hacia arriba, el n de
+// (renglón + 4) · n sobre +0x104 (uno minimizado no cuenta).
+Core::Expected<void, std::string> DrawTheChatRowsOfTheList(OldWindowManager& manager, const OldWindow& window,
+                                                           const OldWindowDrawContext& context,
+                                                           const OldWindowDrawView& view)
+{
+    Render::SpriteBatch& sprites = context.sprites;
+    const OldWindowListPart& list = window.list;
+    const OldWindowBase& base = window.base;
+    const double step = static_cast<double>(list.rowHeight) + ChatRowMargin;
+    const double bottom = static_cast<double>(list.bottom);
+    std::int32_t row = 1;
+    for (std::size_t at = 0; at < list.chats.size(); ++at, ++row)
+    {
+        const std::int32_t id = list.chats[at];
+        if (IsMinimized(manager, id))
+        {
+            --row;
+            continue;
+        }
+        const auto alpha =
+            static_cast<std::uint32_t>(Truncate(static_cast<double>(list.blink) * TextAlphaScale)) & ByteMask;
+        bool waiting = false;
+        for (const std::int32_t other : list.waiting)
+            if (other == id)
+                waiting = true;
+        const bool chosen = list.cursor == at;
+        const double rows = static_cast<double>(row);
+        std::uint32_t color = (alpha << AlphaShift) + ChatRowColor;
+        if (chosen || waiting)
+        {
+            sprites.SetBlend(Render::BlendMode::Alpha);
+            SetThePalette(sprites, chosen ? ChosenChatIndex : WaitingChatIndex, list.blink);
+            sprites.ColorQuad(ToFloat(base.x + ChatBandX), F32(bottom - step * rows + ChatBandDrop),
+                              ToFloat(base.width - ChatBandCut),
+                              F32(static_cast<double>(list.rowHeight) + ChatBandExtra));
+            WhiteWithTexture(sprites);
+            color = alpha << AlphaShift;
+        }
+        context.textColors = Render::Text::TextColors{.text = color, .background = 0};
+        const OldWindow* chat = FindTheOldWindow(manager, id);
+        auto text = TextOfTheChatRow(chat, window, context, view);
+        if (!text.HasValue())
+            return Core::Unexpected(std::move(text).Error());
+        // FILD de n y FSTP en float: el mismo n.
+        static_cast<void>(DrawText(
+            context, base.x + ChatTextX,
+            Truncate(bottom - step * static_cast<double>(static_cast<float>(row)) + ChatTextDrop), text.Value()));
+        if (chat == nullptr || ListCount(chat->chat.users, chat->chat.members.size()) <= ManyMembers)
+            continue;
+        sprites.SetColor(Render::Color{.red = FullColor, .green = 0.0f, .blue = 0.0f, .alpha = 1.0f});
+        OldDraw::Quad(sprites, MarkSlot, F32(static_cast<double>(base.width + base.x) - MarkInset),
+                      F32(bottom - step * rows + MarkDrop), MarkWidth, MarkHeight, 0.0f, 0.0f, MarkDu, MarkDv);
+        sprites.SetColor(Render::Color{.red = FullColor, .green = FullColor, .blue = FullColor, .alpha = 1.0f});
+    }
+    return {};
 }
 
 // 0x5542f0(x, y, texto, caja, 3, 0) → 0x465950 → 0x467060 con el modo 3 (0x467134..0x467144): TextOutA pone el texto
@@ -382,6 +511,39 @@ void DrawTheWriteWindow(OldWindowManager& manager, OldWindow& write, const OldWi
         return;
     DrawTheButton(context, letter.buttons[2], view);
     DrawTheButton(context, letter.buttons[3], view);
+}
+
+Core::Expected<void, std::string> DrawTheChatsInTheList(OldWindowManager& manager, const OldWindow& window,
+                                                        const OldWindowDrawContext& context,
+                                                        const OldWindowDrawView& view)
+{
+    const OldWindowListPart& list = window.list;
+    if (list.chats.empty() || window.base.state != ShownWindow)
+        return {};
+    std::int32_t count = 0;
+    for (const std::int32_t id : list.chats)
+        if (!IsMinimized(manager, id))
+            ++count;
+    if (count == 0)
+        return {};
+    Render::SpriteBatch& sprites = context.sprites;
+    // ftol((renglón + 4) · cuántos), y el alto en float (FILD y FSTP).
+    const std::int32_t height =
+        Truncate((static_cast<double>(list.rowHeight) + ChatRowMargin) * static_cast<double>(count));
+    const float tall = ToFloat(height);
+    const OldWindowBase& base = window.base;
+    const float x = ToFloat(base.x);
+    const float top = ToFloat(list.bottom - height);
+    const float width = ToFloat(base.width);
+    SetThePalette(sprites, ListBackIndex, list.blink);
+    sprites.ColorQuad(x, top, width, tall);
+    SetThePalette(sprites, ListEdgeIndex, list.blink);
+    sprites.ColorQuad(x, top, width, 1.0f);
+    sprites.ColorQuad(x, top, 1.0f, tall);
+    sprites.ColorQuad(ToFloat(base.width + base.x - 1), top, 1.0f, tall);
+    sprites.ColorQuad(x, ToFloat(list.bottom), width, 1.0f);
+    WhiteWithTexture(sprites);
+    return DrawTheChatRowsOfTheList(manager, window, context, view);
 }
 
 Core::Expected<void, std::string> DrawTheLetterPortrait(const OldWindow& window)

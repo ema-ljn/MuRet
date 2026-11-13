@@ -30,7 +30,8 @@
 // 0x4636b0 y 0x463960 (copiar la deque de las cartas), + 0x40 0x463d50 (los renglones); la del cuerpo, + 0x2c
 // 0x47bba0 (con 0x47bf00, el += de su iterador) y + 0x90..+ 0x98 0x465270, 0x464ae0 y 0x465450 (agregar un renglón):
 // los reemplaza el std::deque de la ventana (OldLetterPart), sin partir los renglones (P-C218). Los dibujos (+ 0x14
-// 0x464d90 y 0x47bf90, + 0x7c..+ 0x80 0x464e90 y 0x465770, + 0x9c 0x464190 y 0x465710) son de P-C213.
+// 0x464d90, + 0x7c..+ 0x80 0x464e90 y 0x465770, + 0x9c 0x464190 y 0x465710) están en UI/LetterWindowsDraw y
+// UI/FriendWindowsDraw (P-C213); 0x47bf90 no lo llama nadie.
 namespace Client::UI
 {
 // La lista (0x45e2e0 y sus derivadas), sobre la ventana base: el rectángulo cuelga de su borde de abajo (+0x78 en 2,

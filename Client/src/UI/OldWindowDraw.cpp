@@ -304,8 +304,9 @@ void DrawTheBox(OldWindowManager& manager, OldWindow& window, const OldWindowDra
 }
 
 // 0x4a5490, la vtable + 0x50 de la lista: mide el renglón la primera vez, corre el parpadeo y, con entradas y a la
-// vista, las dibuja (los chats con un amigo, hito 10).
-Core::Expected<void, std::string> DrawTheListRows(OldWindow& window, const OldWindowDrawContext& context)
+// vista, las dibuja (los chats con un amigo, hito 10: DrawTheChatsInTheList).
+Core::Expected<void, std::string> DrawTheListRows(OldWindowManager& manager, OldWindow& window,
+                                                  const OldWindowDrawContext& context, const OldWindowDrawView& view)
 {
     OldWindowListPart& list = window.list;
     if (list.rowHeight == 0.0f)
@@ -326,7 +327,8 @@ Core::Expected<void, std::string> DrawTheListRows(OldWindow& window, const OldWi
         list.blink = 1.0f;
     }
     context.sprites.SetBlend(Render::BlendMode::Alpha);
-    // 0x4a5537: sin entradas (+0xdc, que solo llenan los chats con un amigo del hito 10), nada más.
+    if (auto chats = DrawTheChatsInTheList(manager, window, context, view); !chats.HasValue())
+        return chats;
     context.sprites.SetBlend(Render::BlendMode::Opaque);
     return {};
 }
@@ -356,7 +358,7 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
         DrawTheFriendsWindow(manager, window, context, view);
     else if (window.kind == OldWindowKind::WindowList)
     {
-        if (auto rows = DrawTheListRows(window, context); !rows.HasValue())
+        if (auto rows = DrawTheListRows(manager, window, context, view); !rows.HasValue())
             return rows;
     }
     else if (window.kind == OldWindowKind::ChatWindow)

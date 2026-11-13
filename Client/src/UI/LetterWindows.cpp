@@ -26,8 +26,9 @@
 
 // La vtable de las ventanas de los casos 1, 2, 6 y 7 de 0x48ee60 (CL9 hito 10): el chat con un amigo (0x6b9dc8), leer
 // una carta (0x6b9c58) y escribirla (0x6b9bfc); la pestaña de las cartas (0x4a11b0) y los botones 3 y 4 de la de los
-// amigos (0x49d0b0). Los dibujos (0x493fc0, 0x499d60, 0x498480, 0x4a0a30 y el retrato, 0x497c10) no están portados
-// (P-C213).
+// amigos (0x49d0b0). Los dibujos (0x493fc0, 0x499d60, 0x498480 y los renglones de F5, 0x4a5750) están en
+// UI/LetterWindowsDraw, y el de la pestaña de las cartas (0x4a0a30), en UI/FriendWindowsDraw; el del retrato (0x497c10)
+// es de Scenes (P-C212).
 namespace Client::UI
 {
 namespace

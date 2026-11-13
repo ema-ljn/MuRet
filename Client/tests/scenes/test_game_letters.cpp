@@ -13,8 +13,10 @@
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Render/Text/TextStyle.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GameFriends.h"
 #include "Scenes/GameUi.h"
@@ -28,8 +30,10 @@
 #include "UI/LetterWindows.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
+#include "UI/OldWindowDraw.h"
 #include "UI/OldWindows.h"
 
+#include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
 
 #include <gtest/gtest.h>
@@ -787,4 +791,65 @@ TEST_F(GameLettersTest, TheReadWindowDeletesRepliesAndGoesOn)
     EXPECT_EQ(Friends().tabs[Client::UI::LettersTabNumber].tab.list.selection, 2);
     EXPECT_EQ(m_random.State(), After(0));
 }
+
+constexpr std::int32_t Lorencia = 0;
+constexpr std::int32_t Devias = 2;
+
+class GameLettersMapsTest : public GameLettersTest, public ::testing::WithParamInterface<std::int32_t>
+{
+};
+
+// Los dibujos del hito 10 no leen el mapa: en Lorencia y en Devias, el chat que armó el CA y que cerró el 0xfc
+// (0x4a75c0: el 995 adelante del título y el 402 de renglón; 0x493fc0) y su renglón en la lista de F5 (0x4a5750: el
+// amigo, sin el 995 ni el 994) se dibujan igual, como los dibuja el juego (0x490390 y la lista de 0x637680), sin sacar
+// rand().
+TEST_P(GameLettersMapsTest, TheChatAndItsRowInTheWindowListAreDrawnInEveryMap)
+{
+    Runtime().map = GetParam();
+    const std::int32_t chatId = JoinARoomWithTordo();
+    ASSERT_NE(chatId, 0);
+    ASSERT_TRUE(
+        Client::Scenes::ApplyFriendState(Client::Protocol::Friends::FriendState{.name = "", .state = 0xfc}, Context())
+            .HasValue());
+    ASSERT_EQ(Manager().windows.at(chatId).frame.title, std::optional<std::string>("[cerrado] Chat: Tordo"));
+    Client::UI::ShowTheWindowList(Manager(), 1);
+
+    Client::Render::SpriteBatch sprites;
+    sprites.Begin(Client::App::PixelSize{640, 480});
+    Client::Tests::RecordingTextDrawer text(sprites);
+    FontKind font = FontKind::Bold;
+    Client::Render::Text::TextColors colors{};
+    const Client::UI::OldWindowDrawContext context{
+        .sprites = sprites, .text = text, .dcFont = font, .textColors = colors};
+    const Client::UI::OldWindowDrawView view{
+        .friendsOpen = true, .texts = &m_oldTexts, .chatPlacement = Runtime().ui.chatModes.placement};
+    const auto windows = Client::UI::DrawTheOldWindows(Manager(), context, view);
+    ASSERT_TRUE(windows.HasValue()) << windows.Error();
+    const auto list = Client::UI::DrawTheWindowList(Manager(), context, view);
+    ASSERT_TRUE(list.HasValue()) << list.Error();
+
+    const auto drawn = [&](std::string_view what)
+    {
+        for (const Client::Tests::RecordedText& recorded : text.texts)
+        {
+            if (recorded.text == what)
+                return &recorded;
+        }
+        return static_cast<const Client::Tests::RecordedText*>(nullptr);
+    };
+    const OldWindow& chat = Manager().windows.at(chatId);
+    const Client::Tests::RecordedText* line = drawn("se fue todo el mundo");
+    ASSERT_NE(line, nullptr);
+    EXPECT_EQ(line->x, chat.chat.lines.base.x + 8);
+    // El renglón de F5 es el último texto: el amigo en x + 2 de la lista, 3 más abajo que (renglón + 4) · 1 sobre su
+    // borde de abajo.
+    ASSERT_FALSE(text.texts.empty());
+    const OldWindow& windowList = Manager().windowList;
+    EXPECT_EQ(text.texts.back().text, "Tordo");
+    EXPECT_EQ(text.texts.back().x, windowList.base.x + 2);
+    EXPECT_EQ(text.texts.back().y, windowList.list.bottom - 17 + 3);
+    EXPECT_EQ(m_random.State(), After(0));
+}
+
+INSTANTIATE_TEST_SUITE_P(TwoMaps, GameLettersMapsTest, ::testing::Values(Lorencia, Devias));
 } // namespace

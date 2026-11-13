@@ -65,7 +65,8 @@ UseTheSkillOnTheChosen(ActorState& caster, ActorState& hero, std::uint8_t skill,
 // 0x55b6f0(c, héroe): la skill de 0x7758584 (con 0x7758580, la del lugar en el registro propio) sobre el personaje de
 // 0x7758588. El D3 de girar con la celda lógica del héroe publicado (+0x41c y +0x420) y su rumbo, por el socket; +0x378
 // de c en 0; la acción (con un jugador, 0x4f3f80 y la de la tabla 0x55cb60; si no, 0x4f4a10 sobre c); salvo las 0x3c,
-// 0x3d y 0x4a, la partícula 0x5fe (0x53fe70, CL11: corta en 0x55be23); el blanco en +0x3a8 de c y el rumbo hacia él en
+// 0x3d y 0x4a, el brillo 0x5fe en el pool de partículas (0x55be23, con el dueño `hero`) y el sonido rand() % 2 + 0x3c
+// (un rand(), al último sonido); el blanco en +0x3a8 de c y el rumbo hacia él en
 // +0x24 de `hero`; con el nombre sin "webzen" y el freno pasado, el C3 19; +0x381 de c en 1 y, salvo con 0x20 en +0x78
 // de `hero` o c en el 0x1c16, la celda del blanco (corrida por el rumbo en Blood Castle, con las 0x3c, 0x39 y 0x2c o
 // con los monstruos 0x115, 0x11b, 0x116 y 0x120) y, si no es pared (4 u 8 en el atributo) ni una de las skills del

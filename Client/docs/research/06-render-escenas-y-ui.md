@@ -10338,8 +10338,8 @@ suma las acciones de Player.bmd, Item.bmd, `GetTickCount` y los servicios del in
   `+0x378` en 0; con un jugador, `0x4f3f80` y la acción de la tabla `0x55cb60` por la skill − `0x2b` (la `0x2b`,
   `0x43`; la `0x2c`, `0x85`; la `0x2f`, `0x5f` con el caballo y si no `0x42`; la `0x31`, `0x41` en los mapas 8 y 10 y
   si no `0x40`; las `0x3c`, `0x3d` y `0x4a`, ninguna; las demás, `0x5d` con el caballo fuera de la zona segura y si
-  no `[0x7758584] + 0x25`, Q-C1210); si no, `0x4f4a10`. Salvo las `0x3c`, `0x3d` y `0x4a`, la partícula `0x5fe`
-  (`0x55be23`, CL11, P-C269). Después, el blanco en `+0x3a8`, el rumbo hacia él, el `19` (sin "webzen" y con el freno
+  no `[0x7758584] + 0x25`, Q-C1210); si no, `0x4f4a10`. Salvo las `0x3c`, `0x3d` y `0x4a`, el brillo `0x5fe` (abajo)
+  y el sonido `rand() % 2 + 0x3c`, que va al último sonido (CL10). Después, el blanco en `+0x3a8`, el rumbo hacia él, el `19` (sin "webzen" y con el freno
   de 300 ms), `+0x381` en 1 y, salvo con `0x20` en `+0x78` o el `0x1c16`, el `DF` con la celda del blanco (corrida un
   paso por el rumbo, la tabla `0x55cb98`, en Blood Castle, con las `0x3c`, `0x39` y `0x2c` o con los monstruos `0x115`,
   `0x11b`, `0x116` y `0x120`), si no es pared (4 u 8) ni una de las skills del arma.
@@ -10354,6 +10354,17 @@ suma las acciones de Player.bmd, Item.bmd, `GetTickCount` y los servicios del in
 
 Los `C3` sacan sus dos `rand()` (el relleno y el serial `0x5767913`) también sin la sesión (`SendTheSkillPacket`); los
 `C1` (`D3` y `DF`) van por el socket sin `rand()`.
+
+**El brillo `0x5fe`** (fase 2c-A2, *estático*). `0x55be23` pide `0x53fe70(0x5fe, +0x10, +0x1c, (1; 1; 1), 0, 0, héroe)`
+al pool de partículas del mundo (`World::Particles::CreateFollowingChecked`): el prefijo común, la vida 18 (`0x542c00`)
+y `0x53fdb0`, sin `rand()`. `0x53fdb0(partícula)` toma el modelo del dueño (`+0x40`, su tipo `+2`), le pone el origen
+(`+0x6c`) en la posición del dueño y lleva el punto local (0; −120; 0) (con la `0x5fe` y la `0x62d`; cero con las demás)
+por `0x4ec110` con los huesos propios del dueño (`+0x120`) y la escala que quedó en el modelo (`+0x68`). El hueso sale
+del **héroe publicado** (`[0x743a170]`), no del dueño: el byte `+0x2bd + (subtipo % 2, con signo) · 0x20`, la mano
+derecha con el subtipo 0 (`Scenes::OwnerBonePointOf`, con el modelo de Player.bmd de `WorldState::PlayerModel`; antes
+del primer dibujo, la matriz en cero, Q-C318). El paso (`0x546d54`) pone la escala en `sin(vida · π/18) · 3`
+(`[0x6ba370]`, `[0x6b86b8]`) y vuelve a llamar a `0x53fdb0`, sin `rand()`; el dibujo es el billboard común (`0x5488f6`,
+el byte 8 de `0x548cf0` → `0x54889a`) con Shiny03 (`0x61d937`).
 
 ### La rama del Wizard
 
@@ -10414,9 +10425,11 @@ girar con la celda lógica del publicado (`+0x41c` y `+0x420`) y su ángulo; `0x
 `0x4f3f80`; `0xd`, sin freno, `0x5767948` y el `1E` con la celda de `+0x3a8`, el rumbo de p2 y la clave de
 `0x558eb0(p1, 0x7758588)`, `0x4f5290(p1)` y el `D3`.
 
-**MuRet**: `Scenes/HeroSkillsWizard` (`UseTheWizardSkill`, desde `UseTheHeroSkill` con la clase 0) y
-`Scenes/Skill55cbc0` (`UseTheSkillOnItsTarget`); los ayudantes con dirección en `Scenes/Skill4f5290`, `Skill4e9c50`,
-`Skill4e9920`, `Skill551f40` y `Skill57ce80`, y lo que va en línea en `Scenes/HeroSkillSupport`. Los envíos en
+**MuRet**: `Scenes/HeroSkillsWizard` (`UseTheWizardSkill`, desde `UseTheClassSkill` con la clase 0; es también la
+entrada de `0x5897a7` para el Magic Gladiator) y `Scenes/Skill55cbc0` (`UseTheSkillOnItsTarget`); los ayudantes con
+dirección en `Scenes/Skill4f5290`, `Skill57ce80` y, compartidos con la rama del caballero, `Skill4e9c50`,
+`Skill4e9920`, `Skill551f40` y `Skill57cf90`, y lo que va en línea en `Scenes/HeroSkillSupport`. `0x5767948` es
+`GameMovementState::lastShotSkill`, el del elfo. Los envíos en
 [04](04-protocolo.md#las-skills-que-salen-19-1e-1c-y-b0). La clave del jugador llega de la sesión
 (`ServerSession::PlayerIndex`). Cortan: la party (`0x58b06e`, `0x59272c`, hito 7), la poción (`0x589936`, hito 5) y
 `0x5808da` (`0x5808ef`) (08, P-C222).

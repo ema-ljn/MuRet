@@ -2,16 +2,21 @@
 #include "World/PortableParticleTrigonometry.h"
 
 #include "Core/Expected.h"
+#include "Data/Models/PlayerModels.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/OriginalFtol.h"
 #include "World/ParticleDrawing.h"
+#include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/WorldObjects.h"
 
@@ -155,11 +160,13 @@ StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random
                   const std::function<World::WorldObject*(std::uint64_t)>& owners,
                   const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions,
                   const std::function<std::optional<float>(std::int32_t)>& textureHeight,
-                  World::TerrainLighting* lighting)
+                  World::TerrainLighting* lighting,
+                  const std::function<std::optional<glm::vec3>(const World::Particle&)>& ownerBones)
 {
     World::PortableParticleTrigonometry trigonometry;
-    const auto stepped = World::StepParticlesChecked(particles, random, std::cref(worldClock), &map, trigonometry,
-                                                     terrainHeight, owners, actorActions, textureHeight, lighting);
+    const auto stepped =
+        World::StepParticlesChecked(particles, random, std::cref(worldClock), &map, trigonometry, terrainHeight, owners,
+                                    actorActions, textureHeight, lighting, ownerBones);
     if (!stepped.HasValue())
     {
         return Core::Unexpected(std::format("0x637128 → 0x5446e0: el paso de las partículas falla con error {}",
@@ -198,6 +205,47 @@ std::function<std::optional<std::uint8_t>(std::uint64_t)> ParticleActorActionsAm
             return std::nullopt;
         return actors[static_cast<std::size_t>(slot)].animation.action;
     };
+}
+
+std::optional<glm::vec3> OwnerBonePointOf(WorldState& world, const World::Particle& particle)
+{
+    constexpr std::int32_t ShineOwnerType = 0x62d;
+    constexpr glm::vec3 ShineOffset{0.0f, -120.0f, 0.0f}; // 0x53fdfd: 0xc2f00000
+    const auto actors = world.Actors();
+    if (particle.typedOwner.kind != World::ParticleOwnerKind::Actor || particle.typedOwner.identity >= actors.size())
+        return std::nullopt;
+    const ActorState& owner = actors[static_cast<std::size_t>(particle.typedOwner.identity)];
+    if (owner.type != Data::Models::PlayerSkeletonModel)
+        return std::nullopt;
+    // 0x53fe20..0x53fe42: el subtipo and 0x80000001 con la corrección del signo.
+    const ActorState& hero = actors[world.Runtime().hero];
+    std::uint8_t bone = 0;
+    switch (particle.subtype % 2)
+    {
+    case 0:
+        bone = hero.hands[0].bone;
+        break;
+    case 1:
+        bone = hero.hands[1].bone;
+        break;
+    default:
+        bone = hero.body.back().bone;
+        break;
+    }
+    const glm::vec3 offset =
+        particle.type == World::SkillShineParticle || particle.type == ShineOwnerType ? ShineOffset : glm::vec3(0.0f);
+    // 0x53fe0b..0x53fe1a: el origen del modelo.
+    SharedModelPlacement& model = world.PlayerModel();
+    model.origin = owner.position;
+    const Render::Models::BoneTransform matrix =
+        bone < owner.bodyPose.size() ? owner.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
+    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, model.scale,
+                                                     model.origin);
+}
+
+std::function<std::optional<glm::vec3>(const World::Particle&)> ParticleOwnerBonesOf(WorldState& world)
+{
+    return [&world](const World::Particle& particle) { return OwnerBonePointOf(world, particle); };
 }
 
 Core::Expected<void, std::string> DrawGameParticles(Render::ModelBatch& batch, World::Particles& particles,

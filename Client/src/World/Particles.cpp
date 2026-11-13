@@ -330,6 +330,27 @@ void StepTheBlood(Particle& particle)
     particle.position.z = F32(static_cast<double>(particle.velocity.z) + static_cast<double>(particle.position.z));
 }
 
+// 0x546d54..0x546d6e, después de la vida y el movimiento comunes (también con la vida en 0): la escala (+0x10)
+// sin(vida · [0x6ba370]) · [0x6b86b8] (fild, fmul, fsin y fmul en la x87) y 0x53fdb0, que vuelve a poner la posición en
+// el hueso del dueño.
+Core::Expected<void, ParticleError> StepTheSkillShine(Particle& particle, IParticleTrigonometry* trigonometry,
+                                                      const ParticleOwnerBones& ownerBones)
+{
+    constexpr double ShineFrequency = static_cast<double>(std::bit_cast<float>(0x3e32b8c2u)); // π/18
+    constexpr float ShineSize = 3.0f;
+    if (trigonometry == nullptr)
+        return Core::Unexpected(ParticleError::UnsupportedType);
+    const auto scale = trigonometry->SineProductPC53(static_cast<double>(particle.life) * ShineFrequency, ShineSize);
+    if (!scale.HasValue())
+        return Core::Unexpected(scale.Error());
+    particle.scale = F32(scale.Value());
+    const auto point = ownerBones ? ownerBones(particle) : std::nullopt;
+    if (!point)
+        return Core::Unexpected(ParticleError::MissingOwner);
+    particle.position = *point;
+    return {};
+}
+
 bool IsSpark(const Particle& particle)
 {
     return particle.type == SparkParticle && particle.subtype == RavenSparkSubtype;
@@ -1311,6 +1332,35 @@ Particles::CreateOwnedChecked(std::int32_t type, const glm::vec3& position, cons
 }
 
 Core::Expected<std::optional<std::size_t>, ParticleError>
+Particles::CreateFollowingChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
+                                  const glm::vec3& light, std::int32_t subtype, float scale, ParticleOwner owner,
+                                  const ParticleOwnerBones& bones)
+{
+    constexpr std::int32_t SkillShineLife = 0x12; // 0x542c00
+    if (type != SkillShineParticle)
+        return Core::Unexpected(ParticleError::UnsupportedType);
+    for (std::size_t index = 0; index < m_particles.size(); ++index)
+    {
+        Particle& particle = m_particles[index];
+        if (particle.alive)
+            continue;
+        Initialize(particle, type, position, angles, light, subtype, scale, 0);
+        particle.typedOwner = owner;
+        particle.life = SkillShineLife;
+        // 0x542c07: 0x53fdb0.
+        const auto point = bones ? bones(particle) : std::nullopt;
+        if (!point)
+        {
+            particle.alive = false;
+            return Core::Unexpected(ParticleError::MissingOwner);
+        }
+        particle.position = *point;
+        return std::optional(index);
+    }
+    return std::optional<std::size_t>{};
+}
+
+Core::Expected<std::optional<std::size_t>, ParticleError>
 Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                       std::int32_t subtype, float scale, float legacyClock, const float* worldClock,
                       Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry* trigonometry,
@@ -1559,10 +1609,12 @@ const ParticleWind& Particles::Wind() const
 
 namespace
 {
-Core::Expected<void, ParticleError> StepParticlesImpl(
-    Particles& particles, Render::Models::CrtRandom& random, const float* worldClock, const std::int32_t* map,
-    IParticleTrigonometry* trigonometry, const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
-    const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight, TerrainLighting* lighting)
+Core::Expected<void, ParticleError>
+StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const float* worldClock,
+                  const std::int32_t* map, IParticleTrigonometry* trigonometry,
+                  const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
+                  const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight,
+                  TerrainLighting* lighting, const ParticleOwnerBones& ownerBones)
 {
     // Los punteros privados distinguen exclusivamente legacy de la API pública requerida.
     // El overload vivo siempre proporciona reloj y evaluador; no hay servicio opcional público.
@@ -1619,6 +1671,13 @@ Core::Expected<void, ParticleError> StepParticlesImpl(
             {
                 return stepped;
             }
+            continue;
+        }
+        if (particle.type == SkillShineParticle)
+        {
+            const auto stepped = StepTheSkillShine(particle, trigonometry, ownerBones);
+            if (!stepped.HasValue())
+                return stepped;
             continue;
         }
         const bool map8 = worldClock != nullptr && IsMap8Smoke(particle.type, particle.subtype);
@@ -1753,18 +1812,17 @@ Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, R
                                                          const std::int32_t* map,
                                                          const ParticleTerrainHeight& terrainHeight)
 {
-    return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight, {}, {}, {}, nullptr);
+    return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight, {}, {}, {}, nullptr, {});
 }
 
-Core::Expected<void, ParticleError>
-StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
-                     std::reference_wrapper<const float> worldClock, const std::int32_t* map,
-                     IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
-                     const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
-                     const ParticleTextureHeight& textureHeight, TerrainLighting* lighting)
+Core::Expected<void, ParticleError> StepParticlesChecked(
+    Particles& particles, Render::Models::CrtRandom& random, std::reference_wrapper<const float> worldClock,
+    const std::int32_t* map, IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
+    const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
+    const ParticleTextureHeight& textureHeight, TerrainLighting* lighting, const ParticleOwnerBones& ownerBones)
 {
     return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners,
-                             actorActions, textureHeight, lighting);
+                             actorActions, textureHeight, lighting, ownerBones);
 }
 
 std::optional<ParticleError> StepParticles(Particles& particles, Render::Models::CrtRandom& random)

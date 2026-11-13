@@ -321,8 +321,9 @@ el viewport. **Desbloquea:** 4 y 11.
       blanco `0x57ce80` y el lazo de las manos), desde MoveHero (`0x59e255`), y las órdenes del cuervo (`0x420f70`).
       Las ramas de cada clase y lo que mandan las cuatro funciones quedan cortados con su dirección (08, P-C268).
       En la fase 2c-A, `0x558110` con 3 y 4, `0x559890` (`0x559afc`, `0x55a368`) con `0x559510` → `0x55b6f0` y
-      la cola del elfo de `0x561f60` (`0x562024`), en `Scenes/HeroSkillCasts`; cortan la partícula `0x5fe`
-      (CL11), la poción (hito 5) y, todavía, la rama del elfo, `0x55faa0` y el caso 5 de `0x5650c0` (P-C269).
+      la cola del elfo de `0x561f60` (`0x562024`), en `Scenes/HeroSkillCasts`; cortan la poción (hito 5) y, todavía,
+      la rama del elfo, `0x55faa0` y el caso 5 de `0x5650c0` (P-C269). En la fase 2c-A2, el brillo `0x5fe` de
+      `0x55be23` en el pool de partículas (`0x542bff`, `0x546d54`, `0x53fdb0` y el billboard común).
       En la fase 2c-B, la rama del Wizard (`0x5897aa..0x593874`, `Scenes/HeroSkillsWizard`) y `0x55cbc0`
       (`Scenes/Skill55cbc0`), con el `1E`, el `1C` y el `B0`; cortan la party (hito 7), la poción y `0x5808da`
       (08, P-C222).

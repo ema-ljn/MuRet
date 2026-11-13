@@ -20,6 +20,8 @@
 #include "Scenes/WorldState.h"
 #include "UI/GameUiState.h"
 #include "World/ItemState.h"
+#include "World/ParticleOwner.h"
+#include "World/Particles.h"
 
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
@@ -196,6 +198,15 @@ void ExpectTheWizardAimed(SkillHero& tested)
 {
     EXPECT_EQ(tested.Movement().targetX, 184u);
     EXPECT_EQ(tested.Movement().targetY, 117u);
+}
+
+std::vector<std::uint8_t> ClearBytesOf(const Client::Protocol::Outgoing& outgoing)
+{
+    const Client::Network::Packet clear = Client::Network::Crypto::Xor32Decode(outgoing.packet);
+    std::vector<std::uint8_t> bytes;
+    for (const std::byte value : clear.Bytes())
+        bytes.push_back(std::to_integer<std::uint8_t>(value));
+    return bytes;
 }
 
 // 0x57cfe2..0x57d00f: con el modo del editor, el mouse en la UI o 0x1000 en +0x78, nada, ni rand().
@@ -636,15 +647,15 @@ TEST(HeroSkillsTest, AMountedHeroSkipsTheWeaponsForSomeSkills)
     }
 }
 
-// 0x5599db..0x559afc: las skills especiales del arma van a 0x559afc y las opciones del arma a 0x55a368; las que crean
-// la partícula 0x5fe de 0x55b6f0 cortan en 0x55be23 (CL11).
+// 0x5599db..0x559afc: las skills especiales del arma van a 0x559afc y las opciones del arma a 0x55a368; las que
+// llegan a 0x55b6f0 sueltan el brillo 0x5fe (0x55be23).
 TEST(HeroSkillsTest, TheWeaponSkillsGoToTheirTails)
 {
     {
         const auto tested = AHeroClicking(0x31, Knight);
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x55be23")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(tested->world.Particles().All()[0].type, 0x5fe);
     }
     {
         // 0x559a84..0x559a9f: la 0x39 con un arma derecha de 0x212 a 0x411; su alcance de 0 deja al elegido lejos y
@@ -675,8 +686,12 @@ TEST(HeroSkillsTest, TheWeaponSkillsGoToTheirTails)
         item.optionBytes[0] = 0x12;
         item.optionBytes[1] = 0x13;
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x55be23")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(tested->world.Particles().All()[0].type, 0x5fe);
+        // El D3, el 19 y, con la 0x13, el DF con la celda del blanco.
+        ASSERT_EQ(tested->sent.size(), 3u);
+        EXPECT_EQ(ClearBytesOf(tested->sent[1])[3], 0x13);
+        EXPECT_EQ(ClearBytesOf(tested->sent[2]), (std::vector<std::uint8_t>{0xc1, 0x05, 0xdf, 184, 117}));
     }
     {
         // 0x561f60: la del elfo, sin la lista; fuera de la 0x18 y la 0x36 no tira y sigue a la rama de la clase.
@@ -801,15 +816,6 @@ struct RavenHero
     std::vector<Client::Protocol::Outgoing> sent;
 };
 
-std::vector<std::uint8_t> ClearBytesOf(const Client::Protocol::Outgoing& outgoing)
-{
-    const Client::Network::Packet clear = Client::Network::Crypto::Xor32Decode(outgoing.packet);
-    std::vector<std::uint8_t> bytes;
-    for (const std::byte value : clear.Bytes())
-        bytes.push_back(std::to_integer<std::uint8_t>(value));
-    return bytes;
-}
-
 // 0x420f70 (0x421599..0x421b20): los lugares 0x78 a 0x7a mandan el A7 con la orden del lugar y la clave 0xffff, por
 // send() con el XOR32; el derecho queda suelto y la skill no sigue (ni la entrada del +0x31). En Lorencia y en Devias.
 TEST(HeroSkillsTest, TheRavenOrdersSendTheirA7)
@@ -933,6 +939,39 @@ TEST(HeroSkillsTest, AListedWeaponSkillCastsAtTheChosen)
     }
 }
 
+// 0x55be0d..0x55be49: la 0x31 (en Lorencia, Devias y Noria, el mapa 8 de la acción 0x41) suelta el brillo 0x5fe sobre
+// el héroe, con su dueño en el pool y en el hueso de la mano derecha (sin dibujo, la matriz en cero: el origen del
+// modelo, que pasa a ser la posición del héroe), y el sonido rand() % 2 + 0x3c, su único rand(); después, el 19 y
+// ningún DF.
+TEST(HeroSkillsTest, AWeaponSkillShinesOnTheHero)
+{
+    for (const std::int32_t map : {0, 2, 8})
+    {
+        SCOPED_TRACE(map);
+        const auto tested = AHeroClicking(0x31, Knight, map);
+        tested->world.Actors()[ChosenSlot].key = 0x0c2d;
+        CrtRandom expected = Advanced(tested->random, ListedCastDraws - 2);
+        const int sound = expected.Next() % 2 + 0x3c;
+        expected = Advanced(expected, 2);
+        const auto result = tested->Use();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(tested->random.State(), expected.State());
+        EXPECT_EQ(tested->world.Runtime().lastSoundId, sound);
+        const auto& shine = tested->world.Particles().All()[0];
+        EXPECT_TRUE(shine.alive);
+        EXPECT_EQ(shine.type, 0x5fe);
+        EXPECT_EQ(shine.life, 18);
+        EXPECT_EQ(shine.typedOwner.kind, Client::World::ParticleOwnerKind::Actor);
+        EXPECT_EQ(shine.typedOwner.identity, 0u);
+        EXPECT_EQ(shine.position, tested->Hero().position);
+        EXPECT_EQ(tested->world.PlayerModel().origin, tested->Hero().position);
+        EXPECT_FALSE(tested->world.Particles().All()[1].alive);
+        ASSERT_EQ(tested->sent.size(), 2u);
+        EXPECT_EQ(ClearBytesOf(tested->sent[1]), (std::vector<std::uint8_t>{0xc1, 0x06, 0x19, 0x31, 0x0c, 0x2d}));
+        EXPECT_EQ(tested->Hero().animation.action, map == 8 ? 0x41 : 0x40);
+    }
+}
+
 // 0x55bf0c..0x55bf29: dentro de los 300 ms del último envío el 19 no sale, pero sí el D3 y lo demás; con "webzen" en el
 // nombre del héroe publicado, tampoco (0x55be9a).
 TEST(HeroSkillsTest, TheBrakeAndTheNameHoldTheMagicAttack)
@@ -1005,7 +1044,7 @@ TEST(HeroSkillsTest, AFarChosenGetsAPathForTheSkill)
         EXPECT_GT(tested->Hero().path.count, 0);
     }
     {
-        // La 0x13 de una opción del arma: 4 · 1,2 en Lorencia la deja en alcance (y corta en la partícula), y 1,8 en
+        // La 0x13 de una opción del arma: 4 · 1,2 en Lorencia la deja en alcance (con el brillo y el 19), y 1,8 en
         // Blood Castle no llega a los 283 del elegido.
         for (const std::int32_t map : {0, 11})
         {
@@ -1017,8 +1056,9 @@ TEST(HeroSkillsTest, AFarChosenGetsAPathForTheSkill)
             const auto result = tested->Use();
             if (map == 0)
             {
-                ASSERT_FALSE(result.HasValue());
-                EXPECT_TRUE(Contains(result.Error(), "0x55be23")) << result.Error();
+                ASSERT_TRUE(result.HasValue()) << result.Error();
+                EXPECT_EQ(tested->Hero().movementType, 0);
+                EXPECT_EQ(tested->world.Particles().All()[0].type, 0x5fe);
                 continue;
             }
             ASSERT_TRUE(result.HasValue()) << result.Error();

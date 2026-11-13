@@ -16,6 +16,7 @@
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CombatActionSpeeds.h"
+#include "Scenes/GameParticles.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/HeroAttack.h"
 #include "Scenes/HeroSkills.h"
@@ -29,7 +30,11 @@
 #include "Scenes/WorldState.h"
 #include "World/ItemState.h"
 #include "World/OriginalFtol.h"
+#include "World/ParticleOwner.h"
+#include "World/Particles.h"
 #include "World/WorldTerrain.h"
+
+#include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
 #include <array>
@@ -283,6 +288,25 @@ void StepTheCellByTheRumbo(std::uint8_t& x, std::uint8_t& y, std::int32_t rumbo)
     }
 }
 
+// 0x55be0d..0x55be49: 0x53fe70(0x5fe, +0x10, +0x1c, (1; 1; 1), 0, 0, `hero`), con el dueño en el pool, y el sonido
+// 0x41ed10(rand() % 2 + 0x3c, 0, 0), que saca su rand() también con el pool lleno (CL10: queda en el último sonido).
+Core::Expected<void, std::string> ShineOnTheHero(const ActorState& hero, const HeroSkillContext& context)
+{
+    constexpr std::int32_t FirstShineSound = 0x3c;
+    WorldState& world = context.world;
+    const std::size_t slot = SlotOf(world, hero);
+    if (slot >= world.Actors().size())
+        return Core::Unexpected(std::string("0x55be23: el dueño del brillo 0x5fe no está en el pool de personajes"));
+    const auto created = world.Particles().CreateFollowingChecked(
+        World::SkillShineParticle, hero.position, hero.angles, glm::vec3(1.0f), 0, 0.0f,
+        World::ParticleOwner{.kind = World::ParticleOwnerKind::Actor, .identity = slot}, ParticleOwnerBonesOf(world));
+    if (!created.HasValue())
+        return Core::Unexpected(std::format("0x55be23: el brillo 0x5fe (0x53fe70) falla con el error {}",
+                                            static_cast<unsigned>(created.Error())));
+    world.Runtime().lastSoundId = static_cast<std::int32_t>(context.random.Next() % 2) + FirstShineSound;
+    return {};
+}
+
 std::uint16_t WordAt(std::span<const std::byte, Data::Tables::SkillRecordSize> record, std::size_t offset)
 {
     return static_cast<std::uint16_t>(std::to_integer<std::uint16_t>(record[offset]) |
@@ -456,11 +480,12 @@ Core::Expected<void, std::string> CastTheSkillAtTheTarget(ActorState& caster, Ac
     {
         return attacked;
     }
-    // 0x55bde6..0x55be49: salvo las 0x3c, 0x3d y 0x4a, la partícula 0x5fe sobre `hero` y el sonido 0x3c o 0x3d.
+    // 0x55bde6..0x55be49: salvo las 0x3c, 0x3d y 0x4a, el brillo 0x5fe sobre `hero` y el sonido 0x3c o 0x3d.
     if (skill != 0x3c && skill != 0x3d && skill != 0x4a)
-        return Core::Unexpected(std::format("0x55be23: la partícula 0x5fe de 0x53fe70 de la skill {:#x} es de la CL11 "
-                                            "(después, el sonido rand() % 2 + 0x3c)",
-                                            skill));
+    {
+        if (auto shone = ShineOnTheHero(hero, context); !shone.HasValue())
+            return shone;
+    }
     // 0x55be4c..0x55beb5: la posición del blanco en +0x3a8 de c y el rumbo de `hero` hacia él.
     const auto target = ActorAt(world, request.target, "0x55be4c");
     if (!target.HasValue())

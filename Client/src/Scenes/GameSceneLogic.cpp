@@ -180,7 +180,8 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     if (auto particles = StepGameParticles(
             m_context.world->Particles(), m_context.cloth->random, runtime.map, terrainHeight, worldClock,
             ParticleOwnersAmong(m_context.world->Map().objects), ParticleActorActionsAmong(m_context.world->Actors()),
-            ParticleTextureHeightsOf(m_worldModels), &m_context.world->DynamicLighting().Lighting());
+            ParticleTextureHeightsOf(m_worldModels), &m_context.world->DynamicLighting().Lighting(),
+            ParticleOwnerBonesOf(*m_context.world));
         !particles.HasValue())
     {
         return particles;

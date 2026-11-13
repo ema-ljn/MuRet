@@ -934,7 +934,7 @@ ventanas viejas), `0x5f7bc0` (tooltip), …, `0x65fe00` (vacío) y el cursor.
 `GameScene::Step` guarda los botones del WndProc (`0x7d366d4`, `0x7d36874`, `0x7d36880`) y corre `0x623e70` antes
 de `0x636290`, con el mundo cargado o no; `StepWorld` corre el bloque `0x636ded..0x63705b` donde estaba la
 frontera de P-C41, después de las olas del agua y antes de los objetos. Del bloque, MuRet tiene: la bandera, la
-cola de Esc y F5/F6 de `0x490490` (las dos teclas cortan, hito 7), las puertas de `0x5ee140` (cada hija corta
+cola de Esc y F5/F6 de `0x490490` (las dos teclas cortaban hasta el hito 7), las puertas de `0x5ee140` (cada hija corta
 con su dirección; con el personaje cerrado, `0x424230` pone `0x723911` en 0), y de `0x59ff10` la salida del
 recorrido de cámara, PgUp/PgDn (cortan, hito 3), los latches de arriba y abajo, los seis botones del HUD
 (`0x5a03c3..0x5a05e5`: gremio, party, personaje, inventario, amigos y comandos, cada uno con su rectángulo y
@@ -947,6 +947,59 @@ mouse en su rectángulo de `0x97 × 0xad` es de la UI, la flecha de la página y
 frame (`0x637641`) corre después del pase del mundo con las copias del frame proyectado, y el ancho del mundo
 (`0x5bb8d0`) se pide en `0x63733e`: con un panel abierto, el frame corta (el mundo angosto es del hito 4). La
 pasada 2D (`0x637646..0x6376e6`) queda como ganchos en su orden, sin dibujar ni sacar `rand()`, hasta el hito 2.
+
+**Las ventanas viejas** (hito 7 de la CL8, `UI/OldWindows.cpp` y `UI/OldWindowDraw.cpp`; *estático*). El
+administrador `*0x5763514` (`0x48e470`, `0xf4` B) guarda las ventanas en un mapa id → ventana (`+0x4c`), su orden de
+abajo hacia arriba en una lista (`+0x80`: la última es la de arriba), una cola de mensajes de 12 bytes
+(`+0x08..+0x3c`), el foco (`+0x44`), la de amigos (`+0x48`), F6 (`+0xa8` y la lista `+0xac`) y las cajas que no son
+modales (`+0xb8`); la modal va en `0x5762ebc`. Cada ventana es una `0x45a210` (el id del contador `0x5762eb0`, que
+suma antes de dar; el padre, el estado, las banderas, el rectángulo y su cola) con una vtable de 23 entradas: el
+marco (`0x491ca0`, `0x6b9f9c`), la caja de mensaje (`0x6b9cb4`) y la lista de ventanas (`0x6ba074`). MuRet las guarda
+como datos (`OldWindowKind`) y despacha con una función por método.
+
+- **La fábrica** `0x48ee60(caso, x, y, dato, aux, banderas)`. El 0 es un marco solo (`0x4920a0`: el título, el
+  padre, `0xd5 × 0xaa`); el 5 y el 8 son cajas modales y el 9 y el 10 no; el 5 y el 9 tienen dos botones (Text 1037 y
+  1038, comandos 1 y 2) y el 8 y el 10 uno (Text 228, comando 1). La caja (`0x4a38f0`) lleva el título 991 o 228, el
+  texto cortado por `0x459c70` en 2 renglones de `0x7d`, `0x96 × 100` sin achicarse, las banderas `0xb` y los botones
+  de `0x32 × 0x14` en (`0x12`, `0x28`) y (`0x49`, `0x28`) del área de adentro (x + 5, y + `0x15`), o el único en
+  (`0x2d`, `0x28`); el segundo de una caja de un botón queda sin padre en (0, 0) (Q-C570). x en −1 es 0 e y en −1,
+  `0x14c`; sin el bit 0 de las banderas corre la cascada (de a 20; sin lugar, (r + 1, r + 1) con r = y % 10, y con
+  r = 9 no la arma; Q-C571). Va arriba de la lista y corre su vtable + `0x30` (`0x4a3a50`, que ubica los botones). Cada
+  ventana y cada botón toman el id que sigue de `0x5762eb0` (sumado antes de usarlo); el valor de partida, el que
+  sigue al de la lista de ventanas, es *inferido* (P-C97). Los casos 1 a 4, 6 y 7 (amigos, su chat y las cartas) son
+  de la CL9.4.
+- **El paso.** La lista de ventanas (`0x636e43`) y `0x490490`: la modal que ya no está; Esc (`0x4904bc`, Q-C446) le
+  pide al administrador que cierre la del final si está a la vista; F5, con el foco del teclado en la ventana del
+  juego, va a `0x4a5be0(1)` sobre la lista de ventanas, que sin entradas no hace nada; F6 alterna `+0xa8` y llama a
+  `0x4906a0(+0xa8, 1)` si `+0xa8` está en 0 o la lista de F6 tiene alguna (Q-C573); la de amigos oculta se suelta; el
+  paso de cada una a la vista, **de arriba hacia abajo**; la cola del administrador (`0x490b70`: 1 sube y da el foco,
+  2 minimiza, 3 estira, 4 cierra, 5 manda al fondo), y `+0x40` en 0. El paso de una ventana (`0x45aa80`) atiende su
+  cola (la caja contesta el 10 de un botón con `0x4a3b80`: al dueño el 12 con su id y 1 o 0, y al administrador el
+  4), corre la vtable + `0x1c` (la caja: Enter si es la del final, y el paso de **los dos** botones), toma el mouse
+  (`0x5762eb8`, si no lo tiene otra y nadie lo agarró; con el izquierdo abajo sube la de más arriba de su familia) y
+  corre la vtable + `0x20`: el botón (`0x45b200`: el apretón lo marca en `0x5762ec4`, el soltado sobre él le manda el
+  10 al padre y suena `0x19`, el mouse fuera con el botón apretado suelta todo) o el marco (`0x492ac0`: los botones
+  de la barra con el soltado, las esquinas del tamaño y la barra del arrastre, que agarran el mouse en `0x5762eb4`).
+  El clic de un botón de la caja tarda dos pasos: el soltado le manda el 10 y la caja lo atiende en el paso
+  siguiente, donde el administrador la suelta y suena otra vez. El soltado es `0x7d366ec`: lo prende `WM_LBUTTONUP`
+  con el mouse de ese momento (`0x4b3cea`, en `0x576358c` y `0x5763590`) y lo apagan `WM_LBUTTONDOWN` (`0x4b3947`),
+  cualquier mensaje con el mouse en otro lugar (`0x4b344d`) y quien lo usa (P-C96).
+- **El dibujo.** `0x490390` (`0x637673`) corre de abajo hacia arriba la vtable + `0x14` (`0x492500`) de las que no
+  están ocultas ni minimizadas y pone `+0x40` en 1; `0x637680` corre `0x492500` sobre la lista de ventanas siempre,
+  oculta y todo, sin quads (P-C98). `0x492500`: la mezcla normal; la sombra (el 3 de la paleta `0x491960`, con alfa ·
+  179, en x, y + 5, w × h − 10 con el borde); `0x459ec0` (`glColor4f(1, 1, 1, 1)` y `glEnable(GL_TEXTURE_2D)`); la
+  vtable + `0x50` (la caja, `0x4a3a90`: el texto en blanco en (x + 10, y + `0x1d`) y los botones, `0x45b2e0`, que
+  dejan la mezcla opaca para la barra del título y los filos, sin diferencia a la vista; la lista, `0x4a5490`: mide
+  el renglón con "0" la primera vez y corre el parpadeo);
+  el gris 0,5 salvo la del final con la ventana de amigos abierta (Q-C574); la barra del título (`0x645`), sus filos
+  (8 a 13; 10 en lugar de 8 y 9 en gris), el borde (`0x492180`), la raya, el título en negrita (`0xffc8dce6`, o
+  `0xff646e73` en gris), los botones de la barra (`0x647`) y la esquina del tamaño (`0x648`).
+- **Chaos Castle** (`0x4c7b17..0x4c7b2f`): `0x4906a0(1, 0)` esconde las ventanas sin anotarlas (Q-C572), y `0x4914e0`
+  suelta la de amigos; `0x4c7b34` sigue con el objeto de los comandos (CL9.4, P-C99).
+
+En la CL8 nadie arma una ventana vieja (los que llaman a la fábrica son de la CL9.4): el administrador queda vacío y
+la lista de ventanas, oculta; del paso quedan Esc (sin nada que cerrar), F5 (sin entradas) y F6 (Q-C573), y del
+dibujo, el de la lista oculta. Los tests abren una caja a mano. Lo que no se porta corta con su dirección (P-C95).
 
 **Los paneles.**
 
@@ -1054,7 +1107,7 @@ mapa 30 y `0x637641` corre el picking (`0x59ec80`).
 | `0x637660` | `0x5a7320(1)` el HUD | `0x7d36899 == 0` (sin vista de arriba); el argumento no se usa | termina con `0x5a9630`, que hace `0x621a90`: **sale del 2D por la pila** (traza 126848..126849) |
 | `0x637668` | `0x5a7eb0` cuenta y resultados de evento | siempre | mezcla y color de lo que dibuje |
 | `0x637673` | `0x490390(this = [0x5763514])` ventanas con clase | siempre | dibuja con vfunc +0x14 las de estado ≠ 3 y ≠ 5; después **PROJECTION con identidad y `gluOrtho2D` sin push** ni vuelta a MODELVIEW (traza 126850..126852) |
-| `0x637680` | `[[0x5763524]]+0x14` = `0x492500` (vtable `0x6ba074`) | siempre | marco común de ventana; en la traza, nada |
+| `0x637680` | `[[0x5763524]]+0x14` = `0x492500` (vtable `0x6ba074`) | siempre | la lista de ventanas, aunque esté oculta: sin quads, pero con la mezcla, el color y la textura de `0x492500` y `0x4a5490` (*estático*; esta tabla decía "en la traza, nada", P-C98) |
 | `0x637683` | `0x5f37f0` pedido de duelo | adentro, `0x78abad9` | |
 | `0x637696` | `0x62db60` cajas viejas | escena `0x6d5dc8 == 5` | con código 0: mezcla normal |
 | `0x63769b` | `0x5f7bc0` tooltips | siempre | |
@@ -7047,7 +7100,8 @@ port y la Data del repo). Lo común es lo de [Los objetos del juego](#los-objeto
 son los mapas 18 a 23, todos con `World19` (194 objetos: 22 del 3, nueve del 6, 14 del 7, seis del 8, ocho del
 `0xc` y los demás repartidos del 0 al `0x23`). El castillo, de 23 a 44 en x y de 75 a 108 en y, es todo zona segura
 en el `.att`; afuera, la franja de x 1 a 12 con y 70 a 111 se camina y no es segura. La entrada por `1C` corta en
-la UI (`0x4906a0`, CL8); la de `F3 04` entra. El objeto de evento (`0x404d60`) y el área (`0x6c634c`, `0xff` en la
+el objeto de los comandos (`0x4c7b34`, CL9.4), después de esconder las ventanas viejas (hito 7 de la CL8); la de
+`F3 04` entra. El objeto de evento (`0x404d60`) y el área (`0x6c634c`, `0xff` en la
 `.data`) están en [Los objetos de Devil Square y de Blood Castle](#los-objetos-de-devil-square-y-de-blood-castle).
 
 **Las celdas** (`0x405e00(x, y)`, en el dibujo del terreno, por cada celda dibujada que no está escondida): `rand()
@@ -8574,8 +8628,8 @@ Los formatos, en [04](04-protocolo.md#los-cambios-de-mapa-1c-f3-04-y-f3-12).
 4. Con `pkt[3]` distinto de 0 (un gate o un `/move`): `0x607b40`, `0x510f70` y
    `0x451d10`/`0x451590` (los ítems del piso, los demás personajes y la lista), **también sin
    cambiar de mapa**. Si `pkt[4]` es otro mapa: `0x6c9dd0 = pkt[4]` y `0x61a560`; en el 34, el `C1
-   04 BD 00`; el prefijo del Chaos Castle (`0x41ed10(0x9e)`, `0x4906a0`, `0x4914e0`, `0x512a30` y
-   `0x443d40`) **al entrar y al salir**: `0x4c7af1..0x4c7b2f` mira viejo 18..23 con cambio **o**
+   04 BD 00`; el prefijo del Chaos Castle (`0x41ed10(0x9e)`, `0x4906a0(1, 0)`, `0x4914e0`, el objeto de los
+   comandos `0x6e592c` en `0x4c7b34`, `0x512a30` y `0x443d40`) **al entrar y al salir**: `0x4c7af1..0x4c7b2f` mira viejo 18..23 con cambio **o**
    nuevo 18..23. Al salir también paran `0x99`/`0x9e`. Después `0x447d70`; la z otra
    vez, con las alturas nuevas; y el renglón con el nombre del mapa y el texto 484 en el área de
    mensajes (`0x555190(0x5767988, …, 1)`). El nombre sale de `0x5f0b40`: el texto 30 + mapa del 0 al
@@ -8615,8 +8669,9 @@ el F303 para reconstruir F304. Misma evidencia estática y límites de precisió
   `KillOtherActors(playerKey)` y lista 451590 incluso con mismo mapa. La comparación de clave
   es signed16, recorre 400 lugares y deja el 400; suelta cuervos incluso de muertos y dueño.
 - Mismo mapa conserva objetos/efectos/cámara/zoom. Otro hace LoadMap y altura nueva antes de
-  confirmar. Al entrar **o salir** de Chaos el port conserva carga y sonido 9e y corta en
-  `0x4906a0`, antes de equipo/F312: faltan UI 4906a0/4914e0, no se sustituyen por un no-op.
+  confirmar. Al entrar **o salir** de Chaos el port conserva carga y sonido 9e, esconde las
+  ventanas viejas (`0x4906a0(1, 0)`) y suelta la de amigos (`0x4914e0`), y corta en `0x4c7b34` (el
+  objeto de los comandos, CL9.4), antes de equipo/F312.
   Eventos 9/11..23 conservan la frontera 447d70; Crywolf/asedio/Kalima, las de LoadMap.
 - Camino normal: F312 exactamente una vez después de cargar; luego tick uint32 con wrap desde
   `IClock` prestado, pending=false, contador 30/cierre 4, mouseTime 0/Max 6. Ventanas cerradas consumen

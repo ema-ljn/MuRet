@@ -521,7 +521,7 @@ TEST_P(GameT16MapWalk, TheArchivedOuterWallCannotStartAnOutOfBoundsWalk)
     RecordProperty("border_scope", "real outer wall/picking rejection; no fabricated traversable border");
 }
 
-// Chaos Castle (World19 por el 18 al 23) entra por el F3 04: el 1C corta en 0x4906a0 (la UI del castillo, CL8).
+// Chaos Castle (World19 por el 18 al 23) entra por el F3 04: el 1C corta en 0x4c7b34 (los comandos, CL9.4).
 // El castillo, 23..44 × 75..108, es zona segura en el .att; 30..33 × 90..93 queda en el medio, con los veintidós 3
 // de las paredes a la vista. La trampa armada de la .data (0x6c634d) prende el primer 3 visto (0x4055b0), que en el
 // dibujo siguiente suelta su 615/2 desde el hueso 1 (0x405d49) y baja la cuenta hasta 4; después el preludio

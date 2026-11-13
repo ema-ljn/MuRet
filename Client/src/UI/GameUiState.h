@@ -56,6 +56,8 @@ struct GameUiState
     // 0x5762ec0: la lista que toma las flechas del teclado. La pone el registro del chat y la vuelve a 0 el clic sin
     // dueño con el chat cerrado (0x636ead).
     std::int32_t focusedList = 0;
+    // 0x5762ec4: el botón viejo apretado (0x45b200), hasta que se suelta sobre él o el mouse se va.
+    std::int32_t pressedButton = 0;
     // 0x7798bf4: la lista de skills abierta (el botón de la barra, 0x5a06e7).
     std::uint8_t skillListOpen = 0;
     // 0x6c7a88 (.data 1): el lugar del registro del chat, que su constructor (0x45b620) pone en 0 desde WinMain antes

@@ -19,6 +19,7 @@
 #include "UI/GameDialogs.h"
 #include "UI/GameUiState.h"
 #include "UI/MessageArea.h"
+#include "UI/OldWindows.h"
 #include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
 #include "UI/WhisperSenders.h"
@@ -172,6 +173,9 @@ struct WorldRuntime
     // 0x7d36a98, 0x7d368e4, 0x7d368b8 y 0x7d3a0f4..0x7d3a0f9: el texto y los botones de las cajas viejas (hito 6).
     UI::DialogBoxState dialogBox{};
     UI::GameUiState ui{};
+    // *(0x5763514), el administrador de las ventanas viejas, y la lista de ventanas de [0x5763524] (hito 7): los arma
+    // WinMain y duran todo el juego.
+    UI::OldWindowManager oldWindows{};
     HudState hud{};
     ChatRuntime chat{};
     GameMovementState movement{};

@@ -11,6 +11,8 @@
 #include "Network/PacketSerials.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/IWorldTransitionPublisher.h"
@@ -20,7 +22,10 @@
 #include "Scenes/SelectionState.h"
 #include "Scenes/SessionEventApplier.h"
 #include "Scenes/WorldEntry.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
+#include "UI/OldWindows.h"
 #include "World/GameCamera.h"
 
 #include "support/Bytes.h"
@@ -42,6 +47,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace
@@ -417,7 +423,7 @@ TEST(WorldTransitionsTest, UnportedOpenWindowsKeepTheConfirmedWaitPrefixAndStopB
     // Los 20 del prefijo y la consulta del comercio (0x20, 0x657fc1), que 0x657ab0 hace antes que la del 0x8000.
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 20 + 1).State());
 }
-TEST_F(WorldTransitionsMapsTest, LeavingChaosCastleStopsAtTheUiEvenWithEquipmentAvailable)
+TEST_F(WorldTransitionsMapsTest, LeavingChaosCastleStopsAtTheCommandsEvenWithEquipmentAvailable)
 {
     Transition tested;
     Publisher publisher;
@@ -428,7 +434,7 @@ TEST_F(WorldTransitionsMapsTest, LeavingChaosCastleStopsAtTheUiEvenWithEquipment
     const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 133, 127, 0},
                                                       Transition::PlayerKey, resources, publisher);
     ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x4906a0"), std::string::npos);
+    EXPECT_NE(result.Error().find("0x4c7b34"), std::string::npos);
     EXPECT_EQ(tested.world.Runtime().map, 0);
     EXPECT_EQ(publisher.confirmations, 0);
     EXPECT_EQ(tested.world.Runtime().warpCounter, 9999999);
@@ -445,11 +451,62 @@ TEST_F(WorldTransitionsMapsTest, LeavingChaosCastleKeepsTheUiPrefixBeforeAnyEqui
     const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 133, 127, 0},
                                                       Transition::PlayerKey, resources, publisher);
     ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x4906a0"), std::string::npos);
+    EXPECT_NE(result.Error().find("0x4c7b34"), std::string::npos);
     EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x9e);
     EXPECT_EQ(tested.world.Runtime().map, 0);
     EXPECT_EQ(publisher.confirmations, 0);
     EXPECT_EQ(tested.world.Runtime().warpCounter, 9999999);
+}
+class Letters final : public Client::Render::Text::ITextMeasure
+{
+public:
+    [[nodiscard]] Client::Render::Text::TextExtent Measure(Client::Render::Text::FontKind /*font*/,
+                                                           std::string_view text) const override
+    {
+        return {static_cast<int>(text.size()) * 6, 13};
+    }
+};
+// 0x4c7af1..0x4c7b2f: al entrar a Chaos Castle o al salir, el sonido, las ventanas viejas escondidas sin anotarlas
+// (0x4906a0 con 1 y 0, Q-C572), sin foco y con el teclado en el juego, y la de amigos suelta (0x4914e0); después corta
+// en el objeto de los comandos. La caja se abre a mano: en la CL8 no la abre nadie.
+TEST_F(WorldTransitionsMapsTest, TheChaosCastlePrefixHidesTheOldWindowsWithoutNotingThem)
+{
+    struct Pass
+    {
+        std::uint8_t from;
+        std::uint8_t to;
+    };
+    for (const Pass pass : {Pass{18, 0}, Pass{23, 2}, Pass{0, 20}})
+    {
+        SCOPED_TRACE(pass.to);
+        Transition tested;
+        Publisher publisher;
+        tested.dataRoot = m_dataRoot;
+        auto& runtime = tested.world.Runtime();
+        runtime.map = pass.from;
+        runtime.warpCounter = 9999999;
+        const Letters letters;
+        const auto box = Client::UI::CreateTheOldWindow(
+            runtime.oldWindows,
+            Client::UI::OldWindowRequest{
+                .kind = Client::UI::QuestionCase, .x = -1, .y = -1, .data = "Seguro?", .aux = 0, .flags = 0},
+            Client::UI::OldWindowTexts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No"},
+            Client::UI::OldWindowMeasure{
+                .measure = letters, .dcFont = Client::Render::Text::FontKind::Normal, .screen = {640, 480}});
+        ASSERT_TRUE(box.HasValue()) << box.Error();
+        runtime.oldWindows.focus = box.Value();
+        runtime.chat.input.focus = Client::UI::ChatFocus::Message;
+        const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, pass.to, 133, 127, 0},
+                                                          Transition::PlayerKey, tested.Resources(), publisher);
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_NE(result.Error().find("0x4c7b34"), std::string::npos) << result.Error();
+        EXPECT_EQ(runtime.map, pass.to);
+        EXPECT_EQ(runtime.lastSoundId, 0x9e);
+        EXPECT_EQ(runtime.oldWindows.windows.at(box.Value()).base.state, Client::UI::HiddenWindow);
+        EXPECT_TRUE(runtime.oldWindows.hidden.empty());
+        EXPECT_EQ(runtime.oldWindows.focus, 0);
+        EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Game);
+    }
 }
 TEST(WorldTransitionsTest, RegenRetainsThePublishedAndRebuiltSlotsAsDistinctNativeSources)
 {

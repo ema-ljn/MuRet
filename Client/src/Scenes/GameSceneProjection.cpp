@@ -42,6 +42,7 @@ void GameScene::PrepareDrawProjection(int frames)
     m_projection->sound.reset();
     m_projection->altLatch = world.Runtime().ui.keyLatches[UI::AltVirtualKey];
     m_projection->altNames = world.Runtime().ui.altNames;
+    m_projection->oldWindows = world.Runtime().oldWindows;
 }
 GameDrawTailState& GameScene::FrameTail()
 {

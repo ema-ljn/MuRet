@@ -22,6 +22,23 @@ inline constexpr std::int32_t NpcGridColumns = 8;
 inline constexpr std::int32_t ChaosBoxRows = 4;
 // 0x6c9da8..0x6c9dbc: las seis tasas de la caja del caos que copia el 30 con el resultado 3 (0x4d253b..0x4d2566).
 inline constexpr std::size_t ChaosRateCount = 6;
+// 0x723c80..0x724580: la caja del entrenador de las mascotas, 32 casillas de 0x48 bytes, 8 por fila y 4 filas
+// (0x44ad10, 0x44ad40 y 0x44d6c4 la recorren con 8 y 4).
+inline constexpr std::size_t TrainerBoxCellCount = 32;
+
+// 0x449c40: la caja del entrenador vacía, el tipo en 0xffff y +0x3c en 0. Así la dejan la entrada a la selección
+// (0x5bbe10, 0x5bc0db) y abrir el entrenador (0x449940): MuRet arranca así, porque no hay juego sin pasar por la
+// selección antes (*estático*).
+[[nodiscard]] constexpr std::array<World::ItemState, TrainerBoxCellCount> EmptyTrainerBox()
+{
+    std::array<World::ItemState, TrainerBoxCellCount> cells{};
+    for (World::ItemState& cell : cells)
+    {
+        cell.id = 0xffff;
+        cell.occupied = 0;
+    }
+    return cells;
+}
 
 // La mezcla de joyas del NPC del 30 con 9 (los diálogos 0xa1, 0xa2, 0xa3, 0xa4 y 0xa6, y el BC; los textos 1806 a
 // 1815 de Text.bmd, "misturar" y "dissolver"): juntar 10, 20 o 30 joyas de bendición (0x1c0d) o del alma (0x1c0e)
@@ -182,6 +199,13 @@ struct NpcWindowState
     // 0x6e5798: con 0, el 30 con 9 abre el diálogo 0xa1 (0x4d259d). Es la mezcla de joyas mandada (0x4029e0 lo pone
     // en 1 con el BC; 0x402e50 y 0x402e10 lo vuelven a 0): mientras, el 30 con 9 no abre nada.
     std::uint8_t field6e5798 = 0;
+    // 0x723c80: la caja del entrenador (Scenes/PetTrainer.h). La llenan el 31 con la grilla 5 (0x4c5fde), el 86 con
+    // 100 (0x4da373) y el 24 con 5 (0x4d1d55); la dibuja 0x44ad40 y sus ítems se levantan con 0x44ad10 y se sueltan
+    // con 0x44aca9 (CursorGrid::TrainerBox).
+    std::array<World::ItemState, TrainerBoxCellCount> trainerBox = EmptyTrainerBox();
+    // 0x724585: 0x44ae10 lo pone en 1 si el zen no alcanza para la mezcla que encontró en la caja. Nadie lo lee
+    // (Q-C956).
+    std::uint8_t trainerZenShort = 0;
     // La mezcla de joyas (los diálogos 0xa1..0xa6 y el BC, Scenes/JewelMix.h).
     JewelMixState jewels{};
     // El SetCursorPos que pidió el último 30 (0x4d28f6), con el mouse que vea la escena: NpcTalkCursorWarp. Aplicarlo

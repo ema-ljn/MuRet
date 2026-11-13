@@ -124,10 +124,15 @@ void DrawText(GameHudContext& context, std::int32_t x, std::int32_t y, std::stri
 
 void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
 {
+    DrawTitle(context, x, y, text, TitleBoxDesignWidth);
+}
+
+void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+               std::uint32_t designWidth)
+{
     HudState& hud = context.hud;
     const App::PixelSize screen = context.sprites.Screen();
-    const auto box =
-        static_cast<std::int32_t>(static_cast<std::uint32_t>(screen.width) * TitleBoxDesignWidth / DesignWidth);
+    const auto box = static_cast<std::int32_t>(static_cast<std::uint32_t>(screen.width) * designWidth / DesignWidth);
     // 0x554180: 0x465950 con un texto o con caja. 0x467060 en el modo 2 (0x46711b..0x467132): la caja de
     // cx + 2 · ((caja − cx) / 2) columnas desde _ftol(x · rx), con el fondo entero, y el texto corrido (caja − cx) / 2.
     if (!text.empty() || box != 0)

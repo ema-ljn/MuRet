@@ -325,6 +325,10 @@ const World::ItemState* HoveredItemOf(WorldState& world)
         return hovered.index < world.Runtime().npcWindows.chaosBox.size()
                    ? &world.Runtime().npcWindows.chaosBox[hovered.index]
                    : nullptr;
+    case UI::HoveredItem::Place::TrainerBoxCell:
+        return hovered.index < world.Runtime().npcWindows.trainerBox.size()
+                   ? &world.Runtime().npcWindows.trainerBox[hovered.index]
+                   : nullptr;
     case UI::HoveredItem::Place::None:
         return nullptr;
     }

@@ -13,6 +13,7 @@
 #include "Scenes/OwnDerivedStats.h"
 #include "Scenes/OwnItemPlacement.h"
 #include "Scenes/OwnStatHelpers.h"
+#include "Scenes/PetTrainer.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -60,12 +61,14 @@ constexpr std::int32_t BloodCastleDialog = 0xa1;
 constexpr std::uint8_t ChaosBoxGrid = 3;
 constexpr std::uint8_t TrainerGrid = 5;
 // Los textos de Text.bmd de los mensajes (0x76bd1dc + 300 · índice) y su tipo de 0x555190.
-constexpr std::size_t ChaosBoxNotEmptyText = 593; // 0x76e88c8, 0x65894f
-constexpr std::size_t MixFailedText = 594;        // 0x76e89f4, 0x4da2a6
-constexpr std::size_t MixSucceededText = 595;     // 0x76e8b20, 0x4da2c7
-constexpr std::size_t MixRefusedText = 596;       // 0x76e8c4c, 0x4da333
-constexpr std::size_t MixNoticeText = 649;        // 0x76eca68, 0x4da352
-constexpr std::size_t SecondMixNoticeText = 689;  // 0x76ef948, 0x4da36c
+constexpr std::size_t ChaosBoxNotEmptyText = 593;    // 0x76e88c8, 0x65894f
+constexpr std::size_t TrainerBoxNotEmptyText = 1211; // 0x7715d00, 0x658de5
+constexpr std::size_t TrainerListText = 1208;        // 0x771597c, 0x4c5fb6
+constexpr std::size_t MixFailedText = 594;           // 0x76e89f4, 0x4da2a6
+constexpr std::size_t MixSucceededText = 595;        // 0x76e8b20, 0x4da2c7
+constexpr std::size_t MixRefusedText = 596;          // 0x76e8c4c, 0x4da333
+constexpr std::size_t MixNoticeText = 649;           // 0x76eca68, 0x4da352
+constexpr std::size_t SecondMixNoticeText = 689;     // 0x76ef948, 0x4da36c
 constexpr std::int32_t ErrorMessage = 2;
 constexpr std::int32_t SystemMessage = 1;
 // 0x4da38c/0x4da3a8: los resultados del 86.
@@ -165,6 +168,12 @@ Core::Expected<void, std::string> NpcWindowOpened(const NpcWindowContext& contex
         context.world.Runtime().ui.field78abb20 = 0;
         return {};
     }
+    if (id == UI::TrainerPanel)
+    {
+        // 0x65be8b: 0x449940(1).
+        OpenTheTrainer(context.world, TrainerMenuMode);
+        return {};
+    }
     if (id != UI::ChaosBoxPanel)
         return Core::Unexpected(std::format("0x6599a0({:#x}) no es una ventana de NPC", id));
     npc.field7d2dc9d = 0;
@@ -209,6 +218,21 @@ Core::Expected<bool, std::string> NpcWindowClosing(const NpcWindowContext& conte
         if (auto sent = Send(context.send, Npc::WriteChaosBoxClose(), "0x658767: el C1 03 87"); !sent.HasValue())
             return Core::Unexpected(sent.Error());
         EmptyTheGrid(npc.chaosBox);
+        return true;
+    }
+    case UI::TrainerPanel:
+    {
+        // 0x658dda..0x658dfd: con algo en la caja, el texto 1211 sin cerrar; si no, 0x4499b0, que vuelve a mirarla.
+        if (TrainerBoxHasItems(context.world))
+        {
+            if (auto shown = Message(context.services, TrainerBoxNotEmptyText, ErrorMessage, "0x658def");
+                !shown.HasValue())
+                return Core::Unexpected(shown.Error());
+            return false;
+        }
+        auto closed = CloseTheTrainer(context.world, &context.services, context.send);
+        if (!closed.HasValue())
+            return Core::Unexpected(std::move(closed).Error());
         return true;
     }
     case UI::NpcShopPanel:
@@ -302,25 +326,37 @@ Core::Expected<void, std::string> ApplyItemList(const Npc::ItemList& list, const
 {
     WorldRuntime& runtime = resources.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
-    if (list.grid == TrainerGrid)
-        return Core::Unexpected(
-            std::string("0x4c5fb4: el texto 1208, 0x449c40 y 0x44ad70, la caja del entrenador (0x723c80), son de la "
-                        "CL9 hito 6, con el NPC (fase 2)"));
     if (list.grid == ChaosBoxGrid)
     {
         npc.chaosMixState = MixReady;
         runtime.lastSoundId = ChaosListSound;
         EmptyTheGrid(npc.chaosBox);
     }
+    else if (list.grid == TrainerGrid)
+    {
+        // 0x4c5fb4..0x4c5fde: el aviso 1208 (con el nombre de 0x576797c, que nadie escribe), los dos sonidos de la caja
+        // del caos y la del entrenador vacía (0x449c40), sin tocar 0x7d2dc80.
+        if (auto shown = Message(InventoryServicesOf(resources), TrainerListText, ErrorMessage, "0x4c5fc0");
+            !shown.HasValue())
+            return shown;
+        runtime.lastSoundId = ChaosListSound;
+        EmptyTheGrid(npc.trainerBox);
+    }
     else
         EmptyTheGrid(npc.grid);
     for (const Npc::ListedItem& entry : list.items)
     {
         const InventoryItemBytes bytes(entry.item);
-        const auto placed = list.grid == ChaosBoxGrid
-                                ? PlaceInOtherGrid(npc.chaosBox, NpcGridColumns, entry.slot, bytes, resources,
-                                                   "0x4c6029, 0x5bc740(0x7d2d380)")
-                                : PlaceInTheNpcGrid(npc.grid, entry.slot, bytes, resources);
+        Core::Expected<void, std::string> placed{};
+        if (list.grid == ChaosBoxGrid)
+            placed = PlaceInOtherGrid(npc.chaosBox, NpcGridColumns, entry.slot, bytes, resources,
+                                      "0x4c6029, 0x5bc740(0x7d2d380)");
+        // 0x4c6042: 0x44ad70(lugar, datos, 0), 0x5bc740(0x723c80, 8, 4, lugar, datos, 0) con su cola.
+        else if (list.grid == TrainerGrid)
+            placed = PlaceMovedItemInOtherGrid(npc.trainerBox, NpcGridColumns, entry.slot, entry.item, resources,
+                                               "0x4c6042, 0x5bc740(0x723c80)");
+        else
+            placed = PlaceInTheNpcGrid(npc.grid, entry.slot, bytes, resources);
         if (!placed.HasValue())
             return placed;
     }
@@ -517,9 +553,13 @@ Core::Expected<void, std::string> ApplyChaosMixResult(const Npc::ChaosMixResult&
         return opened;
     }
     case TrainerMix:
-        return Core::Unexpected(std::string(
-            "0x4da373: 0x449c40 y 0x44ad70, la caja del entrenador (0x723c80), son de la CL9 hito 6, con el "
-            "NPC (fase 2)"));
+    {
+        // 0x4da373..0x4da385: la caja del entrenador vacía (0x449c40) y el ítem en su lugar 0 con 0x44ad70(0, datos,
+        // 1), sin la cola de 0x5bc740, sin sonido y sin tocar 0x7d2dc80.
+        EmptyTheGrid(npc.trainerBox);
+        const InventoryItemBytes bytes(result.item);
+        return PlaceInOtherGrid(npc.trainerBox, NpcGridColumns, 0, bytes, resources, "0x4da380, 0x5bc740(0x723c80)");
+    }
     default:
         npc.chaosMixState = MixReady;
         return {};

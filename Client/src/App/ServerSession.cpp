@@ -32,6 +32,7 @@
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
 #include "Protocol/Inventory.h"
+#include "Protocol/JewelMix.h"
 #include "Protocol/Messages.h"
 #include "Protocol/NpcWindows.h"
 #include "Protocol/OptionData.h"
@@ -285,8 +286,8 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnEquipmentChange(packet); }) &&
         m_gameServer.On(CharacterOpcode, Protocol::Inventory::ItemPutSubcode,
                         [this](const Network::Packet& packet) { OnItemPut(packet); }) &&
-        // CL9 hito 6: las ventanas de los NPC. El 30 (0x4d1e00) y los casos 31..34, 81..83, 86 y 87 del dispatcher
-        // 0x4e2b10.
+        // CL9 hito 6: las ventanas de los NPC. El 30 (0x4d1e00) y los casos 31..34, 81..83, 86, 87 y BC del
+        // dispatcher 0x4e2b10.
         m_gameServer.On(Protocol::NpcWindows::TalkOpcode,
                         [this](const Network::Packet& packet) { OnTalkResult(packet); }) &&
         m_gameServer.On(Protocol::NpcWindows::ItemListOpcode, npcWindow) &&
@@ -298,6 +299,8 @@ void ServerSession::RegisterGameServerHandlers()
         m_gameServer.On(Protocol::NpcWindows::WarehouseStateOpcode, npcWindow) &&
         m_gameServer.On(Protocol::NpcWindows::ChaosMixOpcode, npcWindow) &&
         m_gameServer.On(Protocol::NpcWindows::ChaosBoxCloseOpcode, npcWindow) &&
+        // La respuesta de la mezcla de joyas, el BC (0x4e4547, CL9 hito 6, fase 4b).
+        m_gameServer.On(Protocol::JewelMix::JewelMixOpcode, npcWindow) &&
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); }) &&
         m_gameServer.On(Protocol::Connection::MainCheckOpcode,
                         [this](const Network::Packet& packet) { OnMainCheck(packet); }) &&
@@ -1160,6 +1163,8 @@ std::optional<WorldEvent> ReadNpcWindowEvent(const Network::Packet& packet)
         return EventOf(Npc::ReadWarehouseState(packet));
     case Npc::ChaosMixOpcode:
         return EventOf(Npc::ReadChaosMixResult(packet));
+    case Protocol::JewelMix::JewelMixOpcode:
+        return EventOf(Protocol::JewelMix::ReadJewelMixAnswer(packet));
     default:
         return EventOf(Npc::ReadNpcWindowClosed(packet));
     }

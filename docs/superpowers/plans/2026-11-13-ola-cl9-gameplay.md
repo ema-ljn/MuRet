@@ -336,18 +336,21 @@ de Q/W/E; los `rand()` de la búsqueda del ítem del piso en el picking. **Desbl
       mezcla; el paso del `0xa4` hasta la lista de `0x6e5660`; `0x5d8d50` con `0x78abb14` en 4. La lista, el EDIT
       del `0x91` (CL9.4) y el `26` del `0xa8`, en 08, P-C338; el 5 de `0x78abb14` (hito 7), P-C339.)
 - [ ] **Las ventanas:** la tienda (`0x5f4720`), el almacén (`0x5f4e30`, `0x5e7bf0`, `0x5e9b10`, el teclado de
-      `0x78abb20`), la caja del caos (`0x5febf0`, `0x5fe610`), reparar (`0x44b910`, la R de `0x59ff10`), el
-      `BC` (`0x401f30`, `0x402500`) y los precios (`0x5b1200`, `0x5b2d23`). (Fase 2, 2026-11-13: los pasos de la
-      tienda con reparar todo y `0x5b1570`, del almacén y de la caja del caos, sus grillas, comprar, vender, guardar,
-      sacar y el zen del almacén, `Scenes/NpcWindowSteps.cpp`; los dibujos, el teclado, la mezcla y los precios de la
-      ayuda siguen cortados, en 08, P-C192. Fase 3: los dibujos de la tienda, del almacén y de la caja de la
-      contraseña, el paso de la caja con el `83` y el `99` (`0x5e7bf0`), el precio de la ayuda del ítem (`0x5b2d23`,
-      `0x5b1200`) y las grillas de la tienda y del almacén,
-      `Scenes/NpcWindowDrawing.cpp` y `Scenes/WarehouseKeypad.cpp`; lo que queda, en 08, P-C194. La caja del caos
-      entera, con lo que vale, el tipo de la mezcla, el botón de mezclar y el dibujo, `Scenes/ChaosMix.cpp` y
-      `Scenes/ChaosBoxDrawing.cpp`; el 2 desde el nivel 8 corta, P-C197. Fase 3b: el `BC`, `Protocol::JewelMix`; sus
-      respuestas, P-C199; el entrenador con `0x724580` en 2, `0x44b910` con su `34`, `Scenes/PetTrainer`; sus modos 1
-      y 3 y su dibujo, P-C198.)
+      `0x78abb20`), la caja del caos (`0x5febf0`, `0x5fe610`), reparar (`0x44b910`, la R de `0x59ff10`), el `BC`
+      (`0x401f30`, `0x402500`) y los precios (`0x5b1200`, `0x5b2d23`). (Fase 2, 2026-11-13: los pasos de la tienda con
+      reparar todo y `0x5b1570`, del almacén y de la caja del caos, sus grillas, comprar, vender, guardar, sacar y el
+      zen del almacén, `Scenes/NpcWindowSteps.cpp`; los dibujos, el teclado, la mezcla y los precios de la ayuda
+      siguen cortados, en 08, P-C192. Fase 3: los dibujos de la tienda, del almacén y de la caja de la contraseña, el
+      paso de la caja con el `83` y el `99` (`0x5e7bf0`), el precio de la ayuda del ítem (`0x5b2d23`, `0x5b1200`) y
+      las grillas de la tienda y del almacén, `Scenes/NpcWindowDrawing.cpp` y `Scenes/WarehouseKeypad.cpp`; lo que
+      queda, en 08, P-C194. La caja del caos entera, con lo que vale, el tipo de la mezcla, el botón de mezclar y el
+      dibujo, `Scenes/ChaosMix.cpp` y `Scenes/ChaosBoxDrawing.cpp`; el 2 desde el nivel 8 corta, P-C197. Fase 3b: el
+      `BC`, `Protocol::JewelMix`; sus respuestas, P-C199; el entrenador con `0x724580` en 2, `0x44b910` con su `34`,
+      `Scenes/PetTrainer`; sus modos 1 y 3 y su dibujo, P-C198. Fase 4b: las respuestas del `BC`,
+      `Scenes/JewelMixAnswers` (sin oráculo de red, P-C341); el entrenador entero, con los modos 1 y 3, abrirlo y
+      cerrarlo, su dibujo `0x44b510` (`Scenes/PetTrainerDrawing`) y su caja (los rellenos `0x4c5fde`, `0x4da373` y
+      `0x4d1d55`, `0x44ad40`, `0x44ad10` y `0x44aca9`); lo que queda, P-C340, y el `A9` del Dark Lord (`0x65c039`),
+      del hito 4, P-C195.)
 - [x] **Los paquetes:** lo que falta de `31`..`34` (`0x4c5f60`, `0x5bc740` y `0x5be150` están en parte), `81`..`83`,
       `86`/`87`. (Fase 1, 2026-11-13: `Protocol::NpcWindows` y `Scenes/NpcWindows.cpp`; el `30` y abrir y cerrar
       `0x40`, `0x100` y `0x10000` también. Lo que sigue cortado de las otras dos, en 08, P-C191.)

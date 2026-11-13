@@ -41,10 +41,11 @@ struct HoveredItem
     enum class Place : std::uint8_t
     {
         None,
-        InventoryCell, // 0x78a9bb0 + índice · 0x48
-        Equipment,     // [0x7681eb4] + 0xb6c + lugar · 0x48
-        NpcGridCell,   // 0x78a7070 + índice · 0x48, la tienda y el almacén (CL9 hito 6)
-        ChaosBoxCell,  // 0x7d2d380 + índice · 0x48
+        InventoryCell,  // 0x78a9bb0 + índice · 0x48
+        Equipment,      // [0x7681eb4] + 0xb6c + lugar · 0x48
+        NpcGridCell,    // 0x78a7070 + índice · 0x48, la tienda y el almacén (CL9 hito 6)
+        ChaosBoxCell,   // 0x7d2d380 + índice · 0x48
+        TrainerBoxCell, // 0x723c80 + índice · 0x48
     };
     Place place = Place::None;
     std::size_t index = 0;

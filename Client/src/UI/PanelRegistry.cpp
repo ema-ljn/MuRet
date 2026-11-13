@@ -235,10 +235,11 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
         if (closed.Value())
         {
             m_state.inventory = 1;
+            // 0x65c039: arma el C1 A9 que pide la mascota; el plan pone el A9 en el hito 4 (CL9.2, 08 P-C195).
             if (m_context.heroClass == DarkLordClass)
                 return Core::Unexpected(
-                    std::string("0x65c039: el pedido de la mascota del Dark Lord (C1 A9) al abrir el inventario es de "
-                                "la CL9"));
+                    std::string("0x65c039: el pedido de la mascota del Dark Lord (C1 A9) al abrir el inventario es del "
+                                "hito 4 de la CL9 (CL9.2)"));
         }
         break;
     }
@@ -275,6 +276,21 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
             return Core::Unexpected(std::move(opened).Error());
         break;
     }
+    case TrainerPanel:
+    {
+        // 0x65be77..0x65be93: con lo que cerró, 0x449940(1), sin abrir el inventario.
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            if (!m_context.npcWindowOpened)
+                return Core::Unexpected(std::string("0x65be8b: abrir el entrenador sin el mundo (0x449940)"));
+            if (auto opened = m_context.npcWindowOpened(id); !opened.HasValue())
+                return Core::Unexpected(std::move(opened).Error());
+        }
+        break;
+    }
     case QuestPanel:
     {
         // 0x659c50..0x659c70: todos menos el personaje y los amigos; con lo que cerró, 0x419840(−1).
@@ -299,7 +315,6 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
     case EventNpcPanel:
     case Panel2000:
     case SecondEventNpcPanel:
-    case TrainerPanel:
     case OtherShopPanel:
     case SecondGuildPanel:
     case CastleSiegePanel:
@@ -406,7 +421,7 @@ Core::Expected<bool, std::string> PanelRegistry::Close(PanelId id)
 Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask)
 {
     // [EBP−0xd] arranca en 1 y solo lo bajan el almacén y la caja del caos que no cierran (0x658534, 0x658961) y el
-    // entrenador, que corta antes; los paneles que siguen se cierran igual.
+    // entrenador con algo en su caja (0x658df7); los paneles que siguen se cierran igual.
     bool closedAll = true;
     for (const PanelId id : CloseOrder)
     {
@@ -416,6 +431,7 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask)
         {
         case WarehousePanel:
         case ChaosBoxPanel:
+        case TrainerPanel:
         case NpcShopPanel:
         {
             auto closed = CloseTheNpcWindow(id);

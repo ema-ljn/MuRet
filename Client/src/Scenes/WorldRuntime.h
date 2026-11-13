@@ -181,10 +181,11 @@ struct HudState
 // 0x78ab0b8 y 0x723c80) cortan antes.
 enum class CursorGrid : std::uint8_t
 {
-    None,      // 0
-    Inventory, // 0x78a9bb0
-    NpcGrid,   // 0x78a7070
-    ChaosBox,  // 0x7d2d380
+    None,       // 0
+    Inventory,  // 0x78a9bb0
+    NpcGrid,    // 0x78a7070
+    ChaosBox,   // 0x7d2d380
+    TrainerBox, // 0x723c80
 };
 
 // Un nodo de la lista de huesos con nombre de [0x6e5640] (0x401000 → 0x4011c0): el personaje (el lugar del pool), el

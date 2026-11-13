@@ -145,11 +145,16 @@ void OpenAfter(UI::DialogState& dialogs, std::int32_t id)
         dialogs.current = id;
 }
 
+Core::Expected<void, std::string> Send(const JewelMixSender& send, Protocol::Outgoing packet, std::string_view what)
+{
+    if (!send)
+        return Core::Unexpected(std::format("{} sin la sesión", what));
+    return send(std::move(packet));
+}
+
 Core::Expected<void, std::string> Send(const GameUiContext& context, Protocol::Outgoing packet, std::string_view what)
 {
-    if (!context.sendNpcWindow)
-        return Core::Unexpected(std::format("{} sin la sesión", what));
-    return context.sendNpcWindow(std::move(packet));
+    return Send(context.sendNpcWindow, std::move(packet), what);
 }
 
 // 0x402e10: todo a su valor de arranque.
@@ -169,31 +174,22 @@ void ResetTheJewelMix(NpcWindowState& windows)
 }
 
 // 0x402eb0: 0x402e10, el diálogo cerrado y el C1 03 31 en claro.
-Core::Expected<void, std::string> CloseTheJewelMix(const GameUiContext& context)
+Core::Expected<void, std::string> CloseTheJewelMix(WorldState& world, const JewelMixSender& send)
 {
-    WorldRuntime& runtime = context.world.Runtime();
+    WorldRuntime& runtime = world.Runtime();
     ResetTheJewelMix(runtime.npcWindows);
     UI::PushDialog(runtime.dialogs, 0);
-    return Send(context, Protocol::Connection::WriteWindowClose(), "0x402f91: el C1 03 31");
+    return Send(send, Protocol::Connection::WriteWindowClose(), "0x402f91: el C1 03 31");
 }
 
-// 0x402e50: de vuelta a elegir (el 0xa2 o el 0xa4), o todo cerrado con otro modo.
+Core::Expected<void, std::string> CloseTheJewelMix(const GameUiContext& context)
+{
+    return CloseTheJewelMix(context.world, context.sendNpcWindow);
+}
+
 Core::Expected<void, std::string> ReturnToTheChoice(const GameUiContext& context)
 {
-    WorldRuntime& runtime = context.world.Runtime();
-    NpcWindowState& windows = runtime.npcWindows;
-    if (windows.field6e5798 == 1)
-        windows.field6e5798 = 0;
-    UI::PushDialog(runtime.dialogs, 0);
-    windows.jewels.refusal = 0;
-    windows.jewels.kind = Unchosen;
-    if (windows.jewels.mode == MixMode)
-        UI::PushDialog(runtime.dialogs, ChoiceDialog);
-    else if (windows.jewels.mode == UnmixMode)
-        UI::PushDialog(runtime.dialogs, UnmixDialog);
-    else
-        return CloseTheJewelMix(context);
-    return {};
+    return ReturnToTheJewelChoice(context.world, context.sendNpcWindow);
 }
 
 // 0x402cf0: el precio.
@@ -346,6 +342,24 @@ void FillTheBundles(WorldState& world)
     }
 }
 } // namespace
+
+Core::Expected<void, std::string> ReturnToTheJewelChoice(WorldState& world, const JewelMixSender& send)
+{
+    WorldRuntime& runtime = world.Runtime();
+    NpcWindowState& windows = runtime.npcWindows;
+    if (windows.field6e5798 == 1)
+        windows.field6e5798 = 0;
+    UI::PushDialog(runtime.dialogs, 0);
+    windows.jewels.refusal = 0;
+    windows.jewels.kind = Unchosen;
+    if (windows.jewels.mode == MixMode)
+        UI::PushDialog(runtime.dialogs, ChoiceDialog);
+    else if (windows.jewels.mode == UnmixMode)
+        UI::PushDialog(runtime.dialogs, UnmixDialog);
+    else
+        return CloseTheJewelMix(world, send);
+    return {};
+}
 
 Core::Expected<void, std::string> StepTheJewelMenu(const GameUiContext& context)
 {

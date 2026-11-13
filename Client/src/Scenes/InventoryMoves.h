@@ -125,15 +125,16 @@ PlaceMovedItem(std::uint8_t slot, const Protocol::Inventory::ItemData& item, con
 
 // 0x449d80(origen, lugar, destino, lugar): con la traba 0x78abb39 en 0, la traba en 1, los dos rand() del envío en C3
 // y el C1 0E 24 con la grilla y el lugar de origen, los siete bytes del ítem del cursor y la grilla y el lugar de
-// destino. Con la traba, nada. Las grillas: 0 el inventario, 2 el almacén y 3 la caja del caos.
+// destino. Con la traba, nada. Las grillas: 0 el inventario, 2 el almacén, 3 la caja del caos y 5 la del entrenador.
 [[nodiscard]] Core::Expected<void, std::string>
 SendTheCursorItemBetween(const InventoryMoveContext& context, std::uint8_t sourceGrid, std::uint8_t sourceSlot,
                          std::uint8_t targetGrid, std::uint8_t targetSlot);
 
-// Los números de grilla del C1 0E 24 (0x5d1f8b, 0x5d3c68 y 0x5cb4ed).
+// Los números de grilla del C1 0E 24 (0x5d1f8b, 0x5d3c68, 0x5cb4ed y 0x449d6a).
 inline constexpr std::uint8_t InventoryMoveGrid = 0;
 inline constexpr std::uint8_t WarehouseMoveGrid = 2;
 inline constexpr std::uint8_t ChaosBoxMoveGrid = 3;
+inline constexpr std::uint8_t TrainerBoxMoveGrid = 5;
 
 // 0x5cb3af..0x5cb455 y 0x5ea1ad..0x5ea227: el teclado del almacén (0x7879fc8, diez words) con 0 a 9 y veinte cambios
 // de dos teclas al azar (rand() % 10 dos veces, sin cambio si son la misma).
@@ -145,9 +146,9 @@ void ShuffleTheKeypad(Render::Models::CrtRandom& random, std::array<std::uint16_
 [[nodiscard]] Core::Expected<void, std::string> PickUpFromTheGrid(const InventoryMoveContext& context,
                                                                   std::size_t cell);
 
-// 0x5c52b1..0x5c5358 con otra grilla de 8 columnas (la de la tienda y del almacén, 0x78a7070, o la caja del caos,
-// 0x7d2d380): lo mismo con el lugar sin el 12 (fila · 8 + columna) y 0x5bd750(lugar, grilla, 8), que vacía la huella
-// desde la columna y la fila de esa casilla.
+// 0x5c52b1..0x5c5358 con otra grilla de 8 columnas (la de la tienda y del almacén, 0x78a7070, la caja del caos,
+// 0x7d2d380, o la del entrenador, 0x723c80): lo mismo con el lugar sin el 12 (fila · 8 + columna) y 0x5bd750(lugar,
+// grilla, 8), que vacía la huella desde la columna y la fila de esa casilla.
 [[nodiscard]] Core::Expected<void, std::string> PickUpFromOtherGrid(const InventoryMoveContext& context,
                                                                     CursorGrid grid, std::size_t cell);
 
@@ -192,19 +193,20 @@ struct GridDrop
 [[nodiscard]] Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveContext& context,
                                                                        const GridDrop& drop);
 
-// 0x5ca250(x, y, grilla, 8, filas, tipo) con el almacén (0x78a7070, 15 filas, tipo 2, desde 0x5deb57) y la caja del
-// caos (0x7d2d380, 4 filas, tipo 3, desde 0x5debe4): la casilla bajo el mouse, si entra (0x5c9b40), las marcas de su
-// huella dentro de la grilla y, con el clic y si entra, salvo los ítems que no van a otra grilla (0x5cf3a5..0x5cf40b),
-// el C1 0E 24 de 0x449d80 desde la grilla del cursor (0 el inventario; si no, la misma) al lugar fila · 8 + columna.
-// La caja del caos con la mezcla fuera de 0 y la lista de Castle Siege cerrada no llama a 0x5c9b40 y lee un local sin
-// escribir (0x5ca337, Q-C921): corta.
+// 0x5ca250(x, y, grilla, 8, filas, tipo) con el almacén (0x78a7070, 15 filas, tipo 2, desde 0x5deb57), la caja del
+// caos (0x7d2d380, 4 filas, tipo 3, desde 0x5debe4) y la del entrenador (0x723c80, 4 filas, tipo 5, desde 0x44aca9): la
+// casilla bajo el mouse, si entra (0x5c9b40), las marcas de su huella dentro de la grilla y, con el clic y si entra,
+// salvo los ítems que no van a otra grilla (0x5cf3a5..0x5cf40b), el C1 0E 24 de 0x449d80 desde la grilla del cursor (0
+// el inventario; si no, la misma) al lugar fila · 8 + columna. Con 0x724580 en 3, a la caja del entrenador solo van
+// las joyas de su mezcla y 0x1a1f (0x44acd0). La caja del caos con la mezcla fuera de 0 y la lista de Castle Siege
+// cerrada no llama a 0x5c9b40 y lee un local sin escribir (0x5ca337, Q-C921): corta.
 struct OtherGridDrop
 {
     std::int32_t mouseX = 0;
     std::int32_t mouseY = 0;
     std::int32_t left = 0;
     std::int32_t top = 0;
-    // CursorGrid::NpcGrid o CursorGrid::ChaosBox.
+    // CursorGrid::NpcGrid, CursorGrid::ChaosBox o CursorGrid::TrainerBox.
     CursorGrid grid{};
 };
 

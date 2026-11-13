@@ -4,6 +4,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/InventoryMoves.h"
+#include "Scenes/NpcWindowState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
@@ -278,6 +279,129 @@ TEST_F(CursorItemTest, PickingUpFromTheGridAndReturningItRestoresTheFootprint)
         EXPECT_EQ(Cell(2, row).occupied, row == 1 ? 1u : 0u) << row;
     }
     EXPECT_EQ(random.State(), before.State());
+}
+
+// La caja del entrenador (0x723c80), de 8 × 4 en (0x113, 0x6e) con 0x724580 en 3 (0x44ad10 y 0x44aca0).
+constexpr std::int32_t TrainerLeft = 0x113;
+constexpr std::int32_t TrainerTop = 0x6e;
+
+// 0x5ca250 con el tipo 5 (0x44aca9): con 0x724580 en 3, 0x44acd0 solo deja la joya del caos, las de la mezcla y 0x1a1f;
+// la joya entra (marcas 2) y, con el clic, manda 0x449d80(0, 12, 5, fila · 8 + columna) con los dos rand() del envío.
+// El arma no entra (marcas 3, sin 0x5c9b40) y no manda nada. En Lorencia y Devias.
+TEST_F(CursorItemTest, TheTrainerBoxTakesOnlyItsJewels)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        SetUp();
+        outside = Outside{};
+        Scenes::WorldRuntime& runtime = world.Runtime();
+        runtime.map = map;
+        runtime.ui.field78abb39 = 0;
+        runtime.panels.delegated.trainer = 3;
+        runtime.npcWindows.trainerBox = Scenes::EmptyTrainerBox();
+        const auto drop = [&](std::int32_t column, std::int32_t row)
+        {
+            return Scenes::DropOnOtherGrid(Moves(), Scenes::OtherGridDrop{.mouseX = TrainerLeft + column * 20 + 10,
+                                                                          .mouseY = TrainerTop + row * 20 + 10,
+                                                                          .left = TrainerLeft,
+                                                                          .top = TrainerTop,
+                                                                          .grid = Scenes::CursorGrid::TrainerBox});
+        };
+
+        Put(Jewel, 0, 0);
+        runtime.movement.pendingClick = true;
+        ASSERT_TRUE(Scenes::PickUpFromTheGrid(Moves(), 0).HasValue());
+        runtime.movement.pendingClick = true;
+        const CrtRandom sent = Advanced(random, SendRandoms);
+        const auto dropped = drop(3, 1);
+        ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+        EXPECT_TRUE(dropped.Value());
+        EXPECT_EQ(random.State(), sent.State());
+        EXPECT_EQ(runtime.npcWindows.trainerBox[11].warning, 2);
+        EXPECT_EQ(runtime.itemMoveTarget, 11);
+        ASSERT_EQ(outside.sent.size(), 1u);
+        EXPECT_EQ(outside.sent[0].sourceFlag, 0);
+        EXPECT_EQ(outside.sent[0].sourceSlot, 12);
+        EXPECT_EQ(outside.sent[0].targetFlag, 5);
+        EXPECT_EQ(outside.sent[0].targetSlot, 11);
+
+        runtime.ui.field78abb39 = 0;
+        runtime.cursorItemCount = 0;
+        Put(Sword, 2, 0);
+        runtime.movement.pendingClick = true;
+        ASSERT_TRUE(Scenes::PickUpFromTheGrid(Moves(), 2).HasValue());
+        runtime.movement.pendingClick = true;
+        const CrtRandom refused = random;
+        const auto kept = drop(5, 0);
+        ASSERT_TRUE(kept.HasValue()) << kept.Error();
+        EXPECT_FALSE(kept.Value());
+        EXPECT_EQ(random.State(), refused.State());
+        EXPECT_EQ(outside.sent.size(), 1u);
+        for (const std::size_t cell : {5u, 13u, 21u})
+            EXPECT_EQ(runtime.npcWindows.trainerBox[cell].warning, 3) << cell;
+    }
+}
+
+// Levantar de la caja del entrenador (0x44ad10 → 0x5c4110): la copia al cursor desde su esquina (el lugar sin el 12)
+// y la huella vacía; 0x5be150 la vuelve con 0x449c80. Soltarla en el inventario manda 0x449d50, 0x449d80(5, lugar, 0,
+// destino). En Lorencia y Devias.
+TEST_F(CursorItemTest, TheTrainerBoxItemGoesBackOrToTheInventory)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        SetUp();
+        outside = Outside{};
+        Scenes::WorldRuntime& runtime = world.Runtime();
+        runtime.map = map;
+        runtime.ui.field78abb39 = 0;
+        runtime.cursorItemCount = 0;
+        runtime.panels.delegated.trainer = 3;
+        auto& box = runtime.npcWindows.trainerBox;
+        box = Scenes::EmptyTrainerBox();
+        for (const std::size_t cell : {10u, 18u, 26u})
+        {
+            box[cell] = Invented(Sword);
+            box[cell].gridColumn = 2;
+            box[cell].gridRow = 1;
+            box[cell].occupied = cell == 10 ? 1u : 0u;
+        }
+        const CrtRandom before = random;
+        runtime.movement.pendingClick = true;
+        ASSERT_TRUE(Scenes::PickUpFromOtherGrid(Moves(), Scenes::CursorGrid::TrainerBox, 18).HasValue());
+        EXPECT_EQ(runtime.cursorGrid, Scenes::CursorGrid::TrainerBox);
+        EXPECT_EQ(runtime.cursorItem.id, Sword);
+        EXPECT_EQ(runtime.slot78a6758, 10);
+        for (const std::size_t cell : {10u, 18u, 26u})
+            EXPECT_EQ(box[cell].id, EmptyOwnItemId) << cell;
+
+        ASSERT_TRUE(Scenes::ReturnTheCursorItem(Moves()).HasValue());
+        EXPECT_EQ(runtime.cursorItemCount, 0);
+        for (const std::size_t cell : {10u, 18u, 26u})
+        {
+            EXPECT_EQ(box[cell].id, Sword) << cell;
+            EXPECT_EQ(box[cell].occupied, cell == 10 ? 1u : 0u) << cell;
+        }
+        EXPECT_EQ(random.State(), before.State());
+
+        runtime.movement.pendingClick = true;
+        ASSERT_TRUE(Scenes::PickUpFromOtherGrid(Moves(), Scenes::CursorGrid::TrainerBox, 10).HasValue());
+        runtime.movement.pendingClick = true;
+        const CrtRandom sent = Advanced(random, SendRandoms);
+        const auto dropped = Scenes::DropOnTheInventoryGrid(
+            Moves(),
+            Scenes::GridDrop{
+                .mouseX = MouseX(4, 1), .mouseY = MouseY(2, 3), .left = Left, .top = Top, .inventoryOpen = true});
+        ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+        EXPECT_TRUE(dropped.Value());
+        EXPECT_EQ(random.State(), sent.State());
+        ASSERT_EQ(outside.sent.size(), 1u);
+        EXPECT_EQ(outside.sent[0].sourceFlag, 5);
+        EXPECT_EQ(outside.sent[0].sourceSlot, 10);
+        EXPECT_EQ(outside.sent[0].targetFlag, 0);
+        EXPECT_EQ(outside.sent[0].targetSlot, 12 + 2 * 8 + 4);
+    }
 }
 
 // 0x5ca250 con el clic sobre un lugar libre: las marcas 2 en la huella, la traba, los dos rand() del envío y el

@@ -705,7 +705,7 @@ private:
             m_runtime.ui.chatOpen = false;
             return Core::Unexpected(std::string("0x4dd8f2: la entrada del número de serie (0x77f3b6a, 0x77f3b6c, "
                                                 "0x78abacc, 0x6c8e78 en 0xc, 0x6c8e6c en 1 y 0x77f3b6b en 1, que lee "
-                                                "el Enter del chat) es de la fase 2 del hito 11 de la CL9"));
+                                                "el Enter del chat) no está portada (P-C295)"));
         }
         if (panels.field78abb00 != MutoWindow)
             return {};

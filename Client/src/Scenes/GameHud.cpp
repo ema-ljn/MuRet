@@ -876,7 +876,7 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     if (auto events = DrawTheEventNpcWindow(frame.context, panels); !events.HasValue())
         return events;
     if (state.field78abb00 != 0)
-        return cut("0x5f6550: la ventana de 0x78abb00 es de la CL9.5");
+        return cut("0x5f6550: la ventana de 0x78abb00 no está portada (P-C295)");
     if (state.delegated.quest == 1 || state.delegated.quest == 2)
         return cut("0x41ca40: la ventana de las misiones es de la CL9.1");
     if (state.delegated.pet == 2)
@@ -1020,7 +1020,8 @@ Core::Expected<void, std::string> DrawTheUi3DItems(Frame& frame)
     if (state.delegated.quest == 1 || state.delegated.quest == 2)
         return Core::Unexpected(std::string("0x41b9e0: el ítem de la ventana de las misiones es de la CL9.1"));
     if (state.field78abb00 != 0 && state.field78abb00 != 3)
-        return Core::Unexpected(std::string("0x5f70a0: los ítems de la ventana de 0x78abb00 son de la CL9.5"));
+        return Core::Unexpected(
+            std::string("0x5f70a0: los ítems de la ventana de 0x78abb00 no están portados (P-C295)"));
     // 0x5f7610: los ítems de las grillas abiertas, en su orden, y la caja del entrenador (0x44ad40(0)).
     if (auto grids = DrawTheGridItems(frame.context, frame.panels); !grids.HasValue())
         return grids;

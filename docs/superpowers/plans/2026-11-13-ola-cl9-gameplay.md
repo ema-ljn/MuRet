@@ -410,7 +410,8 @@ amigos. **Desbloquea:** 10.
       (Fase 3, *estática*: la interfaz de Crywolf, `0x4365c0`, `0x430180`, `0x436240` y el paso `0x435bd0`, con los
       `BD 02`..`09`; el contrato de los altares, el `BD 03` y el `BD 0C` cortan. De `CCameraMove`, el arranque con el
       `BD 00` y la etapa 2, lo único que lo empieza; el guion corta en `0x4035da`. Q-C1341..Q-C1343, P-C298,
-      P-C299.)
+      P-C299. La rama `cl9-h9` está juntada con el EDIT; la ventana de `0x78abb00` y el número de serie siguen
+      cortando, con lo que falta medido en P-C295.)
 - [ ] **Las reglas por mapa:** el arma de Blood Castle (`0x50de84`), las trampas de Chaos Castle (`0x405597`,
       `0x405d49`), el `AF 02` (`0x4fbee8`; decía `AF 01`), Kalima, y Crywolf (`BD`, `0x42fe80`, `0x42fe50`,
       `0x430a40`, `0x61a6f4`; P-C58).

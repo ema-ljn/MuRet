@@ -160,8 +160,7 @@ Core::Expected<void, std::string> LeaveTheEventWindow(const HeroMovementContext&
     if (runtime.panels.field78abb00 == SerialEventWindow)
         return Core::Unexpected(std::string("0x56b6a9: cerrar la entrada del número de serie (0x6c8e74, 0x77f3b70, los "
                                             "diez buffers de 0x7798bf8, los EDIT de [0x5763504] y [0x5763508], "
-                                            "0x77f3b6a, 0x77f3b6c, 0x78abacc y 0x77f3b6b) es de la fase 2 del hito 11 "
-                                            "de la CL9"));
+                                            "0x77f3b6a, 0x77f3b6c, 0x78abacc y 0x77f3b6b) no está portado (P-C295)"));
     runtime.panels.field78abb00 = 0;
     // 0x56b77f: SetCursorPos mueve el cursor de Windows; queda pedido para la plataforma.
     const auto [x, y] =

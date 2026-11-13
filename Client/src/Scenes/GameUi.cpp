@@ -1010,7 +1010,7 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
     }
     // 0x5e6520, con 0x78abb00 distinto de 0.
     if (runtime.panels.field78abb00 != 0)
-        return Core::Unexpected(std::string("0x5e6520: 0x78abb00 es de la CL9.5"));
+        return Core::Unexpected(std::string("0x5e6520: el paso de la ventana de 0x78abb00 no está portado (P-C295)"));
     // 0x5e74f0, el panel 0x2000.
     if (panels.IsOpen(UI::Panel2000))
         return Core::Unexpected(std::string("0x5e74f0: el paso del panel 0x2000 es de la CL9"));

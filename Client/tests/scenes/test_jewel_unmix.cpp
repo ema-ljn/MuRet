@@ -201,8 +201,9 @@ TEST(JewelUnmixTest, AKindFillsTheListAndTheListIsCut)
     }
 }
 
-// 0x625d00..0x625d6f y 0x625f4d..0x625f37: sin el clic, ni las joyas ni el cancelar; fuera de ellos, el clic queda. El
-// cancelar (x de 279,5 a 359,5, y de 200 a 225) con el clic cierra todo con 0x402eb0 y el C1 03 31, sin apagarlo.
+// 0x625d00..0x625d6f, 0x625f4d..0x625f96 y 0x625f1f..0x625f37: sin el clic, ni las joyas ni el cancelar; fuera de
+// ellos, el clic queda. El cancelar (x de 279,5 a 359,5, y de 200 a 225) con el clic cierra todo con 0x402eb0 y el
+// C1 03 31, sin apagarlo (07 Q-C952).
 TEST(JewelUnmixTest, TheCancelClosesAllAndKeepsTheClick)
 {
     for (const std::int32_t map : Maps)

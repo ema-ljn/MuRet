@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-// 04 § Los diálogos del juego, "El AF 01 y el D0 00" (CL9 hito 6): lo que mandan los sí del 0x9a (0x628594) y del 0xaa
+// 04 § Las ventanas de los NPC, el AF 01 y el D0 00 (CL9 hito 6): lo que mandan los sí del 0x9a (0x628594) y del 0xaa
 // (0x62a480) en 0x623e70. Los dos arman el C1 de a un byte con el XOR32 de cada byte nuevo (la clave de 32 bytes desde
 // 0xe7 0x6d 0x3a, desde pkt[3]) y lo mandan con send() en claro, sin la tabla de protección ni rand(). El GameServer
 // 0.97 no los atiende: ProtocolCore (0x414180) no tiene su caso y su default loguea y cierra la conexión

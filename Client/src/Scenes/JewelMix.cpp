@@ -384,6 +384,7 @@ Core::Expected<void, std::string> StepTheJewelChoice(const GameUiContext& contex
     std::uint8_t kind = jewels.kind;
     for (std::int32_t button = 0; button < 2; ++button)
     {
+        // 0x625b59..0x625bbf: x desde 245 + 80 · k, y el dibujo las pone desde 235 + 90 · k (07 Q-C951).
         const std::int32_t left = ButtonLeft + button * KindWidth;
         if (!Within(context, left, left + KindWidth, KindTop, KindTop + KindHeight))
             continue;
@@ -458,7 +459,7 @@ Core::Expected<void, std::string> StepTheJewelUnmix(const GameUiContext& context
     }
     if (jewels.kind == Unchosen)
     {
-        // 0x625f4d..0x625f37: el cancelar, sin apagar el clic.
+        // 0x625f4d..0x625f96 y 0x625f1f..0x625f37: el cancelar, sin apagar el clic (07 Q-C952).
         if (WithinFloat(context, UnmixCloseLeft, UnmixCloseRight, UnmixCloseTop, UnmixCloseBottom) && click)
             return CloseTheJewelMix(context);
         return {};

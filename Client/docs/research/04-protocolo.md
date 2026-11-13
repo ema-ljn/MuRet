@@ -1106,16 +1106,29 @@ ASM del cliente):
   `send()` en claro, sin la tabla de protección: sin `rand()`. El GameServer 0.97 no atiende el `BC` (no está en
   `protocol.cpp`): el ASM es el oráculo. Las respuestas (`0x4da460`, `0x4da540` y la rama de `0x4e45c8` del
   dispatcher, que llaman a `0x402e50`) no están portadas (08, P-C199). **MuRet**: `Protocol::JewelMix`.
+- **`AF 01`** la entrada a Chaos Castle (CL9 hito 6, fase 4a; 06 § "Los diálogos del juego"; *inferido* del diálogo,
+  `UI::ChaosCastleDialog`): el sí del `0x9a` (`0x628582..0x628aaf`) con el dword `0x78a59cc` (el `+4` del ítem de los
+  diálogos de `0x78a59c8`) distinto de `0xff` manda `C1 06 AF 01 <nivel> <lugar>` (`0x628594..0x628947`): el nivel es
+  `(0x78a59cc >> 3) & 0xf` (`0x628702..0x628710`) y el lugar el byte bajo de `0x78a6758` (`0x6287f7`); con `0xff` no
+  hace nada y el diálogo sigue. Después cierra con el sonido `0x19` (`0x628a70..0x628aac`). *Estático*.
+- **`D0 00`** el sí de la pregunta del `F3 40` (CL9 hito 6, fase 4a): el `0xaa`, que abre `0x4da1b9` con el texto
+  2020, manda `C1 04 D0 00` con el sí (`0x62a480..0x62a5e8`); el no solo cierra. *Estático*.
+- Los dos arman el C1 de a un byte con el XOR32 de cada byte nuevo y lo mandan con `send()` en claro, sin la tabla de
+  protección: sin `rand()`. El GameServer 0.97 no los atiende: `ProtocolCore` (`0x414180`) no tiene el caso del `AF`
+  ni del `D0`, y su `default` loguea (`LogAddC`) y cierra la conexión (`CloseClient`). El ASM es el oráculo (CL9.R).
+  **MuRet**: `Protocol::DialogAnswers`.
 
 Los `rand()`: con la tienda abierta, cada `IsOpen(0x10000)` saca uno (también el de `0x5decc1` al vender); con el
 almacén abierto, la cadena de Q, W y E (`0x5a343e`) e `IsOpen(0)` (`0x5a5511`) se paran en `0x40` antes de la tienda:
 uno menos cada una. **MuRet**: `Scenes/NpcWindowSteps.cpp` (los pasos de `0x5ed960`, `0x5b1570`, `0x5ea060`,
-`0x5fe610`, `0x5d8d50` con `0x78abb14` en 1 y 2, vender, el OK del `0x73` y `0x5e7aa0`), `Scenes/WarehouseKeypad.cpp`
-(`0x5e7bf0`, el `83` y el `99`), las grillas de la tienda, del almacén y de la caja del caos en `Scenes/GameUi.cpp` y
-los de sí y no (`0x6282dc`) en `Scenes/GameDialogSteps.cpp`. Tests: `NpcWindowStepsTest` (comprar en Lorencia, Devias
-y Noria, vender, reparar, guardar, sacar, el zen y la mezcla, byte a byte con sus `rand()`), `WarehouseKeypadTest`
-(los modos de la caja, el `83` y el `99` byte a byte con sus `rand()`) y
-`NpcWindowRepliesTest.TakingAnItemSends24WhenThePasswordIsAccepted`. Lo que queda, en 08, P-C192 y P-C194.
+`0x5fe610`, `0x5d8d50` con `0x78abb14` en 1, 2 y 4, vender, el OK del `0x73` y `0x5e7aa0`),
+`Scenes/WarehouseKeypad.cpp` (`0x5e7bf0`, el `83` y el `99`), las grillas de la tienda, del almacén y de la caja del
+caos en `Scenes/GameUi.cpp` y los de sí y no (`0x6282dc`, con el `AF 01` y el `D0 00`) en
+`Scenes/GameDialogSteps.cpp`. Tests: `NpcWindowStepsTest` (comprar en Lorencia, Devias y Noria, vender, reparar,
+guardar, sacar, el zen, la mezcla y el teclado del 4, byte a byte con sus `rand()`), `WarehouseKeypadTest` (los modos
+de la caja, el `83` y el `99` byte a byte con sus `rand()`),
+`NpcWindowRepliesTest.TakingAnItemSends24WhenThePasswordIsAccepted`, `DialogAnswersProtocolTest` y
+`DialogAnswerStepsTest` (el `AF 01` y el `D0 00` byte a byte). Lo que queda, en 08, P-C192, P-C194, P-C338 y P-C339.
 
 ## Qué implica para MuRet
 

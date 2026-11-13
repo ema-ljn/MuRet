@@ -330,7 +330,11 @@ de Q/W/E; los `rand()` de la búsqueda del ítem del piso en el picking. **Desbl
       no, `0x630cc4`, `0x632637` y `0x632a45`, sin el título de la mezcla; lo que queda, en 08, P-C194. Fase 3b,
       2026-11-13: el `0x8e` con su dibujo, el paso de la mezcla de joyas (`0xa1`, `0xa2`, `0xa3`, `0xa6`) y los
       textos `0x63333d` y `0x63340d`; el `0xa4`, el `0x91`, el `0x9a`, el `0xa8`, el `0xaa` y los dibujos de las
-      joyas, en 08, P-C198.)
+      joyas, en 08, P-C198. Fase 4a, 2026-11-13: los pasos del `0x9a` (el `AF 01`), del `0xa8`, del `0xaa` (el
+      `D0 00`, `Protocol::DialogAnswers`) y del `0x91` sin su OK; los dibujos de las joyas (`0xa1`, `0xa2`, `0xa4`,
+      `0xa5`, `0xa6`) y del `0x91` con sus colas, el de sí y no del `0x9a`, `0xa3`, `0xa8` y `0xaa` y el título de la
+      mezcla; el paso del `0xa4` hasta la lista de `0x6e5660`; `0x5d8d50` con `0x78abb14` en 4. La lista, el EDIT
+      del `0x91` (CL9.4) y el `26` del `0xa8`, en 08, P-C338; el 5 de `0x78abb14` (hito 7), P-C339.)
 - [ ] **Las ventanas:** la tienda (`0x5f4720`), el almacén (`0x5f4e30`, `0x5e7bf0`, `0x5e9b10`, el teclado de
       `0x78abb20`), la caja del caos (`0x5febf0`, `0x5fe610`), reparar (`0x44b910`, la R de `0x59ff10`), el
       `BC` (`0x401f30`, `0x402500`) y los precios (`0x5b1200`, `0x5b2d23`). (Fase 2, 2026-11-13: los pasos de la

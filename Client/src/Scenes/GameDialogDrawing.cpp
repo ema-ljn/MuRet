@@ -334,7 +334,8 @@ constexpr float JewelCancelWidth = 81.0f;
 constexpr int JewelMenuCancelTop = 320;
 constexpr int JewelMenuCancelTextY = 0x148;
 // 0x62edee..0x62f08f: las dos joyas del 0xa2 (1806 y 1807), de 80 × 25 en x = 235 + ftol(90 · k), y = 185, con el
-// texto centrado en ftol(x + 275) y en y + 8; antes, el 1804 y el 1805 en x = 0xee.
+// texto centrado en ftol(x + 275) y en y + 8; antes, el 1804 y el 1805 en x = 0xee. El paso elige desde 245 + 80 · k
+// (07 Q-C951).
 constexpr float JewelChoiceTop = 185.0f;
 constexpr float JewelKindStep = 90.0f;
 constexpr int JewelKindLeft = 235;
@@ -373,7 +374,7 @@ constexpr float JewelUnmixCancelRight = 359.5f;
 constexpr int JewelUnmixCancelTop = 200;
 constexpr int JewelUnmixCancelTextY = 0xd0;
 // 0x62f69c..0x62f715: con la joya, el 1821 con las casillas vacías (0x402de0) en un buffer de 300 bytes y el 1822,
-// en x = 0xe4 con 0xc8c8c8c8.
+// en x = 0xe4 con 0xc8c8c8c8, en la fuente que dejó la última joya (07 Q-C950).
 constexpr std::size_t FreeCellsText = 1821;
 constexpr std::size_t FreeCellsRoom = 300;
 constexpr std::size_t UnmixListText = 1822;
@@ -1079,9 +1080,10 @@ Core::Expected<void, std::string> DrawTheJewelResult(Frame& frame)
     return {};
 }
 
-// 0x6304f2..0x6305c7: el marco del 0x91. Con 0x6c7b8c en 1 (la .data, que nadie escribe) dibuja el EDIT del
-// diálogo, que es de la CL9.4, y corta; detrás quedan el OK (0xf1 o 0xf2 en (255, 160)) y el cancelar (0xf3 o 0xf4
-// en (330, 160)) de 0x6306ee..0x630813, y en la cola (0x631d2f) el 1128 o el 1129 según 0x78aba60.
+// 0x6304f2..0x6305c7: el marco del 0x91. Con 0x6c7b8c en 1 (1 en la .data; su único escritor, 0x4b93a0, pone 1)
+// dibuja el EDIT del diálogo, que es de la CL9.4, y corta; la rama del 0 (0x6305eb..0x6306e4) no corre (07 Q-C953).
+// Detrás quedan el OK (0xf1 o 0xf2 en (255, 160)) y el cancelar (0xf3 o 0xf4 en (330, 160)) de 0x6306ee..0x630813,
+// y en la cola (0x631d2f) el 1128 o el 1129 según 0x78aba60.
 Core::Unexpected<std::string> DrawTheTypedText(Frame& frame)
 {
     DrawTheFrame(frame, TypedTextTop, TypedTextRows);

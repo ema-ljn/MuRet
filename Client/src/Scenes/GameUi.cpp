@@ -1612,7 +1612,8 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
     WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     UI::DialogState& dialogs = runtime.dialogs;
-    GamePanels panels(context.world, context.random);
+    GamePanels panels(context.world, context.random, GamePanelTables{.texts = context.texts});
+    panels.LendTheWindowClose(context.requests);
     // 0x623e9b..0x623ec2: con la de amigos abierta, Esc es de las ventanas viejas (0x490490).
     if (!panels.Registry().IsOpen(UI::FriendsPanel) && KeyEdge(ui, context.input, EscapeKey))
     {
@@ -1661,10 +1662,12 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
         ui.mouseOnUi = 1;
     GamePanels gamePanels(context.world, context.random,
                           GamePanelTables{.items = context.inventory != nullptr ? context.inventory->items : nullptr,
-                                          .itemSetTables = context.itemSetTables});
+                                          .itemSetTables = context.itemSetTables,
+                                          .texts = context.texts});
     gamePanels.LendThePartyList(context.world, context.requests);
     if (context.chat != nullptr)
         gamePanels.LendThePetRequests(context.chat->send);
+    gamePanels.LendTheWindowClose(context.requests);
     UI::PanelRegistry& panels = gamePanels.Registry();
     // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).
     if (panels.IsOpen(UI::MovePanel) && ui.capture == 0)

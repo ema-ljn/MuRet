@@ -135,6 +135,14 @@ public:
     {
         requests.emplace_back("42");
     }
+    void SendWindowClose() override
+    {
+        requests.emplace_back("31");
+    }
+    void SendSetQuest(std::uint8_t /*quest*/, std::uint8_t /*state*/) override
+    {
+        requests.emplace_back("A2");
+    }
     Client::Core::Expected<void, std::string> SaveMacros(std::string_view /*content*/) override
     {
         requests.emplace_back("Macro.txt");

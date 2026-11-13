@@ -418,7 +418,7 @@ TEST_F(CombatRepliesTest, APushingSkillThrowsTheDeadAwayFromTheKiller)
         ActorState& dead = MonsterAt(12, 0x123);
         dead.position = {1000.0f, 2000.0f, 0.0f};
         dead.angles = {3.0f, 4.0f, 5.0f};
-        dead.floatCc = 9.0f;
+        dead.floatCC = 9.0f;
         ActorState& killer = PlayerAt(20, 0x55);
         killer.position = {1300.0f, 2400.0f, 0.0f};
         ASSERT_TRUE(Client::Scenes::ApplyDeath({.key = 0x123, .skill = skill, .killer = 0x55}, Combat()).HasValue());
@@ -428,7 +428,7 @@ TEST_F(CombatRepliesTest, APushingSkillThrowsTheDeadAwayFromTheKiller)
         const std::int32_t second = expected.Next() % 15;
         EXPECT_EQ(dead.byte1a1, 1);
         EXPECT_EQ(dead.byte398, 0);
-        EXPECT_EQ(dead.floatCc, 0.0f);
+        EXPECT_EQ(dead.floatCC, 0.0f);
         EXPECT_EQ(dead.floatD8, static_cast<float>((first + 10.0) * static_cast<double>(0.1f)));
         EXPECT_EQ(dead.floatD4, 0.0f);
         EXPECT_EQ(dead.floatD0, static_cast<float>(second + 40.0));
@@ -501,7 +501,7 @@ TEST_F(CombatRepliesTest, OnTheBloodCastleBridgeTheDeadIsPushedTowardsTheFall)
     EXPECT_EQ(dead.floatD8, static_cast<float>(d8 + 20.0));
     EXPECT_EQ(dead.push, glm::vec3(0.0f, 0.0f, -static_cast<float>(push + 85.0)));
     EXPECT_EQ(dead.angles.z, dead.push.z);
-    EXPECT_EQ(dead.floatCc, static_cast<float>(cc + 8.0));
+    EXPECT_EQ(dead.floatCC, static_cast<float>(cc + 8.0));
     EXPECT_EQ(dead.floatD4, 5.0f);
     EXPECT_EQ(dead.floatD0, static_cast<float>(side + 13.0));
     EXPECT_EQ(dead.pushOrigin, dead.position);

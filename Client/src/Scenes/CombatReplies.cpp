@@ -110,7 +110,7 @@ Core::Expected<void, std::string> DieInTheCastle(ActorState& actor, const ActorC
         actor.floatE4 = Plus(random.Next() % 10, 10.0f);
         const std::int32_t drawn = random.Next() % 3;
         actor.floatD4 = 1.0f;
-        actor.floatCc = 0.0f;
+        actor.floatCC = 0.0f;
         actor.floatD0 = 0.0f;
         actor.pushOrigin = actor.position;
         actor.floatD8 = static_cast<float>(static_cast<double>(actor.floatD8) -
@@ -132,7 +132,7 @@ Core::Expected<void, std::string> DieInTheCastle(ActorState& actor, const ActorC
         else if ((attributes->cells[cell - 1] & FallWall) == FallWall)
             actor.push = {0.0f, 0.0f, push};
         actor.angles.z = actor.push.z;
-        actor.floatCc = Plus(random.Next() % 6, 8.0f);
+        actor.floatCC = Plus(random.Next() % 6, 8.0f);
         // 0x4d09c2..0x4d09d4: NEG y el resto con signo de 2: 0 o −1.
         const std::int32_t side = (-random.Next()) % 2;
         actor.floatD4 = 5.0f;
@@ -198,7 +198,7 @@ Core::Expected<void, std::string> ApplyDeath(const Protocol::Combat::Death& repl
     actor.byte398 = 0;
     const std::int32_t first = combat.random.Next() % 5;
     actor.byte1bc = 0;
-    actor.floatCc = 0.0f;
+    actor.floatCC = 0.0f;
     actor.floatD8 =
         static_cast<float>((static_cast<double>(first) + static_cast<double>(10.0f)) * static_cast<double>(0.1f));
     const std::int32_t second = combat.random.Next() % 15;

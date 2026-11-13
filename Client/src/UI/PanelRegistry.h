@@ -186,6 +186,12 @@ struct PanelContext
     // 0x659ff6..0x65a8a3: lo que abrir la mascota hace si cerró lo demás, después de 0x420cb0: los pedidos del cuervo y
     // del caballo, C1 06 A9 00 00 01 y A9 01 00 08, con el XOR32 y por send() (CL9 hito 4). Sin él, abrirla corta.
     std::function<void()> petOpened{};
+    // 0x659c68..0x659c70: abrir las misiones, si cerró lo demás, es 0x419840(−1) sobre [0x710148] (la lista, con su
+    // diálogo). Sin él, abrir las misiones corta.
+    std::function<Core::Expected<void, std::string>()> questOpened{};
+    // 0x657b2b..0x657b31: cerrar las misiones es 0x419900, que pone la ventana en 0 (lo hace el registro) y manda el
+    // C1 03 31 en claro. Sin él, cerrar las misiones corta.
+    std::function<void()> questClosed{};
 };
 
 class PanelRegistry

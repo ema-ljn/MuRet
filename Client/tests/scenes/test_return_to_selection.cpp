@@ -15,6 +15,7 @@
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/QuestState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
@@ -266,6 +267,24 @@ TEST(ReturnToSelectionWithoutDataTest, TheReturnForgetsThePets)
     EXPECT_EQ(runtime.panels.delegated.pet, 0);
     EXPECT_EQ(runtime.pets[1].level, 0);
     EXPECT_EQ(runtime.pets[0].experience, 0u);
+}
+
+// 0x4c268a..0x4c26d2: las misiones vuelven a +4 = 0xff (el A0 se vuelve a pedir) y la ventana se cierra sin el 31.
+TEST(ReturnToSelectionWithoutDataTest, TheQuestsGoBackToTheirStart)
+{
+    const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
+    auto& runtime = tested->world.Runtime();
+    runtime.quest.characterClass = 1;
+    runtime.quest.current = 2;
+    runtime.quest.states[0] = 0xaa;
+    runtime.panels.delegated.quest = Client::Scenes::QuestListWindow;
+
+    ApplyReturnToSelection(tested->Resources());
+
+    EXPECT_EQ(runtime.quest.characterClass, Client::Scenes::QuestClassUnknown);
+    EXPECT_EQ(runtime.quest.current, 0);
+    EXPECT_EQ(runtime.quest.states[0], 0);
+    EXPECT_EQ(runtime.panels.delegated.quest, 0);
 }
 
 // 0x4c2515..0x4c252d: la vuelta deja los cinco del picking en −1, también el personaje elegido y 0x6c8e38.

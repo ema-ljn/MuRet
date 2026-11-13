@@ -6,6 +6,7 @@
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Quest.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
 #include "Protocol/Pet/PetInfo.h"
@@ -31,19 +32,20 @@ struct ReturnToSelectionReceived
 {
 };
 
-using WorldEvent =
-    std::variant<Protocol::Character::CharacterSelectResult, Protocol::Character::InventoryList, ClearInventoryReceived,
-                 ReturnToSelectionReceived, Protocol::World::Weather, Protocol::Movement::Walk,
-                 Protocol::Movement::Damage, Protocol::World::Teleport, Protocol::World::Regen,
-                 Protocol::Messages::Chat, Protocol::Messages::KeyChat, Protocol::Messages::Whisper,
-                 Protocol::Messages::WhisperResult, Protocol::Messages::Notice, Protocol::OptionData::OptionData,
-                 Protocol::Inventory::ItemMoveResult, Protocol::Inventory::ItemDelete, Protocol::Inventory::Durability,
-                 Protocol::Inventory::EquipmentChange, Protocol::Inventory::ItemPut, Protocol::Inventory::LifeRefill,
-                 Protocol::Inventory::ManaRefill, Protocol::Skill::MagicAttack, Protocol::Skill::DurationMagic,
-                 Protocol::Skill::MagicCancel, Protocol::Skill::ActorState, Protocol::Skill::ActorEffect,
-                 Protocol::Skill::SkillTarget, Protocol::Skill::SkillList, Protocol::Skill::SummonLife,
-                 Protocol::Pet::PetOrder, Protocol::Pet::PetAttack, Protocol::Pet::PetInfoReply,
-                 Protocol::Movement::Action, Protocol::Viewport::Players, Protocol::Viewport::Leave,
-                 Protocol::Viewport::Transformed, Protocol::Viewport::EquipmentShown, Protocol::Viewport::Position,
-                 Protocol::Combat::KillExperience, Protocol::Combat::Death>;
+using WorldEvent = std::variant<
+    Protocol::Character::CharacterSelectResult, Protocol::Character::InventoryList, ClearInventoryReceived,
+    ReturnToSelectionReceived, Protocol::World::Weather, Protocol::Movement::Walk, Protocol::Movement::Damage,
+    Protocol::World::Teleport, Protocol::World::Regen, Protocol::Messages::Chat, Protocol::Messages::KeyChat,
+    Protocol::Messages::Whisper, Protocol::Messages::WhisperResult, Protocol::Messages::Notice,
+    Protocol::OptionData::OptionData, Protocol::Inventory::ItemMoveResult, Protocol::Inventory::ItemDelete,
+    Protocol::Inventory::Durability, Protocol::Inventory::EquipmentChange, Protocol::Inventory::ItemPut,
+    Protocol::Inventory::LifeRefill, Protocol::Inventory::ManaRefill, Protocol::Skill::MagicAttack,
+    Protocol::Skill::DurationMagic, Protocol::Skill::MagicCancel, Protocol::Skill::ActorState,
+    Protocol::Skill::ActorEffect, Protocol::Skill::SkillTarget, Protocol::Skill::SkillList, Protocol::Skill::SummonLife,
+    Protocol::Pet::PetOrder, Protocol::Pet::PetAttack, Protocol::Pet::PetInfoReply, Protocol::Quest::QuestFlag,
+    Protocol::Quest::QuestList, Protocol::Quest::QuestStateChange, Protocol::Quest::SetQuestResult,
+    Protocol::Quest::QuestResult, Protocol::Movement::Action, Protocol::Viewport::Players, Protocol::Viewport::Leave,
+    Protocol::Viewport::Transformed, Protocol::Viewport::EquipmentShown, Protocol::Viewport::Position,
+    Protocol::Viewport::Monsters, Protocol::Viewport::Summons, Protocol::Viewport::Objects,
+    Protocol::Combat::KillExperience, Protocol::Combat::Death>;
 } // namespace Client::App

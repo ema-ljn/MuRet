@@ -73,9 +73,45 @@ struct ActorState
     std::uint16_t type = 0;   // +2: 0x20a es un jugador
     std::int32_t subtype = 0; // +4: el sufijo de 0x4f2250 lo compara con 209 a 211, con signo
     float scale = 0.0f;       // +0xc, de 0x512930
-    // +0x138, el techo de la caja del personaje (+0x124..+0x138): 0x511290 lo pone por el tipo y 0x5133b0 le suma, sin
-    // portar. Lo lee el globo (0x5a9050), que va 60 más arriba.
+    // La caja del personaje, de +0x124 a +0x138, relativa a su posición: 0x511290 pone el piso en (−60, −60, 0)
+    // (0x512270..0x5122b9) y el resto por el tipo (las tablas de 0x512700 y 0x5126e4, y 0x42d7f0 con el 0x19b y el
+    // 0x1f8). El picking (0x59e700) prueba la caja de +0x13c, que 0x505de0 arma con estos valores y la posición.
+    glm::vec3 boundsMin{};
+    // +0x130 y +0x134, la X y la Y del otro rincón.
+    float boundsMaxX = 0.0f;
+    float boundsMaxY = 0.0f;
+    // +0x138, el techo de la caja. 0x5133b0 le suma 70. Lo lee también el globo (0x5a9050), que va 60 más arriba.
     float boundsTop = 0.0f;
+    // +0x58, +0x60 y +0x64: 0x511290 pone el primero y el último en −1 (0x511d45, 0x51248d) y no toca el del medio;
+    // los casos de 0x5141e0 los escriben por el tipo. Qué son y quién los lee, sin leer.
+    std::int32_t dword58 = 0;
+    std::int32_t dword60 = 0;
+    std::int32_t dword64 = 0;
+    // +0x92 (1), +0x93 (0xa), +0x94 (1,2f), +0x98 (0) y +0xe8 (1) desde 0x511290 (0x511c70..0x511c88, 0x511bfe y
+    // 0x511be6). El 13 pone en +0x93 los bits 4..6 del tipo alto (0x4c9ee9). Quién los lee, sin leer.
+    std::uint8_t byte92 = 0;
+    std::uint8_t byte93 = 0;
+    float float94 = 0.0f;
+    std::uint8_t byte98 = 0;
+    std::uint8_t byteE8 = 0;
+    // +0xcc, +0xd0 y +0xe4: el empujón del tipo 0xf1 que pone el DF (0x4c6b40): 20 en +0xe4 y la diferencia de celdas
+    // por 400 en las otras dos. +0xd8: 0x511290 lo pone en 0 (0x511c56); el creador de Castle Siege le copia la Z
+    // (0x42d23e). +0xd4 y los cinco son también el vuelo del que muere empujado (más abajo, ActorDying.h).
+    float floatCC = 0.0f;
+    float floatD0 = 0.0f;
+    float floatD4 = 0.0f;
+    float floatD8 = 0.0f;
+    float floatE4 = 0.0f;
+    // +0x38a (0, 0x511c0c), +0x394 (0, 0x511ceb), +0x3e4 y +0x42d (el bit 7 del tipo alto del 13, 0x4c9ee3): los
+    // escriben las altas de los monstruos. Quién los lee, sin leer. +0x38f (0x42d7f0 lo pone en 0 con el 0x19b) es
+    // attackCount y +0x3a4 (la cola 0x5140c0 le copia el WORD de [0x57678b0], WorldRuntime::heroSlot) es attackTarget,
+    // más abajo.
+    std::uint8_t byte38a = 0;
+    std::int32_t dword394 = 0;
+    std::uint8_t byte3e4 = 0;
+    std::uint8_t byte42d = 0;
+    // +0x428: −0x80 desde 0x511290 (0x511c77); el 68 lo pone en 0x96 (0x4e0b8a). Quién lo lee, sin leer.
+    std::int32_t dword428 = 0;
     // +0x7c: con 0x200000, 0x4f2250 sienta al personaje (la acción 0xca). Quién lo escribe, sin leer.
     std::uint32_t flags7c = 0;
     // +0x78: 0x511290 lo pone en 0 (0x511d51). Del jinete lo leen el paso del caballo (con 0x4000, sin
@@ -176,6 +212,9 @@ struct ActorState
     // héroe, 0x5ffdf0 baja el alpha de cada objeto que posa (0x5ffe09).
     std::uint8_t byte1a1 = 0;
     std::uint8_t byte1e3 = 0; // +0x1e3: la respuesta del F3 03 lo pone en 0 (0x4c4844); qué es, sin leer
+    // +0x1e4..+0x1f1: lo que un nombre de monstruo de más de diez bytes pisa después de +0x1e3 (el strcpy sin tope de
+    // 0x5141e0 y el strcat del 1F, Q-C847). Qué guarda el original ahí, sin leer.
+    std::array<std::byte, 14> nameSpill{};
     // +0x1f4: la clave del personaje. 0x517270 pone el lugar de la selección (0x5172a8) y la respuesta del
     // F3 03 la del jugador (0x57678bc, 0x4c4516). 0x510f70 mata a los que no tienen la del héroe.
     std::uint16_t key = 0;
@@ -226,11 +265,7 @@ struct ActorState
     std::uint8_t byte1bc = 0;
     // +0x3c8: cuánto lleva muriéndose, que 0x4fb9e0 sube de a 0,02 (ActorDying.h). 0x511290 lo pone en 0 (0x51247a).
     float dyingTime = 0.0f;
-    float floatCc = 0.0f;
-    float floatD0 = 0.0f;
-    float floatD4 = 0.0f;
-    float floatD8 = 0.0f;
-    float floatE4 = 0.0f;
+    // +0xcc..+0xe4: floatCC, floatD0, floatD4, floatD8 y floatE4, más arriba.
     glm::vec3 push{};
     glm::vec3 pushOrigin{};
     std::uint8_t byte399 = 0;
@@ -250,6 +285,11 @@ struct ActorState
     // Cuántos accesos tienen abiertas las entradas de +0x41c y +0x420 (Render::Models::LogicalAccess).
     std::uint8_t cellXAccesses = 0;
     std::uint8_t cellYAccesses = 0;
+    // Los cuatro bytes de +0x41c y +0x420 como los deja el último acceso de 0x511290: si su cierre dejó la cuenta en
+    // 0, los rand() & 0xff de 0x412890 (Q-C125); si no, la celda en claro. Solo los lleva 0x511290: el único que los
+    // lee sin abrir, el 13 (0x4c9d01..0x4c9d36), lo hace justo después del alta (Q-C849).
+    std::uint32_t cellXLeft = 0;
+    std::uint32_t cellYLeft = 0;
     // Profundidad de la entrada de un byte +0x38e, que el dibujo consulta antes de cada mano.
     std::uint8_t byte38eAccesses = 0;
     // +0x38e: el valor lógico. Con ')' (0x29) el lazo de las manos de 0x50ba30 saltea la derecha en la

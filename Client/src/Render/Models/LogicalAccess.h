@@ -9,8 +9,9 @@
 // rand() de la CRT los que el original gasta al volver a cifrar la entrada, uno por byte. El byte
 // envuelve (255 + 1 = 0) y gasta el cierre que lo deja en 0, aunque no sea el de más afuera.
 // No hace el alta ni la búsqueda de la entrada (0x40ad90, 0x40b240), ni deja en la variable los
-// rand() & 0xff del último cierre (Q-C125). La cuenta con la que arranca cada entrada la pone el
-// dueño del byte: la del original no está leída (CL7.P, P-C22 c).
+// rand() & 0xff del último cierre (Q-C125), salvo que el dueño pida esos bytes (`left`, hasta 4). La
+// cuenta con la que arranca cada entrada la pone el dueño del byte: la del original no está leída
+// (CL7.P, P-C22 c).
 namespace Client::Render::Models
 {
 class CrtRandom;
@@ -29,6 +30,11 @@ public:
     // volver a cifrarse (SmallLogicalCloseRandoms u OwnRecordCloseRandoms). Un temporal suelto
     // abriría y cerraría en la misma sentencia: nodiscard lo avisa.
     [[nodiscard]] LogicalAccess(std::uint8_t& depth, CrtRandom& random, std::uint16_t closeRandoms);
+    // Lo mismo, y el cierre que deja la cuenta en 0 escribe en `left` lo que 0x412890 deja en la
+    // variable (0x4128e2..0x4128f9): el rand() & 0xff de cada byte, el primero abajo. Con otra
+    // cuenta, `left` queda como estaba (la variable sigue en claro). Solo con closeRandoms de 1 a 4.
+    [[nodiscard]] LogicalAccess(std::uint8_t& depth, CrtRandom& random, std::uint16_t closeRandoms,
+                                std::uint32_t& left);
     LogicalAccess(const LogicalAccess&) = delete;
     LogicalAccess& operator=(const LogicalAccess&) = delete;
     // Cierra el acceso.
@@ -38,5 +44,6 @@ private:
     std::uint8_t& m_depth;
     CrtRandom& m_random;
     std::uint16_t m_closeRandoms;
+    std::uint32_t* m_left = nullptr;
 };
 } // namespace Client::Render::Models

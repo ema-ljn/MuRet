@@ -17,6 +17,7 @@
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/Pet/PetOrders.h"
 #include "Protocol/Skill.h"
+#include "Protocol/Quest.h"
 #include "Protocol/Viewport.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
@@ -29,9 +30,11 @@
 #include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/InventoryReply.h"
+#include "Scenes/MonsterViewport.h"
 #include "Scenes/MovementReplies.h"
 #include "Scenes/PetOrders.h"
 #include "Scenes/PetStats.h"
+#include "Scenes/QuestReplies.h"
 #include "Scenes/ReturnToSelection.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
@@ -69,11 +72,13 @@ void ApplyWeather(const Protocol::World::Weather& received, World::LeafWeather& 
         weather.target = static_cast<std::int32_t>(received.code & IntensityMask) * TargetPerIntensity;
 }
 
-// 0x42a760 manda el B9 02 por el socket del GS al cargar el 30: el de la sesión que aplica la respuesta.
+// 0x42a760 manda el B9 02 por el socket del GS al cargar el 30: el de la sesión que aplica la respuesta. Y 0x419900,
+// al cerrar las misiones, el C1 03 31 por la misma sesión.
 WorldEntryResources WithTheSiegeRequest(const WorldEntryResources& resources, App::ServerSession& session)
 {
     WorldEntryResources bound = resources;
     bound.requestCastleSiegeState = [&session] { session.RequestCastleSiegeState(); };
+    bound.sendWindowClose = [&session] { session.SendWindowClose(); };
     return bound;
 }
 
@@ -236,6 +241,12 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplyViewp
         return ApplyEquipmentShown(*shown, m_resources);
     if (const auto* position = std::get_if<Protocol::Viewport::Position>(&event))
         return ApplyViewportPosition(*position, m_resources);
+    if (const auto* monsters = std::get_if<Protocol::Viewport::Monsters>(&event))
+        return ApplyViewportMonsters(*monsters, m_resources);
+    if (const auto* summons = std::get_if<Protocol::Viewport::Summons>(&event))
+        return ApplySummons(*summons, m_resources);
+    if (const auto* objects = std::get_if<Protocol::Viewport::Objects>(&event))
+        return ApplyViewportObjects(*objects, m_resources);
     return std::nullopt;
 }
 
@@ -271,6 +282,20 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         return ApplyEquipmentChange(*change, m_resources);
     if (const auto* put = std::get_if<Protocol::Inventory::ItemPut>(&event))
         return ApplyItemPut(*put, m_resources);
+    // Las misiones (CL9 hito 2).
+    if (const auto* flag = std::get_if<Protocol::Quest::QuestFlag>(&event))
+    {
+        ApplyQuestFlag(*flag, m_resources.world);
+        return {};
+    }
+    if (const auto* list = std::get_if<Protocol::Quest::QuestList>(&event))
+        return ApplyQuestList(*list, m_resources.world);
+    if (const auto* state = std::get_if<Protocol::Quest::QuestStateChange>(&event))
+        return ApplyQuestState(*state, WithTheSiegeRequest(m_resources, session));
+    if (const auto* set = std::get_if<Protocol::Quest::SetQuestResult>(&event))
+        return ApplySetQuestResult(*set, WithTheSiegeRequest(m_resources, session));
+    if (const auto* result = std::get_if<Protocol::Quest::QuestResult>(&event))
+        return ApplyQuestResult(*result, m_resources);
     if (const auto* inventory = std::get_if<Protocol::Character::InventoryList>(&event))
     {
         const auto applied = ApplyInventory(*inventory, m_resources);

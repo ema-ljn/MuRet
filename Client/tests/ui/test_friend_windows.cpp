@@ -8,6 +8,7 @@
 #include "UI/FriendModel.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
+#include "UI/OldWindowSteps.h"
 #include "UI/OldWindows.h"
 
 #include <gtest/gtest.h>
@@ -370,6 +371,29 @@ TEST_F(FriendWindowsTest, ANewWindowRowIsChosenWithoutScroll)
     EXPECT_EQ(tab.tab.windows[0].title, "aviso tres");
     EXPECT_EQ(tab.tab.list.selection, 1);
     EXPECT_EQ(tab.tab.list.scroll, 0);
+}
+
+// 0x4914f0 vacía la lista con su vtable + 0x2c (0x47d320): sin renglones queda sin elegido (+0x58(0), 0x47de10) y sin
+// corrimiento; con renglones, el último que entra deja elegido el primero.
+TEST_F(FriendWindowsTest, RefillingTheWindowsTabResetsTheChoiceAndTheScroll)
+{
+    ASSERT_TRUE(OpenFriends().HasValue());
+    Client::UI::OldList& list = Friends().tabs[2].tab.list;
+    list.selection = 2;
+    list.scroll = 1;
+    Client::UI::Steps::FillTheWindowsTab(m_manager);
+    EXPECT_TRUE(Friends().tabs[2].tab.windows.empty());
+    EXPECT_EQ(list.selection, 0);
+    EXPECT_EQ(list.scroll, 0);
+
+    OpenABox(Client::UI::NoticeCase, "aviso uno");
+    OpenABox(Client::UI::NoticeCase, "aviso dos");
+    list.selection = 2;
+    list.scroll = 1;
+    Client::UI::Steps::FillTheWindowsTab(m_manager);
+    ASSERT_EQ(Friends().tabs[2].tab.windows.size(), 2u);
+    EXPECT_EQ(list.selection, 1);
+    EXPECT_EQ(list.scroll, 0);
 }
 
 // 0x4a2f70: la F la cierra si está arriba y el chat cerrado.

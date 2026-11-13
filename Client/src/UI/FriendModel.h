@@ -8,7 +8,11 @@
 
 // La lista de amigos del juego (CL9 hito 9; 06 § HUD y ventanas, "Los amigos"): el objeto de [0x5763518], que llenan
 // los paquetes C0..C4 (0x4dc010..0x4dc720) y que la pestaña de amigos copia a su lista (0x49bd60). Es un std::deque de
-// la STL de MSVC6 con elementos de 0x14 bytes y un iterador de trabajo (+0x34) que MuRet no necesita.
+// la STL de MSVC6 con elementos de 0x14 bytes y un iterador de trabajo (+0x34) que MuRet no necesita. El std::deque
+// de MuRet reemplaza la instancia del original sobre FriendEntry, la del modelo y la de la pestaña (push_back,
+// pop_front, sus iteradores y el mapa del deque): 0x472d30, 0x4733c0, 0x473830, 0x473860, 0x473a20, 0x476b20,
+// 0x476c70, 0x476cf0, 0x476d10, 0x476d80, 0x4784d0, 0x47a770, 0x4874e0, 0x487560, 0x4875f0, 0x4a76b0, 0x4a7bd0 y
+// 0x4a7d20.
 namespace Client::UI
 {
 // El nombre de un amigo: strncpy de 10 con el '\0' en +0xe (0x49b220).

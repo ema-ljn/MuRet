@@ -16,6 +16,7 @@
 #include "Scenes/GameChat.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameDialogDrawing.h"
+#include "Scenes/GameFriends.h"
 #include "Scenes/GameHover.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameItemSpecialDrawing.h"
@@ -31,6 +32,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldTexts.h"
+#include "UI/ChatInput.h"
 #include "UI/GameCursor.h"
 #include "UI/GameUiState.h"
 #include "UI/OldWindowDraw.h"
@@ -353,10 +355,17 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .sprites = canvas.sprites, .text = canvas.text, .dcFont = hud.hud.dcFont, .textColors = hud.hud.textColors};
     // 0x659290(1) no saca rand(): se puede mirar antes de la ventana que la pregunta.
     GamePanels panels(*m_context.world, FrameCloth().random);
+    // Los textos de la ventana de amigos, la lista con las flechas del teclado (0x5762ec0) y el EDIT con el foco de
+    // Windows (GetFocus() de 0x468320: el de las ventanas viejas, con ChatFocus::OldWindow).
+    const UI::OldWindowTexts friendTexts = OldWindowTextsOf(m_texts);
+    const bool editFocused = runtime.chat.input.focus == UI::ChatFocus::OldWindow;
     const UI::OldWindowDrawView windowView{.mouseX = hud.mouse.x,
                                            .mouseY = hud.mouse.y,
                                            .leftClick = runtime.movement.pendingClick,
-                                           .friendsOpen = panels.Registry().IsOpen(UI::FriendsPanel)};
+                                           .friendsOpen = panels.Registry().IsOpen(UI::FriendsPanel),
+                                           .texts = &friendTexts,
+                                           .focusedList = runtime.ui.focusedList,
+                                           .focusedEdit = editFocused ? oldWindows.focusedEdit : 0};
     if (auto windows = UI::DrawTheOldWindows(oldWindows, windowContext, windowView); !windows.HasValue())
         return windows;
     if (auto list = UI::DrawTheWindowList(oldWindows, windowContext, windowView); !list.HasValue())

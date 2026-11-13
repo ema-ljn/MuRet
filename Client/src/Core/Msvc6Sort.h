@@ -5,7 +5,8 @@
 
 // El std::sort de la STL de MSVC6 (el <algorithm> de Dinkumware de VC6), que no es estable y deja los iguales en un
 // orden propio: el original lo instancia sobre los deque de sus listas (0x49c260 con 0x4ab930, el _Sort; 0x4ac4a0, el
-// _Insertion_sort; 0x4abe00, el _Unguarded_insert; 0x4ac6c0, el _Median, y 0x4ac760, el _Unguarded_partition). Para
+// _Insertion_sort; 0x4abe00, el _Unguarded_insert; 0x4ac6c0, el _Median, y 0x4ac760, el _Unguarded_partition, con el
+// iterador del deque, 0x4acc70, y la copia de un elemento, 0x4accd0). Para
 // que los iguales queden donde los deja el original, MuRet corre el mismo algoritmo y no el std::sort de su STL.
 // `items` es un contenedor con operator[] y size() (un std::deque o un std::vector), y `less` el comparador del
 // original, que puede no ser un orden estricto.

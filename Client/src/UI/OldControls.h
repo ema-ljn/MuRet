@@ -65,7 +65,10 @@ struct OldList
     std::int32_t refreshed = 0;
 };
 
-// 0x4720e0, la vtable + 0x54: los que tiene (+0xa8), o +0xf8 con +0xc8 en 1.
+// 0x4720e0, la vtable + 0x54: los que tiene (+0xa8), o +0xf8 con +0xc8 en 1. 0x4722c0, la de la lista de ventanas
+// (0x6b916c + 0x54 y 0x6b920c + 0x54), es la misma. 0x4722b0 (+0x104 = renglones), la + 0x40 de la vtable intermedia
+// de la lista de ventanas (0x6b920c, que 0x462010 pone en 0x4620f1 y cambia por 0x6b916c en 0x462170 sin llamarla),
+// está muerta: la lista armada tiene la de 0x4625c0 (*estático*).
 [[nodiscard]] std::int32_t ListCount(const OldList& list, std::size_t size);
 
 // 0x47a910, la vtable + 0x34: con menos que los renglones (sin signo), nada; si no, corre `lines` hacia el principio
@@ -151,12 +154,23 @@ using OldListRowHover = std::function<std::int32_t(std::int32_t row, std::size_t
 
 // El EDIT de las ventanas viejas, 0x4674c0 (vtable 0x6b9550): un EDIT de Windows hijo de la ventana del juego, con su
 // subclase 0x467b10. MuRet guarda el texto con el tope de EM_LIMITTEXT (0x467f30) y deja afuera lo que el original
-// dibuja con el DC del EDIT (el cursor, la selección, las flechas y la barra de 0x468d50: P-C86).
+// dibuja con el DC del EDIT (la selección, las flechas y la barra de 0x468d50: P-C86); el cursor, al final del texto
+// (0x468320, P-C181).
 struct OldEdit
 {
     OldWindowBase base;
-    // +0x4c: con 1 solo números, con 2 letras y números en mayúscula (0x467b10). La caja de agregar un amigo, 8.
+    // +0x4c: con 1 solo números, con 2 letras y números en mayúscula (0x467b10). La caja de agregar un amigo, 8, que no
+    // filtra y le pone al dibujo el negro de fondo (0x468477).
     std::int32_t filter = 0;
     TextField text{10, false, TextField::Charset::Latin1};
+    // +0x80: los dibujos (0x468320 suma uno al final de cada uno); el cursor se ve con el resto de 24 menor que 12.
+    std::int32_t draws = 0;
+    // +0x9c y +0xa0 (0x4674c0; la vtable + 0x40 y + 0x44): los colores del texto y del fondo del bitmap del EDIT
+    // (0x468320), como los lee la CL8 (UI/GameHud, 0x4691e0). Los píxeles del medio (+0xa4, 0xff969696) los pone el
+    // dibujo del texto de MuRet.
+    std::uint32_t textColor = 0xffffffffu;
+    std::uint32_t backgroundColor = 0xff000000u;
+    // +0xac: el alto de "1" en píxeles (0x6c7af4), que 0x468320 mide la primera vez (0 hasta entonces).
+    float caretHeight = 0.0f;
 };
 } // namespace Client::UI

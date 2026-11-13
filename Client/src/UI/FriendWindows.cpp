@@ -28,11 +28,6 @@ constexpr std::int32_t TopLeftRect = 1;
 // 0x41ed10(0x19, 0, 0) y 0x41ed10(0x1c, 0, 0): quedan en el último sonido; MuRet no tiene audio hasta la CL10.
 constexpr std::int32_t ButtonSound = 0x19;
 constexpr std::int32_t OpenSound = 0x1c;
-// +0xb0 de la de amigos: los amigos, las cartas y las ventanas.
-constexpr std::int32_t FriendTabNumber = 0;
-constexpr std::int32_t LettersTabNumber = 1;
-constexpr std::int32_t WindowsTabNumber = 2;
-constexpr std::size_t TabCount = 3;
 // Text.bmd.
 constexpr std::size_t FriendsTitleText = 990;
 constexpr std::size_t ReconnectTitleText = 1066;
@@ -80,7 +75,7 @@ constexpr std::int32_t LetterListHeaders = 0x19;
 constexpr std::int32_t HeaderWidth = 0x35;
 constexpr std::int32_t HeaderHeight = 0x13;
 constexpr std::int32_t HeaderY = 2;
-constexpr std::array<std::int32_t, TabCount> HeaderX{0, 0x35, 0x6a};
+constexpr std::array<std::int32_t, FriendsTabCount> HeaderX{0, 0x35, 0x6a};
 constexpr std::int32_t StateButtonPad = 0x10;
 constexpr std::int32_t StateButtonY = 4;
 constexpr std::int32_t StateButtonHeight = 0x14;
@@ -686,7 +681,7 @@ void SettleTheTab(OldWindowManager& manager, OldWindow& tab)
 
 // El 8 o el 9 de 0x45aa50 sobre una pestaña sin los globales del paso: su vtable + 0x28 no hace nada con ellos
 // (0x49d0b0, 0x49ea50 y 0x4a11b0 dan 0) y su paso con 1 solo vacía las colas de sus hijas. Lo que no es 8 ni 9 queda
-// en la cola para el próximo paso (P-C180).
+// en la cola para el próximo paso (P-C186).
 void PlaceTheTabForTheDraw(OldWindowManager& manager, OldWindow& tab, std::int32_t type)
 {
     std::deque<OldMessage> rest;
@@ -754,7 +749,7 @@ Core::Expected<void, std::string> StepTheFriendsChildren(OldWindowManager& manag
         // 0x4a2f70: la pestaña a la vista, si no se la arrastra ni cambia de tamaño; después la F la cierra.
         const std::int32_t current = window.friends.currentTab;
         if (window.base.state != DraggedWindow && window.base.state != ResizedWindow && current >= 0 &&
-            current < static_cast<std::int32_t>(TabCount))
+            current < static_cast<std::int32_t>(FriendsTabCount))
         {
             if (auto stepped =
                     StepTheWindow(manager, window.tabs[static_cast<std::size_t>(current)], arg, globals, view);
@@ -815,7 +810,7 @@ Core::Expected<void, std::string> SettleTheFriendsKinds(OldWindowManager& manage
     {
         // 0x4a23c0: el 8 y el 9 a las tres (+0xb8, +0x4d0 y +0x738), su vtable + 0x30 y la lista de los amigos a
         // 0x5762ec0.
-        constexpr std::array<std::size_t, TabCount> Order{FriendTabNumber, WindowsTabNumber, LettersTabNumber};
+        constexpr std::array<std::size_t, FriendsTabCount> Order{FriendTabNumber, WindowsTabNumber, LettersTabNumber};
         for (const std::int32_t type : {PlaceMessage, SizeMessage})
         {
             for (const std::size_t at : Order)
@@ -856,8 +851,10 @@ Core::Expected<OldWindow, std::string> MakeTheFriendsWindow(OldWindowManager& ma
 {
     OldWindow window = MakeTheFrame(manager);
     window.kind = OldWindowKind::FriendsWindow;
-    window.tabs.resize(TabCount);
-    // Los campos en orden: +0xb8 (amigos), +0x4d0 (ventanas) y +0x738 (cartas).
+    window.tabs.resize(FriendsTabCount);
+    // Los campos en orden: +0xb8 (amigos, 0x48fa60), +0x4d0 (ventanas, 0x48fc80) y +0x738 (cartas, 0x48fd90; su lista
+    // y sus botones son del hito 10). Cada una sobre el marco (0x491ca0) con la vtable de las pestañas (0x6b9e80), su
+    // lista (0x460970, 0x462010 o 0x463190) y sus botones (0x45ad80).
     window.tabs[FriendTabNumber] = MakeTheTab(manager, OldWindowKind::FriendTab, 4);
     window.tabs[WindowsTabNumber] = MakeTheTab(manager, OldWindowKind::WindowsTab, 1);
     window.tabs[LettersTabNumber] = MakeTheTab(manager, OldWindowKind::LettersTab, 4);
@@ -931,6 +928,8 @@ OldWindow MakeTheAddFriendBox(OldWindowManager& manager, const OldWindowRequest&
     edit.base.height = EditHeight;
     edit.base.parent = base.id;
     edit.filter = AddNameFilter;
+    // 0x4a3645 y 0x4a365e: la fuente normal (+0x34 con 0x5763554) y el fondo en 0 (+0x44(0, 0, 0, 0)): transparente.
+    edit.backgroundColor = 0;
     edit.base.placeMode = 0;
     edit.base.placeX = EditX;
     edit.base.placeY = EditY;
@@ -992,8 +991,12 @@ void FillTheWindowsTab(OldWindowManager& manager)
     OldWindow* friends = FriendsWindowOf(manager);
     if (friends == nullptr)
         return;
-    // La vtable + 0x2c de la lista (0x47d320): vacía.
-    friends->tabs[WindowsTabNumber].tab.windows.clear();
+    // La vtable + 0x2c de la lista (0x47d320): vacía, marca todos los renglones en 0 (+0x48, 0x47da60: sin renglones,
+    // nada), elige el 0 (+0x58, 0x47de10, como 0x47aef0) y vuelve el corrimiento (+0x100) a 0.
+    OldTabPart& tab = friends->tabs[WindowsTabNumber].tab;
+    tab.windows.clear();
+    SelectInTheList(tab.list, 0, 0);
+    tab.list.scroll = 0;
     for (const auto& [id, window] : manager.windows)
     {
         if (id == manager.friends || window.base.state == MinimizedWindow)
@@ -1161,7 +1164,7 @@ void SettleTheFriendsForTheDraw(OldWindowManager& manager, OldWindow& window)
     }
     if (window.kind != OldWindowKind::FriendsWindow)
         return;
-    constexpr std::array<std::size_t, TabCount> Order{FriendTabNumber, WindowsTabNumber, LettersTabNumber};
+    constexpr std::array<std::size_t, FriendsTabCount> Order{FriendTabNumber, WindowsTabNumber, LettersTabNumber};
     // 0x4a2620: el 8 a las tres y su estado en 4; cambiando de tamaño, también el 9 y el estado en 1.
     if (moving)
     {
@@ -1177,17 +1180,17 @@ void SettleTheFriendsForTheDraw(OldWindowManager& manager, OldWindow& window)
                 window.tabs[at].base.state = ResizedWindow;
         }
     }
-    // El dibujo de la pestaña a la vista (0x49cc20, 0x4a0a30 o 0x49e7f0): arrastrada o cambiando de tamaño, el 8 a los
-    // botones y a la lista y, cambiando de tamaño, el 9 a la lista.
+    // El dibujo de la pestaña a la vista (0x49cc20, 0x4a0a30 o 0x49e7f0): arrastrada o cambiando de tamaño, el 8 a la
+    // lista y a los botones y, cambiando de tamaño, el 9 a la lista.
     const std::int32_t current = window.friends.currentTab;
-    if (current < 0 || current >= static_cast<std::int32_t>(TabCount))
+    if (current < 0 || current >= static_cast<std::int32_t>(FriendsTabCount))
         return;
     OldWindow& tab = window.tabs[static_cast<std::size_t>(current)];
     if (tab.base.state != DraggedWindow && tab.base.state != ResizedWindow)
         return;
+    PostToTheList(manager, tab, PlaceMessage);
     for (OldButton& button : tab.tab.buttons)
         Steps::PostAndSettle(manager, button, PlaceMessage);
-    PostToTheList(manager, tab, PlaceMessage);
     if (tab.base.state == ResizedWindow)
         PostToTheList(manager, tab, SizeMessage);
 }

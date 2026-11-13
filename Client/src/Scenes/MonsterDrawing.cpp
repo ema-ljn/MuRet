@@ -10,6 +10,7 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRotation.h"
+#include "Render/Models/PassColors.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Models/Skinning.h"
@@ -476,13 +477,95 @@ Result DrawTheFlareOf0x46(MonsterFrame& frame)
     return {};
 }
 
-// 0x50bf45..0x50c904: lo que se agrega por el +0x376. El 0x45, hasta sus partículas, y el 0x46; los demás cortan.
+// 0x60b130(modelo, objeto, tipo, +0x174, banderas, factor, textura) con el modelo de un monstruo. Sin el 0x10 y con un
+// tipo que no es el 0x188 (0x60b15e) ni uno de los ítems de 0x60b1dd..0x60b2cf, 0x608e00(tipo, +0x174, factor, +0x48,
+// banderas >> 8 & 1) deja en el color del modelo k = +0x174 · factor (en la x87) por el color del tipo: el de
+// Render::Models::ShineColorOf, salvo el 0x16d con el 0x100, que va por el caso 8 de 0x60936c, (0,8k; 0,8k; k).
+// Después, RenderBody(banderas, +0x174, +0x64, +0x68, +0x6c, +0x70, −1, textura), que no mira el 0x100.
+Result DrawTheShinePass(MonsterFrame& frame, MonsterBodyModel& model, std::uint32_t flags, float factor,
+                        std::int32_t texture)
+{
+    const ActorState& actor = frame.actor;
+    constexpr std::uint32_t Lit = 0x10;
+    constexpr std::uint32_t SecondColor = 0x100;
+    const auto special = [](std::uint16_t type)
+    {
+        constexpr std::array<std::uint16_t, 9> Items{0x188, 0x619, 0xc17, 0x226, 0x227, 0x231, 0x81c, 0xe22, 0x61a};
+        return OneOf(type, Items) || Within(type, 0x61a, 0x61f);
+    };
+    if ((flags & Lit) != 0 || special(actor.type))
+        return Cut("0x60b130", "el pase de brillo con el 0x10 o con un modelo de ítem", actor.type);
+    const double k = D(actor.alpha) * D(factor);
+    constexpr std::uint16_t Gorgon = 0x16d;
+    const Render::Color base =
+        (flags & SecondColor) != 0 && actor.type == Gorgon
+            ? Render::Color{std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3f4ccccdu), 1.0f, 1.0f}
+            : Render::Models::ShineColorOf(actor.type);
+    model.object.color = {F32(k * D(base.red)), F32(k * D(base.green)), F32(k * D(base.blue))};
+    BodyPassArgs args = ActorPassArgs(actor);
+    args.hiddenMesh = -1;
+    args.texture = texture;
+    return DrawBodyPass(model, flags & ~SecondColor, args);
+}
+
+// 0x50c671..0x50c705: los +0x376 0x26, 0x2b, 0x34, 0x3b, 0x43 y 0x4e a 0x53, con el factor en 1 (0,5 el 0x3b): el
+// 0x2b y los 0x4e a 0x53 con el pase 0x48 y después todos con el 0x44 (el 0x43, 0x144). 0x50c71b..0x50c74e: el 0x35 y
+// el 0x36 con el 0x48 y la textura 0x5fd. 0x50c8ce..0x50c901: el 0x87 con el 0x140. Todos sobre las mallas de
+// 0x5786f9c, que MuRet vuelve a pasar a la pose guardada (+0x120) con la posición, los ángulos y la escala, como la
+// sombra; si el monstruo nunca se posó (el alpha por debajo de 0,01f desde que llegó), el original las dibuja con las
+// de otro modelo y un color de menos de un centésimo, y MuRet no dibuja (Q-C863). El +0x44 del modelo (la luz por
+// vértice, que mira el 0x140) es el de 0x5ffce0 (*inferido*: la sombra no lo toca).
+Result DrawTheShines(MonsterFrame& frame)
+{
+    const ActorState& actor = frame.actor;
+    const std::uint16_t monster = actor.word376;
+    if (actor.bodyPose.empty())
+        return {};
+    DrawnObject object;
+    object.model = actor.type;
+    object.animation = actor.animation;
+    object.transform = {.position = actor.position, .angles = actor.angles, .scale = actor.scale};
+    object.state = Render::Models::ObjectState{.blendMesh = static_cast<std::int16_t>(actor.dword64),
+                                               .light = actor.blendMeshLight,
+                                               .uv = {},
+                                               .hiddenMesh = static_cast<std::int16_t>(actor.dword58)};
+    object.alpha = actor.alpha;
+    object.vertexLight = actor.byteE8 != 0 && actor.type != 0x189 && actor.type != 0xe4;
+    const std::vector<Render::Models::SkinnedMesh> meshes = SkinObjectMeshes(frame.fauna, object, actor.bodyPose);
+    MonsterBodyModel model{.batch = frame.batch,
+                           .models = frame.fauna,
+                           .object = object,
+                           .meshes = meshes,
+                           .frameClock = frame.pass.frameClock};
+    constexpr std::uint32_t Shiny = 0x48;
+    constexpr std::uint32_t Chrome = 0x44;
+    constexpr std::int32_t OwnTexture = -1;
+    if (monster == 0x35 || monster == 0x36)
+    {
+        constexpr std::int32_t Flare = 0x5fd;
+        return DrawTheShinePass(frame, model, Shiny, 1.0f, Flare);
+    }
+    if (monster == 0x87)
+        return DrawTheShinePass(frame, model, 0x140, 1.0f, OwnTexture);
+    const float factor = monster == 0x3b ? 0.5f : 1.0f;
+    if (monster == 0x2b || Within(monster, 0x4e, 0x53))
+    {
+        if (auto first = DrawTheShinePass(frame, model, Shiny, factor, OwnTexture); !first.HasValue())
+            return first;
+    }
+    return DrawTheShinePass(frame, model, monster == 0x43 ? 0x144 : Chrome, factor, OwnTexture);
+}
+
+// 0x50bf45..0x50c904: lo que se agrega por el +0x376. El 0x45, hasta sus partículas, el 0x46 y los pases de brillo
+// (MonsterShines); los demás cortan.
 Result DrawTheDecorations(MonsterFrame& frame)
 {
     if (frame.actor.word376 == 0x45)
         return DrawTheSparksOf0x45(frame);
     if (frame.actor.word376 == 0x46)
         return DrawTheFlareOf0x46(frame);
+    if (MonsterShines(frame.actor.word376))
+        return DrawTheShines(frame);
     return CheckMonsterDecorations(frame.actor.word376);
 }
 
@@ -861,6 +944,12 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
                                        .originalFrame = frame.originalFrame});
 }
 } // namespace
+
+bool MonsterShines(std::uint16_t monster)
+{
+    constexpr std::array<std::uint16_t, 8> Shining{0x26, 0x2b, 0x34, 0x3b, 0x43, 0x35, 0x36, 0x87};
+    return OneOf(monster, Shining) || Within(monster, 0x4e, 0x53);
+}
 
 bool WearsClothOnTheMesh(std::uint16_t monster)
 {

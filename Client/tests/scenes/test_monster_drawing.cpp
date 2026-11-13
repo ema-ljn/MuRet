@@ -536,7 +536,7 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
     // lo que cuelga y de su rand() % 30, en el primer hueso con nombre que su alta no registró (0x427291); lo de
     // 0x50bf45, después de la sombra.
     constexpr std::array cases{Case{Spider, 0x59, "0x50bb96", 0, 0}, Case{HelperType, 0x20, "0x427291", 6, 4},
-                               Case{Spider, 0x26, "0x50c671", 6, 0}, Case{0x18e, 0x21, "0x4ee770", 0, 4}};
+                               Case{Spider, 0x4d, "0x50c177", 6, 0}, Case{0x18e, 0x21, "0x4ee770", 0, 4}};
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.address);
@@ -549,6 +549,105 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
         EXPECT_NE(result.Error().find(value.address), std::string::npos) << result.Error();
         EXPECT_EQ(m_batch.Vertices().size(), value.vertices);
         EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(value.randoms));
+        TearDown();
+    }
+}
+
+// 0x50c671, 0x50c71b y 0x50c8ce: después de la sombra, los pases de brillo de 0x60b130 sobre la pose del cuerpo, con
+// el color de 0x608e00 (k = alpha · factor por el del modelo: (1; 0,5; 0) el de todos, (0,8; 0,8; 1) el 0x16d con el
+// 0x100) y RenderBody aditivo: el 0x44 con la textura 0x5c0, el 0x48 con la 0x5fc (o la 0x5fd del 0x35 y el 0x36) y el
+// 0x140 sin brillo, con la del modelo. En Lorencia y en Devias, igual: no miran el mapa ni sacan rand().
+TEST_F(MonsterDrawingTest, TheGlowingMonstersAddTheirShinePasses)
+{
+    struct Shine
+    {
+        std::uint16_t slot;
+        float red;
+        float green;
+        float blue;
+    };
+    struct Case
+    {
+        std::uint16_t type;
+        std::uint16_t monster;
+        bool shadow;
+        std::vector<Shine> passes;
+    };
+    const std::vector<Case> cases{
+        {Spider, 0x26, true, {{0x5c0, 1.0f, 0.5f, 0.0f}}},
+        // El 0x3b, sin sombra, con el factor en 0,5.
+        {Spider, 0x3b, false, {{0x5c0, 0.5f, 0.25f, 0.0f}}},
+        {Spider, 0x2b, true, {{0x5fc, 1.0f, 0.5f, 0.0f}, {0x5c0, 1.0f, 0.5f, 0.0f}}},
+        {Spider, 0x50, true, {{0x5fc, 1.0f, 0.5f, 0.0f}, {0x5c0, 1.0f, 0.5f, 0.0f}}},
+        {0x16d, 0x26, true, {{0x5c0, 1.0f, 0.2f, 0.0f}}},
+        {0x16d, 0x43, true, {{0x5c0, 0.8f, 0.8f, 1.0f}}},
+        {Spider, 0x35, true, {{0x5fd, 1.0f, 0.5f, 0.0f}}},
+        {Spider, 0x87, true, {{0x300, 1.0f, 0.5f, 0.0f}}},
+    };
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const Case& value : cases)
+        {
+            SCOPED_TRACE(testing::Message() << "mapa " << map << ", +0x376 " << value.monster);
+            m_world = std::make_unique<Client::Scenes::WorldState>();
+            SetUp();
+            m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+            m_world->Runtime().map = map;
+            Monster(0, value.type, value.monster);
+
+            const auto result = Draw(Pass());
+
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            const std::size_t first = value.shadow ? 6u : 3u;
+            ASSERT_EQ(m_batch.Vertices().size(), first + 3 * value.passes.size());
+            const auto& commands = m_batch.Commands();
+            ASSERT_EQ(commands.size(), (value.shadow ? 2u : 1u) + value.passes.size());
+            for (std::size_t index = 0; index < value.passes.size(); ++index)
+            {
+                const Shine& pass = value.passes[index];
+                const auto& command = commands[commands.size() - value.passes.size() + index];
+                EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Additive);
+                ASSERT_TRUE(command.state.texture.has_value());
+                EXPECT_EQ(command.state.texture->value, pass.slot);
+                ExpectColor(m_batch.Vertices()[first + 3 * index], pass.red, pass.green, pass.blue, 1.0f);
+            }
+            // Las mallas de los pases son las del cuerpo (los vértices 0 a 2), sin aplastar.
+            EXPECT_EQ(m_batch.Vertices()[first].position, m_batch.Vertices()[0].position);
+            // El de 0x50db57 y los dos de +0x38e en el lazo de las manos: los pases no sacan ninguno.
+            EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
+            TearDown();
+        }
+    }
+}
+
+// Q-C95 en el brillo de un monstruo que se desvanece: con el alpha en 0,5, 0x608e00 deja k = 0,5 (el factor del 0x3b,
+// 0,5 · 0,5 = 0,25) por el color del modelo, y RenderMesh lo multiplica otra vez por el alpha en el lugar en cada
+// malla.
+TEST_F(MonsterDrawingTest, AFadingShineDarkensEachMeshInPlace)
+{
+    m_models.AddMesh();
+    struct Case
+    {
+        std::uint16_t monster;
+        float k;
+        std::size_t first;
+    };
+    // El 0x3b no tiene sombra; el 0x26, sí (el alpha no baja de 0,3f).
+    for (const Case& value : {Case{0x26, 0.5f, 12}, Case{0x3b, 0.25f, 6}})
+    {
+        SCOPED_TRACE(value.monster);
+        m_world = std::make_unique<Client::Scenes::WorldState>();
+        SetUp();
+        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        Monster(0, Spider, value.monster).alpha = 0.5f;
+
+        const auto result = Draw(Pass());
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        // Las dos mallas del cuerpo, las de la sombra y las dos del pase 0x44.
+        ASSERT_EQ(m_batch.Vertices().size(), value.first + 6);
+        ExpectColor(m_batch.Vertices()[value.first], value.k * 0.5f, value.k * 0.25f, 0.0f, 1.0f);
+        ExpectColor(m_batch.Vertices()[value.first + 3], value.k * 0.25f, value.k * 0.125f, 0.0f, 1.0f);
         TearDown();
     }
 }
@@ -831,6 +930,13 @@ TEST(MonsterDecorations, EachListedMonsterCutsWithItsBranch)
     EXPECT_NE(Client::Scenes::CheckMonsterDecorations(0x45).Error().find("0x50bf98"), std::string::npos);
     EXPECT_NE(Client::Scenes::CheckMonsterDecorations(0x50).Error().find("0x50c671"), std::string::npos);
     EXPECT_NE(Client::Scenes::CheckMonsterDecorations(0x85).Error().find("0x50c83b"), std::string::npos);
+    // El camino del 0x20a corta también con los pases de brillo, que DrawGameMonster dibuja.
+    constexpr std::array<std::uint16_t, 10> Shining{0x26, 0x2b, 0x34, 0x3b, 0x43, 0x4e, 0x53, 0x35, 0x36, 0x87};
+    for (const std::uint16_t shining : Shining)
+        EXPECT_TRUE(Client::Scenes::MonsterShines(shining)) << shining;
+    constexpr std::array<std::uint16_t, 7> Others{0x45, 0x46, 0x4d, 0x54, 0x2a, 0x86, 0x88};
+    for (const std::uint16_t other : Others)
+        EXPECT_FALSE(Client::Scenes::MonsterShines(other)) << other;
     EXPECT_TRUE(Client::Scenes::WearsClothOnTheMesh(0x8f));
     EXPECT_FALSE(Client::Scenes::WearsClothOnTheMesh(0x58));
 }

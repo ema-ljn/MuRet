@@ -26,12 +26,17 @@ struct GameCharacterPass;
 // 0x510ad4): 0x59, 0x5f, 0x70, 0x76, 0x7c, 0x82 y 0x8f. Con cualquier tipo, también el 0x20a.
 [[nodiscard]] bool WearsClothOnTheMesh(std::uint16_t monster);
 
+// 0x50c671, 0x50c71b y 0x50c8ce: los +0x376 con pases de brillo de 0x60b130 (0x26, 0x2b, 0x34, 0x3b, 0x43, 0x4e a 0x53,
+// 0x35, 0x36 y 0x87).
+[[nodiscard]] bool MonsterShines(std::uint16_t monster);
+
 // 0x50bf45..0x50c904: lo que 0x50ba30 le agrega al cuerpo por el +0x376, con cualquier tipo (también el 0x20a): los
 // pases de brillo de 0x50c671 (0x26, 0x2b, 0x34, 0x3b, 0x43 y 0x4e a 0x53), los sprites y las partículas del 0x45
 // (0x50bf98), el 0x46 (0x50c0fb), las telas del 0x47, el 0x4a y el 0x12d (0x50c59f), el 0x49 y el 0x4b (0x50c36b), el
 // 0x4d (0x50c177), el brillo del 0x35 y el 0x36 (0x50c71b), las armas colgadas del 0x2a (0x50c762) y del 0x84 al 0x86
 // (0x50c83b) y el brillo del 0x87 (0x50c8ce). Con uno de ellos, corta con su dirección; DrawGameMonster dibuja antes
-// el 0x45, hasta su primera partícula, y el 0x46.
+// el 0x45, hasta su primera partícula, el 0x46 y los pases de brillo (MonsterShines), y llama a esta con los demás. El
+// camino del 0x20a (un jugador con un +0x376 de la lista, que ninguna alta escribe) corta con todos.
 [[nodiscard]] Core::Expected<void, std::string> CheckMonsterDecorations(std::uint16_t monster);
 
 // 0x50db57..0x50dc58 sin su rand(): la luz de lo que cuelga (+0x3b4). Con +0x375 desde 6, (1; 0,1; 0,1). Si no, la
@@ -54,7 +59,8 @@ struct GameCharacterPass;
 //   terreno de `pass` o del mundo (sin ellas, corta);
 // - lo de 0x50bf45 por el +0x376: el 0x45 con sus nueve flare01 y los cuatro rand() de su primera partícula 0x5c6/3,
 //   que corta (0x50c0db, CL11; entre frames del original, sin las partículas); el flare01 del 0x46 en su hueso 20;
-//   los demás, CheckMonsterDecorations;
+//   los pases de brillo de 0x60b130 (MonsterShines: el color de 0x608e00 por el alpha y el factor, y RenderBody con
+//   0x48, 0x44, 0x144 o 0x140 sobre la pose guardada; Q-C863); los demás, CheckMonsterDecorations;
 // - las partes (0x50d3e3), el Angel (0x50d383) y la marca del gremio (0x50c99b) cortan si el registro las tiene;
 // - las telas (0x50d58b): con el +0x376 0x37 fuera de los mapas 0x12 a 0x17 (WearsTheMonsterCloth), el CharacterCloth
 //   de pass.cloths[slot] sobre los huesos propios (sin él, corta), con sus destellos en pass.sprites;

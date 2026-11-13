@@ -10396,6 +10396,18 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    en `[ebp−0x50]`) y el hueso `rand() % +0x22` del modelo. El `0x46` (`0x50c0fb..0x50c136`, el monstruo 70 con el
    modelo `0x185`, que corta antes en `0x4ed775`, P-C332): un `0x5491e0(0x5ac, punto, 0,8f, &luz, objeto, 0, 0)` en el hueso 20
    con el corrimiento de `[ebp−0x50]` en 0 y la luz de `[ebp−0x44]`, (1; 1; 1) desde `0x50bab9`, sin `rand()`.
+   Los pases de brillo (fase 7, `Scenes::MonsterShines`): `0x50c671..0x50c705` con los `+0x376` `0x26`, `0x2b`, `0x34`,
+   `0x3b`, `0x43` y `0x4e..0x53` y el factor en 1 (0,5 el `0x3b`): el `0x2b` y los `0x4e..0x53` con
+   `0x60b130(modelo, objeto, tipo, +0x174, 0x48, factor, −1)` y después todos con el `0x44` (el `0x43`, `0x144`);
+   `0x50c71b..0x50c74e`, el `0x35` y el `0x36` con el `0x48` y la textura `0x5fd`; `0x50c8ce..0x50c901`, el `0x87` con el
+   `0x140`. `0x60b130`, sin el `0x10` y con un tipo que no es el `0x188` ni uno de los ítems de `0x60b1dd..0x60b2cf`
+   (ninguno de esos `+0x376` tiene uno), llama a `0x608e00(tipo, +0x174, factor, modelo + 0x48, banderas >> 8 & 1)`: k =
+   `+0x174` · factor en la x87 y, por la tabla de `0x60936c`, cada componente k por la del tipo (la de
+   `Render::Models::ShineColorOf`; el `0x16d` con el `0x100`, el caso 8: (0,8k; 0,8k; k)); después
+   `RenderBody(banderas, +0x174, +0x64, +0x68, +0x6c, +0x70, −1, textura)`, que no mira el `0x100`. Las mallas son las
+   de `0x5786f9c` como las dejó el último `0x4ebc80`: las del cuerpo, o las de la sombra, que son las mismas; MuRet las
+   vuelve a pasar a la pose guardada. Un monstruo que nunca se posó (el alpha por debajo de 0,01f desde que llegó) las
+   dibuja con las de otro modelo (Q-C863). Con el alpha por debajo de 0,99, Q-C95 oscurece cada malla en el lugar.
 5. **El gremio** (`0x50c972`, con `+0x1f2` distinto de `0xffff`, que en un monstruo nunca pasa), **la luz** (`0x50cc55`:
    el terreno más la propia en `+0x3b4`, el `0x189` en 0,6), **las partes** (`0x50d363`: con `+0x3e3` en 0, el Angel de
    Chaos Castle con `+0x88` en 1 y el lazo de las seis partes de `+0x1f8`) y **las telas** (`0x50d58b`): bVar23

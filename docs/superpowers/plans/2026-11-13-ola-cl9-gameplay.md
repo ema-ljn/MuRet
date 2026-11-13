@@ -273,8 +273,9 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
 - [ ] **La tela sobre la malla** (P-C22 f, vtable `0x6b8d04`: los monstruos `0x59..0x8f`; los tres pantalones
       también la usan), y Q-C95 con el primer modelo que se desvanezca (§ Lo que dejó la CL6). Hecha la de los
       monstruos (`Cloth::BuildOnTheMesh`, `Scenes::MonsterMeshCloth`; 06, "La tela sobre la malla"; Q-C861, Q-C862 y,
-      para la VM, P-C330); quedan los pantalones, con las partes del jugador (`0x60cf70`), y Q-C95, que con lo que
-      dibuja hoy un monstruo no se alcanza (el primero será el brillo de `0x50c671`).
+      para la VM, P-C330); quedan los pantalones, con las partes del jugador (`0x60cf70`). Q-C95 se alcanza desde la
+      fase 7 con los pases de brillo de `0x50c671` de un monstruo que se desvanece
+      (`MonsterDrawingTest.AFadingShineDarkensEachMeshInPlace`).
 - [x] El picking de NPC y monstruos en `0x59ec80`, con la caja de cada tipo.
 - [x] **Lo que se ve sobre ellos:** las barras de vida (`0x42a4d0`, `0x42a2b0`) y los mensajes de monstruo
       (`0x4fc790`, `0x4fc8c0`, `0x4fcd00`, con el mensaje del nombre y su reloj; 06, "Lo que dicen los NPC" y "Las

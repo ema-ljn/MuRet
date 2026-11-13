@@ -81,6 +81,7 @@
 #include "UI/NewUi.h"
 #include "UI/Notices.h"
 #include "UI/OptionsWindow.h"
+#include "UI/PanelRegistry.h"
 #include "UI/SelectionBar.h"
 #include "UI/Widget.h"
 
@@ -409,6 +410,8 @@ bool CharacterSelectScene::PrepareTheCharacters()
         m_failure = noticed.Error();
         return false;
     }
+    // 0x634271..0x6342a0: la ventana de los comandos ([0x6e592c]) cerrada y sin comando.
+    UI::ResetTheCommands(runtime.panels.delegated);
     return true;
 }
 

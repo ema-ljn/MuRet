@@ -1,16 +1,17 @@
 # Arma los vectores JPEG de CI (el README.md de los vectores): imágenes sintéticas, codificadas con
 # el cjpeg de libjpeg-turbo 3.2.0, salvo las CMYK, que escribe cmyk6b, y decodificadas con hash6b,
-# que decodifica con la 6b como el original. hash6b y cmyk6b salen de build6b.sh; hashturbo es
-# hash6b compilado contra libjpeg-turbo, para el único vector que trae lo que da turbo.
+# que decodifica con la 6b como el original. hash6b, cmyk6b y shot6b salen de build6b.sh; hashturbo
+# es hash6b compilado contra libjpeg-turbo, para el único vector que trae lo que da turbo. Las
+# capturas (screenshot-*.6b.jpg) las escribe shot6b con el compresor de la 6b, como 0x63b150.
 #
-# Uso: python3 make_vectors.py <cjpeg de turbo> <hash6b> <cmyk6b> <hashturbo> <carpeta de salida>
+# Uso: python3 make_vectors.py <cjpeg de turbo> <hash6b> <cmyk6b> <hashturbo> <shot6b> <carpeta de salida>
 import os
 import struct
 import subprocess
 import sys
 import tempfile
 
-CJPEG, HASH6B, CMYK6B, HASHTURBO, OUT = sys.argv[1:6]
+CJPEG, HASH6B, CMYK6B, HASHTURBO, SHOT6B, OUT = sys.argv[1:7]
 
 
 def detailed(x, y):
@@ -130,6 +131,13 @@ with tempfile.TemporaryDirectory() as images:
     cjpeg('light-255x256', image('blocks-255x256', 255, 256, blocks), '-sample', '1x1')
     cjpeg('light-gray-256', image('blocks-256x256', 256, 256, blocks, gray=True))
     subprocess.run([CMYK6B, '4', '2', os.path.join(OUT, 'cmyk-4x2.jpg')], check=True)
+
+# Las capturas de Impr Pant, con la calidad 100 de 0x6202e0: la imagen `detailed`, de un ancho y un
+# alto que no son múltiplos de 16 (el borde del 4:2:0 de jpeg_set_defaults) y de unos que sí, en
+# alto (40 × 24).
+for width, height in [(13, 11), (40, 24)]:
+    name = f'screenshot-{width}x{height}.6b.jpg'
+    subprocess.run([SHOT6B, str(width), str(height), '100', os.path.join(OUT, name)], check=True)
 
 # Los .6b.raw, y la línea de hash6b de cada uno; de los que no tienen, la línea sola.
 for name in ['baseline-444-dri', 'baseline-420', 'baseline-440', 'progressive-444', 'gray',

@@ -70,8 +70,8 @@ struct GameHudContext
 // la barra principal, las consultas del comercio y de la tienda y las dos celdas del héroe.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheHud(GameHudContext& context);
 
-// 0x5b0550: las superposiciones del modo 0x77f3b08. Con 0 no dibuja nada (la ventana /move, el 4, no está abierta);
-// las ayudas de F1 (1 y 2), la del ítem (3) y la ventana /move son del hito 6 y cortan con su dirección.
+// 0x5b0550: las superposiciones del modo 0x77f3b08 (GameHelps.h): la primera ayuda de F1 (1) y, con el modo que quede,
+// la segunda (2) o la del ítem (3); con otro, IsOpen(2) y la ventana /move (el 4, GameMoveWindow.h).
 [[nodiscard]] Core::Expected<void, std::string> DrawTheOverlays(GameHudContext& context);
 
 // 0x5ac2d0: el cursor del juego, con su tabla de elección (06 § El cursor del juego). Con un diálogo (0x7d3a10c) o

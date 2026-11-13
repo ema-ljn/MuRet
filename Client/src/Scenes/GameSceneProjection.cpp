@@ -7,6 +7,7 @@
 #include "Scenes/ActorState.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Cloth.h"
+#include "UI/GameUiState.h"
 #include "World/KalimaWorld.h"
 #include <memory>
 #include <span>
@@ -39,6 +40,8 @@ void GameScene::PrepareDrawProjection(int frames)
     m_projection->hud = world.Runtime().hud;
     m_projection->crywolfSandOverlay = world.Runtime().crywolf.sandOverlay;
     m_projection->sound.reset();
+    m_projection->altLatch = world.Runtime().ui.keyLatches[UI::AltVirtualKey];
+    m_projection->altNames = world.Runtime().ui.altNames;
     m_projection->oldWindows = world.Runtime().oldWindows;
 }
 GameDrawTailState& GameScene::FrameTail()

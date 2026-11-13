@@ -1012,14 +1012,14 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 |---|---|---|---|
 | `1` | amigos (UI vieja) | `0x490a00(viejo+0x48) != 0` | CL9.4 (el toggle, CL8.3) |
 | `2` | mapa (M) | `0x77f3b08 == 4` | CL8.1 |
-| `4` | party (P) | `0x7d5370a` | CL9.4 (el toggle, CL8.3) |
+| `4` | party (P) | `0x7d5370a` | CL8 hito 6, vacía (los miembros, CL9.4) |
 | `8` | quest (T) | `*(0x710148)+0x21383` | CL9.x |
 | `0x10` | gremio (G) | `0x6522e0()` | CL9.4 |
 | `0x20` | trade | **byte protegido `0x7d53711`: 1 `rand()`** | CL9.4 |
 | `0x40` | almacén | `0x7d5370d` | CL9.3 |
 | `0x80` | — | siempre cerrado: su rama de `0x659290` da 0 (`0x659429 JNZ 0x6597f3` → `XOR AL,AL`) | — |
 | `0x100` | caja del caos | `0x7d5370e` | CL9.3 |
-| `0x200` | comandos (D) | `*(0x6e592c+4)` | CL9.4 |
+| `0x200` | comandos (D) | `*(0x6e592c+4)` | CL8 hito 6 (sin `0x406050`, CL9.4) |
 | `0x400` | mascota | `0x420cc0()`: `0x723911 == 2` (`0x424230` lo vuelve a 0 en cada paso con el personaje cerrado) | CL9.x |
 | `0x800` | tienda personal propia (S) | `0x7d5370f` | CL9.4 |
 | `0x1000`, `0x4000` | ventanas con inventario de NPC de evento (`0x7d53712` con `0x7d53714` en 0 o 1; el paso las atiende en `0x5e5920`, que manda `90`/`9A`) *inferido* | | CL9.5 |
@@ -1126,6 +1126,170 @@ push): puede haber underflow (*inferido*). A MuRet no le importa: `SpriteBatch` 
 sí importa es la mezcla cacheada (`0x7d366dc`: solo cambia GL si cambia el modo) y el color que hereda el que
 sigue, porque varias funciones dibujan sin poner color.
 
+**Los textos 3D** (`0x4383f0`, en `0x63764b`; CL8 hito 6, *estático*). La cola es un `std::deque` de la `.bss` en
+`0x723c18` con entradas de `0x4c` bytes: el texto en 64 (`0x4381f0` copia los 64 que le pasan, con su `'\0'`) y la
+posición en tres `float`. La llena solo `0x4381f0`, desde el cuerpo de los personajes (`0x4fd603`: el tipo `0xc5`
+con su nombre y `+0x1d6`, CL9.5, que MuRet corta). El dibujo hace `glColor3f(1, 1, 1)` y, mientras la cola tenga
+entradas, toma la de adelante: su posición con la z 370 más arriba (`0x6b8b88`, `fadd` y `fstp` a `float`) por
+`0x6205b0`; con la x y la y de la pantalla en 0 o más (con signo, `0x438460..0x438469`), la negrita en el DC
+(`0x43846b`; el `GetTextExtentPointA` de al lado no se usa), el fondo `0xff000064` (`0x6c8e64`), el texto
+`0xffc8e6ff` (`0x6c8e5c`) y `0x623690`, el texto centrado en la x. Después la saca, se haya dibujado o no
+(`0x69eff0` suelta cada bloque al pasarlo). No saca `rand()`. MuRet: `Scenes::DrawTheWorldTexts` sobre
+`WorldRuntime::worldTexts`, que en el juego de hoy llega siempre vacía; sin la proyección del pase del mundo, una
+entrada corta con `0x438455`.
+
+**El hover y Alt** (`0x5bbbc0`, en `0x637650`; CL8 hito 6, *estático*). En Chaos Castle (mapas 18 a 23) sin
+"webzen" (`0x6c9ccc`) en el nombre del héroe (`0x576960`) y con un NPC (`0x6c8e2c`) o un personaje (`0x6c8e30`)
+elegido, vuelve sin hacer nada (Q-C612). Si no, `0x77f3b66` en 1 (Q-C610), `glColor3f(1, 1, 1)` y `0x620980`, y el
+primero que haya de:
+
+| Elegido | Qué hace | MuRet |
+|---|---|---|
+| NPC | `0x557170(+0x1d9, 0x78abb3c, personaje, 0, −1)`: su nombre solo en un globo (el texto vacío de la `.bss`, el modo 0 y sin color) | `AddChatBubble` |
+| personaje, con `0x6c8e38` en −1 | un monstruo (`+0x88` en 2): `0x6c8e64 = 0xff000064`, `0x6c8e5c = 0xffc8e6ff` y `0x623690(0x5bb8d0() / 2, 10, nombre)` (la mitad con `CDQ` y `SAR`, hacia el 0; el `GetTextExtentPointA` de antes no se usa). Los demás, sin tienda personal (`0x451d10` da el objeto `0x7245c8` y `0x451770` busca el personaje en su mapa, que llenan los paquetes de la CL9.4), en un globo como el NPC con `0x78abb40` | portado; la tienda da siempre 0 |
+| ítem del piso (`0x6c8e28`) | `0x5ba790(i, +0x44, +0, +0x17, +0x18, 0)` de la entrada de `0x220` bytes en `0x77f46d0`: su nombre | corta con `0x5bbd62` (CL9.3) |
+
+Después Alt: el flanco (`0x553520(0x12)`, `0x5bbd6c`) invierte `0x78abb38`, que nadie más lee ni escribe; con él
+prendido o con Alt abajo (`GetAsyncKeyState(0x12)` con el byte alto en `0x80`), cada ítem del piso vivo (`+0x44`) y
+a la vista (`+0x1b0`) que no es el elegido va a `0x5ba790` con 1 (Q-C611; MuRet corta con `0x5bbdd2`, CL9.3). No
+saca `rand()` (`0x5bb8d0` sin el inventario abierto no consulta el comercio ni la tienda de NPC). MuRet:
+`Scenes::DrawTheHover`, con el latch de Alt en `GameUiState::keyLatches[0x12]` y `0x78abb38` en
+`GameUiState::altNames`; un dibujo intermedio no escribe los globos y gira el latch sobre copias.
+
+**Las ayudas de F1** (`0x5b0550`, en `0x6376bb`; CL8 hito 6, *estático*). F1 (`0x5ac9ce..0x5aca42`, con el latch
+de `0x70` en línea) pasa `0x77f3b08` de 3 o 4 a 0 y si no a `(m + 1) % 3`, pone `+0x9305` de `[0x6eed3c]` en 0 y
+pide el `0x19`: también cierra la ayuda del ítem y la ventana /move. `0x5b0550` mira el modo tres veces: con 1, la
+primera ayuda; con 2 (otra lectura), la segunda, y vuelve; con 3, la del ítem; con otro, `IsOpen(2)` y
+`0x449860`. Las dos de F1 empiezan con `0x620980`, llenan la lista de la caja de ayuda (renglones de 100 bytes en
+`0x78793c8`, el color en `0x787a560` y la negrita en `0x78a9230`, la cuenta en `0x78abb30`) con `"\n"`, el título
+(el texto 120 o el 140, color 1 y negrita), `"\n"`, los textos 121 a 139 o 141 a 156 (color 0, sin negrita) y
+`"\n"` (los `'\n'` no tocan su color ni su negrita: quedan los de la ayuda anterior), copiados con `strcpy`
+(Q-C613); `0x77f3b66` en 1 y `0x5af090(1, 1, cuántos, 0, 2, 1)`. `0x5afb00` es solo del modo 3.
+
+`0x5af090(x, y, cuántos, ancho, modo, marco)` mide hasta el primer renglón vacío, con la fuente de cada uno en el
+DC (la negrita es `0x5763558`): el más ancho y el alto `cy` del último. El alto de la caja es
+`(n'\n' · cy · 0,5 + n · cy) / (ry · 0,9090909)`; el ancho, el más ancho / rx (o `2 · ancho / rx` con ancho) más 4;
+la x, `ftol(x − ancho / 2)`, con 0 de mínimo y `ftol(W / rx − ancho − 1)` si se pasa. Con la mezcla normal y el
+marco pedido, cuatro `0x621aa0` negros de 1 alrededor y el fondo negro al 80 % (`0x3f4ccccd`), y después la textura.
+Cada renglón va en `(x + 1, ftol(y))` con `0x465950(…, (ancho − 2) · rx, 0, modo, 0, 0x280)`, salvo los que empiezan
+con `'\n'` o son un espacio solo, que no se dibujan; la `y` suma 1,1 veces lo que devuelve `0x467060`
+(`cy / ry`, la mitad con `'\n'`). El color: `0x6c8e5c = −1`, un `glColor3f` por índice (0, 5, 7, 8 y 9 blanco; 1
+`(0,5, 0,7, 1)`; 2 `(1, 0,2, 0,1)`; 3 `(1, 0,8, 0,1)`; 4 `(0,1, 1, 0,5)`; 6 `(1, 0,1, 1)`; 10 gris 0,4; más de 10,
+ninguno) y el fondo `0x6c8e64` (5 `0xff0000a0`, 7 `0xffa00000`, 8 `0xff0066a0`, 9 `0xffc83c3c` con el texto
+`0xff00ff00`, los demás 0). Termina con `glColor4f(1, 1, 1, 1)` y `0x620980`. MuRet: `Scenes::DrawTheTipBox` y
+`Scenes::DrawTheFunctionHelp`; el modo 2 de `0x467060` centra el texto antes de pasar a 640 × 480, como los
+botones, y un renglón con fondo corta (`0x5af3e3`: el original pinta el fondo de todo el ancho de la caja).
+
+**La ayuda del ítem** (el modo 3, `0x5b0802`). La abre el chat con `"/"` y el nombre de un ítem
+(`0x576923`: `+0x9305` en 0 con `0x5ae360`, el modo 3, el ítem en `0x77f3b0c`, el `0x19` y 1, que no manda nada).
+`0x620980`; el divisor del ancho (`0x5a` en 640 y 800, `0x67` en 1.024, `0x7b` en 1.280, 0 con otro); las flechas
+(`0x807`), los virotes (`0x80f`) y los ítems fuera de las franjas `0..0x9ff`, `0xa00..0xbff`, `0xc00..0xdff`,
+`0xe00..0x17ff` y `0x1e00..0x1fff` ponen el modo en 0 y vuelven. Las franjas 1 a 4 dividen `0x870` o `0x708` por
+el divisor (Q-C615); la 5, `0x1734` (640 y 1.280) o `0x1450` (800 y 1.024), o nada con otro ancho. Lo que sigue
+(`0x5afc00`, `0x5af590`, `0x5af9b0` y `0x5afb00`, desde `0x5b09a8`) es del hito 5: corta (08, P-C105).
+
+**El cartel del conjunto** (`0x40eca0`, en `0x6376c6` con `+0x9305` distinto de 0). La abre el chat con `"/"` y el
+nombre de un conjunto de `ItemSetOption.bmd` (`0x40ebd0`, si no era un ítem): cada conjunto usado (`+0x3c` distinto
+de `0xff`) pone `+0x9305` en 0 antes de comparar, y el suyo deja su lugar más 1 y `0x77f3b08` en 0; el texto sale
+igual como chat (Q-C614). El dibujo es del hito 5 (`0x40d530` y `0x5af090`): MuRet corta en `0x6376c6` (08,
+P-C105).
+
+**La ventana /move** (el modo 4 de `0x77f3b08`, `IsOpen(2)`; CL8 hito 6, *estático*). La abre M (`0x6599a0` con el 2,
+que pone el modo sin cerrar nada, `0x659f57`) o el comando del chat; F1, Esc, un destino o el renglón de abajo la
+cierran. Recorre la lista de `0x723c68`, los destinos de `movereq.bmd` (05) que `0x448440` cargó una vez. Las dos
+funciones arman lo mismo con el ancho de la pantalla (`0x6d5d60`): el ancho `w` de la ventana (190 con 640, 170 con
+800, 150 con 1.024, 130 con 1.280; con otro, 0), el renglón `r = (0x7758568 · 640) / W` (sin signo; 12 con 640) y la
+altura `n · (r + 2) + 0x3c`.
+
+El paso (`0x5ecdc0`, en `0x636e24` sin nadie que agarró el mouse, salta a `0x449850` → `0x448580`, 2.585 B): con el
+mouse en `0 < x ≤ w` y `0 < y ≤ alto`, `0x775857c = 1`. Después, cada destino en su orden, con el renglón de
+`(r + 2) + 0x1a` a `+ (r + 2)`: abre el registro propio (`0x40b240`, `+0xf08` más 1), lee su zen (`+0xecc`), su nivel
+(`+0xe`, sin signo) y su clase (`+0xb & 7`), el nivel (`+0x44`) y el zen (`+0x48`) del destino, y con la clase 3 o 4
+el nivel por `0x6b8c64` (2/3 en float, `FILD`, `FMUL` y `ftol`); lo cierra (`0x40b4d0`: 3.848 `rand()` si lo deja en
+0, Q-C183). Pasa con el nivel menor o igual (con signo), el zen menor o igual (sin signo) y el PK del héroe
+(`+0x375`) debajo de 6; si además el mouse está en `3 ≤ x < w − 2`, dentro del renglón, y el botón izquierdo abajo
+(`0x7d36874`, no el flanco: Q-C616), arma con `std::string` el texto 260, un espacio y el nombre de `+4`, y lo dice
+con lo mismo que el chat de Enter, en línea (`0x4488d3..0x448ef8`: el freno `0x5767940`, "webzen", /whisper off y on
+o /move muriéndose, y el C1 00); con o sin decirlo, `0x77f3b08`, `0x7d36874` y `0x7d366d4` en 0, y deja de recorrer.
+Al final, el renglón de abajo (`3 ≤ x < w − 2`, de `alto − (r + 2) − 6` a `alto − 6`) con el botón abajo hace lo
+mismo sin decir nada. Con la ventana abierta, el paso saca 3.848 `rand()` por destino (28 en el del laboratorio).
+
+El dibujo (`0x5b10e0`, al final de `0x5b0550`, → `0x449860` → `0x448fa0`, 1.911 B): `0x620a00(1)`; el fondo negro al
+80 % en `(1, 1, w, alto)` y el renglón rojo `(0,6, 0, 0)` en `(3, alto − (r + 2) − 6, w − 5, r + 2)`, con `0x621aa0`;
+el blanco y `0x620a00(1)`. El título (933) con la negrita, `0x6c8e64 = 0` y `0xff1accff`, centrado (`0x623690`) en
+`(w / 2, 5)`; las columnas (934, 935 y 936) con la normal y `0xffffb27f` en la y 25 y en las x de cada ancho (45, 105
+y 155 con 640; 40, 100 y 145 con 800; 35, 90 y 130 con 1.024; 30, 75 y 110 con 1.280). Cada destino, desde la y
+`(r + 2) + 0x1b`, abre y cierra el registro propio y compara como el paso; con el mouse en `3 ≤ x < w − 2` y en
+`y − 1 ≤ my < y − 1 + r + 2`, si pasa y `0x5762eb4` es 0, el resaltado `(0,8, 0,8, 0,1, 0,6)` en
+`(3, y − 1, w − 5, r + 2)` con el blanco y `0x620a00(1)` después. El nombre (`+4`) en blanco si pasa y si no en
+`0xff1127a4`; el nivel (con los 2/3) y el zen con `_itoa` de base 10 (con signo), en `0xff1a33ff` el que falta y si
+no como el nombre. Al final, el 1002 en blanco en `(w / 2, alto − (r + 2) − 5)` y `0x620980`. MuRet:
+`Scenes::StepTheMoveWindow` y `Scenes::DrawTheMoveWindow` (`GameMoveWindow.h`), con `Scenes::SayInTheChat`; el paso de
+la letra es `Render::Text::FontStepFor`, que con otro ancho da el de 1.280 y no 0 (Q-C59), así que con 1.600 la
+ventana tiene 0 de ancho pero sus renglones no son de 2.
+
+**La party y los comandos** (CL8 hito 6, *estático*). Las dos ventanas del paso que son marco, en `(0x1c2, 0)`. Las
+dos usan el fondo de `0x5ee220` (la party tiene su copia): `Interface\Item_Back01.jpg` (`0x104`) de 190 × 256 en
+`(x, y)` e `Item_Back02.jpg` (`0x105`) de 190 × 177 en `y + 256` (la suma de la x87 guardada en float, `0x6b8840`),
+con du = 0,7421875 y dv = 1 y 0,69140625, escalados y sin alfa (`0x621b60`); y el botón de cerrar: `glColor3f(1, 1,
+1)` e `Interface\exit_01.jpg` (`0x118`) de 24 × 24 en `(x + 25, y + 395)` con du = dv = 0,75. Con el mouse en
+`izquierda ≤ x < izquierda + 24` (`fild` contra el float, lo mismo en y), la fuente normal, `0x6c8e5c = −1`,
+`0x6c8e64 = 0xff000000` y la ayuda (`0x554340`) en `(_ftol(x + 25), _ftol(y + 395) − 13)`, que deja la normal y los
+colores −1 y 0. El título de las dos va con `0x554180(x + 0x23, y + 0xc, texto, 120 · W / 640, 1, 3)` (la división
+sin signo de `0x5f0cd6..0x5f0cef`): el modo 2 de `0x467060` lo centra en una caja de ese ancho que empieza en
+`_ftol(x · rx)` y llena la caja con el fondo (08, P-C115). El paso de las dos mira el mouse desde la esquina que dejó
+el dibujo, que antes del primero es (0, 0) (Q-C650).
+
+La party. `Open(4)` (`0x659a82..0x659c44`), con lo que cerró: `0x78aba48 = 0`, el pedido de la lista (`0x659aa6..
+0x659b94`: el `C1 03 42` armado en la pila y mandado con `send` si el socket de `0x6c82a0` (`+0xc`) no es −1, en
+claro: no pasa por el XOR32 ni por el cifrado del C3) y `0x7d5370a = 1`; suena como todos (`0x65ca72`). El paso
+(`0x5e3c80`, desde `0x5ee18d` con `IsOpen(4)`): el mouse en `[x, x + 0xbe) × [y, y + 0x1b1)` desde
+`0x78a7068`/`0x78a706c` pone `0x775857c = 1`; con miembros (`0x78aba48 > 0`, `0x5e3cf0`), cada uno con su nombre y
+su botón de echar (`C1 04 43`, CL9.4); el clic (`0x7d366d4`) en `[x + 0x19, + 0x18) × [y + 0x18b, + 0x18)` lo apaga,
+pone `0x77f3b10 = 0` y `0x6c8dcc = 6` y llama a `Close(4)` (`0x5e40d4..0x5e411d`). No saca `rand()`. El dibujo
+(`0x5f0be0(0x1c2, 0)`, lo primero de `0x5f7440`, 2.746 B): cerrada, el ancho del mundo (`0x5bb8d0`, que con el
+inventario abierto saca los dos `rand()` del comercio y de la tienda), `0x6c8e5c = −1`, `0x6c8e64 = 0` y, con
+miembros, su lista a la derecha del mundo (`0x5f130a`, CL9.4). Abierta: la esquina en `0x78a7068`/`0x78a706c`, el
+blanco, `0x620980`, el fondo y `0x620a00(1)`; el título (190) con `0xffdcdcdc` sobre `0xff141414`, en negrita; la
+normal con `0xffe6e6e6` sobre 0 y, sin miembros, los textos 191 a 197 en `x + 0x14` y en `y + 0x32`, `0x41`, `0x50`,
+`0x64`, `0x73`, `0x82` y `0x91` (`0x554180` con 0, 0, 0: un texto vacío no se dibuja, pero se mide y deja su tamaño
+en `0x77f31b8`/`0x77f31bc`); con miembros, sus nombres, su vida y el botón de echar (`0x5f0df0`, CL9.4); con la
+cuenta negativa, nada; y el botón de cerrar con la ayuda 221, desde la esquina que acaba de escribir (`0x5f11c2`).
+Queda la mezcla normal.
+
+Los comandos. El objeto `[0x6e592c]`: `+4` abierto, `+8` un personaje (*inferido*), `+0xc`/`+0x10` la esquina que
+pone el dibujo, `+0x14..+0x1f` los doce estados y `+0x20` el comando elegido. `Open(0x200)` (`0x65a91c..0x65a934`)
+prende `+4`; en Chaos Castle `CanOpen` no deja. Cerrarlo con `CloseByMask` (`0x65897a..0x658999`) o con su botón
+(`0x40a58a..0x40a5a1`), entrar a la selección (`0x634271`) y volver al login (`0x634bf0`) dejan `+4 = 0`, `+8 = −1`,
+`+0x20 = −1` y los doce estados en 1 (que 1 es "el comando se puede", *inferido*); `0x4c7b34` también, desde una
+ventana vieja que corta antes (`0x4906a0`, hito 7). El paso (`0x40a450`, desde `0x5ee140` con `ECX = [0x6e592c]`):
+con `+4` en 1, el mouse en `[x, x + 0xbe) × [y, y + 0x1b1)` es de la UI; `0x406050` pone los doce estados en 1 y,
+con un comando elegido y un personaje elegido (`0x6c8e30 ≥ 0`), sigue en `0x406097` con lo que el comando hace sobre
+él (CL9.4; Q-C653); los botones del 1 al 11 (el 0 no: Q-C651) van en `(_ftol(x + 95 − 50), _ftol(y + 53) + 28 · c)`,
+y el clic estrictamente adentro de 108 × 20 (Q-C654) lo gasta, suelta el botón (`0x7d36874 = 0`) y elige el comando
+(`+0x20`); el botón de cerrar la cierra sin `Close`: los dos sonidos con `0x41ed10`, `0x77f3b10 = 0`, `0x6c8dcc = 6` y
+el objeto como al entrar. No saca `rand()`. El dibujo (`0x40a650`, en `0x5f75fa`): con `+4` en 1, la esquina en
+`(0x1c2, 0)`, el fondo con la mezcla que haya, `0x620a00(1)` y el blanco; el título (938) en negrita, −1 sobre
+`0xff141414`; los once botones (`Interface\Message_box.jpg`, `0xf0`, de 100 × 25 con du = 0,83203125 en `(x + 45,
+y + 53 + 28 · c)`, la y sumada en float), el del elegido con `glColor3f(0,5; 0,5; 0,5)`; el botón de cerrar con la
+ayuda 927 hecha por `sprintf` con `"D"` (Q-C652); `0x6c8e64 = 0x00141414` y cada nombre (la tabla de `0x40aca4`: 943,
+1124, 944, 945, 946, 1352, 1321, 1322, 947, 948 y 949) centrado (`0x623690`) en `(_ftol(x) + 0x32, _ftol(y) + 8)`,
+con la normal y el blanco o, el elegido y el que tiene el mouse encima (estrictamente adentro de 108 × 20), con la
+negrita y `(1; 0,8; 0,2)`, o `(0,5; 0,5; 0,5)` con el clic; y su casilla (`0x463090` en `(_ftol(x) − 0x14, _ftol(y) +
+8)`: sin mezcla, el marco `0x92 0x86 0x79` de 9 × 9 con cuatro `0x621aa0`, el blanco, la textura, la mezcla normal y,
+el elegido, la marca: `Interface\win_check.tga`, `0x64a`, de 5 × 5 en `(x + 2, y + 2)` con uv 0,625). Al final, el
+blanco, la fuente grande (`0x576355c`), con un personaje elegido su nombre en un cartel junto al mouse
+(`Interface\CursorID_Wnd.jpg`, `0x65b`; `0x40aa8d`, CL9.4), el negro y el aviso del elegido según su estado: con 0,
+el 255 del 5, el 1313 del 6, el 937 del 10 y el 257 del 3; con `0xff`, el 507; con `0xfe`, el 1320; en negrita,
+`0x6c8e64 = 0`, centrado en `(x + 0x5f, y + 0x44)`. Termina con el blanco y `0x620980`.
+
+MuRet: `Scenes::StepThePartyWindow` y `Scenes::DrawThePartyWindow` (`GamePartyWindow.h`),
+`Scenes::StepTheCommandsWindow` y `Scenes::DrawTheCommandsWindow` (`GameCommandsWindow.h`), con lo común en
+`Scenes::WindowDrawing` (`GameWindowDrawing.h`); el objeto es `UI::CommandsWindowState` y la limpieza
+`UI::ResetTheCommands`; el `C1 03 42` es `Protocol::Party::WritePartyListRequest`, que la UI pide con
+`IGameUiRequests::RequestPartyList` (sin él, abrir la party corta con `0x659aa0`). Lo que corta: 08, P-C116 y P-C117.
+Las texturas nuevas del HUD: `0x104` a `0x120` (sin `0x106`, que no se sube), `0x64a` y `0x65b`.
+
 **El HUD `0x5a7320`, hijo por hijo.** Empieza con `0x6c8e5c = −1`. La columna "base" es el estado de la traza
 (sin ventanas, sin party, sin evento, sin arco); `r` son `rand()` por frame.
 
@@ -1200,12 +1364,61 @@ W/H, 20, 2000)`), la cámara `0x7d366f0`, profundidad; con `0x78abb00` en 0 o 3,
 mezcla, con su propia proyección: CL9.3.
 
 **Las teclas por paso** (`0x5ac8d0`, `0x63717f`, `GetAsyncKeyState` con un latch por tecla): SPACE levanta el ítem
-del piso más cercano (`0x5650c0`, CL9.3); F1 cicla las ayudas (`0x77f3b08`); F2 alterna `0x6c8dd1` (el chat normal
-entra en la lista); F3 alterna `0x6c8dd0` (el modo susurro); F4 mueve el registro del chat (`0x45d8c0`,
-`0x45a9d0`). **La captura** (PrintScreen, flanco de `0x2c` en `0x637cff`): `0x637700` arma
+del piso más cercano (`0x5650c0`, CL9.3); F1 cicla las ayudas (`0x77f3b08`, arriba en "Las ayudas de F1"); F2
+alterna `0x6c8dd1` (el chat normal entra en la lista); F3 alterna `0x6c8dd0` (el modo susurro); F4 mueve el
+registro del chat (`0x45d8c0`, `0x45a9d0`). **La captura** (PrintScreen, flanco de `0x2c` en `0x637cff`): `0x637700` arma
 `Screen(%02d_%02d-%02d_%02d)-%04d.jpg` (mes, día, hora, minuto; contador `0x7d368ac` módulo 10.000) y el Text 459;
 después del dibujo de la escena, `0x6202e0` hace `glReadPixels` en RGB y `0x63b150` escribe un JPEG de calidad 100;
 el mensaje va al área de mensajes. No saca `rand()`.
+
+### La captura de pantalla
+
+(CL8 hito 6, 2026-11-12; *estático*, ASM de `c32bbd5f`.) Todo pasa en `0x637700`, en cualquier escena, y en
+`0x6202e0`. Sus globales solo los leen esas dos: `0x7d368a8` (el pedido), `0x7d368ac` (el contador, de 0 a 9.999),
+`0x7d36724` (el nombre) y `0x7d368b0`, que `0x6202e0` pone en 1 (`0x6202ed`) y nadie lee. No saca `rand()`.
+
+- **El pedido.** Detrás del paso de cualquier escena, entre los relojes de los mensajes (`0x637cf3` y `0x637cf8`) y
+  los frenos (`0x637d2c` y `0x637d44`), `0x553520(0x2c)` (`0x637cff`) da el flanco de Impr Pant con su latch
+  (`0x77f36d4 + 4 · 0x2c`), y con él `0x637d10..0x637d25` *invierte* `0x7d368a8`: un segundo flanco antes del frame
+  deshace el pedido (Q-C634). En Windows Impr Pant llega solo con la soltada (Q-C630).
+- **Antes del dibujo** (`0x6381bb..0x63835a`, en cada frame, después de la salida por `WM_DESTROY` de `0x6381aa` y
+  antes del `glClearColor` de cada mapa). `0x41ef00` (el sonido 3D, CL10); `GetLocalTime` (`0x6381c7`); `sprintf`
+  (`0x69fd9b`) de `Screen(%02d_%02d-%02d_%02d)-%04d.jpg` (`0x6d64d0`) con el mes, el día, la hora, el minuto y el
+  contador, en `0x7d36724`; `sprintf` con el texto 459 (`0x76debc0`) como formato y ese nombre, en la pila
+  (`ebp − 0x14c`); el lugar del grupo elegido (`0x6d5ec4`) recortado entre 0 y 30, y `wsprintfA` de ` [%s / %s]`
+  (`0x6d64f8`) con el nombre que `0x4c1860` copió en ese lugar de la lista (`0x7d36bb0 + 0x21e · lugar`) y el del
+  héroe (`[0x743a170] + 0x1d9`), pegado detrás con `strcat`; y Shift, el byte alto de `GetAsyncKeyState(0x10)` (`0x638303..0x63832c`). Con el
+  pedido y sin Shift, `0x555190(0x7d3a190, mensaje, 1)` (`0x638347..0x63835a`): el mensaje entra al chat antes del dibujo y
+  sale en la captura. `0x7d3a190` y `0x7d3a194` son dos textos vacíos de la `.bss` que solo se leen acá.
+  `0x6d5ec4` lo escriben el `0x6349a0` del login al entrar, con −1 (`0x634aa7`), y el clic en un servidor, con el
+  lugar de su grupo (`0x646394`); nadie más (Q-C632).
+- **Después del dibujo** (`0x638586..0x6385da`, antes del `glFlush` y el `SwapBuffers` de `0x6385e1`, que corren
+  solo si la escena dibujó). Con el pedido: si `0x7d366bc`, un modo de editor que nadie prende, `0x517570` escribe
+  `Data2\MonsterSetBase2.txt` (`0x6d6504`); después `0x6202e0` (`0x6385aa`), también cuando la escena salió con 0 y
+  el frame no se presenta (P-C110). Con el pedido y Shift, `0x555190(0x7d3a194, mensaje, 1)` (`0x6385c4..0x6385d7`): el
+  mensaje va después de la lectura y no sale. `0x6385da` apaga el pedido.
+- **La lectura, `0x6202e0`.** `0x7d368b0 = 1`; `new(ancho · alto · 3)` con la pantalla de `0x6d5d60` y `0x6d5d64`;
+  `glReadPixels(0, 0, ancho, alto, GL_RGB, GL_UNSIGNED_BYTE)` (`0x62031f`), sin tocar `GL_PACK_ALIGNMENT` (Q-C631);
+  `0x63b150(nombre, ancho, alto, búfer, 100)`, sin mirar lo que devuelve; `free`; y el contador,
+  `(contador + 1) % 10000` (`0x620345..0x62035a`).
+- **El JPEG, `0x63b150`**, con la libjpeg 6b del binario: `jpeg_std_error` (`0x66c980`), `jpeg_CreateCompress(62,
+  0x178)` (`0x66b8f0`), `fopen(nombre, "wb")` (`0x6c8828`), que si falla devuelve 0 sin destruir el compresor
+  (Q-C633); `jpeg_stdio_dest` (`0x66c850`), el ancho, el alto, 3 componentes y `JCS_RGB`, `jpeg_set_defaults`
+  (`0x66c030`), `jpeg_set_quality(calidad, TRUE)` (`0x66c010`), `jpeg_start_compress(TRUE)` (`0x66bc90`), las filas
+  de arriba hacia abajo desde la última del búfer (`búfer + (alto − fila − 1) · ancho · 3`, `0x66bd10`),
+  `jpeg_finish_compress` (`0x66ba30`), `fclose` sin mirarlo y `jpeg_destroy_compress` (`0x66b9c0`). Un error de la
+  libjpeg va al `error_exit` de `jpeg_std_error`, que sale del juego (Q-C635).
+
+**En MuRet** (`Scenes::Screenshots`). El pedido corre en el gancho de detrás del paso del `SceneManager`, después de
+los relojes (con los frenos no comparte nada), y lo de antes y después del dibujo en dos ganchos alrededor del
+`Render` de la escena; el de después junta primero lo que tiene el lienzo (el 3D y el 2D, como el `Present`). El
+nombre y el mensaje se arman solo con el pedido: nadie más los lee. La lectura (`Render::Gl::GlScreenReader`) es de la
+ventana antes del swap; el JPEG (`Data::Textures::WriteJpegFile`) usa la libjpeg-turbo por la misma API y da los
+mismos bytes que la 6b (`tools/shot6b.c`, los vectores `screenshot-13x11` y `screenshot-40x24`). El archivo va a la
+carpeta de trabajo con el nombre solo, como el `fopen`, y la hora es la local de SDL (`Platform::ReadLocalTime`). Lo
+que no hace igual: la lectura con `GL_PACK_ALIGNMENT` en 1 (Q-C631), el lugar del grupo por el servidor elegido de
+la sesión (Q-C632) y el frame retenido con el pedido, que corta (P-C110). Los tests: `ScreenshotsTest`,
+`JpegWriterTest`, `GlScreenReaderTest` y los ganchos del dibujo en `SceneManagerTest`.
 
 ### El chat
 
@@ -1360,7 +1573,8 @@ sin cursor en el medio ni IME. Los ids de los dos EDIT (1 y 2, los dos primeros 
   filtro y lo mismo que el chat de Enter; la que pasa los comandos deja `0x77f3b74` en `0x64` (`0x5a1ea1`).
   `0x637d2c` y `0x637d44` bajan los dos frenos de a uno por paso.
 - **Las teclas de `0x5ac8d0`**: F2, F3 y F4 cambian lo suyo y suenan (F4, con el registro en su ventana, va a x 0 con
-  el inventario y una de las seis ventanas anchas, si no a `0xba`); la barra y F1 cortan (hito 6).
+  el inventario y una de las seis ventanas anchas, si no a `0xba`); F1 cicla las ayudas ("Las ayudas de F1"); la
+  barra (CL9.3) corta, y después Impr Pant (`0x637cff`, la captura, P-C94).
 - **El HUD**: el paso 10 dibuja "Macro Time" (`0x6c9310`) centrado en el ancho del mundo en y = `0x188` y su barra
   en y = 404 de 50 × 2; el 22 (`0x5aa9a0`), con el campo abierto o `0x77f3b69`, la caja sin mezcla (`0xf8` y `0xf9`,
   que `0x61ccb0` sube en `0x61cfe6` y `0x61d002`), el texto de los EDIT, los nombres del susurro de los otros lugares
@@ -1368,7 +1582,85 @@ sin cursor en el medio ni IME. Los ids de los dos EDIT (1 y 2, los dos primeros 
   componer su ventana ni el cursor (P-C89).
 - **`Data\Macro.txt`**: lo lee WinMain detrás de `Text.bmd` (`0x61ee30` → `0x61c1c0`, `fscanf("%s")`, Q-C449 y
   Q-C531). Lo escriben (`0x61c170`) la salida del juego, el cambio de servidor y el gate a los mapas 30 y 31, que son
-  de otras olas: en MuRet, lo que se guarda con `/1`../`0` dura hasta cerrar.
+  de otras olas salvo las dos primeras: en MuRet lo escriben los botones del menú de Esc del juego (hito 6, [Los
+  diálogos del juego](#los-diálogos-del-juego)).
+
+### Los diálogos del juego
+
+CL8, hito 6 (2026-11-12). *Estático*, con el ASM de `0x623e70`, `0x62db60`, `0x632e30`, `0x633300` y `0x61c210`;
+sin traza de GL con un diálogo. En MuRet: `Scenes/GameDialogSteps` (el paso), `Scenes/GameDialogDrawing` (el
+dibujo), `UI/GameDialogs` (las cajas) y `Protocol/OptionData` (el `F3 30`). Los globales son de la `.bss`: el
+abierto `0x7d3a10c` y el que espera `0x7d3a110` (`UI::DialogState`; `0x6236f0` abre, encola o pasa el que espera),
+los renglones `0x7d36a98` (7 de `0x26` bytes seguidos), su cuenta `0x7d368e4`, los dos botones `0x7d368b8` (estado,
+x, y, ancho y alto) y la página del `0x8c` (`0x7d3a0f4`, `0x7d3a0f8`, `0x7d3a0f9`).
+
+**El despacho** (`0x623f78..0x6263d9`). Después de Esc, `0x623e70` compara el abierto en este orden: `0x6e` el menú
+(`0x623f90`), `0x93` las opciones (`0x62556f`), los tramos de otras olas, las cajas con botones (`0x8a`, `0x8c`,
+`0x8b`, `0x97` y `0x9b`, `0x62d756`) y, después de todas las comparaciones, el OK genérico (`0x6263df`), al que
+llega cualquier id que no está. MuRet lo tiene como tabla (`Scenes::DialogRoutes`): cada ola registra sus ids, y
+los de las otras cortan con la dirección de su tramo (P-C90).
+
+**El menú de Esc** (`0x6e`). Cinco botones en la escena 5, x en `[0x104, 0x17c)` e y en `[(6 + 3i) · 10, + 0x16)`.
+Cada uno, con el clic (que apaga), según la tabla de `0x62dac4`:
+
+| Botón | Qué hace, en orden |
+| --- | --- |
+| 0, salir | "> Menu - Exit game." al log; guarda (`0x61c210` y `0x61c170`); con la caja del caos abierta, el aviso 592 de error; si no, la salida |
+| 1, otro servidor | el log; con la caja del caos, el aviso; si no, la salida con 2; después guarda |
+| 2, otro personaje | el log; guarda; con la caja del caos, el aviso; si no, la salida con 1 |
+| 3, opciones | abre el `0x93` (o lo deja esperando) y no pasa por la cola |
+| 4, cerrar | va derecho a la cola |
+
+La salida pone `0x576793c` en 1, saca 1 `rand()` y manda el `C3 F1 02` con el tipo (`0x62449a`, `0x6244d0`,
+`0x6244f2`; el `C3` saca el del relleno y el de la serial). Guardar es el `F3 30` de `0x61c210` y `Macro.txt`
+(`0x61c170`, `UI::WrittenMacros`). La cola (`0x6240a1`): si el abierto no es el `0x93`, pasa el que espera; después
+`MouseUpdateTime` en 0, su máximo en 6 y el sonido `0x19`.
+
+**El `F3 30`** (`0x61c210`): `C1 1C F3 30` en claro, con los 24 bytes de su pila. Abre y cierra el registro propio
+(3.848 `rand()`); para cada lugar de 0 a `0x71` con tecla (`+0x26c + elegido · 0x100 + lugar` distinto de `0xff`)
+escribe el byte de la skill (`+0x6c + lugar`) en `[tecla]`; en `[10]`, 1 o 2 por el ataque automático, 4 u 8 por
+el sonido de los avisos y `0x10` sin carteles; en `[11..13]`, el byte bajo de Q, W y E; en `[14]`, los renglones
+del registro / 3 en el nibble alto (0 con su lugar en 0) y la transparencia · 10 truncada en el bajo (Q-C551). Sin
+elegido o con una tecla de 24 o más (pisaría la pila), MuRet corta (`0x61c2c6`, `0x61c2e8`).
+
+**Las opciones** (`0x93`). Sin ítem en el cursor, filas de `0x78 × 0x16` desde x = `0x104`: volver en y = `0x1e`
+(deja el menú esperando, Q-C550), el ataque automático en `0x3c` (`0x6c8e3c`), el sonido de los avisos en `0x5a`
+(`0x77f3b78`), el volumen en `0x78`, los carteles en `0x96` (`0x6c7a8c`) y cerrar en `0xe8`. El volumen
+(`0x7d3a118`, de 0 a 9) se agarra en la barra de `0x32 × 8` que dejó el dibujo (`0x7d3a120`, `0x7d3a124`) y sigue al
+mouse de a 5 píxeles, o cambia con la rueda; con otro valor, `0x41eed0` le pide a DirectSound −10.000 o
+`−2000 · log10(10 / v)` (CL10, P-C79). Las cinco casillas del brillo (x desde `0x10e` de a `0x14`, `0x12` de ancho,
+y de `0xc8` a `0xda`, con los bordes) ponen `0x6c9dcc` con el clic sin apagarlo. Son los mismos globales que las
+opciones de la UI nueva del login ([Las opciones](#las-opciones)).
+
+**Las cajas.** `0x632e30(texto)` parte el texto en renglones de menos de `0x26` (`0x632c90`), deja el primer botón
+en `(1, 0x47, 0x8c, 0x46, 0x15)` y el otro en 0, y abre el `0x8a` (o lo deja esperando). `0x633300(renglones,
+primero, id)` copia los textos de `Text.bmd` con un `strcpy` por renglón (Q-C554; el `0x9a` los parte uno detrás
+del otro), arma los botones `(1, 0x15, 0x5a, 0x46, 0x15)` y `(3, 0x78, 0x5a, 0x46, 0x15)` (y = `0x78` en el `0x9a`) y
+abre el id; el `0x99`, el `0xa3`, el `0x96` y el `0xa8` arman su texto con un formato (CL9.3). El paso (`0x62d756`):
+cada botón con estado, con el mouse en `[x + 0xd5, x + w + 0xd5] × [y + 0x3c, y + h + 0x3c]`, va a 2 y con el clic
+se elige (apaga el clic y el botón abajo); afuera, a 1 (Q-C552). En el `0x8c`, las flechas (`0x62d7eb`,
+`[0xf9, 0x108]` y `[0x179, 0x188]` × `[0xca, 0xde]`) cambian la página con el clic sin apagarlo y vuelven a partir el
+texto `0x7d3a0f4 + página`. Enter o un botón elegido cierran.
+
+**El OK genérico** (`0x6263df`): lee y apaga Enter (`0x5763588`, que prende el WndProc en `0x4b50ff` y apaga la cola
+del frame en `0x63b0b7`); salvo el `0x73`, el clic en `[0x11c, 0x162) × [0x62, 0x77)` también. Con uno de los dos,
+el `0x70`, el `0x6f`, el `0x1a` y el `0x1c` cierran el juego (`SendMessageA(WM_DESTROY)`, `0x62828e`); el `0x73` y
+el `0x8f` son de otras olas; los demás pasan el que espera.
+
+**El dibujo** (`0x62db60`, en `0x637696` con la escena 5). Siempre deja `0x620980`, el blanco, la fuente normal en el
+DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos van con `0x554180` centrados en
+`0x140 − (cx · 640 / W) / 2` y dejan su tamaño en `0x77f31b8`.
+
+| Diálogo | Lo que dibuja |
+| --- | --- |
+| `0x6e` | 5 × `0xf0` en `(260, 60 + 30i, 120, 22)` con las UV `(0, 0, 0,83203125, 1)`, el del mouse otra vez en aditiva con `(0,8; 0,6; 0,4)`; los textos 381, 382, 383, 385 y 384 en y = `0x41` de a `0x1e` |
+| `0x93` | 7 filas (la 5 de 44, la 6 en y = 232); 385 en `0x23`; `"%s  On"`/`"%s  Off"` con 386 (`0x41`), 387 (`0x5f`) y 919 (`0x9b`); 389 en `x = 0x140 − (cx + 0x36) / 2` (`0x7d`) y la barra en `(x + 0x144 + cx, 0x7f)`: gris 0,2 de 50 × 8, negro de 48 × 6 y blanco de `(v + 1) · 4,8` × 6; el marco del brillo (gris `(268, 198, 102, 22)`, negro `(269, 199, 100, 20)`), 5 casillas de 18 en y = 200 (`(0,8; 0,6; 0,3)` hasta `0x6c9dcc`, negras después) y las cifras 5, 7, 9, 11 y 13 de 12 × 12 en y = 202 con los colores al revés; 1840 en `0xb9` (Q-C555) y 388 en `0xed` |
+| `0x8a`, `0x8c`, `0x9b` / `0x8b`, `0x97` | `0xfc` de 213 × 5 en (213, 60), 4 / 7 filas de `0xfb` de 213 × 40 y otra `0xfc`; cada botón con estado, `0xf0 + estado` en `(x + 213, y + 60, w, h − 1)` con las UV `(0, 0, w / 128, h / 32)`; en el `0x8c`, las flechas (`CursorSitDown` girada 270 y 90 grados, 25 × 16, en (253, 210) y (383, 210)): gris en su tope, 0,7 con el mouse y 0,5 con el clic, que apaga (Q-C553); los renglones del `0x8a` y el `0x8c` desde `((7 − renglones) · 0x12) / 2 + 0x4c`; los del `0x8b`, el `0x97` y el `0x9b`, el objeto del evento (`0x632a2b`) |
+| OK genérico | `0xf0` de 213 × 64 en (213, 60) y el OK, `0xf1` (`0xf2` con el mouse en `[0x11c, 0x161] × [0x62, 0x76]`) de 70 × 21 en (284, 98); su texto en y = `0x4b`, o en `0x45` y `0x51` los de dos renglones: el `0x70` el 402, el `0x6f` y el `0x1a` el 405 y el 406, el `0x1c` el 409 y el `0x8f` el 401 |
+
+`0x61ccb0` sube `Message_box` (`0xf0`), `ok`, `ok2`, `cancel`, `cancel2` (`0xf1` a
+`0xf4`), `Message_box1` (`0xfb`) y `Message_box2` (`0xfc`); el `bar.jpg` de `0xfd` es de `0x5e9b10`, la caja de la
+contraseña del HUD, y MuRet no lo sube.
 
 ## La escena de carga y la de login
 

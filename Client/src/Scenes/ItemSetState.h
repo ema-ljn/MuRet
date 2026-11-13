@@ -6,9 +6,9 @@
 #include <cstddef>
 #include <cstdint>
 
-// Lo que escriben 0x40e1b0, 0x40d010 y 0x40da20 en el objeto de los conjuntos, [0x6eed3c] (el estático
-// de 0x6e5930), de +0x9307 a +0x940b. Es una proyección tipada, no el layout; cada campo dice su
-// offset. Las tablas de +4 y +0x8004 son Data::Tables::ItemSetTables, y +0x9304..+0x9306 no los toca
+// Lo que escriben 0x40e1b0, 0x40d010, 0x40da20, F1 y las ayudas del chat en el objeto de los conjuntos, [0x6eed3c]
+// (el estático de 0x6e5930), de +0x9305 a +0x940b. Es una proyección tipada, no el layout; cada campo dice su
+// offset. Las tablas de +4 y +0x8004 son Data::Tables::ItemSetTables, y +0x9304 y +0x9306 no los toca
 // nadie de lo portado. Arranca en cero, como el objeto estático, que además su constructor (0x40f2a0)
 // pone en cero de +0x9304 a +0x9347. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Los
 // stats del registro propio".
@@ -23,6 +23,11 @@ inline constexpr std::size_t ItemSetNameSize = 0x20;
 
 struct ItemSetState
 {
+    // +0x9305: el cartel del conjunto, el lugar en +0x8004 más 1 (0 sin cartel), que dibuja 0x40eca0 en 0x6376c6. Lo
+    // escribe la ayuda del conjunto del chat (0x40ebd0: 0 por cada conjunto usado y el suyo al encontrarlo) y lo
+    // vuelven a 0 F1 (0x5aca34), la ayuda del ítem del chat (0x5ae360), 0x40eca0 con un conjunto sin usar (0x40ecfa)
+    // y Open del personaje (0x65c981, con +0x9304..+0x9347).
+    std::uint8_t setHelp = 0;
     // +0x9307: 0x40d010 lo pone en 0, en piezas − 1 cuando un conjunto no entra en el nombre de su
     // clase, y con un conjunto completo le suma 1 por opción si no es 0.
     std::uint8_t byte9307 = 0;

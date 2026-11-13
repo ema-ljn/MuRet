@@ -6,11 +6,16 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameChat.h"
+#include "Scenes/GameCommandsWindow.h"
+#include "Scenes/GameDialogSteps.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/GameMoveWindow.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/GamePartyWindow.h"
 #include "Scenes/HudItems.h"
+#include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
@@ -77,6 +82,8 @@ constexpr GameKey Digit(int digit)
 
 // 0x41ed10(0x19, 0, 0): el sonido de los botones y de Esc.
 constexpr std::int32_t ButtonSound = 0x19;
+// 0x5aca1b..0x5aca24: F1 da la vuelta por 0, 1 y 2 (idiv por 3).
+constexpr std::int32_t FunctionHelpModes = 3;
 // 0x636e11: desde esta y, el mouse está sobre la barra.
 constexpr std::int32_t HudTop = 0x1b0;
 // 0x5a1181..0x5a1189: Chaos Castle.
@@ -108,20 +115,10 @@ constexpr std::int32_t WhisperModeBottom = 0x1bc;
 // 0x5ac93f..0x5ac97b: la barra levanta un ítem del piso a menos de 300 (0x6b8900).
 constexpr float PickUpDistance = 300.0f;
 
-// 0x553520(vk): con la tecla abajo y su latch en 0, lo pone en 1 y da verdadero; con la tecla arriba, lo vuelve a
-// 0. GetAsyncKeyState mira el teclado en el momento: MuRet mira el estado del frame (Input::InputState).
+// 0x553520(vk).
 bool KeyEdge(UI::GameUiState& ui, const Input::InputState& input, GameKey key)
 {
-    std::int32_t& latch = ui.keyLatches[key.virtualKey];
-    if (!input.IsDown(key.key))
-    {
-        latch = 0;
-        return false;
-    }
-    if (latch != 0)
-        return false;
-    latch = 1;
-    return true;
+    return UI::LatchTheKey(ui.keyLatches[key.virtualKey], input.IsDown(key.key));
 }
 
 // 0x6578e0: hay un campo de texto con el foco (el chat 0x6c8e68, 0x77f3b68, el del diálogo de los paneles) o la
@@ -229,44 +226,6 @@ Core::Expected<void, std::string> Toggle(UI::PanelRegistry& panels, UI::PanelId 
     return {};
 }
 
-// 0x623f78..0x62410b: el menú de Esc (el diálogo 0x6e) en la escena 5, con cinco botones.
-Core::Expected<void, std::string> StepTheEscapeMenu(const GameUiContext& context)
-{
-    WorldRuntime& runtime = context.world.Runtime();
-    UI::DialogState& dialogs = runtime.dialogs;
-    if (runtime.cursorItemCount > 0)
-        return {};
-    // 0x623f9c..0x623fb3: 5 en la escena 5.
-    constexpr std::int32_t Buttons = 5;
-    constexpr std::int32_t Left = 0x104;
-    constexpr std::int32_t Right = 0x17c;
-    constexpr std::int32_t Height = 0x16;
-    constexpr std::int32_t LastJumpTableButton = 3;
-    for (std::int32_t button = 0; button < Buttons; ++button)
-    {
-        // 0x623fdf..0x623fe6: (6 + 3i) · 10.
-        const std::int32_t top = (6 + 3 * button) * 10;
-        if (!InRect(context, Left, top, Right, top + Height) || !runtime.movement.pendingClick)
-            continue;
-        runtime.movement.pendingClick = false;
-        if (button <= LastJumpTableButton)
-        {
-            // La tabla 0x62dac4: salir del juego (0x624036), elegir otro servidor, otro personaje y las opciones.
-            return Core::Unexpected(std::format("0x62402f: el botón {} del menú de Esc es del hito 6", button));
-        }
-        // 0x6240a1: volver al juego.
-        if (dialogs.current != UI::OptionsDialog)
-        {
-            dialogs.current = dialogs.pending;
-            dialogs.pending = 0;
-        }
-        runtime.movement.mouseUpdateTime = 0;
-        runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
-        runtime.lastSoundId = ButtonSound;
-    }
-    return {};
-}
-
 // 0x636e3c..0x636e4c: el paso de la lista de ventanas ([0x5763524], la vtable + 0x18 con 0) y el de las ventanas
 // viejas (0x490490). Esc llega a 0x490490 ya leído por 0x623e70, salvo con la de amigos abierta (Q-C446).
 Core::Expected<void, std::string> StepTheOldWindows(const GameUiContext& context)
@@ -307,8 +266,8 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
     if (runtime.dialogs.current != 0 || ui.capture != 0 || ui.hovered != 0 || ui.field78abad9 != 0)
         return {};
     // 0x5e3c80 y 0x5e4510: la party y el personaje, cada uno con su IsOpen.
-    if (panels.IsOpen(UI::PartyPanel))
-        return Core::Unexpected(std::string("0x5e3c80: el paso del panel de la party es del hito 6"));
+    if (auto party = StepThePartyWindow(context, panels); !party.HasValue())
+        return party;
     if (panels.IsOpen(UI::CharacterPanel))
         return Core::Unexpected(std::string("0x5e4510: el paso del panel del personaje es del hito 5"));
     // 0x5ee1a3: las hijas del inventario (0x5e4ce0, 0x5e5920, 0x5fe610, 0x5ea060, 0x5ecde0, 0x5ea290, 0x5ed960).
@@ -329,9 +288,9 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
     // 0x5e74f0, el panel 0x2000.
     if (panels.IsOpen(UI::Panel2000))
         return Core::Unexpected(std::string("0x5e74f0: el paso del panel 0x2000 es de la CL9"));
-    // 0x40a450, los comandos (+4 de 0x6e592c).
-    if (delegated.commands != 0)
-        return Core::Unexpected(std::string("0x40a450: el paso de los comandos es del hito 6 y de la CL9.4"));
+    // 0x40a450, los comandos ([0x6e592c]), que empieza con su +4.
+    if (auto commands = StepTheCommandsWindow(context); !commands.HasValue())
+        return commands;
     // 0x41b5a0, el quest: con el personaje cerrado escribe +0x21390 y +0x21394 de su objeto, que MuRet no tiene
     // ni lee; con +0x21383 en 1 o 2, su ventana.
     if (delegated.quest == 1 || delegated.quest == 2)
@@ -836,12 +795,8 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
             runtime.lastSoundId = ButtonSound;
         }
     }
-    // 0x623f78.
-    if (dialogs.current == 0)
-        return {};
-    if (dialogs.current != UI::EscapeMenuDialog)
-        return Core::Unexpected(std::format("0x625563: el diálogo {:#x} es del hito 6", dialogs.current));
-    return StepTheEscapeMenu(context);
+    // 0x623f78: el diálogo abierto, por su tramo.
+    return StepTheOpenDialog(context);
 }
 
 Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
@@ -856,10 +811,14 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     if (context.mouseY >= HudTop)
         ui.mouseOnUi = 1;
     GamePanels gamePanels(context.world, context.random);
+    gamePanels.LendThePartyList(context.world, context.requests);
     UI::PanelRegistry& panels = gamePanels.Registry();
     // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).
     if (panels.IsOpen(UI::MovePanel) && ui.capture == 0)
-        return Core::Unexpected(std::string("0x5ecdc0: el paso de la ventana /move (0x449850) es del hito 6"));
+    {
+        if (auto moved = StepTheMoveWindow(context); !moved.HasValue())
+            return moved;
+    }
     ui.hovered = 0;
     // 0x636e35: 0x46b7b0, las dos colas del cartel de Slide.bmd (0x46add0).
     if (auto slides = UI::StepTheSlides(runtime.hud.slides, UI::SlideStepContext{.measure = context.measure,
@@ -912,12 +871,18 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& conte
             const double dz = static_cast<double>(item.position.z) - static_cast<double>(hero.position.z);
             if (std::sqrt(dx * dx + dy * dy + dz * dz) < static_cast<double>(PickUpDistance))
                 return Core::Unexpected(std::string("0x5ac9ae: levantar el ítem del piso con la barra (0x5650c0) es "
-                                                    "del hito 6"));
+                                                    "de la CL9.3"));
         }
     }
-    // 0x5ac9ce..0x5aca42: F1, la ayuda de las superposiciones (0x77f3b08) y +0x9305 de [0x6eed3c].
+    // 0x5ac9ce..0x5aca42: F1 pasa por las ayudas (0x77f3b08): de 3 o 4 (la del ítem o la ventana /move) a 0 y si no
+    // al siguiente de 0, 1 y 2. Apaga el cartel del conjunto (+0x9305 de [0x6eed3c]) y pide el 0x19.
     if (KeyEdge(ui, input, F1Key))
-        return Core::Unexpected(std::string("0x5ac9ce: F1, la ayuda (0x77f3b08), es del hito 6"));
+    {
+        std::int32_t& mode = runtime.panels.overlayMode;
+        mode = mode == UI::ItemHelpMode || mode == UI::MoveOverlayMode ? 0 : (mode + 1) % FunctionHelpModes;
+        context.world.ItemSets().setHelp = 0;
+        runtime.lastSoundId = ButtonSound;
+    }
     // 0x5aca42..0x5aca86: F2, el chat normal en el registro (0x6c8dd1), y el registro corre 0 (la vtable + 0x34).
     if (KeyEdge(ui, input, F2Key))
     {

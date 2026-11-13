@@ -2,20 +2,30 @@
 
 #include "App/ServerSession.h"
 #include "Core/Expected.h"
+#include "Core/Log.h"
+#include "Core/PathText.h"
+#include "Data/DataPath.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Protocol/Character/CharacterList.h"
+#include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameChat.h"
+#include "Scenes/GameData.h"
+#include "Scenes/GameDialogDrawing.h"
+#include "Scenes/GameHover.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameSceneFrameProjection.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/ItemSetState.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WorldTexts.h"
 #include "UI/GameCursor.h"
 #include "UI/GameUiState.h"
 #include "UI/OldWindowDraw.h"
@@ -26,8 +36,15 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <filesystem>
+#include <format>
+#include <fstream>
+#include <ios>
+#include <optional>
 #include <ratio>
 #include <string>
+#include <string_view>
+#include <system_error>
 #include <utility>
 
 namespace Client::Scenes
@@ -44,6 +61,79 @@ void LatchTheRightButton(UI::GameUiState& ui, const Input::InputState& input)
     ui.rightClick = down && (ui.rightClick || pressed);
     ui.rightDown = down && (ui.rightDown || pressed);
 }
+
+// Lo que piden los diálogos del juego: el F3 30 y el F1 02 por la sesión (sin servidor, un aviso al log),
+// Data\Macro.txt y el log.
+class SceneUiRequests final : public IGameUiRequests
+{
+public:
+    SceneUiRequests(App::ServerSession* session, Core::Log& log, const std::filesystem::path& dataRoot)
+        : m_session(session), m_log(log), m_dataRoot(dataRoot)
+    {
+    }
+
+    void SendOptionData(const Protocol::OptionData::OptionBody& body) override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no se manda el F3 30: no hay servidor");
+            return;
+        }
+        if (auto sent = m_session->SendOptionData(body); !sent.HasValue())
+            m_log.Warning("no se manda el F3 30: {}", sent.Error());
+    }
+
+    void RequestLogout(std::uint8_t kind) override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no se pide la salida (F1 02 con {}): no hay servidor", kind);
+            return;
+        }
+        m_session->RequestLogout(kind);
+    }
+
+    void RequestPartyList() override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no se pide la lista de la party (C1 03 42): no hay servidor");
+            return;
+        }
+        m_session->RequestPartyList();
+    }
+
+    // 0x61c170: fopen("wt") crea el archivo o lo vacía. Lo que guardan las macros no va al log.
+    Core::Expected<void, std::string> SaveMacros(std::string_view content) override
+    {
+        std::error_code error;
+        std::optional<std::filesystem::path> path = Data::ResolveDataPath(m_dataRoot, MacroFile, error);
+        if (error)
+            return Core::Unexpected(
+                std::format("no se pudo buscar {} en {}: {}", MacroFile, Core::PathText(m_dataRoot), error.message()));
+        if (!path)
+            path = m_dataRoot / MacroFile;
+        std::ofstream file(*path, std::ios::binary | std::ios::trunc);
+        if (!file)
+            return Core::Unexpected(std::format("0x61c17c: no se pudo abrir {} para escribir (el original sigue con "
+                                                "fprintf sobre NULL)",
+                                                Core::PathText(*path)));
+        file.write(content.data(), static_cast<std::streamsize>(content.size()));
+        if (!file)
+            return Core::Unexpected(std::format("no se pudo escribir {}", Core::PathText(*path)));
+        return {};
+    }
+
+    void Log(std::string_view line) override
+    {
+        m_log.Info("{}", line);
+    }
+
+private:
+    App::ServerSession* m_session;
+    Core::Log& m_log;
+    const std::filesystem::path& m_dataRoot;
+};
 
 // WM_MOUSEWHEEL (0x4b4c19) escribe la rueda del último mensaje; sin mensajes, queda la de antes.
 void LatchTheWheel(UI::GameUiState& ui, const Input::InputState& input)
@@ -75,16 +165,29 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
     // escena 5, 0x623e70 antes de la lógica de la escena (0x636290), con el mundo cargado o no.
     if (runtime.ui.capture != 0)
         return {};
+    SceneUiRequests requests(m_session, m_context.log, m_context.dataRoot);
+    std::optional<std::uint8_t> chosenSlot;
+    if (m_session != nullptr)
+    {
+        if (const Protocol::Character::CharacterEntry* chosen = m_session->ChosenCharacter(); chosen != nullptr)
+            chosenSlot = chosen->slot;
+    }
     return StepTheGameDialogs(GameUiContext{.world = *m_context.world,
                                             .random = m_context.cloth->random,
                                             .input = input,
                                             .mouseX = mouse.x,
-                                            .mouseY = mouse.y});
+                                            .mouseY = mouse.y,
+                                            .measure = m_context.textMeasure,
+                                            .screen = m_screen,
+                                            .texts = m_texts,
+                                            .chosenSlot = chosenSlot,
+                                            .requests = &requests});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& input)
 {
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
+    SceneUiRequests requests(m_session, m_context.log, m_context.dataRoot);
     const GameChatContext chat = ChatContext();
     // timeGetTime() de los segundos del cartel (0x46ada0): el reloj de la escena en ms.
     const auto systemTime =
@@ -100,6 +203,7 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .measure = m_context.textMeasure,
                                        .screen = m_screen,
                                        .chat = &chat,
+                                       .requests = &requests,
                                        .systemTime = systemTime});
 }
 
@@ -158,8 +262,30 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .mouse = UI::MouseIn640x480(input, canvas.screen),
         .leftDown = input.IsDown(Input::MouseButton::Left)};
     // 0x637646: 0x6219b0 empieza el 2D (gluOrtho2D y MODELVIEW identidad, con push): el lote de SceneCanvas.
-    // 0x63764b: 0x4383f0, los textos 3D (hito 3).
-    // 0x637650: 0x5bbbc0, el hover y Alt (hito 4).
+    // 0x63764b: 0x4383f0, los textos 3D.
+    WorldTextDrawContext worldTexts{.queue = runtime.worldTexts,
+                                    .projection = projection,
+                                    .sprites = canvas.sprites,
+                                    .text = canvas.text,
+                                    .hud = hud.hud,
+                                    .projecting = m_projectingFrame};
+    if (auto drawn = DrawTheWorldTexts(worldTexts); !drawn.HasValue())
+        return drawn;
+    // 0x637650: 0x5bbbc0, el hover y Alt.
+    GameHoverContext hover{.world = *m_context.world,
+                           .tail = FrameTail(),
+                           .random = FrameCloth().random,
+                           .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
+                           .hud = hud.hud,
+                           .altLatch =
+                               m_projectingFrame ? m_projection->altLatch : runtime.ui.keyLatches[UI::AltVirtualKey],
+                           .altNames = m_projectingFrame ? m_projection->altNames : runtime.ui.altNames,
+                           .altDown = input.IsDown(Input::Key::Alt),
+                           .sprites = canvas.sprites,
+                           .text = canvas.text,
+                           .projecting = m_projectingFrame};
+    if (auto drawn = DrawTheHover(hover); !drawn.HasValue())
+        return drawn;
     // 0x637660: 0x5a7320(1), el HUD, con 0x7d36899 en 0.
     if (auto drawn = DrawTheHud(hud); !drawn.HasValue())
         return drawn;
@@ -180,16 +306,21 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     if (auto list = UI::DrawTheWindowList(oldWindows, windowContext, windowView); !list.HasValue())
         return list;
     // 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9 (hito 4).
-    // 0x637696: 0x62db60, las cajas viejas, en la escena 5 (hito 6).
+    // 0x637696: 0x62db60, los diálogos, en la escena 5.
+    if (auto dialogs = DrawTheGameDialogs(hud); !dialogs.HasValue())
+        return dialogs;
     // 0x63769b: 0x5f7bc0, los tooltips (hito 4).
     // 0x6376a0..0x6376b6: los avisos y, con el registro del chat en su ventana, el área vieja.
     DrawTheMessages(*m_context.world, hud.hud, canvas.sprites, canvas.text, hud.mouse, true);
     // 0x6376bb: 0x5b0550, las superposiciones.
     if (auto overlays = DrawTheOverlays(hud); !overlays.HasValue())
         return overlays;
-    // 0x6376c6: 0x40eca0, el cartel del set, con +0x9305 (hito 5).
+    // 0x6376c6: 0x40eca0, el cartel del conjunto, con +0x9305 de [0x6eed3c] (lo abre el chat con su nombre).
+    if (const std::uint8_t setHelp = m_context.world->ItemSets().setHelp; setHelp != 0)
+        return Core::Unexpected(std::format(
+            "0x6376c6: el cartel del conjunto {} (0x40eca0, con 0x40d530 y 0x5af090) es del hito 5", setHelp));
     // 0x6376cb: 0x65ee60 → 0x65fe00, la UI nueva (hito 6).
-    // 0x6376d7: 0x5ac2d0, el cursor, 0x6376dc: 0x633110, el ítem 3D del diálogo (hito 6), y 0x6376e1: el cursor otra
+    // 0x6376d7: 0x5ac2d0, el cursor, 0x6376dc: 0x633110, el ítem 3D del diálogo (P-C90), y 0x6376e1: el cursor otra
     // vez, el mismo quad.
     if (auto cursor = DrawTheGameCursor(hud); !cursor.HasValue())
         return cursor;

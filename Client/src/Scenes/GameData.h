@@ -6,6 +6,7 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/Credits.h"
+#include "Data/Text/MoveRequirements.h"
 #include "Data/Text/SlideTable.h"
 #include "Data/Text/TextTable.h"
 #include "UI/MacroFile.h"
@@ -40,6 +41,8 @@ inline constexpr std::string_view CreditsFile = "Local\\credit.bmd";
 inline constexpr std::string_view MacroFile = "Macro.txt";
 // Los textos del cartel, como los pide 0x61ccb0 (0x61ed18, con 0x6d29c8).
 inline constexpr std::string_view SlideTableFile = "Local\\Slide.bmd";
+// Los destinos de la ventana /move, como los pide 0x61ccb0 (0x61ec8f, con 0x6d2a18).
+inline constexpr std::string_view MoveRequirementsFile = "Local\\movereq.bmd";
 
 struct GameData
 {
@@ -65,6 +68,9 @@ struct GameData
     UI::Macros macros{};
     // Slide.bmd (CL8 hito 3): el período, la velocidad y los textos del cartel de [0x5763528]. Vacío si no está.
     std::optional<Data::Text::SlideTable> slides;
+    // movereq.bmd (CL8 hito 6): los destinos de la ventana /move, que main.cpp copia a WorldRuntime::moves (la lista
+    // de 0x723c68). Vacío si no está, como cuando fopen falla en 0x448440.
+    std::vector<Data::Text::MoveRequirement> moves;
 };
 
 // Lo de WinMain antes de la escena 1: Text.bmd en 0x4b9b9f (0x61ee30 y 0x5495e0), antes de las
@@ -84,6 +90,8 @@ struct GameData
 // 0x61c1c0; una palabra que desborda su lugar (Q-C531) es el error. Al final, Slide.bmd (0x46b3b0): uno que no está
 // deja `slides` vacío y el cartel con lo de su constructor (el original avisa "File not exist." y se cierra, Q-C517);
 // uno que no se lee o es corto es un error que lo nombra. credit.bmd puede faltar (los créditos quedan vacíos); uno
-// que no se lee o es corto es un error que lo nombra.
+// que no se lee o es corto es un error que lo nombra. movereq.bmd, antes de las tablas de los conjuntos como en
+// 0x61ccb0, también: sin él, la ventana /move queda sin destinos (0x448440 devuelve 0 y nadie lo mira);
+// uno que no se lee, corto o con un nombre sin terminar es un error que lo nombra.
 [[nodiscard]] Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot);
 } // namespace Client::Scenes

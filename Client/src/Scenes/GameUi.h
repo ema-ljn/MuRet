@@ -2,11 +2,14 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Protocol/OptionData.h"
 #include "UI/OldWindows.h"
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <string>
+#include <string_view>
 
 namespace Client::Input
 {
@@ -23,6 +26,11 @@ namespace Client::Render::Text
 class ITextMeasure;
 }
 
+namespace Client::Data::Text
+{
+class TextTable;
+}
+
 // La UI del juego en el paso y en el frame, lo del hito 1 de la CL8 (06 § HUD y ventanas, "El orden" y "El clic
 // es primero de la UI"): los diálogos antes del paso (0x623e70), el bloque de la UI del paso (0x636ded..0x63705b)
 // con 0x5ee140 y 0x59ff10, y el picking del frame (0x59ec80). Lo que es de otro hito o de otra ola corta con su
@@ -34,6 +42,24 @@ class WorldState;
 struct GameChatContext;
 struct GameMovementState;
 struct WorldRuntime;
+
+// Lo que los diálogos y los paneles le piden al resto del cliente (el menú de Esc, 0x624036..0x62553f, y la party): el
+// cable, el disco y el log.
+class IGameUiRequests
+{
+public:
+    virtual ~IGameUiRequests() = default;
+    // 0x61c210: el C1 1C F3 30 con `body`, en claro.
+    virtual void SendOptionData(const Protocol::OptionData::OptionBody& body) = 0;
+    // 0x62411c..: el C3 F1 02 con `kind`. Los dos rand() del C3 (el relleno y el serial) los saca el paso.
+    virtual void RequestLogout(std::uint8_t kind) = 0;
+    // 0x6599a0(4): el C1 03 42 en claro, el pedido de la lista de la party al abrir su ventana.
+    virtual void RequestPartyList() = 0;
+    // 0x61c170("Data\\Macro.txt"): `content` (UI::WrittenMacros) en el archivo.
+    [[nodiscard]] virtual Core::Expected<void, std::string> SaveMacros(std::string_view content) = 0;
+    // 0x41fa40 sobre el log del original (0x57630f0).
+    virtual void Log(std::string_view line) = 0;
+};
 
 struct GameUiContext
 {
@@ -52,6 +78,13 @@ struct GameUiContext
     App::PixelSize screen{640, 480};
     // Lo que las macros (0x5a116f) mandan y avisan. nullptr (los tests que no las miran): una macro es el error.
     const GameChatContext* chat = nullptr;
+    // Text.bmd: los textos de los diálogos (el 592 del menú de Esc, las páginas del 0x8c). nullptr sin tabla: el que
+    // lee uno corta con error.
+    const Data::Text::TextTable* texts = nullptr;
+    // 0x6d5edc: el lugar del elegido, el de las teclas de las skills del F3 30 que sale (0x61c2c6).
+    std::optional<std::uint8_t> chosenSlot{};
+    // El cable, Macro.txt y el log. nullptr (los tests que no los miran): un botón que los usa corta con error.
+    IGameUiRequests* requests = nullptr;
     // timeGetTime() de los segundos del cartel (0x46ada0).
     std::uint32_t systemTime = 0;
 };
@@ -92,8 +125,9 @@ struct FramePickingContext
 };
 
 // 0x63717f → 0x5ac8d0: las teclas de función, al final de la lógica del paso con el mundo cargado. La barra (levantar
-// el ítem del piso) y F1 (la ayuda) son del hito 6 y cortan; F2 (el chat normal en el registro), F3 (el modo del
-// susurro) y F4 (el tamaño y el lugar del registro) cambian lo suyo y suenan.
+// el ítem del piso, CL9.3) corta; F1 (las ayudas de 0x77f3b08 y el cartel del conjunto), F2 (el chat normal en el
+// registro), F3 (el modo del susurro) y F4 (el tamaño y el lugar del registro) cambian lo suyo y suenan. Impr Pant
+// (0x637cff, la captura) no es de acá: va detrás del paso de cualquier escena (Scenes::Screenshots).
 [[nodiscard]] Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& context);
 
 // 0x637641 → 0x59ec80: el picking del frame, primero del 2D. Las búsquedas del ítem del piso, del NPC, del

@@ -1,4 +1,6 @@
 #include "Protocol/Messages.h"
+#include "Network/Crypto/Xor32.h"
+#include "Network/Delivery.h"
 #include "Protocol/OptionData.h"
 
 #include "Protocol/ProtocolError.h"
@@ -6,10 +8,12 @@
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
 #include "support/Packets.h"
+#include "support/SameBytes.h"
 
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <initializer_list>
 #include <string>
 #include <string_view>
@@ -24,10 +28,13 @@ using Client::Protocol::Messages::ReadKeyChat;
 using Client::Protocol::Messages::ReadNotice;
 using Client::Protocol::Messages::ReadWhisper;
 using Client::Protocol::Messages::ReadWhisperResult;
+using Client::Protocol::OptionData::OptionBody;
 using Client::Protocol::OptionData::ReadOptionData;
+using Client::Protocol::OptionData::WriteOptionData;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;
+using Client::Tests::SameBytes;
 
 // Un C1 con el opcode, el nombre de 10 bytes y el texto que sigue.
 std::vector<std::byte> Spoken(int opcode, std::string_view name, std::string_view text)
@@ -139,5 +146,20 @@ TEST(MessagesProtocolTest, ReadsTheOptionData)
         ErrorOf(ReadOptionData(PacketOf(Bytes({0xc1, 0x12, 0xf3, 0x30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})))),
         ProtocolError::TooShort);
     EXPECT_EQ(ErrorOf(ReadOptionData(PacketOf(Bytes({0xc1, 0x04, 0xf3, 0x31})))), ProtocolError::WrongPacket);
+}
+
+// 0x61c210: C1 1C F3 30 y los 24 bytes de la pila, con el XOR32 desde el byte 3 y en claro.
+TEST(MessagesProtocolTest, WritesTheOptionData)
+{
+    OptionBody body{};
+    for (std::size_t at = 0; at < body.size(); ++at)
+        body[at] = static_cast<std::uint8_t>(0x40 + at);
+    const auto outgoing = WriteOptionData(body);
+
+    EXPECT_EQ(outgoing.delivery, Client::Network::Delivery::Clear);
+    std::vector<std::byte> expected = Bytes({0xc1, 0x1c, 0xf3, 0x30});
+    for (const std::uint8_t value : body)
+        expected.push_back(std::byte{value});
+    EXPECT_TRUE(SameBytes(Client::Network::Crypto::Xor32Decode(outgoing.packet).Bytes(), expected));
 }
 } // namespace

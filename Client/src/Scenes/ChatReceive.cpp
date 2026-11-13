@@ -144,19 +144,6 @@ bool IsTheGuildMaster(const ActorState& actor)
     }
     return actor.byte1e3 == GuildMasterName[actor.name.size()];
 }
-
-// El byte `index` de las skills del registro propio (+0x6c + index). MuRet tiene los 64 de +0x6c a +0xab; los que
-// siguen, hasta +0x16b, los escribe solo el F3 11 (0x4c5070, CL9.2) y quedan en el 0 con que WinMain deja el registro.
-std::uint8_t OwnSkillByte(const OwnCharacterRecord& own, std::size_t index)
-{
-    constexpr std::size_t BytesPerWord = 4;
-    constexpr std::uint32_t BitsPerByte = 8;
-    if (index >= own.words6c.size() * BytesPerWord)
-        return 0;
-    const std::uint32_t word = own.words6c[index / BytesPerWord];
-    return static_cast<std::uint8_t>((word >> (static_cast<std::uint32_t>(index % BytesPerWord) * BitsPerByte)) &
-                                     0xffu);
-}
 } // namespace
 
 Core::Expected<void, std::string> ApplyChat(const Protocol::Messages::Chat& chat, const ChatReceiveContext& context)

@@ -9,6 +9,7 @@ class CrtRandom;
 
 namespace Client::Scenes
 {
+class IGameUiRequests;
 class WorldState;
 
 // El registro de paneles ([0x576352c]) sobre los globales de WorldRuntime, con lo que sus funciones leen del
@@ -29,6 +30,10 @@ public:
     {
         return m_registry;
     }
+
+    // 0x659aa0..0x659c3d: con `requests`, abrir la party pone en 0 la cuenta de `world` (HudState::partyCount) y pide
+    // la lista (C1 03 42). Lo presta el paso de la UI, el que abre la party; sin él, o con nullptr, abrirla corta.
+    void LendThePartyList(WorldState& world, IGameUiRequests* requests);
 
 private:
     UI::PanelContext m_context;

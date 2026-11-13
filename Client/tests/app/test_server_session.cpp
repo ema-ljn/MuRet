@@ -28,6 +28,7 @@
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
+#include "Protocol/OptionData.h"
 #include "Protocol/World.h"
 #include "Protocol/Character/CharacterCreate.h"
 #include "Protocol/Character/CharacterDelete.h"
@@ -4393,6 +4394,48 @@ TEST(ServerSessionTest, FacingUsesTheWorldConnectionAndXorDelivery)
     const auto received = tested.GameServerReads();
     ASSERT_EQ(received.packets.size(), before + 1);
     EXPECT_TRUE(SameBytes(Xor32Decode(received.packets.back()).Bytes(), Bytes({0xc1, 5, 0x18, 0xf7, 0x7a})));
+    EXPECT_FALSE(received.packets.back().WasDecrypted());
+}
+
+// 0x61c210 manda el F3 30 en claro con el XOR32, por el GS: no pasa por el cifrado del C3.
+TEST(ServerSessionTest, OptionDataUsesTheWorldConnectionAndXorDelivery)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto before = tested.GameServerReads().packets.size();
+    Client::Protocol::OptionData::OptionBody body{};
+    body[0] = 0x21;
+    body[10] = 0x0a;
+    body[0x17] = 0x5c;
+    ASSERT_TRUE(tested.session.SendOptionData(body).HasValue());
+    const auto received = tested.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 1);
+    const auto decoded = Xor32Decode(received.packets.back());
+    const auto bytes = decoded.Bytes();
+    ASSERT_EQ(bytes.size(), 0x1cu);
+    EXPECT_TRUE(SameBytes(bytes.first(4), Bytes({0xc1, 0x1c, 0xf3, 0x30})));
+    EXPECT_EQ(bytes[4], std::byte{0x21});
+    EXPECT_EQ(bytes[14], std::byte{0x0a});
+    EXPECT_EQ(bytes[0x1b], std::byte{0x5c});
+    EXPECT_FALSE(received.packets.back().WasDecrypted());
+}
+
+// 0x6599a0(4) manda el C1 03 42 en claro, sin XOR32 ni cifrado, y solo con el socket abierto.
+TEST(ServerSessionTest, PartyListRequestGoesClearToTheGameServerOnly)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingServer());
+    const auto beforeChoosing = tested.socket.sent.size();
+    tested.session.RequestPartyList();
+    EXPECT_EQ(tested.socket.sent.size(), beforeChoosing);
+
+    Harness inWorld(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(inWorld.ReachLoggedIn());
+    const auto before = inWorld.GameServerReads().packets.size();
+    inWorld.session.RequestPartyList();
+    const auto received = inWorld.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 1);
+    EXPECT_TRUE(SameBytes(received.packets.back().Bytes(), Bytes({0xc1, 3, 0x42})));
     EXPECT_FALSE(received.packets.back().WasDecrypted());
 }
 

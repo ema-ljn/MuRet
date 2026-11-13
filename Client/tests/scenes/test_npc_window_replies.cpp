@@ -74,6 +74,7 @@ constexpr std::uint16_t Shield = 0x0c00;
 constexpr std::uint16_t Jewel = 0x1c0d;
 constexpr std::size_t ChaosBoxNotEmptyText = 593;
 constexpr std::size_t MixSucceededText = 595;
+constexpr std::size_t TrainerListText = 1208;
 
 class LetterMeasure final : public Client::Render::Text::ITextMeasure
 {
@@ -154,8 +155,11 @@ struct Stage
     Client::Data::Tables::ItemSetTables sets = Client::Tests::ItemSetTablesFrom(
         std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff}),
         std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff}));
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(
-        {{ChaosBoxNotEmptyText, "la caja tiene algo"}, {594, "no salio"}, {MixSucceededText, "salio"}, {596, "no"}});
+    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{ChaosBoxNotEmptyText, "la caja tiene algo"},
+                                                                        {594, "no salio"},
+                                                                        {MixSucceededText, "salio"},
+                                                                        {596, "no"},
+                                                                        {TrainerListText, "pone la mascota"}});
     LetterMeasure measure;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
@@ -352,11 +356,39 @@ TEST_F(NpcWindowRepliesTest, TheListFillsTheShopGridAndTheChaosBox)
     EXPECT_EQ(Npc().chaosBox[9].gridColumn, 1);
     EXPECT_EQ(Npc().chaosBox[9].gridRow, 1);
     EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x44);
+}
 
-    const Npc::ItemList trainer{.grid = 5, .items = {}};
-    const auto cut = Client::Scenes::ApplyItemList(trainer, stage->Resources());
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x4c5fb4"), std::string::npos);
+// El 31 con la grilla 5 (0x4c5fb4..0x4c6042): el aviso 1208 de tipo 2, los sonidos, la caja del entrenador vacía y
+// cada ítem con 0x44ad70(lugar, datos, 0), la cola de 0x5bc740 con el registro propio abierto (3.848 rand() por
+// ítem). 0x7d2dc80 queda como estaba.
+TEST_F(NpcWindowRepliesTest, TheListFillsTheTrainerBoxWithTheTailOfEachItem)
+{
+    Npc().trainerBox[30].id = Jewel;
+    Npc().chaosMixState = 1;
+    const CrtRandom expected = Advanced(stage->cloth.random, 2 * Own);
+    const Npc::ItemList trainer{
+        .grid = 5, .items = {{.slot = 3, .item = ItemBytes(Sword)}, {.slot = 12, .item = ItemBytes(Shield)}}};
+    const auto listed = Client::Scenes::ApplyItemList(trainer, stage->Resources());
+    ASSERT_TRUE(listed.HasValue()) << listed.Error();
+    EXPECT_EQ(stage->cloth.random.State(), expected.State());
+    const auto& box = Npc().trainerBox;
+    EXPECT_EQ(box[30].id, Client::Scenes::EmptyOwnItemId);
+    for (const std::size_t cell : {3u, 11u, 19u})
+        EXPECT_EQ(box[cell].id, Sword) << cell;
+    for (const std::size_t cell : {12u, 13u, 20u, 21u})
+    {
+        EXPECT_EQ(box[cell].id, Shield) << cell;
+        EXPECT_EQ(box[cell].gridColumn, 4) << cell;
+        EXPECT_EQ(box[cell].gridRow, 1) << cell;
+    }
+    EXPECT_EQ(box[12].occupied, 1);
+    EXPECT_EQ(box[21].occupied, 0);
+    EXPECT_EQ(Npc().chaosMixState, 1);
+    EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x44);
+    const auto& entry = stage->world.Runtime().chat.log.entries.back();
+    EXPECT_EQ(entry.text, "pone la mascota");
+    EXPECT_EQ(entry.type, 2);
+    EXPECT_TRUE(entry.name.empty());
 }
 
 // El 32: el ítem comprado en su lugar del inventario, el sonido 0x1d y 0x5767950 en 0; con 0xff, solo 0x5767950.
@@ -474,9 +506,30 @@ TEST_F(NpcWindowRepliesTest, ASuccessfulMixLeavesTheNewItemInTheChaosBox)
     EXPECT_EQ(Npc().chaosMixState, 0);
 }
 
-// El 24 con 2 y con 3 (0x4d1cf6.. y 0x4d1d20..): 0x5bc740 con el último argumento en 0 en la grilla del almacén (8
-// por fila) y en la caja del caos, y la cola de 0x5bd405 con el registro propio abierto; después, el sonido 0x1d.
-TEST_F(NpcWindowRepliesTest, TheItemMoveResultPlacesInTheWarehouseAndInTheChaosBox)
+// El 86 con 100 (0x4da373): la caja del entrenador vacía y el ítem en su lugar 0 con 0x44ad70(0, datos, 1), sin la cola
+// (sin rand()), sin sonido y con 0x7d2dc80 como estaba.
+TEST_F(NpcWindowRepliesTest, TheTrainerMixLeavesItsItemInTheTrainerBox)
+{
+    Npc().trainerBox[20].id = Jewel;
+    Npc().chaosMixState = 1;
+    stage->world.Runtime().lastSoundId = 0;
+    const CrtRandom before = stage->cloth.random;
+    const auto mixed =
+        Client::Scenes::ApplyChaosMixResult({.result = 100, .item = ItemBytes(Sword)}, stage->Resources());
+    ASSERT_TRUE(mixed.HasValue()) << mixed.Error();
+    EXPECT_EQ(stage->cloth.random.State(), before.State());
+    EXPECT_EQ(Npc().trainerBox[20].id, Client::Scenes::EmptyOwnItemId);
+    for (const std::size_t cell : {0u, 8u, 16u})
+        EXPECT_EQ(Npc().trainerBox[cell].id, Sword) << cell;
+    EXPECT_EQ(Npc().trainerBox[0].occupied, 1);
+    EXPECT_EQ(Npc().chaosMixState, 1);
+    EXPECT_EQ(stage->world.Runtime().lastSoundId, 0);
+}
+
+// El 24 con 2, 3 y 5 (0x4d1cf6.., 0x4d1d20.. y 0x4d1d4a..): 0x5bc740 con el último argumento en 0 en la grilla del
+// almacén (8 por fila), en la caja del caos y en la del entrenador, y la cola de 0x5bd405 con el registro propio
+// abierto; después, el sonido 0x1d.
+TEST_F(NpcWindowRepliesTest, TheItemMoveResultPlacesInTheOtherGrids)
 {
     stage->world.Runtime().cursorItemCount = 1;
     const CrtRandom stored = Advanced(stage->cloth.random, Own);
@@ -502,6 +555,18 @@ TEST_F(NpcWindowRepliesTest, TheItemMoveResultPlacesInTheWarehouseAndInTheChaosB
     for (const std::size_t cell : {1u, 9u, 17u})
         EXPECT_EQ(Npc().chaosBox[cell].id, Sword) << cell;
     EXPECT_EQ(Npc().chaosBox[1].occupied, 1);
+    EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x1d);
+
+    // El 24 con 5 (0x4d1d4a..0x4d1d55): 0x44ad70(lugar, datos, 0) en la caja del entrenador, con la cola.
+    stage->world.Runtime().lastSoundId = 0;
+    const CrtRandom placed = Advanced(stage->cloth.random, Own);
+    const auto trainer =
+        Client::Scenes::ApplyItemMoveResult({.result = 5, .slot = 6, .item = ItemBytes(Sword)}, stage->Resources());
+    ASSERT_TRUE(trainer.HasValue()) << trainer.Error();
+    EXPECT_EQ(stage->cloth.random.State(), placed.State());
+    for (const std::size_t cell : {6u, 14u, 22u})
+        EXPECT_EQ(Npc().trainerBox[cell].id, Sword) << cell;
+    EXPECT_EQ(Npc().trainerBox[6].occupied, 1);
     EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x1d);
 }
 

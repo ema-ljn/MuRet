@@ -1373,7 +1373,13 @@ Core::Expected<void, std::string> ApplyItemMoveResult(const Protocol::Inventory:
             return placed;
         break;
     case 5:
-        return Core::Unexpected(std::string("0x4d1d55: 0x44ad70, la caja del entrenador, es de la CL9.3"));
+        // 0x4d1d4a..0x4d1d55: 0x44ad70(lugar, datos, 0), 0x5bc740(0x723c80, 8, 4, lugar, datos, 0), la caja del
+        // entrenador.
+        if (auto placed = PlaceMovedItemInOtherGrid(runtime.npcWindows.trainerBox, NpcGridColumns, result.slot,
+                                                    result.item, resources, "0x4d1d55, 0x5bc740(0x723c80)");
+            !placed.HasValue())
+            return placed;
+        break;
     default:
         break;
     }

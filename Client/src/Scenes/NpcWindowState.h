@@ -167,7 +167,7 @@ struct NpcWindowState
     // en 1 con el BC; 0x402e50 y 0x402e10 lo vuelven a 0): mientras, el 30 con 9 no abre nada.
     std::uint8_t field6e5798 = 0;
     // 0x723c80: la caja del entrenador (Scenes/PetTrainer.h). La llenan el 31 con la grilla 5 (0x4c5fde), el 86 con
-    // 100 (0x4da373) y soltar en ella (0x44aca9), que cortan.
+    // 100 (0x4da373) y el 24 con 5 (0x4d1d55); la dibuja 0x44ad40.
     std::array<World::ItemState, TrainerBoxCellCount> trainerBox = EmptyTrainerBox();
     // 0x724585: 0x44ae10 lo pone en 1 si el zen no alcanza para la mezcla que encontró en la caja. Nadie lo lee
     // (Q-C956).

@@ -633,6 +633,11 @@ float ChaosBoxGridTop(const GameHudContext& context)
 {
     return F32(static_cast<double>(context.hud.npcWindowY) + 110.0);
 }
+
+// 0x44ad40(cifras): con 0x724580 en 3, 0x5e3760(275.0, 110.0, 0x723c80, 8, 4, cifras), la caja del entrenador en su
+// lugar fijo (0x44ad59 y 0x44ad5e).
+constexpr float TrainerBoxGridLeft = 275.0f;
+constexpr float TrainerBoxGridTop = 110.0f;
 } // namespace
 
 Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::PanelRegistry& panels)
@@ -691,10 +696,10 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::
         return Core::Unexpected(std::string("0x5f7792: 0x6689d0, la marca del asedio del héroe, es de la CL9.5"));
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
         return Core::Unexpected(std::string("0x5f7821: los ítems de la tienda personal (0x78ab0b8) son de la CL9.4"));
-    // 0x44ad40(0).
+    // 0x5f782b: 0x44ad40(0).
     if (delegated.trainer == TrainerWithBox)
-        return Core::Unexpected(
-            std::string("0x5f782b: 0x44ad40, los ítems de la caja del entrenador (0x723c80) son de la CL9.3"));
+        return DrawTheGridModels(context, TrainerBoxGridLeft, TrainerBoxGridTop, runtime.npcWindows.trainerBox,
+                                 ChaosBoxGridColumns, ChaosBoxGridRows);
     return {};
 }
 
@@ -730,10 +735,10 @@ Core::Expected<void, std::string> DrawTheGridNumbers(GameHudContext& context, UI
         return Core::Unexpected(std::string("0x5f7a6a: 0x6689d0, la marca del asedio del héroe, es de la CL9.5"));
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
         return Core::Unexpected(std::string("0x5f7af9: las cifras de la tienda personal (0x78ab0b8) son de la CL9.4"));
-    // 0x44ad40(1).
+    // 0x5f7b03: 0x44ad40(1).
     if (delegated.trainer == TrainerWithBox)
-        return Core::Unexpected(
-            std::string("0x5f7b03: 0x44ad40, las cifras de la caja del entrenador (0x723c80) son de la CL9.3"));
+        DrawTheGridCounts(context.sprites, TrainerBoxGridLeft, TrainerBoxGridTop, world.Runtime().npcWindows.trainerBox,
+                          ChaosBoxGridColumns, ChaosBoxGridRows);
     return {};
 }
 

@@ -13,6 +13,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/GuildPanels.h"
 #include "Scenes/GuildState.h"
+#include "Scenes/GuildWindow.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/Dialogs.h"
@@ -348,7 +349,7 @@ Core::Expected<void, std::string> ApplyMemberList(const MemberList& list, const 
     guild.memberCount = list.count;
     guild.score = std::max(list.score, 0);
     GuildWindowState& window = guild.window;
-    window.members.clear();
+    ClearTheGuildMembers(window);
     window.unions.clear();
     CopyName(window.name88, list.name);
     for (std::size_t i = 0; i < list.members.size(); ++i)
@@ -362,7 +363,7 @@ Core::Expected<void, std::string> ApplyMemberList(const MemberList& list, const 
         slot.server =
             (entry.server & ConnectedBit) == 0 ? NoServer : static_cast<std::uint8_t>(entry.server & ServerMask);
         slot.status = entry.status;
-        window.members.push_back(slot);
+        AddTheGuildMember(context.world, slot);
     }
     return {};
 }

@@ -268,4 +268,8 @@ using GuildPacket =
 // 0x4d930f..0x4d9690: C1 08 66 [0] [clave del gremio, DWORD], con el XOR32 y en claro: el 65 pide el 66 de un gremio
 // que la tabla no tiene. El 0 es el relleno hasta el DWORD, como el pkt[3] del 66.
 [[nodiscard]] Outgoing WriteGuildInfoRequest(std::int32_t guildKey);
+
+// 0x64def0: C1 0F E1 [tipo] [puesto] [nombre, 10 bytes], con el XOR32 y en claro. Quitarle el cargo a un miembro manda
+// el tipo 3 con el puesto 0.
+[[nodiscard]] Outgoing WriteAssignStatus(std::uint8_t type, std::uint8_t status, const CharacterName& name);
 } // namespace Client::Protocol::Guild

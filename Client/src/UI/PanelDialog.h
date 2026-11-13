@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Render/Text/FontSet.h"
+#include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 #include "UI/Widget.h"
 
@@ -62,9 +63,11 @@ enum class PanelDialogOwner : std::uint8_t
     None,
     GuildJoin,    // 0x4d6b60, el pedido de entrar al gremio (el 50)
     Relationship, // 0x653c00, el pedido de alianza o de rivalidad (el E5)
+    GuildDismiss, // 0x64def0, quitarle el cargo a un miembro (la pestaña de los miembros)
+    GuildKick,    // 0x64e550, echar a un miembro (la pestaña de los miembros)
 };
 
-// La respuesta: si la función devuelve distinto de 0 el diálogo se cierra (las dos de MuRet devuelven 1).
+// La respuesta: si la función devuelve distinto de 0 el diálogo se cierra (las de MuRet devuelven 1).
 using PanelDialogAnswer =
     std::function<Core::Expected<bool, std::string>(PanelDialogOwner owner, std::uint32_t reason)>;
 

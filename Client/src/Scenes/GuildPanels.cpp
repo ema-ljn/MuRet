@@ -9,10 +9,12 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
+#include "UI/Dialogs.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -30,6 +32,10 @@ constexpr std::uint8_t ClosedMasterAnswer = 0;
 // 0x653c69..0x6545de: el resultado del E6 que manda el E5 aceptado y el rechazado.
 constexpr std::uint8_t RelationshipAccepted = 1;
 constexpr std::uint8_t RelationshipRefused = 0;
+// 0x64dfc7: el tipo del E1 que quita el cargo.
+constexpr std::uint8_t DismissType = 3;
+// 0x64e55e: el diálogo del juego que pide el número para echar a un miembro.
+constexpr std::int32_t KickDialogId = 0x7d;
 
 Core::Expected<void, std::string> Send(const GuildSender& send, Protocol::Outgoing packet, const char* where)
 {
@@ -73,6 +79,33 @@ Core::Expected<bool, std::string> AnswerThePanelDialog(WorldState& world, const 
                              "0x653c00");
             !sent.HasValue())
             return Core::Unexpected(std::move(sent).Error());
+        return true;
+    }
+    case UI::PanelDialogOwner::GuildDismiss:
+    {
+        // 0x64df13: con 8, C1 0F E1 03 00 y el nombre de 0x7d535a8 (10 bytes), y C1 03 52 (0x64e38b); con lo demás,
+        // nada.
+        if (reason != UI::PanelAnswerConfirm)
+            return true;
+        Protocol::Guild::CharacterName name{};
+        for (std::size_t index = 0; index < name.size(); ++index)
+            name[index] = static_cast<std::byte>(guild.chosenName[index]);
+        if (auto sent = Send(send, Protocol::Guild::WriteAssignStatus(DismissType, 0, name), "0x64def0");
+            !sent.HasValue())
+            return Core::Unexpected(std::move(sent).Error());
+        if (auto sent = Send(send, Protocol::Guild::WriteMemberListRequest(), "0x64e38b"); !sent.HasValue())
+            return Core::Unexpected(std::move(sent).Error());
+        return true;
+    }
+    case UI::PanelDialogOwner::GuildKick:
+    {
+        // 0x64e553: con 8, el diálogo 0x7d del juego (0x7d3a10c), que pide el número del maestro y manda el C1 53
+        // (0x62a878), con el lugar del miembro de 0x7d536c8 en 0x6d5e2c. Ese diálogo corta en su paso (0x62a810).
+        if (reason != UI::PanelAnswerConfirm)
+            return true;
+        WorldRuntime& runtime = world.Runtime();
+        runtime.dialogs.current = KickDialogId;
+        runtime.guild.kickMember = runtime.guild.kickIndex;
         return true;
     }
     case UI::PanelDialogOwner::None:

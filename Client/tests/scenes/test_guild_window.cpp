@@ -2,6 +2,7 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Network/Crypto/Xor32.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
@@ -10,19 +11,27 @@
 #include "Render/Text/FontSet.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameHud.h"
+#include "Scenes/GameMovementState.h"
 #include "Scenes/GuildPanels.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/Dialogs.h"
+#include "UI/OldControls.h"
+#include "UI/OldWindowBase.h"
+#include "UI/PanelDialog.h"
 
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <format>
+#include <initializer_list>
 #include <map>
 #include <memory>
 #include <optional>
@@ -52,6 +61,25 @@ constexpr float Left = 450.0f;
 constexpr std::int32_t WindowX = 0x1c2;
 constexpr std::uint16_t InTheGuild = 0x3;
 constexpr std::uint8_t MemberStatus = 0x00;
+constexpr std::uint8_t MasterStatus = 0x80;
+constexpr std::uint8_t BattleMasterStatus = 0x20;
+constexpr std::uint32_t Now = 5000;
+constexpr std::uint8_t PageUp = 0x21;
+constexpr std::uint8_t PageDown = 0x22;
+
+std::vector<std::byte> BytesOf(std::initializer_list<int> values)
+{
+    std::vector<std::byte> bytes;
+    for (const int value : values)
+        bytes.push_back(static_cast<std::byte>(value));
+    return bytes;
+}
+
+std::vector<std::byte> PlainOf(const Client::Protocol::Outgoing& sent)
+{
+    const auto plain = Client::Network::Crypto::Xor32Decode(sent.packet);
+    return {plain.Bytes().begin(), plain.Bytes().end()};
+}
 
 struct DrawnQuad
 {
@@ -114,9 +142,17 @@ int Draws(const CrtRandom& random)
 
 Client::Data::Text::TextTable WindowTexts()
 {
-    const std::map<std::size_t, std::string> texts{{180, "Gremio"},      {185, "Sin gremio"}, {186, "busca uno"},
-                                                   {187, "o arma otro"}, {220, "Salir"},      {946, "Aviso"},
-                                                   {1330, "Miembros"},   {1352, "Alianza"}};
+    const std::map<std::size_t, std::string> texts{{180, "Gremio"},
+                                                   {185, "Sin gremio"},
+                                                   {186, "busca uno"},
+                                                   {187, "o arma otro"},
+                                                   {220, "Salir"},
+                                                   {946, "Aviso"},
+                                                   {1330, "Miembros"},
+                                                   {1352, "Alianza"},
+                                                   {1367, "Miembro: %s"},
+                                                   {1368, "pierde el cargo"},
+                                                   {1369, "se va del gremio"}};
     auto table = Client::Data::Text::LoadTextTable(Client::Tests::TextTableBytes(texts));
     EXPECT_TRUE(table.HasValue());
     return std::move(table).Value();
@@ -159,13 +195,65 @@ protected:
         Guild().score = 17;
     }
 
+    Client::Scenes::GuildSender Sender()
+    {
+        return [this](Client::Protocol::Outgoing packet) { m_sent.push_back(std::move(packet)); };
+    }
+
     Client::Core::Expected<void, std::string> Step()
     {
         return Client::Scenes::StepTheGuildWindow(Client::Scenes::GuildWindowStepContext{
             .world = *m_world,
             .mouseX = m_mouseX,
             .mouseY = m_mouseY,
-            .send = [this](Client::Protocol::Outgoing packet) { m_sent.push_back(std::move(packet)); }});
+            .send = Sender(),
+            .keyEdge =
+                [this](std::uint8_t key)
+            {
+                const auto found = std::find(m_edges.begin(), m_edges.end(), key);
+                if (found == m_edges.end())
+                    return false;
+                m_edges.erase(found);
+                return true;
+            },
+            .keyDown = [](std::uint8_t) { return false; },
+            .now = Now,
+            .measure = &m_text,
+            .texts = &m_texts});
+    }
+
+    // Un miembro del 52: en la tabla de 0x787a5e8 (en el orden del paquete) y en la lista (0x6517a0).
+    void AddMember(std::string_view name, std::uint8_t status)
+    {
+        Client::Scenes::GuildMemberSlot& slot = Guild().members[static_cast<std::size_t>(Guild().memberCount)];
+        Fill(slot.name, name);
+        slot.status = status;
+        ++Guild().memberCount;
+        Client::Scenes::AddTheGuildMember(*m_world, slot);
+    }
+
+    std::string MemberAt(std::size_t at)
+    {
+        return std::string(Client::Scenes::GuildTextOf(Guild().window.members.at(at).slot.name));
+    }
+
+    // 0x45b200: el flanco sobre el botón y, el cuadro que sigue, soltarlo encima.
+    Client::Core::Expected<void, std::string> Click(std::size_t button)
+    {
+        const Client::UI::OldButton& target = Guild().window.memberButtons.at(button);
+        m_mouseX = target.base.x + target.base.width / 2;
+        m_mouseY = target.base.y + target.base.height / 2;
+        Client::Scenes::GameMovementState& movement = Runtime().movement;
+        movement.pendingClick = true;
+        movement.leftHeld = true;
+        if (auto pressed = Step(); !pressed.HasValue())
+            return pressed;
+        movement.pendingClick = false;
+        movement.leftHeld = false;
+        movement.releasedClick = true;
+        auto released = Step();
+        movement.releasedClick = false;
+        return released;
     }
 
     Client::Core::Expected<void, std::string> Draw()
@@ -202,6 +290,7 @@ protected:
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text;
     std::vector<Client::Protocol::Outgoing> m_sent;
+    std::vector<std::uint8_t> m_edges;
     std::int32_t m_mouseX = 0;
     std::int32_t m_mouseY = 300;
 };
@@ -353,6 +442,164 @@ TEST_P(GuildWindowTest, WithoutAnAllianceTheUnionTabSendsNothing)
     EXPECT_EQ(Guild().window.tab, 2);
     EXPECT_EQ(Guild().window.unionRequested, 0);
     EXPECT_TRUE(m_sent.empty());
+}
+
+// 0x6517a0 → 0x46c930: cada miembro entra adelante; con la lista vacía, +0x130 mira si es el héroe. Al final, elegido
+// el último del deque (el primero que entró) y el corrimiento hasta el final. 0x6517d0 la vacía, elige 0 y corre a 0.
+TEST_P(GuildWindowTest, TheMemberListPutsEachNewMemberFirst)
+{
+    Hero().name = {std::byte{'S'}, std::byte{'a'}, std::byte{'u'}, std::byte{'c'}, std::byte{'e'}};
+    AddMember("Sauce", BattleMasterStatus);
+    EXPECT_EQ(Guild().window.heroFirst, 1);
+    AddMember("Ombu", MemberStatus);
+    AddMember("Tala", MemberStatus);
+    ASSERT_EQ(Guild().window.members.size(), 3U);
+    EXPECT_EQ(MemberAt(0), "Tala");
+    EXPECT_EQ(MemberAt(1), "Ombu");
+    EXPECT_EQ(MemberAt(2), "Sauce");
+    EXPECT_EQ(Guild().window.memberList.selection, 3);
+    EXPECT_EQ(Guild().window.memberList.scroll, 0);
+    EXPECT_EQ(Guild().window.heroFirst, 1);
+
+    Client::Scenes::ClearTheGuildMembers(Guild().window);
+    EXPECT_TRUE(Guild().window.members.empty());
+    EXPECT_EQ(Guild().window.memberList.selection, 0);
+    AddMember("Ombu", MemberStatus);
+    EXPECT_EQ(Guild().window.heroFirst, 0);
+    EXPECT_EQ(Draws(m_random), 0);
+}
+
+// 0x650350 con 20 miembros (18 renglones): entraron con el corrimiento al final (2). PgDn corre 18 hacia el principio y
+// PgUp vuelve, acotados a [0, 2]. Cada flanco, una vez.
+TEST_P(GuildWindowTest, PageUpAndPageDownScrollTheMemberList)
+{
+    JoinTheGuild("");
+    for (int member = 0; member < 20; ++member)
+        AddMember(std::format("Socio{}", member), MemberStatus);
+    EXPECT_EQ(Guild().window.memberList.scroll, 2);
+    EXPECT_EQ(Guild().window.memberList.selection, 20);
+    m_edges = {PageDown};
+    ASSERT_TRUE(Step().HasValue());
+    EXPECT_EQ(Guild().window.memberList.scroll, 0);
+    ASSERT_TRUE(Step().HasValue());
+    EXPECT_EQ(Guild().window.memberList.scroll, 0);
+    m_edges = {PageUp};
+    ASSERT_TRUE(Step().HasValue());
+    EXPECT_EQ(Guild().window.memberList.scroll, 2);
+    EXPECT_EQ(Runtime().ui.capture, 0);
+    EXPECT_EQ(Draws(m_random), 0);
+}
+
+// 0x46d3a0: el clic sobre un renglón (de 0xd desde su y − 3) lo elige (corrimiento + renglón + 1), invierte +0 de su
+// elemento y gasta el clic. El renglón 0 es el de abajo: con tres, en y (3 − 0) · 13 − 0xeb − 10 + 0x159 = 139.
+TEST_P(GuildWindowTest, ClickingAMemberRowChoosesAndTogglesIt)
+{
+    JoinTheGuild("");
+    AddMember("Sauce", BattleMasterStatus);
+    AddMember("Ombu", MemberStatus);
+    AddMember("Tala", MemberStatus);
+    m_mouseX = 0x1d2 + 4;
+    m_mouseY = 139 - 3 + 2;
+    Runtime().movement.pendingClick = true;
+    ASSERT_TRUE(Step().HasValue());
+    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_EQ(Guild().window.memberList.selection, 1);
+    EXPECT_EQ(Guild().window.members[0].toggled, 1);
+    EXPECT_EQ(Guild().window.members[1].toggled, 0);
+
+    // El renglón 1, 13 más arriba.
+    m_mouseY -= 13;
+    Runtime().movement.pendingClick = true;
+    ASSERT_TRUE(Step().HasValue());
+    EXPECT_EQ(Guild().window.memberList.selection, 2);
+    EXPECT_EQ(Guild().window.members[1].toggled, 1);
+    EXPECT_EQ(Draws(m_random), 0);
+}
+
+// 0x6504dc..0x650652 y 0x64def0: el maestro quita el cargo al elegido (0x20): el diálogo con Confirmar y Cancelar y el
+// nombre en 0x7d535a8; Confirmar manda C1 0F E1 03 00 y el nombre con el XOR32, y C1 03 52 en claro.
+TEST_P(GuildWindowTest, TheMasterDismissesTheChosenMember)
+{
+    JoinTheGuild("");
+    Hero().guildStatus = MasterStatus;
+    AddMember("Sauce", BattleMasterStatus);
+    AddMember("Ombu", MemberStatus);
+    ASSERT_EQ(Guild().window.memberList.selection, 2);
+    const auto clicked = Click(Client::Scenes::GuildDismissButton);
+    ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
+    const Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::GuildDismiss);
+    EXPECT_EQ(dialog.flags, Client::UI::PanelDialogConfirm);
+    ASSERT_EQ(dialog.lineCount, 2);
+    EXPECT_EQ(dialog.lines[0], "Miembro: Sauce");
+    EXPECT_EQ(dialog.lines[1], "pierde el cargo");
+    EXPECT_EQ(Guild().window.dialog, Now);
+    EXPECT_EQ(Client::Scenes::GuildTextOf(Guild().chosenName), "Sauce");
+    EXPECT_EQ(Runtime().lastSoundId, 0x19);
+    EXPECT_TRUE(m_sent.empty());
+
+    auto answered =
+        Client::Scenes::AnswerThePanelDialog(*m_world, Sender(), dialog.owner, Client::UI::PanelAnswerConfirm);
+    ASSERT_TRUE(answered.HasValue());
+    EXPECT_TRUE(answered.Value());
+    ASSERT_EQ(m_sent.size(), 2U);
+    EXPECT_EQ(PlainOf(m_sent[0]), BytesOf({0xc1, 0x0f, 0xe1, 0x03, 0x00, 'S', 'a', 'u', 'c', 'e', 0, 0, 0, 0, 0}));
+    const auto list = m_sent[1].packet.Bytes();
+    EXPECT_EQ(std::vector<std::byte>(list.begin(), list.end()), BytesOf({0xc1, 0x03, 0x52}));
+
+    // Cancelar no manda nada.
+    answered = Client::Scenes::AnswerThePanelDialog(*m_world, Sender(), Client::UI::PanelDialogOwner::GuildDismiss,
+                                                    Client::UI::PanelAnswerCancel);
+    ASSERT_TRUE(answered.HasValue());
+    EXPECT_EQ(m_sent.size(), 2U);
+    EXPECT_EQ(Draws(m_random), 0);
+}
+
+// 0x650658..0x6507b5 y 0x64e550: echar al elegido busca su lugar en 0x787a5e8 (0x64faa0) y abre el diálogo; Confirmar
+// abre el diálogo 0x7d del juego con ese lugar en 0x6d5e2c. A un 0x00 no se le quita el cargo.
+TEST_P(GuildWindowTest, TheMasterKicksTheChosenMember)
+{
+    JoinTheGuild("");
+    Hero().guildStatus = MasterStatus;
+    AddMember("Sauce", BattleMasterStatus);
+    AddMember("Ombu", MemberStatus);
+    Client::UI::SelectInTheList(Guild().window.memberList, Guild().window.members.size(), 1);
+    ASSERT_TRUE(Click(Client::Scenes::GuildDismissButton).HasValue());
+    EXPECT_EQ(Runtime().panels.delegated.panelDialog.opened, 0U);
+
+    const auto clicked = Click(Client::Scenes::GuildKickButton);
+    ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
+    const Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::GuildKick);
+    EXPECT_EQ(dialog.lines[0], "Miembro: Ombu");
+    EXPECT_EQ(dialog.lines[1], "se va del gremio");
+    EXPECT_EQ(Guild().kickIndex, 1);
+    EXPECT_EQ(Guild().kickMember, -1);
+
+    ASSERT_TRUE(Client::Scenes::AnswerThePanelDialog(*m_world, Sender(), dialog.owner, Client::UI::PanelAnswerConfirm)
+                    .HasValue());
+    EXPECT_EQ(Runtime().dialogs.current, 0x7d);
+    EXPECT_EQ(Guild().kickMember, 1);
+    EXPECT_TRUE(m_sent.empty());
+    EXPECT_EQ(Draws(m_random), 0);
+}
+
+// 0x6503cf..0x6504d4: el cargo al elegido guarda su puesto y su nombre, y la ventana de los cargos corta (P-C288). Sin
+// ser maestro, los botones no hacen nada.
+TEST_P(GuildWindowTest, TheAssignButtonCutsAndOnlyTheMasterHasButtons)
+{
+    JoinTheGuild("");
+    AddMember("Sauce", BattleMasterStatus);
+    ASSERT_TRUE(Click(Client::Scenes::GuildAssignButton).HasValue());
+    ASSERT_TRUE(Click(Client::Scenes::GuildKickButton).HasValue());
+    EXPECT_EQ(Runtime().panels.delegated.panelDialog.opened, 0U);
+
+    Hero().guildStatus = MasterStatus;
+    const auto clicked = Click(Client::Scenes::GuildAssignButton);
+    ASSERT_FALSE(clicked.HasValue());
+    EXPECT_NE(clicked.Error().find("0x6504b6"), std::string::npos) << clicked.Error();
+    EXPECT_EQ(Guild().chosenStatus, BattleMasterStatus);
+    EXPECT_EQ(Client::Scenes::GuildTextOf(Guild().chosenName), "Sauce");
 }
 
 INSTANTIATE_TEST_SUITE_P(Maps, GuildWindowTest, ::testing::Values(0, 2));

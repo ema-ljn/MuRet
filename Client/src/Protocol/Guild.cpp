@@ -444,4 +444,9 @@ Outgoing WriteGuildInfoRequest(std::int32_t guildKey)
 {
     return Xor32C1(Network::PacketWriter::C1(GuildInfoOpcode).PutU8(0).PutU32Le(static_cast<std::uint32_t>(guildKey)));
 }
+
+Outgoing WriteAssignStatus(std::uint8_t type, std::uint8_t status, const CharacterName& name)
+{
+    return Xor32C1(Network::PacketWriter::C1(AssignResultOpcode).PutU8(type).PutU8(status).PutBytes(name));
+}
 } // namespace Client::Protocol::Guild

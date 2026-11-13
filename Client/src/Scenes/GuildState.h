@@ -1,5 +1,6 @@
 #pragma once
 
+#include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 
 #include <algorithm>
@@ -55,6 +56,14 @@ struct GuildMemberSlot
     std::uint8_t status = 0; // +0xd
 };
 
+// Un elemento de 0x14 bytes del deque de la lista de los miembros (0x46c930): +0 lo invierte el clic en su renglón
+// (0x46d3a0) y +4..+0x11 es el lugar del miembro.
+struct GuildMemberRow
+{
+    std::int32_t toggled = 0;
+    GuildMemberSlot slot{};
+};
+
 // Una fila de la lista de la alianza (+0x2f8 de [0x7d536f0], la vtable + 0x94 que llama 0x6517e0).
 struct GuildUnionRow
 {
@@ -82,6 +91,52 @@ inline constexpr std::int32_t GuildWindowId = -10;
     return base;
 }
 
+// La lista de los miembros, +0x94 de [0x7d536f0] (0x46c470, vtable 0x6b971c): en (0x1d2, 0x159) de 0x9d × 0xeb,
+// colgada de su borde de abajo (+0x78 en 2), 18 renglones (+0x104), hasta 0x96 elementos, con las flechas (+0xbc en 1)
+// y la barra de las ventanas (+0x12c en 1). Sin padre (+0x44 en 0). Su id es del contador 0x5762eb0: MuRet le da −11
+// (P-C280).
+inline constexpr std::int32_t GuildMemberListId = -11;
+
+[[nodiscard]] inline UI::OldList GuildMemberList()
+{
+    UI::OldList list;
+    list.base.id = GuildMemberListId;
+    list.base.x = 0x1d2;
+    list.base.y = 0x159;
+    list.base.width = 0x9d;
+    list.base.height = 0xeb;
+    list.base.rectMode = 2;
+    list.rows = 0x12;
+    return list;
+}
+
+// 0x64f3e0: los tres botones del maestro en la pestaña de los miembros (0x45ad80), de 0x32 × 0x12 en y + 0x15e, con el
+// comando (0x45b150) y el texto de Text.bmd (0x45b170): +0x4b4 en x + 0x12 (2, el 1307, el cargo), +0x53c en x + 0x46
+// (3, el 1308, quitarlo) y +0x5c4 en x + 0x7a (4, el 1309, echarlo). Cuelgan de la ventana (+0x44 con su id). Ids:
+// −12..−14 (P-C280).
+inline constexpr std::size_t GuildAssignButton = 0;
+inline constexpr std::size_t GuildDismissButton = 1;
+inline constexpr std::size_t GuildKickButton = 2;
+inline constexpr std::size_t GuildMemberButtonCount = 3;
+
+[[nodiscard]] inline std::array<UI::OldButton, GuildMemberButtonCount> GuildMemberButtons()
+{
+    constexpr std::array<std::int32_t, GuildMemberButtonCount> Lefts{0x12, 0x46, 0x7a};
+    std::array<UI::OldButton, GuildMemberButtonCount> buttons{};
+    for (std::size_t index = 0; index < buttons.size(); ++index)
+    {
+        UI::OldButton& button = buttons[index];
+        button.base.id = GuildMemberListId - 1 - static_cast<std::int32_t>(index);
+        button.base.parent = GuildWindowId;
+        button.base.x = 0x1c2 + Lefts[index];
+        button.base.y = 0x15e;
+        button.base.width = 0x32;
+        button.base.height = 0x12;
+        button.command = 2 + static_cast<std::int32_t>(index);
+    }
+    return buttons;
+}
+
 struct GuildWindowState
 {
     UI::OldWindowBase base = GuildWindowBase();
@@ -90,8 +145,14 @@ struct GuildWindowState
     std::int32_t unionRequested = 0;
     // +0x88..+0x90: el nombre de pkt[0xd..0x14] del 52 (0x651650) y su cero.
     std::array<char, 9> name88{};
-    // +0x94: la lista de los miembros (0x6517a0 agrega la entrada de 0x787a5e8, 0x6517d0 la vacía).
-    std::vector<GuildMemberSlot> members;
+    // +0x94: la lista de los miembros (0x6517a0 agrega la entrada de 0x787a5e8 adelante, 0x6517d0 la vacía) y su
+    // deque, en el orden del deque.
+    UI::OldList memberList = GuildMemberList();
+    std::vector<GuildMemberRow> members;
+    // +0x130 de la lista: el primero que entró a la lista vacía es el héroe (0x46c992).
+    std::int32_t heroFirst = 0;
+    // +0x4b4, +0x53c y +0x5c4.
+    std::array<UI::OldButton, GuildMemberButtonCount> memberButtons = GuildMemberButtons();
     // +0x1c8: los renglones del aviso del gremio (0x651680; 0x651790 la vacía).
     std::vector<std::string> notice;
     // +0x2f8: la lista de la alianza (0x6517e0; 0x651830 la vacía).
@@ -210,6 +271,15 @@ struct GuildState
     std::int32_t createStep = 0;
     // 0x78aba44: el color elegido de la paleta del editor de la marca (0x6535c0 lo cambia, 0x653750 lo dibuja).
     std::int32_t markColor = 0;
+
+    // 0x7d535a8..0x7d535b3 y 0x7d535b4: el miembro elegido en la pestaña de los miembros (su nombre, que manda el E1
+    // de 0x64def0) y su puesto (para la ventana de los cargos, 0x64e600).
+    std::array<char, 12> chosenName{};
+    std::uint8_t chosenStatus = 0;
+    // 0x7d536c8: el lugar en 0x787a5e8 del que se echa (0x64faa0, −1 si no está); 0x64e550 lo copia a 0x6d5e2c (.data
+    // −1), que lee el diálogo 0x7d del juego.
+    std::int32_t kickIndex = 0;
+    std::int32_t kickMember = -1;
 
     GuildWindowState window{};
     SecondGuildWindowState secondWindow{};

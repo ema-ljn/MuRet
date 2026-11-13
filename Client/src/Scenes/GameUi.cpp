@@ -48,6 +48,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -266,6 +267,33 @@ Core::Expected<void, std::string> Toggle(UI::PanelRegistry& panels, UI::PanelId 
 // las dos que leen abajo con GetAsyncKeyState (las flechas de las listas, 0x47b0f0).
 constexpr std::array<GameKey, 5> OldWindowEdgeKeys{EscapeKey, F5Key, F6Key, EnterKey, Letter('F')};
 constexpr std::array<GameKey, 2> OldWindowDownKeys{UpKey, DownKey};
+
+// 0x650387 y 0x6503a4: 0x553520 de PgUp y PgDn, que lee la lista de los miembros del gremio.
+std::function<bool(std::uint8_t)> PageKeyEdges(UI::GameUiState& ui, const Input::InputState& input)
+{
+    return [ui = &ui, input = &input](std::uint8_t virtualKey)
+    {
+        if (virtualKey == PageUpKey.virtualKey)
+            return KeyEdge(*ui, *input, PageUpKey);
+        if (virtualKey == PageDownKey.virtualKey)
+            return KeyEdge(*ui, *input, PageDownKey);
+        return false;
+    };
+}
+
+// GetAsyncKeyState de las flechas de una lista vieja (0x47b0f0).
+std::function<bool(std::uint8_t)> ArrowKeysDown(const Input::InputState& input)
+{
+    return [input = &input](std::uint8_t virtualKey)
+    {
+        for (const GameKey& key : OldWindowDownKeys)
+        {
+            if (key.virtualKey == virtualKey)
+                return input->IsDown(key.key);
+        }
+        return false;
+    };
+}
 
 // Lo que las ventanas viejas leen del juego en el paso de la UI (CL9 hito 9): la vista de 0x490490 (el mouse, las
 // teclas, el chat abierto, Text.bmd, la medida del DC, el cable y el EDIT del susurro) y 0x491080, que la usa también
@@ -1587,7 +1615,12 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     gamePanels.LendTheGuildWindowStep(GuildWindowStepContext{.world = context.world,
                                                              .mouseX = context.mouseX,
                                                              .mouseY = context.mouseY,
-                                                             .send = GuildSenderOf(context.requests)});
+                                                             .send = GuildSenderOf(context.requests),
+                                                             .keyEdge = PageKeyEdges(runtime.ui, context.input),
+                                                             .keyDown = ArrowKeysDown(context.input),
+                                                             .now = context.systemTime,
+                                                             .measure = context.measure,
+                                                             .texts = context.texts});
     gamePanels.LendTheFriends([&sight]() { return sight.OpenTheFriendsWindow(); });
     gamePanels.LendTheTradeCancel(context.world, context.random, context.requests);
     UI::PanelRegistry& panels = gamePanels.Registry();

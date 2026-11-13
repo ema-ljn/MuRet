@@ -2769,6 +2769,28 @@ y + `0x4b` + 4 (la elegida, uno más arriba); blanco y el dibujo de la pestaña 
 (`PassesTheGuildWindowGate`); los pasos y los dibujos de las pestañas, las listas y los botones cortan con su
 dirección (08 P-C287). Tests: `GuildWindowTest`.
 
+**La pestaña de los miembros, el paso (`0x650350`).** La lista `+0x94` (`0x46c470`, vtable `0x6b971c`) está en
+(`0x1d2`, `0x159`) de `0x9d` × `0xeb`, colgada de su borde de abajo, con 18 renglones y sin padre. El `52` la vacía
+(`0x6517d0` → `0x47a410`: borra, `+0x48(0)`, elige 0 y corrimiento 0) y le agrega cada lugar (`0x6517a0` → `0x46c930`):
+sin nombre nada; con la lista vacía `+0x130` dice si es el héroe (`strcmp` con `+0x1d9`); el elemento de `0x14`
+(`+0` en 0, el nombre con `strncpy` de `0xb`, el número, el servidor y el puesto) va **adelante** (`push_front`), con
+más de `0x96` saca del final (`0x47b7e0`), elige 0, suma uno al corrimiento con más que los renglones y lo acota, elige
+1 si es el único, y al final elige la cuenta y corre `−10.000` (hasta el final). El paso: `0x5762eb4` con el id de la
+lista, su `+0x18` (`0x45aa80(0)` → `0x47b0f0`, con el renglón `0x46d3a0`: el clic sobre `0xd` desde su y − 3, de
+ancho `_ftol(ancho − cursor + 1)`, lo elige, invierte `+0` del elemento y gasta el clic) y `0x5762eb4` en 0; PgUp y
+PgDn (`0x553520`) corren `∓` los renglones (`+0x38`, `0x4720b0`, y `+0x34`). Con el héroe maestro (`0x80`), los
+tres botones (`0x45b200`) sobre el elegido (`+0x64`): `+0x4b4` (el 1307), a quien no es maestro, guarda su puesto en
+`0x7d535b4` y su nombre en `0x7d535a8` y abre la ventana de los cargos (`0x6600d0` vacío y `0x6602b0(0x64e600,
+0x64f1c0)`); `+0x53c` (el 1308), solo a un `0x40` o un `0x20`, y `+0x5c4` (el 1309), a quien no es maestro, abren el
+diálogo de los paneles con dos renglones (`sprintf` con el 1367 y el nombre; el 1368 o el 1369), Confirmar y Cancelar
+(4) y su respuesta: `0x64def0` (con 8, `C1 0F E1 03 00` y los diez bytes de `0x7d535a8`, con el XOR32, y `C1 03 52`) o
+`0x64e550` (con 8, el diálogo `0x7d` del juego, `0x7d3a10c`, con el lugar de `0x64faa0` de `0x7d536c8` en
+`0x6d5e2c`). El diálogo `0x7d` pide el número y manda `C1 53` con el nombre de `0x787a5e8` y diez bytes de
+`0x7798bf8` (`0x62a878`). **MuRet** (fase 4): `AddTheGuildMember`, `ClearTheGuildMembers` y la pestaña en
+`StepTheGuildWindow`; los botones abren con `GuildDismiss` y `GuildKick` (`AnswerThePanelDialog`). Cortan la ventana
+de los cargos (`0x6504b6`) y el diálogo `0x7d` (`0x62a810`). Tests: `GuildWindowTest` (la lista, PgUp y PgDn, el clic
+en un renglón, quitar el cargo con el `E1` byte a byte, echar y el cargo).
+
 ## La escena de carga y la de login
 
 Leído en la CL5.R en el desensamblado de `c32bbd5f` (`objdump -d -M intel`), con el decompilado

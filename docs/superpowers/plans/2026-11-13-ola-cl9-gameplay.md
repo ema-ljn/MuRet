@@ -411,10 +411,13 @@ con sus pestañas y listas (08 P-C287, sobre `UI::OldList` del hito 9) y las ven
 **Fase 4 (2026-11-13):** el marco de la ventana del gremio (`0x64f3e0`): su paso (`0x651840`: el mouse sobre ella,
 cerrarla, las pestañas, el `C1 03 E9` de la alianza una vez) desde el registro (`0x657977`) y su dibujo (`0x651c20`:
 el título, el puntaje o los tres textos sin gremio, el botón de cerrar y las tres pestañas) desde `0x6579e0`, con el
-nombre del gremio del héroe leído también antes de la tabla (−1). Queda (08 P-C287 y P-C288): los pasos y dibujos de
-las pestañas (`0x64fc00`, `0x650350`, `0x650c10`, `0x64fdf0`, `0x6507d0`, `0x651400`), sus listas (`0x46b800`,
-`0x46c470`, `0x46d440`, `0x46d630`, con `0x480e00`, `0x480520`, `0x4824d0` y el dibujo `0x47a810`) y las ventanas de la
-alianza (`0x64e600`, `0x64def0`, `0x650830`).
+nombre del gremio del héroe leído también antes de la tabla (−1). Después, el paso de la pestaña de los miembros
+(`0x650350`) con su lista sobre `UI::OldList` (`0x46c470`: `0x46c930`, `0x47a410`, `0x46d3a0`), PgUp y PgDn, y los
+botones del maestro: quitar el cargo (`0x64def0`: `C1 0F E1 03 00` y el nombre, y `C1 03 52`) y echar (`0x64e550`, que
+abre el diálogo `0x7d` del juego). Queda (08 P-C287 y P-C288): la ventana de los cargos (`0x64e600`, `0x64f1c0`), el
+`C1 53` del diálogo `0x7d` (`0x62a878`), los otros pasos y los dibujos de las pestañas (`0x64fc00`, `0x650c10`,
+`0x64fdf0`, `0x6507d0`, `0x651400`), las otras listas (`0x46b800`, `0x46d440`, `0x46d630`, con `0x480e00`, `0x480520`,
+`0x4824d0`), el dibujo de las listas (`0x47a810`, con `0x46cb20` y `0x46d050`) y `0x650830`.
 
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 

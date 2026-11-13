@@ -1046,7 +1046,7 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | `0x40` | almacén | `0x7d5370d` | CL9.3 |
 | `0x80` | — | siempre cerrado: su rama de `0x659290` da 0 (`0x659429 JNZ 0x6597f3` → `XOR AL,AL`) | — |
 | `0x100` | caja del caos | `0x7d5370e` | CL9.3 |
-| `0x200` | comandos (D) | `*(0x6e592c+4)` | CL8 hito 6 (sin `0x406050`, CL9.4) |
+| `0x200` | comandos (D) | `*(0x6e592c+4)` | CL8 hito 6 (`0x406050`, CL9 hito 7, fase 3) |
 | `0x400` | mascota | `0x420cc0()`: `0x723911 == 2` (`0x424230` lo vuelve a 0 en cada paso con el personaje cerrado) | CL9.x |
 | `0x800` | tienda personal propia (S) | `0x7d5370f` | CL9.4 |
 | `0x1000`, `0x4000` | ventanas con inventario de NPC de evento (`0x7d53712` con `0x7d53714` en 0 o 1; el paso las atiende en `0x5e5920`, que manda `90`/`9A`) *inferido* | | CL9.5 |
@@ -1330,7 +1330,7 @@ prende `+4`; en Chaos Castle `CanOpen` no deja. Cerrarlo con `CloseByMask` (`0x6
 ventana vieja que corta antes (`0x4906a0`, hito 7). El paso (`0x40a450`, desde `0x5ee140` con `ECX = [0x6e592c]`):
 con `+4` en 1, el mouse en `[x, x + 0xbe) × [y, y + 0x1b1)` es de la UI; `0x406050` pone los doce estados en 1 y,
 con un comando elegido y un personaje elegido (`0x6c8e30 ≥ 0`), sigue en `0x406097` con lo que el comando hace sobre
-él (CL9.4; Q-C653); los botones del 1 al 11 (el 0 no: Q-C651) van en `(_ftol(x + 95 − 50), _ftol(y + 53) + 28 · c)`,
+él (CL9 hito 7, fase 3, *estático*; "El comando sobre el elegido", abajo); los botones del 1 al 11 (el 0 no: Q-C651) van en `(_ftol(x + 95 − 50), _ftol(y + 53) + 28 · c)`,
 y el clic estrictamente adentro de 108 × 20 (Q-C654) lo gasta, suelta el botón (`0x7d36874 = 0`) y elige el comando
 (`+0x20`); el botón de cerrar la cierra sin `Close`: los dos sonidos con `0x41ed10`, `0x77f3b10 = 0`, `0x6c8dcc = 6` y
 el objeto como al entrar. No saca `rand()`. El dibujo (`0x40a650`, en `0x5f75fa`): con `+4` en 1, la esquina en
@@ -1352,6 +1352,34 @@ x87 y guardado en float), `0x620a00(1)`, su nombre (`+0x1d9`) como título en `(
 no; después, el negro y el aviso del elegido según su estado: con 0,
 el 255 del 5, el 1313 del 6, el 937 del 10 y el 257 del 3; con `0xff`, el 507; con `0xfe`, el 1320; en negrita,
 `0x6c8e64 = 0`, centrado en `(x + 0x5f, y + 0x44)`. Termina con el blanco y `0x620980`.
+
+**El comando sobre el elegido** (`0x406050` desde `0x406097`, CL9 hito 7, fase 3, *estático*). Con el personaje
+elegido, `+8 = −1` y las cuatro celdas, cada una en su acceso (`0x40b570` y `0x40b800`, con los 4 `rand()` del
+cierre): la x del otro (`+0x41c`), la del héroe publicado, la y del otro (`+0x420`) y la del héroe, siempre las cuatro.
+Si el otro es un jugador (`+0x88` en 1) que no es el héroe, del tipo `0x20a` o con `+0x3e3`, y está a dos celdas o
+menos en cada eje (`JG 2` con signo), `+8` es el elegido. Después, `+0x1d` (el estado del 9, amigos) en 0, así que su
+caso (`0x40a0e1`) no se alcanza, y los estados del comando elegido: el 3 y el 10 (`0x4061d3`), invitar (3) si no está
+en la party y seguir (10) si está (`strcmp` con los `0x78aba48` nombres de `0x77f3cd0`); el 5 (`0x40627a`), 0 con el
+héroe en un gremio y `0xff` si el otro no es maestro (`+0x368` en `0x80`) del suyo; el 6 (`0x4062b6`), `0xfe` sin el
+héroe maestro, `0xff` sin el otro, y con los dos el `+4` del gremio del héroe en la tabla `0x787aa48` (hito 8, corta en
+`0x4062e4`); el 7 y el 8 (`0x4062fb` y `0x406323`), `0xfe`, `0xff` o 1. Con el clic derecho (`0x7d36880`) y `+8 ≥ 0`, el
+clic se gasta (con `0x7d3685c`) y, con el estado del comando en 1 o más (con signo), su caso:
+
+| Comando | Caso | Qué hace |
+|---|---|---|
+| 1 (943) | `0x40638d` | el nivel del registro propio (`+0xe`, con su acceso) contra `0x6c8dc8`: abajo, el aviso 478 (tipo 1) y `+0x20 = −1`; con la tienda personal del otro (`0x451810`), el 493 (tipo 2) y `+0x20 = −1`; si no, con `0x5af560` y `0x7d3a101`, el `36` en C3 y el aviso 475 con el nombre; la ventana se cierra (`+4 = 0`, `+8` y `+0x20` en −1, los estados en 1) |
+| 2 (1124) | `0x406b02` | el `C1 10 3F 05` con la clave y el nombre del otro, en C3, y la ventana se cierra |
+| 3 (944) | `0x4072df` | con otro líder, el aviso 257 y `+0x20 = −1`; si no, con `0x7d3a101`, `0x78aba4c`, el `40` en C3 y el aviso 476; la ventana queda |
+| 4 (945) | `0x40a04e` | con `0x6c7b8c` en 1, el nombre al EDIT del susurro (`0x4694c0(0, 0, 1, nombre)`), `0x77f3b70 = 0`, `0x469370(0)` y `SendMessage(WM_CHAR, Enter)`, que corre el Enter del WndProc en el acto |
+| 5 a 8 | `0x4085d1`, `0x408a24`, `0x409066`, `0x409663` | los del gremio (hito 8) |
+| 10 (948) | `0x40a3e0` | `0x6c8e50` (a quién se sigue) = `+8` |
+| 11 (949) | `0x4079a6` | sin duelo (`0x78abad8`), el `AA` con la clave y el nombre; con el duelo en 1 y el otro de rival (`strcmp` con `0x78abae0`), el `AB`; si no, el aviso 915 (tipo 2) y `+0x20 = −1` |
+
+Cada C3 saca sus 2 `rand()`. **MuRet**: `RunTheCommand` en `Scenes::GameCommandsWindow`, con las piezas de
+`Scenes::SocialRequests` (`CellDistanceToTheHero`, `SendATradeRequest`, `SendAPartyRequest`, `SendInC3`,
+`AnotherLeadsTheParty`, `IsInTheParty` e `IsTheDuelRival`); los del gremio cortan con su dirección (08 P-C209). Tests:
+`CommandsWindowTest` (en `test_social_requests`, con Brezal y Zorzal del `0x12` en Lorencia y Devias) y
+`GameCommandsWindowTest`.
 
 MuRet: `Scenes::StepThePartyWindow` y `Scenes::DrawThePartyWindow` (`GamePartyWindow.h`),
 `Scenes::StepTheCommandsWindow` y `Scenes::DrawTheCommandsWindow` (`GameCommandsWindow.h`), con lo común en

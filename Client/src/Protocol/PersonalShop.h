@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Protocol/Character/Opcodes.h"
+#include "Protocol/Outgoing.h"
 #include "Protocol/ProtocolError.h"
 
 #include <array>
@@ -25,6 +26,8 @@ inline constexpr std::uint8_t ClosedSubcode = 0x03;
 inline constexpr std::uint8_t NoticeSubcode = 0x08;
 inline constexpr std::uint8_t TitleSubcode = 0x10;
 inline constexpr std::uint8_t OwnerLeftSubcode = 0x12;
+// El que manda el comando 2 de la ventana de comandos (0x406b81).
+inline constexpr std::uint8_t ItemsRequestSubcode = 0x05;
 
 // 0x4dae80 y 0x4dafe0: el título, de 36 bytes con el terminador en el 37 de la pila.
 inline constexpr std::size_t TitleSize = 36;
@@ -87,4 +90,9 @@ struct ShopOwnerLeft
 };
 
 [[nodiscard]] Core::Expected<ShopOwnerLeft, ProtocolError> ReadShopOwnerLeft(const Network::Packet& packet);
+
+// El 3F 05 del cliente (0x406050 desde 0x406b02, el comando 2 de la ventana de comandos, el texto 1124): C1 10 3F 05,
+// la clave del otro en big-endian (+0x1f4) y su nombre (+0x1d9, 10 bytes), con el XOR32 y en C3. Lo que contesta el
+// servidor (las listas, 08 P-C208 b) no está portado.
+[[nodiscard]] Outgoing WriteShopItemsRequest(std::uint16_t key, const Name& name);
 } // namespace Client::Protocol::PersonalShop

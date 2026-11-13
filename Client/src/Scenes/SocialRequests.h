@@ -6,8 +6,10 @@
 #include "UI/ChatCommands.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <string>
+#include <string_view>
 
 // Los pedidos a otro jugador de los comandos del chat (CL9 hito 7, fase 2; 06 § Lo social en pantalla): /trade
 // (0x56c68b..0x56d623), /duelstart sin duelo (0x56d823..0x56e9ec) y /party (0x56f13f..0x570d47) de 0x56c440. Cada uno
@@ -32,6 +34,45 @@ struct SocialRequestContext
     // El cable (App::ServerSession). Vacío, el pedido que llega a mandarse es el error.
     std::function<void(Protocol::Outgoing)> send{};
 };
+
+// 0x69fd70 (el relleno) y el serial de un C3 (0x40ae60 con el cierre de 0x40b0a0 o de 0x40b3f0): sus dos rand() y el
+// paquete al cable. Sin el cable, el error con `where`.
+[[nodiscard]] Core::Expected<void, std::string> SendInC3(const SocialRequestContext& context,
+                                                         Protocol::Outgoing outgoing, std::string_view where);
+
+// El 36 al personaje `index` y el aviso 475 (0x56c7c8..0x56cdfc y 0x56cffe..0x56d60e de /trade; 0x4064d6..0x406aea del
+// comando 1 de la ventana de comandos): con la tienda personal propia o ajena abiertas (0x5af560) o sin el mundo
+// cargado (0x7d3a101), nada; si no, el C1 05 36 con su clave en C3 y el aviso armado con el nombre del primero vivo
+// con esa clave (0x5110d0), con el 1.
+[[nodiscard]] Core::Expected<UI::ChatCommandOutcome, std::string>
+SendATradeRequest(const SocialRequestContext& context, std::size_t index, std::string_view where);
+
+// El 40 al personaje `index` y el aviso 476 (0x56f6d1..0x56fd88 y 0x570638..0x570d22 de /party; 0x407352..0x40798d del
+// comando 3): sin el mundo cargado (0x7d3a101), nada; si no, 0x78aba4c = su clave (MOVSX), el C1 05 40 en C3 y el
+// aviso con el 1.
+[[nodiscard]] Core::Expected<UI::ChatCommandOutcome, std::string>
+SendAPartyRequest(const SocialRequestContext& context, std::size_t index, std::string_view where);
+
+// 0x56f13f..0x56f1b0 y 0x4072df..0x407324: con party (0x78aba48 sobre 0), el primer lugar de 0x77f3cd0 no es el héroe
+// (strcmp con +0x1d9).
+[[nodiscard]] bool AnotherLeadsTheParty(const WorldState& world);
+
+// 0x4061ef..0x40625f: el personaje está en la party (strcmp de su +0x1d9 con el nombre de cada uno de los 0x78aba48
+// lugares de 0x77f3cd0, de 0x24 bytes).
+[[nodiscard]] bool IsInTheParty(const WorldState& world, std::size_t index);
+
+// 0x408101..0x40813b: strcmp del +0x1d9 del personaje con el nombre del rival del duelo (0x78abae0).
+[[nodiscard]] bool IsTheDuelRival(const WorldState& world, std::size_t index);
+
+// 0x4060c1..0x406169: la distancia en celdas del personaje al héroe publicado, leyendo las cuatro (x del otro, x del
+// héroe, y del otro, y del héroe) cada una en su acceso, con los rand() de su cierre, siempre las cuatro.
+struct CellDistance
+{
+    std::int32_t x = 0;
+    std::int32_t y = 0;
+};
+[[nodiscard]] CellDistance CellDistanceToTheHero(WorldState& world, Render::Models::CrtRandom& random,
+                                                 std::size_t index);
 
 // El otro al que se le puede pedir algo (0x56c6ab..0x56c6d6 y sus copias): un jugador (+0x88 en 1) que no es el héroe
 // publicado (0x743a170), del tipo 0x20a o con +0x3e3 distinto de 0. El elegido no mira si está vivo; el de enfrente,

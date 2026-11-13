@@ -941,7 +941,9 @@ clave es el primero vivo de los 400 con ella (`0x5110d0`, que da 400 sin ninguno
 | `12` | `C1 04 3F 12` | `0x4e4fcc` | con `0x6c931c` en 2 (mirando la tienda de otro), cierra `0x800` y `0x20000` y el texto 1126 con el tipo 2 |
 | `01`, `05`, `06`, `13` | las listas de ítems | `0x4db120`, `0x4db890`, `0x4dbcb0`, `0x4dbb40` | sin portar: el `std::map` de `0x7245e0`, las grillas y las ventanas (08 P-C208 b) |
 
-Los tamaños de los C1 son los que leen los lectores (no hay un servidor que los mande). MuRet los lee en
+Del cliente: el `3F 05` (`C1 10 3F 05 <clave BE> <nombre:10>`, C3), el comando 2 de la ventana de comandos sobre el
+elegido (`0x406b02`, 06 § "El comando sobre el elegido"; `Protocol::PersonalShop::WriteShopItemsRequest`). Los tamaños
+de los C1 que llegan son los que leen los lectores (no hay un servidor que los mande). MuRet los lee en
 `Protocol::PersonalShop` (que solo mide que el paquete los traiga) y los aplica en `Scenes::SocialEvents`
 (`ApplyShopTitles`, `ApplyShopCreated`, `ApplyShopClosed`, `ApplyShopNotice`, `ApplyOtherShopTitle` y
 `ApplyShopOwnerLeft`); los cuatro de las listas siguen sin handler.

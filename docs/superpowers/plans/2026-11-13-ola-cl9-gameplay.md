@@ -364,6 +364,8 @@ byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada v
 - [ ] **Los comandos sobre otro:** la ventana de comandos (`0x406050`, desde `0x406097`; `0x40a650`) y los
       comandos sociales de `0x56c440` (`/trade`, `/party`, `/guild`, `/GuildWar`, `/BattleSoccer`, que hoy cortan
       con su dirección).
+  - [x] Fase 3 (2026-11-13): el comando sobre el elegido (`0x406050` desde `0x406097`): comercio, tienda personal,
+        party, susurro, seguir y duelo; los cuatro del gremio cortan hacia el hito 8 (08 P-C209).
   - [x] Fase 1 (2026-11-13): `/trade` hasta el nivel (`0x6c8dc8`), `/duelstart` y `/duelend` con el duelo en curso
         y Chaos Castle (texto 1150); `/GuildWar` y `/BattleSoccer` solo los usa el filtro de las macros (`0x56c1f0`).
   - [x] Fase 2 (2026-11-13): lo que busca al otro en `/trade`, `/duelstart` y `/party` (`0x56c68b` y vecinas,

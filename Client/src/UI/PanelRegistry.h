@@ -73,7 +73,8 @@ inline constexpr std::uint8_t CommandReady = 1;
 // +4 (DelegatedPanels::commands). La esquina (+0xc y +0x10) va en Scenes::HudState, como las de las otras ventanas.
 struct CommandsWindowState
 {
-    // +8: a quién va el comando. Lo pone el comando de 0x406050 (0x406097.., CL9.4); MuRet lo deja en −1.
+    // +8: a quién va el comando: 0x406050 lo pone en −1 y, con un jugador a dos celdas o menos, en el elegido
+    // (0x4060d0 y 0x4061a7); lo vuelven a −1 los comandos que cierran la ventana (0x406af7 y 0x4072b8).
     std::int32_t target = -1;
     // +0x14..+0x1f: 0x406050 los pone en 1 en cada paso, antes de mirar el comando elegido. El dibujo (0x40abe5) da un
     // aviso con 0, 0xff o 0xfe. *Inferido*: arrancan en 1, porque la entrada al login (0x634bf0) y a la selección

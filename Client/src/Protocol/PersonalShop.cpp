@@ -2,7 +2,9 @@
 
 #include "Core/Expected.h"
 #include "Network/Packet.h"
+#include "Network/PacketWriter.h"
 #include "Protocol/Character/Opcodes.h"
+#include "Protocol/Outgoing.h"
 #include "Protocol/ProtocolError.h"
 
 #include <algorithm>
@@ -139,5 +141,10 @@ Core::Expected<ShopOwnerLeft, ProtocolError> ReadShopOwnerLeft(const Network::Pa
     if (!read.HasValue())
         return Core::Unexpected(read.Error());
     return ShopOwnerLeft{};
+}
+
+Outgoing WriteShopItemsRequest(std::uint16_t key, const Name& name)
+{
+    return EncryptedC1(Network::PacketWriter::C1(Opcode).PutU8(ItemsRequestSubcode).PutU16Be(key).PutBytes(name));
 }
 } // namespace Client::Protocol::PersonalShop

@@ -446,7 +446,7 @@ TEST(HeroSkillsWizardTest, HellfireAndInfernoSendTheirCellAndDirection)
                 EXPECT_EQ(tested->sent[0].delivery, Client::Network::Delivery::Encrypted);
                 EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x0c, 0x1e, tried.skill, 182, 115, 0x40, 0,
                                                                       0, 0xff, 0xff, 0}));
-                EXPECT_EQ(tested->Movement().durationSkill, tried.skill);
+                EXPECT_EQ(tested->Movement().lastShotSkill, std::uint32_t{tried.skill});
                 EXPECT_EQ(tested->Hero().animation.action, tried.action);
                 EXPECT_EQ(tested->Hero().movement, 0);
             }
@@ -482,17 +482,17 @@ TEST(HeroSkillsWizardTest, TheMagicKeySkillsCountTheirKey)
             ASSERT_EQ(tested->sent.size(), 1u);
             EXPECT_EQ(tested->Sent(0),
                       (std::vector<std::uint8_t>{0xc1, 0x0c, 0x1e, skill, 182, 115, 0x60, 0, 0, 0xff, 0xff, 1}));
-            EXPECT_EQ(tested->Hero().byte1bd, 1);
+            EXPECT_EQ(tested->Hero().magicKey, 1);
             const std::uint8_t action = tested->Hero().animation.action;
             EXPECT_TRUE(action == 0x8e || action == 0x8f) << int{action};
         }
     }
     const auto tested = AWizard(8);
-    tested->Movement().magicKey = 0x32;
+    tested->Movement().magicKeyCounter = 0x32;
     ASSERT_TRUE(tested->Use().HasValue());
     ASSERT_EQ(tested->sent.size(), 1u);
     EXPECT_EQ(tested->Sent(0)[11], 1);
-    EXPECT_EQ(tested->Movement().magicKey, 1);
+    EXPECT_EQ(tested->Movement().magicKeyCounter, 1);
 }
 
 // 0x58fced..0x590b17: Aqua Beam como Hellfire, con la acción 0x94 y 0x77f3ba4 en 0.
@@ -540,7 +540,7 @@ TEST(HeroSkillsWizardTest, FlameAndTheWeaponTargetSkillsCastAtTheTargetCell)
             ASSERT_EQ(tested->sent.size(), 1u);
             EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x0c, 0x1e, tried.skill, 184, 117, 0x60, 0, 0,
                                                                   tried.keyHigh, tried.keyLow, 0}));
-            EXPECT_EQ(tested->Movement().durationSkill, tried.skill);
+            EXPECT_EQ(tested->Movement().lastShotSkill, std::uint32_t{tried.skill});
             EXPECT_EQ(tested->Hero().movement, tried.skill == 5 ? 1 : 0);
         }
     }
@@ -671,7 +671,7 @@ TEST(HeroSkillsWizardTest, InReachTheSkill0dSendsItsDurationAtTheChosen)
         EXPECT_EQ(tested->Sent(0),
                   (std::vector<std::uint8_t>{0xc1, 0x0c, 0x1e, 0xd, 184, 117, 0x60, 0, 0, 0x0a, 0x1b, 0}));
         EXPECT_EQ(tested->Sent(1), (std::vector<std::uint8_t>{0xc1, 0x06, 0xd3, 182, 115, 0x40}));
-        EXPECT_EQ(tested->Movement().durationSkill, 0xd);
+        EXPECT_EQ(tested->Movement().lastShotSkill, 0xdu);
     }
 }
 

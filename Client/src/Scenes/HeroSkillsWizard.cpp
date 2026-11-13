@@ -21,6 +21,7 @@
 #include "Scenes/Skill4f5290.h"
 #include "Scenes/Skill551f40.h"
 #include "Scenes/Skill55cbc0.h"
+#include "Scenes/Skill57cf90.h"
 #include "Scenes/Skill57ce80.h"
 #include "Scenes/SkillDelays.h"
 #include "Scenes/WorldMap.h"
@@ -59,7 +60,6 @@ constexpr float HalfCell = 50.0f;                                               
 constexpr float WalkReach = std::bit_cast<float>(std::uint32_t{0x3f99999a});      // [0x6b8bb0], 1,2
 constexpr float VisibleAlpha = std::bit_cast<float>(std::uint32_t{0x3f333333});   // [0x6b8a5c], 0,7
 constexpr std::uint32_t TeleportWaitMs = 3000;                                    // 0x593146
-constexpr std::uint8_t LastMagicKey = 0x32;
 constexpr std::int32_t MaximumTries = 10;
 
 bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
@@ -124,16 +124,6 @@ Core::Expected<SkillCell, std::string> AttackCellOf(const ActorState& hero, std:
     if (!x || !y)
         return Core::Unexpected(std::format("{}: la celda del blanco del 1E fuera del perfil ftol", where));
     return SkillCell{*x, *y};
-}
-
-// 0x58f822..0x58f849: 0x77f3bad sube y da la vuelta de 0x32 a 1 (JBE sin signo), y queda en +0x1bd del héroe.
-std::uint8_t NextMagicKey(ActorState& hero, GameMovementState& state)
-{
-    ++state.magicKey;
-    if (state.magicKey > LastMagicKey)
-        state.magicKey = 1;
-    hero.byte1bd = state.magicKey;
-    return state.magicKey;
 }
 
 // 0x58ecaa..0x58ecf9 (y 0x58b0cd.., 0x58dcec..): la distancia al centro de la celda del blanco (0x77e1ba8, 0x77e1bac)
@@ -273,7 +263,8 @@ Core::Expected<bool, std::string> WizardBranch::PassesTheHead()
         return Core::Unexpected(cost.Error());
     const auto mana = static_cast<std::int32_t>(cost.Value().mana);
     const auto stamina = m_skill == ChargedSkill ? 0 : static_cast<std::int32_t>(cost.Value().stamina);
-    const auto energy = SkillEnergyOf(m_skill, m_context, "0x589885");
+    const auto energy = SkillEnergyRequirement(
+        m_skill, SkillDelayContext{.world = m_world, .random = m_context.random, .skills = m_context.skills});
     if (!energy.HasValue())
         return Core::Unexpected(energy.Error());
     const OwnCharacterRecord& record = m_world.OwnCharacter();
@@ -436,7 +427,7 @@ Core::Expected<void, std::string> WizardBranch::CastAround(std::uint8_t action, 
         return {};
     if (!HasTheSilentName(m_world))
     {
-        m_state.durationSkill = m_skill;
+        m_state.lastShotSkill = m_skill;
         const SkillCell cell = ReadTheHeroCell(m_hero, m_context);
         const auto direction = DirectionOf(m_hero, where);
         if (!direction.HasValue())
@@ -492,9 +483,9 @@ Core::Expected<void, std::string> WizardBranch::CastTheSkill4c()
     const auto wholeX = World::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.x));
     if (!wholeX || !wholeY)
         return Core::Unexpected(std::string("0x58dd56: la posición del blanco de la 0x4c fuera del perfil ftol"));
-    const auto relative = RelativeCellOf(m_hero.position.x, m_hero.position.y, *wholeX, *wholeY);
-    if (!relative.HasValue())
-        return Core::Unexpected(relative.Error());
+    const auto relative = RelativeTargetCell(m_hero.position.x, m_hero.position.y, *wholeX, *wholeY);
+    if (!relative)
+        return Core::Unexpected(std::string("0x58dd70: un ftol de la celda relativa de la 0x4c fuera de su perfil"));
     const std::int32_t chosen = m_runtime.selectedTargets[2];
     if (chosen == -1)
     {
@@ -514,18 +505,19 @@ Core::Expected<void, std::string> WizardBranch::CastTheSkill4c()
     m_hero.skillTarget4c = chosen;
     if (!HasTheSilentName(m_world))
     {
-        m_state.durationSkill = m_skill;
+        m_state.lastShotSkill = m_skill;
         const SkillCell cell = ReadTheHeroCell(m_hero, m_context);
         const auto direction = DirectionOf(m_hero, "0x58e232");
         if (!direction.HasValue())
             return Core::Unexpected(direction.Error());
-        const std::uint8_t magicKey = NextMagicKey(m_hero, m_state);
+        // 0x58e6d9..0x58e6fe: 0x57cf90 en línea, con +0x1bd del héroe.
+        const std::uint8_t magicKey = NextMagicKey(m_state, m_hero.magicKey);
         SendTheSkillPacket(m_context,
                            Protocol::Skill::WriteDurationMagic({.skill = m_skill,
                                                                 .x = cell.x,
                                                                 .y = cell.y,
                                                                 .direction = direction.Value(),
-                                                                .back = relative.Value(),
+                                                                .back = *relative,
                                                                 .key = static_cast<std::uint16_t>(key.Value()),
                                                                 .magicKey = magicKey}));
     }
@@ -533,7 +525,7 @@ Core::Expected<void, std::string> WizardBranch::CastTheSkill4c()
     m_hero.movement = 0;
     if (!IsPlayer(m_hero))
         return {};
-    return ActByTheHands(m_hero, m_hero, CombatContextOf(m_context));
+    return SetTheActorAction(m_hero, ActionByTheHands(m_hero), CombatContextOf(m_context));
 }
 
 // 0x58c15e..0x58ef17: las demás por el alcance.
@@ -622,12 +614,13 @@ Core::Expected<void, std::string> WizardBranch::CastTheMagicKey()
 {
     if (!HasTheSilentName(m_world))
     {
-        m_state.durationSkill = m_skill;
+        m_state.lastShotSkill = m_skill;
         const SkillCell cell = ReadTheHeroCell(m_hero, m_context);
         const auto direction = DirectionOf(m_hero, "0x58f371");
         if (!direction.HasValue())
             return Core::Unexpected(direction.Error());
-        const std::uint8_t magicKey = NextMagicKey(m_hero, m_state);
+        // 0x58f822..0x58f849: 0x57cf90 en línea, con +0x1bd del héroe.
+        const std::uint8_t magicKey = NextMagicKey(m_state, m_hero.magicKey);
         SendTheSkillPacket(m_context, Protocol::Skill::WriteDurationMagic({.skill = m_skill,
                                                                            .x = cell.x,
                                                                            .y = cell.y,
@@ -655,7 +648,7 @@ Core::Expected<void, std::string> WizardBranch::CastTheFlame()
 {
     if (!HasTheSilentName(m_world))
     {
-        m_state.durationSkill = m_skill;
+        m_state.lastShotSkill = m_skill;
         const auto cell = AttackCellOf(m_hero, "0x590d01");
         if (!cell.HasValue())
             return Core::Unexpected(cell.Error());
@@ -688,7 +681,7 @@ Core::Expected<void, std::string> WizardBranch::CastAtTheWeaponTarget()
     }
     if (!HasTheSilentName(m_world))
     {
-        m_state.durationSkill = m_skill;
+        m_state.lastShotSkill = m_skill;
         const auto cell = AttackCellOf(m_hero, "0x591a6c");
         if (!cell.HasValue())
             return Core::Unexpected(cell.Error());

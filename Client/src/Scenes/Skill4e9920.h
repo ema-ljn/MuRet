@@ -1,17 +1,16 @@
 #pragma once
 
-#include "Core/Expected.h"
-
 #include <cstdint>
-#include <string>
+#include <optional>
 
-// CL9 hito 4, fase 2c: la posición relativa de un blanco (0x4e9920), que mandan las ramas de las clases de 0x57cfc0
-// (0x580a1a, 0x58657c, 0x587b2c, 0x58891c, 0x58dd70 y 0x59409f) en el 1E.
+// 0x4e9920(x, y, blancoX, blancoY), CL9 hito 4, fase 2c: el byte de la celda del blanco relativa a (x, y), con cada
+// coordenada por −0,01 ([0x6ba110]) y su _ftol: arriba (((y) − (blancoY)) + 8) << 4 y abajo ((x) − (blancoX)) + 8,
+// unidos con OR sin enmascarar el de abajo, que fuera de −8..7 pisa el nibble de arriba (Q-C1232). Los blancos llegan
+// en int (FILD). La llaman las ramas de las clases de 0x57cfc0 (0x580a1a, 0x58657c, 0x587b2c, 0x58891c, 0x58dd70 y
+// 0x59409f) con la posición del héroe y el _ftol de su +0x3a8/+0x3ac. Vacío si un _ftol no tiene un resultado
+// portable (World::OriginalFtolLow).
 namespace Client::Scenes
 {
-// 0x4e9920(px, py, tx, ty): con c = −0,01 (0x6ba110), el nibble alto ((ftol(py · c) − ftol(ty · c)) + 8) << 4 y el bajo
-// (ftol(px · c) − ftol(tx · c)) + 8, en bytes (los ftol de `ty` y `py` primero). `px` y `py` son float y `tx`, `ty`
-// enteros (FILD). Corta si un ftol sale de su perfil.
-[[nodiscard]] Core::Expected<std::uint8_t, std::string> RelativeCellOf(float px, float py, std::int32_t tx,
-                                                                       std::int32_t ty);
+[[nodiscard]] std::optional<std::uint8_t> RelativeTargetCell(float x, float y, std::int32_t targetX,
+                                                             std::int32_t targetY);
 } // namespace Client::Scenes

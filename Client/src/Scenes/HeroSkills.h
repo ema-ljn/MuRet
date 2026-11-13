@@ -52,7 +52,7 @@ struct HeroSkillContext
     // Lo que las skills mandan por send() (el XOR32 en línea; los C3 con su relleno y su serial ya sacados). Vacío, sin
     // la sesión: no sale, como el original con el socket en −1.
     std::function<void(Protocol::Outgoing)> send{};
-    // DAT_057678bc, la clave del jugador del F1 00, que mandan la 0x3a y la 0x28 sin blanco.
+    // CL9 hito 4, fase 2c. La clave del jugador que dio el F1 00 ([0x57678bc]), que va en los C1 19 de las ramas.
     std::uint16_t playerKey = 0;
 };
 

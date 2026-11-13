@@ -376,13 +376,16 @@ Core::Expected<bool, std::string> UseTheWeaponSkills(ActorState& hero, std::uint
 }
 
 // 0x57d787..0x58188e y 0x5897aa..0x5897b1: la rama de la clase. Las 0x43 a 0x48 (0x5808da) son de todas.
-Core::Expected<void, std::string> UseTheClassSkill(std::uint8_t heroClass, std::uint8_t skill)
+Core::Expected<void, std::string> UseTheClassSkill(ActorState& hero, std::uint8_t heroClass, std::uint8_t skill,
+                                                   const HeroSkillContext& context)
 {
     if (heroClass == ElfClass)
         return Core::Unexpected(std::format("0x57d790: la skill {:#x} del elfo es de la fase 2c", skill));
     if (heroClass == KnightClass || heroClass == GladiatorClass || heroClass == LordClass)
         return Core::Unexpected(
             std::format("0x581894: la skill {:#x} de la clase {} (1, 3 o 4) es de la fase 2c", skill, heroClass));
+    if (heroClass == WizardClass)
+        return UseTheWizardSkill(hero, skill, context);
     // 0x5808da..0x5808e9: fuera de 0x43 a 0x48, nada.
     if (!InRange(skill, 0x43, 0x48))
         return {};
@@ -563,9 +566,6 @@ Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSk
             state.weaponSkill = WeaponSkillRequest{.active = 0, .slot = 0, .target = -1};
         }
     }
-    // 0x58187c..0x58188e: el Wizard (y las demás que no son 1 a 4), a 0x5897aa (HeroSkillsWizard).
-    if (heroClass == WizardClass)
-        return UseTheWizardSkill(hero, skill, context);
-    return UseTheClassSkill(heroClass, skill);
+    return UseTheClassSkill(hero, heroClass, skill, context);
 }
 } // namespace Client::Scenes

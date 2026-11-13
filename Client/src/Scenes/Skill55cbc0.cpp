@@ -162,7 +162,7 @@ Core::Expected<void, std::string> UseTheSkillOnItsTarget(ActorState& user, Actor
         }
         if (!HasTheSilentName(world))
         {
-            runtime.movement.durationSkill = skill;
+            runtime.movement.lastShotSkill = skill;
             // 0x55e881..0x55ea8e: la celda de +0x3a8/+0x3ac de p1 y el rumbo de p2, cada uno el byte bajo del ftol.
             const auto x = LowByteOf(static_cast<double>(user.attackPosition.x) * static_cast<double>(CellReciprocal));
             const auto y = LowByteOf(static_cast<double>(user.attackPosition.y) * static_cast<double>(CellReciprocal));

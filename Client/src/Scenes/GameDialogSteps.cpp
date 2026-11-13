@@ -662,7 +662,8 @@ std::array<std::int32_t, 2> StepTheYesNoButtons(const GameUiContext& context, bo
     return chosen;
 }
 
-// 0x5af520: ni el almacén, ni 0x80, ni el comercio abiertos (cada IsOpen saca su rand()).
+// 0x5af520: ni el almacén, ni 0x80, ni el comercio abiertos, cortando en el primero abierto. Solo el comercio, un byte
+// protegido (UI::PanelRegistry::IsOpen), saca su rand().
 bool TheItemCanBeUsed(const GameUiContext& context)
 {
     GamePanels panels(context.world, context.random, GamePanelTables{.texts = context.texts});

@@ -170,6 +170,12 @@ Core::Expected<UI::ChatCommandOutcome, std::string> SendAPartyRequest(const Soci
     return Handled({std::move(notice).Value()});
 }
 
+Core::Expected<UI::ChatCommandNotice, std::string>
+NoticeWithTheName(const SocialRequestContext& context, std::size_t text, std::uint16_t key, std::string_view where)
+{
+    return NamedNotice(context, text, key, where);
+}
+
 bool AnotherLeadsTheParty(const WorldState& world)
 {
     const WorldRuntime& runtime = world.Runtime();

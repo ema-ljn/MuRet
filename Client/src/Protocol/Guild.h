@@ -269,6 +269,14 @@ using GuildPacket =
 // que la tabla no tiene. El 0 es el relleno hasta el DWORD, como el pkt[3] del 66.
 [[nodiscard]] Outgoing WriteGuildInfoRequest(std::int32_t guildKey);
 
+// 0x4085d1 (el comando 5 de la ventana de comandos): C1 05 50 [clave alta] [clave baja], con el XOR32 y en claro, el
+// pedido de entrar al gremio del otro.
+[[nodiscard]] Outgoing WriteJoinRequest(std::uint16_t key);
+
+// 0x408a24, 0x409066 y 0x409663 (los comandos 6, 7 y 8): C1 07 E5 [relación] [pedido] [clave alta] [clave baja], con el
+// XOR32 y en claro: la alianza (1, 1), la rivalidad (2, 1) y romperla (2, 2).
+[[nodiscard]] Outgoing WriteRelationshipRequest(std::uint8_t relation, std::uint8_t request, std::uint16_t key);
+
 // 0x64def0: C1 0F E1 [tipo] [puesto] [nombre, 10 bytes], con el XOR32 y en claro. Quitarle el cargo a un miembro manda
 // el tipo 3 con el puesto 0.
 [[nodiscard]] Outgoing WriteAssignStatus(std::uint8_t type, std::uint8_t status, const CharacterName& name);

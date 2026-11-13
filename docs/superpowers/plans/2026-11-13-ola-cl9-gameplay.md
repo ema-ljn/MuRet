@@ -373,7 +373,8 @@ byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada v
       comandos sociales de `0x56c440` (`/trade`, `/party`, `/guild`, `/GuildWar`, `/BattleSoccer`, que hoy cortan
       con su dirección).
   - [x] Fase 3 (2026-11-13): el comando sobre el elegido (`0x406050` desde `0x406097`): comercio, tienda personal,
-        party, susurro, seguir y duelo; los cuatro del gremio cortan hacia el hito 8 (08 P-C209).
+        party, susurro, seguir y duelo; los cuatro del gremio cortaban hacia el hito 8 (08 P-C209), que los portó en
+        su fase 4.
   - [x] Fase 1 (2026-11-13): `/trade` hasta el nivel (`0x6c8dc8`), `/duelstart` y `/duelend` con el duelo en curso
         y Chaos Castle (texto 1150); `/GuildWar` y `/BattleSoccer` solo los usa el filtro de las macros (`0x56c1f0`).
   - [x] Fase 2 (2026-11-13): lo que busca al otro en `/trade`, `/duelstart` y `/party` (`0x56c68b` y vecinas,
@@ -431,7 +432,10 @@ botones del maestro: quitar el cargo (`0x64def0`: `C1 0F E1 03 00` y el nombre, 
 abre el diálogo `0x7d` del juego). Queda (08 P-C287 y P-C288): la ventana de los cargos (`0x64e600`, `0x64f1c0`), el
 `C1 53` del diálogo `0x7d` (`0x62a878`), los otros pasos y los dibujos de las pestañas (`0x64fc00`, `0x650c10`,
 `0x64fdf0`, `0x6507d0`, `0x651400`), las otras listas (`0x46b800`, `0x46d440`, `0x46d630`, con `0x480e00`, `0x480520`,
-`0x4824d0`), el dibujo de las listas (`0x47a810`, con `0x46cb20` y `0x46d050`) y `0x650830`.
+`0x4824d0`), el dibujo de las listas (`0x47a810`, con `0x46cb20` y `0x46d050`) y `0x650830`. Con el hito 7 mergeado otra vez
+(`0f0b830`), los cuatro comandos del gremio de la ventana de comandos (08 P-C209): pedir entrar (`0x4085d1`, `C1 05 50`),
+la alianza (`0x408a24`, `C1 07 E5 01 01`), la rivalidad y romperla (`0x409066` y `0x409663`, con la animación `0xb7` y
+el `C1 05 18`), y el estado del 6 con los dos maestros, que lee el `+4` de la tabla de los gremios (`0x4062e4`).
 
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 

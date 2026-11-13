@@ -445,6 +445,22 @@ Outgoing WriteGuildInfoRequest(std::int32_t guildKey)
     return Xor32C1(Network::PacketWriter::C1(GuildInfoOpcode).PutU8(0).PutU32Le(static_cast<std::uint32_t>(guildKey)));
 }
 
+Outgoing WriteJoinRequest(std::uint16_t key)
+{
+    return Xor32C1(Network::PacketWriter::C1(JoinRequestOpcode)
+                       .PutU8(static_cast<std::uint8_t>(key >> 8))
+                       .PutU8(static_cast<std::uint8_t>(key & 0xff)));
+}
+
+Outgoing WriteRelationshipRequest(std::uint8_t relation, std::uint8_t request, std::uint16_t key)
+{
+    return Xor32C1(Network::PacketWriter::C1(RelationshipRequestOpcode)
+                       .PutU8(relation)
+                       .PutU8(request)
+                       .PutU8(static_cast<std::uint8_t>(key >> 8))
+                       .PutU8(static_cast<std::uint8_t>(key & 0xff)));
+}
+
 Outgoing WriteAssignStatus(std::uint8_t type, std::uint8_t status, const CharacterName& name)
 {
     return Xor32C1(Network::PacketWriter::C1(AssignResultOpcode).PutU8(type).PutU8(status).PutBytes(name));

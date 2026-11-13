@@ -53,6 +53,11 @@ SendATradeRequest(const SocialRequestContext& context, std::size_t index, std::s
 [[nodiscard]] Core::Expected<UI::ChatCommandOutcome, std::string>
 SendAPartyRequest(const SocialRequestContext& context, std::size_t index, std::string_view where);
 
+// 0x5110d0(clave), 0x69fd9b(buffer, texto, nombre) y 0x555190 con el 1: el aviso `text` con el nombre del primero vivo
+// con la clave (los comandos del gremio de la ventana de comandos, 0x4089cd y los otros tres).
+[[nodiscard]] Core::Expected<UI::ChatCommandNotice, std::string>
+NoticeWithTheName(const SocialRequestContext& context, std::size_t text, std::uint16_t key, std::string_view where);
+
 // 0x56f13f..0x56f1b0 y 0x4072df..0x407324: con party (0x78aba48 sobre 0), el primer lugar de 0x77f3cd0 no es el héroe
 // (strcmp con +0x1d9).
 [[nodiscard]] bool AnotherLeadsTheParty(const WorldState& world);

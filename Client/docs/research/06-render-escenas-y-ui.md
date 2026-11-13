@@ -1387,9 +1387,9 @@ menos en cada eje (`JG 2` con signo), `+8` es el elegido. Después, `+0x1d` (el 
 caso (`0x40a0e1`) no se alcanza, y los estados del comando elegido: el 3 y el 10 (`0x4061d3`), invitar (3) si no está
 en la party y seguir (10) si está (`strcmp` con los `0x78aba48` nombres de `0x77f3cd0`); el 5 (`0x40627a`), 0 con el
 héroe en un gremio y `0xff` si el otro no es maestro (`+0x368` en `0x80`) del suyo; el 6 (`0x4062b6`), `0xfe` sin el
-héroe maestro, `0xff` sin el otro, y con los dos el `+4` del gremio del héroe en la tabla `0x787aa48` (hito 8, corta en
-`0x4062e4`); el 7 y el 8 (`0x4062fb` y `0x406323`), `0xfe`, `0xff` o 1. Con el clic derecho (`0x7d36880`) y `+8 ≥ 0`, el
-clic se gasta (con `0x7d3685c`) y, con el estado del comando en 1 o más (con signo), su caso:
+héroe maestro, `0xff` sin el otro, y con los dos el `+4` del gremio del héroe en la tabla `0x787aa48` (`0x4062e4`, sin
+mirar el −1: Q-C1281): con alianza 0, si no 1; el 7 y el 8 (`0x4062fb` y `0x406323`), `0xfe`, `0xff` o 1. Con el clic
+derecho (`0x7d36880`) y `+8 ≥ 0`, el clic se gasta (con `0x7d3685c`) y, con el estado del comando en 1 o más (con signo), su caso:
 
 | Comando | Caso | Qué hace |
 |---|---|---|
@@ -1397,15 +1397,18 @@ clic se gasta (con `0x7d3685c`) y, con el estado del comando en 1 o más (con si
 | 2 (1124) | `0x406b02` | el `C1 10 3F 05` con la clave y el nombre del otro, en C3, y la ventana se cierra |
 | 3 (944) | `0x4072df` | con otro líder, el aviso 257 y `+0x20 = −1`; si no, con `0x7d3a101`, `0x78aba4c`, el `40` en C3 y el aviso 476; la ventana queda |
 | 4 (945) | `0x40a04e` | con `0x6c7b8c` en 1, el nombre al EDIT del susurro (`0x4694c0(0, 0, 1, nombre)`), `0x77f3b70 = 0`, `0x469370(0)` y `SendMessage(WM_CHAR, Enter)`, que corre el Enter del WndProc en el acto |
-| 5 a 8 | `0x4085d1`, `0x408a24`, `0x409066`, `0x409663` | los del gremio (hito 8) |
+| 5 | `0x4085d1` | con el héroe en un gremio (`+0x368` distinto de `0xff`), el aviso 255 (tipo 1) y `+0x20 = −1`; si no, con `0x7d3a101`, `0x78aba40` = la clave del otro (`MOVSX`), el `C1 05 50` con la clave y el aviso 477 con el nombre (`0x5110d0`) |
+| 6 | `0x408a24` | con el otro maestro, el `C1 07 E5 01 01` con su clave y el aviso 1358; si no, el 1385 (sin gremio, `0xff`) o el 507, y `+0x20 = −1` |
+| 7 | `0x409066` | el `C1 07 E5 02 01` con la clave y el aviso 1359 |
+| 8 | `0x409663` | la animación `0xb7` del héroe (`0x4ea030`), el `C1 05 18` con su dirección y la acción `0x92`, el `C1 07 E5 02 02` con la clave y el aviso 1360 |
 | 10 (948) | `0x40a3e0` | `0x6c8e50` (a quién se sigue) = `+8` |
 | 11 (949) | `0x4079a6` | sin duelo (`0x78abad8`), el `AA` con la clave y el nombre; con el duelo en 1 y el otro de rival (`strcmp` con `0x78abae0`), el `AB`; si no, el aviso 915 (tipo 2) y `+0x20 = −1` |
 
-Cada C3 saca sus 2 `rand()`. **MuRet**: `RunTheCommand` en `Scenes::GameCommandsWindow`, con las piezas de
-`Scenes::SocialRequests` (`CellDistanceToTheHero`, `SendATradeRequest`, `SendAPartyRequest`, `SendInC3`,
-`AnotherLeadsTheParty`, `IsInTheParty` e `IsTheDuelRival`); los del gremio cortan con su dirección (08 P-C209). Tests:
-`CommandsWindowTest` (en `test_social_requests`, con Brezal y Zorzal del `0x12` en Lorencia y Devias) y
-`GameCommandsWindowTest`.
+Cada C3 saca sus 2 `rand()`; los del gremio van en claro (el XOR32 en línea y `send`), sin `rand()`. **MuRet**:
+`RunTheCommand` en `Scenes::GameCommandsWindow`, con las piezas de `Scenes::SocialRequests` (`CellDistanceToTheHero`,
+`SendATradeRequest`, `SendAPartyRequest`, `SendInC3`, `AnotherLeadsTheParty`, `IsInTheParty` e `IsTheDuelRival`), y
+los del gremio con `NoticeWithTheName` (CL9 hito 8, fase 4). Tests: `CommandsWindowTest` y `GuildCommandsTest` (en
+`test_social_requests`, con Brezal y Zorzal del `0x12` en Lorencia y Devias) y `GameCommandsWindowTest`.
 
 MuRet: `Scenes::StepThePartyWindow` y `Scenes::DrawThePartyWindow` (`GamePartyWindow.h`),
 `Scenes::StepTheCommandsWindow` y `Scenes::DrawTheCommandsWindow` (`GameCommandsWindow.h`), con lo común en

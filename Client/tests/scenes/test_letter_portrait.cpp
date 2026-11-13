@@ -13,6 +13,7 @@
 #include "Protocol/Letters.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Render/Pass3D.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GameFriends.h"
@@ -39,6 +40,10 @@
 #include "support/SceneDataFiles.h"
 
 #include <gtest/gtest.h>
+
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
+#include <glm/ext/vector_int4.hpp>
 
 #include <array>
 #include <cstddef>
@@ -435,6 +440,79 @@ TEST_F(LetterPortraitTest, TurningThePortraitSetsItsAngles)
     EXPECT_EQ(game->portrait.actor.angles.x, -20.0f);
     EXPECT_EQ(game->portrait.actor.angles.y, 5.0f);
     EXPECT_EQ(game->portrait.actor.angles.z, 60.0f);
+}
+
+// 0x495760: el viewport de 0x620d10 (la y de GL desde abajo, 141 de alto) escalado y truncado, y la vista que lleva el
+// personaje a 10.000 adelante de la cámara: el centro del retrato queda en el medio del viewport.
+TEST_F(LetterPortraitTest, ThePortraitPassLooksAtTheCharacterFromAfar)
+{
+    auto game = Built(0);
+    Client::UI::OldWindowBase base;
+    base.x = 100;
+    base.y = 50;
+    base.width = 0x77;
+    ActorState& actor = game->portrait.actor;
+    actor.position = {1234.0f, 5678.0f, 90.0f};
+    const auto small = Client::Scenes::PortraitPass({640, 480}, base, actor);
+    EXPECT_EQ(small.viewport, glm::ivec4(100, 480 - 50 - 141, 0x77, 141));
+    const auto large = Client::Scenes::PortraitPass({1280, 960}, base, actor);
+    EXPECT_EQ(large.viewport, glm::ivec4(200, 960 - 100 - 282, 0x77 * 2, 282));
+    // El personaje, 75 por encima de sus pies, cae en el centro de la imagen.
+    const glm::vec4 eye = small.view * glm::vec4(actor.position.x, actor.position.y, actor.position.z + 75.0f, 1.0f);
+    const glm::vec4 clip = small.projection * eye;
+    EXPECT_NEAR(clip.x / clip.w, 0.0f, 1e-4f);
+    EXPECT_NEAR(clip.y / clip.w, 0.0f, 1e-4f);
+    EXPECT_LT(eye.z, -9999.0f);
+    // Con el caballo oscuro, 50 más abajo.
+    actor.pet.model = 0x1c16;
+    const auto riding = Client::Scenes::PortraitPass({640, 480}, base, actor);
+    const glm::vec4 lifted =
+        riding.view * glm::vec4(actor.position.x, actor.position.y, actor.position.z + 125.0f, 1.0f);
+    EXPECT_NEAR(lifted.y, eye.y, 1e-3f);
+}
+
+// 0x497c10 y 0x495760 antes del dibujo: con el frame por debajo de +0x6a8 y quieto, una acción fuera de 0x7a..0x82
+// vuelve a la 0x7a sin sacar el rand() % 4; el pase pone los ángulos, la escala por el zoom y las luces. El dibujo
+// del ayudante y del personaje corta (P-C310).
+TEST_F(LetterPortraitTest, PreparingTheDrawStepsTheCharacter)
+{
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(map);
+        auto game = Built(map);
+        LetterPortrait& portrait = game->portrait;
+        Client::UI::OldPortraitPart part;
+        part.action = 0x83;
+        part.angle = 45.0f;
+        part.zoom = 0.9f;
+        portrait.idle = 1;
+        portrait.frameMark = 5;
+        portrait.actor.animation.frame = 2.0f;
+        const auto resources = game->Resources();
+        const auto pass = Client::Scenes::PrepareThePortraitDraw(portrait, part, {640, 480}, resources);
+        ASSERT_TRUE(pass.HasValue()) << pass.Error();
+        EXPECT_EQ(portrait.idle, 0);
+        EXPECT_EQ(portrait.shownAction, 0x7a);
+        EXPECT_EQ(part.action, 0x83);
+        EXPECT_EQ(portrait.frameMark, 0);
+        EXPECT_EQ(game->world.Runtime().map, map);
+        EXPECT_EQ(portrait.actor.angles.z, 45.0f);
+        EXPECT_EQ(portrait.actor.scale, static_cast<float>(0.9 * static_cast<double>(0.7f)));
+        EXPECT_EQ(portrait.actor.light, glm::vec3(1.0f));
+        EXPECT_EQ(portrait.actor.safeZone, 0);
+        EXPECT_FALSE(Client::Scenes::DrawThePortraitModel(portrait).HasValue());
+
+        // Sin pasar la marca, +0x6a8 sigue al frame.
+        portrait.actor.animation.frame = 7.5f;
+        ASSERT_TRUE(Client::Scenes::PrepareThePortraitDraw(portrait, part, {640, 480}, resources).HasValue());
+        EXPECT_EQ(portrait.frameMark, 7);
+
+        portrait.helper.alive = true;
+        const auto riding = Client::Scenes::PrepareThePortraitDraw(portrait, part, {640, 480}, resources);
+        ASSERT_FALSE(riding.HasValue());
+        EXPECT_NE(riding.Error().find("0x444010"), std::string::npos);
+        EXPECT_EQ(game->world.Runtime().map, map);
+    }
 }
 
 // Las ventanas de las cartas con el gancho del juego (LetterPortraitHook): los textos, la medida de 2 por carácter y el

@@ -1,5 +1,6 @@
 #include "Scenes/LetterPortrait.h"
 
+#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Data/Models/PlayerModels.h"
@@ -7,6 +8,8 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Pass3D.h"
+#include "Render/ScreenScale.h"
 #include "Scenes/ActionReply.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorCharacterSet.h"
@@ -23,10 +26,17 @@
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/OldWindowBase.h"
 #include "UI/OldWindows.h"
 #include "World/GameCamera.h"
 #include "World/ItemState.h"
 #include "World/TerrainCulling.h"
+
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/trigonometric.hpp>
 
 #include <array>
 #include <chrono>
@@ -580,6 +590,105 @@ Core::Expected<std::int32_t, std::string> ShowThePortraitAction(LetterPortrait& 
 void TurnThePortrait(LetterPortrait& portrait)
 {
     portrait.actor.angles = {PortraitPitch, PortraitRoll, PortraitYaw};
+}
+
+Render::Pass3D PortraitPass(App::PixelSize screen, const UI::OldWindowBase& base, const ActorState& actor)
+{
+    // 0x6ba004: el alto del retrato.
+    constexpr float PortraitHeight = 141.0f;
+    constexpr float FieldOfView = 1.0f;
+    constexpr float NearPlane = 2000.0f;
+    constexpr float FarPlane = 20000.0f;
+    constexpr float RightAngle = -90.0f;
+    constexpr glm::vec3 Distance{-10000.0f, 0.0f, -75.0f};
+    // 0x6b86b0: lo que baja el caballo oscuro.
+    constexpr double HorseDrop = 50.0;
+    constexpr std::uint16_t DarkHorsePet = 0x1c16;
+    const double rx = static_cast<double>(Render::ScaleX(1.0f, screen));
+    const double ry = static_cast<double>(Render::ScaleY(1.0f, screen));
+    // 0x4957bd..0x4957fc: _ftol trunca hacia el 0.
+    const auto x = static_cast<int>(static_cast<double>(base.x) * rx);
+    const auto y = static_cast<int>(static_cast<double>(base.y) * ry);
+    const auto width = static_cast<int>(static_cast<double>(base.width) * rx);
+    const auto height = static_cast<int>(ry * static_cast<double>(PortraitHeight));
+    Render::Pass3D pass;
+    pass.screen = screen;
+    // 0x620d10: la y de GL desde abajo.
+    pass.viewport = {x, screen.height - y - height, width, height};
+    // 0x495801..0x495826: la x87, guardada en float.
+    const auto aspect =
+        static_cast<float>((static_cast<double>(base.width) * rx) / (ry * static_cast<double>(PortraitHeight)));
+    pass.projection = glm::perspective(glm::radians(FieldOfView), aspect, NearPlane, FarPlane);
+    glm::mat4 view = glm::rotate(glm::mat4(1.0f), glm::radians(RightAngle), glm::vec3(1.0f, 0.0f, 0.0f));
+    view = glm::rotate(view, glm::radians(RightAngle), glm::vec3(0.0f, 0.0f, 1.0f));
+    view = glm::translate(view, Distance);
+    double drop = -static_cast<double>(actor.position.z);
+    if (actor.pet.model == DarkHorsePet)
+        drop -= HorseDrop;
+    pass.view = glm::translate(view, glm::vec3(-actor.position.x, -actor.position.y, static_cast<float>(drop)));
+    pass.farPlane = FarPlane;
+    return pass;
+}
+
+Core::Expected<Render::Pass3D, std::string> PrepareThePortraitDraw(LetterPortrait& portrait, UI::OldPortraitPart& part,
+                                                                   App::PixelSize screen,
+                                                                   const WorldEntryResources& resources)
+{
+    ActorState& actor = portrait.actor;
+    // 0x497cac..0x497d3d: el frame contra +0x6a8 (la x87: el int a la pila y el float del frame).
+    if (static_cast<double>(actor.animation.frame) < static_cast<double>(portrait.frameMark))
+    {
+        constexpr int IdleOdds = 4;
+        if (portrait.idle == 0 && resources.cloth.random.Next() % IdleOdds == 0)
+        {
+            portrait.idle = 1;
+            if (auto shown = ShowThePortraitAction(portrait, part.action, 0, resources); !shown.HasValue())
+                return Core::Unexpected(shown.Error());
+        }
+        else if (part.action < StopAction || part.action > LastGroundAction)
+        {
+            portrait.idle = 0;
+            if (auto shown = ShowThePortraitAction(portrait, StopAction, 0, resources); !shown.HasValue())
+                return Core::Unexpected(shown.Error());
+        }
+        portrait.frameMark = 0;
+    }
+    else
+    {
+        portrait.frameMark = static_cast<std::int32_t>(actor.animation.frame);
+    }
+    // 0x497d3d..0x497d4f: +0x360 por debajo de 4, 0x414340.
+    constexpr std::uint8_t FirstKeptLayer = 4;
+    if (actor.byte360 < FirstKeptLayer)
+        ReleaseTheLayer(actor);
+    {
+        // 0x495766..0x49579e: con el mundo en 0.
+        const MapAtZero map(resources.world.Runtime());
+        if (auto stepped = StepTheBodyAndEffects(actor, StepContextOf(resources)); !stepped.HasValue())
+            return Core::Unexpected(stepped.Error());
+        if (portrait.helper.alive)
+            return Core::Unexpected(std::format("0x495796: el paso del ayudante {:#x} del retrato (0x444010) con su "
+                                                "jinete fuera del pool no está portado (P-C310)",
+                                                portrait.helper.type));
+    }
+    Render::Pass3D pass = PortraitPass(screen, part.base, actor);
+    // 0x4958cc..0x4958df.
+    actor.angles = {0.0f, 0.0f, part.angle};
+    // 0x49594f..0x4959bf: +0x3e4 en 1, que MuRet no tiene.
+    actor.scale = static_cast<float>(static_cast<double>(part.zoom) * static_cast<double>(HelperScaleFactor));
+    portrait.helper.scale =
+        static_cast<float>(static_cast<double>(portrait.helperScale) * static_cast<double>(part.zoom));
+    actor.light = glm::vec3(1.0f);
+    portrait.helper.light = glm::vec3(1.0f);
+    actor.safeZone = actor.wings.model != NoItemModel && part.action > LastGroundAction ? 1 : 0;
+    return pass;
+}
+
+Core::Expected<void, std::string> DrawThePortraitModel(const LetterPortrait& portrait)
+{
+    return Core::Unexpected(std::format("0x4959cc: el dibujo del ayudante (0x445260) y del personaje (0x50ba30, clase "
+                                        "{:#x}) del retrato de las cartas, fuera del pool, no está portado (P-C310)",
+                                        portrait.actor.characterClass));
 }
 
 UI::OldPortraitHook LetterPortraitHook(const WorldEntryResources& resources)

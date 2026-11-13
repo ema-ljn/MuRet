@@ -3373,13 +3373,18 @@ dibujo (`0x637791..0x6381a5`), y por debajo de 21,33 FPS cada dibujo es un frame
 **Cuándo hay.** bVar23: la clase 3 o 4, el modelo `0x20a` y `+0x3e3` en 0, o el monstruo `0x37`;
 nunca en los mapas `0x12` a `0x17`, salvo con los nombres de un duelo o de una guerra de guild, que
 la prenden en cualquier clase con el color (1; 0,2; 0) o (0; 0,2; 1) (`0x50c929..0x50cc29`). El color, si no, es
-(1, 1, 1). Leído en la CL9 (hito 7, fase 2, *estático*): con `+0x1f2` distinto de −1, las guerras de gremios
-(`0x50c99b..0x50cb5c`, con `0x576796d`, `0x576796e` y `0x576796f` y los nombres de la tabla `0x787aa48` + `0xd`,
-`0x5767804`, `0x57678d0` y `0x57678d9`) son del hito 8. Con el duelo en curso (`0x78abad8`), el rival (`MOVSX` de
+(1, 1, 1). Leído en la CL9 (hitos 7 y 8, *estático*): con `+0x1f2` distinto de −1 y la guerra prendida
+(`0x576796d`, `0x50c972..0x50caaa`), el gremio del personaje (`strcmp` de `+0xd` de su entrada de `0x787aa48`) igual al
+del héroe publicado (su `+0x1f2` sin mirar el −1, que lee el byte 9 del nombre del miembro 74, Q-C1281) la prende con
+el color del equipo (`0x576796e` en 0, (1; 0,2; 0); si no, (0; 0,2; 1)) y el del rival (`0x5767804`), con el otro;
+después, con `0x576796f` (`0x50caaa..0x50cb5c`), los nombres de `0x57678d0` y `0x57678d9`, en (1; 0,2; 0) y (0; 0,2;
+1): lo prende solo el `F3 23` del hito 11 (08 P-C284 a). Con el duelo en curso (`0x78abad8`), el rival (`MOVSX` de
 `+0x1f4` igual a `0x78abadc` y `strcmp` de `+0x1d9` con `0x78abae0`) la lleva en (1; 0,2; 0) y después el héroe
 publicado (el WORD de `+0x1f4` igual y `strcmp` de los dos `+0x1d9`) en (0; 0,2; 1). **MuRet**: `GameCharacters`
-arma `DrawnCharacter::wearsCloth` y `clothColor` con `+0x3e3` y el duelo; el login y la selección siguen con
-`WearsACloth` (clase y mapa). Test: `GameCharacterRenderTest.TheDuelDressesTheRivalInRedAndTheHeroInBlue`.
+arma `DrawnCharacter::wearsCloth` y `clothColor` con `+0x3e3`, la guerra (hito 8, sin `0x576796f`) y el duelo; un
+`+0x1f2` fuera de la tabla corta (`0x50c9b8`, `0x50c9cf`); el login y la selección siguen con `WearsACloth` (clase y
+mapa). Tests: `GameCharacterRenderTest.TheDuelDressesTheRivalInRedAndTheHeroInBlue` y
+`TheGuildWarDressesBothGuildsInTheirTeamColors`.
 
 **El armado** (con `objeto + 0x190` en 0). La clase 4: `new` de cuatro telas (`0x6a0210(…, 0x60, 4,
 0x4548b0, 0x454980)`) y `+0x18c` = 3:
@@ -10269,8 +10274,10 @@ en y + 225 (du 0,7421875, dv 0,625). Las casillas de las dos grillas (`0x5e3660`
 (x + 15, y + 70) y la propia (`0x78a92a8`) en (x + 15, y + 270). Blanco y el lazo de las 2000 entradas de la tabla de
 los gremios (`0x787aa48`, de `0x58` B): la que tiene una clave distinta de −1 e igual a `0x6c9324` (el gremio del otro,
 del `37`) dibuja la marca (`0x5f16a0(índice, 0)` y la `0x22` de 32 × 32 en (x − 32, y + 40)) y el nombre (`+0xd`, en
-(x, y + 30)). `0x447ae0` pone todas las claves en −1 y solo `0x4d9260` (la lista del gremio, hito 8) las llena: hasta
-entonces el lazo no dibuja nada, ni con el gremio 0 que manda el GS sin gremio (08 P-C207 a). Blanco; en la negrita
+(x, y + 30), con `0x554240`, que llama a `0x465950` como `0x554180` sin la caja, con la fuente y los colores que
+dejó lo anterior). `0x447ae0` pone todas las claves en −1, el `65` (`0x4d9260`, hito 8) las agrega y el `66` les pone el
+nombre y la marca: el gremio 0 que manda el GS sin gremio no encuentra ninguna. **MuRet** (CL9 hito 8, fase 3): `DrawTheOthersGuild` sobre
+`GuildState`, con las marcas de `GuildMarkTextures` (`GameTradeWindowTest.TheOthersGuildDrawsItsMarkAndName`). Blanco; en la negrita
 (`0x5763558`), con `0xffdcdcdc` sobre `0xff141414`, el título (texto 226) en (x + `0x23`, y + `0xc`) en la caja de
 120 · ancho / 640. Los botones de 24 × 24 con du = dv = 0,75 (`0x621b60`): el OK del otro en (x + 140, y + 185),
 `accept_box01` (`0x122`) con `0x78abac0` en 0 o `accept_box02` (`0x123`), en rojo con `0x78abac4` sobre 0; con

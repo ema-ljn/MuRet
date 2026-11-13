@@ -167,30 +167,83 @@ DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, const GameCh
 }
 
 // 0x50c929..0x50cc29, bVar23 y el color de la tela de un jugador 0x20a: la clase 3 o 4 con +0x3e3 en 0 (el monstruo
-// 0x37 no llega acá), salvo en los mapas 0x12 a 0x17. Con +0x1f2 distinto de −1, las guerras de gremios
-// (0x50c99b..0x50cb5c: 0x576796d y 0x576796f, que solo escriben los paquetes del hito 8 y empiezan en 0) no la prenden
-// (08 P-C207 b). Con el duelo en curso (0x78abad8), el rival (MOVSX de +0x1f4 igual a 0x78abadc y strcmp de +0x1d9
-// con 0x78abae0) la lleva en (1; 0,2; 0) y el héroe publicado (el WORD de +0x1f4 y strcmp de los nombres), en
-// (0; 0,2; 1), aunque sea de otra clase o esté en esos mapas.
+// 0x37 no llega acá), salvo en los mapas 0x12 a 0x17. Después, en cualquier clase y mapa, la guerra de gremios
+// (0x50c972..0x50caaa, CL9 hito 8) y el duelo (0x50cb5c..0x50cc29), que gana: con el duelo en curso (0x78abad8), el
+// rival (MOVSX de +0x1f4 igual a 0x78abadc y strcmp de +0x1d9 con 0x78abae0) la lleva en (1; 0,2; 0) y el héroe
+// publicado (el WORD de +0x1f4 y strcmp de los nombres), en (0; 0,2; 1).
 struct ClothLook
 {
     bool wears = false;
     glm::vec3 color = PlainClothColor;
 };
 
-ClothLook LookOfTheCloth(const WorldState& world, const ActorState& actor, std::int32_t map)
+constexpr glm::vec3 RedCloth{1.0f, 0.2f, 0.0f};
+constexpr glm::vec3 BlueCloth{0.0f, 0.2f, 1.0f};
+// 0x787a5e8 (los miembros, de 0xe) y 0x787aa48 (la tabla, de 0x58) van seguidos: +0xd de la entrada −1 es el byte 9 del
+// nombre del miembro 74 (0x787a9fd, Q-C1281).
+constexpr std::size_t MemberBeforeTheTable = 74;
+constexpr std::size_t NameByteBeforeTheTable = 9;
+
+// Un nombre de la tabla hasta el primer 0, como lo lee strcmp.
+template <std::size_t Size> std::string_view TextOf(const std::array<char, Size>& text)
+{
+    return {text.data(), static_cast<std::size_t>(std::ranges::find(text, '\0') - text.begin())};
+}
+
+// El gremio (+0xd) de la entrada `index` de 0x787aa48 tal como lo compara strcmp: la −1 da el byte 9 del nombre del
+// miembro 74 y el 0 de su byte 10 (+0xa, siempre en 0). Fuera de la tabla, nullopt (el original leería otra memoria).
+std::optional<std::string_view> GuildNameAt(const GuildState& guild, std::int16_t index)
+{
+    if (index == NoGuildIndex)
+    {
+        const auto& name = guild.members[MemberBeforeTheTable].name;
+        return std::string_view(name.data() + NameByteBeforeTheTable, name[NameByteBeforeTheTable] == '\0' ? 0 : 1);
+    }
+    if (index < 0 || static_cast<std::size_t>(index) >= GuildTableSize)
+        return std::nullopt;
+    return TextOf(guild.table[static_cast<std::size_t>(index)].guildName);
+}
+
+// 0x50c972..0x50caaa: con +0x1f2 distinto de −1 y la guerra prendida (0x576796d, el 61 y el 62 del tipo 1), el gremio
+// del personaje (strcmp de +0xd de su entrada) igual al del héroe publicado (su +0x1f2, sin mirar el −1) prende la tela
+// del color del equipo (0x576796e en 0, (1; 0,2; 0); si no, (0; 0,2; 1)), y el del rival (0x5767804), la del otro.
+// Después, 0x50caaa..0x50cb5c: con 0x576796f, los nombres de 0x57678d0 y 0x57678d9 la prenden en (1; 0,2; 0) y en
+// (0; 0,2; 1); lo prende solo el F3 23 (0x4d9f00, hito 11, 08 P-C284 a), que MuRet no atiende: nunca.
+Core::Expected<void, std::string> DressForTheWar(const WorldState& world, const ActorState& actor, ClothLook& look)
+{
+    const GuildState& guild = world.Runtime().guild;
+    const auto index = static_cast<std::int16_t>(actor.word1f2);
+    if (index == NoGuildIndex || guild.warType == 0)
+        return {};
+    const auto own = GuildNameAt(guild, index);
+    if (!own)
+        return Core::Unexpected(std::format("0x50c9b8: el gremio {} cae fuera de la tabla (0x787aa48)", index));
+    const auto heroIndex = static_cast<std::int16_t>(world.Actors()[world.Runtime().hero].word1f2);
+    const auto heros = GuildNameAt(guild, heroIndex);
+    if (!heros)
+        return Core::Unexpected(std::format("0x50c9cf: el gremio {} del héroe cae fuera de la tabla", heroIndex));
+    const bool firstTeam = guild.warTeam == 0;
+    if (*heros == *own)
+        look = {.wears = true, .color = firstTeam ? RedCloth : BlueCloth};
+    if (TextOf(guild.rival) == *own)
+        look = {.wears = true, .color = firstTeam ? BlueCloth : RedCloth};
+    return {};
+}
+
+Core::Expected<ClothLook, std::string> LookOfTheCloth(const WorldState& world, const ActorState& actor,
+                                                      std::int32_t map)
 {
     constexpr std::uint8_t MagicGladiator = 3;
     constexpr std::uint8_t DarkLord = 4;
     constexpr std::int32_t FirstClothlessMap = 0x12;
     constexpr std::int32_t LastClothlessMap = 0x17;
-    constexpr glm::vec3 RivalColor{1.0f, 0.2f, 0.0f};
-    constexpr glm::vec3 HeroColor{0.0f, 0.2f, 1.0f};
     ClothLook look;
     const auto base = static_cast<std::uint8_t>(actor.characterClass & 7u);
     look.wears = (base == MagicGladiator || base == DarkLord) && actor.byte3e3 == 0;
     if (map >= FirstClothlessMap && map <= LastClothlessMap)
         look.wears = false;
+    if (auto war = DressForTheWar(world, actor, look); !war.HasValue())
+        return Core::Unexpected(std::move(war).Error());
     const DuelState& duel = world.Runtime().social.duel;
     if (duel.active == 0)
         return look;
@@ -199,10 +252,10 @@ ClothLook LookOfTheCloth(const WorldState& world, const ActorState& actor, std::
     const std::string_view rival(reinterpret_cast<const char*>(duel.rivalName.data()),
                                  static_cast<std::size_t>(rivalEnd - duel.rivalName.begin()));
     if (static_cast<std::int32_t>(static_cast<std::int16_t>(actor.key)) == duel.rivalKey && name == rival)
-        look = {.wears = true, .color = RivalColor};
+        look = {.wears = true, .color = RedCloth};
     const ActorState& hero = world.Actors()[world.Runtime().hero];
     if (actor.key == hero.key && name == ChatNameOf(hero))
-        look = {.wears = true, .color = HeroColor};
+        look = {.wears = true, .color = BlueCloth};
     return look;
 }
 
@@ -473,9 +526,11 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
     const std::int32_t map = world.Runtime().map;
     DrawnCharacter character = CharacterToDraw(actor, slot, pass, map);
     character.advanceCloth = originalFrame;
-    const ClothLook look = LookOfTheCloth(world, actor, map);
-    character.wearsCloth = look.wears;
-    character.clothColor = look.color;
+    const auto look = LookOfTheCloth(world, actor, map);
+    if (!look.HasValue())
+        return Core::Unexpected(look.Error());
+    character.wearsCloth = look.Value().wears;
+    character.clothColor = look.Value().color;
     // Al buffer global (0x68b181c) sólo va lo que cuelga (0x509340); el cuerpo queda en el propio (DrawTheTail).
     if ((originalFrame || pass.publishProjectedPose) && pass.onPose)
         character.onPose = [global = pass.onPose](std::uint16_t model,

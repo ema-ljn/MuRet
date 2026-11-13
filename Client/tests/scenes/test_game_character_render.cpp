@@ -19,6 +19,8 @@
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FullSetScan.h"
+#include "Scenes/GuildMarks.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldMap.h"
@@ -27,6 +29,8 @@
 #include "World/TerrainLighting.h"
 #include "World/Sprites.h"
 #include "World/WorldTerrain.h"
+
+#include "support/FakeTextureStore.h"
 
 #include <gtest/gtest.h>
 
@@ -719,6 +723,97 @@ TEST_F(GameCharacterRenderTest, TheDuelDressesTheRivalInRedAndTheHeroInBlue)
     }
 }
 
+// 0x50c972..0x50caaa (CL9 hito 8): con la guerra (0x576796d) y +0x1f2 distinto de −1, el del gremio del héroe lleva la
+// tela del color de su equipo ((1; 0,2; 0) con 0x576796e en 0, (0; 0,2; 1) con 1) y el del rival (0x5767804), la del
+// otro, aunque sea de la clase 1 y esté en Chaos Castle (0x12); sin la guerra o sin gremio, no. Con el héroe sin
+// gremio, strcmp lee el byte 9 del nombre del miembro 74 (Q-C1281). Un índice fuera de la tabla corta. Gremios
+// inventados.
+TEST_F(GameCharacterRenderTest, TheGuildWarDressesBothGuildsInTheirTeamColors)
+{
+    constexpr glm::vec3 Red{1.0f, 0.2f, 0.0f};
+    constexpr glm::vec3 Blue{0.0f, 0.2f, 1.0f};
+    constexpr std::uint16_t NoGuild = 0xffff;
+    for (const std::int32_t map : {0, 2, 0x12})
+    {
+        SCOPED_TRACE(map);
+        Client::Scenes::WorldRuntime& runtime = m_world->Runtime();
+        runtime.map = map;
+        Client::Scenes::GuildState& guild = runtime.guild;
+        guild.table[3].guildName = {'T', 'a', 'l', 'a', 's'};
+        guild.table[4].guildName = {'O', 'm', 'b', 'u'};
+        guild.table[7].guildName = {};
+        guild.rival = {'O', 'm', 'b', 'u'};
+        guild.members[74].name[9] = '\0';
+        guild.warType = 0;
+        guild.warTeam = 0;
+        runtime.social.duel = {};
+        ActorState& player = Player(0);
+        player.characterClass = 1;
+        player.word1f2 = 3;
+        // El héroe publicado es otro (sin dibujar), del mismo gremio.
+        runtime.hero = 5;
+        m_world->Actors()[5].key = 0x0021;
+        m_world->Actors()[5].word1f2 = 3;
+        auto cloths = std::make_unique<std::array<Client::Scenes::CharacterCloth, 401>>();
+        GameCharacterPass pass = Pass();
+        pass.cloths = *cloths;
+        // Con +0x1f2 en 3 y las claves en −1, 0x50d533 también pide la marca (0x447b00 encuentra la entrada 0).
+        auto store = std::make_unique<Client::Tests::FakeTextureStore>();
+        auto marks = std::make_unique<Client::Scenes::GuildMarkTextures>(*store);
+        pass.guildMarks = marks.get();
+        const auto draw = [&]()
+        {
+            m_batch.Begin(Client::Render::Pass3D{});
+            return Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+        };
+        ASSERT_TRUE(draw().HasValue());
+        EXPECT_TRUE((*cloths)[0].Cloths().empty());
+
+        guild.warType = 1;
+        ASSERT_TRUE(draw().HasValue());
+        ASSERT_EQ((*cloths)[0].Cloths().size(), 1u);
+        EXPECT_GT(ClothVerticesIn(m_batch, Red), 0u);
+        EXPECT_EQ(ClothVerticesIn(m_batch, Blue), 0u);
+
+        guild.warTeam = 1;
+        ASSERT_TRUE(draw().HasValue());
+        EXPECT_EQ(ClothVerticesIn(m_batch, Red), 0u);
+        EXPECT_GT(ClothVerticesIn(m_batch, Blue), 0u);
+
+        // El rival, con el equipo 1, de rojo.
+        player.word1f2 = 4;
+        ASSERT_TRUE(draw().HasValue());
+        EXPECT_GT(ClothVerticesIn(m_batch, Red), 0u);
+        EXPECT_EQ(ClothVerticesIn(m_batch, Blue), 0u);
+
+        // Sin gremio, la clase 1 no la lleva.
+        player.word1f2 = NoGuild;
+        ASSERT_TRUE(draw().HasValue());
+        EXPECT_EQ(ClothVerticesIn(m_batch, Red), 0u);
+        EXPECT_EQ(ClothVerticesIn(m_batch, Blue), 0u);
+
+        // El héroe sin gremio: "" (el byte 9 del miembro 74 en 0) es el nombre vacío de la entrada 7.
+        m_world->Actors()[5].word1f2 = NoGuild;
+        player.word1f2 = 7;
+        ASSERT_TRUE(draw().HasValue());
+        EXPECT_GT(ClothVerticesIn(m_batch, Blue), 0u);
+        guild.members[74].name[9] = 'x';
+        ASSERT_TRUE(draw().HasValue());
+        EXPECT_EQ(ClothVerticesIn(m_batch, Blue), 0u);
+
+        player.word1f2 = 2000;
+        const auto cut = draw();
+        ASSERT_FALSE(cut.HasValue());
+        EXPECT_NE(cut.Error().find("0x50c9b8"), std::string::npos);
+        player.word1f2 = 3;
+        m_world->Actors()[5].word1f2 = 2001;
+        const auto heroCut = draw();
+        ASSERT_FALSE(heroCut.HasValue());
+        EXPECT_NE(heroCut.Error().find("0x50c9cf"), std::string::npos);
+        m_world->Actors()[5].word1f2 = 3;
+    }
+}
+
 TEST_F(GameCharacterRenderTest, ZeroOriginalFramesDoNotCreateFirstUseClassThreeOrFourCloths)
 {
     using Client::Render::Models::OriginalFramePace;
@@ -1102,6 +1197,9 @@ TEST_F(GameCharacterRenderTest, AnNpcKindOutlinesItsPartsWithTheGreenOfTheNpcs)
     EXPECT_EQ(vertices[3 + 1].position.x, 1.2f + 150.0f);
 }
 
+// 0x50d4fb..0x50d588 (CL9 hito 8, fase 2): con +0x1f2 en 5 (su clave en −1, que 0x447b00 encuentra en la entrada 0
+// con la cuenta en 0) y sin la tabla de las marcas, la marca corta en 0x50d575 después de las partes; en Chaos Castle
+// (18) no hay marca.
 TEST_F(GameCharacterRenderTest, AGuildIndexStopsAfterThePartsExceptInChaosCastle)
 {
     for (const std::int32_t map : {0, 18})
@@ -1122,7 +1220,7 @@ TEST_F(GameCharacterRenderTest, AGuildIndexStopsAfterThePartsExceptInChaosCastle
             continue;
         }
         ASSERT_FALSE(result.HasValue());
-        EXPECT_NE(result.Error().find("0x50d533"), std::string::npos) << result.Error();
+        EXPECT_NE(result.Error().find("0x50d575"), std::string::npos) << result.Error();
         // La sombra y las botas ya están.
         ASSERT_EQ(m_batch.Commands().size(), 2u);
         EXPECT_EQ(m_batch.Commands()[1].vertexCount, 3u);

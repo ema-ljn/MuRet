@@ -18,6 +18,8 @@
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameWindowDrawing.h"
+#include "Scenes/GuildMarks.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -877,6 +879,37 @@ std::pair<std::int32_t, std::uint32_t> LevelBracket(std::int32_t level)
     return {10, 0xff0000ffu};
 }
 
+// 0x5f3bf9..0x5f3c8a (CL9 hito 8): las 2000 entradas de la tabla de los gremios (0x787aa48, de 0x58 bytes) con la clave
+// distinta de −1 e igual a la del gremio del otro (0x6c9324, la que trae el 37) suben su marca (0x5f16a0(i, 0)), la
+// dibujan con el 0x22 en (x − 32, y + 40), de 32 × 32, y escriben el nombre (+0xd) en (x, y + 30) con 0x554240, que
+// llama a 0x465950 como 0x554180 sin la caja (*estático*), con la fuente y los colores que dejó lo de antes.
+Core::Expected<void, std::string> DrawTheOthersGuild(GameHudContext& context, std::int32_t x, std::int32_t y)
+{
+    constexpr float MarkLeft = 32.0f;
+    constexpr float MarkTop = 40.0f;
+    constexpr float MarkSize = 32.0f;
+    constexpr std::int32_t NameTop = 0x1e;
+    const GuildState& guild = context.world.Runtime().guild;
+    const std::int32_t other = context.world.Runtime().social.trade.otherGuild;
+    for (std::size_t index = 0; index < GuildTableSize; ++index)
+    {
+        const GuildTableEntry& entry = guild.table[index];
+        if (entry.key == -1 || entry.key != other)
+            continue;
+        if (context.guildMarks == nullptr)
+            return Core::Unexpected(std::string("0x5f3c10: la marca del gremio (0x5f16a0) sin la tabla de las marcas"));
+        auto slot = context.guildMarks->Upload(guild, static_cast<std::int32_t>(index), false);
+        if (!slot.HasValue())
+            return Core::Unexpected(std::move(slot).Error());
+        Quad(context.sprites, slot.Value().value, F32(static_cast<double>(x) - static_cast<double>(MarkLeft)),
+             F32(static_cast<double>(y) + static_cast<double>(MarkTop)), MarkSize, MarkSize, 1.0f, 1.0f);
+        const auto end = std::ranges::find(entry.guildName, '\0');
+        DrawText(context, x, y + NameTop,
+                 std::string_view(entry.guildName.data(), static_cast<std::size_t>(end - entry.guildName.begin())));
+    }
+    return {};
+}
+
 // El nombre del otro (0x78aba1c, diez bytes y el 0 que pone el 37), hasta el primer 0.
 std::string_view NameUntilZero(std::span<const std::byte> name)
 {
@@ -906,9 +939,8 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, UI
     DrawTheGridBoxes(sprites, gridLeft, TradePlace(y, OtherGridTop), trade.otherGrid, TradeColumns, TradeRows);
     DrawTheGridBoxes(sprites, gridLeft, TradePlace(y, OwnGridTop), trade.ownGrid, TradeColumns, TradeRows);
     sprites.SetColor(White);
-    // 0x5f3bf9..0x5f3c8a: las 2000 entradas de la tabla de los gremios (0x787aa48, 0x58 bytes) con clave distinta de −1
-    // e igual a la del otro (0x6c9324) dibujan la marca (0x5f16a0 y la 0x22 en (x − 32, y + 40)) y el nombre (+0xd, en
-    // (x, y + 30)). La llena solo 0x4d9260 (hito 8); aquí sigue en −1 (0x447ae0) y el lazo no dibuja nada (P-C207 a).
+    if (auto guild = DrawTheOthersGuild(context, x, y); !guild.HasValue())
+        return guild;
     sprites.SetColor(White);
     // 0x5f3ca1..0x5f3cff: el título en negrita, centrado en 120 · W / 640.
     SelectFont(context, FontKind::Bold);

@@ -404,8 +404,9 @@ alianza que mandan y el color de la tela en la guerra, que espera la parte del d
 **Fase 3 (2026-11-13):** la ventana 2 (`0x654900`) con sus cuatro páginas y el editor de la marca, el alta
 (`0x6552b0` manda el `C1 55` con el nombre y la marca; `0x655d70`), el `01` del Guild Master (`0x4e3450`, con el
 `EDIT` del diálogo y `0x77f3b68`) y la tabla de los gremios con las claves en −1 (`0x447ae0`); la prueba de crear un
-gremio va de la pregunta del `54` al `C1 55`. Queda (08, P-C281): la ventana del gremio con sus pestañas y listas, y
-las ventanas de la alianza que mandan.
+gremio va de la pregunta del `54` al `C1 55`. Sobre el hito 7 (mergeado): la tela en la guerra (`0x50c972..0x50caaa`,
+P-C22 e y P-C207 b) y la marca del otro en el comercio (`0x5f3bf9..0x5f3c8a`, P-C207 a). Queda: la ventana del gremio
+con sus pestañas y listas (08 P-C287, sobre `UI::OldList` del hito 9) y las ventanas de la alianza que mandan (P-C288).
 
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 

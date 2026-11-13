@@ -1,0 +1,1142 @@
+va	bytes	ola	sub_ola	hito	como	opcode_que_atiende	paquetes_que_manda	proposito
+0x401f30	1481	CL9	CL9.3	6	paquete que manda		C1 BC	0x401f30 1481 paso: CL9.3
+0x402500	1239	CL9	CL9.3	6	paquete que manda		C1 BC	0x402500 1239 paso: CL9.3
+0x4029e0	47	CL9	CL9.3	6	a mano			0x4029e0 47 paso: CL9.3
+0x402a10	10	CL9	CL9.3	6	a mano			0x402a10 10 paso: CL9.3
+0x402a20	107	CL9	CL9.3	6	a mano			0x402a20 107 paso: CL9.3
+0x402a90	75	CL9	CL9.3	6	lo que llama			0x402a90 75 paso: CL9.3
+0x402b70	66	CL9	CL9.3	6	a mano			0x402b70 66 paso: CL9.3
+0x402bc0	301	CL9	CL9.3	6	quien la llama			0x402bc0 301 paso: CL9.3
+0x402cf0	51	CL9	CL9.3	6	quien la llama			0x402cf0 51 paso: CL9.3
+0x402e10	61	CL9	CL9.3	6	quien la llama			0x402e10 61 paso: CL9.3
+0x402e50	87	CL9	CL9.5	11	opcode	BC		0x402e50 87 paso: CL9.3
+0x402eb0	523	CL9	CL9.3	6	a mano		C1 31	2. Ubicá el parser (0x403010): en qué sección cae y en qué offset del archivo empieza.
+0x40ae60	574	CL7	CL9.2	4	ajena sin portar			0x40ad90, 0x40ae60, 0x40b0a0, 0x40b240, 0x40b2f0, 0x40b3b0, 0x40b3f0 194, 574, 413, 168, 183, 53, 78 la tabla de protección (0x57630c8) no se porta (protección)
+0x40b3b0	53	CL2	CL9.2	4	ajena sin portar			con el serial de 0x5767913 (la entrada de un byte de la tabla de protección, 0x40b3b0 y 0x40b3f0)
+0x40b3f0	78	CL9	CL9.4	7	texto de la matriz			abrir la tienda personal (0x800) o la ajena (0x20000) C3 F3 10: relleno (0x65ae52/0x65b521) + serial (0x40b3f0) +2 evento (CL9.4)
+0x40ba60	26	CL9	CL9.5	11	opcode	92		0x92 0x4e4930 Si existe objeto DAT_00723c60, guarda [3]+1 en +8 y GetTickCount() en +0xC C callee FUN_0040ba60
+0x40f580	127	CL8	CL9.2	4	ajena sin portar			0x40f580 127 HUD: infra ; inventario: CL8.4 ; chat: CL9.2 sí
+0x40f850	2645	CL9	CL9.5	13	a mano			31 IsOpen(0) si no hay ninguna abierta → 0x4125b0 (vfunc +0xc de [0x5763530], el panel del asedio): con la clase 0 a la vista (+0x19, que su constructor 0x412195 deja en…
+0x411e80	71	CL9	CL9.5	12	quien la llama			0xB6 0x4e57dd Si objeto 0x5763530 responde 2: procesa count (dword +4) pares de bytes (+8…) con FUN_00411ed0(0,x,y) C callee 0x4e0ed0: gate DAT_05763530; FUN_00411e80; l…
+0x411ed0	588	CL9	CL9.5	12	quien la llama			0xB6 0x4e57dd Si objeto 0x5763530 responde 2: procesa count (dword +4) pares de bytes (+8…) con FUN_00411ed0(0,x,y) C callee 0x4e0ed0: gate DAT_05763530; FUN_00411e80; l…
+0x412580	24	CL9	CL9.5	12	opcode	B2		0x1A→flags DAT_078aba34/0x78aba30, 0x1D→FUN_00412580, 0x1E→FUN_00413c60,
+0x4126d0	3	CL9	CL9.5	12	quien la llama			la llama 0x411ed0
+0x4126e0	64	CL9	CL9.5	12	quien la llama			la llama 0x411ed0
+0x412720	54	CL9	CL9.5	12	quien la llama			la llama 0x411ed0
+0x4127c0	27	CL9	CL9.5	12	quien la llama			timeGetTime(), los milisegundos desde que arrancó Windows (0x412210). Después 0x4127c0,
+0x412810	114	CL6	CL9.2	4	ajena sin portar			0x412810 114 un acceso de la protección no se porta (protección)
+0x4129f0	172	CL9	CL9.1	1	a mano			[selección] personajes 0x510d00, el elegido 0x5f9780 y 0x53fe70 (0x4129f0 no dibuja)
+0x413c60	43	CL9	CL9.5	12	opcode	B2		0x1A→flags DAT_078aba34/0x78aba30, 0x1D→FUN_00412580, 0x1E→FUN_00413c60,
+0x416510	86	CL9	CL9.2	4	quien la llama			0xA7 0x4e4c0a Si el campo +0x430 del jugador local (DAT_0743a170) está activo, llama FUN_00416510(id16=pkt[5..6], pkt[4]). C asm: push pkt[4], (pkt[5]<<8\ pkt[6]), 0x743…
+0x416570	232	CL9	CL9.2	4	a mano			0xA8 0x4e4c42 Busca jugador por ID (word pkt+5/6, FUN_005110d0); si su struct+0x430 está activo, llama FUN_00416570(pkt+4, word pkt+7/8). C (mecánica) / I (efecto) asm +…
+0x416660	1	CL9	CL9.2	4	sub-ola de la matriz			0x416660 1 paso: CL8.4
+0x416670	314	CL8	CL9.2	4	ajena sin portar			0x416670 314 HUD: CL8.3 / CL9.1 (otro lector)
+0x418f40	100	CL9	CL9.1	2	quien la llama			la llama 0x4194c0, 0x419600
+0x418fb0	1292	CL9	CL9.1	2	a mano			P-C59 Lo que la UI del juego abre hacia otras olas (barrido de la CL8, 2026-11-12, [plan de la CL8](../../../docs/superpowers/plans/2026-11-12-ola-cl8-hud-y-ventanas.md#…
+0x4194c0	160	CL9	CL9.1	2	quien la llama			la llama 0x419600
+0x419560	88	CL8	CL9.1	2	ajena sin portar			0xA0 0x4e4b6d Copia N=pkt+3 bytes desde pkt+4 al buffer del objeto DAT_00710148 (+0x2134C, máx. 52 B), guarda la clase del jugador local (+0x1D4) en +4/+5 del objeto y e…
+0x4195c0	56	CL9	CL9.1	2	texto de la matriz			0x4195c0 56 paso: CL9.1 (quest)
+0x419600	261	CL9	CL9.1	2	a mano			El asm lee pkt[3] y pkt[4] (o pkt[5] si pkt[4]==0) y llama FUN_00418ee0(pkt[3], pkt[4]) con this=[0x710148]: [this+0x2137e] = pkt[3], [this+0x2137f] = max(prev, pkt[3]),…
+0x419710	301	CL9	CL9.1	2	a mano			0x419710 301 paso: CL9.1 (quest)
+0x419840	99	CL9	CL9.1	2	lo que llama			0x419840 99 ventanas: CL9.x
+0x4198b0	69	CL9	CL9.1	2	opcode	A2		FUN_00419900 (close, =0 + envía C1 03 31), FUN_004198b0 (refresh, =1)
+0x419b10	186	CL9	CL9.1	2	texto de la matriz			0x419b10 186 paso: CL9.1 (quest)
+0x419bd0	3595	CL9	CL9.1	2	a mano		C1 A2	0x419bd0 3595 paso: CL9.1 (quest)
+0x41a9e0	1921	CL9	CL9.1	2	a mano		C1 A2	0x775857c (byte) el mouse es de la UI 0 en 0x636e04 en cada paso; 1 en 0x636e1d (y ≥ 432), en 0x637063 (aviso abierto) y en los handlers de ventana cuando el mouse cae e…
+0x41b170	1072	CL9	CL9.1	2	a mano		C1 9F	0x775857c (byte) el mouse es de la UI 0 en 0x636e04 en cada paso; 1 en 0x636e1d (y ≥ 432), en 0x637063 (aviso abierto) y en los handlers de ventana cuando el mouse cae e…
+0x41ba20	1312	CL8	CL9.1	2	ajena sin portar			0x41ba20 1312 HUD: CL9.1 datos / CL8.3 marco (otro lector)
+0x41c600	1075	CL8	CL9.1	2	ajena sin portar			0x41c600 1075 HUD: CL9.1 datos / CL8.3 marco (otro lector)
+0x41ca40	276	CL9	CL9.1	2	a mano			P-C59 Lo que la UI del juego abre hacia otras olas (barrido de la CL8, 2026-11-12, [plan de la CL8](../../../docs/superpowers/plans/2026-11-12-ola-cl8-hud-y-ventanas.md#…
+0x420ca0	8	CL9	CL9.5	11	sub-ola de la matriz			0x420ca0 8 ventanas: CL9.x
+0x420cb0	8	CL9	CL9.4	7	sub-ola de la matriz			0x420cb0 8 ventanas: CL9.x
+0x420cd0	29	CL9	CL9.2	4	a mano			0x420cd0 29 ventanas: CL9.x
+0x420e90	211	CL9	CL9.2	4	sub-ola de la matriz			0x420e90 211 chat: CL9.2
+0x421b50	31	CL9	CL9.2	4	opcode	A7		Compone id16 = (pkt[5]<<8)pkt[6] y llama FUN_00421b50(jugador_local, id16, pkt[4]); éste solo ejecuta FUN_00416510(id16, pkt[4]) si el campo +0x430 del jugador local ≠ 0…
+0x421b70	31	CL9	CL9.2	4	opcode	A8		0xA8 0x4e4c42 Busca jugador por ID (word pkt+5/6, FUN_005110d0); si su struct+0x430 está activo, llama FUN_00416570(pkt+4, word pkt+7/8). C (mecánica) / I (efecto) asm +…
+0x421b90	125	CL9	CL9.2	4	sub-ola de la matriz			0x421b90 125 HUD: CL9.2 ; HUD: CL9.1 / CL9.2 sí
+0x421d90	17	CL9	CL9.3	6	quien la llama			0x421d90 17 paso: CL9.3
+0x424160	208	CL9	CL9.2	4	a mano			0x424160 208 HUD: CL8.3 / CL9.1 (otro lector) ; HUD: CL9.1 / CL9.2 sí
+0x4249a0	1173	CL8	CL9.2	4	ajena sin portar			0x4249a0 1173 HUD: CL8.3 / CL9.1 (otro lector)
+0x424e40	385	CL8	CL9.2	4	ajena sin portar			0x424e40 385 HUD: CL8.3 / CL9.1 (otro lector)
+0x424fd0	104	CL8	CL9.4	7	ajena sin portar			0x424fd0 104 HUD: CL8.4 (B2) ; paso: CL9.4 sí
+0x429270	75	CL9	CL9.2	3	quien la llama			la llama 0x4f4a10
+0x42a4d0	393	CL9	CL9.1	2	a mano			5 0x42a4d0 barras 50×2 de la cola 0x7239ac cola no vacía nada
+0x42d890	342	CL9	CL9.1	2	a mano			P-C58 Los cortes que la CL7 deja para otras olas (cierre de la CL7, 2026-11-12). Emanuel: "prefiero que el trabajo sea escalado, si abren otras olas, que se resuelvan en…
+0x42dcb0	50	CL9	CL9.2	3	quien la llama			la llama 0x4f4a10
+0x42fe80	373	CL9	CL9.5	11	opcode	BD		0x4294c0 y 0x42fe80 los vuelven a cargar durante el juego, sin mirar lo que devuelve el
+0x430180	200	CL9	CL9.5	11	sub-ola de la matriz			(0x430250, CL10), lo que dibuja 0x430180 (CL8), ramas de los personajes (0x431470, desde 0x505de0) y el
+0x435a00	19	CL9	CL9.5	11	quien la llama			0x435a00, en el mapa 34 con un blanco de tipo 0x204..0x208); con bErrorCheck, una meta con
+0x435b00	208	CL9	CL9.5	11	lo que llama			0x435b00 208 paso: CL9.5
+0x436240	817	CL9	CL9.5	11	texto de la matriz			26 0x436240 confirmación de evento nada
+0x437580	75	CL9	CL9.2	3	quien la llama			la llama 0x4f4a10
+0x4379f0	46	CL9	CL9.3	6	sub-ola de la matriz			0x4379f0 46 paso: CL9.3
+0x437a20	614	CL9	CL9.3	6	sub-ola de la matriz			0x437a20 614 paso: CL9.3
+0x439d40	75	CL9	CL9.2	4	quien la llama			0x1B 0x4e3a44 Aplica flag de efecto (buff/debuff) sobre el jugador indicado por word [4..5], según sub-tipo [3] C/I callee FUN_004cbe90: switch [3]→FUN_004e6910(máscara,…
+0x43a2f0	824	CL9	CL9.2	3	quien la llama			la llama 0x4f4a10
+0x443750	562	CL9	CL9.2	3	quien la llama			la llama 0x4f4a10
+0x447b00	39	CL7	CL9.4	8	ajena sin portar	67		- Tabla 0x58 B/entrada en DAT_0787aa4c (clave dword en +9, índice FUN_00447b00).
+0x447b90	172	CL9	CL9.4	8	opcode	66		0x66 0x4e4083→0x4e42c7 Actualiza una entrada de la tabla DAT_0787aa4c (0x58 B): índice = valor de pkt+4 (FUN_00447b00), escribe 8+8 B desde pkt+9 y pkt+0x11 y desempaque…
+0x449940	18	CL9	CL9.3	6	sub-ola de la matriz			Q-C214 los dos C1 03 31 de la vuelta, 0x419900 (desde 0x4c2546) y 0x4499b0 (desde 0x657670, 0x4c26e7) el segundo sale solo si la caja de 0x723c80 está vacía (0x449c10) y…
+0x449960	11	CL9	CL9.3	6	sub-ola de la matriz			0x449960 11 paso: CL9.3
+0x449c10	27	CL9	CL9.3	6	sub-ola de la matriz			mandarlo, y 0x4499b0 sale sin mandar si la caja de 0x723c80 tiene algo (0x449c10) y, si no,
+0x449c40	29	CL7	CL9.3	6	ajena sin portar			Q-C214 los dos C1 03 31 de la vuelta, 0x419900 (desde 0x4c2546) y 0x4499b0 (desde 0x657670, 0x4c26e7) el segundo sale solo si la caja de 0x723c80 está vacía (0x449c10) y…
+0x449c60	18	CL9	CL9.4	7	texto de la matriz			los vacíos, y lo mismo en las grillas (el comercio conserva el 99) y en la caja del entrenador (0x449c60); deja
+0x44acd0	59	CL9	CL9.3	6	sub-ola de la matriz			0x44acd0 59 paso: CL9.3
+0x44ad70	34	CL9	CL9.3	6	texto de la matriz			almacén o la tienda (0x78a7070), 3 la caja del caos y 5 la caja del entrenador (0x44ad70). Después, el sonido
+0x44ae10	892	CL9	CL9.3	6	quien la llama			0x44ae10 892 paso: CL9.3
+0x44b190	833	CL9	CL9.3	6	quien la llama			0x44b190 833 HUD: CL9.1/CL9.3 (otro lector) ; paso: CL9.3 sí
+0x44b510	39	CL9	CL9.3	6	a mano			Q-C214 los dos C1 03 31 de la vuelta, 0x419900 (desde 0x4c2546) y 0x4499b0 (desde 0x657670, 0x4c26e7) el segundo sale solo si la caja de 0x723c80 está vacía (0x449c10) y…
+0x44b610	757	CL9	CL9.3	6	quien la llama			0x44b610 757 HUD: CL9.1/CL9.3 (otro lector)
+0x44b910	3904	CL9	CL9.3	6	a mano		C1 34	0x44b9ce, 0x44c62e y 0x658dfd a 0x4499b0), que MuRet no tiene.
+0x44c850	1982	CL9	CL9.3	6	quien la llama			0x44c850 1982 HUD: CL9.1/CL9.3 (otro lector)
+0x44d010	1642	CL9	CL9.3	6	a mano		C1 86	launcher, y el servidor queda el compilado. En otro modo (el flag 0x44d05c) el host va lleno,
+0x44d680	1337	CL9	CL9.3	6	quien la llama			0x44d680 1337 HUD: CL9.1/CL9.3 (otro lector)
+0x44dcf0	32	CL9	CL9.1	2	texto de la matriz			0x400000, 0x800000, 0x1000000 ventanas de NPC (0x44dcf0, 0x44f770) 0x44dc10() == 1/2, 0x44f0f0() CL9.x
+0x44dd10	50	CL9	CL9.2	4	quien la llama			la llama 0x4e08a0
+0x44e930	293	CL9	CL9.5	13	quien la llama			0x44e930 293 HUD: CL9.5
+0x44ea60	1075	CL9	CL9.5	13	a mano			0x44ea60 1075 HUD: CL9.5
+0x44eea0	281	CL9	CL9.2	4	quien la llama			la llama 0x4e08f0
+0x44efc0	256	CL9	CL9.2	4	opcode	B7		0xB7 0x4e580d Sub-tipo [3]/[4]: 0→FUN_004e08a0, 1→FUN_004e08f0, 2→spawn de efecto 299/300 en coordenadas escaladas ([5],[6]) + efecto 0x6EB + sonido 0x1EA C asm: push [4…
+0x44f120	541	CL9	CL9.3	6	paquete que manda		C1 31	0x44f120 541 ventanas: CL9.x ; paso: CL9.5 sí
+0x44f340	532	CL9	CL9.5	12	opcode	B2		0x11→FUN_006599a0, 0x12→FUN_0044f7b0, 0x13→FUN_0044f560/FUN_0044f340, 0x14..0x19→
+0x44f560	526	CL9	CL9.5	12	opcode	B2		0x11→FUN_006599a0, 0x12→FUN_0044f7b0, 0x13→FUN_0044f560/FUN_0044f340, 0x14..0x19→
+0x44f770	56	CL9	CL9.1	2	texto de la matriz			0x400000, 0x800000, 0x1000000 ventanas de NPC (0x44dcf0, 0x44f770) 0x44dc10() == 1/2, 0x44f0f0() CL9.x
+0x44f7b0	88	CL9	CL9.5	12	opcode	B2		0x11→FUN_006599a0, 0x12→FUN_0044f7b0, 0x13→FUN_0044f560/FUN_0044f340, 0x14..0x19→
+0x44ff00	921	CL9	CL9.5	13	a mano			0x44ff00 921 HUD: CL9.5
+0x450f20	177	CL9	CL9.4	7	sub-ola de la matriz			0x450f20 177 HUD: CL9.3/CL9.4 ; paso: CL9.4 sí
+0x450fe0	283	CL9	CL9.4	7	lo que llama			sin texto que la describa
+0x451100	232	CL9	CL9.4	7	lo que llama			la llama 0x6b3c00
+0x4511f0	569	CL9	CL9.4	7	quien la llama			+8; indexa jugador, copia los 9 dwords y actualiza vía FUN_00451d10/FUN_004511f0
+0x451430	101	CL9	CL9.4	7	opcode	3F		0x14 0x4e3819 Elimina/oculta una lista de objetos por ID word (caso especial 0x13D) I callee 0x4ca780: count=byte3; loop de words +4; 0x13D limpia +4..+6, resto limpia +…
+0x4514a0	236	CL9	CL9.4	7	lo que llama			la llama 0x450fe0, 0x5eb960
+0x451630	112	CL9	CL9.1	1	quien la llama			0x14 0x4e3819 Elimina/oculta una lista de objetos por ID word (caso especial 0x13D) I callee 0x4ca780: count=byte3; loop de words +4; 0x13D limpia +4..+6, resto limpia +…
+0x4516a0	5	CL9	CL9.1	2	sub-ola de la matriz			0x4516a0 5 chat: CL9.1 / existentes
+0x4516b0	5	CL9	CL9.4	7	sub-ola de la matriz			la llama 0x56c440
+0x4516c0	4	CL9	CL9.4	7	quien la llama			0x4516c0 4 HUD: CL9.3/CL9.4
+0x451810	69	CL9	CL9.4	7	quien la llama			0x451810 69 HUD: CL8.2 ; paso: CL9.4 sí
+0x451860	74	CL9	CL9.4	7	quien la llama			la llama 0x5eb020
+0x451c20	237	CL9	CL9.4	7	a mano			13 0x451d10/0x451c20 carteles [LOJA] singleton 0x7245c8 nada
+0x451d60	214	CL9	CL9.4	7	quien la llama			0x451d60 214 HUD: CL9.3/CL9.4
+0x451e40	410	CL9	CL9.4	7	quien la llama			0x451e40 410 HUD: CL9.3/CL9.4
+0x452110	180	CL9	CL9.4	7	quien la llama			0x452110 180 HUD: CL9.3/CL9.4
+0x4521d0	125	CL9	CL9.4	7	quien la llama			la llama 0x4511f0
+0x452250	199	CL7	CL9.4	7	ajena sin portar			la llama 0x451430, 0x4514a0, 0x451590 y 1 más
+0x452320	446	CL9	CL9.4	7	quien la llama			la llama 0x4521d0
+0x4524e0	57	CL9	CL9.4	7	quien la llama			la llama 0x4511f0
+0x452530	4	CL7	CL9.4	7	ajena sin portar			la llama 0x4511f0, 0x451590, 0x451630 y 1 más
+0x452540	646	CL9	CL9.4	7	quien la llama			usa GetTextExtentPoint32A, SelectObject; la llama 0x4511f0, 0x4524e0
+0x4527d0	21	CL9	CL9.4	7	quien la llama			0x4527d0 21 HUD: CL9.3/CL9.4
+0x4527f0	21	CL9	CL9.4	7	quien la llama			0x4527f0 21 HUD: CL9.3/CL9.4
+0x452810	21	CL9	CL9.4	7	quien la llama			0x452810 21 HUD: CL9.3/CL9.4
+0x452830	43	CL9	CL9.4	7	quien la llama			0x452830 43 HUD: CL9.3/CL9.4
+0x452860	325	CL8	CL9.4	7	ajena sin portar			la llama 0x451860, 0x4518b0
+0x4529b0	5	CL8	CL9.4	7	ajena sin portar			la llama 0x4516d0, 0x4524e0
+0x4529d0	4	CL9	CL9.4	7	quien la llama			0x4529d0 4 HUD: CL9.4?
+0x4529e0	5	CL9	CL9.4	7	quien la llama			0x4529e0 5 HUD: CL9.3/CL9.4
+0x4529f0	5	CL9	CL9.4	7	quien la llama			0x4529f0 5 HUD: CL9.3/CL9.4
+0x452a00	4	CL9	CL9.4	7	quien la llama			0x452a00 4 HUD: CL9.3/CL9.4
+0x452a10	706	CL9	CL9.4	7	quien la llama			0x452a10 706 HUD: CL9.3/CL9.4
+0x452ce0	102	CL9	CL9.4	7	quien la llama			0x452ce0 102 HUD: CL9.3/CL9.4
+0x452d50	253	CL9	CL9.4	7	quien la llama			0x452d50 253 HUD: CL9.3/CL9.4
+0x452e50	298	CL9	CL9.4	7	quien la llama			0x452e50 298 HUD: CL9.3/CL9.4
+0x452f80	548	CL9	CL9.4	7	quien la llama			la llama 0x452540
+0x4531b0	308	CL9	CL9.4	7	quien la llama			usa GetTextExtentPoint32A, SelectObject; la llama 0x452540
+0x453500	17	CL9	CL9.4	7	quien la llama			la llama 0x450fe0, 0x451100
+0x453520	558	CL9	CL9.4	7	quien la llama			la llama 0x4511f0
+0x453750	1039	CL7	CL9.4	7	ajena sin portar			la llama 0x450fe0, 0x451100, 0x451430 y 3 más
+0x453b60	104	CL8	CL9.4	7	ajena sin portar			la llama 0x4511f0, 0x4518b0
+0x453bd0	67	CL9	CL9.4	7	quien la llama			0x453bd0 67 HUD: CL9.3/CL9.4
+0x453d10	62	CL9	CL9.4	7	sub-ola de la matriz			la llama 0x450fe0, 0x451100, 0x4514a0
+0x453d50	628	CL9	CL9.4	7	quien la llama			la llama 0x453520
+0x453fd0	87	CL9	CL9.4	7	quien la llama			la llama 0x453520
+0x454030	28	CL9	CL9.4	7	quien la llama			0x454030 28 HUD: CL9.3/CL9.4
+0x454050	91	CL9	CL9.4	7	quien la llama			la llama 0x453520
+0x4540b0	48	CL9	CL9.4	7	quien la llama			0x4540b0 48 HUD: CL9.4? ; paso: CL9.4
+0x4540e0	29	CL9	CL9.4	7	quien la llama			la llama 0x453520
+0x454100	81	CL9	CL9.4	7	quien la llama			la llama 0x453520
+0x454160	25	CL9	CL9.4	7	quien la llama			la llama 0x453520, 0x453d50
+0x459e30	130	CL9	CL9.4	10	quien la llama			la llama 0x49a1f0, 0x4a11b0
+0x45a9f0	19	CL8	CL9.4	8	ajena sin portar			0x45a9f0 19 ventanas: CL8.3 ; chat: CL8.3
+0x45adf0	864	CL8	CL9.4	9	ajena sin portar			0x45adf0 864 ventanas: CL8.3
+0x460970	502	CL8	CL9.4	9	ajena sin portar			P-C95 Lo que las ventanas viejas dejan para la CL9.4 (CL8 hito 7, 2026-11-12). Cortan con su dirección: los casos 1 a 4, 6 y 7 de la fábrica 0x48ee60 (los amigos, su cha…
+0x461530	205	CL9	CL9.4	9	quien la llama			la llama 0x493f80
+0x462010	413	CL9	CL9.4	9	a mano			la llama 0x48fc80
+0x4621e0	706	CL9	CL9.4	9	a mano			la llama 0x4621b0, 0x6b4c38, 0x6b4c58 y 1 más
+0x463190	536	CL9	CL9.4	9	a mano			usa GetTextExtentPointA, lstrlenA; la llama 0x48fd90
+0x4633b0	33	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x4633e0	712	CL9	CL9.4	9	a mano			la llama 0x4633b0, 0x6b4c78, 0x6b4cc8 y 1 más
+0x4636b0	679	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x463960	1001	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x463d50	85	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x463db0	977	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x464190	87	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x4641f0	800	CL9	CL9.4	9	quien la llama			usa glColor4f, glEnable
+0x464510	262	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x464620	423	CL9	CL9.4	9	a mano			0x464620 423 ventanas: CL9.4
+0x4647e0	33	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x464810	712	CL8	CL9.4	9	ajena sin portar			la llama 0x4647e0, 0x6b4a40, 0x6b4f76
+0x464ae0	679	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x464d90	247	CL9	CL9.4	9	quien la llama			usa SelectObject, glColor3f
+0x464e90	977	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x465270	458	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x465450	694	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x465710	87	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x465770	191	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x467710	888	CL8	CL9.4	9	ajena sin portar			usa DeleteDC, DeleteObject, SetWindowLongA; la llama 0x4676e0, 0x48f9a0, 0x4900e0 y 20 más
+0x46b800	413	CL9	CL9.4	8	a mano			la llama 0x64f3e0
+0x46b9a0	33	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46b9d0	706	CL9	CL9.4	8	a mano			la llama 0x46b9a0, 0x6b6e56, 0x6b6ee6
+0x46bca0	286	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46bdc0	85	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46be20	1080	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46c260	87	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46c2c0	270	CL9	CL9.4	8	quien la llama			usa glColor4f, glEnable
+0x46c3d0	135	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46c470	447	CL9	CL9.4	8	a mano			la llama 0x64f3e0
+0x46c630	33	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46c660	706	CL9	CL9.4	8	quien la llama			la llama 0x46c630, 0x6b6e48, 0x6b6ed8
+0x46c930	400	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46cac0	85	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46cb20	1230	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46cff0	87	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46d050	835	CL9	CL9.4	8	quien la llama			usa glColor4f, glColor4ub, glEnable
+0x46d3a0	135	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46d440	447	CL9	CL9.4	8	a mano			la llama 0x64f3e0
+0x46d600	33	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46d630	706	CL9	CL9.4	8	a mano			la llama 0x46d600, 0x6b6e64, 0x6b6ef4
+0x46d900	309	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46da40	85	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46daa0	1180	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46df40	87	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46dfa0	567	CL9	CL9.4	8	quien la llama			usa glColor4f, glEnable
+0x46e1e0	135	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x46e4a0	26	CL9	CL9.3	6	quien la llama			0x46e4a0 26 paso: CL9.3
+0x46e4c0	1138	CL9	CL9.3	6	quien la llama			0x46e4c0 1138 paso: CL9.3
+0x46e940	667	CL9	CL9.3	6	quien la llama			0x46e940 667 paso: CL9.3
+0x46f320	447	CL9	CL9.5	12	a mano			la llama 0x64aca0
+0x46f4e0	33	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x46f510	706	CL9	CL9.5	12	a mano			la llama 0x46f4e0, 0x6b6ceb, 0x6b6d2b
+0x46f7e0	312	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x46f920	26	CL9	CL9.5	12	quien la llama			la llama 0x46f940
+0x46f940	1114	CL9	CL9.5	12	quien la llama			la llama 0x64d300
+0x46fda0	85	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x46fe00	1280	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x470300	87	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x470360	737	CL9	CL9.5	12	quien la llama			usa glColor4f, glEnable
+0x470650	135	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x4706f0	447	CL9	CL9.5	12	a mano			la llama 0x64aca0
+0x4708b0	33	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x4708e0	706	CL9	CL9.5	12	a mano			la llama 0x4708b0, 0x6b6cf9
+0x470bb0	316	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x470cf0	85	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x470d50	1230	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x471220	87	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x471280	511	CL9	CL9.5	12	quien la llama			usa glColor4f, glEnable
+0x471480	135	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x471520	290	CL9	CL9.4	8	quien la llama			usa glColor4ub; la llama 0x64f1c0, 0x64fdf0, 0x655ac0
+0x471930	420	CL9	CL9.4	7	lo que llama			0x471930 420 paso: CL9.4
+0x471f70	140	CL8	CL9.4	8	ajena sin portar			0x471f70 140 ventanas: CL8.3 (se reemplaza por la STL)
+0x4720e0	23	CL8	CL9.4	8	ajena sin portar			la llama 0x45e0d0, 0x46c470
+0x472200	16	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x472210	16	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x472220	23	CL9	CL9.4	9	quien la llama			la llama 0x464620
+0x4722b0	16	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x4722c0	23	CL8	CL9.4	9	ajena sin portar			la llama 0x462010
+0x472340	16	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x472350	16	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x4723c0	163	CL9	CL9.4	9	quien la llama			la llama 0x6b40a8, 0x6b40b3, 0x6b40d8 y 4 más
+0x472490	16	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x4724a0	16	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x4724b0	23	CL9	CL9.4	8	quien la llama			la llama 0x46b800
+0x472530	16	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x472540	16	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x472550	23	CL9	CL9.4	8	quien la llama			la llama 0x46d440
+0x4725e0	16	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x4725f0	16	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x472600	23	CL9	CL9.5	12	quien la llama			la llama 0x46f320
+0x472680	16	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x472690	16	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x4726a0	23	CL9	CL9.5	12	quien la llama			la llama 0x4706f0
+0x4727f0	1001	CL8	CL9.4	8	ajena sin portar			0x4727f0 1001 ventanas: CL8.3 (se reemplaza por la STL)
+0x472d30	115	CL8	CL9.4	9	ajena sin portar			0x472d30 115 ventanas: CL8.3 (se reemplaza por la STL)
+0x4733c0	140	CL8	CL9.4	9	ajena sin portar			FUN_004733c0();
+0x473450	989	CL8	CL9.4	8	ajena sin portar			la llama 0x45e2e0, 0x460ba0, 0x461100 y 3 más
+0x473830	46	CL8	CL9.4	9	ajena sin portar			la llama 0x473450, 0x47a410, 0x49c260 y 1 más
+0x473860	43	CL8	CL9.4	9	ajena sin portar			la llama 0x473450, 0x47a410, 0x49b690 y 1 más
+0x473890	384	CL9	CL9.4	8	quien la llama			la llama 0x46c930, 0x49b220
+0x473a10	16	CL8	CL9.4	8	ajena sin portar			0x473a10 16 ventanas: CL8.3 (se reemplaza por la STL)
+0x473a20	148	CL8	CL9.4	9	ajena sin portar			la llama 0x461100, 0x49b220, 0x49b690 y 1 más
+0x473ac0	960	CL8	CL9.4	9	ajena sin portar			la llama 0x464810, 0x465270, 0x488390
+0x473e80	49	CL9	CL9.4	9	quien la llama			la llama 0x473ac0, 0x47bba0
+0x473ec0	384	CL9	CL9.4	9	quien la llama			la llama 0x465450
+0x474040	46	CL9	CL9.4	9	quien la llama			la llama 0x473ac0, 0x47bba0
+0x474070	1008	CL9	CL9.4	9	quien la llama			la llama 0x4621e0, 0x462c70, 0x488690
+0x474460	46	CL8	CL9.4	9	ajena sin portar			la llama 0x474070, 0x47d320
+0x4746d0	143	CL9	CL9.4	9	quien la llama			FUN_004746d0();
+0x474760	998	CL9	CL9.4	9	quien la llama			la llama 0x4633e0, 0x463960, 0x488990 y 1 más
+0x474b50	49	CL9	CL9.4	9	quien la llama			la llama 0x474760, 0x47eac0, 0x49f870 y 1 más
+0x474b90	16	CL9	CL9.4	9	quien la llama			FUN_00474b90();
+0x474ba0	161	CL9	CL9.4	9	quien la llama			la llama 0x463960, 0x49ee20, 0x49f870 y 1 más
+0x474c50	384	CL9	CL9.4	8	quien la llama			la llama 0x46bca0
+0x474dd0	384	CL9	CL9.4	8	quien la llama			la llama 0x46d900
+0x474f50	322	CL9	CL9.3	6	quien la llama			0x474f50 322 paso: CL9.3
+0x4750a0	174	CL9	CL9.3	6	quien la llama			0x4750a0 174 paso: CL9.3
+0x475150	384	CL9	CL9.5	12	quien la llama			la llama 0x46f7e0
+0x4752d0	384	CL9	CL9.5	12	quien la llama			la llama 0x470bb0
+0x475f40	51	CL8	CL9.4	10	ajena sin portar			0x475f40 51 ventanas: CL8.3 (se reemplaza por la STL)
+0x4767a0	321	CL8	CL9.4	8	ajena sin portar			0x4767a0 321 ventanas: CL8.3 (se reemplaza por la STL)
+0x476970	174	CL8	CL9.4	8	ajena sin portar			0x476970 174 ventanas: CL8.3 (se reemplaza por la STL)
+0x476a20	134	CL8	CL9.4	8	ajena sin portar			0x476a20 134 ventanas: CL8.3 (se reemplaza por la STL)
+0x476b20	321	CL8	CL9.4	9	ajena sin portar			la llama 0x461100, 0x49b690, 0x49bac0
+0x476c70	115	CL8	CL9.4	9	ajena sin portar			la llama 0x473450, 0x47a410, 0x49b690
+0x476cf0	27	CL8	CL9.4	9	ajena sin portar			la llama 0x460e70, 0x49bd60
+0x476d10	109	CL8	CL9.4	9	ajena sin portar			la llama 0x460e70, 0x49bd60, 0x4a76b0
+0x476d80	133	CL8	CL9.4	9	ajena sin portar			la llama 0x461100, 0x49bac0, 0x49c260
+0x476e10	27	CL9	CL9.4	9	quien la llama			la llama 0x465450
+0x476e30	109	CL9	CL9.4	9	quien la llama			la llama 0x465450
+0x476ea0	16	CL8	CL9.4	9	ajena sin portar			la llama 0x464810, 0x488390
+0x477120	324	CL9	CL9.4	9	quien la llama			la llama 0x463960, 0x49ee20, 0x49f260
+0x477270	115	CL9	CL9.4	9	quien la llama			la llama 0x474760, 0x47eac0, 0x49ee20
+0x4772f0	27	CL9	CL9.4	9	quien la llama			la llama 0x4636b0, 0x49f500
+0x477310	109	CL9	CL9.4	9	quien la llama			la llama 0x4636b0, 0x49eb60, 0x49f500
+0x477380	138	CL9	CL9.4	9	quien la llama			la llama 0x463960, 0x49f260, 0x49f870 y 1 más
+0x477410	109	CL9	CL9.3	6	quien la llama			0x477410 109 paso: CL9.3
+0x477a80	115	CL8	CL9.4	10	ajena sin portar			0x477a80 115 ventanas: CL8.3 (se reemplaza por la STL)
+0x477b20	109	CL8	CL9.4	10	ajena sin portar			0x477b20 109 chat: CL8.2
+0x4784d0	36	CL8	CL9.4	9	ajena sin portar			la llama 0x45e2e0, 0x45e5b0, 0x460ba0 y 4 más
+0x478500	142	CL9	CL9.4	9	quien la llama			la llama 0x473ac0, 0x47bba0
+0x478590	115	CL9	CL9.4	9	quien la llama			la llama 0x473ac0, 0x47bba0
+0x478610	36	CL8	CL9.4	9	ajena sin portar			la llama 0x464810, 0x464ae0, 0x465450
+0x478640	142	CL8	CL9.4	9	ajena sin portar			la llama 0x474070, 0x47d320
+0x4786d0	115	CL8	CL9.4	9	ajena sin portar			la llama 0x474070, 0x47d320
+0x478750	36	CL9	CL9.4	9	quien la llama			la llama 0x4621e0
+0x478780	142	CL9	CL9.4	9	quien la llama			la llama 0x474760, 0x47eac0
+0x478810	36	CL9	CL9.4	9	quien la llama			la llama 0x4633e0, 0x4636b0, 0x49eb60 y 1 más
+0x478840	36	CL9	CL9.4	8	quien la llama			la llama 0x46b9d0
+0x478870	36	CL9	CL9.4	8	quien la llama			la llama 0x46d630
+0x4788a0	36	CL9	CL9.3	6	quien la llama			0x4788a0 36 paso: CL9.3
+0x4788d0	168	CL9	CL9.3	6	quien la llama			0x4788d0 168 paso: CL9.3
+0x478980	36	CL9	CL9.5	12	quien la llama			la llama 0x46f510
+0x4789b0	36	CL9	CL9.5	12	quien la llama			la llama 0x4708e0
+0x478a70	36	CL8	CL9.4	10	ajena sin portar			0x478a70 36 chat: CL8.2
+0x478d00	16	CL9	CL9.4	9	quien la llama			la llama 0x4621e0, 0x488690
+0x47a770	149	CL8	CL9.4	9	ajena sin portar			la llama 0x47a410, 0x49b220, 0x49bac0 y 2 más
+0x47ab40	150	CL8	CL9.4	8	ajena sin portar			la llama 0x45e2e0, 0x460ba0, 0x46c660 y 1 más
+0x47aef0	46	CL8	CL9.4	8	ajena sin portar			0x47aef0 46 ventanas: CL8.3 (se reemplaza por la STL)
+0x47bba0	859	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47bf00	132	CL9	CL9.4	9	quien la llama			la llama 0x47bba0
+0x47bf90	247	CL9	CL9.4	9	quien la llama			usa SelectObject, glColor3f
+0x47c090	132	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47c120	44	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47c150	327	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47c2c0	150	CL9	CL9.4	9	quien la llama			la llama 0x464810, 0x488390
+0x47c360	166	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47c410	601	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47c670	46	CL9	CL9.4	9	quien la llama			la llama 0x464810, 0x488390
+0x47c6a0	85	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47c700	65	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47c750	277	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47c870	1769	CL9	CL9.4	9	quien la llama			Las nueve vecinas de 0x479960 son 0x47b0f0, 0x47c870, 0x47e010, 0x47f7b0, 0x480e00,
+0x47cf60	478	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47d140	313	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47da60	150	CL8	CL9.4	9	ajena sin portar			la llama 0x4621e0, 0x488690
+0x47de10	46	CL8	CL9.4	9	ajena sin portar			la llama 0x4621e0, 0x488690
+0x47eac0	865	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47ee30	154	CL9	CL9.4	9	quien la llama			la llama 0x47eac0, 0x49f260, 0x49f870 y 2 más
+0x47eed0	247	CL9	CL9.4	9	quien la llama			usa SelectObject, glColor3f
+0x47efd0	132	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47f060	44	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47f090	327	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47f200	150	CL9	CL9.4	9	quien la llama			la llama 0x4633e0, 0x488990
+0x47f2a0	166	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47f350	601	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47f5b0	46	CL9	CL9.4	9	quien la llama			la llama 0x463190, 0x4633e0, 0x488990
+0x47f5e0	85	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47f640	65	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47f690	277	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x47f7b0	1769	CL9	CL9.4	9	quien la llama			Las nueve vecinas de 0x479960 son 0x47b0f0, 0x47c870, 0x47e010, 0x47f7b0, 0x480e00,
+0x47fea0	478	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x480080	313	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x480260	694	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x480520	244	CL9	CL9.4	8	quien la llama			usa SelectObject, glColor3f
+0x480620	132	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x4806b0	44	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x4806e0	327	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x480850	150	CL9	CL9.4	8	quien la llama			la llama 0x46b9d0, 0x488c90
+0x4808f0	166	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x4809a0	599	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x480c00	46	CL9	CL9.4	8	quien la llama			la llama 0x46b9d0, 0x488c90
+0x480c30	85	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x480c90	65	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x480ce0	274	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x480e00	1766	CL9	CL9.4	8	quien la llama			Las nueve vecinas de 0x479960 son 0x47b0f0, 0x47c870, 0x47e010, 0x47f7b0, 0x480e00,
+0x4814f0	475	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x4816d0	313	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x4818b0	828	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x481bf0	244	CL9	CL9.4	8	quien la llama			usa SelectObject, glColor3f
+0x481cf0	132	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x481d80	44	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x481db0	327	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x481f20	150	CL9	CL9.4	8	quien la llama			la llama 0x46d630, 0x488f90
+0x481fc0	166	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x482070	599	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x4822d0	46	CL9	CL9.4	8	quien la llama			la llama 0x46d630, 0x488f90
+0x482300	85	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x482360	65	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x4823b0	274	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x4824d0	1766	CL9	CL9.4	8	quien la llama			0x4824d0, 0x483bc0, 0x4852b0 y 0x486910. Las diez leen las flechas en el mismo orden y
+0x482bc0	475	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x482da0	313	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x482f80	860	CL9	CL9.3	6	quien la llama			0x482f80 860 paso: CL9.3
+0x484670	855	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x4849d0	244	CL9	CL9.5	12	quien la llama			usa SelectObject, glColor3f
+0x484ad0	132	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x484b60	44	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x484b90	327	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x484d00	150	CL9	CL9.5	12	quien la llama			la llama 0x46f510, 0x489590
+0x484da0	166	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x484e50	599	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x4850b0	46	CL9	CL9.5	12	quien la llama			la llama 0x46f510, 0x489590
+0x4850e0	85	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x485140	65	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x485190	274	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x4852b0	1766	CL9	CL9.5	12	quien la llama			0x4824d0, 0x483bc0, 0x4852b0 y 0x486910. Las diez leen las flechas en el mismo orden y
+0x4859a0	475	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x485b80	313	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x485d60	720	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x486030	244	CL9	CL9.5	12	quien la llama			usa SelectObject, glColor3f
+0x486130	132	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x4861c0	44	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x4861f0	327	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x486360	150	CL9	CL9.5	12	quien la llama			la llama 0x4708e0, 0x489890
+0x486400	166	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x4864b0	599	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x486710	46	CL9	CL9.5	12	quien la llama			la llama 0x4708e0, 0x489890
+0x486740	85	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x4867a0	65	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x4867f0	274	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x486910	1766	CL9	CL9.5	12	quien la llama			0x4824d0, 0x483bc0, 0x4852b0 y 0x486910. Las diez leen las flechas en el mismo orden y
+0x487000	475	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x4871e0	313	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x4873c0	138	CL8	CL9.4	8	ajena sin portar			0x4873c0 138 ventanas: CL8.3 (se reemplaza por la STL)
+0x487450	144	CL8	CL9.4	8	ajena sin portar			0x487450 144 ventanas: CL8.3 (se reemplaza por la STL)
+0x4874e0	127	CL8	CL9.4	9	ajena sin portar			la llama 0x461100, 0x49b220, 0x49bac0
+0x487560	133	CL8	CL9.4	9	ajena sin portar			la llama 0x461100, 0x49b220, 0x49b690 y 1 más
+0x4875f0	26	CL8	CL9.4	9	ajena sin portar			la llama 0x460e70, 0x49b220, 0x49bd60
+0x487610	26	CL9	CL9.4	9	quien la llama			la llama 0x465450
+0x487740	132	CL9	CL9.4	9	quien la llama			la llama 0x463960, 0x49f260
+0x4877d0	138	CL9	CL9.4	9	quien la llama			la llama 0x463960, 0x49ee20, 0x49f260
+0x487860	26	CL9	CL9.4	9	quien la llama			la llama 0x4636b0, 0x49f500
+0x487b70	39	CL9	CL9.4	9	quien la llama			la llama 0x464ae0
+0x487d90	717	CL8	CL9.4	9	ajena sin portar			la llama 0x487d60, 0x493160
+0x488090	711	CL8	CL9.4	9	ajena sin portar			la llama 0x488060, 0x48fbb0, 0x48ff30 y 2 más
+0x488360	33	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x488390	717	CL9	CL9.4	9	quien la llama			la llama 0x488360, 0x499900
+0x488660	33	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x488690	711	CL8	CL9.4	9	ajena sin portar			la llama 0x488660, 0x48fcf0, 0x48ff30
+0x488960	33	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x488990	717	CL9	CL9.4	9	quien la llama			la llama 0x488960, 0x48fe60, 0x48ff30
+0x488c60	33	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x488c90	719	CL9	CL9.4	8	quien la llama			la llama 0x488c60, 0x64f720
+0x488f60	33	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x488f90	719	CL9	CL9.4	8	quien la llama			la llama 0x488f60, 0x64f720
+0x489560	33	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x489590	719	CL9	CL9.5	12	quien la llama			la llama 0x489560, 0x64ada0
+0x489860	33	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x489890	719	CL9	CL9.5	12	quien la llama			la llama 0x489860, 0x64ada0
+0x489cd0	163	CL9	CL9.4	9	quien la llama			la llama 0x6b4118, 0x6b4123, 0x6b4148 y 3 más
+0x489d80	160	CL9	CL9.4	9	quien la llama			la llama 0x6b4038, 0x6b4043, 0x6b4068 y 3 más
+0x489e20	43	CL8	CL9.4	9	ajena sin portar			la llama 0x474070, 0x47d320
+0x489e50	46	CL9	CL9.4	9	quien la llama			la llama 0x474760, 0x47eac0, 0x49ee20 y 1 más
+0x489e80	160	CL9	CL9.4	8	quien la llama			la llama 0x6b42f8, 0x6b4303, 0x6b4328 y 3 más
+0x489f20	46	CL9	CL9.4	8	quien la llama			la llama 0x480260, 0x48a290
+0x489f50	160	CL9	CL9.4	8	quien la llama			la llama 0x6b43d8, 0x6b43e3, 0x6b4408 y 3 más
+0x489ff0	46	CL9	CL9.4	8	quien la llama			la llama 0x4818b0, 0x48a630
+0x48a0c0	46	CL9	CL9.3	6	quien la llama			0x48a0c0 46 paso: CL9.3
+0x48a0f0	160	CL9	CL9.5	12	quien la llama			la llama 0x6b4478, 0x6b4483, 0x6b44a8 y 3 más
+0x48a190	46	CL9	CL9.5	12	quien la llama			la llama 0x484670, 0x48af40, 0x48d710
+0x48a1c0	160	CL9	CL9.5	12	quien la llama			la llama 0x6b44e8, 0x6b44f3, 0x6b4518 y 3 más
+0x48a260	46	CL9	CL9.5	12	quien la llama			la llama 0x485d60, 0x48b3c0
+0x48a290	766	CL9	CL9.4	8	quien la llama			la llama 0x46b9d0, 0x488c90
+0x48a590	142	CL9	CL9.4	8	quien la llama			la llama 0x480260, 0x48a290
+0x48a620	16	CL9	CL9.4	8	quien la llama			la llama 0x46b9d0, 0x488c90
+0x48a630	978	CL9	CL9.4	8	quien la llama			la llama 0x46d630, 0x488f90
+0x48aa10	142	CL9	CL9.4	8	quien la llama			la llama 0x4818b0, 0x48a630
+0x48aaa0	16	CL9	CL9.4	8	quien la llama			la llama 0x46d630, 0x488f90
+0x48aab0	1001	CL9	CL9.3	6	lo que llama			la llama 0x489290
+0x48aea0	142	CL9	CL9.3	6	quien la llama			0x48aea0 142 paso: CL9.3
+0x48af40	988	CL9	CL9.5	12	quien la llama			la llama 0x46f510, 0x489590
+0x48b320	142	CL9	CL9.5	12	quien la llama			la llama 0x484670, 0x48af40
+0x48b3b0	16	CL9	CL9.5	12	quien la llama			la llama 0x46f510, 0x489590
+0x48b3c0	780	CL9	CL9.5	12	quien la llama			la llama 0x4708e0, 0x489890
+0x48b6d0	142	CL9	CL9.5	12	quien la llama			la llama 0x485d60, 0x48b3c0
+0x48b760	16	CL9	CL9.5	12	quien la llama			la llama 0x4708e0, 0x489890
+0x48ba10	322	CL9	CL9.4	9	quien la llama			la llama 0x47c410
+0x48bcb0	322	CL9	CL9.4	9	quien la llama			la llama 0x47f350
+0x48be00	322	CL9	CL9.4	8	quien la llama			la llama 0x4809a0
+0x48bf50	322	CL9	CL9.4	8	quien la llama			la llama 0x482070
+0x48c1f0	322	CL9	CL9.5	12	quien la llama			la llama 0x484e50
+0x48c340	322	CL9	CL9.5	12	quien la llama			la llama 0x4864b0
+0x48c490	115	CL9	CL9.4	8	quien la llama			la llama 0x480260, 0x48a290
+0x48c510	115	CL9	CL9.4	8	quien la llama			la llama 0x4818b0, 0x48a630
+0x48c590	115	CL9	CL9.3	6	quien la llama			0x48c590 115 paso: CL9.3
+0x48c610	134	CL9	CL9.3	6	quien la llama			0x48c610 134 paso: CL9.3
+0x48c6a0	115	CL9	CL9.5	12	quien la llama			la llama 0x484670, 0x48af40
+0x48c720	147	CL9	CL9.5	12	quien la llama			la llama 0x46f940
+0x48c7c0	133	CL9	CL9.5	12	quien la llama			la llama 0x46f940
+0x48c850	115	CL9	CL9.5	12	quien la llama			la llama 0x485d60, 0x48b3c0
+0x48c9b0	109	CL9	CL9.4	9	quien la llama			la llama 0x47c410
+0x48ca90	109	CL9	CL9.4	9	quien la llama			la llama 0x47f350
+0x48cb00	109	CL9	CL9.4	8	quien la llama			la llama 0x4809a0
+0x48cb70	109	CL9	CL9.4	8	quien la llama			la llama 0x482070
+0x48cc50	109	CL9	CL9.5	12	quien la llama			la llama 0x484e50
+0x48ccc0	109	CL9	CL9.5	12	quien la llama			la llama 0x4864b0
+0x48cd90	36	CL9	CL9.4	9	quien la llama			la llama 0x47c410
+0x48cdf0	36	CL9	CL9.4	9	quien la llama			la llama 0x47f350
+0x48ce20	36	CL9	CL9.4	8	quien la llama			la llama 0x4809a0
+0x48ce50	36	CL9	CL9.4	8	quien la llama			la llama 0x482070
+0x48ceb0	36	CL9	CL9.5	12	quien la llama			la llama 0x484e50
+0x48cee0	36	CL9	CL9.5	12	quien la llama			la llama 0x4864b0
+0x48cf10	110	CL9	CL9.4	8	quien la llama			la llama 0x480260
+0x48cf80	160	CL9	CL9.4	8	quien la llama			la llama 0x4818b0
+0x48d020	148	CL9	CL9.5	12	quien la llama			la llama 0x46f940, 0x484670, 0x48d710
+0x48d0c0	110	CL9	CL9.5	12	quien la llama			la llama 0x485d60
+0x48d160	43	CL9	CL9.4	8	quien la llama			la llama 0x480260, 0x48a290
+0x48d190	43	CL9	CL9.4	8	quien la llama			la llama 0x4818b0, 0x48a630
+0x48d1c0	43	CL9	CL9.3	6	quien la llama			0x48d1c0 43 paso: CL9.3
+0x48d1f0	43	CL9	CL9.5	12	quien la llama			la llama 0x484670, 0x48af40, 0x48d710
+0x48d220	43	CL9	CL9.5	12	quien la llama			la llama 0x485d60, 0x48b3c0
+0x48d250	1213	CL9	CL9.3	6	quien la llama			0x48d250 1213 paso: CL9.3
+0x48d710	1227	CL9	CL9.5	12	quien la llama			la llama 0x46f940
+0x48dbe0	578	CL9	CL9.3	6	quien la llama			0x48dbe0 578 paso: CL9.3
+0x48de30	131	CL9	CL9.3	6	quien la llama			0x48de30 131 paso: CL9.3
+0x48dec0	264	CL9	CL9.3	6	quien la llama			0x48dec0 264 paso: CL9.3
+0x48dfd0	529	CL9	CL9.5	12	quien la llama			la llama 0x46f940
+0x48e1f0	156	CL9	CL9.5	12	quien la llama			la llama 0x46f940
+0x48e290	255	CL9	CL9.5	12	quien la llama			la llama 0x46f940
+0x48e390	46	CL9	CL9.3	6	quien la llama			0x48e390 46 paso: CL9.3
+0x48e3c0	46	CL9	CL9.5	12	quien la llama			la llama 0x48d710
+0x48e3f0	59	CL9	CL9.3	6	quien la llama			0x48e3f0 59 paso: CL9.3
+0x48e430	55	CL9	CL9.5	12	quien la llama			la llama 0x48d710
+0x48f910	33	CL9	CL9.4	9	lo que llama			0x48f910 33 ventanas: CL9.4
+0x48f940	33	CL9	CL9.4	9	lo que llama			0x48f940 33 ventanas: CL9.4
+0x48f970	33	CL9	CL9.4	9	sub-ola de la matriz			0x48f970 33 ventanas: CL9.4
+0x48f9a0	189	CL9	CL9.4	9	sub-ola de la matriz			la llama 0x48f970
+0x48fa60	143	CL9	CL9.4	9	sub-ola de la matriz			0x48fa60 143 ventanas: CL9.4
+0x48fb30	11	CL9	CL9.4	9	sub-ola de la matriz			0x48fb30 11 ventanas: CL9.4
+0x48fb40	15	CL9	CL9.4	9	sub-ola de la matriz			0x48fb40 15 ventanas: CL9.4
+0x48fb50	15	CL9	CL9.4	9	sub-ola de la matriz			0x48fb50 15 ventanas: CL9.4
+0x48fb80	33	CL9	CL9.4	9	sub-ola de la matriz			0x48fb80 33 ventanas: CL9.4
+0x48fbb0	156	CL8	CL9.4	9	ajena sin portar			la llama 0x48fc50, 0x6b4987, 0x6b4d18
+0x48fc50	33	CL9	CL9.4	9	sub-ola de la matriz			0x48fc50 33 ventanas: CL9.4
+0x48fc80	98	CL9	CL9.4	9	lo que llama			0x48fc80 98 ventanas: CL9.4
+0x48fcf0	111	CL8	CL9.4	9	ajena sin portar			la llama 0x48fd60, 0x6b4995, 0x6b4d26
+0x48fd60	33	CL9	CL9.4	9	sub-ola de la matriz			0x48fd60 33 ventanas: CL9.4
+0x48fd90	153	CL9	CL9.4	9	lo que llama			0x48fd90 153 ventanas: CL9.4
+0x48fe30	33	CL9	CL9.4	9	lo que llama			0x48fe30 33 ventanas: CL9.4
+0x48fe60	156	CL9	CL9.4	9	lo que llama			la llama 0x48fe30
+0x48ff00	33	CL9	CL9.4	9	lo que llama			0x48ff00 33 ventanas: CL9.4
+0x48ff30	371	CL9	CL9.4	9	lo que llama			la llama 0x48ff00
+0x4900b0	33	CL9	CL9.4	9	sub-ola de la matriz			0x4900b0 33 ventanas: CL9.4
+0x4900e0	114	CL9	CL9.4	9	sub-ola de la matriz			la llama 0x4900b0
+0x490830	76	CL9	CL9.4	9	sub-ola de la matriz			0x490830 76 ventanas: CL9.4
+0x4908d0	200	CL9	CL9.4	9	texto de la matriz			P-C95 Lo que las ventanas viejas dejan para la CL9.4 (CL8 hito 7, 2026-11-12). Cortan con su dirección: los casos 1 a 4, 6 y 7 de la fábrica 0x48ee60 (los amigos, su cha…
+0x4914f0	122	CL9	CL9.4	9	sub-ola de la matriz			0x4914f0 122 ventanas: CL9.4
+0x491570	320	CL9	CL9.4	10	quien la llama			la llama 0x49a1f0, 0x4a11b0
+0x4916b0	98	CL9	CL9.4	9	quien la llama			la llama 0x499900, 0x49a1f0
+0x491720	88	CL9	CL9.4	10	quien la llama			FUN_00491720(obj+4, …); compara obj+8 con "webzen" (FUN_006a3450); en un caso
+0x491780	95	CL9	CL9.4	10	quien la llama			la llama 0x49a1f0, 0x4a11b0
+0x4918d0	144	CL9	CL9.4	9	quien la llama			0xC0 0x4e5a4e Carga N=pkt+6 nombres de 10 B (+flag, entradas de 11 B desde pkt+7) con FUN_0049b220, actualiza UI (FUN_0049c260, FUN_004918d0) y responde al servidor con …
+0x491ba0	114	CL9	CL9.4	9	sub-ola de la matriz			la llama 0x493fc0
+0x491d50	845	CL8	CL9.4	9	ajena sin portar			0x491d50 845 ventanas: CL8.3
+0x493160	186	CL9	CL9.4	9	lo que llama			la llama 0x48f910
+0x493220	494	CL9	CL9.4	9	sub-ola de la matriz			0x493220 494 ventanas: CL9.4
+0x493410	248	CL9	CL9.4	9	sub-ola de la matriz			0x493410 248 ventanas: CL9.4
+0x493510	29	CL9	CL9.4	9	quien la llama			la llama 0x493530, 0x493a70, 0x4944c0 y 1 más
+0x493530	1341	CL9	CL9.4	10	quien la llama			0xCA 0x4e5b26 Delega a FUN_004dce10: crea/actualiza un objeto-personaje: lee nombre (10 B en pkt+0x19), posición/tipo (pkt+3,+7,+0xb,+0xf,+0x12,+0x14,+0x18,+0x23) y crea…
+0x493a70	534	CL9	CL9.4	9	quien la llama			usa WS2_32.dll#111, WS2_32.dll#19; la llama 0x493160, 0x4dce10
+0x493f80	62	CL9	CL9.4	9	quien la llama			0xCB 0x4e5b3e Con pkt+4 obtiene un objeto (FUN_00490a00): subcódigo 0 muestra string DAT_0770a75c (FUN_00493f80); subcódigo 1 arma un mensaje con el nombre del objeto (+…
+0x493fc0	783	CL9	CL9.4	9	sub-ola de la matriz			0x493fc0 783 ventanas: CL9.4
+0x4942d0	481	CL9	CL9.4	9	quien la llama			la llama 0x4944c0, 0x4a6840, 0x4dd1e0
+0x4944c0	3980	CL9	CL9.4	10	paquete que manda		C1 04 C1 CB	0x4944c0 3980 ventanas: CL9.4
+0x495450	202	CL9	CL9.4	9	sub-ola de la matriz			0x495450 202 ventanas: CL9.4
+0x495530	244	CL9	CL9.4	9	quien la llama			la llama 0x4a6430
+0x495630	296	CL9	CL9.4	9	quien la llama			FUN_00495630(1);
+0x495760	693	CL9	CL9.4	9	quien la llama			(+0x16c), en el login, la selección y el juego; el inventario (0x4959d5, con +0x3e4 en 1 en
+0x495a20	948	CL9	CL9.4	9	quien la llama			textos: "max chat count over"; la llama 0x496530, 0x4978f0, 0x497910 y 1 más
+0x495e50	119	CL9	CL9.4	9	sub-ola de la matriz			0x495e50 119 ventanas: CL9.4
+0x495ee0	16	CL9	CL9.4	9	sub-ola de la matriz			0x495ee0 16 ventanas: CL9.4
+0x495ef0	33	CL9	CL9.4	9	sub-ola de la matriz			0x495ef0 33 ventanas: CL9.4
+0x495f20	685	CL8	CL9.4	9	ajena sin portar			la llama 0x48f9a0, 0x495ef0, 0x499900 y 4 más
+0x4961d0	599	CL9	CL9.4	9	sub-ola de la matriz			0x4961d0 599 ventanas: CL9.4
+0x496430	50	CL9	CL9.4	10	quien la llama			la llama 0x496530
+0x496470	125	CL9	CL9.4	10	quien la llama			la llama 0x496530
+0x4964f0	56	CL9	CL9.4	10	quien la llama			la llama 0x496530
+0x496530	4697	CL9	CL9.4	10	a mano			0x496530 4697 ventanas: CL9.4
+0x4977d0	63	CL9	CL9.1	2	lo que llama			0x4977d0 63 ventanas: CL9.4
+0x497810	113	CL9	CL9.4	9	sub-ola de la matriz			(0x4c8860), el 0x68 (0x4e0980), un subcódigo del F3 (0x4e316e), 0x4c8340 y 0x497810.
+0x497890	64	CL9	CL9.4	9	sub-ola de la matriz			0x497890 64 ventanas: CL9.4
+0x4978d0	24	CL9	CL9.4	9	sub-ola de la matriz			0x4978d0 24 ventanas: CL9.4
+0x4978f0	24	CL9	CL9.4	9	lo que llama			0x4978f0 24 ventanas: CL9.4
+0x497910	55	CL9	CL9.4	9	lo que llama			0x497910 55 ventanas: CL9.4
+0x497970	666	CL9	CL9.4	9	sub-ola de la matriz			0x497970 666 ventanas: CL9.4
+0x497c10	830	CL9	CL9.4	9	texto de la matriz			dibujo del retrato de la carta 0x497c10 (0x497cce) 1+ frame, solo con esa ventana (CL9.4)
+0x497f50	1019	CL9	CL9.4	9	sub-ola de la matriz			0x497f50 1019 ventanas: CL9.4
+0x498350	141	CL9	CL9.4	9	sub-ola de la matriz			0x498350 141 ventanas: CL9.4
+0x4983e0	57	CL9	CL9.4	10	quien la llama			FUN_004983e0 (fija campo1, [+0x77c]=1) y FUN_00498420 (fija campo2, [+0x77c]=2),
+0x498420	57	CL9	CL9.4	10	quien la llama			FUN_004983e0 (fija campo1, [+0x77c]=1) y FUN_00498420 (fija campo2, [+0x77c]=2),
+0x498480	883	CL9	CL9.4	9	sub-ola de la matriz			0x498480 883 ventanas: CL9.4
+0x499780	165	CL9	CL9.4	9	sub-ola de la matriz			0x499780 165 ventanas: CL9.4
+0x499840	180	CL9	CL9.4	9	sub-ola de la matriz			0x499840 180 ventanas: CL9.4
+0x499900	202	CL9	CL9.4	9	lo que llama			la llama 0x48f940
+0x4999d0	560	CL9	CL9.4	9	sub-ola de la matriz			0x4999d0 560 ventanas: CL9.4
+0x499c00	169	CL9	CL9.4	9	sub-ola de la matriz			0x499c00 169 ventanas: CL9.4
+0x499cb0	165	CL9	CL9.4	10	quien la llama			desde obj+0x13); copia hasta 1000 B desde pkt+0x1C al objeto (FUN_00499cb0);
+0x499d60	1125	CL9	CL9.4	9	sub-ola de la matriz			0x499d60 1125 ventanas: CL9.4
+0x49a1f0	3958	CL9	CL9.4	10	paquete que manda		C1 C7 C1 C8	0x49a1f0 3958 ventanas: CL9.4
+0x49b180	136	CL9	CL9.4	9	sub-ola de la matriz			0x49b180 136 ventanas: CL9.4
+0x49b220	1126	CL9	CL9.4	9	quien la llama			0xC0 0x4e5a4e Carga N=pkt+6 nombres de 10 B (+flag, entradas de 11 B desde pkt+7) con FUN_0049b220, actualiza UI (FUN_0049c260, FUN_004918d0) y responde al servidor con …
+0x49b690	1058	CL9	CL9.4	9	quien la llama			C3 → FUN_004dc690 pkt[3] 0/1 0: "Nao pode apagar." (0x770A2AC); 1: FUN_0049b690(texto del paquete)
+0x49bac0	667	CL9	CL9.4	9	quien la llama			FUN_004dc010(pkt): FUN_0049bac0(); si N = pkt+6 ≠ 0: N iteraciones, entradas de 0xB B desde pkt+7: _strncpy(buf10, entry, 10) + FUN_0049b220(buf10, 0, entry[10]). Luego …
+0x49bd60	677	CL9	CL9.4	9	quien la llama			la llama 0x4942d0, 0x49ddd0
+0x49c010	204	CL9	CL9.4	9	quien la llama			FUN_0049c010(local_10,0,(char )(param_1 + 0xd));
+0x49c0e0	167	CL9	CL9.4	9	quien la llama			C4 → FUN_004dc720 pkt[0xD] parse de mensaje con checks (FUN_0049c0e0/0049c010 + cadena de objetos 0x5763514)
+0x49c190	134	CL9	CL9.4	9	quien la llama			la llama 0x49c220, 0x49f7d0, 0x49f7f0 y 1 más
+0x49c220	29	CL9	CL9.4	9	quien la llama			sin texto que la describa
+0x49c240	23	CL9	CL9.4	9	quien la llama			la llama 0x49c260
+0x49c260	1610	CL9	CL9.4	9	quien la llama			0xC0 0x4e5a4e Carga N=pkt+6 nombres de 10 B (+flag, entradas de 11 B desde pkt+7) con FUN_0049b220, actualiza UI (FUN_0049c260, FUN_004918d0) y responde al servidor con …
+0x49c8b0	386	CL9	CL9.4	9	lo que llama			0x49c8b0 386 ventanas: CL9.4
+0x49ca40	131	CL9	CL9.4	9	sub-ola de la matriz			0x49ca40 131 ventanas: CL9.4
+0x49cad0	330	CL9	CL9.4	10	quien la llama			la llama 0x49d0b0
+0x49cc20	1158	CL9	CL9.4	9	sub-ola de la matriz			0x49cc20 1158 ventanas: CL9.4
+0x49d0b0	3018	CL9	CL9.4	10	paquete que manda		C1 CA	0x49d0b0 3018 ventanas: CL9.4
+0x49dc90	96	CL9	CL9.4	9	sub-ola de la matriz			0x49dc90 96 ventanas: CL9.4
+0x49ddd0	127	CL9	CL9.4	9	quien la llama			FUN_004dc010(pkt): FUN_0049bac0(); si N = pkt+6 ≠ 0: N iteraciones, entradas de 0xB B desde pkt+7: _strncpy(buf10, entry, 10) + FUN_0049b220(buf10, 0, entry[10]). Luego …
+0x49de50	377	CL9	CL9.4	10	quien la llama			- Otra conexión: 0x49de50 arma un objeto de 0x402c bytes por sala, llama a 0x4e81b0 sin
+0x49dfd0	312	CL9	CL9.4	9	quien la llama			la llama 0x493a70
+0x49e110	8	CL9	CL9.4	9	quien la llama			la llama 0x49dfd0, 0x49e120
+0x49e280	314	CL9	CL9.4	10	quien la llama			textos: "max chat count over"; la llama 0x49de50
+0x49e420	95	CL9	CL9.4	9	quien la llama			la llama 0x493510, 0x49e480
+0x49e5c0	203	CL9	CL9.4	9	sub-ola de la matriz			0x49e5c0 203 ventanas: CL9.4
+0x49e690	80	CL9	CL9.4	9	sub-ola de la matriz			0x49e690 80 ventanas: CL9.4
+0x49e710	42	CL9	CL9.4	10	texto de la matriz			P-C95 Lo que las ventanas viejas dejan para la CL9.4 (CL8 hito 7, 2026-11-12). Cortan con su dirección: los casos 1 a 4, 6 y 7 de la fábrica 0x48ee60 (los amigos, su cha…
+0x49e740	166	CL9	CL9.4	9	sub-ola de la matriz			la llama 0x49ea50
+0x49e7f0	598	CL9	CL9.4	9	sub-ola de la matriz			0x49e7f0 598 ventanas: CL9.4
+0x49ea50	199	CL9	CL9.4	9	sub-ola de la matriz			0x49ea50 199 ventanas: CL9.4
+0x49eb20	48	CL9	CL9.4	9	sub-ola de la matriz			0x49eb20 48 ventanas: CL9.4
+0x49eb60	692	CL9	CL9.4	10	quien la llama			0xC6 0x4e5ade Lee 4 strings (pkt+6, +0x10, +0x1b, +0x2e) y tipo pkt[0x4e]; llama FUN_0049eb60 (UI); si tipo==2, sonido 0x29 + mensaje + FUN_004a6420(1); refresca UI C/I …
+0x49ee20	1073	CL9	CL9.4	10	quien la llama			0xC8 0x4e5b0e [3]=0 → mensaje de sistema FUN_0048ee60(10,-1,-1,&DAT_0770a630); [3]=1 → FUN_0049ee20/FUN_004a0500(word [4]); si hay puntero activo (DAT_05763514+0x48) ref…
+0x49f500	668	CL9	CL9.4	9	quien la llama			la llama 0x4a0960
+0x49f7a0	36	CL9	CL9.4	10	quien la llama			sin texto que la describa
+0x49f7d0	29	CL9	CL9.4	10	quien la llama			sin texto que la describa
+0x49f7f0	83	CL9	CL9.4	10	quien la llama			sin texto que la describa
+0x49f850	29	CL9	CL9.4	10	quien la llama			la llama 0x49f870
+0x49f870	1737	CL9	CL9.4	10	quien la llama			FUN_004dc9e0: copia strings desde pkt+6 (10 B), pkt+0x10 (10 B), pkt+0x1b (8 B), pkt+0x2e (0x20 B); tipo = pkt[0x4e]. Si tipo<2: FUN_0049eb60(word pkt+4, str1, str3, str…
+0x49ff50	286	CL9	CL9.1	2	texto de la matriz			npcipher.dll loaded ok. enc=004a2924 dec=004a27ac ; base 0x4a0000 + RVA, confirma §2
+0x4a0070	290	CL9	CL9.4	10	quien la llama			la llama 0x49a1f0
+0x4a01a0	194	CL9	CL9.4	9	quien la llama			0xC7 0x4e5af6 Ventana asociada al objeto indexado (word +4/+5): copia texto largo desde +0x1C (≤1000 B), muestra GUI y suena 0xE C callee 0x4dcb70: FUN_004a01a0(word4)→o…
+0x4a0270	160	CL9	CL9.4	9	quien la llama			la llama 0x4a09d0
+0x4a0310	174	CL9	CL9.4	9	sub-ola de la matriz			0x4a0310 174 HUD: CL9.4?
+0x4a03c0	217	CL9	CL9.4	10	quien la llama			- FUN_004a03c0/FUN_004a01a0(word +4/+5) → objeto; si no existe, sale. Si existe:
+0x4a04a0	84	CL9	CL9.4	10	quien la llama			la llama 0x49a1f0, 0x4a11b0
+0x4a0500	89	CL9	CL9.4	10	quien la llama			0xC8 0x4e5b0e [3]=0 → mensaje de sistema FUN_0048ee60(10,-1,-1,&DAT_0770a630); [3]=1 → FUN_0049ee20/FUN_004a0500(word [4]); si hay puntero activo (DAT_05763514+0x48) ref…
+0x4a0600	168	CL9	CL9.4	10	quien la llama			la llama 0x49a1f0
+0x4a06b0	384	CL9	CL9.4	9	lo que llama			0x4a06b0 384 ventanas: CL9.4
+0x4a0830	131	CL9	CL9.4	9	sub-ola de la matriz			0x4a0830 131 ventanas: CL9.4
+0x4a08c0	160	CL9	CL9.4	10	quien la llama			la llama 0x4a11b0
+0x4a0960	111	CL9	CL9.4	9	quien la llama			FUN_004dc9e0: copia strings desde pkt+6 (10 B), pkt+0x10 (10 B), pkt+0x1b (8 B), pkt+0x2e (0x20 B); tipo = pkt[0x4e]. Si tipo<2: FUN_0049eb60(word pkt+4, str1, str3, str…
+0x4a09d0	50	CL9	CL9.4	9	quien la llama			la llama 0x4a0960
+0x4a0a10	26	CL9	CL9.4	10	quien la llama			la llama 0x49a1f0
+0x4a0a30	1916	CL9	CL9.4	9	sub-ola de la matriz			0x4a0a30 1916 ventanas: CL9.4
+0x4a11b0	3431	CL9	CL9.4	10	paquete que manda		C1 C7 C1 C8 C1 C9	0x4a11b0 3431 ventanas: CL9.4
+0x4a2010	96	CL9	CL9.4	9	sub-ola de la matriz			0x4a2010 96 ventanas: CL9.4
+0x4a2280	290	CL9	CL9.4	9	lo que llama			0x4a2280 290 ventanas: CL9.4
+0x4a23c0	148	CL9	CL9.4	9	sub-ola de la matriz			0x4a23c0 148 ventanas: CL9.4
+0x4a2460	437	CL9	CL9.4	9	sub-ola de la matriz			la llama 0x4a2620
+0x4a2620	1461	CL9	CL9.4	9	sub-ola de la matriz			0x4a2620 1461 ventanas: CL9.4
+0x4a2be0	904	CL9	CL9.4	9	sub-ola de la matriz			0x4a2be0 904 ventanas: CL9.4
+0x4a2f70	184	CL9	CL9.4	9	sub-ola de la matriz			F 0x46 0x59ff10 (0x5a4dff) P; 0x5acbe0 (0x5acffb) V 0x4a2f70 (0x4a2feb) V
+0x4a3030	1382	CL9	CL9.4	9	sub-ola de la matriz			0x4a3030 1382 ventanas: CL9.4
+0x4a35a0	344	CL9	CL9.4	9	sub-ola de la matriz			0x4a35a0 344 ventanas: CL9.4
+0x4a3700	79	CL9	CL9.4	9	sub-ola de la matriz			0x4a3700 79 ventanas: CL9.4
+0x4a3750	138	CL9	CL9.4	9	sub-ola de la matriz			0x4a3750 138 ventanas: CL9.4
+0x4a38a0	64	CL9	CL9.4	9	sub-ola de la matriz			0x4a38a0 64 ventanas: CL9.4
+0x4a4440	56	CL9	CL9.4	9	quien la llama			FUN_004a4440(pcVar5);
+0x4a4990	405	CL9	CL9.4	9	texto de la matriz			P-C95 Lo que las ventanas viejas dejan para la CL9.4 (CL8 hito 7, 2026-11-12). Cortan con su dirección: los casos 1 a 4, 6 y 7 de la fábrica 0x48ee60 (los amigos, su cha…
+0x4a4b30	728	CL9	CL9.4	9	texto de la matriz			P-C95 Lo que las ventanas viejas dejan para la CL9.4 (CL8 hito 7, 2026-11-12). Cortan con su dirección: los casos 1 a 4, 6 y 7 de la fábrica 0x48ee60 (los amigos, su cha…
+0x4a60b0	859	CL9	CL9.4	9	texto de la matriz			P-C95 Lo que las ventanas viejas dejan para la CL9.4 (CL8 hito 7, 2026-11-12). Cortan con su dirección: los casos 1 a 4, 6 y 7 de la fábrica 0x48ee60 (los amigos, su cha…
+0x4a6410	14	CL9	CL9.4	9	sub-ola de la matriz			0x4a6410 14 HUD: CL9.4?
+0x4a6420	16	CL8	CL9.4	10	ajena sin portar			0x4a6420 16 HUD: CL9.4? ; ventanas: CL8.3 sí
+0x4a6430	283	CL9	CL9.4	9	quien la llama			FUN_004dce10: copia 10 B de nombre desde pkt+0x19, lee dwords en pkt+3/+7/+0xb, u16 en pkt+0xf/+0x12 y dword en pkt+0x14, y byte pkt+0x23 como subtipo. Subtipo 0: FUN_00…
+0x4a6840	203	CL9	CL9.4	9	quien la llama			FUN_004a6840();
+0x4a6910	471	CL9	CL9.4	10	quien la llama			- sub 3 → busca personaje por nombre (FUN_004a6430, strncmp(name,10)) → si lo encuentra queue(1,index,0); si no, FUN_004a6af0 (ya está en lista de nombres), FUN_004a6910…
+0x4a6af0	208	CL9	CL9.4	10	quien la llama			- sub 3 → busca personaje por nombre (FUN_004a6430, strncmp(name,10)) → si lo encuentra queue(1,index,0); si no, FUN_004a6af0 (ya está en lista de nombres), FUN_004a6910…
+0x4a6bc0	893	CL9	CL9.4	10	quien la llama			0xCA 0x4e5b26 Delega a FUN_004dce10: crea/actualiza un objeto-personaje: lee nombre (10 B en pkt+0x19), posición/tipo (pkt+3,+7,+0xb,+0xf,+0x12,+0x14,+0x18,+0x23) y crea…
+0x4a6f40	829	CL8	CL9.4	9	ajena sin portar			0x4a6f40 829 ventanas: CL8.3
+0x4a7280	831	CL9	CL9.4	9	sub-ola de la matriz			la llama 0x4a2be0
+0x4a75c0	239	CL9	CL9.4	9	quien la llama			FUN_004a75c0();
+0x4a76b0	707	CL9	CL9.4	9	quien la llama			la llama 0x49b220
+0x4a7b90	51	CL9	CL9.4	9	sub-ola de la matriz			la llama 0x4a7280
+0x4a7bd0	322	CL9	CL9.4	9	quien la llama			la llama 0x49b220, 0x49bd60
+0x4a7d20	150	CL9	CL9.4	9	quien la llama			la llama 0x49b220, 0x49c260
+0x4a7dc0	322	CL9	CL9.4	9	quien la llama			la llama 0x49eb60, 0x49f500
+0x4a7f10	322	CL9	CL9.4	10	quien la llama			la llama 0x4a6910
+0x4a8060	98	CL8	CL9.4	10	ajena sin portar			0x4a8060 98 ventanas: CL8.3 (se reemplaza por la STL)
+0x4a81f0	1039	CL8	CL9.4	9	ajena sin portar			0x4a81f0 1039 ventanas: CL8.3 (se reemplaza por la STL)
+0x4a8720	1039	CL9	CL9.4	9	quien la llama			la llama 0x49dfd0, 0x49e120, 0x4bec50 y 1 más
+0x4a8b30	104	CL9	CL9.4	9	quien la llama			la llama 0x49dfd0
+0x4a8ba0	67	CL9	CL9.4	9	quien la llama			la llama 0x49e120, 0x4a8720, 0x4bec50 y 1 más
+0x4a8bf0	1139	CL9	CL9.4	9	quien la llama			la llama 0x4a0500, 0x4a0560, 0x4bed30 y 1 más
+0x4a95e0	67	CL8	CL9.4	9	ajena sin portar			0x4a95e0 67 ventanas: CL8.3 (se reemplaza por la STL)
+0x4a9630	140	CL8	CL9.4	9	ajena sin portar			0x4a9630 140 ventanas: CL8.3 (se reemplaza por la STL)
+0x4a96c0	322	CL8	CL9.4	9	ajena sin portar			0x4a96c0 322 ventanas: CL8.3 (se reemplaza por la STL)
+0x4a9810	98	CL8	CL9.4	9	ajena sin portar			0x4a9810 98 ventanas: CL8.3 (se reemplaza por la STL)
+0x4a98a0	24	CL9	CL9.4	10	quien la llama			la llama 0x491570
+0x4a98c0	766	CL9	CL9.4	10	quien la llama			la llama 0x4a11b0
+0x4a9bc0	51	CL9	CL9.4	10	quien la llama			la llama 0x4a98c0
+0x4a9c00	321	CL9	CL9.4	10	quien la llama			la llama 0x4a6bc0
+0x4a9e30	628	CL9	CL9.4	10	quien la llama			la llama 0x491570, 0x49e280
+0x4aa0b0	28	CL8	CL9.4	9	ajena sin portar			0x4aa0b0 28 ventanas: CL8.3 (se reemplaza por la STL)
+0x4aa0d0	62	CL8	CL9.4	9	ajena sin portar			la llama 0x49e120, 0x4bec50, 0x4bfce0
+0x4aa110	628	CL9	CL9.4	10	quien la llama			la llama 0x49de50
+0x4aa390	62	CL8	CL9.4	9	ajena sin portar			la llama 0x4a0560, 0x4bed30, 0x4bfe00
+0x4aa3d0	676	CL9	CL9.4	10	quien la llama			la llama 0x4a03c0
+0x4aa7a0	628	CL8	CL9.4	9	ajena sin portar			0x4aa7a0 628 ventanas: CL8.3 (STL)
+0x4aaa40	321	CL8	CL9.4	9	ajena sin portar			0x4aaa40 321 ventanas: CL8.3 (se reemplaza por la STL)
+0x4aab90	115	CL8	CL9.4	9	ajena sin portar			0x4aab90 115 ventanas: CL8.3 (se reemplaza por la STL)
+0x4aac10	109	CL8	CL9.4	9	ajena sin portar			0x4aac10 109 ventanas: CL8.3 (se reemplaza por la STL)
+0x4aac80	82	CL8	CL9.4	9	ajena sin portar			0x4aac80 82 ventanas: CL8.3 (se reemplaza por la STL)
+0x4aace0	115	CL9	CL9.4	10	quien la llama			la llama 0x4a98c0
+0x4aad60	48	CL9	CL9.4	9	quien la llama			la llama 0x491570, 0x4916b0, 0x491720 y 2 más
+0x4aad90	81	CL9	CL9.4	10	quien la llama			la llama 0x491570, 0x49e280
+0x4aadf0	48	CL9	CL9.4	9	quien la llama			la llama 0x49e420
+0x4aae20	81	CL9	CL9.4	10	quien la llama			la llama 0x49de50
+0x4aae80	48	CL9	CL9.4	10	quien la llama			la llama 0x4a04a0, 0x4a0500
+0x4aaeb0	84	CL9	CL9.4	10	quien la llama			la llama 0x4a03c0
+0x4aaf40	81	CL8	CL9.4	9	ajena sin portar			0x4aaf40 81 ventanas: CL8.3 (se reemplaza por la STL)
+0x4aafa0	142	CL9	CL9.4	9	sub-ola de la matriz			la llama 0x4a7280
+0x4ab030	36	CL8	CL9.4	9	ajena sin portar			0x4ab030 36 ventanas: CL8.3 (se reemplaza por la STL)
+0x4ab0d0	142	CL9	CL9.4	10	quien la llama			la llama 0x4a98c0
+0x4ab160	67	CL9	CL9.4	9	quien la llama			la llama 0x4a0560, 0x4a8bf0, 0x4bed30 y 1 más
+0x4ab1b0	109	CL9	CL9.4	10	quien la llama			la llama 0x4a6bc0
+0x4ab220	108	CL8	CL9.4	9	ajena sin portar			0x4ab220 108 ventanas: CL8.3 (se reemplaza por la STL)
+0x4ab290	109	CL8	CL9.4	9	ajena sin portar			0x4ab290 109 ventanas: CL8.3 (se reemplaza por la STL)
+0x4ab300	25	CL9	CL9.4	10	quien la llama			la llama 0x4a9e30
+0x4ab320	25	CL9	CL9.4	10	quien la llama			la llama 0x4aa110
+0x4ab340	26	CL9	CL9.4	10	quien la llama			la llama 0x4aa3d0
+0x4ab380	51	CL8	CL9.4	9	ajena sin portar			0x4ab380 51 ventanas: CL8.3 (se reemplaza por la STL)
+0x4ab3c0	51	CL9	CL9.4	10	quien la llama			la llama 0x4a98c0
+0x4ab4d0	1070	CL9	CL9.4	10	quien la llama			la llama 0x49f870
+0x4ab930	1227	CL9	CL9.4	9	quien la llama			la llama 0x49c260
+0x4abe00	121	CL9	CL9.4	9	quien la llama			la llama 0x49c260
+0x4abe80	1249	CL9	CL9.4	10	quien la llama			la llama 0x49f870, 0x4ab4d0
+0x4ac370	127	CL9	CL9.4	10	quien la llama			la llama 0x49f870
+0x4ac3f0	163	CL9	CL9.4	10	quien la llama			la llama 0x49f870
+0x4ac4a0	530	CL9	CL9.4	9	quien la llama			la llama 0x49c260
+0x4ac6c0	156	CL9	CL9.4	9	quien la llama			la llama 0x49c260
+0x4ac760	255	CL9	CL9.4	9	quien la llama			la llama 0x49c260
+0x4ac860	559	CL9	CL9.4	10	quien la llama			la llama 0x49f870, 0x4ab4d0
+0x4aca90	189	CL9	CL9.4	10	quien la llama			la llama 0x49f870, 0x4ab4d0
+0x4acb50	276	CL9	CL9.4	10	quien la llama			la llama 0x49f870, 0x4ab4d0
+0x4acc70	46	CL9	CL9.4	9	quien la llama			la llama 0x4ab930
+0x4acca0	46	CL9	CL9.4	10	quien la llama			la llama 0x4abe80
+0x4accd0	55	CL9	CL9.4	9	quien la llama			la llama 0x4ab930
+0x4acd10	64	CL9	CL9.4	10	quien la llama			la llama 0x4abe80
+0x4bec50	221	CL9	CL9.4	9	lo que llama			FUN_004bec50();
+0x4bed30	221	CL9	CL9.4	9	lo que llama			FUN_004bed30();
+0x4bfce0	232	CL9	CL9.4	9	lo que llama			la llama 0x6b517d
+0x4bfdd0	17	CL9	CL9.4	9	quien la llama			la llama 0x4bfce0
+0x4bfe00	232	CL9	CL9.4	9	lo que llama			la llama 0x6b5164
+0x4bfef0	17	CL9	CL9.4	9	quien la llama			la llama 0x4bfe00
+0x4c0340	419	CL9	CL9.4	7	lo que llama			FUN_004c0340();
+0x4c04f0	17	CL9	CL9.4	7	sub-ola de la matriz			la llama 0x4c0340, 0x4c09c0
+0x4c0510	1039	CL9	CL9.4	7	quien la llama			0x4c0510 1039 paso: CL9.4
+0x4c09c0	232	CL9	CL9.4	7	lo que llama			la llama 0x6b5340
+0x4c0ab0	33	CL9	CL9.4	7	lo que llama			FUN_004c0ab0(1);
+0x4c0bd0	62	CL9	CL9.4	7	quien la llama			la llama 0x4c0340, 0x4c09c0, 0x4db890 y 2 más
+0x4c0c10	89	CL9	CL9.4	7	sub-ola de la matriz			la llama 0x4c0340
+0x4c0c70	67	CL9	CL9.4	7	quien la llama			0x4c0c70 67 paso: CL9.4
+0x4c16d0	83	CL9	CL9.4	8	quien la llama			filtro de DAT_05767804/FUN_004c16d0).
+0x4c1730	204	CL9	CL9.4	7	a mano			código muerto: nadie la llama ni la apunta
+0x4c1800	94	CL9	CL9.4	7	sub-ola de la matriz			0x4c1800 94 paso: CL9.4
+0x4c5070	1327	CL9	CL9.2	4	a mano	F3		lo lee el handler de main.exe (0x4c5070). La traducción de la lista y del F4 03 es
+0x4c6b40	716	CL9	CL9.1	1	opcode	DF		0xDF 0x4e3716 Actualiza posición de un jugador (word [3..4]): guarda bytes [5]/[6] en +0x41C/+0x420/+0x39A/+0x39B, flag +0x399=1; si su ID==0xF1 calcula deltas float (+0…
+0x4c8380	1133	CL9	CL9.1	1	a mano	25		cursor, 0x5be530..0x5be5ea); 0x4c8380 (el 0x25, 0x4c87cf); y 0x5139f0 desde el 0x12
+0x4c92a0	1260	CL9	CL9.1	1	opcode	45		0x45 0x4e3801 Spawn de objetos en el viewport: registros de 0x1C B (ID, X, Y, tipo, dword, magic "webzen", nombre 10 B); escribe nombre en +0x1D9, posición y flags; efec…
+0x4c9790	886	CL9	CL9.1	2	quien la llama			- con +0x3e5 positivo, veinte efectos con rand() (0x5069ae): solo lo sube 0x4c9790 (0x4c982b);
+0x4c9c60	1090	CL9	CL9.1	2	opcode	13		0x13 0x4e37d1 Por cada registro (count=pkt[4]) crea/actualiza el objeto visible (tipo de pkt[7..8], ID word pkt[5..6], pos pkt[0xd..0xe]), aplica acción FUN_004e6380, es…
+0x4ca0b0	1731	CL9	CL9.1	2	opcode	1F		0x1F 0x4e37e9 Como 0x13 pero para monstruos/NPC: crea/actualiza objeto (tipos 0x98–0x9E por vía especial FUN_00517400), acción FUN_004e6380, escala +0x24, referencias +0…
+0x4ca780	167	CL9	CL9.1	1	opcode	14		0x14 0x4e3819 Elimina/oculta una lista de objetos por ID word (caso especial 0x13D) I callee 0x4ca780: count=byte3; loop de words +4; 0x13D limpia +4..+6, resto limpia +…
+0x4cb750	1434	CL9	CL9.1	1	a mano	18		0x18 S->C 0x4cb750 acción o animación de un personaje remoto, según pkt[6]
+0x4cbe00	138	CL9	CL9.2	4	a mano	07		0x07 0x4e3a5c Gestiona flags de estado de un jugador remoto: según subcódigo pkt+3 (0/1) y máscara pkt+4..7, limpia, fija o conmuta el bit 0x200000 del campo +0x7C del s…
+0x4cbe90	357	CL9	CL9.2	4	opcode	1B		0x1B 0x4e3a44 Aplica flag de efecto (buff/debuff) sobre el jugador indicado por word [4..5], según sub-tipo [3] C/I callee FUN_004cbe90: switch [3]→FUN_004e6910(máscara,…
+0x4cc110	178	CL9	CL9.2	4	quien la llama			la llama 0x4cc530
+0x4cc1d0	184	CL9	CL9.2	4	quien la llama			la llama 0x4cc530
+0x4cc290	670	CL9	CL9.2	4	opcode	69		0x69 0x4e39e2 Toma dos índices de jugador (word [4..5] y [6..7]); guarda índice en DAT_05767964, byte codificado en +0x42E, índice objetivo en +0x3A4 (+bit alto en +0x38…
+0x4cc530	6479	CL9	CL9.2	4	opcode	19	C1 F1	- Las acciones 0x94, 0x51 y 0x5b (0x50f828), que sólo escriben los paquetes (0x4cc530,
+0x4ce000	3395	CL9	CL9.2	4	opcode	1E	C1 F1	0x4ce000): fuera de la clase 4, la 0x94 sin +0x78 & 0x4000 pone tres lightning2 (0x5d5) en el
+0x4cedd0	979	CL9	CL9.1	2	opcode	1A		0x1A 0x4e3a05 Actualiza estado del jugador (ID word +3/+4): sonido 0x76, marca 0x96, escribe byte +5 en su entrada hash I callee 0x4cedd0: indexa jugador con FUN_005110d…
+0x4cf1b0	68	CL9	CL9.5	13	opcode	BA		0xBA 0x4e5929 Si pkt[5]==0x28, escribe pkt[6] en el campo +0x1bc del struct del jugador indicado por ID word pkt[3/4] C callee 0x4cf1b0: FUN_005110d0, write +0x1bc
+0x4cf200	2773	CL9	CL9.2	3	opcode	16	C1 F1	0x16 0x4e3a74 Actualiza estado del jugador propio (+0x380/0x382/0x3a4, +0x389/0x378), suma word [5..6] a contador DAT_07681eb0+0x10 y muestra mensaje; con len=0 construy…
+0x4cfce0	2775	CL9	CL9.2	3	opcode	9C	C1 F1	0x9C 0x4e3a93 Actualiza el estado del jugador (índice por ID, word pkt+3/4 no usado — busca con FUN_005110d0): posición/acción (word pkt+6, word pkt+8, word pkt+10/11), …
+0x4d07c0	622	CL9	CL9.2	3	quien la llama			0x4da730, 0x4da750, 0x4dac70, 0x4e7360, 0x4c2480, 0x4d07c0); ninguno corre en el paso ni en el dibujo
+0x4d0a30	368	CL9	CL9.2	3	a mano	17		0x17 0x4e3ab2 Pasa (pkt,len) a FUN_004d0a30: marca flags de estado del jugador indexado por pkt[3..4] y calcula distancia al atacante (pkt[6..7]). C callee lee pkt+3..+7…
+0x4d0ba0	193	CL9	CL9.3	5	opcode	20		0x20 0x4e3831 Actualiza posición de objetos/monstruos: por entrada (ID word + X + Y) escribe la tabla 0x220 B de 0x77f46c8 C callee 0x4d0ba0: count=byte4, stride 0xB; id…
+0x4d1e00	2834	CL9	CL9.3	6	opcode	30	C1 B2 C1 F1	0x10000 tienda de NPC (la abre el 30, 0x4d1e00 en 0x4d288e) byte protegido 0x7d53710: 1 rand() CL9.3
+0x4d4af0	2681	CL9	CL9.4	7	opcode	36	C1 37 C1 F1	0x4d4af0 2681 inventario: CL9.4
+0x4d5570	382	CL9	CL9.4	7	opcode	37		0x37 0x4e3d52 Subcódigo pkt+3: 0/2 copian textos (FUN_00555190); 1 resetea UI (FUN_006599a0, globals DAT_078abab4..abac8), reposiciona el cursor (SetCursorPos con resolu…
+0x4d5770	17	CL9	CL9.4	7	a mano			código muerto: nadie la llama ni la apunta
+0x4d57f0	285	CL9	CL9.4	7	opcode	3D		0x4d57f0 285 inventario: CL9.4
+0x4d5b10	1950	CL9	CL9.2	4	opcode	73	C1 F1	0x73 0x4e4673 Igual patrón que 0x1E: si el 2º argumento es 0, construye y envía paquete C1 op 0xF1 cifrado (clave de 16 B: 0x893A6DE7,0x739FB2BC,0xB6FEA823,0x5D395D49). …
+0x4d67e0	112	CL9	CL9.4	7	opcode	42		P-C116 La party con miembros (CL9.4). 0x78aba48 y la lista de 0x77f3ce8 (0x24 B por miembro) los escribe la respuesta al C1 03 42 (C1 42, 0x4d67e0), que MuRet no lee: la…
+0x4d6990	460	CL9	CL9.5	11	opcode	47		0x47 0x4e41e9 Formatea un mensaje para un jugador remoto: combina formato según flags de pkt+8 (bits 0x10000/0x20000/0x2000) con parámetro de pkt+0xC y string de tabla, …
+0x4d6b60	2382	CL9	CL9.4	8	paquete que manda		C1 51	0x76dbbb4 y abre diálogo FUN_006600d0(...,2,0x32,4,FUN_004d6b60,0).
+0x4d74b0	1380	CL9	CL9.4	8	opcode	50	C1 51	P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego)). Portados el despacho de 0x623e70 (0x623f78..0x6…
+0x4d7a20	283	CL9	CL9.4	8	opcode	51		0x51 0x4e4231 Muestra uno de 8 mensajes fijos (tabla DAT_076e1f50, stride 0x12C) según [3] y resetea acción diferida C callee FUN_004d7a20: 8× FUN_00555190 + FUN_006236f…
+0x4d7b60	200	CL9	CL9.4	8	opcode	52		0x52 0x4e4249 Delega a FUN_004d7b60: inicializa UI (FUN_006517d0/1830/1650) y rellena la tabla DAT_0787a5f0 (registros de 0xe B) con pkt[5] registros de 0xd B leídos des…
+0x4d7c30	774	CL9	CL9.4	8	opcode	53	C1 52	0x53 0x4e4261 Subcódigo pkt+3: 0-5 copian strings CP949 (FUN_00555190); 1/4 limpian estado de grupo/gremio del jugador local (slot en tabla DAT_0787aa4c vía +0x1F2, flag…
+0x4d7ff0	235	CL9	CL9.4	8	opcode	56		0x56 0x4e4297 Mensajes del sistema: sub 0/2-6 muestran texto en chat; sub 1 resetea UI y carga mapa 0x40000 C callee 0x4d7ff0: switch byte3; FUN_00555190(&0x5767a04…, &0…
+0x4d8150	237	CL9	CL9.4	8	opcode	60		0x60 0x4e436a Delega a FUN_004d8150: muestra mensaje según subtipo pkt[3] (0..6) y, salvo subtipo 1, recorre los 400 slots de jugador marcando en +0x374 a quienes compar…
+0x4d8260	1537	CL9	CL9.4	8	opcode	62	C1 18	0x62 0x4e43d0 Guarda ID (dword pkt+3) y campo (dword pkt+7); muestra mensaje (plantilla según pkt[0xb]); busca el ID en la tabla 0x58 B/entrada (0x787aa4c) y marca flag …
+0x4d8870	2459	CL9	CL9.4	8	opcode	63	C1 18	0x63 0x4e43e8 Cambio de mapa/servidor: mensaje (sub 0-6), barre los 400 jugadores marcando +0x374 según +0x1f2, y arma paquete C1 0x18 C callee 0x4d8870: switch byte3 → …
+0x4d9230	37	CL9	CL9.4	8	a mano			código muerto: nadie la llama ni la apunta
+0x4d97d0	34	CL9	CL9.4	8	lo que llama			código muerto: nadie la llama ni la apunta
+0x4d9810	238	CL9	CL9.4	8	opcode	E1		0xE1 0x4e442c Delega a FUN_004d9810: muestra un mensaje de asignación gremial; por defecto "Invalid GuildAssign"; según pkt[3] (si pkt[4]==1) o pkt[4] (0x10..0x13) selec…
+0x4d9910	35	CL9	CL9.4	8	lo que llama			código muerto: nadie la llama ni la apunta
+0x4d9940	498	CL9	CL9.4	8	opcode	E6		0xE6 0x4e446e Según (pkt[3], pkt[4], pkt[5]) selecciona un texto de recurso (default "Invalid GuildRelationShipResult" 0x6c8470) y lo muestra C/I callee 0x4d9940: switch…
+0x4d9e50	132	CL9	CL9.4	8	opcode	E9		0xE9 0x4e452f Expande count (byte4) entradas de 41 B: 33 B → 64 nibbles y procesa con FUN_006517e0 C callee 0x4d9e50: gate byte5==1 y byte4≠0; stride 0x29; loop 0x40 nib…
+0x4da540	222	CL9	CL9.5	11	opcode	BC		0xBC 0x4e4547 Diálogo de mensajes fijos según sub-tipo: [3]=0 → format "%s %s %s" + display + FUN_00402e50 o acciones diferidas (0, 0xA6); [3]=1 → FUN_004da540 (mensajes…
+0x4da730	30	CL9	CL9.5	11	lo que llama			código muerto: 0x4da730, 0x4da750, 0x4dac70, 0x4e7360, 0x4c2480, 0x4d07c0); ninguno corre en el paso ni en el dibujo
+0x4da750	44	CL9	CL9.5	11	sub-ola de la matriz			código muerto: 0x4da730, 0x4da750, 0x4dac70, 0x4e7360, 0x4c2480, 0x4d07c0); ninguno corre en el paso ni en el dibujo
+0x4da780	272	CL9	CL9.5	11	opcode	9A		0x9A 0x4e4981 Delega a FUN_004da780: llama FUN_00657a90() y según subtipo pkt[3] (1,2,3,4,5,6,8,9) muestra mensajes formateados (FUN_00632e30) con datos globales (DAT_07…
+0x4da8c0	452	CL9	CL9.5	11	opcode	91		0x91 0x4e4918 Avisos GUI según sub (1/2/4); sub 4 formatea cuenta atrás mm:ss y dispara 0x633300 C callee 0x4da8c0: switch byte3; wsprintf con strings 0x76ec360/0x76fb5f…
+0x4daa90	217	CL9	CL9.5	11	opcode	AF		0xAF 0x4e5032 Si pkt[3]==1: limpia (FUN_00657a90) y, según pkt[4] (1–7), carga texto y fija escena 0x8a (FUN_00632e30 con distintos recursos DAT_076f) C asm: cmp pkt[3]=…
+0x4dac70	24	CL9	CL9.5	11	sub-ola de la matriz			código muerto: 0x4da730, 0x4da750, 0x4dac70, 0x4e7360, 0x4c2480, 0x4d07c0); ninguno corre en el paso ni en el dibujo
+0x4dac90	202	CL9	CL9.4	7	opcode	AA		0xAA 0x4e4cf8 Mensaje privado: copia nombre (10 B desde +6), formatea y muestra en chat; variante con flag (0x78abad8/0x78abadc) y sonido 0x8D I callee 0x4dac90: gate by…
+0x4dae80	351	CL9	CL9.4	7	opcode	3F		- 0x00 → FUN_004dae80: count = byte5; entradas con word ID y 9 dwords (0x24 B) desde
+0x4dafe0	311	CL9	CL9.4	7	opcode	3F		0x4dafe0/0x4dbb40 (sin decompile en bundle; semántica pendiente).
+0x4db120	1504	CL9	CL9.4	7	opcode	3F	C1 F3	0x4db120 1504 inventario: CL9.3
+0x4db700	269	CL9	CL9.4	7	opcode	3F		- 0x01/0x02/0x05/0x06/0x10/0x13 → delegan en 0x4db120/0x4db700/0x4db890/0x4dbcb0/
+0x4db890	686	CL9	CL9.4	7	opcode	3F		- 0x01/0x02/0x05/0x06/0x10/0x13 → delegan en 0x4db120/0x4db700/0x4db890/0x4dbcb0/
+0x4dbb40	366	CL9	CL9.4	7	opcode	3F		0x4dafe0/0x4dbb40 (sin decompile en bundle; semántica pendiente).
+0x4dbcb0	486	CL9	CL9.4	7	opcode	3F		0x4dbcb0 486 inventario: CL9.4
+0x4dbf50	188	CL9	CL9.2	4	opcode	48		0x48 0x4e4201 Si el jugador (ID word pkt+3/4) existe, está activo (+0x88==1) y pkt[5]==0x10, lanza 16 efectos (id 0x60F) + 1 efecto (id 0x61E) y sonido 0x98 C callee 0x4…
+0x4dc010	955	CL9	CL9.4	9	a mano	C0	C1 02	0xC0 0x4e5a4e Carga N=pkt+6 nombres de 10 B (+flag, entradas de 11 B desde pkt+7) con FUN_0049b220, actualiza UI (FUN_0049c260, FUN_004918d0) y responde al servidor con …
+0x4dc3d0	445	CL9	CL9.4	9	opcode	C1		0xC1 FUN_004dc3d0 (10, …) mensaje de sistema (amigos) (C)
+0x4dc5b0	219	CL9	CL9.4	9	opcode	C2		0xC2 FUN_004dc5b0 (9, …) pedido de amistad (C)
+0x4dc690	141	CL9	CL9.4	9	opcode	C3		0xC3 FUN_004dc690 (10, …) mensaje de sistema (amigos) (C)
+0x4dc720	284	CL9	CL9.4	9	opcode	C4		0xC4 0x4E5AAE → FUN_004dc720 procesador C4
+0x4dc840	369	CL9	CL9.4	10	opcode	C5		0xC5 FUN_004dc840 (10, …) mensaje de sistema (C)
+0x4dc9e0	387	CL9	CL9.4	10	a mano	C6		0xC6 0x4e5ade Lee 4 strings (pkt+6, +0x10, +0x1b, +0x2e) y tipo pkt[0x4e]; llama FUN_0049eb60 (UI); si tipo==2, sonido 0x29 + mensaje + FUN_004a6420(1); refresca UI C/I …
+0x4dcb70	531	CL9	CL9.4	10	opcode	C7		0xC7 FUN_004dcb70 (6, …) lector de cartas/correo (cuerpo ≤1000 B) (C)
+0x4dcd90	117	CL9	CL9.4	10	opcode	C8		0xC8 FUN_004dcd90 (10, …) mensaje de sistema (C)
+0x4dce10	527	CL9	CL9.4	10	a mano	CA		mensaje 0x500 más un índice (0x49df01). La IP llega en el CA del servidor (0x4dce10,
+0x4dd020	390	CL9	CL9.4	10	a mano	CB		0xCB 0x4e5b3e Con pkt+4 obtiene un objeto (FUN_00490a00): subcódigo 0 muestra string DAT_0770a75c (FUN_00493f80); subcódigo 1 arma un mensaje con el nombre del objeto (+…
+0x4dd8a0	178	CL9	CL9.5	11	opcode	94		0x94 0x4e49bc Guarda pkt+4 en DAT_078abb04 y subcódigo (pkt+3+1) en DAT_078abb00; subcódigo 3 (pkt+3==2) resetea listas y fija estado UI (0xC/1, flags 0x077f3b6a/b/c); s…
+0x4dd960	28	CL9	CL9.5	11	a mano			código muerto: nadie la llama ni la apunta
+0x4ddb80	2410	CL9	CL9.1	2	a mano	A3		0xA3 0x4e4bf2 Sonido 0x66; según [5] (0xC8/0xC9/0xCA) spawnea efectos visuales 0x60F/0x61E alrededor del jugador word [3..4]&0x7FFF, sonido 0x65; 0xC9 copia nibbles de […
+0x4de500	1565	CL9	CL9.3	5	opcode	2C		0x4de500 1565 inventario: CL9.x
+0x4deba0	49	CL9	CL9.2	4	lo que llama			código muerto: nadie la llama ni la apunta
+0x4df080	238	CL9	CL9.5	12	opcode	B2		FUN_00555190 (4 sub-casos), 1→FUN_004df080, 2→FUN_004df1a0, 3→FUN_0064d290/d2b0,
+0x4df1a0	1289	CL9	CL9.5	12	opcode	B2	C1 B2 C1 B4	FUN_00555190 (4 sub-casos), 1→FUN_004df080, 2→FUN_004df1a0, 3→FUN_0064d290/d2b0,
+0x4df6c0	101	CL9	CL9.5	12	lo que llama			código muerto: nadie la llama ni la apunta
+0x4df7d0	192	CL9	CL9.5	12	opcode	B2		4→mensajes, 5→FUN_004df7d0, 6→FUN_00669030 (+copia dwords [0x10]/[0x14]), 7→FUN_004df950,
+0x4df950	275	CL9	CL9.5	12	opcode	B2		4→mensajes, 5→FUN_004df7d0, 6→FUN_00669030 (+copia dwords [0x10]/[0x14]), 7→FUN_004df950,
+0x4dfbb0	42	CL9	CL9.3	6	a mano			código muerto: nadie la llama ni la apunta
+0x4dfc60	113	CL9	CL9.5	12	opcode	B3		0xB3 0x4e5795 Delega a FUN_004dfc60: subtipos 0/2 muestran mensajes (FUN_00555190); subtipo 1 procesa N=(int)(pkt+8) entradas de 0x1c B desde pkt+0xc con FUN_00668fd0. C…
+0x4dfce0	145	CL9	CL9.5	12	opcode	B4		0xB4 0x4e57ad Subcódigo pkt+4: 0 copia texto; 1 inicia carga (FUN_0064d2f0), procesa N=(int)(pkt+8) entradas de 14 B desde pkt+0x16 (nombre 10 B + dword + 2 B) con FUN_0…
+0x4dfd80	161	CL9	CL9.5	12	opcode	B5		0xB5 0x4e57c5 Por sub-tipo pkt[4]: 0/2/3 → muestra mensajes; 1 → procesa N registros de 10 B desde pkt+0xe (count=dword pkt+8) con FUN_0064d310 C/I callee 0x4dfd80: swit…
+0x4dfe70	40	CL9	CL9.5	12	lo que llama			código muerto: nadie la llama ni la apunta
+0x4dfea0	109	CL9	CL9.5	12	lo que llama			código muerto: nadie la llama ni la apunta
+0x4dff10	391	CL9	CL9.5	12	opcode	B2		P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego)). Portados el despacho de 0x623e70 (0x623f78..0x6…
+0x4e00a0	19	CL9	CL9.5	12	quien la llama			sin texto que la describa
+0x4e00c0	352	CL9	CL9.5	12	opcode	B2		P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego)). Portados el despacho de 0x623e70 (0x623f78..0x6…
+0x4e0240	244	CL9	CL9.5	12	opcode	B2		P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego)). Portados el despacho de 0x623e70 (0x623f78..0x6…
+0x4e0340	358	CL9	CL9.5	12	opcode	B2		FUN_004dff10/FUN_004e00c0/FUN_004e0240/FUN_004294c0/FUN_004e0650/FUN_004e0340,
+0x4e04c0	17	CL9	CL9.5	12	lo que llama			código muerto: nadie la llama ni la apunta
+0x4e04e0	268	CL9	CL9.5	12	opcode	B2		0x1F→FUN_006603c0/FUN_006600d0 (+flag DAT_07d53700+0x15), 0x20→FUN_004e04e0. El código
+0x4e05f0	31	CL9	CL9.5	13	texto de la matriz			4 0x5a6fc0 info de Castle Siege objeto 0x5767924 nada (libera con 0x4e05f0)
+0x4e0650	167	CL9	CL9.5	12	opcode	B2		FUN_004dff10/FUN_004e00c0/FUN_004e0240/FUN_004294c0/FUN_004e0650/FUN_004e0340,
+0x4e0700	65	CL9	CL9.5	12	opcode	B8		0xB8 0x4e5880 Si el subtipo (pkt[3] si C1, pkt[4] si C2) == 1, llama FUN_004e0700(pkt): actualiza +0x372/+0x373/+0x425 del jugador local según pkt[4]. C asm: CMP [ECX],0…
+0x4e0750	59	CL9	CL9.5	13	opcode	B9		0xB9 0x4e58b0 Subdispatcher por subcódigo (pkt+3 si C1, si no pkt+4): 1 → escribe byte pkt+6 en campo +0x93 del jugador indicado por word pkt+4/5; 2/3/5 → FUN_004e0790/0…
+0x4e0790	92	CL9	CL9.5	13	opcode	B9		0xB9 0x4e58b0 Subdispatcher por subcódigo (pkt+3 si C1, si no pkt+4): 1 → escribe byte pkt+6 en campo +0x93 del jugador indicado por word pkt+4/5; 2/3/5 → FUN_004e0790/0…
+0x4e07f0	112	CL9	CL9.5	13	opcode	B9		P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego)). Portados el despacho de 0x623e70 (0x623f78..0x6…
+0x4e0860	52	CL9	CL9.5	13	opcode	B9		P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego)). Portados el despacho de 0x623e70 (0x623f78..0x6…
+0x4e08a0	69	CL9	CL9.2	4	opcode	B7		0xB7 0x4e580d Sub-tipo [3]/[4]: 0→FUN_004e08a0, 1→FUN_004e08f0, 2→spawn de efecto 299/300 en coordenadas escaladas ([5],[6]) + efecto 0x6EB + sonido 0x1EA C asm: push [4…
+0x4e08f0	86	CL9	CL9.2	4	opcode	B7		0xB7 0x4e580d Sub-tipo [3]/[4]: 0→FUN_004e08a0, 1→FUN_004e08f0, 2→spawn de efecto 299/300 en coordenadas escaladas ([5],[6]) + efecto 0x6EB + sonido 0x1EA C asm: push [4…
+0x4e0950	34	CL9	CL9.2	4	lo que llama			código muerto: nadie la llama ni la apunta
+0x4e0980	1277	CL7	CL9.1	2	ajena sin portar	68		(0x4c8860), el 0x68 (0x4e0980), un subcódigo del F3 (0x4e316e), 0x4c8340 y 0x497810.
+0x4e0e90	53	CL9	CL9.5	12	lo que llama			código muerto: nadie la llama ni la apunta
+0x4e0ed0	89	CL9	CL9.5	12	opcode	B6		0xB6 0x4e57dd Si objeto 0x5763530 responde 2: procesa count (dword +4) pares de bytes (+8…) con FUN_00411ed0(0,x,y) C callee 0x4e0ed0: gate DAT_05763530; FUN_00411e80; l…
+0x4e0f30	94	CL9	CL9.5	13	opcode	BB		0xBB 0x4e57f5 Igual que 0xB6 pero con tripletas de 3 bytes (índice+1, x, y) desde +6 C callee 0x4e0f30: gate DAT_05763530==2 y byte4≠0; count=byte4; stride 3; FUN_00411e…
+0x4e0f90	27	CL9	CL9.5	12	lo que llama			código muerto: nadie la llama ni la apunta
+0x4e6380	1418	CL7	CL9.1	1	ajena sin portar			tocar el color (0x4ecc5b). Lo ponen en +0x78 los handlers que llaman a 0x4e6380 (el 0x12, el 0x13, el
+0x4e6910	1548	CL7	CL9.2	4	ajena sin portar			0x1f, el 0x45, el 0x07 con el byte 3 en 1 y el 0x68) y lo sacan 0x4e6910 y 0x4fb9e0 (al morir);
+0x4e6f80	982	CL9	CL9.3	6	opcode	83	C1 81	0x83 0x4e46df Máquina de estados con jump table (0x4e60c0/0x4e60dc): [3]=0/1 fijan flags DAT_006c932f/DAT_078abb1c; 0xA/0xB/0xD encolan acciones 0x85/0x86/0x89; 0xC llam…
+0x4e7360	36	CL9	CL9.5	11	opcode	93		0x4da730, 0x4da750, 0x4dac70, 0x4e7360, 0x4c2480, 0x4d07c0); ninguno corre en el paso ni en el dibujo
+0x4e7390	26	CL9	CL9.5	12	opcode	B2		FUN_004e7390();
+0x4e73b0	24	CL9	CL9.4	7	quien la llama			0x4e73b0 24 paso: CL9.4
+0x4e73d0	104	CL9	CL9.4	7	quien la llama			la llama 0x4db120
+0x4e7440	488	CL8	CL9.4	7	ajena sin portar			Mismo prólogo de cola circular que 0x0B (capacidad 10, slots 0x100 B). Luego llama FUN_004d1400(pkt, [EBP+0x14]): si el 3er arg != 0 → DAT_078abb39=0; si pkt[3]==0xFF → …
+0x4e7630	556	CL9	CL9.4	7	sub-ola de la matriz			0x4e7630 556 paso: CL9.4
+0x4e7940	81	CL9	CL9.4	7	sub-ola de la matriz			0x4e7940 81 paso: CL9.4
+0x4e7c40	508	CL9	CL9.2	4	a mano			la llama 0x4c5070, 0x57cfc0
+0x4e7e40	547	CL7	CL9.2	4	ajena sin portar			la llama 0x4c6790, 0x55cbc0, 0x55faa0 y 2 más
+0x4e8070	25	CL9	CL9.4	7	sub-ola de la matriz			0x4e8070 25 paso: CL9.4
+0x4e8090	231	CL9	CL9.4	10	quien la llama			0x1000 de +0x78, y 0x4e8090 los pone en 0. Estático; el tramo de antes, 0x505ef8..,
+0x4e8180	40	CL9	CL9.4	9	quien la llama			la llama 0x49e110
+0x4e81b0	185	CL4	CL9.4	10	ajena sin portar			- Iniciar: 0x4e81b0, WSAStartup(0x202). Si falla, loguea "Winsock DLL Initialize error."
+0x4e8860	1	CL9	CL9.4	9	quien la llama			la llama 0x4e8180
+0x4e8880	3	CL8	CL9.4	8	ajena sin portar			paquetes en +0x4020. Con +0x4018 distinto de 0 avisa lo que mandó a 0x4e8880, que en este
+0x4e8bd0	16	CL2	CL9.4	9	ajena sin portar			la llama 0x4e8a80, 0x4e8c30
+0x4e8c30	615	CL9	CL9.4	9	quien la llama			la llama 0x4e8180
+0x4e8ea0	77	CL9	CL9.4	9	quien la llama			la llama 0x4e8c30, 0x6b56d8
+0x4e8ef0	17	CL9	CL9.4	9	quien la llama			la llama 0x4e8c30
+0x4e8f10	57	CL9	CL9.4	9	quien la llama			la llama 0x4e8c30
+0x4e8f50	18	CL9	CL9.4	9	quien la llama			la llama 0x4e8c30
+0x4e9330	29	CL9	CL9.4	9	quien la llama			la llama 0x4e8c30
+0x4e9350	160	CL9	CL9.4	9	quien la llama			la llama 0x6b56ab, 0x6b56d0
+0x4e9c50	122	CL9	CL9.2	4	quien la llama			la llama 0x4ce000
+0x4f48e0	301	CL9	CL9.2	4	quien la llama			la llama 0x55faa0
+0x4f4a10	2152	CL9	CL9.2	3	a mano			0x18 0x4e39a3 Actualiza estado de un personaje remoto: ángulo desde pkt+5, recalcula posición (+0x10/+0x14) y ejecuta acción/animación según subcódigo pkt+6 (con variant…
+0x4f5290	215	CL9	CL9.2	4	quien la llama			la llama 0x4cc530, 0x4ce000, 0x55cbc0 y 2 más
+0x4f92f0	628	CL9	CL9.2	3	quien la llama			la llama 0x429270, 0x437580
+0x510ff0	120	CL7	CL9.1	1	ajena sin portar			0x510ff0 120 paso: CL7/CL9.1
+0x511110	55	CL9	CL9.5	12	quien la llama			la llama 0x4e0240
+0x513100	353	CL9	CL9.1	2	quien la llama			0xA3 0x4e4bf2 Sonido 0x66; según [5] (0xC8/0xC9/0xCA) spawnea efectos visuales 0x60F/0x61E alrededor del jugador word [3..4]&0x7FFF, sonido 0x65; 0xC9 copia nibbles de […
+0x5132d0	101	CL9	CL9.1	1	a mano			código muerto: buscan personajes del viewport (DAT_0743a16c, el nombre en +0x1d9, la distancia) o un id en un arreglo
+0x5141e0	11620	CL7	CL9.1	2	ajena sin portar			- Monster50 sí hace falta. El tipo de monstruo 58 (0x3a, caso de 0x5141e0) pide
+0x517400	353	CL9	CL9.1	2	texto de la matriz			0x1F 0x4e37e9 Como 0x13 pero para monstruos/NPC: crea/actualiza objeto (tipos 0x98–0x9E por vía especial FUN_00517400), acción FUN_004e6380, escala +0x24, referencias +0…
+0x5178f0	41	CL9	CL9.1	1	a mano			código muerto: buscan personajes del viewport (DAT_0743a16c, el nombre en +0x1d9, la distancia) o un id en un arreglo
+0x517920	251	CL9	CL9.1	1	a mano			código muerto: buscan personajes del viewport (DAT_0743a16c, el nombre en +0x1d9, la distancia) o un id en un arreglo
+0x518ac0	74	CL6	CL9.2	4	ajena sin portar			puesta + FUN_00518ac0(effect_id, jugador, n) = spawnea el efecto de remoción
+0x51fe10	220	CL7	CL9.1	1	ajena sin portar			0xDF 0x4e3716 Actualiza posición de un jugador (word [3..4]): guarda bytes [5]/[6] en +0x41C/+0x420/+0x39A/+0x39B, flag +0x399=1; si su ID==0xF1 calcula deltas float (+0…
+0x534f90	62	CL7	CL9.2	4	ajena sin portar			0x4f97b0, 0x4f5b70, 0x59fb80, 0x53e2b0, 0x5526f0, 0x517630, 0x42ea00, 0x51fff0, 0x52e740, 0x534f90, 0x534fd0, 0x4f2230, 0x4f5b10, 0x437860, 0x4e79a0 6.489, 13.523, 652, …
+0x53d810	187	CL9	CL9.1	2	quien la llama			- FUN_0053d810(jug,0); play_sound 0x76; FUN_004ea030(jug, 0x96) (marcar estado 0x96).
+0x53d8d0	96	CL9	CL9.2	4	quien la llama			la llama 0x4cc530
+0x53d930	106	CL7	CL9.2	4	ajena sin portar			3. Con pkt[3] == 0 (la habilidad teleport, en el mismo mapa): 0x53d930 (la acción 0x93, el
+0x53e970	141	CL9	CL9.4	7	a mano			código muerto: nadie la llama ni la apunta
+0x53eaf0	124	CL9	CL9.4	7	sub-ola de la matriz			0x637119 0x53eaf0 la tabla 0x75fe028 (0x51fc80), sin leer —
+0x548e40	108	CL7	CL9.2	3	ajena sin portar			dibuja. La tabla de antes (0x7609bd0) termina en 0x760cab0 (0x548e50, 0x548f25, 0x548fa0) y la
+0x54e610	102	CL9	CL9.3	5	a mano			código muerto: atributos de un ítem según su nivel con la tabla DAT_07681ee0
+0x54ebb0	55	CL9	CL9.5	11	quien la llama			cmp con 0x7688ab8 (0x514133, 0x54ebcb, 0x5b41f5, 0x5b8930, 0x5bb308) son el final de
+0x54ebf0	262	CL9	CL9.3	5	a mano			código muerto: atributos de un ítem según su nivel con la tabla DAT_07681ee0
+0x5521f0	638	CL9	CL9.2	4	a mano			0x2e u16 0x40ca20 (0x40cc59), 0x5521f0 Command
+0x5526f0	660	CL9	CL9.2	4	quien la llama			0x4f97b0, 0x4f5b70, 0x59fb80, 0x53e2b0, 0x5526f0, 0x517630, 0x42ea00, 0x51fff0, 0x52e740, 0x534f90, 0x534fd0, 0x4f2230, 0x4f5b10, 0x437860, 0x4e79a0 6.489, 13.523, 652, …
+0x552990	689	CL9	CL9.2	4	a mano			las demoras de las habilidades una tabla de int en [0x7681eb0] + 0x76c, una por casilla de habilidad del personaje; 0x552c50 y 0x552990 cargan la de una casilla con el c…
+0x552c50	696	CL9	CL9.2	4	a mano			las demoras de las habilidades una tabla de int en [0x7681eb0] + 0x76c, una por casilla de habilidad del personaje; 0x552c50 y 0x552990 cargan la de una casilla con el c…
+0x552f10	701	CL9	CL9.2	4	a mano			las demoras de las habilidades una tabla de int en [0x7681eb0] + 0x76c, una por casilla de habilidad del personaje; 0x552c50 y 0x552990 cargan la de una casilla con el c…
+0x554240	166	CL9	CL9.4	7	quien la llama			0x554240 166 HUD: CL9.4
+0x5583a0	107	CL9	CL9.5	11	sub-ola de la matriz			0x5583a0 107 inventario: — ; paso: CL9.5 sí
+0x558410	121	CL8	CL9.1	2	ajena sin portar			0x558410 121 HUD: CL8.1? ; paso: CL9.1 sí
+0x558740	87	CL9	CL9.5	11	quien la llama			0x558740 87 HUD: CL9.5 ; paso: CL9.5
+0x558bb0	754	CL9	CL9.2	3	a mano			son funciones de Ghidra: 11 se alcanzan desde el paso y 3 desde el dibujo (una, 0x558bb0, desde
+0x558eb0	327	CL7	CL9.2	4	ajena sin portar			0x558eb0, 0x5c4110), Q, W y E con el flanco (0x5c4110), S (0x5e4ce0), Espacio y F1 a F4
+0x559510	886	CL9	CL9.2	4	quien la llama			la llama 0x559890
+0x559890	7721	CL9	CL9.2	4	paquete que manda		C1 19 C1 26	un freno de 300 ms entre acciones _DAT_0576791c, con GetTickCount, en 0x57cfc0, 0x559890, 0x55b6f0, 0x55cbc0 y 0x55faa0, todas desde el paso: si abs(GetTickCount() - últ…
+0x55b6f0	5231	CL9	CL9.2	4	a mano		C1 19 C1 D3 C1 DF	un freno de 300 ms entre acciones _DAT_0576791c, con GetTickCount, en 0x57cfc0, 0x559890, 0x55b6f0, 0x55cbc0 y 0x55faa0, todas desde el paso: si abs(GetTickCount() - últ…
+0x55cbc0	11908	CL9	CL9.2	4	a mano		C1 19 C1 1E C1 D3	un freno de 300 ms entre acciones _DAT_0576791c, con GetTickCount, en 0x57cfc0, 0x559890, 0x55b6f0, 0x55cbc0 y 0x55faa0, todas desde el paso: si abs(GetTickCount() - últ…
+0x55faa0	7529	CL9	CL9.2	4	a mano		C1 19 C1 D3	un freno de 300 ms entre acciones _DAT_0576791c, con GetTickCount, en 0x57cfc0, 0x559890, 0x55b6f0, 0x55cbc0 y 0x55faa0, todas desde el paso: si abs(GetTickCount() - últ…
+0x561c50	774	CL8	CL9.2	4	ajena sin portar			Q-C773 las manos que mira 0x561840 (0x561b13) lee las manos (+0xb6c y +0xbb4) por punteros que tomó con el registro abierto, después de cerrarlo: si el cierre lo dejó si…
+0x576a60	1096	CL8	CL9.1	1	ajena con corte		C1 18	P-C87 Los emotes cortan casi cualquier chat (CL8 hito 3, 2026-11-12). 0x576eb0 busca cada texto de los emotes (270 a 348 y 783 de Text.bmd) adentro de lo dicho, con las …
+0x59eb90	231	CL9	CL9.3	6	sub-ola de la matriz			P-C73 Lo que el 3D de la UI deja en los globales y su traza (hito 4 de la CL8, 2026-11-12, [06](06-render-escenas-y-ui.md#el-inventario)). Al final, 0x5ac120 deja en 0x7…
+0x59fb80	652	CL9	CL9.5	11	sub-ola de la matriz			0x8001 (por frame, abajo); y 0x59fe10, después de 0x59fb80, una copia de la lectura de Alt y
+0x5a6a90	82	CL9	CL9.4	8	a mano			código muerto: nadie la llama ni la apunta
+0x5a6cc0	764	CL9	CL9.4	7	a mano			14 0x5a6cc0 marcador de duelo 0x78abad8 nada
+0x5a6fc0	857	CL9	CL9.5	13	a mano			4 0x5a6fc0 info de Castle Siege objeto 0x5767924 nada (libera con 0x4e05f0)
+0x5a7640	1661	CL9	CL9.4	8	a mano			2 0x5a7640 guerra de gremios: marcador y marcas 0x576796c y hero+0x1f2 ≠ −1; 0x576796f nada
+0x5a7d70	319	CL9	CL9.5	11	texto de la matriz			Q-C456 los joints de evento, 0x5a7d70 inalcanzable: 0x5767920 solo se escribe con 0 (0x4c2508, 0x5a7d5f), así que la llamada a 0x530860 desde ahí está muerta. Estático i…
+0x5a7eb0	2807	CL9	CL9.5	11	a mano			los paneles secundarios con su diálogo arriba), 0x5a7eb0, 0x490390 (ventanas viejas, de abajo hacia arriba,
+0x5b1130	199	CL8	CL9.3	6	ajena sin portar			0x5b1130 199 HUD: CL9.3 ; inventario: CL8.4 ; paso: CL8.4 sí
+0x5b1200	228	CL9	CL9.3	6	sub-ola de la matriz			nivel 1 a 5, escribe el precio de 0x54d0f0 y 0x5b1200: es de la CL9.3 y MuRet corta en 0x5b2d23, aunque
+0x5b12f0	228	CL9	CL9.3	6	quien la llama			0x5b12f0 228 HUD: CL9.3
+0x5b1c70	1592	CL8	CL9.5	11	ajena sin portar			0x5b1c70 1592 HUD: CL8.1? ; inventario: CL8.4 sí
+0x5ba790	4388	CL9	CL9.3	5	a mano			cmp con 0x7688ab8 (0x514133, 0x54ebcb, 0x5b41f5, 0x5b8930, 0x5bb308) son el final de
+0x5bbdf0	29	CL9	CL9.4	7	quien la llama			0x5bbdf0 29 ventanas: CL9.4
+0x5bc260	145	CL8	CL9.4	7	ajena sin portar			0x5bc260 145 inventario: CL8.4
+0x5bc300	355	CL8	CL9.4	7	ajena sin portar			0x5bc300 355 inventario: CL8.4
+0x5bc470	355	CL9	CL9.4	7	sub-ola de la matriz			0x78a5a20 llamaría a 0x5bc470, y con el último argumento distinto de 0 vuelve.
+0x5bc5e0	343	CL8	CL9.4	7	ajena sin portar			0x5bc5e0 343 inventario: CL8.4
+0x5e2270	83	CL8	CL9.4	7	ajena sin portar			0x5e2270 83 inventario: CL8.4
+0x5e3c20	74	CL9	CL9.3	6	sub-ola de la matriz			0x5e3c20 74 ventanas: CL9.3
+0x5e7b50	156	CL9	CL9.3	6	sub-ola de la matriz			0x5e7b50 156 HUD: CL9.3? (otro lector) ; paso: CL9.3
+0x5eb020	2366	CL9	CL9.4	7	paquete que manda		C1 3F	0x5eb020 2366 ventanas: CL9.4
+0x5eb960	111	CL9	CL9.4	7	lo que llama			0x5eb960 111 ventanas: CL9.4
+0x5eba70	339	CL9	CL9.4	7	sub-ola de la matriz			0x5eba70 339 inventario: CL9.4 ; paso: CL9.4
+0x5ebbd0	193	CL9	CL9.4	7	sub-ola de la matriz			0x5ebbd0 193 chat: CL9.x ; chat: CL9.x (a identificar) ; paso: CL9.4 sí
+0x5f0b40	152	CL9	CL9.4	7	sub-ola de la matriz			19 0x65dc30 y el renglón " Bienvenido" más el nombre del mapa en el área de mensajes: sprintf("%s%s", texto 484, 0x5f0b40(mapa)) y 0x555190(0x5767978, …, 1) (el texto, v…
+0x5f1890	726	CL9	CL9.5	13	quien la llama			2 FUN_004e0790 expansión de nibbles → mapa/terreno. Desempaqueta 32 B (pkt+4..) en 64 nibbles (par=high, impar=low) y llama FUN_005f1890(0x69c, buf64, 1) C (mecánica) / …
+0x5f1bb0	394	CL9	CL9.4	7	sub-ola de la matriz			usa glBindTexture, glTexImage2D; la llama 0x5f1d40, 0x653750
+0x5f3030	1982	CL9	CL9.4	7	a mano			otras ventanas (el personaje 0x5ee2e0, la party 0x5f0be0, las tiendas 0x5f3030 y 0x5f4720, el almacén
+0x5f37f0	840	CL9	CL9.4	7	a mano			y al final gluOrtho2D(0, W, 0, H)), 0x5f37f0, 0x62db60 (diálogos: el menú de Esc va arriba de todas las
+0x5f3b40	3031	CL9	CL9.4	7	a mano			P-C59 Lo que la UI del juego abre hacia otras olas (barrido de la CL8, 2026-11-12, [plan de la CL8](../../../docs/superpowers/plans/2026-11-12-ola-cl8-hud-y-ventanas.md#…
+0x5f4720	1794	CL9	CL9.3	6	a mano			otras ventanas (el personaje 0x5ee2e0, la party 0x5f0be0, las tiendas 0x5f3030 y 0x5f4720, el almacén
+0x5f4e30	2749	CL9	CL9.3	6	a mano			0x5f4e30, la caja del caos 0x5febf0, el NPC de evento 0x5f58f0 y las del asedio), y en otras 14 la sombra va en
+0x5f58f0	3158	CL9	CL9.5	11	a mano			0x5f4e30, la caja del caos 0x5febf0, el NPC de evento 0x5f58f0 y las del asedio), y en otras 14 la sombra va en
+0x5f6550	2838	CL9	CL9.5	11	a mano			0x5f6550 2838 HUD: CL9.5
+0x5f70a0	191	CL9	CL9.1	2	texto de la matriz			20, …)); si no, 0x5f70a0. 0x633110 (después del primer cursor) es el ítem 3D de los diálogos de NPC y de la
+0x5f7f90	290	CL9	CL9.4	7	lo que llama			0x5f7f90 290 paso: CL9.4
+0x5f8130	234	CL9	CL9.4	7	sub-ola de la matriz			0x5f8130 234 paso: CL9.4
+0x5f8220	24	CL9	CL9.4	7	sub-ola de la matriz			0x5f8220 24 paso: CL9.4
+0x5f8240	24	CL9	CL9.4	7	sub-ola de la matriz			0x5f8240 24 paso: CL9.4
+0x5f8260	48	CL8	CL9.4	7	ajena sin portar			0x5f8260 48 HUD: CL8.4 (B2) ; inventario: — ; paso: CL9.4 sí
+0x5fd120	219	CL9	CL9.3	6	sub-ola de la matriz			0x5fd120 219 paso: CL9.3
+0x5fd200	189	CL8	CL9.3	6	ajena sin portar			0x5fd200 189 inventario: —
+0x5fd4b0	55	CL9	CL9.3	5	a mano			0x5fd4b0 55 paso: CL9.3
+0x5fd4f0	4303	CL9	CL9.3	5	quien la llama			P-C59 Lo que la UI del juego abre hacia otras olas (barrido de la CL8, 2026-11-12, [plan de la CL8](../../../docs/superpowers/plans/2026-11-12-ola-cl8-hud-y-ventanas.md#…
+0x5febf0	3127	CL9	CL9.3	6	a mano			0x5f4e30, la caja del caos 0x5febf0, el NPC de evento 0x5f58f0 y las del asedio), y en otras 14 la sombra va en
+0x607fb0	921	CL9	CL9.3	5	a mano			la llama 0x608350, 0x608880
+0x608350	1023	CL9	CL9.3	5	a mano			0x20 0x4e3831 Actualiza posición de objetos/monstruos: por entrada (ID word + X + Y) escribe la tabla 0x220 B de 0x77f46c8 C callee 0x4d0ba0: count=byte4, stride 0xB; id…
+0x608880	195	CL9	CL9.3	5	texto de la matriz			0x637078 0x608880 los ítems del piso que caen CL9.3
+0x620890	25	CL5	CL9.4	9	ajena sin portar			giro. 0x620850 y 0x620890 prenden la profundidad y su máscara sin limpiarla (Q-C479). Después de los ítems, la
+0x623750	1715	CL9	CL9.4	7	paquete que manda		C1 3F	0x623750 1715 paso: CL9.4
+0x632f70	344	CL9	CL9.1	2	a mano			P-C59 Lo que la UI del juego abre hacia otras olas (barrido de la CL8, 2026-11-12, [plan de la CL8](../../../docs/superpowers/plans/2026-11-12-ola-cl8-hud-y-ventanas.md#…
+0x63b0e3	59	CL9	CL9.5	11	sub-ola de la matriz			0x63b0e3 59 HUD: CL9.5
+0x6485f0	274	CL9	CL9.5	12	texto de la matriz			0x7d536fc lista de CS 0x100000 (0x661090), 0x7d53700 CS 0x200000 (0x6485f0) y 0x7d53704 el diálogo de
+0x648710	33	CL9	CL9.5	11	sub-ola de la matriz			0x648710 33 ventanas: CL9.5
+0x648740	115	CL9	CL9.5	11	sub-ola de la matriz			0x648710 FUN_00648710 6baa50 (0) destructor thunk (FUN_00648740).
+0x6487c0	12	CL9	CL9.5	11	sub-ola de la matriz			0x6487c0 12 ventanas: CL9.5
+0x6487d0	553	CL9	CL9.3	6	paquete que manda		C1 31	0x6487d0 553 ventanas: CL9.5
+0x648a00	45	CL9	CL9.5	12	lo que llama			código muerto: nadie la llama ni la apunta
+0x648a30	5671	CL9	CL9.5	12	paquete que manda		C1 B2 C1 B9	P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego)). Portados el despacho de 0x623e70 (0x623f78..0x6…
+0x64a060	3082	CL9	CL9.5	13	texto de la matriz			dibujo de CS 0x200000 0x64a060 (0x64a9f0) 1+ frame, solo con ese panel (CL9.5)
+0x64aca0	205	CL9	CL9.5	12	a mano			gremio 0x10 (0x64f3e0), 0x7d536f4 gremio 2 0x40000 (0x654900), 0x7d536f8 CS 0x80000 (0x64aca0),
+0x64ad70	33	CL9	CL9.5	12	lo que llama			0x64ad70 33 ventanas: CL9.5
+0x64ada0	112	CL9	CL9.5	12	lo que llama			0x64ad70 FUN_0064ad70 6baa50 (1) destructor thunk (FUN_0064ada0).
+0x64ae10	731	CL9	CL9.5	12	paquete que manda		C1 B2	0x64ae10 731 ventanas: CL9.5
+0x64b0f0	263	CL9	CL9.5	12	opcode	B2		FUN_0064b0f0();
+0x64b200	507	CL9	CL9.3	6	paquete que manda		C1 31	0x64b200 507 ventanas: CL9.5
+0x64b400	760	CL9	CL9.5	12	quien la llama			la llama 0x64b700
+0x64b700	11	CL9	CL9.5	12	quien la llama			la llama 0x64c0b0
+0x64b710	690	CL9	CL9.5	13	quien la llama			0x64b710 690 HUD: CL9.5 / CL9.4
+0x64b9d0	822	CL9	CL9.5	12	quien la llama			la llama 0x64c0b0
+0x64bd10	875	CL9	CL9.5	13	quien la llama			0x64bd10 875 HUD: CL9.5 / CL9.4
+0x64c0b0	1932	CL9	CL9.5	12	paquete que manda		C1 B2	P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego)). Portados el despacho de 0x623e70 (0x623f78..0x6…
+0x64c840	1122	CL9	CL9.5	13	quien la llama			0x64c840 1122 HUD: CL9.5 / CL9.4
+0x64ccd0	960	CL9	CL9.5	12	paquete que manda		C1 B2	usa WS2_32.dll#111, WS2_32.dll#19
+0x64d090	251	CL9	CL9.5	12	quien la llama			(0x5ac8d0: 0x5ac8ea y 0x5ac9d0..0x5acad2), RePág y AvPág (0x64d090), y en 0x59ff10
+0x64d190	246	CL9	CL9.5	13	quien la llama			0x64d190 246 HUD: CL9.5 / CL9.4
+0x64d290	21	CL9	CL9.5	12	opcode	B2		FUN_00555190 (4 sub-casos), 1→FUN_004df080, 2→FUN_004df1a0, 3→FUN_0064d290/d2b0,
+0x64d2b0	16	CL9	CL9.5	12	opcode	B2		B2 0xB2 castle siege (subsistema completo) sub 3 (setter 0x64d2b0)
+0x64d2c0	41	CL9	CL9.5	12	quien la llama			0xB4 0x4e57ad Subcódigo pkt+4: 0 copia texto; 1 inicia carga (FUN_0064d2f0), procesa N=(int)(pkt+8) entradas de 14 B desde pkt+0x16 (nombre 10 B + dword + 2 B) con FUN_0…
+0x64d2f0	15	CL9	CL9.5	12	quien la llama			0xB4 0x4e57ad Subcódigo pkt+4: 0 copia texto; 1 inicia carga (FUN_0064d2f0), procesa N=(int)(pkt+8) entradas de 14 B desde pkt+0x16 (nombre 10 B + dword + 2 B) con FUN_0…
+0x64d300	11	CL9	CL9.5	12	quien la llama			0xB4 0x4e57ad Subcódigo pkt+4: 0 copia texto; 1 inicia carga (FUN_0064d2f0), procesa N=(int)(pkt+8) entradas de 14 B desde pkt+0x16 (nombre 10 B + dword + 2 B) con FUN_0…
+0x64d310	37	CL9	CL9.5	12	quien la llama			0xB5 0x4e57c5 Por sub-tipo pkt[4]: 0/2/3 → muestra mensajes; 1 → procesa N registros de 10 B desde pkt+0xe (count=dword pkt+8) con FUN_0064d310 C/I callee 0x4dfd80: swit…
+0x64d340	15	CL9	CL9.5	12	quien la llama			FUN_004dfd80: switch pkt[4]: 0 → mensaje (0x5767b58/0x76fc1ac); 1 → FUN_0064d340() y bucle de count = dword pkt+8 registros de 10 B desde pkt+0xe: FUN_0064d310(registro,…
+0x64d350	1291	CL9	CL9.5	12	paquete que manda		C1 B4 C1 B5	0x64d350 1291 ventanas: CL9.5
+0x64d860	1505	CL9	CL9.5	13	quien la llama			0x64d860 1505 HUD: CL9.5 / CL9.4 ; ventanas: CL9.5
+0x64de50	8	CL9	CL9.5	12	quien la llama			la llama 0x470360
+0x64de90	82	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x64def0	1621	CL9	CL9.4	8	paquete que manda		C1 52 C1 E1	usa WS2_32.dll#111, WS2_32.dll#19
+0x64e550	36	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x64e600	3006	CL9	CL9.4	8	paquete que manda		C1 52 C1 E1	usa WS2_32.dll#111, WS2_32.dll#19
+0x64f1c0	532	CL9	CL9.4	8	quien la llama			sin texto que la describa
+0x64f3e0	777	CL9	CL9.4	8	a mano			gremio 0x10 (0x64f3e0), 0x7d536f4 gremio 2 0x40000 (0x654900), 0x7d536f8 CS 0x80000 (0x64aca0),
+0x64f6f0	33	CL9	CL9.4	8	lo que llama			0x64f6f0 33 ventanas: CL9.4
+0x64f720	886	CL9	CL9.4	8	lo que llama			la llama 0x64f6f0
+0x64faa0	101	CL9	CL9.4	8	quien la llama			la llama 0x64fc00, 0x650350
+0x64fbd0	37	CL9	CL9.4	8	quien la llama			la llama 0x651840, 0x6522f0
+0x64fc00	493	CL9	CL9.4	8	quien la llama			la llama 0x651840
+0x64fdf0	1364	CL9	CL9.4	8	texto de la matriz			Gremio 6baa50+8 (obj DAT_07d536f0, ctor FUN_0064f3e0) FUN_00651c20, 3 pestañas (FUN_0064fdf0/006507d0/00651400), "Score: %d" alta
+0x650350	1138	CL9	CL9.4	8	quien la llama			RePág 0x21 0x59ff10 (0x5a00a3) P 0x64d090 (0x64d0d6, 0x64d127) P; 0x650350 (0x650387) V
+0x6507d0	89	CL9	CL9.4	8	sub-ola de la matriz			- 0 → FUN_0064fdf0, 1 → FUN_006507d0, 2 → FUN_00651400.
+0x650830	991	CL9	CL9.4	8	paquete que manda		C1 EB	usa WS2_32.dll#111, WS2_32.dll#19
+0x650c10	2023	CL9	CL9.4	8	paquete que manda		C1 E5	usa WS2_32.dll#111, WS2_32.dll#19; la llama 0x651840
+0x651400	586	CL9	CL9.4	8	sub-ola de la matriz			- 0 → FUN_0064fdf0, 1 → FUN_006507d0, 2 → FUN_00651400.
+0x651650	34	CL9	CL9.4	8	quien la llama			la llama 0x4d7b60
+0x651680	259	CL9	CL9.4	8	sub-ola de la matriz			sprintf(buffer de 100, texto 483, texto) (Q-C514), 0x554610(buffer, 1) y 0x651680 sobre [0x7d536f0], la
+0x651790	15	CL9	CL9.4	8	sub-ola de la matriz			0x651790 15 ventanas: CL9.4
+0x6517a0	43	CL9	CL9.4	8	quien la llama			0x52 0x4e4249 Delega a FUN_004d7b60: inicializa UI (FUN_006517d0/1830/1650) y rellena la tabla DAT_0787a5f0 (registros de 0xe B) con pkt[5] registros de 0xd B leídos des…
+0x6517d0	15	CL9	CL9.4	8	quien la llama			0x52 0x4e4249 Delega a FUN_004d7b60: inicializa UI (FUN_006517d0/1830/1650) y rellena la tabla DAT_0787a5f0 (registros de 0xe B) con pkt[5] registros de 0xd B leídos des…
+0x6517e0	37	CL9	CL9.4	8	quien la llama			0xE9 0x4e452f Expande count (byte4) entradas de 41 B: 33 B → 64 nibbles y procesa con FUN_006517e0 C callee 0x4d9e50: gate byte5==1 y byte4≠0; stride 0x29; loop 0x40 nib…
+0x651830	15	CL4	CL9.4	8	ajena sin portar			con gestión de cola +0x2010 y errores "Send Packet Error"); FUN_00651830(). Si
+0x651840	988	CL9	CL9.4	8	paquete que manda		C1 E9	0x651840 988 ventanas: CL9.4
+0x651c20	1708	CL9	CL9.4	8	lo que llama			0x651c20 1708 ventanas: CL9.4
+0x6522d0	12	CL9	CL9.4	8	sub-ola de la matriz			0x6522d0 12 ventanas: CL9.4
+0x6522e0	4	CL9	CL9.4	8	texto de la matriz			0x10 gremio (G) 0x6522e0() CL9.4
+0x6522f0	50	CL9	CL9.4	8	lo que llama			0x6522f0 50 ventanas: CL9.4
+0x6535c0	397	CL9	CL9.4	8	sub-ola de la matriz			la llama 0x654f80, 0x655c10
+0x653750	393	CL9	CL9.4	8	sub-ola de la matriz			usa SelectObject; la llama 0x655130, 0x655c70
+0x653c00	3328	CL9	CL9.4	8	paquete que manda		C1 E6	usa WS2_32.dll#111, WS2_32.dll#19
+0x654900	438	CL9	CL9.4	8	a mano			gremio 0x10 (0x64f3e0), 0x7d536f4 gremio 2 0x40000 (0x654900), 0x7d536f8 CS 0x80000 (0x64aca0),
+0x654ac0	33	CL9	CL9.4	8	sub-ola de la matriz			0x654ac0 33 ventanas: CL9.4
+0x654af0	885	CL9	CL9.4	8	sub-ola de la matriz			la llama 0x654ac0
+0x654e70	28	CL9	CL9.4	8	sub-ola de la matriz			la llama 0x654f80
+0x654e90	27	CL9	CL9.4	8	sub-ola de la matriz			la llama 0x654f80, 0x655c10
+0x654eb0	72	CL9	CL9.4	8	quien la llama			la llama 0x654f80, 0x6552b0, 0x655c10
+0x654f00	72	CL9	CL9.4	8	sub-ola de la matriz			la llama 0x654f80, 0x655c10
+0x654f50	43	CL9	CL9.4	8	quien la llama			la llama 0x6570b0
+0x654f80	431	CL9	CL9.4	8	lo que llama			> Nota: 0x655120 (5º VA de la lista) no pertenece a este dispatcher. Cae dentro de FUN_00654f80 (entry 0x00654f80), que es el procesador de entrada de chat/comando (case…
+0x655130	378	CL9	CL9.4	8	sub-ola de la matriz			usa SelectObject; la llama 0x656e70
+0x6552b0	2060	CL9	CL9.4	8	paquete que manda		C1 54 C1 55	usa WS2_32.dll#111, WS2_32.dll#19; la llama 0x656df0
+0x655ac0	327	CL9	CL9.4	8	texto de la matriz			gremio" (DAT_0743a170+0x368 == -1); tab 3 FUN_00655ac0 dibuja un emblema (bitmap 0x22).
+0x655c10	96	CL9	CL9.4	8	lo que llama			la llama 0x656df0
+0x655c70	252	CL9	CL9.4	8	sub-ola de la matriz			textos: "%s ( Score:%d )"; usa SelectObject; la llama 0x656e70
+0x655d70	1634	CL9	CL9.4	8	paquete que manda		C1 54	usa WS2_32.dll#111, WS2_32.dll#19; la llama 0x656df0
+0x6563e0	501	CL9	CL9.4	8	sub-ola de la matriz			switch(DAT_07d536ec) (4 pestañas). Tab 0 FUN_006563e0 imprime "Score: %d" +
+0x6565e0	2057	CL9	CL9.4	8	opcode	E5	C1 E6	0xE5 0x4e4444 Reenvía los 4 bytes pkt+3..6 dentro de un paquete C1 op 0xE6 cifrado (tabla XOR estándar) hacia el servidor. C asm (4 bytes a FUN_006565e0) + decompile (bu…
+0x656df0	102	CL9	CL9.4	8	lo que llama			0x656df0 102 ventanas: CL9.4
+0x656e70	528	CL9	CL9.4	8	lo que llama			0x656e70 528 ventanas: CL9.4
+0x657090	12	CL9	CL9.4	8	sub-ola de la matriz			0x657090 12 ventanas: CL9.4
+0x6570b0	825	CL9	CL9.4	8	paquete que manda		C1 54	0x6570b0 825 ventanas: CL9.4
+0x6576a0	480	CL8	CL9.4	8	ajena sin portar			0x6576a0 480 HUD: CL9.5 / CL9.4 ; ventanas: CL8.3 sí
+0x6579e0	163	CL9	CL9.5	13	lo que llama			Por frame (0x6371a0, el 2D en 0x637646..0x6376e6): 0x5a7320 (el HUD, que llama a 0x5f7440 → 0x6579e0,
+0x65cc50	41	CL9	CL9.4	7	sub-ola de la matriz			0x65cc50 41 ventanas: CL9.4
+0x65cc80	151	CL9	CL9.4	7	sub-ola de la matriz			la llama 0x65cc50
+0x65cd20	23	CL9	CL9.4	7	sub-ola de la matriz			0x65cd20 23 ventanas: CL9.4
+0x65feb0	304	CL9	CL9.4	8	a mano			los paneles (0x65feb0, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de texto).
+0x660090	51	CL8	CL9.4	8	ajena sin portar			0x660090 51 ventanas: CL8.3
+0x6600d0	378	CL9	CL9.4	8	a mano	B2		P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego)). Portados el despacho de 0x623e70 (0x623f78..0x6…
+0x660250	34	CL9	CL9.5	12	quien la llama			la llama 0x668100
+0x6602a0	16	CL9	CL9.5	12	quien la llama			0x15 FUN_004e00c0 diálogos con timer (FUN_006602a0(30000-…), cuenta regresiva) C
+0x6602b0	19	CL9	CL9.4	8	quien la llama			la llama 0x650350
+0x6602d0	104	CL9	CL9.5	12	quien la llama			la llama 0x648a00, 0x667a20, 0x667a40
+0x660340	4	CL8	CL9.4	8	ajena sin portar			0x660340 4 ventanas: CL8.3
+0x660350	108	CL8	CL9.4	8	ajena sin portar			0x660350 108 ventanas: CL8.3
+0x660410	364	CL9	CL9.4	8	a mano			- Teclas de los paneles: 0x657880(vk) le da la tecla primero al diálogo (0x660410); con Esc cierra el abierto
+0x660580	35	CL8	CL9.4	8	ajena sin portar			0x660580 35 ventanas: CL8.3
+0x6605b0	632	CL9	CL9.4	8	a mano			P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego)). Portados el despacho de 0x623e70 (0x623f78..0x6…
+0x660830	1095	CL9	CL9.4	8	a mano			P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego)). Portados el despacho de 0x623e70 (0x623f78..0x6…
+0x660cb0	102	CL9	CL9.5	12	quien la llama			la llama 0x663b20, 0x666190
+0x660d20	115	CL9	CL9.5	12	quien la llama			la llama 0x662d50, 0x664ce0
+0x660da0	120	CL9	CL9.5	12	quien la llama			0x660da0 120 HUD: CL9.5 / CL9.4
+0x660e20	133	CL9	CL9.5	13	quien la llama			0x660e20 133 HUD: CL9.5 / CL9.4
+0x660eb0	115	CL9	CL9.5	13	quien la llama			0x660eb0 115 HUD: CL9.5 / CL9.4
+0x660f30	37	CL9	CL9.5	12	quien la llama			0x660f30 37 HUD: CL9.5 / CL9.4
+0x660f60	119	CL9	CL9.5	13	quien la llama			0x660f60 119 HUD: CL9.5 / CL9.4
+0x660fe0	60	CL9	CL9.5	13	quien la llama			0x660fe0 60 HUD: CL9.5 / CL9.4
+0x661020	36	CL9	CL9.5	12	quien la llama			0x661020 36 HUD: CL9.5 / CL9.4
+0x661050	64	CL9	CL9.5	13	quien la llama			0x661050 64 HUD: CL9.5 / CL9.4
+0x661090	420	CL9	CL9.5	12	a mano			0x7d536fc lista de CS 0x100000 (0x661090), 0x7d53700 CS 0x200000 (0x6485f0) y 0x7d53704 el diálogo de
+0x661240	33	CL9	CL9.5	11	sub-ola de la matriz			0x661240 33 ventanas: CL9.5
+0x661270	160	CL9	CL9.5	11	sub-ola de la matriz			la llama 0x661240
+0x661310	2116	CL9	CL9.5	12	paquete que manda		C1 B2 C1 B3	0x661310 2116 ventanas: CL9.5
+0x661b60	45	CL9	CL9.3	6	quien la llama			la llama 0x661bc0, 0x6691c0
+0x661bc0	1099	CL9	CL9.3	6	paquete que manda		C1 31 C1 87	0x661bc0 1099 ventanas: CL9.5
+0x662010	975	CL9	CL9.5	13	lo que llama			0x662010 975 HUD: CL9.5 / CL9.4
+0x6623e0	2413	CL9	CL9.5	12	paquete que manda		C1 B2	usa WS2_32.dll#111, WS2_32.dll#19
+0x662d50	1775	CL9	CL9.5	12	paquete que manda		C1 B2	usa WS2_32.dll#111, WS2_32.dll#19
+0x663440	1747	CL9	CL9.5	12	paquete que manda		C1 B2	usa WS2_32.dll#111, WS2_32.dll#19
+0x663b20	1054	CL9	CL9.5	12	quien la llama			la llama 0x6691c0
+0x663f40	1071	CL9	CL9.5	13	lo que llama			0x663f40 1071 HUD: CL9.5 / CL9.4
+0x664370	2413	CL9	CL9.5	12	paquete que manda		C1 B2	usa WS2_32.dll#111, WS2_32.dll#19
+0x664ce0	1775	CL9	CL9.5	12	paquete que manda		C1 B2	usa WS2_32.dll#111, WS2_32.dll#19
+0x6653d0	1747	CL9	CL9.5	12	paquete que manda		C1 B2	usa WS2_32.dll#111, WS2_32.dll#19
+0x665ab0	1747	CL9	CL9.5	12	paquete que manda		C1 B2	usa WS2_32.dll#111, WS2_32.dll#19
+0x666190	1216	CL9	CL9.5	12	quien la llama			la llama 0x6691c0
+0x666650	1245	CL9	CL9.5	13	lo que llama			0x666650 1245 HUD: CL9.5 / CL9.4
+0x666b30	3810	CL9	CL9.5	12	paquete que manda		C1 B2	usa WS2_32.dll#111, WS2_32.dll#19
+0x667a20	27	CL9	CL9.5	12	lo que llama			código muerto: nadie la llama ni la apunta
+0x667a40	1719	CL9	CL9.5	12	paquete que manda		C1 B2	usa WS2_32.dll#111, WS2_32.dll#19
+0x668100	292	CL9	CL9.5	12	quien la llama			la llama 0x6691c0
+0x668230	1937	CL9	CL9.5	13	quien la llama			0x668230 1937 HUD: CL9.5 / CL9.4
+0x6689f0	857	CL9	CL9.3	6	paquete que manda		C1 86	usa WS2_32.dll#111, WS2_32.dll#19; la llama 0x6691c0
+0x668d50	634	CL9	CL9.5	13	quien la llama			0x668d50 634 HUD: CL9.5 / CL9.4
+0x668fd0	86	CL9	CL9.5	12	texto de la matriz			DAT_07d5c640/644 (castle siege). El handler 0xB3 → FUN_00668fd0 escribe
+0x669030	53	CL9	CL9.5	12	opcode	B2		4→mensajes, 5→FUN_004df7d0, 6→FUN_00669030 (+copia dwords [0x10]/[0x14]), 7→FUN_004df950,
+0x669070	116	CL9	CL9.5	12	opcode	B2		8→FUN_00669070, 9→FUN_006690f0 (+dword [6..9] a DAT_07d53700+0x18), 0x10→FUN_00669160,
+0x6690f0	107	CL9	CL9.5	12	opcode	B2		8→FUN_00669070, 9→FUN_006690f0 (+dword [6..9] a DAT_07d53700+0x18), 0x10→FUN_00669160,
+0x669160	82	CL9	CL9.5	12	opcode	B2		8→FUN_00669070, 9→FUN_006690f0 (+dword [6..9] a DAT_07d53700+0x18), 0x10→FUN_00669160,
+0x6691c0	740	CL9	CL9.5	12	a mano			0x6691c0 740 ventanas: CL9.5
+0x6694c0	1736	CL9	CL9.5	13	lo que llama			0x6694c0 1736 HUD: CL9.5 / CL9.4 ; ventanas: CL9.5
+0x66ab30	495	CL9	CL9.4	7	a mano			código muerto: la llama 0x66ad70

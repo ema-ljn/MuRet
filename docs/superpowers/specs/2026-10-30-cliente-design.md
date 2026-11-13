@@ -222,7 +222,7 @@ Cada sub-ola es un PR chico. "Terminada cuando" es la condición objetiva de cie
 | CL6 | Modelos y selección de personaje | CL6.0 huesos y cuaterniones (rotaciones, slerp, una jerarquía de huesos y el skinning, a mano contra glm) · CL6.R lectura guiada del render de modelos (P-C01, ya reproducido contra las trazas) y flujo `F3` (P-C06) · CL6.1 parseo de modelos · CL6.2 skinning y animación · CL6.3 `CharacterSelectScene` con preview 3D y los paquetes de selección · CL6.4 el logo y el personaje del login · CL6.5 crear y borrar personajes (`F3 01`, `F3 02`) con la barra de la selección, la ventana de crear y su vista previa · CL6.6 la tela de la clase 4 (la capa del Dark Lord), exacta del binario | jerarquías de huesos, interpolación, cuaterniones | 05, 06, 08 |
 | CL7 | Mundo | CL7.R lectura guiada del renderer de terreno (P-C02, ya identificado y verificado), y qué mapas conoce el original y cómo pasa de uno a otro (P-C12), con el barrido del login (abajo) · **arranca por el login**: el mundo del mapa 55, el dragón, la base de los efectos con los del login y el cuervo, con la cámara fija de la escena 2 · CL7.1 terreno con capas, alfa y luz · CL7.2 objetos del `.obj` · CL7.3 cámara · CL7.4 picking y movimiento (`0xD3`/`0xD7`): caminar en Lorencia · CL7.5 los otros mapas: cargar cualquier mundo del `Data\`, cambiar de mapa (gates y warps) y lo propio de cada uno · CL7.6 los efectos del mundo y de los personajes (lo que dejó la CL6, abajo) | mallas, frustum culling, rayos | 05, 06 |
 | CL8 | HUD y ventanas | CL8.1 el HUD (barras, números, cursor, teclas, /move y captura) · CL8.2 chat · CL8.3 los paneles, los diálogos del juego y los dos administradores de ventanas · CL8.4 inventario, tooltips y ventana del personaje | UI retenida vs inmediata, el foco del mouse, eventos | 06 |
-| CL9 | Gameplay | CL9.R por dominio (P-C09), y los mapas de evento (P-C12) · CL9.1 otros jugadores y monstruos (viewport) · CL9.2 combate y skills · CL9.3 items · CL9.4 party, gremio y comercio · CL9.5 los mapas de evento que conozca el original: entrada, reglas, paquetes y UI | modelado de dominio, consistencia con el servidor | 04 |
+| CL9 | Gameplay | CL9.R por dominio (P-C09), y los mapas de evento (P-C12) · CL9.1 otros jugadores, monstruos y NPC (viewport), el emote y las misiones · CL9.2 combate, skills, cuervo y mascotas · CL9.3 items del piso, usar y tirar, tiendas de NPC, almacén y caja del caos · CL9.4 party, comercio, duelo, tiendas personales, gremio, amigos y correo · CL9.5 los mapas de evento que conozca el original y Castle Siege: entrada, reglas, paquetes y UI | modelado de dominio, consistencia con el servidor | 04 |
 | CL10 | Audio | CL10.R formatos y disparadores (P-C07) · CL10.1 música · CL10.2 efectos | audio digital, mezcla, streaming | 08 |
 | CL11 | Efectos visuales completos | CL11.R inventario de familias, casos y consumidores que no cubran ya CL7.6, CL8 o CL9 · CL11.1 joints y estelas · CL11.2 cintas · CL11.3 casos restantes de efectos con modelo, sprites y partículas · CL11.4 efectos visuales de combate, skills y eventos, conectados a sus disparadores de CL9 | ciclos de vida, pools, orden de pases y estado de GL | 06, 08 |
 
@@ -412,6 +412,25 @@ y cambió la forma de la ola:
    HUD, el chat, el inventario, los tooltips y la ventana del personaje, los diálogos con el menú de Esc y las
    teclas, las ventanas viejas, y la UI nueva con el Esc, las opciones y los créditos del login y la selección.
 4. **Usar y tirar ítems** (`26`, `23`) quedan en la CL9.3, con los ítems del piso.
+
+### El gameplay (CL9)
+
+Plan: [`2026-11-13-ola-cl9-gameplay.md`](../plans/2026-11-13-ola-cl9-gameplay.md), con la tabla de
+[funciones](../plans/2026-11-13-ola-cl9-funciones.tsv) y la de [cortes](../plans/2026-11-13-ola-cl9-cortes.tsv).
+El barrido (2026-11-13) repartió las 1.014 funciones de la CL9 de la matriz (469 KB), las 127 de otras olas sin
+portar que solo llama la CL9 (48 KB) y los 240 cortes de MuRet hacia la CL9:
+
+1. **Nadie entra al viewport:** MuRet no registra ningún handler de la CL9, así que en un servidor real el héroe
+   está solo. Los hitos 1 y 2 (otros jugadores; monstruos, NPC y misiones) son el portón de la ola.
+2. **El emote abre la ola** (hito 1): `0x576eb0` busca 95 textos, 15 de ellos literales del binario que la CL8
+   no mira (`;`, `^^`…), y con el héroe parado manda dos `C1 18` iguales.
+3. **Trece hitos, un PR por hito:** el emote y los otros jugadores; monstruos, NPC y misiones; atacar, el daño
+   y la muerte; las skills, el cuervo y las mascotas; los ítems del piso; las tiendas de NPC, el almacén y la
+   caja del caos; la party, el comercio, el duelo, las tiendas personales y los comandos; el gremio; los
+   amigos; el chat entre amigos y las cartas; los eventos; y Castle Siege en dos (las ventanas y la batalla).
+4. **La matriz se equivoca en diez opcodes** de la tabla del generador (`0x20`, `0x5D`, `0x3F`, `0x51`, `0xCA`,
+   `0x9C`, `0xA3`, `0x9F`, `0x0B`, `0x2C`, `0xA9`): el plan usa las sub-olas corregidas y el generador se
+   corrige con la revisión independiente de la CL.M.
 
 ## Cómo el research se vuelve test
 

@@ -1,0 +1,241 @@
+funcion	ola_de_la_funcion	corte	sub_ola	hito	donde	linea
+0x404e20	CL7	0x404e20	CL9.5	11	Client/src/Scenes/WorldRuntime.h:246	// paquete de 0x404e20 la vuelve a armar (CL9.5).
+0x406050	CL8	0x406050	CL9.4	7	Client/src/UI/PanelRegistry.h:76	// +8: a quién va el comando. Lo pone el comando de 0x406050 (0x406097.., CL9.4); MuRet lo deja en −1.
+0x406050	CL8	0x406097	CL9.4	7	Client/src/Scenes/GameCommandsWindow.cpp:147	std::format("0x406097: el comando {} sobre el personaje elegido es de la CL9.4", window.chosen));
+0x406050	CL8	0x406097	CL9.4	7	Client/src/UI/PanelRegistry.h:76	// +8: a quién va el comando. Lo pone el comando de 0x406050 (0x406097.., CL9.4); MuRet lo deja en −1.
+0x40a650	CL8	0x40aa8d	CL9.4	7	Client/src/Scenes/GameCommandsWindow.cpp:345	std::string("0x40aa8d: el nombre del personaje elegido junto al mouse (0x65b) es de la CL9.4"));
+0x40bab0	CL8	0x40bab0	CL9.5	11	Client/src/Scenes/GameHud.cpp:805	return Core::Unexpected(std::format("0x40bab0: la cuenta del evento ({}) es de la CL9.5", event.field08));
+0x40c140	CL7	0x40c140	CL9.5	11	Client/src/Scenes/GameHanging.cpp:1095	// los paquetes, sin portar (CL9.5): el 0x12 (0x4c89e1) y 0x40c140 copian un byte, y 0x42ab40, 0x42ad50 y 0x42ae60
+0x4125a0	CL8	0x4125a0	CL9.5	12	Client/src/Scenes/GameUi.cpp:953	return Core::Unexpected(std::string("0x4125a0: el paso del panel del asedio con gremio es de la CL9.5"));
+0x413ca0	CL8	0x413ca0	CL9.5	12	Client/src/Scenes/GameHud.cpp:1518	return Core::Unexpected(std::string("0x413ca0: la UI de Castle Siege es de la CL9.5"));
+0x416a20	CL7	0x416a20	CL9.2	4	Client/src/Scenes/CharacterStep.cpp:653	// 0x416a20 y el objetivo de +0x3b0), sin portar (CL9). Nada de MuRet los pone.
+0x4182f0	CL7	0x41835a	CL9.2	4	Client/src/Scenes/GameCharacterEffects.cpp:683	// 0x41835a: 0x418920, con las órdenes del A7 (CL9).
+0x418920	CL7	0x418920	CL9.2	4	Client/src/Scenes/GameCharacterEffects.cpp:683	// 0x41835a: 0x418920, con las órdenes del A7 (CL9).
+0x41b5a0	CL8	0x41b5a0	CL9.1	2	Client/src/Scenes/GameUi.cpp:909	return Core::Unexpected(std::string("0x41b5a0: el paso del quest es de la CL9.1"));
+0x41b9e0	CL8	0x41b9e0	CL9.1	2	Client/src/Scenes/GameHud.cpp:1005	return Core::Unexpected(std::string("0x41b9e0: el ítem de la ventana de las misiones es de la CL9.1"));
+0x421db0	CL7	0x421db0	CL9.2	4	Client/src/Scenes/WorldRuntime.h:299	// [0x723968], el nivel del cuervo: la mascota 0 de 0x421db0 (el A9 con el tipo 0, sin portar, CL9). Lo lee el
+0x421db0	CL7	0x421e9e	CL9.2	4	Client/src/Scenes/WorldRuntime.h:296	// lugar 8, 0x421e9e), sin portar (CL9), y lo leen 0x4225d0 (el byte de abajo) y 0x422930. Queda en el 0 de
+0x4225d0	CL7	0x4225d0	CL9.2	4	Client/src/Scenes/WorldRuntime.h:296	// lugar 8, 0x421e9e), sin portar (CL9), y lo leen 0x4225d0 (el byte de abajo) y 0x422930. Queda en el 0 de
+0x422930	CL8	0x422930	CL9.2	4	Client/src/Scenes/WorldRuntime.h:296	// lugar 8, 0x421e9e), sin portar (CL9), y lo leen 0x4225d0 (el byte de abajo) y 0x422930. Queda en el 0 de
+0x422990	CL8	0x422990	CL9.2	4	Client/src/Scenes/ItemTooltips.cpp:244	return Core::Unexpected(std::format("0x4229d4: el tooltip del {:#x} (0x422990) y la A9 que pide son de la CL9 "
+0x422990	CL8	0x4229d4	CL9.2	4	Client/src/Scenes/ItemTooltips.cpp:244	return Core::Unexpected(std::format("0x4229d4: el tooltip del {:#x} (0x422990) y la A9 que pide son de la CL9 "
+0x424130	CL8	0x424130	CL9.2	4	Client/src/Scenes/GameUi.cpp:654	// (la respuesta del A9, que MuRet no lee), la ventana de la mascota es de la CL9.2. 0x416660, desde 0x424130 con 2,
+0x424230	CL8	0x424759	CL9.2	4	Client/src/Scenes/GameUi.cpp:683	return Core::Unexpected(std::string("0x424759: la ventana de la mascota (0x723911 en 2) es de la CL9.2"));
+0x4294b0	CL7	0x4294b0	CL9.5	12	Client/src/Scenes/WorldObjectsDrawing.h:150	// 0x4294b0, el byte del asedio (0x7239ec): apagado hasta que un paquete lo prende (CL9.5).
+0x4294c0	CL7	0x4294c0	CL9.5	11	Client/src/Scenes/MapLoad.cpp:282	// (EncTerrain31.att y TerrainLight.jpg); prendido, que solo lo dejan los paquetes de 0x4294c0 (CL9.5), no.
+0x4294c0	CL7	0x4294c0	CL9.5	12	Client/src/Scenes/WorldRuntime.h:184	// ponen en 0 la carga del 30 (0x42a795) y 0x4294c0 (los paquetes del asedio, CL9.5).
+0x42a760	CL7	0x42a78e	CL9.1	2	Client/src/Scenes/MapLoad.cpp:153	// que también pone en 0 (0x42a78e), lo leen solo 0x42d890 y 0x42da90 con los monstruos 0x11e y 0x11f (CL9.1).
+0x42a760	CL7	0x42a795	CL9.5	12	Client/src/Scenes/WorldRuntime.h:184	// ponen en 0 la carga del 30 (0x42a795) y 0x4294c0 (los paquetes del asedio, CL9.5).
+0x42ab40	CL7	0x42ab40	CL9.5	11	Client/src/Scenes/GameHanging.cpp:1095	// los paquetes, sin portar (CL9.5): el 0x12 (0x4c89e1) y 0x40c140 copian un byte, y 0x42ab40, 0x42ad50 y 0x42ae60
+0x42ad50	CL7	0x42ad50	CL9.5	11	Client/src/Scenes/GameHanging.cpp:1095	// los paquetes, sin portar (CL9.5): el 0x12 (0x4c89e1) y 0x40c140 copian un byte, y 0x42ab40, 0x42ad50 y 0x42ae60
+0x42ae60	CL7	0x42ae60	CL9.5	11	Client/src/Scenes/GameHanging.cpp:1095	// los paquetes, sin portar (CL9.5): el 0x12 (0x4c89e1) y 0x40c140 copian un byte, y 0x42ab40, 0x42ad50 y 0x42ae60
+0x42b480	CL7	0x42b480	CL9.5	11	Client/src/World/CastleSiegeObjectStep.h:61	// 0x518cf0 y el sonido 0x1ec, CL9.5). Después, siempre, 0x42b480 (ApplyCastleSiegeObjectState).
+0x42c850	CL7	0x42c977	CL9.5	12	Client/src/World/CastleSiegeObjectStep.h:54	// en 0x42c977 (lee 0x7239e4, CL9.5). Sin el byte del asedio en `globals`, corta antes de tocar el objeto.
+0x42da90	CL7	0x42da90	CL9.1	2	Client/src/Scenes/MapLoad.cpp:153	// que también pone en 0 (0x42a78e), lo leen solo 0x42d890 y 0x42da90 con los monstruos 0x11e y 0x11f (CL9.1).
+0x42fdc0	CL7	0x42fdc0	CL9.5	11	Client/src/Scenes/WorldRuntime.h:56	// (CL9.5) y la vuelta a la selección (0x42fdc0).
+0x42fdc0	CL7	0x42fe32	CL9.5	11	Client/src/Scenes/ReturnToSelection.cpp:43	// Crywolf (0x42fe32) y su etapa (0x723c05). 0x723c08, que también pone en 0, solo lo escriben paquetes (CL9.5).
+0x42fe50	CL7	0x42fe50	CL9.5	11	Client/src/Scenes/WorldRuntime.h:58	// 0x723c04: el estado del evento que lee 0x42fe50. Lo cambia solo el paquete de 0x42fe80 (CL9.5) y lo vuelve
+0x4306a0	CL7	0x430a33	CL9.5	11	Client/src/Scenes/CrywolfObjectServices.cpp:228	// 0x430a33: con el estado en 2, dos 0x4ecc30 de la malla 0 con la luz de 0x723c08 (CL9.5).
+0x4383f0	CL8	0x4383f0	CL9.5	11	Client/src/Scenes/WorldRuntime.h:212	// (0x4fd603, que MuRet corta: CL9.5) y la vacía su dibujo (0x4383f0) en cada frame del juego.
+0x44aca0	CL8	0x44aca9	CL9.3	6	Client/src/Scenes/GameUi.cpp:842	return cut("0x44aca9: soltar el ítem del cursor en la caja del entrenador (0x723c80) es de la CL9.3");
+0x44ad10	CL8	0x44ad10	CL9.3	6	Client/src/Scenes/GameUi.cpp:707	return cut("0x44ad10: la grilla de la caja del entrenador (0x723c80) es de la CL9.3");
+0x44ad40	CL8	0x44ad40	CL9.3	6	Client/src/Scenes/GameInventoryHud.cpp:671	std::string("0x5f782b: 0x44ad40, los ítems de la caja del entrenador (0x723c80) son de la CL9.3"));
+0x44ad40	CL8	0x44ad40	CL9.3	6	Client/src/Scenes/GameInventoryHud.cpp:708	std::string("0x5f7b03: 0x44ad40, las cifras de la caja del entrenador (0x723c80) son de la CL9.3"));
+0x44b4e0	CL8	0x44b4e0	CL9.3	6	Client/src/Scenes/GameUi.cpp:887	return Core::Unexpected(std::string("0x44b4e0: el paso del NPC de la caja 0x723c80 es de la CL9.3"));
+0x44dd50	CL8	0x44dd50	CL9.5	12	Client/src/Scenes/GameUi.cpp:890	return Core::Unexpected(std::string("0x44dd50: el paso del arma y de la puerta del asedio es de la CL9.5"));
+0x4516d0	CL8	0x4516d0	CL9.4	7	Client/src/Scenes/ChatBubbles.cpp:197	// 0x557701..0x557722: las tiendas personales (0x451720 y 0x4516d0) no tienen ninguna hasta la CL9.4.
+0x451720	CL8	0x451720	CL9.4	7	Client/src/Scenes/ChatBubbles.cpp:197	// 0x557701..0x557722: las tiendas personales (0x451720 y 0x4516d0) no tienen ninguna hasta la CL9.4.
+0x451770	CL8	0x451770	CL9.3	6	Client/src/Scenes/GameHover.h:61	// 0x7245c8 (0x451770), en un globo como el NPC; si no, con un ítem del piso elegido, su nombre (0x5ba790, CL9.3,
+0x451d10	CL8	0x451d10	CL9.4	7	Client/src/Scenes/ChatBubbleDraw.cpp:190	// 0x5563a4..0x5565ef: 0x451d10 y 0x451810, el título de una tienda personal, que MuRet no tiene (CL9.4).
+0x451d10	CL8	0x451d10	CL9.5	11	Client/src/Scenes/GameHud.cpp:1504	// 13. 0x451d10 y 0x451c20: los carteles del singleton de 0x7245c8 (CL9.5).
+0x48ee60	CL8	0x48ee60	CL9.4	9	Client/src/UI/OldWindows.h:27	// En la CL8 nadie arma una ventana vieja: los que llaman a la fábrica (0x48ee60) son de la CL9.4 (la ventana de
+0x490200	CL8	0x490200	CL9.4	9	Client/src/UI/OldWindows.h:233	// +0xf0: la ventana de una carta (CL9.4); 0x490200 la vuelve a 0.
+0x490200	CL8	0x49022a	CL9.4	9	Client/src/UI/OldWindows.cpp:956	return Core::Unexpected(std::string("0x49022a: soltar la ventana de amigos es de la CL9.4"));
+0x490490	CL8	0x4905a2	CL9.4	9	Client/src/UI/OldWindows.cpp:927	return Core::Unexpected(std::string("0x4905a2: la ventana de amigos (+0x48) es de la CL9.4"));
+0x490a00	CL8	0x490a00	CL9.4	9	Client/src/UI/PanelRegistry.h:91	// 1: 0x490a00(*(0x5763514)+0x48), la de amigos del administrador viejo (hito 7, CL9.4).
+0x491080	CL8	0x491080	CL9.4	9	Client/src/UI/OldWindows.cpp:1012	return Core::Unexpected(std::string("0x491080: abrir la ventana de amigos (0x186, 0x106) es de la CL9.4"));
+0x49e6e0	CL8	0x49e6e0	CL9.4	9	Client/src/UI/OldWindows.cpp:797	return Core::Unexpected(std::string("0x49e6e0: anotar la caja en la ventana de amigos es de la CL9.4"));
+0x4a3b80	CL8	0x4a3bde	CL9.4	7	Client/src/UI/OldWindows.cpp:378	message.a == YesCommand ? "0x4a3bde: la respuesta C1 C2 01 a un pedido de amistad es de la CL9.4"
+0x4a3b80	CL8	0x4a3fc8	CL9.4	7	Client/src/UI/OldWindows.cpp:379	: "0x4a3fc8: la respuesta C1 C2 01 a un pedido de amistad es de la CL9.4"));
+0x4a4eb0	CL8	0x4a4eb0	CL9.4	7	Client/src/UI/OldWindows.cpp:413	std::string("0x4a4eb0: la lista de ventanas a la vista (sus renglones) es de la CL9.4"));
+0x4a5490	CL8	0x4a5537	CL9.4	7	Client/src/UI/OldWindowDraw.cpp:346	// 0x4a5537: sin entradas (+0xdc, que solo llena la CL9.4), nada más.
+0x4af4e0	CL3	0x4b555f	CL9.4	7	Client/src/Scenes/GameChat.cpp:385	// 0x4b555f..0x4b561e: 0x77f3b6a (un número para un diálogo), 0x78aba60 en 1 (0x5ebbd0, CL9.4) y 0x77f3b6b (el
+0x4af4e0	CL3	0x4b561e	CL9.4	7	Client/src/Scenes/GameChat.cpp:385	// 0x4b555f..0x4b561e: 0x77f3b6a (un número para un diálogo), 0x78aba60 en 1 (0x5ebbd0, CL9.4) y 0x77f3b6b (el
+0x4c8860	CL7	0x4c89e1	CL9.5	11	Client/src/Scenes/GameHanging.cpp:1095	// los paquetes, sin portar (CL9.5): el 0x12 (0x4c89e1) y 0x40c140 copian un byte, y 0x42ab40, 0x42ad50 y 0x42ae60
+0x4d1400	CL8	0x4d1ce0	CL9.4	7	Client/src/Scenes/InventoryMoves.cpp:1151	return Core::Unexpected(std::string("0x4d1ce0: 0x5bc740 en la grilla del comercio (0x78a92a8) es de la CL9.4"));
+0x4d1400	CL8	0x4d1d34	CL9.3	6	Client/src/Scenes/InventoryMoves.cpp:1156	return Core::Unexpected(std::string("0x4d1d34: 0x5bc740 en la caja del caos (0x7d2d380) es de la CL9.3"));
+0x4d1400	CL8	0x4d1d55	CL9.3	6	Client/src/Scenes/InventoryMoves.cpp:1158	return Core::Unexpected(std::string("0x4d1d55: 0x44ad70, la caja del entrenador, es de la CL9.3"));
+0x4e2b10	CL4	0x4e2b10	CL9.5	11	Client/src/Scenes/EventMapObject.h:12	// (0x5a7320, CL8) y los paquetes (0x4e2b10, 0x4da730, 0x4da750, 0x4dac70, 0x4e7360, CL9.5).
+0x4e2b10	CL4	0x4e316e	CL9.2	4	Client/src/Scenes/InventoryMoves.cpp:1289	std::format("0x513a1e: el equipo del jugador {} (0x5139f0, desde 0x4e316e) es de la CL9.2", index));
+0x4e2b10	CL4	0x4e316e	CL9.2	4	Client/src/Scenes/InventoryMoves.h:195	// 0x4e316e, el F3 13: el personaje de la clave (0x5110d0) y, si es un jugador, su equipo (0x5139f0, CL9.2): corta.
+0x4ecc30	CL7	0x4ecc30	CL9.5	11	Client/src/Scenes/CrywolfObjectServices.cpp:228	// 0x430a33: con el estado en 2, dos 0x4ecc30 de la malla 0 con la luz de 0x723c08 (CL9.5).
+0x4f2250	CL7	0x4f2416	CL9.1	1	Client/src/Scenes/ActorActions.cpp:270	"(0x4f2416..0x4f2bea, CL9) que MuRet no tiene"));
+0x4f2250	CL7	0x4f2bea	CL9.1	1	Client/src/Scenes/ActorActions.cpp:270	"(0x4f2416..0x4f2bea, CL9) que MuRet no tiene"));
+0x4fbe10	CL7	0x4fbe10	CL9.5	11	Client/src/Scenes/CharacterStep.cpp:562	"0x4fbe10 manda C1 06 AF 01 (CL9.5)",
+0x4fd5f0	CL7	0x4fd603	CL9.5	11	Client/src/Scenes/WorldRuntime.h:212	// (0x4fd603, que MuRet corta: CL9.5) y la vacía su dibujo (0x4383f0) en cada frame del juego.
+0x4fd5f0	CL7	0x4fd603	CL9.5	11	Client/src/Scenes/WorldTexts.h:19	// cuerpo de los personajes (0x4fd603, el tipo 0xc5 con su nombre y +0x1d6, que corta: CL9.5) y que vacía el dibujo,
+0x50ba30	CL7	0x50c79a	CL9.1	2	Client/src/Scenes/GameHanging.cpp:618	// los bits del reloj del mundo. Solo lo cuelga el dibujo de los monstruos con +0x376 en 0x2a (0x50c79a, CL9.1):
+0x50ba30	CL7	0x50f828	CL9.1	1	Client/src/Scenes/GameCharacterEffects.cpp:233	// 0x50f828..0x50fba1: las acciones 0x94, 0x51 y 0x5b. Las escriben los paquetes (CL9): lo que crea
+0x50ba30	CL7	0x50fba1	CL9.1	1	Client/src/Scenes/GameCharacterEffects.cpp:233	// 0x50f828..0x50fba1: las acciones 0x94, 0x51 y 0x5b. Las escriben los paquetes (CL9): lo que crea
+0x5110d0	CL8	0x5110d0	CL9.2	4	Client/src/Scenes/InventoryMoves.h:195	// 0x4e316e, el F3 13: el personaje de la clave (0x5110d0) y, si es un jugador, su equipo (0x5139f0, CL9.2): corta.
+0x5139f0	CL6	0x5139f0	CL9.2	4	Client/src/Scenes/InventoryMoves.cpp:1289	std::format("0x513a1e: el equipo del jugador {} (0x5139f0, desde 0x4e316e) es de la CL9.2", index));
+0x5139f0	CL6	0x5139f0	CL9.2	4	Client/src/Scenes/InventoryMoves.h:195	// 0x4e316e, el F3 13: el personaje de la clave (0x5110d0) y, si es un jugador, su equipo (0x5139f0, CL9.2): corta.
+0x5139f0	CL6	0x513a1e	CL9.2	4	Client/src/Scenes/InventoryMoves.cpp:1289	std::format("0x513a1e: el equipo del jugador {} (0x5139f0, desde 0x4e316e) es de la CL9.2", index));
+0x518cf0	CL7	0x518cf0	CL9.5	11	Client/src/World/CastleSiegeObjectStep.h:61	// 0x518cf0 y el sonido 0x1ec, CL9.5). Después, siempre, 0x42b480 (ApplyCastleSiegeObjectState).
+0x54d0f0	CL8	0x54d0f0	CL9.3	6	Client/src/Scenes/ItemTooltips.cpp:119	// ticket de 1 a 5, va el precio de 0x54d0f0 y 0x5b1200, de la CL9.3. Con la tienda personal propia (0x800) o la
+0x555190	CL8	0x555190	CL9	?	Client/src/Scenes/WorldEntry.cpp:329	// bienvenida con el nombre del mapa (0x555190) son del área de mensajes (CL9).
+0x555840	CL8	0x5559dd	CL9.4	7	Client/src/Scenes/ChatBubbleDraw.cpp:273	return Core::Unexpected(std::string("0x5559dd: el título de la tienda personal del globo es de la CL9.4"));
+0x555840	CL8	0x5559dd	CL9.4	7	Client/src/Scenes/ChatBubbleDraw.h:31	// de una tienda personal corta (0x5559dd, CL9.4).
+0x555b00	CL8	0x5563a4	CL9.4	7	Client/src/Scenes/ChatBubbleDraw.cpp:190	// 0x5563a4..0x5565ef: 0x451d10 y 0x451810, el título de una tienda personal, que MuRet no tiene (CL9.4).
+0x555b00	CL8	0x5565ef	CL9.4	7	Client/src/Scenes/ChatBubbleDraw.cpp:190	// 0x5563a4..0x5565ef: 0x451d10 y 0x451810, el título de una tienda personal, que MuRet no tiene (CL9.4).
+0x556dd0	CL8	0x556dd0	CL9.4	8	Client/src/Scenes/ChatBubbles.cpp:43	// 0x556dd0(entrada, personaje): sin tiendas (0x7245c8, CL9.4) el título vacío; sin gremio (+0x1f2 negativo) el gremio,
+0x556dd0	CL8	0x556dd0	CL9.4	8	Client/src/Scenes/ChatBubbles.h:37	// +0x18 y +0x36: el gremio y el puesto, que escribe 0x556dd0 con la tabla de los gremios (CL9.4). Sin gremio,
+0x557650	CL8	0x557701	CL9.4	7	Client/src/Scenes/ChatBubbles.cpp:197	// 0x557701..0x557722: las tiendas personales (0x451720 y 0x4516d0) no tienen ninguna hasta la CL9.4.
+0x557650	CL8	0x557722	CL9.4	7	Client/src/Scenes/ChatBubbles.cpp:197	// 0x557701..0x557722: las tiendas personales (0x451720 y 0x4516d0) no tienen ninguna hasta la CL9.4.
+0x5650c0	CL8	0x5650c0	CL9	2, 3, 5, 6	Client/src/Scenes/GameMovement.cpp:311	return Core::Unexpected(std::string("0x5650c0: la interacción de llegada requiere CL9"));
+0x56acd0	CL7	0x56b4e8	CL9.5	11	Client/src/Scenes/GameMovement.cpp:162	return Core::Unexpected(std::string("0x56b4e8: el C1 03 97 de 0x78abb00 es de la CL9.5"));
+0x56c440	CL8	0x56d722	CL9.4	7	Client/src/UI/ChatCommands.cpp:167	std::string("0x56d722: ver las tiendas personales (0x4516a0 y 0x4516b0) es de la CL9.4"));
+0x576a60	CL8	0x576a60	CL9.1	1	Client/src/UI/ChatCommands.cpp:211	return Core::Unexpected(std::format("0x576a60: el emote del texto {} (y su C1 18) es de la CL9.1", index));
+0x576a60	CL8	0x576a60	CL9.1	1	Client/src/UI/ChatCommands.cpp:215	std::format("0x576a60: el emote del texto {} (y su C1 18) es de la CL9.1", LastEmoteExtraText));
+0x59e680	CL7	0x59e680	CL9.4	7	Client/src/Scenes/GameCharacterEffects.cpp:262	// cantidad del grupo (0x78aba48) por encima de 0, 0x59e680 y los joints 0x618: el grupo es de la CL9 y
+0x59ec80	CL8	0x59ec80	CL9.3	5	Client/src/Scenes/GameHover.h:22	// de los ítems del piso (0x5ba790, de la CL9.3). Lo que lee el picking del frame (0x59ec80) MuRet lo deja en −1
+0x59ec80	CL8	0x59ee0b	CL9.1	2	Client/src/Scenes/GameUi.cpp:1553	return Core::Unexpected(std::string("0x59ee0b: seguir al elegido de antes es de la CL9.1"));
+0x59f810	CL8	0x59f810	CL9.2	4	Client/src/Scenes/GameUi.cpp:1186	return Core::Unexpected(std::string("0x59f810: elegir la skill con los números es de la CL9.2"));
+0x59ff10	CL8	0x59ff10	CL9.3	6	Client/src/UI/GameUiState.h:97	// ponen en 10 el uso de un ítem (0x59ff10, CL9.3) y las respuestas de los ítems. MuRet solo lo vuelve a 0: el 26
+0x59ff10	CL8	0x5a070e	CL9.2	4	Client/src/Scenes/GameUi.cpp:942	return Core::Unexpected(std::string("0x5a070e: la lista de skills es de la CL9.2"));
+0x5a5860	CL8	0x5a61f9	CL9.2	4	Client/src/Scenes/OwnCharacterRecord.h:128	// número de su tecla. Las lee el HUD (0x5a61f9) y las usa la CL9.
+0x5a7320	CL8	0x5a7320	CL9.5	11	Client/src/Scenes/EventMapObject.h:12	// (0x5a7320, CL8) y los paquetes (0x4e2b10, 0x4da730, 0x4da750, 0x4dac70, 0x4e7360, CL9.5).
+0x5a89b0	CL8	0x5a89b0	CL9.4	7	Client/src/Scenes/GameHud.cpp:1467	return Core::Unexpected(std::string("0x5a89b0: las barras de vida de la party son de la CL9.4"));
+0x5a9630	CL8	0x5a9f9a	CL9.2	4	Client/src/Scenes/GameHud.cpp:1395	return Core::Unexpected(std::string("0x5a9f9a: la lista de skills es de la CL9.2"));
+0x5ac2d0	CL8	0x5ac3d8	CL9.1	2	Client/src/Scenes/GameHud.cpp:1618	std::string("0x5ac3d8: el cursor de los objetos lee su tabla (0x7d34820), de la CL9.1"));
+0x5b2aa0	CL8	0x5b2d23	CL9.3	6	Client/src/Scenes/ItemPrice.h:13	// CL9.3, el precio de la tienda de NPC del cuerpo del ítem (0x5b2d23, P-C125 (a)).
+0x5bbbc0	CL8	0x5bbd62	CL9.3	5	Client/src/Scenes/GameHover.cpp:129	std::format("0x5bbd62: el nombre del ítem {} del piso bajo el mouse (0x5ba790) es de la CL9.3", floorItem));
+0x5bbbc0	CL8	0x5bbdd2	CL9.3	5	Client/src/Scenes/GameHover.cpp:93	std::format("0x5bbdd2: el nombre del ítem {} del piso con Alt (0x5ba790) es de la CL9.3", index));
+0x5bc740	CL7	0x5bc740	CL9.4	7	Client/src/Scenes/InventoryMoves.cpp:1151	return Core::Unexpected(std::string("0x4d1ce0: 0x5bc740 en la grilla del comercio (0x78a92a8) es de la CL9.4"));
+0x5bc740	CL7	0x5bc740	CL9.3	6	Client/src/Scenes/InventoryMoves.cpp:1156	return Core::Unexpected(std::string("0x4d1d34: 0x5bc740 en la caja del caos (0x7d2d380) es de la CL9.3"));
+0x5bec50	CL8	0x5c007c	CL9.3	6	Client/src/Scenes/InventoryMoves.cpp:984	return Core::Unexpected(std::string("0x5c007c: el ítem de otra grilla al equipo es de la CL9.3 y la CL9.4"));
+0x5bec50	CL8	0x5c2dd5	CL9.3	6	Client/src/Scenes/InventoryMoves.cpp:865	std::format("0x5c2dd5: reparar el {:#x} del lugar {} del equipo es de la CL9.3", item.id, slot));
+0x5c4110	CL8	0x5c4470	CL9.3	6	Client/src/Scenes/GameUi.cpp:468	std::format("0x5c4470: reparar el {:#x} de la grilla (el C1 .. 34) es de la CL9.3", hovered.id));
+0x5c4110	CL8	0x5c5110	CL9.4	7	Client/src/Scenes/GameUi.cpp:460	return cut("0x5c5110: poner el ítem de la grilla en la tienda personal es de la CL9.4");
+0x5c4110	CL8	0x5c5242	CL9.4	7	Client/src/Scenes/GameUi.cpp:462	return cut("0x5c5242: el clic derecho sobre el ítem con la tienda personal abierta es de la CL9.4");
+0x5c4110	CL8	0x5c5895	CL9.3	5	Client/src/Scenes/GameUi.cpp:482	return cut("0x5c5895: usar el ítem de la grilla (el C1 .. 26) es de la CL9.3");
+0x5ca250	CL8	0x5ca357	CL9.3	6	Client/src/Scenes/InventoryMoves.cpp:1013	return Core::Unexpected(std::string("0x5ca357: 0x44acd0, la caja del entrenador, es de la CL9.3"));
+0x5ca250	CL8	0x5cb37a	CL9.3	6	Client/src/Scenes/InventoryMoves.cpp:1054	return Core::Unexpected(std::string("0x5cb37a: el ítem de otra grilla al inventario es de la CL9.3 y la "
+0x5d8d50	CL8	0x5d8d50	CL9.3	6	Client/src/Scenes/GameTooltips.cpp:479	// 0x5f7dfe: con 0x78abb14 en 1 (lo escriben las ventanas de la CL9.3 y la CL9.4: 0x5d8d50, 0x5e74f0, 0x5ecde0,
+0x5d8d50	CL8	0x5d8dad	CL9.5	12	Client/src/Scenes/GameUi.cpp:817	return cut("0x5d8dad: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
+0x5d8d50	CL8	0x5d8db6	CL9.3	6	Client/src/Scenes/GameUi.cpp:815	return cut("0x5d8db6: la caja del caos en el paso del ítem del cursor (0x5fd120 y 0x5fd4b0) es de la CL9.3");
+0x5d8d50	CL8	0x5d8dee	CL9.3	6	Client/src/Scenes/GameUi.cpp:805	// 0x78aba60 en 2 son de las ventanas de NPC (0x5d8dee..0x5dc798, CL9.3 y CL9.4): nadie los escribe en MuRet y quedan
+0x5d8d50	CL8	0x5dc798	CL9.3	6	Client/src/Scenes/GameUi.cpp:805	// 0x78aba60 en 2 son de las ventanas de NPC (0x5d8dee..0x5dc798, CL9.3 y CL9.4): nadie los escribe en MuRet y quedan
+0x5d8d50	CL8	0x5deb1c	CL9.4	7	Client/src/Scenes/GameUi.cpp:835	return cut("0x5deb1c: soltar el ítem del cursor en el comercio (0x78a5a20) es de la CL9.4");
+0x5d8d50	CL8	0x5deb57	CL9.3	6	Client/src/Scenes/GameUi.cpp:837	return cut("0x5deb57: soltar el ítem del cursor en el almacén (0x78a7070) es de la CL9.3");
+0x5d8d50	CL8	0x5dec19	CL9.4	7	Client/src/Scenes/GameUi.cpp:839	return cut("0x5dec19: soltar el ítem del cursor en la tienda personal (0x78ab0b8) es de la CL9.4");
+0x5d8d50	CL8	0x5decce	CL9.3	6	Client/src/Scenes/GameUi.cpp:853	return cut("0x5decce: vender el ítem del cursor en la tienda de NPC (0x78aba28) es de la CL9.3");
+0x5d8d50	CL8	0x5df430	CL9.3	5	Client/src/Scenes/InventoryMoves.cpp:1127	std::format("0x5df58b: tirar el {:#x} al piso (el resto de 0x5df430 y su envío) es de la CL9.3", cursor.id));
+0x5d8d50	CL8	0x5df58b	CL9.3	5	Client/src/Scenes/InventoryMoves.cpp:1127	std::format("0x5df58b: tirar el {:#x} al piso (el resto de 0x5df430 y su envío) es de la CL9.3", cursor.id));
+0x5d8d50	CL8	0x5df58b	CL9.3	6	Client/src/Scenes/InventoryMoves.h:159	// demás (0x5df58b, CL9.3) corta.
+0x5e3c80	CL8	0x5e3d03	CL9.4	7	Client/src/Scenes/GamePartyWindow.cpp:86	std::string("0x5e3d03: los miembros de la party y el botón de echar (C1 04 43) son de la CL9.4"));
+0x5e4ce0	CL8	0x5e4d2a	CL9.3	6	Client/src/Scenes/GameUi.cpp:735	return cut("0x5e4d2a: la tienda de NPC con el inventario es de la CL9.3");
+0x5e4ce0	CL8	0x5e4d74	CL9.3	6	Client/src/Scenes/GameUi.cpp:737	return cut("0x5e4d74: el almacén con el inventario es de la CL9.3");
+0x5e4ce0	CL8	0x5e4dc1	CL9.3	6	Client/src/Scenes/GameUi.cpp:739	return cut("0x5e4dc1: la caja del caos con el inventario es de la CL9.3");
+0x5e4ce0	CL8	0x5e4dea	CL9.5	12	Client/src/Scenes/GameUi.cpp:741	return cut("0x5e4dea: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
+0x5e4ce0	CL8	0x5e4e34	CL9.4	7	Client/src/Scenes/GameUi.cpp:743	return cut("0x5e4e34: el comercio con el inventario es de la CL9.4");
+0x5e4ce0	CL8	0x5e4e81	CL9.5	11	Client/src/Scenes/GameUi.cpp:745	return cut("0x5e4e81: las ventanas de los NPC de evento (0x1000 y 0x4000) son de la CL9.5");
+0x5e4ce0	CL8	0x5e4ee2	CL9.4	7	Client/src/Scenes/GameUi.cpp:747	return cut("0x5e4ee2: las tiendas personales con el inventario son de la CL9.4");
+0x5e4ce0	CL8	0x5e574e	CL9.4	7	Client/src/Scenes/GameUi.cpp:695	return cut("0x5e574e: las grillas del comercio (0x78a5a20 y 0x78a92a8) son de la CL9.4");
+0x5e4ce0	CL8	0x5e57af	CL9.3	6	Client/src/Scenes/GameUi.cpp:697	return cut("0x5e57af: la grilla de la tienda de NPC (0x78a7070) es de la CL9.3");
+0x5e4ce0	CL8	0x5e57e6	CL9.3	6	Client/src/Scenes/GameUi.cpp:699	return cut("0x5e57e6: la grilla del almacén (0x78a7070) es de la CL9.3");
+0x5e4ce0	CL8	0x5e582b	CL9.5	12	Client/src/Scenes/GameUi.cpp:703	return cut("0x5e582b: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
+0x5e4ce0	CL8	0x5e589c	CL9.3	6	Client/src/Scenes/GameUi.cpp:701	return cut("0x5e589c: la grilla de la caja del caos (0x7d2d380) es de la CL9.3");
+0x5e4ce0	CL8	0x5e58ea	CL9.4	7	Client/src/Scenes/GameUi.cpp:705	return cut("0x5e58ea: la grilla de la tienda personal (0x78ab0b8) es de la CL9.4");
+0x5e5920	CL8	0x5e5920	CL9.5	11	Client/src/Scenes/GameUi.cpp:786	return cut("0x5e594c: el paso de la ventana del NPC de evento 0x1000 (0x5e5920) es de la CL9.5");
+0x5e5920	CL8	0x5e5920	CL9.5	11	Client/src/Scenes/GameUi.cpp:788	return cut("0x5e5f2e: el paso de la ventana del NPC de evento 0x4000 (0x5e5920) es de la CL9.5");
+0x5e5920	CL8	0x5e594c	CL9.5	11	Client/src/Scenes/GameUi.cpp:786	return cut("0x5e594c: el paso de la ventana del NPC de evento 0x1000 (0x5e5920) es de la CL9.5");
+0x5e5920	CL8	0x5e5f2e	CL9.5	11	Client/src/Scenes/GameUi.cpp:788	return cut("0x5e5f2e: el paso de la ventana del NPC de evento 0x4000 (0x5e5920) es de la CL9.5");
+0x5e6520	CL8	0x5e6520	CL9.5	11	Client/src/Scenes/GameUi.cpp:899	return Core::Unexpected(std::string("0x5e6520: 0x78abb00 es de la CL9.5"));
+0x5e74f0	CL8	0x5e74f0	CL9.3	6	Client/src/Scenes/GameTooltips.cpp:479	// 0x5f7dfe: con 0x78abb14 en 1 (lo escriben las ventanas de la CL9.3 y la CL9.4: 0x5d8d50, 0x5e74f0, 0x5ecde0,
+0x5e74f0	CL8	0x5e74f0	CL9	?	Client/src/Scenes/GameUi.cpp:902	return Core::Unexpected(std::string("0x5e74f0: el paso del panel 0x2000 es de la CL9"));
+0x5e7aa0	CL8	0x5e7aa0	CL9.3	6	Client/src/Scenes/GameDialogSteps.cpp:488	return Core::Unexpected(std::string("0x628276: el OK del diálogo 0x8f (0x5e7aa0(6)) es de la CL9.3"));
+0x5e7bf0	CL8	0x5e7bf0	CL9.3	6	Client/src/Scenes/GameUi.cpp:867	return Core::Unexpected(std::string("0x5e7bf0: 0x78abb20 es del teclado del almacén, de la CL9.3"));
+0x5e7bf0	CL8	0x5e7bf0	CL9.3	6	Client/src/UI/GameUiState.h:105	// 0x78abb20: con 0, 0x5e7bf0 devuelve 0 y 0x5ee140 sigue. Lo saca de 0 solo código de la CL9.3: el teclado
+0x5e9b10	CL8	0x5e9b10	CL9.3	6	Client/src/Scenes/GameHud.cpp:1560	return Core::Unexpected(std::string("0x5e9b10: la caja de la contraseña es del almacén, de la CL9.3"));
+0x5ea060	CL8	0x5ea060	CL9.3	6	Client/src/Scenes/GameUi.cpp:792	return cut("0x5ea071: el paso del almacén (0x5ea060) es de la CL9.3");
+0x5ea060	CL8	0x5ea071	CL9.3	6	Client/src/Scenes/GameUi.cpp:792	return cut("0x5ea071: el paso del almacén (0x5ea060) es de la CL9.3");
+0x5ea290	CL8	0x5ea290	CL9.4	7	Client/src/Scenes/GameUi.cpp:796	return cut("0x5ea2bd: el paso de las tiendas personales (0x5ea290) es de la CL9.4");
+0x5ea290	CL8	0x5ea2bd	CL9.4	7	Client/src/Scenes/GameUi.cpp:796	return cut("0x5ea2bd: el paso de las tiendas personales (0x5ea290) es de la CL9.4");
+0x5ebca0	CL8	0x5ebca0	CL9.4	7	Client/src/UI/GameUiState.h:100	// 0x78abad9: con 1, 0x5ee140 no corre sus hijas (0x5ee181) y 0x5ebca0 no hace nada. Es el duelo (CL9.4, P-C59).
+0x5ecde0	CL8	0x5ecde0	CL9.3	6	Client/src/Scenes/GameTooltips.cpp:479	// 0x5f7dfe: con 0x78abb14 en 1 (lo escriben las ventanas de la CL9.3 y la CL9.4: 0x5d8d50, 0x5e74f0, 0x5ecde0,
+0x5ecde0	CL8	0x5ecde0	CL9.4	7	Client/src/Scenes/GameUi.cpp:794	return cut("0x5ece0d: el paso del comercio (0x5ecde0) es de la CL9.4");
+0x5ecde0	CL8	0x5ece0d	CL9.4	7	Client/src/Scenes/GameUi.cpp:794	return cut("0x5ece0d: el paso del comercio (0x5ecde0) es de la CL9.4");
+0x5ed960	CL8	0x5ed960	CL9.3	6	Client/src/Scenes/GameUi.cpp:798	return cut("0x5ed98d: el paso de la tienda de NPC (0x5ed960) es de la CL9.3");
+0x5ed960	CL8	0x5ed98d	CL9.3	6	Client/src/Scenes/GameUi.cpp:798	return cut("0x5ed98d: el paso de la tienda de NPC (0x5ed960) es de la CL9.3");
+0x5ee140	CL8	0x5ee140	CL9.4	7	Client/src/UI/GameUiState.h:100	// 0x78abad9: con 1, 0x5ee140 no corre sus hijas (0x5ee181) y 0x5ebca0 no hace nada. Es el duelo (CL9.4, P-C59).
+0x5ee140	CL8	0x5ee140	CL9.3	6	Client/src/UI/GameUiState.h:105	// 0x78abb20: con 0, 0x5e7bf0 devuelve 0 y 0x5ee140 sigue. Lo saca de 0 solo código de la CL9.3: el teclado
+0x5ee140	CL8	0x5ee181	CL9.4	7	Client/src/UI/GameUiState.h:100	// 0x78abad9: con 1, 0x5ee140 no corre sus hijas (0x5ee181) y 0x5ebca0 no hace nada. Es el duelo (CL9.4, P-C59).
+0x5f0be0	CL8	0x5f0df0	CL9.4	7	Client/src/Scenes/GamePartyWindow.cpp:140	return Core::Unexpected(std::string("0x5f0df0: los miembros de la ventana de la party son de la CL9.4"));
+0x5f0be0	CL8	0x5f130a	CL9.4	7	Client/src/Scenes/GamePartyWindow.cpp:110	std::string("0x5f130a: la lista de la party a la derecha del mundo es de la CL9.4"));
+0x5f7610	CL8	0x5f769b	CL9.3	6	Client/src/Scenes/GameInventoryHud.cpp:657	return Core::Unexpected(std::string("0x5f769b: los ítems de la tienda (0x78a7070) son de la CL9.3"));
+0x5f7610	CL8	0x5f76df	CL9.4	7	Client/src/Scenes/GameInventoryHud.cpp:659	return Core::Unexpected(std::string("0x5f76df: los ítems del comercio (0x78a5a20) son de la CL9.4"));
+0x5f7610	CL8	0x5f7756	CL9.3	6	Client/src/Scenes/GameInventoryHud.cpp:661	return Core::Unexpected(std::string("0x5f7756: los ítems del almacén (0x78a7070) son de la CL9.3"));
+0x5f7610	CL8	0x5f7792	CL9.5	12	Client/src/Scenes/GameInventoryHud.cpp:665	return Core::Unexpected(std::string("0x5f7792: 0x6689d0, la marca del asedio del héroe, es de la CL9.5"));
+0x5f7610	CL8	0x5f77c6	CL9.3	6	Client/src/Scenes/GameInventoryHud.cpp:663	return Core::Unexpected(std::string("0x5f77c6: los ítems de la caja del caos (0x7d2d380) son de la CL9.3"));
+0x5f7610	CL8	0x5f7821	CL9.4	7	Client/src/Scenes/GameInventoryHud.cpp:667	return Core::Unexpected(std::string("0x5f7821: los ítems de la tienda personal (0x78ab0b8) son de la CL9.4"));
+0x5f7610	CL8	0x5f782b	CL9.3	6	Client/src/Scenes/GameInventoryHud.cpp:671	std::string("0x5f782b: 0x44ad40, los ítems de la caja del entrenador (0x723c80) son de la CL9.3"));
+0x5f7840	CL8	0x5f78c2	CL9.5	12	Client/src/Scenes/GameInventoryHud.cpp:683	return Core::Unexpected(std::string("0x5f78c2: 0x6689d0, la marca del asedio del héroe, es de la CL9.5"));
+0x5f7840	CL8	0x5f7973	CL9.3	6	Client/src/Scenes/GameInventoryHud.cpp:694	return Core::Unexpected(std::string("0x5f7973: las cifras de la tienda (0x78a7070) son de la CL9.3"));
+0x5f7840	CL8	0x5f79b7	CL9.4	7	Client/src/Scenes/GameInventoryHud.cpp:696	return Core::Unexpected(std::string("0x5f79b7: las cifras del comercio (0x78a5a20) son de la CL9.4"));
+0x5f7840	CL8	0x5f7a2e	CL9.3	6	Client/src/Scenes/GameInventoryHud.cpp:698	return Core::Unexpected(std::string("0x5f7a2e: las cifras del almacén (0x78a7070) son de la CL9.3"));
+0x5f7840	CL8	0x5f7a6a	CL9.5	12	Client/src/Scenes/GameInventoryHud.cpp:702	return Core::Unexpected(std::string("0x5f7a6a: 0x6689d0, la marca del asedio del héroe, es de la CL9.5"));
+0x5f7840	CL8	0x5f7a9e	CL9.3	6	Client/src/Scenes/GameInventoryHud.cpp:700	return Core::Unexpected(std::string("0x5f7a9e: las cifras de la caja del caos (0x7d2d380) son de la CL9.3"));
+0x5f7840	CL8	0x5f7af9	CL9.4	7	Client/src/Scenes/GameInventoryHud.cpp:704	return Core::Unexpected(std::string("0x5f7af9: las cifras de la tienda personal (0x78ab0b8) son de la CL9.4"));
+0x5f7840	CL8	0x5f7b03	CL9.3	6	Client/src/Scenes/GameInventoryHud.cpp:708	std::string("0x5f7b03: 0x44ad40, las cifras de la caja del entrenador (0x723c80) son de la CL9.3"));
+0x5f7bc0	CL8	0x5f7dfe	CL9.3	6	Client/src/Scenes/GameTooltips.cpp:479	// 0x5f7dfe: con 0x78abb14 en 1 (lo escriben las ventanas de la CL9.3 y la CL9.4: 0x5d8d50, 0x5e74f0, 0x5ecde0,
+0x5fe610	CL8	0x5fe610	CL9.3	6	Client/src/Scenes/GameUi.cpp:790	return cut("0x5fe621: el paso de la caja del caos (0x5fe610) es de la CL9.3");
+0x5fe610	CL8	0x5fe621	CL9.3	6	Client/src/Scenes/GameUi.cpp:790	return cut("0x5fe621: el paso de la caja del caos (0x5fe610) es de la CL9.3");
+0x623e70	CL8	0x623ed7	CL9.5	11	Client/src/Scenes/GameUi.cpp:1382	return Core::Unexpected(std::string("0x623ed7: cortar el recorrido de la cámara con Esc es de la CL9.5"));
+0x623e70	CL8	0x625910	CL9.3	6	Client/src/Scenes/GameDialogSteps.cpp:125	{0x8e, DialogStep::Cut, "0x625910", "CL9.3"},
+0x623e70	CL8	0x6259c6	CL9.3	6	Client/src/Scenes/GameDialogSteps.cpp:126	{0xa1, DialogStep::Cut, "0x6259c6", "CL9.3"},
+0x623e70	CL8	0x625b23	CL9.3	6	Client/src/Scenes/GameDialogSteps.cpp:127	{0xa2, DialogStep::Cut, "0x625b23", "CL9.3"},
+0x623e70	CL8	0x625cf4	CL9.3	6	Client/src/Scenes/GameDialogSteps.cpp:128	{0xa4, DialogStep::Cut, "0x625cf4", "CL9.3"},
+0x623e70	CL8	0x625f98	CL9.3	6	Client/src/Scenes/GameDialogSteps.cpp:129	{0xa6, DialogStep::Cut, "0x625f98", "CL9.3"},
+0x623e70	CL8	0x62601e	CL9.4	7	Client/src/Scenes/GameDialogSteps.cpp:130	{0xa7, DialogStep::Cut, "0x62601e", "CL9.4"},
+0x623e70	CL8	0x6260d1	CL9.4	7	Client/src/Scenes/GameDialogSteps.cpp:131	{0x9c, DialogStep::Cut, "0x6260d1", "CL9.4"},
+0x623e70	CL8	0x6260f6	CL9.3	6	Client/src/Scenes/GameDialogSteps.cpp:132	{0x91, DialogStep::Cut, "0x6260f6", "CL9.3"},
+0x623e70	CL8	0x626460	CL9.4	7	Client/src/Scenes/GameDialogSteps.cpp:486	return Core::Unexpected(std::string("0x626460: el OK del diálogo 0x73 es de la CL9.4"));
+0x623e70	CL8	0x628276	CL9.3	6	Client/src/Scenes/GameDialogSteps.cpp:488	return Core::Unexpected(std::string("0x628276: el OK del diálogo 0x8f (0x5e7aa0(6)) es de la CL9.3"));
+0x623e70	CL8	0x6282dc	CL9.3	6	Client/src/Scenes/GameDialogSteps.cpp:146	{0x94, DialogStep::Cut, "0x6282dc", "CL9.3"},
+0x623e70	CL8	0x6282dc	CL9.3	6	Client/src/Scenes/GameDialogSteps.cpp:147	{UI::ItemNameDialog, DialogStep::Cut, "0x6282dc", "CL9.3"},
+0x623e70	CL8	0x6282dc	CL9.3	6	Client/src/Scenes/GameDialogSteps.cpp:148	{0x98, DialogStep::Cut, "0x6282dc", "CL9.3"},
+0x623e70	CL8	0x6282dc	CL9.3	6	Client/src/Scenes/GameDialogSteps.cpp:149	{UI::MoneyTextDialog, DialogStep::Cut, "0x6282dc", "CL9.3"},
+0x623e70	CL8	0x6282dc	CL9.3	6	Client/src/Scenes/GameDialogSteps.cpp:150	{UI::ChaosCastleDialog, DialogStep::Cut, "0x6282dc", "CL9.3"},
+0x623e70	CL8	0x6282dc	CL9.3	6	Client/src/Scenes/GameDialogSteps.cpp:151	{UI::ServerTimeDialog, DialogStep::Cut, "0x6282dc", "CL9.3"},
+0x623e70	CL8	0x6282dc	CL9.3	6	Client/src/Scenes/GameDialogSteps.cpp:152	{UI::ItemNameWithLuckDialog, DialogStep::Cut, "0x6282dc", "CL9.3"},
+0x623e70	CL8	0x6282dc	CL9.3	6	Client/src/Scenes/GameDialogSteps.cpp:153	{0xa9, DialogStep::Cut, "0x6282dc", "CL9.3"},
+0x623e70	CL8	0x6282dc	CL9.3	6	Client/src/Scenes/GameDialogSteps.cpp:154	{0xaa, DialogStep::Cut, "0x6282dc", "CL9.3"},
+0x623e70	CL8	0x62a7f7	CL9.4	7	Client/src/Scenes/GameDialogSteps.cpp:141	{0x95, DialogStep::Cut, "0x62a7f7", "CL9.4"},
+0x623e70	CL8	0x62a7f7	CL9.4	7	Client/src/Scenes/GameDialogSteps.cpp:142	{0x76, DialogStep::Cut, "0x62a7f7", "CL9.4"},
+0x623e70	CL8	0x62a7f7	CL9.4	7	Client/src/Scenes/GameDialogSteps.cpp:143	{UI::IgnoredOverChaosCastle, DialogStep::Cut, "0x62a7f7", "CL9.4"},
+0x623e70	CL8	0x62a7f7	CL9.4	7	Client/src/Scenes/GameDialogSteps.cpp:144	{0x77, DialogStep::Cut, "0x62a7f7", "CL9.4"},
+0x623e70	CL8	0x62a7f7	CL9.4	7	Client/src/Scenes/GameDialogSteps.cpp:145	{UI::ForcedDialog, DialogStep::Cut, "0x62a7f7", "CL9.4"},
+0x623e70	CL8	0x62a810	CL9.4	7	Client/src/Scenes/GameDialogSteps.cpp:139	{0x71, DialogStep::Cut, "0x62a810", "CL9.4"},
+0x623e70	CL8	0x62a810	CL9.4	7	Client/src/Scenes/GameDialogSteps.cpp:140	{0x7d, DialogStep::Cut, "0x62a810", "CL9.4"},
+0x623e70	CL8	0x62d91d	CL9.1	2	Client/src/Scenes/GameDialogSteps.cpp:134	{0x8d, DialogStep::Cut, "0x62d91d", "CL9.1"},
+0x62db60	CL8	0x632a2b	CL9.5	11	Client/src/Scenes/GameDialogDrawing.cpp:539	return Core::Unexpected(std::format("0x632a2b: el texto de la caja {:#x} del evento es de la CL9.5", id));
+0x634680	CL7	0x634906	CL9.4	7	Client/src/Scenes/CharacterSelectScene.cpp:1378	// 0x634906: 0x4129f0, el nombre del elegido, es de la UI de los carteles (CL9).
+0x6371a0	CL7	0x637668	CL9.5	11	Client/src/Scenes/GameSceneUi.cpp:338	// 0x637668: 0x5a7eb0, la cuenta y los resultados de los eventos (CL9.5).
+0x6371a0	CL7	0x637683	CL9.4	7	Client/src/Scenes/GameSceneUi.cpp:354	// 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9 (CL9.4, P-C59).
+0x652330	CL8	0x652330	CL9.5	12	Client/src/Scenes/GameUi.cpp:940	return Core::Unexpected(std::string("0x652330: la skill del asedio en la barra es de la CL9.5"));
+0x6529e0	CL8	0x6529e0	CL9.5	12	Client/src/Scenes/GameUi.cpp:1318	return Core::Unexpected(std::string("0x6529e0: la UI del asedio es de la CL9.5"));
+0x652c90	CL8	0x652c90	CL9.5	12	Client/src/Scenes/GameHud.cpp:1548	return Core::Unexpected(std::string("0x652c90: las skills de la batalla del asedio son de la CL9.5"));
+0x657ab0	CL8	0x659250	CL9.5	11	Client/src/UI/PanelRegistry.h:149	// manda C1 03 97 (CL9.5). Los demás los pone en 0 cerrar el inventario (0x659250..0x65926a).
+0x657ab0	CL8	0x65926a	CL9.5	11	Client/src/UI/PanelRegistry.h:149	// manda C1 03 97 (CL9.5). Los demás los pone en 0 cerrar el inventario (0x659250..0x65926a).
+0x6599a0	CL8	0x6599a0	CL9.4	7	Client/src/Scenes/ChatReceive.cpp:185	"(0x6599a0 con 0x40000), que es de la CL9.4"));
+0x65cae0	CL8	0x65cae0	CL9.5	12	Client/src/UI/PanelRegistry.cpp:333	return Core::Unexpected(std::string("0x65cae0(0x100000): cerrar la lista de CS es de la CL9.5"));
+0x6603c0	CL8	0x6603c0	CL9.4	7	Client/src/UI/PanelRegistry.cpp:435	return Core::Unexpected(std::string("0x6603c0: cerrar el diálogo de los paneles es de la CL9.4 (P-C90)"));
+0x661b90	CL8	0x661b90	CL9.3	6	Client/src/UI/PanelRegistry.h:118	// 0x661b90 sin ítem en el cursor: algún lugar de la grilla de la caja del caos (0x7d2d380) ocupado (CL9.3).
+0x6689d0	CL8	0x6689d0	CL9.5	12	Client/src/Scenes/GameInventoryHud.cpp:665	return Core::Unexpected(std::string("0x5f7792: 0x6689d0, la marca del asedio del héroe, es de la CL9.5"));
+0x6689d0	CL8	0x6689d0	CL9.5	12	Client/src/Scenes/GameInventoryHud.cpp:683	return Core::Unexpected(std::string("0x5f78c2: 0x6689d0, la marca del asedio del héroe, es de la CL9.5"));
+0x6689d0	CL8	0x6689d0	CL9.5	12	Client/src/Scenes/GameInventoryHud.cpp:702	return Core::Unexpected(std::string("0x5f7a6a: 0x6689d0, la marca del asedio del héroe, es de la CL9.5"));
+0x6689d0	CL8	0x6689d0	CL9.5	12	Client/src/Scenes/GamePanels.cpp:60	// 0x6689d0 solo lo lee el ancho del mundo con la lista de CS abierta, que MuRet no abre (CL9.5).
+0x6689d0	CL8	0x6689d0	CL9.5	12	Client/src/Scenes/GameUi.cpp:703	return cut("0x5e582b: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
+0x6689d0	CL8	0x6689d0	CL9.5	12	Client/src/Scenes/GameUi.cpp:741	return cut("0x5e4dea: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
+0x6689d0	CL8	0x6689d0	CL9.5	12	Client/src/Scenes/GameUi.cpp:817	return cut("0x5d8dad: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");

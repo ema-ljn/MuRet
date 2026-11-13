@@ -26,11 +26,12 @@ independiente que pide el plan se hizo el mismo día y sus correcciones ya está
 | Binario | `main.exe` `c32bbd5f…`, el de `original/` en esa carpeta (el generador comprueba su SHA-256) |
 | Grafo de llamadas | `client-research/analysis/mainexe/evidence/coverage/grafo-2f16a9c6/`: llamadas, saltos y tablas del build histórico, válido porque el `.text` es idéntico ([README](README.md#dos-builds-que-no-se-mezclan)) |
 | Exports y research | los `.c` y `.asm` de `decompiled/functions/`, `analysis/mainexe/**/*.md` y `registro-niveles.tsv` |
-| MuRet | `main` @ `d21f440` (la CL8 y la primera matriz de CL.M mergeadas): las citas de `Client/src` con la ola de su commit por `git blame`, los cortes, los tests, los docs y el [TSV del barrido de la CL8](../../../docs/superpowers/plans/2026-11-12-ola-cl8-funciones.tsv) |
+| MuRet | `main` @ `3495be9` (la CL8, la primera matriz de CL.M y el plan de la CL9 mergeados): las citas de `Client/src` con la ola de su commit por `git blame`, los cortes, los tests, los docs y el [TSV del barrido de la CL8](../../../docs/superpowers/plans/2026-11-12-ola-cl8-funciones.tsv) |
 
 El generador no ejecuta el PE: todo es lectura estática. Con las mismas entradas da el mismo TSV byte
-a byte. No lee lo que escribe CL.M (este informe y sus tres scripts): si no, en un commit que ya los
-tiene cada función tomaría la ola que le dio la corrida anterior.
+a byte. No lee lo que escribe CL.M (este informe y sus tres scripts) ni el barrido de la CL9, que parte de
+la matriz: si no, en un commit que ya los tiene cada función tomaría la ola que le dio la corrida
+anterior.
 
 ## El resultado
 
@@ -62,26 +63,26 @@ estado se explican en [Los estados](#los-estados).
 | CL4 | 29 | 20,0 | 0,9 | 18,8 | 5,4 | 12,1 | 1,3 | — |
 | CL5 | 171 | 40,6 | 1,8 | 34,3 | 17,6 | 1,4 | 15,2 | — |
 | CL6 | 176 | 75,6 | 3,3 | 72,1 | 39,1 | 19,5 | 13,6 | — |
-| CL7 | 781 | 610,5 | 26,9 | 576,3 | 103,4 | 366,4 | 106,4 | — |
-| CL8 | 1.097 | 783,2 | 34,5 | 756,0 | 122,9 | 515,1 | 118,0 | — |
-| CL9 | 1.053 | 553,2 | 24,3 | 550,7 | — | — | — | 504,7 |
+| CL7 | 778 | 605,3 | 26,6 | 571,1 | 103,4 | 363,9 | 103,8 | — |
+| CL8 | 1.096 | 782,1 | 34,4 | 755,0 | 122,9 | 514,1 | 118,0 | — |
+| CL9 | 1.057 | 559,5 | 24,6 | 556,9 | — | — | — | 510,9 |
 | CL10 | 32 | 11,4 | 0,5 | 10,3 | — | — | — | 10,3 |
 | CL11 | 43 | 69,6 | 3,1 | 69,6 | — | — | — | 69,6 |
-| **Total** | **3.583** | **2.273,2** | **100** | **2.193,8** | **314,7** | **1.020,7** | **273,9** | **584,6** |
+| **Total** | **3.583** | **2.273,2** | **100** | **2.193,8** | **314,7** | **1.017,1** | **271,2** | **590,8** |
 
 CL0 no tiene funciones: son las fundaciones de MuRet, sin contraparte en el binario. La CL7 y la CL8
 juntan el 61 %: el mundo, sus objetos y efectos, y la interfaz, que en el original son funciones
-enormes. La CL9 es el 24,3 % y la CL11 el 3,1 %. En la CL9, lo que sigue sin empezar (504,7 KB) es
+enormes. La CL9 es el 24,6 % y la CL11 el 3,1 %. En la CL9, lo que sigue sin empezar (510,9 KB) es
 menos que sus KB vivos porque dos gigantes que pasaron a la CL9 ya tienen una parte en MuRet
 (`0x57cfc0` y `0x5650c0`, `partial`).
 
 **Consumidoras.** Una función compartida tiene una sola ola responsable y la lista de las otras que
 la usan (`consumer_waves`): las olas de quienes la alcanzan (llamadas, punteros y vtables, sin el
 código muerto) y, en un gigante, las olas abiertas (CL9 a CL11) de lo que llama, que son las ramas que
-le faltan. 1.614 funciones de juego tienen alguna. Esa vista cuenta los bytes de nuevo en cada
-consumidora, así que no suma el total: la CL9 aparece como consumidora en 996 KB de funciones de otras
+le faltan. 1.613 funciones de juego tienen alguna. Esa vista cuenta los bytes de nuevo en cada
+consumidora, así que no suma el total: la CL9 aparece como consumidora en 991 KB de funciones de otras
 olas (sobre todo de la CL8: las ventanas que muestran estado del juego), la CL10 en 488, la CL8 en
-478, la CL7 en 462, la CL11 en 334, la CL6 en 323, la CL3 en 248, la CL4 en 239, la CL5 en 175, la
+479, la CL7 en 466, la CL11 en 334, la CL6 en 323, la CL3 en 248, la CL4 en 239, la CL5 en 175, la
 CL2 en 108 y la CL1 en 12.
 
 ## Los 821 KB y el 36 % del traspaso
@@ -93,8 +94,8 @@ La reconstrucción con la matriz: el código de juego cuya ola **no** sale de al
 reglas de CL.M o del barrido de la CL8 (escrito el 2026-11-12, después del traspaso). Da **801 KB,
 el 35,2 %** del código de juego (2.387 funciones): el número del traspaso se reproduce con un 2,5 %
 de diferencia. Sin el barrido de la CL8 serían 619 KB (27,2 %). Con la matriz, el código de juego
-sin ola es 0. Las 23 filas que reasignó la [revisión independiente](#la-revisión-independiente)
-cuentan como previas porque casi todos sus bytes (63 de 69 KB) ya tenían una cita de MuRet; la
+sin ola es 0. Las 24 filas que reasignó la [revisión independiente](#la-revisión-independiente)
+cuentan como previas porque casi todos sus bytes (64 de 70 KB) ya tenían una cita de MuRet; la
 primera matriz, sin la revisión, daba 807 KB (35,5 %) y 629 KB.
 
 ```bash
@@ -121,22 +122,23 @@ revisan el resultado al final. La columna `evidence` de cada fila dice cuál fue
 1. **Lo que MuRet ya asignó** (`papel`, `revisión`, `src`, `corte`, `tsv-cl8`, `doc`): cinco
    funciones que mezclan olas toman la de su papel (`papel`): `WinMain` (`0x4b9b80`), `WndProc`
    (`0x4af4e0`), el paso por frame de las escenas (`0x636290`) y el cierre por `WM_QUIT`
-   (`0x4aeda0`) la CL3, y el dispatcher de recepción (`0x4e2b10`) la CL4. Las 23 que reasignó la
-   [revisión independiente](#la-revisión-independiente) toman la ola que les dio (`revisión`, 69 KB).
+   (`0x4aeda0`) la CL3, y el dispatcher de recepción (`0x4e2b10`) la CL4. Las 24 que reasignó la
+   [revisión independiente](#la-revisión-independiente) toman la ola que les dio (`revisión`, 70 KB).
    Las demás funciones que cita `Client/src` toman la ola dominante de esas líneas por `git blame`
-   (1.045 funciones, 1.214 KB); las que solo aparecen en un corte hacia la CL9 o más, la de ese
+   (1.043 funciones, 1.210 KB); las que solo aparecen en un corte hacia la CL9 o más, la de ese
    corte; las del barrido de la CL8, la que dice el TSV; las que nombra un doc o plan de MuRet, la
-   que ese doc les da. El informe y los scripts de CL.M no cuentan como cita: medido sobre un commit
-   que ya los tiene, le devolverían a cada función la ola de la corrida anterior.
+   que ese doc les da. El informe y los scripts de CL.M y el barrido de la CL9 no cuentan como cita:
+   medido sobre un commit que ya los tiene, le devolverían a cada función la ola de la corrida
+   anterior.
 2. **Las exclusiones del roadmap** y lo que solo ellas alcanzan ([abajo](#bibliotecas-thunks-y-exclusiones)).
 3. **El grafo** (`grafo`): una función sin ola toma la de quien la llama, la apunta o instala la
    vtable que la contiene; un funclet de excepciones cuenta como la función que lo usa. Si la llaman
    varias olas, va a la más baja y las otras quedan como consumidoras. Se repite hasta que no cambia.
 4. **El dispatcher** (`opcode`): cada función que llama `0x4e2b10` toma la ola del opcode de su
    caso, según la tabla de `paso5-protocolo-handlers.md` del research: conexión CL4, mundo CL7, chat,
-   vida e inventario CL8, el resto de los paquetes del juego CL9 por sub-ola (viewport 9.1, combate
-   9.2, ítems 9.3, social 9.4, eventos 9.5). Los tres opcodes de misiones (`A0` a `A2`) van a la CL9
-   sin sub-ola: la CL9 todavía no la tiene.
+   vida e inventario CL8, el resto de los paquetes del juego CL9 por sub-ola, con las del
+   [plan de la CL9](../../../docs/superpowers/plans/2026-11-13-ola-cl9-gameplay.md) (viewport, NPC y
+   misiones 9.1; combate, skills, cuervo y mascotas 9.2; ítems 9.3; social 9.4; eventos 9.5).
 5. **Las ramas de los gigantes** (`rama`, `gigante`): dentro de los gigantes de papel menos el
    dispatcher (`WinMain`, `WndProc`, `0x636290` y `0x4aeda0`), una llamada toma la ola de la cita de
    MuRet más cercana (a menos de `0x200` bytes); si no hay ninguna, la del papel del gigante.
@@ -304,9 +306,9 @@ Son independientes de la ola. `analysis_state` describe lo que se sabe de la fun
 | `static` | la cita MuRet o el research, o se leyó a mano o en la revisión | 1.685 (1.670 KB) |
 | `inferred` | su ola sale del grafo o de una regla, sin lectura propia | 1.867 (587 KB) |
 | `implemented` | la cita `Client/src` sin cortes y no es un gigante | 735 (315 KB) |
-| `partial` | la cita `Client/src` pero tiene ramas cortadas, es un gigante o porta solo una parte | 318 (1.021 KB) |
-| `unknown` | es de una ola cerrada (CL1 a CL8) y `Client/src` no la cita | 1.124 (274 KB) |
-| `not-started` | es de la CL9, la CL10 o la CL11 y no está citada | 1.088 (585 KB) |
+| `partial` | la cita `Client/src` pero tiene ramas cortadas, es un gigante o porta solo una parte | 316 (1.017 KB) |
+| `unknown` | es de una ola cerrada (CL1 a CL8) y `Client/src` no la cita | 1.122 (271 KB) |
+| `not-started` | es de la CL9, la CL10 o la CL11 y no está citada | 1.092 (591 KB) |
 | `not-applicable` | código muerto, biblioteca, thunk o exclusión | 318 de juego |
 
 Una cita es un **corte** si su línea dice que esa parte la hace otra ola o que MuRet no la hace
@@ -326,14 +328,14 @@ Sobre los 2.194 KB de código de juego vivo:
 | Parte | KB |
 | --- | ---: |
 | `implemented` | 315 |
-| lo hecho de las `partial` (la fracción de sus citas que no son cortes) | 871 |
-| lo que falta de las `partial`: CL9 102, CL7 29, CL8 16, el resto 2 | 150 |
-| `not-started`: CL9 505, CL11 70, CL10 10 | 585 |
-| `unknown`: CL8 118, CL7 106, CL5 15, CL6 14, CL3 10, CL2 9, CL4 1 | 274 |
+| lo hecho de las `partial` (la fracción de sus citas que no son cortes) | 869 |
+| lo que falta de las `partial`: CL9 100, CL7 29, CL8 16, el resto 2 | 148 |
+| `not-started`: CL9 511, CL11 70, CL10 10 | 591 |
+| `unknown`: CL8 118, CL7 104, CL5 15, CL6 14, CL3 10, CL2 9, CL4 1 | 271 |
 
-**El avance está entre el 54 % y el 67 %**, según cuánto de lo `unknown` falte de verdad: 54,0 % si
-falta todo, 60,3 % si falta la mitad y 66,5 % si MuRet ya lo porta sin citarlo. Lo que seguro falta
-es la **CL9, unos 607 KB (el 27,7 % del código vivo)**, la CL11 (70 KB más los casos de efectos
+**El avance está entre el 54 % y el 66 %**, según cuánto de lo `unknown` falte de verdad: 54,0 % si
+falta todo, 60,1 % si falta la mitad y 66,3 % si MuRet ya lo porta sin citarlo. Lo que seguro falta
+es la **CL9, unos 611 KB (el 27,9 % del código vivo)**, la CL11 (70 KB más los casos de efectos
 dentro de las raíces de la CL7), la CL10 (11 KB) y las ramas cortadas de la CL7 y la CL8 (45 KB).
 La primera matriz daba entre el 55 % y el 72 %: la revisión bajó `implemented` de 347 a 315 KB
 (menciones y cortes que no se veían) y pasó a las olas abiertas las ramas de los tipos, la
@@ -352,7 +354,7 @@ leer qué ramas faltan. El generador la escribe en el resumen (`--summary`, clav
   acción es confirmarlo.
 - **`implemented` es una cota alta.** Sale de las citas con la dirección `0x…`; una cita que nombra
   la función en una frase sin palabra de corte sigue contando como port. La revisión encontró 10
-  casos y los corrigió; puede haber más, chicos.
+  casos y el plan de la CL9 dos más, todos corregidos; puede haber más, chicos.
 - **Las consumidoras no son una lista de trabajo**: dicen qué olas tocan la función, no qué le falta.
 
 ## La revisión independiente
@@ -426,7 +428,24 @@ en la matriz:
 Lo que movió, contra la matriz de `d21f440` con las mismas fuentes: 71,8 KB de la CL8 a la CL9,
 67,2 KB de la CL7 a la CL11, 12,6 KB de la CL7 a la CL9, 3,9 KB de la CL2 a la CL9, 3,8 KB de la
 CL11 a la CL9, 3,6 KB de la CL7 a la CL4 y otros menores. De `implemented` pasaron 18,2 KB a
-`partial` y 14,1 KB a `not-started`. Con esto CL.M queda cerrada.
+`partial` y 14,1 KB a `not-started`.
+
+**Lo que sumó el plan de la CL9** ([#336](../../../docs/superpowers/plans/2026-11-13-ola-cl9-gameplay.md),
+mergeado antes que esta revisión). Su barrido parte de la matriz y le dejó a esta revisión lo que
+encontró de ella (su decisión 9):
+
+- **Once opcodes** de la tabla del dispatcher tenían la sub-ola equivocada (`0x20`, `0x5D`, `0x3F`,
+  `0x51`, `0xCA`, `0x9C`, `0xA3`, `0x9F`, `0x0B`, `0x2C`, `0xA9`) y las misiones (`A0` a `A2`) no tenían
+  sub-ola. La tabla del generador usa ahora las del plan, con cada opcode una sola vez. Todas siguen
+  en la CL9: cambia la sub-ola que dice la evidencia de 65 filas, no su ola.
+- **`0x4c8860`** (el `0x12`, otros jugadores) y **`0x576a60`** (el emote) estaban en la CL7 y la CL8
+  como `partial` por citas cuyo corte está en la línea siguiente; **`0x4e0980`** (el `0x68`) estaba
+  en la CL7 porque 06 la nombra al pasar. Las tres pasan a la CL9, sin empezar, y `0x4e6380`, que
+  solo llama `0x4e0980`, con ellas: 6,4 KB.
+
+El barrido de la CL9 no es fuente de la matriz: si lo fuera, devolvería las olas de la primera
+matriz (le cambiaba la ola a 151 filas, 79 KB, entre ellas 19 KB de efectos que volvían a la CL7). Las funciones de otras olas que porta un hito de la CL9 (su decisión 5)
+cambian de estado en la matriz cuando MuRet las cite. Con esto CL.M queda cerrada.
 
 ## Cómo regenerar y verificar
 

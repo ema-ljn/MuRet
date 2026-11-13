@@ -277,7 +277,7 @@ ola responsable para cada función de juego en alcance —todas se llaman `FUN_*
 para cada biblioteca, thunk o exclusión. Las funciones compartidas tienen una sola ola responsable y
 sus otras olas consumidoras. El método, los conteos y el avance están en
 [10](../../../Client/docs/research/10-cobertura-roadmap.md): 3.583 funciones de juego (2.327.716
-bytes; la CL7 el 26,9 %, la CL8 el 34,5 %, la CL9 el 24,3 %, la CL11 el 3,1 %), 1.891 de
+bytes; la CL7 el 26,6 %, la CL8 el 34,4 %, la CL9 el 24,6 %, la CL11 el 3,1 %), 1.891 de
 bibliotecas, 136 excluidas y 38 thunks, sin pendientes. La exclusión del anticheat del propio
 `main.exe` alcanza también a GameGuard, enlazado en el exe (72 funciones, 29 KB), que hasta ahora no
 se había identificado, y al detector de ventanas de trampas (`0x4ad070`). La
@@ -432,9 +432,11 @@ portar que solo llama la CL9 (48 KB) y los 240 cortes de MuRet hacia la CL9:
    y la muerte; las skills, el cuervo y las mascotas; los ítems del piso; las tiendas de NPC, el almacén y la
    caja del caos; la party, el comercio, el duelo, las tiendas personales y los comandos; el gremio; los
    amigos; el chat entre amigos y las cartas; los eventos; y Castle Siege en dos (las ventanas y la batalla).
-4. **La matriz se equivoca en diez opcodes** de la tabla del generador (`0x20`, `0x5D`, `0x3F`, `0x51`, `0xCA`,
-   `0x9C`, `0xA3`, `0x9F`, `0x0B`, `0x2C`, `0xA9`): el plan usa las sub-olas corregidas y el generador se
-   corrige con la revisión independiente de la CL.M.
+4. **La matriz se equivocaba en once opcodes** de la tabla del generador (`0x20`, `0x5D`, `0x3F`, `0x51`, `0xCA`,
+   `0x9C`, `0xA3`, `0x9F`, `0x0B`, `0x2C`, `0xA9`): el plan usa las sub-olas corregidas, y la
+   [revisión independiente de la CL.M](../../../Client/docs/research/10-cobertura-roadmap.md#la-revisión-independiente)
+   las pasó al generador. Las cifras de la CL9 de arriba son de la primera matriz (#334); con la revisión, la
+   CL9 tiene 1.057 funciones y 559,5 KB.
 
 ## Cómo el research se vuelve test
 

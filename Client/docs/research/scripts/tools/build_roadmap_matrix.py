@@ -221,6 +221,9 @@ REVIEW = {
     0x459A70: ('CL3', 'el temporizador de alta resolución (QueryPerformanceCounter, timeBeginPeriod) que arma WinMain'),
     0x4B8FF0: ('CL3', 'registra la clase "MU" y crea la ventana (CreateWindowExA) desde WinMain'),
     0x549EC0: ('CL6', 'carga FilterName.bmd, como su par 0x549c60 (Filter.bmd, CL6)'),
+    # Del plan de la CL9 (2026-11-13): 06 la nombra al pasar, en una sección de la CL7.
+    0x4E0980: ('CL9', 'el caso 0x68 del dispatcher (CL9.1); 06-render-escenas-y-ui.md solo la nombra entre los '
+                      'que crean un modelo con 0x5139f0'),
 }
 # Citas de Client/src que nombran la función sin portarla (revisión independiente): no cuentan como
 # implementación. MuRet no tiene audio hasta la CL10: sus citas de las funciones de sonido marcan dónde
@@ -233,6 +236,9 @@ MENTION_ONLY = {
     0x435BD0: 'GameUi.cpp nombra la cadena de Crywolf del paso, sin portarla',
     0x44F810: 'GameUi.cpp la nombra en el corte de la CL9.5',
     0x40AD90: 'LogicalAccess.h: no hace el alta de la entrada', 0x40B240: 'LogicalAccess.h: no hace la búsqueda',
+    # Del plan de la CL9: el corte está en la línea siguiente a la cita.
+    0x4C8860: 'ActorState.h nombra el byte +0x360 que escribe el 0x12 (0x4c89e1), sin portar',
+    0x576A60: 'ChatCommands.h nombra el emote como de la CL9.1',
 }
 # Citas que portan solo una parte (revisión independiente).
 PARTIAL_ONLY = {
@@ -247,7 +253,13 @@ TYPE_GIANTS = {0x4FD5F0, 0x50BA30, 0x505DE0, 0x5141E0}
 CLM_OUTPUTS = {'Client/docs/research/10-cobertura-roadmap.md',
                'Client/docs/research/scripts/tools/build_roadmap_matrix.py',
                'Client/docs/research/scripts/tools/check_roadmap_coverage.py',
-               'Client/docs/research/scripts/tools/test_check_roadmap_coverage.py'}
+               'Client/docs/research/scripts/tools/test_check_roadmap_coverage.py',
+               # El barrido de la CL9 parte de la matriz (#334) y reparte sus filas entre los hitos; lo que
+               # corrige de la matriz (los opcodes) ya está acá. Sus olas entran cuando MuRet porte y cite
+               # (decisiones 5 y 9 del plan).
+               'docs/superpowers/plans/2026-11-13-ola-cl9-gameplay.md',
+               'docs/superpowers/plans/2026-11-13-ola-cl9-funciones.tsv',
+               'docs/superpowers/plans/2026-11-13-ola-cl9-cortes.tsv'}
 TYPE_CREATE = 0x5141E0
 EFFECT_CALLS = {0x518CF0, 0x530860, 0x53FE70, 0x5491E0, 0x41ED10}
 # Gigantes con ramas de varias olas: la ola responsable sale de su papel, no de quién lo cita más.
@@ -264,24 +276,27 @@ ROLE_OVERRIDES = {
 MULTI_WAVE_GIANTS = set(ROLE_OVERRIDES)
 DISPATCHER = 0x4E2B10
 # Opcode S->C del dispatcher -> ola y sub-ola (04-protocolo.md y paso5 del research; la CL8 ya
-# portó el chat, la vida y el maná y los ítems del inventario; la CL7, el movimiento y el clima).
+# portó el chat, la vida y el maná y los ítems del inventario; la CL7, el movimiento y el clima). Las
+# sub-olas de la CL9 son las del plan de la CL9 (docs/superpowers/plans/2026-11-13-ola-cl9-gameplay.md,
+# Lo que encontró el barrido), que corrigió once opcodes y les dio sub-ola a las misiones. Cada opcode
+# está una sola vez.
 OPCODE_WAVE = {}
 for ops, w in [((0x00, 0x03, 0x71, 0xEB, 0xF1, 0xF4), 'CL4 (conexión y keepalive)'),
                ((0x0F, 0x1C, 0x46, 0xBD, 0xD3, 0xD7), 'CL7 (mundo y movimiento)'),
                ((0x01, 0x02, 0x0C, 0x0D, 0x26, 0x27, 0x24, 0x28, 0x2A), 'CL8 (chat, vida y maná, inventario)'),
-               ((0x12, 0x13, 0x14, 0x18, 0x1A, 0x1F, 0x20, 0x25, 0x45, 0x5D, 0x68, 0x9C, 0xCA, 0xDF),
-                'CL9.1 (viewport)'),
-               ((0x07, 0x0B, 0x16, 0x17, 0x19, 0x1B, 0x1E, 0x29, 0x2C, 0x48, 0x69, 0x73, 0xA3, 0xA7, 0xA8, 0xB7),
-                'CL9.2 (combate y skills)'),
-               ((0x21, 0x22, 0x23, 0x30, 0x31, 0x32, 0x33, 0x34, 0x81, 0x82, 0x83, 0x86, 0x87, 0xA9),
-                'CL9.3 (ítems, tiendas, baúl y caos)'),
-               (tuple(range(0x36, 0x3E)) + tuple(range(0x40, 0x45)) + tuple(range(0x50, 0x57))
-                + tuple(range(0x60, 0x68)) + (0xAA, 0xAB, 0xAC, 0xAD) + tuple(range(0xC0, 0xCC))
-                + (0xE1, 0xE5, 0xE6, 0xE9), 'CL9.4 (comercio, party, gremio, amigos y duelo)'),
-               ((0x3F, 0x47, 0x51, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x99, 0x9A, 0x9B, 0x9D, 0x9E, 0x9F,
-                 0xAF, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC), 'CL9.5 (eventos y asedio)'),
-               ((0xA0, 0xA1, 0xA2), 'CL9 (misiones: sin sub-ola, ver 10-cobertura-roadmap.md)')]:
+               ((0x12, 0x13, 0x14, 0x18, 0x1A, 0x1F, 0x25, 0x45, 0x68, 0x9F, 0xA0, 0xA1, 0xA2, 0xA3, 0xDF),
+                'CL9.1 (viewport, NPC y misiones)'),
+               ((0x07, 0x16, 0x17, 0x19, 0x1B, 0x1E, 0x29, 0x48, 0x69, 0x73, 0x9C, 0xA7, 0xA8, 0xA9, 0xB7),
+                'CL9.2 (combate, skills, cuervo y mascotas)'),
+               ((0x20, 0x21, 0x22, 0x23, 0x2C, 0x30, 0x31, 0x32, 0x33, 0x34, 0x81, 0x82, 0x83, 0x86, 0x87),
+                'CL9.3 (ítems del piso, tiendas, almacén y caos)'),
+               (tuple(range(0x36, 0x3E)) + (0x3F,) + tuple(range(0x40, 0x45)) + tuple(range(0x50, 0x57))
+                + (0x5D,) + tuple(range(0x60, 0x68)) + (0xAA, 0xAB, 0xAC, 0xAD) + tuple(range(0xC0, 0xCC))
+                + (0xE1, 0xE5, 0xE6, 0xE9), 'CL9.4 (party, comercio, duelo, tiendas personales, gremio y amigos)'),
+               ((0x0B, 0x47, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x99, 0x9A, 0x9B, 0x9D, 0x9E,
+                 0xAF, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC), 'CL9.5 (eventos y asedio)')]:
     for op in ops:
+        assert op not in OPCODE_WAVE, f'opcode {op:#x} repetido'
         OPCODE_WAVE[op] = w
 # Raíces de lectura de CL11 (roadmap, La ola de efectos visuales): efectos con modelo, joints, cintas,
 # sprites y partículas.

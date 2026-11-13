@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -194,6 +195,53 @@ TEST(EventsProtocolTest, ReadsTheSubcodedOnes)
               ProtocolError::WrongPacket);
     EXPECT_EQ(ErrorOf(Events::ReadEventPacket(PacketOf(Bytes({0xC1, 0x06, 0xBD, 0x01, 0x02, 0x05})))),
               ProtocolError::WrongPacket);
+}
+
+// Los BD de la interfaz de Crywolf (0x4e620c): 02 (0x4e0fe0), 04, 05, 07, 08 (0x4e1680) y 09 con los bytes que lee el
+// original; el 03 y el 0C enteros, para cortar al aplicarlos; el 06 y el 0A no hacen nada. GS 0.97 no manda ninguno.
+TEST(EventsProtocolTest, ReadsTheCrywolfInterfaceOnes)
+{
+    const auto altars = Read<Events::CrywolfAltars>(
+        Bytes({0xC1, 0x0D, 0xBD, 0x02, 0x40, 0x00, 0x00, 0x00, 0x11, 0x02, 0x01, 0x12, 0x00}));
+    EXPECT_EQ(altars.light, 0x40);
+    EXPECT_EQ(altars.altars, (std::array<std::uint8_t, 5>{0x11, 2, 1, 0x12, 0}));
+    const auto timer = Read<Events::CrywolfTimer>(Bytes({0xC1, 0x06, 0xBD, 0x04, 0x03, 0x0a}));
+    EXPECT_EQ(timer.value4, 3);
+    EXPECT_EQ(timer.minutes, 10);
+    const auto boss = Read<Events::CrywolfBoss>(Bytes({0xC1, 0x09, 0xBD, 0x05, 0x50, 0x00, 0x00, 0x00, 0x04}));
+    EXPECT_EQ(boss.life, 0x50);
+    EXPECT_EQ(boss.count, 4);
+    const auto rank =
+        Read<Events::CrywolfRank>(Bytes({0xC1, 0x0C, 0xBD, 0x07, 0x03, 0x00, 0x00, 0x00, 0x39, 0x30, 0x00, 0x00}));
+    EXPECT_EQ(rank.rank, 3);
+    EXPECT_EQ(rank.experience, 12345);
+    std::vector<std::byte> ranking = Bytes({0xC1, 0x00, 0xBD, 0x08, 0x02});
+    for (const std::uint8_t place : {std::uint8_t{0}, std::uint8_t{4}})
+    {
+        const std::vector<std::byte> entry =
+            Bytes({place, 'L', 'o', 'b', 'o', 'G', 'r', 'i', 's', '0', '1', 0, 0x10, 0x27, 0, 0, 0x08, 0, 0, 0});
+        ranking.insert(ranking.end(), entry.begin(), entry.end());
+    }
+    ranking[1] = static_cast<std::byte>(ranking.size());
+    const auto read = Read<Events::CrywolfRanking>(ranking);
+    ASSERT_EQ(read.entries.size(), 2u);
+    EXPECT_EQ(read.entries[1].place, 4);
+    EXPECT_EQ(std::string(read.entries[1].name.data(), read.entries[1].name.size()), "LoboGris01");
+    EXPECT_EQ(read.entries[1].score, 10000);
+    EXPECT_EQ(read.entries[1].classByte, 8);
+    ranking.pop_back();
+    ranking[1] = static_cast<std::byte>(ranking.size());
+    EXPECT_EQ(ErrorOf(Events::ReadEventPacket(PacketOf(ranking))), ProtocolError::TooShort);
+    EXPECT_EQ(Read<Events::CrywolfChaosBox>(Bytes({0xC1, 0x05, 0xBD, 0x09, 0x01})).value, 1);
+    const auto contract = Read<Events::CrywolfUnported>(Bytes({0xC1, 0x05, 0xBD, 0x03, 0x00}));
+    EXPECT_EQ(contract.subcode, 3);
+    EXPECT_EQ(contract.bytes.size(), 5u);
+    EXPECT_EQ(Read<Events::CrywolfUnported>(Bytes({0xC1, 0x04, 0xBD, 0x0C})).subcode, 0xc);
+    for (const std::uint8_t nothing : {std::uint8_t{6}, std::uint8_t{0xa}, std::uint8_t{0xd}})
+        EXPECT_EQ(ErrorOf(Events::ReadEventPacket(PacketOf(Bytes({0xC1, 0x06, 0xBD, nothing, 0x02, 0x05})))),
+                  ProtocolError::WrongPacket);
+    EXPECT_EQ(ErrorOf(Events::ReadEventPacket(PacketOf(Bytes({0xC1, 0x08, 0xBD, 0x05, 0, 0, 0, 0})))),
+              ProtocolError::TooShort);
 }
 
 // F3 22 (0x4e31f8: el byte de pkt[4] y el word de pkt[6], no el de pkt[4] del PMSG_F3_22 del GS), F3 23 (0x4d9f00)

@@ -288,11 +288,19 @@ bool ServerSession::RegisterTheEventPackets()
         std::uint8_t opcode;
         std::uint8_t subcode;
     };
-    constexpr std::array<WithSubcode, 7> Subcodes{{
+    constexpr std::array<WithSubcode, 15> Subcodes{{
         {Events::ChaosCastleOpcode, Events::ChaosCastleEntrySubcode},
         {Events::JewelMixOpcode, Events::JewelMixSubcode},
         {Events::JewelMixOpcode, Events::JewelUnmixSubcode},
         {Events::CrywolfOpcode, Events::CrywolfStateSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfAltarsSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfContractSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfTimerSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfBossSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfRankSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfRankingSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfChaosBoxSubcode},
+        {Events::CrywolfOpcode, Events::CrywolfEffectSubcode},
         {Events::WorldOpcode, Events::EventTimeSubcode},
         {Events::WorldOpcode, Events::SoccerScoreSubcode},
         {Events::WorldOpcode, Events::ServerCommandSubcode},

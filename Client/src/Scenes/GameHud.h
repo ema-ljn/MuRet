@@ -26,6 +26,7 @@ class CrtRandom;
 namespace Client::Scenes
 {
 class WorldState;
+struct CrywolfInterface;
 struct GameProjection;
 struct HudState;
 struct UiItemResources;
@@ -43,6 +44,9 @@ struct GameHudContext
     // 0x5a7520 apaga después de dibujarlo una vez). En un dibujo intermedio, copias que nadie vuelve a leer.
     HudState& hud;
     std::uint8_t& crywolfSandOverlay;
+    // Lo que escribe la interfaz de Crywolf (0x4365c0): en un dibujo intermedio, la copia que nadie vuelve a leer;
+    // nullptr, la de WorldRuntime.
+    CrywolfInterface* crywolfInterface = nullptr;
     // 0x41ed10(id, 0, 0): el sonido que pide la barra principal (0x22, la vida baja), el gancho de la CL10.
     std::optional<std::int32_t>& sound;
     // Un dibujo intermedio de MuRet no escribe los avisos de los ítems puestos (D+0x44): van a una copia que nadie
@@ -64,7 +68,8 @@ struct GameHudContext
     const Data::Tables::ItemSetTypeTable* setTypes = nullptr;
     // 0x5767b88: el reloj del mundo, en ms.
     float worldClock = 0.0f;
-    // GetTickCount del frame (App::TickCountMs), que lee la cuenta de los eventos (0x40bab0).
+    // GetTickCount del frame (App::TickCountMs), que leen la cuenta de los eventos (0x40bab0) y el reloj de la interfaz
+    // de Crywolf (0x437410 y 0x437426), y que MuRet da también por el timeGetTime() de 0x63b0e3 (0x430180).
     std::uint32_t tickCount = 0;
     // 0x7d3682c y 0x7d36828: el mouse en 640 × 480 (UI::MouseIn640x480).
     UI::Point mouse{};

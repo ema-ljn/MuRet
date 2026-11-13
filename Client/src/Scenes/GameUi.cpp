@@ -9,6 +9,7 @@
 #include "Protocol/Pet/PetInfo.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CameraTour.h"
 #include "Scenes/EventNpcWindows.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameCommandsWindow.h"
@@ -198,6 +199,39 @@ void StepTheUnownedClick(WorldRuntime& runtime)
     ui.focusedList = 0;
     UI::HideTheWindowList(runtime.oldWindows.windowList);
     runtime.chat.input.focus = UI::ChatFocus::Game;
+}
+
+// 0x435bd0: el paso de la interfaz de Crywolf (06 § La interfaz de Crywolf), solo en el mapa 34 (0x4303c0). Con los
+// resultados (0x723bf9 en 1, del BD 08) y el izquierdo abajo (0x7d36874), sobre el botón (300, 354) × (300, 330), sin
+// los bordes, deja 0x723bdc en 5, que el dibujo lee para cerrarlos con el mouse todavía encima (Q-C1342); en cualquier
+// lugar apaga el botón y el flanco (0x435c4e): con los resultados a la vista, la UI se queda con todos los clics. La
+// ventana del contrato (0x723a44 en 1 o 2) la abre solo 0x435b00, desde el BD 03 (0x4e1010) y el clic en un altar
+// (0x567ba4), que cortan antes: con ella abierta corta.
+Core::Expected<void, std::string> StepTheCrywolfInterface(WorldRuntime& runtime, std::int32_t mouseX,
+                                                          std::int32_t mouseY)
+{
+    constexpr std::int32_t CrywolfMap = 0x22;
+    constexpr std::int32_t ButtonLeft = 0x12c;
+    constexpr std::int32_t ButtonRight = 0x162;
+    constexpr std::int32_t ButtonTop = 0x12c;
+    constexpr std::int32_t ButtonBottom = 0x14a;
+    constexpr std::int32_t ButtonPushed = 5;
+    if (runtime.map != CrywolfMap)
+        return {};
+    CrywolfInterface& crywolf = runtime.crywolf.ui;
+    GameMovementState& movement = runtime.movement;
+    if (crywolf.byte723bf9 == 1 && movement.leftHeld)
+    {
+        if (mouseX > ButtonLeft && mouseX < ButtonRight && mouseY > ButtonTop && mouseY < ButtonBottom)
+            crywolf.dwords723bdc[0] = ButtonPushed;
+        movement.leftHeld = false;
+        movement.pendingClick = false;
+    }
+    if (crywolf.byte723a44 == 1 || crywolf.byte723a44 == 2)
+        return Core::Unexpected(std::format("0x435c5c: la ventana del contrato de Crywolf (0x723a44 en {}) no está "
+                                            "portada",
+                                            crywolf.byte723a44));
+    return {};
 }
 
 // 0x636f04..0x637056: la esquina del registro del chat (0x45a9d0). Fuera de su ventana, (−10, 0x65); en ella, 0x1a4 de
@@ -1134,8 +1168,8 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
     GameMovementState& movement = runtime.movement;
     const Input::InputState& input = context.input;
     const ActorState& hero = context.world.Actors()[runtime.hero];
-    // 0x59ff3f: con el recorrido de la cámara, nada.
-    if (movement.cameraTour)
+    // 0x59ff32..0x59ff3f: con el recorrido de la cámara (0x4033d0), nada.
+    if (CameraTourRunning(runtime.events.cameraTour))
         return {};
     StepTheOldAreaRows(context);
     // 0x5a00a1..0x5a0124: PgUp y PgDn corren el registro del chat tantos renglones como muestra (la vtable + 0x38 los
@@ -1399,9 +1433,12 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
     // 0x623e9b..0x623ec2: con la de amigos abierta, Esc es de las ventanas viejas (0x490490).
     if (!panels.Registry().IsOpen(UI::FriendsPanel) && KeyEdge(ui, context.input, EscapeKey))
     {
-        // 0x623ec8: con el recorrido de la cámara, Esc lo corta (+0x158 = 1, 0x403d60) y sale.
-        if (runtime.movement.cameraTour)
-            return Core::Unexpected(std::string("0x623ed7: cortar el recorrido de la cámara con Esc es de la CL9.5"));
+        // 0x623ec8..0x623ee9: con el recorrido de la cámara (0x4033d0), Esc lo corta (+0x158 = 1 y 0x403d60) y sale.
+        if (CameraTourRunning(runtime.events.cameraTour))
+        {
+            runtime.events.cameraTour.skipped = true;
+            return RemoveTheCameraTourActors(runtime.events.cameraTour);
+        }
         if (ui.field78abb39 == 0)
         {
             if (dialogs.current == 0)
@@ -1468,7 +1505,9 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
         return chat;
     StepTheUnownedClick(runtime);
     // 0x636ed6: 0x5ebca0, con 0x78abad9 en 0 no hace nada.
-    // 0x636edb: 0x435bd0 → 0x4303c0, Crywolf, con sus estados (0x723bf9, 0x723a44) que solo escribe su paquete.
+    // 0x636edb.
+    if (auto crywolf = StepTheCrywolfInterface(runtime, context.mouseX, context.mouseY); !crywolf.HasValue())
+        return crywolf;
     if (auto stepped = StepThePanels(context, panels); !stepped.HasValue())
         return stepped;
     if (auto keys = StepTheKeysAndButtons(context, panels); !keys.HasValue())

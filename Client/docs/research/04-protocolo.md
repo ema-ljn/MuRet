@@ -677,8 +677,9 @@ Antes de cada `1C` va el `/move` del cliente en el chat, y después el servidor 
   dos (`0x4c4269`, `0x4c78ac`; *estático*; *inferido*: el pedido del estado de Crywolf). Hay otros
   dos emisores de `BD`, con el 3 (`0x435d4c`) y con el 9 (`0x65a986`), sin leer.
 - **El `BD 00` del servidor** (`0x4e2b10` → `0x4033b0`): pone en su estado el recorrido de la
-  cámara `CCameraMove`, el único camino a él ([06](06-render-escenas-y-ui.md#la-cámara-del-juego);
-  *estático*).
+  cámara `CCameraMove`, el único camino a él ([06](06-render-escenas-y-ui.md#el-recorrido-de-la-cámara);
+  *estático*): con la etapa 2 empieza 5.000 ms después. Los `BD 02` a `0C` llenan la interfaz de Crywolf
+  ([Los eventos](#los-eventos-0b-46-47-909e-af-bc-bd-y-f3-222340)).
 
 ### El chat que llega: `00`, `01`, `02`, `0C`, `0D` y `F3 30`
 
@@ -812,7 +813,7 @@ solo con `0xfe` y `0xff`); `App::ServerSession` los pasa al mundo y `Scenes::App
 escriben el registro propio que leen los orbes y el AG del HUD (06). Un lugar fuera de la grilla corta con
 `0x4d35f6` o `0x4d3917` (08, P-C150). Los tests usan valores inventados.
 
-### Los eventos: `0B`, `46`, `47`, `90`..`9E`, `AF`, `BC`, `BD 00` y `F3 22`/`23`/`40`
+### Los eventos: `0B`, `46`, `47`, `90`..`9E`, `AF`, `BC`, `BD` y `F3 22`/`23`/`40`
 
 (CL9 hito 11, 2026-11-13, *estático*, contra el ASM y contra `gs_protocol.h` y `protocol.cpp` del GameServer
 reconstruido.) Todos llegan por `0x4e2b10` sin guarda de escena, de estado de la sesión ni del flag C3. Los formatos
@@ -841,6 +842,14 @@ nombre del evento (un puntero a su registro, `0x76bd1dc + 300 · índice`) impri
 | `C1 05 AF 01 resultado` | `0x4e5032` → `0x4daa90` | como el 9A con Chaos Castle (1147, 100), y 7 → 423 | no está en el 0.97; el oráculo es el cliente |
 | `C1 05 BC 00/01 resultado` | `0x4e4547`, `0x4da540` | el texto de la mezcla (1801/1800 con 1816 y 868, o 1817, 1811, 1812, 1815) en `"%s%s %s"`, `0x6236f0(0)` y `0x6236f0(0xa6)`, y la ventana de la mezcla (`0x402e50`, corta) | no está |
 | `C1 06 BD 00 estado etapa` | `0x4e5965` | `0x42fe80(estado, etapa)` (la interfaz de Crywolf; con otro estado que el anterior, la luz y el `.att` del mapa en curso, `0x42ff81` y `0x42ffe8`, [06](06-render-escenas-y-ui.md#los-objetos-de-crywolf), Q-C1340) y `0x4033b0(etapa)` en el recorrido de la cámara | no está: el GameServer 0.97 no tiene Crywolf y el oráculo es el ASM del cliente |
+| `C1 0D BD 02 luz:4 a0 a1 a2 a3 a4` | `0x4e5990` → `0x4e0fe0` → `0x430000` | la luz a `0x723c08` y los cinco altares a `0x6c73cc..0x6c73d0` (`.data` en 2), en cualquier mapa | no está (Crywolf) |
+| `C1 BD 03 …` | `0x4e59a5` → `0x4e1010` | el resultado del contrato de los altares (415 líneas: `0x435b00` y la respuesta); MuRet corta | no está |
+| `C1 06 BD 04 a minutos` | `0x4e59ba` → `0x435a20` | con la etapa 4 (`0x4359f0`) en el 34 (`0x4303c0`): `0x723be4` = a, `0x723be8` = minutos, `0x7239f4` = `GetTickCount` y `0x723bf8` en 1 | no está |
+| `C1 09 BD 05 vida:4 n` | `0x4e59eb` → `0x435a70` | con la etapa 3 o 4 (`0x435a00`) en el 34: `0x723bd8` = n; la barra `0x723a3d` en 1 con la vida en más de 0 y en 0 con 0 o menos; `0x6c73d4` = vida (`0x436590`) | no está |
+| `C1 0C BD 07 rango … exp:4` | `0x4e5a09` → `0x437600` | `0x723bed` = `pkt[4]`, `0x723bf0` = el dword de `pkt+8` | no está |
+| `C1 BD 08 n registros de 0x14…` | `0x4e5a39` → `0x4e1680` → `0x437620` | por registro (desde `pkt+5`): los puntos (`+0xc`) a `0x6c73e4 + 4 · lugar`, la clase (`+0x10`) a `0x723a30 + lugar`, el nombre (`+1`, 10 bytes y el 0) a `0x7239f8 + 11 · lugar` y `0x723bf9` en 1. El lugar (`+0`) no tiene tope (Q-C1341) | no está |
+| `C1 05 BD 09 b` | `0x4e5a25` | `0x7d2dc9d` = b (lo lee la caja del caos, `0x5ff2f2`) | no está |
+| `C1 BD 0C … a b c d` | `0x4e59d6` → `0x4e15f0` → `0x430040` | los efectos por la clase (`0x518cf0` con `0xee`, CL11); MuRet corta | no está |
 | `C1 F3 22 b w:2` | `0x4e31f8` | el byte de `pkt[4]` a `0x5767814` y la palabra de `pkt[6]` a `0x5767816` | `PMSG_F3_22` (`0x418330`, la guerra de gremios) mide 6: la palabra la lee fuera del paquete (Q-C1322) |
 | `C1 16 F3 23 nombre:8 p1 nombre:8 p2` | `0x4d9f00` | los nombres con su `'\0'`, los puntos, `0x576796f` = p1 ≠ `0xff`, y el efecto `0x60e` en la celda del héroe (`0x518cf0`, corta) | `PMSG_BATTLESOCCER_SCORE` (`0x16`): la palabra de `pkt[0x15]` toma `pkt[0x16]` (Q-C1323) |
 | `C1 07 F3 40 comando a b` | `0x4da070` | por la tabla `0x4da24c`: 0, el efecto `0x60e` en la celda (`0x518cf0`, corta); 1, el aviso 650 + a (810 + a desde `0x14`); 2, el sonido `0x5a`; 3, 710 + a; 5, el diálogo a de `0x632f70` (corta); 6, 449; 7, con a en 0 el texto 2020 en el diálogo `0xaa` y si no el aviso 2020 + a; `0xd`, 1826; `0x2f..0x31`, 1776 + comando | `PMSG_F3_40`, igual |
@@ -883,7 +892,7 @@ arriba.
 | La respuesta del `F3 03`: un C3 de `0x34` bytes que `0x4c3940` lee hasta el `0x37` (Q-C144), y el `F3 10` con entradas de 8 bytes | un lector de la respuesta con `TooShort`, el estado `0x3d` en la sesión, y un lector del `F3 10` con el lugar y los 7 bytes de cada ítem (propuesta del barrido de Lorencia) | CL7 |
 | Caminar: el `D3` con el tope de 14 y la dirección final por el blanco o por el ángulo; el `D3` y el `D7` del servidor | un escritor del `D3` contra el `SendMove` real emulado y los bytes del cable, y lectores del `D3` y del `D7` (este, al menos, con la sacudida); el `A3` y el `A4` siguen siendo de la capa de FoxAnti (propuesta del barrido) | CL7.4 |
 | Los cambios de mapa: el `1C` en los dos sentidos, el `F3 04`, el `F3 12` y el `BD 00` | lectores del `1C` y del `F3 04`, escritores del `1C` (en C3), del `F3 12` y del `BD 00` (en C1 con el XOR32), y la espera del warp en la sesión (propuesta del barrido) | CL7.5 |
-| Los paquetes de los eventos, sin guarda de escena, con `sprintf` o `wsprintfA` según el handler | `Protocol::Events` (lectores y los escritores del `97` y del `AF 02`) y `Scenes::ApplyEventPacket` sobre `WorldRuntime::events` y el objeto del evento; `UI::FormatOriginal` para los dos formatos ([Los eventos](#los-eventos-0b-46-47-909e-af-bc-bd-00-y-f3-222340)) | CL9 hito 11 |
+| Los paquetes de los eventos, sin guarda de escena, con `sprintf` o `wsprintfA` según el handler | `Protocol::Events` (lectores y los escritores del `97` y del `AF 02`) y `Scenes::ApplyEventPacket` sobre `WorldRuntime::events` y el objeto del evento; `UI::FormatOriginal` para los dos formatos ([Los eventos](#los-eventos-0b-46-47-909e-af-bc-bd-y-f3-222340)) | CL9 hito 11 |
 
 Tests que fija:
 

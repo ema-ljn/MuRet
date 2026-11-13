@@ -17,6 +17,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbleDraw.h"
+#include "Scenes/CrywolfInterfaceDrawing.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/EventDrawing.h"
 #include "Scenes/EventNpcWindows.h"
@@ -1553,13 +1554,10 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     // 19. 0x65dd70: la imagen que se desvanece de [0x5763534], con su +0x18 en 0 (hito 6).
     // 20. 0x5a9290.
     DrawTheBottomBar(frame);
-    // 21. 0x4365c0 empieza siempre con 0x620a00(1), y la traza lo muestra antes de la experiencia. Con el aviso de
-    // Crywolf (0x6c73d1, .data −1) en 0 o más, el dibujo de la interfaz de Crywolf es de la fase 2 del hito 11.
-    context.sprites.SetBlend(BlendMode::Alpha);
-    if (runtime.crywolf.ui.message >= 0)
-        return Core::Unexpected(std::format("0x436b97: el aviso {} de la interfaz de Crywolf es de la fase 2 del hito "
-                                            "11 de la CL9",
-                                            static_cast<int>(runtime.crywolf.ui.message)));
+    // 21. 0x4365c0: la interfaz de Crywolf (Scenes/CrywolfInterfaceDrawing), que empieza siempre con 0x620a00(1); la
+    // traza lo muestra antes de la experiencia.
+    if (auto crywolf = DrawTheCrywolfInterface(context); !crywolf.HasValue())
+        return crywolf;
     // 22. 0x5aa9a0.
     DrawTheChatInput(frame);
     // 23. y 24. 0x5abcd0 y 0x5a8cc0.
@@ -1570,7 +1568,9 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     // 25. 0x652c90.
     if (runtime.siegeActive)
         return Core::Unexpected(std::string("0x652c90: las skills de la batalla del asedio son de la CL9.5"));
-    // 26. 0x436240: la confirmación de los eventos (CL9.5).
+    // 26. 0x436240: el color del texto y la ventana del contrato de Crywolf (Scenes/CrywolfInterfaceDrawing).
+    if (auto contract = DrawTheCrywolfContract(context); !contract.HasValue())
+        return contract;
     // 27. y 28. 0x5ac120 y 0x5f7840.
     if (auto ui3D = DrawTheUi3D(frame); !ui3D.HasValue())
         return ui3D;

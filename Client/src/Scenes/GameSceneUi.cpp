@@ -274,6 +274,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .cellYDepth = m_projectingFrame ? m_projection->heroYDepth : hero.cellYAccesses,
         .hud = m_projectingFrame ? m_projection->hud : runtime.hud,
         .crywolfSandOverlay = m_projectingFrame ? m_projection->crywolfSandOverlay : runtime.crywolf.sandOverlay,
+        .crywolfInterface = m_projectingFrame ? &m_projection->crywolfInterface : &runtime.crywolf.ui,
         .sound = m_projectingFrame ? m_projection->sound : runtime.lastSoundId,
         .projecting = m_projectingFrame,
         .projection = projection,

@@ -129,6 +129,57 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 80> HudTextureSet{{
     {"Interface\\level_01.jpg", 0x120, TextureSetsDetail::NearestClamp},
 }};
 
+// Las de la interfaz de Crywolf que sube 0x61ccb0 (0x61de5f..0x61e373, CL9 hito 11), de 0x6b6 a 0x6e2 en su orden, con
+// GL_LINEAR y GL_CLAMP: 0x63bd00 las .tga y 0x63b870 in_bar2.jpg. Las dibuja 0x4365c0 (Scenes/CrywolfInterfaceDrawing):
+// el estado, el cartel, el rango y los resultados. Las sube GameModels con las del HUD, y quedan.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 45> CrywolfTextureSet{{
+    {"Interface\\in_bar.tga", 0x6b6, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_bar2.jpg", 0x6b7, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_deco.tga", 0x6b8, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main.tga", 0x6b9, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main_icon_bal1.tga", 0x6ba, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main_icon_dl1.tga", 0x6bb, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main_icon_dl2.tga", 0x6bc, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main_number1.tga", 0x6bd, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main_number2.tga", 0x6be, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main2.tga", 0x6bf, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_failure.tga", 0x6c0, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_success.tga", 0x6c1, TextureSetsDetail::LinearClamp},
+    {"Interface\\t_main.tga", 0x6c2, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_no1.tga", 0x6c3, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_no2.tga", 0x6c4, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_no3.tga", 0x6c5, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_ok1.tga", 0x6c6, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_ok2.tga", 0x6c7, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_ok3.tga", 0x6c8, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_yes1.tga", 0x6c9, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_yes2.tga", 0x6ca, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_b_yes3.tga", 0x6cb, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_main.tga", 0x6cc, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main_number1_1.tga", 0x6cd, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main_number2_1.tga", 0x6ce, TextureSetsDetail::LinearClamp},
+    {"Interface\\in_main_number0_2.tga", 0x6cf, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_table.tga", 0x6d0, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_rank.tga", 0x6d1, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_D.tga", 0x6d2, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_C.tga", 0x6d3, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_B.tga", 0x6d4, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_A.tga", 0x6d5, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_S.tga", 0x6d6, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_0.tga", 0x6d7, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_1.tga", 0x6d8, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_2.tga", 0x6d9, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_3.tga", 0x6da, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_4.tga", 0x6db, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_5.tga", 0x6dc, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_6.tga", 0x6dd, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_7.tga", 0x6de, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_8.tga", 0x6df, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_9.tga", 0x6e0, TextureSetsDetail::LinearClamp},
+    {"Interface\\icon_Rank_exp.tga", 0x6e1, TextureSetsDetail::LinearClamp},
+    {"Interface\\m_main_rank.tga", 0x6e2, TextureSetsDetail::LinearClamp},
+}};
+
 // Las de los pases de brillo, que 0x61ccb0 sube en su avance 0 y nadie suelta: Shiny01 para el 0x8,
 // Chrome01 para el 0x4 y Chrome02 para el 0x200, el 0x800 y el 0x1000 (06 § Los pases de brillo).
 // No son de una escena: las sube GameModels con los modelos, y quedan.

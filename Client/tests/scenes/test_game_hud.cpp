@@ -1000,21 +1000,34 @@ TEST_F(GameHudTest, TheEventCountdownDrawsTheSecondsLeftAndExpires)
     }
 }
 
-// CL9 hito 11, 0x4365c0: con el aviso de Crywolf (0x6c73d1, .data −1) en 0 o más, que pone el BD 00 con la etapa 5
-// (0x42fec8), el dibujo de la interfaz de Crywolf es de la fase 2 y corta en 0x436b97; en −1 sigue.
-TEST_F(GameHudTest, TheCrywolfNoticeCutsTheHudUntilItsInterfaceIsPorted)
+// CL9 hito 11, 0x4365c0: el hijo 21. Con el aviso de Crywolf (0x6c73d1) en 1, que pone el BD 00 con la etapa 5
+// (0x42fec8), el HUD dibuja el cartel 0x6c0 (0x6b6 + 0x6c73dc) y la tabla del rango en cualquier mapa; con −1, nada.
+TEST_F(GameHudTest, TheCrywolfNoticeIsDrawnOnAnyMap)
 {
     for (const std::int32_t map : {0, 2, 34})
     {
         SCOPED_TRACE(map);
         world.Runtime() = Client::Scenes::WorldRuntime{};
         world.Runtime().map = map;
+        const auto countOf = [this](std::uint16_t slot)
+        {
+            const std::vector<DrawnQuad> quads = QuadsOf(sprites);
+            return std::count_if(quads.begin(), quads.end(),
+                                 [slot](const DrawnQuad& quad) { return quad.slot == slot; });
+        };
+        sprites.Begin(Screen640);
         ASSERT_EQ(world.Runtime().crywolf.ui.message, -1);
-        ASSERT_TRUE(Hud().HasValue());
+        const auto quiet = Hud();
+        ASSERT_TRUE(quiet.HasValue()) << quiet.Error();
+        EXPECT_EQ(countOf(0x6c0), 0);
+        EXPECT_EQ(countOf(0x6d0), 0);
+        sprites.Begin(Screen640);
         world.Runtime().crywolf.ui.message = 1;
-        const auto cut = Hud();
-        ASSERT_FALSE(cut.HasValue());
-        EXPECT_NE(cut.Error().find("0x436b97"), std::string::npos) << cut.Error();
+        const auto drawn = Hud();
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(countOf(0x6c0), 1);
+        EXPECT_EQ(countOf(0x6d0), 1);
+        EXPECT_EQ(world.Runtime().crywolf.ui.dword6c73d8, 2);
     }
 }
 

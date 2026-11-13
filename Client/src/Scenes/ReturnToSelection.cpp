@@ -2,6 +2,7 @@
 
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Scenes/CameraTour.h"
 #include "Scenes/EventPackets.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/MapLoad.h"
@@ -70,8 +71,10 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
     // (el próximo lugar, 0x77f3b9c, queda).
     runtime.chat.noticeSound = false;
     UI::ClearTheWhisperSenders(runtime.chat.whisperSenders);
-    // 0x4c2650..0x4c26fd: globales y objetos que MuRet no tiene, el byte del A0 ([0x710148] + 4 en 0xff,
-    // Q-C215) y 0x657670, cuyo 0x4499b0 manda el segundo C1 03 31 (la sesión, Q-C214).
+    // 0x4c2650..0x4c26e7: globales y objetos que MuRet no tiene, el byte del A0 ([0x710148] + 4 en 0xff,
+    // Q-C215) y 0x657670, cuyo 0x4499b0 manda el segundo C1 03 31 (la sesión, Q-C214). 0x4c26ec..0x4c26fd: el
+    // recorrido de la cámara, 0x403300 y después 0x403d60 (que con +0x14c recién en 10000 no borra a nadie).
+    ResetTheCameraTour(runtime.events.cameraTour);
     // MuRet: la cámara copia la posición del héroe publicado, que la selección lee desde acá (Q-C213).
     resources.cameraInput.hero = world.Actors()[runtime.hero].position;
 }

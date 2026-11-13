@@ -44,6 +44,15 @@ inline constexpr std::uint8_t JewelMixSubcode = 0x00;
 inline constexpr std::uint8_t JewelUnmixSubcode = 0x01;
 inline constexpr std::uint8_t CrywolfOpcode = 0xbd;
 inline constexpr std::uint8_t CrywolfStateSubcode = 0x00;
+// 0x4e620c, la tabla del BD por pkt[3] (0 a 0xc): el 1, el 6, el 0xa y el 0xb no hacen nada (0x4e5b4a).
+inline constexpr std::uint8_t CrywolfAltarsSubcode = 0x02;
+inline constexpr std::uint8_t CrywolfContractSubcode = 0x03;
+inline constexpr std::uint8_t CrywolfTimerSubcode = 0x04;
+inline constexpr std::uint8_t CrywolfBossSubcode = 0x05;
+inline constexpr std::uint8_t CrywolfRankSubcode = 0x07;
+inline constexpr std::uint8_t CrywolfRankingSubcode = 0x08;
+inline constexpr std::uint8_t CrywolfChaosBoxSubcode = 0x09;
+inline constexpr std::uint8_t CrywolfEffectSubcode = 0x0c;
 inline constexpr std::uint8_t WorldOpcode = 0xf3;
 inline constexpr std::uint8_t EventTimeSubcode = 0x22;
 inline constexpr std::uint8_t SoccerScoreSubcode = 0x23;
@@ -199,6 +208,64 @@ struct CrywolfState
     std::uint8_t stage = 0;
 };
 
+// 0x4e5990 → 0x4e0fe0 (BD 02): 0x430000(dword de pkt+4, pkt[8], pkt[9], pkt[0xa], pkt[0xb], pkt[0xc]), la luz
+// (0x723c08) y los cinco altares (0x6c73cc..0x6c73d0).
+struct CrywolfAltars
+{
+    std::int32_t light = 0;
+    std::array<std::uint8_t, 5> altars{};
+};
+
+// 0x4e59ba (BD 04): 0x435a20(pkt[4], pkt[5]).
+struct CrywolfTimer
+{
+    std::uint8_t value4 = 0;
+    std::uint8_t minutes = 0;
+};
+
+// 0x4e59eb (BD 05): 0x435a70(dword de pkt+4, pkt[8]).
+struct CrywolfBoss
+{
+    std::int32_t life = 0;
+    std::uint8_t count = 0;
+};
+
+// 0x4e5a09 (BD 07): 0x437600(pkt[4], dword de pkt+8).
+struct CrywolfRank
+{
+    std::uint8_t rank = 0;
+    std::int32_t experience = 0;
+};
+
+// Un registro de 0x14 bytes del BD 08 desde pkt+5 (0x4e1695..0x4e16a9): el lugar en +0, el nombre en +1 (10 bytes),
+// los puntos en el dword +0xc y la clase en +0x10.
+struct CrywolfRankingEntry
+{
+    std::uint8_t place = 0;
+    std::array<char, 10> name{};
+    std::int32_t score = 0;
+    std::uint8_t classByte = 0;
+};
+
+// 0x4e5a39 → 0x4e1680 (BD 08): pkt[4] registros, cada uno a 0x437620.
+struct CrywolfRanking
+{
+    std::vector<CrywolfRankingEntry> entries;
+};
+
+// 0x4e5a25 (BD 09): pkt[4] a 0x7d2dc9d.
+struct CrywolfChaosBox
+{
+    std::uint8_t value = 0;
+};
+
+// 0x4e59a5 → 0x4e1010 (BD 03) y 0x4e59d6 → 0x4e15f0 (BD 0C): lo que MuRet no porta, con el paquete entero.
+struct CrywolfUnported
+{
+    std::uint8_t subcode = 0;
+    std::vector<std::byte> bytes;
+};
+
 // 0x4e31f8 (F3 22): el byte de pkt[4] y el word de pkt[6].
 struct EventTime
 {
@@ -227,7 +294,8 @@ using EventPacket =
     std::variant<EventState, MapAttributes, ItemAcquired, DevilSquareEntryResult, EventOpenTime, EventCountdown,
                  EventResult, EventChipInfo, EventChipCount, MutoNumbers, EventDialog, BloodCastleEntryResult,
                  EventPlayState, SerialResult, EventSound, ChaosCastleEntryResult, JewelMixResult, CrywolfState,
-                 EventTime, SoccerScore, ServerCommand>;
+                 CrywolfAltars, CrywolfTimer, CrywolfBoss, CrywolfRank, CrywolfRanking, CrywolfChaosBox,
+                 CrywolfUnported, EventTime, SoccerScore, ServerCommand>;
 
 // Uno de los paquetes de arriba por su opcode (y su subcódigo en AF, BC, BD y F3). Otro tipo que C1, otro opcode u
 // otro subcódigo → WrongPacket; sin los bytes que el original lee siempre → TooShort. Los bytes de más se ignoran.

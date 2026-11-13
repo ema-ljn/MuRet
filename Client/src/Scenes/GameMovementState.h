@@ -22,7 +22,6 @@ struct GameMovementState
     bool pendingClick = false;
     bool inputBlocked = false;
     bool movementBlocked = false;
-    bool cameraTour = false;
     float heldSince = 0.0f;
     float heldElapsed = 0.0f;
     bool leftHeld = false;

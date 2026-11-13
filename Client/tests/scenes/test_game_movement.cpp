@@ -314,7 +314,8 @@ TEST(GameMovementTest, ACameraTourStopsBeforeTouchingTheWaitCounter)
 {
     MovingHero tested;
     tested.world.Runtime().warpCounter = 50;
-    tested.world.Runtime().movement.cameraTour = true;
+    tested.world.Runtime().events.cameraTour.stage = 2;
+    tested.world.Runtime().events.cameraTour.waiting = false;
     tested.world.Actors()[0].run = 20;
     const auto result = StepHeroMovement(tested.Context());
     ASSERT_TRUE(result.HasValue()) << result.Error();

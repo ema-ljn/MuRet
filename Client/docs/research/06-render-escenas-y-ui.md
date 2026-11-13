@@ -1478,6 +1478,74 @@ que confirmar está en 08 (P-C294). `0x554180` es `DrawHudLine` y `0x623690` es 
     y 860 en `0x50` y 1153 en `0x60`. Después, blanco, la fuente `0x5763558` y `0xffd2ffd2`: 861 con `+0x3c`, 1162 con
     `+0x38` y 1163 con `+0x40` en `0x7e`, `0x92` y `0xa6`.
 
+### La interfaz de Crywolf
+
+CL9 hito 11, fase 3 (`Scenes/CrywolfInterfaceDrawing`). **Todo *estático***: GS 0.97 no tiene Crywolf, así que no
+hay ni traza de GL ni paquetes de un servidor; el oráculo es el ASM del cliente, y lo que la VM tiene que confirmar
+está en 08 (P-C298). Es `0x4365c0`, el hijo 21 del HUD (`0x5a74d4`, entre la barra de abajo y la entrada del chat),
+que no mira lo que devuelve su llamador. Las texturas `0x6b6..0x6e2` (`Interface\in_*`, `icon_*`, `m_*`, `t_main`)
+las sube `0x61ccb0` (`0x61de5f..0x61e373`) con `GL_LINEAR` y `GL_CLAMP` (`Scenes::CrywolfTextureSet`). Los quads son
+`0x621b60` con u = v = 0, escalados y sin alfa salvo el cartel; los textos son `0x623690` (centrados) con
+`wsprintfA` (`[0x6b851c]`) a un buffer de 300 bytes de la pila, y los de `0x430180` son `0x554180`. Empieza con
+`0x620a00(1)` y tiene tres partes, en este orden:
+
+1. **Los resultados**, con `0x723bf9` en 1 (lo pone el `BD 08`, 04 § Los eventos): el marco `0x6e2` en (200, 110, 252,
+   240) con du/dv 0,984375/0,630859375; la fuente `0x5763554`, `0xff1594ff` sobre 0 y los títulos `"%s"` de 680, 681,
+   1973 y 1977 en x = `0xf0`, `0x11d`, `0x14d` y `0x183`, y = `0xa0`. En blanco, cinco filas desde y = `0xaf` de a 15:
+   la de puntos (`0x6c73e4 + 4 · i`) en −1 no se dibuja pero cuenta; si no, `"%d"` de i + 1 en `0xf0`, `"%s"` del
+   nombre (`0x7239f8 + 11 · i`) en `0x11d`, la clase (`0x723a30 + i`) en `0x14f` y `"%d"` de los puntos en `0x181`. La
+   clase es el texto 20 + (c & 7) para 0 a 4 y, con algo en c >> 3, 25 a 27 para 0 a 2; con c & 7 de 5 o más el buffer
+   se queda con el nombre y sale otra vez. En `0xffff00ff`, 2000 y 2001 con el aviso (`0x6c73d1`) en 1, y si no 2009 y
+   2010, en (`0x14a`, 260) y (`0x148`, 277) (`17 · 5 + 0xaf` y `+ 0xc0`). El botón (300, 300, 54, 30), du/dv 0,84375/
+   0,9375: `0x6c9` sin el mouse en (300, 354) × (300, 330) (sin los bordes); dentro, `0x6ca`, o `0x6cb` con
+   `0x723bdc` en 5, y entonces `0x723a44`, `0x723bdc` y `0x723bf9` en 0: **la ventana la cierra el dibujo**, con el
+   5 que dejó el clic en el paso y el mouse todavía encima (Q-C1342).
+2. **El aviso** (`0x436b97`). Con `0x6c73d1` en 1, la cuenta `0x6c73d8` sube y en 400 vuelve a 0 con el aviso en 0;
+   con el aviso en −1 (con signo) pasa a la parte 3. El alfa es la ola de `e = (2 · cuenta) % 140` (`IDIV`):
+   `1 − (e − 70) · 0,01f` con e > 70 y si no `e · 0,01f + 0,3f`. `0x6c73f8` baja de a 15 hasta 0. El cartel `0x6b6 +
+   0x6c73dc` (`0x6c0`, `icon_failure`, o `0x6c1`, `icon_success`, con el estado 0 del `BD 00`) en (x, 50, 329, 94),
+   du/dv 0,642578125/0,734375: con 15 · cuenta > 479, x = 150; con el aviso en 0, x = 15 · cuenta + 150 y la cuenta
+   sube, y al pasar 479 la cuenta vuelve a 0, el aviso a −1 y `0x6c73f8` a `0x186`; con otro aviso, x = 15 · cuenta −
+   329. Después la tabla `0x6d0` (230, 150, 196, 141) y el rango `0x6d1` en (`0x6c73f8` + 250, 188, 110, 28); con
+   `0x6c73f8` en 0, la letra `0x6d2 + 0x723bed` (370, 188, 29, 28), el rótulo `0x6e1` (229, 235, 60, 19) y las nueve
+   cifras de `0x723bf0`, `0x6d7` + cifra en x = 409 − 15 · k, y = 235: la cifra k es `(v / 10^k) % 10` mientras v no
+   sea menor que 10^k (con signo; la primera con el divisor en 0 es `v % 10`), y las otras quedan en 0; con v
+   negativa, todas en 0.
+3. **El estado**, con la etapa (`0x723c05`) en 3 o 4 (`0x435a00`) en el mapa 34 (`0x4303c0`); si no, sale con 0 **sin
+   `0x620980`** y la mezcla queda en la normal. El marco `0x6b9` (0, 1, 122, 98), el adorno `0x6b8` en (4, 98 +
+   `0x723a40`), los cinco altares de `0x6c73cc` (`.data` en 2) en (4, 29), (16, 17), (30, 9), (46, 5) y (62, 4), 13 ×
+   13 y 0,8125 de UV (con `0x1?`, `0x6cd`, `0x6ce` u `0x6cf` por el nibble bajo 1, 2 u otro; si no, `0x6bd` o `0x6be`
+   con 1 o 2 y nada con otro), `0x6bb` (o `0x6bc` con `0x723bd8` en 0) en (4, 81), la barra `0x6c2` (240, 396, 156,
+   36), `glColor3f(1; 0,6; 0,3)` y `wsprintfA` del 1948 con `0x723bd8` en (57, 85), `0xff1594ff` sobre 0. **`0x723a40`
+   es un float**: con `0x723a3d` en 1 sube de a 1 mientras sea menor que 21 (o NaN); ya en 21, el fondo `0x6b6` (0,
+   98, 97, 21), el ícono `0x6ba` (4, 101), el 1949 por `wsprintfA` **sin argumentos** en (38, 101) y la barra `0x6b7`
+   (25, 109) de `0x6c73d4 · 0,68f` de ancho y `0x6c73d4 · 0,67f / 128` de UV; con `0x723a3d` en 0 baja de a 1 mientras
+   sea mayor que 0. `0x723bf8` en 1. El reloj: con `0x723be8` (los minutos del `BD 04`) en más de 0, dos
+   `GetTickCount` menos `0x7239f4`: los minutos pasados por el `MUL` por `0x45e7b273` (`>> 46`, la división sin signo
+   por 60.000) y el segundo `_ftol(float(ms) · 1,6666667e-5f · 60f)`; con un segundo nuevo, `0x723bfc` sube (de 0 a
+   59); los que quedan son `0x723be8` − pasados, + 60 si da negativo; sin minutos, 0. Con otros minutos que los de
+   `0x723bf4`, los guarda y `0x723bfc` vuelve a 0. En blanco, o (1; 0,3; 0,3) con la barra, `0x6218f0` de los minutos
+   en (300, 414) y de `60 − 0x723bfc` (0 con 0) en (327, 414), de 14 × 14. La luz `0x6bf` (4, 46) de `0x723c08 ·
+   0,89f` de ancho y `0x723c08 · 0,88f / 128` de UV, alto 30. Después `0x430180` y `0x620980`.
+
+El paso es `0x435bd0` (`0x636edc`, entre `0x5ebca0` y los paneles; `Scenes::StepTheGameUi`), **solo en el 34**
+(`0x4303c0`): con los resultados a la vista y el izquierdo abajo (`0x7d36874`), sobre el botón (300, 354) × (300,
+330), sin los bordes, deja `0x723bdc` en 5, y en cualquier lugar apaga el botón y el flanco (`0x7d366d4`): **en
+Crywolf, con los resultados, la UI se queda con todos los clics**. Fuera del 34 nadie los cierra, y nadie más apaga
+`0x723bf9` (ni `0x42fdc0` ni la vuelta a la selección; Q-C1342). El hijo 26 del HUD (`0x436240`, `0x5a74ed`), con la
+etapa en 3 o 4 en el 34, deja `0xff1594ff` sobre 0 para lo que sigue del HUD y, con `0x723a44` en 1 o 2, dibuja la
+ventana del contrato de los altares; el paso la atiende en `0x435c5c`. Esa ventana la abre solo `0x435b00`, desde el
+`BD 03` (`0x4e1010`) y el clic en un altar (`0x567ba4`, en `0x5650c0`), que cortan antes en MuRet: con ella abierta, el
+paso corta en `0x435c5c` y el dibujo en `0x436274`.
+
+`0x430180`, con la etapa 3: la fuente `0x5763558`, `glColor3f(1, 1, 1)`, el fondo `0xaa000000` y `0x63b0e3(10000)`
+(un reloj de `timeGetTime` en `0x7d3a0e4`/`0x7d3a0e8`, los dos en la `.bss`: vence cuando inicio + 10.000 ≤ ahora
+con signo y vuelve a empezar en la llamada que sigue, así que **vence en la primera llamada**, Q-C1343); al vencer, el
+consejo `0x6c73e0` sube y en 4 vuelve a 0 (de −1, el valor de la `.data` y de `0x42fdc0`, pasa a 0). Los cuatro
+renglones `0x554180(0xbe, 0x3f + 13 · i, texto 1957 + 4 · consejo + i)`, el primero en `0xffffc864` y los otros en
+`0xffff9664`. MuRet: los dos `GetTickCount` y el `timeGetTime` son el `tickCount` del frame (*emulado*); un dibujo
+intermedio escribe en su copia de los globales (`GameHudContext::crywolfInterface`).
+
 ### Las ventanas de los NPC de evento
 
 CL9 hito 11, fase 2 (`Scenes/EventNpcWindows`). **El dibujo es *estático***, sin traza de GL; lo que la VM tiene que
@@ -8505,6 +8573,29 @@ Tests: `GroundMarksTest` y `TerrainDecalTest`;
 `ALiveGroundMarkStopsWhereMuRetDoesNotKnowItsTexture` y `TheStepAgesTheGroundMarksAfterTheCharacters`,
 en Lorencia y Devias; y `MapLoadTest.TheGroundMarksSurviveTheMapLoad`.
 
+### El recorrido de la cámara
+
+CL9 hito 11, fase 3 (`Scenes/CameraTour`; *estático*). `CCameraMove` es el objeto de `0x6e57a8` en `[0x6e5904]`
+(`0x403250`, con los valores de `0x403300`: `+0x154` en 0, la espera `+0x6a` en 1, `+0x158` en 0, el reloj `+0x37`
+en 1, `+0x14c` en 10000). Su paso es `0x403590`, desde el paso del juego (`0x637138`, después de las marcas del
+suelo): `0x4033f0` (con `+0x154` en 2 y la espera, `0x404c90(5000)`, un reloj de `timeGetTime` como el de
+`0x63b0e3` que además cuenta en `+0x140`, la apaga; con `+0x154` en 3, `0x403d60` y `0x403300`) y, con `0x4033d0`
+verdadero, `0x403390` (`0x5be150` y `0x657880(0x1b)`) y el guion `0x4035f0` por `+0x144` (`0x403e00`, `0x403e30`,
+`0x4042c0`, `0x404830`, `0x404b70`, `0x404bb0`): el camino de la cámara (`0x403d90`, `0x4034e0`), los personajes de
+las claves 10000 en adelante (`0x4039f0`, que `0x403d60` borra con `0x510ff0`), sus acciones y caminos (`0x403760`,
+`0x403900`) y el efecto `0xed`; al final `+0x158` en 1 (`0x404bc6`). Las ramas de la etapa 5 (`0x403660`, seis
+`ret`) y de otra (`0x403d60` y `0x403300`) no se alcanzan, porque `0x4033d0` pide la 2.
+
+**Lo único que lo empieza es el `BD 00` con la etapa 2** (`0x4e597f` → `0x4033b0(pkt[5])`; también `0x4e0fb0`, que
+nadie llama): ninguna tecla, comando, ventana ni entrada a un mapa escribe `+0x154` (las referencias a `[0x6e5904]`
+son el constructor y el destructor, `0x4c2480` (la vuelta a la selección: `0x403300` y `0x403d60`), `0x4c9790` (lee
+`+0x154` en 3 para unos monstruos), `0x59adf0`, `0x59ff10`, `0x623e70`, `0x635ae0`, `0x6371a0` (leen `0x4033d0`) y
+`0x636290` (el paso)). MuRet pide el estado de Crywolf al entrar al 34 y lee el `BD 00`, así que el arranque es
+alcanzable con un servidor que tenga Crywolf (GS 0.97 no lo tiene): MuRet porta `0x403590`, `0x4033f0`, `0x4033d0`,
+`0x404c90`, `0x403300`, `0x403d60` (sin personajes, nada; con `+0x14c` en más de 10000, corta) y Esc (`0x623ec8`:
+`+0x158` en 1 y `0x403d60`), y **corta en `0x4035da`, donde empieza el guion** (P-C299). Los que leen `0x4033d0` lo
+llaman en vivo; como el guion corta en el paso en que empieza, en MuRet ninguno lo ve verdadero.
+
 ### La cámara del juego
 
 La cámara del juego es un solo cálculo, `0x635ae0`, que corre **una vez por frame dibujado**, dentro
@@ -8638,7 +8729,8 @@ Unicorn/MuRet tanto en PC53 como PC64, restaurando su CW. Esa es evidencia nativ
    inicializadores estáticos): con su estado `+0x154` en 2 y `+0x6a` y `+0x158` en 0 (`0x4033d0`),
    escribe **H.z = 300** (`0x635ec0`, Q-C153), el objetivo pasa a ser el suyo (`+4..+0xc`) y el
    nivel, su `+0x150` (`0x4034b0`); si no, el nivel vuelve a 0 (`0x635eda`). El estado lo pone solo
-   el `BD 00` del servidor ([04](04-protocolo.md#el-clima-y-crywolf-0f-y-bd)).
+   el `BD 00` del servidor ([04](04-protocolo.md#el-clima-y-crywolf-0f-y-bd); [El recorrido de la
+   cámara](#el-recorrido-de-la-cámara)).
 7. **La posición**: x e y, f32(out + objetivo) (`0x635ee3..0x635efc`); z, f32((D − 150) + z0)
    (`0x635f39..0x635f50`, el 150 en `0x6b87ac`), con z0 en 255 en el mapa 30 y si no **H.z**, la
    del héroe y no la del objetivo. Con el bit `0x40` en la celda, `0x6c9d5c` y z0 pasan a 1.201

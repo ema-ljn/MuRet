@@ -27,6 +27,7 @@
 #include "UI/PanelRegistry.h"
 #include "World/WorldTerrain.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -209,6 +210,11 @@ constexpr std::int32_t CrywolfPeaceCounter = 0xb;
 constexpr std::int32_t CrywolfFightTime = 0x186;
 // 0x42ff3f..0x42ff75: los estados con su luz; otro deja el buffer sin escribir.
 constexpr std::uint8_t LastLitCrywolfState = 2;
+// 0x4359f0 (la etapa en 4), 0x435a00 (en 3 o 4) y 0x4303c0 (el mapa 0x22).
+constexpr std::uint8_t CrywolfDefenseStage = 3;
+constexpr std::int32_t CrywolfMap = 0x22;
+// 0x437620: cinco lugares (0x6c73e4..0x6c73f4, 0x723a30..0x723a34 y 0x7239f8..0x723a2e).
+constexpr std::size_t CrywolfRankingPlaces = 5;
 
 // 0x4d9f59: el tanteador sin partido (pkt[0xc] en 0xff).
 constexpr std::uint8_t NoSoccerScore = 0xff;
@@ -1069,7 +1075,8 @@ private:
     {
         if (auto changed = ChangeTheCrywolfState(packet.state, packet.stage); !changed.HasValue())
             return changed;
-        m_runtime.events.cameraMoveStage = packet.stage;
+        // 0x4033b0: +0x154 del recorrido de la cámara, que con la 2 empieza (Scenes/CameraTour.h).
+        m_runtime.events.cameraTour.stage = packet.stage;
         return {};
     }
 
@@ -1133,6 +1140,104 @@ private:
             return light;
         const std::int32_t number = state == 0 ? map + 1 : map * 10 + 0xa + state;
         return World::ReloadWorldTerrainAttributes(m_context.dataRoot, folder, number, terrain, fatal);
+    }
+
+    // ----- BD 02 (0x4e5990 → 0x4e0fe0 → 0x430000): la luz y los cinco altares, en cualquier mapa y etapa.
+
+    Applied On(const Events::CrywolfAltars& packet)
+    {
+        CrywolfInterface& ui = m_runtime.crywolf.ui;
+        ui.light = packet.light;
+        ui.altars = packet.altars;
+        return {};
+    }
+
+    // ----- BD 03 (0x4e59a5 → 0x4e1010) y BD 0C (0x4e59d6 → 0x4e15f0 → 0x430040).
+
+    Applied On(const Events::CrywolfUnported& packet)
+    {
+        if (packet.subcode == Events::CrywolfContractSubcode)
+            return Core::Unexpected(std::string("0x4e1010: el resultado del contrato de los altares de Crywolf (los "
+                                                "personajes de 0x435b00 y la respuesta) no está portado"));
+        return Core::Unexpected(std::string("0x430040: los efectos de Crywolf por la clase (0x518cf0 con 0xee y sus "
+                                            "casos) son de la CL11"));
+    }
+
+    // ----- BD 04 (0x4e59ba → 0x435a20): con la etapa 4 en el 34, pkt[4], los minutos y GetTickCount.
+
+    Applied On(const Events::CrywolfTimer& packet)
+    {
+        CrywolfGlobals& crywolf = m_runtime.crywolf;
+        if (crywolf.stage != CrywolfWarningStage || m_runtime.map != CrywolfMap)
+            return {};
+        crywolf.ui.dwords723bdc[2] = packet.value4;
+        crywolf.ui.dwords723bdc[3] = packet.minutes;
+        crywolf.ui.dword7239f4 = static_cast<std::int32_t>(m_context.tickCount);
+        crywolf.ui.byte723bf8 = 1;
+        return {};
+    }
+
+    // ----- BD 05 (0x4e59eb → 0x435a70): con la etapa 3 o 4 en el 34, pkt[8] en 0x723bd8; la barra se prende con el
+    // dword en más de 0 y se apaga con 0 o menos (0x435a96..0x435ab5), y el dword va a 0x6c73d4 (0x436590).
+
+    Applied On(const Events::CrywolfBoss& packet)
+    {
+        CrywolfGlobals& crywolf = m_runtime.crywolf;
+        if ((crywolf.stage != CrywolfDefenseStage && crywolf.stage != CrywolfWarningStage) ||
+            m_runtime.map != CrywolfMap)
+            return {};
+        CrywolfInterface& ui = crywolf.ui;
+        ui.dword723bd8 = packet.count;
+        if (packet.life > 0)
+        {
+            if (ui.byte723a3d == 0)
+                ui.byte723a3d = 1;
+        }
+        else if (ui.byte723a3d == 1)
+            ui.byte723a3d = 0;
+        ui.dword6c73d4 = packet.life;
+        return {};
+    }
+
+    // ----- BD 07 (0x4e5a09 → 0x437600): el rango y la experiencia, en cualquier mapa.
+
+    Applied On(const Events::CrywolfRank& packet)
+    {
+        CrywolfInterface& ui = m_runtime.crywolf.ui;
+        ui.byte723bed = packet.rank;
+        ui.dword723bf0 = packet.experience;
+        return {};
+    }
+
+    // ----- BD 08 (0x4e5a39 → 0x4e1680 → 0x437620 por registro): los puntos, la clase y el nombre del lugar, y la
+    // ventana de los resultados. El lugar es el byte del registro sin tope: con 5 o más escribe fuera de las tres
+    // tablas.
+
+    Applied On(const Events::CrywolfRanking& packet)
+    {
+        CrywolfInterface& ui = m_runtime.crywolf.ui;
+        for (const Events::CrywolfRankingEntry& entry : packet.entries)
+        {
+            if (entry.place >= CrywolfRankingPlaces)
+                return Core::Unexpected(std::format("0x437632: el lugar {} de los resultados de Crywolf escribe fuera "
+                                                    "de 0x6c73e4, 0x723a30 y 0x7239f8",
+                                                    static_cast<int>(entry.place)));
+            const std::size_t place = entry.place;
+            ui.dwords6c73e0[place + 1] = entry.score;
+            ui.rankingClasses[place] = entry.classByte;
+            std::copy(entry.name.begin(), entry.name.end(), ui.rankingNames[place].begin());
+            ui.rankingNames[place][entry.name.size()] = '\0';
+            ui.byte723bf9 = 1;
+        }
+        return {};
+    }
+
+    // ----- BD 09 (0x4e5a25): pkt[4] a 0x7d2dc9d.
+
+    Applied On(const Events::CrywolfChaosBox& packet)
+    {
+        m_runtime.crywolf.ui.byte7d2dc9d = packet.value;
+        return {};
     }
 
     // ----- F3 22 (0x4e31f8).
@@ -1276,7 +1381,7 @@ EventCountdownText(EventMapObject& event, std::uint32_t tickCount, const Data::T
 void ResetTheCrywolfInterface(WorldRuntime& runtime)
 {
     CrywolfInterface& ui = runtime.crywolf.ui;
-    ui.dword723a40 = 0;
+    ui.float723a40 = 0.0f;
     ui.byte723ca0 = 0;
     ui.dwords723bdc = {};
     ui.dword7239f4 = -1;

@@ -954,7 +954,7 @@ TEST_F(EventPacketsTest, TheCrywolfStageUpdatesTheInterface)
     Runtime().map = 34;
     Client::Scenes::CrywolfInterface& ui = Runtime().crywolf.ui;
     Applied(Events::CrywolfState{.state = 0, .stage = 0});
-    EXPECT_EQ(Runtime().events.cameraMoveStage, 0);
+    EXPECT_EQ(Runtime().events.cameraTour.stage, 0);
 
     Applied(Events::CrywolfState{.state = 0, .stage = 4});
     EXPECT_EQ(Runtime().crywolf.stage, 4);
@@ -969,7 +969,7 @@ TEST_F(EventPacketsTest, TheCrywolfStageUpdatesTheInterface)
     EXPECT_EQ(ui.message, 1);
     EXPECT_EQ(ui.dword6c73dc, 0xb);
     EXPECT_EQ(ui.dword6c73f8, 0x186);
-    EXPECT_EQ(Runtime().events.cameraMoveStage, 5);
+    EXPECT_EQ(Runtime().events.cameraTour.stage, 5);
 
     Runtime().selectedTargets[1] = 9;
     Applied(Events::CrywolfState{.state = 0, .stage = 6});
@@ -978,7 +978,7 @@ TEST_F(EventPacketsTest, TheCrywolfStageUpdatesTheInterface)
     EXPECT_EQ(ui.byte723bec, 0);
     EXPECT_EQ(ui.dword6c73dc, 0x0a);
     EXPECT_EQ(Runtime().selectedTargets[1], -1);
-    EXPECT_EQ(Runtime().events.cameraMoveStage, 6);
+    EXPECT_EQ(Runtime().events.cameraTour.stage, 6);
 }
 
 // Con otro estado, 0x42ff81 y 0x42ffe8 vuelven a leer la luz y el .att de la carpeta del mapa + 1, después de lo de la
@@ -997,7 +997,7 @@ TEST_F(EventPacketsTest, TheCrywolfStateReloadsTheLightAndTheAttributes)
     EXPECT_EQ(Runtime().crywolf.state, 1);
     EXPECT_EQ(world.Map().terrain.lighting->cells, first);
     EXPECT_EQ(world.Map().terrain.attributes->cells, AttributesOf("world35/EncTerrain351.att"));
-    EXPECT_EQ(Runtime().events.cameraMoveStage, 1);
+    EXPECT_EQ(Runtime().events.cameraTour.stage, 1);
 
     Applied(Events::CrywolfState{.state = 2, .stage = 5});
     EXPECT_EQ(Runtime().crywolf.state, 2);
@@ -1061,6 +1061,83 @@ TEST_F(EventPacketsTest, TheCrywolfInterfaceResetMatchesTheData)
     EXPECT_EQ(ui.light, 0);
     EXPECT_EQ(Runtime().crywolf.state, 0);
     EXPECT_EQ(Runtime().crywolf.stage, 0);
+}
+
+// ----- BD 02 a 0C: la interfaz de Crywolf (GS 0.97 no los manda; el oráculo es el ASM del cliente).
+
+// BD 02, 07, 08 y 09 escriben en cualquier mapa y etapa: la luz y los altares (0x430000), el rango y la experiencia
+// (0x437600), los resultados con su ventana (0x437620) y 0x7d2dc9d. Un lugar de 5 o más escribiría fuera de las tablas.
+TEST_F(EventPacketsTest, TheCrywolfInterfacePacketsWriteOnAnyMap)
+{
+    for (const std::int32_t map : {0, 2, 34})
+    {
+        SCOPED_TRACE(map);
+        Runtime().map = map;
+        Runtime().crywolf = {};
+        Client::Scenes::CrywolfInterface& ui = Runtime().crywolf.ui;
+        EXPECT_EQ(ui.altars, (std::array<std::uint8_t, 5>{2, 2, 2, 2, 2}));
+        Applied(Events::CrywolfAltars{.light = 0x60, .altars = {0x11, 0x12, 1, 0x13, 0}});
+        EXPECT_EQ(ui.light, 0x60);
+        EXPECT_EQ(ui.altars, (std::array<std::uint8_t, 5>{0x11, 0x12, 1, 0x13, 0}));
+        Applied(Events::CrywolfRank{.rank = 3, .experience = 4567});
+        EXPECT_EQ(ui.byte723bed, 3);
+        EXPECT_EQ(ui.dword723bf0, 4567);
+        Events::CrywolfRanking ranking;
+        ranking.entries.push_back(
+            {.place = 2, .name = {'L', 'o', 'b', 'o', 'G', 'r', 'i', 's', '0', '1'}, .score = 90, .classByte = 0x08});
+        Applied(ranking);
+        EXPECT_EQ(ui.byte723bf9, 1);
+        EXPECT_EQ(ui.dwords6c73e0, (std::array<std::int32_t, 6>{-1, -1, -1, 90, -1, -1}));
+        EXPECT_EQ(ui.rankingClasses[2], 0x08);
+        EXPECT_EQ(std::string(ui.rankingNames[2].data()), "LoboGris01");
+        Applied(Events::CrywolfChaosBox{.value = 7});
+        EXPECT_EQ(ui.byte7d2dc9d, 7);
+        ranking.entries.front().place = 5;
+        const std::string cut = Cut(ranking);
+        EXPECT_NE(cut.find("0x437632"), std::string::npos) << cut;
+    }
+}
+
+// BD 04 solo con la etapa 4 en el 34 (0x4359f0 y 0x4303c0): pkt[4], los minutos, GetTickCount y 0x723bf8. BD 05 con
+// la etapa 3 o 4 en el 34: 0x723bd8, la barra prendida con el dword en más de 0 y apagada con 0 o menos, y 0x6c73d4.
+TEST_F(EventPacketsTest, TheCrywolfTimerAndBossNeedTheDefenseInCrywolf)
+{
+    for (const std::int32_t map : {0, 2, 34})
+    {
+        SCOPED_TRACE(map);
+        for (const std::uint8_t stage : {std::uint8_t{2}, std::uint8_t{3}, std::uint8_t{4}})
+        {
+            SCOPED_TRACE(static_cast<int>(stage));
+            Runtime().map = map;
+            Runtime().crywolf = {};
+            Runtime().crywolf.stage = stage;
+            Client::Scenes::CrywolfInterface& ui = Runtime().crywolf.ui;
+            tickCount = 0x12345;
+            Applied(Events::CrywolfTimer{.value4 = 1, .minutes = 15});
+            const bool timer = map == 34 && stage == 4;
+            EXPECT_EQ(ui.dwords723bdc[2], timer ? 1 : 0);
+            EXPECT_EQ(ui.dwords723bdc[3], timer ? 15 : 0);
+            EXPECT_EQ(ui.dword7239f4, timer ? 0x12345 : 0);
+            EXPECT_EQ(ui.byte723bf8, timer ? 1 : 0);
+            Applied(Events::CrywolfBoss{.life = 80, .count = 4});
+            const bool boss = map == 34 && stage >= 3;
+            EXPECT_EQ(ui.dword723bd8, boss ? 4 : 0);
+            EXPECT_EQ(ui.byte723a3d, boss ? 1 : 0);
+            EXPECT_EQ(ui.dword6c73d4, boss ? 80 : 0x64);
+            Applied(Events::CrywolfBoss{.life = 0, .count = 0});
+            EXPECT_EQ(ui.byte723a3d, 0);
+            EXPECT_EQ(ui.dword6c73d4, boss ? 0 : 0x64);
+        }
+    }
+}
+
+// BD 03 (0x4e1010) y BD 0C (0x430040, los efectos de la CL11) cortan con su dirección.
+TEST_F(EventPacketsTest, TheCrywolfContractAndEffectsAreCut)
+{
+    const std::string contract = Cut(Events::CrywolfUnported{.subcode = 3, .bytes = {}});
+    EXPECT_NE(contract.find("0x4e1010"), std::string::npos) << contract;
+    const std::string effects = Cut(Events::CrywolfUnported{.subcode = 0xc, .bytes = {}});
+    EXPECT_NE(effects.find("0x430040"), std::string::npos) << effects;
 }
 
 // ----- F3 22, F3 23 y F3 40.

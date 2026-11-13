@@ -16,6 +16,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
+#include "Scenes/CameraTour.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/DarkSpirit.h"
@@ -185,7 +186,12 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
         return particles;
     }
     World::StepGroundMarks(runtime.groundMarks);
-    return {};
+    // 0x637132: 0x403590, el recorrido de la cámara, con timeGetTime (0x404c90): el reloj de la escena en ms.
+    const auto now = m_context.clock != nullptr
+                         ? static_cast<std::uint32_t>(
+                               std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
+                         : 0U;
+    return StepTheCameraTour(runtime, now);
 }
 
 } // namespace Client::Scenes

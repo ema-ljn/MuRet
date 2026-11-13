@@ -240,6 +240,74 @@ Read ReadByOpcode(const Fields& fields, std::uint8_t opcode)
         return Core::Unexpected(ProtocolError::WrongPacket);
     }
 }
+
+// 0x4e1680..0x4e16b9 (BD 08): pkt[4] registros de 0x14 bytes desde pkt+5, sin mirar el tamaño del paquete.
+constexpr std::size_t RankingFirstAt = 5;
+constexpr std::size_t RankingEntryBytes = 0x14;
+
+Read ReadCrywolfRanking(const Fields& fields)
+{
+    if (!fields.Has(RankingFirstAt))
+        return TooShort();
+    const std::uint8_t count = fields.U8(4);
+    if (!fields.Has(RankingFirstAt + RankingEntryBytes * count))
+        return TooShort();
+    CrywolfRanking ranking;
+    for (std::size_t index = 0; index < count; ++index)
+    {
+        const std::size_t at = RankingFirstAt + RankingEntryBytes * index;
+        CrywolfRankingEntry entry{.place = fields.U8(at),
+                                  .score = static_cast<std::int32_t>(fields.U32(at + 0xc)),
+                                  .classByte = fields.U8(at + 0x10)};
+        for (std::size_t letter = 0; letter < entry.name.size(); ++letter)
+            entry.name[letter] = static_cast<char>(fields.U8(at + 1 + letter));
+        ranking.entries.push_back(entry);
+    }
+    return EventPacket{std::move(ranking)};
+}
+
+// 0x4e5941: el BD por pkt[3] con la tabla de 0x4e620c; el 1, el 6, el 0xa, el 0xb y los de más de 0xc no hacen nada.
+Read ReadCrywolf(const Fields& fields, std::uint8_t subcode)
+{
+    switch (subcode)
+    {
+    case CrywolfStateSubcode:
+        if (!fields.Has(6))
+            return TooShort();
+        return EventPacket{CrywolfState{fields.U8(4), fields.U8(5)}};
+    case CrywolfAltarsSubcode:
+        if (!fields.Has(0xd))
+            return TooShort();
+        return EventPacket{CrywolfAltars{static_cast<std::int32_t>(fields.U32(4)),
+                                         {fields.U8(8), fields.U8(9), fields.U8(0xa), fields.U8(0xb), fields.U8(0xc)}}};
+    case CrywolfTimerSubcode:
+        if (!fields.Has(6))
+            return TooShort();
+        return EventPacket{CrywolfTimer{fields.U8(4), fields.U8(5)}};
+    case CrywolfBossSubcode:
+        if (!fields.Has(9))
+            return TooShort();
+        return EventPacket{CrywolfBoss{static_cast<std::int32_t>(fields.U32(4)), fields.U8(8)}};
+    case CrywolfRankSubcode:
+        if (!fields.Has(0xc))
+            return TooShort();
+        return EventPacket{CrywolfRank{fields.U8(4), static_cast<std::int32_t>(fields.U32(8))}};
+    case CrywolfRankingSubcode:
+        return ReadCrywolfRanking(fields);
+    case CrywolfChaosBoxSubcode:
+        if (!fields.Has(5))
+            return TooShort();
+        return EventPacket{CrywolfChaosBox{fields.U8(4)}};
+    case CrywolfContractSubcode:
+    case CrywolfEffectSubcode:
+    {
+        const auto all = fields.From(0);
+        return EventPacket{CrywolfUnported{subcode, std::vector<std::byte>(all.begin(), all.end())}};
+    }
+    default:
+        return Core::Unexpected(ProtocolError::WrongPacket);
+    }
+}
 } // namespace
 
 Core::Expected<EventPacket, ProtocolError> ReadEventPacket(const Network::Packet& packet)
@@ -260,17 +328,12 @@ Core::Expected<EventPacket, ProtocolError> ReadEventPacket(const Network::Packet
     const std::uint8_t subcode = fields.U8(3);
     if (opcode == WorldOpcode)
         return ReadWorld(fields, subcode);
+    if (opcode == CrywolfOpcode)
+        return ReadCrywolf(fields, subcode);
     const bool known = (opcode == ChaosCastleOpcode && subcode == ChaosCastleEntrySubcode) ||
-                       (opcode == JewelMixOpcode && (subcode == JewelMixSubcode || subcode == JewelUnmixSubcode)) ||
-                       (opcode == CrywolfOpcode && subcode == CrywolfStateSubcode);
+                       (opcode == JewelMixOpcode && (subcode == JewelMixSubcode || subcode == JewelUnmixSubcode));
     if (!known)
         return Core::Unexpected(ProtocolError::WrongPacket);
-    if (opcode == CrywolfOpcode)
-    {
-        if (!fields.Has(6))
-            return TooShort();
-        return EventPacket{CrywolfState{fields.U8(4), fields.U8(5)}};
-    }
     if (!fields.Has(5))
         return TooShort();
     if (opcode == ChaosCastleOpcode)

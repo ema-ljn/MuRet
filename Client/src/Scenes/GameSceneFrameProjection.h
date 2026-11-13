@@ -38,6 +38,8 @@ struct GameSceneFrameProjection
     // Lo que el HUD escribe y dura (0x5a7320): sus globales, el humo de Crywolf (0x576353c) y el sonido que pide.
     HudState hud{};
     std::uint8_t crywolfSandOverlay = 0;
+    // Lo que escribe la interfaz de Crywolf (0x4365c0): las cuentas del cartel, la barra, el reloj y el consejo.
+    CrywolfInterface crywolfInterface{};
     std::optional<std::int32_t> sound{};
     // 0x77f36d4 + 0x12 · 4 y 0x78abb38: el latch de Alt y los nombres del piso, que invierte el hover (0x5bbbc0).
     std::int32_t altLatch = 0;

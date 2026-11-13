@@ -3,7 +3,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 
 // Los globales que escriben los paquetes de los eventos (CL9 hito 11, 04 § Los eventos) y que no son del objeto de
 // [0x723c60] (EventMapObject) ni de Crywolf (CrywolfGlobals). Arrancan como la .data y la .bss del original.
@@ -36,6 +35,26 @@ struct SoccerScoreGlobals
     bool active = false;
 };
 
+// El recorrido de la cámara (CCameraMove, el objeto de 0x6e57a8 en [0x6e5904]) que arma 0x403250 entre los
+// inicializadores estáticos, con los valores de 0x403300 (que también le dan la vuelta a la selección, 0x4c26f2, y la
+// etapa 3). Solo lo que mira su arranque: el guion (la cámara, +4..+0x150, y los personajes del 0x4039f0) no está.
+struct CameraTour
+{
+    // +0x154: la etapa de Crywolf que deja el BD 00 con 0x4033b0 (pkt[5]) después de 0x42fe80.
+    std::int32_t stage = 0;
+    // +0x6a (1): la espera antes de empezar, que 0x4033f0 apaga a los 5.000 ms de timeGetTime con la etapa 2.
+    bool waiting = true;
+    // +0x158: el recorrido cortado (Esc, 0x623edc) o terminado (0x404bc6).
+    bool skipped = false;
+    // +0x37 (1), +0x148 y +0x140: el reloj de 0x404c90 (vuelve a empezar en la llamada que sigue a la que vence) y las
+    // veces que venció.
+    bool timerRestart = true;
+    std::uint32_t timerStart = 0;
+    std::int32_t timerCount = 0;
+    // +0x14c (10000): la clave del próximo personaje del guion; 0x403d60 borra de 10000 a esta − 1 (0x510ff0).
+    std::int32_t nextActorKey = 10000;
+};
+
 struct EventGlobals
 {
     ObjectCollapse objectCollapse{};
@@ -48,10 +67,8 @@ struct EventGlobals
     std::array<std::uint16_t, 3> mutoNumbers{0xffff, 0xffff, 0xffff};
     // 0x78ab078 (.bss 0): los 0x40 bytes del 9D (0x4e4ab9), que 0x94 con el tipo 2 vacía (0x4dd8f5).
     std::array<std::byte, 0x40> serial{};
-    // +0x154 del recorrido de la cámara ([0x6e5904], CCameraMove): la etapa de Crywolf que deja el BD 00 con 0x4033b0
-    // después de 0x42fe80, y que leen 0x4033d0, 0x4033f0 y 0x403590 (el recorrido, CL9.5). Vacío hasta el primero:
-    // el valor que le da 0x403300 es del recorrido, que MuRet no tiene.
-    std::optional<std::int32_t> cameraMoveStage{};
+    // El recorrido de la cámara ([0x6e5904], Scenes/CameraTour.h).
+    CameraTour cameraTour{};
     // 0x78ab9cc (.bss 0): los niveles de los seis cuadrados de Devil Square, {mínimo, máximo}, que escribe el dibujo de
     // su ventana (0x5f5a3f, con la tabla del Magic Gladiator y del Dark Lord por la clase del registro propio) y lee
     // su paso al elegir uno (0x5e5a8b, Q-C1336).

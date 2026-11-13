@@ -403,6 +403,10 @@ amigos. **Desbloquea:** 10.
       Castle, `0x5f58f0` y `0x5e5920`, con el `C1 05 90`, el `C1 05 9A` y su cierre con el `C1 03 31`; el
       `SetCursorPos` del `97` queda pedido. Q-C1333..Q-C1337, P-C294..P-C296. La ventana de `0x78abb00` y el número
       de serie esperan el EDIT del hito 9; la interfaz de Crywolf y `CCameraMove` siguen cortando, P-C295.)
+      (Fase 3, *estática*: la interfaz de Crywolf, `0x4365c0`, `0x430180`, `0x436240` y el paso `0x435bd0`, con los
+      `BD 02`..`09`; el contrato de los altares, el `BD 03` y el `BD 0C` cortan. De `CCameraMove`, el arranque con el
+      `BD 00` y la etapa 2, lo único que lo empieza; el guion corta en `0x4035da`. Q-C1341..Q-C1343, P-C298,
+      P-C299.)
 - [ ] **Las reglas por mapa:** el arma de Blood Castle (`0x50de84`), las trampas de Chaos Castle (`0x405597`,
       `0x405d49`), el `AF 02` (`0x4fbee8`; decía `AF 01`), Kalima, y Crywolf (`BD`, `0x42fe80`, `0x42fe50`,
       `0x430a40`, `0x61a6f4`; P-C58).
@@ -411,6 +415,7 @@ amigos. **Desbloquea:** 10.
       derrumbe de los objetos, `0x5ff960`, es de la fase 2; los monstruos de Kalima y de Crywolf, del hito 2.)
       (Fase 3: el derrumbe de los objetos, `0x5ff960`, `0x405630` y los sectores de `0x606560`, *estático*; la piedra
       `0x5f6` de Chaos Castle corta para la CL11. Q-C1338, Q-C1339, P-C297.)
+      (Fase 3: la luz y el `.att` de Crywolf al cambiar de estado, `0x42ff81`, `0x5f8f40` y `0x5f8390`, Q-C1340.)
 
 **Pruebas:** entrar a Blood Castle, Devil Square y Chaos Castle con vectores de cada paquete; las cuentas;
 los `rand()` de los contadores; Crywolf solo contra el ASM. **Desbloquea:** —.

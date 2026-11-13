@@ -39,6 +39,7 @@ void GameScene::PrepareDrawProjection(int frames)
     m_projection->cameraShake = CameraInputState().shake;
     m_projection->hud = world.Runtime().hud;
     m_projection->crywolfSandOverlay = world.Runtime().crywolf.sandOverlay;
+    m_projection->crywolfInterface = world.Runtime().crywolf.ui;
     m_projection->sound.reset();
     m_projection->altLatch = world.Runtime().ui.keyLatches[UI::AltVirtualKey];
     m_projection->altNames = world.Runtime().ui.altNames;

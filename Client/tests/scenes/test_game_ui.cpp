@@ -28,6 +28,7 @@
 #include <initializer_list>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -224,6 +225,50 @@ TEST(GameUiTest, TheUnownedClickTakesTheArrowsFromTheChatLog)
     tested.Click();
     ASSERT_TRUE(tested.Step(320, 240).HasValue());
     EXPECT_EQ(tested.Ui().focusedList, 0);
+}
+
+// 0x435bd0, solo en el 34: con los resultados de Crywolf (0x723bf9 en 1), el clic sobre el botón (300, 354) × (300,
+// 330), sin los bordes, deja 0x723bdc en 5, y cualquier clic queda apagado (el botón abajo y el flanco). En Lorencia y
+// en Devias el paso no hace nada y los resultados no se cierran (Q-C1342). Con la ventana del contrato corta.
+TEST(GameUiTest, TheCrywolfResultsTakeEveryClickOnlyInCrywolf)
+{
+    constexpr std::int32_t CrywolfMap = 34;
+    for (const std::int32_t map : {0, 2, CrywolfMap})
+    {
+        SCOPED_TRACE(map);
+        for (const auto& [x, y, pushed] :
+             {std::tuple{301, 301, true}, std::tuple{353, 329, true}, std::tuple{300, 310, false},
+              std::tuple{320, 330, false}, std::tuple{100, 100, false}})
+        {
+            SCOPED_TRACE(x);
+            SCOPED_TRACE(y);
+            SteppingUi tested;
+            Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+            runtime.map = map;
+            runtime.crywolf.ui.byte723bf9 = 1;
+            tested.Click();
+            ASSERT_TRUE(tested.Step(x, y).HasValue());
+            const bool crywolf = map == CrywolfMap;
+            EXPECT_EQ(runtime.crywolf.ui.dwords723bdc[0], crywolf && pushed ? 5 : 0);
+            if (crywolf)
+            {
+                EXPECT_FALSE(runtime.movement.leftHeld);
+                EXPECT_FALSE(runtime.movement.pendingClick);
+            }
+            EXPECT_EQ(runtime.crywolf.ui.byte723bf9, 1);
+        }
+    }
+    // Sin los resultados, el clic sigue.
+    SteppingUi tested;
+    tested.world.Runtime().map = CrywolfMap;
+    tested.Click();
+    ASSERT_TRUE(tested.Step(320, 310).HasValue());
+    EXPECT_TRUE(tested.world.Runtime().movement.leftHeld);
+    EXPECT_EQ(tested.world.Runtime().crywolf.ui.dwords723bdc[0], 0);
+    tested.world.Runtime().crywolf.ui.byte723a44 = 1;
+    const auto cut = tested.Step();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x435c5c"), std::string::npos) << cut.Error();
 }
 
 TEST(GameUiTest, TheInventoryButtonOfTheHudTakesTheClick)

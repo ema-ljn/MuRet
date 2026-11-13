@@ -50,30 +50,65 @@ namespace Client::Scenes
 // .data[0x6c8c5c] = 1e 00 00 00; los otros cuatro campos del clima están en .bss.
 inline constexpr std::int32_t InitialLeafCount = 30;
 
-// Los globales de la interfaz de Crywolf que escriben el BD 00 (0x42fe80) y 0x42fdc0, que los vuelve a su valor
-// inicial (los de la .data en 0x6c73d0.., los demás en la .bss). Los lee la UI de los eventos (0x4365c0), que MuRet
-// no tiene: el HUD corta con 0x6c73d1 en 0 o más (CL9 hito 11).
+// Los globales de la interfaz de Crywolf que escriben el BD 00 (0x42fe80), los BD 02 a 09 y el dibujo (0x4365c0), y que
+// 0x42fdc0 vuelve a su valor inicial (no todos: los de la .data en 0x6c73cc.., los demás en la .bss).
 struct CrywolfInterface
 {
-    std::int32_t dword723a40 = 0;
+    // 0x723a40: un float (FLD, FADD y FSTP en 0x4370d6 y 0x4372dc), lo que baja el adorno 0x6b8 del estado: sube de a
+    // 1 hasta 21 con 0x723a3d en 1 y vuelve de a 1 a 0 con 0x723a3d en 0. 0x42fdc0 escribe el dword 0.
+    float float723a40 = 0.0f;
+    // 0x723a3d: la barra de 0x6b7 (con 0x723a40 en 21); la pone y la saca el BD 05 por el signo de su dword.
     std::uint8_t byte723a3d = 0;
     std::uint8_t byte723a44 = 0;
     std::uint8_t byte723ca0 = 0;
     std::uint8_t byte723bec = 0;
+    // 0x723bd8: pkt[8] del BD 05 (0x435a8e): el número del texto 1948 y el ícono 0x6bb (o 0x6bc con 0).
     std::int32_t dword723bd8 = 0;
+    // 0x723bdc, 0x723be0, 0x723be4 y 0x723be8, en 0 en 0x42fdc0. El primero lo pone en 5 la UI (0x435bd0) y, con el
+    // mouse sobre el botón, el dibujo cierra los resultados (0x436ad8); el tercero y el cuarto son pkt[4] y pkt[5] del
+    // BD 04 (0x435a46, con la etapa 4 en el 34), el cuarto los minutos del reloj del estado.
     std::array<std::int32_t, 4> dwords723bdc{};
+    // 0x7239f4: GetTickCount del BD 04 (0x435a51), desde donde cuenta el reloj del estado.
     std::int32_t dword7239f4 = 0;
-    // 0x6c73d1 (.data 0xff): con −1 (con signo) 0x4365c0 sale sin dibujar el aviso (0x436bc7).
+    // 0x6c73d1 (.data 0xff): el aviso, con −1 (con signo) 0x4365c0 no dibuja el cartel (0x436bc7).
     std::int8_t message = -1;
+    // 0x6c73d4 (.data 0x64): el dword del BD 05 (0x436590), el largo de la barra 0x6b7.
     std::int32_t dword6c73d4 = 0x64;
+    // 0x6c73d8 (.data 1): la cuenta de los frames del cartel.
     std::int32_t dword6c73d8 = 1;
+    // 0x6c73dc (.data 0xa): el cartel es 0x6b6 + esto (0x6c0, icon_failure; 0x6c1, icon_success con el estado 1).
     std::int32_t dword6c73dc = 0x0a;
-    // 0x6c73e0..0x6c73f4, seis dwords en −1.
+    // 0x6c73e0..0x6c73f4, seis dwords en −1: el primero, el consejo de 0x430180 (de 0 a 3); los otros cinco, los
+    // puntos de los resultados (0x6c73e4 + 4 · lugar, del BD 08), con −1 una fila vacía.
     std::array<std::int32_t, 6> dwords6c73e0{-1, -1, -1, -1, -1, -1};
+    // 0x6c73f8 (.data 0x186): lo que le falta al rango (0x6d1) para llegar; baja de a 15 por frame.
     std::int32_t dword6c73f8 = 0x186;
     std::int32_t dword6c8e54 = -1;
-    // 0x723c08: la luz de los dos 0x4ecc30 del estado 2 (0x430a33).
+    // 0x723c08: la luz de los dos 0x4ecc30 del estado 2 (0x430a33) y el largo de la barra 0x6bf; la escribe el BD 02.
     std::int32_t light = 0;
+    // 0x6c73cc..0x6c73d0 (.data 02 × 5): los cinco altares del BD 02 (0x430000): con 0x1? en el nibble alto, 0x6cd,
+    // 0x6ce o 0x6cf por el bajo (1, 2 u otro); si no, 0x6bd o 0x6be con 1 o 2, y nada con otro.
+    std::array<std::uint8_t, 5> altars{2, 2, 2, 2, 2};
+    // 0x723bed y 0x723bf0: el rango (0x6d2 + esto) y la experiencia (nueve cifras) del BD 07 (0x437600).
+    std::uint8_t byte723bed = 0;
+    std::int32_t dword723bf0 = 0;
+    // 0x723a30 + lugar y 0x7239f8 + 11 · lugar: la clase y el nombre (10 bytes y el 0) de los resultados (0x437620).
+    std::array<std::uint8_t, 5> rankingClasses{};
+    std::array<std::array<char, 11>, 5> rankingNames{};
+    // 0x723bf9: la ventana de los resultados, que abre el BD 08 y cierra el botón (0x436b21).
+    std::uint8_t byte723bf9 = 0;
+    // 0x723bf8: en 1 con el BD 04 y con cada dibujo del estado (0x4373fb).
+    std::uint8_t byte723bf8 = 0;
+    // 0x723bf4, 0x723bfc y 0x723c00 (.bss 0): los minutos que quedan, los segundos que van (de 0 a 59) y el último
+    // segundo contado desde 0x7239f4 (0x437412..0x437490).
+    std::int32_t dword723bf4 = 0;
+    std::int32_t dword723bfc = 0;
+    std::int32_t dword723c00 = 0;
+    // 0x7d3a0e4 y 0x7d3a0e8 (.bss 0): el reloj de 0x63b0e3, que solo pide 0x430180 (cada 10.000 ms de timeGetTime).
+    std::uint8_t tipTimerRestart = 0;
+    std::uint32_t tipTimerStart = 0;
+    // 0x7d2dc9d: pkt[4] del BD 09 (y de 0x4e1629); lo lee la caja del caos (0x5ff2f2, CL9.3) y lo borra 0x65a94f.
+    std::uint8_t byte7d2dc9d = 0;
 };
 
 // Los globales de Crywolf (el mapa 34), todos en la .bss.

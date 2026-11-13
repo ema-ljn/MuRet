@@ -16,6 +16,7 @@
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorMotion.h"
 #include "Scenes/ActorWalk.h"
+#include "Scenes/CameraTour.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/GameMovementState.h"
@@ -418,7 +419,8 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
     WorldRuntime& runtime = context.world.Runtime();
     ActorState& hero = context.world.Actors()[runtime.hero];
     LatchTheLeftButton(runtime.movement, context.input.leftPressed, context.input.leftDown);
-    if (runtime.movement.cameraTour)
+    // 0x59ae24: 0x4033d0, el recorrido de la cámara (Scenes/CameraTour.h).
+    if (CameraTourRunning(runtime.events.cameraTour))
     {
         if (!context.playerSkeleton)
             return Core::Unexpected(std::string("0x59ae24: falta Player.bmd para parar durante el recorrido"));

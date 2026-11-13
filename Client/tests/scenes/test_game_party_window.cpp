@@ -17,6 +17,7 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameUiState.h"
@@ -24,7 +25,13 @@
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
 
+#include "Network/Crypto/Xor32.h"
+#include "Network/Packet.h"
+#include "Protocol/Outgoing.h"
+
 #include <gtest/gtest.h>
+
+#include <format>
 
 #include <cstddef>
 #include <cstdint>
@@ -134,6 +141,15 @@ public:
     void RequestPartyList() override
     {
         requests.emplace_back("42");
+    }
+    // El 43 que echa, como sale: los bytes sin el XOR32.
+    void SendGamePacket(Client::Protocol::Outgoing outgoing) override
+    {
+        const Client::Network::Packet decoded = Client::Network::Crypto::Xor32Decode(outgoing.packet);
+        std::string bytes;
+        for (const std::byte b : decoded.Bytes())
+            bytes += std::format("{:02X} ", std::to_integer<unsigned>(b));
+        requests.push_back(bytes);
     }
     Client::Core::Expected<void, std::string> SaveMacros(std::string_view /*content*/) override
     {
@@ -329,15 +345,57 @@ TEST_P(GamePartyWindowTest, BeforeTheFirstDrawTheCornerIsZero)
     EXPECT_EQ(Runtime().panels.party, 0);
 }
 
-// 0x5e3cf0..0x5e3d03: con miembros, el paso corta después de mirar el mouse.
-TEST_P(GamePartyWindowTest, WithMembersTheStepCuts)
+// 0x5e3cf0..0x5e40b6: con miembros, el jefe (el primero de 0x77f3cd0) puede echar a cualquiera; los demás, solo a sí
+// mismos. El clic en el botón de echar (0x8c, 0x37 + 0x23 · lugar) lo gasta, suena y manda el C1 04 43 con el número
+// del lugar, en claro y sin rand().
+TEST_P(GamePartyWindowTest, WithMembersTheKickButtonsSendTheLeave)
 {
     OpenAndPlace();
+    const auto setName = [](auto& name, std::string_view text)
+    {
+        name = {};
+        for (std::size_t at = 0; at < text.size(); ++at)
+            name[at] = static_cast<std::byte>(text[at]);
+    };
+    Client::Scenes::PartyState& party = Runtime().social.party;
+    setName(party.slots[0].name, "Arbusto");
+    party.slots[0].number = 4;
+    setName(party.slots[1].name, "Brezal");
+    party.slots[1].number = 7;
     Runtime().hud.partyCount = 2;
-    const auto stepped = Step(Left + 5, 5);
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x5e3d03"), std::string::npos) << stepped.Error();
+    setName(m_world->Actors()[Runtime().hero].name, "Arbusto");
+    RecordingRequests requests;
+    const auto step = [&](std::int32_t x, std::int32_t y)
+    {
+        Client::Scenes::GamePanels panels(*m_world, m_random);
+        return Client::Scenes::StepThePartyWindow(UiContext(x, y, &requests), panels.Registry());
+    };
+    // El jefe echa al segundo.
+    Click();
+    ASSERT_TRUE(step(Left + 0x8c, Top + 0x37 + 0x23).HasValue());
+    EXPECT_EQ(requests.requests, (std::vector<std::string>{"C1 04 43 07 "}));
+    EXPECT_FALSE(Runtime().movement.pendingClick);
+    EXPECT_EQ(Runtime().lastSoundId, 0x19);
     EXPECT_EQ(Runtime().ui.mouseOnUi, 1);
+    EXPECT_EQ(m_random.State(), Seed);
+
+    // Un miembro que no es el jefe no puede echar a otro, pero sí salir.
+    setName(m_world->Actors()[Runtime().hero].name, "Brezal");
+    requests.requests.clear();
+    Click();
+    ASSERT_TRUE(step(Left + 0x8c, Top + 0x37).HasValue());
+    EXPECT_TRUE(requests.requests.empty());
+    ASSERT_TRUE(step(Left + 0x8c + 0x17, Top + 0x37 + 0x23 + 0x17).HasValue());
+    EXPECT_EQ(requests.requests, (std::vector<std::string>{"C1 04 43 07 "}));
+
+    // Sin el clic, nada; sin el cable, corta.
+    requests.requests.clear();
+    ASSERT_TRUE(step(Left + 0x8c, Top + 0x37 + 0x23).HasValue());
+    EXPECT_TRUE(requests.requests.empty());
+    Click();
+    const auto cut = Step(Left + 0x8c, Top + 0x37 + 0x23);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x5e3ded"), std::string::npos) << cut.Error();
 
     // Con la cuenta negativa, como sin miembros.
     Runtime().hud.partyCount = -1;

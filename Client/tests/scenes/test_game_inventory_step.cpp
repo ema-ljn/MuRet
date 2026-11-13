@@ -10,6 +10,8 @@
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/SocialEvents.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameUiState.h"
@@ -172,8 +174,31 @@ TEST_F(InventoryStepTest, WhatIsStillCutStopsWithItsAddress)
     input.Apply(InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::S});
     ExpectCut(Step(100, 300), "0x6599a0(0x800)");
 
+    // El comercio abierto (CL9 hito 7): el mouse sobre su ventana (desde 0x78a5a1c y 0x78a5a18, en 0 antes del
+    // dibujo) es de la UI; un ítem de sus grillas bajo el mouse corta (0x5c41f4). Las grillas, vacías como las deja la
+    // entrada a la selección (0x5bbe10).
+    Client::Scenes::TradeState& trade = world.Runtime().social.trade;
+    Client::Scenes::ClearTheTradeForSelection(trade);
+    // 0x5e513a..0x5e5205: +0x44 en cada casilla de las dos grillas; la del otro conserva el 99 (0x5e5172).
+    trade.otherGrid[3].id = 0x1c00;
+    trade.otherGrid[3].warning = Client::Scenes::ChangedFromTheCopy;
+    trade.otherGrid[4].id = 0x1c00;
+    trade.otherGrid[5].warning = Client::Scenes::ChangedFromTheCopy;
+    trade.ownGrid[2].id = 0x1c00;
+    trade.ownGrid[6].warning = 1;
     world.Runtime().panels.trade = 1;
-    ExpectCut(Step(100, 300), "0x5e4e34");
+    world.Runtime().ui.mouseOnUi = 0;
+    const auto trading = Step(100, 300);
+    ASSERT_TRUE(trading.HasValue()) << trading.Error();
+    EXPECT_EQ(world.Runtime().ui.mouseOnUi, 1);
+    EXPECT_EQ(trade.otherGrid[3].warning, Client::Scenes::ChangedFromTheCopy);
+    EXPECT_EQ(trade.otherGrid[4].warning, 1);
+    EXPECT_EQ(trade.otherGrid[5].warning, 0);
+    EXPECT_EQ(trade.ownGrid[2].warning, 1);
+    EXPECT_EQ(trade.ownGrid[6].warning, 0);
+    // La casilla 21 de la grilla del otro (columna 5, fila 2, desde x + 15 e y + 0x46).
+    trade.otherGrid[21].id = 0x1c00;
+    ExpectCut(Step(15 + 5 * 20 + 5, 0x46 + 2 * 20 + 5), "0x5c41f4");
 }
 
 // 0x5c2c56 → 0x5c35ad: el mouse sobre un lugar ocupado, sin el clic, prende 0x78abaac (y 0x5d8d50 no corre), marca el

@@ -498,16 +498,59 @@ TEST(PanelRegistryTest, CloseByMaskClosesTheOwnPanels)
 
 TEST(PanelRegistryTest, CloseByMaskFollowsTheFixedOrder)
 {
-    // El personaje es el primero: con el comercio abierto (y sin dueño), corta en el comercio después de cerrarlo.
+    // El personaje es el primero: con el comercio abierto y sin sus grillas, corta en el comercio después de cerrarlo.
     Tested tested;
     tested.state.character = 1;
     tested.state.trade = 1;
     tested.state.inventory = 1;
     const auto closed = tested.panels.CloseByMask(AllPanels);
     ASSERT_FALSE(closed.HasValue());
-    EXPECT_NE(closed.Error().find("0x657ab0(0x20)"), std::string::npos) << closed.Error();
+    EXPECT_NE(closed.Error().find("0x657fb5"), std::string::npos) << closed.Error();
     EXPECT_EQ(tested.state.character, 0);
     EXPECT_EQ(tested.state.inventory, 1);
+}
+
+// 0x659e46..0x659f38: abrir el comercio cierra lo demás, abre el inventario (con sus sonidos) y escribe el byte
+// protegido: su IsOpen, el 0x10000 y el 0x20 de CanOpen, el 0x10000 del cierre, los cuatro del inventario y la
+// escritura (9).
+TEST(PanelRegistryTest, OpeningTheTradeOpensTheInventoryAndWritesTheProtectedByte)
+{
+    Tested tested;
+    const auto opened = tested.panels.Open(TradePanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+    EXPECT_EQ(tested.state.trade, 1);
+    EXPECT_EQ(tested.state.inventory, 1);
+    EXPECT_EQ(tested.state.tradeDepth, 0);
+    EXPECT_EQ(DrawsSince(tested.random), 9);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x19, 0x1c, 0x19, 0x1c}));
+}
+
+// 0x65cb5b con el comercio: su IsOpen, el del cierre, el gancho (las grillas y, con aux en 0, el 3D) y la escritura del
+// byte en 0; después el inventario, con el mismo aux.
+TEST(PanelRegistryTest, ClosingTheTradeRunsItsHookBetweenTheQueryAndTheWrite)
+{
+    for (const bool aux : {false, true})
+    {
+        Tested tested;
+        std::vector<bool> hooked;
+        tested.context.tradeClosed = [&tested, &hooked](bool closedAux) -> Client::Core::Expected<void, std::string>
+        {
+            hooked.push_back(closedAux);
+            EXPECT_EQ(DrawsSince(tested.random), 2);
+            if (!closedAux)
+                tested.random.Discard(2);
+            return {};
+        };
+        tested.state.trade = 1;
+        tested.state.inventory = 1;
+        const auto closed = tested.panels.Close(TradePanel, aux);
+        ASSERT_TRUE(closed.HasValue()) << closed.Error();
+        EXPECT_EQ(hooked, (std::vector<bool>{aux}));
+        EXPECT_EQ(tested.state.trade, 0);
+        EXPECT_EQ(tested.state.inventory, 0);
+        EXPECT_EQ(DrawsSince(tested.random), aux ? 3 : 5);
+    }
 }
 
 TEST(PanelRegistryTest, EscapeWithNothingOpenDrawsTwoAndClosesNothing)

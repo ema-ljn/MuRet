@@ -183,6 +183,10 @@ struct PanelContext
     // +0x9304 a +0x9327 en 0, y con el registro propio abierto, 0x550d10 si un lugar del equipo tiene la durabilidad
     // en 0 (0x550cf0). Sin él, abrir el personaje corta.
     std::function<Core::Expected<void, std::string>()> characterOpened{};
+    // 0x657fb5..0x6584a4: lo que cerrar el comercio hace entre la consulta y la escritura del byte protegido: con aux
+    // en 0 el C1 03 3D en C3 (dos rand()), y las dos grillas (0x78a92a8 y 0x78a5a20) vacías, con 0x5bbdf0 en cada
+    // vuelta si 0x78abaa5 está en 1 (Scenes::CloseTheTradeGrids). Sin él, cerrar el comercio corta.
+    std::function<Core::Expected<void, std::string>(bool aux)> tradeClosed{};
 };
 
 class PanelRegistry
@@ -198,8 +202,11 @@ public:
     [[nodiscard]] Core::Expected<bool, std::string> Open(PanelId id);
     // 0x65cae0(id, 0): false si estaba cerrado, sin sonidos.
     [[nodiscard]] Core::Expected<bool, std::string> Close(PanelId id);
+    // 0x65cae0(id, aux): `aux` llega a 0x657ab0; solo lo lee el comercio (con 1, sin el 3D: 0x4d5906).
+    [[nodiscard]] Core::Expected<bool, std::string> Close(PanelId id, bool aux);
     // 0x657ab0(mask, 0): las 26 consultas en su orden fijo, cada una solo si está en la máscara.
     [[nodiscard]] Core::Expected<bool, std::string> CloseByMask(PanelId mask);
+    [[nodiscard]] Core::Expected<bool, std::string> CloseByMask(PanelId mask, bool aux);
     // 0x657880(vk): con Esc cierra el abierto de bit más bajo.
     [[nodiscard]] Core::Expected<bool, std::string> PanelKey(std::int32_t virtualKey);
     // 0x657a90: todos, y el diálogo de los paneles (0x6603c0, que cerrado no hace nada).

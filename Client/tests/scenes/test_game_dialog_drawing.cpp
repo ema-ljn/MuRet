@@ -370,7 +370,7 @@ TEST(GameDialogDrawingTest, TheOtherDialogsAreCut)
 {
     DrawingDialogs tested(Lorencia);
     for (const auto& [id, wave] : std::to_array<std::pair<std::int32_t, std::string>>(
-             {{0x8d, "CL9.1"}, {0x73, "CL9.4"}, {0x8e, "CL9.3"}, {0x15, "CL9"}}))
+             {{0x8d, "CL9.1"}, {0x73, "CL9 hito 7"}, {0x77, "CL9 hito 7"}, {0x8e, "CL9.3"}, {0x15, "CL9"}}))
     {
         tested.world.Runtime().dialogs.current = id;
         const auto drawn = tested.Draw();

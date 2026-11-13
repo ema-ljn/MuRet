@@ -486,9 +486,10 @@ Core::Unexpected<std::string> CutTheDialog(std::int32_t id)
     std::string_view wave = "CL9";
     if (route.step == DialogStep::Cut)
         wave = route.wave;
-    // 0x630c7b: el 0x73 dibuja el EDIT de su campo (0x5763504), como corta su paso.
-    if (id == 0x73)
-        wave = "CL9.4";
+    // 0x630c7b: el 0x73 dibuja el EDIT de su campo (0x5763504), como corta su paso. El 0x77 y el 0x78 tienen paso
+    // (CL9 hito 7) y su dibujo queda para la fase 2 (08 P-C205).
+    if (id == 0x73 || id == 0x77 || id == 0x78)
+        wave = "CL9 hito 7, fase 2";
     return Core::Unexpected(std::format("0x62db60: el dibujo del diálogo {:#x} es de la {}", id, wave));
 }
 } // namespace

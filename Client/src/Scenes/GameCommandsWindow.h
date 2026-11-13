@@ -7,7 +7,7 @@
 // La ventana de los comandos (D, CL8 hito 6, 08 P-C92): el objeto [0x6e592c], con su paso (0x40a450) y su dibujo
 // (0x40a650). Elegir un comando, el aviso que da y cerrarla se portan; lo que hace el comando elegido sobre el
 // personaje elegido (0x406050 desde 0x406097, y el nombre de 0x40aa8d) necesita un personaje elegido (0x6c8e30), que
-// MuRet nunca tiene: corta con su dirección (CL9.4).
+// MuRet nunca tiene: corta con su dirección (CL9 hito 7, fase 2, con los actores del hito 1).
 namespace Client::Scenes
 {
 struct GameHudContext;

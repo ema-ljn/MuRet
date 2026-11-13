@@ -278,8 +278,8 @@ TEST_P(GameCommandsWindowTest, TheStepTakesTheMouseAndResetsTheStates)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x406097: con un comando y un personaje elegidos (0x6c8e30), lo que hace el comando es de la CL9.4. Sin comando,
-// el personaje elegido no corta.
+// 0x406097: con un comando y un personaje elegidos (0x6c8e30), lo que hace el comando es de la CL9 hito 7, fase 2. Sin
+// comando, el personaje elegido no corta.
 TEST_P(GameCommandsWindowTest, AChosenCommandOnAChosenCharacterCuts)
 {
     OpenAndPlace();

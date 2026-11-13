@@ -3,12 +3,15 @@
 #include "Core/Expected.h"
 #include "Input/InputEvent.h"
 #include "Protocol/Chat/ChatSend.h"
+#include "Protocol/Duel.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatCommands.h"
@@ -127,17 +130,35 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
         return Core::Unexpected(std::string("0x56c440: los comandos sin Text.bmd"));
     WorldRuntime& runtime = context.world.Runtime();
     GamePanels panels(context.world, context.random);
-    const UI::ChatCommandContext commands{.texts = *context.texts,
-                                          .items = context.items,
-                                          .setOptions = context.setOptions,
-                                          .map = runtime.map,
-                                          .logoutRequested = runtime.ui.logoutRequested,
-                                          .warehouseOpen = panels.Registry().IsOpen(UI::WarehousePanel),
-                                          .log = runtime.chat.log,
-                                          .macros = runtime.chat.input.macros,
-                                          .overlayMode = runtime.panels.overlayMode,
-                                          .helpItem = runtime.panels.helpItem,
-                                          .setLabel = &context.world.ItemSets().byte9305};
+    const UI::ChatCommandContext commands{
+        .texts = *context.texts,
+        .items = context.items,
+        .setOptions = context.setOptions,
+        .map = runtime.map,
+        .logoutRequested = runtime.ui.logoutRequested,
+        .warehouseOpen = panels.Registry().IsOpen(UI::WarehousePanel),
+        .log = runtime.chat.log,
+        .macros = runtime.chat.input.macros,
+        .overlayMode = runtime.panels.overlayMode,
+        .helpItem = runtime.panels.helpItem,
+        .setLabel = &context.world.ItemSets().byte9305,
+        .ownLevel = [&context]() -> std::uint16_t
+        {
+            WorldRuntime& own = context.world.Runtime();
+            const Render::Models::LogicalAccess access(own.ownRecordDepth, context.random,
+                                                       Render::Models::OwnRecordCloseRandoms);
+            return context.world.OwnCharacter().level;
+        },
+        .duelActive = runtime.social.duel.active != 0,
+        .endTheDuel = [&context]() -> Core::Expected<void, std::string>
+        {
+            if (!context.send)
+                return Core::Unexpected(std::string("0x56ea6c: /duelend sin el cable"));
+            // El relleno y el serial del C3.
+            context.random.Discard(2);
+            context.send(Protocol::Duel::WriteDuelEnd());
+            return {};
+        }};
     auto outcome = UI::RunTheChatCommand(commands, text, fromMacro);
     if (!outcome.HasValue())
         return outcome;

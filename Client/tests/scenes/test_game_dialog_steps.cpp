@@ -1,15 +1,22 @@
 #include "Scenes/GameDialogSteps.h"
 
 #include "Core/Expected.h"
+#include "Input/InputEvent.h"
 #include "Input/InputState.h"
+#include "Input/Key.h"
+#include "Network/Crypto/Xor32.h"
+#include "Network/Delivery.h"
+#include "Network/Packet.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -22,15 +29,16 @@
 
 #include "support/SceneDataFiles.h"
 
+#include <gtest/gtest.h>
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
-
-#include <gtest/gtest.h>
 
 // Los diálogos del juego en el paso (CL8 hito 6): el despacho de 0x623f78, el menú de Esc con sus salidas (el F3 30
 // de 0x61c210, Macro.txt y el C3 F1 02), las opciones (0x93), las cajas con botones y el OK genérico. Textos
@@ -96,6 +104,16 @@ public:
     void RequestPartyList() override
     {
         requests.push_back({"42", {}, {}});
+    }
+    // El paquete como sale (sin el XOR32) y si va en C3.
+    void SendGamePacket(Client::Protocol::Outgoing outgoing) override
+    {
+        const Client::Network::Packet decoded = Client::Network::Crypto::Xor32Decode(outgoing.packet);
+        std::vector<std::uint8_t> bytes;
+        for (const std::byte b : decoded.Bytes())
+            bytes.push_back(std::to_integer<std::uint8_t>(b));
+        requests.push_back(
+            {outgoing.delivery == Client::Network::Delivery::Encrypted ? "C3" : "C1", std::move(bytes), {}});
     }
     Client::Core::Expected<void, std::string> SaveMacros(std::string_view content) override
     {
@@ -440,6 +458,59 @@ TEST(GameDialogStepsTest, TheBoxesCloseWithAButtonOrEnter)
     ASSERT_TRUE(tested.Dialogs(0, 0).HasValue());
     EXPECT_EQ(runtime.dialogs.current, 0);
     EXPECT_FALSE(runtime.ui.enterPressed);
+}
+
+// 0x62a7f7 y 0x62bb1d: el sí de la invitación a la party (0x77) gasta el clic, manda el C1 05 41 01 con la clave de
+// 0x78aba4c en C3 (dos rand()) y cierra (0x62c4ac).
+TEST(GameDialogStepsTest, YesToThePartyInvitationSendsTheAnswerInC3)
+{
+    SteppingDialogs tested(Lorencia);
+    auto& runtime = tested.world.Runtime();
+    runtime.dialogs.current = 0x77;
+    runtime.social.party.requestKey = 0x1234;
+    const CrtRandom expected = Advanced(tested.random, 2);
+    ASSERT_TRUE(tested.Click(0xea, 0x62).HasValue());
+    ASSERT_EQ(tested.requests.requests.size(), 1u);
+    EXPECT_EQ(tested.requests.requests[0].kind, "C3");
+    EXPECT_EQ(tested.requests.requests[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x06, 0x41, 0x01, 0x12, 0x34}));
+    EXPECT_EQ(tested.random.State(), expected.State());
+    EXPECT_EQ(runtime.dialogs.current, 0);
+    EXPECT_FALSE(runtime.movement.pendingClick);
+    EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
+    EXPECT_EQ(runtime.lastSoundId, 0x19);
+}
+
+// 0x62c50e y 0x62d4a2: el no del pedido de comercio (0x78) manda el C1 04 37 00 en claro, con el botón o con Esc.
+TEST(GameDialogStepsTest, NoToTheTradeRequestSendsTheRefusalInClear)
+{
+    SteppingDialogs tested(Lorencia);
+    auto& runtime = tested.world.Runtime();
+    runtime.dialogs.current = 0x78;
+    ASSERT_TRUE(tested.Click(0x14e + 0x45, 0x76).HasValue());
+    ASSERT_EQ(tested.requests.requests.size(), 1u);
+    EXPECT_EQ(tested.requests.requests[0].kind, "C1");
+    EXPECT_EQ(tested.requests.requests[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x37, 0x00}));
+    EXPECT_EQ(runtime.dialogs.current, 0);
+    EXPECT_EQ(tested.random.State(), CrtRandom().State());
+
+    runtime.dialogs.current = 0x78;
+    tested.input.Apply(
+        Client::Input::InputEvent{.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::Escape});
+    ASSERT_TRUE(tested.Dialogs(0, 0).HasValue());
+    ASSERT_EQ(tested.requests.requests.size(), 2u);
+    EXPECT_EQ(tested.requests.requests[1].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x37, 0x00}));
+    EXPECT_EQ(runtime.dialogs.current, 0);
+
+    // El sí, con la invitación esperando: el C1 04 37 01 y la invitación queda abierta, sin que el no la mire.
+    runtime.dialogs.current = 0x78;
+    runtime.dialogs.pending = 0x77;
+    ASSERT_TRUE(tested.Click(0xea + 0x45, 0x62).HasValue());
+    ASSERT_EQ(tested.requests.requests.size(), 3u);
+    EXPECT_EQ(tested.requests.requests[2].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x37, 0x01}));
+    EXPECT_EQ(runtime.dialogs.current, 0x77);
+    // Fuera de los botones, nada.
+    ASSERT_TRUE(tested.Click(0xea + 0x46, 0x62).HasValue());
+    EXPECT_EQ(tested.requests.requests.size(), 3u);
 }
 
 // Los tramos de otras olas cortan con su dirección; un id que no está en la tabla va al OK genérico.

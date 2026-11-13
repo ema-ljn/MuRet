@@ -50,6 +50,10 @@ public:
     // la lista (C1 03 42). Lo presta el paso de la UI, el que abre la party; sin él, o con nullptr, abrirla corta.
     void LendThePartyList(WorldState& world, IGameUiRequests* requests);
 
+    // 0x657fe1: con `requests`, cerrar el comercio con aux en 0 manda el C1 03 3D (SendGamePacket) después de sus dos
+    // rand(). Lo presta el paso de la UI; sin él, ese cierre corta.
+    void LendTheTradeCancel(WorldState& world, Render::Models::CrtRandom& random, IGameUiRequests* requests);
+
 private:
     UI::PanelContext m_context;
     UI::PanelRegistry m_registry;

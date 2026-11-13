@@ -3,6 +3,8 @@
 #include "Core/Expected.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Party.h"
+#include "Protocol/Trade.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/GameMessages.h"
@@ -10,6 +12,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -99,6 +102,22 @@ constexpr std::int32_t EnterOnlyDialog = 0x73;
 constexpr std::array<std::int32_t, 4> QuittingDialogs{0x70, 0x6f, 0x1a, 0x1c};
 // 0x62825c: el que cierra y llama a 0x5e7aa0(6).
 constexpr std::int32_t ReopeningDialog = 0x8f;
+// 0x62a7f7..0x62c560: sí y no. Los dos botones son de 0x46 × 0x15 en y 0x62; con 0x7d y 0x95 (el sí) o 0x71, 0x7d y
+// 0x95 (el no), de 0x28 en otra x.
+constexpr std::int32_t PartyRequestDialog = 0x77;
+constexpr std::int32_t YesLeft = 0xea;
+constexpr std::int32_t NoLeft = 0x14e;
+constexpr std::int32_t NarrowYesLeft = 0x143;
+constexpr std::int32_t NarrowNoLeft = 0x175;
+constexpr std::int32_t YesNoWidth = 0x46;
+constexpr std::int32_t NarrowWidth = 0x28;
+constexpr std::int32_t YesNoTop = 0x62;
+constexpr std::int32_t YesNoBottom = 0x77;
+// 0x62c54c..0x62c560: los casos de la tabla del no (0x62db1c) que no son 0x77 ni 0x78; los demás ids van al cierre
+// (0x62d745).
+constexpr std::array<std::int32_t, 5> OtherNoCases{0x71, 0x76, 0x7d, 0x7f, 0x95};
+// El relleno y el serial del C1 05 41 en C3.
+constexpr std::uint32_t C3Randoms = 2;
 
 // 0x61c2b6..0x61c2c3: los lugares de las teclas que recorre (de 0 a 0x71).
 constexpr std::size_t OptionKeyPlaces = 0x72;
@@ -141,8 +160,8 @@ constexpr auto Routes = std::to_array<DialogRoute>({
     {0x95, DialogStep::Cut, "0x62a7f7", "CL9.4"},
     {0x76, DialogStep::Cut, "0x62a7f7", "CL9.4"},
     {UI::IgnoredOverChaosCastle, DialogStep::Cut, "0x62a7f7", "CL9.4"},
-    {0x77, DialogStep::Cut, "0x62a7f7", "CL9.4"},
-    {UI::ForcedDialog, DialogStep::Cut, "0x62a7f7", "CL9.4"},
+    {PartyRequestDialog, DialogStep::YesNo, "0x62a7f7", ""},
+    {UI::ForcedDialog, DialogStep::YesNo, "0x62a7f7", ""},
     {0x94, DialogStep::Cut, "0x6282dc", "CL9.3"},
     {UI::ItemNameDialog, DialogStep::Cut, "0x6282dc", "CL9.3"},
     {0x98, DialogStep::Cut, "0x6282dc", "CL9.3"},
@@ -483,9 +502,62 @@ Core::Expected<void, std::string> StepTheGenericOk(const GameUiContext& context)
         return {};
     }
     if (id == EnterOnlyDialog)
-        return Core::Unexpected(std::string("0x626460: el OK del diálogo 0x73 es de la CL9.4"));
+        return Core::Unexpected(std::string("0x626460: el OK del diálogo 0x73 es de la CL9 hito 7, fase 2"));
     if (id == ReopeningDialog)
         return Core::Unexpected(std::string("0x628276: el OK del diálogo 0x8f (0x5e7aa0(6)) es de la CL9.3"));
+    CloseTheDialog(runtime);
+    return {};
+}
+// La respuesta del sí (1) o del no (0) a la invitación (0x77, el C1 05 41 con la clave de 0x78aba4c en C3) o al
+// pedido de comercio (0x78, el C1 04 37 con el XOR32, en claro).
+Core::Expected<void, std::string> Answer(const GameUiContext& context, std::int32_t id, std::uint8_t accepted,
+                                         std::string_view where)
+{
+    auto requests = RequestsOf(context, where);
+    if (!requests.HasValue())
+        return Core::Unexpected(std::move(requests).Error());
+    WorldRuntime& runtime = context.world.Runtime();
+    if (id == PartyRequestDialog)
+    {
+        context.random.Discard(C3Randoms);
+        const auto key = static_cast<std::uint16_t>(runtime.social.party.requestKey & 0xffff);
+        requests.Value()->SendGamePacket(Protocol::Party::WritePartyRequestResult(accepted, key));
+        return {};
+    }
+    requests.Value()->SendGamePacket(Protocol::Trade::WriteTradeResponse(accepted));
+    return {};
+}
+
+// 0x62a7f7..0x62d745: el sí, que gasta el clic y cierra (0x62c4ac), y después el no con el diálogo que quedó, que
+// también entra con Esc. Con otro caso de la tabla del no, su tramo corta; sin caso, solo el cierre.
+Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, bool escape)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    bool& click = runtime.movement.pendingClick;
+    std::int32_t id = runtime.dialogs.current;
+    const auto inButton = [&context](std::int32_t left, std::int32_t width)
+    { return InBox(context, left, YesNoTop, width, YesNoBottom - YesNoTop); };
+    const auto narrowYes = id == 0x7d || id == 0x95;
+    if (inButton(narrowYes ? NarrowYesLeft : YesLeft, narrowYes ? NarrowWidth : YesNoWidth) && click)
+    {
+        click = false;
+        if (auto said = Answer(context, id, 1, id == PartyRequestDialog ? "0x62bb1d" : "0x62c20a"); !said.HasValue())
+            return said;
+        CloseTheDialog(runtime);
+        id = runtime.dialogs.current;
+    }
+    const bool narrowNo = id == 0x71 || id == 0x7d || id == 0x95;
+    if (inButton(narrowNo ? NarrowNoLeft : NoLeft, narrowNo ? NarrowWidth : YesNoWidth) && click)
+        click = false;
+    else if (!escape)
+        return {};
+    if (std::ranges::find(OtherNoCases, id) != OtherNoCases.end())
+        return Core::Unexpected(std::format("0x62c560: el no del diálogo {:#x} es de la CL9", id));
+    if (id == PartyRequestDialog || id == UI::ForcedDialog)
+    {
+        if (auto said = Answer(context, id, 0, id == PartyRequestDialog ? "0x62cd52" : "0x62d4a2"); !said.HasValue())
+            return said;
+    }
     CloseTheDialog(runtime);
     return {};
 }
@@ -504,7 +576,7 @@ DialogRoute DialogRouteOf(std::int32_t id)
     return DialogRoute{.id = id, .step = DialogStep::GenericOk, .address = "0x6263df", .wave = ""};
 }
 
-Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context, bool escape)
 {
     const std::int32_t id = context.world.Runtime().dialogs.current;
     if (id == 0)
@@ -520,6 +592,8 @@ Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context
         return StepTheButtons(context);
     case DialogStep::GenericOk:
         return StepTheGenericOk(context);
+    case DialogStep::YesNo:
+        return StepTheYesNo(context, escape);
     case DialogStep::Cut:
         break;
     }

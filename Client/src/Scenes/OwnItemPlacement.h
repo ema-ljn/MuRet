@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <span>
 #include <string>
+#include <string_view>
 
 // Un ítem del F3 10 en el inventario propio: 0x5bc740 con la grilla 0x78a9bb0, 8 columnas, 8 filas y el
 // último argumento en 1, como la llama 0x4c55a0 (0x4c5e7f..0x4c5e8c), y el tipo de 0x54b3a0. Contrato:
@@ -43,6 +44,15 @@ inline constexpr std::uint8_t FirstSecondGridSlot = 0x4c;
 // cierra igual. Devuelve lo que pidió 0x4f2250 dentro de 0x512a30, si corrió.
 [[nodiscard]] Core::Expected<ActorStopResult, std::string>
 PlaceInventoryItem(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntryResources& resources);
+
+// 0x5bc740(grilla, columnas, filas, lugar, ítem, …) con una grilla que no es la del inventario (0x5bc75d..0x5bc8b3): la
+// huella del tipo desde `origin`, fila · `columns` + columna, con la columna (origen & 7) y la fila (origen >> 3) del
+// origen en cada casilla, y 0x54bf40 con los 24 bits de arriba de casilla · 9. Con el tipo 0x1fff no toca nada. Lo que
+// sigue en el original (0x5bc470 con 0x78a5a20 y, con el último argumento en 0, el registro propio) es de quien la
+// llama.
+[[nodiscard]] Core::Expected<void, std::string>
+PlaceItemInOtherGrid(std::span<World::ItemState> cells, std::int32_t columns, std::int32_t origin,
+                     InventoryItemBytes bytes, const WorldEntryResources& resources, std::string_view where);
 
 // 0x4225d0, la defensa del Dark Horse, que 0x54bf40 llama en 0x54cc5c con el 0x1a04: la opción 0x96 con
 // 5 + la agilidad del registro propio / 20 + 2 · WorldRuntime::darkHorseLevel, en un byte, calculada con el

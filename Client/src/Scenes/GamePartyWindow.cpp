@@ -1,6 +1,7 @@
 #include "Scenes/GamePartyWindow.h"
 
 #include "Core/Expected.h"
+#include "Protocol/Party.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -8,17 +9,20 @@
 #include "Scenes/GameHud.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GameWindowDrawing.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <format>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -41,6 +45,13 @@ constexpr std::int32_t CloseTop = 0x18b;
 constexpr std::int32_t CloseSize = 0x18;
 // 0x5e410d..0x5e4113.
 constexpr std::int32_t CloseMouseUpdateTimeMax = 6;
+// 0x5e3d83..0x5e3dc5: el botón de echar, de 0x18 × 0x18 en (0x8c, 0x37 + 0x23 · lugar) de la esquina.
+constexpr std::int32_t KickLeft = 0x8c;
+constexpr std::int32_t KickTop = 0x37;
+constexpr std::int32_t KickStep = 0x23;
+constexpr std::int32_t KickSize = 0x18;
+// 0x5e3ddc.
+constexpr std::int32_t KickSound = 0x19;
 
 // Los textos de Text.bmd (la dirección − 0x76bd1dc, sobre 300): el título, los siete renglones de la party vacía
 // (0x76cb1b0..0x76cb8b8) y la ayuda del botón de cerrar (0x76cd4d8).
@@ -67,6 +78,45 @@ Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& conte
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
 }
+// Un nombre de diez bytes hasta su primer 0 (strcmp entre el +0x1d9 del héroe y el lugar de 0x77f3cd0; *inferido*
+// con diez letras, donde strcmp sigue en +0x1e3 del héroe contra el 0 de +0xa del lugar).
+std::string_view NameView(std::span<const std::byte> name)
+{
+    const auto end = std::ranges::find(name, std::byte{0});
+    return {reinterpret_cast<const char*>(name.data()), static_cast<std::size_t>(end - name.begin())};
+}
+
+Core::Expected<void, std::string> StepTheKickButtons(const GameUiContext& context)
+{
+    WorldState& world = context.world;
+    WorldRuntime& runtime = world.Runtime();
+    const std::int32_t count = runtime.hud.partyCount;
+    if (count <= 0)
+        return {};
+    if (count > static_cast<std::int32_t>(PartySlots))
+        return Core::Unexpected(
+            std::format("0x5e3d03: {} miembros pasan los cinco lugares de 0x77f3cd0 (Q-C960)", count));
+    const PartyState& party = runtime.social.party;
+    const std::string_view hero = NameView(world.Actors()[runtime.hero].name);
+    const std::string_view leader = NameView(party.slots[0].name);
+    for (std::int32_t at = 0; at < count; ++at)
+    {
+        const PartySlot& slot = party.slots[static_cast<std::size_t>(at)];
+        if (hero != leader && hero != NameView(slot.name))
+            continue;
+        const std::int32_t left = runtime.hud.partyX + KickLeft;
+        const std::int32_t top = runtime.hud.partyY + KickTop + at * KickStep;
+        if (context.mouseX < left || context.mouseX >= left + KickSize || context.mouseY < top ||
+            context.mouseY >= top + KickSize || !runtime.movement.pendingClick)
+            continue;
+        runtime.movement.pendingClick = false;
+        runtime.lastSoundId = KickSound;
+        if (context.requests == nullptr)
+            return Core::Unexpected(std::string("0x5e3ded: echar de la party (C1 04 43) sin el cable"));
+        context.requests->SendGamePacket(Protocol::Party::WritePartyLeave(slot.number));
+    }
+    return {};
+}
 } // namespace
 
 Core::Expected<void, std::string> StepThePartyWindow(const GameUiContext& context, UI::PanelRegistry& panels)
@@ -80,10 +130,11 @@ Core::Expected<void, std::string> StepThePartyWindow(const GameUiContext& contex
     const std::int32_t mouseY = context.mouseY;
     if (mouseX >= x && mouseX < x + WindowWidth && mouseY >= y && mouseY < y + WindowHeight)
         runtime.ui.mouseOnUi = 1;
-    // 0x5e3cf0..0x5e3cfd: con miembros, cada uno con su nombre (strcmp con el del héroe) y su botón de echar.
-    if (runtime.hud.partyCount > 0)
-        return Core::Unexpected(
-            std::string("0x5e3d03: los miembros de la party y el botón de echar (C1 04 43) son de la CL9.4"));
+    // 0x5e3cf0..0x5e40b6: con miembros, el botón de echar de cada uno, si el héroe es el primero (el jefe) o ese
+    // miembro: el clic lo gasta, suena y manda el C1 04 43 con su número, en claro. La vuelta sigue con el clic
+    // gastado.
+    if (auto kicked = StepTheKickButtons(context); !kicked.HasValue())
+        return kicked;
     if (mouseX < x + CloseLeft || mouseX >= x + CloseLeft + CloseSize || mouseY < y + CloseTop ||
         mouseY >= y + CloseTop + CloseSize || !runtime.movement.pendingClick)
         return {};

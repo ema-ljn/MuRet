@@ -62,14 +62,33 @@ template <std::size_t Size> std::string NameOf(std::span<const std::byte, Size> 
     return name;
 }
 
-// El comienzo de cada comando social: en Chaos Castle, el aviso 1150 y devuelve 0 (el texto sale como chat); si no,
-// lo que sigue es de su ola.
-Core::Expected<ChatCommandOutcome, std::string> SocialCommand(const ChatCommandContext& context,
-                                                              std::string_view address, std::string_view what)
+bool InChaosCastle(const ChatCommandContext& context)
 {
-    if (context.map >= FirstChaosCastleMap && context.map <= LastChaosCastleMap)
+    return context.map >= FirstChaosCastleMap && context.map <= LastChaosCastleMap;
+}
+
+// El comienzo de cada comando social: en Chaos Castle, el aviso 1150 y devuelve 0 (el texto sale como chat); si no,
+// lo que sigue es de `wave`.
+Core::Expected<ChatCommandOutcome, std::string>
+SocialCommand(const ChatCommandContext& context, std::string_view address, std::string_view what, std::string_view wave)
+{
+    if (InChaosCastle(context))
         return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
-    return Core::Unexpected(std::format("{}: {} es de la CL9.4", address, what));
+    return Core::Unexpected(std::format("{}: {} es de {}", address, what, wave));
+}
+
+// 0x56c54d..0x56c690: /trade. Fuera de Chaos Castle, el nivel del registro propio contra 0x6c8dc8: sin alcanzarlo, el
+// aviso 478 y 1. Con él, el elegido (0x6c8e30) o el que está enfrente (0x56ce1e) y el C1 05 36 son de la fase 2.
+Core::Expected<ChatCommandOutcome, std::string> TradeCommand(const ChatCommandContext& context)
+{
+    if (InChaosCastle(context))
+        return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
+    if (!context.ownLevel)
+        return Core::Unexpected(std::string("0x56c5d0: /trade sin el registro propio"));
+    if (context.ownLevel() < context.tradeLevel)
+        return ChatCommandOutcome{.handled = true, .notices = {{TradeLevelText, SystemMessage}}};
+    return Core::Unexpected(std::string("0x56c68b: a quién pedirle comercio (el elegido 0x6c8e30 o el que está "
+                                        "enfrente) es de la CL9 hito 7, fase 2 (los actores)"));
 }
 
 // 0x576894..0x576922 y 0x40ebd0: "/" y el nombre de un ítem abre su ayuda; si no, 0x40ebd0 compara con "/" y el
@@ -153,35 +172,59 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
         const std::string_view word = text.substr(0, std::min({text.find(' '), text.size(), FirstWordLimit}));
         if (word == TextAt(texts, ExchangeCommandText) || word == TextAt(texts, TradeCommandText) ||
             EqualsIgnoringCase(word, "/trade"))
-            return SocialCommand(context, "0x56c54d", "el comercio");
+            return TradeCommand(context);
     }
     // 0x56d624..0x56d66a: /move abre la ventana y sigue.
     if (text == TextAt(texts, MoveCommandText) || EqualsIgnoringCase(text, "/move"))
         context.overlayMode = MoveOverlayMode;
     if (text == TextAt(texts, ShopCommandText) || EqualsIgnoringCase(text, "/personalshop"))
-        return SocialCommand(context, "0x5766ce", "la tienda personal");
+        return SocialCommand(context, "0x5766ce", "la tienda personal", "la CL9 hito 7, fase 2");
     if (ContainsLikeTheOriginal(text, TextAt(texts, BuyCommandText)) || ContainsLikeTheOriginal(text, "/purchase"))
-        return SocialCommand(context, "0x574bd6", "comprar en una tienda personal");
+        return SocialCommand(context, "0x574bd6", "comprar en una tienda personal", "la CL9 hito 7, fase 2");
     if (text == TextAt(texts, ShopViewOnCommandText) || text == TextAt(texts, ShopViewOffCommandText))
         return Core::Unexpected(
             std::string("0x56d722: ver las tiendas personales (0x4516a0 y 0x4516b0) es de la CL9.4"));
+    // 0x56d7e0..0x56d82b: /duelstart. Con el duelo en curso, el aviso 915 y sigue la cadena (0x56ea05); sin él, el
+    // elegido o el que está enfrente y el C1 0F AA son de la fase 2.
+    ChatCommandOutcome outcome;
     if (text == TextAt(texts, DuelStartCommandText) || EqualsIgnoringCase(text, "/duelstart"))
-        return SocialCommand(context, "0x56d7e0", "el duelo");
+    {
+        if (InChaosCastle(context))
+            return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
+        if (!context.duelActive)
+            return Core::Unexpected(std::string("0x56d823: a quién retar a duelo (el elegido 0x6c8e30 o el que está "
+                                                "enfrente) es de la CL9 hito 7, fase 2 (los actores)"));
+        outcome.notices.push_back(ChatCommandNotice{DuelBusyText, ErrorMessage});
+    }
+    // 0x56ea29..0x56ee40: /duelend. Con el duelo en curso, el C1 03 AB en C3; con o sin él, sigue la cadena.
     if (text == TextAt(texts, DuelEndCommandText) || EqualsIgnoringCase(text, "/duelend"))
-        return SocialCommand(context, "0x56ea29", "terminar el duelo");
+    {
+        if (InChaosCastle(context))
+        {
+            outcome.notices.push_back(ChatCommandNotice{ChaosCastleCommandText, SystemMessage});
+            return outcome;
+        }
+        if (context.duelActive)
+        {
+            if (!context.endTheDuel)
+                return Core::Unexpected(std::string("0x56ea6c: /duelend sin el cable"));
+            if (auto ended = context.endTheDuel(); !ended.HasValue())
+                return Core::Unexpected(std::move(ended).Error());
+        }
+    }
     if (text == TextAt(texts, GuildCommandText) || EqualsIgnoringCase(text, "/guild"))
-        return SocialCommand(context, "0x573f49", "el gremio");
+        return SocialCommand(context, "0x573f49", "el gremio", "la CL9 hito 8");
     if (text == TextAt(texts, AllianceCommandText) || EqualsIgnoringCase(text, "/union") ||
         text == TextAt(texts, RivalCommandText) || EqualsIgnoringCase(text, "/rival") ||
         text == TextAt(texts, RivalOffCommandText) || EqualsIgnoringCase(text, "/rivaloff"))
-        return SocialCommand(context, "0x570d48", "la alianza y la rivalidad de los gremios");
+        return SocialCommand(context, "0x570d48", "la alianza y la rivalidad de los gremios", "la CL9 hito 8");
     if (text == TextAt(texts, PartyCommandText) || EqualsIgnoringCase(text, "/party") ||
         EqualsIgnoringCase(text, "/pt"))
-        return SocialCommand(context, "0x56f109", "la party");
+        return SocialCommand(context, "0x56f109", "a quién invitar a la party (C1 05 40)",
+                             "la CL9 hito 7, fase 2 (los actores)");
     if (const std::size_t macro = MacroOf(text); macro < MacroCount)
         return SetTheMacro(context, text, macro);
     // 0x56f02e..0x56f0ab: "/filter" (el texto 753, si no está vacío, o el literal) y la cola.
-    ChatCommandOutcome outcome;
     const std::string_view filter = TextAt(texts, FilterCommandText);
     if ((!filter.empty() && text.starts_with(filter)) || text.starts_with("/filter"))
     {

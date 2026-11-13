@@ -1,6 +1,7 @@
 #include "Scenes/GamePanels.h"
 
 #include "Core/Expected.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameUi.h"
@@ -8,6 +9,7 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnDerivedStats.h"
 #include "Scenes/OwnStatHelpers.h"
+#include "Scenes/SocialEvents.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/PanelRegistry.h"
@@ -16,6 +18,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <string>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -61,6 +64,8 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
     context.heroSiegeMark = false;
     context.sound = [&runtime](std::int32_t id) { runtime.lastSoundId = id; };
     context.characterOpened = [&world, &random, tables]() { return OpenTheCharacter(world, random, tables); };
+    // Sin el cable, el cierre con aux en 0 (el que manda el 3D) corta; el 3D del GS cierra con 1 (0x4d5906).
+    context.tradeClosed = [&world, &random](bool aux) { return CloseTheTradeGrids(world, random, aux, {}); };
     return context;
 }
 } // namespace
@@ -68,6 +73,17 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
 GamePanels::GamePanels(WorldState& world, Render::Models::CrtRandom& random, GamePanelTables tables)
     : m_context(ContextOf(world, random, tables)), m_registry(world.Runtime().panels, m_context)
 {
+}
+
+void GamePanels::LendTheTradeCancel(WorldState& world, Render::Models::CrtRandom& random, IGameUiRequests* requests)
+{
+    if (requests == nullptr)
+        return;
+    m_context.tradeClosed = [&world, &random, requests](bool aux)
+    {
+        return CloseTheTradeGrids(world, random, aux, [requests](Protocol::Outgoing outgoing)
+                                  { requests->SendGamePacket(std::move(outgoing)); });
+    };
 }
 
 void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)

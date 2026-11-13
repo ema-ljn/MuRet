@@ -57,6 +57,7 @@
 #include "Scenes/SceneTextures.h"
 #include "Scenes/SceneWorlds.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/SocialEvents.h"
 #include "Scenes/TerrainPolygonFrame.h"
 #include "Scenes/TextureSets.h"
 #include "Scenes/WorldRuntime.h"
@@ -390,6 +391,11 @@ bool CharacterSelectScene::PrepareTheCharacters()
         m_failure = window.Error();
         return false;
     }
+    // 0x633f91: 0x5bbe10. MuRet porta solo su cola del comercio (0x5bc107..0x5bc13f, CL9 hito 7). El equipo del
+    // registro propio con su cierre (0x5bbe10..0x5bc097, los 3.848 rand() de 0x40b4d0 si la cuenta vuelve a 0), las
+    // grillas 0x78a9bb0, 0x78a7070 y 0x7d2d380, 0x449c40, 0x402e10 y los cierres 0x65cae0(0x400000 y 0x800000) siguen
+    // sin portar, como dice 06 § La selección de personaje, "Lo que saca la entrada" (08 P-C205).
+    ClearTheTradeForSelection(m_context.world->Runtime().social.trade);
     // 0x634049..0x634177: el reset parcial, con el cierre del mismo registro de 0x4fc450.
     const Render::Models::LogicalAccess access(m_context.world->Runtime().ownRecordDepth, m_context.cloth->random,
                                                Render::Models::OwnRecordCloseRandoms);

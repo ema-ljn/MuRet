@@ -10,6 +10,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -42,12 +43,19 @@ inline constexpr std::size_t RivalCommandText = 1356;
 inline constexpr std::size_t RivalOffCommandText = 1357;
 // "No se puede en Chaos Castle", con el tipo 1.
 inline constexpr std::size_t ChaosCastleCommandText = 1150;
+// 0x56c666: el nivel no alcanza para comerciar (0x76e0204).
+inline constexpr std::size_t TradeLevelText = 478;
+// 0x56e9f3: ya hay un duelo (0x7700220).
+inline constexpr std::size_t DuelBusyText = 915;
 // 0x576eb0: los textos de los emotes, del 270 al 348 y el 783.
 inline constexpr std::size_t FirstEmoteText = 270;
 inline constexpr std::size_t LastEmoteText = 348;
 inline constexpr std::size_t LastEmoteExtraText = 783;
 
 // Un aviso de 0x555190 con el nombre vacío: el texto `text` de Text.bmd y su tipo.
+// 0x6c8dc8: su valor de la .data.
+inline constexpr std::uint8_t DefaultTradeLevel = 6;
+
 struct ChatCommandNotice
 {
     std::size_t text = 0;
@@ -79,6 +87,16 @@ struct ChatCommandContext
     std::int32_t& helpItem;
     // [0x6eed3c] + 0x9305, el cartel del set (0x40ebd0, y 0x5ae360 lo apaga); sin él, no lo escribe.
     std::uint8_t* setLabel = nullptr;
+    // 0x56c5d0..0x56c652 (/trade): el nivel del registro propio (+0xe), abriéndolo y cerrándolo (sus rand()). Sin él,
+    // /trade corta ahí.
+    std::function<std::uint16_t()> ownLevel{};
+    // 0x6c8dc8 (.data 6): el nivel mínimo para comerciar.
+    std::uint8_t tradeLevel = DefaultTradeLevel;
+    // 0x78abad8: el duelo en curso.
+    bool duelActive = false;
+    // 0x56ea6c..0x56ee2c (/duelend con el duelo en curso): el C1 03 AB en C3, con sus dos rand(). Sin él, ese caso
+    // corta.
+    std::function<Core::Expected<void, std::string>()> endTheDuel{};
 };
 
 struct ChatCommandOutcome

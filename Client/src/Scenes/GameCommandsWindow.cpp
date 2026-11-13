@@ -144,7 +144,7 @@ Core::Expected<void, std::string> PrepareTheCommand(WorldRuntime& runtime)
     if (window.chosen == -1 || runtime.selectedTargets[2] < 0)
         return {};
     return Core::Unexpected(
-        std::format("0x406097: el comando {} sobre el personaje elegido es de la CL9.4", window.chosen));
+        std::format("0x406097: el comando {} sobre el personaje elegido es de la CL9 hito 7, fase 2", window.chosen));
 }
 
 // 0x463090(x, y, marcada): el marco de la casilla con cuatro rectángulos sin textura, sin mezcla, y la marca con la

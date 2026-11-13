@@ -408,6 +408,52 @@ Core::Expected<void, std::string> UpdateTheSpeedsAfterTheGrid(const WorldEntryRe
 }
 } // namespace
 
+Core::Expected<void, std::string> PlaceItemInOtherGrid(std::span<ItemState> cells, std::int32_t columns,
+                                                       std::int32_t origin, InventoryItemBytes bytes,
+                                                       const WorldEntryResources& resources, std::string_view where)
+{
+    const std::uint16_t type = InventoryItemType(bytes);
+    if (type == NoInventoryItem)
+        return {};
+    const auto record = ItemRecordOf(type, resources, where);
+    if (!record.HasValue())
+        return Core::Unexpected(record.Error());
+    const auto width = std::to_integer<std::int32_t>(record.Value()[ItemWidthOffset]);
+    const auto height = std::to_integer<std::int32_t>(record.Value()[ItemHeightOffset]);
+    // 0x5bc7a2..0x5bc7b6: la columna y la fila del origen, con 8 aunque la grilla tenga otras columnas.
+    const auto column = static_cast<std::uint8_t>(origin & 7);
+    const auto row = static_cast<std::uint8_t>(origin >> 3);
+    for (std::int32_t y = 0; y < height; ++y)
+    {
+        for (std::int32_t x = 0; x < width; ++x)
+        {
+            const std::int32_t cell = y * columns + origin + x;
+            if (cell < 0 || cell >= static_cast<std::int32_t>(cells.size()))
+            {
+                return Core::Unexpected(std::format("{}: el tipo {:#x} ({} por {}) desde el origen {} escribe la "
+                                                    "casilla {}, fuera de las {} de la grilla (Q-C200)",
+                                                    where, type, width, height, origin, cell, cells.size()));
+            }
+            ItemState& item = cells[static_cast<std::size_t>(cell)];
+            item.flags1c = static_cast<std::uint8_t>(Byte(bytes, 4));
+            item.gridColumn = column;
+            item.gridRow = row;
+            item.durability = static_cast<std::uint8_t>(Byte(bytes, 2));
+            item.id = type;
+            item.flags1b = static_cast<std::uint8_t>(Byte(bytes, 3));
+            item.occupied = y == 0 && x == 0 ? 1u : 0u;
+            // 0x5bc7f0..0x5bc81c: B1 y B3 con los 24 bits de arriba de casilla · 9 (lo que queda en el registro del
+            // índice), y B4 con los del tipo.
+            const auto upper = static_cast<std::uint32_t>(cell * 9) & UpperBits;
+            const World::ItemInitializationScalars scalars{
+                .b1 = upper | Byte(bytes, 1), .b3 = upper | Byte(bytes, 3), .b4 = (type & UpperBits) | Byte(bytes, 4)};
+            if (auto initialized = InitializeInventoryItem(item, scalars, resources, where); !initialized.HasValue())
+                return initialized;
+        }
+    }
+    return {};
+}
+
 std::uint16_t InventoryItemType(InventoryItemBytes bytes)
 {
     const std::uint32_t highBit = (Byte(bytes, 3) & TypeHighBitMask) << TypeHighBitShift;

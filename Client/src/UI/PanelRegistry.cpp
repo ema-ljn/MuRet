@@ -256,10 +256,26 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
             m_state.delegated.commands = 1;
         break;
     }
+    case TradePanel:
+    {
+        // 0x659e46..0x659f38: con lo que cerró, el inventario (0x6599a0(0x4000000, 0), con sus sonidos) y el byte
+        // protegido 0x7d53711 en 1: abrir la entrada, escribir y cerrarla (un rand() si queda sin accesos).
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            auto inventory = Open(InventoryPanel);
+            if (!inventory.HasValue())
+                return inventory;
+            const Render::Models::LogicalAccess access(m_state.tradeDepth, m_context.random, 1);
+            m_state.trade = 1;
+        }
+        break;
+    }
     case FriendsPanel:
     case QuestPanel:
     case GuildPanel:
-    case TradePanel:
     case WarehousePanel:
     case ChaosBoxPanel:
     case PetPanel:
@@ -303,6 +319,11 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
 
 Core::Expected<bool, std::string> PanelRegistry::Close(PanelId id)
 {
+    return Close(id, false);
+}
+
+Core::Expected<bool, std::string> PanelRegistry::Close(PanelId id, bool aux)
+{
     if (!IsOpen(id))
         return false;
     switch (id)
@@ -316,13 +337,13 @@ Core::Expected<bool, std::string> PanelRegistry::Close(PanelId id)
     case ChaosBoxPanel:
     case EventNpcPanel:
     {
-        // 0x65cb5b: el panel y, si cerró, el inventario.
-        auto closed = CloseByMask(id);
+        // 0x65cb5b: el panel y, si cerró, el inventario, los dos con `aux`.
+        auto closed = CloseByMask(id, aux);
         if (!closed.HasValue())
             return closed;
         if (closed.Value())
         {
-            auto inventory = CloseByMask(InventoryPanel);
+            auto inventory = CloseByMask(InventoryPanel, aux);
             if (!inventory.HasValue())
                 return inventory;
         }
@@ -374,6 +395,11 @@ Core::Expected<bool, std::string> PanelRegistry::Close(PanelId id)
 
 Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask)
 {
+    return CloseByMask(mask, false);
+}
+
+Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool aux)
+{
     // [EBP−0xd] arranca en 1 y solo lo bajan el almacén, la caja del caos y el entrenador, que cortan antes.
     for (const PanelId id : CloseOrder)
     {
@@ -390,6 +416,17 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask)
         case MovePanel:
             m_state.overlayMode = 0;
             break;
+        case TradePanel:
+        {
+            // 0x657fb5..0x6584cb: el 3D y las grillas, y el byte protegido en 0 (un rand() al cerrar la entrada).
+            if (!m_context.tradeClosed)
+                return Core::Unexpected(std::string("0x657fb5: cerrar el comercio sin sus grillas (0x78a5a20)"));
+            if (auto closed = m_context.tradeClosed(aux); !closed.HasValue())
+                return Core::Unexpected(std::move(closed).Error());
+            const Render::Models::LogicalAccess access(m_state.tradeDepth, m_context.random, 1);
+            m_state.trade = 0;
+            break;
+        }
         case CommandsPanel:
             ResetTheCommands(m_state.delegated);
             break;

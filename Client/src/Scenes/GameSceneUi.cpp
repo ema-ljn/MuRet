@@ -108,6 +108,16 @@ public:
         m_session->RequestPartyList();
     }
 
+    void SendGamePacket(Protocol::Outgoing outgoing) override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no sale el paquete del comercio, la party o el duelo: no hay servidor");
+            return;
+        }
+        m_session->SendGamePacket(std::move(outgoing));
+    }
+
     // 0x61c170: fopen("wt") crea el archivo o lo vacía. Lo que guardan las macros no va al log.
     Core::Expected<void, std::string> SaveMacros(std::string_view content) override
     {
@@ -351,7 +361,9 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         return windows;
     if (auto list = UI::DrawTheWindowList(oldWindows, windowContext, windowView); !list.HasValue())
         return list;
-    // 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9 (CL9.4, P-C59).
+    // 0x637683: 0x5f37f0, el pedido de duelo, con 0x78abad9, que prende el AC (CL9 hito 7).
+    if (runtime.ui.field78abad9 != 0)
+        return Core::Unexpected(std::string("0x5f37f0: el dibujo del pedido de duelo es de la CL9 hito 7, fase 2"));
     // 0x637696: 0x62db60, los diálogos, en la escena 5.
     if (auto dialogs = DrawTheGameDialogs(hud); !dialogs.HasValue())
         return dialogs;

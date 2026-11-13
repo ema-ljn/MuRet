@@ -332,17 +332,32 @@ byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada v
 
 - [ ] **El comercio:** `0x36`..`0x3D` (`0x4d4af0`, `0x4d5570`), la ventana `0x5f3b40` con el byte protegido
       de `0x20`.
+  - [x] Fase 1 (2026-11-13): los paquetes de los dos lados, el byte protegido (`Open` y `Close` del `0x20`, con el
+        `3D` de `0x657fb5`), el anti-estafa (`0x5bc5e0`, `0x5bc470`, `0x5bc300`), el paso de la ventana (`0x5ecde0`),
+        el `+0x44` de sus grillas en `0x5e4ce0` y la cola de `0x5bbe10` en la entrada a la selección.
+  - [ ] Fase 2: el dibujo `0x5f3b40`, levantar y soltar en sus grillas (`0x5c41f4`, `0x5deb1c`) y el OK del
+        diálogo `0x73` (`0x626460`) (08 P-C205).
 - [ ] **Las tiendas personales:** el `0x3F` y su segundo nivel (`0x4db120`, `0x4dae80`, `0x4dafe0`,
       `0x4db700`, `0x4db890`, `0x4dbcb0`), las ventanas `0x5f3030`, `0x5eb020` y `0x623750`, y los carteles
-      `[LOJA]` sobre las cabezas (`0x451c20` y su familia).
+      `[LOJA]` sobre las cabezas (`0x451c20` y su familia). Fase 2: necesita los actores del hito 1 (08 P-C204).
 - [ ] **La party:** `0x40`..`0x44` (`0x4d67e0`), la vida de la party (`0x5a89b0`), la ventana `0x5f0be0`,
       echar a alguien (`0x5e3d03`, `C1 04 43`), la cantidad del grupo (`0x78aba48`, que lee el dibujo en
       `0x59e680`).
+  - [x] Fase 1 (2026-11-13): los paquetes de los dos lados, el diálogo `0x77` (sí y no, `0x62bb1d` y `0x62cd52`),
+        echar (`0x5e3d03`) y la cantidad `0x78aba48`.
+  - [ ] Fase 2: los dibujos `0x5a89b0` y `0x5f0be0` y el índice del actor de cada miembro (`0x59e3b0`, `0x59e700`)
+        (08 P-C204 y P-C205).
 - [ ] **El duelo:** `AA`..`AD` (`0x4dac90`), el marcador (`0x5a6cc0`, `0x5f37f0`, `0x78abad9`) y el color de
       la tela con el nombre del rival (P-C22 e, `0x50c929..0x50cc29`, y qué es `+0x3e3`).
+  - [x] Fase 1 (2026-11-13): los paquetes de los dos lados, los puntos y el paso del pedido (`0x5ebca0`).
+  - [ ] Fase 2: los dibujos `0x5a6cc0` y `0x5f37f0`, que cortan con su estado, y el color de la tela.
 - [ ] **Los comandos sobre otro:** la ventana de comandos (`0x406050`, desde `0x406097`; `0x40a650`) y los
       comandos sociales de `0x56c440` (`/trade`, `/party`, `/guild`, `/GuildWar`, `/BattleSoccer`, que hoy cortan
       con su dirección).
+  - [x] Fase 1 (2026-11-13): `/trade` hasta el nivel (`0x6c8dc8`), `/duelstart` y `/duelend` con el duelo en curso
+        y Chaos Castle (texto 1150); `/GuildWar` y `/BattleSoccer` solo los usa el filtro de las macros (`0x56c1f0`).
+  - [ ] Fase 2: lo que busca al otro (`0x56c68b` y vecinas, `0x406097`); `/guild`, `/union` y `/rival` son del
+        hito 8.
 
 **Pruebas:** una vuelta entera de comercio con otro jugador (pedido, ítems, zen, OK) byte a byte; abrir una
 tienda personal y ver la de otro; armar una party y echar a alguien; un duelo; cada comando. **Desbloquea:** 8.

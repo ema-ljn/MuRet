@@ -19,6 +19,7 @@
 #include "Scenes/HudItems.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -831,8 +832,9 @@ TEST_F(GameHudTest, ThePiecesOfOtherWavesStopWithTheirAddress)
         std::string_view address;
         void (*arrange)(WorldState&);
     };
-    const std::array<Case, 6> cases{{
+    const std::array<Case, 7> cases{{
         {"0x5a89b0", [](WorldState& state) { state.Runtime().hud.partyCount = 2; }},
+        {"0x5a6cc0", [](WorldState& state) { state.Runtime().social.duel.active = 1; }},
         {"0x5f7180", [](WorldState& state) { state.Runtime().panels.panel2000 = 1; }},
         {"0x40bab0",
          [](WorldState& state) { state.Runtime().eventObject = Client::Scenes::EventMapObject{.field08 = 5}; }},

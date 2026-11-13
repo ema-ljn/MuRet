@@ -12,6 +12,7 @@
 #include "Scenes/HudItems.h"
 #include "Scenes/ItemHelpLevels.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/WorldTexts.h"
 #include "UI/ChatInput.h"
@@ -109,6 +110,10 @@ struct HudState
     // abierta, en (0x1c2, 0). La lee su paso (0x5e3c80), que antes del primer dibujo ve los ceros de la .bss (Q-C650).
     std::int32_t partyX = 0;
     std::int32_t partyY = 0;
+    // 0x78a5a1c y 0x78a5a18: la esquina de la ventana del comercio, que pone su dibujo (0x5f3b40) en (0x104, 0). La lee
+    // su paso (0x5ecde0), que antes del primer dibujo ve los ceros de la .bss (Q-C650).
+    std::int32_t tradeX = 0;
+    std::int32_t tradeY = 0;
     // +0xc y +0x10 de [0x6e592c]: la esquina de la ventana de los comandos, que pone su dibujo (0x40a650) con la
     // ventana abierta, en (0x1c2, 0). La lee su paso (0x40a450), que antes del primer dibujo ve los ceros del
     // constructor (*inferido*, Q-C650).
@@ -314,6 +319,8 @@ struct WorldRuntime
     // frame del juego que llega a los personajes (0x6374dd → 0x510d00), que MuRet no dibuja: no se sabe qué
     // dejó, y 0x550990 corta con error si lo lee.
     std::optional<Scan505820> fullSetScan = Scan505820{};
+    // El comercio, la party y el duelo (CL9 hito 7).
+    SocialState social{};
     // [0x78a6758], en la .bss: 0 al arrancar. 0x5bc740, después de poner un ítem en una de las grillas del
     // inventario, lo compara con signo con 12 (0x5bcd0b y 0x5bd08b) y, con menos, abre el registro propio
     // para las velocidades (0x54fe10). Lo escriben quince lugares de la interfaz del inventario y del juego

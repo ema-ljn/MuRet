@@ -9691,7 +9691,8 @@ queda debajo de `[0x6c88ac]` (`JL`, con signo), salta a `0x50539e`.
    del rival, sin el nombre. No saca `rand()`.
 2. `+0x38e` y el `switch` de `0x4fdeeb` (habilidad − 5, índices en `0x505530`): 5, 8, 9, `0xa`, `0xc` a `0xe`,
    `0x1e` a `0x24`, `0x26` a `0x2a`, `0x2c`, `0x30`, `0x31`, `0x35`, `0x37`, `0x38`, `0x3f` a `0x41`, `0x43` a
-   `0x48`, `0x4b` y `0x4c`. Los demás, como el 0, siguen en `0x502aff`.
+   `0x48`, `0x4b` y `0x4c`. Los demás, como el 0, siguen en `0x502aff` (los casos, en [Los casos de habilidad del
+   paso del ataque](#los-casos-de-habilidad-del-paso-del-ataque)).
 3. **Sin blanco** (`+0x3a4`, `MOVSX`, en −1; `0x502b12..0x5037d5`): `+0x38e` (con `0x18`, una bandera). El `0x20a`
    en las `0x2e` a `0x31`, `0x36`, `0x37`, `0x5e` y `0x61` (el arco y la ballesta a pie, en Uniria o Dinorant y en
    Fenrir), u otro tipo con `+0x88` en 1: dos lecturas más, `0x59fb80(segunda, bandera, primera)` y
@@ -9704,10 +9705,11 @@ queda debajo de `[0x6c88ac]` (`JL`, con signo), salta a `0x50539e`.
      tres `rand() & 63` (x e y − 32, z + `0x5a`) y `0x53fe70(0x5e4, punto, o+0x1c, (1; 1; 1), 0, 1,0f, 0)`
      (`0x5040fb..0x50419c`); con el `0x18e`, cinco `rand() & 1` y, con 0, `rand() % 30` y `0x518cf0(0x10b)`, y
      el sonido `0x88`; por último `0x42ea00(blanco)`, que solo actúa en el mapa 30 con el `0x19b` y el `0x19c`.
-   - Las acciones `0x38` a `0x3c`: `0x52e740` (`0x5042ce`).
+   - Las acciones `0x38` a `0x3c`: `0x52e740` (`0x5042ce`; empieza por la partícula `0x5c6`/0, CL11).
    - Los ángulos de `o` con el rumbo de `0x4e93f0` hacia el blanco, `+0x38e` y el `switch` de `0x504372`
      (habilidad − 1, índices en `0x5055c8`): 1, 2, 4, 7, `0xb`, `0x10`, `0x11`, `0x18`, `0x1a` a `0x1c`, `0x2d`,
-     `0x2e`, `0x33`, `0x34`, `0x3c`, `0x3d`, `0x49` y `0x4a`. El 3 y los demás van a `0x505069`.
+     `0x2e`, `0x33`, `0x34`, `0x3c`, `0x3d`, `0x49` y `0x4a`. El 3 y los demás van a `0x505069` (los casos, en
+     [Los casos de habilidad del paso del ataque](#los-casos-de-habilidad-del-paso-del-ataque)).
    - `0x505069`: el punto del blanco (z + 120), la bandera de la `0x25` y la `0x26` y la luz; con `+0x380` en 2
      (el `16` del héroe), dos `0x530860(0x618, blanco+0x10, blanco+0x10, o+0x1c, 0 y 1, o, 20,0f, −1, 0, 0, −1)`
      (`0x505169`, `0x5051a4`).
@@ -9805,15 +9807,15 @@ dos `rand()` del giro de la cabeza, `0x5068fd`, descontados: uno en 32 por paso 
 
 | Dónde | Qué | Quién llega |
 | --- | --- | --- |
-| `0x4fdeeb`, `0x504372` | los casos de habilidad | nadie: `+0x38e` lo escriben `0x4cc530` y los monstruos (hito 4) |
 | los efectos, joints y partículas de los casos de `0x4f97b0` y de `0x4f8f5b` (fase 6a: cada uno en su dirección, en [Las habilidades de los frames del ataque](#las-habilidades-de-los-frames-del-ataque)) | `0x518cf0` y `0x530860` sin portar, con lo de antes hecho | las habilidades `0x2b`, `0x2f`, `0x34` (en 3), `0x37`, `0x38` y `0x39` y la 3 sin caso de `+0x376` (CL11, P-C344) |
+| los cortes de [Los casos de habilidad del paso del ataque](#los-casos-de-habilidad-del-paso-del-ataque) | los efectos, joints y partículas de los casos de `0x4fdeeb` y `0x504372` sin portar | quien pega con esas skills (CL11, P-C346) |
 | los efectos, joints y partículas de los casos de `0x4f5b70` (fase 2e-B: cada uno en su dirección, en [Los casos de los monstruos](#los-casos-de-los-monstruos-0x4f5b70)) | `0x518cf0`, `0x530860`, `0x51fff0` y las partículas sin portar, con la lógica del caso hecha | los monstruos con caso, en sus mapas (CL11, P-C233); ningún jugador sin transformar |
 | `0x4fb0d1` | las veinte `0x5c6`/12 sin el pool de partículas | nadie en el juego (fase 2d) |
 | `0x558f29` | los nombres de gremio | el héroe en la guerra de gremios (hito 8) |
 | los cortes de [La flecha](#la-flecha) | las skills de tiro, los joints de las flechas y sus partículas sin portar | el elfo con esas armas o skills (fase 2e) |
 | `0x50419c` | la partícula `0x5e4` sin el pool de partículas | nadie en el juego: `GameScene` pasa el del mundo (fase 2d) |
 | `0x50428c` | `0x42ea00` | nadie: el mapa 30 corta antes (`0x412140`) |
-| `0x5042ce` | `0x52e740` | las acciones de skill `0x38` a `0x3c` (hito 4) |
+| `0x52e77b` | la partícula `0x5c6`/0 de `0x52e740` (`0x5042ce`) | las acciones de skill `0x38` a `0x3c` con blanco (CL11, P-C346) |
 | `0x505169` | los joints `0x618`/0 y /1 sin el pool de joints | nadie en el juego (fase 2d) |
 
 ### Las habilidades de los frames del ataque
@@ -9898,6 +9900,80 @@ cuenta menor (`JL` con signo) sale, y el hueso igual a la cuenta pasa (Q-C1093).
 
 Tests: `AttackFrameSkillsTest` (Lorencia y Devias), `AttackStepTest.TheCutsAfterTheirDraws`,
 `CharacterStepTest.TheBodyStopsWhereMuRetHasNothing` y `MonsterAttackCasesTest.TheSkill3CasesLeaveAfterTheirJoints`.
+
+### Los casos de habilidad del paso del ataque
+
+*Estático*, cotejado con el PE c32bbd5f (CL9 hito 4, fase 6b; `Scenes::StepTheHeadSkill`,
+`Scenes::StepTheTargetSkill` y `Scenes::SparkTheTarget`, `AttackSkillCases.cpp`). Las tablas de bytes y de saltos de
+los dos `switch` dan un caso por skill; en todos, `c` y `o` son el mismo personaje. Cada caso corre hasta donde crea un
+efecto con modelo (`0x518cf0`), un joint (`0x530860`), una partícula (`0x53fe70`) o las piedras de `0x51fff0` que
+MuRet no tiene (CL11, P-C346), con los `rand()` de antes; los que crean lo que `World` ya sabe crear (el terremoto
+`0xfa`, el calco `0x61e`/1 y la flecha) siguen hasta el final. Los `rand()` de antes son los de `0x59fb80` (el
+registro propio abierto y cerrado: 3.848 en 0) y los de las lecturas de `+0x38e`.
+
+**La cabeza** (`0x4fdeeb`, la skill − 5 por `0x505530` y `0x5054b4`; todos siguen en `0x502aff`):
+
+| Skill | Caso | Lo que hace | Hasta |
+| --- | --- | --- | --- |
+| `0x1e` a `0x24` | `0x4fdef2` | el calco `0x61e`/3 sobre o | `0x4fdf1e` (CL11) |
+| `0x2a` | `0x4fdf2b` | `o+0x8c` = la derecha (`+0x2b8`, `MOVSX`) − `0x212` y `o+0x8e` = su nivel; `0x59fb80(0x2a)`; `0x518cf0(0xfa, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a, lugar, 0, 0, 0)`, el terremoto con el estado 0, cuyo dibujo lee el arma por su dueño (`0x52d43a`, Q-C1117); el sonido `0x95` | el final |
+| `0x37`, `0x38` | `0x4fdfb3`, `0x4fdfe4` | solo `o+0x8c` y `o+0x8e` | el final |
+| `0x30` | `0x4fe015` | 36 joints `0x613`/2 | `0x4fe0e4` (CL11) |
+| `0x43` | `0x4fe147` | el joint `0x632`/7 sobre o | `0x4fe172` (CL11) |
+| `0x44`, `0x47` | `0x4fe190`, `0x4fe442` | con el blanco de `+0x3a4` (`MOVSX`, sin rango, Q-C1113) que no es o, el joint `0x632` y el sonido `0x267` | `0x4fe235`, `0x4fe4e7` (CL11) |
+| `0x45` | `0x4fe253` | 36 joints `0x613`/`0x15` | `0x4fe322` (CL11) |
+| `0x46` | `0x4fe383` | con blanco, `0x534f90(0x10f, blanco, 4)` y `(…, 9)`, el calco `0x61e`/6 sobre él y el sonido `0x269` | `0x4fe424` (CL11) |
+| `0x48` | `0x4fe505` | `o+0x78` en 0 entero (Q-C1118) y seis joints `0x10f` | `0x4fe590` (CL11) |
+| `0x35` | `0x4fe795` | cuatro joints `0x619`/`0xa` | `0x4fe856` (CL11) |
+| `0x40`, `0x4b` | `0x4fe986`, `0x502993` | sin `0xa21` en la derecha, el `0x117`/0 en su hueso; sin `0xa19` ni un escudo (`0xe12..0x1011`) en la izquierda, el `0x117`/1; después la `0x40` suena (`0x1cf`) y la `0x4b` crea el `0x138` | la `0x40`, el final con las dos manos; si no, `0x4fea10`/`0x4fea9b`, `0x502a23`/`0x502ab4` y `0x502ae6` (CL11) |
+| `0x3f` | `0x4feabb` | el `0xcb`/2 sobre o | `0x4feae8` (CL11) |
+| `0x41` | `0x4feb3b` | el punto de `0x4f5b10(o, 0, −90, −50)` y el `0x62c` | `0x4febbb` (CL11) |
+| `0x31` | `0x4febdb` | el `0x6ac` sobre o | `0x4fec15` (CL11) |
+| `0x29` | `0x4fec30` | `o+0x8c`, `o+0x8e`, `0x59fb80(0x29)` y el `0xf3` | `0x4fec9a` (CL11) |
+| `0xa` | `0x4fecb5` | `0x59fb80(0xa)` y el `0xcb` | `0x4fecf3` (CL11) |
+| `0x28` | `0x4ff4c3` | el `0xcb`/1 sobre o | `0x4ff4ef` (CL11) |
+| `0x26` | `0x4ff51c` | la celda `+0x39c`/`+0x39d` con su altura (`0x5f93c0`) y los `0xc2`/6 | `0x4ff5b2` (CL11) |
+| `0x27` | `0x4ffcbe` | la celda y la primera de diez vueltas: `rand() % 50` y el `0x108` | `0x4ffdaf` (CL11) |
+| 5 | `0x500496` | la celda, `0x59fb80(5)` y el chorro `0x5de`/0 con o de dueño y `o+0x8a` (`0x500509`), cuyo paso con dueño (`0x52ae2a`) no está | `0x500531` (CL11) |
+| 8, `0xc`, `0xd` | `0x500c10`, `0x500c64`, `0x500cd4` | `0x59fb80` y el `0xcf`, el `0x5e8` o los `0xf5` | `0x500c49`, `0x500cb9`, `0x500d7b` (CL11) |
+| `0xe` | `0x50148b` | las piedras de `0x51fff0(o+0x10, 0)` | `0x501494` (CL11) |
+| 9 | `0x501bab` | `0x59fb80(9)` y los joints `0x613`/0 | `0x501c67` (CL11) |
+| `0x4c` | `0x502352` | el sonido `0x27d` y el lazo de los blancos (abajo) | el final, o `0x5026a4` (CL11) |
+| `0x2c` | `0x50294e` | el `0x13b` sobre o | `0x502975` (CL11) |
+
+**La `0x4c`** (`0x502363..0x502949`). Recorre los 400 lugares hasta juntar diez (`0x502569`): un monstruo vivo
+(`+0x88` en 2) fuera de la acción 6, o un jugador vivo (`+0x88` en 1) fuera de la `0xc3` que `0x5588d0` deja atacar.
+`0x5588d0(blanco)` es `0x558bb0` con el blanco de argumento en vez del elegido (`Scenes::IsAttackableActor`; corta en
+los nombres de gremio, `0x558aa9`, hito 8). De cada uno, la distancia en celdas (Q-C1111) y `0x5526f0(0x4c, 0)`, el
+alcance sin el `0x1c16` (con c en 0, Q-C1114) con los `rand()` de su entrada de Skill.bmd; entra si el alcance no es
+menor (`FCOMP`, C0). Después `rand() % 360`, que nadie lee antes de los joints (Q-C1112). Con `+0x434` en −1 o desde
+400 (`JGE` con signo: un negativo lee fuera del pool y MuRet corta en `0x5025b8`), termina; si no, dos vueltas con el
+punto de `0x4f5b10(o, 0, −140, 130)`, el ángulo `rand() % 360`, 0, `rand() % 360` y dos joints `0x14f` hacia el
+blanco de `+0x434`: corta en el primero (`0x5026a4`). La lista de los diez la leen los joints `0x62c` de
+`0x5026fa..0x502944`. Skill.bmd llega en `CharacterStepContext::skills`; sin él, corta en el primer blanco que mira.
+
+**Con blanco** (`0x504372`, la skill − 1 por `0x5055c8` y `0x505578`; todos siguen en `0x505069`):
+
+| Skill | Caso | Lo que hace | Hasta |
+| --- | --- | --- | --- |
+| `0x18` | `0x504379` | `0x53e2b0(c, o, 0, 0x59fb80(+0x38e), 1, 0)`, la tanda sin blanco, y sigue en el de la `0x34` (Q-C1116) | el de la `0x34` |
+| `0x34`, `0x33` | `0x5043b2`, `0x504403` | dos lecturas de `+0x38e` (la skill y la de `0x59fb80`) y `0x53e2b0(c, o, 0, lugar, 0, skill)` | el final, o los cortes de [La flecha](#la-flecha) |
+| `0x2e` | `0x504453` | lo mismo con el blanco y el sonido `0x26e` | el `0x13a` corta en su joint (`0x51e01a`, CL11) |
+| `0x1a` | `0x5044b9` | el calco `0x61e`/1 sobre el blanco, con él de dueño (los `619`/1 hacia él) | el final |
+| `0x1b` | `0x5044fe` | con `+0x38d` y sin `0x4000` en `o+0x78`, el `0x61e`/2 sobre el blanco | `0x504561` (CL11) |
+| `0x1c` | `0x5046bf` | sin `0x4000`, el `0x61e`/3 sobre el blanco | `0x50470f` (CL11) |
+| 7 | `0x504740` | el `0xc1` | `0x504768` (CL11) |
+| `0x10` | `0x504808` | el `0x189` prende `0x100` en su `+0x78`; con `0x4000`, nada; si no, `0x100` en `+0x78` del blanco, el sonido `0x84`, `0x534f90(0x10f, blanco, 0)` y cinco joints `0x10f`/0 | `0x5048db` (CL11) |
+| 1 | `0x5048ea` | el `0x20a`, el `0xc3`; los demás, diez partículas `0x5f2`/1 | `0x504926`, `0x50497e` (CL11) |
+| 2, `0x2d`, 4 | `0x5049bf`, `0x504a0a`, `0x504b9e` | el `0xc2`, tres `0x139` o el `0xc2`/1 | `0x5049ef`, `0x504a3a`, `0x504bce` (CL11) |
+| `0x49`, `0x4a` | `0x504ac7`, `0x504b51` | el joint `0x61c`/4 o el `0x116`/2 | `0x504b33`, `0x504b80` (CL11) |
+| `0xb` | `0x504be9` | el `0xce` (el `0x164`, tres) | `0x504c38`, `0x504cc0` (CL11) |
+| `0x3c`, `0x3d` | `0x504cdb`, `0x504d87` | los `0x114`/1 o los `0x116` | `0x504d05`, `0x504e40` (CL11) |
+| `0x11` | `0x504f56` | los `+0x376` de las tablas de `0x50561a` y `0x505672` (31, del `0x25` al `0x12f`) nada; los demás (los jugadores, con `0xffff`), el `0xd7` (el tipo `0x15e`) o el `0x5ca` | `0x50501a`, `0x505053` (CL11) |
+
+`0x52e740(0, blanco, blanco + 0x10, o+0x1c)` (`0x5042ce`, las acciones `0x38` a `0x3c`) empieza por la partícula
+`0x5c6`/0 en el blanco, sin `rand()` antes: corta ahí (`0x52e77b`, CL11). Tests: `AttackSkillCasesTest` (en los
+mapas 0, 2 y 7, y Chaos Castle para `0x5588d0`) y `AttackStepTest.TheElfBowShootsAndThenTheSkillVolley`.
 
 ### La flecha
 

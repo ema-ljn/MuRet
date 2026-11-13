@@ -360,7 +360,10 @@ el viewport. **Desbloquea:** 4 y 11.
       de la cola de `0x4f5b70` (`Scenes/AttackFrameSkills`, 08, P-C258); sus efectos cortan en CL11 (P-C344) y la
       `0x34` llega al tiro desde `+0x381` en 4 (P-C345). También la flecha de `0x564f2f` (P-C269 c, con
       `HeroSkillContext::models`), y `PassesTheActionBrake` cotejado en todos los frenos de `0x57cfc0` (P-C251 b).
-      Del paso del ataque quedan `0x4fdeeb`, `0x504372` y `0x5042ce` (P-C258).
+      En la fase 6b, los casos de habilidad del paso del ataque que el hito 3 dejó (P-C258): la cabeza (`0x4fdeeb`),
+      los de con blanco (`0x504372`) y `0x52e740` (`0x5042ce`), con la `0x4c` entera (`0x5588d0`, el alcance de
+      `0x5526f0` sin dueño) (`Scenes/AttackSkillCases`); los efectos, joints y partículas que crean cortan en CL11
+      (08, P-C346).
 - [x] **Lo que llega:** el `0x19` (`0x4cc530`, 6,5 KB, con las acciones `0x94`, `0x51` y `0x5b` de
       `0x50f828`), el `0x1E` (`0x4ce000`), el `0x1B` (`0x4cbe90`), el `0x07` (los estados de un personaje,
       `GCSend_07` del GS: `0x4cbe00`, con `0x4e6910`), el `0x48`, el `0x69`, el `0x73` (`0x4d5b10`),

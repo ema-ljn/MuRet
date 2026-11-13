@@ -354,19 +354,21 @@ Core::Expected<void, std::string> UseAManaPotion(const HeroSkillContext& context
 Core::Expected<float, std::string> SkillRangeOf(std::uint8_t skill, const ActorState& caster,
                                                 const HeroSkillContext& context)
 {
+    auto range = SkillRangeOf(skill, context);
+    if (range.HasValue() && caster.pet.model == ThirdMount)
+        range.Value() += 2.0f;
+    return range;
+}
+
+Core::Expected<float, std::string> SkillRangeOf(std::uint8_t skill, const HeroSkillContext& context)
+{
     if (context.skills == nullptr)
         return Core::Unexpected(std::string("0x5526f0: falta Skill.bmd"));
     const auto record = context.skills->Record(skill);
     if (!record)
         return Core::Unexpected(std::string("0x5526f0: falta el registro de habilidad"));
-    float range = 0.0f;
-    {
-        const auto entry = EntryAccess(context, skill);
-        range = static_cast<float>(std::to_integer<std::uint8_t>((*record)[RangeOffset]));
-    }
-    if (caster.pet.model == ThirdMount)
-        range += 2.0f;
-    return range;
+    const auto entry = EntryAccess(context, skill);
+    return static_cast<float>(std::to_integer<std::uint8_t>((*record)[RangeOffset]));
 }
 
 void SendTheSkillPacket(const HeroSkillContext& context, Protocol::Outgoing packet)

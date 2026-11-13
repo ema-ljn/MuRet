@@ -42,6 +42,8 @@ struct SkillCost
 // 0x5526f0(skill, c): el alcance (+0x26 de Skill.bmd, con el acceso de la entrada), 2 más con `caster` en el 0x1c16.
 [[nodiscard]] Core::Expected<float, std::string> SkillRangeOf(std::uint8_t skill, const ActorState& caster,
                                                               const HeroSkillContext& context);
+// 0x5526f0(skill, 0): sin `c` no mira el 0x1c16 (el lazo de la 0x4c del paso del ataque, 0x50243d).
+[[nodiscard]] Core::Expected<float, std::string> SkillRangeOf(std::uint8_t skill, const HeroSkillContext& context);
 
 // Lo que las skills mandan por send() en línea: un C1 (Delivery::Clear, el D3 y el DF) sale sin rand(); un C3
 // (Delivery::Encrypted, el 19, el 1E y el 26) saca antes los dos rand() del relleno y del serial (0x5767913), también

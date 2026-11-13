@@ -26,6 +26,10 @@ struct InventoryServices;
 // de gremios, el duelo, el PK de 6 o más o, si no, con Ctrl abajo (GetAsyncKeyState(0x11) en 0x558e7f, `controlDown`)
 // y que no sea el héroe. Corta donde compara los nombres de gremio (0x787aa55, del hito 8).
 [[nodiscard]] Core::Expected<bool, std::string> IsAttackable(const WorldState& world, bool controlDown);
+// 0x5588d0(blanco): lo mismo con `target` en vez del elegido (sin mirar 0x6c8e30), como la llama el lazo de los blancos
+// de la skill 0x4c del paso del ataque (0x5024c3, CL9 hito 4). Corta donde compara los nombres de gremio (0x558aa9).
+[[nodiscard]] Core::Expected<bool, std::string> IsAttackableActor(const WorldState& world, const ActorState& target,
+                                                                  bool controlDown);
 
 // 0x558eb0(c, [0x6c8e30]), la hermana de 0x558bb0 que el paso de la habilidad deja en o+0x8a (0x4fdc10): la clave
 // (+0x1f4, MOVSX) del elegido si el héroe lo puede atacar, y −1 si no. −1 con un ítem en el cursor, sin elegido o si

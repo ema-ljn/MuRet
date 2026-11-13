@@ -7,6 +7,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
 #include "Scenes/AttackFrameSkills.h"
+#include "Scenes/AttackSkillCases.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/HeroAttack.h"
@@ -45,14 +46,6 @@ constexpr std::uint16_t SkillCloseRandoms = 1;
 constexpr std::uint8_t AttackDone = 15;
 constexpr std::int16_t NoTarget = -1;
 
-// 0x4fdeeb: los casos del switch de la cabeza (habilidad − 5, los índices de 0x505530); los demás van a 0x502aff.
-constexpr std::array<std::uint8_t, 36> HeadSkills{
-    0x05, 0x08, 0x09, 0x0a, 0x0c, 0x0d, 0x0e, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x26, 0x27, 0x28, 0x29,
-    0x2a, 0x2c, 0x30, 0x31, 0x35, 0x37, 0x38, 0x3f, 0x40, 0x41, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x4b, 0x4c};
-// 0x504372: los casos del primer switch con blanco (habilidad − 1, los índices de 0x5055c8); el 3 y los demás van a
-// 0x505069.
-constexpr std::array<std::uint8_t, 19> TargetSkills{0x01, 0x02, 0x04, 0x07, 0x0b, 0x10, 0x11, 0x18, 0x1a, 0x1b,
-                                                    0x1c, 0x2d, 0x2e, 0x33, 0x34, 0x3c, 0x3d, 0x49, 0x4a};
 // 0x5051f1: los casos del segundo (habilidad − 0x10, los índices de 0x505730), que van a 0x50534f sin el sonido.
 constexpr std::array<std::uint8_t, 24> QuietSkills{0x10, 0x1a, 0x1b, 0x1c, 0x1e, 0x1f, 0x20, 0x21,
                                                    0x22, 0x23, 0x24, 0x28, 0x2b, 0x2f, 0x30, 0x35,
@@ -323,20 +316,17 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
         if (runtime.map == CastleMap && (victim.type == 0x19b || victim.type == 0x19c))
             return Core::Unexpected(std::format("0x50428c: 0x42ea00 con el blanco {:#x}, sin portar", victim.type));
     }
-    // 0x50429f..0x5042ce: las acciones 0x38 a 0x3c, 0x52e740.
+    // 0x50429f..0x5042ce: las acciones 0x38 a 0x3c, 0x52e740 (AttackSkillCases.h).
     if (actor.animation.action > 0x37 && actor.animation.action < 0x3d)
     {
-        return Core::Unexpected(std::format("0x5042ce: 0x52e740 con la acción {:#x} del lugar {}, sin portar (hito 4)",
-                                            actor.animation.action, slot));
+        if (auto sparked = SparkTheTarget(actor, victim, slot); !sparked.HasValue())
+            return sparked;
     }
-    // 0x5042d3..0x50431c: los ángulos con el rumbo de 0x4e93f0 hacia el blanco, que solo leen los casos.
+    // 0x5042d3..0x50431c: los ángulos con el rumbo de 0x4e93f0 hacia el blanco, que solo leen los casos (sin rand()).
+    // 0x50432a..0x504372: +0x38e y su switch (AttackSkillCases.h).
     const std::uint8_t first = ReadTheSkill(actor, context.random);
-    if (IsOneOf(TargetSkills, first))
-    {
-        return Core::Unexpected(std::format("0x504372: la habilidad {:#x} de +0x38e del lugar {} con blanco es del "
-                                            "hito 4",
-                                            first, slot));
-    }
+    if (auto cased = StepTheTargetSkill(actor, victim, slot, first, context); !cased.HasValue())
+        return cased;
     // 0x505069..0x505107: el punto del blanco, la bandera de la 0x25 y la 0x26 y la luz, que leen los casos de
     // habilidad. Con +0x380 en 2 (el 16 del héroe, mató), 0x530860(0x618, blanco+0x10, blanco+0x10, o+0x1c, 0 y 1, o,
     // 20,0f, −1, 0, 0, −1) (0x505169, 0x5051a4), sin rand().
@@ -400,13 +390,10 @@ Core::Expected<void, std::string> StepTheAttack(ActorState& actor, std::size_t s
     if (!key.HasValue())
         return Core::Unexpected(key.Error());
     actor.word8a = static_cast<std::uint16_t>(key.Value());
-    // 0x4fdc17..0x4fdeeb: +0x38e y el switch de la cabeza.
+    // 0x4fdc17..0x4fdeeb: +0x38e y el switch de la cabeza (AttackSkillCases.h).
     const std::uint8_t skill = ReadTheSkill(actor, context.random);
-    if (IsOneOf(HeadSkills, skill))
-    {
-        return Core::Unexpected(
-            std::format("0x4fdeeb: la habilidad {:#x} de +0x38e del lugar {} es del hito 4", skill, slot));
-    }
+    if (auto cased = StepTheHeadSkill(actor, slot, skill, context); !cased.HasValue())
+        return cased;
     // 0x502aff..0x502b0c: +0x3a4 (MOVSX) en −1.
     const auto target = std::bit_cast<std::int16_t>(actor.attackTarget);
     auto struck =

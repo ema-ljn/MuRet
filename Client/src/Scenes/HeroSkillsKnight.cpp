@@ -570,6 +570,8 @@ Core::Expected<void, std::string> UseSkillWithTheMagicAttack(ActorState& hero, s
 
 // 0x589744..0x589779: fuera de alcance con un elegido, el camino hasta las celdas a menos de alcance · 1,2 (en float)
 // de la celda del blanco (0x4eac00, sin bClearGoal), con la Y del héroe leída antes que la X. Con camino, +0x378 en 1.
+// Con la celda del blanco fuera de 0..255, que PathFinding2 (0x58975f) toma como índice lineal, MuRet descarta el
+// camino después de las lecturas, como sin camino (08, P-C256).
 Core::Expected<void, std::string> WalkTowardsTheTarget(ActorState& hero, std::int32_t targetX, std::int32_t targetY,
                                                        const HeroSkillContext& context)
 {
@@ -577,8 +579,7 @@ Core::Expected<void, std::string> WalkTowardsTheTarget(ActorState& hero, std::in
     const auto reach =
         static_cast<float>(static_cast<double>(context.world.Runtime().movement.selectedSkillRange) * WalkReach);
     if (!InRange(targetX, 0, 0xff) || !InRange(targetY, 0, 0xff))
-        return Core::Unexpected(
-            std::format("0x58975f: la celda del blanco ({}, {}) de la 0x4c fuera del mapa", targetX, targetY));
+        return {};
     World::WorldTerrain& terrain = context.world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x58975f: falta TerrainWall para acercarse con la 0x4c"));

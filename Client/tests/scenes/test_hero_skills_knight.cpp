@@ -634,6 +634,32 @@ TEST(HeroSkillsKnightTest, Skill4cOutOfRangeWalks)
     }
 }
 
+// P-C256: la 0x4c fuera de alcance con la celda del blanco fuera de 0..255 (que PathFinding2 toma como índice
+// lineal en 0x58975f): después de las lecturas de las celdas, el camino se descarta sin cortar.
+TEST(HeroSkillsKnightTest, Skill4cDiscardsAWalkOffTheGrid)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const glm::vec3 position : {glm::vec3{-1000.0f, 11550.0f, 0.0f}, glm::vec3{18450.0f, 30000.0f, 0.0f}})
+        {
+            SCOPED_TRACE(std::to_string(map) + " " + std::to_string(position.x));
+            const auto tested = AKnight(0x4c, Knight, map);
+            tested->Hero().pet.model = 0x1c37;
+            tested->Movement().selectedSkillRange = 2.0f;
+            tested->Hero().attackPosition = position;
+            tested->Movement().targetX = 190;
+            tested->Movement().targetY = 115;
+            const CrtRandom expected = Advanced(tested->random, PaidDraws + CellsDraws);
+            const auto result = tested->Use();
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            EXPECT_EQ(tested->random.State(), expected.State());
+            EXPECT_TRUE(tested->sent.empty());
+            EXPECT_EQ(tested->Hero().movement, 0);
+            EXPECT_EQ(tested->Hero().path.count, 0);
+        }
+    }
+}
+
 // 0x581912..0x58197a: sin arma derecha, o con un escudo en una mano, la 0x29 no sigue: solo el maná y el registro.
 // Otro tipo que no es un jugador, tampoco.
 TEST(HeroSkillsKnightTest, TheHandsAndTheTypeGateTheSkill)
@@ -720,9 +746,24 @@ TEST(HeroSkillsKnightTest, TheCostsGateTheSkill)
 }
 
 // 0x58238c: fuera de la tabla (la 0x13) o con una que salta a 0x5854be (la 0x31), nada después de pagar. En Chaos
-// Castle la 0x31 ni se puede.
+// Castle (0x581a71..0x581ab1, los mapas 18 a 23) la 0x31 y las órdenes del cuervo (0x78 a 0x7b) ni se pueden: no se
+// pagan; en los bordes de afuera (17 y 24), en Lorencia y en Devias, se pagan y siguen a 0x5854be.
 TEST(HeroSkillsKnightTest, TheOtherSkillsDoNothing)
 {
+    for (const std::int32_t map : {0, 2, 17, 18, 23, 24})
+    {
+        for (const std::uint8_t skill : {std::uint8_t{0x31}, std::uint8_t{0x78}, std::uint8_t{0x7b}})
+        {
+            SCOPED_TRACE(std::to_string(map) + " " + std::to_string(skill));
+            const auto tested = AKnight(skill, Knight, map);
+            const bool chaosCastle = map >= 18 && map <= 23;
+            const CrtRandom expected = Advanced(tested->random, chaosCastle ? UnpaidDraws : PaidDraws);
+            ASSERT_TRUE(tested->Use().HasValue());
+            EXPECT_EQ(tested->random.State(), expected.State());
+            EXPECT_TRUE(tested->sent.empty());
+            EXPECT_EQ(tested->world.Runtime().ownRecordDepth, 0);
+        }
+    }
     for (const std::uint8_t skill : {std::uint8_t{0x13}, std::uint8_t{0x31}})
     {
         SCOPED_TRACE(skill);

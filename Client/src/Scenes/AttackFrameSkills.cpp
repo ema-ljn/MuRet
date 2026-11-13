@@ -7,11 +7,11 @@
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/AttackSkillReads.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/HeroAttack.h"
-#include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/IFishStepServices.h"
@@ -35,8 +35,6 @@ namespace Client::Scenes
 {
 namespace
 {
-using Render::Models::LogicalAccess;
-
 constexpr std::uint16_t PlayerType = Data::Models::PlayerSkeletonModel;
 // 0x4fab0a, 0x4fab4a y 0x4fb0dc: +0x381 en 15, que la cabeza del paso (0x4fdbda) toma como habilidad terminada.
 constexpr std::uint8_t AttackDone = 15;
@@ -115,21 +113,6 @@ glm::vec3 BonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& 
         bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
     return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, actor.scale,
                                                      actor.position);
-}
-
-// 0x59fb80(skill, 0, 0, 0): abre el registro propio ([0x7681eb4], 0x40ad90), busca `skill` entre los 64 bytes de +0x6c
-// y lo cierra (0x40b4d0: 3.848 rand() si queda en 0). Devuelve su lugar, o 0 si no está.
-std::int32_t OwnSkillIndex(const CharacterStepContext& context, std::uint8_t skill)
-{
-    constexpr std::size_t OwnSkills = 64;
-    WorldRuntime& runtime = context.world.Runtime();
-    const LogicalAccess own(runtime.ownRecordDepth, context.random, Render::Models::OwnRecordCloseRandoms);
-    for (std::size_t index = 0; index < OwnSkills; ++index)
-    {
-        if (context.world.OwnCharacter().SkillAt(index) == skill)
-            return static_cast<std::int32_t>(index);
-    }
-    return 0;
 }
 
 // Tres rand() por punto del lazo de un caso que corta en su primer efecto: el lazo saca los del primero y corta.

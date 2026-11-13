@@ -300,6 +300,9 @@ void StepTheCellByTheRumbo(std::uint8_t& x, std::uint8_t& y, std::int32_t rumbo)
 
 // 0x55be0d..0x55be49: 0x53fe70(0x5fe, +0x10, +0x1c, (1; 1; 1), 0, 0, `hero`), con el dueño en el pool, y el sonido
 // 0x41ed10(rand() % 2 + 0x3c, 0, 0), que saca su rand() también con el pool lleno (CL10: queda en el último sonido).
+// 0x53fdb0 pone el brillo en un hueso con la escala del modelo compartido del tipo del dueño (+0x68 de 0x5769ad8 +
+// tipo · 0xe0), que MuRet solo tiene para Player.bmd (WorldState::PlayerModel): con otro tipo, el héroe de un anillo de
+// transformación, corta antes de crearlo (08, P-C358).
 Core::Expected<void, std::string> ShineOnTheHero(const ActorState& hero, const HeroSkillContext& context)
 {
     constexpr std::int32_t FirstShineSound = 0x3c;
@@ -307,6 +310,10 @@ Core::Expected<void, std::string> ShineOnTheHero(const ActorState& hero, const H
     const std::size_t slot = SlotOf(world, hero);
     if (slot >= world.Actors().size())
         return Core::Unexpected(std::string("0x55be23: el dueño del brillo 0x5fe no está en el pool de personajes"));
+    if (hero.type != Data::Models::PlayerSkeletonModel)
+        return Core::Unexpected(std::format("0x53fdb0: el brillo 0x5fe sobre el modelo {:#x} necesita la escala de su "
+                                            "modelo compartido, de los anillos de transformación",
+                                            hero.type));
     const auto created = world.Particles().CreateFollowingChecked(
         World::SkillShineParticle, hero.position, hero.angles, glm::vec3(1.0f), 0, 0.0f,
         World::ParticleOwner{.kind = World::ParticleOwnerKind::Actor, .identity = slot}, ParticleOwnerBonesOf(world));

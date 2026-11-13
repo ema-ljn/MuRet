@@ -10,6 +10,7 @@
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalAngles.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
@@ -20,6 +21,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameUiState.h"
+#include "World/OriginalFtol.h"
 
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
@@ -28,6 +30,7 @@
 
 #include <gtest/gtest.h>
 
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
@@ -650,6 +653,40 @@ TEST(HeroSkillsWizardTest, OutOfReachTheSkillWalksToTheChosen)
     EXPECT_GT(tested->Hero().path.count, 0);
 }
 
+// P-C256: fuera de alcance, un elegido con la celda fuera de 0..255 (que PathFinding2 toma como índice
+// lineal) no lleva camino: después de las lecturas de la celda del héroe, el camino se descarta sin cortar, en la 0x4c
+// (0x58ec65) y en las demás (0x58edc6). La X a la izquierda del mapa o la Y arriba de 255.
+TEST(HeroSkillsWizardTest, AWalkToACellOffTheGridIsDiscarded)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const std::uint8_t skill : {std::uint8_t{0x4c}, std::uint8_t{1}})
+        {
+            for (const glm::vec3 position : {glm::vec3{-1000.0f, 11750.0f, 0.0f}, glm::vec3{18450.0f, 30000.0f, 0.0f}})
+            {
+                SCOPED_TRACE(std::to_string(map) + " " + std::to_string(skill) + " " + std::to_string(position.x));
+                const auto tested = AWizard(skill, Wizard, map);
+                tested->Chosen().position = position;
+                const CrtRandom expected = Advanced(tested->random, HeadDraws + HeroCellDraws);
+                const auto result = tested->Use();
+                ASSERT_TRUE(result.HasValue()) << result.Error();
+                EXPECT_EQ(tested->random.State(), expected.State());
+                EXPECT_TRUE(tested->sent.empty());
+                EXPECT_EQ(tested->Hero().movement, 0);
+                EXPECT_EQ(tested->Hero().movementType, 0);
+                EXPECT_EQ(tested->Hero().path.count, 0);
+            }
+        }
+    }
+    // La 0x43 sigue a la línea de vista (0x58eea8), que con la Y en 300 sale de TerrainWall (0x55886d): MuRet la toma
+    // como sin línea y la skill sigue sin cortar.
+    const auto tested = AWizard(0x43, Wizard, 2);
+    tested->Chosen().position = glm::vec3{18450.0f, 30000.0f, 0.0f};
+    const auto result = tested->Use();
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(tested->Hero().path.count, 0);
+}
+
 // 0x55cbc0 desde 0x58eecc: la 1 (de la lista del 19) pega al elegido con el 19, 0x4f5290 y el D3 de girar con la celda
 // lógica del héroe publicado; después la rama sigue hasta 0x5808da, que con la 1 no hace nada.
 TEST(HeroSkillsWizardTest, InReachTheChosenTakesTheWeaponSkill)
@@ -699,10 +736,11 @@ TEST(HeroSkillsWizardTest, InReachTheSkill0dSendsItsDurationAtTheChosen)
 // acción 0x86 y el D3.
 TEST(HeroSkillsWizardTest, TheThrustNeedsItsWeapon)
 {
-    for (const std::uint16_t right : {std::uint16_t{0xc12}, std::uint16_t{0xe11}, std::uint16_t{0xe12}})
+    for (const auto& [map, right] : {std::pair{0, std::uint16_t{0xc12}}, std::pair{2, std::uint16_t{0xc12}},
+                                     std::pair{0, std::uint16_t{0xe11}}, std::pair{2, std::uint16_t{0xe12}}})
     {
-        SCOPED_TRACE(right);
-        const auto tested = AWizard(0x49);
+        SCOPED_TRACE(std::to_string(map) + " " + std::to_string(right));
+        const auto tested = AWizard(0x49, Wizard, map);
         tested->Hero().hands[0].model = right;
         tested->Movement().weaponSkill = {.active = 1, .slot = 0, .target = static_cast<std::int32_t>(ChosenSlot)};
         const bool thrusts = right != 0xe12;
@@ -716,6 +754,103 @@ TEST(HeroSkillsWizardTest, TheThrustNeedsItsWeapon)
         {
             EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x06, 0x19, 0x49, 0x0a, 0x1b}));
             EXPECT_EQ(tested->Hero().animation.action, 0x86);
+            EXPECT_EQ(tested->sent[1].delivery, Client::Network::Delivery::Clear);
+            EXPECT_EQ(tested->Sent(1), (std::vector<std::uint8_t>{0xc1, 0x06, 0xd3, 182, 115, 0x40}));
+        }
+    }
+}
+
+// 0x55cbc0(p1, p2) con dos personajes distintos (los de la rama los pasan iguales): p1 (el lugar 8) toma la posición
+// del blanco en +0x3a8, 0x4f5290, la celda del 1E y la clave por 0x558eb0(p1, blanco), que con un p1 que no es el héroe
+// publicado da −1 (0xffff); p2 (el lugar 9) gira hacia el blanco, da el rumbo del 1E y hace la 0x86 de la 0x49. El D3
+// sale del héroe publicado (el lugar 0), que no gira (el ángulo 0: 0x10). Con "webzen" en el nombre del héroe
+// publicado, el 19 y el 1E no salen (ni +0x1bd en la 0xd), pero sí 0x4f5290 o la 0x86 y el D3 (0x55cd47, 0x55d9da,
+// 0x55e69c). La 0xd no mira el freno de 300 ms (0x55e70f no lee GetTickCount): sale con +0x3a8 recién puesto. En
+// Lorencia y Devias.
+TEST(HeroSkillsWizardTest, TheSkillOnItsTargetSplitsTheUserAndTheTurned)
+{
+    constexpr std::size_t UserSlot = 8;
+    constexpr std::size_t TurnedSlot = 9;
+    const auto direction = [](float angle)
+    {
+        const double scale = static_cast<double>(std::bit_cast<float>(std::uint32_t{0x3f360b61}));
+        const auto truncated = Client::World::OriginalFtolLow(static_cast<double>(angle) * scale);
+        return static_cast<std::uint8_t>(truncated.value_or(-1) & 0xff);
+    };
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const std::uint8_t skill : {std::uint8_t{1}, std::uint8_t{0x49}, std::uint8_t{0xd}})
+        {
+            for (const bool silent : {false, true})
+            {
+                SCOPED_TRACE(std::to_string(map) + " " + std::to_string(skill) + (silent ? " webzen" : ""));
+                const auto tested = AWizard(skill, Wizard, map);
+                tested->Hero().hands[0].model = 0xc12;
+                if (silent)
+                {
+                    const std::string name = "webzen";
+                    for (std::size_t i = 0; i < name.size(); ++i)
+                        tested->Hero().name[i] = static_cast<std::byte>(name[i]);
+                }
+                auto& user = tested->world.Actors()[UserSlot];
+                auto& turned = tested->world.Actors()[TurnedSlot];
+                for (Client::Scenes::ActorState* actor : {&user, &turned})
+                {
+                    actor->alive = true;
+                    actor->type = Client::Data::Models::PlayerSkeletonModel;
+                    actor->hands[0].model = actor->hands[1].model = actor->wings.model = actor->pet.model =
+                        Client::Scenes::NoItemModel;
+                    actor->animation.action = 1;
+                }
+                user.position = {18250.0f, 11550.0f, 0.0f};
+                turned.position = {18050.0f, 11950.0f, 0.0f};
+                turned.angles.z = 7.0f;
+                tested->Movement().weaponSkill = {
+                    .active = 1, .slot = 0, .target = static_cast<std::int32_t>(ChosenSlot)};
+                // La 0xd no frena: con la 0x1 o la 0x49 este último uso las frenaría.
+                tested->Movement().lastActionTick = skill == 0xd ? Ticks : 0;
+                const bool sends = !silent;
+                const int hit = skill == 0x49 ? OwnDraws : HitDraws;
+                const CrtRandom expected =
+                    Advanced(tested->random, OwnDraws + (sends ? SendDraws : 0) + hit + HeroCellDraws);
+                const auto used = Client::Scenes::UseTheSkillOnItsTarget(user, turned, tested->Context());
+                ASSERT_TRUE(used.HasValue()) << used.Error();
+                EXPECT_EQ(tested->random.State(), expected.State());
+
+                EXPECT_EQ(user.attackPosition, tested->Chosen().position);
+                EXPECT_EQ(turned.attackPosition, glm::vec3(0.0f));
+                const auto toward = static_cast<float>(Client::Render::Models::CreateAngle(
+                    18050.0f, 11950.0f, tested->Chosen().position.x, tested->Chosen().position.y));
+                EXPECT_EQ(turned.angles.z, toward);
+                EXPECT_EQ(user.angles.z, 0.0f);
+                EXPECT_EQ(tested->Hero().angles.z, 0.0f);
+                if (skill == 0x49)
+                {
+                    EXPECT_EQ(turned.animation.action, 0x86);
+                    EXPECT_EQ(user.animation.action, 1);
+                }
+                else
+                {
+                    EXPECT_GE(user.animation.action, 0x8e);
+                    EXPECT_LE(user.animation.action, 0x8f);
+                    EXPECT_EQ(turned.animation.action, 1);
+                }
+                EXPECT_EQ(tested->Movement().lastShotSkill, skill == 0xd && sends ? 0xdu : 0u);
+
+                ASSERT_EQ(tested->sent.size(), sends ? 2u : 1u);
+                if (sends && skill == 0xd)
+                {
+                    EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x0c, 0x1e, 0xd, 184, 117,
+                                                                          direction(toward), 0, 0, 0xff, 0xff, 0}));
+                }
+                else if (sends)
+                {
+                    EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x06, 0x19, skill, 0x0a, 0x1b}));
+                }
+                const std::size_t turn = tested->sent.size() - 1;
+                EXPECT_EQ(tested->sent[turn].delivery, Client::Network::Delivery::Clear);
+                EXPECT_EQ(tested->Sent(turn), (std::vector<std::uint8_t>{0xc1, 0x06, 0xd3, 182, 115, 0x10}));
+            }
         }
     }
 }

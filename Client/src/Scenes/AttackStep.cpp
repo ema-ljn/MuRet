@@ -7,6 +7,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
 #include "Scenes/AttackFrameSkills.h"
+#include "Scenes/AttackSkillReads.h"
 #include "Scenes/AttackSkillCases.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
@@ -40,8 +41,6 @@ using Render::Models::CrtRandom;
 using Render::Models::LogicalAccess;
 
 constexpr std::uint16_t PlayerType = Data::Models::PlayerSkeletonModel;
-// 0x517630 y los accesos en línea a +0x38e: una entrada de un byte, un rand() al cerrarla en 0.
-constexpr std::uint16_t SkillCloseRandoms = 1;
 // 0x4fdbf1: el valor al que vuelve +0x381 cuando corre la habilidad, y el 15 de 0x4f97b0 (0x4fb0df).
 constexpr std::uint8_t AttackDone = 15;
 constexpr std::int16_t NoTarget = -1;
@@ -60,13 +59,6 @@ constexpr std::uint16_t MissileTypeWithoutTarget = 0x180;
 template <typename T, std::size_t N> bool IsOneOf(const std::array<T, N>& values, T value)
 {
     return std::ranges::find(values, value) != values.end();
-}
-
-// 0x517630 (thiscall sobre 0x57630c8) y sus copias en línea: abre +0x38e, lo lee y lo cierra.
-std::uint8_t ReadTheSkill(ActorState& actor, CrtRandom& random)
-{
-    const LogicalAccess access(actor.byte38eAccesses, random, SkillCloseRandoms);
-    return actor.byte38e;
 }
 
 // Un tipo de la mano como WORD con signo (MOVSX).
@@ -148,22 +140,6 @@ Core::Expected<void, std::string> StepTheAttackHelpers(ActorState& actor, std::s
     static_cast<void>(context.random.Next());
     // Los ayudantes de los mapas, el switch por +0x376 y la cola (MonsterAttackStep.h).
     return StepTheAttackCases(actor, slot, context);
-}
-
-// 0x59fb80(skill): abre el registro propio ([0x7681eb4], 0x40ad90), busca `skill` entre los 64 bytes de +0x6c de
-// [0x7681eb0] y lo cierra (0x40b4d0: 3.848 rand() si queda en 0). Devuelve su lugar, o 0 si no está. Los otros dos
-// argumentos que le empuja el caller quedan en la pila para 0x53e2b0.
-std::int32_t OwnSkillIndex(const CharacterStepContext& context, std::uint8_t skill)
-{
-    constexpr std::size_t OwnSkills = 64;
-    WorldRuntime& runtime = context.world.Runtime();
-    const LogicalAccess own(runtime.ownRecordDepth, context.random, Render::Models::OwnRecordCloseRandoms);
-    for (std::size_t index = 0; index < OwnSkills; ++index)
-    {
-        if (context.world.OwnCharacter().SkillAt(index) == skill)
-            return static_cast<std::int32_t>(index);
-    }
-    return 0;
 }
 
 // 0x502b12..0x5037d5: sin blanco (+0x3a4 en −1).

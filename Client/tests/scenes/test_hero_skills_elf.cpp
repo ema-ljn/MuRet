@@ -531,6 +531,48 @@ TEST(HeroSkillsElfTest, TheSkill4cCastsWithThePositionAndTheMagicKey)
     EXPECT_EQ(tested->Hero().movement, 0);
 }
 
+// P-C256: fuera de alcance, un blanco con la celda fuera de 0..255 (que PathFinding2 toma como índice lineal)
+// no lleva camino: después de las lecturas de la celda del héroe, el camino se descarta sin cortar, en la 0x4c
+// (0x581853, con la celda leída antes) y hacia un aliado (0x57f148).
+TEST(HeroSkillsElfTest, AWalkToACellOffTheGridIsDiscarded)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const glm::vec3 position : {glm::vec3{-1000.0f, 11750.0f, 0.0f}, glm::vec3{18450.0f, 30000.0f, 0.0f}})
+        {
+            SCOPED_TRACE(std::to_string(map) + " " + std::to_string(position.x));
+            const auto skill4c = AnElf(0x4c, map);
+            skill4c->Chosen().position = position;
+            const CrtRandom walked = Advanced(skill4c->random, HeadDraws + HeroCellDraws + HeroCellDraws);
+            const auto result = skill4c->Use();
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            EXPECT_EQ(skill4c->random.State(), walked.State());
+            EXPECT_TRUE(skill4c->sent.empty());
+            EXPECT_EQ(skill4c->Hero().movement, 0);
+            EXPECT_EQ(skill4c->Hero().path.count, 0);
+
+            const auto ally = AnElf(0x1a, map);
+            ally->ChooseAnAlly();
+            ally->Chosen().position = position;
+            const CrtRandom expected = Advanced(ally->random, HeadDraws + HeroCellDraws);
+            const auto supported = ally->Use();
+            ASSERT_TRUE(supported.HasValue()) << supported.Error();
+            EXPECT_EQ(ally->random.State(), expected.State());
+            EXPECT_TRUE(ally->sent.empty());
+            EXPECT_EQ(ally->Hero().movement, 0);
+            EXPECT_EQ(ally->Hero().movementType, 0);
+        }
+    }
+    // La 0x47 hacia un aliado sigue a la línea de vista (0x57f1e5), que con la Y en 300 sale de TerrainWall
+    // (0x55886d): MuRet la toma como sin línea y la skill sigue sin cortar.
+    const auto tested = AnElf(0x47, 2);
+    tested->ChooseAnAlly();
+    tested->Chosen().position = glm::vec3{18450.0f, 30000.0f, 0.0f};
+    const auto result = tested->Use();
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(tested->Hero().path.count, 0);
+}
+
 // 0x57f098..0x57f184: fuera de alcance, un monstruo no lleva camino (solo un jugador, +0x88 en 1); las otras skills
 // terminan ahí. Las 0x43 a 0x47 siguen por la línea de vista hasta la cola (0x5808da, HeroSkillsTail); la 0x48, solo en
 // alcance.

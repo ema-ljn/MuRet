@@ -546,7 +546,8 @@ Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSk
     }
     if (heroClass != WizardClass)
     {
-        // 0x57d4be..0x57d51f: el blanco y, desde la celda lógica (la Y antes que la X), si se lo ve.
+        // 0x57d4be..0x57d51f: el blanco y, desde la celda lógica (la Y antes que la X), si se lo ve. La línea que sale
+        // de TerrainWall (0x55886d lee fuera de los 65.536 WORD) MuRet la toma como sin línea (08, P-C256).
         if (auto aimed = AimTheSkill(hero, context); !aimed.HasValue())
             return aimed;
         const auto y = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
@@ -554,12 +555,11 @@ Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSk
         const World::WorldTerrain& terrain = world.Map().terrain;
         if (!terrain.attributes)
             return Core::Unexpected(std::string("0x558800: falta TerrainWall para ver el blanco de la skill"));
-        const auto seen =
+        const bool seen =
             World::CanSeeTheCell(terrain.attributes->cells, x, y, std::bit_cast<std::int32_t>(state.targetX),
-                                 std::bit_cast<std::int32_t>(state.targetY));
-        if (!seen)
-            return Core::Unexpected(std::string("0x55886d: la línea hasta el blanco de la skill sale de TerrainWall"));
-        if (*seen)
+                                 std::bit_cast<std::int32_t>(state.targetY))
+                .value_or(false);
+        if (seen)
         {
             const auto used = UseTheWeaponSkills(hero, heroClass, skill, context);
             if (!used.HasValue())

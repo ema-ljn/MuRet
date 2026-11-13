@@ -28,13 +28,15 @@ struct WorldEntryResources;
 
 // 0x4cc530: la skill de la fuente sobre el blanco (sin el blanco, nada). Salvo la 0x3b: el rumbo de la fuente hacia
 // el blanco (si no es el héroe, ni las skills 6 y 0xf, y el blanco se ve), el blanco en +0x3a4 (y en +0x434 con la
-// 0x4c), +0x38d y la skill en +0x38e, protegido. Después, la rama de la skill (06, la tabla de 0x4cc530).
+// 0x4c), +0x38d y la skill en +0x38e, protegido. Después, la rama de la skill (06, la tabla de 0x4cc530). Sin la
+// fuente, lo de antes de la rama va al 400 y la rama se descarta (Q-C1237).
 [[nodiscard]] Core::Expected<void, std::string> ApplyMagicAttack(const Protocol::Skill::MagicAttack& attack,
                                                                  const WorldEntryResources& resources);
 
-// 0x4ce000: la skill con duración. Sobre el personaje de la clave (el 400 si no está, como el original, Q-C1204): la
-// skill en +0x38e, el rumbo (rumbo · 1/255 · 360) y la acción, con la de ataque si no es un jugador y la de la skill si
-// es otro jugador; después la celda (+0x39c, +0x39d), +0x381 en 1, +0x3a4 en 0xffff y +0x380 en 0.
+// 0x4ce000: la skill con duración. Sobre el personaje de la clave: la skill en +0x38e, el rumbo (rumbo · 1/255 · 360)
+// y la acción, con la de ataque si no es un jugador y la de la skill si es otro jugador; después la celda (+0x39c,
+// +0x39d), +0x381 en 1, +0x3a4 en 0xffff y +0x380 en 0. Sin el personaje, todo eso en el 400 salvo la acción, que se
+// descarta: solo el frame en 0 (Q-C1204).
 [[nodiscard]] Core::Expected<void, std::string> ApplyDurationMagic(const Protocol::Skill::DurationMagic& magic,
                                                                    const WorldEntryResources& resources);
 
@@ -48,7 +50,8 @@ void ApplyMagicCancel(const Protocol::Skill::MagicCancel& cancel, const WorldEnt
                                                                 const WorldEntryResources& resources);
 
 // 0x4cc290: sin el blanco, nada. Si no, la fuente en 0x5767964, la skill en +0x42e (protegido), el blanco en +0x3a4 y
-// su bit 15 en +0x38d, y con las skills 1 a 0xd, la acción de ataque (0x4f4a10, hito 3).
+// su bit 15 en +0x38d, y con las skills 1 a 0xd, la acción de ataque (0x4f4a10, hito 3), el frame en 0 y +0x381 en 1.
+// Sin la fuente, todo eso en el 400 salvo la acción de ataque, que se descarta (Q-C1237).
 [[nodiscard]] Core::Expected<void, std::string> ApplySkillTarget(const Protocol::Skill::SkillTarget& target,
                                                                  const WorldEntryResources& resources);
 

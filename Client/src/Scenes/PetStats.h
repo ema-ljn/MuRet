@@ -49,8 +49,10 @@ void ApplyRavenInfo(DarkSpirit& raven, std::uint8_t level, std::uint32_t experie
 // ventana de la mascota abierta (0x420cc0), el cuervo del héroe y la tabla con la durabilidad del caballo; si no, la
 // tabla con la del ítem del cartel (0x787a518) salvo con el entrenador abierto y la casilla debajo de 12, y con la
 // clase 0, 0xfe o 0xff, el cuervo del héroe (la casilla 1) o el caballo (la casilla 8: su nivel, su +8 en el héroe y su
-// opción, 0x4225d0). Corta con la dirección del original: un tipo de más de tres (escribe fuera de 0x723960), los
-// joints del cuervo con 0xfe y 0xff (0x418390 y 0x418400, CL11) y lo que corta 0x550d10.
+// opción, 0x4225d0). Un tipo de 3 o más que el original escribe fuera de 0x723960 se descarta entero (Q-C1208); sin
+// escribir la tabla (la ventana cerrada sin ítem en el cartel, o con el entrenador), solo el acceso de 0x4221d0. Corta
+// con la dirección del original: los joints del cuervo con 0xfe y 0xff (0x418390 y 0x418400, CL11) y lo que corta
+// 0x550d10.
 [[nodiscard]] Core::Expected<void, std::string> ApplyPetInfo(const Protocol::Pet::PetInfoReply& reply,
                                                              const WorldEntryResources& resources);
 } // namespace Client::Scenes

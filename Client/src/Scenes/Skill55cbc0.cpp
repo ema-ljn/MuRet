@@ -121,7 +121,9 @@ Core::Expected<void, std::string> UseTheSkillOnItsTarget(ActorState& user, Actor
         if (right < 0xc12 || right >= 0xe12)
             return {};
     }
-    // 0x55ccd2..0x55cd26: el blanco sin mirar el −1, que MuRet no lee fuera del pool.
+    // 0x55ccd2..0x55cd26: el blanco sin mirar el −1. Con −1 el original lee la posición de actor[−1], antes del pool
+    // (comportamiento indefinido); MuRet no lee fuera del pool y corta (07, Q-C1239). Los que llaman no llegan con él:
+    // HeroAttack sale antes con −1 o menos y la rama del Wizard (0x58eecc) pide un elegido atacable.
     if (request.target < 0 || static_cast<std::size_t>(request.target) >= world.Actors().size())
         return Core::Unexpected(
             std::format("0x55ccd2: el blanco {} de la skill del arma está fuera del pool", request.target));
@@ -151,15 +153,12 @@ Core::Expected<void, std::string> UseTheSkillOnItsTarget(ActorState& user, Actor
     }
     case ReachedCase::Duration:
     {
-        // 0x55e67e..0x55e699: la clave por 0x558eb0(p1, blanco), sin rand().
-        std::uint16_t key = Protocol::Skill::NoSkillTargetKey;
-        if (request.target != -1)
-        {
-            const auto chosen = ChosenKeyOf(world, SlotOf(world, user), request.target, context.controlDown);
-            if (!chosen.HasValue())
-                return Core::Unexpected(chosen.Error());
-            key = static_cast<std::uint16_t>(chosen.Value());
-        }
+        // 0x55e67e..0x55e699: la clave por 0x558eb0(p1, blanco), sin rand(). Con el blanco en −1 el original deja
+        // 0xffff, pero ese −1 ya cortó en 0x55ccd2 (Q-C1239): acá el blanco siempre está en el pool.
+        const auto chosen = ChosenKeyOf(world, SlotOf(world, user), request.target, context.controlDown);
+        if (!chosen.HasValue())
+            return Core::Unexpected(chosen.Error());
+        const auto key = static_cast<std::uint16_t>(chosen.Value());
         if (!HasTheSilentName(world))
         {
             runtime.movement.lastShotSkill = skill;

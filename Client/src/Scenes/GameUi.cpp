@@ -1411,10 +1411,11 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
     }
     if (auto bar = StepTheSkillBar(context); !bar.HasValue())
         return bar;
-    // 0x5a10e7..0x5a116f: los números eligen la skill (0x59f810), con el foco en el juego, sin campos de texto,
-    // sin las órdenes del cuervo (0x420e30, Shift con 1 a 4) y sin Alt. 0x7d368a4 no lo escribe MuRet, y el diálogo
-    // 0x73 (con el que no se mira el foco) es del hito 6.
-    if (runtime.chat.input.focus == UI::ChatFocus::Game && !ui.chatOpen && !runtime.chat.input.otherInput)
+    // 0x5a10e7..0x5a116f: los números eligen la skill (0x59f810), con el foco en el juego, sin campos de texto, sin
+    // una skill que se carga (0x5a1115, 0x7d368a4 en 0), sin las órdenes del cuervo (0x420e30, Shift con 1 a 4) y sin
+    // Alt. El diálogo 0x73 (con el que no se mira el foco) es del hito 6.
+    if (runtime.chat.input.focus == UI::ChatFocus::Game && !ui.chatOpen && !runtime.chat.input.otherInput &&
+        ui.rightHoldFrames == 0)
     {
         if (!StepThePetOrderKeys(context) && !input.IsDown(Key::Alt))
         {

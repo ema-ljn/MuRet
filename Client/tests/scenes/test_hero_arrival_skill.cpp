@@ -25,6 +25,8 @@
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <gtest/gtest.h>
 
 #include <cstddef>
@@ -393,6 +395,41 @@ TEST(HeroArrivalSkillTest, OutOfReachTheHeroWalksIntoReach)
     const auto far = Client::GameLogic::PathFinder(cells).Find({182, 115}, {192, 115}, false, 6.0f);
     ASSERT_TRUE(near && far);
     EXPECT_NE(near->count, far->count);
+}
+
+// P-C256: fuera de alcance, el blanco con la celda fuera de 0..255 (que PathFinding2, 0x566272, toma como índice
+// lineal) no lleva camino: después de leer la Y y la X del héroe, el camino se descarta sin cortar. En alcance, la
+// línea de vista que sale de TerrainWall (0x56639d → 0x55886d, la celda 256 de la fila 255) se toma como sin línea.
+TEST(HeroArrivalSkillTest, ACellOffTheGridDiscardsTheWalkAndTheLine)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const glm::vec3 position : {glm::vec3{-1000.0f, 11550.0f, 0.0f}, glm::vec3{18450.0f, 30000.0f, 0.0f}})
+        {
+            SCOPED_TRACE(std::to_string(map) + " " + std::to_string(position.x));
+            const auto tested = Arriving(0x1, map);
+            tested->Target().position = position;
+            const CrtRandom expected = Advanced(tested->random, SkillDraws + HeroCellDraws);
+            const auto result = tested->Arrive();
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            EXPECT_EQ(tested->random.State(), expected.State());
+            EXPECT_TRUE(tested->sent.empty());
+            EXPECT_EQ(tested->Hero().movement, 0);
+            EXPECT_EQ(tested->Hero().path.count, 0);
+        }
+        SCOPED_TRACE(map);
+        const auto edge = Arriving(0x1, map);
+        edge->Hero().cellX = 255;
+        edge->Hero().cellY = 255;
+        edge->Hero().position = {25550.0f, 25550.0f, 0.0f};
+        edge->Target().position = {25650.0f, 25550.0f, 0.0f};
+        const CrtRandom expected = Advanced(edge->random, SkillDraws + HeroCellDraws);
+        const auto result = edge->Arrive();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(edge->random.State(), expected.State());
+        EXPECT_TRUE(edge->sent.empty());
+        EXPECT_EQ(edge->Movement().targetX, 256u);
+    }
 }
 
 // 0x5661e8 y sus pares: en alcance pero en la zona segura, el camino en lugar de la skill, sin envíos; con el héroe ya

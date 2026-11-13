@@ -90,7 +90,9 @@ ParticleOwnersAmong(std::span<World::WorldObject> objects);
 // con 1 y la quinta del cuerpo con −1) y el punto local (0; −120; 0) con la 5fe y la 62d, cero con las demás.
 // 0x4ec110 con el modelo del dueño (+2): su origen (+0x6c) pasa a ser la posición del dueño y la escala (+0x68) es la
 // que quedó en el modelo; con los huesos propios (+0x120) del último dibujo, una matriz en cero antes del primero
-// (Q-C318). MuRet guarda el modelo de Player.bmd (WorldState::PlayerModel): con otro tipo, nullopt.
+// (Q-C318). MuRet guarda el modelo de Player.bmd (WorldState::PlayerModel): con otro tipo, nullopt, que la partícula
+// devuelve como MissingOwner. Es el corte de los anillos de transformación (08, P-C358): la 5fe de 0x55be23 corta antes
+// con su dirección (Scenes::ShineOnTheHero).
 [[nodiscard]] std::optional<glm::vec3> OwnerBonePointOf(WorldState& world, const World::Particle& particle);
 // El resolvedor de 0x53fdb0 sobre `world`, que tiene que vivir más que él.
 [[nodiscard]] std::function<std::optional<glm::vec3>(const World::Particle&)> ParticleOwnerBonesOf(WorldState& world);

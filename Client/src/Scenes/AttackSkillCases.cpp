@@ -6,6 +6,7 @@
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
+#include "Scenes/AttackSkillReads.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HeroAttack.h"
@@ -34,40 +35,12 @@ namespace Client::Scenes
 {
 namespace
 {
-using Render::Models::CrtRandom;
-using Render::Models::LogicalAccess;
-
-// 0x517630 y los accesos en línea a +0x38e: una entrada de un byte, un rand() al cerrarla en 0.
-constexpr std::uint16_t SkillCloseRandoms = 1;
 constexpr std::int16_t NoTarget = -1;
 constexpr std::size_t PoolSlots = 400;
 // +0x78 & 0x4000: los casos 0x1b, 0x1c y 0x10 con blanco no hacen nada (0x50451c, 0x5046ca, 0x504836).
 constexpr std::uint32_t QuietFlag = 0x4000;
 // El joint 0x10f, el de los calcos que se van con 0x534f90 (0x4fe3ce, 0x504876).
 constexpr std::int32_t FlameJoint = 0x10f;
-
-// 0x517630 (thiscall sobre 0x57630c8): abre +0x38e, lo lee y lo cierra.
-std::uint8_t ReadTheSkill(ActorState& actor, CrtRandom& random)
-{
-    const LogicalAccess access(actor.byte38eAccesses, random, SkillCloseRandoms);
-    return actor.byte38e;
-}
-
-// 0x59fb80(skill): abre el registro propio ([0x7681eb4], 0x40ad90), busca `skill` entre los 64 bytes de +0x6c de
-// [0x7681eb0] y lo cierra (0x40b4d0: 3.848 rand() si queda en 0). Devuelve su lugar, o 0. La misma que la de la flecha
-// en AttackStep.cpp.
-std::int32_t OwnSkillIndex(const CharacterStepContext& context, std::uint8_t skill)
-{
-    constexpr std::size_t OwnSkills = 64;
-    const LogicalAccess own(context.world.Runtime().ownRecordDepth, context.random,
-                            Render::Models::OwnRecordCloseRandoms);
-    for (std::size_t index = 0; index < OwnSkills; ++index)
-    {
-        if (context.world.OwnCharacter().SkillAt(index) == skill)
-            return static_cast<std::int32_t>(index);
-    }
-    return 0;
-}
 
 // 0x41ed10(sonido, …): la CL10 decide cómo suena (WorldRuntime::lastSoundId en el juego).
 void RequestTheSound(const CharacterStepContext& context, std::int32_t sound)

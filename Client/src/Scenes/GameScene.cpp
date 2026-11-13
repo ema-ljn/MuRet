@@ -214,7 +214,8 @@ Core::Expected<void, std::string> GameScene::Enter()
     }
     m_firstStep = true;
     m_holdFrame = true;
-    // Fuera de la escena 5, 0x4eb620 no baja las esperas: lo que pasó afuera no cuenta.
+    // Fuera de la escena 5, 0x4eb620 no baja las esperas. Su primer frame en la 5 se lleva los ms desde el último de la
+    // escena anterior (0x4eb746 escribe 0x5767b7c en todas); MuRet empieza con 0 (07, Q-C1238).
     m_frameStarts = true;
     m_lastFrameStart.reset();
     m_groundEffects.Reset();
@@ -243,8 +244,8 @@ void GameScene::Step(const Input::InputState& input)
         return;
     }
     // 0x4eb620, al empezar un frame del original y antes de sus pasos: en la escena 5, 0x552f10 con los ms de
-    // timeGetTime() desde el frame anterior (sin tope: 02, "Lo que va por reloj"). El primero de la escena, con 0; los
-    // frames que la espera retiene no empiezan uno, y el siguiente se lleva todo su tiempo (P-C267).
+    // timeGetTime() desde el frame anterior (sin tope: 02, "Lo que va por reloj"). El primero de la escena, con 0
+    // (Q-C1238); los frames que la espera retiene no empiezan uno, y el siguiente se lleva todo su tiempo (P-C267).
     if (m_frameStarts && m_context.world != nullptr && m_context.cloth != nullptr)
     {
         m_frameStarts = false;

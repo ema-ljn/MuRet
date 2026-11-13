@@ -215,15 +215,39 @@ TEST(SkillRepliesTest, TheMagicAttackWithoutTheTargetDoesNothing)
     EXPECT_EQ(tested->cloth.random.State(), 1u);
 }
 
-// Una fuente que no está es el 400, como en el original.
+// Q-C1237: una fuente que no está es el 400 (0x4cce50). Lo de antes de la rama va ahí: 0x5767964, el rumbo hacia el
+// blanco, +0x3a4, +0x38d y la skill en +0x38e con su rand(); la rama, que en el original sale de lo que haya en el 400
+// (su tipo, su montura), se descarta sin cortar: ni la acción, ni +0x381, ni el sonido, ni lo que toca del blanco. La
+// 0x3b no tiene nada antes de la rama. En Lorencia y Devias.
 TEST(SkillRepliesTest, AnUnknownSourceIsTheLastActor)
 {
-    auto tested = std::make_unique<Replies>();
-    tested->Place(400, 0, Client::Tests::UnarmedPlayer());
-    tested->Actor(400).alive = false;
-    ASSERT_TRUE(tested->Attack(0x13, 0x0777).HasValue());
-    EXPECT_EQ(tested->Actor(400).byte38e, 0x13);
-    EXPECT_EQ(tested->world.Runtime().skillSource, 400);
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const std::uint8_t skill :
+             {std::uint8_t{0x13}, std::uint8_t{0x10}, std::uint8_t{0x4b}, std::uint8_t{0x3b}})
+        {
+            SCOPED_TRACE(std::to_string(map) + " " + std::to_string(skill));
+            auto tested = std::make_unique<Replies>();
+            tested->world.Runtime().map = map;
+            const bool head = skill != 0x3b;
+            const CrtRandom expected = Advanced(tested->cloth.random, head ? ActorByteRandoms : 0);
+            const std::uint8_t action = tested->Actor(400).animation.action;
+            ASSERT_TRUE(tested->Attack(skill, 0x0777).HasValue());
+            const ActorState& phantom = tested->Actor(400);
+            EXPECT_EQ(tested->world.Runtime().skillSource, 400);
+            EXPECT_EQ(phantom.byte38e, head ? skill : 0);
+            EXPECT_EQ(phantom.attackTarget, head ? TargetIndex : 0);
+            EXPECT_EQ(phantom.skillSucceeded, head ? 1 : 0);
+            EXPECT_EQ(phantom.angles.z,
+                      head ? static_cast<float>(Client::Render::Models::CreateAngle(0.0f, 0.0f, 1300.0f, 1200.0f))
+                           : 0.0f);
+            EXPECT_EQ(phantom.animation.action, action);
+            EXPECT_EQ(phantom.byte381, 0);
+            EXPECT_EQ(tested->Actor(TargetIndex).flags78, 0u);
+            EXPECT_FALSE(tested->world.Runtime().lastSoundId.has_value());
+            EXPECT_EQ(tested->cloth.random.State(), expected.State());
+        }
+    }
 }
 
 // La 0x10 de otro jugador: 0x4f5290 abre los stats propios (0x4f3f80) y saca el rand() de la acción 0x8e o 0x8f.
@@ -372,7 +396,8 @@ TEST(SkillRepliesTest, TheTeleportSkillSwapsTheVanishing)
     EXPECT_EQ(hero.alphaTarget, 1.0f);
     EXPECT_EQ(hero.byte80, 3);
     EXPECT_EQ(hero.animation.frame, 5.0f);
-    EXPECT_EQ(hero.byte381, 1);
+    // 0x4cd442 salta a 0x4cde69, después del +0x381 de 0x4cde62.
+    EXPECT_EQ(hero.byte381, 0);
     EXPECT_EQ(tested->AliveEffects(0x5c6), 2u);
     EXPECT_EQ(tested->world.Runtime().movement.gateRequestBlocked, 0);
     EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x83);
@@ -442,22 +467,33 @@ TEST(SkillRepliesTest, TheSkill4cKeepsItsTarget)
     EXPECT_EQ(tested->Actor(CasterIndex).skillTarget4c, static_cast<std::int32_t>(TargetIndex));
 }
 
-// 0x4cde2f: la 0x28 del héroe suelta el clic derecho.
+// 0x4cde2f..0x4cde58: la 0x28 del héroe suelta el derecho: el soltado (0x7d36840), el clic (0x7d36880), el abajo
+// (0x7d3685c) y los frames de la carga (0x7d368a4). La de otro no los toca.
 TEST(SkillRepliesTest, TheSkill28OfTheHeroDropsTheRightButton)
 {
     auto tested = std::make_unique<Replies>();
     auto& ui = tested->world.Runtime().ui;
+    ui.rightReleased = true;
     ui.rightClick = true;
     ui.rightDown = true;
+    ui.rightHoldFrames = 12;
     ASSERT_TRUE(tested->Attack(0x28, HeroKey).HasValue());
+    EXPECT_FALSE(ui.rightReleased);
     EXPECT_FALSE(ui.rightClick);
     EXPECT_FALSE(ui.rightDown);
+    EXPECT_EQ(ui.rightHoldFrames, 0);
     EXPECT_EQ(tested->Actor(HeroIndex).animation.action, 0x45);
+    EXPECT_EQ(tested->Actor(HeroIndex).byte381, 1);
 
     auto other = std::make_unique<Replies>();
-    other->world.Runtime().ui.rightClick = true;
+    auto& otherUi = other->world.Runtime().ui;
+    otherUi.rightReleased = true;
+    otherUi.rightClick = true;
+    otherUi.rightHoldFrames = 12;
     ASSERT_TRUE(other->Attack(0x28).HasValue());
-    EXPECT_TRUE(other->world.Runtime().ui.rightClick);
+    EXPECT_TRUE(otherUi.rightReleased);
+    EXPECT_TRUE(otherUi.rightClick);
+    EXPECT_EQ(otherUi.rightHoldFrames, 12);
 }
 
 // Las manos de 0x4cc110: un bastón en la izquierda, otro arma en la derecha, y el elfo con alas.
@@ -576,16 +612,38 @@ TEST(SkillRepliesTest, TheDurationMagicOfAMonsterIsTheAttackAction)
     EXPECT_GT(tested->Actor(CasterIndex).angles.z, 360.0f);
 }
 
-// Q-C1204: sin el personaje de la clave, el 400; sin tipo de jugador, el corte de 0x4f4a10 después de la skill.
+// Q-C1204: sin el personaje de la clave, el 400: la skill en +0x38e (su rand()), el rumbo, el frame en 0, la celda,
+// +0x381, +0x3a4 y +0x380. La acción, que en el original sale del tipo que haya en el 400, se descarta sin cortar y
+// sin rand(). El 1B también va al 400. En Lorencia y Devias.
 TEST(SkillRepliesTest, TheDurationMagicWithoutTheKeyWritesTheLastActor)
 {
-    auto tested = std::make_unique<Replies>();
-    const auto applied = Client::Scenes::ApplyDurationMagic(DurationMagic{0xc, 0x0777, 1, 2, 0}, tested->Resources());
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_EQ(tested->Actor(400).byte38e, 0xc);
-    tested->Actor(400).flags78 = 8;
-    Client::Scenes::ApplyMagicCancel(MagicCancel{0x1b, 0x0777}, tested->Resources());
-    EXPECT_EQ(tested->Actor(400).flags78, 0u);
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<Replies>();
+        tested->world.Runtime().map = map;
+        ActorState& phantom = tested->Actor(400);
+        phantom.animation.frame = 2.0f;
+        phantom.byte380 = 4;
+        const std::uint8_t action = phantom.animation.action;
+        const CrtRandom expected = Advanced(tested->cloth.random, ActorByteRandoms);
+        ASSERT_TRUE(
+            Client::Scenes::ApplyDurationMagic(DurationMagic{0xc, 0x0777, 1, 2, 0x40}, tested->Resources()).HasValue());
+        EXPECT_EQ(phantom.byte38e, 0xc);
+        EXPECT_EQ(phantom.angles.z, static_cast<float>(64.0 * static_cast<double>(1.0f / 255.0f) * 360.0));
+        EXPECT_EQ(phantom.animation.action, action);
+        EXPECT_EQ(phantom.attackCount, 0);
+        EXPECT_EQ(phantom.animation.frame, 0.0f);
+        EXPECT_EQ(phantom.skillCellX, 1);
+        EXPECT_EQ(phantom.skillCellY, 2);
+        EXPECT_EQ(phantom.byte381, 1);
+        EXPECT_EQ(phantom.attackTarget, 0xffff);
+        EXPECT_EQ(phantom.byte380, 0);
+        EXPECT_EQ(tested->cloth.random.State(), expected.State());
+        phantom.flags78 = 8;
+        Client::Scenes::ApplyMagicCancel(MagicCancel{0x1b, 0x0777}, tested->Resources());
+        EXPECT_EQ(phantom.flags78, 0u);
+    }
 }
 
 TEST(SkillRepliesTest, TheDurationTableChoosesTheActionOfTheOtherPlayer)
@@ -779,6 +837,34 @@ TEST(SkillRepliesTest, TheSkillTargetOfTheFirstSkillsIsTheAttackAction)
             Client::Scenes::ApplySkillTarget(SkillTarget{skill, CasterKey, TargetKey}, tested->Resources()).HasValue());
         EXPECT_EQ(tested->Actor(CasterIndex).byte381, 0);
         EXPECT_EQ(tested->Actor(CasterIndex).attackCount, 0);
+    }
+}
+
+// Q-C1237: una fuente que no está es el 400 (0x4cc2b0): 0x5767964, la skill en +0x42e (su rand()), +0x3a4 y +0x38d, y
+// con las skills 1 a 0xd el frame en 0 y +0x381 en 1; el 0x4f4a10 del 400, que sale del tipo que haya ahí, se descarta
+// sin cortar y sin rand(). En Lorencia y Devias.
+TEST(SkillRepliesTest, TheSkillTargetOfAnUnknownSourceWritesTheLastActor)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<Replies>();
+        tested->world.Runtime().map = map;
+        ActorState& phantom = tested->Actor(400);
+        phantom.animation.frame = 2.0f;
+        const std::uint8_t action = phantom.animation.action;
+        const CrtRandom expected = Advanced(tested->cloth.random, ActorByteRandoms);
+        ASSERT_TRUE(
+            Client::Scenes::ApplySkillTarget(SkillTarget{1, 0x0777, TargetKey}, tested->Resources()).HasValue());
+        EXPECT_EQ(tested->world.Runtime().skillSource, 400);
+        EXPECT_EQ(phantom.byte42e, 1);
+        EXPECT_EQ(phantom.attackTarget, TargetIndex);
+        EXPECT_EQ(phantom.skillSucceeded, 0);
+        EXPECT_EQ(phantom.animation.action, action);
+        EXPECT_EQ(phantom.attackCount, 0);
+        EXPECT_EQ(phantom.animation.frame, 0.0f);
+        EXPECT_EQ(phantom.byte381, 1);
+        EXPECT_EQ(tested->cloth.random.State(), expected.State());
     }
 }
 

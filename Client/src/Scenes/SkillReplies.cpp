@@ -1,6 +1,7 @@
 #include "Scenes/SkillReplies.h"
 
 #include "Core/Expected.h"
+#include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/SkillTable.h"
 #include "Protocol/Skill.h"
@@ -23,6 +24,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldTransitionSupport.h"
+#include "UI/GameUiState.h"
 #include "World/ModelEffects.h"
 
 #include <cstddef>
@@ -364,10 +366,10 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
     case 0xb:
     case 0x11:
         return StrikeUnlessHero(cast);
-    // 0x4cd410: el blanco se va y la fuente llega.
+    // 0x4cd410: el blanco se va y la fuente llega. Vuelve por 0x4cde69 (0x4cd442), sin pasar por el +0x381 de
+    // 0x4cde62.
     case 0xf:
     {
-        source.byte381 = 1;
         if (auto gone = Vanish(target, false, resources); !gone.HasValue())
             return gone;
         if (auto came = Vanish(source, true, resources); !came.HasValue())
@@ -569,16 +571,19 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         source.byte1bc = 0;
         return {};
     }
-    // 0x4cde2f: en el héroe, apaga el clic derecho (0x7d36880 y 0x7d3685c); 0x7d36840 y 0x7d368a4, que también pone
-    // en 0, MuRet no los tiene.
+    // 0x4cde2f: en el héroe, apaga el derecho (0x4cde43..0x4cde58): el soltado (0x7d36840), el clic (0x7d36880), el
+    // abajo (0x7d3685c) y los frames de la carga (0x7d368a4), que así no se suelta otra vez.
     case 0x28:
     {
         if (auto acted = Act(source, 0x45, resources); !acted.HasValue())
             return acted;
         if (cast.sourceIsHero)
         {
-            world.Runtime().ui.rightClick = false;
-            world.Runtime().ui.rightDown = false;
+            UI::GameUiState& ui = world.Runtime().ui;
+            ui.rightReleased = false;
+            ui.rightClick = false;
+            ui.rightDown = false;
+            ui.rightHoldFrames = 0;
         }
         return Settle(cast);
     }
@@ -665,6 +670,15 @@ Core::Expected<void, std::string> ApplyMagicAttack(const MagicAttack& attack, co
                                                    ActorByteCloseRandoms);
         source.byte38e = attack.skill;
     }
+    // 0x4cce50: sin la fuente, el original sigue por la rama de la skill sobre el lugar 400, con lo que haya ahí (el
+    // tipo del modelo de 0x4ea030, la montura, las manos). MuRet deja lo de arriba en el 400 y descarta la rama
+    // (07, Q-C1237).
+    if (sourceIndex == NoActor)
+    {
+        resources.log.Debug("se descarta la rama de la skill {:#x} del 19: la fuente {:#x} no está", attack.skill,
+                            attack.source);
+        return {};
+    }
     return CastTheSkill(Cast{attack, source, target, sourceIsHero, resources});
 }
 
@@ -681,8 +695,16 @@ Core::Expected<void, std::string> ApplyDurationMagic(const DurationMagic& magic,
     // 0x4cea3e..0x4cea4d: FILD, por 1/255 (0x6b88f8) y por 360 (0x6b869c), exacto en double (Q-C1201).
     actor.angles.z = static_cast<float>(static_cast<double>(magic.direction) * static_cast<double>(1.0f / 255.0f) *
                                         static_cast<double>(360.0f));
+    // 0x4ce76c: sin el personaje, el 400. Su acción sale del tipo que haya ahí (0x4cea38); las dos ramas ponen el frame
+    // en 0, porque el 400 nunca es el héroe. MuRet descarta la acción y deja el frame (07, Q-C1204).
+    if (index == NoActor)
+    {
+        resources.log.Debug("se descarta la acción de la skill {:#x} del 1E: la clave {:#x} no está", magic.skill,
+                            magic.key);
+        actor.animation.frame = 0.0f;
+    }
     // 0x4cece8: otro que un jugador, 0x4f4a10 y el frame en 0, también el héroe.
-    if (!IsPlayer(actor))
+    else if (!IsPlayer(actor))
     {
         if (auto attacked = AttackAction(actor, resources); !attacked.HasValue())
             return attacked;
@@ -811,9 +833,19 @@ Core::Expected<void, std::string> ApplySkillTarget(const SkillTarget& target, co
     // 0x4cc2a9: SAR 0xf del blanco entero; con el bit, 0x5110d0 no lo encontró y ya volvió.
     source.skillSucceeded = (target.target >> 15) != 0 ? std::uint8_t{1} : std::uint8_t{0};
     // 0x4cc503..0x4cc51c: 0x4f4a10, el frame en 0 y +0x381 en 1.
-    if (target.skill >= 1 && target.skill <= 0xd)
-        return AttackAndSettle(source, resources);
-    return {};
+    if (target.skill < 1 || target.skill > 0xd)
+        return {};
+    // 0x4cc2b0: sin la fuente, el 400, cuyo 0x4f4a10 sale del tipo que haya ahí. MuRet lo descarta y deja el frame y
+    // +0x381 (07, Q-C1237).
+    if (sourceIndex == NoActor)
+    {
+        resources.log.Debug("se descarta la acción de la skill {:#x} del 69: la fuente {:#x} no está", target.skill,
+                            target.source);
+        source.animation.frame = 0.0f;
+        source.byte381 = 1;
+        return {};
+    }
+    return AttackAndSettle(source, resources);
 }
 
 Core::Expected<void, std::string> ApplyActorEffect(const ActorEffect& effect, const WorldEntryResources& resources)

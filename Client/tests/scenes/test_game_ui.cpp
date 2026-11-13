@@ -552,6 +552,32 @@ TEST(GameUiTest, TheDarkLordShiftDigitsChooseTheRavenOrder)
     EXPECT_EQ(other->random.State(), chosen.State());
 }
 
+// 0x5a1115..0x5a111c: con una skill que se carga (0x7d368a4 distinto de 0), ni los números (0x59f810, sin abrir el
+// registro propio) ni el Shift del Dark Lord (0x420e30) cambian la skill.
+TEST(GameUiTest, TheDigitsDoNotChooseWhileASkillCharges)
+{
+    for (const std::uint8_t heroClass : {std::uint8_t{1}, std::uint8_t{4}})
+    {
+        SCOPED_TRACE(int{heroClass});
+        auto tested = std::make_unique<SteppingUi>();
+        tested->world.Actors()[0].characterClass = heroClass;
+        tested->world.Actors()[0].skillIndex = 1;
+        auto& own = tested->world.OwnCharacter();
+        own.SetSkillAt(3, 0x11);
+        auto& keys = own.skillKeys[0];
+        keys.fill(0xff);
+        keys[3] = 3;
+        tested->Ui().rightHoldFrames = 5;
+        Press(tested->input, Key::ShiftLeft);
+        Press(tested->input, Key::Digit3);
+        const CrtRandom expected = Advanced(tested->random, BaseStepRandoms);
+        ASSERT_TRUE(tested->Step(320, 100).HasValue());
+        EXPECT_EQ(tested->random.State(), expected.State());
+        EXPECT_EQ(tested->world.Actors()[0].skillIndex, 1);
+        EXPECT_EQ(tested->Ui().rightHoldFrames, 5);
+    }
+}
+
 TEST(GameUiTest, TheSiegePanelTogglesWithTabAndTakesTheMouse)
 {
     SteppingUi tested;

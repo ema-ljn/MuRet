@@ -136,18 +136,18 @@ bool InReach(const ActorState& hero, const GameMovementState& state)
 
 // 0x4eac00(X, Y, x, y, +0x3e8, distancia) desde la celda del héroe: la Y y la X abiertas y cerradas antes (8 rand()).
 // Con camino, +0x378 en 1; `withType` pone también +0x379 en 5 (el 0x55cbc0 de la llegada, 0x5650c0). Sin camino, nada.
+// Con la meta fuera de 0..255, que PathFinding2 toma como índice lineal (la fila de al lado, o fuera de los 65.536
+// WORD), MuRet descarta el camino después de las lecturas de la celda del héroe, como sin camino (08, P-C256).
 Core::Expected<void, std::string> WalkToward(ActorState& hero, std::int32_t goalX, std::int32_t goalY, float distance,
                                              bool withType, const HeroSkillContext& context, std::string_view where)
 {
     const SkillCell start = ReadTheHeroCell(hero, context);
+    constexpr std::int32_t LastCell = 0xff;
+    if (!InRange(goalX, 0, LastCell) || !InRange(goalY, 0, LastCell))
+        return {};
     World::WorldTerrain& terrain = context.world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::format("{}: falta TerrainWall para el camino de la skill", where));
-    constexpr std::int32_t LastCell = 0xff;
-    if (!InRange(goalX, 0, LastCell) || !InRange(goalY, 0, LastCell))
-        return Core::Unexpected(std::format("{}: la celda del blanco ({}, {}) fuera de la grilla, que PathFinding2 "
-                                            "toma como índice lineal",
-                                            where, goalX, goalY));
     const auto path = GameLogic::PathFinder(terrain.attributes->cells)
                           .Find({start.x, start.y},
                                 {static_cast<std::uint8_t>(goalX), static_cast<std::uint8_t>(goalY)}, false, distance);
@@ -555,17 +555,17 @@ Core::Expected<void, std::string> WizardBranch::UseByReach()
         if (!InRange(m_skill, 0x43, 0x47) && m_skill != 0x4c)
             return {};
     }
-    // 0x58ee05..0x58eeb2: la línea de vista desde la celda del héroe (la Y y la X).
+    // 0x58ee05..0x58eeb2: la línea de vista desde la celda del héroe (la Y y la X). La que sale de TerrainWall
+    // (0x55886d lee fuera de los 65.536 WORD) MuRet la toma como sin línea (08, P-C256).
     const SkillCell cell = ReadTheHeroCell(m_hero, m_context);
     const World::WorldTerrain& terrain = m_world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x558800: falta TerrainWall para ver el blanco de la skill"));
-    const auto seen =
+    const bool seen =
         World::CanSeeTheCell(terrain.attributes->cells, cell.x, cell.y, std::bit_cast<std::int32_t>(m_state.targetX),
-                             std::bit_cast<std::int32_t>(m_state.targetY));
+                             std::bit_cast<std::int32_t>(m_state.targetY))
+            .value_or(false);
     if (!seen)
-        return Core::Unexpected(std::string("0x55886d: la línea hasta el blanco de la skill sale de TerrainWall"));
-    if (!*seen)
         return UseTheWizardOnly();
     // 0x58eeb8..0x58eecc.
     if (m_runtime.selectedTargets[2] != -1)

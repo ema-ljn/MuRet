@@ -255,16 +255,38 @@ TEST(PetStatsTest, TheHoveredItemWritesTheTableUnlessTheTrainerHasTheEquipment)
     EXPECT_EQ(third->Pet(2).nextExperience, 0u);
 }
 
-// 0x421dfd: un tipo de más de tres escribe fuera de 0x723960 y corta; sin nada en el cartel no escribe.
-TEST(PetStatsTest, APetBeyondTheThirdCutsWhenItWrites)
+// Q-C1208: un tipo de 3 o más que el original escribe fuera de 0x723960 (0x421dfd con la ventana abierta, 0x421f2c con
+// un ítem en el cartel) se descarta entero, sin rand() ni el cuervo ni 0x550d10, y la sesión sigue. Sin escribir (sin
+// nada en el cartel, o con el entrenador y una casilla del equipo), 0x4221d0 hace solo su acceso y sigue 0x550d10.
+TEST(PetStatsTest, APetBeyondTheThirdIsDiscardedWhenItWrites)
 {
-    auto tested = std::make_unique<Pets>();
-    tested->world.Runtime().hoveredItemCopy.id = 0x1a05;
-    const auto cut = tested->Reply({.pet = 3, .kind = 0, .slot = 20, .level = 3, .experience = 9});
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x421dfd"), std::string::npos) << cut.Error();
-    auto quiet = std::make_unique<Pets>();
-    EXPECT_TRUE(quiet->Reply({.pet = 3, .kind = 0, .slot = 20, .level = 3, .experience = 9}).HasValue());
+    for (const std::uint8_t pet : {std::uint8_t{3}, std::uint8_t{0xff}})
+    {
+        SCOPED_TRACE(int{pet});
+        auto hovered = std::make_unique<Pets>();
+        hovered->world.Runtime().hoveredItemCopy.id = 0x1a05;
+        ASSERT_TRUE(hovered->Reply({.pet = pet, .kind = 0, .slot = 20, .level = 3, .experience = 9}).HasValue());
+        EXPECT_EQ(hovered->Draws(), 0);
+        EXPECT_EQ(hovered->world.Runtime().ownRecordDepth, 0);
+
+        auto open = std::make_unique<Pets>();
+        open->world.Runtime().panels.delegated.pet = 2;
+        ASSERT_TRUE(open->Reply({.pet = pet, .kind = 0, .slot = 1, .level = 3, .experience = 9}).HasValue());
+        EXPECT_EQ(open->Draws(), 0);
+        EXPECT_EQ(open->Raven().level, 0);
+
+        auto quiet = std::make_unique<Pets>();
+        ASSERT_TRUE(quiet->Reply({.pet = pet, .kind = 0, .slot = 20, .level = 3, .experience = 9}).HasValue());
+        EXPECT_EQ(quiet->Draws(), OwnRecordCloseRandoms + std::make_unique<Pets>()->RecalculationDraws());
+
+        auto trainer = std::make_unique<Pets>();
+        trainer->world.Runtime().hoveredItemCopy.id = 0x1a05;
+        trainer->world.Runtime().panels.delegated.trainer = 1;
+        ASSERT_TRUE(trainer->Reply({.pet = pet, .kind = 0, .slot = 1, .level = 3, .experience = 9}).HasValue());
+        EXPECT_EQ(trainer->Draws(), OwnRecordCloseRandoms + std::make_unique<Pets>()->RecalculationDraws());
+        for (const PetStats& entry : trainer->world.Runtime().pets)
+            EXPECT_EQ(entry.level, 0);
+    }
 }
 
 // 0x421f8f..0x421fae: con 0xfe y 0xff, después del cuervo, los joints de la vtable + 0x14 y + 0x18 son de la CL11.

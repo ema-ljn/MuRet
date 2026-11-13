@@ -231,15 +231,20 @@ Core::Expected<void, std::string> HitTheTarget(ActorState& hero, std::int32_t ta
 // +0x3e8, 0) con el alcance de distancia (0x4eac00, sin bClearGoal): las celdas a menos del alcance del blanco son la
 // meta. Con camino, +0x378 en 1 y nada más: sin SendMove, el servidor no ve el camino hasta el D3 de girar al llegar
 // (07). Sin camino, nada.
-Core::Expected<void, std::string> WalkIntoRange(ActorState& hero, GameLogic::PathCell target, float range,
-                                                const HeroArrivalContext& context)
+Core::Expected<void, std::string> WalkIntoRange(ActorState& hero, std::int32_t targetX, std::int32_t targetY,
+                                                float range, const HeroArrivalContext& context)
 {
     auto& random = context.combat.random;
     const std::uint8_t y = ReadTheCell(hero.cellYAccesses, hero.cellY, random);
     const std::uint8_t x = ReadTheCell(hero.cellXAccesses, hero.cellX, random);
+    // La celda del blanco fuera de la grilla, que el A* toma como índice lineal (la fila de al lado, o fuera de los
+    // 65.536 WORD): MuRet descarta el acercamiento, con los dos rand() de las lecturas (08, P-C256).
+    if (targetX < 0 || targetX > LastCell || targetY < 0 || targetY > LastCell)
+        return {};
     World::WorldTerrain& terrain = context.combat.world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x566272: falta TerrainWall para el camino hasta el alcance"));
+    const GameLogic::PathCell target{static_cast<std::uint8_t>(targetX), static_cast<std::uint8_t>(targetY)};
     const auto path = GameLogic::PathFinder(terrain.attributes->cells).Find({x, y}, target, false, range);
     if (!path)
         return {};
@@ -382,24 +387,20 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(ActorState& hero, const H
         if (!terrain.attributes)
             return Core::Unexpected(
                 std::string("0x558800: falta TerrainWall para ver el blanco de la skill pendiente"));
+        // 0x56639d: la línea que sale de TerrainWall (0x55886d lee fuera de los 65.536 WORD) MuRet la toma como sin
+        // línea (08, P-C256).
         const auto seen = World::CanSeeTheCell(terrain.attributes->cells, x, y, *cellX, *cellY);
-        if (!seen)
-            return Core::Unexpected(std::string("0x55886d: la línea hasta el blanco de la skill sale de TerrainWall"));
-        if (!*seen)
+        if (!seen || !*seen)
             return {};
         if (kind == ArrivalSkillKind::OnItsTarget)
             return UseTheSkillOnItsTarget(hero, hero, skills);
         return UseTheElfSkillOnItsTarget(hero, hero, skills);
     }
     // 0x56620d..0x566299: el camino hasta el alcance (· 1,2 en un float, con 0x55b6f0) desde la celda lógica del héroe.
-    if (*cellX < 0 || *cellX > LastCell || *cellY < 0 || *cellY > LastCell)
-        return Core::Unexpected(std::format("0x566272: la celda del blanco ({}, {}) fuera de la grilla, que "
-                                            "PathFinding2 toma como índice lineal",
-                                            *cellX, *cellY));
     const float reach = castsAtTheTarget
                             ? static_cast<float>(static_cast<double>(range.Value()) * static_cast<double>(WalkReach))
                             : range.Value();
-    return WalkIntoRange(hero, {static_cast<std::uint8_t>(*cellX), static_cast<std::uint8_t>(*cellY)}, reach, context);
+    return WalkIntoRange(hero, *cellX, *cellY, reach, context);
 }
 
 Core::Expected<void, std::string> AttackOnArrival(ActorState& hero, const HeroArrivalContext& context)
@@ -448,12 +449,7 @@ Core::Expected<void, std::string> AttackOnArrival(ActorState& hero, const HeroAr
         // 0x565349..0x5653b6: fuera de alcance sólo el elfo se acerca, con el camino hasta el alcance (0x566271).
         if ((hero.characterClass & ClassMask) != ElfClass)
             return {};
-        if (*cellX < 0 || *cellX > LastCell || *cellY < 0 || *cellY > LastCell)
-            return Core::Unexpected(std::format("0x566272: la celda del blanco ({}, {}) fuera de la grilla, que "
-                                                "PathFinding2 toma como índice lineal",
-                                                *cellX, *cellY));
-        return WalkIntoRange(hero, {static_cast<std::uint8_t>(*cellX), static_cast<std::uint8_t>(*cellY)}, range,
-                             context);
+        return WalkIntoRange(hero, *cellX, *cellY, range, context);
     }
     return HitTheTarget(hero, target, context);
 }

@@ -1051,6 +1051,28 @@ TEST(HeroSkillsTest, AWeaponSkillShinesOnTheHero)
     }
 }
 
+// P-C358: el brillo 0x5fe de un héroe transformado (otro modelo que 0x20a) corta en 0x53fdb0 antes de crearse: su
+// escala sale del modelo compartido de ese tipo, que MuRet todavía no tiene (los anillos de transformación). Antes,
+// el D3 y el 0x4f4a10 del modelo (con su esqueleto) corren como siempre.
+TEST(HeroSkillsTest, TheShineOfATransformedHeroIsACut)
+{
+    for (const std::int32_t map : {0, 2, 8})
+    {
+        SCOPED_TRACE(map);
+        const AnyModels library;
+        const auto tested = AHeroClicking(0x31, Knight, map);
+        tested->models = &library;
+        tested->Hero().type = 0x28;
+        const auto result = tested->Use();
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_TRUE(Contains(result.Error(), "0x53fdb0")) << result.Error();
+        EXPECT_TRUE(Contains(result.Error(), "anillos de transformación")) << result.Error();
+        EXPECT_FALSE(tested->world.Particles().All()[0].alive);
+        ASSERT_EQ(tested->sent.size(), 1u);
+        EXPECT_EQ(ClearBytesOf(tested->sent[0])[2], 0xd3);
+    }
+}
+
 // 0x55bf0c..0x55bf29: dentro de los 300 ms del último envío el 19 no sale, pero sí el D3 y lo demás; con "webzen" en el
 // nombre del héroe publicado, tampoco (0x55be9a).
 TEST(HeroSkillsTest, TheBrakeAndTheNameHoldTheMagicAttack)

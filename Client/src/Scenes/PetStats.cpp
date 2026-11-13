@@ -1,6 +1,7 @@
 #include "Scenes/PetStats.h"
 
 #include "Core/Expected.h"
+#include "Core/Log.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
@@ -20,9 +21,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <format>
 #include <string>
-#include <utility>
 
 namespace Client::Scenes
 {
@@ -71,12 +70,20 @@ std::uint8_t OwnDurability(WorldState& world, Render::Models::CrtRandom& random,
     return world.OwnCharacter().equipment[slot].durability;
 }
 
-Core::Expected<PetStats*, std::string> EntryOf(WorldRuntime& runtime, std::uint8_t pet)
+// Si 0x421db0 escribe la entrada de la mascota en la tabla de 0x723960: con la ventana abierta, siempre (0x421e00); con
+// la ventana cerrada, con un ítem en el cartel y sin el entrenador abierto con la casilla debajo de 12
+// (0x421eee..0x421f16).
+bool WritesTheTable(const Protocol::Pet::PetInfoReply& reply, WorldState& world, Render::Models::CrtRandom& random,
+                    bool windowOpen)
 {
-    if (pet >= runtime.pets.size())
-        return Core::Unexpected(
-            std::format("0x421dfd: la mascota {} escribe fuera de las tres de 0x723960 (0x14 bytes cada una)", pet));
-    return &runtime.pets[pet];
+    if (windowOpen)
+        return true;
+    if (world.Runtime().hoveredItemCopy.id == NoHoveredItem)
+        return false;
+    if (reply.slot >= EquipmentSlots)
+        return true;
+    GamePanels panels(world, random);
+    return !panels.Registry().IsOpen(UI::TrainerPanel);
 }
 
 // 0x4e4cbd..0x4e4ce7: con el registro propio abierto (0x4e79a0 y 0x40f370), 0x550d10.
@@ -106,12 +113,11 @@ Core::Expected<void, std::string> WithTheWindowOpen(const Protocol::Pet::PetInfo
     ActorState& hero = world.Actors()[runtime.hero];
     if (hero.darkSpirit && reply.pet == RavenPetStats)
         ApplyRavenInfo(*hero.darkSpirit, reply.level, reply.experience, world, random);
-    auto entry = EntryOf(runtime, reply.pet);
-    if (!entry.HasValue())
-        return Core::Unexpected(std::move(entry).Error());
-    entry.Value()->level = reply.level;
-    entry.Value()->durability = OwnDurability(world, random, HorseEquipmentSlot);
-    entry.Value()->experience = reply.experience;
+    // ApplyPetInfo ya descartó la mascota de fuera de la tabla.
+    PetStats& entry = runtime.pets[reply.pet];
+    entry.level = reply.level;
+    entry.durability = OwnDurability(world, random, HorseEquipmentSlot);
+    entry.experience = reply.experience;
     UpdatePetStats(reply.pet, world, random);
     return {};
 }
@@ -142,24 +148,13 @@ Core::Expected<void, std::string> WithTheWindowClosed(const Protocol::Pet::PetIn
     WorldState& world = resources.world;
     WorldRuntime& runtime = world.Runtime();
     Render::Models::CrtRandom& random = resources.cloth.random;
-    const World::ItemState& hovered = runtime.hoveredItemCopy;
-    if (hovered.id != NoHoveredItem)
+    // 0x421f18..0x421f40. ApplyPetInfo ya descartó la mascota de fuera de la tabla.
+    if (WritesTheTable(reply, world, random, false))
     {
-        bool trainer = false;
-        if (reply.slot < EquipmentSlots)
-        {
-            GamePanels panels(world, random);
-            trainer = panels.Registry().IsOpen(UI::TrainerPanel);
-        }
-        if (!trainer)
-        {
-            auto entry = EntryOf(runtime, reply.pet);
-            if (!entry.HasValue())
-                return Core::Unexpected(std::move(entry).Error());
-            entry.Value()->level = reply.level;
-            entry.Value()->durability = hovered.durability;
-            entry.Value()->experience = reply.experience;
-        }
+        PetStats& entry = runtime.pets[reply.pet];
+        entry.level = reply.level;
+        entry.durability = runtime.hoveredItemCopy.durability;
+        entry.experience = reply.experience;
     }
     UpdatePetStats(reply.pet, world, random);
     if (reply.kind != PlainKind && reply.kind != LevelUpKind && reply.kind != LastKind)
@@ -253,6 +248,14 @@ Core::Expected<void, std::string> ApplyPetInfo(const Protocol::Pet::PetInfoReply
 {
     WorldRuntime& runtime = resources.world.Runtime();
     const bool windowOpen = runtime.panels.delegated.pet == PetWindowOpen;
+    // 0x421dfd y 0x421f2c: una mascota de 3 o más escribe fuera de las tres entradas de 0x723960 (0x14 bytes cada una)
+    // y sigue. MuRet descarta el A9 entero, antes de cualquier rand() (07, Q-C1208).
+    if (reply.pet >= runtime.pets.size() && WritesTheTable(reply, resources.world, resources.cloth.random, windowOpen))
+    {
+        resources.log.Warning("se descarta un A9 con la mascota {}: el original escribe fuera de la tabla de 0x723960",
+                              reply.pet);
+        return {};
+    }
     auto applied = windowOpen ? WithTheWindowOpen(reply, resources) : WithTheWindowClosed(reply, resources);
     if (!applied.HasValue())
         return applied;

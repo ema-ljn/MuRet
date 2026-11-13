@@ -10612,7 +10612,7 @@ modelos/sonidos, y no sustituye la observación nativa pendiente de P-C45.
 del personaje (`0x4ea030`); los sonidos van a `WorldRuntime::lastSoundId` (CL10) y los efectos de `0x518cf0` y los
 joints de `0x530860`, de la CL11, cortan con su dirección después de lo que el original hace antes.
 
-**`0x4cc530`, el `19`.** Fuente y blanco por `0x5110d0`; sin el blanco, nada. La fuente queda en `0x5767964`. Salvo la
+**`0x4cc530`, el `19`.** Fuente y blanco por `0x5110d0`; sin el blanco, nada; sin la fuente, el 400 (Q-C1237). La fuente queda en `0x5767964`. Salvo la
 `0x3b`: si la fuente no es el héroe, la skill no es la 6 ni la `0xf` y el blanco se ve (`+0x16c`), el rumbo de la fuente
 (`+0x24`) hacia el blanco (`0x4e93f0`); el blanco en `+0x3a4` (y en `+0x434` con la `0x4c`), el éxito en `+0x38d` y la
 skill en `+0x38e`, que es una entrada de un byte de la tabla de protección (un `rand()` al cerrarla en 0). Después,
@@ -10625,7 +10625,7 @@ la rama de la skill:
 | `0x10` | fuera del héroe, `0x4f5290` y el frame en 0 |
 | `0x3` | el sonido `0x50` salvo el tipo `0x1a5`; para al blanco (`0x4f2250`) en las acciones `0xcb`, `0xcc`, `0xc5` y `0xc7`; sigue como la 1 |
 | `0x1`, `0x2`, `0x4`, `0x7`, `0xb`, `0x11` | fuera del héroe: un jugador `0x4f5290` y el frame en 0; otro, `0x4f4a10` y el frame en 0 (`0x4cd68e`) |
-| `0xf` | el blanco se va (`0x53d8d0`) y la fuente llega (`0x53d930`), cada uno con la acción `0x93`, el destello `0x5c6` y el sonido `0x76`; en el héroe, `0x576794c` en 0; el sonido `0x83` |
+| `0xf` | el blanco se va (`0x53d8d0`) y la fuente llega (`0x53d930`), cada uno con la acción `0x93`, el destello `0x5c6` y el sonido `0x76`; en el héroe, `0x576794c` en 0; el sonido `0x83`; vuelve por `0x4cd442` a `0x4cde69`, sin el `+0x381` en 1 de `0x4cde62` |
 | `0x6` | la fuente se va (`0x53d8d0`) |
 | `0x13`..`0x16`, `0x38`, `0x39`, `0x2c` | la acción (`0x38`..`0x3b`, `0x8d`, `0x84`, `0x85`) y su sonido |
 | `0x17` | `0x3c` o `0x29` alternadas con `+0x38f` |
@@ -10638,12 +10638,12 @@ la rama de la skill:
 | `0x31` | `0x41` en Atlans (8) y en el cielo (10), `0x40` en los demás |
 | `0x3b` | el efecto `0x112` en la fuente (CL11, `0x4cddfa`) |
 | `0x3a` | `0x44`, el sonido `0x92` y `+0x1bc` en 0 |
-| `0x28` | `0x45`; en el héroe suelta el clic derecho (`0x7d36880`, `0x7d3685c`; `0x7d36840` y `0x7d368a4` no los tiene MuRet) |
+| `0x28` | `0x45`; en el héroe suelta el clic derecho (`0x4cde43..0x4cde58`: el soltado `0x7d36840`, el clic `0x7d36880`, el botón `0x7d3685c` y los frames de carga `0x7d368a4`) |
 
 `0x4f5290`, en un jugador, abre los stats propios (`0x4f3f80`, 3.848 `rand()`) y elige `0x97` (Uniria o Dinorant),
 `0x5d` (Fenrir), `0x92` (elfo) o `0x8e + rand() % 2`; en otro, 3 y 4 de a tres con `+0x38f`.
 
-**`0x4ce000`, el `1E`.** Sobre el personaje de la clave (el 400 si no está): la skill en `+0x38e`, el rumbo
+**`0x4ce000`, el `1E`.** Sobre el personaje de la clave (el 400 si no está, Q-C1204): la skill en `+0x38e`, el rumbo
 (`rumbo · 1/255 · 360`, en double, Q-C1201), y un monstruo va a `0x4f4a10` con el frame en 0 (`0x4cece8`). Otro jugador hace la acción de la
 tabla de `0x4ced44` (las `0x18` y `0x34` van a `0x4f4a10` en `0x4cea88` y la `0x36` en `0x4ceaad`; `0xc` `0x94`, `0xa` `0x96`, `0xe` `0x95`, `0x41`
 `0x94` o `0x5b` con Fenrir, `0x3e` `0x53` y el sonido `0x1ce`, `0x2a` `0x3e`, `0x2f` `0x42` o `0x5f`, `0x29` y `0x37`
@@ -11177,7 +11177,7 @@ selección) pone en 0 `0x723910` (la pestaña), `0x723911` (la ventana) y quince
   cuervo de `0x4221d0` en `+0x454` (la de `+0xc`), `+0x456`, `+0x458` y `+0x45a`.
 
 **MuRet**: `Scenes::ApplyPetInfo` (`Scenes/PetStats`), con `WorldRuntime::pets` y los campos del cuervo de
-`Scenes::DarkSpirit`; un tipo de más de 2 que escribe la tabla corta (`0x421dfd`, Q-C1208), y los joints de `0xfe` y
+`Scenes::DarkSpirit`; un tipo de más de 2 que escribe la tabla se descarta entero (`0x421dfd`, `0x421f2c`, Q-C1208), y los joints de `0xfe` y
 `0xff` cortan como de la CL11 (`0x421f9a`, `0x421fae`). `PetStatsTest`.
 
 **La ventana de la mascota.** El botón de 0x424230 abre el panel `0x400` (`0x6599a0`, `0x659fd9..0x65a8af`): cierra

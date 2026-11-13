@@ -6,7 +6,9 @@
 #include "Core/Expected.h"
 #include "Scenes/WorldEntry.h"
 
+#include <cstddef>
 #include <optional>
+#include <span>
 #include <string>
 
 namespace Client::App
@@ -30,6 +32,8 @@ public:
     Core::Expected<void, std::string> ApplyCharacter(const App::CharacterEvent& event,
                                                      const App::ServerSession& session) override;
     Core::Expected<void, std::string> ApplyWorld(const App::WorldEvent& event, App::ServerSession& session) override;
+    // La copia del dispatcher a la cola de la .bss (WorldRuntime::viewportPackets), con StoreViewportPacket.
+    void CopyToPacketRing(std::span<const std::byte> packet) override;
 
 private:
     Core::Expected<void, std::string> ApplyWorldContent(const App::WorldEvent& event, App::ServerSession& session);

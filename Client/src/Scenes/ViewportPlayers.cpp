@@ -247,6 +247,7 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Viewport::Pl
     {
         if (auto teleported = StartTheTeleportAction(actor, resources); !teleported.HasValue())
             return teleported;
+        // 0x4c8a43..0x4c8ad4: el paquete entero otra vez a la cola (Q-C801).
         StoreViewportPacket(runtime.viewportPackets, packet);
     }
     else if (const auto action = StateAction(state, actor.characterClass))
@@ -409,8 +410,7 @@ Core::Expected<void, std::string> ShowThePet(std::size_t index, const ShownItem&
 Core::Expected<void, std::string> ApplyViewportPlayers(const Protocol::Viewport::Players& players,
                                                        const WorldEntryResources& resources)
 {
-    // 0x4e372e..0x4e37b8: el dispatcher, antes de 0x4c8860.
-    StoreViewportPacket(resources.world.Runtime().viewportPackets, players.packet);
+    // La copia del dispatcher (0x4e372e..0x4e37b8) ya la hizo la sesión, antes del lector (CopyToPacketRing).
     for (const Protocol::Viewport::PlayerRecord& record : players.records)
     {
         // 0x4c88d2..0x4c88dc.
@@ -510,7 +510,7 @@ Core::Expected<void, std::string> ApplyEquipmentShown(const Protocol::Viewport::
                          .level = ShownLevelOf(placeAndLevel & LevelMask),
                          .excellent = static_cast<std::uint8_t>(ByteOf(bytes, 3) & ExcellentMask),
                          .ancient = ByteOf(bytes, 4)};
-    const std::uint8_t place = placeAndLevel >> SlotShift;
+    const auto place = static_cast<std::uint8_t>(placeAndLevel >> SlotShift);
     constexpr std::uint8_t FirstBodyPlace = 2;
     constexpr std::uint8_t LastBodyPlace = 6;
     constexpr std::uint8_t WingsPlace = 7;

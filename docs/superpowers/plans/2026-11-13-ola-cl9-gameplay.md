@@ -392,6 +392,12 @@ amigos. **Desbloquea:** 10.
       `0x49f870`), la pestaña de las cartas (`0x4a11b0`) y las ventanas de leer y de escribir (`0x49a1f0`,
       `0x498820`). El retrato (`0x497c10`), cortado por el gancho que el juego no da (P-C212); los dibujos del
       chat, de las cartas y de su pestaña, cortados (P-C213).
+- [x] **Los dibujos** (P-C213 y P-C215, cerrados): el EDIT de varios renglones (`+0xc4` en 1: `EM_GETLINECOUNT`,
+      `0x468970` y el cursor y la selección de `0x468d50`; P-C217), el chat (`0x493fc0`, con sus listas `0x45f9c0`,
+      `0x460550`, `0x491ba0` y las texturas `0x64b`, `0x64c` y `0x651`), la de leer (`0x499d60`), la de escribir
+      (`0x498480`), la pestaña de las cartas (`0x4a0a30`, `0x4641f0`) y los renglones de los chats en F5 (`0x4a5490`
+      desde `0x4a5537`, `0x4a5750`). El retrato de las cartas (`0x49a1d0`, `0x498800` → `0x497c10`) sigue cortado
+      (P-C212), y los íconos de la barra (`0x4a5120`), con la CL8 (P-C63).
 
 **Pruebas:** abrir un chat con un amigo e invitar a otro; mandar, leer y borrar una carta, byte a byte.
 

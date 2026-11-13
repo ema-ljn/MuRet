@@ -179,4 +179,12 @@ Outgoing WriteClearSkillReport(std::uint8_t head)
     return EncryptedC1(
         Network::PacketWriter::C1(Connection::JoinOpcode).PutU8(Connection::DecryptErrorSubcode).PutU8(0).PutU8(head));
 }
+
+Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key)
+{
+    return EncryptedC1(Network::PacketWriter::C1(MagicAttackOpcode)
+                           .PutU8(skill)
+                           .PutU8(static_cast<std::uint8_t>(key >> 8))
+                           .PutU8(static_cast<std::uint8_t>(key & 0xffu)));
+}
 } // namespace Client::Protocol::Skill

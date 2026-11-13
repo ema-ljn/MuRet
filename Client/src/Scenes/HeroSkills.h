@@ -1,11 +1,13 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Protocol/Outgoing.h"
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <cstdint>
 #include <functional>
 #include <optional>
 #include <string>
@@ -13,7 +15,8 @@
 namespace Client::Render::Models
 {
 class CrtRandom;
-}
+struct Skeleton;
+} // namespace Client::Render::Models
 
 // CL9 hito 4, fase 2b: usar una skill desde el juego (0x57cfc0). Contrato:
 // Client/docs/research/06-render-escenas-y-ui.md, "Usar una skill". MoveHero la llama al final del clic (0x59e255),
@@ -29,6 +32,13 @@ struct HeroSkillContext
     Render::Models::CrtRandom& random;
     // Skill.bmd (0x76bd1d8). nullptr: 0x5526f0 corta.
     const Data::Tables::SkillTable* skills = nullptr;
+    // Las acciones de Player.bmd, que 0x4ea030 pone a las skills de un jugador, e Item.bmd, que lee 0x4f4a10 con otro
+    // (CL9 hito 4, fase 2c). nullptr: la que lo pide corta.
+    const Render::Models::Skeleton* playerSkeleton = nullptr;
+    const Data::Tables::ItemTable* items = nullptr;
+    // GetTickCount (0x6b8144), que leen el freno de 300 ms de los envíos (0x576791c, PassesTheActionBrake). Vacío: el
+    // envío que lo mira corta.
+    std::function<std::uint32_t()> tickCount{};
     // [0x5767b88], el reloj del mundo en ms.
     float worldTime = 0.0f;
     // GetAsyncKeyState(0x11), que 0x558bb0 mira para atacar a otro jugador.

@@ -10,6 +10,7 @@
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameMovementState.h"
@@ -20,6 +21,7 @@
 #include "UI/GameUiState.h"
 #include "World/ItemState.h"
 
+#include "support/PlayerActors.h"
 #include "support/TableFiles.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -67,6 +69,7 @@ struct InventedSkill
     std::uint8_t skill = 0;
     std::uint8_t range = 0;
     std::uint8_t party = 0;
+    std::uint8_t mana = 0;
 };
 
 // Skill.bmd con el alcance (+0x26) y el byte de grupo (+0x31) de cada skill de `skills`.
@@ -76,6 +79,7 @@ Client::Data::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill>
     for (const InventedSkill& invented : skills)
     {
         const std::size_t base = std::size_t{invented.skill} * Client::Data::Tables::SkillRecordSize;
+        plain[base + 0x22] = static_cast<std::byte>(invented.mana);
         plain[base + 0x26] = static_cast<std::byte>(invented.range);
         plain[base + 0x31] = static_cast<std::byte>(invented.party);
     }
@@ -132,7 +136,14 @@ struct SkillHero
     }
     HeroSkillContext Context()
     {
-        return HeroSkillContext{.world = world, .random = random, .skills = &skills, .worldTime = worldTime};
+        return HeroSkillContext{.world = world,
+                                .random = random,
+                                .skills = &skills,
+                                .playerSkeleton = &skeleton,
+                                .tickCount = [this] { return ticks; },
+                                .worldTime = worldTime,
+                                .send = [this](Client::Protocol::Outgoing outgoing)
+                                { sent.push_back(std::move(outgoing)); }};
     }
     Client::Core::Expected<void, std::string> Use()
     {
@@ -142,6 +153,9 @@ struct SkillHero
     Client::Scenes::WorldState world;
     CrtRandom random;
     float worldTime = 5000.0f;
+    std::uint32_t ticks = 100000;
+    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    std::vector<Client::Protocol::Outgoing> sent;
     Client::Data::Tables::SkillTable skills = SkillsWith({{0x11, 3},
                                                           {0x13, 4},
                                                           {0x16, 6},
@@ -153,6 +167,8 @@ struct SkillHero
                                                           {0x30, 2},
                                                           {0x31, 3},
                                                           {0x3a, 7},
+                                                          {0x3c, 3},
+                                                          {0x3d, 3, 0, 0x40},
                                                           {0x43, 3},
                                                           {0x4b, 3},
                                                           {0x1d, 5, 2}});
@@ -597,25 +613,27 @@ TEST(HeroSkillsTest, AMountedHeroSkipsTheWeaponsForSomeSkills)
     }
 }
 
-// 0x5599db..0x559afc: las skills especiales del arma y la opción del arma con la skill del lugar cortan con su
-// dirección (fase 2c).
-TEST(HeroSkillsTest, TheWeaponSkillsThatSendCut)
+// 0x5599db..0x559afc: las skills especiales del arma van a 0x559afc y las opciones del arma a 0x55a368; las que crean
+// la partícula 0x5fe de 0x55b6f0 cortan en 0x55be23 (CL11).
+TEST(HeroSkillsTest, TheWeaponSkillsGoToTheirTails)
 {
     {
         const auto tested = AHeroClicking(0x31, Knight);
         const auto result = tested->Use();
         ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x559afc")) << result.Error();
+        EXPECT_TRUE(Contains(result.Error(), "0x55be23")) << result.Error();
     }
     {
-        // 0x559a84..0x559a9f: la 0x39 con un arma derecha de 0x212 a 0x411.
+        // 0x559a84..0x559a9f: la 0x39 con un arma derecha de 0x212 a 0x411; su alcance de 0 deja al elegido lejos y
+        // 0x559510 arma el camino (el caso 5 de la llegada).
         const auto tested = AHeroClicking(0x13, Knight, 30);
         tested->world.Runtime().siegeActive = true;
         tested->world.OwnCharacter().SetSkillAt(0, 0x39);
         tested->Hero().hands[0].model = 0x300;
         const auto result = tested->Use();
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x559afc")) << result.Error();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(tested->Hero().movementType, 5);
+        EXPECT_EQ(tested->Hero().movement, 1);
     }
     {
         // 0x559ad5..0x559afa: la 0x2b con un arma derecha de 0xc12 a 0xe11 da 0 y sigue a la rama.
@@ -627,7 +645,7 @@ TEST(HeroSkillsTest, TheWeaponSkillsThatSendCut)
         EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
     }
     {
-        // 0x55a340..0x55a362: la segunda mano con la opción de la skill.
+        // 0x55a340..0x55a362: la segunda mano con la opción de la skill, que 0x559510 lanza sobre el elegido.
         const auto tested = AHeroClicking(0x13, Knight);
         auto& item = tested->world.OwnCharacter().equipment[1];
         item.optionCount = 2;
@@ -635,7 +653,7 @@ TEST(HeroSkillsTest, TheWeaponSkillsThatSendCut)
         item.optionBytes[1] = 0x13;
         const auto result = tested->Use();
         ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x55a368")) << result.Error();
+        EXPECT_TRUE(Contains(result.Error(), "0x55be23")) << result.Error();
     }
     {
         // 0x561f60: la del elfo, sin la lista.
@@ -857,3 +875,155 @@ TEST(HeroSkillsTest, WithoutTheRavenOrTheButtonTheSkillGoesOn)
     }
 }
 } // namespace
+
+// Lo que gasta 0x559afc hasta 0x55b6f0 con la 0x3c en alcance: la cabeza y el blanco (AimDraws), el costo (0x559b0b) y
+// la espera (0x552c50) con sus entradas, las celdas del héroe publicado del D3, los dos del C3 19, la entrada de
+// 0x559510 al cerrarse y el registro propio de la mano.
+constexpr int ListedCastDraws = AimDraws + 2 * EntryDraws + 2 * CellDraws + 2 + EntryDraws + OwnDraws;
+
+// 0x559afc → 0x559510 → 0x55b6f0 con la 0x3c (sin la partícula 0x5fe): el D3 de girar con la celda del héroe y su
+// rumbo, el C3 19 con la clave del elegido, el blanco en +0x3a8, el rumbo hacia él y +0x381; el DF no sale con la 0x3c.
+// En Lorencia y en Devias.
+TEST(HeroSkillsTest, AListedWeaponSkillCastsAtTheChosen)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        const auto tested = AHeroClicking(0x3c, Knight, map);
+        tested->world.Actors()[ChosenSlot].key = 0x0a1b;
+        const CrtRandom expected = Advanced(tested->random, ListedCastDraws);
+        const auto result = tested->Use();
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(tested->random.State(), expected.State());
+        ASSERT_EQ(tested->sent.size(), 2u);
+        EXPECT_EQ(tested->sent[0].delivery, Client::Network::Delivery::Clear);
+        EXPECT_EQ(ClearBytesOf(tested->sent[0]), (std::vector<std::uint8_t>{0xc1, 0x06, 0xd3, 182, 115, 0x10}));
+        EXPECT_EQ(tested->sent[1].delivery, Client::Network::Delivery::Encrypted);
+        EXPECT_EQ(ClearBytesOf(tested->sent[1]), (std::vector<std::uint8_t>{0xc1, 0x06, 0x19, 0x3c, 0x0a, 0x1b}));
+        EXPECT_EQ(tested->Hero().attackPosition, tested->world.Actors()[ChosenSlot].position);
+        EXPECT_FLOAT_EQ(tested->Hero().angles.z, 135.0f);
+        EXPECT_EQ(tested->Hero().byte381, 1);
+        EXPECT_EQ(tested->Movement().weaponSkill.slot, 0x3cu);
+        EXPECT_EQ(tested->Movement().weaponSkill.target, static_cast<std::int32_t>(ChosenSlot));
+        EXPECT_EQ(tested->Movement().lastActionTick, tested->ticks);
+    }
+}
+
+// 0x55bf0c..0x55bf29: dentro de los 300 ms del último envío el 19 no sale, pero sí el D3 y lo demás; con "webzen" en el
+// nombre del héroe publicado, tampoco (0x55be9a).
+TEST(HeroSkillsTest, TheBrakeAndTheNameHoldTheMagicAttack)
+{
+    {
+        const auto tested = AHeroClicking(0x3c, Knight);
+        tested->Movement().lastActionTick = tested->ticks - 300;
+        const CrtRandom expected = Advanced(tested->random, ListedCastDraws - 2);
+        ASSERT_TRUE(tested->Use().HasValue());
+        EXPECT_EQ(tested->random.State(), expected.State());
+        ASSERT_EQ(tested->sent.size(), 1u);
+        EXPECT_EQ(ClearBytesOf(tested->sent[0])[2], 0xd3);
+        EXPECT_EQ(tested->Hero().byte381, 1);
+    }
+    {
+        const auto tested = AHeroClicking(0x3c, Knight, 2);
+        const char name[] = "xwebzenx";
+        for (std::size_t i = 0; i + 1 < sizeof(name); ++i)
+            tested->Hero().name[i] = static_cast<std::byte>(name[i]);
+        ASSERT_TRUE(tested->Use().HasValue());
+        ASSERT_EQ(tested->sent.size(), 1u);
+        EXPECT_EQ(tested->Movement().lastActionTick, 0u);
+    }
+}
+
+// 0x559b29..0x559b3b: sin maná y sin poción de maná, 0x559890 da 0 y la skill sigue a la rama de la clase; con una
+// poción, 0x5af520 y el C1 26 cortan (hito 5). Nada sale.
+TEST(HeroSkillsTest, WithoutManaTheListedSkillLooksForAPotion)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        const auto tested = AHeroClicking(0x3d, Knight, map);
+        const auto result = tested->Use();
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+        EXPECT_TRUE(tested->sent.empty());
+        auto& potion = tested->world.Inventory().cells[12];
+        potion.id = 0x1c05;
+        potion.occupied = 1;
+        tested->Ui().rightClick = true;
+        const auto again = tested->Use();
+        ASSERT_FALSE(again.HasValue());
+        EXPECT_TRUE(Contains(again.Error(), "0x559b41")) << again.Error();
+        EXPECT_TRUE(Contains(again.Error(), "hito 5")) << again.Error();
+    }
+    // Con el maná del registro propio, la 0x3d llega al 19.
+    const auto tested = AHeroClicking(0x3d, Knight);
+    tested->world.OwnCharacter().mana = 0x40;
+    ASSERT_TRUE(tested->Use().HasValue());
+    ASSERT_EQ(tested->sent.size(), 2u);
+    EXPECT_EQ(ClearBytesOf(tested->sent[1])[3], 0x3d);
+}
+
+// 0x5596f2..0x559822: fuera de alcance, el camino de PathFinding2 hasta el alcance desde las celdas lógicas del héroe
+// (la Y antes que la X), +0x378 en 1 y +0x379 en 5; no sale nada. En Blood Castle (0x55969e) las 0x13 a 0x17 tienen
+// 1,8 de alcance.
+TEST(HeroSkillsTest, AFarChosenGetsAPathForTheSkill)
+{
+    {
+        const auto tested = AHeroClicking(0x3c, Knight, 2);
+        tested->world.Actors()[ChosenSlot].position = {18950.0f, 11550.0f, 0.0f};
+        const CrtRandom expected =
+            Advanced(tested->random, AimDraws + 2 * EntryDraws + 2 * CellDraws + EntryDraws + OwnDraws);
+        ASSERT_TRUE(tested->Use().HasValue());
+        EXPECT_EQ(tested->random.State(), expected.State());
+        EXPECT_TRUE(tested->sent.empty());
+        EXPECT_EQ(tested->Hero().movement, 1);
+        EXPECT_EQ(tested->Hero().movementType, 5);
+        EXPECT_GT(tested->Hero().path.count, 0);
+    }
+    {
+        // La 0x13 de una opción del arma: 4 · 1,2 en Lorencia la deja en alcance (y corta en la partícula), y 1,8 en
+        // Blood Castle no llega a los 283 del elegido.
+        for (const std::int32_t map : {0, 11})
+        {
+            SCOPED_TRACE(map);
+            const auto tested = AHeroClicking(0x13, Knight, map);
+            auto& item = tested->world.OwnCharacter().equipment[0];
+            item.optionCount = 1;
+            item.optionBytes[0] = 0x13;
+            const auto result = tested->Use();
+            if (map == 0)
+            {
+                ASSERT_FALSE(result.HasValue());
+                EXPECT_TRUE(Contains(result.Error(), "0x55be23")) << result.Error();
+                continue;
+            }
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            EXPECT_EQ(tested->Hero().movementType, 5);
+        }
+    }
+}
+
+// 0x55abfa..0x55b45a: la opción 0x12 del arma pone la acción 0x98 y manda el C3 19 con la clave del héroe publicado; si
+// 0x558bb0 no deja atacar al elegido, la 0x3c de la lista también va a las opciones (0x55a2c0).
+TEST(HeroSkillsTest, TheOption12CastsOnTheHeroItself)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        const auto tested = AHeroClicking(0x12, Knight, map);
+        tested->Hero().key = 0x0123;
+        auto& item = tested->world.OwnCharacter().equipment[0];
+        item.optionCount = 1;
+        item.optionBytes[0] = 0x12;
+        ASSERT_TRUE(tested->Use().HasValue());
+        EXPECT_EQ(tested->Hero().animation.action, 0x98);
+        ASSERT_EQ(tested->sent.size(), 1u);
+        EXPECT_EQ(ClearBytesOf(tested->sent[0]), (std::vector<std::uint8_t>{0xc1, 0x06, 0x19, 0x12, 0x01, 0x23}));
+    }
+    const auto tested = AHeroClicking(0x3c, Knight);
+    tested->world.Actors()[ChosenSlot].byte88 = 0;
+    const auto result = tested->Use();
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_TRUE(Contains(result.Error(), "0x581894")) << result.Error();
+    EXPECT_TRUE(tested->sent.empty());
+}

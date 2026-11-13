@@ -46,6 +46,11 @@ public:
     Button(Render::TextureSlot slot, int width, int height, std::optional<int> checkedFrame = std::nullopt,
            std::optional<int> disabledFrame = std::nullopt);
 
+    // +0xb0 y +0xb4: los cuadros de apretado y de encima, el 2 y el 1 salvo que 0x63c330 reciba
+    // otros (−1 es el 0). Las casillas de las opciones y la perilla de un deslizador tienen el 0 en
+    // los dos.
+    void SetStateFrames(int pressed, int hover);
+
     // +0xa8: deshabilitado no tiene clic ni se ve encima ni apretado (0x63c490). Arranca habilitado.
     void SetEnabled(bool enabled);
     [[nodiscard]] bool Enabled() const;
@@ -54,8 +59,9 @@ public:
     void MoveTo(Point topLeft);
     [[nodiscard]] Rect Area() const;
 
-    // Un paso de 0x63c490 con el mouse en `mouse`: true si fue un clic.
-    bool Step(const Input::InputState& input, Point mouse);
+    // Un paso de 0x63c490 con el mouse en `mouse`: true si fue un clic. Sin mouse, el +0xa9 en 0
+    // de una ventana que no lo tiene (0x669ed0): nunca está encima (0x63c470).
+    bool Step(const Input::InputState& input, std::optional<Point> mouse);
 
     void SetChecked(bool checked);
     [[nodiscard]] bool Checked() const;
@@ -86,6 +92,8 @@ private:
     Rect m_area;
     std::optional<int> m_checkedFrame;
     std::optional<int> m_disabledFrame;
+    int m_pressedFrame = 2;
+    int m_hoverFrame = 1;
     bool m_enabled = true;
     bool m_checked = false;
     bool m_captured = false;

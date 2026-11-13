@@ -67,12 +67,25 @@ TEST(FontSetTest, EachFontHasItsHeight)
     EXPECT_EQ(FontHeightFor(FontKind::OtherFace12, 1920), 12);
 }
 
-// Peso 700 la negrita y la negrita grande; 400 las otras dos.
+// La de los créditos (0x63f21c..0x63f2e7): 14, 18 y 24 con 800, 1024 y 1280 justos, y 10 con cualquier
+// otro ancho, también 640 y 1600.
+TEST(FontSetTest, TheCreditsFontGoesByTheExactWidth)
+{
+    EXPECT_EQ(FontHeightFor(FontKind::Credits, 800), 14);
+    EXPECT_EQ(FontHeightFor(FontKind::Credits, 1024), 18);
+    EXPECT_EQ(FontHeightFor(FontKind::Credits, 1280), 24);
+    EXPECT_EQ(FontHeightFor(FontKind::Credits, 640), 10);
+    EXPECT_EQ(FontHeightFor(FontKind::Credits, 801), 10);
+    EXPECT_EQ(FontHeightFor(FontKind::Credits, 1600), 10);
+}
+
+// Peso 700 la negrita, la negrita grande y la de los créditos; 400 las otras dos.
 TEST(FontSetTest, OnlyTheBoldOnesAreBold)
 {
     EXPECT_FALSE(IsBold(FontKind::Normal));
     EXPECT_TRUE(IsBold(FontKind::Bold));
     EXPECT_TRUE(IsBold(FontKind::BigBold));
     EXPECT_FALSE(IsBold(FontKind::OtherFace12));
+    EXPECT_TRUE(IsBold(FontKind::Credits));
 }
 } // namespace

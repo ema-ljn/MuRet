@@ -16,6 +16,7 @@
 #include "Scenes/ITextDrawer.h"
 #include "UI/Button.h"
 #include "UI/GameText.h"
+#include "UI/NewUi.h"
 #include "UI/TextField.h"
 #include "UI/Widget.h"
 
@@ -255,23 +256,6 @@ const Button& CreateCharacterWindow::OkButton() const
     return m_ok;
 }
 
-void CreateCharacterWindow::StepUnderANotice(const Input::InputState& input)
-{
-    if (!m_open)
-    {
-        return;
-    }
-    TypeInto(input);
-    // Un punto que no está en ningún botón.
-    constexpr Point Nowhere{-1, -1};
-    for (Button& button : m_classes)
-    {
-        static_cast<void>(button.Step(input, Nowhere));
-    }
-    static_cast<void>(m_ok.Step(input, Nowhere));
-    static_cast<void>(m_cancel.Step(input, Nowhere));
-}
-
 bool CreateCharacterWindow::WantsTextInput() const
 {
     return m_open;
@@ -286,7 +270,13 @@ void CreateCharacterWindow::Choose(std::uint8_t characterClass)
     m_class = characterClass;
 }
 
-std::optional<CreateWindowEvent> CreateCharacterWindow::Step(const Input::InputState& input, App::PixelSize screen)
+Rect CreateCharacterWindow::Bounds(App::PixelSize screen) const
+{
+    return Rect{.x = 0, .y = 0, .width = screen.width, .height = screen.height};
+}
+
+std::optional<CreateWindowEvent> CreateCharacterWindow::Step(const Input::InputState& input, App::PixelSize screen,
+                                                             NewUiTurn turn)
 {
     if (!m_open)
     {
@@ -294,7 +284,7 @@ std::optional<CreateWindowEvent> CreateCharacterWindow::Step(const Input::InputS
     }
     Place(screen);
     TypeInto(input);
-    const Point mouse = MouseInPixels(input, screen);
+    const std::optional<Point> mouse = MouseOfTheTurn(turn, input, screen);
     std::optional<std::uint8_t> clicked;
     for (std::size_t i = 0; i < CreatableClassCount; ++i)
     {
@@ -303,12 +293,16 @@ std::optional<CreateWindowEvent> CreateCharacterWindow::Step(const Input::InputS
             clicked = static_cast<std::uint8_t>(i);
         }
     }
+    const bool ok = m_ok.Step(input, mouse);
+    const bool cancel = m_cancel.Step(input, mouse);
+    if (!turn.logic)
+    {
+        return std::nullopt;
+    }
     if (clicked)
     {
         Choose(*clicked);
     }
-    const bool ok = m_ok.Step(input, mouse);
-    const bool cancel = m_cancel.Step(input, mouse);
     if (ok)
     {
         CopyTheName();
@@ -319,12 +313,12 @@ std::optional<CreateWindowEvent> CreateCharacterWindow::Step(const Input::InputS
         Close();
         return CreateWindowEvent::Cancelled;
     }
-    if (input.WasPressed(Input::Key::Enter))
+    if (input.TakePress(Input::Key::Enter))
     {
         CopyTheName();
         return CreateWindowEvent::Submitted;
     }
-    if (input.WasPressed(Input::Key::Escape))
+    if (input.TakePress(Input::Key::Escape))
     {
         Close();
         return CreateWindowEvent::Cancelled;

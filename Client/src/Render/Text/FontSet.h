@@ -20,6 +20,10 @@ enum class FontKind : std::uint8_t
     // DAT_05763560, peso 400 y alto 12 fijo, con otra cara (el texto 18 de Text.bmd). MuRet usa la
     // de [Video] FontFile, como las otras.
     OtherFace12,
+    // +0x60c de los créditos (0x63f31e, CL8 hito 8): peso 700, con la cara del texto 0, y el alto por el
+    // ancho exacto de la pantalla, 14 con 800, 18 con 1024, 24 con 1280 y 10 con cualquier otro (640
+    // también).
+    Credits,
 };
 
 // n, el paso de la letra (DAT_07758568): WinMain lo escribe en 0x4ba6af..0x4ba6d3 con 12 para un
@@ -31,7 +35,7 @@ enum class FontKind : std::uint8_t
 [[nodiscard]] int FontStepFor(int screenWidth);
 
 // El alto de la celda que pide CreateFontA (positivo: la celda, no la letra): n − 1 la normal y la
-// negrita, 2 (n − 1) la negrita grande y 12 la otra cara.
+// negrita, 2 (n − 1) la negrita grande, 12 la otra cara y la de los créditos según el ancho.
 [[nodiscard]] int FontHeightFor(FontKind font, int screenWidth);
 
 // Si CreateFontA la pide con peso 700 (FW_BOLD) y no 400 (FW_NORMAL).

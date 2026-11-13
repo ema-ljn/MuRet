@@ -48,6 +48,11 @@ Outgoing WriteServerListRequest()
     return ClearC1(Network::PacketWriter::C1(ServerListOpcode).PutU8(ServerListRequestSubcode));
 }
 
+Outgoing WriteCreditsNotice()
+{
+    return ClearC1(Network::PacketWriter::C1(ServerListOpcode).PutU8(ServerListSubcode));
+}
+
 Core::Expected<std::vector<ServerEntry>, ProtocolError> ReadServerList(const Network::Packet& packet)
 {
     auto fields = FieldsAfterSubcode(packet, ListKind);

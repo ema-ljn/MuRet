@@ -2862,6 +2862,238 @@ al CS `C1 04 F4 06` en claro, sin el motor (como el `F4 02` de `0x4c6070`, 04), 
 y llama a `0x4acf60` con `main_theme.mp3` y a `0x4acfd0` con `Mutheme.mp3`, que es la música del
 login (*inferido*: deja una y pone la otra). Qué contesta el CS a ese `F4 06`, *a confirmar*.
 
+**El administrador, entero** (CL8, hito 8; *estático*). `0x637700` llama a `0x65fc30` **una vez por
+frame**, después del mouse (`0x640940`) y antes de los pasos de ese frame (`0x63778c`), con los
+milisegundos del frame (el `double` de `0x459c00`, hasta 200). `0x65fc30` vuelve sin hacer nada en el
+modo 0 o sin ventanas; si no, pone `+0x8de8` en 0 y:
+
+1. Con el izquierdo apretado (`+0x1c`), la primera desde la cabeza con el mouse adentro (`vtable + 0xc`
+   con 0) pasa a la cabeza con el foco (`0x65f610`); si no hay ninguna, la cabeza pierde el foco
+   (`vtable + 0x14` con 0). Con el izquierdo soltado (`+0x1e`), `+0x8de9` en 0, que nadie del login ni de
+   la selección lee.
+2. Copia la lista en un arreglo nuevo, en su orden (de la cabeza a la cola), con los botones de todas sin
+   el mouse (`0x669ed0` con 0), y le da el mouse a los de la primera que lo tiene adentro.
+3. Atiende cada una del arreglo con `0x669f40`: **la copia**, así que una ventana que otra abre en este
+   frame se atiende en el mismo frame si estaba más abajo en la lista (la barra de la selección abre la
+   de crear y la de crear corre su lógica en el mismo frame), y una que se cierra se saltea
+   (`0x669f40` mira `+0xc`).
+4. `0x65f720` pega la que se arrastra, y `+0x8de8` (la UI tiene el mouse) queda en 1 si alguna se
+   arrastra (`+0x10` de 1 a 4) o si, desde la cabeza, alguna tiene el mouse adentro.
+
+`0x669f40` (la base de todas): cerrada, nada; al soltar el izquierdo, `+0x10` en 0; sin arrastre
+(`+0x10` en 0), sus botones (`0x63c490`); `vtable + 0x28`; y **solo con el foco** (`+0xd`), el
+arrastre (apretado en el título, `vtable + 0xc` con 2: los 26 píxeles de arriba, `0x669df0`), que suma
+lo que se movió el mouse y, si no quedó pegada (`+0xe`), la mueve (`vtable + 8`), `vtable + 0x2c` y la
+lógica, `vtable + 0x30`. Ninguna ventana del login ni de la selección acepta el 2 (la de Esc,
+`0x647d10`, y las demás con su `vtable + 0xc`), así que ahí nada se arrastra. `0x65f720` mira solo la
+cabeza arrastrándose: a menos de 10 píxeles de una esquina de la pantalla la pone ahí, y si no, de un
+borde (`vtable + 8`); después, con las otras abiertas desde la segunda, una esquina cerca de una esquina
+distinta de la otra pega las dos esquinas y termina (la tabla de `0x65fb94`), y si no, un borde: con las
+dos superpuestas a lo ancho, arriba o abajo de la otra, y si no, a lo alto, a su derecha o su izquierda.
+`0x65fbb0` pega solo si algo de la ventana queda adentro de la pantalla (`IntersectRect`) y pone `+0xe`.
+El modo 5 (`0x65f5f0`, desde `0x636290`) vacía la lista (`0x65f2b0`): en el juego, el administrador no
+tiene ventanas. `0x65f300` (el login) y `0x65f4b0` (la selección) también empiezan vaciándola y vuelven a
+armar cada ventana. MuRet: `UI::NewUi` (`NewUiTest`), con las ventanas de cada escena; lo corre al
+empezar cada paso (Q-C490).
+
+### La ventana de Esc
+
+`+0x3d0` (vtable `0x6baa0c`; CL8, hito 8; *estático*). La arma `0x6478c0`, la ubica `0x647c00`, la abre
+`0x647cd0`, la atiende `0x647d40` y la dibuja `0x647ed0`. Es de **toda la pantalla**
+(`0x669c70(W, H, −1, 0)`, el negro con alfa `0x80` de atrás, como el aviso): `0x647c00` mueve el marco y
+los botones, no el rectángulo. El marco (`0x66a1c0`, con la tabla de cinco imágenes) es de 213 de ancho
+y `64 + líneas · h + 43` de alto, al centro, con h el alto del buffer de `op1_back3` (`0x66a4e0`):
+
+| Slot | Archivo | Qué |
+| --- | --- | --- |
+| `0x72a` | `Interface\op1_stone.jpg` | la piedra de adentro, repetida, a 3 de cada borde |
+| `0x72b` | `Interface\op1_back1.tga` | el borde de arriba, de 64 |
+| `0x72c` | `Interface\op1_back2.tga` | el de abajo, de 43 |
+| `0x72d`, `0x72e` | `Interface\op1_back3.jpg`, `op1_back4.jpg` | los lados, de 5, repetidos entre los dos bordes |
+| `0x72f` | `Interface\op1_b_all.tga` | los cuatro botones de 108 × 30 (`0x63c330`) |
+
+Los botones, a `(213 − 108) / 2` del borde izquierdo: salir del juego (381) a 33 de arriba, elegir otro
+servidor (382) 34 más abajo, cerrar (388) a 52 del borde de abajo y las opciones (385) 34 más arriba.
+`0x6478c0` mira el modo del administrador: en el login (2) el de otro servidor queda deshabilitado, con −1
+de cuadro deshabilitado (`0x63c710` no lo dibuja), y el marco tiene 6 líneas; en la selección (4), 10.
+En 640 × 480 con líneas de 8, el login lo pone de 229 a 259 en y y las opciones de 231 a 261: el botón
+que no se ve está casi entero debajo del de las opciones (Q-C492). Arranca sin cuenta (`+0x408`, un
+`WORD`, en −1, y `+0x410` en 0). `0x647cd0(1)` la abre sin tocar la cuenta.
+
+`0x647d40` corre con el foco. **Con la cuenta** (`+0x408` distinto de −1) suma el tiempo del frame a
+`+0x410` y, cuando pasa de 1.000 (el `double` de `0x6baa48`, estricto), baja la cuenta: en 0, el log
+"> Menu - Exit game." (`0x41fa40`) y `PostMessageA(WM_CLOSE)`; si no, `+0x410` en 0 y `0x647ef0`, que
+arma el texto 380 con `sprintf` y lo que falta (`"% d"`) y lo manda a `0x555190` como mensaje de
+sistema (tipo 1) sin nombre. Con la cuenta no mira ni los botones ni Esc (Q-C493). **Sin la cuenta**:
+salir la pone en 5 y llama a `0x647ef0`; otro servidor deja el log "> Menu - Join another server.",
+manda el pedido de salida con 2 (`0x647f60`) y cierra esta (`0x65f6c0`, `0x647e38`) y la barra de la
+selección (`+0x7f50`, `0x647e48`); las opciones la cierran y abren la de `+0x7e8` (`0x647e75`); cerrar, o
+Esc con `GetAsyncKeyState(VK_ESCAPE) == 0x8001` (y `[input + 0x31]` en 0), el sonido `0x19` y la cierra.
+`0x647ed0` dibuja el fondo (`0x66a050`), el marco (`0x66a960`: la piedra, arriba, abajo y los dos lados)
+y los botones con su rótulo, en los colores `0xffe2e2e2`, `0xffe2e2e2`, `0xffffffff` y 0 de sus cuadros.
+
+`0x647f60` arma `C1 05 F1 02` y el tipo con el XOR32 (la clave de 32 bytes de `0x648025`) y lo manda
+como `C3`: un `rand()` para el relleno (`0x648241`) y el serial de `0x5767913` por la tabla de
+protección, que se vuelve a cifrar al cerrarse con otro: **dos `rand()`** de la CRT (Q-C497). El GS
+contesta con el `F1 02` del mismo tipo, y el 2 vuelve a la lista de servidores (`0x4c2710`, Q-C79).
+
+La abren el botón del menú de la barra del login (`0x6411b0`), el de la selección (`0x63eb90`, `+0x31a`)
+y Esc en el paso de cada escena. En el login (`0x634d38`), Esc se lee después del paso del mundo, con el
+aviso, la cuenta, esta, las opciones y los créditos cerradas y la barra y la lista abiertas. En la
+selección, Enter (`0x634341`) se lee antes, y Esc (`0x63447c`) solo si no se apretó Enter, aunque no
+entre: con el aviso, la de crear, esta y las opciones cerradas, el sonido y `0x65f690` (`0x6344ce`). Como
+el administrador corre antes del paso, el Esc que cierra esta ventana ya no lo ve el paso: borra el bit
+bajo (Q-C45) y no la vuelve a abrir. MuRet: `UI::EscapeWindow` (`EscapeWindowTest`), en la `LoginScene` y
+la `CharacterSelectScene` (`LoginSceneSessionTest.TheBarStepsWithTheList`, `TheBarStepsWithTheLogin` y
+`CharacterSelectSceneTest.TheEscapeWindowAsksToJoinAnotherServer`); las opciones y los créditos, abajo.
+
+### Las opciones
+
+`+0x7e8` (vtable `0x6ba988`; CL8, hito 8; *estático*): la fila "sin identificar" de la tabla de § Las
+ventanas de la UI nueva. La arma `0x644120`, que llaman `0x65f300` (el login) y `0x65f4b0` (la selección)
+después de la de Esc, cada vez que arman la UI; la ubica `0x644520` (`vtable + 8`), la abre `0x644640`
+(`vtable + 0x10`), la atiende `0x644730` (`vtable + 0x30`) y la dibuja `0x644860` (`vtable + 0x34`). Como la
+de Esc, es de toda la pantalla (`0x669c70(W, H, −1, 0)`, el negro con alfa `0x80`) y `0x644520` mueve lo de
+adentro. El marco es el de `0x66a1c0` con 30 líneas y otro borde de arriba, de `30 · h + 65 + 43` de alto
+(h, el del buffer de `op1_back3`), al centro. Las texturas nuevas las sube `0x61ccb0` con las de la de Esc:
+
+| Slot | Archivo | Qué |
+| --- | --- | --- |
+| `0x730` | `Interface\op2_back1.tga` | el borde de arriba, de 213 × 65 (en lugar de `op1_back1`) |
+| `0x731` | `Interface\op2_ch.tga` | las casillas, de 16 × 16 con dos cuadros: `0x63c330(16, 16, 0x731, 2, 0, 0, −1, 1, 1, 1, −1)`, el 0 sin marcar (apretada o no) y el 1 marcada |
+| `0x732` | `Interface\op2_volume3.tga` | la perilla de los deslizadores, de 13 × 13 |
+| `0x733` | `Interface\op2_volume2.jpg` | el relleno, de 4 × 7, estirado (`0x647370`) |
+| `0x734` | `Interface\op2_volume1.tga` | la barra, de 98 × 13 |
+
+Las tres casillas van a 52 del borde izquierdo y de arriba, una cada 41 (16 + 25): el ataque automático
+(386, `0x6c8e3c`), el sonido de los avisos del filtro (387, `0x77f3b78`) y los carteles de `Slide.bmd` (919,
+`0x6c7a8c`). Los dos deslizadores van a 52 del borde: el del volumen (389, `0x7d3a118`, de 0 a 9) 48 abajo
+de la última casilla más su alto, y el del brillo de los ítems (1840, `0x6c9dcc`, de 0 a 4) 61 más abajo (48
+más el alto de la perilla). El botón de cerrar (388, `op1_b_all` de 108 × 30 con los colores de la de Esc),
+a `(213 − 108) / 2` del borde y a 301 de arriba. `0x6446e0` marca las casillas y pone los deslizadores con
+los globales al armarlas; después nada los vuelve a leer de los globales. El volumen arranca del registro
+(`VolumeLevel`, `0x4bad33..0x4bad55`; fuera de 0 a 9, 5) y el brillo en 4 (la `.data`).
+
+`0x644730` corre con el foco, en este orden:
+
+1. los deslizadores (`0x646a50` de cada uno), con el mouse de `0x640850`;
+2. una casilla con clic escribe su global (0 o 1) y termina;
+3. el botón de cerrar la cierra (`0x65f6c0`), sin sonido;
+4. el volumen moviéndose (`+9` del deslizador distinto de 0): si su valor es otro, lo escribe en
+   `0x7d3a118` y llama a `0x632d80` (el volumen del DirectSound de `0x41eed0`); con el mismo, termina igual;
+5. el brillo moviéndose: compara el byte bajo del valor con `0x6c9dcc`, lo escribe si es otro, y termina;
+6. Esc (`0x8001`, con `[input + 0x31]` en 0): el sonido `0x19` y la cierra.
+
+Una casilla que cambia y un deslizador apretado terminan el frame antes de Esc (Q-C502). `0x644860` dibuja
+el fondo, el marco (la tabla de `0x66a960` con `op2_back1` arriba), el título (385) centrado en el ancho del
+marco a 10 de arriba, con la fuente de `0x5763560` en blanco, los rótulos de las casillas 24 a la derecha y
+4 abajo de cada una, los de los deslizadores 18 arriba y su valor 85 a la derecha (el del global, no el del
+deslizador, y el brillo como `2 · d + 5`, Q-C499), los deslizadores (`0x646e90`) y, al final, las casillas y
+el botón (`0x66a090`).
+
+**El deslizador** (vtable `0x6ba9f8`; *estático*). `0x646640` lo arma con la perilla (un botón de un cuadro
+en `+0x28`), la barra con su relleno (`0x640220`, `+0x108`) y el rectángulo del relleno adentro de la barra
+(izquierda, arriba, derecha y abajo: (3, 3, 95, 10)). Las opciones lo arman horizontal (`+8` en 0; el
+vertical no lo arma ninguna ventana del login ni de la selección), con el máximo en `+0x1c` (1 o más,
+`0x6468e0`), el valor en `+0x20` (`0x646f80` lo acota de 0 al máximo) y el recorrido de la perilla en
+`+0x24`: el ancho de la barra menos el de la perilla, 85. `0x646830` pone la perilla en
+`x + recorrido / máximo · valor` (`fild`, `fidiv`, `fimul`, `fiadd` y `_ftol`: con el máximo 9, en 0, 9, 18,
+28, 37, 47, 56, 66, 75 y 85); `0x646900` baja uno y la pone igual; `0x646990` sube uno y, en el máximo, la
+pone en `x + recorrido` sin la cuenta. `0x640580` le da al relleno `(derecha − izquierda) · valor / máximo`
+de ancho, en enteros sin signo, y su alto. `0x646a50`, su lógica:
+
+1. la perilla con el mouse (`0x63c490`): no está en la lista de la ventana (`0x66a070`), así que su `+0xa9`
+   queda en el 1 de `0x63c330` y ve el mouse aunque la ventana no lo tenga;
+2. al soltar (`+0x1e`), la perilla vuelve al lugar de su valor y `+9` en 0;
+3. con el mouse a la izquierda de la perilla (de x hasta ella, del alto de la perilla) o a la derecha (de
+   ella al final de la barra), `+0x110` suma el tiempo del frame; al apretar (`+0x1c`), un paso hacia ese
+   lado, `+9` con 1 o 2 y `+0x110` en 0; con `+0x110` en 500 ms o más (`0x6baa00`) y ese lado en `+9`,
+   cada 50 (`0x6b89d0`, el tiempo en `+0x118`) otro paso;
+4. si se apretó y la perilla está debajo del mouse (`0x63c470`, ya movida por el paso: Q-C503), la agarra:
+   `+9 |= 0x10`, la x del mouse en `+0x120` y la de la barra donde se agarró en `+0x124`;
+5. agarrada, la perilla sigue al mouse de `+0x124` a `+0x124 + recorrido` (antes, al principio; después, al
+   final) y el valor es el más cerca: `_ftol(((perilla − x) + paso · 0,5) / paso)`, con
+   `paso = recorrido / máximo` en la x87.
+
+MuRet: `UI::Slider` (`SliderTest`) y `UI::OptionsWindow` (`OptionsWindowTest`), con los globales de
+`WorldRuntime` (`Scenes/OptionsSettings.h`: `ui.autoAttack`, `chat.noticeSound`, `chat.slidesOn`,
+`ui.volume` y `ui.glowDetail`), en las dos escenas
+(`LoginSceneSessionTest.TheOptionsOpenFromTheEscapeWindow` y
+`CharacterSelectSceneTest.TheOptionsOpenFromTheEscapeWindow`). Sin el volumen del DirectSound ni el sonido
+(P-C79).
+
+### Los créditos
+
+`+0x4578` (vtable `0x6ba848`; CL8, hito 8; *estático*). La arma `0x63f020`, solo en el login (`0x65f300`, la
+última: queda en la cabeza de la lista, cerrada), la ubica `0x63f3a0`, la abre `0x63f5a0`, la atiende
+`0x63f630` y la dibuja `0x63f6b0`. `0x63f020` arma:
+
+- el fondo de toda la pantalla, `0x669c70(W, H, −1, 0)` con el alfa en `0xff` (`0x63f13b`): **negro opaco**;
+- el adorno (`deco.tga`, `0x12`, 189 × 103, en píxeles) en `+0x190` y el logo (`cr_mu_lo.tga`, `0x1a`,
+  290 × 41) en `+0x238`;
+- tres barras negras sin textura de 800 × 42, opacas (`0x647050` con el alfa en `0xff`);
+- el botón de cerrar con `message_close_b_all.tga` (`0x726`), de 54 × 30 con tres cuadros (el 2 apretado y
+  el 1 con el mouse encima);
+- los 16 nombres de las ilustraciones, `Interface\im1_1.jpg` a `im8_2.jpg`, en `+0x5cc`;
+- su fuente: `CreateFontA` de alto 14, 18 o 24 si W es 800, 1024 o 1280 justo, y 10 con cualquier otro
+  (Q-C506), de peso 700, con la cara del texto 0 y el charset que lee `0x63f2f2`;
+- la tabla de `Data\Local\credit.bmd` (`0x63ff30`, [05](05-formatos-de-datos.md#creditbmd)).
+
+`0x63f3a0` guarda W / 800 y H / 600 en float (`fild`, `fmul` por los floats de `0x6ba884` y `0x6ba880`,
+`fstp`) y ubica en ese espacio de 800 × 600 las dos mitades de la ilustración (400 × 400 en (0, 126) y
+(400, 126)), el logo en (241, 549) y las barras en (0, 42 · i); y en píxeles, el adorno en
+`(W − 189, _ftol(H · 0,8783333f) − 103)` (el float de `0x6ba888`: con 600, el producto da 526,99999… y el
+adorno queda en 423, uno más arriba que con 0,878333… exacto, Q-C500) y el botón a (122, 63) del adorno. `0x63f5a0(flag)` prende o apaga las imágenes y abre o cierra el botón; con 1, `0x63fbf0` los
+empieza; con 0, el estado de la ilustración (`+0x5b8`) en 0. `0x63fbf0`: la ilustración en el estado 1 con
+el par 0 (`0x63fc50`, que sube `im{n+1}_1.jpg` e `im{n+1}_2.jpg` en `0x6f8` y `0x6f9` con `0x63b870`, con
+filtro y sin repetir, y las deja visibles con alfa 0), los tres renglones en el estado 1, `+0x39d0` en 0,
+el índice (`+0x39a0`) en 0, la cuenta de los nombres en 0 y el primer grupo (`0x63ffe0`). La abre el botón
+de la barra (`0x641203`): `C1 04 F4 06` en claro, `0x65f690` y la música (`0x4acf60` con `main_theme.mp3` y
+`0x4acfd0` con `Mutheme.mp3`).
+
+`0x63ffe0`, el grupo siguiente, mira la clase del registro de `+0x39a0`: con 0, el sonido `0x19` y
+`0x63f9a0`, y sigue; con 1, el título (`+0x39a8`); con 2, el rol (`+0x39ac`); y hasta cuatro 3 seguidos, los
+nombres (`+0x39b0..`, la cuenta en `+0x39a4`). Un título sin rol deja el rol de antes (Q-C504), y con más de
+cuatro nombres los que siguen van en el grupo de después, con el mismo título y el mismo rol.
+
+`0x63f630`, con el foco: el botón (`+0x582`) llama a `0x63f9a0` sin sonido; si no, Esc (`0x8001`, con
+`[input + 0x31]` en 0), el sonido `0x19` y `0x63f9a0`. Y sigue sin volver: `0x6400b0(i, dt)` con cada
+renglón y `0x63fe20(dt)`.
+
+- `0x6400b0` (las barras de `+0x340`, `+0x3e8` y `+0x490`; los estados en `+0x39c0..+0x39c8`). Estado 1, la
+  barra se va: el alfa menos `_ftol(dt · 0,85)` (`0x6ba8a8`), en 16 bits con signo; en 0 o menos, 0 y el
+  estado 2. Estado 2: solo el de los nombres suma dt en `+0x39d0` y, pasado 2.300 (`0x6ba8b0`), lo vuelve a
+  0 y pasa los nombres al estado 3, el rol también si lo que sigue no es un nombre, y el título si tampoco es
+  un rol. Estado 3, la barra vuelve: el alfa menos `_ftol(dt · −0,85)`; en 255 o más, 255, el estado 1 y,
+  con el de los nombres, `0x63ffe0`.
+- `0x63fe20` (la ilustración, `+0x5b8`, con el alfa en `+0xa0` y `+0x148`). Estado 1: el alfa menos
+  `_ftol(dt · −0,1275)`; en 255 o más, el 2. Estado 2: `+0x5c0` suma dt y, pasado 22.000 (`0x6ba898`), el 3.
+  Estado 3: el alfa menos `_ftol(dt · 0,1275)`; en 0 o menos, el par siguiente (`+0x5c8`, después del 8 el
+  primero), el estado 1 y `0x63fc50`.
+
+`0x63f9a0`, el cierre: `0x65f6c0` (que llama a `0x63f5a0(0)`), `C1 04 F4 06` en claro por el socket de
+`0x6c82a0` (el mismo `send` que `0x641203`) y la música al revés que al abrirlos: `0x4acf60` con
+`Mutheme.mp3` y `0x4acfd0` con `main_theme.mp3`. Así que `Mutheme.mp3` es la de los créditos y
+`main_theme.mp3` vuelve con el cierre (*inferido* de los nombres y del orden: `0x4acf60` deja una y
+`0x4acfd0` pone la otra). Un frame puede cerrarlos dos veces, con el botón o Esc y con el final (Q-C501).
+
+`0x63f6b0` dibuja el fondo, las dos mitades, el adorno y el logo (`0x647650`), los textos con la fuente de
+los créditos (`0x5542f0` con el modo 2, centrados en su ancho): el título a 20 y el rol a 46 en `0xffe2e2e2`,
+en todo el ancho, y los nombres a 72 en `0xffc1eeff`: uno en todo el ancho, dos en el segundo y el tercer
+cuarto (160 y 320 de 640, de W / 4), tres en tercios (0, 213 y 426, de W / 3) y cuatro en cuartos; después
+las tres barras, que tapan los renglones, y el botón (`0x66a090`).
+
+Con los créditos abiertos (`+0x4584`), el paso del login (`0x634cf0`) saltea todo el mundo después del
+gesto (`0x5fbf60` a `0x633920`), el dibujo (`0x6351f0`) saltea el terreno y los modelos (`0x5fc260` a
+`0x5306a0`, con `0x549510`) y sigue con `0x549440(0)` y las partículas (`0x548550(0)`), la de Esc no se
+abre (`0x634d77`) y una lista que llega no abre ni la lista ni la barra (`0x4c1af8`).
+
+MuRet: `Data::Text::LoadCredits` (`CreditsTest`, `GoldenCredits`), `UI::CreditsWindow` (`CreditsWindowTest`),
+`FontKind::Credits` y `CreditIllustrationSets` (el login suelta el par anterior antes de subir el nuevo), en
+la `LoginScene` (`LoginSceneSessionTest.TheCreditsCoverTheLogin` y `TheBarStepsWithTheList`), con el
+`F4 06` de `ServerSession::SendCreditsNotice`. Sin la música ni el sonido (P-C79), y lo que contesta el CS,
+sin leer (P-C78).
+
 ### La lista de servidores
 
 Llega en el `F4 06` (el `F4 02` del cable, traducido por FoxAnti: [04](04-protocolo.md)) y la

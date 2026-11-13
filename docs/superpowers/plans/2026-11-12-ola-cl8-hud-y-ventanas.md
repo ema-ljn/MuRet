@@ -400,12 +400,16 @@ dos veces (Q-C448). **Desbloquea:** amigos y correo en la CL9.4.
 
 ### Hito 8: la UI nueva generalizada y lo que quedó del login (CL8.3, ~14 KB)
 
-- [ ] **El administrador de la UI nueva** (`0x65fc30`, el arrastre `0x65f720`/`0x669f40`/`0x65fbb0`,
+- [x] **El administrador de la UI nueva** (`0x65fc30`, el arrastre `0x65f720`/`0x669f40`/`0x65fbb0`,
       `0x65f610`/`0x65f690`/`0x65f6c0`, los modos y el vaciado del modo 5 `0x65f5f0`): mueve el orden del foco y
-      del mouse de cada ventana del login a un solo lugar (Q-C84) y cierra P-C08.
-- [ ] **El Esc del login y la selección** (`+0x3d0`: `0x6478c0`, `0x647d40`, `0x647f60` con su `C3 F1 02`),
+      del mouse de cada ventana del login a un solo lugar (Q-C84) y cierra P-C08. Hecho: `UI::NewUi`, por paso
+      (Q-C490, Q-C491).
+- [x] **El Esc del login y la selección** (`+0x3d0`: `0x6478c0`, `0x647d40`, `0x647f60` con su `C3 F1 02`),
       **las opciones** (`+0x7e8`: `0x644120`, `0x644730`) y **los créditos** (`+0x4578`: `0x63f020`, `0x63f630`,
-      con `Data\Local\credit.bmd`).
+      con `Data\Local\credit.bmd`). Hecho el Esc (`UI::EscapeWindow`, Q-C492 a Q-C497), las opciones
+      (`UI::OptionsWindow` y `UI::Slider`) y los créditos (`UI::CreditsWindow`, `Data::Text::LoadCredits`, el
+      `F4 06`), en el administrador de cada escena (Q-C498 a Q-C506, P-C75 y P-C76 cerrados). Sin el sonido ni
+      la música (P-C79) ni la respuesta del CS al `F4 06` (P-C78).
 
 **Pruebas:** las del login y la selección siguen verdes; el arrastre y los `rand()` del `C3 F1 02`. Puede ir en
 cualquier momento después del hito 1.

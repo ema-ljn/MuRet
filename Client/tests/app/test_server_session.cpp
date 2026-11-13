@@ -1453,6 +1453,34 @@ TEST(ServerSessionTest, ChoosingOutOfTurnIsIgnored)
                                         "[warning] se ignora la elección de un servidor: la sesión no la espera"}));
 }
 
+// Los créditos (0x641203 y 0x63f9a0): C1 04 F4 06 en claro por el socket abierto, sin cambiar de estado; cada
+// cierre manda otro.
+TEST(ServerSessionTest, TheCreditsSendF406)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
+    tested.socket.reads = {ServerList({401, 400})};
+    static_cast<void>(tested.session.Poll());
+
+    tested.session.SendCreditsNotice();
+    tested.session.SendCreditsNotice();
+
+    EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
+    EXPECT_TRUE(SameBytes(tested.socket.sent, Join({PetInfoRequest(), ListRequest(), Bytes({0xC1, 0x04, 0xF4, 0x06}),
+                                                    Bytes({0xC1, 0x04, 0xF4, 0x06})})));
+}
+
+// Sin un socket abierto, nada: el original no manda con el socket en −1.
+TEST(ServerSessionTest, TheCreditsNeedAnOpenSocket)
+{
+    Harness tested(IdentityObfuscation::Shared());
+
+    tested.session.SendCreditsNotice();
+
+    EXPECT_TRUE(tested.socket.sent.empty());
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "no se manda el F4 06 de los créditos"));
+}
+
 // La dirección del F4 03: la sesión la guarda, cierra el CS y conecta al GS, sin avisos.
 TEST(ServerSessionTest, ReadsTheGameServerAddress)
 {

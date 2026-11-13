@@ -313,6 +313,22 @@ Core::Expected<void, std::string> StepTheAttackHelpers(ActorState& actor, std::s
     return {};
 }
 
+// 0x59fb80(skill): abre el registro propio ([0x7681eb4], 0x40ad90), busca `skill` entre los 64 bytes de +0x6c de
+// [0x7681eb0] y lo cierra (0x40b4d0: 3.848 rand() si queda en 0). Devuelve su lugar, o 0 si no está. Los otros dos
+// argumentos que le empuja el caller quedan en la pila para 0x53e2b0.
+std::int32_t OwnSkillIndex(const CharacterStepContext& context, std::uint8_t skill)
+{
+    constexpr std::size_t OwnSkills = 64;
+    WorldRuntime& runtime = context.world.Runtime();
+    const LogicalAccess own(runtime.ownRecordDepth, context.random, Render::Models::OwnRecordCloseRandoms);
+    for (std::size_t index = 0; index < OwnSkills; ++index)
+    {
+        if (context.world.OwnCharacter().SkillAt(index) == skill)
+            return static_cast<std::int32_t>(index);
+    }
+    return 0;
+}
+
 // 0x502b12..0x5037d5: sin blanco (+0x3a4 en −1).
 Core::Expected<void, std::string> StrikeNothing(ActorState& actor, std::size_t slot,
                                                 const CharacterStepContext& context)
@@ -322,12 +338,13 @@ Core::Expected<void, std::string> StrikeNothing(ActorState& actor, std::size_t s
     const bool shoots = actor.type == PlayerType ? IsOneOf(RangedActions, actor.animation.action) : actor.byte88 == 1;
     if (shoots)
     {
-        // 0x502fbe..0x503760: dos lecturas más, para 0x59fb80.
+        // 0x502fbe..0x503760: dos lecturas más; la segunda va a 0x59fb80 (0x50376a) y su lugar a 0x53e2b0.
         static_cast<void>(ReadTheSkill(actor, context.random));
-        static_cast<void>(ReadTheSkill(actor, context.random));
-        return Core::Unexpected(std::format("0x50376a: la flecha sin blanco del lugar {} (acción {:#x}): 0x59fb80 y "
-                                            "0x53e2b0, sin portar",
-                                            slot, actor.animation.action));
+        const std::uint8_t second = ReadTheSkill(actor, context.random);
+        const std::int32_t index = OwnSkillIndex(context, second);
+        return Core::Unexpected(std::format("0x50377d: la flecha sin blanco del lugar {} (acción {:#x}, la skill {} en "
+                                            "el lugar {}): 0x53e2b0, sin portar",
+                                            slot, actor.animation.action, second, index));
     }
     if (IsOneOf(MissileTypes, actor.type) || actor.type == MissileTypeWithoutTarget)
     {
@@ -411,12 +428,14 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
     const ActorState& victim = actors[static_cast<std::size_t>(target)];
     if (actor.type == PlayerType && IsOneOf(RangedActions, actor.animation.action))
     {
-        // 0x5038a1..0x504043: dos lecturas de +0x38e, para 0x59fb80.
+        // 0x5038a1..0x504043: dos lecturas de +0x38e; la segunda va a 0x59fb80 (0x504048) y su lugar a 0x53e2b0.
         static_cast<void>(ReadTheSkill(actor, context.random));
-        static_cast<void>(ReadTheSkill(actor, context.random));
-        return Core::Unexpected(std::format("0x504048: la flecha del lugar {} (acción {:#x}) hacia el {}: 0x59fb80 y "
-                                            "0x53e2b0, sin portar",
-                                            slot, actor.animation.action, target));
+        const std::uint8_t second = ReadTheSkill(actor, context.random);
+        const std::int32_t index = OwnSkillIndex(context, second);
+        return Core::Unexpected(
+            std::format("0x504060: la flecha del lugar {} (acción {:#x}, la skill {} en el lugar {}) "
+                        "hacia el {}: 0x53e2b0, sin portar",
+                        slot, actor.animation.action, second, index, target));
     }
     if (IsOneOf(MissileTypes, actor.type))
     {

@@ -410,7 +410,8 @@ TEST(AttackStepTest, TheStrikeSoundFollowsTheOwnHands)
 }
 
 // Lo que corta, en su orden y con los rand() de antes: las habilidades del hito 4 (0x4f9899, 0x4f8a39, 0x4fdeeb,
-// 0x504372), los casos de los monstruos de 0x4f5b70 (0x4f6fea), la flecha con y sin blanco (0x504048, 0x50376a),
+// 0x504372), los casos de los monstruos de 0x4f5b70 (0x4f6fea), la flecha con y sin blanco (0x53e2b0 en 0x504060 y
+// 0x50377d, después de 0x59fb80 con el registro propio),
 // 0x52e740 (0x5042ce) y, sin el pool de joints, los de +0x380 en 2 (0x505169).
 TEST(AttackStepTest, TheCutsAfterTheirDraws)
 {
@@ -446,7 +447,7 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
                  hero.animation.action = 0x2e;
                  hero.byte381 = 14;
              },
-             "0x504048", CountingStep + 3 * SkillRead},
+             "0x504060", CountingStep + 3 * SkillRead + OwnRecord},
         Case{"Fenrir sin blanco",
              [](AttackWorld&, ActorState& hero)
              {
@@ -454,7 +455,7 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
                  hero.attackTarget = 0xffff;
                  hero.byte381 = 14;
              },
-             "0x50376a", SkillRead + 1 + 4 * SkillRead},
+             "0x50377d", SkillRead + 1 + 4 * SkillRead + OwnRecord},
         Case{"la 0x39",
              [](AttackWorld&, ActorState& hero)
              {
@@ -877,7 +878,9 @@ TEST(AttackStepTest, AKillOfEachClassSendsTheBeamsBackWithoutACut)
     }
 }
 
-// El elfo con el arco (0x2e) o la ballesta (0x2f) llega a la flecha en el paso del frame 5.
+// El elfo con el arco (0x2e) o la ballesta (0x2f) llega a la flecha en el paso del frame 5: busca la skill de +0x38e
+// entre las del registro propio (0x59fb80, con sus 3.848 rand() al cerrarlo) y corta en 0x53e2b0 (0x504060), que crea
+// la flecha (08, P-C257 d). La skill 0x18 en el lugar 3 sale en el error.
 TEST(AttackStepTest, TheElfBowStopsAtTheArrow)
 {
     for (const std::uint8_t action : {std::uint8_t{0x2e}, std::uint8_t{0x2f}})
@@ -887,13 +890,15 @@ TEST(AttackStepTest, TheElfBowStopsAtTheArrow)
         tested.skeleton.actions[action] =
             ActionInfo{.repeats = false, .speed = 0.5f, .keyCount = 30, .lockPositions = false};
         tested.Hero().characterClass = 2;
-        tested.Striker(HeroSlot, action, VictimSlot);
+        tested.world.OwnCharacter().words6c[0] = 0x18000000u; // el byte 3 de +0x6c
+        tested.Striker(HeroSlot, action, VictimSlot).byte38e = 0x18;
         Client::Core::Expected<void, std::string> stepped;
         int step = 0;
         for (; step < 20 && stepped.HasValue(); ++step)
             stepped = StepCharacters(tested.Context());
 
-        EXPECT_TRUE(HasError(stepped, "0x504048")) << ErrorOf(stepped);
+        EXPECT_TRUE(HasError(stepped, "0x504060")) << ErrorOf(stepped);
+        EXPECT_TRUE(HasError(stepped, "la skill 24 en el lugar 3")) << ErrorOf(stepped);
         EXPECT_EQ(step, 10);
     }
 }

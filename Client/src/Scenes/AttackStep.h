@@ -16,7 +16,7 @@ struct CharacterStepContext;
 // [0x6c88ac] (WorldRuntime::skillThreshold): +0x381 en 0, o+0x8a con 0x558eb0 (ChosenKeyOf), +0x38e por la tabla de
 // protección, lo de después del switch con el blanco de +0x3a4 y sin él, la escritura de +0x38e en 0 y +0x382 y
 // +0x380 en 0. Corta, con lo que hizo antes y sus rand(), en los casos de habilidad (hito 4), en los monstruos y
-// transformados (la fase 2c), en la flecha (0x59fb80 y 0x53e2b0) y en las partículas, efectos y joints sin portar.
+// transformados (la fase 2c), en la flecha (0x53e2b0, después de 0x59fb80) y en los efectos sin portar.
 // `slot` es el lugar de `actor` en el pool.
 [[nodiscard]] Core::Expected<void, std::string> StepTheAttack(ActorState& actor, std::size_t slot,
                                                               const CharacterStepContext& context);

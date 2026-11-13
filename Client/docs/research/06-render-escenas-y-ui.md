@@ -9738,6 +9738,14 @@ dibujo, el billboard común (`0x54889a`). MuRet los guarda en los joints del jue
 `CharacterStepContext::joints`) y los mueve en `StepJoints` con la luz dinámica del mundo y el sonido
 (`KillBeamJointsTest`, `AttackStepTest.AKillOfEachClassSendsTheBeamsBackWithoutACut`).
 
+**La skill de la flecha** (`0x59fb80`, *estático*). Las dos ramas de la flecha (`0x50376a`, `0x504048`) le pasan la
+segunda lectura de `+0x38e` (los otros dos argumentos quedan en la pila para `0x53e2b0`): abre el registro propio
+(`[0x7681eb4]`, `0x40ad90`), busca ese byte entre los 64 de `+0x6c` de `[0x7681eb0]` y lo cierra (`0x40b4d0`, 3.848
+`rand()` si queda en 0); devuelve su lugar, o 0. MuRet la porta (`OwnSkillIndex`) y corta después, en `0x53e2b0`
+(`0x50377d`, `0x504060`): 538 líneas con dos `rand()`, aperturas del registro propio, nueve llamadas a `0x53d9a0`
+(772 líneas, los ocho efectos de flecha de `0x518cf0` y dos sonidos), un joint (`0x530860`), una partícula
+(`0x53fe70`) y `0x4ec110`; su paso, el de esos efectos de `0x518cf0` (08, P-C257 d).
+
 **Los `rand()` de un ataque sin habilidad**, con las cuentas en 0: antes del frame 5, cuatro por paso (la lectura
 de `0x4f97b0`, el de `0x4f5b97` y las dos de la cola de `0x4f5b70`; con `+0x3a4` fuera del pool, dos); en el
 paso del frame 5, además, los 3.848 de `0x4f97b0`; en el de la habilidad, con blanco, tres lecturas, el del
@@ -9754,7 +9762,7 @@ dos `rand()` del giro de la cabeza, `0x5068fd`, descontados: uno en 32 por paso 
 | los casos de la tabla de arriba (`0x43a7fe`..`0x43b5e4`, `0x42dd23`, `0x42dd56`, `0x4291b1`.., `0x42fd04`, `0x42fd43`, `0x4324fb`.., `0x4f5cb6`..`0x4f804e`, `0x4f814e`..`0x4f890b`, `0x4f8a5d`..`0x4f8e85`) | los ayudantes y los casos de `0x4f5b70` | los monstruos con caso, en sus mapas (hito 2 y CL11); ningún jugador sin transformar |
 | `0x4fb0d1` | las veinte `0x5c6`/12 sin el pool de partículas | nadie en el juego (fase 2d) |
 | `0x558f29` | los nombres de gremio | el héroe en la guerra de gremios (hito 8) |
-| `0x50376a`, `0x504048` | la flecha (`0x59fb80` y `0x53e2b0`) | el elfo con arco o ballesta, y cualquiera con arco en Uniria, Dinorant o Fenrir |
+| `0x50377d`, `0x504060` | la flecha (`0x53e2b0`, después de `0x59fb80`) | el elfo con arco o ballesta, y cualquiera con arco en Uniria, Dinorant o Fenrir |
 | `0x5037d0`, `0x5040a9` | `0x53e2b0` de los tipos `0x168`, `0x175`, `0x17a`, `0x180` | monstruos (fase 2c) |
 | `0x50419c` | la partícula `0x5e4` sin el pool de partículas | nadie en el juego: `GameScene` pasa el del mundo (fase 2d) |
 | `0x504267` | el efecto `0x10b` | el que pega al `0x18e` con daño, con un `rand() & 1` en 0 de los cinco |

@@ -364,9 +364,11 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
     }
     else if (window.kind == OldWindowKind::ChatWindow)
         DrawTheChatWindow(manager, window, context, view);
-    else if (window.kind == OldWindowKind::LetterReadWindow || window.kind == OldWindowKind::LetterWriteWindow)
-        return Core::Unexpected(std::string("0x499d60 y 0x498480: el dibujo de las ventanas de una carta (con la lista "
-                                            "de 0x3f0, 0x464620) no está portado (P-C213)"));
+    else if (window.kind == OldWindowKind::LetterReadWindow)
+        DrawTheReadWindow(manager, window, context, view);
+    else if (window.kind == OldWindowKind::LetterWriteWindow)
+        return Core::Unexpected(
+            std::string("0x498480: el dibujo de la ventana de escribir una carta no está portado (P-C213)"));
     const OldWindowBase& base = window.base;
     // 0x49258d..0x4925dd: la del final de la lista con la ventana de amigos abierta se dibuja como es; las demás, en
     // gris.
@@ -442,8 +444,8 @@ Core::Expected<void, std::string> DrawTheFrame(OldWindowManager& manager, OldWin
         sprites.SetColor(Render::Color{});
         sprites.SetBlend(Render::BlendMode::Opaque);
     }
-    // La vtable + 0x54: 0x48f900 (nada) en todas, salvo en las de una carta.
-    return {};
+    // La vtable + 0x54: 0x48f900 (nada) en todas, salvo en las de una carta (0x49a1d0 y 0x498800, el retrato).
+    return DrawTheLetterPortrait(window);
 }
 } // namespace
 

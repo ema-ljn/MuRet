@@ -1,16 +1,20 @@
 #include "UI/LetterWindowsDraw.h"
 
+#include "Core/Expected.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextStyle.h"
 #include "Scenes/ITextDrawer.h"
 #include "UI/FriendWindowsDraw.h"
+#include "UI/LetterModel.h"
 #include "UI/LetterWindows.h"
 #include "UI/OldControls.h"
+#include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
 #include "UI/OldWindowDrawParts.h"
 #include "UI/OldWindowSteps.h"
 #include "UI/OldWindows.h"
+#include "UI/SprintfFormat.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -57,6 +61,26 @@ constexpr float BottomBarHeight = 15.0f;
 constexpr double SeparatorFarEdge = 4.0;
 constexpr double SeparatorMiddleX = 1.0;
 constexpr float SeparatorMiddleWidth = 3.0f;
+
+// 0x465770: el renglón del cuerpo en x + 10, en 0xffc8dce6 sin fondo.
+constexpr std::int32_t BodyTextX = 10;
+constexpr std::uint32_t BodyTextColor = 0xffc8dce6u;
+// 0x499e44..0x49a0f4: el retrato ocupa los 0x78 (0x6b86c8, 120) de la derecha; abajo, la raya del 2 a 20 (0x6b86d0)
+// del borde y el negro de 18 (0x41900000) desde 19 (0x6b8870), y la raya del costado de 19 (0x41980000); arriba, la
+// raya del 2 en y + 0xe y el negro de 14 (0x41600000).
+constexpr std::int32_t ReadPortraitShown = 2;
+constexpr std::int32_t PortraitX = 0x78;
+constexpr double PortraitWidth = 120.0;
+constexpr double ButtonsLineRise = 20.0;
+constexpr double ButtonsBarRise = 19.0;
+constexpr float ButtonsBarHeight = 18.0f;
+constexpr float PortraitLineHeight = 19.0f;
+constexpr std::int32_t HeaderLineY = 0xe;
+constexpr float HeaderBarHeight = 14.0f;
+// 0x49a10e..0x49a164: el texto 1014 en (x + 3, y + 3).
+constexpr std::size_t ReadHeaderText = 1014;
+constexpr std::int32_t ReadHeaderX = 3;
+constexpr std::int32_t ReadHeaderY = 3;
 
 float F32(double value)
 {
@@ -169,6 +193,40 @@ float FromTheBottom(const OldWindow& window, double rise)
     return F32(static_cast<double>(Steps::ClientHeight(window)) +
                static_cast<double>(ToFloat(Steps::ClientY(window, 0))) - rise);
 }
+
+std::string TextAt(const OldWindowDrawView& view, std::size_t index)
+{
+    return view.texts != nullptr ? view.texts->At(index) : std::string();
+}
+
+// 0x465770, la vtable + 0x80 de la lista del cuerpo (0x464620, vtable 0x6b93d4): con la mezcla normal, el renglón
+// (sprintf "%s", 0x6c7084) en x + 10 y en su y (0x465710, igual a 0x461c70), con 0x465950 directo. Con 0x6c7a88 en 1
+// vuelve a poner el fondo en 0, que ya está en 0 (0x4657a5..0x4657be). Da 1.
+std::int32_t DrawTheBodyRow(const OldWindowDrawContext& context, const OldList& list, std::size_t size,
+                            const std::string& line, std::int32_t row)
+{
+    Render::SpriteBatch& sprites = context.sprites;
+    sprites.SetBlend(Render::BlendMode::Alpha);
+    context.textColors = Render::Text::TextColors{.text = BodyTextColor, .background = 0};
+    static_cast<void>(DrawText(context, list.base.x + BodyTextX, ListRowY(list, size, row), line));
+    sprites.SetBlend(Render::BlendMode::Opaque);
+    return 1;
+}
+
+// 0x464d90, la vtable + 0x14 del cuerpo (0x47a810 con los elementos de 0x3f0): la barra (0x464e90, igual a 0x461890) y
+// los renglones. Como la de los renglones del chat, muestra su segundo deque, que 0x465450 llena con push_front y
+// partido (P-C218): MuRet lo lee de atrás para adelante.
+void DrawTheBodyLines(const OldWindowDrawContext& context, OldLetterPart& letter, const OldWindowDrawView& view)
+{
+    OldList& list = letter.lines;
+    const std::size_t size = letter.lineRows.size();
+    OldDraw::DrawTheOldList(
+        context, list, size,
+        OldDraw::OldListDrawing{.head = [&] { OldDraw::DrawTheListBar(context.sprites, list, size, view); },
+                                .row = [&](std::int32_t row, std::size_t at)
+                                { return DrawTheBodyRow(context, list, size, letter.lineRows[size - 1 - at], row); },
+                                .tail = {}});
+}
 } // namespace
 
 void DrawTheChatWindow(OldWindowManager& manager, OldWindow& chat, const OldWindowDrawContext& context,
@@ -205,5 +263,59 @@ void DrawTheChatWindow(OldWindowManager& manager, OldWindow& chat, const OldWind
     if (part.mode >= WithInvites)
         DrawTheButton(context, part.sendButton, view);
     sprites.SetBlend(Render::BlendMode::Opaque);
+}
+
+void DrawTheReadWindow(OldWindowManager& manager, OldWindow& read, const OldWindowDrawContext& context,
+                       const OldWindowDrawView& view)
+{
+    Render::SpriteBatch& sprites = context.sprites;
+    sprites.SetBlend(Render::BlendMode::Alpha);
+    SettleTheLetterKindsForTheDraw(manager, read);
+    OldLetterPart& letter = read.letter;
+    DrawTheBodyLines(context, letter, view);
+    const float left = ToFloat(Steps::ClientX(read, 0));
+    const std::int32_t width = Steps::ClientWidth(read);
+    if (letter.portraitMode >= ReadPortraitShown)
+    {
+        const float toThePortrait = F32(static_cast<double>(width) - PortraitWidth);
+        SetThePalette(sprites, LineIndex, 1.0f);
+        sprites.ColorQuad(ToFloat(Steps::ClientX(read, 0) + width - PortraitX), FromTheBottom(read, ButtonsBarRise),
+                          1.0f, PortraitLineHeight);
+        sprites.ColorQuad(left, FromTheBottom(read, ButtonsLineRise), toThePortrait, 1.0f);
+        SetThePalette(sprites, BlackIndex, 1.0f);
+        sprites.ColorQuad(left, FromTheBottom(read, ButtonsBarRise), toThePortrait, ButtonsBarHeight);
+    }
+    else
+    {
+        SetThePalette(sprites, LineIndex, 1.0f);
+        sprites.ColorQuad(left, FromTheBottom(read, ButtonsLineRise), ToFloat(width), 1.0f);
+        SetThePalette(sprites, BlackIndex, 1.0f);
+        sprites.ColorQuad(left, FromTheBottom(read, ButtonsBarRise), ToFloat(width), ButtonsBarHeight);
+    }
+    SetThePalette(sprites, LineIndex, 1.0f);
+    sprites.ColorQuad(left, ToFloat(Steps::ClientY(read, HeaderLineY)), ToFloat(width), 1.0f);
+    SetThePalette(sprites, BlackIndex, 1.0f);
+    sprites.ColorQuad(left, ToFloat(Steps::ClientY(read, 0)), ToFloat(width), HeaderBarHeight);
+    WhiteWithTexture(sprites);
+    // sprintf(1014, +0x780, +0x88b, +0x89b) con los colores que haya: los del último renglón del cuerpo.
+    const LetterEntry& entry = letter.entry;
+    static_cast<void>(DrawText(context, Steps::ClientX(read, ReadHeaderX), Steps::ClientY(read, ReadHeaderY),
+                               Sprintf(TextAt(view, ReadHeaderText), entry.name, entry.date, entry.time)));
+    for (const OldButton& button : letter.buttons)
+        DrawTheButton(context, button, view);
+    sprites.SetBlend(Render::BlendMode::Opaque);
+}
+
+Core::Expected<void, std::string> DrawTheLetterPortrait(const OldWindow& window)
+{
+    if (window.kind == OldWindowKind::LetterReadWindow && window.letter.portraitMode >= ReadPortraitShown)
+        return Core::Unexpected(
+            std::string("0x49a1d0: el dibujo del retrato de las cartas (su vtable + 0x14, 0x497c10) "
+                        "es de Scenes (P-C212)"));
+    if (window.kind == OldWindowKind::LetterWriteWindow && window.letter.withPortrait == 1)
+        return Core::Unexpected(
+            std::string("0x498800: el dibujo del retrato de las cartas (su vtable + 0x14, 0x497c10) "
+                        "es de Scenes (P-C212)"));
+    return {};
 }
 } // namespace Client::UI

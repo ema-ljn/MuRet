@@ -86,6 +86,7 @@ constexpr std::int32_t ReadHeight = 0xb6;
 constexpr std::int32_t WriteHeight = 0xd8;
 constexpr std::int32_t LetterMinWidth = 0x172;
 constexpr std::int32_t PortraitWidth = 0x78;
+constexpr std::int32_t ReadPortraitMode = 2;
 constexpr std::int32_t WriteMinHeight = 0x96;
 constexpr std::size_t ToLimit = 10;
 constexpr std::size_t SubjectLimit = 0x20;
@@ -885,8 +886,9 @@ Core::Expected<OldWindow, std::string> MakeTheLetterKind(OldWindowManager& manag
     letter.portrait.base = MakeTheBase(manager);
     if (request.kind == LetterReadCase)
     {
-        // 0x48f41f: el marco, el retrato (+0xb0), la lista del cuerpo (+0x8b0) y cinco botones.
+        // 0x48f41f: el marco, el retrato (+0xb0), +0x774 en 2, la lista del cuerpo (+0x8b0) y cinco botones.
         window.kind = OldWindowKind::LetterReadWindow;
+        letter.portraitMode = ReadPortraitMode;
         letter.lines = MakeTheList(manager);
         for (std::size_t at = 0; at < ReadButtonTexts.size(); ++at)
             letter.buttons.push_back(MakeTheButton(manager));
@@ -1577,6 +1579,21 @@ void SettleTheLetterKindsForTheDraw(OldWindowManager& manager, OldWindow& window
         PostToTheList(manager, chat.lines, chat.lineRows.size(), SizeType);
         PostToTheList(manager, chat.users, chat.members.size(), SizeType);
         PostToTheList(manager, chat.invite, chat.invitable.size(), SizeType);
+        return;
+    }
+    OldLetterPart& letter = window.letter;
+    if (window.kind == OldWindowKind::LetterReadWindow)
+    {
+        // 0x499d94..0x499e30: el 8 a la lista del cuerpo, a los cinco botones y al retrato; el 9 a la lista y al
+        // retrato.
+        PostToTheList(manager, letter.lines, letter.lineRows.size(), PlaceType);
+        for (OldButton& button : letter.buttons)
+            Steps::PostAndSettle(manager, button, PlaceType);
+        PostToTheBase(manager, letter.portrait.base, PlaceType);
+        if (state != ResizedWindow)
+            return;
+        PostToTheList(manager, letter.lines, letter.lineRows.size(), SizeType);
+        PostToTheBase(manager, letter.portrait.base, SizeType);
     }
 }
 

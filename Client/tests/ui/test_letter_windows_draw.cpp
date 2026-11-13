@@ -10,6 +10,7 @@
 #include "Render/TextureSlot.h"
 #include "UI/ChatInput.h"
 #include "UI/FriendModel.h"
+#include "UI/LetterModel.h"
 #include "UI/LetterWindows.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
@@ -32,7 +33,8 @@
 // chat con un amigo"): 0x493fc0 con sus renglones (0x45f9c0, 0x460550), los miembros y los de invitar (0x47a810 con
 // 0x461cd0) y sus rayas (0x491ba0). El chat queda en (100, 80), de 250 × 170: el área de adentro en (105, 101) de
 // 240 × 144, los renglones con el borde de abajo en 229 y 128 de alto, el EDIT en (107, 233) y el botón de invitar en
-// (291, 231). Los nombres y los textos son inventados.
+// (291, 231). La de leer (0x499d60, con el cuerpo 0x464d90 y 0x465770) también, de 370 × 182 con el retrato: el área de
+// adentro de 360 × 156 y el cuerpo con el borde de abajo en 237, de 240 × 120. Los nombres y los textos son inventados.
 namespace
 {
 using Client::App::PixelSize;
@@ -79,9 +81,11 @@ public:
     }
 };
 
-// Cada texto es "t<índice>".
+// Cada texto es "t<índice>", salvo el formato del renglón de arriba de la de leer (1014).
 std::string TextOf(std::size_t index)
 {
+    if (index == 1014)
+        return "De %s el %s a las %s";
     return "t" + std::to_string(index);
 }
 
@@ -209,6 +213,36 @@ protected:
         return m_manager.windows.at(m_chat);
     }
 
+    // 0x48ee60 con el 6 en (100, 80) y la carta (0x499cb0) con su cuerpo.
+    OldWindow& OpenALetter(std::string_view body)
+    {
+        const OldWindowGlobals globals = Globals();
+        const OldWindowStepView view = StepView();
+        const auto opened = Client::UI::CreateTheOldWindow(
+            m_manager,
+            Client::UI::OldWindowRequest{
+                .kind = Client::UI::LetterReadCase, .x = ChatX, .y = ChatY, .data = "t1054", .aux = 0, .flags = 0},
+            m_texts, m_measure, &globals, &view);
+        EXPECT_TRUE(opened.HasValue()) << opened.Error();
+        m_letter = opened.HasValue() ? opened.Value() : 0;
+        OldWindow& read = Letter();
+        Client::UI::SetTheLetter(m_manager, read,
+                                 Client::UI::LetterEntry{.selected = 0,
+                                                         .index = 3,
+                                                         .name = "Tordo",
+                                                         .subject = "Asado",
+                                                         .date = "2026/11/13",
+                                                         .time = "21:30",
+                                                         .type = 1},
+                                 body);
+        return read;
+    }
+
+    OldWindow& Letter()
+    {
+        return m_manager.windows.at(m_letter);
+    }
+
     // El paso de las ventanas, con la cola del administrador.
     void Step()
     {
@@ -282,6 +316,7 @@ protected:
     SpriteBatch m_sprites;
     RecordingTextDrawer m_text;
     std::int32_t m_chat = 0;
+    std::int32_t m_letter = 0;
     bool m_leftHeld = false;
     bool m_leftClick = false;
     bool m_released = false;
@@ -547,5 +582,116 @@ TEST_F(LetterWindowsDrawTest, TheDraggedChatPlacesItsChildrenBeforeTheDraw)
     EXPECT_EQ(part.users.base.height, 154);
     EXPECT_EQ(part.invite.base.height, 154);
     EXPECT_EQ(part.lines.base.y, 275);
+}
+
+// La de leer con tres renglones: el cuerpo de arriba hacia abajo (el primero arriba: 0x465450 los tiene del último al
+// primero), en x + 10 y en 0xffc8dce6; sin mezcla después de ellos (0x465770 la saca), la raya del costado del retrato
+// (0x78 antes del borde derecho), la de los botones y su negro hasta él, la raya y el negro de arriba y el 1014 con los
+// colores del último renglón; los cinco botones. Al final del marco, la vtable + 0x54 (0x49a1d0) corta en el dibujo
+// del retrato.
+TEST_F(LetterWindowsDrawTest, TheReadWindowDrawsItsBodyItsBarsAndItsButtonsUntilThePortrait)
+{
+    OldWindow& read = OpenALetter("linea uno\nlinea dos\nlinea tres");
+    const Client::UI::OldLetterPart& letter = read.letter;
+    ASSERT_EQ(letter.portraitMode, 2);
+    ASSERT_EQ(read.base.width, 370);
+    ASSERT_EQ(letter.lines.base.x, 105);
+    ASSERT_EQ(letter.lines.base.y, 237);
+    ASSERT_EQ(letter.lines.base.width, 240);
+    ASSERT_EQ(letter.lines.base.height, 120);
+    ASSERT_EQ(letter.buttons[0].base.x, 107);
+    ASSERT_EQ(letter.buttons[0].base.y, 241);
+
+    const auto drawn = Draw();
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_NE(drawn.Error().find("0x49a1d0"), std::string::npos);
+    EXPECT_NE(drawn.Error().find("0x497c10"), std::string::npos);
+    EXPECT_NE(drawn.Error().find("P-C212"), std::string::npos);
+
+    std::vector<ExpectedCommand> expected{
+        {std::nullopt, BlendMode::Alpha, 1},    {ScrollbarSlot, BlendMode::Alpha, 2},
+        {std::nullopt, BlendMode::Alpha, 2},    {ScrollbarSlot, BlendMode::Alpha, 3},
+        {TextMarkerSlot, BlendMode::Alpha, 3}, // los tres renglones
+        {std::nullopt, BlendMode::Opaque, 5},  // las rayas y los negros, sin mezcla
+        {TextMarkerSlot, BlendMode::Opaque, 1},
+    };
+    for (std::size_t button = 0; button < 5; ++button)
+    {
+        expected.push_back({ButtonSlot, BlendMode::Alpha, 1});
+        expected.push_back({TextMarkerSlot, BlendMode::Alpha, 1});
+    }
+    expected.push_back({TextureSlot{Client::UI::WindowTitleSlot}, BlendMode::Opaque, 1});
+    ExpectCommands(expected);
+    // 0x499e44..0x49a0f4: la raya del costado en (105 + 360 − 0x78, 156 + 101 − 19) de 1 × 19, la de los botones en
+    // y + h − 20 de 360 − 120 y el negro de 18 debajo; arriba, la raya en y + 0xe y el negro de 14.
+    ExpectBox(QuadOf(5, 0), 345.0f, 238.0f, 346.0f, 257.0f);
+    EXPECT_EQ(VertexOf(5, 0).color, PaletteOf(2));
+    ExpectBox(QuadOf(5, 1), 105.0f, 237.0f, 345.0f, 238.0f);
+    ExpectBox(QuadOf(5, 2), 105.0f, 238.0f, 345.0f, 256.0f);
+    EXPECT_EQ(VertexOf(5, 2).color, PaletteOf(7));
+    ExpectBox(QuadOf(5, 3), 105.0f, 115.0f, 465.0f, 116.0f);
+    EXPECT_EQ(VertexOf(5, 3).color, PaletteOf(2));
+    ExpectBox(QuadOf(5, 4), 105.0f, 101.0f, 465.0f, 115.0f);
+    EXPECT_EQ(VertexOf(5, 4).color, PaletteOf(7));
+    // Los botones en su orden: +0x9e0, +0xa68, +0xaf0, +0xb78 y +0xc00.
+    ExpectBox(QuadOf(7), 107.0f, 241.0f, 157.0f, 255.0f);
+    ExpectBox(QuadOf(9), 158.0f, 241.0f, 208.0f, 255.0f);
+    ExpectBox(QuadOf(11), 291.0f, 241.0f, 341.0f, 255.0f);
+    ExpectBox(QuadOf(13), 209.0f, 241.0f, 249.0f, 255.0f);
+    ExpectBox(QuadOf(15), 250.0f, 241.0f, 290.0f, 255.0f);
+
+    // 0x465710 (= 0x461c70): (3 − renglón) · 13 − 120 − 10 + 237.
+    const TextColors dim{.text = Dim, .background = 0};
+    ExpectTexts(0, {
+                       {"linea tres", 115, 146, dim},
+                       {"linea dos", 115, 133, dim},
+                       {"linea uno", 115, 120, dim},
+                       {"De Tordo el 2026/11/13 a las 21:30", 108, 104, dim},
+                       {"t1010", 117, 242, dim},
+                   });
+}
+
+// Con +0x774 en menos de 2 (nadie lo pone así en el original), la raya y el negro de los botones son de todo el ancho
+// y la vtable + 0x54 no dibuja nada. Sin renglones, todo sigue con la mezcla normal.
+TEST_F(LetterWindowsDrawTest, WithoutThePortraitModeTheBarsAreWholeAndNothingIsCut)
+{
+    OldWindow& read = OpenALetter("");
+    read.letter.portraitMode = 1;
+
+    ASSERT_TRUE(Draw().HasValue());
+
+    ExpectCommands({
+        {std::nullopt, BlendMode::Alpha, 1},
+        {ScrollbarSlot, BlendMode::Alpha, 2},
+        {std::nullopt, BlendMode::Alpha, 2},
+        {ScrollbarSlot, BlendMode::Alpha, 3},
+        {std::nullopt, BlendMode::Alpha, 4},
+        {TextMarkerSlot, BlendMode::Alpha, 1},
+    });
+    ExpectBox(QuadOf(4, 0), 105.0f, 237.0f, 465.0f, 238.0f);
+    ExpectBox(QuadOf(4, 1), 105.0f, 238.0f, 465.0f, 256.0f);
+    EXPECT_EQ(Client::UI::DrawTheLetterPortrait(read).HasValue(), true);
+}
+
+// Arrastrada y cambiando de tamaño, 0x499d60 vuelve a ubicar la lista, los botones y el retrato (el 8) y a medir la
+// lista y el retrato (el 9).
+TEST_F(LetterWindowsDrawTest, TheDraggedReadWindowPlacesItsChildren)
+{
+    OldWindow& read = OpenALetter("hola");
+    read.base.x += 10;
+    read.base.height += 13;
+    read.base.state = Client::UI::ResizedWindow;
+
+    Client::UI::DrawTheReadWindow(m_manager, read, Context(), OldWindowDrawView{.texts = &m_texts});
+
+    const Client::UI::OldLetterPart& letter = read.letter;
+    EXPECT_EQ(letter.lines.base.x, 115);
+    EXPECT_EQ(letter.lines.base.y, 250);
+    EXPECT_EQ(letter.lines.base.height, 133);
+    EXPECT_EQ(letter.buttons[4].base.x, 260);
+    EXPECT_EQ(letter.buttons[4].base.y, 254);
+    // El retrato: 0x77 desde el borde derecho, 0xf abajo, y 0xf menos alto que el área de adentro.
+    EXPECT_EQ(letter.portrait.base.x, 115 + 360 - 0x77);
+    EXPECT_EQ(letter.portrait.base.height, 169 - 0xf);
 }
 } // namespace

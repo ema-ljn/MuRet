@@ -1180,12 +1180,19 @@ los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
   `0x461cd0`, sin el lugar) y su raya (`0x491ba0`: los filos del 2 en `x` y `x + 4` y el 1 de 3 en el medio, 16 más
   corta que el área de adentro) a `0x50` del borde derecho; con la de invitar, también ella y su raya a `0xa0`. Abajo,
   la raya del 2 a 16 del borde y el negro (el 7) de los 15 de abajo; el botón de invitar, el EDIT (sin mezcla: la
-  sacó el botón) y, con la de invitar, el botón de mandar la invitación. Los renglones del original están partidos en
-  el ancho de la lista (P-C218).
+  sacó el botón) y, con la de invitar, el botón de mandar la invitación. **La de leer** (`0x499d60`): el cuerpo
+  (`0x464d90` con la barra `0x464e90`; cada renglón, `0x465770`, en `x + 10` y en la y de `0x465710` = `0x461c70`, en
+  `0xffc8dce6`, que saca la mezcla); abajo, la raya del 2 a 20 del borde y el negro de 18 de los botones y, con
+  `+0x774` en 2 o más (lo pone en 2 `0x48f460` y nadie lo cambia), solo hasta el retrato (`0x78` antes del borde
+  derecho) y con una raya de 19 al costado; arriba, la raya en `y + 0xe` y el negro de 14; el 1014 con el que la
+  manda, la fecha y la hora en `(x + 3, y + 3)` con los colores del último renglón, y los cinco botones. La vtable
+  + `0x54` del marco, al final, dibuja el retrato en la de leer con `+0x774` en 2 o más (`0x49a1d0`) y en la de
+  escribir con `+0xb0` en 1 (`0x498800`): corta (P-C212). Los renglones del original están partidos en el ancho de la
+  lista (P-C218).
 
-El paso y el ubicado de las tres ventanas siguen el orden del ASM. Los dibujos de la de leer (`0x499d60`), de la de
-escribir (`0x498480`) y de la pestaña de las cartas (`0x4a0a30`) cortan (P-C213); los renglones de los chats en la
-lista de ventanas de F5 (`+0xdc`), también (P-C215). Con el retrato del juego sin portar, abrir una carta o la de
+El paso y el ubicado de las tres ventanas siguen el orden del ASM. Los dibujos de la de escribir (`0x498480`) y de
+la pestaña de las cartas (`0x4a0a30`) cortan (P-C213); los renglones de los chats en la lista de ventanas de F5
+(`+0xdc`), también (P-C215). Con el retrato del juego sin portar, abrir una carta o la de
 escribir corta (P-C212); el `CA` arma el chat y abre la conexión de la sala (`App::IChatRoomLinks`; 04).
 
 **Los paneles.**

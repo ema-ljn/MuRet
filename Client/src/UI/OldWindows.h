@@ -260,6 +260,10 @@ struct OldLetterPart
     std::int32_t fromWebzen = 0;
     OldList lines;
     std::deque<std::string> lineRows;
+    // +0x774 de la de leer: 2 en el constructor (0x48f460), y nadie más lo escribe (*estático*). Con 2 o más, el dibujo
+    // le deja lugar al retrato abajo a la derecha (0x499e44) y lo dibuja (0x49a1d0), y el paso se lo copia a él
+    // (+0x69c del retrato, 0x49b1ea).
+    std::int32_t portraitMode = 0;
     // La de escribir: +0x778, mandada sin respuesta (el C5); +0x77c, 1 con el nombre puesto (0x4983e0) y 2 con el
     // asunto (0x498420); +0x780, +0x86c y +0x958, los EDIT del nombre, del asunto y del cuerpo.
     std::int32_t sending = 0;

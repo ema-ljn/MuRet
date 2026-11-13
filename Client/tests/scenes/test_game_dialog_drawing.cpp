@@ -12,6 +12,7 @@
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMovementState.h"
+#include "Scenes/NpcWindowState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/Dialogs.h"
@@ -26,6 +27,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
 #include <string_view>
 #include <memory>
 #include <optional>
@@ -482,12 +484,299 @@ TEST(GameDialogDrawingTest, TheAnswersDialogGrowsWithItsRows)
     EXPECT_EQ(tested->text.texts[0].y, 49);
 }
 
-// Los diálogos que no son de la CL8 cortan con la ola de su paso.
+// El tamaño de un quad del lote (sin los de los textos) en 640 × 480, con el error de dar vuelta la y (480 − y), y lo
+// más lejos que llega en la textura.
+constexpr float Pixel = 1.0e-3f;
+struct QuadExtent
+{
+    float width = 0.0f;
+    float height = 0.0f;
+    float du = 0.0f;
+    float dv = 0.0f;
+};
+
+QuadExtent ExtentOf(const SpriteBatch& sprites, std::size_t index)
+{
+    const auto vertices = sprites.Vertices();
+    std::size_t seen = 0;
+    for (const Client::Render::DrawCommand& command : sprites.Commands())
+    {
+        if (command.texture == Client::Tests::TextMarkerSlot)
+            continue;
+        const std::size_t quads = command.vertexCount / 6;
+        if (index >= seen + quads)
+        {
+            seen += quads;
+            continue;
+        }
+        const std::size_t first = command.firstVertex + (index - seen) * 6;
+        const auto corners = vertices.subspan(first, 6);
+        const auto [left, right] = std::ranges::minmax(corners, {}, &Client::Render::SpriteVertex::x);
+        const auto [bottom, top] = std::ranges::minmax(corners, {}, &Client::Render::SpriteVertex::y);
+        return QuadExtent{.width = right.x - left.x,
+                          .height = top.y - bottom.y,
+                          .du = std::ranges::max(corners, {}, &Client::Render::SpriteVertex::u).u,
+                          .dv = std::ranges::max(corners, {}, &Client::Render::SpriteVertex::v).v};
+    }
+    return {};
+}
+
+// Los renglones de la caja, uno por cada 0x26 bytes de 0x7d36a98, y su cuenta.
+void SetRows(Client::UI::DialogBoxState& box, std::initializer_list<std::string_view> rows)
+{
+    box.rows.fill('\0');
+    std::size_t row = 0;
+    for (const std::string_view text : rows)
+        std::ranges::copy(text, box.rows.begin() + static_cast<std::ptrdiff_t>(row++ * Client::UI::DialogRowBytes));
+    box.lineCount = static_cast<std::int32_t>(rows.size());
+}
+
+// Un diálogo de sí y no como lo deja 0x633300 y su paso (0x6282dc): el sí con el mouse encima (2) y el no afuera (3).
+void OpenYesNo(Client::Scenes::WorldRuntime& runtime, std::int32_t id)
+{
+    runtime.dialogs.current = id;
+    runtime.dialogBox.buttons[0] = {.state = 2, .x = 0x15, .y = 0x5a, .width = 0x46, .height = 0x15};
+    runtime.dialogBox.buttons[1] = {.state = 3, .x = 0x78, .y = 0x5a, .width = 0x46, .height = 0x15};
+}
+
+// x = centro − (cx / 2) de un texto en 640 × 480.
+int CenteredXAt(int center, std::string_view text)
+{
+    return center - static_cast<int>(text.size()) * LetterWidth / 2;
+}
+
+// 0x630cc4..0x630fbe: el marco de los de sí y no, 0xfc en y = 100, 3 filas de 0xfb desde 105 y 0xfc en 225, sin
+// mezcla; y los botones, 0xf0 + estado en (x + 213, y + 100) de 70 × 21 (sin el − 1 de las cajas) con las UV (70 /
+// 128, 21 / 32). Sin rand().
+TEST(GameDialogDrawingTest, TheYesNoDialogsDrawTheirFrameAndButtons)
+{
+    for (const std::int32_t map : {Lorencia, Devias, Noria})
+    {
+        for (const std::int32_t id : {0x94, 0x96, 0x98, 0x99, 0xa9})
+        {
+            SCOPED_TRACE(testing::Message() << "mapa " << map << ", diálogo " << id);
+            const auto tested = std::make_unique<DrawingDialogs>(map);
+            OpenYesNo(tested->world.Runtime(), id);
+            const std::uint32_t before = tested->random.State();
+
+            ASSERT_TRUE(tested->Draw().HasValue());
+            EXPECT_EQ(tested->random.State(), before);
+            const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+            ASSERT_EQ(quads.size(), 7u);
+            EXPECT_EQ(quads[0].slot, 0xfc);
+            EXPECT_EQ(quads[0].blend, BlendMode::Opaque);
+            EXPECT_FLOAT_EQ(quads[0].x, 213.0f);
+            EXPECT_FLOAT_EQ(quads[0].y, 100.0f);
+            for (std::size_t row = 1; row <= 3; ++row)
+            {
+                EXPECT_EQ(quads[row].slot, 0xfb);
+                EXPECT_FLOAT_EQ(quads[row].y, 105.0f + 40.0f * static_cast<float>(row - 1));
+            }
+            EXPECT_EQ(quads[4].slot, 0xfc);
+            EXPECT_FLOAT_EQ(quads[4].y, 225.0f);
+            EXPECT_EQ(quads[5].slot, 0xf2);
+            EXPECT_FLOAT_EQ(quads[5].x, static_cast<float>(0x15 + 213));
+            EXPECT_FLOAT_EQ(quads[5].y, static_cast<float>(0x5a + 100));
+            EXPECT_EQ(quads[6].slot, 0xf3);
+            EXPECT_FLOAT_EQ(quads[6].x, static_cast<float>(0x78 + 213));
+            const QuadExtent edge = ExtentOf(tested->sprites, 0);
+            EXPECT_NEAR(edge.width, 213.0f, Pixel);
+            EXPECT_NEAR(edge.height, 5.0f, Pixel);
+            EXPECT_FLOAT_EQ(edge.du, 0.83203125f);
+            EXPECT_FLOAT_EQ(edge.dv, 0.625f);
+            const QuadExtent button = ExtentOf(tested->sprites, 6);
+            EXPECT_NEAR(button.width, 70.0f, Pixel);
+            EXPECT_NEAR(button.height, 21.0f, Pixel);
+            EXPECT_FLOAT_EQ(button.du, 70.0f / 128.0f);
+            EXPECT_FLOAT_EQ(button.dv, 21.0f / 32.0f);
+            EXPECT_TRUE(tested->text.texts.empty());
+        }
+    }
+}
+
+// 0x630dfd..0x630e09: solo los botones con estado de 1 a 4.
+TEST(GameDialogDrawingTest, TheYesNoButtonsGoFromOneToFour)
+{
+    const auto tested = std::make_unique<DrawingDialogs>(Noria);
+    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+    OpenYesNo(runtime, 0x98);
+    runtime.dialogBox.buttons[0].state = 5;
+    runtime.dialogBox.buttons[1].state = 4;
+    ASSERT_TRUE(tested->Draw().HasValue());
+    std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+    ASSERT_EQ(quads.size(), 6u);
+    EXPECT_EQ(quads[5].slot, 0xf4);
+
+    tested->sprites.Begin(Screen640);
+    runtime.dialogBox.buttons[1].state = 0;
+    ASSERT_TRUE(tested->Draw().HasValue());
+    EXPECT_EQ(QuadsOf(tested->sprites).size(), 5u);
+}
+
+// 0x632637..0x632a2a: sin nada en 0x78abb14, los renglones en la fuente gruesa y en (1; 0,7; 0), centrados en x =
+// 0x15e desde y = 100 + 0x1e, de a 0x12, y así quedan.
+TEST(GameDialogDrawingTest, TheYesNoRowsAreBoldAndOrange)
+{
+    constexpr Color Orange{1.0f, 0.7f, 0.0f, 1.0f};
+    for (const std::int32_t map : {Lorencia, Devias, Noria})
+    {
+        SCOPED_TRACE(map);
+        const auto tested = std::make_unique<DrawingDialogs>(map);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        OpenYesNo(runtime, 0x94);
+        SetRows(runtime.dialogBox, {"una pregunta", "larga"});
+
+        ASSERT_TRUE(tested->Draw().HasValue());
+        ASSERT_EQ(tested->Texts(), (std::vector<std::string>{"una pregunta", "larga"}));
+        EXPECT_EQ(tested->text.texts[0].x, CenteredXAt(0x15e, "una pregunta"));
+        EXPECT_EQ(tested->text.texts[0].y, 130);
+        EXPECT_EQ(tested->text.texts[1].x, CenteredXAt(0x15e, "larga"));
+        EXPECT_EQ(tested->text.texts[1].y, 148);
+        for (const Client::Tests::RecordedText& recorded : tested->text.texts)
+            EXPECT_EQ(recorded.style.font, Client::Render::Text::FontKind::Bold);
+        EXPECT_EQ(TextColorsOf(tested->sprites), (std::vector<Color>{Orange, Orange}));
+        EXPECT_EQ(runtime.hud.dcFont, Client::Render::Text::FontKind::Bold);
+    }
+}
+
+// 0x632675..0x632902 y 0x632944..0x6329bf: lo que espera el ítem del cursor (0x78abb14) mueve y pinta los renglones.
+TEST(GameDialogDrawingTest, TheCursorChoiceMovesAndPaintsTheYesNoRows)
+{
+    constexpr Color Orange{1.0f, 0.7f, 0.0f, 1.0f};
+    constexpr Color Red{1.0f, 0.0f, 0.0f, 1.0f};
+    constexpr Color RedFourth{1.0f, 0.1f, 0.1f, 1.0f};
+    constexpr Color Mix{0.9f, 0.9f, 1.0f, 1.0f};
+    constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
+    using Client::Render::Text::FontKind;
+    struct Case
+    {
+        std::int32_t id = 0;
+        std::int32_t choice = 0;
+        int x = 0;
+        int y = 0;
+        std::vector<Color> colors;
+        std::vector<FontKind> fonts;
+    };
+    const std::vector<Case> cases{
+        // 1: el primero en rojo.
+        {0x98,
+         1,
+         0x15e,
+         130,
+         {Red, Orange, Orange, Orange},
+         {FontKind::Bold, FontKind::Bold, FontKind::Bold, FontKind::Bold}},
+        // 3: en 0x140 desde 100 + 0xf, y el cuarto en (1; 0,1; 0,1).
+        {0x94,
+         3,
+         0x140,
+         115,
+         {Orange, Orange, Orange, RedFourth},
+         {FontKind::Bold, FontKind::Bold, FontKind::Bold, FontKind::Bold}},
+        // 4: en 0x140 desde 100 + 0x2d.
+        {0x99,
+         4,
+         0x140,
+         145,
+         {Orange, Orange, Orange, Orange},
+         {FontKind::Bold, FontKind::Bold, FontKind::Bold, FontKind::Bold}},
+        // 6: el primero en rojo y los demás en la fuente normal y en blanco.
+        {0x98,
+         6,
+         0x15e,
+         130,
+         {Red, White, White, White},
+         {FontKind::Bold, FontKind::Normal, FontKind::Normal, FontKind::Normal}},
+        // El 0x96 no se mueve, pero los colores siguen a 0x78abb14: con 2, (0,9; 0,9; 1) sin el título de la mezcla.
+        {0x96, 2, 0x15e, 130, {Mix, Mix, Mix, Mix}, {FontKind::Bold, FontKind::Bold, FontKind::Bold, FontKind::Bold}},
+        {0x96,
+         3,
+         0x15e,
+         130,
+         {Orange, Orange, Orange, RedFourth},
+         {FontKind::Bold, FontKind::Bold, FontKind::Bold, FontKind::Bold}},
+    };
+    for (const std::int32_t map : {Lorencia, Devias, Noria})
+    {
+        for (const Case& expected : cases)
+        {
+            SCOPED_TRACE(testing::Message()
+                         << "mapa " << map << ", diálogo " << expected.id << ", elección " << expected.choice);
+            const auto tested = std::make_unique<DrawingDialogs>(map);
+            Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+            OpenYesNo(runtime, expected.id);
+            runtime.npcWindows.cursorChoice = expected.choice;
+            SetRows(runtime.dialogBox, {"uno", "dos", "tres", "cuatro"});
+
+            ASSERT_TRUE(tested->Draw().HasValue());
+            ASSERT_EQ(tested->text.texts.size(), 4u);
+            std::vector<FontKind> fonts;
+            for (std::size_t row = 0; row < 4; ++row)
+            {
+                const Client::Tests::RecordedText& recorded = tested->text.texts[row];
+                EXPECT_EQ(recorded.x, CenteredXAt(expected.x, recorded.text));
+                EXPECT_EQ(recorded.y, expected.y + 0x12 * static_cast<int>(row));
+                fonts.push_back(recorded.style.font);
+            }
+            EXPECT_EQ(fonts, expected.fonts);
+            EXPECT_EQ(TextColorsOf(tested->sprites), expected.colors);
+        }
+    }
+}
+
+// 0x632683: con 0x78abb14 en 2, el 0x94, el 0x98 y el 0x99 llevan antes el título de la mezcla, que corta (el marco
+// ya está).
+TEST(GameDialogDrawingTest, TheMixTitleIsCut)
+{
+    for (const std::int32_t id : {0x94, 0x98, 0x99})
+    {
+        const auto tested = std::make_unique<DrawingDialogs>(Devias);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        OpenYesNo(runtime, id);
+        runtime.npcWindows.cursorChoice = 2;
+        SetRows(runtime.dialogBox, {"mezclar"});
+        const auto drawn = tested->Draw();
+        ASSERT_FALSE(drawn.HasValue());
+        EXPECT_NE(drawn.Error().find("0x632683"), std::string::npos) << drawn.Error();
+        EXPECT_EQ(QuadsOf(tested->sprites).size(), 7u);
+        EXPECT_TRUE(tested->text.texts.empty());
+    }
+}
+
+// 0x632a45..0x632aeb: los renglones del 0xa9 en amarillo y en la fuente gruesa, centrados en 0x140 desde y = 100 + 0xf
+// + 0x1e, sin mirar 0x78abb14; al final, la fuente normal.
+TEST(GameDialogDrawingTest, TheBlessRowsAreYellow)
+{
+    constexpr Color Yellow{1.0f, 1.0f, 0.0f, 1.0f};
+    for (const std::int32_t map : {Lorencia, Devias, Noria})
+    {
+        SCOPED_TRACE(map);
+        const auto tested = std::make_unique<DrawingDialogs>(map);
+        Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
+        OpenYesNo(runtime, 0xa9);
+        runtime.npcWindows.cursorChoice = 6;
+        SetRows(runtime.dialogBox, {"bendecir", "este item"});
+
+        ASSERT_TRUE(tested->Draw().HasValue());
+        ASSERT_EQ(tested->Texts(), (std::vector<std::string>{"bendecir", "este item"}));
+        EXPECT_EQ(tested->text.texts[0].x, CenteredX("bendecir"));
+        EXPECT_EQ(tested->text.texts[0].y, 145);
+        EXPECT_EQ(tested->text.texts[1].y, 163);
+        EXPECT_EQ(tested->text.texts[1].style.font, Client::Render::Text::FontKind::Bold);
+        EXPECT_EQ(TextColorsOf(tested->sprites), (std::vector<Color>{Yellow, Yellow}));
+        EXPECT_EQ(runtime.hud.dcFont, Client::Render::Text::FontKind::Normal);
+    }
+}
+
+// Los diálogos que no son de la CL8 cortan con la ola de su paso; los de sí y no de la caja del caos y del servidor,
+// con la fase 3 del hito 6.
 TEST(GameDialogDrawingTest, TheOtherDialogsAreCut)
 {
     DrawingDialogs tested(Lorencia);
-    for (const auto& [id, wave] :
-         std::to_array<std::pair<std::int32_t, std::string>>({{0x73, "CL9.4"}, {0x8e, "CL9.3"}, {0x15, "CL9"}}))
+    for (const auto& [id, wave] : std::to_array<std::pair<std::int32_t, std::string>>({{0x73, "CL9.4"},
+                                                                                       {0x8e, "CL9.3"},
+                                                                                       {0x15, "CL9"},
+                                                                                       {0x9a, "fase 3 del hito 6"},
+                                                                                       {0xa3, "fase 3 del hito 6"}}))
     {
         tested.world.Runtime().dialogs.current = id;
         const auto drawn = tested.Draw();

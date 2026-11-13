@@ -326,7 +326,8 @@ de Q/W/E; los `rand()` de la búsqueda del ítem del piso en el picking. **Desbl
       `0x91`, `0x94`, `0x96`, `0x98`, `0x99`, `0x9a`, `0xa3`, `0xa8`, `0xa9`, `0xaa`, el `0x8f` con
       `0x5e7aa0`) y sus textos (`0x633300`), con los 16 cortes de `0x623e70`. (Fase 2, 2026-11-13: el `0x30` en la
       fase 1; el paso de sí y no `0x6282dc` del `0x94`, `0x96`, `0x98`, `0x99` y `0xa9`, el `0x8f` con `0x5e7aa0`, el
-      OK del `0x73` y el texto `0x63330f`. Lo que queda, en 08, P-C192 y P-C193.)
+      OK del `0x73` y el texto `0x63330f`. Lo que queda, en 08, P-C192 y P-C193. Fase 3: el dibujo de esos de sí y
+      no, `0x630cc4`, `0x632637` y `0x632a45`, sin el título de la mezcla; lo que queda, en 08, P-C194.)
 - [ ] **Las ventanas:** la tienda (`0x5f4720`), el almacén (`0x5f4e30`, `0x5e7bf0`, `0x5e9b10`, el teclado de
       `0x78abb20`), la caja del caos (`0x5febf0`, `0x5fe610`), reparar (`0x44b910`, la R de `0x59ff10`), el
       `BC` (`0x401f30`, `0x402500`) y los precios (`0x5b1200`, `0x5b2d23`). (Fase 2, 2026-11-13: los pasos de la

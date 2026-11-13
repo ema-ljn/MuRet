@@ -14,6 +14,7 @@
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/ITextDrawer.h"
+#include "Scenes/NpcWindowState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/Dialogs.h"
@@ -148,7 +149,7 @@ constexpr int TallBoxRows = 7;
 // 0x631150..0x631182: las del 0x8d, ((renglones + respuestas) · 0x12 + 0x31) / 40, de 4 a 9.
 constexpr int AnswersBoxRowsMaximum = 9;
 constexpr int AnswersBoxRowsRound = 0x31;
-// 0x630f1c..0x630f9b: cada botón con estado, 0xf0 + estado en (x + 213, y + 60, w, h − 1) con las UV (0, 0, w / 128,
+// 0x631205..0x63127c: cada botón con estado, 0xf0 + estado en (x + 213, y + 60, w, h − 1) con las UV (0, 0, w / 128,
 // h / 32) (0x6ba7a8, 0x6b86cc, 0x6b87d4, 0x6b8b08 y 0x6b8880).
 constexpr float ButtonDu = 0.0078125f;
 constexpr float ButtonDv = 0.03125f;
@@ -189,6 +190,39 @@ constexpr int GenericTextTop = 60;
 constexpr int GenericTextY = GenericTextTop + 0xf;
 constexpr int GenericFirstRowY = GenericTextTop + 9;
 constexpr int GenericSecondRowY = GenericTextTop + 0x15;
+
+// 0x630cc4..0x630da7: el marco de los de sí y no (CL9 hito 6), 0xfc de 213 × 5 en (213, 100), 3 filas de 0xfb de 213 ×
+// 40 desde y = 105 y otra vez 0xfc, con las UV de las cajas. El 0xa3 lo pone en y = 210 (0x630cc9..0x630cd3) y el 0x9a
+// lleva 4 filas (0x630d20..0x630d2c): son de sus diálogos, que siguen cortados.
+constexpr int YesNoBoxTop = 0x64;
+constexpr int YesNoBoxRows = 3;
+// 0x630df1..0x630fbe: los dos botones con estado de 1 a 4, 0xf0 + estado en (x + 213, y + 100, w, h) con las UV (0,
+// 0, w / 128, h / 32): sin el − 1 del alto de las cajas (0x631245).
+constexpr std::int32_t YesNoLastButtonState = 4;
+// 0x631412..0x631418 y 0x632637..0x632905: los renglones arrancan en x = 0x15e e y = 100 + 0xf + 0xf; con 0x78abb14
+// en 3, en x = 0x140 e y = 100 + 0xf, y en 4, en x = 0x140 e y = 100 + 0xf + 0x1e. Al 0x96 no lo mueven.
+constexpr int YesNoTextTop = YesNoBoxTop + 0xf;
+constexpr int YesNoTextX = 0x15e;
+constexpr int YesNoTextY = YesNoTextTop + 0xf;
+constexpr int LowerYesNoTextY = YesNoTextTop + 0x1e;
+// Lo que 0x632637 lee de 0x78abb14 (NpcWindowState::cursorChoice).
+constexpr std::int32_t RedFirstRowChoice = 1;
+constexpr std::int32_t MixChoice = 2;
+constexpr std::int32_t RaisedTextChoice = 3;
+constexpr std::int32_t LoweredTextChoice = 4;
+constexpr std::int32_t OnlyFirstRowBoldChoice = 6;
+// 0x632922..0x6329bf: cada renglón en la fuente gruesa y (1; 0,7; 0); con 0x78abb14 en 6, el primero en rojo y los
+// demás en la normal y en blanco; si no, el primero en rojo con 1, el cuarto en (1; 0,1; 0,1) con 3, y todos en (0,9;
+// 0,9; 1) con 2.
+constexpr std::int32_t RedFourthRow = 3;
+constexpr Color YesNoRowColor{1.0f, 0.7f, 0.0f, 1.0f};
+constexpr Color RedRowColor{1.0f, 0.0f, 0.0f, 1.0f};
+constexpr Color RedFourthRowColor{1.0f, 0.1f, 0.1f, 1.0f};
+constexpr Color MixRowColor{0.9f, 0.9f, 1.0f, 1.0f};
+// 0x632a45..0x632aeb: los renglones del 0xa9 (la joya de bendición, CL9 hito 5) en la fuente gruesa y en amarillo,
+// centrados desde y = 100 + 0xf + 0x1e.
+constexpr std::int32_t BlessDialog = 0xa9;
+constexpr Color BlessRowColor{1.0f, 1.0f, 0.0f, 1.0f};
 
 // 0x63140b..0x631d66: los textos de Text.bmd de los del OK genérico que llegan a la CL8, uno o dos renglones. El 0x87 y
 // el 0x88 los abre la caja de la contraseña del almacén (0x5e7d53, 0x5e7e83; CL9 hito 6): la tabla 0x632bf0 los lleva a
@@ -266,11 +300,16 @@ void DrawText(Frame& frame, int x, int y, std::string_view text)
     hud.arrowsTextHeight = Render::Text::DesignY(extent.height, screen);
 }
 
-// GetTextExtentPointA y 0x554180 en x = 0x140 − (cx · 640 / W) / 2.
-void DrawCentered(Frame& frame, int y, std::string_view text)
+// GetTextExtentPointA y 0x554180 en x = centro − (cx · 640 / W) / 2.
+void DrawCenteredAt(Frame& frame, int centerX, int y, std::string_view text)
 {
     const Render::Text::TextExtent extent = frame.context.text.Measure(frame.context.hud.dcFont, text);
-    DrawText(frame, Render::Text::CenteredAt(CenterX, extent, frame.context.sprites.Screen()), y, text);
+    DrawText(frame, Render::Text::CenteredAt(centerX, extent, frame.context.sprites.Screen()), y, text);
+}
+
+void DrawCentered(Frame& frame, int y, std::string_view text)
+{
+    DrawCenteredAt(frame, CenterX, y, text);
 }
 
 Core::Expected<void, std::string> DrawCenteredText(Frame& frame, int y, std::size_t index)
@@ -520,6 +559,94 @@ void DrawTheGenericBox(Frame& frame)
     Quad(frame, slot, OkX, OkY, OkWidth, OkHeight, OkDu, OkDv);
 }
 
+// 0x630cc4..0x630fbe: el marco de los de sí y no que llegan a MuRet (el paso YesNo: 0x94, 0x96, 0x98, 0x99 y 0xa9) y
+// sus dos botones. El color del 0x9a (0x630db4..0x630deb) y el botón del 0xa8 (0x630e0f..0x630f53) son de sus
+// diálogos.
+void DrawTheYesNoBox(Frame& frame)
+{
+    Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(YesNoBoxTop), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
+    int y = YesNoBoxTop + static_cast<int>(BoxEdgeHeight);
+    for (int row = 0; row < YesNoBoxRows; ++row, y += BoxRowStep)
+        Quad(frame, BoxRowSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxRowHeight, MessageBoxDu, BoxDv);
+    Quad(frame, BoxEdgeSlot, BoxLeft, static_cast<float>(y), BoxWidth, BoxEdgeHeight, MessageBoxDu, BoxDv);
+    for (const UI::DialogButton& button : frame.runtime.dialogBox.buttons)
+    {
+        if (button.state < 1 || button.state > YesNoLastButtonState)
+            continue;
+        const float width = static_cast<float>(button.width);
+        const float height = static_cast<float>(button.height);
+        Quad(frame, static_cast<std::uint16_t>(MessageBoxSlot + button.state), static_cast<float>(button.x) + BoxLeft,
+             static_cast<float>(button.y + YesNoBoxTop), width, height, width * ButtonDu, height * ButtonDv);
+    }
+}
+
+// 0x632637..0x632a2a: los renglones del 0x94, el 0x96, el 0x98 y el 0x99, cada uno centrado en su x. No vuelve al
+// blanco ni a la fuente normal. Con 0x78abb14 en 2, salvo en el 0x96, antes va el título de la mezcla.
+Core::Expected<void, std::string> DrawTheYesNoRows(Frame& frame, std::int32_t id)
+{
+    const std::int32_t choice = frame.runtime.npcWindows.cursorChoice;
+    int x = YesNoTextX;
+    int y = YesNoTextY;
+    if (id != UI::ItemNameDialog)
+    {
+        if (choice == MixChoice)
+            return Core::Unexpected(std::format("0x632683: el título de la mezcla del diálogo {:#x} (el tipo de "
+                                                "0x7d2dc98) es de la caja del caos, de la fase 3 del hito 6 (08 "
+                                                "P-C194)",
+                                                id));
+        if (choice == RaisedTextChoice)
+        {
+            x = CenterX;
+            y = YesNoTextTop;
+        }
+        else if (choice == LoweredTextChoice)
+        {
+            x = CenterX;
+            y = LowerYesNoTextY;
+        }
+    }
+    const UI::DialogBoxState& box = frame.runtime.dialogBox;
+    Render::SpriteBatch& sprites = frame.context.sprites;
+    for (std::int32_t row = 0; row < box.lineCount; ++row, y += UI::DialogLineStep)
+    {
+        sprites.SetColor(YesNoRowColor);
+        frame.context.hud.dcFont = Render::Text::FontKind::Bold;
+        if (choice == OnlyFirstRowBoldChoice)
+        {
+            if (row == 0)
+                sprites.SetColor(RedRowColor);
+            else
+            {
+                frame.context.hud.dcFont = Render::Text::FontKind::Normal;
+                sprites.SetColor(White);
+            }
+        }
+        else
+        {
+            if (row == 0 && choice == RedFirstRowChoice)
+                sprites.SetColor(RedRowColor);
+            else if (row == RedFourthRow && choice == RaisedTextChoice)
+                sprites.SetColor(RedFourthRowColor);
+            if (choice == MixChoice)
+                sprites.SetColor(MixRowColor);
+        }
+        DrawCenteredAt(frame, x, y, UI::DialogRow(box, static_cast<std::size_t>(row)));
+    }
+    return {};
+}
+
+// 0x632a45..0x632aeb: los renglones del 0xa9, y al final la fuente normal (sin volver al blanco).
+void DrawTheBlessRows(Frame& frame)
+{
+    const UI::DialogBoxState& box = frame.runtime.dialogBox;
+    frame.context.hud.dcFont = Render::Text::FontKind::Bold;
+    frame.context.sprites.SetColor(BlessRowColor);
+    int y = LowerYesNoTextY;
+    for (std::int32_t row = 0; row < box.lineCount; ++row, y += UI::DialogLineStep)
+        DrawCentered(frame, y, UI::DialogRow(box, static_cast<std::size_t>(row)));
+    frame.context.hud.dcFont = Render::Text::FontKind::Normal;
+}
+
 // El corte de un diálogo que no es de la CL8, con la ola de su paso.
 Core::Unexpected<std::string> CutTheDialog(std::int32_t id)
 {
@@ -527,9 +654,6 @@ Core::Unexpected<std::string> CutTheDialog(std::int32_t id)
     std::string_view wave = "CL9";
     if (route.step == DialogStep::Cut)
         wave = route.wave;
-    // 0x630cc4..0x630fbe: el marco y los botones de los de sí y no, y sus textos (0x632630), de la fase 3 del hito 6.
-    if (route.step == DialogStep::YesNo)
-        wave = "fase 3 del hito 6 (08 P-C192)";
     // 0x630c7b: el 0x73 dibuja el EDIT de su campo (0x5763504), como corta su paso.
     if (id == 0x73)
         wave = "CL9.4";
@@ -556,6 +680,8 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
     }
     const bool box = id == UI::MessageBoxDialog || id == UI::PagedDialog || id == UI::AnswersDialog || id == 0x8b ||
                      id == 0x97 || id == 0x9b;
+    // 0x630477..0x6304d4: los de sí y no van a 0x630cc4; MuRet dibuja los que tienen su paso (0x6282dc).
+    const bool yesNo = id != 0 && DialogRouteOf(id).step == DialogStep::YesNo;
     if (id == UI::EscapeMenuDialog)
     {
         if (auto drawn = DrawTheEscapeMenu(frame); !drawn.HasValue())
@@ -568,6 +694,8 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
     }
     else if (box)
         DrawTheBox(frame, id);
+    else if (yesNo)
+        DrawTheYesNoBox(frame);
     else if (generic)
         DrawTheGenericBox(frame);
     else if (id != 0)
@@ -577,6 +705,14 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
     // 0x631432: la tabla 0x632bf0 lleva el 0x8a, el 0x8c y el 0x8d a 0x632472, y las otras cajas a 0x632a2b.
     if (id == UI::MessageBoxDialog || id == UI::PagedDialog || id == UI::AnswersDialog)
         return DrawTheBoxText(frame, id);
+    // 0x632637 y 0x632a45: los renglones de los de sí y no.
+    if (yesNo && id == BlessDialog)
+    {
+        DrawTheBlessRows(frame);
+        return {};
+    }
+    if (yesNo)
+        return DrawTheYesNoRows(frame, id);
     if (box)
     {
         // 0x632a2b: [0x723c60] + 0x10, el texto de la caja del objeto del evento (0x40bdd0, 0x40c440 o 0x405220).

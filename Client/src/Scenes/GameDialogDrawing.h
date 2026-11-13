@@ -22,8 +22,12 @@ struct GameHudContext;
 //     (0xf0 + estado), las flechas del 0x8c (que gastan el clic, Q-C553) y los renglones del 0x8a y del 0x8c
 //     centrados; los del 0x8b, el 0x97 y el 0x9b los dibuja el objeto del evento ([0x723c60] + 0x10, CL9.5): sin él,
 //     nada, y con él corta;
-//   - los del OK genérico con texto (0x70, 0x6f, 0x1a, 0x1c y 0x8f): el marco 0xf0, el OK (0xf1, o 0xf2 con el mouse)
-//     y sus textos de Text.bmd.
+//   - los del OK genérico con texto (0x70, 0x6f, 0x1a, 0x1c, 0x87, 0x88 y 0x8f): el marco 0xf0, el OK (0xf1, o 0xf2
+//     con el mouse) y sus textos de Text.bmd;
+//   - los de sí y no con su paso (0x94, 0x96, 0x98, 0x99 y 0xa9, CL9 hito 6): el marco en y = 100 (0xfc, 3 filas de
+//     0xfb y 0xfc), los botones con estado de 1 a 4 y los renglones en la fuente gruesa, con la x, la y y los colores
+//     que dice 0x78abb14 (0x632637), o en amarillo los del 0xa9 (0x632a45). Con 0x78abb14 en 2, el título de la mezcla
+//     (0x632683) corta.
 // Los demás cortan con la ola que los trae, como su paso. En un dibujo intermedio de MuRet, la esquina de la barra y
 // el clic no se escriben. Sin Text.bmd, o sin uno de sus textos, corta.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context);

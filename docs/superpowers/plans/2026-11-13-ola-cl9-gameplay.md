@@ -357,8 +357,9 @@ byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada v
       con su dirección).
   - [x] Fase 1 (2026-11-13): `/trade` hasta el nivel (`0x6c8dc8`), `/duelstart` y `/duelend` con el duelo en curso
         y Chaos Castle (texto 1150); `/GuildWar` y `/BattleSoccer` solo los usa el filtro de las macros (`0x56c1f0`).
-  - [ ] Fase 2: lo que busca al otro (`0x56c68b` y vecinas, `0x406097`); `/guild`, `/union` y `/rival` son del
-        hito 8.
+  - [x] Fase 2 (2026-11-13): lo que busca al otro en `/trade`, `/duelstart` y `/party` (`0x56c68b` y vecinas,
+        `Scenes::SocialRequests`).
+  - [ ] Fase 2: la ventana de comandos sobre el elegido (`0x406097`); `/guild`, `/union` y `/rival` son del hito 8.
 
 **Pruebas:** una vuelta entera de comercio con otro jugador (pedido, ítems, zen, OK) byte a byte; abrir una
 tienda personal y ver la de otro; armar una party y echar a alguien; un duelo; cada comando. **Desbloquea:** 8.

@@ -14,6 +14,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SocialRequests.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -137,6 +138,13 @@ Core::Expected<void, std::string> DoTheEmotes(const GameChatContext& context, st
     return DoTheEmote(*emote, EmoteContext{.hero = hero, .models = *context.models, .send = send});
 }
 
+// Los pedidos a otro de 0x56c440 (RunTheCommand ya miró Text.bmd).
+SocialRequestContext SocialRequestsOf(const GameChatContext& context)
+{
+    return SocialRequestContext{
+        .world = context.world, .random = context.random, .texts = *context.texts, .send = context.send};
+}
+
 // Lo que 0x56c440 lee y escribe.
 Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChatContext& context, std::string_view text,
                                                                   bool fromMacro)
@@ -173,13 +181,18 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
             context.random.Discard(2);
             context.send(Protocol::Duel::WriteDuelEnd());
             return {};
-        }};
+        },
+        .requestATrade = [&context]() { return RequestATrade(SocialRequestsOf(context)); },
+        .requestAParty = [&context]() { return RequestAParty(SocialRequestsOf(context)); },
+        .requestADuel = [&context]() { return RequestADuel(SocialRequestsOf(context)); }};
     auto outcome = UI::RunTheChatCommand(commands, text, fromMacro);
     if (!outcome.HasValue())
         return outcome;
     for (const UI::ChatCommandNotice& notice : outcome.Value().notices)
     {
-        if (auto added = AddNotice(context, notice.text, notice.type, "0x56c440"); !added.HasValue())
+        auto added = notice.formatted ? AddMessage(context, "", *notice.formatted, notice.type, "0x56c440")
+                                      : AddNotice(context, notice.text, notice.type, "0x56c440");
+        if (!added.HasValue())
             return Core::Unexpected(added.Error());
     }
     if (outcome.Value().sound)

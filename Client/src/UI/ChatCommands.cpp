@@ -78,7 +78,7 @@ SocialCommand(const ChatCommandContext& context, std::string_view address, std::
 }
 
 // 0x56c54d..0x56c690: /trade. Fuera de Chaos Castle, el nivel del registro propio contra 0x6c8dc8: sin alcanzarlo, el
-// aviso 478 y 1. Con él, el elegido (0x6c8e30) o el que está enfrente (0x56ce1e) y el C1 05 36 son de la fase 2.
+// aviso 478 y 1. Con él, el pedido al elegido (0x6c8e30) o al que está enfrente (0x56ce1e), con el C1 05 36.
 Core::Expected<ChatCommandOutcome, std::string> TradeCommand(const ChatCommandContext& context)
 {
     if (InChaosCastle(context))
@@ -87,8 +87,9 @@ Core::Expected<ChatCommandOutcome, std::string> TradeCommand(const ChatCommandCo
         return Core::Unexpected(std::string("0x56c5d0: /trade sin el registro propio"));
     if (context.ownLevel() < context.tradeLevel)
         return ChatCommandOutcome{.handled = true, .notices = {{TradeLevelText, SystemMessage}}};
-    return Core::Unexpected(std::string("0x56c68b: a quién pedirle comercio (el elegido 0x6c8e30 o el que está "
-                                        "enfrente) es de la CL9 hito 7, fase 2 (los actores)"));
+    if (!context.requestATrade)
+        return Core::Unexpected(std::string("0x56c68b: /trade sin el pedido"));
+    return context.requestATrade();
 }
 
 // 0x576894..0x576922 y 0x40ebd0: "/" y el nombre de un ítem abre su ayuda; si no, 0x40ebd0 compara con "/" y el
@@ -184,17 +185,19 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
     if (text == TextAt(texts, ShopViewOnCommandText) || text == TextAt(texts, ShopViewOffCommandText))
         return Core::Unexpected(
             std::string("0x56d722: ver las tiendas personales (0x4516a0 y 0x4516b0) es de la CL9.4"));
-    // 0x56d7e0..0x56d82b: /duelstart. Con el duelo en curso, el aviso 915 y sigue la cadena (0x56ea05); sin él, el
-    // elegido o el que está enfrente y el C1 0F AA son de la fase 2.
+    // 0x56d7e0..0x56d82b: /duelstart. Con el duelo en curso, el aviso 915; sin él, el AA al elegido o al que está
+    // enfrente. Con o sin él, sigue la cadena (0x56ea05 y 0x56e07c).
     ChatCommandOutcome outcome;
     if (text == TextAt(texts, DuelStartCommandText) || EqualsIgnoringCase(text, "/duelstart"))
     {
         if (InChaosCastle(context))
             return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
-        if (!context.duelActive)
-            return Core::Unexpected(std::string("0x56d823: a quién retar a duelo (el elegido 0x6c8e30 o el que está "
-                                                "enfrente) es de la CL9 hito 7, fase 2 (los actores)"));
-        outcome.notices.push_back(ChatCommandNotice{DuelBusyText, ErrorMessage});
+        if (context.duelActive)
+            outcome.notices.push_back(ChatCommandNotice{.text = DuelBusyText, .type = ErrorMessage});
+        else if (!context.requestADuel)
+            return Core::Unexpected(std::string("0x56d823: /duelstart sin el pedido"));
+        else if (auto asked = context.requestADuel(); !asked.HasValue())
+            return Core::Unexpected(std::move(asked).Error());
     }
     // 0x56ea29..0x56ee40: /duelend. Con el duelo en curso, el C1 03 AB en C3; con o sin él, sigue la cadena.
     if (text == TextAt(texts, DuelEndCommandText) || EqualsIgnoringCase(text, "/duelend"))
@@ -220,8 +223,14 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
         return SocialCommand(context, "0x570d48", "la alianza y la rivalidad de los gremios", "la CL9 hito 8");
     if (text == TextAt(texts, PartyCommandText) || EqualsIgnoringCase(text, "/party") ||
         EqualsIgnoringCase(text, "/pt"))
-        return SocialCommand(context, "0x56f109", "a quién invitar a la party (C1 05 40)",
-                             "la CL9 hito 7, fase 2 (los actores)");
+    {
+        // 0x56f109..0x56f13e: en Chaos Castle, el aviso 1150 y 0; si no, el pedido de 0x56f13f.
+        if (InChaosCastle(context))
+            return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
+        if (!context.requestAParty)
+            return Core::Unexpected(std::string("0x56f13f: /party sin el pedido"));
+        return context.requestAParty();
+    }
     if (const std::size_t macro = MacroOf(text); macro < MacroCount)
         return SetTheMacro(context, text, macro);
     // 0x56f02e..0x56f0ab: "/filter" (el texto 753, si no está vacío, o el literal) y la cola.

@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -56,8 +57,20 @@ struct ChatCommandNotice
 {
     std::size_t text = 0;
     std::int32_t type = 0;
+    // El texto ya armado por sprintf con el texto `text` de formato (los pedidos de 0x56cde9 y 0x56fd75); vacío, el
+    // texto tal cual.
+    std::optional<std::string> formatted{};
 
     friend bool operator==(const ChatCommandNotice&, const ChatCommandNotice&) = default;
+};
+
+struct ChatCommandOutcome
+{
+    // Lo que devuelve: con true el WndProc no manda nada.
+    bool handled = false;
+    std::vector<ChatCommandNotice> notices;
+    // 0x57693f: el 0x19 (una macro guardada o la ayuda de un ítem).
+    bool sound = false;
 };
 
 // Lo que el despacho lee y escribe.
@@ -93,15 +106,14 @@ struct ChatCommandContext
     // 0x56ea6c..0x56ee2c (/duelend con el duelo en curso): el C1 03 AB en C3, con sus dos rand(). Sin él, ese caso
     // corta.
     std::function<Core::Expected<void, std::string>()> endTheDuel{};
-};
-
-struct ChatCommandOutcome
-{
-    // Lo que devuelve: con true el WndProc no manda nada.
-    bool handled = false;
-    std::vector<ChatCommandNotice> notices;
-    // 0x57693f: el 0x19 (una macro guardada o la ayuda de un ítem).
-    bool sound = false;
+    // 0x56c68b..0x56d623 (/trade con el nivel) y 0x56f13f..0x570d47 (/party fuera de Chaos Castle): a quién pedirle
+    // (el elegido 0x6c8e30 o el que está enfrente), su paquete y su aviso (Scenes::RequestATrade y RequestAParty); lo
+    // que devuelven es la salida del comando. Sin ellos, esos casos cortan.
+    std::function<Core::Expected<ChatCommandOutcome, std::string>()> requestATrade{};
+    std::function<Core::Expected<ChatCommandOutcome, std::string>()> requestAParty{};
+    // 0x56d823..0x56e9ec (/duelstart sin duelo): el AA al elegido o al de enfrente, y la cadena sigue
+    // (Scenes::RequestADuel). Sin él, ese caso corta.
+    std::function<Core::Expected<void, std::string>()> requestADuel{};
 };
 
 // 0x56c440(texto, desde una macro).

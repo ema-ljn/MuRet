@@ -9975,6 +9975,27 @@ y + 0x4b) y, si el héroe es el primero o este, el botón de echar (`0x118`, o `
 (`GamePartyWindow`). Tests: `CharacterPickingTest` (la búsqueda y la lista, con sus `rand()`), `GamePartyWindowTest`
 (la lista y los miembros) y `PartyLifeTest` (con dos jugadores del `0x12` en Lorencia y Devias).
 
+**Los pedidos a otro desde el chat** (`0x56c440`: `/trade` en `0x56c68b..0x56d623`, `/duelstart` sin duelo en
+`0x56d823..0x56e9ec` y `/party` en `0x56f13f..0x570d47`). Los tres buscan al otro igual: el elegido (`0x6c8e30`), si
+no es −1, o el primero de los 400 que está enfrente. El elegido tiene que ser un jugador (`+0x88` en 1), no el héroe
+publicado y del tipo `0x20a` o con `+0x3e3`; el de enfrente, además, vivo (el byte de `+0`). Después, las celdas
+lógicas: la x del otro (`+0x41c`), la del héroe, la y del otro (`+0x420`) y la del héroe, cada una con su acceso a la
+tabla de protección (`0x40b570` y `0x40b800`, o lo mismo en línea con `0x40b240`, `0x40b2f0` y `0x412890`; con una
+entrada nueva, `0x40ad90`), así que cada lectura que cierra su entrada saca 4 `rand()`; con la x a más de 1 no lee
+las y. El de enfrente, además, mira las direcciones de `+0x24` (el `_ftol` de (ángulo + 22,5) / 45 + 1, `& 0xff` y
+por 8, como el emote) del otro y del héroe: a 4, se miran; si no, sigue con el próximo.
+
+| comando | si no se puede | antes del paquete | paquete (C3) | después |
+|---|---|---|---|---|
+| `/trade` | 1 | la tienda personal del otro (`0x451810`): el aviso 493 con el 2; las tiendas abiertas (`0x5af560`, `0x800` y `0x20000`) o el mundo sin cargar (`0x7d3a101`): 1 | `C1 05 36` y la clave (alta primero) | el aviso 475 (`sprintf` con el nombre del primero vivo con esa clave, `0x5110d0`) con el 1, y 1 |
+| `/duelstart` | sigue la cadena | — | `C1 0F AA`, la clave y los 10 bytes de `+0x1d9` | sigue la cadena (`/duelend`, `0x56e07c`) |
+| `/party` | 1 | con party (`0x78aba48 > 0`) y otro líder (`strcmp` con el primer lugar de `0x77f3cd0`), el aviso 257 con el 1, antes de buscar; el mundo sin cargar: 1 | `C1 05 40` y la clave; `0x78aba4c` = la clave (`MOVSX`) | el aviso 476 con el nombre, y 1 |
+
+Cada paquete saca los 2 `rand()` del C3 (el relleno y el serial). El mapa de las tiendas de `0x7245c8` lo llenan los
+`3F`: hasta portarlos, nadie tiene tienda. **MuRet**: `Scenes::SocialRequests` (`RequestATrade`, `RequestADuel` y
+`RequestAParty`, desde `UI::RunTheChatCommand` por `GameChat`; el aviso armado va en `ChatCommandNotice::formatted`).
+Tests: `SocialRequestsTest` (con los dos jugadores del `0x12`, en Lorencia y Devias), `Commands` y `GameChat`.
+
 ## Lo que no se sabe
 
 - **Modelos, en el binario** (P-C01, cerrado en la CL6.R): el skinning, la pose, el avance, la

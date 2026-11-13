@@ -18,6 +18,11 @@ inline constexpr std::size_t ChatWhisperOnCommandText = 265;
 inline constexpr std::size_t ChatWhisperOffNoticeText = 267;
 inline constexpr std::size_t ChatWhisperOnNoticeText = 268;
 inline constexpr std::size_t ChatWhisperDeniedText = 479;
+// Los avisos de los pedidos a otro (0x56c440, CL9 hito 7): el 475 y el 476 son formatos de sprintf con el nombre.
+inline constexpr std::size_t ChatTradeRequestedText = 475;
+inline constexpr std::size_t ChatPartyRequestedText = 476;
+inline constexpr std::size_t ChatPersonalShopText = 493;
+inline constexpr std::size_t ChatNotTheLeaderText = 257;
 
 inline std::map<std::size_t, std::string> ChatTexts()
 {
@@ -46,6 +51,10 @@ inline std::map<std::size_t, std::string> ChatTexts()
         {ChatWhisperOffNoticeText, "aviso callar"},
         {ChatWhisperOnNoticeText, "aviso escuchar"},
         {ChatWhisperDeniedText, "aviso nivel"},
+        {ChatTradeRequestedText, "pediste comerciar con %s"},
+        {ChatPartyRequestedText, "invitaste a %s"},
+        {ChatPersonalShopText, "aviso puesto"},
+        {ChatNotTheLeaderText, "aviso lider"},
         {755, "aviso filtro"},
         {756, "aviso sin filtro"},
     };

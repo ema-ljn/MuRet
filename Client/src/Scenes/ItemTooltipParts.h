@@ -61,6 +61,9 @@ ReadTheSkillEntry(ItemTooltipFrame& frame, std::uint32_t skill, std::string_view
 // espacio. Sin conjunto, nada. Un conjunto fuera de los 64 o un nombre sin '\0' leen fuera: error.
 [[nodiscard]] Core::Expected<std::optional<std::string>, std::string> ItemSetNameOf(const GameHudContext& context,
                                                                                     const World::ItemState& item);
+// Lo mismo con el tipo y la pieza (& 3) dados, como la llama la ayuda del ítem con 1 y 2 (0x5b0ccd y 0x5b0d45).
+[[nodiscard]] Core::Expected<std::optional<std::string>, std::string>
+ItemSetNameOf(const GameHudContext& context, std::uint16_t type, std::uint8_t piece);
 
 // 0x5b371b..0x5b45f4: el renglón del nombre, en el color del nombre y en negrita, y un "\n".
 [[nodiscard]] Core::Expected<void, std::string> WriteTheItemName(ItemTooltipFrame& frame);
@@ -78,6 +81,15 @@ ReadTheSkillEntry(ItemTooltipFrame& frame, std::uint32_t skill, std::string_view
 
 // 0x5b6a3c..0x5b79bc: la durabilidad, el daño de las flechas, las resistencias y los requisitos.
 [[nodiscard]] Core::Expected<void, std::string> WriteTheRequirements(ItemTooltipFrame& frame);
+
+// 0x5af590(registro): las clases que usan el ítem de `record` (Item.bmd+0x45..+0x49, la evolución + 1 de cada una),
+// desde el renglón que sigue de `lines`. Pone en 0 los colores de N + 2 y N + 3 y, con alguna clase, escribe un "\n"
+// (con su medio) y: el MG (la clase 3 del héroe), el 61 o el 60 con el 23 según su byte +0x48 y su evolución; con una o
+// dos clases, el 61 con el nombre de cada una (15 + 5 · byte + clase); con tres o cuatro, el 60 con el de cada clase
+// que no lo usa (20 + clase); con cinco, nada más. Lo que el héroe no cumple va en rojo si su clase lo usa y en el 5 si
+// no. La llaman el cuerpo del ítem (0x5b79d2) y la ayuda del ítem (0x5b0da8).
+void WriteTheItemClasses(const GameHudContext& context, TooltipWriter& lines,
+                         std::span<const std::byte, Data::Tables::ItemRecordSize> record);
 
 // 0x5b79bd..0x5b801a: las clases (0x5af590), lo que suma cada tipo, el stat del conjunto (0x40dd80), las opciones
 // (0x5b2320), las cajas 0x1a20 a 0x1a25 y las opciones del conjunto (0x40eee0).

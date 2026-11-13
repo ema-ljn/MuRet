@@ -1202,8 +1202,55 @@ La caja es la de los tooltips (`0x5af090`, § Los tooltips, "La caja"). MuRet: `
 `0x620980`; el divisor del ancho (`0x5a` en 640 y 800, `0x67` en 1.024, `0x7b` en 1.280, 0 con otro); las flechas
 (`0x807`), los virotes (`0x80f`) y los ítems fuera de las franjas `0..0x9ff`, `0xa00..0xbff`, `0xc00..0xdff`,
 `0xe00..0x17ff` y `0x1e00..0x1fff` ponen el modo en 0 y vuelven. Las franjas 1 a 4 dividen `0x870` o `0x708` por
-el divisor (Q-C615); la 5, `0x1734` (640 y 1.280) o `0x1450` (800 y 1.024), o nada con otro ancho. Lo que sigue
-(`0x5afc00`, `0x5af590`, `0x5af9b0` y `0x5afb00`, desde `0x5b09a8`) corta (08, P-C105).
+el divisor (Q-C615); la 5, `0x1734` (640 y 1.280) o `0x1450` (800 y 1.024), o nada con otro ancho. El cociente es
+la x de la primera columna (0 sin división); la y de los títulos y la de las filas salen del ancho (`0x26` y `0x34`
+en 640, `0x21` y `0x2f` en 800, `0x1c` y `0x28` en 1.024, `0x16` y `0x20` en 1.280, 0 con otro).
+
+La tabla por nivel (`0x5afc00(ítem)`, en `0x5b09a8`): con el ítem de `0x6c9334` (−1 en la `.data`; solo la escribe
+ella) vuelve sin hacer nada (Q-C750). Si no, lo guarda y llena 14 niveles de 17 dwords en `0x787a15c` con el registro
+de Item.bmd de `0x77f3b0c`: el nivel (columna 0), el daño mínimo y el máximo (`+0x26` y `+0x27`, 2 y 3), el poder
+(`+0x2f`: en la 4, y de `0x408` a `0x40d`, los cetros, en la 5), la defensa (`+0x29`, 6) y su tasa (`+0x28`, 7), los
+requisitos de fuerza (`+0x30`, 8), agilidad (`+0x32`, 9), energía (`+0x34`, 10), mando (`+0x38`, 13) y vitalidad
+(`+0x36`, 14) y el nivel pedido (`+0x3a`, 15). Un byte distinto de 0 suma 3 · min(nivel, 9) y, del 10 al 13, 4, 9,
+15 y 22 más (la tabla `0x5b04f4`); el poder va a la mitad y, salvo en los cetros, suma 2 · nivel; la defensa de los
+escudos (`0xc00..0xdff`) suma solo el nivel. Cada requisito distinto de 0 es `(Item.bmd+0x20 + 3 · nivel) ·
+requisito · 3 (4 la energía) / 100 + 20`, en 32 bits con signo. La columna 1 es 1 si el registro propio cumple cada
+requisito con su stat más lo de los ítems (`+0x2a..+0x36`, en 16 bits, comparado con signo) y el nivel (`+0xe`), y 0
+si no; lo abre y lo cierra en cada nivel (`0x5aff9b..0x5b04c3`): sin otro acceso abierto, 14 cierres de 3.848
+`rand()`, 53.872. Las columnas 11, 12 y 16 no las escribe nadie.
+
+La caja de arriba (`0x5b09b0..0x5b0dea`), desde el renglón 0: `"\n"`, el texto 160 con `strcpy` (Q-C613) en azul y
+negrita, el nombre del ítem (`"%s"`) en negrita, `"\n"`, `" "`, `"\n"`, 46 espacios (51 con más de 800 de ancho) y,
+salvo en los pergaminos, 13 renglones `" "` sin negrita (el color va uno más abajo: el del primero queda como estaba y
+el que sigue al último, en 0); `0x77f3b66` en 1. `0x40cf00(ítem)` lee los bytes 2 y 3 del tipo en ItemSetType.bmd:
+con el 3 de 0 a 3 y un conjunto en la pieza 1 (`0x40cf30`), un renglón verde (el 4) `"%s %s %s:(%s+%d)"` con su
+nombre, el 1089, el 591, el 1090 y ese byte; con el 2, lo mismo con la pieza 2. Después las clases de `0x5af590` (las
+del cuerpo del ítem), `"\n"` y `0x5af090(1, 1, cuántos, ancho, 2, 1)`. El ancho sale de la fila del nivel 0, en la x87
+con 53 bits: una columna (dos con daño mínimo, salvo en los pergaminos), una más por el máximo (salvo en los
+pergaminos), el poder, el del cetro, la fuerza y la agilidad (siempre fuera de los pergaminos), y 1,1f por la defensa,
+su tasa, la energía, el nivel pedido, la vitalidad y el mando; eso por divisor · 17 / 90, más 0,5 y `_ftol`, y nunca
+menos que el divisor. Después, `0x620a00(1)`.
+
+Las columnas (`0x5b0dfb..0x5b10b6`), de izquierda a derecha desde la x: el título (`0x5afb00(columna, x, y)`: el
+texto como formato de `sprintf`, sin argumentos, en el renglón 0, con el color 1 y la negrita que haya quedado,
+Q-C751; la caja de ese renglón con el modo 3 y sin marco, y `0x78abb30` en 0) y las filas
+(`0x5af9b0(columna, formato, &x, muestra, y, franja)`: un `sprintf` por nivel desde `0x78abb30`, con el color 0 si la
+columna 1 de ese nivel es 1 y el 2 si no, y la negrita en 0, por fila; la caja con el modo 3 y sin marco; la x crece lo
+que mide la muestra con la fuente que dejó la caja, / rx y `_ftol`, y `0x78abb30` vuelve a donde estaba). Son 14
+filas, o una con la franja 5, que solo pasan el nivel y la energía (Q-C752). En orden: el nivel (161, `"+%d"`,
+`"000000"`); el nivel pedido (la x + 2 antes y + 10 después; 1931); el mínimo (`"00 "`), el título del daño (162) y
+la columna `"~"` (la del nivel, `" 00"`), y el máximo, sin título, salvo en los pergaminos; el poder (163) y el del
+cetro (1239), con `"%2d%%"`; la defensa (164), la tasa (165, `"%3d%%"`), la fuerza (166), la agilidad (167, también
+en 0 fuera de los pergaminos), la vitalidad (169), la energía (168) y el mando (1900), cada una si la fila del nivel 0
+tiene algo; las de números, `"%3d"`. El switch de `0x5afb00` no tiene texto para las columnas 1, 11, 12 y más de 15
+(`sprintf` con `NULL`, `0x5afb7a`), pero nadie las pide. Termina con `0x620980`.
+
+MuRet: `Scenes::DrawTheItemHelp` (`Scenes/GameItemHelp.cpp`), con la tabla en `HudState::itemHelp`
+(`Scenes::FillTheItemHelpLevels`, `Scenes/ItemHelpLevels.h`), las cajas de `Scenes::DrawTheTooltipBox` y las clases
+de `Scenes::WriteTheItemClasses`, la misma del cuerpo del ítem. Corta con su dirección sin Item.bmd (`0x5b098f`), sin
+Text.bmd (`0x5b09f0`), con el 160 de 100 bytes o más (`0x5b0a03`, Q-C613), sin ItemSetType.bmd (`0x40cf13`) o
+ItemSetOption.bmd (`0x40cf46`) y con un nombre de conjunto sin `'\0'` (`0x40cf80`) (08, P-C146). Los tests son
+`test_game_item_help.cpp`, en Lorencia y Devias, en 640 × 480, 800 × 600 y 1.024 × 768.
 
 **El cartel del conjunto** (`0x40eca0`, en `0x6376c6` con `+0x9305` distinto de 0). La abre el chat con `"/"` y el
 nombre de un conjunto de `ItemSetOption.bmd` (`0x40ebd0`, si no era un ítem): cada conjunto usado (`+0x3c` distinto
@@ -2213,8 +2260,7 @@ tabla de monstruos de `0x7681eb8`), las líneas del `0x1a1d` (`0x5b63b7`) y del 
 desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125). El cuerpo de la skill y la ayuda
 de los comandos están en `Scenes/SkillTooltip.cpp`, con `0x5516e0` en `Scenes/OwnDamage` (`test_skill_tooltip.cpp`).
 Cortan con su dirección lo que leen fuera de lo que MuRet tiene (P-C135), y lo que depende de otras olas o de la VM
-está en P-C136. La ayuda del ítem (el modo 3, que abre el chat) corta en su dibujo, desde `0x5b09a8` (`0x5afc00`,
-`0x5af9b0` y `0x5afb00`; P-C105).
+está en P-C136. La ayuda del ítem (el modo 3, que abre el chat) está en § HUD y ventanas, "La ayuda del ítem".
 
 #### El precio de un ítem
 
@@ -2279,8 +2325,8 @@ que MuRet no tiene, como en P-C140. Del cuerpo del ítem cortan con su direcció
 P-C126), el precio de la tienda de NPC (`0x5b2d23`, con el cálculo listo), el nombre del `0x1c0c` de nivel 2 (la tabla
 de `0x6c9350`) y del `0x1a0a` (la tabla de monstruos de `0x7681eb8`), las líneas del `0x1a1d` (`0x5b63b7`) y del
 `0x1c1c` (`0x437c90`), el `0x1a13` desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125).
-El de la skill (`0x5b90b0`) corta con su dirección (P-C101), y la ayuda del ítem (el modo 3) corta en su dibujo,
-desde `0x5b09a8` (P-C105).
+El de la skill (`0x5b90b0`) corta con su dirección (P-C101). La ayuda del ítem (el modo 3) está en § HUD y
+ventanas, "La ayuda del ítem".
 
 ### La ventana del personaje
 

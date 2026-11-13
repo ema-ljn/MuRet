@@ -430,7 +430,7 @@ tooltip queda solo el modo 3 de las ayudas, del hito 6 (P-C102), y el hito 5 que
       ayudas F1 (`0x5af090`, `0x5afb00`) y **la ventana /move** (el paso `0x5ecdc0` → `0x449850` → `0x448580` y el dibujo `0x5b0550` → `0x449860` →
       `0x448fa0`, con
       `Data\Local\movereq.bmd`). El dibujo de la ayuda del ítem y del cartel del conjunto (`0x5afb00` es solo del
-      modo 3) corta para el hito 5 (08, P-C105).
+      modo 3) cortaba para el hito 5 (08, P-C105, cerrado el 2026-11-13).
 - [x] **El hover y ALT** (`0x5bbbc0`: los nombres por los globos; los carteles del piso como corte de la CL9.3) y
       **los textos 3D** (`0x4383f0`; el productor de Kalima es de la CL9.5).
 - [x] **La captura:** el flanco de PrintScreen (`0x637cff`), el nombre y el contador (`0x637700`), `0x6202e0`,
@@ -450,6 +450,13 @@ el cartel del conjunto en `0x6376c6` es el del hito 5 (`Scenes::DrawTheSetLabel`
 `ITextDrawer::DrawColumns` con la caja de `(ancho − 2) · rx` columnas desde `x + 1`, como `0x467060`: el modo 2 con
 `Render::Text::CenterInBox` y el 3 contra el borde derecho, con el fondo en toda la caja (06 § Los tooltips, "La
 caja"). Probado en 640 × 480 y 800 × 600 (`GameTooltipsTest`, `GameHelpsTest`).
+
+**La ayuda del ítem, hecha** (2026-11-13, cierra P-C105): la cola de `0x5b0550` (`0x5b09a8..0x5b10c1`) con la tabla
+por nivel (`0x5afc00`, `Scenes::FillTheItemHelpLevels` en `HudState::itemHelp`: 14 niveles, con 53.872 `rand()` la
+primera vez y ninguno con el mismo ítem, Q-C750), la caja de arriba con los conjuntos (`0x40cf00`, `0x40cf30`) y las
+clases (`0x5af590`, la del cuerpo del ítem), y las columnas (`0x5afb00`, `0x5af9b0`; Q-C751 y Q-C752), en
+`Scenes/GameItemHelp.cpp` (06 § HUD y ventanas, "La ayuda del ítem"). Lo que corta, en P-C146. Probado en Lorencia y
+Devias, en 640 × 480, 800 × 600 y 1.024 × 768 (`GameItemHelpTest`).
 
 ### Hito 7: las ventanas viejas (CL8.3, ~41 KB, de los que ~11 son STL)
 

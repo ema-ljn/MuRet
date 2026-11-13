@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Data/Tables/ItemSetTables.h"
+#include "Data/Tables/ItemTable.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/ItemSetOptionList.h"
@@ -184,22 +185,29 @@ void ClearTheColorsAhead(TooltipWriter& lines)
     written.colors[static_cast<std::size_t>(next + FirstClearedAhead)] = TooltipWhite;
 }
 
-// 0x5af590(registro): las clases que usan el ítem. `other` es el color de lo que el héroe no cumple: 2 si su clase
-// lo usa (Item.bmd+0x45 + clase distinto de 0) y 5 si no.
-void WriteTheClasses(Frame& frame)
+// Un byte de las clases del registro de Item.bmd.
+std::uint8_t ClassByte(std::span<const std::byte, Data::Tables::ItemRecordSize> record, std::size_t offset)
 {
-    TooltipWriter& lines = frame.lines;
+    return std::to_integer<std::uint8_t>(record[offset]);
+}
+} // namespace
+
+// 0x5af590(registro), de los dos que la llaman (ItemTooltipParts.h). `other` es el color de lo que el héroe no cumple:
+// 2 si su clase lo usa (Item.bmd+0x45 + clase distinto de 0) y 5 si no.
+void WriteTheItemClasses(const GameHudContext& context, TooltipWriter& lines,
+                         std::span<const std::byte, Data::Tables::ItemRecordSize> record)
+{
     lines.At("0x5af590");
-    const std::uint8_t hero = HeroClassOf(frame.context);
+    const std::uint8_t hero = HeroClassOf(context);
     const std::uint8_t heroClass = hero & ClassBits;
     const std::int32_t heroEvolution = hero >> EvolutionShift;
-    const std::int32_t other = RecordByte(frame, FirstClassByte + heroClass) != 0 ? TooltipRed : TooltipWhiteOnBlue;
+    const std::int32_t other = ClassByte(record, FirstClassByte + heroClass) != 0 ? TooltipRed : TooltipWhiteOnBlue;
     std::array<std::int32_t, ClassCount> classes{};
     std::array<std::int32_t, ClassCount> evolutions{};
     std::size_t count = 0;
     for (std::size_t i = 0; i < ClassCount; ++i)
     {
-        const std::uint8_t value = RecordByte(frame, FirstClassByte + i);
+        const std::uint8_t value = ClassByte(record, FirstClassByte + i);
         if (value == 0)
             continue;
         classes[count] = static_cast<std::int32_t>(i);
@@ -213,7 +221,7 @@ void WriteTheClasses(Frame& frame)
     {
         // 0x5af60c..0x5af6e9: el MG solo mira su byte, con cualquier cantidad de clases.
         lines.NewLine();
-        const std::uint8_t mg = RecordByte(frame, MagicGladiatorByte);
+        const std::uint8_t mg = ClassByte(record, MagicGladiatorByte);
         if (mg != 0 && heroEvolution >= mg - 1)
         {
             lines.PrintText(CanText, lines.Text(MagicGladiatorText));
@@ -236,7 +244,7 @@ void WriteTheClasses(Frame& frame)
     const auto nameOf = [&](std::size_t entry)
     {
         const auto byClass = static_cast<std::size_t>(classes[entry]);
-        const std::size_t value = RecordByte(frame, FirstClassByte + byClass);
+        const std::size_t value = ClassByte(record, FirstClassByte + byClass);
         return lines.Text(FirstClassNameText + ClassNameStep * value + byClass);
     };
     if (count <= 2)
@@ -255,7 +263,7 @@ void WriteTheClasses(Frame& frame)
     // 0x5af8d3..0x5af92d: con tres o cuatro, las que no lo usan.
     for (std::size_t i = 0; i < ClassCount; ++i)
     {
-        if (RecordByte(frame, FirstClassByte + i) != 0)
+        if (ClassByte(record, FirstClassByte + i) != 0)
             continue;
         lines.Color(other);
         lines.PrintText(CannotText, lines.Text(PlainClassNameText + i));
@@ -264,6 +272,8 @@ void WriteTheClasses(Frame& frame)
     }
 }
 
+namespace
+{
 // Un renglón azul y en negrita después de un "\n" (el 78 y el 93 van sin argumentos).
 template <typename... Arguments> void WriteABonus(TooltipWriter& lines, std::size_t text, Arguments... arguments)
 {
@@ -599,7 +609,7 @@ Core::Expected<void, std::string> WriteTheOptions(ItemTooltipFrame& frame)
     constexpr std::uint16_t AngelQuestItem = 0x1a13;
     constexpr std::uint16_t SealedItem = 0x1a1d;
     if (item.id != AngelQuestItem && item.id != SealedItem)
-        WriteTheClasses(frame);
+        WriteTheItemClasses(frame.context, frame.lines, frame.record);
     WriteTheBonuses(frame);
     WriteTheSetStat(frame);
     frame.lines.At("0x5b7c5d");

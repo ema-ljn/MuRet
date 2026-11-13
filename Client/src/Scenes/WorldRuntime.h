@@ -10,6 +10,7 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/HudItems.h"
+#include "Scenes/ItemHelpLevels.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/WorldTexts.h"
@@ -159,6 +160,8 @@ struct HudState
     UI::SlideBanner slides{};
     // 0x78793c8, 0x787a560 y 0x78a9230: los renglones de los tooltips, sus colores y sus negritas (CL8 hito 5).
     TooltipLines tooltip{};
+    // 0x787a15c y 0x6c9334: la tabla por nivel de la ayuda del ítem y su ítem (−1 en la .data), que llena 0x5afc00.
+    ItemHelpLevels itemHelp{};
 };
 
 // 0x78ab9b8, la grilla del ítem del cursor: un puntero en la .bss (0 al arrancar). Lo escriben levantar de una grilla

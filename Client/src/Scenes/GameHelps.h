@@ -5,8 +5,8 @@
 #include <cstdint>
 #include <string>
 
-// Las ayudas de las superposiciones (CL8 hito 6; 06 § HUD y ventanas, "Las ayudas de F1"): los modos 1, 2 y 3 de
-// 0x5b0550, que GameHud::DrawTheOverlays elige con 0x77f3b08.
+// Las ayudas de las superposiciones (CL8 hito 6; 06 § HUD y ventanas, "Las ayudas de F1" y "La ayuda del ítem"): los
+// modos 1, 2 y 3 de 0x5b0550, que GameHud::DrawTheOverlays elige con 0x77f3b08.
 namespace Client::Scenes
 {
 struct GameHudContext;
@@ -18,10 +18,14 @@ struct GameHudContext;
 // texto de 100 bytes o más (Q-C613), corta.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheFunctionHelp(GameHudContext& context, std::int32_t mode);
 
-// 0x5b0802..0x5b09a8: la ayuda del ítem de 0x77f3b0c. 0x620980; con el ítem 0x807 o 0x80f (las flechas y los
-// virotes), fuera de las cinco franjas de tipos (0..0x9ff, 0xa00..0xbff, 0xc00..0xdff, 0xe00..0x17ff y
-// 0x1e00..0x1fff) o negativo, 0x77f3b08 en 0 (salvo en un dibujo intermedio de MuRet) y nada más. Si no, corta: con
-// las franjas 1 a 4 y un ancho de pantalla que no es 640, 800, 1.024 ni 1.280 el original divide por 0 (0x5b097b,
-// Q-C615); con los demás, el dibujo desde 0x5b09a8 (0x5afc00, 0x5af590, 0x5af9b0 y 0x5afb00): P-C105.
+// 0x5b0802..0x5b10c1 (GameItemHelp.cpp): la ayuda del ítem de 0x77f3b0c. 0x620980; con el ítem 0x807 o 0x80f (las
+// flechas y los virotes), fuera de las cinco franjas de tipos (0..0x9ff, 0xa00..0xbff, 0xc00..0xdff, 0xe00..0x17ff y
+// 0x1e00..0x1fff) o negativo, 0x77f3b08 en 0 (salvo en un dibujo intermedio de MuRet) y nada más. Con las franjas 1 a
+// 4 y un ancho de pantalla que no es 640, 800, 1.024 ni 1.280 el original divide por 0 y corta (0x5b097b, Q-C615).
+// Si no: la tabla por nivel (0x5afc00, FillTheItemHelpLevels); la caja de arriba con marco, como las de F1 ("\n", el
+// texto 160 en azul y negrita, el nombre del ítem en negrita, "\n", " ", "\n", 46 o 51 espacios, 13 renglones " "
+// salvo en los pergaminos, una línea verde por pieza de conjunto, las clases de 0x5af590 y "\n"), con el ancho de las
+// columnas que tiene el nivel 0; 0x620a00(1), y las columnas (el título de 0x5afb00 y las filas de 0x5af9b0) en cajas
+// sin marco contra el borde, desde la x de la franja y la y de la pantalla; 0x620980.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheItemHelp(GameHudContext& context);
 } // namespace Client::Scenes

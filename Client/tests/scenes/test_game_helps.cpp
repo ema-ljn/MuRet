@@ -265,14 +265,15 @@ TEST_F(GameHelpsTest, TheItemHelpClosesForArrowsAndUnknownItems)
     EXPECT_EQ(Mode(), Client::UI::ItemHelpMode);
 }
 
-// 0x5b097b y 0x5b09a8: un ítem con franja corta en el dibujo; en 1.600 de ancho, las franjas 1 a 4 dividen por 0.
+// 0x5b097b y 0x5b098f: en 1.600 de ancho, las franjas 1 a 4 dividen por 0; con 640, o con la franja 5 (que no
+// divide), sin Item.bmd corta donde lo lee (la ayuda dibujada está en GameItemHelpTest).
 TEST_F(GameHelpsTest, TheItemHelpCutsWhereItDraws)
 {
     Mode() = Client::UI::ItemHelpMode;
     m_world->Runtime().panels.helpItem = 0x10;
     const auto drawn = Overlays();
     ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x5b09a8"), std::string::npos);
+    EXPECT_NE(drawn.Error().find("0x5b098f"), std::string::npos);
 
     m_sprites.Begin(Client::App::PixelSize{1600, 1200});
     const auto divided = Overlays();
@@ -282,7 +283,7 @@ TEST_F(GameHelpsTest, TheItemHelpCutsWhereItDraws)
     m_world->Runtime().panels.helpItem = 0x1e05;
     const auto fifth = Overlays();
     ASSERT_FALSE(fifth.HasValue());
-    EXPECT_NE(fifth.Error().find("0x5b09a8"), std::string::npos);
+    EXPECT_NE(fifth.Error().find("0x5b098f"), std::string::npos);
 }
 
 // 0x5af471 y 0x5af0c5: la caja corta con otro modo de 0x467060 que el 2 y el 3, y con más renglones que los 30.

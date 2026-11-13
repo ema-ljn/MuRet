@@ -241,6 +241,25 @@ Core::Expected<ItemState*, std::string> CellAt(std::span<ItemState> cells, std::
     return &cells[static_cast<std::size_t>(index)];
 }
 
+// 0x4d35f6..0x4d3630 y 0x4d3917..0x4d3951: la poción del lugar `place` del 26 o del 27, en la casilla place − 12 de
+// la grilla del inventario: la durabilidad baja 1 si no es 0 y, en 0, la casilla queda vacía. Sin la huella: solo esa
+// casilla.
+Core::Expected<void, std::string> SpendThePotion(WorldState& world, std::uint8_t place, std::string_view where)
+{
+    auto cell = CellAt(world.Inventory().cells, place - FirstGridSlot, where);
+    if (!cell.HasValue())
+        return Core::Unexpected(cell.Error());
+    ItemState& potion = *cell.Value();
+    if (potion.durability > 0)
+        --potion.durability;
+    if (potion.durability == 0)
+    {
+        potion.id = EmptyOwnItemId;
+        potion.occupied = 0;
+    }
+    return {};
+}
+
 // 0x5bd750 en la grilla (0x5bde68.. y 0x5bdfcc..): la huella del ítem de `origin`, desde su columna y su fila.
 Core::Expected<void, std::string> RemoveFromTheGrid(const InventoryMoveContext& context, std::span<ItemState> cells,
                                                     std::int32_t origin, std::string_view where)
@@ -1069,6 +1088,49 @@ Core::Expected<void, std::string> ApplyDurability(const Protocol::Inventory::Dur
     if (durability.endsTheWait != 0)
         runtime.ui.field5767954 = 0;
     return {};
+}
+
+Core::Expected<void, std::string> ApplyLifeRefill(const Protocol::Inventory::LifeRefill& refill, WorldState& world,
+                                                  Render::Models::CrtRandom& random)
+{
+    WorldRuntime& runtime = world.Runtime();
+    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+    switch (refill.place)
+    {
+    case Protocol::Inventory::EndTheWaitPlace:
+        runtime.ui.field5767954 = 0;
+        return {};
+    case Protocol::Inventory::MaximumPlace:
+        world.OwnCharacter().maxLife = refill.life;
+        return {};
+    case Protocol::Inventory::CurrentPlace:
+        world.OwnCharacter().life = refill.life;
+        return {};
+    default:
+        return SpendThePotion(world, refill.place, "0x4d35f6");
+    }
+}
+
+Core::Expected<void, std::string> ApplyManaRefill(const Protocol::Inventory::ManaRefill& refill, WorldState& world,
+                                                  Render::Models::CrtRandom& random)
+{
+    const Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, random,
+                                            Render::Models::OwnRecordCloseRandoms);
+    OwnCharacterRecord& record = world.OwnCharacter();
+    switch (refill.place)
+    {
+    case Protocol::Inventory::MaximumPlace:
+        record.maxMana = refill.mana;
+        record.maxBp = refill.bp;
+        return {};
+    case Protocol::Inventory::CurrentPlace:
+        record.mana = refill.mana;
+        record.bp = refill.bp;
+        return {};
+    default:
+        record.mana = refill.mana;
+        return SpendThePotion(world, refill.place, "0x4d3917");
+    }
 }
 
 Core::Expected<void, std::string> ApplyItemPut(const Protocol::Inventory::ItemPut& put,

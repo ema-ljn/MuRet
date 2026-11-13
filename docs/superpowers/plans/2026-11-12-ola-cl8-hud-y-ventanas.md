@@ -335,8 +335,8 @@ olas: los emotes (`0x576eb0` → `C1 18`, CL9.1, P-C87), el gremio y el Guild Ma
 - [x] **El equipo:** volver a vestir al héroe al equipar y desequipar (`ActorEquipment`, `0x550d10`), los
       derivados (`0x54e540`, P-C58) y el corte de `MoveHero` `0x59bd3e` (el `24` del lugar 1 al 0, en `C3` con 2
       `rand()`; 06 corregido).
-- [ ] **Las respuestas:** `24` (`C3`), `F3 13`, `F3 14`, `2A` (durabilidad) y lo que el inventario muestre de
-      `26`/`27`/`28` sin usar ítems.
+- [x] **Las respuestas:** `24` (`C3`), `F3 13`, `F3 14`, `2A` (durabilidad) y lo que el inventario muestre de
+      `26`/`27`/`28` sin usar ítems. Hecho: el `26` y el `27` el 2026-11-13 (abajo).
 
 **Pruebas:** el cable de la sesión (`wire/20261030T192219Z_8920d1`): los `C3 24` del cliente y del GS
 descifrados con SimpleModulus (cabeceras y cuerpos sin nombres); la grilla de 8 × 8 con ítems de varios tamaños
@@ -347,8 +347,9 @@ el hito 5 y la CL9.3.
 **Hito 4, hecho en parte** (2026-11-12, PR #327): la ventana, las cifras, el mundo angosto, el paso con levantar,
 soltar y equipar (`test_cursor_item.cpp`, `test_game_inventory_step.cpp`), vestir al héroe con sus derivados,
 MoveHero y las respuestas `24`, `28`, `2A`, `F3 13` y `F3 14` (04 § Mover y equipar ítems; Q-C470 a Q-C477, P-C71 y
-P-C72). Falta: ~~el fondo de la caja del título (P-C70 b)~~ (hecho, abajo), lo que el inventario muestre del `26` y
-del `27` (sin leer) y el cable de los `C3 24` (P-C72 g). El cartel del set (`0x40e6f5`) es del hito 5.
+P-C72). Falta: ~~el fondo de la caja del título (P-C70 b)~~ (hecho, abajo), ~~lo que el inventario muestre del `26`
+y del `27` (sin leer)~~ (hecho, abajo) y el cable de los `C3 24` (P-C72 g). El cartel del set (`0x40e6f5`) es del
+hito 5.
 
 **El modelo de los ítems de la UI** (2026-11-12, rama `cl8-h4b`): el pase 3D de `0x5ac120` con `0x5e1480` y
 `0x5e0720` para el equipo, la grilla, el cursor y las ranuras rápidas, en el lote de los modelos entre los dos tramos
@@ -366,6 +367,13 @@ Q-C711). El rótulo de los botones y la línea sola de los avisos, con el fondo 
 Lorencia y en Devias, en 640, 1.024 y 1.600 de ancho, y con la party abierta (`test_game_inventory_hud.cpp`,
 `test_text_cache.cpp`, `test_text_layout.cpp`, `test_text_cache_drawer.cpp`, `test_button.cpp`,
 `test_notice_window.cpp`). "El dibujo" queda hecho.
+
+**El `26` y el `27`, hechos** (2026-11-13, rama `cl8-gaps`): `0x4d3510` y `0x4d3820` con el registro propio abierto
+(3.848 `rand()` al cerrarlo): el fin de la espera, la vida y la vida máxima, el maná y el BP con sus máximos, y la
+poción de la grilla, que baja su durabilidad y vacía la casilla en 0 (04 § La vida y el maná; Q-C770, Q-C771 y
+P-C150). Llegan en cualquier escena del GameServer y los orbes y el AG del HUD los muestran en el frame siguiente
+(`InventoryProtocolTest`, `ServerSessionTest.TheLifeAndTheManaReachTheWorldBeforeTheMap`, `InventoryReplyTest` y
+`GameHudTest.TheLifeAndTheManaPacketsMoveTheOrbs`). Del hito 4 queda el cable de los `C3 24` (P-C72 g).
 
 ### Hito 5: los tooltips y la ventana del personaje (CL8.4, ~50 KB)
 

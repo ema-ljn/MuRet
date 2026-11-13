@@ -424,7 +424,8 @@ está en [06](06-render-escenas-y-ui.md#la-escena-del-juego).
 | `0xBD` | C->S y S->C | `0x4c421a`, `0x4c785d`; `0x4e2b10` → `0x4033b0` | el estado de Crywolf; el recorrido de la cámara (abajo) |
 | `0x46` | S->C | `0x4dab90` → `0x5f8750` o `0x5f8710` | cambia bits del `.att`: el único camino al `0x40` y al `0x80` de la cámara ([06](06-render-escenas-y-ui.md#la-cámara-del-juego)) |
 | `0x18` | S->C | `0x4cb750` | acción o animación de un personaje remoto, según `pkt[6]` |
-| `0x22` / `0x27` | S->C | `0x4d0cc0` / `0x4d3820` | crean objetos de 0xF08 bytes desde una plantilla (el 0x27 además con un XOR) |
+| `0x22` | S->C | `0x4d0cc0` | crea objetos de 0xF08 bytes desde una plantilla |
+| `0x26` / `0x27` | S->C | `0x4d3510` / `0x4d3820` | la vida y el maná (abajo); el objeto de 0xF08 bytes que esta tabla les daba es la entrada del registro propio en la tabla de protección, que abren y cierran |
 | `0x0D` | S->C | `0x4c65b0` | avisos del servidor: chat, banner, notificación |
 | `0x02` | S->C | `0x4e34ea` | mensaje privado: nombre de 10 bytes en `+3`, texto de 60 en `+0xD` |
 
@@ -783,6 +784,30 @@ personal. Los siete bytes de un ítem son los del `F3 10`.
 `ApplyItemPut` y `ApplyEquipmentChange`). Cortan con su dirección las grillas de otras olas del `24` (`0x4d1ce0`,
 `0x4d1d0a` y `0x4d1d34`, CL9.3 y CL9.4; `0x4d1d55`, CL9.3), el `28` de la tienda personal (`0x4c5ece`, CL9.4) y el
 equipo de un jugador del `F3 13` (`0x513a1e`, CL9.2). Los tests usan ítems inventados.
+
+### La vida y el maná: `26` y `27`
+
+(CL8, 2026-11-13, *estático*, contra `PMSG_REFILL` y `PMSG_MANASEND` del GameServer reconstruido.) Los dos llegan en
+cualquier escena del GameServer, también antes del `F3 03`: los handlers no miran cuál es. Cada uno abre el registro
+propio (`0x7681eb4`, sin `rand()`), hace su tramo y lo cierra: 3.848 `rand()` si queda sin accesos (Q-C183).
+
+- **`26`** (`0x4d3510`): `C1 07 26 <lugar> <vida alta> <vida baja> <Flag>`. Con `0xfd`, `0x5767954` (la espera del uso
+  de un ítem) en 0 y nada más; con `0xfe`, la vida máxima (`+0x26`); con `0xff`, la vida (`+0x22`), las dos con
+  `pkt[4] << 8 | pkt[5]`. Con otro lugar no lee la vida: es la poción de la casilla lugar − 12 de la grilla
+  (`0x78a9bb0`, de a `0x48`, `0x4d35f6`): su durabilidad (`+0x1a`) baja 1 si no es 0 y, en 0, la casilla queda con el
+  tipo `0xffff` y `+0x3c` en 0. Sin la huella y sin mirar el rango. El `Flag` no lo lee nadie.
+- **`27`** (`0x4d3820`): `C1 08 27 <lugar> <maná:2> <BP:2>`, los dos con el byte alto primero. Con `0xfe`, el maná
+  máximo (`+0x28`) y el BP máximo (`+0x3a`); con `0xff`, el maná (`+0x24`) y el BP (`+0x38`). Con otro lugar, el
+  maná y la poción del lugar, como el `26` (`0x4d3917`); el BP no lo lee. No tiene el `0xfd`: es un lugar más.
+
+El GameServer 1.02 manda el `26` con `0xfd` (rechazos del uso de un ítem, con la vida, que el cliente no lee),
+`0xfe` y `0xff`, y el `27` con `0xfe` y `0xff`: el camino de la poción no lo usa (saca las pociones con el `28`;
+07, Q-C770 y Q-C771).
+
+**MuRet**: `Protocol::Inventory::ReadLifeRefill` y `ReadManaRefill` leen lo mismo que el original (la vida y el BP
+solo con `0xfe` y `0xff`); `App::ServerSession` los pasa al mundo y `Scenes::ApplyLifeRefill` y `ApplyManaRefill`
+escriben el registro propio que leen los orbes y el AG del HUD (06). Un lugar fuera de la grilla corta con
+`0x4d35f6` o `0x4d3917` (08, P-C150). Los tests usan valores inventados.
 
 ## Qué implica para MuRet
 

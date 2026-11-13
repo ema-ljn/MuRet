@@ -1353,7 +1353,8 @@ y hace 9 consultas sueltas de `0x20` y `0x10000` (los avisos, las ventanas, el 3
 final, este de 2): **73.129 r** (19 × 3.848 + 2 × 4 + 9). La traza agrega el ayudante (3.848) y la skill `0x2c`
 (180): 77.157. MuRet dibuja los 43 quads del 2D de ese frame (sin los textos) con la textura, la mezcla, el color, las
 esquinas y las UV de la traza (`test_game_hud.cpp`); el orbe de la vida da su alto con la vida 1421 de 31131 y
-`48 − v` (Q-C444).
+`48 − v` (Q-C444). La vida, el maná y el BP que leen los orbes y el AG los escriben el `26` y el `27` (04, "La vida y
+el maná", CL8 2026-11-13): el frame que sigue a uno los muestra (`TheLifeAndTheManaPacketsMoveTheOrbs`).
 
 **El cursor del juego** (`0x5ac2d0`): `0x620a00(1)`, `glColor3f(1,1,1)`, un cuadro de 24 × 24 en (x − 2, y − 2),
 como en el login, y **dos veces por frame** (Q-C442). El slot:

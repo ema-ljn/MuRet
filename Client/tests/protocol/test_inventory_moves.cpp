@@ -76,6 +76,41 @@ TEST(InventoryProtocolTest, ReadsTheDeleteAndTheDurability)
               ProtocolError::TooShort);
 }
 
+// 0x4d3510: el 26 lee la vida (alto y bajo) solo con 0xfe y 0xff; con el lugar de una poción, ni la mira.
+TEST(InventoryProtocolTest, ReadsTheLifeOnlyForTheMaximumAndTheCurrent)
+{
+    const auto maximum = Inventory::ReadLifeRefill(PacketOf(Bytes({0xc1, 0x07, 0x26, 0xfe, 0x01, 0x2c, 0})));
+    ASSERT_TRUE(maximum.HasValue());
+    EXPECT_EQ(maximum.Value().place, Inventory::MaximumPlace);
+    EXPECT_EQ(maximum.Value().life, 0x12c);
+    const auto potion = Inventory::ReadLifeRefill(PacketOf(Bytes({0xc1, 0x04, 0x26, 0x14})));
+    ASSERT_TRUE(potion.HasValue());
+    EXPECT_EQ(potion.Value().place, 0x14);
+    EXPECT_EQ(potion.Value().life, 0);
+    EXPECT_EQ(ErrorOf(Inventory::ReadLifeRefill(PacketOf(Bytes({0xc1, 0x05, 0x26, 0xff, 0x01})))),
+              ProtocolError::TooShort);
+    EXPECT_EQ(ErrorOf(Inventory::ReadLifeRefill(PacketOf(Bytes({0xc1, 0x07, 0x27, 0xff, 0x01, 0x2c, 0})))),
+              ProtocolError::WrongPacket);
+}
+
+// 0x4d3820: el 27 lee siempre el maná y el BP solo con 0xfe y 0xff.
+TEST(InventoryProtocolTest, ReadsTheManaAlwaysAndTheBpOnlyForTheMaximumAndTheCurrent)
+{
+    const auto current = Inventory::ReadManaRefill(PacketOf(Bytes({0xc1, 0x08, 0x27, 0xff, 0x00, 0x5a, 0x00, 0x1e})));
+    ASSERT_TRUE(current.HasValue());
+    EXPECT_EQ(current.Value().place, Inventory::CurrentPlace);
+    EXPECT_EQ(current.Value().mana, 0x5a);
+    EXPECT_EQ(current.Value().bp, 0x1e);
+    const auto potion = Inventory::ReadManaRefill(PacketOf(Bytes({0xc1, 0x06, 0x27, 0x15, 0x01, 0x02})));
+    ASSERT_TRUE(potion.HasValue());
+    EXPECT_EQ(potion.Value().mana, 0x102);
+    EXPECT_EQ(potion.Value().bp, 0);
+    EXPECT_EQ(ErrorOf(Inventory::ReadManaRefill(PacketOf(Bytes({0xc1, 0x05, 0x27, 0x15, 0x01})))),
+              ProtocolError::TooShort);
+    EXPECT_EQ(ErrorOf(Inventory::ReadManaRefill(PacketOf(Bytes({0xc1, 0x06, 0x27, 0xfe, 0x01, 0x02})))),
+              ProtocolError::TooShort);
+}
+
 // 0x4e316e: la clave en pkt[4..5] (alto y bajo), pkt[6] sin leer y el equipo de 17 bytes desde pkt[7].
 TEST(InventoryProtocolTest, ReadsTheEquipmentChangeFromTheSeventhByte)
 {

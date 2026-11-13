@@ -37,6 +37,11 @@ namespace Client::Data::Text
 class TextTable;
 }
 
+namespace Client::UI
+{
+struct GameUiState;
+}
+
 // La UI del juego en el paso y en el frame, lo del hito 1 de la CL8 (06 § HUD y ventanas, "El orden" y "El clic
 // es primero de la UI"): los diálogos antes del paso (0x623e70), el bloque de la UI del paso (0x636ded..0x63705b)
 // con 0x5ee140 y 0x59ff10, y el picking del frame (0x59ec80). Lo que es de otro hito o de otra ola corta con su
@@ -115,6 +120,11 @@ void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down);
 // LatchTheLeftButton, con el mouse en 640 × 480.
 void LatchTheLeftRelease(GameMovementState& state, bool pressed, bool released, bool down, std::int32_t mouseX,
                          std::int32_t mouseY);
+
+// El WndProc y el doble clic: WM_LBUTTONDBLCLK prende 0x7d36849 (0x4b47b6) y cada mensaje que llega después lo apaga
+// antes del `switch` (0x4b3444); sin mensajes, queda como estaba (P-C182). Los mensajes son los eventos de SDL
+// (InputState::AnyEvent y EndsInADoubleClick). Los que lo leen lo apagan.
+void LatchTheDoubleClick(UI::GameUiState& ui, bool anyEvent, bool endsInADoubleClick);
 
 // Los globales de las ventanas viejas sobre los del juego: los del mouse, los de la UI, el foco del teclado (el de la
 // entrada del chat) y el último sonido.

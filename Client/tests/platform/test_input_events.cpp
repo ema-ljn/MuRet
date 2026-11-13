@@ -36,12 +36,13 @@ SDL_Event KeyboardEvent(std::uint32_t type, SDL_Scancode scancode, bool repeat =
     return event;
 }
 
-SDL_Event ButtonEvent(std::uint32_t type, std::uint8_t button)
+SDL_Event ButtonEvent(std::uint32_t type, std::uint8_t button, std::uint8_t clicks = 1)
 {
     SDL_Event event{};
     event.type = type;
     event.button.button = button;
     event.button.down = type == SDL_EVENT_MOUSE_BUTTON_DOWN;
+    event.button.clicks = clicks;
     return event;
 }
 
@@ -151,6 +152,22 @@ TEST(InputEventsTest, MapsTheMouseButtons)
 
     EXPECT_EQ(InputEventFor(ButtonEvent(SDL_EVENT_MOUSE_BUTTON_DOWN, SDL_BUTTON_X1)), std::nullopt);
     EXPECT_EQ(InputEventFor(ButtonEvent(SDL_EVENT_MOUSE_BUTTON_UP, SDL_BUTTON_X2)), std::nullopt);
+}
+
+// El `clicks` de SDL va en el evento: un par es el WM_LBUTTONDBLCLK (P-C182, P-C187).
+TEST(InputEventsTest, TheButtonsCarryTheirClicks)
+{
+    const auto second = InputEventFor(ButtonEvent(SDL_EVENT_MOUSE_BUTTON_DOWN, SDL_BUTTON_LEFT, 2));
+    ASSERT_TRUE(second.has_value());
+    EXPECT_EQ(second->kind, InputEvent::Kind::ButtonDown);
+    EXPECT_EQ(second->clicks, 2);
+
+    const auto third = InputEventFor(ButtonEvent(SDL_EVENT_MOUSE_BUTTON_UP, SDL_BUTTON_RIGHT, 3));
+    ASSERT_TRUE(third.has_value());
+    EXPECT_EQ(third->clicks, 3);
+
+    const InputEvent motion{.kind = InputEvent::Kind::Motion};
+    EXPECT_EQ(motion.clicks, 0);
 }
 
 TEST(InputEventsTest, TheWheelIsInWholeNotches)

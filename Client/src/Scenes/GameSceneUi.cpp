@@ -168,11 +168,12 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
     WorldRuntime& runtime = m_context.world->Runtime();
     // Los mensajes del mouse que el WndProc atendió antes de esta vuelta de WinMain.
     const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
-    LatchTheLeftRelease(runtime.movement, input.WasPressed(Input::MouseButton::Left),
-                        input.WasReleased(Input::MouseButton::Left), input.IsDown(Input::MouseButton::Left), mouse.x,
-                        mouse.y);
-    LatchTheLeftButton(runtime.movement, input.WasPressed(Input::MouseButton::Left),
-                       input.IsDown(Input::MouseButton::Left));
+    // El segundo apretón de un doble clic es un WM_LBUTTONDBLCLK, que no es un WM_LBUTTONDOWN (P-C187).
+    const bool leftPressed = input.WasPressed(Input::MouseButton::Left) && !input.LeftPressWasDouble();
+    LatchTheLeftRelease(runtime.movement, leftPressed, input.WasReleased(Input::MouseButton::Left),
+                        input.IsDown(Input::MouseButton::Left), mouse.x, mouse.y);
+    LatchTheLeftButton(runtime.movement, leftPressed, input.IsDown(Input::MouseButton::Left));
+    LatchTheDoubleClick(runtime.ui, input.AnyEvent(), input.EndsInADoubleClick());
     LatchTheRightButton(runtime.ui, input);
     LatchTheWheel(runtime.ui, input);
     // Y los WM_CHAR, en su orden: Tab y Enter al WndProc (la entrada del chat) y lo demás al EDIT con el foco.

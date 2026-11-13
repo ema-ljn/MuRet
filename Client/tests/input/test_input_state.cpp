@@ -235,6 +235,51 @@ TEST(InputStateTest, MouseButtonsAreEdgesToo)
     EXPECT_FALSE(input.WasReleased(MouseButton::Right));
 }
 
+// P-C182 y P-C187: el `clicks` par del izquierdo es el WM_LBUTTONDBLCLK; el doble clic dura hasta el próximo evento.
+TEST(InputStateTest, AnEvenLeftPressIsADoubleClickUntilTheNextEvent)
+{
+    InputState input;
+    EXPECT_FALSE(input.AnyEvent());
+    InputEvent press = ButtonEvent(InputEvent::Kind::ButtonDown, MouseButton::Left);
+    press.clicks = 1;
+    input.Apply(press);
+    EXPECT_TRUE(input.AnyEvent());
+    EXPECT_FALSE(input.LeftPressWasDouble());
+    EXPECT_FALSE(input.EndsInADoubleClick());
+    InputEvent release = ButtonEvent(InputEvent::Kind::ButtonUp, MouseButton::Left);
+    release.clicks = 1;
+    input.Apply(release);
+    press.clicks = 2;
+    input.Apply(press);
+    EXPECT_TRUE(input.WasPressed(MouseButton::Left));
+    EXPECT_TRUE(input.LeftPressWasDouble());
+    EXPECT_TRUE(input.EndsInADoubleClick());
+    input.Apply(InputEvent{.kind = InputEvent::Kind::Motion, .x = 1.0f, .y = 2.0f});
+    EXPECT_TRUE(input.LeftPressWasDouble());
+    EXPECT_FALSE(input.EndsInADoubleClick());
+    input.ConsumeEdges();
+    EXPECT_FALSE(input.AnyEvent());
+    EXPECT_FALSE(input.LeftPressWasDouble());
+
+    // El tercero vuelve a ser un apretón; el cuarto, otro doble clic. El derecho no cuenta.
+    release.clicks = 2;
+    input.Apply(release);
+    press.clicks = 3;
+    input.Apply(press);
+    EXPECT_FALSE(input.LeftPressWasDouble());
+    input.Apply(release);
+    press.clicks = 4;
+    input.Apply(press);
+    EXPECT_TRUE(input.EndsInADoubleClick());
+    InputEvent right = ButtonEvent(InputEvent::Kind::ButtonDown, MouseButton::Right);
+    right.clicks = 2;
+    input.Apply(right);
+    EXPECT_FALSE(input.EndsInADoubleClick());
+    EXPECT_TRUE(input.LeftPressWasDouble());
+    input.Apply(InputEvent{.kind = InputEvent::Kind::FocusLost});
+    EXPECT_FALSE(input.LeftPressWasDouble());
+}
+
 // Q-C47: el original acota la posición de la UI nueva al tamaño de la ventana (0x640940); acá
 // queda la del evento, también fuera de la ventana (con el mouse capturado), hasta la CL5.
 TEST(InputStateTest, MotionIsNotClamped)

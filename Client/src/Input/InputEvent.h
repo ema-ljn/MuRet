@@ -8,7 +8,7 @@
 // Un evento de teclado, de mouse o de foco, ya traducido de SDL por Platform (InputEventFor,
 // CL3.3). InputState::Apply lo suma al estado del frame.
 // Contrato: el plan de la CL3, sub-ola CL3.3, y el de la CL5, sub-ola CL5.5 (el texto). Cada tipo
-// usa solo sus campos: KeyDown y KeyUp la tecla, ButtonDown y ButtonUp el botón, Wheel las
+// usa solo sus campos: KeyDown y KeyUp la tecla, ButtonDown y ButtonUp el botón y sus apretones, Wheel las
 // muescas, Motion la posición, Text el texto y FocusLost ninguno. Un InputEvent sin llenar no hace
 // nada: es el KeyDown de Key::Count, que no es tecla.
 namespace Client::Input
@@ -45,8 +45,12 @@ struct InputEvent
     float x = 0.0f;
     float y = 0.0f;
     // El texto de un Text, en UTF-8 y copiado: el de SDL vive hasta el próximo SDL_PollEvent. Va
-    // último para que los inicializadores designados de los demás campos no cambien.
+    // después de los demás para que sus inicializadores designados no cambien.
     std::string text{};
+    // Los apretones seguidos de un ButtonDown o un ButtonUp, el `clicks` de SDL (1 el primero, 2 el segundo dentro del
+    // tiempo del doble clic...). Windows manda WM_LBUTTONDBLCLK en lugar del WM_LBUTTONDOWN del segundo, el cuarto...
+    // (CS_DBLCLKS): un par es un doble clic (InputState::LeftPressWasDouble, P-C182 y P-C187). 0 si no es un botón.
+    std::uint8_t clicks = 0;
 };
 
 // Los bytes que lleva el texto tecleado por Backspace y por Tab, en el lugar en que llegaron: los

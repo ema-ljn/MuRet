@@ -99,6 +99,8 @@ Sides SidesOf(Key logical)
 
 void InputState::Apply(const InputEvent& event)
 {
+    m_anyEvent = true;
+    m_endsInADoubleClick = false;
     switch (event.kind)
     {
     case InputEvent::Kind::KeyDown:
@@ -109,6 +111,11 @@ void InputState::Apply(const InputEvent& event)
         return;
     case InputEvent::Kind::ButtonDown:
         Press(event.button);
+        if (event.button == MouseButton::Left)
+        {
+            m_leftPressWasDouble = event.clicks >= 2 && event.clicks % 2 == 0;
+            m_endsInADoubleClick = m_leftPressWasDouble;
+        }
         return;
     case InputEvent::Kind::ButtonUp:
         Release(event.button);
@@ -168,6 +175,21 @@ bool InputState::IsDown(MouseButton button) const
     return index && m_buttonsDown[*index];
 }
 
+bool InputState::LeftPressWasDouble() const
+{
+    return m_leftPressWasDouble;
+}
+
+bool InputState::AnyEvent() const
+{
+    return m_anyEvent;
+}
+
+bool InputState::EndsInADoubleClick() const
+{
+    return m_endsInADoubleClick;
+}
+
 bool InputState::WasPressed(MouseButton button) const
 {
     const auto index = IndexOf(button);
@@ -212,6 +234,9 @@ void InputState::ConsumeEdges()
     m_keysTaken.reset();
     m_buttonsPressed.reset();
     m_buttonsReleased.reset();
+    m_leftPressWasDouble = false;
+    m_anyEvent = false;
+    m_endsInADoubleClick = false;
     m_wheel = 0.0f;
     m_lastWheel = 0.0f;
     m_text.clear();
@@ -280,6 +305,7 @@ void InputState::ReleaseEverything()
     m_buttonsReleased |= m_buttonsDown;
     m_buttonsDown.reset();
     m_buttonsPressed.reset();
+    m_leftPressWasDouble = false;
     m_wheel = 0.0f;
     m_lastWheel = 0.0f;
     m_text.clear();

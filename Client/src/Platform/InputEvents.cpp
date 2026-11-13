@@ -93,7 +93,7 @@ std::optional<InputEvent> ButtonEventFor(const SDL_MouseButtonEvent& button, Inp
     {
         return std::nullopt;
     }
-    return InputEvent{.kind = kind, .button = *mapped};
+    return InputEvent{.kind = kind, .button = *mapped, .clicks = button.clicks};
 }
 
 std::optional<InputEvent> MotionEventFor(const SDL_MouseMotionEvent& motion, float pixelDensity)

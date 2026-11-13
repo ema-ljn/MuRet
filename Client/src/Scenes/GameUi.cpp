@@ -1451,6 +1451,12 @@ void LatchTheLeftRelease(GameMovementState& state, bool pressed, bool released, 
     state.releaseY = mouseY;
 }
 
+void LatchTheDoubleClick(UI::GameUiState& ui, bool anyEvent, bool endsInADoubleClick)
+{
+    if (anyEvent)
+        ui.doubleClick = endsInADoubleClick;
+}
+
 UI::OldWindowGlobals OldWindowGlobalsOf(WorldRuntime& runtime)
 {
     UI::GameUiState& ui = runtime.ui;

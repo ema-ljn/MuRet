@@ -406,6 +406,19 @@ TEST(GameUiTest, TheClickLatchKeepsTheEdgeUntilSomeoneUsesIt)
     EXPECT_FALSE(state.leftHeld);
 }
 
+// 0x7d36849 (P-C182): lo prende el WM_LBUTTONDBLCLK que fue el último mensaje, lo apaga cualquiera que siga y, sin
+// mensajes, queda.
+TEST(GameUiTest, TheDoubleClickLastsUntilTheNextMessage)
+{
+    Client::UI::GameUiState ui;
+    Client::Scenes::LatchTheDoubleClick(ui, true, true);
+    EXPECT_TRUE(ui.doubleClick);
+    Client::Scenes::LatchTheDoubleClick(ui, false, false);
+    EXPECT_TRUE(ui.doubleClick);
+    Client::Scenes::LatchTheDoubleClick(ui, true, false);
+    EXPECT_FALSE(ui.doubleClick);
+}
+
 // WM_LBUTTONUP apaga el flanco (0x4b3ce3): sin usar, se pierde al soltar, y apretado y soltado en el mismo paso no
 // queda.
 TEST(GameUiTest, TheReleasedButtonDropsTheEdge)

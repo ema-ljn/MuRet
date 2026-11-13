@@ -49,6 +49,16 @@ public:
     [[nodiscard]] bool IsDown(MouseButton button) const;
     [[nodiscard]] bool WasPressed(MouseButton button) const;
     [[nodiscard]] bool WasReleased(MouseButton button) const;
+    // Si el último apretón del botón izquierdo desde el último ConsumeEdges fue el segundo (el cuarto...) de un doble
+    // clic: un `clicks` par (InputEvent.h). Windows lo manda como WM_LBUTTONDBLCLK, que no prende el clic del juego
+    // (0x4b4444, P-C187). WasPressed lo cuenta igual: la selección de personaje lleva su propio doble clic
+    // (DoubleClick.h).
+    [[nodiscard]] bool LeftPressWasDouble() const;
+    // Si llegó algún evento desde el último ConsumeEdges, y si el último fue ese doble clic: el WndProc prende
+    // 0x7d36849 con WM_LBUTTONDBLCLK (0x4b47b6) y cada mensaje que sigue lo apaga antes del `switch` (0x4b3444), así
+    // que dura hasta el próximo mensaje (P-C182). Los mensajes de Windows que SDL no manda no cuentan.
+    [[nodiscard]] bool AnyEvent() const;
+    [[nodiscard]] bool EndsInADoubleClick() const;
     // Las muescas sumadas desde el último ConsumeEdges.
     [[nodiscard]] float Wheel() const;
     // Las muescas del último evento de la rueda desde el último ConsumeEdges, o 0 sin ninguno: lo que deja el
@@ -86,6 +96,9 @@ private:
     std::bitset<MouseButtonCount> m_buttonsDown;
     std::bitset<MouseButtonCount> m_buttonsPressed;
     std::bitset<MouseButtonCount> m_buttonsReleased;
+    bool m_leftPressWasDouble = false;
+    bool m_anyEvent = false;
+    bool m_endsInADoubleClick = false;
     float m_wheel = 0.0f;
     float m_lastWheel = 0.0f;
     float m_mouseX = 0.0f;

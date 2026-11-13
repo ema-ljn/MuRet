@@ -6286,15 +6286,15 @@ modelo compartido del tipo, `[0x5769ad8] + tipo · 0xe0` (`0x4fd6b0`). Leído en
    - `0x4fb9e0(c, o, b)` (`0x4fd722`): con `+0x389`, muriéndose, sus partículas.
    - `0x4e9980(o)` (`0x4fd72e`): el alpha y la luz del blendMesh (Q-C112).
    - `0x4fd736..0x4fd75e`: con `+0x3d8` positivo, `+0x3d8 −= 0,03` (`0x6b8bd4`).
-4. `0x4fcd00(c, o, b)` (`0x4fd770`), la animación:
+4. `0x4fcd00(c, o, b)` (`0x4fd770`), la animación ([Lo que dicen los NPC](#lo-que-dicen-los-npc)):
    - Con `+0x88` en 4, los `0x20a` de subtipo `0xd1` a `0xd3` giran en los mapas 0 y 2, y `0x4fc790` sortea un
      mensaje.
    - Con el nombre de `0x6c88b0`, el mensaje de `0x557170` una vez cada más de 4.000 ms (Q-C248).
    - `0x4f9580`: la velocidad, con sus factores, y `0x4ec200` ([Caminar](#caminar)). Devuelve 0 cuando la acción
      terminó, y también con `+0x78 & 0x1000`, sin avanzar.
    - Si terminó: `+0x3c4 = −1` y `+0x3e0 = +0x3e1 = 0`. Después, según el tipo:
-     - el `0x20a`, a `0x4fcb10`, que lo vuelve a la de parado con `0x4f2250` (las `0xc3` y `0xc4` van antes a
-       `0x52e810`);
+     - el `0x20a` que giró, a `0x4fc8c0`; el otro, a `0x4fcb10`, que lo vuelve a la de parado con `0x4f2250` (las
+       `0xc3` y `0xc4` van antes a `0x52e810`);
      - el `0xc5`, a `0x4fcbb0`;
      - el `0x1f5`, a un `rand() & 31` (`0x4fcea6`).
 5. Muriéndose (`0x4fd77b..0x4fd7dc`): `+0x389 += 1` y `0x4f5660` desde 15, o en los mapas 11 a 17 con `+0x1a1`.
@@ -6315,7 +6315,7 @@ modelo compartido del tipo, `[0x5769ad8] + tipo · 0xe0` (`0x4fd6b0`). Leído en
      - por último, `+0x382 = 0` y `+0x380 = 0`.
 10. La cola (`0x5053a2..0x5054aa`):
     - `+0x428` positivo baja en 1 y, si queda entre −127 y 0, pasa a −128 y llama a `0x511070(c, o)`.
-    - `0x42a2b0(o)`, que solo actúa con el `0x1a8`.
+    - `0x42a2b0(o)`, que solo actúa con el `0x1a8` ([Las barras de vida del 0x1a8](#las-barras-de-vida-del-0x1a8)).
     - `0x4fcee0(c, o, b)` (`0x505410`): la estela del arma.
     - Con el `0xf1`, `0x52f360`.
     - `0x420dd0(c)`: con `+0x430`, una llamada virtual al objeto de `+0x430` (el cuervo del login, `0x416a20`;
@@ -10052,6 +10052,63 @@ desde `SessionEventApplier`, con `RaiseTheHandShine` (`0x53d810`), `HandShinePoi
 escala y el origen del modelo son los del dueño (Q-C853). Corta sin las acciones del modelo del que pega (`0x4cee23`,
 por ejemplo con el fantasma) y con un golpe que corta (`0x4f53a0`: el monstruo sin tabla de sonidos, `0x4f5552`).
 Tests: `MagicAttackCountTest`, `HandShineTest` y `ViewportTest.MagicAttackCountReadsTheCasterTheSkillAndTheTargets`.
+
+### Lo que dicen los NPC
+
+*Estático* (CL9 hito 2, 2026-11-13). Lo dice `0x4fcd00(c, o, b)`, la animación del cuerpo (punto 4 de
+[El cuerpo de los personajes](#el-cuerpo-de-los-personajes-0x4fd5f0)), en este orden y con cualquier personaje vivo:
+
+1. **El giro** (`0x4fcd0c..0x4fcd55`): con `+0x88` en 4, en el mapa 0 o el 2, el `0x20a` de subtipo `0xd1` a `0xd3`
+   (con signo; entre los NPC, solo el tipo 236, "황금의 궁수", con `0xd2` y `+0x88` en 4 desde `0x5163f8`) pone
+   `+0x1c` y `+0x20` en 0 y `+0x24` en 90 (`0x42b40000`) en Lorencia o en 0 en Devias, en cada paso. Un local lo
+   recuerda para el final.
+2. **`0x4fc790(c, o)`**: con `o+0x88` en 4, un `rand()`; impar, nada. Par, el `switch` sobre el tipo − `0x1cd` (las
+   tablas `0x4fc86c` y `0x4fc880`) manda `0x557170(c+0x1d9, texto, c, 0, −1)`: el `0x1cd` (el tipo 253) el Text 1974
+   fuera del mapa 30, el `0x1d3` (el 242) el 1975, el `0x1d5` (el 241) el 1976 y el `0x20a` con `c+0x376` en `0x101`
+   (el 257) el 1827. Los demás, nada.
+3. **El mensaje del nombre** (`0x4fcd65..0x4fce15`, Q-C248): la primera vez (el bit 0 de `0x743a174`)
+   `0x7437488 = timeGetTime() − 5.000`. Después, `timeGetTime()` otra vez y, si pasaron más de 4.000 ms (resta sin
+   signo) y el nombre es el de `0x6c88b0` (`strcmp`), `0x557170` con el Text 1167 (`0x743a190` en 1) o el 1168 (en
+   0), `0x7437488` en la hora y `0x743a190` cambia. Como el reloj arranca 5.000 ms atrás, el primero habla en cuanto
+   aparece. Nada lo vuelve a 0.
+4. `0x4f9580`. Si la acción terminó y el tipo es el `0x20a`: el que giró va a **`0x4fc8c0(c, o)`**; el otro, a
+   `0x4fcb10`. `0x4fc8c0`: `rand() % 100` y, fuera de la acción 1 (`o+0x111`), `0x4ea030(c, 1)`. En la 1, por tramo
+   del sorteo: debajo de 80 la acción 1, de 85 la `0x9d` y de 90 la `0x9f`, cada una con un `rand()` par y en Devias
+   el Text 904 (`0x388`, del `SETNZ`, `DEC` y `AND` del mapa); debajo de 95 la `0xab` y de 100 la `0xa5`, con
+   `rand() % 3` en 0 y en Devias el 905. El segundo `rand()` sale también fuera de Devias, donde el texto es 0 y no
+   habla (Q-C855).
+
+**MuRet** (`Scenes/NpcChatter.h`): `TurnTheNpc`, `SayTheNpcLine`, `SayTheNamedLine` y `FinishTheTurnedNpc` desde
+`StepTheAnimation` (`CharacterStep.cpp`), con el globo de `AddChatBubble` (modo 0, sin color). El reloj del nombre es
+`WorldRuntime::namedLineTime`, con la guarda en el `optional`, y el que se turna, `namedLineFirst`; `timeGetTime()` es
+`CharacterStepContext::systemTime`, que el juego toma del reloj de la escena. Sin él (el login y la selección), MuRet
+no lee ni escribe el reloj y corta solo con el nombre (`0x4fcd82`). Sin Text.bmd o sin medidor, el que tiene que
+hablar corta con la dirección de su `0x557170`. Las acciones de `0x4fc8c0` van con las de Player.bmd. Hoy llegan al
+final solo los `0x20a` (los demás modelos cortan antes en `0x4f9580`, P-C52 d), y el giro y los mensajes de los otros
+tipos corren antes de ese corte. Tests: `NpcChatterTest` y `CharacterStepTest.TheTurnedNpcTurnsAndDrawsItsLine`.
+
+### Las barras de vida del 0x1a8
+
+*Estático* (CL9 hito 2, 2026-11-13). **`0x42a2b0(o)`** (desde `0x5053fc`, la cola del cuerpo): con el tipo `0x1a8`
+(el 278 de `0x42d4a1`, la piedra de Castle Siege) y `+0x93` debajo de 5 sin signo, agrega al final del `std::deque`
+de `0x7239a8` (bloques de `0x1000` bytes, la cuenta en `0x7239d4`) 16 bytes: `+0x10`, `+0x14`, la z `+0x18 + +0x138 +
+100` (`0x6b86b4`; `FADD` en la x87 y `FSTP` en float) y un DWORD con `+0x93` en el byte bajo y lo que había en la pila
+en los otros tres. **`0x42a4d0`** (el 5 de `0x5a7320`, en `0x5a7344`, sin condición): con `i` desde 0 mientras sea
+menor que la cuenta, el primero de la cola: `0x6205b0` con su punto, `0x5a6af0(x − 25, y + 12, 50, 2, (b & 0xff) · 10,
+0, 1)` (el lleno por `0x6b87a8` y `_ftol`, las cinco en float desde el entero) y `pop_front`. Como la cuenta baja y el
+índice sube, cada frame dibuja la mitad redondeada para arriba y deja el resto delante de los nuevos (Q-C443). La cola
+solo la tocan estas dos y su constructor estático (`0x4293d0`): no se vacía con el mapa.
+
+**MuRet** (`Scenes/HealthBars.h`): `QueueTheHealthBar` en `StepTheBody` (`0x5053fc`) y `DrawTheHealthBars` en el 5
+de `DrawTheHud`, con `WorldRuntime::healthBars` (un `std::deque<QueuedHealthBar>`, sin los tres bytes de la pila) y
+`UI::DrawGauge`. Un dibujo intermedio vacía una copia. Sin la proyección del pase del mundo, una cola con algo corta
+(`0x42a529`). El `0x1a8` corta todavía en `0x4f9580` (su modelo, P-C52 d), así que la cola se llena cuando el cuerpo
+de los monstruos esté portado. Tests: `HealthBarsTest` y `GameHudTest.TheFifthChildDrawsHalfTheHealthBars`.
+
+**El NewFace del mapa 30**, sin portar: `0x42d890` (desde `0x4fcbb0`, al terminar la animación) y `0x42da90` (desde
+`0x508eed`, después de `0x505de0`) solo actúan en el mapa 30, con `+0x376` de los objetos del asedio (`0x42d890`, el
+221, 222, 277, 286 y 287; `0x42da90`, el 216, 277, 278, 283, 286 y 287, con `0x5f93c0` y `0x7239e4`). MuRet corta en `0x42d890`
+(como antes) y en `0x42dac4`; con los modelos de los monstruos sin portar, no se llega a ninguno.
 
 ### La tabla de protección
 

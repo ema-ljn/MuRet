@@ -21,7 +21,9 @@
 #include "Scenes/CharacterHead.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/DynamicWorldLight.h"
+#include "Scenes/HealthBars.h"
 #include "Scenes/ItemSetOptionList.h"
+#include "Scenes/NpcChatter.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnStatHelpers.h"
 #include "Scenes/SceneId.h"
@@ -55,6 +57,8 @@ namespace
 constexpr std::size_t SteppedCharacters = 400;
 // 0x412162: en el mapa 30 (0x1e), 0x412140 arma el panel del asedio.
 constexpr std::int32_t CastleMap = 30;
+// 0x42daae..0x42dac4: los casos del switch de 0x42da90 sobre +0x376 − 0xd8 (las tablas 0x42dc4c y 0x42dc64).
+constexpr std::array<std::uint16_t, 6> SiegeObjectClasses{216, 277, 278, 283, 286, 287};
 
 // 0x4fd603: el tipo que pasa su nombre a 0x4381f0.
 constexpr std::uint16_t NamedType = 0xc5;
@@ -63,10 +67,6 @@ constexpr std::int32_t FirstCellReportMap = 18;
 constexpr std::int32_t LastCellReportMap = 23;
 // 0x4fb910 y 0x505425: el tipo que cae y gira en 0x4fb380 y que después sigue 0x52f360.
 constexpr std::uint16_t FallingType = 0xf1;
-// 0x4fcd0c y 0x4fc797: con +0x88 en 4, 0x4fcd00 gira a unos 0x20a y 0x4fc790 sortea un mensaje.
-constexpr std::uint8_t MessageKind = 4;
-// 0x6c88b0: los 11 bytes EUC-KR que 0x4fcda2 compara con el nombre (+0x1d9), con strcmp.
-constexpr std::array<std::uint8_t, 11> MessageName{0xc8, 0xb2, 0xb1, 0xdd, 0xc0, 0xc7, 0x20, 0xb1, 0xc3, 0xbc, 0xf6};
 // 0x4f9580 con el 0x20a: por 1,5 (0x6b8b94) en las acciones 3 y 4 con +0x3e3; por 0,5 (0x6b882c) en la 0x3f
 // pasado el frame 6 (0x6b87f4) y en la 0x44; por 0,1f (0x6b8a34) en las 0x4d, 0x4f y 0x5a pasado el 5,5
 // (0x6b8a40); en la clase 4, las 0x94, 0x51 y 0x5b entre el frame 1 (0x6b87d4) y el 3 (0x6b86b8) llaman a
@@ -276,20 +276,6 @@ Core::Expected<void, std::string> StepTheOwnTimers(const CharacterStepContext& c
     return {};
 }
 
-// strcmp(+0x1d9, 0x6c88b0) en 0x4fcda2: los 10 bytes del nombre y +0x1e3 contra los 11 primeros. Con los
-// 11 iguales el resultado depende de +0x1e4, que MuRet no tiene: cuenta como igual.
-bool HasTheMessageName(const ActorState& actor)
-{
-    for (std::size_t i = 0; i < actor.name.size(); ++i)
-    {
-        if (std::to_integer<std::uint8_t>(actor.name[i]) != MessageName[i])
-        {
-            return false;
-        }
-    }
-    return actor.byte1e3 == MessageName[actor.name.size()];
-}
-
 // 0x4f9580(c, c): la velocidad de la acción, sus factores y 0x4ec200. Devuelve si terminó, lo que 0x4f9580
 // devuelve en 0.
 Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t slot,
@@ -429,23 +415,17 @@ Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, std::size_t sl
 Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_t slot,
                                                    const CharacterStepContext& context)
 {
-    // 0x4fcd0c..0x4fcd55 y 0x4fc790: con +0x88 en 4 (lo ponen paquetes que MuRet no aplica), en los mapas 0 y 2
-    // los 0x20a de subtipo 0xd1 a 0xd3 giran y, al terminar, van a 0x4fc8c0; y 0x4fc790 sortea con rand() & 1
-    // un mensaje por tipo (0x557170).
-    if (actor.byte88 == MessageKind)
+    // 0x4fcd0c..0x4fcd55: con +0x88 en 4, en los mapas 0 y 2, el 0x20a de subtipo 0xd1 a 0xd3 (el tipo 236) gira.
+    const bool turned = TurnTheNpc(actor, context.world.Runtime().map);
+    // 0x4fcd60: 0x4fc790, el mensaje del NPC.
+    if (auto said = SayTheNpcLine(actor, slot, context); !said.HasValue())
     {
-        return Core::Unexpected(std::format("0x4fcd0c: con +0x88 en 4, el giro de 0x4fcd00 y el mensaje de 0x4fc790 "
-                                            "del lugar {} no están portados",
-                                            slot));
+        return said;
     }
-    // 0x4fcd65..0x4fce15: una vez cada más de 4.000 ms (timeGetTime; la primera, con 0x7437488 = ahora − 5.000),
-    // con el nombre de 0x6c88b0, el mensaje de 0x557170. MuRet no tiene ese reloj: corta con el nombre, sin
-    // mirarlo (Q-C248).
-    if (HasTheMessageName(actor))
+    // 0x4fcd65..0x4fce15: el mensaje del nombre de 0x6c88b0, con su reloj.
+    if (auto named = SayTheNamedLine(actor, slot, context); !named.HasValue())
     {
-        return Core::Unexpected(std::format("0x4fcda2: el nombre del lugar {} es el de 0x6c88b0, y el mensaje de "
-                                            "0x557170 y su reloj (0x7437488) no están portados",
-                                            slot));
+        return named;
     }
     // 0x4fce1d: 0x4f9580.
     const auto finished = AdvanceTheBody(actor, slot, context);
@@ -460,7 +440,8 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
     // 0x4fce33/39: los dos sonidos se habilitan otra vez al terminar la animación.
     actor.firstFootstepSound = 0;
     actor.secondFootstepSound = 0;
-    // 0x4fce3f..0x4fce57: el 0x20a sin el giro de +0x88 va a 0x4fcb10. 0x4fce68 y 0x4fce7a: el 0xc5 y el 0x1f5.
+    // 0x4fce3f..0x4fce57: el 0x20a que giró va a 0x4fc8c0 y el otro a 0x4fcb10. 0x4fce68 y 0x4fce7a: el 0xc5 y el
+    // 0x1f5.
     if (IsNewFace(actor.type))
     {
         // 0x4fce68 → 0x4fcbb0: fuera del mapa 30, el 0xa8..0xac vuelve sin SetAction ni rand().
@@ -469,6 +450,10 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
             return Core::Unexpected(std::string("0x42d890: la animación NewFace del mapa 30 no está portada"));
         }
         return {};
+    }
+    if (turned)
+    {
+        return FinishTheTurnedNpc(actor, slot, context);
     }
     return StopAtTheEnd(actor, slot, context);
 }
@@ -638,7 +623,8 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     // 0x4fdb9a..0x4fdbeb: +0x381 en 0, debajo de [0x6c88ac] (15): salta a 0x50539e sin la habilidad. Lo escribe
     // solo este camino (*estático*).
     // 0x5053a2..0x5053f0: +0x428 en −128 (0x511290, 0x511c77; los paquetes lo ponen en 0x96): nada.
-    // 0x5053fc: 0x42a2b0, solo el 0x1a8.
+    // 0x5053fc: 0x42a2b0, la barra de vida del 0x1a8.
+    QueueTheHealthBar(actor, context.world.Runtime().healthBars);
     // 0x505410: 0x4fcee0.
     if (auto trailed = StepTheWeaponTrail(actor, slot, context.random); !trailed.HasValue())
     {
@@ -1078,7 +1064,15 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
         {
             return stepped;
         }
-        // 0x508eed: 0x42da90 fuera del mapa 30 devuelve 0 (0x42da9a).
+        // 0x508eed: 0x42da90, que fuera del mapa 30 devuelve 0 (0x42da9a). En el 30 mueve, por +0x376, los objetos
+        // del asedio (0x42dac4): corta.
+        if (actor.alive && runtime.map == CastleMap &&
+            std::ranges::find(SiegeObjectClasses, actor.word376) != SiegeObjectClasses.end())
+        {
+            return Core::Unexpected(std::format("0x42dac4: el objeto del asedio {} del lugar {} (0x42da90) no está "
+                                                "portado",
+                                                actor.word376, slot));
+        }
     }
     // Frontera (08 P-C44): 0x52e500 (0x5091d0), el paso de las estelas de 0x75e9870, sin rand(). Las
     // crea 0x52e470 desde las habilidades, los efectos y la acción 3 del caballo (0x444671); MuRet no

@@ -38,6 +38,7 @@
 #include <cstddef>
 #include <array>
 #include <cstdint>
+#include <deque>
 #include <optional>
 #include <string>
 #include <vector>
@@ -49,6 +50,15 @@
 // (CL7.P, P-C22 c).
 namespace Client::Scenes
 {
+// Una entrada de la cola de las barras de vida (0x7239a8, de 0x10 bytes): la posición del personaje con la z sobre el
+// techo de su caja (+0x18 + +0x138 + 100) y su +0x93, el byte bajo del cuarto DWORD (los otros tres son lo que había en
+// la pila, que 0x42a53d descarta).
+struct QueuedHealthBar
+{
+    glm::vec3 position{};
+    std::uint8_t fill = 0;
+};
+
 // .data[0x6c8c5c] = 1e 00 00 00; los otros cuatro campos del clima están en .bss.
 inline constexpr std::int32_t InitialLeafCount = 30;
 
@@ -387,6 +397,16 @@ struct WorldRuntime
     // el 0x19 (0x4cce7d), el 0x69 (0x4cc2e1) y el 0x1A (0x4cedf7, también con el 400 fantasma), y lo lee el D7 que
     // llega con el efecto defensivo (0x4cb32f). MuRet escribe el del 1A (CL9 hito 2).
     std::int32_t lastAttacker = 0;
+    // 0x7239a8: la cola de las barras de vida, un std::deque de bloques de 0x1000 bytes que 0x42a2b0 llena desde el
+    // paso de los personajes (el 0x1a8 con +0x93 debajo de 5) y 0x42a4d0 vacía de a la mitad en el HUD
+    // (Scenes/HealthBars.h). Solo la tocan esas dos y su constructor estático (0x4293d0): no se vacía al cambiar de
+    // mapa.
+    std::deque<QueuedHealthBar> healthBars{};
+    // 0x7437488, con el bit 0 de 0x743a174 de guarda (.bss): el timeGetTime() del último mensaje del nombre de 0x6c88b0
+    // (0x4fcd65..0x4fce15). El primer paso de un personaje lo pone en ahora − 5.000; vacío antes. Nadie lo vuelve a 0.
+    std::optional<std::uint32_t> namedLineTime{};
+    // 0x743a190 (.bss, 0): con 1 el próximo mensaje del nombre es el Text 1167 y con 0 el 1168; cambia con cada uno.
+    bool namedLineFirst = false;
     // [0x6e5640]: los huesos con nombre de los personajes (0x401000). 0x4011c0 saca el del mismo personaje y nombre
     // antes de agregar el nuevo; 0x401410 (desde 0x401040, en 0x512870, 0x510ff0 y 0x510f70) saca todos los de un
     // personaje. En qué orden los recorre quien los lee, sin leer (CL11).

@@ -260,9 +260,11 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
 - [ ] **La tela sobre la malla** (P-C22 f, vtable `0x6b8d04`: los monstruos `0x59..0x8f`; los tres pantalones
       también la usan), y Q-C95 con el primer modelo que se desvanezca (§ Lo que dejó la CL6).
 - [x] El picking de NPC y monstruos en `0x59ec80`, con la caja de cada tipo.
-- [ ] **Lo que se ve sobre ellos:** las barras de vida (`0x42a4d0`, `0x42a2b0`), NewFace (`0x42d890`,
-      `0x42da90`, con los monstruos `0x11e` y `0x11f`) y los mensajes de monstruo (`0x4fc790`, `0x4fc8c0`,
-      `0x4fcd00`).
+- [x] **Lo que se ve sobre ellos:** las barras de vida (`0x42a4d0`, `0x42a2b0`) y los mensajes de monstruo
+      (`0x4fc790`, `0x4fc8c0`, `0x4fcd00`, con el mensaje del nombre y su reloj; 06, "Lo que dicen los NPC" y "Las
+      barras de vida del 0x1a8").
+- [ ] NewFace del mapa 30 (`0x42d890`, `0x42da90`, con los monstruos `0x11e` y `0x11f`): cortan en `0x42d890` y
+      `0x42dac4`; llegan con los modelos de los monstruos (P-C176).
 - [x] **Hablar con un NPC:** el `C1 30` desde la interacción de llegada (`0x5650c0`, el corte de
       `GameMovement.cpp`, solo su rama de NPC), el diálogo `0x8d` (`0x62d91d`, `0x632f70`, la lista
       `0x7d3a0fc`). Lo que abre cada NPC (tienda, almacén, caja del caos) es del hito 6. El escritor del `C1 30`

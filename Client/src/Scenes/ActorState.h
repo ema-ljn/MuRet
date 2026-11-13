@@ -88,7 +88,8 @@ struct ActorState
     std::int32_t dword60 = 0;
     std::int32_t dword64 = 0;
     // +0x92 (1), +0x93 (0xa), +0x94 (1,2f), +0x98 (0) y +0xe8 (1) desde 0x511290 (0x511c70..0x511c88, 0x511bfe y
-    // 0x511be6). El 13 pone en +0x93 los bits 4..6 del tipo alto (0x4c9ee9). Quién los lee, sin leer.
+    // 0x511be6). El 13 pone en +0x93 los bits 4..6 del tipo alto (0x4c9ee9), que la barra de vida del 0x1a8 lee
+    // (0x42a2c5, Scenes/HealthBars). Quién lee los otros, sin leer.
     std::uint8_t byte92 = 0;
     std::uint8_t byte93 = 0;
     float float94 = 0.0f;

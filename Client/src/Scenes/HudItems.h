@@ -26,15 +26,21 @@ struct QuickSlots
     std::array<std::int32_t, 3> levels{};
 };
 
-// 0x558110(i) con i de 0 a 2: la casilla del inventario (fila · 8 + columna) del ítem que usa la ranura `slot`, o
-// vacío. El tipo de la ranura elige un rango de tipos: 0x1c08 a 0x1c0a y 0x1c14 (la ranura 2 desde 0x1c09) son ellos
+// 0x558110(i): la casilla del inventario (fila · 8 + columna) del ítem que usa la ranura `slot`, o vacío. Con i de 0 a
+// 2, el tipo de la ranura elige un rango de tipos: 0x1c08 a 0x1c0a y 0x1c14 (la ranura 2 desde 0x1c09) son ellos
 // mismos, el 0x1c07 también, los de 0x1c00 a 0x1c03 y los de 0x1c04 a 0x1c06 van juntos, y cualquier otro cae en el
-// rango propio de la ranura (0 y 1: el de vida y el de maná, 2: el 0x1c08). Recorre los tipos de arriba abajo y,
+// rango propio de la ranura (0 y 1: el de vida y el de maná, 2: el 0x1c08). Con 3 (0x558120, las skills sin maná:
+// ManaPotionSlot) los de maná, de 0x1c04 a 0x1c06, y con 4 (0x558134) los de vida, de 0x1c00 a 0x1c03, sin mirar
+// las ranuras ni 0x576794c (0x55815d salta a 0x5582c1); su nivel, [0x77f3b40] y [0x77f3b44], no se lee con esos
+// tipos. Con otro i, el rango sale de locales sin inicializar: el error. Recorre los tipos de arriba abajo y,
 // en cada uno, las columnas de la 7 a la 0 y en cada columna las filas de la 7 a la 0: la primera casilla con ese
 // tipo y +0x3c mayor que 0 gana, salvo que su nivel ((D+4 >> 3) & 0xf) no sea el de la ranura en los tipos 0x1c14,
 // 0x1c0a y 0x1c07. Con `requestBlocked` (0x576794c) y la ranura en 0x1c0a, vacío (0x5582c1). Un 0x1c14 con nivel
 // distinto de 0 recorre desde el número de la ranura hasta un local sin inicializar (0x558191, 0x558221 y
 // 0x55827f): el error.
+inline constexpr int ManaPotionSlot = 3;
+inline constexpr int LifePotionSlot = 4;
+
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 FindQuickSlotItem(const QuickSlots& slots, std::span<const World::ItemState, InventoryCellCount> cells, int slot,
                   bool requestBlocked);

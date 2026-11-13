@@ -295,8 +295,14 @@ Lorencia, Devias y un mapa de evento; el `0x1F` con un tipo `0x98..0x9e`; el cor
       queda como `SetActorAttack` para que el hito 1a lo llame desde `0x4cb750`; los cortes, en P-C250, y el
       cableado con los actores del `12` y del `13`, en P-C251. Fase 2a hecha (2026-11-13), sobre el hito 1: el
       `0x78`/`0x79` del `18` llama a `SetActorAttack` (`0x4cb820..0x4cb852`); los sonidos de la tabla del modelo
-      van a `lastSoundId` (P-C253); morirse, `0x4fb9e0` (P-C255). Fase 2c (con el hito 2): los ayudantes de
-      monstruos de `0x4f4a10` y de `0x4f5b70` (`0x4f5c0f`), las tablas de sonidos y el `0x192`.
+      van a `lastSoundId` (P-C253); morirse, `0x4fb9e0` (P-C255). Fase 2c hecha (2026-11-13, sobre el hito 2,
+      `5137d84`): los cinco ayudantes de monstruos de `0x4f4a10` (`0x43a2f0`, `0x42dcb0`, `0x443750`, `0x429270` y
+      `0x437580` con `0x4f92f0` y `MonsterSkill.bmd`, `0x54a440`), las tablas de sonidos del alta (`0x612d90` con
+      `0x612c80`, `WorldRuntime::modelSounds`), el `0x192` con `+0x60` en el que se muere y el `D7`, el `16` y el
+      `17` sobre los monstruos del `13`; los casos de monstruo de `0x4f5b70` cortan cada uno en su dirección
+      (P-C257 f) y, con monstruos reales, antes `0x4ea030` sin su esqueleto (P-C176). Fase 2d (2026-11-13), por
+      la regla 4e y la decisión 5: la sangre `0x5e4` del blanco con daño (`0x53fe70` en `0x542b3b`, `0x5446e0` en
+      `0x546b04` y su dibujo, `0x5487b9`) en el pool del mundo (P-C257 a).
 
 **Pruebas:** el `D7`/`A4` que sale al pegar; la muerte de un monstruo y la de otro jugador; la experiencia del
 `0x16` y del `0x9C` contra el struct del GS (`GCKillPlayerExpSend`); los `rand()` del paso con un monstruo en
@@ -314,7 +320,10 @@ el viewport. **Desbloquea:** 4 y 11.
       la cabeza de `0x57cfc0` (`Scenes/HeroSkills`: el derecho, el ataque automático, el reloj, la zona segura, el
       blanco `0x57ce80` y el lazo de las manos), desde MoveHero (`0x59e255`), y las órdenes del cuervo (`0x420f70`).
       Las ramas de cada clase y lo que mandan las cuatro funciones quedan cortados con su dirección (08, P-C268).
-      En la fase 2c, la rama de las clases 1, 3 y 4 (`0x581894..0x5897a7`, `Scenes/HeroSkillsKnight`: los `19` y
+      En la fase 2c-A, `0x558110` con 3 y 4, `0x559890` (`0x559afc`, `0x55a368`) con `0x559510` → `0x55b6f0` y
+      la cola del elfo de `0x561f60` (`0x562024`), en `Scenes/HeroSkillCasts`; cortan la partícula `0x5fe`
+      (CL11), la poción (hito 5) y, todavía, la rama del elfo, `0x55faa0` y el caso 5 de `0x5650c0` (P-C269).
+      En la fase 2c-C, la rama de las clases 1, 3 y 4 (`0x581894..0x5897a7`, `Scenes/HeroSkillsKnight`: los `19` y
       `1E` de las `0x29`, `0x2a`, `0x30`, `0x37`, `0x38`, `0x3e`, `0x3f`, `0x40`, `0x41`, `0x4b` y `0x4c`, con
       `0x551c70`, `0x551f40`, `0x4e9920`, `0x4e9c50` y `0x57cf90`); cortan el camino de la poción (`0x581b88`) y el
       Magic Gladiator en la rama del Wizard (`0x5897b7`) (08, P-C223).

@@ -204,15 +204,28 @@ TEST(SkillProtocolTest, TheClearReportIsF103WithTheHead)
     }
 }
 
-// 0x584e09..0x5851b0: el 19 de las skills del héroe, C1 06 19 [skill] [clave H L], para cifrar.
-TEST(SkillProtocolTest, TheMagicAttackIs19WithTheKeyInBigEndian)
+// 0x55bf36..0x55c622 (0x55b6f0): el 19 del cliente, C1 06 19 [skill] [clave H] [clave L], para cifrar; la clave entera,
+// con su bit 15.
+TEST(SkillProtocolTest, TheMagicAttackGoesOutWithTheBigEndianKey)
 {
-    const auto attack = Skill::WriteMagicAttack(0x30, 0x0a1b);
+    const auto attack = Skill::WriteMagicAttack(0x3c, 0x8a1b);
     EXPECT_EQ(attack.delivery, Delivery::Encrypted);
-    EXPECT_TRUE(SameBytes(Xor32Decode(attack.packet).Bytes(), Bytes({0xc1, 0x06, 0x19, 0x30, 0x0a, 0x1b})));
+    EXPECT_TRUE(SameBytes(Xor32Decode(attack.packet).Bytes(), Bytes({0xc1, 0x06, 0x19, 0x3c, 0x8a, 0x1b})));
 }
 
-// 0x582439..0x582dd1: el 1E, C1 0C 1E con los nueve bytes en orden y la clave en big endian, para cifrar.
+// 0x562af5..0x563b78 (0x561f60): el 1E del elfo, C1 0C 1E [skill] [X] [Y] [rumbo] [hacia] [espalda] [clave H] [clave L]
+// 00, para cifrar.
+TEST(SkillProtocolTest, TheDurationMagicGoesOutWithTwelveBytes)
+{
+    const auto shot = Skill::WriteDurationMagic(
+        {.skill = 0x36, .x = 0xb6, .y = 0x73, .direction = 0x5f, .towards = 0xaa, .back = 0xdf, .key = 0x8a1b});
+    EXPECT_EQ(shot.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(shot.packet).Bytes(),
+                          Bytes({0xc1, 0x0c, 0x1e, 0x36, 0xb6, 0x73, 0x5f, 0xaa, 0xdf, 0x8a, 0x1b, 0x00})));
+}
+
+// 0x582439..0x582dd1: el 1E de las ramas del caballero, C1 0C 1E con los bytes 7, 8 y 11 por su lugar y la clave en big
+// endian, para cifrar.
 TEST(SkillProtocolTest, TheDurationMagicIs1EWithNineBytes)
 {
     const auto magic = Skill::WriteDurationMagic({.skill = 0x4c,

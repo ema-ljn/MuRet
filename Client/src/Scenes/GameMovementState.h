@@ -53,6 +53,9 @@ struct GameMovementState
     std::int32_t attackTarget = -1;
     // 0x576791c (.bss 0): el GetTickCount del último envío que pasó el freno de 300 ms (PassesTheActionBrake).
     std::uint32_t lastActionTick = 0;
+    // 0x5767948 (.bss 0): la skill del último 1E del elfo (0x562b0b, 0x563f2f; 0x34 en 0x57e2c8, y 0x53d9a0), que el
+    // paso del ataque lee para la flecha (0x4febe1, sin portar).
+    std::uint32_t lastShotSkill = 0;
     // 0x6c8e50 (.data −1): el personaje hacia el que camina MoveHero (0x59b94b, sin portar). Lo ponen en −1 0x57cfc0 al
     // usar una skill (0x57d294), el clic (0x59b8f3, 0x59b972) y otros paquetes (0x4d6977, 0x4e415e), sin portar.
     std::int32_t followTarget = -1;

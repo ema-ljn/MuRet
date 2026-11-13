@@ -2,8 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "Scenes/MonsterSounds.h"
 
-#include <array>
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -21,10 +21,8 @@ class WorldState;
 struct ActorState;
 struct WorldEntryResources;
 
-// 0x612c80: las diez WORD de sonido de un modelo (+0xaa..+0xbc de su BMD en [0x5769ad8]). 0x4f4a10 lee la 2 y la 3
-// (pegar) y 0x4f5660 la 4 (morir); −1 (0xffff) es sin sonido. Las escribe solo la carga de cada monstruo (0x612d90,
-// desde 0x5141e0: el hito 2) y FaunaModels::SoundActions tiene las de 0x171 y 0x173.
-using ModelSounds = std::array<std::int16_t, 10>;
+// La tabla de sonidos de un modelo (ModelSounds, de 0x612c80), para los tests: sin ella, la de
+// WorldRuntime::modelSounds, que escribe el alta de cada monstruo (0x612d90 desde 0x5141e0, MonsterSounds.h).
 using ModelSoundLookup = std::function<std::optional<ModelSounds>(std::uint16_t model)>;
 
 // Lo que leen 0x4f4a10 y 0x4f5660 (CL9 hito 3): el mundo (el héroe de 0x743a170, el registro propio, el mapa y el
@@ -37,8 +35,9 @@ struct ActorCombatContext
     const Render::Models::Skeleton* playerSkeleton = nullptr;
     const IModelLibrary* models = nullptr;
     const Data::Tables::ItemTable* items = nullptr;
-    // La tabla de sonidos del modelo (ModelSounds). Vacía, o sin la del modelo: el sonido de la tabla no se pide y
-    // 0x4f4a10 saca igual su rand(), como si la WORD 2 no fuera −1 (*inferido*, 08 P-C253).
+    // La tabla de sonidos del modelo (ModelSounds); vacía, la de WorldRuntime::modelSounds. Sin la del modelo, el
+    // sonido de la tabla no se pide y 0x4f4a10 saca igual su rand(), como si la WORD 2 no fuera −1 (*inferido*, 08
+    // P-C253).
     ModelSoundLookup modelSounds{};
 };
 [[nodiscard]] ActorCombatContext CombatContextOf(const WorldEntryResources& resources);

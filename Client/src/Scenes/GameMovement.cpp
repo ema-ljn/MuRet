@@ -613,13 +613,15 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
             UseTheHeroSkill(hero, HeroSkillContext{.world = context.world,
                                                    .random = context.random,
                                                    .skills = context.skills,
+                                                   .playerSkeleton = context.playerSkeleton,
+                                                   .items = context.items,
+                                                   .tickCount = [ticks = context.input.ticksMs] { return ticks; },
+                                                   .inventory = context.inventory,
                                                    .worldTime = context.input.worldTime,
                                                    .controlDown = context.input.controlDown,
                                                    .pickTerrainPoint = context.pickTerrainPoint,
                                                    .send = context.sendSkill,
-                                                   .playerKey = context.playerKey,
-                                                   .tickCount = [ticks = context.input.ticksMs] { return ticks; },
-                                                   .playerSkeleton = context.playerSkeleton});
+                                                   .playerKey = context.playerKey});
         !used.HasValue())
         return used;
     PublishHeroLayer(hero, runtime, context.world.Map().terrain);

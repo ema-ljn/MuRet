@@ -83,7 +83,8 @@ struct ActorState
     // +0x138, el techo de la caja. 0x5133b0 le suma 70. Lo lee también el globo (0x5a9050), que va 60 más arriba.
     float boundsTop = 0.0f;
     // +0x58, +0x60 y +0x64: 0x511290 pone el primero y el último en −1 (0x511d45, 0x51248d) y no toca el del medio;
-    // los casos de 0x5141e0 los escriben por el tipo. Qué son y quién los lee, sin leer.
+    // los casos de 0x5141e0 los escriben por el tipo. +0x60 lo lee el que se muere (0x4fba6d, el 0x192); los otros
+    // lectores, sin leer.
     std::int32_t dword58 = 0;
     std::int32_t dword60 = 0;
     std::int32_t dword64 = 0;
@@ -311,10 +312,11 @@ struct ActorState
     // +0x39c y +0x39d: la celda de la skill con duración (el 1E, 0x4ce000).
     std::uint8_t skillCellX = 0;
     std::uint8_t skillCellY = 0;
-    // +0x42e, protegido como +0x38e (el cierre que lo deja sin accesos gasta un rand(), 0x40b3f0): la skill del 69
-    // (0x4cc290). Nadie lo lee en MuRet.
-    std::uint8_t byte42e = 0;
+    // +0x42e, protegido como +0x38e (el cierre que lo deja sin accesos gasta un rand(), 0x40b3f0): la skill del
+    // monstruo que manda el 0x69 (0x4cc290, SkillReplies), que 0x4f92f0 busca en MonsterSkill.bmd y deja en 0xff
+    // (ActorCombat). 0x511290 no lo toca: un lugar nuevo del pool lo tiene en 0 y uno usado, lo que dejó el anterior.
     std::uint8_t byte42eAccesses = 0;
+    std::uint8_t byte42e = 0;
     // +0x390: 0x511290 lo pone en 0 (0x51186b), y lo ponen en 1 el estado de las misiones (0x418e20 y 0x418ee0, con la
     // misión 3 terminada, CL9.1), sin portar: queda en 0. Con 1, el tooltip de la skill del Dark Knight de nivel 220
     // o más escribe el "Combo" (0x5b99d1).

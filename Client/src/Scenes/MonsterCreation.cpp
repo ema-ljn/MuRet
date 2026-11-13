@@ -11,6 +11,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/MonsterKinds.h"
+#include "Scenes/MonsterSounds.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -309,7 +310,11 @@ private:
         switch (step.kind)
         {
         case MonsterStepKind::LoadMonster:
-            return CheckTheMonsterFile(step, m_resources);
+            if (auto checked = CheckTheMonsterFile(step, m_resources); !checked.HasValue())
+                return checked;
+            // 0x613127..0x615232: la tabla de sonidos del modelo (CL9 hito 3, fase 2c).
+            WriteMonsterSounds(static_cast<std::int32_t>(step.value), m_resources.world.Runtime().modelSounds);
+            return {};
         case MonsterStepKind::LoadNpc:
         case MonsterStepKind::Random:
         case MonsterStepKind::Siege:

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Protocol/Outgoing.h"
 
@@ -24,6 +25,7 @@ namespace Client::Scenes
 {
 class WorldState;
 struct ActorState;
+struct InventoryServices;
 
 struct HeroSkillContext
 {
@@ -31,6 +33,15 @@ struct HeroSkillContext
     Render::Models::CrtRandom& random;
     // Skill.bmd (0x76bd1d8). nullptr: 0x5526f0 corta.
     const Data::Tables::SkillTable* skills = nullptr;
+    // Las acciones de Player.bmd, que 0x4ea030 pone a las skills de un jugador, e Item.bmd, que lee 0x4f4a10 con otro
+    // (CL9 hito 4, fase 2c). nullptr: la que lo pide corta.
+    const Render::Models::Skeleton* playerSkeleton = nullptr;
+    const Data::Tables::ItemTable* items = nullptr;
+    // GetTickCount (0x6b8144), que leen el freno de 300 ms de los envíos (0x576791c, PassesTheActionBrake). Vacío: el
+    // envío que lo mira corta.
+    std::function<std::uint32_t()> tickCount{};
+    // Lo que 0x561c50 (CheckTheArrows) pide para equipar las flechas del inventario. nullptr: sin servicios.
+    const InventoryServices* inventory = nullptr;
     // [0x5767b88], el reloj del mundo en ms.
     float worldTime = 0.0f;
     // GetAsyncKeyState(0x11), que 0x558bb0 mira para atacar a otro jugador.
@@ -43,10 +54,6 @@ struct HeroSkillContext
     std::function<void(Protocol::Outgoing)> send{};
     // CL9 hito 4, fase 2c. La clave del jugador que dio el F1 00 ([0x57678bc]), que va en los C1 19 de las ramas.
     std::uint16_t playerKey = 0;
-    // GetTickCount, que lee el freno de 300 ms de las skills que mandan (PassesTheActionBrake). Vacío: ese freno corta.
-    std::function<std::uint32_t()> tickCount{};
-    // El esqueleto del jugador, para las acciones de 0x4ea030 de las ramas. nullptr: donde pone una acción, corta.
-    const Render::Models::Skeleton* playerSkeleton = nullptr;
 };
 
 // 0x57cfc0(héroe): con el modo del editor (0x77f3b18), el mouse de la UI (0x775857c) o 0x1000 en +0x78, nada. Si no:

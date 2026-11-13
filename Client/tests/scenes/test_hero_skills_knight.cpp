@@ -176,11 +176,11 @@ struct KnightHero
         return HeroSkillContext{.world = world,
                                 .random = random,
                                 .skills = &skills,
+                                .playerSkeleton = &skeleton,
+                                .tickCount = [this] { return ticks; },
                                 .send = [this](Client::Protocol::Outgoing outgoing)
                                 { sent.push_back(std::move(outgoing)); },
-                                .playerKey = PlayerKey,
-                                .tickCount = [this] { return ticks; },
-                                .playerSkeleton = &skeleton};
+                                .playerKey = PlayerKey};
     }
     Client::Core::Expected<void, std::string> Use()
     {

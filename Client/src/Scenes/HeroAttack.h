@@ -33,8 +33,8 @@ struct ActorState;
 // rand().
 [[nodiscard]] Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker,
                                                                     bool controlDown);
-// Lo mismo con el segundo argumento de 0x558eb0 (`chosen`): las ramas de 0x57cfc0 le pasan el elegido de la skill del
-// arma (0x7758588, WeaponSkillRequest::target, CL9 hito 4).
+// 0x558eb0(c, `chosen`): lo mismo con otro elegido, como lo llama el elfo con 0x7758588 (0x562a7f, 0x563ea3) y las
+// ramas del caballero (CL9 hito 4, fase 2c-C).
 [[nodiscard]] Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, std::size_t attacker,
                                                                     std::int32_t chosen, bool controlDown);
 

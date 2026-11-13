@@ -5,9 +5,7 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/ProtocolError.h"
 
-#include <cstddef>
 #include <cstdint>
-#include <span>
 #include <vector>
 
 // 04 § Las skills (CL9 hito 4): lo que llega de las skills y de los estados de los personajes. Los lectores son la
@@ -119,19 +117,34 @@ struct SummonLife
 // cabeza es la del opcode en el 19 (0x4cc562..0x4cce21) y en el 1E (0x4ce032..), y 0xf1 en el 73 (0x4d5d8c),
 // *estático*.
 [[nodiscard]] Outgoing WriteClearSkillReport(std::uint8_t head);
+
 inline constexpr std::uint8_t Report73Head = 0xf1;
 
-// Lo que mandan las skills del héroe (CL9 hito 4, fase 2c; 04 § Las skills que se mandan). Las ramas de las clases de
-// 0x57cfc0 los arman en línea, con el XOR32 y para cifrar como C3 (el relleno y el serial, dos rand(), los saca quien
-// los manda), *estático*.
-
-// C1 06 19 [skill] [clave H L]: la skill sobre un personaje. El GS 0.97 lo lee como PMSG_MAGICATTACK (CGMagicAttack,
-// 0x425f60) sin el Dis.
+// El 19 que manda el cliente (0x55b6f0, 0x559890, 0x55cbc0, 0x55faa0 y las ramas de 0x57cfc0): C1 06 19 [skill]
+// [clave H] [clave L], con el XOR32 sobre los bytes 3 a 5 y en C3 (sus dos rand(), el relleno y el serial, los saca
+// quien lo manda). La clave es +0x1f4 del blanco, entera. Es el PMSG_MAGICATTACK del GameServer (CGMagicAttack).
 [[nodiscard]] Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key);
 
-// C1 0C 1E [skill] [x] [y] [rumbo] [byte7] [byte8] [clave H L] [byte11]: la skill sobre una celda. El GS 0.97 lee solo
-// los cuatro primeros (PMSG_DURATION_MAGIC_RECV, 0x427870); los otros cinco son los Dis, TargetPos, NumberH, NumberL y
-// MagicKey de la 1.02, y cada skill pone lo suyo en byte7 y byte8 (06 § Las skills del caballero).
+// El 1E que manda el elfo (0x561f60, 0x562b36 y 0x563f5a): C1 0C 1E [skill] [X] [Y] [rumbo] [hacia] [espalda]
+// [clave H] [clave L] 00, con el XOR32 sobre los bytes 3 a 11 y en C3 como el 19. El GameServer lee solo los 7
+// primeros (PMSG_DURATION_MAGIC_RECV, CGDurationMagicRecv 0x427870).
+struct DurationMagicSend
+{
+    std::uint8_t skill = 0;
+    std::uint8_t x = 0;
+    std::uint8_t y = 0;
+    std::uint8_t direction = 0;
+    // ((dx + 8) << 4) | ((dy − 8) & 0xf), con la distancia de la celda lógica al blanco entre −8 y 7.
+    std::uint8_t towards = 0;
+    // El rumbo dado vuelta (+180°) en la misma escala de 0 a 255.
+    std::uint8_t back = 0;
+    std::uint16_t key = 0;
+};
+[[nodiscard]] Outgoing WriteDurationMagic(const DurationMagicSend& send);
+
+// El mismo 1E con los bytes 7, 8 y 11 por su lugar (CL9 hito 4, fase 2c-C; 04 § Las skills que se mandan): las ramas
+// del caballero ponen en el 7 la posición del blanco, en el 8 la celda de 0x4e9920 o el rumbo opuesto y en el 11 la
+// clave de la magia (0x57cf90, la 0x4c). El GS 0.97 lee los cuatro primeros (06 § Las skills del caballero).
 struct DurationMagicRequest
 {
     std::uint8_t skill = 0;

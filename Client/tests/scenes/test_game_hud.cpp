@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
+#include "Protocol/Inventory.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
@@ -16,6 +17,7 @@
 #include "Scenes/GameData.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/HudItems.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/WorldRuntime.h"
@@ -588,6 +590,33 @@ TEST_F(GameHudTest, TheBaseStateSpendsTheRandomsOfItsAccessesAndLeavesTheTextCol
     EXPECT_EQ(hud.textColors.text, 0xffffffffu);
     EXPECT_EQ(hud.textColors.background, 0xff000000u);
     EXPECT_EQ(hud.durabilityWarning, 0);
+}
+
+// 0x5a9796..0x5a97b8: el 26 (0x4d3510) y el 27 (0x4d3820) escriben la vida y el maná que leen los orbes: con 25 de
+// 100 al orbe de la vida le faltan 0,75 (v = 36 / 64) y con 50 de 100 al del maná 0,5 (v = 24 / 64).
+TEST_F(GameHudTest, TheLifeAndTheManaPacketsMoveTheOrbs)
+{
+    const auto orbV = [&](std::uint16_t slot)
+    {
+        const std::vector<DrawnQuad> quads = QuadsOf(sprites);
+        const auto orb = std::ranges::find(quads, std::optional<std::uint16_t>{slot}, &DrawnQuad::slot);
+        return orb == quads.end() ? -1.0f : orb->first.v;
+    };
+    ASSERT_TRUE(Hud().HasValue());
+    EXPECT_EQ(orbV(0xea), 0.0f);
+    EXPECT_EQ(orbV(0xeb), 0.0f);
+
+    namespace Inventory = Client::Protocol::Inventory;
+    ASSERT_TRUE(Client::Scenes::ApplyLifeRefill(Inventory::LifeRefill{.place = Inventory::CurrentPlace, .life = 25},
+                                                world, random)
+                    .HasValue());
+    ASSERT_TRUE(Client::Scenes::ApplyManaRefill(
+                    Inventory::ManaRefill{.place = Inventory::CurrentPlace, .mana = 50, .bp = 0}, world, random)
+                    .HasValue());
+    sprites.Begin(Screen640);
+    ASSERT_TRUE(Hud().HasValue());
+    EXPECT_EQ(orbV(0xea), 0.5625f);
+    EXPECT_EQ(orbV(0xeb), 0.375f);
 }
 
 // 0x5a7539..0x5a7604: en Tarkan, las dos arenas aditivas con (0,3; 0,3; 0,25), primero la lenta y después la rápida,

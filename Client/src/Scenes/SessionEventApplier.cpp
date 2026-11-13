@@ -168,6 +168,10 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
     }
     if (const auto* moved = std::get_if<Protocol::Inventory::ItemMoveResult>(&event))
         return ApplyItemMoveResult(*moved, m_resources);
+    if (const auto* life = std::get_if<Protocol::Inventory::LifeRefill>(&event))
+        return ApplyLifeRefill(*life, m_resources.world, m_resources.cloth.random);
+    if (const auto* mana = std::get_if<Protocol::Inventory::ManaRefill>(&event))
+        return ApplyManaRefill(*mana, m_resources.world, m_resources.cloth.random);
     if (const auto* deleted = std::get_if<Protocol::Inventory::ItemDelete>(&event))
         return ApplyItemDelete(*deleted, m_resources);
     if (const auto* durability = std::get_if<Protocol::Inventory::Durability>(&event))

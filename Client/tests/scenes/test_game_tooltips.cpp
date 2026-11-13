@@ -229,16 +229,22 @@ TEST(GameTooltipsTest, TheBoxMeasuresFramesAndCentersEachLine)
         ExpectColor(quads[i].color, 0.0f, 0.0f, 0.0f);
     ExpectColor(quads[4].color, 0.0f, 0.0f, 0.0f, 0.8f);
 
-    // El "\n" baja 6,5 · 1,1; cada texto, centrado en la caja de 20 desde 310, baja 13 · 1,1.
+    // El "\n" baja 6,5 · 1,1; cada texto va en la caja de 20 columnas desde 310 (0x467060 con el modo 2), corrido
+    // (20 − 18) / 2, y baja 13 · 1,1.
     const auto& texts = tested.text.texts;
     ASSERT_EQ(texts.size(), 2u);
     EXPECT_EQ(texts[0].text, "Uno");
-    EXPECT_EQ(texts[0].x, 311);
+    EXPECT_EQ(texts[0].x, 310);
     EXPECT_EQ(texts[0].y, 107);
+    EXPECT_TRUE(texts[0].windowed);
+    EXPECT_EQ(texts[0].firstColumn, -1);
+    EXPECT_EQ(texts[0].columns, 20);
     EXPECT_EQ(texts[0].style.font, Client::Render::Text::FontKind::Bold);
     EXPECT_EQ(texts[1].text, "Dos");
-    EXPECT_EQ(texts[1].x, 311);
+    EXPECT_EQ(texts[1].x, 310);
     EXPECT_EQ(texts[1].y, 121);
+    EXPECT_EQ(texts[1].firstColumn, -1);
+    EXPECT_EQ(texts[1].columns, 20);
     EXPECT_EQ(texts[1].style.font, Client::Render::Text::FontKind::Normal);
     EXPECT_EQ(texts[1].style.colors.text, 0xffffffffu);
     EXPECT_EQ(texts[1].style.colors.background, 0u);
@@ -266,9 +272,72 @@ TEST(GameTooltipsTest, AnEmptyLineEndsTheBoxAndSomeColorsCarryABackground)
     EXPECT_EQ(texts[0].style.colors.text, 0xff00ff00u);
     EXPECT_EQ(texts[0].style.colors.background, 0xffc83c3cu);
     EXPECT_EQ(texts[1].style.colors.background, 0xff0000a0u);
-    // Sin marco, ningún quad sin textura; contra el borde izquierdo, la caja empieza en 0.
+    // Sin marco, ningún quad sin textura; contra el borde izquierdo, la caja empieza en 0 y el texto en 1. El fondo
+    // llena las 26 columnas de la caja, también las de los costados del texto (P-C145).
     EXPECT_TRUE(ColorQuadsOf(tested.sprites).empty());
-    EXPECT_EQ(texts[1].x, 1 + (26 - 24) / 2);
+    EXPECT_EQ(texts[0].x, 1);
+    EXPECT_EQ(texts[0].firstColumn, -(26 - 18) / 2);
+    EXPECT_EQ(texts[0].columns, 26);
+    EXPECT_EQ(texts[1].x, 1);
+    EXPECT_EQ(texts[1].firstColumn, -(26 - 24) / 2);
+    EXPECT_EQ(texts[1].columns, 26);
+}
+
+// 0x5af090 con el modo 3, el de las columnas de la ayuda del ítem (0x5af9b0): cada texto contra el borde derecho de la
+// caja (0x467134..0x467144), en la columna caja − cx de una caja de 20 columnas justas, con el fondo en toda ella.
+TEST(GameTooltipsTest, TheModeThreePutsEachLineAgainstTheRightEdge)
+{
+    Tooltips tested;
+    TooltipLines& lines = tested.Lines();
+    lines.text[0] = "1";
+    lines.colors[0] = Client::Scenes::TooltipRed;
+    lines.text[1] = "100";
+    lines.colors[1] = Client::Scenes::TooltipWhiteOnRed;
+    GameHudContext context = tested.Context();
+    ASSERT_TRUE(Client::Scenes::DrawTheTooltipBox(context, 100, 50, 2, 0, 3, 0).HasValue());
+    // El ancho, 18 + 4, centrado en 100: desde 89, y los textos desde 90 en 20 columnas.
+    const auto& texts = tested.text.texts;
+    ASSERT_EQ(texts.size(), 2u);
+    EXPECT_EQ(texts[0].x, 90);
+    EXPECT_EQ(texts[0].y, 50);
+    EXPECT_EQ(texts[0].firstColumn, 6 - 20);
+    EXPECT_EQ(texts[0].columns, 20);
+    EXPECT_EQ(texts[0].style.colors.background, 0u);
+    EXPECT_EQ(texts[1].x, 90);
+    EXPECT_EQ(texts[1].y, 64);
+    EXPECT_EQ(texts[1].firstColumn, 18 - 20);
+    EXPECT_EQ(texts[1].columns, 20);
+    EXPECT_EQ(texts[1].style.colors.background, 0xffa00000u);
+    EXPECT_TRUE(ColorQuadsOf(tested.sprites).empty());
+    const std::vector<Color> colors = TextColorsOf(tested.sprites);
+    ASSERT_EQ(colors.size(), 2u);
+    ExpectColor(colors[0], 1.0f, 0.2f, 0.1f);
+    ExpectColor(colors[1], 1.0f, 1.0f, 1.0f);
+    EXPECT_EQ(tested.sprites.Blend(), BlendMode::Opaque);
+}
+
+// En 800 × 600 (rx = 1,25) la caja del texto es de píxeles y la x, la de 640 × 480 sin pasar por la pantalla: con
+// "Uno" (18 píxeles) en x 320, la caja mide 18 / 1,25 + 4 = 18,4 desde 310 y el texto va desde 311, en una caja de
+// _ftol(16,4 · 1,25) = 20 columnas. Con el modo 3, el texto en la columna 20 − 18.
+TEST(GameTooltipsTest, TheTextBoxIsInPixelsAtAnotherResolution)
+{
+    for (const std::int32_t mode : {2, 3})
+    {
+        Tooltips tested;
+        tested.sprites.Begin(Client::App::PixelSize{800, 600});
+        TooltipLines& lines = tested.Lines();
+        lines.text[0] = "Uno";
+        lines.colors[0] = Client::Scenes::TooltipGreenOnRed;
+        GameHudContext context = tested.Context();
+        ASSERT_TRUE(Client::Scenes::DrawTheTooltipBox(context, 320, 100, 1, 0, mode, 0).HasValue()) << mode;
+        const auto& texts = tested.text.texts;
+        ASSERT_EQ(texts.size(), 1u) << mode;
+        EXPECT_EQ(texts[0].x, 311) << mode;
+        EXPECT_EQ(texts[0].y, 100) << mode;
+        EXPECT_EQ(texts[0].firstColumn, mode == 2 ? -1 : -2) << mode;
+        EXPECT_EQ(texts[0].columns, 20) << mode;
+        EXPECT_EQ(texts[0].style.colors.background, 0xffc83c3cu) << mode;
+    }
 }
 
 // 0x40d530: la opción elige el texto de formato; con una de más de 0x23 el renglón queda.
@@ -380,7 +449,9 @@ TEST(GameTooltipsTest, TheSetLabelListsTheOptionsOfTheSet)
     // La caja va arriba a la izquierda: el ancho mayor ("Agilidad +20", 72) + 4, contra el 0.
     ASSERT_FALSE(tested.text.texts.empty());
     EXPECT_EQ(tested.text.texts[0].text, "Beta Set fin");
-    EXPECT_EQ(tested.text.texts[0].x, 1 + (74 - 72) / 2);
+    EXPECT_EQ(tested.text.texts[0].x, 1);
+    EXPECT_EQ(tested.text.texts[0].firstColumn, -(74 - 72) / 2);
+    EXPECT_EQ(tested.text.texts[0].columns, 74);
 }
 
 // 0x40ed11..0x40ee15 (Q-C592): después del sexto par la segunda opción queda la de ese par, y sale otra vez en cada

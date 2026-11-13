@@ -941,6 +941,100 @@ TEST_F(InventoryReplyTest, TheDeleteAndTheDurabilityTouchTheirPlace)
     EXPECT_TRUE(shop.Error().starts_with("0x4c5ece:")) << shop.Error();
 }
 
+// 0x4d3510 (26): cada uno con el registro propio abierto, 3.848 rand() al cerrarlo; 0xfe la vida máxima, 0xff la vida,
+// 0xfd el fin de la espera y otro lugar la poción: baja 1 y en 0 deja la casilla vacía. Fuera de la grilla, corta
+// después de abrir el registro, que se cierra igual. Con el registro ya abierto no gasta nada.
+TEST_F(InventoryReplyTest, TheLifeRefillWritesTheRecordOrSpendsThePotion)
+{
+    const std::unique_ptr<Stage> tested = FreshOnTheHeap();
+    tested->PublishedHero();
+    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(12 + 6, ItemBytes(Apple, 0, 2), tested->Resources()).HasValue());
+    Client::Scenes::WorldState& world = tested->world;
+    Client::Scenes::WorldRuntime& runtime = world.Runtime();
+    CrtRandom& random = tested->cloth.random;
+    namespace Inventory = Client::Protocol::Inventory;
+    const auto refill = [&](std::uint8_t place, std::uint16_t life)
+    { return Client::Scenes::ApplyLifeRefill(Inventory::LifeRefill{.place = place, .life = life}, world, random); };
+
+    CrtRandom expected = random;
+    ASSERT_TRUE(refill(Inventory::MaximumPlace, 300).HasValue());
+    ASSERT_TRUE(refill(Inventory::CurrentPlace, 120).HasValue());
+    expected.Discard(2 * OwnRecordClose);
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(world.OwnCharacter().maxLife, 300);
+    EXPECT_EQ(world.OwnCharacter().life, 120);
+
+    runtime.ui.field5767954 = 10;
+    ASSERT_TRUE(refill(Inventory::EndTheWaitPlace, 0).HasValue());
+    EXPECT_EQ(runtime.ui.field5767954, 0);
+    EXPECT_EQ(world.OwnCharacter().life, 120);
+
+    ASSERT_TRUE(refill(12 + 6, 0).HasValue());
+    EXPECT_EQ(tested->Cell(6).id, Apple);
+    EXPECT_EQ(tested->Cell(6).durability, 1);
+    ASSERT_TRUE(refill(12 + 6, 0).HasValue());
+    EXPECT_EQ(tested->Cell(6).id, EmptyOwnItemId);
+    EXPECT_EQ(tested->Cell(6).occupied, 0u);
+    EXPECT_EQ(tested->Cell(6).durability, 0);
+
+    expected = random;
+    const auto outside = refill(12 + 64, 0);
+    ASSERT_FALSE(outside.HasValue());
+    EXPECT_TRUE(outside.Error().starts_with("0x4d35f6:")) << outside.Error();
+    expected.Discard(OwnRecordClose);
+    EXPECT_EQ(random.State(), expected.State());
+
+    expected = random;
+    {
+        const Client::Render::Models::LogicalAccess open(runtime.ownRecordDepth, random,
+                                                         Client::Render::Models::OwnRecordCloseRandoms);
+        ASSERT_TRUE(refill(Inventory::CurrentPlace, 80).HasValue());
+        EXPECT_EQ(random.State(), expected.State());
+    }
+    EXPECT_EQ(world.OwnCharacter().life, 80);
+}
+
+// 0x4d3820 (27): 0xfe los máximos de maná y BP, 0xff los actuales y otro lugar el maná y la poción; el 0xfd es un lugar
+// más, fuera de la grilla, y corta después de escribir el maná.
+TEST_F(InventoryReplyTest, TheManaRefillWritesTheManaAndTheBpOrSpendsThePotion)
+{
+    const std::unique_ptr<Stage> tested = FreshOnTheHeap();
+    tested->PublishedHero();
+    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(12 + 9, ItemBytes(Apple, 0, 1), tested->Resources()).HasValue());
+    Client::Scenes::WorldState& world = tested->world;
+    CrtRandom& random = tested->cloth.random;
+    namespace Inventory = Client::Protocol::Inventory;
+    const auto refill = [&](std::uint8_t place, std::uint16_t mana, std::uint16_t bp)
+    {
+        return Client::Scenes::ApplyManaRefill(Inventory::ManaRefill{.place = place, .mana = mana, .bp = bp}, world,
+                                               random);
+    };
+    const Client::Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+
+    CrtRandom expected = random;
+    ASSERT_TRUE(refill(Inventory::MaximumPlace, 200, 40).HasValue());
+    ASSERT_TRUE(refill(Inventory::CurrentPlace, 150, 30).HasValue());
+    expected.Discard(2 * OwnRecordClose);
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(own.maxMana, 200);
+    EXPECT_EQ(own.maxBp, 40);
+    EXPECT_EQ(own.mana, 150);
+    EXPECT_EQ(own.bp, 30);
+
+    ASSERT_TRUE(refill(12 + 9, 190, 7).HasValue());
+    EXPECT_EQ(own.mana, 190);
+    EXPECT_EQ(own.bp, 30);
+    EXPECT_EQ(tested->Cell(9).id, EmptyOwnItemId);
+    EXPECT_EQ(tested->Cell(9).occupied, 0u);
+
+    world.Runtime().ui.field5767954 = 10;
+    const auto wait = refill(Inventory::EndTheWaitPlace, 170, 0);
+    ASSERT_FALSE(wait.HasValue());
+    EXPECT_TRUE(wait.Error().starts_with("0x4d3917:")) << wait.Error();
+    EXPECT_EQ(own.mana, 170);
+    EXPECT_EQ(world.Runtime().ui.field5767954, 10);
+}
+
 // 0x4e31a3 (F3 14): la cuenta del cursor en 0, el ítem en su lugar y el sonido 0x45. 0x4e316e (F3 13): sin un
 // jugador con la clave, 0x5139f0 no hace nada; con él, su equipo es de la CL9.2.
 TEST_F(InventoryReplyTest, TheItemPutAndTheEquipmentOfOthers)

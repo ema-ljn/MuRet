@@ -197,24 +197,24 @@ Render::Text::TextColors LineColors(std::int32_t color)
     }
 }
 
-// 0x465950(x, y, texto, caja, 0, modo, 0, 0x280) → 0x467060: el texto en una caja de `boxPixels` píxeles que empieza
-// en _ftol(x · rx), corrido (caja − cx) / 2 con el modo 2 o caja − cx con el 3. El fondo de 0x467060 llena la caja; el
-// de MuRet, lo que ocupa el texto (08, P-C145). Devuelve lo que baja: cy / ry, la mitad si empieza con '\n'.
+// 0x465950(x, y, texto, caja, 0, modo, 0, 0x280) → 0x467060: una caja de `boxPixels` columnas que empieza en
+// _ftol(x · rx), con el fondo (0x6c8e64) en toda ella (ITextDrawer::DrawColumns, como el título del inventario,
+// Q-C710). El modo 2 (0x46711b..0x467132) pone el texto en la columna (caja − cx) / 2, con la caja de
+// Render::Text::CenterInBox; el 3 (0x467134..0x467144), en la columna caja − cx de una caja de `boxPixels` justas:
+// contra su borde derecho. Devuelve lo que baja: cy / ry, la mitad si empieza con '\n'.
 double DrawLine(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t boxPixels,
                 std::int32_t mode)
 {
     const App::PixelSize screen = context.sprites.Screen();
     const Render::Text::TextExtent extent = context.text.Measure(context.hud.dcFont, text);
-    const std::int32_t offset = mode == CenteredMode ? (boxPixels - extent.width) / 2 : boxPixels - extent.width;
-    std::int32_t left = x;
-    if (screen.width > 0)
+    const Render::Text::TextStyle style{.font = context.hud.dcFont, .colors = context.hud.textColors};
+    if (mode == CenteredMode)
     {
-        const std::int32_t pixelX =
-            Truncate(static_cast<double>(x) * static_cast<double>(Render::ScaleX(1.0f, screen)));
-        left = Render::Text::DesignX(pixelX + offset, screen);
+        const Render::Text::CenteredInBox placed = Render::Text::CenterInBox(boxPixels, extent.width);
+        context.text.DrawColumns(x, y, text, style, -placed.textColumn, placed.width);
     }
-    context.text.Draw(left, y, text,
-                      Render::Text::TextStyle{.font = context.hud.dcFont, .colors = context.hud.textColors});
+    else
+        context.text.DrawColumns(x, y, text, style, extent.width - boxPixels, boxPixels);
     const double rows = static_cast<double>(extent.height) / static_cast<double>(Render::ScaleY(1.0f, screen));
     return !text.empty() && text.front() == '\n' ? rows / 2.0 : rows;
 }

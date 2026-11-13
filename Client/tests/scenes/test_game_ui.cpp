@@ -767,7 +767,7 @@ TEST(GameUiTest, EscapeReachesTheOldWindowsOnlyWithTheFriendsWindowOpen)
     }
 }
 
-// 0x4904eb: F5 solo se lee con el teclado en la ventana del juego.
+// 0x490538..0x490548: F5 solo se lee con el teclado en la ventana del juego.
 TEST(GameUiTest, F5IsReadOnlyWithTheKeyboardInTheGame)
 {
     SteppingUi tested;

@@ -203,7 +203,7 @@ protected:
             ++dressed;
             return Client::Core::Expected<void, std::string>{};
         };
-        services.systemMessage = [this](std::size_t index)
+        services.systemMessage = [this](std::size_t index, std::int32_t)
         {
             messages.push_back(index);
             return Client::Core::Expected<void, std::string>{};

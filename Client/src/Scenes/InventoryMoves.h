@@ -13,7 +13,7 @@
 
 // Levantar, soltar y equipar el ítem del cursor (CL8 hito 4; 06 § El inventario, "El ítem del cursor"): lo que no
 // es de la UI de 0x5bd750, 0x5be150, el tramo del inventario de 0x5ca250, 0x5bec50, 0x5c4110 y MoveHero, y las
-// respuestas 24, 28, 2A, F3 13 y F3 14. La grilla es la del inventario (0x78a9bb0, 8 × 8) con el equipo en los
+// respuestas 24, 26, 27, 28, 2A, F3 13 y F3 14. La grilla es la del inventario (0x78a9bb0, 8 × 8) con el equipo en los
 // lugares 0 a 11: las otras (comercio, almacén, caja del caos, tienda personal y la del entrenador) cortan con su
 // dirección.
 namespace Client::Render::Models
@@ -40,10 +40,10 @@ struct InventoryServices
     std::function<Core::Expected<void, std::string>()> dressTheHero{};
     // 0x420cf0: suelta el cuervo y, fuera de los mapas 18 a 23, lo crea de nuevo (ReplaceTheRaven).
     std::function<Core::Expected<void, std::string>()> replaceTheRaven{};
-    // 0x555190(nombre, el texto `index` de Text.bmd, 2): un mensaje de error en el chat. Los nombres que pasa el
-    // original (0x77f3be4, 0x78abb44, 0x78abb60 a 0x78abb6c) son buffers que nadie escribe: van vacíos (*inferido*,
-    // 08 P-C72).
-    std::function<Core::Expected<void, std::string>(std::size_t index)> systemMessage{};
+    // 0x555190(nombre, el texto `index` de Text.bmd, tipo): un mensaje en el chat, con el tipo 2 (UI::ErrorMessage)
+    // o el 1 (UI::SystemMessage, las flechas que se equipan). Los nombres que pasa el original (0x77f3bdc a 0x77f3be4,
+    // 0x78abb44, 0x78abb60 a 0x78abb6c) son buffers que nadie escribe: van vacíos (*inferido*, 08 P-C72).
+    std::function<Core::Expected<void, std::string>(std::size_t index, std::int32_t type)> systemMessage{};
     // El C1 0E 24 en C3 por la sesión (ServerSession::SendItemMove), después de los dos rand() del envío.
     std::function<Core::Expected<void, std::string>(const Protocol::Inventory::ItemMove&)> sendItemMove{};
 };
@@ -178,6 +178,17 @@ struct GroundDrop
 // el fin de la espera.
 [[nodiscard]] Core::Expected<void, std::string> ApplyDurability(const Protocol::Inventory::Durability& durability,
                                                                 const WorldEntryResources& resources);
+// 0x4d3510, el 26, con el registro propio abierto (3.848 rand() al cerrarlo si queda sin accesos): 0xfd, el fin de
+// la espera (0x5767954 en 0); 0xfe, la vida máxima (+0x26); 0xff, la vida (+0x22); otro, la poción del lugar: la
+// durabilidad (+0x1a) de la casilla lugar − 12 de la grilla baja 1 si no es 0 y, en 0, la casilla queda vacía (tipo
+// 0xffff y +0x3c en 0). Fuera de la grilla el original escribe igual: MuRet corta (0x4d35f6).
+[[nodiscard]] Core::Expected<void, std::string> ApplyLifeRefill(const Protocol::Inventory::LifeRefill& refill,
+                                                                WorldState& world, Render::Models::CrtRandom& random);
+// 0x4d3820, el 27, con el registro propio abierto: 0xfe, el maná máximo (+0x28) y el BP máximo (+0x3a); 0xff, el
+// maná (+0x24) y el BP (+0x38); otro, el maná y la poción del lugar, como el 26 (0x4d3917). El 0xfd no es el fin de
+// la espera: es un lugar más.
+[[nodiscard]] Core::Expected<void, std::string> ApplyManaRefill(const Protocol::Inventory::ManaRefill& refill,
+                                                                WorldState& world, Render::Models::CrtRandom& random);
 // 0x4e31a3, el F3 14: la cuenta del cursor en 0, 0x5bc740 con el último argumento en 0 y el sonido 0x45.
 [[nodiscard]] Core::Expected<void, std::string> ApplyItemPut(const Protocol::Inventory::ItemPut& put,
                                                              const WorldEntryResources& resources);

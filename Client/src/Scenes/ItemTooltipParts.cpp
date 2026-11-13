@@ -89,16 +89,22 @@ Core::Expected<SkillEntryFields, std::string> ReadTheSkillEntry(ItemTooltipFrame
 Core::Expected<std::optional<std::string>, std::string> ItemSetNameOf(const GameHudContext& context,
                                                                       const World::ItemState& item)
 {
-    const auto kind = static_cast<std::uint8_t>(item.flags1c & SetKindMask);
+    return ItemSetNameOf(context, item.id, static_cast<std::uint8_t>(item.flags1c & SetKindMask));
+}
+
+Core::Expected<std::optional<std::string>, std::string> ItemSetNameOf(const GameHudContext& context, std::uint16_t type,
+                                                                      std::uint8_t piece)
+{
+    const auto kind = static_cast<std::uint8_t>(piece & SetKindMask);
     if (kind == 0)
         return std::optional<std::string>{};
     if (context.setTypes == nullptr || context.setOptions == nullptr)
         return Core::Unexpected(std::string("0x40cf46: el nombre de un ítem de conjunto sin ItemSetType.bmd ni "
                                             "ItemSetOption.bmd"));
-    const auto type = context.setTypes->Record(item.id);
-    if (!type)
-        return Core::Unexpected(std::format("0x40cf4d: el tipo {:#x} lee fuera de ItemSetType.bmd", item.id));
-    const std::uint8_t set = std::to_integer<std::uint8_t>((*type)[kind - 1u]);
+    const auto types = context.setTypes->Record(type);
+    if (!types)
+        return Core::Unexpected(std::format("0x40cf4d: el tipo {:#x} lee fuera de ItemSetType.bmd", type));
+    const std::uint8_t set = std::to_integer<std::uint8_t>((*types)[kind - 1u]);
     if (set == NoSet || set == 0)
         return std::optional<std::string>{};
     const auto record = context.setOptions->Record(set);

@@ -250,6 +250,10 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnOptionData(packet); }) &&
         m_gameServer.On(Protocol::Inventory::ItemMoveOpcode,
                         [this](const Network::Packet& packet) { OnItemMove(packet); }) &&
+        m_gameServer.On(Protocol::Inventory::LifeOpcode,
+                        [this](const Network::Packet& packet) { OnLifeRefill(packet); }) &&
+        m_gameServer.On(Protocol::Inventory::ManaOpcode,
+                        [this](const Network::Packet& packet) { OnManaRefill(packet); }) &&
         m_gameServer.On(Protocol::Inventory::ItemDeleteOpcode,
                         [this](const Network::Packet& packet) { OnItemDelete(packet); }) &&
         m_gameServer.On(Protocol::Inventory::DurabilityOpcode,
@@ -1057,6 +1061,30 @@ void ServerSession::OnItemMove(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
+}
+
+// 04 § La vida y el maná. Llegan en cualquier escena del GameServer, también antes de la respuesta del F3 03: 0x4d3510
+// y 0x4d3820 no miran cuál es.
+void ServerSession::OnLifeRefill(const Network::Packet& packet)
+{
+    const auto refill = Protocol::Inventory::ReadLifeRefill(packet);
+    if (!refill.HasValue())
+    {
+        m_log.Warning("se ignora la vida (26): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(refill.Value(), *this)));
+}
+
+void ServerSession::OnManaRefill(const Network::Packet& packet)
+{
+    const auto refill = Protocol::Inventory::ReadManaRefill(packet);
+    if (!refill.HasValue())
+    {
+        m_log.Warning("se ignora el maná (27): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(refill.Value(), *this)));
 }
 
 void ServerSession::OnItemDelete(const Network::Packet& packet)

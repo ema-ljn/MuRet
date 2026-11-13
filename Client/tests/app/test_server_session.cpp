@@ -4273,6 +4273,28 @@ TEST(ServerSessionTest, TheItemMovesReachTheWorldAndTheClearOneIsReported)
     EXPECT_TRUE(sent.packets.back().WasDecrypted());
 }
 
+// 04 § La vida y el maná: el 26 y el 27 llegan al mundo también antes del F3 03 (0x4d3510 y 0x4d3820 no miran la
+// escena); el 26 corto con 0xff se ignora. Los valores son inventados.
+TEST(ServerSessionTest, TheLifeAndTheManaReachTheWorldBeforeTheMap)
+{
+    namespace Inventory = Client::Protocol::Inventory;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {Join({Bytes({0xc1, 7, 0x26, 0xfe, 0x01, 0x2c, 0}), Bytes({0xc1, 5, 0x26, 0xff, 0x01}),
+                                 Bytes({0xc1, 8, 0x27, 0x15, 0x00, 0x5a, 0, 0})})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 2u);
+    const auto* life = std::get_if<Inventory::LifeRefill>(&events[0]);
+    ASSERT_NE(life, nullptr);
+    EXPECT_EQ(life->place, Inventory::MaximumPlace);
+    EXPECT_EQ(life->life, 0x12c);
+    const auto* mana = std::get_if<Inventory::ManaRefill>(&events[1]);
+    ASSERT_NE(mana, nullptr);
+    EXPECT_EQ(mana->place, 0x15);
+    EXPECT_EQ(mana->mana, 0x5a);
+}
+
 // La conexión cifra sólo el gate: los tres C1 de mundo restantes salen con XOR32 sin C3.
 TEST(ServerSessionTest, GateRequestAndTeleportDoneUseTheirDelivery)
 {

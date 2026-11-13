@@ -41,6 +41,12 @@ std::optional<ItemData> ReadItem(Core::ByteReader& reader)
     std::ranges::copy(*bytes, item.begin());
     return item;
 }
+
+// 0x4d36eb..0x4d3719 y 0x4d3a0c..0x4d3a5d: los lugares que traen los valores en vez de ser una casilla.
+bool CarriesTheValues(std::uint8_t place)
+{
+    return place == MaximumPlace || place == CurrentPlace;
+}
 } // namespace
 
 // 0x449d80, y en línea 0x5ca46c.. y 0x5bf294..: el tipo, el opcode y doce bytes, con el XOR32 desde pkt[3].
@@ -87,6 +93,41 @@ Core::Expected<ItemDelete, ProtocolError> ReadItemDelete(const Network::Packet& 
     if (!slot || !ends)
         return Core::Unexpected(ProtocolError::TooShort);
     return ItemDelete{*slot, *ends};
+}
+
+Core::Expected<LifeRefill, ProtocolError> ReadLifeRefill(const Network::Packet& packet)
+{
+    auto fields = FieldsOf(packet, LifeOpcode);
+    if (!fields.HasValue())
+        return Core::Unexpected(fields.Error());
+    Core::ByteReader& reader = fields.Value();
+    const auto place = reader.ReadU8();
+    if (!place)
+        return Core::Unexpected(ProtocolError::TooShort);
+    if (!CarriesTheValues(*place))
+        return LifeRefill{.place = *place, .life = 0};
+    const auto life = reader.ReadU16Be();
+    if (!life)
+        return Core::Unexpected(ProtocolError::TooShort);
+    return LifeRefill{.place = *place, .life = *life};
+}
+
+Core::Expected<ManaRefill, ProtocolError> ReadManaRefill(const Network::Packet& packet)
+{
+    auto fields = FieldsOf(packet, ManaOpcode);
+    if (!fields.HasValue())
+        return Core::Unexpected(fields.Error());
+    Core::ByteReader& reader = fields.Value();
+    const auto place = reader.ReadU8();
+    const auto mana = reader.ReadU16Be();
+    if (!place || !mana)
+        return Core::Unexpected(ProtocolError::TooShort);
+    if (!CarriesTheValues(*place))
+        return ManaRefill{.place = *place, .mana = *mana, .bp = 0};
+    const auto bp = reader.ReadU16Be();
+    if (!bp)
+        return Core::Unexpected(ProtocolError::TooShort);
+    return ManaRefill{.place = *place, .mana = *mana, .bp = *bp};
 }
 
 Core::Expected<Durability, ProtocolError> ReadDurability(const Network::Packet& packet)

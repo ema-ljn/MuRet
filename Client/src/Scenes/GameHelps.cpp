@@ -7,7 +7,6 @@
 #include "Scenes/GameTooltips.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/WorldRuntime.h"
-#include "Scenes/WorldState.h"
 #include "UI/PanelRegistry.h"
 
 #include <cstddef>
@@ -39,57 +38,6 @@ constexpr std::int32_t HelpCorner = 1;
 constexpr std::int32_t CenteredMode = 2;
 // 0x5b05bf..0x5b05ce: el título, con el color 1 y la negrita.
 constexpr std::int32_t TitleColor = 1;
-
-// 0x5b089c..0x5b0944: las flechas y los virotes cierran la ayuda; las franjas de tipos.
-constexpr std::int32_t ArrowsItem = 0x807;
-constexpr std::int32_t BoltsItem = 0x80f;
-constexpr std::int32_t FifthKind = 5;
-
-struct ItemKind
-{
-    std::int32_t kind = 0;
-    std::int32_t dividend = 0;
-};
-
-// 0x5b08b4..0x5b0975: la franja del ítem y lo que divide por el ancho de la pantalla; sin franja, nada.
-std::optional<ItemKind> KindOf(std::int32_t item, std::int32_t screenWidth)
-{
-    if (item >= 0 && item < 0xa00)
-        return ItemKind{.kind = 1, .dividend = 0x870};
-    if (item >= 0xa00 && item < 0xc00)
-        return ItemKind{.kind = 2, .dividend = 0x708};
-    if (item >= 0xc00 && item < 0xe00)
-        return ItemKind{.kind = 3, .dividend = 0x708};
-    if (item >= 0xe00 && item < 0x1800)
-        return ItemKind{.kind = 4, .dividend = 0x708};
-    if (item >= 0x1e00 && item < 0x2000)
-    {
-        // 0x5b094f..0x5b0975: 0x1734 en 640 y 1.280, 0x1450 en 800 y 1.024 y, con otro, sin división.
-        if (screenWidth == 640 || screenWidth == 1280)
-            return ItemKind{.kind = FifthKind, .dividend = 0x1734};
-        if (screenWidth == 800 || screenWidth == 1024)
-            return ItemKind{.kind = FifthKind, .dividend = 0x1450};
-        return ItemKind{.kind = FifthKind, .dividend = 0};
-    }
-    return std::nullopt;
-}
-
-// 0x5b0807..0x5b088c: el divisor de cada ancho de pantalla (0x6d5d60); con otro, 0.
-std::int32_t DivisorOf(std::int32_t screenWidth)
-{
-    switch (screenWidth)
-    {
-    case 640:
-    case 800:
-        return 0x5a;
-    case 1024:
-        return 0x67;
-    case 1280:
-        return 0x7b;
-    default:
-        return 0;
-    }
-}
 } // namespace
 
 Core::Expected<void, std::string> DrawTheFunctionHelp(GameHudContext& context, std::int32_t mode)
@@ -130,29 +78,5 @@ Core::Expected<void, std::string> DrawTheFunctionHelp(GameHudContext& context, s
     // 0x5b0696 y 0x5b069d: 0x77f3b66 y la caja de los tooltips, arriba a la izquierda y con marco.
     context.hud.durabilityWarning = 1;
     return DrawTheTooltipBox(context, HelpCorner, HelpCorner, lines.next, 0, CenteredMode, 1);
-}
-
-Core::Expected<void, std::string> DrawTheItemHelp(GameHudContext& context)
-{
-    // 0x5b0802.
-    context.sprites.SetBlend(Render::BlendMode::Opaque);
-    UI::PanelState& panels = context.world.Runtime().panels;
-    const std::int32_t item = panels.helpItem;
-    const std::int32_t screenWidth = context.sprites.Screen().width;
-    const std::optional<ItemKind> kind =
-        item == ArrowsItem || item == BoltsItem ? std::nullopt : KindOf(item, screenWidth);
-    if (!kind)
-    {
-        // 0x5b10c2: 0x77f3b08 en 0.
-        if (!context.projecting)
-            panels.overlayMode = 0;
-        return {};
-    }
-    if (kind->dividend != 0 && DivisorOf(screenWidth) == 0)
-        return Core::Unexpected(std::format(
-            "0x5b097b: la ayuda del ítem {} divide por 0 con una pantalla de {} de ancho (Q-C615)", item, screenWidth));
-    return Core::Unexpected(std::format("0x5b09a8: el dibujo de la ayuda del ítem {} (0x5afc00, 0x5af590, 0x5af9b0 y "
-                                        "0x5afb00) no está portado (P-C105)",
-                                        item));
 }
 } // namespace Client::Scenes

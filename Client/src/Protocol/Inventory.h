@@ -9,11 +9,14 @@
 #include <cstddef>
 #include <cstdint>
 
-// 04 § Mover y equipar ítems: el 24 en los dos sentidos, el 28, el 2A y los F3 13 y F3 14. Network entrega los C3
-// que llegan ya descifrados como C1, con WasDecrypted; la escena decide cuándo mandar el 24.
+// 04 § Mover y equipar ítems: el 24 en los dos sentidos, el 28, el 2A y los F3 13 y F3 14; y 04 § La vida y el maná:
+// el 26 y el 27. Network entrega los C3 que llegan ya descifrados como C1, con WasDecrypted; la escena decide cuándo
+// mandar el 24.
 namespace Client::Protocol::Inventory
 {
 inline constexpr std::uint8_t ItemMoveOpcode = 0x24;
+inline constexpr std::uint8_t LifeOpcode = 0x26;
+inline constexpr std::uint8_t ManaOpcode = 0x27;
 inline constexpr std::uint8_t ItemDeleteOpcode = 0x28;
 inline constexpr std::uint8_t DurabilityOpcode = 0x2a;
 inline constexpr std::uint8_t WorldOpcode = 0xf3;
@@ -29,6 +32,11 @@ inline constexpr std::uint8_t ItemMoveRejected = 0xff;
 inline constexpr std::uint8_t NoItemToDelete = 0xff;
 // 0x5139f0 lee 17 bytes desde pkt[7] (el byte 6 no lo mira nadie).
 inline constexpr std::size_t EquipmentChangeSize = 17;
+// pkt[3] del 26 y del 27 cuando no es una casilla: 0xfd (solo el 26, 0x4d35dc) termina la espera de 0x5767954, 0xfe
+// trae los máximos y 0xff los actuales. Cualquier otro valor es el lugar de la poción que se usó.
+inline constexpr std::uint8_t EndTheWaitPlace = 0xfd;
+inline constexpr std::uint8_t MaximumPlace = 0xfe;
+inline constexpr std::uint8_t CurrentPlace = 0xff;
 
 using ItemData = std::array<std::byte, ItemDataSize>;
 
@@ -69,6 +77,27 @@ struct ItemDelete
 };
 
 [[nodiscard]] Core::Expected<ItemDelete, ProtocolError> ReadItemDelete(const Network::Packet& packet);
+
+// El 26, C1 07 26 (0x4d3510; PMSG_REFILL en el GameServer): el lugar en pkt[3] y, con 0xfe o 0xff, la vida en pkt[4]
+// (alto) y pkt[5] (bajo). Con otro lugar el original no lee la vida, y pkt[6] (el Flag, siempre 0) no lo lee nunca.
+struct LifeRefill
+{
+    std::uint8_t place = 0;
+    std::uint16_t life = 0;
+};
+
+[[nodiscard]] Core::Expected<LifeRefill, ProtocolError> ReadLifeRefill(const Network::Packet& packet);
+
+// El 27, C1 08 27 (0x4d3820; PMSG_MANASEND): el lugar en pkt[3], el maná en pkt[4..5] y, con 0xfe o 0xff, el BP en
+// pkt[6..7], los dos con el byte alto primero. Con otro lugar el original no lee el BP.
+struct ManaRefill
+{
+    std::uint8_t place = 0;
+    std::uint16_t mana = 0;
+    std::uint16_t bp = 0;
+};
+
+[[nodiscard]] Core::Expected<ManaRefill, ProtocolError> ReadManaRefill(const Network::Packet& packet);
 
 // El 2A, C1 06 2A (0x4d3cc0): el lugar, la durabilidad nueva y, distinto de 0, el fin de la espera.
 struct Durability

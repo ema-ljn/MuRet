@@ -1202,8 +1202,55 @@ La caja es la de los tooltips (`0x5af090`, § Los tooltips, "La caja"). MuRet: `
 `0x620980`; el divisor del ancho (`0x5a` en 640 y 800, `0x67` en 1.024, `0x7b` en 1.280, 0 con otro); las flechas
 (`0x807`), los virotes (`0x80f`) y los ítems fuera de las franjas `0..0x9ff`, `0xa00..0xbff`, `0xc00..0xdff`,
 `0xe00..0x17ff` y `0x1e00..0x1fff` ponen el modo en 0 y vuelven. Las franjas 1 a 4 dividen `0x870` o `0x708` por
-el divisor (Q-C615); la 5, `0x1734` (640 y 1.280) o `0x1450` (800 y 1.024), o nada con otro ancho. Lo que sigue
-(`0x5afc00`, `0x5af590`, `0x5af9b0` y `0x5afb00`, desde `0x5b09a8`) corta (08, P-C105).
+el divisor (Q-C615); la 5, `0x1734` (640 y 1.280) o `0x1450` (800 y 1.024), o nada con otro ancho. El cociente es
+la x de la primera columna (0 sin división); la y de los títulos y la de las filas salen del ancho (`0x26` y `0x34`
+en 640, `0x21` y `0x2f` en 800, `0x1c` y `0x28` en 1.024, `0x16` y `0x20` en 1.280, 0 con otro).
+
+La tabla por nivel (`0x5afc00(ítem)`, en `0x5b09a8`): con el ítem de `0x6c9334` (−1 en la `.data`; solo la escribe
+ella) vuelve sin hacer nada (Q-C750). Si no, lo guarda y llena 14 niveles de 17 dwords en `0x787a15c` con el registro
+de Item.bmd de `0x77f3b0c`: el nivel (columna 0), el daño mínimo y el máximo (`+0x26` y `+0x27`, 2 y 3), el poder
+(`+0x2f`: en la 4, y de `0x408` a `0x40d`, los cetros, en la 5), la defensa (`+0x29`, 6) y su tasa (`+0x28`, 7), los
+requisitos de fuerza (`+0x30`, 8), agilidad (`+0x32`, 9), energía (`+0x34`, 10), mando (`+0x38`, 13) y vitalidad
+(`+0x36`, 14) y el nivel pedido (`+0x3a`, 15). Un byte distinto de 0 suma 3 · min(nivel, 9) y, del 10 al 13, 4, 9,
+15 y 22 más (la tabla `0x5b04f4`); el poder va a la mitad y, salvo en los cetros, suma 2 · nivel; la defensa de los
+escudos (`0xc00..0xdff`) suma solo el nivel. Cada requisito distinto de 0 es `(Item.bmd+0x20 + 3 · nivel) ·
+requisito · 3 (4 la energía) / 100 + 20`, en 32 bits con signo. La columna 1 es 1 si el registro propio cumple cada
+requisito con su stat más lo de los ítems (`+0x2a..+0x36`, en 16 bits, comparado con signo) y el nivel (`+0xe`), y 0
+si no; lo abre y lo cierra en cada nivel (`0x5aff9b..0x5b04c3`): sin otro acceso abierto, 14 cierres de 3.848
+`rand()`, 53.872. Las columnas 11, 12 y 16 no las escribe nadie.
+
+La caja de arriba (`0x5b09b0..0x5b0dea`), desde el renglón 0: `"\n"`, el texto 160 con `strcpy` (Q-C613) en azul y
+negrita, el nombre del ítem (`"%s"`) en negrita, `"\n"`, `" "`, `"\n"`, 46 espacios (51 con más de 800 de ancho) y,
+salvo en los pergaminos, 13 renglones `" "` sin negrita (el color va uno más abajo: el del primero queda como estaba y
+el que sigue al último, en 0); `0x77f3b66` en 1. `0x40cf00(ítem)` lee los bytes 2 y 3 del tipo en ItemSetType.bmd:
+con el 3 de 0 a 3 y un conjunto en la pieza 1 (`0x40cf30`), un renglón verde (el 4) `"%s %s %s:(%s+%d)"` con su
+nombre, el 1089, el 591, el 1090 y ese byte; con el 2, lo mismo con la pieza 2. Después las clases de `0x5af590` (las
+del cuerpo del ítem), `"\n"` y `0x5af090(1, 1, cuántos, ancho, 2, 1)`. El ancho sale de la fila del nivel 0, en la x87
+con 53 bits: una columna (dos con daño mínimo, salvo en los pergaminos), una más por el máximo (salvo en los
+pergaminos), el poder, el del cetro, la fuerza y la agilidad (siempre fuera de los pergaminos), y 1,1f por la defensa,
+su tasa, la energía, el nivel pedido, la vitalidad y el mando; eso por divisor · 17 / 90, más 0,5 y `_ftol`, y nunca
+menos que el divisor. Después, `0x620a00(1)`.
+
+Las columnas (`0x5b0dfb..0x5b10b6`), de izquierda a derecha desde la x: el título (`0x5afb00(columna, x, y)`: el
+texto como formato de `sprintf`, sin argumentos, en el renglón 0, con el color 1 y la negrita que haya quedado,
+Q-C751; la caja de ese renglón con el modo 3 y sin marco, y `0x78abb30` en 0) y las filas
+(`0x5af9b0(columna, formato, &x, muestra, y, franja)`: un `sprintf` por nivel desde `0x78abb30`, con el color 0 si la
+columna 1 de ese nivel es 1 y el 2 si no, y la negrita en 0, por fila; la caja con el modo 3 y sin marco; la x crece lo
+que mide la muestra con la fuente que dejó la caja, / rx y `_ftol`, y `0x78abb30` vuelve a donde estaba). Son 14
+filas, o una con la franja 5, que solo pasan el nivel y la energía (Q-C752). En orden: el nivel (161, `"+%d"`,
+`"000000"`); el nivel pedido (la x + 2 antes y + 10 después; 1931); el mínimo (`"00 "`), el título del daño (162) y
+la columna `"~"` (la del nivel, `" 00"`), y el máximo, sin título, salvo en los pergaminos; el poder (163) y el del
+cetro (1239), con `"%2d%%"`; la defensa (164), la tasa (165, `"%3d%%"`), la fuerza (166), la agilidad (167, también
+en 0 fuera de los pergaminos), la vitalidad (169), la energía (168) y el mando (1900), cada una si la fila del nivel 0
+tiene algo; las de números, `"%3d"`. El switch de `0x5afb00` no tiene texto para las columnas 1, 11, 12 y más de 15
+(`sprintf` con `NULL`, `0x5afb7a`), pero nadie las pide. Termina con `0x620980`.
+
+MuRet: `Scenes::DrawTheItemHelp` (`Scenes/GameItemHelp.cpp`), con la tabla en `HudState::itemHelp`
+(`Scenes::FillTheItemHelpLevels`, `Scenes/ItemHelpLevels.h`), las cajas de `Scenes::DrawTheTooltipBox` y las clases
+de `Scenes::WriteTheItemClasses`, la misma del cuerpo del ítem. Corta con su dirección sin Item.bmd (`0x5b098f`), sin
+Text.bmd (`0x5b09f0`), con el 160 de 100 bytes o más (`0x5b0a03`, Q-C613), sin ItemSetType.bmd (`0x40cf13`) o
+ItemSetOption.bmd (`0x40cf46`) y con un nombre de conjunto sin `'\0'` (`0x40cf80`) (08, P-C146). Los tests son
+`test_game_item_help.cpp`, en Lorencia y Devias, en 640 × 480, 800 × 600 y 1.024 × 768.
 
 **El cartel del conjunto** (`0x40eca0`, en `0x6376c6` con `+0x9305` distinto de 0). La abre el chat con `"/"` y el
 nombre de un conjunto de `ItemSetOption.bmd` (`0x40ebd0`, si no era un ítem): cada conjunto usado (`+0x3c` distinto
@@ -1353,7 +1400,8 @@ y hace 9 consultas sueltas de `0x20` y `0x10000` (los avisos, las ventanas, el 3
 final, este de 2): **73.129 r** (19 × 3.848 + 2 × 4 + 9). La traza agrega el ayudante (3.848) y la skill `0x2c`
 (180): 77.157. MuRet dibuja los 43 quads del 2D de ese frame (sin los textos) con la textura, la mezcla, el color, las
 esquinas y las UV de la traza (`test_game_hud.cpp`); el orbe de la vida da su alto con la vida 1421 de 31131 y
-`48 − v` (Q-C444).
+`48 − v` (Q-C444). La vida, el maná y el BP que leen los orbes y el AG los escriben el `26` y el `27` (04, "La vida y
+el maná", CL8 2026-11-13): el frame que sigue a uno los muestra (`TheLifeAndTheManaPacketsMoveTheOrbs`).
 
 **El cursor del juego** (`0x5ac2d0`): `0x620a00(1)`, `glColor3f(1,1,1)`, un cuadro de 24 × 24 en (x − 2, y − 2),
 como en el login, y **dos veces por frame** (Q-C442). El slot:
@@ -1749,7 +1797,12 @@ un objeto local y llama a `0x607b60` (los `rand()` de lo que cuelga del modelo: 
 y `0xe22`) y, sin excelente (`& 0x3f` en 0, o con uno de los modelos `0x1a12` a `0x1a18` o `0x1c30`, que no lo muestran) y
 con el set (`& 3`) en 1 o 2,
 hace el pase del set (`0x60cc29`): con `sin(0,001 · T) · 0,5 + 0,4 ≤ 0,01` en la x87, `rand() % 100` en el `+0xc0`
-del modelo. `0x1a18` llega a sus uniones (`0x60c3b6`, `0x530860`), con el objeto local de `0x5e0720` de dueño: MuRet
+del modelo. T es el float del reloj del mundo (`0x5767b88`); el pulso se guarda en un float para el alpha del pase
+(`FST`, `0x60cc19`), pero la comparación es la de la x87 sin redondear (`FCOMP`, `0x60cc1c`): un pulso apenas arriba
+del `0,01f` cuyo float ya es `0,01f` no saca el `rand()`. MuRet hace las dos cosas con `Render::Models::SetPulseAt` y
+`SetPulseIsOff`, en `DrawItemFromMeshes` (el piso, lo que cuelga de los personajes y la UI) y en la cuenta de la UI
+sin modelos (CL8, 2026-11-13; `PassColorsTest` y
+`UiItemDrawingTest.TheSetRandomWaitsForTheUnroundedPulse`). `0x1a18` llega a sus uniones (`0x60c3b6`, `0x530860`), con el objeto local de `0x5e0720` de dueño: MuRet
 corta ahí (P-C70).
 
 **El punto de la caja** (`0x5e1486..0x5e1d69`, *estático*, leído en el ASM). Con el cursor vacío (`0x7879fbc` en 0) o
@@ -1866,7 +1919,8 @@ los derivados con `0x550d10`), borra el ítem del cartel, deja `0x78abb2c` en el
 apaga los ayudantes (el 8) o el cuervo (el `0x1a05` del 1). Con un ítem en el cursor y el mouse en un lugar,
 `0x5bee04` prueba si va: el lugar de Item.bmd (`+0x22`; el 1 y el 11 también toman lo del 0 y el 10), la clase (el
 Dark Lord con `+0x49`, el elfo y los arcos, el Magic Gladiator con las dos manos), los requisitos contra el registro
-(en words que dan la vuelta), el mapa (Atlans, Icarus y Chaos Castle con las monturas), Crywolf (las etapas 3 y 4
+(en words que dan la vuelta; con el `0x1a5`, además, el nivel del cuervo `[0x723968]` · 15 + `0xb9` contra el
+liderazgo sin agregados, por `0x4221a0`, Q-C775), el mapa (Atlans, Icarus y Chaos Castle con las monturas), Crywolf (las etapas 3 y 4
 con `0x200000` en `+0x7c`) y la montura en uso. Si va, la marca 2 y, con el clic, `0x78abaac` en 1, el destino
 (`0x77f3cc8`; un arma de una mano o un bastón al 1 con la derecha vacía va al 0), el aviso 1862 de Fenrir y, sin la
 traba, el `24`. Si no va, la marca 3 y, con el clic y sin la traba, `0x5be150`.
@@ -1895,6 +1949,20 @@ con `JGE`) y el Jewel of Guardian van a `0x5e06b6`: con el inventario abierto y 
 izquierda, abre el registro propio (3.848 al cerrarlo), pasa el ítem del lugar 1 al cursor (sus 0x48 bytes, con la
 cuenta en su `+0x3c`) y deja el lugar en `0xffff` con `+4` en 0; `0x512a30`; la grilla del inventario, el lugar 1 y
 el destino 0; y, sin la traba, el `24` del 1 al 0. Sigue con el clic (`0x59cd23`).
+
+**Las flechas del elfo** (`0x561840` → `0x5579e0`, CL8 2026-11-13, *estático*). `0x5bd750` las llama al sacar el
+lugar 0 o el 1, después de cerrar su acceso al registro propio. `0x5579e0` abre el registro, lee la clase y, en el
+elfo, las dos manos, y lo cierra (3.848 `rand()` si queda sin accesos); con otra clase devuelve −1. Busca las
+flechas (`0x80f`) con un arco en la izquierda (`0x800` a `0x806`, `0x811`, `0x814` y `0x815`) y si no los virotes
+(`0x807`) con una ballesta en la derecha (`0x808` a `0x80e` y `0x810` a `0x9ff`); sin ninguno de los dos, el tipo es
+lo que dejó en `[ebp-0xc]` la búsqueda del registro en la tabla de protección (Q-C772). Recorre la grilla del
+inventario de la columna 7 a la 0 y, en cada una, de la fila 7 a la 0, y da la primera casilla de ese tipo con
+`+0x3c` mayor que 0. Con −1, `0x561840` avisa con el 251 y el tipo 2 (Q-C477). Si no, abre el registro, mira si es
+un elfo con el cursor vacío y lo cierra (en línea, 3.848 si queda sin accesos), y después lee las manos (Q-C773): con
+un arco en la izquierda y la derecha vacía, las flechas van a la derecha; con una ballesta de `0x808` a `0x80e` en la
+derecha, o de `0x810` a `0x9ff` con la izquierda vacía, a la izquierda (Q-C774). Para eso copia la casilla al cursor,
+deja `0x78a6758` en la casilla + 12, la saca con `0x5bd750`, pone el destino en `0x77f3cc8`, llama a `0x449d80`
+(que con la traba puesta no hace nada) y avisa con el 250 y el tipo 1. La grilla del cursor (`0x78ab9b8`) no la toca.
 
 **Lo que porta MuRet**: la ventana entera; los ítems 3D, el del cursor y los de las ranuras, dibujados en el pase de
 la UI con sus `rand()` (`Scenes/UiItemDrawing.h`, `test_ui_item_drawing.cpp` y `test_game_inventory_hud.cpp`; el
@@ -1931,7 +1999,11 @@ negros de 1 con `0x621aa0` y el fondo negro con alfa 0,8 (`0x3f4ccccd`), y vuelv
 (la tabla de `0x5af4f4`): `0x6c8e5c = −1` y un `glColor3f` por índice (0, 5, 7, 8 y 9 blanco; 1 `(0,5, 0,7, 1)`;
 2 `(1, 0,2, 0,1)`; 3 `(1, 0,8, 0,1)`; 4 `(0,1, 1, 0,5)`; 6 `(1, 0,1, 1)`; 10 gris 0,4; más de 10, ninguno) y el
 fondo `0x6c8e64` (5 `0xff0000a0`, 7 `0xffa00000`, 8 `0xff0066a0`, 9 `0xffc83c3c` con el texto `0xff00ff00`, los
-demás 0). El fondo de `0x467060` llena la caja entera; el de MuRet, lo que ocupa el texto (08, P-C145). Termina en
+demás 0). Los dos modos de `0x467060` arman una caja de columnas desde `_ftol((x + 1) · rx)` con el fondo en toda
+ella: el 2 (`0x46711b..0x467132`) la hace de cx + 2 · ((caja − cx) / 2) columnas y pone el texto en la (caja − cx) / 2,
+como el título del inventario (Q-C710); el 3 (`0x467134..0x467144`) la hace de las `(ancho − 2) · rx` justas y pone el
+texto en la columna caja − cx, contra el borde derecho (uno más ancho que la caja empieza antes de ella y `TextOutA`
+corta la izquierda). MuRet: `Render::Text::CenterInBox` e `ITextDrawer::DrawColumns`, con la x de 640 × 480. Termina en
 blanco (`glColor4f(1, 1, 1, 1)`) con `0x620980`. Solo los modos 2 (centrado) y 3 (contra el borde) los usa alguien;
 los otros cortan en `0x5af471`. La usan los cuerpos, la ventana y el cartel del set, la ayuda de los íconos de
 estado y las dos ayudas de F1 (`0x5b0550`, § HUD y ventanas, "Las ayudas de F1").
@@ -2209,8 +2281,7 @@ tabla de monstruos de `0x7681eb8`), las líneas del `0x1a1d` (`0x5b63b7`) y del 
 desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125). El cuerpo de la skill y la ayuda
 de los comandos están en `Scenes/SkillTooltip.cpp`, con `0x5516e0` en `Scenes/OwnDamage` (`test_skill_tooltip.cpp`).
 Cortan con su dirección lo que leen fuera de lo que MuRet tiene (P-C135), y lo que depende de otras olas o de la VM
-está en P-C136. La ayuda del ítem (el modo 3, que abre el chat) corta en su dibujo, desde `0x5b09a8` (`0x5afc00`,
-`0x5af9b0` y `0x5afb00`; P-C105).
+está en P-C136. La ayuda del ítem (el modo 3, que abre el chat) está en § HUD y ventanas, "La ayuda del ítem".
 
 #### El precio de un ítem
 
@@ -2275,8 +2346,8 @@ que MuRet no tiene, como en P-C140. Del cuerpo del ítem cortan con su direcció
 P-C126), el precio de la tienda de NPC (`0x5b2d23`, con el cálculo listo), el nombre del `0x1c0c` de nivel 2 (la tabla
 de `0x6c9350`) y del `0x1a0a` (la tabla de monstruos de `0x7681eb8`), las líneas del `0x1a1d` (`0x5b63b7`) y del
 `0x1c1c` (`0x437c90`), el `0x1a13` desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125).
-El de la skill (`0x5b90b0`) corta con su dirección (P-C101), y la ayuda del ítem (el modo 3) corta en su dibujo,
-desde `0x5b09a8` (P-C105).
+El de la skill (`0x5b90b0`) corta con su dirección (P-C101). La ayuda del ítem (el modo 3) está en § HUD y
+ventanas, "La ayuda del ítem".
 
 ### La ventana del personaje
 

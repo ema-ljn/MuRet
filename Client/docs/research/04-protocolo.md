@@ -1067,7 +1067,10 @@ ASM del cliente):
   en el lugar 8) o `C1 05 34 01 <precio>` (el cuervo, `0x1a05`, en la mano izquierda), con el byte bajo del precio de
   `0x44b190` como `Requestpos` (07, Q-C948), en C3, y detrás el `C1 03 31` de `0x4499b0` en claro.
 - **`24`** guardar y sacar (`0x5ca250` desde `0x5deb57` y desde la grilla del inventario): `0x449d80` con la grilla
-  del cursor (0 el inventario, 2 el almacén, 3 la caja del caos) y el lugar de destino, en C3. Sacar del almacén con
+  del cursor (0 el inventario, 2 el almacén, 3 la caja del caos, 5 la del entrenador) y el lugar de destino, en C3.
+  La caja del entrenador (fase 4b): soltar en ella (`0x44aca9`, `0x5ca250` con el tipo 5) manda `0x449d80(0, lugar,
+  5, fila · 8 + columna)` y soltar lo que sale de ella en el inventario, `0x449d50` (`0x449d80(5, lugar, 0,
+  destino)`); el `24` que vuelve con 5 la pone en la caja (`0x4d1d55`, `0x44ad70` con la cola de `0x5bc740`). Sacar del almacén con
   la traba (`0x6c932f`) y sin `0x78abb1c` no manda nada: guarda los cuatro valores en `0x78ab9bc..` y abre el
   teclado (`0x5cb3af..0x5cb455`); el `83` con `0xc` los manda después (`0x4e47c6`). `CGInventoryItemMove`.
 - **`81`** el zen del almacén (`0x6270ed..0x6282c8`, el OK del `0x73` con Enter): más de 100.000.000 abre el `0x75`;
@@ -1086,7 +1089,10 @@ ASM del cliente):
   arma el cliente (el ASM es el oráculo): el tipo de `0x5fd4f0` filtrado por el modo de la caja (`0x5fd4b0`), que
   `0x5d8d50` recalcula en cada paso con la caja abierta, y el sí llega del `0x98` que abre el botón de mezclar
   (`0x5fe690`; 06 § "La caja del caos"). Los tipos que pueden salir: 1 a 8, `0xb`, `0xf` a `0x11` y `0x16` a `0x1c`
-  (el botón no abre el `0x98` con el 0 ni con los negativos).
+  (el botón no abre el `0x98` con el 0 ni con los negativos). El entrenador en el modo 3 (`0x44d010`, fase 4b) manda
+  `C1 04 86 0D` o `0E` (la mezcla del caballo o la del cuervo, de `0x724584`) con el XOR32 en claro, sin mirar el zen
+  (07, Q-C956). La respuesta `86` con 100 (`0x4da373`) vacía la caja del entrenador y pone el ítem en su lugar 0; el
+  `31` con la grilla 5 (`0x4c5fb4`) avisa con el 1208 y la llena.
 - **`83`** la contraseña (`C1 10 83`, `0x5e7e90`, `PMSG_WAREHOUSEPASSSEND` de `0x10` bytes): la manda el paso del
   teclado (`0x5e7bf0`), que sigue cortado.
 - **`BC`** la mezcla de joyas (CL9 hito 6, fase 3b; 06 § "El modo de la caja del caos y la mezcla de joyas"): el sí
@@ -1095,8 +1101,14 @@ ASM del cliente):
   hacia el cero) o `C1 07 BC 01 <joya> <nivel> <lugar>` (`0x401f30`: `0x6c62e0`, `0x6c62dc` y `0x6c62d8` + 12, que
   queda así en el global, Q-C947). Los dos arman el C1 de a un byte con el XOR32 de cada byte nuevo y lo mandan con
   `send()` en claro, sin la tabla de protección: sin `rand()`. El GameServer 0.97 no atiende el `BC` (no está en
-  `protocol.cpp`): el ASM es el oráculo. Las respuestas (`0x4da460`, `0x4da540` y la rama de `0x4e45c8` del
-  dispatcher, que llaman a `0x402e50`) no están portadas (08, P-C199). **MuRet**: `Protocol::JewelMix`.
+  `protocol.cpp`): el ASM es el oráculo. Las respuestas (fase 4b): `C1 05 BC <0 o 1> <resultado>` (con otro pkt[3],
+  nada). Con 0 (juntar, `0x4e4570`, la tabla `0x4e60a8` con pkt[4] de 0 a 5) y con 1 (deshacer, `0x4da540`, la tabla
+  `0x4da620` con pkt[4] de 0 a 8): el 1 abre el `0xa6` (`0x6236f0(0)` y `0x6236f0(0xa6)`); el 0, el 2 y el 3 de juntar
+  y el 0 y el 5 de deshacer muestran "%s%s %s" (`0x6c8490` y `0x6c8498`) con el 1801 o el 1800, el 1816 y el 868 en un
+  buffer de `0x100`; los demás, un texto (juntar: 4 el 1817 y 5 el 1811; deshacer: 2, 3, 4 y 6 el 1812, 7 el 1815 y
+  8 el 1811). Los mensajes son de tipo 1 con el nombre vacío (`0x5767a54..0x5767a6c`, que nadie escribe) y después
+  `0x402e50` vuelve a la elección de la joya. Sin `rand()`. `0x4da460`, el gemelo de juntar como función aparte (la
+  tabla `0x4da524`), no tiene quien la llame (08, P-C341). **MuRet**: `Protocol::JewelMix` y `Scenes/JewelMixAnswers`.
 
 Los `rand()`: con la tienda abierta, cada `IsOpen(0x10000)` saca uno (también el de `0x5decc1` al vender); con el
 almacén abierto, la cadena de Q, W y E (`0x5a343e`) e `IsOpen(0)` (`0x5a5511`) se paran en `0x40` antes de la tienda:

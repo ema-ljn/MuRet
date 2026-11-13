@@ -1051,7 +1051,7 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | `0x800` | tienda personal propia (S) | `0x7d5370f` | CL9.4 |
 | `0x1000`, `0x4000` | ventanas con inventario de NPC de evento (`0x7d53712` con `0x7d53714` en 0 o 1; el paso las atiende en `0x5e5920`, que manda `90`/`9A`) *inferido* | | CL9.5 |
 | `0x2000` | sin identificar | `0x7d53718` | — |
-| `0x8000` | el entrenador de las mascotas (`0x724580`, con la caja `0x723c80`; abajo, "El entrenador") | `0x449bf0()` | CL9 hito 6 (el modo 2) |
+| `0x8000` | el entrenador de las mascotas (`0x724580`, con la caja `0x723c80`; abajo, "El entrenador") | `0x449bf0()` | CL9 hito 6 |
 | `0x10000` | tienda de NPC (la abre el `30`, `0x4d1e00` en `0x4d288e`) | **byte protegido `0x7d53710`: 1 `rand()`** | CL9.3 |
 | `0x20000` | tienda personal ajena | `0x7d5370f` | CL9.4 |
 | `0x40000` | gremio 2 (paquetes `54`, `56`) | `0x6570a0()` | CL9.4 |
@@ -1104,10 +1104,45 @@ modo 1 elige con sus botones el 2 (`0x449960`) o el 3 (`0x449970`, que abre el i
 - sin botón, el de cerrar `[0x189, 0x1a1) × [0x109, 0x121)` con el clic apaga los dos y llama a `0x4499b0`.
 
 Los `rand()`: los 3.848 de cada cierre del registro que lo deja en 0 (dos en `0x44b190` con un precio, uno sin él o
-con 0, y el del paso) y los dos del C3 (el relleno y el serial, `0x40b3f0` o `0x40b0a0`). En MuRet la caja de
-`0x723c80` está siempre vacía: la vacían `0x5bbe10` (al entrar a la selección, `0x633f91`) y `0x449940`, y lo que la
-llena (el `31` con la grilla 5, el `86` con 100 y soltar en ella, `0x44aca9`) corta antes. Los modos 1 y 3 y el
-dibujo cortan con su dirección (08, P-C198).
+con 0, y el del paso) y los dos del C3 (el relleno y el serial, `0x40b3f0` o `0x40b0a0`).
+
+Los modos 1 y 3 (fase 4b, 2026-11-13). El 1, `0x44b540`: el mouse en `[0xd5, 0x1aa) × [0x5a, 0x122)` es de la UI;
+con el clic, los tres botones `[0x103, 0x17b) × [0xb4 + 0x1e · i, +0x16)` apagan el clic y el botón: el 0 pasa al
+modo 2 (`0x449960`), el 1 al 3 y abre el inventario (`0x449970`; con un Dark Lord, el `A9` de `0x65c039`, 08
+P-C195) y el 2, que el dibujo no muestra, nada más (07, Q-C957); sin botón, el de cerrar `[0x189, 0x1a1) × [0x109,
+0x121)` apaga los dos y llama a `0x4499b0`. El 3, `0x44d010`: el mouse en `[0x104, 0x1c2) × [0, 0x1b1)` es de la UI;
+el botón de mezclar (`[0x14f, 0x17b) × [0x12c, 0x14c)`) manda `C1 04 86 0D` (la mezcla 1, el caballo) o `0E` (la 2,
+el cuervo) con la mezcla que dejó en `0x724584` el `0x44ae10` del paso anterior, sin mirar el zen (Q-C956); el de
+cerrar (`[0x118, 0x130) × [0x18b, 0x1a3)`) cierra el panel (`0x65cae0(0x8000)`); al final, siempre, `0x44ae10`
+vuelve a contar la caja.
+
+El dibujo, `0x44b510` (fase 4b; en MuRet `Scenes/PetTrainerDrawing`), desde `0x5f75b7`, después de la caja del caos.
+El modo 1, `0x44b610`: sin mezcla y en blanco, cinco tiras de `0xfb` (213 × 40 desde (213, 90)), las líneas de
+`0xfc` en 90 y 290 y los marcos `0xf0` de los botones en (259, 180 + 30 · i); el título 1227 en gruesa, negro sobre
+`0xc8c8c8c8`, en una caja de 203 · W / 640 en (`0xda`, `0x64`); el 1202 y el 1203 (con el nombre del héroe) centrados
+en `0x13f`, y los rótulos 1204 y 1205 en `0xff67bfdf`, en gruesa con el mouse encima; el botón de cerrar `0x118` en
+(394, 265) y su ayuda 1002 con el mouse en `[0x18a, 0x1a2) × [0x109, 0x121)`, una columna a la derecha del que
+cierra en el paso (Q-C958). El 2, `0x44c850`: lo mismo con el 1228, el 1203 armado y sin dibujar (Q-C959) y, por
+botón, el rótulo (1187 el caballo, 1214 el cuervo; en normal y `0xff1933ff` sin la mascota) y el renglón de
+`0x44b190` `0x1e` más abajo, en blanco sobre `0xc80000ff` si el zen no alcanza (con su propio acceso al registro); el
+precio a pagar es el texto de `0x5b13e0`, sin el doble de la durabilidad en 0 (Q-C955). El 3, `0x44d680`: la ventana
+en (`0x104`, 0), la grilla de 8 × 4 de `0x723c80` en (275, 110), dos barras `0x117`, el botón de mezclar (`0x124`;
+`0x125` apretado) con su ayuda 1212, el título 1205 y el impuesto 1623, el nombre de la mezcla de `0x724584` (1213
+sin mezcla, en `0xff3030ff`; "%s %s" con 1187 o 1214 y el 1212, en `0xff19ccff`), la chance 584 (60 con una
+mezcla), el precio con impuesto 1622 (`0x6b8c68`: 5.000.000 el caballo, 1.000.000 el cuervo) y los avisos 586 y
+587; con la mezcla fuera de 0..2 lee `0x6b8c68` de más y una cifra sin escribir (MuRet corta en `0x44da59`). Antes
+de cada ayuda pone el fondo en `0xff000000` o `0x80282828`, que `0x554340` pisa con 0. Solo el modo 2 saca
+`rand()`: los cierres del registro de `0x44b190` y el de su propio acceso, por botón.
+
+La caja de `0x723c80` (fase 4b). La vacían `0x5bbe10` (al entrar a la selección, `0x633f91`) y `0x449940`; la llenan
+el `31` con la grilla 5 (`0x4c5fb4`: el aviso 1208, los sonidos de la caja del caos y `0x449c40`, y cada ítem con
+`0x44ad70(lugar, datos, 0)`, con la cola de `0x5bc740`), el `86` con 100 (`0x4da373`: vacía y el ítem en el lugar 0
+con `0x44ad70(0, datos, 1)`, sin la cola) y el `24` con 5 (`0x4d1d55`). `0x44ad40` dibuja sus ítems y sus cifras en
+(275, 110); `0x44ad10` la recorre con `0x5c4110(0x113, 0x6e, 0x723c80, 8, 4, 0)` (la ayuda en el lugar 4, como la
+caja del caos: `0x449c30` en `0x5aed40`) y `0x44aca0` suelta en ella con `0x5ca250` y el tipo 5, donde `0x44acd0` solo
+deja la joya del caos, las de la mezcla y `0x1a1f`. `0x449d50` manda el `24` del 5 al inventario, `0x449c80` vuelve
+el ítem a la caja (`0x5be150`) y `0x449c60` pone sus marcas como las de las otras grillas (`0x5e5207`). Del equipo,
+el ítem de la caja corta como el de las otras grillas (`0x5c1d80`; 08, P-C340).
 
 **Los `rand()` de abrir y cerrar.**
 
@@ -2134,8 +2169,8 @@ con el mismo `+4`, `0x1c1d` y `0x1a20` a `0x1a22`). Las casillas de la huella de
 si entra, 4 si es una joya (Bless, Soul, Life o Creation) y 3 si no. Con el clic: si no entra, nada (una joya sobre
 otro ítem es de la CL9.3, `0x5d82a8`); con el inventario cerrado, nada más; si entra, el destino y, a otro lugar o
 al mismo con algo que se apila, el `24` sin la traba, o si no `0x5be150`. Después, las grillas de las otras ventanas
-(`IsOpen(0x20)` con su `rand()`; el comercio `0x5deb1c`, el almacén `0x5deb57`, la tienda personal `0x5dec19` y la
-caja del entrenador `0x44aca9` cortan). Sin el clic, sale; si no, lo consume (`0x77f3b10` en 0 y `0x6c8dcc` en 6) y
+(`IsOpen(0x20)` con su `rand()`; el comercio `0x5deb1c` y la tienda personal `0x5dec19` cortan; el almacén
+`0x5deb57`, la caja del caos `0x5debe4` y la del entrenador `0x44aca9` (fase 4b) sueltan con `0x5ca250`). Sin el clic, sale; si no, lo consume (`0x77f3b10` en 0 y `0x6c8dcc` en 6) y
 sale si la grilla lo tomó. La tienda de NPC (`IsOpen(0x10000)`, 1 `rand()`) vende (`0x5decce`, CL9.3). Si no, el
 piso (`0x5df449`): lo que no se tira (las mascotas, las joyas, las alas, Dark Horse, Dark Raven, la Cape of Lord,
 `+0x1c % 4` en 1 o 2, ocho tipos sueltos, más de nivel 4 debajo de las alas y `+0x1b & 0x3f`) vuelve con el aviso

@@ -337,7 +337,11 @@ de Q/W/E; los `rand()` de la búsqueda del ítem del piso en el picking. **Desbl
       ayuda siguen cortados, en 08, P-C192. Fase 3, 2026-11-13: la caja del caos entera, con lo que vale, el tipo de
       la mezcla, el botón de mezclar y el dibujo, `Scenes/ChaosMix.cpp` y `Scenes/ChaosBoxDrawing.cpp`; el 2 desde
       el nivel 8 corta, P-C197. Fase 3b: el `BC`, `Protocol::JewelMix`; sus respuestas, P-C199; el entrenador con
-      `0x724580` en 2, `0x44b910` con su `34`, `Scenes/PetTrainer`; sus modos 1 y 3 y su dibujo, P-C198.)
+      `0x724580` en 2, `0x44b910` con su `34`, `Scenes/PetTrainer`; sus modos 1 y 3 y su dibujo, P-C198. Fase 4b: las
+      respuestas del `BC`, `Scenes/JewelMixAnswers` (sin oráculo de red, P-C341); el entrenador entero, con los modos
+      1 y 3, abrirlo y cerrarlo, su dibujo `0x44b510` (`Scenes/PetTrainerDrawing`) y su caja (los rellenos `0x4c5fde`,
+      `0x4da373` y `0x4d1d55`, `0x44ad40`, `0x44ad10` y `0x44aca9`); lo que queda, P-C340, y el `A9` del Dark Lord
+      (`0x65c039`), del hito 4, P-C195.)
 - [x] **Los paquetes:** lo que falta de `31`..`34` (`0x4c5f60`, `0x5bc740` y `0x5be150` están en parte), `81`..`83`,
       `86`/`87`. (Fase 1, 2026-11-13: `Protocol::NpcWindows` y `Scenes/NpcWindows.cpp`; el `30` y abrir y cerrar
       `0x40`, `0x100` y `0x10000` también. Lo que sigue cortado de las otras dos, en 08, P-C191.)

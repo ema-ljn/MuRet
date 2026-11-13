@@ -213,16 +213,17 @@ TEST(SkillProtocolTest, TheMagicAttackGoesOutWithTheBigEndianKey)
     EXPECT_TRUE(SameBytes(Xor32Decode(attack.packet).Bytes(), Bytes({0xc1, 0x06, 0x19, 0x3c, 0x8a, 0x1b})));
 }
 
-// 0x58c1b6.. (la rama del Wizard): el 1E, C1 0C 1E [skill] [x] [y] [rumbo] [0] [posición] [clave H L] [clave mágica],
-// para cifrar; sin blanco, la clave 0xffff.
-TEST(SkillProtocolTest, TheDurationMagicGoesOutWithNineBytes)
+// 0x58c1b6.. y 0x58dcc4.. (la rama del Wizard): el 1E con pkt[7] en 0, la posición relativa de la 0x4c en pkt[8], la
+// clave 0xffff sin blanco y la clave mágica al final.
+TEST(SkillProtocolTest, TheWizardDurationMagicCarriesTheMagicKey)
 {
-    const auto plain = Skill::WriteDurationMagic({.skill = 0xa, .x = 0xb6, .y = 0x73, .direction = 0x40});
+    const auto plain = Skill::WriteDurationMagic(
+        {.skill = 0xa, .x = 0xb6, .y = 0x73, .direction = 0x40, .key = Skill::NoSkillTargetKey});
     EXPECT_EQ(plain.delivery, Delivery::Encrypted);
     EXPECT_TRUE(SameBytes(Xor32Decode(plain.packet).Bytes(),
                           Bytes({0xc1, 0x0c, 0x1e, 0x0a, 0xb6, 0x73, 0x40, 0x00, 0x00, 0xff, 0xff, 0x00})));
     const auto keyed = Skill::WriteDurationMagic(
-        {.skill = 0x4c, .x = 1, .y = 2, .direction = 3, .targetPosition = 0x86, .key = 0x8a1b, .magicKey = 0x32});
+        {.skill = 0x4c, .x = 1, .y = 2, .direction = 3, .back = 0x86, .key = 0x8a1b, .magicKey = 0x32});
     EXPECT_TRUE(SameBytes(Xor32Decode(keyed.packet).Bytes(),
                           Bytes({0xc1, 0x0c, 0x1e, 0x4c, 0x01, 0x02, 0x03, 0x00, 0x86, 0x8a, 0x1b, 0x32})));
 }
@@ -241,5 +242,16 @@ TEST(SkillProtocolTest, TheTargetTeleportGoesOutWithTheLittleEndianKey)
     const auto ally = Skill::WriteTargetTeleport(0x8a1b, 0xb5, 0x72);
     EXPECT_EQ(ally.delivery, Delivery::Encrypted);
     EXPECT_TRUE(SameBytes(Xor32Decode(ally.packet).Bytes(), Bytes({0xc1, 0x07, 0xb0, 0x1b, 0x8a, 0xb5, 0x72})));
+}
+
+// 0x562af5..0x563b78 (0x561f60): el 1E del elfo, C1 0C 1E [skill] [X] [Y] [rumbo] [hacia] [espalda] [clave H] [clave L]
+// 00, para cifrar.
+TEST(SkillProtocolTest, TheDurationMagicGoesOutWithTwelveBytes)
+{
+    const auto shot = Skill::WriteDurationMagic(
+        {.skill = 0x36, .x = 0xb6, .y = 0x73, .direction = 0x5f, .towards = 0xaa, .back = 0xdf, .key = 0x8a1b});
+    EXPECT_EQ(shot.delivery, Delivery::Encrypted);
+    EXPECT_TRUE(SameBytes(Xor32Decode(shot.packet).Bytes(),
+                          Bytes({0xc1, 0x0c, 0x1e, 0x36, 0xb6, 0x73, 0x5f, 0xaa, 0xdf, 0x8a, 0x1b, 0x00})));
 }
 } // namespace

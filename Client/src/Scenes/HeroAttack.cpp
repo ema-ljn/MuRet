@@ -347,7 +347,7 @@ Core::Expected<std::int32_t, std::string> ChosenKeyOf(const WorldState& world, s
 {
     constexpr std::int32_t NoKey = -1;
     const WorldRuntime& runtime = world.Runtime();
-    // 0x558eb3..0x558ed8: el cursor (JG, con signo), el elegido (el segundo argumento) y el héroe publicado.
+    // 0x558eb3..0x558ed8: el cursor (JG, con signo), el elegido y el héroe publicado.
     if (runtime.cursorItemCount > 0 || chosen == -1 || attacker != runtime.hero)
         return NoKey;
     const auto actors = world.Actors();

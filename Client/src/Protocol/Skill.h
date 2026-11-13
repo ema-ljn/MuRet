@@ -125,29 +125,15 @@ inline constexpr std::uint8_t Report73Head = 0xf1;
 // quien lo manda). La clave es +0x1f4 del blanco, entera. Es el PMSG_MAGICATTACK del GameServer (CGMagicAttack).
 [[nodiscard]] Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key);
 
-// Lo que mandan las skills del héroe (CL9 hito 4, fase 2c; 04 § Las skills que salen). Las arma 0x57cfc0 en línea
-// (y 0x55cbc0), con el XOR32 desde pkt[3] y cifradas como C3: el rand() del relleno y el serial (0x5767913) los saca
-// quien manda, antes de send().
+// Lo que mandan las skills del héroe (CL9 hito 4, fase 2c; 04 § Las skills que salen). Las arman 0x57cfc0, las
+// funciones por clase y 0x55cbc0 en línea, con el XOR32 desde pkt[3] y cifradas como C3: el rand() del relleno y el
+// serial (0x5767913) los saca quien manda, antes de send(). La rama del Wizard (0x58c1b6 y los demás) y 0x55cbc0
+// también mandan el 1E de abajo: [hacia] en 0, [espalda] en 0 salvo con la 0x4c (la celda de 0x4e9920, como el
+// caballero) y la clave de la magia (0x77f3bad) en la 8, la 9 y la 0x4c (08, P-C221).
 inline constexpr std::uint8_t TeleportMagicOpcode = 0x1c;
 inline constexpr std::uint8_t TargetTeleportOpcode = 0xb0;
 // La clave que va sin blanco (0xffff en 0x58c8f0, 0x591865 y 0x55e683).
 inline constexpr std::uint16_t NoSkillTargetKey = 0xffff;
-
-// C1 0C 1E [skill] [x] [y] [rumbo] [0] [posición] [clave H L] [clave mágica] (0x58c1b6 y los demás): la skill con
-// duración sobre una celda. El rumbo es ftol(ángulo · 0,7111) (0x6ba440); la posición, la de 0x4e9920 con la 0x4c; la
-// clave mágica, la de 0x77f3bad con la 8, la 9 y la 0x4c. El GS 0.97 (CGDurationMagicRecv, 0x427870) lee los cuatro
-// primeros (08, P-C221).
-struct DurationMagicRequest
-{
-    std::uint8_t skill = 0;
-    std::uint8_t x = 0;
-    std::uint8_t y = 0;
-    std::uint8_t direction = 0;
-    std::uint8_t targetPosition = 0;
-    std::uint16_t key = NoSkillTargetKey;
-    std::uint8_t magicKey = 0;
-};
-[[nodiscard]] Outgoing WriteDurationMagic(const DurationMagicRequest& request);
 
 // C1 06 1C 00 [x] [y] (0x593151..0x59350e): el Teleport (la skill 6) a una celda. El GS 0.97 (CGTeleportMagicRecv,
 // 0x426450) toma el 0 como la skill 6.
@@ -156,4 +142,26 @@ struct DurationMagicRequest
 // C1 07 B0 [clave L H] [x] [y] (0x59293b..0x592d1b): el Teleport Ally (0xf) del elegido a una celda, con la clave en
 // little endian (el WORD de +0x1f4 tal cual), como la lee el GS 0.97 (CGTargetTeleportRecv, 0x426870).
 [[nodiscard]] Outgoing WriteTargetTeleport(std::uint16_t key, std::uint8_t x, std::uint8_t y);
+
+// El 1E que manda el cliente (el elfo, 0x561f60 en 0x562b36 y 0x563f5a, y las ramas del caballero, 0x582439..0x5896a3):
+// C1 0C 1E [skill] [X] [Y] [rumbo] [hacia] [espalda] [clave H] [clave L] [clave de la magia], con el XOR32 sobre los
+// bytes 3 a 11 y en C3 como el 19. El GameServer lee solo los 7 primeros (PMSG_DURATION_MAGIC_RECV,
+// CGDurationMagicRecv 0x427870).
+struct DurationMagicSend
+{
+    std::uint8_t skill = 0;
+    std::uint8_t x = 0;
+    std::uint8_t y = 0;
+    std::uint8_t direction = 0;
+    // ((dx + 8) << 4) | ((dy − 8) & 0xf), con la distancia de la celda lógica al blanco entre −8 y 7.
+    std::uint8_t towards = 0;
+    // El rumbo dado vuelta (+180°) en la misma escala de 0 a 255; las 0x2a, 0x3e, 0x41 y 0x4c del caballero ponen la
+    // celda de 0x4e9920.
+    std::uint8_t back = 0;
+    std::uint16_t key = 0;
+    // La clave de la magia (0x57cf90, +0x1bd) de la 0x4c del caballero; 0 en las demás.
+    std::uint8_t magicKey = 0;
+};
+[[nodiscard]] Outgoing WriteDurationMagic(const DurationMagicSend& send);
+
 } // namespace Client::Protocol::Skill

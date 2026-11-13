@@ -188,19 +188,6 @@ Outgoing WriteMagicAttack(std::uint8_t skill, std::uint16_t key)
                            .PutU8(static_cast<std::uint8_t>(key & 0xffu)));
 }
 
-Outgoing WriteDurationMagic(const DurationMagicRequest& request)
-{
-    return EncryptedC1(Network::PacketWriter::C1(DurationMagicOpcode)
-                           .PutU8(request.skill)
-                           .PutU8(request.x)
-                           .PutU8(request.y)
-                           .PutU8(request.direction)
-                           .PutU8(0)
-                           .PutU8(request.targetPosition)
-                           .PutU16Be(request.key)
-                           .PutU8(request.magicKey));
-}
-
 Outgoing WriteTeleportMagic(std::uint8_t x, std::uint8_t y)
 {
     return EncryptedC1(Network::PacketWriter::C1(TeleportMagicOpcode).PutU8(0).PutU8(x).PutU8(y));
@@ -209,5 +196,19 @@ Outgoing WriteTeleportMagic(std::uint8_t x, std::uint8_t y)
 Outgoing WriteTargetTeleport(std::uint16_t key, std::uint8_t x, std::uint8_t y)
 {
     return EncryptedC1(Network::PacketWriter::C1(TargetTeleportOpcode).PutU16Le(key).PutU8(x).PutU8(y));
+}
+
+Outgoing WriteDurationMagic(const DurationMagicSend& send)
+{
+    return EncryptedC1(Network::PacketWriter::C1(DurationMagicOpcode)
+                           .PutU8(send.skill)
+                           .PutU8(send.x)
+                           .PutU8(send.y)
+                           .PutU8(send.direction)
+                           .PutU8(send.towards)
+                           .PutU8(send.back)
+                           .PutU8(static_cast<std::uint8_t>(send.key >> 8))
+                           .PutU8(static_cast<std::uint8_t>(send.key & 0xffu))
+                           .PutU8(send.magicKey));
 }
 } // namespace Client::Protocol::Skill

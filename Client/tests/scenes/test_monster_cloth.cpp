@@ -309,8 +309,9 @@ TEST_F(MonsterClothTest, ADeviasClothPersistsAcrossFrames)
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(2 * (FrameRandoms + TailRandoms)));
 }
 
-// Blood Castle (el mapa 11), con el modelo de verdad: la tela se arma y se simula, y después corta el caso del 0x190
-// en 0x6002e0.
+// Blood Castle (el mapa 11), con el modelo de verdad: la tela se arma y se simula, y después el caso del 0x190 en
+// 0x6002e0 (0x60115e) dibuja su RenderBody(2) y otra vez la malla 2, con el blendMesh en 2 y la luz en 1, las dos con
+// las partículas.
 TEST_F(MonsterClothTest, InBloodCastleTheMagicSkeletonStepsItsClothBeforeTheBodyCase)
 {
     m_world->Runtime().map = 11;
@@ -318,11 +319,14 @@ TEST_F(MonsterClothTest, InBloodCastleTheMagicSkeletonStepsItsClothBeforeTheBody
 
     const auto result = Draw(Pass());
 
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x600654"), std::string::npos) << result.Error();
-    ASSERT_TRUE(Worn().has_value());
-    EXPECT_EQ(m_batch.Vertices().size(), 0u);
-    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(FrameRandoms));
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ExpectTheBodyDrawsTheParticles();
+    ASSERT_GE(m_batch.Vertices().size(), 18u);
+    const auto particles = Worn()->Particles();
+    constexpr std::array<std::size_t, 6> Order{1, 2, 3, 1, 3, 0};
+    for (std::size_t corner = 0; corner < Order.size(); ++corner)
+        EXPECT_EQ(m_batch.Vertices()[12 + corner].position, particles[Order[corner]].position) << corner;
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(FrameRandoms + TailRandoms));
 }
 
 // 0x50bafd: sin dibujo (alpha < 0,01) la tela se simula igual; MuRet la ancla a la pose guardada (Q-C862) y, sin

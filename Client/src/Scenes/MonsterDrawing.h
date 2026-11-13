@@ -46,10 +46,9 @@ struct GameCharacterPass;
 // - si no, 0x602e90(objeto, 1, contorno, +0x376 de la lista de 0x50bd05 o 0): 0x5ffdf0 baja 0,15f el alpha en Chaos
 //   Castle con +0x1a1 del héroe, por debajo de 0,01 no posa ni dibuja; posa en los huesos propios (+0x120,
 //   actor.bodyPose) con los ángulos de la cabeza, con el contorno (los dos pases de 0x60cd60 con los colores y las
-//   escalas de 0x5fffbd..0x600135; el 0xc5, solo su malla 0) y el cuerpo de 0x6002e0: el color del modelo de 0x5ffce0,
-//   los de los mapas 9 y 10, el del 0x16d y los de +0x78 & 1 y 2, RenderBody(2) y, con +0x78 & 2, otro sin blendMesh.
-//   Los casos por tipo de 0x6002e0 y de su cadena (0x438fe0, 0x43ed20, 0x42cc10, 0x4403b0, 0x428df0 y 0x4306a0) cortan
-//   con su dirección;
+//   escalas de 0x5fffbd..0x600135; el 0xc5, solo su malla 0) y el cuerpo de 0x6002e0 sobre el color del modelo de
+//   0x5ffce0, con sus casos por tipo y por mapa, su cadena y lo que agrega después del cuerpo (DrawMonsterBody,
+//   MonsterBody.h);
 // - la sombra de 0x50bd89 con sus condiciones (DrawObjectShadow) y, en Blood Castle, la altura del terreno de los que
 //   mueren; el calco 0x61e del 0xe8 y el 0xe9 (0x5fb2f0, World::DrawTerrainDecal), aditivo, con las alturas del
 //   terreno de `pass` o del mundo (sin ellas, corta);

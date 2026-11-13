@@ -10302,6 +10302,48 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    después (`0x600f74..`), y si ninguno, `RenderBody(2, alpha, +0x64, +0x68, +0x6c, +0x70, +0x58, −1)` (`0x601430`);
    con `+0x78 & 2`, otro con `−2` y 1 (`0x602365`); después, lo del `0x177`, el `0x1f3`, el `0x1f4`, el `0x111`, el `0xed`
    y el `0xee`.
+   **Los casos con un monstruo o un NPC** (fase 6b, *estático*; `Scenes::DrawMonsterBody`). Solo cuentan los tipos
+   que da el alta (`MonsterKinds`: del `0x152` al `0x208` con huecos, más el `0xb`, el `0x19`, el `0x27`, el `0x28`, el
+   `0x33`, el `0xc5` y el `0xf1` de las trampas, el 104, los 152 a 158 y el 200); los demás casos son de objetos del
+   mundo y cortan con su dirección. `RenderBody` (`0x4ef0c0`) y `RenderMesh` (`0x4ecc30`) reciben banderas, alpha,
+   blendMesh, luz, U, V, malla oculta (solo el primero) y textura (−1: la de cada malla; si no, ese slot):
+   - el `0x16c` (`0x6004ed`): con (0,4; 0,6; 1) y `model+0x88` en 0, `RenderBody(2)` con Chrome01 (`0x5c0`); con 1 y
+     `0xff`, el común (`0x600b35`), y sale sin `0x602365`;
+   - `0x438fe0`: el `0x173` en Kalima (24 a 29 y 36) en negro y el color en 1 después; el `0xc5` en (1; 0,1; 0,1) con el
+     subtipo 1 (si no, 1) y sin malla oculta; en Kalima, los tipos debajo de `0xa0` hacen el común y, hasta el `0x42`
+     salvo 18 tipos secos, el agua: el color en `sin(T · 0,002f) · 0,1f + 0,3f` (un `FST` a los tres) y
+     `RenderBody(2)` con alpha 0,3 y la textura `0x41 + 0x7d2d360`;
+   - `0x42cc10` en el 30: el `0x33` de la trampa por su caso del asedio (`DrawCastleSiegeBody`);
+   - `0x428df0` (desde `0x425d90`, en todos los mapas; `0x425070` mira el 33 y el 54 sin usar lo que da): el `0x1bb`
+     (la malla 0 con 1 y con (1, 0, 0) y `0x46`, con `model+0x88` en 0; la 1 con 1; la 2 con `model+0x88` en 1, con 1 y
+     con (0,5; 0; 0) y `0x46`), el `0x1b8` (con 0,9, las mallas 0 a 2; con `model+0x88` en 0, la 3 con la U y la V en
+     `(−ftol(T) % 10.000) · 0,0006f` y con `0x46`) y el `0x1b7` (con 0,9 y `model+0x88` en 0, la malla 0 con la U y la V
+     en `(−ftol(T) % 10.000) · 0,0003f` y con `0x46`; con `0xff`, la 1);
+   - `0x4339d0` (desde `0x4306a0`, en el 34, por su tabla `0x434138`/`0x43410c`): el `0x1b0` (con 1) y el `0x1ad`
+     (con el color que trae) sin la malla 5; el `0x1ab` con 1, cada malla con 2 y con `0x240` y `0x6b1`; el `0x1b4` y el
+     `0x1b1` sin el especial sin la malla 5, y con él en (0,5; 0,5; 0,6) o (0,5; 0,5; 0,8) cada malla con 2 y con `0x44` y
+     Chrome01; el `0x17c`, el `0x17d`, el `0x17e` y el `0x171` en (0,6; 0,8; 0,6), igual;
+   - después de la cadena: el `0x17f` con el especial (las mallas 0 a 2 con 2 y con `0x44` y Chrome01); el `0x17c` con el
+     subtipo 1 (la luz en `sin(T · 0,002f) · 0,01f + 1`, un float; la malla 0 con `0x6f6` y blendMesh 0, la 1 con `0x6f5`
+     y la 2 dos veces, con blendMesh 1, todas `0x42`); el `0x190` (el común y la malla 2 con blendMesh 2 y luz 1); el
+     `0x188` con el especial (0,1 sin la malla 1; la malla 1 en (1; 0,1; 0,1)); el `0x180`, el `0x181` y el `0x182` con
+     el especial (las mallas con `0x62f`/`0x631`, `0x630`/`0x62f`, o el cuerpo sin la malla 1 con `0x62e`, en 1); el
+     `0x186` (sin especial, (0,4; 0,3; 0,5) con `0x624` y `model+0x88` en 0 y después el común en 0,5; con el `0x12d`, las
+     mallas 0 y 1 con 2 y con `0x44` y Chrome01; con otro, el común en (0,1; 1; 0,8)); el `0x187` ((0,9; 0,8; 1) con
+     `RenderBody(4)` y `0x5c1`, y el común en 1); el `0x18e`, que lee el contador de pasos (`0x7d3a0f0`, cuatro `rand()`
+     sin otro acceso abierto) y, 25 pasos o más después de `+0x188` (con signo), hace el común, `0x44` con 1 y `0x48`
+     con (0,3; 0,3; 1), los dos con Chrome01; el `0x198`, el común;
+   - `0x602391`: el `0x177` con la luz en `sin(T · 0,002f) · 0,3f + 0,5f`, la malla 0 con la textura de su malla 6
+     (`IndexTexture[6]`, `[model+0x38]+0xc`) y blendMesh 0, y la malla 3 con `0x44`, blendMesh 3 y la V en
+     `−((ftol(T) % 100) · 0,01f)` (el resto con el signo del dividendo); `0x60243e`: el `0x1f3` y el `0x1f4`, la malla 0
+     con `0x42`, U y V en 0.
+   Cortan con su dirección (P-C332): el `0x18e` muriéndose o antes de los 25 pasos y el `0x18f` muriéndose
+   (`0x4ee770`, CL11, después de `+0x0` en 0 si muere y del sonido `0x87`), la clase de los bordes del `0x183`
+   (`0x6011f1`, después de la malla 0), la onda (`0x400`, `0x4ed775`) del `0x185` después de su cuerpo, y los helpers
+   de la cadena con tipos de monstruo: `0x43ed20` (del `0x191` al `0x197`), `0x42e3d0` (el `0x19b`, el `0x19c`, el
+   `0x1a8`, el `0x1f8` y el `0x1ff` en el 30), `0x442e10` (del `0x1a3` al `0x1a7` y el `0x1a9`, desde `0x4403b0`) y el
+   `0x1af` del 34 (`0x433b2f`: el acumulador `0x723c14`, el alpha guardado en 0,3 en la malla 2, `+0x64` en −2 y la U
+   guardada en `+0x6c`, que `ActorState` no tiene).
 3. **La sombra** (`0x50bd89..0x50bf3e`): sin `+0x88` en 8, sin los `+0x376` `0x19`, `0x16`, `0x2a`, `0xf2`, `0x3b`,
    `0x3f` y `0x98`, fuera del mapa 10 y con el alpha desde 0,3f. En Blood Castle, con `+0x1a1` y muriéndose (`+0x389`),
    la z baja a la del terreno (`0x5f93c0`) si es menor. El `0xe8` y el `0xe9` ponen `+0x58` en 2. Salvo el `0x18e`,
@@ -10319,7 +10361,7 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    deja en 0), y tres `0x53fe70(0x5c6, punto, ángulos, &luz, 3, 1, 0)` con la luz (x' · 0,6f; x' · 0,7f; x · 0,8f), x'
    el x guardado en float, cada una con cuatro `rand()` antes: el corrimiento `rand() % 20 − 10` en x, y y z (que queda
    en `[ebp−0x50]`) y el hueso `rand() % +0x22` del modelo. El `0x46` (`0x50c0fb..0x50c136`, el monstruo 70 con el
-   modelo `0x185`, que corta antes en `0x600654`): un `0x5491e0(0x5ac, punto, 0,8f, &luz, objeto, 0, 0)` en el hueso 20
+   modelo `0x185`, que corta antes en `0x4ed775`, P-C332): un `0x5491e0(0x5ac, punto, 0,8f, &luz, objeto, 0, 0)` en el hueso 20
    con el corrimiento de `[ebp−0x50]` en 0 y la luz de `[ebp−0x44]`, (1; 1; 1) desde `0x50bab9`, sin `rand()`.
 5. **El gremio** (`0x50c972`, con `+0x1f2` distinto de `0xffff`, que en un monstruo nunca pasa), **la luz** (`0x50cc55`:
    el terreno más la propia en `+0x3b4`, el `0x189` en 0,6), **las partes** (`0x50d363`: con `+0x3e3` en 0, el Angel de
@@ -10342,8 +10384,8 @@ MuRet: `Scenes::DrawGameMonster` (`MonsterDrawing.cpp`), llamado desde `DrawGame
 y la sombra con `DrawObjectShadow` (`CharacterDrawing.h`); lo que cuelga con `DrawGameHanging`, que ya no corta con
 otro tipo; el contorno del `0xc5` con `DrawObjectOutlineOfTheFirstMesh`, que corta en `0x60ce4e` con el `+0x58`
 distinto de −1; el calco del `0xe8` y el `0xe9` con `World::DrawTerrainDecal` sobre las alturas del terreno del pase o
-del mundo (sin ellas, corta en `0x5fb2f0`; con sus tipos de verdad no se llega: el `0x1f3` y el `0x1f4` cortan antes en
-`0x60243e`, P-C179 b y P-C240); la tela del `0x37` con el `CharacterCloth` del lugar (`WearsTheMonsterCloth`; sin
+del mundo (sin ellas, corta en `0x5fb2f0`; sus tipos de verdad, el `0x1f3` y el `0x1f4`, llegan con el pase `0x42` de
+`0x60243e`, y el `0x1f3` carga solo con P-C240); la tela del `0x37` con el `CharacterCloth` del lugar (`WearsTheMonsterCloth`; sin
 `GameCharacterPass::cloths`, corta en `0x50d58b`), como la del monstruo 55, que es un `0x20a` y va por
 `DrawGameCharacters`; el cuervo con `DrawGameRaven`, como el de un jugador. Entre frames del original, todo sobre una
 copia del personaje y del `rand()`. Del `0x45`, sus nueve sprites y los cuatro `rand()` de su primera partícula, que
@@ -10398,7 +10440,7 @@ MuRet: el modo de la malla de `Render::Models::Cloth` (`BuildOnTheMesh`, `WriteT
 `SkinObjectMeshes` y el cuerpo, sobre las mallas que dibuja; sin `cloths`, corta en `0x50bb96`. Sin dibujo, MuRet la
 ancla a la pose guardada del monstruo (Q-C862), y sin pose, corta en `0x50bb3b`. Entre frames del original no la arma
 ni la simula: `DrawCurrent` lleva sus partículas con el hueso `0x12` del cuerpo de su última simulación al de ahora,
-como las de la clase 4 (#307). El `0x190` sigue cortando en `0x600654` después de la tela (P-C179 b), y el `0x20a` con
+como las de la clase 4 (#307). El `0x190` dibuja después de la tela su caso de `0x6002e0` (`0x60115e`, `DrawMonsterBody`), y el `0x20a` con
 ese `+0x376`, que ninguna alta crea, en `0x50bae7`. Tests: `MeshClothTest` (`test_mesh_cloth.cpp`: el armado, el
 vecino, el paso y el dibujo) y `MonsterClothTest` (`test_monster_cloth.cpp`: Lorencia, Devias y Blood Castle, contra
 la clase de render con las constantes del ASM, 20 `rand()` por frame, la que se rompe, la que no se dibuja y entre

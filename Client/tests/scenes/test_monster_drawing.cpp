@@ -375,7 +375,7 @@ TEST_F(MonsterDrawingTest, TheOutlineGoesBeforeTheBodyWithTheMonsterOrTheNpcColo
 }
 
 // 0x60cdd9: las puertas de Kalima (0xc5) llevan el contorno solo en la malla 0 (0x60ce4e); otro, en las dos. El cuerpo
-// del 0xc5 corta después en 0x438fe0.
+// del 0xc5 lo dibuja 0x438fe0 (las dos mallas) y después corta su helper, 0x43c150.
 TEST_F(MonsterDrawingTest, TheKalimaGateOutlinesOnlyItsFirstMesh)
 {
     constexpr std::uint16_t Gate = 0xc5;
@@ -393,8 +393,8 @@ TEST_F(MonsterDrawingTest, TheKalimaGateOutlinesOnlyItsFirstMesh)
         const auto gate = Draw(pass);
 
         ASSERT_FALSE(gate.HasValue());
-        EXPECT_NE(gate.Error().find("0x438fe0"), std::string::npos) << gate.Error();
-        ASSERT_EQ(m_batch.Vertices().size(), 6u);
+        EXPECT_NE(gate.Error().find("0x43c150"), std::string::npos) << gate.Error();
+        ASSERT_EQ(m_batch.Vertices().size(), 12u);
         ExpectColor(m_batch.Vertices()[0], 0.1f, 0.01f, 0.0f, 1.0f);
         ExpectColor(m_batch.Vertices()[3], 0.7f, 0.07f, 0.0f, 1.0f);
         TearDown();
@@ -501,7 +501,7 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
     // La tela sobre la malla sin la tela persistente del lugar corta antes del cuerpo; un helper de la cadena, después
     // de lo que cuelga; lo de 0x50bf45, después de la sombra.
     constexpr std::array cases{Case{Spider, 0x59, "0x50bb96", 0, 0}, Case{HelperType, 0x20, "0x4271d0", 6, 3},
-                               Case{Spider, 0x26, "0x50c671", 6, 0}, Case{0x18e, 0x21, "0x600654", 0, 0},
+                               Case{Spider, 0x26, "0x50c671", 6, 0}, Case{0x18e, 0x21, "0x4ee770", 0, 4},
                                Case{0x16e, 0x22, "0x5108b6", 6, 3}};
     for (const Case& value : cases)
     {

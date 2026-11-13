@@ -21,6 +21,8 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/GameHanging.h"
+#include "Scenes/MonsterBody.h"
+#include "Scenes/MonsterBodyPasses.h"
 #include "Scenes/MonsterCloth.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -64,9 +66,6 @@ constexpr std::uint8_t UnwalledKind = 8;
 constexpr std::uint8_t RedPk = 6;
 constexpr std::int32_t FirstBloodCastle = 11;
 constexpr std::int32_t LastBloodCastle = 17;
-constexpr std::int32_t FirstKalimaMap = 24;
-constexpr std::int32_t LastKalimaMap = 29;
-constexpr std::int32_t SeventhKalimaMap = 36;
 constexpr std::int32_t CastleMap = 30;
 constexpr std::int32_t NoShadowMap = 10;
 // 0x5ffdf0: por debajo de 0,01f (0x6b88d4) no posa ni dibuja; en Chaos Castle, con +0x1a1 del héroe, 0,15f menos
@@ -110,11 +109,6 @@ bool InBloodCastle(std::int32_t map)
     return map >= FirstBloodCastle && map <= LastBloodCastle;
 }
 
-bool InKalima(std::int32_t map)
-{
-    return (map >= FirstKalimaMap && map <= LastKalimaMap) || map == SeventhKalimaMap;
-}
-
 bool Within(std::uint16_t value, std::uint16_t first, std::uint16_t last)
 {
     return value >= first && value <= last;
@@ -137,64 +131,6 @@ std::uint16_t SpecialOf(std::uint16_t monster)
     if (OneOf(monster, Listed) || Within(monster, 0x12c, 0x12f) || Within(monster, 0x13a, 0x13f))
         return monster;
     return 0;
-}
-
-// Los casos por tipo de 0x6002e0 antes de su cadena (0x6004ed..0x600640), los de la cadena (0x600645..0x600653) y
-// los de después (0x600654..0x602360), en ese orden: con uno de ellos, el cuerpo no es el RenderBody(2) común.
-Result CheckTheBodyCases(const ActorState& actor, std::int32_t map, std::uint16_t special)
-{
-    const std::uint16_t type = actor.type;
-    constexpr std::array<std::uint16_t, 9> OwnCases{0x16c, 0x110, 0x137, 0x136, 0xbf, 0x14a, 0x14b, 0x14c, 0x117};
-    if (OneOf(type, OwnCases) || Within(type, 0xa8, 0xac) || type == 0xc0)
-        return Cut("0x6004ed", "el caso de 0x6002e0 con su tipo", type);
-    const bool mapCase = (map == 0 && type == 0x69) ||
-                         (map == 4 && (type == 0x17 || type == 0x13 || type == 0x14 || type == 3 || type == 4)) ||
-                         (map == 8 && type == 0x51) || (InBloodCastle(map) && (type == 0x1c || type == 0x1d)) ||
-                         (map == 3 && type == 0x144) || (map == 0x37 && type == 0x5a);
-    if (mapCase)
-        return Cut("0x600a4a", "el caso de 0x6002e0 por mapa", type);
-    // 0x438fe0: el 0x173 de Kalima, el 0xc5, el 0x125, el 0x127 y los tipos bajos de Kalima; si no, 0x43ed20.
-    if ((type == 0x173 && InKalima(map)) || type == 0xc5 || type == 0x125 || type == 0x127 ||
-        (InKalima(map) && type <= 0x9f))
-        return Cut("0x438fe0", "el caso de Kalima de la cadena de 0x6002e0", type);
-    if (Within(type, 0x11d, 0x121) || type == 0x124 || Within(type, 0x191, 0x197))
-        return Cut("0x43ed20", "el caso de la cadena de 0x6002e0", type);
-    // 0x42cc10: solo en el 30, sus tipos y los de los monstruos de 0x42e3d0.
-    constexpr std::array<std::uint16_t, 9> CastleCases{0xc, 0x11, 0x33, 0x42, 0x32, 0x53, 0x54, 0x55, 0x13};
-    constexpr std::array<std::uint16_t, 5> CastleMonsters{0x19b, 0x19c, 0x1a8, 0x1f8, 0x1ff};
-    if (map == CastleMap && (OneOf(type, CastleCases) || Within(type, 0x3d, 0x40) || OneOf(type, CastleMonsters)))
-        return Cut("0x42cc10", "el caso del asedio de la cadena de 0x6002e0 (0x42e3d0 con los monstruos)", type);
-    if (type == 10 || type == 0x1b || type == 0x34 || type == 0x36)
-        return Cut("0x4403b0", "el caso de la cadena de 0x6002e0", type);
-    if (type == 0x1b7 || type == 0x1b8 || type == 0x1bb)
-        return Cut("0x428df0", "el caso de la cadena de 0x6002e0 (por 0x425d90)", type);
-    constexpr std::array<std::uint16_t, 12> Map34Cases{0x24, 0x29, 0x38, 0x39, 0x47, 0x48,
-                                                       0x49, 0x4a, 0x4d, 0x4e, 0x51, 0xfa};
-    if (map == 0x22 && OneOf(type, Map34Cases))
-        return Cut("0x4306a0", "el caso del mapa 34 de la cadena de 0x6002e0", type);
-    // 0x600654..: el 0x17f solo con el cuarto argumento (sin él, 0x601430 es el RenderBody común).
-    constexpr std::array<std::uint16_t, 22> LateCases{0x190, 0x183, 0x188, 0x180, 0x181, 0x182, 0x186, 0x187,
-                                                      0x185, 0x18a, 0x18e, 0x10a, 0x10b, 0x12b, 0x12c, 0x12d,
-                                                      0x12e, 0xf9,  0x11b, 0x114, 0x140, 0x12a};
-    const std::int32_t subtype = actor.subtype;
-    if ((type == 0x17f && special != 0) || (type == 0x17c && subtype == 1) || OneOf(type, LateCases) ||
-        (type == 0x18f && actor.animation.action == 6) || (type == 0x112 && subtype == 1) ||
-        (type == 0xcc && (subtype == 3 || subtype == 4)) || (type == 0xcb && (subtype == 2 || subtype == 3)) ||
-        (type == 0x138 && subtype == 0) || type == 0x139 || (type == 0x109 && subtype == 1))
-        return Cut("0x600654", "el caso de 0x6002e0 después de su cadena", type);
-    return {};
-}
-
-// 0x602391..0x602e7d: lo que 0x6002e0 agrega después del RenderBody.
-Result CheckTheBodyTail(std::uint16_t type)
-{
-    if (type == 0x177)
-        return Cut("0x602391", "el brillo de 0x6002e0 después del cuerpo", type);
-    if (type == 0x1f3 || type == 0x1f4)
-        return Cut("0x60243e", "el pase 0x42 de 0x6002e0 después del cuerpo", type);
-    if (type == 0x111 || type == 0xed || type == 0xee)
-        return Cut("0x60246a", "los sprites y las partículas de 0x6002e0 después del cuerpo", type);
-    return {};
 }
 
 // 0x5ffce0: el color del modelo. El 0x189 en 0,6 y el 0xe4 con el seno del reloj no escriben la luz por vértice
@@ -224,27 +160,6 @@ ModelLight ModelLightOf(const ActorState& actor, const World::TerrainLighting& l
     return {{F32(D(terrain.x) * D(tenth) + D(actor.light.x)), F32(D(F32(D(terrain.y) * D(tenth))) + D(actor.light.y)),
              F32(D(F32(D(terrain.z) * D(tenth))) + D(actor.light.z))},
             false};
-}
-
-// 0x600436..0x6004a4 y 0x6008f4..: lo que 0x6002e0 le pisa al color del modelo antes de su RenderBody. El +0x74 en
-// 0x80 (0x6004aa, RenderBody(0x82)) no está en ActorState: ninguna alta lo escribe y MuRet lo toma en 0 (*inferido*).
-glm::vec3 BodyColorOf(const ActorState& actor, std::int32_t map, std::uint16_t special, glm::vec3 color)
-{
-    if (map == 10 && actor.type == 0x171)
-        color = {std::bit_cast<float>(0x3ca3d70au), std::bit_cast<float>(0x3d4ccccdu),
-                 std::bit_cast<float>(0x3e19999au)};
-    if (map == 9 && actor.type == 0x164)
-        color = {0.0f, std::bit_cast<float>(0x3e99999au), 1.0f};
-    if (special != 0 && actor.type == 0x16d)
-        color = {0.0f, 0.0f, 1.0f};
-    // 0x6008f4..: +0x78 & 1 y & 2.
-    const float low = std::bit_cast<float>(0x3e99999au);
-    if ((actor.flags78 & 1u) != 0)
-        color = (actor.flags78 & 2u) != 0 ? glm::vec3{low, 1.0f, std::bit_cast<float>(0x3f4ccccdu)}
-                                          : glm::vec3{low, 1.0f, 0.5f};
-    else if ((actor.flags78 & 2u) != 0)
-        color = {low, 0.5f, 1.0f};
-    return color;
 }
 
 // 0x5fffbd..0x600135: los dos pases del contorno de 0x5ffdf0, con los colores del NPC (+0x88 en 4, fuera de Chaos
@@ -422,28 +337,24 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
     // 0x6002e0: con +0x58 en −2 (sin el modo editor, 0x77f3b18) no dibuja nada.
     if (actor.dword58 == -2)
         return {};
-    object.color = BodyColorOf(actor, frame.map, special, light.color);
-    // 0x6008f4..: con el alpha en 1 y +0x68 en 0,05, el 0x175, el 0x161, el 0x184 y el 0x185 guardan +0x68 en 1.
-    constexpr std::array<std::uint16_t, 4> Lit{0x175, 0x161, 0x184, 0x185};
-    if (OneOf(actor.type, Lit) && std::bit_cast<std::uint32_t>(actor.alpha) == 0x3f800000u &&
-        std::bit_cast<std::uint32_t>(actor.blendMeshLight) == 0x3d4ccccdu)
-    {
-        actor.blendMeshLight = 1.0f;
-        object.state.light = 1.0f;
-    }
-    if (auto common = CheckTheBodyCases(actor, frame.map, special); !common.HasValue())
-        return common;
-    // 0x60235e: RenderBody(2, alpha, +0x64, +0x68, +0x6c, +0x70, +0x58, −1).
-    DrawObjectFromMeshes(frame.batch, frame.fauna, object, frame.pass.frameClock, meshes);
-    // 0x602365: con +0x78 & 2, RenderBody(2, alpha, −2, 1, +0x6c, +0x70, +0x58, −1) con el mismo color.
-    if ((actor.flags78 & 2u) != 0)
-    {
-        DrawnObject frozen = object;
-        frozen.state.blendMesh = -2;
-        frozen.state.light = 1.0f;
-        DrawObjectFromMeshes(frame.batch, frame.fauna, frozen, frame.pass.frameClock, meshes);
-    }
-    return CheckTheBodyTail(actor.type);
+    // 0x600436..0x602e7d: los casos por tipo y por mapa, el cuerpo y lo que va después (MonsterBody.h).
+    MonsterBodyModel model{.batch = frame.batch,
+                           .models = frame.fauna,
+                           .object = object,
+                           .meshes = meshes,
+                           .frameClock = frame.pass.frameClock};
+    MonsterBodyFrame body{.model = model,
+                          .actor = actor,
+                          .bones = bones,
+                          .map = frame.map,
+                          .special = special,
+                          .worldClock = frame.worldClock,
+                          .random = frame.random,
+                          .cloth = *frame.pass.clothWorld,
+                          .siegeActive = frame.world.Runtime().siegeActive,
+                          .lastSoundId = &frame.world.Runtime().lastSoundId,
+                          .originalFrame = frame.originalFrame};
+    return DrawMonsterBody(body);
 }
 
 // 0x50bed8..0x50bf3e: el calco 0x61e del +0x376 0xe8 y 0xe9, aditivo (0x620a90), con v = sin(T · 0,0015f) · 0,3f +

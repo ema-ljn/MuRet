@@ -8,6 +8,7 @@
 #include "Scenes/GuildState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
@@ -111,7 +112,8 @@ Core::Expected<void, std::string> CloseTheSecondGuildWindow(WorldState& world, c
     runtime.lastSoundId = GuildCloseSound; // 0x41ed10 (CL10)
     guild.createKind = 0;
     guild.createStep = 0;
-    // 0x6570fb: 0x77f3b68, el campo del diálogo, en 0; MuRet no lo prende (hito 6).
+    // 0x657117: 0x77f3b68, el campo del alta, en 0 (el EDIT queda como estaba: Q-C1291).
+    runtime.chat.input.dialogFieldOn = false;
     // 0x654f50: el abierto es +0x2a0 o +0x2a4.
     const std::uint32_t open = UI::PanelDialogHandle(delegated.panelDialog);
     if (open == guild.secondWindow.dialog2a0 || open == guild.secondWindow.dialog2a4)

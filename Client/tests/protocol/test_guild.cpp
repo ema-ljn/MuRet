@@ -253,7 +253,7 @@ TEST(GuildProtocolTest, TheRequestsAndAnswersHaveTheirBytes)
                           Bytes({0xc1, 0x08, 0xe6, 0x01, 0x02, 0x01, 0x12, 0x34})));
 }
 
-// 0x6552b0: C1 2B 55, el nombre y la marca de 32 bytes.
+// 0x6552b0: C1 2C 55, el 0 de 0x6553bf, el nombre y la marca de 32 bytes.
 TEST(GuildProtocolTest, TheCreateCarriesTheNameAndTheMark)
 {
     Guild::GuildName name{};
@@ -263,7 +263,7 @@ TEST(GuildProtocolTest, TheCreateCarriesTheNameAndTheMark)
     Guild::GuildMark mark{};
     for (std::size_t i = 0; i < mark.size(); ++i)
         mark[i] = static_cast<std::uint8_t>(0x11 * (i % 16));
-    std::vector<std::byte> expected = Bytes({0xc1, 0x2b, 0x55});
+    std::vector<std::byte> expected = Bytes({0xc1, 0x2c, 0x55, 0x00});
     Append(expected, invented, 8);
     for (const std::uint8_t value : mark)
         expected.push_back(std::byte{value});

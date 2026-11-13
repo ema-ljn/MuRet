@@ -36,7 +36,12 @@ inline constexpr TextureSlot FirstTextTextureSlot{static_cast<std::uint16_t>(Ori
 inline constexpr std::size_t GuildMarkTextureSlotCount = 4000;
 inline constexpr TextureSlot FirstGuildMarkTextureSlot{
     static_cast<std::uint16_t>(OriginalTextureSlotCount + TextTextureSlotCount)};
-// Todos los slots de una tabla de MuRet: los del original, los del texto y los de las marcas.
+// Los cuadrados de color del editor de la marca (CL9 hito 8, fase 3), después de las marcas: 0x5f1bb0 pinta el 0x22
+// entero de un color de la paleta (o el 0 tachado) antes de su quad; MuRet le da uno a cada color de los 16.
+inline constexpr std::size_t GuildSwatchTextureSlotCount = 16;
+inline constexpr TextureSlot FirstGuildSwatchTextureSlot{
+    static_cast<std::uint16_t>(OriginalTextureSlotCount + TextTextureSlotCount + GuildMarkTextureSlotCount)};
+// Todos los slots de una tabla de MuRet: los del original, los del texto, los de las marcas y los de sus colores.
 inline constexpr std::size_t TextureSlotCount =
-    OriginalTextureSlotCount + TextTextureSlotCount + GuildMarkTextureSlotCount;
+    OriginalTextureSlotCount + TextTextureSlotCount + GuildMarkTextureSlotCount + GuildSwatchTextureSlotCount;
 } // namespace Client::Render

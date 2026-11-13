@@ -632,6 +632,25 @@ TEST(PanelRegistryTest, TheObjectPanelsStepDoesNotDraw)
     EXPECT_FALSE(tested.panels.StepTheObjectPanels().HasValue());
 }
 
+// 0x657930: con [0x7d536f4] abierta, su paso (0x657959) antes de mirar el gremio; sin el gancho, corta.
+TEST(PanelRegistryTest, TheObjectPanelsStepTheSecondGuildWindowFirst)
+{
+    Tested tested;
+    tested.state.delegated.secondGuild = 1;
+    EXPECT_FALSE(tested.panels.StepTheObjectPanels().HasValue());
+    int steps = 0;
+    tested.context.secondGuildStep = [&steps]() -> Client::Core::Expected<void, std::string>
+    {
+        ++steps;
+        return {};
+    };
+    ASSERT_TRUE(tested.panels.StepTheObjectPanels().HasValue());
+    EXPECT_EQ(steps, 1);
+    tested.state.delegated.guild = 1;
+    EXPECT_FALSE(tested.panels.StepTheObjectPanels().HasValue());
+    EXPECT_EQ(steps, 2);
+}
+
 TEST(PanelRegistryTest, TheWorldIsFullWidthWithNothingOpenAndDrawsNothing)
 {
     Tested tested;

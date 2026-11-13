@@ -44,6 +44,7 @@
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameCharacters.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/ModelTextureTable.h"
 #include "Scenes/SceneCanvas.h"
@@ -302,6 +303,9 @@ void GameScene::StepEntry()
                         : 0U;
                 StartTheSlides(*m_context.world, m_context.cloth->random, now);
             }
+            // 0x636935: la tabla de los gremios (0x447ae0). El F1 00 (0x4c1e54) y la lista de personajes (0x4c1f14)
+            // también la vacían, pero antes de que haya mundo: la entrada al juego deja lo mismo.
+            ResetTheGuildTable(runtime.guild);
         }
     }
     if (m_sent || m_session == nullptr)

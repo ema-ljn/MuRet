@@ -46,6 +46,9 @@ inline constexpr std::int32_t MessageField = 0;
 inline constexpr std::int32_t WhisperField = 1;
 // 0x6c8e6c: cuántos campos recorre Tab, 2 desde el primer paso del juego y al abrir.
 inline constexpr std::int32_t ChatFieldCount = 2;
+// [0x5763504]: el tope del EDIT de los diálogos antes de que alguien le ponga uno (*inferido*: lo que lee GetText,
+// 0xff; la ventana 2 le pone 8 en cada dibujo de la página 1, 0x655202).
+inline constexpr std::size_t DialogFieldLimit = 0xff;
 // 0x469790(10000): volver al más nuevo.
 inline constexpr std::int32_t NewestInTheHistory = 10000;
 
@@ -57,6 +60,8 @@ enum class ChatFocus : std::uint8_t
     Whisper,
     // El EDIT de una ventana vieja (la caja de agregar un amigo, 0x4682a0): OldWindowManager::focusedEdit.
     OldWindow,
+    // El EDIT de los diálogos, [0x5763504] (el nombre del gremio nuevo de la ventana 2, CL9 hito 8).
+    DialogField,
 };
 
 using ChatBuffer = std::array<char, ChatBufferSize>;
@@ -90,6 +95,15 @@ struct ChatInputState
     // 0x77f3b69: el campo de texto de otra entrada (la del diálogo de los paneles, hito 6). Con 1, Enter no abre ni
     // cierra y 0x5aa9a0 dibuja la caja. MuRet no lo prende.
     bool otherInput = false;
+    // [0x5763504]: el EDIT de los diálogos (la clase 0x4674c0 que arma WinMain en 0x4bb344), que en el juego usa la
+    // ventana 2 del gremio para el nombre (0x655130 lo muestra, 0x654f80 lo lee y lo oculta). Latin-1 como los del
+    // chat; lo tecleado entra con el foco en ChatFocus::DialogField.
+    TextField dialogField{DialogFieldLimit, false, TextField::Charset::Latin1};
+    // +0x48 del EDIT de los diálogos: a la vista (0x468260 con otro que 3).
+    bool dialogFieldShown = false;
+    // 0x77f3b68: el campo del diálogo prendido (el 01 del Guild Master, 0x4e3450, y el botón Crear, 0x655d70; lo apaga
+    // 0x6570b0). Con él, Enter no es del chat (0x4b5115) y no hay atajos de teclado (0x6578e0).
+    bool dialogFieldOn = false;
     // 0x6c8dd0 (.data 1): F3 y el botón de la caja. Con 0, el nombre del susurro no cuenta y todo va al chat.
     bool whisperMode = true;
     // 0x5767940 y 0x57676e4: el freno del chat. Cada mensaje lo pone en 0x46 y 0x637d2c lo baja uno por paso; con
@@ -105,9 +119,9 @@ struct ChatInputState
 // strcpy: `text` (hasta su '\0') y el '\0', sin tocar lo que queda detrás. Lo que no entra se corta.
 void CopyIntoTheBuffer(ChatBuffer& buffer, std::string_view text);
 
-// 0x553570(segundo): el campo elegido en 0, los buffers 0 y, con `second`, 1 en ceros y sus largos en 0. Los otros
-// ocho, sus largos, las marcas de 0x77f31c0, 0x6c8e74 y los EDIT de [0x5763504] y [0x5763508] (los campos de los
-// diálogos, hito 6) no los tiene MuRet.
+// 0x553570(segundo): el campo elegido en 0, los buffers 0 y, con `second`, 1 en ceros y sus largos en 0, y SetText(0)
+// en el EDIT de los diálogos ([0x5763504]). Los otros ocho buffers, sus largos, las marcas de 0x77f31c0, 0x6c8e74 y el
+// EDIT de [0x5763508] (el otro campo de los diálogos, hito 6) no los tiene MuRet.
 void ResetTheTextBuffers(ChatInputState& input, bool second);
 
 // 0x469420: SetText(0) en los dos EDIT.
@@ -155,6 +169,17 @@ bool RecallFromTheHistory(ChatInputState& input, std::int32_t steps);
 // chat abierto y dos o más campos, pasa al que sigue (0x469370 en el chat; en el EDIT del login, [0x57634fc], que en
 // el juego está oculto, nada); con uno, si su largo es 0, invierte 0x77f3b69. Devuelve si sonó el 0x19.
 bool PressTabInTheChat(ChatInputState& input, bool chatOpen);
+
+// 0x468260(estado) sobre el EDIT de los diálogos (la vtable + 4): 3 lo oculta, y el foco del teclado vuelve a la
+// ventana del juego si lo tenía (*inferido*, como ShowTheChatFields); otro lo muestra.
+void ShowTheDialogField(ChatInputState& input, std::int32_t state);
+
+// 0x4682a0(0) sobre el EDIT de los diálogos (la vtable + 0x30): el foco, sin cambiar lo elegido. Oculto, nada (SetFocus
+// sobre una ventana oculta no la toma, *inferido*).
+void FocusTheDialogField(ChatInputState& input);
+
+// 0x467ec0(buffer, 0xff) sobre el EDIT de los diálogos (la vtable + 0x50): GetText, hasta 0xff bytes y el '\0'.
+void ReadTheDialogField(const ChatInputState& input, ChatBuffer& buffer);
 
 // Lo tecleado al EDIT con el foco, como los WM_CHAR que Windows le da: los bytes van al final (o reemplazan lo
 // elegido) y BackspaceChar borra. Sin un EDIT con el foco, la ventana del juego los descarta (0x4b88ee).

@@ -31,7 +31,7 @@ public:
     TextureTable& operator=(TextureTable&&) = delete;
     ~TextureTable() override = default;
 
-    // Sube cada una con GlTexture::Upload, en su slot. Un slot de TextureSlotCount (6.101) o más, o
+    // Sube cada una con GlTexture::Upload, en su slot. Un slot de TextureSlotCount (6.117) o más, o
     // una textura que GlTexture no sube (también si GL la rechaza), corta con un error que nombra
     // el slot en hexadecimal, como el research. El slot de la que falló se queda con lo que tenía;
     // las de antes en `textures` ya quedaron subidas, porque cada escena sube su juego entero.

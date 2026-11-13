@@ -32,6 +32,12 @@ using GuildMarkImage = std::array<std::uint8_t, GuildMarkBytes>;
 [[nodiscard]] Core::Expected<GuildMarkImage, std::string> PaintTheGuildMark(const GuildState& guild, std::int32_t index,
                                                                             bool clearBackground);
 
+// 0x5f1bb0(x, y, w, h, color), el cuadrado de un color del editor de la marca: llena el buffer del 0x22 (los 8 × 8 que
+// recorre con el alto y el ancho de la textura) con el color de la paleta (0x77f3d84, la que dejó el último 0x5f16a0)
+// o, con el 0, de negro (0xff000000) con las dos diagonales grises (0xff808080: 0x5f1c83..0x5f1ca6, de a 9 y de a 7
+// píxeles desde el 0 y el 7). Corta con un color de más de 15, que leería después de la paleta.
+[[nodiscard]] Core::Expected<GuildMarkImage, std::string> PaintTheSwatch(std::int32_t color);
+
 // 0x5f16a0 para los que dibujan: pinta la marca y da el slot donde quedó, para el quad que sigue.
 class IGuildMarks
 {
@@ -40,6 +46,8 @@ public:
 
     [[nodiscard]] virtual Core::Expected<Render::TextureSlot, std::string>
     Upload(const GuildState& guild, std::int32_t index, bool clearBackground) = 0;
+    // 0x5f1bb0: pinta el cuadrado del color y da su slot (Render::FirstGuildSwatchTextureSlot + color).
+    [[nodiscard]] virtual Core::Expected<Render::TextureSlot, std::string> UploadSwatch(std::int32_t color) = 0;
 };
 
 // Las marcas en la tabla de la escena: el slot de (índice, fondo) en Render::FirstGuildMarkTextureSlot, en
@@ -58,11 +66,15 @@ public:
 
     [[nodiscard]] Core::Expected<Render::TextureSlot, std::string> Upload(const GuildState& guild, std::int32_t index,
                                                                           bool clearBackground) override;
+    [[nodiscard]] Core::Expected<Render::TextureSlot, std::string> UploadSwatch(std::int32_t color) override;
 
     // El slot de (índice, fondo).
     [[nodiscard]] static Render::TextureSlot SlotOf(std::int32_t index, bool clearBackground);
 
 private:
+    // Sube `image` al slot si cambió desde la última vez.
+    [[nodiscard]] Core::Expected<void, std::string> Load(Render::TextureSlot slot, const GuildMarkImage& image);
+
     Render::ITextureStore* m_store;
     // Lo subido a cada slot.
     std::map<std::uint16_t, GuildMarkImage> m_uploaded;

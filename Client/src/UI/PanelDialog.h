@@ -138,6 +138,14 @@ struct PanelDialogRequest
 // 0x660580: con el reloj (8), si ya pasó el final.
 [[nodiscard]] bool ThePanelDialogTimedOut(const PanelDialogState& dialog, std::uint32_t now);
 
+// 0x45b200, la vtable + 0x20 del botón (0x6b8d9c): el clic que empieza sobre él lo aprieta (0x5762ec4) y el soltado
+// sobre él da 1 con el sonido 0x19. Antes manda su comando al padre con 0x490b40(+0x44, 10, …), que busca la ventana
+// del id en el administrador: los botones del diálogo no tienen padre y los de la ventana 2 del gremio cuelgan de una
+// que no está en él (*inferido*): no llega a nadie. Apagado (6), nada. Con el mouse afuera y el botón apretado, suelta
+// todo. Es la copia del hito 8, que devuelve el soltado (MuRet no tiene StepTheButtonMouse con lo que devuelve).
+[[nodiscard]] bool ClickTheButton(OldButton& button, const OldWindowGlobals& globals, std::int32_t mouseX,
+                                  std::int32_t mouseY);
+
 // 0x6605b0: abierto, el mouse sobre la caja (0x140 − ancho / 2, 0x82 − alto / 2) es de la UI; después, los botones
 // (0x45b200) o el reloj, y la respuesta.
 [[nodiscard]] Core::Expected<void, std::string> StepThePanelDialog(PanelDialogState& dialog,

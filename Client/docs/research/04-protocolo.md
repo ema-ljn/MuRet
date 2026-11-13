@@ -942,8 +942,10 @@ Lo que manda el cliente, por el socket del GameServer (`0x6c82a0`) sin la capa d
 
 - `C1 06 51 <sí> <clave:2>` con el XOR32 (`0x4d6b60`, y `0x4d754d` con el diálogo ocupado: el 0).
 - `C1 03 52`, sin campos (`0x4d7d95`, `0x6599a0(0x10)`).
-- `C1 04 54 <respuesta>` con el XOR32 (`0x6570b0` al cerrar la ventana 2: el 0).
-- `C1 2B 55 <gremio:8> <marca:32>` con el XOR32 (`0x6552b0`, el alta, que MuRet no tiene todavía: P-C281).
+- `C1 04 54 <respuesta>` con el XOR32 (`0x655d70` con Crear: el 1; `0x6570b0` al cerrar la ventana 2 y la página 0 y
+  la confirmación antes de cerrarla: el 0, dos seguidos, Q-C1289).
+- `C1 2C 55 00 <gremio:8> <marca:32>` con el XOR32 (`0x6552b0`, el alta: el byte en 0 lo escribe `0x6553bf`; la
+  marca, los 64 nibbles de `0x78a5986` de a dos, el par primero arriba; Q-C1287).
 - `C1 05 18 <dirección> <acción>` con el XOR32: la guerra (`0x4d8473` con `0x94`, `0x4d8a39` y `0x4d8e1b` con
   `0x8d` y `0x89`), después del de `0x576a60`, que manda el suyo si el héroe está parado (hito 1, `Scenes::PlayTheEmote`).
 - `C1 08 E6 <relación> <pedido> <resultado> <clave alta> <clave baja>` con el XOR32 (`0x653c00`, y `0x656616` con el

@@ -496,8 +496,15 @@ Core::Expected<void, std::string> PanelRegistry::StepTheObjectPanels()
         if (auto dialog = m_context.panelDialogStep(); !dialog.HasValue())
             return dialog;
     }
-    for (const PanelId id :
-         {SecondGuildPanel, GuildPanel, CastleSiegePanel, CastleSiegeListPanel, SecondCastleSiegePanel})
+    if (IsOpen(SecondGuildPanel))
+    {
+        if (!m_context.secondGuildStep)
+            return Core::Unexpected(
+                std::string("0x657959: el paso de la ventana 2 del gremio sin el mouse ni el reloj"));
+        if (auto window = m_context.secondGuildStep(); !window.HasValue())
+            return window;
+    }
+    for (const PanelId id : {GuildPanel, CastleSiegePanel, CastleSiegeListPanel, SecondCastleSiegePanel})
     {
         if (IsOpen(id))
             return Core::Unexpected(std::format("0x657930({:#x}): el paso de este panel es de {}", id, WaveOf(id)));

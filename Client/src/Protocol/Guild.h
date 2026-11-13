@@ -254,7 +254,8 @@ using GuildPacket =
 // 0x6570b0 y 0x655d70: C1 04 54 [respuesta], con el XOR32 y en claro. Cerrar el panel 0x40000 manda el 0.
 [[nodiscard]] Outgoing WriteMasterAnswer(std::uint8_t answer);
 
-// 0x6552b0: C1 2B 55, el nombre del gremio (8 bytes) y la marca (32), con el XOR32 y en claro.
+// 0x6552b0: C1 2C 55, un byte en 0 (0x6553bf: el tipo del gremio de las versiones de después, *inferido*), el nombre
+// del gremio (8 bytes) y la marca (32), con el XOR32 y en claro. El GS 0.97 lee el nombre en pkt[3] (C1 2B, Q-C1287).
 [[nodiscard]] Outgoing WriteCreate(const GuildName& name, const GuildMark& mark);
 
 // 0x6565e0 y 0x653c00: C1 08 E6 [relación] [pedido] [resultado] [clave alta] [clave baja], con el XOR32 y en claro.

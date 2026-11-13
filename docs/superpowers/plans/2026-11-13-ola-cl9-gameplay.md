@@ -378,6 +378,12 @@ color de la tela.
 dibujo y el paso de las ventanas con sus pestañas, las listas con `0x480e00` y `0x4824d0`, el alta, las ventanas de la
 alianza que mandan y el color de la tela en la guerra, que espera la parte del duelo del hito 7.
 
+**Fase 3 (2026-11-13):** la ventana 2 (`0x654900`) con sus cuatro páginas y el editor de la marca, el alta
+(`0x6552b0` manda el `C1 55` con el nombre y la marca; `0x655d70`), el `01` del Guild Master (`0x4e3450`, con el
+`EDIT` del diálogo y `0x77f3b68`) y la tabla de los gremios con las claves en −1 (`0x447ae0`); la prueba de crear un
+gremio va de la pregunta del `54` al `C1 55`. Queda (08, P-C281): la ventana del gremio con sus pestañas y listas, y
+las ventanas de la alianza que mandan.
+
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 
 - [x] **Los controles de las ventanas viejas** que la CL8 dejó sin portar (57 funciones de la CL8.3, 14 KB: las

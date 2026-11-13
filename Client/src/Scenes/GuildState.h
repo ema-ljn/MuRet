@@ -1,5 +1,7 @@
 #pragma once
 
+#include "UI/OldWindowBase.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -9,7 +11,8 @@
 
 // El gremio, la alianza y la guerra en el juego (CL9 hito 8; 06 § El gremio): los globales de la .bss y de la .data
 // que escriben los paquetes (0x4d74b0..0x4d9e50) y lo que guardan las dos ventanas del gremio ([0x7d536f0] y
-// [0x7d536f4]) de esos paquetes. Las ventanas mismas (su paso y su dibujo) no están: cortan con su dirección.
+// [0x7d536f4]) de esos paquetes, y la ventana 2 con sus botones (Scenes/SecondGuildWindow, la fase 3). La ventana del
+// gremio (su paso y su dibujo) no está: corta con su dirección.
 namespace Client::Scenes
 {
 // 0x447b50: la tabla de los gremios ([0x723c58], entradas en 0x787aa48) tiene lugar para 2.000.
@@ -26,8 +29,9 @@ inline constexpr std::int16_t CreatingGuildIndex = 1999;
 // Una entrada de 0x58 bytes de 0x787aa48.
 struct GuildTableEntry
 {
-    // +0: la clave del gremio (0x447b00 la busca, 0x447b50 la pone).
-    std::int32_t key = 0;
+    // +0: la clave del gremio (0x447b00 la busca, 0x447b50 la pone). 0x447ae0 las deja en −1: el GS manda la clave 0
+    // para "sin gremio", y con 0 la búsqueda encontraría la entrada 0.
+    std::int32_t key = -1;
     // +4..+0xc: el nombre de la alianza (8 bytes y su cero, 0x447b90 desde pkt[9] del 66). Lo dibuja el globo como
     // "<%s>" (0x556dd0) y lo borra el E6 que rompe la alianza (0x4d9b2b).
     std::array<char, 9> unionName{};
@@ -77,9 +81,63 @@ struct GuildWindowState
     std::uint32_t dialog = 0;
 };
 
-// Lo que guarda la ventana 2 del gremio, [0x7d536f4] (0x654900), de los paquetes.
+// 0x654900: los botones de la ventana 2 (0x45ad80), en el orden de sus offsets, con el comando y el texto de Text.bmd
+// que les pone la vtable + 0x2c (0x45b150 y 0x45b170): +0x80 Crear (1, el 1303), +0x108 Cambiar la marca (2, el 1304),
+// +0x190 Próximo (5, el 1305) y +0x218 Regreso (4, el 1306).
+inline constexpr std::size_t SecondGuildCreateButton = 0;
+inline constexpr std::size_t SecondGuildMarkButton = 1;
+inline constexpr std::size_t SecondGuildNextButton = 2;
+inline constexpr std::size_t SecondGuildBackButton = 3;
+inline constexpr std::size_t SecondGuildButtonCount = 4;
+// Los ids de la ventana y de sus botones. El original los saca del contador 0x5762eb0 (0x459ef0) cuando WinMain arma el
+// registro; MuRet les da −5..−9, después de los del diálogo de los paneles (P-C280), que no chocan con los de las
+// ventanas viejas.
+inline constexpr std::int32_t SecondGuildWindowId = -5;
+
+// 0x654900: la ventana base (0x45a210) en (0x1c2, 0) de 0xbe × 0x5a, que nadie mueve (*estático*: 0x45a9d0 sobre
+// [0x7d536f4] solo lo llama el constructor).
+[[nodiscard]] inline UI::OldWindowBase SecondGuildWindowBase()
+{
+    UI::OldWindowBase base;
+    base.id = SecondGuildWindowId;
+    base.x = 0x1c2;
+    base.y = 0;
+    base.width = 0xbe;
+    base.height = 0x5a;
+    return base;
+}
+
+// 0x654926..0x654a7a: los cuatro botones, colgados de la ventana (+0x44 con su id). Los dos primeros, de 100 × 20, los
+// ubica el dibujo de la página 0 (0x6563e0); los otros dos, de 50 × 18, quedan en (x + 0x61, y + 0x168) y
+// (x + 0x2d, y + 0x168).
+[[nodiscard]] inline std::array<UI::OldButton, SecondGuildButtonCount> SecondGuildButtons()
+{
+    constexpr std::array<std::int32_t, SecondGuildButtonCount> Commands{1, 2, 5, 4};
+    constexpr std::array<std::int32_t, SecondGuildButtonCount> Widths{100, 100, 0x32, 0x32};
+    constexpr std::array<std::int32_t, SecondGuildButtonCount> Heights{20, 20, 0x12, 0x12};
+    constexpr std::array<std::int32_t, SecondGuildButtonCount> Lefts{0, 0, 0x1c2 + 0x61, 0x1c2 + 0x2d};
+    constexpr std::array<std::int32_t, SecondGuildButtonCount> Tops{0, 0, 0x168, 0x168};
+    std::array<UI::OldButton, SecondGuildButtonCount> buttons{};
+    for (std::size_t index = 0; index < buttons.size(); ++index)
+    {
+        UI::OldButton& button = buttons[index];
+        button.base.id = SecondGuildWindowId - 1 - static_cast<std::int32_t>(index);
+        button.base.parent = SecondGuildWindowId;
+        button.base.x = Lefts[index];
+        button.base.y = Tops[index];
+        button.base.width = Widths[index];
+        button.base.height = Heights[index];
+        button.command = Commands[index];
+    }
+    return buttons;
+}
+
+// La ventana 2 del gremio, [0x7d536f4] (0x654900): su base, sus botones y los diálogos que abrió.
 struct SecondGuildWindowState
 {
+    UI::OldWindowBase base = SecondGuildWindowBase();
+    // Los textos (0x45b170) los copia MuRet la primera vez que la dibuja, como los del diálogo de los paneles.
+    std::array<UI::OldButton, SecondGuildButtonCount> buttons = SecondGuildButtons();
     // +0x2a0 y +0x2a4: los diálogos de los paneles que abrió (0x654f50 los cancela al cerrarse).
     std::uint32_t dialog2a0 = 0;
     std::uint32_t dialog2a4 = 0;
@@ -127,18 +185,20 @@ struct GuildState
     std::uint8_t relationKeyHigh = 0;
     std::uint8_t relationKeyLow = 0;
 
-    // 0x7d536e4 y 0x7d536ec: qué arma la ventana 2 y en qué paso va (crear el gremio, 0x6552b0 y 0x655d70, no está
-    // portado); 0x6570b0 los vuelve a 0.
+    // 0x7d536e4 y 0x7d536ec: qué arma la ventana 2 (1, el gremio nuevo; 2, la marca, que solo prende 0x6538e0, sin
+    // referencias: Q-C1288) y en qué página va (0..3); 0x6570b0 los vuelve a 0.
     std::int32_t createKind = 0;
     std::int32_t createStep = 0;
+    // 0x78aba44: el color elegido de la paleta del editor de la marca (0x6535c0 lo cambia, 0x653750 lo dibuja).
+    std::int32_t markColor = 0;
 
     GuildWindowState window{};
     SecondGuildWindowState secondWindow{};
 };
 
 // 0x447b00(clave): la primera entrada con la clave, mirando de 0 hasta la cuenta inclusive (una más: con la cuenta en
-// 0, la entrada 0 de la .bss tiene la clave 0). −1 si no hay. Más allá de los 2.000 corta: el original leería fuera de
-// la tabla.
+// 0, la entrada 0, con la clave en −1 desde 0x447ae0). −1 si no hay. Más allá de los 2.000 corta: el original leería
+// fuera de la tabla.
 [[nodiscard]] inline std::optional<std::int32_t> FindGuild(const GuildState& guild, std::int32_t key)
 {
     for (std::size_t index = 0; index <= guild.tableCount; ++index)
@@ -152,8 +212,8 @@ struct GuildState
 }
 
 // 0x447b50(clave): con la cuenta en 2.000 o más, −1; si no, la clave en la entrada de la cuenta, que sube. La entrada
-// no se limpia: los nombres y la marca son los que había (ceros, en la .bss) hasta que llega su 66. Nadie baja la
-// cuenta (0x723c5c solo lo escribe esta función).
+// no se limpia: los nombres y la marca son los que había (ceros, en la .bss, o los de antes de 0x447ae0) hasta que
+// llega su 66. Solo 0x447ae0 baja la cuenta.
 [[nodiscard]] inline std::int32_t AddGuild(GuildState& guild, std::int32_t key)
 {
     if (guild.tableCount >= GuildTableSize)
@@ -162,5 +222,15 @@ struct GuildState
     guild.table[index].key = key;
     ++guild.tableCount;
     return static_cast<std::int32_t>(index);
+}
+
+// 0x447ae0 (sobre 0x723c58): la cuenta en 0 y las 2.000 claves en −1, sin tocar los nombres ni las marcas. La llaman
+// el constructor de 0x723c58 (0x447a80), el F1 00 aceptado (0x4c1e54), la lista de personajes (0x4c1f14) y la
+// entrada al juego (0x636935).
+inline void ResetTheGuildTable(GuildState& guild)
+{
+    guild.tableCount = 0;
+    for (GuildTableEntry& entry : guild.table)
+        entry.key = -1;
 }
 } // namespace Client::Scenes

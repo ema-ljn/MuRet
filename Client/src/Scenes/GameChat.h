@@ -49,6 +49,8 @@ struct GameChatContext
     const Data::Tables::ItemSetOptionTable* setOptions = nullptr;
     // Las palabras de Filter.bmd (0x622b40).
     std::span<const std::string> filter{};
+    // Las de FilterName.bmd, que con Filter.bmd mira 0x622c70 en el nombre del gremio nuevo (0x654f80).
+    std::span<const std::string> filterName{};
     // GetTextExtentPointA sobre el DC de los textos, que 0x555190 usa al cortar. Sin él, un aviso es el error.
     const Render::Text::ITextMeasure* measure = nullptr;
     App::PixelSize screen{640, 480};

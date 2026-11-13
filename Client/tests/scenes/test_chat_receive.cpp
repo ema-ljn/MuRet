@@ -13,6 +13,7 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
 #include "UI/MessageArea.h"
 #include "UI/WhisperSenders.h"
 
@@ -250,8 +251,10 @@ TEST_F(ChatReceiveTest, AKeyChatFindsTheSpeakerByItsKey)
     EXPECT_FALSE(Runtime().chat.bubbles[1].owner.has_value());
 }
 
-// 0x4e341d: con el héroe en 0x80 y el que habla con el nombre de 0x6c8404, la ventana del gremio: corta.
-TEST_F(ChatReceiveTest, TheGuildMasterKeyChatIsCut)
+// 0x4e341d y 0x4e3450: con el héroe en 0x80 y el que habla con el nombre de 0x6c8404, sin globo, la ventana 2 del
+// gremio (0x6599a0(0x40000, 0): las consultas de la tienda de NPC y del comercio en 0x661b90 y las dos de 0x657ab0), el
+// campo del alta prendido, el del chat cerrado, los buffers vacíos, la cuenta de Tab en 0 y el héroe en el 1999.
+TEST_F(ChatReceiveTest, TheGuildMasterKeyChatOpensTheSecondGuildWindow)
 {
     ActorState& master = Player(20, "");
     constexpr std::array<std::uint8_t, 10> GuildMaster{0xb1, 0xe6, 0xb5, 0xe5, 0x20, 0xb8, 0xb6, 0xbd, 0xba, 0xc5};
@@ -259,8 +262,42 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeyChatIsCut)
         master.name[i] = static_cast<std::byte>(GuildMaster[i]);
     master.byte1e3 = 0xcd;
     master.key = 0x0042;
-    m_world->Actors()[Runtime().hero].guildStatus = 0x80;
-    EXPECT_FALSE(Client::Scenes::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, Context()).HasValue());
+    ActorState& hero = m_world->Actors()[Runtime().hero];
+    hero.guildStatus = 0x80;
+    hero.word1f2 = 0xffff;
+    Client::UI::ChatInputState& input = Runtime().chat.input;
+    Runtime().ui.chatOpen = true;
+    input.fieldCount = 2;
+    Client::UI::CopyIntoTheBuffer(input.messageBuffer, "algo");
+    input.messageLength = 4;
+    ASSERT_TRUE(Client::Scenes::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, Context()).HasValue());
+
+    EXPECT_EQ(Runtime().panels.delegated.secondGuild, 1);
+    EXPECT_TRUE(input.dialogFieldOn);
+    EXPECT_FALSE(Runtime().ui.chatOpen);
+    EXPECT_EQ(input.fieldCount, 0);
+    EXPECT_EQ(input.messageLength, 0);
+    EXPECT_EQ(input.messageBuffer[0], '\0');
+    EXPECT_EQ(hero.word1f2, 1999);
+    EXPECT_FALSE(Runtime().chat.bubbles[0].owner.has_value());
+    EXPECT_EQ(m_random.State(), After(4));
+}
+
+// 0x4e3492: el héroe con gremio lo conserva.
+TEST_F(ChatReceiveTest, TheGuildMasterKeepsTheHerosGuild)
+{
+    ActorState& master = Player(20, "");
+    constexpr std::array<std::uint8_t, 10> GuildMaster{0xb1, 0xe6, 0xb5, 0xe5, 0x20, 0xb8, 0xb6, 0xbd, 0xba, 0xc5};
+    for (std::size_t i = 0; i < GuildMaster.size(); ++i)
+        master.name[i] = static_cast<std::byte>(GuildMaster[i]);
+    master.byte1e3 = 0xcd;
+    master.key = 0x0042;
+    ActorState& hero = m_world->Actors()[Runtime().hero];
+    hero.guildStatus = 0x80;
+    hero.word1f2 = 12;
+    ASSERT_TRUE(Client::Scenes::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, Context()).HasValue());
+    EXPECT_EQ(hero.word1f2, 12);
+    EXPECT_EQ(Runtime().panels.delegated.secondGuild, 1);
 }
 
 // 0x4c65b0: el 0 al aviso centrado; el 1 al chat fuera de la selección.

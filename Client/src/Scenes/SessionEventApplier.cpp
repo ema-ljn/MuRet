@@ -173,7 +173,12 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
         return ApplyChat(*chat, ChatContextOf(m_resources, session));
     }
     if (const auto* chat = std::get_if<Protocol::Messages::KeyChat>(&event))
-        return ApplyKeyChat(*chat, ChatContextOf(m_resources, session));
+    {
+        // 0x4e345c: el 01 del Guild Master abre la ventana 2 del gremio, y lo que eso cierra manda por el GameServer.
+        ChatReceiveContext context = ChatContextOf(m_resources, session);
+        context.guildSend = [&session](Protocol::Outgoing packet) { session.SendGuildPacket(std::move(packet)); };
+        return ApplyKeyChat(*chat, context);
+    }
     if (const auto* whisper = std::get_if<Protocol::Messages::Whisper>(&event))
         return ApplyWhisper(*whisper, ChatContextOf(m_resources, session));
     if (const auto* result = std::get_if<Protocol::Messages::WhisperResult>(&event))

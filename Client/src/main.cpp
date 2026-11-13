@@ -538,6 +538,7 @@ Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const
                 data.gates ? &*data.gates : nullptr, data.skills ? &*data.skills : nullptr,
                 data.text ? &*data.text : nullptr,
                 Scenes::GameChatTables{.filter = data.filter,
+                                       .filterName = data.filterName,
                                        .setOptions = data.itemSets ? &data.itemSets->options : nullptr,
                                        .itemSetTables = data.itemSets ? &*data.itemSets : nullptr});
         }

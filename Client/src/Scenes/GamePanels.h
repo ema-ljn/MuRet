@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "Scenes/GuildPanels.h"
+#include "Scenes/SecondGuildWindow.h"
 #include "UI/PanelRegistry.h"
 
 #include <cstdint>
@@ -65,6 +66,9 @@ public:
 
     // 0x6605b0 en el paso de la UI, con el mouse en 640 × 480 y el reloj del paso.
     void LendThePanelDialogStep(WorldState& world, std::int32_t mouseX, std::int32_t mouseY, std::uint32_t now);
+
+    // 0x657959: el paso de la ventana 2 del gremio ([0x7d536f4]) con el mouse, el reloj, Text.bmd y los filtros.
+    void LendTheSecondGuildStep(const SecondGuildStepContext& context);
 
 private:
     UI::PanelContext m_context;

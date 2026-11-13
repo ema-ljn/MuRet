@@ -65,10 +65,26 @@ std::string LineOf(std::string_view text)
     return std::string(line);
 }
 
-// 0x45b200, la vtable + 0x20 del botón (0x6b8d9c): el clic que empieza sobre él lo aprieta (0x5762ec4) y el soltado
-// sobre él da 1 con el sonido 0x19. Antes manda su comando al padre con 0x490b40(+0x44, 10, …): los botones del diálogo
-// no tienen padre (+0x44 en 0) y 0x490b40 no encuentra ventana con el id 0 (*inferido*). Con el mouse afuera y el botón
-// apretado, suelta todo. MuRet no tiene StepTheButtonMouse con lo que devuelve: esta es la copia del hito 8.
+// Lo común de 0x6603c0, 0x660410 y 0x6605b0 con un motivo: sin función, se cierra; con ella, se cierra si no devuelve
+// 0, y antes pone +4 en 0.
+Core::Expected<void, std::string> Answer(PanelDialogState& dialog, std::uint32_t reason,
+                                         const PanelDialogAnswer& answer)
+{
+    if (dialog.owner != PanelDialogOwner::None)
+    {
+        if (!answer)
+            return Core::Unexpected(std::string("0x6600d0: el diálogo de los paneles responde sin quien lo abrió"));
+        auto closes = answer(dialog.owner, reason);
+        if (!closes.HasValue())
+            return Core::Unexpected(std::move(closes).Error());
+        if (!closes.Value())
+            return {};
+        dialog.owner = PanelDialogOwner::None;
+    }
+    return CloseThePanelDialog(dialog);
+}
+} // namespace
+
 bool ClickTheButton(OldButton& button, const OldWindowGlobals& globals, std::int32_t mouseX, std::int32_t mouseY)
 {
     OldWindowBase& base = button.base;
@@ -102,26 +118,6 @@ bool ClickTheButton(OldButton& button, const OldWindowGlobals& globals, std::int
     }
     return false;
 }
-
-// Lo común de 0x6603c0, 0x660410 y 0x6605b0 con un motivo: sin función, se cierra; con ella, se cierra si no devuelve
-// 0, y antes pone +4 en 0.
-Core::Expected<void, std::string> Answer(PanelDialogState& dialog, std::uint32_t reason,
-                                         const PanelDialogAnswer& answer)
-{
-    if (dialog.owner != PanelDialogOwner::None)
-    {
-        if (!answer)
-            return Core::Unexpected(std::string("0x6600d0: el diálogo de los paneles responde sin quien lo abrió"));
-        auto closes = answer(dialog.owner, reason);
-        if (!closes.HasValue())
-            return Core::Unexpected(std::move(closes).Error());
-        if (!closes.Value())
-            return {};
-        dialog.owner = PanelDialogOwner::None;
-    }
-    return CloseThePanelDialog(dialog);
-}
-} // namespace
 
 std::array<OldButton, PanelDialogButtonCount> PanelDialogState::DefaultButtons()
 {

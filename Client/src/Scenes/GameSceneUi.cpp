@@ -246,6 +246,7 @@ GameChatContext GameScene::ChatContext()
                            .items = m_items,
                            .setOptions = m_chatTables.setOptions,
                            .filter = m_chatTables.filter,
+                           .filterName = m_chatTables.filterName,
                            .measure = m_context.textMeasure,
                            .screen = m_screen,
                            .send = session != nullptr ? ChatSender([session](Protocol::Outgoing packet)

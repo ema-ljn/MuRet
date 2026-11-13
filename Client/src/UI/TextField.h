@@ -36,6 +36,9 @@ public:
     // Borra el último byte; vacío, nada. Con todo elegido, lo borra todo.
     void Backspace();
     void Clear();
+    // EM_LIMITTEXT (la vtable + 0x3c de los EDIT, 0x467f30): el tope de lo que se teclea desde ahora; lo que ya tiene
+    // queda.
+    void Limit(std::size_t maxBytes);
     // WM_SETTEXT (la vtable + 0x4c de los EDIT, 0x467ee0): pone `raw` tal cual, en bytes, sin el tope de
     // EM_LIMITTEXT, que solo frena lo tecleado. Deja el cursor al final y nada elegido.
     void SetText(std::string_view raw);

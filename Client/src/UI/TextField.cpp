@@ -82,6 +82,11 @@ void TextField::Backspace()
     }
 }
 
+void TextField::Limit(std::size_t maxBytes)
+{
+    m_maxBytes = maxBytes;
+}
+
 void TextField::Clear()
 {
     m_value.clear();

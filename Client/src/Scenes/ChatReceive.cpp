@@ -7,13 +7,17 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbles.h"
+#include "Scenes/GamePanels.h"
+#include "Scenes/GuildState.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatInput.h"
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"
+#include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
 #include "UI/WhisperSenders.h"
 
@@ -130,6 +134,28 @@ bool IsTheGuildMaster(const ActorState& actor)
     }
     return actor.byte1e3 == GuildMasterName[actor.name.size()];
 }
+
+// 0x4e3450..0x4e34b4: 0x6599a0(0x40000, 0) sin mirar lo que devuelve; 0x77f3b68 en 1 y 0x6c8e68 en 0; 0x553570(0);
+// 0x6c8e78 en 8 (el tope de la entrada sin EDIT, que MuRet no guarda) y 0x6c8e6c en 0; el héroe con +0x1f2 en −1 pasa
+// al gremio nuevo (0x7cf).
+Core::Expected<void, std::string> TalkToTheGuildMaster(const ChatReceiveContext& context)
+{
+    WorldState& world = context.world;
+    WorldRuntime& runtime = world.Runtime();
+    GamePanels panels(world, context.random);
+    panels.LendTheGuild(world, context.guildSend);
+    if (auto opened = panels.Registry().Open(UI::SecondGuildPanel); !opened.HasValue())
+        return Core::Unexpected(std::move(opened).Error());
+    UI::ChatInputState& input = runtime.chat.input;
+    input.dialogFieldOn = true;
+    runtime.ui.chatOpen = false;
+    UI::ResetTheTextBuffers(input, false);
+    input.fieldCount = 0;
+    ActorState& hero = world.Actors()[runtime.hero];
+    if (static_cast<std::int16_t>(hero.word1f2) == NoGuildIndex)
+        hero.word1f2 = static_cast<std::uint16_t>(CreatingGuildIndex);
+    return {};
+}
 } // namespace
 
 // 0x5110d0: el primero de los 400 vivo con la clave (MOVSX de +0x1f4 contra el int del paquete: una clave desde
@@ -182,10 +208,7 @@ Core::Expected<void, std::string> ApplyKeyChat(const Protocol::Messages::KeyChat
     const auto actors = world.Actors();
     const ActorState& speaker = actors[index];
     if (actors[world.Runtime().hero].guildStatus == GuildMasterStatus && IsTheGuildMaster(speaker))
-        return Core::Unexpected(
-            std::string("0x4e3450: el 01 del Guild Master abre la ventana 2 del gremio (0x6599a0 "
-                        "con 0x40000) y prende el campo del nombre (0x553570(0), 0x77f3b68), que "
-                        "es del alta del gremio (0x6552b0), del hito 8 de la CL9, fase 2 (P-C281)"));
+        return TalkToTheGuildMaster(context);
     auto measure = MeasureOf(context, "0x4e34d6");
     if (!measure.HasValue())
         return Core::Unexpected(measure.Error());

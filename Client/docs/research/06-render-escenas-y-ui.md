@@ -2651,9 +2651,9 @@ o Sí y No, o Confirmar y Cancelar en `0x104` y `0x14a`, con los textos 228, 229
 al armarse. Sin `rand()`.
 
 **MuRet** (`Scenes::ApplyGuildPacket`, `Scenes/GuildPanels`, `UI::PanelDialog`, `WorldRuntime::guild`): todo lo de
-arriba menos lo que es de la fase 2 (P-C281): el dibujo y el paso de las dos ventanas, sus pestañas y las clases de
-las listas (`0x46b800`..`0x46d630`; MuRet guarda lo que se les agrega), el alta (`0x6552b0`, `0x655d70` y el `01` del
-Guild Master, `0x4e3450`) y las ventanas de la alianza que mandan (`0x64e600`, `0x64def0`, `0x650c10`, `0x650830`). La
+arriba menos lo que queda para después (P-C281): el dibujo y el paso de la ventana del gremio, sus pestañas y las
+clases de las listas (`0x46b800`..`0x46d630`; MuRet guarda lo que se les agrega) y las ventanas de la alianza que mandan
+(`0x64e600`, `0x64def0`, `0x650c10`, `0x650830`); el alta es de la fase 3 (abajo). La
 fase 2 suma el `65` y el `67`, el dibujo del diálogo (`Scenes::DrawThePanelDialog`; la caja de `0x6576a0` con
 `SpriteBatch::SetBlendWithoutAlphaTest`, que es `0x620c10`; el campo de texto y el reloj cortan, P-C285), la marca
 (`Scenes::PaintTheGuildMark` y `GuildMarkTextures`: cada (índice, fondo) en su slot de la tabla de la escena, desde
@@ -2662,6 +2662,64 @@ fase 2 suma el `65` y el `67`, el dibujo del diálogo (`Scenes::DrawThePanelDial
 este frame) y el marcador (`Scenes::DrawTheWarScore`). El gesto es `Scenes::PlayTheEmote` (hito 1). Los handlers no
 sacan `rand()` propios: solo el registro de los paneles, y abrir el gremio o la ventana 2 (el `54`) saca los cuatro de
 `CanOpen` y `CloseByMask` (las consultas del comercio y de la tienda); cerrarlos, ninguno.
+
+### La ventana 2: el alta del gremio (fase 3)
+
+Leído en la fase 3 del hito 8 (*estático*). `[0x7d536f4]` la arma `0x654900` (vtable `0x6baa9c`: `+0x14` el dibujo
+`0x656e70`, `+0x18` `0x45aa80`, `+0x20` el paso `0x656df0`, `+0x2c` el cierre `0x6570b0`), en `(0x1c2, 0)` con
+`0xbe × 0x5a`, y le cuelga cuatro botones (`+0x44` con su id): Crear (`+0x80`, comando 1, el 1303) y Cambiar marca
+(`+0x108`, 2, el 1304) de 100 × 20, que ubica el dibujo de la página 0, y Próximo (`+0x190`, 5, el 1305) y Regreso
+(`+0x218`, 4, el 1306) de 50 × 18 en `(x + 0x61, y + 0x168)` y `(x + 0x2d, y + 0x168)`. La página es `0x7d536ec` y lo
+que se arma `0x7d536e4` (1, un gremio; 2, la marca sola); el gremio nuevo es la entrada 1999 de la tabla
+(`0x78a5970`: el nombre en `0x78a597d`, la marca en `0x78a5986`) y el color elegido, `0x78aba44`.
+
+- El paso. `0x657930` llama a `+0x18` con `0x40000` abierto, después del diálogo de los paneles y antes del gremio.
+  `0x45aa80(0)` no tiene mensajes (los botones le mandan su comando a la ventana del id de su padre con `0x490b40`, y
+  esta no está en el administrador: *inferido*) y, con el mouse sobre su `0xbe × 0x5a` y otra ventana que lo tiene o
+  lo agarró, no da el paso. `0x656df0`: con el mouse en `0xbe × 0x1b1`, `0x775857c` en 1, y el paso de la página.
+- Página 0 (`0x655d70` y `0x6563e0`). Crear deja las dos en 1, prende `0x77f3b68` (el campo del alta) y manda
+  `C1 04 54 01`; Cambiar marca abre el diálogo de los paneles con el 1269 y Aceptar, sin función (`+0x2a0`); el flanco
+  del clic en el botón de cerrar (`0x18 × 0x18` en `(x + 0x19, y + 0x18b)`) lo apaga, deja `0x77f3b10` en 0 y
+  `0x6c8dcc` en 6, manda `C1 04 54 00`, suena el `0x19` y llama a `+0x2c`, que manda otro `54 00` (Q-C1289). El
+  dibujo: sin gremio (`+0x368` en `0xff`) la pregunta (181) en `(x + 0x19, y + 0x3c)` con Crear a la vista y la marca
+  apagada; con gremio, `"%s ( Score:%d )"` (`0x6d67cc`) con su nombre y `0x78aba3c`, centrado en `_ftol(rx · 140)`
+  (`0x5542f0` con 2), y los botones al revés; los dos en `x + 0x2d`, `0x1e` y `0x36` más abajo, y el botón de cerrar
+  con la ayuda 1002.
+- Página 1 (`0x654f80` y `0x655130`). El editor, `0x6535c0`: el héroe con `+0x24` en 112,5; la grilla de 8 × 8 de 15
+  en `(x + 0x32, y + 0x64)` pinta con el izquierdo abajo el byte de abajo de `0x78aba44` y borra con el derecho; la
+  paleta de 2 × 8 de 20 en `(x + 0xf, y + 0x104)`, con el flanco, elige fila · 8 + columna y suena el `0x19`. Próximo
+  hace `GetText` del `EDIT` `[0x5763504]` a `0x78a597d` y a `0x7798bf8` y avisa, en orden: `0x622c70` (`0x72`),
+  `0x447ca0` sobre el buffer entero (`0x7a`), menos de 4 bytes (`0x79`) y la marca vacía (`0x7e`); sin aviso, el
+  `EDIT` vacío y oculto y la página que sigue; con aviso o sin él, otra vez vacío, `0x467360` y oculto. Regreso: el
+  héroe con `+0x1f2` en `0xffff`, el `EDIT` igual, `0x6c8e78` en 10, los diez primeros bytes de `0x7798bf8` y
+  `0x7758590` en 0 y la página de antes (`0x654eb0`; `0x654f00` es la que sigue: 0, 1, 3 armando un gremio y 0, 2, 3
+  con la marca). El dibujo: la caja `0x10f` de 110 × 18 en `(x + 0x3a, y + 0x38)`, el 182 en negrita, el `EDIT` (a la
+  vista, el fondo en 0, `EM_LIMITTEXT` 8, `0x46 × 0xe` en `(x + 0x3f, y + 0x3c)`, el foco y `0x468320`),
+  `0x5f16a0(1999, 1)` sin quad (Q-C1290), el editor (`0x653750`: los cuadrados de `0x5f1bb0`, de 13 en la grilla, de
+  18 en la paleta y de 23 el elegido, con su marco `0x116`, y los renglones 183 y 184 en la normal) y Regreso y
+  Próximo.
+- Página 2 (`0x655c10` y `0x655c70`), la marca sola: solo la abre `0x6538e0`, que nadie llama (Q-C1288). Próximo con
+  la marca vacía avisa `0x7e`.
+- Página 3 (`0x6552b0` y `0x655ac0`). Próximo junta los 64 nibbles de a dos (el par primero arriba) y, armando un
+  gremio, manda `C1 2C 55 00`, el nombre en 8 bytes y la marca en 32, con el XOR32 (Q-C1287); siempre `C1 04 54 00` y
+  `+0x2c`. Regreso, la de antes. El dibujo: la fuente normal, los marcos de `0x471520` (rayas de 2: `0x117` arriba y
+  abajo, `0x104` a los costados) del nombre (140 × 20 en `(x + 0x19, y + 0x41)`) y de la marca (53 × 53 en
+  `(x + 0x45, y + 0x68)`), `"%s : %s"` (`0x6d67bc`) con el 182 y el nombre centrado en `(x + 0x19, y + 0x47)` y la
+  marca de 48 en `(x + 0x48, y + 0x6b)`.
+- `0x656e70`: `glColor3f(1, 1, 1)`, el fondo sin mezcla, la mezcla, el título en negrita en `(x + 0x23, y + 0xc)` (el
+  180, 1303, 1304 o 228 según la página, `0xffdcdcdc` sobre `0xff141414`) y la página. `0x6579e0` la dibuja primera.
+- La abren el `54` (`0x4e4279`) y el `01` del Guild Master (`0x4e3450`: con el héroe en `+0x368 = 0x80` y el que habla
+  con el nombre de `0x6c8404`, sin globo: `0x6599a0(0x40000, 0)`, `0x77f3b68` en 1, el chat cerrado, `0x553570(0)`,
+  `0x6c8e78` en 8, `0x6c8e6c` en 0 y, al héroe con `+0x1f2` en −1, el 1999). `0x77f3b68` lo miran `0x6578e0`, el
+  Enter (`0x4b5115`: no hace nada más), el clic sin dueño (`0x636e95`) y las teclas; lo apaga `0x6570b0`, que no
+  oculta el `EDIT` (Q-C1291).
+
+**MuRet** (`Scenes/SecondGuildWindow`, `UI::PanelContext::secondGuildStep`, `ChatInputState::dialogField` y
+`dialogFieldOn`, `Scenes::ApplyKeyChat`): todo lo de arriba. La ventana y sus botones tienen los ids −5..−9 (P-C280);
+el `EDIT` de los diálogos es `ChatInputState::dialogField` (Latin-1, como los del chat), que toma lo tecleado con el
+foco en `ChatFocus::DialogField`, y su dibujo va con la fuente normal en blanco (P-C286). Cada color del editor va a
+su slot (`Render::FirstGuildSwatchTextureSlot`). No saca `rand()` propios; el `01` del Guild Master saca los cuatro de
+abrir el panel.
 
 ## La escena de carga y la de login
 

@@ -29,6 +29,7 @@
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/SecondGuildWindow.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/UiItemDrawing.h"
 #include "Scenes/GuildDrawing.h"
@@ -871,7 +872,13 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     // 0x5f75fa: 0x40a650, que empieza con +4 de [0x6e592c].
     if (auto commands = DrawTheCommandsWindow(frame.context); !commands.HasValue())
         return commands;
-    if (panels.IsOpen(UI::SecondGuildPanel) || panels.IsOpen(UI::GuildPanel) || panels.IsOpen(UI::CastleSiegePanel) ||
+    // 0x6579e0: [0x7d536f4] por su vtable + 0x14 (0x656e70) primero.
+    if (panels.IsOpen(UI::SecondGuildPanel))
+    {
+        if (auto second = DrawTheSecondGuildWindow(frame.context); !second.HasValue())
+            return second;
+    }
+    if (panels.IsOpen(UI::GuildPanel) || panels.IsOpen(UI::CastleSiegePanel) ||
         panels.IsOpen(UI::CastleSiegeListPanel) || panels.IsOpen(UI::SecondCastleSiegePanel))
         return cut("0x6579e0: las ventanas del gremio y del asedio son de la CL9.4 y la CL9.5");
     // 0x6579e0: 0x660830, el diálogo de los paneles, si está abierto.

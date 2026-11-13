@@ -30,7 +30,18 @@ constexpr std::uint32_t AlphaShift = 24u;
 constexpr std::size_t Channels = 4;
 constexpr std::uint32_t ByteMask = 0xffu;
 
+// 0x5f1c66 y 0x5f1c88..0x5f1ca6: el negro del 0 y sus diagonales grises.
+constexpr std::uint32_t SwatchBlack = 0xff000000u;
+constexpr std::uint32_t SwatchGray = 0xff808080u;
+
 static_assert(2 * GuildTableSize == Render::GuildMarkTextureSlotCount, "un slot por entrada y por fondo");
+static_assert(Palette.size() == Render::GuildSwatchTextureSlotCount, "un slot por color");
+
+void PutThePixel(GuildMarkImage& image, std::size_t pixel, std::uint32_t color)
+{
+    for (std::size_t channel = 0; channel < Channels; ++channel)
+        image[pixel * Channels + channel] = static_cast<std::uint8_t>((color >> (8u * channel)) & ByteMask);
+}
 static_assert(GuildMarkSide * GuildMarkSide == GuildMarkNibbles, "los 64 nibbles llenan el 8 × 8");
 } // namespace
 
@@ -50,8 +61,26 @@ Core::Expected<GuildMarkImage, std::string> PaintTheGuildMark(const GuildState& 
                                                 "(0x77f3d84)",
                                                 nibble, index));
         const std::uint32_t color = nibble == 0 ? (clearBackground ? 0u : HalfAlpha) << AlphaShift : Palette[nibble];
-        for (std::size_t channel = 0; channel < Channels; ++channel)
-            image[pixel * Channels + channel] = static_cast<std::uint8_t>((color >> (8u * channel)) & ByteMask);
+        PutThePixel(image, pixel, color);
+    }
+    return image;
+}
+
+Core::Expected<GuildMarkImage, std::string> PaintTheSwatch(std::int32_t color)
+{
+    if (color < 0 || static_cast<std::size_t>(color) >= Palette.size())
+        return Core::Unexpected(
+            std::format("0x5f1c4b: el color {} del editor de la marca lee fuera de la paleta (0x77f3d84)", color));
+    GuildMarkImage image{};
+    const std::uint32_t fill = color == 0 ? SwatchBlack : Palette[static_cast<std::size_t>(color)];
+    for (std::size_t pixel = 0; pixel < GuildMarkNibbles; ++pixel)
+        PutThePixel(image, pixel, fill);
+    if (color != 0)
+        return image;
+    for (std::size_t step = 0; step < GuildMarkSide; ++step)
+    {
+        PutThePixel(image, step * (GuildMarkSide + 1), SwatchGray);
+        PutThePixel(image, (step + 1) * (GuildMarkSide - 1), SwatchGray);
     }
     return image;
 }
@@ -77,9 +106,27 @@ Core::Expected<Render::TextureSlot, std::string> GuildMarkTextures::Upload(const
     if (!painted.HasValue())
         return Core::Unexpected(std::move(painted).Error());
     const Render::TextureSlot slot = SlotOf(index, clearBackground);
+    if (auto loaded = Load(slot, painted.Value()); !loaded.HasValue())
+        return Core::Unexpected(std::format("0x5f183d: la marca {} no sube: {}", index, loaded.Error()));
+    return slot;
+}
+
+Core::Expected<Render::TextureSlot, std::string> GuildMarkTextures::UploadSwatch(std::int32_t color)
+{
+    auto painted = PaintTheSwatch(color);
+    if (!painted.HasValue())
+        return Core::Unexpected(std::move(painted).Error());
+    const Render::TextureSlot slot{static_cast<std::uint16_t>(Render::FirstGuildSwatchTextureSlot.value + color)};
+    if (auto loaded = Load(slot, painted.Value()); !loaded.HasValue())
+        return Core::Unexpected(std::format("0x5f1cff: el color {} no sube: {}", color, loaded.Error()));
+    return slot;
+}
+
+Core::Expected<void, std::string> GuildMarkTextures::Load(Render::TextureSlot slot, const GuildMarkImage& image)
+{
     const auto known = m_uploaded.find(slot.value);
-    if (known != m_uploaded.end() && known->second == painted.Value())
-        return slot;
+    if (known != m_uploaded.end() && known->second == image)
+        return {};
     constexpr auto Side = static_cast<int>(GuildMarkSide);
     const Data::Textures::LoadedTexture texture{
         .slot = slot.value,
@@ -89,11 +136,11 @@ Core::Expected<Render::TextureSlot, std::string> GuildMarkTextures::Upload(const
                                            .textureWidth = Side,
                                            .textureHeight = Side,
                                            .format = Data::Textures::PixelFormat::Rgba,
-                                           .pixels = {painted.Value().begin(), painted.Value().end()}},
+                                           .pixels = {image.begin(), image.end()}},
     };
     if (auto loaded = m_store->Load(std::span(&texture, 1)); !loaded.HasValue())
-        return Core::Unexpected(std::format("0x5f183d: la marca {} no sube: {}", index, loaded.Error()));
-    m_uploaded.insert_or_assign(slot.value, painted.Value());
-    return slot;
+        return Core::Unexpected(std::move(loaded).Error());
+    m_uploaded.insert_or_assign(slot.value, image);
+    return {};
 }
 } // namespace Client::Scenes

@@ -414,11 +414,14 @@ Outgoing WriteMasterAnswer(std::uint8_t answer)
     return Xor32C1(Network::PacketWriter::C1(MasterQuestionOpcode).PutU8(answer));
 }
 
+// 0x6553bf..0x6553e8: el byte que sigue al 55, siempre 0.
+constexpr std::uint8_t CreateKindByte = 0;
+
 Outgoing WriteCreate(const GuildName& name, const GuildMark& mark)
 {
     std::array<std::byte, MarkBytes> markBytes{};
     std::ranges::transform(mark, markBytes.begin(), [](std::uint8_t value) { return std::byte{value}; });
-    return Xor32C1(Network::PacketWriter::C1(CreateOpcode).PutBytes(name).PutBytes(markBytes));
+    return Xor32C1(Network::PacketWriter::C1(CreateOpcode).PutU8(CreateKindByte).PutBytes(name).PutBytes(markBytes));
 }
 
 Outgoing WriteRelationshipAnswer(std::uint8_t relation, std::uint8_t request, std::uint8_t result, std::uint8_t keyHigh,

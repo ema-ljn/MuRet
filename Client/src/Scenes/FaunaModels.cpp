@@ -1,4 +1,5 @@
 #include "Scenes/FaunaModels.h"
+#include "Scenes/MonsterSounds.h"
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
@@ -93,6 +94,10 @@ Core::Expected<void, std::string> FaunaModels::Prepare(std::int32_t monster, Fau
     entry.skeleton = std::move(skeleton).Value();
     if (entry.model.meshes.empty())
         return {}; // 612de9: sin mallas, no pide texturas ni toca acciones.
+    // 0x613127: el caso del switch de `monster` con su tabla de sonidos (0x612c80; el 0x1f y el 0x21 la escriben). Las
+    // texturas, que van antes, no la cambian.
+    if (context.sounds != nullptr)
+        WriteMonsterSounds(monster, *context.sounds);
     const auto first = context.slots.ToLoad().size();
     entry.textures = context.slots.Assign(entry.model, "Monster\\", MonsterSampling);
     m_store = &context.textures;

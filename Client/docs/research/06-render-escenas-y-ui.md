@@ -10282,6 +10282,9 @@ que cargan. MuRet: `Scenes::WriteMonsterSounds` (`MonsterSounds.h`, las 75 escri
 `CreateMonster` corre en cada paso `LoadMonster` después de mirar el `.bmd`, sobre `WorldRuntime::modelSounds`;
 `ActorCombatContext::modelSounds` vacío cae en esa tabla; los tres sorteos, `Scenes::DrawModelSound`. MuRet no carga el modelo (P-C176): escribe siempre, y con los
 mismos valores da lo mismo que el salto del original. Un modelo que nadie escribió queda fuera de la tabla (P-C253).
+Los otros dos llamadores, que sí cargan el modelo (fase 2d): la fauna del 0x1f y el 0x21 (`FaunaModels::Prepare`, con
+`FaunaModelLoadContext::sounds`) y el lancero `0x4d` del 30 (`0x42aa6b`, en `GameScene` después de
+`WorldModels::Load`) la escriben solo si el modelo cargó con mallas, como el salto de `0x612dee`.
 
 ### Los monstruos y los NPC en el viewport
 

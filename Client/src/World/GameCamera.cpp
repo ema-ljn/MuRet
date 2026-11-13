@@ -35,7 +35,9 @@ constexpr std::array<float, 5> LevelFar{2000.0f, 2500.0f, 2600.0f, 2950.0f, 3200
 constexpr float LoginFar = 20400.0f;
 constexpr float SelectionFar = std::bit_cast<float>(std::uint32_t{0x4633ff9a});
 constexpr float WebzenFar = 5000.0f;
-constexpr float NormalDistance = 1000.0f;
+// 0x6361e3..0x636231 (la tabla 0x636270): la meta de D por el word del nivel. El FLD de cada caso (0x6b88c4, 0x6b8bdc,
+// 0x6ba198, 0x6ba6e0 y 0x6ba188) carga el mismo float que el MOV a 0x6d5ee0.
+constexpr std::array<float, 5> LevelDistance{1000.0f, 1100.0f, 1200.0f, 1300.0f, 1400.0f};
 constexpr float CastleDistance = 1100.0f;
 constexpr float WebzenDistance = 3200.0f;
 constexpr glm::vec3 LoginPosition{12778.0f, 12678.0f, 579.0f};
@@ -131,8 +133,9 @@ Render::Camera3D NormalCamera(float distance, float yaw, float farPlane, float z
     camera.angles.z = yaw;
     camera.farPlane = farPlane;
     const glm::vec3 offset = Offset(-distance, yaw);
-    camera.position = Add(offset, CameraTargetOf(input));
-    float baseHeight = input.map == CastleMap ? CastleHeight : input.hero.z;
+    camera.position = Add(offset, FollowedPointOf(input));
+    // 0x635f02..0x635f11: el 30 antes que el héroe, que el recorrido dejó en 300 (0x635ec0).
+    float baseHeight = input.map == CastleMap ? CastleHeight : input.tour ? CameraTourHeroHeight : input.hero.z;
     if ((input.cellAttribute & FixedHeightAttribute) != 0)
     {
         baseHeight = AttributeHeight;
@@ -180,7 +183,11 @@ void FinishFrame(GameCamera& state, const GameCameraInput& input)
         state.targetDistance = state.distance = CastleDistance;
         return;
     }
-    state.targetDistance = NormalDistance;
+    // 0x6361d0..0x63624d: el word del nivel ya reescrito (0 o el +0x150 del recorrido); fuera de 0..4 (el JA de
+    // 0x6361da) sale sin tocar D ni su meta.
+    if (state.level < 0 || state.level >= static_cast<int>(LevelDistance.size()))
+        return;
+    state.targetDistance = LevelDistance[static_cast<std::size_t>(state.level)];
     state.distance = F32(((static_cast<double>(state.targetDistance) - static_cast<double>(state.distance)) * Third) +
                          static_cast<double>(state.distance));
 }
@@ -193,6 +200,11 @@ glm::vec3 CameraTargetOf(const GameCameraInput& input)
     return hasEffectTarget ? input.effectTarget : input.hero;
 }
 
+glm::vec3 FollowedPointOf(const GameCameraInput& input)
+{
+    return input.tour ? input.tour->position : CameraTargetOf(input);
+}
+
 Render::Camera3D StepGameCamera(GameCamera& state, const GameCameraInput& input)
 {
     state.lastFrameDistance = state.distance;
@@ -200,7 +212,8 @@ Render::Camera3D StepGameCamera(GameCamera& state, const GameCameraInput& input)
     if (!webzen)
     {
         state.farPlane = FarPlaneOf(state, input);
-        state.level = 0;
+        // 0x635ead..0x635ee3: el word que devuelve 0x4034b0 con el recorrido; sin él, 0.
+        state.level = input.tour ? static_cast<std::int16_t>(input.tour->level) : 0;
         if ((input.cellAttribute & FixedHeightAttribute) != 0)
             state.fixedHeight = AttributeHeight;
         AdvanceZoom(state, input.cellAttribute);

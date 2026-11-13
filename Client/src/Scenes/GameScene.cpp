@@ -6,6 +6,7 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Pose.h"
 #include "Scenes/DynamicWorldLight.h"
+#include "Scenes/EventGlobals.h"
 #include "Scenes/EventPackets.h"
 #include "Scenes/ObjectCollapse.h"
 #include "Scenes/FaunaDrawing.h"
@@ -41,6 +42,7 @@
 #include "Render/Pass3D.h"
 #include "Scenes/ActorName.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CameraTour.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/ChatBubbles.h"
@@ -689,12 +691,12 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     m_drawnCamera = camera;
     m_screen = canvas.screen;
     // 0x63726f..0x637337: en el mapa 6 con "webzen" en el nombre (0x576960; la búsqueda de "webzen2" no cambia
-    // nada, Q-C152), el punto fijo (6.400; 15.400) con la z del héroe; si no, el de 0x44dc60. El recorrido de
-    // 0x4033d0 (el BD 00, que MuRet no aplica) no está prendido y no lo cambia.
+    // nada, Q-C152), el punto fijo (6.400; 15.400) con la z del héroe; si no, el de 0x44dc60 y, con el recorrido de
+    // la cámara andando (0x637324, 0x4033d0), su posición (0x4034b0), como la cámara de este frame.
     const World::GameCameraInput& cameraInput = CameraInputState();
     const glm::vec3 target = runtime.map == NamedCameraMap && cameraInput.webzen
                                  ? glm::vec3(SpectatorTargetX, SpectatorTargetY, cameraInput.hero.z)
-                                 : World::CameraTargetOf(cameraInput);
+                                 : World::FollowedPointOf(cameraInput);
     // 0x63733e: 0x5bb8d0, el ancho del mundo, con los rand() del frame (las consultas del comercio y de la tienda
     // con el inventario abierto): 640 sin ventanas, 450 con una y 260 con dos.
     const std::int32_t worldWidth = GamePanels(*m_context.world, FrameCloth().random).Registry().WorldWidth();
@@ -810,6 +812,11 @@ Render::Camera3D GameScene::CameraOfTheFrame(SceneCanvas& canvas, int frames)
     input.webzen = ActorNameContains(hero, "webzen");
     input.worldTime =
         static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count());
+    // 0x635ead y 0x637324: 0x4033d0 sobre [0x6e5904] y, verdadero, 0x4034b0. Nada entre la cámara y el centro del
+    // mundo toca el recorrido: los dos lo leen igual.
+    const CameraTour& tour = runtime.events.cameraTour;
+    input.tour =
+        CameraTourRunning(tour) ? std::optional(World::GameCameraTour{tour.position, tour.level}) : std::nullopt;
     if (frames == 0)
     {
         // Un dibujo intermedio de MuRet: consulta la cámara del último frame original, sin gastar rand().
@@ -817,9 +824,15 @@ Render::Camera3D GameScene::CameraOfTheFrame(SceneCanvas& canvas, int frames)
     }
     // Cada frame original termina en el corte de abajo: de los que cuenta el reloj corre el primero y el
     // corte no deja correr los demás.
-    // 0x635b3d..0x635b9e: la rama del mapa 6 con "webzen" no lee la celda del héroe (ni sus rand()).
+    // 0x635b3d..0x635b9e: la rama del mapa 6 con "webzen" no lee la celda del héroe (ni sus rand()) ni el recorrido.
     if (!(input.map == NamedCameraMap && input.webzen))
+    {
         input.cellAttribute = HeroCellAttribute(hero, *world.Map().terrain.attributes, m_context.cloth->random);
+        // 0x635ec0: con el recorrido andando, la z del héroe en 300; queda así para el resto del frame (el dibujo del
+        // héroe) hasta que un paso la vuelva a escribir.
+        if (input.tour)
+            input.hero.z = hero.position.z = World::CameraTourHeroHeight;
+    }
     return World::StepGameCamera(CameraState(), input);
 }
 

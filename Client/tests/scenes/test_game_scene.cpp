@@ -1,9 +1,11 @@
 #include "Scenes/GameScene.h"
 
+#include "App/PacingMode.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "App/WorldEvent.h"
 #include "Core/Expected.h"
+#include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
@@ -18,9 +20,11 @@
 #include "Input/InputState.h"
 #include "Network/PacketSerials.h"
 #include "Render/ModelBatch.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/Pass3D.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/TextureSlot.h"
@@ -28,6 +32,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/EventGlobals.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/FaunaStep.h"
 #include "Scenes/FaunaState.h"
@@ -67,6 +72,7 @@
 #include "support/SessionHarness.h"
 #include "support/TestGameServer.h"
 
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
@@ -800,13 +806,16 @@ protected:
                                                Client::Scenes::SelectionCamera().angles.z);
     }
 
-    // Con `texts`, el Text.bmd de la Data (sin él, lo que lo lee corta).
-    [[nodiscard]] GameScene Scene(const Client::Data::Text::TextTable* texts = nullptr)
+    // Con `texts`, el Text.bmd de la Data (sin él, lo que lo lee corta); con el ritmo fiel, cada dibujo es un frame del
+    // original.
+    [[nodiscard]] GameScene Scene(const Client::Data::Text::TextTable* texts = nullptr,
+                                  Client::App::PacingMode pacing = Client::App::PacingMode::Decoupled)
     {
         return GameScene(SceneContext{.dataRoot = m_dataRoot,
                                       .textures = store,
                                       .log = log,
                                       .cloth = &cloth,
+                                      .pacing = pacing,
                                       .camera = &camera,
                                       .cameraInput = &cameraInput,
                                       .world = &world},
@@ -1021,6 +1030,183 @@ TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainTheGrassTheGroundMarksAn
         scene.Leave();
         EXPECT_FALSE(store.Find(Client::Render::TextureSlot{probe.grass}).has_value());
         EXPECT_FALSE(store.Find(Client::Render::TextureSlot{Client::World::FirstTileSlot}).has_value());
+    }
+}
+
+// 0x635ead..0x635ed8 y 0x637324: con el recorrido de la cámara andando (0x4033d0: la etapa 2, sin la espera ni el
+// corte), la cámara y el centro del mundo de cada frame del original siguen su posición (0x4034b0) y la z del héroe
+// queda en 300 (0x635ec0): el frame es el de un héroe parado en ese punto a 300, con su celda lógica. Cortado (+0x158)
+// o con otra etapa, el frame siguiente vuelve al héroe, que sigue a 300 porque parado nadie le recalcula la z. El word
+// del nivel (0x7d3a0ec) es el +0x150 del recorrido: el trapecio lo toma en el mismo frame (0x5fb570), la meta de D
+// también (0x6361d0) y el far en el siguiente (0x635e00); sin el recorrido, el trapecio sigue con el nivel hasta que D
+// vuelve a 1.000. En Lorencia, en Devias y en Crywolf.
+TEST_F(GameSceneDrawTest, TheCameraFollowsTheTourWhileItRunsAndThenTheHeroAgain)
+{
+    struct Case
+    {
+        std::uint8_t map;
+        std::uint8_t x;
+        std::uint8_t y;
+        // true: el BD 00 deja otra etapa (0x4033b0, la 3); false: Esc o el fin del guion (+0x158, 0x623edc y 0x404bc6).
+        bool otherStage;
+    };
+    struct Drawn
+    {
+        Client::Render::Pass3D pass;
+        Client::World::TerrainPolygon polygon;
+        std::vector<std::size_t> seen;
+        std::uint32_t random = 0;
+    };
+    constexpr Client::Core::Duration FrameTime = Client::Render::Models::OriginalFrameTime;
+    constexpr Client::Core::Duration FirstFrame = std::chrono::milliseconds{1000};
+    for (const Case& probe :
+         {Case{0, 143, 120, false}, Case{2, 220, 30, true}, Case{34, 120, 114, false}, Case{34, 120, 114, true}})
+    {
+        SCOPED_TRACE(static_cast<int>(probe.map));
+        SCOPED_TRACE(probe.otherStage);
+        const glm::vec3 tourPoint{(static_cast<float>(probe.x + 6) * 100.0f) + 50.0f,
+                                  (static_cast<float>(probe.y + 4) * 100.0f) + 50.0f, 400.0f};
+        // Un frame del original en `at`: su pase de los modelos, el trapecio, los objetos vistos y el rand().
+        const auto draw = [&](GameScene& scene, Client::Tests::RecordingFrameTarget& target, Client::Core::Duration at)
+        {
+            scene.PrepareFrame();
+            EXPECT_FALSE(scene.HoldsTheLastFrame());
+            scene.Render(target.BeginFrame(at), 0.0f);
+            EXPECT_FALSE(scene.Failure().has_value()) << scene.Failure().value_or("");
+            const Client::Tests::FrameEvent* models = ModelsOf(target.frames.back());
+            target.Present();
+            Drawn drawn{.pass = {},
+                        .polygon = world.Runtime().terrainPolygon,
+                        .seen = SeenObjects(world),
+                        .random = cloth.random.State()};
+            if (models != nullptr && models->pass)
+                drawn.pass = *models->pass;
+            else
+                ADD_FAILURE() << "sin el pase de los modelos";
+            return drawn;
+        };
+
+        // El gemelo sin recorrido: el héroe dibujado en el punto del recorrido a 300 y en la misma celda lógica.
+        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
+        world.Actors()[HeroSlot].position = {tourPoint.x, tourPoint.y, Client::World::CameraTourHeroHeight};
+        Drawn twin;
+        {
+            GameScene scene = Scene();
+            ASSERT_TRUE(scene.Enter().HasValue());
+            Client::Tests::RecordingFrameTarget target;
+            twin = draw(scene, target, FirstFrame);
+            EXPECT_EQ(camera.level, 0);
+            scene.Leave();
+        }
+        // Y el del héroe en su lugar, ya a 300, como lo deja el recorrido.
+        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
+        const glm::vec2 heroPlace{world.Actors()[HeroSlot].position};
+        world.Actors()[HeroSlot].position.z = Client::World::CameraTourHeroHeight;
+        Drawn standing;
+        {
+            GameScene scene = Scene();
+            ASSERT_TRUE(scene.Enter().HasValue());
+            Client::Tests::RecordingFrameTarget target;
+            standing = draw(scene, target, FirstFrame);
+            scene.Leave();
+        }
+
+        // El recorrido andando con `level`, en una escena que dibuja un frame del original por dibujo.
+        const auto startTheTour = [&](std::int32_t level)
+        {
+            Client::Scenes::CameraTour& tour = world.Runtime().events.cameraTour;
+            tour = Client::Scenes::CameraTour{};
+            tour.stage = 2;
+            tour.waiting = false;
+            tour.position = tourPoint;
+            tour.level = level;
+        };
+        const auto stopTheTour = [&]
+        {
+            Client::Scenes::CameraTour& tour = world.Runtime().events.cameraTour;
+            if (probe.otherStage)
+                tour.stage = 3;
+            else
+                tour.skipped = true;
+        };
+
+        // Con el nivel 0: el frame del gemelo y, sin el recorrido, el del héroe a 300.
+        {
+            ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
+            startTheTour(0);
+            GameScene scene = Scene(nullptr, Client::App::PacingMode::Faithful);
+            ASSERT_TRUE(scene.Enter().HasValue());
+            Client::Tests::RecordingFrameTarget target;
+            const Drawn first = draw(scene, target, FirstFrame);
+            ASSERT_TRUE(cameraInput.tour.has_value());
+            EXPECT_EQ(cameraInput.tour->position, tourPoint);
+            EXPECT_EQ(world.Actors()[HeroSlot].position,
+                      glm::vec3(heroPlace.x, heroPlace.y, Client::World::CameraTourHeroHeight));
+            EXPECT_EQ(cameraInput.hero, world.Actors()[HeroSlot].position);
+            EXPECT_EQ(first.pass.view, twin.pass.view);
+            EXPECT_EQ(first.pass.projection, twin.pass.projection);
+            EXPECT_EQ(first.pass.farPlane, twin.pass.farPlane);
+            EXPECT_EQ(first.polygon.x, twin.polygon.x);
+            EXPECT_EQ(first.polygon.y, twin.polygon.y);
+            EXPECT_EQ(first.seen, twin.seen);
+            EXPECT_EQ(first.random, twin.random);
+            EXPECT_NE(first.pass.view, standing.pass.view);
+
+            stopTheTour();
+            const Drawn back = draw(scene, target, FirstFrame + FrameTime);
+            EXPECT_FALSE(cameraInput.tour.has_value());
+            EXPECT_EQ(back.pass.view, standing.pass.view);
+            EXPECT_EQ(back.pass.farPlane, standing.pass.farPlane);
+            EXPECT_EQ(back.polygon.x, standing.polygon.x);
+            EXPECT_EQ(back.polygon.y, standing.polygon.y);
+            EXPECT_EQ(back.seen, standing.seen);
+            EXPECT_EQ(world.Actors()[HeroSlot].position.z, Client::World::CameraTourHeroHeight)
+                << "0x635ec0 no vuelve: el héroe parado se queda a 300";
+            scene.Leave();
+        }
+
+        // Con el nivel 2: la vista del primer frame es la del gemelo (la D de antes del suavizado), pero el trapecio y
+        // la meta de D ya son los del 2; el far, desde el segundo.
+        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
+        startTheTour(2);
+        GameScene scene = Scene(nullptr, Client::App::PacingMode::Faithful);
+        ASSERT_TRUE(scene.Enter().HasValue());
+        Client::Tests::RecordingFrameTarget target;
+        Client::Core::Duration at = FirstFrame;
+        const Drawn leveled = draw(scene, target, at);
+        EXPECT_EQ(camera.level, 2);
+        EXPECT_EQ(camera.targetDistance, 1200.0f);
+        EXPECT_EQ(world.Runtime().terrainPolygonState.effectiveLevel, 2);
+        EXPECT_EQ(leveled.pass.farPlane, 2000.0f);
+        EXPECT_EQ(leveled.pass.view, twin.pass.view);
+        EXPECT_NE(leveled.polygon.x, twin.polygon.x);
+        at += FrameTime;
+        const Drawn away = draw(scene, target, at);
+        EXPECT_EQ(away.pass.farPlane, 2600.0f);
+        EXPECT_NE(away.pass.view, twin.pass.view) << "la D ya subió hacia 1.200";
+
+        // Sin el recorrido: el far lee el 2 una vez más y la meta vuelve a 1.000, pero con D por encima el trapecio
+        // sigue con el nivel 2 (0x5fb70e..0x5fb73d) hasta que D vuelve a 1.000.
+        stopTheTour();
+        at += FrameTime;
+        const Drawn back = draw(scene, target, at);
+        EXPECT_FALSE(cameraInput.tour.has_value());
+        EXPECT_EQ(camera.level, 0);
+        EXPECT_EQ(camera.targetDistance, 1000.0f);
+        EXPECT_EQ(back.pass.farPlane, 2600.0f);
+        EXPECT_GT(camera.distance, 1001.0f);
+        EXPECT_EQ(world.Runtime().terrainPolygonState.effectiveLevel, 2);
+        int frames = 1;
+        while (world.Runtime().terrainPolygonState.effectiveLevel != 0 && frames < 30)
+        {
+            at += FrameTime;
+            static_cast<void>(draw(scene, target, at));
+            ++frames;
+        }
+        EXPECT_EQ(world.Runtime().terrainPolygonState.effectiveLevel, 0);
+        EXPECT_LT(camera.distance, 1001.0f);
+        EXPECT_GT(frames, 5);
+        scene.Leave();
     }
 }
 

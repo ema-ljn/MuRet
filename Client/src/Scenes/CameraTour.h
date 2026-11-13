@@ -51,6 +51,6 @@ void RemoveTheCameraTourActors(WorldState& world, const CameraTour& tour);
 //   - 0x4033f0: con la etapa 2 y la espera, 0x404c90(5000) la apaga; con la etapa 3, 0x403d60 y 0x403300;
 //   - con 0x4033d0 verdadero, 0x403390 y el guion de la etapa 2 (0x4035f0).
 // 0x4033d0 lo leen también el clic (0x59ae24), la UI (0x59ff3f), Esc (0x623ec8), la cámara (0x635ead) y el centro del
-// mundo (0x637324); los dos últimos no están portados (P-C299).
+// mundo (0x637324): los dos últimos, con 0x4034b0, en World::GameCameraInput::tour (GameScene::CameraOfTheFrame).
 [[nodiscard]] Core::Expected<void, std::string> StepTheCameraTour(const CameraTourContext& context);
 } // namespace Client::Scenes

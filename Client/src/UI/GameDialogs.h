@@ -5,6 +5,7 @@
 #include "Data/Text/TextTable.h"
 #include "UI/Dialogs.h"
 #include "UI/Widget.h"
+#include "World/ItemState.h"
 
 #include <array>
 #include <cstddef>
@@ -62,6 +63,13 @@ struct DialogBoxState
     std::int32_t pageText = 0;
     std::int8_t page = 0;
     std::int8_t lastPage = 0;
+    // 0x7d3a0dc y 0x7d3a0e0: la casilla de la joya de bendición ([0x78a6758] − 12) y el lugar del 0x1a25 sobre el que
+    // se soltó (0x5d8345 y 0x5d8361, CL9 hito 5). Los lee el diálogo 0xa9 (0x629d0e y 0x629e03, CL9.3).
+    std::int32_t jewelCell = 0;
+    std::int32_t jewelTarget = 0;
+    // 0x7d36908..0x7d36918: el tercer botón, que solo arma el 0xa8 (0x6337c3..0x6337e3) y que leen su paso (0x6283af)
+    // y su dibujo (0x630ff8). Fuera del arreglo de los dos: entre ellos y él están 0x7d368e4 y las respuestas.
+    DialogButton thirdButton{};
     // 0x7d3691c: las respuestas, "%d) %s" partido en un renglón cada una. El de sin respuestas va con strcpy y puede
     // seguir en el siguiente.
     std::array<char, DialogAnswerRows * DialogRowBytes> answers{};
@@ -85,13 +93,15 @@ void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view 
 
 // 0x633300(renglones, primerTexto, id): los textos `firstText` .. `firstText + lineCount − 1` de Text.bmd en los
 // renglones, con un strcpy cada uno (0x9a los parte con 0x632c90 uno detrás del otro), los botones (1, 0x15, 0x5a,
-// 0x46, 0x15) y (3, 0x78, 0x5a, 0x46, 0x15), con y = 0x78 en el 0x9a, y el id por 0x6236f0. Los de 0x99, 0xa3, 0x96
-// y 0xa8 arman su texto con un formato y cortan con su dirección (CL9.3). Lo que se escribiría fuera de los 7
-// renglones corta, como un texto que no está.
-[[nodiscard]] Core::Expected<void, std::string> OpenTextDialog(DialogBoxState& box, DialogState& dialogs,
-                                                               const Data::Text::TextTable* texts,
-                                                               std::int32_t lineCount, std::int32_t firstText,
-                                                               std::int32_t id);
+// 0x46, 0x15) y (3, 0x78, 0x5a, 0x46, 0x15), con y = 0x78 en el 0x9a, y el id por 0x6236f0. El 0x96 y el 0xa8
+// (0x633644..0x633739) nombran el ítem de los diálogos (`dialogItem`, 0x78a59c8): la fruta (0x1a0f) de nivel 0 a 4
+// con el texto 168, 169, 167, 166 o 1900, cualquier otro con nada, entre "( " y " )" en el primer renglón (con el
+// 1901 detrás en el 0xa8), y debajo `lineCount` veces el texto `firstText`; el 0xa8 con sus tres botones. Sin el ítem
+// cortan. Los de 0x99 y 0xa3 arman su texto con un formato y cortan con su dirección (CL9.3). Lo que se escribiría
+// fuera de los 7 renglones corta, como un texto que no está.
+[[nodiscard]] Core::Expected<void, std::string>
+OpenTextDialog(DialogBoxState& box, DialogState& dialogs, const Data::Text::TextTable* texts, std::int32_t lineCount,
+               std::int32_t firstText, std::int32_t id, const World::ItemState* dialogItem = nullptr);
 
 // 0x419710(índice), lo que muestra la ventana de las misiones: [0x6d5e28] = índice, el texto de Dialog.bmd partido en
 // los 7 renglones (0x632c90), las respuestas en 0 y, por cada una, "%d) %s" (wsprintf con 0x6c64b8) en un renglón; sin

@@ -28,6 +28,7 @@
 #include "UI/Dialogs.h"
 #include "UI/PanelRegistry.h"
 #include "World/GameCamera.h"
+#include "World/ItemState.h"
 
 #include "support/Bytes.h"
 #include "support/ItemFiles.h"
@@ -403,6 +404,39 @@ TEST_F(NpcWindowRepliesTest, StoringAndTakingZenSends81WhenThePasswordIsAccepted
     }
     ASSERT_TRUE(Client::Scenes::ApplyWarehouseState({.state = 0xb}, stage->Resources()).HasValue());
     EXPECT_EQ(stage->world.Runtime().dialogs.current, 0x86);
+}
+
+// El 83 con 0xc y un ítem esperando (0x4e47b0..0x4e47c6): 0x449d80 con los cuatro valores guardados, el C1 0E 24 del
+// ítem del cursor con el XOR32 y en C3 (dos rand()), y la traba del 24 (0x78abb39) prendida. Con la traba ya prendida,
+// 0x449d80 no manda nada, pero el 83 deja igual 0x6c932f y 0x78abb1c en 1.
+TEST_F(NpcWindowRepliesTest, TakingAnItemSends24WhenThePasswordIsAccepted)
+{
+    for (const bool alreadyMoving : {false, true})
+    {
+        SCOPED_TRACE(alreadyMoving);
+        stage = std::make_unique<Stage>();
+        auto& runtime = stage->world.Runtime();
+        ASSERT_TRUE(Client::Scenes::ApplyWarehouseState({.state = 1}, stage->Resources()).HasValue());
+        Npc().pendingMove = {.slot = 2, .second = 17, .third = 0, .fourth = 30};
+        runtime.cursorItem = Client::World::ItemState{.id = Shield, .scalar1Low = 2u << 3, .durability = 9};
+        runtime.cursorItemCount = 1;
+        runtime.ui.field78abb39 = alreadyMoving ? 1 : 0;
+        const CrtRandom expected = Advanced(stage->cloth.random, alreadyMoving ? 0 : 2);
+        ASSERT_TRUE(Client::Scenes::ApplyWarehouseState({.state = 0xc}, stage->Resources()).HasValue());
+        EXPECT_EQ(stage->cloth.random.State(), expected.State());
+        EXPECT_EQ(runtime.ui.field78abb39, 1);
+        EXPECT_EQ(Npc().warehouseLocked, 1);
+        EXPECT_EQ(Npc().field78abb1c, 1);
+        if (alreadyMoving)
+        {
+            EXPECT_TRUE(stage->sent.empty());
+            continue;
+        }
+        ASSERT_EQ(stage->sent.size(), 1u);
+        EXPECT_EQ(stage->sent[0].delivery, Delivery::Encrypted);
+        EXPECT_TRUE(SameBytes(stage->Plain(0).Bytes(),
+                              Bytes({0xc1, 0x0e, 0x24, 0x02, 17, 0x00, 0x10, 9, 0x00, 0x00, 0x60, 0x00, 0x00, 30})));
+    }
 }
 
 // El 86 con 1 (0x4da2c5): el texto 595, la caja vacía y el ítem nuevo en el lugar 0, con 0x7d2dc80 en 2.

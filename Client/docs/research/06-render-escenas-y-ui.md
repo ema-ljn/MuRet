@@ -1741,6 +1741,22 @@ del frame en `0x63b0b7`); salvo el `0x73`, el clic en `[0x11c, 0x162) × [0x62, 
 el `0x70`, el `0x6f`, el `0x1a` y el `0x1c` cierran el juego (`SendMessageA(WM_DESTROY)`, `0x62828e`); el `0x73` y
 el `0x8f` son de otras olas; los demás pasan el que espera.
 
+**Los de sí y no, el `0x73` y el `0x8f`** (CL9 hito 6, fase 2, 2026-11-13, *estático*; en MuRet
+`Scenes::StepTheOpenDialog` con `DialogStep::YesNo`, `Scenes::ConfirmTheMoneyDialog` y `UI::OpenTextDialog`).
+`0x6282dc..0x62843f`: los dos botones arrancan en su estado (1 y 3) y suben uno con el mouse en `[x + 0xd5,
+x + ancho + 0xd5] × [y + arriba, y + alto + arriba]`, con los bordes adentro (arriba `0x64`, o `0xd2` en el `0xa3`);
+el clic elige el botón, después se apagan el clic y el izquierdo, y el flanco de Esc (con los amigos cerrados) elige
+el no. El `0x94`, el `0x98` y el `0x99` dejan la respuesta en `0x6c932e` (1 el sí, 2 el no; `0x62a779`), cierran y
+suenan; el `0x96` con el sí pasa el que espera y abre el `0xa8` con `0x633300(1, 0x76e, 0xa8)`; el `0xa9` con el sí,
+fuera del almacén, `0x80` y el comercio (`0x5af520`), manda el `26` de la joya (08, P-C193), o con una de ellas el
+aviso 474, y con el no suelta la joya (`0x5be150`). El `0x9a`, el `0xa3`, el `0xa8` y el `0xaa` siguen cortados
+(P-C192). El texto del `0x96` y del `0xa8` (`0x63330f` → `0x633644`): el nombre del ítem de `0x78a59c8` en
+`"( %s )"` (el `0xa8` agrega el texto 1901 con `"( %s%s )"`), con la fruta (`0x1a0f`) de nivel 0 a 4 por los textos
+168, 169, 167, 166 y 1900, y debajo el mismo texto en cada renglón (07, Q-C922). El OK del `0x73` (Enter,
+`0x626460..0x6282c8`) es el zen del almacén ([04](04-protocolo.md#las-ventanas-de-los-npc-30-a-34-81-a-83-86-y-87),
+el `81`) y termina con los campos de texto como antes del `0x73` (`0x6c8e78` en `0x2a`, dos campos de Tab y
+`0x77f3b6a` en 0) y el sonido; el del `0x8f` (`0x628276`) cierra y abre el teclado del almacén en 6 (`0x5e7aa0`).
+
 **El dibujo** (`0x62db60`, en `0x637696` con la escena 5). Siempre deja `0x620980`, el blanco, la fuente normal en el
 DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos van con `0x554180` centrados en
 `0x140 − (cx · 640 / W) / 2` y dejan su tamaño en `0x77f31b8`.
@@ -1798,6 +1814,18 @@ nivel de los botones: 3 × 3.848) y el comercio y la tienda de NPC se consultan 
 tienda 2; Q-C470): **11.549** por frame. Con el inventario abierto, `0x5bb8d0` (el ancho del mundo) también consulta
 el comercio y la tienda: 2 más en `0x63733e`, 2 en `0x63738a` y 2 en los avisos de durabilidad del HUD (`0x5aac20`),
 y 2 por cada munición a la vista (`0x5ab810`).
+
+**Las ventanas de los NPC en el paso** (CL9 hito 6, fase 2, 2026-11-13, *estático*; en MuRet `Scenes/GameUi.cpp` y
+`Scenes/NpcWindowSteps.cpp`). Con la tienda, el almacén o la caja del caos abiertos, el mouse sobre su ventana (en la
+esquina de `0x78aba28`, `(0x104, 0)` con el inventario) es de la UI; `0x5e571c..0x5e589c` recorre la grilla de la
+tienda (`0x5c4110` con el tipo 1: comprar), la del almacén (con el 0) y, con la mezcla fuera de 1, la caja del caos,
+desde `(x + 0xf, y + 0x32)` y `(x + 0xf, y + 0x6e)`; `0x5aed40` deja la ayuda del ítem en `(1, casilla)` en el
+almacén y `(4, casilla)` en la caja. Después del inventario, las hermanas: la caja del caos (`0x5fe610`), el almacén
+(`0x5ea060`: meter y sacar zen con el `0x73`, el teclado y cerrar) y la tienda (`0x5ed960`, con su `rand()`: los
+botones del modo de reparar y reparar todo con `0x78abb09`, y `0x5b1570`, lo que cuesta reparar todo, con el
+registro propio abierto). Con el almacén abierto, la cadena de Q, W y E y la cola `IsOpen(0)` se paran en `0x40`
+antes de consultar la tienda: un `rand()` menos cada una que con todo cerrado. Los dibujos de las tres ventanas siguen
+cortados (08, P-C192).
 
 **El mundo angosto** (`0x6371a0`). `0x5bb8d0` da 640 sin ventanas, 450 con una y 260 con dos. `0x63733e` lo pide para
 `0x620db0(0, 0, w, 48)` (solo la modelview) y `0x5fbb00(w · 0,0015625f, &p)`, que achica los cinco planos y el rango

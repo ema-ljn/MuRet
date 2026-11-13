@@ -93,6 +93,8 @@ constexpr std::int32_t PendingMoney = -1;
 // 0x4e4828: el diálogo que el 82 y el 87 cierran, y los campos de Tab que deja (0x4e484c).
 constexpr std::int32_t ClosedByTheServerDialog = 0x73;
 constexpr std::int32_t ClosedChatFieldCount = 2;
+// 0x4e483b: 0x6c8e78 en 0x2a.
+constexpr std::int32_t ClosedInputMode = 0x2a;
 // 0x4d28a9..0x4d28f6: el mundo de 260 sobre 640 y la pantalla en 640 × 480.
 constexpr std::int32_t TalkWorldWidth = 260;
 constexpr std::int32_t VirtualWidth = 640;
@@ -410,11 +412,12 @@ Core::Expected<void, std::string> ApplyNpcWindowClosed(const Npc::NpcWindowClose
     runtime.cursorItem.occupied = 0;
     if (runtime.dialogs.current != ClosedByTheServerDialog)
         return {};
-    // 0x4e4831..0x4e485d. 0x6c8e78 (0x2a) y 0x77f3b6a (0) son de la entrada sin EDIT y de los diálogos, que MuRet no
-    // tiene.
+    // 0x4e4831..0x4e485d.
     UI::PushDialog(runtime.dialogs, 0);
     UI::ResetTheTextBuffers(runtime.chat.input, false);
+    runtime.npcWindows.inputMode = ClosedInputMode;
     runtime.chat.input.fieldCount = ClosedChatFieldCount;
+    runtime.npcWindows.numberField = 0;
     runtime.ui.chatOpen = false;
     return {};
 }
@@ -448,17 +451,28 @@ Core::Expected<void, std::string> ApplyWarehouseState(const Npc::WarehouseState&
     // 0x4e4765..0x4e47d5: con la traba y sin 0x78abb1c, lo que esperaba; siempre, los dos en 1.
     if (npc.warehouseLocked != 0 && npc.field78abb1c == 0)
     {
-        const PendingWarehouseMove& pending = npc.pendingMove;
+        const PendingWarehouseMove pending = npc.pendingMove;
         if (pending.slot != PendingMoney)
-            return Core::Unexpected(std::format("0x4e47c6: 0x449d80, el ítem del lugar {} que esperaba la contraseña "
-                                                "del almacén, viene de soltarlo en el almacén (CL9 hito 6, fase 2)",
-                                                pending.slot));
+        {
+            // 0x4e47b0..0x4e47c6: 0x449d80(origen, lugar, destino, lugar) con los cuatro, el 24 del ítem del cursor
+            // en C3 por la misma sesión.
+            InventoryServices services = InventoryServicesOf(resources);
+            services.sendItemMove = [&resources](const Protocol::Inventory::ItemMove& move) {
+                return Send(resources.sendNpcWindowPacket, Protocol::Inventory::WriteItemMove(move),
+                            "0x4e47c6: el C1 0E 24");
+            };
+            const auto byte = [](std::int32_t value) { return static_cast<std::uint8_t>(value & 0xff); };
+            if (auto sent = SendTheCursorItemBetween(MovesOf(resources, services), byte(pending.slot),
+                                                     byte(pending.second), byte(pending.third), byte(pending.fourth));
+                !sent.HasValue())
+                return sent;
+        }
         // 0x4e6f80(tipo, zen), con el XOR32 y en claro.
-        if (auto sent = Send(resources.sendNpcWindowPacket,
-                             Npc::WriteWarehouseMoney(static_cast<std::uint8_t>(pending.second & 0xff),
-                                                      static_cast<std::uint32_t>(pending.third)),
-                             "0x4e478e: el C1 08 81");
-            !sent.HasValue())
+        else if (auto sent = Send(resources.sendNpcWindowPacket,
+                                  Npc::WriteWarehouseMoney(static_cast<std::uint8_t>(pending.second & 0xff),
+                                                           static_cast<std::uint32_t>(pending.third)),
+                                  "0x4e478e: el C1 08 81");
+                 !sent.HasValue())
             return sent;
     }
     npc.warehouseLocked = 1;

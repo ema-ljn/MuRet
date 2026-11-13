@@ -318,6 +318,13 @@ const World::ItemState* HoveredItemOf(WorldState& world)
     case UI::HoveredItem::Place::Equipment:
         return hovered.index < world.OwnCharacter().equipment.size() ? &world.OwnCharacter().equipment[hovered.index]
                                                                      : nullptr;
+    case UI::HoveredItem::Place::NpcGridCell:
+        return hovered.index < world.Runtime().npcWindows.grid.size() ? &world.Runtime().npcWindows.grid[hovered.index]
+                                                                      : nullptr;
+    case UI::HoveredItem::Place::ChaosBoxCell:
+        return hovered.index < world.Runtime().npcWindows.chaosBox.size()
+                   ? &world.Runtime().npcWindows.chaosBox[hovered.index]
+                   : nullptr;
     case UI::HoveredItem::Place::None:
         return nullptr;
     }

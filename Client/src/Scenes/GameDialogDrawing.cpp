@@ -523,6 +523,9 @@ Core::Unexpected<std::string> CutTheDialog(std::int32_t id)
     std::string_view wave = "CL9";
     if (route.step == DialogStep::Cut)
         wave = route.wave;
+    // 0x630cc4..0x630fbe: el marco y los botones de los de sí y no, y sus textos (0x632630), de la fase 3 del hito 6.
+    if (route.step == DialogStep::YesNo)
+        wave = "fase 3 del hito 6 (08 P-C192)";
     // 0x630c7b: el 0x73 dibuja el EDIT de su campo (0x5763504), como corta su paso.
     if (id == 0x73)
         wave = "CL9.4";

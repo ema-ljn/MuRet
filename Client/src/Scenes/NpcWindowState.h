@@ -38,6 +38,9 @@ struct CursorWarp
     std::int32_t y = 0;
 };
 
+// 0x7879fc8..0x7879fdc: las diez teclas del teclado del almacén, words con 0 a 9 que se barajan al abrirlo.
+inline constexpr std::size_t WarehouseKeyCount = 10;
+
 struct NpcWindowState
 {
     // 0x78a7070: la grilla de la tienda de NPC y del almacén.
@@ -55,8 +58,37 @@ struct NpcWindowState
     // 0x78abb1c: lo pone en 0 el 83 con 0 y 1, y el 83 con 0xc solo manda con él en 0.
     std::uint8_t field78abb1c = 0;
     PendingWarehouseMove pendingMove{};
-    // 0x5767950: el 32 lo vuelve a 0 (0x4e3c58); con otro valor, la tienda no compra (0x5c4b91, 0x5c4bcc).
+    // 0x5767950: el 32 lo vuelve a 0 (0x4e3c58); con otro valor, la tienda no compra (0x5c4b91, 0x5c4bcc). Comprar le
+    // pone el precio de 0x54d0f0 en el modo 0 (0x5c4bc9 y las salidas del envío).
     std::int32_t buyLock = 0;
+    // 0x78ababc: lo que cuesta reparar todo. 0x5b1570 lo cuenta en cada paso de la tienda con 0x78abb09 y lo dibuja
+    // 0x5f4720.
+    std::int32_t repairAllPrice = 0;
+    // 0x7879fc8: el teclado del almacén.
+    std::array<std::uint16_t, WarehouseKeyCount> keypad{};
+    // 0x78ab9fc..0x78aba06: lo que se tecleó, en 0 al barajar (0x5cb43c..0x5cb44f y 0x5ea22d..). El 83 de la
+    // contraseña (0x5e7e90) manda los diez primeros.
+    std::array<std::uint8_t, 11> typedNumber{};
+    // 0x78abb14: lo que espera el diálogo de sí o no que abrió el ítem del cursor (.bss, 0). 1 la venta valiosa (el
+    // 0x98 de 0x5df417), 2 la mezcla (el 0x98 de 0x5fe610), 3 a 6 los de la CL9.4. 0x5d8d50 lo vuelve a 0 al leer la
+    // respuesta.
+    std::int32_t cursorChoice = 0;
+    // 0x6c932e (.data, 0xff): la respuesta de los diálogos 0x94, 0x98 y 0x99 (0x62a779): 1 sí y 2 no. 0x5d8d50 la
+    // vuelve a 0xff al leerla.
+    std::uint8_t dialogAnswer = 0xff;
+    // 0x78abacc: el botón del almacén que abrió el diálogo 0x73, 0 meter zen y 1 sacarlo (0x5ea18f).
+    std::int32_t warehouseMoneyMode = 0;
+    // 0x77f3b6c: el número del campo del diálogo 0x73, que escribe el atoi del WndProc (0x4af4e0) sobre su EDIT
+    // (0x5763504). MuRet no tiene ese EDIT (06 § El chat): queda en lo que dejó el 0x73 al abrirse.
+    std::int32_t typedMoney = 0;
+    // 0x6c8e78 (.data, 10) y 0x77f3b6a: el modo de la entrada sin EDIT y el campo numérico de los diálogos. Abrir el
+    // 0x73 los pone en 8 y 1 (0x5ea1a5) y cerrarlo en 0x2a y 0 (0x62821f, 0x4e4831); los lee el WndProc, que MuRet no
+    // tiene.
+    std::int32_t inputMode = 10;
+    std::uint8_t numberField = 0;
+    // 0x7d2dc98: el tipo de la mezcla que manda el C1 04 86 (0x5d93f8). Lo arma 0x5fd4b0 con la caja abierta
+    // (0x5d8dda), que es de la fase 3 (08 P-C192): hasta entonces, el 0 de la .bss.
+    std::int32_t mixKind = 0;
     // 0x6e5798: con 0, el 30 con 9 abre el diálogo 0xa1 (0x4d259d).
     std::uint8_t field6e5798 = 0;
     // El SetCursorPos que pidió el último 30 (0x4d28f6), con el mouse que vea la escena: NpcTalkCursorWarp. Aplicarlo

@@ -846,9 +846,9 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
         return cut("0x5f3030: las tiendas personales son de la CL9.4");
     if (panels.IsOpen(UI::NpcShopPanel))
-        return cut("0x5f4720: la tienda del NPC es de la CL9.3");
+        return cut("0x5f4720: el dibujo de la tienda del NPC es de la fase 3 del hito 6 (08 P-C192)");
     if (panels.IsOpen(UI::ChaosBoxPanel))
-        return cut("0x5febf0: la caja del caos es de la CL9.3");
+        return cut("0x5febf0: el dibujo de la caja del caos es de la fase 3 del hito 6 (08 P-C192)");
     if (state.delegated.trainer != 0 && state.delegated.trainer != 4)
         return cut("0x44b510: la ventana del entrenador es de la CL9.3");
     if (state.delegated.siegeWeapon != 0)
@@ -856,7 +856,7 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
     if (state.delegated.siegeGate != 0)
         return cut("0x44ff00: la puerta del asedio es de la CL9.5");
     if (panels.IsOpen(UI::WarehousePanel))
-        return cut("0x5f4e30: el almacén es de la CL9.3");
+        return cut("0x5f4e30: el dibujo del almacén es de la fase 3 del hito 6 (08 P-C192)");
     if (panels.IsOpen(UI::EventNpcPanel))
         return cut("0x5f58f0: la ventana del NPC de evento es de la CL9.5");
     if (state.field78abb00 != 0)
@@ -1557,7 +1557,8 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
         return bar;
     // 30. 0x5e9b10.
     if (runtime.ui.field78abb20 != 0)
-        return Core::Unexpected(std::string("0x5e9b10: la caja de la contraseña es del almacén, de la CL9.3"));
+        return Core::Unexpected(std::string("0x5e9b10: la caja de la contraseña del almacén es de la fase 3 del "
+                                            "hito 6 (08 P-C192)"));
     // 31. Sin ninguna ventana, 0x4125b0.
     return DrawTheSiegePanel(frame);
 }

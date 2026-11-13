@@ -324,10 +324,15 @@ de Q/W/E; los `rand()` de la búsqueda del ítem del piso en el picking. **Desbl
 - [ ] **Lo que abre un NPC:** el `0x30` (`0x4d1e00`, que abre la tienda `0x10000` en `0x4d288e` y, según el
       NPC, las demás ventanas), los diálogos de la CL9.3 de P-C90 (`0x8e`, `0xa1`, `0xa2`, `0xa4`, `0xa6`,
       `0x91`, `0x94`, `0x96`, `0x98`, `0x99`, `0x9a`, `0xa3`, `0xa8`, `0xa9`, `0xaa`, el `0x8f` con
-      `0x5e7aa0`) y sus textos (`0x633300`), con los 16 cortes de `0x623e70`.
+      `0x5e7aa0`) y sus textos (`0x633300`), con los 16 cortes de `0x623e70`. (Fase 2, 2026-11-13: el `0x30` en la
+      fase 1; el paso de sí y no `0x6282dc` del `0x94`, `0x96`, `0x98`, `0x99` y `0xa9`, el `0x8f` con `0x5e7aa0`, el
+      OK del `0x73` y el texto `0x63330f`. Lo que queda, en 08, P-C192 y P-C193.)
 - [ ] **Las ventanas:** la tienda (`0x5f4720`), el almacén (`0x5f4e30`, `0x5e7bf0`, `0x5e9b10`, el teclado de
       `0x78abb20`), la caja del caos (`0x5febf0`, `0x5fe610`), reparar (`0x44b910`, la R de `0x59ff10`), el
-      `BC` (`0x401f30`, `0x402500`) y los precios (`0x5b1200`, `0x5b2d23`).
+      `BC` (`0x401f30`, `0x402500`) y los precios (`0x5b1200`, `0x5b2d23`). (Fase 2, 2026-11-13: los pasos de la
+      tienda con reparar todo y `0x5b1570`, del almacén y de la caja del caos, sus grillas, comprar, vender, guardar,
+      sacar y el zen del almacén, `Scenes/NpcWindowSteps.cpp`; los dibujos, el teclado, la mezcla y los precios de la
+      ayuda siguen cortados, en 08, P-C192.)
 - [x] **Los paquetes:** lo que falta de `31`..`34` (`0x4c5f60`, `0x5bc740` y `0x5be150` están en parte), `81`..`83`,
       `86`/`87`. (Fase 1, 2026-11-13: `Protocol::NpcWindows` y `Scenes/NpcWindows.cpp`; el `30` y abrir y cerrar
       `0x40`, `0x100` y `0x10000` también. Lo que sigue cortado de las otras dos, en 08, P-C191.)

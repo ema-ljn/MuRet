@@ -3,7 +3,9 @@
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "Protocol/Inventory.h"
+#include "Scenes/NpcWindowState.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -14,8 +16,8 @@
 // Levantar, soltar y equipar el ítem del cursor (CL8 hito 4; 06 § El inventario, "El ítem del cursor"): lo que no
 // es de la UI de 0x5bd750, 0x5be150, el tramo del inventario de 0x5ca250, 0x5bec50, 0x5c4110 y MoveHero, y las
 // respuestas 24, 26, 27, 28, 2A, F3 13 y F3 14. La grilla es la del inventario (0x78a9bb0, 8 × 8) con el equipo en los
-// lugares 0 a 11: las otras (comercio, almacén, caja del caos, tienda personal y la del entrenador) cortan con su
-// dirección.
+// lugares 0 a 11. La grilla de la tienda y del almacén y la caja del caos son de la CL9 hito 6; las otras (comercio,
+// tienda personal y la del entrenador) cortan con su dirección.
 namespace Client::Render::Models
 {
 class CrtRandom;
@@ -30,6 +32,7 @@ namespace Client::Scenes
 {
 class WorldState;
 struct WorldEntryResources;
+enum class CursorGrid : std::uint8_t;
 
 // Lo que los pasos de la UI y MoveHero piden afuera para mover ítems. Vacío o nullptr: lo que lo necesita corta.
 struct InventoryServices
@@ -120,11 +123,33 @@ PlaceMovedItem(std::uint8_t slot, const Protocol::Inventory::ItemData& item, con
 [[nodiscard]] Core::Expected<void, std::string> SendTheCursorItem(const InventoryMoveContext& context,
                                                                   std::uint8_t targetSlot);
 
+// 0x449d80(origen, lugar, destino, lugar): con la traba 0x78abb39 en 0, la traba en 1, los dos rand() del envío en C3
+// y el C1 0E 24 con la grilla y el lugar de origen, los siete bytes del ítem del cursor y la grilla y el lugar de
+// destino. Con la traba, nada. Las grillas: 0 el inventario, 2 el almacén y 3 la caja del caos.
+[[nodiscard]] Core::Expected<void, std::string>
+SendTheCursorItemBetween(const InventoryMoveContext& context, std::uint8_t sourceGrid, std::uint8_t sourceSlot,
+                         std::uint8_t targetGrid, std::uint8_t targetSlot);
+
+// Los números de grilla del C1 0E 24 (0x5d1f8b, 0x5d3c68 y 0x5cb4ed).
+inline constexpr std::uint8_t InventoryMoveGrid = 0;
+inline constexpr std::uint8_t WarehouseMoveGrid = 2;
+inline constexpr std::uint8_t ChaosBoxMoveGrid = 3;
+
+// 0x5cb3af..0x5cb455 y 0x5ea1ad..0x5ea227: el teclado del almacén (0x7879fc8, diez words) con 0 a 9 y veinte cambios
+// de dos teclas al azar (rand() % 10 dos veces, sin cambio si son la misma).
+void ShuffleTheKeypad(Render::Models::CrtRandom& random, std::array<std::uint16_t, WarehouseKeyCount>& keys);
+
 // 0x5c52b1..0x5c5320, desde 0x5c4110: levanta el ítem de la casilla `cell` de la grilla (la de su columna y su
 // fila): el clic consumido, la copia al cursor desde la de arriba a la izquierda, la grilla de origen, el lugar,
 // 0x5bd750 y el ítem bajo el mouse en nada. Lo que sigue (0x6599a0 del comercio y el sonido) es de la UI.
 [[nodiscard]] Core::Expected<void, std::string> PickUpFromTheGrid(const InventoryMoveContext& context,
                                                                   std::size_t cell);
+
+// 0x5c52b1..0x5c5358 con otra grilla de 8 columnas (la de la tienda y del almacén, 0x78a7070, o la caja del caos,
+// 0x7d2d380): lo mismo con el lugar sin el 12 (fila · 8 + columna) y 0x5bd750(lugar, grilla, 8), que vacía la huella
+// desde la columna y la fila de esa casilla.
+[[nodiscard]] Core::Expected<void, std::string> PickUpFromOtherGrid(const InventoryMoveContext& context,
+                                                                    CursorGrid grid, std::size_t cell);
 
 // 0x5c2c65..0x5c2dd0, desde 0x5bec50 sin ítem en el cursor y con el clic: con 0x576794c, nada; con 0x78abb0c,
 // reparar (corta); si no, consume el clic y, salvo lo que el mapa 10 o Chaos Castle no dejan sacar, pasa el ítem del
@@ -166,6 +191,25 @@ struct GridDrop
 
 [[nodiscard]] Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveContext& context,
                                                                        const GridDrop& drop);
+
+// 0x5ca250(x, y, grilla, 8, filas, tipo) con el almacén (0x78a7070, 15 filas, tipo 2, desde 0x5deb57) y la caja del
+// caos (0x7d2d380, 4 filas, tipo 3, desde 0x5debe4): la casilla bajo el mouse, si entra (0x5c9b40), las marcas de su
+// huella dentro de la grilla y, con el clic y si entra, salvo los ítems que no van a otra grilla (0x5cf3a5..0x5cf40b),
+// el C1 0E 24 de 0x449d80 desde la grilla del cursor (0 el inventario; si no, la misma) al lugar fila · 8 + columna.
+// La caja del caos con la mezcla fuera de 0 y la lista de Castle Siege cerrada no llama a 0x5c9b40 y lee un local sin
+// escribir (0x5ca337, Q-C921): corta.
+struct OtherGridDrop
+{
+    std::int32_t mouseX = 0;
+    std::int32_t mouseY = 0;
+    std::int32_t left = 0;
+    std::int32_t top = 0;
+    // CursorGrid::NpcGrid o CursorGrid::ChaosBox.
+    CursorGrid grid{};
+};
+
+[[nodiscard]] Core::Expected<bool, std::string> DropOnOtherGrid(const InventoryMoveContext& context,
+                                                                const OtherGridDrop& drop);
 
 // 0x5df449..0x5df58b, desde 0x5d8d50 con el clic fuera de las ventanas: lo que no se tira al piso (el aviso 269 y
 // 0x5be150), las cajas de 0x1a20 a 0x1a25 (el aviso 1915 y 0x5be150) y los paquetes de joyas y el Jewel of Guardian

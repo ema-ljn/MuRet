@@ -131,7 +131,7 @@ Core::Expected<void, std::string> CheckTheShops(GameHudContext& context, const W
     if (registry.IsOpen(UI::NpcShopPanel) && id != LuckyBox &&
         !(id == EventTicket && level >= 1 && level <= LastFreeTicketLevel))
         return Core::Unexpected(std::format("0x5b2d23: el precio del {:#x} en la tienda de NPC (0x54d0f0 y 0x5b1200) "
-                                            "es de la CL9.3",
+                                            "es de la fase 3 del hito 6 (08 P-C192)",
                                             id));
     if (!registry.IsOpen(UI::PersonalShopPanel))
         static_cast<void>(registry.IsOpen(UI::OtherShopPanel));

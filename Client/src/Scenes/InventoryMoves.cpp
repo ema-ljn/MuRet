@@ -63,6 +63,18 @@ constexpr double Half = static_cast<double>(0.5f);
 constexpr std::int32_t ItemMoveSound = 0x1d;
 constexpr std::int32_t ItemPutSound = 0x45;
 // +0x44: entra (2), no entra (3) y la joya que podría ir sobre otro ítem (4).
+// 0x5cf3c9..0x5cf40b: lo que no va a otra grilla que el inventario: 0x1c17 a 0x1c1a, 0x1a13, 0x1a14 y el 0x1c0b de
+// nivel 13 (+4 & 0x78 en 0x68).
+constexpr std::int32_t FirstUnmovedTicket = 0x1c17;
+constexpr std::int32_t LastUnmovedTicket = 0x1c1a;
+constexpr std::uint16_t FirstUnmovedOrb = 0x1a13;
+constexpr std::uint16_t SecondUnmovedOrb = 0x1a14;
+constexpr std::uint16_t UnmovedAtThirteen = 0x1c0b;
+constexpr std::uint32_t LevelBits = 0x78;
+constexpr std::uint32_t ThirteenBits = 0x68;
+// 0x5cb3d8: los cambios del teclado del almacén, y sus diez teclas (rand() % 10).
+constexpr int KeypadSwaps = 20;
+constexpr int KeypadKeys = 10;
 constexpr std::uint8_t FitsMark = 2;
 constexpr std::uint8_t RefusedMark = 3;
 constexpr std::uint8_t JewelMark = 4;
@@ -463,6 +475,28 @@ bool IsLevelThreeWizardsRing(const ItemState& item)
     return item.id == WizardsRing && (item.scalar1Low & LevelBitsMask) == LevelThreeBits;
 }
 
+// 0x5be268..0x5be31f (y 0x5be32f.. con la caja del caos): la copia del cursor en su huella de la grilla de 8
+// columnas, desde [0x78a6758] % 8 y / 8 con signo, con +0x3c en 1 solo en la casilla de su columna y su fila.
+Core::Expected<void, std::string> ReturnToOtherGrid(const WorldRuntime& runtime, std::span<ItemState> cells,
+                                                    ItemFootprint footprint)
+{
+    const ItemState cursor = runtime.cursorItem;
+    const std::int32_t column = runtime.slot78a6758 % Columns;
+    const std::int32_t row = runtime.slot78a6758 / Columns;
+    for (std::int32_t y = row; y < row + footprint.height; ++y)
+    {
+        for (std::int32_t x = column; x < column + footprint.width; ++x)
+        {
+            auto cell = CellAt(cells, y * Columns + x, "0x5be150 (0x5be2d9)");
+            if (!cell.HasValue())
+                return Core::Unexpected(cell.Error());
+            *cell.Value() = cursor;
+            cell.Value()->occupied = y == cursor.gridRow && x == cursor.gridColumn ? 1u : 0u;
+        }
+    }
+    return {};
+}
+
 // 0x5be4e2..0x5bebd7: el ítem del cursor vuelve a [0x78a6758].
 Core::Expected<void, std::string> ReturnToTheSlot(const InventoryMoveContext& context, ItemFootprint footprint)
 {
@@ -826,12 +860,22 @@ Core::Expected<void, std::string> ReturnTheCursorItem(const InventoryMoveContext
     WorldRuntime& runtime = context.world.Runtime();
     if (runtime.cursorItemCount <= 0)
         return {};
-    // 0x5be166..0x5be18e: el ancho y el alto del tipo. Las otras grillas de 0x78ab9b8 (0x5be191..0x5be4b4) MuRet no
-    // las pone; con la del inventario o ninguna sigue en 0x5be4b4, donde 0x449c80 da 0 fuera de la caja del entrenador.
+    // 0x5be166..0x5be18e: el ancho y el alto del tipo. Con la grilla de la tienda y del almacén o la caja del caos
+    // (0x5be25d.. y 0x5be324..), la copia vuelve a su huella desde [0x78a6758] (columna y fila con signo, de a 8);
+    // con la del inventario o ninguna sigue en 0x5be4b4, donde 0x449c80 da 0 fuera de la caja del entrenador.
     const auto footprint = ItemFootprintOf(context.services.items, runtime.cursorItem.id, "0x5be150 (0x5be183)");
     if (!footprint.HasValue())
         return Core::Unexpected(footprint.Error());
-    if (auto returned = ReturnToTheSlot(context, footprint.Value()); !returned.HasValue())
+    if (runtime.cursorGrid == CursorGrid::NpcGrid || runtime.cursorGrid == CursorGrid::ChaosBox)
+    {
+        NpcWindowState& npc = runtime.npcWindows;
+        const std::span<ItemState> cells = runtime.cursorGrid == CursorGrid::NpcGrid
+                                               ? std::span<ItemState>(npc.grid)
+                                               : std::span<ItemState>(npc.chaosBox);
+        if (auto returned = ReturnToOtherGrid(runtime, cells, footprint.Value()); !returned.HasValue())
+            return returned;
+    }
+    else if (auto returned = ReturnToTheSlot(context, footprint.Value()); !returned.HasValue())
         return returned;
     runtime.cursorItemCount = 0;
     runtime.cursorItem.occupied = 0;
@@ -843,22 +887,46 @@ Core::Expected<void, std::string> ReturnTheCursorItem(const InventoryMoveContext
 
 Core::Expected<void, std::string> SendTheCursorItem(const InventoryMoveContext& context, std::uint8_t targetSlot)
 {
+    const WorldRuntime& runtime = context.world.Runtime();
+    return SendTheCursorItemBetween(context, InventoryMoveGrid, static_cast<std::uint8_t>(runtime.slot78a6758 & 0xff),
+                                    InventoryMoveGrid, targetSlot);
+}
+
+Core::Expected<void, std::string> SendTheCursorItemBetween(const InventoryMoveContext& context, std::uint8_t sourceGrid,
+                                                           std::uint8_t sourceSlot, std::uint8_t targetGrid,
+                                                           std::uint8_t targetSlot)
+{
     WorldRuntime& runtime = context.world.Runtime();
+    if (runtime.ui.field78abb39 != 0)
+        return {};
     runtime.ui.field78abb39 = 1;
     // El relleno y el serial del C3 (0x40b0a0).
     context.random.Discard(2);
     const ItemState& cursor = runtime.cursorItem;
     const auto byte = [](std::uint32_t value) { return static_cast<std::byte>(value & 0xffu); };
     const Protocol::Inventory::ItemMove move{
-        .sourceFlag = 0,
-        .sourceSlot = static_cast<std::uint8_t>(runtime.slot78a6758 & 0xff),
+        .sourceFlag = sourceGrid,
+        .sourceSlot = sourceSlot,
         .item = {byte(cursor.id), byte(cursor.scalar1Low), byte(cursor.durability), byte(cursor.flags1b),
                  byte(cursor.flags1c), byte((static_cast<std::uint32_t>(Signed(cursor.id)) >> 5) & 0xf0u), byte(0)},
-        .targetFlag = 0,
+        .targetFlag = targetGrid,
         .targetSlot = targetSlot};
     if (!context.services.sendItemMove)
         return Core::Unexpected(std::string("0x449d80: el C1 0E 24 sin la sesión"));
     return context.services.sendItemMove(move);
+}
+
+void ShuffleTheKeypad(Render::Models::CrtRandom& random, std::array<std::uint16_t, WarehouseKeyCount>& keys)
+{
+    for (std::size_t key = 0; key < keys.size(); ++key)
+        keys[key] = static_cast<std::uint16_t>(key);
+    for (int swap = 0; swap < KeypadSwaps; ++swap)
+    {
+        const auto first = static_cast<std::size_t>(random.Next() % KeypadKeys);
+        const auto second = static_cast<std::size_t>(random.Next() % KeypadKeys);
+        if (first != second)
+            std::swap(keys[first], keys[second]);
+    }
 }
 
 Core::Expected<void, std::string> PickUpFromTheGrid(const InventoryMoveContext& context, std::size_t cell)
@@ -873,6 +941,29 @@ Core::Expected<void, std::string> PickUpFromTheGrid(const InventoryMoveContext& 
         return Core::Unexpected(source.Error());
     TakeIntoTheCursor(runtime, *source.Value(), topLeft + FirstGridSlot);
     if (auto removed = RemoveInventoryItem(context, topLeft + FirstGridSlot); !removed.HasValue())
+        return removed;
+    ForgetTheHoveredItem(runtime);
+    return {};
+}
+
+Core::Expected<void, std::string> PickUpFromOtherGrid(const InventoryMoveContext& context, CursorGrid grid,
+                                                      std::size_t cell)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    NpcWindowState& npc = runtime.npcWindows;
+    const std::span<ItemState> cells =
+        grid == CursorGrid::NpcGrid ? std::span<ItemState>(npc.grid) : std::span<ItemState>(npc.chaosBox);
+    runtime.movement.pendingClick = false;
+    const ItemState& hovered = cells[cell];
+    const std::int32_t topLeft = hovered.gridRow * Columns + hovered.gridColumn;
+    auto source = CellAt(cells, topLeft, "0x5c52b1");
+    if (!source.HasValue())
+        return Core::Unexpected(source.Error());
+    TakeIntoTheCursor(runtime, *source.Value(), topLeft);
+    runtime.cursorGrid = grid;
+    // 0x5c5348: 0x5bd750(lugar, grilla, 8) con un lugar del 0 al 11 no toca el equipo: va por la rama de las otras
+    // grillas.
+    if (auto removed = RemoveFromTheGrid(context, cells, topLeft, "0x5bd750 (0x5bddf5)"); !removed.HasValue())
         return removed;
     ForgetTheHoveredItem(runtime);
     return {};
@@ -1075,9 +1166,41 @@ Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveCont
         return true;
     const std::int32_t target = cell.row * Columns + cell.column + FirstGridSlot;
     runtime.itemMoveTarget = target;
+    if (runtime.cursorGrid == CursorGrid::NpcGrid)
+    {
+        // 0x5cb386..0x5cb455: con la traba del almacén (0x6c932f) y sin 0x78abb1c, el movimiento espera la contraseña
+        // (2, [0x78a6758], 0 y el destino), el teclado se baraja, 0x78abb20 en 1 y lo tecleado en 0.
+        NpcWindowState& npc = runtime.npcWindows;
+        if (npc.warehouseLocked != 0 && npc.field78abb1c == 0)
+        {
+            npc.pendingMove = PendingWarehouseMove{
+                .slot = WarehouseMoveGrid, .second = runtime.slot78a6758, .third = InventoryMoveGrid, .fourth = target};
+            ShuffleTheKeypad(context.random, npc.keypad);
+            runtime.ui.field78abb20 = 1;
+            npc.typedNumber = {};
+            return true;
+        }
+        // 0x5cb45a..0x5cc2ca: el 24 del almacén al inventario.
+        if (auto sent = SendTheCursorItemBetween(context, WarehouseMoveGrid,
+                                                 static_cast<std::uint8_t>(runtime.slot78a6758 & 0xff),
+                                                 InventoryMoveGrid, static_cast<std::uint8_t>(target & 0xff));
+            !sent.HasValue())
+            return Core::Unexpected(sent.Error());
+        return true;
+    }
+    if (runtime.cursorGrid == CursorGrid::ChaosBox)
+    {
+        // 0x5cd684..0x5ce4f9: el 24 de la caja del caos al inventario.
+        if (auto sent = SendTheCursorItemBetween(context, ChaosBoxMoveGrid,
+                                                 static_cast<std::uint8_t>(runtime.slot78a6758 & 0xff),
+                                                 InventoryMoveGrid, static_cast<std::uint8_t>(target & 0xff));
+            !sent.HasValue())
+            return Core::Unexpected(sent.Error());
+        return true;
+    }
     if (runtime.cursorGrid != CursorGrid::Inventory)
-        return Core::Unexpected(std::string("0x5cb37a: el ítem de otra grilla al inventario es de la CL9.3 y la "
-                                            "CL9.4"));
+        return Core::Unexpected(std::string("0x5cc2cf: el ítem de la tienda personal o del comercio al inventario es "
+                                            "de la CL9.4"));
     // 0x5ca4b3..0x5ca54a: a otro lugar, o al mismo con algo que se apila.
     bool moves = runtime.slot78a6758 != target;
     auto under = CellAt(cells, target - FirstGridSlot, "0x5ca4cf");
@@ -1103,6 +1226,67 @@ Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveCont
     if (runtime.ui.field78abb39 != 0)
         return true;
     if (auto sent = SendTheCursorItem(context, static_cast<std::uint8_t>(target & 0xff)); !sent.HasValue())
+        return Core::Unexpected(sent.Error());
+    return true;
+}
+
+Core::Expected<bool, std::string> DropOnOtherGrid(const InventoryMoveContext& context, const OtherGridDrop& drop)
+{
+    WorldState& world = context.world;
+    WorldRuntime& runtime = world.Runtime();
+    NpcWindowState& npc = runtime.npcWindows;
+    const bool chaosBox = drop.grid == CursorGrid::ChaosBox;
+    const std::span<ItemState> cells = chaosBox ? std::span<ItemState>(npc.chaosBox) : std::span<ItemState>(npc.grid);
+    const std::int32_t rows = chaosBox ? ChaosBoxRows : static_cast<std::int32_t>(NpcGridCellCount) / NpcGridColumns;
+    const std::uint8_t kind = chaosBox ? ChaosBoxMoveGrid : WarehouseMoveGrid;
+    const ItemState& cursor = runtime.cursorItem;
+    const auto footprint = ItemFootprintOf(context.services.items, cursor.id, "0x5ca250 (0x5ca295)");
+    if (!footprint.HasValue())
+        return Core::Unexpected(footprint.Error());
+    const GridCell cell = CellUnderTheMouse(drop.mouseX, drop.mouseY, drop.left, drop.top, footprint.Value());
+    if (cell.column < 0 || cell.row < 0)
+        return false;
+    // 0x5ca314..0x5ca364.
+    if (chaosBox)
+    {
+        if (npc.chaosMixState != 0 && runtime.panels.delegated.castleSiegeList == 0)
+            return Core::Unexpected(std::string("0x5ca337: con la mezcla fuera de 0, 0x5ca250 no llama a 0x5c9b40 y "
+                                                "lee [ebp − 0x2d] sin escribir (Q-C921)"));
+    }
+    else if (runtime.panels.delegated.trainer == TrainerWithBox)
+        return Core::Unexpected(std::string("0x5ca357: 0x44acd0, la caja del entrenador, es de la CL9.3"));
+    const bool fits = ItemFitsInTheGrid(cursor, cells, NpcGridColumns, rows, cell, footprint.Value());
+    // 0x5ca385..0x5ca453: las marcas de la huella dentro de la grilla.
+    const bool jewel = cursor.id == JewelOfBless || cursor.id == JewelOfSoul || cursor.id == JewelOfLife ||
+                       cursor.id == JewelOfCreation;
+    for (std::int32_t row = cell.row; row < cell.row + footprint.Value().height; ++row)
+    {
+        for (std::int32_t column = cell.column; column < cell.column + footprint.Value().width; ++column)
+        {
+            if (row >= rows || column >= NpcGridColumns)
+                continue;
+            ItemState& marked = cells[static_cast<std::size_t>(row * NpcGridColumns + column)];
+            marked.warning = fits ? FitsMark : (jewel ? JewelMark : RefusedMark);
+        }
+    }
+    // 0x5ca456..0x5ca471: sin el clic, o sin entrar (la joya sobre un ítem es solo del tipo 0, 0x5d8266).
+    if (!runtime.movement.pendingClick)
+        return fits;
+    if (!fits)
+        return false;
+    // 0x5cf3a5..0x5cf40b.
+    const std::int32_t type = Signed(cursor.id);
+    if (InRange(type, FirstUnmovedTicket, LastUnmovedTicket) || cursor.id == FirstUnmovedOrb ||
+        cursor.id == SecondUnmovedOrb ||
+        (cursor.id == UnmovedAtThirteen && (cursor.scalar1Low & LevelBits) == ThirteenBits))
+        return true;
+    // 0x5d1665..0x5d167c y 0x5d3342..0x5d3359: el destino sin el 12.
+    const std::int32_t target = cell.row * NpcGridColumns + cell.column;
+    runtime.itemMoveTarget = target;
+    const std::uint8_t source = runtime.cursorGrid == CursorGrid::Inventory ? InventoryMoveGrid : kind;
+    if (auto sent = SendTheCursorItemBetween(context, source, static_cast<std::uint8_t>(runtime.slot78a6758 & 0xff),
+                                             kind, static_cast<std::uint8_t>(target & 0xff));
+        !sent.HasValue())
         return Core::Unexpected(sent.Error());
     return true;
 }

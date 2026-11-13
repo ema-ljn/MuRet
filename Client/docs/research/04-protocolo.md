@@ -1046,6 +1046,53 @@ abre y cierra `0x40`, `0x100` y `0x10000` con los cables de la escena (`PanelCon
 `npcWindowClosing`), con el `rand()` del byte protegido. Reparar un ítem desde la grilla del inventario manda su `34`
 (`0x5c4472`). Lo que sigue cortado, con su dirección, está en 08, P-C191. Los tests usan ítems y textos inventados.
 
+**Fase 2: lo que manda el cliente desde las ventanas** (CL9 hito 6, 2026-11-13, *estático*; el GameServer 0.97
+reconstruido es la referencia de cada paquete, `protocol.cpp` y `gs_protocol.h`, y donde no lo lee el oráculo es el
+ASM del cliente):
+
+- **`32`** comprar (`0x5c4b64..0x5c510f`, desde `0x5c4110` con el tipo 1): el clic sobre un ítem de la grilla de la
+  tienda, sin el modo de reparar y sin otra compra esperando (`0x5767950`), manda `C1 04 32 <lugar de la esquina>` y
+  deja en `0x5767950` el precio de `0x54d0f0` en el modo 0. El 0.97 lo lee como `PMSG_BUYREQUEST` (`Pos` en `+3`) y
+  con `DataEncryptCheck`: lo pide en C3, como sale.
+- **`33`** vender (`0x5deca7..0x5df448`, desde `0x5d8d50` con el clic fuera de las grillas): con la tienda abierta (su
+  `rand()`) y el mouse en `[x + 0xf, x + 0xc3) × [y + 0x32, y + 0x172)`, lo que no se vende no hace nada, lo valioso
+  abre el `0x98` con `0x78abb14` en 1 y lo demás sale con `C1 04 33 <0x78a6758>`; el sí del `0x98` (`0x6c932e` en 1)
+  lo manda en el paso siguiente (`0x5d8e1a`) y el no devuelve el ítem (`0x5be150`). `PMSG_SELLREQUEST`, cifrado.
+- **`34`** reparar: la grilla del inventario (`0x5c4485`) y el equipo (`0x5c2dd5`, con el registro de `0x5bec50`)
+  mandan `C1 05 34 <lugar> <0x78abb10>`; el botón de reparar todo de la tienda (`0x5edaa7`, con `0x78abb09`)
+  `C1 05 34 FF 00` sin gastar el clic. `PMSG_ITEMDURREPAIR` (`Position`, `Requestpos`): `0xff` repara todo y
+  `Requestpos` 1 pide nivel 50; el 0.97 no mira si llegó cifrado, el cliente lo manda en C3.
+- **`24`** guardar y sacar (`0x5ca250` desde `0x5deb57` y desde la grilla del inventario): `0x449d80` con la grilla
+  del cursor (0 el inventario, 2 el almacén, 3 la caja del caos) y el lugar de destino, en C3. Sacar del almacén con
+  la traba (`0x6c932f`) y sin `0x78abb1c` no manda nada: guarda los cuatro valores en `0x78ab9bc..` y abre el
+  teclado (`0x5cb3af..0x5cb455`); el `83` con `0xc` los manda después (`0x4e47c6`). `CGInventoryItemMove`.
+- **`81`** el zen del almacén (`0x6270ed..0x6282c8`, el OK del `0x73` con Enter): más de 100.000.000 abre el `0x75`;
+  con el comercio abierto corta (CL9.4); si no, con el registro propio abierto, meter más que el zen del inventario
+  (sin signo) o sacar más que el del almacén (con signo) abre el `0x74`, y sacar lo que deja el inventario arriba de
+  2.000.000.000 (sin signo) solo cierra el diálogo; sacar con la traba
+  y sin `0x78abb1c` guarda `{−1, 1, zen, 0x77f3cc8}` y abre el teclado (`0x5e7aa0(1)`, sus 40 `rand()` antes de
+  los 3.848 del cierre); si no, `C1 08 81 <tipo> <zen:4>` con el XOR32 en claro (`0x4e6f80`).
+  `PMSG_WAREHOUSEMONEYINOUT` (`Type` 0 meter y 1 sacar, `Money` con signo en `+4`); el 0.97 también rechaza más de
+  100.000.000.
+- **`82`**, **`87`** y **`31`**: cerrar el almacén (el botón de `x + 0xd7`, `0x5ea24d`), la caja del caos (el botón
+  de la esquina del inventario) y la tienda (el mismo) pasan por `0x657ab0`. `CGWarehouseUseEnd`, `CGChaosBoxUseEnd`
+  y `CGCloseWindow` no leen cuerpo.
+- **`86`** la mezcla: el sí del `0x98` con `0x78abb14` en 2 (`0x5d934f..0x5d9633`) pone `0x7d2dc80` en 1 y manda
+  `C1 04 86 <0x7d2dc98>` con el XOR32 en claro. `CGChaosBoxItemMixButtonClick` no lee el tipo: el byte sale como lo
+  arma el cliente (el ASM es el oráculo) y lo arma `0x5fd4f0`, que sigue cortado con el botón de mezclar
+  (`0x5fe690`, 08 P-C192).
+- **`83`** la contraseña (`C1 10 83`, `0x5e7e90`, `PMSG_WAREHOUSEPASSSEND` de `0x10` bytes): la manda el paso del
+  teclado (`0x5e7bf0`), que sigue cortado.
+
+Los `rand()`: con la tienda abierta, cada `IsOpen(0x10000)` saca uno (también el de `0x5decc1` al vender); con el
+almacén abierto, la cadena de Q, W y E (`0x5a343e`) e `IsOpen(0)` (`0x5a5511`) se paran en `0x40` antes de la tienda:
+uno menos cada una. **MuRet**: `Scenes/NpcWindowSteps.cpp` (los pasos de `0x5ed960`, `0x5b1570`, `0x5ea060`,
+`0x5fe610`, `0x5d8d50` con `0x78abb14` en 1 y 2, vender, el OK del `0x73` y `0x5e7aa0`), las grillas de la tienda, del
+almacén y de la caja del caos en `Scenes/GameUi.cpp` y los de sí y no (`0x6282dc`) en `Scenes/GameDialogSteps.cpp`.
+Tests: `NpcWindowStepsTest` (comprar en Lorencia, Devias y Noria, vender, reparar, guardar, sacar, el zen y la mezcla,
+byte a byte con sus `rand()`) y `NpcWindowRepliesTest.TakingAnItemSends24WhenThePasswordIsAccepted`. Lo que queda,
+en 08, P-C192.
+
 ## Qué implica para MuRet
 
 | Original | MuRet | Ola |

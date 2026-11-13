@@ -155,6 +155,12 @@ struct HudState
     // (0x1c2, 0). Los leen su paso (0x5e4510) y su botón de cerrar (0x5f74b4), CL8 hito 5.
     std::int32_t characterX = 0;
     std::int32_t characterY = 0;
+    // 0x78aba28 y 0x78aba2c: la esquina de la ventana del NPC abierta, que ponen sus dibujos en cada frame en (0x104,
+    // 0): la tienda (0x5f4720), el almacén (0x5f4e30) y la caja del caos (0x5febf0), que siguen cortados (08 P-C192).
+    // Los leen los pasos de esas ventanas (0x5ed960, 0x5ea060 y 0x5fe610), sus grillas en el inventario (0x5e571c) y
+    // el ítem del cursor (0x5d8d50). Hasta que haya dibujo, el 0 de la .bss.
+    std::int32_t npcWindowX = 0;
+    std::int32_t npcWindowY = 0;
     // 0x78aadcc..0x78aadd4 (.bss, en 0): los ángulos con que 0x5e0720 posa cada ítem de la UI. Los escribe en cada
     // ítem y duran al siguiente y al frame siguiente: el 0x1e1e con un paso que no es 0, 1 ni 2 posa con los del
     // anterior (Q-C478).
@@ -169,12 +175,15 @@ struct HudState
 };
 
 // 0x78ab9b8, la grilla del ítem del cursor: un puntero en la .bss (0 al arrancar). Lo escriben levantar de una grilla
-// (0x5c52e2, con la que sea) y del equipo y MoveHero (0x5c2d37 y 0x59bf32, con 0x78a9bb0). MuRet solo levanta del
-// inventario: las otras grillas (0x78a92a8, 0x78a7070, 0x7d2d380, 0x78ab0b8 y 0x723c80) cortan antes.
+// (0x5c52e2, con la que sea) y del equipo y MoveHero (0x5c2d37 y 0x59bf32, con 0x78a9bb0). MuRet levanta del
+// inventario, de la grilla de la tienda y del almacén y de la caja del caos (CL9 hito 6): las otras (0x78a92a8,
+// 0x78ab0b8 y 0x723c80) cortan antes.
 enum class CursorGrid : std::uint8_t
 {
     None,      // 0
     Inventory, // 0x78a9bb0
+    NpcGrid,   // 0x78a7070
+    ChaosBox,  // 0x7d2d380
 };
 
 // Un nodo de la lista de huesos con nombre de [0x6e5640] (0x401000 → 0x4011c0): el personaje (el lugar del pool), el
@@ -261,6 +270,10 @@ struct WorldRuntime
     std::int32_t cursorItemCount = 0;
     // 0x78ab9b8: la grilla de donde salió el ítem del cursor (CL8 hito 4).
     CursorGrid cursorGrid = CursorGrid::None;
+    // 0x78a59c8: el ítem de los diálogos (0x633110 lo dibuja, 0x63330f lo nombra, 0x623e70 lo usa), con la casilla de
+    // la grilla en el byte +9 (0x78a59d1), que en el ItemState es relleno. Lo escribe la fruta (0x5c8083, CL9 hito 5).
+    World::ItemState dialogItem{};
+    std::uint8_t dialogItemCell = 0;
     // 0x77f3cc8: el lugar adonde va el C1 .. 24 que sale (0x5ca4b0, 0x5bf209, 0x59bf46).
     std::int32_t itemMoveTarget = 0;
     // 0x787a518: la copia del ítem bajo el mouse que lee el cartel (0x5c42a7 y 0x5c3aba). Levantar un ítem le pone el

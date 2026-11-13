@@ -232,9 +232,11 @@ TEST_P(PersonalShopsTest, TheItemListsReadTheirEntries)
 }
 
 // 0x4dae80 y 0x4511f0: un cartel por jugador de la clave (el monstruo, +0x88 en 2, solo va al log; una clave sin nadie,
-// nada), con el nombre de +0x1d9; el DC queda en la negrita (0x452540). 0x451810 lo ve; 0x451770 también, a la vista.
+// nada), con el nombre de +0x1d9; el DC queda en la normal de las líneas (0x4531f7). 0x451810 lo ve; 0x451770 también,
+// a la vista.
 TEST_P(PersonalShopsTest, TheTitlesGoToThePlayersOfTheirKeys)
 {
+    m_world->Runtime().hud.dcFont = Client::Render::Text::FontKind::BigBold;
     Client::Scenes::ApplyShopTitles(
         Shop::ShopTitles{
             {{SellerKey, "Espadas baratas"}, {MonsterKey, "Pieles"}, {0x0777, "Nadie"}, {BuyerKey, "Compro joyas"}}},
@@ -244,7 +246,7 @@ TEST_P(PersonalShopsTest, TheTitlesGoToThePlayersOfTheirKeys)
     EXPECT_EQ(Shops().titles.at(Seller).name, "Brezal");
     EXPECT_EQ(Shops().titles.at(Seller).title, "Espadas baratas");
     EXPECT_EQ(Shops().titles.at(Buyer).title, "Compro joyas");
-    EXPECT_EQ(m_world->Runtime().hud.dcFont, Client::Render::Text::FontKind::Bold);
+    EXPECT_EQ(m_world->Runtime().hud.dcFont, Client::Render::Text::FontKind::Normal);
     EXPECT_TRUE(Client::Scenes::HasShopTitle(Shops(), Seller));
     EXPECT_FALSE(Client::Scenes::HasShopTitle(Shops(), Monster));
     EXPECT_TRUE(Client::Scenes::ShopTitleShown(Shops(), Seller));
@@ -343,20 +345,32 @@ TEST_P(PersonalShopsTest, ABubbleHidesTheTitle)
     EXPECT_TRUE(Client::Scenes::ShopTitleShown(Shops(), Seller));
 }
 
-// 0x556dd0: el globo nuevo de un dueño con cartel (0x451810) pide su título corto (0x4518b0), que corta; sin
-// cartel, el título del globo queda vacío.
-TEST_P(PersonalShopsTest, TheBubbleOfAShopOwnerStopsAtTheShortTitle)
+// 0x556dd0: el globo nuevo de un dueño con cartel (0x451810) lleva su título corto (0x4518b0): con más de 14 bytes,
+// los primeros 12 y ".."; sin cartel, el título del globo queda vacío.
+TEST_P(PersonalShopsTest, TheBubbleOfAShopOwnerTakesTheShortTitle)
 {
-    Client::Scenes::ApplyShopTitles(Shop::ShopTitles{{{SellerKey, "Arcos"}}}, *m_world);
+    Client::Scenes::ApplyShopTitles(Shop::ShopTitles{{{SellerKey, "Arcos y flechas finas"}}}, *m_world);
     const Client::Scenes::ChatBubbleMeasure measure{.measure = m_letters, .screen = Client::App::PixelSize{640, 480}};
-    const auto cut = Client::Scenes::AddChatBubble(*m_world, measure, "Brezal", "hola", Seller,
-                                                   Client::Scenes::ChatBubbleMode::Chat);
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x556e26"), std::string::npos) << cut.Error();
-
-    const auto added =
-        Client::Scenes::AddChatBubble(*m_world, measure, "Cardo", "hola", Buyer, Client::Scenes::ChatBubbleMode::Chat);
+    const auto added = Client::Scenes::AddChatBubble(*m_world, measure, "Brezal", "hola", Seller,
+                                                     Client::Scenes::ChatBubbleMode::Chat);
     ASSERT_TRUE(added.HasValue()) << added.Error();
+    const auto bubbleOf = [&](std::size_t owner) -> const Client::Scenes::ChatBubble*
+    {
+        for (const Client::Scenes::ChatBubble& bubble : m_world->Runtime().chat.bubbles)
+        {
+            if (bubble.owner == owner)
+                return &bubble;
+        }
+        return nullptr;
+    };
+    ASSERT_NE(bubbleOf(Seller), nullptr);
+    EXPECT_EQ(bubbleOf(Seller)->shopTitle, "Arcos y flec..");
+
+    const auto other =
+        Client::Scenes::AddChatBubble(*m_world, measure, "Cardo", "hola", Buyer, Client::Scenes::ChatBubbleMode::Chat);
+    ASSERT_TRUE(other.HasValue()) << other.Error();
+    ASSERT_NE(bubbleOf(Buyer), nullptr);
+    EXPECT_EQ(bubbleOf(Buyer)->shopTitle, "");
 }
 
 // 0x4e4f5d (3F 08): sprintf(Text[1122], nombre) con el tipo 1. 0x4e4fcc (3F 12): con 0x6c931c en 2, los cierres y el

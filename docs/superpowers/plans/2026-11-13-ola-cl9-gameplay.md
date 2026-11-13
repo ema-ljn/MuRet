@@ -366,7 +366,11 @@ byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada v
   - [x] Fase 6a (2026-11-13): el dibujo de las ventanas (`0x5f3030`, con text_button en `0x659`), los ítems y las
         cifras de su grilla (`0x5f7821`, `0x5f7af9`), la caja `0x9c` (`0x6304e1` → `0x471ae0`) y el precio de la ayuda
         del ítem (`0x5b2f53..0x5b3716`); 07 Q-C968.
-  - [ ] El paso del `0x91` (`0x6260f6`, con el EDIT del hito 6, 08 P-C312) y el dibujo de los carteles (08 P-C208).
+  - [x] Fase 6b (2026-11-13): los carteles (`0x451c20` con `0x451d60`, `0x452110`, `0x451e40`, `0x452a10` y
+        `0x452e50`; la medida `0x452540`, `0x452f80` y `0x4531b0`), el título corto del globo (`0x4518b0` desde
+        `0x556e26`) y su medida y dibujo (`0x5559c2`, `0x5563a4`); 07 Q-C976, Q-C977 y Q-C978 (08 P-C208 a, P-C342,
+        P-C343).
+  - [ ] El paso del `0x91` (`0x6260f6`, con el EDIT del hito 6, 08 P-C312).
 - [ ] **La party:** `0x40`..`0x44` (`0x4d67e0`), la vida de la party (`0x5a89b0`), la ventana `0x5f0be0`,
       echar a alguien (`0x5e3d03`, `C1 04 43`), la cantidad del grupo (`0x78aba48`, que lee el dibujo en
       `0x59e680`).

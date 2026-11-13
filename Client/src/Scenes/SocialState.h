@@ -123,9 +123,9 @@ struct DuelState
 };
 
 // Un cartel del mapa de 0x7245c8 (el objeto de 100 bytes de 0x4521d0, que arma 0x4524e0): la clave (+0x40), el nombre
-// del personaje (+0, de +0x1d9) y el título (+0x10). Las dos líneas del título (+0x20 y +0x30, 0x452f80), las medidas
-// (+0x50, 0x4531b0, y +0x58, el texto 1104), el lugar (0x4527d0) y +0x60 son del dibujo de los carteles (0x451c20),
-// que corta (08 P-C208 a): salen de estos dos textos con la negrita, sin otro estado.
+// del personaje (+0, de +0x1d9) y el título (+0x10). Las dos líneas del título (+0x20 y +0x30, 0x452f80) y las medidas
+// (+0x50, 0x4531b0, y +0x58, el texto 1104) salen de estos dos textos (Scenes::MeasureTheShopSign), y el lugar
+// (+0x48, 0x4527d0) lo vuelve a poner el dibujo (0x451d60) en cada frame antes de leerlo (Scenes/ShopSigns).
 struct ShopTitle
 {
     std::int32_t key = 0;
@@ -134,6 +134,10 @@ struct ShopTitle
     // +0x44: a la vista. Lo prende el alta (0x4524e0 → 0x4529b0) y 0x4516d0, y lo apaga 0x451720: los dos desde los
     // globos (0x5576a0..0x5576c9).
     bool visible = true;
+    // +0x60 (0 desde 0x452320): el cartel del elegido parpadea con el comando de la tienda. Lo escribe el dibujo de los
+    // carteles (0x451c20) y lo leen sus colores (0x452a10) y los del título del globo (0x4517c0), en el frame
+    // siguiente.
+    std::uint8_t hovered = 0;
 };
 
 // 0x78a6768: la grilla de la tienda propia (0x78ab0b8, OwnInventory::secondCells) mientras se mira la de otro.
@@ -150,6 +154,11 @@ struct PersonalShopState
     // 0x7245c8 (0x451d10, un std::map por el puntero del personaje, que ordena como su índice): los carteles. Solo lo
     // llenan los 3F 00, 02 y 10.
     std::map<std::size_t, ShopTitle> titles;
+    // +0x10 de 0x7245c8 (0 desde 0x450f20): la cuenta del dibujo de los carteles, de 0 a 7 (0x451c3e).
+    std::int32_t signBlink = 0;
+    // +0x14 de 0x7245c8 (1 desde 0x450f20): los carteles se dibujan. Lo escriben "/ver puestos" y su par (0x4516a0 y
+    // 0x4516b0 desde 0x56d722, que corta) y lo lee el dibujo (0x4516c0).
+    std::uint8_t signsShown = 1;
     // 0x78aba50: la tienda propia abierta (el 3F 02 con 1; el 3F 03 del héroe la apaga).
     std::uint8_t ownOpen = 0;
     // 0x78aba64: el título de la ventana, que escribe el paso del diálogo 0x91 (0x6260f6, que corta: su campo es el

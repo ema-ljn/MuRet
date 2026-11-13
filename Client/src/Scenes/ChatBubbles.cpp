@@ -5,6 +5,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/PersonalShopTitles.h"
+#include "Scenes/ShopSigns.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -42,14 +43,12 @@ std::string_view CString(std::string_view text)
     return end == std::string_view::npos ? text : text.substr(0, end);
 }
 
-// 0x556dd0(entrada, personaje): sin cartel de tienda (0x451810) el título vacío, y con él el título corto de 0x4518b0,
-// que corta; sin gremio (+0x1f2 negativo) el gremio, el puesto y +0x65 en 0.
-Core::Expected<void, std::string> FillTheGuild(ChatBubble& bubble, const ActorState& owner, bool hasShop)
+// 0x556dd0(entrada, personaje): sin cartel de tienda (0x451810) el título vacío (0x556f23), y con él el título corto de
+// 0x4518b0 con strcpy (0x556e26..0x556e60); sin gremio (+0x1f2 negativo) el gremio, el puesto y +0x65 en 0.
+Core::Expected<void, std::string> FillTheGuild(ChatBubble& bubble, const ActorState& owner,
+                                               const PersonalShopState& shops, std::size_t index)
 {
-    if (hasShop)
-        return Core::Unexpected(std::string("0x556e26: el título corto de la tienda personal en el globo (0x4518b0) es "
-                                            "del hito 7 (08 P-C208 a)"));
-    bubble.shopTitle.clear();
+    bubble.shopTitle = ShortShopTitle(shops, index);
     if (static_cast<std::int16_t>(owner.word1f2) >= 0)
         return Core::Unexpected(std::string("0x556e95: el gremio del globo lee la tabla de los gremios (0x787aa4c), "
                                             "que es de la CL9.4"));
@@ -126,8 +125,7 @@ Core::Expected<void, std::string> AddChatBubble(WorldState& world, const ChatBub
     }
     bubble->name = std::string(name);
     bubble->color = shown;
-    if (auto guild = FillTheGuild(*bubble, speaker, HasShopTitle(world.Runtime().social.personalShop, owner));
-        !guild.HasValue())
+    if (auto guild = FillTheGuild(*bubble, speaker, runtime.social.personalShop, owner); !guild.HasValue())
         return guild;
     if (text.empty())
     {

@@ -1015,12 +1015,6 @@ LogicalCell ReadLogicalCell(ActorState& actor, Render::Models::CrtRandom& random
     return cell;
 }
 
-namespace
-{
-// 0x412140. Fuera del mapa 30, 0x412560 suelta el panel de 0x5763530 si lo hay. En el 30, con 0x6c649a en
-// 0xff (0x412191 y 0x4123f9), arma el de la clase 0 si no hay panel (0x412195) o si el que hay es de otra clase
-// (0x412402..0x41240f), y deja el que ya es de la clase 0. Los otros puestos (0x80, 0x40, 0x20 y 0) arman los
-// paneles 1 y 2 según el gremio de 0x6c6498, y solo los trae el paquete del gremio (CL9).
 Core::Expected<void, std::string> StepTheSiegePanel(WorldRuntime& runtime)
 {
     if (runtime.map != CastleMap)
@@ -1043,7 +1037,6 @@ Core::Expected<void, std::string> StepTheSiegePanel(WorldRuntime& runtime)
     runtime.siegePanelKind = NoGuildPanel;
     return {};
 }
-} // namespace
 
 Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context)
 {

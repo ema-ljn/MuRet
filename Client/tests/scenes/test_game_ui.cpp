@@ -841,16 +841,21 @@ TEST(GameUiTest, TheFirstF6LeavesF6Stuck)
     EXPECT_EQ(tested.Ui().keyLatches[0x75], 1);
 }
 
-TEST(GameUiTest, FollowingThePreviousTargetIsACut)
+// 0x59ee4b..0x59ef10: el monstruo elegido (+0x88 en 2) sigue con el ataque automático; en el mapa 6, no, y suelta
+// también 0x6c8e38. Los otros casos, CharacterPickingTest.
+TEST(GameUiTest, ThePreviousMonsterStaysOutsideTheMapSix)
 {
     PickingFrame tested;
-    tested.world.Runtime().selectedTargets[2] = 5;
-    const auto picked = tested.Pick();
-    ASSERT_FALSE(picked.HasValue());
-    EXPECT_NE(picked.Error().find("0x59ee0b"), std::string::npos) << picked.Error();
-    // En el mapa 6 no lo sigue.
-    tested.world.Runtime().map = 6;
+    auto& runtime = tested.world.Runtime();
+    tested.world.Actors()[5].byte88 = 2;
+    runtime.selectedTargets[2] = 5;
+    runtime.selectedTargets[4] = 5;
     ASSERT_TRUE(tested.Pick().HasValue());
-    EXPECT_EQ(tested.world.Runtime().selectedTargets[2], -1);
+    EXPECT_EQ(runtime.selectedTargets[2], 5);
+    EXPECT_EQ(runtime.selectedTargets[4], 5);
+    runtime.map = 6;
+    ASSERT_TRUE(tested.Pick().HasValue());
+    EXPECT_EQ(runtime.selectedTargets[2], -1);
+    EXPECT_EQ(runtime.selectedTargets[4], -1);
 }
 } // namespace

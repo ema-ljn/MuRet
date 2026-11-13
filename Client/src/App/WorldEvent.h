@@ -11,6 +11,7 @@
 #include "Protocol/OptionData.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
+#include "Protocol/Viewport.h"
 
 #include <cstdint>
 #include <variant>
@@ -63,7 +64,9 @@ using WorldEvent =
                  Protocol::Messages::WhisperResult, Protocol::Messages::Notice, Protocol::OptionData::OptionData,
                  Protocol::Inventory::ItemMoveResult, Protocol::Inventory::ItemDelete, Protocol::Inventory::Durability,
                  Protocol::Inventory::EquipmentChange, Protocol::Inventory::ItemPut, Protocol::Inventory::LifeRefill,
-                 Protocol::Inventory::ManaRefill, Protocol::Friends::FriendList, Protocol::Friends::FriendAddResult,
+                 Protocol::Inventory::ManaRefill, Protocol::Movement::Action, Protocol::Viewport::Players,
+                 Protocol::Viewport::Leave, Protocol::Viewport::Transformed, Protocol::Viewport::EquipmentShown,
+                 Protocol::Viewport::Position, Protocol::Friends::FriendList, Protocol::Friends::FriendAddResult,
                  Protocol::Friends::FriendRequest, Protocol::Friends::FriendDeleteResult,
                  Protocol::Friends::FriendState, Protocol::Letters::LetterSendResult, Protocol::Letters::LetterRow,
                  Protocol::Letters::LetterRead, Protocol::Letters::LetterDeleteResult, Protocol::FriendChat::RoomAnswer,

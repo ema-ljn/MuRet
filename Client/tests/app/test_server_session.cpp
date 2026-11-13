@@ -30,6 +30,7 @@
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Quest.h"
 #include "Protocol/World.h"
 #include "Protocol/Character/CharacterCreate.h"
 #include "Protocol/Character/CharacterDelete.h"
@@ -4473,6 +4474,60 @@ TEST(ServerSessionTest, FacingUsesTheWorldConnectionAndXorDelivery)
     ASSERT_EQ(received.packets.size(), before + 1);
     EXPECT_TRUE(SameBytes(Xor32Decode(received.packets.back()).Bytes(), Bytes({0xc1, 5, 0x18, 0xf7, 0x7a})));
     EXPECT_FALSE(received.packets.back().WasDecrypted());
+}
+
+// 0x4e4b3a..0x4e4bf2: el 9F y los A0..A3 llegan al mundo en orden, sin guarda de escena. Los valores son inventados.
+TEST(ServerSessionTest, TheQuestPacketsReachTheWorld)
+{
+    namespace Quest = Client::Protocol::Quest;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {Join({Bytes({0xc1, 5, 0x9f, 1, 0x22}), Bytes({0xc1, 4, 0xa0, 3}),
+                                 Bytes({0xc1, 5, 0xa1, 2, 0x10}), Bytes({0xc1, 6, 0xa2, 2, 0, 0x20}),
+                                 Bytes({0xc1, 7, 0xa3, 0x80, 0x21, 0xc8, 5}), Bytes({0xc1, 4, 0xa1, 2})})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 5u);
+    const auto* flag = std::get_if<Quest::QuestFlag>(&events[0]);
+    ASSERT_NE(flag, nullptr);
+    EXPECT_EQ(flag->value, 0x22);
+    const auto* list = std::get_if<Quest::QuestList>(&events[1]);
+    ASSERT_NE(list, nullptr);
+    EXPECT_EQ(list->count, 3);
+    EXPECT_TRUE(list->states.empty());
+    const auto* state = std::get_if<Quest::QuestStateChange>(&events[2]);
+    ASSERT_NE(state, nullptr);
+    EXPECT_EQ(state->state, 0x10);
+    const auto* set = std::get_if<Quest::SetQuestResult>(&events[3]);
+    ASSERT_NE(set, nullptr);
+    EXPECT_EQ(set->state, 0x20);
+    const auto* prize = std::get_if<Quest::QuestResult>(&events[4]);
+    ASSERT_NE(prize, nullptr);
+    EXPECT_EQ(prize->key, 0x21);
+    EXPECT_EQ(prize->kind, Quest::PointsPrize);
+}
+
+// El A0, el A2 y el 30 salen con el XOR32 y cifrados como C3; el C1 03 31 de 0x419900, en claro.
+TEST(ServerSessionTest, TheQuestRequestsGoToTheGameServer)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto before = tested.GameServerReads().packets.size();
+    tested.session.RequestQuestList();
+    tested.session.SendSetQuest(1, 1);
+    tested.session.SendTalk(0x0145);
+    tested.session.SendWindowClose();
+    const auto received = tested.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 4);
+    const auto& packets = received.packets;
+    EXPECT_TRUE(SameBytes(Xor32Decode(packets[before]).Bytes(), Bytes({0xc1, 3, 0xa0})));
+    EXPECT_TRUE(packets[before].WasDecrypted());
+    EXPECT_TRUE(SameBytes(Xor32Decode(packets[before + 1]).Bytes(), Bytes({0xc1, 5, 0xa2, 1, 1})));
+    EXPECT_TRUE(packets[before + 1].WasDecrypted());
+    EXPECT_TRUE(SameBytes(Xor32Decode(packets[before + 2]).Bytes(), Bytes({0xc1, 5, 0x30, 0x01, 0x45})));
+    EXPECT_TRUE(packets[before + 2].WasDecrypted());
+    EXPECT_TRUE(SameBytes(packets[before + 3].Bytes(), Bytes({0xc1, 3, 0x31})));
+    EXPECT_FALSE(packets[before + 3].WasDecrypted());
 }
 
 // 0x61c210 manda el F3 30 en claro con el XOR32, por el GS: no pasa por el cifrado del C3.

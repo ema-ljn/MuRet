@@ -5,6 +5,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/Quests.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -70,8 +71,11 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
     // (el próximo lugar, 0x77f3b9c, queda).
     runtime.chat.noticeSound = false;
     UI::ClearTheWhisperSenders(runtime.chat.whisperSenders);
-    // 0x4c2650..0x4c26fd: globales y objetos que MuRet no tiene, el byte del A0 ([0x710148] + 4 en 0xff,
-    // Q-C215) y 0x657670, cuyo 0x4499b0 manda el segundo C1 03 31 (la sesión, Q-C214).
+    // 0x4c268a..0x4c26d2: el objeto de las misiones, con +4 en 0xff para que la próxima entrada vuelva a pedir el A0
+    // (Q-C215).
+    ResetTheQuests(runtime.quest, runtime.panels.delegated.quest);
+    // 0x4c2650..0x4c26fd: lo demás son globales y objetos que MuRet no tiene, y 0x657670, cuyo 0x4499b0 manda el
+    // segundo C1 03 31 (la sesión, Q-C214).
     // MuRet: la cámara copia la posición del héroe publicado, que la selección lee desde acá (Q-C213).
     resources.cameraInput.hero = world.Actors()[runtime.hero].position;
 }

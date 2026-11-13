@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Data/Text/DialogTable.h"
 #include "Data/Text/MoveRequirements.h"
 #include "GameLogic/MovementSpeed.h"
 #include "Render/Text/FontSet.h"
@@ -11,6 +12,7 @@
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/ItemHelpLevels.h"
+#include "Scenes/QuestState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/WorldTexts.h"
@@ -214,6 +216,14 @@ struct WorldRuntime
     // 0x723c68 (+8, la lista; +0xc, la cuenta): los destinos de movereq.bmd que 0x448440 lee en la carga (0x61ccb0) y
     // que la ventana /move recorre en su paso (0x448580) y en su dibujo (0x448fa0). main.cpp los copia de GameData.
     std::vector<Data::Text::MoveRequirement> moves{};
+    // [0x710148]: el objeto de las misiones (CL9 hito 2). main.cpp copia los registros de quest.bmd (GameData::quests).
+    QuestState quest{};
+    // 0x7688ac0: los 200 diálogos de Dialog.bmd, que main.cpp copia de GameData::dialogs. Vacío: el que muestra uno
+    // corta.
+    Data::Text::DialogTable dialogTable{};
+    // 0x6eeda8: el A0 lo pone en 0 y la llegada a un NPC (0x569593) en 1 si es el 0xe5. Lo lee el dibujo del diálogo de
+    // las misiones (0x41ba20) con la clase 3 o 4.
+    std::uint8_t byte6eeda8 = 0;
     // 0x7879f80: el ítem del cursor, un ItemState de 0x48 bytes en la .bss. Lo dibuja 0x5f7b10 (CL8 hito 4).
     World::ItemState cursorItem{};
     // 0x7879fbc, el +0x3c (occupied) de cursorItem: mayor que 0 con un ítem en el cursor. MuRet lo guarda aparte, y

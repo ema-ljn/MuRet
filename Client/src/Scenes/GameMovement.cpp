@@ -129,6 +129,7 @@ Core::Expected<void, std::string> SendThePath(ActorState& hero, GameLogic::PathC
     WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& state = runtime.movement;
     GamePanels panels(context.world, context.random);
+    panels.LendTheWindowClose(context.sendWindowClose);
     // 0x56acf7: con el NPC de la caja abierto (0x8000), nada.
     if (panels.Registry().IsOpen(UI::TrainerPanel) || (hero.flags78 & MovementLockedFlag) != 0)
         return {};

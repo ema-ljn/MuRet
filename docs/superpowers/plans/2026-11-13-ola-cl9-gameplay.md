@@ -327,7 +327,10 @@ de Q/W/E; los `rand()` de la búsqueda del ítem del piso en el picking. **Desbl
       `0x5e7aa0`) y sus textos (`0x633300`), con los 16 cortes de `0x623e70`. (Fase 2, 2026-11-13: el `0x30` en la
       fase 1; el paso de sí y no `0x6282dc` del `0x94`, `0x96`, `0x98`, `0x99` y `0xa9`, el `0x8f` con `0x5e7aa0`, el
       OK del `0x73` y el texto `0x63330f`. Lo que queda, en 08, P-C192 y P-C193. Fase 3: el dibujo de esos de sí y
-      no, `0x630cc4`, `0x632637` y `0x632a45`, sin el título de la mezcla; lo que queda, en 08, P-C194.)
+      no, `0x630cc4`, `0x632637` y `0x632a45`, sin el título de la mezcla; lo que queda, en 08, P-C194. Fase 3b,
+      2026-11-13: el `0x8e` con su dibujo, el paso de la mezcla de joyas (`0xa1`, `0xa2`, `0xa3`, `0xa6`) y los
+      textos `0x63333d` y `0x63340d`; el `0xa4`, el `0x91`, el `0x9a`, el `0xa8`, el `0xaa` y los dibujos de las
+      joyas, en 08, P-C198.)
 - [ ] **Las ventanas:** la tienda (`0x5f4720`), el almacén (`0x5f4e30`, `0x5e7bf0`, `0x5e9b10`, el teclado de
       `0x78abb20`), la caja del caos (`0x5febf0`, `0x5fe610`), reparar (`0x44b910`, la R de `0x59ff10`), el
       `BC` (`0x401f30`, `0x402500`) y los precios (`0x5b1200`, `0x5b2d23`). (Fase 2, 2026-11-13: los pasos de la
@@ -336,7 +339,11 @@ de Q/W/E; los `rand()` de la búsqueda del ítem del piso en el picking. **Desbl
       ayuda siguen cortados, en 08, P-C192. Fase 3: los dibujos de la tienda, del almacén y de la caja de la
       contraseña, el paso de la caja con el `83` y el `99` (`0x5e7bf0`), el precio de la ayuda del ítem (`0x5b2d23`,
       `0x5b1200`) y las grillas de la tienda y del almacén,
-      `Scenes/NpcWindowDrawing.cpp` y `Scenes/WarehouseKeypad.cpp`; lo que queda, en 08, P-C194.)
+      `Scenes/NpcWindowDrawing.cpp` y `Scenes/WarehouseKeypad.cpp`; lo que queda, en 08, P-C194. La caja del caos
+      entera, con lo que vale, el tipo de la mezcla, el botón de mezclar y el dibujo, `Scenes/ChaosMix.cpp` y
+      `Scenes/ChaosBoxDrawing.cpp`; el 2 desde el nivel 8 corta, P-C197. Fase 3b: el `BC`, `Protocol::JewelMix`; sus
+      respuestas, P-C199; el entrenador con `0x724580` en 2, `0x44b910` con su `34`, `Scenes/PetTrainer`; sus modos 1
+      y 3 y su dibujo, P-C198.)
 - [x] **Los paquetes:** lo que falta de `31`..`34` (`0x4c5f60`, `0x5bc740` y `0x5be150` están en parte), `81`..`83`,
       `86`/`87`. (Fase 1, 2026-11-13: `Protocol::NpcWindows` y `Scenes/NpcWindows.cpp`; el `30` y abrir y cerrar
       `0x40`, `0x100` y `0x10000` también. Lo que sigue cortado de las otras dos, en 08, P-C191.)

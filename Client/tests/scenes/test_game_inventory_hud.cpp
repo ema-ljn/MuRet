@@ -683,6 +683,42 @@ TEST_F(GameInventoryHudTest, TheNumbersShowThePotionsAndTheJewelBundles)
     EXPECT_FLOAT_EQ(thirty->third.y, 480.0f - 208.0f);
 }
 
+// 0x5f77c6 y 0x5f7a9e: con la caja del caos abierta (y el inventario cerrado), su grilla de 8 × 4 desde la esquina
+// de la ventana del NPC más (15, 110): los rand() de los modelos (el 0xe uno, el 0xc0e dos) después de las consultas
+// de la tienda y del comercio, y las cifras de la poción con 3. En Lorencia, Devias y Noria.
+TEST_F(GameInventoryHudTest, TheChaosBoxGridDrawsFromTheNpcWindowCorner)
+{
+    for (const std::int32_t map : {0, 2, 3})
+    {
+        SCOPED_TRACE(map);
+        auto& runtime = world.Runtime();
+        runtime.map = map;
+        runtime.panels.inventory = 0;
+        runtime.panels.chaosBox = 1;
+        runtime.hud.npcWindowX = 0x104;
+        runtime.hud.npcWindowY = 0;
+        auto& box = runtime.npcWindows.chaosBox;
+        for (ItemState& cell : box)
+            cell = ItemState{.id = 0xffff};
+        box[0] = ItemState{.id = 0x000e, .occupied = 1};
+        box[8] = ItemState{.id = 0x000e};
+        box[2] = ItemState{.id = 0x0c0e, .occupied = 1};
+        box[9] = ItemState{.id = 0x1c00, .durability = 3, .occupied = 1};
+        const CrtRandom expected = Advanced(random, 2 + 1 + 2);
+        const auto drawn = GridItems();
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(random.State(), expected.State());
+
+        sprites.Begin(Screen640);
+        ASSERT_TRUE(GridNumbers().HasValue());
+        const auto three = NthQuadOf(sprites, DigitSlot, 0);
+        ASSERT_TRUE(three.has_value());
+        EXPECT_FLOAT_EQ(three->first.x, 0x104 + 15.0f + 20.0f + 13.0f - 4.5f);
+        EXPECT_FLOAT_EQ(three->third.y, 480.0f - 140.0f);
+        EXPECT_FALSE(NthQuadOf(sprites, DigitSlot, 1).has_value());
+    }
+}
+
 // 0x5f7b10: el ítem del cursor saca los rand() de su modelo; sin ítem, nada.
 TEST_F(GameInventoryHudTest, TheCursorItemSpendsTheRandomsOfItsModel)
 {

@@ -11,6 +11,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/InventoryMoves.h"
+#include "Scenes/JewelMix.h"
 #include "Scenes/NpcWindowState.h"
 #include "Scenes/NpcWindowSteps.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -110,6 +111,19 @@ constexpr std::int32_t AnswerDialog = 0x94;
 constexpr std::int32_t ConfirmDialog = 0x98;
 // 0x629c0e: la joya de bendición sobre el 0x1a25 (CL9 hito 5, 0x5d8324).
 constexpr std::int32_t BlessDialog = 0xa9;
+// 0x625910: el modo de la caja del caos, que abre 0x65aaf2 al abrirla.
+constexpr std::int32_t ChaosMixModeDialog = 0x8e;
+// 0x6259c6, 0x625b23 y 0x625f98: la mezcla de joyas.
+constexpr std::int32_t JewelMenuDialog = 0xa1;
+constexpr std::int32_t JewelChoiceDialog = 0xa2;
+constexpr std::int32_t JewelResultDialog = 0xa6;
+// 0x625929..0x625986: los dos botones del 0x8e, x en [245, 395] e y desde 180 de a 85, de 35 de alto, con los bordes.
+constexpr std::int32_t MixModeLeft = 245;
+constexpr std::int32_t MixModeRight = 395;
+constexpr std::int32_t MixModeFirstTop = 180;
+constexpr std::int32_t MixModeStep = 85;
+constexpr std::int32_t MixModeHeight = 35;
+constexpr std::int32_t MixModes = 2;
 // 0x6282f1..0x628302: la y de los dos botones, 0x64 (0xd2 en el 0xa3), y su x, 0xd5.
 constexpr std::int32_t YesNoButtonsTop = 0x64;
 constexpr std::int32_t ServerTimeButtonsTop = 0xd2;
@@ -146,14 +160,14 @@ constexpr unsigned NibbleShift = 4;
 constexpr auto Routes = std::to_array<DialogRoute>({
     {UI::EscapeMenuDialog, DialogStep::EscapeMenu, "0x623f90", ""},
     {UI::OptionsDialog, DialogStep::Options, "0x62556f", ""},
-    {0x8e, DialogStep::Cut, "0x625910", "CL9.3"},
-    {0xa1, DialogStep::Cut, "0x6259c6", "CL9.3"},
-    {0xa2, DialogStep::Cut, "0x625b23", "CL9.3"},
-    {0xa4, DialogStep::Cut, "0x625cf4", "CL9.3"},
-    {0xa6, DialogStep::Cut, "0x625f98", "CL9.3"},
+    {ChaosMixModeDialog, DialogStep::ChaosMixMode, "0x625910", ""},
+    {JewelMenuDialog, DialogStep::JewelMenu, "0x6259c6", ""},
+    {JewelChoiceDialog, DialogStep::JewelChoice, "0x625b23", ""},
+    {0xa4, DialogStep::Cut, "0x625cf4", "fase 3 del hito 6 (08 P-C198)"},
+    {JewelResultDialog, DialogStep::JewelResult, "0x625f98", ""},
     {0xa7, DialogStep::Cut, "0x62601e", "CL9.4"},
     {0x9c, DialogStep::Cut, "0x6260d1", "CL9.4"},
-    {0x91, DialogStep::Cut, "0x6260f6", "CL9.3"},
+    {0x91, DialogStep::Cut, "0x6260f6", "fase 3 del hito 6 (08 P-C198)"},
     {UI::MessageBoxDialog, DialogStep::Buttons, "0x62d756", ""},
     {UI::AnswersDialog, DialogStep::Buttons, "0x62d756", ""},
     {UI::PagedDialog, DialogStep::Buttons, "0x62d756", ""},
@@ -171,11 +185,11 @@ constexpr auto Routes = std::to_array<DialogRoute>({
     {UI::ItemNameDialog, DialogStep::YesNo, "0x6282dc", ""},
     {ConfirmDialog, DialogStep::YesNo, "0x6282dc", ""},
     {UI::MoneyTextDialog, DialogStep::YesNo, "0x6282dc", ""},
-    {UI::ChaosCastleDialog, DialogStep::Cut, "0x628521", "fase 3 del hito 6 (08 P-C192)"},
-    {UI::ServerTimeDialog, DialogStep::Cut, "0x62846f", "fase 3 del hito 6 (08 P-C192)"},
-    {UI::ItemNameWithLuckDialog, DialogStep::Cut, "0x628b8f", "fase 3 del hito 6 (08 P-C192)"},
+    {UI::ChaosCastleDialog, DialogStep::Cut, "0x628521", "fase 3 del hito 6 (08 P-C198)"},
+    {UI::ServerTimeDialog, DialogStep::YesNo, "0x6282dc", ""},
+    {UI::ItemNameWithLuckDialog, DialogStep::Cut, "0x628b8f", "fase 3 del hito 6 (08 P-C198)"},
     {BlessDialog, DialogStep::YesNo, "0x6282dc", ""},
-    {0xaa, DialogStep::Cut, "0x62a42b", "fase 3 del hito 6 (08 P-C192)"},
+    {0xaa, DialogStep::Cut, "0x62a42b", "fase 3 del hito 6 (08 P-C198)"},
     {UI::DisconnectDialog, DialogStep::GenericOk, "0x6263df", ""},
     {0x6f, DialogStep::GenericOk, "0x6263df", ""},
     {0x1a, DialogStep::GenericOk, "0x6263df", ""},
@@ -533,6 +547,28 @@ Core::Expected<void, std::string> StepTheButtons(const GameUiContext& context)
     return {};
 }
 
+// 0x625910..0x6259c5: el modo de la caja del caos (0x8e). Con el clic, que no apaga, el botón bajo el mouse deja su
+// número en 0x7d3a114 (el modo que leen 0x5fd4b0 y el dibujo de la caja) y cierra, sin sonido ni MouseUpdateTime. El
+// dibujo pone los botones 10 píxeles más abajo (Q-C945).
+Core::Expected<void, std::string> StepTheChaosMixMode(const GameUiContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    if (!runtime.movement.pendingClick)
+        return {};
+    for (std::int32_t mode = 0; mode < MixModes; ++mode)
+    {
+        const std::int32_t top = MixModeFirstTop + mode * MixModeStep;
+        if (context.mouseY < top || context.mouseY > top + MixModeHeight || context.mouseX < MixModeLeft ||
+            context.mouseX > MixModeRight)
+            continue;
+        runtime.npcWindows.chaosMixMode = mode;
+        runtime.dialogs.current = runtime.dialogs.pending;
+        runtime.dialogs.pending = 0;
+        return {};
+    }
+    return {};
+}
+
 // 0x6263df..0x62645a y 0x62825c..0x6282c8: el OK genérico.
 Core::Expected<void, std::string> StepTheGenericOk(const GameUiContext& context)
 {
@@ -629,6 +665,12 @@ Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, boo
                 return opened;
             PressTheButton(runtime);
         }
+        else if (id == UI::ServerTimeDialog)
+        {
+            // 0x62846f..0x628500: la pregunta de la mezcla de joyas.
+            if (auto answered = AnswerTheJewelMix(context, yes); !answered.HasValue())
+                return answered;
+        }
         else if (yes)
         {
             // 0x629c57..0x629c85: 0x5af520 (ni el almacén, ni 0x80, ni el comercio, que saca su rand()).
@@ -699,6 +741,14 @@ Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context
         return StepTheGenericOk(context);
     case DialogStep::YesNo:
         return StepTheYesNo(context, escape);
+    case DialogStep::ChaosMixMode:
+        return StepTheChaosMixMode(context);
+    case DialogStep::JewelMenu:
+        return StepTheJewelMenu(context);
+    case DialogStep::JewelChoice:
+        return StepTheJewelChoice(context);
+    case DialogStep::JewelResult:
+        return StepTheJewelResult(context);
     case DialogStep::Cut:
         break;
     }

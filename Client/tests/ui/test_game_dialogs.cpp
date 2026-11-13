@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <string>
+#include <utility>
 
 #include <gtest/gtest.h>
 
@@ -97,16 +98,73 @@ TEST(GameDialogsTest, TheFormattedTextsAndTheOverflowsAreCut)
     const auto texts = MakeTextTable({{60, "corto"}});
     DialogBoxState box;
     DialogState dialogs;
-    for (const std::int32_t id : {0x96, 0xa8, 0x99, 0xa3})
+    // Sin el ítem (0x96 y 0xa8) o sin lo que leen sus formatos (0x99 y 0xa3), cortan con su dirección.
+    for (const auto& [id, address] : {std::pair<std::int32_t, std::string>{0x96, "0x63330f"},
+                                      {0xa8, "0x63330f"},
+                                      {0x99, "0x63333d"},
+                                      {0xa3, "0x63340d"}})
     {
         const auto opened = Client::UI::OpenTextDialog(box, dialogs, &texts, 1, 60, id);
         ASSERT_FALSE(opened.HasValue());
-        EXPECT_NE(opened.Error().find("CL9.3"), std::string::npos) << opened.Error();
+        EXPECT_NE(opened.Error().find(address), std::string::npos) << opened.Error();
     }
     const auto tooMany = Client::UI::OpenTextDialog(box, dialogs, &texts, 8, 60, 0x8b);
     ASSERT_FALSE(tooMany.HasValue());
     EXPECT_NE(tooMany.Error().find("0x633612"), std::string::npos) << tooMany.Error();
     EXPECT_EQ(dialogs.current, 0);
+}
+
+// 0x63332f..0x6333a3: el 0x99 pone el número con sus puntos en el primer texto y copia los siguientes como formato.
+TEST(GameDialogsTest, TheMoneyTextFormatsTheFirstRowAndCopiesTheRest)
+{
+    const auto texts = MakeTextTable({{70, "Pagar %s zen?"}, {71, "Seguro"}, {72, "Del todo 100%"}});
+    DialogBoxState box;
+    DialogState dialogs;
+    const Client::UI::DialogTextArguments arguments{.money = "1.234.567"};
+    ASSERT_TRUE(
+        Client::UI::OpenTextDialog(box, dialogs, &texts, 3, 70, Client::UI::MoneyTextDialog, nullptr, &arguments)
+            .HasValue());
+    EXPECT_EQ(box.lineCount, 3);
+    EXPECT_EQ(DialogRow(box, 0), "Pagar 1.234.567 zen?");
+    EXPECT_EQ(DialogRow(box, 1), "Seguro");
+    // 0x69fd9b con el texto como formato: el '%' del final no escribe nada, como el CRT.
+    EXPECT_EQ(DialogRow(box, 2), "Del todo 100");
+    EXPECT_EQ(dialogs.current, Client::UI::MoneyTextDialog);
+}
+
+// 0x633419..0x633525: la pregunta de la mezcla de joyas partida en dos renglones de 0x1e y el precio debajo; al
+// deshacer, el nivel + 1 y el otro precio.
+TEST(GameDialogsTest, TheJewelMixQuestionSplitsInTwoRowsAndAddsThePrice)
+{
+    const auto texts = MakeTextTable({{1806, "Joya Uno"},
+                                      {1807, "Joya Dos"},
+                                      {1809, "Juntar de verdad %s en una cantidad de %d?"},
+                                      {1810, "Cuesta %d"},
+                                      {1813, "Deshacer %s %d?"},
+                                      {1814, "Deshacer cuesta %d"}});
+    DialogBoxState box;
+    DialogState dialogs;
+    const Client::UI::DialogTextArguments mix{
+        .jewelMode = 0, .jewelKind = 1, .jewelCount = 20, .jewelLevel = -1, .jewelPrice = 1000000};
+    ASSERT_TRUE(
+        Client::UI::OpenTextDialog(box, dialogs, &texts, 0, 0, Client::UI::ServerTimeDialog, nullptr, &mix).HasValue());
+    EXPECT_EQ(box.lineCount, 3);
+    EXPECT_EQ(DialogRow(box, 0), "Juntar de verdad Joya Dos en ");
+    EXPECT_EQ(DialogRow(box, 1), "una cantidad de 20?");
+    EXPECT_EQ(DialogRow(box, 2), "Cuesta 1000000");
+    EXPECT_EQ(box.buttons[0].y, 0x5a);
+    EXPECT_EQ(dialogs.current, Client::UI::ServerTimeDialog);
+
+    DialogBoxState unmixBox;
+    DialogState unmixDialogs;
+    const Client::UI::DialogTextArguments unmix{
+        .jewelMode = 1, .jewelKind = 0, .jewelCount = 1, .jewelLevel = 2, .jewelPrice = 1000000};
+    ASSERT_TRUE(
+        Client::UI::OpenTextDialog(unmixBox, unmixDialogs, &texts, 0, 0, Client::UI::ServerTimeDialog, nullptr, &unmix)
+            .HasValue());
+    EXPECT_EQ(unmixBox.lineCount, 2);
+    EXPECT_EQ(DialogRow(unmixBox, 0), "Deshacer Joya Uno 3?");
+    EXPECT_EQ(DialogRow(unmixBox, 1), "Deshacer cuesta 1000000");
 }
 
 // 0x62d756: el rectángulo corrido (0xd5, 0x3c) con sus bordes; con el clic, elige y apaga el clic y el botón abajo.

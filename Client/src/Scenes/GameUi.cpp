@@ -10,6 +10,7 @@
 #include "Protocol/Pet/PetInfo.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ChaosMix.h"
 #include "Scenes/CharacterPicking.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameCommandsWindow.h"
@@ -29,6 +30,7 @@
 #include "Scenes/NpcWindows.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/PetTrainer.h"
 #include "Scenes/WarehouseKeypad.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -965,8 +967,9 @@ Core::Expected<void, std::string> StepTheInventorySiblings(const GameUiContext& 
 }
 
 // 0x5ee140: los paneles con paso propio, sin diálogo y sin el menú de Esc.
-// 0x5d8d50: el ítem del cursor, desde 0x5ee1de con 0x78abaac en 0. La caja del caos (0x5fd120 y 0x5fd4b0, la fase 3)
-// y la lista del asedio con el inventario cortan al principio (sin rand()); con la traba de C3 24, nada. Después, lo
+// 0x5d8d50: el ítem del cursor, desde 0x5ee1de con 0x78abaac en 0. Con la caja del caos abierta, lo que vale y el
+// tipo de la mezcla (0x5d8db6, Scenes::ScanTheChaosBox); la lista del asedio con el inventario corta al principio
+// (sin rand()); con la traba de C3 24, nada. Después, lo
 // que espera el diálogo del ítem del cursor (0x78abb14, Scenes::StepTheCursorChoice) y, con un ítem, soltarlo en la
 // grilla del inventario (0x5ca250), en la del almacén o en la caja del caos y, con el clic fuera de ellas, venderlo
 // en la tienda de NPC o tirarlo al piso. 0x78aba60 en 2 (0x5dc791, CL9.4) nadie lo escribe en MuRet.
@@ -977,9 +980,12 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
     const auto cut = [](std::string_view what) { return Core::Unexpected(std::string(what)); };
     // 0x5d8d72..0x5d8ddf.
     if (panels.IsOpen(UI::ChaosBoxPanel))
-        return cut("0x5d8db6: con la caja del caos abierta, el valor de la caja (0x5fd120) y el tipo de la mezcla "
-                   "(0x5fd4b0 y 0x5fd4f0) son de la fase 3 del hito 6 (08 P-C192)");
-    if (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory)
+    {
+        if (auto scanned = ScanTheChaosBox(context.world, context.random, ServicesOf(context).items);
+            !scanned.HasValue())
+            return scanned;
+    }
+    else if (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory)
         return cut("0x5d8dad: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
     // 0x5d8ddf..0x5d8dee.
     if (runtime.ui.field78abb39 != 0)
@@ -1086,9 +1092,9 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
         if (auto siblings = StepTheInventorySiblings(context, panels); !siblings.HasValue())
             return siblings;
     }
-    // 0x44b4e0: el NPC de la caja con 0x724580 fuera de 0 y 4.
-    if (delegated.trainer != 0 && delegated.trainer != 4)
-        return Core::Unexpected(std::string("0x44b4e0: el paso del NPC de la caja 0x723c80 es de la CL9.3"));
+    // 0x44b4e0: el entrenador, por 0x724580.
+    if (auto trainer = StepTheTrainer(context); !trainer.HasValue())
+        return trainer;
     // 0x44dd50 y 0x44f810: el arma de asedio y la puerta.
     if (delegated.siegeWeapon != 0 || delegated.siegeGate != 0)
         return Core::Unexpected(std::string("0x44dd50: el paso del arma y de la puerta del asedio es de la CL9.5"));

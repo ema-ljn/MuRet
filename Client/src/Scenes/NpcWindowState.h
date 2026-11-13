@@ -21,6 +21,33 @@ inline constexpr std::int32_t ChaosBoxRows = 4;
 // 0x6c9da8..0x6c9dbc: las seis tasas de la caja del caos que copia el 30 con el resultado 3 (0x4d253b..0x4d2566).
 inline constexpr std::size_t ChaosRateCount = 6;
 
+// La mezcla de joyas del NPC del 30 con 9 (los diálogos 0xa1, 0xa2, 0xa3, 0xa4 y 0xa6, y el BC; los textos 1806 a
+// 1815 de Text.bmd, "misturar" y "dissolver"): juntar 10, 20 o 30 joyas de bendición (0x1c0d) o del alma (0x1c0e)
+// en un paquete (0x181e o 0x181f), o deshacer uno. Los globales de 0x6e5794..0x6e57a0 y 0x6c62d8..0x6c62e1; los de
+// 0x6c62xx empiezan en 0xff en la .data, los de 0x6e57xx en 0 en la .bss. 0x402e10 los vuelve a esos valores (salvo
+// 0x6e579c, que deja en −1).
+struct JewelMixState
+{
+    // 0x6e5794: 0 juntar (el 0xa2) y 1 deshacer (el 0xa4). Lo eligen los botones del 0xa1.
+    std::int32_t mode = 0;
+    // 0x6e5799: por qué no se puede (2 faltan joyas, 4 no hay paquete que deshacer, 5 otro caso; 0x402bc0).
+    std::uint8_t refusal = 0;
+    // 0x6e579a: las joyas contadas (0x402bc0), o 1 al deshacer.
+    std::uint8_t counted = 0;
+    // 0x6e579c: el precio (0x402cf0): la cuenta · 50.000 al juntar y 1.000.000 al deshacer.
+    std::int32_t price = 0;
+    // 0x6e57a0: 100 con la mezcla posible (0x402cb2), 0 o el tipo si no. Nadie de los portados lo lee.
+    std::uint8_t field6e57a0 = 0;
+    // 0x6c62d8: la casilla del inventario del paquete a deshacer (0x402a90); el BC 01 le suma 12 (0x401f5a).
+    std::int32_t cell = -1;
+    // 0x6c62dc: el nivel del paquete a deshacer (0x402a90, 0x402ae0).
+    std::int32_t level = -1;
+    // 0x6c62e0: la joya, 0 bendición y 1 alma; 0xff sin elegir.
+    std::uint8_t kind = 0xff;
+    // 0x6c62e1: cuántas juntar (10, 20 o 30; 0xff sin elegir), con signo para el BC 00 (0x40276b).
+    std::uint8_t count = 0xff;
+};
+
 // 0x78ab9bc..0x78ab9c8: lo que el almacén dejó esperando la contraseña, que el 83 con 0xc manda (0x4e4744..). Con el
 // primero en −1, el zen (0x4e6f80 con el segundo y el tercero); si no, un ítem (0x449d80 con los cuatro).
 struct PendingWarehouseMove
@@ -47,11 +74,13 @@ struct NpcWindowState
     std::array<World::ItemState, NpcGridCellCount> grid{};
     // 0x7d2d380: la grilla de la caja del caos.
     std::array<World::ItemState, ChaosBoxCellCount> chaosBox{};
-    std::array<std::int32_t, ChaosRateCount> chaosRates{};
+    // 0x6c9da8 (.data): 75, 70, 65, 60, 55 y 50 hasta que el 30 con el resultado 3 las pisa.
+    std::array<std::int32_t, ChaosRateCount> chaosRates{75, 70, 65, 60, 55, 50};
     // 0x7d2dc80: el estado de la mezcla. 1 la pide (0x5d9362), 2 la deja lista (0x4c5f60 y 0x4da280) y 0 la apaga
     // (abrir la caja, 0x65ac28, y el 86 con 2 o 0xb).
     std::int32_t chaosMixState = 0;
-    // 0x7d2dc9d: lo pone en 0 abrir la caja del caos (0x65a94f).
+    // 0x7d2dc9d: lo pone en 0 abrir la caja del caos (0x65a94f) y lo escribe un paquete del asedio (0x4e5a28, CL9.5).
+    // Con algo, el dibujo suma "+ n%" a la chance del 2 y del 8 (0x5ff2f2).
     std::uint8_t field7d2dc9d = 0;
     // 0x6c932f: la traba del almacén. La escriben el 83 con 0 y 1 y la apagan abrirlo y cerrarlo.
     std::uint8_t warehouseLocked = 0;
@@ -99,11 +128,42 @@ struct NpcWindowState
     // tiene.
     std::int32_t inputMode = 10;
     std::uint8_t numberField = 0;
-    // 0x7d2dc98: el tipo de la mezcla que manda el C1 04 86 (0x5d93f8). Lo arma 0x5fd4b0 con la caja abierta
-    // (0x5d8dda), que es de la fase 3 (08 P-C192): hasta entonces, el 0 de la .bss.
+    // 0x7d2dc98: el tipo de la mezcla que manda el C1 04 86 (0x5d93f8). Lo arma 0x5fd4b0 en cada paso con la caja
+    // abierta (0x5d8dda, Scenes::ScanTheChaosBox).
     std::int32_t mixKind = 0;
-    // 0x6e5798: con 0, el 30 con 9 abre el diálogo 0xa1 (0x4d259d).
+    // 0x7d2d378: lo que vale la caja (0x5fd120 desde 0x5d8dcd), con lo que el dibujo saca la chance de la mezcla 1.
+    std::int32_t chaosBoxValue = 0;
+    // 0x7d3a114 (.bss, 0): el modo de la caja que elige el diálogo 0x8e (0x62599b, el botón 0 o el 1). 0x5fd4b0 lo
+    // mira y el dibujo pone su título.
+    std::int32_t chaosMixMode = 0;
+    // 0x6c9da0 y 0x6c9da4 (.data, 5 y 4): el ancho y el alto más grandes (Item.bmd +0x24 y +0x25) de lo que hay en la
+    // caja, que 0x5fd4f0 vuelve a 1 antes de contar. Siguen a las tasas (0x6c9da8): el dibujo del 2 las lee en fila.
+    std::int32_t mixWidth = 5;
+    std::int32_t mixHeight = 4;
+    // 0x7d2dc84: la capa del 0x1c, 3 con armas excelentes y 4 con armaduras (0x5fdbe6, 0x5fdc1d).
+    std::int32_t mixCapeKind = 0;
+    // 0x7d2dc88: lo que valen (0x54d0f0 en el modo 1, tope 1.000.000) los ítems de nivel 4 o más con una opción de
+    // 0x50 a 0x53, la chance del 0x1c.
+    std::int32_t mixExcellentValue = 0;
+    // 0x7d2dc8c: el nivel + 1 de los dos ítems del 2 (0x1c11 y 0x1c12) o del 8 (0x1a10 y 0x1a11).
+    std::int32_t mixLevel = 0;
+    // 0x7d2dc90: la opción de las alas (0x50 o 0x51 su valor, 0x55 su valor · 4). Nadie más la lee.
+    std::int32_t mixWingOption = 0;
+    // 0x7d2dc94: la chance de las alas del 7 y la capa del 0x18, tope 90.
+    std::int32_t mixWingRate = 0;
+    // 0x7d2dc9c: la suerte (la opción 0x54) del último ítem de nivel 9 a 12 o de nivel 4 o más que la mira.
+    std::uint8_t mixLuck = 0;
+    // 0x7d2dca0: el precio de la mezcla, que escribe el dibujo (0x5febf0) y lee el botón de mezclar (0x5fe982).
+    std::uint32_t mixPrice = 0;
+    // 0x78aba34: el impuesto de la caja del caos, en por ciento. Lo escribe el B2 1A con +4 en 1 (0x4e5507 y
+    // 0x4dfbb0, el byte de +5; CL9.5): hasta entonces, el 0 de la .bss. Lo leen el título de la caja (0x5fed3e), el
+    // precio con impuesto (0x5b12f0) y el entrenador (0x44d89e).
+    std::int32_t chaosTaxRate = 0;
+    // 0x6e5798: con 0, el 30 con 9 abre el diálogo 0xa1 (0x4d259d). Es la mezcla de joyas mandada (0x4029e0 lo pone
+    // en 1 con el BC; 0x402e50 y 0x402e10 lo vuelven a 0): mientras, el 30 con 9 no abre nada.
     std::uint8_t field6e5798 = 0;
+    // La mezcla de joyas (los diálogos 0xa1..0xa6 y el BC, Scenes/JewelMix.h).
+    JewelMixState jewels{};
     // El SetCursorPos que pidió el último 30 (0x4d28f6), con el mouse que vea la escena: NpcTalkCursorWarp. Aplicarlo
     // a la ventana es de la plataforma (CL10).
     bool cursorWarpRequested = false;

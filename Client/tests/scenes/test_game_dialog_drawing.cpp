@@ -32,6 +32,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -767,22 +768,85 @@ TEST(GameDialogDrawingTest, TheBlessRowsAreYellow)
     }
 }
 
-// Los diálogos que no son de la CL8 cortan con la ola de su paso; los de sí y no de la caja del caos y del servidor,
-// con la fase 3 del hito 6.
+// Los diálogos que no son de la CL8 cortan con la ola de su paso; los de la mezcla de joyas, el 0x91 y los de sí y no
+// del servidor, con la dirección de su tramo.
 TEST(GameDialogDrawingTest, TheOtherDialogsAreCut)
 {
     DrawingDialogs tested(Lorencia);
-    for (const auto& [id, wave] : std::to_array<std::pair<std::int32_t, std::string>>({{0x73, "CL9.4"},
-                                                                                       {0x8e, "CL9.3"},
-                                                                                       {0x15, "CL9"},
-                                                                                       {0x9a, "fase 3 del hito 6"},
-                                                                                       {0xa3, "fase 3 del hito 6"}}))
+    for (const auto& [id, address, wave] : std::to_array<std::tuple<std::int32_t, std::string, std::string>>({
+             {0x73, "0x62db60", "CL9.4"},
+             {0x15, "0x62db60", "CL9"},
+             {0x9a, "0x62db60", "fase 3 del hito 6"},
+             {0xa3, "0x630cc9", "P-C198"},
+             {0xa1, "0x62e92e", "P-C198"},
+             {0xa2, "0x62ed0a", "P-C198"},
+             {0xa4, "0x62f371", "P-C198"},
+             {0xa5, "0x62faeb", "P-C198"},
+             {0xa6, "0x62fc1f", "P-C198"},
+             {0x91, "0x6304f2", "P-C198"},
+         }))
     {
         tested.world.Runtime().dialogs.current = id;
         const auto drawn = tested.Draw();
         ASSERT_FALSE(drawn.HasValue());
-        EXPECT_NE(drawn.Error().find("0x62db60"), std::string::npos) << drawn.Error();
+        EXPECT_NE(drawn.Error().find(address), std::string::npos) << drawn.Error();
         EXPECT_NE(drawn.Error().find(wave), std::string::npos) << drawn.Error();
+    }
+}
+
+// 0x62e65c..0x62e929 y 0x632323, en Lorencia, Devias y Noria: el modo de la caja del caos. El marco (0xfc, 5 filas de
+// 0xfb y 0xfc desde y = 120), los dos botones en (245, 190) y (245, 275), en blanco el del mouse y en 0,7 el otro, sus
+// títulos en negrita centrados en y + 12, las explicaciones en x = 0xf8 y el título 734 al final, en y = 135 con
+// 0xff0080ff.
+TEST(GameDialogDrawingTest, TheChaosMixModesDrawTheirButtonsAndNotes)
+{
+    for (const std::int32_t map : {Lorencia, 2, 3})
+    {
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        tested->texts = Client::Tests::MakeTextTable({{734, "elegir"},
+                                                      {735, "normal"},
+                                                      {736, "armas"},
+                                                      {870, "hacha"},
+                                                      {871, "arco"},
+                                                      {872, "alas"},
+                                                      {873, "caballo"},
+                                                      {1923, "mas"}});
+        tested->world.Runtime().dialogs.current = 0x8e;
+        // En el borde de abajo del segundo: y = 275 + 35.
+        tested->mouse = {395, 310};
+        ASSERT_TRUE(tested->Draw().HasValue());
+        const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 9u);
+        EXPECT_EQ(quads[0].slot, 0xfc);
+        EXPECT_FLOAT_EQ(quads[0].y, 120.0f);
+        EXPECT_EQ(quads[1].slot, 0xfb);
+        EXPECT_FLOAT_EQ(quads[1].y, 125.0f);
+        EXPECT_EQ(quads[6].slot, 0xfc);
+        EXPECT_FLOAT_EQ(quads[6].y, 325.0f);
+        EXPECT_EQ(quads[7].slot, 0xf0);
+        EXPECT_FLOAT_EQ(quads[7].x, 245.0f);
+        EXPECT_FLOAT_EQ(quads[7].y, 190.0f);
+        EXPECT_FLOAT_EQ(quads[7].color.red, 0.7f);
+        EXPECT_FLOAT_EQ(quads[8].y, 275.0f);
+        EXPECT_FLOAT_EQ(quads[8].color.red, 1.0f);
+        const std::vector<std::string> expected{"normal", "alas", "caballo", "mas", "armas", "hacha", "arco", "elegir"};
+        EXPECT_EQ(tested->Texts(), expected);
+        const auto& drawn = tested->text.texts;
+        EXPECT_EQ(drawn[0].x, CenteredX("normal"));
+        EXPECT_EQ(drawn[0].y, 202);
+        EXPECT_EQ(drawn[0].style.font, Client::Render::Text::FontKind::Bold);
+        EXPECT_EQ(drawn[0].style.colors.text, 0xfffff0c8u);
+        EXPECT_EQ(drawn[1].x, 0xf8);
+        EXPECT_EQ(drawn[1].y, 150);
+        EXPECT_EQ(drawn[1].style.font, Client::Render::Text::FontKind::Normal);
+        EXPECT_EQ(drawn[1].style.colors.text, 0xffffffffu);
+        EXPECT_EQ(drawn[4].y, 287);
+        EXPECT_EQ(drawn[5].y, 240);
+        EXPECT_EQ(drawn[6].y, 250);
+        EXPECT_EQ(drawn[7].x, CenteredX("elegir"));
+        EXPECT_EQ(drawn[7].y, 135);
+        EXPECT_EQ(drawn[7].style.colors.text, 0xff0080ffu);
+        EXPECT_EQ(tested->world.Runtime().hud.dcFont, Client::Render::Text::FontKind::Bold);
     }
 }
 } // namespace

@@ -1,0 +1,36 @@
+#pragma once
+
+#include "Core/Expected.h"
+
+#include <string>
+
+// La mezcla de joyas (CL9 hito 6, fase 3b; 06 § Los diálogos del juego, "La mezcla de joyas"): los diálogos que abre
+// el 30 con 9 (0x4d25aa) desde 0xa1 y lo que hacen en el paso de 0x623e70, con las funciones de 0x402a10..0x402eb0 y
+// el BC (Protocol::JewelMix). Ninguno saca rand(): el inventario (0x78a9bb0) no está en la tabla de protección y el BC
+// y el 31 salen en claro. Los dibujos (0x62e92e, 0x62ed0a, 0x62f371, 0x62faeb y 0x62fc1f) y el 0xa4 (0x625cf4, con
+// la lista de 0x6e5660) cortan (08 P-C198).
+namespace Client::Scenes
+{
+struct GameUiContext;
+
+// 0x6259c6..0x625b22, el 0xa1: con el clic (que apaga), los dos botones de x en [245, 395] e y en [190, 225] y
+// [255, 290] cierran y abren el 0xa2 (0x6e5794 en 0, juntar) o el 0xa4 (en 1, deshacer), con el MouseUpdateTime en 0
+// y su máximo en 6, sin sonido. Después, x en [279, 360] e y en [320, 345] cierra todo (0x402eb0: 0x402e10, el
+// diálogo y el C1 03 31 en claro).
+[[nodiscard]] Core::Expected<void, std::string> StepTheJewelMenu(const GameUiContext& context);
+
+// 0x625b23..0x625cf3, el 0xa2: con el clic (que apaga), las dos joyas (y en [185, 210], x en [245, 325] y [325, 405])
+// eligen 0x6c62e0 (0 bendición y 1 alma) y, con una elegida, los tres paquetes (x en [245, 395], y en [225, 260],
+// [270, 305] y [315, 350]) ponen 0x6c62e1 en 10, 20 o 30 y preguntan con 0x402b70: si alcanza, cierran y abren el
+// 0xa3 con su texto (0x633300(0, 0, 0xa3)), con el MouseUpdateTime en 0 y su máximo en 6; si no, el aviso de
+// 0x402b70 y la vuelta de 0x402e50. Después, x en [279, 360] e y en [365, 390] cierra todo (0x402eb0).
+[[nodiscard]] Core::Expected<void, std::string> StepTheJewelChoice(const GameUiContext& context);
+
+// 0x625f98..0x62601d, el 0xa6: con el clic (que apaga), x en [287, 352] e y en [170, 195] vuelve con 0x402e50.
+[[nodiscard]] Core::Expected<void, std::string> StepTheJewelResult(const GameUiContext& context);
+
+// 0x62846f..0x628500, cada botón elegido del 0xa3 (el paso de sí y no ya dejó el clic y el botón en 0): el sí deja 1
+// en 0x6c932e, cierra y abre el 0xa5 y manda el BC (0x4029e0); el no deja 2 y vuelve con 0x402e50. Los dos con el
+// MouseUpdateTime en 0, su máximo en 6 y el sonido 0x19 (CL10).
+[[nodiscard]] Core::Expected<void, std::string> AnswerTheJewelMix(const GameUiContext& context, bool yes);
+} // namespace Client::Scenes

@@ -1051,7 +1051,7 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | `0x800` | tienda personal propia (S) | `0x7d5370f` | CL9.4 |
 | `0x1000`, `0x4000` | ventanas con inventario de NPC de evento (`0x7d53712` con `0x7d53714` en 0 o 1; el paso las atiende en `0x5e5920`, que manda `90`/`9A`) *inferido* | | CL9.5 |
 | `0x2000` | sin identificar | `0x7d53718` | — |
-| `0x8000` | NPC con la caja `0x723c80` | `0x449bf0()` | CL9.3 |
+| `0x8000` | el entrenador de las mascotas (`0x724580`, con la caja `0x723c80`; abajo, "El entrenador") | `0x449bf0()` | CL9 hito 6 (el modo 2) |
 | `0x10000` | tienda de NPC (la abre el `30`, `0x4d1e00` en `0x4d288e`) | **byte protegido `0x7d53710`: 1 `rand()`** | CL9.3 |
 | `0x20000` | tienda personal ajena | `0x7d5370f` | CL9.4 |
 | `0x40000` | gremio 2 (paquetes `54`, `56`) | `0x6570a0()` | CL9.4 |
@@ -1083,6 +1083,31 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 - Teclas del juego (`0x59ff10`, `0x5a4c25..0x5a5504`): guarda
   `!0x6578e0() && 0x7d3a10c == 0 && !*(0x7d536fc+4)`; G → `0x10`, P → 4, T → 8, C → `0x2000000`, I/V →
   `0x4000000`, F → 1, M → 2, D → `0x200`, por la cola común `0x5a4ea6` (abierto → `Close`, si no → `Open`).
+
+**El entrenador** (CL9 hito 6, fase 3b, 2026-11-13, *estático*; en MuRet `Scenes/PetTrainer`). El `30` con 7 abre
+el `0x8000` (`0x65be8b`: `0x449940`, que deja el modo en `0x724580` y vacía la caja de `0x723c80`); el paso de los
+paneles llama a `0x44b4e0`, que con el modo en 1, 2 o 3 sigue en `0x44b540`, `0x44b910` o `0x44d010`, y el dibujo a
+`0x44b510` (`0x44b610`, `0x44c850` o `0x44d680`). Los textos 1212 a 1232 de `Text.bmd` (resurrección, el caballo
+oscuro y el cuervo, "recuperar la vida") dicen que es el entrenador de las mascotas del Dark Lord (*inferido*). El
+modo 1 elige con sus botones el 2 (`0x449960`) o el 3 (`0x449970`, que abre el inventario). El modo 2, `0x44b910`:
+
+- el mouse en `[0xd5, 0x1aa) × [0x5a, 0x122)` es de la UI (`0x775857c`);
+- con el clic, los botones `[0x103, 0x17b) × [0x96 + 0x3c · i, +0x16)` (`i` 0 o 1) apagan el clic y el botón y llaman
+  a `0x44b190(i + 1)`: `0x78abb10` en 0 y, con el registro propio abierto, la mascota del botón (el `0x1a04` en el
+  lugar 8, `+0xdac`, o el `0x1a05` en el 1, `+0xbb4`). Sin ella, −1. Con ella, `0x5b13e0` sobre `0x54d0f0` en el
+  modo 2 si la durabilidad está debajo de la máxima (`0x5b1ba0`), o 0; el doble con la durabilidad en 0. Cierra el
+  registro y, con un precio, lo vuelve a abrir para su texto (Q-C949). Después, con el registro abierto hasta el
+  final, si el zen (`+0xecc`, sin signo) alcanza y el precio no es −1, manda `C1 05 34 <8 o 1> <el byte bajo del
+  precio>` en C3 (04, Q-C948), cierra el entrenador (`0x4499b0`: con la caja vacía, `0x724580` y `0x724584` en 0 y
+  el `C1 03 31` en claro; con algo, el texto 1211 de error y sigue abierto) y vacía `0x723918..0x72395f`
+  (`0x421d90`, la caché del tooltip de las mascotas de `0x422990`);
+- sin botón, el de cerrar `[0x189, 0x1a1) × [0x109, 0x121)` con el clic apaga los dos y llama a `0x4499b0`.
+
+Los `rand()`: los 3.848 de cada cierre del registro que lo deja en 0 (dos en `0x44b190` con un precio, uno sin él o
+con 0, y el del paso) y los dos del C3 (el relleno y el serial, `0x40b3f0` o `0x40b0a0`). En MuRet la caja de
+`0x723c80` está siempre vacía: la vacían `0x5bbe10` (al entrar a la selección, `0x633f91`) y `0x449940`, y lo que la
+llena (el `31` con la grilla 5, el `86` con 100 y soltar en ella, `0x44aca9`) corta antes. Los modos 1 y 3 y el
+dibujo cortan con su dirección (08, P-C198).
 
 **Los `rand()` de abrir y cerrar.**
 
@@ -1749,13 +1774,57 @@ el clic elige el botón, después se apagan el clic y el izquierdo, y el flanco 
 el no. El `0x94`, el `0x98` y el `0x99` dejan la respuesta en `0x6c932e` (1 el sí, 2 el no; `0x62a779`), cierran y
 suenan; el `0x96` con el sí pasa el que espera y abre el `0xa8` con `0x633300(1, 0x76e, 0xa8)`; el `0xa9` con el sí,
 fuera del almacén, `0x80` y el comercio (`0x5af520`), manda el `26` de la joya (08, P-C193), o con una de ellas el
-aviso 474, y con el no suelta la joya (`0x5be150`). El `0x9a`, el `0xa3`, el `0xa8` y el `0xaa` siguen cortados
-(P-C192, P-C194). El texto del `0x96` y del `0xa8` (`0x63330f` → `0x633644`): el nombre del ítem de `0x78a59c8` en
+aviso 474, y con el no suelta la joya (`0x5be150`). El `0xa3` es de la mezcla de joyas (abajo); el `0x9a`, el
+`0xa8` y el `0xaa` siguen cortados (P-C194, P-C198). El texto del `0x96` y del `0xa8` (`0x63330f` → `0x633644`): el
+nombre del ítem de `0x78a59c8` en
 `"( %s )"` (el `0xa8` agrega el texto 1901 con `"( %s%s )"`), con la fruta (`0x1a0f`) de nivel 0 a 4 por los textos
 168, 169, 167, 166 y 1900, y debajo el mismo texto en cada renglón (07, Q-C922). El OK del `0x73` (Enter,
 `0x626460..0x6282c8`) es el zen del almacén ([04](04-protocolo.md#las-ventanas-de-los-npc-30-a-34-81-a-83-86-y-87),
 el `81`) y termina con los campos de texto como antes del `0x73` (`0x6c8e78` en `0x2a`, dos campos de Tab y
 `0x77f3b6a` en 0) y el sonido; el del `0x8f` (`0x628276`) cierra y abre el teclado del almacén en 6 (`0x5e7aa0`).
+
+**El modo de la caja del caos y la mezcla de joyas** (CL9 hito 6, fase 3b, 2026-11-13, *estático*; en MuRet
+`DialogStep::ChaosMixMode`, `Scenes/JewelMix` y `Protocol::JewelMix`). Ninguno saca `rand()`: el inventario de
+`0x78a9bb0` no está en la tabla de protección y lo que mandan sale en claro. Los botones comparan el mouse entero
+pasado a float con los floats de la `.rdata`, con los bordes adentro.
+
+- `0x8e` (`0x625910`), el modo que abre `0x65aaf2` al abrir la caja: con el clic, que **no** apaga, el botón de x en
+  `[245, 395]` e y en `[180 + 85i, 215 + 85i]` deja `i` en `0x7d3a114` (el modo de `0x5fd4b0` y del dibujo de la
+  caja) y pasa el que espera, sin sonido ni `MouseUpdateTime`. El dibujo pone los botones 10 píxeles más abajo
+  (07, Q-C945).
+- La mezcla de joyas, que abre el `30` con 9 (`0x4d25aa`, con `0x6e5798` en 0; los textos 1805 a 1822 de
+  `Text.bmd`: juntar 10, 20 o 30 joyas de bendición `0x1c0d` o del alma `0x1c0e` en un paquete `0x181e` o `0x181f`,
+  o deshacer uno; *inferido* de los textos y los tipos). Los globales son `0x6e5794` (0 juntar, 1 deshacer),
+  `0x6e5798` (mandada), `0x6e5799` (por qué no: 2, 4 o 5), `0x6e579a` (las contadas), `0x6e579c` (el precio),
+  `0x6e57a0`, y `0x6c62d8`/`0x6c62dc`/`0x6c62e0`/`0x6c62e1` (la casilla y el nivel del paquete, la joya y cuántas;
+  `0xff` en la `.data`). `0x402e10` los vuelve a su arranque; `0x402eb0` es eso, el diálogo cerrado y el `C1 03 31`
+  en claro; `0x402e50` apaga la mandada, cierra, borra el porqué y la joya y abre el `0xa2` o el `0xa4` según el
+  modo (con otro, `0x402eb0`).
+- `0xa1` (`0x6259c6`): con el clic (que apaga), x en `[245, 395]` e y en `[190, 225]` o `[255, 290]` cierra y abre el
+  `0xa2` con el modo 0 o el `0xa4` con el 1, con `MouseUpdateTime` en 0 y su máximo en 6, sin sonido; después, x en
+  `[279, 360]` e y en `[320, 345]`, `0x402eb0`.
+- `0xa2` (`0x625b23`): con el clic (que apaga), las joyas en y `[185, 210]`, x `[245, 325]` (bendición, 0) o
+  `[325, 405]` (alma, 1); con una elegida (el byte no negativo), los paquetes en x `[245, 395]` e y `[225, 260]`,
+  `[270, 305]` y `[315, 350]` guardan la joya, ponen 10, 20 o 30 y preguntan a `0x402b70`. Si alcanza, cierran y abren
+  el `0xa3` con `0x633300(0, 0, 0xa3)`; si no, el aviso (1817 si faltan, 1818 si no hay paquete; el 5 sin aviso) de
+  error y `0x402e50`. Después, x en `[279, 360]` e y en `[365, 390]`, `0x402eb0`.
+- `0x402bc0` al juntar cuenta en las 64 casillas, fila por fila, las de la joya elegida y alcanza en cuanto la cuenta
+  (un byte) llega a `0x6c62e1` con signo; al deshacer mira el tipo del paquete de la casilla `0x6c62d8` (−1 y desde
+  `0x40` no; otro negativo leería antes de la grilla y MuRet corta). Alcanza: `0x6e57a0` en 100 y el precio
+  (`0x402cf0`: las joyas · 50.000, o 1.000.000 al deshacer).
+- `0xa3`, de sí y no (los botones con arriba en `0xd2`): el sí deja 1 en `0x6c932e`, cierra, abre el `0xa5` y llama a
+  `0x4029e0`, que con la mezcla sin mandar y sin porqué la marca y manda el `BC` (04); el no deja 2 y llama a
+  `0x402e50`. Los dos con `MouseUpdateTime` en 0, su máximo en 6 y el sonido `0x19`.
+- `0xa6` (`0x625f98`, lo abre `0x405220`): con el clic (que apaga), x en `[287, 352]` e y en `[170, 195]`, `0x402e50`.
+
+El texto del `0xa3` (`0x63340d`) es `sprintf` del 1809 (juntar: la joya, 1806 o 1807, y las contadas) o del 1813
+(deshacer: la joya y el nivel + 1) en 300 bytes de la pila, partido con `0x632c90` en a lo sumo 2 renglones de
+`0x1e` bytes de otra parte de la pila (de los que pone en 0 solo los primeros 20 bytes: Q-C946) y copiados con
+`strcpy` a los dos primeros; debajo, el precio con el 1810 o el 1814. El del `0x99` (`0x63333d`) es el número de
+`0x77f3b6c` con sus puntos (`0x5b1130`) en el formato del primer texto y los siguientes con `0x69fd9b` sin argumentos.
+Lo abre `0x5dc7d5`, con `0x78aba60` en 2 (CL9.4): MuRet lo porta para cuando llegue. Siguen cortados (08, P-C198) el
+`0xa4` (`0x625cf4`, con la lista de `0x6e5660`), el `0x91`, el `0x9a`, el `0xa8` y el `0xaa`, y los dibujos de la
+mezcla de joyas.
 
 **El dibujo** (`0x62db60`, en `0x637696` con la escena 5). Siempre deja `0x620980`, el blanco, la fuente normal en el
 DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos van con `0x554180` centrados en
@@ -1767,6 +1836,7 @@ DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos
 | `0x93` | 7 filas (la 5 de 44, la 6 en y = 232); 385 en `0x23`; `"%s  On"`/`"%s  Off"` con 386 (`0x41`), 387 (`0x5f`) y 919 (`0x9b`); 389 en `x = 0x140 − (cx + 0x36) / 2` (`0x7d`) y la barra en `(x + 0x144 + cx, 0x7f)`: gris 0,2 de 50 × 8, negro de 48 × 6 y blanco de `(v + 1) · 4,8` × 6; el marco del brillo (gris `(268, 198, 102, 22)`, negro `(269, 199, 100, 20)`), 5 casillas de 18 en y = 200 (`(0,8; 0,6; 0,3)` hasta `0x6c9dcc`, negras después) y las cifras 5, 7, 9, 11 y 13 de 12 × 12 en y = 202 con los colores al revés; 1840 en `0xb9` (Q-C555) y 388 en `0xed` |
 | `0x8a`, `0x8c`, `0x9b` / `0x8b`, `0x97` | `0xfc` de 213 × 5 en (213, 60), 4 / 7 filas de `0xfb` de 213 × 40 y otra `0xfc`; cada botón con estado, `0xf0 + estado` en `(x + 213, y + 60, w, h − 1)` con las UV `(0, 0, w / 128, h / 32)`; en el `0x8c`, las flechas (`CursorSitDown` girada 270 y 90 grados, 25 × 16, en (253, 210) y (383, 210)): gris en su tope, 0,7 con el mouse y 0,5 con el clic, que apaga (Q-C553); los renglones del `0x8a`, el `0x8c` y el `0x8d` (`0x632472`) desde `((7 − 0x7d3a0fc − renglones) · 0x12) / 2 + 0x4c`, con 0x46 como mínimo en el `0x8d`; los del `0x8b`, el `0x97` y el `0x9b`, el objeto del evento (`0x632a2b`) |
 | `0x8d` | el marco de las cajas con `((renglones + respuestas) · 0x12 + 0x31) / 40` filas, de 4 a 9 (`0x631150`); el texto como el `0x8a`; debajo, cada respuesta en amarillo, o en rojo la del mouse (`(y − tope) / 0x12`, a no más de `0x6a` de x = `0x13f`), y si su primer byte no es 0 su renglón (la y baja solo con las dibujadas); al final, el blanco |
+| `0x8e` | `0xfc` de 213 × 5 en (213, 120), 5 filas de `0xfb` desde 125 y `0xfc` en 325; los 2 botones `0xf0` de 150 × 35 en `(245, 190 + 85i)` con las UV `(0, 0, 0,83203125, 1)`, en blanco con el mouse en `[245, 395] × [y, y + 35]` y en 0,7 si no; el título 735 + i en negrita con `0xfffff0c8` centrado en y + 12; en la normal y en blanco, las explicaciones en x = `0xf8` (872, 873 y 1923 en 150, 160 y 170; 870 y 871 en 240 y 250); en la cola (`0x632323`), el 734 en negrita con `0xff0080ff` centrado en 135, y así queda el DC |
 | OK genérico | `0xf0` de 213 × 64 en (213, 60) y el OK, `0xf1` (`0xf2` con el mouse en `[0x11c, 0x161] × [0x62, 0x76]`) de 70 × 21 en (284, 98); su texto en y = `0x4b`, o en `0x45` y `0x51` los de dos renglones: el `0x70` el 402, el `0x6f` y el `0x1a` el 405 y el 406, el `0x1c` el 409, el `0x87` el 442, el `0x88` el 445 y el `0x8f` el 401 |
 | `0x94`, `0x96`, `0x98`, `0x99`, `0xa9` (CL9 hito 6) | `0x630cc4..0x630fbe`: `0xfc` de 213 × 5 en (213, 100), 3 filas de `0xfb` de 213 × 40 desde y = 105 y otra `0xfc`, con las UV de las cajas; cada botón con estado de 1 a 4, `0xf0 + estado` en `(x + 213, y + 100, w, h)` (sin el − 1 de las cajas) con las UV `(0, 0, w / 128, h / 32)`. Después de `0x620a00(1)`, los renglones (`0x632637`): la fuente gruesa y `(1; 0,7; 0)` en cada uno, centrados en x = `0x15e` desde y = 100 + `0x1e` de a `0x12`; salvo en el `0x96`, con `0x78abb14` en 3 en x = `0x140` desde 100 + `0xf`, en 4 en `0x140` desde 100 + `0x2d`, y en 2 antes el título de la mezcla (`0x632683`, que lee `0x7d2dc98`: de la caja del caos, cortado). Los colores siguen a `0x78abb14` también en el `0x96`: con 6, el primero en rojo y los demás en la fuente normal y en blanco; si no, el primero en rojo con 1, el cuarto en `(1; 0,1; 0,1)` con 3 y todos en `(0,9; 0,9; 1)` con 2. No vuelve al blanco ni a la fuente normal. El `0xa9` (`0x632a45`): la fuente gruesa y el amarillo, centrados en `0x140` desde y = 100 + `0x2d`, y al final la fuente normal. Sin `rand()` |
 
@@ -1825,8 +1895,9 @@ almacén y `(4, casilla)` en la caja. Después del inventario, las hermanas: la 
 (`0x5ea060`: meter y sacar zen con el `0x73`, el teclado y cerrar) y la tienda (`0x5ed960`, con su `rand()`: los
 botones del modo de reparar y reparar todo con `0x78abb09`, y `0x5b1570`, lo que cuesta reparar todo, con el
 registro propio abierto). Con el almacén abierto, la cadena de Q, W y E y la cola `IsOpen(0)` se paran en `0x40`
-antes de consultar la tienda: un `rand()` menos cada una que con todo cerrado. Los dibujos van abajo; el de la caja
-del caos (`0x5febf0`) sigue cortado (08, P-C194).
+antes de consultar la tienda: un `rand()` menos cada una que con todo cerrado; con la caja del caos, solo `IsOpen(0)`
+(se para en `0x100`; la cadena pasa por `0x10000` antes). Los dibujos van abajo: los de la tienda y del almacén en el
+párrafo que sigue y el de la caja del caos en "La caja del caos".
 
 **Los dibujos de las ventanas de los NPC** (CL9 hito 6, fase 3, 2026-11-13, *estático*; en MuRet
 `Scenes/NpcWindowDrawing.cpp`, con los tests de `test_npc_window_drawing.cpp` en Lorencia, Devias y Noria). Van en
@@ -1909,6 +1980,77 @@ Al final (`0x5e9aad..0x5e9ae1`), si el clic sigue prendido `0x78abb3a` en 1, con
 el clic y el botón abajo (`0x7d36874`) en 0. Los C3 sacan sus dos `rand()` (el relleno y el serial); `0x657a90`, los de
 sus consultas. El `0x87` y el `0x88` son del OK genérico de `0x62db60`, con el texto 442 (`0x632290`) y el 445
 (`0x6322c1`).
+
+**La caja del caos** (CL9 hito 6, fase 3, 2026-11-13, *estático*; en MuRet `Scenes/ChaosMix.cpp`,
+`Scenes/ChaosBoxDrawing.cpp` y el botón en `Scenes/NpcWindowSteps.cpp`). Con la caja abierta (o la lista del asedio
+en el modo 3 con `0x6689d0`, que corta, CL9.5), lo primero de `0x5d8d50` en cada paso es `0x5fd120(0x7d2d380, 8, 4)`,
+lo que vale la caja (`0x7d2d378`: `0x54d0f0` en el modo 0 de cada casilla con tipo y `+0x3c`, salvo los fijos de las
+joyas: 100.000 Bless `0x1c0d`, 70.000 Soul `0x1c0e`, 40.000 la del caos `0x180f` y 450.000 Life `0x1c10` y Creation
+`0x1c16`; un int que da la vuelta, y 0 sin la del caos), y `0x5fd4b0`, el tipo de la mezcla (`0x7d2dc98`): el de
+`0x5fd4f0` con el modo de la caja (`0x7d3a114`, el botón del `0x8e`): en el 0 el 1 da 0, en el 1 solo queda el 1.
+`0x5fd4f0` pone `0x7d2dc88` en 0 y el ancho y el alto más grandes (`0x6c9da0`, `0x6c9da4`, Item.bmd `+0x24` y
+`+0x25`) en 1, y cuenta cada casilla con `+0x3c`: debajo de las alas (`0x1800`) y de nivel 4 o más, la primera opción
+de `0x50` a `0x53` (D+`0x2b`) cuenta un arma (debajo de `0xc00`) o una armadura y suma su `0x54d0f0` del modo 1 a
+`0x7d2dc88` (tope 1.000.000); sin ella, o en las demás salvo la joya del caos, Life y el `0x1a25` sin excelente, un
+"no excelente". Los de nivel 9 a 12 (debajo de `0x1807` o el `0x1a1e`) cuentan su nivel y miran la suerte (la opción
+`0x54`) para `0x7d2dc9c`. Las alas `0x1800..0x1802` dejan su precio del modo 0 y la opción de las alas (`0x7d2dc90`:
+el valor de `0x50` o `0x51`, el de `0x55` por 4; nadie lo lee) y miran la suerte en un local que nadie lee (Q-C943).
+Las joyas, los ojos y llaves del Devil Square (`0x1c11`, `0x1c12`, con su nivel), los pergaminos y huesos del Blood
+Castle (`0x1a10`, `0x1a11`), la pluma (`0x1a0e`), Uniria con durabilidad 255 (`0x1a02`), la joya del guardián
+(`0x1c1f`) y las piezas de Fenrir (`0x1a20` y `0x1a21` con durabilidad 20, `0x1a22` con 10, `0x1a23`, `0x1a24`,
+`0x1a25`) tienen su cuenta; el resto, con una opción de `0x50` a `0x53` y nivel 4 o más, cuenta para el arma del caos
+(y los bastones `0x406`, `0x806` y `0xa07` aparte), y si no, "otros"; con excelente (`+0x1b & 0x3f`) y nivel 4 o
+más, los `0x1803..0x1806` aparte y los demás suman su `0x54d0f0` del modo 0. El tipo, en este orden: con 3 ítems, el
+ojo y la llave con la del caos (2, con `0x7d2dc8c` en nivel + 1, o −2 con niveles distintos), el pergamino y el hueso
+(8 o −8) o los `0x1a20` y `0x1a21` (`0x19`); con 7, `0x1a22` y cinco `0x1a23` (`0x1a`); con 5, `0x1a24` y tres Life
+(`0x1b`); con 8 o más y un `0x1a25` sin excelente, cinco Life, la del caos y solo armas (o solo armaduras) con opción
+(`0x1c`, con `0x7d2dc84` en 3 o 4). Después, unas alas, la pluma y la del caos con todo lo demás excelente: con la
+pluma de nivel 0, el 7; de nivel 1, el nivel del héroe (`+0xe` del registro propio, 3.848 `rand()` al cerrarlo): con
+menos de 10 el −`0x18`, si no el `0x18`; los dos con la chance de las alas (`0x7d2dc94`: los excelentes / 40.000 + las
+alas / 4.000.000, sin signo, tope 90). Si no: con 4, 6, 8 o 10 ítems, uno de nivel 9, 10, 11 o 12 con 1, 2, 3 o 4
+Bless y Soul y la del caos (3, 4, `0x16`, `0x17`); con 11, diez Uniria y la del caos (5); con 2, Creation y la del
+caos (6); la del caos con ítems con opción y nada más que no sea joya (1, el arma del caos, u 11 con un bastón); solo
+Bless (`0xf`) o solo Soul (`0x10`); 12 con cinco y cinco, la del caos y la del guardián (`0x11`); si no, 0. Ninguna
+cuenta saca `rand()` salvo el registro de la capa.
+
+El botón de mezclar (`0x5fe690`, desde `0x5fe610` con `0x7d2dc80` en 0 y el clic en `(x + 0x4b, y + 300)` de 0x2c ×
+0x20) corre antes que `0x5d8d50` y lee el tipo y el precio del paso y del dibujo anteriores. Abre y cierra el registro
+propio por el zen (`+0xecc`): con el precio (`0x7d2dca0`, sin signo) igual o mayor, el aviso 596 (`0x555190` con 2) y
+el clic gastado sin sonido (Q-C940). Si no, gasta el clic y, por la tabla de `0x5feb88`: el −`0x18`, el 1171 con 10
+(`wsprintfA`); el −8 y el −2, el 600; el 0, el 580 con el 591; los que mezclan (1 a 8, `0xb`, `0xf` a `0x11` y `0x16`
+a `0x1c`), el lugar en el inventario (`0x5fd200(0x78a9bb0, 8, 8, ancho, alto)`: 5 × 4 el 1, el 7 y el 11; 2 × 2 el 8
+y `0x1a` a `0x1c`; 1 × 1 el `0xf`, `0x10`, `0x11` y `0x19`; 3 × 3 el `0x18`; los más grandes de la caja los demás) o
+el aviso 581 y, sin ítem en el cursor, `0x78abb14` en 2, `0x6c932e` en `0xff` y el `0x98` con el texto `0x21b`. Todos
+menos el del zen suenan `0x19`. El sí del `0x98` manda el `86` (04).
+
+El dibujo (`0x5febf0`, desde `0x5f7440` después de la tienda, con su `IsOpen(0x100)`) pone la esquina de la ventana
+del NPC en `(0x104, 0)`, dibuja el fondo (`0x5ee220`) y las 32 casillas (`0x5e3660(x + 15, y + 110, …, 8, 4)`), y
+con `glColor(1, 1, 1)`, la fuente gruesa y `0xffdcdcdc` sobre `0xff141414` el título en la caja de 120 · W / 640: el
+735 (modo 0) o el 736 (modo 1) en `(x + 0x23, y + 8)` con la tasa (el 1623 con `0x78aba34`) en `y + 0x14`, o el 583
+en `y + 0xc`. Pone el precio en 0 y, con la mezcla pedida (`0x7d2dc80` en 2 o más), termina. Si no, la chance (ESI) y
+el precio: lo que vale / 20.000 con signo (tope 100) y por 10.000, con el texto de `0x5b1130`; por el tipo (la tabla
+de `0x5ff878`): el −8, el −2 y el 0, 0 y 0; el 2, 60 con el nivel 1 o la tasa de `0x6c9da0 + 4 · nivel` (las seis de
+`0x6c9da8`, 75 a 50 en la `.data` hasta que las pisa el `30`; desde el nivel 8 lee el formato de `0x6c9dc0`: P-C197,
+Q-C942) y 100.000, 100.000, 200.000, 400.000, 700.000, 1.100.000 o 1.600.000; el 3, 50 (+25 con suerte) y 2.000.000;
+el 4, 45 (+25) y 4.000.000; el 5, 70 y 500.000; el 6, 90 y 3.000.000; el 7 y el `0x18`, `0x7d2dc94` y 5.000.000; el 8,
+80 y 50.000, 50.000, 80.000, 150.000, 250.000, 400.000, 600.000 u 850.000; el `0xf`, 100 y 100.000; el `0x10`, 100 y
+50.000; el `0x11`, 100 y 5.000.000; el `0x16` y el `0x17`, 45 (+25) y 6.000.000 u 8.000.000; el `0x19`, 70 y 0; el
+`0x1a`, 50 y 0; el `0x1b`, 30 y 10.000.000; el `0x1c`, `0x7d2dc88` · 100 / 1.000.000 (tope 79) y 10.000.000; el
+−`0x18`, chance 0 con el precio de lo que vale; los demás, lo que vale. El nombre en `(x + 0x14, y + 0x32)` sobre
+`0x80282828`, en `0xff30ffff` con un tipo (EDI, 0 si es negativo; el `0xb` como el 7) o en `0xff3030ff` sin él: el
+1172 con el `0x18`; el 664 con EDI − 10 para el `0x16` y el `0x17`; `"%s %s"` con el 1413, 1414, 1415, 1921, 1922 o
+1923 y el 1412 para el `0xf`, `0x10`, `0x11`, `0x19`, `0x1a` y `0x1b`; `"%s %s %s"` con el 1923, el 1863 o 1864 (la
+capa) y el 1412 para el `0x1c`; si no, el 601 + EDI (hasta 4) o el 607 + EDI, todos por `sprintf`. La chance en `y +
+0x46`: el 584 con el 591 y ESI en `0xffffe6d2`; con `0x7d2dc9d` (del asedio) y EDI 2 u 8, en `0xff30ffff` y con
+`"%s + %d%%"` (`0x6c9dc0`) sobre el mismo buffer (Q-C944). El precio en `y + 0x5a`: el 1622 (el 1636 con el `0xf` y el
+`0x10`, que antes dibujan el 590 en `y + 0x10e`) con el precio con impuesto (`0x5b12f0`: precio + `0x78aba34` ·
+precio / 100 en 64 bits con signo) y el de `0x5b1130` (Q-C941). En `0xff1432ff`, el 586 con el 591 en `y + 0xd2` y el
+587 en `y + 0xe1`; los avisos (la tabla de `0x5ff8c0`): el 606, 607 y 608 con el 3, el 4, el `0x16` y el `0x17`; el
+610 y el 611 con el 5 y el 6; con los demás y el modo 1, el 588 con el 591, el 589 y el 590, en `y + 0xf0`, `0xff` y
+`0x10e`. El botón `0x124` de 44 × 32 en `(x + 75, y + 300)` (du 0,6875) y, con el mouse adentro (x87), el `0x125` con
+el izquierdo abajo y la ayuda 591 con la fuente normal en `(x, y − 13)`. Los buffers de la pila: 0x84 bytes hasta el
+texto del precio (`[EBP − 0x28]`) y 0xac hasta lo guardado; un renglón más largo corta (*inferido*). No saca `rand()`.
+La grilla de la caja en el inventario (`0x5f77c6` y `0x5f7a9e`): `0x5e3760(x + 15, y + 110, 0x7d2d380, 8, 4, 0 y 1)`.
 
 **El mundo angosto** (`0x6371a0`). `0x5bb8d0` da 640 sin ventanas, 450 con una y 260 con dos. `0x63733e` lo pide para
 `0x620db0(0, 0, w, 48)` (solo la modelview) y `0x5fbb00(w · 0,0015625f, &p)`, que achica los cinco planos y el rango
@@ -2064,8 +2206,9 @@ con `0x200000` en `+0x7c`) y la montura en uso. Si va, la marca 2 y, con el clic
 (`0x77f3cc8`; un arma de una mano o un bastón al 1 con la derecha vacía va al 0), el aviso 1862 de Fenrir y, sin la
 traba, el `24`. Si no va, la marca 3 y, con el clic y sin la traba, `0x5be150`.
 
-**El paso del ítem del cursor** (`0x5d8d50`, desde `0x5ee1de` con `0x78abaac` en 0). La caja del caos y la lista
-del asedio en el modo 3 cortan al principio; con la traba, nada. La cadena de `0x78abb14` (1 a 6) y `0x78aba60` en 2
+**El paso del ítem del cursor** (`0x5d8d50`, desde `0x5ee1de` con `0x78abaac` en 0). Con la caja del caos, lo
+que vale y el tipo de la mezcla (`0x5d8db6..0x5d8dda`, "La caja del caos"); la lista del asedio en el modo 3 corta al
+principio; con la traba, nada. La cadena de `0x78abb14` (1 a 6) y `0x78aba60` en 2
 son de las ventanas de NPC; con los dos en 0 va a `0x5deac5` con `esi` en 6 (`0x5da592`). Sin ítem (`0x7879fbc` ≤
 0), nada. Si no, `0x5ca250(x + 15, y + 200, 0x78a9bb0, 8, 8, 0)`: la casilla bajo el mouse es `_ftol((mouse −
 esquina) · 0,05f − tamaño · 0,5f + 0,5f)` en la x87, que trunca hacia el 0 (Q-C476); con una negativa no hace nada.

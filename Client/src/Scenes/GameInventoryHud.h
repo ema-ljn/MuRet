@@ -12,8 +12,8 @@
 // El inventario en el HUD del juego (06 § El inventario, CL8 hito 4): la ventana (0x5f2340 con 0x5ee220, 0x5e2460,
 // 0x5e3660 y el cartel del set 0x40e720), los ítems 3D de las grillas (0x5f7610 → 0x5e2fc0 y 0x5e3760), las cifras
 // (0x5f7840) y el ítem del cursor (0x5f7b10). En 640 × 480, con el estado de GL que dejan, y con los rand() de la
-// tabla de protección y del dibujo de cada ítem en su orden. Las grillas de la tienda y del almacén van desde la
-// esquina de la ventana del NPC (CL9 hito 6); las del comercio, la caja del caos, las tiendas personales y la caja del
+// tabla de protección y del dibujo de cada ítem en su orden. Las grillas de la tienda, del almacén y de la caja del
+// caos van desde la esquina de la ventana del NPC (CL9 hito 6); las del comercio, las tiendas personales y la caja del
 // entrenador cortan con su dirección.
 //
 // El modelo de un ítem de la UI (0x5e1480 → 0x5e0720) va en el pase 3D de 0x5ac120 (Scenes/UiItemDrawing.h).
@@ -38,7 +38,7 @@ struct UiItemBox;
 
 // 0x5e3660(x, y, grilla, columnas, filas): una casilla de 20 × 20 por lugar, con el color del aviso de lo que haya
 // (también de las vacías): Item_box (0x115) vacía, InventoryBox2 (0x116) con un tipo. La usan el inventario y las
-// ventanas de los NPC (Scenes/NpcWindowDrawing.h).
+// ventanas de los NPC (Scenes/NpcWindowDrawing.h y Scenes/ChaosBoxDrawing.h).
 void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<const World::ItemState> cells,
                       std::size_t columns, std::size_t rows);
 
@@ -51,8 +51,8 @@ void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<
 
 // 0x5f7610: los ítems 3D de las grillas abiertas, en su orden. Del inventario, el equipo (0x5e2fc0, con el registro
 // propio abierto alrededor, cada lugar en su caja) y la grilla (0x5e3760 con 0, con el tamaño de Item.bmd); la de la
-// tienda (con su rand()) y la del almacén, 8 × 15 desde la esquina de la ventana del NPC más (15, 50); las de las
-// demás cortan con su dirección.
+// tienda (con su rand()) y la del almacén, 8 × 15 desde la esquina de la ventana del NPC más (15, 50), y la de la
+// caja del caos, 8 × 4 desde la misma esquina más (15, 110); las de las demás cortan con su dirección.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::PanelRegistry& panels);
 
 // 0x5f7840: las cifras de las grillas (0x5e3760 con 1): las pociones con más de 1 y los paquetes de joyas.

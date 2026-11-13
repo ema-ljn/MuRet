@@ -240,7 +240,8 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   mandarlo, y `0x4499b0` sale sin mandar si la caja de `0x723c80` tiene algo (`0x449c10`) y, si no,
   pone en 0 `0x724580` y `0x724584`. En el GS reconstruido es `CGCloseWindow`
   (`protocol.cpp:443`, `0x42ab20`): MuRet lo llama `WindowClose`. Los llaman también otros lugares de la interfaz (`0x44b5da`,
-  `0x44b9ce`, `0x44c62e` y `0x658dfd` a `0x4499b0`), que MuRet no tiene.
+  `0x44b9ce`, `0x44c62e` y `0x658dfd` a `0x4499b0`): MuRet tiene los dos del entrenador con `0x724580` en 2
+  (`0x44b9ce` y `0x44c62e`, CL9 hito 6, `Scenes/PetTrainer`).
 - **La suma del ejecutable (`03`)**, S->C y C->S (`0x4e2b10` → `0x4e16c0`; *estático*, ASM
   c32bbd5f, y del lado del GS la reconstrucción del research del servidor). Al entrar al mundo
   (`gObjSetCharacter`, con el `F3 03`) el GS manda `C1 06 03 00 <clave:2>` (`GCCheckMainExeKeySend`):
@@ -1062,6 +1063,9 @@ ASM del cliente):
   mandan `C1 05 34 <lugar> <0x78abb10>`; el botón de reparar todo de la tienda (`0x5edaa7`, con `0x78abb09`)
   `C1 05 34 FF 00` sin gastar el clic. `PMSG_ITEMDURREPAIR` (`Position`, `Requestpos`): `0xff` repara todo y
   `Requestpos` 1 pide nivel 50; el 0.97 no mira si llegó cifrado, el cliente lo manda en C3.
+  El entrenador con `0x724580` en 2 (`0x44b910`, fase 3b) manda `C1 05 34 08 <precio>` (el caballo oscuro, `0x1a04`,
+  en el lugar 8) o `C1 05 34 01 <precio>` (el cuervo, `0x1a05`, en la mano izquierda), con el byte bajo del precio de
+  `0x44b190` como `Requestpos` (07, Q-C948), en C3, y detrás el `C1 03 31` de `0x4499b0` en claro.
 - **`24`** guardar y sacar (`0x5ca250` desde `0x5deb57` y desde la grilla del inventario): `0x449d80` con la grilla
   del cursor (0 el inventario, 2 el almacén, 3 la caja del caos) y el lugar de destino, en C3. Sacar del almacén con
   la traba (`0x6c932f`) y sin `0x78abb1c` no manda nada: guarda los cuatro valores en `0x78ab9bc..` y abre el
@@ -1079,8 +1083,10 @@ ASM del cliente):
   y `CGCloseWindow` no leen cuerpo.
 - **`86`** la mezcla: el sí del `0x98` con `0x78abb14` en 2 (`0x5d934f..0x5d9633`) pone `0x7d2dc80` en 1 y manda
   `C1 04 86 <0x7d2dc98>` con el XOR32 en claro. `CGChaosBoxItemMixButtonClick` no lee el tipo: el byte sale como lo
-  arma el cliente (el ASM es el oráculo) y lo arma `0x5fd4f0`, que sigue cortado con el botón de mezclar
-  (`0x5fe690`, 08 P-C192).
+  arma el cliente (el ASM es el oráculo): el tipo de `0x5fd4f0` filtrado por el modo de la caja (`0x5fd4b0`), que
+  `0x5d8d50` recalcula en cada paso con la caja abierta, y el sí llega del `0x98` que abre el botón de mezclar
+  (`0x5fe690`; 06 § "La caja del caos"). Los tipos que pueden salir: 1 a 8, `0xb`, `0xf` a `0x11` y `0x16` a `0x1c`
+  (el botón no abre el `0x98` con el 0 ni con los negativos).
 - **`83`** la contraseña (`C1 10 83 <tipo> <contraseña:2> <número:10>`, `PMSG_WAREHOUSEPASSSEND` de `0x10` bytes,
   con el XOR32 y en C3): la manda el OK de la caja de la contraseña (`0x5e7bf0`, 06 § Los dibujos de las ventanas de
   los NPC) según su modo. El 1 (abrir la traba, `0x5e931c`) con 0, el `atoi` de las cuatro cifras y los diez primeros
@@ -1092,6 +1098,14 @@ ASM del cliente):
   (el que abre el OK del `0x8f`, `0x628276`), después de un `C1 03 31` en claro y de cerrar todo (`0x657a90`,
   `0x5e8552..0x5e8bfd`). El GameServer 0.97 despacha el `99` a `CGAttributeMixRequest` (`PMSG_REQ_ATTRMIX`), que no
   es esto (Q-C925): quién lo atiende en el servidor del 1.02 queda para la VM.
+- **`BC`** la mezcla de joyas (CL9 hito 6, fase 3b; 06 § "El modo de la caja del caos y la mezcla de joyas"): el sí
+  del `0xa3` llama a `0x4029e0`, que con `0x6e5798` en 0 y `0x6e5799` en 0 pone la primera en 1 y, según
+  `0x6e5794`, manda `C1 06 BC 00 <joya> <cuántas / 10 − 1>` (`0x402500`: `0x6c62e0`, y `0x6c62e1` con signo dividido
+  hacia el cero) o `C1 07 BC 01 <joya> <nivel> <lugar>` (`0x401f30`: `0x6c62e0`, `0x6c62dc` y `0x6c62d8` + 12, que
+  queda así en el global, Q-C947). Los dos arman el C1 de a un byte con el XOR32 de cada byte nuevo y lo mandan con
+  `send()` en claro, sin la tabla de protección: sin `rand()`. El GameServer 0.97 no atiende el `BC` (no está en
+  `protocol.cpp`): el ASM es el oráculo. Las respuestas (`0x4da460`, `0x4da540` y la rama de `0x4e45c8` del
+  dispatcher, que llaman a `0x402e50`) no están portadas (08, P-C199). **MuRet**: `Protocol::JewelMix`.
 
 Los `rand()`: con la tienda abierta, cada `IsOpen(0x10000)` saca uno (también el de `0x5decc1` al vender); con el
 almacén abierto, la cadena de Q, W y E (`0x5a343e`) e `IsOpen(0)` (`0x5a5511`) se paran en `0x40` antes de la tienda:

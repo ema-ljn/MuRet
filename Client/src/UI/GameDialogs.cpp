@@ -5,6 +5,7 @@
 #include "Data/Text/TextTable.h"
 #include "UI/Dialogs.h"
 #include "UI/GameText.h"
+#include "UI/SprintfFormat.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
 
@@ -41,6 +42,19 @@ constexpr std::array<std::int64_t, 5> FruitNameTexts{168, 169, 167, 166, 1900};
 constexpr std::int64_t LuckText = 1901;
 constexpr std::uint32_t LevelShift = 3;
 constexpr std::uint32_t LevelMask = 0xf;
+// 0x63344c..0x633564: los textos de la mezcla de joyas del 0xa3: la joya (bendición o alma), la pregunta al juntar y
+// al deshacer, y el precio de cada una.
+constexpr std::int64_t BlessJewelText = 1806;
+constexpr std::int64_t SoulJewelText = 1807;
+constexpr std::int64_t MixQuestionText = 1809;
+constexpr std::int64_t MixPriceText = 1810;
+constexpr std::int64_t UnmixQuestionText = 1813;
+constexpr std::int64_t UnmixPriceText = 1814;
+// 0x633419..0x63342e y 0x6334a7: la pregunta se parte en la pila en 2 renglones de 0x1e bytes ([ebp − 0x64]); el
+// sprintf va antes a los 300 bytes de [ebp − 0x190].
+constexpr std::size_t JewelRows = 2;
+constexpr std::size_t JewelRowBytes = 0x1e;
+constexpr std::size_t JewelQuestionBytes = 300;
 // 0x62d779..0x62d7a4: el corrimiento del rectángulo de los botones.
 constexpr std::int32_t ButtonOffsetX = 0xd5;
 constexpr std::int32_t ButtonOffsetY = 0x3c;
@@ -83,6 +97,81 @@ Core::Expected<std::string_view, std::string> TextOf(const Data::Text::TextTable
     if (!text)
         return Core::Unexpected(std::format("{}: el texto {} lee después de Text.bmd", where, index));
     return *text;
+}
+
+// 0x69fd9b(renglón, formato, ...) desde el renglón `row`: lo que pase de los 0x26 bytes sigue en el siguiente, y lo
+// que pase de los 7 corta.
+Core::Expected<void, std::string> PrintIntoRow(DialogBoxState& box, std::size_t row, std::string_view text,
+                                               std::string_view where)
+{
+    const std::size_t start = row * DialogRowBytes;
+    if (start + text.size() + 1 > box.rows.size())
+        return Core::Unexpected(std::format("{}: el sprintf de {} bytes en el renglón {} pasa los 7 de 0x7d36a98",
+                                            where, text.size() + 1, row));
+    auto out = std::copy(text.begin(), text.end(), box.rows.begin() + static_cast<std::ptrdiff_t>(start));
+    *out = '\0';
+    return {};
+}
+
+// 0x63332f..0x6333a3: el número con sus puntos en el texto `firstText`, y los `lineCount − 1` siguientes debajo.
+Core::Expected<void, std::string> WriteTheMoneyText(DialogBoxState& box, const Data::Text::TextTable* texts,
+                                                    std::int32_t lineCount, std::int32_t firstText,
+                                                    std::string_view money)
+{
+    auto format = TextOf(texts, firstText, "0x633367");
+    if (!format.HasValue())
+        return Core::Unexpected(std::move(format).Error());
+    if (auto printed = PrintIntoRow(box, 0, Sprintf(format.Value(), money), "0x633367"); !printed.HasValue())
+        return printed;
+    for (std::int32_t row = 1; row < lineCount; ++row)
+    {
+        auto text = TextOf(texts, static_cast<std::int64_t>(firstText) + row, "0x633387");
+        if (!text.HasValue())
+            return Core::Unexpected(std::move(text).Error());
+        if (auto printed = PrintIntoRow(box, static_cast<std::size_t>(row), Sprintf(text.Value()), "0x633387");
+            !printed.HasValue())
+            return printed;
+    }
+    box.lineCount = lineCount;
+    return {};
+}
+
+// 0x633419..0x633525: la pregunta de la mezcla de joyas y su precio.
+Core::Expected<void, std::string> WriteTheJewelMixText(DialogBoxState& box, const Data::Text::TextTable* texts,
+                                                       const DialogTextArguments& arguments)
+{
+    const bool mixing = arguments.jewelMode == 0;
+    auto name = TextOf(texts, arguments.jewelKind == 0 ? BlessJewelText : SoulJewelText, "0x63344c");
+    if (!name.HasValue())
+        return Core::Unexpected(std::move(name).Error());
+    auto question = TextOf(texts, mixing ? MixQuestionText : UnmixQuestionText, "0x63348a");
+    if (!question.HasValue())
+        return Core::Unexpected(std::move(question).Error());
+    auto price = TextOf(texts, mixing ? MixPriceText : UnmixPriceText, "0x633517");
+    if (!price.HasValue())
+        return Core::Unexpected(std::move(price).Error());
+    // 0x63345d: las contadas (un byte); 0x63352f: el nivel + 1.
+    const std::string asked =
+        mixing ? Sprintf(question.Value(), name.Value(), static_cast<std::int32_t>(arguments.jewelCount))
+               : Sprintf(question.Value(), name.Value(), arguments.jewelLevel + 1);
+    if (asked.size() + 1 > JewelQuestionBytes)
+        return Core::Unexpected(
+            std::format("0x63348a: el sprintf de {} bytes pasa los 300 de la pila de 0x633300", asked.size() + 1));
+    // 0x6334ad: a lo sumo 2 renglones en la pila; los que no escribe quedan vacíos (sus primeros 20 bytes en 0).
+    const std::vector<std::string> lines = SplitIntoLines(asked, JewelRows, JewelRowBytes);
+    for (std::size_t row = 0; row < JewelRows; ++row)
+    {
+        const std::string_view line = row < lines.size() ? std::string_view(lines[row]) : std::string_view{};
+        if (auto copied = PrintIntoRow(box, row, line, "0x6334f4"); !copied.HasValue())
+            return copied;
+    }
+    const auto rows = static_cast<std::int32_t>(lines.size());
+    if (auto printed =
+            PrintIntoRow(box, static_cast<std::size_t>(rows), Sprintf(price.Value(), arguments.jewelPrice), "0x633517");
+        !printed.HasValue())
+        return printed;
+    box.lineCount = rows + 1;
+    return {};
 }
 
 // 0x633644..0x633739: el nombre del ítem de los diálogos en el primer renglón, sprintf de "( %s )" (o de "( %s%s )"
@@ -243,7 +332,8 @@ void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view 
 Core::Expected<void, std::string> OpenTextDialog(DialogBoxState& box, DialogState& dialogs,
                                                  const Data::Text::TextTable* texts, std::int32_t lineCount,
                                                  std::int32_t firstText, std::int32_t id,
-                                                 const World::ItemState* dialogItem)
+                                                 const World::ItemState* dialogItem,
+                                                 const DialogTextArguments* arguments)
 {
     if (id == ItemNameDialog || id == ItemNameWithLuckDialog)
     {
@@ -254,11 +344,19 @@ Core::Expected<void, std::string> OpenTextDialog(DialogBoxState& box, DialogStat
             return written;
     }
     else if (id == MoneyTextDialog)
-        return Core::Unexpected(std::string("0x63333d: el texto del diálogo 0x99 (el dinero, 0x5b1130) es de la "
-                                            "fase 3 del hito 6 (08 P-C192)"));
+    {
+        if (arguments == nullptr)
+            return Core::Unexpected(std::string("0x63333d: el texto del diálogo 0x99 sin el número de 0x77f3b6c"));
+        if (auto written = WriteTheMoneyText(box, texts, lineCount, firstText, arguments->money); !written.HasValue())
+            return written;
+    }
     if (id == ServerTimeDialog)
-        return Core::Unexpected(std::string("0x63340d: el texto del diálogo 0xa3 (0x6e5794 y 0x402ae0) es de la "
-                                            "fase 3 del hito 6 (08 P-C192)"));
+    {
+        if (arguments == nullptr)
+            return Core::Unexpected(std::string("0x63340d: el texto del diálogo 0xa3 sin la mezcla de joyas"));
+        if (auto written = WriteTheJewelMixText(box, texts, *arguments); !written.HasValue())
+            return written;
+    }
     else if (id == ChaosCastleDialog)
     {
         box.lineCount = 0;
@@ -273,7 +371,7 @@ Core::Expected<void, std::string> OpenTextDialog(DialogBoxState& box, DialogStat
             box.lineCount += written.Value();
         }
     }
-    else if (id != ItemNameDialog && id != ItemNameWithLuckDialog)
+    else if (id != ItemNameDialog && id != ItemNameWithLuckDialog && id != MoneyTextDialog)
     {
         // 0x633600..0x633638: un strcpy por texto, de a 0x26 bytes; uno largo sigue en el renglón siguiente.
         for (std::int32_t row = 0; row < lineCount; ++row)

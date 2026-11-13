@@ -490,6 +490,14 @@ Result DrawTheFloorMark(MonsterFrame& frame)
     return drawn;
 }
 
+// 0x4ec110(huesos propios + hueso · 0x30, corrimiento, salida, 1) de 0x50ba30.
+glm::vec3 PointOnTheBone(const ActorState& actor, std::size_t bone, const glm::vec3& offset)
+{
+    const BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : BoneTransform(0.0f);
+    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, actor.scale,
+                                                     actor.position);
+}
+
 // 0x50bf98..0x50c0f0, el +0x376 0x45: x = (rand() % 30 + 70) · 0,01f en la x87; nueve flare01 (0x5ac) de 0,6f con la
 // luz (x · 0,8f; x · 0,9f; x) en los huesos de la tabla de 0x6c88a0, y tres 0x53fe70(0x5c6, punto, ángulos, luz, 3, 1,
 // 0) con la luz (v · 0,6f; v · 0,7f; x · 0,8f), v = f(x), cada una en un hueso al azar del modelo (rand() % +0x22)
@@ -505,11 +513,7 @@ Result DrawTheSparksOf0x45(MonsterFrame& frame)
     constexpr int Sparks = 3;
     const ActorState& actor = frame.actor;
     const auto point = [&actor](std::size_t bone, const glm::vec3& offset)
-    {
-        const BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : BoneTransform(0.0f);
-        return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, actor.scale,
-                                                         actor.position);
-    };
+    { return PointOnTheBone(actor, bone, offset); };
     if (frame.pass.sprites == nullptr)
         return Core::Unexpected<std::string>("0x50c014: falta la tabla de los sprites del frame (0x5491e0)");
     const double x = static_cast<double>(frame.random.Next() % 30 + 70) * D(std::bit_cast<float>(0x3c23d70au));
@@ -545,11 +549,27 @@ Result DrawTheSparksOf0x45(MonsterFrame& frame)
     return {};
 }
 
-// 0x50bf45..0x50c904: lo que se agrega por el +0x376. El 0x45, hasta sus partículas; los demás cortan.
+// 0x50c0fb..0x50c136, el +0x376 0x46: un flare01 (0x5ac) de 0,8f en el hueso 20 (+0x3c0), con el corrimiento de
+// [ebp−0x50] (en 0 desde el prólogo) y la luz de [ebp−0x44] (1, 1, 1 desde 0x50bab9).
+Result DrawTheFlareOf0x46(MonsterFrame& frame)
+{
+    constexpr std::size_t Bone = 20;
+    constexpr std::uint16_t Flare = 0x5ac;
+    constexpr float FlareScale = std::bit_cast<float>(0x3f4ccccdu); // 0,8
+    if (frame.pass.sprites == nullptr)
+        return Core::Unexpected<std::string>("0x50c131: falta la tabla de los sprites del frame (0x5491e0)");
+    static_cast<void>(frame.pass.sprites->Create(Flare, PointOnTheBone(frame.actor, Bone, glm::vec3(0.0f)), FlareScale,
+                                                 glm::vec3(1.0f), 0.0f, 0));
+    return {};
+}
+
+// 0x50bf45..0x50c904: lo que se agrega por el +0x376. El 0x45, hasta sus partículas, y el 0x46; los demás cortan.
 Result DrawTheDecorations(MonsterFrame& frame)
 {
     if (frame.actor.word376 == 0x45)
         return DrawTheSparksOf0x45(frame);
+    if (frame.actor.word376 == 0x46)
+        return DrawTheFlareOf0x46(frame);
     return CheckMonsterDecorations(frame.actor.word376);
 }
 

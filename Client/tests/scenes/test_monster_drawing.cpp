@@ -643,6 +643,34 @@ TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndCutsAtItsFirstSpark)
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
 }
 
+// 0x50c0fb: el +0x376 0x46 pone un flare01 de 0,8 en blanco en su hueso 20, sin rand(), y sigue.
+TEST_F(MonsterDrawingTest, The0x46LightsOneFlareOnItsBone20)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        m_world = std::make_unique<Client::Scenes::WorldState>();
+        SetUp();
+        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_sprites.Clear();
+        m_world->Runtime().map = map;
+        Monster(3, Spider, 0x46);
+
+        const auto result = Draw(Pass());
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(m_batch.Vertices().size(), 6u);
+        const auto sprites = LiveSprites();
+        ASSERT_EQ(sprites.size(), 1u);
+        EXPECT_EQ(sprites[0].texture, 0x5ac);
+        EXPECT_EQ(sprites[0].scale, std::bit_cast<float>(0x3f4ccccdu));
+        EXPECT_EQ(sprites[0].light, glm::vec3(1.0f));
+        EXPECT_EQ(sprites[0].position, glm::vec3(150.0f, 150.0f, 30.0f));
+        EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
+        TearDown();
+    }
+}
+
 // 0x510abd: el cuervo de +0x430 va con cualquier tipo (0x420df0), con el trapecio del dibujo.
 TEST_F(MonsterDrawingTest, AMonsterWithARavenDrawsItAfterItsTail)
 {

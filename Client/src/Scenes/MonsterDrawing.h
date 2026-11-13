@@ -30,8 +30,8 @@ struct GameCharacterPass;
 // pases de brillo de 0x50c671 (0x26, 0x2b, 0x34, 0x3b, 0x43 y 0x4e a 0x53), los sprites y las partículas del 0x45
 // (0x50bf98), el 0x46 (0x50c0fb), las telas del 0x47, el 0x4a y el 0x12d (0x50c59f), el 0x49 y el 0x4b (0x50c36b), el
 // 0x4d (0x50c177), el brillo del 0x35 y el 0x36 (0x50c71b), las armas colgadas del 0x2a (0x50c762) y del 0x84 al 0x86
-// (0x50c83b) y el brillo del 0x87 (0x50c8ce). Con uno de ellos, corta con su dirección; DrawGameMonster dibuja el 0x45
-// antes, hasta su primera partícula.
+// (0x50c83b) y el brillo del 0x87 (0x50c8ce). Con uno de ellos, corta con su dirección; DrawGameMonster dibuja antes
+// el 0x45, hasta su primera partícula, y el 0x46.
 [[nodiscard]] Core::Expected<void, std::string> CheckMonsterDecorations(std::uint16_t monster);
 
 // 0x50db57..0x50dc58 sin su rand(): la luz de lo que cuelga (+0x3b4). Con +0x375 desde 6, (1; 0,1; 0,1). Si no, la
@@ -54,7 +54,8 @@ struct GameCharacterPass;
 //   mueren; el calco 0x61e del 0xe8 y el 0xe9 (0x5fb2f0, World::DrawTerrainDecal), aditivo, con las alturas del
 //   terreno de `pass` o del mundo (sin ellas, corta);
 // - lo de 0x50bf45 por el +0x376: el 0x45 con sus nueve flare01 y los cuatro rand() de su primera partícula 0x5c6/3,
-//   que corta (0x50c0db, CL11; entre frames del original, sin las partículas); los demás, CheckMonsterDecorations;
+//   que corta (0x50c0db, CL11; entre frames del original, sin las partículas); el flare01 del 0x46 en su hueso 20;
+//   los demás, CheckMonsterDecorations;
 // - las partes (0x50d3e3), el Angel (0x50d383) y la marca del gremio (0x50c99b) cortan si el registro las tiene;
 // - las telas (0x50d58b): con el +0x376 0x37 fuera de los mapas 0x12 a 0x17 (WearsTheMonsterCloth), el CharacterCloth
 //   de pass.cloths[slot] sobre los huesos propios (sin él, corta), con sus destellos en pass.sprites;

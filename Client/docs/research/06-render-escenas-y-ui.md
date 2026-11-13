@@ -10318,7 +10318,9 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    51, 52, 58, 59 y 66 (la tabla de bytes `0x6c88a0`, con `0x4ec110` y el corrimiento de `[ebp−0x50]`, que el prólogo
    deja en 0), y tres `0x53fe70(0x5c6, punto, ángulos, &luz, 3, 1, 0)` con la luz (x' · 0,6f; x' · 0,7f; x · 0,8f), x'
    el x guardado en float, cada una con cuatro `rand()` antes: el corrimiento `rand() % 20 − 10` en x, y y z (que queda
-   en `[ebp−0x50]`) y el hueso `rand() % +0x22` del modelo.
+   en `[ebp−0x50]`) y el hueso `rand() % +0x22` del modelo. El `0x46` (`0x50c0fb..0x50c136`, el monstruo 70 con el
+   modelo `0x185`, que corta antes en `0x600654`): un `0x5491e0(0x5ac, punto, 0,8f, &luz, objeto, 0, 0)` en el hueso 20
+   con el corrimiento de `[ebp−0x50]` en 0 y la luz de `[ebp−0x44]`, (1; 1; 1) desde `0x50bab9`, sin `rand()`.
 5. **El gremio** (`0x50c972`, con `+0x1f2` distinto de `0xffff`, que en un monstruo nunca pasa), **la luz** (`0x50cc55`:
    el terreno más la propia en `+0x3b4`, el `0x189` en 0,6), **las partes** (`0x50d363`: con `+0x3e3` en 0, el Angel de
    Chaos Castle con `+0x88` en 1 y el lazo de las seis partes de `+0x1f8`) y **las telas** (`0x50d58b`): bVar23
@@ -10346,12 +10348,12 @@ del mundo (sin ellas, corta en `0x5fb2f0`; con sus tipos de verdad no se llega: 
 `DrawGameCharacters`; el cuervo con `DrawGameRaven`, como el de un jugador. Entre frames del original, todo sobre una
 copia del personaje y del `rand()`. Del `0x45`, sus nueve sprites y los cuatro `rand()` de su primera partícula, que
 corta en `0x50c0db` (la `0x5c6/3` no está en `World::Particles`, CL11; entre frames del original no crea las
-partículas). Cortan con su dirección: los casos de `0x6002e0` y de su cadena, lo demás de `0x50bf45`, las partes (`0x50d3e3`), el Angel (`0x50d383`) y el gremio (`0x50c99b`), el joint `0x618/6` en
+partículas); del `0x46`, su sprite. Cortan con su dirección: los casos de `0x6002e0` y de su cadena, lo demás de `0x50bf45`, las partes (`0x50d3e3`), el Angel (`0x50d383`) y el gremio (`0x50c99b`), el joint `0x618/6` en
 `CreateFaunaJoint` (`0x530c18`), el `0x16e`, los helpers de `0x510a1e` y `0x510f4d` (`0x518cf0`, CL11); 08, P-C179.
 Tests: `MonsterDrawingTest`, `MonsterHangingLight` y `MonsterDecorations` (`test_monster_drawing.cpp`: un Spider de
 Lorencia, un Yeti de Devias, la sombra por mapa, el contorno de un monstruo, de un NPC y de la puerta de Kalima, el
 calco del `0xe8` y el `0xe9` en Lorencia, Devias y Blood Castle, la tela del `0x37` en Lorencia, Devias y Chaos
-Castle, los sprites del `0x45` en Lorencia y Devias, el cuervo, el hada del NPC 237, el caso del `0x176` y los cortes),
+Castle, los sprites del `0x45` y del `0x46` en Lorencia y Devias, el cuervo, el hada del NPC 237, el caso del `0x176` y los cortes),
 `GameCharacterRenderTest.TheMonster55WearsTheClothOfThe0x37` y
 `GameHangingTest.AMonsterSkipsTheBackTheLayerAndTheEventWeapon`.
 

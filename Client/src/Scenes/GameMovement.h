@@ -4,6 +4,7 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/SkillTable.h"
+#include "Data/Text/TextTable.h"
 #include "GameLogic/PathCell.h"
 #include "Protocol/Movement.h"
 #include "Scenes/ActionSend.h"
@@ -62,6 +63,14 @@ struct HeroMovementContext
     // Vestir al héroe y el envío del 24, para pasar el arma de la izquierda a la derecha (0x59bd3e). nullptr: corta
     // donde los pide.
     const InventoryServices* inventory = nullptr;
+    // 0x419900: el C1 03 31 al cerrar las misiones, que caminar cierra (0x56b397..). Sin él, cerrarlas corta.
+    std::function<void()> sendWindowClose{};
+    // La llegada a un NPC (0x5674c8): el C3 A0 sin la clase de las misiones (0x5676a6) y el C3 30 (0x567c2d..). Los
+    // dos rand() de cada C3 los saca el paso. Sin ellos, la llegada corta donde los manda.
+    std::function<void()> requestQuestList{};
+    std::function<void(std::int16_t)> sendTalk{};
+    // Text.bmd: el texto del aviso de nivel del NPC 0xee (0x567618, el 0x76edad0). nullptr: ese aviso corta.
+    const Data::Text::TextTable* texts = nullptr;
 };
 [[nodiscard]] Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& context);
 } // namespace Client::Scenes

@@ -5,6 +5,7 @@
 #include "Data/Terrain/TerrainObjects.h"
 #include "Data/WorldLoadIdentity.h"
 #include "Render/Models/Cloth.h"
+#include "Scenes/ActorCreation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/FaunaState.h"
@@ -203,6 +204,8 @@ void KillOtherActors(WorldState& world, std::int32_t key)
         if (actor.alive && actorKey != key)
         {
             actor.alive = false;
+            // 0x510f99: 0x401040, los huesos con nombre del registro.
+            ForgetNamedBones(world.Runtime(), slot);
             TurnOffHelpersOf(world.Helpers(), slot);
         }
         // 0x510fc2..0x510fc3: 0x421d60 también con los muertos y los que conservan su clave, y después

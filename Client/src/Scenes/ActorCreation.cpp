@@ -4,11 +4,14 @@
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
+#include <vector>
 
 namespace Client::Scenes
 {
@@ -19,6 +22,18 @@ bool HasTheKey(const ActorState& actor, std::int32_t key)
     return actor.alive && static_cast<std::int32_t>(static_cast<std::int16_t>(actor.key)) == key;
 }
 } // namespace
+
+void ForgetNamedBones(WorldRuntime& runtime, std::size_t actor)
+{
+    std::erase_if(runtime.namedBones, [actor](const NamedBone& bone) { return bone.actor == actor; });
+}
+
+void NameABone(WorldRuntime& runtime, std::size_t actor, std::string_view name, std::uint32_t bone)
+{
+    std::erase_if(runtime.namedBones,
+                  [actor, name](const NamedBone& node) { return node.actor == actor && node.name == name; });
+    runtime.namedBones.push_back({actor, std::string(name), bone});
+}
 
 Core::Expected<std::size_t, std::string> CreateActor(WorldState& world, std::int32_t key, std::uint16_t type,
                                                      const ActorPlacement& placement,
@@ -44,6 +59,7 @@ Core::Expected<std::size_t, std::string> CreateActor(WorldState& world, std::int
         ActorState& actor = actors[slot];
         if (actor.alive)
             continue;
+        ForgetNamedBones(world.Runtime(), slot);
         actor.darkSpirit.reset();
         ReleaseTheLayer(actor);
         if (auto built = ConstructActor(actor, type, placement, context, cloth); !built.HasValue())
@@ -66,6 +82,7 @@ void RemoveActor(WorldState& world, std::int32_t key)
         if (!HasTheKey(actor, key))
             continue;
         actor.alive = false;
+        ForgetNamedBones(world.Runtime(), slot);
         TurnOffHelpersOf(world.Helpers(), slot);
         actor.darkSpirit.reset();
         ReleaseTheLayer(actor);

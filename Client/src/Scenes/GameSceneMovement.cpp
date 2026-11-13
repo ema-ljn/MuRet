@@ -85,8 +85,14 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
     if (m_session)
         context.sendElfCell = [&](std::uint8_t x, std::uint8_t y) { return m_session->SendElfCell(x, y); };
     if (m_session)
+    {
+        context.sendWindowClose = [&]() { m_session->SendWindowClose(); };
+        context.requestQuestList = [&]() { m_session->RequestQuestList(); };
+        context.sendTalk = [&](std::int16_t key) { m_session->SendTalk(key); };
         context.sendAction = [&](std::uint8_t direction, std::uint8_t action)
         { m_session->SendAction(direction, action); };
+    }
+    context.texts = m_texts;
     const InventoryServices inventory = InventoryContext();
     context.inventory = &inventory;
     return StepHeroMovement(context);

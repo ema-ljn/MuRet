@@ -132,7 +132,7 @@ TEST(ActorDyingTest, TheBloodCastleFlight)
     flying.byte1a1 = 1;
     flying.push = {0.0f, 0.0f, 90.0f};
     flying.pushOrigin = {500.0f, 600.0f, 700.0f};
-    flying.floatCc = 2.0f;
+    flying.floatCC = 2.0f;
     flying.floatD0 = 10.0f;
     flying.floatD4 = 1.0f;
     flying.floatD8 = 3.0f;
@@ -198,7 +198,7 @@ TEST(ActorDyingTest, ThePushedFliesUntilTheFourteenthStep)
     pushed.dying = 14;
     pushed.headTurn.angles = {10.0f, 0.0f};
     pushed.angle30 = 45.0f;
-    pushed.floatCc = 1.0f;
+    pushed.floatCC = 1.0f;
     pushed.floatD0 = 10.0f;
     pushed.floatD4 = 2.0f;
     pushed.floatD8 = 4.0f;

@@ -906,6 +906,80 @@ solo con `0xfe` y `0xff`); `App::ServerSession` los pasa al mundo y `Scenes::App
 escriben el registro propio que leen los orbes y el AG del HUD (06). Un lugar fuera de la grilla corta con
 `0x4d35f6` o `0x4d3917` (08, P-C150). Los tests usan valores inventados.
 
+### Las misiones y los NPC: `9F`, `A0`..`A3` y `30`
+
+(CL9 hito 2, 2026-11-13, *estático*, contra `protocol.cpp` del GameServer reconstruido: `GCQuestInfoSend`
+`0x42a7c0`, `GCQuestStateSend` `0x42a920`, `CGSetQuestState` `0x42a9c0`, `GCQuestResultSend` `0x42aa70` y
+`CGTalkRequestRecv`.) Los handlers están en línea en el dispatcher (`0x4e4b3a`, `0x4e4b6d`, `0x4e4b9f`, `0x4e4ba9`
+y `0x4e4bf2`, copias de `0x4ddaa0`, `0x4ddad0`, `0x4ddb00`, `0x4ddb40` y `0x4ddb80`), sin guarda de escena ni del
+cifrado, y no miran el largo.
+
+- **`9F`** (`0x4e4b3a`): `C1 05 9F <i> <v>`; con `i` de 0 a 3, `[0x710148] + 6 + i = v`. Nadie más lee esos
+  bytes en lo portado. El GS 0.97 no lo manda; el `C1 9F` que arma `0x41b170` (la pestaña de la ventana) es código
+  muerto (Q-C845).
+- **`A0`** (`0x4e4b6d` → `0x418e20`): `C1 xx A0 <cuenta> <estados...>`. Copia `cuenta` bytes desde `pkt[4]` sobre
+  los 50 de `+0x2134c` (después de ponerlos en 0) y busca entre las `cuenta` primeras misiones la primera no
+  terminada. El GS manda `Count = i`, el índice de la última misión cargada (3 con las cuatro del `quest.bmd`), y
+  un largo de `i / 4 + 4`: con las cuatro, ningún byte de estado (Q-C840). El cliente copia igual los 3 bytes que
+  siguen en el buffer; MuRet los pone en 0 (08, P-C171). El A0 se pide con `C1 03 A0` (C3) en el primer paso del
+  juego con `+4` en `0xff` (`0x63693a`) y al llegar a un NPC (`0x5676a6`).
+- **`A1`** (`0x4e4b9f`): `C1 05 A1 <misión> <estado>`. `0x418ee0` escribe el byte entero `misión >> 2` con
+  `estado`: el GS manda `GetQuestStateBYTE`, el byte con las cuatro misiones (Q-C843). Después `0x657a90` (cierra
+  todos los paneles) y `0x4198b0(−1)`.
+- **`A2`** (`0x4e4ba9`): `C1 06 A2 <misión> <resultado> <estado>`; con resultado 0, lo mismo que el `A1` con
+  `pkt[5]`. El cliente lo manda (`C1 05 A2 <misión> 1`, C3) desde el paso de la ventana (`0x419bd0` y `0x41a9e0`)
+  cuando las condiciones de `0x418fb0` se cumplen.
+- **`A3`** (`0x4e4bf2` → `0x4ddb80`): `C1 07 A3 <claveH> <claveL> <tipo> <valor>`, también al viewport
+  (`MsgSendV2`). La clave va `& 0x7fff` a `0x5110d0` (el 400 sin nadie). El sonido `0x66` y, por tipo: `0xc8` y
+  `0xca` suman `valor` a `+0x68` del registro propio si es el héroe; `0xc9` pone la clase `((v & 0x10) | (v >> 4))
+  >> 1` en `+0x1d4` del personaje y, si es el héroe, en `+0xb` del registro; `0xcb` solo el efecto. Los cuatro
+  siguen con quince joints `0x60f` (`0x530860`), el `0x61e` de `0x518cf0` y, salvo `0xc8`, `0x513100` y la acción
+  `0xb8`. Otro tipo: solo el sonido.
+- **`30`** (C→S, `0x567c2d..0x567db5`): `C1 05 30 <claveH> <claveL>` con la clave `+0x1f4` del NPC, C3. El GS
+  contesta con el `C3 30` (`PMSG_TALKRESULT`) que abre la ventana del NPC (hito 6).
+- **`31`** (C→S, `0x419900`): `C1 03 31` en claro, al cerrar la ventana de las misiones (`CGCloseWindow`).
+
+**MuRet**: `Protocol::Quest` (lectores y escritores), `App::ServerSession` los registra juntos y el sink los aplica
+con `Scenes::ApplyQuest*` (06, "Las misiones"). Un paquete corto se ignora con un aviso. Los joints del `A3` cortan
+(CL11).
+
+### Los monstruos y los NPC que entran: `13`, `1F`, `68` y `1A`
+
+(CL9.R del hito 2, 2026-11-13, *estático*; los handlers se registran en la fase 2.) Contra
+`PMSG_MONSTER_VIEWPORTCREATE` y `PMSG_CALLMONSTER_VIEWPORTCREATE` del GS reconstruido (`user.cpp`, `gObjViewportProc`).
+
+- **`13`** (`0x4c9c60`): `C2 xx xx 13 <n>` y `n` elementos de `0x10` desde `pkt[5]`: `+0` y `+1` la clave (el bit 7
+  de `+0`, el `m_State` 1 del GS, decide entre la creación nueva y la que ya existía, `0x4c9f4c`), `+2` el tipo alto
+  (`& 3`) con `& 0x80` en `+0x42d` y `(>> 4) & 7` en `+0x93`, `+3` el tipo bajo, `+4..+7` los estados (`0x4e6380`),
+  `+8` y `+9` la celda, `+0xa` y `+0xb` el blanco, `+0xc` la dirección `<< 4`. Por elemento: `0x5141e0(tipo, x, y,
+  clave & 0x7fff)` (un 0 corta el lazo entero), `0x4e6380`, el ángulo `+0x24` (`(dir − 1) · 45` con los casos del
+  `0x1b5`), las celdas protegidas `+0x41c`/`+0x420` y `+0x39a`/`+0x39b`, en Castle Siege el `0x115` con
+  `0x4ea030` y `0x42a110`, y sin el bit 7 el camino de `0x4eac00` (`+0x378`) o, con él, `0x4c9790`. El GS 0.97 arma
+  elementos de `0xc` (`Type` de un byte en `+2`, `ViewSkillState` de dos en `+4`): no es el cliente 1.02 (08, P-C172).
+- **`1F`** (`0x4ca0b0`): `C2 xx xx 1F <n>` y `n` elementos de `0x18`: la clave como el `13`, el tipo entero en `+2` y
+  `+3` (el alto primero), los estados en `+4..+7`, la celda en `+8`/`+9`, el blanco en `+0xa`/`+0xb`, la dirección
+  (arriba) y el PK (abajo) en `+0xc` y el nombre del dueño en `+0xd..+0x16` (`0x4ca132` y `0x4ca547`). Los tipos
+  `0x98..0x9e` van por `0x517400` (el nivel, `tipo − 0x97`, y `wsprintfA` con el nombre del caso como formato y el
+  dueño), los demás por `0x5141e0` con el nombre del dueño, el Text 485 y el del monstruo; el recién llegado, con el
+  efecto `0xec` (`0x518cf0`) y el joint `0x5d5` (`0x53fe70`), CL11.
+- **`68`** (`0x4e0980`): `C2 xx xx 68 <n>` y `n` elementos de `0x1c`: `+0` el tipo de registro, `+1` la clase o el
+  tipo alto, `+2` el tipo bajo, `+3`/`+4` la clave (el alto primero, sin el bit 15), `+5`/`+6` la celda, `+7..+0x17`
+  el equipo (los 17 bytes de la lista) y `+0x18..+0x1b` los estados. Con 1 (`0x4e0c1d`), un jugador: `0x512870(clave,
+  0x20a, x, y, 0)` con la clase de `+1` y el equipo (`0x5139f0`); con 2 o 3 (`0x4e09ca`), el monstruo del tipo
+  `+1 << 8 | +2` por `0x5141e0`; con otro, nada. No tiene recién llegado ni camino: el ángulo es `rand() % 360`.
+- **`1A`** (`0x4cedd0`): no crea nada: es la skill que pega a varios (`PMSG_MAGICATTACK_COUNT_SEND`, `0x5110d0`, la
+  acción `0x96`, `0x53d810`, el sonido `0x76` y el daño de cada blanco con `0x548e40`); va con el hito 3.
+
+El dispatcher llama a los tres sin copiarlos a la cola de `0x77f27b4` ni mirar el flag de cifrado (`0x4e37d1`,
+`0x4e37e9` y `0x4e4643`). Lo que cada handler hace con el mundo, en
+[06](06-render-escenas-y-ui.md#los-monstruos-y-los-npc-en-el-viewport).
+
+**MuRet** (CL9 hito 2, fase 2): `Protocol::Viewport` lee los tres con los offsets del ASM (`ReadMonsters`,
+`ReadSummons` y `ReadObjects`; un registro corto es `TooShort`, hasta el último byte que lee el handler: `+0xc`,
+`+0x16` y `+0x1b`); `App::ServerSession` los registra después del `DF` y los pasa al mundo
+(`Scenes::ApplyViewportMonsters`, `ApplySummons` y `ApplyViewportObjects`). Los tests arman los paquetes con los
+structs del ASM (`support/ViewportPackets.h`). El `1A` queda para el hito 3.
+
 ### Los otros jugadores: `12`, `14`, `45`, `25` y `DF`
 
 (CL9 hito 1, 2026-11-13, *estático*; el cable queda para la VM, P-C160.) Los cinco llegan del GameServer cuando

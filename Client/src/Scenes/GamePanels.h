@@ -1,7 +1,10 @@
 #pragma once
 
 #include "Data/Tables/ItemTable.h"
+#include "Data/Text/TextTable.h"
 #include "UI/PanelRegistry.h"
+
+#include <functional>
 
 namespace Client::Data::Tables
 {
@@ -25,6 +28,9 @@ struct GamePanelTables
 {
     const Data::Tables::ItemTable* items = nullptr;
     const Data::Tables::ItemSetTables* itemSetTables = nullptr;
+    // Text.bmd: el 609 de las respuestas vacías de 0x419710, cuando abrir las misiones (0x419840) muestra un diálogo
+    // sin respuestas. nullptr: ese diálogo corta.
+    const Data::Text::TextTable* texts = nullptr;
 };
 
 // El registro de paneles ([0x576352c]) sobre los globales de WorldRuntime, con lo que sus funciones leen del
@@ -49,6 +55,12 @@ public:
     // 0x659aa0..0x659c3d: con `requests`, abrir la party pone en 0 la cuenta de `world` (HudState::partyCount) y pide
     // la lista (C1 03 42). Lo presta el paso de la UI, el que abre la party; sin él, o con nullptr, abrirla corta.
     void LendThePartyList(WorldState& world, IGameUiRequests* requests);
+
+    // 0x419900: cerrar las misiones manda el C1 03 31 con `send`. Lo prestan el paso de la UI y los handlers del A1 y
+    // del A2 (0x657a90); sin él, cerrarlas corta.
+    void LendTheWindowClose(std::function<void()> send);
+    // Lo mismo con el C1 03 31 de `requests` (IGameUiRequests::SendWindowClose); con nullptr, sin él.
+    void LendTheWindowClose(IGameUiRequests* requests);
 
 private:
     UI::PanelContext m_context;

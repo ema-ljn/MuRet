@@ -10,17 +10,17 @@
 #include "World/TerrainHeight.h"
 #include "World/WorldTerrain.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 
 namespace Client::Scenes
 {
 namespace
 {
-// 0x5122d9 y 0x5123ba: el techo de la caja (+0x138).
-constexpr float PlayerBoundsTop = 120.0f;
-constexpr float OtherBoundsTop = 150.0f;
 constexpr std::uint16_t SafeAttribute = 1;
 constexpr double PetHeightOffset = 30.0;      // 0x6b8858
 constexpr double LargePetHeightOffset = 90.0; // 0x6b8948
@@ -37,6 +37,212 @@ constexpr std::uint8_t PlayerStartAction = 1;
 constexpr std::uint16_t ConstructedMovementSpeed = 10;
 constexpr std::uint8_t RightHandBone = 0x21;
 constexpr std::uint8_t LeftHandBone = 0x2a;
+
+// La caja de 0x511290 (+0x124..+0x138), relativa a la posición.
+struct ConstructionBox
+{
+    glm::vec3 min;
+    float maxX;
+    float maxY;
+    float top;
+};
+
+// 0x512270..0x5123ba: el piso en (−60, −60, 0) y, por la tabla de bytes de 0x512700 sobre la de saltos de 0x5126e4
+// con el tipo − 0x154 (de 0 a 0xb6, sin signo), el resto. Fuera de la tabla, el 0x5123a9.
+ConstructionBox BoxOf(std::uint16_t type)
+{
+    constexpr glm::vec3 Floor{-60.0f, -60.0f, 0.0f};
+    switch (type)
+    {
+    case 0x198:
+    case 0x199:
+    case 0x19a:
+    case Data::Models::PlayerSkeletonModel:
+        return {Floor, 40.0f, 40.0f, 120.0f}; // 0x5122d4
+    case 0x154:
+    case 0x158:
+    case 0x15b:
+    case 0x163:
+    case 0x165:
+    case 0x166:
+        return {Floor, 50.0f, 50.0f, 80.0f}; // 0x5122f4
+    case 0x15d:
+    case 0x171:
+    case 0x179:
+    case 0x17c:
+    case 0x17e:
+        return {Floor, 70.0f, 70.0f, 250.0f}; // 0x512314
+    case 0x177:
+        return {Floor, 100.0f, 100.0f, 150.0f}; // 0x512334
+    case 0x18f:
+        return {{-120.0f, -120.0f, 0.0f}, 100.0f, 100.0f, 300.0f}; // 0x51233b
+    case 0x18e:
+        return {{-90.0f, -50.0f, 0.0f}, 90.0f, 50.0f, 200.0f}; // 0x51236f
+    default:
+        return {Floor, 50.0f, 50.0f, 150.0f}; // 0x5123a9
+    }
+}
+
+void PutTheBox(ActorState& actor, const ConstructionBox& box)
+{
+    actor.boundsMin = box.min;
+    actor.boundsMaxX = box.maxX;
+    actor.boundsMaxY = box.maxY;
+    actor.boundsTop = box.top;
+}
+
+// Los huesos de las manos de un caso: el de la derecha (+0x2bd) y el de la izquierda (+0x2dd), si los escribe.
+struct HandBones
+{
+    std::uint8_t right;
+    std::optional<std::uint8_t> left;
+};
+
+constexpr HandBones Both(std::uint8_t right, std::uint8_t left)
+{
+    return {right, left};
+}
+
+constexpr HandBones RightOnly(std::uint8_t right)
+{
+    return {right, std::nullopt};
+}
+
+// 0x512490..0x5126a8: la tabla de bytes de 0x512824 sobre la de saltos de 0x5127b8 con el tipo − 0x152 (de 0 a 0x48,
+// sin signo). nullopt: el caso es el 0x5126b2.
+std::optional<HandBones> TableHandBonesOf(std::uint16_t type)
+{
+    switch (type)
+    {
+    case 0x152:
+    case 0x170:
+        return Both(42, 33); // 0x51264a
+    case 0x153:
+        return Both(19, 14); // 0x512673
+    case 0x155:
+        return Both(26, 36); // 0x512635
+    case 0x156:
+    case 0x157:
+    case 0x15c:
+        return Both(41, 32); // 0x51265f
+    case 0x15a:
+        return Both(29, 38); // 0x512688
+    case 0x15d:
+    case 0x162:
+    case 0x16f:
+    case 0x174:
+    case 0x175:
+    case 0x187:
+    case 0x18b:
+        return Both(30, 39); // 0x5124b5
+    case 0x164:
+        return Both(26, 35); // 0x512620
+    case 0x165:
+        return Both(31, 22); // 0x51260b
+    case 0x167:
+        return Both(24, 19); // 0x5125f6
+    case 0x168:
+        return Both(25, 16); // 0x5125e1
+    case 0x16a:
+        return Both(39, 30); // 0x5125cc
+    case 0x16c:
+        return Both(16, 25); // 0x5125a2
+    case 0x16d:
+        return Both(17, 28); // 0x5125b7
+    case 0x176:
+        return Both(52, 65); // 0x51258d
+    case 0x17a:
+        return Both(20, 33); // 0x51269d
+    case 0x17b:
+        return RightOnly(23); // 0x51257f: la izquierda queda como estaba
+    case 0x17c:
+        return RightOnly(43); // 0x512571
+    case 0x17e:
+        return Both(55, 70); // 0x51255c
+    case 0x180:
+        return Both(39, 39); // 0x51251e
+    case 0x181:
+        return Both(27, 38); // 0x512533
+    case 0x182:
+        return Both(32, 43); // 0x512548
+    case 0x186:
+        return Both(36, 45); // 0x512509
+    case 0x189:
+        return Both(27, 18); // 0x5124f4
+    case 0x18d:
+        return Both(33, 20); // 0x5124ca
+    case 0x18e:
+        return Both(1, 1); // 0x5124df
+    case 0x198:
+    case 0x199:
+    case 0x19a:
+        return Both(RightHandBone, LeftHandBone); // 0x5126ce, sin 0x43a250 ni 0x42d7f0
+    default:
+        return std::nullopt;
+    }
+}
+
+// 0x43a250: los huesos de los tipos 0x192..0x197 (la tabla de 0x43a2d4); el 0x193 y los demás devuelven 0.
+std::optional<HandBones> EventHandBonesOf(std::uint16_t type)
+{
+    switch (type)
+    {
+    case 0x192:
+        return Both(0x1d, 0x31);
+    case 0x194:
+        return Both(0xd, 0xe);
+    case 0x195:
+        return Both(0x38, 0x2a);
+    case 0x196:
+        return Both(0x3c, 0x3c);
+    case 0x197:
+        return Both(0x29, 0x33);
+    default:
+        return std::nullopt;
+    }
+}
+
+// 0x42d7f0: la caja del 0x19b, +0x38f en 0 y 1 (sin los huesos), y la del 0x1f8 con 0 (con los huesos).
+bool SetTheSiegeBox(ActorState& actor, std::uint16_t type)
+{
+    constexpr std::uint16_t SiegeGate = 0x19b;
+    constexpr std::uint16_t SiegeStatue = 0x1f8;
+    if (type == SiegeGate)
+    {
+        PutTheBox(actor, {{-140.0f, -140.0f, 0.0f}, 140.0f, 140.0f, 300.0f});
+        actor.byte38f = 0;
+        return true;
+    }
+    if (type == SiegeStatue)
+        PutTheBox(actor, {{-200.0f, -50.0f, -100.0f}, 200.0f, 50.0f, 100.0f});
+    return false;
+}
+
+void PutTheHandBones(ActorState& actor, const HandBones& bones)
+{
+    actor.hands[0].bone = bones.right;
+    if (bones.left)
+        actor.hands[1].bone = *bones.left;
+}
+
+// 0x512490..0x5126d5: los huesos de las manos por el tipo; el 0x5126b2 prueba 0x43a250 y 0x42d7f0 y, si ninguno
+// devuelve 1, cuelga las manos del 33 y del 42.
+void SetTheHandBones(ActorState& actor, std::uint16_t type)
+{
+    if (const auto bones = TableHandBonesOf(type))
+    {
+        PutTheHandBones(actor, *bones);
+        return;
+    }
+    if (const auto bones = EventHandBonesOf(type))
+    {
+        PutTheHandBones(actor, *bones);
+        return;
+    }
+    if (SetTheSiegeBox(actor, type))
+        return;
+    PutTheHandBones(actor, {RightHandBone, LeftHandBone});
+}
 
 // 0x4ec200 no corre acá: 0x511290 deja las dos acciones en 1 y el frame en 0.
 void ResetTheAnimation(ActorState& actor)
@@ -71,27 +277,23 @@ void ClearTheParts(ActorState& actor)
     actor.previousHad1c15 = false;
 }
 
+// Un acceso a una de las dos entradas de la celda con `value` en claro mientras está abierta: lo que deja en la
+// variable al cerrar va a `left` (ActorState::cellXLeft y cellYLeft).
+void AccessTheCell(std::uint8_t& accesses, std::uint8_t value, std::uint32_t& left, Render::Models::CrtRandom& random)
+{
+    left = value;
+    const Render::Models::LogicalAccess access(accesses, random, Render::Models::SmallLogicalCloseRandoms, left);
+}
+
 // La celda: escribe X y después Y, cada una en su acceso (0x412890 al cerrar), y las copias en claro.
 void WriteTheCell(ActorState& actor, const ActorPlacement& placement, Render::Models::CrtRandom& random)
 {
-    {
-        const Render::Models::LogicalAccess access(actor.cellXAccesses, random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
-    }
-    {
-        const Render::Models::LogicalAccess access(actor.cellYAccesses, random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
-    }
+    AccessTheCell(actor.cellXAccesses, placement.x, actor.cellXLeft, random);
+    AccessTheCell(actor.cellYAccesses, placement.y, actor.cellYLeft, random);
     actor.cellX = placement.x;
     actor.cellY = placement.y;
     actor.targetX = placement.x;
     actor.targetY = placement.y;
-}
-
-// Un acceso de lectura a una de las dos entradas de la celda.
-void ReadTheCell(std::uint8_t& accesses, Render::Models::CrtRandom& random)
-{
-    const Render::Models::LogicalAccess access(accesses, random, Render::Models::SmallLogicalCloseRandoms);
 }
 
 // El contador de pasos (0x7d3a0f0), con la cuenta de accesos que lleva la tela.
@@ -115,9 +317,7 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.type = type;
     actor.subtype = 0;
     actor.scale = PlayerScale;
-    // 0x51228d..0x5123ba: por la tabla de 0x512700 con el tipo − 0x154, el 0x20a va a 0x5122d4 (120); los NewFace dan
-    // la vuelta y van al de afuera de la tabla, 0x5123a9 (150).
-    actor.boundsTop = type == Data::Models::PlayerSkeletonModel ? PlayerBoundsTop : OtherBoundsTop;
+    PutTheBox(actor, BoxOf(type));
     actor.alphaTarget = 1.0f;
     actor.alpha = 1.0f;
     // 0x511bdf y 0x512499: el alpha de a 0,05 (0x4e9980) y la luz del blendMesh en 1,0.
@@ -128,13 +328,6 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
         actor.characterClass = 0;
     }
     ResetTheAnimation(actor);
-    // 0x5126b2..0x5126d5: 0x43a250 (0x192..0x197) y 0x42d7f0 (0x19b y 0x1f8) no toman el 0x20a, y las
-    // manos cuelgan del 33 y del 42.
-    if (type == Data::Models::PlayerSkeletonModel)
-    {
-        actor.hands[0].bone = RightHandBone;
-        actor.hands[1].bone = LeftHandBone;
-    }
     actor.seen = false;
     actor.dying = 0;
     actor.dyingTime = 0.0f; // 0x51247a, con el ESI en 0 de 0x5121f6
@@ -170,6 +363,18 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.light = {};
     actor.drawnLight = {};
     actor.byte390 = 0; // 0x51186b
+    // 0x511be6..0x511d45 y 0x51248d.
+    actor.dword58 = -1;
+    actor.dword64 = -1;
+    actor.byte92 = 1;
+    actor.byte93 = 0xa;
+    actor.float94 = 1.2f;
+    actor.byte98 = 0;
+    actor.byteE8 = 1;
+    actor.floatD8 = 0.0f;
+    actor.byte38a = 0;
+    actor.dword394 = 0;
+    actor.dword428 = -0x80;
     // 0x511878: reconstruir el dueño borra el cuervo anterior.
     actor.darkSpirit.reset();
     // 0x511872: +0x364 en 0 sin 0x414340, así que +0x360 queda como estaba.
@@ -211,15 +416,11 @@ Core::Expected<void, std::string> ConstructActor(ActorState& actor, std::uint16_
                                                  const ActorConstructionContext& context,
                                                  Render::Models::ClothWorld& cloth)
 {
-    if (type != Data::Models::PlayerSkeletonModel && !IsNewFace(type))
-    {
-        return Core::Unexpected("0x511290: el tipo " + std::to_string(type) + " no está leído (0x20a y 0xa8..0xac)");
-    }
     const bool previousHad1c15 = actor.previousHad1c15;
     SetTheStartingState(actor, type);
     WriteTheCell(actor, placement, cloth.random);
-    ReadTheCell(actor.cellYAccesses, cloth.random);
-    ReadTheCell(actor.cellXAccesses, cloth.random);
+    AccessTheCell(actor.cellYAccesses, actor.cellY, actor.cellYLeft, cloth.random);
+    AccessTheCell(actor.cellXAccesses, actor.cellX, actor.cellXLeft, cloth.random);
     if (!context.terrain.attributes)
     {
         return Core::Unexpected(std::string("0x511b9f: faltan los atributos del mundo cargado"));
@@ -227,8 +428,8 @@ Core::Expected<void, std::string> ConstructActor(ActorState& actor, std::uint16_
     const std::size_t cell = Data::Terrain::CellIndex(placement.x, placement.y);
     const bool safe = (context.terrain.attributes->cells[cell] & SafeAttribute) != 0;
     actor.safeZone = static_cast<std::uint8_t>(safe ? 1 : 0);
-    ReadTheCell(actor.cellXAccesses, cloth.random);
-    ReadTheCell(actor.cellYAccesses, cloth.random);
+    AccessTheCell(actor.cellXAccesses, actor.cellX, actor.cellXLeft, cloth.random);
+    AccessTheCell(actor.cellYAccesses, actor.cellY, actor.cellYLeft, cloth.random);
     const float x = static_cast<float>(placement.x) * CellSize + CellCenter;
     const float y = static_cast<float>(placement.y) * CellSize + CellCenter;
     actor.stepStamp = ReadTheStepCounter(cloth);
@@ -242,6 +443,7 @@ Core::Expected<void, std::string> ConstructActor(ActorState& actor, std::uint16_
     // 0x5123c4..0x5123ff: suelta los huesos propios (+0x120) y pide otros sin iniciar (Q-C318).
     actor.bodyPose.clear();
     ClearTheParts(actor);
+    SetTheHandBones(actor, type);
     ++actor.revision;
     return {};
 }

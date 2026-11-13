@@ -38,6 +38,7 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/Party.h"
 #include "Protocol/Pet/PetInfo.h"
+#include "Protocol/Quest.h"
 #include "Protocol/Viewport.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
@@ -246,6 +247,12 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnEquipmentShown(packet); }) &&
         m_gameServer.On(Protocol::Viewport::PositionOpcode,
                         [this](const Network::Packet& packet) { OnViewportPosition(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::MonstersOpcode,
+                        [this](const Network::Packet& packet) { OnViewportMonsters(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::SummonsOpcode,
+                        [this](const Network::Packet& packet) { OnSummons(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::ObjectsOpcode,
+                        [this](const Network::Packet& packet) { OnViewportObjects(packet); }) &&
         m_gameServer.On(Protocol::World::TeleportOpcode,
                         [this](const Network::Packet& packet) { OnTeleport(packet); }) &&
         m_gameServer.On(Protocol::World::WorldOpcode, Protocol::World::RegenSubcode,
@@ -278,7 +285,18 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnItemPut(packet); }) &&
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); }) &&
         m_gameServer.On(Protocol::Connection::MainCheckOpcode,
-                        [this](const Network::Packet& packet) { OnMainCheck(packet); });
+                        [this](const Network::Packet& packet) { OnMainCheck(packet); }) &&
+        // Las misiones (CL9 hito 2): 0x4e4b3a, 0x4e4b6d, 0x4e4b9f, 0x4e4ba9 y 0x4e4bf2 del dispatcher.
+        m_gameServer.On(Protocol::Quest::QuestFlagOpcode,
+                        [this](const Network::Packet& packet) { OnQuestFlag(packet); }) &&
+        m_gameServer.On(Protocol::Quest::QuestListOpcode,
+                        [this](const Network::Packet& packet) { OnQuestList(packet); }) &&
+        m_gameServer.On(Protocol::Quest::QuestStateOpcode,
+                        [this](const Network::Packet& packet) { OnQuestState(packet); }) &&
+        m_gameServer.On(Protocol::Quest::SetQuestOpcode,
+                        [this](const Network::Packet& packet) { OnSetQuestResult(packet); }) &&
+        m_gameServer.On(Protocol::Quest::QuestResultOpcode,
+                        [this](const Network::Packet& packet) { OnQuestResult(packet); });
     assert(registered && "los handlers del GameServer se registran una vez");
     // CL9 hito 3 (atacar, el daño y la muerte): el despacho de 0x4e2b10 manda el 0x16 a 0x4cf200 y el 0x9C a 0x4cfce0
     // (los dos con el flag de descifrado) y el 0x17 a 0x4d0a30. El 0x15 de la GS 0.97 (GCDamageSend) no tiene caso: cae
@@ -1260,6 +1278,82 @@ void ServerSession::RequestPartyList()
     static_cast<void>(SendWorldPacket(Protocol::Party::WritePartyListRequest()));
 }
 
+void ServerSession::RequestQuestList()
+{
+    static_cast<void>(SendWorldPacket(Protocol::Quest::WriteQuestListRequest()));
+}
+
+void ServerSession::SendSetQuest(std::uint8_t quest, std::uint8_t state)
+{
+    static_cast<void>(SendWorldPacket(Protocol::Quest::WriteSetQuest(quest, state)));
+}
+
+void ServerSession::SendTalk(std::int16_t key)
+{
+    static_cast<void>(SendWorldPacket(Protocol::Quest::WriteTalk(key)));
+}
+
+void ServerSession::SendWindowClose()
+{
+    static_cast<void>(SendWorldPacket(Protocol::Connection::WriteWindowClose()));
+}
+
+// 0x4e4b3a..0x4e4bf2: las misiones, sin guarda de escena ni del flag de cifrado (CL9 hito 2).
+void ServerSession::OnQuestFlag(const Network::Packet& packet)
+{
+    const auto flag = Protocol::Quest::ReadQuestFlag(packet);
+    if (!flag.HasValue())
+    {
+        m_log.Warning("se ignora el 9F de las misiones: {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(flag.Value(), *this)));
+}
+
+void ServerSession::OnQuestList(const Network::Packet& packet)
+{
+    auto list = Protocol::Quest::ReadQuestList(packet);
+    if (!list.HasValue())
+    {
+        m_log.Warning("se ignora la lista de las misiones (A0): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(list).Value(), *this)));
+}
+
+void ServerSession::OnQuestState(const Network::Packet& packet)
+{
+    const auto state = Protocol::Quest::ReadQuestState(packet);
+    if (!state.HasValue())
+    {
+        m_log.Warning("se ignora el estado de una misión (A1): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(state.Value(), *this)));
+}
+
+void ServerSession::OnSetQuestResult(const Network::Packet& packet)
+{
+    const auto result = Protocol::Quest::ReadSetQuestResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora la respuesta del A2: {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
+}
+
+void ServerSession::OnQuestResult(const Network::Packet& packet)
+{
+    const auto result = Protocol::Quest::ReadQuestResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora el premio de una misión (A3): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
+}
+
 // 06 § Caminar: los ecos y el daño se aplican sin guarda de escena ni del flag de cifrado.
 void ServerSession::OnWalk(const Network::Packet& packet)
 {
@@ -1401,6 +1495,40 @@ void ServerSession::OnViewportPosition(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(position.Value(), *this)));
+}
+
+// 0x4e37d1, 0x4e37e9 y 0x4e4643: el 13, el 1F y el 68, sin guarda de escena ni del flag de cifrado (CL9 hito 2).
+void ServerSession::OnViewportMonsters(const Network::Packet& packet)
+{
+    const auto monsters = Protocol::Viewport::ReadMonsters(packet);
+    if (!monsters.HasValue())
+    {
+        m_log.Warning("se ignoran los monstruos del viewport (13): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(monsters.Value(), *this)));
+}
+
+void ServerSession::OnSummons(const Network::Packet& packet)
+{
+    const auto summons = Protocol::Viewport::ReadSummons(packet);
+    if (!summons.HasValue())
+    {
+        m_log.Warning("se ignoran los invocados del viewport (1F): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(summons.Value(), *this)));
+}
+
+void ServerSession::OnViewportObjects(const Network::Packet& packet)
+{
+    const auto objects = Protocol::Viewport::ReadObjects(packet);
+    if (!objects.HasValue())
+    {
+        m_log.Warning("se ignoran los objetos del viewport (68): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(objects.Value(), *this)));
 }
 
 // P-C33: 0x4c6e32 prueba el flag antes de leer los campos; cero manda el F1 03.

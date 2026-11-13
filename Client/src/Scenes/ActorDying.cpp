@@ -82,7 +82,7 @@ void FlyFromTheCastle(ActorState& actor)
 {
     const auto matrix = Render::Models::OriginalAngleMatrix(actor.push);
     const glm::vec3 turned = Render::Models::OriginalVectorRotate({0.0f, actor.floatD0, 0.0f}, matrix);
-    actor.floatD0 = Sum(actor.floatCc, actor.floatD0);
+    actor.floatD0 = Sum(actor.floatCC, actor.floatD0);
     actor.floatE4 = Sum(actor.floatD8, actor.floatE4);
     actor.floatD8 = static_cast<float>(static_cast<double>(actor.floatD8) - static_cast<double>(actor.floatD4));
     actor.angles.x = static_cast<float>(static_cast<double>(actor.angles.x) - static_cast<double>(CastleSpin));
@@ -95,7 +95,7 @@ void FlyFromThePush(ActorState& actor)
 {
     const glm::vec3 angles{actor.headTurn.angles.x, actor.headTurn.angles.y, actor.angle30};
     const auto matrix = Render::Models::OriginalAngleMatrix(angles);
-    const glm::vec3 moved = Render::Models::OriginalVectorRotate({actor.floatCc, actor.floatD0, actor.floatD4}, matrix);
+    const glm::vec3 moved = Render::Models::OriginalVectorRotate({actor.floatCC, actor.floatD0, actor.floatD4}, matrix);
     actor.position.x = Sum(moved.x, actor.position.x);
     actor.position.y = Sum(moved.y, actor.position.y);
     actor.position.z = Sum(moved.z, actor.position.z);

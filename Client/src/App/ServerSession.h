@@ -240,6 +240,15 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> SendItemMove(const Protocol::Inventory::ItemMove& move);
     // El C1 03 42 de 0x6599a0(4), al abrir la ventana de la party (Protocol::Party::WritePartyListRequest), en claro.
     void RequestPartyList();
+    // Las misiones y los NPC (CL9 hito 2), por el GS en el mundo. Los rand() del relleno y del serial de los C3 los
+    // saca la escena antes. El C3 A0 de 0x63693a y 0x5676a6 (Protocol::Quest::WriteQuestListRequest).
+    void RequestQuestList();
+    // El C3 A2 de 0x419bd0 y 0x41a9e0 (Protocol::Quest::WriteSetQuest).
+    void SendSetQuest(std::uint8_t quest, std::uint8_t state);
+    // El C3 30 de la llegada a un NPC (0x5650c0, Protocol::Quest::WriteTalk).
+    void SendTalk(std::int16_t key);
+    // El C1 03 31 en claro de 0x419900, al cerrar la ventana de las misiones (Protocol::Connection::WriteWindowClose).
+    void SendWindowClose();
     // 0x4c609f: el 00 con la escena 2 (el login) pide la lista de servidores, C1 04 F4 02, por el socket que esté
     // abierto, sin mirar cuál es. En el CS es el saludo (OnConnectHello); acá, el que llega por el GS (Q-C511).
     void ResendServerListRequest();
@@ -369,6 +378,9 @@ private:
     void OnTransformed(const Network::Packet& packet);
     void OnEquipmentShown(const Network::Packet& packet);
     void OnViewportPosition(const Network::Packet& packet);
+    void OnViewportMonsters(const Network::Packet& packet);
+    void OnSummons(const Network::Packet& packet);
+    void OnViewportObjects(const Network::Packet& packet);
     void OnTeleport(const Network::Packet& packet);
     void OnRegen(const Network::Packet& packet);
     void OnChat(const Network::Packet& packet);
@@ -386,6 +398,12 @@ private:
     void OnItemPut(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
     void OnMainCheck(const Network::Packet& packet);
+    // Las misiones (CL9 hito 2): 9F, A0, A1, A2 y A3, sin guarda de escena ni del cifrado.
+    void OnQuestFlag(const Network::Packet& packet);
+    void OnQuestList(const Network::Packet& packet);
+    void OnQuestState(const Network::Packet& packet);
+    void OnSetQuestResult(const Network::Packet& packet);
+    void OnQuestResult(const Network::Packet& packet);
     // El F1 02 con 1, con `encrypted` en el flag del paquete.
     void ReturnToSelection(bool encrypted);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.

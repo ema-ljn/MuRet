@@ -408,6 +408,14 @@ gremio va de la pregunta del `54` al `C1 55`. Sobre el hito 7 (mergeado): la tel
 P-C22 e y P-C207 b) y la marca del otro en el comercio (`0x5f3bf9..0x5f3c8a`, P-C207 a). Queda: la ventana del gremio
 con sus pestañas y listas (08 P-C287, sobre `UI::OldList` del hito 9) y las ventanas de la alianza que mandan (P-C288).
 
+**Fase 4 (2026-11-13):** el marco de la ventana del gremio (`0x64f3e0`): su paso (`0x651840`: el mouse sobre ella,
+cerrarla, las pestañas, el `C1 03 E9` de la alianza una vez) desde el registro (`0x657977`) y su dibujo (`0x651c20`:
+el título, el puntaje o los tres textos sin gremio, el botón de cerrar y las tres pestañas) desde `0x6579e0`, con el
+nombre del gremio del héroe leído también antes de la tabla (−1). Queda (08 P-C287 y P-C288): los pasos y dibujos de
+las pestañas (`0x64fc00`, `0x650350`, `0x650c10`, `0x64fdf0`, `0x6507d0`, `0x651400`), sus listas (`0x46b800`,
+`0x46c470`, `0x46d440`, `0x46d630`, con `0x480e00`, `0x480520`, `0x4824d0` y el dibujo `0x47a810`) y las ventanas de la
+alianza (`0x64e600`, `0x64def0`, `0x650830`).
+
 ### Hito 9: los amigos (CL9.4, ~89 KB)
 
 - [x] **Los controles de las ventanas viejas** que la CL8 dejó sin portar (57 funciones de la CL8.3, 14 KB: las

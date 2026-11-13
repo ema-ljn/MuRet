@@ -30,6 +30,7 @@
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/GuildWindow.h"
 #include "Scenes/SecondGuildWindow.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/UiItemDrawing.h"
@@ -880,9 +881,15 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
         if (auto second = DrawTheSecondGuildWindow(frame.context); !second.HasValue())
             return second;
     }
-    if (panels.IsOpen(UI::GuildPanel) || panels.IsOpen(UI::CastleSiegePanel) ||
-        panels.IsOpen(UI::CastleSiegeListPanel) || panels.IsOpen(UI::SecondCastleSiegePanel))
-        return cut("0x6579e0: las ventanas del gremio y del asedio son de la CL9.4 y la CL9.5");
+    // 0x657a18: [0x7d536f0] por su vtable + 0x14 (0x651c20).
+    if (panels.IsOpen(UI::GuildPanel))
+    {
+        if (auto guild = DrawTheGuildWindow(frame.context); !guild.HasValue())
+            return guild;
+    }
+    if (panels.IsOpen(UI::CastleSiegePanel) || panels.IsOpen(UI::CastleSiegeListPanel) ||
+        panels.IsOpen(UI::SecondCastleSiegePanel))
+        return cut("0x6579e0: las ventanas del asedio son de la CL9.5");
     // 0x6579e0: 0x660830, el diálogo de los paneles, si está abierto.
     return DrawThePanelDialog(frame.context, frame.runtime.panels.delegated.panelDialog);
 }

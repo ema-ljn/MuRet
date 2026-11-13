@@ -690,8 +690,24 @@ TEST(PanelRegistryTest, TheObjectPanelsStepTheSecondGuildWindowFirst)
     ASSERT_TRUE(tested.panels.StepTheObjectPanels().HasValue());
     EXPECT_EQ(steps, 1);
     tested.state.delegated.guild = 1;
-    EXPECT_FALSE(tested.panels.StepTheObjectPanels().HasValue());
+    const auto cut = tested.panels.StepTheObjectPanels();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x657977"), std::string::npos) << cut.Error();
     EXPECT_EQ(steps, 2);
+    // 0x657959 y después 0x657977: la ventana 2 y la del gremio.
+    std::string order;
+    tested.context.secondGuildStep = [&order]() -> Client::Core::Expected<void, std::string>
+    {
+        order += "2";
+        return {};
+    };
+    tested.context.guildStep = [&order]() -> Client::Core::Expected<void, std::string>
+    {
+        order += "1";
+        return {};
+    };
+    ASSERT_TRUE(tested.panels.StepTheObjectPanels().HasValue());
+    EXPECT_EQ(order, "21");
 }
 
 TEST(PanelRegistryTest, TheWorldIsFullWidthWithNothingOpenAndDrawsNothing)

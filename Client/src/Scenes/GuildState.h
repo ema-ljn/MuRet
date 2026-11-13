@@ -2,11 +2,13 @@
 
 #include "UI/OldWindowBase.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // El gremio, la alianza y la guerra en el juego (CL9 hito 8; 06 § El gremio): los globales de la .bss y de la .data
@@ -64,8 +66,25 @@ struct GuildUnionRow
 // Lo que los paquetes escriben de la ventana del gremio, [0x7d536f0] (0x64f3e0). Sus listas son objetos de las clases
 // de 0x46b800..0x46d630, que MuRet no tiene: acá, lo que se les agregó, en orden (*inferido*: ni el dibujo ni el paso
 // están portados para ver si recortan).
+// El id de la ventana del gremio: el original lo saca del contador 0x5762eb0 como los de la ventana 2; MuRet le da −10,
+// después de los de la ventana 2 (P-C280).
+inline constexpr std::int32_t GuildWindowId = -10;
+
+// 0x64f3e0: la ventana base (0x45a210) en (0x1c2, 0) de 0xbe × 0x17c (0x45a9d0 y 0x45a9f0), que nadie mueve.
+[[nodiscard]] inline UI::OldWindowBase GuildWindowBase()
+{
+    UI::OldWindowBase base;
+    base.id = GuildWindowId;
+    base.x = 0x1c2;
+    base.y = 0;
+    base.width = 0xbe;
+    base.height = 0x17c;
+    return base;
+}
+
 struct GuildWindowState
 {
+    UI::OldWindowBase base = GuildWindowBase();
     // +0x80: la pestaña (0x64f3e0 la deja en 1) y +0x84, el pedido del E9 ya hecho.
     std::int32_t tab = 1;
     std::int32_t unionRequested = 0;
@@ -232,5 +251,41 @@ inline void ResetTheGuildTable(GuildState& guild)
     guild.tableCount = 0;
     for (GuildTableEntry& entry : guild.table)
         entry.key = -1;
+}
+
+// 0x787a5e8 (los miembros, de 0xe) y 0x787aa48 (la tabla, de 0x58) van seguidos (Q-C1281): la entrada −1 empieza en el
+// byte 10 del nombre del miembro 73, su +4 es el byte 0 del nombre del miembro 74 y su +0xd, el byte 9.
+inline constexpr std::size_t MemberBeforeTheTable = 74;
+
+// Un nombre de la tabla hasta el primer 0, como lo leen strcmp y sprintf.
+template <std::size_t Size> [[nodiscard]] std::string_view GuildTextOf(const std::array<char, Size>& text)
+{
+    return {text.data(), static_cast<std::size_t>(std::ranges::find(text, '\0') - text.begin())};
+}
+
+// El gremio (+0xd) de la entrada `index` como lo leen strcmp y sprintf: la −1 da el byte 9 del nombre del miembro 74 y
+// el 0 de su byte 10 (+0xa, siempre en 0). Fuera de la tabla, nullopt (el original leería otra memoria).
+[[nodiscard]] inline std::optional<std::string_view> GuildNameAt(const GuildState& guild, std::int16_t index)
+{
+    constexpr std::size_t NameByteBeforeTheTable = 9;
+    if (index == NoGuildIndex)
+    {
+        const auto& name = guild.members[MemberBeforeTheTable].name;
+        return std::string_view(name.data() + NameByteBeforeTheTable, name[NameByteBeforeTheTable] == '\0' ? 0 : 1);
+    }
+    if (index < 0 || static_cast<std::size_t>(index) >= GuildTableSize)
+        return std::nullopt;
+    return GuildTextOf(guild.table[static_cast<std::size_t>(index)].guildName);
+}
+
+// El primer byte de la alianza (+4) de la entrada `index`: la −1 da el byte 0 del nombre del miembro 74. Fuera de la
+// tabla, nullopt.
+[[nodiscard]] inline std::optional<char> UnionByteAt(const GuildState& guild, std::int16_t index)
+{
+    if (index == NoGuildIndex)
+        return guild.members[MemberBeforeTheTable].name[0];
+    if (index < 0 || static_cast<std::size_t>(index) >= GuildTableSize)
+        return std::nullopt;
+    return guild.table[static_cast<std::size_t>(index)].unionName[0];
 }
 } // namespace Client::Scenes

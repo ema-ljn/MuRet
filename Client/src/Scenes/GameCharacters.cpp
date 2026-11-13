@@ -179,31 +179,6 @@ struct ClothLook
 
 constexpr glm::vec3 RedCloth{1.0f, 0.2f, 0.0f};
 constexpr glm::vec3 BlueCloth{0.0f, 0.2f, 1.0f};
-// 0x787a5e8 (los miembros, de 0xe) y 0x787aa48 (la tabla, de 0x58) van seguidos: +0xd de la entrada −1 es el byte 9 del
-// nombre del miembro 74 (0x787a9fd, Q-C1281).
-constexpr std::size_t MemberBeforeTheTable = 74;
-constexpr std::size_t NameByteBeforeTheTable = 9;
-
-// Un nombre de la tabla hasta el primer 0, como lo lee strcmp.
-template <std::size_t Size> std::string_view TextOf(const std::array<char, Size>& text)
-{
-    return {text.data(), static_cast<std::size_t>(std::ranges::find(text, '\0') - text.begin())};
-}
-
-// El gremio (+0xd) de la entrada `index` de 0x787aa48 tal como lo compara strcmp: la −1 da el byte 9 del nombre del
-// miembro 74 y el 0 de su byte 10 (+0xa, siempre en 0). Fuera de la tabla, nullopt (el original leería otra memoria).
-std::optional<std::string_view> GuildNameAt(const GuildState& guild, std::int16_t index)
-{
-    if (index == NoGuildIndex)
-    {
-        const auto& name = guild.members[MemberBeforeTheTable].name;
-        return std::string_view(name.data() + NameByteBeforeTheTable, name[NameByteBeforeTheTable] == '\0' ? 0 : 1);
-    }
-    if (index < 0 || static_cast<std::size_t>(index) >= GuildTableSize)
-        return std::nullopt;
-    return TextOf(guild.table[static_cast<std::size_t>(index)].guildName);
-}
-
 // 0x50c972..0x50caaa: con +0x1f2 distinto de −1 y la guerra prendida (0x576796d, el 61 y el 62 del tipo 1), el gremio
 // del personaje (strcmp de +0xd de su entrada) igual al del héroe publicado (su +0x1f2, sin mirar el −1) prende la tela
 // del color del equipo (0x576796e en 0, (1; 0,2; 0); si no, (0; 0,2; 1)), y el del rival (0x5767804), la del otro.
@@ -225,7 +200,7 @@ Core::Expected<void, std::string> DressForTheWar(const WorldState& world, const 
     const bool firstTeam = guild.warTeam == 0;
     if (*heros == *own)
         look = {.wears = true, .color = firstTeam ? RedCloth : BlueCloth};
-    if (TextOf(guild.rival) == *own)
+    if (GuildTextOf(guild.rival) == *own)
         look = {.wears = true, .color = firstTeam ? BlueCloth : RedCloth};
     return {};
 }

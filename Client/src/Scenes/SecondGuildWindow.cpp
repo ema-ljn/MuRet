@@ -18,6 +18,7 @@
 #include "Scenes/GuildMarks.h"
 #include "Scenes/GuildPanels.h"
 #include "Scenes/GuildState.h"
+#include "Scenes/GuildWindow.h"
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -31,6 +32,7 @@
 #include "UI/OldWindowDraw.h"
 #include "UI/OldWindows.h"
 #include "UI/PanelDialog.h"
+#include "UI/PanelRegistry.h"
 #include "World/OriginalFtol.h"
 
 #include <algorithm>
@@ -279,22 +281,6 @@ void PreviousPage(GuildState& guild)
 bool MarkHasColor(const GuildState& guild)
 {
     return std::ranges::any_of(guild.table[CreatingIndex].mark, [](std::uint8_t nibble) { return nibble != 0; });
-}
-
-// 0x45aa80(0) sobre una ventana sin padre que no está en el administrador (como el registro del chat, 0x45aa80 en
-// UI/ChatLogWindow.cpp): con el mouse sobre ella y otra bajo el mouse o agarrándolo, no da su paso. Con el izquierdo
-// abajo, 0x490aa0 no la encuentra para traerla al frente (*inferido*).
-bool PassesTheWindowGate(const UI::OldWindowBase& base, UI::GameUiState& ui, std::int32_t mouseX, std::int32_t mouseY)
-{
-    if (!UI::MouseInRect(mouseX, mouseY, base.x, base.y, base.width, base.height, base.rectMode))
-        return true;
-    if (ui.hovered == 0)
-    {
-        if (ui.capture != 0 && ui.capture != base.id)
-            return false;
-        ui.hovered = base.id;
-    }
-    return base.state != UI::ShownWindow || ui.hovered == base.id || ui.capture == base.id;
 }
 
 // 0x6535c0(x, y): el ángulo del héroe; la grilla de la marca (el izquierdo abajo pinta con el color elegido, el
@@ -796,7 +782,7 @@ Core::Expected<void, std::string> StepTheSecondGuildWindow(const SecondGuildStep
     WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     const UI::OldWindowBase& base = guild.secondWindow.base;
-    if (!PassesTheWindowGate(base, runtime.ui, context.mouseX, context.mouseY))
+    if (!PassesTheGuildWindowGate(base, runtime.ui, context.mouseX, context.mouseY))
         return {};
     if (UI::MouseInRect(context.mouseX, context.mouseY, base.x, base.y, base.width, MouseHeight, TopLeftRect))
         runtime.ui.mouseOnUi = 1;

@@ -197,6 +197,9 @@ struct PanelContext
     // 0x657930 con [0x7d536f4] abierta: su vtable + 0x18 (0x45aa80(0), que llama a 0x656df0) con el mouse, el reloj y
     // los filtros del paso (Scenes/SecondGuildWindow). Sin él, el paso con la ventana 2 del gremio abierta corta.
     std::function<Core::Expected<void, std::string>()> secondGuildStep{};
+    // 0x657977: el paso de la ventana del gremio (0x45aa80(0) y 0x651840, Scenes::StepTheGuildWindow), con el mouse y
+    // el cable del paso. Sin él, con el panel abierto, el paso corta.
+    std::function<Core::Expected<void, std::string>()> guildStep{};
     // 0x65c966..0x65ca6d: lo que abrir el personaje hace fuera de los paneles, cierre o no lo demás: [0x6eed3c] de
     // +0x9304 a +0x9327 en 0, y con el registro propio abierto, 0x550d10 si un lugar del equipo tiene la durabilidad
     // en 0 (0x550cf0). Sin él, abrir el personaje corta.

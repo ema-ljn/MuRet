@@ -28,6 +28,7 @@
 #include "Scenes/PartyActors.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/SocialState.h"
+#include "Scenes/GuildWindow.h"
 #include "Scenes/SecondGuildWindow.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -1583,6 +1584,10 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
         .filterName = context.chat != nullptr ? context.chat->filterName : std::span<const std::string>{},
         .filter = context.chat != nullptr ? context.chat->filter : std::span<const std::string>{},
         .send = GuildSenderOf(context.requests)});
+    gamePanels.LendTheGuildWindowStep(GuildWindowStepContext{.world = context.world,
+                                                             .mouseX = context.mouseX,
+                                                             .mouseY = context.mouseY,
+                                                             .send = GuildSenderOf(context.requests)});
     gamePanels.LendTheFriends([&sight]() { return sight.OpenTheFriendsWindow(); });
     gamePanels.LendTheTradeCancel(context.world, context.random, context.requests);
     UI::PanelRegistry& panels = gamePanels.Registry();

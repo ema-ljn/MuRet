@@ -92,8 +92,13 @@ Core::Expected<void, std::string> CloseTheGuildWindow(WorldState& world, const G
     window.unionRequested = 0;
     window.tab = FirstGuildTab;
     runtime.lastSoundId = GuildCloseSound; // 0x41ed10 (CL10)
-    // 0x64fbd0: el diálogo abierto es el suyo (0x660340 contra +0x428; los dos en 0 también).
-    if (UI::PanelDialogHandle(delegated.panelDialog) != window.dialog)
+    return CancelTheGuildWindowDialog(world, send);
+}
+
+Core::Expected<void, std::string> CancelTheGuildWindowDialog(WorldState& world, const GuildSender& send)
+{
+    UI::DelegatedPanels& delegated = world.Runtime().panels.delegated;
+    if (UI::PanelDialogHandle(delegated.panelDialog) != world.Runtime().guild.window.dialog)
         return {};
     return UI::CancelThePanelDialog(delegated.panelDialog, AnswerOf(world, send));
 }

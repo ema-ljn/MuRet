@@ -28,6 +28,10 @@ using GuildSender = std::function<void(Protocol::Outgoing)>;
 // suena el 0x1c y cancela el diálogo si es el suyo (0x64fbd0: el abierto es +0x428).
 [[nodiscard]] Core::Expected<void, std::string> CloseTheGuildWindow(WorldState& world, const GuildSender& send);
 
+// 0x64fbd0: si el diálogo de los paneles abierto (0x660340) es el de la ventana del gremio (+0x428; los dos en 0
+// también), lo cancela (0x6603c0, con la respuesta de quien lo abrió).
+[[nodiscard]] Core::Expected<void, std::string> CancelTheGuildWindowDialog(WorldState& world, const GuildSender& send);
+
 // 0x6570b0, la vtable + 0x2c de [0x7d536f4]: abierta, la cierra; el héroe con el gremio 1999 vuelve a −1; suena el
 // 0x1c; 0x7d536e4, 0x7d536ec y 0x77f3b68 en 0; cancela el diálogo si es suyo (0x654f50: +0x2a0 o +0x2a4) y manda C1 04
 // 54 00.

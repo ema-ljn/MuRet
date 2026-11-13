@@ -111,8 +111,8 @@ constexpr std::uint8_t RefreshEmpty = 0;
 constexpr std::uint8_t RefreshAgain = 1;
 // 0x4d9bb7: la cuenta de la lista de la alianza desde la que pide la lista otra vez.
 constexpr std::size_t UnionRowsBeforeAsking = 2;
-// 0x4d9940 con el índice −1: 0x787aa4c − 0x58 = 0x787a9f4, el primer byte del miembro 74 (Q-C1281).
-constexpr std::size_t MemberBeforeTheTable = 74;
+// 0x4d9940 con el índice −1: 0x787aa4c − 0x58 = 0x787a9f4, el primer byte del miembro 74 (Q-C1281,
+// GuildState::MemberBeforeTheTable).
 // 0x4d7b60: el bit del servidor conectado y lo que queda sin él.
 constexpr std::uint8_t ConnectedBit = 0x80;
 constexpr std::uint8_t ServerMask = 0x7f;

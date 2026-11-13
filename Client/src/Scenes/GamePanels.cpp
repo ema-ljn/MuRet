@@ -10,6 +10,7 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnDerivedStats.h"
 #include "Scenes/OwnStatHelpers.h"
+#include "Scenes/GuildWindow.h"
 #include "Scenes/SecondGuildWindow.h"
 #include "Scenes/SocialEvents.h"
 #include "Scenes/WorldRuntime.h"
@@ -119,6 +120,11 @@ void GamePanels::LendThePanelDialogStep(WorldState& world, std::int32_t mouseX, 
 void GamePanels::LendTheSecondGuildStep(const SecondGuildStepContext& context)
 {
     LendTheSecondGuildStepTo(m_context, context);
+}
+
+void GamePanels::LendTheGuildWindowStep(const GuildWindowStepContext& context)
+{
+    LendTheGuildWindowStepTo(m_context, context);
 }
 
 void GamePanels::LendTheFriends(std::function<Core::Expected<void, std::string>()> opened)

@@ -2740,6 +2740,35 @@ foco en `ChatFocus::DialogField`, y su dibujo va con la fuente normal en blanco 
 su slot (`Render::FirstGuildSwatchTextureSlot`). No saca `rand()` propios; el `01` del Guild Master saca los cuatro de
 abrir el panel.
 
+### La ventana del gremio: el marco y las pestañas (fase 4)
+
+`[0x7d536f0]` (`0x64f3e0`, vtable `0x6baa58`, *estático*): la ventana base en (`0x1c2`, 0) de `0xbe` × `0x17c`, la
+pestaña `+0x80` en 1 y `+0x84` en 0, el nombre de `+0x88` vacío, las tres listas (`+0x94`, `0x46c470`, vtable
+`0x6b971c`, los miembros: 18 renglones, `+0xbc` en 1, en (`0x1d2`, `0x159`) de `0x9d` × `0xeb`; `+0x1c8`, `0x46b800`,
+vtable `0x6b9688`, el aviso; `+0x2f8`, `0x46d440`, la alianza), seis botones de 50 × 18 colgados de la ventana
+(`+0x42c` el 1 sin texto en (x + `0x46`, y + alto − 18); `+0x4b4`, `+0x53c` y `+0x5c4` el 2, el 3 y el 4 con los textos
+1307, 1308 y 1309 en (x + `0x12`, `0x46` y `0x7a`, y + `0x15e`); `+0x64c` el 7 sin texto en (x + `0x46`, y + `0x15e`);
+`+0x6d4` el 8 con el 1422 en (x + `0x46`, y + `0xdc`)), los dos globales `0x7d535b8` (el 5, el 228) y `0x7d53640` (el 6,
+el 229) y `0x7d536d8` en `0x40`. El paso (`0x651840`, detrás de `0x45aa80(0)`): el mouse sobre `0xbe` × `0x1b1` prende
+`0x775857c`; el clic en el botón de cerrar (`0x18` × `0x18` en (`0x19`, `0x18b`)) lo consume, `0x77f3b10` en 0,
+`0x6c8dcc` en 6, el sonido `0x19` y `0x6522f0`, y el paso sigue. Con el héroe sin gremio (`+0x368` en `0xff`), nada
+más; si no, con el izquierdo abajo (`0x7d36874`), la pestaña bajo el mouse (`0x34` × `0x10` en x + `0xf`, `0x43` y
+`0x77`, y + `0x4b`) que no es la elegida: `0x64fbd0` (cancela el diálogo de los paneles si es el suyo, `+0x428`) y la
+pestaña; la de la alianza, antes, con `+0x84` en 0 y alianza (`+4` de la entrada del gremio del héroe, sin mirar el
+−1, Q-C1281), manda `C1 03 E9` en claro por el socket y pone `+0x84` en 1. Después, el paso de la pestaña (`0x64fc00`,
+`0x650350` o `0x650c10`). El dibujo (`0x651c20`): blanco, el fondo sin mezcla, la mezcla, el título (el 180) en negrita
+con `0xffdcdcdc` sobre 0; con gremio, `"%s ( Score:%d )"` (`0x6d67cc`, el nombre de la entrada del héroe y
+`0x78aba3c`) en (x + `0x23`, y + `0x35`) con `0xff64ffc8`, en la misma caja de 120 · W / 640; sin gremio, en la normal
+con `0xffe6e6e6`, los textos 185, 186 y 187 en (x + `0x14`, y + `0x32`) de a `0xf`. El botón de cerrar con la ayuda 220.
+Con gremio, las pestañas: `glColor4ub(0x92, 0x90, 0x8d, 0xff)` y las rayas de 54 × 1 sin textura (`0x621aa0`) en
+(x + `0xf` + `0x36` · k, y + `0x5b`) bajo las que no están elegidas; `0x459ec0`, la negrita en blanco sobre 0, y cada
+una: blanca la elegida y en 0,6 las otras, el `0x646` de 52 × 16 en (x + `0xf` + `0x36` · k, y + `0x4b`) (la elegida, 2
+más arriba y 18 de alto; du 0,75, dv 0,9375) y su texto (946, 1330 y 1352) centrado en `_ftol(rx · 52)` en
+y + `0x4b` + 4 (la elegida, uno más arriba); blanco y el dibujo de la pestaña (`0x64fdf0`, `0x6507d0` o `0x651400`).
+**MuRet** (CL9 hito 8, fase 4): `Scenes::StepTheGuildWindow` y `DrawTheGuildWindow`, con la compuerta común
+(`PassesTheGuildWindowGate`); los pasos y los dibujos de las pestañas, las listas y los botones cortan con su
+dirección (08 P-C287). Tests: `GuildWindowTest`.
+
 ## La escena de carga y la de login
 
 Leído en la CL5.R en el desensamblado de `c32bbd5f` (`objdump -d -M intel`), con el decompilado

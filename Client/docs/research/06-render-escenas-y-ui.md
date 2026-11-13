@@ -10576,7 +10576,7 @@ de la lista pide el suyo una vez. Devuelve 1 (corta la cadena) con el `0x1ad` y 
 | `0x1b3` | `0x21a`; `0x21c`, `0x21d`, `0x21e` | antes, en la 4 con el frame de 4 a 6, el efecto `0x115` (`0x434ecf`) |
 | `0x1b4` | `0x215`; `0x217`, `0x218`, `0x219` | |
 | `0x1b5` | — ; `0x241` (3 y 4), `0x242` (6) | sin la regla de la 0 y la 1: en la 3 y la 6 deja `+4`, en las demás lo pone en 0 (Q-C1099); devuelve 0 |
-| `0x204..0x208` | — | `0x620a90`; con `+0x7c & 0x40000`, la luz propia en (0,09; 0,09; 0,04) y dos partículas `0x729` (`0x434281`); después, con o sin ellas, las dos marcas `0x69b` del piso (`0x43436c` y `0x43439a`, Q-C1100) y `0x620980`; devuelve 0 |
+| `0x204..0x208` | — | `0x620a90`; con `+0x7c & 0x40000`, la luz propia en (0,09; 0,09; 0,04) y dos partículas `0x729` (`0x434281`); después, con o sin ellas, las dos marcas `0x69b` del piso (`0x43436c` y `0x43439a`, Q-C1100) y `0x620980`; devuelve 0. MuRet dibuja la primera (2,8, con `0x100000` o `0x20000` la luz (b; 0,1; 0,1) y el giro g; con `0x10000` u `0x80000`, (0,15; 0,15; b) y T · 0,01f; al doble) y corta en la segunda, cuyo giro solo escribe la rama de `0x40000` |
 
 **`0x4271d0`** (`c` y el objeto; la tabla de `0x428dd4`, del `0x1b6` al `0x1bb`; devuelve 0 siempre).
 

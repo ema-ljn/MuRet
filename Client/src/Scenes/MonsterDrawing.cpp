@@ -821,6 +821,8 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
         if (!helped.Value())
         {
             // 0x510a42..0x510a72: 0x441400, 0x42fa30, 0x434180 y 0x4271d0.
+            // Las alturas del pase (sin él, las del mapa del mundo) para las marcas de 0x434180.
+            const World::WorldTerrain& terrain = pass.terrain != nullptr ? *pass.terrain : frame.world.Map().terrain;
             MonsterHelperPass helperPass{.actor = actor,
                                          .slot = frame.slot,
                                          .world = frame.world,
@@ -828,7 +830,9 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
                                          .sprites = pass.sprites,
                                          .worldClock = frame.worldClock,
                                          .map = frame.map,
-                                         .originalFrame = frame.originalFrame};
+                                         .originalFrame = frame.originalFrame,
+                                         .batch = &frame.batch,
+                                         .heights = terrain.heights.get()};
             if (auto helpers = DrawTheMonsterHelpers(helperPass); !helpers.HasValue())
                 return helpers;
         }

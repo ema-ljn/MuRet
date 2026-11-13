@@ -2,7 +2,9 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
+#include "Render/ModelBatch.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
@@ -12,12 +14,14 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/OriginalFtol.h"
+#include "World/TerrainDecal.h"
 #include "World/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -74,6 +78,18 @@ bool Idling(const ActorState& actor)
 std::int32_t Coin(Render::Models::CrtRandom& random)
 {
     return random.Next() & 1;
+}
+
+// 0x620a90: la mezcla aditiva con su perfil entero, sin tocar el depth test ni la textura ligada (como las marcas del
+// suelo, GroundMarks.cpp).
+Render::ModelDrawState Blended(Render::ModelDrawState state, Render::ModelBlend blend)
+{
+    state.blend = blend;
+    state.cullEnabled.reset();
+    state.depthWrite.reset();
+    state.alphaTest.reset();
+    state.texture2d.reset();
+    return state;
 }
 
 Core::Unexpected<std::string> Cut(std::uint32_t address, std::string_view what, const ActorState& actor)
@@ -356,19 +372,68 @@ Result DrawThe1a9(MonsterHelperPass& pass)
     return Cut(0x442da1, "las partículas 0x6ec y 0x5f2 (0x53fe70) de la mano", actor);
 }
 
-// 0x4341d2..0x43439a, del 0x204 al 0x208: con +0x7c & 0x40000, la luz propia (+0xf4) en (0,09; 0,09; 0,04) y dos
-// partículas 0x729; después, con o sin ellas, las dos marcas 0x69b del piso (Q-C1100). El seno del reloj que calcula
-// antes solo lo leen ellas; 0x620a90 y 0x620980 (la mezcla aditiva global) no tienen estado en MuRet.
+// 0x4341d2..0x43439a, del 0x204 al 0x208. El seno del reloj por 0,002f (0x6b89bc) da b = sin · 0,1f + 0,28f
+// ([ebp+0xc]) y g = sin · 0,04f + 0,2f ([ebp−0x20], el giro de la primera marca); después 0x620a90 (aditiva). Con
+// +0x7c & 0x40000, la luz propia (+0xf4) en (0,09; 0,09; 0,04) y dos partículas 0x729 (CL11). Después las dos marcas
+// 0x69b del piso, 0x5fb2f0(0x69b, x, y, lado, lado, &luz, giro, 1, 5), con la luz al doble (FADD ST0, ST0):
+// - con 0x100000 o 0x20000, (b; 0,1; 0,1); con 0x10000 u 0x80000 (después, pisa), (0,15; 0,15; b) y el giro en
+//   T · 0,01f. Sin ninguno, la luz es lo que quedó en la pila (Q-C1100): corta en la primera;
+// - la primera de 2,8 (0x40333333) con el giro de [ebp−0x20]; la segunda de 3,6 (0x40666666) con el de [ebp−0x1c],
+//   que solo escribe la rama de 0x40000 (T · −0,01f), que corta antes: la segunda siempre corta (Q-C1100).
+// 0x620980 cierra después de la segunda.
 Core::Unexpected<std::string> DrawTheCrywolfMark(MonsterHelperPass& pass)
 {
     ActorState& actor = pass.actor;
-    constexpr std::uint32_t Sparkling = 0x40000;
-    if ((actor.flags7c & Sparkling) == Sparkling)
+    if (pass.batch == nullptr || pass.heights == nullptr)
+        return Cut(0x43436c, "las marcas 0x69b del piso sin el lote o las alturas del terreno (0x5fb2f0)", actor);
+    constexpr float WaveRate = std::bit_cast<float>(0x3b03126fu);   // 0x6b89bc: 0,002
+    constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu);      // 0x6b87b8: 0,1
+    constexpr float BrightBase = std::bit_cast<float>(0x3e8f5c29u); // 0x6b8af0: 0,28
+    constexpr float SoftSwing = std::bit_cast<float>(0x3d23d70au);  // 0x6b8aec: 0,04
+    constexpr float SoftBase = std::bit_cast<float>(0x3e4ccccdu);   // 0x6b8854: 0,2
+    constexpr float SpinRate = std::bit_cast<float>(0x3c23d70au);   // 0x6b88d4: 0,01
+    constexpr float Pale = std::bit_cast<float>(0x3e19999au);       // 0x6b8ae8 y 0x43431b: 0,15
+    constexpr float Small = std::bit_cast<float>(0x40333333u);      // 2,8
+    constexpr float Lift = 5.0f;
+    const double argument = D(pass.worldClock) * D(WaveRate);
+    const auto bright = Render::Models::Detail::SineProductPC53(argument, Tenth);
+    const auto soft = Render::Models::Detail::SineProductPC53(argument, SoftSwing);
+    if (!bright || !soft)
+        return Cut(0x4341de, "el seno del reloj fuera del perfil PC53", actor);
+    const float b = F32(*bright + D(BrightBase));
+    const float g = F32(*soft + D(SoftBase));
+    pass.batch->SetState(Blended(pass.batch->State(), Render::ModelBlend::Additive));
+    const std::uint32_t flags = actor.flags7c;
+    const auto has = [flags](std::uint32_t bit) { return (flags & bit) == bit; };
+    if (has(0x40000))
     {
         actor.light = {0.09f, 0.09f, 0.04f};
         return Cut(0x434281, "las partículas 0x729 (0x53fe70) de +0x7c & 0x40000", actor);
     }
-    return Cut(0x43436c, "las dos marcas 0x69b del piso (0x5fb2f0)", actor);
+    // 0x4342a2..0x43432b: la luz de [ebp−0x18], [ebp−0x14] y [ebp−0x10] y el giro de [ebp−0x20].
+    std::optional<glm::vec3> light;
+    float spin = g;
+    if (has(0x100000) || has(0x20000))
+        light = glm::vec3{b, Tenth, Tenth};
+    if (has(0x10000) || has(0x80000))
+    {
+        light = glm::vec3{Pale, Pale, b};
+        spin = F32(D(pass.worldClock) * D(SpinRate));
+    }
+    if (!light)
+        return Cut(0x43436c, "la marca 0x69b del piso con la luz de la pila sin escribir (Q-C1100)", actor);
+    const World::TerrainDecal first{.slot = 0x69b,
+                                    .x = actor.position.x,
+                                    .y = actor.position.y,
+                                    .width = Small,
+                                    .height = Small,
+                                    .color = *light + *light,
+                                    .angle = spin,
+                                    .alpha = 1.0f,
+                                    .lift = Lift};
+    if (auto drawn = World::DrawTerrainDecal(*pass.batch, *pass.heights, first); !drawn.HasValue())
+        return Core::Unexpected(drawn.Error());
+    return Cut(0x43439a, "la segunda marca 0x69b del piso con el giro de la pila sin escribir (Q-C1100)", actor);
 }
 
 // 0x434699..0x434a70, el 0x1af: a = rand() % 14 · 0,01f, el giro rand() % 360; en zx un 0x699 a 1,5 blanco, tres

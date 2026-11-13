@@ -420,6 +420,41 @@ TEST_F(MonsterDrawingTest, TheKalimaGateOutlinesOnlyItsFirstMesh)
     EXPECT_EQ(m_batch.Vertices().size(), 0u);
 }
 
+// Sin los cortes del cuerpo (0x438fe0 y 0x42cc10), la cola llega a los helpers de 0x510a1e: el 0xc5 en la acción 1
+// cuenta su +0x60 en 0x43c150 (en Lorencia y Devias, con cualquier mapa) y el 0x1a1 del 30 sin el asedio apaga su
+// +0x42c y deja +0x58 en −2 en 0x42dfe0; ninguno saca rand() fuera de los tres de lo que cuelga.
+TEST_F(MonsterDrawingTest, TheBodyLeadsToTheKalimaAndSiegeHelpers)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        m_world = std::make_unique<Client::Scenes::WorldState>();
+        SetUp();
+        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_world->Runtime().map = map;
+        ActorState& gate = Monster(4, 0xc5, 152);
+        gate.animation.action = 1;
+        gate.dword60 = 2;
+        const auto drawn = Draw(Pass());
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(gate.dword60, 3);
+        EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
+        TearDown();
+    }
+    m_world = std::make_unique<Client::Scenes::WorldState>();
+    SetUp();
+    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    m_world->Runtime().map = 30;
+    ActorState& castle = Monster(4, 0x1a1, 3);
+    castle.byte42c = 1;
+    const auto drawn = Draw(Pass());
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(castle.byte42c, 0);
+    EXPECT_EQ(castle.dword58, -2);
+    EXPECT_GT(m_batch.Vertices().size(), 0u);
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
+}
+
 TEST_F(MonsterDrawingTest, TheFrozenFlagPaintsTheBodyAndAddsAPassWithoutTheBlendMesh)
 {
     ActorState& spider = Monster(2, Spider, 3);

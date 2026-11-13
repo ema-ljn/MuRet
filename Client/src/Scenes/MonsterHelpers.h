@@ -6,10 +6,19 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Data::Terrain
+{
+struct TerrainHeights;
+}
+
+namespace Client::Render
+{
+class ModelBatch;
+namespace Models
 {
 class CrtRandom;
 }
+} // namespace Client::Render
 
 namespace Client::World
 {
@@ -32,7 +41,7 @@ class WorldState;
 // Lo que leen los helpers del dibujo: el personaje (el registro o su copia entre frames del original), su lugar en el
 // pool (la clave de 0x4016c0), el rand() del dibujo, los sprites del frame (0x5491e0) y el reloj del mundo
 // ([0x5767b88], en ms). Los sonidos (0x41ed10, en WorldRuntime::lastSoundId para la CL10) se piden solo en un frame
-// del original.
+// del original. El lote y las alturas del .OZB son los de las marcas 0x69b del piso (0x5fb2f0) del 0x204 al 0x208.
 struct MonsterHelperPass
 {
     ActorState& actor;
@@ -43,6 +52,8 @@ struct MonsterHelperPass
     float worldClock = 0.0f;
     std::int32_t map = 0;
     bool originalFrame = true;
+    Render::ModelBatch* batch = nullptr;
+    const Data::Terrain::TerrainHeights* heights = nullptr;
 };
 
 // 0x441400(c, objeto, modelo), del 0x1a3 al 0x1a9 (la tabla de 0x442de8): los ojos, la cola y las manos de
@@ -51,8 +62,9 @@ struct MonsterHelperPass
 [[nodiscard]] Core::Expected<bool, std::string> DrawTheEffectsOf1a3To1a9(MonsterHelperPass& pass);
 
 // 0x434180, solo en el mapa 34 (0x4303c0): del 0x1ab al 0x1b5 sus sonidos y los sprites del 0x1af, el 0x1b1 y el
-// 0x1b2; del 0x204 al 0x208, la luz y las partículas 0x729 y las marcas 0x69b del piso. Devuelve true con el 0x1ad, del
-// 0x1af al 0x1b4, que cortan la cadena de 0x510a1e.
+// 0x1b2; del 0x204 al 0x208, la luz y las partículas 0x729 (CL11) y las marcas 0x69b del piso: la primera con el color
+// de los bits 0x100000, 0x20000, 0x10000 u 0x80000 de +0x7c; la segunda y la primera sin esos bits leen la pila sin
+// escribir y cortan (Q-C1100). Devuelve true con el 0x1ad, del 0x1af al 0x1b4, que cortan la cadena de 0x510a1e.
 [[nodiscard]] Core::Expected<bool, std::string> DrawTheCrywolfEffectsOf1abTo208(MonsterHelperPass& pass);
 
 // 0x4271d0(c, objeto), del 0x1b6 al 0x1bb (la tabla de 0x428dd4): los sprites 0x5ad de Monster100 a Monster105, sus

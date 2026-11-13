@@ -2,9 +2,12 @@
 
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
+#include "Data/Terrain/TerrainHeights.h"
+#include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorState.h"
@@ -13,12 +16,14 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/Sprites.h"
+#include "World/TerrainDecal.h"
 #include "support/PlayerActors.h"
 
 #include <gtest/gtest.h>
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -422,18 +427,114 @@ TEST_F(MonsterHelpersTest, TheCrywolfMonstersSoundByAction)
     EXPECT_EQ(random.State(), 1u);
 }
 
-// 0x4341d2..0x43436c: del 0x204 al 0x208, con +0x7c & 0x40000 la luz propia y las partículas 0x729; después, con o
-// sin ellas, las marcas del piso.
+// 0x4341d2..0x43436c: del 0x204 al 0x208, con +0x7c & 0x40000 la luz propia y las partículas 0x729 (CL11); sin
+// los bits del color, la primera marca lee la pila (Q-C1100).
 TEST_F(MonsterHelpersTest, TheCrywolfAltarsWriteTheirLightBeforeTheirCut)
 {
     ActorState& actor = Monster(0x206, 0);
     actor.flags7c = 0x40000;
     CrtRandom random(1);
+    auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    Client::Render::ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
     MonsterHelperPass pass = Pass(Crywolf, random);
+    pass.batch = &batch;
+    pass.heights = heights.get();
     EXPECT_TRUE(CutAt(Client::Scenes::DrawTheMonsterHelpers(pass), "0x434281"));
     EXPECT_EQ(actor.light, glm::vec3(0.09f, 0.09f, 0.04f));
     actor.flags7c = 0;
     EXPECT_TRUE(CutAt(Client::Scenes::DrawTheMonsterHelpers(pass), "0x43436c"));
+    EXPECT_TRUE(batch.Vertices().empty());
+    // Sin el lote o las alturas, corta en la llamada.
+    actor.flags7c = 0x100000;
+    pass.heights = nullptr;
+    EXPECT_TRUE(CutAt(Client::Scenes::DrawTheMonsterHelpers(pass), "0x43436c"));
+    EXPECT_EQ(random.State(), 1u);
+}
+
+// 0x4342a2..0x43439a: con 0x100000 o 0x20000 la primera marca 0x69b de 2,8 con (b; 0,1; 0,1) al doble y el giro
+// g = sin(T · 0,002f) · 0,04f + 0,2f; con 0x10000 u 0x80000, (0,15; 0,15; b) al doble y el giro T · 0,01f. La segunda
+// corta en su llamada: su giro ([ebp−0x1c]) solo lo escribe la rama de 0x40000.
+TEST_F(MonsterHelpersTest, TheCrywolfAltarsDrawTheirFirstFloorMarkAndCutAtTheSecond)
+{
+    struct Case
+    {
+        std::uint32_t flags;
+        bool pale;
+    };
+    constexpr std::array cases{Case{0x100000, false}, Case{0x20000, false}, Case{0x10000, true}, Case{0x80000, true},
+                               Case{0x100000 | 0x80000, true}};
+    constexpr float Clock = 1000.0f;
+    const double wave = std::sin(static_cast<double>(Clock) * static_cast<double>(0.002f));
+    const auto b = static_cast<float>(wave * static_cast<double>(0.1f) + static_cast<double>(0.28f));
+    const auto g = static_cast<float>(wave * static_cast<double>(0.04f) + static_cast<double>(0.2f));
+    for (const Case& value : cases)
+    {
+        SCOPED_TRACE(value.flags);
+        ActorState& actor = Monster(0x204, 0);
+        actor.position = {12850.0f, 12850.0f, 10.0f};
+        actor.flags7c = value.flags;
+        CrtRandom random(1);
+        auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+        Client::Render::ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        MonsterHelperPass pass = Pass(Crywolf, random);
+        pass.worldClock = Clock;
+        pass.batch = &batch;
+        pass.heights = heights.get();
+
+        EXPECT_TRUE(CutAt(Client::Scenes::DrawTheMonsterHelpers(pass), "0x43439a"));
+
+        const glm::vec3 light = value.pale ? glm::vec3{0.15f, 0.15f, b} : glm::vec3{b, 0.1f, 0.1f};
+        const Client::World::TerrainDecal expected{.slot = 0x69b,
+                                                   .x = 12850.0f,
+                                                   .y = 12850.0f,
+                                                   .width = 2.8f,
+                                                   .height = 2.8f,
+                                                   .color = light + light,
+                                                   .angle = value.pale ? Clock * 0.01f : g,
+                                                   .alpha = 1.0f,
+                                                   .lift = 5.0f};
+        Client::Render::ModelBatch reference;
+        reference.Begin(Client::Render::Pass3D{});
+        ASSERT_TRUE(Client::World::DrawTerrainDecal(reference, *heights, expected).HasValue());
+        ASSERT_EQ(batch.Vertices().size(), reference.Vertices().size());
+        ASSERT_FALSE(batch.Vertices().empty());
+        for (std::size_t vertex = 0; vertex < batch.Vertices().size(); vertex += 7)
+        {
+            EXPECT_EQ(batch.Vertices()[vertex].position, reference.Vertices()[vertex].position) << vertex;
+            EXPECT_FLOAT_EQ(batch.Vertices()[vertex].uv.x, reference.Vertices()[vertex].uv.x) << vertex;
+            EXPECT_FLOAT_EQ(batch.Vertices()[vertex].color.red, reference.Vertices()[vertex].color.red) << vertex;
+            EXPECT_FLOAT_EQ(batch.Vertices()[vertex].color.blue, reference.Vertices()[vertex].color.blue) << vertex;
+        }
+        const auto& command = batch.Commands().back();
+        EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Additive);
+        ASSERT_TRUE(command.state.texture.has_value());
+        EXPECT_EQ(command.state.texture->value, 0x69b);
+        EXPECT_EQ(random.State(), 1u);
+    }
+}
+
+// Fuera de Crywolf (0x4303c0 da 0), 0x434180 no mira el tipo: en Lorencia y Devias el 0x204 no dibuja nada.
+TEST_F(MonsterHelpersTest, OutsideCrywolfTheAltarsDrawNothing)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        ActorState& actor = Monster(0x204, 0);
+        actor.flags7c = 0x100000;
+        CrtRandom random(1);
+        auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+        Client::Render::ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        MonsterHelperPass pass = Pass(map, random);
+        pass.batch = &batch;
+        pass.heights = heights.get();
+        const auto drawn = Client::Scenes::DrawTheMonsterHelpers(pass);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_TRUE(batch.Vertices().empty());
+        EXPECT_EQ(random.State(), 1u);
+    }
 }
 
 // 0x434602..0x434a70: el 0x1af suena y después saca rand() % 14, rand() % 360 y rand() % 2 para sus siete sprites.

@@ -10251,6 +10251,15 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
      salvo 18 tipos secos, el agua: el color en `sin(T · 0,002f) · 0,1f + 0,3f` (un `FST` a los tres) y
      `RenderBody(2)` con alpha 0,3 y la textura `0x41 + 0x7d2d360`;
    - `0x42cc10` en el 30: el `0x33` de la trampa por su caso del asedio (`DrawCastleSiegeBody`);
+   - `0x428df0` (desde `0x425d90`, en todos los mapas; `0x425070` mira el 33 y el 54 sin usar lo que da): el `0x1bb`
+     (la malla 0 con 1 y con (1, 0, 0) y `0x46`, con `model+0x88` en 0; la 1 con 1; la 2 con `model+0x88` en 1, con 1 y
+     con (0,5; 0; 0) y `0x46`), el `0x1b8` (con 0,9, las mallas 0 a 2; con `model+0x88` en 0, la 3 con la U y la V en
+     `(−ftol(T) % 10.000) · 0,0006f` y con `0x46`) y el `0x1b7` (con 0,9 y `model+0x88` en 0, la malla 0 con la U y la V
+     en `(−ftol(T) % 10.000) · 0,0003f` y con `0x46`; con `0xff`, la 1);
+   - `0x4339d0` (desde `0x4306a0`, en el 34, por su tabla `0x434138`/`0x43410c`): el `0x1b0` (con 1) y el `0x1ad`
+     (con el color que trae) sin la malla 5; el `0x1ab` con 1, cada malla con 2 y con `0x240` y `0x6b1`; el `0x1b4` y el
+     `0x1b1` sin el especial sin la malla 5, y con él en (0,5; 0,5; 0,6) o (0,5; 0,5; 0,8) cada malla con 2 y con `0x44` y
+     Chrome01; el `0x17c`, el `0x17d`, el `0x17e` y el `0x171` en (0,6; 0,8; 0,6), igual;
    - después de la cadena: el `0x17f` con el especial (las mallas 0 a 2 con 2 y con `0x44` y Chrome01); el `0x17c` con el
      subtipo 1 (la luz en `sin(T · 0,002f) · 0,01f + 1`, un float; la malla 0 con `0x6f6` y blendMesh 0, la 1 con `0x6f5`
      y la 2 dos veces, con blendMesh 1, todas `0x42`); el `0x190` (el común y la malla 2 con blendMesh 2 y luz 1); el
@@ -10269,8 +10278,9 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    (`0x4ee770`, CL11, después de `+0x0` en 0 si muere y del sonido `0x87`), la clase de los bordes del `0x183`
    (`0x6011f1`, después de la malla 0), la onda (`0x400`, `0x4ed775`) del `0x185` después de su cuerpo, y los helpers
    de la cadena con tipos de monstruo: `0x43ed20` (del `0x191` al `0x197`), `0x42e3d0` (el `0x19b`, el `0x19c`, el
-   `0x1a8`, el `0x1f8` y el `0x1ff` en el 30), `0x442e10` (del `0x1a3` al `0x1a7` y el `0x1a9`, desde `0x4403b0`),
-   `0x428df0` (el `0x1b7`, el `0x1b8` y el `0x1bb`, desde `0x425d90`) y `0x4339d0` (en el 34, desde `0x4306a0`).
+   `0x1a8`, el `0x1f8` y el `0x1ff` en el 30), `0x442e10` (del `0x1a3` al `0x1a7` y el `0x1a9`, desde `0x4403b0`) y el
+   `0x1af` del 34 (`0x433b2f`: el acumulador `0x723c14`, el alpha guardado en 0,3 en la malla 2, `+0x64` en −2 y la U
+   guardada en `+0x6c`, que `ActorState` no tiene).
 3. **La sombra** (`0x50bd89..0x50bf3e`): sin `+0x88` en 8, sin los `+0x376` `0x19`, `0x16`, `0x2a`, `0xf2`, `0x3b`,
    `0x3f` y `0x98`, fuera del mapa 10 y con el alpha desde 0,3f. En Blood Castle, con `+0x1a1` y muriéndose (`+0x389`),
    la z baja a la del terreno (`0x5f93c0`) si es menor. El `0xe8` y el `0xe9` ponen `+0x58` en 2. Salvo el `0x18e`,

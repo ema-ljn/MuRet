@@ -363,6 +363,7 @@ byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada v
         y Chaos Castle (texto 1150); `/GuildWar` y `/BattleSoccer` solo los usa el filtro de las macros (`0x56c1f0`).
   - [x] Fase 2 (2026-11-13): lo que busca al otro en `/trade`, `/duelstart` y `/party` (`0x56c68b` y vecinas,
         `Scenes::SocialRequests`).
+  - [x] Fase 2 (2026-11-13): el cartel del elegido en el dibujo de los comandos (`0x40aa80..0x40abd8`).
   - [ ] Fase 2: la ventana de comandos sobre el elegido (`0x406097`); `/guild`, `/union` y `/rival` son del hito 8.
 
 **Pruebas:** una vuelta entera de comercio con otro jugador (pedido, ítems, zen, OK) byte a byte; abrir una

@@ -5,10 +5,12 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
+#include "Scenes/ChatBubbles.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GameWindowDrawing.h"
+#include "Scenes/SocialRequests.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"
@@ -38,6 +40,19 @@ constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
 constexpr Color Black{0.0f, 0.0f, 0.0f, 1.0f};
 // glColor3f(0,5; 0,5; 0,5): el botón del elegido (0x40a726) y el nombre con el clic (0x40a967).
 constexpr Color Gray{0.5f, 0.5f, 0.5f, 1.0f};
+// 0x40ab9a: el nombre junto al mouse sin el comando listo para él.
+constexpr Color NotReady{1.0f, 0.2f, 0.2f, 1.0f};
+// 0x40aad6..0x40ab19: Interface\CursorID_Wnd.jpg (0x65b) de 128 × 32 en el mouse + 5 (0x6b87f8).
+constexpr std::uint16_t NameCardSlot = 0x65b;
+constexpr double NameCardOffset = 5.0;
+constexpr float NameCardWidth = 128.0f;
+constexpr float NameCardHeight = 32.0f;
+// 0x40ab2e..0x40ab6b y 0x40abab..0x40abd3: los colores y los lugares de los dos nombres.
+constexpr std::uint32_t ChosenNameColor = 0xff67bfdfu;
+constexpr std::uint32_t NameCardBack = 0x00141414u;
+constexpr std::int32_t ChosenNameTop = 0x2d;
+constexpr std::int32_t NameNextToMouseX = 0x45;
+constexpr std::int32_t NameNextToMouseY = 0xc;
 // glColor3f(1; 0,8; 0,2): el nombre del elegido o con el mouse encima, sin el clic (0x40a978).
 constexpr Color Highlight{1.0f, 0.8f, 0.2f, 1.0f};
 // 0x491960(0, 1): glColor4ub(0x92, 0x86, 0x79, 0xff), el marco de la casilla (0x4630a5).
@@ -128,6 +143,12 @@ Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& conte
 std::int32_t Truncate(double value)
 {
     return World::OriginalFtolLow(value).value_or(0);
+}
+
+// FSTP float: la suma de la x87 guardada en la pila como float.
+float F32(double value)
+{
+    return static_cast<float>(value);
 }
 
 // 0x40a4ad y 0x40a705: fild de la esquina, fadd de 95 y fsub de 50.
@@ -338,11 +359,37 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
 
     sprites.SetColor(White);
     WindowDrawing::SelectFont(context, FontKind::BigBold);
-    // 0x40aa80..0x40abd8: con un personaje elegido, su nombre en un cartel (Interface\CursorID_Wnd.jpg, 0x65b) junto
-    // al mouse, en celeste con el comando listo o gris si no.
-    if (runtime.selectedTargets[2] >= 0)
-        return Core::Unexpected(
-            std::string("0x40aa8d: el nombre del personaje elegido junto al mouse (0x65b) es de la CL9.4"));
+    // 0x40aa80..0x40abd8 (CL9 hito 7, fase 2): con un personaje elegido (0x6c8e30) que es un jugador (+0x88 en 1), no
+    // el héroe publicado y del tipo 0x20a o con +0x3e3, el cartel (Interface\CursorID_Wnd.jpg, 0x65b) de 128 × 32 en
+    // el mouse + 5, la mezcla normal y su nombre (+0x1d9) en la caja del título en (x + 0x23, y + 0x2d), en
+    // 0xff67bfdf sobre 0x141414; y otra vez centrado en (mouse x + 0x45, mouse y + 0xc), en blanco sobre 0x141414,
+    // con glColor blanco si el comando elegido es para él (+8) y está listo, o (1; 0,2; 0,2).
+    if (const std::int32_t chosen = runtime.selectedTargets[2]; chosen >= 0)
+    {
+        if (static_cast<std::size_t>(chosen) >= context.world.Actors().size())
+            return Core::Unexpected(std::format("0x40aa8d: el elegido {} lee fuera de los personajes", chosen));
+        if (CanBeAsked(context.world, static_cast<std::size_t>(chosen)))
+        {
+            WindowDrawing::Quad(sprites, NameCardSlot, F32(static_cast<double>(mouse.x) + NameCardOffset),
+                                F32(static_cast<double>(mouse.y) + NameCardOffset), NameCardWidth, NameCardHeight, 1.0f,
+                                1.0f);
+            sprites.SetBlend(BlendMode::Alpha);
+            const std::string name = ChatNameOf(context.world.Actors()[static_cast<std::size_t>(chosen)]);
+            hud.textColors = Render::Text::TextColors{.text = ChosenNameColor, .background = NameCardBack};
+            WindowDrawing::DrawTitle(context, x + TitleLeft, y + ChosenNameTop, name);
+            bool ready = false;
+            if (window.target == chosen && window.chosen != -1)
+            {
+                if (window.chosen < 0 || window.chosen >= static_cast<std::int32_t>(UI::CommandCount))
+                    return Core::Unexpected(
+                        std::format("0x40ab87: el comando {} lee fuera de los doce estados", window.chosen));
+                ready = window.states[static_cast<std::size_t>(window.chosen)] == UI::CommandReady;
+            }
+            sprites.SetColor(ready ? White : NotReady);
+            hud.textColors = Render::Text::TextColors{.text = 0xffffffffu, .background = NameCardBack};
+            WindowDrawing::DrawCenteredText(context, mouse.x + NameNextToMouseX, mouse.y + NameNextToMouseY, name);
+        }
+    }
     std::size_t notice = 0;
     if (window.chosen != -1)
     {

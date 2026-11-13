@@ -527,18 +527,114 @@ TEST_P(GameCommandsWindowTest, TheCloseHelpIsTheTextWithoutAFormat)
     }
 }
 
-// 0x40aa80..0x40abe5: un personaje elegido (0x6c8e30) lleva su nombre junto al mouse, de la CL9.4; un comando fuera
-// de los doce lee fuera del objeto.
-TEST_P(GameCommandsWindowTest, TheChosenCharacterAndAStrayCommandCut)
+// 0x40aa80..0x40abd8: un jugador elegido (0x6c8e30, +0x88 en 1, no el héroe, del tipo 0x20a o con +0x3e3) lleva el
+// cartel 0x65b de 128 × 32 en el mouse + 5 y su nombre dos veces: en la caja del título (x + 0x23, y + 0x2d) en
+// 0xff67bfdf y centrado en (mouse x + 0x45, mouse y + 0xc) en blanco, los dos sobre 0x141414 y con la fuente grande.
+// El glColor del segundo es blanco si el comando elegido es para él (+8) y está listo, y (1; 0,2; 0,2) si no. No saca
+// rand().
+TEST_P(GameCommandsWindowTest, TheChosenPlayerGoesNextToTheMouse)
+{
+    constexpr std::size_t Chosen = 5;
+    constexpr std::int32_t MouseX = 200;
+    constexpr std::int32_t MouseY = 150;
+    constexpr Color NotReady{1.0f, 0.2f, 0.2f, 1.0f};
+    Client::Scenes::ActorState& player = m_world->Actors()[Chosen];
+    player.byte88 = 1;
+    player.type = 0x20a;
+    constexpr std::string_view Name = "Brezal";
+    for (std::size_t letter = 0; letter < Name.size(); ++letter)
+        player.name[letter] = static_cast<std::byte>(Name[letter]);
+    Runtime().panels.delegated.commands = 1;
+    Runtime().selectedTargets[2] = static_cast<std::int32_t>(Chosen);
+
+    ASSERT_TRUE(Redraw(MouseX, MouseY).HasValue());
+    std::vector<DrawnQuad> quads = QuadsOf(m_sprites);
+    ASSERT_EQ(quads.size(), FirstNameQuad + 11 * QuadsPerName + 3);
+    const DrawnQuad& card = quads[FirstNameQuad + 11 * QuadsPerName];
+    ExpectQuadAt(card, 0x65b, MouseX + 5.0f, MouseY + 5.0f, 128.0f, 32.0f);
+    EXPECT_FLOAT_EQ(card.third.u, 1.0f);
+    EXPECT_EQ(card.color, White);
+    EXPECT_EQ(quads[quads.size() - 2].color, White);
+    EXPECT_EQ(quads.back().color, NotReady);
+    EXPECT_EQ(quads.back().blend, BlendMode::Alpha);
+    ASSERT_EQ(m_text.texts.size(), 14U);
+    const auto& title = m_text.texts[12];
+    EXPECT_EQ(title.text, Name);
+    EXPECT_EQ(title.x, Left + 0x23);
+    EXPECT_EQ(title.y, 0x2d);
+    EXPECT_TRUE(title.windowed);
+    EXPECT_EQ(title.columns, 120);
+    EXPECT_EQ(title.style.font, FontKind::BigBold);
+    EXPECT_EQ(title.style.colors.text, 0xff67bfdfu);
+    EXPECT_EQ(title.style.colors.background, 0x00141414u);
+    const auto& nextToTheMouse = m_text.texts[13];
+    EXPECT_EQ(nextToTheMouse.text, Name);
+    EXPECT_EQ(nextToTheMouse.x, MouseX + 0x45 - 18);
+    EXPECT_EQ(nextToTheMouse.y, MouseY + 0xc);
+    EXPECT_EQ(nextToTheMouse.style.font, FontKind::BigBold);
+    EXPECT_EQ(nextToTheMouse.style.colors.text, 0xffffffffu);
+    EXPECT_EQ(nextToTheMouse.style.colors.background, 0x00141414u);
+
+    // El comando 3 para él y listo: blanco. Con el estado en 0 (y su aviso) o para otro, rojo.
+    Window().chosen = 3;
+    Window().target = static_cast<std::int32_t>(Chosen);
+    ASSERT_TRUE(Redraw(MouseX, MouseY).HasValue());
+    EXPECT_EQ(QuadsOf(m_sprites).back().color, White);
+    Window().states[3] = 0;
+    ASSERT_TRUE(Redraw(MouseX, MouseY).HasValue());
+    quads = QuadsOf(m_sprites);
+    ASSERT_EQ(m_text.texts.size(), 15U);
+    EXPECT_EQ(quads[quads.size() - 2].color, NotReady);
+    Window().states[3] = 1;
+    Window().target = 4;
+    ASSERT_TRUE(Redraw(MouseX, MouseY).HasValue());
+    EXPECT_EQ(QuadsOf(m_sprites).back().color, NotReady);
+
+    // Otro tipo con +0x3e3 también; sin +0x3e3, un monstruo o el héroe, nada.
+    Window().chosen = -1;
+    player.type = 0x10;
+    player.byte3e3 = 1;
+    ASSERT_TRUE(Redraw(MouseX, MouseY).HasValue());
+    EXPECT_EQ(m_text.texts.size(), 14U);
+    for (const auto& [type, kind, chosen] : {std::tuple{std::uint16_t{0x10}, std::uint8_t{1}, Chosen},
+                                             std::tuple{std::uint16_t{0x20a}, std::uint8_t{2}, Chosen},
+                                             std::tuple{std::uint16_t{0x20a}, std::uint8_t{1}, Runtime().hero}})
+    {
+        SCOPED_TRACE(testing::Message() << type << ", " << int{kind} << ", " << chosen);
+        player.type = type;
+        player.byte3e3 = 0;
+        player.byte88 = kind;
+        Client::Scenes::ActorState& actor = m_world->Actors()[chosen];
+        actor.type = type;
+        actor.byte88 = kind;
+        Runtime().selectedTargets[2] = static_cast<std::int32_t>(chosen);
+        ASSERT_TRUE(Redraw(MouseX, MouseY).HasValue());
+        EXPECT_EQ(m_text.texts.size(), 12U);
+        EXPECT_EQ(QuadsOf(m_sprites).size(), FirstNameQuad + 11 * QuadsPerName);
+    }
+    EXPECT_EQ(m_random.State(), Seed);
+}
+
+// 0x40aa8d, 0x40ab87 y 0x40abe5: un elegido fuera de los 400 o un comando fuera de los doce leen fuera de su tabla.
+TEST_P(GameCommandsWindowTest, AStrayChosenOrCommandCuts)
 {
     Runtime().panels.delegated.commands = 1;
-    Runtime().selectedTargets[2] = 0;
-    const auto named = Redraw(0, 0);
-    ASSERT_FALSE(named.HasValue());
-    EXPECT_NE(named.Error().find("0x40aa8d"), std::string::npos) << named.Error();
+    Runtime().selectedTargets[2] = static_cast<std::int32_t>(m_world->Actors().size());
+    const auto outside = Redraw(0, 0);
+    ASSERT_FALSE(outside.HasValue());
+    EXPECT_NE(outside.Error().find("0x40aa8d"), std::string::npos) << outside.Error();
+
+    Client::Scenes::ActorState& player = m_world->Actors()[5];
+    player.byte88 = 1;
+    player.type = 0x20a;
+    Runtime().selectedTargets[2] = 5;
+    Window().target = 5;
+    Window().chosen = 12;
+    const auto strayForHim = Redraw(0, 0);
+    ASSERT_FALSE(strayForHim.HasValue());
+    EXPECT_NE(strayForHim.Error().find("0x40ab87"), std::string::npos) << strayForHim.Error();
 
     Runtime().selectedTargets[2] = -1;
-    Window().chosen = 12;
     const auto stray = Redraw(0, 0);
     ASSERT_FALSE(stray.HasValue());
     EXPECT_NE(stray.Error().find("0x40abe5"), std::string::npos) << stray.Error();

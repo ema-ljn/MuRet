@@ -1343,8 +1343,13 @@ con la normal y el blanco o, el elegido y el que tiene el mouse encima (estricta
 negrita y `(1; 0,8; 0,2)`, o `(0,5; 0,5; 0,5)` con el clic; y su casilla (`0x463090` en `(_ftol(x) − 0x14, _ftol(y) +
 8)`: sin mezcla, el marco `0x92 0x86 0x79` de 9 × 9 con cuatro `0x621aa0`, el blanco, la textura, la mezcla normal y,
 el elegido, la marca: `Interface\win_check.tga`, `0x64a`, de 5 × 5 en `(x + 2, y + 2)` con uv 0,625). Al final, el
-blanco, la fuente grande (`0x576355c`), con un personaje elegido su nombre en un cartel junto al mouse
-(`Interface\CursorID_Wnd.jpg`, `0x65b`; `0x40aa8d`, CL9.4), el negro y el aviso del elegido según su estado: con 0,
+blanco, la fuente grande (`0x576355c`) y, con un personaje elegido (`0x6c8e30`) que es un jugador (`+0x88` en 1), no
+es el héroe y es del tipo `0x20a` o tiene `+0x3e3` (`0x40aa80..0x40aad0`; *estático*, portado en la CL9 hito 7,
+fase 2), su cartel: `Interface\CursorID_Wnd.jpg` (`0x65b`) de 128 × 32 en el mouse + 5 (`0x6b87f8`, sumado en la
+x87 y guardado en float), `0x620a00(1)`, su nombre (`+0x1d9`) como título en `(x + 0x23, y + 0x2d)` en
+`0xff67bfdf` sobre `0x141414` y otra vez centrado (`0x623690`) en `(mouse x + 0x45, mouse y + 0xc)` en blanco sobre
+`0x141414`, con `glColor3f(1, 1, 1)` si el comando elegido es para él (`+8`) y su estado es 1 o `(1; 0,2; 0,2)` si
+no; después, el negro y el aviso del elegido según su estado: con 0,
 el 255 del 5, el 1313 del 6, el 937 del 10 y el 257 del 3; con `0xff`, el 507; con `0xfe`, el 1320; en negrita,
 `0x6c8e64 = 0`, centrado en `(x + 0x5f, y + 0x44)`. Termina con el blanco y `0x620980`.
 

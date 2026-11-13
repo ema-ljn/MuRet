@@ -5,6 +5,16 @@
 // Globales durables de MoveHero y 1C: research06, Caminar y Los cambios de mapa.
 namespace Client::Scenes
 {
+// 0x7758580, 0x7758584 y 0x7758588 (.bss 0): lo que 0x57cfc0 deja antes de la skill del arma de cada mano (0x57d5ed..
+// 0x57d61b): 1, el lugar de la skill del héroe (+0x425) y el elegido (0x6c8e30) si 0x558bb0 dice que se ataca, o −1.
+// Sin línea de vista, 0, 0 y −1 (0x57d760). Los leen 0x559890, 0x559510 y las cuatro funciones por clase (CL9 hito 4).
+struct WeaponSkillRequest
+{
+    std::uint32_t active = 0;
+    std::uint32_t slot = 0;
+    std::int32_t target = 0;
+};
+
 struct GameMovementState
 {
     std::int32_t mouseUpdateTime = 0;
@@ -43,5 +53,9 @@ struct GameMovementState
     std::int32_t attackTarget = -1;
     // 0x576791c (.bss 0): el GetTickCount del último envío que pasó el freno de 300 ms (PassesTheActionBrake).
     std::uint32_t lastActionTick = 0;
+    // 0x6c8e50 (.data −1): el personaje hacia el que camina MoveHero (0x59b94b, sin portar). Lo ponen en −1 0x57cfc0 al
+    // usar una skill (0x57d294), el clic (0x59b8f3, 0x59b972) y otros paquetes (0x4d6977, 0x4e415e), sin portar.
+    std::int32_t followTarget = -1;
+    WeaponSkillRequest weaponSkill{};
 };
 } // namespace Client::Scenes

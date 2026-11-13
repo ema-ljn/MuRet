@@ -4,7 +4,6 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainMapping.h"
-#include "Data/Tables/SkillTable.h"
 #include "GameLogic/Path.h"
 #include "GameLogic/PathCell.h"
 #include "GameLogic/PathFinder.h"
@@ -25,6 +24,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/HeroAttack.h"
+#include "Scenes/HeroSkills.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/WorldMap.h"
 #include "World/OriginalFtol.h"
@@ -63,7 +63,6 @@ constexpr std::array<UI::PanelId, 9> PanelsClosedByWalking{
     UI::Panel2000,  UI::NpcShopPanel,   UI::CastleSiegePanel, UI::EventNpcPanel};
 constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a});
 constexpr float MinimumWalkingAlpha = 0.7f;
-constexpr float TeleportFade = 0.1f;
 constexpr float HoldSecondsPerMillisecond = 0.001f;
 constexpr double MaximumHoldSeconds = 3600.0;
 
@@ -545,49 +544,6 @@ Core::Expected<void, std::string> NameTheChosen(WorldState& world)
     return {};
 }
 
-Core::Expected<void, std::string> CloseTheHeroActionPrefix(ActorState& hero, const HeroMovementContext& context)
-{
-    WorldRuntime& runtime = context.world.Runtime();
-    // 0x57cfe2..0x57cff9.
-    if (runtime.movement.inputBlocked || runtime.ui.mouseOnUi != 0)
-        return {};
-    if (hero.byte80 == 1)
-    {
-        // 57d02b..57d04a: fsts conserva el resultado extendido para la comparación.
-        const double faded = static_cast<double>(hero.alpha) - static_cast<double>(TeleportFade);
-        hero.alpha = static_cast<float>(faded);
-        if (faded < TeleportFade)
-            hero.byte80 = 2;
-    }
-    std::uint8_t skill = 0;
-    {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
-        const auto index = static_cast<std::size_t>(hero.skillIndex);
-        const auto& words = context.world.OwnCharacter().words6c;
-        if (index >= sizeof(words))
-            return Core::Unexpected(std::string("0x57d0d5: el índice de habilidad excede los bytes acreditados"));
-        skill = static_cast<std::uint8_t>((words[index / 4] >> ((index % 4) * 8)) & 0xffu);
-    }
-    if (!context.skills)
-        return Core::Unexpected(std::string("0x5526f0: falta Skill.bmd"));
-    const auto record = context.skills->Record(skill);
-    if (!record)
-        return Core::Unexpected(std::string("0x5526f0: falta el registro de habilidad"));
-    {
-        const Render::Models::LogicalAccess access(runtime.movement.skillDepths[skill], context.random,
-                                                   static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
-        runtime.movement.selectedSkillRange = static_cast<float>(std::to_integer<std::uint8_t>((*record)[0x26]));
-    }
-    if (hero.pet.model == 0x1c16)
-        runtime.movement.selectedSkillRange += 2.0f;
-    // 57d261..57d271: el bloqueo no evita leer Skill.bmd, pero sin clic conserva el reloj.
-    if (runtime.movement.movementBlocked && !runtime.movement.pendingClick && !runtime.movement.leftHeld)
-        return {};
-    runtime.movement.actionInputTime = context.input.worldTime;
-    runtime.movement.actionInputElapsed = 0.0f;
-    return {};
-}
 } // namespace
 Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& context)
 {
@@ -652,8 +608,16 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
     // 0x59d666: sin flechas o virotes (0x561c50 en 0), MoveHero sale (0x59e2c0) sin la suma, 0x57cfc0 ni la capa.
     if (input.Value() == MoveHeroEnd::Leave)
         return {};
-    if (const auto closed = CloseTheHeroActionPrefix(hero, context); !closed.HasValue())
-        return closed;
+    // 0x59e255: 0x57cfc0, usar la skill (CL9 hito 4).
+    if (auto used = UseTheHeroSkill(hero, HeroSkillContext{.world = context.world,
+                                                           .random = context.random,
+                                                           .skills = context.skills,
+                                                           .worldTime = context.input.worldTime,
+                                                           .controlDown = context.input.controlDown,
+                                                           .pickTerrainPoint = context.pickTerrainPoint,
+                                                           .send = context.sendSkill});
+        !used.HasValue())
+        return used;
     PublishHeroLayer(hero, runtime, context.world.Map().terrain);
     return {};
 }

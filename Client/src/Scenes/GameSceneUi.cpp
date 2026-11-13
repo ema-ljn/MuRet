@@ -56,13 +56,18 @@ namespace Client::Scenes
 {
 namespace
 {
-// El WndProc: WM_RBUTTONDOWN prende 0x7d36880 (con 0x7d3685c en 0, que el apretón siempre ve así: lo apagó el
-// WM_RBUTTONUP de antes) y 0x7d3685c, y WM_RBUTTONUP apaga los dos. MuRet ve los mensajes del paso juntos: apretado y
-// soltado en el mismo paso, quedan apagados, como después de los dos.
+// El WndProc: WM_RBUTTONDOWN apaga 0x7d36840 y prende 0x7d36880 (con 0x7d3685c en 0, que el apretón siempre ve así:
+// lo apagó el WM_RBUTTONUP de antes) y 0x7d3685c, y WM_RBUTTONUP apaga los dos y, si 0x7d3685c estaba prendido, prende
+// 0x7d36840. MuRet ve los mensajes del paso juntos: apretado y soltado en el mismo paso, quedan apagados y el soltado
+// prendido, como después de los dos.
 void LatchTheRightButton(UI::GameUiState& ui, const Input::InputState& input)
 {
     const bool down = input.IsDown(Input::MouseButton::Right);
     const bool pressed = input.WasPressed(Input::MouseButton::Right);
+    if (pressed)
+        ui.rightReleased = false;
+    if (!down && (ui.rightDown || pressed))
+        ui.rightReleased = true;
     ui.rightClick = down && (ui.rightClick || pressed);
     ui.rightDown = down && (ui.rightDown || pressed);
 }

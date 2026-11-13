@@ -10181,7 +10181,71 @@ elige, con el ataque automático fuera de los mapas 6 y 18 a 23 y la skill del h
 `Scenes/SkillDelays` y la lista y los números en `Scenes/GameUi.cpp`; `0x4f4a10` es `Scenes::SetActorAttack` y
 `0x4e6380` `Scenes::ApplyEffectFlags` (los dos con sus `rand()` y sus cortes). `0x552f10` lo llama el comienzo de cada
 frame (`GameScene::Step`, P-C267). Las cuatro funciones por clase que usan una skill (`0x559890`, `0x55b6f0`,
-`0x55cbc0`, `0x55faa0`), y `0x57cfc0`, que las llama, quedan para la fase 2b (08, P-C268).
+`0x55cbc0`, `0x55faa0`), y `0x57cfc0`, que las llama, son de la fase 2b ([Usar una skill](#usar-una-skill); 08,
+P-C268).
+
+### Usar una skill
+
+(CL9 hito 4, fase 2b, 2026-11-13, *estático*.) `0x57cfc0(héroe)` lo llama MoveHero al final del clic (`0x59e255`),
+salvo cuando el clic de ataque sale sin flechas (`0x59d666`, `MoveHeroEnd::Leave`). La cabeza, `0x57cfc0..0x57d787`:
+
+1. Con el modo del editor (`0x77f3b18`), el mouse en la UI (`0x775857c`) o `0x1000` en `+0x78` del héroe, nada, ni
+   `rand()`.
+2. Con `+0x80` en 1, el desvanecido: `+0x174` baja 0,1 (`0x6b87b8`; `fst` y `fcomp` del valor extendido) y, debajo de
+   0,1, `+0x80` pasa a 2.
+3. La skill del lugar `+0x425` del héroe publicado (`+0x6c` del registro propio: 3.848 `rand()` al cerrarlo) y su
+   alcance (`0x5526f0`: `+0x26` de la entrada de Skill.bmd, 60 `rand()`, y 2 más montado en el `0x1c16`) en un local
+   que leen las ramas. El alcance es el de la skill antes de la carga del paso 4.
+4. Con el movimiento trabado (`0x77f3bac`), la usa el clic izquierdo pendiente (`0x7d366d4`, que se gasta) o el botón
+   abajo (`0x7d36874`); sin ellos, nada, y el reloj no se mira. Sin trabar, el derecho: con los frames de la carga
+   (`0x7d368a4`) distintos de 0, el soltado (`0x7d36840`) pone en 0 el soltado, el clic (`0x7d36880`), el botón
+   (`0x7d3685c`) y los frames y la usa; sin el soltado, los frames cuentan uno más. Sin carga, la usan el clic o el
+   botón: con la `0x28` y `+0x80` distinto de 0 y de 3 se va sin gastar el clic; si no, la skill pasa a `0x3a`, los
+   frames a 1 y `+0x1bc` del publicado a 0. El clic se gasta en `0x57d1b1`. El ataque automático (`0x6c8e3c`, fuera del
+   mapa 6 y de 18 a 23) con `0x6c8e38` en 2 y un elegido (`0x6c8e30`) también la usa (`0x57d1d9`). Sin uso, el reloj
+   vuelve a empezar (`0x77f3b4c` = `0x5767b88` y `0x77f3b50` = 0) y se va; con uso, `0x77f3b50` = (`0x5767b88` −
+   `0x77f3b4c`) · 0,001 (`0x6ba128`) y, desde 3.600 (`0x6ba43c`), el clic y el botón en 0 y se va.
+5. `0x6c8e50` en −1. Si el publicado no tiene `0x4000` en `+0x78`, las órdenes del cuervo, `0x420f70(héroe, +0x425)`:
+   con el cuervo (`+0x430`), el clic o el botón (el clic ya se gastó: en la práctica, el botón abajo) y el lugar de
+   `0x78` a `0x7b`; si da 1, se va.
+6. `0x5a5540`: las del asedio (`0x2c`, `0x2d`, `0x2e`, `0x39`, `0x49` y `0x4a`) solo en el mapa 30 con el asedio
+   (`0x4294b0`). Con `+0x31` de la entrada en 2 (`0x5aea30`, `0x4e7c40`: otros 60 `rand()`), pide `0x200` en `+0x78`.
+   Sin uso (no pasa) o con `+0x389`, nada.
+7. En la zona segura (`+0x3e2`), solo en Blood Castle (11 a 17) y Chaos Castle (18 a 23), y con `0x1a`, `0x1b`,
+   `0x1c`, `0x10`, `0x30`, `0x35`, `0x40`, `0x3f`, `0x43` a `0x48` o `0x4b`.
+8. Con el ataque automático (el mismo filtro de mapas), `0x6c8e38`: −1 para el elfo salvo con `0x18`, `0x19`, `0x34`,
+   `0x36` y `0x4c`, para el caballero con `0x30`, para el Dark Lord con `0x40` y `0x3f`, para el Wizard con `0x3a` y
+   `0x28`, y para todos con `0x43` a `0x48` y `0x4b` (el `SBB` de `0x57d445`); si no, 2.
+9. La acción (`+0x111`): un jugador (`0x20a`) sigue con 1 a `0xc`, `0x8a`, `0x44`, `0x48`, `0x4a` y `0x76` a `0x79`;
+   si no, los frames del derecho en 0 (la carga del paso 4 se pierde) y se va. Otro tipo sigue con 0 o 1.
+10. Salvo el Wizard: `0x57ce80` apunta (con el elegido, su posición `+0x10`; sin él, el punto del terreno bajo el mouse,
+    `0x5fc260(1)` y `0x5fac90` en `0x7d366e0..0x7d366e8`, y si no acierta, nada; la celda, el `ftol` de la posición por
+    0,01, en `0x77e1ba8`/`0x77e1bac` y la posición en `+0x3a8`; no mira el −1 del elegido después del primer `CMP`). Las
+    celdas lógicas (`+0x420` y después `+0x41c`, 4 `rand()` cada una) y `0x558800` hasta el blanco. Si no se ve,
+    `0x7758580` y `0x7758584` en 0 y `0x7758588` en −1. Si se ve, por cada mano (`+0xb6c` y `+0xbb4` del registro
+    propio): con la clase 1, 3 o 4 (montado en `0x1c14`, `0x1c15`, `0x1c16` o `0x1c37`, solo con las que deja la tabla
+    `0x599d70`: `0x2b`, `0x2f`, `0x31`, `0x3c` a `0x3e`, `0x41`, `0x4a` y `0x4c`), el registro propio abierto,
+    `0x7758580` en 1 (un byte), `0x7758584` el lugar `+0x425` y `0x7758588` el elegido si `0x558bb0` deja atacarlo (−1
+    si no), y `0x559890`; el elfo, `0x561f60`. Si alguna da 1, el registro se cierra (`0x57df46`) y nada más.
+11. La rama de la clase (`+0x1d4 & 7`): el elfo en `0x57d790`, 1, 3 y 4 en `0x581894`, el Wizard en `0x5897b7` (el
+    Magic Gladiator llega también al terminar el suyo, por `0x5897a7`); las clases 5 a 7, a `0x5808da`, que sigue solo
+    con `0x43` a `0x48`.
+
+**`0x559890(héroe, ítem)`.** Con un jugador en la acción `0x98`, `0x38` a `0x3b` u `0x8d`, u otro tipo en la 3 o la
+4, 0. La skill del lugar `0x7758584` (con el registro abierto). Las de la lista: `0x31`, `0x3c`, `0x3d`, `0x2c`, `0x4a`;
+la `0x2b` de un jugador con un arma derecha (`+0x2b8` del publicado, con signo) que no sea −1 ni de `0xc12` a `0xe11`;
+la `0x2f` montado, de un jugador, con un arma de `0x812` a `0xa11`; la `0x39` con un arma de `0x212` a `0x411`: van a
+`0x559afc` (`0x551c70`, el maná, `0x558110(3)` y lo que manda); fuera de esos rangos, 0. Las demás (y la `0x2f` sin
+montar) recorren las opciones del ítem (`+0x2a`, `+0x2b`...) contra la skill del lugar `+0x425`, con el registro
+abierto; con una igual, `0x55a368` mira el maná y la poción y, si no alcanza, sigue con la siguiente. El resultado es
+`[ebp-0x35]`. `0x561f60` es lo mismo para el elfo, sin la lista.
+
+**MuRet**: `Scenes/HeroSkills` (`UseTheHeroSkill`), desde `StepHeroMovement` con el punto del terreno
+(`GameSceneMovement.cpp`: `World::PickTerrain` y `PickTerrainTarget`, *inferido*) y el envío de la sesión. Los nuevos
+globales: `0x7d36840` y `0x7d368a4` en `UI::GameUiState` (`rightReleased`, `rightHoldFrames`; el soltado lo prende
+`LatchTheRightButton`), `0x6c8e50` y `0x7758580..0x7758588` en `GameMovementState` (`followTarget`, `weaponSkill`).
+Cortan con su dirección (P-C268): las ramas de las clases (`0x57d790`, `0x581894`, `0x5897b7`, `0x5808ef`), lo que
+manda `0x559890` (`0x559afc`, `0x55a368`) y `0x561f60` (`0x562024`) y las órdenes del cuervo (`0x420fcb`).
 
 ### Las órdenes del cuervo
 

@@ -7,7 +7,11 @@
 #include "Data/Text/TextTable.h"
 #include "GameLogic/PathCell.h"
 #include "Protocol/Movement.h"
+#include "Protocol/Outgoing.h"
 #include "Scenes/ActionSend.h"
+
+#include <glm/ext/vector_float3.hpp>
+
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -71,6 +75,10 @@ struct HeroMovementContext
     std::function<void(std::int16_t)> sendTalk{};
     // Text.bmd: el texto del aviso de nivel del NPC 0xee (0x567618, el 0x76edad0). nullptr: ese aviso corta.
     const Data::Text::TextTable* texts = nullptr;
+    // 0x57ceea: el punto del terreno bajo el mouse para una skill sin elegido (0x5fc260(1) y 0x5fac90). Vacío: corta.
+    std::function<Core::Expected<std::optional<glm::vec3>, std::string>()> pickTerrainPoint{};
+    // Lo que manda 0x57cfc0 (las skills, el cuervo y la poción de maná). Vacío, no sale.
+    std::function<void(Protocol::Outgoing)> sendSkill{};
 };
 [[nodiscard]] Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& context);
 } // namespace Client::Scenes

@@ -111,6 +111,13 @@ struct GameUiState
     // 0x7d3685c: el derecho abajo. Lo prende WM_RBUTTONDOWN, lo apaga WM_RBUTTONUP y lo apaga quien lo usa (el
     // registro del chat, 0x45d760).
     bool rightDown = false;
+    // 0x7d36840: el flanco del derecho soltado. Lo apaga WM_RBUTTONDOWN (0x4b3d15), lo prende WM_RBUTTONUP con el
+    // botón abajo (0x4b40ac) y lo apaga 0x57cfc0 cuando suelta la skill que se carga (0x57d13e).
+    bool rightReleased = false;
+    // 0x7d368a4: los frames de la skill que se carga (la 0x28 como 0x3a). 0x57cfc0 lo pone en 1 al empezar (0x57d1a0),
+    // lo sube en cada paso con el derecho abajo y lo vuelve a 0 al soltar o con una acción que no deja usar skills
+    // (0x57d495).
+    std::int32_t rightHoldFrames = 0;
     // 0x6c8e3c (.data 1): el ataque automático. Lo escriben el F3 30 (el bit 0x01, 0x4dd7d7), el menú de Esc
     // (0x625632) y la vuelta a la selección (0x4c2533, en 1). Sus lectores de MuRet: el picking (0x59ee4b), con el
     // elegido de antes (0x6c8e30), y MoveHero (0x59b22f y 0x59b89e) y 0x57cfc0 (0x57d1bc), con 0x6c8e38 distinto de −1,

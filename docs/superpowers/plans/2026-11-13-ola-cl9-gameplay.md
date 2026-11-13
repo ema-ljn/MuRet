@@ -310,8 +310,10 @@ el viewport. **Desbloquea:** 4 y 11.
       3.848 `rand()`; los números `0x59f810`). *Hecho en parte (2026-11-13):* las demoras (`Scenes/SkillDelays`),
       la lista de la barra con sus `rand()`, Ctrl con un número, `0x420e90`, `0x420e30` y `0x59f810`
       (`Scenes/GameUi.cpp`); en la fase 2, `0x4eb620` (`GameScene::Step`, P-C267) y, con los hitos 1 y 3
-      integrados, `0x4f4a10` y `0x4e6380` en lo que llega (`SetActorAttack`, `ApplyEffectFlags`). Las cuatro
-      funciones por clase y `0x57cfc0`, que las llama, quedan para la fase 2b (08, P-C268).
+      integrados, `0x4f4a10` y `0x4e6380` en lo que llega (`SetActorAttack`, `ApplyEffectFlags`). En la fase 2b,
+      la cabeza de `0x57cfc0` (`Scenes/HeroSkills`: el derecho, el ataque automático, el reloj, la zona segura, el
+      blanco `0x57ce80` y el lazo de las manos), desde MoveHero (`0x59e255`). Las ramas de cada clase, lo que mandan
+      las cuatro funciones y `0x420f70` quedan cortados con su dirección (08, P-C268).
 - [x] **Lo que llega:** el `0x19` (`0x4cc530`, 6,5 KB, con las acciones `0x94`, `0x51` y `0x5b` de
       `0x50f828`), el `0x1E` (`0x4ce000`), el `0x1B` (`0x4cbe90`), el `0x07` (los estados de un personaje,
       `GCSend_07` del GS: `0x4cbe00`, con `0x4e6910`), el `0x48`, el `0x69`, el `0x73` (`0x4d5b10`),

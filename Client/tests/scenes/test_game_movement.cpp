@@ -331,7 +331,7 @@ TEST(GameMovementTest, TheRightClickOnTheChosenWritesItsNameAndLeavesTheOldOneIn
 }
 
 // 0x59b092..0x59b0a1: en Chaos Castle el derecho se gasta y nada más; con +0x376 distinto de 0xff (un jugador del 12,
-// 0xffff de 0x511290) ni se gasta.
+// 0xffff de 0x511290) 0x59b036 no lo gasta y lo gasta 0x57cfc0 al final (0x57d1b1), sin el nombre.
 TEST(GameMovementTest, TheRightClickOnTheChosenNeedsItsWordAndAMapOutsideChaosCastle)
 {
     {
@@ -349,12 +349,14 @@ TEST(GameMovementTest, TheRightClickOnTheChosenNeedsItsWordAndAMapOutsideChaosCa
         tested->world.Actors()[5].word376 = 0xffff;
         const auto result = StepHeroMovement(tested->Context());
         ASSERT_TRUE(result.HasValue()) << result.Error();
-        EXPECT_TRUE(tested->world.Runtime().ui.rightClick);
+        EXPECT_FALSE(tested->world.Runtime().ui.rightClick);
         EXPECT_EQ(tested->world.Runtime().chat.input.whisperBuffer[0], 'x');
+        EXPECT_FALSE(tested->world.Runtime().lastSoundId.has_value());
     }
 }
 
-// 0x59afdf..0x59b001: la ventana de la carta (+0xf0) cuenta solo si 0x490a00 la encuentra; sin ella, nada.
+// 0x59afdf..0x59b001: la ventana de la carta (+0xf0) cuenta solo si 0x490a00 la encuentra; sin ella, el nombre no va
+// al susurro y el derecho lo gasta 0x57cfc0 (0x57d1b1).
 TEST(GameMovementTest, ALetterIdWithoutItsWindowDoesNotTakeTheRightClick)
 {
     const auto tested = AHeroRightClickingTheChosen(0);
@@ -362,7 +364,9 @@ TEST(GameMovementTest, ALetterIdWithoutItsWindowDoesNotTakeTheRightClick)
     tested->world.Runtime().oldWindows.letter = 0x77;
     const auto result = StepHeroMovement(tested->Context());
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    EXPECT_TRUE(tested->world.Runtime().ui.rightClick);
+    EXPECT_FALSE(tested->world.Runtime().ui.rightClick);
+    EXPECT_EQ(tested->world.Runtime().chat.input.whisperBuffer[0], 'x');
+    EXPECT_FALSE(tested->world.Runtime().lastSoundId.has_value());
 }
 
 // El clic de ataque (CL9 hito 3): el héroe de MovingHero en (182, 115) y otro jugador elegido en el lugar 5, en

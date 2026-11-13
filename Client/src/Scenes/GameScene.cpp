@@ -31,6 +31,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Input/InputState.h"
+#include "Input/Key.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ModelTextureSlots.h"
@@ -417,7 +418,7 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     if (auto moved = StepTheHero(input); !moved.HasValue())
         return moved;
     // 63710f: personajes sobre el trapecio retenido del último dibujo.
-    if (auto stepped = StepTheCharacters(worldClock); !stepped.HasValue())
+    if (auto stepped = StepTheCharacters(worldClock, input.IsDown(Input::Key::Ctrl)); !stepped.HasValue())
         return stepped;
     if (auto effects = StepTheEffects(worldClock); !effects.HasValue())
         return effects;
@@ -1089,6 +1090,10 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                           .clothWorld = &FrameCloth(),
                           .frameClock = canvas.frameClock,
                           .originalFrames = frames,
+                          // 0x510d00 contornea los elegidos que dejó el picking del dibujo anterior (0x59ec80 corre
+                          // después de los personajes): 0x6c8e30 y 0x6c8e2c.
+                          .hovered = world.Runtime().selectedTargets[2],
+                          .targeted = world.Runtime().selectedTargets[1],
                           .cloths = m_characterCloths,
                           .sprites = &FrameSpritesForDraw(),
                           .poseCarry = &FramePoseCarry(),

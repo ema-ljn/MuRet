@@ -102,10 +102,10 @@ Core::Expected<void, std::string> HitAction(ActorState& actor, const WorldEntryR
 {
     if (!IsPlayer(actor))
     {
-        const std::uint8_t action = actor.hitCount % 3 == 0 ? std::uint8_t{3} : std::uint8_t{4};
+        const std::uint8_t action = actor.attackCount % 3 == 0 ? std::uint8_t{3} : std::uint8_t{4};
         if (auto acted = Act(actor, action, resources); !acted.HasValue())
             return acted;
-        ++actor.hitCount;
+        ++actor.attackCount;
         return {};
     }
     RefreshCombatActionSpeeds(resources);
@@ -385,10 +385,10 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         return ActAndSound(cast, 0x3b, 0x73);
     case 0x17:
     {
-        const std::uint8_t action = source.hitCount % 2 == 0 ? std::uint8_t{0x3c} : std::uint8_t{0x29};
+        const std::uint8_t action = source.attackCount % 2 == 0 ? std::uint8_t{0x3c} : std::uint8_t{0x29};
         if (auto acted = Act(source, action, resources); !acted.HasValue())
             return acted;
-        ++source.hitCount;
+        ++source.attackCount;
         source.byte381 = 1;
         Sound(resources, 0x73);
         return {};
@@ -644,7 +644,7 @@ Core::Expected<void, std::string> ApplyMagicAttack(const MagicAttack& attack, co
         if (!sourceIsHero && attack.skill != 0x6 && attack.skill != 0xf && target.seen)
             source.angles.z = static_cast<float>(Render::Models::CreateAngle(source.position.x, source.position.y,
                                                                              target.position.x, target.position.y));
-        source.skillTarget = static_cast<std::uint16_t>(targetIndex);
+        source.attackTarget = static_cast<std::uint16_t>(targetIndex);
         if (attack.skill == 0x4c)
             source.skillTarget4c = static_cast<std::int32_t>(targetIndex);
         source.skillSucceeded = attack.succeeded ? std::uint8_t{1} : std::uint8_t{0};
@@ -681,7 +681,7 @@ Core::Expected<void, std::string> ApplyDurationMagic(const DurationMagic& magic,
     actor.skillCellY = magic.y;
     actor.skillCellX = magic.x;
     actor.byte381 = 1;
-    actor.skillTarget = 0xffff;
+    actor.attackTarget = 0xffff;
     actor.byte380 = 0;
     return {};
 }
@@ -786,7 +786,7 @@ Core::Expected<void, std::string> ApplySkillTarget(const SkillTarget& target, co
                                                    ActorByteCloseRandoms);
         source.byte42e = target.skill;
     }
-    source.skillTarget = static_cast<std::uint16_t>(targetIndex);
+    source.attackTarget = static_cast<std::uint16_t>(targetIndex);
     // 0x4cc2a9: SAR 0xf del blanco entero; con el bit, 0x5110d0 no lo encontró y ya volvió.
     source.skillSucceeded = (target.target >> 15) != 0 ? std::uint8_t{1} : std::uint8_t{0};
     if (target.skill >= 1 && target.skill <= 0xd)

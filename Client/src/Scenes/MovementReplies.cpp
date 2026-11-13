@@ -12,6 +12,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorWalk.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/DamageNumbers.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldEntry.h"
@@ -31,7 +32,6 @@ constexpr std::size_t SearchActorCount = 400;
 constexpr std::uint16_t JumpingActor = 0x186;
 constexpr std::uint16_t NoRandomShock = 0x113;
 constexpr float CellSize = 100.0f;
-constexpr float DamageHeight = 140.0f;
 constexpr float NormalDamageScale = 15.0f;
 constexpr float HighlightDamageScale = 50.0f;
 constexpr float DuplicateHeight = 10.0f;
@@ -122,24 +122,10 @@ Core::Expected<void, std::string> ApplyJumpingWalk(ActorState& actor, const Worl
     actor.byte399 = 1;
     return {};
 }
-void CreateDamageNumber(WorldState& world, const glm::vec3& position, std::int32_t amount, const glm::vec3& light,
+void CreateRisingDamage(WorldState& world, const glm::vec3& position, std::int32_t amount, const glm::vec3& light,
                         float scale)
 {
-    for (DamageNumberState& number : world.DrawTail().damage)
-    {
-        if (number.alive)
-            continue;
-        number.alive = true;
-        number.number = amount;
-        number.position = position;
-        number.position.z = static_cast<float>(static_cast<double>(position.z) + DamageHeight);
-        number.light = light;
-        number.scale = scale;
-        number.speed = 10.0f;
-        number.timer = 0;
-        number.rise = true;
-        return;
-    }
+    CreateDamageNumber(world, position, amount, light, scale, true);
 }
 void SubtractHeroLife(std::uint16_t amount, const WorldEntryResources& resources)
 {
@@ -173,7 +159,7 @@ void CreateOrdinaryDamage(const Protocol::Movement::Damage& reply, ActorState& a
 {
     if (reply.amount == 0)
     {
-        CreateDamageNumber(resources.world, actor.position, -1, glm::vec3(hero ? 1.0f : 0.5f), NormalDamageScale);
+        CreateRisingDamage(resources.world, actor.position, -1, glm::vec3(hero ? 1.0f : 0.5f), NormalDamageScale);
         return;
     }
     const glm::vec3 light = DamageLight(reply.type, hero);
@@ -184,13 +170,13 @@ void CreateOrdinaryDamage(const Protocol::Movement::Damage& reply, ActorState& a
     {
         const float dim = index == 0 ? FirstDuplicateLight : SecondDuplicateLight;
         const float enlarged = index == 0 ? scale : scale + DuplicateScale;
-        CreateDamageNumber(resources.world, position, reply.amount, light - glm::vec3(dim), enlarged);
+        CreateRisingDamage(resources.world, position, reply.amount, light - glm::vec3(dim), enlarged);
         position.z = static_cast<float>(static_cast<double>(position.z) + DuplicateHeight);
     }
     // 0x4cb614 salta a 0x4cb6c1 y cae después en 0x4cb6c9: bit7 también emite el normal final.
     if (reply.flag)
-        CreateDamageNumber(resources.world, position, reply.amount, light, scale + DuplicateHeight);
-    CreateDamageNumber(resources.world, actor.position, reply.amount, light, scale);
+        CreateRisingDamage(resources.world, position, reply.amount, light, scale + DuplicateHeight);
+    CreateRisingDamage(resources.world, actor.position, reply.amount, light, scale);
 }
 } // namespace
 Core::Expected<void, std::string> ApplyWalkReply(const Protocol::Movement::Walk& reply, std::uint16_t playerKey,
@@ -223,7 +209,7 @@ Core::Expected<void, std::string> ApplyDamageReply(const Protocol::Movement::Dam
     {
         if (auto shocked = SetActorShock(*actor, reply.amount, resources); !shocked.HasValue())
             return shocked;
-        CreateDamageNumber(resources.world, actor->position, reply.amount, {1.0f, 0.0f, 0.0f}, NormalDamageScale);
+        CreateRisingDamage(resources.world, actor->position, reply.amount, {1.0f, 0.0f, 0.0f}, NormalDamageScale);
         if (hero)
             SubtractHeroLife(reply.amount, resources);
     }

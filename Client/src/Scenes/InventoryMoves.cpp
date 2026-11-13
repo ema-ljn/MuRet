@@ -924,6 +924,53 @@ Core::Expected<void, std::string> MoveTheLeftWeaponToTheRight(const InventoryMov
     return SendTheCursorItem(context, static_cast<std::uint8_t>(RightHandSlot));
 }
 
+Core::Expected<bool, std::string> CheckTheArrows(const InventoryMoveContext& context)
+{
+    WorldState& world = context.world;
+    WorldRuntime& runtime = world.Runtime();
+    std::int32_t right = EmptyHand;
+    std::int32_t left = EmptyHand;
+    {
+        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        right = Signed(world.OwnCharacter().equipment[RightHandSlot].id);
+        left = Signed(world.OwnCharacter().equipment[LeftHandSlot].id);
+    }
+    // 0x561d27..0x561d59: el 0x811 no es ballesta acá (sí en 0x561840).
+    constexpr std::int32_t SecondBowOfTheLeft = 0x811;
+    const bool crossbow = InRange(right, FirstCrossbow, LastCrossbow) || right == FirstLateCrossbow ||
+                          InRange(right, SecondBowOfTheLeft + 1, LastLateCrossbow);
+    std::size_t ammunitionSlot = 0;
+    std::int32_t ammunition = 0;
+    std::uint16_t wanted = 0;
+    if (crossbow)
+    {
+        ammunitionSlot = LeftHandSlot;
+        ammunition = left;
+        wanted = Bolts;
+    }
+    else if (IsABowOfTheLeft(left))
+    {
+        ammunitionSlot = RightHandSlot;
+        ammunition = right;
+        wanted = Arrows;
+    }
+    else
+    {
+        return true;
+    }
+    // 0x561d5f..0x561e81 (la ballesta, que cierra con 0x40b4d0) y 0x561eb4..0x561f55 (el arco, con 0x40f370): el otro
+    // acceso, cerrado después de 0x561840.
+    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                            Render::Models::OwnRecordCloseRandoms);
+    if (ammunition == static_cast<std::int32_t>(wanted) &&
+        world.OwnCharacter().equipment[ammunitionSlot].durability != 0)
+        return true;
+    if (auto arrows = UpdateTheArrows(context); !arrows.HasValue())
+        return Core::Unexpected(arrows.Error());
+    return false;
+}
+
 void HoverTheEquipment(const InventoryMoveContext& context, std::size_t slot, std::int32_t left, std::int32_t top,
                        float width)
 {

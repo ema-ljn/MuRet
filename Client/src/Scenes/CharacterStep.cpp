@@ -17,8 +17,11 @@
 #include "Scenes/ActorMotion.h"
 #include "Scenes/ActorWalk.h"
 #include "Scenes/PlayerActionSpeeds.h"
+#include "Scenes/ActorCombat.h"
 #include "Scenes/ActorConstruction.h"
+#include "Scenes/ActorDying.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/AttackStep.h"
 #include "Scenes/CharacterHead.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/DynamicWorldLight.h"
@@ -572,6 +575,33 @@ Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& 
     return {};
 }
 
+// 0x4fd787..0x4fd7e1: +0x389 más uno, en un byte; con 15 o más, 0x4f5660 (SetActorDie); en Blood Castle (11 a 17)
+// con +0x1a1, 0x4f5660 otra vez, también antes del 15.
+Core::Expected<void, std::string> DieAgain(ActorState& actor, const CharacterStepContext& context)
+{
+    const ActorCombatContext combat{.world = context.world,
+                                    .random = context.random,
+                                    .playerSkeleton = context.playerSkeleton,
+                                    .models = context.models,
+                                    .items = context.items};
+    constexpr std::uint8_t DyingAgain = 15;
+    actor.dying = static_cast<std::uint8_t>(actor.dying + 1);
+    if (actor.dying >= DyingAgain)
+    {
+        if (auto died = SetActorDie(actor, combat); !died.HasValue())
+            return died;
+    }
+    const std::int32_t map = context.world.Runtime().map;
+    constexpr std::int32_t FirstBloodCastleMap = 11;
+    constexpr std::int32_t LastBloodCastleMap = 17;
+    if (map >= FirstBloodCastleMap && map <= LastBloodCastleMap && actor.byte1a1 != 0)
+        return SetActorDie(actor, combat);
+    return {};
+}
+
+Core::Expected<void, std::string> StepTheRaven(ActorState& actor, std::size_t slot,
+                                               const CharacterStepContext& context);
+
 // 0x4fd5f0(c, c) desde 0x508edf, por el camino del 0x20a quieto (06, "El cuerpo de los personajes
 // (0x4fd5f0)"). `hero` es c == [0x743a170].
 // 0x417e62: el grito del cuervo.
@@ -643,12 +673,17 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
         return Core::Unexpected(
             std::format("0x4fb910: el 0xf1 del lugar {} cae con 0x5f93c0 y gira, sin portar", slot));
     }
-    // 0x4fd722: 0x4fb9e0, muriéndose (+0x389).
-    if (actor.dying != 0)
+    // 0x4fd722: 0x4fb9e0, muriéndose (+0x389). Lo que sigue corre aunque lo haya borrado.
+    if (auto died = StepActorDying(actor, slot,
+                                   {.map = runtime.map,
+                                    .scene = context.scene,
+                                    .hero = hero,
+                                    .random = context.random,
+                                    .particles = context.particles,
+                                    .worldClock = context.worldClock});
+        !died.HasValue())
     {
-        return Core::Unexpected(std::format("0x4fb9e0: el personaje del lugar {} se muere (+0x389); sus partículas "
-                                            "y 0x4f5660 no están portados",
-                                            slot));
+        return died;
     }
     // 0x4fd72e: 0x4e9980, el alpha hacia su meta y la luz del blendMesh.
     World::StepObjectAlpha(actor.alphaTarget, actor.alpha, actor.blendMeshLight, actor.alphaMode);
@@ -658,7 +693,13 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     {
         return animated;
     }
-    // 0x4fd77b..0x4fd7dc: muriéndose, que ya cortó.
+    // 0x4fd77b..0x4fd7dc: muriéndose, +0x389 sube (un byte, que da la vuelta) y desde 15 llama a 0x4f5660; en Blood
+    // Castle (11 a 17) con +0x1a1, otra vez.
+    if (actor.dying != 0)
+    {
+        if (auto died = DieAgain(actor, context); !died.HasValue())
+            return died;
+    }
     // 0x4fd7e4: rand() % 6 sin condición; (r + 2) · 0,1f va a un local que este camino no lee (Q-C247).
     static_cast<void>(context.random.Next());
     // 0x4fd835..0x4fdada: fuera del mapa 30, con +0x1a0 positivo, seis rand() por hueso y un 0x614. +0x1a0 en 0:
@@ -671,8 +712,13 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
                                             "hueso 42 (0x4ec110), sin portar",
                                             action, slot));
     }
-    // 0x4fdb9a..0x4fdbeb: +0x381 en 0, debajo de [0x6c88ac] (15): salta a 0x50539e sin la habilidad. Lo escribe
-    // solo este camino (*estático*).
+    // 0x4fdb9a..0x50539e: con +0x381 distinto de 0, 0x4f97b0 y 0x4f5b70 y +0x381 += 1; desde [0x6c88ac], la habilidad
+    // de +0x38e con el blanco de +0x3a4. Lo ponen en 1 el ataque al llegar (0x5653c1, HeroAttack) y el 18 con 0x78 y
+    // 0x79 (0x4cb830, ActionReply).
+    if (auto attacked = StepTheAttack(actor, slot, context); !attacked.HasValue())
+    {
+        return attacked;
+    }
     // 0x5053a2..0x5053f0: +0x428 en −128 (0x511290, 0x511c77; los paquetes lo ponen en 0x96): nada.
     // 0x5053fc: 0x42a2b0, solo el 0x1a8.
     // 0x505410: 0x4fcee0.
@@ -681,10 +727,26 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
         return trailed;
     }
     // 0x50544b: 0x420dd0, después de la estela y antes de 0x505de0, también fuera del trapecio.
-    if (!actor.darkSpirit || (actor.flags78 & FrozenFlag) != 0)
+    if (actor.darkSpirit && (actor.flags78 & FrozenFlag) == 0)
     {
-        return {};
+        if (auto raven = StepTheRaven(actor, slot, context); !raven.HasValue())
+        {
+            return raven;
+        }
     }
+    // 0x505453..0x5054aa: muriéndose, apaga 0x8000 y 0x10000 de +0x78.
+    if (actor.dying != 0)
+    {
+        constexpr std::uint32_t DyingClearedFlags = 0x8000 | 0x10000;
+        actor.flags78 &= ~DyingClearedFlags;
+    }
+    return {};
+}
+
+// 0x420dd0: el cuervo de +0x430, que el que llama da por existente y sin +0x78 & 0x1000.
+Core::Expected<void, std::string> StepTheRaven(ActorState& actor, std::size_t slot, const CharacterStepContext& context)
+{
+    const WorldRuntime& runtime = context.world.Runtime();
     if (context.darkSpiritSkeleton == nullptr || context.particles == nullptr)
     {
         return Core::Unexpected(
@@ -1060,12 +1122,6 @@ LogicalCell ReadLogicalCell(ActorState& actor, Render::Models::CrtRandom& random
     return cell;
 }
 
-namespace
-{
-// 0x412140. Fuera del mapa 30, 0x412560 suelta el panel de 0x5763530 si lo hay. En el 30, con 0x6c649a en
-// 0xff (0x412191 y 0x4123f9), arma el de la clase 0 si no hay panel (0x412195) o si el que hay es de otra clase
-// (0x412402..0x41240f), y deja el que ya es de la clase 0. Los otros puestos (0x80, 0x40, 0x20 y 0) arman los
-// paneles 1 y 2 según el gremio de 0x6c6498, y solo los trae el paquete del gremio (CL9).
 Core::Expected<void, std::string> StepTheSiegePanel(WorldRuntime& runtime)
 {
     if (runtime.map != CastleMap)
@@ -1088,7 +1144,6 @@ Core::Expected<void, std::string> StepTheSiegePanel(WorldRuntime& runtime)
     runtime.siegePanelKind = NoGuildPanel;
     return {};
 }
-} // namespace
 
 Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context)
 {

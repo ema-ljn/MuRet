@@ -187,11 +187,52 @@ struct ActorState
     std::uint8_t direction = 0;
     std::uint8_t byte369 = 0;
     std::uint8_t byte370 = 0;
+    // +0x372: 0x511290 lo pone en 0 (0x511ccf) y el 0x12 de estado 1 lo conserva del registro anterior (0x4c895f,
+    // 0x4c89ed). Qué es y quién más lo lee, sin leer.
+    std::uint8_t byte372 = 0;
     std::uint8_t byte374 = 0;
+    // +0x42c: 0x511290 lo pone en 1 (0x511c92); sin él, el picking de 0x59e700 no lo elige (0x59e95e). Quién lo
+    // apaga, sin leer.
+    std::uint8_t byte42c = 0;
     // +0x381: la habilidad activa inhibe la orientación quieta (59b3e4). Retenido por 511290.
     std::uint8_t byte381 = 0;
     std::uint16_t word1f2 = 0;
     std::uint16_t damage = 0; // +0x384
+    // CL9 hito 3 (atacar, el daño y la muerte). +0x380 y +0x382: el 0x16 sin el bit 15 pone en el héroe 2 y el daño
+    // (0x4cf2f9). +0x3a4: el lugar del blanco, en WORD: lo escriben el 0x16 (en el héroe) y el ataque al llegar
+    // (0x5659ab); 0x505de0 lo mira con +0x380 en 2 (CharacterHead.h). +0x3a8..+0x3b0: la posición del blanco al pegar
+    // (0x5653ec). +0x38f: cuántas veces pegó, que 0x4f4a10 sube y usa para alternar la acción. +0x391: la skill que lo
+    // mató (0x4d0a7e) y +0x398, que el 0x17 de los empujes pone en 0. Quién más los escribe, sin leer. Las skills que
+    // llegan (CL9 hito 4): +0x3a4 es el blanco de la skill (0x4cc530 y 0x4cc290; el 1E lo pone en 0xffff y +0x380 en
+    // 0, 0x4ce000), +0x38f alterna también la skill 0x17 de 0x4cc530 (par o impar) y la 0x3a pone +0x1bc en 0
+    // (0x4cde26).
+    std::uint8_t byte380 = 0;
+    std::uint16_t word382 = 0;
+    // o+0x8a: la clave del elegido que deja 0x558eb0 (−1 sin él) en cada paso de la habilidad (0x4fdc10, CL9 hito 3,
+    // fase 2b). La leen los casos de habilidad de 0x4fd5f0 (el 5 la pasa a 0x518cf0 en 0x4fdf6b), del hito 4.
+    std::uint16_t word8a = 0;
+    std::uint16_t attackTarget = 0;
+    glm::vec3 attackPosition{};
+    std::uint8_t attackCount = 0;
+    std::uint8_t deathSkill = 0;
+    std::uint8_t byte398 = 0;
+    // +0x110: 0x42dcb0 lo pone en 3 al pegar el 0x19e y el 0x19f. Qué es, sin leer.
+    std::uint8_t byte110 = 0;
+    // +0x30: el 0x17 de los empujes le copia el rumbo hacia quien mató (0x4d0b8f). Qué lo lee, sin leer.
+    float angle30 = 0.0f;
+    // El vuelo del que muere empujado (el 0x17 con 0x28 o 0x3b, 0x4d0ac1..0x4d0b38, y 0x4d07c0 en Blood Castle y
+    // Chaos Castle), que mueve 0x4fb9e0 con 0x51fd20 y 0x4fb2b0 (ActorDying.h): +0x1bc, +0xcc, +0xd0, +0xd4, +0xd8 y
+    // +0xe4, el empuje de +0x1a4..+0x1ac y la posición de partida en +0x1b0..+0x1b8.
+    std::uint8_t byte1bc = 0;
+    // +0x3c8: cuánto lleva muriéndose, que 0x4fb9e0 sube de a 0,02 (ActorDying.h). 0x511290 lo pone en 0 (0x51247a).
+    float dyingTime = 0.0f;
+    float floatCc = 0.0f;
+    float floatD0 = 0.0f;
+    float floatD4 = 0.0f;
+    float floatD8 = 0.0f;
+    float floatE4 = 0.0f;
+    glm::vec3 push{};
+    glm::vec3 pushOrigin{};
     std::uint8_t byte399 = 0;
     std::uint8_t skillIndex = 0;          // +0x425
     std::uint8_t firstFootstepSound = 0;  // +0x3e0, retenidos hasta terminar la animación
@@ -222,19 +263,11 @@ struct ActorState
     // +0x38d: si salió la última skill de este personaje: el bit 15 del blanco del 19 (0x4cc530) y del 69 (0x4cc290).
     // Lo miran las ramas 0x33, 0x37 y 0x44 a 0x48 de 0x4cc530. El A8 lo pone en 0 en el objeto del cuervo, no acá.
     std::uint8_t skillSucceeded = 0;
-    // +0x38f: la cuenta que alterna las acciones de 0x4f5290 (de a tres) y de la skill 0x17 de 0x4cc530 (par o impar).
-    std::uint8_t hitCount = 0;
-    // +0x3a4: el lugar del pool del blanco de la skill (0x4cc530 y 0x4cc290). El 1E lo pone en 0xffff (0x4ce000).
-    std::uint16_t skillTarget = 0;
     // +0x434: el lugar del blanco de la skill 0x4c (0x4ccef1).
     std::int32_t skillTarget4c = 0;
     // +0x39c y +0x39d: la celda de la skill con duración (el 1E, 0x4ce000).
     std::uint8_t skillCellX = 0;
     std::uint8_t skillCellY = 0;
-    // +0x380: el 1E lo pone en 0 (0x4ce000).
-    std::uint8_t byte380 = 0;
-    // +0x1bc: la skill 0x3a de 0x4cc530 lo pone en 0 (0x4cde26).
-    std::uint8_t byte1bc = 0;
     // +0x42e, protegido como +0x38e (el cierre que lo deja sin accesos gasta un rand(), 0x40b3f0): la skill del 69
     // (0x4cc290). Nadie lo lee en MuRet.
     std::uint8_t byte42e = 0;

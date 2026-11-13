@@ -58,6 +58,7 @@ std::optional<std::uint8_t> DirectionBetween(Cell from, Cell to)
     }
     return std::nullopt;
 }
+} // namespace
 
 Core::Expected<std::uint8_t, WalkWriteError> DirectionFromAngle(float angle)
 {
@@ -69,7 +70,6 @@ Core::Expected<std::uint8_t, WalkWriteError> DirectionFromAngle(float angle)
     const auto integer = static_cast<std::int64_t>(converted);
     return static_cast<std::uint8_t>(static_cast<std::uint64_t>(integer) & DirectionMask);
 }
-} // namespace
 
 Core::Expected<Outgoing, WalkWriteError> WriteWalk(std::span<const Cell> path, Cell target, float angle)
 {
@@ -142,10 +142,22 @@ Core::Expected<Damage, ProtocolError> ReadDamage(const Network::Packet& packet)
                   (*type & DamageFlagMask) != 0,
                   (*type & DamageDoubleHitMask) != 0};
 }
-Outgoing WriteFacing(std::uint8_t direction)
+
+Core::Expected<Action, ProtocolError> ReadAction(const Network::Packet& packet)
 {
-    constexpr std::uint8_t FacingOpcode = 0x18;
-    constexpr std::uint8_t FacingTail = 0x7a;
-    return Xor32C1(Network::PacketWriter::C1(FacingOpcode).PutU8(direction).PutU8(FacingTail));
+    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != ActionOpcode)
+        return Core::Unexpected(ProtocolError::WrongPacket);
+    Core::ByteReader reader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
+    const auto key = reader.ReadU16Be();
+    const auto direction = reader.ReadU8();
+    const auto action = reader.ReadU8();
+    if (!key || !direction || !action)
+        return Core::Unexpected(ProtocolError::TooShort);
+    return Action{*key, *direction, *action};
+}
+
+Outgoing WriteAction(std::uint8_t direction, std::uint8_t action)
+{
+    return Xor32C1(Network::PacketWriter::C1(ActionOpcode).PutU8(direction).PutU8(action));
 }
 } // namespace Client::Protocol::Movement

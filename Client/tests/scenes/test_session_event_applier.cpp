@@ -10,6 +10,7 @@
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Messages.h"
+#include "Network/Crypto/Xor32.h"
 #include "Protocol/Movement.h"
 #include "Protocol/Pet/PetOrders.h"
 #include "Protocol/Skill.h"
@@ -19,14 +20,19 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/ViewportPacketRing.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 
+#include "support/Bytes.h"
+#include "support/Packets.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
+#include "support/SameBytes.h"
 #include "support/SessionHarness.h"
 #include "support/SessionPackets.h"
 
@@ -35,6 +41,7 @@
 #include <cstddef>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -197,6 +204,29 @@ TEST(SessionEventApplierTest, TheSkillsReachTheirAppliers)
     ASSERT_FALSE(counted.HasValue());
     EXPECT_NE(counted.Error().find("0x4c54ed"), std::string::npos) << counted.Error();
 }
+
+// 0x4cb750: el 18 de otro llega a ApplyActionReply, y el C1 18 de sentarse que dispara (0x4f2250) sale por la sesión.
+TEST(SessionEventApplierTest, TheActionOfAnotherSitsThroughTheSession)
+{
+    auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online;
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    Client::Scenes::ActorState& other = tested->world.Actors()[12];
+    other = Client::Tests::UnarmedPlayer();
+    other.alive = true;
+    other.key = 0x1234;
+    other.flags7c = 0x200000;
+    const std::size_t sent = online.socket.sent.size();
+    const Client::App::WorldEvent event =
+        Client::Protocol::Movement::Action{.key = 0x1234, .direction = 3, .action = 0x7a};
+
+    ASSERT_TRUE(tested->applier.ApplyWorld(event, online.session).HasValue());
+    EXPECT_EQ(other.animation.action, 0xca);
+    const std::vector<std::byte> action(online.socket.sent.begin() + static_cast<std::ptrdiff_t>(sent),
+                                        online.socket.sent.end());
+    const auto plain = Client::Network::Crypto::Xor32Decode(Client::Tests::PacketOf(action));
+    EXPECT_TRUE(Client::Tests::SameBytes(plain.Bytes(), Client::Tests::Bytes({0xc1, 5, 0x18, 3, 0x82})));
+}
 // 0x4c6098: en la escena 2, el 00 pide la lista por el GameServer sin mirar el paquete (CL8 hito 3).
 TEST(SessionEventApplierTest, The00InTheLoginAsksForTheListThroughTheGameServer)
 {
@@ -231,5 +261,23 @@ TEST(SessionEventApplierTest, TeleportUsesTheCursorGuardBeforeTouchingTheHero)
     const auto result = tested.applier.ApplyWorld(event, online.session);
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x5be150"), std::string::npos);
+}
+
+// 0x4e3e98..0x4e3f1d: el dispatcher copia el 1C a la cola de 0x77f27b4, la misma de los 12 (Q-C801), antes de mirar el
+// flag de cifrado. Con la sesión de verdad y este aplicador, un 1C sin cifrar, que se rechaza sin leerlo, ocupa una
+// ranura.
+TEST(SessionEventApplierTest, ATeleportTakesOneSlotOfThePacketRing)
+{
+    const auto tested = std::make_unique<Applier>();
+    const auto online = std::make_unique<Client::Tests::LoggedInSession>(&tested->applier);
+    ASSERT_NO_FATAL_FAILURE(online->LogIn());
+    const auto teleport = Client::Tests::Bytes({0xc1, 8, 0x1c, 23, 0, 30, 31, 0});
+    online->socket.reads = {teleport};
+    ASSERT_TRUE(online->session.Poll().HasValue());
+    const Client::Scenes::ViewportPacketRing& ring = tested->world.Runtime().viewportPackets;
+    ASSERT_EQ(ring.count, 1);
+    EXPECT_EQ(ring.sizes[0], 8);
+    EXPECT_TRUE(Client::Tests::SameBytes(std::span(ring.slots[0]).first(teleport.size()), teleport));
+    EXPECT_EQ(online->session.State(), Client::App::SessionState::LoggedIn);
 }
 } // namespace

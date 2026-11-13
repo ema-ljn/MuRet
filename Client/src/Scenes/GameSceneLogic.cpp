@@ -62,7 +62,7 @@ Core::Expected<void, std::string> GameScene::StepTheFloorItems(float worldClock)
     return {};
 }
 
-Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock)
+Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock, bool controlDown)
 {
     auto& runtime = m_context.world->Runtime();
     const Render::Models::Skeleton* player =
@@ -73,6 +73,7 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock)
             .scene = SceneId::Game,
             .playerSkeleton = player,
             .items = m_items,
+            .models = m_models,
             .terrain = &StepTerrain(),
             .darkSpiritSkeleton = m_models ? m_models->SkeletonOf(DarkSpiritModel) : nullptr,
             .particles = &m_context.world->Particles(),
@@ -84,7 +85,8 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock)
             .send = m_session != nullptr
                         ? std::function<void(Protocol::Outgoing)>([session = m_session](Protocol::Outgoing packet)
                                                                   { session->SendChat(std::move(packet)); })
-                        : std::function<void(Protocol::Outgoing)>{}});
+                        : std::function<void(Protocol::Outgoing)>{},
+            .controlDown = controlDown});
         !stepped.HasValue())
     {
         return stepped;

@@ -6,6 +6,7 @@
 #include "Data/Tables/SkillTable.h"
 #include "GameLogic/PathCell.h"
 #include "Protocol/Movement.h"
+#include "Scenes/ActionSend.h"
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -31,6 +32,8 @@ struct HeroMovementInput
     bool shiftDown = false;
     float worldTime = 0.0f;
     std::uint32_t ticksMs = 0;
+    // GetAsyncKeyState(0x11), que 0x558bb0 mira en 0x558e7f para atacar a otro jugador desde el clic (CL9 hito 3).
+    bool controlDown = false;
 };
 struct HeroMovementContext
 {
@@ -49,6 +52,13 @@ struct HeroMovementContext
     std::function<void(std::uint8_t)> requestGate{};
     float fixedHeight = 1200.0f;
     std::function<Core::Expected<void, std::string>(std::uint8_t)> sendFacing{};
+    // El D7 de pegar al llegar (0x5650c0, CL9 hito 3): la clave del blanco, la acción y el rumbo. Vacío, no manda.
+    std::function<Core::Expected<void, std::string>(std::uint16_t, std::uint8_t, std::uint8_t)> sendAttack{};
+    // El C1 05 DF X Y del elfo que camina con un arma de tiro y hace clic en un atacable (0x59cf88, CL9 hito 3). Vacío,
+    // no manda.
+    std::function<Core::Expected<void, std::string>(std::uint8_t x, std::uint8_t y)> sendElfCell{};
+    // El C1 18 de sentarse del héroe (0x4f2250, 0x4f2416..0x4f2bea). Vacío: sentarse corta con error.
+    ActionSender sendAction{};
     // Vestir al héroe y el envío del 24, para pasar el arma de la izquierda a la derecha (0x59bd3e). nullptr: corta
     // donde los pide.
     const InventoryServices* inventory = nullptr;

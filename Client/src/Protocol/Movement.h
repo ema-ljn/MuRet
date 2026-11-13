@@ -17,8 +17,15 @@ inline constexpr std::size_t MaxWalkCells = 15;
 inline constexpr std::size_t MaxWireWalkCells = 14; // 0x56ad8d..0x56ad96: no recorta el camino local.
 inline constexpr std::uint8_t WalkOpcode = 0xd3;
 inline constexpr std::uint8_t DamageOpcode = 0xd7;
-// 59b333..59b83a: rumbo del héroe quieto, C1 05 18 direction 7A, XOR32.
-[[nodiscard]] Outgoing WriteFacing(std::uint8_t direction);
+// 04 § La acción: C1 05 18 dir acción del cliente (PMSG_ACTION del GS) y C1 07 18 clave:2 dir acción del servidor
+// (PMSG_ACTIONRESULT).
+inline constexpr std::uint8_t ActionOpcode = 0x18;
+// 0x59b74c: el giro del héroe quieto. 0x4f2416..0x4f2bea y 0x4e137a: sentarse.
+inline constexpr std::uint8_t FacingAction = 0x7a;
+inline constexpr std::uint8_t SittingAction = 0x82;
+// C1 05 18 direction action con el XOR32 y en claro: el giro (59b333..59b83a, con FacingAction), sentarse
+// (0x4f2416..0x4f2bea, con SittingAction) y el emote (0x576a60 y cada caso de 0x576eb0). La dirección va tal cual.
+[[nodiscard]] Outgoing WriteAction(std::uint8_t direction, std::uint8_t action);
 
 struct Cell
 {
@@ -37,6 +44,14 @@ struct Walk
     std::uint16_t characterId;
     Cell cell;
     std::uint8_t direction;
+};
+
+// El 0x18 del servidor (0x4cb750): pkt[3..4] la clave, big-endian, pkt[5] la dirección y pkt[6] la acción.
+struct Action
+{
+    std::uint16_t key;
+    std::uint8_t direction;
+    std::uint8_t action;
 };
 
 struct Damage
@@ -58,6 +73,9 @@ struct Damage
 // MuRet rechaza no finitos y cuentas fuera de [-2^63,2^63): son errores de su API,
 // no una validación del original ni una afirmación sobre sus máscaras de excepción.
 [[nodiscard]] Core::Expected<Outgoing, WalkWriteError> WriteWalk(std::span<const Cell> path, Cell target, float angle);
+// El rumbo de 0 a 7 de un ángulo: ftol((ángulo + 22,5) · 0,0222 + 1) & 7, en la x87 sin guardar en float. Es el de
+// SendMove (0x56b0b7..0x56b0cc) y el del D3 y el D7 del ataque al llegar (0x5656e6..0x565715, 0x5659b8..0x5659e2).
+[[nodiscard]] Core::Expected<std::uint8_t, WalkWriteError> DirectionFromAngle(float angle);
 
 // 0x56ad1d..0x56ad4f: cantidad ORIGINAL (1..15), antes del límite wire de 14.
 [[nodiscard]] Core::Expected<std::uint32_t, WalkWriteError> WalkUpdateTimeMax(std::size_t pathNum);
@@ -66,4 +84,5 @@ struct Damage
 // distintos, TooShort si faltan campos; como los demás lectores, ignoran bytes sobrantes.
 [[nodiscard]] Core::Expected<Walk, ProtocolError> ReadWalk(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<Damage, ProtocolError> ReadDamage(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Action, ProtocolError> ReadAction(const Network::Packet& packet);
 } // namespace Client::Protocol::Movement

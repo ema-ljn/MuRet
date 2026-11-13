@@ -3,12 +3,14 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "GameLogic/Path.h"
 #include "GameLogic/PathCell.h"
+#include "World/OriginalFtol.h"
 #include "World/TerrainWalls.h"
 
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cmath>
 #include <cstdlib>
 #include <limits>
 #include <optional>
@@ -80,28 +82,81 @@ public:
     {
     }
 
-    std::optional<Path> Run(bool exact, int wall, bool clearGoal)
+    std::optional<Path> Run(bool exact, int wall, bool clearGoal, float distance)
     {
         if (m_start.x == 0 || m_start.y == 0)
         {
             return std::nullopt;
         }
-        std::uint16_t& goalWall = m_walls[Index(m_goal)];
-        if (clearGoal)
+        // 0x4eadd4..0x4eade8: FCOMP con C3, así que una distancia NaN también va por el radio.
+        if (distance == 0.0f)
         {
-            goalWall = 0;
+            std::uint16_t& goalWall = m_walls[Index(m_goal)];
+            if (clearGoal)
+            {
+                goalWall = 0;
+            }
+            if (exact && goalWall >= wall && (goalWall & ExactGoalBypassBit) == 0)
+            {
+                return std::nullopt;
+            }
+            m_cells[Index(m_goal)].flags = GoalFlag;
         }
-        if (exact && goalWall >= wall && (goalWall & ExactGoalBypassBit) == 0)
+        else if (!MarkTheRadius(exact, wall, distance))
         {
             return std::nullopt;
         }
-        m_cells[Index(m_goal)].flags = GoalFlag;
         Insert(m_start, 0);
         m_cells[Index(m_start)].flags |= OpenFlag;
         return Explore(exact, wall);
     }
 
 private:
+    // 0x4eae7c..0x4eb054: la meta por radio. Cada celda que pasa queda con la bandera de meta (el `mov byte, 4`).
+    bool MarkTheRadius(bool exact, int wall, float distance)
+    {
+        const auto radius = World::OriginalFtolLow(static_cast<double>(distance));
+        if (!radius)
+        {
+            return false;
+        }
+        const int r = *radius;
+        constexpr int Side = static_cast<int>(Data::Terrain::TerrainSide);
+        const auto mark = [&](int index)
+        {
+            if (index < 0 || index >= static_cast<int>(Data::Terrain::TerrainCellCount))
+            {
+                return;
+            }
+            const auto cell = static_cast<std::size_t>(index);
+            if (!exact || m_walls[cell] < wall)
+            {
+                m_cells[cell].flags = GoalFlag;
+            }
+        };
+        for (int dy = -r; dy <= r; ++dy)
+        {
+            const int row = (m_goal.y + dy) * Side;
+            const int inner = -(r - std::abs(dy));
+            for (int dx = inner; dx <= 0; ++dx)
+            {
+                mark(row + dx + m_goal.x);
+                mark(row - dx + m_goal.x);
+            }
+            for (int dx = -r; dx < inner; ++dx)
+            {
+                // 0x4eaf86..0x4eaf93: C0 con el FCOMP, menor o sin orden.
+                const double length = std::sqrt(static_cast<double>(dx * dx + dy * dy));
+                if (!(length >= static_cast<double>(distance)))
+                {
+                    mark(row + dx + m_goal.x);
+                    mark(row - dx + m_goal.x);
+                }
+            }
+        }
+        return true;
+    }
+
     struct CellState
     {
         int cost = 0;
@@ -272,9 +327,9 @@ PathFinder::PathFinder(World::TerrainWalls& walls) : PathFinder(walls.cells) {}
 
 PathFinder::PathFinder(Data::Terrain::TerrainLayer<std::uint16_t>& walls) : m_walls(walls) {}
 
-std::optional<Path> PathFinder::Find(PathCell start, PathCell goal, bool clearGoal)
+std::optional<Path> PathFinder::Find(PathCell start, PathCell goal, bool clearGoal, float distance)
 {
-    auto path = SearchState(m_walls, start, goal).Run(true, NormalWall, clearGoal);
+    auto path = SearchState(m_walls, start, goal).Run(true, NormalWall, clearGoal, distance);
     if (!path)
     {
         const auto startWall = m_walls[Index(start)];
@@ -282,7 +337,7 @@ std::optional<Path> PathFinder::Find(PathCell start, PathCell goal, bool clearGo
         const bool safe = ((startWall | goalWall) & World::SafeZoneWallBit) != 0;
         const bool occupiedGoal = (goalWall & World::CharacterWallBit) != 0;
         const int wall = safe && !occupiedGoal ? SafeWall : NormalWall;
-        path = SearchState(m_walls, start, goal).Run(false, wall, clearGoal);
+        path = SearchState(m_walls, start, goal).Run(false, wall, clearGoal, distance);
     }
     return path && path->count >= 2 ? path : std::nullopt;
 }

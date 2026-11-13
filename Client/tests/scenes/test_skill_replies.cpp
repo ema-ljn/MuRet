@@ -174,7 +174,7 @@ TEST(SkillRepliesTest, TheMagicAttackOfAnotherTurnsTowardsTheTargetAndActs)
     const ActorState& caster = tested->Actor(CasterIndex);
     EXPECT_EQ(caster.angles.z,
               static_cast<float>(Client::Render::Models::CreateAngle(1000.0f, 1000.0f, 1300.0f, 1200.0f)));
-    EXPECT_EQ(caster.skillTarget, TargetIndex);
+    EXPECT_EQ(caster.attackTarget, TargetIndex);
     EXPECT_EQ(caster.skillSucceeded, 1);
     EXPECT_EQ(caster.byte38e, 0x13);
     EXPECT_EQ(caster.byte38eAccesses, 0);
@@ -245,10 +245,10 @@ TEST(SkillRepliesTest, TheHitOfAMonsterAlternatesEveryThree)
     caster.type = MonsterType;
     ASSERT_TRUE(tested->Attack(0x10).HasValue());
     EXPECT_EQ(caster.animation.action, 3);
-    EXPECT_EQ(caster.hitCount, 1);
+    EXPECT_EQ(caster.attackCount, 1);
     ASSERT_TRUE(tested->Attack(0x10).HasValue());
     EXPECT_EQ(caster.animation.action, 4);
-    EXPECT_EQ(caster.hitCount, 2);
+    EXPECT_EQ(caster.attackCount, 2);
 }
 
 // Las ramas 1, 2, 4, 7, 0xb y 0x11 en un monstruo llaman a 0x4f4a10, del hito 3.
@@ -366,7 +366,7 @@ TEST(SkillRepliesTest, TheSkill3bGoesStraightToTheTable)
     auto tested = std::make_unique<Replies>();
     static_cast<void>(tested->Attack(0x3b));
     EXPECT_EQ(tested->Actor(CasterIndex).byte38e, 0);
-    EXPECT_EQ(tested->Actor(CasterIndex).skillTarget, 0);
+    EXPECT_EQ(tested->Actor(CasterIndex).attackTarget, 0);
     EXPECT_EQ(tested->Actor(CasterIndex).angles.z, 0.0f);
     EXPECT_EQ(tested->cloth.random.State(), 1u);
 }
@@ -427,7 +427,7 @@ TEST(SkillRepliesTest, TheDurationMagicOfAnotherPlayerActsAndKeepsTheCell)
 {
     auto tested = std::make_unique<Replies>();
     ActorState& caster = tested->Actor(CasterIndex);
-    caster.skillTarget = 3;
+    caster.attackTarget = 3;
     caster.byte380 = 9;
     const CrtRandom expected = Advanced(tested->cloth.random, ActorByteRandoms);
     ASSERT_TRUE(Client::Scenes::ApplyDurationMagic(DurationMagic{0xc, CasterKey, 0x80, 0x81, 0x40}, tested->Resources())
@@ -438,7 +438,7 @@ TEST(SkillRepliesTest, TheDurationMagicOfAnotherPlayerActsAndKeepsTheCell)
     EXPECT_EQ(caster.skillCellX, 0x80);
     EXPECT_EQ(caster.skillCellY, 0x81);
     EXPECT_EQ(caster.byte381, 1);
-    EXPECT_EQ(caster.skillTarget, 0xffff);
+    EXPECT_EQ(caster.attackTarget, 0xffff);
     EXPECT_EQ(caster.byte380, 0);
     EXPECT_EQ(tested->cloth.random.State(), expected.State());
 }
@@ -455,7 +455,7 @@ TEST(SkillRepliesTest, TheDurationMagicOfTheHeroOnlyKeepsTheCell)
     EXPECT_EQ(hero.animation.action, action);
     EXPECT_EQ(hero.skillCellX, 10);
     EXPECT_EQ(hero.skillCellY, 11);
-    EXPECT_EQ(hero.skillTarget, 0xffff);
+    EXPECT_EQ(hero.attackTarget, 0xffff);
 }
 
 // Un monstruo hace la acción de ataque de 0x4f4a10 (hito 3), después de la skill y el rumbo.
@@ -617,7 +617,7 @@ TEST(SkillRepliesTest, TheSkillTargetKeepsTheSkillAndTheTarget)
         Client::Scenes::ApplySkillTarget(SkillTarget{0x20, CasterKey, TargetKey}, tested->Resources()).HasValue());
     const ActorState& caster = tested->Actor(CasterIndex);
     EXPECT_EQ(caster.byte42e, 0x20);
-    EXPECT_EQ(caster.skillTarget, TargetIndex);
+    EXPECT_EQ(caster.attackTarget, TargetIndex);
     EXPECT_EQ(caster.skillSucceeded, 0);
     EXPECT_EQ(tested->world.Runtime().skillSource, static_cast<std::int32_t>(CasterIndex));
     EXPECT_EQ(tested->cloth.random.State(), expected.State());

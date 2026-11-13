@@ -2,6 +2,7 @@
 
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Combat.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
@@ -10,6 +11,7 @@
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/Pet/PetOrders.h"
 #include "Protocol/Skill.h"
+#include "Protocol/Viewport.h"
 
 #include <variant>
 
@@ -40,5 +42,8 @@ using WorldEvent =
                  Protocol::Inventory::ManaRefill, Protocol::Skill::MagicAttack, Protocol::Skill::DurationMagic,
                  Protocol::Skill::MagicCancel, Protocol::Skill::ActorState, Protocol::Skill::ActorEffect,
                  Protocol::Skill::SkillTarget, Protocol::Skill::SkillList, Protocol::Skill::SummonLife,
-                 Protocol::Pet::PetOrder, Protocol::Pet::PetAttack, Protocol::Pet::PetInfoReply>;
+                 Protocol::Pet::PetOrder, Protocol::Pet::PetAttack, Protocol::Pet::PetInfoReply,
+                 Protocol::Movement::Action, Protocol::Viewport::Players, Protocol::Viewport::Leave,
+                 Protocol::Viewport::Transformed, Protocol::Viewport::EquipmentShown, Protocol::Viewport::Position,
+                 Protocol::Combat::KillExperience, Protocol::Combat::Death>;
 } // namespace Client::App

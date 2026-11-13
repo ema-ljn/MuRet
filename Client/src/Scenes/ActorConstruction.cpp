@@ -137,6 +137,7 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     }
     actor.seen = false;
     actor.dying = 0;
+    actor.dyingTime = 0.0f; // 0x51247a, con el ESI en 0 de 0x5121f6
     actor.byte88 = 1;
     // 0x511d51, con el ESI en 0 de 0x511c36.
     actor.flags78 = 0;
@@ -150,7 +151,9 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.baseMovementSpeed = ConstructedMovementSpeed; // 0x511d48
     actor.byte369 = 0;
     actor.byte370 = 0;
+    actor.byte372 = 0; // 0x511ccf
     actor.byte374 = 0; // 0x511c13
+    actor.byte42c = 1; // 0x511c92
     actor.word1f2 = NoItemModel;
     actor.byte399 = 0;
     actor.byte80 = 0;

@@ -4,7 +4,6 @@
 #include "Core/IClock.h"
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/World.h"
-#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorConstruction.h"
@@ -19,7 +18,6 @@
 #include "Scenes/WorldTransitionSupport.h"
 #include "UI/OldWindows.h"
 #include "World/GameCamera.h"
-#include "World/ModelEffects.h"
 #include "World/TerrainCulling.h"
 
 #include <chrono>
@@ -208,18 +206,8 @@ Core::Expected<void, std::string> ApplyTeleport(const Protocol::World::Teleport&
     hero.angles.z = (static_cast<float>(reply.direction) - 1.0f) * DirectionDegrees;
     if (reply.gate == 0)
     {
-        RefreshCombatActionSpeeds(resources);
-        const auto stop = TransitionStopContext(resources);
-        if (!stop.HasValue())
-            return Core::Unexpected(stop.Error());
-        constexpr std::uint8_t TeleportAction = 0x93;
-        Render::Models::SetAction(hero.animation, stop.Value().playerSkeleton, TeleportAction);
-        hero.animation.frame = 5.0f;
-        hero.byte80 = 3;
-        hero.alphaTarget = 1.0f;
-        static_cast<void>(
-            resources.world.Map().effects.Create(World::TeleportEffect, hero.position, hero.angles, hero.light, 0.0f));
-        resources.world.Runtime().lastSoundId = 0x76;
+        if (auto teleported = StartTheTeleportAction(hero, resources); !teleported.HasValue())
+            return teleported;
         resources.world.Runtime().movement.gateRequestBlocked = 0;
         return StopTransitionHero(hero, resources);
     }

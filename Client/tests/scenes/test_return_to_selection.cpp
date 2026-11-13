@@ -34,9 +34,11 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -251,19 +253,30 @@ TEST(ReturnToSelectionWithoutDataTest, WithTheOwnRecordOpenTheReturnDrawsNoRand)
 // 0x4c26e7 → 0x657670 → 0x420cd0 (CL9 hito 4): la vuelta pone en 0 la pestaña, la ventana y las tres mascotas.
 TEST(ReturnToSelectionWithoutDataTest, TheReturnForgetsThePets)
 {
-    Returning tested({}, Seed);
-    Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+    const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
+    Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();
     runtime.petTab = 1;
     runtime.panels.delegated.pet = 2;
     runtime.pets[1].level = 30;
     runtime.pets[0].experience = 12;
 
-    ApplyReturnToSelection(tested.Resources());
+    ApplyReturnToSelection(tested->Resources());
 
     EXPECT_EQ(runtime.petTab, 0);
     EXPECT_EQ(runtime.panels.delegated.pet, 0);
     EXPECT_EQ(runtime.pets[1].level, 0);
     EXPECT_EQ(runtime.pets[0].experience, 0u);
+}
+
+// 0x4c2515..0x4c252d: la vuelta deja los cinco del picking en −1, también el personaje elegido y 0x6c8e38.
+TEST(ReturnToSelectionWithoutDataTest, TheReturnForgetsThePickedTargets)
+{
+    const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
+    tested->world.Runtime().selectedTargets = {3, 4, 5, 6, 1};
+
+    ApplyReturnToSelection(tested->Resources());
+
+    EXPECT_EQ(tested->world.Runtime().selectedTargets, (std::array<std::int32_t, 5>{-1, -1, -1, -1, -1}));
 }
 
 // 0x510f70 compara la clave con signo (movsx en 0x510f8a): con −1, la clave 0x7fff muere y la 0xffff no;

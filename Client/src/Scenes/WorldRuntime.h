@@ -4,6 +4,7 @@
 #include "GameLogic/MovementSpeed.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
+#include "Scenes/AttackRules.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/FullSetScan.h"
@@ -13,6 +14,7 @@
 #include "Scenes/ItemHelpLevels.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/TooltipLines.h"
+#include "Scenes/ViewportPacketRing.h"
 #include "Scenes/WorldTexts.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
@@ -211,6 +213,12 @@ struct WorldRuntime
     std::optional<std::uint8_t> siegePanelKind{};
     // El de la clase 0: 0x412195 lo arma de nuevo cada vez que no había panel o era de otra clase.
     UI::SiegePanelState siegePanel{};
+    // [0x5767924]: el objeto de 0x36 bytes de la info de Castle Siege, dos mitades de 0x1b (la de la clave 0x13d en
+    // +0 y la otra en +0x1b). Lo crea y lo llena el B2 20 (0x4e04e0, hito 12) y lo suelta 0x4e05f0; sin ese paquete
+    // queda en nullptr. El 0x14 apaga +4..+6 o +0x1f..+0x21 (0x4ca799..0x4ca7cd).
+    std::optional<std::array<std::uint8_t, 0x36>> castleSiegeInfo{};
+    // 0x77f3ba0, 0x77e1bb0 y 0x77f27b4: la cola de los últimos 0x0B, 0x12, 0x1C, 0x24 y 0x2A (ViewportPacketRing.h).
+    ViewportPacketRing viewportPackets{};
     // Los bytes de los paneles (0x7d53708..0x7d53718 y los globales que escriben sus funciones), los diálogos
     // (0x7d3a10c, 0x7d3a110) y lo demás de la UI del juego (CL8 hito 1): la .bss, que nadie vacía al cambiar de
     // escena.
@@ -368,6 +376,15 @@ struct WorldRuntime
     // 0x75fdc38: meta del 0F. 0x75fdc3c es la cuenta actual, que ese paquete no cambia.
     // Estado durable de 0x530490 para el futuro binder de hojas; recibir 0F no crea lluvia.
     World::LeafWeather leafWeather{.firstWave = InitialLeafCount};
+    // CL9 hito 3: lo que mira 0x558bb0 para saber si el personaje elegido se puede atacar (AttackRules.h).
+    AttackRules attackRules{};
+    // [0x5767964] (.bss, 0): el lugar del último que pegó. Lo escriben el 18 con las acciones 0x78 y 0x79 (0x4cb849),
+    // el 0x19 (0x4cce7d), el 0x69 (0x4cc2e1) y el 0x1A (0x4cedf7), y lo lee el D7 que llega con el efecto defensivo
+    // (0x4cb32f, que corta). MuRet escribe el del 18 (CL9 hito 3, fase 2a).
+    std::int32_t lastAttacker = 0;
+    // [0x6c88ac] (.data, 15): desde cuántos pasos de +0x381 corre la habilidad de 0x4fd5f0 (0x4fdbe5, con signo). Lo
+    // escribe solo 0x4f97b0: 15 en 0x4f987d, antes de su switch, y 5 en 0x4f9ee2, un caso de habilidad (hito 4).
+    std::int32_t skillThreshold = 15;
 };
 
 // 0x63722e y 0x59afd6: con el contador en más de esto, el juego no dibuja ni mueve al héroe.

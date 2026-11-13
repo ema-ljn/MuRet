@@ -231,7 +231,8 @@ GameChatContext GameScene::ChatContext()
                            .screen = m_screen,
                            .send = session != nullptr ? ChatSender([session](Protocol::Outgoing packet)
                                                                    { session->SendChat(std::move(packet)); })
-                                                      : ChatSender{}};
+                                                      : ChatSender{},
+                           .models = m_models};
 }
 
 InventoryServices GameScene::InventoryContext() const
@@ -259,7 +260,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                             .random = FrameCloth().random,
                             .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
                             .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
-                            .altDown = input.IsDown(Input::Key::Alt)});
+                            .altDown = input.IsDown(Input::Key::Alt),
+                            .ray = m_mouseRay});
     if (!picked.HasValue())
         return picked;
     // 0x637646..0x6376e6: la pasada 2D, en este orden (06 § El dibujo del juego). Un dibujo intermedio de MuRet dibuja
@@ -286,6 +288,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
         .mouse = UI::MouseIn640x480(input, canvas.screen),
         .leftDown = input.IsDown(Input::MouseButton::Left),
+        .controlDown = input.IsDown(Input::Key::Ctrl),
         .chosenServer = m_session != nullptr ? m_session->ChosenServer() : std::nullopt};
     // 0x5ac120: el pase 3D de los ítems de la UI, con los modelos de los ítems, el buffer global de la pose y los
     // contextos de 0x60b3d0 del frame (o sus copias en un dibujo intermedio). Sin la biblioteca, sin dibujo.

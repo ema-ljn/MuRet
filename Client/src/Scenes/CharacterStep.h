@@ -35,7 +35,9 @@ struct WorldTerrain;
 // (0x505de0)".
 namespace Client::Scenes
 {
+class IModelLibrary;
 class WorldState;
+struct WorldRuntime;
 class PlayerActionSpeeds;
 
 // 0x5fba90 como lo llaman 0x508f00 (0x50916d..0x50918c) y 0x508ea0 (0x508eac..0x508ecb): el lugar del
@@ -68,6 +70,9 @@ struct CharacterStepContext
     // *[0x7758550], Item.bmd en memoria: lo leen los helpers de 0x4fc450 y la acción de parado (0x4f2250)
     // con un arma o un ítem puesto. nullptr si no se cargó: cortan donde lo leen.
     const Data::Tables::ItemTable* items = nullptr;
+    // Los esqueletos de los demás modelos, para 0x4f5660 (SetActorDie) con el que se muere desde el paso 15 (CL9 hito
+    // 3). nullptr: un modelo que no es el 0x20a corta ahí.
+    const IModelLibrary* models = nullptr;
     // La carga de la escena 2 o 4; vacío, el mapa del juego. El TerrainWall se escribe ahí mismo.
     const World::WorldTerrain* terrain = nullptr;
     const Render::Models::Skeleton* darkSpiritSkeleton = nullptr;
@@ -84,6 +89,9 @@ struct CharacterStepContext
     std::function<void(std::int32_t)> soundRequest{};
     // Lo que el paso manda por send() (el A7 del cuervo, 0x416a20). Vacío, sin la sesión: no sale.
     std::function<void(Protocol::Outgoing)> send{};
+    // GetAsyncKeyState(0x11) con 0x80 en el byte de arriba: Ctrl abajo, que 0x558eb0 lee en la habilidad del héroe
+    // (0x558fd6, CL9 hito 3).
+    bool controlDown = false;
 };
 
 // 0x508f00. Corta con error, en el orden del original, en el mapa 30 (0x412140), sin el mapa cargado
@@ -92,6 +100,13 @@ struct CharacterStepContext
 // de los personajes (0x505de0)"); las luces de las manos van al buffer dinámico de `world`. Lo que hizo antes
 // del corte queda, con los rand() que sacó.
 [[nodiscard]] Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context);
+
+// 0x412140 (el personaje que recibe no lo mira). Fuera del mapa 30, 0x412560 suelta el panel de 0x5763530 si lo hay.
+// En el 30, con 0x6c649a en 0xff (0x412191 y 0x4123f9), arma el de la clase 0 si no hay panel (0x412195) o si el que
+// hay es de otra clase (0x412402..0x41240f), y deja el que ya es de la clase 0. Los otros puestos (0x80, 0x40, 0x20 y
+// 0) arman los paneles 1 y 2 según el gremio de 0x6c6498, y solo los trae el paquete del gremio (CL9): cortan. Lo
+// llaman el paso de los personajes con el héroe (0x508f06) y el 0x12 con cada uno (0x4c9256).
+[[nodiscard]] Core::Expected<void, std::string> StepTheSiegePanel(WorldRuntime& runtime);
 
 // 0x508ea0 para un objeto fuera del pool: no borra ni marca TerrainWall y nunca es el héroe publicado.
 [[nodiscard]] Core::Expected<void, std::string> StepCharacter(ActorState& actor, const CharacterStepContext& context);

@@ -24,6 +24,7 @@
 #include "Scenes/GameInventoryHud.h"
 #include "Scenes/GameMoveWindow.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/HeroAttack.h"
 #include "Scenes/GamePartyWindow.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/HudItems.h"
@@ -1619,7 +1620,21 @@ Core::Expected<void, std::string> DrawTheGameCursor(GameHudContext& context)
     GamePanels panels(world, context.random);
     const ActorState& hero = world.Actors()[runtime.hero];
     if (hero.safeZone == 0 && targets[2] != -1)
-        return Core::Unexpected(std::string("0x558bb0: si el personaje elegido se puede atacar es de la CL9.2"));
+    {
+        // 0x5ac53c..0x5ac60b (CL9 hito 3): atacable (0x558bb0) y el mouse fuera de la UI (0x775857c), el de atacar (4,
+        // o 0x68d en el 30); si no, el de los comandos con IsOpen(0x200) o el normal (0x5ac818).
+        const auto attackable = IsAttackable(world, context.controlDown);
+        if (!attackable.HasValue())
+            return Core::Unexpected(attackable.Error());
+        if (attackable.Value() && runtime.ui.mouseOnUi == 0)
+        {
+            constexpr std::int32_t CastleSiegeMap = 30;
+            cursor(runtime.map == CastleSiegeMap ? 0x68d : 4);
+            return {};
+        }
+        cursor(panels.Registry().IsOpen(UI::CommandsPanel) ? 0x65a : 2);
+        return {};
+    }
     if (panels.Registry().IsOpen(UI::CommandsPanel))
     {
         cursor(0x65a);

@@ -23,6 +23,7 @@
 #include "Protocol/Character/CharacterSelect.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Character/Opcodes.h"
+#include "Protocol/Combat.h"
 #include "Protocol/Connection/Hello.h"
 #include "Protocol/Connection/Keepalive.h"
 #include "Protocol/Connection/Login.h"
@@ -39,6 +40,7 @@
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/Pet/PetOrders.h"
 #include "Protocol/Skill.h"
+#include "Protocol/Viewport.h"
 #include "Protocol/World.h"
 #include "Protocol/Movement.h"
 
@@ -234,6 +236,18 @@ void ServerSession::RegisterGameServerHandlers()
         m_gameServer.On(Protocol::Movement::WalkOpcode, [this](const Network::Packet& packet) { OnWalk(packet); }) &&
         m_gameServer.On(Protocol::Movement::DamageOpcode,
                         [this](const Network::Packet& packet) { OnDamage(packet); }) &&
+        m_gameServer.On(Protocol::Movement::ActionOpcode,
+                        [this](const Network::Packet& packet) { OnAction(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::PlayersOpcode,
+                        [this](const Network::Packet& packet) { OnViewportPlayers(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::LeaveOpcode,
+                        [this](const Network::Packet& packet) { OnViewportLeave(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::TransformedOpcode,
+                        [this](const Network::Packet& packet) { OnTransformed(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::EquipmentShownOpcode,
+                        [this](const Network::Packet& packet) { OnEquipmentShown(packet); }) &&
+        m_gameServer.On(Protocol::Viewport::PositionOpcode,
+                        [this](const Network::Packet& packet) { OnViewportPosition(packet); }) &&
         m_gameServer.On(Protocol::World::TeleportOpcode,
                         [this](const Network::Packet& packet) { OnTeleport(packet); }) &&
         m_gameServer.On(Protocol::World::WorldOpcode, Protocol::World::RegenSubcode,
@@ -268,6 +282,16 @@ void ServerSession::RegisterGameServerHandlers()
         m_gameServer.On(Protocol::Connection::MainCheckOpcode,
                         [this](const Network::Packet& packet) { OnMainCheck(packet); });
     assert(registered && "los handlers del GameServer se registran una vez");
+    // CL9 hito 3 (atacar, el daño y la muerte): el despacho de 0x4e2b10 manda el 0x16 a 0x4cf200 y el 0x9C a 0x4cfce0
+    // (los dos con el flag de descifrado) y el 0x17 a 0x4d0a30. El 0x15 de la GS 0.97 (GCDamageSend) no tiene caso: cae
+    // en el default (0x4e5b4a) y no hace nada, como acá. El D7 que llega ya lo atiende OnDamage.
+    [[maybe_unused]] const bool combatRegistered =
+        m_gameServer.On(Protocol::Combat::KillExperienceOpcode,
+                        [this](const Network::Packet& packet) { OnKillExperience(packet); }) &&
+        m_gameServer.On(Protocol::Combat::ExtendedKillExperienceOpcode,
+                        [this](const Network::Packet& packet) { OnExtendedKillExperience(packet); }) &&
+        m_gameServer.On(Protocol::Combat::DeathOpcode, [this](const Network::Packet& packet) { OnDeath(packet); });
+    assert(combatRegistered && "los handlers del combate se registran una vez");
     RegisterSkillHandlers();
 }
 
@@ -1076,6 +1100,8 @@ void ServerSession::OnOptionData(const Network::Packet& packet)
 // traba (0x4d1432..0x4d1970). Sus dos rand() (el relleno y el serial) no salen del de la CRT, como los del F3 10.
 void ServerSession::OnItemMove(const Network::Packet& packet)
 {
+    // 0x4e38ca..0x4e394f: la copia en la cola, antes del flag y del lector, incluso si se rechaza o está corto.
+    m_eventSink.CopyToPacketRing(packet.Bytes());
     if (!packet.WasDecrypted())
     {
         m_log.Warning("el movimiento de ítem (24) no llegó cifrado: se le avisa al GameServer (F1 03)");
@@ -1129,6 +1155,8 @@ void ServerSession::OnItemDelete(const Network::Packet& packet)
 
 void ServerSession::OnDurability(const Network::Packet& packet)
 {
+    // 0x4e3ace..0x4e3b53: la copia en la cola, antes del lector, incluso si está corto.
+    m_eventSink.CopyToPacketRing(packet.Bytes());
     const auto durability = Protocol::Inventory::ReadDurability(packet);
     if (!durability.HasValue())
     {
@@ -1207,7 +1235,23 @@ Core::Expected<void, std::string> ServerSession::SendWalk(std::span<const Protoc
 
 Core::Expected<void, std::string> ServerSession::SendFacing(std::uint8_t direction)
 {
-    return SendWorldPacket(Protocol::Movement::WriteFacing(direction));
+    return SendWorldPacket(Protocol::Movement::WriteAction(direction, Protocol::Movement::FacingAction));
+}
+
+void ServerSession::SendAction(std::uint8_t direction, std::uint8_t action)
+{
+    static_cast<void>(SendWorldPacket(Protocol::Movement::WriteAction(direction, action)));
+}
+
+Core::Expected<void, std::string> ServerSession::SendAttack(std::uint16_t key, std::uint8_t action,
+                                                            std::uint8_t direction)
+{
+    return SendWorldPacket(Protocol::Combat::WriteAttack(key, action, direction));
+}
+
+Core::Expected<void, std::string> ServerSession::SendElfCell(std::uint8_t x, std::uint8_t y)
+{
+    return SendWorldPacket(Protocol::Combat::WriteElfCell(x, y));
 }
 
 Core::Expected<void, std::string> ServerSession::SendOptionData(const Protocol::OptionData::OptionBody& body)
@@ -1243,11 +1287,6 @@ void ServerSession::RequestCastleSiegeState()
 void ServerSession::RequestPartyList()
 {
     static_cast<void>(SendWorldPacket(Protocol::Party::WritePartyListRequest()));
-}
-
-std::span<const std::vector<std::byte>> ServerSession::Teleports() const
-{
-    return m_teleports.Entries();
 }
 
 // 06 § Caminar: los ecos y el daño se aplican sin guarda de escena ni del flag de cifrado.
@@ -1423,11 +1462,131 @@ void ServerSession::OnPetInfo(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(info.Value(), *this)));
 }
 
+// CL9 hito 3. 0x4cf200 y 0x4cfce0 miran el flag antes de leer: con 0, el F1 03 con el opcode y nada más.
+void ServerSession::OnKillExperience(const Network::Packet& packet)
+{
+    if (!packet.WasDecrypted())
+    {
+        m_log.Warning("la experiencia (16) no llegó cifrada: se le avisa al GameServer (F1 03)");
+        Protocol::Outgoing report = Protocol::Combat::WriteClearKillReport(Protocol::Combat::KillExperienceOpcode);
+        m_connection.Send(std::move(report.packet), report.delivery);
+        return;
+    }
+    const auto experience = Protocol::Combat::ReadKillExperience(packet);
+    if (!experience.HasValue())
+    {
+        m_log.Warning("se ignora la experiencia (16): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(experience.Value(), *this)));
+}
+
+void ServerSession::OnExtendedKillExperience(const Network::Packet& packet)
+{
+    if (!packet.WasDecrypted())
+    {
+        m_log.Warning("la experiencia (9C) no llegó cifrada: se le avisa al GameServer (F1 03)");
+        Protocol::Outgoing report =
+            Protocol::Combat::WriteClearKillReport(Protocol::Combat::ExtendedKillExperienceOpcode);
+        m_connection.Send(std::move(report.packet), report.delivery);
+        return;
+    }
+    const auto experience = Protocol::Combat::ReadExtendedKillExperience(packet);
+    if (!experience.HasValue())
+    {
+        m_log.Warning("se ignora la experiencia (9C): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(experience.Value(), *this)));
+}
+
+// 0x4d0a30 recibe el paquete y el largo: no mira el flag.
+void ServerSession::OnDeath(const Network::Packet& packet)
+{
+    const auto death = Protocol::Combat::ReadDeath(packet);
+    if (!death.HasValue())
+    {
+        m_log.Warning("se ignora la muerte (17): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(death.Value(), *this)));
+}
+
+// 0x4cb750 (desde 0x4e39ab): la acción de otro, sin guarda de escena ni del flag de cifrado.
+void ServerSession::OnAction(const Network::Packet& packet)
+{
+    const auto action = Protocol::Movement::ReadAction(packet);
+    if (!action.HasValue())
+    {
+        m_log.Warning("se ignora la acción (18): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(action.Value(), *this)));
+}
+
+// 0x4e372e, 0x4e3819, 0x4e3b2c, 0x4e36c5 y 0x4e3716: el dispatcher no mira la escena ni el flag de cifrado.
+void ServerSession::OnViewportPlayers(const Network::Packet& packet)
+{
+    // 0x4e372e..0x4e37b8: la copia en la cola, antes del lector, incluso si está corto.
+    m_eventSink.CopyToPacketRing(packet.Bytes());
+    const auto players = Protocol::Viewport::ReadPlayers(packet);
+    if (!players.HasValue())
+    {
+        m_log.Warning("se ignoran los jugadores del viewport (12): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(players.Value(), *this)));
+}
+
+void ServerSession::OnViewportLeave(const Network::Packet& packet)
+{
+    const auto leave = Protocol::Viewport::ReadLeave(packet);
+    if (!leave.HasValue())
+    {
+        m_log.Warning("se ignoran las bajas del viewport (14): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(leave.Value(), *this)));
+}
+
+void ServerSession::OnTransformed(const Network::Packet& packet)
+{
+    const auto transformed = Protocol::Viewport::ReadTransformed(packet);
+    if (!transformed.HasValue())
+    {
+        m_log.Warning("se ignoran los transformados del viewport (45): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(transformed.Value(), *this)));
+}
+
+void ServerSession::OnEquipmentShown(const Network::Packet& packet)
+{
+    const auto shown = Protocol::Viewport::ReadEquipmentShown(packet);
+    if (!shown.HasValue())
+    {
+        m_log.Warning("se ignora el equipo de otro (25): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(shown.Value(), *this)));
+}
+
+void ServerSession::OnViewportPosition(const Network::Packet& packet)
+{
+    const auto position = Protocol::Viewport::ReadPosition(packet);
+    if (!position.HasValue())
+    {
+        m_log.Warning("se ignora la posición de otro (DF): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(position.Value(), *this)));
+}
+
 // P-C33: 0x4c6e32 prueba el flag antes de leer los campos; cero manda el F1 03.
 void ServerSession::OnTeleport(const Network::Packet& packet)
 {
-    // 0x4e3e98..0x4e3f1d, antes del flag y del lector, incluso si se rechaza o está corto.
-    m_teleports.Record(packet.Bytes());
+    // 0x4e3e98..0x4e3f1d: la copia en la cola, antes del flag y del lector, incluso si se rechaza o está corto.
+    m_eventSink.CopyToPacketRing(packet.Bytes());
     if (!packet.WasDecrypted())
     {
         m_log.Warning("el warp (1C) no llegó cifrado: se le avisa al GameServer (F1 03)");

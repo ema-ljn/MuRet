@@ -96,6 +96,10 @@ constexpr int OtherCellDraws = 8;
 constexpr int OtherSeenCellDraws = 8;
 // El rand() & 7 de 0x506cac, después de la cabeza.
 constexpr int EffectsRandomDraws = 1;
+// Una lectura de +0x38e (0x517630 o sus copias en línea): un rand() al cerrarse en 0.
+constexpr int SkillReadDraws = 1;
+// Una habilidad con caso en el switch de 0x4f97b0 (0x4f9899), del hito 4.
+constexpr std::uint8_t FrameSkill = 0x28;
 // 0x5068fd: la cabeza de otro que el héroe sortea con rand() % 32 en 0.
 constexpr int HeadOneIn = 32;
 // La selección (0x633f20, World55) y el login (0x6349a0, World56).
@@ -720,7 +724,8 @@ TEST(CharacterStepTest, TheSafeZoneIsTheLowBitOfTheCell)
 // 0x508f14..0x5091a0: el 0x02 sale de toda la grilla y vuelve en la celda lógica (los ocho bits bajos) de
 // cada personaje vivo, sin morirse (+0x389) y sin el 8 de +0x88, con sus dos accesos; si se ve, de los 400
 // primeros, vivos o no; el 401 no. Después, el primer vivo que no es el héroe, el que se muere, sale de 0x508ba0
-// sin leer su celda (0x508bb6) y el paso corta en su cuerpo, en 0x4fb9e0.
+// sin leer su celda (0x508bb6) y, después de su paso de morirse (0x4fb9e0, sin rand() fuera del mapa 7), el paso corta
+// en su modelo, el 0, que no está leído (0x4f9580).
 TEST(CharacterStepTest, TheWallsAndTheViewCoverTheFirstFourHundred)
 {
     GameWorld tested;
@@ -745,8 +750,9 @@ TEST(CharacterStepTest, TheWallsAndTheViewCoverTheFirstFourHundred)
 
     const auto stepped = tested.Step(Everything);
 
-    ASSERT_TRUE(HasError(stepped, "0x4fb9e0")) << ErrorOf(stepped);
+    ASSERT_TRUE(HasError(stepped, "0x4f9580")) << ErrorOf(stepped);
     EXPECT_NE(stepped.Error().find("lugar 1 "), std::string::npos) << stepped.Error();
+    EXPECT_FLOAT_EQ(actors[1].dyingTime, 0.02f);
     EXPECT_EQ(tested.Cell(200, 201), 0x0104);
     EXPECT_EQ(tested.Cell(1, 1), 0);
     EXPECT_EQ(tested.Cell(2, 2), 0);
@@ -1093,8 +1099,10 @@ TEST(CharacterStepTest, TheWeaponTrailDrawsFromFrameThree)
 
 // Lo que el cuerpo (0x4fd5f0) no tiene corta, en su orden y después de los rand() de antes: los mapas 18 a 23 con
 // el héroe 10 s en una celda con el bit 8 (0x4fbe10 manda C1 06 AF 01, CL9.5), el 0xc5 (0x4fd603), el 0xf1 (0x4fb910),
-// muriéndose (0x4fb9e0), +0x88 en 4 (0x4fcd0c), el nombre de 0x6c88b0 (0x4fcda2), otro modelo, Player.bmd sin cargar o
-// una acción fuera de él (0x4f9580, 0x4f95c0) y la partícula de las 0x4d, 0x4f y 0x5a (0x4fdb70).
+// +0x88 en 4 (0x4fcd0c), el nombre de 0x6c88b0 (0x4fcda2), otro modelo, Player.bmd sin cargar o una acción fuera de él
+// (0x4f9580, 0x4f95c0), la partícula de las 0x4d, 0x4f y 0x5a (0x4fdb70) y, después de pegar, una habilidad de +0x38e
+// en 0x4f97b0 (0x4f9899, después de leerla; también muriéndose: el paso de morirse, 0x4fb9e0, y el de 0x4fd787 ya
+// pasaron).
 TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
 {
     struct Case
@@ -1112,7 +1120,21 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
              WallDraws + HeroCellReads},
         Case{"el 0xc5", [](GameWorld& tested) { tested.Hero().type = 0xc5; }, "0x4fd603", WallDraws},
         Case{"el 0xf1", [](GameWorld& tested) { tested.Hero().type = 0xf1; }, "0x4fb910", AfterTheTimers},
-        Case{"se muere", [](GameWorld& tested) { tested.Hero().dying = 1; }, "0x4fb9e0", OwnRecordDraws},
+        Case{"se muere y pegó con una habilidad",
+             [](GameWorld& tested)
+             {
+                 tested.Hero().dying = 1;
+                 tested.Hero().byte381 = 1;
+                 tested.Hero().byte38e = FrameSkill;
+             },
+             "0x4f9899", OwnRecordDraws + BodyDraws + SkillReadDraws},
+        Case{"pegó con una habilidad",
+             [](GameWorld& tested)
+             {
+                 tested.Hero().byte381 = 1;
+                 tested.Hero().byte38e = FrameSkill;
+             },
+             "0x4f9899", AfterTheTimers + BodyDraws + SkillReadDraws},
         Case{"+0x88 en 4", [](GameWorld& tested) { tested.Hero().byte88 = 4; }, "0x4fcd0c", AfterTheTimers},
         Case{"el nombre",
              [](GameWorld& tested)
@@ -1609,10 +1631,10 @@ TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
     EXPECT_EQ(DynamicLightAt(lit.world, 0, 0).r, std::bit_cast<float>(0x3f4ccccdu));
 }
 
-// Las salidas de 0x508ba0 antes de la celda: el que se muere sale (0x508bb6) y corta en su cuerpo (0x4fb9e0),
-// salvo el 0x154, que toma la altura del terreno (0x508e89); el que camina sigue su camino (0x508e27); el 0x159
-// sale sin leer la celda y corta en su modelo (0x4f9580). Cada uno, con el héroe vivo en el lugar 42, después del
-// TerrainWall.
+// Las salidas de 0x508ba0 antes de la celda: el que se muere sale (0x508bb6) y hace su cuerpo, con el paso de morirse
+// (0x4fb9e0) y el rand() % 6, hasta la habilidad de +0x38e después de pegar (0x4f9899), salvo el 0x154, que toma la
+// altura del terreno (0x508e89); el que camina sigue su camino (0x508e27); el 0x159 sale sin leer la celda y corta en
+// su modelo (0x4f9580). Cada uno, con el héroe vivo en el lugar 42, después del TerrainWall.
 TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
 {
     struct Case
@@ -1625,7 +1647,7 @@ TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
         int draws;
     };
     constexpr std::uint16_t Player = Client::Data::Models::PlayerSkeletonModel;
-    for (const Case& probe : {Case{"se muere", Player, 1, 0, "0x4fb9e0", WallDraws},
+    for (const Case& probe : {Case{"se muere", Player, 1, 0, "0x4f9899", WallDraws + BodyDraws + SkillReadDraws},
                               Case{"se muere el 0x154", 0x154, 1, 0, "0x508e89", WallDraws},
                               // Walk ya existe: consume su rand antes de que Position encuentre la altura ausente.
                               Case{"camina", Player, 0, 1, "0x508a80", 2 * WallDraws + 1},
@@ -1639,6 +1661,8 @@ TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
         other.type = probe.type;
         other.dying = probe.dying;
         other.movement = probe.movement;
+        other.byte381 = probe.dying;
+        other.byte38e = FrameSkill;
 
         const auto stepped = tested.Step(Everything);
 

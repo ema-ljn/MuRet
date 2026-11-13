@@ -214,26 +214,26 @@ portar y las ramas que el hito llena en funciones de otras olas. El detalle por 
 
 ### Hito 1: el emote y los otros jugadores (CL9.1, ~35 KB)
 
-- [ ] **El emote entero** (§ Lo que encontró el barrido): `UI::CheckTheEmotes` pasa a `FindTheEmote`, que
+- [x] **El emote entero** (§ Lo que encontró el barrido): `UI::CheckTheEmotes` pasa a `FindTheEmote`, que
       devuelve el caso con los 95 textos en el orden del original (incluidos los 15 literales, comparados con
       `0x576960` sobre los bytes CP949 tal cual); `0x576a60` con su compuerta (`+0x111` en 1..12 o `0x8a`), el +1
       del elfo y `0x4ea030`; los dos `C1 05 18`, con `Protocol::Movement::WriteAction(dir, acción)` (el
       `WriteFacing` de hoy pasa a ser `WriteAction(dir, 0x7a)`); y la compuerta de la CL8 (montado fuera de la
       zona segura, nada) queda como está. Se va el corte de `ChatCommands.cpp` y P-C87 se cierra.
-- [ ] **Sentarse** (`0x4f2250`, tramo `0x4f2416..0x4f2bea`): el `C1 18` que hoy corta en `ActorActions.cpp`.
-- [ ] **Los otros jugadores entran y salen:** el `0x12` (`0x4c8860` con su cola de 10 ranuras de `0x100` B,
+- [x] **Sentarse** (`0x4f2250`, tramo `0x4f2416..0x4f2bea`): el `C1 18` que hoy corta en `ActorActions.cpp`.
+- [x] **Los otros jugadores entran y salen:** el `0x12` (`0x4c8860` con su cola de 10 ranuras de `0x100` B,
       `0x77f3ba0`), el alta (`0x512870`, `0x5139f0` con la apariencia, el nombre en `+0x1d9`, el GM por
       "webzen", las banderas de `+0x78` con `0x4e6380` y `0x42ab40`, el `+0x360` del `0x4c89e1`), el `0x14`
       (`0x4ca780`, con el caso `0x13d`, `0x510ff0` y la limpieza de `0x451430`/`0x451630`), el `0x45`
       (`0x4c92a0`, los transformados, *inferido*), el `0x25` (el equipo de otro, `0x4c8380`) y el `0xDF` (la
       posición, `0x4c6b40` y `0x51fe10`).
-- [ ] **La acción de otro** (`0x18`, `0x4cb750`): la tabla acción → animación con sus variantes de elfo, los
+- [x] **La acción de otro** (`0x18`, `0x4cb750`): la tabla acción → animación con sus variantes de elfo, los
       casos `0x12` (sonido `0x6f`, CL10), `0x78`/`0x79` (`0x4f4a10`, es del hito 3: corta), `0x7a`/`0x7b`
       (`0x4f2250`) y `0x7e`; el modelo `0x1c16` no se toca.
-- [ ] **Lo que el héroe ya hace con otros:** el `D3` y el `D7` de otros (hoy portados) los encuentran; el
+- [x] **Lo que el héroe ya hace con otros:** el `D3` y el `D7` de otros (hoy portados) los encuentran; el
       picking de personajes de `0x59ec80` (el corte de la CL8 que deja −1) y el elegido (`0x59ee0b`), con sus
       `rand()`; las búsquedas muertas `0x5132d0`, `0x5178f0` y `0x517920` se anotan.
-- [ ] Lo que cada alta llama de la CL11 (el efecto de llegada `0x518cf0` ya portado en parte, los joints
+- [x] Lo que cada alta llama de la CL11 (el efecto de llegada `0x518cf0` ya portado en parte, los joints
       `0x530860`) se llama hasta donde está portado y corta con su dirección donde no.
 
 **Pruebas:** los 95 textos contra su caso (un test por fila de la tabla, y el orden: un texto que contiene dos
@@ -271,12 +271,26 @@ de cada alta; el `C1 30` y el `A2` byte a byte; el `A3` con sus tres resultados 
 
 ### Hito 3: atacar, el daño y la muerte (CL9.2, ~20 KB)
 
-- [ ] **Pegar:** la rama de ataque de `0x5650c0` (el `D7` del cliente en `0x565a79`, que FoxAnti manda como
-      `A4`) y de `0x57cfc0`, el freno de 300 ms (`0x576791c`), el cursor de ataque (`0x558bb0`).
-- [ ] **El daño y la muerte de otros:** las ramas de otros de `0x4caae0` (el `D7` que llega), el `0x17`
+- [x] **Pegar:** la rama de ataque de `0x5650c0` (el `D7` del cliente en `0x565a79`, que FoxAnti manda como
+      `A4`) y de `0x57cfc0`, el freno de 300 ms (`0x576791c`), el cursor de ataque (`0x558bb0`). Fase 1 hecha
+      (2026-11-13): el caso 3 de `0x5650c0`, `PassesTheActionBrake` para las skills de `0x57cfc0` (hito 4) y
+      `0x558bb0` en el cursor; el clic `0x59d3de` que deja `+0x379` en 3 queda para la fase 2 (P-C251). Fase 2a
+      hecha (2026-11-13): el clic de ataque (`0x59cd49..0x59d8be`, con el `DF` del elfo, `0x558800` y `0x561c50`),
+      el ataque automático (`0x59b8a7`, `0x59b22f`) y el elfo que se acerca (`0x566271`, `PathFinding2` con
+      distancia); `+0x381` corta en `0x4fdbb1` (P-C254). Fase 2b hecha (2026-11-13): el paso del ataque
+      (`0x4f97b0`, `0x4f5b70` con los jugadores y la habilidad `0x4fdbf1..0x50539e` con `0x558eb0`,
+      `Scenes::StepTheAttack`), por la decisión 5; sigue cortando en la partícula `0x5e4` del blanco con daño,
+      los joints `0x618` del que mató, las `0x5c6` del `0x815` y la flecha (P-C257), y en las habilidades (hito 4,
+      P-C258).
+- [x] **El daño y la muerte de otros:** las ramas de otros de `0x4caae0` (el `D7` que llega), el `0x17`
       (`0x4d0a30`, morir, con los casos `0x28` y `0x3b`), el `0x16` (`0x4cf200`, la experiencia), el `0x9C`
       (`0x4cfce0`), `0x4f4a10` (las acciones `0x78`/`0x79` del `0x18`, sin leer) y los números de daño
-      (`0x548e40`, `0x548eb0`).
+      (`0x548e40`, `0x548eb0`). Fase 1 hecha (2026-11-13): el `D7` que llega ya estaba (CL7/CL8); `0x4f4a10`
+      queda como `SetActorAttack` para que el hito 1a lo llame desde `0x4cb750`; los cortes, en P-C250, y el
+      cableado con los actores del `12` y del `13`, en P-C251. Fase 2a hecha (2026-11-13), sobre el hito 1: el
+      `0x78`/`0x79` del `18` llama a `SetActorAttack` (`0x4cb820..0x4cb852`); los sonidos de la tabla del modelo
+      van a `lastSoundId` (P-C253); morirse, `0x4fb9e0` (P-C255). Fase 2c (con el hito 2): los ayudantes de
+      monstruos de `0x4f4a10` y de `0x4f5b70` (`0x4f5c0f`), las tablas de sonidos y el `0x192`.
 
 **Pruebas:** el `D7`/`A4` que sale al pegar; la muerte de un monstruo y la de otro jugador; la experiencia del
 `0x16` y del `0x9C` contra el struct del GS (`GCKillPlayerExpSend`); los `rand()` del paso con un monstruo en

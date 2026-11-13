@@ -152,6 +152,9 @@ struct PanelState
     // manda C1 03 97 (CL9.5). Los demás los pone en 0 cerrar el inventario (0x659250..0x65926a).
     std::int32_t field78abb00 = 0;
     std::int32_t field78abb04 = 0;
+    // 0x78abb08: un byte del panel 0x2000, que su paso (0x5e74f0, CL9) da vuelta y que abrirlo (0x65b259), cerrarlo
+    // (0x658bea) y el no del diálogo del 4 de 0x78abb14 (0x5d9c56) ponen en 0.
+    std::uint8_t field78abb08 = 0;
     std::uint8_t field78abb09 = 0;
     // 0x78abb0c: el modo de reparar (1 o 2) que dibuja el cursor (06 § El cursor). Lo ponen en 0 también la
     // entrada al mundo y los cambios de mapa.

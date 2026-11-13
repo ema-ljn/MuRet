@@ -124,8 +124,8 @@ struct NpcWindowState
     // la apaga soltarlo (0x5e9ac9); el dibujo (0x5e9e25) baja un punto el número de la tecla del mouse.
     std::uint8_t keypadPressed = 0;
     // 0x78abb14: lo que espera el diálogo de sí o no que abrió el ítem del cursor (.bss, 0). 1 la venta valiosa (el
-    // 0x98 de 0x5df417), 2 la mezcla (el 0x98 de 0x5fe610), 3 a 6 los de la CL9.4. 0x5d8d50 lo vuelve a 0 al leer la
-    // respuesta.
+    // 0x98 de 0x5df417), 2 la mezcla (el 0x98 de 0x5fe610), 4 el teclado del almacén (el 0x98 del panel 0x2000,
+    // 0x5e75fc), 3, 5 y 6 los de la CL9.4. 0x5d8d50 lo vuelve a 0 al leer la respuesta.
     std::int32_t cursorChoice = 0;
     // 0x6c932e (.data, 0xff): la respuesta de los diálogos 0x94, 0x98 y 0x99 (0x62a779) y del 0x91
     // (0x626251..0x626293): 1 sí y 2 no. 0x5d8d50 la vuelve a 0xff al leerla. Hito 7: `trade.warningByte` (el lead los

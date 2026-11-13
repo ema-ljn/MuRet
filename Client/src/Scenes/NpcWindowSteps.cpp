@@ -113,7 +113,13 @@ constexpr std::int32_t ConfirmDialog = 0x98;
 // 0x78abb14: lo que espera el diálogo del ítem del cursor.
 constexpr std::int32_t SellChoice = 1;
 constexpr std::int32_t MixChoice = 2;
+// 0x5d9b82: el 4 lo deja el paso del panel 0x2000 (0x5e75fc, con el 0x98 del texto 0x1c0); el 5, levantar un ítem de
+// la tienda personal propia (0x5c5181, hito 7).
+constexpr std::int32_t KeypadChoice = 4;
+constexpr std::int32_t PersonalShopChoice = 5;
 constexpr std::int32_t LastChoice = 6;
+// 0x5d9c19: el teclado del almacén que abre el sí del 4.
+constexpr std::int32_t KeypadChoiceMode = 6;
 // 0x6c932e: las respuestas del 0x98 (0x62a779) y nada.
 constexpr std::uint8_t YesAnswer = 1;
 constexpr std::uint8_t NoAnswer = 2;
@@ -581,6 +587,28 @@ Core::Expected<bool, std::string> StepTheCursorChoice(const GameUiContext& conte
         }
         return true;
     }
+    if (choice == KeypadChoice)
+    {
+        if (npc.dialogAnswer == YesAnswer)
+        {
+            // 0x5d9b8f..0x5d9c23: el teclado del almacén barajado (veinte veces dos rand() % 10), lo tecleado
+            // (0x78ab9fc..0x78aba06) en 0 y 0x78abb20 en 6.
+            npc.cursorChoice = 0;
+            npc.dialogAnswer = NoAnswerYet;
+            OpenTheKeypad(runtime, context.random, KeypadChoiceMode);
+        }
+        else if (npc.dialogAnswer == NoAnswer)
+        {
+            // 0x5d9c47..0x5d9c56: y 0x78abb08, el byte del panel 0x2000, en 0.
+            npc.cursorChoice = 0;
+            npc.dialogAnswer = NoAnswerYet;
+            runtime.panels.field78abb08 = 0;
+        }
+        return true;
+    }
+    if (choice == PersonalShopChoice)
+        return Core::Unexpected(std::string("0x5d9c75: 0x78abb14 en 5, el sí que manda el C1 3F 06 de la tienda "
+                                            "personal, es del hito 7 (CL9.4, 08 P-C339)"));
     if (choice > MixChoice && choice <= LastChoice)
         return Core::Unexpected(std::format("0x5d965a: 0x78abb14 en {} (el comercio, la tienda personal y el duelo) "
                                             "es de la CL9.4",

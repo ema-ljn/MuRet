@@ -763,6 +763,67 @@ TEST_F(NpcWindowStepsTest, TheMixConfirmationSends86)
     EXPECT_EQ(runtime.dialogs.current, 0);
 }
 
+// 0x5d9b82..0x5d9c6b, en Lorencia, Devias y Noria: con 0x78abb14 en 4 (el panel 0x2000) y el sí, el teclado del
+// almacén vuelve a 0..9 y se baraja con veinte pares de rand() % 10 (los 40 rand()), lo tecleado queda en 0 y
+// 0x78abb20 en 6; con el no, 0x78abb08 en 0 y sin rand(); sin respuesta, nada. 0x5d9c75: el 5 (la tienda personal)
+// corta hacia el hito 7.
+TEST_F(NpcWindowStepsTest, TheKeypadChoiceShufflesTheWarehouseKeypadInSix)
+{
+    for (const std::int32_t map : {0, 2, 3})
+    {
+        SCOPED_TRACE(map);
+        auto& runtime = world.Runtime();
+        runtime.map = map;
+        Npc().cursorChoice = 4;
+        Npc().dialogAnswer = 0xff;
+        const CrtRandom unchanged = random;
+        ASSERT_TRUE(Client::Scenes::StepTheCursorChoice(Context(0, 0)).Value());
+        EXPECT_EQ(Npc().cursorChoice, 4);
+        EXPECT_EQ(random.State(), unchanged.State());
+
+        Npc().dialogAnswer = 1;
+        Npc().typedNumber.fill(7);
+        Npc().keypad.fill(9);
+        CrtRandom expectedRandom = random;
+        std::array<std::uint16_t, 10> expectedKeys{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+        for (int swap = 0; swap < 20; ++swap)
+        {
+            const auto first = static_cast<std::size_t>(expectedRandom.Next() % 10);
+            const auto second = static_cast<std::size_t>(expectedRandom.Next() % 10);
+            std::swap(expectedKeys[first], expectedKeys[second]);
+        }
+        const auto chose = Client::Scenes::StepTheCursorChoice(Context(0, 0));
+        ASSERT_TRUE(chose.HasValue()) << chose.Error();
+        EXPECT_TRUE(chose.Value());
+        EXPECT_EQ(random.State(), expectedRandom.State());
+        EXPECT_EQ(Npc().keypad, expectedKeys);
+        EXPECT_EQ(Npc().typedNumber, (std::array<std::uint8_t, 11>{}));
+        EXPECT_EQ(runtime.ui.field78abb20, 6);
+        EXPECT_EQ(Npc().cursorChoice, 0);
+        EXPECT_EQ(Npc().dialogAnswer, 0xff);
+        EXPECT_TRUE(sent.empty());
+
+        Npc().cursorChoice = 4;
+        Npc().dialogAnswer = 2;
+        runtime.panels.field78abb08 = 1;
+        runtime.ui.field78abb20 = 0;
+        const CrtRandom refused = random;
+        ASSERT_TRUE(Client::Scenes::StepTheCursorChoice(Context(0, 0)).Value());
+        EXPECT_EQ(runtime.panels.field78abb08, 0);
+        EXPECT_EQ(runtime.ui.field78abb20, 0);
+        EXPECT_EQ(Npc().cursorChoice, 0);
+        EXPECT_EQ(Npc().dialogAnswer, 0xff);
+        EXPECT_EQ(random.State(), refused.State());
+
+        Npc().cursorChoice = 5;
+        Npc().dialogAnswer = 1;
+        const auto shop = Client::Scenes::StepTheCursorChoice(Context(0, 0));
+        ASSERT_FALSE(shop.HasValue());
+        EXPECT_NE(shop.Error().find("0x5d9c75"), std::string::npos) << shop.Error();
+        EXPECT_NE(shop.Error().find("P-C339"), std::string::npos) << shop.Error();
+    }
+}
+
 // 0x5d8db6..0x5d8dda y 0x5fe690..0x5fea82, en Lorencia, Devias y Noria (la del duende del caos): con la caja abierta,
 // cada paso cuenta lo que vale (0x5fd120: 15.000 de la espada y los fijos de las joyas) y el tipo (0x5fd4f0): la
 // espada +9 con suerte, Bless, Soul y la joya del caos son el 3, con la suerte. El clic en el botón de mezclar, con más

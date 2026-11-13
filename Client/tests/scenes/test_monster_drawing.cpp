@@ -4,6 +4,7 @@
 #include "Core/IClock.h"
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Terrain/TerrainHeights.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Render/Models/Cloth.h"
@@ -29,6 +30,9 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
+#include <bit>
+#include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -285,6 +289,61 @@ TEST_F(MonsterDrawingTest, TheShadowSkipsTheListedMonstersTheFaintAndThe0x92Off)
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_batch.Vertices().size(), 12u); // cuatro cuerpos, ninguna sombra
+}
+
+// 0x50bed8: el 0xe8 y el 0xe9 llevan, después de la sombra sin la malla 2, el calco 0x61e aditivo de 2,7 celdas a 5 del
+// piso, con la luz (v / 2, v / 2, v) de v = sin(T · 0,0015f) · 0,3f + 0,8f; +0x58 vuelve a −1.
+TEST_F(MonsterDrawingTest, TheArchangelsMarkTheFloorUnderThem)
+{
+    struct Case
+    {
+        std::int32_t map;
+        std::uint16_t monster;
+    };
+    constexpr std::array cases{Case{0, 0xe9}, Case{2, 0xe9}, Case{11, 0xe8}};
+    for (const Case& value : cases)
+    {
+        SCOPED_TRACE(value.map);
+        m_world = std::make_unique<Client::Scenes::WorldState>();
+        SetUp();
+        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+        m_world->Runtime().map = value.map;
+        ActorState& archangel = Monster(6, Spider, value.monster);
+        archangel.position = {12850.0f, 12850.0f, 10.0f};
+        archangel.angles.z = 30.0f;
+        GameCharacterPass pass = Pass();
+        pass.frameClock = std::chrono::milliseconds(1000);
+
+        const auto result = Draw(pass);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(archangel.dword58, -1);
+        // El cuerpo, la sombra (la malla 0: +0x58 en 2 oculta otra) y las 7 · 7 celdas del calco, de dos triángulos.
+        ASSERT_EQ(m_batch.Vertices().size(), 6u + 49u * 6u);
+        const auto& decal = m_batch.Commands().back();
+        EXPECT_EQ(decal.state.blend, Client::Render::ModelBlend::Additive);
+        ASSERT_TRUE(decal.state.texture.has_value());
+        EXPECT_EQ(decal.state.texture->value, 0x61e);
+        const double pulse = std::sin(1000.0 * static_cast<double>(std::bit_cast<float>(0x3ac49ba6u))) *
+                                 static_cast<double>(std::bit_cast<float>(0x3e99999au)) +
+                             static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));
+        ExpectColor(m_batch.Vertices()[6], static_cast<float>(pulse * 0.5), static_cast<float>(pulse * 0.5),
+                    static_cast<float>(pulse), 1.0f);
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[6].position.z, 5.0f);
+        EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
+        TearDown();
+    }
+}
+
+// Sin las alturas del terreno, el calco corta en 0x5fb2f0 después de la sombra.
+TEST_F(MonsterDrawingTest, TheFloorMarkNeedsTheTerrainHeights)
+{
+    Monster(6, Spider, 0xe8);
+    const auto result = Draw(Pass());
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("0x5fb2f0"), std::string::npos) << result.Error();
+    EXPECT_EQ(m_batch.Vertices().size(), 6u);
 }
 
 TEST_F(MonsterDrawingTest, TheOutlineGoesBeforeTheBodyWithTheMonsterOrTheNpcColors)

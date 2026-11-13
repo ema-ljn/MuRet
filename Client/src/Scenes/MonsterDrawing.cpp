@@ -26,6 +26,7 @@
 #include "World/ChaosCastle.h"
 #include "World/OriginalFtol.h"
 #include "World/Sprites.h"
+#include "World/TerrainDecal.h"
 #include "World/TerrainHeight.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldTerrain.h"
@@ -441,6 +442,50 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
     return CheckTheBodyTail(actor.type);
 }
 
+// 0x50bed8..0x50bf3e: el calco 0x61e del +0x376 0xe8 y 0xe9, aditivo (0x620a90), con v = sin(T · 0,0015f) · 0,3f +
+// 0,8f en la x87 y la luz (v · 0,5; v · 0,5; v): 0x5fb2f0(0x61e, x, y, 2,7f, 2,7f, &luz, −giro z, 1, 5). Después,
+// +0x58 vuelve a −1.
+Result DrawTheFloorMark(MonsterFrame& frame)
+{
+    constexpr std::int32_t Mark = 0x61e;
+    constexpr float Side = std::bit_cast<float>(0x402ccccdu); // 2,7
+    constexpr float Rate = std::bit_cast<float>(0x3ac49ba6u); // 0x6b8a60: 0,0015
+    constexpr float Span = std::bit_cast<float>(0x3e99999au); // 0x6b89dc: 0,3
+    constexpr float Base = std::bit_cast<float>(0x3f4ccccdu); // 0x6b8a38: 0,8
+    constexpr float Lift = std::bit_cast<float>(0x40a00000u); // 5
+    ActorState& actor = frame.actor;
+    // 0x620a90: ONE / ONE, sin culling ni alpha test y sin escribir la profundidad.
+    Render::ModelDrawState state = frame.batch.State();
+    state.blend = Render::ModelBlend::Additive;
+    state.cullEnabled = false;
+    state.depthWrite = false;
+    state.alphaTest = false;
+    state.texture2d = true;
+    constexpr std::array Operations{Render::ModelStateOperation::Blend, Render::ModelStateOperation::Cull,
+                                    Render::ModelStateOperation::DepthWrite, Render::ModelStateOperation::AlphaTest,
+                                    Render::ModelStateOperation::Texture2d};
+    for (const Render::ModelStateOperation operation : Operations)
+        frame.batch.ApplyOperation(state, operation);
+    const World::WorldTerrain& terrain =
+        frame.pass.terrain != nullptr ? *frame.pass.terrain : frame.world.Map().terrain;
+    if (!terrain.heights)
+        return Core::Unexpected<std::string>("0x5fb2f0: faltan las alturas del terreno del calco del 0xe8 y el 0xe9");
+    const double pulse = std::sin(D(frame.worldClock) * D(Rate)) * D(Span) + D(Base);
+    const float half = F32(pulse * D(std::bit_cast<float>(0x3f000000u)));
+    const World::TerrainDecal decal{.slot = Mark,
+                                    .x = actor.position.x,
+                                    .y = actor.position.y,
+                                    .width = Side,
+                                    .height = Side,
+                                    .color = {half, half, F32(pulse)},
+                                    .angle = -actor.angles.z,
+                                    .alpha = 1.0f,
+                                    .lift = Lift};
+    auto drawn = World::DrawTerrainDecal(frame.batch, *terrain.heights, decal);
+    actor.dword58 = -1;
+    return drawn;
+}
+
 // 0x50bd89..0x50bf3e: la sombra de los monstruos.
 Result DrawTheShadow(MonsterFrame& frame)
 {
@@ -475,7 +520,7 @@ Result DrawTheShadow(MonsterFrame& frame)
         DrawObjectShadow(frame.batch, frame.fauna, object, meshes, frame.map);
     }
     if (marked)
-        return Cut("0x50bed8", "la marca 0x61e en el piso (0x620a90 y 0x5fb2f0) del +0x376 0xe8 y 0xe9", actor.type);
+        return DrawTheFloorMark(frame);
     return {};
 }
 

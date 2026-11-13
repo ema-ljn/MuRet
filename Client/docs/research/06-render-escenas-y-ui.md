@@ -8314,7 +8314,8 @@ Con 1, el picking, `0x5fc260` sale antes de las marcas (`0x5fc2e8`).
 
 **El calco, `0x5fb2f0(slot, x, y, ancho, alto, &color, giro, alfa, lift)`.** Tiene quince llamadas:
 `0x549198` y catorce de efectos, ninguna portada. Entre las de efectos están las de `0x52dc20`
-(`0x6374d3`).
+(`0x6374d3`) y la del `0xe8` y el `0xe9` en `0x50ba30` (`0x50bf36`, portada en la CL9 hito 2: [El dibujo de los
+monstruos y los NPC](#el-dibujo-de-los-monstruos-y-los-npc)).
 
 1. **El color y el slot.** Con el alfa en 1, `glColor3fv`; si no, `glColor4f`. Las dos dejan el mismo
    color (`0x5fb2f9..0x5fb32d`). Arma la matriz de `0x5fc8f0((0, 0, giro))` y liga el slot con
@@ -10306,7 +10307,10 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    la z baja a la del terreno (`0x5f93c0`) si es menor. El `0xe8` y el `0xe9` ponen `+0x58` en 2. Salvo el `0x18e`,
    el `0x18f` y del `0xa8` al `0xac`, `0x60cf70` con `+0x98` en 1 → `0x60b3d0` → `0x4eff40(+0x64, +0x58, −1, −1)`:
    cada malla salvo la de `+0x58`, las sin triángulos y las de la textura `+0x64`, aplastada como la del jugador
-   (negra; en el 7, con alpha 0,2; sin sombra en Kalima). Después, el calco `0x61e` del `0xe8` y el `0xe9` (`0x5fb2f0`).
+   (negra; en el 7, con alpha 0,2; sin sombra en Kalima). Después, el calco del `0xe8` y el `0xe9` (`0x50bed8..0x50bf3e`,
+   los NPC 232 y 233, los tipos `0x1f3` y `0x1f4`): `0x620a90` y `0x5fb2f0(0x61e, x, y, 2,7f, 2,7f, &luz, −giro z, 1,
+   5)` ([Las marcas del suelo](#las-marcas-del-suelo)), con v = sin(T · 0,0015f) · 0,3f + 0,8f en la x87 y la luz
+   (v · 0,5; v · 0,5; v); después `+0x58` vuelve a −1.
 4. **Lo de `0x50bf45` por el `+0x376`**, con cualquier tipo: los pases de brillo de `0x50c671` y los casos del `0x45`,
    `0x46`, `0x47`, `0x49`, `0x4a`, `0x4b`, `0x4d`, `0x12d`, `0x35`, `0x36`, `0x2a`, `0x84..0x86` y `0x87`.
 5. **El gremio** (`0x50c972`, con `+0x1f2` distinto de `0xffff`, que en un monstruo nunca pasa), **la luz** (`0x50cc55`:
@@ -10328,13 +10332,15 @@ MuRet: `Scenes::DrawGameMonster` (`MonsterDrawing.cpp`), llamado desde `DrawGame
 `WorldState::FaunaResources()`; el cuerpo con `Scenes::SkinObjectMeshes`, `DrawObjectOutline` y `DrawObjectFromMeshes`,
 y la sombra con `DrawObjectShadow` (`CharacterDrawing.h`); lo que cuelga con `DrawGameHanging`, que ya no corta con
 otro tipo; el contorno del `0xc5` con `DrawObjectOutlineOfTheFirstMesh`, que corta en `0x60ce4e` con el `+0x58`
-distinto de −1. Entre frames del original, todo sobre una copia del personaje y del `rand()`. Cortan con su dirección:
+distinto de −1; el calco del `0xe8` y el `0xe9` con `World::DrawTerrainDecal` sobre las alturas del terreno del pase o
+del mundo (sin ellas, corta en `0x5fb2f0`). Con sus tipos de verdad no se llega: el `0x1f3` y el `0x1f4` cortan antes
+en `0x60243e` (P-C179 b, P-C240). Entre frames del original, todo sobre una copia del personaje y del `rand()`. Cortan con su dirección:
 los casos de `0x6002e0` y de su cadena, el calco del `0xe8` y el `0xe9` (`0x50bed8`), lo de `0x50bf45`, las partes, el
 Angel, el gremio y la tela del `0x37`, el joint `0x618/6` en `CreateFaunaJoint` (`0x530c18`), el `0x16e`, los helpers
 de `0x510a1e`, `0x510f4d` y el cuervo; 08, P-C179. Tests:
 `MonsterDrawingTest`, `MonsterHangingLight` y `MonsterDecorations` (`test_monster_drawing.cpp`: un Spider de Lorencia,
-un Yeti de Devias, la sombra por mapa, el contorno de un monstruo, de un NPC y de la puerta de Kalima, el hada del NPC
-237, el caso del `0x176` y los cortes), `GameHangingTest.AMonsterSkipsTheBackTheLayerAndTheEventWeapon`.
+un Yeti de Devias, la sombra por mapa, el contorno de un monstruo, de un NPC y de la puerta de Kalima, el calco del
+`0xe8` y el `0xe9` en Lorencia, Devias y Blood Castle, el hada del NPC 237, el caso del `0x176` y los cortes), `GameHangingTest.AMonsterSkipsTheBackTheLayerAndTheEventWeapon`.
 
 #### La tela sobre la malla
 

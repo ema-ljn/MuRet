@@ -201,7 +201,8 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
                                             .texts = m_texts,
                                             .chosenSlot = chosenSlot,
                                             .requests = &requests,
-                                            .inventory = &inventory});
+                                            .inventory = &inventory,
+                                            .worldEntry = m_context.worldEntry});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& input)
@@ -227,7 +228,8 @@ Core::Expected<void, std::string> GameScene::StepTheUi(const Input::InputState& 
                                        .requests = &requests,
                                        .systemTime = systemTime,
                                        .inventory = &inventory,
-                                       .itemSetTables = m_chatTables.itemSetTables});
+                                       .itemSetTables = m_chatTables.itemSetTables,
+                                       .worldEntry = m_context.worldEntry});
 }
 
 GameChatContext GameScene::ChatContext()

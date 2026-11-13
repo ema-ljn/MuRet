@@ -10,6 +10,7 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/LetterPortrait.h"
 #include "Scenes/CharacterPicking.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameCommandsWindow.h"
@@ -329,10 +330,14 @@ public:
                                              .screen = m_context.screen,
                                              .scene = std::nullopt,
                                              .texts = m_context.texts,
-                                             .chosenSlot = m_context.chosenSlot};
+                                             .chosenSlot = m_context.chosenSlot,
+                                             .worldEntry = m_context.worldEntry};
             return ApplyLetterRead(letter.Value(), receive);
         };
-        // El retrato de las cartas (P-C212) queda sin el gancho: abrir una carta o la de escribir corta.
+        // CL9 hito 10: el personaje del retrato de las cartas (Scenes/LetterPortrait) y 0x78abaac, que lee su paso.
+        if (m_context.worldEntry != nullptr)
+            view.portrait = LetterPortraitHook(*m_context.worldEntry);
+        view.field78abaac = ui.field78abaac;
         return view;
     }
 

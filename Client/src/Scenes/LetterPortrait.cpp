@@ -23,6 +23,7 @@
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/OldWindows.h"
 #include "World/GameCamera.h"
 #include "World/ItemState.h"
 #include "World/TerrainCulling.h"
@@ -32,6 +33,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <memory>
 #include <optional>
 #include <ratio>
 #include <span>
@@ -578,5 +580,61 @@ Core::Expected<std::int32_t, std::string> ShowThePortraitAction(LetterPortrait& 
 void TurnThePortrait(LetterPortrait& portrait)
 {
     portrait.actor.angles = {PortraitPitch, PortraitRoll, PortraitYaw};
+}
+
+UI::OldPortraitHook LetterPortraitHook(const WorldEntryResources& resources)
+{
+    return [&resources](UI::OldPortraitPart& part, UI::PortraitCallKind call,
+                        std::int32_t arg) -> Core::Expected<void, std::string>
+    {
+        if (!part.actor)
+            part.actor = std::make_shared<LetterPortrait>();
+        LetterPortrait& portrait = *std::static_pointer_cast<LetterPortrait>(part.actor);
+        const bool built = part.built != 0;
+        switch (call)
+        {
+        case UI::PortraitCallKind::Build:
+            if (auto made = BuildThePortrait(portrait, resources); !made.HasValue())
+                return made;
+            part.built = 1;
+            return {};
+        case UI::PortraitCallKind::SetClass:
+            return built ? SetThePortraitClass(portrait, part.portraitClass, resources)
+                         : Core::Expected<void, std::string>{};
+        case UI::PortraitCallKind::SetEquipment:
+            return built ? DressThePortrait(portrait, part.equipment, part.action, resources)
+                         : Core::Expected<void, std::string>{};
+        case UI::PortraitCallKind::CopyTheHero:
+        {
+            if (!built)
+                return {};
+            auto copied = CopyTheHeroToThePortrait(portrait, part.action, resources);
+            return copied.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(copied.Error());
+        }
+        case UI::PortraitCallKind::SetAction:
+        {
+            auto shown = ShowThePortraitAction(portrait, part.action, 0, resources);
+            return shown.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(shown.Error());
+        }
+        case UI::PortraitCallKind::TurnAction:
+        {
+            auto shown = ShowThePortraitAction(portrait, part.action, arg, resources);
+            if (!shown.HasValue())
+                return Core::Unexpected(shown.Error());
+            part.action = shown.Value();
+            portrait.frameMark = 0;
+            portrait.idle = 1;
+            return {};
+        }
+        case UI::PortraitCallKind::SetAngle:
+            if (built)
+                TurnThePortrait(portrait);
+            return {};
+        case UI::PortraitCallKind::Step:
+            portrait.actor.byte360 = HeroOf(resources).byte360;
+            return {};
+        }
+        return {};
+    };
 }
 } // namespace Client::Scenes

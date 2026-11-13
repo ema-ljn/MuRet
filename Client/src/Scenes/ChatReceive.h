@@ -29,6 +29,7 @@ class CrtRandom;
 namespace Client::Scenes
 {
 class WorldState;
+struct WorldEntryResources;
 
 struct ChatReceiveContext
 {
@@ -46,6 +47,9 @@ struct ChatReceiveContext
     std::optional<std::uint8_t> chosenSlot{};
     // Las conexiones de las salas del chat con un amigo (la sesión); sin ellas, el CA que entra a una corta.
     App::IChatRoomLinks* rooms = nullptr;
+    // CL9 hito 10: lo del juego que usa el personaje del retrato de las cartas (Scenes/LetterPortrait), que vive más
+    // que el paquete. nullptr: el C7 corta en 0x4dcd0e (P-C212).
+    const WorldEntryResources* worldEntry = nullptr;
 };
 
 // 0x5110d0: el primero de los 400 vivo con la clave (MOVSX de +0x1f4 contra el int del paquete: una clave desde

@@ -163,6 +163,146 @@ void PostToTheBase(OldWindowManager& manager, OldWindowBase& base, std::int32_t 
     }
 }
 
+// +0x48 en 2 (0x497aa0): el retrato que se gira con el mouse.
+constexpr std::int32_t TurnedPortrait = 2;
+// 0x497a00: el ícono de la ayuda, 16 × 16 en (x + 1; y + alto − 0x11).
+constexpr std::int32_t HelpIconSide = 0x10;
+constexpr std::int32_t HelpIconBottom = 0x11;
+// 0x6b89e4, 0x6b8830 y 0x6b8a38: la rueda por 0,02 y el zoom entre 0,8 y 1,1 (0x3f4ccccd y 0x3f8ccccd).
+constexpr float WheelZoomStep = 0.02f;
+constexpr float NearestZoom = 1.1f;
+constexpr float FarthestZoom = 0.8f;
+
+// 0x497a71..0x497b4b: el clic, el clic derecho o la rueda sobre el retrato.
+void HandleThePortraitPointer(OldPortraitPart& portrait, const OldWindowGlobals& globals, const OldWindowStepView& view)
+{
+    OldWindowBase& base = portrait.base;
+    if (globals.leftClick)
+    {
+        portrait.help = 0;
+        if (base.state != ShownWindow || globals.capture != 0)
+            return;
+        // 0x497a9b..0x497ac0: lo agarra, lo pone a girar (la vtable + 4 con 2), guarda la X y SetCapture (MuRet no
+        // tiene la ventana de Windows).
+        globals.capture = base.id;
+        base.state = TurnedPortrait;
+        portrait.dragX = static_cast<float>(view.mouseX);
+        return;
+    }
+    if (globals.rightClick)
+    {
+        portrait.help = 0;
+        portrait.angle = portrait.baseAngle;
+        portrait.zoom = portrait.baseZoom;
+        return;
+    }
+    if (globals.wheel == 0)
+        return;
+    portrait.help = 0;
+    // 0x497b01..0x497b41: la cuenta en la x87, guardada en float; los topes se comparan con la de la pila.
+    const double zoom =
+        static_cast<double>(globals.wheel) * static_cast<double>(WheelZoomStep) + static_cast<double>(portrait.zoom);
+    portrait.zoom = static_cast<float>(zoom);
+    if (zoom > static_cast<double>(NearestZoom))
+        portrait.zoom = NearestZoom;
+    else if (zoom < static_cast<double>(FarthestZoom))
+        portrait.zoom = FarthestZoom;
+    globals.wheel = 0;
+}
+
+// 0x497970 (la vtable + 0x20 del retrato) después de la cola y de 0x45aa80: siempre devuelve 1.
+Core::Expected<void, std::string> StepThePortraitMouse(OldPortraitPart& portrait, const OldWindowGlobals& globals,
+                                                       const OldWindowStepView& view, std::string_view where)
+{
+    OldWindowBase& base = portrait.base;
+    // 0x497973..0x4979a0: en blanco, solo el mouse sobre la UI.
+    if (portrait.blank == 1)
+    {
+        if (Steps::MouseIn(view, base.x, base.y, base.width, base.height, 1))
+            globals.mouseOnUi = 1;
+        return {};
+    }
+    // 0x4979a7..0x4979bd: siguiendo al héroe, con 0x78abaac en 1, la vtable + 0x3c.
+    if (portrait.follow == 1 && view.field78abaac == 1)
+    {
+        if (auto copied = CallThePortrait(&view, portrait, PortraitCallKind::CopyTheHero, where); !copied.HasValue())
+            return copied;
+    }
+    // 0x4979c0..0x4979cf.
+    if (auto stepped = CallThePortrait(&view, portrait, PortraitCallKind::Step, where); !stepped.HasValue())
+        return stepped;
+    if ((base.flags & 1) == 0)
+    {
+        // 0x497bbe..0x497bfc.
+        if (base.state == ShownWindow && Steps::MouseIn(view, base.x, base.y, base.width, base.height, 1))
+        {
+            globals.mouseOnUi = 1;
+            if (globals.leftClick)
+            {
+                globals.leftClick = false;
+                globals.leftHeld = false;
+            }
+        }
+        return {};
+    }
+    // 0x4979df..0x497a44: a la vista, el ícono de la ayuda la prende o la apaga con el clic.
+    const bool onTheIcon =
+        base.state == ShownWindow &&
+        Steps::MouseIn(view, base.x + 1, base.y + base.height - HelpIconBottom, HelpIconSide, HelpIconSide, 1);
+    if (onTheIcon)
+    {
+        globals.mouseOnUi = 1;
+        if (globals.leftClick)
+        {
+            portrait.help = (portrait.help + 1) % 2;
+            globals.leftClick = false;
+            globals.leftHeld = false;
+        }
+    }
+    else if (Steps::MouseIn(view, base.x, base.y, base.width, base.height, 1))
+    {
+        // 0x497a49..0x497b4b.
+        globals.mouseOnUi = 1;
+        HandleThePortraitPointer(portrait, globals, view);
+    }
+    // 0x497b51..0x497bb6: girándolo, el clic lo gira con lo que corrió el mouse; sin clic, lo suelta.
+    if (base.state != TurnedPortrait)
+        return {};
+    if (globals.leftClick)
+    {
+        globals.mouseOnUi = 1;
+        const double mouseX = static_cast<double>(view.mouseX);
+        portrait.angle =
+            static_cast<float>(mouseX - static_cast<double>(portrait.dragX) + static_cast<double>(portrait.angle));
+        portrait.dragX = static_cast<float>(view.mouseX);
+        return {};
+    }
+    base.state = ShownWindow;
+    if (globals.capture == base.id)
+        globals.capture = 0;
+    return {};
+}
+
+// 0x45aa80 sobre el retrato (la vtable + 0x18): la cola (0x45a640 da 0 y atiende 0x45abc0), la vtable + 0x1c
+// (0x403160, nada), el mouse y la vtable + 0x20 (0x497970).
+Core::Expected<void, std::string> StepThePortrait(OldWindowManager& manager, OldPortraitPart& portrait,
+                                                  std::int32_t arg, const OldWindowGlobals& globals,
+                                                  const OldWindowStepView& view, std::string_view where)
+{
+    OldWindowBase& base = portrait.base;
+    while (!base.queue.empty())
+    {
+        base.current = base.queue.front();
+        base.queue.pop_front();
+        Steps::PlaceAgainstTheParent(manager, base);
+    }
+    if (arg == 1)
+        return {};
+    if (!Steps::ClaimTheMouse(manager, base, globals, view))
+        return {};
+    return StepThePortraitMouse(portrait, globals, view, where);
+}
+
 void DrainTheList(OldWindowManager& manager, OldList& list, std::size_t size)
 {
     while (!list.base.queue.empty())
@@ -979,8 +1119,8 @@ Core::Expected<OldWindow, std::string> MakeTheLetterKind(OldWindowManager& manag
     letter.portrait.action = WritePortraitAction;
     if (auto acted = CallThePortrait(view, letter.portrait, PortraitCallKind::SetAction, "0x497f50"); !acted.HasValue())
         return Core::Unexpected(std::move(acted).Error());
-    if (letter.portrait.built != 0)
-        letter.portrait.angle = WritePortraitAngle;
+    if (auto turned = SetThePortraitAngle(view, letter.portrait, WritePortraitAngle, "0x497f50"); !turned.HasValue())
+        return Core::Unexpected(std::move(turned).Error());
     letter.withPortrait = 1;
     base.width += PortraitWidth;
     window.frame.minWidth = LetterMinWidth;
@@ -1040,7 +1180,7 @@ Core::Expected<void, std::string> StepTheLetterKindsChildren(OldWindowManager& m
         StepAList(manager, letter.lines, letter.lineRows.size(), arg, globals, view);
         for (OldButton& button : letter.buttons)
             Steps::StepTheButton(manager, button, arg, globals, view);
-        return CallThePortrait(&view, letter.portrait, PortraitCallKind::Step, "0x49b180", arg);
+        return StepThePortrait(manager, letter.portrait, arg, globals, view, "0x49b180");
     }
     // 0x499780: los tres EDIT, los dos primeros botones y, con +0xb0 en 1, los otros dos y el retrato.
     StepTheEdit(manager, letter.to, arg, globals, view);
@@ -1052,7 +1192,7 @@ Core::Expected<void, std::string> StepTheLetterKindsChildren(OldWindowManager& m
         return {};
     Steps::StepTheButton(manager, letter.buttons[2], arg, globals, view);
     Steps::StepTheButton(manager, letter.buttons[3], arg, globals, view);
-    return CallThePortrait(&view, letter.portrait, PortraitCallKind::Step, "0x499780", arg);
+    return StepThePortrait(manager, letter.portrait, arg, globals, view, "0x499780");
 }
 
 Core::Expected<void, std::string> SettleTheLetterKinds(OldWindowManager& manager, OldWindow& window,
@@ -1577,5 +1717,22 @@ void PingTheChatRooms(OldWindowManager& manager)
         manager.chatRooms.orders.push_back(
             ChatRoomOrder{.kind = ChatRoomOrder::Kind::Ping, .room = chat->chat.room, .text = {}});
     }
+}
+Core::Expected<void, std::string> SetThePortraitAngle(const OldWindowStepView* view, OldPortraitPart& portrait,
+                                                      float angle, std::string_view where)
+{
+    if (portrait.built == 0)
+        return {};
+    if (auto turned = CallThePortrait(view, portrait, PortraitCallKind::SetAngle, where); !turned.HasValue())
+        return turned;
+    portrait.baseAngle = angle;
+    portrait.angle = angle;
+    return {};
+}
+
+void SetThePortraitZoom(OldPortraitPart& portrait, float zoom)
+{
+    portrait.baseZoom = zoom;
+    portrait.zoom = zoom;
 }
 } // namespace Client::UI

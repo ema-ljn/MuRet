@@ -8,7 +8,17 @@
 #include "GameLogic/CharacterAppearance.h"
 #include "Protocol/Character/Opcodes.h"
 #include "Render/Models/Cloth.h"
+#include "App/WindowState.h"
+#include "Data/Text/TextTable.h"
+#include "Protocol/Letters.h"
+#include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ChatReceive.h"
+#include "Scenes/GameFriends.h"
+#include "Scenes/GameLetters.h"
+#include "Scenes/GameUi.h"
+#include "Scenes/SceneId.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -17,20 +27,26 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
+#include "UI/LetterModel.h"
+#include "UI/OldWindowBase.h"
+#include "UI/OldWindows.h"
 #include "World/WorldTerrain.h"
 
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
+#include "support/SceneDataFiles.h"
 
 #include <gtest/gtest.h>
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -419,5 +435,206 @@ TEST_F(LetterPortraitTest, TurningThePortraitSetsItsAngles)
     EXPECT_EQ(game->portrait.actor.angles.x, -20.0f);
     EXPECT_EQ(game->portrait.actor.angles.y, 5.0f);
     EXPECT_EQ(game->portrait.actor.angles.z, 60.0f);
+}
+
+// Las ventanas de las cartas con el gancho del juego (LetterPortraitHook): los textos, la medida de 2 por carácter y el
+// paso de las ventanas viejas.
+class LetterMeasure final : public Client::Render::Text::ITextMeasure
+{
+public:
+    [[nodiscard]] Client::Render::Text::TextExtent Measure(Client::Render::Text::FontKind /*font*/,
+                                                           std::string_view text) const override
+    {
+        return {static_cast<int>(text.size()) * 2, 13};
+    }
+};
+
+std::map<std::size_t, std::string> LetterTexts()
+{
+    return {{1000, "Para"},     {1001, "Mandar"},    {1002, "Cerrar"},          {1003, "Atras"},
+            {1004, "Adelante"}, {1010, "Responder"}, {1011, "Borrar"},          {1012, "Antes"},
+            {1013, "Despues"},  {1054, "Carta: %s"}, {1071, "Carta nueva (%d)"}};
+}
+
+class LetterPortraitWindowsTest : public LetterPortraitTest
+{
+protected:
+    [[nodiscard]] Client::UI::OldWindowStepView View(Game& game, const Client::Scenes::WorldEntryResources& resources)
+    {
+        Client::UI::OldWindowStepView view{.texts = &m_oldTexts, .measure = &m_oldMeasure};
+        view.portrait = Client::Scenes::LetterPortraitHook(resources);
+        view.field78abaac = game.world.Runtime().ui.field78abaac;
+        view.heroName = "Benteveo";
+        return view;
+    }
+
+    // 0x48ee60(7) en (100, 100): la de escribir con su retrato (0x497f50).
+    Client::UI::OldWindow* OpenTheWriteWindow(Game& game, const Client::Scenes::WorldEntryResources& resources)
+    {
+        auto view = View(game, resources);
+        auto globals = Client::Scenes::OldWindowGlobalsOf(game.world.Runtime());
+        auto created = Client::UI::CreateTheOldWindow(
+            game.world.Runtime().oldWindows,
+            Client::UI::OldWindowRequest{
+                .kind = Client::UI::LetterWriteCase, .x = 100, .y = 100, .data = "Carta", .aux = 0, .flags = 0},
+            m_oldTexts, m_oldMeasure, &globals, &view);
+        EXPECT_TRUE(created.HasValue()) << created.Error();
+        if (!created.HasValue())
+            return nullptr;
+        return &game.world.Runtime().oldWindows.windows.at(created.Value());
+    }
+
+    static LetterPortrait& PortraitOf(Client::UI::OldWindow& window)
+    {
+        return *std::static_pointer_cast<LetterPortrait>(window.letter.portrait.actor);
+    }
+
+    LetterMeasure m_letters;
+    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(LetterTexts());
+    Client::UI::OldWindowTexts m_oldTexts = Client::Scenes::OldWindowTextsOf(&m_texts);
+    Client::UI::OldWindowMeasure m_oldMeasure{.measure = m_letters,
+                                              .dcFont = Client::Render::Text::FontKind::Normal,
+                                              .screen = Client::App::PixelSize{640, 480}};
+};
+
+// 0x497f50 de punta a punta: el retrato armado (0x4961d0), el héroe copiado (0x496530, con la clase por 0x513100),
+// la acción 0x7a (0x4978f0) y el ángulo 90 (0x497890), con los rand() de cada uno en ese orden. Abrir la ventana no
+// saca otros.
+TEST_F(LetterPortraitWindowsTest, OpeningTheWriteWindowCopiesTheHero)
+{
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(map);
+        auto game = Load(map);
+        auto twin = Load(map);
+        const auto resources = game->Resources();
+        Client::UI::OldWindow* write = OpenTheWriteWindow(*game, resources);
+        ASSERT_NE(write, nullptr);
+        const Client::UI::OldPortraitPart& part = write->letter.portrait;
+        EXPECT_EQ(part.built, 1);
+        EXPECT_EQ(part.follow, 1);
+        EXPECT_EQ(part.action, 0x7a);
+        EXPECT_EQ(part.baseAngle, 90.0f);
+        EXPECT_EQ(part.angle, 90.0f);
+        const LetterPortrait& portrait = PortraitOf(*write);
+        EXPECT_EQ(portrait.actor.characterClass, DarkKnight);
+        EXPECT_EQ(portrait.actor.body[1].model, ClassPartModel(BodyPart::Armor, DarkKnight));
+        EXPECT_EQ(portrait.shownAction, 0x7a);
+        EXPECT_EQ(portrait.actor.angles.z, 60.0f);
+
+        const auto twinResources = twin->Resources();
+        LetterPortrait& expected = twin->portrait;
+        std::int32_t action = 0;
+        ASSERT_TRUE(Client::Scenes::BuildThePortrait(expected, twinResources).HasValue());
+        ASSERT_TRUE(Client::Scenes::CopyTheHeroToThePortrait(expected, action, twinResources).HasValue());
+        ASSERT_TRUE(Client::Scenes::ShowThePortraitAction(expected, 0x7a, 0, twinResources).HasValue());
+        EXPECT_EQ(game->cloth.random.State(), twin->cloth.random.State());
+        EXPECT_GT(DrawsBetween(CrtRandom(Seed), game->cloth.random), BuildDraws);
+    }
+}
+
+// El C7 de punta a punta (0x4dcb70): la de leer arma su retrato (0x4999d0) y lo viste con la clase de pkt[8] (0x20: la
+// 1), el equipo (el Unilia, 0xc6) y la acción 2 + 0x78; la dirección 0x4f da el ángulo 15 · 6 y el zoom
+// ((1 · 5 + 0x28) · 2) · 0,01. Los rand(): 0x4961d0, 0x513100, 0x5139f0 y 0x495a20, en ese orden.
+TEST_F(LetterPortraitWindowsTest, ReceivingALetterDressesThePortrait)
+{
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(map);
+        auto game = Load(map);
+        auto twin = Load(map);
+        const auto resources = game->Resources();
+        Client::UI::OldWindowManager& manager = game->world.Runtime().oldWindows;
+        Client::UI::AddALetter(manager.letterModel, 7, "Tordo", "Saludos", "2026/11/13", "10:20", 0);
+        Equipment equipment = NothingWorn();
+        equipment[4] = std::byte{0xfe};
+        const Client::Protocol::Letters::LetterRead read{.index = 7,
+                                                         .length = 9,
+                                                         .portraitClass = 0x20,
+                                                         .equipment = equipment,
+                                                         .direction = 0x4f,
+                                                         .action = 2,
+                                                         .body = "Hola che",
+                                                         .copy = {}};
+        const Client::Scenes::ChatReceiveContext context{.world = game->world,
+                                                         .random = game->cloth.random,
+                                                         .measure = &m_letters,
+                                                         .screen = Client::App::PixelSize{640, 480},
+                                                         .scene = Client::Scenes::SceneId::Game,
+                                                         .texts = &m_texts,
+                                                         .worldEntry = &resources};
+        const auto shown = Client::Scenes::ApplyLetterRead(read, context);
+        ASSERT_TRUE(shown.HasValue()) << shown.Error();
+        Client::UI::OldWindow* window = nullptr;
+        for (auto& [id, candidate] : manager.windows)
+            if (candidate.kind == Client::UI::OldWindowKind::LetterReadWindow)
+                window = &candidate;
+        ASSERT_NE(window, nullptr);
+        const Client::UI::OldPortraitPart& part = window->letter.portrait;
+        EXPECT_EQ(part.built, 1);
+        EXPECT_EQ(part.portraitClass, 1);
+        EXPECT_EQ(part.action, 0x7a);
+        EXPECT_EQ(part.angle, 90.0f);
+        EXPECT_FLOAT_EQ(part.zoom, 0.9f);
+        EXPECT_EQ(part.baseZoom, part.zoom);
+        const LetterPortrait& portrait = PortraitOf(*window);
+        EXPECT_EQ(portrait.actor.characterClass, 1);
+        EXPECT_TRUE(portrait.helper.alive);
+        EXPECT_EQ(portrait.helper.type, 0xc6);
+        EXPECT_EQ(portrait.actor.angles.x, -20.0f);
+
+        const auto twinResources = twin->Resources();
+        LetterPortrait& expected = twin->portrait;
+        ASSERT_TRUE(Client::Scenes::BuildThePortrait(expected, twinResources).HasValue());
+        ASSERT_TRUE(Client::Scenes::SetThePortraitClass(expected, 1, twinResources).HasValue());
+        ASSERT_TRUE(Client::Scenes::DressThePortrait(expected, equipment, 0x7a, twinResources).HasValue());
+        ASSERT_TRUE(Client::Scenes::ShowThePortraitAction(expected, 0x7a, 0, twinResources).HasValue());
+        EXPECT_EQ(game->cloth.random.State(), twin->cloth.random.State());
+    }
+}
+
+// 0x497970 en el paso de las ventanas viejas: con 0x78abaac en 1 le vuelve a copiar el héroe (sin nada distinto, sin
+// rand()) y +0x360; la rueda lo acerca hasta 1,1; el clic lo agarra y el clic siguiente lo gira con lo que corrió el
+// mouse; sin clic, lo suelta.
+TEST_F(LetterPortraitWindowsTest, TheStepFollowsZoomsAndTurns)
+{
+    auto game = Load(2);
+    const auto resources = game->Resources();
+    Client::UI::OldWindow* write = OpenTheWriteWindow(*game, resources);
+    ASSERT_NE(write, nullptr);
+    Client::UI::OldPortraitPart& part = write->letter.portrait;
+    Client::UI::OldWindowManager& manager = game->world.Runtime().oldWindows;
+    game->Hero().byte360 = 4;
+    game->world.Runtime().ui.field78abaac = 1;
+    const auto globals = Client::Scenes::OldWindowGlobalsOf(game->world.Runtime());
+    auto view = View(*game, resources);
+    view.mouseX = part.base.x + part.base.width / 2;
+    view.mouseY = part.base.y + part.base.height / 3;
+    const CrtRandom before = game->cloth.random;
+    globals.wheel = 20;
+    ASSERT_TRUE(Client::UI::StepTheOldWindows(manager, globals, view).HasValue());
+    EXPECT_EQ(PortraitOf(*write).actor.byte360, 4);
+    EXPECT_EQ(part.zoom, 1.1f);
+    EXPECT_EQ(globals.wheel, 0);
+    EXPECT_EQ(game->cloth.random.State(), before.State());
+
+    globals.leftClick = true;
+    ASSERT_TRUE(Client::UI::StepTheOldWindows(manager, globals, view).HasValue());
+    EXPECT_EQ(part.base.state, 2);
+    EXPECT_EQ(globals.capture, part.base.id);
+    view.mouseX += 7;
+    globals.leftClick = true;
+    ASSERT_TRUE(Client::UI::StepTheOldWindows(manager, globals, view).HasValue());
+    EXPECT_EQ(part.angle, 97.0f);
+    globals.leftClick = false;
+    ASSERT_TRUE(Client::UI::StepTheOldWindows(manager, globals, view).HasValue());
+    EXPECT_EQ(part.base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(globals.capture, 0);
+
+    // El clic derecho vuelve al ángulo y al zoom de partida.
+    globals.rightClick = true;
+    ASSERT_TRUE(Client::UI::StepTheOldWindows(manager, globals, view).HasValue());
+    EXPECT_EQ(part.angle, 90.0f);
+    EXPECT_EQ(part.zoom, 1.0f);
 }
 } // namespace

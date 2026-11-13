@@ -7,6 +7,7 @@
 #include "Protocol/FriendChat.h"
 #include "Protocol/Letters.h"
 #include "Scenes/ChatReceive.h"
+#include "Scenes/LetterPortrait.h"
 #include "Scenes/GameFriends.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameUi.h"
@@ -122,6 +123,10 @@ public:
         m_view.texts = &m_texts;
         m_view.measure = m_measure ? &*m_measure : nullptr;
         m_view.heroName = std::string(HeroNameOf(context.world.Actors()[runtime.hero]));
+        // CL9 hito 10: el personaje del retrato (0x4dcd0e..0x4dcd69).
+        if (context.worldEntry != nullptr)
+            m_view.portrait = LetterPortraitHook(*context.worldEntry);
+        m_view.field78abaac = runtime.ui.field78abaac;
     }
     OldWindowsFromAPacket(const OldWindowsFromAPacket&) = delete;
     OldWindowsFromAPacket& operator=(const OldWindowsFromAPacket&) = delete;
@@ -332,7 +337,11 @@ Core::Expected<void, std::string> ApplyLetterRead(const Protocol::Letters::Lette
     if (const auto found = manager.letterWindows.find(shown.index); found != manager.letterWindows.end())
         found->second = id;
     if (shown.name.substr(0, WebzenName.size() + 1) == WebzenName)
+    {
+        // 0x4dccda: +0x770 de la de leer, que es también +0x6c0 de su retrato (+0xb0): en blanco.
         read->letter.fromWebzen = 1;
+        read->letter.portrait.blank = 1;
+    }
     else
     {
         // La clase (los bits 4..6 y el 4 de pkt[8], 0x4977d0), el equipo (0x497810), la acción (0x4978f0), el ángulo
@@ -353,9 +362,11 @@ Core::Expected<void, std::string> ApplyLetterRead(const Protocol::Letters::Lette
         portrait.action = letter.action + ActionBase;
         if (auto set = view.portrait(portrait, UI::PortraitCallKind::SetAction, 0); !set.HasValue())
             return set;
-        if (portrait.built != 0)
-            portrait.angle = static_cast<float>((letter.direction & 0x3f) * AngleUnit);
-        portrait.zoom = static_cast<float>(((letter.direction >> 6) * 5 + 0x28) * 2) * ZoomUnit;
+        if (auto turned = UI::SetThePortraitAngle(
+                &view, portrait, static_cast<float>((letter.direction & 0x3f) * AngleUnit), "0x4dcd4c");
+            !turned.HasValue())
+            return turned;
+        UI::SetThePortraitZoom(portrait, static_cast<float>(((letter.direction >> 6) * 5 + 0x28) * 2) * ZoomUnit);
     }
     return UI::Steps::PostAndStep(manager, *read, UI::ToTheEndMessage, windows.Globals(), windows.View());
 }

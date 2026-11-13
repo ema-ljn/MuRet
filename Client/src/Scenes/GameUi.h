@@ -54,6 +54,7 @@ class WorldState;
 struct GameChatContext;
 struct GameMovementState;
 struct InventoryServices;
+struct WorldEntryResources;
 struct WorldRuntime;
 
 // Lo que los diálogos y los paneles le piden al resto del cliente (el menú de Esc, 0x624036..0x62553f, y la party): el
@@ -108,6 +109,9 @@ struct GameUiContext
     // ItemSetType.bmd e ItemSetOption.bmd (0x40c600), que lee 0x550d10 con el Item.bmd de `inventory` cuando la C o el
     // botón del HUD abren el personaje (0x65ca1e). nullptr si no se cargaron: abrirlo corta en 0x40e1b0.
     const Data::Tables::ItemSetTables* itemSetTables = nullptr;
+    // CL9 hito 10: lo del juego que usa el personaje del retrato de las cartas (Scenes/LetterPortrait), que vive más
+    // que el paso. nullptr: el retrato corta (P-C212).
+    const WorldEntryResources* worldEntry = nullptr;
 };
 
 // El WndProc: 0x7d366d4 (el flanco del clic, que apagan quien lo usa y el botón suelto) y 0x7d36874 (el botón

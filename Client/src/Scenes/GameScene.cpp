@@ -419,7 +419,8 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
                                              .mouseY = mouse.y,
                                              .measure = m_context.textMeasure,
                                              .screen = m_screen,
-                                             .chat = &chat});
+                                             .chat = &chat,
+                                             .worldEntry = m_context.worldEntry});
 }
 
 Core::Expected<void, std::string> GameScene::StepTheObjects()

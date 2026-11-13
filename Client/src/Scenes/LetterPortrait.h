@@ -5,6 +5,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/HelperTable.h"
+#include "UI/OldWindows.h"
 
 #include <cstdint>
 #include <string>
@@ -72,4 +73,11 @@ SetThePortraitClass(LetterPortrait& portrait, std::uint8_t characterClass, const
 
 // La parte del personaje de 0x497890 (la vtable + 0x40), armado: los ángulos (+0x1c..+0x24) en (−20, 5, 60).
 void TurnThePortrait(LetterPortrait& portrait);
+
+// El gancho de UI::OldWindowStepView::portrait con el juego de `resources`, que vive más que él: el primer pedido arma
+// el LetterPortrait de UI::OldPortraitPart::actor. Build (0x4961d0) pone +0x68c en 1; SetClass, SetEquipment,
+// CopyTheHero y SetAngle no hacen nada sin armar (0x4977d9, 0x49781e, 0x496548, 0x49789b); SetAction (0x4978f0) y
+// TurnAction (0x497910: la acción que da 0x495a20 en +0x6a4, +0x6a8 en 0 y +0x698 en 1) no lo miran; Step copia +0x360
+// del héroe (0x4979c0).
+[[nodiscard]] UI::OldPortraitHook LetterPortraitHook(const WorldEntryResources& resources);
 } // namespace Client::Scenes

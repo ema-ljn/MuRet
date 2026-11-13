@@ -85,7 +85,8 @@ ChatReceiveContext ChatContextOf(const WorldEntryResources& resources, App::Serv
                               .texts = resources.texts,
                               .chosenSlot =
                                   chosen != nullptr ? std::optional<std::uint8_t>(chosen->slot) : std::nullopt,
-                              .rooms = &session};
+                              .rooms = &session,
+                              .worldEntry = &resources};
 }
 
 // El 0x3d de la respuesta va a la sesión que la está aplicando.

@@ -8,6 +8,7 @@
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Protocol/Character/CharacterList.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
@@ -233,15 +234,26 @@ GameChatContext GameScene::ChatContext()
                                                       : ChatSender{}};
 }
 
-InventoryServices GameScene::InventoryContext() const
+InventoryServices GameScene::InventoryContext()
 {
     InventoryServices services =
         m_context.worldEntry != nullptr ? InventoryServicesOf(*m_context.worldEntry) : InventoryServices{};
     if (m_context.worldEntry == nullptr)
+    {
         services.items = m_items;
+        services.texts = m_texts;
+    }
     if (App::ServerSession* session = m_session; session != nullptr)
+    {
         services.sendItemMove = [session](const Protocol::Inventory::ItemMove& move)
         { return session->SendItemMove(move); };
+        // CL9 hito 5: el 23, el 22 y el 26.
+        services.sendDrop = [session](const Protocol::FloorItems::Drop& drop) { return session->SendDrop(drop); };
+        services.sendPickUp = [session](std::uint16_t index) { return session->SendPickUp(index); };
+        services.sendUseItem = [session](const Protocol::FloorItems::UseItem& use)
+        { return session->SendUseItem(use); };
+    }
+    services.pickTheGround = [this] { return GroundUnderTheMouse(); };
     return services;
 }
 
@@ -258,7 +270,9 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                             .random = FrameCloth().random,
                             .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
                             .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
-                            .altDown = input.IsDown(Input::Key::Alt)});
+                            .altDown = input.IsDown(Input::Key::Alt),
+                            .floorItems = FrameTail().floorItems,
+                            .mouseRay = m_mouseRay ? &*m_mouseRay : nullptr});
     if (!picked.HasValue())
         return picked;
     // 0x637646..0x6376e6: la pasada 2D, en este orden (06 § El dibujo del juego). Un dibujo intermedio de MuRet dibuja
@@ -329,7 +343,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                            .altDown = input.IsDown(Input::Key::Alt),
                            .sprites = canvas.sprites,
                            .text = canvas.text,
-                           .projecting = m_projectingFrame};
+                           .projecting = m_projectingFrame,
+                           .names = &hud};
     if (auto drawn = DrawTheHover(hover); !drawn.HasValue())
         return drawn;
     // 0x637660: 0x5a7320(1), el HUD, con 0x7d36899 en 0.

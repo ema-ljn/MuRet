@@ -24,9 +24,10 @@ bool Between(std::int16_t type, std::int16_t first, std::int16_t end)
 {
     return type >= first && type < end;
 }
+} // namespace
 
 // 607fb0..608348: ninguna rama consume RNG ni pone la velocidad en cero.
-void Settle(FloorItemState& item)
+void SettleFloorItem(FloorItemState& item)
 {
     const auto type = item.type;
     item.angles = {0, 0, -45};
@@ -115,6 +116,8 @@ void Settle(FloorItemState& item)
     }
 }
 
+namespace
+{
 Core::Expected<void, std::string> Spark(FloorItemState& item, const FloorItemStepContext& context)
 {
     constexpr std::int32_t Interval = 48;
@@ -157,7 +160,7 @@ Core::Expected<void, std::string> StepFloorItems(std::span<FloorItemState> items
         if (ground >= item.position.z)
         {
             item.position.z = static_cast<float>(ground);
-            Settle(item);
+            SettleFloorItem(item);
         }
         else if (Between(item.type, 0xe12, 0x1012))
             item.angles.z = static_cast<float>(static_cast<double>(item.dropSpeed) * -10.0);

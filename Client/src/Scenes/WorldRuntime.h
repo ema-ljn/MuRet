@@ -173,6 +173,23 @@ enum class CursorGrid : std::uint8_t
     Inventory, // 0x78a9bb0
 };
 
+// Los globales de los ítems del piso (CL9 hito 5; 06 § Los ítems del piso).
+struct FloorItemGlobals
+{
+    // 0x77f27b0 (.bss 0): el ítem del piso que se va a levantar. Lo escriben la barra (0x5ac9a1) y MoveHero (0x59dc8e);
+    // lo leen 0x5650c0 (su caso 1) y el aviso del 22 (0x4d0f5f).
+    std::int32_t chosen = 0;
+    // 0x77f3b40 (.bss 0): en 1 solo mientras la barra llama a 0x5650c0 (0x5ac9a7..0x5ac9bc), que así no mira la
+    // distancia al destino.
+    std::uint8_t fromSpace = 0;
+    // 0x6c82e8 (.data −1): el ítem pedido con el C1 22. Mientras no es −1, 0x5650c0 no pide otro; lo vuelven a −1 el
+    // 22 (0x4d10b9) y 0x4c2480 (0x4c24cf).
+    std::int32_t pendingPickUp = -1;
+    // 0x6c82ec (.data −1): el lugar del ítem tirado con el C1 23 (0x5e068d). Lo vuelve a −1 el 23 (0x4d13d1, 0x4d13e5)
+    // y nadie lo lee.
+    std::int32_t pendingDrop = -1;
+};
+
 struct WorldRuntime
 {
     // Q-C180/Q-C27: primer aviso de datos que pidió WM_DESTROY. Durable incluso si Poll falla;
@@ -219,6 +236,7 @@ struct WorldRuntime
     // 0x7879fbc, el +0x3c (occupied) de cursorItem: mayor que 0 con un ítem en el cursor. MuRet lo guarda aparte, y
     // quien levanta o suelta el ítem escribe los dos.
     std::int32_t cursorItemCount = 0;
+    FloorItemGlobals floor{};
     // 0x78ab9b8: la grilla de donde salió el ítem del cursor (CL8 hito 4).
     CursorGrid cursorGrid = CursorGrid::None;
     // 0x77f3cc8: el lugar adonde va el C1 .. 24 que sale (0x5ca4b0, 0x5bf209, 0x59bf46).

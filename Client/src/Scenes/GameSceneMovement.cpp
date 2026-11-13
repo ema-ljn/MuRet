@@ -46,28 +46,7 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         .input = {mouse.x, mouse.y, false, input.IsDown(Input::MouseButton::Left), input.IsDown(Input::Key::Shift),
                   static_cast<float>(ticks), static_cast<std::uint32_t>(ticks)},
         .fixedHeight = CameraState().fixedHeight};
-    context.pickTarget = [&]() -> Core::Expected<std::optional<GameLogic::PathCell>, std::string>
-    {
-        if (!m_mouseRay)
-            return std::optional<GameLogic::PathCell>{};
-        const auto& terrain = world.Map().terrain;
-        World::TerrainView view;
-        view.mapping = terrain.mapping.get();
-        view.heights = terrain.heights.get();
-        view.attributes = terrain.attributes.get();
-        view.lighting = &world.DynamicLighting().Lighting();
-        view.map = static_cast<std::uint8_t>(world.Runtime().map);
-        view.fixedHeight = CameraState().fixedHeight;
-        World::TerrainPickingTarget target;
-        const auto picked = World::PickTerrainTarget(m_picking, target, view, m_terrainRange,
-                                                     world.Runtime().terrainPolygon, *m_mouseRay);
-        if (!picked.HasValue())
-            return Core::Unexpected(picked.Error());
-        if (!picked.Value())
-            return std::optional<GameLogic::PathCell>{};
-        return std::optional{
-            GameLogic::PathCell{static_cast<std::uint8_t>(target.x), static_cast<std::uint8_t>(target.y)}};
-    };
+    context.pickTarget = [this] { return GroundUnderTheMouse(); };
     context.sendWalk = [&](auto cells, auto target, float angle) -> Core::Expected<void, std::string>
     {
         if (!m_session)
@@ -81,6 +60,29 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
     const InventoryServices inventory = InventoryContext();
     context.inventory = &inventory;
     return StepHeroMovement(context);
+}
+
+Core::Expected<std::optional<GameLogic::PathCell>, std::string> GameScene::GroundUnderTheMouse()
+{
+    if (!m_mouseRay)
+        return std::optional<GameLogic::PathCell>{};
+    WorldState& world = *m_context.world;
+    const auto& terrain = world.Map().terrain;
+    World::TerrainView view;
+    view.mapping = terrain.mapping.get();
+    view.heights = terrain.heights.get();
+    view.attributes = terrain.attributes.get();
+    view.lighting = &world.DynamicLighting().Lighting();
+    view.map = static_cast<std::uint8_t>(world.Runtime().map);
+    view.fixedHeight = CameraState().fixedHeight;
+    World::TerrainPickingTarget target;
+    const auto picked =
+        World::PickTerrainTarget(m_picking, target, view, m_terrainRange, world.Runtime().terrainPolygon, *m_mouseRay);
+    if (!picked.HasValue())
+        return Core::Unexpected(picked.Error());
+    if (!picked.Value())
+        return std::optional<GameLogic::PathCell>{};
+    return std::optional{GameLogic::PathCell{static_cast<std::uint8_t>(target.x), static_cast<std::uint8_t>(target.y)}};
 }
 
 Core::Expected<void, std::string> GameScene::StepTheFauna()

@@ -50,9 +50,11 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
     // nueva (SelectionState::BeginSelection y GameScene::Enter).
     runtime.drawingEnabled = false; // 0x4c38f9
     // 0x4c3900: el estado 0 (la sesión espera la lista). 0x4c390a: 0x4c2480.
-    resources.camera.level = 0;   // 0x4c250e, el word 0x7d3a0ec
-    runtime.ui.autoAttack = true; // 0x4c2533, 0x6c8e3c
-    runtime.map = NoMap;          // 0x4c2540
+    runtime.ui.field5767954 = 0;      // 0x4c24c9
+    runtime.floor.pendingPickUp = -1; // 0x4c24cf, 0x6c82e8
+    resources.camera.level = 0;       // 0x4c250e, el word 0x7d3a0ec
+    runtime.ui.autoAttack = true;     // 0x4c2533, 0x6c8e3c
+    runtime.map = NoMap;              // 0x4c2540
     // 0x4c2546: 0x419900 manda el C1 03 31 (la sesión). 0x4c2575..0x4c25ea: abre el registro propio por la
     // tabla de protección (o lo da de alta con la cuenta en 1, que es lo mismo para MuRet); 0x4c2600..
     // 0x4c260b escribe; 0x4c260f..0x4c264b lo cierra, y el cierre que lo deja en 0 lo vuelve a cifrar

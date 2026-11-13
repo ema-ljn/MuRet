@@ -31,6 +31,7 @@
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
@@ -262,6 +263,18 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnEquipmentChange(packet); }) &&
         m_gameServer.On(CharacterOpcode, Protocol::Inventory::ItemPutSubcode,
                         [this](const Network::Packet& packet) { OnItemPut(packet); }) &&
+        // CL9 hito 5: los ítems del piso (0x4d0ba0, 0x4e3849, 0x4d0cc0, 0x4d10d0) y la fruta de stats (0x4de500). El
+        // dispatcher (0x4e3831..0x4e3bdb) no mira si llegaron cifrados.
+        m_gameServer.On(Protocol::FloorItems::CreateOpcode,
+                        [this](const Network::Packet& packet) { OnFloorItemsCreate(packet); }) &&
+        m_gameServer.On(Protocol::FloorItems::DeleteOpcode,
+                        [this](const Network::Packet& packet) { OnFloorItemsDelete(packet); }) &&
+        m_gameServer.On(Protocol::FloorItems::PickUpOpcode,
+                        [this](const Network::Packet& packet) { OnPickUpResult(packet); }) &&
+        m_gameServer.On(Protocol::FloorItems::DropOpcode,
+                        [this](const Network::Packet& packet) { OnDropResult(packet); }) &&
+        m_gameServer.On(Protocol::FloorItems::StatFruitOpcode,
+                        [this](const Network::Packet& packet) { OnStatFruit(packet); }) &&
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); }) &&
         m_gameServer.On(Protocol::Connection::MainCheckOpcode,
                         [this](const Network::Packet& packet) { OnMainCheck(packet); });
@@ -1134,6 +1147,77 @@ void ServerSession::OnItemPut(const Network::Packet& packet)
 Core::Expected<void, std::string> ServerSession::SendItemMove(const Protocol::Inventory::ItemMove& move)
 {
     return SendWorldPacket(Protocol::Inventory::WriteItemMove(move));
+}
+
+// 04 § Los ítems del piso (CL9 hito 5).
+void ServerSession::OnFloorItemsCreate(const Network::Packet& packet)
+{
+    const auto created = Protocol::FloorItems::ReadFloorItemsCreate(packet);
+    if (!created.HasValue())
+    {
+        m_log.Warning("se ignoran los ítems del piso (20): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(created.Value(), *this)));
+}
+
+void ServerSession::OnFloorItemsDelete(const Network::Packet& packet)
+{
+    const auto deleted = Protocol::FloorItems::ReadFloorItemsDelete(packet);
+    if (!deleted.HasValue())
+    {
+        m_log.Warning("se ignora el borrado de ítems del piso (21): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(deleted.Value(), *this)));
+}
+
+void ServerSession::OnPickUpResult(const Network::Packet& packet)
+{
+    const auto result = Protocol::FloorItems::ReadPickUpResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora lo levantado del piso (22): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
+}
+
+void ServerSession::OnDropResult(const Network::Packet& packet)
+{
+    const auto result = Protocol::FloorItems::ReadDropResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora lo tirado al piso (23): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
+}
+
+void ServerSession::OnStatFruit(const Network::Packet& packet)
+{
+    const auto fruit = Protocol::FloorItems::ReadStatFruit(packet);
+    if (!fruit.HasValue())
+    {
+        m_log.Warning("se ignora la fruta de stats (2C): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(fruit.Value(), *this)));
+}
+
+Core::Expected<void, std::string> ServerSession::SendPickUp(std::uint16_t index)
+{
+    return SendWorldPacket(Protocol::FloorItems::WritePickUp(index));
+}
+
+Core::Expected<void, std::string> ServerSession::SendDrop(const Protocol::FloorItems::Drop& drop)
+{
+    return SendWorldPacket(Protocol::FloorItems::WriteDrop(drop));
+}
+
+Core::Expected<void, std::string> ServerSession::SendUseItem(const Protocol::FloorItems::UseItem& use)
+{
+    return SendWorldPacket(Protocol::FloorItems::WriteUseItem(use));
 }
 
 void ServerSession::ResendServerListRequest()

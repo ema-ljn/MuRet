@@ -16,6 +16,9 @@
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorMotion.h"
 #include "Scenes/ActorWalk.h"
+#include "Scenes/FloorItemActions.h"
+#include "Scenes/FloorItemPackets.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/GameMovementState.h"
@@ -32,12 +35,16 @@
 #include "Scenes/WorldState.h"
 #include "UI/Dialogs.h"
 #include "UI/PanelRegistry.h"
+
+#include <glm/ext/vector_float3.hpp>
+
 #include <array>
 #include <cstddef>
 #include <algorithm>
 #include <bit>
 #include <cstdlib>
 #include <cmath>
+#include <format>
 #include <optional>
 #include <span>
 #include <cstdint>
@@ -59,6 +66,8 @@ constexpr float MinimumWalkingAlpha = 0.7f;
 constexpr float TeleportFade = 0.1f;
 constexpr float HoldSecondsPerMillisecond = 0.001f;
 constexpr double MaximumHoldSeconds = 3600.0;
+// 0x5650ef: el caso 1 de 0x5650c0, levantar el ítem del piso (0x59dc6e y 0x5ac99a).
+constexpr std::uint8_t PickUpMovement = 1;
 
 Core::Expected<void, std::string> CloseTheClickRecord(const HeroMovementContext& context)
 {
@@ -209,6 +218,48 @@ Core::Expected<void, std::string> UseGroundClick(ActorState& hero, const HeroMov
     return SendThePath(hero, target, context);
 }
 
+// 0x59dc5e..0x59ddea (CL9 hito 5): con un ítem del piso elegido (0x6c8e28), +0x379 en 1, el elegido (0x77f27b0) y su
+// celda como destino (0x77e1ba8 y 0x77e1bac, la posición · 0,01 sin la máscara de 0x59de66), las celdas del héroe (y
+// después x) y el camino (0x4eac00): con él, 0x56acd0; sin él, 0x5650c0(héroe, héroe, 1) y +0x379 en 0.
+Core::Expected<void, std::string> WalkToTheFloorItem(ActorState& hero, const HeroMovementContext& context,
+                                                     std::int32_t index)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    GameMovementState& state = runtime.movement;
+    if (index < 0 || index >= FloorItemCount)
+        return Core::Unexpected(std::format("0x59dc82: el ítem del piso {} está fuera de la tabla 0x77f46c8", index));
+    hero.movementType = PickUpMovement;
+    runtime.floor.chosen = index;
+    const glm::vec3& position = context.world.DrawTail().floorItems[static_cast<std::size_t>(index)].position;
+    const auto x = World::OriginalFtolLow(static_cast<double>(position.x) * CellReciprocal);
+    const auto y = World::OriginalFtolLow(static_cast<double>(position.y) * CellReciprocal);
+    if (!x || !y)
+        return Core::Unexpected(std::string("0x59dc8e: la posición del ítem del piso fuera del perfil ftol"));
+    state.targetX = static_cast<std::uint32_t>(*x);
+    state.targetY = static_cast<std::uint32_t>(*y);
+    World::WorldTerrain& terrain = context.world.Map().terrain;
+    if (!terrain.attributes)
+        return Core::Unexpected(std::string("0x4eac00: falta TerrainWall para caminar"));
+    const auto startY = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
+    const auto startX = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
+    const GameLogic::PathCell target{static_cast<std::uint8_t>(*x & 0xff), static_cast<std::uint8_t>(*y & 0xff)};
+    if (*x != target.x || *y != target.y)
+        return Core::Unexpected(std::format("0x59ddbc: el destino ({}, {}) del ítem del piso sale del mapa", *x, *y));
+    if (const auto path = GameLogic::PathFinder(terrain.attributes->cells).Find({startX, startY}, target))
+    {
+        hero.path = *path;
+        return SendThePath(hero, target, context);
+    }
+    static const InventoryServices NoServices{};
+    auto picked = PickUpTheFloorItem(
+        InventoryMoveContext{.world = context.world,
+                             .random = context.random,
+                             .services = context.inventory != nullptr ? *context.inventory : NoServices},
+        hero.position, context.fixedHeight);
+    hero.movementType = 0;
+    return picked;
+}
+
 Core::Expected<void, std::string> ProcessInput(ActorState& hero, const HeroMovementContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -236,7 +287,16 @@ Core::Expected<void, std::string> ProcessInput(ActorState& hero, const HeroMovem
                 if (const auto closed = CloseTheClickRecord(context); !closed.HasValue())
                     return closed;
                 state.mouseUpdateTime = 0;
-                if (const auto clicked = UseGroundClick(hero, context); !clicked.HasValue())
+                // 0x59cd23..0x59dc66: lo que hay bajo el mouse. Las ramas del personaje (0x558bb0), del objeto
+                // (0x6c8e34) y del NPC (0x6c8e2c) son de la CL9.1 y la CL9.2, y el picking las deja en −1; con un
+                // ítem del piso elegido, caminar hasta él (CL9 hito 5); si no, el terreno.
+                if (runtime.selectedTargets[0] != -1)
+                {
+                    if (const auto walked = WalkToTheFloorItem(hero, context, runtime.selectedTargets[0]);
+                        !walked.HasValue())
+                        return walked;
+                }
+                else if (const auto clicked = UseGroundClick(hero, context); !clicked.HasValue())
                     return clicked;
             }
         }
@@ -306,9 +366,22 @@ Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMoveme
             return Core::Unexpected(std::string("0x59b2d2: ángulo de llegada fuera del perfil ftol"));
         runtime.movement.arrivalYaw = *yaw;
         runtime.movement.movementTarget = 0;
-        // 5650ef..565100: MovementType0 sale por la tabla, sin interacción ni RNG.
+        // 0x59b2e4..0x59b2f7: 0x5650c0(héroe, héroe, 0). 0x5650ef..0x565100: el 0 sale por la tabla, sin
+        // interacción ni rand(); el 1 levanta el ítem del piso elegido (CL9 hito 5).
+        if (hero.movementType == PickUpMovement)
+        {
+            static const InventoryServices NoServices{};
+            return PickUpTheFloorItem(
+                InventoryMoveContext{.world = context.world,
+                                     .random = context.random,
+                                     .services = context.inventory != nullptr ? *context.inventory : NoServices},
+                hero.position, context.fixedHeight);
+        }
         if (hero.movementType != 0)
-            return Core::Unexpected(std::string("0x5650c0: la interacción de llegada requiere CL9"));
+            return Core::Unexpected(
+                std::format("0x5650c0: la interacción de llegada {} (la tabla de 0x56ab20) es de la "
+                            "CL9.1 y la CL9.2",
+                            hero.movementType));
         return {};
     }
     hero.flags7c &= ~std::uint32_t{0x200000};

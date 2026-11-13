@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "GameLogic/PathCell.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -22,6 +23,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -280,7 +282,8 @@ TEST_F(InventoryMovesStepTest, AClickPicksTheItemUpAndEscapePutsItBack)
 }
 
 // 0x5d8d50 con el ítem en el cursor y el clic fuera de las grillas: consume el clic (MouseUpdateTime en 0 y su máximo
-// en 6) y lo tira al piso. La poción se tira (CL9.3: corta en 0x5df58b); un Jewel of Bless vuelve con el aviso 269.
+// en 6) y lo tira al piso. La poción se tira (CL9 hito 5): sin terreno bajo el mouse (0x5dfdfc) sigue en el cursor; un
+// Jewel of Bless vuelve con el aviso 269.
 TEST_F(InventoryMovesStepTest, AClickOutsideTheGridsDropsTheCursorItem)
 {
     Click();
@@ -288,7 +291,11 @@ TEST_F(InventoryMovesStepTest, AClickOutsideTheGridsDropsTheCursorItem)
     world.Runtime().panels.inventory = 0;
     Click();
     world.Runtime().movement.mouseUpdateTime = 4;
-    ExpectCut(Step(100, 300, &services), "0x5df58b");
+    services.pickTheGround = []
+    { return Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>(std::nullopt); };
+    const auto dropped = Step(100, 300, &services);
+    ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
+    EXPECT_EQ(world.Runtime().cursorItemCount, 1);
     EXPECT_FALSE(world.Runtime().movement.pendingClick);
     EXPECT_EQ(world.Runtime().movement.mouseUpdateTime, 0);
     EXPECT_EQ(world.Runtime().movement.mouseUpdateTimeMax, 6);

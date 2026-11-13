@@ -6816,6 +6816,67 @@ Tres pruebas de GL real observan ZERO/SRC_COLOR, profundidad y culling del modo 
 Esto no completa los productores de equipo/armas/alas ni acredita todo P-C55; el gate integrado,
 Windows de la fuente nueva y la observación nativa siguen separados.
 
+### Los ítems del piso
+
+(CL9 hito 5, 2026-11-13, *estático*, leído en el ASM; los paquetes en
+[04](04-protocolo.md#los-ítems-del-piso-20-21-22-23-26-y-2c).) La tabla es `0x77f46c8`: 1000 entradas de `0x220`
+bytes, con el tipo del ítem en `+4`, el valor (`+8`: el nivel en `>> 3 & 0xf`, la skill en `0x80`, la suerte en 4 y la
+opción en 3), la durabilidad en `+0x1e`, las excelentes en `+0x1f`, el conjunto en `+0x20` y el objeto en `+0x4c`
+(vivo en `+0`, el modelo en `+2`, la proyección en `+0x5c` y `+0x5e`, la caída en `+0xe4`, la luz del pase de
+vértices en `+0xe8`, la luz en `+0xf4`, la caja del picking en `+0x13c` y "a la vista" en `+0x16c`). MuRet:
+`Scenes::FloorItemState` en `GameDrawTailState::floorItems`.
+
+- **Crear** (`0x608350`, desde el `20`): el tipo de `0x54b3a0`; el zen guarda en el valor `b1 · 2^16 + b2 · 2^8 + b4`
+  y lo demás `b1`, `b2`, `b3` y `b4`. El modelo es el tipo + `0x212`, salvo los que cambian por el nivel (la caja de
+  la suerte, el arma del arcángel `0x1a13`, que deja el valor en 0, y otros diez). `0x607b60` saca los `rand()` del modelo
+  (`HangingRandomCount`), la caja es de ±30 y la altura la de `0x5f93c0`: recién caído, 180 más arriba y la velocidad
+  20; si no, en el terreno. Los fuegos `0x2242` y `0x2243` recién caídos crean dos efectos (`0x518cf0`, CL11: corta).
+  Termina con `0x607fb0`. Los sonidos (CL10) quedan en `lastSoundId`.
+- **La búsqueda del picking** (`0x59e2e0`, sin `rand()`): cada ítem vivo y a la vista con la luz del pase de vértices
+  y 0,2; después, el primero cuya caja toca el segmento del mouse, sin el pase y con 1,5. La llama `0x59ec80` sin ítem
+  en el cursor: con Alt, primero (`0x59ef4f`); sin Alt, después de las búsquedas de personajes de `0x59e700`, con
+  `0x6c8e30` y `0x6c8e2c` en −1 (`0x59f4ec`). MuRet: `Scenes::PickTheFloorItem`, llamada desde `PickInTheFrame` en esos
+  dos lugares; lo demás de `0x59ec80` no cambia.
+- **Ir a levantarlo** (MoveHero, `0x59dc5e..0x59ddea`): con el ítem elegido y sin NPC ni objeto, `+0x379` del héroe en
+  1, `0x77f27b0` con el índice, el destino en la celda del ítem y el camino (`0x5ae2b0`); sin camino, `0x5650c0` en el
+  lugar. Al llegar, `0x59b2f7` llama a `0x5650c0(héroe, héroe, 0)`.
+- **Levantarlo** (el caso 1 de `0x5650c0`, `0x566755..0x566eb3`): fuera de la barra, a más de 150 del centro de la
+  celda del destino, nada; si no, la espera del mouse en 6. El zen, o un ítem con lugar en la grilla (`0x5c9d20`),
+  pide el `22` si no hay otro pedido (`0x6c82e8`); sin lugar, el aviso 375 del tipo 1 y el ítem salta: 3 sobre el
+  terreno con la caída en 50. La barra (`0x5ac928..0x5ac9c2`, sin ítem en el cursor, con el chat cerrado y el mouse
+  fuera de la UI) hace lo mismo con el primer ítem vivo y a la vista a menos de 300 del héroe, sin mirar el destino.
+- **El `22`** (`0x4d0cc0`): el zen en el registro propio; el aviso "%d %s %s" (el valor del elegido, los textos 224 y
+  918) si el elegido sigue vivo, o "%s %s" con su nombre (`0x5b1c70`) y el 918; el ítem en su lugar (`0x5bc740`); el
+  sonido y el pedido en −1. La vuelta a la selección (`0x4c24cf`) también lo pone en −1.
+- **Tirar** (`0x5df430..0x5e069d`): después de los que no se tiran (CL8), las ventanas con el mouse encima y las
+  tiendas personales, el anillo del mago con el registro propio abierto (nivel 2 sin el 80, nivel 1 sin el 40: el
+  aviso 923; nivel 3: no), el `0x1c1c` (`0x4379f0`, hito 6: corta) y el comercio: si no se tira, `0x5be150`. Si se
+  tira, la celda bajo el mouse; sin terreno, nada. El `23` sale con la celda y el lugar, `0x6c82ec` con el lugar y la
+  espera del mouse en 6. Las ventanas de la derecha abiertas (la tienda de NPC, el almacén, la caja del caos, el
+  entrenador) leen la x que escribe su dibujo: cortan.
+- **Usar** (`0x5af520` y el `26`): las ranuras rápidas por el clic derecho (`0x5a2b47..0x5a32dd`, que sale después de
+  usar) y por Q, W y E (`0x5a35e0..`, que siguen con la tecla siguiente), y el clic derecho en la grilla
+  (`0x5c5895..0x5c9b0b`: el pergamino del portal sin un pedido de gate, la caja de la suerte de nivel 14 y las
+  pociones). Con el almacén, `0x80` o el comercio abiertos, el aviso 474; con `0x5767954` en más de 0, nada; si no,
+  `0x5767954` en 10, el `26` y el sonido. Las entradas a los eventos (el `91`, hito 11) cortan, y
+  desde `0x5c7bc6` (los libros, las esferas, la fruta y los demás ítems) también, como las joyas sobre otro ítem
+  (`0x5d82a8`): fase 2, 08 P-C272.
+- **El nombre** (`0x5ba790`): el hover lo pone en el mouse para el elegido y, con Alt, en la proyección de cada uno
+  vivo y a la vista. La fuente normal y los colores (blanco sobre negro); el texto y el color según el modelo: el zen
+  con su valor, las joyas en negrita, las cajas, los fuegos y las frutas con sus textos, el orbe de invocación (el modelo `0x1a1d`) con su
+  skill (nivel + 30, con su acceso a Skill.bmd) y los demás con el color del nivel (gris, blanco, naranja, celeste,
+  dorado desde el 7), celeste con opciones, verde excelente, el conjunto en blanco y negrita (verde sobre rojo) y los
+  textos de la skill, la opción y la suerte. 15 más arriba, centrado con la mitad del ancho con signo. Cortan el
+  `0x1a0a` (los monstruos de `0x7681eb8`, CL9 hito 2) y los modelos y niveles que no escriben el texto (07 Q-C1242).
+- **El `2C`** (`0x4de500`): con 0 y un stat de 0 a 4, el stat y `+0x44` suben; con 3, el stat baja y `+0x68` y
+  `+0x48` suben; los dos en el registro propio y con el aviso armado con 379, el texto del stat y 1412 o 1903. Los
+  otros resultados abren su aviso. Siempre `0x5767954` en 0.
+
+MuRet: `Scenes::FloorItemPackets` (el `20`, el `21`, el `22` y el `2C`), `InventoryMoves` (el `23`, tirar y
+`UseInventoryItem`), `FloorItemActions` (la búsqueda, el lugar en la grilla, levantar y la barra), `FloorItemNames`
+(el nombre) e `ItemNames` (`0x5b1c70`). Tests: `test_floor_items_scene`, `test_cursor_item`, `test_game_ui` y
+`test_floor_items`.
+
 ### Ampliación CL7b de Kalima: recursos y objetos vivos
 
 `KalimaWorld` porta la carga y los dos planos de 65.536 celdas de `0x4377a0`, la actualización

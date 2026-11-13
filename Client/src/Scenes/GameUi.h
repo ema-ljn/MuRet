@@ -8,6 +8,7 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -41,9 +42,15 @@ class TextTable;
 // con 0x5ee140 y 0x59ff10, y el picking del frame (0x59ec80). Lo que es de otro hito o de otra ola corta con su
 // dirección; lo que el original hace sin efecto en MuRet (listas vacías, objetos que nadie arma) va como comentario
 // en su lugar.
+namespace Client::World
+{
+struct TerrainPickingSegment;
+}
+
 namespace Client::Scenes
 {
 class WorldState;
+struct FloorItemState;
 struct GameChatContext;
 struct GameMovementState;
 struct InventoryServices;
@@ -96,6 +103,9 @@ struct GameUiContext
     // Item.bmd, vestir al héroe, el cuervo, los mensajes y el envío del 24 para levantar, soltar y equipar
     // (Scenes/InventoryMoves). nullptr (los tests que no los miran): lo que los necesita corta.
     const InventoryServices* inventory = nullptr;
+    // 0x5f93c0 (la altura del terreno) sin las celdas del mapa: la de la cámara. La pide levantar con la barra
+    // (CL9 hito 5).
+    float fixedHeight = 1200.0f;
     // ItemSetType.bmd e ItemSetOption.bmd (0x40c600), que lee 0x550d10 con el Item.bmd de `inventory` cuando la C o el
     // botón del HUD abren el personaje (0x65ca1e). nullptr si no se cargaron: abrirlo corta en 0x40e1b0.
     const Data::Tables::ItemSetTables* itemSetTables = nullptr;
@@ -134,15 +144,20 @@ struct FramePickingContext
     std::array<std::int32_t, 5>& targets;
     // GetAsyncKeyState(0x12) en 0x59ef37.
     bool altDown = false;
+    // CL9 hito 5: los ítems del piso del dibujo (0x77f46c8, o su copia en un dibujo intermedio) y el segmento del mouse
+    // de este frame (0x7d36834 y 0x7d366c0) para 0x59e2e0. nullptr antes del primer dibujo: no busca.
+    std::span<FloorItemState> floorItems{};
+    const World::TerrainPickingSegment* mouseRay = nullptr;
 };
 
-// 0x63717f → 0x5ac8d0: las teclas de función, al final de la lógica del paso con el mundo cargado. La barra (levantar
-// el ítem del piso, CL9.3) corta; F1 (las ayudas de 0x77f3b08 y el cartel del conjunto), F2 (el chat normal en el
-// registro), F3 (el modo del susurro) y F4 (el tamaño y el lugar del registro) cambian lo suyo y suenan. Impr Pant
-// (0x637cff, la captura) no es de acá: va detrás del paso de cualquier escena (Scenes::Screenshots).
+// 0x63717f → 0x5ac8d0: las teclas de función, al final de la lógica del paso con el mundo cargado. La barra levanta
+// el ítem del piso más cercano (Scenes/FloorItemActions, CL9 hito 5); F1 (las ayudas de 0x77f3b08 y el cartel del
+// conjunto), F2 (el chat normal en el registro), F3 (el modo del susurro) y F4 (el tamaño y el lugar del registro)
+// cambian lo suyo y suenan. Impr Pant (0x637cff, la captura) no es de acá: va detrás del paso de cualquier escena
+// (Scenes::Screenshots).
 [[nodiscard]] Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& context);
 
-// 0x637641 → 0x59ec80: el picking del frame, primero del 2D. Las búsquedas del ítem del piso, del NPC, del
-// personaje y del objeto son de sus olas (CL9.1, CL9.3) y dejan −1, como en la traza.
+// 0x637641 → 0x59ec80: el picking del frame, primero del 2D. La búsqueda del ítem del piso (0x59e2e0, CL9 hito 5) va
+// en sus dos lugares; las del NPC, del personaje y del objeto son de la CL9.1 y dejan −1, como en la traza.
 [[nodiscard]] Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& context);
 } // namespace Client::Scenes

@@ -2,11 +2,14 @@
 
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "GameLogic/PathCell.h"
+#include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -19,6 +22,16 @@
 namespace Client::Render::Models
 {
 class CrtRandom;
+}
+
+namespace Client::Data::Text
+{
+class TextTable;
+}
+
+namespace Client::UI
+{
+class PanelRegistry;
 }
 
 namespace Client::World
@@ -46,6 +59,17 @@ struct InventoryServices
     std::function<Core::Expected<void, std::string>(std::size_t index, std::int32_t type)> systemMessage{};
     // El C1 0E 24 en C3 por la sesión (ServerSession::SendItemMove), después de los dos rand() del envío.
     std::function<Core::Expected<void, std::string>(const Protocol::Inventory::ItemMove&)> sendItemMove{};
+    // CL9 hito 5. Text.bmd, para los textos que se arman con sprintf.
+    const Data::Text::TextTable* texts = nullptr;
+    // 0x555190 con un texto ya armado (sprintf con un texto de Text.bmd como formato) y el nombre vacío.
+    std::function<Core::Expected<void, std::string>(std::string_view text, std::int32_t type)> chatLine{};
+    // El C1 06 23, el C1 05 22 y el C1 06 26 en C3 por la sesión, después de los dos rand() del envío.
+    std::function<Core::Expected<void, std::string>(const Protocol::FloorItems::Drop&)> sendDrop{};
+    std::function<Core::Expected<void, std::string>(std::uint16_t index)> sendPickUp{};
+    std::function<Core::Expected<void, std::string>(const Protocol::FloorItems::UseItem&)> sendUseItem{};
+    // 0x5fc260(1) y 0x5fac90 con el rayo del mouse, como MoveHero (0x59de04..0x59de78): la celda del terreno bajo el
+    // mouse (0x7d366e0 y 0x7d366e4 · 0,01) o nada.
+    std::function<Core::Expected<std::optional<GameLogic::PathCell>, std::string>()> pickTheGround{};
 };
 
 // Los servicios de `resources`, sin el envío: Item.bmd, 0x512a30 con Player.bmd, el cuervo y los mensajes.
@@ -153,19 +177,38 @@ struct GridDrop
 [[nodiscard]] Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveContext& context,
                                                                        const GridDrop& drop);
 
-// 0x5df449..0x5df58b, desde 0x5d8d50 con el clic fuera de las ventanas: lo que no se tira al piso (el aviso 269 y
+// 0x5df449..0x5e070e, desde 0x5d8d50 con el clic fuera de las ventanas: lo que no se tira al piso (el aviso 269 y
 // 0x5be150), las cajas de 0x1a20 a 0x1a25 (el aviso 1915 y 0x5be150) y los paquetes de joyas y el Jewel of Guardian
-// (0x402b30 y 0x5e06b6: 0x5be150, con el aviso 269 salvo con el inventario abierto y el mouse a su derecha). Tirar lo
-// demás (0x5df58b, CL9.3) corta.
+// (0x402b30 y 0x5e06b6: 0x5be150, con el aviso 269 salvo con el inventario abierto y el mouse a su derecha). Lo demás
+// (CL9 hito 5): las siete consultas de las ventanas con el mouse sobre ellas, en su orden (con el rand() de 0x10000 y
+// el de 0x20), el anillo del mago con el registro propio abierto (el aviso 923 con 80 o 40 por el nivel; el nivel 3
+// no se tira), el 0x1c1c (0x4379f0, del hito 6: corta) y, con todo eso y el comercio cerrado (otro rand()), el terreno
+// bajo el mouse: si lo hay, los dos rand() del C3 y el C1 06 23 con su celda y el lugar [0x78a6758], que queda en
+// 0x6c82ec, y la espera del mouse (0x77f3b10 en 0 y 0x6c8dcc en 6); si no, nada. Si no se tira, 0x5be150.
 struct GroundDrop
 {
     std::int32_t mouseX = 0;
     // IsOpen(0x4000000), que no saca rand().
     bool inventoryOpen = false;
+    // Las otras consultas de 0x659290 (0x5df5b6..0x5df6c2 y 0x5dfda8). Sin él, lo que las necesita corta.
+    UI::PanelRegistry* panels = nullptr;
 };
 
 [[nodiscard]] Core::Expected<void, std::string> DropOnTheGround(const InventoryMoveContext& context,
                                                                 const GroundDrop& drop);
+
+// CL9 hito 5. Usar el ítem de la casilla `cell` de la grilla del inventario, lo que repiten las ranuras rápidas de
+// 0x59ff10 (0x5a2bc8.., 0x5a35e0.., 0x5a3d64.. y 0x5a44eb..) y la grilla (0x5c58c5.., 0x5c609b.. y 0x5c7418..): con el
+// almacén, 0x80 o el comercio abiertos (0x5af520, con el rand() del comercio), el aviso 474 del tipo 2; si no, con
+// 0x5767954 en más de 0, nada; si no, 0x5767954 en 10, los dos rand() del C3, el C1 06 26 con la casilla + 12, 0 y
+// [0x78abb26], y el sonido por el tipo de la casilla (0x21 la 0x1c00 y 0x20 las 0x1c01..0x1c09).
+[[nodiscard]] Core::Expected<void, std::string> UseInventoryItem(const InventoryMoveContext& context,
+                                                                 UI::PanelRegistry& panels, std::int32_t cell);
+
+// 0x5bc740(0x78a9bb0, 8, 8, lugar, ítem, 0) (0x5bcd0b.. y su cola): el ítem en su lugar y, con el registro abierto,
+// los ayudantes sin mascota, el cuervo sin el lugar 1 y la capa sin el anillo de nivel 3. Un tipo 0x1fff no pone nada.
+[[nodiscard]] Core::Expected<void, std::string>
+PlaceMovedItem(std::uint8_t slot, const Protocol::Inventory::ItemData& item, const WorldEntryResources& resources);
 
 // 0x4d1400, el 24 cifrado: suelta la traba; con 0xff, 0x5be150; si no, la cuenta en 0 y, en el inventario,
 // 0x5bc740 con el último argumento en 0 y el sonido 0x1d.
@@ -192,6 +235,12 @@ struct GroundDrop
 // 0x4e31a3, el F3 14: la cuenta del cursor en 0, 0x5bc740 con el último argumento en 0 y el sonido 0x45.
 [[nodiscard]] Core::Expected<void, std::string> ApplyItemPut(const Protocol::Inventory::ItemPut& put,
                                                              const WorldEntryResources& resources);
+// 0x4d10d0, el 23 (CL9 hito 5): con 0, 0x5be150; si no, con un lugar del equipo (menos de 12), con el registro propio
+// abierto (3.848 rand() al cerrarlo sin accesos), el cuervo (0x421d60) si es el 0x1a05 del lugar 1, el tipo en
+// 0xffff, +0x3c y +0x44 en 0, 0x512a30 y, en el 8, los ayudantes (0x443d40); con otro, 0x5bd750. Después la cuenta
+// del cursor en 0. Siempre, 0x6c82ec en −1.
+[[nodiscard]] Core::Expected<void, std::string> ApplyDropResult(const Protocol::FloorItems::DropResult& result,
+                                                                const WorldEntryResources& resources);
 // 0x4e316e, el F3 13: el personaje de la clave (0x5110d0) y, si es un jugador, su equipo (0x5139f0, CL9.2): corta.
 // Si no lo es, o sin ninguno, nada.
 [[nodiscard]] Core::Expected<void, std::string> ApplyEquipmentChange(const Protocol::Inventory::EquipmentChange& change,

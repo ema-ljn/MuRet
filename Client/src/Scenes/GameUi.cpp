@@ -8,10 +8,10 @@
 #include "Protocol/Pet/PetInfo.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/FloorItemActions.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameDialogSteps.h"
-#include "Scenes/GameDrawTail.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMoveWindow.h"
 #include "Scenes/GameMovementState.h"
@@ -36,7 +36,7 @@
 #include "World/ItemState.h"
 
 #include <array>
-#include <cmath>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -101,6 +101,15 @@ constexpr std::int32_t PetButtonBottom = 0x1a3;
 constexpr std::uint8_t PetWindowOpen = 2;
 // 0x5aca1b..0x5aca24: F1 da la vuelta por 0, 1 y 2 (idiv por 3).
 constexpr std::int32_t FunctionHelpModes = 3;
+// CL9 hito 5, el clic derecho de la grilla (0x5c58b0..0x5c740c): el pergamino del portal, la caja de la suerte de
+// nivel 14 (+4 & 0x78 en 0x70) y los tres que mandan el C1 .. 91.
+constexpr std::int32_t TownPortalScroll = 0x1c0a;
+constexpr std::int32_t BoxOfLuck = 0x1c0b;
+constexpr std::uint32_t UsedLevelBits = 0x78;
+constexpr std::uint32_t UsedBoxLevelBits = 0x70;
+constexpr std::int32_t EventTicket1a1d = 0x1a1d;
+constexpr std::int32_t EventTicket1c13 = 0x1c13;
+constexpr std::int32_t EventTicket1a12 = 0x1a12;
 // 0x636e11: desde esta y, el mouse está sobre la barra.
 constexpr std::int32_t HudTop = 0x1b0;
 // 0x5a1181..0x5a1189: Chaos Castle.
@@ -129,8 +138,6 @@ constexpr std::int32_t WhisperModeLeft = 0x1b2;
 constexpr std::int32_t WhisperModeTop = 0x19f;
 constexpr std::int32_t WhisperModeRight = 0x1c6;
 constexpr std::int32_t WhisperModeBottom = 0x1bc;
-// 0x5ac93f..0x5ac97b: la barra levanta un ítem del piso a menos de 300 (0x6b8900).
-constexpr float PickUpDistance = 300.0f;
 
 // 0x553520(vk).
 bool KeyEdge(UI::GameUiState& ui, const Input::InputState& input, GameKey key)
@@ -401,12 +408,59 @@ Core::Expected<void, std::string> StepTheEquipment(const GameUiContext& context)
     return {};
 }
 
-// Lo que hizo el ítem de la grilla bajo el mouse: con levantarlo, 0x5c4110 sale (0x5c5884).
+// Lo que hizo el ítem de la grilla bajo el mouse: con levantarlo (0x5c5884) o el clic derecho (0x5c5895..0x5c9b0b),
+// 0x5c4110 sale.
 enum class GridHover : std::uint8_t
 {
     Stayed,
     PickedUp,
+    RightClicked,
 };
+
+// 0x5c5895..0x5c9b0b (CL9 hito 5): el clic derecho sobre el ítem de la grilla, consumido, con la casilla de arriba a
+// la izquierda del ítem. Los que solo mandan el C1 06 26 (UseInventoryItem): el 0x1c0a sin 0x576794c (0x5c58bd), el
+// 0x1c0b de nivel 14 (0x5c608c) y las pociones (0x1c00..0x1c06, 0x1c08, 0x1c09, el 0x1c14 de nivel 0 y el 0x1c07,
+// 0x5c73ea). Los demás cortan con su dirección: las entradas a los eventos (0x5c67e9, 0x5c6c36 y 0x5c7010) y, desde
+// 0x5c7bc6, los libros y las esferas de skills, la fruta, el 0x1a0b y el resto, que 0x5c8e37 copia al cursor y, con el
+// almacén abierto, pasa a su grilla.
+Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, UI::PanelRegistry& panels,
+                                                 const World::ItemState& hovered)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    runtime.ui.rightClick = false;
+    constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
+    const std::int32_t cell = hovered.gridRow * Columns + hovered.gridColumn;
+    const std::int32_t type = std::bit_cast<std::int16_t>(hovered.id);
+    const std::uint32_t levelBits = hovered.scalar1Low & UsedLevelBits;
+    const auto use = [&] { return UseInventoryItem(MovesOf(context), panels, cell); };
+    if (type == TownPortalScroll)
+    {
+        if (runtime.movement.gateRequestBlocked != 0)
+            return {};
+        return use();
+    }
+    if (type == BoxOfLuck && levelBits == UsedBoxLevelBits)
+        return use();
+    if (type == EventTicket1a1d || type == EventTicket1c13 || type == EventTicket1a12)
+    {
+        const std::uint32_t branch = type == EventTicket1a1d   ? 0x5c67e9u
+                                     : type == EventTicket1c13 ? 0x5c6c36u
+                                                               : 0x5c7010u;
+        return Core::Unexpected(
+            std::format("{:#x}: usar el {:#x} de la grilla manda el C1 .. 91, la entrada a un evento, "
+                        "del hito 11",
+                        branch, type));
+    }
+    const bool potion = (type >= 0x1c00 && type <= 0x1c06) || type == 0x1c08 || type == 0x1c09 ||
+                        (type == 0x1c14 && levelBits == 0) || type == 0x1c07;
+    if (potion)
+        return use();
+    return Core::Unexpected(
+        std::format("0x5c7bc6: el clic derecho sobre el {:#x} de la grilla (los libros y las esferas "
+                    "de skills, 0x5c8fb9; la fruta, 0x5c7c10; el 0x1a0b, 0x5c8448, y los demás, "
+                    "0x5c8e37) es de la fase 2 del hito 5 (08 P-C272)",
+                    type));
+}
 
 // 0x5c41f4..0x5c4b3b y 0x5c52b1..0x5c5894: el ítem de la casilla `index` bajo el mouse. La marca 2 en su huella, el
 // ítem del cartel (0x78abaa8, su copia en 0x787a518 y su lugar), la esquina de su ayuda y, según las tiendas
@@ -479,7 +533,11 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     }
     // 0x5c4aa5..0x5c4aac.
     if (ui.rightClick)
-        return cut("0x5c5895: usar el ítem de la grilla (el C1 .. 26) es de la CL9.3");
+    {
+        if (auto used = UseTheGridItem(context, panels, hovered); !used.HasValue())
+            return Core::Unexpected(used.Error());
+        return GridHover::RightClicked;
+    }
     // 0x5c4ab7: 0x5aed40 con la grilla del inventario.
     ui.field78abb28 = 0;
     ui.field78abb2c = cell + FirstGridSlot;
@@ -519,7 +577,7 @@ Core::Expected<void, std::string> StepTheInventoryGrid(const GameUiContext& cont
             const auto hovered = HoverTheGridItem(context, panels, index, left, top);
             if (!hovered.HasValue())
                 return Core::Unexpected(hovered.Error());
-            if (hovered.Value() == GridHover::PickedUp)
+            if (hovered.Value() != GridHover::Stayed)
                 return {};
         }
     }
@@ -851,8 +909,9 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
     // 0x5deca7..0x5decc8: la tienda de NPC, con su rand(); con el mouse en ella, vender.
     if (panels.IsOpen(UI::NpcShopPanel))
         return cut("0x5decce: vender el ítem del cursor en la tienda de NPC (0x78aba28) es de la CL9.3");
-    return DropOnTheGround(moves,
-                           GroundDrop{.mouseX = context.mouseX, .inventoryOpen = panels.IsOpen(UI::InventoryPanel)});
+    return DropOnTheGround(
+        moves,
+        GroundDrop{.mouseX = context.mouseX, .inventoryOpen = panels.IsOpen(UI::InventoryPanel), .panels = &panels});
 }
 
 Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI::PanelRegistry& panels)
@@ -1204,9 +1263,14 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
                 FindQuickSlotItem(runtime.hud.quickSlots, cells, slot, runtime.movement.gateRequestBlocked != 0);
             if (!found.HasValue())
                 return Core::Unexpected(found.Error());
+            // 0x5a2bc8..0x5a32cc: usarlo (CL9 hito 5) y salir de las ranuras.
             if (found.Value())
-                return Core::Unexpected(std::string("0x5a2bc8: usar el ítem de la ranura rápida (0x5af520 y el C1 26) "
-                                                    "es de la CL9.3"));
+            {
+                if (auto used = UseInventoryItem(MovesOf(context), panels, static_cast<std::int32_t>(*found.Value()));
+                    !used.HasValue())
+                    return used;
+                break;
+            }
         }
     }
     if (TextInputBusy(runtime))
@@ -1232,11 +1296,13 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
                 FindQuickSlotItem(runtime.hud.quickSlots, cells, slot, runtime.movement.gateRequestBlocked != 0);
             if (!found.HasValue())
                 return Core::Unexpected(found.Error());
+            // 0x5a35e0.., 0x5a3d64.. y 0x5a44eb..: usarlo (CL9 hito 5); la tecla que sigue se lee igual.
             if (found.Value())
-                return Core::Unexpected(
-                    std::format("0x5a35e0: {} usa el ítem de la ranura rápida (0x5af520 y el C1 26), "
-                                "de la CL9.3",
-                                letter));
+            {
+                if (auto used = UseInventoryItem(MovesOf(context), panels, static_cast<std::int32_t>(*found.Value()));
+                    !used.HasValue())
+                    return used;
+            }
         }
     }
     // 0x5a4c6e..0x5a5504: las letras de los paneles, B y R, sin campo de texto, sin diálogo y con la lista de CS
@@ -1469,22 +1535,11 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& conte
     UI::GameUiState& ui = runtime.ui;
     const Input::InputState& input = context.input;
     // 0x5ac8d9..0x5ac9ce: sin ítem en el cursor (0x7879fbc), la barra con el chat cerrado y el mouse fuera de la UI
-    // (0x775857c) levanta el primer ítem del piso vivo a menos de 300 del héroe (0x5650c0). El byte +0x15c del ítem
-    // que también mira no está identificado: con un ítem cerca, el corte.
+    // (0x775857c) levanta el primer ítem del piso vivo y a la vista a menos de 300 del héroe (0x5650c0, CL9 hito 5).
     if (runtime.cursorItemCount == 0 && KeyEdge(ui, input, SpaceKey) && !ui.chatOpen && ui.mouseOnUi == 0)
     {
-        const ActorState& hero = context.world.Actors()[runtime.hero];
-        for (const FloorItemState& item : context.world.DrawTail().floorItems)
-        {
-            if (!item.alive)
-                continue;
-            const double dx = static_cast<double>(item.position.x) - static_cast<double>(hero.position.x);
-            const double dy = static_cast<double>(item.position.y) - static_cast<double>(hero.position.y);
-            const double dz = static_cast<double>(item.position.z) - static_cast<double>(hero.position.z);
-            if (std::sqrt(dx * dx + dy * dy + dz * dz) < static_cast<double>(PickUpDistance))
-                return Core::Unexpected(std::string("0x5ac9ae: levantar el ítem del piso con la barra (0x5650c0) es "
-                                                    "de la CL9.3"));
-        }
+        if (auto picked = PickUpTheNearestFloorItem(MovesOf(context), context.fixedHeight); !picked.HasValue())
+            return picked;
     }
     // 0x5ac9ce..0x5aca42: F1 pasa por las ayudas (0x77f3b08): de 3 o 4 (la del ítem o la ventana /move) a 0 y si no
     // al siguiente de 0, 1 y 2. Apaga el cartel del conjunto (+0x9305 de [0x6eed3c]) y pide el 0x19.
@@ -1554,8 +1609,18 @@ Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& cont
     targets[0] = -1;
     targets[1] = -1;
     targets[3] = -1;
+    // 0x59e2e0, la búsqueda del ítem del piso (CL9 hito 5), sin ítem en el cursor (0x59ef46 y 0x59f4e3).
+    const auto pickTheFloorItem = [&context, &runtime, &targets]
+    {
+        if (runtime.cursorItemCount == 0 && context.mouseRay != nullptr)
+            targets[0] = PickTheFloorItem(context.floorItems, *context.mouseRay);
+    };
     if (runtime.ui.mouseOnUi == 0)
     {
+        // 0x59ef37..0x59efb4: con Alt, primero el ítem del piso; con uno, nada más. Las de los personajes (0x59e700) y
+        // los objetos (0x59eb90) que siguen son de la CL9.1 y dejan −1.
+        if (context.altDown)
+            pickTheFloorItem();
         if (!context.altDown)
         {
             const ActorState& hero = context.world.Actors()[runtime.hero];
@@ -1573,8 +1638,11 @@ Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& cont
             if (!panels.Registry().IsOpen(UI::PartyPanel))
                 static_cast<void>(panels.Registry().WorldWidth());
         }
-        // Las búsquedas: 0x59e700 (los personajes con 0x22, 1 y 4), 0x59e2e0 (el ítem del piso, sin ítem en el
-        // cursor) y 0x59eb90 (los objetos). Son de la CL9.1 y la CL9.3: dejan −1.
+        // Las búsquedas: 0x59e700 (los personajes con 0x22, 1 y 4, en 0x6c8e30 y 0x6c8e2c), que son de la CL9.1 y dejan
+        // −1; con los dos en −1 (0x59f49a..0x59f4e1), 0x59e2e0 (0x59f4e3..0x59f4f1) y, sin ítem, 0x59eb90 (los
+        // objetos, CL9.1).
+        if (!context.altDown && targets[1] == -1 && targets[2] == -1)
+            pickTheFloorItem();
     }
     // Con el mouse en la UI, 0x59e3b0 (0x59f52a), sin rand(), del elegido.
     // 0x59f52f.

@@ -757,7 +757,8 @@ Core::Expected<void, std::string> StepTheTradeGrids(const GameUiContext& context
                     context.mouseY >= cellTop + CellSize || cells[index].id == EmptyOwnItemId)
                     continue;
                 return Core::Unexpected(std::format("0x5c41f4: el ítem {:#x} de la grilla del comercio bajo el mouse "
-                                                    "(su marca, su cartel y levantarlo) es de la CL9 hito 7, fase 2",
+                                                    "(su marca, su cartel y levantarlo, 0x5c4110) es del hito 7 "
+                                                    "(08 P-C205 a)",
                                                     cells[index].id));
             }
         }
@@ -933,7 +934,8 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
         return Core::Unexpected(inGrid.Error());
     // 0x5deb11..0x5dec41: las otras grillas. La caja del caos y la lista del asedio ya cortaron arriba.
     if (panels.IsOpen(UI::TradePanel))
-        return cut("0x5deb1c: soltar el ítem del cursor en el comercio (0x78a5a20) es de la CL9.4");
+        return cut("0x5deb1c: soltar el ítem del cursor en la grilla propia del comercio (0x5ca250 con 0x78a92a8) es "
+                   "del hito 7 (08 P-C205 a)");
     if (panels.IsOpen(UI::WarehousePanel))
         return cut("0x5deb57: soltar el ítem del cursor en el almacén (0x78a7070) es de la CL9.3");
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))

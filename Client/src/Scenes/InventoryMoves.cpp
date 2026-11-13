@@ -1387,7 +1387,8 @@ Core::Expected<void, std::string> ApplyItemMoveResult(const Protocol::Inventory:
             return placed;
         break;
     case 1:
-        return Core::Unexpected(std::string("0x4d1ce0: 0x5bc740 en la grilla del comercio (0x78a92a8) es de la CL9.4"));
+        return Core::Unexpected(
+            std::string("0x4d1ce0: 0x5bc740 en la grilla del comercio (0x78a92a8) es del hito 7 (08 P-C205 a)"));
     case 2:
         return Core::Unexpected(std::string("0x4d1d0a: 0x5bc740 en la grilla del almacén o la tienda (0x78a7070) es de "
                                             "la CL9.3"));

@@ -129,4 +129,38 @@ TEST(GuildMarksTest, AFailedUploadIsCut)
     ASSERT_TRUE(marks.Upload(*guild, 0, true).HasValue());
     EXPECT_EQ(store.loadCalls, 2);
 }
+
+// P-C289: la marca de cada renglón de la alianza (0x5f16a0(1999, 1) desde 0x46e09f) va al slot de su renglón, después
+// de los colores, con los píxeles de la entrada; dos renglones con marcas distintas quedan cada uno con la suya. Un
+// renglón fuera de los 6 de la lista, o un índice fuera de la tabla, corta.
+TEST(GuildMarksTest, EachUnionRowHasItsOwnSlot)
+{
+    auto guild = std::make_unique<GuildState>();
+    Client::Tests::FakeTextureStore store;
+    GuildMarkTextures marks(store);
+    auto& creating = guild->table[static_cast<std::size_t>(Client::Scenes::CreatingGuildIndex)].mark;
+    creating.fill(4);
+    const auto first = marks.UploadToTheUnionRow(*guild, Client::Scenes::CreatingGuildIndex, true, 0);
+    creating.fill(8);
+    const auto last = marks.UploadToTheUnionRow(*guild, Client::Scenes::CreatingGuildIndex, true, 5);
+    ASSERT_TRUE(first.HasValue()) << first.Error();
+    ASSERT_TRUE(last.HasValue()) << last.Error();
+    EXPECT_EQ(first.Value().value, Client::Render::FirstGuildUnionMarkTextureSlot.value);
+    EXPECT_EQ(last.Value().value, Client::Render::FirstGuildUnionMarkTextureSlot.value + 5);
+    EXPECT_EQ(Client::Render::FirstGuildUnionMarkTextureSlot.value + 6, Client::Render::TextureSlotCount);
+    const auto red = store.Find(first.Value());
+    const auto green = store.Find(last.Value());
+    ASSERT_TRUE(red.has_value());
+    ASSERT_TRUE(green.has_value());
+    EXPECT_EQ(red->texture.pixels[0], 0xff);
+    EXPECT_EQ(red->texture.pixels[1], 0);
+    EXPECT_EQ(green->texture.pixels[0], 0);
+    EXPECT_EQ(green->texture.pixels[1], 0xff);
+    EXPECT_EQ(red->sampling.filter, Client::Data::Textures::Filter::Nearest);
+
+    EXPECT_FALSE(marks.UploadToTheUnionRow(*guild, Client::Scenes::CreatingGuildIndex, true, 6).HasValue());
+    EXPECT_FALSE(marks.UploadToTheUnionRow(*guild, Client::Scenes::CreatingGuildIndex, true, -1).HasValue());
+    EXPECT_FALSE(marks.UploadToTheUnionRow(*guild, 2000, true, 0).HasValue());
+    EXPECT_EQ(store.loadCalls, 2);
+}
 } // namespace

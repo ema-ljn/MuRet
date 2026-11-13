@@ -22,11 +22,11 @@ Core::Expected<void, std::string> TextureTable::Load(std::span<const Data::Textu
         if (texture.slot >= m_slots.size())
         {
             return Core::Unexpected(std::format("el slot {:#x} no está en la tabla, que tiene {} (los {} del original, "
-                                                "los {} del texto, los {} de las marcas de los gremios y los {} de "
-                                                "sus colores)",
+                                                "los {} del texto, los {} de las marcas de los gremios, los {} de "
+                                                "sus colores y los {} de los renglones de la alianza)",
                                                 texture.slot, TextureSlotCount, OriginalTextureSlotCount,
                                                 TextTextureSlotCount, GuildMarkTextureSlotCount,
-                                                GuildSwatchTextureSlotCount));
+                                                GuildSwatchTextureSlotCount, GuildUnionMarkTextureSlotCount));
         }
         Core::Expected<GlTexture, std::string> uploaded = GlTexture::Upload(*m_gl, texture.texture, texture.sampling);
         if (!uploaded.HasValue())

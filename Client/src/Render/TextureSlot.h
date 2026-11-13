@@ -41,7 +41,16 @@ inline constexpr TextureSlot FirstGuildMarkTextureSlot{
 inline constexpr std::size_t GuildSwatchTextureSlotCount = 16;
 inline constexpr TextureSlot FirstGuildSwatchTextureSlot{
     static_cast<std::uint16_t>(OriginalTextureSlotCount + TextTextureSlotCount + GuildMarkTextureSlotCount)};
-// Todos los slots de una tabla de MuRet: los del original, los del texto, los de las marcas y los de sus colores.
-inline constexpr std::size_t TextureSlotCount =
-    OriginalTextureSlotCount + TextTextureSlotCount + GuildMarkTextureSlotCount + GuildSwatchTextureSlotCount;
+// Las marcas de los renglones de la lista de la alianza (CL9 hito 8, fase 6; P-C289), después de los colores: 0x46dfa0
+// pinta la de cada renglón en la entrada 1999 (0x5f16a0(1999, 1)) y dibuja su quad enseguida, así que en el original
+// cada renglón ve la suya; con el lote del frame, el slot de (1999, 1) quedaría con la del último. MuRet le da uno a
+// cada renglón de los 6 de la lista (+0x104 de 0x45f630, Scenes::GuildSmallList).
+inline constexpr std::size_t GuildUnionMarkTextureSlotCount = 6;
+inline constexpr TextureSlot FirstGuildUnionMarkTextureSlot{static_cast<std::uint16_t>(
+    OriginalTextureSlotCount + TextTextureSlotCount + GuildMarkTextureSlotCount + GuildSwatchTextureSlotCount)};
+// Todos los slots de una tabla de MuRet: los del original, los del texto, los de las marcas, los de sus colores y los
+// de los renglones de la alianza.
+inline constexpr std::size_t TextureSlotCount = OriginalTextureSlotCount + TextTextureSlotCount +
+                                                GuildMarkTextureSlotCount + GuildSwatchTextureSlotCount +
+                                                GuildUnionMarkTextureSlotCount;
 } // namespace Client::Render

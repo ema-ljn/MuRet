@@ -142,7 +142,7 @@ TEST_F(TextureTableTest, TheLastSlotIsInTheTable)
 }
 
 // Los slots del texto van después de los del original: el 1.845 (0x735) es el primero. El último de la
-// tabla, el 6.100, es el de la última marca de los gremios (CL9 hito 8).
+// tabla, el 6.122, es el del último renglón de la lista de la alianza (CL9 hito 8).
 TEST_F(TextureTableTest, TheTextSlotsComeAfterTheOriginal)
 {
     TextureTable table(Gl());

@@ -348,9 +348,9 @@ Core::Expected<std::int32_t, std::string> DrawTheUnionRow(GameHudContext& contex
         return Core::Unexpected(std::string("0x46e09f: la marca de la alianza (0x5f16a0) sin la tabla de las marcas"));
     auto& creating = guild.table[static_cast<std::size_t>(CreatingGuildIndex)].mark;
     creating = element.mark;
-    // 0x46e09f: 0x5f16a0(1999, 1). MuRet guarda la marca en el slot de (1999, 1) y la dibuja con el lote: si la
-    // alianza tiene varios gremios, cada fila sube la suya al mismo slot (P-C289).
-    auto slot = context.guildMarks->Upload(guild, CreatingGuildIndex, true);
+    // 0x46e09f: 0x5f16a0(1999, 1) y el quad enseguida. MuRet dibuja el lote después, así que cada renglón sube la suya
+    // a su slot (P-C289): con el de (1999, 1), todos verían la del último.
+    auto slot = context.guildMarks->UploadToTheUnionRow(guild, CreatingGuildIndex, true, row);
     if (!slot.HasValue())
         return Core::Unexpected(std::move(slot).Error());
     WindowDrawing::Quad(sprites, slot.Value().value, static_cast<float>(left), static_cast<float>(rowY), UnionMarkSide,

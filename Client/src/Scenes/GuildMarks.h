@@ -48,6 +48,11 @@ public:
     Upload(const GuildState& guild, std::int32_t index, bool clearBackground) = 0;
     // 0x5f1bb0: pinta el cuadrado del color y da su slot (Render::FirstGuildSwatchTextureSlot + color).
     [[nodiscard]] virtual Core::Expected<Render::TextureSlot, std::string> UploadSwatch(std::int32_t color) = 0;
+    // 0x5f16a0 desde el renglón `row` de la lista de la alianza (0x46e09f): pinta la marca como Upload, pero la sube al
+    // slot del renglón (Render::FirstGuildUnionMarkTextureSlot + row), así cada renglón del lote ve la suya (P-C289).
+    // Corta con un renglón fuera de los 6.
+    [[nodiscard]] virtual Core::Expected<Render::TextureSlot, std::string>
+    UploadToTheUnionRow(const GuildState& guild, std::int32_t index, bool clearBackground, std::int32_t row) = 0;
 };
 
 // Las marcas en la tabla de la escena: el slot de (índice, fondo) en Render::FirstGuildMarkTextureSlot, en
@@ -67,6 +72,8 @@ public:
     [[nodiscard]] Core::Expected<Render::TextureSlot, std::string> Upload(const GuildState& guild, std::int32_t index,
                                                                           bool clearBackground) override;
     [[nodiscard]] Core::Expected<Render::TextureSlot, std::string> UploadSwatch(std::int32_t color) override;
+    [[nodiscard]] Core::Expected<Render::TextureSlot, std::string>
+    UploadToTheUnionRow(const GuildState& guild, std::int32_t index, bool clearBackground, std::int32_t row) override;
 
     // El slot de (índice, fondo).
     [[nodiscard]] static Render::TextureSlot SlotOf(std::int32_t index, bool clearBackground);

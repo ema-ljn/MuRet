@@ -9,6 +9,7 @@
 #include "Render/SpriteBatch.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteVertex.h"
+#include "Render/TextureSlot.h"
 #include "Render/Text/FontSet.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameHud.h"
@@ -1125,14 +1126,24 @@ TEST_P(GuildWindowTest, TheUnionTabListsTheGuildsAndTheMasterButtons)
     EXPECT_EQ(texts[ombues + 1].text, "12");
     EXPECT_EQ(texts[ombues + 1].x, WindowX + 0xf + 4 + 0x8a - 12);
 
+    // P-C289: cada renglón con su slot y su marca (Ombues, el 2 gris, en el 0; Talas, el 1 negro, en el 1); nada en el
+    // de (1999, 1).
     const std::vector<DrawnQuad> quads = QuadsOf(m_sprites);
-    const int markSlot = GuildMarkTextures::SlotOf(Client::Scenes::CreatingGuildIndex, true).value;
-    EXPECT_EQ(
-        CountQuadsAt(quads, markSlot, static_cast<float>(WindowX + 0xf + 4), static_cast<float>(talasY), 8.0f, 8.0f),
-        1U);
-    EXPECT_EQ(CountQuadsAt(quads, markSlot, static_cast<float>(WindowX + 0xf + 4),
+    const int firstRow = Client::Render::FirstGuildUnionMarkTextureSlot.value;
+    EXPECT_EQ(CountQuadsAt(quads, firstRow + 1, static_cast<float>(WindowX + 0xf + 4), static_cast<float>(talasY), 8.0f,
+                           8.0f),
+              1U);
+    EXPECT_EQ(CountQuadsAt(quads, firstRow, static_cast<float>(WindowX + 0xf + 4),
                            static_cast<float>(Client::UI::ListRowY(list, 2, 0)), 8.0f, 8.0f),
               1U);
+    EXPECT_FALSE(m_store.Find(GuildMarkTextures::SlotOf(Client::Scenes::CreatingGuildIndex, true)).has_value());
+    const auto ombuesMark = m_store.Find(Client::Render::TextureSlot{static_cast<std::uint16_t>(firstRow)});
+    const auto talasMark = m_store.Find(Client::Render::TextureSlot{static_cast<std::uint16_t>(firstRow + 1)});
+    ASSERT_TRUE(ombuesMark.has_value());
+    ASSERT_TRUE(talasMark.has_value());
+    EXPECT_EQ(ombuesMark->texture.pixels[0], 0x80);
+    EXPECT_EQ(talasMark->texture.pixels[0], 0);
+    EXPECT_EQ(talasMark->texture.pixels[3], 0xff);
     EXPECT_EQ(Guild().table[static_cast<std::size_t>(Client::Scenes::CreatingGuildIndex)].mark,
               Guild().table[InTheGuild].mark);
 

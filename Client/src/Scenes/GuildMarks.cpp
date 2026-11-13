@@ -122,6 +122,23 @@ Core::Expected<Render::TextureSlot, std::string> GuildMarkTextures::UploadSwatch
     return slot;
 }
 
+Core::Expected<Render::TextureSlot, std::string> GuildMarkTextures::UploadToTheUnionRow(const GuildState& guild,
+                                                                                        std::int32_t index,
+                                                                                        bool clearBackground,
+                                                                                        std::int32_t row)
+{
+    if (row < 0 || static_cast<std::size_t>(row) >= Render::GuildUnionMarkTextureSlotCount)
+        return Core::Unexpected(std::format("0x46e09f: el renglón {} de la alianza no tiene slot (la lista dibuja {})",
+                                            row, Render::GuildUnionMarkTextureSlotCount));
+    auto painted = PaintTheGuildMark(guild, index, clearBackground);
+    if (!painted.HasValue())
+        return Core::Unexpected(std::move(painted).Error());
+    const Render::TextureSlot slot{static_cast<std::uint16_t>(Render::FirstGuildUnionMarkTextureSlot.value + row)};
+    if (auto loaded = Load(slot, painted.Value()); !loaded.HasValue())
+        return Core::Unexpected(std::format("0x5f183d: la marca del renglón {} no sube: {}", row, loaded.Error()));
+    return slot;
+}
+
 Core::Expected<void, std::string> GuildMarkTextures::Load(Render::TextureSlot slot, const GuildMarkImage& image)
 {
     const auto known = m_uploaded.find(slot.value);

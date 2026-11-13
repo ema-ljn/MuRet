@@ -911,21 +911,21 @@ Core::Expected<void, std::string> StepTheOldWindows(OldWindowManager& manager, c
         if (last != nullptr && IsShowing(last->base.state))
             PostToTheManager(manager, CloseMessage, LastOldWindow(manager), 0);
     }
-    // 0x4904eb: F5 con el foco en la ventana del juego, 0x4a5be0(1) sobre la lista de ventanas: sin entradas (+0xdc,
-    // CL9.4), nada.
+    // 0x490538..0x49055c: F5 con el foco en la ventana del juego, 0x4a5be0(1) sobre la lista de ventanas: sin entradas
+    // (+0xdc, CL9.4), nada.
     if (globals.keyboardFocus == ChatFocus::Game && view.keyEdge)
         static_cast<void>(view.keyEdge(F5Key));
-    // 0x490505..0x49053c: F6 esconde las ventanas, o las vuelve a mostrar si escondió alguna.
+    // 0x490561..0x4905a2: F6 esconde las ventanas, o las vuelve a mostrar si escondió alguna.
     if (view.keyEdge && view.keyEdge(F6Key) && (manager.hiddenByF6 == 0 || !manager.hidden.empty()))
     {
         manager.hiddenByF6 = (manager.hiddenByF6 + 1) % 2;
         if (auto hidden = HideTheOldWindows(manager, manager.hiddenByF6, 1, globals); !hidden.HasValue())
             return hidden;
     }
-    // 0x490541: la de amigos oculta se suelta (0x4914e0). No hay ventana de amigos en la CL8.
+    // 0x4905a2..0x4905bf: la de amigos oculta se suelta (0x4914e0). No hay ventana de amigos en la CL8.
     if (manager.friends != 0)
-        return Core::Unexpected(std::string("0x490541: la ventana de amigos (+0x48) es de la CL9.4"));
-    // 0x490567..0x4905c4: de arriba hacia abajo, cada una a la vista corre su paso con 0 (solo las del primer mapa).
+        return Core::Unexpected(std::string("0x4905a2: la ventana de amigos (+0x48) es de la CL9.4"));
+    // 0x4905c4: de arriba hacia abajo, cada una a la vista corre su paso con 0 (solo las del primer mapa).
     for (auto it = manager.order.rbegin(); it != manager.order.rend(); ++it)
     {
         OldWindow* window = FindTheOldWindow(manager, *it);

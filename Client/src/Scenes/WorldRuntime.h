@@ -296,6 +296,9 @@ struct WorldRuntime
     // lugar 8, 0x421e9e), sin portar (CL9), y lo leen 0x4225d0 (el byte de abajo) y 0x422930. Queda en el 0 de
     // la .bss.
     std::uint16_t darkHorseLevel = 0;
+    // [0x723968], el nivel del cuervo: la mascota 0 de 0x421db0 (el A9 con el tipo 0, sin portar, CL9). Lo lee el
+    // requisito de liderazgo del 0x1a5 (0x5bf027). Queda en el 0 de la .bss.
+    std::uint16_t ravenLevel = 0;
     // DAT_057678b0: el lugar del pool que la respuesta del F3 03 elige para el héroe, rand() % 400
     // (0x4c44d4, la única escritura; 06, "La entrada al mundo", fila 3). Cada respuesta lo vuelve a
     // sortear.

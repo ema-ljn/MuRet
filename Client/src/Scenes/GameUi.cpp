@@ -864,7 +864,7 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
         return {};
     // 0x5e7bf0: con 0x78abb20 en 0 devuelve 0.
     if (ui.field78abb20 != 0)
-        return Core::Unexpected(std::string("0x5e7bf0: 0x78abb20 es del hito 4"));
+        return Core::Unexpected(std::string("0x5e7bf0: 0x78abb20 es del teclado del almacén, de la CL9.3"));
     // 0x5ee15a..0x5ee188.
     if (runtime.dialogs.current != 0 || ui.capture != 0 || ui.hovered != 0 || ui.field78abad9 != 0)
         return {};

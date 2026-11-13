@@ -26,6 +26,8 @@ using Client::Render::Models::MetalFactorOf;
 using Client::Render::Models::PassHiddenMesh;
 using Client::Render::Models::SetAlphaAt;
 using Client::Render::Models::SetColorOf;
+using Client::Render::Models::SetPulseAt;
+using Client::Render::Models::SetPulseIsOff;
 using Client::Render::Models::ShineColorOf;
 using Client::Render::Models::ShinePass;
 
@@ -78,6 +80,21 @@ TEST(PassColorsTest, TheSetAlphaPulses)
 {
     EXPECT_FLOAT_EQ(SetAlphaAt(std::chrono::milliseconds{0}), 0.4f);
     EXPECT_FLOAT_EQ(SetAlphaAt(std::chrono::milliseconds{250}), std::sin(0.25f) * 0.5f + 0.4f);
+}
+
+// 0x60cc19..0x60cc1c: el alpha es el pulso guardado en un float, pero el rand() del set lo decide el pulso de la x87
+// sin redondear (FCOMP contra el 0,01f). A los 4.036.258.298 ns el pulso pasa el 0,01f por 2,7e−10 y su float ya es
+// 0,01f; dos nanosegundos después queda debajo.
+TEST(PassColorsTest, TheSetPulseIsComparedBeforeItBecomesAFloat)
+{
+    const auto at = [](std::int64_t nanoseconds)
+    { return std::chrono::duration<double, std::milli>(std::chrono::nanoseconds{nanoseconds}).count(); };
+    const double above = SetPulseAt(at(4036258298));
+    EXPECT_GT(above, static_cast<double>(0.01f));
+    EXPECT_LE(static_cast<float>(above), 0.01f);
+    EXPECT_FALSE(SetPulseIsOff(above));
+    EXPECT_TRUE(SetPulseIsOff(SetPulseAt(at(4036258300))));
+    EXPECT_EQ(SetAlphaAt(std::chrono::nanoseconds{4036258298}), static_cast<float>(above));
 }
 
 // La malla que 0x60b130 (los pases 0x48 y 0x44) y 0x60b300 (0x240, 0x1040 y el set) le pasan a

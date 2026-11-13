@@ -45,18 +45,28 @@ constexpr std::int32_t Left = 0x1c2 + 15;
 constexpr std::int32_t Top = 200;
 
 // Los tipos del Item.bmd sintético, con su ancho, su alto y su lugar del equipo (+0x22).
-constexpr std::uint16_t Sword = 0x0001;  // 1 × 3, la mano derecha
-constexpr std::uint16_t Shield = 0x0c01; // 2 × 2, la izquierda
-constexpr std::uint16_t Helm = 0x0e01;   // 2 × 2, la cabeza
-constexpr std::uint16_t Potion = 0x1c00; // 1 × 1, se apila
-constexpr std::uint16_t Jewel = 0x1c0d;  // 1 × 1, Jewel of Bless: no se tira
-constexpr std::uint16_t Box = 0x1a20;    // 1 × 1, avisa con 1915
-constexpr std::uint16_t Bundle = 0x181e; // 1 × 1, el paquete de Bless (0x402b30 da 2)
-constexpr std::uint16_t Wings = 0x1800;  // 3 × 2, las alas
+constexpr std::uint16_t Sword = 0x0001;    // 1 × 3, la mano derecha
+constexpr std::uint16_t Shield = 0x0c01;   // 2 × 2, la izquierda
+constexpr std::uint16_t Helm = 0x0e01;     // 2 × 2, la cabeza
+constexpr std::uint16_t Potion = 0x1c00;   // 1 × 1, se apila
+constexpr std::uint16_t Jewel = 0x1c0d;    // 1 × 1, Jewel of Bless: no se tira
+constexpr std::uint16_t Box = 0x1a20;      // 1 × 1, avisa con 1915
+constexpr std::uint16_t Bundle = 0x181e;   // 1 × 1, el paquete de Bless (0x402b30 da 2)
+constexpr std::uint16_t Wings = 0x1800;    // 3 × 2, las alas
+constexpr std::uint16_t Bow = 0x0801;      // 2 × 4, la izquierda: tira flechas
+constexpr std::uint16_t Crossbow = 0x0808; // 2 × 4, la derecha: tira virotes
+constexpr std::uint16_t Bolts = 0x0807;    // 1 × 1
+constexpr std::uint16_t Arrows = 0x080f;   // 1 × 1
+// 1 × 1, la derecha: el Dark Raven con 32 tipos por grupo, que 0x5bf03f compara (en el Item.bmd real, vacío).
+constexpr std::uint16_t OldDarkRaven = 0x01a5;
 constexpr std::uint8_t HeadSlot = 2;
 constexpr std::uint8_t WingSlot = 7;
 constexpr std::uint8_t NotWorn = 0xff;
 constexpr std::uint8_t DarkKnight = 1;
+constexpr std::uint8_t Elf = 2;
+// Los textos de 0x561840: las flechas que se equipan (con el tipo 1) y las que se acabaron (con el 2).
+constexpr std::size_t EquippedArrowsText = 250;
+constexpr std::size_t NoArrowsText = 251;
 
 // Lo que piden afuera los pasos: cuántas veces se vistió al héroe, los mensajes y los 24 que salieron.
 struct Outside
@@ -64,6 +74,7 @@ struct Outside
     int dressed = 0;
     int ravens = 0;
     std::vector<std::size_t> messages;
+    std::vector<std::int32_t> messageTypes;
     std::vector<ItemMove> sent;
 };
 
@@ -90,9 +101,10 @@ protected:
                                          return Expected<void, std::string>{};
                                      },
                                      .systemMessage =
-                                         [this](std::size_t index)
+                                         [this](std::size_t index, std::int32_t type)
                                      {
                                          outside.messages.push_back(index);
+                                         outside.messageTypes.push_back(type);
                                          return Expected<void, std::string>{};
                                      },
                                      .sendItemMove =
@@ -171,7 +183,12 @@ protected:
                                                          {Jewel, 1, 1, NotWorn},
                                                          {Box, 1, 1, NotWorn},
                                                          {Bundle, 1, 1, NotWorn},
-                                                         {Wings, 3, 2, WingSlot}});
+                                                         {Wings, 3, 2, WingSlot},
+                                                         {Bow, 2, 4, 1},
+                                                         {Crossbow, 2, 4, 0},
+                                                         {Bolts, 1, 1, 1},
+                                                         {Arrows, 1, 1, 0},
+                                                         {OldDarkRaven, 1, 1, 0}});
     Outside outside;
     InventoryServices services;
 };
@@ -377,6 +394,39 @@ TEST_F(CursorItemTest, TheEquipmentTakesWhatGoesThere)
     EXPECT_EQ(outside.sent.back().targetSlot, 0);
 }
 
+// 0x5bf013..0x5bf04a: el 0x1a5 pide de liderazgo el nivel del cuervo ([0x723968]) · 15 + 0xb9, en 16 bits que dan
+// la vuelta, contra +0x20 sin agregados (Q-C775).
+TEST_F(CursorItemTest, TheOldDarkRavenAsksForTheLeadershipOfTheRavenLevel)
+{
+    world.Actors()[0].characterClass = DarkKnight;
+    Scenes::WorldRuntime& runtime = world.Runtime();
+    runtime.cursorItem = Invented(OldDarkRaven);
+    runtime.cursorItemCount = 1;
+    Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+    const auto mark = [&]
+    {
+        const auto dropped = Scenes::DropOnTheEquipment(Moves(), 0);
+        EXPECT_TRUE(dropped.HasValue()) << dropped.Error();
+        return own.equipment[0].warning;
+    };
+
+    own.leadership = 0xb8;
+    EXPECT_EQ(mark(), 3);
+    own.leadership = 0xb9;
+    EXPECT_EQ(mark(), 2);
+    runtime.ravenLevel = 2;
+    EXPECT_EQ(mark(), 3);
+    own.leadership = 0xb9 + 30;
+    EXPECT_EQ(mark(), 2);
+    own.word36 = 100;
+    own.leadership = 0xb9 + 29;
+    EXPECT_EQ(mark(), 3);
+    // 4.357 · 15 + 0xb9 = 0x10004: queda 4.
+    runtime.ravenLevel = 4357;
+    own.leadership = 4;
+    EXPECT_EQ(mark(), 2);
+}
+
 // 0x5c2c65..0x5c2dd0: levantar del equipo deja el lugar en 0xffff (con +0x3c como estaba), viste al héroe y pide el
 // sonido. En Icarus, las únicas alas no se sacan.
 TEST_F(CursorItemTest, PickingUpFromTheEquipmentEmptiesThePlace)
@@ -498,6 +548,125 @@ TEST_F(CursorItemTest, MoveHeroSendsTheLeftWeaponToTheRight)
     ASSERT_TRUE(Scenes::MoveTheLeftWeaponToTheRight(Moves()).HasValue());
     EXPECT_EQ(random.State(), locked.State());
     EXPECT_EQ(outside.sent.size(), 1u);
+}
+
+// 0x5bd750 → 0x561840 → 0x5579e0 (Q-C477): sacar una mano de otra clase cierra el registro dos veces (0x5bd750 y
+// 0x5579e0) y avisa con el 251 y el tipo 2.
+TEST_F(CursorItemTest, RemovingAHandOfAnotherClassWarnsThatThereAreNoArrows)
+{
+    world.OwnCharacter().characterClass = DarkKnight;
+    world.OwnCharacter().equipment[0] = Invented(Sword);
+    const CrtRandom expected = Advanced(random, 2 * Own);
+
+    ASSERT_TRUE(Scenes::RemoveInventoryItem(Moves(), 0).HasValue());
+
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(outside.messages, std::vector<std::size_t>{NoArrowsText});
+    EXPECT_EQ(outside.messageTypes, std::vector<std::int32_t>{2});
+    EXPECT_TRUE(outside.sent.empty());
+}
+
+// 0x5579e0 recorre la grilla de la columna 7 a la 0 y, en cada una, de abajo arriba: con el arco en la izquierda, las
+// flechas de (6, 2) antes que las de (3, 5). Con el registro abierto por quien llama (como 0x561c50), 0x561840 lee las
+// manos: la derecha vacía recibe las flechas, con el 24 del lugar 34 al 0 y el 250 con el tipo 1.
+TEST_F(CursorItemTest, AnElfWithABowTakesTheArrowsOfTheLastColumnIntoTheRightHand)
+{
+    world.OwnCharacter().characterClass = Elf;
+    world.OwnCharacter().equipment[0] = Invented(Arrows);
+    world.OwnCharacter().equipment[1] = Invented(Bow);
+    Put(Arrows, 3, 5);
+    Put(Arrows, 6, 2);
+    Put(Bolts, 7, 7);
+    Scenes::WorldRuntime& runtime = world.Runtime();
+    const Client::Render::Models::LogicalAccess caller(runtime.ownRecordDepth, random,
+                                                       Client::Render::Models::OwnRecordCloseRandoms);
+    const CrtRandom expected = Advanced(random, SendRandoms);
+
+    ASSERT_TRUE(Scenes::RemoveInventoryItem(Moves(), 0).HasValue());
+
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(runtime.cursorItem.id, Arrows);
+    EXPECT_EQ(runtime.cursorItemCount, 1);
+    EXPECT_EQ(runtime.slot78a6758, 12 + 2 * 8 + 6);
+    EXPECT_EQ(runtime.itemMoveTarget, 0);
+    EXPECT_EQ(runtime.ui.field78abb39, 1);
+    EXPECT_EQ(Cell(6, 2).id, EmptyOwnItemId);
+    EXPECT_EQ(Cell(3, 5).id, Arrows);
+    ASSERT_EQ(outside.sent.size(), 1u);
+    EXPECT_EQ(outside.sent.front().sourceSlot, 12 + 2 * 8 + 6);
+    EXPECT_EQ(outside.sent.front().targetSlot, 0);
+    EXPECT_EQ(outside.messages, std::vector<std::size_t>{EquippedArrowsText});
+    EXPECT_EQ(outside.messageTypes, std::vector<std::int32_t>{1});
+    EXPECT_EQ(world.OwnCharacter().equipment[0].id, EmptyOwnItemId);
+}
+
+// Con una ballesta de 0x808 a 0x80e en la derecha, los virotes van a la izquierda (el 1). Con la traba puesta,
+// 0x449d80 no manda nada ni saca sus dos rand(), y el aviso sale igual.
+TEST_F(CursorItemTest, AnElfWithACrossbowTakesTheBoltsIntoTheLeftHand)
+{
+    world.OwnCharacter().characterClass = Elf;
+    world.OwnCharacter().equipment[0] = Invented(Crossbow);
+    world.OwnCharacter().equipment[1] = Invented(Bolts);
+    Put(Arrows, 5, 0);
+    Put(Bolts, 1, 4);
+    Scenes::WorldRuntime& runtime = world.Runtime();
+    runtime.ui.field78abb39 = 1;
+    const Client::Render::Models::LogicalAccess caller(runtime.ownRecordDepth, random,
+                                                       Client::Render::Models::OwnRecordCloseRandoms);
+    const CrtRandom expected = random;
+
+    ASSERT_TRUE(Scenes::RemoveInventoryItem(Moves(), 1).HasValue());
+
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(runtime.cursorItem.id, Bolts);
+    EXPECT_EQ(runtime.slot78a6758, 12 + 4 * 8 + 1);
+    EXPECT_EQ(runtime.itemMoveTarget, 1);
+    EXPECT_EQ(Cell(1, 4).id, EmptyOwnItemId);
+    EXPECT_TRUE(outside.sent.empty());
+    EXPECT_EQ(outside.messages, std::vector<std::size_t>{EquippedArrowsText});
+}
+
+// Sin lo que busca, el 251; con el cursor ocupado, 0x561840 cierra su acceso y no hace nada más. Con el registro
+// cerrado por todos, el cierre de 0x561840 deja las manos en lo que dejó (Q-C202) y corta; sin arco ni ballesta, el
+// tipo es la cuenta que dejó la tabla de protección (Q-C772) y corta si hay alguna casilla que pueda serlo.
+TEST_F(CursorItemTest, TheArrowsStopWhereTheOriginalReadsWhatMuRetDoesNotHave)
+{
+    world.OwnCharacter().characterClass = Elf;
+    ItemState& left = world.OwnCharacter().equipment[1];
+    ItemState& right = world.OwnCharacter().equipment[0];
+    left = Invented(Bow);
+    right = Invented(Arrows);
+    ASSERT_TRUE(Scenes::RemoveInventoryItem(Moves(), 0).HasValue());
+    EXPECT_EQ(outside.messages, std::vector<std::size_t>{NoArrowsText});
+
+    Put(Arrows, 0, 0);
+    right = Invented(Arrows);
+    world.Runtime().cursorItemCount = 1;
+    CrtRandom expected = Advanced(random, 3 * Own);
+    ASSERT_TRUE(Scenes::RemoveInventoryItem(Moves(), 0).HasValue());
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(outside.messages.size(), 1u);
+    EXPECT_EQ(Cell(0, 0).id, Arrows);
+
+    world.Runtime().cursorItemCount = 0;
+    right = Invented(Arrows);
+    expected = Advanced(random, 3 * Own);
+    const auto closed = Scenes::RemoveInventoryItem(Moves(), 0);
+    ASSERT_FALSE(closed.HasValue());
+    EXPECT_TRUE(closed.Error().starts_with("0x561b13:")) << closed.Error();
+    EXPECT_EQ(random.State(), expected.State());
+
+    left = Invented(Shield);
+    right = Invented(Sword);
+    const auto probe = Scenes::RemoveInventoryItem(Moves(), 0);
+    ASSERT_FALSE(probe.HasValue());
+    EXPECT_TRUE(probe.Error().starts_with("0x557c62:")) << probe.Error();
+
+    world.Inventory().ClearForInventoryReply();
+    right = Invented(Sword);
+    ASSERT_TRUE(Scenes::RemoveInventoryItem(Moves(), 0).HasValue());
+    EXPECT_EQ(outside.messages.size(), 2u);
+    EXPECT_EQ(outside.messages.back(), NoArrowsText);
 }
 
 // Sin el envío, el 24 corta después de la traba y de sus dos rand(); sin Item.bmd, levantar corta antes de tocar nada.

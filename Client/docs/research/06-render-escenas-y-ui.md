@@ -1400,7 +1400,8 @@ y hace 9 consultas sueltas de `0x20` y `0x10000` (los avisos, las ventanas, el 3
 final, este de 2): **73.129 r** (19 × 3.848 + 2 × 4 + 9). La traza agrega el ayudante (3.848) y la skill `0x2c`
 (180): 77.157. MuRet dibuja los 43 quads del 2D de ese frame (sin los textos) con la textura, la mezcla, el color, las
 esquinas y las UV de la traza (`test_game_hud.cpp`); el orbe de la vida da su alto con la vida 1421 de 31131 y
-`48 − v` (Q-C444).
+`48 − v` (Q-C444). La vida, el maná y el BP que leen los orbes y el AG los escriben el `26` y el `27` (04, "La vida y
+el maná", CL8 2026-11-13): el frame que sigue a uno los muestra (`TheLifeAndTheManaPacketsMoveTheOrbs`).
 
 **El cursor del juego** (`0x5ac2d0`): `0x620a00(1)`, `glColor3f(1,1,1)`, un cuadro de 24 × 24 en (x − 2, y − 2),
 como en el login, y **dos veces por frame** (Q-C442). El slot:
@@ -1796,7 +1797,12 @@ un objeto local y llama a `0x607b60` (los `rand()` de lo que cuelga del modelo: 
 y `0xe22`) y, sin excelente (`& 0x3f` en 0, o con uno de los modelos `0x1a12` a `0x1a18` o `0x1c30`, que no lo muestran) y
 con el set (`& 3`) en 1 o 2,
 hace el pase del set (`0x60cc29`): con `sin(0,001 · T) · 0,5 + 0,4 ≤ 0,01` en la x87, `rand() % 100` en el `+0xc0`
-del modelo. `0x1a18` llega a sus uniones (`0x60c3b6`, `0x530860`), con el objeto local de `0x5e0720` de dueño: MuRet
+del modelo. T es el float del reloj del mundo (`0x5767b88`); el pulso se guarda en un float para el alpha del pase
+(`FST`, `0x60cc19`), pero la comparación es la de la x87 sin redondear (`FCOMP`, `0x60cc1c`): un pulso apenas arriba
+del `0,01f` cuyo float ya es `0,01f` no saca el `rand()`. MuRet hace las dos cosas con `Render::Models::SetPulseAt` y
+`SetPulseIsOff`, en `DrawItemFromMeshes` (el piso, lo que cuelga de los personajes y la UI) y en la cuenta de la UI
+sin modelos (CL8, 2026-11-13; `PassColorsTest` y
+`UiItemDrawingTest.TheSetRandomWaitsForTheUnroundedPulse`). `0x1a18` llega a sus uniones (`0x60c3b6`, `0x530860`), con el objeto local de `0x5e0720` de dueño: MuRet
 corta ahí (P-C70).
 
 **El punto de la caja** (`0x5e1486..0x5e1d69`, *estático*, leído en el ASM). Con el cursor vacío (`0x7879fbc` en 0) o
@@ -1913,7 +1919,8 @@ los derivados con `0x550d10`), borra el ítem del cartel, deja `0x78abb2c` en el
 apaga los ayudantes (el 8) o el cuervo (el `0x1a05` del 1). Con un ítem en el cursor y el mouse en un lugar,
 `0x5bee04` prueba si va: el lugar de Item.bmd (`+0x22`; el 1 y el 11 también toman lo del 0 y el 10), la clase (el
 Dark Lord con `+0x49`, el elfo y los arcos, el Magic Gladiator con las dos manos), los requisitos contra el registro
-(en words que dan la vuelta), el mapa (Atlans, Icarus y Chaos Castle con las monturas), Crywolf (las etapas 3 y 4
+(en words que dan la vuelta; con el `0x1a5`, además, el nivel del cuervo `[0x723968]` · 15 + `0xb9` contra el
+liderazgo sin agregados, por `0x4221a0`, Q-C775), el mapa (Atlans, Icarus y Chaos Castle con las monturas), Crywolf (las etapas 3 y 4
 con `0x200000` en `+0x7c`) y la montura en uso. Si va, la marca 2 y, con el clic, `0x78abaac` en 1, el destino
 (`0x77f3cc8`; un arma de una mano o un bastón al 1 con la derecha vacía va al 0), el aviso 1862 de Fenrir y, sin la
 traba, el `24`. Si no va, la marca 3 y, con el clic y sin la traba, `0x5be150`.
@@ -1942,6 +1949,20 @@ con `JGE`) y el Jewel of Guardian van a `0x5e06b6`: con el inventario abierto y 
 izquierda, abre el registro propio (3.848 al cerrarlo), pasa el ítem del lugar 1 al cursor (sus 0x48 bytes, con la
 cuenta en su `+0x3c`) y deja el lugar en `0xffff` con `+4` en 0; `0x512a30`; la grilla del inventario, el lugar 1 y
 el destino 0; y, sin la traba, el `24` del 1 al 0. Sigue con el clic (`0x59cd23`).
+
+**Las flechas del elfo** (`0x561840` → `0x5579e0`, CL8 2026-11-13, *estático*). `0x5bd750` las llama al sacar el
+lugar 0 o el 1, después de cerrar su acceso al registro propio. `0x5579e0` abre el registro, lee la clase y, en el
+elfo, las dos manos, y lo cierra (3.848 `rand()` si queda sin accesos); con otra clase devuelve −1. Busca las
+flechas (`0x80f`) con un arco en la izquierda (`0x800` a `0x806`, `0x811`, `0x814` y `0x815`) y si no los virotes
+(`0x807`) con una ballesta en la derecha (`0x808` a `0x80e` y `0x810` a `0x9ff`); sin ninguno de los dos, el tipo es
+lo que dejó en `[ebp-0xc]` la búsqueda del registro en la tabla de protección (Q-C772). Recorre la grilla del
+inventario de la columna 7 a la 0 y, en cada una, de la fila 7 a la 0, y da la primera casilla de ese tipo con
+`+0x3c` mayor que 0. Con −1, `0x561840` avisa con el 251 y el tipo 2 (Q-C477). Si no, abre el registro, mira si es
+un elfo con el cursor vacío y lo cierra (en línea, 3.848 si queda sin accesos), y después lee las manos (Q-C773): con
+un arco en la izquierda y la derecha vacía, las flechas van a la derecha; con una ballesta de `0x808` a `0x80e` en la
+derecha, o de `0x810` a `0x9ff` con la izquierda vacía, a la izquierda (Q-C774). Para eso copia la casilla al cursor,
+deja `0x78a6758` en la casilla + 12, la saca con `0x5bd750`, pone el destino en `0x77f3cc8`, llama a `0x449d80`
+(que con la traba puesta no hace nada) y avisa con el 250 y el tipo 1. La grilla del cursor (`0x78ab9b8`) no la toca.
 
 **Lo que porta MuRet**: la ventana entera; los ítems 3D, el del cursor y los de las ranuras, dibujados en el pase de
 la UI con sus `rand()` (`Scenes/UiItemDrawing.h`, `test_ui_item_drawing.cpp` y `test_game_inventory_hud.cpp`; el

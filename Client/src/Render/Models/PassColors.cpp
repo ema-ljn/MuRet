@@ -268,11 +268,21 @@ Color ExcellentColorAt(Core::Duration clock)
     return Color{k, k * 0.3f, 1.0f - k, 1.0f};
 }
 
+double SetPulseAt(double milliseconds)
+{
+    // 0,001, 0,5 y 0,4 como los floats de 0x6b89c8, 0x6b882c y 0x6b87b4.
+    return std::sin(milliseconds * static_cast<double>(0.001f)) * 0.5 + static_cast<double>(0.4f);
+}
+
+bool SetPulseIsOff(double pulse)
+{
+    // El 0,01 de 0x6b88d4, un float.
+    return pulse <= static_cast<double>(0.01f);
+}
+
 float SetAlphaAt(Core::Duration clock)
 {
-    const double milliseconds = std::chrono::duration<double, std::milli>(clock).count();
-    // 0,001, 0,5 y 0,4 como los floats de 0x6b89c8, 0x6b882c y 0x6b87b4.
-    return static_cast<float>(std::sin(milliseconds * static_cast<double>(0.001f)) * 0.5 + static_cast<double>(0.4f));
+    return static_cast<float>(SetPulseAt(std::chrono::duration<double, std::milli>(clock).count()));
 }
 
 std::optional<std::size_t> PassHiddenMesh(std::uint16_t model, ShinePass pass, std::int16_t objectHidden)

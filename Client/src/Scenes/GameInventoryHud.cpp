@@ -3,6 +3,7 @@
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/PassColors.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -28,7 +29,6 @@
 #include "World/OriginalFtol.h"
 
 #include <array>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -194,15 +194,6 @@ void SetWarningColor(Render::SpriteBatch& sprites, const World::ItemState& item)
 // ---------------------------------------------------------------------------------------------------------------
 // El ítem 3D de la UI (0x5e1480 → 0x5e0720, Scenes/UiItemDrawing).
 
-// El pase del set de 0x60b3d0 (0x60cbd6..0x60cc29): fsin(T · 0,001) · 0,5 + 0,4 en la x87, contra el 0,01 de
-// 0x6b88d4, sin pasar por un float.
-bool SetPulseIsOff(float worldClock)
-{
-    const double pulse =
-        std::sin(static_cast<double>(worldClock) * static_cast<double>(0.001f)) * 0.5 + static_cast<double>(0.4f);
-    return pulse <= static_cast<double>(0.01f);
-}
-
 // Sin la biblioteca de los modelos, los rand() del dibujo en su orden: los de 0x607b60 (1 con 0x220 y 0xc19, 2 con
 // 0xc17 y 0xe20), los de 0x609640 (2 con 0xe21 y 0xe22) y el del pase del set (0x60cc29: con el set en 1 o 2, sin
 // excelente y con el pulso apagado, rand() % 100 en el +0xc0 del modelo; como DrawItemFromMeshes, solo en un frame
@@ -218,7 +209,9 @@ void SpendUiItemRandoms(GameHudContext& context, std::int32_t model, std::uint8_
     if (showsExcellent || context.projecting)
         return;
     const std::uint32_t setKind = set & 3u;
-    if ((setKind == 1 || setKind == 2) && SetPulseIsOff(context.worldClock))
+    // El pase del set de 0x60b3d0 (0x60cbff..0x60cc29), con el pulso de la x87 sin pasar por un float.
+    if ((setKind == 1 || setKind == 2) &&
+        Render::Models::SetPulseIsOff(Render::Models::SetPulseAt(static_cast<double>(context.worldClock))))
         context.world.Runtime().itemRender.selections[static_cast<std::uint16_t>(model)] = context.random.Next() % 100;
 }
 

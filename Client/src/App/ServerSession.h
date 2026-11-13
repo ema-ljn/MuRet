@@ -364,6 +364,8 @@ private:
     void OnNotice(const Network::Packet& packet);
     void OnOptionData(const Network::Packet& packet);
     void OnItemMove(const Network::Packet& packet);
+    void OnLifeRefill(const Network::Packet& packet);
+    void OnManaRefill(const Network::Packet& packet);
     void OnItemDelete(const Network::Packet& packet);
     void OnDurability(const Network::Packet& packet);
     void OnEquipmentChange(const Network::Packet& packet);

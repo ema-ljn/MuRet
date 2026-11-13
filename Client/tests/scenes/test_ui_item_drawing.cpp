@@ -24,6 +24,7 @@
 
 #include <array>
 #include <bit>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <ios>
@@ -475,6 +476,38 @@ TEST(UiItemDrawingTest, TheFirstItemOpensTheUiPassAndTheEndDrawsIt)
         Client::Scenes::CloseUiItemPass(resources);
         Client::Scenes::CloseUiItemPass(resources);
         EXPECT_EQ(drawing.events, (std::vector<std::string>{"2d", "3d"}));
+    }
+}
+
+// 0x60cc1c: con el set, el rand() % 100 del pase sale con el pulso de la x87 sin redondear en 0,01f o menos. Sin el
+// float del mundo, con el reloj del frame: a los 4.036.258.298 ns el pulso todavía pasa el 0,01f (su float no) y no
+// sale; a los 4.036.258.300, sí, después del de 0x607b60.
+TEST(UiItemDrawingTest, TheSetRandomWaitsForTheUnroundedPulse)
+{
+    for (const std::int64_t nanoseconds : {std::int64_t{4036258298}, std::int64_t{4036258300}})
+    {
+        SCOPED_TRACE(nanoseconds);
+        UiDrawing drawing;
+        drawing.special.worldClock.reset();
+        Client::Scenes::UiItemResources resources = drawing.Resources({640, 480});
+        resources.frameClock = std::chrono::nanoseconds{nanoseconds};
+        glm::vec3 angles{};
+        const auto placed = Place(0x220, 0, angles);
+        ASSERT_TRUE(placed.HasValue()) << placed.Error();
+        CrtRandom expected = drawing.random;
+        static_cast<void>(expected.Next());
+        const bool off = nanoseconds == 4036258300;
+        const auto selection = off ? expected.Next() % 100 : 0;
+
+        const auto drawn = Client::Scenes::DrawUiItemModel(resources, drawing.random, placed.Value(), 0, 1);
+
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(drawing.random.State(), expected.State());
+        EXPECT_EQ(drawing.selections.contains(0x220), off);
+        if (off)
+        {
+            EXPECT_EQ(drawing.selections.at(0x220), static_cast<std::int32_t>(selection));
+        }
     }
 }
 

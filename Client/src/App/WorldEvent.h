@@ -33,5 +33,6 @@ using WorldEvent =
                  Protocol::Messages::Chat, Protocol::Messages::KeyChat, Protocol::Messages::Whisper,
                  Protocol::Messages::WhisperResult, Protocol::Messages::Notice, Protocol::OptionData::OptionData,
                  Protocol::Inventory::ItemMoveResult, Protocol::Inventory::ItemDelete, Protocol::Inventory::Durability,
-                 Protocol::Inventory::EquipmentChange, Protocol::Inventory::ItemPut>;
+                 Protocol::Inventory::EquipmentChange, Protocol::Inventory::ItemPut, Protocol::Inventory::LifeRefill,
+                 Protocol::Inventory::ManaRefill>;
 } // namespace Client::App

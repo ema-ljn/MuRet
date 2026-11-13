@@ -325,8 +325,9 @@ el viewport. **Desbloquea:** 4 y 11.
       (CL11), la poción (hito 5) y, todavía, la rama del elfo, `0x55faa0` y el caso 5 de `0x5650c0` (P-C269).
       En la fase 2c-C, la rama de las clases 1, 3 y 4 (`0x581894..0x5897a7`, `Scenes/HeroSkillsKnight`: los `19` y
       `1E` de las `0x29`, `0x2a`, `0x30`, `0x37`, `0x38`, `0x3e`, `0x3f`, `0x40`, `0x41`, `0x4b` y `0x4c`, con
-      `0x551c70`, `0x551f40`, `0x4e9920`, `0x4e9c50` y `0x57cf90`); cortan el camino de la poción (`0x581b88`) y el
-      Magic Gladiator en la rama del Wizard (`0x5897b7`) (08, P-C223).
+      `0x551f40`, `0x4e9920`, `0x4e9c50` y `0x57cf90`, y el costo y la poción de `Scenes/HeroSkillCasts`); cortan
+      la poción con una en el inventario (`0x581b9e`, hito 5) y el Magic Gladiator en la rama del Wizard
+      (`0x5897b7`) (08, P-C223).
 - [x] **Lo que llega:** el `0x19` (`0x4cc530`, 6,5 KB, con las acciones `0x94`, `0x51` y `0x5b` de
       `0x50f828`), el `0x1E` (`0x4ce000`), el `0x1B` (`0x4cbe90`), el `0x07` (los estados de un personaje,
       `GCSend_07` del GS: `0x4cbe00`, con `0x4e6910`), el `0x48`, el `0x69`, el `0x73` (`0x4d5b10`),

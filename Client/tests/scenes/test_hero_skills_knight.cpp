@@ -16,7 +16,6 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/Skill4e9920.h"
 #include "Scenes/Skill4e9c50.h"
-#include "Scenes/Skill551c70.h"
 #include "Scenes/Skill551f40.h"
 #include "Scenes/Skill57cf90.h"
 #include "Scenes/SkillDelays.h"
@@ -663,16 +662,26 @@ TEST(HeroSkillsKnightTest, TheHandsAndTheTypeGateTheSkill)
     EXPECT_EQ(tested->sent.size(), 1u);
 }
 
-// 0x581b70..0x58236f: sin el maná, 0x558110(3) corta; sin la stamina o la energía, no se usa (sin 0x552c50 con la
-// stamina); el Dark Lord sin el liderazgo termina.
+// 0x581b70..0x58236f: sin el maná, 0x558110(3) busca la poción y no se usa (con ella, 0x5af520 corta: hito 5); sin la
+// stamina o la energía, no se usa (sin 0x552c50 con la stamina); el Dark Lord sin el liderazgo termina.
 TEST(HeroSkillsKnightTest, TheCostsGateTheSkill)
 {
+    for (const std::int32_t map : {0, 2})
     {
-        const auto tested = AKnight(0x29);
+        SCOPED_TRACE(map);
+        const auto tested = AKnight(0x29, Knight, map);
         tested->skills = SkillsWith({{.skill = 0x29, .mana = 101}});
+        const CrtRandom expected = Advanced(tested->random, UnpaidDraws);
+        ASSERT_TRUE(tested->Use().HasValue());
+        EXPECT_EQ(tested->random.State(), expected.State());
+        EXPECT_TRUE(tested->sent.empty());
+        auto& potion = tested->world.Inventory().cells[12];
+        potion.id = 0x1c05;
+        potion.occupied = 1;
         const auto result = tested->Use();
         ASSERT_FALSE(result.HasValue());
-        EXPECT_TRUE(Contains(result.Error(), "0x581b88")) << result.Error();
+        EXPECT_TRUE(Contains(result.Error(), "0x581b9e")) << result.Error();
+        EXPECT_TRUE(Contains(result.Error(), "hito 5")) << result.Error();
     }
     {
         const auto tested = AKnight(0x29);
@@ -765,21 +774,15 @@ TEST(HeroSkillsKnightHelpersTest, TheMagicKeyWrapsAfter32)
     EXPECT_EQ(state.magicKeyCounter, 1);
 }
 
-// 0x551c70 y 0x551f40: el maná (+0x22), la stamina (+0x24) y el alcance (+0x26); la energía, 0 con +0x2c en 0 y si no
-// (+0x20 · +0x2c · 4) / 100 + 20. Cada una abre y cierra la entrada: 60 rand().
-TEST(HeroSkillsKnightHelpersTest, TheCostsComeFromSkillBmd)
+// 0x551f40: la energía, 0 con +0x2c en 0 y si no (+0x20 · +0x2c · 4) / 100 + 20. Abre y cierra la entrada: 60 rand().
+TEST(HeroSkillsKnightHelpersTest, TheEnergyComesFromSkillBmd)
 {
     auto world = std::make_unique<Client::Scenes::WorldState>();
     CrtRandom random;
     const auto skills = SkillsWith(
         {{.skill = 0x29, .range = 3, .mana = 0x123, .stamina = 0x45, .level = 7, .energy = 9}, {.skill = 0x2a}});
     const Client::Scenes::SkillDelayContext context{.world = *world, .random = random, .skills = &skills};
-    const CrtRandom expected = Advanced(random, 3 * EntryDraws);
-    const auto costs = Client::Scenes::SkillCostsOf(0x29, context);
-    ASSERT_TRUE(costs.HasValue()) << costs.Error();
-    EXPECT_EQ(costs.Value().mana, 0x123);
-    EXPECT_EQ(costs.Value().stamina, 0x45);
-    EXPECT_EQ(costs.Value().range, 3);
+    const CrtRandom expected = Advanced(random, 2 * EntryDraws);
     const auto energy = Client::Scenes::SkillEnergyRequirement(0x29, context);
     ASSERT_TRUE(energy.HasValue()) << energy.Error();
     EXPECT_EQ(energy.Value(), 7 * 9 * 4 / 100 + 20);
@@ -788,7 +791,6 @@ TEST(HeroSkillsKnightHelpersTest, TheCostsComeFromSkillBmd)
     EXPECT_EQ(none.Value(), 0);
     EXPECT_EQ(random.State(), expected.State());
     const Client::Scenes::SkillDelayContext missing{.world = *world, .random = random};
-    EXPECT_FALSE(Client::Scenes::SkillCostsOf(0x29, missing).HasValue());
     EXPECT_FALSE(Client::Scenes::SkillEnergyRequirement(0x29, missing).HasValue());
 }
 } // namespace

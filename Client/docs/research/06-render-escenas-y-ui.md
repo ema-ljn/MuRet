@@ -10413,13 +10413,15 @@ en 0, 0; si no, `(+0x20 · +0x2c · 4) / 100 + 20`.
 Después del cierre, el Magic Gladiator sigue en la rama del Wizard (`0x5897b7`); el caballero y el Dark Lord, en
 `0x5808da`.
 
-**MuRet**: `Scenes/HeroSkillsKnight` (`UseTheKnightSkill`), con `Scenes/Skill551c70` (`SkillCostsOf`),
-`Skill551f40` (`SkillEnergyRequirement`), `Skill4e9920` (`RelativeTargetCell`), `Skill4e9c50` (`ActionByTheHands`) y
-`Skill57cf90` (`NextMagicKey`), que llaman también otras ramas; `ChosenKeyOf` con el elegido como argumento;
-`Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic`. Los nuevos globales en `GameMovementState`: `0x5767948`
-(`sentSkill`) y `0x77f3bad` (`magicKeyCounter`); `+0x1bd` es `ActorState::magicKey`. `HeroSkillContext` lleva la
-clave del jugador, `GetTickCount` y el esqueleto del jugador. Cortan (P-C223): el camino de la poción (`0x581b88`), el
-Magic Gladiator después de la rama (`0x5897b7`), `0x4ea030` sin el esqueleto y el freno sin el reloj.
+**MuRet**: `Scenes/HeroSkillsKnight` (`UseTheKnightSkill`), con el costo y la poción de la parte compartida
+(`SkillCostOf` y `UseAManaPotion`, `Scenes/HeroSkillCasts`, [arriba](#lo-que-mandan-las-skills-de-las-armas-fase-2c)) y
+`Scenes/Skill551f40` (`SkillEnergyRequirement`), `Skill4e9920` (`RelativeTargetCell`), `Skill4e9c50`
+(`ActionByTheHands`) y `Skill57cf90` (`NextMagicKey`), que llaman también otras ramas; `ChosenKeyOf` con el elegido
+como argumento; `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic` (`b7` y `b8` son `towards` y `back` de
+`DurationMagicSend`, y `b11` su `magicKey`). Los nuevos globales en `GameMovementState`: `0x5767948` (`sentSkill`) y
+`0x77f3bad` (`magicKeyCounter`); `+0x1bd` es `ActorState::magicKey`. `HeroSkillContext` lleva la clave del jugador.
+Cortan (P-C223): con una poción, `0x5af520` y el `C1 26` (`0x581b9e`, del hito 5, P-C269 b), el Magic Gladiator
+después de la rama (`0x5897b7`), `0x4ea030` sin el esqueleto y el freno sin el reloj.
 
 ### Las órdenes del cuervo
 

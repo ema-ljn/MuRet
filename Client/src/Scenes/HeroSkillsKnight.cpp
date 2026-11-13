@@ -3,7 +3,6 @@
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "GameLogic/PathFinder.h"
-#include "Protocol/Outgoing.h"
 #include "Protocol/Skill.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
@@ -14,11 +13,11 @@
 #include "Scenes/CombatActionSpeeds.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/HeroAttack.h"
+#include "Scenes/HeroSkillCasts.h"
 #include "Scenes/HeroSkills.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/Skill4e9920.h"
 #include "Scenes/Skill4e9c50.h"
-#include "Scenes/Skill551c70.h"
 #include "Scenes/Skill551f40.h"
 #include "Scenes/Skill57cf90.h"
 #include "Scenes/SkillDelays.h"
@@ -38,7 +37,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <utility>
 
 namespace Client::Scenes
 {
@@ -160,18 +158,21 @@ bool UsableHere(std::uint8_t skill, const ActorState& published, const HeroSkill
 // 0x581b70..0x58236f: el maná, la stamina, la espera, la energía y, el Dark Lord, el liderazgo. Vacío: termina sin
 // mirar si se podía (0x582364).
 Core::Expected<std::optional<bool>, std::string> PaysForTheSkill(std::uint8_t heroClass, std::uint8_t skill,
-                                                                 const SkillCosts& costs, bool usable,
+                                                                 const SkillCost& costs, bool usable,
                                                                  const HeroSkillContext& context)
 {
     const SkillDelayContext delays = DelaysOf(context);
     const OwnCharacterRecord& own = context.world.OwnCharacter();
-    if (costs.mana > static_cast<std::int32_t>(own.mana))
-        return Core::Unexpected(std::format("0x581b88: la skill {:#x} sin maná busca la poción con 0x558110(3), que es "
-                                            "de la parte compartida de la fase 2c",
-                                            skill));
-    if (usable)
+    if (static_cast<std::int32_t>(costs.mana) > static_cast<std::int32_t>(own.mana))
     {
-        if (costs.stamina > static_cast<std::int32_t>(own.bp))
+        // 0x581b86..0x5822d1: 0x558110(3) busca la poción; sin ella o con ella, no se puede (Q-C1233).
+        if (auto potion = UseAManaPotion(context, "0x581b9e"); !potion.HasValue())
+            return Core::Unexpected(potion.Error());
+        usable = false;
+    }
+    else if (usable)
+    {
+        if (static_cast<std::int32_t>(costs.stamina) > static_cast<std::int32_t>(own.bp))
         {
             usable = false;
         }
@@ -325,24 +326,15 @@ bool SentByTheGameMaster(const HeroSkillContext& context)
     return ActorNameContains(PublishedHero(context), GameMasterName);
 }
 
-// El C1 armado con el XOR32 sale como C3: el relleno (0x69fd70) y el serial (0x40ae60 y 0x40b0a0) sacan dos rand()
-// antes de mirar el socket (+0xc de 0x6c82a0); sin él, no sale.
-void SendAsC3(Protocol::Outgoing packet, const HeroSkillContext& context)
-{
-    context.random.Discard(2);
-    if (context.send)
-        context.send(std::move(packet));
-}
-
 // El 1E (0x582446..0x582dd1 y los demás): 0x5767948 con la skill, las celdas lógicas del héroe (la Y antes que la X)
 // y el C3. El rumbo y los bytes 7 a 11 no sacan rand(): cada rama los calcula antes.
 struct DurationBytes
 {
     std::uint8_t direction = 0;
-    std::uint8_t byte7 = 0;
-    std::uint8_t byte8 = 0;
+    std::uint8_t towards = 0;
+    std::uint8_t back = 0;
     std::uint16_t key = 0;
-    std::uint8_t byte11 = 0;
+    std::uint8_t magicKey = 0;
 };
 
 void SendTheDurationMagic(ActorState& hero, std::uint8_t skill, const DurationBytes& bytes,
@@ -350,15 +342,15 @@ void SendTheDurationMagic(ActorState& hero, std::uint8_t skill, const DurationBy
 {
     context.world.Runtime().movement.sentSkill = skill;
     const Cells cells = ReadTheCells(hero, context.random);
-    SendAsC3(Protocol::Skill::WriteDurationMagic({.skill = skill,
-                                                  .x = cells.x,
-                                                  .y = cells.y,
-                                                  .direction = bytes.direction,
-                                                  .byte7 = bytes.byte7,
-                                                  .byte8 = bytes.byte8,
-                                                  .key = bytes.key,
-                                                  .byte11 = bytes.byte11}),
-             context);
+    // Un C3: el relleno (0x69fd70) y el serial (0x40ae60 y 0x40b0a0) sacan dos rand() antes de mirar el socket.
+    SendTheSkillPacket(context, Protocol::Skill::WriteDurationMagic({.skill = skill,
+                                                                     .x = cells.x,
+                                                                     .y = cells.y,
+                                                                     .direction = bytes.direction,
+                                                                     .towards = bytes.towards,
+                                                                     .back = bytes.back,
+                                                                     .key = bytes.key,
+                                                                     .magicKey = bytes.magicKey}));
 }
 
 // El 19 (0x584dde..0x5854b4 y los demás): sin "webzen" y con el freno de 300 ms, la skill y la clave del jugador
@@ -368,11 +360,12 @@ Core::Expected<void, std::string> SendTheMagicAttack(std::uint8_t skill, const H
 {
     if (SentByTheGameMaster(context))
         return {};
-    if (!context.tickCount)
-        return Core::Unexpected(std::format("{}: el freno de 300 ms sin GetTickCount", where));
-    if (!PassesTheActionBrake(context.world.Runtime().movement.lastActionTick, skill, context.tickCount))
+    const auto brake = PassesTheSkillBrake(skill, context, where);
+    if (!brake.HasValue())
+        return Core::Unexpected(brake.Error());
+    if (!brake.Value())
         return {};
-    SendAsC3(Protocol::Skill::WriteMagicAttack(skill, context.playerKey), context);
+    SendTheSkillPacket(context, Protocol::Skill::WriteMagicAttack(skill, context.playerKey));
     return {};
 }
 
@@ -439,7 +432,7 @@ Core::Expected<void, std::string> UseSkill2a(ActorState& hero, std::uint8_t skil
         if (!direction.HasValue())
             return Core::Unexpected(direction.Error());
         SendTheDurationMagic(hero, skill,
-                             {.direction = direction.Value(), .byte8 = relative.Value(), .key = key.Value()}, context);
+                             {.direction = direction.Value(), .back = relative.Value(), .key = key.Value()}, context);
     }
     return ActAndStop(hero, 0x3e, context);
 }
@@ -460,7 +453,7 @@ Core::Expected<void, std::string> UseSkill37(ActorState& hero, std::uint8_t skil
         const auto direction = DirectionOf(hero, "0x5835cc");
         if (!direction.HasValue())
             return Core::Unexpected(direction.Error());
-        SendTheDurationMagic(hero, skill, {.direction = direction.Value(), .byte7 = position, .key = key.Value()},
+        SendTheDurationMagic(hero, skill, {.direction = direction.Value(), .towards = position, .key = key.Value()},
                              context);
     }
     RefreshCombatActionSpeeds(context.world, context.random);
@@ -497,7 +490,7 @@ Core::Expected<void, std::string> UseSkill38(ActorState& hero, std::uint8_t skil
             return Core::Unexpected(direction.Error());
         SendTheDurationMagic(
             hero, skill,
-            {.direction = direction.Value(), .byte7 = position, .byte8 = opposite.Value(), .key = key.Value()},
+            {.direction = direction.Value(), .towards = position, .back = opposite.Value(), .key = key.Value()},
             context);
     }
     RefreshCombatActionSpeeds(context.world, context.random);
@@ -537,7 +530,7 @@ Core::Expected<void, std::string> UseSkill3eOr41(ActorState& hero, std::uint8_t 
             return Core::Unexpected(direction.Error());
         SendTheDurationMagic(
             hero, skill,
-            {.direction = direction.Value(), .byte7 = position, .byte8 = relative.Value(), .key = key.Value()},
+            {.direction = direction.Value(), .towards = position, .back = relative.Value(), .key = key.Value()},
             context);
     }
     RefreshCombatActionSpeeds(context.world, context.random);
@@ -643,7 +636,7 @@ Core::Expected<void, std::string> UseSkill4c(ActorState& hero, std::uint8_t skil
         const std::uint8_t magicKey = NextMagicKey(state, hero.magicKey);
         SendTheDurationMagic(
             hero, skill,
-            {.direction = direction.Value(), .byte8 = relative.Value(), .key = key.Value(), .byte11 = magicKey},
+            {.direction = direction.Value(), .back = relative.Value(), .key = key.Value(), .magicKey = magicKey},
             context);
     }
     hero.movement = 0;
@@ -689,7 +682,7 @@ Core::Expected<void, std::string> UseTheKnightSkill(ActorState& hero, std::uint8
 {
     // 0x581894: el registro propio queda abierto hasta 0x5854be..0x5897a2, donde se cierra (3.848 rand() en 0).
     const auto own = OwnAccess(context);
-    const auto costs = SkillCostsOf(skill, DelaysOf(context));
+    const auto costs = SkillCostOf(skill, context, "0x58190a");
     if (!costs.HasValue())
         return Core::Unexpected(costs.Error());
     if (hero.type != PlayerType)

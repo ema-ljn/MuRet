@@ -936,28 +936,22 @@ las skills (`19`, `1E`, `D3`, `DF` y `26` de las cuatro funciones por clase) son
 
 ### Las skills que se mandan: `19` y `1E`
 
-(CL9 hito 4, fase 2c, 2026-11-13, *estático*, contra `protocol.cpp` del GameServer reconstruido.) Las ramas de las
-clases de `0x57cfc0` los arman en línea, con el XOR32 desde `pkt[3]` (`EBX` en `0x5d`), y los mandan cifrados como C3:
-el relleno (`0x69fd70`) y el serial (`0x40ae60`, `0x40b0a0`) sacan dos `rand()` antes de mirar el socket (`+0xc` de
-`0x6c82a0`). Lo que hacen y cuándo, en [06](06-render-escenas-y-ui.md#las-skills-del-caballero).
-
-| Paquete | Layout | GameServer 0.97 |
-| --- | --- | --- |
-| `19` | `C1 06 19 <skill> <clave H L>`; las `0x30`, `0x3f`, `0x40` y `0x4b` del caballero mandan la clave del jugador (`0x57678bc`) | `CGMagicAttack` (`0x425f60`) lo pide cifrado (`DataEncryptCheck`) y lee la skill y la clave; `PMSG_MAGICATTACK` tiene un `Dis` más que no lee. El repack lo recibe como `A5` |
-| `1E` | `C1 0C 1E <skill> <x> <y> <rumbo> <b7> <b8> <clave H L> <b11>`: la celda lógica del héroe, el rumbo (`· 256/360`; la `0x38`, `· 1/360 · 255`), en `b7` la posición del blanco y en `b8` la celda de `0x4e9920` o el rumbo opuesto, la clave del elegido y en `b11` la clave de la magia (`0x57cf90`, la `0x4c`) | `CGDurationMagicRecv` (`0x427870`) lo pide cifrado y lee los cuatro primeros (`PMSG_DURATION_MAGIC_RECV`); `EnableSkill` (`0x457694`) deja `0x29`, `0x2a` y `0x37`, no `0x38`, `0x3e`, `0x41` ni `0x4c` (Q-C1230). También `A6` |
-
-**MuRet**: `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic` (`EncryptedC1`); los dos `rand()` del C3 los saca
-quien los manda (`Scenes::UseTheKnightSkill`). Los tests usan claves inventadas.
-
-**Lo que mandan las skills** (CL9 hito 4, fase 2c, 2026-11-13, *estático*, [06](06-render-escenas-y-ui.md#usar-una-skill)).
-Los dos con el XOR32 en línea desde el byte 3 y en `C3` (el relleno y el serial, dos `rand()`):
+(CL9 hito 4, fase 2c, 2026-11-13, *estático*, contra `protocol.cpp` del GameServer reconstruido.) Las funciones que
+mandan (`0x55b6f0`, `0x55a368`, `0x561f60`) y las ramas de las clases de `0x57cfc0` los arman en línea, con el XOR32
+desde `pkt[3]`, y los mandan cifrados como C3: el relleno (`0x69fd70`) y el serial (`0x40ae60`, `0x40b0a0`,
+`0x5767913`) sacan dos `rand()` antes de mirar el socket (`+0xc` de `0x6c82a0`). Lo que hacen y cuándo, en
+[06](06-render-escenas-y-ui.md#usar-una-skill) y [Las skills del caballero](06-render-escenas-y-ui.md#las-skills-del-caballero).
 
 | Paquete | Quién | Layout que manda el cliente | GameServer 0.97 |
 | --- | --- | --- | --- |
 | `19` | `0x55b6f0` (`0x55bf36..0x55c622`), `0x55a368` (la opción `0x12`) | `C1 06 19 <skill> <clave H L>`: la clave entera del blanco (`+0x1f4`) | `PMSG_MAGICATTACK` (`CGMagicAttack`, `0x425f60`) lee 7 bytes, con un `Dis` que el cliente no manda; el repack lo espera como `A5`. *Estático* |
+| `19` | las ramas del caballero (`0x584e09..0x5851b0` y las otras tres) | `C1 06 19 <skill> <clave H L>`: las `0x30`, `0x3f`, `0x40` y `0x4b` mandan la clave del jugador (`0x57678bc`) | `CGMagicAttack` (`0x425f60`) lo pide cifrado (`DataEncryptCheck`) y lee la skill y la clave; `PMSG_MAGICATTACK` tiene un `Dis` más que no lee. El repack lo recibe como `A5` |
 | `1E` | `0x561f60` (`0x562b36` y `0x563f5a`) | `C1 0C 1E <skill> <X> <Y> <rumbo> <hacia> <espalda> <clave H L> 00`: la celda lógica de c (la Y se lee antes); la `0x18`, el rumbo · 256/360 y dos ceros; la `0x36`, el rumbo · 255/360, la celda hacia el blanco (`((dx + 8) << 4) \| ((dy − 8) & 0xf)`, cada eje entre −8 y 7) y el rumbo + 180°. La clave es la de `0x558eb0` con `0x7758588`, o `0xffff` | `PMSG_DURATION_MAGIC_RECV` (`CGDurationMagicRecv`, `0x427870`) lee 7: los cinco de después son del cliente (Q-C1211). *Estático* |
+| `1E` | las ramas del caballero (`0x582439..0x5896a3`) | `C1 0C 1E <skill> <x> <y> <rumbo> <hacia> <espalda> <clave H L> <b11>`: la celda lógica del héroe, el rumbo (`· 256/360`; la `0x38`, `· 1/360 · 255`), en el de "hacia" la posición del blanco y en el de "espalda" la celda de `0x4e9920` o el rumbo opuesto, la clave del elegido y en `b11` la clave de la magia (`0x57cf90`, la `0x4c`) | `CGDurationMagicRecv` (`0x427870`) lo pide cifrado y lee los cuatro primeros (`PMSG_DURATION_MAGIC_RECV`); `EnableSkill` (`0x457694`) deja `0x29`, `0x2a` y `0x37`, no `0x38`, `0x3e`, `0x41` ni `0x4c` (Q-C1230). También `A6` |
 
-**MuRet**: `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic`.
+**MuRet**: `Protocol::Skill::WriteMagicAttack` y `WriteDurationMagic` (`EncryptedC1`; `DurationMagicSend` lleva en
+`magicKey` el byte 11, 0 salvo en la `0x4c` del caballero); los dos `rand()` del C3 los saca quien los manda
+(`Scenes::SendTheSkillPacket`, `Scenes::UseTheKnightSkill`). Los tests usan claves inventadas.
 
 ### Las órdenes del cuervo: `A7` y `A8`
 

@@ -232,10 +232,10 @@ TEST(SkillProtocolTest, TheDurationMagicIs1EWithNineBytes)
                                                   .x = 0xb6,
                                                   .y = 0x73,
                                                   .direction = 0x9f,
-                                                  .byte7 = 0xaa,
-                                                  .byte8 = 0x77,
+                                                  .towards = 0xaa,
+                                                  .back = 0x77,
                                                   .key = 0x0a1b,
-                                                  .byte11 = 5});
+                                                  .magicKey = 5});
     EXPECT_EQ(magic.delivery, Delivery::Encrypted);
     EXPECT_TRUE(SameBytes(Xor32Decode(magic.packet).Bytes(),
                           Bytes({0xc1, 0x0c, 0x1e, 0x4c, 0xb6, 0x73, 0x9f, 0xaa, 0x77, 0x0a, 0x1b, 0x05})));

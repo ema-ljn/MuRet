@@ -177,6 +177,9 @@ struct PanelContext
     // 0x659aa0..0x659c3d: lo que abrir la party hace si cerró lo demás, antes de prenderla: 0x78aba48 (la cuenta de la
     // party) en 0 y el pedido de la lista, C1 03 42. Sin él, abrir la party corta.
     std::function<void()> partyOpened{};
+    // 0x658a18..0x658bc7 y 0x658c0e..0x658dbe: cerrar un NPC de evento (0x1000 o 0x4000) manda el C1 03 31 en claro
+    // antes de poner 0x7d53712 en 0. Sin él, cerrarlos corta.
+    std::function<void()> eventNpcClosed{};
     // 0x41ed10(id, 0, 0): el sonido, gancho de la CL10.
     std::function<void(std::int32_t)> sound{};
     // 0x65c966..0x65ca6d: lo que abrir el personaje hace fuera de los paneles, cierre o no lo demás: [0x6eed3c] de

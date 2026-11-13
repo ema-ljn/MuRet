@@ -240,7 +240,10 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   mandarlo, y `0x4499b0` sale sin mandar si la caja de `0x723c80` tiene algo (`0x449c10`) y, si no,
   pone en 0 `0x724580` y `0x724584`. En el GS reconstruido es `CGCloseWindow`
   (`protocol.cpp:443`, `0x42ab20`): MuRet lo llama `WindowClose`. Los llaman también otros lugares de la interfaz (`0x44b5da`,
-  `0x44b9ce`, `0x44c62e` y `0x658dfd` a `0x4499b0`), que MuRet no tiene.
+  `0x44b9ce`, `0x44c62e` y `0x658dfd` a `0x4499b0`), que MuRet no tiene. Cerrar un NPC de evento (`0x657ab0` con
+  `0x1000` o `0x4000`, `0x658a18` y `0x658c0e`) lo arma en la pila y lo manda, en claro, antes de poner `0x7d53712` en 0
+  (CL9 hito 11, fase 2; `UI::PanelContext::eventNpcClosed`, que prestan el paso de la UI, caminar, el `90`, los
+  cierres de todos los paneles y la entrada, el teleport y el regen).
 - **La suma del ejecutable (`03`)**, S->C y C->S (`0x4e2b10` → `0x4e16c0`; *estático*, ASM
   c32bbd5f, y del lado del GS la reconstrucción del research del servidor). Al entrar al mundo
   (`gObjSetCharacter`, con el `F3 03`) el GS manda `C1 06 03 00 <clave:2>` (`GCCheckMainExeKeySend`):
@@ -848,6 +851,12 @@ Lo que manda el cliente:
   distinto de 0; después, con 3, cierra la entrada del número de serie (corta, `0x56b6a9`), y si no pone `0x78abb00`
   en 0, el cursor con `SetCursorPos` en x · ancho / 260 (Q-C1330), `0x6c8dcc` en 6 y el izquierdo suelto. El GS lo
   atiende en `CGEventChip97Request`.
+- **`C1 05 90 cuadrado casilla`** (`0x5e5b2f..0x5e5eb4`, el paso de la ventana de Devil Square) y **`C1 05 9A puente
+  casilla`** (`0x5e6156..`, la de Blood Castle), con el XOR32 y en claro (fase 2; *estático*). El cuadrado va de 0 a
+  5 y la casilla de la invitación (`0x1c13`) más `0x18`; el puente de 1 a 7 y la casilla de la capa (`0x1a12`) más
+  `0xc` (06 § Las ventanas de los NPC de evento). El GS reconstruido resta 12 a la casilla del `90` (la del
+  inventario, de 12 + casilla) y acepta los cuadrados 0 a 3; al `9A` le resta 1 al puente y usa la casilla tal cual.
+  MuRet: `Protocol::Events::WriteDevilSquareEntry` y `WriteBloodCastleEntry`.
 - **`C1 06 AF 02 x y`** (`0x4fbee8`, desde `0x4fbe10`), con el XOR32: en Chaos Castle, el héroe 10 s en la misma
   celda con el bit 8 del atributo. `MOV CL,0x2` en `0x4fbf6a`: no es el `AF 01` que decía 06.
 

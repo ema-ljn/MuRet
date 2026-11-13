@@ -4,10 +4,12 @@
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Protocol/Character/LevelUpPoint.h"
+#include "Protocol/Connection/Logout.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/EventNpcWindows.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameDialogSteps.h"
@@ -40,6 +42,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -741,8 +744,15 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
         return cut("0x5e4dea: 0x6689d0, la marca del asedio del héroe, es de la CL9.5");
     if (panels.IsOpen(UI::TradePanel))
         return cut("0x5e4e34: el comercio con el inventario es de la CL9.4");
+    // 0x5e4e76..0x5e4ed0: con una de los NPC de evento, el mouse sobre su esquina (0x78aba28, que ponen su paso y su
+    // dibujo) es de la UI.
     if (panels.IsOpen(UI::EventNpcPanel) || panels.IsOpen(UI::SecondEventNpcPanel))
-        return cut("0x5e4e81: las ventanas de los NPC de evento (0x1000 y 0x4000) son de la CL9.5");
+    {
+        const std::int32_t npcX = runtime.ui.npcWindowX;
+        const std::int32_t npcY = runtime.ui.npcWindowY;
+        if (InRect(context, npcX, npcY, npcX + 0xbe, npcY + 0x1b1))
+            runtime.ui.mouseOnUi = 1;
+    }
     if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
         return cut("0x5e4ee2: las tiendas personales con el inventario son de la CL9.4");
     // 0x5e4f31..0x5e5128: los doce lugares del equipo, cada uno con su acceso, y +0x44 en 1 con un tipo.
@@ -779,13 +789,12 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
 }
 
 // 0x5ee1b1..0x5ee1ca: las seis hermanas de 0x5e4ce0, cada una con su IsOpen.
-Core::Expected<void, std::string> StepTheInventorySiblings(UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheInventorySiblings(const GameUiContext& context, UI::PanelRegistry& panels)
 {
     const auto cut = [](std::string_view what) { return Core::Unexpected(std::string(what)); };
-    if (panels.IsOpen(UI::EventNpcPanel))
-        return cut("0x5e594c: el paso de la ventana del NPC de evento 0x1000 (0x5e5920) es de la CL9.5");
-    if (panels.IsOpen(UI::SecondEventNpcPanel))
-        return cut("0x5e5f2e: el paso de la ventana del NPC de evento 0x4000 (0x5e5920) es de la CL9.5");
+    // 0x5e5920: los NPC de evento (CL9 hito 11).
+    if (auto events = StepTheEventNpcWindow(context, panels); !events.HasValue())
+        return events;
     if (panels.IsOpen(UI::ChaosBoxPanel))
         return cut("0x5fe621: el paso de la caja del caos (0x5fe610) es de la CL9.3");
     if (panels.IsOpen(UI::WarehousePanel))
@@ -879,7 +888,7 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
     {
         if (auto inventory = StepTheInventoryWindow(context, panels); !inventory.HasValue())
             return inventory;
-        if (auto siblings = StepTheInventorySiblings(panels); !siblings.HasValue())
+        if (auto siblings = StepTheInventorySiblings(context, panels); !siblings.HasValue())
             return siblings;
     }
     // 0x44b4e0: el NPC de la caja con 0x724580 fuera de 0 y 4.
@@ -1321,6 +1330,18 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
         return StepTheSiegePanel(context);
     return {};
 }
+
+// 0x658a18 y 0x658c0e: el C1 03 31 de cerrar un NPC de evento, por el send() de la sesión (sin servidor, nada).
+std::function<void()> WindowCloseOf(const GameChatContext* chat)
+{
+    if (chat == nullptr)
+        return {};
+    return [chat]()
+    {
+        if (chat->send)
+            chat->send(Protocol::Connection::WriteWindowClose());
+    };
+}
 } // namespace
 
 void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down)
@@ -1374,6 +1395,7 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
     UI::GameUiState& ui = runtime.ui;
     UI::DialogState& dialogs = runtime.dialogs;
     GamePanels panels(context.world, context.random);
+    panels.LendTheWindowClose(WindowCloseOf(context.chat));
     // 0x623e9b..0x623ec2: con la de amigos abierta, Esc es de las ventanas viejas (0x490490).
     if (!panels.Registry().IsOpen(UI::FriendsPanel) && KeyEdge(ui, context.input, EscapeKey))
     {
@@ -1424,6 +1446,7 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
                           GamePanelTables{.items = context.inventory != nullptr ? context.inventory->items : nullptr,
                                           .itemSetTables = context.itemSetTables});
     gamePanels.LendThePartyList(context.world, context.requests);
+    gamePanels.LendTheWindowClose(WindowCloseOf(context.chat));
     UI::PanelRegistry& panels = gamePanels.Registry();
     // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).
     if (panels.IsOpen(UI::MovePanel) && ui.capture == 0)

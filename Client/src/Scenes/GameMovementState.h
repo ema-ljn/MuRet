@@ -1,6 +1,7 @@
 #pragma once
-#include <cstdint>
 #include <array>
+#include <cstdint>
+#include <optional>
 
 // Globales durables de MoveHero y 1C: research06, Caminar y Los cambios de mapa.
 namespace Client::Scenes
@@ -32,6 +33,10 @@ struct GameMovementState
     bool releasedClick = false;
     std::int32_t releaseX = 0;
     std::int32_t releaseY = 0;
+    // SetCursorPos(x, y) de 0x56b77f (CL9 hito 11): el pedido queda acá, en píxeles de la pantalla de Windows, y mover
+    // el cursor es de la plataforma (como el pedido del 30 del hito 6). El último pedido gana; nadie lo consume
+    // todavía.
+    std::optional<std::array<std::int32_t, 2>> cursorWarpRequest{};
     std::array<std::uint8_t, 256> skillDepths{};
     float selectedSkillRange = 0.0f;
     std::uint32_t targetX = 0;

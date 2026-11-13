@@ -238,4 +238,12 @@ using EventPacket =
 
 // 0x4fbeed..0x4fc2c9: C1 06 AF 02 x y, con el XOR32 y en claro (el send del paso, sin C3).
 [[nodiscard]] Outgoing WriteChaosCastleReposition(std::uint8_t x, std::uint8_t y);
+
+// 0x5e5b2f..0x5e5d7e: C1 05 90 cuadrado lugar, el cuadrado de 0 a 5 y el lugar de la invitación (la casilla + 0x18),
+// con el XOR32 y en claro (PMSG_REQ_ENTER_DEVILSQUARE; el GS le resta 12 y toma pInventory, que empieza con el equipo).
+[[nodiscard]] Outgoing WriteDevilSquareEntry(std::uint8_t square, std::uint8_t itemPlace);
+
+// 0x5e6156..0x5e62cb: C1 05 9A puente lugar, el puente de 1 a 7 y el de la capa (la casilla + 12), con el XOR32 y en
+// claro (PMSG_REQ_BLOODCASTLE_ENTER; el GS le resta 1 al puente).
+[[nodiscard]] Outgoing WriteBloodCastleEntry(std::uint8_t bridge, std::uint8_t itemPlace);
 } // namespace Client::Protocol::Events

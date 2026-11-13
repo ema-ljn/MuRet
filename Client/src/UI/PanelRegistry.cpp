@@ -401,6 +401,13 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask)
             m_state.field78abb00 = 0;
             m_state.field78abb04 = 0;
             break;
+        case EventNpcPanel:
+        case SecondEventNpcPanel:
+            if (!m_context.eventNpcClosed)
+                return Core::Unexpected(CloseCut(id));
+            m_context.eventNpcClosed();
+            m_state.eventNpc = 0;
+            break;
         default:
             return Core::Unexpected(CloseCut(id));
         }

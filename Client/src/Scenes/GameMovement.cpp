@@ -41,7 +41,6 @@
 #include <optional>
 #include <span>
 #include <cstdint>
-#include <format>
 #include <string>
 #include <utility>
 
@@ -163,14 +162,10 @@ Core::Expected<void, std::string> LeaveTheEventWindow(const HeroMovementContext&
                                             "0x77f3b6a, 0x77f3b6c, 0x78abacc y 0x77f3b6b) es de la fase 2 del hito 11 "
                                             "de la CL9"));
     runtime.panels.field78abb00 = 0;
+    // 0x56b77f: SetCursorPos mueve el cursor de Windows; queda pedido para la plataforma.
     const auto [x, y] =
         EventWindowCursor(context.input.mouseX, context.input.mouseY, context.screenWidth, context.screenHeight);
-    if (!context.moveTheCursor)
-        return Core::Unexpected(std::format("0x56b77f: SetCursorPos({}, {}) mueve el cursor de Windows, y la "
-                                            "plataforma de MuRet no lo mueve (fase 2 del hito 11 de la CL9)",
-                                            x, y));
-    if (auto moved = context.moveTheCursor(x, y); !moved.HasValue())
-        return moved;
+    runtime.movement.cursorWarpRequest = std::array<std::int32_t, 2>{x, y};
     runtime.movement.mouseUpdateTimeMax = EventWindowUpdateTimeMax;
     runtime.movement.leftHeld = false;
     return {};
@@ -182,6 +177,7 @@ Core::Expected<void, std::string> SendThePath(ActorState& hero, GameLogic::PathC
     WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& state = runtime.movement;
     GamePanels panels(context.world, context.random);
+    panels.LendTheWindowClose(context.sendWindowClose);
     // 0x56acf7: con el NPC de la caja abierto (0x8000), nada.
     if (panels.Registry().IsOpen(UI::TrainerPanel) || (hero.flags78 & MovementLockedFlag) != 0)
         return {};

@@ -6,6 +6,7 @@
 #include "Protocol/Events.h"
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <vector>
@@ -45,6 +46,9 @@ struct EventPacketContext
     std::uint32_t tickCount = 0;
     // Player.bmd, el esqueleto del 0x20a para 0x4ea030 desde 0x5111a0; sin él, ese caso corta.
     const Render::Models::Skeleton* playerSkeleton = nullptr;
+    // El C1 03 31 de cerrar el NPC de evento (0x658a18 y 0x658c0e) desde el 90 y los cierres de todos los paneles.
+    // Vacío, cerrarlo corta.
+    std::function<void()> sendWindowClose{};
 };
 
 // Los sonidos que pidió, en orden: 0x41ed10 (los que suenan) y 0x41ee00 (los que se apagan). El último que suena

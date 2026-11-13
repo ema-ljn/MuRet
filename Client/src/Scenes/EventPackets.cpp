@@ -8,7 +8,6 @@
 #include "Data/Text/TextTable.h"
 #include "Protocol/Events.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/EventGlobals.h"
@@ -367,6 +366,7 @@ private:
     Applied CloseAllPanels()
     {
         GamePanels panels(m_world, m_context.random);
+        panels.LendTheWindowClose(m_context.sendWindowClose);
         return panels.Registry().CloseAll();
     }
 
@@ -575,6 +575,7 @@ private:
     {
         // 0x4e487d: 0x65cae0(0x1000, 0).
         GamePanels panels(m_world, m_context.random);
+        panels.LendTheWindowClose(m_context.sendWindowClose);
         if (auto closed = panels.Registry().Close(UI::EventNpcPanel); !closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());
         if (packet.result < 1 || packet.result > DevilSquareEntryTexts.size())

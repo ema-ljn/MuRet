@@ -39,6 +39,11 @@ void DrawText(GameHudContext& context, std::int32_t x, std::int32_t y, std::stri
 // recortado a la caja. Un texto vacío mide el "0" y dibuja solo el fondo.
 void DrawTitle(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text);
 
+// 0x554180(x, y, texto, ancho · W / 640, 1, 3): DrawTitle con otra caja (116, 120 o 130 en las ventanas de los NPC de
+// evento, 0x5f58f0).
+void DrawInBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+               std::uint32_t designWidth);
+
 // 0x623690(x, y, texto): x − (cx · 640 / W) / 2 y 0x554180(…, 0, 0, 0).
 void DrawCenteredText(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text);
 

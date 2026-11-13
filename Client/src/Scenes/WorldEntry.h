@@ -86,6 +86,9 @@ struct WorldEntryResources
     // El B9 02 que 0x42a760 manda al cargar el 30 con el socket del GS abierto: SessionEventApplier lo ata a la
     // sesión que aplica la respuesta. Vacío, como el socket en −1, no sale nada.
     std::function<void()> requestCastleSiegeState{};
+    // El C1 03 31 que 0x657a90 manda al cerrar un NPC de evento (0x1000 o 0x4000, 0x658a18 y 0x658c0e) en la entrada,
+    // el teleport y el regen: SessionEventApplier lo ata a la sesión. Vacío, cerrarlos corta.
+    std::function<void()> sendWindowClose{};
     // Lo que miden los mensajes que llegan (00, 01, 02, 0C, 0D) al entrar al chat (0x555190, 0x554610, 0x45bb20): el
     // medidor del frame y el tamaño de la ventana. Sin medidor, un mensaje corta con error.
     const Render::Text::ITextMeasure* textMeasure = nullptr;

@@ -287,4 +287,14 @@ Outgoing WriteChaosCastleReposition(std::uint8_t x, std::uint8_t y)
 {
     return Xor32C1(Network::PacketWriter::C1(ChaosCastleOpcode).PutU8(ChaosCastleRepositionSubcode).PutU8(x).PutU8(y));
 }
+
+Outgoing WriteDevilSquareEntry(std::uint8_t square, std::uint8_t itemPlace)
+{
+    return Xor32C1(Network::PacketWriter::C1(DevilSquareEntryOpcode).PutU8(square).PutU8(itemPlace));
+}
+
+Outgoing WriteBloodCastleEntry(std::uint8_t bridge, std::uint8_t itemPlace)
+{
+    return Xor32C1(Network::PacketWriter::C1(BloodCastleEntryOpcode).PutU8(bridge).PutU8(itemPlace));
+}
 } // namespace Client::Protocol::Events

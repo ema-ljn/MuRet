@@ -155,6 +155,7 @@ void CreateTransitionArrival(ActorState& actor, const WorldEntryResources& resou
 Core::Expected<void, std::string> CloseTransitionWindows(const WorldEntryResources& resources)
 {
     GamePanels panels(resources.world, resources.cloth.random);
+    panels.LendTheWindowClose(resources.sendWindowClose);
     return panels.Registry().CloseAll();
 }
 } // namespace Client::Scenes

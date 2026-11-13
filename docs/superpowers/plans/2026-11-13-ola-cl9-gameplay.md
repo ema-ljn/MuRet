@@ -399,6 +399,10 @@ amigos. **Desbloquea:** 10.
       Castle y Chaos Castle (`0x40bab0`, `0x40c2d0`, `0x405090`), el `C1 03 97` de `SendMove`.
       (Fase 1: la cuenta de 30 s, `0x40bab0`, y el `C1 03 97` con el cursor, Q-C1330. Las ventanas, `0x40c2d0`,
       `0x405090` y la interfaz de Crywolf cortan con su dirección para la fase 2, P-C291.)
+      (Fase 2, *estática*: `0x5a7eb0`, `0x40c2d0`, `0x405090` y `0x632a2b`; las ventanas de Devil Square y Blood
+      Castle, `0x5f58f0` y `0x5e5920`, con el `C1 05 90`, el `C1 05 9A` y su cierre con el `C1 03 31`; el
+      `SetCursorPos` del `97` queda pedido. Q-C1333..Q-C1337, P-C294..P-C296. La ventana de `0x78abb00` y el número
+      de serie esperan el EDIT del hito 9; la interfaz de Crywolf y `CCameraMove` siguen cortando, P-C295.)
 - [ ] **Las reglas por mapa:** el arma de Blood Castle (`0x50de84`), las trampas de Chaos Castle (`0x405597`,
       `0x405d49`), el `AF 02` (`0x4fbee8`; decía `AF 01`), Kalima, y Crywolf (`BD`, `0x42fe80`, `0x42fe50`,
       `0x430a40`, `0x61a6f4`; P-C58).

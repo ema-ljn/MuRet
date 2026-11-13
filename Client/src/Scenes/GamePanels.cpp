@@ -15,7 +15,9 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <string>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -80,5 +82,10 @@ void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)
         runtime.hud.partyCount = 0;
         requests->RequestPartyList();
     };
+}
+
+void GamePanels::LendTheWindowClose(std::function<void()> sendWindowClose)
+{
+    m_context.eventNpcClosed = std::move(sendWindowClose);
 }
 } // namespace Client::Scenes

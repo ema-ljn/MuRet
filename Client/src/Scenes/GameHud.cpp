@@ -19,6 +19,7 @@
 #include "Scenes/ChatBubbleDraw.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/EventDrawing.h"
+#include "Scenes/EventNpcWindows.h"
 #include "Scenes/EventPackets.h"
 #include "Scenes/GameCharacterHud.h"
 #include "Scenes/GameCommandsWindow.h"
@@ -870,8 +871,9 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
         return cut("0x44ff00: la puerta del asedio es de la CL9.5");
     if (panels.IsOpen(UI::WarehousePanel))
         return cut("0x5f4e30: el almacén es de la CL9.3");
-    if (panels.IsOpen(UI::EventNpcPanel))
-        return cut("0x5f58f0: la ventana del NPC de evento es de la CL9.5");
+    // 0x5f75cb: 0x5f58f0, los NPC de evento (CL9 hito 11), que empieza con sus IsOpen.
+    if (auto events = DrawTheEventNpcWindow(frame.context, panels); !events.HasValue())
+        return events;
     if (state.field78abb00 != 0)
         return cut("0x5f6550: la ventana de 0x78abb00 es de la CL9.5");
     if (state.delegated.quest == 1 || state.delegated.quest == 2)

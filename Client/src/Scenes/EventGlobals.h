@@ -52,5 +52,9 @@ struct EventGlobals
     // después de 0x42fe80, y que leen 0x4033d0, 0x4033f0 y 0x403590 (el recorrido, CL9.5). Vacío hasta el primero:
     // el valor que le da 0x403300 es del recorrido, que MuRet no tiene.
     std::optional<std::int32_t> cameraMoveStage{};
+    // 0x78ab9cc (.bss 0): los niveles de los seis cuadrados de Devil Square, {mínimo, máximo}, que escribe el dibujo de
+    // su ventana (0x5f5a3f, con la tabla del Magic Gladiator y del Dark Lord por la clase del registro propio) y lee
+    // su paso al elegir uno (0x5e5a8b, Q-C1336).
+    std::array<std::array<std::int32_t, 2>, 6> devilSquareLevels{};
 };
 } // namespace Client::Scenes

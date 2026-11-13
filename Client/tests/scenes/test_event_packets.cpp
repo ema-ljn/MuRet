@@ -8,11 +8,11 @@
 #include "Protocol/Events.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/EventMapObject.h"
-#include "Scenes/FaunaObject.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -28,11 +28,13 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <map>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -345,6 +347,26 @@ TEST_F(EventPacketsTest, TheDevilSquareEntryShowsItsNotice)
         Applied(Events::DevilSquareEntryResult{6});
         EXPECT_EQ(Runtime().dialogs.current, 0);
     }
+}
+
+// Con la ventana del NPC abierta, 0x65cae0(0x1000) manda el C1 03 31 (0x658a04) y cierra también el inventario; sin
+// el envío de la sesión, cerrarla corta.
+TEST_F(EventPacketsTest, TheDevilSquareEntryClosesTheOpenWindow)
+{
+    Runtime().panels.eventNpc = 1;
+    Runtime().panels.inventory = 1;
+    const std::string cut = Cut(Events::DevilSquareEntryResult{3});
+    EXPECT_NE(cut.find("0x657ab0(0x1000)"), std::string::npos) << cut;
+
+    int sent = 0;
+    auto context = Context();
+    context.sendWindowClose = [&sent]() { ++sent; };
+    const auto applied = Client::Scenes::ApplyEventPacket(Events::DevilSquareEntryResult{3}, context);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(sent, 1);
+    EXPECT_EQ(Runtime().panels.eventNpc, 0);
+    EXPECT_EQ(Runtime().panels.inventory, 0);
+    ExpectMessageBox("muy fuerte");
 }
 
 // ----- 91 (0x4da8c0), con wsprintfA.

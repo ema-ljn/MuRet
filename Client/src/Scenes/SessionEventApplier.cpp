@@ -58,11 +58,13 @@ void ApplyWeather(const Protocol::World::Weather& received, World::LeafWeather& 
         weather.target = static_cast<std::int32_t>(received.code & IntensityMask) * TargetPerIntensity;
 }
 
-// 0x42a760 manda el B9 02 por el socket del GS al cargar el 30: el de la sesión que aplica la respuesta.
+// 0x42a760 manda el B9 02 por el socket del GS al cargar el 30, y 0x657a90 el C1 03 31 al cerrar un NPC de evento: los
+// de la sesión que aplica la respuesta.
 WorldEntryResources WithTheSiegeRequest(const WorldEntryResources& resources, App::ServerSession& session)
 {
     WorldEntryResources bound = resources;
     bound.requestCastleSiegeState = [&session] { session.RequestCastleSiegeState(); };
+    bound.sendWindowClose = [&session] { session.SendWindowClose(); };
     return bound;
 }
 
@@ -204,7 +206,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
             .measure = m_resources.textMeasure,
             .screen = m_resources.screen ? m_resources.screen() : App::PixelSize{640, 480},
             .tickCount = m_resources.clock != nullptr ? App::TickCountMs(m_resources.clock->Now()) : 0U,
-            .playerSkeleton = m_resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel)};
+            .playerSkeleton = m_resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel),
+            .sendWindowClose = [&session] { session.SendWindowClose(); }};
         const auto applied = ApplyEventPacket(*packet, context);
         if (!applied.HasValue())
             return Core::Unexpected(applied.Error());

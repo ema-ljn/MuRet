@@ -1049,7 +1049,7 @@ los paneles (`0x65feb0`, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de
 | `0x200` | comandos (D) | `*(0x6e592c+4)` | CL8 hito 6 (sin `0x406050`, CL9.4) |
 | `0x400` | mascota | `0x420cc0()`: `0x723911 == 2` (`0x424230` lo vuelve a 0 en cada paso con el personaje cerrado) | CL9.x |
 | `0x800` | tienda personal propia (S) | `0x7d5370f` | CL9.4 |
-| `0x1000`, `0x4000` | ventanas con inventario de NPC de evento (`0x7d53712` con `0x7d53714` en 0 o 1; el paso las atiende en `0x5e5920`, que manda `90`/`9A`) *inferido* | | CL9.5 |
+| `0x1000`, `0x4000` | ventanas con inventario de NPC de evento (`0x7d53712` con `0x7d53714` en 0 o 1; el paso las atiende en `0x5e5920`, que manda `90`/`9A`; 06 § Las ventanas de los NPC de evento) *estático* | | CL9 hito 11 |
 | `0x2000` | sin identificar | `0x7d53718` | — |
 | `0x8000` | NPC con la caja `0x723c80` | `0x449bf0()` | CL9.3 |
 | `0x10000` | tienda de NPC (la abre el `30`, `0x4d1e00` en `0x4d288e`) | **byte protegido `0x7d53710`: 1 `rand()`** | CL9.3 |
@@ -1477,6 +1477,49 @@ que confirmar está en 08 (P-C294). `0x554180` es `DrawHudLine` y `0x623690` es 
   - Chaos Castle, `0x405220`: si ganó, 1151 en `0x50` y `"%s %s"` con 1152 y 858 en `0x60`; si no, `"%s %s"` con 1152
     y 860 en `0x50` y 1153 en `0x60`. Después, blanco, la fuente `0x5763558` y `0xffd2ffd2`: 861 con `+0x3c`, 1162 con
     `+0x38` y 1163 con `+0x40` en `0x7e`, `0x92` y `0xa6`.
+
+### Las ventanas de los NPC de evento
+
+CL9 hito 11, fase 2 (`Scenes/EventNpcWindows`). **El dibujo es *estático***, sin traza de GL; lo que la VM tiene que
+confirmar está en 08 (P-C294). Son los paneles `0x1000` (Devil Square) y `0x4000` (Blood Castle), en la esquina
+`0x78aba28`/`0x78aba2c`, que su dibujo y su paso ponen en (`0x104`, 0) igual que la tienda, el almacén, la caja del
+caos y el asedio, y que el inventario lee antes (`0x5e4e76..0x5e4ed0`): con uno de los dos abierto, el mouse en
+[x, x + `0xbe`) × [y, y + `0x1b1`) es de la UI (Q-C1337).
+
+- **El dibujo, `0x5f58f0`** (desde `0x5f75cb`, sin condición; empieza con los dos `IsOpen`). El fondo `0x5ee220` en la
+  esquina y la fuente negrita (`0x5763558`); los botones son `Interface\...` `0xf0` (`0x621b60`) de 140 de ancho
+  desde x + 25 con du = 0,83203125, en `glColor3f` blanco con el mouse arriba (x e y por la x87, sin redondear a
+  `float`, y sin ítem en el cursor, `0x7879fbc`).
+  - Devil Square (`0x5f5916..0x5f5de6`): colores `0xc41432ff` sobre `0x101000`; seis botones de 35 de alto desde y +
+    187 de a 40, en (0,9, 0,8, 0,7) sin el mouse. Cada fila copia el `{mínimo, máximo}` de `0x6ba4c8` a `0x78ab9cc` y,
+    **con el registro propio abierto** (su cierre saca los `rand()` de siempre), el de `0x6ba4f8` si la clase (`+0xb`
+    & 7) es 3 o 4: son los niveles que lee el paso (Q-C1336). El renglón es `sprintf` a 64 bytes de 646 (el número y
+    el mínimo) si el máximo pasa de 10000 (ninguno de las tablas) o de 645 (el número, el mínimo y el máximo), en
+    (`ftol(left)` + `0xc`, `ftol(top)` + `0xc`) con la caja `0x74`. Después el título 39 en (x + `0x23`, y + `0xc`),
+    caja `0x78`, en `0xffdcdcdc` sobre `0xff141414` con `glColor3f(1, 1, 1)`; la fuente normal, el texto blanco sobre
+    0, la mezcla normal (`0x620a00`) y los textos 670 a 675 en (x + `0x1e`, y + `0x41` + 20 · i), caja `0x82`; termina
+    con la mezcla opaca (`0x620980`).
+  - Blood Castle (`0x5f5e01..0x5f653f`): colores `0xdcffdcbe` sobre `0x101000`; siete botones de 30 de alto desde
+    y + 170 de a 35. La tabla es `0x6ba528` (siete filas más adelante con la clase 3 o 4 **del héroe**,
+    `[0x743a170] + 0x1d4`) y el nivel (`+0xe`) se lee con el registro propio abierto en cada fila: fuera del rango, el
+    botón va en (0,4, 0,4, 0,5) aunque el mouse esté arriba; si no, blanco o (0,7, 0,7, 0,9). Los renglones son 848 o
+    847 en (+`0xa`, +`0xc`), caja `0x78`; el título 846 como el de Devil Square; y 832 partido por `0x632c90` en a
+    lo sumo 7 renglones de `0x1a` bytes, en (x + `0x1e`, y + `0x40` + 20 · i).
+- **El paso, `0x5e5920`** (la primera de las hermanas del inventario, `0x5ee1a3`: solo con el inventario abierto).
+  Pone la esquina y, sin el flanco del clic (`0x7d366d4`), vuelve. La x del mouse va contra [285, 425) sin la esquina.
+  - Devil Square: la y contra cada fila (187 + 40 · i, 35 de alto); sin fila, vuelve sin tocar el clic. Con una,
+    lo consume, vuelve si hay un ítem en el cursor y abre el registro propio hasta el final: con el nivel arriba del
+    máximo o abajo del mínimo de `0x78ab9cc` (los del dibujo), cierra el inventario (`0x65cae0(0x4000000, 0)`, que
+    cierra también `0x1000` y manda el `C1 03 31`, P-C295), `0x5be150` y el aviso 686 o 687 (`0x632e30`); si no,
+    `0x5583a0(0x1c13, 0)` y, sin ella, `0x5583a0(0x1c13, cuadrado + 1)` (677 sin ninguna), y el `C1 05 90` con el
+    cuadrado (de 0) y la casilla + `0x18`, cifrado con el XOR32 y en claro (04 § Los eventos).
+  - Blood Castle: cada puente abre y cierra el registro propio para comparar el nivel **antes** de mirar el mouse (7
+    cierres sin acierto); solo los de su nivel atienden el clic. Con uno: consume el clic, vuelve con un ítem en el
+    cursor, `0x5583a0(0x1a12, puente)` (de 1 a 7; el 7 acepta también la capa de nivel 6) o el aviso 854, y el
+    `C1 05 9A` con el puente y la casilla + `0xc`.
+- **`0x5583a0(tipo, nivel)`** recorre la grilla del inventario de la columna 7 a la 0 y en cada una de la fila 7 a
+  la 0, y devuelve la primera casilla con ese tipo, `+0x3c` mayor que 0 y `(+4 >> 3) & 0xf` igual al nivel (o
+  cualquiera con −1); −1 sin ninguna. Lo prueban `EventNpcWindowTest` y `EventsTest.WritesTheEventEntriesWithTheXor32`.
 
 ### La captura de pantalla
 

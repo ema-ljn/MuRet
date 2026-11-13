@@ -496,6 +496,41 @@ TEST(PanelRegistryTest, CloseByMaskClosesTheOwnPanels)
     EXPECT_TRUE(tested.sounds.empty());
 }
 
+// 0x658a04..0x658bc7 y 0x658bfa..0x658dbe: cerrar un NPC de evento manda el C1 03 31 (el gancho) y pone 0x7d53712 en
+// 0; 0x65cae0(0x1000) cierra después el inventario. Sin el gancho, corta con su dirección.
+TEST(PanelRegistryTest, ClosingAnEventNpcSendsTheWindowClose)
+{
+    for (const std::uint8_t kind : {std::uint8_t{0}, std::uint8_t{1}})
+    {
+        SCOPED_TRACE(kind);
+        Tested tested;
+        int sent = 0;
+        tested.context.eventNpcClosed = [&sent, &tested]()
+        {
+            EXPECT_EQ(tested.state.eventNpc, 1) << "el C1 03 31 sale antes de cerrarlo";
+            ++sent;
+        };
+        tested.state.eventNpc = 1;
+        tested.state.eventNpcKind = kind;
+        tested.state.inventory = 1;
+        const PanelId id = kind == 0 ? EventNpcPanel : SecondEventNpcPanel;
+        const auto closed = tested.panels.Close(id);
+        ASSERT_TRUE(closed.HasValue()) << closed.Error();
+        EXPECT_TRUE(closed.Value());
+        EXPECT_EQ(sent, 1);
+        EXPECT_EQ(tested.state.eventNpc, 0);
+        EXPECT_EQ(tested.state.eventNpcKind, kind);
+        EXPECT_EQ(tested.state.inventory, kind == 0 ? 0 : 1);
+        EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x19, 0x1c}));
+    }
+    Tested tested;
+    tested.state.eventNpc = 1;
+    const auto closed = tested.panels.Close(EventNpcPanel);
+    ASSERT_FALSE(closed.HasValue());
+    EXPECT_NE(closed.Error().find("0x657ab0(0x1000)"), std::string::npos) << closed.Error();
+    EXPECT_EQ(tested.state.eventNpc, 1);
+}
+
 TEST(PanelRegistryTest, CloseByMaskFollowsTheFixedOrder)
 {
     // El personaje es el primero: con el comercio abierto (y sin dueño), corta en el comercio después de cerrarlo.

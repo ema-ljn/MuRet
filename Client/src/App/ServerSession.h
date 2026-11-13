@@ -233,6 +233,8 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> SendItemMove(const Protocol::Inventory::ItemMove& move);
     // El C1 03 42 de 0x6599a0(4), al abrir la ventana de la party (Protocol::Party::WritePartyListRequest), en claro.
     void RequestPartyList();
+    // El C1 03 31 en claro de cerrar un NPC de evento (0x658a18 y 0x658c0e, Protocol::Connection::WriteWindowClose).
+    void SendWindowClose();
     // CL9 hito 11: el C1 03 97 de SendMove con 0x78abb00 en 1 o 2 (Protocol::Events::WriteEventWindowLeave), en claro,
     // y el C1 06 AF 02 x y de 0x4fbee8 en Chaos Castle (Protocol::Events::WriteChaosCastleReposition), con el XOR
     // de 32.

@@ -49,11 +49,12 @@ struct HeroMovementContext
     std::function<void(std::uint8_t)> requestGate{};
     float fixedHeight = 1200.0f;
     std::function<Core::Expected<void, std::string>(std::uint8_t)> sendFacing{};
-    // CL9 hito 11, SendMove con 0x78abb00 (0x56b4db..0x56b78f): el C1 03 97 en claro, y SetCursorPos ([0x6b84f4]) con
-    // el lugar que calcula el original en la pantalla de `screenWidth` × `screenHeight` ([0x6d5d60] y [0x6d5d64]).
-    // Sin alguno de los dos servicios, corta donde lo pide.
+    // CL9 hito 11, SendMove con 0x78abb00 (0x56b4db..0x56b78f): el C1 03 97 en claro (sin el servicio, corta), y
+    // SetCursorPos ([0x6b84f4]) con el lugar que calcula el original en la pantalla de `screenWidth` × `screenHeight`
+    // ([0x6d5d60] y [0x6d5d64]), que queda pedido en GameMovementState::cursorWarpRequest.
     std::function<Core::Expected<void, std::string>()> sendEventWindowLeave{};
-    std::function<Core::Expected<void, std::string>(std::int32_t, std::int32_t)> moveTheCursor{};
+    // El C1 03 31 de cerrar el NPC de evento al caminar (0x56b4d6 → 0x65cae0(0x1000), 0x658a18). Vacío, cerrarlo corta.
+    std::function<void()> sendWindowClose{};
     std::int32_t screenWidth = 640;
     std::int32_t screenHeight = 480;
     // Vestir al héroe y el envío del 24, para pasar el arma de la izquierda a la derecha (0x59bd3e). nullptr: corta

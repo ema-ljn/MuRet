@@ -124,6 +124,23 @@ TEST_F(InventoryStepTest, TheMouseOverTheWindowBelongsToTheUi)
     EXPECT_EQ(world.Runtime().ui.mouseOnUi, 0);
 }
 
+// Q-C1337: con el NPC de Devil Square abierto, el inventario mira la esquina de las ventanas de NPC (0x5e4e76) antes de
+// que su hermana 0x5e5920 la ponga en (0x104, 0): el primer paso la toma en (0, 0).
+TEST_F(InventoryStepTest, TheEventNpcWindowTakesTheMouseFromItsCornerAfterTheFirstStep)
+{
+    world.Runtime().panels.eventNpc = 1;
+    ASSERT_TRUE(Step(100, 300).HasValue());
+    EXPECT_EQ(world.Runtime().ui.mouseOnUi, 1);
+    EXPECT_EQ(world.Runtime().ui.npcWindowX, 0x104);
+    EXPECT_EQ(world.Runtime().ui.npcWindowY, 0);
+    ASSERT_TRUE(Step(100, 300).HasValue());
+    EXPECT_EQ(world.Runtime().ui.mouseOnUi, 0);
+    ASSERT_TRUE(Step(0x104, 0x1b0 - 1).HasValue());
+    EXPECT_EQ(world.Runtime().ui.mouseOnUi, 1);
+    ASSERT_TRUE(Step(0x103, 300).HasValue());
+    EXPECT_EQ(world.Runtime().ui.mouseOnUi, 0);
+}
+
 // El botón de cerrar (x + 0x14 a x + 0x2c, y + 0x18b a y + 0x1a3) consume el clic y cierra el inventario.
 TEST_F(InventoryStepTest, TheCloseButtonClosesTheInventory)
 {

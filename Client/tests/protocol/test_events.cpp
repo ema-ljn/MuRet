@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -239,5 +240,19 @@ TEST(EventsProtocolTest, WritesTheChaosCastleRepositionWithTheXor32)
     EXPECT_EQ(reposition.delivery, Delivery::Clear);
     EXPECT_TRUE(SameBytes(reposition.packet.Bytes(), Bytes({0xC1, 0x06, 0xAF, 0x24, 0x9D, 0x29})));
     EXPECT_TRUE(SameBytes(Xor32Decode(reposition.packet).Bytes(), Bytes({0xC1, 0x06, 0xAF, 0x02, 0x05, 0x06})));
+}
+
+// 0x5e5b2f..0x5e5d7e y 0x5e6156..0x5e62cb: C1 05 90 cuadrado lugar y C1 05 9A puente lugar, con el XOR32 en claro. Con
+// (2, 0x1d): 02 ^ 89 ^ 90 = 1B y 1D ^ BC ^ 1B = BA; con (3, 0x15): 03 ^ 89 ^ 9A = 10 y 15 ^ BC ^ 10 = B9.
+TEST(EventsProtocolTest, WritesTheEventEntriesWithTheXor32)
+{
+    const Client::Protocol::Outgoing square = Events::WriteDevilSquareEntry(2, 0x1d);
+    EXPECT_EQ(square.delivery, Delivery::Clear);
+    EXPECT_TRUE(SameBytes(square.packet.Bytes(), Bytes({0xC1, 0x05, 0x90, 0x1B, 0xBA})));
+    EXPECT_TRUE(SameBytes(Xor32Decode(square.packet).Bytes(), Bytes({0xC1, 0x05, 0x90, 0x02, 0x1D})));
+    const Client::Protocol::Outgoing bridge = Events::WriteBloodCastleEntry(3, 0x15);
+    EXPECT_EQ(bridge.delivery, Delivery::Clear);
+    EXPECT_TRUE(SameBytes(bridge.packet.Bytes(), Bytes({0xC1, 0x05, 0x9A, 0x10, 0xB9})));
+    EXPECT_TRUE(SameBytes(Xor32Decode(bridge.packet).Bytes(), Bytes({0xC1, 0x05, 0x9A, 0x03, 0x15})));
 }
 } // namespace

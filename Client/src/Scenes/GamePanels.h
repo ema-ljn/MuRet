@@ -3,6 +3,8 @@
 #include "Data/Tables/ItemTable.h"
 #include "UI/PanelRegistry.h"
 
+#include <functional>
+
 namespace Client::Data::Tables
 {
 struct ItemSetTables;
@@ -49,6 +51,9 @@ public:
     // 0x659aa0..0x659c3d: con `requests`, abrir la party pone en 0 la cuenta de `world` (HudState::partyCount) y pide
     // la lista (C1 03 42). Lo presta el paso de la UI, el que abre la party; sin él, o con nullptr, abrirla corta.
     void LendThePartyList(WorldState& world, IGameUiRequests* requests);
+    // 0x658a18 y 0x658c0e: lo que manda el C1 03 31 al cerrar un NPC de evento (0x1000 o 0x4000). Lo prestan el paso de
+    // la UI y los cierres de la entrada al mundo, del teleport y del regen; vacío, cerrarlos corta.
+    void LendTheWindowClose(std::function<void()> sendWindowClose);
 
 private:
     UI::PanelContext m_context;

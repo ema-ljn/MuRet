@@ -1268,6 +1268,11 @@ void ServerSession::RequestPartyList()
     static_cast<void>(SendWorldPacket(Protocol::Party::WritePartyListRequest()));
 }
 
+void ServerSession::SendWindowClose()
+{
+    static_cast<void>(SendWorldPacket(Protocol::Connection::WriteWindowClose()));
+}
+
 Core::Expected<void, std::string> ServerSession::SendEventWindowLeave()
 {
     return SendWorldPacket(Protocol::Events::WriteEventWindowLeave());

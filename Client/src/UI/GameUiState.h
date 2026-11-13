@@ -53,6 +53,11 @@ struct GameUiState
     // 0x775857c: el mouse es de la UI. 0x636e04 lo pone en 0 en cada paso, la UI en 1 y lo leen MoveHero
     // (0x59b37a, 0x59b853), 0x57cfc0 (0x57cff2) y el picking (0x59ec80).
     std::uint8_t mouseOnUi = 0;
+    // 0x78aba28 y 0x78aba2c (.bss 0): la esquina de las ventanas de NPC de la derecha. La ponen en (0x104, 0) los pasos
+    // y los dibujos de las de los NPC de evento (0x5e5920, 0x5f58f0), de la tienda, del almacén, de la caja del caos y
+    // del asedio, y la lee el inventario (0x5e4e9e) para el mouse sobre la UI.
+    std::int32_t npcWindowX = 0;
+    std::int32_t npcWindowY = 0;
     // 0x6c9320 (.data −1): el tooltip de la skill del HUD. 0x636dfa lo vuelve a −1 en cada paso.
     std::int32_t skillTooltip = -1;
     // 0x78a9bac y 0x78a9ba8: dónde va ese tooltip (0x5a06a4, 0x5a06ba).

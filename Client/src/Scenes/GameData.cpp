@@ -7,8 +7,10 @@
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Tables/QuestTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/Credits.h"
+#include "Data/Text/DialogTable.h"
 #include "Data/Text/FilterWords.h"
 #include "Data/Text/MoveRequirements.h"
 #include "Data/Text/SlideTable.h"
@@ -233,6 +235,29 @@ Core::Expected<std::optional<Data::Text::SlideTable>, std::string> LoadSlides(co
         return Core::Unexpected(std::format("{}: {}", SlideTableFile, Data::DescribeDataError(table.Error())));
     return std::optional<Data::Text::SlideTable>(std::move(table).Value());
 }
+// 0x54b2b0 y 0x418d10: 200 registros de tamaño fijo. Sin el archivo, `empty`; si no, el loader con el prefijo.
+template <typename Table, typename Loader>
+Core::Expected<Table, std::string> LoadFixedTable(const std::filesystem::path& dataRoot, std::string_view name,
+                                                  std::size_t size, Table empty, Loader load)
+{
+    std::error_code error;
+    const auto path = Data::ResolveDataPath(dataRoot, name, error);
+    if (error)
+    {
+        return Core::Unexpected(
+            std::format("no se pudo buscar {} en {}: {}", name, Core::PathText(dataRoot), error.message()));
+    }
+    if (!path)
+        return empty;
+    const auto file = Data::ReadDataFilePrefix(*path, size);
+    if (!file.HasValue())
+        return Core::Unexpected(std::format("no se pudo leer {}: {}", name, file.Error().message()));
+    auto table = load(std::as_bytes(std::span(file.Value())));
+    if (!table.HasValue())
+        return Core::Unexpected(std::format("{}: {}", name, Data::DescribeDataError(table.Error())));
+    return std::move(table).Value();
+}
+
 // 0x448440 lee la cuenta y cuenta · 0x50 bytes sin tope; MuRet lee hasta 1 MiB (13.107 destinos).
 constexpr std::size_t MaxMoveRequirementsBytes = 1024u * 1024u;
 
@@ -313,6 +338,20 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(items).Error());
     }
     data.items.emplace(std::move(items).Value());
+    auto dialogs = LoadFixedTable(dataRoot, DialogTableFile, Data::Text::DialogTableSize,
+                                  Data::Text::DialogTable(Data::Text::DialogCount), Data::Text::LoadDialogTable);
+    if (!dialogs.HasValue())
+    {
+        return Core::Unexpected(std::move(dialogs).Error());
+    }
+    data.dialogs = std::move(dialogs).Value();
+    auto quests = LoadFixedTable(dataRoot, QuestTableFile, Data::Tables::QuestTableSize,
+                                 Data::Tables::QuestTable(Data::Tables::QuestCount), Data::Tables::LoadQuestTable);
+    if (!quests.HasValue())
+    {
+        return Core::Unexpected(std::move(quests).Error());
+    }
+    data.quests = std::move(quests).Value();
     auto moves = LoadMoves(dataRoot);
     if (!moves.HasValue())
     {

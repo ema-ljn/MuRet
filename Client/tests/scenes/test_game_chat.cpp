@@ -1,6 +1,7 @@
 #include "Scenes/GameChat.h"
 
 #include "Core/Expected.h"
+#include "Data/Models/PlayerModels.h"
 #include "Data/Text/TextTable.h"
 #include "Network/Crypto/Xor32.h"
 #include "Protocol/Outgoing.h"
@@ -9,6 +10,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/EventGlobals.h"
+#include "Scenes/LoginModels.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -18,7 +20,10 @@
 #include "UI/PanelRegistry.h"
 #include "UI/WhisperSenders.h"
 
+#include "support/Bytes.h"
 #include "support/ChatTexts.h"
+#include "support/PlayerActors.h"
+#include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
 
 #include <gtest/gtest.h>
@@ -89,6 +94,8 @@ protected:
     {
         SetTheHeroName("Heroe");
         world.OwnCharacter().level = 10;
+        world.Actors()[world.Runtime().hero].type = Client::Data::Models::PlayerSkeletonModel;
+        models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
     }
 
     void SetTheHeroName(std::string_view name)
@@ -109,8 +116,8 @@ protected:
                                .filter = filter,
                                .measure = &letters,
                                .screen = {640, 480},
-                               .send = [this](Client::Protocol::Outgoing packet)
-                               { sent.push_back(std::move(packet)); }};
+                               .send = [this](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); },
+                               .models = &models};
     }
 
     Client::Core::Expected<void, std::string> Type(std::string_view typed)
@@ -129,7 +136,15 @@ protected:
     std::vector<std::string> filter;
     LetterMeasure letters;
     std::vector<Client::Protocol::Outgoing> sent;
+    Client::Scenes::SingleModelLibrary models;
 };
+
+// Un C1 05 18 [direction] [action] en claro, con el XOR32.
+bool IsTheAction(const Client::Protocol::Outgoing& sent, std::uint8_t direction, std::uint8_t action)
+{
+    return Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(sent.packet).Bytes(),
+                                    Client::Tests::Bytes({0xc1, 5, 0x18, direction, action}));
+}
 
 // 0x4b5468..0x4b5554: con el campo vacío, Enter lo abre (los EDIT a la vista y el foco en el del mensaje) o lo cierra.
 TEST_F(GameChat, EnterOpensAndClosesTheEmptyField)
@@ -173,6 +188,50 @@ TEST_F(GameChat, EnterSaysWhatWasTyped)
     EXPECT_FALSE(Input().shown);
     EXPECT_EQ(Input().message.Value(), "");
     EXPECT_EQ(Input().messageLength, 0);
+}
+
+// 0x4b56cc y 0x576eb0: un emote en lo dicho, con el héroe parado, lo anima y manda dos C1 05 18 iguales antes del
+// C1 00 (Q-C776), con la dirección de su ángulo. No saca ningún rand().
+TEST_F(GameChat, AnEmoteSendsItsActionsBeforeTheChat)
+{
+    auto& hero = world.Actors()[world.Runtime().hero];
+    hero.animation.action = 1;
+    hero.angles.z = 100.0f;
+    ASSERT_TRUE(Type("\r").HasValue());
+    const auto before = random.State();
+    const auto said = Type("hola ^^\r");
+    ASSERT_TRUE(said.HasValue()) << said.Error();
+
+    ASSERT_EQ(sent.size(), 3u);
+    EXPECT_TRUE(IsTheAction(sent[0], 3, 0x8e));
+    EXPECT_TRUE(IsTheAction(sent[1], 3, 0x8e));
+    EXPECT_EQ(Decode(sent[2]).opcode, 0x00);
+    EXPECT_EQ(Decode(sent[2]).text, "hola ^^");
+    EXPECT_EQ(hero.animation.action, 0xaf);
+    EXPECT_EQ(random.State(), before);
+}
+
+// Caminando, solo el C1 18 del caso y el héroe no se anima; montado fuera de la zona segura (la compuerta de la CL8),
+// ninguno.
+TEST_F(GameChat, AWalkingHeroSendsOnlyTheCaseAndAMountedOneNone)
+{
+    auto& hero = world.Actors()[world.Runtime().hero];
+    hero.animation.action = 0x0f;
+    ASSERT_TRUE(Type("\rbueno;\r").HasValue());
+    ASSERT_EQ(sent.size(), 2u);
+    EXPECT_TRUE(IsTheAction(sent[0], 1, 0x8b));
+    EXPECT_EQ(Decode(sent[1]).opcode, 0x00);
+    EXPECT_EQ(hero.animation.action, 0x0f);
+
+    sent.clear();
+    Input().brake = 0;
+    hero.pet.model = 0x1c15;
+    hero.safeZone = 0;
+    hero.animation.action = 1;
+    ASSERT_TRUE(Type("\rotra ^^\r").HasValue());
+    ASSERT_EQ(sent.size(), 1u);
+    EXPECT_EQ(Decode(sent[0]).opcode, 0x00);
+    EXPECT_EQ(hero.animation.action, 1);
 }
 
 // 0x5767940: con el freno arriba de 0x32 no sale nada; con menos, no sale lo mismo que antes.

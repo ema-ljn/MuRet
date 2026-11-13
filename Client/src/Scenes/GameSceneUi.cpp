@@ -112,6 +112,26 @@ public:
         m_session->RequestPartyList();
     }
 
+    void SendWindowClose() override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no se cierra la ventana (C1 03 31): no hay servidor");
+            return;
+        }
+        m_session->SendWindowClose();
+    }
+
+    void SendSetQuest(std::uint8_t quest, std::uint8_t state) override
+    {
+        if (m_session == nullptr)
+        {
+            m_log.Warning("no se manda el A2 de la misión {}: no hay servidor", quest);
+            return;
+        }
+        m_session->SendSetQuest(quest, state);
+    }
+
     void SendFriendPacket(Protocol::Outgoing packet) override
     {
         if (m_session == nullptr)
@@ -244,7 +264,8 @@ GameChatContext GameScene::ChatContext()
                            .screen = m_screen,
                            .send = session != nullptr ? ChatSender([session](Protocol::Outgoing packet)
                                                                    { session->SendChat(std::move(packet)); })
-                                                      : ChatSender{}};
+                                                      : ChatSender{},
+                           .models = m_models};
 }
 
 InventoryServices GameScene::InventoryContext() const
@@ -272,7 +293,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                             .random = FrameCloth().random,
                             .ownRecordDepth = m_projectingFrame ? m_projection->ownRecordDepth : runtime.ownRecordDepth,
                             .targets = m_projectingFrame ? projectedTargets : runtime.selectedTargets,
-                            .altDown = input.IsDown(Input::Key::Alt)});
+                            .altDown = input.IsDown(Input::Key::Alt),
+                            .ray = m_mouseRay});
     if (!picked.HasValue())
         return picked;
     // 0x637646..0x6376e6: la pasada 2D, en este orden (06 § El dibujo del juego). Un dibujo intermedio de MuRet dibuja

@@ -892,9 +892,13 @@ TEST_F(GoldenLoginWorld, TheLoginPublishesTheCharacterCutAndKeepsItsRandomState)
     ASSERT_TRUE(scene.Enter().HasValue());
     world.Actors()[2].movement = 1;
     world.Actors()[2].animation.action = 0x4b;
-    // 0x508e27 ya ejecuta el movimiento. La continuación del cuerpo con +0x88=4 llega a la
-    // frontera real del mensaje/giro de 0x4fcd0c, todavía no portada.
-    world.Actors()[2].byte88 = 4;
+    // 0x508e27 ya ejecuta el movimiento. La continuación del cuerpo con el nombre de 0x6c88b0 llega al
+    // mensaje del nombre (0x4fcd82), que en el login no tiene timeGetTime() y corta.
+    constexpr std::array<std::uint8_t, 11> MessageName{0xc8, 0xb2, 0xb1, 0xdd, 0xc0, 0xc7,
+                                                       0x20, 0xb1, 0xc3, 0xbc, 0xf6};
+    for (std::size_t i = 0; i < world.Actors()[2].name.size(); ++i)
+        world.Actors()[2].name[i] = std::byte{MessageName[i]};
+    world.Actors()[2].byte1e3 = MessageName[10];
     constexpr std::uint32_t Seed = 1;
     cloth.random = Client::Render::Models::CrtRandom(Seed);
     cloth.logicSteps = 77;
@@ -902,7 +906,7 @@ TEST_F(GoldenLoginWorld, TheLoginPublishesTheCharacterCutAndKeepsItsRandomState)
     const float windBase = cloth.windBase;
     scene.Step(Client::Input::InputState{});
     ASSERT_TRUE(scene.Failure());
-    EXPECT_NE(scene.Failure()->find("0x4fcd0c"), std::string::npos);
+    EXPECT_NE(scene.Failure()->find("0x4fcd82"), std::string::npos);
     EXPECT_GT(world.Actors()[2].run, 0) << "el movimiento precede al corte publicado del cuerpo";
     // Ochenta brasas con10 rand; siguen8 de TerrainWall y1 de SetActorWalk. El cuerpo corta
     // antes de los efectos, las partículas y la tela.

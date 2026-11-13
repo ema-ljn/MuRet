@@ -1118,9 +1118,10 @@ bool NamedLikeAGameMaster(const ActorState& actor)
 // 0x413fe0: un GM ("webzen" en el nombre, +0x78 & 0x1000000 o el CtlCode en 0x20 u 8) suelta una capa que
 // no sea la 5 y pone +0x360 en 5. Después, sin capa y con +0x360 del 5 al 13, la crea: con +0x360 en 5, la
 // de MuSign (0x414370); las del 6 al 13 (0x4147c0 con el 0x637) no están portadas. Del 6 al 13 lo escriben solo
-// los paquetes, sin portar (CL9.5): el 0x12 (0x4c89e1) y 0x40c140 copian un byte, y 0x42ab40, 0x42ad50 y 0x42ae60
-// lo eligen por las banderas 0x40000, 0x80000, 0x400000 y 0x800000 de +0x78 (0x42ab40, en el mapa 30); el dibujo de
-// esas capas (0x414820) lee +0x360 y +0x368. +0x360 no lo vuelve a 0 nadie más que 0x414340: el 5 queda en el registro.
+// los paquetes: el 0x12 (0x4c89e1, ViewportPlayers.h) y 0x40c140 (CL9.5) copian un byte, y 0x42ab40
+// (ApplyCastleSiegeFlags), 0x42ad50 y 0x42ae60 (CL9.5) lo eligen por las banderas 0x40000, 0x80000, 0x400000 y
+// 0x800000 de +0x78 (0x42ab40, en el mapa 30); el dibujo de esas capas (0x414820) lee +0x360 y +0x368. +0x360 no lo
+// vuelve a 0 nadie más que 0x414340: el 5 queda en el registro.
 Result StepTheLayer(ActorState& actor)
 {
     const bool gameMaster = NamedLikeAGameMaster(actor) || (actor.flags78 & GameMasterFlag) == GameMasterFlag ||

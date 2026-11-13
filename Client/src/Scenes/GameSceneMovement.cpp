@@ -78,13 +78,19 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         context.requestGate = [&](std::uint8_t gate) { m_session->RequestGate(gate); };
     if (m_session)
         context.sendFacing = [&](std::uint8_t direction) { return m_session->SendFacing(direction); };
-    // CL9 hito 11: el C1 03 97 va por la sesión; SetCursorPos queda pedido en GameMovementState::cursorWarpRequest.
     if (m_session)
+    {
+        // CL9 hito 11: el C1 03 97 va por la sesión; SetCursorPos queda pedido en GameMovementState::cursorWarpRequest.
         context.sendEventWindowLeave = [&]() { return m_session->SendEventWindowLeave(); };
-    if (m_session)
         context.sendWindowClose = [&]() { m_session->SendWindowClose(); };
-    context.screenWidth = m_screen.width;
-    context.screenHeight = m_screen.height;
+        context.requestQuestList = [&]() { m_session->RequestQuestList(); };
+        context.sendTalk = [&](std::int16_t key) { m_session->SendTalk(key); };
+        context.sendAction = [&](std::uint8_t direction, std::uint8_t action)
+        { m_session->SendAction(direction, action); };
+    }
+    context.texts = m_texts;
+    context.measure = m_context.textMeasure;
+    context.screen = m_screen;
     const InventoryServices inventory = InventoryContext();
     context.inventory = &inventory;
     return StepHeroMovement(context);

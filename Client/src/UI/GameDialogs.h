@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Data/Text/DialogTable.h"
 #include "Data/Text/TextTable.h"
 #include "UI/Dialogs.h"
 #include "UI/Widget.h"
@@ -32,6 +33,12 @@ inline constexpr std::int32_t MoneyTextDialog = 0x99;
 inline constexpr std::int32_t ServerTimeDialog = 0xa3;
 inline constexpr std::int32_t ItemNameDialog = 0x96;
 inline constexpr std::int32_t ItemNameWithLuckDialog = 0xa8;
+// 0x632f70: el diálogo de Dialog.bmd con respuestas (el de los NPC, CL9 hito 2).
+inline constexpr std::int32_t AnswersDialog = 0x8d;
+// 0x7d3691c: las respuestas de 0x419710 y 0x632f70, 10 renglones de 0x26 (0x5f dwords en 0).
+inline constexpr std::size_t DialogAnswerRows = 10;
+// 0x419710 y 0x632f70: sin respuestas, "1) " y el texto 609 de Text.bmd (0x76e9b88).
+inline constexpr std::size_t NoAnswersText = 609;
 
 // Un botón de 0x7d368b8: el estado (0 no está; 1 afuera; 2 con el mouse encima; 0x633300 arranca el segundo en 3),
 // y el rectángulo, que 0x62d756 corre (0xd5, 0x3c).
@@ -56,7 +63,18 @@ struct DialogBoxState
     std::int32_t pageText = 0;
     std::int8_t page = 0;
     std::int8_t lastPage = 0;
+    // 0x7d3691c: las respuestas, "%d) %s" partido en un renglón cada una. El de sin respuestas va con strcpy y puede
+    // seguir en el siguiente.
+    std::array<char, DialogAnswerRows * DialogRowBytes> answers{};
+    // 0x7d3a0fc: cuántas (la lista del 0x8d y de la ventana de las misiones).
+    std::int32_t answerCount = 0;
+    // 0x6d5e28 (.data, −1): el registro de Dialog.bmd que muestran.
+    std::int32_t dialogIndex = -1;
 };
+
+// La respuesta `row` como la lee el dibujo: desde su primer byte hasta el primer '\0', que puede estar en la
+// siguiente. MuRet corta al final de las 10.
+[[nodiscard]] std::string_view DialogAnswer(const DialogBoxState& box, std::size_t row);
 
 // El renglón `row` como lo lee el dibujo: desde su primer byte hasta el primer '\0', que puede estar en el renglón
 // siguiente. Sin '\0' hasta el final de los 7, el original seguiría leyendo la .bss: MuRet corta ahí.
@@ -82,6 +100,22 @@ void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view 
 [[nodiscard]] Core::Expected<void, std::string> OpenTheChaosCastleDialog(DialogBoxState& box, DialogState& dialogs,
                                                                          std::span<const std::string_view> texts);
 
+// 0x419710(índice), lo que muestra la ventana de las misiones: [0x6d5e28] = índice, el texto de Dialog.bmd partido en
+// los 7 renglones (0x632c90), las respuestas en 0 y, por cada una, "%d) %s" (wsprintf con 0x6c64b8) en un renglón; sin
+// ninguna (la cuenta en 0), "1) " y el texto 609 con strcpy y la cuenta en 1. Después, 0x6236f0(0). No toca los
+// botones. Corta sin la tabla, con un índice fuera de los 200 o sin el texto 609.
+[[nodiscard]] Core::Expected<void, std::string> ShowTheQuestDialog(DialogBoxState& box, DialogState& dialogs,
+                                                                   const Data::Text::DialogTable* table,
+                                                                   const Data::Text::TextTable* texts,
+                                                                   std::int32_t index);
+
+// 0x632f70(índice): lo mismo que 0x419710 con los botones en 0 (0x7d368b8, 10 dwords) y, en vez de 0x6236f0(0), el
+// 0x8d abierto, o esperando si hay otro.
+[[nodiscard]] Core::Expected<void, std::string> OpenTheAnswersDialog(DialogBoxState& box, DialogState& dialogs,
+                                                                     const Data::Text::DialogTable* table,
+                                                                     const Data::Text::TextTable* texts,
+                                                                     std::int32_t index);
+
 // 0x62d756..0x62d7e9: los dos botones. Con estado 1 o más, el mouse en [x + 0xd5, x + w + 0xd5] × [y + 0x3c, y + h +
 // 0x3c] (con los bordes) lo pone en 2 y, con el clic (0x7d366d4), lo apaga, apaga el botón abajo (0x7d36874) y lo
 // elige; afuera, en 1. Devuelve el último elegido, o −1.
@@ -93,4 +127,17 @@ void OpenMessageBox(DialogBoxState& box, DialogState& dialogs, std::string_view 
 // paso no dibuja nada (*inferido*, 08).
 [[nodiscard]] Core::Expected<void, std::string>
 StepTheDialogPages(DialogBoxState& box, const Data::Text::TextTable* texts, Point mouse, bool click);
+
+// Los renglones del texto y de las respuestas de las cajas van de 0x12 en 0x12 (0x62d92f, 0x632501 y 0x6325ee).
+inline constexpr std::int32_t DialogLineStep = 0x12;
+// 0x62d93e y 0x6324a3: el 0x8d no arranca su texto más arriba de y = 0x46.
+inline constexpr std::int32_t AnswersDialogTopMinimum = 0x46;
+// 0x62d96a..0x62d979 y 0x632573..0x632582: el mouse está sobre las respuestas a no más de 0x6a de x = 0x13f.
+inline constexpr std::int32_t AnswersCenterX = 0x13f;
+inline constexpr std::int32_t AnswersHalfWidth = 0x6a;
+
+// 0x632472..0x6324a6 (y 0x62d91d..0x62d943 en el paso): la y del primer renglón del texto de los 0x8a, 0x8c y 0x8d,
+// ((7 − [0x7d3a0fc] − renglones) · 0x12) / 2 + 0x4c (la división con signo, hacia el cero); con el 0x8d, no menos de
+// 0x46. Las respuestas del 0x8d siguen debajo del texto, en esa y + renglones · 0x12.
+[[nodiscard]] std::int32_t DialogTextTop(const DialogBoxState& box, std::int32_t id);
 } // namespace Client::UI

@@ -264,6 +264,21 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
             return Core::Unexpected(std::move(opened).Error());
         break;
     case QuestPanel:
+    {
+        // 0x659c50..0x659c70: todos menos el personaje y los amigos; con lo que cerró, 0x419840(−1).
+        mask ^= CharacterPanel;
+        auto closed = CloseByMask(mask);
+        if (!closed.HasValue())
+            return closed;
+        if (closed.Value())
+        {
+            if (!m_context.questOpened)
+                return Core::Unexpected(std::string("0x419840: abrir las misiones sin [0x710148]"));
+            if (auto opened = m_context.questOpened(); !opened.HasValue())
+                return Core::Unexpected(std::move(opened).Error());
+        }
+        break;
+    }
     case GuildPanel:
     case TradePanel:
     case WarehousePanel:
@@ -405,6 +420,13 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask)
                 return Core::Unexpected(CloseCut(id));
             if (auto closed = m_context.friendsClosed(); !closed.HasValue())
                 return Core::Unexpected(std::move(closed).Error());
+            break;
+        case QuestPanel:
+            // 0x657b2b: 0x419900, la ventana en 0 y el C1 03 31.
+            if (!m_context.questClosed)
+                return Core::Unexpected(std::string("0x419900: cerrar las misiones manda el C1 03 31 sin el cable"));
+            m_state.delegated.quest = 0;
+            m_context.questClosed();
             break;
         case InventoryPanel:
             // 0x659250..0x65926a.

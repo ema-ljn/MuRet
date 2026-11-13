@@ -1088,6 +1088,10 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                           .clothWorld = &FrameCloth(),
                           .frameClock = canvas.frameClock,
                           .originalFrames = frames,
+                          // 0x510d00 contornea los elegidos que dejó el picking del dibujo anterior (0x59ec80 corre
+                          // después de los personajes): 0x6c8e30 y 0x6c8e2c.
+                          .hovered = world.Runtime().selectedTargets[2],
+                          .targeted = world.Runtime().selectedTargets[1],
                           .cloths = m_characterCloths,
                           .sprites = &FrameSpritesForDraw(),
                           .poseCarry = &FramePoseCarry(),

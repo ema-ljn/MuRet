@@ -15,6 +15,7 @@
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/QuestState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
@@ -34,9 +35,11 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -246,6 +249,35 @@ TEST(ReturnToSelectionWithoutDataTest, WithTheOwnRecordOpenTheReturnDrawsNoRand)
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 1);
     EXPECT_EQ(tested.world.OwnCharacter().word40, 0);
     EXPECT_EQ(tested.world.Runtime().orderedScene, Client::Scenes::SceneId::CharacterSelect);
+}
+
+// 0x4c268a..0x4c26d2: las misiones vuelven a +4 = 0xff (el A0 se vuelve a pedir) y la ventana se cierra sin el 31.
+TEST(ReturnToSelectionWithoutDataTest, TheQuestsGoBackToTheirStart)
+{
+    const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
+    auto& runtime = tested->world.Runtime();
+    runtime.quest.characterClass = 1;
+    runtime.quest.current = 2;
+    runtime.quest.states[0] = 0xaa;
+    runtime.panels.delegated.quest = Client::Scenes::QuestListWindow;
+
+    ApplyReturnToSelection(tested->Resources());
+
+    EXPECT_EQ(runtime.quest.characterClass, Client::Scenes::QuestClassUnknown);
+    EXPECT_EQ(runtime.quest.current, 0);
+    EXPECT_EQ(runtime.quest.states[0], 0);
+    EXPECT_EQ(runtime.panels.delegated.quest, 0);
+}
+
+// 0x4c2515..0x4c252d: la vuelta deja los cinco del picking en −1, también el personaje elegido y 0x6c8e38.
+TEST(ReturnToSelectionWithoutDataTest, TheReturnForgetsThePickedTargets)
+{
+    const auto tested = std::make_unique<Returning>(std::filesystem::path{}, Seed);
+    tested->world.Runtime().selectedTargets = {3, 4, 5, 6, 1};
+
+    ApplyReturnToSelection(tested->Resources());
+
+    EXPECT_EQ(tested->world.Runtime().selectedTargets, (std::array<std::int32_t, 5>{-1, -1, -1, -1, -1}));
 }
 
 // 0x510f70 compara la clave con signo (movsx en 0x510f8a): con −1, la clave 0x7fff muere y la 0xffff no;

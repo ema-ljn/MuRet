@@ -300,13 +300,69 @@ TEST(PanelRegistryTest, TheDarkLordsPetRequestIsACut)
 
 TEST(PanelRegistryTest, PanelsOfOtherWavesCutWhenTheyOpen)
 {
-    for (const PanelId id : {FriendsPanel, QuestPanel, GuildPanel})
+    for (const PanelId id : {FriendsPanel, GuildPanel})
     {
         Tested tested;
         const auto opened = tested.panels.Open(id);
         ASSERT_FALSE(opened.HasValue()) << std::hex << id;
         EXPECT_NE(opened.Error().find("0x6599a0"), std::string::npos) << opened.Error();
     }
+}
+
+// 0x659c50..0x659c70 (CL9 hito 2): las misiones cierran todo menos el personaje y abren la lista con 0x419840(−1).
+TEST(PanelRegistryTest, TheQuestsKeepTheCharacterOpenAndRunTheirHook)
+{
+    Tested tested;
+    int hooks = 0;
+    tested.context.questOpened = [&hooks, &tested]() -> Client::Core::Expected<void, std::string>
+    {
+        ++hooks;
+        tested.state.delegated.quest = 2;
+        return {};
+    };
+    tested.state.character = 1;
+    tested.state.party = 1;
+    const auto opened = tested.panels.Open(QuestPanel);
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    EXPECT_TRUE(opened.Value());
+    EXPECT_EQ(hooks, 1);
+    EXPECT_EQ(tested.state.character, 1);
+    EXPECT_EQ(tested.state.party, 0);
+    EXPECT_TRUE(tested.panels.IsOpen(QuestPanel));
+}
+
+TEST(PanelRegistryTest, OpeningTheQuestsWithoutTheirObjectCuts)
+{
+    Tested tested;
+    const auto opened = tested.panels.Open(QuestPanel);
+    ASSERT_FALSE(opened.HasValue());
+    EXPECT_NE(opened.Error().find("0x419840"), std::string::npos) << opened.Error();
+}
+
+// 0x657b19..0x657b31: cerrar las misiones es 0x419900, que pone la ventana en 0 y manda el C1 03 31.
+TEST(PanelRegistryTest, ClosingTheQuestsSendsTheWindowClose)
+{
+    Tested tested;
+    int sent = 0;
+    tested.context.questClosed = [&sent]() { ++sent; };
+    tested.state.delegated.quest = 1;
+    const auto closed = tested.panels.CloseByMask(QuestPanel);
+    ASSERT_TRUE(closed.HasValue()) << closed.Error();
+    EXPECT_EQ(tested.state.delegated.quest, 0);
+    EXPECT_EQ(sent, 1);
+    // Cerrada, la consulta da falso y no manda otro.
+    ASSERT_TRUE(tested.panels.CloseByMask(QuestPanel).HasValue());
+    EXPECT_EQ(sent, 1);
+}
+
+TEST(PanelRegistryTest, ClosingTheQuestsWithoutTheCableCuts)
+{
+    Tested tested;
+    tested.state.delegated.quest = 2;
+    const auto closed = tested.panels.CloseByMask(QuestPanel);
+    ASSERT_FALSE(closed.HasValue());
+    EXPECT_NE(closed.Error().find("0x419900"), std::string::npos) << closed.Error();
+    EXPECT_EQ(tested.state.delegated.quest, 2);
 }
 
 TEST(PanelRegistryTest, TheCharacterKeepsTheInventoryOpenAndRunsItsHook)

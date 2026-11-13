@@ -1209,7 +1209,7 @@ private:
             return Core::Unexpected(std::string("0x4e1275: el ángulo del héroe está fuera del perfil de ftol"));
         if (!m_context.send)
             return Core::Unexpected(std::string("0x4e11e1: el C1 05 18 del contrato sin el send() de la sesión"));
-        m_context.send(Protocol::Movement::WriteAction(direction.Value(), Protocol::Movement::AltarContractAction));
+        m_context.send(Protocol::Movement::WriteAction(direction.Value(), Protocol::Movement::SittingAction));
         return {};
     }
 
@@ -1447,7 +1447,8 @@ void ResetTheCrywolfInterface(WorldRuntime& runtime)
     ui.dwords723bdc = {};
     ui.dword7239f4 = -1;
     ui.dword6c73dc = 0x0a;
-    ui.dword6c8e54 = -1;
+    // 0x42fdf8: el NPC elegido de la llegada (0x6c8e54), que es de GameMovementState.
+    runtime.movement.chosenNpc = -1;
     ui.dword6c73d8 = 1;
     ui.byte723bec = 0;
     // 0x42fe0d: solo el primero de los seis.

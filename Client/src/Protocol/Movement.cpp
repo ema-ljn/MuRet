@@ -143,15 +143,22 @@ Core::Expected<Damage, ProtocolError> ReadDamage(const Network::Packet& packet)
                   (*type & DamageFlagMask) != 0,
                   (*type & DamageDoubleHitMask) != 0};
 }
-Outgoing WriteFacing(std::uint8_t direction)
+
+Core::Expected<Action, ProtocolError> ReadAction(const Network::Packet& packet)
 {
-    constexpr std::uint8_t FacingTail = 0x7a;
-    return WriteAction(direction, FacingTail);
+    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != ActionOpcode)
+        return Core::Unexpected(ProtocolError::WrongPacket);
+    Core::ByteReader reader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
+    const auto key = reader.ReadU16Be();
+    const auto direction = reader.ReadU8();
+    const auto action = reader.ReadU8();
+    if (!key || !direction || !action)
+        return Core::Unexpected(ProtocolError::TooShort);
+    return Action{*key, *direction, *action};
 }
 
 Outgoing WriteAction(std::uint8_t direction, std::uint8_t action)
 {
-    constexpr std::uint8_t ActionOpcode = 0x18;
     return Xor32C1(Network::PacketWriter::C1(ActionOpcode).PutU8(direction).PutU8(action));
 }
 } // namespace Client::Protocol::Movement

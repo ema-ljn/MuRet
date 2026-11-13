@@ -17,11 +17,15 @@ inline constexpr std::size_t MaxWalkCells = 15;
 inline constexpr std::size_t MaxWireWalkCells = 14; // 0x56ad8d..0x56ad96: no recorta el camino local.
 inline constexpr std::uint8_t WalkOpcode = 0xd3;
 inline constexpr std::uint8_t DamageOpcode = 0xd7;
-// 59b333..59b83a: rumbo del héroe quieto, C1 05 18 direction 7A, XOR32.
-[[nodiscard]] Outgoing WriteFacing(std::uint8_t direction);
-// 0x4e11e1..0x4e1467, el BD 03 con el resultado 1 (CL9 hito 11): el mismo C1 05 18 direction acción con la acción 0x82
-// (sentarse en el altar de Crywolf), XOR32, por el send del paquete.
-inline constexpr std::uint8_t AltarContractAction = 0x82;
+// 04 § La acción: C1 05 18 dir acción del cliente (PMSG_ACTION del GS) y C1 07 18 clave:2 dir acción del servidor
+// (PMSG_ACTIONRESULT).
+inline constexpr std::uint8_t ActionOpcode = 0x18;
+// 0x59b74c: el giro del héroe quieto. 0x4f2416..0x4f2bea y 0x4e137a: sentarse.
+inline constexpr std::uint8_t FacingAction = 0x7a;
+inline constexpr std::uint8_t SittingAction = 0x82;
+// C1 05 18 direction action con el XOR32 y en claro: el giro (59b333..59b83a, con FacingAction), sentarse
+// (0x4f2416..0x4f2bea, con SittingAction), el emote (0x576a60 y cada caso de 0x576eb0) y el BD 03 con el resultado 1
+// (0x4e11e1..0x4e1467, CL9 hito 11: sentarse en el altar de Crywolf, con SittingAction). La dirección va tal cual.
 [[nodiscard]] Outgoing WriteAction(std::uint8_t direction, std::uint8_t action);
 
 struct Cell
@@ -41,6 +45,14 @@ struct Walk
     std::uint16_t characterId;
     Cell cell;
     std::uint8_t direction;
+};
+
+// El 0x18 del servidor (0x4cb750): pkt[3..4] la clave, big-endian, pkt[5] la dirección y pkt[6] la acción.
+struct Action
+{
+    std::uint16_t key;
+    std::uint8_t direction;
+    std::uint8_t action;
 };
 
 struct Damage
@@ -74,4 +86,5 @@ struct Damage
 // distintos, TooShort si faltan campos; como los demás lectores, ignoran bytes sobrantes.
 [[nodiscard]] Core::Expected<Walk, ProtocolError> ReadWalk(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<Damage, ProtocolError> ReadDamage(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Action, ProtocolError> ReadAction(const Network::Packet& packet);
 } // namespace Client::Protocol::Movement

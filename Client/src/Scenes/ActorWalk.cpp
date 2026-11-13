@@ -13,6 +13,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <optional>
 #include <string>
 
@@ -283,11 +284,32 @@ Core::Expected<ActorWalkResult, std::string> StepSound(const ActorState& actor, 
     }
     const int mask = context.hero ? 63 : 15;
     const bool selected = (random.Next() & mask) == 0;
-    if (selected && (actor.type != Data::Models::PlayerSkeletonModel || (actor.subtype >= 209 && actor.subtype <= 211)))
+    if (!selected ||
+        (actor.type == Data::Models::PlayerSkeletonModel && !(actor.subtype >= 209 && actor.subtype <= 211)))
     {
-        return Core::Unexpected(std::string("0x4f3f0f: falta la tabla de sonidos del modelo para el subtipo 209..211"));
+        return ActorWalkResult{};
     }
-    return ActorWalkResult{};
+    // 0x4f3edc..0x4f3ef2: con el subtipo 209 a 211, antes el 0x7b.
+    if (actor.subtype >= 209 && actor.subtype <= 211)
+    {
+        return Core::Unexpected(std::string("0x4f3ef2: el subtipo 209..211 pide dos sonidos (0x7b y el de la tabla)"));
+    }
+    // 0x4f3efa..0x4f3f67: con la primera de la tabla en −1, nada; si no, rand() & 1 elige una de las dos primeras, más
+    // 0xd2 y 5 con el subtipo 9.
+    if (context.modelSounds.size() < 2)
+    {
+        return Core::Unexpected(std::format("0x4f3f0f: falta la tabla de sonidos del modelo {:#x}", actor.type));
+    }
+    constexpr std::int16_t NoSound = -1;
+    if (context.modelSounds[0] == NoSound)
+    {
+        return ActorWalkResult{};
+    }
+    constexpr std::int32_t ModelSoundBase = 0xd2;
+    constexpr std::int32_t NinthSubtypeShift = 5;
+    const std::int32_t shift = actor.subtype == 9 ? NinthSubtypeShift : 0;
+    const auto pick = static_cast<std::size_t>(random.Next() & 1);
+    return ActorWalkResult{.sound = context.modelSounds[pick] + shift + ModelSoundBase};
 }
 } // namespace
 

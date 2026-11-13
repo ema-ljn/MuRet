@@ -26,10 +26,14 @@ namespace
 using Client::Network::Crypto::Xor32Decode;
 using Client::Protocol::ProtocolError;
 using Client::Protocol::Movement::Cell;
+using Client::Protocol::Movement::FacingAction;
+using Client::Protocol::Movement::ReadAction;
 using Client::Protocol::Movement::ReadDamage;
 using Client::Protocol::Movement::ReadWalk;
+using Client::Protocol::Movement::SittingAction;
 using Client::Protocol::Movement::WalkUpdateTimeMax;
 using Client::Protocol::Movement::WalkWriteError;
+using Client::Protocol::Movement::WriteAction;
 using Client::Protocol::Movement::WriteWalk;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
@@ -376,21 +380,49 @@ TEST(MovementTest, DamagePreservesTheSecondNumberBitIndependentlyOfTheHighFlag)
     }
 }
 
-TEST(MovementTest, FacingKeepsTheRawDirectionAndTheOriginalTail)
+// 0x59b456, 0x576a60, los casos de 0x576eb0 y 0x4f2416: el C1 05 18 con la dirección y la acción tal cual, XOR32.
+TEST(MovementTest, TheActionKeepsTheRawDirectionAndAction)
 {
     for (const std::uint8_t direction : {std::uint8_t{0}, std::uint8_t{7}, std::uint8_t{0xff}})
     {
-        const auto sent = Client::Protocol::Movement::WriteFacing(direction);
-        EXPECT_EQ(sent.delivery, Client::Network::Delivery::Clear);
-        EXPECT_TRUE(SameBytes(Xor32Decode(sent.packet).Bytes(), Bytes({0xc1, 5, 0x18, direction, 0x7a})));
+        for (const std::uint8_t action : {FacingAction, SittingAction, std::uint8_t{0x83}, std::uint8_t{0}})
+        {
+            const auto sent = WriteAction(direction, action);
+            EXPECT_EQ(sent.delivery, Client::Network::Delivery::Clear);
+            EXPECT_TRUE(SameBytes(Xor32Decode(sent.packet).Bytes(), Bytes({0xc1, 5, 0x18, direction, action})));
+        }
     }
+}
+
+// 0x4cb75d..0x4cb7d0: la clave en big endian sin máscara (pkt[3] · 256 + pkt[4]), la dirección y la acción.
+TEST(MovementTest, ReadsTheActionOfAnotherWithABigEndianKey)
+{
+    const auto action = ReadAction(PacketOf(Bytes({0xc1, 7, 0x18, 0x81, 0x23, 5, 0x7a})));
+    ASSERT_TRUE(action.HasValue());
+    EXPECT_EQ(action.Value().key, 0x8123);
+    EXPECT_EQ(action.Value().direction, 5);
+    EXPECT_EQ(action.Value().action, 0x7a);
+    EXPECT_TRUE(ReadAction(PacketOf(Bytes({0xc1, 8, 0x18, 0, 1, 2, 3, 0xaa}))).HasValue());
+}
+
+TEST(MovementTest, TheActionReaderRejectsShortAndOtherPackets)
+{
+    const auto full = Bytes({0xc1, 7, 0x18, 0, 1, 2, 3});
+    for (std::size_t size = 3; size < full.size(); ++size)
+    {
+        std::vector<std::byte> cut(full.begin(), full.begin() + static_cast<std::ptrdiff_t>(size));
+        cut[1] = static_cast<std::byte>(size);
+        EXPECT_EQ(ErrorOf(ReadAction(PacketOf(std::move(cut)))), ProtocolError::TooShort);
+    }
+    EXPECT_EQ(ErrorOf(ReadAction(PacketOf(Bytes({0xc1, 7, 0xd3, 0, 1, 2, 3})))), ProtocolError::WrongPacket);
+    EXPECT_EQ(ErrorOf(ReadAction(PacketOf(Bytes({0xc2, 0, 8, 0x18, 0, 1, 2, 3})))), ProtocolError::WrongPacket);
 }
 
 // 0x4e11e1..0x4e1467: el BD 03 con 1 manda C1 05 18 rumbo 82 con el XOR32 en claro; con el rumbo 3: 03 ^ 89 ^ 18 = 92
 // y 82 ^ BC ^ 92 = AC. El rumbo de 0x4e1260..0x4e128a es el de 0x56b0b7: (ángulo + 22,5) / 45 + 1, &7.
 TEST(MovementTest, TheAltarActionUsesTheFacingOfTheAngle)
 {
-    const auto sent = Client::Protocol::Movement::WriteAction(3, Client::Protocol::Movement::AltarContractAction);
+    const auto sent = Client::Protocol::Movement::WriteAction(3, Client::Protocol::Movement::SittingAction);
     EXPECT_EQ(sent.delivery, Client::Network::Delivery::Clear);
     EXPECT_TRUE(SameBytes(sent.packet.Bytes(), Bytes({0xc1, 5, 0x18, 0x92, 0xac})));
     EXPECT_TRUE(SameBytes(Xor32Decode(sent.packet).Bytes(), Bytes({0xc1, 5, 0x18, 3, 0x82})));

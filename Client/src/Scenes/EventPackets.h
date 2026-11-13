@@ -75,7 +75,8 @@ ApplyEventPacket(const Protocol::Events::EventPacket& packet, const EventPacketC
 [[nodiscard]] Core::Expected<std::optional<std::string>, std::string>
 EventCountdownText(EventMapObject& event, std::uint32_t tickCount, const Data::Text::TextTable* texts, bool write);
 
-// 0x42fdc0: los globales de la interfaz de Crywolf a su valor inicial, el estado y la etapa en 0 y el segundo de los
-// objetivos elegidos (0x6c8e2c) en −1. Lo llaman la vuelta a la selección (0x4c363a) y el BD 00 con la etapa 6.
+// 0x42fdc0: los globales de la interfaz de Crywolf a su valor inicial, el estado y la etapa en 0, el NPC elegido de la
+// llegada (0x6c8e54, GameMovementState::chosenNpc) y el segundo de los objetivos elegidos (0x6c8e2c) en −1. Lo llaman
+// la vuelta a la selección (0x4c363a) y el BD 00 con la etapa 6.
 void ResetTheCrywolfInterface(WorldRuntime& runtime);
 } // namespace Client::Scenes

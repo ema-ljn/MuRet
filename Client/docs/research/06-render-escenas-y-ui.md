@@ -1867,7 +1867,8 @@ los derivados con `0x550d10`), borra el ítem del cartel, deja `0x78abb2c` en el
 apaga los ayudantes (el 8) o el cuervo (el `0x1a05` del 1). Con un ítem en el cursor y el mouse en un lugar,
 `0x5bee04` prueba si va: el lugar de Item.bmd (`+0x22`; el 1 y el 11 también toman lo del 0 y el 10), la clase (el
 Dark Lord con `+0x49`, el elfo y los arcos, el Magic Gladiator con las dos manos), los requisitos contra el registro
-(en words que dan la vuelta), el mapa (Atlans, Icarus y Chaos Castle con las monturas), Crywolf (las etapas 3 y 4
+(en words que dan la vuelta; con el `0x1a5`, además, el nivel del cuervo `[0x723968]` · 15 + `0xb9` contra el
+liderazgo sin agregados, por `0x4221a0`, Q-C775), el mapa (Atlans, Icarus y Chaos Castle con las monturas), Crywolf (las etapas 3 y 4
 con `0x200000` en `+0x7c`) y la montura en uso. Si va, la marca 2 y, con el clic, `0x78abaac` en 1, el destino
 (`0x77f3cc8`; un arma de una mano o un bastón al 1 con la derecha vacía va al 0), el aviso 1862 de Fenrir y, sin la
 traba, el `24`. Si no va, la marca 3 y, con el clic y sin la traba, `0x5be150`.

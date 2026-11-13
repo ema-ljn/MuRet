@@ -132,7 +132,11 @@ constexpr std::int32_t FirstBow = 0x800;
 constexpr std::int32_t BowsEnd = 0xa00;
 constexpr std::uint16_t FirstPetForbidden = 0x1a0e;
 constexpr std::uint16_t LastPetForbidden = 0x1a13;
-constexpr std::uint16_t LeadershipScepter = 0x1a5;
+// 0x5bf03f: el 0x1a5 es 13 · 32 + 5, el Dark Raven con 32 tipos por grupo; con los 512 de Item.bmd es el 0x1a05, y el
+// 0x1a5 es un tipo vacío del grupo 0 (Q-C775). El requisito es el nivel del cuervo ([0x723968]) · 15 + 0xb9.
+constexpr std::uint16_t OldDarkRaven = 0x1a5;
+constexpr std::uint32_t RavenLeadershipPerLevel = 15;
+constexpr std::uint32_t RavenLeadershipBase = 0xb9;
 constexpr std::uint8_t FirstLevelCheckedSlot = 7;
 constexpr std::uint8_t LastLevelCheckedSlot = 11;
 constexpr std::int32_t AtlansMap = 7;
@@ -626,11 +630,16 @@ Core::Expected<bool, std::string> FitsTheSlot(const InventoryMoveContext& contex
         cursor.word22 > sum(own.word30, own.energy) || cursor.word24 > sum(own.word2e, own.vitality) ||
         cursor.word26 > sum(own.word36, own.leadership) || cursor.word28 > own.level)
         ok = false;
-    // 0x5bf013..0x5bf04a: 0x4221a0 copia 20 bytes de 0x725a44 − tipo · 20; con el 0x1a5 compara +8 · 15 + 0xb9 con
-    // el liderazgo. Esa tabla MuRet no la tiene.
-    if (cursor.id == LeadershipScepter)
-        return Core::Unexpected(std::string("0x5bf03f: el requisito de liderazgo del 0x1a5 lee 0x4221a0 (la tabla de "
-                                            "0x725a44), que MuRet no tiene"));
+    // 0x5bf013..0x5bf04a: 0x4221a0 copia los 20 bytes de 0x725a44 − tipo · 20 con cualquier tipo, y solo el 0x1a5 los
+    // mira: 0x725a44 − 0x1a5 · 20 es 0x723960, la mascota 0 de 0x421db0 (el cuervo), y +8 su nivel. El dword · 15 +
+    // 0xb9, en 16 bits (la palabra de arriba no llega), contra el liderazgo (+0x20) sin agregados.
+    if (cursor.id == OldDarkRaven)
+    {
+        const auto required =
+            static_cast<std::uint16_t>((runtime.ravenLevel * RavenLeadershipPerLevel + RavenLeadershipBase) & 0xffffu);
+        if (required > own.leadership)
+            ok = false;
+    }
     if (equipSlot >= FirstLevelCheckedSlot && equipSlot <= LastLevelCheckedSlot && cursor.word28 > own.level)
         ok = false;
     // 0x5bf084..0x5bf185: el mapa, Crywolf y la montura.

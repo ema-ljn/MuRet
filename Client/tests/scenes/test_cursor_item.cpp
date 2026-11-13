@@ -57,6 +57,8 @@ constexpr std::uint16_t Bow = 0x0801;      // 2 × 4, la izquierda: tira flechas
 constexpr std::uint16_t Crossbow = 0x0808; // 2 × 4, la derecha: tira virotes
 constexpr std::uint16_t Bolts = 0x0807;    // 1 × 1
 constexpr std::uint16_t Arrows = 0x080f;   // 1 × 1
+// 1 × 1, la derecha: el Dark Raven con 32 tipos por grupo, que 0x5bf03f compara (en el Item.bmd real, vacío).
+constexpr std::uint16_t OldDarkRaven = 0x01a5;
 constexpr std::uint8_t HeadSlot = 2;
 constexpr std::uint8_t WingSlot = 7;
 constexpr std::uint8_t NotWorn = 0xff;
@@ -185,7 +187,8 @@ protected:
                                                          {Bow, 2, 4, 1},
                                                          {Crossbow, 2, 4, 0},
                                                          {Bolts, 1, 1, 1},
-                                                         {Arrows, 1, 1, 0}});
+                                                         {Arrows, 1, 1, 0},
+                                                         {OldDarkRaven, 1, 1, 0}});
     Outside outside;
     InventoryServices services;
 };
@@ -389,6 +392,39 @@ TEST_F(CursorItemTest, TheEquipmentTakesWhatGoesThere)
     EXPECT_EQ(world.Runtime().itemMoveTarget, 0);
     ASSERT_EQ(outside.sent.size(), 2u);
     EXPECT_EQ(outside.sent.back().targetSlot, 0);
+}
+
+// 0x5bf013..0x5bf04a: el 0x1a5 pide de liderazgo el nivel del cuervo ([0x723968]) · 15 + 0xb9, en 16 bits que dan
+// la vuelta, contra +0x20 sin agregados (Q-C775).
+TEST_F(CursorItemTest, TheOldDarkRavenAsksForTheLeadershipOfTheRavenLevel)
+{
+    world.Actors()[0].characterClass = DarkKnight;
+    Scenes::WorldRuntime& runtime = world.Runtime();
+    runtime.cursorItem = Invented(OldDarkRaven);
+    runtime.cursorItemCount = 1;
+    Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+    const auto mark = [&]
+    {
+        const auto dropped = Scenes::DropOnTheEquipment(Moves(), 0);
+        EXPECT_TRUE(dropped.HasValue()) << dropped.Error();
+        return own.equipment[0].warning;
+    };
+
+    own.leadership = 0xb8;
+    EXPECT_EQ(mark(), 3);
+    own.leadership = 0xb9;
+    EXPECT_EQ(mark(), 2);
+    runtime.ravenLevel = 2;
+    EXPECT_EQ(mark(), 3);
+    own.leadership = 0xb9 + 30;
+    EXPECT_EQ(mark(), 2);
+    own.word36 = 100;
+    own.leadership = 0xb9 + 29;
+    EXPECT_EQ(mark(), 3);
+    // 4.357 · 15 + 0xb9 = 0x10004: queda 4.
+    runtime.ravenLevel = 4357;
+    own.leadership = 4;
+    EXPECT_EQ(mark(), 2);
 }
 
 // 0x5c2c65..0x5c2dd0: levantar del equipo deja el lugar en 0xffff (con +0x3c como estaba), viste al héroe y pide el

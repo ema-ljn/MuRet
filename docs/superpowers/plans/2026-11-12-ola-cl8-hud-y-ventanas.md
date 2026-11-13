@@ -381,6 +381,10 @@ la izquierda con una ballesta, el `24` con su traba y los avisos 250 (tipo 1) y 
 original lee sin que MuRet lo tenga: el tipo sin arco ni ballesta (`0x557c62`, Q-C772) y las manos con el registro
 cerrado (`0x561b13`, Q-C773), en P-C151 (06 § El inventario, "Las flechas del elfo"; `test_cursor_item.cpp`).
 
+**El requisito del `0x1a5`, hecho** (2026-11-13, rama `cl8-gaps`, cierra P-C72 c): `0x4221a0` con la tabla de
+`0x725a44` es el nivel del cuervo (`[0x723968]`, `WorldRuntime::ravenLevel`) · 15 + `0xb9` contra el liderazgo; el
+`0x1a5` es el Dark Raven con 32 tipos por grupo, un tipo vacío en el Item.bmd de la 1.02 (Q-C775).
+
 ### Hito 5: los tooltips y la ventana del personaje (CL8.4, ~50 KB)
 
 - [x] **El tooltip** `0x5f7bc0` y sus tres cuerpos (`0x5b2aa0`, `0x5b8150`, `0x5b90b0`) con sus helpers, el

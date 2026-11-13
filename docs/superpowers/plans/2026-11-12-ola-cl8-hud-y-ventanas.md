@@ -375,6 +375,12 @@ P-C150). Llegan en cualquier escena del GameServer y los orbes y el AG del HUD l
 (`InventoryProtocolTest`, `ServerSessionTest.TheLifeAndTheManaReachTheWorldBeforeTheMap`, `InventoryReplyTest` y
 `GameHudTest.TheLifeAndTheManaPacketsMoveTheOrbs`). Del hito 4 queda el cable de los `C3 24` (P-C72 g).
 
+**Las flechas del elfo, hechas** (2026-11-13, rama `cl8-gaps`, cierra P-C72 d): `0x5579e0` y `0x561840` desde
+`0x5bd750`, con la búsqueda de la grilla de la columna 7 a la 0, las flechas a la derecha con un arco, los virotes a
+la izquierda con una ballesta, el `24` con su traba y los avisos 250 (tipo 1) y 251 (tipo 2). Cortan lo que el
+original lee sin que MuRet lo tenga: el tipo sin arco ni ballesta (`0x557c62`, Q-C772) y las manos con el registro
+cerrado (`0x561b13`, Q-C773), en P-C151 (06 § El inventario, "Las flechas del elfo"; `test_cursor_item.cpp`).
+
 ### Hito 5: los tooltips y la ventana del personaje (CL8.4, ~50 KB)
 
 - [x] **El tooltip** `0x5f7bc0` y sus tres cuerpos (`0x5b2aa0`, `0x5b8150`, `0x5b90b0`) con sus helpers, el

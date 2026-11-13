@@ -40,10 +40,10 @@ struct InventoryServices
     std::function<Core::Expected<void, std::string>()> dressTheHero{};
     // 0x420cf0: suelta el cuervo y, fuera de los mapas 18 a 23, lo crea de nuevo (ReplaceTheRaven).
     std::function<Core::Expected<void, std::string>()> replaceTheRaven{};
-    // 0x555190(nombre, el texto `index` de Text.bmd, 2): un mensaje de error en el chat. Los nombres que pasa el
-    // original (0x77f3be4, 0x78abb44, 0x78abb60 a 0x78abb6c) son buffers que nadie escribe: van vacíos (*inferido*,
-    // 08 P-C72).
-    std::function<Core::Expected<void, std::string>(std::size_t index)> systemMessage{};
+    // 0x555190(nombre, el texto `index` de Text.bmd, tipo): un mensaje en el chat, con el tipo 2 (UI::ErrorMessage)
+    // o el 1 (UI::SystemMessage, las flechas que se equipan). Los nombres que pasa el original (0x77f3bdc a 0x77f3be4,
+    // 0x78abb44, 0x78abb60 a 0x78abb6c) son buffers que nadie escribe: van vacíos (*inferido*, 08 P-C72).
+    std::function<Core::Expected<void, std::string>(std::size_t index, std::int32_t type)> systemMessage{};
     // El C1 0E 24 en C3 por la sesión (ServerSession::SendItemMove), después de los dos rand() del envío.
     std::function<Core::Expected<void, std::string>(const Protocol::Inventory::ItemMove&)> sendItemMove{};
 };

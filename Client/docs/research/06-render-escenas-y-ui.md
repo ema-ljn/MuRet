@@ -1897,6 +1897,20 @@ izquierda, abre el registro propio (3.848 al cerrarlo), pasa el ítem del lugar 
 cuenta en su `+0x3c`) y deja el lugar en `0xffff` con `+4` en 0; `0x512a30`; la grilla del inventario, el lugar 1 y
 el destino 0; y, sin la traba, el `24` del 1 al 0. Sigue con el clic (`0x59cd23`).
 
+**Las flechas del elfo** (`0x561840` → `0x5579e0`, CL8 2026-11-13, *estático*). `0x5bd750` las llama al sacar el
+lugar 0 o el 1, después de cerrar su acceso al registro propio. `0x5579e0` abre el registro, lee la clase y, en el
+elfo, las dos manos, y lo cierra (3.848 `rand()` si queda sin accesos); con otra clase devuelve −1. Busca las
+flechas (`0x80f`) con un arco en la izquierda (`0x800` a `0x806`, `0x811`, `0x814` y `0x815`) y si no los virotes
+(`0x807`) con una ballesta en la derecha (`0x808` a `0x80e` y `0x810` a `0x9ff`); sin ninguno de los dos, el tipo es
+lo que dejó en `[ebp-0xc]` la búsqueda del registro en la tabla de protección (Q-C772). Recorre la grilla del
+inventario de la columna 7 a la 0 y, en cada una, de la fila 7 a la 0, y da la primera casilla de ese tipo con
+`+0x3c` mayor que 0. Con −1, `0x561840` avisa con el 251 y el tipo 2 (Q-C477). Si no, abre el registro, mira si es
+un elfo con el cursor vacío y lo cierra (en línea, 3.848 si queda sin accesos), y después lee las manos (Q-C773): con
+un arco en la izquierda y la derecha vacía, las flechas van a la derecha; con una ballesta de `0x808` a `0x80e` en la
+derecha, o de `0x810` a `0x9ff` con la izquierda vacía, a la izquierda (Q-C774). Para eso copia la casilla al cursor,
+deja `0x78a6758` en la casilla + 12, la saca con `0x5bd750`, pone el destino en `0x77f3cc8`, llama a `0x449d80`
+(que con la traba puesta no hace nada) y avisa con el 250 y el tipo 1. La grilla del cursor (`0x78ab9b8`) no la toca.
+
 **Lo que porta MuRet**: la ventana entera; los ítems 3D, el del cursor y los de las ranuras, dibujados en el pase de
 la UI con sus `rand()` (`Scenes/UiItemDrawing.h`, `test_ui_item_drawing.cpp` y `test_game_inventory_hud.cpp`; el
 `0x1a18` corta en `0x60c3b6`); las cifras; el mundo angosto en `GameScene` (`0x63733e` y `0x63738a`); las texturas

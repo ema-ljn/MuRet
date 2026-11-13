@@ -149,12 +149,25 @@ constexpr std::int32_t OneHandedEnd = 0x600;
 constexpr std::int32_t FirstStaff = 0xa00;
 constexpr std::int32_t StavesEnd = 0xc00;
 constexpr std::int32_t WideItem = 2;
-// Text.bmd: 1862 (el de Fenrir), 269 (lo que no se tira al piso), 1915 (el de las cajas) y 251 (se acabaron las
-// flechas). En el Text.bmd del repo, 1862 y 1915 están vacíos.
+// Text.bmd: 1862 (el de Fenrir), 269 (lo que no se tira al piso), 1915 (el de las cajas), 251 (se acabaron las
+// flechas) y 250 (las flechas que se equipan). En el Text.bmd del repo, 1862 y 1915 están vacíos.
 constexpr std::size_t FenrirText = 1862;
 constexpr std::size_t KeptText = 269;
 constexpr std::size_t BoxText = 1915;
 constexpr std::size_t ArrowsText = 251;
+constexpr std::size_t EquippedArrowsText = 250;
+
+// 0x5579e0 y 0x561840: los arcos de la mano izquierda (0x800..0x806, 0x811, 0x814 y 0x815), que tiran flechas, y las
+// ballestas de la derecha (0x808..0x80e y 0x810..0x9ff), que tiran virotes. −1, ninguna casilla.
+constexpr std::int32_t FirstBowOfTheLeft = 0x800;
+constexpr std::int32_t LastBowOfTheLeft = 0x806;
+constexpr std::array<std::int32_t, 3> LateBowsOfTheLeft{0x811, 0x814, 0x815};
+constexpr std::int32_t FirstCrossbow = 0x808;
+constexpr std::int32_t LastCrossbow = 0x80e;
+constexpr std::int32_t FirstLateCrossbow = 0x810;
+constexpr std::int32_t LastLateCrossbow = 0x9ff;
+constexpr std::int32_t NoArrowCell = -1;
+constexpr std::int32_t EmptyHand = -1;
 // 0x5df4de..0x5df544: los ocho tipos sueltos que no se tiran, el nivel de más y los bits de +0x1b; 0x5df54a..0x5df554,
 // las cajas que avisan con 1915.
 constexpr std::array<std::uint16_t, 8> KeptOnTheGround{0x13, 0xa0a, 0x812, 0x40d, 0x180f, 0x1a0e, 0x1a0f, 0x1a13};
@@ -223,11 +236,12 @@ Core::Expected<void, std::string> Dress(const InventoryServices& services, std::
     return {};
 }
 
-Core::Expected<void, std::string> Message(const InventoryServices& services, std::size_t text, std::string_view where)
+Core::Expected<void, std::string> Message(const InventoryServices& services, std::size_t text, std::int32_t type,
+                                          std::string_view where)
 {
     if (!services.systemMessage)
         return Core::Unexpected(std::format("{}: 0x555190 con el texto {} sin el chat", where, text));
-    if (auto added = services.systemMessage(text); !added.HasValue())
+    if (auto added = services.systemMessage(text, type); !added.HasValue())
         return Core::Unexpected(std::format("{}, 0x555190: {}", where, added.Error()));
     return {};
 }
@@ -287,19 +301,126 @@ Core::Expected<void, std::string> RemoveFromTheGrid(const InventoryMoveContext& 
     return {};
 }
 
-// 0x561840 → 0x5579e0: las flechas del elfo. Con otra clase, 0x5579e0 cierra el registro (3.848 rand() si queda sin
-// accesos) y devuelve −1, y 0x561840 pone el texto 251 con el tipo 2 (0x561c31).
-Core::Expected<void, std::string> UpdateTheArrows(const InventoryMoveContext& context)
+bool IsABowOfTheLeft(std::int32_t hand)
+{
+    return InRange(hand, FirstBowOfTheLeft, LastBowOfTheLeft) ||
+           std::ranges::find(LateBowsOfTheLeft, hand) != LateBowsOfTheLeft.end();
+}
+
+bool IsACrossbow(std::int32_t hand)
+{
+    return InRange(hand, FirstCrossbow, LastCrossbow) || InRange(hand, FirstLateCrossbow, LastLateCrossbow);
+}
+
+// 0x5579e0: la casilla de las flechas del elfo. Con el registro propio abierto lee la clase y las dos manos y lo
+// cierra (3.848 rand() si queda sin accesos); con otra clase, −1. Busca las flechas (0x80f) con un arco en la
+// izquierda; si no, los virotes (0x807) con una ballesta en la derecha. Recorre la grilla del inventario de la
+// columna 7 a la 0 y, en cada una, de la fila 7 a la 0, y da la primera casilla de ese tipo con +0x3c mayor que 0;
+// sin ninguna, −1. Sin arco ni ballesta el tipo que busca es [ebp-0xc], lo que dejó ahí la búsqueda del registro en
+// la tabla de protección al cerrarlo: cuántas entradas miró antes de la suya (Q-C772). MuRet no tiene la tabla: si
+// alguna casilla puede ser esa, corta.
+Core::Expected<std::int32_t, std::string> FindTheArrows(const InventoryMoveContext& context)
+{
+    WorldState& world = context.world;
+    std::int32_t right = EmptyHand;
+    std::int32_t left = EmptyHand;
+    {
+        const Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        const OwnCharacterRecord& record = world.OwnCharacter();
+        if ((record.characterClass & ClassMask) != ElfClass)
+            return NoArrowCell;
+        right = Signed(record.equipment[RightHandSlot].id);
+        left = Signed(record.equipment[LeftHandSlot].id);
+    }
+    std::optional<std::uint16_t> wanted;
+    if (IsABowOfTheLeft(left))
+        wanted = Arrows;
+    else if (IsACrossbow(right))
+        wanted = Bolts;
+    const auto& cells = world.Inventory().cells;
+    for (std::int32_t column = Columns - 1; column >= 0; --column)
+    {
+        for (std::int32_t row = Rows - 1; row >= 0; --row)
+        {
+            const std::int32_t index = row * Columns + column;
+            const ItemState& cell = cells[static_cast<std::size_t>(index)];
+            if (static_cast<std::int32_t>(cell.occupied) <= 0)
+                continue;
+            if (!wanted)
+            {
+                if (Signed(cell.id) >= 0)
+                    return Core::Unexpected(std::format(
+                        "0x557c62: sin arco ni ballesta, 0x5579e0 busca el tipo [ebp-0xc], la cuenta de la búsqueda "
+                        "del registro propio en la tabla de protección (Q-C772), y la casilla {} ({:#x}) puede serlo",
+                        index, cell.id));
+                continue;
+            }
+            if (cell.id == *wanted)
+                return index;
+        }
+    }
+    return NoArrowCell;
+}
+
+// 0x561b45..0x561b9e y 0x561bcf..0x561c28: las flechas de la casilla `index` al cursor, fuera de la grilla
+// (0x5bd750), el destino en 0x77f3cc8, el 24 (0x449d80, que con la traba puesta no hace nada) y el texto 250 con el
+// tipo 1. El nombre (0x77f3bdc o 0x77f3be0) va vacío (P-C72 a). 0x78ab9b8, la grilla del cursor, queda como estaba.
+Core::Expected<void, std::string> EquipTheArrows(const InventoryMoveContext& context, std::int32_t index,
+                                                 std::uint8_t target, std::string_view where)
 {
     WorldRuntime& runtime = context.world.Runtime();
+    auto cell = CellAt(context.world.Inventory().cells, index, where);
+    if (!cell.HasValue())
+        return Core::Unexpected(cell.Error());
+    runtime.cursorItem = *cell.Value();
+    runtime.cursorItemCount = static_cast<std::int32_t>(cell.Value()->occupied);
+    runtime.slot78a6758 = index + FirstGridSlot;
+    if (auto removed = RemoveInventoryItem(context, index + FirstGridSlot); !removed.HasValue())
+        return removed;
+    runtime.itemMoveTarget = target;
+    if (runtime.ui.field78abb39 == 0)
+    {
+        if (auto sent = SendTheCursorItem(context, target); !sent.HasValue())
+            return sent;
+    }
+    return Message(context.services, EquippedArrowsText, UI::SystemMessage, where);
+}
+
+// 0x561840: con −1 de 0x5579e0, el texto 251 con el tipo 2 (0x561c31). Si no, abre el registro, mira si es un elfo
+// con el cursor vacío y lo cierra (3.848 rand() si queda sin accesos, en línea), y recién ahí lee las manos: con el
+// arco en la izquierda y la derecha vacía, las flechas van a la derecha (el 0); con una ballesta de 0x808 a 0x80e en
+// la derecha, o de 0x810 a 0x9ff con la izquierda vacía, a la izquierda (el 1), aunque esté ocupada. Si el cierre dejó
+// el registro sin accesos, las manos son lo que dejó en él (Q-C202): corta.
+Core::Expected<void, std::string> UpdateTheArrows(const InventoryMoveContext& context)
+{
+    const auto found = FindTheArrows(context);
+    if (!found.HasValue())
+        return Core::Unexpected(found.Error());
+    if (found.Value() == NoArrowCell)
+        return Message(context.services, ArrowsText, UI::ErrorMessage, "0x561c31");
+    WorldState& world = context.world;
+    WorldRuntime& runtime = world.Runtime();
+    bool equips = false;
     {
         const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
                                                 Render::Models::OwnRecordCloseRandoms);
-        if ((context.world.OwnCharacter().characterClass & ClassMask) == ElfClass)
-            return Core::Unexpected(std::string("0x557abb: buscar las flechas del elfo (0x5579e0, desde 0x561840) "
-                                                "no está portado (P-C72)"));
+        equips = (world.OwnCharacter().characterClass & ClassMask) == ElfClass && runtime.cursorItemCount == 0;
     }
-    return Message(context.services, ArrowsText, "0x561c31");
+    if (!equips)
+        return {};
+    if (runtime.ownRecordDepth == 0)
+        return Core::Unexpected(std::string("0x561b13: 0x561840 lee las manos de [0x7681eb4] (+0xb6c y +0xbb4) con el "
+                                            "registro propio cerrado, lo que dejó su último cierre (Q-C202)"));
+    const OwnCharacterRecord& record = world.OwnCharacter();
+    const std::int32_t right = Signed(record.equipment[RightHandSlot].id);
+    const std::int32_t left = Signed(record.equipment[LeftHandSlot].id);
+    if (IsABowOfTheLeft(left) && right == EmptyHand)
+        return EquipTheArrows(context, found.Value(), static_cast<std::uint8_t>(RightHandSlot), "0x561b99");
+    if (InRange(right, FirstCrossbow, LastCrossbow) ||
+        (InRange(right, FirstLateCrossbow, LastLateCrossbow) && left == EmptyHand))
+        return EquipTheArrows(context, found.Value(), static_cast<std::uint8_t>(LeftHandSlot), "0x561c23");
+    return {};
 }
 
 // 0x5be4f0..0x5be5f2: el ayudante de cada mascota que vuelve al lugar 8.
@@ -557,7 +678,7 @@ InventoryServices InventoryServicesOf(const WorldEntryResources& resources)
         .items = resources.items,
         .dressTheHero = [&resources] { return DressTransitionHero(PublishedHero(resources), resources); },
         .replaceTheRaven = [&resources] { return ReplaceTheRaven(PublishedHero(resources), resources); },
-        .systemMessage = [&resources](std::size_t index) -> Core::Expected<void, std::string>
+        .systemMessage = [&resources](std::size_t index, std::int32_t type) -> Core::Expected<void, std::string>
         {
             const std::optional<std::string_view> text = UI::TextAt(resources.texts, index);
             if (!text)
@@ -565,8 +686,7 @@ InventoryServices InventoryServicesOf(const WorldEntryResources& resources)
             if (resources.textMeasure == nullptr)
                 return Core::Unexpected(std::string("sin el medidor de los textos"));
             const App::PixelSize screen = resources.screen ? resources.screen() : App::PixelSize{640, 480};
-            return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, *text,
-                                  UI::ErrorMessage);
+            return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, *text, type);
         },
         .sendItemMove = {}};
 }
@@ -861,7 +981,7 @@ Core::Expected<void, std::string> DropOnTheEquipment(const InventoryMoveContext&
     if (std::to_integer<std::uint8_t>(record.Value()[ItemEquipSlotOffset]) == PetSlot && cursor.id == HornOfDoom &&
         heroClass != MagicGladiatorClass && heroClass != DarkLordClass && (hero.characterClass & ClassUpperMask) == 0)
     {
-        if (auto warned = Message(context.services, FenrirText, "0x5bf279"); !warned.HasValue())
+        if (auto warned = Message(context.services, FenrirText, UI::ErrorMessage, "0x5bf279"); !warned.HasValue())
             return warned;
     }
     if (runtime.ui.field78abb39 != 0)
@@ -970,13 +1090,15 @@ Core::Expected<void, std::string> DropOnTheGround(const InventoryMoveContext& co
                       (level > MaxDroppedLevel && type < FirstWing) || (cursor.flags1b & DroppedFlagsMask) != 0;
     if (kept)
     {
-        if (auto warned = Message(context.services, KeptText, "0x5e0701 (0x5e06f5)"); !warned.HasValue())
+        if (auto warned = Message(context.services, KeptText, UI::ErrorMessage, "0x5e0701 (0x5e06f5)");
+            !warned.HasValue())
             return warned;
         return ReturnTheCursorItem(context);
     }
     if (InRange(type, FirstStackedBox, LastBox))
     {
-        if (auto warned = Message(context.services, BoxText, "0x5e0701 (0x5df556)"); !warned.HasValue())
+        if (auto warned = Message(context.services, BoxText, UI::ErrorMessage, "0x5e0701 (0x5df556)");
+            !warned.HasValue())
             return warned;
         return ReturnTheCursorItem(context);
     }
@@ -986,7 +1108,8 @@ Core::Expected<void, std::string> DropOnTheGround(const InventoryMoveContext& co
     {
         if (!drop.inventoryOpen || drop.mouseX <= runtime.hud.inventoryX)
         {
-            if (auto warned = Message(context.services, KeptText, "0x5e0701 (0x5e06d9)"); !warned.HasValue())
+            if (auto warned = Message(context.services, KeptText, UI::ErrorMessage, "0x5e0701 (0x5e06d9)");
+                !warned.HasValue())
                 return warned;
         }
         return ReturnTheCursorItem(context);

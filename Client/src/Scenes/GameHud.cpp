@@ -32,6 +32,7 @@
 #include "Scenes/OwnInventory.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/UiItemDrawing.h"
+#include "Scenes/WarehouseKeypad.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -857,8 +858,9 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
         return cut("0x44ea60: el arma del asedio es de la CL9.5");
     if (state.delegated.siegeGate != 0)
         return cut("0x44ff00: la puerta del asedio es de la CL9.5");
-    if (panels.IsOpen(UI::WarehousePanel))
-        return cut("0x5f4e30: el dibujo del almacén es de la fase 3 del hito 6 (08 P-C192)");
+    // 0x5f4e30, que empieza con su IsOpen (sin rand()).
+    if (auto warehouse = DrawTheWarehouse(frame.context, panels); !warehouse.HasValue())
+        return warehouse;
     if (panels.IsOpen(UI::EventNpcPanel))
         return cut("0x5f58f0: la ventana del NPC de evento es de la CL9.5");
     if (state.field78abb00 != 0)
@@ -1557,10 +1559,9 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     // 29. 0x5a9630.
     if (auto bar = DrawTheMainBar(frame); !bar.HasValue())
         return bar;
-    // 30. 0x5e9b10.
-    if (runtime.ui.field78abb20 != 0)
-        return Core::Unexpected(std::string("0x5e9b10: la caja de la contraseña del almacén es de la fase 3 del "
-                                            "hito 6 (08 P-C192)"));
+    // 30. 0x5e9b10, que empieza con el modo del teclado (0x78abb20).
+    if (auto keypad = DrawTheKeypad(frame.context); !keypad.HasValue())
+        return keypad;
     // 31. Sin ninguna ventana, 0x4125b0.
     return DrawTheSiegePanel(frame);
 }

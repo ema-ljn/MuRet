@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Data/Text/TextTable.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -15,6 +16,7 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
 #include "support/RecordingTextDrawer.h"
@@ -22,6 +24,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <map>
@@ -31,9 +34,9 @@
 #include <tuple>
 #include <vector>
 
-// El dibujo de las ventanas de los NPC (CL9 hito 6, fase 3; 06 § Las ventanas de los NPC): la tienda (0x5f4720), en
-// 640 × 480. Los textos y los precios son inventados y los textos miden 6 columnas por letra. Cada test corre en
-// Lorencia, Devias y Noria.
+// El dibujo de las ventanas de los NPC (CL9 hito 6, fase 3; 06 § Los dibujos de las ventanas de los NPC): la tienda
+// (0x5f4720) y el almacén (0x5f4e30), en 640 × 480. Los textos y los precios son inventados y los textos miden 6
+// columnas por letra. Cada test corre en Lorencia, Devias y Noria.
 namespace
 {
 using Client::Render::BlendMode;
@@ -66,8 +69,9 @@ constexpr std::size_t GridCells = 8 * 15;
 
 std::map<std::size_t, std::string> ShopTexts()
 {
-    return {{230, "Tienda"},  {1623, "Impuesto %d%%"}, {231, "Comprar"}, {232, "Vender"},
-            {233, "Reparar"}, {237, "Reparar todo"},   {239, "Precio"}};
+    return {{230, "Tienda"},       {1623, "Impuesto %d%%"}, {231, "Comprar"}, {232, "Vender"},  {233, "Reparar"},
+            {237, "Reparar todo"}, {239, "Precio"},         {234, "Baul"},    {240, "abierto"}, {241, "cerrado"},
+            {224, "Zen"},          {266, "Costo"},          {235, "Meter"},   {236, "Sacar"},   {242, "Trabar"}};
 }
 
 // Un quad del lote: el slot (NoTexture sin textura, Marker si es la marca de un texto), la mezcla, el color y las
@@ -149,25 +153,38 @@ protected:
         return m_world->Runtime();
     }
 
-    Client::Core::Expected<void, std::string> DrawTheShop(std::int32_t x, std::int32_t y, bool projecting = false)
+    GameHudContext Context(std::int32_t x, std::int32_t y, bool projecting = false, bool leftDown = false)
     {
         Client::Scenes::WorldRuntime& runtime = Runtime();
         Client::Scenes::ActorState& hero = m_world->Actors()[runtime.hero];
-        GameHudContext context{.world = *m_world,
-                               .random = m_random,
-                               .ownRecordDepth = runtime.ownRecordDepth,
-                               .cellXDepth = hero.cellXAccesses,
-                               .cellYDepth = hero.cellYAccesses,
-                               .hud = runtime.hud,
-                               .crywolfSandOverlay = runtime.crywolf.sandOverlay,
-                               .sound = m_sound,
-                               .projecting = projecting,
-                               .sprites = m_sprites,
-                               .text = m_text,
-                               .texts = m_drawnTexts,
-                               .mouse = {.x = x, .y = y}};
+        return GameHudContext{.world = *m_world,
+                              .random = m_random,
+                              .ownRecordDepth = runtime.ownRecordDepth,
+                              .cellXDepth = hero.cellXAccesses,
+                              .cellYDepth = hero.cellYAccesses,
+                              .hud = runtime.hud,
+                              .crywolfSandOverlay = runtime.crywolf.sandOverlay,
+                              .sound = m_sound,
+                              .projecting = projecting,
+                              .sprites = m_sprites,
+                              .text = m_text,
+                              .texts = m_drawnTexts,
+                              .mouse = {.x = x, .y = y},
+                              .leftDown = leftDown};
+    }
+
+    Client::Core::Expected<void, std::string> DrawTheShop(std::int32_t x, std::int32_t y, bool projecting = false)
+    {
+        GameHudContext context = Context(x, y, projecting);
         Client::Scenes::GamePanels panels(*m_world, m_random);
         return Client::Scenes::DrawTheNpcShop(context, panels.Registry());
+    }
+
+    Client::Core::Expected<void, std::string> DrawTheWarehouse(std::int32_t x, std::int32_t y, bool leftDown = false)
+    {
+        GameHudContext context = Context(x, y, false, leftDown);
+        Client::Scenes::GamePanels panels(*m_world, m_random);
+        return Client::Scenes::DrawTheWarehouse(context, panels.Registry());
     }
 
     // La tienda abierta, como la dejan el 30 con 0 (0x65ba67, el byte protegido sin accesos abiertos) y el 31 con la
@@ -177,6 +194,25 @@ protected:
         Runtime().panels.npcShop = 1;
         for (Client::World::ItemState& cell : Runtime().npcWindows.grid)
             cell.id = Client::Scenes::EmptyOwnItemId;
+    }
+
+    // El almacén abierto como lo deja el 31 con la grilla vacía, con el nivel y el zen guardado.
+    void OpenTheWarehouse(std::uint16_t level, std::uint32_t zen)
+    {
+        Runtime().panels.warehouse = 1;
+        for (Client::World::ItemState& cell : Runtime().npcWindows.grid)
+            cell.id = Client::Scenes::EmptyOwnItemId;
+        m_world->OwnCharacter().level = level;
+        m_world->OwnCharacter().warehouseZen = zen;
+    }
+
+    // Los textos de un dibujo, en su orden.
+    std::vector<std::string> TextsDrawn() const
+    {
+        std::vector<std::string> drawn;
+        for (const auto& text : m_text.texts)
+            drawn.push_back(text.text);
+        return drawn;
     }
 
     std::unique_ptr<WorldState> m_world;
@@ -396,6 +432,146 @@ TEST_P(NpcWindowDrawingTest, AMissingTextStopsWithItsAddress)
 
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x5f4807"), std::string::npos) << drawn.Error();
+}
+
+// 0x5f4e3f..0x5f4e48: el almacén cerrado no dibuja nada ni saca rand() (0x40 es un byte sin protección).
+TEST_P(NpcWindowDrawingTest, TheClosedWarehouseDrawsNothing)
+{
+    Runtime().hud.npcWindowX = 7;
+
+    ASSERT_TRUE(DrawTheWarehouse(0, 0).HasValue());
+
+    EXPECT_EQ(m_random.State(), Seed);
+    EXPECT_TRUE(QuadsOf(m_sprites).empty());
+    EXPECT_EQ(Runtime().hud.npcWindowX, 7);
+}
+
+// 0x5f4e4e..0x5f58e6: la esquina (0x104, 0), el fondo, las casillas, el título "%s (%s)" con el texto 240, el zen
+// guardado sobre su fondo en (x + 50, y + 352,7f), el texto 266 en rojo con lo que cuesta (60² · 0,04f = 144,
+// redondeado a 140) y los tres botones en y + 390. Dos veces el registro propio: 2 · 3.848 rand().
+TEST_P(NpcWindowDrawingTest, TheWarehouseDrawsItsZenItsFeeAndItsButtons)
+{
+    OpenTheWarehouse(60, 1234567);
+    const CrtRandom expected = Advanced(m_random, 2 * Client::Render::Models::OwnRecordCloseRandoms);
+
+    const auto drawn = DrawTheWarehouse(0, 0);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(m_random.State(), expected.State());
+    EXPECT_EQ(Runtime().ownRecordDepth, 0);
+    EXPECT_EQ(Runtime().hud.npcWindowX, 0x104);
+    EXPECT_EQ(Runtime().hud.npcWindowY, 0);
+    const std::vector<DrawnQuad> quads = TexturedQuadsOf(m_sprites);
+    ASSERT_EQ(quads.size(), 2 + GridCells + 4);
+    ExpectQuadAt(quads[0], 0x104, Left, 0.0f, 190.0f, 256.0f);
+    ExpectQuadAt(quads[2], 0x115, Left + 15.0f, 50.0f, 20.0f, 20.0f);
+    ExpectQuadAt(quads[2 + GridCells], 0x10f, Left + 50.0f, 352.7f, 113.0f, 18.0f);
+    ExpectQuadAt(quads[3 + GridCells], 0x110, Left + 0x1a, 390.0f, 24.0f, 24.0f);
+    ExpectQuadAt(quads[4 + GridCells], 0x110, Left + 0x4c, 390.0f, 24.0f, 24.0f);
+    ExpectQuadAt(quads[5 + GridCells], 0x126, Left + 0x7e, 390.0f, 24.0f, 24.0f);
+    EXPECT_EQ(quads[5 + GridCells].color, White);
+
+    EXPECT_EQ(TextsDrawn(), (std::vector<std::string>{"Baul (abierto)", "Zen", "1,234,567", "Costo", "140"}));
+    const auto& texts = m_text.texts;
+    EXPECT_EQ(std::tuple(texts[0].x, texts[0].y), std::tuple(0x104 + 0x23, 0xc));
+    EXPECT_TRUE(texts[0].windowed);
+    EXPECT_EQ(texts[0].style.colors.text, 0xffdcdcdcu);
+    EXPECT_EQ(std::tuple(texts[1].x, texts[1].y), std::tuple(310 - 0x1e, 355));
+    EXPECT_EQ(texts[1].style.colors.text, 0xff96dcffu);
+    EXPECT_EQ(texts[1].style.colors.background, 0xff282828u);
+    EXPECT_EQ(std::tuple(texts[2].x, texts[2].y), std::tuple(320, 355));
+    EXPECT_EQ(texts[2].style.colors.text, 0xff0096ffu);
+    EXPECT_EQ(std::tuple(texts[3].x, texts[3].y), std::tuple(310, 374));
+    EXPECT_EQ(texts[3].style.colors.text, 0xff0000ffu);
+    EXPECT_EQ(texts[3].style.colors.background, 0xff282828u);
+    EXPECT_EQ(texts[3].style.font, FontKind::Bold);
+    EXPECT_EQ(std::tuple(texts[4].x, texts[4].y), std::tuple(310 + 0x46, 374));
+    EXPECT_EQ(texts[4].style.colors.text, 0xff96dcffu);
+}
+
+// 0x5f5457..0x5f55fc: _ftol(nivel² · 0,04f) más 2 · nivel con la traba; menos de 1 es 1, desde 1.000 baja a la
+// centena y desde 100 a la decena.
+TEST_P(NpcWindowDrawingTest, TheWarehouseFeeRoundsByItsSize)
+{
+    for (const auto& [level, locked, fee] :
+         {std::tuple{std::uint16_t{3}, false, "1"}, std::tuple{std::uint16_t{3}, true, "6"},
+          std::tuple{std::uint16_t{30}, false, "36"}, std::tuple{std::uint16_t{60}, true, "260"},
+          std::tuple{std::uint16_t{170}, true, "1,400"}, std::tuple{std::uint16_t{200}, false, "1,600"},
+          std::tuple{std::uint16_t{400}, true, "7,200"}})
+    {
+        SCOPED_TRACE(testing::Message() << level << (locked ? " trabado" : ""));
+        OpenTheWarehouse(level, 0);
+        Runtime().npcWindows.warehouseLocked = locked ? 1 : 0;
+        m_text.texts.clear();
+        m_sprites.Begin(Screen640);
+
+        ASSERT_TRUE(DrawTheWarehouse(0, 0).HasValue());
+
+        ASSERT_EQ(m_text.texts.size(), 5U);
+        EXPECT_EQ(m_text.texts[4].text, fee);
+    }
+}
+
+// 0x5f4eec..0x5f4f6b y 0x5f574d..0x5f575a: con la traba (0x6c932f), el título dice el texto 241 en amarillo y la traba
+// es lock_03 (0x128).
+TEST_P(NpcWindowDrawingTest, TheLockedWarehouseTintsItsTitleAndShowsTheLock)
+{
+    OpenTheWarehouse(60, 5);
+    Runtime().npcWindows.warehouseLocked = 1;
+
+    ASSERT_TRUE(DrawTheWarehouse(0, 0).HasValue());
+
+    ASSERT_FALSE(m_text.texts.empty());
+    EXPECT_EQ(m_text.texts[0].text, "Baul (cerrado)");
+    const std::vector<DrawnQuad> all = QuadsOf(m_sprites);
+    const auto title = std::ranges::find_if(all, [](const DrawnQuad& quad) { return quad.slot == Marker; });
+    ASSERT_NE(title, all.end());
+    EXPECT_EQ(title->color, (Color{1.0f, 1.0f, 0.0f, 1.0f}));
+    const std::vector<DrawnQuad> quads = TexturedQuadsOf(m_sprites);
+    ASSERT_EQ(quads.size(), 2 + GridCells + 4);
+    ExpectQuadAt(quads[5 + GridCells], 0x128, Left + 0x7e, 390.0f, 24.0f, 24.0f);
+    EXPECT_EQ(quads[2 + GridCells].color, White);
+}
+
+// 0x5f57ab..0x5f5887: el mouse sobre un botón dibuja su ayuda en (x, y − 13), y con el izquierdo abajo (0x7d36874) el
+// botón apretado antes; la traba también se aprieta con el teclado abierto (0x78abb20).
+TEST_P(NpcWindowDrawingTest, TheWarehouseButtonsPressAndShowTheirHelp)
+{
+    OpenTheWarehouse(60, 5);
+
+    ASSERT_TRUE(DrawTheWarehouse(260 + 0x4c, 390, true).HasValue());
+    std::vector<DrawnQuad> quads = TexturedQuadsOf(m_sprites);
+    ASSERT_EQ(quads.size(), 2 + GridCells + 5);
+    ExpectQuadAt(quads[5 + GridCells], 0x111, Left + 0x4c, 390.0f, 24.0f, 24.0f);
+    ExpectQuadAt(quads[6 + GridCells], 0x126, Left + 0x7e, 390.0f, 24.0f, 24.0f);
+    ASSERT_EQ(m_text.texts.size(), 6U);
+    EXPECT_EQ(m_text.texts[5].text, "Sacar");
+    EXPECT_EQ(std::tuple(m_text.texts[5].x, m_text.texts[5].y), std::tuple(260 + 0x4c, 390 - 13));
+    EXPECT_EQ(m_text.texts[5].style.font, FontKind::Normal);
+
+    // Sin el izquierdo, solo la ayuda; afuera (x + 24), nada.
+    m_text.texts.clear();
+    m_sprites.Begin(Screen640);
+    ASSERT_TRUE(DrawTheWarehouse(260 + 0x1a + 23, 413).HasValue());
+    EXPECT_EQ(TexturedQuadsOf(m_sprites).size(), 2 + GridCells + 4);
+    ASSERT_EQ(m_text.texts.size(), 6U);
+    EXPECT_EQ(m_text.texts[5].text, "Meter");
+    m_text.texts.clear();
+    m_sprites.Begin(Screen640);
+    ASSERT_TRUE(DrawTheWarehouse(260 + 0x1a + 24, 413, true).HasValue());
+    EXPECT_EQ(TexturedQuadsOf(m_sprites).size(), 2 + GridCells + 4);
+    EXPECT_EQ(m_text.texts.size(), 5U);
+
+    // Con el teclado abierto y la traba, lock_04 (0x129) encima de lock_03.
+    Runtime().npcWindows.warehouseLocked = 1;
+    Runtime().ui.field78abb20 = 1;
+    m_text.texts.clear();
+    m_sprites.Begin(Screen640);
+    ASSERT_TRUE(DrawTheWarehouse(0, 0).HasValue());
+    quads = TexturedQuadsOf(m_sprites);
+    ASSERT_EQ(quads.size(), 2 + GridCells + 5);
+    ExpectQuadAt(quads[5 + GridCells], 0x128, Left + 0x7e, 390.0f, 24.0f, 24.0f);
+    ExpectQuadAt(quads[6 + GridCells], 0x129, Left + 0x7e, 390.0f, 24.0f, 24.0f);
 }
 
 INSTANTIATE_TEST_SUITE_P(Maps, NpcWindowDrawingTest, ::testing::Values(Lorencia, Devias, Noria));

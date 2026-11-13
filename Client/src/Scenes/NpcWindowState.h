@@ -73,6 +73,9 @@ struct NpcWindowState
     // 0x78ab9fc..0x78aba06: lo que se tecleó, en 0 al barajar (0x5cb43c..0x5cb44f y 0x5ea22d..). El 83 de la
     // contraseña (0x5e7e90) manda los diez primeros.
     std::array<std::uint8_t, 11> typedNumber{};
+    // 0x78abb3a: la tecla de la caja de la contraseña apretada. La prende el clic en el paso del teclado (0x5e9ab8) y
+    // la apaga soltarlo (0x5e9ac9); el dibujo (0x5e9e25) baja un punto el número de la tecla del mouse.
+    std::uint8_t keypadPressed = 0;
     // 0x78abb14: lo que espera el diálogo de sí o no que abrió el ítem del cursor (.bss, 0). 1 la venta valiosa (el
     // 0x98 de 0x5df417), 2 la mezcla (el 0x98 de 0x5fe610), 3 a 6 los de la CL9.4. 0x5d8d50 lo vuelve a 0 al leer la
     // respuesta.

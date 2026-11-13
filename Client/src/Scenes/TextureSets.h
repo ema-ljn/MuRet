@@ -45,8 +45,10 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet
 // btn_pshop y btn_pshop2 en 0x652, 0x657 y 0x658 (0x61d319..0x61d354). Y las de 0x104 a 0x120 que 0x61ae60 sube
 // después de command.jpg (0x61aec8..0x61b1f2), de los hitos 4 y 6: el fondo de las ventanas, los casilleros del
 // equipo, la plata, la grilla, la línea del comercio y los botones, entre ellos el de cerrar (0x118). La 0x106 no la
-// sube nadie.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 80> HudTextureSet{{
+// sube nadie. Las de la caja de la contraseña del almacén y su botón (CL9 hito 6, fase 3): bar.jpg y back1 a back3 en
+// 0xfd a 0x100 (0x61d3e3..0x61d43a, después de menu01_new2) y lock_01 a lock_04 en 0x126 a 0x129 (0x61b2c3..0x61b31d,
+// después de level_02, accept_box y mix_button de 0x121 a 0x125, que son de la caja del caos).
+inline constexpr std::array<Data::Textures::TextureSetEntry, 88> HudTextureSet{{
     {"Interface\\CursorAttack.tga", 0x04, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorGet.tga", 0x05, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorTalk.tga", 0x06, TextureSetsDetail::LinearClamp},
@@ -92,6 +94,10 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 80> HudTextureSet{{
     {"Interface\\CursorID.tga", 0x65a, TextureSetsDetail::NearestClamp},
     {"Interface\\CursorID_Wnd.jpg", 0x65b, TextureSetsDetail::NearestClamp},
     {"Interface\\menu01_new2.jpg", 0x65c, TextureSetsDetail::NearestClamp},
+    {"Interface\\bar.jpg", 0xfd, TextureSetsDetail::NearestClamp},
+    {"Interface\\back1.jpg", 0xfe, TextureSetsDetail::NearestClamp},
+    {"Interface\\back2.jpg", 0xff, TextureSetsDetail::NearestClamp},
+    {"Interface\\back3.jpg", 0x100, TextureSetsDetail::NearestClamp},
     {"Interface\\Menu03_new_AG.jpg", 0x101, TextureSetsDetail::NearestClamp},
     {"Skill\\SwordEff.jpg", 0x640, TextureSetsDetail::LinearClamp},
     {"Interface\\CursorAttack2.tga", 0x68d, TextureSetsDetail::NearestClamp},
@@ -127,6 +133,10 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 80> HudTextureSet{{
     {"Interface\\repair_01.jpg", 0x11e, TextureSetsDetail::NearestClamp},
     {"Interface\\repair_02.jpg", 0x11f, TextureSetsDetail::NearestClamp},
     {"Interface\\level_01.jpg", 0x120, TextureSetsDetail::NearestClamp},
+    {"Interface\\lock_01.jpg", 0x126, TextureSetsDetail::NearestClamp},
+    {"Interface\\lock_02.jpg", 0x127, TextureSetsDetail::NearestClamp},
+    {"Interface\\lock_03.jpg", 0x128, TextureSetsDetail::NearestClamp},
+    {"Interface\\lock_04.jpg", 0x129, TextureSetsDetail::NearestClamp},
 }};
 
 // Las de los pases de brillo, que 0x61ccb0 sube en su avance 0 y nadie suelta: Shiny01 para el 0x8,

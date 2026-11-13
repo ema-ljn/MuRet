@@ -4,9 +4,10 @@
 
 #include <string>
 
-// El dibujo de las ventanas de los NPC (CL9 hito 6, fase 3): la tienda (0x5f4720), en 640 × 480, con el estado de GL
-// que deja y los globales de los textos en HudState. Los ítems 3D y las cifras de su grilla van después, en 0x5f7610 y
-// 0x5f7840 (Scenes/GameInventoryHud.h), desde la esquina que deja este dibujo. Contrato: 06 § "Las ventanas de los
+// El dibujo de las ventanas de los NPC (CL9 hito 6, fase 3): la tienda (0x5f4720) y el almacén (0x5f4e30), en 640 ×
+// 480, con el estado de GL que dejan y los globales de los textos en HudState. Los ítems 3D y las cifras de su grilla
+// van después, en 0x5f7610 y 0x5f7840 (Scenes/GameInventoryHud.h), desde la esquina que deja este dibujo. La caja de
+// la contraseña del almacén está en Scenes/WarehouseKeypad.h. Contrato: 06 § "Los dibujos de las ventanas de los
 // NPC".
 namespace Client::UI
 {
@@ -24,4 +25,13 @@ struct GameHudContext;
 // pendiente lo gasta y se dibuja apretado), cada uno con su ayuda (231, 232, 233 y 237), y el precio de reparar todo
 // (texto 239 y 0x78ababc con comas, en el color de su monto). Deja la fuente gruesa y el blanco.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheNpcShop(GameHudContext& context, UI::PanelRegistry& panels);
+
+// 0x5f4e30, desde 0x5f7440 (0x5f75c6): con el almacén abierto (0x40, sin rand()), la esquina en (0x104, 0), el fondo,
+// las casillas de la grilla, el título "texto 234 (texto 240)" (241 con la traba de 0x6c932f, que además lo tiñe de
+// amarillo), el zen guardado (+0xed0 del registro propio, con el texto 224), el texto 266 en rojo con lo que cuesta
+// usarlo (el nivel² · 0,04 más 2 · nivel con la traba, redondeado), y meter, sacar y la traba (0x110, 0x110 y 0x126,
+// o 0x128 trabado; apretados con el izquierdo abajo encima, y la traba también con el teclado abierto), cada uno con
+// su ayuda (235, 236 y 242). Abre y cierra dos veces el registro propio (3.848 rand() cada una con la profundidad en
+// 0). Deja la fuente normal o la gruesa y el blanco.
+[[nodiscard]] Core::Expected<void, std::string> DrawTheWarehouse(GameHudContext& context, UI::PanelRegistry& panels);
 } // namespace Client::Scenes

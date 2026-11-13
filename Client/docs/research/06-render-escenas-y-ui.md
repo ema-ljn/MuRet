@@ -1770,8 +1770,8 @@ DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos
 | OK genérico | `0xf0` de 213 × 64 en (213, 60) y el OK, `0xf1` (`0xf2` con el mouse en `[0x11c, 0x161] × [0x62, 0x76]`) de 70 × 21 en (284, 98); su texto en y = `0x4b`, o en `0x45` y `0x51` los de dos renglones: el `0x70` el 402, el `0x6f` y el `0x1a` el 405 y el 406, el `0x1c` el 409 y el `0x8f` el 401 |
 
 `0x61ccb0` sube `Message_box` (`0xf0`), `ok`, `ok2`, `cancel`, `cancel2` (`0xf1` a
-`0xf4`), `Message_box1` (`0xfb`) y `Message_box2` (`0xfc`); el `bar.jpg` de `0xfd` es de `0x5e9b10`, la caja de la
-contraseña del HUD, y MuRet no lo sube.
+`0xf4`), `Message_box1` (`0xfb`) y `Message_box2` (`0xfc`); el `bar.jpg` de `0xfd` y `back1` a `back3` (`0xfe` a
+`0x100`) son de `0x5e9b10`, la caja de la contraseña del HUD (CL9 hito 6, fase 3).
 
 ### El inventario
 
@@ -1851,6 +1851,41 @@ sobre `0xff282828` el texto 239 en `(_ftol(px) − 0x23, _ftol(py) + 3)` y lo qu
 sin signo) con comas en `(_ftol(px) + 10, ·)`, en el color de su monto (los cortes del zen del inventario). La
 ayuda no depende de los colores de antes: `0x554340` pone los suyos. El precio de cada ítem no lo dibuja la ventana:
 va en su ayuda (`0x5b2d23`).
+
+*El almacén* (`0x5f4e30`; `IsOpen(0x40)`, sin `rand()`). La esquina, el fondo, las casillas y el blanco como la
+tienda; con la fuente gruesa y `0xffdcdcdc` sobre `0xff141414`, el título `wsprintfA("%s (%s)")` (`0x6c9d48`) con el
+texto 234 y el 240, o el 241 con la traba (`0x6c932f`), que además pone `glColor3f(1, 1, 0)` antes del texto, en
+`(x + 0x23, y + 0xc)` con la caja de `W · 120 / 640`; el blanco. El fondo `0x10f` en `(x + 50, y + 352,7f)`, y con la
+fuente gruesa el texto 224 en `(_ftol(zx) − 0x1e, _ftol(zy) + 3)` y el zen guardado (`+0xed0`, leído con el registro
+propio abierto: 3.848 `rand()` al cerrarlo) en `(_ftol(zx) + 10, ·)` en su color, sobre `0xff282828`. El texto 266 en
+`0xff0000ff` en `(_ftol(x + 50), _ftol(y + 374))` y, en `0xff96dcff` y 0x46 a la derecha, lo que cuesta usar el
+almacén: `_ftol(nivel² · f)` con `f` el float de `0x6ba680` (`0x3d23d70b`, uno más que el `0,04f` de C), más
+`2 · nivel` con la traba; menos de 1 es 1, desde 1.000 baja a la centena y desde 100 a la decena (el nivel, `+0xe` de
+`[0x7681eb0]`, con el registro propio abierto otra vez: 3.848 más). Los tres botones de 24 × 24 en `y + 390` y
+`x + 0x1a`, `0x4c` y `0x7e`, con los colores −1 y `0xff000000`: meter y sacar (`Money_01`, `0x110`), y la traba
+(`lock_01`, `0x126`; `lock_03`, `0x128`, trabado). Con el mouse encima, el apretado (`0x111`, `0x127` o `0x129`) si el
+izquierdo está abajo (`0x7d36874`) y la ayuda (235, 236 y 242) en `(_ftol(x), _ftol(y) − 13)`; la traba también se
+dibuja apretada con el teclado abierto (`0x78abb20`). Al final, el blanco.
+
+*La caja de la contraseña* (`0x5e9b10`, el paso 30 del HUD, después de la barra principal; en MuRet
+`Scenes/WarehouseKeypad.cpp`). Con `0x78abb20` en 0, nada. Si no, la tecla bajo el mouse (`0x5e7b50`: las once
+teclas de 32 en `((i % 5) · 40 + 0xdf, (i / 5) · 40 + 0x96)`, el OK y cancelar de `0x46 × 0x15` en `(0x109 + 0x4e ·
+j, 0xeb)`, o −1), el blanco y el marco de los diálogos: `Message_box2` (`0xfc`) de 213 × 5 en (213, 100), cuatro
+`Message_box1` (`0xfb`) de 213 × 40 desde y = `0x69` y otra `0xfc` en y = 265, con du = 0,83203125 y dv = 0,625. Con la
+fuente gruesa en `0xffffc4c4` sobre transparente, centrados en `0x140` (`0x623690`): el título en y = `0x6e`, el texto
+690 + `clamp(modo − 1, 0, 4)` (el modo 6, el 691), y el pedido en y = `0x7a`, 697 con los modos 2, 3 y 6, 696 con el
+5 y 695 con los demás (la tabla de `0x5ea04c`). La barra `bar.jpg` (`0xfd`) en gris 0,3, de 52 de ancho o, con más de
+cuatro cifras, `(cifras − 4) · 13 + 52`, en `(320 − ancho / 2, 134)` y de 16 de alto (du 0,625, dv 0,5625): las cifras
+son 7 (`[0x7d3a0a4]`, que solo escribe el inicializador `0x622ac0` desde `.data`) con los modos 2, 3 y 6 y si no 4. El
+blanco, y con la fuente gruesa grande en `0xffc48080` sobre transparente un `"*"` por cada byte tecleado (`0x78ab9fc`,
+detrás del byte de `0x78abb78`, que nadie escribe) en `(cifras − _ftol(ancho / 2 − 320), 0x84)`. Las teclas, en
+`((i % 5) · 40 + 0xdf, (i / 5) · 38 + 0x9a)` (las filas, distintas de las del mouse: 07, Q-C923): la del mouse en
+`(1, 1, 0,8)` con el texto en `0xff00c4c4` y apretada con `0x78abb3a`; las demás en `(0,85; 0,85; 0,65)` con
+`0xffc48080`. Cada una, `Item_box` (`0x115`) de 32 × 32 (du = dv = 1) y encima otra vez `Item_box`, o
+`InventoryBox2` (`0x116`) la del mouse apretada, con su número (`wsprintfA("%d")` de la word con signo de `0x7879fc8`)
+en `(x + 0xc, y + 6)`, un punto más arriba apretada; la 10, borrar, sin número y con `back1` (`0xfe`), `back2`
+(`0xff`) con el mouse o `back3` (`0x100`) apretada. Al final, el blanco y el OK (`0xf1`, `0xf2` con el mouse) y
+cancelar (`0xf3`, `0xf4`) de 70 × 21 en `(0x109 + 0x4e · j, 239)`, con du = 0,546875 y dv = 0,65625. Sin `rand()`.
 
 **El mundo angosto** (`0x6371a0`). `0x5bb8d0` da 640 sin ventanas, 450 con una y 260 con dos. `0x63733e` lo pide para
 `0x620db0(0, 0, w, 48)` (solo la modelview) y `0x5fbb00(w · 0,0015625f, &p)`, que achica los cinco planos y el rango

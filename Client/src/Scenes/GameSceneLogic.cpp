@@ -70,6 +70,7 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock)
                                  .scene = SceneId::Game,
                                  .playerSkeleton = player,
                                  .items = m_items,
+                                 .models = m_models,
                                  .terrain = &StepTerrain(),
                                  .darkSpiritSkeleton = m_models ? m_models->SkeletonOf(DarkSpiritModel) : nullptr,
                                  .particles = &m_context.world->Particles(),

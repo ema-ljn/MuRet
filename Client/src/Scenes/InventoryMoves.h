@@ -125,6 +125,14 @@ struct InventoryMoveContext
 // traba, el C1 0E 24 del 1 al 0.
 [[nodiscard]] Core::Expected<void, std::string> MoveTheLeftWeaponToTheRight(const InventoryMoveContext& context);
 
+// 0x561c50, desde el clic de ataque de MoveHero (0x59d65f, CL9 hito 3): si el arma de tiro tiene con qué tirar. Abre y
+// cierra el registro propio para leer las manos; con una ballesta en la derecha (0x808..0x80e, 0x810 y 0x812..0x9ff)
+// mira los virotes (0x807) de la izquierda con su durabilidad (+0xbce), y si no, con un arco en la izquierda
+// (0x800..0x806, 0x811, 0x814 y 0x815), las flechas (0x80f) de la derecha con la suya (+0xb86): en otro acceso, sin
+// ellas o gastadas, 0x561840 (que las busca en el inventario y las equipa) y falso; con ellas, verdadero. Sin arma de
+// tiro, verdadero.
+[[nodiscard]] Core::Expected<bool, std::string> CheckTheArrows(const InventoryMoveContext& context);
+
 // 0x5c35ad, desde 0x5bec50 sin ítem en el cursor y sin el clic: la marca del lugar (3 si le falta un requisito,
 // con +0x26 contra la fuerza, Q-C475; si no, 2), el ítem bajo el mouse y la esquina de su ayuda.
 void HoverTheEquipment(const InventoryMoveContext& context, std::size_t slot, std::int32_t left, std::int32_t top,

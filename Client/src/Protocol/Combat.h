@@ -23,6 +23,12 @@ inline constexpr std::uint8_t ExtendedKillExperienceOpcode = 0x9c;
 // directo, sin rand(). La clave es +0x1f4 del blanco, entera: el bit 15 viaja si el blanco lo tiene.
 [[nodiscard]] Outgoing WriteAttack(std::uint16_t key, std::uint8_t action, std::uint8_t direction);
 
+// 0x59cf88..0x59d3d7, desde el clic de ataque de MoveHero: el elfo que camina con un arma de tiro manda antes su celda
+// lógica, C1 05 DF X Y, con el XOR32 sobre X e Y y por el socket directo, sin rand(). La GS reconstruida no tiene caso
+// para el DF (su PMSG_POSISTION_SET es el C1 11, CGPositionRecv 0x4250d0) y FoxAnti no lo cambia (Q-C1163).
+inline constexpr std::uint8_t ElfCellOpcode = 0xdf;
+[[nodiscard]] Outgoing WriteElfCell(std::uint8_t x, std::uint8_t y);
+
 // 0x4cf200 y 0x4cfce0 con el flag de descifrado en 0 (0x4cf2aa, 0x4cfd12): C1 06 F1 03 00 <opcode>, en C3 (el relleno y
 // el serial con rand(), como el F1 03 del 1C y del 24).
 [[nodiscard]] Outgoing WriteClearKillReport(std::uint8_t opcode);

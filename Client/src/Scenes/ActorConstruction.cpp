@@ -137,6 +137,7 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     }
     actor.seen = false;
     actor.dying = 0;
+    actor.dyingTime = 0.0f; // 0x51247a, con el ESI en 0 de 0x5121f6
     actor.byte88 = 1;
     // 0x511d51, con el ESI en 0 de 0x511c36.
     actor.flags78 = 0;

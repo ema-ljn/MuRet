@@ -606,6 +606,14 @@ el cliente con ellos, en [06](06-render-escenas-y-ui.md#pegar-al-llegar). Lo que
   `PMSG_ATTACK` (`CGAttack`, `0x4254d0`: `NumberH NumberL AttackAction DirDis`, el número en 16 bits
   y hasta `0x15df`) y contesta con el `18` de esa acción (`GCActionSend`): **coincide**. Antes sale
   el `D3` de girar, `C1 06 D3 X Y dir<<4`, con la celda del héroe (`0x56548b..0x565954`).
+- **El `DF` del cliente, la celda del elfo** (`0x59cf88..0x59d3d7`, en el clic de ataque de `MoveHero`;
+  *estático*, uno en el cable): `C1 05 DF X Y`, con el XOR32 y por `send()` directo, sin `rand()` propios (la
+  celda lógica sale de `+0x41c` y `+0x420`, la Y leída antes que la X, 4 `rand()` cada una). Lo manda un elfo que
+  camina (`+0x378`) sin interacción (`+0x379` en 0) con una ballesta en la derecha o un arco en la izquierda, antes
+  de `0x59d3de` ([06](06-render-escenas-y-ui.md#pegar-al-llegar), "El clic de ataque"). FoxAnti no lo cambia (solo
+  el `D3` y el `D7`). La GS reconstruida no tiene caso para el `DF` que llega: su posición es el `C1 11`
+  (`CGPositionRecv`, `0x4250d0`), así que lo descarta (Q-C1163). MuRet: `Protocol::Combat::WriteElfCell` y
+  `ServerSession::SendElfCell`.
 - **El `15` de la GS** (`GCDamageSend`, `0x425880`): `C1 07 15 idH|f idL dañoH|tipo dañoL`. El
   cliente 1.02 **no tiene caso** para el `15`: el despacho cae en el default `0x4e5b4a`, que no
   hace nada. El daño que lee es el `D7` de 8 bytes (`0x4caae0`, arriba), el que manda la GS del
@@ -650,7 +658,7 @@ del cable con un emote ni sentado.
 | Acción | Qué hace |
 | --- | --- |
 | `0x12` | la `0x98` y el sonido `0x41ed10(0x6f, 0, 0)` (CL10) |
-| `0x78`, `0x79` | `0x4f4a10` (sin leer, hito 3), `+0x381` en 1, `+0x114` en 0, `+0x3a4` con `[0x57678b0]` y `[0x5767964]` con el índice |
+| `0x78`, `0x79` | `0x4f4a10` (SetPlayerAttack, [06](06-render-escenas-y-ui.md#pegar-al-llegar)), `+0x381` en 1, `+0x114` en 0, `+0x3a4` con el WORD bajo de `[0x57678b0]` (el lugar del héroe) y `[0x5767964]` con el índice |
 | `0x7a`, `0x7b` | `0x4f2250`, la de parado: sentado, la `0xca` y el `C1 18` de `0x82`; después su `rand()` |
 | `0x7e` | la 5 |
 | `0x80`, `0x81`, `0x82` | `0xc5`, `0xcb` y `0xc9`; con el elfo (`+0x1d4 & 7 == 2`), `0xc7`, `0xcc` y `0xca` |
@@ -658,9 +666,12 @@ del cable con un emote ni sentado.
 | `0x92` a `0x9b` | `0xb7`, `0xb8`, `0xc0`, `0xb9`, `0xba`, `0xbb`, `0xbc`, `0xbd`, `0xbe` y `0xbf`, sin mirar la clase |
 | cualquier otra | ella misma |
 
-  No saca `rand()` salvo en `0x4f2250` (el sufijo) y en `0x4f4a10` (el `0x78` y el `0x79`: ocho llamadas a `_rand`,
-  `0x69fd70`, una en la rama del jugador en `0x4f4db9`, después de `CMP AX,0x20a` en `0x4f4a20`; las cuenta el
-  hito 3). Lo que los demás ven de un emote es la animación que se puso el que lo hizo.
+  No saca `rand()` salvo en `0x4f2250` (el sufijo) y en `0x4f4a10` (el `0x78` y el `0x79`): con un jugador
+  (`CMP AX,0x20a` en `0x4f4a20`), `0x4f3f80` abre y cierra el registro propio (3.848 si queda sin accesos) y, de
+  las ocho llamadas a `_rand` (`0x69fd70`), las de la rama que toque: a pie, por las armas, `0x4f4db9`, `0x4f4e07`
+  o `0x4f4e1c`, y con el frame en 0 el sonido del arma (`0x4f5192`); con un monstruo, el `0x172` (`0x4f4fd7` y
+  `0x4f4fed`), los subtipos `0xd1` a `0xd3` (`0x4f51d4`) y la tabla de sonidos del modelo (`0x4f5222`, 08 P-C253).
+  Lo que los demás ven de un emote es la animación que se puso el que lo hizo.
 - **El GameServer** (`CGActionRecv`): guarda la dirección y la acción sin validarlas y reenvía el `C1 07 18` con la
   clave del que la hizo a los jugadores de su viewport (`VpPlayer2`), no a él: el emote propio se ve por `0x576a60` y
   el de los demás por `0x4cb750`. Las acciones de descanso que mira son `0x6c`, `0x6d` y `0x6e` (`m_ViewState` 2 a 4
@@ -669,7 +680,8 @@ del cable con un emote ni sentado.
   manda al propio jugador la `0x66`, que el cliente pone tal cual.
 
 En MuRet: `Protocol::Movement::ReadAction`, `ServerSession::OnAction` y `Scenes::ApplyActionReply` (una clave
-desconocida se descarta, como el `D3`; el `0x78`/`0x79` corta con `0x4cb821` hasta el hito 3); los que mandan,
+desconocida se descarta, como el `D3`; el `0x78`/`0x79` pega con `Scenes::SetActorAttack` y deja el lugar en
+`WorldRuntime::lastAttacker`, CL9 hito 3, fase 2a); los que mandan,
 `Scenes::SendTheAction` con `ServerSession::SendAction` (sin el GameServer abierto, un aviso y nada).
 
 ### Los cambios de mapa: `1C`, `F3 04` y `F3 12`

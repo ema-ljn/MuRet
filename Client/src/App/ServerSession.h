@@ -219,6 +219,8 @@ public:
     // CL9 hito 3: el D7 de pegar (0x5650c0, Protocol::Combat::WriteAttack), XOR32, que FoxAnti saca como A4.
     [[nodiscard]] Core::Expected<void, std::string> SendAttack(std::uint16_t key, std::uint8_t action,
                                                                std::uint8_t direction);
+    // CL9 hito 3: el DF de la celda del elfo que camina antes de pegar (0x59cf88, Protocol::Combat::WriteElfCell).
+    [[nodiscard]] Core::Expected<void, std::string> SendElfCell(std::uint8_t x, std::uint8_t y);
     // El C1 18 de sentarse (0x4f2416..0x4f2bea) y del emote (0x576a60 y los casos de 0x576eb0), con
     // Protocol::Movement::WriteAction: como el original con el socket en −1, sin un GameServer abierto un aviso y nada.
     void SendAction(std::uint8_t direction, std::uint8_t action);

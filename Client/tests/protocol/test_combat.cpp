@@ -46,6 +46,18 @@ TEST(CombatProtocolTest, TheAttackKeepsTheWholeKey)
     EXPECT_TRUE(SameBytes(Xor32Decode(sent.packet).Bytes(), Bytes({0xc1, 0x07, 0xd7, 0x80, 0x01, 0x78, 0x07})));
 }
 
+// 0x59cf88..0x59d2ae: el DF del elfo, C1 05 DF X Y con el XOR32 sobre X e Y, en claro y sin que FoxAnti lo toque.
+TEST(CombatProtocolTest, TheElfCellIsAFiveByteDf)
+{
+    auto sent = Combat::WriteElfCell(183, 115);
+    EXPECT_EQ(sent.delivery, Client::Network::Delivery::Clear);
+    EXPECT_TRUE(SameBytes(Xor32Decode(sent.packet).Bytes(), Bytes({0xc1, 0x05, 0xdf, 183, 115})));
+    EXPECT_FALSE(SameBytes(sent.packet.Bytes(), Bytes({0xc1, 0x05, 0xdf, 183, 115})));
+    Client::Network::FoxAntiObfuscation foxAnti;
+    const auto wire = foxAnti.BeforeSend(std::move(sent.packet));
+    EXPECT_EQ(wire.Bytes()[2], std::byte{0xdf});
+}
+
 // 0x4cf2aa..0x4cf4a5 y 0x4cfd12..0x4cff5c: con el flag de descifrado en 0, C1 06 F1 03 00 y el opcode, en C3.
 TEST(CombatProtocolTest, AClearKillReplyIsReportedWithItsOpcode)
 {

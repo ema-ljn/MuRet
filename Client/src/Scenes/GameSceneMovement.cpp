@@ -44,7 +44,7 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         .skills = m_skills,
         .gates = m_gates,
         .input = {mouse.x, mouse.y, false, input.IsDown(Input::MouseButton::Left), input.IsDown(Input::Key::Shift),
-                  static_cast<float>(ticks), static_cast<std::uint32_t>(ticks)},
+                  static_cast<float>(ticks), static_cast<std::uint32_t>(ticks), input.IsDown(Input::Key::Ctrl)},
         .fixedHeight = CameraState().fixedHeight};
     context.pickTarget = [&]() -> Core::Expected<std::optional<GameLogic::PathCell>, std::string>
     {
@@ -82,6 +82,8 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
     if (m_session)
         context.sendAttack = [&](std::uint16_t key, std::uint8_t action, std::uint8_t direction)
         { return m_session->SendAttack(key, action, direction); };
+    if (m_session)
+        context.sendElfCell = [&](std::uint8_t x, std::uint8_t y) { return m_session->SendElfCell(x, y); };
     if (m_session)
         context.sendAction = [&](std::uint8_t direction, std::uint8_t action)
         { m_session->SendAction(direction, action); };

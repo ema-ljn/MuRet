@@ -1220,6 +1220,11 @@ Core::Expected<void, std::string> ServerSession::SendAttack(std::uint16_t key, s
     return SendWorldPacket(Protocol::Combat::WriteAttack(key, action, direction));
 }
 
+Core::Expected<void, std::string> ServerSession::SendElfCell(std::uint8_t x, std::uint8_t y)
+{
+    return SendWorldPacket(Protocol::Combat::WriteElfCell(x, y));
+}
+
 Core::Expected<void, std::string> ServerSession::SendOptionData(const Protocol::OptionData::OptionBody& body)
 {
     return SendWorldPacket(Protocol::OptionData::WriteOptionData(body));

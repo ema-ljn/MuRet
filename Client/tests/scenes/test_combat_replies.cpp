@@ -14,6 +14,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorCombat.h"
+#include "Scenes/ActorDying.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
@@ -137,6 +138,18 @@ protected:
                                   .playerSkeleton = &m_playerSkeleton,
                                   .models = &m_models,
                                   .items = &m_items};
+    }
+    // Con la tabla de sonidos `sounds` para el modelo Monster (la de 0x612c80) y ninguna para los demás.
+    [[nodiscard]] ActorCombatContext CombatWithSounds(const Client::Scenes::ModelSounds& sounds)
+    {
+        ActorCombatContext combat = Combat();
+        combat.modelSounds = [sounds](std::uint16_t model) -> std::optional<Client::Scenes::ModelSounds>
+        {
+            if (model != Monster)
+                return std::nullopt;
+            return sounds;
+        };
+        return combat;
     }
     [[nodiscard]] Client::Scenes::ChatReceiveContext Chat()
     {
@@ -311,15 +324,44 @@ TEST_F(CombatRepliesTest, InChaosCastleTheDeathSoundIsDrawn)
     EXPECT_EQ(m_random.State(), After(1 + OwnRecordDraws));
 }
 
-// El monstruo que muere con el frame en 0 pide el sonido de su tabla (0x5769ad8 + tipo · 0xe0 + 0xb2), de la CL10;
-// el que ya estaba en la acción 6 con otro frame no pide sonido y sigue.
-TEST_F(CombatRepliesTest, AMonsterDeathCutsAtTheModelSoundTableOnlyWithTheFrameAtZero)
+// El monstruo que muere con el frame en 0 pide el sonido de la WORD 4 de su tabla (0x5769ad8 + tipo · 0xe0 + 0xb2),
+// con signo, más 5 con el subtipo 9 y más 0xd2, sin rand(); con 0xffff, o sin la tabla, ninguno. El frame queda en
+// 0,001 igual. El que ya estaba en la acción 6 con otro frame no pide sonido.
+TEST_F(CombatRepliesTest, AMonsterDeathSoundComesFromItsTableOnlyWithTheFrameAtZero)
 {
-    MonsterAt(12, 0x123);
-    const auto cut =
-        Client::Scenes::ApplyKillExperience({.key = 0x123, .shock = true, .amount = 5, .damage = 1}, Combat(), Chat());
-    EXPECT_TRUE(HasError(cut, "0x4f5a7a")) << (cut.HasValue() ? std::string() : cut.Error());
-    EXPECT_EQ(Actor(12).animation.action, 6);
+    struct Case
+    {
+        std::int16_t word;
+        std::int32_t subtype;
+        std::optional<std::int32_t> sound;
+    };
+    for (const Case& tested : {Case{0x7d, 0, 0x7d + 0xd2}, Case{0x7d, 9, 0x7d + 5 + 0xd2}, Case{-1, 0, std::nullopt},
+                               Case{-3, 0, -3 + 0xd2}})
+    {
+        SCOPED_TRACE(tested.word);
+        Runtime().lastSoundId.reset();
+        ActorState& dead = MonsterAt(12, 0x123);
+        dead.subtype = tested.subtype;
+        dead.animation = {};
+        Client::Scenes::ModelSounds sounds{};
+        sounds.fill(0x11);
+        sounds[4] = tested.word;
+        const auto applied = Client::Scenes::ApplyKillExperience(
+            {.key = 0x123, .shock = true, .amount = 5, .damage = 1}, CombatWithSounds(sounds), Chat());
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(dead.animation.action, 6);
+        EXPECT_EQ(dead.animation.frame, DeathFrame);
+        EXPECT_EQ(Runtime().lastSoundId, tested.sound);
+    }
+
+    Runtime().lastSoundId.reset();
+    MonsterAt(14, 0x125);
+    ASSERT_TRUE(
+        Client::Scenes::ApplyKillExperience({.key = 0x125, .shock = true, .amount = 5, .damage = 1}, Combat(), Chat())
+            .HasValue());
+    EXPECT_EQ(Actor(14).animation.action, 6);
+    EXPECT_EQ(Actor(14).animation.frame, DeathFrame);
+    EXPECT_FALSE(Runtime().lastSoundId.has_value());
 
     ActorState& dying = MonsterAt(13, 0x124);
     dying.animation.action = 6;
@@ -330,17 +372,22 @@ TEST_F(CombatRepliesTest, AMonsterDeathCutsAtTheModelSoundTableOnlyWithTheFrameA
     EXPECT_EQ(dying.animation.frame, 2.0f);
     EXPECT_FALSE(Runtime().lastSoundId.has_value());
     EXPECT_EQ(dying.dying, 1);
+    // Cinco cierres del registro propio, uno por experiencia, y ningún rand() de los sonidos.
+    EXPECT_EQ(m_random.State(), After(6 * OwnRecordDraws));
 }
 
 // El 0x9C que manda el GameServer 0.97 (0x49af90) lleva la clave 0xFFFF: 0x7fff con el bit 15. Nadie tiene la 0x7fff y
-// 0x5110d0 devuelve el lugar 400, el de tipo 0, sobre el que 0x4f5660 pide el sonido de su tabla (Q-C1160, P-C252).
-TEST_F(CombatRepliesTest, TheBloodCastleRewardLandsOnSlotFourHundredAndCutsAtItsDeathSound)
+// 0x5110d0 devuelve el lugar 400, el de tipo 0, que muere sin sonido (la tabla del modelo 0 no está) y suma la
+// experiencia (Q-C1160, P-C252).
+TEST_F(CombatRepliesTest, TheBloodCastleRewardLandsOnSlotFourHundred)
 {
-    const auto cut = Client::Scenes::ApplyKillExperience({.key = 0x7fff, .shock = true, .amount = 100, .damage = 0},
-                                                         Combat(), Chat());
-    EXPECT_TRUE(HasError(cut, "0x4f5a7a")) << (cut.HasValue() ? std::string() : cut.Error());
+    const auto applied = Client::Scenes::ApplyKillExperience({.key = 0x7fff, .shock = true, .amount = 100, .damage = 0},
+                                                             Combat(), Chat());
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(Actor(400).animation.action, 6);
-    EXPECT_EQ(m_world->OwnCharacter().experience, 0u);
+    EXPECT_EQ(Actor(400).dying, 1);
+    EXPECT_FALSE(Runtime().lastSoundId.has_value());
+    EXPECT_EQ(m_world->OwnCharacter().experience, 100u);
 }
 
 // 0x4d0a30 fuera de los castillos y sin skill de empuje: muriéndose, quieto, con la skill anotada y sin rand().
@@ -393,6 +440,42 @@ TEST_F(CombatRepliesTest, APushingSkillThrowsTheDeadAwayFromTheKiller)
         EXPECT_EQ(dead.headTurn.angles.y, 4.0f);
         EXPECT_EQ(m_random.State(), After(2));
     }
+}
+
+// El 17 de otro jugador con la skill 0x3b y después su paso de morirse (0x4fb9e0, CL9 hito 3, fase 2a): hasta el
+// paso 14, +0xd0 baja +0xd8, +0xd8 sube 1 y 0x51fd20 lo corre por el rumbo hacia quien lo mató; sin rand() fuera del
+// mapa 7. Desde el 15 queda donde llegó.
+TEST_F(CombatRepliesTest, AnotherPlayerPushedToDeathFliesThroughItsDyingSteps)
+{
+    ActorState& dead = PlayerAt(20, 0x77);
+    dead.position = {1000.0f, 2000.0f, 0.0f};
+    ActorState& killer = PlayerAt(21, 0x55);
+    killer.position = {1300.0f, 2000.0f, 0.0f};
+    ASSERT_TRUE(Client::Scenes::ApplyDeath({.key = 0x77, .skill = 0x3b, .killer = 0x55}, Combat()).HasValue());
+    ASSERT_EQ(dead.dying, 1);
+    const std::uint32_t afterTheDeath = m_random.State();
+    const Client::Scenes::ActorDyingContext dying{.map = 0, .hero = false, .random = m_random};
+
+    const float d0 = dead.floatD0;
+    const float d8 = dead.floatD8;
+    ASSERT_TRUE(Client::Scenes::StepActorDying(dead, 20, dying).HasValue());
+    EXPECT_EQ(dead.dyingTime, 0.02f);
+    EXPECT_EQ(dead.floatD0, static_cast<float>(static_cast<double>(d0) - static_cast<double>(d8)));
+    EXPECT_EQ(dead.floatD8, d8 + 1.0f);
+    EXPECT_NE(dead.position, glm::vec3(1000.0f, 2000.0f, 0.0f));
+    EXPECT_TRUE(dead.alive);
+
+    for (std::uint8_t step = 2; step <= 14; ++step)
+    {
+        dead.dying = step;
+        ASSERT_TRUE(Client::Scenes::StepActorDying(dead, 20, dying).HasValue());
+    }
+    EXPECT_EQ(dead.floatD0, 0.0f);
+    const glm::vec3 landed = dead.position;
+    dead.dying = 15;
+    ASSERT_TRUE(Client::Scenes::StepActorDying(dead, 20, dying).HasValue());
+    EXPECT_EQ(dead.position, landed);
+    EXPECT_EQ(m_random.State(), afterTheDeath);
 }
 
 // 0x4d07c0 en Blood Castle (11): sobre el TerrainWall 0x20 lo empujan del puente hacia el lado de la vecina con el
@@ -593,8 +676,10 @@ TEST_F(CombatRepliesTest, TheModel172DrawsItsAttack)
 }
 
 // 0x4f5034..0x4f50b2: el monstruo común pega con 3 si +0x38f % 3 es 0 y con 4 si no, y suma uno más en 0x4f50b2;
-// con el frame en 0 (al cambiar de acción, 0x4ea030 lo vuelve a 0) el sonido es de su tabla (CL10).
-TEST_F(CombatRepliesTest, AnOrdinaryMonsterCountsTwiceAndCutsAtItsSoundTable)
+// con el frame en 0 (al cambiar de acción, 0x4ea030 lo vuelve a 0) el sonido es la WORD 2 o la 3 de su tabla por
+// rand() % 2, más 0xd2 (y 5 con el subtipo 9); con la WORD 2 en −1, ni sonido ni rand(); sin la tabla, el rand() y
+// ningún sonido (P-C253).
+TEST_F(CombatRepliesTest, AnOrdinaryMonsterCountsTwiceAndSoundsFromItsTable)
 {
     ActorState& monster = MonsterAt(12, 0x123);
     monster.animation.action = 3;
@@ -607,13 +692,54 @@ TEST_F(CombatRepliesTest, AnOrdinaryMonsterCountsTwiceAndCutsAtItsSoundTable)
     EXPECT_EQ(monster.animation.action, 4);
     EXPECT_EQ(monster.animation.frame, 1.5f);
     EXPECT_EQ(monster.attackCount, 4);
+    EXPECT_EQ(m_random.State(), After(0));
 
     ActorState& still = MonsterAt(13, 0x124);
-    const auto cut = Client::Scenes::SetActorAttack(still, Combat());
-    EXPECT_TRUE(HasError(cut, "0x4f51f1"));
+    ASSERT_TRUE(Client::Scenes::SetActorAttack(still, Combat()).HasValue());
     EXPECT_EQ(still.animation.action, 3);
-    EXPECT_EQ(still.attackCount, 1);
-    EXPECT_EQ(m_random.State(), After(0));
+    EXPECT_EQ(still.attackCount, 2);
+    EXPECT_FALSE(Runtime().lastSoundId.has_value());
+    EXPECT_EQ(m_random.State(), After(1));
+
+    Client::Scenes::ModelSounds sounds{};
+    sounds.fill(-1);
+    sounds[2] = 0x7c;
+    sounds[3] = -0x10;
+    CrtRandom expected = DrawnAfter(1);
+    for (const std::int32_t subtype : {0, 9, 0})
+    {
+        SCOPED_TRACE(subtype);
+        ActorState& next = MonsterAt(14, 0x125);
+        next.subtype = subtype;
+        next.animation = {};
+        const std::int32_t drawn = expected.Next() % 2;
+        ASSERT_TRUE(Client::Scenes::SetActorAttack(next, CombatWithSounds(sounds)).HasValue());
+        EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(sounds[static_cast<std::size_t>(2 + drawn)] +
+                                                                     (subtype == 9 ? 5 : 0) + 0xd2));
+    }
+    EXPECT_EQ(m_random.State(), expected.State());
+
+    Runtime().lastSoundId.reset();
+    sounds[2] = -1;
+    ActorState& silent = MonsterAt(15, 0x126);
+    ASSERT_TRUE(Client::Scenes::SetActorAttack(silent, CombatWithSounds(sounds)).HasValue());
+    EXPECT_FALSE(Runtime().lastSoundId.has_value());
+    EXPECT_EQ(m_random.State(), expected.State());
+}
+
+// Un jugador con el subtipo 0xd1 a 0xd3 pide rand() & 1 + 0x3c y después el de la tabla del modelo 0x20a, que nadie
+// escribe: MuRet no la tiene y saca el segundo rand() sin pedir otro sonido (P-C253).
+TEST_F(CombatRepliesTest, APlayerWithAModelSoundSubtypeDrawsTwice)
+{
+    ActorState& player = PlayerAt(20, 0x55);
+    player.subtype = 0xd2;
+    CrtRandom expected = DrawnAfter(OwnRecordDraws);
+    const std::int32_t sound = (expected.Next() & 1) + 0x3c;
+    static_cast<void>(expected.Next());
+    ASSERT_TRUE(Client::Scenes::SetActorAttack(player, Combat()).HasValue());
+    EXPECT_EQ(player.animation.action, 0x22);
+    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(sound));
+    EXPECT_EQ(m_random.State(), expected.State());
 }
 
 // Los ayudantes de 0x4f5034 que no están portados cortan con su dirección; el 0x19e pone +0x110 en 3 y la acción 5.

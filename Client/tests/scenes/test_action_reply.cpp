@@ -291,21 +291,58 @@ TEST_F(ActionReplyTest, AnUnknownKeyTouchesNobody)
     EXPECT_EQ(Other().animation.action, 0);
 }
 
-// 0x4cb820: 0x78 y 0x79 van a 0x4f4a10, que es del hito 3: corta después del ángulo, el Movement y la posición.
-TEST_F(ActionReplyTest, TheStrikeIsAFrontier)
+// 0x4cb820..0x4cb852: 0x78 y 0x79 pegan con 0x4f4a10 (sin armas, la 0x22, sin sonido: el único rand() es el cierre del
+// registro propio de 0x4f3f80) y después ponen +0x381 en 1, el frame en 0 (aunque 0x4ea030 lo haya dejado en otro
+// valor por seguir en la misma acción), el blanco +0x3a4 con el WORD de abajo de [0x57678b0] y [0x5767964] con el
+// índice. En Lorencia y en Devias.
+TEST_F(ActionReplyTest, TheStrikeAttacksAndRemembersTheAttacker)
 {
-    for (const std::uint8_t action : {std::uint8_t{0x78}, std::uint8_t{0x79}})
+    constexpr std::uint32_t OwnRecordDraws = 0xf08;
+    m_world->Runtime().heroSlot = 0x10007;
+    for (const std::int32_t map : {0, 2})
     {
-        Other().movement = 1;
-        const auto applied = Apply(3, action);
-        ASSERT_FALSE(applied.HasValue());
-        EXPECT_NE(applied.Error().find("0x4cb821"), std::string::npos);
-        EXPECT_NE(applied.Error().find("hito 3"), std::string::npos);
-        EXPECT_EQ(Other().angles.z, 90.0f);
-        EXPECT_EQ(Other().movement, 0);
-        EXPECT_EQ(Other().position, glm::vec3(1350.0f, 1450.0f, 3.0f));
-        EXPECT_EQ(Other().animation.action, 0);
+        for (const std::uint8_t action : {std::uint8_t{0x78}, std::uint8_t{0x79}})
+        {
+            SCOPED_TRACE(testing::Message() << "mapa " << map << ", acción " << int{action});
+            m_world->Runtime().map = map;
+            m_world->Runtime().lastAttacker = 0;
+            m_world->Runtime().lastSoundId.reset();
+            Other().movement = 1;
+            Other().byte381 = 0;
+            Other().attackCount = 0;
+            Other().animation.action = 0x22;
+            Other().animation.frame = 1.5f;
+            auto expected = m_cloth.random;
+            expected.Discard(OwnRecordDraws);
+            const auto applied = Apply(3, action);
+            ASSERT_TRUE(applied.HasValue()) << applied.Error();
+            EXPECT_EQ(Other().angles.z, 90.0f);
+            EXPECT_EQ(Other().movement, 0);
+            EXPECT_EQ(Other().position, glm::vec3(1350.0f, 1450.0f, 3.0f));
+            EXPECT_EQ(Other().animation.action, 0x22);
+            EXPECT_EQ(Other().animation.frame, 0.0f);
+            EXPECT_EQ(Other().byte381, 1);
+            EXPECT_EQ(Other().attackCount, 1);
+            EXPECT_EQ(Other().attackTarget, 7);
+            EXPECT_EQ(m_world->Runtime().lastAttacker, static_cast<std::int32_t>(OtherSlot));
+            EXPECT_FALSE(m_world->Runtime().lastSoundId.has_value());
+            EXPECT_EQ(m_cloth.random.State(), expected.State());
+        }
     }
+    EXPECT_TRUE(m_sent.empty());
+}
+
+// Un corte de 0x4f4a10 (el 0x27, con su efecto de la CL11) deja el ángulo, el Movement y la posición, y no escribe ni
+// +0x381 ni [0x5767964].
+TEST_F(ActionReplyTest, AStrikeThatCutsLeavesTheAttackerAlone)
+{
+    Other().type = 0x27;
+    const auto applied = Apply(3, 0x78);
+    ASSERT_FALSE(applied.HasValue());
+    EXPECT_NE(applied.Error().find("0x4f4f5b"), std::string::npos);
+    EXPECT_EQ(Other().movement, 0);
+    EXPECT_EQ(Other().byte381, 0);
+    EXPECT_EQ(m_world->Runtime().lastAttacker, 0);
 }
 
 // 0x4cb812: 0x7a y 0x7b van a 0x4f2250, con su sufijo (un rand()); sin armas, la 1 y la 2 con el elfo, en Lorencia y

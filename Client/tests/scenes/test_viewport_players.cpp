@@ -13,6 +13,7 @@
 #include "Protocol/Viewport.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Scenes/ActionReply.h"
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorState.h"
@@ -44,6 +45,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <utility>
@@ -700,6 +702,55 @@ TEST_F(ViewportPlayersTest, TheWalkAndTheHitOfTheOthersFindTheCreatedPlayer)
         EXPECT_EQ(actor.damage, 25);
         EXPECT_EQ(actor.movement, 0);
         EXPECT_TRUE(game->world.DrawTail().damage[0].alive);
+    }
+}
+
+// El 18 con la acción 0x78 de un jugador que dio de alta el 0x12 (0x4cb750 → 0x4f4a10): sin armas, la 0x22 y solo el
+// cierre del registro propio de 0x4f3f80; con una espada de un grupo de 0 a 2 sin la marca +0x1e de Item.bmd en la
+// derecha, la 0x23 o la 0x24 por +0x38f y el sonido rand() & 1 + 0x3c (0x4f5192). Después, +0x381 en 1, el frame en 0,
+// el blanco con el lugar del héroe y [0x5767964] con el índice.
+TEST_F(ViewportPlayersTest, ACreatedPlayerStrikesWithTheEighteen)
+{
+    constexpr int OwnRecordDraws = 0xf08;
+    constexpr std::uint16_t Sword = 0x212;
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(map);
+        Load(map);
+        game->world.Runtime().heroSlot = 0;
+        const Cell cell = FreeRow();
+        const std::array<ViewportPlayerRecord, 1> records{
+            {{.key = 0x0456, .isNew = true, .x = cell.x, .y = cell.y, .name = "Hornero"}}};
+        auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        ActorState& actor = Actor(1);
+        const std::uint32_t created = game->cloth.random.State();
+
+        applied = Client::Scenes::ApplyActionReply(
+            Client::Protocol::Movement::Action{.key = 0x0456, .direction = 5, .action = 0x78}, game->Resources(), {});
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(actor.animation.action, 0x22);
+        EXPECT_EQ(actor.animation.frame, 0.0f);
+        EXPECT_EQ(actor.angles.z, 180.0f);
+        EXPECT_EQ(actor.byte381, 1);
+        EXPECT_EQ(actor.attackCount, 1);
+        EXPECT_EQ(actor.attackTarget, 0);
+        EXPECT_EQ(game->world.Runtime().lastAttacker, 1);
+        EXPECT_FALSE(game->world.Runtime().lastSoundId.has_value());
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(created, OwnRecordDraws).State());
+
+        actor.hands[0].model = Sword;
+        actor.animation.action = 0;
+        auto expected = AfterDraws(game->cloth.random.State(), OwnRecordDraws);
+        const std::int32_t sound = (expected.Next() & 1) + 0x3c;
+        applied = Client::Scenes::ApplyActionReply(
+            Client::Protocol::Movement::Action{.key = 0x0456, .direction = 1, .action = 0x79}, game->Resources(), {});
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        // +0x38f en 1: (1 & 1) + 0x23.
+        EXPECT_EQ(actor.animation.action, 0x24);
+        EXPECT_EQ(actor.attackCount, 2);
+        EXPECT_EQ(game->world.Runtime().lastSoundId, std::optional<std::int32_t>(sound));
+        EXPECT_EQ(game->cloth.random.State(), expected.State());
     }
 }
 } // namespace

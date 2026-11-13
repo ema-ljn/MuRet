@@ -1,6 +1,7 @@
 #include "Scenes/HeroAttack.h"
 
 #include "Core/Expected.h"
+#include "Data/Terrain/TerrainAttributes.h"
 #include "Network/Crypto/Xor32.h"
 #include "Network/Packet.h"
 #include "Protocol/Combat.h"
@@ -12,7 +13,9 @@
 #include "Scenes/AttackRules.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldMap.h"
 #include "Scenes/WorldState.h"
+#include "World/WorldTerrain.h"
 
 #include "support/PlayerActors.h"
 
@@ -254,15 +257,33 @@ TEST_F(HeroAttackTest, TheRangeFollowsTheOwnWeapons)
     EXPECT_EQ(m_sent.size(), 2u);
 }
 
-// 0x565349..0x5653b6: fuera de alcance sólo el elfo camina hacia el blanco, por 0x566271 (sin portar).
-TEST_F(HeroAttackTest, OutOfRangeOnlyTheElfWalksAndThatCuts)
+// 0x565349..0x566299: fuera de alcance sólo el elfo se acerca. Lee la Y y la X de su celda y busca con PathFinding2 un
+// camino hasta las celdas a menos del alcance del blanco (1,8 sin arco: r = 1, el cuadrado de 3 × 3 alrededor de
+// (192, 115)); con camino, +0x378 en 1, sin D3 ni D7. Sin TerrainWall corta.
+TEST_F(HeroAttackTest, OutOfRangeOnlyTheElfWalksIntoRange)
 {
     Target().position = {19250.0f, 11550.0f, 0.0f};
+    Hero().movement = 0;
+    ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
+    EXPECT_EQ(Hero().movement, 0);
+    EXPECT_EQ(m_random.State(), After(OwnRecordDraws));
+
     Hero().characterClass = 2;
+    m_random = CrtRandom(Seed);
     const auto cut = Client::Scenes::InteractOnArrival(Hero(), Arrival());
     ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x566271"), std::string::npos);
+    EXPECT_NE(cut.Error().find("0x566272"), std::string::npos);
+
+    m_world->Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    m_random = CrtRandom(Seed);
+    ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
+    EXPECT_EQ(Hero().movement, 1);
     EXPECT_TRUE(m_sent.empty());
+    EXPECT_EQ(Hero().byte381, 0);
+    ASSERT_EQ(Hero().path.count, 10u);
+    EXPECT_EQ(Hero().path.cells[0].x, 182);
+    EXPECT_EQ(Hero().path.cells[9].x, 191);
+    EXPECT_EQ(m_random.State(), After(OwnRecordDraws + 2 * CellDraws));
 }
 
 // Las salidas antes de pegar: sin blanco (0x6c8ebc en −1) después del alcance, el héroe pegando ya (0x8d, o 3 y 4 si

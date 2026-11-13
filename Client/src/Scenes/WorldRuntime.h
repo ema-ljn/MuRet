@@ -356,6 +356,10 @@ struct WorldRuntime
     World::LeafWeather leafWeather{.firstWave = InitialLeafCount};
     // CL9 hito 3: lo que mira 0x558bb0 para saber si el personaje elegido se puede atacar (AttackRules.h).
     AttackRules attackRules{};
+    // [0x5767964] (.bss, 0): el lugar del último que pegó. Lo escriben el 18 con las acciones 0x78 y 0x79 (0x4cb849),
+    // el 0x19 (0x4cce7d), el 0x69 (0x4cc2e1) y el 0x1A (0x4cedf7), y lo lee el D7 que llega con el efecto defensivo
+    // (0x4cb32f, que corta). MuRet escribe el del 18 (CL9 hito 3, fase 2a).
+    std::int32_t lastAttacker = 0;
 };
 
 // 0x63722e y 0x59afd6: con el contador en más de esto, el juego no dibuja ni mueve al héroe.

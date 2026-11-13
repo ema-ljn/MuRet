@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <optional>
 #include <string>
 
 namespace Client::Scenes
@@ -213,7 +214,8 @@ bool IsKalimaAttacker(std::uint16_t word376)
     return std::ranges::find(Kalima, word376) != Kalima.end();
 }
 
-// 0x4f5034..0x4f50b2: los cinco ayudantes, en su orden, y la 3 o la 4 si ninguno atendió.
+// 0x4f5034..0x4f50b2: los cinco ayudantes, en su orden (0x43a2f0, 0x42dcb0, 0x443750, 0x429270 y 0x437580, todos), y
+// la 3 o la 4 si ninguno atendió.
 Core::Expected<void, std::string> MonsterAttack(ActorState& actor, const ActorCombatContext& context)
 {
     const std::int32_t map = context.world.Runtime().map;
@@ -223,6 +225,14 @@ Core::Expected<void, std::string> MonsterAttack(ActorState& actor, const ActorCo
         return Core::Unexpected(std::format("0x43a2f0: el ataque del monstruo {:#x} de Kalima (+0x38e protegido) no "
                                             "está portado (CL9 hito 3, fase 2)",
                                             kind));
+    // 0x42dcb0, el segundo: el 0x19e y el 0x19f ponen +0x110 en 3 y la acción 5. Los que siguen se llaman igual.
+    const bool special = actor.type == 0x19e || actor.type == 0x19f;
+    if (special)
+    {
+        actor.byte110 = 3;
+        if (auto set = SetTheAction(actor, context, 5); !set.HasValue())
+            return set;
+    }
     // 0x443750 (el mapa 0x1f, Land of Trials), 0x429270 (0x425070: los mapas 0x21 y 0x36) y 0x437580 (0x4303c0: el
     // 0x22, Crywolf) llaman a 0x4f92f0 con estos +0x376.
     if (map == 0x1f && kind == 0x123)
@@ -236,12 +246,9 @@ Core::Expected<void, std::string> MonsterAttack(ActorState& actor, const ActorCo
         return Core::Unexpected(std::format("0x437580: el ataque del {:#x} en Crywolf (0x4f92f0) no está portado (CL9 "
                                             "hito 3, fase 2)",
                                             kind));
-    // 0x42dcb0: el 0x19e y el 0x19f ponen +0x110 en 3 y la acción 5.
-    if (actor.type == 0x19e || actor.type == 0x19f)
-    {
-        actor.byte110 = 3;
-        return SetTheAction(actor, context, 5);
-    }
+    // 0x4f5084: si alguno atendió (BL en 0), ni la acción ni la cuenta de 0x4f50b2.
+    if (special)
+        return {};
     if (auto set = SetTheAction(actor, context, actor.attackCount % 3 == 0 ? 3 : 4); !set.HasValue())
         return set;
     ++actor.attackCount;
@@ -266,43 +273,74 @@ void PlayerAttackSound(const ActorState& actor, const ActorCombatContext& contex
         sound = static_cast<std::int32_t>((context.random.Next() & 1) + 0x3c);
 }
 
-Core::Expected<void, std::string> AttackSound(const ActorState& actor, const ActorCombatContext& context)
+// 0x4f5210..0x4f5219 y 0x4f5acb..0x4f5ad8: con el subtipo 9, 5 más.
+std::int32_t SubtypeOffset(const ActorState& actor)
+{
+    constexpr std::int32_t NinthSubtype = 9;
+    return actor.subtype == NinthSubtype ? 5 : 0;
+}
+
+std::optional<ModelSounds> SoundsOf(const ActorState& actor, const ActorCombatContext& context)
+{
+    if (!context.modelSounds)
+        return std::nullopt;
+    return context.modelSounds(actor.type);
+}
+
+void AttackSound(const ActorState& actor, const ActorCombatContext& context)
 {
     if (!FrameIsZero(actor))
-        return {};
+        return;
     if (actor.type == Data::Models::PlayerSkeletonModel && !HasModelSoundSubtype(actor))
     {
         PlayerAttackSound(actor, context);
-        return {};
+        return;
     }
+    auto& sound = context.world.Runtime().lastSoundId;
     // 0x4f51c0..0x4f51ee: los subtipos 0xd1 a 0xd3, rand() & 1 + 0x3c.
     if (HasModelSoundSubtype(actor))
-        context.world.Runtime().lastSoundId = static_cast<std::int32_t>((context.random.Next() & 1) + 0x3c);
-    return Core::Unexpected(std::format("0x4f51f1: el sonido de pegar del modelo {:#x} sale de su tabla de sonidos "
-                                        "(0x5769ad8 + tipo · 0xe0 + 0xae), de la CL10",
-                                        actor.type));
+        sound = static_cast<std::int32_t>((context.random.Next() & 1) + 0x3c);
+    // 0x4f51f1..0x4f5262: con la WORD 2 de la tabla del modelo en −1, nada; si no, rand() % 2 (con signo, de un rand()
+    // que no es negativo) elige la 2 o la 3, con signo, más 5 con el subtipo 9 y más 0xd2. Sin la tabla, el rand() sale
+    // igual y el sonido no se pide (*inferido*, P-C253).
+    const std::optional<ModelSounds> table = SoundsOf(actor, context);
+    constexpr std::size_t FirstAttackSound = 2;
+    if (table && (*table)[FirstAttackSound] == -1)
+        return;
+    const auto drawn = static_cast<std::size_t>(context.random.Next() % 2);
+    if (!table)
+        return;
+    constexpr std::int32_t MonsterSoundBase = 0xd2;
+    sound = (*table)[FirstAttackSound + drawn] + SubtypeOffset(actor) + MonsterSoundBase;
 }
 
 // 0x4f5a09..0x4f5ae8: el sonido de morir con el frame en 0.
-Core::Expected<void, std::string> DeathSound(const ActorState& actor, const ActorCombatContext& context)
+void DeathSound(const ActorState& actor, const ActorCombatContext& context)
 {
     auto& sound = context.world.Runtime().lastSoundId;
     const std::int32_t map = context.world.Runtime().map;
     if (map >= FirstChaosCastleMap && map <= LastChaosCastleMap)
     {
         sound = static_cast<std::int32_t>((context.random.Next() & 1) + 0x5e);
-        return {};
+        return;
     }
     if (actor.type != Data::Models::PlayerSkeletonModel || HasModelSoundSubtype(actor))
-        return Core::Unexpected(std::format("0x4f5a7a: el sonido de morir del modelo {:#x} sale de su tabla de "
-                                            "sonidos (0x5769ad8 + tipo · 0xe0 + 0xb2), de la CL10",
-                                            actor.type));
+    {
+        // 0x4f5aa8..0x4f5ae8: la WORD 4 de la tabla del modelo; 0xffff, nada; si no, con signo, más 5 con el subtipo 9
+        // y más 0xd2. Sin la tabla, no se pide (P-C253). No saca rand().
+        const std::optional<ModelSounds> table = SoundsOf(actor, context);
+        constexpr std::size_t DeathSoundWord = 4;
+        if (!table || (*table)[DeathSoundWord] == -1)
+            return;
+        constexpr std::int32_t MonsterSoundBase = 0xd2;
+        sound = (*table)[DeathSoundWord] + SubtypeOffset(actor) + MonsterSoundBase;
+        return;
+    }
     const auto characterClass = actor.characterClass & ClassMask;
     sound = characterClass == ElfClass ? 0x6e : characterClass == DarkLordClass ? 0x1c7 : 0x6c;
     // 0x4f5a6b: con Fenrir, también el 0x278.
     if (actor.pet.model == Fenrir)
         sound = 0x278;
-    return {};
 }
 } // namespace
 
@@ -346,8 +384,7 @@ Core::Expected<void, std::string> SetActorAttack(ActorState& actor, const ActorC
             return attacked;
         break;
     }
-    if (auto sounded = AttackSound(actor, context); !sounded.HasValue())
-        return sounded;
+    AttackSound(actor, context);
     // 0x4f5265: +0x38f + 1 siempre (los monstruos comunes ya sumaron uno en 0x4f50b2).
     ++actor.attackCount;
     return {};
@@ -380,8 +417,7 @@ Core::Expected<void, std::string> SetActorDie(ActorState& actor, const ActorComb
     }
     if (!FrameIsZero(actor))
         return {};
-    if (auto sounded = DeathSound(actor, context); !sounded.HasValue())
-        return sounded;
+    DeathSound(actor, context);
     actor.animation.frame = DeathFrame;
     return {};
 }

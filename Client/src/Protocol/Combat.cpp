@@ -35,6 +35,11 @@ Outgoing WriteAttack(std::uint16_t key, std::uint8_t action, std::uint8_t direct
     return Xor32C1(Network::PacketWriter::C1(AttackOpcode).PutU16Be(key).PutU8(action).PutU8(direction));
 }
 
+Outgoing WriteElfCell(std::uint8_t x, std::uint8_t y)
+{
+    return Xor32C1(Network::PacketWriter::C1(ElfCellOpcode).PutU8(x).PutU8(y));
+}
+
 Outgoing WriteClearKillReport(std::uint8_t opcode)
 {
     return EncryptedC1(Network::PacketWriter::C1(Connection::JoinOpcode)

@@ -2,6 +2,9 @@
 
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
+#include "Data/Terrain/TerrainAttributes.h"
+#include "GameLogic/PathCell.h"
+#include "GameLogic/PathFinder.h"
 #include "Protocol/Combat.h"
 #include "Protocol/Movement.h"
 #include "Render/Models/Cloth.h"
@@ -12,8 +15,10 @@
 #include "Scenes/AttackRules.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldMap.h"
 #include "Scenes/WorldState.h"
 #include "World/OriginalFtol.h"
+#include "World/WorldTerrain.h"
 
 #include <array>
 #include <bit>
@@ -209,6 +214,27 @@ Core::Expected<void, std::string> HitTheTarget(ActorState& hero, std::int32_t ta
                               direction.Value());
 }
 
+// 0x56535b..0x566299: la Y (+0x420) y la X (+0x41c), cada una con 0x40b570 y 0x40b800, y PathFinding2(X, Y, blanco,
+// +0x3e8, 0) con el alcance de distancia (0x4eac00, sin bClearGoal): las celdas a menos del alcance del blanco son la
+// meta. Con camino, +0x378 en 1 y nada más: sin SendMove, el servidor no ve el camino hasta el D3 de girar al llegar
+// (07). Sin camino, nada.
+Core::Expected<void, std::string> WalkIntoRange(ActorState& hero, GameLogic::PathCell target, float range,
+                                                const HeroArrivalContext& context)
+{
+    auto& random = context.combat.random;
+    const std::uint8_t y = ReadTheCell(hero.cellYAccesses, hero.cellY, random);
+    const std::uint8_t x = ReadTheCell(hero.cellXAccesses, hero.cellX, random);
+    World::WorldTerrain& terrain = context.combat.world.Map().terrain;
+    if (!terrain.attributes)
+        return Core::Unexpected(std::string("0x566272: falta TerrainWall para que el elfo se acerque"));
+    const auto path = GameLogic::PathFinder(terrain.attributes->cells).Find({x, y}, target, false, range);
+    if (!path)
+        return {};
+    hero.path = *path;
+    hero.movement = 1;
+    return {};
+}
+
 Core::Expected<void, std::string> AttackOnArrival(ActorState& hero, const HeroArrivalContext& context)
 {
     WorldState& world = context.combat.world;
@@ -255,8 +281,13 @@ Core::Expected<void, std::string> AttackOnArrival(ActorState& hero, const HeroAr
         // 0x565349..0x5653b6: fuera de alcance sólo el elfo se acerca, con el camino hasta el alcance (0x566271).
         if ((hero.characterClass & ClassMask) != ElfClass)
             return {};
-        return Core::Unexpected(std::string("0x566271: el elfo fuera de alcance camina hasta el alcance (PathFinding2 "
-                                            "con distancia); no está portado (CL9 hito 3, fase 2)"));
+        constexpr std::int32_t LastCell = 0xff;
+        if (*cellX < 0 || *cellX > LastCell || *cellY < 0 || *cellY > LastCell)
+            return Core::Unexpected(std::format("0x566272: la celda del blanco ({}, {}) fuera de la grilla, que "
+                                                "PathFinding2 toma como índice lineal",
+                                                *cellX, *cellY));
+        return WalkIntoRange(hero, {static_cast<std::uint8_t>(*cellX), static_cast<std::uint8_t>(*cellY)}, range,
+                             context);
     }
     return HitTheTarget(hero, target, context);
 }

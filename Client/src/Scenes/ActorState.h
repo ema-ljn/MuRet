@@ -215,9 +215,11 @@ struct ActorState
     // +0x30: el 0x17 de los empujes le copia el rumbo hacia quien mató (0x4d0b8f). Qué lo lee, sin leer.
     float angle30 = 0.0f;
     // El vuelo del que muere empujado (el 0x17 con 0x28 o 0x3b, 0x4d0ac1..0x4d0b38, y 0x4d07c0 en Blood Castle y
-    // Chaos Castle), que mueve 0x4fb9e0 con 0x51fd20 (sin portar): +0x1bc, +0xcc, +0xd0, +0xd4, +0xd8 y +0xe4, el
-    // empuje de +0x1a4..+0x1ac y la posición de partida en +0x1b0..+0x1b8.
+    // Chaos Castle), que mueve 0x4fb9e0 con 0x51fd20 y 0x4fb2b0 (ActorDying.h): +0x1bc, +0xcc, +0xd0, +0xd4, +0xd8 y
+    // +0xe4, el empuje de +0x1a4..+0x1ac y la posición de partida en +0x1b0..+0x1b8.
     std::uint8_t byte1bc = 0;
+    // +0x3c8: cuánto lleva muriéndose, que 0x4fb9e0 sube de a 0,02 (ActorDying.h). 0x511290 lo pone en 0 (0x51247a).
+    float dyingTime = 0.0f;
     float floatCc = 0.0f;
     float floatD0 = 0.0f;
     float floatD4 = 0.0f;

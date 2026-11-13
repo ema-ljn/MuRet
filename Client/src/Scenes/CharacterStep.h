@@ -34,6 +34,7 @@ struct WorldTerrain;
 // (0x505de0)".
 namespace Client::Scenes
 {
+class IModelLibrary;
 class WorldState;
 struct WorldRuntime;
 class PlayerActionSpeeds;
@@ -68,6 +69,9 @@ struct CharacterStepContext
     // *[0x7758550], Item.bmd en memoria: lo leen los helpers de 0x4fc450 y la acción de parado (0x4f2250)
     // con un arma o un ítem puesto. nullptr si no se cargó: cortan donde lo leen.
     const Data::Tables::ItemTable* items = nullptr;
+    // Los esqueletos de los demás modelos, para 0x4f5660 (SetActorDie) con el que se muere desde el paso 15 (CL9 hito
+    // 3). nullptr: un modelo que no es el 0x20a corta ahí.
+    const IModelLibrary* models = nullptr;
     // La carga de la escena 2 o 4; vacío, el mapa del juego. El TerrainWall se escribe ahí mismo.
     const World::WorldTerrain* terrain = nullptr;
     const Render::Models::Skeleton* darkSpiritSkeleton = nullptr;

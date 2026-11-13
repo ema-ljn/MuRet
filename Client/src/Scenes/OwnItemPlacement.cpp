@@ -30,6 +30,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -420,7 +421,8 @@ Core::Expected<void, std::string> PlaceItemInOtherGrid(std::span<ItemState> cell
         return Core::Unexpected(record.Error());
     const auto width = std::to_integer<std::int32_t>(record.Value()[ItemWidthOffset]);
     const auto height = std::to_integer<std::int32_t>(record.Value()[ItemHeightOffset]);
-    // 0x5bc7a2..0x5bc7b6: la columna y la fila del origen, con 8 aunque la grilla tenga otras columnas.
+    // 0x5bd352..0x5bd36d: la columna y la fila del origen (% 8 y / 8 con signo; el origen no es negativo), con 8 aunque
+    // la grilla tenga otras columnas.
     const auto column = static_cast<std::uint8_t>(origin & 7);
     const auto row = static_cast<std::uint8_t>(origin >> 3);
     for (std::int32_t y = 0; y < height; ++y)
@@ -442,8 +444,8 @@ Core::Expected<void, std::string> PlaceItemInOtherGrid(std::span<ItemState> cell
             item.id = type;
             item.flags1b = static_cast<std::uint8_t>(Byte(bytes, 3));
             item.occupied = y == 0 && x == 0 ? 1u : 0u;
-            // 0x5bc7f0..0x5bc81c: B1 y B3 con los 24 bits de arriba de casilla · 9 (lo que queda en el registro del
-            // índice), y B4 con los del tipo.
+            // 0x5bd376..0x5bd3c5: B1 y B3 con los 24 bits de arriba de casilla · 9 (lo que queda en EAX del índice,
+            // 0x5bd378), y B4 con los del tipo (0x5bd384).
             const auto upper = static_cast<std::uint32_t>(cell * 9) & UpperBits;
             const World::ItemInitializationScalars scalars{
                 .b1 = upper | Byte(bytes, 1), .b3 = upper | Byte(bytes, 3), .b4 = (type & UpperBits) | Byte(bytes, 4)};
@@ -452,6 +454,52 @@ Core::Expected<void, std::string> PlaceItemInOtherGrid(std::span<ItemState> cell
         }
     }
     return {};
+}
+
+Core::Expected<std::optional<std::int32_t>, std::string>
+FirstCellPastTheGrid(std::size_t cells, std::int32_t columns, std::int32_t origin, InventoryItemBytes bytes,
+                     const WorldEntryResources& resources, std::string_view where)
+{
+    const std::uint16_t type = InventoryItemType(bytes);
+    if (type == NoInventoryItem)
+        return std::optional<std::int32_t>{};
+    const auto record = ItemRecordOf(type, resources, where);
+    if (!record.HasValue())
+        return Core::Unexpected(record.Error());
+    const auto width = std::to_integer<std::int32_t>(record.Value()[ItemWidthOffset]);
+    const auto height = std::to_integer<std::int32_t>(record.Value()[ItemHeightOffset]);
+    for (std::int32_t y = 0; y < height; ++y)
+    {
+        for (std::int32_t x = 0; x < width; ++x)
+        {
+            const std::int32_t cell = y * columns + origin + x;
+            if (cell < 0 || cell >= static_cast<std::int32_t>(cells))
+                return std::optional<std::int32_t>{cell};
+        }
+    }
+    return std::optional<std::int32_t>{};
+}
+
+Core::Expected<std::optional<std::string>, std::string>
+InventoryPlacementPastTheGrid(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntryResources& resources)
+{
+    if (slot < FirstInventoryGridSlot)
+        return std::optional<std::string>{};
+    const OwnInventory& inventory = resources.world.Inventory();
+    const bool first = slot < FirstSecondGridSlot;
+    const std::size_t cells = first ? inventory.cells.size() : inventory.secondCells.size();
+    const std::int32_t origin = first ? slot - FirstInventoryGridSlot : slot - FirstSecondGridSlot;
+    const std::string_view grid = first ? "0x78a9bb0" : "0x78ab0b8";
+    constexpr auto Columns = static_cast<std::int32_t>(InventoryColumns);
+    auto past =
+        FirstCellPastTheGrid(cells, Columns, origin, bytes, resources, std::format("0x5bc740, la grilla de {}", grid));
+    if (!past.HasValue())
+        return Core::Unexpected(std::move(past).Error());
+    if (!past.Value())
+        return std::optional<std::string>{};
+    return std::optional<std::string>{std::format("0x5bc740: el tipo {:#x} desde el lugar {} escribiría la casilla {} "
+                                                  "de {}, fuera de sus {} (Q-C200)",
+                                                  InventoryItemType(bytes), slot, *past.Value(), grid, cells)};
 }
 
 std::uint16_t InventoryItemType(InventoryItemBytes bytes)

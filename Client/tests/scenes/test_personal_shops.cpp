@@ -315,6 +315,36 @@ TEST_P(PersonalShopsTest, StaleTitlesLeave)
     EXPECT_FALSE(Client::Scenes::HasShopTitle(Shops(), Buyer));
 }
 
+// 0x4524e0: el alta guarda la clave con & 0x7fff y el lugar en (−1, −1); 0x4511f0 con la misma clave también vuelve el
+// lugar a (−1, −1) (0x4527d0). Con una clave desde 0x8000 (MOVSX, 0x8001 es −32.767), la guardada es 1: la
+// actualización no la iguala y solo va al log, y 0x451fe0 saca el cartel (07 Q-C969).
+TEST_P(PersonalShopsTest, TheStoredKeyLosesItsHighBitAndAnUpdateUnplacesTheSign)
+{
+    Client::Scenes::AddShopTitle(*m_world, SellerKey, Seller, "Arcos");
+    Client::Scenes::ShopTitle& sign = Shops().titles.at(Seller);
+    EXPECT_EQ(sign.x, -1);
+    EXPECT_EQ(sign.y, -1);
+    sign.x = 120;
+    sign.y = 80;
+    Client::Scenes::AddShopTitle(*m_world, SellerKey, Seller, "Escudos");
+    EXPECT_EQ(sign.title, "Escudos");
+    EXPECT_EQ(sign.x, -1);
+    EXPECT_EQ(sign.y, -1);
+
+    m_world->Actors()[Buyer].key = 0x8001;
+    const std::int32_t high = static_cast<std::int16_t>(std::uint16_t{0x8001});
+    Client::Scenes::AddShopTitle(*m_world, high, Buyer, "Joyas");
+    ASSERT_TRUE(Client::Scenes::HasShopTitle(Shops(), Buyer));
+    EXPECT_EQ(Shops().titles.at(Buyer).key, 0x0001);
+    Shops().titles.at(Buyer).x = 33;
+    Client::Scenes::AddShopTitle(*m_world, high, Buyer, "Otra");
+    EXPECT_EQ(Shops().titles.at(Buyer).title, "Joyas");
+    EXPECT_EQ(Shops().titles.at(Buyer).x, 33);
+    Client::Scenes::CheckTheShopKeys(*m_world);
+    EXPECT_FALSE(Client::Scenes::HasShopTitle(Shops(), Buyer));
+    EXPECT_TRUE(Client::Scenes::HasShopTitle(Shops(), Seller));
+}
+
 // 0x451590, detrás de cada 0x510f70 de la clave del jugador (la carga del mapa, el F3 04 y el 1C): solo queda el cartel
 // con la clave del héroe publicado.
 TEST_P(PersonalShopsTest, ALoadKeepsOnlyTheHeroTitle)

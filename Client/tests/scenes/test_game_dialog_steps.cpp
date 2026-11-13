@@ -514,6 +514,40 @@ TEST(GameDialogStepsTest, NoToTheTradeRequestSendsTheRefusalInClear)
     EXPECT_EQ(tested.requests.requests.size(), 3u);
 }
 
+// 0x62c560: el sí del 0x78 con Esc y un diálogo de otro hito esperando lleva al tramo del no de ese diálogo, que corta
+// con su dirección y su hito (08 P-C363), después del C1 04 37 01. En Lorencia y en Devias.
+TEST(GameDialogStepsTest, TheNoOfTheOtherHitosDialogsCutsWithItsOwner)
+{
+    struct OtherNo
+    {
+        std::int32_t id;
+        std::string_view address;
+        std::string_view owner;
+    };
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        for (const OtherNo& other : {OtherNo{0x71, "0x62c58f", "selección"}, OtherNo{0x76, "0x62c880", "hito 8"},
+                                     OtherNo{0x7d, "0x62c567", "hito 8"}, OtherNo{0x7f, "0x62c5c2", "hito 8"},
+                                     OtherNo{0x95, "0x62c567", "hito 6"}})
+        {
+            auto tested = std::make_unique<SteppingDialogs>(map);
+            auto& runtime = tested->world.Runtime();
+            runtime.dialogs.current = 0x78;
+            runtime.dialogs.pending = other.id;
+            tested->input.Apply(Client::Input::InputEvent{.kind = Client::Input::InputEvent::Kind::KeyDown,
+                                                          .key = Client::Input::Key::Escape});
+            const auto stepped = tested->Click(0xea + 0x45, 0x62);
+            ASSERT_FALSE(stepped.HasValue()) << other.id;
+            EXPECT_NE(stepped.Error().find(other.address), std::string::npos) << stepped.Error();
+            EXPECT_NE(stepped.Error().find(other.owner), std::string::npos) << stepped.Error();
+            EXPECT_NE(stepped.Error().find("P-C363"), std::string::npos) << stepped.Error();
+            ASSERT_EQ(tested->requests.requests.size(), 1u);
+            EXPECT_EQ(tested->requests.requests[0].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x37, 0x01}));
+            EXPECT_EQ(runtime.dialogs.current, other.id);
+        }
+    }
+}
+
 // El OK del 0x73 (0x626460), con Enter: el zen escrito para el comercio. Cada caso arranca de Seed en Lorencia y en
 // Devias, con el comercio abierto (el byte de 0x20, un rand() en IsOpen) y 1.000 de zen propio.
 class MoneyOkTest : public ::testing::TestWithParam<std::int32_t>

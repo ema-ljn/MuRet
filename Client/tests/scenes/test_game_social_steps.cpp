@@ -67,11 +67,16 @@ public:
     std::vector<Sent> sent;
 };
 
-class GameSocialStepsTest : public ::testing::Test
+// Cada caso en Lorencia y en Devias.
+constexpr std::int32_t Lorencia = 0;
+constexpr std::int32_t Devias = 2;
+
+class GameSocialStepsTest : public ::testing::TestWithParam<std::int32_t>
 {
 protected:
     GameSocialStepsTest()
     {
+        Runtime().map = GetParam();
         Runtime().panels.trade = 1;
         Runtime().hud.tradeX = 0x104;
         Runtime().hud.tradeY = 0;
@@ -129,7 +134,7 @@ protected:
 };
 
 // Con el comercio cerrado, solo su IsOpen (el rand() del byte protegido).
-TEST_F(GameSocialStepsTest, AClosedTradeOnlyDrawsItsQuery)
+TEST_P(GameSocialStepsTest, AClosedTradeOnlyDrawsItsQuery)
 {
     Runtime().panels.trade = 0;
     ASSERT_TRUE(StepTheTrade(0x104 + 0x61, 0x186).HasValue());
@@ -139,7 +144,7 @@ TEST_F(GameSocialStepsTest, AClosedTradeOnlyDrawsItsQuery)
 }
 
 // 0x5ecf2d..0x5ed476: el OK da vuelta el propio, prende 0x78abaa5 y manda el C1 04 3C con el nuevo en C3.
-TEST_F(GameSocialStepsTest, TheOkButtonTogglesTheOwnOk)
+TEST_P(GameSocialStepsTest, TheOkButtonTogglesTheOwnOk)
 {
     ASSERT_TRUE(StepTheTrade(0x104 + 0x61, 0x186).HasValue());
     const Client::Scenes::TradeState& trade = Runtime().social.trade;
@@ -161,7 +166,7 @@ TEST_F(GameSocialStepsTest, TheOkButtonTogglesTheOwnOk)
 
 // 0x5ecf57..0x5ecf80: con la grilla del otro cambiada (0x78abaa5) y el OK propio apagado, el aviso 0x633300(4, 0x173,
 // 0x94) y nada sale.
-TEST_F(GameSocialStepsTest, AChangedGridWarnsInsteadOfOk)
+TEST_P(GameSocialStepsTest, AChangedGridWarnsInsteadOfOk)
 {
     Runtime().social.trade.changed = 1;
     ASSERT_TRUE(StepTheTrade(0x104 + 0x61, 0x186).HasValue());
@@ -174,7 +179,7 @@ TEST_F(GameSocialStepsTest, AChangedGridWarnsInsteadOfOk)
 
 // 0x5ece9a..0x5ecf1b: la espera del OK baja de a uno y, mientras no llega a 0, el OK no se mira; un ítem en el cursor
 // tampoco lo deja.
-TEST_F(GameSocialStepsTest, TheOkWaitsAndSkipsTheCursorItem)
+TEST_P(GameSocialStepsTest, TheOkWaitsAndSkipsTheCursorItem)
 {
     Runtime().social.trade.okWait = 2;
     ASSERT_TRUE(StepTheTrade(0x104 + 0x61, 0x186).HasValue());
@@ -191,7 +196,7 @@ TEST_F(GameSocialStepsTest, TheOkWaitsAndSkipsTheCursorItem)
 }
 
 // 0x5ece4c..0x5eceae: el zen abre el diálogo 0x73 con su campo.
-TEST_F(GameSocialStepsTest, TheMoneyButtonOpensTheMoneyDialog)
+TEST_P(GameSocialStepsTest, TheMoneyButtonOpensTheMoneyDialog)
 {
     Runtime().ui.chatOpen = true;
     ASSERT_TRUE(StepTheTrade(0x104 + 0x1a, 0x186).HasValue());
@@ -208,7 +213,7 @@ TEST_F(GameSocialStepsTest, TheMoneyButtonOpensTheMoneyDialog)
 }
 
 // 0x5ed4cc..0x5ed936: cancelar apaga 0x78abaa5 y manda el C1 03 3D en C3; la ventana la cierra el 3D del GS.
-TEST_F(GameSocialStepsTest, TheCancelButtonSendsTheCancel)
+TEST_P(GameSocialStepsTest, TheCancelButtonSendsTheCancel)
 {
     Runtime().social.trade.changed = 1;
     ASSERT_TRUE(StepTheTrade(0x104 + 0x89, 0x186).HasValue());
@@ -223,7 +228,7 @@ TEST_F(GameSocialStepsTest, TheCancelButtonSendsTheCancel)
 
 // 0x5ebca0: sin el pedido nada; con él, el mouse sobre la caja es de la UI, y sí o no mandan el AC con la clave y el
 // nombre del rival en C3 y bajan el pedido, sin gastar el clic.
-TEST_F(GameSocialStepsTest, TheDuelRequestAnswersYesOrNo)
+TEST_P(GameSocialStepsTest, TheDuelRequestAnswersYesOrNo)
 {
     ASSERT_TRUE(StepTheDuel(0xed, 0xfa).HasValue());
     EXPECT_TRUE(m_requests.sent.empty());
@@ -254,4 +259,6 @@ TEST_F(GameSocialStepsTest, TheDuelRequestAnswersYesOrNo)
     EXPECT_EQ(Runtime().ui.field78abad9, 0);
     EXPECT_EQ(Draws(), 4);
 }
+
+INSTANTIATE_TEST_SUITE_P(TwoMaps, GameSocialStepsTest, ::testing::Values(Lorencia, Devias));
 } // namespace

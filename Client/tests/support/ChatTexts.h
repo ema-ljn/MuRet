@@ -41,6 +41,8 @@ inline std::map<std::size_t, std::string> ChatTexts()
         {UI::BuyCommandText, "/adquirir"},
         {UI::ShopViewOnCommandText, "/ver puestos"},
         {UI::ShopViewOffCommandText, "/no ver puestos"},
+        {UI::ShopViewOnNoticeText, "aviso carteles"},
+        {UI::ShopViewOffNoticeText, "aviso sin carteles"},
         {UI::AllianceCommandText, "/aliados"},
         {UI::RivalCommandText, "/rivales"},
         {UI::RivalOffCommandText, "/sin rivales"},

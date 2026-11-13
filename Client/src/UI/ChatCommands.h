@@ -25,20 +25,23 @@
 namespace Client::UI
 {
 // Los textos de Text.bmd que compara y avisa.
-inline constexpr std::size_t ExchangeCommandText = 258;  // "/exchange"
-inline constexpr std::size_t TradeCommandText = 259;     // "/trade"
-inline constexpr std::size_t MoveCommandText = 260;      // "/move"
-inline constexpr std::size_t GuildCommandText = 254;     // "/guild"
-inline constexpr std::size_t PartyCommandText = 256;     // "/party"
-inline constexpr std::size_t GuildWarCommandText = 248;  // el de la guerra de gremios
-inline constexpr std::size_t SoccerCommandText = 249;    // el de Battle Soccer
-inline constexpr std::size_t FilterCommandText = 753;    // "/filter"
-inline constexpr std::size_t DuelStartCommandText = 908; // "/Duelchallenge"
-inline constexpr std::size_t DuelEndCommandText = 909;   // "/DuelCancel"
-inline constexpr std::size_t ShopCommandText = 1117;     // "/Personal store"
-inline constexpr std::size_t BuyCommandText = 1118;      // "/Buy"
-inline constexpr std::size_t ShopViewOnCommandText = 1136;
-inline constexpr std::size_t ShopViewOffCommandText = 1137;
+inline constexpr std::size_t ExchangeCommandText = 258;     // "/exchange"
+inline constexpr std::size_t TradeCommandText = 259;        // "/trade"
+inline constexpr std::size_t MoveCommandText = 260;         // "/move"
+inline constexpr std::size_t GuildCommandText = 254;        // "/guild"
+inline constexpr std::size_t PartyCommandText = 256;        // "/party"
+inline constexpr std::size_t GuildWarCommandText = 248;     // el de la guerra de gremios
+inline constexpr std::size_t SoccerCommandText = 249;       // el de Battle Soccer
+inline constexpr std::size_t FilterCommandText = 753;       // "/filter"
+inline constexpr std::size_t DuelStartCommandText = 908;    // "/Duelchallenge"
+inline constexpr std::size_t DuelEndCommandText = 909;      // "/DuelCancel"
+inline constexpr std::size_t ShopCommandText = 1117;        // "/Personal store"
+inline constexpr std::size_t BuyCommandText = 1118;         // "/Buy"
+inline constexpr std::size_t ShopViewOnCommandText = 1136;  // 0x771051c, "/ver puestos"
+inline constexpr std::size_t ShopViewOffCommandText = 1137; // 0x7710648, su par
+// 0x56d730 y 0x56d784: los avisos de los carteles prendidos (0x7710774, tipo 1) y apagados (0x77108a0, tipo 2).
+inline constexpr std::size_t ShopViewOnNoticeText = 1138;
+inline constexpr std::size_t ShopViewOffNoticeText = 1139;
 inline constexpr std::size_t AllianceCommandText = 1354;
 inline constexpr std::size_t RivalCommandText = 1356;
 inline constexpr std::size_t RivalOffCommandText = 1357;
@@ -102,6 +105,9 @@ struct ChatCommandContext
     std::int32_t& helpItem;
     // [0x6eed3c] + 0x9305, el cartel del set (0x40ebd0, y 0x5ae360 lo apaga); sin él, no lo escribe.
     std::uint8_t* setLabel = nullptr;
+    // +0x14 del mapa de los carteles (0x451d10): "/ver puestos" lo pone en 1 (0x4516a0) y su par en 0 (0x4516b0). Sin
+    // él, esos dos casos cortan.
+    std::uint8_t* signsShown = nullptr;
     // 0x56c5d0..0x56c652 (/trade): el nivel del registro propio (+0xe), abriéndolo y cerrándolo (sus rand()). Sin él,
     // /trade corta ahí.
     std::function<std::uint16_t()> ownLevel{};

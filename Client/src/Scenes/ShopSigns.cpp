@@ -371,7 +371,7 @@ Core::Expected<void, std::string> DrawTheShopSigns(ShopSignDrawContext& context)
     // 0x451c27..0x451c2c: el mapa vacío.
     if (shops.titles.empty())
         return {};
-    // Un dibujo intermedio escribe +0x10 y los +0x60 en una copia.
+    // Un dibujo intermedio escribe +0x10, los +0x60 y los lugares en una copia.
     std::optional<std::map<std::size_t, ShopTitle>> scratchTitles;
     std::int32_t scratchBlink = shops.signBlink;
     if (context.projecting)
@@ -416,6 +416,10 @@ Core::Expected<void, std::string> DrawTheShopSigns(ShopSignDrawContext& context)
     std::size_t at = 0;
     for (auto& [index, sign] : state.titles)
     {
+        // 0x451de3 y 0x451e40: el lugar de cada uno, ya repartido y contra los bordes, queda en +0x48 y +0x4c
+        // (0x4527d0).
+        sign.x = boxes[at].x;
+        sign.y = boxes[at].y;
         // 0x451c67..0x451cc0: IsOpen(0x200) no saca rand().
         if (chosen != -1 && state.blink < BlinkShown && context.panels.IsOpen(UI::CommandsPanel) &&
             runtime.panels.delegated.commandsWindow.chosen == ShopCommand)

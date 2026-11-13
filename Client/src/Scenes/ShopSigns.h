@@ -150,15 +150,16 @@ struct ShopSignDrawContext
     // El SelectObject de 0x452d50: queda la fuente del último renglón dibujado.
     Render::Text::FontKind& dcFont;
     const Data::Text::TextTable* texts = nullptr;
-    // Un dibujo intermedio de MuRet no escribe +0x10 ni los +0x60: van a una copia.
+    // Un dibujo intermedio de MuRet no escribe +0x10, los +0x60 ni los lugares (+0x48 y +0x4c): van a una copia.
     bool projecting = false;
 };
 
 // 0x451c20, el hijo 13 del HUD: con el mapa vacío (+0xc en 0), nada. Si no, 0x451d60 (0x5bb8d0 con sus rand(), y el
-// lugar de cada cartel), 0x451e40 y la cuenta de +0x10 (de 0 a 7). Cada cartel, en el orden del mapa: con un elegido
+// lugar de cada cartel), 0x451e40 (el lugar repartido queda en +0x48 y +0x4c de cada uno) y la cuenta de +0x10 (de 0
+// a 7). Cada cartel, en el orden del mapa: con un elegido
 // (0x6c8e30), +0x10 menor que 3, la ventana de los comandos (0x200) abierta y su comando 2 (la tienda), +0x60 en 1 si
 // es el del elegido (los otros lo guardan, 07 Q-C977); si no, +0x60 en 0. A la vista (+0x44) y con +0x14 del mapa (que
-// apaga "/ver puestos", 0x56d722), 0x452a10 con su PK: el texto 1104 y el nombre en negrita en el primer renglón y las
-// líneas del título debajo, en blanco sobre 0xc829396c con la normal, cada uno con su quad de 0x452e50.
+// apaga "/no ver puestos", 0x56d776), 0x452a10 con su PK: el texto 1104 y el nombre en negrita en el primer renglón y
+// las líneas del título debajo, en blanco sobre 0xc829396c con la normal, cada uno con su quad de 0x452e50.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheShopSigns(ShopSignDrawContext& context);
 } // namespace Client::Scenes

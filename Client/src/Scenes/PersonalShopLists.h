@@ -46,7 +46,9 @@ CloseThePersonalShop(WorldState& world, Render::Models::CrtRandom& random, const
 // propia a su copia si 0x20000 no estaba abierta, el título (strncpy de 0x24), la grilla de la tienda vacía,
 // Open(0x20000) y el mapa de la de otro vacío; por cada entrada, con un precio de 0 o menos, Close(0x800) y
 // Close(0x20000) y sale; si no, 0x5bc740(0x78a9bb0, 8, 8, lugar, ítem, 0) y el precio en el mapa. Al final, la copia
-// del dueño si está en el viewport (0x5110d0). Con 3, el texto 1120 con el tipo 2; con otro, el log.
+// del dueño si está en el viewport (0x5110d0). Con 3, el texto 1120 con el tipo 2; con otro, el log. Una entrada de las
+// que se ponen con una huella que pasa su grilla (Q-C200) descarta el paquete entero, antes de cerrar nada, con un
+// aviso en el log.
 [[nodiscard]] Core::Expected<void, std::string> ApplyShopItemList(const Protocol::PersonalShop::ShopItemList& list,
                                                                   const WorldEntryResources& resources,
                                                                   const GamePacketSender& send);
@@ -54,13 +56,14 @@ CloseThePersonalShop(WorldState& world, Render::Models::CrtRandom& random, const
 // 0x4dbcb0 (3F 06): con 1 y 0x6c931c en 2, el lugar de 0x78a6758 sale del mapa de la de otro y de la grilla
 // (0x5bd750); con 1 y otro modo, ese mapa vacío; con 1, el ítem comprado en su lugar (0x5bc740 con el último argumento
 // en 0). Con 6, el texto 1166 y Close(0x800) y Close(0x20000); con 7, el 423; con 8, el 375 (todos con el tipo 2); con
-// 7, 8 u otro, 0x5be150.
+// 7, 8 u otro, 0x5be150. Con 1 y una huella que pasa su grilla (Q-C200), el paquete se descarta entero con un aviso.
 [[nodiscard]] Core::Expected<void, std::string> ApplyShopPurchase(const Protocol::PersonalShop::ShopPurchase& purchase,
                                                                   const WorldEntryResources& resources,
                                                                   const GamePacketSender& send);
 
 // 0x4dbb40 (3F 0x13): con 1 y 0x6c931c en 2, la grilla de la tienda vacía, el mapa de la de otro vacío y cada entrada
-// en su lugar con su precio, sin mirar el precio. Si no, el log.
+// en su lugar con su precio, sin mirar el precio. Si no, el log. Una entrada con una huella que pasa su grilla (Q-C200)
+// descarta el paquete entero, con un aviso en el log.
 [[nodiscard]] Core::Expected<void, std::string> ApplyShopRefresh(const Protocol::PersonalShop::ShopRefresh& refresh,
                                                                  const WorldEntryResources& resources);
 } // namespace Client::Scenes

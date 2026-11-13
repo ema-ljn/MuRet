@@ -484,5 +484,74 @@ TEST_P(PersonalShopListsTest, TheCursorItemGoesBackToItsGrid)
     EXPECT_EQ(trade.ownGrid[9].occupied, 0u);
 }
 
+// 0x5bc740 con 0x78a9bb0 escribe la huella sin tope (Q-C200): un 3F 05 con un ítem de 1 por 2 en la última fila de la
+// grilla de la tienda se descarta entero, antes de cerrar o abrir nada y sin rand(); lo de detrás de un precio de 0 no
+// cuenta. Lo mismo un 3F 06 que pasa la casilla 63 del inventario y un 3F 0x13 que pasa la 31 de la tienda, o que
+// empieza en el lugar 116.
+TEST_P(PersonalShopListsTest, AnEntryPastItsGridDiscardsThePacket)
+{
+    WorldState& world = *m_world;
+    Shop::ShopItemList list{};
+    list.result = Shop::ListedResult;
+    list.key = SellerKey;
+    list.title = TitleOf("Cosas raras");
+    list.entries = {{.slot = FirstShopSlot, .item = ItemBytes(SmallType), .price = 100},
+                    {.slot = FirstShopSlot + 28, .item = ItemBytes(TallType), .price = 100}};
+    CrtRandom before = m_cloth.random;
+    const auto listed = Client::Scenes::ApplyShopItemList(list, Resources(), Sender());
+    ASSERT_TRUE(listed.HasValue()) << listed.Error();
+    ExpectDraws(before, 0);
+    EXPECT_EQ(world.Runtime().panels.personalShop, 0);
+    EXPECT_EQ(world.Runtime().panels.inventory, 1);
+    EXPECT_EQ(Shops().mode, Client::Scenes::NoShopView);
+    EXPECT_TRUE(Shops().ownTitle.empty());
+    EXPECT_EQ(world.Inventory().secondCells[0].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_TRUE(m_sent.empty());
+    ASSERT_FALSE(m_sink.lines.empty());
+    EXPECT_NE(m_sink.lines.back().find("3F 05"), std::string::npos) << m_sink.lines.back();
+    EXPECT_NE(m_sink.lines.back().find("casilla 36"), std::string::npos) << m_sink.lines.back();
+    EXPECT_NE(m_sink.lines.back().find("Q-C200"), std::string::npos) << m_sink.lines.back();
+
+    // Detrás de un precio de 0 no se pone: la lista se aplica (los Open y Close de los paneles sacan sus rand()) y
+    // cierra las dos.
+    std::size_t warnings = m_sink.lines.size();
+    list.entries[0].price = 0;
+    before = m_cloth.random;
+    ASSERT_TRUE(Client::Scenes::ApplyShopItemList(list, Resources(), Sender()).HasValue());
+    EXPECT_EQ(m_sink.lines.size(), warnings);
+    EXPECT_NE(m_cloth.random.State(), before.State());
+    EXPECT_EQ(Shops().mode, Client::Scenes::NoShopView);
+
+    // 3F 06 a la casilla 60 del inventario (el lugar 72): la 68 pasa las 64. Ni el mapa se vacía.
+    Shops().pricesBuilt = true;
+    Shops().otherPrices = {{FirstShopSlot + 3, 5}};
+    before = m_cloth.random;
+    const auto bought = Client::Scenes::ApplyShopPurchase({.result = 1, .item = ItemBytes(TallType), .slot = 12 + 60},
+                                                          Resources(), Sender());
+    ASSERT_TRUE(bought.HasValue()) << bought.Error();
+    ExpectDraws(before, 0);
+    EXPECT_EQ(world.Inventory().cells[60].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(Shops().otherPrices, (std::map<std::int32_t, std::int32_t>{{FirstShopSlot + 3, 5}}));
+    EXPECT_NE(m_sink.lines.back().find("3F 06"), std::string::npos) << m_sink.lines.back();
+    EXPECT_NE(m_sink.lines.back().find("0x78a9bb0"), std::string::npos) << m_sink.lines.back();
+
+    // 3F 0x13 con la de otro a la vista: ni la grilla ni el mapa se vacían.
+    Shops().mode = Client::Scenes::OtherShopView;
+    world.Inventory().secondCells[1].id = SmallType;
+    for (const std::uint8_t slot : {static_cast<std::uint8_t>(FirstShopSlot + 31), std::uint8_t{116}})
+    {
+        warnings = m_sink.lines.size();
+        const std::uint16_t type = slot == 116 ? SmallType : TallType;
+        const Shop::ShopRefresh refresh{.result = Shop::ListedResult,
+                                        .entries = {{.slot = slot, .item = ItemBytes(type), .price = 9}}};
+        ASSERT_TRUE(Client::Scenes::ApplyShopRefresh(refresh, Resources()).HasValue());
+        EXPECT_EQ(world.Inventory().secondCells[1].id, SmallType);
+        EXPECT_EQ(Shops().otherPrices, (std::map<std::int32_t, std::int32_t>{{FirstShopSlot + 3, 5}}));
+        ASSERT_EQ(m_sink.lines.size(), warnings + 1);
+        EXPECT_NE(m_sink.lines.back().find("3F 0x13"), std::string::npos) << m_sink.lines.back();
+        EXPECT_NE(m_sink.lines.back().find("0x78ab0b8"), std::string::npos) << m_sink.lines.back();
+    }
+}
+
 INSTANTIATE_TEST_SUITE_P(TwoMaps, PersonalShopListsTest, ::testing::Values(Lorencia, Devias));
 } // namespace

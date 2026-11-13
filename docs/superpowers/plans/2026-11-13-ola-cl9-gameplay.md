@@ -371,6 +371,11 @@ byte protegido de `0x10000` con la tienda abierta; el ancho del mundo con cada v
         `0x556e26`) y su medida y dibujo (`0x5559c2`, `0x5563a4`); 07 Q-C976, Q-C977 y Q-C978 (08 P-C208 a, P-C342,
         P-C343).
   - [ ] El paso del `0x91` (`0x6260f6`, con el EDIT del hito 6, 08 P-C312).
+  - [x] Revisión contra el ASM (2026-11-13): "/ver puestos" y su par (`0x56d6ee..0x56d796`, 08 P-C343 a), la clave
+        de los carteles con `& 0x7fff` y su lugar (`0x4524e0`, `0x4511f0`; 07 Q-C969), el marco del `0x73` y Enter con
+        el modo del zen (el EDIT, 08 P-C362), el no de los diálogos de otros hitos (08 P-C363), y los `38`, `39`, `42`,
+        `44` y `3F` `05`, `06` y `0x13` que el original lleva fuera de sus arreglos, que se descartan enteros con un
+        aviso (07 Q-C200, Q-C960 y Q-C961).
 - [ ] **La party:** `0x40`..`0x44` (`0x4d67e0`), la vida de la party (`0x5a89b0`), la ventana `0x5f0be0`,
       echar a alguien (`0x5e3d03`, `C1 04 43`), la cantidad del grupo (`0x78aba48`, que lee el dibujo en
       `0x59e680`).

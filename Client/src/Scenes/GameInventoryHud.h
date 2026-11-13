@@ -60,8 +60,8 @@ struct UiItemBox;
 
 // 0x5f26a7..0x5f2751: el zen con comas cada tres cifras, en divisiones sin signo ("%d,%03d,%03d,%03d" desde mil
 // millones, y así hasta "%d"). Lo usa también el precio de la tienda personal en la ayuda del ítem
-// (0x5b2ff9..0x5b30ba). Al mergear la CL9 hito 6 queda el Scenes::FormatZen de Scenes/ZenText.h (0x5b1130, la misma
-// cuenta) y este se va.
+// (0x5b2ff9..0x5b30ba). Es un duplicado temporal: los hitos 2 y 6 de la CL9 traen Scenes::FormatZen en
+// Scenes/ZenText.h (0x5b1130, la misma cuenta); al mergearlos queda ese y este se va, con sus llamadas.
 [[nodiscard]] std::string FormatZen(std::uint32_t zen);
 
 // 0x5f7610: los ítems 3D de las grillas abiertas, en su orden. Del inventario, el equipo (0x5e2fc0, con el registro

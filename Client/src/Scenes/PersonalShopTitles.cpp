@@ -19,6 +19,10 @@ namespace
 {
 // +0x88 de un jugador.
 constexpr std::uint8_t PlayerKind = 1;
+// 0x4524ef: el alta guarda la clave con & 0x7fff en +0x40.
+constexpr std::int32_t StoredKeyMask = 0x7fff;
+// 0x451348..0x451351 y 0x4512ef..0x4512fe: el lugar que el alta y la actualización le dan a 0x4527d0.
+constexpr std::int32_t Unplaced = -1;
 
 std::int32_t KeyOf(const ActorState& actor)
 {
@@ -37,14 +41,21 @@ void AddShopTitle(WorldState& world, std::int32_t key, std::size_t index, std::s
     const auto found = shops.titles.find(index);
     if (found == shops.titles.end())
     {
-        // 0x451326..0x451382: el cartel nuevo, con el lugar en (−1, −1).
-        shops.titles.emplace(index, ShopTitle{.key = key, .name = ChatNameOf(actor), .title = std::string(title)});
+        // 0x451326..0x451382: el cartel nuevo (0x4524e0), con la clave & 0x7fff y el lugar en (−1, −1).
+        shops.titles.emplace(index, ShopTitle{.key = key & StoredKeyMask,
+                                              .name = ChatNameOf(actor),
+                                              .title = std::string(title),
+                                              .x = Unplaced,
+                                              .y = Unplaced});
     }
     else if (found->second.key == key)
     {
-        // 0x4512e0..0x451301.
+        // 0x4512d1..0x451301: la clave guardada (0x452530, ya con & 0x7fff) contra la entera, que desde 0x8000 no se
+        // iguala nunca (07 Q-C969); el nombre y el título nuevos (0x452540) y el lugar en (−1, −1) (0x4527d0).
         found->second.name = ChatNameOf(actor);
         found->second.title = std::string(title);
+        found->second.x = Unplaced;
+        found->second.y = Unplaced;
     }
     else
     {

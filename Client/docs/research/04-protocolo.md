@@ -884,8 +884,8 @@ Del GS al cliente (los tamaños son los que lee el cliente):
 | --- | --- | --- | --- |
 | `36` | `C1 0D 36 <nombre:10>` | `0x4d4af0` | Sin cifrar (`[EBP+0xc]` en 0), solo el aviso `C1 06 F1 03 00 36` en C3 (2 `rand()`). Cifrado: con la tienda personal propia o ajena abiertas (`0x800`, `0x20000`, sin `rand()`), el `C1 04 37 00` con el XOR32 en claro y nada más; si no, el nombre en `0x78aba1c` (con su 0 en `0x78aba26`), el diálogo `0x78` y, con un ítem en el cursor, `0x5be150` |
 | `37` | `C1 14 37 <resp> <nombre:10> <nivel:2 LE> <gremio:4 LE>` | `0x4d5570` | 0: texto 492; 2: texto 493 (los dos tipo 2). 1: `Open(0x20)`, el pedido de `SetCursorPos` (08 P-C202), el zen y los OK en 0, `0x5bbdf0` si `0x78abaa5` está en 0 y el nombre cambió (`strcmp`), y el nombre, el gremio (`0x6c9324`) y el nivel (`0x78abab0`) |
-| `38` | `C1 04 38 <lugar>` | `0x4e3d6a` | `0x5bd750(lugar, 0x78a5a20, 8)`: la copia (`0x5bc5e0`), la huella vacía y `0x5bc470`; el sonido `0x1d` |
-| `39` | `C1 0B 39 <lugar> <ítem:7>` | `0x4e3d99` | `0x5bc740(0x78a5a20, 8, 4, lugar, ítem, 1)` y `0x5bc470`; el sonido `0x1d` |
+| `38` | `C1 04 38 <lugar>` | `0x4e3d6a` | `0x5bd750(lugar, 0x78a5a20, 8)`: la copia (`0x5bc5e0`), la huella vacía y `0x5bc470`; el sonido `0x1d`. Con 0xff, solo el sonido. Un lugar desde 32 lee fuera de la grilla y un undécimo ítem igual a su copia pisa la pila de `0x5bc470` (07 Q-C200 y Q-C961): MuRet descarta el paquete entero, sin sonido y con un aviso |
+| `39` | `C1 0B 39 <lugar> <ítem:7>` | `0x4e3d99` | `0x5bc740(0x78a5a20, 8, 4, lugar, ítem, 1)` (`0x5bd307..0x5bd3ec`) y `0x5bc470`; el sonido `0x1d`. Una huella que pasa la casilla 31 o un undécimo ítem igual a su copia (07 Q-C200 y Q-C961): MuRet descarta el paquete entero, sin sonido y con un aviso |
 | `3A` | `C1 04 3A <sí>` | `0x4e3dd0` | `0x78abab8` con el zen mandado (`0x57678ac`) si es 1, o 0 |
 | `3B` | `C1 08 3B 00 <zen:4 LE>` | `0x4e3df3` | el zen del otro en `0x78abab4` |
 | `3C` | `C1 04 3C <estado>` | `0x4e3e0a` | 0 apaga el OK del otro, 1 lo prende, 2 apaga el propio; siempre el sonido `0x19` |
@@ -922,7 +922,8 @@ Del cliente: el `40` (`C1 05 40 <clave BE>`, C3; `0x406050` desde `0x40739b` y `
 <clave BE>`, C3; el diálogo `0x77`, `0x62bb1d` y `0x62cd52`), el `42` (`C1 03 42`, en claro, al abrir la ventana) y
 el `43` (`C1 04 43 <número>`, XOR32 en claro; el botón de echar de `0x5e3c80`). Los tamaños coinciden con
 `PMSG_PARTYLIST` y `PMSG_PARTYLIFEALL` del GS 0.97. Ni el `42` ni el `44` ponen tope: más de cinco miembros o un
-nibble de 5 o más escriben pasados los cinco lugares (07 Q-C960).
+nibble de 5 o más escriben pasados los cinco lugares (07 Q-C960); MuRet descarta esos paquetes enteros, con un aviso en
+el log.
 
 ### El duelo: `AA` a `AD`
 
@@ -958,6 +959,10 @@ clave es el primero vivo de los 400 con ella (`0x5110d0`, que da 400 sin ninguno
 | `05` | `C2 <tamaño:2> 3F 05 <resultado> <clave BE> <?:10> <título:36> <n> n × (<lugar> <ítem:7> <precio:4 LE>)` | `0x4db890` | con 1: `Close(0x40)` y `Close(0x4000000)` si están abiertas, la copia del dueño (`0x78a6320`) en ceros, la grilla propia a su copia (`0x78ab0b8` → `0x78a6768`) si `0x20000` no estaba abierta, el título (`strncpy` de 0x24 a `0x78aba64`, 07 Q-C962), la grilla de la tienda vacía, `Open(0x20000)` y el mapa `0x7245e0` vacío; por entrada, con un precio de 0 o menos `Close(0x800)` y `Close(0x20000)` y sale; si no, `0x5bc740(0x78a9bb0, 8, 8, lugar, ítem, 0)` y el precio en el mapa. Al final, la copia del registro del dueño si `0x5110d0` lo encuentra. Con 3, el texto 1120 con el tipo 2; con otro, el log `0x6c8578`. `pkt[8..0x11]` no se lee (fase 4) |
 | `06` | `C1 0F 3F 06 <resultado> <?:2> <ítem:7> <lugar>` | `0x4dbcb0` | con 1: mirando la de otro (`0x6c931c` en 2) el lugar de `0x78a6758` sale del mapa `0x7245e0` y de la grilla (`0x5bd750`), si no el mapa vacío; después lo comprado en su lugar (`0x5bc740` con el último argumento en 0). Con 6, el texto 1166 y `Close(0x800)` y `Close(0x20000)`; con 7, el 423; con 8, el 375 (los tres con el tipo 2); con 7, 8 u otro, `0x5be150` (fase 4) |
 | `13` | `C2 <tamaño:2> 3F 13 <resultado> <?:0x30> <n> n × (<lugar> <ítem:7> <precio:4 LE>)` | `0x4dbb40` | con 1 y `0x6c931c` en 2: la grilla de la tienda vacía, el mapa `0x7245e0` vacío y cada entrada en su lugar con su precio, sin mirar el precio; si no, el log `0x6c85b0` (fase 4) |
+
+Los ítems de los `3F` `05`, `06` y `0x13` van a las grillas del inventario con `0x5bc740` (`0x78a9bb0`), que no mira el
+tope (07 Q-C200): una entrada que se pone con una huella fuera de su grilla hace que MuRet descarte el paquete entero,
+antes de cerrar o abrir nada, con un aviso en el log (en el `05`, solo las de antes del primer precio de 0 o menos).
 
 Del cliente: el `3F 05` (`C1 10 3F 05 <clave BE> <nombre:10>`, C3), el comando 2 de la ventana de comandos sobre el
 elegido (`0x406b02`, 06 § "El comando sobre el elegido"; `Protocol::PersonalShop::WriteShopItemsRequest`) y `/purchase`

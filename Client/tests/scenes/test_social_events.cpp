@@ -185,9 +185,50 @@ struct Stage
     LetterMeasure letters;
 };
 
-std::unique_ptr<Stage> MakeStage()
+// Cada caso en Lorencia y en Devias.
+constexpr std::int32_t Lorencia = 0;
+constexpr std::int32_t Devias = 2;
+
+class SocialEventsTest : public ::testing::TestWithParam<std::int32_t>
 {
-    return std::make_unique<Stage>();
+protected:
+    std::unique_ptr<Stage> MakeStage()
+    {
+        auto stage = std::make_unique<Stage>();
+        stage->Runtime().map = GetParam();
+        return stage;
+    }
+};
+
+// Lo que mira un descarte: cada casilla de la grilla del otro y de la copia, y 0x78abaa5.
+struct TradeGrids
+{
+    std::vector<std::uint16_t> ids;
+    std::vector<std::uint32_t> occupied;
+    std::vector<std::uint8_t> warnings;
+    std::uint8_t changed = 0;
+
+    bool operator==(const TradeGrids&) const = default;
+};
+
+TradeGrids GridsOf(const Client::Scenes::TradeState& trade)
+{
+    TradeGrids grids;
+    for (std::size_t slot = 0; slot < Client::Scenes::TradeGridCells; ++slot)
+    {
+        grids.ids.push_back(trade.otherGrid[slot].id);
+        grids.ids.push_back(trade.backup[slot].id);
+        grids.occupied.push_back(trade.otherGrid[slot].occupied);
+        grids.warnings.push_back(trade.otherGrid[slot].warning);
+    }
+    grids.changed = trade.changed;
+    return grids;
+}
+
+bool WarnedWith(const Stage& stage, std::string_view text)
+{
+    return !stage.sink.lines.empty() && stage.sink.levels.back() == Client::Core::LogLevel::Warning &&
+           stage.sink.lines.back().find(text) != std::string::npos;
 }
 
 // 0x4d4af0 y 0x4d5570 con el comercio abierto: el pedido (sin tiendas, sin rand()), la respuesta 1 (Open(0x20)).
@@ -210,7 +251,7 @@ void OpenTheAskedTrade(Stage& stage)
     ASSERT_TRUE(opened.HasValue()) << opened.Error();
 }
 
-TEST(SocialEventsTest, TheTradeRequestOpensTheDialogWithoutRandoms)
+TEST_P(SocialEventsTest, TheTradeRequestOpensTheDialogWithoutRandoms)
 {
     auto stage = MakeStage();
     const auto asked = Client::Scenes::ApplyTradeRequest({NameOf<10>("Arbusto")}, stage->Resources());
@@ -221,7 +262,7 @@ TEST(SocialEventsTest, TheTradeRequestOpensTheDialogWithoutRandoms)
     EXPECT_EQ(DrawsSince(stage->cloth.random), 0);
 }
 
-TEST(SocialEventsTest, AnOpenPersonalShopRefusesTheTradeInClear)
+TEST_P(SocialEventsTest, AnOpenPersonalShopRefusesTheTradeInClear)
 {
     auto stage = MakeStage();
     stage->Runtime().panels.personalShop = 1;
@@ -234,7 +275,7 @@ TEST(SocialEventsTest, AnOpenPersonalShopRefusesTheTradeInClear)
     EXPECT_TRUE(TextOf(stage->Trade().otherName).empty());
 }
 
-TEST(SocialEventsTest, AClearTradeRequestOnlyReportsItWithTwoRandoms)
+TEST_P(SocialEventsTest, AClearTradeRequestOnlyReportsItWithTwoRandoms)
 {
     auto stage = MakeStage();
     const Client::Protocol::Outgoing report = Client::Scenes::ApplyClearTradeRequest(stage->cloth.random);
@@ -245,7 +286,7 @@ TEST(SocialEventsTest, AClearTradeRequestOnlyReportsItWithTwoRandoms)
 
 // 0x659e46: Open(0x20) con nada abierto saca 9: su IsOpen, el 0x10000 y el 0x20 de CanOpen, el 0x10000 de su
 // CloseByMask, los cuatro de Open(inventario) y la escritura del byte protegido.
-TEST(SocialEventsTest, TheAcceptedTradeOpensTheWindowAndTheInventory)
+TEST_P(SocialEventsTest, TheAcceptedTradeOpensTheWindowAndTheInventory)
 {
     auto stage = MakeStage();
     stage->Trade().otherMoney = 5;
@@ -266,7 +307,7 @@ TEST(SocialEventsTest, TheAcceptedTradeOpensTheWindowAndTheInventory)
     EXPECT_EQ(trade.cursorMoveRequested, 1);
 }
 
-TEST(SocialEventsTest, RefusedAndBusyTradesOnlySayIt)
+TEST_P(SocialEventsTest, RefusedAndBusyTradesOnlySayIt)
 {
     auto stage = MakeStage();
     ASSERT_TRUE(Client::Scenes::ApplyTradeResponse({0, {}, 0, 0}, stage->Resources()).HasValue());
@@ -279,7 +320,7 @@ TEST(SocialEventsTest, RefusedAndBusyTradesOnlySayIt)
 }
 
 // Una vuelta entera: el pedido, la respuesta, un ítem del otro, el zen de los dos, los OK y el resultado.
-TEST(SocialEventsTest, AWholeTradeRound)
+TEST_P(SocialEventsTest, AWholeTradeRound)
 {
     auto stage = MakeStage();
     OpenTheTrade(*stage);
@@ -326,7 +367,7 @@ TEST(SocialEventsTest, AWholeTradeRound)
 }
 
 // 0x5bd750 guarda la copia de lo que el otro saca (0x5bc5e0) y 0x5bc470 marca con 99 lo que vuelve peor.
-TEST(SocialEventsTest, TheOtherGridMarksAWorseItemThanItsCopy)
+TEST_P(SocialEventsTest, TheOtherGridMarksAWorseItemThanItsCopy)
 {
     auto stage = MakeStage();
     OpenTheAskedTrade(*stage);
@@ -352,7 +393,7 @@ TEST(SocialEventsTest, TheOtherGridMarksAWorseItemThanItsCopy)
 }
 
 // 0x5bc5e0 no copia un ítem común (nivel 4 o menos, sin excelente).
-TEST(SocialEventsTest, APlainItemIsNotWorthACopy)
+TEST_P(SocialEventsTest, APlainItemIsNotWorthACopy)
 {
     auto stage = MakeStage();
     OpenTheTrade(*stage);
@@ -365,8 +406,8 @@ TEST(SocialEventsTest, APlainItemIsNotWorthACopy)
 }
 
 // 0x5bc52f: la lista de la pila de 0x5bc470 es de 10; el undécimo ítem igual a su copia escribiría pasado ella
-// (Q-C961).
-TEST(SocialEventsTest, ElevenItemsLikeTheirCopiesPassTheList)
+// (Q-C961): el 39 se descarta entero, sin el ítem, sin el sonido y con un aviso.
+TEST_P(SocialEventsTest, ElevenItemsLikeTheirCopiesDiscardTheEleventh)
 {
     auto stage = MakeStage();
     OpenTheAskedTrade(*stage);
@@ -382,13 +423,86 @@ TEST(SocialEventsTest, ElevenItemsLikeTheirCopiesPassTheList)
         const auto added = Client::Scenes::ApplyTradeItemAdded({slot, ItemBytes(SmallType, 5)}, stage->Resources());
         ASSERT_TRUE(added.HasValue()) << added.Error();
     }
+    stage->Runtime().lastSoundId = 0;
+    const TradeGrids before = GridsOf(stage->Trade());
+    const CrtRandom random = stage->cloth.random;
     const auto eleventh = Client::Scenes::ApplyTradeItemAdded({10, ItemBytes(SmallType, 5)}, stage->Resources());
-    ASSERT_FALSE(eleventh.HasValue());
-    EXPECT_NE(eleventh.Error().find("0x5bc52f"), std::string::npos) << eleventh.Error();
+    ASSERT_TRUE(eleventh.HasValue()) << eleventh.Error();
+    EXPECT_EQ(stage->Trade().otherGrid[10].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(GridsOf(stage->Trade()), before);
+    EXPECT_EQ(stage->cloth.random.State(), random.State());
+    EXPECT_EQ(stage->Runtime().lastSoundId, 0);
+    EXPECT_TRUE(WarnedWith(*stage, "0x5bc52f"));
+}
+
+// El 38 que deja once ítems iguales a la copia nueva (0x5bc5e0 la guarda antes de 0x5bc470) también se descarta: el
+// ítem y la copia quedan como estaban.
+TEST_P(SocialEventsTest, ARemovalThatLeavesElevenLikeTheirCopyIsDiscarded)
+{
+    auto stage = MakeStage();
+    OpenTheAskedTrade(*stage);
+    constexpr std::uint8_t Slots = 12;
+    for (std::uint8_t slot = 0; slot < Slots; ++slot)
+    {
+        const auto added = Client::Scenes::ApplyTradeItemAdded({slot, ItemBytes(SmallType, 5)}, stage->Resources());
+        ASSERT_TRUE(added.HasValue()) << added.Error();
+    }
+    stage->Runtime().lastSoundId = 0;
+    const TradeGrids before = GridsOf(stage->Trade());
+    const auto removed = Client::Scenes::ApplyTradeItemRemoved({11}, stage->Resources());
+    ASSERT_TRUE(removed.HasValue()) << removed.Error();
+    EXPECT_EQ(stage->Trade().otherGrid[11].id, SmallType);
+    EXPECT_EQ(stage->Trade().backup[0].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(GridsOf(stage->Trade()), before);
+    EXPECT_EQ(stage->Runtime().lastSoundId, 0);
+    EXPECT_TRUE(WarnedWith(*stage, "0x5bc52f"));
+}
+
+// 0x5bd750 con un lugar desde 32 (que no sea 0xff) lee fuera de la grilla en 0x5bc5e0: el 38 se descarta, sin el
+// sonido; 0xff vuelve sin tocar nada y suena igual (0x4e3d7f).
+TEST_P(SocialEventsTest, ARemovalPastTheGridIsDiscarded)
+{
+    auto stage = MakeStage();
+    OpenTheAskedTrade(*stage);
+    ASSERT_TRUE(Client::Scenes::ApplyTradeItemAdded({31, ItemBytes(SmallType, 5)}, stage->Resources()).HasValue());
+    stage->Runtime().lastSoundId = 0;
+    const TradeGrids before = GridsOf(stage->Trade());
+    ASSERT_TRUE(Client::Scenes::ApplyTradeItemRemoved({32}, stage->Resources()).HasValue());
+    EXPECT_EQ(GridsOf(stage->Trade()), before);
+    EXPECT_EQ(stage->Runtime().lastSoundId, 0);
+    EXPECT_TRUE(WarnedWith(*stage, "0x5bd750"));
+
+    const std::size_t lines = stage->sink.lines.size();
+    ASSERT_TRUE(Client::Scenes::ApplyTradeItemRemoved({0xff}, stage->Resources()).HasValue());
+    EXPECT_EQ(GridsOf(stage->Trade()), before);
+    EXPECT_EQ(stage->Runtime().lastSoundId, 0x1d);
+    EXPECT_EQ(stage->sink.lines.size(), lines);
+}
+
+// 0x5bd307..0x5bd3ec: un ítem de 1 por 2 en la última fila escribiría la casilla 36 (Q-C200): el 39 se descarta antes
+// de escribir y de 0x54bf40, sin el sonido. Desde el lugar 23 entra justo (las casillas 23 y 31).
+TEST_P(SocialEventsTest, AnItemPastTheGridIsDiscarded)
+{
+    auto stage = MakeStage();
+    OpenTheAskedTrade(*stage);
+    stage->Runtime().lastSoundId = 0;
+    const TradeGrids before = GridsOf(stage->Trade());
+    const CrtRandom random = stage->cloth.random;
+    ASSERT_TRUE(Client::Scenes::ApplyTradeItemAdded({28, ItemBytes(TallType, 3)}, stage->Resources()).HasValue());
+    EXPECT_EQ(GridsOf(stage->Trade()), before);
+    EXPECT_EQ(stage->cloth.random.State(), random.State());
+    EXPECT_EQ(stage->Runtime().lastSoundId, 0);
+    EXPECT_TRUE(WarnedWith(*stage, "casilla 36"));
+    EXPECT_TRUE(WarnedWith(*stage, "Q-C200"));
+
+    ASSERT_TRUE(Client::Scenes::ApplyTradeItemAdded({23, ItemBytes(TallType, 3)}, stage->Resources()).HasValue());
+    EXPECT_EQ(stage->Trade().otherGrid[23].id, TallType);
+    EXPECT_EQ(stage->Trade().otherGrid[31].id, TallType);
+    EXPECT_EQ(stage->Runtime().lastSoundId, 0x1d);
 }
 
 // Del lado que pidió, el 37 llega con un nombre nuevo y 0x5bbdf0 vacía la copia (tipo −1).
-TEST(SocialEventsTest, ANewNameClearsTheCopy)
+TEST_P(SocialEventsTest, ANewNameClearsTheCopy)
 {
     auto stage = MakeStage();
     ASSERT_TRUE(Client::Scenes::ApplyTradeResponse({1, NameOf<10>("Brezal"), 50, 7}, stage->Resources()).HasValue());
@@ -397,7 +511,7 @@ TEST(SocialEventsTest, ANewNameClearsTheCopy)
 }
 
 // 0x5bc107..0x5bc13f: la entrada a la selección deja 0x78abaa5 en 0 y las dos grillas y la copia vacías, sin rand().
-TEST(SocialEventsTest, TheSelectionEntryEmptiesTheTrade)
+TEST_P(SocialEventsTest, TheSelectionEntryEmptiesTheTrade)
 {
     Client::Scenes::TradeState trade;
     trade.changed = 1;
@@ -416,7 +530,7 @@ TEST(SocialEventsTest, TheSelectionEntryEmptiesTheTrade)
     }
 }
 
-TEST(SocialEventsTest, TheTradeResultsSayWhatHappened)
+TEST_P(SocialEventsTest, TheTradeResultsSayWhatHappened)
 {
     auto stage = MakeStage();
     OpenTheAskedTrade(*stage);
@@ -442,7 +556,7 @@ TEST(SocialEventsTest, TheTradeResultsSayWhatHappened)
     EXPECT_EQ(stage->Runtime().dialogs.current, 0x6e);
 }
 
-TEST(SocialEventsTest, TheItemMoveLockDefersTheFirstResult)
+TEST_P(SocialEventsTest, TheItemMoveLockDefersTheFirstResult)
 {
     auto stage = MakeStage();
     OpenTheTrade(*stage);
@@ -456,7 +570,7 @@ TEST(SocialEventsTest, TheItemMoveLockDefersTheFirstResult)
 
 // 0x657fb5 con aux en 0 (el cierre a mano): el 3D en C3 con sus dos rand(); con 1, nada sale. Las dos grillas quedan
 // vacías y, con 0x78abaa5 en 1, la copia también.
-TEST(SocialEventsTest, ClosingTheGridsSendsTheCancelOnlyByHand)
+TEST_P(SocialEventsTest, ClosingTheGridsSendsTheCancelOnlyByHand)
 {
     auto stage = MakeStage();
     stage->Trade().ownGrid[3].id = SmallType;
@@ -490,7 +604,7 @@ TEST(SocialEventsTest, ClosingTheGridsSendsTheCancelOnlyByHand)
 
 // Close(0x20) a mano con el comercio abierto y sin el cable (GamePanels sin LendTheTradeCancel): sus dos consultas y el
 // corte antes del 3D, con el byte protegido todavía en 1.
-TEST(SocialEventsTest, ClosingTheOpenTradeByHandWithoutTheCableCutsBeforeTheCancel)
+TEST_P(SocialEventsTest, ClosingTheOpenTradeByHandWithoutTheCableCutsBeforeTheCancel)
 {
     auto stage = MakeStage();
     OpenTheTrade(*stage);
@@ -505,7 +619,7 @@ TEST(SocialEventsTest, ClosingTheOpenTradeByHandWithoutTheCableCutsBeforeTheCanc
     EXPECT_EQ(stage->Runtime().panels.trade, 1);
 }
 
-TEST(SocialEventsTest, CompareTradeItemsGoesFieldByField)
+TEST_P(SocialEventsTest, CompareTradeItemsGoesFieldByField)
 {
     ItemState a{};
     ItemState b{};
@@ -540,7 +654,7 @@ TEST(SocialEventsTest, CompareTradeItemsGoesFieldByField)
 
 // Formar una party: la invitación (40), el sí (en Scenes/GameDialogSteps), la lista (42), las vidas (44) y la salida
 // (43).
-TEST(SocialEventsTest, APartyFormsAndBreaks)
+TEST_P(SocialEventsTest, APartyFormsAndBreaks)
 {
     auto stage = MakeStage();
     Client::Scenes::ApplyPartyRequest({0x1234}, *stage->world);
@@ -560,7 +674,7 @@ TEST(SocialEventsTest, APartyFormsAndBreaks)
     Client::Protocol::Party::PartyList list{.result = 1, .members = {}};
     list.members.push_back({NameOf<10>("Arbusto"), 0, 3, 120, 130, 900, 1000});
     list.members.push_back({NameOf<10>("Brezal"), 1, 3, 121, 131, 50, 600});
-    ASSERT_TRUE(Client::Scenes::ApplyPartyList(list, *stage->world).HasValue());
+    Client::Scenes::ApplyPartyList(list, *stage->world, stage->log);
     const Client::Scenes::PartyState& party = stage->Runtime().social.party;
     EXPECT_EQ(stage->Runtime().hud.partyCount, 2);
     EXPECT_EQ(TextOf(party.slots[1].name), "Brezal");
@@ -568,12 +682,14 @@ TEST(SocialEventsTest, APartyFormsAndBreaks)
     EXPECT_EQ(party.slots[1].x, 121);
     EXPECT_EQ(party.slots[1].maxLife, 600u);
 
-    ASSERT_TRUE(Client::Scenes::ApplyPartyLife({{0x07, 0x1f}}, *stage->world).HasValue());
+    Client::Scenes::ApplyPartyLife({{0x07, 0x1f}}, *stage->world, stage->log);
     EXPECT_EQ(party.slots[0].tenths, 7);
     EXPECT_EQ(party.slots[1].tenths, 10);
-    const auto outside = Client::Scenes::ApplyPartyLife({{0x53}}, *stage->world);
-    ASSERT_FALSE(outside.HasValue());
-    EXPECT_NE(outside.Error().find("Q-C960"), std::string::npos);
+    // 0x4e41bb: un lugar de 5 o más escribiría pasado el arreglo (Q-C960): el 44 se descarta entero, también lo de
+    // antes.
+    Client::Scenes::ApplyPartyLife({{0x03, 0x53}}, *stage->world, stage->log);
+    EXPECT_EQ(party.slots[0].tenths, 7);
+    EXPECT_TRUE(WarnedWith(*stage, "Q-C960"));
 
     stage->Runtime().social.party.followTarget = 1;
     ASSERT_TRUE(Client::Scenes::ApplyPartyLeft(stage->Resources()).HasValue());
@@ -582,19 +698,21 @@ TEST(SocialEventsTest, APartyFormsAndBreaks)
     EXPECT_EQ(stage->Runtime().social.party.followTarget, -1);
 }
 
-TEST(SocialEventsTest, SixPartyMembersPassTheTable)
+// 0x4d67e0 con seis miembros escribiría pasado el arreglo (Q-C960): el 42 se descarta entero, la cuenta incluida.
+TEST_P(SocialEventsTest, SixPartyMembersAreDiscarded)
 {
     auto stage = MakeStage();
     Client::Protocol::Party::PartyList list{.result = 1, .members = {}};
     for (std::uint8_t at = 0; at < 6; ++at)
         list.members.push_back({NameOf<10>("Arbusto"), at, 0, 0, 0, 1, 1});
-    const auto applied = Client::Scenes::ApplyPartyList(list, *stage->world);
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("Q-C960"), std::string::npos);
+    Client::Scenes::ApplyPartyList(list, *stage->world, stage->log);
+    EXPECT_EQ(stage->Runtime().hud.partyCount, 0);
+    EXPECT_TRUE(TextOf(stage->Runtime().social.party.slots[0].name).empty());
+    EXPECT_TRUE(WarnedWith(*stage, "Q-C960"));
 }
 
 // Un duelo: el pedido (AC), el comienzo (AA), los puntos (AD) y el fin (AB).
-TEST(SocialEventsTest, ADuelFromRequestToEnd)
+TEST_P(SocialEventsTest, ADuelFromRequestToEnd)
 {
     auto stage = MakeStage();
     Client::Scenes::ApplyDuelRequest({0x0102, NameOf<10>("Brezal")}, *stage->world);
@@ -627,7 +745,7 @@ TEST(SocialEventsTest, ADuelFromRequestToEnd)
     EXPECT_EQ(DrawsSince(stage->cloth.random), 0);
 }
 
-TEST(SocialEventsTest, ARefusedDuelOnlyKeepsTheName)
+TEST_P(SocialEventsTest, ARefusedDuelOnlyKeepsTheName)
 {
     auto stage = MakeStage();
     ASSERT_TRUE(Client::Scenes::ApplyDuelStart({0, 0x0102, NameOf<10>("Brezal")}, stage->Resources()).HasValue());
@@ -642,4 +760,6 @@ TEST(SocialEventsTest, ARefusedDuelOnlyKeepsTheName)
     EXPECT_EQ(stage->Runtime().ui.field78abad9, 0);
     EXPECT_EQ(TextOf(stage->Runtime().social.duel.rivalName), "Brezal");
 }
+
+INSTANTIATE_TEST_SUITE_P(TwoMaps, SocialEventsTest, ::testing::Values(Lorencia, Devias));
 } // namespace

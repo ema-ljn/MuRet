@@ -138,6 +138,11 @@ struct ShopTitle
     // carteles (0x451c20) y lo leen sus colores (0x452a10) y los del título del globo (0x4517c0), en el frame
     // siguiente.
     std::uint8_t hovered = 0;
+    // +0x48 y +0x4c: el lugar del cartel en la pantalla. El alta y la actualización con la misma clave lo ponen en
+    // (−1, −1) (0x4527d0 desde 0x4524e0 y 0x451301); el dibujo lo escribe en cada frame, ya repartido y contra los
+    // bordes (0x451d60 y 0x451e40), antes de leerlo.
+    std::int32_t x = -1;
+    std::int32_t y = -1;
 };
 
 // 0x78a6768: la grilla de la tienda propia (0x78ab0b8, OwnInventory::secondCells) mientras se mira la de otro.
@@ -157,7 +162,7 @@ struct PersonalShopState
     // +0x10 de 0x7245c8 (0 desde 0x450f20): la cuenta del dibujo de los carteles, de 0 a 7 (0x451c3e).
     std::int32_t signBlink = 0;
     // +0x14 de 0x7245c8 (1 desde 0x450f20): los carteles se dibujan. Lo escriben "/ver puestos" y su par (0x4516a0 y
-    // 0x4516b0 desde 0x56d722, que corta) y lo lee el dibujo (0x4516c0).
+    // 0x4516b0 desde 0x56d722 y 0x56d776, UI::RunTheChatCommand) y lo lee el dibujo (0x4516c0).
     std::uint8_t signsShown = 1;
     // 0x78aba50: la tienda propia abierta (el 3F 02 con 1; el 3F 03 del héroe la apaga).
     std::uint8_t ownOpen = 0;

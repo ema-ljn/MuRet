@@ -14,8 +14,9 @@ class WorldState;
 struct PersonalShopState;
 
 // 0x4511f0 (AddShopTitle): con un personaje que no es jugador (+0x88 distinto de 1), solo el log (0x6c7938). Si no, sin
-// cartel uno nuevo (0x4521d0 y 0x4524e0) con la clave, el nombre (+0x1d9) y el título; con cartel de la misma clave, el
-// nombre y el título nuevos (0x452540); con otra clave, solo el log (0x6c7900). Las dos ramas que escriben miden: el
+// cartel uno nuevo (0x4521d0 y 0x4524e0) con la clave & 0x7fff, el nombre (+0x1d9), el título y el lugar en (−1, −1);
+// con cartel de la misma clave (la guardada contra la entera, 07 Q-C969), el nombre y el título nuevos (0x452540) y el
+// lugar en (−1, −1); con otra clave, solo el log (0x6c7900). Las dos ramas que escriben miden: el
 // texto 1104 y el nombre con la negrita (SelectObject del DC con 0x5763558, 0x452760 y 0x4531c6) y las líneas del
 // título con la normal (0x5763554, 0x4531f7), que queda en el DC.
 void AddShopTitle(WorldState& world, std::int32_t key, std::size_t index, std::string_view title);

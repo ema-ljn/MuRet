@@ -114,9 +114,21 @@ constexpr std::int32_t YesNoWidth = 0x46;
 constexpr std::int32_t NarrowWidth = 0x28;
 constexpr std::int32_t YesNoTop = 0x62;
 constexpr std::int32_t YesNoBottom = 0x77;
-// 0x62c54c..0x62c560: los casos de la tabla del no (0x62db1c) que no son 0x77 ni 0x78; los demás ids van al cierre
-// (0x62d745).
-constexpr std::array<std::int32_t, 5> OtherNoCases{0x71, 0x76, 0x7d, 0x7f, 0x95};
+// 0x62c54c..0x62c560: los casos de la tabla del no (0x62db1c) que no son 0x77 ni 0x78, con su tramo y de quién son (08
+// P-C363); los demás ids van al cierre (0x62d745). Llegan con el diálogo que espera detrás del sí de 0x77 o 0x78.
+struct OtherNoCase
+{
+    std::int32_t id = 0;
+    std::string_view address;
+    std::string_view owner;
+};
+constexpr auto OtherNoCases = std::to_array<OtherNoCase>({
+    {0x71, "0x62c58f", "del borrado de la selección (0x622fb0, el F3 02), que el juego no abre"},
+    {0x76, "0x62c880", "del gremio (el C1 51), CL9 hito 8"},
+    {0x7d, "0x62c567", "del gremio (el sí manda el C1 53), CL9 hito 8"},
+    {0x7f, "0x62c5c2", "de la guerra de gremios (el C1 61), CL9 hito 8"},
+    {0x95, "0x62c567", "del almacén (el sí manda el C1 83), CL9 hito 6"},
+});
 // El relleno y el serial del C1 05 41 en C3.
 constexpr std::uint32_t C3Randoms = 2;
 // 0x626460: el zen escrito, con signo, hasta 100.000.000 (0x5f5e100); con más, el diálogo 0x75. Sin el zen (el propio
@@ -626,8 +638,9 @@ Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, boo
         click = false;
     else if (!escape)
         return {};
-    if (std::ranges::find(OtherNoCases, id) != OtherNoCases.end())
-        return Core::Unexpected(std::format("0x62c560: el no del diálogo {:#x} es de la CL9", id));
+    if (const auto* other = std::ranges::find(OtherNoCases, id, &OtherNoCase::id); other != OtherNoCases.end())
+        return Core::Unexpected(
+            std::format("0x62c560: el no del diálogo {:#x} ({}) es {} (08 P-C363)", id, other->address, other->owner));
     if (id == PartyRequestDialog || id == UI::ForcedDialog)
     {
         if (auto said = Answer(context, id, 0, id == PartyRequestDialog ? "0x62cd52" : "0x62d4a2"); !said.HasValue())

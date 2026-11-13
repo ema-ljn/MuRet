@@ -249,6 +249,8 @@ constexpr int NoRight = 0x193;
 // La invitación a la party (0x77) y el pedido de comercio (0x78), con el sí y el no.
 constexpr std::int32_t PartyInviteDialog = 0x77;
 constexpr std::int32_t TradeInviteDialog = 0x78;
+// El zen del comercio (0x5ece58) y del almacén (0x5ea15f): el marco del OK genérico y el EDIT de [0x5763504].
+constexpr std::int32_t MoneyDialog = 0x73;
 // 0x631e54 y 0x631bbb: el formato del nombre (0x76dbbb4); 0x631ec0 y 0x631c49, la pregunta del 0x77 (0x76dc3e8) y la
 // del 0x78 (0x76dbce0). Cada renglón sale de sprintf.
 constexpr std::size_t InviterText = 418;
@@ -539,6 +541,18 @@ void DrawTheGenericBox(Frame& frame)
     Quad(frame, slot, OkX, OkY, OkWidth, OkHeight, OkDu, OkDv);
 }
 
+// 0x630818..0x6308c6 (0x73): el marco del OK genérico, sin el botón, y con 0x6c7b8c en 1 (su valor de la .data; con 0,
+// 0x553ae0 en 0x6308cb, que no se alcanza) el EDIT de [0x5763504]: la vtable + 4 con 0, +0x4c en 9, + 0x3c con 8, + 8
+// con (0x46, 0xe), 0x45a9d0(0x11b, 0x5f), + 0x30 con 0 y + 0x14, que lo dibuja. Ese EDIT es del hito 6 (08 P-C362):
+// corta en la primera llamada, antes de la cola de 0x63140b (0x631c91: el texto 420, 421 o 422 según 0x78abacc, en y =
+// 0x4b).
+Core::Unexpected<std::string> DrawTheMoneyBox(Frame& frame)
+{
+    Quad(frame, MessageBoxSlot, BoxLeft, BoxTop, BoxWidth, GenericBoxHeight, MessageBoxDu, 1.0f);
+    return Core::Unexpected(std::string("0x630876: el diálogo 0x73 arma y dibuja el EDIT de [0x5763504], que es del "
+                                        "hito 6 (08 P-C362)"));
+}
+
 // 0x630818..0x63084c y 0x6309d4..0x630aeb: el marco del OK genérico (0xf0 de 213 × 64 en (213, 60)) y el sí y el no.
 void DrawTheYesNoBox(Frame& frame)
 {
@@ -649,9 +663,6 @@ Core::Unexpected<std::string> CutTheDialog(std::int32_t id)
     std::string_view wave = "CL9";
     if (route.step == DialogStep::Cut)
         wave = route.wave;
-    // 0x630862: el 0x73 dibuja el EDIT de su campo (0x5763504), como corta su paso.
-    if (id == 0x73)
-        wave = "CL9 hito 7, fase 2";
     return Core::Unexpected(std::format("0x62db60: el dibujo del diálogo {:#x} es de la {}", id, wave));
 }
 } // namespace
@@ -692,6 +703,8 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
         DrawTheYesNoBox(frame);
     else if (id == ConfirmDialog)
         DrawTheConfirmBox(frame);
+    else if (id == MoneyDialog)
+        return DrawTheMoneyBox(frame);
     else if (id != 0)
         return CutTheDialog(id);
     // 0x63140b: la mezcla normal y los textos de la cola.

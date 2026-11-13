@@ -17,6 +17,11 @@
 // Lo que hacen el comercio, la party y el duelo que llegan (CL9 hito 7; 04 § El comercio, § La party y § El duelo):
 // los casos del dispatcher 0x4e2b10 y sus funciones, sobre los globales de SocialState. Lo que corta lo dice con la
 // dirección y la ola.
+namespace Client::Core
+{
+class Log;
+}
+
 namespace Client::Render::Models
 {
 class CrtRandom;
@@ -50,11 +55,16 @@ ApplyTradeRequest(const Protocol::Trade::TradeRequest& request, const WorldEntry
 [[nodiscard]] Core::Expected<void, std::string> ApplyTradeResponse(const Protocol::Trade::TradeResponse& response,
                                                                    const WorldEntryResources& resources);
 
-// 0x4e3d6a: 0x5bd750(lugar, 0x78a5a20, 8) (con 0x5bc5e0 antes y 0x5bc470 después) y el sonido 0x1d.
+// 0x4e3d6a: 0x5bd750(lugar, 0x78a5a20, 8) (con 0x5bc5e0 antes y 0x5bc470 después) y el sonido 0x1d. Un lugar desde 32
+// (que no sea 0xff), una huella que pasa la grilla o un undécimo ítem igual a su copia (Q-C961) llevan al original
+// fuera de la grilla o de la pila: se descarta el paquete entero, sin sonido, con un aviso en el log (Q-C200).
 [[nodiscard]] Core::Expected<void, std::string> ApplyTradeItemRemoved(const Protocol::Trade::TradeItemRemoved& removed,
                                                                       const WorldEntryResources& resources);
 
-// 0x4e3d99: 0x5bc740(0x78a5a20, 8, 4, lugar, ítem, 1), con 0x5bc470 al final, y el sonido 0x1d.
+// 0x4e3d99: 0x5bc740(0x78a5a20, 8, 4, lugar, ítem, 1), con 0x5bc470 al final, y el sonido 0x1d. Una huella que pasa la
+// casilla 31 (Q-C200) se descarta antes de escribir y de los rand() de 0x54bf40; un undécimo ítem igual a su copia
+// (0x5bc52f, Q-C961), después de ponerlo en una copia del comercio, que se tira con los rand() que sacó. Los dos, sin
+// sonido y con un aviso en el log.
 [[nodiscard]] Core::Expected<void, std::string> ApplyTradeItemAdded(const Protocol::Trade::TradeItemAdded& added,
                                                                     const WorldEntryResources& resources);
 
@@ -96,17 +106,16 @@ void ApplyPartyRequest(const Protocol::Party::PartyRequest& request, WorldState&
 [[nodiscard]] Core::Expected<void, std::string>
 ApplyPartyRequestResult(const Protocol::Party::PartyRequestResult& result, const WorldEntryResources& resources);
 
-// 0x4d67e0: la cuenta en 0x78aba48 y cada miembro en su lugar de 0x77f3cd0, con 0 en +0xa. Más de cinco corta
-// (Q-C960).
-[[nodiscard]] Core::Expected<void, std::string> ApplyPartyList(const Protocol::Party::PartyList& list,
-                                                               WorldState& world);
+// 0x4d67e0: la cuenta en 0x78aba48 y cada miembro en su lugar de 0x77f3cd0, con 0 en +0xa. Con más de cinco el
+// original escribe pasado el arreglo (Q-C960): se descarta el paquete entero, con un aviso en `log`.
+void ApplyPartyList(const Protocol::Party::PartyList& list, WorldState& world, Core::Log& log);
 
 // 0x4e409b: la cuenta en 0, el texto 502 (tipo 2) y, con 0x6c8e50 en 0 o más, 0x6c8e50 en −1.
 [[nodiscard]] Core::Expected<void, std::string> ApplyPartyLeft(const WorldEntryResources& resources);
 
-// 0x4e4174: por cada byte, +0x18 del lugar del nibble alto con el bajo (hasta 10). Un lugar de 5 o más corta (Q-C960).
-[[nodiscard]] Core::Expected<void, std::string> ApplyPartyLife(const Protocol::Party::PartyLife& life,
-                                                               WorldState& world);
+// 0x4e4174: por cada byte, +0x18 del lugar del nibble alto con el bajo (hasta 10). Con un lugar de 5 o más el original
+// escribe pasado el arreglo (Q-C960): se descarta el paquete entero, con un aviso en `log`.
+void ApplyPartyLife(const Protocol::Party::PartyLife& life, WorldState& world, Core::Log& log);
 
 // 0x4dac90: con el resultado, el duelo en curso, la clave, el nombre, el texto 912 con el nombre (tipo 2) y el sonido
 // 0x8d; sin él, el nombre y el texto 913.

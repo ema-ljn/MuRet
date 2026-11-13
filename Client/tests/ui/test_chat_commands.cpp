@@ -311,6 +311,34 @@ TEST_F(Commands, TheDuelCommandsGoOnAsChat)
 }
 
 // 0x56d624: /move abre la ventana y sigue como chat.
+// 0x56d6ee..0x56d796: "/ver puestos" prende los carteles (0x4516a0) con el aviso 1138 del tipo 1 y su par los apaga
+// (0x4516b0) con el 1139 del tipo 2, también en Chaos Castle; la cadena sigue y sale como chat. Sin el mapa, corta.
+TEST_F(Commands, TheSignCommandsTurnTheShopSignsOnAndOff)
+{
+    for (const std::int32_t where : {0, 2, 18})
+    {
+        map = where;
+        std::uint8_t signs = 1;
+        ChatCommandContext context = Context();
+        context.signsShown = &signs;
+        const auto off = Client::UI::RunTheChatCommand(context, "/no ver puestos", false);
+        ASSERT_TRUE(off.HasValue()) << off.Error();
+        EXPECT_EQ(signs, 0);
+        EXPECT_FALSE(off.Value().handled);
+        EXPECT_EQ(off.Value().notices,
+                  (std::vector<ChatCommandNotice>{{Client::UI::ShopViewOffNoticeText, Client::UI::ErrorMessage}}));
+        const auto on = Client::UI::RunTheChatCommand(context, "/ver puestos", false);
+        ASSERT_TRUE(on.HasValue()) << on.Error();
+        EXPECT_EQ(signs, 1);
+        EXPECT_FALSE(on.Value().handled);
+        EXPECT_EQ(on.Value().notices,
+                  (std::vector<ChatCommandNotice>{{Client::UI::ShopViewOnNoticeText, Client::UI::SystemMessage}}));
+    }
+    const auto cut = Client::UI::RunTheChatCommand(Context(), "/ver puestos", false);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x56d722"), std::string::npos) << cut.Error();
+}
+
 TEST_F(Commands, MoveOpensTheWindowAndGoesOn)
 {
     const auto outcome = Client::UI::RunTheChatCommand(Context(), "/mover", false);

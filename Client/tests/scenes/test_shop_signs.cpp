@@ -274,6 +274,9 @@ TEST_P(ShopSignsTest, ASignGoesAboveItsOwnerWithItsRows)
     ExpectRow(Texts()[1], "Brezal", 178 + HeaderWidth, 94, FontKind::Bold, NameColors(Plain), 88 - HeaderWidth,
               Step640);
     ExpectRow(Texts()[2], "Arcos", 178, 94 + Step640, FontKind::Normal, LineColors, 88, Step640);
+    // 0x4527d0: el lugar queda en +0x48 y +0x4c.
+    EXPECT_EQ(Shops().titles[Seller].x, 178);
+    EXPECT_EQ(Shops().titles[Seller].y, 94);
     EXPECT_EQ(m_dcFont, FontKind::Normal);
     EXPECT_EQ(Shops().signBlink, 1);
     EXPECT_EQ(Draws(m_random), 0);
@@ -328,6 +331,9 @@ TEST_P(ShopSignsTest, OverlappingSignsMoveDownOrUp)
     ASSERT_EQ(Texts().size(), 6u);
     EXPECT_EQ(Texts()[0].y, 94 + 24);
     EXPECT_EQ(Texts()[3].y, 94);
+    // Lo que queda en +0x4c es el lugar ya repartido.
+    EXPECT_EQ(Shops().titles[Seller].y, 94 + 24);
+    EXPECT_EQ(Shops().titles[Buyer].y, 94);
 
     // El del vendedor 15 más arriba (79..103) termina antes de la mitad del otro (106): sube a 70.
     m_world->Actors()[Seller].position.z = -5.0f;
@@ -490,7 +496,7 @@ TEST_P(ShopSignsTest, TheBubbleColorsFollowTheSign)
     EXPECT_EQ(ShopBubbleColorsOf(owner, false).name, 0xff00b4e6u);
 }
 
-// Un dibujo intermedio de MuRet dibuja igual, pero no escribe +0x10 ni los +0x60.
+// Un dibujo intermedio de MuRet dibuja igual, pero no escribe +0x10, los +0x60 ni los lugares.
 TEST_P(ShopSignsTest, AnIntermediateDrawLeavesTheStateAlone)
 {
     Sign(Seller, "Brezal", "Arcos").hovered = 1;
@@ -501,6 +507,8 @@ TEST_P(ShopSignsTest, AnIntermediateDrawLeavesTheStateAlone)
     EXPECT_EQ(Texts()[1].style.colors, NameColors(Plain));
     EXPECT_EQ(Shops().signBlink, 0);
     EXPECT_EQ(Shops().titles[Seller].hovered, 1);
+    EXPECT_EQ(Shops().titles[Seller].x, -1);
+    EXPECT_EQ(Shops().titles[Seller].y, -1);
 }
 
 // Sin la proyección del pase del mundo o sin Text.bmd, un cartel corta con su dirección.

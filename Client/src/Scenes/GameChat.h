@@ -66,7 +66,10 @@ struct GameChatContext
 
 // 0x4b50b0..0x4b88e9: Enter en el WndProc, con el modo de los EDIT (0x6c7b8c en 1). Las compuertas (Chaos Castle
 // fuera de la zona segura, los diálogos 0x7d, 0x95, 0x8a, 0x8d y 0x8b, 0x78abb00 en 3 y la tecla para los paneles,
-// 0x657880(0xd)); con el campo vacío lo abre o lo cierra; si no, lo lee al historial, corre los comandos (0x56c440),
+// 0x657880(0xd)); con el campo vacío lo abre (con el largo del diálogo en 0x2a y sin el modo del zen) o lo cierra, y
+// con el diálogo 0x73 corta en su EDIT (hito 6); si no, con el modo del zen (0x77f3b6a) guarda el atoi de lo escrito
+// en 0x77f3b6c y corta en el EDIT, y con 0x78aba60 en 1 (el título de la tienda) corta hacia el paso del 0x91; si no,
+// lo lee al historial, corre los comandos (0x56c440),
 // el filtro (0x622b40 con 1: el texto 570) y, con '/' adelante, sin nombre o sin el modo del susurro (F3), el chat
 // (los emotes con sus C1 18, el freno, "webzen", /whisper y /move, y el C1 00); si no, el susurro (0x554a40 con el
 // nivel 6, el C1 02 y el texto en el registro). Al final vacía el campo del mensaje, oculta los EDIT, corre el registro

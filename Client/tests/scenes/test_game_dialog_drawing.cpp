@@ -574,12 +574,38 @@ TEST(GameDialogDrawingTest, TheConfirmBoxWithOneButtonOrNone)
     }
 }
 
+// 0x73 (0x630818..0x6308c6): el marco del OK genérico, sin el botón, y el EDIT de [0x5763504] con 0x6c7b8c en 1, que
+// es del hito 6: corta en su primera llamada (0x630876), antes de la cola.
+TEST(GameDialogDrawingTest, TheMoneyDialogDrawsItsFrameAndCutsAtTheEdit)
+{
+    for (const std::int32_t map : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(map);
+        auto tested = std::make_unique<DrawingDialogs>(map);
+        tested->world.Runtime().dialogs.current = 0x73;
+        tested->world.Runtime().social.trade.field78abacc = 2;
+        tested->mouse = {0x11c, 0x76};
+
+        const auto drawn = tested->Draw();
+        ASSERT_FALSE(drawn.HasValue());
+        EXPECT_NE(drawn.Error().find("0x630876"), std::string::npos) << drawn.Error();
+        EXPECT_NE(drawn.Error().find("hito 6"), std::string::npos) << drawn.Error();
+        const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
+        ASSERT_EQ(quads.size(), 1u);
+        EXPECT_EQ(quads[0].slot, 0xf0);
+        EXPECT_EQ(quads[0].blend, BlendMode::Opaque);
+        EXPECT_FLOAT_EQ(quads[0].x, 213.0f);
+        EXPECT_FLOAT_EQ(quads[0].y, 60.0f);
+        EXPECT_TRUE(tested->text.texts.empty());
+    }
+}
+
 // Los diálogos que no son de la CL8 cortan con la ola de su paso.
 TEST(GameDialogDrawingTest, TheOtherDialogsAreCut)
 {
     DrawingDialogs tested(Lorencia);
     for (const auto& [id, wave] : std::to_array<std::pair<std::int32_t, std::string>>(
-             {{0x8d, "CL9.1"}, {0x73, "CL9 hito 7"}, {0x76, "CL9.4"}, {0x8e, "CL9.3"}, {0x15, "CL9"}}))
+             {{0x8d, "CL9.1"}, {0x76, "CL9.4"}, {0x8e, "CL9.3"}, {0x15, "CL9"}}))
     {
         tested.world.Runtime().dialogs.current = id;
         const auto drawn = tested.Draw();

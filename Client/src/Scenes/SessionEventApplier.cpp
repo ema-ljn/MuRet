@@ -217,11 +217,17 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySocia
     if (const auto* answer = std::get_if<Protocol::Party::PartyRequestResult>(&event))
         return ApplyPartyRequestResult(*answer, m_resources);
     if (const auto* list = std::get_if<Protocol::Party::PartyList>(&event))
-        return ApplyPartyList(*list, world);
+    {
+        ApplyPartyList(*list, world, m_resources.log);
+        return Core::Expected<void, std::string>{};
+    }
     if (std::holds_alternative<Protocol::Party::PartyLeft>(event))
         return ApplyPartyLeft(m_resources);
     if (const auto* life = std::get_if<Protocol::Party::PartyLife>(&event))
-        return ApplyPartyLife(*life, world);
+    {
+        ApplyPartyLife(*life, world, m_resources.log);
+        return Core::Expected<void, std::string>{};
+    }
     if (const auto* start = std::get_if<Protocol::Duel::DuelStart>(&event))
         return ApplyDuelStart(*start, m_resources);
     if (const auto* end = std::get_if<Protocol::Duel::DuelEnd>(&event))

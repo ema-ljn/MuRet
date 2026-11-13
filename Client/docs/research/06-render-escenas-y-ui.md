@@ -1653,8 +1653,13 @@ sin cursor en el medio ni IME. Los ids de los dos EDIT (1 y 2, los dos primeros 
 
 - **Enter** (`0x4b50b0..0x4b88e9`): sale sin hacer nada en Chaos Castle fuera de la zona segura, con el diálogo
   `0x7d`, `0x95`, `0x8a`, `0x8d` o `0x8b`, con `0x78abb00` en 3 o si `0x657880(0xd)` toma la tecla. Con el campo
-  abierto lee los EDIT a los buffers y lo escrito al historial; vacío (y sin `0x77f3b69`), Enter abre el campo (dos
-  campos, los EDIT a la vista con el foco en el del mensaje) o lo cierra. Si no, corre los comandos (`0x56c440`: las
+  abierto lee los EDIT a los buffers y lo escrito al historial; vacío (y sin `0x77f3b69`), Enter cierra el campo o,
+  cerrado, lo abre (`0x4b5515..0x4b554d`: el largo `0x6c8e78` en `0x2a`, dos campos, el modo del zen `0x77f3b6a` en 0
+  y los EDIT a la vista con el foco en el del mensaje); con el diálogo `0x73`, en vez de abrirlo vacía el EDIT de
+  `[0x5763504]` y le da el foco (`0x4b54e1..0x4b5513`, del hito 6: corta, 08 P-C362). Con algo escrito y el modo del
+  zen, el `atoi` de lo escrito va a `0x77f3b6c` y no se dice (`0x4b5563..0x4b55ae`, y el EDIT, que corta en
+  `0x4b558a`); con `0x78aba60` en 1, lo escrito es el título de la tienda personal (`0x4b55b3..0x4b560f`: corta en
+  `0x4b55bc`, 08 P-C312 y 07 Q-C970). Si no, corre los comandos (`0x56c440`: las
   compuertas, `/move`, `/filter`, `/1`../`0` y la cola de los nombres; cada comando social corta con su dirección,
   CL9.4) y el filtro (`0x622b40` con 1: el texto 570). Con `/` adelante, sin nombre o sin el modo de F3, va al chat:
   los emotes (`0x576eb0`, abajo, salvo montado fuera de la zona segura), el freno (`0x5767940`: con más de
@@ -1791,7 +1796,8 @@ DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos
 | `0x93` | 7 filas (la 5 de 44, la 6 en y = 232); 385 en `0x23`; `"%s  On"`/`"%s  Off"` con 386 (`0x41`), 387 (`0x5f`) y 919 (`0x9b`); 389 en `x = 0x140 − (cx + 0x36) / 2` (`0x7d`) y la barra en `(x + 0x144 + cx, 0x7f)`: gris 0,2 de 50 × 8, negro de 48 × 6 y blanco de `(v + 1) · 4,8` × 6; el marco del brillo (gris `(268, 198, 102, 22)`, negro `(269, 199, 100, 20)`), 5 casillas de 18 en y = 200 (`(0,8; 0,6; 0,3)` hasta `0x6c9dcc`, negras después) y las cifras 5, 7, 9, 11 y 13 de 12 × 12 en y = 202 con los colores al revés; 1840 en `0xb9` (Q-C555) y 388 en `0xed` |
 | `0x8a`, `0x8c`, `0x9b` / `0x8b`, `0x97` | `0xfc` de 213 × 5 en (213, 60), 4 / 7 filas de `0xfb` de 213 × 40 y otra `0xfc`; cada botón con estado, `0xf0 + estado` en `(x + 213, y + 60, w, h − 1)` con las UV `(0, 0, w / 128, h / 32)`; en el `0x8c`, las flechas (`CursorSitDown` girada 270 y 90 grados, 25 × 16, en (253, 210) y (383, 210)): gris en su tope, 0,7 con el mouse y 0,5 con el clic, que apaga (Q-C553); los renglones del `0x8a` y el `0x8c` desde `((7 − renglones) · 0x12) / 2 + 0x4c`; los del `0x8b`, el `0x97` y el `0x9b`, el objeto del evento (`0x632a2b`) |
 | OK genérico | `0xf0` de 213 × 64 en (213, 60) y el OK, `0xf1` (`0xf2` con el mouse en `[0x11c, 0x161] × [0x62, 0x76]`) de 70 × 21 en (284, 98); su texto en y = `0x4b`, o en `0x45` y `0x51` los de dos renglones: el `0x70` el 402, el `0x6f` y el `0x1a` el 405 y el 406, el `0x1c` el 409 y el `0x8f` el 401 |
-| `0x77`, `0x78` (CL9 hito 7, fase 2) | el mismo marco (`0x630818`); el sí (`0x6309d4`), `0xf1` (`0xf2` con el mouse en `[0xea, 0x130) × [0x62, 0x77)`) en (234, 98), y el no, `0xf3` (`0xf4` en `[0x14e, 0x194)`) en (334, 98), de 70 × 21 con las UV del OK (también los del `0x7f` y el `0x76`, de otras olas). El `0x77` (`0x631e29`): `sprintf(418, nombre)` con el `+0x1d9` del primero vivo de los 400 con la clave de `0x78aba4c` (`0x5110d0`, `MOVSX`; sin ninguno, el 400) en la fuente del DC en y = 75 − 6 y `sprintf(425)` en 75 + 6. El `0x78` (`0x631bb0`): `sprintf(418, 0x78aba1c)` en la negrita grande (`0x576355c`) en 75 − 11 y `sprintf(419)` en la normal en 75 + 11 |
+| `0x77`, `0x78` (CL9 hito 7, fase 2) | el mismo marco (`0x630818`); el sí (`0x6309d4`), `0xf1` (`0xf2` con el mouse en `[0xea, 0x130) × [0x62, 0x77)`) en (234, 98), y el no, `0xf3` (`0xf4` en `[0x14e, 0x194)`) en (334, 98), de 70 × 21 con las UV del OK (también los del `0x7f` y el `0x76`, de otras olas; su no, 08 P-C363). El `0x77` (`0x631e29`): `sprintf(418, nombre)` con el `+0x1d9` del primero vivo de los 400 con la clave de `0x78aba4c` (`0x5110d0`, `MOVSX`; sin ninguno, el 400) en la fuente del DC en y = 75 − 6 y `sprintf(425)` en 75 + 6. El `0x78` (`0x631bb0`): `sprintf(418, 0x78aba1c)` en la negrita grande (`0x576355c`) en 75 − 11 y `sprintf(419)` en la normal en 75 + 11 |
+| `0x73` (CL9 hito 7, revisión contra el ASM) | el marco del OK genérico sin el botón (`0x630818..0x630870`) y, con `0x6c7b8c` en 1 (su valor de la .data), el EDIT de `[0x5763504]` (`0x630876..0x6308c6`: la vtable + 4 con 0, + 0x4c con 9, + 0x3c con 8, + 8 con (0x46, 0xe), `0x45a9d0(0x11b, 0x5f)`, + 0x30 con 0 y + 0x14, que lo dibuja); después, en la cola de `0x63140b` (`0x631c91`), el texto 420, 421 o 422 según `0x78abacc`, en y = `0x4b`. El EDIT es del hito 6: MuRet dibuja el marco y corta en `0x630876` (08 P-C362) |
 
 `0x61ccb0` sube `Message_box` (`0xf0`), `ok`, `ok2`, `cancel`, `cancel2` (`0xf1` a
 `0xf4`), `Message_box1` (`0xfb`) y `Message_box2` (`0xfc`); el `bar.jpg` de `0xfd` es de `0x5e9b10`, la caja de la
@@ -10233,13 +10239,15 @@ bytes del `3C` y de los `24` y los `rand()`, en Lorencia y Devias) e `ItemMoveRe
 
 (CL9 hito 7, fase 3, 2026-11-13, *estático*; sin cable ni traza, 08 P-C200 y P-C208.) Los carteles viven en el objeto
 `0x7245c8` (el singleton de `0x451d10`, armado por `0x450f20`): un `std::map` del puntero del personaje (ordena como su
-índice) a un cartel de 100 bytes (`0x4521d0` con `0x4524e0`): la clave (`+0x40`), el nombre (`+0x1d9` del personaje),
-el título de 36 bytes, a la vista (`+0x44`, en 1 al crearse con `0x4529b0`) y lo que mide para el dibujo (las dos
-líneas `+0x20` y `+0x30` y el tamaño `+0x50`, con el texto 1104 y la negrita).
+índice) a un cartel de 100 bytes (`0x4521d0` con `0x4524e0`): la clave (`+0x40`, con `& 0x7fff`), el nombre (`+0x1d9`
+del personaje), el título de 36 bytes, a la vista (`+0x44`, en 1 al crearse con `0x4529b0`), el lugar en la pantalla
+(`+0x48` y `+0x4c`, en (−1, −1) al crearse) y lo que mide para el dibujo (las dos líneas `+0x20` y `+0x30` y el tamaño
+`+0x50`, con el texto 1104 y la negrita).
 
 - `0x4511f0` (*AddShopTitle*, clave, personaje, título): con `+0x88` distinto de 1, solo el log `0x6c7938`; sin
-  cartel, uno nuevo; con uno de la misma clave, el nombre y el título nuevos (`0x452540`) y su lugar (`0x4527d0`); con
-  otra clave, solo el log `0x6c7900`. Las dos ramas que escriben miden con la negrita (`SelectObject` del DC con
+  cartel, uno nuevo (la clave con `& 0x7fff`, `0x4524ef`); con uno de la misma clave (la guardada contra la entera, que
+  desde `0x8000` no se iguala: Q-C969), el nombre y el título nuevos (`0x452540`) y su lugar en (−1, −1) (`0x4527d0`);
+  con otra clave, solo el log `0x6c7900`. Las dos ramas que escriben miden con la negrita (`SelectObject` del DC con
   `0x5763558` en `0x452540` y `0x4531b0`) y las líneas con la normal, y el DC queda en la normal (`0x4531f7`).
 - `0x451430` saca; `0x451810` lo tiene; `0x451770` lo tiene y a la vista; `0x451630(clave)` da el primer cartel con
   esa clave en el orden del mapa (el `14`, `0x4ca7f0..0x4ca809`, lo saca así); `0x4516d0` y `0x451720` muestran y
@@ -10274,7 +10282,10 @@ líneas `+0x20` y `+0x30` y el tamaño `+0x50`, con el texto 1104 y la negrita).
 - `0x451c20` cuenta `+0x10` de 0 a 7 y, para cada cartel: con un elegido (`0x6c8e30` distinto de −1), `+0x10` menor
   que 3, la ventana de los comandos abierta (`IsOpen(0x200)`, sin `rand()`) y su comando 2 (`[0x6e592c] + 0x20`), el
   del elegido prende `+0x60` (`0x4529e0`) y los demás no se tocan (Q-C977); si no, `+0x60` en 0 (`0x4529f0`). Con
-  `+0x44` y `+0x14` del mapa ("/ver puestos", `0x4516c0`), `0x452a10` con el PK (`+0x375`) del dueño.
+  `+0x44` y `+0x14` del mapa (`0x4516c0`), `0x452a10` con el PK (`+0x375`) del dueño. `+0x14` lo escriben los
+  comandos del chat (`0x56d6ee..0x56d796`, siempre las dos comparaciones y la cadena sigue): "/ver puestos" (el texto
+  1136) lo pone en 1 (`0x4516a0`) con el aviso 1138 del tipo 1, y su par (el 1137) en 0 (`0x4516b0`) con el 1139 del
+  tipo 2.
 - `0x452a10`: con el PK 4, 5 o 6, el texto 1104 y el nombre en `0xff00b4e6`, `0xff006ee6` o `0xff0014f0` y el fondo en
   `0x8029396c` (`0x80527ab6` con `+0x60`); con otro, el nombre en `0xff00e6e6` (`0xffffe6e6`), el texto 1104 en
   `0xff0096fa` (`0xff29396c`) y el fondo en `0x8029396c` (`0x800096fa`). En negrita, el texto 1104 en `(x, y)` con su
@@ -10285,9 +10296,10 @@ líneas `+0x20` y `+0x30` y el tamaño `+0x50`, con el texto 1104 y la negrita).
 - El globo lee `+0x60` (`0x4517c0`) en el frame siguiente: el hijo 12 va antes que el 13.
 
 **MuRet**: `Scenes::ShopSigns` (`DrawTheShopSigns`, desde el hijo 13 de `DrawTheHud`, con la proyección del pase del
-mundo, *inferido*; un dibujo intermedio escribe `+0x10` y los `+0x60` en una copia), `ShortShopTitle` (desde
-`AddChatBubble`) y el título del globo en `MeasureTheChatBubble` y el dibujo de `Scenes::ChatBubbleDraw`. `+0x10`,
-`+0x14` y `+0x60` son `PersonalShopState::signBlink`, `signsShown` y `ShopTitle::hovered`. MuRet mide el cartel en
+mundo, *inferido*; un dibujo intermedio escribe `+0x10`, los `+0x60` y los lugares en una copia), `ShortShopTitle`
+(desde `AddChatBubble`) y el título del globo en `MeasureTheChatBubble` y el dibujo de `Scenes::ChatBubbleDraw`.
+`+0x10`, `+0x14`, `+0x48`/`+0x4c` y `+0x60` son `PersonalShopState::signBlink`, `signsShown`, `ShopTitle::x`/`y` y
+`ShopTitle::hovered`; los comandos, `UI::RunTheChatCommand` con `ChatCommandContext::signsShown`. MuRet mide el cartel en
 cada dibujo y no al ponerlo (las fuentes no cambian en el juego, *inferido*). Tests: `ShopSignsTest` (Lorencia y
 Devias), los cuatro de la tienda de `ChatBubbleDrawTest`, `TheBubbleOfAShopOwnerTakesTheShortTitle` y
 `TheThirteenthChildDrawsTheShopSigns`.

@@ -1,6 +1,7 @@
 #include "Scenes/PersonalShopLists.h"
 
 #include "Core/Expected.h"
+#include "Core/Log.h"
 #include "Protocol/PersonalShop.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
@@ -8,6 +9,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/OwnItemPlacement.h"
 #include "Scenes/PersonalShopTitles.h"
 #include "Scenes/SocialEvents.h"
 #include "Scenes/SocialState.h"
@@ -24,6 +26,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <optional>
+#include <span>
 #include <string>
 #include <utility>
 
@@ -82,6 +86,23 @@ Core::Expected<void, std::string> PlaceTheEntry(const Shop::ShopListEntry& entry
     if (shops.pricesBuilt)
         shops.otherPrices[entry.slot] = entry.price;
     return {};
+}
+
+// 0x5bc740 con 0x78a9bb0 escribe la huella sin tope (Q-C200): el aviso de la primera de `entries` que pasaría su
+// grilla, mirado antes de escribir nada. Sin el registro de Item.bmd no hay aviso: la puesta corta en su lugar, después
+// de lo que el original hace antes.
+std::optional<std::string> AnEntryPastTheGrid(std::span<const Shop::ShopListEntry> entries,
+                                              const WorldEntryResources& resources)
+{
+    for (const Shop::ShopListEntry& entry : entries)
+    {
+        auto past = InventoryPlacementPastTheGrid(entry.slot, InventoryItemBytes(entry.item), resources);
+        if (!past.HasValue())
+            return std::nullopt;
+        if (past.Value())
+            return past.Value();
+    }
+    return std::nullopt;
 }
 
 // Close(0x800, 0) y Close(0x20000, 0), como 0x4dbad2..0x4dbaf4 y 0x4dbdfe..0x4dbe20.
@@ -198,6 +219,14 @@ Core::Expected<void, std::string> ApplyShopItemList(const Shop::ShopItemList& li
     // 0x4dbb04..0x4dbb14: otro resultado, el log 0x6c8578.
     if (list.result != Shop::ListedResult)
         return {};
+    // Las entradas que se ponen (hasta el primer precio de 0 o menos), antes de cerrar o abrir nada.
+    const auto unpriced =
+        std::ranges::find_if(list.entries, [](const Shop::ShopListEntry& entry) { return entry.price <= 0; });
+    if (const auto past = AnEntryPastTheGrid(std::span(list.entries.begin(), unpriced), resources))
+    {
+        resources.log.Warning("se descarta el 3F 05: {}", *past);
+        return {};
+    }
     WorldState& world = resources.world;
     PersonalShopState& shops = world.Runtime().social.personalShop;
     GamePanels panels(world, resources.cloth.random);
@@ -251,6 +280,12 @@ Core::Expected<void, std::string> ApplyShopPurchase(const Shop::ShopPurchase& pu
     PersonalShopState& shops = runtime.social.personalShop;
     if (purchase.result == Bought)
     {
+        if (const auto past =
+                AnEntryPastTheGrid(std::array{Shop::ShopListEntry{purchase.slot, purchase.item, 0}}, resources))
+        {
+            resources.log.Warning("se descarta el 3F 06: {}", *past);
+            return {};
+        }
         if (shops.mode == OtherShopView)
         {
             // 0x4dbccf..0x4dbd14: el lugar de 0x78a6758 sale del mapa y de la grilla (0x5bd750 con 0x78a9bb0).
@@ -295,6 +330,11 @@ Core::Expected<void, std::string> ApplyShopRefresh(const Shop::ShopRefresh& refr
     // 0x4dbc8f: si no, el log 0x6c85b0.
     if (refresh.result != Shop::ListedResult || shops.mode != OtherShopView)
         return {};
+    if (const auto past = AnEntryPastTheGrid(refresh.entries, resources))
+    {
+        resources.log.Warning("se descarta el 3F 0x13: {}", *past);
+        return {};
+    }
     ClearTheShopGrid(world);
     if (shops.pricesBuilt)
         shops.otherPrices.clear();

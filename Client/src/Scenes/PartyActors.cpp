@@ -59,7 +59,7 @@ std::string_view NameView(std::span<const std::byte> name)
     return {reinterpret_cast<const char*>(name.data()), static_cast<std::size_t>(end - name.begin())};
 }
 
-// 0x78aba48. Con más de cinco, el 42 ya cortó (0x4d67e0, Q-C960); negativa, los lazos no corren.
+// 0x78aba48. Más de cinco no llega: el 42 que los trae se descarta (0x4d67e0, Q-C960); negativa, los lazos no corren.
 std::size_t Members(const WorldRuntime& runtime)
 {
     return static_cast<std::size_t>(std::clamp<std::int32_t>(runtime.hud.partyCount, 0, PartySlots));

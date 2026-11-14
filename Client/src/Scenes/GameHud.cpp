@@ -33,6 +33,8 @@
 #include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/CastleBattleState.h"
+#include "UI/CastleSiegeState.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 #include "UI/ChatLogDraw.h"
@@ -56,6 +58,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -1430,6 +1433,92 @@ Core::Expected<void, std::string> DrawTheMainBar(Frame& frame)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// 4. Quiénes tienen los interruptores del castillo (0x5a6fc0), con el objeto de 0x5767924 que arma el B2 20.
+
+// 0x5a71af..0x5a71d9: la zona del héroe, X en 150..200 e Y en 180..230 (JL y JG, con los bordes adentro).
+constexpr std::uint8_t SwitchZoneLeft = 0x96;
+constexpr std::uint8_t SwitchZoneRight = 0xc8;
+constexpr std::uint8_t SwitchZoneTop = 0xb4;
+constexpr std::uint8_t SwitchZoneBottom = 0xe6;
+// 0x5a71eb y 0x5a72f3: la primera línea en y 150 y la siguiente 15 más abajo, en x 0.
+constexpr int SwitchLinesTop = 0x96;
+constexpr int SwitchLineStep = 0xf;
+constexpr std::size_t SwitchHolderText = 1981; // 0x774e358
+// 0x5a7207..0x5a7295: el bando de cada mitad (+7) contra los bits de +0x78 del héroe.
+constexpr std::array<std::pair<std::uint32_t, std::uint8_t>, 3> SwitchSides{
+    {{0x80000, 2}, {0x400000, 3}, {0x800000, 4}}};
+
+// Un %s de sprintf sobre el objeto desde `at`: hasta el primer 0. Sin ninguno antes del final de los 0x36 bytes, el
+// original sigue leyendo el heap que viene después (Q-C1403): std::nullopt.
+std::optional<std::string> HolderText(const std::array<std::uint8_t, UI::SwitchHoldersSize>& holders, std::size_t at)
+{
+    std::string text;
+    for (std::size_t i = at; i < holders.size(); ++i)
+    {
+        if (holders[i] == 0)
+            return text;
+        text.push_back(static_cast<char>(holders[i]));
+    }
+    return std::nullopt;
+}
+
+Core::Expected<void, std::string> DrawTheSwitchHolders(Frame& frame)
+{
+    UI::CastleBattleState& battle = frame.runtime.castleSiege.battle;
+    if (!battle.switchHolders)
+        return {};
+    // 0x5a6fdb..0x5a71aa: la X (+0x41c) y la Y (+0x420) del héroe, cada una con su acceso a la tabla de protección.
+    std::uint8_t x = 0;
+    std::uint8_t y = 0;
+    {
+        const Render::Models::LogicalAccess access(frame.context.cellXDepth, frame.context.random,
+                                                   Render::Models::SmallLogicalCloseRandoms);
+        x = frame.hero.cellX;
+    }
+    {
+        const Render::Models::LogicalAccess access(frame.context.cellYDepth, frame.context.random,
+                                                   Render::Models::SmallLogicalCloseRandoms);
+        y = frame.hero.cellY;
+    }
+    if (x < SwitchZoneLeft || x > SwitchZoneRight || y < SwitchZoneTop || y > SwitchZoneBottom)
+    {
+        // 0x5a730d: 0x4e05f0 libera el objeto. Un dibujo intermedio de MuRet no lo libera: el frame siguiente del
+        // original lo hace con sus accesos.
+        if (!frame.context.projecting)
+            battle.switchHolders.reset();
+        return {};
+    }
+    const auto& holders = *battle.switchHolders;
+    for (std::size_t half = 0; half < 2; ++half)
+    {
+        const std::size_t base = half * UI::SwitchHolderHalf;
+        // 0x5a71f0: JBE, el byte sin signo en 0.
+        if (holders[base + UI::HolderShownAt] == 0)
+            continue;
+        const std::uint8_t side = holders[base + UI::HolderSideAt];
+        bool withName = false;
+        for (const auto& [flag, sideOfFlag] : SwitchSides)
+            withName = withName || ((frame.hero.flags78 & flag) == flag && side == sideOfFlag);
+        auto title = TextOf(frame, SwitchHolderText, "0x5a7227");
+        if (!title.HasValue())
+            return Core::Unexpected(title.Error());
+        const auto guild = HolderText(holders, base + UI::HolderGuildAt);
+        const auto name = withName ? HolderText(holders, base + UI::HolderNameAt) : std::optional<std::string>{};
+        if (!guild || (withName && !name))
+            return Core::Unexpected(std::format("0x5a6fc0: el %s de la mitad {} del objeto de 0x5767924 no tiene un 0 "
+                                                "antes del final de sus 0x36 bytes y sigue leyendo el heap (Q-C1403)",
+                                                half));
+        const auto number = static_cast<std::int32_t>(half + 1);
+        // 0x6c9288, 0x6c9298 y 0x6c92a8 son el mismo texto; 0x6c92b8, sin el nombre.
+        const std::string line = withName ? UI::Sprintf("%s%d / %s / %s", title.Value(), number,
+                                                        std::string_view(*guild), std::string_view(*name))
+                                          : UI::Sprintf("%s%d / %s", title.Value(), number, std::string_view(*guild));
+        DrawHelp(frame, 0, SwitchLinesTop + (static_cast<int>(half) * SwitchLineStep), line);
+    }
+    return {};
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // 31. El panel del asedio (0x4125b0).
 
 Core::Expected<void, std::string> DrawTheSiegePanel(Frame& frame)
@@ -1465,7 +1554,9 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     // 3. 0x5a89b0: las barras de la party.
     if (hud.partyCount > 0)
         return Core::Unexpected(std::string("0x5a89b0: las barras de vida de la party son de la CL9.4"));
-    // 4. 0x5a6fc0: la info de Castle Siege, con el objeto de 0x5767924 (CL9.5): nada.
+    // 4. 0x5a6fc0: quiénes tienen los interruptores, con el objeto de 0x5767924 (hito 13).
+    if (auto holders = DrawTheSwitchHolders(frame); !holders.HasValue())
+        return holders;
     // 5. 0x42a4d0: las barras de la cola de 0x7239ac, vacía hasta la CL9.5: nada.
     // 6. 0x42a660.
     if (auto icons = DrawTheStatusIcons(frame); !icons.HasValue())

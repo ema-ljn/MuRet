@@ -22,6 +22,8 @@
 #include "Scenes/TooltipLines.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/CastleBattleState.h"
+#include "UI/CastleSiegeState.h"
 #include "UI/ChatInput.h"
 #include "UI/GameText.h"
 #include "UI/SprintfFormat.h"
@@ -1078,5 +1080,126 @@ TEST_F(GameHudTest, AStatusIconWithoutTextKeepsTheThirdLine)
     // El nombre de la entrada 0x35 de Skill.bmd está vacío: la caja mide hasta el renglón 1 y no escribe nada.
     EXPECT_EQ(lines.text[1], "");
     EXPECT_TRUE(text.texts.empty());
+}
+
+// 4. 0x5a6fc0 con el objeto de 0x5767924 (el B2 20, hito 13): las dos celdas del héroe con sus accesos y, adentro de
+// la zona (X 150..200, Y 180..230), una línea por mitad con +6 distinto de 0 en (0, 150 + 15 · mitad). No mira el
+// mapa. Los nombres son inventados.
+std::array<std::uint8_t, Client::UI::SwitchHoldersSize> SwitchHolders()
+{
+    std::array<std::uint8_t, Client::UI::SwitchHoldersSize> holders{};
+    const auto put = [&holders](std::size_t at, std::string_view text)
+    {
+        for (std::size_t i = 0; i < text.size(); ++i)
+            holders.at(at + i) = static_cast<std::uint8_t>(text[i]);
+    };
+    holders[6] = 1;
+    holders[7] = 2;
+    put(8, "Robles");
+    put(0x10, "Garza");
+    holders[0x1b + 6] = 1;
+    holders[0x1b + 7] = 4;
+    put(0x1b + 8, "Pinos");
+    put(0x1b + 0x10, "Tero");
+    return holders;
+}
+
+TEST_F(GameHudTest, TheSwitchHoldersDrawOneLinePerShownHalfInsideTheZone)
+{
+    const auto title = data.text->Text(1981);
+    ASSERT_TRUE(title.has_value());
+    for (const std::int32_t map : {0, 2, 30})
+    {
+        SCOPED_TRACE(map);
+        world.Runtime() = Client::Scenes::WorldRuntime{};
+        world.Runtime().map = map;
+        world.Runtime().castleSiege.battle.switchHolders = SwitchHolders();
+        Hero().cellX = 150;
+        Hero().cellY = 230;
+        // El bit 0x80000 con el bando 2 de la primera mitad: con el nombre; la segunda (4 sin 0x800000), sin él.
+        Hero().flags78 = 0x80000;
+        text.texts.clear();
+        random = CrtRandom(Seed);
+        const CrtRandom expected = Advanced(random, HudBaseDraws + 2 * SmallLogicalCloseRandoms);
+
+        const auto drawn = Hud();
+
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(random.State(), expected.State());
+        EXPECT_EQ(Hero().cellXAccesses, 0);
+        EXPECT_EQ(Hero().cellYAccesses, 0);
+        ASSERT_EQ(text.texts.size(), 2u);
+        EXPECT_EQ(text.texts[0].text, std::string(*title) + "1 / Robles / Garza");
+        EXPECT_EQ(text.texts[0].x, 0);
+        EXPECT_EQ(text.texts[0].y, 150);
+        EXPECT_EQ(text.texts[1].text, std::string(*title) + "2 / Pinos");
+        EXPECT_EQ(text.texts[1].y, 165);
+        EXPECT_TRUE(world.Runtime().castleSiege.battle.switchHolders.has_value());
+    }
+}
+
+// Las otras dos parejas de bit y bando, y una mitad con +6 en 0, que no se dibuja.
+TEST_F(GameHudTest, TheSwitchHoldersMatchEachSideWithItsFlag)
+{
+    world.Runtime().castleSiege.battle.switchHolders = SwitchHolders();
+    auto& holders = *world.Runtime().castleSiege.battle.switchHolders;
+    holders[6] = 0;
+    Hero().cellX = 200;
+    Hero().cellY = 180;
+    Hero().flags78 = 0x800000;
+    const auto title = data.text->Text(1981);
+    ASSERT_TRUE(title.has_value());
+    ASSERT_TRUE(Hud().HasValue());
+    ASSERT_EQ(text.texts.size(), 1u);
+    EXPECT_EQ(text.texts[0].text, std::string(*title) + "2 / Pinos / Tero");
+    EXPECT_EQ(text.texts[0].y, 165);
+
+    holders[6] = 1;
+    holders[7] = 3;
+    Hero().flags78 = 0x400000;
+    text.texts.clear();
+    ASSERT_TRUE(Hud().HasValue());
+    ASSERT_EQ(text.texts.size(), 2u);
+    EXPECT_EQ(text.texts[0].text, std::string(*title) + "1 / Robles / Garza");
+    EXPECT_EQ(text.texts[1].text, std::string(*title) + "2 / Pinos");
+}
+
+// Fuera de la zona, 0x4e05f0 libera el objeto después de los dos accesos; un dibujo intermedio no lo libera.
+TEST_F(GameHudTest, TheSwitchHoldersAreFreedOutsideTheZone)
+{
+    for (const auto& [x, y] :
+         std::array<std::pair<std::uint8_t, std::uint8_t>, 4>{{{149, 200}, {201, 200}, {170, 179}, {170, 231}}})
+    {
+        SCOPED_TRACE(static_cast<int>(x) * 1000 + y);
+        world.Runtime().castleSiege.battle.switchHolders = SwitchHolders();
+        Hero().cellX = x;
+        Hero().cellY = y;
+        text.texts.clear();
+        random = CrtRandom(Seed);
+        const CrtRandom expected = Advanced(random, HudBaseDraws + 2 * SmallLogicalCloseRandoms);
+
+        ASSERT_TRUE(Hud(true).HasValue());
+        EXPECT_TRUE(world.Runtime().castleSiege.battle.switchHolders.has_value());
+
+        random = CrtRandom(Seed);
+        ASSERT_TRUE(Hud().HasValue());
+        EXPECT_EQ(random.State(), expected.State());
+        EXPECT_FALSE(world.Runtime().castleSiege.battle.switchHolders.has_value());
+        EXPECT_TRUE(text.texts.empty());
+    }
+}
+
+// Un %s sin 0 antes del final de los 0x36 bytes seguiría leyendo el heap (Q-C1403): corta con la dirección.
+TEST_F(GameHudTest, ASwitchHolderTextWithoutItsZeroCuts)
+{
+    world.Runtime().castleSiege.battle.switchHolders = SwitchHolders();
+    auto& holders = *world.Runtime().castleSiege.battle.switchHolders;
+    for (std::size_t at = 0x1b + 8; at < holders.size(); ++at)
+        holders.at(at) = 'z';
+    Hero().cellX = 170;
+    Hero().cellY = 200;
+    const auto drawn = Hud();
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_NE(drawn.Error().find("Q-C1403"), std::string::npos) << drawn.Error();
 }
 } // namespace

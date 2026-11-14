@@ -518,13 +518,15 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
                 RemoveActorFlag(mask, target, world);
         }
         return ActAndSettle(cast, MountedAction(source, 0x3f));
-    // 0x4cdc37: sin 0x400 en el blanco, apaga su 0x5ac/2 y su joint 0x619/9 y crea otro 0x5ac/2 (CL11).
+    // 0x4cdc37..0x4cdc9c: sin 0x400 en el blanco, apaga su 0x5ac/2 y sus joints 0x619/9 y crea otro 0x5ac/2 con él de
+    // dueño (0x4cdc88, World::ModelEffects::CreateSkillFlare; con la tabla llena, ninguno). Después, 0x400 y sigue.
     case 0x35:
         if ((target.flags78 & 0x400u) != 0x400u)
         {
-            KillModelEffectsOf(world.Map().effects, 0x5ac, &target, 2);
+            KillModelEffectsOf(world.Map().effects, World::IcarusFlareEffect, &target, World::GuardFlareSubtype);
             KillJointsOf(world.DrawTail().joints, 0x619, &target, 9);
-            return Core::Unexpected(std::string("0x4cdc88: el efecto 0x5ac/2 de 0x518cf0 es de la CL11"));
+            static_cast<void>(world.Map().effects.CreateSkillFlare(target.position, target.angles, target.light,
+                                                                   World::GuardFlareSubtype, &target));
         }
         target.flags78 |= 0x400;
         return HitUnlessHero(cast);
@@ -545,12 +547,15 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
             return AttackAndSettle(source, resources);
         return Settle(cast);
     }
-    // 0x4cdd45: sin 0x10 en el blanco, apaga su 0x5ac/1 y crea otro (CL11).
+    // 0x4cdd45: sin 0x10 en el blanco, apaga su 0x5ac/1 y crea otro con él de dueño (0x4cdd84, CreateSkillFlare; con la
+    // tabla llena, ninguno), cuyo paso suelta partículas 5ac/4 de la CL11 (0x52a866, StepSkillFlare). Después, 0x10 y
+    // sigue.
     case 0x30:
         if ((target.flags78 & 0x10u) != 0x10u)
         {
-            KillModelEffectsOf(world.Map().effects, 0x5ac, &target, 1);
-            return Core::Unexpected(std::string("0x4cdd84: el efecto 0x5ac/1 de 0x518cf0 es de la CL11"));
+            KillModelEffectsOf(world.Map().effects, World::IcarusFlareEffect, &target, World::SwellFlareSubtype);
+            static_cast<void>(world.Map().effects.CreateSkillFlare(target.position, target.angles, target.light,
+                                                                   World::SwellFlareSubtype, &target));
         }
         target.flags78 |= 0x10;
         return ActAndSettle(cast, 0x3f);
@@ -803,7 +808,8 @@ Core::Expected<void, std::string> ApplyActorState(const Protocol::Skill::ActorSt
         if (!lit)
         {
             WorldRuntime& runtime = world.Runtime();
-            return ApplyEffectFlags(actor, state.mask, &actor == &world.Actors()[runtime.hero], runtime.lastSoundId);
+            return ApplyEffectFlags(actor, state.mask, &actor == &world.Actors()[runtime.hero], runtime.lastSoundId,
+                                    world.Map().effects);
         }
         // 0x4cbe52..0x4cbe72: el NEG/SBB deja +0x7c entero en 0x200000 si lo tenía y en 0 si no (Q-C1202).
         constexpr std::uint32_t Sitting = 0x200000;
@@ -857,7 +863,11 @@ Core::Expected<void, std::string> ApplyActorEffect(const ActorEffect& effect, co
     constexpr std::uint8_t LevelUpKind = 0x10;
     if (resources.world.Actors()[index].byte88 != PlayerObject || effect.kind != LevelUpKind)
         return {};
-    return Core::Unexpected(std::string("0x4dbfc5: los 15 joints 0x60f/2 de 0x530860 son de la CL11"));
+    // 0x4dbf9f..0x4dc004: 15 joints 0x60f/0 (0x530860(0x60f, o+0x10, o+0x10, o+0x1c, 0, o, 40, la clave 2, 0, 0, −1),
+    // que MuRet crea: Scenes::CreateFaunaJoint), el calco 0x61e/0 sobre o y el sonido 0x98. El calco con el subtipo 0
+    // tampoco tiene paso en MuRet (0x52b984); el GS 0.97 no manda este paquete (P-C262).
+    return Core::Unexpected(std::string("0x4dbfc5: los 15 joints 0x60f/0 de clave 2 (0x530860) y el calco 0x61e/0 "
+                                        "del level-up de otro jugador no están portados"));
 }
 
 Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const WorldEntryResources& resources)

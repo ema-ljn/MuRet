@@ -267,10 +267,11 @@ Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& 
     return {};
 }
 
-// 0x52ad21..0x52ae25 con el subtipo 0: seis llamas 5de/0 a ±25 en x e y con la luz local en blanco (los dos
+// 0x52ad21..0x52ae7a con el subtipo 0: seis llamas 5de/0 a ±25 en x e y con la luz local en blanco (los dos
 // sorteos de cada una antes de su creación); con rand() & 7 en 0, la piedrita 0xc8 + (rand() & 1) con su
-// luz; y la luz dinámica (L; L · 0,4f; 0) de radio 3. La rama del dueño héroe (0x52ae2a) no corre: los que
-// crean los objetos del 4 no tienen dueño.
+// luz; y la luz dinámica (L; L · 0,4f; 0) de radio 3. Después, 0x52ae2a: con el héroe publicado de dueño (+0x108, el
+// chorro de la Flame; los de los objetos del 4 no tienen dueño) y la vida (antes de la cola) múltiplo de 20 (IDIV con
+// signo), 0x517a20 a 150 (0x43160000), sin mirar lo que devuelve.
 Core::Expected<void, std::string> StepFlameJet(ModelEffect& effect, float luminosity, Particles& particles,
                                                float worldClock, Render::Models::CrtRandom& random,
                                                const ModelEffectStepServices& services)
@@ -302,7 +303,15 @@ Core::Expected<void, std::string> StepFlameJet(ModelEffect& effect, float lumino
             services.effects->CreateStoneChip(type, position, effect.transform.angles, effect.light, random));
     }
     const glm::vec3 light{luminosity, F32(static_cast<double>(luminosity) * Orange), 0.0f};
-    return AddDynamicLight(services.lighting, position, light, LightRadius, "0x52ae25");
+    if (auto lit = AddDynamicLight(services.lighting, position, light, LightRadius, "0x52ae25"); !lit.HasValue())
+        return lit;
+    constexpr std::int32_t HitPeriod = 20;
+    constexpr float HitRadius = 150.0f; // 0x43160000
+    if (effect.ownerContext == nullptr || effect.ownerContext != services.hero || effect.life % HitPeriod != 0)
+        return {};
+    if (!services.skillHits)
+        return Core::Unexpected(std::string("0x52ae72: el chorro 0x5de del héroe pide los blancos de 0x517a20"));
+    return services.skillHits(effect, HitRadius);
 }
 // 0x5275ca..0x5276b7, las piedras 0x118 y 0x119 del pisotón del caballo. Con la vida entre 33 y 36, en p = (x + 60;
 // y − 60; z + 50) (0x6b86cc y 0x6b86b0, cada eje en la x87 hasta su fstp): el polvo 5f2/11 con los ángulos del efecto,

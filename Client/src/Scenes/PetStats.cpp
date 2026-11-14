@@ -7,6 +7,8 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkSpirit.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnDerivedStats.h"
@@ -18,9 +20,13 @@
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <format>
+#include <span>
 #include <string>
 
 namespace Client::Scenes
@@ -141,6 +147,31 @@ void TheHorse(const Protocol::Pet::PetInfoReply& reply, const WorldEntryResource
         AddTheDarkHorseOption(item, resources);
 }
 
+// 0x418390 (cinco) y 0x418400 (quince), por la vtable del cuervo (+0x14 y +0x18): 0x530860(0x60f, p, q, ángulos, 0,
+// cuervo, 40, la clave 2, 0, 0, −1) con el objeto del cuervo (+0xc) de dueño. 0x418390 pasa una copia de su posición
+// en p y q y los ángulos en 0; 0x418400, la copia en p, su posición en q y sus ángulos. Son los 60f/0 de
+// Scenes::CreateFaunaJoint (la luz del cuervo, +0xf4, y con el ancho de 40 su paso no lee su acción): tres rand() cada
+// uno. Con la tabla de joints llena, ninguno y sigue. Sin rand() propios.
+Core::Expected<void, std::string> SparkTheRaven(DarkSpirit& raven, int joints, bool turned,
+                                                const WorldEntryResources& resources)
+{
+    constexpr std::int32_t SparkleJoint = 0x60f, SparkleSubtype = 0, OrderKey = 2, NoTarget = -1;
+    constexpr float OrderWidth = 40.0f; // 0x42200000
+    std::span<JointState> pool = resources.world.DrawTail().joints;
+    glm::vec3 start = raven.position;
+    glm::vec3 angles = turned ? raven.angles : glm::vec3(0.0f);
+    glm::vec3& target = turned ? raven.position : start;
+    for (int made = 0; made < joints; ++made)
+    {
+        const auto created = CreateFaunaJoint(
+            pool, {SparkleJoint, start, target, angles, SparkleSubtype, &raven, OrderWidth, OrderKey, 0, 0, NoTarget},
+            resources.cloth.random, JointOwnerKind::Raven);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("{}: {}", turned ? "0x418444" : "0x4183e8", created.Error()));
+    }
+    return {};
+}
+
 // 0x421db0 con la ventana cerrada (0x421ef2..0x422196).
 Core::Expected<void, std::string> WithTheWindowClosed(const Protocol::Pet::PetInfoReply& reply,
                                                       const WorldEntryResources& resources)
@@ -165,12 +196,12 @@ Core::Expected<void, std::string> WithTheWindowClosed(const Protocol::Pet::PetIn
         if (reply.slot != RavenSlot || !hero.darkSpirit)
             return {};
         ApplyRavenInfo(*hero.darkSpirit, reply.level, reply.experience, world, random);
+        // 0x421f8f..0x421fae: con 0xfe, la vtable + 0x14 (0x418390); con 0xff, la + 0x18 (0x418400).
+        constexpr int LevelUpJoints = 5, LastJoints = 15;
         if (reply.kind == LevelUpKind)
-            return Core::Unexpected(std::string("0x421f9a: los cinco joints 0x60f/2 del cuervo (0x418390) son de la "
-                                                "CL11"));
+            return SparkTheRaven(*hero.darkSpirit, LevelUpJoints, false, resources);
         if (reply.kind == LastKind)
-            return Core::Unexpected(std::string("0x421fae: los quince joints 0x60f/2 del cuervo (0x418400) son de la "
-                                                "CL11"));
+            return SparkTheRaven(*hero.darkSpirit, LastJoints, true, resources);
         return {};
     }
     if (reply.pet == DarkHorsePetStats && reply.slot == HorseSlot)

@@ -363,6 +363,98 @@ TEST(ModelEffectsTest, TheFlameJetLivesFortyAndClosesTheOwnRecord)
     }
 }
 
+// 0x518cf0(0x5de, punto, ángulos, luz, 0, o, o+0x8a, lugar, 0, 0, 0) → 0x51e7d8, el chorro de la Flame (0x500531): el
+// prefijo con el dueño, la clave en +0x8a y el lugar en +0x89, vida 40 y, con el registro abierto, su cuenta +0xf04 en
+// +0x8c (MOVZX); el cierre con la cuenta en 0 gasta los 3.848 rand(). Otro tipo o subtipo, o la tabla llena, ninguno,
+// sin rand().
+TEST(ModelEffectsTest, TheOwnedFlameJetKeepsTheOwnCountForItsOwner)
+{
+    int owner = 0;
+    Client::World::ModelEffectArguments arguments{.type = Client::World::FlameJetEffect,
+                                                  .position = {1050.0f, 2050.0f, 130.0f},
+                                                  .angles = {0.0f, 0.0f, 90.0f},
+                                                  .light = glm::vec3(0.5f),
+                                                  .subtype = 0,
+                                                  .owner = &owner,
+                                                  .key = 0x0321,
+                                                  .byte89 = 4};
+    for (const std::uint8_t start : {std::uint8_t{0}, std::uint8_t{1}})
+    {
+        SCOPED_TRACE(static_cast<int>(start));
+        ModelEffects effects;
+        effects.Effects()[0].word8c = 0x7777;
+        std::uint8_t depth = start;
+        Client::Render::Models::CrtRandom random(9);
+        const auto slot = effects.CreateOwnedFlameJet(arguments, depth, std::uint8_t{0xc5}, random);
+        ASSERT_EQ(slot, std::optional<std::size_t>(0));
+        const ModelEffect& effect = effects.Effects()[0];
+        EXPECT_EQ(effect.type, Client::World::FlameJetEffect);
+        EXPECT_EQ(effect.subtype, 0);
+        EXPECT_EQ(effect.life, 40);
+        EXPECT_EQ(effect.transform.position, glm::vec3(1050.0f, 2050.0f, 130.0f));
+        EXPECT_EQ(effect.transform.angles, glm::vec3(0.0f, 0.0f, 90.0f));
+        EXPECT_EQ(effect.transform.scale, 0.9f);
+        EXPECT_EQ(effect.light, glm::vec3(0.5f));
+        EXPECT_TRUE(effect.hasOwner);
+        EXPECT_EQ(effect.ownerContext, &owner);
+        EXPECT_EQ(effect.disturbanceState, 0x0321u);
+        EXPECT_EQ(effect.byte89, 4);
+        EXPECT_EQ(effect.word8c, 0x00c5u);
+        EXPECT_EQ(depth, start);
+        Client::Render::Models::CrtRandom expected(9);
+        if (start == 0)
+            expected.Discard(Client::Render::Models::OwnRecordCloseRandoms);
+        EXPECT_EQ(random.State(), expected.State());
+    }
+    std::uint8_t depth = 0;
+    Client::Render::Models::CrtRandom untouched(9);
+    ModelEffects other;
+    arguments.subtype = 1;
+    EXPECT_FALSE(other.CreateOwnedFlameJet(arguments, depth, 0, untouched).has_value());
+    arguments.subtype = 0;
+    arguments.type = Client::World::IcarusFlareEffect;
+    EXPECT_FALSE(other.CreateOwnedFlameJet(arguments, depth, 0, untouched).has_value());
+    arguments.type = Client::World::FlameJetEffect;
+    ModelEffects full;
+    for (auto& effect : full.Effects())
+        effect.alive = true;
+    EXPECT_FALSE(full.CreateOwnedFlameJet(arguments, depth, 0, untouched).has_value());
+    EXPECT_EQ(untouched.State(), 9u);
+}
+
+// 0x518cf0(0x5ac, blanco+0x10, blanco+0x1c, blanco+0xf4, 1 o 2, blanco, −1, 0, 0, 0, 0) → 0x51e4a6: el prefijo común
+// con el blanco de dueño, vida 1.000 y +0xd8 en 0, sin rand(). El /3 y otros subtipos no; lleno, ninguno.
+TEST(ModelEffectsTest, TheSkillFlaresLiveAThousandStepsWithTheirTarget)
+{
+    int owner = 0;
+    for (const std::int32_t subtype : {Client::World::SwellFlareSubtype, Client::World::GuardFlareSubtype})
+    {
+        SCOPED_TRACE(subtype);
+        ModelEffects effects;
+        const auto slot =
+            effects.CreateSkillFlare({10.0f, 20.0f, 30.0f}, {0.0f, 0.0f, 45.0f}, glm::vec3(0.5f), subtype, &owner);
+        ASSERT_EQ(slot, std::optional<std::size_t>(0));
+        const ModelEffect& flare = effects.Effects()[0];
+        EXPECT_EQ(flare.type, Client::World::IcarusFlareEffect);
+        EXPECT_EQ(flare.subtype, subtype);
+        EXPECT_EQ(flare.life, 1000);
+        EXPECT_EQ(flare.speed, 0.0f);
+        EXPECT_EQ(flare.transform.scale, 0.9f);
+        EXPECT_EQ(flare.transform.position, glm::vec3(10.0f, 20.0f, 30.0f));
+        EXPECT_EQ(flare.disturbanceState, 0xffffu);
+        EXPECT_TRUE(flare.hasOwner);
+        EXPECT_EQ(flare.ownerContext, &owner);
+    }
+    ModelEffects other;
+    EXPECT_FALSE(other.CreateSkillFlare({}, {}, glm::vec3(1.0f), 0, &owner).has_value());
+    EXPECT_FALSE(
+        other.CreateSkillFlare({}, {}, glm::vec3(1.0f), Client::World::FullSetFlareSubtype, &owner).has_value());
+    ModelEffects full;
+    for (auto& effect : full.Effects())
+        effect.alive = true;
+    EXPECT_FALSE(full.CreateSkillFlare({}, {}, glm::vec3(1.0f), 2, &owner).has_value());
+}
+
 // 0x518cf0(0xc8 o 0xc9, …) → 0x51b72b con el subtipo 0: el empuje ((& 255) + 64) · 0,1f en y, la vida (& 15)
 // + 32, la escala ((& 3) + 8) · 0,1f, el yaw rand() % 360, la velocidad (el empuje girado con ese yaw) y la
 // caída (& 15) + 8. Otro tipo no crea nada ni saca rand().
@@ -692,6 +784,23 @@ TEST(ModelEffectsTest, ThePetSummonIsTheColoredDecalWithItsOwnerAndTwentySteps)
     for (auto& effect : full.Effects())
         effect.alive = true;
     EXPECT_FALSE(full.CreatePetSummon({}, {}, glm::vec3(1.0f), &owner).has_value());
+
+    // El /3 de la 0x1c y de las invocaciones (y el 0 y el 2) salen igual; desde el 4, cada uno tiene su caso.
+    for (const std::int32_t subtype : {0, 2, Client::World::SummonDecalSubtype})
+    {
+        SCOPED_TRACE(subtype);
+        ModelEffects decals;
+        ASSERT_EQ(decals.CreatePetSummon({}, {}, glm::vec3(1.0f), &owner, subtype), std::optional<std::size_t>(0));
+        EXPECT_EQ(decals.Effects()[0].subtype, subtype);
+        EXPECT_EQ(decals.Effects()[0].life, 20);
+        EXPECT_EQ(decals.Effects()[0].ownerContext, &owner);
+    }
+    for (const std::int32_t subtype : {-1, 4, 6, 10})
+    {
+        SCOPED_TRACE(subtype);
+        ModelEffects decals;
+        EXPECT_FALSE(decals.CreatePetSummon({}, {}, glm::vec3(1.0f), &owner, subtype).has_value());
+    }
 }
 } // namespace
 

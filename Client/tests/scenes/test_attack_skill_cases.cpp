@@ -2,6 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Data/Tables/SkillTable.h"
+#include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Terrain/TerrainHeights.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
@@ -13,6 +15,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ModelEffects.h"
+#include "World/WorldTerrain.h"
 
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
@@ -184,7 +187,8 @@ std::vector<const Client::World::ModelEffect*> AliveEffects(const WorldState& wo
 }
 
 // Los casos de la cabeza que crean lo que MuRet no tiene (CL11): cortan en su alta, con los rand() de antes (0x59fb80
-// con el registro propio cerrado, y el rand() % 50 de la 0x27). La 0x48 deja +0x78 en 0 antes de cortar.
+// con el registro propio cerrado, el rand() % 50 de la 0x27 y los dos de 0x51fe10 de la 0x0e, que corta en su primera
+// chispa). La 0x48 deja +0x78 en 0 antes de cortar.
 TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
 {
     struct Case
@@ -194,13 +198,12 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
         int draws;
     };
     const std::array cases{
-        Case{0x1e, "0x4fdf1e", 0},         Case{0x24, "0x4fdf1e", 0},         Case{0x30, "0x4fe0e4", 0},
-        Case{0x43, "0x4fe172", 0},         Case{0x45, "0x4fe322", 0},         Case{0x48, "0x4fe590", 0},
-        Case{0x35, "0x4fe856", 0},         Case{0x3f, "0x4feae8", 0},         Case{0x41, "0x4febbb", 0},
-        Case{0x31, "0x4fec15", 0},         Case{0x29, "0x4fec9a", OwnRecord}, Case{0x0a, "0x4fecf3", OwnRecord},
-        Case{0x28, "0x4ff4ef", 0},         Case{0x26, "0x4ff5b2", 0},         Case{0x27, "0x4ffdaf", 1},
-        Case{0x05, "0x500531", OwnRecord}, Case{0x08, "0x500c49", OwnRecord}, Case{0x0c, "0x500cb9", OwnRecord},
-        Case{0x0d, "0x500d7b", OwnRecord}, Case{0x0e, "0x501494", 0},         Case{0x09, "0x501c67", OwnRecord},
+        Case{0x30, "0x4fe0e4", 0},         Case{0x43, "0x4fe172", 0},         Case{0x45, "0x4fe322", 0},
+        Case{0x48, "0x4fe590", 0},         Case{0x35, "0x4fe856", 0},         Case{0x3f, "0x4feae8", 0},
+        Case{0x41, "0x4febbb", 0},         Case{0x31, "0x4fec15", 0},         Case{0x29, "0x4fec9a", OwnRecord},
+        Case{0x0a, "0x4fecf3", OwnRecord}, Case{0x28, "0x4ff4ef", 0},         Case{0x26, "0x4ff5b2", 0},
+        Case{0x27, "0x4ffdaf", 1},         Case{0x08, "0x500c49", OwnRecord}, Case{0x0c, "0x500cb9", OwnRecord},
+        Case{0x0d, "0x500d7b", OwnRecord}, Case{0x0e, "0x51fe9e", 2},         Case{0x09, "0x501c67", OwnRecord},
         Case{0x2c, "0x502975", 0},
     };
     for (const std::int32_t map : Maps)
@@ -227,10 +230,131 @@ TEST(AttackSkillCasesTest, AnOpenOwnRecordFindsTheSkillWithoutDraws)
     SkillWorld tested;
     tested.world.Runtime().ownRecordDepth = 1;
 
-    const auto stepped = tested.Head(0x05);
+    const auto stepped = tested.Head(0x08);
 
-    EXPECT_TRUE(HasError(stepped, "0x500531")) << ErrorOf(stepped);
+    EXPECT_TRUE(HasError(stepped, "0x500c49")) << ErrorOf(stepped);
     EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+}
+
+// 0x4fdef2..0x4fdf26: de la 0x1e a la 0x24, el calco 0x61e/3 sobre o, con o de dueño, sin rand() ni sonido, con o sin
+// 0x4000. Con la tabla llena, nada.
+TEST(AttackSkillCasesTest, TheSummonsLeaveTheirDecalOverTheStriker)
+{
+    for (const std::int32_t map : Maps)
+    {
+        for (std::uint8_t skill = 0x1e; skill <= 0x24; ++skill)
+        {
+            for (const std::uint32_t flags : {0u, 0x4000u})
+            {
+                SCOPED_TRACE(testing::Message() << "mapa " << map << ", skill " << int{skill} << ", " << flags);
+                SkillWorld tested(map);
+                ActorState& striker = tested.Striker();
+                striker.flags78 = flags;
+                striker.position = glm::vec3(1250.0f, 3350.0f, 120.0f);
+                striker.angles = glm::vec3(0.0f, 0.0f, 45.0f);
+
+                ASSERT_TRUE(tested.Head(skill).HasValue());
+
+                const auto alive = AliveEffects(tested.world);
+                ASSERT_EQ(alive.size(), 1u);
+                const Client::World::ModelEffect& decal = *alive.front();
+                EXPECT_EQ(decal.type, Client::World::ColoredDecalEffect);
+                EXPECT_EQ(decal.subtype, Client::World::SummonDecalSubtype);
+                EXPECT_EQ(decal.ownerContext, &striker);
+                EXPECT_EQ(decal.transform.position, striker.position);
+                EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+                EXPECT_TRUE(tested.sounds.empty());
+                EXPECT_EQ(striker.flags78, flags);
+            }
+        }
+    }
+    SkillWorld full;
+    for (Client::World::ModelEffect& effect : full.world.Map().effects.Effects())
+    {
+        effect.alive = true;
+        effect.type = 0x01;
+    }
+    ASSERT_TRUE(full.Head(0x1e).HasValue());
+    EXPECT_EQ(DrawsSince(Seed, full.random), 0);
+}
+
+// Un mundo plano para la Flame: las alturas en 150 y los atributos en 0.
+void Flatten(WorldState& world)
+{
+    auto& terrain = world.Map().terrain;
+    terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    terrain.heights->cells.fill(150.0f);
+}
+
+// 0x500496..0x500c0b, la Flame: el chorro 0x5de/0 en el centro de la celda de la skill (+0x39c/+0x39d) a la altura del
+// terreno, con o de dueño, +0x8a de o, el lugar de la skill en +0x89 y la cuenta +0xf04 en +0x8c (0x518cf0 la lee con
+// el registro propio abierto: 3.848 rand() al cerrarse). Solo con o el héroe publicado, +0xf04 uno más (otro registro).
+// Antes, 0x59fb80(5); después, el sonido 0x79.
+TEST(AttackSkillCasesTest, TheFlameLightsItsJetOnTheSkillCell)
+{
+    for (const std::int32_t map : Maps)
+    {
+        for (const bool hero : {false, true})
+        {
+            SCOPED_TRACE(testing::Message() << "mapa " << map << (hero ? ", el héroe" : ", otro"));
+            SkillWorld tested(map);
+            Flatten(tested.world);
+            if (hero)
+                tested.world.Runtime().hero = StrikerSlot;
+            ActorState& striker = tested.Striker();
+            striker.skillCellX = 120;
+            striker.skillCellY = 33;
+            striker.word8a = 0x0123;
+            striker.angles = glm::vec3(0.0f, 0.0f, 90.0f);
+            striker.light = glm::vec3(0.5f, 0.25f, 1.0f);
+            tested.world.OwnCharacter().SetSkillAt(3, 0x05);
+            tested.world.OwnCharacter().bytef04 = 0x41;
+
+            ASSERT_TRUE(tested.Head(0x05).HasValue());
+
+            EXPECT_EQ(DrawsSince(Seed, tested.random), (hero ? 3 : 2) * OwnRecord);
+            const auto alive = AliveEffects(tested.world);
+            ASSERT_EQ(alive.size(), 1u);
+            const Client::World::ModelEffect& jet = *alive.front();
+            EXPECT_EQ(jet.type, Client::World::FlameJetEffect);
+            EXPECT_EQ(jet.subtype, 0);
+            EXPECT_EQ(jet.life, 40);
+            EXPECT_EQ(jet.transform.position, glm::vec3(12'050.0f, 3'350.0f, 150.0f));
+            EXPECT_EQ(jet.transform.angles, striker.angles);
+            EXPECT_EQ(jet.ownerContext, &striker);
+            EXPECT_EQ(jet.disturbanceState, 0x0123);
+            EXPECT_EQ(jet.byte89, 3);
+            EXPECT_EQ(jet.word8c, 0x41);
+            EXPECT_EQ(tested.world.OwnCharacter().bytef04, hero ? 0x42 : 0x41);
+            EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
+            EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x79}));
+        }
+    }
+}
+
+// Con la tabla llena, sin chorro ni el registro de su alta; el del héroe y el sonido siguen. Sin las alturas del
+// terreno, MuRet corta antes de 0x59fb80.
+TEST(AttackSkillCasesTest, TheFlameWithoutRoomOrGroundSkipsItsJet)
+{
+    SkillWorld full;
+    Flatten(full.world);
+    full.world.Runtime().hero = StrikerSlot;
+    for (Client::World::ModelEffect& effect : full.world.Map().effects.Effects())
+    {
+        effect.alive = true;
+        effect.type = 0x01;
+    }
+    ASSERT_TRUE(full.Head(0x05).HasValue());
+    EXPECT_EQ(DrawsSince(Seed, full.random), 2 * OwnRecord);
+    EXPECT_EQ(full.world.OwnCharacter().bytef04, 1);
+    EXPECT_EQ(full.sounds, (std::vector<std::int32_t>{0x79}));
+
+    SkillWorld bare;
+    const auto stepped = bare.Head(0x05);
+    EXPECT_TRUE(HasError(stepped, "0x5004ea")) << ErrorOf(stepped);
+    EXPECT_EQ(DrawsSince(Seed, bare.random), 0);
+    EXPECT_TRUE(bare.sounds.empty());
 }
 
 // El 0 y los que no están en las tablas de 0x505530 siguen en 0x502aff sin nada; la 0x37 y la 0x38 solo dejan el arma
@@ -545,7 +669,7 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
         Case{0x02, 0x20a, "0x5049ef"}, Case{0x2d, 0x20a, "0x504a3a"}, Case{0x49, 0x20a, "0x504b33"},
         Case{0x4a, 0x20a, "0x504b80"}, Case{0x04, 0x20a, "0x504bce"}, Case{0x0b, 0x164, "0x504c38"},
         Case{0x0b, 0x20a, "0x504cc0"}, Case{0x3c, 0x20a, "0x504d05"}, Case{0x3d, 0x20a, "0x504e40"},
-        Case{0x1c, 0x20a, "0x50470f"}, Case{0x11, 0x15e, "0x50501a"}, Case{0x11, 0x20a, "0x505053"},
+        Case{0x11, 0x15e, "0x50501a"}, Case{0x11, 0x20a, "0x505053"},
     };
     for (const std::int32_t map : Maps)
     {
@@ -561,6 +685,46 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
             EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
         }
     }
+}
+
+// 0x5046bf..0x50473b, la 0x1c: sin 0x4000 en o, el calco 0x61e/3 sobre el blanco, con él de dueño, y con +0x38d de o
+// el 4 en +0x78 del blanco; sin rand() ni sonido. Con la tabla llena, sin el calco y el 4 igual.
+TEST(AttackSkillCasesTest, TheSummonTargetLeavesItsDecalAndItsMark)
+{
+    for (const std::int32_t map : Maps)
+    {
+        for (const std::uint8_t succeeded : {std::uint8_t{0}, std::uint8_t{1}})
+        {
+            SCOPED_TRACE(testing::Message() << "mapa " << map << ", +0x38d " << int{succeeded});
+            SkillWorld tested(map);
+            tested.Striker().skillSucceeded = succeeded;
+            ActorState& victim = tested.Victim();
+            victim.position = glm::vec3(2250.0f, 1350.0f, 80.0f);
+            victim.flags78 = 0x10;
+
+            ASSERT_TRUE(tested.WithTarget(0x1c).HasValue());
+
+            const auto alive = AliveEffects(tested.world);
+            ASSERT_EQ(alive.size(), 1u);
+            const Client::World::ModelEffect& decal = *alive.front();
+            EXPECT_EQ(decal.type, Client::World::ColoredDecalEffect);
+            EXPECT_EQ(decal.subtype, Client::World::SummonDecalSubtype);
+            EXPECT_EQ(decal.ownerContext, &victim);
+            EXPECT_EQ(decal.transform.position, victim.position);
+            EXPECT_EQ(victim.flags78, succeeded != 0 ? 0x14u : 0x10u);
+            EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+            EXPECT_TRUE(tested.sounds.empty());
+        }
+    }
+    SkillWorld full;
+    full.Striker().skillSucceeded = 1;
+    for (Client::World::ModelEffect& effect : full.world.Map().effects.Effects())
+    {
+        effect.alive = true;
+        effect.type = 0x01;
+    }
+    ASSERT_TRUE(full.WithTarget(0x1c).HasValue());
+    EXPECT_EQ(full.Victim().flags78, 4u);
 }
 
 // 0x1b: sin +0x38d o con 0x4000 en +0x78, nada; si no, el calco 0x61e/2. 0x1c: con 0x4000, nada. 0x11: los +0x376 de

@@ -439,13 +439,13 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
              },
              "0x4f9ecb", SkillRead},
         Case{"la habilidad 3", [](AttackWorld&, ActorState& hero) { hero.byte38e = 3; }, "0x4f8fef", CountingStep},
-        Case{"la habilidad 5",
+        Case{"la habilidad 8",
              [](AttackWorld&, ActorState& hero)
              {
-                 hero.byte38e = 5;
+                 hero.byte38e = 8;
                  hero.byte381 = 14;
              },
-             "0x500531", CountingStep + SkillRead + OwnRecord},
+             "0x500c49", CountingStep + SkillRead + OwnRecord},
         Case{"la habilidad 7",
              [](AttackWorld&, ActorState& hero)
              {

@@ -351,15 +351,18 @@ std::optional<std::size_t> ModelEffects::CreateFadingDecal(const glm::vec3& posi
 }
 
 std::optional<std::size_t> ModelEffects::CreatePetSummon(const glm::vec3& position, const glm::vec3& angles,
-                                                         const glm::vec3& light, void* owner)
+                                                         const glm::vec3& light, void* owner, std::int32_t subtype)
 {
+    constexpr std::int32_t LastPlainSubtype = 3;
+    if (subtype < 0 || subtype > LastPlainSubtype)
+        return std::nullopt;
     for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
     {
         ModelEffect& effect = m_effects[slot];
         if (effect.alive)
             continue;
         InitializeOwnerlessEffect(effect, ColoredDecalEffect, position, angles, light);
-        effect.subtype = PetSummonSubtype;
+        effect.subtype = subtype;
         effect.hasOwner = owner != nullptr;
         effect.ownerContext = owner;
         effect.life = ArrivalLife; // 0x51eec0: la del 0x61e y el 0x61f.
@@ -678,6 +681,23 @@ std::optional<std::size_t> ModelEffects::CreateFlameJet(const glm::vec3& positio
     return std::nullopt;
 }
 
+std::optional<std::size_t> ModelEffects::CreateOwnedFlameJet(const ModelEffectArguments& arguments,
+                                                             std::uint8_t& ownRecordDepth, std::uint8_t ownRecordCount,
+                                                             Render::Models::CrtRandom& random)
+{
+    constexpr std::int32_t FlameJetLife = 40;
+    if (arguments.type != FlameJetEffect || arguments.subtype != 0)
+        return std::nullopt;
+    const std::optional<std::size_t> slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    ModelEffect& effect = m_effects[*slot];
+    effect.life = FlameJetLife;
+    const Render::Models::LogicalAccess access(ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+    effect.word8c = ownRecordCount;
+    return slot;
+}
+
 std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, const glm::vec3& position,
                                                          const glm::vec3& angles, const glm::vec3& light,
                                                          Render::Models::CrtRandom& random)
@@ -855,6 +875,28 @@ std::optional<std::size_t> ModelEffects::CreateFullSetFlare(const glm::vec3& pos
         effect.ownerContext = owner;
         effect.life = FullSetFlareLife;
         effect.speed = 0.0f; // 0x51e499.
+        return slot;
+    }
+    return std::nullopt;
+}
+
+std::optional<std::size_t> ModelEffects::CreateSkillFlare(const glm::vec3& position, const glm::vec3& angles,
+                                                          const glm::vec3& light, std::int32_t subtype, void* owner)
+{
+    constexpr std::int32_t SkillFlareLife = 1000; // 0x51e4a6.
+    if (subtype != SwellFlareSubtype && subtype != GuardFlareSubtype)
+        return std::nullopt;
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, IcarusFlareEffect, position, angles, light);
+        effect.subtype = subtype;
+        effect.hasOwner = owner != nullptr;
+        effect.ownerContext = owner;
+        effect.life = SkillFlareLife;
+        effect.speed = 0.0f; // 0x51e4ad.
         return slot;
     }
     return std::nullopt;

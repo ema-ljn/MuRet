@@ -257,6 +257,90 @@ TEST_F(ViewportPlayersTest, AnOldPlayerWalksTowardsItsTarget)
     }
 }
 
+// 0x4e670f..0x4e67a1 (CL9 hito 4; en el hito 1 cortaban): 0x400 y 0x10 apagan el 0x5ac/2 y /1 del que entra y crean
+// otro con él de dueño, sin rand() y sin mirar si ya tenía el bit; después prenden el bit y siguen (el 0x80, aquí). Con
+// la tabla llena, ninguno y sigue.
+TEST_F(ViewportPlayersTest, TheGuardAndSwellFlagsLightTheirFlaresOnThePlayer)
+{
+    using Client::World::GuardFlareSubtype;
+    using Client::World::SwellFlareSubtype;
+    struct Case
+    {
+        std::uint32_t flags;
+        // Los subtipos de los lugares 0 y 1 de la tabla al final (−1, muerto); el 0 empieza con un /2 viejo del que
+        // entra.
+        std::array<std::int32_t, 2> subtypes;
+        // Si el del lugar 0 es el nuevo (el viejo se apagó y el alta tomó su lugar).
+        bool renewed;
+    };
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        for (const Case& test :
+             {Case{0x400u, {GuardFlareSubtype, -1}, true}, Case{0x10u, {GuardFlareSubtype, SwellFlareSubtype}, false},
+              Case{0x410u, {GuardFlareSubtype, SwellFlareSubtype}, true}})
+        {
+            SCOPED_TRACE(testing::Message() << int{map} << " " << test.flags);
+            Load(map);
+            const Cell cell = FreeRow();
+            auto& effects = game->world.Map().effects;
+            // El que entra va al lugar 1 de los personajes.
+            ASSERT_TRUE(effects.CreateSkillFlare({}, {}, {}, GuardFlareSubtype, &Actor(1)).has_value());
+            const std::array<ViewportPlayerRecord, 1> records{{{.key = 0x0458,
+                                                                .x = cell.x,
+                                                                .y = cell.y,
+                                                                .effects = test.flags | 0x80u,
+                                                                .name = "Chingolo",
+                                                                .targetX = cell.x,
+                                                                .targetY = cell.y}}};
+            const auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+            ASSERT_TRUE(applied.HasValue()) << applied.Error();
+
+            const ActorState& actor = Actor(1);
+            EXPECT_EQ(actor.flags78, test.flags | 0x80u);
+            const auto live = effects.Effects();
+            for (std::size_t slot = 0; slot < test.subtypes.size(); ++slot)
+            {
+                SCOPED_TRACE(slot);
+                const auto& effect = live[slot];
+                ASSERT_EQ(effect.alive, test.subtypes[slot] >= 0);
+                if (!effect.alive)
+                    continue;
+                EXPECT_EQ(effect.type, Client::World::IcarusFlareEffect);
+                EXPECT_EQ(effect.subtype, test.subtypes[slot]);
+                EXPECT_EQ(effect.ownerContext, &actor);
+                EXPECT_EQ(effect.life, 1000);
+                const bool fresh = slot > 0 || test.renewed;
+                // El nuevo, donde lo dejó 0x511290 (el registro viejo no lo mueve); el viejo, en el origen.
+                EXPECT_EQ(effect.transform.position == actor.position, fresh);
+            }
+            EXPECT_FALSE(live[2].alive);
+            EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, FreshRecordDraws).State());
+        }
+    }
+}
+
+TEST_F(ViewportPlayersTest, TheFlaresOfTheFlagsWithAFullTableAreNoneAndTheRestFollows)
+{
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(map);
+        Load(map);
+        const Cell cell = FreeRow();
+        auto& effects = game->world.Map().effects;
+        while (effects.Create(Client::World::ArrivalEffect, {}, {}, {}, 0.0f))
+        {
+        }
+        const std::array<ViewportPlayerRecord, 1> records{
+            {{.key = 0x0459, .x = cell.x, .y = cell.y, .effects = 0x410u | 0x1000000u, .name = "Chingolo"}}};
+        const auto applied = Client::Scenes::ApplyViewportPlayers(Read(records), game->Resources());
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(Actor(1).flags78, 0x410u | 0x1000000u);
+        for (const auto& effect : effects.Effects())
+            EXPECT_EQ(effect.type, Client::World::ArrivalEffect);
+        EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, FreshRecordDraws).State());
+    }
+}
+
 // 0x4c88d2 (0x576960 con "webzen", distinguiendo mayúsculas): el registro no hace nada, pero el paquete ya está en la
 // cola.
 TEST_F(ViewportPlayersTest, AWebzenNameIsSkippedAfterThePacketIsStored)

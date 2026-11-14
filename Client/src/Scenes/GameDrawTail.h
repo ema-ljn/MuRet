@@ -91,12 +91,14 @@ struct FloorItemDrawContext
 
 // Qué hay detrás de ownerContext. Casi siempre lo dice el tipo del joint (Scenes/FaunaJointCreation.h): un
 // FaunaObject, el ActorState del personaje o un dueño opaco. El 60f/0 que el caballo oscuro suelta a su alrededor
-// (0x444740) lleva en cambio el HelperState del caballo. En el original los dos son el objeto del dueño y el joint lee
-// los mismos offsets: la luz (+0xf4) al nacer y la acción (+0x111) en el paso.
+// (0x444740) lleva en cambio el HelperState del caballo, y los de las órdenes del cuervo (0x418390 y 0x418400, el A9 de
+// Scenes/PetStats) el DarkSpirit del cuervo. En el original todos son el objeto del dueño y el joint lee los mismos
+// offsets: la luz (+0xf4) al nacer y la acción (+0x111) en el paso.
 enum class JointOwnerKind : std::uint8_t
 {
     ByType,
     Helper,
+    Raven,
 };
 
 struct JointState

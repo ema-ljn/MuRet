@@ -538,10 +538,138 @@ TEST_F(GameCharacterEffectsTest, ThePetSummonRefusesOtherEffectsAndAMissingJoint
     EXPECT_EQ(m_random.State(), 1u);
     EXPECT_EQ(summon.life, 20);
 
-    summon.subtype = 0;
+    summon.subtype = 2;
     const auto refused = Client::Scenes::StepPetSummon(summon, m_joints, m_random);
     ASSERT_FALSE(refused.HasValue());
     EXPECT_NE(refused.Error().find("0x52b9a6"), std::string::npos) << refused.Error();
+}
+
+// 0x52b9a6 → 0x518900 con el /3 de la 0x1c y de las invocaciones: el rand() de la luz y el giro del primer joint, que
+// es un 619/3 de la CL11 (0x530c18): corta en 0x5189cc después de esos tres rand(), sin la cola. Con la tabla de joints
+// llena, ninguno y sigue: nueve rand() y la cola.
+TEST_F(GameCharacterEffectsTest, TheSummonDecalCutsAtItsFirstEnergyJoint)
+{
+    ASSERT_TRUE(
+        m_effects.CreatePetSummon(m_actor.position, {}, glm::vec3(0.5f), &m_actor, Client::World::SummonDecalSubtype)
+            .has_value());
+    Client::World::ModelEffect& summon = m_effects.Effects()[0];
+
+    const auto cut = Client::Scenes::StepPetSummon(summon, m_joints, m_random);
+
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x5189cc"), std::string::npos) << cut.Error();
+    EXPECT_NE(cut.Error().find("0x619/3"), std::string::npos) << cut.Error();
+    EXPECT_EQ(m_random.State(), AfterRandoms(3));
+    EXPECT_EQ(summon.life, 20);
+
+    for (auto& joint : m_joints)
+        joint.alive = true;
+    CrtRandom full{1};
+    ASSERT_TRUE(Client::Scenes::StepPetSummon(summon, m_joints, full).HasValue());
+    EXPECT_EQ(full.State(), AfterRandoms(7));
+    EXPECT_EQ(summon.life, 19);
+}
+
+// 0x52a8a7: el 5ac/2 de la 0x35 saca el rand() de la luz, deja la vida en 10 con el dueño vivo con 0x400 (en 0 si no) y
+// sube +0xd8; cada 50 gira 50 en z, se pone a 80 del dueño (el seno de la suma sin redondear, el coseno del float
+// guardado) y 50 más arriba, y suelta un 619/9 de ancho 15 ahí. La cola descuenta la vida.
+TEST_F(GameCharacterEffectsTest, TheGuardFlareCirclesItsTargetEveryFiftyStepsWithAnEnergyJoint)
+{
+    using Client::Render::Models::Detail::CosineProductPC53;
+    using Client::Render::Models::Detail::SineProductPC53;
+    m_actor.alive = true;
+    m_actor.flags78 = 0x400;
+    m_actor.angles = {0.0f, 0.0f, 33.3f};
+    ASSERT_TRUE(m_effects
+                    .CreateSkillFlare(m_actor.position, m_actor.angles, glm::vec3(0.5f),
+                                      Client::World::GuardFlareSubtype, &m_actor)
+                    .has_value());
+    Client::World::ModelEffect& flare = m_effects.Effects()[0];
+    const float tenth = Float(0x3dcccccdu);
+
+    for (int step = 1; step <= 50; ++step)
+    {
+        SCOPED_TRACE(step);
+        const glm::vec3 before = flare.transform.position;
+        const float yaw = flare.transform.angles.z;
+        const auto stepped = Client::Scenes::StepSkillFlare(flare, m_joints, m_random);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(m_random.State(), AfterRandoms(static_cast<std::size_t>(step)));
+        EXPECT_EQ(flare.speed, static_cast<float>(step));
+        EXPECT_EQ(flare.life, 9);
+        if (step == 50)
+        {
+            const double turned = static_cast<double>(yaw) + 50.0;
+            const float storedYaw = static_cast<float>(turned);
+            EXPECT_EQ(flare.transform.angles.z, storedYaw);
+            const glm::vec3 at{
+                static_cast<float>(*SineProductPC53(turned * static_cast<double>(tenth), 80.0f) +
+                                   static_cast<double>(m_actor.position.x)),
+                static_cast<float>(
+                    *CosineProductPC53(static_cast<double>(storedYaw) * static_cast<double>(tenth), 80.0f) +
+                    static_cast<double>(m_actor.position.y)),
+                static_cast<float>(static_cast<double>(m_actor.position.z) + 50.0)};
+            EXPECT_EQ(flare.transform.position, at);
+        }
+        else
+        {
+            EXPECT_EQ(flare.transform.angles.z, yaw);
+            EXPECT_EQ(flare.transform.position, before);
+        }
+    }
+    const auto joints = LiveJoints(m_joints);
+    ASSERT_EQ(joints.size(), 1u);
+    EXPECT_EQ(joints[0].type, 0x619);
+    EXPECT_EQ(joints[0].subtype, 9);
+    EXPECT_EQ(joints[0].ownerContext, &m_actor);
+    EXPECT_EQ(joints[0].width, 15.0f);
+    EXPECT_EQ(joints[0].key, -1);
+
+    // Sin 0x400 la vida queda en 0 y muere en la cola; con 0x4000 en el dueño, no cuenta ni se corre.
+    m_actor.flags78 = 0x4000;
+    const float counted = flare.speed;
+    ASSERT_TRUE(Client::Scenes::StepSkillFlare(flare, m_joints, m_random).HasValue());
+    EXPECT_EQ(flare.speed, counted);
+    EXPECT_FALSE(flare.alive);
+    EXPECT_EQ(flare.life, -1);
+    EXPECT_EQ(m_random.State(), AfterRandoms(51));
+}
+
+// 0x52a7b7: el 5ac/1 de la 0x30 saca el rand() de la luz y deja la vida en 10 con el dueño vivo con 0x10; sin 0x4000 en
+// el dueño, rand() % 7 elige la escala de sus 5ac/4, que son de la CL11 (0x52a866). Con 0x4000, sólo la cola. Sin
+// dueño, el original lee +0x78 de 0: MuRet corta.
+TEST_F(GameCharacterEffectsTest, TheSwellFlareCutsAtItsParticlesAfterItsDraws)
+{
+    m_actor.alive = true;
+    m_actor.flags78 = 0x10;
+    ASSERT_TRUE(m_effects
+                    .CreateSkillFlare(m_actor.position, m_actor.angles, glm::vec3(0.5f),
+                                      Client::World::SwellFlareSubtype, &m_actor)
+                    .has_value());
+    Client::World::ModelEffect& flare = m_effects.Effects()[0];
+
+    const auto cut = Client::Scenes::StepSkillFlare(flare, m_joints, m_random);
+
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x52a866"), std::string::npos) << cut.Error();
+    EXPECT_EQ(m_random.State(), AfterRandoms(2));
+    EXPECT_EQ(flare.life, 10);
+
+    m_actor.flags78 = 0x4010;
+    ASSERT_TRUE(Client::Scenes::StepSkillFlare(flare, m_joints, m_random).HasValue());
+    EXPECT_EQ(flare.life, 9);
+    EXPECT_TRUE(flare.alive);
+    EXPECT_EQ(m_random.State(), AfterRandoms(3));
+
+    flare.ownerContext = nullptr;
+    const auto ownerless = Client::Scenes::StepSkillFlare(flare, m_joints, m_random);
+    ASSERT_FALSE(ownerless.HasValue());
+    EXPECT_NE(ownerless.Error().find("0x52a7ec"), std::string::npos) << ownerless.Error();
+
+    flare.subtype = 3;
+    const auto refused = Client::Scenes::StepSkillFlare(flare, m_joints, m_random);
+    ASSERT_FALSE(refused.HasValue());
+    EXPECT_NE(refused.Error().find("0x52a7b7"), std::string::npos) << refused.Error();
 }
 
 TEST_F(GameCharacterEffectsTest, ChaosCastleSkipsTheCounterAndTheFullSet)
@@ -1215,26 +1343,75 @@ TEST_F(GameRavenTest, TheAttackEffectNeedsAnOddCounterAndHeight)
     EXPECT_EQ(m_random.State(), Client::Render::Models::CrtRandom{}.State());
 }
 
-// 0x41896d: en el 6, con la pose del dibujo, rand() & 1 elige el primer hueso; el del modelo de prueba (el 0) saca la
-// partícula 0x5ac/6 (CL11). Desde el 1 no hay más huesos.
+// 0x41896d: en el 6, con la pose del dibujo, rand() & 1 elige el primer hueso; el del modelo de prueba (el 0) suelta la
+// partícula 0x5ac/6 en el punto del hueso en el mundo (0x4ec110 de (0; 0; 0) con la pose de +0x120), con los ángulos
+// del cuervo, la luz (1; 0,6f; 0,4f) y la escala 1,3f, con sus rand() (0x53fe70). Desde el 1 no hay más huesos. Con el
+// pool lleno, ninguna y sigue. Sin las partículas, MuRet corta en la primera.
 TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
 {
-    m_owner.darkSpirit->state = 6;
-    Client::Render::Models::CrtRandom expected = m_random;
-    const int first = expected.Next() & 1;
-
-    const auto shout = Client::Scenes::DrawGameRaven(m_owner, Pass());
-
-    EXPECT_EQ(m_random.State(), expected.State());
-    if (first == 0)
+    for (const std::uint32_t seed : {1u, 2u, 3u, 4u})
     {
-        ASSERT_FALSE(shout.HasValue());
-        EXPECT_NE(shout.Error().find("0x418a26"), std::string::npos) << shout.Error();
+        SCOPED_TRACE(seed);
+        m_random = Client::Render::Models::CrtRandom(seed);
+        m_owner.darkSpirit->state = 6;
+        m_owner.darkSpirit->byte38d = 0;
+        m_owner.darkSpirit->angles = {0.0f, 0.0f, 120.0f};
+        auto particles = std::make_unique<Client::World::Particles>();
+        GameRavenPass pass = Pass();
+        pass.particles = particles.get();
+        pass.worldClock = 500.0f;
+        Client::Render::Models::CrtRandom expected = m_random;
+        const int first = expected.Next() & 1;
+
+        const auto shout = Client::Scenes::DrawGameRaven(m_owner, pass);
+
+        ASSERT_TRUE(shout.HasValue()) << shout.Error();
+        ASSERT_EQ(m_owner.darkSpirit->pose.size(), 1u);
+        std::size_t live = 0;
+        for (const auto& particle : particles->All())
+            live += particle.alive ? 1u : 0u;
+        if (first == 0)
+        {
+            auto made = std::make_unique<Client::World::Particles>();
+            const glm::vec3 point =
+                Client::Render::Models::OriginalVectorTransform(glm::vec3(0.0f), m_owner.darkSpirit->pose[0]);
+            ASSERT_TRUE(
+                made->CreateChecked(0x5ac, point, m_owner.darkSpirit->angles,
+                                    {1.0f, std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3ecccccdu)}, 6,
+                                    std::bit_cast<float>(0x3fa66666u), 500.0f, expected)
+                    .HasValue());
+            ASSERT_EQ(live, 1u);
+            const auto& particle = particles->All()[0];
+            EXPECT_EQ(particle.type, 0x5ac);
+            EXPECT_EQ(particle.subtype, 6);
+            EXPECT_EQ(particle.position, point);
+            EXPECT_EQ(particle.light, made->All()[0].light);
+            EXPECT_EQ(particle.scale, made->All()[0].scale);
+            EXPECT_EQ(particle.life, made->All()[0].life);
+        }
+        else
+        {
+            EXPECT_EQ(live, 0u);
+        }
+        EXPECT_EQ(m_random.State(), expected.State());
     }
-    else
-    {
-        EXPECT_TRUE(shout.HasValue()) << shout.Error();
-    }
+
+    // Con el pool lleno, ninguna y sin sus rand(); sin las partículas, corta. La semilla 3 empieza por el hueso 0.
+    constexpr std::uint32_t BoneZero = 3;
+    Client::Render::Models::CrtRandom afterOne(BoneZero);
+    ASSERT_EQ(afterOne.Next() & 1, 0);
+    m_random = Client::Render::Models::CrtRandom(BoneZero);
+    auto full = std::make_unique<Client::World::Particles>();
+    for (auto& particle : full->All())
+        particle.alive = true;
+    GameRavenPass crowded = Pass();
+    crowded.particles = full.get();
+    ASSERT_TRUE(Client::Scenes::DrawGameRaven(m_owner, crowded).HasValue());
+    EXPECT_EQ(m_random.State(), afterOne.State());
+    m_random = Client::Render::Models::CrtRandom(BoneZero);
+    const auto missing = Client::Scenes::DrawGameRaven(m_owner, Pass());
+    ASSERT_FALSE(missing.HasValue());
+    EXPECT_NE(missing.Error().find("0x418a26"), std::string::npos) << missing.Error();
 }
 
 // 0x418a51: con +0x38d en 15, sin personaje en +0x3b0 solo vuelve el contador a 0; con uno, 0x4ee770 (CL11). Fuera de

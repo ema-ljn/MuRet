@@ -2,11 +2,14 @@
 
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
+#include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
+#include "World/ModelEffects.h"
 
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <utility>
 
 // 0x4e6380, cotejado con el PE (1.418 bytes), y 0x42ab40 (266 bytes).
 namespace Client::Scenes
@@ -54,7 +57,7 @@ Core::Expected<void, std::string> Cut(const char* text)
 } // namespace
 
 Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint32_t flags, bool publishedHero,
-                                                   std::optional<std::int32_t>& lastSound)
+                                                   std::optional<std::int32_t>& lastSound, World::ModelEffects& effects)
 {
     // 0x4e6390..0x4e63b7.
     if (Has(flags, Bit800000))
@@ -139,10 +142,18 @@ Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint3
         if (Has(flags, bit))
             actor.flags78 |= bit;
     }
-    if (Has(flags, 0x400u))
-        return Cut("0x4e6725: 0x518ac0 y el efecto 0x5ac/2 (0x518cf0) de la bandera 0x400 son de la CL11");
-    if (Has(flags, 0x10u))
-        return Cut("0x4e676e: 0x518ac0 y el efecto 0x5ac/1 (0x518cf0) de la bandera 0x10 son de la CL11");
+    // 0x4e670f..0x4e67a1: siempre, sin mirar si ya tenía el bit y sin rand(), apaga su 0x5ac/2 (o /1) y crea otro con
+    // él de dueño (0x518ac0 y 0x518cf0, como la skill 0x35 y la 0x30 de SkillReplies, sin los joints 0x619/9 de la
+    // 0x35); con la tabla llena, ninguno. Después prende el bit y sigue. El paso del /1 corta en 0x52a866 (CL11).
+    for (const auto& [bit, subtype] :
+         {std::pair{0x400u, World::GuardFlareSubtype}, std::pair{0x10u, World::SwellFlareSubtype}})
+    {
+        if (!Has(flags, bit))
+            continue;
+        KillModelEffectsOf(effects, World::IcarusFlareEffect, &actor, subtype);
+        static_cast<void>(effects.CreateSkillFlare(actor.position, actor.angles, actor.light, subtype, &actor));
+        actor.flags78 |= bit;
+    }
     // 0x4e67a6..0x4e6833: con el bit ya prendido en +0x78, solo lo vuelve a prender.
     constexpr std::uint32_t Bit20 = 0x20;
     if (Has(flags, Bit20))

@@ -200,7 +200,8 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Viewport::Pl
         Render::Models::SetAction(actor.animation, *skeleton, *action);
     }
     // 0x4c8adc..0x4c8aec.
-    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, runtime.lastSoundId);
+    if (auto flagged =
+            ApplyEffectFlags(actor, record.effects, index == runtime.hero, runtime.lastSoundId, world.Map().effects);
         !flagged.HasValue())
         return flagged;
     WriteTheCells(actor, record.x, record.y, random);
@@ -478,7 +479,8 @@ Core::Expected<void, std::string> FinishTheTransformed(std::size_t index,
     actor.byte88 = 1;
     actor.byte3e3 = 1;
     // 0x4c938c..0x4c9396.
-    if (auto flagged = ApplyEffectFlags(actor, record.effects, index == runtime.hero, runtime.lastSoundId);
+    if (auto flagged =
+            ApplyEffectFlags(actor, record.effects, index == runtime.hero, runtime.lastSoundId, world.Map().effects);
         !flagged.HasValue())
         return flagged;
     ApplyCastleSiegeFlags(actor, record.effects, runtime.map);

@@ -59,6 +59,12 @@ inline constexpr std::int16_t IcarusFlareEffect = 0x5ac;
 // El 0x5ac/3 del conjunto completo (0x50fdc3): cada 100 dibujos del personaje con +0x358, con él de dueño. No se
 // mueve solo: cada 15 pasos se corre alrededor del dueño y suelta un joint 619/9 (0x52a9ad).
 inline constexpr std::int32_t FullSetFlareSubtype = 3;
+// Los 0x5ac/1 y /2 de las skills que llegan (0x4cdd84 con la 0x30 y 0x4cdc88 con la 0x35, Scenes/SkillReplies), con el
+// blanco de dueño: viven mientras el dueño esté vivo con su bandera de +0x78 (0x10 el /1, 0x400 el /2). El /1 suelta
+// partículas 5ac/4 en cada paso (0x52a7b7) y el /2, cada 50, se corre alrededor del dueño y suelta un joint 619/9
+// (0x52a8a7).
+inline constexpr std::int32_t SwellFlareSubtype = 1;
+inline constexpr std::int32_t GuardFlareSubtype = 2;
 // El de Aida (0x42593f): el 0x46 crea el 0xb3, un modelo que Aida no carga (en Atlans, Object8\Fish02), que
 // vaga cerca de donde nació y suelta partículas 5ac/9.
 inline constexpr std::int16_t AidaWispEffect = 0xb3;
@@ -90,6 +96,9 @@ inline constexpr std::int16_t LightningDecalEffect = 0x14e;
 // dueño (0x518900).
 inline constexpr std::int16_t ColoredDecalEffect = 0x61e;
 inline constexpr std::int32_t PetSummonSubtype = 1;
+// El /3, que la 0x1c crea sobre el blanco y las invocaciones 0x1e..0x24 sobre el que las lanza (0x50470f y 0x4fdf1e):
+// su paso suelta tres joints 619/3 (0x518900), que son de la CL11.
+inline constexpr std::int32_t SummonDecalSubtype = 3;
 // El terremoto (la familia EarthQuake): el 0xfa, que la acción 3 del caballo oscuro crea con el caballo de dueño y el
 // estado (+0x88) en 2 (0x4453e0) y que con un estado distinto de 0 no se dibuja (0x52d400). Su paso suelta en la vida
 // 11 la explosión 5ed/0 y las grietas 0xfb..0x100, y en la 10 las 0x101 y 0x102 (Data\Skill\EarthQuake01..08, que
@@ -232,6 +241,14 @@ public:
     std::optional<std::size_t> CreateFlameJet(const glm::vec3& position, const glm::vec3& angles,
                                               const glm::vec3& light, std::uint8_t& ownRecordDepth,
                                               Render::Models::CrtRandom& random);
+    // 0x518cf0(0x5de, punto, ángulos, luz, 0, dueño, clave, lugar, 0, 0, 0) → 0x51e7d8 con el subtipo 0, el chorro de
+    // la Flame (0x500531, Scenes/AttackSkillCases): el prefijo de Begin (el dueño en +0x108, la clave en +0x8a y el
+    // lugar de la skill en +0x89), vida 40 (0x51e7f9) y el registro propio abierto, su cuenta +0xf04 (`ownRecordCount`)
+    // como WORD en +0x8c (0x51ea9f, MOVZX) y cerrado (0x51eab6: con `ownRecordDepth` en 0, sus 3.848 rand()). La rama
+    // del dueño héroe del paso (0x52ae2a) lee +0x89, +0x8a y +0x8c. Otro tipo o subtipo, o la tabla llena, ninguno, sin
+    // rand() y sin tocar el registro.
+    std::optional<std::size_t> CreateOwnedFlameJet(const ModelEffectArguments& arguments, std::uint8_t& ownRecordDepth,
+                                                   std::uint8_t ownRecordCount, Render::Models::CrtRandom& random);
     // 0x518cf0(0xc8 o 0xc9, …, 0, 0, −1, 0, 0, 0, 0) → 0x51b72b con el subtipo 0: el prefijo común y cinco
     // rand(): el empuje ((& 255) + 64) · 0,1f en y, la vida (& 15) + 32, la escala ((& 3) + 8) · 0,1f, el
     // yaw rand() % 360 y la caída (& 15) + 8 en +0xe4; la velocidad es el empuje girado por los ángulos con
@@ -268,6 +285,11 @@ public:
     // −1, escala 0,9) con el personaje de dueño (+0x108), vida 30 y +0xd8 en 0. Sin rand(); lleno, ninguno.
     std::optional<std::size_t> CreateFullSetFlare(const glm::vec3& position, const glm::vec3& angles,
                                                   const glm::vec3& light, void* owner);
+    // 0x518cf0(0x5ac, posición, ángulos, luz, 1 o 2, blanco, −1, 0, 0, 0, 0) → 0x51e4a6: el prefijo común (+0x8a en −1,
+    // escala 0,9) con el blanco de dueño (+0x108), vida 1.000 y +0xd8 en 0. Sin rand(); otro subtipo o la tabla llena,
+    // ninguno.
+    std::optional<std::size_t> CreateSkillFlare(const glm::vec3& position, const glm::vec3& angles,
+                                                const glm::vec3& light, std::int32_t subtype, void* owner);
     // 0x518cf0(0x6eb, posición, ángulos, luz, 1, 0, −1, 0, 0, 0, 0) → 0x51f4ad: el prefijo común (+0x8a en −1, sin
     // dueño), la vida 30 y la escala 20 del tipo, y con el subtipo 1 la vida 20 y la escala ((rand() % 10) + 10) ·
     // 0,1f en la x87 (0x51f4c3..0x51f4eb). Un rand(); lleno, ninguno y sin rand().
@@ -292,11 +314,13 @@ public:
     std::optional<std::size_t> CreateLightningDecal(const glm::vec3& position, const glm::vec3& angles,
                                                     const glm::vec3& light, std::int32_t subtype, void* owner,
                                                     std::uint32_t systemTime);
-    // 0x518cf0(0x61e, posición, ángulos, luz, 1, dueño, −1, 0, 0, 0, 0) → 0x51eebb: el prefijo común (+0x8a en −1,
-    // escala 0,9) con el dueño (+0x108) y vida 20; el subtipo 1 no tiene caso y sale por 0x51db73. Sin rand(); lleno,
-    // ninguno.
+    // 0x518cf0(0x61e, posición, ángulos, luz, `subtype`, dueño, −1, 0, 0, 0, 0) → 0x51eebb: el prefijo común (+0x8a en
+    // −1, escala 0,9) con el dueño (+0x108) y vida 20; los subtipos 0 a 3 (el 1 de la mascota y de la 0x1a, el 3 de la
+    // 0x1c y de las invocaciones 0x1e..0x24, Scenes/AttackSkillCases) no tienen caso y salen por 0x51db73. Sin rand();
+    // otro subtipo (el 4 y del 6 al 10 tienen su caso) o la tabla llena, ninguno.
     std::optional<std::size_t> CreatePetSummon(const glm::vec3& position, const glm::vec3& angles,
-                                               const glm::vec3& light, void* owner);
+                                               const glm::vec3& light, void* owner,
+                                               std::int32_t subtype = PetSummonSubtype);
     // 0x518cf0(0x118 o 0x119, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51cc6b o 0x51cd1b: el prefijo común
     // (+0x8a en −1, sin dueño, escala 0,9) y el atributo de la celda de la posición (UnmaskedCellAttribute, en
     // 0x51cc8b o 0x51cd3b): con el bit 0x04, el 0x08 o el 0x10 el lugar queda escrito con el byte vivo en 0, y

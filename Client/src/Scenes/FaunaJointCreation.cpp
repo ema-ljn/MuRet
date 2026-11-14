@@ -13,6 +13,7 @@
 #include <cmath>
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/DarkSpirit.h"
 #include "Scenes/FaunaObject.h"
 #include "Scenes/HelperTable.h"
 #include "World/WorldObjects.h"
@@ -413,6 +414,8 @@ const glm::vec3* SparkleOwnerLight(const JointState& joint)
         return nullptr;
     if (joint.ownerKind == JointOwnerKind::Helper)
         return &static_cast<const HelperState*>(joint.ownerContext)->light;
+    if (joint.ownerKind == JointOwnerKind::Raven)
+        return &static_cast<const DarkSpirit*>(joint.ownerContext)->light;
     return &static_cast<const ActorState*>(joint.ownerContext)->light;
 }
 
@@ -423,6 +426,8 @@ std::optional<std::uint8_t> SparkleOwnerAction(const JointState& joint)
         return std::nullopt;
     if (joint.ownerKind == JointOwnerKind::Helper)
         return static_cast<const HelperState*>(joint.ownerContext)->horse.animation.action;
+    if (joint.ownerKind == JointOwnerKind::Raven)
+        return static_cast<const DarkSpirit*>(joint.ownerContext)->animation.action;
     return static_cast<const ActorState*>(joint.ownerContext)->animation.action;
 }
 
@@ -684,15 +689,16 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
                                                                          Render::Models::CrtRandom& random,
                                                                          JointOwnerKind ownerKind)
 {
-    // Lo que lee MuRet de un ayudante de dueño: sólo la luz y la acción del 60f/0 y del 60f/0x12.
+    // Lo que lee MuRet de un ayudante o del cuervo de dueño: sólo la luz y la acción del 60f/0 y del 60f/0x12.
     const bool helperSparkle =
         request.type == SparkleJoint && (request.subtype == SparkleSubtype || request.subtype == WideSparkleSubtype);
     for (std::size_t i = 0; i < joints.size(); ++i)
     {
         if (joints[i].alive)
             continue;
-        if (ownerKind == JointOwnerKind::Helper && !helperSparkle)
-            return Core::Unexpected(std::format("0x530860: el joint {:#x}/{} con un ayudante de dueño no está portado",
+        if (ownerKind != JointOwnerKind::ByType && !helperSparkle)
+            return Core::Unexpected(std::format("0x530860: el joint {:#x}/{} con un ayudante o el cuervo de dueño no "
+                                                "está portado",
                                                 request.type, request.subtype));
         Prefix(joints[i], request, ownerKind);
         if (auto created = CreateCase(joints[i], request, random); !created.HasValue())

@@ -1,5 +1,6 @@
 #include "World/GameModelEffects.h"
 
+#include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -573,6 +574,75 @@ TEST(GameModelEffectsTest, TheFlameJetSpitsSixFlamesASometimesChipAndItsLight)
         EXPECT_EQ(lighting->cells, expectedLighting->cells);
         EXPECT_EQ(jet.life, 29);
     }
+}
+
+// 0x52ae2a: después de la luz, con el héroe ([0x743a170]) de dueño (+0x108) y la vida de antes de la cola múltiplo de
+// 20, el chorro de la Flame pide 0x517a20 a 150 sobre sí mismo; con otro dueño, sin dueño o con otra vida, no. Los
+// rand() del paso son los del chorro sin dueño (los de 0x517a20 los saca quien los pide). Sin `skillHits`, corta.
+TEST(GameModelEffectsTest, TheHerosFlameJetHitsEveryTwentySteps)
+{
+    int hero = 0;
+    int other = 0;
+    const std::uint32_t quiet = SeedWhereDraw(25, [](int value) { return (value & 7) != 0; });
+    struct Case
+    {
+        void* owner;
+        std::int32_t life;
+        bool hits;
+    };
+    for (const Case probe : {Case{&hero, 40, true}, Case{&hero, 20, true}, Case{&hero, 39, false},
+                             Case{&hero, 21, false}, Case{&other, 40, false}, Case{nullptr, 40, false}})
+    {
+        SCOPED_TRACE(testing::Message() << "vida " << probe.life << ", héroe " << (probe.owner == &hero));
+        Client::World::ModelEffect jet = DungeonEffect(Client::World::FlameJetEffect, probe.life);
+        jet.ownerContext = probe.owner;
+        jet.hasOwner = probe.owner != nullptr;
+        Client::World::ModelEffect plain = DungeonEffect(Client::World::FlameJetEffect, probe.life);
+        Client::World::Particles particles;
+        Client::World::Particles plainParticles;
+        Client::World::ModelEffects effects;
+        auto lighting = std::make_unique<Client::World::TerrainLighting>();
+        Client::World::ModelEffectStepServices services;
+        services.effects = &effects;
+        services.lighting = lighting.get();
+        services.hero = &hero;
+        std::vector<float> radii;
+        const Client::World::ModelEffect* asked = nullptr;
+        services.skillHits = [&](const Client::World::ModelEffect& flame,
+                                 float radius) -> Client::Core::Expected<void, std::string>
+        {
+            asked = &flame;
+            radii.push_back(radius);
+            return {};
+        };
+        Client::Render::Models::CrtRandom random(quiet);
+        Client::Render::Models::CrtRandom plainRandom(quiet);
+
+        ASSERT_TRUE(
+            Client::World::StepGameModelEffect(jet, nullptr, particles, 0.0f, random, nullptr, services).HasValue());
+        ASSERT_TRUE(
+            Client::World::StepGameModelEffect(plain, nullptr, plainParticles, 0.0f, plainRandom, nullptr, services)
+                .HasValue());
+
+        EXPECT_EQ(radii, probe.hits ? std::vector<float>{150.0f} : std::vector<float>{});
+        EXPECT_EQ(asked, probe.hits ? &jet : nullptr);
+        EXPECT_EQ(random.State(), plainRandom.State());
+        EXPECT_EQ(jet.life, probe.life - 1);
+    }
+    Client::World::ModelEffect jet = DungeonEffect(Client::World::FlameJetEffect, 40);
+    jet.ownerContext = &hero;
+    jet.hasOwner = true;
+    Client::World::Particles particles;
+    Client::World::ModelEffects effects;
+    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    Client::World::ModelEffectStepServices services;
+    services.effects = &effects;
+    services.lighting = lighting.get();
+    services.hero = &hero;
+    Client::Render::Models::CrtRandom random(quiet);
+    const auto cut = Client::World::StepGameModelEffect(jet, nullptr, particles, 0.0f, random, nullptr, services);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x52ae72"), std::string::npos) << cut.Error();
 }
 
 // La luz local del primer rand() se apaga con menos de 5 de vida: L − (5 − vida) · 0,2f, en 0 si queda debajo.

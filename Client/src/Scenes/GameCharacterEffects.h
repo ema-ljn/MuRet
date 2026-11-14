@@ -92,10 +92,21 @@ StepFullSetFlare(World::ModelEffect& effect, std::span<JointState> joints, Rende
 // 0x5208a0 sobre el calco 0x61e/1 de la mascota (0x52b9a6 → 0x518900): el rand() de la luz de todo efecto vivo
 // (0x5208c5) y tres joints 619/1 de ancho 5, cada uno con su giro (rand() % 90, 0, rand() % 360), nacido donde ese giro
 // lleva (0, −200, 0) restado de la posición del efecto, con 120 más de z; la posición del efecto de segundo punto, el
-// dueño del efecto (el héroe), key −1 y sin skill ni objetivo. Después la cola común (0x52cb98): sin animación ni
-// velocidad, una vida menos.
+// dueño del efecto (el héroe), key −1 y sin skill ni objetivo. El /3 de la 0x1c y de las invocaciones hace lo mismo con
+// joints 619/3, de la CL11: corta en el primero (0x5189cc), después de sus dos rand(). Después la cola común
+// (0x52cb98): sin animación ni velocidad, una vida menos.
 [[nodiscard]] Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<JointState> joints,
                                                               Render::Models::CrtRandom& random);
+
+// 0x5208a0 sobre los 0x5ac/1 y /2 de las skills que llegan (0x52a7b7 y 0x52a8a7, Scenes/SkillReplies): el rand() de la
+// luz de todo efecto vivo (0x5208c5) y la vida en 10 con el dueño (+0x108) vivo (+0x0 en 1) y su bandera de +0x78 (0x10
+// el /1, 0x400 el /2), si no en 0. Con 0x4000 en +0x78 del dueño, nada más. Si no, el /1 saca rand() % 7 y corta en
+// sus partículas 5ac/4 (0x52a866, CL11); el /2 sube +0xd8 en 1 y, con su ftol múltiplo de 50, gira 50 más en z, se pone
+// a 80 del dueño con el seno del giro sin redondear y el coseno del giro guardado (Q-C380), 50 más arriba, y suelta el
+// joint 619/9 de ancho 15 ahí (con la tabla de joints llena, ninguno). Después la cola común (0x52cb98): sin animación
+// ni velocidad, una vida menos. Sin dueño, el original lee +0x78 de 0: MuRet corta.
+[[nodiscard]] Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std::span<JointState> joints,
+                                                               Render::Models::CrtRandom& random);
 
 // Lo que lee el cuervo del juego (0x420df0 → 0x4182f0) fuera de su dueño.
 struct GameRavenPass
@@ -117,6 +128,10 @@ struct GameRavenPass
     bool originalFrame = true;
     // El rand() de la CRT, para 0x418920 (los estados 5 y 6). Sin él, esos estados cortan.
     Render::Models::CrtRandom* random = nullptr;
+    // Las partículas del mundo (0x743a198) y su reloj (DAT_05767b88), para las 0x5ac/6 del grito (0x418a26). Sin ellas,
+    // el grito corta en su primera partícula.
+    World::Particles* particles = nullptr;
+    float worldClock = 0.0f;
 };
 
 // 0x420df0: con un cuervo en +0x430, 0x4182f0. Sin pasar el trapecio (su (x, y) por 0,01f, con −20),
@@ -125,7 +140,8 @@ struct GameRavenPass
 // +0x78 & 0x4000 del dueño, 0x6002e0 recibe 10 y va por 0x60033c: DrawChromeShell, sin la sombra ni la altura del
 // terreno (el +0x108 del cuervo queda en 0 desde 0x415c1e, así que el lazo del asedio de 0x600343 no lo encuentra en
 // el pool). Después, en los frames del original, 0x418920, que sólo hace algo en los estados 5 y 6 (los que pone el
-// A8): sus efectos son de la CL11 y cortan con su dirección (DrawTheRavenAttack). Se dibuja como lo dejó el paso, como
+// A8): el grito del 6 suelta las partículas 0x5ac/6 de sus huesos y lo demás es de la CL11 y corta con su dirección
+// (DrawTheRavenAttack). Se dibuja como lo dejó el paso, como
 // el personaje. En un frame del original le quedan los huesos de la pose para la chispa del paso.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRavenPass& pass);
 } // namespace Client::Scenes

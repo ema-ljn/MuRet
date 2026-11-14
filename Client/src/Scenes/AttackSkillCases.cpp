@@ -17,6 +17,10 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ModelEffects.h"
+#include "World/TerrainHeight.h"
+#include "World/WorldTerrain.h"
+
+#include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
 #include <array>
@@ -115,6 +119,50 @@ Core::Expected<void, std::string> ShakeTheGround(ActorState& actor, const Charac
         quake.itemLevel = &actor.byte8e;
     }
     RequestTheSound(context, QuakeSound);
+    return {};
+}
+
+// 0x500496..0x500c0b, la 0x05 (la Flame): el punto de la celda de la skill (+0x39c y +0x39d, más 0,5f por 100 en la
+// x87, cada eje guardado en float) con la altura del terreno ahí (0x5f93c0), 0x59fb80(5) y 0x518cf0(0x5de, punto,
+// o+0x1c, o+0xf4, 0, o, o+0x8a, lugar, 0, 0, 0): el chorro con o de dueño (World::ModelEffects::CreateOwnedFlameJet),
+// cuyo paso con el héroe de dueño manda los blancos (0x52ae2a, World/GameModelEffects). Con c el héroe publicado
+// ([0x743a170]), el registro propio abierto, su cuenta +0xf04 uno más y cerrado (0x500539..0x500bfa, con sus 3.848
+// rand() si queda en 0); después, con cualquiera, el sonido 0x79 (0x500c03). Con la tabla llena no hay chorro (ni el
+// registro de su alta) y lo demás sigue igual. Sin las alturas del terreno, MuRet corta antes de 0x59fb80.
+Core::Expected<void, std::string> CastTheFlame(ActorState& actor, const CharacterStepContext& context)
+{
+    constexpr std::uint8_t FlameSkill = 5;
+    constexpr std::int32_t FlameSound = 0x79;
+    constexpr double CellCentre = 0.5; // 0x6b882c
+    constexpr double CellSize = 100.0; // 0x6b86b4
+    WorldState& world = context.world;
+    WorldRuntime& runtime = world.Runtime();
+    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : world.Map().terrain;
+    if (!terrain.heights || !terrain.attributes)
+        return Core::Unexpected(std::string("0x5004ea: falta la altura del terreno (0x5f93c0) del chorro de la Flame"));
+    glm::vec3 point{};
+    point.x = static_cast<float>((static_cast<double>(actor.skillCellX) + CellCentre) * CellSize);
+    point.y = static_cast<float>((static_cast<double>(actor.skillCellY) + CellCentre) * CellSize);
+    point.z = static_cast<float>(
+        World::TerrainHeightAt(*terrain.heights, *terrain.attributes, point.x, point.y, context.fixedHeight));
+    const std::int32_t index = OwnSkillIndex(context, FlameSkill);
+    const World::ModelEffectArguments arguments{.type = World::FlameJetEffect,
+                                                .position = point,
+                                                .angles = actor.angles,
+                                                .light = actor.light,
+                                                .subtype = 0,
+                                                .owner = &actor,
+                                                .key = actor.word8a,
+                                                .byte89 = static_cast<std::uint8_t>(index & 0xff)};
+    static_cast<void>(world.Map().effects.CreateOwnedFlameJet(arguments, runtime.ownRecordDepth,
+                                                              world.OwnCharacter().bytef04, context.random));
+    if (&actor == &world.Actors()[runtime.hero])
+    {
+        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        ++world.OwnCharacter().bytef04;
+    }
+    RequestTheSound(context, FlameSound);
     return {};
 }
 
@@ -253,8 +301,11 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
     case 0x22:
     case 0x23:
     case 0x24:
-        // 0x4fdef2: 0x518cf0(0x61e, o+0x10, o+0x1c, o+0xf4, 3, o, −1, 0, 0, 0, 0).
-        return CutAt(0x4fdf1e, "el calco 0x61e/3 sobre o (0x518cf0)", skill, slot);
+        // 0x4fdef2..0x4fdf26: 0x518cf0(0x61e, o+0x10, o+0x1c, o+0xf4, 3, o, −1, 0, 0, 0, 0), y nada más. Su paso suelta
+        // los joints 619/3 de la CL11 (GameCharacterEffects.h, StepPetSummon). Con la tabla llena, nada.
+        static_cast<void>(context.world.Map().effects.CreatePetSummon(actor.position, actor.angles, actor.light, &actor,
+                                                                      World::SummonDecalSubtype));
+        return {};
     case 0x2a:
         return ShakeTheGround(actor, context);
     case 0x37:
@@ -310,10 +361,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         static_cast<void>(context.random.Next());
         return CutAt(0x4ffdaf, "el primero de los diez efectos 0x108 (0x518cf0)", skill, slot);
     case 0x05:
-        // 0x500496: la celda con su altura y 0x59fb80(5); el chorro 0x5de con o de dueño, cuyo paso con dueño
-        // (0x52ae2a) no está portado.
-        static_cast<void>(OwnSkillIndex(context, skill));
-        return CutAt(0x500531, "el chorro 0x5de/0 con o de dueño (0x518cf0)", skill, slot);
+        return CastTheFlame(actor, context);
     case 0x08:
         static_cast<void>(OwnSkillIndex(context, skill));
         return CutAt(0x500c49, "el efecto 0xcf sobre o (0x518cf0)", skill, slot);
@@ -326,7 +374,13 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         static_cast<void>(OwnSkillIndex(context, skill));
         return CutAt(0x500d7b, "el primer efecto 0xf5 (0x518cf0)", skill, slot);
     case 0x0e:
-        return CutAt(0x501494, "las piedras de 0x51fff0(o+0x10, 0)", skill, slot);
+        // 0x50148b: 0x51fff0(o+0x10, 0) gira el primer punto, sin rand(), y 0x51fe10(punto, 1) saca rand() % 60 + 150 y
+        // rand() % 30 antes de la primera chispa 0x5c5/2 (0x51fe9e), que es de la CL11. El hito 3 tiene ese 0x51fe10
+        // (Scenes::BurstAt, ArrowEffects): al juntar las ramas, este corte pasa a llamarlo con el primer punto girado.
+        static_cast<void>(context.random.Next());
+        static_cast<void>(context.random.Next());
+        return CutAt(0x51fe9e, "la primera chispa 0x5c5/2 de 0x51fe10 en las piedras de 0x51fff0(o+0x10, 0) (0x501494)",
+                     skill, slot);
     case 0x09:
         // 0x501bab: la primera de cuatro vueltas, con 0x59fb80(9).
         static_cast<void>(OwnSkillIndex(context, skill));
@@ -389,9 +443,19 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
             return {};
         return CutAt(0x504561, "el calco 0x61e/2 sobre el blanco (0x518cf0)", skill, slot);
     case 0x1c:
+    {
+        // 0x5046bf..0x50473b: sin 0x4000 en o+0x78, 0x518cf0(0x61e, blanco+0x10, blanco+0x1c, blanco+0xf4, 3, blanco,
+        // −1, 0, 0, 0, 0), cuyo paso suelta los joints 619/3 de la CL11 (StepPetSummon), y con +0x38d de c, 4 en +0x78
+        // del blanco. Con la tabla llena, sin el calco y lo demás igual.
+        constexpr std::uint32_t SummonedFlag = 4;
         if ((actor.flags78 & QuietFlag) != 0)
             return {};
-        return CutAt(0x50470f, "el calco 0x61e/3 sobre el blanco (0x518cf0)", skill, slot);
+        static_cast<void>(context.world.Map().effects.CreatePetSummon(victim.position, victim.angles, victim.light,
+                                                                      &victim, World::SummonDecalSubtype));
+        if (actor.skillSucceeded != 0)
+            victim.flags78 |= SummonedFlag;
+        return {};
+    }
     case 0x07:
         return CutAt(0x504768, "el efecto 0xc1 sobre el blanco (0x518cf0)", skill, slot);
     case 0x10:

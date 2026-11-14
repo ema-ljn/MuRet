@@ -437,14 +437,66 @@ TEST(SkillRepliesTest, TheEffectsOfTheSkillsAreCL11Cuts)
 {
     for (const auto& [skill, where] :
          {std::pair{std::uint8_t{0x37}, "0x4cd664"}, std::pair{std::uint8_t{0x33}, "0x4cd6ff"},
-          std::pair{std::uint8_t{0x45}, "0x4cdb72"}, std::pair{std::uint8_t{0x35}, "0x4cdc88"},
-          std::pair{std::uint8_t{0x30}, "0x4cdd84"}, std::pair{std::uint8_t{0x3b}, "0x4cddfa"}})
+          std::pair{std::uint8_t{0x45}, "0x4cdb72"}, std::pair{std::uint8_t{0x3b}, "0x4cddfa"}})
     {
         auto tested = std::make_unique<Replies>();
         const auto applied = tested->Attack(skill);
         ASSERT_FALSE(applied.HasValue()) << int{skill};
         EXPECT_NE(applied.Error().find(where), std::string::npos) << applied.Error();
         EXPECT_NE(applied.Error().find("CL11"), std::string::npos) << applied.Error();
+    }
+}
+
+// 0x4cdc37..0x4cdc9c y 0x4cdd45..0x4cdd94: sin el bit (0x400 la 0x35, 0x10 la 0x30) en el blanco, apagan su 0x5ac/2
+// (con sus joints 0x619/9) o su 0x5ac/1 y crean otro con el blanco de dueño (vida 1000); con el bit, nada. Después,
+// el bit y sigue. Sin rand() de más. Con la tabla llena, ninguno.
+TEST(SkillRepliesTest, TheGuardAndSwellSkillsLightAFlareOnTheTarget)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const auto& [skill, subtype, bit] :
+             {std::tuple{std::uint8_t{0x35}, 2, 0x400u}, std::tuple{std::uint8_t{0x30}, 1, 0x10u}})
+        {
+            SCOPED_TRACE(testing::Message() << "mapa " << map << ", skill " << int{skill});
+            auto tested = std::make_unique<Replies>();
+            tested->world.Runtime().map = map;
+            ActorState& target = tested->Actor(TargetIndex);
+            auto& effects = tested->world.Map().effects;
+            ASSERT_TRUE(effects.CreateSkillFlare({}, {}, {}, subtype, &target).has_value());
+            auto& joint = tested->world.DrawTail().joints[0];
+            joint.alive = true;
+            joint.type = 0x619;
+            joint.subtype = 9;
+            joint.ownerContext = &target;
+            ASSERT_TRUE(tested->Attack(skill).HasValue());
+
+            const auto& flare = effects.Effects()[0];
+            ASSERT_TRUE(flare.alive);
+            EXPECT_EQ(flare.type, Client::World::IcarusFlareEffect);
+            EXPECT_EQ(flare.subtype, subtype);
+            EXPECT_EQ(flare.ownerContext, &target);
+            EXPECT_EQ(flare.life, 1000);
+            EXPECT_EQ(flare.transform.position, target.position);
+            EXPECT_EQ(tested->AliveEffects(Client::World::IcarusFlareEffect), 1u);
+            EXPECT_EQ(joint.alive, skill != 0x35);
+            EXPECT_EQ(target.flags78 & bit, bit);
+
+            // Con el bit ya prendido, ni apaga ni crea, y los mismos rand().
+            auto lit = std::make_unique<Replies>();
+            lit->world.Runtime().map = map;
+            lit->Actor(TargetIndex).flags78 = bit;
+            ASSERT_TRUE(lit->Attack(skill).HasValue());
+            EXPECT_EQ(lit->AliveEffects(Client::World::IcarusFlareEffect), 0u);
+            EXPECT_EQ(lit->cloth.random.State(), tested->cloth.random.State());
+
+            auto full = std::make_unique<Replies>();
+            full->world.Runtime().map = map;
+            for (auto& effect : full->world.Map().effects.Effects())
+                effect.alive = true;
+            ASSERT_TRUE(full->Attack(skill).HasValue());
+            EXPECT_EQ(full->Actor(TargetIndex).flags78 & bit, bit);
+            EXPECT_EQ(full->cloth.random.State(), tested->cloth.random.State());
+        }
     }
 }
 
@@ -721,6 +773,15 @@ TEST(SkillRepliesTest, TheActorStateOfTypeOneRewritesTheSecondFlags)
     ASSERT_FALSE(joints.HasValue());
     EXPECT_NE(joints.Error().find("0x4e662d"), std::string::npos) << joints.Error();
     EXPECT_EQ(caster.flags78, 0x1034u);
+    // El 0x400 (CL9 hito 4): el 0x5ac/2 del personaje, y sigue.
+    ASSERT_TRUE(
+        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x400, CasterKey}, tested->Resources())
+            .HasValue());
+    EXPECT_EQ(caster.flags78, 0x1434u);
+    const auto& flare = tested->world.Map().effects.Effects()[0];
+    EXPECT_TRUE(flare.alive);
+    EXPECT_EQ(flare.subtype, 2);
+    EXPECT_EQ(flare.ownerContext, &caster);
 }
 
 // 0x4cbe45: 0x4e6380 sabe si es el héroe publicado ([0x743a170]): el 0x2000000 corta en él y en otro se prende.

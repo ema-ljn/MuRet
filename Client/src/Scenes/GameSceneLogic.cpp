@@ -25,6 +25,7 @@
 #include "Scenes/HelperTable.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/SkillHits.h"
 #include "Scenes/TerrainPolygonFrame.h"
 #include "Scenes/WorldRuntime.h"
 #include "World/GroundEffectDrawing.h"
@@ -124,7 +125,27 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         .cameraShake = &CameraInputState().shake,
         // 0x41ed10(id, 0, 0): MuRet no tiene audio (CL10); como los demás pedidos de sonido del paso, queda anotado en
         // WorldRuntime::lastSoundId y no saca rand().
-        .sound = [this](std::int32_t id) { m_context.world->Runtime().lastSoundId = id; }};
+        .sound = [this](std::int32_t id) { m_context.world->Runtime().lastSoundId = id; },
+        // 0x52ae2a (CL9 hito 4): el chorro de la Flame con el héroe de dueño manda los blancos con 0x517a20(+0x89, la
+        // posición, 150, el byte +0x8c, +0x8a, 0), como el choque de las flechas de skill.
+        .hero = &m_context.world->Actors()[m_context.world->Runtime().hero],
+        .skillHits = [this](const World::ModelEffect& flame, float radius) -> Core::Expected<void, std::string>
+        {
+            const SkillHitsRequest request{.skillIndex = flame.byte89,
+                                           .point = flame.transform.position,
+                                           .radius = radius,
+                                           .volley = static_cast<std::uint8_t>(flame.word8c & 0xff),
+                                           .key = flame.disturbanceState,
+                                           .extra = 0};
+            const auto send = m_session != nullptr ? std::function<void(Protocol::Outgoing)>(
+                                                         [session = m_session](Protocol::Outgoing packet)
+                                                         { session->SendChat(std::move(packet)); })
+                                                   : std::function<void(Protocol::Outgoing)>{};
+            const auto hit = HitTheTargetsAround(request, *m_context.world, m_context.cloth->random, send);
+            if (!hit.HasValue())
+                return Core::Unexpected(hit.Error());
+            return {};
+        }};
     auto effects = m_context.world->Map().effects.Effects();
     for (std::size_t slot = 0; slot < effects.size(); ++slot)
     {
@@ -138,8 +159,20 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                 return stepped;
             continue;
         }
-        // 0x52b9a6: el calco 0x61e/1 de la mascota suelta joints 619/1 con el héroe de dueño, fuera de World.
-        if (effect.type == World::ColoredDecalEffect && effect.subtype == World::PetSummonSubtype)
+        // 0x52a7b7 y 0x52a8a7: los 5ac/1 y /2 de las skills que llegan leen al blanco dueño y crean joints, fuera de
+        // World.
+        if (effect.type == World::IcarusFlareEffect &&
+            (effect.subtype == World::SwellFlareSubtype || effect.subtype == World::GuardFlareSubtype))
+        {
+            if (auto stepped = StepSkillFlare(effect, m_context.world->DrawTail().joints, m_context.cloth->random);
+                !stepped.HasValue())
+                return stepped;
+            continue;
+        }
+        // 0x52b9a6: el calco 0x61e/1 de la mascota suelta joints 619/1 con el héroe de dueño, y el /3 de la 0x1c y de
+        // las invocaciones, los 619/3 de la CL11, fuera de World.
+        if (effect.type == World::ColoredDecalEffect &&
+            (effect.subtype == World::PetSummonSubtype || effect.subtype == World::SummonDecalSubtype))
         {
             if (auto stepped = StepPetSummon(effect, m_context.world->DrawTail().joints, m_context.cloth->random);
                 !stepped.HasValue())

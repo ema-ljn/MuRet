@@ -115,8 +115,22 @@ constexpr float FlareRadius = 50.0f;
 constexpr std::int32_t EnergyType = 0x619, EnergySubtype = 9;
 constexpr float EnergyWidth = 10.0f;
 
+// 0x52a7b7 y 0x52a8a7: los 5ac/1 y /2 de las skills que llegan viven 10 pasos más mientras el dueño esté vivo con su
+// bandera de +0x78; con 0x4000 en el dueño no hacen nada. El /1 suelta dos 5ac/4 de la luz (1; 0,5f; 0,1f) con las
+// escalas de 0x6c8c38 + rand() % 7 y 0x6c8c3e − ese; el /2, cada 50 de +0xd8, gira 50, se pone a 80 del dueño y 50
+// más arriba, y suelta el joint 619/9 de ancho 15.
+constexpr std::int32_t SkillFlareLife = 10;
+constexpr std::uint32_t SwellFlag = 0x10, GuardFlag = 0x400, QuietOwnerFlag = 0x4000;
+constexpr int SwellScales = 7;
+constexpr std::int32_t GuardPeriod = 50;
+constexpr double GuardTurn = 50.0;   // 0x6b86b0
+constexpr float GuardRadius = 80.0f; // 0x6b9ffc
+constexpr double GuardRise = 50.0;   // 0x6b86b0
+constexpr float GuardWidth = 15.0f;  // 0x41700000
+
 // 0x518900: los tres joints 619 de ancho 5 que suelta el calco 0x61e/1 de la mascota en cada paso, 200 más allá
-// ([ebp−0x20]) y 120 más arriba (0x6b86c8). El subtipo 5 pasaría como 0xb, pero sólo se crea el /1.
+// ([ebp−0x20]) y 120 más arriba (0x6b86c8), con el subtipo del calco. El subtipo 5 pasaría como 0xb, pero MuRet sólo
+// crea el /1 y el /3.
 constexpr int SummonJoints = 3;
 constexpr float SummonWidth = 5.0f;
 constexpr float SummonReach = 200.0f;
@@ -603,14 +617,77 @@ Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect, s
     return {};
 }
 
+Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std::span<JointState> joints,
+                                                 Render::Models::CrtRandom& random)
+{
+    if (!effect.alive)
+        return {};
+    if (effect.type != World::IcarusFlareEffect ||
+        (effect.subtype != World::SwellFlareSubtype && effect.subtype != World::GuardFlareSubtype))
+        return Core::Unexpected(
+            std::format("0x52a7b7: el efecto {:#x}/{} no es el 0x5ac/1 ni el /2", effect.type, effect.subtype));
+    // 0x5208c5: el primer rand() corre para todo efecto vivo, aunque el 5ac/1 y el /2 no usen la luz.
+    static_cast<void>(random.Next());
+    const bool swell = effect.subtype == World::SwellFlareSubtype;
+    // 0x52a7e6 y 0x52a8dc: +0x78 del dueño se lee aunque +0x108 esté en 0; MuRet los crea siempre con el blanco.
+    if (effect.ownerContext == nullptr)
+        return Core::Unexpected(
+            std::format("{}: el 0x5ac/{} sin dueño lee +0x78 de 0", swell ? "0x52a7ec" : "0x52a8e2", effect.subtype));
+    const auto& owner = *static_cast<const ActorState*>(effect.ownerContext);
+    const std::uint32_t flag = swell ? SwellFlag : GuardFlag;
+    effect.life = owner.alive && (owner.flags78 & flag) == flag ? SkillFlareLife : 0;
+    if ((owner.flags78 & QuietOwnerFlag) != QuietOwnerFlag)
+    {
+        if (swell)
+        {
+            // 0x52a82b..0x52a866: la escala sale de la tabla de 0x6c8c38 con rand() % 7.
+            const int scale = random.Next() % SwellScales;
+            return Core::Unexpected(std::format("0x52a866: las partículas 0x5ac/4 del 0x5ac/1 (0x53fe70, la escala de "
+                                                "0x6c8c38 + {}) son de la CL11",
+                                                scale));
+        }
+        constexpr double Step = 1.0; // 0x6b87d4
+        // 0x52a8f7..0x52a91e: fst deja la suma en la pila para el ftol (0x69fd3c).
+        const double counted = D(effect.speed) + Step;
+        effect.speed = F32(counted);
+        if (World::FtolLow(counted) % GuardPeriod == 0)
+        {
+            glm::vec3& angles = effect.transform.angles;
+            glm::vec3& position = effect.transform.position;
+            // 0x52a92a: fst; el seno sale de la suma sin redondear y el coseno vuelve a cargar el float (Q-C380).
+            const double turned = D(angles.z) + GuardTurn;
+            angles.z = F32(turned);
+            const auto sine = Render::Models::Detail::SineProductPC53(turned * D(Tenth), GuardRadius);
+            const auto cosine = Render::Models::Detail::CosineProductPC53(D(angles.z) * D(Tenth), GuardRadius);
+            if (!sine || !cosine)
+                return Core::Unexpected<std::string>("0x52a950: el giro del 0x5ac/2 excede el perfil matemático");
+            position.x = F32(*sine + D(owner.position.x));
+            position.y = F32(*cosine + D(owner.position.y));
+            position.z = F32(D(owner.position.z) + GuardRise);
+            if (joints.empty())
+                return Core::Unexpected<std::string>("0x52a9a0: faltan los joints del paso (0x530860)");
+            const auto created = CreateFaunaJoint(joints,
+                                                  {EnergyType, position, position, angles, EnergySubtype,
+                                                   effect.ownerContext, GuardWidth, NoKey, 0, 0, NoTarget},
+                                                  random);
+            if (!created.HasValue())
+                return Core::Unexpected(std::format("0x52a9a0: {}", created.Error()));
+        }
+    }
+    // 0x52cb98: el 0x5ac no avanza animación; la velocidad (0) girada y una vida menos.
+    World::StepModelEffect(effect, nullptr);
+    return {};
+}
+
 Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<JointState> joints,
                                                 Render::Models::CrtRandom& random)
 {
     if (!effect.alive)
         return {};
-    if (effect.type != World::ColoredDecalEffect || effect.subtype != World::PetSummonSubtype)
+    if (effect.type != World::ColoredDecalEffect ||
+        (effect.subtype != World::PetSummonSubtype && effect.subtype != World::SummonDecalSubtype))
         return Core::Unexpected(
-            std::format("0x52b9a6: el efecto {:#x}/{} no es el 0x61e/1", effect.type, effect.subtype));
+            std::format("0x52b9a6: el efecto {:#x}/{} no es el 0x61e/1 ni el /3", effect.type, effect.subtype));
     if (joints.empty())
         return Core::Unexpected<std::string>("0x5189cc: faltan los joints del paso (0x530860)");
     // 0x5208c5: el primer rand() corre para todo efecto vivo, aunque el 0x61e no use la luz.
@@ -638,11 +715,13 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
 }
 
 // 0x418920(CHARACTER, CHARACTER), desde 0x41835a después de 0x602e90, con el cuervo en el trapecio: en el 5 y el 6, los
-// efectos del ataque. Son de la CL11 (0x530860, 0x518cf0, 0x53fe70 con la 0x5ac y 0x4ee770): corta con su dirección
-// después de los rand() que saca antes. Sin la pose (+0x120 en 0 hasta el primer dibujo), el 6 no hace nada.
+// efectos del ataque. Los del 5 (0x530860, 0x518cf0) y el final del 6 (0x4ee770) son de la CL11: cortan con su
+// dirección después de los rand() que saca antes. El grito del 6 suelta las partículas 0x5ac/6 (0x418a26), que MuRet
+// crea. Sin la pose (+0x120 en 0 hasta el primer dibujo), el 6 no hace nada.
 Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const ActorState& owner,
                                                      const Render::Models::Skeleton* skeleton,
-                                                     Render::Models::CrtRandom& random)
+                                                     Render::Models::CrtRandom& random, World::Particles* particles,
+                                                     float worldClock)
 {
     if (spirit.state == FirstOrderState)
     {
@@ -671,14 +750,28 @@ Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const A
         if (skeleton == nullptr)
             return Core::Unexpected(std::string("0x4189e2: falta el modelo 0xc0 del cuervo para el grito"));
         // 0x4189ad..0x418a46: rand() & 1 con signo (rand() no es negativo), y los huesos de a dos que no son dummy ni
-        // pasan de los del modelo.
+        // pasan de los del modelo: 0x4ec110(+0x120 + hueso · 0x30, (0; 0; 0), punto, 0), el hueso en el mundo, y
+        // 0x53fe70(0x5ac, punto, cuervo+0x1c, (1; 0,6f; 0,4f), 6, 1,3f, 0). Con el pool lleno, ninguna y sigue.
+        constexpr glm::vec3 ShoutLight{1.0f, std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3ecccccdu)};
+        constexpr std::int32_t ShoutParticle = 0x5ac, ShoutSubtype = 6;
+        constexpr float ShoutScale = std::bit_cast<float>(0x3fa66666u); // 1,3f
         const auto first = static_cast<std::size_t>(random.Next() & 1);
         for (std::size_t bone = first; bone < ShoutBones; bone += 2)
         {
-            if (bone < skeleton->bones.size() && !skeleton->bones[bone].dummy)
-                return Core::Unexpected(std::format("0x418a26: la partícula 0x5ac/6 del hueso {} del cuervo (0x53fe70) "
-                                                    "es de la CL11",
-                                                    bone));
+            if (bone >= skeleton->bones.size() || skeleton->bones[bone].dummy)
+                continue;
+            if (bone >= spirit.pose.size())
+                return Core::Unexpected(
+                    std::format("0x418a07: el hueso {} del grito del cuervo pasa los de su pose (+0x120)", bone));
+            if (particles == nullptr)
+                return Core::Unexpected(std::string("0x418a26: faltan las partículas del grito del cuervo (0x53fe70)"));
+            const glm::vec3 point = Render::Models::OriginalVectorTransform(glm::vec3(0.0f), spirit.pose[bone]);
+            const auto created = particles->CreateChecked(ShoutParticle, point, spirit.angles, ShoutLight, ShoutSubtype,
+                                                          ShoutScale, worldClock, random);
+            if (!created.HasValue())
+                return Core::Unexpected(std::format("0x418a26: la partícula 0x5ac/6 del hueso {} del cuervo falla con "
+                                                    "el error {}",
+                                                    bone, static_cast<unsigned>(created.Error())));
         }
         return {};
     }
@@ -756,7 +849,8 @@ Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRav
     {
         if (pass.random == nullptr)
             return Core::Unexpected(std::string("0x41835a: falta el rand() para el ataque del cuervo"));
-        return DrawTheRavenAttack(spirit, owner, pass.models.SkeletonOf(DarkSpiritModel), *pass.random);
+        return DrawTheRavenAttack(spirit, owner, pass.models.SkeletonOf(DarkSpiritModel), *pass.random, pass.particles,
+                                  pass.worldClock);
     }
     return {};
 }

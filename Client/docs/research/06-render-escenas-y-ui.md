@@ -7391,8 +7391,12 @@ En el 4 (`0x6053d5`, por el tipo − 3 en la tabla `0x605c6c` → `0x605c50`):
   cierre gasta los 3.848 `rand()` de `0x40b4d0` (Q-C257). El paso (`0x52ad21`): seis llamas `5de/0` a ±25 en x e
   y (sus dos sorteos antes de cada creación) con luz blanca; con `rand()` & 7 en 0, la piedrita
   `0xc8 + (rand() & 1)` con su luz; y `0x5f9780(x, y, (L; L · 0,4f; 0), 3)`, con L la luz local del primer
-  `rand()` del paso, ((& 3) + 7) · 0,1f, que con menos de 5 de vida baja (5 − vida) · 0,2f hasta 0. La rama del
-  dueño héroe (`0x52ae2a`) no corre.
+  `rand()` del paso, ((& 3) + 7) · 0,1f, que con menos de 5 de vida baja (5 − vida) · 0,2f hasta 0. Después
+  (`0x52ae2a`), con el dueño (`+0x108`) igual al héroe publicado (`[0x743a170]`) y la vida (antes de bajarla en la
+  cola) múltiplo de 20, `0x517a20(+0x89, posición, 150, +0x8c, +0x8a, 0)`: los blancos de la Flame del héroe, dos
+  veces en sus 40 pasos (Q-C1132). El chorro con dueño lo crea la `0x05` del paso del ataque (`0x500531`,
+  `World::ModelEffects::CreateOwnedFlameJet`); el paso manda por `ModelEffectStepServices::skillHits`
+  (`GameSceneLogic`, `Scenes::HitTheTargetsAround`). CL9 hito 4.
 - `0xc8` y `0xc9` (`Stone01` y `Stone02` de `Skill\`, que carga el lazo `0x616e20` de `0xbe` a `0x150`) con el
   subtipo 0 (`0x51b72b`): el empuje ((& 255) + 64) · 0,1f en y, la vida (& 15) + 32, la escala ((& 3) + 8) ·
   0,1f, el yaw `rand()` % 360, la velocidad (el empuje girado por los ángulos con ese yaw) y la caída (& 15) + 8.
@@ -9908,14 +9912,14 @@ Tests: `AttackFrameSkillsTest` (Lorencia y Devias), `AttackStepTest.TheCutsAfter
 los dos `switch` dan un caso por skill; en todos, `c` y `o` son el mismo personaje. Cada caso corre hasta donde crea un
 efecto con modelo (`0x518cf0`), un joint (`0x530860`), una partícula (`0x53fe70`) o las piedras de `0x51fff0` que
 MuRet no tiene (CL11, P-C346), con los `rand()` de antes; los que crean lo que `World` ya sabe crear (el terremoto
-`0xfa`, el calco `0x61e`/1 y la flecha) siguen hasta el final. Los `rand()` de antes son los de `0x59fb80` (el
+`0xfa`, el chorro `0x5de`/0 de la Flame, los calcos `0x61e`/1 y `0x61e`/3 y la flecha) siguen hasta el final. Los `rand()` de antes son los de `0x59fb80` (el
 registro propio abierto y cerrado: 3.848 en 0) y los de las lecturas de `+0x38e`.
 
 **La cabeza** (`0x4fdeeb`, la skill − 5 por `0x505530` y `0x5054b4`; todos siguen en `0x502aff`):
 
 | Skill | Caso | Lo que hace | Hasta |
 | --- | --- | --- | --- |
-| `0x1e` a `0x24` | `0x4fdef2` | el calco `0x61e`/3 sobre o | `0x4fdf1e` (CL11) |
+| `0x1e` a `0x24` | `0x4fdef2` | el calco `0x61e`/3 sobre o, con o de dueño y sin mirar `0x4000` (Q-C1133; `CreatePetSummon`, `0x4fdf1e`); su paso corta en sus joints `619`/3 (CL11, `StepPetSummon`) | el final |
 | `0x2a` | `0x4fdf2b` | `o+0x8c` = la derecha (`+0x2b8`, `MOVSX`) − `0x212` y `o+0x8e` = su nivel; `0x59fb80(0x2a)`; `0x518cf0(0xfa, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a, lugar, 0, 0, 0)`, el terremoto con el estado 0, cuyo dibujo lee el arma por su dueño (`0x52d43a`, Q-C1117); el sonido `0x95` | el final |
 | `0x37`, `0x38` | `0x4fdfb3`, `0x4fdfe4` | solo `o+0x8c` y `o+0x8e` | el final |
 | `0x30` | `0x4fe015` | 36 joints `0x613`/2 | `0x4fe0e4` (CL11) |
@@ -9934,9 +9938,9 @@ registro propio abierto y cerrado: 3.848 en 0) y los de las lecturas de `+0x38e`
 | `0x28` | `0x4ff4c3` | el `0xcb`/1 sobre o | `0x4ff4ef` (CL11) |
 | `0x26` | `0x4ff51c` | la celda `+0x39c`/`+0x39d` con su altura (`0x5f93c0`) y los `0xc2`/6 | `0x4ff5b2` (CL11) |
 | `0x27` | `0x4ffcbe` | la celda y la primera de diez vueltas: `rand() % 50` y el `0x108` | `0x4ffdaf` (CL11) |
-| 5 | `0x500496` | la celda, `0x59fb80(5)` y el chorro `0x5de`/0 con o de dueño y `o+0x8a` (`0x500509`), cuyo paso con dueño (`0x52ae2a`) no está | `0x500531` (CL11) |
+| 5 | `0x500496` | la celda con su altura (`0x5f93c0`), `0x59fb80(5)` y el chorro `0x5de`/0 con o de dueño, `o+0x8a`, el lugar y la cuenta `+0xf04` en `+0x8c` (`0x500531`, `CreateOwnedFlameJet`, con su registro); con o el héroe publicado, `+0xf04` uno más con el registro abierto (`0x500539..0x500bfa`); el sonido `0x79`. Su paso con el héroe de dueño manda los blancos (`0x52ae2a`) | el final |
 | 8, `0xc`, `0xd` | `0x500c10`, `0x500c64`, `0x500cd4` | `0x59fb80` y el `0xcf`, el `0x5e8` o los `0xf5` | `0x500c49`, `0x500cb9`, `0x500d7b` (CL11) |
-| `0xe` | `0x50148b` | las piedras de `0x51fff0(o+0x10, 0)` | `0x501494` (CL11) |
+| `0xe` | `0x50148b` | las piedras de `0x51fff0(o+0x10, 0)`: el primer punto girado (sin `rand()`) y `0x51fe10(punto, 1)`, con `rand() % 60 + 150` y `rand() % 30` | `0x51fe9e`, la primera chispa `0x5c5`/2 (CL11; P-C360) |
 | 9 | `0x501bab` | `0x59fb80(9)` y los joints `0x613`/0 | `0x501c67` (CL11) |
 | `0x4c` | `0x502352` | el sonido `0x27d` y el lazo de los blancos (abajo) | el final, o `0x5026a4` (CL11) |
 | `0x2c` | `0x50294e` | el `0x13b` sobre o | `0x502975` (CL11) |
@@ -9961,7 +9965,7 @@ blanco de `+0x434`: corta en el primero (`0x5026a4`). La lista de los diez la le
 | `0x2e` | `0x504453` | lo mismo con el blanco y el sonido `0x26e` | el `0x13a` corta en su joint (`0x51e01a`, CL11) |
 | `0x1a` | `0x5044b9` | el calco `0x61e`/1 sobre el blanco, con él de dueño (los `619`/1 hacia él) | el final |
 | `0x1b` | `0x5044fe` | con `+0x38d` y sin `0x4000` en `o+0x78`, el `0x61e`/2 sobre el blanco | `0x504561` (CL11) |
-| `0x1c` | `0x5046bf` | sin `0x4000`, el `0x61e`/3 sobre el blanco | `0x50470f` (CL11) |
+| `0x1c` | `0x5046bf` | sin `0x4000`, el `0x61e`/3 sobre el blanco, con él de dueño (`0x50470f`); con `+0x38d`, 4 en `+0x78` del blanco | el final |
 | 7 | `0x504740` | el `0xc1` | `0x504768` (CL11) |
 | `0x10` | `0x504808` | el `0x189` prende `0x100` en su `+0x78`; con `0x4000`, nada; si no, `0x100` en `+0x78` del blanco, el sonido `0x84`, `0x534f90(0x10f, blanco, 0)` y cinco joints `0x10f`/0 | `0x5048db` (CL11) |
 | 1 | `0x5048ea` | el `0x20a`, el `0xc3`; los demás, diez partículas `0x5f2`/1 | `0x504926`, `0x50497e` (CL11) |
@@ -10483,8 +10487,10 @@ soltar en el mundo de MuRet (P-C161). El efecto `0x61f` va sin el dueño, como e
 dirección, después de lo que el original hace antes: Kalima en `0x4c91dc` (CL11), el recién llegado del `45` en
 `0x4c965c` (CL11; el alta de `0x4c934c` es `CreateMonster` desde la hito 2, [Los monstruos y los NPC en el
 viewport](#los-monstruos-y-los-npc-en-el-viewport)), los joints del tipo `0xf1` del `DF` en `0x4c6c9d` (CL11; el empujón
-está portado desde la hito 2), y las banderas que crean efectos (`0x4e644f`, `0x4e662d`, `0x4e6725`, `0x4e676e`,
-`0x4e67d6` y `0x4e6869`, CL11 y CL10; `0x4e68f5`, P-C163). Los sonidos (`0x76`, `0x84`) quedan en el último sonido, sin
+está portado desde la hito 2), y las banderas que crean efectos (`0x4e644f`, `0x4e662d`, `0x4e67d6` y `0x4e6869`,
+CL11 y CL10; `0x4e68f5`, P-C163). Desde el hito 4, `0x400` y `0x10` (`0x4e6725`, `0x4e676e`) no cortan: apagan el
+`0x5ac`/2 o /1 del personaje y crean otro con él de dueño (`CreateSkillFlare`, siempre, Q-C1131), y siguen; el paso
+del /1 corta en sus partículas `0x5ac`/4 (`0x52a866`, CL11). Los sonidos (`0x76`, `0x84`) quedan en el último sonido, sin
 audio hasta la CL10 (08, P-C162). Tests: `ViewportPlayersTest`, `ViewportLeaveTest`, `ViewportTransformedTest`,
 `ShownEquipmentTest` y `ViewportPacketRingTest`, en Lorencia y en Devias.
 
@@ -10634,7 +10640,7 @@ la rama de la skill:
 | `0x37` | salida: apaga el `0x628/0` del blanco y crea otro (CL11, `0x4cd664`); si no, un monstruo va a `0x4f4a10` con el frame en 0 (`0x4cd68e`) |
 | `0x43`..`0x48` | la acción por la montura (Dark Horse `0x52`, Uniria `0x40`, Dinorant `0x41`, Fenrir `0x5d`; si no `0x3f` o `0x87`); salidas, la `0x44` baja el `0x1000` del blanco, la `0x46` le prende `0x4000` (si no es la fuente), la `0x47` le baja `0x4000`, la `0x48` le baja seis y la `0x45` prende `0x2000` en la fuente y crea su `0x138` (CL11, `0x4cdb72`) |
 | `0x4b`, `0x40` | `0x200` (`0x800` con `0x4f3f80` antes) en el blanco; la acción del Dark Horse, Fenrir o `0x8e` |
-| `0x35`, `0x30` | sin `0x400` (`0x10`) en el blanco, apaga y crea su `0x5ac/2` (`0x5ac/1`) (CL11, `0x4cdc88`, `0x4cdd84`); con él, sigue |
+| `0x35`, `0x30` | sin `0x400` (`0x10`) en el blanco, apaga su `0x5ac/2` y sus joints `0x619/9` (su `0x5ac/1`) y crea otro con él de dueño (`0x4cdc88`, `0x4cdd84`; `World::ModelEffects::CreateSkillFlare`, vida 1000); después, el bit. El paso (`0x52a7b7`, `Scenes::StepSkillFlare`): el /2 gira alrededor del dueño y cada 50 suelta un joint `0x619/9`; el /1 corta en sus partículas `0x5ac/4` (`0x52a866`, CL11) |
 | `0x31` | `0x41` en Atlans (8) y en el cielo (10), `0x40` en los demás |
 | `0x3b` | el efecto `0x112` en la fuente (CL11, `0x4cddfa`) |
 | `0x3a` | `0x44`, el sonido `0x92` y `+0x1bc` en 0 |
@@ -10671,7 +10677,8 @@ Con otro tipo y la máscara prendida, `0x4e6910`.
 llega acá); con las skills 1 a `0xd`, `0x4f4a10` (`0x4cc50a`), el frame en 0 y `+0x381` en 1.
 
 **`0x4dbf50`, el `48`.** Con un personaje de la clave que es un jugador (`+0x88` en 1) y el tipo `0x10`, quince joints
-`0x60f/2`, el efecto `0x61e` y el sonido `0x98`: corta en `0x4dbfc5` (CL11).
+`0x60f/0` de clave 2 (el 2 es la clave, `+0x2f0`, no el subtipo), el efecto `0x61e/0` y el sonido `0x98`: corta en
+`0x4dbfc5` (el `0x61e/0` no tiene paso en MuRet; el GS 0.97 no lo manda).
 
 **`0x4c5070`, el `F3 11`.** Abre el registro propio y escribe las skills (`+0x6c + lugar`, los 256): con `0xff` vacía el
 lugar, con `0xfe` lo pone; con la lista en 2 vacía el lugar (`cantidad` veces); si no, con la lista en 0 vacía los
@@ -11143,8 +11150,9 @@ del CHARACTER (`Scenes::DarkSpirit`):
 `CharacterStep`) y devuelve el aviso (`DarkSpiritStepped::stopsTheAttack`), que `CharacterStep` manda por
 `CharacterStepContext::send` (el `A7`, `Protocol::Pet::WritePetCommand`) y el grito, que va a
 `WorldRuntime::lastSoundId` (CL10). `DrawGameRaven` corre `0x418920` en los frames del original: las juntas, los
-efectos y las partículas son de la CL11 y cortan con su dirección (`0x418aff`, `0x418c0a`, `0x418a26`, `0x418a8c`)
-después de los `rand()` que sacan antes (`test_raven_attack.cpp`, `test_character_step.cpp`,
+efectos y las partículas son de la CL11 y cortan con su dirección (`0x418aff`, `0x418c0a`, `0x418a8c`)
+después de los `rand()` que sacan antes; las `0x5ac`/6 del grito (`0x418a26`) se crean (`Particles::CreateChecked`,
+con el pool lleno ninguna) (`test_raven_attack.cpp`, `test_character_step.cpp`,
 `test_game_character_effects.cpp`).
 
 
@@ -11177,8 +11185,11 @@ selección) pone en 0 `0x723910` (la pestaña), `0x723911` (la ventana) y quince
   cuervo de `0x4221d0` en `+0x454` (la de `+0xc`), `+0x456`, `+0x458` y `+0x45a`.
 
 **MuRet**: `Scenes::ApplyPetInfo` (`Scenes/PetStats`), con `WorldRuntime::pets` y los campos del cuervo de
-`Scenes::DarkSpirit`; un tipo de más de 2 que escribe la tabla se descarta entero (`0x421dfd`, `0x421f2c`, Q-C1208), y los joints de `0xfe` y
-`0xff` cortan como de la CL11 (`0x421f9a`, `0x421fae`). `PetStatsTest`.
+`Scenes::DarkSpirit`; un tipo de más de 2 que escribe la tabla se descarta entero (`0x421dfd`, `0x421f2c`, Q-C1208).
+Con `0xfe` y `0xff`, `0x418390` y `0x418400` (`0x421f9a`, `0x421fae`) sueltan cinco y quince `0x60f/0` de clave 2 y
+ancho 40 con el cuervo de dueño (`Scenes::CreateFaunaJoint` con `JointOwnerKind::Raven`; tres `rand()` cada uno; con
+el pool lleno, ninguno): el primero desde su posición, en el lugar, con los ángulos en 0; el segundo hacia su posición,
+con sus ángulos. `PetStatsTest`.
 
 **La ventana de la mascota.** El botón de 0x424230 abre el panel `0x400` (`0x6599a0`, `0x659fd9..0x65a8af`): cierra
 todo menos el personaje y los amigos y, si cerró, `0x420cb0` (`0x723911` en 2) y los dos pedidos, `A9 00 00 01` y

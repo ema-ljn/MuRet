@@ -11,6 +11,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/FullSetScan.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnDerivedStats.h"
@@ -27,6 +28,7 @@
 #include "support/RecordingSink.h"
 #include "support/TableFiles.h"
 
+#include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
 
 #include <array>
@@ -289,19 +291,62 @@ TEST(PetStatsTest, APetBeyondTheThirdIsDiscardedWhenItWrites)
     }
 }
 
-// 0x421f8f..0x421fae: con 0xfe y 0xff, después del cuervo, los joints de la vtable + 0x14 y + 0x18 son de la CL11.
-TEST(PetStatsTest, TheJointsOfTheRavenAreACutAfterItsInfo)
+// 0x421f8f..0x421fae: con 0xfe, 0x418390 suelta cinco 60f/0 de clave 2 y ancho 40 desde la posición del cuervo, en
+// el lugar y con los ángulos en 0; con 0xff, 0x418400 suelta quince hacia su posición, con sus ángulos. El cuervo es el
+// dueño (su luz, +0xf4). Tres rand() cada uno, entre el 0x417f30 y el 0x4221d0. Antes cortaban por "/2" (0x421f9a,
+// 0x421fae): era la clave, no el subtipo.
+TEST(PetStatsTest, TheRavenSparksItsOrderJointsAfterItsInfo)
 {
-    for (const auto& [kind, where] : {std::pair<std::uint8_t, const char*>{std::uint8_t{0xfe}, "0x421f9a"},
-                                      std::pair<std::uint8_t, const char*>{std::uint8_t{0xff}, "0x421fae"}})
+    using Client::Scenes::JointState;
+    for (const auto& [kind, count] :
+         {std::pair<std::uint8_t, int>{std::uint8_t{0xfe}, 5}, std::pair<std::uint8_t, int>{std::uint8_t{0xff}, 15}})
     {
+        SCOPED_TRACE(int{kind});
         auto tested = std::make_unique<Pets>();
-        const auto cut = tested->Reply({.pet = 0, .kind = kind, .slot = 1, .level = 7, .experience = 5000});
-        ASSERT_FALSE(cut.HasValue());
-        EXPECT_NE(cut.Error().find(where), std::string::npos) << cut.Error();
-        ExpectTheRavenOfLevelSeven(tested->Raven(), 5000);
+        DarkSpirit& raven = tested->Raven();
+        raven.position = {12'300.0f, 4'500.0f, 260.0f};
+        raven.angles = {5.0f, 0.0f, 135.0f};
+        raven.light = {0.25f, 0.5f, 0.75f};
+        const auto applied = tested->Reply({.pet = 0, .kind = kind, .slot = 1, .level = 7, .experience = 5000});
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        ExpectTheRavenOfLevelSeven(raven, 5000);
+        const bool turned = kind == 0xff;
+        const std::span<const JointState> joints = tested->world.DrawTail().joints;
+        for (int index = 0; index < count; ++index)
+        {
+            SCOPED_TRACE(index);
+            const JointState& joint = joints[static_cast<std::size_t>(index)];
+            ASSERT_TRUE(joint.alive);
+            EXPECT_EQ(joint.type, 0x60f);
+            EXPECT_EQ(joint.subtype, 0);
+            EXPECT_EQ(joint.key, 2);
+            EXPECT_EQ(joint.width, 40.0f);
+            EXPECT_EQ(joint.life, 50);
+            EXPECT_EQ(joint.ownerContext, &raven);
+            EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::Raven);
+            EXPECT_EQ(joint.light, raven.light);
+            EXPECT_EQ(joint.position, raven.position);
+            EXPECT_EQ(joint.targetPosition, raven.position);
+            EXPECT_EQ(joint.angles, turned ? raven.angles : glm::vec3(0.0f));
+        }
+        EXPECT_FALSE(joints[static_cast<std::size_t>(count)].alive);
+        EXPECT_EQ(tested->Draws(),
+                  3 * OwnRecordCloseRandoms + 3 * count + std::make_unique<Pets>()->RecalculationDraws());
         EXPECT_EQ(tested->world.Runtime().ownRecordDepth, 0);
     }
+}
+
+// Con los 500 joints vivos, ninguno, sin rand(), y el A9 sigue hasta 0x4221d0.
+TEST(PetStatsTest, TheOrderJointsOfTheRavenWithAFullTableAreNone)
+{
+    auto tested = std::make_unique<Pets>();
+    for (Client::Scenes::JointState& joint : tested->world.DrawTail().joints)
+        joint.alive = true;
+    const auto applied = tested->Reply({.pet = 0, .kind = 0xff, .slot = 1, .level = 7, .experience = 5000});
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    ExpectTheRavenOfLevelSeven(tested->Raven(), 5000);
+    EXPECT_EQ(tested->world.DrawTail().joints[0].type, 0);
+    EXPECT_EQ(tested->Draws(), 3 * OwnRecordCloseRandoms + std::make_unique<Pets>()->RecalculationDraws());
 }
 
 // 0x421fb6..0x422196: el caballo en la casilla 8 toma el nivel, la durabilidad del registro propio y la experiencia;

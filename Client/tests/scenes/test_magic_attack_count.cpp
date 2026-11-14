@@ -375,11 +375,15 @@ TEST_F(MagicAttackCountTest, AMonsterCasterTakesTheActionOfItsModel)
         EXPECT_EQ(m_cloth.random.State(),
                   Client::Tests::AfterDraws(seed, static_cast<int>(SkillCloseRandoms) + 1).State());
     }
-    // Sin el modelo cargado, 0x4ea030 no tiene qué leer y corta con su dirección.
+    // Sin el modelo cargado, su registro de 0x5769ad8 está en 0 (+0x26 sin acciones): 0x4ea030 sale en 0x4ea056 sin
+    // tocar la acción (revisión B del hito 2, B3) y el 1A sigue.
     m_world->FaunaResources().Bind(nullptr);
+    Caster().animation = {};
+    const auto before = Caster().animation.action;
     const auto unloaded = Apply({});
-    ASSERT_FALSE(unloaded.HasValue());
-    EXPECT_NE(unloaded.Error().find("0x4cee23"), std::string::npos) << unloaded.Error();
+    ASSERT_TRUE(unloaded.HasValue()) << unloaded.Error();
+    EXPECT_EQ(Caster().animation.action, before);
+    EXPECT_EQ(Caster().byte38e, Magic);
 }
 
 // El paso de las partículas pide la mano con ParticleActorHandsAmong: la del héroe sobre los huesos del dueño.

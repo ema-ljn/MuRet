@@ -279,7 +279,6 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id)
         }
         break;
     }
-    case FriendsPanel:
     case GuildPanel:
     case TradePanel:
     case WarehousePanel:

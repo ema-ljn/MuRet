@@ -8,6 +8,7 @@
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -151,6 +152,10 @@ public:
     void SendSetQuest(std::uint8_t quest, std::uint8_t state) override
     {
         requests.push_back("A2 " + std::to_string(quest) + " " + std::to_string(state));
+    }
+    void SendFriendPacket(Client::Protocol::Outgoing /*packet*/) override
+    {
+        requests.emplace_back("amigos");
     }
     Client::Core::Expected<void, std::string> SaveMacros(std::string_view /*content*/) override
     {

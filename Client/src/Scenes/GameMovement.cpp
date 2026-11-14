@@ -319,6 +319,11 @@ Core::Expected<void, std::string> WalkToTheFloorItem(ActorState& hero, const Her
         return Core::Unexpected(std::string("0x59dc8e: la posición del ítem del piso fuera del perfil ftol"));
     state.targetX = static_cast<std::uint32_t>(*x);
     state.targetY = static_cast<std::uint32_t>(*y);
+    World::WorldTerrain& terrain = context.world.Map().terrain;
+    if (!terrain.attributes)
+        return Core::Unexpected(std::string("0x4eac00: falta TerrainWall para caminar"));
+    const auto startY = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
+    const auto startX = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
     const GameLogic::PathCell target{static_cast<std::uint8_t>(*x & 0xff), static_cast<std::uint8_t>(*y & 0xff)};
     if (*x != target.x || *y != target.y)
         return Core::Unexpected(std::format("0x59ddbc: el destino ({}, {}) del ítem del piso sale del mapa", *x, *y));

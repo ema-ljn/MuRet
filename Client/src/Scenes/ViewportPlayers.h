@@ -21,10 +21,32 @@ struct Position;
 // que MuRet no tiene corta con error, con su dirección, después de lo que el original hace antes. Las búsquedas
 // 0x5132d0 (el vivo con un nombre), 0x5178f0 (un int en un arreglo) y 0x517920 (los jugadores cerca de un punto) no
 // tienen llamadores ni punteros en el binario: no se portan.
+namespace Client::Render::Models
+{
+class CrtRandom;
+} // namespace Client::Render::Models
+
 namespace Client::Scenes
 {
 class WorldState;
+struct ActorState;
 struct WorldEntryResources;
+
+// Lo que comparten las altas del viewport (los jugadores, el 45, el DF y los monstruos de MonsterViewport.h):
+// Una escritura de la celda protegida (+0x41c o +0x420) con su acceso abierto: 4 rand() al cerrarse si queda sin
+// accesos.
+void WriteCell(std::uint8_t value, std::uint8_t& cell, std::uint8_t& depth, Render::Models::CrtRandom& random);
+// Una lectura, con su acceso (0x40b800 o el cierre en línea).
+[[nodiscard]] std::uint8_t ReadCell(const std::uint8_t& cell, std::uint8_t& depth, Render::Models::CrtRandom& random);
+// La X y después la Y de la celda protegida, y +0x39a/+0x39b con los mismos valores.
+void WriteTheCells(ActorState& actor, std::uint8_t x, std::uint8_t y, Render::Models::CrtRandom& random);
+// (nibble alto − 1) · 45 (0x6b8848, con el 1 de 0x6b87d4).
+[[nodiscard]] float AngleOf(std::uint8_t directionAndPk);
+// La X y después la Y, leídas de la tabla, al centro de la celda.
+void PutInTheCellCenter(ActorState& actor, Render::Models::CrtRandom& random);
+// La Y, la X y 0x4eac00(X, Y, destino, +0x3e8, 0); +0x378 en 1 solo si hay camino.
+[[nodiscard]] Core::Expected<void, std::string>
+WalkToTheTarget(ActorState& actor, std::uint8_t targetX, std::uint8_t targetY, const WorldEntryResources& resources);
 
 // El dispatcher (0x4e372e..0x4e37b8) guarda el paquete entero en la cola (la sesión, con CopyToPacketRing, antes de
 // leerlo) y 0x4c8860 recorre los registros. Cada uno: si el nombre (los diez bytes, hasta su 0) tiene "webzen"
@@ -49,8 +71,9 @@ struct WorldEntryResources;
 // 0x451430.
 void ApplyViewportLeave(const Protocol::Viewport::Leave& leave, WorldState& world);
 
-// 0x4c92a0: con "webzen" en el nombre, el registro no hace nada; el primero que no lo tiene corta en 0x4c934c, el alta
-// del transformado o del monstruo de tipo +4 (0x5141e0), que porta la hito 2 con FinishTheTransformed.
+// 0x4c92a0: con "webzen" en el nombre, el registro no hace nada. Si no, la clase del héroe publicado (0x4c9328), el
+// alta del transformado o del monstruo de tipo +4 (CreateMonster, 0x5141e0, sin mirar si devuelve 0) y
+// FinishTheTransformed.
 [[nodiscard]] Core::Expected<void, std::string> ApplyTransformed(const Protocol::Viewport::Transformed& transformed,
                                                                  const WorldEntryResources& resources);
 
@@ -73,9 +96,10 @@ FinishTheTransformed(std::size_t index, const Protocol::Viewport::TransformedRec
 [[nodiscard]] Core::Expected<void, std::string> ApplyEquipmentShown(const Protocol::Viewport::EquipmentShown& shown,
                                                                     const WorldEntryResources& resources);
 
-// 0x4c6b40: el personaje de la clave entera (0x5110d0). Con el tipo 0xf1 corta en 0x4c6b80 (el empujón, el sonido 0x1b
-// y los joints 0x5c5 de 0x51fe10: ese tipo solo lo crea 0x5141e0, de la hito 2, y los joints son de la CL11). Si no,
-// la celda protegida en pkt[5] y pkt[6], +0x39a/+0x39b y +0x399 en 1.
+// 0x4c6b40: el personaje de la clave entera (0x5110d0). Con el tipo 0xf1 (el que crea 0x5141e0 para los tipos 160,
+// 180, 188, 196, 266, 274 y 337): +0xe4 en 20, la X y la Y de la celda leídas con su acceso, +0xd0 y +0xcc con las
+// diferencias por 400 y el sonido 0x1b (WorldRuntime::lastSoundId, CL10); corta en 0x4c6c9d (los joints 0x5c5 de
+// 0x51fe10, CL11). Si no, la celda protegida en pkt[5] y pkt[6], +0x39a/+0x39b y +0x399 en 1.
 [[nodiscard]] Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Viewport::Position& position,
                                                                       const WorldEntryResources& resources);
 } // namespace Client::Scenes

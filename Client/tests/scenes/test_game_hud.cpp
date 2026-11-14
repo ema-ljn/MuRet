@@ -37,6 +37,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <iterator>
 #include <optional>
 #include <string>
@@ -899,6 +900,38 @@ TEST_F(GameHudTest, TheTwelfthChildDrawsTheChatBubbles)
     EXPECT_EQ(bubble.x, 320 - 27 / 2);
     EXPECT_EQ(bubble.y, 240 - 0x24);
     EXPECT_EQ(world.Runtime().hud.durabilityWarning, 0);
+}
+
+// 5. 0x42a4d0: las barras de vida de la cola, con la proyección del pase del mundo (sin ella, una barra corta). Cada
+// frame dibuja la mitad redondeada para arriba y deja el resto; un dibujo intermedio vacía una copia.
+TEST_F(GameHudTest, TheFifthChildDrawsHalfTheHealthBars)
+{
+    std::deque<Client::Scenes::QueuedHealthBar>& bars = world.Runtime().healthBars;
+    for (std::uint8_t stage = 0; stage < 3; ++stage)
+        bars.push_back(Client::Scenes::QueuedHealthBar{.position = {0.0f, 0.0f, 0.0f}, .fill = stage});
+
+    const auto cut = Hud();
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x42a529"), std::string::npos) << cut.Error();
+    EXPECT_EQ(bars.size(), 3u);
+
+    Client::Scenes::GameProjection flat;
+    flat.view = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+    flat.horizontalScale = 1.0f;
+    flat.verticalScale = 1.0f;
+    flat.centerX = 320;
+    flat.centerY = 240;
+    flat.screenWidth = 640;
+    flat.screenHeight = 480;
+    projection = &flat;
+    const auto projected = Hud(true);
+    ASSERT_TRUE(projected.HasValue()) << projected.Error();
+    EXPECT_EQ(bars.size(), 3u);
+
+    const auto drawn = Hud();
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    ASSERT_EQ(bars.size(), 1u);
+    EXPECT_EQ(bars.front().fill, 2);
 }
 
 // Devil Square tiene su objeto de evento, pero su método +4 es un ret (0x40bdb0) y la cuenta (0x40bab0) sale con +8

@@ -31,6 +31,7 @@
 #include "Protocol/Messages.h"
 #include "Protocol/Movement.h"
 #include "Protocol/OptionData.h"
+#include "Protocol/Quest.h"
 #include "Protocol/Viewport.h"
 #include "Protocol/World.h"
 #include "Protocol/Character/CharacterCreate.h"
@@ -4246,6 +4247,41 @@ TEST(ServerSessionTest, TheViewportPacketsReachTheSinkInWireOrder)
     EXPECT_NE(tested.session.State(), SessionState::Failed);
 }
 
+// 04 § Los monstruos y los NPC que entran: el 13, el 1F y el 68 llegan al mundo en el orden del cable, sin copia en la
+// cola (0x4e37d1, 0x4e37e9 y 0x4e4643); uno corto se ignora.
+TEST(ServerSessionTest, TheMonsterPacketsReachTheSinkInWireOrder)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    auto monsters = Bytes({0xc2, 0, 5 + 0x10, 0x13, 1, 0x80, 0x46, 0x01, 0x15});
+    monsters.resize(5 + 0x10);
+    auto summons = Bytes({0xc2, 0, 5 + 0x18, 0x1f, 1, 0x00, 0x47, 0x00, 0x98});
+    summons.resize(5 + 0x18);
+    auto objects = Bytes({0xc2, 0, 5 + 0x1c, 0x68, 1, 2, 0x00, 0x03, 0x00, 0x48});
+    objects.resize(5 + 0x1c);
+    const auto shortMonsters = Bytes({0xc2, 0, 6, 0x13, 1, 0x80});
+    tested.socket.reads = {Join({monsters, summons, objects, shortMonsters})};
+    EXPECT_TRUE(tested.session.Poll().HasValue());
+    ASSERT_EQ(tested.eventSink.world.size(), 3u);
+    const auto* arrived = std::get_if<Client::Protocol::Viewport::Monsters>(&tested.eventSink.world[0]);
+    ASSERT_NE(arrived, nullptr);
+    ASSERT_EQ(arrived->records.size(), 1u);
+    EXPECT_EQ(arrived->records[0].key, 0x46);
+    EXPECT_TRUE(arrived->records[0].isNew);
+    EXPECT_EQ(arrived->records[0].type, 0x115);
+    const auto* summoned = std::get_if<Client::Protocol::Viewport::Summons>(&tested.eventSink.world[1]);
+    ASSERT_NE(summoned, nullptr);
+    ASSERT_EQ(summoned->records.size(), 1u);
+    EXPECT_EQ(summoned->records[0].type, 0x98);
+    const auto* objected = std::get_if<Client::Protocol::Viewport::Objects>(&tested.eventSink.world[2]);
+    ASSERT_NE(objected, nullptr);
+    ASSERT_EQ(objected->records.size(), 1u);
+    EXPECT_EQ(objected->records[0].kind, 2);
+    EXPECT_EQ(objected->records[0].key, 0x48);
+    EXPECT_TRUE(tested.eventSink.packetCopies.empty());
+    EXPECT_NE(tested.session.State(), SessionState::Failed);
+}
+
 // 0x4e372e y 0x4e3ace: el dispatcher copia el 12 y el 2A antes de llamar al handler, también cuando el lector no los
 // puede leer.
 TEST(ServerSessionTest, AShortViewportPacketOrDurabilityStillTakesItsCopy)
@@ -4566,6 +4602,60 @@ TEST(ServerSessionTest, FacingUsesTheWorldConnectionAndXorDelivery)
     ASSERT_EQ(received.packets.size(), before + 1);
     EXPECT_TRUE(SameBytes(Xor32Decode(received.packets.back()).Bytes(), Bytes({0xc1, 5, 0x18, 0xf7, 0x7a})));
     EXPECT_FALSE(received.packets.back().WasDecrypted());
+}
+
+// 0x4e4b3a..0x4e4bf2: el 9F y los A0..A3 llegan al mundo en orden, sin guarda de escena. Los valores son inventados.
+TEST(ServerSessionTest, TheQuestPacketsReachTheWorld)
+{
+    namespace Quest = Client::Protocol::Quest;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {Join({Bytes({0xc1, 5, 0x9f, 1, 0x22}), Bytes({0xc1, 4, 0xa0, 3}),
+                                 Bytes({0xc1, 5, 0xa1, 2, 0x10}), Bytes({0xc1, 6, 0xa2, 2, 0, 0x20}),
+                                 Bytes({0xc1, 7, 0xa3, 0x80, 0x21, 0xc8, 5}), Bytes({0xc1, 4, 0xa1, 2})})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 5u);
+    const auto* flag = std::get_if<Quest::QuestFlag>(&events[0]);
+    ASSERT_NE(flag, nullptr);
+    EXPECT_EQ(flag->value, 0x22);
+    const auto* list = std::get_if<Quest::QuestList>(&events[1]);
+    ASSERT_NE(list, nullptr);
+    EXPECT_EQ(list->count, 3);
+    EXPECT_TRUE(list->states.empty());
+    const auto* state = std::get_if<Quest::QuestStateChange>(&events[2]);
+    ASSERT_NE(state, nullptr);
+    EXPECT_EQ(state->state, 0x10);
+    const auto* set = std::get_if<Quest::SetQuestResult>(&events[3]);
+    ASSERT_NE(set, nullptr);
+    EXPECT_EQ(set->state, 0x20);
+    const auto* prize = std::get_if<Quest::QuestResult>(&events[4]);
+    ASSERT_NE(prize, nullptr);
+    EXPECT_EQ(prize->key, 0x21);
+    EXPECT_EQ(prize->kind, Quest::PointsPrize);
+}
+
+// El A0, el A2 y el 30 salen con el XOR32 y cifrados como C3; el C1 03 31 de 0x419900, en claro.
+TEST(ServerSessionTest, TheQuestRequestsGoToTheGameServer)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto before = tested.GameServerReads().packets.size();
+    tested.session.RequestQuestList();
+    tested.session.SendSetQuest(1, 1);
+    tested.session.SendTalk(0x0145);
+    tested.session.SendWindowClose();
+    const auto received = tested.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 4);
+    const auto& packets = received.packets;
+    EXPECT_TRUE(SameBytes(Xor32Decode(packets[before]).Bytes(), Bytes({0xc1, 3, 0xa0})));
+    EXPECT_TRUE(packets[before].WasDecrypted());
+    EXPECT_TRUE(SameBytes(Xor32Decode(packets[before + 1]).Bytes(), Bytes({0xc1, 5, 0xa2, 1, 1})));
+    EXPECT_TRUE(packets[before + 1].WasDecrypted());
+    EXPECT_TRUE(SameBytes(Xor32Decode(packets[before + 2]).Bytes(), Bytes({0xc1, 5, 0x30, 0x01, 0x45})));
+    EXPECT_TRUE(packets[before + 2].WasDecrypted());
+    EXPECT_TRUE(SameBytes(packets[before + 3].Bytes(), Bytes({0xc1, 3, 0x31})));
+    EXPECT_FALSE(packets[before + 3].WasDecrypted());
 }
 
 // 0x4f2416 y 0x576a60: el C1 05 18 de sentarse y del emote, con el XOR32 por el GS; sin el GS abierto, nada.

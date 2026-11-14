@@ -38,5 +38,15 @@ struct GameMovementState
     std::uint32_t targetY = 0;
     float actionInputTime = 0.0f;
     float actionInputElapsed = 0.0f;
+    // 0x6c8ebc (.data −1): el lugar del personaje al que va el héroe. Lo escriben el clic sobre el NPC elegido
+    // (0x59dad3, CL9 hito 2) y sobre un personaje atacable (0x59d3de, hito 3); 0x5650c0 lo lee con +0x379 en 3.
+    std::int32_t attackTarget = -1;
+    // 0x6c8e54 (.data −1): el NPC al que le habla la llegada (0x5650c0 con +0x379 en 2). Lo escribe el clic sobre el
+    // NPC elegido (0x59db1f) y lo vuelven a −1 la llegada (0x56959b) y la vuelta a la selección (0x42fdf8).
+    std::int32_t chosenNpc = -1;
+    // 0x7798bf0 y 0x77f36cc (.bss): el tipo del NPC elegido (+2, MOVSX) y su ángulo z (+0x24, el dword crudo), que
+    // escribe el mismo clic (0x59db25 y 0x59db2b). Los lee otro caso de 0x5650c0 (0x569859.., sin portar).
+    std::int32_t chosenNpcType = 0;
+    std::uint32_t chosenNpcAngle = 0;
 };
 } // namespace Client::Scenes

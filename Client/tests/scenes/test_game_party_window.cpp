@@ -136,6 +136,14 @@ public:
     {
         requests.emplace_back("42");
     }
+    void SendWindowClose() override
+    {
+        requests.emplace_back("31");
+    }
+    void SendSetQuest(std::uint8_t /*quest*/, std::uint8_t /*state*/) override
+    {
+        requests.emplace_back("A2");
+    }
     void SendFriendPacket(Client::Protocol::Outgoing /*packet*/) override
     {
         requests.emplace_back("amigos");

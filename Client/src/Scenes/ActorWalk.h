@@ -6,6 +6,7 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 
 namespace Client::Scenes
@@ -18,6 +19,9 @@ struct ActorWalkContext
     PlayerActionSpeeds& actionSpeeds;
     bool hero = false;
     const Render::Models::Skeleton* actorSkeleton = nullptr;
+    // +0xaa del modelo del personaje (0x612c80, Scenes::FaunaModels::SoundActions), los sonidos de sus acciones que lee
+    // 0x4f3f0f con otro modelo que el 0x20a. Vacío, ese sonido corta.
+    std::span<const std::int16_t> modelSounds{};
 };
 using ActorWalkResult = ActorStopResult;
 // 0x4f37c0: Run, velocidades compartidas, acción y sufijo de sonidos, en ese orden.

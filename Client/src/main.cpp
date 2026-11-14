@@ -61,6 +61,7 @@
 #include "Scenes/IScene.h"
 #include "Scenes/LoadingScene.h"
 #include "Scenes/LoginScene.h"
+#include "Scenes/NpcNames.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
@@ -657,6 +658,11 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     world.Runtime().chat.input.macros = scenes.data.macros;
     // 0x61ec8f: 0x448440 deja los destinos de movereq.bmd en la lista de 0x723c68, que dura hasta el cierre.
     world.Runtime().moves = scenes.data.moves;
+    // 0x61eb69 y 0x61eb7c: Dialog.bmd en 0x7688ac0 y quest.bmd en los registros de [0x710148], hasta el cierre.
+    world.Runtime().dialogTable = scenes.data.dialogs;
+    world.Runtime().quest.records = scenes.data.quests;
+    // 0x61ed05: 0x54e7f0 deja NpcName(%s).txt en los registros de 0x7681eb8, hasta el cierre.
+    world.Runtime().npcNames = Scenes::NpcNameTableOf(scenes.data.npcNames);
     // 0x61ed18: 0x46b3b0 deja Slide.bmd en el cartel de [0x5763528], que dura hasta el cierre.
     if (scenes.data.slides)
     {

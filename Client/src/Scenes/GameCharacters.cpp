@@ -16,9 +16,11 @@
 #include "Scenes/ActorAppearance.h"
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FaunaModels.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameCharacterEffects.h"
 #include "Scenes/GameHanging.h"
+#include "Scenes/MonsterDrawing.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -50,8 +52,6 @@ namespace
 constexpr float UndrawnHeroMark = 1000.0f;
 constexpr std::size_t DrawnActorCount = ActorPoolSize - 1;
 constexpr std::uint32_t HiddenCharacterFlag = 0x10000000;
-constexpr std::uint16_t NoMonster = 0xffff;
-constexpr std::uint8_t RedPk = 6;
 constexpr std::int32_t FirstEventMap = 18;
 constexpr std::int32_t LastEventMap = 23;
 constexpr float ShadowAlphaThreshold = 0.5f;
@@ -139,6 +139,7 @@ DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, const GameCh
     character.kind = actor.byte88;
     character.map = static_cast<std::uint8_t>(map);
     character.cloth = slot < pass.cloths.size() ? &pass.cloths[slot] : nullptr;
+    character.monster = actor.word376;
     character.clothWorld = pass.clothWorld;
     character.sprites = pass.sprites;
     character.originalRandom = pass.clothWorld != nullptr ? &pass.clothWorld->random : nullptr;
@@ -155,19 +156,17 @@ DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, const GameCh
     return character;
 }
 
+// 0x50ba9e..0x50bae0: un 0x20a con un +0x376 de la tabla de 0x510adc va con la tela sobre la malla (0x50bae7), por
+// 0x5ffdf0 y 0x6002e0 y con [ebp+0xf] en 0: la sombra del jugador (0x50bc33) y después la de los monstruos. Ninguna
+// alta lo crea (los de esa tabla son el 0x190): corta. Con otro, por 0x6001b0 como un jugador (0x50bbe4), con sus
+// casos por +0x376 más adelante.
 Core::Expected<void, std::string> CheckTheEarlyBranches(const ActorState& actor)
 {
-    if (actor.word376 != NoMonster)
-    {
-        constexpr std::uint16_t FirstMonsterCase = 0x59;
-        constexpr std::uint16_t LastMonsterCase = 0x8f;
-        const bool table = actor.word376 >= FirstMonsterCase && actor.word376 <= LastMonsterCase;
-        return Core::Unexpected(std::format("{}: los casos por monstruo de 0x50ba30 no están portados en el juego",
-                                            table ? "0x50bad8" : "0x50ba9e"));
-    }
-    if (actor.type != Data::Models::PlayerSkeletonModel)
-        return Core::Unexpected<std::string>(
-            "0x50bbe4: el dibujo de personajes que no son un jugador 0x20a no está portado");
+    if (WearsClothOnTheMesh(actor.word376))
+        return Core::Unexpected(
+            std::format("0x50bae7: el 0x20a con la tela sobre la malla del +0x376 {:#x} (0x5ffdf0 y 0x6002e0 en vez "
+                        "de 0x6001b0) no está portado",
+                        actor.word376));
     return {};
 }
 
@@ -235,7 +234,11 @@ Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const I
         if (auto marked = CheckTheGuildMark(actor, character.map); !marked.HasValue())
             return marked;
     }
-    if (WearsACloth(actor.characterClass, character.map) && character.cloth == nullptr)
+    // 0x50c929..0x50c96e: bVar23, la clase 3 o 4 o el +0x376 0x37 (el monstruo 55, que es un 0x20a), fuera de
+    // Chaos Castle.
+    const bool wears =
+        WearsACloth(actor.characterClass, character.map) || WearsTheMonsterCloth(actor.word376, character.map);
+    if (wears && character.cloth == nullptr)
         return Core::Unexpected<std::string>("0x50d58b: falta la tela persistente del lugar del personaje");
     DrawCharacter(batch, models, character, pass.frameClock, CharacterDrawPass::Cloth);
     return {};
@@ -325,9 +328,15 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
     ActorState& actor = world.Actors()[slot];
     if ((actor.flags7c & HiddenCharacterFlag) != 0)
         return {};
-    const Render::Models::Skeleton* skeleton = models.SkeletonOf(actor.type);
+    // 0x50ba65..0x50ba87: sin acciones en el modelo del tipo (+0x26), nada. Player.bmd para el 0x20a; el de los
+    // monstruos y los NPC, el que cargó el alta (WorldState::FaunaResources, con la biblioteca del mapa detrás).
+    const bool player = actor.type == Data::Models::PlayerSkeletonModel;
+    const Render::Models::Skeleton* skeleton =
+        player ? models.SkeletonOf(actor.type) : world.FaunaResources().SkeletonOf(actor.type);
     if (skeleton == nullptr || skeleton->actions.empty())
         return {};
+    if (!player)
+        return DrawGameMonster(batch, models, world, slot, pass, originalFrame);
     if (auto supported = CheckTheEarlyBranches(actor); !supported.HasValue())
         return supported;
     const std::int32_t map = world.Runtime().map;
@@ -343,6 +352,8 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
                 global(model, bones, transform, translated);
         };
     DrawCharacter(batch, models, character, pass.frameClock, CharacterDrawPass::Shadow);
+    if (auto decorated = CheckMonsterDecorations(actor.word376); !decorated.HasValue())
+        return decorated;
     if (pass.clothWorld == nullptr)
         return Core::Unexpected<std::string>("0x50c91e: falta el flujo global de rand del scan de los personajes");
     const FullSetScan scan = ScanTheActor(world, actor, pass.clothWorld->random, originalFrame);
@@ -353,8 +364,8 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
     if (auto supported = DrawTheBody(batch, models, actor, character, pass, slot == world.Runtime().hero);
         !supported.HasValue())
         return supported;
-    // 0x50db94: la luz de lo que cuelga (+0x3b4), la del terreno o el rojo de los PK.
-    actor.drawnLight = actor.pk >= RedPk ? glm::vec3{1.0f, 0.1f, 0.1f} : terrainLight.Value() + actor.light;
+    // 0x50db94: la luz de lo que cuelga (+0x3b4), la del terreno, el rojo de los PK o la de Blood Castle.
+    actor.drawnLight = HangingLightOf(actor, terrainLight.Value(), map);
     return DrawTheTail(batch, models, world, actor, slot, character, pass, scan, originalFrame, true);
 }
 
@@ -378,10 +389,25 @@ Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const I
     }
     if (!world.Map().terrain.attributes)
         return Core::Unexpected<std::string>("0x42da60: falta el TerrainWall que abre las puertas");
-    World::OpenTheGates(world.Map().terrain.attributes->cells);
+    FinishTheCastleFrame(&world.Runtime(), world.Map().terrain.attributes->cells);
     return {};
 }
 } // namespace
+
+void FinishTheCastleFrame(WorldRuntime* runtime, Data::Terrain::TerrainLayer<std::uint16_t>& walls)
+{
+    // 0x42da60..0x42da79: 0x42da40 abre las puertas (0x42a110(0, 0, 0, 1)) solo con 0x7239d9 en 0.
+    if (runtime == nullptr)
+    {
+        World::OpenTheGates(walls);
+        return;
+    }
+    runtime->castleMarkX = 0.0f;
+    runtime->castleMarkY = 0.0f;
+    if (runtime->castleGatesClosed == 0)
+        World::OpenTheGates(walls);
+    runtime->castleGatesClosed = 0;
+}
 
 Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch, const IModelLibrary& models,
                                                      WorldState& world, const GameCharacterPass& pass)
@@ -435,7 +461,8 @@ Core::Expected<void, std::string> DrawCharacterTail(Render::ModelBatch& batch, c
 }
 
 Core::Expected<void, std::string> DrawGameCharacters(std::span<ActorState> actors, std::size_t hero,
-                                                     Data::Terrain::TerrainLayer<std::uint16_t>& walls)
+                                                     Data::Terrain::TerrainLayer<std::uint16_t>& walls,
+                                                     WorldRuntime* runtime)
 {
     for (std::size_t slot = 0; slot < std::min(actors.size(), DrawnActorCount); ++slot)
     {
@@ -454,7 +481,7 @@ Core::Expected<void, std::string> DrawGameCharacters(std::span<ActorState> actor
                                             "recursos del dibujo del juego (modelos, luz dinámica y rand global)",
                                             slot));
     }
-    World::OpenTheGates(walls);
+    FinishTheCastleFrame(runtime, walls);
     return {};
 }
 } // namespace Client::Scenes

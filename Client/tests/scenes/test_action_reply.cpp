@@ -12,6 +12,7 @@
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FaunaModels.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
@@ -356,7 +357,8 @@ TEST_F(ActionReplyTest, ASittingActorSendsTheSitAction)
     EXPECT_NE(unsent.Error().find("0x4f2416"), std::string::npos);
 }
 
-// 0x4ea030 mira las acciones del modelo del personaje: las que no tiene no se ponen, y sin el modelo, el error.
+// 0x4ea030 mira las acciones del modelo del personaje: las que no tiene no se ponen. Un modelo que no está es el
+// registro en 0 del original (+0x26, sin acciones): no pone nada y no cierra la sesión.
 TEST_F(ActionReplyTest, TheAnimationUsesTheModelOfTheActor)
 {
     Other().type = SmallModel;
@@ -366,8 +368,30 @@ TEST_F(ActionReplyTest, TheAnimationUsesTheModelOfTheActor)
     EXPECT_EQ(Other().animation.action, 5);
 
     Other().type = 0x99;
-    const auto applied = Apply(3, 0x83);
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x4ea030"), std::string::npos);
+    const auto applied = Apply(3, 0x7e);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(Other().animation.action, 5);
+    EXPECT_EQ(m_cloth.random.State(), 1u);
+}
+
+// Un monstruo con su modelo cargado por el alta (WorldState::FaunaResources, con su biblioteca detrás) toma las
+// acciones de ese modelo, no las de la biblioteca del mapa. En Lorencia y en Devias.
+TEST_F(ActionReplyTest, AMonsterTakesTheActionsOfItsLoadedModel)
+{
+    // La 11, que el modelo de la biblioteca del mapa (diez acciones) no tiene.
+    ReplyModels fauna;
+    fauna.small.actions.resize(12);
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(map);
+        m_world->Runtime().map = map;
+        m_world->FaunaResources().Bind(&fauna);
+        Other().type = SmallModel;
+        Other().animation = {};
+        const auto applied = Apply(3, 11);
+        m_world->FaunaResources().Bind(nullptr);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        EXPECT_EQ(Other().animation.action, 11);
+    }
 }
 } // namespace

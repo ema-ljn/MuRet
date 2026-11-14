@@ -232,6 +232,41 @@ que tuviera el bloque nuevo) y un nombre de `+4` sin `\0` antes del final de su 
 ignora. `Scenes::LoadGameData` lo carga antes de las tablas de los conjuntos (hasta 1 MiB, 13.107 destinos), y uno
 que no está deja la lista vacía; main.cpp la copia a `WorldRuntime::moves`.
 
+### `NpcName(%s).txt`
+
+Leído en la CL9 (hito 2, fase 7, 2026-11-13; *estático*, y la forma *verificada* con los archivos reales,
+`GoldenNpcNames`). `0x54e7f0`, desde `0x61ccb0` (`0x61ed05`, con `Data\Local\NpcName(%s).txt` de `0x6d29e0` y el
+idioma de `[0x5763350]`, P-C352), abre el archivo con `"rb"` (si no está, no hace nada) y lo lee con el tokenizador
+`0x54e8d0`, que comparten los otros `.txt` del cliente. Los nombres quedan en `0x7681eb8`: 512 registros de `0x36`
+bytes, el tipo (un `WORD`) y el nombre (`char[0x34]`), en la `.bss`.
+
+El tokenizador lee de a un byte con `getc` y compara el `char`: el `0xff` (EOF o el byte) es el fin, el token 2.
+Saltea los blancos (`isspace`) y los comentarios `//` hasta el `\n` (un `/` solo se pierde y sigue con el byte que
+viene; un `//` sin `\n` hasta el final no termina nunca, porque el lazo de `0x54e925` mira solo el `\n`). Después,
+con la tabla de `0x54eb54`: `"` es una cadena hasta la otra comilla, sin escapes, en `0x7681db0` (los `0x108` bytes que
+siguen hasta la tabla), token 0; un dígito, `.` o `-` es un número (vuelve con `ungetc`, junta `.`, dígitos y `-` en
+`[ebp − 0x64]`, pierde el byte que lo termina y lo pasa por `atof` a un `float` en `[0x76baac4]`), token 1; una letra
+es un nombre (letras, dígitos, `.` y `_`; el que lo termina vuelve con `ungetc`), también en `0x7681db0`, token 0; `#`,
+`,`, `;`, `{` y `}` son su código, y cualquier otro, `0x3c`. Las preguntas a la CRT van con el `char` con signo: un
+byte de `0x80` a `0xfe` fuera de una cadena o un comentario cae fuera de su tabla.
+
+`0x54e7f0` pide tokens hasta el 2 o el nombre `end` (`0x6c7a60`, también entre comillas); con cualquier otro, un
+registro más (`[0x7758560]`, sin tope) con el tipo en el `ftol` del último número leído, sea cual sea el token, y dos
+tokens más: el nombre es el `strcpy` de lo que dejó el segundo en `0x7681db0` (vacío si no fue una cadena ni un
+nombre). Las líneas del archivo son ` 84 1 "King Orc"`: el tipo, un 1 que nadie mira y el nombre.
+
+Los del laboratorio: `NpcName(Eng).txt` y `NpcName(Chs).txt` son iguales byte a byte, y `NpcName(Kor).txt` da la
+misma tabla con menos comentarios: 287 registros, del 84 (`King Orc`) al 338 (`Relics of KUNDUN`), sin tipos repetidos
+ni `end`; el nombre más largo tiene 34 letras (el 231), y tres pasan las 24 (Q-C847, P-C352). `NpcNameTest(Kor).txt`,
+que nadie pide, trae 299 con los nombres en coreano.
+
+MuRet: `Data::Text::LoadNpcNames` porta las dos funciones sobre los bytes del archivo. Lo que el original no
+terminaría de leer o pisaría es `DataError::InvalidData`: el comentario sin `\n` al final, más de 512 registros, una
+cadena o un nombre de `0x108` bytes o más, un número de `0x64` o más, un nombre de registro que no entra con su `\0`
+en `0x34` bytes, un byte alto donde el tokenizador le pregunta a la CRT y un `ftol` fuera de `int64`. `Scenes::LoadGameData`
+lo lee después de las tablas de los conjuntos, como `0x61ccb0` (hasta 1 MiB), y uno que no está deja la tabla vacía;
+main.cpp copia los registros al principio de `WorldRuntime::npcNames` (`Scenes::NpcNameTableOf`).
+
 ## Terreno de un mundo (`Data\World<N>\`)
 
 Grilla de 256 × 256 celdas, `idx = y * 256 + x`.

@@ -26,9 +26,11 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/GamePartyWindow.h"
 #include "Scenes/GameTooltips.h"
+#include "Scenes/HealthBars.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/QuestWindow.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldRuntime.h"
@@ -51,6 +53,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <format>
 #include <optional>
 #include <span>
@@ -861,8 +864,9 @@ Core::Expected<void, std::string> DrawTheWindows(Frame& frame)
         return cut("0x5f58f0: la ventana del NPC de evento es de la CL9.5");
     if (state.field78abb00 != 0)
         return cut("0x5f6550: la ventana de 0x78abb00 es de la CL9.5");
-    if (state.delegated.quest == 1 || state.delegated.quest == 2)
-        return cut("0x41ca40: la ventana de las misiones es de la CL9.1");
+    // 0x5f75db (CL9 hito 2): 0x41ca40, la ventana de las misiones y el botón de la del personaje.
+    if (auto quest = DrawTheQuestWindow(frame.context, panels); !quest.HasValue())
+        return quest;
     if (state.delegated.pet == 2)
         return cut("0x424160: la ventana de la mascota es de la CL9.2");
     if (panels.IsOpen(UI::Panel2000))
@@ -1000,9 +1004,9 @@ Core::Expected<void, std::string> DrawTheAg(Frame& frame)
 Core::Expected<void, std::string> DrawTheUi3DItems(Frame& frame)
 {
     const UI::PanelState& state = frame.runtime.panels;
-    // 0x41b9e0: el ítem de la ventana de las misiones.
-    if (state.delegated.quest == 1 || state.delegated.quest == 2)
-        return Core::Unexpected(std::string("0x41b9e0: el ítem de la ventana de las misiones es de la CL9.1"));
+    // 0x5ac1c7 (CL9 hito 2): 0x41b9e0, los ítems pedidos de la ventana de las misiones.
+    if (auto quest = DrawTheQuestItems(frame.context); !quest.HasValue())
+        return quest;
     if (state.field78abb00 != 0 && state.field78abb00 != 3)
         return Core::Unexpected(std::string("0x5f70a0: los ítems de la ventana de 0x78abb00 son de la CL9.5"));
     // 0x5f7610: los ítems de las grillas abiertas, en su orden, y la caja del entrenador (0x44ad40(0)).
@@ -1466,7 +1470,16 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     if (hud.partyCount > 0)
         return Core::Unexpected(std::string("0x5a89b0: las barras de vida de la party son de la CL9.4"));
     // 4. 0x5a6fc0: la info de Castle Siege, con el objeto de 0x5767924 (CL9.5): nada.
-    // 5. 0x42a4d0: las barras de la cola de 0x7239ac, vacía hasta la CL9.5: nada.
+    // 5. 0x42a4d0: las barras de vida de la cola de 0x7239a8 (Scenes/HealthBars). Un dibujo intermedio vacía una copia.
+    {
+        std::deque<QueuedHealthBar> scratch;
+        if (context.projecting)
+            scratch = runtime.healthBars;
+        if (auto bars = DrawTheHealthBars(context.projecting ? scratch : runtime.healthBars, context.projection,
+                                          context.sprites);
+            !bars.HasValue())
+            return bars;
+    }
     // 6. 0x42a660.
     if (auto icons = DrawTheStatusIcons(frame); !icons.HasValue())
         return icons;

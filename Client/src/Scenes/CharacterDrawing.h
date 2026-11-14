@@ -14,6 +14,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/Models/Skinning.h"
 #include "Render/Models/Shine.h"
+#include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/TextureMetadata.h"
@@ -114,6 +115,9 @@ struct DrawnCharacter
     // tela.
     CharacterCloth* cloth = nullptr;
     Render::Models::ClothWorld* clothWorld = nullptr;
+    // +0x376: el número de monstruo (0xffff en un jugador). Con el 0x37, la tela de ese monstruo (0x50c951,
+    // WearsTheMonsterCloth).
+    std::optional<std::uint16_t> monster;
     // false entre frames del original: dibuja la tela actual sin crearla ni simularla.
     bool advanceCloth = true;
     std::uint8_t map = 0;
@@ -244,6 +248,45 @@ void DrawObjectFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models
                           Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes,
                           std::optional<Render::Models::ShinePass> shine = std::nullopt);
 
+// 0x4ebc80 sobre `bones`, los huesos que posó 0x5ffdf0 en el buffer propio (+0x120): una por malla del modelo de
+// `object`, en su orden, con su escala y su posición; también las que no tienen textura, que 0x4eff40 no mira. Una
+// malla con índices fuera de rango queda vacía. Sin el modelo, ninguna. `boneScale` es el 0x6c881c que deja 0x5ffdf0
+// por su modo: 1, o 1,2 con el 2 y 1,4 con el 3 (0x5fff82..0x5fffaf, Render::Models::SkinMeshAroundBones).
+[[nodiscard]] std::vector<Render::Models::SkinnedMesh>
+SkinObjectMeshes(const IModelLibrary& models, const DrawnObject& object,
+                 std::span<const Render::Models::BoneTransform> bones, float boneScale = 1.0f);
+
+// Un pase de 0x60cd60: la escala que 0x4ebc80 lee de 0x6c881c y el color del modelo (+0x48..+0x50).
+struct ObjectOutlinePass
+{
+    float boneScale = 1.0f;
+    Render::Color color;
+};
+
+// 0x60cd60(modelo, objeto, 0x40, …, escala) una vez por pase de `passes`, con `object` posado en `bones` (el
+// contorno de 0x5ffdf0 en un monstruo o un NPC): cada malla pasada al mundo alrededor de sus huesos a la escala del
+// pase y RenderBody(0x40) sin luz, sin textura, aditiva y sin escribir la profundidad, salvo la del blendMesh, con
+// su textura y por su luz (como el contorno de las partes de DrawCharacter); sin la malla oculta. El caller mira
+// antes el +0x78 & 0x4000 (0x60cd74) y el caso del 0xc5 (0x60cdd9).
+void DrawObjectOutline(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                       Core::Duration frameClock, std::span<const Render::Models::BoneTransform> bones,
+                       std::span<const ObjectOutlinePass> passes);
+
+// El contorno del 0xc5 (0x60cdd9..0x60ce55): como DrawObjectOutline, pero solo la malla 0 con 0x4ecc30 (0x60ce4e), sin
+// el script de su textura (oculta, o su propio blendMesh, que mira 0x4ef0c0) y sin la malla oculta: el +0x58 va de
+// textura, que el contorno no usa salvo en la rama del blendMesh. El caller corta con +0x58 distinto de −1.
+void DrawObjectOutlineOfTheFirstMesh(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                                     Core::Duration frameClock, std::span<const Render::Models::BoneTransform> bones,
+                                     std::span<const ObjectOutlinePass> passes);
+
+// La sombra de 0x60b3d0 con +0x98 en 1 (0x60b41a..0x60ccee), sobre `meshes` (SkinObjectMeshes): sin sombra en los
+// mapas 10, 24 a 29 y 36; en el 7, 0x620a00(1) y glColor4f(0, 0, 0, 0,2), y en los demás 0x620980 y glColor3f(0, 0,
+// 0). 0x4eff40(+0x64, +0x58, −1, −1): sin la malla oculta, las que no tienen triángulos y las que tienen la textura
+// del blendMesh (+2 de la malla), cada vértice aplastado desde la posición del objeto (model+0x6c..+0x74, que copió
+// 0x60cf70) con el abanico del mapa. El caller mira +0x1bc, +0x78 & 0x4000 y +0x92 (0x60b46f..0x60b49f).
+void DrawObjectShadow(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                      std::span<const Render::Models::SkinnedMesh> meshes, std::int32_t map);
+
 struct ItemSpecialDrawContext;
 // Globales de60b3d0 prestados por el dueño del frame y su scratch proyectado.
 struct ItemDrawContext
@@ -273,11 +316,13 @@ DrawItemFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models, const
 // Los pases especiales prestan las mismas mallas y no calculan otra pose.
 // storedColor recibe sólo los FSTP de RGB, también antes de un error posterior.
 // El bit0x20 proyecta al piso con spread2000 (4ed6f6, Kalima); no acredita el spread2500 del asedio.
+// El 0x400 sin el 0x20 es la onda de 4ed775: cada esquina corrida por su normal girada en
+// sin((931 · vértice + ftol(T)) · 0,007f) · 28, con T el reloj del mundo (`worldClock`, 0x5767b88); sin él, corta.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawItemMeshPass(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
                  Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes, std::int16_t mesh,
                  std::uint32_t flags, std::optional<Render::TextureSlot> texture = std::nullopt,
-                 glm::vec3* storedColor = nullptr);
+                 glm::vec3* storedColor = nullptr, std::optional<float> worldClock = std::nullopt);
 
 // El punto `offset` del hueso `bone` de `object` posado como lo posa DrawObject, en el mundo (por la escala
 // y más la posición del objeto, como los vértices). Es lo que lee del buffer global de la pose

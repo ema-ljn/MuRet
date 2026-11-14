@@ -8,6 +8,7 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnDerivedStats.h"
 #include "Scenes/OwnStatHelpers.h"
+#include "Scenes/Quests.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/OldWindows.h"
@@ -64,6 +65,9 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
     context.heroSiegeMark = false;
     context.sound = [&runtime](std::int32_t id) { runtime.lastSoundId = id; };
     context.characterOpened = [&world, &random, tables]() { return OpenTheCharacter(world, random, tables); };
+    // 0x659c70: 0x419840(−1) sobre [0x710148].
+    context.questOpened = [&world, &random, tables]()
+    { return OpenTheQuestList(QuestContext{.world = world, .random = random, .texts = tables.texts}, -1); };
     // El panel 1, la de amigos (CL9 hito 9): 0x490a00(+0x48) y 0x4914e0 sobre el administrador viejo.
     UI::OldWindowManager& oldWindows = runtime.oldWindows;
     context.friendsShown = [&oldWindows]() { return UI::FindTheOldWindow(oldWindows, oldWindows.friends) != nullptr; };
@@ -75,6 +79,21 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
 GamePanels::GamePanels(WorldState& world, Render::Models::CrtRandom& random, GamePanelTables tables)
     : m_context(ContextOf(world, random, tables)), m_registry(world.Runtime().panels, m_context)
 {
+}
+
+void GamePanels::LendTheWindowClose(std::function<void()> send)
+{
+    m_context.questClosed = std::move(send);
+}
+
+void GamePanels::LendTheWindowClose(IGameUiRequests* requests)
+{
+    if (requests == nullptr)
+    {
+        m_context.questClosed = {};
+        return;
+    }
+    m_context.questClosed = [requests]() { requests->SendWindowClose(); };
 }
 
 void GamePanels::LendThePartyList(WorldState& world, IGameUiRequests* requests)

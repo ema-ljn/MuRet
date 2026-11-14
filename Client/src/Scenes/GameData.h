@@ -4,9 +4,12 @@
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Tables/QuestTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/Credits.h"
+#include "Data/Text/DialogTable.h"
 #include "Data/Text/MoveRequirements.h"
+#include "Data/Text/NpcNames.h"
 #include "Data/Text/SlideTable.h"
 #include "Data/Text/TextTable.h"
 #include "UI/MacroFile.h"
@@ -43,6 +46,12 @@ inline constexpr std::string_view MacroFile = "Macro.txt";
 inline constexpr std::string_view SlideTableFile = "Local\\Slide.bmd";
 // Los destinos de la ventana /move, como los pide 0x61ccb0 (0x61ec8f, con 0x6d2a18).
 inline constexpr std::string_view MoveRequirementsFile = "Local\\movereq.bmd";
+// Los diálogos y las misiones, como los pide 0x61ccb0 (0x61eb69 con 0x6d2a48 y 0x61eb7c con 0x6d2a30).
+inline constexpr std::string_view DialogTableFile = "Local\\Dialog.bmd";
+inline constexpr std::string_view QuestTableFile = "Local\\quest.bmd";
+// Los nombres de los monstruos y los NPC, como los pide 0x61ccb0 (0x61ed05, con 0x6d29e0 y el idioma de [0x5763350]).
+// El idioma es *inferido* (P-C352): Eng, que es igual byte a byte al Chs del laboratorio.
+inline constexpr std::string_view NpcNameFile = "Local\\NpcName(Eng).txt";
 
 struct GameData
 {
@@ -71,6 +80,15 @@ struct GameData
     // movereq.bmd (CL8 hito 6): los destinos de la ventana /move, que main.cpp copia a WorldRuntime::moves (la lista
     // de 0x723c68). Vacío si no está, como cuando fopen falla en 0x448440.
     std::vector<Data::Text::MoveRequirement> moves;
+    // Dialog.bmd (CL9 hito 2): los 200 diálogos de 0x7688ac0, que main.cpp copia a WorldRuntime::dialogTable. Sin el
+    // archivo, 200 vacíos (el original avisa y cierra la ventana, P-C170).
+    Data::Text::DialogTable dialogs;
+    // quest.bmd (CL9 hito 2): los 200 registros de [0x710148] + 0xc, que main.cpp copia a WorldRuntime::quest. Sin el
+    // archivo, 200 en cero, como deja 0x418d10 los de la .bss.
+    Data::Tables::QuestTable quests;
+    // NpcName(%s).txt (CL9 hito 2): los registros que 0x54e7f0 deja en 0x7681eb8, que main.cpp copia al principio de
+    // WorldRuntime::npcNames. Vacío si no está, como cuando fopen falla.
+    std::vector<Data::Text::NpcNameRecord> npcNames;
 };
 
 // Lo de WinMain antes de la escena 1: Text.bmd en 0x4b9b9f (0x61ee30 y 0x5495e0), antes de las
@@ -92,6 +110,11 @@ struct GameData
 // uno que no se lee o es corto es un error que lo nombra. credit.bmd puede faltar (los créditos quedan vacíos); uno
 // que no se lee o es corto es un error que lo nombra. movereq.bmd, antes de las tablas de los conjuntos como en
 // 0x61ccb0, también: sin él, la ventana /move queda sin destinos (0x448440 devuelve 0 y nadie lo mira);
-// uno que no se lee, corto o con un nombre sin terminar es un error que lo nombra.
+// uno que no se lee, corto o con un nombre sin terminar es un error que lo nombra. Antes de movereq.bmd, Dialog.bmd
+// y quest.bmd (0x61eb69 y 0x61eb7c): uno que no está queda con sus 200 registros vacíos; uno corto, con lo que deja
+// su fread (Q-C1127); uno que no se lee, de menos de un registro o (Dialog.bmd) con más de 10 respuestas en un
+// registro es un error que lo nombra. Detrás de las tablas de los conjuntos, NpcName(Eng).txt (0x61ed05): uno que no
+// está deja la tabla vacía; uno que no se lee, de más de 1 MiB o que el original no cargaría sin pisar otra cosa
+// (Data::Text::LoadNpcNames) es un error que lo nombra.
 [[nodiscard]] Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot);
 } // namespace Client::Scenes

@@ -1061,7 +1061,8 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
     WorldState& world = *m_context.world;
     if (m_models == nullptr)
     {
-        return DrawGameCharacters(world.Actors(), world.Runtime().hero, world.Map().terrain.attributes->cells);
+        return DrawGameCharacters(world.Actors(), world.Runtime().hero, world.Map().terrain.attributes->cells,
+                                  &world.Runtime());
     }
     std::optional<std::string> poseFailure;
     ItemSpecialDrawContext special;
@@ -1099,7 +1100,9 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                           { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); },
                           .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
                           .polygon = &polygon,
-                          .fixedHeight = CameraState().fixedHeight});
+                          .fixedHeight = CameraState().fixedHeight,
+                          .kalima = FrameKalima(),
+                          .cameraShake = m_projectingFrame ? &m_projection->cameraShake : &CameraInputState().shake});
     if (poseFailure)
         return Core::Unexpected(*poseFailure);
     return drawn;

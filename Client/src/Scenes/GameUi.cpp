@@ -25,6 +25,7 @@
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/QuestWindow.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -1022,10 +1023,9 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
     // 0x40a450, los comandos ([0x6e592c]), que empieza con su +4.
     if (auto commands = StepTheCommandsWindow(context); !commands.HasValue())
         return commands;
-    // 0x41b5a0, el quest: con el personaje cerrado escribe +0x21390 y +0x21394 de su objeto, que MuRet no tiene
-    // ni lee; con +0x21383 en 1 o 2, su ventana.
-    if (delegated.quest == 1 || delegated.quest == 2)
-        return Core::Unexpected(std::string("0x41b5a0: el paso del quest es de la CL9.1"));
+    // 0x5ee20d (CL9 hito 2): 0x41b5a0, la ventana de las misiones y su botón en la del personaje.
+    if (auto quest = StepTheQuestWindow(context, panels); !quest.HasValue())
+        return quest;
     // 0x5ee212: 0x424130.
     return StepThePetButton(context, panels);
 }
@@ -1503,7 +1503,8 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
     WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     UI::DialogState& dialogs = runtime.dialogs;
-    GamePanels panels(context.world, context.random);
+    GamePanels panels(context.world, context.random, GamePanelTables{.texts = context.texts});
+    panels.LendTheWindowClose(context.requests);
     // 0x623e9b..0x623ec2: con la de amigos abierta, Esc es de las ventanas viejas (0x490490).
     if (!panels.Registry().IsOpen(UI::FriendsPanel) && KeyEdge(ui, context.input, EscapeKey))
     {
@@ -1553,8 +1554,10 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     const OldWindowSight sight(context);
     GamePanels gamePanels(context.world, context.random,
                           GamePanelTables{.items = context.inventory != nullptr ? context.inventory->items : nullptr,
-                                          .itemSetTables = context.itemSetTables});
+                                          .itemSetTables = context.itemSetTables,
+                                          .texts = context.texts});
     gamePanels.LendThePartyList(context.world, context.requests);
+    gamePanels.LendTheWindowClose(context.requests);
     gamePanels.LendTheFriends([&sight]() { return sight.OpenTheFriendsWindow(); });
     UI::PanelRegistry& panels = gamePanels.Registry();
     // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).

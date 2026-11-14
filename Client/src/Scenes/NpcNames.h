@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
-#include <string_view>
+#include <string>
 #include <vector>
 
 // 0x7681eb8: los nombres de los monstruos y los NPC, 512 registros de 0x36 bytes en la .bss (hasta 0x7688ab8): el tipo
@@ -27,7 +27,8 @@ using NpcNameTable = std::vector<NpcName>;
 
 // 0x54ebb0(tipo): el nombre del primer registro cuyo tipo (el word, sin signo, contra el dword que le pasan) es `type`,
 // o nada (el NULL del original) si ninguno lo es. Con la tabla en 0, el tipo 0 da el nombre vacío del primer registro y
-// cualquier otro, nada. El nombre va hasta su primer '\0'; sin él, MuRet corta en los 0x34 bytes (el original seguiría
-// en el registro siguiente).
-[[nodiscard]] std::optional<std::string_view> NpcNameOf(const NpcNameTable& table, std::int32_t type);
+// cualquier otro, nada. El original devuelve el puntero a +2 del registro: el nombre va hasta su primer '\0' y, sin él
+// en sus 0x34 bytes (un nombre largo de LoadNpcNames), sigue por el tipo y el nombre de los registros que siguen. Sin
+// '\0' hasta el final de la tabla (LoadNpcNames no lo deja), lo que hay hasta ahí.
+[[nodiscard]] std::optional<std::string> NpcNameOf(const NpcNameTable& table, std::int32_t type);
 } // namespace Client::Scenes

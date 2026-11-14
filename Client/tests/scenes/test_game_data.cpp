@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <filesystem>
 #include <map>
@@ -268,6 +269,28 @@ TEST(GameDataTest, ReadsTheNpcNames)
     const auto hanging = LoadGameData(folder.Path());
     ASSERT_FALSE(hanging.HasValue());
     EXPECT_NE(hanging.Error().find("Local\\NpcName(Eng).txt"), std::string::npos) << hanging.Error();
+}
+
+// 0x54ebb0 devuelve el puntero a +2 del registro: un nombre sin '\0' en sus 0x34 bytes (el que dejó un nombre largo de
+// 0x54e7f0) sigue por el tipo del registro siguiente (el byte bajo primero) y su nombre, hasta el primer '\0'; en el
+// último registro, hasta el final de la tabla. Los nombres son inventados.
+TEST(GameDataTest, ANameWithoutItsZeroGoesOnInTheNextRecord)
+{
+    Client::Scenes::NpcNameTable table = Client::Scenes::NpcNameTableOf({});
+    const std::string full(Client::Scenes::NpcNameBytes, 'a');
+    table[3].type = 5;
+    std::ranges::copy(full, table[3].name.begin());
+    table[4].type = 0x6362;
+    std::ranges::copy(std::string_view("def"), table[4].name.begin());
+    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 5), full + "bcdef");
+    table[4].type = 0x0062;
+    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 5), full + "b");
+    table[4].type = 0x6200;
+    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 5), full);
+
+    table.back().type = 8;
+    std::ranges::fill(table.back().name, 'z');
+    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 8), std::string(Client::Scenes::NpcNameBytes, 'z'));
 }
 
 // Uno con otra suma (o la del otro archivo) es un error que lo nombra, como el "File corrupted" del

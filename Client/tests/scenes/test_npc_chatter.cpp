@@ -302,6 +302,27 @@ TEST_F(NpcChatterTest, TheNamedLineTakesTurnsEveryFourSeconds)
     EXPECT_FALSE(m_world->Runtime().namedLineFirst);
 }
 
+// 0x4fcda2: el strcmp sigue después de los once bytes iguales y compara +0x1e4 con el 0 de 0x6c88b0. Con algo ahí (lo
+// que deja un nombre largo, Q-C847), el nombre no es el del mensaje; un byte de menos tampoco lo es.
+TEST_F(NpcChatterTest, TheMessageNameNeedsTheZeroAfterItsElevenBytes)
+{
+    TheMessageName();
+    Npc().nameSpill[0] = std::byte{0};
+    EXPECT_TRUE(Client::Scenes::HasTheMessageName(Npc()));
+    Npc().nameSpill[0] = std::byte{'s'};
+    EXPECT_FALSE(Client::Scenes::HasTheMessageName(Npc()));
+    Npc().nameSpill[0] = std::byte{0};
+    Npc().byte1e3 = 0;
+    EXPECT_FALSE(Client::Scenes::HasTheMessageName(Npc()));
+
+    // Con +0x1e4 en algo, SayTheNamedLine no habla aunque pasen los 4.000 ms.
+    TheMessageName();
+    Npc().nameSpill[0] = std::byte{'s'};
+    m_now = 1000;
+    ASSERT_TRUE(Client::Scenes::SayTheNamedLine(Npc(), NpcSlot, Context()).HasValue());
+    EXPECT_EQ(Said(), std::nullopt);
+}
+
 // El reloj arranca con cualquier personaje, aunque no tenga el nombre; antes de las 5.000 ms del arranque la resta da
 // la vuelta sin signo. Sin timeGetTime() no se toca y solo el del nombre corta.
 TEST_F(NpcChatterTest, TheClockStartsWithAnyoneAndWithoutItOnlyTheNameStops)

@@ -30,16 +30,28 @@ struct WorldEntryResources;
 [[nodiscard]] Core::Expected<void, std::string>
 SetMonsterAction(ActorState& actor, std::uint8_t action, std::uint32_t address, const WorldEntryResources& resources);
 
-// Lo que MuRet guarda desde +0x1d9: el nombre (diez bytes), +0x1e3 y +0x1e4..+0x1f1 (ActorState::nameSpill).
+// Los bytes de texto desde +0x1d9: el nombre (diez bytes), +0x1e3 y +0x1e4..+0x1f1 (ActorState::nameSpill).
 inline constexpr std::size_t ActorTextSize = 25;
+// Los que MuRet guarda seguidos desde +0x1d9: los de texto, el WORD de +0x1f2 y la clave de +0x1f4. +0x1f6 no lo
+// guarda.
+inline constexpr std::size_t ActorTextReadable = 29;
+// Hasta +0x218, las partes del cuerpo.
+inline constexpr std::size_t ActorTextReach = 0x218 - 0x1d9;
 
-// Escribe `bytes` desde +0x1d9 + `offset` (el strcpy o el strcat del original, con su 0 incluido). Lo que llegaría a
-// +0x1f2 (el WORD de +0x1f2 y la clave de +0x1f4, Q-C847) corta con `address`, sin escribir nada.
+// Escribe `bytes` desde +0x1d9 + `offset` (el strcpy o el strcat sin tope del original, con su 0 incluido, Q-C847):
+// después de los 25 de texto siguen el WORD de +0x1f2, la clave de +0x1f4, +0x1f6 y +0x1f7, la cabeza de +0x1f8 y el
+// resto de su parte hasta +0x217, como en el original; lo que cae en +0x1f6, +0x1f7 y +0x1fa..+0x217, que ActorState
+// no tiene, se pierde (P-C352). Lo que llegaría a las partes de +0x218 corta con `address`, sin escribir nada.
 [[nodiscard]] Core::Expected<void, std::string> PutActorText(ActorState& actor, std::span<const std::byte> bytes,
                                                              std::uint32_t address, std::size_t offset = 0);
 
-// La cadena de C desde +0x1d9, sin el 0: hasta el primer 0 de los 25 bytes de MuRet, o los 25 si no hay.
+// La cadena de C desde +0x1d9, sin el 0: hasta el primer 0 de los ActorTextReadable bytes que MuRet guarda seguidos,
+// o esos si no hay (el original seguiría en +0x1f6).
 [[nodiscard]] std::string ActorText(const ActorState& actor);
+
+// El nombre de +0x1d9 como lo lee una función de cadenas del original (strcat, wsprintfA): ActorText si tiene su 0;
+// sin él, el original seguiría en +0x1f6, que MuRet no guarda, y corta con `address` (Q-C847, P-C352).
+[[nodiscard]] Core::Expected<std::string, std::string> ActorCString(const ActorState& actor, std::uint32_t address);
 
 // 0x5141e0 con la cola 0x5140c0: el creador de evento o el caso del switch (MonsterCreationOf con el mapa de
 // WorldRuntime::map) corre sus pasos en orden, con cada rand() en su lugar entre los del alta (0x511290 y sus celdas):
@@ -52,7 +64,7 @@ inline constexpr std::size_t ActorTextSize = 25;
 // - Cortan, con su dirección, lo de las otras CL: el Siege con el asedio prendido (0x4294b0, CL9.5), los Joint
 //   (0x530860) y los Arrival (0x518cf0) de la CL11. El Action (0x4ea030) usa las acciones del modelo cargado.
 // Después, la cola (MonsterTailOf): el nivel y la escala en los mapas 10 a 17, el nombre del tipo en
-// WorldRuntime::npcNames (0x7681eb8) a +0x1d9 si hay uno (uno que no entra en los 25 bytes corta, Q-C847), +0x376 con
+// WorldRuntime::npcNames (0x7681eb8) a +0x1d9 si hay uno (PutActorText, Q-C847), +0x376 con
 // el tipo, +8 en 0, +0x3a4 con WorldRuntime::heroSlot y la clase del objeto. Devuelve el lugar del pool: con los 400
 // vivos, el 400, que el original escribe igual.
 [[nodiscard]] Core::Expected<std::size_t, std::string> CreateMonster(std::int32_t type, std::uint8_t x, std::uint8_t y,

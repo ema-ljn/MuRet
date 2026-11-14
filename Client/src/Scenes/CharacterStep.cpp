@@ -537,9 +537,11 @@ bool LeavesATrail(std::uint8_t action, int model)
     return false;
 }
 
-// 0x4fcee0(c, c, b) desde 0x505410, con el 0x20a.
+// 0x4fcee0(c, c, b) desde 0x505410, con el 0x20a. Las partículas y el reloj son los del paso (0x432bd0 crea la 0x5d9
+// del 0x1b0).
 Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::size_t slot, WorldState& world,
-                                                     Render::Models::CrtRandom& random)
+                                                     Render::Models::CrtRandom& random, World::Particles* particles,
+                                                     float worldClock)
 {
     const std::uint8_t action = actor.animation.action;
     // 0x4fceea..0x4fcf25: antes del frame 3 (o con NaN) y fuera de la 0x8d copia la posición a +0x17c y sale.
@@ -568,7 +570,7 @@ Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::siz
     }
     // 0x4fd5c1..0x4fd5df: 0x441260 (solo el 0x1a7), 0x42fa40 (el 0x1b1 y el 0x1b3), 0x432bd0 y 0x426d90 (los
     // 0x1b8 a 0x1ba). 0x4fd5d7: 0x432bd0, con su rand() de 0x432bf1 sin condición (Scenes::StepTheSwingsOf1abTo1b4).
-    if (auto swung = StepTheSwingsOf1abTo1b4(actor, slot, world, random); !swung.HasValue())
+    if (auto swung = StepTheSwingsOf1abTo1b4(actor, slot, world, random, particles, worldClock); !swung.HasValue())
         return swung;
     if (cut.has_value())
     {
@@ -703,7 +705,9 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     // 0x5053fc: 0x42a2b0, la barra de vida del 0x1a8.
     QueueTheHealthBar(actor, context.world.Runtime().healthBars);
     // 0x505410: 0x4fcee0.
-    if (auto trailed = StepTheWeaponTrail(actor, slot, context.world, context.random); !trailed.HasValue())
+    if (auto trailed =
+            StepTheWeaponTrail(actor, slot, context.world, context.random, context.particles, context.worldClock);
+        !trailed.HasValue())
     {
         return trailed;
     }

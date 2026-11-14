@@ -47,7 +47,6 @@
 #include <array>
 #include <bit>
 #include <chrono>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -167,13 +166,26 @@ struct ModelLight
     bool vertexLight = false;
 };
 
+// FLD T; FMUL tasa; FSIN y FMUL o FADD de un float de la .data: el seno retenido con un solo R53 (ADR0014). El reloj
+// del frame son los ms desde el arranque, finitos y lejos de 2^63 / tasa, y DrawGameHanging corta en el mismo frame si
+// pasa de 2^40: fuera del perfil, que no se alcanza, queda 0 (como GameHanging).
+double ClockSine(float worldClock, float rate, float factor)
+{
+    return Render::Models::Detail::SineProductPC53(D(worldClock) * D(rate), factor).value_or(0.0);
+}
+
+double ClockSinePlus(float worldClock, float rate, float addend)
+{
+    return Render::Models::Detail::SineSumPC53(D(worldClock) * D(rate), D(addend)).value_or(0.0);
+}
+
 ModelLight ModelLightOf(const ActorState& actor, const World::TerrainLighting& lighting, float worldClock)
 {
     if (actor.type == 0x189)
         return {glm::vec3(std::bit_cast<float>(0x3f19999au)), false};
     if (actor.type == 0xe4)
     {
-        const float shade = F32((std::sin(D(worldClock) * D(std::bit_cast<float>(0x3b449ba6u))) + 1.0) * 0.5);
+        const float shade = F32(ClockSinePlus(worldClock, std::bit_cast<float>(0x3b449ba6u), 1.0f) * 0.5);
         return {glm::vec3(shade), false};
     }
     const glm::vec3 terrain = World::LightAt(lighting, actor.position.x, actor.position.y);
@@ -414,7 +426,7 @@ Result DrawTheFloorMark(MonsterFrame& frame)
         frame.pass.terrain != nullptr ? *frame.pass.terrain : frame.world.Map().terrain;
     if (!terrain.heights)
         return Core::Unexpected<std::string>("0x5fb2f0: faltan las alturas del terreno del calco del 0xe8 y el 0xe9");
-    const double pulse = std::sin(D(frame.worldClock) * D(Rate)) * D(Span) + D(Base);
+    const double pulse = ClockSine(frame.worldClock, Rate, Span) + D(Base);
     const float half = F32(pulse * D(std::bit_cast<float>(0x3f000000u)));
     const World::TerrainDecal decal{.slot = Mark,
                                     .x = actor.position.x,
@@ -1014,8 +1026,7 @@ void BoneSprite(const MonsterFrame& frame, std::uint16_t texture, float scale, s
     const BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : BoneTransform(0.0f);
     const glm::vec3 point = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset,
                                                                       actor.scale, actor.position);
-    const double lum =
-        std::sin(D(frame.worldClock) * D(PulseRate)) * D(PulseSpan) + D(std::bit_cast<float>(0x3f333333u));
+    const double lum = ClockSine(frame.worldClock, PulseRate, PulseSpan) + D(std::bit_cast<float>(0x3f333333u));
     const glm::vec3 light{F32(lum), F32(lum * D(std::bit_cast<float>(0x3f19999au))),
                           F32(lum * D(std::bit_cast<float>(0x3ecccccdu)))};
     static_cast<void>(frame.pass.sprites->Create(texture, point, scale, light, 0.0f, 0));
@@ -1026,8 +1037,7 @@ void BoneSprite(const MonsterFrame& frame, std::uint16_t texture, float scale, s
 void PairOfSprites(MonsterFrame& frame, std::size_t first, std::size_t second, float scale)
 {
     ActorState& actor = frame.actor;
-    const float lum =
-        F32(std::sin(D(frame.worldClock) * D(PulseRate)) * D(PulseSpan) + D(std::bit_cast<float>(0x3f4ccccdu)));
+    const float lum = F32(ClockSine(frame.worldClock, PulseRate, PulseSpan) + D(std::bit_cast<float>(0x3f4ccccdu)));
     const auto at = [&](std::size_t bone, float x)
     {
         const BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : BoneTransform(0.0f);
@@ -1067,7 +1077,7 @@ Result DrawTheFairy(MonsterFrame& frame)
     const BoneTransform matrix = Bone < actor.bodyPose.size() ? actor.bodyPose[Bone] : BoneTransform(0.0f);
     glm::vec3 point = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix),
                                                                 {3.5f, -12.0f, 10.0f}, actor.scale, actor.position);
-    const float lum = F32(std::sin(D(frame.worldClock) * D(PulseRate)) * D(std::bit_cast<float>(0x3eb33333u)) +
+    const float lum = F32(ClockSine(frame.worldClock, PulseRate, std::bit_cast<float>(0x3eb33333u)) +
                           D(std::bit_cast<float>(0x3f266666u)));
     const float spin = std::bit_cast<float>(0x3ca3d70au);
     const float scale = std::bit_cast<float>(0x3e99999au);
@@ -1234,6 +1244,7 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
                                          .world = frame.world,
                                          .random = frame.random,
                                          .sprites = pass.sprites,
+                                         .particles = pass.particles,
                                          .worldClock = frame.worldClock,
                                          .map = frame.map,
                                          .originalFrame = frame.originalFrame,

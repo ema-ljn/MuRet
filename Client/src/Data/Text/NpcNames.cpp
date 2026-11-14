@@ -4,6 +4,7 @@
 #include "Data/DataError.h"
 #include "World/OriginalFtol.h"
 
+#include <algorithm>
 #include <charconv>
 #include <cmath>
 #include <cstddef>
@@ -246,8 +247,14 @@ private:
 
 Core::Expected<std::vector<NpcNameRecord>, DataError> LoadNpcNames(std::span<const std::byte> file)
 {
+    // Los bytes de 0x7681eb8..0x7688ab8 como los escribe 0x54e7f0 (en la .bss, en 0): un nombre largo sigue en los
+    // registros que siguen, y el registro siguiente pisa lo que le toca.
+    constexpr std::size_t RecordBytes = 2 + NpcNameBytes;
+    constexpr std::size_t TableBytes = NpcNameCount * RecordBytes;
+    std::vector<char> table(TableBytes, '\0');
+    std::size_t count = 0;
+    std::size_t written = 0;
     Tokenizer tokens(file);
-    std::vector<NpcNameRecord> records;
     for (;;)
     {
         // 0x54e814..0x54e85f: hasta el 2 o el nombre "end" (0x6c7a60) en un token 0.
@@ -255,25 +262,44 @@ Core::Expected<std::vector<NpcNameRecord>, DataError> LoadNpcNames(std::span<con
         if (!token.HasValue())
             return Core::Unexpected(token.Error());
         if (token.Value() == EndToken || (token.Value() == TextToken && tokens.Text() == "end"))
-            return records;
+            break;
         // 0x54e861..0x54e884: el registro [0x7758560]++ y el word del ftol del último número.
-        if (records.size() >= NpcNameCount)
+        if (count >= NpcNameCount)
             return Core::Unexpected(DataError::InvalidData);
         const std::optional<std::int32_t> type = World::OriginalFtolLow(static_cast<double>(tokens.Number()));
         if (!type)
             return Core::Unexpected(DataError::InvalidData);
-        NpcNameRecord& record = records.emplace_back();
-        record.type = static_cast<std::uint16_t>(static_cast<std::uint32_t>(*type));
-        // 0x54e887..0x54e8b4: dos tokens más y el strcpy de la cadena del segundo.
+        const std::size_t at = count * RecordBytes;
+        const auto word = static_cast<std::uint32_t>(*type);
+        table[at] = static_cast<char>(word & 0xffu);
+        table[at + 1] = static_cast<char>((word >> 8) & 0xffu);
+        ++count;
+        // 0x54e887..0x54e8b4: dos tokens más y el strcpy de la cadena del segundo, que sigue en los registros que
+        // siguen si no entra en sus 0x34 bytes. Solo el que pasaría de 0x7688ab8 escribe fuera de la tabla.
         for (int i = 0; i < 2; ++i)
         {
             if (const auto next = tokens.Next(); !next.HasValue())
                 return Core::Unexpected(next.Error());
         }
         const std::string_view name = tokens.Text();
-        if (name.size() >= NpcNameBytes)
+        const std::size_t end = at + 2 + name.size() + 1;
+        if (end > TableBytes)
             return Core::Unexpected(DataError::InvalidData);
-        name.copy(record.name.data(), name.size());
+        name.copy(table.data() + at + 2, name.size());
+        table[end - 1] = '\0';
+        written = std::max(written, end);
     }
+    // Los registros leídos y los que tocó un nombre largo después del último.
+    const std::size_t records = std::max(count, (written + RecordBytes - 1) / RecordBytes);
+    std::vector<NpcNameRecord> loaded(records);
+    for (std::size_t r = 0; r < records; ++r)
+    {
+        const std::size_t at = r * RecordBytes;
+        loaded[r].type =
+            static_cast<std::uint16_t>(static_cast<unsigned char>(table[at]) |
+                                       (static_cast<unsigned>(static_cast<unsigned char>(table[at + 1])) << 8));
+        std::copy_n(table.begin() + static_cast<std::ptrdiff_t>(at + 2), NpcNameBytes, loaded[r].name.begin());
+    }
+    return loaded;
 }
 } // namespace Client::Data::Text

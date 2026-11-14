@@ -268,7 +268,9 @@ cero `rand()` en el emote y en el `0x18`. **Desbloquea:** 2, 3 y 7. **Cierra:** 
       NPC"). Hechos en la fase 6c `0x43c150`, `0x42dfe0` y el `0x16e` (`0x5108b6`), salvo sus efectos de la CL11 (06,
       "Los helpers de Kalima y del asedio"; 08, P-C334), y el `0xc5` y el `0xf1` de `0x4fd5f0` (`0x4fd603`, `0x4fb910`
       y `0x505425`). Hechos en la fase 6d `0x441400`, `0x434180`, `0x4271d0` y `0x432bd0`, salvo sus efectos de la
-      CL11 (06, "Los helpers de los monstruos"; 08, P-C336); quedan los efectos por tipo y los helpers, que cortan con
+      CL11 (06, "Los helpers de los monstruos"; 08, P-C336; en la revisión C, las partículas que `World::Particles`
+      crea, las dos marcas y las `0x729` de los altares con `0x40000`, y las que MuRet no tiene cortan solo con lugar
+      en la tabla); quedan los efectos por tipo y los helpers, que cortan con
       su dirección (08, P-C179, P-C241 y P-C332). Fase 7: la primera marca del piso del `0x204` al `0x208`
       (`0x43436c`), los pases de brillo de `0x50c671`, `0x50c71b` y `0x50c8ce` (Q-C863), y `0x42e3d0` pasa al hito 13
       (solo corre en la batalla de Castle Siege). Fase 8: `0x50c177` (el `0x4d`, con el `0x18a` y su tela, Q-C864) y

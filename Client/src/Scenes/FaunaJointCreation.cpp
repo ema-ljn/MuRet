@@ -1344,10 +1344,9 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
             if (auto result = StepSummonEnergy(joint, i, random, sprites); !result.HasValue())
                 return result;
         const bool actorOwned = staffBeam || swordTrail || fullSet || summonEnergy;
-        const auto* owner =
-            (joint.type == 0x613 || joint.type == 0x614 || joint.type == 0x615 || meteor || actorOwned || icarus)
-                ? nullptr
-                : static_cast<const FaunaObject*>(joint.ownerContext);
+        const auto* owner = (joint.type == 0x613 || joint.type == 0x614 || joint.type == 0x615 || meteor || actorOwned)
+                                ? nullptr
+                                : static_cast<const FaunaObject*>(joint.ownerContext);
         const bool ownerless =
             spiritBeam || flareBeam || icarus || noria || skyBolt || objectBolt || trapBolt || meteor || actorOwned;
         if (owner == nullptr && !ownerless)

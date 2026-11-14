@@ -809,6 +809,86 @@ solo con `0xfe` y `0xff`); `App::ServerSession` los pasa al mundo y `Scenes::App
 escriben el registro propio que leen los orbes y el AG del HUD (06). Un lugar fuera de la grilla corta con
 `0x4d35f6` o `0x4d3917` (08, P-C150). Los tests usan valores inventados.
 
+### Castle Siege, las ventanas del castillo
+
+(CL9 hito 12, 2026-11-14, *estático* todo.) El GameServer 0.97 reconstruido no tiene Castle Siege: no hay con qué
+contrastar, y cada byte sale del ASM del cliente. Lo que sigue es lo que llega y sale fuera de la batalla del mapa 30;
+la batalla (el `B2` 0x11..0x19, 0x1D, 0x1E y 0x20, el `B6` con el panel de clase 2, el `B7`, el `B9` que llega, el
+`BA` y el `BB`) es del hito 13 ([08](08-pendientes.md), P-C301 y P-C302).
+
+**El subcódigo.** `0x4e509c` (el `B2`) y `0x4e5883` (el `B8`) toman `pkt[3]` en un C1 y `pkt[4]` en los demás, el
+byte que sigue al opcode, como el `Dispatcher` de MuRet. Después cada handler lee a desplazamientos fijos desde el
+primer byte, sin mirar el tipo ni el largo: el "resultado" es `pkt[4]`, que en un C2 es el mismo subcódigo (un `C2 B2
+01` es un `B2 01` con resultado 1). La tabla del `B2` es `0x4e6140` (33 casos, 0..0x20); 0x0A..0x0F, 0x1B y 0x1C caen
+al default (`0x4e5b4a`). El laboratorio manda `C1 05 B2 19 00` después de cada `/move` ([arriba](#los-cambios-de-mapa-1c-f3-04-y-f3-12)):
+es de la batalla y sigue sin handler.
+
+**Los mensajes.** Cada caso que muestra algo llama a `0x555190("", Text[n], 1)`: un mensaje de sistema con un nombre
+vacío de la `.bss` (`0x5767ab0..0x5767b48`, que nadie escribe, solo se apilan). `n` sale de la dirección del texto,
+`(addr − 0x76bd1dc) / 300`.
+
+**La zona de los registros** (`0x7d5c504..0x7d5c658`, `.bss`): las estatuas (tipo `0x11b`) desde `0x7d5c504` y las
+puertas (`0x115`) desde `0x7d5c574`, registros de `0x1c`: `+0` el tipo, `+4` el índice, `+8` la defensa, `+0xc` la
+recuperación, `+0x10` la vida máxima, `+0x14` la vida, `+0x1a` el NPC está. Después, `0x7d5c638`/`0x7d5c63c` las
+elegidas de las ventanas, `0x7d5c640`/`0x7d5c644` los impuestos que muestra y cambia el Castle Senior,
+`0x7d5c648`/`0x7d5c64c` los del servidor y `0x7d5c650..0x7d5c657` la plata (64 bits). `0x668fd0` copia un registro
+entero (7 dwords) a `base + índice · 0x1c` según su tipo (otro tipo, nada); `0x669030(sel, índice)` da la dirección
+con `sel` 0 para las puertas y otro valor para las estatuas. El índice no se mira: un servidor con índices grandes
+escribe fuera de la zona (Q-C1360).
+
+| Paquete | Handler | Lo que lee | Lo que hace |
+| --- | --- | --- | --- |
+| `B2 00` | `0x4e50bd` (tabla `0x4e61c4`) | `pkt[4]`; con 1 o 2, `pkt[5..0x2d]` | 0, 3, 4: los textos 1500, 1501, 1502. 1 y 2: `0x6599a0(0x80000)` sin mirar lo que devuelve y `0x64b0f0`: `+4 = 1`, `+0x1c` = `MOVSX pkt[5]`, `strncpy(+0xa8, pkt + 0x18, 8)` (el gremio dueño), `strncpy(+0xb1, pkt + 0x20, 10)` (su maestro), tres fechas en `+0xbc..+0xcd` (cada una, el año `pkt[i] << 8 | pkt[i+1]` y cuatro bytes, desde `pkt[6]` de a 6) y `+0xd0` = `pkt[0x2a..0x2d]` con el primero arriba |
+| `B2 01` | `0x4df080` (tabla `0x4df170`) | `pkt[4]` | 0..8: los textos 1503..1511; con 1, antes, `0x64d290(1)` (`+0xd8` = el byte de abajo) |
+| `B2 02` | `0x4df1a0` (tabla `0x4df6ac`) | `pkt[4]` | 0, 2, 3: 1512, 1514, 1515. 1: manda `C1 04 B2 03` y `C1 03 B4`, `0x64d290(0)` y el 1513 |
+| `B2 03` | `0x4e5186` | `pkt[4]`; con 1, `pkt[0xd..0x11]` | 0 y 2: `0x64d290(0)`. 1: `0x64d290(pkt[0x11] == 0)` y `0x64d2b0` (`+0xd4`) con `pkt[0xd..0x10]`, el primero arriba |
+| `B2 04` | `0x4e51fa` (tabla `0x4e61d8`) | `pkt[4]`; con 1, `pkt[0xd..0x10]` | 0, 2, 3: 1516, 1517, 1518. 1: `0x64d2b0`, sin mensaje |
+| `B2 05` | `0x4df7d0` (tabla `0x4df890`) | `pkt[4]`; con 1, los dwords de `pkt + 8` y `pkt + 0xc` | 0, 2, 3, 4: 1519, 1386, 1520, 1616. 1: un registro en la pila (el tipo, el índice, `+8` y `+0xc` en 0, las dos vidas en 500000 para una puerta y 400000 si no, `+0x1a` en 1; `+0x18`, `+0x19` y `+0x1b` sin escribir, Q-C1361) a `0x668fd0` |
+| `B2 06` | `0x4e52b7` (tabla `0x4e61e8`) | con 1, cuatro dwords desde `pkt + 8` | 0, 2, 3: 1519, 1386, 1520. 1: `0x669030(tipo == 0x115 ? 0 : 1, índice)`, `+0x14` = `pkt + 0x10` y `+0x10` = `pkt + 0x14` |
+| `B2 07` | `0x4df950` (tabla `0x4dfa64`) | con 1, el tipo, el índice y cuál (`pkt + 0x10`); el valor (`pkt + 0x14`) con cuál en 1..3 | 0, 2, 3..7: 1519, 1386, 1520..1524. 1: `0x669030` y, según cuál, `+8` (1), `+0xc` (2) o `+0x10` y `+0x14` (3) |
+| `B2 08` | `0x4e537b` | con 1, `pkt[5..0xe]` | 0, 2: 1525, 1386. 1: `0x669070`: `0x7d5c648 = 0x7d5c640 = pkt[5]`, `0x7d5c64c = 0x7d5c644 = pkt[6]` y la plata `pkt[7..0xe]` con el primero arriba |
+| `B2 09` | `0x4e53e7` | con 1, `pkt[5]` y, con 1..3, `pkt[6..9]` (el primero arriba) | 0, 2: 1526, 1386. 1: con 3, `[0x7d53700] + 0x18` (el precio de la zona de caza); si no, `0x6690f0`: con 1 el par `0x7d5c648`/`0x7d5c640`, con 2 el `0x7d5c64c`/`0x7d5c644` |
+| `B2 10` | `0x4e548a` | con 1, `pkt[5..0xc]` | 0, 2: 1527, 1386. 1: `0x669160`, la plata, el primero arriba |
+| `B2 1A` | `0x4e54f6` | `pkt[4]`; con 1 o 2, `pkt[5]` | 1: `[0x78aba34]`; 2: `[0x78aba30]` (`MOVZX`). Los leen `0x44d680`, `0x5b1200`, `0x5b12f0`, `0x5f4720` y `0x5febf0`, la batalla. `0x4dfbb0` hace lo mismo y nadie lo llama |
+| `B2 1F` | `0x4e5532` | `pkt[4]`; con 1, `pkt[5]` | 0 y 2: `0x6603c0` y `0x6600d0(Text[860 o 1386], 1, 0x32, 1, 0, 0)` sobre `[0x7d53704]`, el diálogo de los paneles. 1: `[0x7d53700] + 0x15` = `pkt[5] != 0` |
+| `B3` | `0x4dfc60` | `pkt[4]`; con 1, la cuenta (int en `pkt + 8`) y registros de `0x1c` desde `pkt + 0xc` | 0, 2: 860, 1386. 1: `0x668fd0` por registro (el lazo con `JLE`/`JL`: una cuenta en 0 o negativa no corre) |
+| `B4` | `0x4dfce0` | `pkt[4]`; con 1, la cuenta y registros de `0xe` desde `pkt + 0xc` | 0: 860. 1: vacía la lista de `[0x7d536f8] + 0xe4` (`0x64d2f0`), agrega cada registro (`0x64d2c0(nombre, marcas: rec[8..0xb] con el primero arriba, rec[0xc], rec[0xd])`) y la ordena (`0x64d300`) |
+| `B5` | `0x4dfd80` (tabla `0x4dfe24`) | `pkt[4]`; con 1, la cuenta y registros de 10 | 0: 860; 2 y 3: 1609. 1: vacía la lista de `+0x214` (`0x64d340`) y agrega (`0x64d310(rec + 2, rec[0], rec[1])`) |
+| `B6` | `0x4e0ed0` | la cuenta (int en `pkt + 4`) y pares `(x, y)` desde `pkt + 8` | solo con `[0x5763530]` y su clase 2: `0x411e80` y `0x411ed0(0, x, y)` por par |
+| `B8 01` | `0x4e0700` | `pkt[4]` | sobre el héroe: con 0, si `+0x373 != 0xff` la habilidad (`+0x425`) vuelve a `+0x373`; `+0x373 = 0xff` y `+0x372 = 0`. Con otro valor, `+0x372 = pkt[4]`. `0x511290` inicia `+0x373` en `0xff` (`0x511cc8`) y `+0x372` en 0 (`0x511ccf`) |
+
+**Lo que mandan las ventanas**, todos con el escritor de `0x6b85f4` en la pila, el XOR32 desde el byte 3 y `send()`
+directo por el socket del juego (como el `B9 02` de `0x42a760`):
+
+| Paquete | Quién | Bytes |
+| --- | --- | --- |
+| `C1 04 B2 01` | `0x64c0b0`, el botón del registro con el estado 1 (el héroe con `+0x368 = 0x80` y `+0xd8` en 0) | |
+| `C1 05 B2 02 01` | `0x64ccd0`, la respuesta 8 del diálogo | |
+| `C1 04 B2 03` | `0x64ae10` (abrir el 0x80000 con `+4` en 0) y el `B2 02` con 1 | |
+| `C1 05 B2 04 <lugar>` | `0x64c0b0` con el estado 3: el lugar de la marca en el inventario (`0x64b9d0`) | |
+| `C1 0C B2 05` / `06` | `0x6623e0` (las puertas, `0x7d5c590 + elegida · 0x1c`) y `0x664370` (las estatuas, `0x7d5c520`): 05 con `+0x1a` en 0, 06 si no | el tipo y el índice del registro, dwords tal cual |
+| `C1 14 B2 07` | `0x662d50` y `0x664ce0` (3), `0x663440` y `0x6653d0` (1), `0x665ab0` (2) | el tipo, el índice, cuál y el valor, dwords tal cual |
+| `C1 04 B2 08` | `0x661310`, al abrir el 0x100000 | |
+| `C1 09 B2 09 <cuál> <valor>` | `0x666b30` (1 y 2, desde `0x7d5c640`/`0x7d5c644`) y `0x648a30` (3) | el valor con el byte de arriba primero |
+| `C1 08 B2 10 <plata>` | `0x667a40`, la respuesta 2 (el texto del campo con `sscanf`) | el byte de abajo primero |
+| `C1 05 B2 1F <+0x15 ^ 1>` | `0x648a30` (`0x648c55`) | |
+| `C1 04 B3 01` y `C1 04 B3 02` | `0x661310` | |
+| `C1 03 B4` y `C1 03 B5` | `0x64d350`; el `B4`, también el `B2 02` con 1 | sin nada que cifrar |
+| `C1 08 B9 05 <precio>` | `0x648a30`, el botón de `+0x1c4` en los dos modos | el dword de `+0x18` tal cual |
+
+**MuRet**: `Protocol::CastleSiege::ReadCastleSiegePacket` lee lo mismo a los mismos desplazamientos, y un campo que el
+caso lee y no llegó es `TooShort` (se ignora con un aviso, como cualquier paquete que no se lee); los bytes sobrantes se
+ignoran. Los escritores dan los bytes de la tabla. `App::ServerSession` registra en un bloque (`RegisterCastleSiegeHandlers`)
+el `B2` con los 13 subcódigos de las ventanas, el `B3`..`B6` enteros y el `B8 01`. `Scenes::ApplyCastleSiegePacket`
+hace lo de la tabla sobre `WorldRuntime::castleSiege` (la zona plana, como bytes; los campos de `[0x7d536f8]` y
+`[0x7d53700]` que escriben los paquetes; `0x78aba30`/`0x78aba34`), el héroe (`ActorState::byte372` y `byte373`) y el
+chat. Sin `rand()` en ningún caso de esta sección. Un registro que caería fuera de la zona descarta el paquete entero
+con un aviso, sin cerrar la sesión (Q-C1360). Cortan con su dirección: abrir el 0x80000 de verdad (`0x6599a0` →
+`0x64ae10`; con el panel ya abierto, `0x6599a0` sale con 0 y `0x64b0f0` corre), las listas del `B4` y el `B5`
+(P-C300), los diálogos del `B2 1F` (hito 8, P-C90) y el `B6` con el panel de clase 2 (P-C301). Tests en
+`tests/protocol/test_castle_siege.cpp` (byte a byte, en C1 y en C2), `tests/scenes/test_castle_siege_receive.cpp`
+(en los mapas 0, 2 y 30) y la sesión; los nombres son inventados.
+
 ## Qué implica para MuRet
 
 | Original | MuRet | Ola |

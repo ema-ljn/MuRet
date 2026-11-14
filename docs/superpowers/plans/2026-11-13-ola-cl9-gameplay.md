@@ -404,8 +404,13 @@ los `rand()` de los contadores; Crywolf solo contra el ASM. **Desbloquea:** —.
 
 ### Hito 12: Castle Siege, las ventanas del castillo (CL9.5, ~78 KB)
 
-- [ ] **Los paquetes del castillo:** `B2` y su segundo nivel (`0x4df1a0`, `0x4df080`), `B3`..`B6`, `B8`
+- [x] **Los paquetes del castillo:** `B2` y su segundo nivel (`0x4df1a0`, `0x4df080`), `B3`..`B6`, `B8`
       (`0x4dfc60`, `0x4dfce0`, `0x4dfd80`).
+      Hecho el 2026-11-14 (04 § Castle Siege, las ventanas del castillo): `Protocol::CastleSiege` lee el `B2` de las
+      ventanas (13 subcódigos), el `B3`..`B6` y el `B8 01`, y escribe todo lo que mandan las ventanas;
+      `Scenes::ApplyCastleSiegePacket` sobre `WorldRuntime::castleSiege` y el héroe. Cortan abrir el `0x80000`, las
+      listas del `B4`/`B5` (P-C300), los diálogos del `B2 1F` (hito 8, P-C90) y el `B6` de clase 2 (P-C301); la
+      batalla, en P-C302. Lo que solo la VM dice, en P-C303 (Q-C1360..Q-C1362).
 - [ ] **Las ventanas:** las del NPC del castillo (`0x6691c0` y las que llama, `0x6623e0`..`0x667a40`, que
       mandan los `B2`), `0x648a30` (`B2`, `B9`), `0x64d350` (`B4`, `B5`), `0x661310` (`B2`, `B3`), los paneles
       `0x80000` (`0x64aca0`) y `0x200000` (`0x64a060`), `0x661090` y `0x6485f0`, y sus listas (`0x46f320`,

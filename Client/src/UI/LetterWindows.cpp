@@ -20,7 +20,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
-#include <format>
 #include <iterator>
 #include <optional>
 #include <string>
@@ -349,8 +348,9 @@ std::string Bounded(std::string_view text, std::size_t bytes)
 // cada renglón): con menos de 20 bytes entre el nombre y el texto (sin signo, 0x46019a), el renglón entero adelante de
 // `wrappedRows`; si no, el texto partido en hasta 10 renglones del ancho de la lista menos 0x1e, el primero con
 // sangría ftol((cx del nombre + 5) / rx) (GetTextExtentPointA del nombre solo, sin ": ", sobre el DC); el primero, con
-// el nombre, y los demás sin él (0x460318 borra su primer byte) van adelante si no están vacíos. Con 11, 0x460308 lee
-// el renglón 11 de la pila fuera del búfer (desde EBP − 0x14, el this): MuRet corta.
+// el nombre, y los demás sin él (0x460318 borra su primer byte) van adelante si no están vacíos. Con texto de más
+// (0x459c70 da 11), 0x460308 lee el renglón 11 fuera de sus diez búferes, desde EBP − 0x14 (el this): MuRet lo descarta
+// (Q-C1012).
 Core::Expected<void, std::string> WrapAChatLine(OldChatPart& chat, const ChatLine& line,
                                                 const OldWindowMeasure* measure)
 {
@@ -370,11 +370,7 @@ Core::Expected<void, std::string> WrapAChatLine(OldChatPart& chat, const ChatLin
     if (!wrapped.HasValue())
         return Core::Unexpected(std::move(wrapped).Error());
     const WrappedText& pieces = wrapped.Value();
-    if (pieces.result > ChatWrapLines)
-        return Cut(
-            std::format("0x460308: un renglón del chat de {} bytes en más de {} renglones de {}; el original lee "
-                        "el que sobra fuera de su búfer",
-                        line.text.size(), ChatWrapLines, chat.lines.base.width - WrapInset));
+    const std::int32_t used = std::min(pieces.result, ChatWrapLines);
     ChatLine piece = line;
     if (!pieces.lines[0].empty())
     {
@@ -382,7 +378,7 @@ Core::Expected<void, std::string> WrapAChatLine(OldChatPart& chat, const ChatLin
         rows.push_front(piece);
     }
     piece.name.clear();
-    for (std::int32_t at = 1; at < pieces.result; ++at)
+    for (std::int32_t at = 1; at < used; ++at)
     {
         const std::string& text = pieces.lines[static_cast<std::size_t>(at)];
         if (text.empty())
@@ -395,8 +391,8 @@ Core::Expected<void, std::string> WrapAChatLine(OldChatPart& chat, const ChatLin
 
 // 0x465450, la vtable + 0x98 del cuerpo de una carta (desde 0x465270 con el texto en +4): con menos de 20 bytes
 // (0x465475), el renglón entero adelante; si no, partido en hasta 0x50 del ancho de la lista menos 0x1e, sin sangría,
-// en el búfer global 0x575de34, y cada uno que no esté vacío adelante. Con 0x51, el original lee el que sobra después
-// del búfer (0x5762e34): MuRet corta.
+// en el búfer global 0x575de34, y cada uno que no esté vacío adelante. Con texto de más (0x51), el original lee el que
+// sobra después del búfer (0x5762e34): MuRet lo descarta (Q-C1012).
 Core::Expected<void, std::string> WrapALetterLine(OldLetterPart& letter, const std::string& line,
                                                   const OldWindowMeasure* measure)
 {
@@ -413,11 +409,8 @@ Core::Expected<void, std::string> WrapALetterLine(OldLetterPart& letter, const s
     if (!wrapped.HasValue())
         return Core::Unexpected(std::move(wrapped).Error());
     const WrappedText& pieces = wrapped.Value();
-    if (pieces.result > LetterWrapLines)
-        return Cut(std::format("0x4654af: un renglón de una carta de {} bytes en más de {} renglones de {}; el "
-                               "original lee el que sobra fuera de su búfer",
-                               line.size(), LetterWrapLines, letter.lines.base.width - WrapInset));
-    for (std::int32_t at = 0; at < pieces.result; ++at)
+    const std::int32_t used = std::min(pieces.result, LetterWrapLines);
+    for (std::int32_t at = 0; at < used; ++at)
     {
         const std::string& text = pieces.lines[static_cast<std::size_t>(at)];
         if (!text.empty())
@@ -964,9 +957,8 @@ Core::Expected<void, std::string> HandleTheChatMessage(OldWindowManager& manager
         return {};
     if (message.a == 1)
         return ToggleTheInvites(manager, chat, globals, view);
-    // 0x4944c0 con el 2: con el EDIT sin el foco (la vtable + 0x5c da 0).
-    if (message.a == 2 &&
-        !(globals.keyboardFocus == ChatFocus::OldWindow && manager.focusedEdit == chat.chat.edit.base.id))
+    // 0x4944c0 con el 2 (0x49455e): con el chat abierto (la vtable + 0x5c del EDIT, +0xb4, da 0).
+    if (message.a == 2 && chat.chat.edit.closed == 0)
         return InviteTheChosen(manager, chat, view);
     return {};
 }
@@ -1468,7 +1460,8 @@ Core::Expected<void, std::string> ForgetTheLetterKind(OldWindowManager& manager,
 {
     if (window.kind == OldWindowKind::ChatWindow)
         return LeaveTheChatRoom(manager, window);
-    // 0x4916b0 con +0x77c: el número de la carta (con los dos bytes de relleno de la plantilla, en 0, *inferido*).
+    // 0x4916b0 con +0x77c: el número de la carta. Los dos bytes de relleno quedan en 0 (*estático*: 0x4dcac9 y
+    // 0x4dcaf5 lo leen con MOVZX y 0x49ec59 lo copia en un dword).
     if (window.kind == OldWindowKind::LetterReadWindow)
         manager.letterWindows.erase(window.letter.entry.index);
     return {};
@@ -1852,15 +1845,15 @@ void CloseTheChat(OldWindow& chat, std::int32_t closed, const OldWindowTexts& te
 {
     const std::string prefix = texts.At(ChatClosedText);
     std::string title = chat.frame.title.value_or(std::string());
+    // La vtable + 0x58 del EDIT (0x495653 y 0x4956e1): +0xb4 en 1 o en 0. El estado del EDIT (+0x48) no cambia.
     if (closed != 1)
     {
-        chat.chat.edit.base.state = 0;
+        chat.chat.edit.closed = 0;
         if (title.starts_with(prefix))
             chat.frame.title = title.substr(prefix.size(), 0x80);
         return;
     }
-    // La vtable + 0x58 del EDIT con 1: apagado.
-    chat.chat.edit.base.state = 6;
+    chat.chat.edit.closed = 1;
     std::string shown = title.starts_with(prefix) ? std::string() : prefix;
     shown += title.substr(0, 0x80);
     chat.frame.title = shown;

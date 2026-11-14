@@ -1143,9 +1143,11 @@ los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
   de 100 con el filtro 4, la lista de renglones (`0x45f240`, la plantilla del registro del chat con elementos de
   `0x11c`), la de miembros, la de invitar (oculta) y dos botones con el 993; `+0xb0` en 1. `0x4944c0`: el 6 le da el foco al EDIT y la lista de miembros a las flechas; el 7 (Enter)
   pasa el texto por el filtro (`0x622b40`, el 570) y, distinto del último, lo manda por la sala (`C1 04`), vacía el
-  EDIT y con menos de 2 miembros lo cierra (`0x495630(1)`: el 995 adelante del título y el EDIT apagado); el 10 y 1
-  muestra u oculta la de invitar (`+0x50` más de ancho, `0x4942d0`: los amigos menos los miembros y los de desde
-  `0xfd`) y el 10 y 2 (o el doble clic en ella) invita con el EDIT sin el foco. Los miembros (`0x493c90`,
+  EDIT y con menos de 2 miembros lo cierra (`0x495630(1)`: el 995 adelante del título y `+0xb4` del EDIT en 1, la
+  vtable + 0x58, sin tocar su estado, `+0x48`); el 10 y 1 muestra u oculta la de invitar (`+0x50` más de ancho,
+  `0x4942d0`: los amigos menos los miembros y los de desde `0xfd`) y el 10 y 2 (o el doble clic en ella) invita con
+  el chat abierto (`+0xb4` en 0, la vtable + 0x5c, `0x49455e`), tenga el EDIT el foco o no. Con el chat cerrado,
+  Enter en el EDIT (`0x467c83`) va al EDIT de Windows sin el 7 al padre: no manda nada. Los miembros (`0x493c90`,
   `0x493e90`) rehacen el título (994 y hasta tres nombres de atrás para adelante con `", "`, y `"..."` con el
   tercero: Q-C1004), la pestaña de las ventanas y el ancho de los renglones con 3 o más. El `C1` y el `C4` de los
   amigos rehacen las listas de invitar (`0x4a6840`) y cierran o abren el chat con ese amigo (`0x495630`); el `C4`
@@ -1229,7 +1231,8 @@ los que esperan (`+0x118`) y los amigos con el `CA` pedido (`+0x158`).
   nombre solo, sin ": "), y pone adelante el primer pedazo con el nombre y los demás sin él, salteando los vacíos. La de
   la carta, con menos de 20 bytes, el renglón entero; si no, hasta `0x50` sin sangría, en el búfer global `0x575de34`.
   Con un pedazo de más (11 o `0x51`) el original lee fuera de su búfer (el chat, la pila desde `EBP − 0x14`; la carta,
-  `0x5762e34`): MuRet corta (`0x460308`, `0x4654af`). La cola de estas dos listas (`0x479240`, `0x47c150`) corre la +
+  `0x5762e34`): MuRet usa los que pidió y descarta el que sobra (Q-C1012; con la lista angosta de 3 miembros, un texto
+  de `0x100` bytes ya no entra). La cola de estas dos listas (`0x479240`, `0x47c150`) corre la +
   `0x90` antes del 9, así que cuenta los renglones con el alto ya medido. El dibujo (`0x45f9c0`, `0x464d90`) recorre el
   segundo deque desde el corrimiento: el más nuevo abajo. MuRet guarda el primero al revés (`lineRows`, el más nuevo
   al final) y el segundo como el original (`wrappedRows`); durante el dibujo, el 9 mide con el DC del dibujo.
@@ -10245,7 +10248,11 @@ ni sus `rand()`; los globales de `0x505820` quedan los del último personaje, y 
 **Lo que queda del estado.** La cámara de las billboards (`0x7d366f0`) queda en la identidad hasta el pase del mundo
 siguiente; lo único que la lee antes es `0x633110` (P-C90), y el retrato no dibuja billboards. Las matrices y el
 viewport de la pantalla vuelven en `0x4959dd..0x495a0c`, pero la profundidad, `GL_LEQUAL` y el alpha de 0,25 quedan para
-el 2D que sigue (*inferido* sin efecto: el 2D no escribe la profundidad). Los bytes `+0x14` y los dwords `+0x18` y `+0x1c`
+el 2D que sigue. Ese 2D sí escribe la profundidad (el retrato deja la prueba y la máscara prendidas, `0x4958f3` y
+`0x4958fd`, y los quads en z = 0 del `gluOrtho2D` dan 0,5), pero sin efecto a la vista (*inferido*): con `GL_LEQUAL`
+y la profundidad del retrato limpia, nada del 2D queda detrás. Los cachés de la
+proyección de `0x6203c0` (`0x7d36844..0x7d36858`) y los de `0x620d10` quedan con los del retrato (1°, su viewport)
+hasta el pase del mundo siguiente (P-C73); en MuRet nadie los lee en el medio (cada pase arma su `GameProjection`). Los bytes `+0x14` y los dwords `+0x18` y `+0x1c`
 de las seis partes que `0x496530` pone en 0 son las telas de cada parte, que suelta `0x4fb1a0`: MuRet las lleva en
 `LetterPortrait::cloth`. El destructor (`0x495ef0` → `0x495f20`, al cerrar la ventana) llama a `0x4fb1a0` y cierra las
 entradas de la celda lógica del personaje (`+0x41c` y `+0x420`) en la tabla protegida: en reposo están en 0 y no saca

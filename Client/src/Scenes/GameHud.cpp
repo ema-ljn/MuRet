@@ -1368,9 +1368,12 @@ Core::Expected<void, std::string> DrawTheMainBar(Frame& frame)
             Quad(sprites, button.slot, static_cast<float>(button.left), 452.0f, 24.0f, 24.0f, 0.0f, 0.0f, 0.75f, 0.75f);
     }
     // 0x5a9c98..0x5a9dd3: con el mouse sobre el botón de los amigos, la ayuda de tres renglones (los textos 1043 a
-    // 1045) que arma 0x78793c8 y dibuja 0x5af090, la de los tooltips del hito 4; solo dibuja.
-    // 0x5a9ddb: 0x4a5120, los íconos de los amigos y las cartas de la UI vieja (CL9 hito 10), con la lista de ventanas.
-    UI::DrawTheFriendBarIcons(frame.runtime.oldWindows, sprites);
+    // 1045) que arma 0x78793c8 y dibuja 0x5af090, la de los tooltips del hito 4; solo dibuja, pero los íconos que
+    // siguen salen con la mezcla y el color que deje (P-C63).
+    // 0x5a9ddb: 0x4a5120, los íconos de los amigos y las cartas de la UI vieja (CL9 hito 10), con la lista de ventanas
+    // (la copia de la proyección en un dibujo intermedio).
+    UI::DrawTheFriendBarIcons(
+        frame.context.oldWindows != nullptr ? *frame.context.oldWindows : frame.runtime.oldWindows, sprites);
     // 0x5a9de6: 0x40a5b0, el botón de los comandos.
     if (MouseIn(frame, 6, 435, 59, 454))
     {

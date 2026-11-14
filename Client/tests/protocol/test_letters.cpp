@@ -290,5 +290,60 @@ TEST(FriendChatTest, TheRoomPacketsReadByPlace)
     const auto read = Chat::ReadNotice(PacketOf(notice));
     ASSERT_TRUE(read.HasValue());
     EXPECT_EQ(read.Value().text, std::string(0x63, 'x'));
+    EXPECT_TRUE(Chat::CheckRoomPacket(PacketOf(notice)).HasValue());
+}
+
+// Q-C1011: los handlers de la sala leen por su lugar sin mirar el largo. Un nombre o un texto que termina adentro del
+// paquete se lee aunque el paquete sea más corto que el lugar fijo (strncpy y el '\0' de pkt[0x68] paran ahí); uno que
+// sigue después del fin, o los bytes que faltan del 00, del 02 y del 04, no: el original leería el búfer de recepción.
+TEST(FriendChatTest, TheRoomPacketsThatEndBeforeTheirReadsAreNotRead)
+{
+    auto member = Bytes({0xc1, 0x0a, 0x01, 0x00, 0x02});
+    member = Joined(member, TextOf("Tero", 5));
+    const auto shortName = Chat::ReadMember(PacketOf(member));
+    ASSERT_TRUE(shortName.HasValue());
+    EXPECT_EQ(shortName.Value().name, "Tero");
+    EXPECT_EQ(shortName.Value().index, 2);
+    EXPECT_EQ(ErrorOf(Chat::ReadMember(PacketOf(Bytes({0xc1, 0x08, 0x01, 0x00, 0x02, 'T', 'e', 'r'})))),
+              ProtocolError::TooShort);
+    EXPECT_EQ(ErrorOf(Chat::ReadMember(PacketOf(Bytes({0xc1, 0x05, 0x01, 0x00, 0x02})))), ProtocolError::TooShort);
+
+    const auto none = Chat::ReadMembers(PacketOf(Bytes({0xc1, 0x07, 0x02, 0x00, 0x00, 0x00, 0x00})));
+    ASSERT_TRUE(none.HasValue());
+    EXPECT_TRUE(none.Value().members.empty());
+    auto list = Bytes({0xc1, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00});
+    list = Joined(list, TextOf("Tero", 10));
+    list.push_back(std::byte{0x01});
+    list = Joined(list, TextOf("Ca", 3));
+    list[1] = static_cast<std::byte>(list.size());
+    const auto lastShort = Chat::ReadMembers(PacketOf(list));
+    ASSERT_TRUE(lastShort.HasValue());
+    EXPECT_EQ(lastShort.Value().members, (std::vector<Chat::MemberRow>{{0, "Tero"}, {1, "Ca"}}));
+    list.pop_back();
+    list[1] = static_cast<std::byte>(list.size());
+    EXPECT_EQ(ErrorOf(Chat::ReadMembers(PacketOf(list))), ProtocolError::TooShort);
+    EXPECT_FALSE(Chat::CheckRoomPacket(PacketOf(list)).HasValue());
+
+    EXPECT_EQ(ErrorOf(Chat::ReadJoinResult(PacketOf(Bytes({0xc1, 0x03, 0x00})))), ProtocolError::TooShort);
+    EXPECT_EQ(ErrorOf(Chat::ReadMessage(PacketOf(Bytes({0xc1, 0x07, 0x04, 0x01, 0x03, 'h', 'o'})))),
+              ProtocolError::TooShort);
+
+    const auto notice = Chat::ReadNotice(PacketOf(Bytes({0xc1, 0x09, 0x0d, 0x00, 0x00, 'h', 'o', 'y', 0x00})));
+    ASSERT_TRUE(notice.HasValue());
+    EXPECT_EQ(notice.Value().text, "hoy");
+    EXPECT_EQ(ErrorOf(Chat::ReadNotice(PacketOf(Bytes({0xc1, 0x08, 0x0d, 0x00, 0x00, 'h', 'o', 'y'})))),
+              ProtocolError::TooShort);
+    EXPECT_EQ(ErrorOf(Chat::ReadNotice(PacketOf(Bytes({0xc1, 0x05, 0x0d, 0x00, 0x00})))), ProtocolError::TooShort);
+    std::vector<std::byte> exact(0x68, std::byte{'y'});
+    exact[0] = std::byte{0xc1};
+    exact[1] = std::byte{0x68};
+    exact[2] = std::byte{0x0d};
+    const auto upToTheCut = Chat::ReadNotice(PacketOf(exact));
+    ASSERT_TRUE(upToTheCut.HasValue());
+    EXPECT_EQ(upToTheCut.Value().text, std::string(0x63, 'y'));
+
+    // Otro opcode no lo lee nadie.
+    EXPECT_TRUE(Chat::CheckRoomPacket(PacketOf(Bytes({0xc1, 0x03, 0x07}))).HasValue());
+    EXPECT_FALSE(Chat::CheckRoomPacket(PacketOf(Bytes({0xc1, 0x03, 0x00}))).HasValue());
 }
 } // namespace

@@ -517,8 +517,9 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
 }
 
 // 0x5542f0(x, y, texto, 0, 1, 0) → 0x465950: el texto con la fuente del DC y los colores de 0x6c8e5c; uno vacío no
-// se dibuja. Devuelve lo que deja en la x87 0x467060: el alto del texto en 640 × 480 (cy / ry), la mitad si empieza
-// con '\n', o 0 sin texto.
+// se dibuja, ni su fondo (0x467077..0x467098: sin texto y con la caja, el cuarto argumento, en 0, que es lo que pasan
+// 0x460550 y 0x465770, vuelve antes). Devuelve lo que deja en la x87 0x467060: el alto del texto en 640 × 480 (cy /
+// ry), la mitad si empieza con '\n', o 0 sin texto.
 double DrawText(const OldWindowDrawContext& context, std::int32_t x, std::int32_t y, std::string_view text)
 {
     if (text.empty())

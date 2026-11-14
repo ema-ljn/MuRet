@@ -136,7 +136,7 @@ public:
     }
     void Click()
     {
-        Client::Scenes::LatchTheLeftButton(world.Runtime().movement, true, true);
+        Client::Scenes::LatchTheLeftButton(world.Runtime().movement, true, true, false);
     }
     // La ventana ya abierta, con el pedido del caballo hecho (0x723911 en 1).
     void OpenTheWindow()

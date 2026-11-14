@@ -440,6 +440,9 @@ Core::Expected<void, std::string> ApplyRoomAnswer(const Protocol::FriendChat::Ro
                 return Core::Unexpected(std::string("0x4dcf58: el chat de 0x4a6430 no está"));
             if (auto left = UI::LeaveTheChatRoom(manager, *chat); !left.HasValue())
                 return left;
+            // 0x493a70 manda el C1 03 01 y cierra la conexión vieja (0x49dfd0) en el momento, antes de que 0x493530
+            // abra la nueva: con el mismo número de sala, la nueva no puede ser la vieja.
+            FlushTheChatRoomOrders(manager.chatRooms, context.rooms);
             return JoinTheRoom(context, *chat, answer);
         }
     }
@@ -512,13 +515,15 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
     if (!opcode)
         return {};
     const OldWindowsFromAPacket windows(context);
+    // Uno más corto que lo que lee su handler no se aplica (Q-C1011): ServerSession lo ignora antes, con su aviso
+    // (Protocol::FriendChat::CheckRoomPacket), y acá tampoco cierra nada.
     switch (*opcode)
     {
     case Chat::JoinOpcode:
     {
         auto join = Chat::ReadJoinResult(packet);
         if (!join.HasValue())
-            return Core::Unexpected(std::string("0x4e6240(0): el paquete no se lee"));
+            return {};
         if (join.Value().result != 0)
             return {};
         return Notice(context, JoinFailedText, "0x4e6240(0)");
@@ -528,7 +533,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
         // 0x4dd1e0.
         auto member = Chat::ReadMember(packet);
         if (!member.HasValue())
-            return Core::Unexpected(std::string("0x4dd1e0: el paquete no se lee"));
+            return {};
         UI::OldWindow* chat = ChatOf(manager, window);
         if (chat == nullptr)
             return {};
@@ -579,7 +584,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
         // 0x4dd350 (en línea en 0x4e6240): sin mirar que la ventana esté.
         auto members = Chat::ReadMembers(packet);
         if (!members.HasValue())
-            return Core::Unexpected(std::string("0x4e6240(2): el paquete no se lee"));
+            return {};
         for (const Chat::MemberRow& row : members.Value().members)
         {
             UI::OldWindow* chat = ChatOf(manager, window);
@@ -597,7 +602,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
         // 0x4dd3d0.
         auto message = Chat::ReadMessage(packet);
         if (!message.HasValue())
-            return Core::Unexpected(std::string("0x4dd3d0: el paquete no se lee"));
+            return {};
         UI::OldWindow* chat = ChatOf(manager, window);
         if (chat == nullptr || message.Value().length > Chat::MessageLimit)
             return {};
@@ -622,7 +627,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
         // 0x4e6299: pkt[0x68] = 0 y, si hay texto, al chat.
         auto notice = Chat::ReadNotice(packet);
         if (!notice.HasValue())
-            return Core::Unexpected(std::string("0x4e6240(0xd): el paquete no se lee"));
+            return {};
         if (notice.Value().text.empty())
             return {};
         return SystemMessage(context, notice.Value().text, "0x4e6240(0xd)");

@@ -1480,6 +1480,14 @@ void ServerSession::PollTheChatRooms()
             }
             else if (const auto* packet = std::get_if<Network::Packet>(&event))
             {
+                // 0x4e6240 lee cada paquete por su lugar sin mirar su largo: uno más corto que lo que lee su handler
+                // no se aplica, y la sesión sigue (Q-C1011). El aviso no lleva el texto.
+                if (!Protocol::FriendChat::CheckRoomPacket(*packet).HasValue())
+                {
+                    m_log.Warning("se ignora el {:02X} de la sala {} del chat con un amigo: {}",
+                                  packet->Opcode().value_or(0), room, Unreadable);
+                    continue;
+                }
                 if (!CheckApplication(m_eventSink.ApplyWorld(
                         ChatRoomPacket{.room = room, .window = link.window, .packet = *packet}, *this)))
                     return;

@@ -75,7 +75,7 @@ protected:
 
     void Click()
     {
-        Client::Scenes::LatchTheLeftButton(world.Runtime().movement, true, true);
+        Client::Scenes::LatchTheLeftButton(world.Runtime().movement, true, true, false);
     }
 
     static void ExpectCut(const Client::Core::Expected<void, std::string>& stepped, std::string_view address)

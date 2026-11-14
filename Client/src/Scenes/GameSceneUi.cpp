@@ -181,7 +181,8 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
     const bool leftPressed = input.WasPressed(Input::MouseButton::Left) && !input.LeftPressWasDouble();
     LatchTheLeftRelease(runtime.movement, leftPressed, input.WasReleased(Input::MouseButton::Left),
                         input.IsDown(Input::MouseButton::Left), mouse.x, mouse.y);
-    LatchTheLeftButton(runtime.movement, leftPressed, input.IsDown(Input::MouseButton::Left));
+    LatchTheLeftButton(runtime.movement, leftPressed, input.IsDown(Input::MouseButton::Left),
+                       input.LeftPressWasDouble());
     LatchTheDoubleClick(runtime.ui, input.AnyEvent(), input.EndsInADoubleClick());
     LatchTheRightButton(runtime.ui, input);
     LatchTheWheel(runtime.ui, input);
@@ -299,6 +300,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
         .hud = m_projectingFrame ? m_projection->hud : runtime.hud,
         .crywolfSandOverlay = m_projectingFrame ? m_projection->crywolfSandOverlay : runtime.crywolf.sandOverlay,
         .sound = m_projectingFrame ? m_projection->sound : runtime.lastSoundId,
+        .oldWindows = m_projectingFrame ? &m_projection->oldWindows : &runtime.oldWindows,
         .projecting = m_projectingFrame,
         .projection = projection,
         .sprites = canvas.sprites,

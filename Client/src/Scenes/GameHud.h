@@ -23,6 +23,11 @@ namespace Client::Render::Models
 class CrtRandom;
 }
 
+namespace Client::UI
+{
+struct OldWindowManager;
+}
+
 namespace Client::Scenes
 {
 class WorldState;
@@ -45,6 +50,10 @@ struct GameHudContext
     std::uint8_t& crywolfSandOverlay;
     // 0x41ed10(id, 0, 0): el sonido que pide la barra principal (0x22, la vida baja), el gancho de la CL10.
     std::optional<std::int32_t>& sound;
+    // La UI vieja que lee y escribe 0x4a5120, los íconos de la barra (la lista de ventanas de [0x5763524]: +0x144, la
+    // carta nueva, y +0x148 y +0x14c, los dibujos y los parpadeos). Sin ella, la de WorldRuntime; en un dibujo
+    // intermedio, la copia de la proyección, que nadie vuelve a leer.
+    UI::OldWindowManager* oldWindows = nullptr;
     // Un dibujo intermedio de MuRet no escribe los avisos de los ítems puestos (D+0x44): van a una copia que nadie
     // lee, y el frame siguiente del original los vuelve a escribir.
     bool projecting = false;

@@ -994,7 +994,8 @@ bytes con `strncpy` a un buffer de 11 en cero.
 - **`CA`** (`0x4dce10`): `C1 len CA <IP:15> <sala:u16 en pkt[0x12]> <ticket:u32> <tipo> <nombre:10> <resultado>`. 0 y 2:
   el amigo fuera de los pedidos (`0x4a6bc0`) y la caja del 1069 o 1070; 1: con el tipo 0, fuera de los pedidos y el
   chat (`0x48ee60(1, 100, 100, 994)`) que entra a la sala (`0x493530`); con el 1, el chat que ya había con el amigo
-  (`0x4a6430`: con −1 nada; con uno, sale de su sala y entra a la nueva; sin ninguno, como el 2); con el 2, el chat
+  (`0x4a6430`: con −1 nada; con uno, sale de su sala, con el `C1 03 01` y el cierre de la conexión en el momento
+  (`0x493a70`, `0x49dfd0`), y entra a la nueva, aunque tenga el mismo número; sin ninguno, como el 2); con el 2, el chat
   minimizado (`0x48ee60(2)`), la sala, el estado 5, al fondo (el 5 al administrador) y fuera de la pestaña de las
   ventanas (`0x49e710`).
 - **`CB`** (`0x4dd020`): `C1 len CB <resultado> <ventana:u32>`. Con el chat de esa ventana: 0, el 1056; 1, el elegido
@@ -1035,7 +1036,8 @@ registra `C5`..`C8`, `CA` y `CB` juntos y los pasa al mundo (`Scenes::ApplyLette
 `ApplyLetterRead`, `ApplyLetterDeleteResult`, `ApplyRoomAnswer` y `ApplyInviteResult`); lo que mandan las ventanas
 sale por `Scenes::SendAFriendPacket`, que saca los `rand()` de la carta. La conexión de la sala es otra
 `Network::Connection` de la sesión (`App::IChatRoomLinks`, P-C211): lo que llega por ella va a `Scenes::ApplyRoomPacket`
-(lo de `0x4e6240`) y su cierre a `Scenes::ApplyChatRoomClosed`; lo que mandan las ventanas lo saca
+(lo de `0x4e6240`; uno más corto que lo que lee su handler se ignora con un aviso y la sesión sigue: Q-C1011) y su
+cierre a `Scenes::ApplyChatRoomClosed`; lo que mandan las ventanas lo saca
 `Scenes::FlushTheChatRoomOrders`. El connect no espera, como el del GameServer de MuRet: la sala se anota al empezar y
 el `C1 10 00` sale con el connect. Ni el GameServer 0.97 ni el repo de research tienen un servidor del chat: lo del
 cable es del ASM del cliente (*estático*). Los tests usan nombres y textos inventados.

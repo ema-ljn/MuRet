@@ -269,7 +269,8 @@ public:
     void EnableChatRooms(ChatRoomSockets sockets);
     // IChatRoomLinks. Cada sala es una Network::Connection con las claves del GameServer (lo que llega por ella pasa
     // por el mismo camino, 0x4e1d50); Poll las recorre después del GameServer, en el orden de las salas, como 0x49e510
-    // recorre su mapa, y le da al sink un ChatRoomPacket por paquete y un ChatRoomClosed al cerrarse. Una que no llegó
+    // recorre su mapa, y le da al sink un ChatRoomPacket por paquete y un ChatRoomClosed al cerrarse. Un paquete más
+    // corto que lo que lee su handler se ignora con un aviso (Protocol::FriendChat::CheckRoomPacket). Una que no llegó
     // a abrir se olvida; una abierta que se cerró queda anotada hasta CloseChatRoom (lo que se le manda, se descarta).
     // Cada ChatRoomPingPeriod desde la construcción, con alguna sala anotada, le da un ChatRoomPingDue.
     void OpenChatRoom(std::uint32_t room, std::int32_t window, std::string_view address) override;

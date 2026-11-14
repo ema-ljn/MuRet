@@ -56,7 +56,8 @@ ApplyLetterDeleteResult(const Protocol::Letters::LetterDeleteResult& result, con
 [[nodiscard]] Core::Expected<void, std::string> ApplyInviteResult(const Protocol::FriendChat::InviteResult& result,
                                                                   const ChatReceiveContext& context);
 
-// 0x4e6240: lo que llega por la conexión de la sala del chat `window` (00, 01, 02, 04 y 0D; App::ChatRoomPacket).
+// 0x4e6240: lo que llega por la conexión de la sala del chat `window` (00, 01, 02, 04 y 0D; App::ChatRoomPacket). Uno
+// más corto que lo que lee su handler no hace nada (Q-C1011).
 [[nodiscard]] Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Network::Packet& packet,
                                                                 const ChatReceiveContext& context);
 

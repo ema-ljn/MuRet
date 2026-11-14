@@ -1190,10 +1190,10 @@ void PressEnterInTheOldEdit(OldWindowManager& manager)
     OldEdit* edit = FocusedEdit(manager);
     if (edit == nullptr)
         return;
-    // 0x467b10: con +0x150 de la lista de ventanas en 1 (F5, que también lo lee) o con +0xc4 en 1 (0x467c8f), Enter va
-    // al EDIT de Windows: en el de varios renglones corta el renglón y en el de una línea no hace nada. Si no, el 7 al
-    // padre.
-    if (manager.windowList.list.armed == 1 || edit->multiline == 1)
+    // 0x467b10: con +0x150 de la lista de ventanas en 1 (F5, que también lo lee), con la vtable + 0x5c en 1 (+0xb4, el
+    // chat con un amigo cerrado, 0x467c83) o con +0xc4 en 1 (0x467c8f), Enter va al EDIT de Windows: en el de varios
+    // renglones corta el renglón y en el de una línea no hace nada. Si no, el 7 al padre.
+    if (manager.windowList.list.armed == 1 || edit->closed == 1 || edit->multiline == 1)
     {
         BreakTheEditLine(*edit);
         return;

@@ -1119,4 +1119,30 @@ TEST_F(GameHudTest, TheMainBarDrawsTheFriendAndLetterIcons)
         EXPECT_EQ(windows.windowList.list.barBlink, 1);
     }
 }
+
+// Un dibujo intermedio de MuRet (GameScene, en el desacoplado) dibuja los íconos con la copia de la UI vieja de la
+// proyección: los dibujos y los parpadeos de 0x4a5120 (+0x148 y +0x14c) y la carta nueva (+0x144) de la lista de
+// WorldRuntime quedan como los dejó el último frame del original.
+TEST_F(GameHudTest, AnIntermediateDrawBlinksTheCopyOfTheIcons)
+{
+    Client::UI::OldWindowManager& windows = world.Runtime().oldWindows;
+    windows.windowList.list.waiting.push_back(7);
+    windows.windowList.list.newLetter = 1;
+    windows.windowList.list.barBlink = 11;
+    windows.windowList.list.letterBlinks = 5;
+    Client::UI::OldWindowManager copy = windows;
+    GameHudContext context = Context(true);
+    context.oldWindows = &copy;
+
+    const auto drawn = Client::Scenes::DrawTheHud(context);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    // En el 11 de cada 24, prendido, un parpadeo más; con el sexto, la carta nueva se apaga y la cuenta vuelve a 0.
+    EXPECT_EQ(copy.windowList.list.barBlink, 12);
+    EXPECT_EQ(copy.windowList.list.letterBlinks, 0);
+    EXPECT_EQ(copy.windowList.list.newLetter, 0);
+    EXPECT_EQ(windows.windowList.list.barBlink, 11);
+    EXPECT_EQ(windows.windowList.list.letterBlinks, 5);
+    EXPECT_EQ(windows.windowList.list.newLetter, 1);
+}
 } // namespace

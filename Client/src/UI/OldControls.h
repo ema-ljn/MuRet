@@ -192,6 +192,10 @@ struct OldEdit
     std::uint32_t backgroundColor = 0xff000000u;
     // +0xac: el alto de "Q" en píxeles (0x6c7af4), que 0x468320 mide la primera vez (0 hasta entonces).
     float caretHeight = 0.0f;
+    // +0xb4 (la vtable + 0x58, 0x4676c0, y + 0x5c, 0x4676d0; 0 en el constructor, 0x46755f): 1 con el chat con un
+    // amigo cerrado. Solo la escribe 0x495630 y la leen el 10 y 2 de 0x4944c0 (no invita) y Enter en 0x467b10 (va al
+    // EDIT de Windows, sin el 7 al padre). No es el foco ni el estado (+0x48).
+    std::int32_t closed = 0;
     // CL9 hito 10, el EDIT de varios renglones (UI/OldEditLines.h). +0xc4: 1 con ES_MULTILINE | ES_AUTOVSCROLL |
     // WS_VSCROLL (0x4675e0, la vtable + 0x38, antes de crearlo: solo el cuerpo de la carta, 0x4980ef).
     std::int32_t multiline = 0;

@@ -67,7 +67,7 @@ struct JoinResult
     std::uint8_t result = 0;
 };
 
-// 01 (0x4dd1e0): pkt[3] 0 entra o 1 sale, pkt[4] su número y pkt[5] su nombre.
+// 01 (0x4dd1e0): pkt[3] 0 entra o 1 sale, pkt[4] su número y pkt[5] su nombre (strncpy de 10: hasta el primer '\0').
 struct Member
 {
     std::uint8_t kind = 0;
@@ -75,7 +75,7 @@ struct Member
     std::string name;
 };
 
-// 02 (0x4dd350): pkt[6] cuántos y desde pkt[8] los miembros de 11 bytes (el número y el nombre).
+// 02 (0x4dd350): pkt[6] cuántos y desde pkt[8] los miembros de 11 bytes (el número y el nombre, con strncpy de 10).
 struct MemberRow
 {
     std::uint8_t index = 0;
@@ -96,7 +96,7 @@ struct Message
     std::string text;
 };
 
-// 0D (0x4dd540): el texto desde pkt[5], cortado en pkt[0x68].
+// 0D (0x4dd540): el texto desde pkt[5] hasta el primer '\0', cortado en pkt[0x68].
 struct Notice
 {
     std::string text;
@@ -109,6 +109,11 @@ struct Notice
 [[nodiscard]] Core::Expected<Members, ProtocolError> ReadMembers(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<Message, ProtocolError> ReadMessage(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<Notice, ProtocolError> ReadNotice(const Network::Packet& packet);
+// 0x4e6240 y sus handlers leen cada paquete por su lugar sin mirar su largo: con uno más corto que lo que leen (un
+// nombre o un texto sin su '\0' adentro, o menos bytes que los del largo del 04), el original sigue en el búfer de
+// recepción (Q-C1011). TooShort con esos; con uno que se lee entero o con otro opcode, nada. Los textos que terminan
+// adentro del paquete se leen aunque sea más corto que el lugar fijo (el 0D de largo 5 + texto + 1).
+[[nodiscard]] Core::Expected<void, ProtocolError> CheckRoomPacket(const Network::Packet& packet);
 
 // 0x4c1690 y 0x4dd3d0: cada byte con FC CF AB (0x6c82e4) según su lugar % 3. Es su propia inversa.
 void FlipChatText(std::vector<std::byte>& bytes);

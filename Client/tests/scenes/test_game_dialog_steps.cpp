@@ -163,7 +163,7 @@ public:
     }
     Client::Core::Expected<void, std::string> Click(std::int32_t x, std::int32_t y)
     {
-        Client::Scenes::LatchTheLeftButton(world.Runtime().movement, true, true);
+        Client::Scenes::LatchTheLeftButton(world.Runtime().movement, true, true, false);
         return Dialogs(x, y);
     }
 

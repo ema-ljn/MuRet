@@ -4713,6 +4713,36 @@ TEST(ServerSessionTest, AChatRoomHasItsOwnConnection)
     EXPECT_TRUE(rooms.tested.Logged(LogLevel::Warning, "no tiene conexión"));
 }
 
+// 0x4e6240 lee cada paquete de la sala por su lugar sin mirar su largo (Q-C1011): uno más corto que lo que lee su
+// handler se ignora con un aviso sin el texto, uno por opcode (00, 01, 02, 04 y 0D), y la sesión sigue. Un 0D con su
+// '\0' adentro, más corto que pkt[0x68], llega al sink.
+TEST(ServerSessionTest, AShortChatRoomPacketIsIgnoredAndTheSessionGoesOn)
+{
+    ChatRoomHarness rooms;
+    ServerSession& session = rooms.tested.session;
+    session.OpenChatRoom(0x0304, 42, "10.0.0.9");
+    ASSERT_EQ(rooms.sockets.size(), 1u);
+    FakeSocket& socket = *rooms.sockets[0];
+    socket.reads = {Bytes({0xc1, 0x03, 0x00}),
+                    Bytes({0xc1, 0x08, 0x01, 0x00, 0x05, 'H', 'o', 'r'}),
+                    Bytes({0xc1, 0x0b, 0x02, 0x00, 0x00, 0x00, 0x02, 0x00, 0x02, 'H', 'o'}),
+                    Bytes({0xc1, 0x07, 0x04, 0x01, 0x0a, 'h', 'o'}),
+                    Bytes({0xc1, 0x0a, 0x0d, 0x00, 0x00, 'q', 'u', 'e', 's', 'o'}),
+                    Bytes({0xc1, 0x0b, 0x0d, 0x00, 0x00, 'q', 'u', 'e', 's', 'o', 0x00})};
+    for (int poll = 0; poll < 8; ++poll)
+        ASSERT_TRUE(session.Poll().HasValue());
+    const std::vector<WorldEvent> events = rooms.tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* packet = std::get_if<Client::App::ChatRoomPacket>(&events[0]);
+    ASSERT_NE(packet, nullptr);
+    EXPECT_EQ(packet->packet.Opcode(), std::optional<std::uint8_t>(0x0d));
+    EXPECT_EQ(rooms.tested.CountLogged(LogLevel::Warning, "de la sala 772 del chat con un amigo"), 5u);
+    EXPECT_FALSE(rooms.tested.Logged(LogLevel::Warning, "queso"));
+    EXPECT_FALSE(rooms.tested.Logged(LogLevel::Warning, "Hor"));
+    EXPECT_EQ(session.Failure(), std::nullopt);
+    EXPECT_EQ(session.ChatRoomCount(), 1u);
+}
+
 // El connect que falla: la sala se olvida (0x49de50 no la anota). Una sala que ya tiene la suya no abre otra.
 TEST(ServerSessionTest, AChatRoomThatDoesNotConnectIsForgotten)
 {

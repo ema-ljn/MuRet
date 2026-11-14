@@ -576,9 +576,9 @@ Core::Expected<std::int32_t, std::string> ShowThePortraitAction(LetterPortrait& 
     else if (chosen == StrikeAction)
     {
         return Core::Unexpected(std::string(
-            "0x495b0b: la acción 0x78 del retrato de las cartas va a SetActorAttack (0x4f4a10) con el mundo en 0 (sin "
-            "leer, con sus rand()), que es del hito 3 de la CL9; después pone +0x381 en 1, el frame (+0x114) en 0 y "
-            "+0x3a4 en 0xffff"));
+            "0x495b0b: la acción 0x78 del retrato de las cartas (con un clic: el 4 de la de escribir desde la 0x7a, "
+            "índice −1 más 300 o 2.400) va a SetActorAttack (0x4f4a10) con el mundo en 0 (sin leer, con sus rand()), "
+            "que es del hito 3 de la CL9; después pone +0x381 en 1, el frame (+0x114) en 0 y +0x3a4 en 0xffff"));
     }
     else if (chosen == WalkAction)
     {

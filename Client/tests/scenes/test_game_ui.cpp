@@ -86,7 +86,7 @@ public:
     }
     void Click()
     {
-        Client::Scenes::LatchTheLeftButton(world.Runtime().movement, true, true);
+        Client::Scenes::LatchTheLeftButton(world.Runtime().movement, true, true, false);
     }
     Client::UI::GameUiState& Ui()
     {
@@ -393,16 +393,16 @@ TEST(GameUiTest, TheSiegePanelPagesAndFades)
 TEST(GameUiTest, TheClickLatchKeepsTheEdgeUntilSomeoneUsesIt)
 {
     Client::Scenes::GameMovementState state;
-    Client::Scenes::LatchTheLeftButton(state, true, true);
+    Client::Scenes::LatchTheLeftButton(state, true, true, false);
     EXPECT_TRUE(state.pendingClick);
     EXPECT_TRUE(state.leftHeld);
     state.pendingClick = false;
     state.leftHeld = false;
     // El mismo botón abajo, sin otro WM_LBUTTONDOWN: nada vuelve.
-    Client::Scenes::LatchTheLeftButton(state, false, true);
+    Client::Scenes::LatchTheLeftButton(state, false, true, false);
     EXPECT_FALSE(state.pendingClick);
     EXPECT_FALSE(state.leftHeld);
-    Client::Scenes::LatchTheLeftButton(state, false, false);
+    Client::Scenes::LatchTheLeftButton(state, false, false, false);
     EXPECT_FALSE(state.leftHeld);
 }
 
@@ -424,12 +424,45 @@ TEST(GameUiTest, TheDoubleClickLastsUntilTheNextMessage)
 TEST(GameUiTest, TheReleasedButtonDropsTheEdge)
 {
     Client::Scenes::GameMovementState state;
-    Client::Scenes::LatchTheLeftButton(state, true, true);
-    Client::Scenes::LatchTheLeftButton(state, false, false);
+    Client::Scenes::LatchTheLeftButton(state, true, true, false);
+    Client::Scenes::LatchTheLeftButton(state, false, false, false);
     EXPECT_FALSE(state.pendingClick);
-    Client::Scenes::LatchTheLeftButton(state, true, false);
+    Client::Scenes::LatchTheLeftButton(state, true, false, false);
     EXPECT_FALSE(state.pendingClick);
     EXPECT_FALSE(state.leftHeld);
+}
+
+// WM_LBUTTONDBLCLK (0x4b4444..0x4b47b6) no prende 0x7d36874, que solo escriben WM_LBUTTONDOWN (0x4b3961) y
+// WM_LBUTTONUP (0x4b3cf1): el segundo apretón de un doble clic, sostenido varios pasos, deja el botón arriba para el
+// juego hasta el próximo WM_LBUTTONDOWN. En el mismo paso que el primer clic y su soltado, tampoco queda.
+TEST(GameUiTest, AHeldDoubleClickLeavesTheButtonUp)
+{
+    Client::Scenes::GameMovementState state;
+    Client::Scenes::LatchTheLeftButton(state, true, true, false);
+    EXPECT_TRUE(state.leftHeld);
+    state.pendingClick = false;
+    Client::Scenes::LatchTheLeftButton(state, false, false, false);
+    Client::Scenes::LatchTheLeftButton(state, false, true, true);
+    EXPECT_FALSE(state.leftHeld);
+    EXPECT_FALSE(state.pendingClick);
+    for (int step = 0; step < 3; ++step)
+    {
+        Client::Scenes::LatchTheLeftButton(state, false, true, false);
+        EXPECT_FALSE(state.leftHeld);
+        EXPECT_FALSE(state.pendingClick);
+    }
+    Client::Scenes::LatchTheLeftButton(state, false, false, false);
+    Client::Scenes::LatchTheLeftButton(state, true, true, false);
+    EXPECT_TRUE(state.leftHeld);
+    EXPECT_TRUE(state.pendingClick);
+
+    // Abajo, arriba y el doble en el mismo paso: el WM_LBUTTONUP lo apagó y el WM_LBUTTONDBLCLK no lo prende.
+    Client::Scenes::GameMovementState fast;
+    Client::Scenes::LatchTheLeftButton(fast, false, true, true);
+    EXPECT_FALSE(fast.leftHeld);
+    EXPECT_FALSE(fast.pendingClick);
+    Client::Scenes::LatchTheLeftButton(fast, false, true, false);
+    EXPECT_FALSE(fast.leftHeld);
 }
 
 // 0x7d366ec: WM_LBUTTONUP lo prende con el mouse de ese momento y dura mientras el mouse no se mueva; WM_LBUTTONDOWN

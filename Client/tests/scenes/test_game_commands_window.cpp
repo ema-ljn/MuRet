@@ -192,7 +192,7 @@ protected:
 
     void Click()
     {
-        Client::Scenes::LatchTheLeftButton(Runtime().movement, true, true);
+        Client::Scenes::LatchTheLeftButton(Runtime().movement, true, true, false);
     }
 
     void Press(Client::Input::Key key)

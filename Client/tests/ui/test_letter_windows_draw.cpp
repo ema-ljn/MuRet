@@ -644,19 +644,22 @@ TEST_F(LetterWindowsDrawTest, TheThirdMemberNarrowsTheLinesAndWrapsThemAgain)
     EXPECT_EQ(part.lines.fixedCountValue, 5);
 }
 
-// 0x460308: un texto que no entra en 10 renglones hace que el original lea el que sobra fuera de su búfer de la pila;
-// MuRet corta. 0x45f6f0 guarda hasta 0x100 bytes.
-TEST_F(LetterWindowsDrawTest, AChatLineInMoreThanTenRowsIsACut)
+// 0x460308: un texto que no entra en 10 renglones hace que el original lea el que sobra fuera de su búfer de la pila
+// (Q-C1012); MuRet deja los 10 y descarta el que sobra. 0x45f6f0 guarda hasta 0x100 bytes, que con 3 miembros (la
+// lista más angosta) no entran.
+TEST_F(LetterWindowsDrawTest, AChatLineInMoreThanTenRowsKeepsTen)
 {
     OldWindow& chat = OpenAChat({{"Tordo", 1}, {"Zorzal", 2}}, {});
     std::string said;
     while (said.size() < 0x120)
         said += "la ronda de mate sigue en la plaza hasta tarde ";
     const auto added = Client::UI::AddAChatLine(m_manager, chat, 1, said, 3, 0, &m_measure);
-    ASSERT_FALSE(added.HasValue());
-    EXPECT_NE(added.Error().find("0x460308"), std::string::npos);
+    ASSERT_TRUE(added.HasValue()) << added.Error();
     ASSERT_EQ(chat.chat.lineRows.size(), 1u);
     EXPECT_EQ(chat.chat.lineRows[0].text.size(), 0x100u);
+    ASSERT_EQ(chat.chat.wrappedRows.size(), 10u);
+    EXPECT_EQ(chat.chat.wrappedRows.back().name, "Tordo");
+    EXPECT_EQ(chat.chat.lines.fixedCountValue, 10);
 }
 
 // Arrastrado (el estado en 4), el dibujo (0x493fc0, sin el marco) vuelve a ubicar a sus hijas con el 8 antes de

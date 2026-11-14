@@ -1427,9 +1427,12 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
 }
 } // namespace
 
-void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down)
+void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down, bool doublePressed)
 {
-    if (!down)
+    // WM_LBUTTONDBLCLK no toca 0x7d36874 (0x4b4444..0x4b47b6), que solo escriben WM_LBUTTONDOWN (0x4b3961) y
+    // WM_LBUTTONUP (0x4b3cf1): con el segundo apretón de un doble clic como el último, el botón queda arriba para el
+    // juego mientras se sostiene, hasta el próximo WM_LBUTTONDOWN.
+    if (!down || doublePressed)
         state.leftHeld = false;
     else if (!state.previousLeftDown)
         state.leftHeld = true;

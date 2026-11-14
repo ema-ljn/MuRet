@@ -116,8 +116,9 @@ struct GameUiContext
 
 // El WndProc: 0x7d366d4 (el flanco del clic, que apagan quien lo usa y el botón suelto) y 0x7d36874 (el botón
 // abajo), antes de cualquier lógica del paso. GameScene lo llama al empezar cada paso; MoveHero también, para sus
-// pruebas.
-void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down);
+// pruebas. `doublePressed`: el último apretón del paso fue el segundo de un doble clic
+// (InputState::LeftPressWasDouble), el WM_LBUTTONDBLCLK que no prende 0x7d36874 (P-C187).
+void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down, bool doublePressed);
 
 // El WndProc y el soltado del izquierdo: WM_LBUTTONUP prende 0x7d366ec con el mouse de ese momento (0x4b3cea, en
 // 0x576358c y 0x5763590), WM_LBUTTONDOWN lo apaga (0x4b3947) y cualquier mensaje con el mouse en otro lugar también

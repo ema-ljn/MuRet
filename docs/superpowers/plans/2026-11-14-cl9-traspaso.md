@@ -1,7 +1,7 @@
 # CL9: traspaso para terminar la ola (2026-11-14)
 
 El 2026-11-14 Emanuel pidió dejar la CL9 lista para que **otros agentes terminen los PRs que faltan**.
-Este documento es la foto a las 07:40Z, con `main` en `b7ebd3e` (#341). Dice qué hay en cada hito, en qué
+Este documento es la foto a las 08:40Z, con `main` en `910ac03` (#351). Dice qué hay en cada hito, en qué
 orden se cierra la pila, qué le falta a cada uno y cómo se trabaja. Las notas de las revisiones que quedaron
 sin arreglar están en [`2026-11-14-cl9-traspaso/`](2026-11-14-cl9-traspaso/).
 
@@ -11,6 +11,15 @@ sin arreglar están en [`2026-11-14-cl9-traspaso/`](2026-11-14-cl9-traspaso/).
 - Roadmap del cliente: [`2026-10-30-cliente-design.md`](../specs/2026-10-30-cliente-design.md).
 - **Castle Siege (hitos 12 y 13)** tiene su propia sección más abajo: el primer agente del hito 12 lo
   cortaron los filtros de seguridad de la API.
+
+**Por dónde seguir:**
+
+1. Que termine el CI del #342 (hito 3) y Emanuel lo mergee.
+2. El merge del hito 4 con el hito 3 (26 archivos; ver "Hito 4" más abajo). Después, de a uno, cada hito de
+   la cadena con su base, según "Cómo resolver un merge de la cadena".
+3. Los arreglos pendientes de cada hito (CL11 del 3 y del 4, las revisiones del 6), el cableado de "Al armar
+   la cadena" y Castle Siege (12 y 13).
+4. Al final de la ola, la auditoría de cierre y la lista para la VM.
 
 ## Estado por hito
 
@@ -24,8 +33,8 @@ no cuenta.
 | 9, amigos y ventanas viejas | — | #339 | cerrado | 100 % | mergeado |
 | 5, ítems del piso | — | #340 | cerrado | 96 % | mergeado |
 | 2, monstruos, NPC, misiones | — | #341 | cerrado | 100 % | mergeado |
-| 3, pegar, daño, muerte | `claude/cl9-hito-3` | #342 | 8 de 8 | 100 % | borrador, base `main`, 19 archivos en conflicto con la última cabeza del hito 2 |
-| 4, skills, cuervo, mascotas | `claude/cl9-hito-4` | #343 | 7 de 7 | 98 % | borrador, base hito 3, 18 en conflicto |
+| 3, pegar, daño, muerte | `claude/cl9-hito-3` | #342 | 8 de 8 | 100 % | listo, base `main`, sin conflictos (mergeó el hito 2 final y `main`), CI corriendo en `de674ec6` |
+| 4, skills, cuervo, mascotas | `claude/cl9-hito-4` | #343 | 7 de 7 | 98 % | borrador, base hito 3, 26 en conflicto con `de674ec6` |
 | 11, eventos | `claude/cl9-hito-11` | #344 | 7 de 7 | 96 % | borrador, base hito 4, 37 en conflicto |
 | 7, party, comercio, duelo, tiendas | `claude/cl9-hito-7` | #345 | 7 de 7 | 76 % | borrador, base hito 11, 28 en conflicto |
 | 8, gremio, alianza, guerra | `claude/cl9-hito-8` | #346 | 7 de 7 | 76 % | borrador, base hito 7, 14 en conflicto |
@@ -35,7 +44,8 @@ no cuenta.
 | 13, batalla del asedio | `claude/cl9-hito-13` | — | 1 de 4, a medias | 10 % | sin PR |
 
 En total está portado alrededor del 82 % de los ~517 KB del plan. Los borradores no tienen CI: GitHub no lo
-corre mientras haya conflictos.
+corre mientras haya conflictos. Los conflictos de la tabla salen de `git merge-tree` de cada rama contra la
+rama de su base, a esta hora.
 
 **Ojo con el 6, el 7 y el 8.** Los agentes dieron el 7 y el 8 por terminados, con dos revisiones contra el
 ASM cada uno, pero ~24 % de los bytes de su tabla no aparece citado en el código. En una muestra de los más
@@ -78,21 +88,42 @@ diff <(git diff origin/main HEAD) <(git diff <cabeza de la base> HEAD^1)
 Así se resolvieron el #340 en `115b0422` (base del merge `dbb77e7b`, la última cabeza del #338) y el #341 en
 `92231db2` (base del merge `e95bca00`). El código queda idéntico al que ya estaba en verde.
 
-**Caso B: la rama todavía no mergeó la última versión de su base** (del #342 en adelante). Cada rama trae
+**Caso B: la rama todavía no mergeó la última versión de su base** (del #343 en adelante). Cada rama trae
 versiones viejas de los hitos de abajo, por eso los conflictos. Hay que:
 
-1. Mergear la última cabeza de la base y resolver: el código de los hitos de abajo queda como está en su
-   versión final; lo propio del hito se conserva encima. Si la base ya entró, su rama se borró, pero la
-   cabeza sigue en el PR: `git fetch origin pull/<N>/head` (para el hito 3, la del #341 es `92231db2`, con 19
-   archivos en conflicto). Después, el caso A contra `main` con esa cabeza como base del merge. Mergear
-   `main` directo da muchos más conflictos (83 en el hito 3).
-2. Cablear lo que el PR lista en "Al armar la cadena" (más abajo, por hito).
+1. Mergear la última cabeza de la base (`git merge --no-ff origin/claude/cl9-hito-<base>`) y resolver. Si la
+   base ya entró, su rama se borró, pero la cabeza sigue en el PR: `git fetch origin pull/<N>/head`. Después,
+   el caso A contra `main` con esa cabeza como base del merge. Mergear `main` directo da muchos más
+   conflictos (en el hito 3 eran 83 contra 19).
+2. Cablear lo que el PR lista en "Al armar la cadena" (más abajo, por hito), en commits aparte del merge.
 3. Correr los chequeos locales y el CI, y escribir el texto final del PR con las secciones del #341: Qué
-   hace, Lo que corta, Revisiones, Research y Pruebas.
+   hace, Lo que corta, Revisiones, Research y Pruebas. El texto del #342 muestra cómo contar el merge.
 4. Pasarlo a listo y avisarle a Emanuel.
 
+Así se hizo el #342: `123eed83` mergea el hito 2 final (`92231db2`, 19 archivos) y `de674ec6` es el caso A
+contra `main`.
+
 Se puede adelantar el paso 1 contra la rama de la base antes de que entre, pero después hay que repetir el
-caso A cuando la base entre por squash.
+caso A cuando la base entre por squash. Por ejemplo, el hito 4 puede mergear hoy `de674ec6`; si el #342 entra
+después, el hito 4 hace el caso A con `de674ec6` como base del merge.
+
+### Cómo resolver un merge de la cadena
+
+Emanuel pidió que el merge resuelva **solo los conflictos**. Lo demás (cablear, arreglos pendientes) va en
+commits aparte o en otra tanda.
+
+1. El código de los hitos de abajo es el final, tal como está en la cabeza de la base: pasó sus revisiones y
+   su CI. Donde choca una copia vieja que trae la rama con la versión de la base, gana la base.
+2. Lo propio del hito se conserva encima. Para separarlo: `git log --no-merges <merge-base>..HEAD` (los commits
+   `CL9 hito <N>: …`) y `git diff <merge-base> HEAD -- <archivo>`. Si los dos lados cambiaron lo mismo, el
+   hito se adapta a las interfaces finales de la base (nombres, firmas, parámetros nuevos) sin deshacer sus
+   arreglos.
+3. Docs (04, 06, 07, 08, el plan): quedan las filas y secciones de los dos lados. No se pierde ningún id, y
+   si los dos editaron la misma fila se unen los textos.
+4. Nunca `git checkout --theirs/--ours` de un archivo entero: hunk por hunk.
+5. Compilar `ClientLib` y correr los tests del hito, los de los archivos en conflicto y los vecinos. Después
+   clang-format, include-cleaner y el chequeo de estrechamiento de MSVC sobre lo que se tocó.
+6. Al final, `git merge-tree --write-tree origin/main HEAD` tiene que salir limpio.
 
 ## Qué le falta a cada hito
 
@@ -101,15 +132,37 @@ caso A cuando la base entre por squash.
 1. **El arreglo de los cortes CL11 falsos** de la [auditoría](2026-11-14-cl9-traspaso/auditoria-cl11-hitos-3-y-4.md)
    (sin empezar): el terremoto `0xfa`, `ArrowEffects.cpp:729`, exponer `BurstAt` y usarlo en
    `MonsterAttackStep`, y los `rand()` de `ActorDying`. Ids reservados: Q-C1134..Q-C1136, P-C361.
-2. Al armar la cadena: con el hito 2, que `DrawGameMonster` llene `bodyPose` y llame a
-   `WorldState::PlaceModel` (P-C323 b).
-3. Quedan cortes que cablean otros hitos: las flechas `0x53e75b`, `0x53e365`, `0x53e4dd` y `0x524405`
+2. **El merge con el hito 2 ya está** (`123eed83` y `de674ec6`; el detalle por archivo, en el texto del
+   #342). Quedaron así:
+   - `ActorState::word8a` es el `int16_t` del hito 2; el hito 3 se adaptó (`test_attack_step` espera -1);
+   - el sonido del golpe (`0x4f553d`) usa `FaunaModels::SoundActions` del hito 2, y los del ataque y del paso
+     usan `WorldRuntime::modelSounds` del hito 3;
+   - la llegada atiende hablar con el NPC (2) y levantar (1) antes de `InteractOnArrival`, y el clic sin
+     ataque mira el objeto elegido (`0x59d8c3`), el NPC, el ítem del piso y el suelo.
+3. Al armar la cadena (sin hacer, en commits aparte):
+   - con el hito 2, que `DrawGameMonster` llene `bodyPose` y llame a `WorldState::PlaceModel` (P-C323 b);
+   - dejar una sola tabla de sonidos de monstruo (`FaunaModels::SoundActions` o `WorldRuntime::modelSounds`);
+   - `+0x3a4` está modelado dos veces (`attackTarget` y `word3a4`);
+   - los casos 1 y 2 de `ArrivalCaseOf` ya no se alcanzan: sacar esos cortes.
+4. El CI de `de674ec6` estaba corriendo a las 08:40Z. Emanuel ya lo pasó a listo.
+5. Quedan cortes que cablean otros hitos: las flechas `0x53e75b`, `0x53e365`, `0x53e4dd` y `0x524405`
    (hito 4), los nombres de gremio `0x558da4`/`0x558f29` (hito 8, Q-C1170) y el altar de Crywolf `0x4eac41`
    (hito 11).
 
 ### Hito 4 (#343)
 
-1. **Terminar el arreglo CL11** del commit WIP `6a9dd828`: compila, pero los tests no se corrieron. Ya
+1. **El merge con el hito 3** (`de674ec6`, ya con los hitos 1, 5 y 2 finales y `main`): 26 archivos en
+   conflicto. Son las docs 06, 07 y 08, `WorldEvent.h`, `ActorState.h`, `ArrowEffects.*`, `AttackStep.cpp`,
+   `GameHud.cpp`, `GameMovement.h`, `GameMovementState.h`, `GamePanels.*`, `GameParticles.*`,
+   `GameSceneLogic.cpp`, `GameWindowDrawing.cpp`, `HeroAttack.cpp`, `TextureSets.h`,
+   `World/ParticleDrawing.cpp`, `World/Particles.*` y los tests `test_arrow_effects`, `test_character_step`,
+   `test_game_ui` y `test_session_event_applier`.
+   - En `HeroAttack.cpp`, `WalkIntoRange` queda con el cuerpo del hito 3 (con `CheckTheCrywolfAltar`) y la
+     estructura del hito 4, que movió el cuerpo de `IsAttackable` a un ayudante compartido.
+   - El último commit (`6a9dd828`) es un WIP cuyos tests nunca se corrieron. Si después del merge falla un
+     test, hay que ver primero si ya fallaba en `6a9dd828`.
+   - Un primer intento de este merge se frenó a pedido de Emanuel y se descartó: la rama está intacta.
+2. **Terminar el arreglo CL11** del commit WIP `6a9dd828`: compila, pero los tests no se corrieron. Ya
    porta la Flame `0x500531` con `0x52ae2a`, los `0x5ac` /2 y /1, las banderas del hito 1 (`0x4e6725`,
    `0x4e676e`), el calco `0x61e`/3, las `rand()` del Inferno antes del corte `0x51fe9e`, el cuervo `0x5ac`/6
    y los joints `0x60f`/0 con llave 2. Siguen cortando `0x1b` (`0x504561`) y `0x4dbfc5`. Usa Q-C1131..Q-C1133
@@ -123,7 +176,7 @@ caso A cuando la base entre por squash.
      `test_kill_beam_joints`, `test_game_characters`, `test_dark_spirit`, `test_game_scene`,
      `test_game_scene_viewports` y `test_game_scene_tail_integration`.
    - El `0x0e` llama a `BurstAt` del hito 3 (P-C360), y `ApplyEffectFlags` toma la tabla de efectos.
-2. Al armar la cadena:
+3. Al armar la cadena:
    - `HeroAttack.cpp` `WalkIntoRange` queda con el cuerpo del hito 3 y `CheckTheCrywolfAltar`. El chequeo del
      altar probablemente también va en los `PathFinding2` del hito 4.
    - Reconciliar P-C256 con Q-C1179 del hito 3.

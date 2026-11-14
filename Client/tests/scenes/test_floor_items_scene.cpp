@@ -38,6 +38,7 @@
 #include "UI/GameDialogs.h"
 #include "World/GameCamera.h"
 #include "World/ItemState.h"
+#include "World/ModelEffects.h"
 #include "World/TerrainPickingSegment.h"
 
 #include "support/Bytes.h"
@@ -288,6 +289,111 @@ TEST(FloorItemsSceneTest, TheCreateFillsEachEntryInEveryMap)
         EXPECT_EQ(sword.boundingMax, glm::vec3(30.0f));
         // 0x6083a5: solo el recién caído suena (CL10).
         EXPECT_EQ(stage->world.Runtime().lastSoundId, 0x1f);
+    }
+}
+
+// 0x608614..0x608722: la medalla de plata (el 0x1c0b de nivel 5, el modelo 0x2242) y la de oro (nivel 6, 0x2243)
+// recién caídas crean la grieta 0x100 (0x6086ce) y la 0xfe (0x6086f1) con 0x518cf0: a 3 sobre el terreno en la
+// posición pedida, ángulos en 0, luz 1, subtipo 0, la medalla de dueño y el tamaño 0x37 (vida 35, escala 0,55f), sin
+// rand(); la medalla queda a 3 con la velocidad 50. La que ya estaba en el piso, en el terreno y sin grietas. Igual en
+// Lorencia, Devias (el 2, donde el GS 0.97 suelta la de plata) y Lost Tower (el 4, la de oro).
+TEST(FloorItemsSceneTest, TheDroppedMedalsCrackTheGroundInEveryMap)
+{
+    constexpr std::int16_t SilverMedal = 0x2242;
+    constexpr std::int16_t GoldMedal = 0x2243;
+    const float scale = static_cast<float>(55.0 * static_cast<double>(0.01f));
+    for (const std::int32_t map : {0, 2, 4})
+    {
+        SCOPED_TRACE(map);
+        auto stage = StageIn(map);
+        const CrtRandom expected = Advanced(stage->cloth.random, (2 * Scenes::HangingRandomCount(SilverMedal)) +
+                                                                     Scenes::HangingRandomCount(GoldMedal));
+        const FloorItemsCreate create{
+            .items = {FloorItemEntry{.key = 0x8003, .x = 30, .y = 40, .item = ItemBytes(BoxOfLuck, 5 << 3, 1)},
+                      FloorItemEntry{.key = 0x8004, .x = 50, .y = 60, .item = ItemBytes(BoxOfLuck, 6 << 3, 1)},
+                      FloorItemEntry{.key = 6, .x = 70, .y = 80, .item = ItemBytes(BoxOfLuck, 5 << 3, 1)}}};
+        const auto created = Scenes::ApplyFloorItemsCreate(create, stage->Resources());
+        ASSERT_TRUE(created.HasValue()) << created.Error();
+        EXPECT_EQ(stage->cloth.random.State(), expected.State());
+
+        const FloorItemState& silver = stage->Item(3);
+        const FloorItemState& gold = stage->Item(4);
+        const FloorItemState& lying = stage->Item(6);
+        EXPECT_EQ(silver.type, SilverMedal);
+        EXPECT_EQ(gold.type, GoldMedal);
+        EXPECT_EQ(lying.type, SilverMedal);
+        EXPECT_FLOAT_EQ(silver.position.z, Ground + 3.0f);
+        EXPECT_FLOAT_EQ(silver.dropSpeed, 50.0f);
+        EXPECT_FLOAT_EQ(gold.position.z, Ground + 3.0f);
+        EXPECT_FLOAT_EQ(gold.dropSpeed, 50.0f);
+        EXPECT_FLOAT_EQ(lying.position.z, Ground);
+        EXPECT_FLOAT_EQ(lying.dropSpeed, 0.0f);
+
+        struct Crack
+        {
+            std::int16_t type = 0;
+            const FloorItemState* owner = nullptr;
+        };
+        const std::array<Crack, 4> cracks{Crack{0x100, &silver}, Crack{0xfe, &silver}, Crack{0x100, &gold},
+                                          Crack{0xfe, &gold}};
+        const auto effects = stage->world.Map().effects.Effects();
+        for (std::size_t slot = 0; slot < cracks.size(); ++slot)
+        {
+            SCOPED_TRACE(slot);
+            const Client::World::ModelEffect& effect = effects[slot];
+            const FloorItemState& owner = *cracks[slot].owner;
+            EXPECT_TRUE(effect.alive);
+            EXPECT_EQ(effect.type, cracks[slot].type);
+            EXPECT_EQ(effect.subtype, 0);
+            EXPECT_EQ(effect.life, 35);
+            EXPECT_FLOAT_EQ(effect.transform.scale, scale);
+            EXPECT_EQ(effect.disturbanceState, 0x37u);
+            EXPECT_FLOAT_EQ(effect.transform.position.x, owner.position.x);
+            EXPECT_FLOAT_EQ(effect.transform.position.y, owner.position.y);
+            EXPECT_FLOAT_EQ(effect.transform.position.z, Ground + 3.0f);
+            EXPECT_EQ(effect.transform.angles, glm::vec3(0.0f));
+            EXPECT_EQ(effect.light, glm::vec3(1.0f));
+            EXPECT_TRUE(effect.hasOwner);
+            EXPECT_EQ(Client::World::OwnerTypeOf(effect.owner),
+                      std::optional<std::uint16_t>(static_cast<std::uint16_t>(owner.type)));
+            EXPECT_EQ(effect.owner.angles, &owner.angles);
+        }
+        for (std::size_t slot = cracks.size(); slot < effects.size(); ++slot)
+            EXPECT_FALSE(effects[slot].alive) << slot;
+    }
+}
+
+// Con un solo lugar libre en la tabla de efectos, 0x518cf0 crea la 0x100 y no la 0xfe; con la tabla llena, ninguna.
+// La medalla sigue igual, a 3 con la velocidad 50, y no hay rand() de más.
+TEST(FloorItemsSceneTest, WithTheEffectsFullTheDroppedMedalStillFalls)
+{
+    constexpr std::int16_t GoldMedal = 0x2243;
+    constexpr std::int16_t Busy = 0x5ac;
+    for (const std::size_t free : {std::size_t{1}, std::size_t{0}})
+    {
+        SCOPED_TRACE(free);
+        auto stage = StageIn(2);
+        const auto effects = stage->world.Map().effects.Effects();
+        for (std::size_t slot = 0; slot + free < effects.size(); ++slot)
+        {
+            effects[slot].alive = true;
+            effects[slot].type = Busy;
+        }
+        const CrtRandom expected = Advanced(stage->cloth.random, Scenes::HangingRandomCount(GoldMedal));
+        const FloorItemsCreate create{
+            .items = {FloorItemEntry{.key = 0x8009, .x = 12, .y = 34, .item = ItemBytes(BoxOfLuck, 6 << 3, 1)}}};
+        const auto created = Scenes::ApplyFloorItemsCreate(create, stage->Resources());
+        ASSERT_TRUE(created.HasValue()) << created.Error();
+        EXPECT_EQ(stage->cloth.random.State(), expected.State());
+        const FloorItemState& gold = stage->Item(9);
+        EXPECT_EQ(gold.type, GoldMedal);
+        EXPECT_FLOAT_EQ(gold.position.z, Ground + 3.0f);
+        EXPECT_FLOAT_EQ(gold.dropSpeed, 50.0f);
+        const Client::World::ModelEffect& last = effects.back();
+        EXPECT_TRUE(last.alive);
+        EXPECT_EQ(last.type, free == 1 ? std::int16_t{0x100} : Busy);
+        for (std::size_t slot = 0; slot + 1 < effects.size(); ++slot)
+            EXPECT_EQ(effects[slot].type, Busy) << slot;
     }
 }
 

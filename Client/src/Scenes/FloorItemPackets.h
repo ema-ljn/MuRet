@@ -25,6 +25,11 @@ namespace Client::Data::Text
 class TextTable;
 }
 
+namespace Client::World
+{
+class ModelEffects;
+}
+
 namespace Client::Scenes
 {
 class WorldState;
@@ -47,13 +52,16 @@ struct FloorItemCreation
     Core::Duration clock{};
     // 0x41ed10 con el ítem recién caído (CL10): queda el último en lastSoundId.
     std::optional<std::int32_t>* sound = nullptr;
+    // 0x518cf0: la tabla de efectos del mapa, donde la medalla recién caída crea sus dos grietas. Sin ella, la medalla
+    // corta (falta el servicio, no es la entrada).
+    World::ModelEffects* effects = nullptr;
 };
 
 // 0x608350(entrada, ítem, posición, recién caído): el tipo (0x54b3a0) en +4, el valor, la durabilidad y las opciones,
 // el modelo (tipo + 0x212, con los que cambian por nivel), 0x607b60 con sus rand() (CharacterDrawing::
 // HangingRandomCount), la caja de ±30, la posición y la altura: con `dropped`, 180 por encima del terreno y la
-// velocidad 20 (los fuegos 0x2242 y 0x2243, 3 y 50, con sus dos efectos de la CL11, que cortan); si no, en el terreno.
-// Termina con 0x607fb0.
+// velocidad 20 (las medallas de plata y de oro, los modelos 0x2242 y 0x2243, crean antes las grietas 0x100 y 0xfe con
+// la medalla de dueño, sin rand(), y quedan a 3 con la velocidad 50); si no, en el terreno. Termina con 0x607fb0.
 [[nodiscard]] Core::Expected<void, std::string> CreateFloorItem(FloorItemState& item,
                                                                 const Protocol::Inventory::ItemData& bytes,
                                                                 const glm::vec3& position, bool dropped,

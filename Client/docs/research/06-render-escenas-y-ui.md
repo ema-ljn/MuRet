@@ -6848,7 +6848,9 @@ vértices en `+0xe8`, la luz en `+0xf4`, la caja del picking en `+0x13c` y "a la
   y lo demás `b1`, `b2`, `b3` y `b4`. El modelo es el tipo + `0x212`, salvo los que cambian por el nivel (la caja de
   la suerte, el arma del arcángel `0x1a13`, que deja el valor en 0, y otros diez). `0x607b60` saca los `rand()` del modelo
   (`HangingRandomCount`), la caja es de ±30 y la altura la de `0x5f93c0`: recién caído, 180 más arriba y la velocidad
-  20; si no, en el terreno. Los fuegos `0x2242` y `0x2243` recién caídos crean dos efectos (`0x518cf0`, CL11: corta).
+  20; si no, en el terreno. Las medallas de plata y de oro recién caídas (los modelos `0x2242` y `0x2243`) crean
+  las grietas `0x100` y `0xfe` (`0x518cf0` con la medalla de dueño y el tamaño `0x37`, a 3 sobre el terreno, sin
+  `rand()`) y quedan a 3 con la velocidad 50.
   Termina con `0x607fb0`. Los sonidos (CL10) quedan en `lastSoundId`.
 - **La búsqueda del picking** (`0x59e2e0`, sin `rand()`): cada ítem vivo y a la vista con la luz del pase de vértices
   y 0,2; después, el primero cuya caja toca el segmento del mouse, sin el pase y con 1,5. La llama `0x59ec80` sin ítem

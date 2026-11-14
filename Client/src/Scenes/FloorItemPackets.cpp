@@ -24,6 +24,7 @@
 #include "UI/MessageArea.h"
 #include "UI/SprintfFormat.h"
 #include "World/GameCamera.h"
+#include "World/ModelEffects.h"
 #include "World/TerrainHeight.h"
 #include "World/WorldTerrain.h"
 
@@ -51,12 +52,18 @@ constexpr float ItemScale = 0.8f;
 constexpr float SmallItemScale = 0.7f;
 constexpr std::int16_t FirstSmallModel = 0x812;
 constexpr std::int16_t EndSmallModel = 0xe12;
-// 0x608633 y 0x60863c: 180 (0x6b86bc) por encima del terreno y la velocidad 20. Los fuegos recién caídos, con 3
-// (0x6b86b8, 0x6086a7) y 50 (0x60870f), cortan antes en 0x6086ce.
+// 0x608633 y 0x60863c: 180 (0x6b86bc) por encima del terreno y la velocidad 20.
 constexpr double DropHeight = 180.0;
 constexpr float DropSpeed = 20.0f;
-constexpr std::int16_t FirstFirework = 0x2242;
-constexpr std::int16_t SecondFirework = 0x2243;
+// 0x608614..0x608722: las medallas de plata y de oro (el 0x1c0b de nivel 5 y 6 por la tabla de 0x608750; el GS 0.97 las
+// suelta con gMedalEvent) recién caídas: 3 (0x6b86b8) sobre el terreno, las grietas 0x100 (0x6086ce) y 0xfe (0x6086f1)
+// de tamaño 0x37 y la velocidad 50 (0x60870f).
+constexpr std::int16_t SilverMedalModel = 0x2242;
+constexpr std::int16_t GoldMedalModel = 0x2243;
+constexpr double MedalHeight = 3.0;
+constexpr float MedalDropSpeed = 50.0f;
+constexpr std::array<std::int16_t, 2> MedalCracks{0x100, 0xfe};
+constexpr std::int16_t MedalCrackSize = 0x37;
 // 0x4d0bdd y 0x4d0be9: (celda + 0,5) · 100.
 constexpr float CellHalf = 0.5f;
 constexpr float CellSize = 100.0f;
@@ -327,12 +334,29 @@ Core::Expected<void, std::string> CreateFloorItem(FloorItemState& item, const Pr
     const auto height = creation.height(item.position.x, item.position.y);
     if (!height.HasValue())
         return Core::Unexpected(height.Error());
-    if (dropped && (item.type == FirstFirework || item.type == SecondFirework))
-        return Core::Unexpected(
-            std::format("0x6086ce: el fuego {:#x} del piso crea los efectos 0x100 y 0xfe (0x518cf0), "
-                        "que son de la CL11",
-                        item.type));
-    if (dropped)
+    if (dropped && (item.type == SilverMedalModel || item.type == GoldMedalModel))
+    {
+        if (creation.effects == nullptr)
+            return Core::Unexpected(
+                std::format("0x6086ce: la medalla {:#x} recién caída pide la tabla de efectos (0x518cf0)", item.type));
+        // 0x608659..0x6086b8: el punto en la x y la y de la posición pedida (las del ítem) con z = 0x5f93c0(x, y) + 3,
+        // los ángulos en 0 y la luz (1, 1, 1).
+        const glm::vec3 point{position.x, position.y, static_cast<float>(height.Value() + MedalHeight)};
+        // El dueño es el objeto del ítem (+0x4c de la entrada, ESI): su WORD +0x2 es el modelo, que MuRet guarda con
+        // signo; leerlo como std::uint16_t es el acceso por el tipo sin signo que le corresponde. El paso de 0x100 y
+        // 0xfe (0x5227d5 y 0x522b04) no lo lee.
+        const World::ModelEffectOwner owner{
+            .type = reinterpret_cast<const std::uint16_t*>(&item.type), .effect = nullptr, .angles = &item.angles};
+        // 0x6086ce y 0x6086f1: 0x518cf0(tipo, punto, ángulos, luz, 0, ítem, 0x37, 0, 0, 0, 0), sin rand(); con la tabla
+        // llena no crea nada y sigue.
+        for (const std::int16_t crack : MedalCracks)
+            static_cast<void>(creation.effects->CreateEarthquakeCrack(crack, point, glm::vec3(0.0f), glm::vec3(1.0f), 0,
+                                                                      owner, MedalCrackSize));
+        // 0x6086f6..0x60870f: el ítem a 3 sobre el terreno en su (x, y) y la velocidad 50.
+        item.position.z = static_cast<float>(height.Value() + MedalHeight);
+        item.dropSpeed = MedalDropSpeed;
+    }
+    else if (dropped)
     {
         item.position.z = static_cast<float>(height.Value() + DropHeight);
         item.dropSpeed = DropSpeed;
@@ -358,7 +382,8 @@ Core::Expected<void, std::string> ApplyFloorItemsCreate(const Protocol::FloorIte
             return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, fixedHeight);
         },
         .clock = resources.clock != nullptr ? resources.clock->Now() : Core::Duration{},
-        .sound = &world.Runtime().lastSoundId};
+        .sound = &world.Runtime().lastSoundId,
+        .effects = &world.Map().effects};
     auto& items = world.DrawTail().floorItems;
     for (const Protocol::FloorItems::FloorItemEntry& entry : create.items)
     {

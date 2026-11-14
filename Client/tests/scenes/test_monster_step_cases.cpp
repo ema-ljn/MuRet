@@ -76,6 +76,24 @@ TEST(MonsterStepCasesTest, TheKalimaGateQueuesItsNameAndLevel)
     EXPECT_EQ(queue.front().position, gate.position);
 }
 
+// 0x4fd625: el nombre de una piedra con un dueño largo (24 letras, "Magic stone of " y nueve) llega hasta +0x1f1; uno
+// de 29 sin 0 seguiría en +0x1f6, que MuRet no guarda, y corta (Q-C847). Los dueños son inventados.
+TEST(MonsterStepCasesTest, TheGateNameReadsUpToItsZero)
+{
+    const auto texts = Client::Tests::MakeTextTable({{LevelText, "Nivel %d"}});
+    Client::Scenes::WorldTextQueue queue;
+
+    ASSERT_TRUE(Client::Scenes::QueueTheGateName(NamedGate("Magic stone of Carpincho", 3), &texts, queue).HasValue());
+    ASSERT_EQ(queue.size(), 1u);
+    EXPECT_EQ(QueuedText(queue.front()), "Magic stone of Carpincho .Nivel 3");
+
+    const auto unended =
+        Client::Scenes::QueueTheGateName(NamedGate("Piedra de mago de Yacare Overo", 3), &texts, queue);
+    ASSERT_FALSE(unended.HasValue());
+    EXPECT_NE(unended.Error().find("0x4fd625"), std::string::npos) << unended.Error();
+    EXPECT_EQ(queue.size(), 1u);
+}
+
 // El strcat escribe en el buffer de 100 bytes (0xf8 − 0x94): 99 letras y el 0 entran; con una más el original pisaría
 // el segundo buffer, y MuRet corta. Sin Text.bmd, también.
 TEST(MonsterStepCasesTest, TheGateNameCutsWithoutTextsOrPastItsBuffer)

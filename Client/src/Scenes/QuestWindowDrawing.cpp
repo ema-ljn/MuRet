@@ -411,7 +411,7 @@ Core::Expected<void, std::string> DrawTheQuestDialog(GameHudContext& context)
     if (!npcRecord.HasValue())
         return Core::Unexpected(npcRecord.Error());
     // 0x41be9e: 0x554180 con el NULL de 0x54ebb0 no dibuja y mide lstrlen(NULL), 0 caracteres.
-    const std::optional<std::string_view> npc = NpcNameOf(runtime.npcNames, npcRecord.Value()->npcType);
+    const std::optional<std::string> npc = NpcNameOf(runtime.npcNames, npcRecord.Value()->npcType);
     if (npc)
         WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, *npc);
     else

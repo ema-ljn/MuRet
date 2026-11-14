@@ -42,7 +42,9 @@
 #include <gtest/gtest.h>
 
 // Hablarle a un NPC (CL9 hito 2): el clic de MoveHero sobre el NPC elegido (0x59da75..0x59dc59) y la llegada
-// (0x5650c0 con +0x379 en 2, 0x5674c8..0x5695b3) con el C1 30. Textos y claves inventados; el mundo en Lorencia.
+// (0x5650c0 con +0x379 en 2, 0x5674c8..0x5695b3) con el C1 30. Textos y claves inventados; el mundo en Lorencia y, en
+// los casos de todos los mapas, también en Devias (fuera de Crywolf, 0x5674d2 y 0x567b00, el mapa no cambia nada). El
+// terreno es uno sin paredes, el mismo en los dos.
 namespace
 {
 using Client::Render::Models::CrtRandom;
@@ -62,6 +64,8 @@ constexpr int C3Randoms = 2;
 // D3 (el comercio y la tienda de NPC de 0x56b397.., el registro propio y Skill.bmd del prefijo de la acción).
 constexpr int BeforeTheClickRandoms = 8 + OwnRecordRandoms;
 constexpr int AfterTheWalkRandoms = 2 + OwnRecordRandoms + 60;
+// Lorencia y Devias.
+constexpr std::array<std::uint8_t, 2> TalkMaps{0, 2};
 
 CrtRandom Advanced(CrtRandom random, int count)
 {
@@ -83,10 +87,10 @@ public:
 class TalkingHero
 {
 public:
-    TalkingHero()
+    explicit TalkingHero(std::uint8_t map = 0)
     {
         Client::Scenes::WorldRuntime& runtime = world.Runtime();
-        runtime.map = 0;
+        runtime.map = map;
         // Las misiones ya tienen la clase: sin el A0.
         runtime.quest.characterClass = 0;
         auto& terrain = world.Map().terrain;
@@ -205,25 +209,29 @@ CrtRandom AfterTheStop(const CrtRandom& start)
 // tienda de NPC saca su rand() antes de las celdas del héroe.
 TEST(NpcTalkTest, AClickOnTheChosenNpcWalksToItsCell)
 {
-    const auto tested = std::make_unique<TalkingHero>();
-    const CrtRandom start = tested->random;
-    const auto clicked = tested->Click();
-    ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
-    EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 185 115"}));
-    ASSERT_TRUE(tested->randomAtTheWalk.has_value());
-    EXPECT_EQ(tested->randomAtTheWalk->State(), Advanced(start, BeforeTheClickRandoms + 1 + 8).State());
-    EXPECT_EQ(tested->random.State(), Advanced(start, BeforeTheClickRandoms + 1 + 8 + AfterTheWalkRandoms).State());
-    const auto& movement = tested->world.Runtime().movement;
-    EXPECT_EQ(tested->Hero().movementType, Client::Scenes::NpcTalkMovement);
-    EXPECT_EQ(tested->Hero().movement, 1);
-    EXPECT_EQ(movement.attackTarget, 7);
-    EXPECT_EQ(movement.chosenNpc, 7);
-    EXPECT_EQ(movement.chosenNpcType, 0xf9);
-    EXPECT_EQ(movement.chosenNpcAngle, 0x42b40000u);
-    EXPECT_EQ(movement.targetX, 185u);
-    EXPECT_EQ(movement.targetY, 115u);
-    // 0x59dc48: sigue en 0x59e248, que suma MouseUpdateTime.
-    EXPECT_EQ(movement.mouseUpdateTime, 1);
+    for (const std::uint8_t map : TalkMaps)
+    {
+        SCOPED_TRACE(map);
+        const auto tested = std::make_unique<TalkingHero>(map);
+        const CrtRandom start = tested->random;
+        const auto clicked = tested->Click();
+        ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
+        EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 185 115"}));
+        ASSERT_TRUE(tested->randomAtTheWalk.has_value());
+        EXPECT_EQ(tested->randomAtTheWalk->State(), Advanced(start, BeforeTheClickRandoms + 1 + 8).State());
+        EXPECT_EQ(tested->random.State(), Advanced(start, BeforeTheClickRandoms + 1 + 8 + AfterTheWalkRandoms).State());
+        const auto& movement = tested->world.Runtime().movement;
+        EXPECT_EQ(tested->Hero().movementType, Client::Scenes::NpcTalkMovement);
+        EXPECT_EQ(tested->Hero().movement, 1);
+        EXPECT_EQ(movement.attackTarget, 7);
+        EXPECT_EQ(movement.chosenNpc, 7);
+        EXPECT_EQ(movement.chosenNpcType, 0xf9);
+        EXPECT_EQ(movement.chosenNpcAngle, 0x42b40000u);
+        EXPECT_EQ(movement.targetX, 185u);
+        EXPECT_EQ(movement.targetY, 115u);
+        // 0x59dc48: sigue en 0x59e248, que suma MouseUpdateTime.
+        EXPECT_EQ(movement.mouseUpdateTime, 1);
+    }
 }
 
 // 0x59dab8: con el bit 0x10000000 de +0x7c el clic camina igual, pero +0x379 queda como estaba.
@@ -272,21 +280,25 @@ TEST(NpcTalkTest, WithoutAPathTheHeroTalksInPlace)
 // 0x59b2f7: el héroe camina hasta el NPC y, al terminar el camino, 0x5650c0 con +0x379 en 2 le habla.
 TEST(NpcTalkTest, TheHeroTalksWhenItArrives)
 {
-    const auto tested = std::make_unique<TalkingHero>();
-    ASSERT_TRUE(tested->Click().HasValue());
-    ActorState& hero = tested->Hero();
-    ASSERT_EQ(hero.movement, 1);
-    constexpr int StepLimit = 100;
-    for (int step = 0; step < StepLimit && hero.movement != 0; ++step)
+    for (const std::uint8_t map : TalkMaps)
     {
-        const auto stepped = Client::Scenes::StepHeroMovement(tested->Context());
-        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        SCOPED_TRACE(map);
+        const auto tested = std::make_unique<TalkingHero>(map);
+        ASSERT_TRUE(tested->Click().HasValue());
+        ActorState& hero = tested->Hero();
+        ASSERT_EQ(hero.movement, 1);
+        constexpr int StepLimit = 100;
+        for (int step = 0; step < StepLimit && hero.movement != 0; ++step)
+        {
+            const auto stepped = Client::Scenes::StepHeroMovement(tested->Context());
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        }
+        EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 185 115", "30 8123"}));
+        EXPECT_EQ(hero.movement, 0);
+        EXPECT_EQ(hero.cellX, 185);
+        EXPECT_EQ(tested->world.Runtime().movement.chosenNpc, -1);
+        EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTimeMax, 12);
     }
-    EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 185 115", "30 8123"}));
-    EXPECT_EQ(hero.movement, 0);
-    EXPECT_EQ(hero.cellX, 185);
-    EXPECT_EQ(tested->world.Runtime().movement.chosenNpc, -1);
-    EXPECT_EQ(tested->world.Runtime().movement.mouseUpdateTimeMax, 12);
 }
 
 // 0x4eac41 y 0x59dc32: el camino a un altar de Crywolf activo y un NPC fuera del mapa cortan.
@@ -314,22 +326,26 @@ TEST(NpcTalkTest, TheCrywolfAltarAndAnNpcOutsideTheMapAreCut)
 // MouseUpdateTime en 12 y las banderas de los paneles en 0.
 TEST(NpcTalkTest, TheArrivalStopsTheHeroAndSendsTheTalk)
 {
-    const auto tested = std::make_unique<TalkingHero>();
-    auto& runtime = tested->world.Runtime();
-    runtime.panels.repairMode = 2;
-    runtime.panels.field78abb09 = 1;
-    runtime.byte6eeda8 = 1;
-    const CrtRandom expected = Advanced(AfterTheStop(tested->random), OwnRecordRandoms + C3Randoms);
-    const auto arrived = tested->Arrive();
-    ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
-    EXPECT_EQ(tested->events, (std::vector<std::string>{"30 8123"}));
-    EXPECT_EQ(tested->random.State(), expected.State());
-    EXPECT_EQ(tested->Hero().movement, 0);
-    EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 12);
-    EXPECT_EQ(runtime.movement.chosenNpc, -1);
-    EXPECT_EQ(runtime.panels.repairMode, 0);
-    EXPECT_EQ(runtime.panels.field78abb09, 0);
-    EXPECT_EQ(runtime.byte6eeda8, 0);
+    for (const std::uint8_t map : TalkMaps)
+    {
+        SCOPED_TRACE(map);
+        const auto tested = std::make_unique<TalkingHero>(map);
+        auto& runtime = tested->world.Runtime();
+        runtime.panels.repairMode = 2;
+        runtime.panels.field78abb09 = 1;
+        runtime.byte6eeda8 = 1;
+        const CrtRandom expected = Advanced(AfterTheStop(tested->random), OwnRecordRandoms + C3Randoms);
+        const auto arrived = tested->Arrive();
+        ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
+        EXPECT_EQ(tested->events, (std::vector<std::string>{"30 8123"}));
+        EXPECT_EQ(tested->random.State(), expected.State());
+        EXPECT_EQ(tested->Hero().movement, 0);
+        EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 12);
+        EXPECT_EQ(runtime.movement.chosenNpc, -1);
+        EXPECT_EQ(runtime.panels.repairMode, 0);
+        EXPECT_EQ(runtime.panels.field78abb09, 0);
+        EXPECT_EQ(runtime.byte6eeda8, 0);
+    }
 }
 
 // 0x5674f4 y 0x56751b: sin NPC elegido solo para; con un +0x376 de menos de 0xcd, 0x6c8e54 en −1 sin el registro.
@@ -415,16 +431,20 @@ TEST(NpcTalkTest, SomeWordsLeaveTheirFlags)
 // antes del 30, cada C3 con sus dos rand().
 TEST(NpcTalkTest, TheQuestWindowClosesAndTheQuestListGoesFirst)
 {
-    const auto tested = std::make_unique<TalkingHero>();
-    auto& runtime = tested->world.Runtime();
-    runtime.panels.delegated.quest = 1;
-    runtime.quest.characterClass = 0xff;
-    const CrtRandom expected = Advanced(AfterTheStop(tested->random), OwnRecordRandoms + C3Randoms + C3Randoms);
-    const auto arrived = tested->Arrive();
-    ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
-    EXPECT_EQ(tested->events, (std::vector<std::string>{"31", "A0", "30 8123"}));
-    EXPECT_EQ(runtime.panels.delegated.quest, 0);
-    EXPECT_EQ(tested->random.State(), expected.State());
+    for (const std::uint8_t map : TalkMaps)
+    {
+        SCOPED_TRACE(map);
+        const auto tested = std::make_unique<TalkingHero>(map);
+        auto& runtime = tested->world.Runtime();
+        runtime.panels.delegated.quest = 1;
+        runtime.quest.characterClass = 0xff;
+        const CrtRandom expected = Advanced(AfterTheStop(tested->random), OwnRecordRandoms + C3Randoms + C3Randoms);
+        const auto arrived = tested->Arrive();
+        ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
+        EXPECT_EQ(tested->events, (std::vector<std::string>{"31", "A0", "30 8123"}));
+        EXPECT_EQ(runtime.panels.delegated.quest, 0);
+        EXPECT_EQ(tested->random.State(), expected.State());
+    }
 }
 
 // 0x5674d2 y 0x567b00..0x5688fd: con Crywolf activo el héroe no se para; el elfo frente a un altar corta (hito 11) y

@@ -111,9 +111,10 @@ struct GameData
 // que no se lee o es corto es un error que lo nombra. movereq.bmd, antes de las tablas de los conjuntos como en
 // 0x61ccb0, también: sin él, la ventana /move queda sin destinos (0x448440 devuelve 0 y nadie lo mira);
 // uno que no se lee, corto o con un nombre sin terminar es un error que lo nombra. Antes de movereq.bmd, Dialog.bmd
-// y quest.bmd (0x61eb69 y 0x61eb7c): uno que no está queda con sus 200 registros vacíos; uno que no se lee, corto o
-// (Dialog.bmd) con más de 10 respuestas en un registro es un error que lo nombra. Detrás de las tablas de los
-// conjuntos, NpcName(Eng).txt (0x61ed05): uno que no está deja la tabla vacía; uno que no se lee, de más de 1 MiB o que
-// el original no cargaría sin pisar otra cosa (Data::Text::LoadNpcNames) es un error que lo nombra.
+// y quest.bmd (0x61eb69 y 0x61eb7c): uno que no está queda con sus 200 registros vacíos; uno corto, con lo que deja
+// su fread (Q-C1127); uno que no se lee, de menos de un registro o (Dialog.bmd) con más de 10 respuestas en un
+// registro es un error que lo nombra. Detrás de las tablas de los conjuntos, NpcName(Eng).txt (0x61ed05): uno que no
+// está deja la tabla vacía; uno que no se lee, de más de 1 MiB o que el original no cargaría sin pisar otra cosa
+// (Data::Text::LoadNpcNames) es un error que lo nombra.
 [[nodiscard]] Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot);
 } // namespace Client::Scenes

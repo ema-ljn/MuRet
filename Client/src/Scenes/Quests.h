@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <span>
 #include <string>
+#include <string_view>
 
 namespace Client::Render::Models
 {
@@ -22,6 +23,7 @@ namespace Client::Scenes
 {
 class WorldState;
 struct OwnInventory;
+struct WorldRuntime;
 
 // Lo que leen las funciones que abren el registro propio o muestran un diálogo.
 struct QuestContext
@@ -42,14 +44,14 @@ struct QuestContext
                                             std::uint8_t characterClass);
 
 // 0x4195c0(índice) (y 0x419560 con un índice): el byte índice / 4 (división con signo) corrido 2 · ((índice − índice /
-// 4) & 0xf) bits, & 3. El SHR de 8 bits da 0 con una cuenta de 8 o más: solo las misiones 0 a 3 se leen donde las
-// escribe el GS (Q-C841). Del 200 al 255 lee los campos que siguen a los 50 bytes (+0x2137e a +0x2138b): la 255 de la
-// vuelta de Q-C842 lee el byte alto del zen de +0x21388, 0 con el quest.bmd real. +0x21383 y +0x21387, que QuestState
-// no tiene, y un índice negativo o desde 256 dan 0 en MuRet.
-[[nodiscard]] std::uint8_t QuestStateOf(const QuestState& quest, std::int32_t index);
+// 4) & 0xf) bits, & 3, del objeto de `runtime.quest`. El SHR de 8 bits da 0 con una cuenta de 8 o más: solo las
+// misiones 0 a 3 se leen donde las escribe el GS (Q-C841). Del 200 al 255 lee los campos que siguen a los 50 bytes
+// (+0x2137e a +0x2138b, con la ventana de +0x21383 en `runtime.panels`): la 255 de la vuelta de Q-C842 lee el byte alto
+// del zen de +0x21388, 0 con el quest.bmd real. Un índice negativo o desde 256 da 0 en MuRet.
+[[nodiscard]] std::uint8_t QuestStateOf(const WorldRuntime& runtime, std::int32_t index);
 
 // 0x419560(−1): el estado de la misión en curso (+0x2137e, sin signo) en +0x21386.
-void ReadTheCurrentQuestState(QuestState& quest);
+void ReadTheCurrentQuestState(WorldRuntime& runtime);
 
 // 0x558410(tipo, cuenta, nivel): las 64 casillas del inventario con ese tipo (el short de +0, con signo), ocupadas
 // (+0x3c > 0) y, si el nivel no es −1, con ((+4 >> 3) & 0xf) igual. 0 si llega a la cuenta; si no, cuántos faltan.
@@ -61,15 +63,18 @@ void ReadTheCurrentQuestState(QuestState& quest);
 // encima; la primera misión de las `count` que no está terminada en +0x2137e y +0x2137f; y +0x390 del héroe en 1 si la
 // misión 3 está terminada. `bytes` son los que trae el paquete después de pkt[3]: el original copia `count` aunque el
 // paquete sea más corto (el GS 0.97 manda la cuenta sin los bytes, Q-C840); lo que falta va en 0 (P-C171). Una cuenta
-// de más de 50 pisaría +0x2137e y lo que sigue: corta.
-[[nodiscard]] Core::Expected<void, std::string> ApplyTheQuestList(WorldState& world, std::uint8_t count,
-                                                                  std::span<const std::uint8_t> bytes);
+// de más de 50 sigue por los campos del objeto (+0x2137e.., también el +0x2138d de recién y la esquina) hasta su final,
+// +0x21398, como el original; lo que pasaría de él no se escribe (Q-C1126). Devuelve cuántos bytes quedaron afuera.
+[[nodiscard]] std::size_t ApplyTheQuestList(WorldState& world, std::uint8_t count, std::span<const std::uint8_t> bytes);
 
 // 0x418ee0(índice, estado), del A1 y del A2: +0x2137e = índice, +0x2137f = el mayor, el byte índice >> 2 entero con
-// `state` (el GS manda el byte con las cuatro misiones, Q-C843) y +0x390 del héroe según la misión 3. Un índice de 200
-// o más escribiría fuera de los 50 bytes: corta.
-[[nodiscard]] Core::Expected<void, std::string> SetTheQuestState(WorldState& world, std::uint8_t index,
-                                                                 std::uint8_t state);
+// `state` (el GS manda el byte con las cuatro misiones, Q-C843) y +0x390 del héroe según la misión 3. Desde la misión
+// 200 el byte es uno de los campos que siguen a los 50 (también +0x2137e y +0x2137f de recién, Q-C1126).
+void SetTheQuestState(WorldState& world, std::uint8_t index, std::uint8_t state);
+
+// Si `error` es el de un registro fuera de los 200 de +0xc (Q-C842): el original sigue leyendo después del objeto,
+// memoria que MuRet no modela. Los paquetes que llegan ahí (el A1 y el A2) lo descartan con un aviso.
+[[nodiscard]] bool ReadsAQuestOutsideTheRecords(std::string_view error);
 
 // 0x418f40(registro, lugar): el diálogo `slot` (0 a 3) del primer pedido con la marca de la clase de +4. Sin ninguno,
 // −−+0x2137e, 0x419600(0xff) y +0x21384. Un registro fuera de los 200 corta (0 − 1 es 255, Q-C842).

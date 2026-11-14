@@ -10020,8 +10020,9 @@ con cada `rand()` en su lugar entre los del alta. `LoadMonster` y `LoadNpc` carg
 monstruos y los NPC](#los-modelos-de-los-monstruos-y-los-npc); sin el `Monster*.bmd` corta, como el cierre del
 original, P-C173) y `Action` usa sus acciones (`Scenes::SetMonsterAction`). `MeshFlag` y `ModelByte` quedan en `WorldRuntime::modelPatches` y `BoneName` en `WorldRuntime::namedBones`;
 el sonido, en `WorldRuntime::lastSoundId` (CL10). Cortan los joints y la llegada (CL11) y el asedio prendido (CL9.5),
-08, P-C175. El nombre se guarda en `+0x1d9..+0x1f1` (el nombre, `+0x1e3` y `ActorState::nameSpill`); lo que pisaría
-`+0x1f2` corta (Q-C847). `ConstructActor` pone la caja y los huesos por tipo.
+08, P-C175. El nombre se guarda en `+0x1d9..+0x1f1` (el nombre, `+0x1e3` y `ActorState::nameSpill`); uno más largo
+sigue por el `WORD` de `+0x1f2`, la clave y la cabeza como en el original, y lo que llegaría a `+0x218` corta (Q-C847,
+P-C352). `ConstructActor` pone la caja y los huesos por tipo.
 
 ### Los modelos de los monstruos y los NPC
 
@@ -10130,9 +10131,10 @@ posición, con los lados `+0x130..+0x138` menos el piso (*inferido* que vale la 
 **MuRet** (`Scenes/MonsterViewport.h`, `Scenes/MonsterCreation.h`): `ApplyViewportMonsters`, `ApplySummons` y
 `ApplyViewportObjects`, con `ArriveAsNew` (`0x4c9790`); `ApplyTransformed` da de alta con `CreateMonster` y el `DF`
 empuja al `0xf1`. Cortan con su dirección, después de lo que el original hace antes: la puerta del asedio (`0x4c9f0f` y
-`0x4e0bd1`, CL9.5), el freno del `0x35` (`0x4c982b`), la llegada del `0x154` (`0x4c9883`, CL11), la acción sin el
-esqueleto del modelo (P-C176), el invocado que llega (`0x51747c` y `0x4ca5f6`, CL11), los joints del `DF` (`0x4c6c9d`,
-CL11) y el nombre que pisaría `+0x1f2` (Q-C847). `CharacterPicking` usa la caja de cada tipo. Tests:
+`0x4e0bd1`, CL9.5), el freno del `0x35` (`0x4c982b`: `0x53fe70` y `0x518cf0`, CL11, P-C54 c), la llegada del `0x154`
+(`0x4c9883`, CL11), la acción sin el esqueleto del modelo (P-C176), el invocado que llega (`0x51747c` y `0x4ca5f6`,
+CL11), los joints del `DF` (`0x4c6c9d`, CL11), el nombre que llegaría a `+0x218` (Q-C847) y el formato de un invocado
+que lee más de lo que `0x517400` le pasa (P-C356). `CharacterPicking` usa la caja de cada tipo. Tests:
 `MonsterViewportTest` (Lorencia, Devias, Devil Square, Castle Siege y Crywolf),
 `ViewportPlayersTest.TheTransformedIsCreatedByItsType`, `ShownEquipmentTest`, `ActorConstructionTest`,
 `CharacterPickingTest.TheBoxComesFromTheConstructedType` y `ServerSessionTest.TheMonsterPacketsReachTheSinkInWireOrder`.

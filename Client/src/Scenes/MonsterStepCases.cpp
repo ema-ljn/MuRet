@@ -105,8 +105,11 @@ Core::Expected<void, std::string> QueueTheGateName(const ActorState& actor, cons
     const std::optional<std::string_view> format = texts->Text(LevelText);
     if (!format)
         return Core::Unexpected<std::string>("0x4fd63b: Text.bmd no tiene el texto 1176");
-    const std::string name = ActorText(actor);
-    std::string text = UI::Sprintf("%s .", std::string_view(name));
+    // 0x4fd625: el wsprintfA del nombre de +0x1d9, que sin 0 seguiría en +0x1f6 (Q-C847).
+    const auto name = ActorCString(actor, 0x4fd625);
+    if (!name.HasValue())
+        return Core::Unexpected(name.Error());
+    std::string text = UI::Sprintf("%s .", std::string_view(name.Value()));
     text += UI::Sprintf(*format, static_cast<std::uint32_t>(actor.level));
     // 0x4fd5f3: los dos buffers de la pila son de 100 bytes (0xf8 − 0x94).
     constexpr std::size_t Buffer = 100;

@@ -70,6 +70,8 @@ TEST(DialogTable, ReadsTheTextTheAnswersTheirNextAndTheirAction)
     EXPECT_EQ(DialogAnswerOf(dialog, 10), "");
 }
 
+// 0x419710 y 0x632f70 escribirían los renglones de la undécima respuesta en adelante fuera de los 10 de 0x7d3691c,
+// sobre el texto de 0x7d36a98 y lo que sigue: corta al cargar (Q-C1127).
 TEST(DialogTable, MoreThanTenAnswersWouldWriteOutsideTheRows)
 {
     std::vector<std::byte> plain(DialogTableSize);
@@ -79,11 +81,46 @@ TEST(DialogTable, MoreThanTenAnswersWouldWriteOutsideTheRows)
     EXPECT_EQ(loaded.Error(), DataError::InvalidData);
 }
 
-TEST(DialogTable, AShortFileIsAnError)
+// 0x54b343..0x54b37e con el fread de 0x69fecb: un registro y medio. El segundo es su mitad leída con la otra mitad del
+// primero, ya descifrada, que el XOR3 vuelve a cifrar; desde el tercero no se lee nada y el bloque se descifra una vez
+// más cada vez. Con menos de un registro, el resto del bloque sin iniciar es un error (Q-C1127).
+TEST(DialogTable, AShortFileKeepsWhatItsFreadLeaves)
 {
-    const std::vector<std::byte> file(DialogTableSize - 1);
+    const auto tooShort = LoadDialogTable(std::vector<std::byte>(DialogRecordSize - 1));
+    ASSERT_FALSE(tooShort.HasValue());
+    EXPECT_EQ(tooShort.Error(), DataError::FileTooShort);
+
+    constexpr std::size_t Half = DialogRecordSize / 2;
+    std::vector<std::byte> plain(2 * DialogRecordSize);
+    const std::span<std::byte> first = std::span(plain).first(DialogRecordSize);
+    const std::span<std::byte> second = std::span(plain).subspan(DialogRecordSize, DialogRecordSize);
+    PutText(first, 0, "Primero inventado");
+    PutInt(first, 0x12c, 2);
+    PutText(first, 0x180, "Uno");
+    PutText(first, 0x280, "Cinco");
+    PutText(second, 0, "Segundo inventado");
+    PutInt(second, 0x12c, 1);
+    PutText(second, 0x180, "Otro");
+    std::vector<std::byte> file = plain;
+    Client::Core::Xor3(std::span(file).first(DialogRecordSize));
+    Client::Core::Xor3(std::span(file).subspan(DialogRecordSize, DialogRecordSize));
+    file.resize(DialogRecordSize + Half);
+
     const auto loaded = LoadDialogTable(file);
-    ASSERT_FALSE(loaded.HasValue());
-    EXPECT_EQ(loaded.Error(), DataError::FileTooShort);
+    ASSERT_TRUE(loaded.HasValue());
+    const auto& dialogs = loaded.Value();
+    ASSERT_EQ(dialogs.size(), DialogCount);
+    EXPECT_EQ(DialogTextOf(dialogs[0]), "Primero inventado");
+    EXPECT_EQ(DialogAnswerOf(dialogs[0], 4), "Cinco");
+    EXPECT_EQ(DialogTextOf(dialogs[1]), "Segundo inventado");
+    EXPECT_EQ(dialogs[1].answerCount, 1);
+    EXPECT_EQ(DialogAnswerOf(dialogs[1], 0), "Otro");
+    EXPECT_NE(DialogAnswerOf(dialogs[1], 4), "Cinco");
+    // El tercero, el bloque del segundo descifrado otra vez: la mitad del archivo cifrada y la del primero en claro.
+    EXPECT_NE(DialogTextOf(dialogs[2]), "Segundo inventado");
+    EXPECT_EQ(DialogAnswerOf(dialogs[2], 4), "Cinco");
+    EXPECT_EQ(dialogs[3], dialogs[1]);
+    EXPECT_EQ(dialogs[DialogCount - 1], dialogs[3]);
+    EXPECT_EQ(dialogs[DialogCount - 2], dialogs[2]);
 }
 } // namespace

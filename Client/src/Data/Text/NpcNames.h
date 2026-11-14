@@ -44,9 +44,11 @@ struct NpcNameRecord
     friend bool operator==(const NpcNameRecord&, const NpcNameRecord&) = default;
 };
 
-// Los registros que escribe 0x54e7f0 con `file`, en su orden. InvalidData donde el original pisaría otra cosa o no
-// terminaría: un nombre que no entra en sus 0x34 bytes con su '\0' (strcpy seguiría en el registro siguiente), más de
-// 512 registros (después viene 0x7688ab8), una cadena o un nombre de 0x108 bytes o más, un número de 0x64 o más, un
+// Los registros que escribe 0x54e7f0 con `file`, en su orden. Un nombre que no entra en sus 0x34 bytes con su '\0'
+// sigue, como el strcpy del original, en el tipo y el nombre de los registros que siguen, que el registro siguiente
+// pisa con lo suyo; los que solo toca ese nombre después del último leído también se devuelven. InvalidData donde el
+// original escribiría fuera de la tabla o no terminaría: un nombre que pasaría de 0x7688ab8, más de 512 registros
+// (después viene 0x7688ab8), una cadena o un nombre de 0x108 bytes o más, un número de 0x64 o más, un
 // comentario que llega al final del archivo sin '\n' (0x54e925 no sale nunca), un byte de 0x80 a 0xfe donde el
 // tokenizador le pregunta a isspace, isdigit o isalnum (con el char con signo, fuera de la tabla de la CRT) y un ftol
 // fuera de int64. El último número empieza en 0 (la .bss; *inferido*: en la versión de release ningún otro cargador
